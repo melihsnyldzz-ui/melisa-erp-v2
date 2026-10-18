@@ -216,6 +216,7 @@ test('console auxiliaries require exact signed binary, selected parent and zero 
  $child=[pscustomobject]@{ProcessId=11;ParentProcessId=10;Name='conhost.exe';ExecutablePath='C:\\Windows\\System32\\conhost.exe';CommandLine='\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4';CreationDate=[DateTime]::Parse('2026-10-18T00:00:01Z')}
  $inv=[pscustomobject]@{all=@([pscustomobject]@{ProcessId=10;ParentProcessId=1;Name='node.exe'},$child);allListeners=@()}
  ConsoleAuxiliaries $inv @($parent)
+ $script:tasksStopRequested=$true;$inv.all=@($child);ConsoleAuxiliaries $inv @();$script:tasksStopRequested=$false;$inv.all=@([pscustomobject]@{ProcessId=10;ParentProcessId=1;Name='node.exe'},$child)
  $inv.allListeners=@([pscustomobject]@{OwningProcess=11});try{ConsoleAuxiliaries $inv @($parent)}catch{$_.Exception.Message}
  $script:consolePins=@{};$inv.allListeners=@();$child.CommandLine+=' arbitrary';try{ConsoleAuxiliaries $inv @($parent)}catch{$_.Exception.Message}`;
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/11/);assert.match(out,/CONSOLE_LISTENER/);assert.match(out,/CONSOLE_SOURCE/);
@@ -226,4 +227,10 @@ test('observer retains orphan descendants of captured exited old process and wat
  const src=readFileSync(script,'utf8').replaceAll('\r\n','\n');const start=src.indexOf(' do{\n  $selectedPids=');const end=src.indexOf(' $processes=@()',start);assert.ok(start>=0&&end>start);const closure=src.slice(start,end);
  const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$pids=@(10,20);$selected=@();$all=@([pscustomobject]@{ProcessId=11;ParentProcessId=10},[pscustomobject]@{ProcessId=12;ParentProcessId=11},[pscustomobject]@{ProcessId=21;ParentProcessId=20},[pscustomobject]@{ProcessId=99;ParentProcessId=1});${closure};$selected.ProcessId -join ','`;
  const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/11,21,12/);assert.doesNotMatch(out,/99/);
+});
+
+test('failure diagnostic records bounded type/line and hides arbitrary exception messages',windows,()=>{
+ const src=readFileSync(rollback,'utf8');const fn=src.slice(src.indexOf('function FailureDiagnostic('),src.indexOf('function Append('));
+ const code=`$ErrorActionPreference='Stop';${fn};try{throw 'secret-diagnostic-text'}catch{FailureDiagnostic $_|ConvertTo-Json -Compress}`;
+ const out=execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{encoding:'utf8'});assert.match(out,/sourceLine/);assert.match(out,/P03_PHYSICAL_UNCLASSIFIED/);assert.doesNotMatch(out,/secret-diagnostic-text/);
 });

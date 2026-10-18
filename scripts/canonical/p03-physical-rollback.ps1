@@ -235,12 +235,20 @@ function VerifyRule($rule){
  }else{$exe=$newSettings.node}
  NoReparse $exe.path;Need ((Get-FileHash -LiteralPath $exe.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $exe.sha256) 'RULE_EXECUTABLE_HASH'
 }
-function Append([string]$event,$extra=$null){
+function FailureDiagnostic($failure){
+ $known=@('System.Management.Automation.PropertyNotFoundException','System.Management.Automation.RuntimeException','System.Management.Automation.MethodInvocationException','System.Management.Automation.ParameterBindingException','System.InvalidOperationException','System.UnauthorizedAccessException','System.IO.IOException')
+ $type=$failure.Exception.GetType().FullName;if($type -cnotin $known){$type='OtherException'}
+ $line=[int]$failure.InvocationInfo.ScriptLineNumber;if($line -lt 1 -or $line -gt 10000){$line=0}
+ $code=if($failure.Exception.Message -cmatch '\AP03_PHYSICAL_[A-Z0-9_]{1,80}\z'){$failure.Exception.Message}else{'P03_PHYSICAL_UNCLASSIFIED'}
+ return [ordered]@{exceptionType=$type;sourceLine=$line;code=$code}
+}
+function Append([string]$event,$extra=$null,$failure=$null){
  $events=@(Get-ChildItem -LiteralPath $profile.journalDirectory -File|Where-Object{$_.Name -cmatch '\Aevent-[0-9]{4}\.json\z'})
  Need ($events.Count -eq $script:sequence) 'EVENT_CAS_COUNT'
  if($script:sequence -gt 0){[void](ReadPinned (Join-Path $profile.journalDirectory ('event-'+($script:sequence-1).ToString('0000')+'.json')) $script:previous)}else{Need ($script:previous -ceq $BeforeImageSha256) 'EVENT_INITIAL_TAIL'}
  $record=[ordered]@{sequence=$script:sequence;previousSha256=$script:previous;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;event=$event;observedAt=[DateTime]::UtcNow.ToString('o')}
  if($null -ne $extra){$record['pid']=[int]$extra}
+ if($null -ne $failure){$record['failure']=FailureDiagnostic $failure}
  $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($record|ConvertTo-Json -Compress));$target=Join-Path $profile.journalDirectory ('event-'+$script:sequence.ToString('0000')+'.json')
  $security=[Security.AccessControl.FileSecurity]::new();$security.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$security.SetAccessRuleProtection($true,$false)
  foreach($sid in @($owner,'S-1-5-18')){[void]$security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),[Security.AccessControl.FileSystemRights]::FullControl,[Security.AccessControl.AccessControlType]::Allow))}
@@ -641,7 +649,8 @@ if($Mode -ceq 'StopNew'){
   Append 'RECOVERY_COMPLETE'
   [ordered]@{status='RECOVERED_OLD_ACTIONS';environment=$Environment;profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;journalTailSha256=$script:previous;oldTasksStarted=$false}|ConvertTo-Json
  }catch{
-  if($recoveryAttempted){try{Append 'RECOVERY_FAILED';Append 'QUARANTINED'}catch{}}
+  $originalFailure=$_
+  if($recoveryAttempted){try{Append 'RECOVERY_FAILED' $null $originalFailure;Append 'QUARANTINED'}catch{}}
   throw
  }finally{$lock.Dispose()}
  return
@@ -693,6 +702,7 @@ try{
  Append 'RESTORED_READY'
  [ordered]@{status='RESTORED_READY';environment=$Environment;profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;journalTailSha256=$script:previous;stableSeconds=30;restoreExecuted=$false}|ConvertTo-Json
 }catch{
- if($rollbackAttempted){try{Append 'ROLLBACK_FAILED';Append 'QUARANTINED'}catch{}}
+ $originalFailure=$_
+ if($rollbackAttempted){try{Append 'ROLLBACK_FAILED' $null $originalFailure;Append 'QUARANTINED'}catch{}}
  throw
 }finally{$journalLock.Dispose()}
