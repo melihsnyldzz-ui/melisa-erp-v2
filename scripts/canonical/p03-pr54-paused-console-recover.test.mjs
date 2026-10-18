@@ -190,6 +190,48 @@ test('missing-field probe retry never admits live reused foreign wrong-parent or
  assert.match(out,/PARENT=FIXTURE_REJECT_PAUSED_PROBE_PARENT/);assert.match(out,/UNRELATED=ADMITTED=0/);assert.match(out,/FINAL_PINS=0/);
 });
 
+test('core probe wait excludes six authenticated OLD children but waits for admitted probes and rejects foreign or reused children',windows,()=>{
+ const out=run(`${fixture}\n${extract(['LegacyConsoleAuxiliaries','ProbeAuxiliaries','PausedRemainingCore','WaitCoreProbeAbsence'])}\n${String.raw`
+ function Authority{};function PrepareProbeSource{};function ProtectedProcesses($inv){};function ConsoleAuxiliaries($inv,$selected){return @()};function IsWatcherCommand($command){return $false}
+ function ProcessFor($pin){return [pscustomobject]@{ProcessId=$pin.pid;ParentProcessId=$pin.parentPid;Name='node.exe';ExecutablePath=$pin.nodePath;CommandLine=$pin.commandLine;OwnerSid=$pin.ownerSid;CreationDate=[DateTime]::Parse($pin.creationTime).ToUniversalTime()}}
+ function Start-Sleep{param($Milliseconds);Need ($Milliseconds -eq 250) 'CORE_WAIT_DELAY';$script:sleeps++}
+ function Stop-Process{throw 'FIXTURE_FORBIDDEN_PROCESS_STOP'}
+ function PausedTasks{
+  $script:captures++
+  if($script:probeExitAt -and $script:captures -ge $script:probeExitAt){$script:inv.all=@($script:inv.all|Where-Object{$_.ProcessId -ne 61000})}
+  return $script:inv
+ }
+ function PausedRemaining{return PausedRemainingCore}
+ function ResetCoreWaitFixture{
+  ResetFixture
+  $script:order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')
+  $appPids=@(49908,23272,15416,10344,32112,30080,31604,48100)
+  for($i=1;$i -lt $order.Count;$i++){
+   $parentPid=if($i -eq 1){49164}else{49908}
+   $pin=[pscustomobject]@{pid=$appPids[$i];parentPid=$parentPid;nodePath='C:\fixture\node.exe';commandLine=('captured-'+$order[$i]);ownerSid=$owner;creationTime='2026-10-16T22:56:22.0000000Z';bindings=@()}
+   $before.identities|Add-Member NoteProperty $order[$i] $pin
+  }
+  $script:inv.all=@($child)+@($order|Where-Object{$_ -ne 'coreSupervisor'}|ForEach-Object{ProcessFor $before.identities.$_})
+  $script:drainedPids=@($core.pid);$script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true
+  $script:probePath='C:\fixture\hub-stack-process-probe.ps1';$script:captures=0;$script:sleeps=0;$script:probeExitAt=0
+ }
+ ResetCoreWaitFixture
+ 'AUTHENTICATED_CORE_CHILDREN='+@($inv.all|Where-Object{$_.ParentProcessId -eq $core.pid}).Count
+ WaitCoreProbeAbsence;'OLD_ONLY_CAPTURES='+$script:captures;'OLD_ONLY_SLEEPS='+$script:sleeps
+ ResetCoreWaitFixture
+ $probePin=[pscustomobject]@{pid=61000;parentPid=$core.pid;nodePath='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';ownerSid=$owner;commandLine='captured-readonly-probe';creationTime='2026-10-16T22:56:23.0000000Z'}
+ $script:probePins[61000]=$probePin;$p=ProcessFor $probePin;$p.Name='powershell.exe';$inv.all+=,$p;$script:probeExitAt=3
+ WaitCoreProbeAbsence;'PROBE_CAPTURES='+$script:captures;'PROBE_SLEEPS='+$script:sleeps;'PROBE_CACHE='+$script:probePins.Count
+ ResetCoreWaitFixture;$inv.all+=,[pscustomobject]@{ProcessId=62000;ParentProcessId=$core.pid;Name='foreign.exe';CommandLine='foreign'}
+ try{WaitCoreProbeAbsence;throw 'FIXTURE_FOREIGN_ACCEPTED'}catch{'FOREIGN='+$_.Exception.Message}
+ ResetCoreWaitFixture;$changed=@($inv.all|Where-Object{$_.ProcessId -eq 15416})[0];$changed.CreationDate=$changed.CreationDate.AddTicks(1)
+ try{WaitCoreProbeAbsence;throw 'FIXTURE_REUSED_OLD_ACCEPTED'}catch{'REUSED_OLD='+$_.Exception.Message}
+ `}`);
+ assert.match(out,/AUTHENTICATED_CORE_CHILDREN=6/);assert.match(out,/OLD_ONLY_CAPTURES=1/);assert.match(out,/OLD_ONLY_SLEEPS=0/);
+ assert.match(out,/PROBE_CAPTURES=3/);assert.match(out,/PROBE_SLEEPS=2/);assert.match(out,/PROBE_CACHE=1/);
+ assert.match(out,/FOREIGN=FIXTURE_REJECT_PAUSED_DRAIN_FOREIGN_PROCESS/);assert.match(out,/REUSED_OLD=FIXTURE_REJECT_PAUSED_REMAINING_IDENTITY/);
+});
+
 test('recovery source keeps failed evidence pinned and creates a distinct one-shot console attempt',()=>{
  const s=readFileSync(source,'utf8');
  assert.match(s,/fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037/);

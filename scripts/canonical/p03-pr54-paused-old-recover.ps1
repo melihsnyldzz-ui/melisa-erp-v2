@@ -83,6 +83,19 @@ function WaitLegacyConsoleAbsence{
  do{$inv=PausedRemaining;$live=@($inv.all|Where-Object{$_.ProcessId -in @($script:legacyConsolePins.Keys)});if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
  Need $false 'PAUSED_LEGACY_CONSOLE_NOT_ABSENT'
 }
+function WaitCoreProbeAbsence{
+ $until=[DateTime]::UtcNow.AddSeconds(20)
+ do{
+  # PausedRemaining has already authenticated every remaining OLD application.
+  # Those children are stopped in their own later steps, not mistaken for probes.
+  $check=PausedRemaining
+  $remainingOld=@($before.identities.PSObject.Properties|Where-Object{$_.Value.pid -notin $script:drainedPids}|ForEach-Object{[int]$_.Value.pid})
+  $cutPids=@([int]$before.identities.coreSupervisor.pid)+@($script:probePins.Keys)
+  $live=@($check.all|Where-Object{($_.ProcessId -in $cutPids -or $_.ParentProcessId -in $cutPids) -and $_.ProcessId -notin $remainingOld})
+  if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250
+ }while([DateTime]::UtcNow -lt $until)
+ Need $false 'PAUSED_PROBE_NOT_ABSENT'
+}
 function SourceBytes([string]$path,[string]$sha){NoReparse $path;$f=[IO.File]::Open($path,'Open','Read','None');try{$m=[IO.MemoryStream]::new();$f.CopyTo($m);$b=$m.ToArray();Need ((Hash $b) -ceq $sha) 'PAUSED_PROBE_SOURCE_HASH';return ,$b}finally{$f.Dispose()}}
 function ProbeArgumentsAllowed($argv,[string]$probe){
    foreach($role in @('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')){
@@ -193,9 +206,7 @@ try{
   Need (@((Inventory).all|Where-Object{$_.ProcessId -eq $e.pid}).Count -eq 0) 'PAUSED_DRAIN_ABSENCE'
   $script:drainedPids+=,[int]$e.pid
   if($role -ceq 'coreSupervisor'){
-   $script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true;$until=[DateTime]::UtcNow.AddSeconds(20)
-   do{$check=PausedRemaining;$cutPids=@([int]$before.identities.coreSupervisor.pid)+@($script:probePins.Keys);$liveProbes=@($check.all|Where-Object{$_.ProcessId -in $cutPids -or $_.ParentProcessId -in $cutPids});if($liveProbes.Count -eq 0){break};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
-   Need ($liveProbes.Count -eq 0) 'PAUSED_PROBE_NOT_ABSENT'
+   $script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true;WaitCoreProbeAbsence
   }
  }
  $script:capturedCandidatePids=@($selected|ForEach-Object{$_.pid});WaitLegacyConsoleAbsence;WaitConsoleAbsence;PausedEmpty;Authority
