@@ -122,7 +122,7 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  need(rehearsal.engineSha256===engineRef.sha256&&rehearsal.engine?.sha256===engineRef.sha256,'SAME_REHEARSED_ENGINE_REQUIRED');
  const sharedArgs=['-Environment','Shared','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256];
  async function engine(action,extra=[]){pin(engineRef);pin(profileRef);pin(beforeRef);const r=await run(shell,['-NoProfile','-NonInteractive','-File',engineRef.path,...sharedArgs,'-Mode',action,...extra],{...opts,timeout:900000});need(!r.stderr,'ENGINE_STDERR');return JSON.parse(r.stdout);}
- async function observeRef(ref){pin(ref);const r=await run(shell,['-NoProfile','-NonInteractive','-File',ref.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256],opts);need(!r.stderr,'OBSERVER_STDERR');return JSON.parse(r.stdout);}
+ async function observeRef(ref){return pr54CollectPhysicalObservation(async()=>{pin(ref);const r=await run(shell,['-NoProfile','-NonInteractive','-File',ref.path,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256],opts);need(!r.stderr,'OBSERVER_STDERR');return JSON.parse(r.stdout);});}
  async function inspectOldOwnerPhysical(){
   pin(successorDrainerRef);pin(recoveryHelperRef);pin(engineRef);
   const r=await run(shell,['-NoProfile','-NonInteractive','-File',successorDrainerRef.path,'-Mode','Inspect',...sharedArgs.slice(2),'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256],{...opts,timeout:180000});need(!r.stderr,'SUCCESSOR_INSPECT_STDERR');const frame=JSON.parse(r.stdout);

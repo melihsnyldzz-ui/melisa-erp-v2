@@ -45,7 +45,7 @@ test('whole physical observation recaptures only the frozen transient identity e
   let rejectedCalls=0;const failure=Error(code);await assert.rejects(pr54CollectPhysicalObservation(async()=>{rejectedCalls++;throw failure;}),error=>error===failure);assert.equal(rejectedCalls,1);
  }
  let exhausted=0;const failure=Error('P03_PROCESS_IDENTITY_UNAVAILABLE');await assert.rejects(pr54CollectPhysicalObservation(async()=>{exhausted++;throw failure;}),error=>error===failure);assert.equal(exhausted,3);
- const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/callbackName of \['admit','stopTasks','tasksStopped'\]/);assert.match(source,/callbackName!=='admit'&&result!==true/);
+ const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/callbackName of \['admit','stopTasks','tasksStopped'\]/);assert.match(source,/callbackName!=='admit'&&result!==true/);assert.match(source,/async function observeRef\(ref\)\{return pr54CollectPhysicalObservation/);assert.match(source,/async function physical\(\)\{return pr54CollectPhysicalObservation/);
 });
 test('protected writer transport keeps large payload out of command line, verifies hash and strict ACL and rejects overwrite',{skip:process.platform!=='win32'},()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'p03-writer-')),file=path.join(directory,'payload.bin'),bytes=crypto.randomBytes(256*1024),sha=hash(bytes);
