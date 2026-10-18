@@ -9,6 +9,8 @@ import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06St
 import {crm06StaffJournalExcludedPaths,crm06StaffJournalPhysicalArguments} from './crm06-staff-journal-preflight.mjs';
 import {assertErpHubProfile,erpHubFailureMetadata} from './wait-erp-for-hub.mjs';
 import {validateCompletionSettings} from './terminal-completion-logon.mjs';
+import {preparePr53OwnerProfile,PR53_OWNER_SUPERVISOR} from './p03-pr53-owner-preparation.mjs';
+import {crm06StaffJournalReferenceHash,CRM06_STAFF_JOURNAL_ROOT,CRM06_STAFF_JOURNAL_PATH} from './crm06-staff-journal-preflight.mjs';
 const erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM',runtime=erp+'\\runtime\\terminal-completion-logon',source='5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36',native='7a'.padEnd(40,'1'),sha='a'.repeat(64),owner='S-1-5-21-123-456-789-1001';
 const password=n=>`scrypt$${String(n).repeat(48)}$${String(n).repeat(128)}`;
 function fixture(){
@@ -168,6 +170,20 @@ test('PR53 journal is the prior lineage policy plus its exact successor',()=>{
  assert.deepEqual(next,[...old,p.successorPath].sort());
  assert.deepEqual(crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:pr53Variant,excludedPaths:next,ownerSid:owner}).slice(-4),['-Source',integratedCrmSource,'-ProfileVariant',pr53Variant]);
  assert.throws(()=>crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:pr53Variant,excludedPaths:old,ownerSid:owner}));
+});
+
+test('PR53 owner helper binds exact pins and canonical lock and journal evidence hashes without IO',()=>{
+ const f=pr53Fixture(),profile=crm06StaffSuccessorProfile(integratedCrmSource,pr53Variant);
+ const parentInputs=Object.fromEntries(['baseline','parentActivation','parentAudit','parentSettings','parentSettingsRef','parentHubPin','parentHubStartup','ownerSid'].map(k=>[k,f[k]]));
+ const lock=(pin,module)=>({schemaVersion:1,sourceCommit:pin.sourceCommit,packageRoot:pin.packageRoot,files:[{path:module+'/node_modules/package/index.js',sha256:sha}]});
+ const erpDependencyLock=lock(pr53Erp,'apps/api'),crmDependencyLock=lock(f.crmPackagePin,'apps/gateway');
+ const references=crm06StaffJournalExcludedPaths(integratedCrmSource,pr53Variant).map(path=>({path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false}));
+ const meta=(path,directory,fileId)=>({path,ownerSid:owner,daclProtected:true,foreignWritable:false,foreignAllowed:false,volumeSerial:'1234ABCD',fileId,linkCount:1,reparse:false,directory});
+ const journalEvidence={schemaVersion:'crm06-staff-journal-physical.v1',status:'READY',path:CRM06_STAFF_JOURNAL_PATH,actorRoot:CRM06_STAFF_JOURNAL_ROOT,callerSid:owner,ancestorReparse:false,parent:meta(CRM06_STAFF_JOURNAL_ROOT,true,'0000000000000001'),journal:meta(CRM06_STAFF_JOURNAL_PATH,false,'0000000000000002'),references,referenceSha256:crm06StaffJournalReferenceHash(references)};
+ const input={parentInputs,erpDependencyLock,crmDependencyLock,journalEvidence,erpDependencyLockRef:{path:profile.erpDependencyLockPath,sha256:crm06SuccessorFileHash(erpDependencyLock)},crmDependencyLockRef:{path:profile.dependencyLockPath,sha256:crm06SuccessorFileHash(crmDependencyLock)},journalEvidenceRef:{path:profile.journalEvidencePath,sha256:crm06SuccessorFileHash(journalEvidence)}};
+ const before=structuredClone(input),next=preparePr53OwnerProfile(input);
+ assert.deepEqual(next.settings.supervisor,PR53_OWNER_SUPERVISOR);assert.deepEqual(input,before);assert.equal(next.receipt.installed,false);
+ for(const change of [x=>x.erpDependencyLock.files[0].sha256='0'.repeat(64),x=>x.journalEvidenceRef.sha256='0'.repeat(64),x=>x.journalEvidence.status='PREPARE_REQUIRED',x=>x.erpDependencyLockRef.path=runtime+'\\erpApiNative-1a03157a323e-dependency-lock.json']){const bad=structuredClone(input);change(bad);assert.throws(()=>preparePr53OwnerProfile(bad));}
 });
 const lineageErp={packageRoot:erp+'\\releases\\CANONICAL-COMPLETE-TEST-20261017-1a03157a323e',sourceCommit:'1a03157a323e6a6c16aea714194a76b6438a435c',manifestSha256:'9e5d75db4312231ab06af2f17d421b0f4e3e909cdfaee19743d92ae171ad6a66'};
 function lineageFixture(){const f=integratedFixture();f.profileVariant=lineageVariant;f.erpCandidate.packagePin=structuredClone(lineageErp);f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-1a03157a323e-dependency-lock.json';return f;}
