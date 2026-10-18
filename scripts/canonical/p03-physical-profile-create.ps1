@@ -2,6 +2,9 @@ param()
 # Narrow protected-file writer. Input is delivered on stdin, never command args.
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+$ProgressPreference='SilentlyContinue'
+$env:PSModulePath=Join-Path $PSHOME 'Modules'
+foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$module+'\'+$module+'.psd1')) -ErrorAction Stop}
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_CREATE_OWNER'}
 $text=[Console]::In.ReadToEnd();if($text.Length -gt 4194304){throw 'P03_CREATE_SIZE'}

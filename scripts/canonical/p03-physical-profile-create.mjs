@@ -7,6 +7,9 @@ import {pathToFileURL,fileURLToPath} from 'node:url';
 const OWNER='S-1-5-21-2170750028-1005938530-2568122015-1001';
 const DB='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+const PS_MODULES='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules';
+const PS_ENV={...process.env,PSModulePath:PS_MODULES};
+const PS_BOOTSTRAP="$ProgressPreference='SilentlyContinue';$env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\\'+$module+'\\'+$module+'.psd1')) -ErrorAction Stop}\n";
 const OLD='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json';
 const OLD_SHA='be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96';
 const STOPPER_ORIGINAL='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1';
@@ -127,7 +130,7 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
  const profileBytes=encode(profile);
  return {runId,before:{bytesBase64:beforeBytes.toString('base64'),sha256:beforeRef.sha256},profile:{bytesBase64:profileBytes.toString('base64'),sha256:hash(profileBytes)},summary:{runId,beforeImage:beforeRef,profile:{path:path.win32.join(ROOT,'MelisaERP-P03-profile-'+runId+'.json'),sha256:hash(profileBytes)},journalDirectory:profile.journalDirectory,candidateSources:{erp:erp.sourceCommit,crm:crm.sourceCommit,supervisor:sup.sourceCommit},runtimeMutation:false}};
 }
-function ps(code){return execFileSync(SHELL,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(P03_SQL_SERVICE_CAPTURE_PS+'\n'+code,'utf16le').toString('base64')],{windowsHide:true,timeout:60000,maxBuffer:4*1024*1024,encoding:'utf8'}).trim();}
+function ps(code){return execFileSync(SHELL,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(PS_BOOTSTRAP+P03_SQL_SERVICE_CAPTURE_PS+'\n'+code,'utf16le').toString('base64')],{env:PS_ENV,windowsHide:true,timeout:60000,maxBuffer:4*1024*1024,encoding:'utf8'}).trim();}
 async function main(){
  const args=process.argv.slice(2);if(args.length===1&&args[0]==='--help'){process.stdout.write('Default DryRun: --new-settings-path PATH --new-settings-sha256 SHA --business-digest-path PATH --business-digest-sha256 SHA [--mode DryRun|Create]\n');return;}
  need(args.length===8||args.length===10,'ARGUMENTS');const flags=new Map();for(let i=0;i<args.length;i+=2){need(['--new-settings-path','--new-settings-sha256','--business-digest-path','--business-digest-sha256','--mode'].includes(args[i])&&!flags.has(args[i]),'FLAG');flags.set(args[i],args[i+1]);}
@@ -143,7 +146,7 @@ async function main(){
  request.stopper={sha256:STOPPER_SHA,bytesBase64:pin({path:STOPPER_ORIGINAL,sha256:STOPPER_SHA}).toString('base64')};
  if(mode==='DryRun'){process.stdout.write(JSON.stringify({status:'DRY_RUN_ONLY',...request.summary,created:false},null,2)+'\n');return;}
  const writer=fileURLToPath(new URL('./p03-physical-profile-create.ps1',import.meta.url));
- const result=execFileSync(SHELL,['-NoProfile','-NonInteractive','-File',writer],{windowsHide:true,input:JSON.stringify(request),timeout:30000,maxBuffer:1024*1024,encoding:'utf8'});
+ const result=execFileSync(SHELL,['-NoProfile','-NonInteractive','-File',writer],{env:PS_ENV,windowsHide:true,input:JSON.stringify(request),timeout:30000,maxBuffer:1024*1024,encoding:'utf8'});
  process.stdout.write(result);
 }
 if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){main().catch(error=>{process.stderr.write(/^P03_PROFILE_CREATE_[A-Z_]+$/.test(error?.message)?error.message+'\n':'P03_PROFILE_CREATE_REJECTED\n');process.exitCode=1;});}

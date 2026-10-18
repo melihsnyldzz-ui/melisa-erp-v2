@@ -1,0 +1,71 @@
+param([Parameter(Mandatory=$true)][ValidatePattern('\A[a-f0-9]{32}\z')][string]$RunId,[Parameter(Mandatory=$true)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$ProfileSha256,[Parameter(Mandatory=$true)][ValidatePattern('\A[a-f0-9]{64}\z')][string]$BeforeImageSha256,[ValidateSet('DryRun','Quiesce')][string]$Mode='DryRun')
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
+trap{$code=if([string]$_.Exception.Message-cmatch'\bP03_[A-Z_]+\b'){$Matches[0]}else{'P03_QUIESCE_EXECUTION_FAILED'};[Console]::Error.WriteLine($code);exit 1}
+foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop}
+$owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
+$root=Join-Path 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018' ('run-'+$RunId)
+$names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')
+$roles=@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor')
+$ports=@(4284,4286,5334,62710,62711,62712,62713,62714)
+$stopperSha='79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'
+function Need($v,[string]$code){if(-not$v){throw ('P03_QUIESCE_'+$code)}}
+function Hash([byte[]]$b){[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($b)).Replace('-','').ToLowerInvariant()}
+function NoReparse([string]$p){for($q=$p;$q;$q=[IO.Path]::GetDirectoryName($q)){Need (((Get-Item -LiteralPath $q -Force).Attributes-band[IO.FileAttributes]::ReparsePoint)-eq0) 'REPARSE'}}
+function Protected([string]$p){NoReparse $p;$acl=Get-Acl -LiteralPath $p;Need ($acl.AreAccessRulesProtected-and$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value-ceq$owner-and@($acl.Access).Count-eq2) 'ACL';$ids=@();foreach($a in $acl.Access){$sid=$a.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value;Need ($sid-cin@($owner,'S-1-5-18')-and$sid-cnotin$ids-and$a.AccessControlType-eq'Allow'-and-not$a.IsInherited-and$a.FileSystemRights-eq[Security.AccessControl.FileSystemRights]::FullControl) 'ACE';$ids+=$sid}}
+function ReadPinned([string]$p,[string]$sha){Protected $p;$bytes=[IO.File]::ReadAllBytes($p);Need ((Hash $bytes)-ceq$sha) 'PIN_HASH';return ,$bytes}
+function Identity($p,$expected){if(-not$p){return $false};$sid=Invoke-CimMethod $p -MethodName GetOwnerSid -ErrorAction Stop;return $sid.ReturnValue-eq0-and$sid.Sid-ceq$expected.ownerSid-and$p.ProcessId-eq$expected.pid-and$p.ParentProcessId-eq$expected.parentPid-and$p.ExecutablePath-ceq$expected.nodePath-and$p.CommandLine-ceq$expected.commandLine-and$p.CreationDate.ToUniversalTime().Ticks-eq[DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks}
+function ProtectedUnchanged{
+ foreach($e in $profile.protectedProcesses){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$e.pid);if($e.PSObject.Properties.Name-contains'kind'-and$e.kind-ceq'ProtectedSqlService'){
+  Need ($p-and$p.Name-ceq'sqlservr.exe'-and$p.CreationDate.ToUniversalTime().Ticks-eq[DateTime]::Parse($e.creationTime).ToUniversalTime().Ticks) 'SQL_BIRTH';$svc=@(Get-CimInstance Win32_Service -Filter 'Name="MSSQL$MELISADEV"');Need ($svc.Count-eq1-and$svc[0].ProcessId-eq$e.pid-and$svc[0].State-ceq'Running'-and$svc[0].StartName-ceq$e.service.startName-and$svc[0].PathName-ceq$e.service.pathName) 'SQL_SERVICE'
+  $connection=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=master;Integrated Security=True;Connect Timeout=5;Application Name=P03QuiesceProtectOnly');$connection.Open();try{$cmd=$connection.CreateCommand();$cmd.CommandTimeout=5;$cmd.CommandText="SELECT CAST(SERVERPROPERTY('ProcessID') AS int),CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)),DB_NAME()";$r=$cmd.ExecuteReader();try{Need ($r.Read()-and$r.GetInt32(0)-eq$e.pid-and$r.GetString(1)-ceq'Semih\MELISADEV'-and$r.GetString(2)-ceq'master') 'SQL_IDENTITY'}finally{$r.Dispose()}}finally{$connection.Dispose()}
+ }else{Need (Identity $p $e) 'PROTECTED_PROCESS'}}
+ foreach($entry in $profile.protectedTasks){$t=$folder.GetTask($entry.name);Need ([int]$t.State-eq$entry.state-and(Hash ([Text.Encoding]::UTF8.GetBytes([string]$t.Xml)))-ceq$entry.xmlSha256) 'PROTECTED_TASK';$running=$schedule.GetRunningTasks(1);$match=@();for($i=1;$i-le$running.Count;$i++){$r=$running.Item($i);if($r.Name-ceq$entry.name){$match+=,$r}};Need ($match.Count-eq1-and$match[0].EnginePID-eq$entry.enginePid-and$match[0].InstanceGuid-ceq$entry.instanceGuid) 'PROTECTED_COM'}
+ $protectedPorts=@($profile.protectedBindings|ForEach-Object{$_.port}|Sort-Object -Unique);$actual=@(Get-NetTCPConnection -State Listen|Where-Object{$_.LocalPort-in$protectedPorts}|ForEach-Object{[string]$_.LocalPort+'|'+$_.LocalAddress+'|'+$_.OwningProcess}|Sort-Object);$expected=@($profile.protectedBindings|ForEach-Object{[string]$_.port+'|'+$_.address+'|'+$_.pid}|Sort-Object);Need (($actual-join'\n')-ceq($expected-join'\n')) 'PROTECTED_BINDINGS'
+}
+function Inventory{
+ $all=@(Get-CimInstance Win32_Process -ErrorAction Stop);$listeners=@(Get-NetTCPConnection -State Listen|Where-Object{$_.LocalPort-in$ports});$running=$schedule.GetRunningTasks(1);$instances=@();for($i=1;$i-le$running.Count;$i++){$r=$running.Item($i);if($r.Name-cin$names){$instances+=,$r}}
+ return [ordered]@{all=$all;listeners=$listeners;instances=$instances}
+}
+function AdmitOld($inventory){
+ ProtectedUnchanged
+ Need ($before.environment-ceq'P03_REHEARSAL'-and$profile.environment-ceq'P03_REHEARSAL'-and$before.actualT1-ceq$false-and$before.database-ceq'MELISA_ERP_P03_RESTORE_TEST_20261018_01'-and$profile.database-ceq$before.database) 'ENVIRONMENT'
+ Need (@($before.identities.PSObject.Properties).Count-eq8-and@($profile.oldWatchers).Count-eq2-and$inventory.instances.Count-eq2) 'ROLE_COUNT'
+ Need ((@($before.identities.PSObject.Properties.Name|Sort-Object)-join'|')-ceq(@($roles|Sort-Object)-join'|')) 'ROLE_NAMES'
+ foreach($role in $roles){$entry=$before.identities.$role;Need ($entry.nodePath-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$entry.commandLine.Contains((Join-Path $root 'packages\old\p03-rehearsal-fixture.mjs'))-and$entry.commandLine-cmatch('--role '+$role+'\b')-and$entry.commandLine-cmatch'--generation old\z') 'FIXTURE_NODE_SCOPE'}
+ foreach($watcher in $profile.oldWatchers){Need ($watcher.nodePath-ceq'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'-and$watcher.commandLine.Contains((Join-Path $root 'packages\old\p03-rehearsal-watch-'))-and$watcher.commandLine.Contains((Join-Path $root 'settings-old.json'))) 'FIXTURE_WATCHER_SCOPE'}
+ $captured=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers);Need (@($captured.pid|Sort-Object -Unique).Count-eq10) 'UNIQUE_PID'
+ foreach($entry in $profile.tasks){Need ($entry.name-cin$names) 'TASK_NAME';$task=$folder.GetTask($entry.name);Need ([int]$task.State-eq4-and(Hash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-ceq$entry.oldXmlSha256) 'TASK_XML'
+  $saved=@($before.tasks|Where-Object{$_.name-ceq$entry.name});$actual=@($inventory.instances|Where-Object{$_.Name-ceq$entry.name});Need ($saved.Count-eq1-and$actual.Count-eq1-and$actual[0].InstanceGuid-ceq$saved[0].instanceGuid-and$actual[0].EnginePID-eq$saved[0].enginePid) 'COM_PIN'
+ }
+ foreach($e in $captured){Need ($e.ownerSid-ceq$owner-and$e.pid-notin@($profile.protectedProcesses.pid)-and(Identity ($inventory.all|Where-Object{$_.ProcessId-eq$e.pid}) $e)) 'CAPTURED_IDENTITY'}
+ foreach($p in $inventory.all){if($p.ProcessId-eq$PID){continue};if(([string]$p.CommandLine).IndexOf($root,[StringComparison]::OrdinalIgnoreCase)-ge0){Need ($p.ProcessId-in$captured.pid) 'FOREIGN_PROCESS'}}
+ foreach($listener in $inventory.listeners){$match=@($captured|Where-Object{$_.pid-eq$listener.OwningProcess-and@($_.bindings|Where-Object{$_.port-eq$listener.LocalPort-and$_.address-ceq$listener.LocalAddress}).Count-eq1});Need ($match.Count-eq1-and$listener.LocalAddress-ceq'127.0.0.1') 'FOREIGN_LISTENER'}
+ Need ($inventory.listeners.Count-eq8) 'PORT_COUNT';return ,$captured
+}
+function SaveIntent([string]$leaf,$value){Protected $root;$p=Join-Path $root $leaf;Need (-not(Test-Path -LiteralPath $p)) 'PRIOR_QUIESCE';$bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12));$security=[Security.AccessControl.FileSecurity]::new();$security.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$security.SetAccessRuleProtection($true,$false);foreach($id in @($owner,'S-1-5-18')){$security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($id),'FullControl','Allow'))};$f=[IO.FileStream]::new($p,[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$security);try{$f.Write($bytes,0,$bytes.Length);$f.Flush($true)}finally{$f.Dispose()};[void](ReadPinned $p (Hash $bytes))}
+Need ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner) 'OWNER'
+$profilePath=Join-Path $root 'profile.json';$beforePath=Join-Path $root 'before.json';$profile=[Text.Encoding]::UTF8.GetString((ReadPinned $profilePath $ProfileSha256))|ConvertFrom-Json;$before=[Text.Encoding]::UTF8.GetString((ReadPinned $beforePath $BeforeImageSha256))|ConvertFrom-Json
+Need ($profile.beforeImage.path-ceq$beforePath-and$profile.beforeImage.sha256-ceq$BeforeImageSha256-and$profile.schemaVersion-ceq'melisa-p03-physical-profile.v1'-and$before.schemaVersion-ceq'melisa-p03-owner-observation.v3'-and$profile.ownerSid-ceq$owner-and$before.ownerSid-ceq$owner) 'PROFILE_BINDING'
+Need (@($profile.tasks).Count-eq2-and@($profile.tasks.name|Sort-Object -Unique).Count-eq2) 'TASKS'
+Need (@($profile.protectedTasks).Count-eq2-and(@($profile.protectedTasks.name|Sort-Object)-join'|')-ceq(@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'|Sort-Object)-join'|')-and@($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name-contains'kind'-and$_.kind-ceq'ProtectedSqlService'}).Count-eq1) 'PROTECTED_BASELINE_SCOPE'
+$stopper=Join-Path $root 'stop-exact-observed-process.ps1';Need ($profile.stopper.path-ceq$stopper-and$profile.stopper.sha256-ceq$stopperSha) 'STOPPER_BINDING';[void](ReadPinned $stopper $stopperSha)
+$schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\');$inventory=Inventory;$captured=AdmitOld $inventory
+if($Mode-ceq'DryRun'){[ordered]@{status='QUIESCE_DRY_RUN_READY';runRoot=$root;capturedProcesses=10;ownedTasks=2;sharedMutation=$false}|ConvertTo-Json;return}
+$stopperHandle=[IO.File]::Open($stopper,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+try{
+ $memory=[IO.MemoryStream]::new();$stopperHandle.CopyTo($memory);Need ((Hash $memory.ToArray())-ceq$stopperSha) 'STOPPER_HELD_HASH'
+ SaveIntent 'quiesce-intent.json' ([ordered]@{event='OWNED_REHEARSAL_QUIESCE_INTENT';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;observedAt=[DateTime]::UtcNow.ToString('o');pids=@($captured.pid)})
+ $inventory=Inventory;[void](AdmitOld $inventory);foreach($instance in $inventory.instances){$instance.Stop()}
+ foreach($role in $roles){ProtectedUnchanged;$expected=$before.identities.$role;$current=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$expected.pid);if(-not$current){continue};Need (Identity $current $expected) 'PID_REUSED';$proof=[ordered]@{pid=$expected.pid;parentPid=$expected.parentPid;nodePath=$expected.nodePath;ownerSid=$expected.ownerSid;commandLine=$expected.commandLine;creationTime=([string]$expected.creationTime-replace'(\.\d{6})0Z$','$1Z')};$encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress)));$r=& $stopper -ExpectedJsonBase64 $encoded;Need ($r-cin@('EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE')) 'STOP_RESULT'}
+ foreach($watcher in $profile.oldWatchers){ProtectedUnchanged;$expected=$watcher;$current=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$expected.pid);if(-not$current){continue};Need (Identity $current $expected) 'PID_REUSED';$proof=[ordered]@{pid=$expected.pid;parentPid=$expected.parentPid;nodePath=$expected.nodePath;ownerSid=$expected.ownerSid;commandLine=$expected.commandLine;creationTime=([string]$expected.creationTime-replace'(\.\d{6})0Z$','$1Z')};$encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress)));$r=& $stopper -ExpectedJsonBase64 $encoded;Need ($r-cin@('EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE')) 'STOP_RESULT'}
+ $deadline=[DateTime]::UtcNow.AddSeconds(20);do{$now=Inventory;$watchers=@($now.all|Where-Object{$_.ProcessId-in@($profile.oldWatchers.pid)});$ready=@($names|ForEach-Object{$folder.GetTask($_)}|Where-Object{[int]$_.State-ne3}).Count-eq0;if($ready-and$now.instances.Count-eq0-and$watchers.Count-eq0){break};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$deadline)
+ Need ($ready-and$now.instances.Count-eq0-and$watchers.Count-eq0-and$now.listeners.Count-eq0) 'NOT_QUIESCENT'
+ foreach($e in $captured){Need (@($now.all|Where-Object{$_.ProcessId-eq$e.pid}).Count-eq0) 'CAPTURED_PROCESS_REMAINS'}
+ ProtectedUnchanged;SaveIntent 'quiesce-task-delete-intent.json' ([ordered]@{event='OWNED_REHEARSAL_TASK_DELETE_INTENT';tasks=$names;observedAt=[DateTime]::UtcNow.ToString('o')})
+ foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State-eq3-and(Hash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-ceq$entry.oldXmlSha256) 'DELETE_TASK_CAS';$folder.DeleteTask($entry.name,0)}
+ foreach($name in $names){$remaining=$null;try{$remaining=$folder.GetTask($name)}catch{};Need ($null-eq$remaining) 'TASK_REMAINS'}
+ ProtectedUnchanged;Need (@(Get-NetTCPConnection -State Listen|Where-Object{$_.LocalPort-in$ports}).Count-eq0) 'FINAL_PORTS'
+ SaveIntent 'quiesce-complete.json' ([ordered]@{status='OWNED_REHEARSAL_QUIESCED';runRoot=$root;stoppedCapturedProcesses=10;removedOwnedTasks=2;filesDeleted=0;sharedMutation=$false;observedAt=[DateTime]::UtcNow.ToString('o')})
+ [ordered]@{status='OWNED_REHEARSAL_QUIESCED';runRoot=$root;stoppedCapturedProcesses=10;removedOwnedTasks=2;filesDeleted=0;sharedMutation=$false}|ConvertTo-Json
+}finally{$stopperHandle.Dispose()}
