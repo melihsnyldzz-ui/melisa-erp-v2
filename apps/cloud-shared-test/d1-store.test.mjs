@@ -241,6 +241,39 @@ test('schema-managed mode rejects unsupported definitions without seeding', asyn
   assert.equal(foreignMigration.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
 });
 
+test('one observed unknown table yields bounded schema metadata only and remains rejected before seed', async t => {
+  const binding = new FakeD1(); t.after(() => binding.db.close());
+  binding.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));
+  binding.db.exec("CREATE TABLE fixture_ledger(id INTEGER PRIMARY KEY,hash TEXT NOT NULL DEFAULT 'synthetic-private-default',created_at NUMERIC); INSERT INTO fixture_ledger VALUES(1,'synthetic-private-row',123)");
+  let failure;
+  try { await createD1Store(binding, { schemaManaged: true }); } catch (error) { failure = error; }
+  assert.equal(failure?.code, 'FOREIGN_STORE');
+  assert.deepEqual(failure.cloudInventorySchema, { state: 'OBSERVED', table: 'fixture_ledger', columns: [
+    { name: 'id', type: 'INTEGER', notNull: false, primaryKey: 1 },
+    { name: 'hash', type: 'TEXT', notNull: true, primaryKey: 0 },
+    { name: 'created_at', type: 'NUMERIC', notNull: false, primaryKey: 0 },
+  ] });
+  assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
+  assert.ok(binding.sql.every(sql => !/^(?:INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(sql)));
+  assert.doesNotMatch(JSON.stringify(failure.cloudInventorySchema), /synthetic-private|DEFAULT|CREATE/);
+  assert.equal(binding.sql.filter(sql => sql.includes('FROM pragma_table_info(?)')).length, 1);
+  const records = [], worker = createWorker(new Map(), { reportError: record => records.push(record) });
+  const response = await worker.fetch(new Request('https://synthetic.invalid/api/cloud-test/session', { headers: { 'oai-authenticated-user-id': 'synthetic-owner-fixture' } }), { DB: binding });
+  const body = await response.json();
+  assert.equal(response.status, 503);
+  assert.deepEqual(records[0].inventorySchema, failure.cloudInventorySchema);
+  assert.equal(records[0].diagnosticId, body.error.diagnosticId);
+  assert.doesNotMatch(JSON.stringify(records), /synthetic-private|DEFAULT|CREATE|dflt_value/);
+  assert.doesNotMatch(JSON.stringify(body), /fixture_ledger|columns|synthetic-private/);
+  assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
+  binding.db.exec('CREATE TABLE second_foreign_table(id INTEGER PRIMARY KEY)');
+  let multiple;
+  try { await createD1Store(binding, { schemaManaged: true }); } catch (error) { multiple = error; }
+  assert.equal(multiple.code, 'FOREIGN_STORE');
+  assert.equal(multiple.cloudInventorySchema, undefined, 'no schema enumeration when the bounded one-table condition is not met');
+  assert.equal(binding.sql.filter(sql => sql.includes('FROM pragma_table_info(?)')).length, 2);
+});
+
 
 test('Worker HTTP with migrated D1 preserves opaque sessions and one-effect receiving/CRM/sale/collection across fresh handles', async t => {
   const binding = new FakeD1(); t.after(() => binding.db.close());

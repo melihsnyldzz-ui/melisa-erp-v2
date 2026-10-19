@@ -1,3 +1,7 @@
+## 19 Ekim — tek gözlenen tablo için sınırlı şema gözlemi
+
+Gerçek15:03:56.680Z logu application2/other1 ve diğer kategoriler0 gösterdi. Parent native helper/script/storage kaynağını inceledi; hosted ledger adı/DDL tanımı yok. Açık dar izinle mevcut katalogdan gözlenen TEK bilinmeyen ad, bind edilen pragma_table_info(?) sorgusuyla en çok8kolonun adı/tipi/null/PK metadata'sına indirgenir. Tablo satırı/default/CREATE SQL/hash/session/credential okunmaz veya loglanmaz; metadata yalnız owner-only Worker logunda, HTTP yanıtında değil. Unknown/foreign red ve seed/yazı0 korunur; birden çok bilinmeyende probe yok. Regresyon FAIL→PASS ve bağımsız GO; henüz uyumluluk istisnası/hostedPASS yok. Kullanıcıdan teknik yanıt beklenmez; parent aynı özel hedefte gerçek metadata makbuzuyla devam eder.
+
 ## 19 Ekim — hosted envanter kapısı doğrulandı, koruma aynı
 
 Gerçek owner-private log14:54:52.229Z / diagnosticId a87c6e05-74e7-4c05-8dec-e03bae4c0c11, `D1_TABLE_INVENTORY / FOREIGN_STORE` reddini doğruladı. Desteklenen araç DDL/PRAGMA vermiyor; kullanıcıdan yanıt beklenmez. Dar ek teşhis yalnız altı sabit tablo-isim kategorisinin0–16 sayısını kaydeder; ham ad/hash/SQL/veri yok, unknown/foreign tablo hâlâ yazmadan reddedilir. Regresyon FAIL→PASS, bağımsız GO; exactCI sonHEAD'de ayrıca doğrulanır. Kök neden ve hosted üç akış henüz PASS değil; parent aynı özel Site'ta kategori okumasıyla devam edecek. Şema/auth/migration/DB/rol/hedef değişmedi.

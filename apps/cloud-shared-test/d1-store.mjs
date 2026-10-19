@@ -358,7 +358,21 @@ async function initialize(db, schemaManaged) {
         : /(?:^|_)(?:drizzle|d1)_migrations?$/i.test(name) ? 'migrationName' : /^_{1,2}(?:oai|openai|sites)(?:_|$)/i.test(name) ? 'platformPrefix' : 'other';
       inventory[category] = Math.min(16, inventory[category] + 1);
     }
-    throw Object.assign(new Error('D1 binding is not a dedicated synthetic store'), { status: 409, statusCode: 409, code: 'FOREIGN_STORE', cloudStage: 'D1_TABLE_INVENTORY', cloudInventory: inventory });
+    let cloudInventorySchema;
+    const unknown = names.filter(name => ![STATE_TABLE, SESSION_TABLE].includes(name));
+    // One observed table, from this catalog read only. No guessed identifiers,
+    // arbitrary SQL endpoint, row reads, defaults, or DDL are exposed.
+    if (schemaManaged && unknown.length === 1 && [STATE_TABLE, SESSION_TABLE].every(name => names.includes(name)) && /^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(unknown[0])) {
+      const table = unknown[0]; cloudInventorySchema = { state: 'UNAVAILABLE', table, columns: [] };
+      try {
+        const rows = (await db.prepare('SELECT cid,name,type,"notnull",pk FROM pragma_table_info(?) ORDER BY cid LIMIT 9').bind(table).all()).results;
+        if (rows.length > 0 && rows.length <= 8 && rows.every(row => typeof row.name === 'string' && /^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(row.name) &&
+          typeof row.type === 'string' && /^[A-Za-z0-9_ (),]{0,32}$/.test(row.type) && [0, 1].includes(row.notnull) && Number.isInteger(row.pk) && row.pk >= 0 && row.pk <= 8)) {
+          cloudInventorySchema = { state: 'OBSERVED', table, columns: rows.map(row => ({ name: row.name, type: row.type.toUpperCase(), notNull: row.notnull === 1, primaryKey: row.pk })) };
+        } else if (rows.length > 8) cloudInventorySchema.state = 'COLUMN_LIMIT';
+      } catch { /* Keep the original refusal if metadata is unavailable. */ }
+    }
+    throw Object.assign(new Error('D1 binding is not a dedicated synthetic store'), { status: 409, statusCode: 409, code: 'FOREIGN_STORE', cloudStage: 'D1_TABLE_INVENTORY', cloudInventory: inventory, ...(cloudInventorySchema ? { cloudInventorySchema } : {}) });
   }
   if (schemaManaged) {
     if (![STATE_TABLE, SESSION_TABLE].every(name => names.includes(name))) fail(503, 'SCHEMA_NOT_READY', 'Apply the synthetic schema migration before starting the preview', 'D1_SCHEMA_REQUIRED');

@@ -18,6 +18,12 @@ export function createWorker(assets = new Map(), { reportError = record => conso
         if (record.stage === 'D1_TABLE_INVENTORY' && error?.cloudInventory && keys.every(key => Number.isInteger(error.cloudInventory[key]) && error.cloudInventory[key] >= 0 && error.cloudInventory[key] <= 16)) {
           record.inventory = Object.fromEntries(keys.map(key => [key, error.cloudInventory[key]]));
         }
+        const schema = error?.cloudInventorySchema, identifier = value => typeof value === 'string' && /^[A-Za-z_][A-Za-z0-9_]{0,63}$/.test(value);
+        if (record.stage === 'D1_TABLE_INVENTORY' && ['OBSERVED', 'UNAVAILABLE', 'COLUMN_LIMIT'].includes(schema?.state) && identifier(schema.table) &&
+          Array.isArray(schema.columns) && schema.columns.length <= 8 && schema.columns.every(column => identifier(column.name) && typeof column.type === 'string' && /^[A-Z0-9_ (),]{0,32}$/.test(column.type) &&
+            typeof column.notNull === 'boolean' && Number.isInteger(column.primaryKey) && column.primaryKey >= 0 && column.primaryKey <= 8)) {
+          record.inventorySchema = { state: schema.state, table: schema.table, columns: schema.columns.map(column => ({ name: column.name, type: column.type, notNull: column.notNull, primaryKey: column.primaryKey })) };
+        }
         try { reportError(record); } catch { /* Telemetry failure never changes the response. */ }
         return diagnosticId;
       };
