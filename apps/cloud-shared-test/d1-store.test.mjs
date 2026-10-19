@@ -241,6 +241,63 @@ test('schema-managed mode rejects unsupported definitions without seeding', asyn
   assert.equal(foreignMigration.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
 });
 
+test('observed Appgarden ledger exact shape permits managed startup without reading ledger data', async t => {
+  const binding = new FakeD1(); t.after(() => binding.db.close());
+  binding.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));
+  binding.db.exec('CREATE TABLE __appgarden_migrations(id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL)');
+  binding.db.prepare('INSERT INTO __appgarden_migrations VALUES (?,?,?)').run(1, 'synthetic-ledger-sentinel', '2026-10-19');
+  binding.sql.length = 0;
+  const worker = createWorker();
+  const response = await worker.fetch(new Request('https://synthetic.example/api/cloud-test/session', { headers: { 'oai-authenticated-user-id': 'synthetic-owner' } }), { DB: binding });
+  assert.equal(response.status, 200);
+  const store = await createD1Store(binding, { schemaManaged: true });
+  const before = await store.snapshot(store.actors()[1]);
+  const reopened = await createD1Store(binding, { schemaManaged: true });
+  assert.deepEqual(await reopened.snapshot(reopened.actors()[1]), before);
+  assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 1);
+  assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_sessions').get().n, 1);
+  assert.deepEqual({ ...binding.db.prepare('SELECT * FROM __appgarden_migrations').get() }, { id: 1, name: 'synthetic-ledger-sentinel', applied_at: '2026-10-19' });
+  assert.ok(binding.sql.every(sql => !/^(?:CREATE|ALTER|DROP)\b/i.test(sql)));
+  assert.ok(binding.sql.filter(sql => /__appgarden_migrations/.test(sql)).every(sql => /FROM pragma_table_info/.test(sql)));
+  assert.ok(binding.sql.every(sql => !/\b(?:dflt_value|DEFAULT)\b/i.test(sql)));
+});
+
+test('Appgarden ledger exception rejects changed name, columns, types, nullability, PK, extra tables and unmanaged mode before seed', async t => {
+  const definitions = [
+    ['__appgarden_migrations_other', 'id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,customer_data TEXT,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id TEXT PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name BLOB,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name TEXT,applied_at TEXT NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY NOT NULL,name TEXT,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name TEXT NOT NULL,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP'],
+    ['__appgarden_migrations', 'id INTEGER,name TEXT,applied_at TIMESTAMP NOT NULL'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL,customer_data TEXT'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL', 'CREATE TABLE customer_data(id INTEGER)'],
+    ['__appgarden_migrations', 'id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL', '', false],
+  ];
+  for (const [name, columns, extra = '', schemaManaged = true] of definitions) {
+    const binding = new FakeD1(); t.after(() => binding.db.close());
+    binding.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));
+    binding.db.exec(`CREATE TABLE ${name}(${columns});${extra}`);
+    await rejects(() => createD1Store(binding, { schemaManaged }), 'FOREIGN_STORE', 409);
+    assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
+    assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_sessions').get().n, 0);
+  }
+  const marked = new FakeD1(); t.after(() => marked.db.close());
+  marked.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));
+  marked.db.exec('CREATE TABLE __appgarden_migrations(id INTEGER PRIMARY KEY,name TEXT,applied_at TIMESTAMP NOT NULL)');
+  await createD1Store(marked, { schemaManaged: true });
+  marked.db.prepare('UPDATE synthetic_state SET marker=?').run('FOREIGN');
+  const before = { ...marked.db.prepare('SELECT * FROM synthetic_state').get() };
+  await rejects(() => createD1Store(marked, { schemaManaged: true }), 'FOREIGN_STORE', 409);
+  assert.deepEqual({ ...marked.db.prepare('SELECT * FROM synthetic_state').get() }, before);
+  marked.db.exec('DROP TABLE synthetic_sessions'); // Fixture corruption only.
+  await rejects(() => createD1Store(marked, { schemaManaged: true }), 'SCHEMA_NOT_READY', 503);
+  assert.deepEqual({ ...marked.db.prepare('SELECT * FROM synthetic_state').get() }, before);
+});
+
 test('one observed unknown table yields bounded schema metadata only and remains rejected before seed', async t => {
   const binding = new FakeD1(); t.after(() => binding.db.close());
   binding.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));

@@ -350,7 +350,18 @@ async function initialize(db, schemaManaged) {
       columns[1].name !== 'hash' || columns[1].type.toUpperCase() !== 'TEXT' || columns[1].notnull !== 1 ||
       columns[2].name !== 'created_at' || !['NUMERIC', 'INTEGER'].includes(columns[2].type.toUpperCase())) fail(409, 'FOREIGN_STORE', 'Unsupported migration bookkeeping schema', 'D1_MIGRATION_SCHEMA');
   }
-  const names = tables.map(r => r.name).filter(name => !name.startsWith('_cf_') && !(schemaManaged && ['d1_migrations', '__drizzle_migrations'].includes(name)));
+  // Exact native Sites ledger observed on the owner-private synthetic preview.
+  // Metadata only: never read or modify migration records. No prefix exemption.
+  if (schemaManaged && tables.some(row => row.name === '__appgarden_migrations')) {
+    const columns = (await atStage('D1_MIGRATION_COLUMNS_READ', () => db.prepare('SELECT cid,name,type,"notnull",pk FROM pragma_table_info(?) ORDER BY cid LIMIT 9').bind('__appgarden_migrations').all())).results;
+    const expected = [['id', 'INTEGER', 0, 1], ['name', 'TEXT', 0, 0], ['applied_at', 'TIMESTAMP', 1, 0]];
+    if (columns.length !== expected.length || !columns.every((column, index) => column.cid === index &&
+      column.name === expected[index][0] && column.type.toUpperCase() === expected[index][1] &&
+      column.notnull === expected[index][2] && column.pk === expected[index][3])) {
+      fail(409, 'FOREIGN_STORE', 'Unsupported migration bookkeeping schema', 'D1_MIGRATION_SCHEMA');
+    }
+  }
+  const names = tables.map(r => r.name).filter(name => !name.startsWith('_cf_') && !(schemaManaged && ['d1_migrations', '__drizzle_migrations', '__appgarden_migrations'].includes(name)));
   if (names.some(name => ![STATE_TABLE, SESSION_TABLE].includes(name)) || (names.length && !names.includes(STATE_TABLE))) {
     const inventory = { application: 0, cfCaseVariant: 0, sqliteCaseVariant: 0, migrationName: 0, platformPrefix: 0, other: 0 };
     for (const name of names) {
