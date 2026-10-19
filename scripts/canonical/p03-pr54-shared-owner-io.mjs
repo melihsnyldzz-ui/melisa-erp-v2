@@ -8,6 +8,7 @@ import {promisify} from 'node:util';
 import {runP03OwnerTransition,runP03CoreFirstOwnerTransition,p03TransitionDigest,p03CoreFirstStopDigest} from './p03-integrated-owner-transition.mjs';
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
 import {admitPr54OwnerSuccessor,claimPr54OwnerSuccessor,pr54OwnerSuccessorRefs,PR54_PREDECESSOR_REFS,PR54_PREDECESSOR_TRANSITION,PR54_PREDECESSOR_JOURNAL,PR54_SUCCESSOR_CLAIM_PATH,PR54_REHEARSED_ENGINE_SHA,admitPr54CurrentOwnerSuccessor,preparePr54CurrentNativeContinuity,isPr54CurrentNativeContinuity,assertPr54CurrentSuccessorCandidate,PR54_CURRENT_REFS,PR54_CURRENT_JOURNAL_REFS,PR54_CURRENT_SUCCESSOR_CLAIM_PATH} from './p03-pr54-owner-successor.mjs';
+import {PR54_B264_REFS,PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,validatePr54B264Predecessor} from './p03-pr54-owner-successor.mjs';
 const run=promisify(execFile),owner='S-1-5-21-2170750028-1005938530-2568122015-1001';
 export const PR54_PROTECT_SQL_CONNECTION='Server=Semih\\MELISADEV;Database=master;Integrated Security=True;Connect Timeout=5;Application Name=P03SharedProtectOnly';
 const shell='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
@@ -180,6 +181,27 @@ export async function claimPr54CurrentOwnerSuccessorIO({inspect,createNew,readCl
  need(await guardProtected()===true,'CURRENT_CLAIM_PROTECTED');const made=await createNew(proposal);need(made?.created===true&&JSON.stringify(made.ref)===JSON.stringify(proposal.ref),'CURRENT_CLAIM_CREATED');
  need(await guardProtected()===true,'CURRENT_CLAIM_PROTECTED');const second=await inspect();need(JSON.stringify(first)===JSON.stringify(second),'CURRENT_CLAIM_DRIFT');
  const actual=await readClaim(proposal.ref);need(actual instanceof Uint8Array&&hash(actual)===proposal.ref.sha256&&Buffer.from(actual).equals(Buffer.from(proposal.bytes)),'CURRENT_CLAIM_READBACK');return Object.freeze({...proposal.ref});
+}
+// Finite B264 history reader only. Deliberately not wired into the legacy
+// claim writer or runPr54SharedOwnerTransition, both of which still reject it.
+function b264ReadPins(){return [...Object.values(PR54_B264_REFS),...PR54_B264_OUTER_REFS,...PR54_B264_RECOVERY_REFS];}
+export function pr54B264ReadPinsProgram(refs){
+ const fixed=b264ReadPins();need(Array.isArray(refs)&&refs.length>0&&refs.length<=8&&new Set(refs.map(r=>r?.path)).size===refs.length&&refs.every(r=>typedRef(r)&&fixed.some(p=>p.path===r.path&&p.sha256===r.sha256)),'B264_READ_PIN_SCOPE');
+ const encoded=Buffer.from(JSON.stringify(refs)).toString('base64');
+ const recoveryDirectory=path.win32.dirname(PR54_B264_RECOVERY_REFS[0].path);
+ return `$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Security')){Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop};function TestB264Acl($a,[bool]$inherited){$rules=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if($a.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne'${owner}'-or$rules.Count-ne2){return $false};foreach($sid in @('${owner}','S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and$_.IsInherited-eq$inherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){return $false}};return $true};$pins=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json;foreach($r in $pins){$p=$r.path;${psNoReparse}$i=Get-Item -LiteralPath $p -Force;if($i.PSIsContainer-or($i.Attributes-band[IO.FileAttributes]::ReparsePoint)-or$i.Length-gt16777216){throw 'B264_READ_FILE'};$a=Get-Acl -LiteralPath $p;$strict=$a.AreAccessRulesProtected-and(TestB264Acl $a $false);if(-not$strict){$allowed=$p-cin@(${quote(path.win32.join(recoveryDirectory,'recovery.lock'))},${quote(path.win32.join(recoveryDirectory,'rollback.lock'))})-and$i.Length-eq0-and$r.sha256-ceq'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';if(-not$allowed-or$a.AreAccessRulesProtected-or-not(TestB264Acl $a $true)){throw 'B264_READ_ACL'};$parent=Get-Acl -LiteralPath ([IO.Path]::GetDirectoryName($p));if(-not$parent.AreAccessRulesProtected-or-not(TestB264Acl $parent $false)){throw 'B264_READ_PARENT_ACL'}};if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()-cne$r.sha256){throw 'B264_READ_HASH'}};'VERIFIED'`;
+}
+export async function inspectPr54B264PredecessorIO(...args){
+ need(args.length===0&&process.platform==='win32','B264_READ_MODE');
+ const fixed=b264ReadPins();need(fixed.length<=64&&new Set(fixed.map(r=>r.path)).size===fixed.length,'B264_READ_PIN_COUNT');
+ async function guard(){
+  need(!fs.existsSync(PR54_B264_SUCCESSOR_CLAIM_PATH),'B264_SUCCESSOR_ALREADY_CONSUMED');
+  for(let offset=0;offset<fixed.length;offset+=8){const program=pr54B264ReadPinsProgram(fixed.slice(offset,offset+8)),encoded=Buffer.from(program,'utf16le').toString('base64');need(encoded.length<16000,'B264_READ_COMMAND_LIMIT');const result=await run(shell,['-NoProfile','-NonInteractive','-EncodedCommand',encoded],opts);need(!result.stderr&&result.stdout.trim()==='VERIFIED','B264_READ_PIN_ACL');}
+  for(const refs of [PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS]){const directory=path.win32.dirname(refs[0].path),actual=fs.readdirSync(directory).filter(n=>n.startsWith('event-')).sort(),expected=refs.map(r=>path.win32.basename(r.path)).sort();need(JSON.stringify(actual)===JSON.stringify(expected),'B264_READ_EVENT_SCOPE');}
+ }
+ await guard();const raw=Object.fromEntries(Object.entries(PR54_B264_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}]));raw.outer=PR54_B264_OUTER_REFS.map(ref=>({ref,bytes:pin(ref)}));raw.recovery=PR54_B264_RECOVERY_REFS.map(ref=>({ref,bytes:pin(ref)}));
+ const proof=validatePr54B264Predecessor(raw);await guard();
+ return {status:'B264_PREDECESSOR_HISTORY_VALIDATED',proof,observedAt:new Date().toISOString(),applyExecuted:false,claimCreated:false,observerOnly:true,transitionAuthority:false,stopAuthority:false,engineOutcome:'ROLLBACK_READBACK_FAILED'};
 }
 export function pr54SuccessorEmptyProgram({ids,consoles}){
  need(Array.isArray(ids)&&ids.length<=256&&ids.every(x=>Number.isSafeInteger(x)&&x>0)&&Array.isArray(consoles)&&consoles.length<=128,'SUCCESSOR_EMPTY_SCOPE');
