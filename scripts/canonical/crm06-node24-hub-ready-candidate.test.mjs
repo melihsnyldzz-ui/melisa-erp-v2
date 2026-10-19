@@ -2,12 +2,23 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {buildCrm06TestActorProvisioning,crm06ProvisioningInputHash as digest} from './crm06-test-actor-provisioning.mjs';
 import {buildCrm06OwnerProjection,CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH} from './crm06-owner-projection.mjs';
 import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06StaffSuccessorProfile,crm06StaffSuccessorProfileForPath,crm06SuccessorFileHash,CRM06_STAFF_PARENT_SETTINGS_PATH,CRM06_STAFF_PARENT_ACTIVATION_PATH,CRM06_STAFF_CRM_SOURCE} from './crm06-staff-refresh-successor.mjs';
 import {crm06StaffJournalExcludedPaths,crm06StaffJournalPhysicalArguments} from './crm06-staff-journal-preflight.mjs';
 import {assertErpHubProfile,erpHubFailureMetadata} from './wait-erp-for-hub.mjs';
+
+test('19October supervisor archive keeps raw Git blob bytes without changing Git config',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./build-crm06-supervisor-package.mjs',import.meta.url),'utf8');
+ assert.match(source,/target\.includes\('TEST-20261019-'\)\?\['-c','core.autocrlf=false','-c','core.eol=lf'\]:\[\]/);
+ const cwd=fileURLToPath(new URL('../..',import.meta.url)),file='scripts/canonical/build-crm06-supervisor-package.mjs';
+ const archive=spawnSync('git',['-c','core.autocrlf=false','-c','core.eol=lf','archive','--format=tar','HEAD',file],{cwd,windowsHide:true,maxBuffer:2e6});assert.equal(archive.status,0);
+ const extracted=spawnSync('tar.exe',['-xOf','-',file],{cwd,input:archive.stdout,windowsHide:true,maxBuffer:2e6});assert.equal(extracted.status,0);
+ const blob=spawnSync('git',['show','HEAD:'+file],{cwd,windowsHide:true,maxBuffer:2e6});assert.equal(blob.status,0);
+ const hash=b=>createHash('sha256').update(b).digest('hex');assert.equal(hash(extracted.stdout),hash(blob.stdout));
+});
 import {validateCompletionSettings} from './terminal-completion-logon.mjs';
 import {preparePr53CiOwnerProfile,preparePr54ReadOwnerProfile,PR53_CI_OWNER_SUPERVISOR} from './p03-pr53-ci-owner-preparation.mjs';
 import {preparePr53OwnerProfile,PR53_OWNER_SUPERVISOR} from './p03-pr53-owner-preparation.mjs';

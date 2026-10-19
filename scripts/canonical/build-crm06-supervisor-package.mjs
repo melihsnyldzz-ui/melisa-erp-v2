@@ -13,7 +13,11 @@ if(!expected.some(value=>target.toLowerCase()===value.toLowerCase())||fs.existsS
 for(let p=path.dirname(target);;p=path.dirname(p)){if(fs.lstatSync(p).isSymbolicLink())fail();if(p===path.dirname(p))break;}
 fs.mkdirSync(target);
 // Stream the committed Git archive directly to tar; no temporary source copy.
-const archive=execFileSync('git',['archive','--format=tar',commit,'scripts/canonical'],{cwd:repo,maxBuffer:32*1024*1024});
+// New read-repair profile verifies raw committed blobs. Keep historical days'
+// checkout conversion unchanged; this finite generation archives exact LF bytes
+// without changing any repository/user Git configuration.
+const archiveOptions=target.includes('TEST-20261019-')?['-c','core.autocrlf=false','-c','core.eol=lf']:[];
+const archive=execFileSync('git',[...archiveOptions,'archive','--format=tar',commit,'scripts/canonical'],{cwd:repo,maxBuffer:32*1024*1024});
 execFileSync('tar.exe',['-xf','-','-C',target],{input:archive,windowsHide:true,maxBuffer:65536});
 const files=[];
 function walk(directory){for(const entry of fs.readdirSync(directory,{withFileTypes:true})){const full=path.join(directory,entry.name);if(entry.isSymbolicLink())fail();if(entry.isDirectory())walk(full);else if(entry.isFile()){const relative=path.relative(target,full).replaceAll('\\','/');if(!relative.startsWith('scripts/canonical/')||!/^[-_a-zA-Z0-9./]+$/.test(relative)||/\.(env|dpapi|bak)$/i.test(relative))fail();files.push({path:relative,sha256:crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex')});}else fail();}}

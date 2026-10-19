@@ -1,3 +1,11 @@
+## 19 Ekim — P03 kurulum kapısı kapalı; çalışan TEST korundu
+
+Kaynak cfbf7c67 PR54'e push edildi; immutable supervisor371dosyalık paket üretildi, **kurulmadı**. Yeni profile hazırlığı DryRun, Gitarchive'ın WindowsCRLF çıktısının ham GitLF blob pinlerinden farklı olmasını reddetti; inactive ayar yazısı0. Yalnız19Ekim yeni paket üretiminde process-local Git seçenekleriyle rawblob export düzeltildi; geçmiş paket/Gitconfig değiştirilmedi. Gerçek archive→tarstdout/Gitblob karşılaştırması dahil34/34 hedef test PASS; bağımsız kaynak GO.
+
+Mevcut kurulu e59/13b/6bc için frozenV3 tek-frame DryRun/mutationfalse geçti; tam Observe10dakika içinde30snkararlılık kanıtı üretemedi. **ApplyNO-GO**: tek kare veya eski18Ekim READY kanıtı güncel30snStable yerine sayılmadı. İlk nested failure kodu eski dar parser'da kayboldu; bilinmeyen alt neden tahmin edilmedi ve bounded digitli kod koruması düzeltildi. Aynı başarısız Observe tekrar başlatılmadı. Gözetmenler Running, API/native200aynısource/DB02/copy/T1false, web/CRM200; PID47060readonlytanılaması bitti. Yeni stop/restart/claim/kurulum/backup/restore/ticari yazı yok. Kullanıcı dirty dosyası aynı SHA ile korundu.
+
+Sıradaki mevcut iş aynıP03: güncel kararlılığı engelleyen somut frame nedenini salt okunur teşhis edip **fresh owner+DryRun** kanıtını tamamlamak; ardından mevcut izinli adayı kurmak. Yeni istemci düzeltmesi GUI PASS veya insan kabulü değildir. Private blocker `reports/integration-audit-20261019/owner-current-observe-blocker.json`; ham süreç/ticari bilgiler repo dışında. UA/49/25 aynı.
+
 ## 19 Ekim — mevcut kurulu sürüm için dar P03 geçiş hazırlığı
 
 Kurulu e59/supervisor13b/CRM6bc, DB02/copye16b/T1false ve iki gözetmen korunuyor. Hazır uygulama adayı01ef3e3a/manifest8754f9cb2089dosya doğrulandı; yeni kaynak geliştirmesi uygulama davranışını yeniden yazmıyor. Yalnız mevcut P03 profiline exact e59→01ef geçişi, ayrı tek-kullanımlık successor claim ve güncel salt okunur before/post kanıtı eklendi. Eski639→7b claim/global lock,26event ve QUARANTINED sonucu değişmedi; geçmiş ayrı READY/restore/prova kanıtı yeni motor sonucu diye sunulmuyor.
