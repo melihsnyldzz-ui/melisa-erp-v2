@@ -1,3 +1,15 @@
+## 19 Ekim 16:23 — P03 küçük gerçek Hub başlangıç ve eskiye dönüşü kanıtlandı
+
+ERP-DEC-066 / `ERP-LIGHT-REHEARSAL-20261019-1253`: mevcut P03'te yalnız ayrı127.0.0.1:5354/SQL'siz gerçek Express+Hub old(e59)→new(01ef)→old(e59) üç faz çalıştı. Başlatıcı/driver source1433c96b, uygulama kaynaklarından ayrı; normal Shared bootstrap veya DB02 kurulumu değildir. Her faz gerçek child/parent/birth/binding ve17HTTP okuma/ret kontrolünden geçti; owned stdin/exit sonrası port boş. Yeni run26dosya/426.366byte, kaynak kontrol paketi5dosya/51.561byte; büyük DB veya node_modules kopyası yok.68Expresspaket/615dosya yalnız ayrı hash kapanışıdır. Sentetik2ürün/1müşteri/1tedarikçi normal kimlik/rol/günlük işletme kabulü sayılmaz; Hub pin=null bütün servis hazırlığını unknown tutar.
+
+İlk gerçek d175 provası HOST_DENIED ile başarısız/cleanuptrue olarak saklandı. Bağımsız transport deneyi Node24fetch'in yanlışHostbaşlığını göndermediğini kanıtladı; yalnız probe rawHTTP'ye düzeltildi, sunucu403koruması aynı. Yeni source/run kullanıldı; eski failure silinmedi. Son kaynak1433c96b exact PR39259023951/push39259015924 CI SUCCESS; son değişiklik9hedef test PASS/bağımsız kaynak GO. Gerçek proof e870c2e8…b00eac2, before/after47bf380b…684c3d ve iki artifact'ın16dosya hashleri bağımsız offline incelemede GO.
+
+**Ortak kurulu TEST korundu:** önce/sonra11listener binding PID/doğum/adres/port, ikiRunningtask actionhash, API/native e59/DB02/copye16b/T1false ve ERP/Hub/CRM HTTP200 içerikhashleri aynı. SQL tablo içerik karşılaştırması yapılmadı; driver'ın deklaratif0SQL/sharedfalse alanları tek başına kanıt sayılmadı. Shared stop/restart/task/config/SQL/DBcopy/ticari yazma yok. Eski b264 engineFAILED/QUARANTINED/journal/lock/claim aynen durur; hafif prova bu sonucu READY yapmaz. Yeni aday ortak TEST'e kurulmadı. [Dar gerçek kanıt, kaynak/CI ve private SHA'lar](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md).
+
+**GUI/personel/insan açık:** önceki ekran aracı Chrome URL'sini güvenle belirleyemediğinden BLOCKED; başka UI yoluyla aşılmadı. Yeni yan-yana personel/İlker ve insan kabulü PASS yok. Gerçek barkodun doğru arama alanına ulaşıp bu katalogda0eşleşme vermesi korunur; ürün/barkod bağı veya ticari hareket yaratılmadı, fiziksel tekrar istenmedi. USER_ACCEPTANCE/49ERP/25CRM değişmez. Kaynak1433, bu belge teslimi ve kurulu e59/13b/6bc ayrı kalır.
+
+**Sıradaki tek iş:** aynı P03'ün bu hafif provada çalıştırılmayan full Shared başlangıç/owner geçişi ve guarded geri dönüş kapısını mevcut korunmuş failed journal üzerinden, eski claim'i tekrar kullanmadan kesinleştirmek. Önce yeni tuple için salt okunur admission ve dar geri dönüş koşulları; bu teslim shared kurulum veya LIVE yetkisi değildir. Normal GUI engeli ve özgün insan kabulü ayrı bekler.
+
 ## 19 Ekim 15:47 — eski ortak TEST geç salt-okunur gözlemle kararlı; GUI engelli
 
 `DOT-ERP-RECOVERY-FOCUS-20261019-1238` ve `DOT-ERP-LIGHT-TEST-20261019-1243` aynı aktif turda alındı; ERP-DEC-066 ile hafif sentetik TEST yönü kaydedildi. Yeni paralel ana görev/Goal/DB/kurulum yok. Büyük aday kurulumu tekrarlanmadı.

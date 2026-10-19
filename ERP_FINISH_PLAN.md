@@ -1,3 +1,7 @@
+## 19 Ekim — P03 / ERP-DEC-066 hafif gerçek Hub başlangıç ve geri dönüş alt kanıtı
+
+AyrıSQL'siz5354'te e59→01ef→e59 gerçek Express/Hub old/new/old,17HTTPkontrol/faz ve ownedcleanup doğrulandı. Başlatıcı1433c96b exact PR/push CI SUCCESS; bağımsız source/proof GO. Ortak listener/görev/health/HTTP içerikleri önce–sonra aynı; ilk başarısız HOST_DENIED ve eski b264engineFAILED/journal/claim korunur. Yeni büyük DB/kopya/sharedkurulum yok. Bu, full Shared bootstrap/guardedrollback veya GUI/normalpersonel/insan kabulü değildir; mevcut P03 üst kapanışı,49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmez. [Gerçek kapsam ve sonraki P03 kapısı](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md).
+
 ## 18 Ekim — B01/B03–B06 ve bağlı iş akışları: v75 sunum portu
 
 İş sırası ve mal kabul/alış, ayrı cari bakiye–fiş kalan, tahsilat ve iade/onay hiyerarşisi güncel PR52 tabanındaki native/API controller'lara taşındı.264hedefli offline test+build+bağımsız inceleme GO; yeni browser/mobile önizleme ortam hatası nedeniyle NOT_RUN. Gönderen adı/saat, ortak belge aktarımı, native iki satırdan genel kapsam, kurulum ve insan kabulleri açık. [Kaynak/kanıt](docs/evidence/erp/2026-10-18-office-layout-v75.md). Bu bir kaynak alt adımıdır;49/9🟢/39🟡/1🔴 ve aşağıdaki özgün kabul/plan satırları değişmez.
