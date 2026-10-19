@@ -65,6 +65,7 @@ test('physical health rechecks port ownership after a request and disables redir
 function candidateHarness(foreign,oldPid=false,protectedPid=false){
  const source=readFileSync(rollback,'utf8');
  const fn=source.slice(source.indexOf('function CandidateInventory('),source.indexOf('function Health('));
+ const oldLifetimes=source.slice(source.indexOf('function OldReuseHold('),source.indexOf('function Inventory{'));
  const harness=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
  function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
  function ProtectedProcesses($inventory){}
@@ -73,10 +74,11 @@ function candidateHarness(foreign,oldPid=false,protectedPid=false){
  $before=[pscustomobject]@{identities=[pscustomobject]@{}}
  $evidence=[pscustomobject]@{processes=@(${protectedPid?"[pscustomobject]@{pid=6180;role='erpNative';ownerSid='S-1-5-21-test'}":oldPid?"[pscustomobject]@{pid=1;role='coreSupervisor';ownerSid='S-1-5-21-test'}":""});receipts=@()}
  function Inventory{return [pscustomobject]@{all=@();instances=@();listeners=@(${foreign?"[pscustomobject]@{OwningProcess=999;LocalPort=4184;LocalAddress='127.0.0.1'}":""})}}
+ ${oldLifetimes}
  ${fn}
  try{$r=CandidateInventory $evidence;'SELECTED='+$r.selected.Count}catch{$_.Exception.Message}
  `;
- return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(harness,'utf16le').toString('base64')],{encoding:'utf8'});
+ return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$text=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($text))','utf16le').toString('base64')],{encoding:'utf8',input:harness});
 }
 test('candidate admission rejects a foreign listener before any stop primitive',windows,()=>{
  assert.match(candidateHarness(true),/P03_PHYSICAL_FOREIGN_LISTENER/);

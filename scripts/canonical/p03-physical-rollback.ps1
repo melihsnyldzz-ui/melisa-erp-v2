@@ -57,6 +57,53 @@ function Identity($actual,$expected){
  }
  return $sid.ReturnValue -eq 0 -and $sid.Sid -ceq $expected.ownerSid -and [int]$actual.ProcessId -eq [int]$expected.pid -and [int]$actual.ParentProcessId -eq [int]$expected.parentPid -and $actual.ExecutablePath -ieq $expected.nodePath -and $actual.CommandLine -ceq $expected.commandLine -and $actual.CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks
 }
+# Versioned observation-only OLD PID reuse admission. Never a stop target.
+function OldReuseHold($row){
+ $h=[Diagnostics.Process]::GetProcessById([int]$row.ProcessId);[void]$h.Handle
+ try{Need (-not $h.HasExited -and $h.StartTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ') -ceq $row.CreationDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'OLD_REUSE_HANDLE';return $h}catch{$h.Dispose();throw}
+}
+function OldReusePin($row){
+ Need (-not[string]::IsNullOrWhiteSpace($row.ExecutablePath) -and -not[string]::IsNullOrWhiteSpace($row.CommandLine)) 'OLD_REUSE_FIELDS'
+ NoReparse $row.ExecutablePath
+ $sid=Invoke-CimMethod -InputObject $row -MethodName GetOwnerSid -ErrorAction Stop;Need ($sid.ReturnValue -eq 0 -and $sid.Sid -ceq $owner) 'OLD_REUSE_OWNER'
+ return [pscustomobject]@{pid=[int]$row.ProcessId;parentPid=[int]$row.ParentProcessId;nodePath=[string]$row.ExecutablePath;commandLine=[string]$row.CommandLine;ownerSid=$sid.Sid;creationTime=$row.CreationDate.ToUniversalTime().ToString('o');imageHash=(Get-FileHash -LiteralPath $row.ExecutablePath -Algorithm SHA256).Hash}
+}
+function AssertOldPidLifetimes($inventory){
+ $candidateIds=if(Get-Variable capturedCandidatePids -Scope Script -ErrorAction SilentlyContinue){@($script:capturedCandidatePids)}else{@()}
+ $old=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)
+ $oldIds=@($old|ForEach-Object{[int]$_.pid})
+ $initial=-not(Get-Variable oldReusePins -Scope Script -ErrorAction SilentlyContinue)
+ if($initial){$script:oldReusePins=@{}}
+ $observed=@()
+ foreach($row in @($inventory.all|Where-Object{$_.ProcessId -in $oldIds})){
+  Need (-not$isRehearsal -and $before.copyId -ceq 'e16b70f0-4057-428b-9abc-6bbcaf35fe82' -and $profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $newSettings.components.erpApiNative.sourceCommit -ceq '01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2') 'OLD_REUSE_SCOPE'
+  $id=[int]$row.ProcessId;Need ($id -notin $observed) 'OLD_REUSE_DUPLICATE';$observed+=,$id
+  Need (@($inventory.instances|Where-Object{$_.EnginePID -eq $id}).Count -eq 0 -and @($inventory.allListeners|Where-Object{$_.OwningProcess -eq $id}).Count -eq 0 -and @($inventory.all|Where-Object{$_.ParentProcessId -eq $id}).Count -eq 0) 'OLD_REUSE_LINKED'
+  Need ($id -notin $candidateIds -and $id -notin @($profile.protectedProcesses|ForEach-Object{$_.pid})) 'OLD_REUSE_CANDIDATE'
+  foreach($pin in @($old|Where-Object{$_.pid -eq $id})){Need ($pin.PSObject.Properties.Name -contains 'creationTime' -and $row.CreationDate.ToUniversalTime().Ticks -gt [DateTime]::Parse($pin.creationTime).ToUniversalTime().Ticks) 'OLD_LIFETIME_PRESENT'}
+  # Every actual ancestor must remain outside the recovery cohort/package scope.
+  $walk=$row;$visited=@()
+  while($null -ne $walk){
+   Need ([int]$walk.ProcessId -notin $visited) 'OLD_REUSE_ANCESTRY';$visited+=,[int]$walk.ProcessId
+   Need (-not(IsWatcherCommand ([string]$walk.CommandLine))) 'OLD_REUSE_WATCHER'
+   foreach($pkg in $profile.packages){Need (([string]$walk.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -lt 0) 'OLD_REUSE_PACKAGE'}
+   Need ([int]$walk.ParentProcessId -notin ($candidateIds+$oldIds+@($profile.protectedProcesses|ForEach-Object{$_.pid}))) 'OLD_REUSE_PARENT_SCOPE'
+   $parents=@($inventory.all|Where-Object{$_.ProcessId -eq $walk.ParentProcessId});Need ($parents.Count -le 1) 'OLD_REUSE_PARENT_DUPLICATE'
+   $walk=if($parents.Count){$parents[0]}else{$null}
+  }
+  $parent=@($inventory.all|Where-Object{$_.ProcessId -eq $row.ParentProcessId});Need ($parent.Count -eq 1 -and $parent[0].CreationDate.ToUniversalTime() -le $row.CreationDate.ToUniversalTime()) 'OLD_REUSE_PARENT'
+  if(-not$script:oldReusePins.ContainsKey($id)){
+   Need $initial 'OLD_REUSE_NEW_LIFETIME'
+   $childPin=OldReusePin $row;$parentPin=OldReusePin $parent[0];$childHandle=OldReuseHold $row
+   try{$parentHandle=OldReuseHold $parent[0]}catch{$childHandle.Dispose();throw}
+   $script:oldReusePins[$id]=[pscustomobject]@{child=$childPin;parent=$parentPin;childHandle=$childHandle;parentHandle=$parentHandle}
+  }
+  $proof=$script:oldReusePins[$id]
+  Need (-not$proof.childHandle.HasExited -and -not$proof.parentHandle.HasExited -and (Identity $row $proof.child) -and (Identity $parent[0] $proof.parent)) 'OLD_REUSE_IDENTITY'
+  foreach($pair in @(@($row,$proof.child),@($parent[0],$proof.parent))){NoReparse $pair[0].ExecutablePath;Need ((Get-FileHash -LiteralPath $pair[0].ExecutablePath -Algorithm SHA256).Hash -ceq $pair[1].imageHash) 'OLD_REUSE_IMAGE'}
+ }
+ return $observed
+}
 function Inventory{
  $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
  $allListeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
@@ -169,6 +216,7 @@ function AssertTasks([int]$state){
  foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq $state -and (XmlHash ([string]$task.Xml)) -ceq $entry.oldXmlSha256) 'OLD_TASK_DRIFT';RehearsalTaskAction ([string]$task.Xml) 'old' $entry.name}
 }
 function AssertEmpty($inventory){
+ [void](AssertOldPidLifetimes $inventory)
  Need ($inventory.instances.Count -eq 0 -and $inventory.listeners.Count -eq 0) 'NOT_EMPTY'
  $roots=@($profile.packages|ForEach-Object{[string]$_.root})
  foreach($p in $inventory.all){
@@ -363,6 +411,7 @@ function CandidateInventoryCore($evidence){
  $oldPids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})
  foreach($instance in $inventory.instances){$oldPids+=@($before.tasks|Where-Object{$_.name -ceq $instance.Name}|ForEach-Object{if($_.PSObject.Properties.Name -contains 'enginePid'){[int]$_.enginePid}})}
  Need (@($evidence.processes|ForEach-Object{$_.role}|Sort-Object -Unique).Count -eq @($evidence.processes).Count -and @($evidence.processes|ForEach-Object{$_.pid}|Sort-Object -Unique).Count -eq @($evidence.processes).Count) 'CANDIDATE_DUPLICATE'
+ $unrelatedOldPids=@(AssertOldPidLifetimes $inventory)
  $selected=@();$rules=@($profile.candidateRules);$seen=@()
  foreach($expected in @($evidence.processes)){
   Need ($expected.PSObject.Properties.Name -cnotcontains 'kind') 'CANDIDATE_PROTECTED_KIND'
@@ -428,7 +477,7 @@ function CandidateInventoryCore($evidence){
  foreach($captured in @($evidence.processes)){[void]$relevantPids.Add([int]$captured.pid)}
  foreach($capturedPid in @($script:consolePins.Keys)){[void]$relevantPids.Add([int]$capturedPid)}
  foreach($p in $inventory.all){
-  $relevant=$p.ProcessId -in $oldPids -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or (IsWatcherCommand ([string]$p.CommandLine))
+  $relevant=($p.ProcessId -in $oldPids -and $p.ProcessId -notin $unrelatedOldPids) -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or (IsWatcherCommand ([string]$p.CommandLine))
   foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){$relevant=$true}}
   if($relevant){[void]$relevantPids.Add([int]$p.ProcessId)}
  }

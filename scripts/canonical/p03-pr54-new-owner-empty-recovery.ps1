@@ -11,7 +11,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018'
-$engineSha='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'
+$engineSha='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'
 function Require-NewDrain($condition,[string]$code){if(-not$condition){throw ('P03_NEW_DRAIN_'+$code)}}
 function Read-NewDrainEngine{
  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner) 'OWNER'
@@ -33,8 +33,7 @@ function Assert-NewDrainPins{
  TaskPhase 'new';Require-NewDrain (@(Get-ChildItem -LiteralPath $profile.journalDirectory -Force).Count-eq0) 'ENGINE_RECOVERY_NOT_EMPTY'
 }
 function Assert-NewDrainOldAbsent($inventory){
- $old=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})
- Require-NewDrain (@($inventory.all|Where-Object{$_.ProcessId-in$old}).Count-eq0) 'OLD_PID_PRESENT_OR_REUSED'
+ [void](AssertOldPidLifetimes $inventory)
 }
 function Save-NewDrain([string]$file,$value){
  NoReparse ([IO.Path]::GetDirectoryName($file));Require-NewDrain (-not(Test-Path -LiteralPath $file)) 'OUTPUT_EXISTS'
@@ -56,12 +55,13 @@ function Capture-NewDrainCandidate{
  $roles=@('coreSupervisor','terminalWatcher','erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer');$selected=@();$receipts=@()
  foreach($rule in $profile.candidateRules){VerifyRule $rule;$rows=@($raw.all|Where-Object{$_.ExecutablePath-ceq$rule.nodePath-and((Tokens $_.CommandLine)|ConvertTo-Json -Compress)-ceq((Tokens $rule.commandLine)|ConvertTo-Json -Compress)})
   if($rule.role-cin@('hub','hubWatcher')){Require-NewDrain ($rows.Count-eq0) 'UNEXPECTED_HUB';continue}
+  if($rows.Count-eq0){continue}
   Require-NewDrain ($rule.role-cin$roles-and$rows.Count-eq1) 'CURRENT_ROLE_COUNT';$p=$rows[0];$sid=Invoke-CimMethod $p -MethodName GetOwnerSid -ErrorAction Stop
   Require-NewDrain ($sid.ReturnValue-eq0-and$sid.Sid-ceq$owner) 'CURRENT_OWNER'
   $selected+=,[pscustomobject]@{role=$rule.role;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=[string]$p.ExecutablePath;ownerSid=$owner;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@($raw.listeners|Where-Object{$_.OwningProcess-eq$p.ProcessId}|ForEach-Object{[pscustomobject]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress}})}
   if($null-ne$rule.receipt){$receipts+=,(Read-NewDrainReceipt $rule.role $rule.receipt.path)}
  }
- Require-NewDrain ($selected.Count-eq8-and@($selected.role|Sort-Object -Unique).Count-eq8-and$receipts.Count-eq6) 'CURRENT_EIGHT'
+ Require-NewDrain (($selected.Count-eq0-and$raw.instances.Count-eq0-and$raw.listeners.Count-eq0)-or($selected.Count-eq8-and@($selected.role|Sort-Object -Unique).Count-eq8-and$receipts.Count-eq6)) 'CURRENT_EIGHT'
  return [pscustomobject]@{schemaVersion='melisa-p03-physical-candidate.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;observedAt=[DateTime]::UtcNow.ToString('o');processes=$selected;receipts=$receipts}
 }
 function Current-NewDrainFrame{
@@ -103,7 +103,14 @@ function Wait-NewDrainCoreQuiet{
 }
 function Invoke-NewDrain{
  $script:parentPins=@{};$script:watcherPins=@{};$script:consolePins=@{};$script:tasksStopRequested=$false;$script:newGone=@();$script:newCoreHandle=$null
- $script:newEvidence=Capture-NewDrainCandidate;$script:newCore=@($script:newEvidence.processes|Where-Object{$_.role-ceq'coreSupervisor'})[0]
+ $script:newEvidence=Capture-NewDrainCandidate
+ if($script:newEvidence.processes.Count-eq0){
+  $frame=Current-NewDrainFrame;AssertEmpty $frame.inventory;Require-NewDrain (@($names|Where-Object{[int]$folder.GetTask($_).State-ne3}).Count-eq0) 'EMPTY_TASKS'
+  if($Action-ceq'Inspect'){return [ordered]@{status='NEW_OWNER_EMPTY_INSPECTED';mutationExecuted=$false;newIdentities=0;engineRecoveryExecuted=$false}}
+  Open-NewDrainOutput;$zeroRef=Save-NewDrain (Join-Path $base ('MelisaERP-P03-candidate-'+[guid]::NewGuid().ToString('N')+'.json')) $script:newEvidence;$tail=Record-NewDrain 'NEW_DRAIN_EMPTY' $zeroRef
+  return [ordered]@{status='NEW_OWNER_EMPTY_CANDIDATE_READY';candidateRef=$zeroRef;outerTail=$tail;mutationExecuted=$false;oldOwnerStarted=$false;engineRecoveryExecuted=$false;businessWrites=0;requiresVersionedStopNewAndRollbackOld=$true}
+ }
+ $script:newCore=@($script:newEvidence.processes|Where-Object{$_.role-ceq'coreSupervisor'})[0]
  $script:newCoreHandle=Hold-NewDrainCore $script:newCore
  try{
   Require-NewDrain (-not$script:newCoreHandle.HasExited-and$script:newCoreHandle.StartTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')-ceq[DateTime]::Parse($script:newCore.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'CORE_LIFETIME'
