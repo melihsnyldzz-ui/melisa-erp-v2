@@ -207,6 +207,7 @@ test('schema-managed mode requires migrated tables and never performs runtime DD
   binding.db.exec(migration);
   assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
   binding.db.exec('CREATE TABLE d1_migrations(id INTEGER PRIMARY KEY,name TEXT)');
+  binding.db.exec('CREATE TABLE "__drizzle_migrations"(id SERIAL PRIMARY KEY,hash text NOT NULL,created_at numeric)');
   binding.sql.length = 0;
   const store = await createD1Store(binding, { schemaManaged: true });
   const [personnel, manager] = store.actors();
@@ -233,6 +234,11 @@ test('schema-managed mode rejects unsupported definitions without seeding', asyn
   await rejects(() => createD1Store(binding, { schemaManaged: true }), 'FOREIGN_STORE', 409);
   assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
   assert.ok(binding.sql.every(sql => !/^(?:CREATE|ALTER|DROP)\b/i.test(sql)));
+  const foreignMigration = new FakeD1(); t.after(() => foreignMigration.db.close());
+  foreignMigration.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));
+  foreignMigration.db.exec('CREATE TABLE __drizzle_migrations(id INTEGER PRIMARY KEY,customer_data TEXT)');
+  await rejects(() => createD1Store(foreignMigration, { schemaManaged: true }), 'FOREIGN_STORE', 409);
+  assert.equal(foreignMigration.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
 });
 
 

@@ -339,7 +339,13 @@ const normalizeSchema = sql => sql.replace(/IF\s+NOT\s+EXISTS\s+/ig, '').replace
 
 async function initialize(db, schemaManaged) {
   const tables = (await db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()).results;
-  const names = tables.map(r => r.name).filter(name => !name.startsWith('_cf_') && !(schemaManaged && name === 'd1_migrations'));
+  if (schemaManaged && tables.some(row => row.name === '__drizzle_migrations')) {
+    const columns = (await db.prepare('PRAGMA table_info("__drizzle_migrations")').all()).results;
+    if (columns.length !== 3 || columns[0].name !== 'id' || !['SERIAL', 'INTEGER'].includes(columns[0].type.toUpperCase()) || columns[0].pk !== 1 ||
+      columns[1].name !== 'hash' || columns[1].type.toUpperCase() !== 'TEXT' || columns[1].notnull !== 1 ||
+      columns[2].name !== 'created_at' || !['NUMERIC', 'INTEGER'].includes(columns[2].type.toUpperCase())) fail(409, 'FOREIGN_STORE', 'Unsupported migration bookkeeping schema');
+  }
+  const names = tables.map(r => r.name).filter(name => !name.startsWith('_cf_') && !(schemaManaged && ['d1_migrations', '__drizzle_migrations'].includes(name)));
   if (names.some(name => ![STATE_TABLE, SESSION_TABLE].includes(name)) || (names.length && !names.includes(STATE_TABLE))) fail(409, 'FOREIGN_STORE', 'D1 binding is not a dedicated synthetic store');
   if (schemaManaged) {
     if (![STATE_TABLE, SESSION_TABLE].every(name => names.includes(name))) fail(503, 'SCHEMA_NOT_READY', 'Apply the synthetic schema migration before starting the preview');

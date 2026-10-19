@@ -34,6 +34,12 @@ The printed loopback URL serves `/erp/`, `/crm/`, and `/terminal/`. The terminal
 
 Two products101/102 start with10/8 pieces; customer501 belongs to personnel15/Angela17, customer502 to18; supplier601 is synthetic. Four received pieces of101 add stock only at manager approval. A CRM order for2 pieces creates no stock/debt/collection/reservation effect. Sale finalization then yields stock12 and debt50TRY; manager collection20TRY leaves debt30TRY. UUID journal/revisions prevent repeated effects. SQLite reopen and D1 CAS/concurrent handles are covered by tests. There is no reset/delete API.
 
+The optional `browser-smoke.mjs` uses an already installed Playwright Core entry and Chromium executable. It creates its own fresh synthetic SQLite file and loopback host, tests the real UI at390×844, writes only synthetic screenshots/result JSON, then closes the browser/server:
+
+```sh
+node apps/cloud-shared-test/browser-smoke.mjs /absolute/erp/build /absolute/crm/build /absolute/playwright-core/index.mjs /absolute/chromium /tmp/melisa-browser-evidence
+```
+
 ## Owner-private Sites handoff
 
 ```sh
@@ -43,6 +49,8 @@ node apps/cloud-shared-test/build-worker.mjs /absolute/erp/build /absolute/crm/b
 The output contains a standalone ESM `server/index.js` with both frontend builds embedded, plus `drizzle/0001_synthetic.sql` and `drizzle/meta/_journal.json`. The SQL is copied byte-for-byte from source `migrations/0001_synthetic.sql`; the journal declares one SQLite migration and two statement-separated schema operations. There is no seed or data mutation in that migration. It has no Node imports or real ERP providers. Hosting requires a dedicated D1 binding named `DB`, that migration applied through the supported Sites migration path, and owner-private Site access. The Worker also requires Sites' authenticated visitor identity header; the opaque synthetic role session is separate. Do not expose this role simulator publicly or reuse a real database binding.
 
 For the parent's supported Worker ESM starter: copy generated `server/index.js` to its `worker/index.js`, and generated **entire `drizzle/` tree to the Site project root `drizzle/` before invoking the native build/source helper**. The native packager must then preserve it at `dist/.openai/drizzle/`. Validate both tables were migrated before testing the hosted API; schemaManaged mode intentionally returns503 if absent. Do not deploy the Worker bundle alone. The journal/SQL reader layout and statement separator were checked against the [Drizzle 0.44.7 migration reader](https://github.com/drizzle-team/drizzle-orm/blob/0.44.7/drizzle-orm/src/migrator.ts); native Sites packaging/deployment must still be checked by the parent.
+
+The managed runtime accepts the known `__drizzle_migrations` bookkeeping table only after checking its three expected columns; a foreign table using that name is rejected before seeding. Runtime performs no DDL. The real Drizzle reader was run against the generated artifact and applied both statements to a fresh SQLite database: exactly `synthetic_state` and `synthetic_sessions`, zero rows before runtime initialization.
 
 This environment lacks the required installed Sites `project-setup.mjs`, `set-project-id.mjs`, and `site-workflow.mjs` helpers. No Site registration, source-helper package, save-version, or deployment has been attempted. The application output is **not yet a verified Sites archive**. The owning parent can use the supported Worker ESM starter/helper in its authorized Sites environment, set the actual returned project ID and D1 declaration, preserve private access, package/push the exact source, then call the native private save/deploy operation. Do not invent an ID, credential, helper, or deployment result.
 
