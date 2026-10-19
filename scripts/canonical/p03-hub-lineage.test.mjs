@@ -6,12 +6,12 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const here=path.dirname(fileURLToPath(import.meta.url));
-const read=name=>fs.readFileSync(path.join(here,name),'utf8');
+const read=name=>fs.readFileSync(path.join(here,name),'utf8').replaceAll('\r\n','\n');
 const start=read('start-hub-web.ps1'),watch=read('watch-hub-web.ps1');
 
 test('candidate19 actual PowerShell admission binds exact date, eight-character source prefix and rooted family',()=>{
  const fn=start.match(/function Assert-HubPath[\s\S]*?\r?\n}/)?.[0];
- const begin=start.indexOf("Assert-HubPath $c.PackageRoot 'C:\\Sirket\\ERP\\releases'"),end=start.indexOf("if((Get-FileHash -LiteralPath $c.NodePath",begin);
+ const begin=start.indexOf("if($LightRehearsal){\n if($c.PackageRoot"),end=start.indexOf("if((Get-FileHash -LiteralPath $c.NodePath",begin);
  assert.ok(fn&&begin>0&&end>begin);
  const cases=[
   ['C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a','01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2',true],
@@ -23,7 +23,7 @@ test('candidate19 actual PowerShell admission binds exact date, eight-character 
   ['C:\\foreign\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a','01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2',false]
  ];
  const input=Buffer.from(JSON.stringify(cases)).toString('base64');
- const program=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ const program=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$LightRehearsal=$false
 function Get-Item {param($LiteralPath) [pscustomobject]@{Attributes=0}}
 ${fn}
 $cases=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${input}'))|ConvertFrom-Json

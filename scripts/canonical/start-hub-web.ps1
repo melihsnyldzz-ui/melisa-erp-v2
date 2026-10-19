@@ -1,6 +1,7 @@
-param([Parameter(Mandatory=$true)][string]$StartupConfigPath,[ValidateSet('Inspect','Start')][string]$Action='Inspect',[switch]$Watch,[string]$RunId,[int]$Attempt=0)
+param([Parameter(Mandatory=$true)][string]$StartupConfigPath,[ValidateSet('Inspect','Start')][string]$Action='Inspect',[switch]$Watch,[switch]$LightRehearsal,[string]$RunId,[int]$Attempt=0)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+if($LightRehearsal-and($Watch-or$PSBoundParameters.ContainsKey('RunId')-or$PSBoundParameters.ContainsKey('Attempt'))){throw 'HUB_LIGHT_LINEAGE_FLAGS_REJECTED'}
 # Manual, web-only launcher. Does not install tasks, stop owners or start API/SQL.
 function Assert-HubPath($Target,$Root){
  $full=[IO.Path]::GetFullPath($Target);$base=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')
@@ -17,7 +18,10 @@ foreach($key in @('PackageRoot','OperationConfigPath','HubConfigPath','NodePath'
 foreach($private in @($StartupConfigPath,$c.OperationConfigPath,$c.HubConfigPath,$c.RuntimeDir)){if([IO.Path]::GetFullPath($private).StartsWith([IO.Path]::GetFullPath($c.PackageRoot).TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'HUB_PRIVATE_STATE_OVERLAP'}}
 if($c.SourceCommit -notmatch '^[a-f0-9]{40}$' -or $c.ManifestSha256 -notmatch '^[a-fA-F0-9]{64}$' -or $c.NodeSha256 -notmatch '^[a-fA-F0-9]{64}$'){throw 'HUB_STARTUP_PIN_REJECTED'}
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ne $c.OwnerSid){throw 'HUB_STARTUP_OWNER_REJECTED'}
-Assert-HubPath $c.PackageRoot 'C:\Sirket\ERP\releases'
+if($LightRehearsal){
+ if($c.PackageRoot-cnotmatch'\AC:\\Sirket\\ERP\\rehearsal\\ERP-LIGHT-REHEARSAL-20261019-1253\\run-[a-f0-9]{32}\\(?:old|new)\\CANONICAL-(?:COMPLETE|CANDIDATE)-TEST-[a-z0-9-]+\z'){throw 'HUB_LIGHT_ROOT_REJECTED'}
+ Assert-HubPath $c.PackageRoot 'C:\Sirket\ERP\rehearsal\ERP-LIGHT-REHEARSAL-20261019-1253'
+}else{Assert-HubPath $c.PackageRoot 'C:\Sirket\ERP\releases'}
 $packageName=Split-Path $c.PackageRoot -Leaf
 # Retain the approved Hub package family and admit only the exact current
 # completion family whose suffix identifies this pinned source commit.
@@ -32,8 +36,15 @@ if((Get-FileHash -LiteralPath $c.NodePath -Algorithm SHA256).Hash -ne $c.NodeSha
 $manifestFile=Join-Path $c.PackageRoot 'release-manifest.json'
 if((Get-FileHash -LiteralPath $manifestFile -Algorithm SHA256).Hash -ne $c.ManifestSha256){throw 'HUB_MANIFEST_PIN_REJECTED'}
 $m=Get-Content -LiteralPath $manifestFile -Raw|ConvertFrom-Json
-if($m.sourceCommit -ne $c.SourceCommit -or !$m.baselineReproduced -or $m.sharedTestCopy.database -ne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -or $m.sharedTestCopy.webPort -ne 5234 -or $m.sharedTestCopy.actualT1 -ne $false){throw 'HUB_RELEASE_SCOPE_REJECTED'}
+if($LightRehearsal){if((@($m.PSObject.Properties.Name|Sort-Object)-join'|')-cne'actualT1|childConfigSha256|environment|files|generation|launcherSource|port|schemaVersion|sourceCommit|sqlFree'-or$m.schemaVersion-cne'melisa-p03-light-hub-package.v1'-or$m.environment-cne'P03_LIGHT_REHEARSAL'-or$m.sourceCommit-cne$c.SourceCommit-or$m.sqlFree-ne$true-or$m.port-ne5354-or$m.actualT1-ne$false-or(Get-FileHash -LiteralPath $c.OperationConfigPath -Algorithm SHA256).Hash-ine$m.childConfigSha256-or$m.PSObject.Properties.Name-contains'sharedTestCopy'){throw 'HUB_LIGHT_RELEASE_SCOPE_REJECTED'}}else{if($m.sourceCommit -ne $c.SourceCommit -or !$m.baselineReproduced -or $m.sharedTestCopy.database -ne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -or $m.sharedTestCopy.webPort -ne 5234 -or $m.sharedTestCopy.actualT1 -ne $false){throw 'HUB_RELEASE_SCOPE_REJECTED'}}
 foreach($file in $m.files){$target=Join-Path $c.PackageRoot $file.path;Assert-HubPath $target $c.PackageRoot;if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $file.sha256){throw 'HUB_PACKAGE_HASH_REJECTED'}}
+if($LightRehearsal){
+ $lightEntry=Join-Path $c.PackageRoot 'launcher\start-hub-light-rehearsal.ps1'
+ Assert-HubPath $lightEntry $c.PackageRoot
+ if(@($m.files|Where-Object{$_.path-ceq'launcher/start-hub-light-rehearsal.ps1'}).Count-ne1){throw 'HUB_LIGHT_LAUNCHER_PIN_REQUIRED'}
+ & $lightEntry -StartupConfigPath $StartupConfigPath -Action $Action
+ exit 0
+}
 $operation=Get-Content -LiteralPath $c.OperationConfigPath -Raw|ConvertFrom-Json
 $pin=Get-Content -LiteralPath $c.HubConfigPath -Raw|ConvertFrom-Json
 if($operation.database -ne 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -or $operation.webPort -ne 5234 -or $operation.erpPort -ne 4184 -or $operation.nativePort -ne 4186 -or $operation.host -ne '127.0.0.1' -or $operation.lanHost -ne '192.168.1.46'){throw 'HUB_OPERATION_SCOPE_REJECTED'}
