@@ -177,7 +177,19 @@ export function assertPr54CurrentSuccessorCandidate(candidate){
 // IO must independently authenticate ACL/no-reparse files, source manifests,
 // protected SQL/OS identities and full health before/after atomic CreateNew.
 // These bytes are an admission proposal, never OS proof or permission to replay.
-export function admitPr54CurrentOwnerSuccessor({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now()}){
+const currentContinuities=new WeakMap();
+export function preparePr54CurrentNativeContinuity(snapshotRef,snapshot,observation,backup,now=Date.now()){
+ check(exact(snapshotRef,['path','sha256'])&&ref(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261019-\d{6}\\source-pre-snapshot\.json$/.test(snapshotRef.path));
+ check(snapshot?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&typeof snapshot.logEndBefore==='string'&&/^[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{4}$/.test(snapshot.logEndBefore)&&snapshot.logEndBefore===snapshot.logEndAfter);
+ const guid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
+ check(guid(backup?.backupSetGuid));
+ check(exact(observation,['server','database','copyId','observedAt','actualT1','readOnly','sealed','logEnd','queryStoreMode','snapshotRef','backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'])&&observation.server==='Semih\\MELISADEV'&&observation.database===snapshot.database&&observation.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&observation.actualT1===false&&observation.readOnly===true&&observation.sealed===true&&observation.queryStoreMode==='READ_ONLY'&&['backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'].every(k=>guid(observation[k]))&&observation.backupSetGuid.toLowerCase()===backup.backupSetGuid.toLowerCase()&&observation.databaseGuid.toLowerCase()===observation.backupDatabaseGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupFirstRecoveryForkGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupLastRecoveryForkGuid.toLowerCase()&&observation.logEnd===snapshot.logEndAfter&&same(observation.snapshotRef,snapshotRef)&&time(observation.observedAt)&&Number.isFinite(now)&&now-Date.parse(observation.observedAt)>=0&&now-Date.parse(observation.observedAt)<60000);
+ const token=Object.freeze({});currentContinuities.set(token,{snapshotRef:Object.freeze({...snapshotRef}),observedAt:observation.observedAt});return token;
+}
+export function isPr54CurrentNativeContinuity(token,snapshotRef,now=Date.now()){
+ const proof=currentContinuities.get(token);return Boolean(proof&&same(proof.snapshotRef,snapshotRef)&&Number.isFinite(now)&&now-Date.parse(proof.observedAt)>=0&&now-Date.parse(proof.observedAt)<60000);
+}
+export function admitPr54CurrentOwnerSuccessor({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null}){
  candidate=assertPr54CurrentSuccessorCandidate(candidate);
  const history=provePr54CurrentHistory(raw),old=history.profile;
  check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));

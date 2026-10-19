@@ -1,3 +1,11 @@
+## 19 Ekim — kaynak özeti doğrulandı; mevcut kurulum kontrolündeki dar hata gideriliyor
+
+Kontrol kaynağı d461f166 exact PR39237637591/push39237630501 CI SUCCESS. SUPd461/manifest1dd7392f ve uygulama01ef/manifest8754f9cb doğrulandı;7korumalı inactive dosya oluşturuldu, desteklenen Probe/pin+readonlySQL PASS. Kurulu e59/13b/6bc değişmedi; yeni Apply/servis stop/restart/ticari işlem yok.
+
+Güncel COPY_ONLY yedek checksum/VERIFYONLY PASS; restore yapılmadı. QueryStore sistem performans kaydının globalLSN değişimine neden olduğu salt okunur log metadata'sında görüldü. Yalnız capture OPERATION_MODE, korumalı exactbefore/CAS/inverse ile geçici READ_ONLY; veritabanının kendisi READ_ONLY değil. Aynı strictSERIALIZABLE/globalLSN ve51iştablosu kaynak Pre özeti10:46:29Z PASS. QueryStore eski READ_WRITE durumuna sonuçtan bağımsız geri döndürülüp okunmalıdır.
+
+Tam ownerDryRun, frozenPreflightOld sonrasında erken currentOld fonksiyonunun geç tanımlanan alias kullanımında durdu; genel hata kaydı gerçek istisna stack'ini korumadığından named runtimeexception iddiası yok. TDZ kaynak hatası gerçek fonksiyon VM regresyonuyla düzeltildi. Kaynak Pre'nin15dk süresi yalnız yeni gerçek SQL LSN/DBGUID/recoveryfork/exactbackupUUID sürekliliğiyle yeniden doğrulanabilir; eski timestamp/hash değişmez. OS before-image15dk sınırı ayrı ve koşulsuz korunur.56/56 ilgili test PASS; gerçek native SELECT aynıLSN/fork/backup gösterdi, SQL GUID harf biçimi projection uyumsuzluğu kanonik SQL çıktısıyla düzeltildi; aynı gerçek readonly native kontrolü PASS (kaynak hash/timestamp değişmedi). FreshOSprofile, yeniDryRun/Apply, Post ve normalGUI hâlâ ayrı kapılardır. İnsan UA/49/25 aynı.
+
 ## 19 Ekim — immutable hazırlık DryRun hazır; yeni kurulum hâlâ bekliyor
 
 Supervisor2210016d/manifest0d7691e5,371rawGitbyte dosyası; ERP01ef2089veCRM6bc2292dosya ve bağımlılıklar,30protectedjournalref gerçekten doğrulandı. PrepareDryRun **DRY_RUN_READY**:7yeni çıktının referansı hesaplandı, dosyaları oluşturulmadı/servise uygulanmadı. Önceki cfbf archive reddi tarihsel kanıtta korunur. Kurulu e59/13b/6bc aynı.
