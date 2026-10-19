@@ -89,6 +89,9 @@ if (mode === 'quality') {
   if (!tests.length) throw new Error('CI refuses an empty test suite');
   console.log(`${mode}: ${tests.length} unit test files; offline guard active`);
   run(['--experimental-test-module-mocks', '--experimental-vm-modules', '--test', '--test-concurrency=2', ...tests], mode === 'migration' ? root : path.join(root, 'apps', mode));
+} else if (mode === 'cloud-shared') {
+  run(['--test', ...files(path.join(root, 'apps/cloud-shared-test'), name => /\.test\.mjs$/.test(name))]);
+  run([path.join(root, 'apps/sites-workflow/node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.cloud-test.config.mjs'], path.join(root, 'apps/sites-workflow'));
 } else if (mode === 'build') {
   for (const app of ['web-admin', 'sites-workflow']) run([path.join(root, 'apps', app, 'node_modules/vite/bin/vite.js'), 'build'], path.join(root, 'apps', app));
 } else if (mode === 'guard') {

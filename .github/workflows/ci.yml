@@ -60,6 +60,8 @@ jobs:
         run: node scripts/ci/run.mjs web-admin
       - name: Sites workflow unit tests
         run: node scripts/ci/run.mjs sites-workflow
+      - name: Shared synthetic Cloud tests and isolated frontend build
+        run: node scripts/ci/run.mjs cloud-shared
       - name: Migration models with synthetic data only
         run: node scripts/ci/run.mjs migration
       - name: Canonical SQL source checks without SQL access
