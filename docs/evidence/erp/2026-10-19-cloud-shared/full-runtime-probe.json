@@ -1,0 +1,43 @@
+{
+  "kind": "offline-existing-source-compatibility-probe",
+  "networkAccess": false,
+  "environmentRead": false,
+  "productionAccess": false,
+  "sourceErp": "aa2035b4bf24062e107d0365452e8fc0d61d22dc",
+  "tests": [
+    {
+      "name": "SQL Server TOP/dbo query",
+      "sqliteRejected": true
+    },
+    {
+      "name": "SQL Server transaction application lock",
+      "sqliteRejected": true
+    },
+    {
+      "name": "SQL Server procedure identity",
+      "sqliteRejected": true
+    },
+    {
+      "name": "Existing TEST frontend rejects hosted origin",
+      "result": null
+    },
+    {
+      "name": "Existing terminal CRM bridge rejects hosted origin",
+      "rejected": true
+    },
+    {
+      "name": "Existing demo has no complete customer movements",
+      "code": "DEMO_DATASET_UNAVAILABLE",
+      "status": 503
+    },
+    {
+      "name": "Existing demo operational queue is incomplete",
+      "complete": false,
+      "notConnected": [
+        "notices",
+        "cheques",
+        "counts"
+      ]
+    }
+  ]
+}

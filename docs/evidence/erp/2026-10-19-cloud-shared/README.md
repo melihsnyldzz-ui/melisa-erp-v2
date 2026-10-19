@@ -1,3 +1,5 @@
+> Full-installation correction — 19 October: [actual full ERP/CRM/terminal inventory and infrastructure blocker](full-runtime-audit.md). Parent's hosted15:52–15:59UTC three-flow PASS is recorded there with its limited scope. This document's earlier localhost/source evidence does not establish full application installation or human acceptance.
+
 # 19 Ekim — ERP09 / C01–C04–C05 ve CRM06 ortak sentetik Cloud kaynağı
 
 [ERP PR55](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/55) ve [CRM PR20](https://github.com/melihsnyldzz-ui/melisa-crm/pull/20), her iki repoda `codex/cloud-shared-test-20261019`. ERP taban5ab4f84/PR23, CRM taban03a8609/PR19; yerel candidate19 ve PR31/32 değişmedi. Bu kaynak ve sentetik Cloud QA sonucudur; gerçek shared TEST kurulumu veya insan kabulü değildir.

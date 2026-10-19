@@ -1,3 +1,5 @@
+> Current delivery correction — 19 October: the user rejected this narrow adapter as a full ERP/CRM/terminal installation. Full runtime is **BLOCKED**, not installed. See [the full source/runtime comparison](../../docs/evidence/erp/2026-10-19-cloud-shared/full-runtime-audit.md). Parent verified the limited three flows hosted at15:52–15:59UTC (ERPaa2035b4/CRMf5ad566b); that is not full product acceptance. Diagnosis below is historical. No new full-runtime bundle or deployment is claimed.
+
 # Shared synthetic Cloud TEST
 
 ## Hosted diagnosis — 19 October 2026

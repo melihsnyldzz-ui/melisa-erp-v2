@@ -1,0 +1,3677 @@
+{
+  "kind": "existing-application-runtime-comparison-not-a-task-tracker",
+  "erpCanonicalCandidate": {
+    "pr": 54,
+    "sha": "691f889aa9e87f1c0b840963621add48387699f9",
+    "layoutPr": 53,
+    "layoutSha": "7abf962a6446eb3a800babd5b54312a8b913d814"
+  },
+  "erpCloud": {
+    "pr": 55,
+    "sourceSha": "aa2035b4bf24062e107d0365452e8fc0d61d22dc",
+    "baseSha": "5ab4f84273430562b881a6dbd56a64b74541b7b4",
+    "controllerNames": [
+      "createWorkReceiving",
+      "createWorkSales",
+      "createWorkCollections"
+    ],
+    "views": [
+      "goods",
+      "sales",
+      "receipts",
+      "collections",
+      "crm"
+    ],
+    "completeErp": false
+  },
+  "crm": {
+    "pr": 20,
+    "sha": "f5ad566b852425ed21d3ec9e87b783b85e90b890",
+    "fullEntry": "apps/frontend/src/main.jsx -> App.jsx",
+    "cloudEntry": "apps/frontend/src/cloudTest/main.jsx",
+    "cloudComponents": [
+      "CatalogBuilder",
+      "ERPOrderDialog",
+      "NativeOrderReceiptDisplay"
+    ],
+    "fullApplicationServed": false,
+    "liveApiMethods": [
+      "erpDrafts",
+      "erpLogin",
+      "erpCustomers",
+      "erpContext",
+      "erpDraftDetail",
+      "erpDraft",
+      "existingCatalogProducts",
+      "existingCatalogPhoto",
+      "existingCatalogProduct",
+      "catalogSignIn",
+      "catalogSignOut",
+      "catalogProducts",
+      "catalogProduct",
+      "health",
+      "login",
+      "resumeNormalSession",
+      "rememberNormalSession",
+      "clearNormalSession",
+      "rememberedNormalSession",
+      "hasNativeNormalSession",
+      "session",
+      "inbox",
+      "conversation",
+      "agents",
+      "send",
+      "assign",
+      "salesRules",
+      "saveSalesRules",
+      "salesDraft",
+      "sendStatus",
+      "translate"
+    ],
+    "primaryViews": [
+      "Gelen Kutusu",
+      "Konuşmalar",
+      "Atanmamışlar",
+      "Müşteriler",
+      "Raporlar"
+    ]
+  },
+  "canonicalWorkflowRoutes": [
+    {
+      "hash": "home",
+      "label": "İş sırası",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "stock",
+      "label": "Ürün & stok",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "goods",
+      "label": "Gelen mal",
+      "presentInNarrowCloud": true
+    },
+    {
+      "hash": "purchases",
+      "label": "Alış faturaları",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "sales",
+      "label": "Satış terminali",
+      "presentInNarrowCloud": true
+    },
+    {
+      "hash": "receipts",
+      "label": "Satış fişleri",
+      "presentInNarrowCloud": true
+    },
+    {
+      "hash": "customers",
+      "label": "Müşteriler",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "suppliers",
+      "label": "Tedarikçiler",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "collections",
+      "label": "Tahsilat",
+      "presentInNarrowCloud": true
+    },
+    {
+      "hash": "supplier-payments",
+      "label": "Tedarikçi Ödeme",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "count",
+      "label": "Sayım & düzeltme",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "returns",
+      "label": "İadeler",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "approvals",
+      "label": "Onaylar",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "reports",
+      "label": "Raporlar",
+      "presentInNarrowCloud": false
+    },
+    {
+      "hash": "settings",
+      "label": "Ayarlar",
+      "presentInNarrowCloud": false
+    }
+  ],
+  "legacyReactRegisteredScreens": [
+    {
+      "id": "dashboard",
+      "label": "Operasyon Masası",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "operational-health",
+      "label": "Operasyon Sağlığı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "stock-list",
+      "label": "Stok Listesi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "product-card",
+      "label": "Ürün Kartı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "bulk-product-create",
+      "label": "Toplu Stok Kartı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "price-list",
+      "label": "Fiyat Listesi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "stock-movements",
+      "label": "Stok Hareketleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "stock-valuation",
+      "label": "Stok Değerleme",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "stock-count",
+      "label": "Stok Sayım",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "customer-list",
+      "label": "Müşteri Cari Listesi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "customer-card",
+      "label": "Müşteri Cari Kartı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "customer-movements",
+      "label": "Müşteri Cari Hareketleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "customer-statement",
+      "label": "Müşteri Ekstre",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "supplier-list",
+      "label": "Tedarikçi Cari Listesi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "supplier-card",
+      "label": "Tedarikçi Cari Kartı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "vega-koli-movements",
+      "label": "Vega Cari Hareketleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "supplier-movements",
+      "label": "Tedarikçi Cari Hareketleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "supplier-statement",
+      "label": "Tedarikçi Ekstre",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "sales-invoice",
+      "label": "Satış Fişi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "vega-supplier-movements",
+      "label": "Vega Tedarikçi Hareketleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "sales-invoice-list",
+      "label": "Satış Fişleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "sales-offers",
+      "label": "Teklifler",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "sales-offer",
+      "label": "Teklif Kartı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "fedex-micro-export-demo",
+      "label": "Mikro İhracat / FedEx Demo",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "sales-orders",
+      "label": "Siparişler",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "sales-order",
+      "label": "Sipariş Kartı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "purchase-invoice",
+      "label": "Alış Fişi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "bulk-purchase-entry",
+      "label": "Toplu Alış Girişi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "inventory-receipt-list",
+      "label": "Gelen mal",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "purchase-invoice-list",
+      "label": "Alış Fişleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "finance-overview",
+      "label": "Finans Özeti",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "collections-overview",
+      "label": "Tahsilat ve ödeme",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "proforma-invoice",
+      "label": "Proforma Hazırlama",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "cash-customers",
+      "label": "Peşin Cariler",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "cash-register",
+      "label": "Günlük Kasa",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "cash-bank-ledger",
+      "label": "Kasa/Banka Defteri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "accounting-journal",
+      "label": "Muhasebe Defteri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "accounting-control",
+      "label": "Muhasebe Kontrol",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "catalog-list",
+      "label": "Katalog Listesi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "whatsapp-planner",
+      "label": "WhatsApp Paylaşım",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "whatsapp-web-queue",
+      "label": "WhatsApp Web Kuyruğu",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "whatsapp-crm-inbox",
+      "label": "WhatsApp CRM Gelen Kutusu",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "terminal-overview",
+      "label": "Terminal Ekranları",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "import-foundation",
+      "label": "Excel / CSV Aktarım",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "reports-overview",
+      "label": "Rapor Merkezi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "vega-sales-comparison",
+      "label": "Yıllık Satış Karşılaştırması",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "vega-sales-performance",
+      "label": "Satış Performansı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "vega-product-profitability",
+      "label": "Ürün Kârlılığı",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "export-center",
+      "label": "Çıktı Merkezi",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "definitions-overview",
+      "label": "Tanım Listeleri",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "personnel-definitions",
+      "label": "Personel Tanımları",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "settings-overview",
+      "label": "Sistem Ayarları",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "currency-rates",
+      "label": "Döviz Kurları",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "auth-overview",
+      "label": "Yetki ve Denetim",
+      "registrationIsNotRuntimeProof": true
+    },
+    {
+      "id": "audit-log",
+      "label": "Denetim Günlüğü",
+      "registrationIsNotRuntimeProof": true
+    }
+  ],
+  "canonicalWorkflowRouteCount": 15,
+  "legacyRegisteredScreenCount": 55,
+  "terminal": {
+    "webEntry": "apps/sites-workflow/terminal.html -> src/workflow/personnelTerminal.js",
+    "ordinaryActions": [
+      "goods",
+      "sales",
+      "crm",
+      "products",
+      "count",
+      "returns"
+    ],
+    "worktestActions": [
+      "goods",
+      "sales",
+      "packing",
+      "crm"
+    ],
+    "cloudTerminalAlias": "/erp/cloud.html",
+    "nativeSource": "apps/terminal-native",
+    "nativeIsWebDeployment": false,
+    "nativeWorkOriginAllowed": [
+      "http://192.168.1.46:5234",
+      "http://127.0.0.1:5234"
+    ]
+  },
+  "hostedLimitedProof": {
+    "source": "parent authenticated GUI readback",
+    "timeWindowUtc": "2026-10-19T15:52:00Z/2026-10-19T15:59:59Z",
+    "erpSha": "aa2035b4bf24062e107d0365452e8fc0d61d22dc",
+    "crmSha": "f5ad566b852425ed21d3ec9e87b783b85e90b890",
+    "siteProjectId": "appgprj_6ad629f87ea88191bddb006d26edd1fc",
+    "receivingStockPieces": [
+      10,
+      14
+    ],
+    "crmDraftLines": {
+      "quantity": 2,
+      "unitTry": 25
+    },
+    "finalSaleStockPieces": 12,
+    "saleDebtTry": 50,
+    "collectionTry": 20,
+    "remainingTry": 30,
+    "refreshPersistence": true,
+    "staff18Isolation": true,
+    "scope": "three-flow synthetic adapter only",
+    "fullProductAcceptance": false,
+    "independentlyReplayedInThisAudit": false
+  },
+  "fullRuntimeDelivery": "BLOCKED_MISSING_ISOLATED_BACKEND_AND_STORES",
+  "newApplicationPackageProduced": false,
+  "siteDeploymentPerformed": false,
+  "credentialChanges": false,
+  "humanAcceptance": "PENDING",
+  "originalRequirementCountsUnchanged": true,
+  "erpApiSourceDeclaredRoutes": [
+    {
+      "router": "auditRoutes",
+      "method": "GET",
+      "path": "/audit/logs",
+      "file": "apps/api/src/routes/auditRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "auditRoutes",
+      "method": "GET",
+      "path": "/audit/coverage",
+      "file": "apps/api/src/routes/auditRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "auditRoutes",
+      "method": "GET",
+      "path": "/audit/events/metadata",
+      "file": "apps/api/src/routes/auditRoutes.js",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "auditRoutes",
+      "method": "GET",
+      "path": "/audit/vega/products/metadata",
+      "file": "apps/api/src/routes/auditRoutes.js",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authAdminRoutes",
+      "method": "GET",
+      "path": "/auth-admin/overview",
+      "file": "apps/api/src/routes/authAdminRoutes.js",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authAdminRoutes",
+      "method": "POST",
+      "path": "/auth-admin/users",
+      "file": "apps/api/src/routes/authAdminRoutes.js",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authAdminRoutes",
+      "method": "PATCH",
+      "path": "/auth-admin/users/:id",
+      "file": "apps/api/src/routes/authAdminRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authAdminRoutes",
+      "method": "PATCH",
+      "path": "/auth-admin/users/:id/password",
+      "file": "apps/api/src/routes/authAdminRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/login",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "GET",
+      "path": "/auth/terminal-users",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/terminal-login",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/local-passwordless-admin",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/logout",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "GET",
+      "path": "/auth/me",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/session-confirm",
+      "file": "apps/api/src/routes/authRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "authorization",
+      "file": "apps/api/src/routes/authSessionConfirm.test.mjs",
+      "line": 5,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "POST",
+      "path": "/auth/test-admin",
+      "file": "apps/api/src/routes/canonicalTestAdminRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "cashRegisterRoutes",
+      "method": "GET",
+      "path": "/finance/cash-register",
+      "file": "apps/api/src/routes/cashRegisterRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "cashRegisterRoutes",
+      "method": "GET",
+      "path": "/finance/expense-categories",
+      "file": "apps/api/src/routes/cashRegisterRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "cashRegisterRoutes",
+      "method": "POST",
+      "path": "/finance/cash-register/open",
+      "file": "apps/api/src/routes/cashRegisterRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "cashRegisterRoutes",
+      "method": "POST",
+      "path": "/finance/cash-register/expenses",
+      "file": "apps/api/src/routes/cashRegisterRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "cashRegisterRoutes",
+      "method": "POST",
+      "path": "/finance/cash-register/transfers",
+      "file": "apps/api/src/routes/cashRegisterRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "cashRegisterRoutes",
+      "method": "POST",
+      "path": "/finance/cash-register/close",
+      "file": "apps/api/src/routes/cashRegisterRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "catalogRoutes",
+      "method": "GET",
+      "path": "/public/catalog-products",
+      "file": "apps/api/src/routes/catalogRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "catalogRoutes",
+      "method": "GET",
+      "path": "/catalogs",
+      "file": "apps/api/src/routes/catalogRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "catalogRoutes",
+      "method": "POST",
+      "path": "/catalogs/draft",
+      "file": "apps/api/src/routes/catalogRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "catalogRoutes",
+      "method": "GET",
+      "path": "/catalogs/whatsapp-plan",
+      "file": "apps/api/src/routes/catalogRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "catalogRoutes",
+      "method": "GET",
+      "path": "/catalogs/whatsapp-status",
+      "file": "apps/api/src/routes/catalogRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "catalogRoutes",
+      "method": "POST",
+      "path": "/catalogs/whatsapp-send",
+      "file": "apps/api/src/routes/catalogRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "crmOrderV2Routes",
+      "method": "GET",
+      "path": "/test/crm/orders/v2/customers",
+      "file": "apps/api/src/routes/crmOrderV2Routes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "x-crm-authorization",
+      "file": "apps/api/src/routes/crmOrderV2Routes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "crmOrderV2Routes",
+      "method": "POST",
+      "path": "/test/crm/orders/v2/drafts",
+      "file": "apps/api/src/routes/crmOrderV2Routes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "x-crm-authorization",
+      "file": "apps/api/src/routes/crmOrderV2Routes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "crmOrderV2Routes",
+      "method": "GET",
+      "path": "/test/crm/orders/v2/drafts/:requestId",
+      "file": "apps/api/src/routes/crmOrderV2Routes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "x-crm-authorization",
+      "file": "apps/api/src/routes/crmOrderV2Routes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "currencyRateRoutes",
+      "method": "GET",
+      "path": "/currency-rates",
+      "file": "apps/api/src/routes/currencyRateRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "currencyRateRoutes",
+      "method": "PUT",
+      "path": "/currency-rates",
+      "file": "apps/api/src/routes/currencyRateRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "GET",
+      "path": "/customer-cards",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "GET",
+      "path": "/customers/:id/card",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "GET",
+      "path": "/customers/:id/contact",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "POST",
+      "path": "/customers/:id/contact",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "GET",
+      "path": "/customers",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "GET",
+      "path": "/vega/customers",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "POST",
+      "path": "/customers/cash/ensure",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "POST",
+      "path": "/customers",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "GET",
+      "path": "/customers/:id",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "PUT",
+      "path": "/customers/:id",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "customerRoutes",
+      "method": "PATCH",
+      "path": "/customers/:id/passive",
+      "file": "apps/api/src/routes/customerRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/summary",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/alerts",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/management-reporting",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/periodic-accounting",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/vega-sales-comparison",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/vega-sales-performance",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "dashboardRoutes",
+      "method": "GET",
+      "path": "/dashboard/vega-product-profitability",
+      "file": "apps/api/src/routes/dashboardRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/summary",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/accounting-control",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/document-number-fix-preview",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 24,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "POST",
+      "path": "/finance/document-number-fix",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/accounts",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "POST",
+      "path": "/finance/accounts",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 27,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/accounts/cleanup-preview",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 28,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "POST",
+      "path": "/finance/accounts/cleanup",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "POST",
+      "path": "/finance/accounts/standardize",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "PATCH",
+      "path": "/finance/accounts/:id",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 31,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/movements",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "GET",
+      "path": "/finance/journal",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 33,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "POST",
+      "path": "/finance/collections",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 34,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "financeRoutes",
+      "method": "POST",
+      "path": "/finance/payments",
+      "file": "apps/api/src/routes/financeRoutes.js",
+      "line": 35,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "GET",
+      "path": "/home/summary",
+      "file": "apps/api/src/routes/homeSummaryRoutes.mjs",
+      "line": 5,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/products/preview",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/products/commit",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/products/apply",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/customers/preview",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/customers/commit",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/customers/apply",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/suppliers/preview",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/suppliers/commit",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "importRoutes",
+      "method": "POST",
+      "path": "/import/suppliers/apply",
+      "file": "apps/api/src/routes/importRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "GET",
+      "path": "/sales-invoices",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "POST",
+      "path": "/sales-invoices/draft",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "POST",
+      "path": "/sales-invoices/:id/finalize",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "POST",
+      "path": "/sales-invoices/:id/cancel",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 24,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "GET",
+      "path": "/sales-invoices/:id",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "PUT",
+      "path": "/sales-invoices/:id/draft",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "GET",
+      "path": "/purchase-invoices",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 27,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "POST",
+      "path": "/purchase-invoices/draft",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 28,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "POST",
+      "path": "/purchase-invoices/:id/finalize",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "POST",
+      "path": "/purchase-invoices/:id/cancel",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "GET",
+      "path": "/purchase-invoices/:id",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 31,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "invoiceRoutes",
+      "method": "PUT",
+      "path": "/purchase-invoices/:id/draft",
+      "file": "apps/api/src/routes/invoiceRoutes.js",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/stock-movements",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/stock-valuation",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 24,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "POST",
+      "path": "/stock-count/adjust",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/customer-movements",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/sales/stock-exits",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 27,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/purchases/invoices",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 28,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/customers/:customerSourceId/movements",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/customers/:customerSourceId/movements/:movementSourceId/stock-exit",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/suppliers/:supplierSourceId/movements",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 31,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/suppliers/:supplierSourceId/purchase-intelligence",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/vega/suppliers/:supplierSourceId/movements/:movementSourceId/purchase-invoice",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 33,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/customer-statement",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 34,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/supplier-movements",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 35,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "movementRoutes",
+      "method": "GET",
+      "path": "/supplier-statement",
+      "file": "apps/api/src/routes/movementRoutes.js",
+      "line": 36,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "GET",
+      "path": "/:token.pdf",
+      "file": "apps/api/src/routes/nativeReceiptPdfRoutes.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/packing-receipts",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/packing-receipts/:id",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/packing-receipts/:id/check",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/settings",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/settings/rates",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 27,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/orders",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 28,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/orders/:id",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/bootstrap",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/products/search",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 31,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/products/categories",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/catalog/version",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 33,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/catalog/page",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 34,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/catalog",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 35,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/approval",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 36,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/submit",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 37,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/status",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 38,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "GET",
+      "path": "/sales/:invoiceId/category-report",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 39,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/cancel",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 40,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/:invoiceId/pdf-share",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 42,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "nativeTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/:invoiceId/print",
+      "file": "apps/api/src/routes/nativeTerminalRoutes.mjs",
+      "line": 47,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "operationQuarantineRoutes",
+      "method": "GET",
+      "path": "/migration-quarantine",
+      "file": "apps/api/src/routes/operationQuarantineRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "personnelRoutes",
+      "method": "GET",
+      "path": "/personnel/overview",
+      "file": "apps/api/src/routes/personnelRoutes.js",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "personnelRoutes",
+      "method": "POST",
+      "path": "/personnel/employees",
+      "file": "apps/api/src/routes/personnelRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "personnelRoutes",
+      "method": "PATCH",
+      "path": "/personnel/employees/:id",
+      "file": "apps/api/src/routes/personnelRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "personnelRoutes",
+      "method": "POST",
+      "path": "/personnel/terminals",
+      "file": "apps/api/src/routes/personnelRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "personnelRoutes",
+      "method": "PATCH",
+      "path": "/personnel/terminals/:id/employee",
+      "file": "apps/api/src/routes/personnelRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/products/search",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/products/barcode/:barcode",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/customers/search",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/currency-rates",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/offline/context",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/sales/capabilities",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 24,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "POST",
+      "path": "/catalog-sync",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/catalog-sync/version",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "GET",
+      "path": "/catalog-sync/:jobId",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 27,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/submit",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 28,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/status",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/readiness",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "pilotTerminalRoutes",
+      "method": "POST",
+      "path": "/sales/:invoiceId/print",
+      "file": "apps/api/src/routes/pilotTerminalRoutes.mjs",
+      "line": 31,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productIntelligenceRoutes",
+      "method": "GET",
+      "path": "/vega/ai/product-intelligence",
+      "file": "apps/api/src/routes/productIntelligenceRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/migration-opening-prices",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/products/:id/opening-prices",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/products",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/vega/products",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 33,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/vega/products/:sourceId/image",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 34,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "DELETE",
+      "path": "/vega/products/:sourceId/image",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 35,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/products/options",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 36,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/products/identity-check",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 37,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products/bulk-create/preview",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 38,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products/bulk-create/apply",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 39,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products/bulk-update/preview",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 40,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products/bulk-update/apply",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 41,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 42,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products/:id/barcodes",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 43,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "PATCH",
+      "path": "/products/:id/barcodes/:barcodeId/passive",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 44,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "POST",
+      "path": "/products/:id/images",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 45,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "GET",
+      "path": "/products/:id",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 46,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "PUT",
+      "path": "/products/:id",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 47,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productRoutes",
+      "method": "PATCH",
+      "path": "/products/:id/passive",
+      "file": "apps/api/src/routes/productRoutes.js",
+      "line": 48,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "productSalesEvidenceRoutes",
+      "method": "GET",
+      "path": "/vega/ai/product-sales-evidence",
+      "file": "apps/api/src/routes/productSalesEvidenceRoutes.js",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOfferRoutes",
+      "method": "GET",
+      "path": "/sales-offers",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOfferRoutes",
+      "method": "POST",
+      "path": "/sales-offers",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOfferRoutes",
+      "method": "GET",
+      "path": "/sales-offers/:id",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOfferRoutes",
+      "method": "PUT",
+      "path": "/sales-offers/:id",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOfferRoutes",
+      "method": "PATCH",
+      "path": "/sales-offers/:id/status",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOfferRoutes",
+      "method": "POST",
+      "path": "/sales-offers/:id/convert-to-order",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOrderRoutes",
+      "method": "GET",
+      "path": "/sales-orders",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOrderRoutes",
+      "method": "POST",
+      "path": "/sales-orders",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 24,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOrderRoutes",
+      "method": "GET",
+      "path": "/sales-orders/:id",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOrderRoutes",
+      "method": "PUT",
+      "path": "/sales-orders/:id",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOrderRoutes",
+      "method": "PATCH",
+      "path": "/sales-orders/:id/status",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 27,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "salesOrderRoutes",
+      "method": "POST",
+      "path": "/sales-orders/:id/convert-to-sales-draft",
+      "file": "apps/api/src/routes/salesPipelineRoutes.js",
+      "line": 28,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "GET",
+      "path": "/settings",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "PUT",
+      "path": "/settings",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "GET",
+      "path": "/settings/demo-cleanup/preview",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "POST",
+      "path": "/settings/demo-cleanup/apply",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "GET",
+      "path": "/settings/test-tree-cleanup/preview",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "POST",
+      "path": "/settings/test-tree-cleanup/apply",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "GET",
+      "path": "/settings/test-archive-restore/preview",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "settingsRoutes",
+      "method": "POST",
+      "path": "/settings/test-archive-restore/apply",
+      "file": "apps/api/src/routes/settingsRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "shippingIntegrationRoutes",
+      "method": "GET",
+      "path": "/shipping/fedex/status",
+      "file": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "shippingIntegrationRoutes",
+      "method": "POST",
+      "path": "/shipping/fedex/quotes",
+      "file": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "shippingIntegrationRoutes",
+      "method": "POST",
+      "path": "/shipping/fedex/quotes/:id/rates",
+      "file": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "shippingIntegrationRoutes",
+      "method": "POST",
+      "path": "/shipping/fedex/quotes/:id/customer-quotes",
+      "file": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "shippingIntegrationRoutes",
+      "method": "POST",
+      "path": "/shipping/fedex/customer-quotes/:id/finalize",
+      "file": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "shippingIntegrationRoutes",
+      "method": "GET",
+      "path": "/shipping/fedex/customer-quotes/:id/pdf",
+      "file": "apps/api/src/routes/shippingIntegrationRoutes.js",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "sqlHealthRoutes",
+      "method": "GET",
+      "path": "/sql/health",
+      "file": "apps/api/src/routes/sqlHealthRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "sqlHealthRoutes",
+      "method": "GET",
+      "path": "/sql/tables-preview",
+      "file": "apps/api/src/routes/sqlHealthRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "stockProductRoutes",
+      "method": "GET",
+      "path": "/stock-products",
+      "file": "apps/api/src/routes/stockProductRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "stockProductRoutes",
+      "method": "GET",
+      "path": "/stock-products/:id",
+      "file": "apps/api/src/routes/stockProductRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "GET",
+      "path": "/supplier-cards",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "GET",
+      "path": "/suppliers/:id/card",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "GET",
+      "path": "/test-supplier-cards/:id/contact",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "POST",
+      "path": "/test-supplier-cards/:id/contact",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "GET",
+      "path": "/suppliers",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "GET",
+      "path": "/vega/suppliers",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "POST",
+      "path": "/suppliers",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "GET",
+      "path": "/suppliers/:id",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "supplierRoutes",
+      "method": "PUT",
+      "path": "/suppliers/:id",
+      "file": "apps/api/src/routes/supplierRoutes.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "systemRoutes",
+      "method": "GET",
+      "path": "/health",
+      "file": "apps/api/src/routes/systemRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "systemRoutes",
+      "method": "GET",
+      "path": "/version",
+      "file": "apps/api/src/routes/systemRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "systemRoutes",
+      "method": "GET",
+      "path": "/monitoring/summary",
+      "file": "apps/api/src/routes/systemRoutes.js",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalAdminRoutes",
+      "method": "GET",
+      "path": "/terminal-admin/overview",
+      "file": "apps/api/src/routes/terminalAdminRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "POST",
+      "path": "/terminal/catalog-sync",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/catalog-sync/version",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/catalog-sync/:jobId",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/sales/capabilities",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/offline/context",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/currency-rates",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/products/search",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 30,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/products/barcode/:barcode",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 31,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "GET",
+      "path": "/terminal/customers/search",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "POST",
+      "path": "/terminal/sales/submit",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 33,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "POST",
+      "path": "/terminal/sales/status",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 40,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "POST",
+      "path": "/terminal/sales/readiness",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 42,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "POST",
+      "path": "/terminal/sales/:invoiceId/print",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 44,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "terminalRoutes",
+      "method": "POST",
+      "path": "/terminal/whatsapp-share",
+      "file": "apps/api/src/routes/terminalRoutes.js",
+      "line": 50,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testCrmOrderRoutes",
+      "method": "GET",
+      "path": "/test/crm/orders/context",
+      "file": "apps/api/src/routes/testCrmOrderRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "x-crm-authorization",
+      "file": "apps/api/src/routes/testCrmOrderRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testCrmOrderRoutes",
+      "method": "POST",
+      "path": "/test/crm/orders/drafts",
+      "file": "apps/api/src/routes/testCrmOrderRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "x-crm-authorization",
+      "file": "apps/api/src/routes/testCrmOrderRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testCrmOrderRoutes",
+      "method": "GET",
+      "path": "/test/crm/orders/drafts/:requestId",
+      "file": "apps/api/src/routes/testCrmOrderRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "x-crm-authorization",
+      "file": "apps/api/src/routes/testCrmOrderRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testCurrentPricePurchaseRoutes",
+      "method": "GET",
+      "path": "/test-current-price-purchase",
+      "file": "apps/api/src/routes/testCurrentPricePurchaseRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testCurrentPricePurchaseRoutes",
+      "method": "POST",
+      "path": "/test-current-price-purchase",
+      "file": "apps/api/src/routes/testCurrentPricePurchaseRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testDailyRoutes",
+      "method": "POST",
+      "path": "/test-daily/purchase/prepare-partial-goods",
+      "file": "apps/api/src/routes/testDailyRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testDailyRoutes",
+      "method": "GET",
+      "path": "/test-daily/fx/context",
+      "file": "apps/api/src/routes/testDailyRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testDailyRoutes",
+      "method": "POST",
+      "path": "/test-daily/fx/",
+      "file": "apps/api/src/routes/testDailyRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testDailyRoutes",
+      "method": "GET",
+      "path": "/test-daily/",
+      "file": "apps/api/src/routes/testDailyRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testDailyRoutes",
+      "method": "POST",
+      "path": "/test-daily/count-cancel/",
+      "file": "apps/api/src/routes/testDailyRoutes.mjs",
+      "line": 20,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testFinanceRoutes",
+      "method": "GET",
+      "path": "/test-finance/context",
+      "file": "apps/api/src/routes/testFinanceRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testFinanceRoutes",
+      "method": "POST",
+      "path": "/test-finance/preview",
+      "file": "apps/api/src/routes/testFinanceRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testFinanceRoutes",
+      "method": "POST",
+      "path": "/finance/collections",
+      "file": "apps/api/src/routes/testFinanceRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testFinanceRoutes",
+      "method": "POST",
+      "path": "/finance/collections/:id/cancel",
+      "file": "apps/api/src/routes/testFinanceRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testFinanceRoutes",
+      "method": "POST",
+      "path": "/finance/collections/:id/refund",
+      "file": "apps/api/src/routes/testFinanceRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPaymentRoutes",
+      "method": "GET",
+      "path": "/test-payment/context",
+      "file": "apps/api/src/routes/testPaymentRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPaymentRoutes",
+      "method": "POST",
+      "path": "/test-payment/payments",
+      "file": "apps/api/src/routes/testPaymentRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPaymentRoutes",
+      "method": "POST",
+      "path": "/test-payment/payments/:id/cancel",
+      "file": "apps/api/src/routes/testPaymentRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPriceRoutes",
+      "method": "GET",
+      "path": "/test-prices",
+      "file": "apps/api/src/routes/testPriceRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseFxRoutes",
+      "method": "GET",
+      "path": "/test-purchase-fx",
+      "file": "apps/api/src/routes/testPurchaseFxRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseFxRoutes",
+      "method": "POST",
+      "path": "/test-purchase-fx",
+      "file": "apps/api/src/routes/testPurchaseFxRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "GET",
+      "path": "/test-purchase/context",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/goods",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/goods/:id/approve",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/goods/:id/reject",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/invoices",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/invoices/:id/cancel",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/batches",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/batches/:id/approve",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/batches/:id/reject",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/invoice-drafts",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "GET",
+      "path": "/test-purchase/invoice-drafts/:id",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/invoice-drafts/:id/finalize",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testPurchaseRoutes",
+      "method": "POST",
+      "path": "/test-purchase/invoice-drafts/:id/cancel",
+      "file": "apps/api/src/routes/testPurchaseRoutes.mjs",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testRefundRoutes",
+      "method": "GET",
+      "path": "/test-refund/context",
+      "file": "apps/api/src/routes/testRefundRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testRefundRoutes",
+      "method": "POST",
+      "path": "/test-refund/prepare",
+      "file": "apps/api/src/routes/testRefundRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testRefundRoutes",
+      "method": "POST",
+      "path": "/test-refund/receive",
+      "file": "apps/api/src/routes/testRefundRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testRefundRoutes",
+      "method": "POST",
+      "path": "/test-refund/:id/cancel",
+      "file": "apps/api/src/routes/testRefundRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testSalesRoutes",
+      "method": "GET",
+      "path": "/test-sales/context",
+      "file": "apps/api/src/routes/testSalesRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testSalesRoutes",
+      "method": "POST",
+      "path": "/sales-invoices/test-complete",
+      "file": "apps/api/src/routes/testSalesRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "testSalesRoutes",
+      "method": "POST",
+      "path": "/sales-invoices/:id/cancel",
+      "file": "apps/api/src/routes/testSalesRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "GET",
+      "path": "/automatic",
+      "file": "apps/api/src/routes/vegaCardRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "PUT",
+      "path": "/automatic",
+      "file": "apps/api/src/routes/vegaCardRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "POST",
+      "path": "/preview",
+      "file": "apps/api/src/routes/vegaCardRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "POST",
+      "path": "/apply",
+      "file": "apps/api/src/routes/vegaCardRoutes.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "GET",
+      "path": "/status/:previewId",
+      "file": "apps/api/src/routes/vegaCardRoutes.mjs",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaHistoryRoutes",
+      "method": "GET",
+      "path": "/vega-history/parties",
+      "file": "apps/api/src/routes/vegaHistoryRoutes.js",
+      "line": 21,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaHistoryRoutes",
+      "method": "GET",
+      "path": "/vega-history/documents",
+      "file": "apps/api/src/routes/vegaHistoryRoutes.js",
+      "line": 22,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaHistoryRoutes",
+      "method": "GET",
+      "path": "/vega-history/documents/detail",
+      "file": "apps/api/src/routes/vegaHistoryRoutes.js",
+      "line": 23,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaHistoryRoutes",
+      "method": "GET",
+      "path": "/vega-history/ledger",
+      "file": "apps/api/src/routes/vegaHistoryRoutes.js",
+      "line": 24,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaHistoryRoutes",
+      "method": "GET",
+      "path": "/vega-history/account-link",
+      "file": "apps/api/src/routes/vegaHistoryRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaInvoiceExportRoutes",
+      "method": "POST",
+      "path": "/preview",
+      "file": "apps/api/src/routes/vegaInvoiceExportRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaInvoiceExportRoutes",
+      "method": "POST",
+      "path": "/status",
+      "file": "apps/api/src/routes/vegaInvoiceExportRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "vegaInvoiceExportRoutes",
+      "method": "POST",
+      "path": "/submit",
+      "file": "apps/api/src/routes/vegaInvoiceExportRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-collections/context",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-collections/preview",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-collections",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-collections/:id/cancel",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-collections/selected-source/context",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-collections/selected-source/preview",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-collections/selected-source",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-collections/selected-source/:id/cancel",
+      "file": "apps/api/src/routes/workCollectionRoutes.mjs",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "authorization",
+      "file": "apps/api/src/routes/workCollectionRoutes.test.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api",
+      "file": "apps/api/src/routes/workCollectionRoutes.test.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "GET",
+      "path": "/api/unrelated",
+      "file": "apps/api/src/routes/workCollectionRoutes.test.mjs",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "content-type",
+      "file": "apps/api/src/routes/workCollectionRoutes.test.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "USE",
+      "path": "/work-purchases/fx",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-purchases/fx/context",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/fx/preview",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/fx/receipts",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/fx/receipts/:id/",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/fx/drafts",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-purchases/fx/drafts/:id",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/fx/drafts/:id/",
+      "file": "apps/api/src/routes/workInboundFxRoutes.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-receiving/context",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-receiving/home",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-receiving/count-drafts",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-receiving/count-drafts",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-receiving/count-drafts/:id",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-receiving/count-drafts/:id/",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-receiving/receipts/:id/",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-receiving/requests/:id",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-purchases/context",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/preview",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/drafts",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-purchases/drafts/:id",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-purchases/drafts/:id/",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-suppliers/",
+      "file": "apps/api/src/routes/workInboundRoutes.mjs",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api",
+      "file": "apps/api/src/routes/workInboundRoutes.test.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api",
+      "file": "apps/api/src/routes/workInboundRoutes.test.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "file": "apps/api/src/routes/workInboundRoutes.test.mjs",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "GET",
+      "path": "/api/unrelated",
+      "file": "apps/api/src/routes/workInboundRoutes.test.mjs",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-sales/context",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-sales/selection-options",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-sales/preview",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-sales/selected-context",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-sales/selected-preview",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-sales/drafts",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 14,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-sales/drafts/:id/finalize",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-sales/drafts/:id/cancel",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-sales/invoices",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-sales/invoices/:id",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-sales/requests/:id",
+      "file": "apps/api/src/routes/workSalesRoutes.mjs",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "authorization",
+      "file": "apps/api/src/routes/workSalesRoutes.test.mjs",
+      "line": 19,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api",
+      "file": "apps/api/src/routes/workSalesRoutes.test.mjs",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "file": "apps/api/src/routes/workSalesRoutes.test.mjs",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "GET",
+      "path": "/api/unrelated",
+      "file": "apps/api/src/routes/workSalesRoutes.test.mjs",
+      "line": 26,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "content-type",
+      "file": "apps/api/src/routes/workSalesRoutes.test.mjs",
+      "line": 29,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "USE",
+      "path": "/work-supplier-payments",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.mjs",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-supplier-payments/context",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.mjs",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-supplier-payments/preview",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-supplier-payments/payments",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "POST",
+      "path": "/work-supplier-payments/payments/:id/cancel",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.mjs",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "r",
+      "method": "GET",
+      "path": "/work-supplier-payments/requests/:id",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.mjs",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.test.mjs",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.test.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "GET",
+      "path": "/api/unrelated",
+      "file": "apps/api/src/routes/workSupplierPaymentRoutes.test.mjs",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "GET",
+      "path": "/work-system/summary",
+      "file": "apps/api/src/routes/workSystemRoutes.mjs",
+      "line": 4,
+      "isRuntimeAcceptance": false
+    }
+  ],
+  "crmGatewaySourceDeclaredRoutes": [
+    {
+      "router": "agentRoutes",
+      "method": "GET",
+      "path": "/crm/agents",
+      "file": "apps/gateway/src/routes/agentRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/login",
+      "file": "apps/gateway/src/routes/authRoutes.js",
+      "line": 9,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "file": "apps/gateway/src/routes/authRoutes.js",
+      "line": 10,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "POST",
+      "path": "/auth/logout",
+      "file": "apps/gateway/src/routes/authRoutes.js",
+      "line": 11,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "GET",
+      "path": "/auth/remembered",
+      "file": "apps/gateway/src/routes/authRoutes.js",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "authRoutes",
+      "method": "GET",
+      "path": "/auth/me",
+      "file": "apps/gateway/src/routes/authRoutes.js",
+      "line": 13,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "contactRoutes",
+      "method": "PUT",
+      "path": "/crm/conversations/:conversationId/contact-phone",
+      "file": "apps/gateway/src/routes/contactRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "GET",
+      "path": "/crm/sales-rules",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 15,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "PUT",
+      "path": "/crm/sales-rules",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 16,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "GET",
+      "path": "/crm/conversations/:conversationId",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "POST",
+      "path": "/crm/conversations/:conversationId/messages/status",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 25,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "POST",
+      "path": "/crm/conversations/:conversationId/messages",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 32,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "POST",
+      "path": "/crm/conversations/:conversationId/assign",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 39,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "POST",
+      "path": "/crm/conversations/:conversationId/translate",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 46,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "conversationRoutes",
+      "method": "POST",
+      "path": "/crm/conversations/:conversationId/sales-draft",
+      "file": "apps/gateway/src/routes/conversationRoutes.js",
+      "line": 55,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api/live",
+      "file": "apps/gateway/src/routes/customerProductRequestCloudE2E.test.mjs",
+      "line": 42,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "authorization",
+      "file": "apps/gateway/src/routes/customerProductRequestCloudE2E.test.mjs",
+      "line": 44,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "authorization",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.mjs",
+      "line": 12,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "origin",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.mjs",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "content-type",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.mjs",
+      "line": 18,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "app",
+      "method": "USE",
+      "path": "/api/live",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.test.mjs",
+      "line": 34,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "req",
+      "method": "GET",
+      "path": "authorization",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.test.mjs",
+      "line": 36,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "content-type",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.test.mjs",
+      "line": 58,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "cache-control",
+      "file": "apps/gateway/src/routes/customerProductRequestRoutes.test.mjs",
+      "line": 58,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "healthRoutes",
+      "method": "GET",
+      "path": "/health",
+      "file": "apps/gateway/src/routes/healthRoutes.js",
+      "line": 6,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "inboxRoutes",
+      "method": "GET",
+      "path": "/crm/inbox",
+      "file": "apps/gateway/src/routes/inboxRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "routes",
+      "method": "USE",
+      "path": "/crm",
+      "file": "apps/gateway/src/routes/index.js",
+      "line": 17,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "integrationRoutes",
+      "method": "GET",
+      "path": "/crm/integrations/chatwoot/personnel-map",
+      "file": "apps/gateway/src/routes/integrationRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "mediaRoutes",
+      "method": "GET",
+      "path": "/crm/messages/:messageId/media",
+      "file": "apps/gateway/src/routes/mediaRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "searchParams",
+      "method": "GET",
+      "path": "search",
+      "file": "apps/gateway/src/routes/salesAgentRoutes.test.js",
+      "line": 68,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 46,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "cache-control",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 54,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 57,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 62,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 70,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 72,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 79,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 88,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 89,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 90,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 96,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 98,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 112,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 117,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 118,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 124,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 127,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 129,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 137,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "headers",
+      "method": "GET",
+      "path": "set-cookie",
+      "file": "apps/gateway/src/routes/semihTestSessionRoutes.test.mjs",
+      "line": 173,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "sendRoutes",
+      "method": "POST",
+      "path": "/crm/messages/send",
+      "file": "apps/gateway/src/routes/sendRoutes.js",
+      "line": 7,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "router",
+      "method": "POST",
+      "path": "/webhooks/waapi/:secret",
+      "file": "apps/gateway/src/routes/waapiWebhookRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    },
+    {
+      "router": "webhookRoutes",
+      "method": "POST",
+      "path": "/webhooks/evolution",
+      "file": "apps/gateway/src/routes/webhookRoutes.js",
+      "line": 8,
+      "isRuntimeAcceptance": false
+    }
+  ]
+}
