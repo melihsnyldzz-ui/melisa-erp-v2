@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+const cli=fs.readFileSync(new URL('./p03-pr54-reads-prepare-owner-cli.mjs',import.meta.url),'utf8'),ps=fs.readFileSync(new URL('./p03-pr54-reads-protected-create.ps1',import.meta.url),'utf8');
+test('new preparer binds committed Git bytes and preserves current runtime before seven CreateNew outputs',()=>{
+ assert.match(cli,/CLEAN_SOURCE_REQUIRED/);assert.match(cli,/SOURCE_REPO_REJECTED/);assert.match(cli,/supervisorSource\+':'.*row\.path/);assert.match(cli,/supervisorManifest=sha\(manifestBytes\)/);assert.match(cli,/evidence\.references\.length!==30/);assert.match(cli,/erpManifest\.files\.length!==2089/);
+ assert.match(cli,/const prepareNew=process\.argv\[2\]==='--PrepareNew'/);assert.ok(cli.indexOf('CURRENT_RUNTIME_CHANGED')<cli.indexOf("for(const [name,value,ref] of pending){const bytes"));
+ assert.doesNotMatch(cli,/Stop-ScheduledTask|Start-ScheduledTask|runP03OwnerTransition|\.unlinkSync|\.rmSync/);for(const line of cli.split('\n').filter(x=>/console\.(log|error)/.test(x)))assert.doesNotMatch(line,/baseline|prepared\.activation|parentInputs|password/i);
+});
+test('protected writer uses seven exact new paths and current e59 ACL templates without overwriting',()=>{
+ const block=ps.match(/\$allowed=@\(([\s\S]*?)\n\)/)?.[1];assert.ok(block);const leaves=[...block.matchAll(/\+'\\([^']+)'/g)].map(x=>x[1]);assert.equal(leaves.length,7);assert.equal(new Set(leaves).size,7);assert.ok(leaves.every(x=>x.includes('01ef3e3aa3bd')));
+ assert.match(ps,/\$oldSettings=.*settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae\.json/);assert.match(ps,/\$oldReceipt=.*staff-refresh-successor-6bc82e6fe972-erp-e59e07abf7ae\.json/);assert.match(ps,/\[IO\.FileMode\]::CreateNew/);assert.match(ps,/\.Flush\(\$true\)/);assert.match(ps,/AreAccessRulesProtected/);assert.match(ps,/\$templateAces.Count -ne 2/);assert.doesNotMatch(ps,/Remove-Item|Move-Item|Set-Acl|CreateDirectory/);
+});
+test('new CLI and Windows PowerShell creator parse without executing preparation',{skip:process.platform!=='win32'},()=>{
+ const node=spawnSync(process.execPath,['--check',fileURLToPath(new URL('./p03-pr54-reads-prepare-owner-cli.mjs',import.meta.url))],{encoding:'utf8',windowsHide:true});assert.equal(node.status,0,node.stderr);
+ for(const leaf of ['p03-pr54-reads-protected-create.ps1','crm06-staff-journal-preflight.ps1','watch-hub-after-erp.ps1']){const file=fileURLToPath(new URL('./'+leaf,import.meta.url)).replaceAll("'","''");const command=`$t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count-ne0){exit 2};'PARSE_ONLY'`;const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});assert.equal(result.status,0,leaf);assert.equal(result.stdout.trim(),'PARSE_ONLY');}
+});

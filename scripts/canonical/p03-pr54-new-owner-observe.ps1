@@ -57,6 +57,7 @@ $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $Environment='Shared';$isRehearsal=$false;$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
 $names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
 $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
+$currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json')
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 $script:parentPins=@{};$script:watcherPins=@{};$script:consolePins=@{};$script:tasksStopRequested=$false
 $script:newCandidateIdentities=$null;$script:newProbeSource=$null;$script:newProbePolicy=$null;$script:newFrameVanishedAudits=@();$script:newFrameAuditSnapshots=@()
@@ -67,7 +68,9 @@ function NewSourceBytes([string]$path,[string]$sha){
 function NewPrepareProbeSource{
  $supervisor=$newSettings.supervisor;$root=$supervisor.packageRoot
  $manifest=Json (NewSourceBytes (Join-Path $root 'release-manifest.json') $supervisor.manifestSha256)
+ if($supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17'){
  Need ($manifest.sourceCommit -ceq '13bdf75a032ae8f694354a2e57b6ed382aec2f17' -and $manifest.sourceCommit -ceq $supervisor.sourceCommit) 'NEW_PROBE_MANIFEST'
+ }else{Need ($profile.oldSettings.sha256-ceq'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'-and$profile.newSettings.path-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json'-and$supervisor.sourceCommit-cmatch'^[a-f0-9]{40}$'-and$supervisor.manifestSha256-cmatch'^[a-f0-9]{64}$'-and$manifest.sourceCommit-ceq$supervisor.sourceCommit-and$supervisor.sourceCommit-ceq$before.profile.supervisorSource-and$supervisor.manifestSha256-ceq$before.profile.supervisorManifest-and$supervisor.packageRoot-ceq('C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+$supervisor.sourceCommit.Substring(0,12))-and$newSettings.components.erpApiNative.sourceCommit-ceq'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'-and$newSettings.components.erpApiNative.manifestSha256-ceq'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf') 'CURRENT_NEW_PROBE_MANIFEST'}
  $files=@($manifest.files|Where-Object{$_.path -ceq 'scripts/canonical/hub-stack-process-probe.ps1'})
  Need ($files.Count -eq 1 -and $files[0].sha256 -cmatch '\A[a-f0-9]{64}\z') 'NEW_PROBE_FILE'
  $probe=Join-Path $root 'scripts\canonical\hub-stack-process-probe.ps1';[void](NewSourceBytes $probe $files[0].sha256)
@@ -359,10 +362,20 @@ function NewAuthority{
  Need ($SourceObserverPath -ceq (Join-Path $dir 'p03-physical-recovery-observe.ps1')) 'NEW_SHARED_OBSERVER_PATH'
  Need ($RecoveryHelperSha256 -ceq 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5') 'NEW_RECOVERY_HELPER_PIN'
  Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $database -and $before.database -ceq $database -and $before.actualT1 -ceq $false -and $profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256) 'NEW_OBSERVER_SCOPE'
+ $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json')
+ if($currentReadRepair){
+ Need ($runId-cne'7b0821959737f1da0427b17a7dfd4685'-and$before.oldConfig.sha256-ceq$profile.oldSettings.sha256-and$before.newConfig.sha256-ceq$profile.newSettings.sha256-and$oldSettings.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$oldSettings.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17') 'CURRENT_NEW_OBSERVER_SETTINGS'
+ }else{
  Need ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $before.oldConfig.sha256 -ceq $profile.oldSettings.sha256 -and $before.newConfig.sha256 -ceq $profile.newSettings.sha256) 'NEW_OBSERVER_SETTINGS'
+ }
  foreach($settings in @($oldSettings,$newSettings)){Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId -and $settings.actualT1 -ceq $false) 'NEW_OBSERVER_SETTINGS_SCOPE'}
  [void](ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);[void](ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
+ if($currentReadRepair){
+ foreach($pin in @(@($newSettings.components.erpApiNative,'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2','8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'),@($newSettings.components.crm,'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'))){Need ($pin[0].sourceCommit-ceq$pin[1]-and$pin[0].manifestSha256-ceq$pin[2]) 'CURRENT_NEW_OBSERVER_SOURCE'}
+ Need ($newSettings.supervisor.sourceCommit-cmatch'^[a-f0-9]{40}$'-and$newSettings.supervisor.manifestSha256-cmatch'^[a-f0-9]{64}$'-and$newSettings.supervisor.sourceCommit-cne'13bdf75a032ae8f694354a2e57b6ed382aec2f17'-and$newSettings.supervisor.packageRoot-ceq('C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+$newSettings.supervisor.sourceCommit.Substring(0,12))) 'CURRENT_NEW_OBSERVER_SUPERVISOR'
+ }else{
  foreach($pin in @(@($newSettings.components.erpApiNative,'e59e07abf7ae2567cdc2adb93811fe29e0032fe5','2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'),@($newSettings.components.crm,'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'),@($newSettings.supervisor,'13bdf75a032ae8f694354a2e57b6ed382aec2f17','195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'))){Need ($pin[0].sourceCommit -ceq $pin[1] -and $pin[0].manifestSha256 -ceq $pin[2]) 'NEW_OBSERVER_SOURCE'}
+ }
  foreach($package in $profile.packages){Need ($package.manifestPath -ceq (Join-Path $package.root 'release-manifest.json')) 'NEW_MANIFEST_PATH';[void](NewSourceBytes $package.manifestPath $package.manifestSha256)}
  NewPrepareProbeSource
 }

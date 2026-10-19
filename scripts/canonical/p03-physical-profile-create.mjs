@@ -78,14 +78,18 @@ export function deriveP03CandidateRules(settings,ref){
  }
  return rows;
 }
-export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId,now=Date.now(),shellSha256}){
+export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId,now=Date.now(),shellSha256,generation}){
+ need(generation===undefined||generation==='pr54-reads-20261019','GENERATION');
+ const reads=generation==='pr54-reads-20261019',oldPath=reads?NEW:OLD,oldSha=reads?'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071':OLD_SHA,newPath=reads?'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json':NEW;
  need(/^[a-f0-9]{32}$/.test(runId),'RUN');scope(oldSettings);scope(newSettings);
- need(oldObservation.schemaVersion==='melisa-p03-owner-observation.v2'&&oldObservation.ownerSid===OWNER&&oldObservation.database===DB&&oldObservation.actualT1===false&&oldObservation.oldConfig.sha256===OLD_SHA&&oldObservation.copyId===newSettings.copyId&&oldSettings.copyId===newSettings.copyId,'OLD_SCOPE');
+ if(reads){need(!['7b0821959737f1da0427b17a7dfd4685','639e2da815e1e7ac0f1c0d04d7f7bdc3'].includes(runId),'CONSUMED_RUN');need(oldObservation.oldConfig.path===oldPath&&oldSettings.components.erpApiNative.sourceCommit==='e59e07abf7ae2567cdc2adb93811fe29e0032fe5'&&oldSettings.components.erpApiNative.manifestSha256==='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'&&oldSettings.components.crm.sourceCommit==='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'&&oldSettings.supervisor.sourceCommit==='13bdf75a032ae8f694354a2e57b6ed382aec2f17','CURRENT_PINS');}
+
+ need(oldObservation.schemaVersion==='melisa-p03-owner-observation.v2'&&oldObservation.ownerSid===OWNER&&oldObservation.database===DB&&oldObservation.actualT1===false&&oldObservation.oldConfig.sha256===oldSha&&oldObservation.copyId===newSettings.copyId&&oldSettings.copyId===newSettings.copyId,'OLD_SCOPE');
  const erp=newSettings.components.erpApiNative,crm=newSettings.components.crm,sup=newSettings.supervisor;
- need(erp.sourceCommit==='e59e07abf7ae2567cdc2adb93811fe29e0032fe5'&&erp.manifestSha256==='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7','ERP_EXACT');
+ need(reads?erp.sourceCommit==='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'&&erp.manifestSha256==='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'&&erp.packageRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a':erp.sourceCommit==='e59e07abf7ae2567cdc2adb93811fe29e0032fe5'&&erp.manifestSha256==='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7','ERP_EXACT');
  need(crm.sourceCommit==='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'&&crm.manifestSha256==='e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83','CRM_EXACT');
- need(sup.sourceCommit==='13bdf75a032ae8f694354a2e57b6ed382aec2f17'&&sup.manifestSha256==='195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624','SUPERVISOR_EXACT');
- need(newSettingsRef.path===NEW&&/^[a-f0-9]{64}$/.test(newSettingsRef.sha256)&&/^[a-f0-9]{64}$/.test(shellSha256),'REFS');
+ need(reads?/^[a-f0-9]{40}$/.test(sup.sourceCommit??'')&&sup.sourceCommit!==oldSettings.supervisor.sourceCommit&&/^[a-f0-9]{64}$/.test(sup.manifestSha256??'')&&sup.packageRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+sup.sourceCommit.slice(0,12):sup.sourceCommit==='13bdf75a032ae8f694354a2e57b6ed382aec2f17'&&sup.manifestSha256==='195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624','SUPERVISOR_EXACT');
+ need(newSettingsRef.path===newPath&&/^[a-f0-9]{64}$/.test(newSettingsRef.sha256)&&/^[a-f0-9]{64}$/.test(shellSha256),'REFS');
  need(now-Date.parse(oldObservation.observedAt)>=0&&now-Date.parse(oldObservation.observedAt)<60000&&now-Date.parse(extras.observedAt)>=0&&now-Date.parse(extras.observedAt)<60000,'STALE');
  need(extras.tasks.length===2&&extras.oldWatchers.length===2&&extras.protectedProcesses.length>0&&extras.protectedProcesses.some(x=>x.name==='sqlservr.exe'),'EXTRAS');
  for(const row of extras.protectedProcesses)if(Object.hasOwn(row,'kind'))validateP03ProtectedSqlService(row);
@@ -105,7 +109,7 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
   }
   row.bindings??=[];
  }
- const plan={targets:ROLES,oldSettingsSha256:OLD_SHA,newSettingsSha256:newSettingsRef.sha256};plan.digest=hash(Buffer.from(JSON.stringify(plan)));
+ const plan={targets:ROLES,oldSettingsSha256:oldSha,newSettingsSha256:newSettingsRef.sha256};plan.digest=hash(Buffer.from(JSON.stringify(plan)));
  const before={...oldObservation,schemaVersion:'melisa-p03-owner-observation.v3',runId,newConfig:newSettingsRef,plan,profile:{erpSource:erp.sourceCommit,erpManifest:erp.manifestSha256,crmSource:crm.sourceCommit,crmManifest:crm.manifestSha256,supervisorSource:sup.sourceCommit,supervisorManifest:sup.manifestSha256}};
  before.identities=oldIdentities;
  const beforeBytes=encode(before),beforeRef={path:path.win32.join(ROOT,'MelisaERP-P03-before-'+runId+'.json'),sha256:hash(beforeBytes)};
@@ -122,7 +126,10 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
   const root=win(c.packageRoot),row={root,sourceCommit:c.sourceCommit,manifestPath:path.win32.join(root,'release-manifest.json'),manifestSha256:c.manifestSha256};
   if(packages.has(root.toLowerCase()))need(JSON.stringify(packages.get(root.toLowerCase()))===JSON.stringify(row),'PACKAGE_CONFLICT');packages.set(root.toLowerCase(),row);
  }
- const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:OWNER,database:DB,beforeImage:beforeRef,oldSettings:{path:OLD,sha256:OLD_SHA},newSettings:newSettingsRef,packages:[...packages.values()],stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'},tasks,candidateRules,oldWatchers:extras.oldWatchers,protectedProcesses:extras.protectedProcesses,businessDigest,journalDirectory:path.win32.join(ROOT,'MelisaERP-P03-recovery-'+runId),shell:{path:SHELL,sha256:shellSha256},health:[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:oldSettings.components.erpApiNative.sourceCommit}))};
+ // Executable package pins must remain the exact old/new settings union.
+ // Historical packages stay in the immutable predecessor profile, not in
+ // this engine envelope (the frozen rollback engine rejects extra packages).
+ const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:OWNER,database:DB,beforeImage:beforeRef,oldSettings:{path:oldPath,sha256:oldSha},newSettings:newSettingsRef,packages:[...packages.values()],stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'},tasks,candidateRules,oldWatchers:extras.oldWatchers,protectedProcesses:extras.protectedProcesses,businessDigest,journalDirectory:path.win32.join(ROOT,'MelisaERP-P03-recovery-'+runId),shell:{path:SHELL,sha256:shellSha256},health:[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:oldSettings.components.erpApiNative.sourceCommit}))};
  // Execute only a new protected copy; the original runtime code and its
  // inherited ACL remain untouched. Its payload is independently pinned below.
  profile.stopper={path:path.win32.join(ROOT,'MelisaERP-P03-stopper-'+runId+'.ps1'),sha256:STOPPER_SHA};

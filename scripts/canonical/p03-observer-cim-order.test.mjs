@@ -243,3 +243,20 @@ test('actual proposal selector emits SID identities only for exact rules and ret
  assert.match(out,/PROPOSAL_ROWS=1/);assert.match(out,/RAW=2/);assert.match(out,/UNKNOWN=1/);assert.match(out,/UNKNOWN_OWNER=False/);assert.match(out,/READS=10/);assert.match(out,/RAW_LISTENERS=1/);assert.match(out,/PARTIAL_ZERO=0/);assert.match(out,/ZERO_UNKNOWN=1/);assert.match(out,/REJECTED=physical-unknown/);
  const s=readFileSync(source,'utf8');assert.match(s,/collectionAuthority=if\(\$Purpose -ceq 'CandidateProposal'\)\{'CANDIDATE_PROPOSAL_ONLY'\}/);assert.match(s,/stopPermitted=\$false;applyAvailable=\$false/);
 });
+
+
+test('read repair NEW policy uses the pinned current supervisor and rejects old source substitution',windows,()=>{
+ const out=run(`${policySetup}\n${String.raw`
+$profile.oldSettings.path='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json';$profile.oldSettings.sha256='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071';$profile.newSettings.path='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json';$profile.newSettings.sha256='a'*64
+$settings|Add-Member NoteProperty components ([pscustomobject]@{erpApiNative=[pscustomobject]@{sourceCommit='e59e07abf7ae2567cdc2adb93811fe29e0032fe5';manifestSha256='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'}}) -Force
+$settings.supervisor.sourceCommit='13bdf75a032ae8f694354a2e57b6ed382aec2f17';$script:oldReadSettings=$settings|ConvertTo-Json -Depth 10 -Compress
+$settings.components.erpApiNative.sourceCommit='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2';$settings.components.erpApiNative.manifestSha256='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf';$settings.supervisor.sourceCommit='8'*40;$settings.supervisor.packageRoot='C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+('8'*12);$manifest.sourceCommit=$settings.supervisor.sourceCommit
+$before|Add-Member NoteProperty newConfig $profile.newSettings -Force;$before|Add-Member NoteProperty profile ([pscustomobject]@{supervisorSource=$settings.supervisor.sourceCommit;supervisorManifest=$settings.supervisor.manifestSha256}) -Force
+$profile|Add-Member NoteProperty candidateRules @([pscustomobject]@{role='coreSupervisor';nodePath=$core.nodePath;packageRoot=$settings.supervisor.packageRoot;sourceCommit=$settings.supervisor.sourceCommit;config=$profile.newSettings;commandLine=$core.commandLine}) -Force
+$script:originalPolicyRead=(Get-Command ObserverPolicyRead).ScriptBlock
+function ObserverPolicyRead($ref,[bool]$private=$true){if($ref.path-ceq$profile.oldSettings.path){return ,[Text.Encoding]::UTF8.GetBytes($script:oldReadSettings)};return & $script:originalPolicyRead $ref $private}
+$policy=ObserverInitializeProbePolicy $profile $before $identities 'New' $engineRef $helperRef;'READ_REPAIR_NEW='+$policy.generation
+$settings.supervisor.sourceCommit='13bdf75a032ae8f694354a2e57b6ed382aec2f17';Rejected 'old-supervisor' {ObserverInitializeProbePolicy $profile $before $identities 'New' $engineRef $helperRef}
+`}`);
+ assert.match(out,/READ_REPAIR_NEW=New/);assert.match(out,/REJECTED=old-supervisor/);
+});

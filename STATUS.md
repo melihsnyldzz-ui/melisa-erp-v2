@@ -1,3 +1,11 @@
+## 19 Ekim — mevcut kurulu sürüm için dar P03 geçiş hazırlığı
+
+Kurulu e59/supervisor13b/CRM6bc, DB02/copye16b/T1false ve iki gözetmen korunuyor. Hazır uygulama adayı01ef3e3a/manifest8754f9cb2089dosya doğrulandı; yeni kaynak geliştirmesi uygulama davranışını yeniden yazmıyor. Yalnız mevcut P03 profiline exact e59→01ef geçişi, ayrı tek-kullanımlık successor claim ve güncel salt okunur before/post kanıtı eklendi. Eski639→7b claim/global lock,26event ve QUARANTINED sonucu değişmedi; geçmiş ayrı READY/restore/prova kanıtı yeni motor sonucu diye sunulmuyor.
+
+İki iç gözetmen sabitinin yeni immutable supervisor pinine bağlanması hedefli Windows regresyonlarıyla doğrulandı. Sahiplik gözlemcisinin sonraki süreç/COM okumasında Windows ENAMETOOLONG bulundu: aynı readonly program artık stdin üzerinden taşınıyor;50KB gerçek Windows taşıma testi PASS.149 yeni/etkilenen hedef test PASS; eski IO kaynağına bağlı iki assertion yeni sonlu dal/metaveri adını kapsayacak şekilde güncellendi ve33/33 IO testi geçti. Bunlar kaynak/Windows testidir; kurulum veya GUI kabulü değildir.
+
+Yeni SUP paketi, inactive ayarlar, güncel COPY_ONLY yedek ve before/post kaynak özeti, fresh owner profili ve DryRun/Apply ayrı teslim adımlarıdır; bu kayıt anında **yeni kurulum/restart/finans-stok yazması yapılmadı**. Başka DB kopyası/restore/reset yok. İnsan UA/49ERP/25CRM aynı. Mevcut normal ekranlar çalışıyor; yeni istemci düzeltmelerinin normal GUI kanıtı kurulum sonrasını bekliyor.
+
 ## 19 Ekim — kabul sonucu salt okunur uzlaştırıldı; iki dar istemci düzeltmesi adayda
 
 Önceki pending ekran kanıtından sonra mevcut kabulün actor16 ile accepted olduğu resmi request GET ve bağımsız SQL ile doğrulandı: tek başarılı goods_accept journal ve tek stok etkisi; bağlı yeni alış taslağı yok. Bu tur onay/ret/replay/ticari POST yapılmadı. Aktör kimliği tıklayan kişinin kimliğini kanıtlamaz. Eski pending ekran kanıtı tarihsel olarak korunur.

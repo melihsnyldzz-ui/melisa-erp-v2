@@ -45,6 +45,7 @@ $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $Environment='Shared';$isRehearsal=$false;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184,4186,5234,62700,62701,62702,62703,62704);$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
 $order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')
 $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
+$currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json');if($currentReadRepair){$predecessor='7b0821959737f1da0427b17a7dfd4685'}
 $script:consolePins=@{};$script:probePins=@{};$script:legacyConsolePins=@{};$script:drainedPids=@()
 $script:tasksStopRequested=$false;$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false;$script:lateAdmissionOpen=$false;$script:lateProbePids=@()
 $script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null
@@ -54,6 +55,7 @@ function WorkerSamePin($a,$b){
  return $null -ne $a -and $null -ne $b -and $a.pid -eq $b.pid -and $a.parentPid -eq $b.parentPid -and $a.ownerSid -ceq $b.ownerSid -and $a.nodePath -ceq $b.nodePath -and $a.commandLine -ceq $b.commandLine -and [DateTime]::Parse($a.creationTime).ToUniversalTime().Ticks -eq [DateTime]::Parse($b.creationTime).ToUniversalTime().Ticks
 }
 function WorkerAuthority{
+ $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json');if($currentReadRepair){$predecessor='7b0821959737f1da0427b17a7dfd4685'}
  [void](ReadWorkerPin $ProfilePath $ProfileSha256);[void](ReadWorkerPin $BeforeImagePath $BeforeImageSha256);[void](ReadWorkerPin $EnginePath $engineSha);[void](ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256)
  Need ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne $predecessor -and $ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json'))) 'SUCCESSOR_RUN_SCOPE'
  if($Mode -ceq 'Inspect'){
@@ -64,7 +66,11 @@ function WorkerAuthority{
  }else{Need ($EnginePath -ceq (Join-Path $dir 'p03-physical-rollback.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'SUCCESSOR_HELPER_SCOPE'}
  Need ($Environment -ceq 'Shared' -and $isRehearsal -eq $false -and $profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3') 'SUCCESSOR_ENVIRONMENT'
  Need ($profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256 -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $database -and $before.database -ceq $database -and $before.actualT1 -eq $false) 'SUCCESSOR_PROFILE'
+ if($currentReadRepair){
+ Need ($oldSettings.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$oldSettings.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17'-and$newSettings.components.erpApiNative.sourceCommit-ceq'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'-and$newSettings.components.erpApiNative.manifestSha256-ceq'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'-and$newSettings.supervisor.packageRoot-ceq('C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+$newSettings.supervisor.sourceCommit.Substring(0,12))-and$before.newConfig.sha256-ceq$profile.newSettings.sha256) 'CURRENT_SUCCESSOR_SETTINGS'
+ }else{
  Need ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071') 'SUCCESSOR_SETTINGS'
+ }
  foreach($settings in @($oldSettings,$newSettings)){Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId -and $settings.actualT1 -ceq $false) 'SUCCESSOR_SETTINGS_SCOPE'}
  [void](ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);[void](ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
  $stopDigest=Hash ([Text.Encoding]::UTF8.GetBytes(([ordered]@{planDigest=$before.plan.digest;stopOrder=$order}|ConvertTo-Json -Compress)))
@@ -72,7 +78,11 @@ function WorkerAuthority{
   Need (-not [string]::IsNullOrEmpty($ClaimPath) -and $ClaimSha256 -cmatch '\A[a-f0-9]{64}\z') 'SUCCESSOR_CLAIM_REQUIRED'
   Need ($ClaimPath -ceq (Join-Path $base ('p03-pr54-successor-of-'+$predecessor+'.lock.json'))) 'SUCCESSOR_CLAIM_PATH'
   $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256)
+  if($currentReadRepair){
+  Need ($ClaimPath-ceq(Join-Path $base 'p03-pr54-successor-of-7b0821959737f1da0427b17a7dfd4685.lock.json')-and$claim.schemaVersion-ceq'melisa-p03-current-owner-successor-claim.v1'-and$claim.predecessorRunId-ceq$predecessor-and$claim.successorRunId-ceq$runId-and$claim.successorProfile.path-ceq$ProfilePath-and$claim.successorProfile.sha256-ceq$ProfileSha256-and$claim.successorBefore.path-ceq$BeforeImagePath-and$claim.successorBefore.sha256-ceq$BeforeImageSha256-and$claim.stopOrderDigest-ceq$stopDigest-and$claim.newSettings.path-ceq$profile.newSettings.path-and$claim.newSettings.sha256-ceq$profile.newSettings.sha256-and$claim.candidate.erpSource-ceq$newSettings.components.erpApiNative.sourceCommit-and$claim.candidate.erpManifest-ceq$newSettings.components.erpApiNative.manifestSha256-and$claim.candidate.supervisorSource-ceq$newSettings.supervisor.sourceCommit-and$claim.candidate.supervisorManifest-ceq$newSettings.supervisor.manifestSha256-and$claim.candidate.supervisorRoot-ceq$newSettings.supervisor.packageRoot-and$claim.readOnlyNewReady.sha256-ceq'37d19530131f006d8332827f673d7e35284f891b081875653df6b60383be1f5d'-and$claim.quarantinedController.sha256-ceq'7e47bd7fa12baf349783b229a6aa80c48dcb9e7231063c0c76a7c18aca3b9fe2') 'CURRENT_SUCCESSOR_CLAIM'
+  }else{
   Need ($claim.schemaVersion -ceq 'melisa-p03-owner-successor-claim.v1' -and $claim.predecessorRunId -ceq $predecessor -and $claim.successorRunId -ceq $runId -and $claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256 -and $claim.engineSha256 -ceq $engineSha -and $claim.stopOrderDigest -ceq $stopDigest) 'SUCCESSOR_CLAIM'
+  }
  }
  if($Mode -ceq 'Drain'){
   Need ($AdmittedSnapshotPath -ceq (Join-Path $dir 'successor-precut-admission.json') -and $StopIntentPath -cmatch ('\A'+[regex]::Escape($dir)+'\\event-[0-9]{4}\.json\z')) 'SUCCESSOR_DRAIN_PATH'

@@ -21,6 +21,7 @@ $expectedCrmSource=switch -CaseSensitive ($StartupConfigPath){
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json'{'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-c88d7010f831.json'{'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';break}
  'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'{'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';break}
+ 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json'{'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a';break}
  default {throw 'ERP_HUB_WAIT_CONFIG_SCOPE'}
 }
 function Read-PinnedJson([string]$p,[string]$hash){
@@ -43,7 +44,7 @@ $hubLineageNodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-co
 $literalHubLineageNode=$hubLineageNodeRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
 $pr53NodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-c88d7010f831.json'
 $literalPr53Node=$pr53NodeRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
-$pr53CiNodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'
+$pr53CiNodeRequired=$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'-or$StartupConfigPath-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json'
 $literalPr53CiNode=$pr53CiNodeRequired-and$c.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$c.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
 if($c.components.crm.sourceCommit-cne$expectedCrmSource-or$c.ownerSid-cne$owner-or($c.node.path-cne'C:\Program Files\nodejs\node.exe'-and!$literalCandidateNode-and!$literalNativeReadyNode-and!$literalCrmNode24-and!$literalCrmNode24Hub-and!$literalIntegratedNode-and!$literalHubLineageNode-and!$literalPr53Node-and!$literalPr53CiNode)-or($nativeReadyNodeRequired-and!$literalNativeReadyNode)-or($crmNode24Required-and!$literalCrmNode24)-or($crmNode24HubRequired-and!$literalCrmNode24Hub)-or($integratedNodeRequired-and!$literalIntegratedNode)-or($hubLineageNodeRequired-and!$literalHubLineageNode)-or($pr53NodeRequired-and!$literalPr53Node)-or($pr53CiNodeRequired-and!$literalPr53CiNode)-or$c.actualT1-ne$false-or$c.database-cne'MELISA_ERP_CRM_SHARED_TEST_20261009_02'-or$c.copyId-cne'e16b70f0-4057-428b-9abc-6bbcaf35fe82'){throw 'ERP_HUB_WAIT_TARGET'}
 $manifest=Read-PinnedJson (Join-Path $c.supervisor.packageRoot 'release-manifest.json') $c.supervisor.manifestSha256

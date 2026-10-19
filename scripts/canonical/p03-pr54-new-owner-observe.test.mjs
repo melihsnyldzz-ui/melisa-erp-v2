@@ -505,3 +505,27 @@ $script:newFrozenCandidateInventoryBody=$script:newFrozenCandidateInventoryBody.
 `}`);
  for(const c of ['frozen-PID-only-foreign','managed-ancestor-closure-still-rejected','selected-old-PID-still-forbidden','other-managed-foreign-still-rejected','non-predicate-frozen-drift'])assert.match(out,new RegExp('REJECTED='+c));assert.match(out,/ROUTED_ROWS=4/);assert.match(out,/SELECTED=0/);assert.match(out,/AUDITS=1/);assert.match(out,/EXITED_EXTERNAL_ANCESTOR=PASS/);
 });
+
+test('read repair source preparation accepts pinned new supervisor and still rejects wrong manifest probe and shell',windows,()=>{
+ const out=run(`${fixture}\n${extract(['NewPrepareProbeSource'])}
+function Json($b){return [Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}
+function NoReparse($p){}
+function NewSourceBytes($p,$sha){$script:reads+=,$p;if($p.EndsWith('release-manifest.json')){return ,[Text.Encoding]::UTF8.GetBytes(($script:manifest|ConvertTo-Json -Depth 8 -Compress))};if(($p.EndsWith('hub-stack-process-probe.ps1') -and $sha -cne ('b'*64)) -or ($p.EndsWith('terminal-completion-logon.mjs') -and $sha -cne ('d'*64))){throw 'FIXTURE_PROBE_SHA'};return ,[byte[]]@(1)}
+function Get-FileHash{param($LiteralPath,$Algorithm);[pscustomobject]@{Hash=$script:shellHash}}
+$script:RecoveryHelperSha256='helper';$script:reads=@();$script:shellHash='c'*64
+$script:newSettings=[pscustomobject]@{supervisor=[pscustomobject]@{packageRoot='C:\\fixture\\new';sourceCommit='13bdf75a032ae8f694354a2e57b6ed382aec2f17';manifestSha256=('a'*64)}}
+$script:manifest=[pscustomobject]@{sourceCommit=$newSettings.supervisor.sourceCommit;files=@([pscustomobject]@{path='scripts/canonical/hub-stack-process-probe.ps1';sha256=('b'*64)},[pscustomobject]@{path='scripts/canonical/terminal-completion-logon.mjs';sha256=('d'*64)})}
+$profile|Add-Member NoteProperty oldSettings ([pscustomobject]@{sha256='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'}) -Force
+$profile|Add-Member NoteProperty newSettings ([pscustomobject]@{path='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json'}) -Force
+$newSettings.supervisor.sourceCommit='8'*40;$newSettings.supervisor.packageRoot='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+('8'*12)
+$newSettings|Add-Member NoteProperty components ([pscustomobject]@{erpApiNative=[pscustomobject]@{sourceCommit='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2';manifestSha256='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'}}) -Force
+$before|Add-Member NoteProperty profile ([pscustomobject]@{supervisorSource=$newSettings.supervisor.sourceCommit;supervisorManifest=$newSettings.supervisor.manifestSha256}) -Force
+$manifest.sourceCommit=$newSettings.supervisor.sourceCommit
+NewPrepareProbeSource;'READS='+($reads -join '|');'PROBE='+$newProbeSource.probeSha256
+$manifest.sourceCommit='old';ExpectRejected 'manifest' {NewPrepareProbeSource};$manifest.sourceCommit=$newSettings.supervisor.sourceCommit
+$manifest.files+=,$manifest.files[0];ExpectRejected 'duplicate' {NewPrepareProbeSource};$manifest.files=@($manifest.files[0],$manifest.files[1])
+$manifest.files[0].sha256='d'*64;ExpectRejected 'probe' {NewPrepareProbeSource};$manifest.files[0].sha256='b'*64
+$script:shellHash='d'*64;ExpectRejected 'shell' {NewPrepareProbeSource}`);
+ assert.match(out,/CANONICAL-CRM06-SUPERVISOR-TEST-20261019-/);assert.match(out,/PROBE=b{64}/);
+ for(const name of ['manifest','duplicate','probe','shell'])assert.match(out,new RegExp('REJECTED='+name));
+});

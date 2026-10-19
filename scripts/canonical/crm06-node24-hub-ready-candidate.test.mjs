@@ -9,7 +9,7 @@ import {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,crm06St
 import {crm06StaffJournalExcludedPaths,crm06StaffJournalPhysicalArguments} from './crm06-staff-journal-preflight.mjs';
 import {assertErpHubProfile,erpHubFailureMetadata} from './wait-erp-for-hub.mjs';
 import {validateCompletionSettings} from './terminal-completion-logon.mjs';
-import {preparePr53CiOwnerProfile,PR53_CI_OWNER_SUPERVISOR} from './p03-pr53-ci-owner-preparation.mjs';
+import {preparePr53CiOwnerProfile,preparePr54ReadOwnerProfile,PR53_CI_OWNER_SUPERVISOR} from './p03-pr53-ci-owner-preparation.mjs';
 import {preparePr53OwnerProfile,PR53_OWNER_SUPERVISOR} from './p03-pr53-owner-preparation.mjs';
 import {crm06StaffJournalReferenceHash,CRM06_STAFF_JOURNAL_ROOT,CRM06_STAFF_JOURNAL_PATH} from './crm06-staff-journal-preflight.mjs';
 const erp='C:\\Sirket\\ERP',crm='C:\\Sirket\\CRM',runtime=erp+'\\runtime\\terminal-completion-logon',source='5b6dfe5acf1c0c1ea301f66aea39bf2abcec8f36',native='7a'.padEnd(40,'1'),sha='a'.repeat(64),owner='S-1-5-21-123-456-789-1001';
@@ -142,7 +142,7 @@ test('integrated TEST journal and Hub gates accept one literal profile only',()=
  assert(watch.includes("$integratedNodeRequired=$StartupConfigPath-ceq'"+profile.nextPaths.settings+"'"));
  assert(watch.includes('($integratedNodeRequired-and!$literalIntegratedNode)'));
  const builder=fs.readFileSync(new URL('./build-crm06-supervisor-package.mjs',import.meta.url),'utf8');
- assert(builder.includes("expected=['20261014','20261015','20261017','20261018'].map(day=>"));
+ assert(builder.includes("expected=['20261014','20261015','20261017','20261018','20261019'].map(day=>"));
 });
 
 const lineageVariant='erp-crm-hub-lineage-20261017';
@@ -278,4 +278,29 @@ ConvertTo-Json -InputObject @($results) -Depth 5 -Compress`;
  assert.deepEqual(rows[2].paths,[...crm06StaffJournalExcludedPaths(integratedCrmSource,pr53Variant)]);
  assert.deepEqual(rows[3].paths,[...crm06StaffJournalExcludedPaths(integratedCrmSource,pr53CiVariant)]);
  for(const row of rows.slice(4))assert.equal(row.accepted,false);
+});
+
+const readsVariant='erp-crm-pr54-reads-20261019';
+function readsFixture(){const f=pr53CiFixture();f.profileVariant=readsVariant;f.erpCandidate.packagePin={packageRoot:erp+'\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a',sourceCommit:'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2',manifestSha256:'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'};f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-01ef3e3aa3bd-dependency-lock.json';f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261018','20261019');return f;}
+test('read repair profile admits only reviewed immutable package and retains original profiles and roles',()=>{
+ const f=readsFixture(),before=structuredClone(f),legacy=buildCrm06StaffRefreshSuccessor(pr53CiFixture()),next=buildCrm06StaffRefreshSuccessor(f),p=crm06StaffSuccessorProfile(integratedCrmSource,readsVariant);
+ assert.equal(assertCrm06StaffRefreshSuccessor(assertion(f,next)),true);validateCompletionSettings(next.settings,owner);assertErpHubProfile(p.nextPaths.settings,integratedCrmSource);
+ assert.deepEqual(f,before);assert.deepEqual(next.settings.components.erpApiNative,{...f.erpCandidate.packagePin,config:f.parentSettings.components.erpApiNative.config});assert.deepEqual(next.settings.components.nativeOrder,f.parentSettings.components.nativeOrder);assert.deepEqual(next.settings.crmPrivateFiles.baseline,f.parentSettings.crmPrivateFiles.baseline);assert.deepEqual(next.settings.crmPrivateFiles.crm06Actors,f.parentSettings.crmPrivateFiles.crm06Actors);
+ assert.equal(next.receipt.installed,false);assert.equal(next.receipt.humanAccepted,false);assert.equal(crm06StaffSuccessorProfileForPath(integratedCrmSource,p.successorPath).profileVariant,readsVariant);assert.deepEqual(legacy,buildCrm06StaffRefreshSuccessor(pr53CiFixture()));
+ assert.equal(crm06StaffJournalPhysicalArguments({source:integratedCrmSource,profileVariant:readsVariant,excludedPaths:crm06StaffJournalExcludedPaths(integratedCrmSource,readsVariant),ownerSid:owner}).at(-1),readsVariant);assert.deepEqual(crm06StaffJournalExcludedPaths(integratedCrmSource,readsVariant),[...crm06StaffJournalExcludedPaths(integratedCrmSource,pr53CiVariant),p.successorPath].sort());
+});
+for(const [label,change] of [['source',f=>f.erpCandidate.packagePin.sourceCommit=pr53CiErp.sourceCommit],['bytes',f=>f.erpCandidate.packagePin.manifestSha256='0'.repeat(64)],['path',f=>f.erpCandidate.packagePin.packageRoot+='-other'],['lock',f=>f.erpCandidate.dependencyLockRef.path+='-other'],['node',f=>f.erpCandidate.nodeRuntimePin.sha256='0'.repeat(64)],['supervisor day',f=>f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261019','20261018')]])test('read repair profile rejects '+label,()=>{const f=readsFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f));});
+
+test('read repair owner helper binds exact pins and canonical lock and journal evidence hashes without IO',()=>{
+ const f=readsFixture(),profile=crm06StaffSuccessorProfile(integratedCrmSource,readsVariant);
+ const parentInputs=Object.fromEntries(['baseline','parentActivation','parentAudit','parentSettings','parentSettingsRef','parentHubPin','parentHubStartup','ownerSid'].map(k=>[k,f[k]]));
+ const lock=(pin,module)=>({schemaVersion:1,sourceCommit:pin.sourceCommit,packageRoot:pin.packageRoot,files:[{path:module+'/node_modules/package/index.js',sha256:sha}]});
+ const erpDependencyLock=lock(f.erpCandidate.packagePin,'apps/api'),crmDependencyLock=lock(f.crmPackagePin,'apps/gateway');
+ const references=crm06StaffJournalExcludedPaths(integratedCrmSource,readsVariant).map(path=>({path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false}));
+ const meta=(path,directory,fileId)=>({path,ownerSid:owner,daclProtected:true,foreignWritable:false,foreignAllowed:false,volumeSerial:'1234ABCD',fileId,linkCount:1,reparse:false,directory});
+ const journalEvidence={schemaVersion:'crm06-staff-journal-physical.v1',status:'READY',path:CRM06_STAFF_JOURNAL_PATH,actorRoot:CRM06_STAFF_JOURNAL_ROOT,callerSid:owner,ancestorReparse:false,parent:meta(CRM06_STAFF_JOURNAL_ROOT,true,'0000000000000001'),journal:meta(CRM06_STAFF_JOURNAL_PATH,false,'0000000000000002'),references,referenceSha256:crm06StaffJournalReferenceHash(references)};
+ const input={parentInputs,erpDependencyLock,crmDependencyLock,journalEvidence,supervisorPin:f.supervisorPin,erpDependencyLockRef:{path:profile.erpDependencyLockPath,sha256:crm06SuccessorFileHash(erpDependencyLock)},crmDependencyLockRef:{path:profile.dependencyLockPath,sha256:crm06SuccessorFileHash(crmDependencyLock)},journalEvidenceRef:{path:profile.journalEvidencePath,sha256:crm06SuccessorFileHash(journalEvidence)}};
+ const before=structuredClone(input),next=preparePr54ReadOwnerProfile(input);
+ assert.deepEqual(next.settings.supervisor,f.supervisorPin);assert.deepEqual(input,before);assert.equal(next.receipt.installed,false);
+ for(const change of [x=>x.erpDependencyLock.files[0].sha256='0'.repeat(64),x=>x.journalEvidenceRef.sha256='0'.repeat(64),x=>x.journalEvidence.status='PREPARE_REQUIRED',x=>x.erpDependencyLockRef.path=runtime+'\\erpApiNative-1a03157a323e-dependency-lock.json']){const bad=structuredClone(input);change(bad);assert.throws(()=>preparePr54ReadOwnerProfile(bad));}
 });

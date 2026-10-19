@@ -93,7 +93,10 @@ function ObserverInitializeProbePolicy($profile,$before,$identityMap,[ValidateSe
  ObserverImportDefinition (ObserverPolicyRead $engineRef) 'Tokens' 'ObserverImportedTokens'
  ObserverImportDefinition (ObserverPolicyRead $helperRef) 'ProbeArgumentsAllowed' 'ObserverImportedProbeArgumentsAllowed'
  ObserverRequire ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -and $before.database -ceq $profile.database -and $before.actualT1 -ceq $false)
+ $readRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json')
+ if($readRepair){ObserverRequire ($profile.newSettings.sha256-cmatch'^[a-f0-9]{64}$'-and$before.newConfig.sha256-ceq$profile.newSettings.sha256);$readOld=ObserverPolicyJson (ObserverPolicyRead $profile.oldSettings);$readNew=ObserverPolicyJson (ObserverPolicyRead $profile.newSettings);ObserverRequire ($readOld.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$readOld.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17'-and$readNew.components.erpApiNative.sourceCommit-ceq'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'-and$readNew.components.erpApiNative.manifestSha256-ceq'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf')}else{
  ObserverRequire ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071')
+ }
  $settingsRef=if($generation -ceq 'Old'){$profile.oldSettings}else{$profile.newSettings};$settings=ObserverPolicyJson (ObserverPolicyRead $settingsRef)
  ObserverRequire ($settings.ownerSid -ceq $owner -and $settings.database -ceq $profile.database -and $settings.copyId -ceq $before.copyId -and $settings.actualT1 -ceq $false)
  $supervisor=$settings.supervisor
@@ -101,6 +104,7 @@ function ObserverInitializeProbePolicy($profile,$before,$identityMap,[ValidateSe
   $settingsRoot=[IO.Path]::GetFullPath($supervisor.packageRoot);$beforeRoot=[IO.Path]::GetFullPath($before.oldSupervisor.root)
   ObserverNoReparse $settingsRoot;ObserverNoReparse $beforeRoot
   ObserverRequire ($settingsRoot -ceq $beforeRoot -and $supervisor.manifestSha256 -ceq $before.oldSupervisor.manifest)
+ }elseif($readRepair){ObserverRequire ($supervisor.sourceCommit-cmatch'^[a-f0-9]{40}$'-and$supervisor.manifestSha256-cmatch'^[a-f0-9]{64}$'-and$supervisor.sourceCommit-ceq$before.profile.supervisorSource-and$supervisor.manifestSha256-ceq$before.profile.supervisorManifest-and$supervisor.packageRoot-ceq('C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+$supervisor.sourceCommit.Substring(0,12)))
  }else{ObserverRequire ($supervisor.sourceCommit -ceq '13bdf75a032ae8f694354a2e57b6ed382aec2f17' -and $supervisor.manifestSha256 -ceq '195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624')}
  $manifestRef=[pscustomobject]@{path=(Join-Path $supervisor.packageRoot 'release-manifest.json');sha256=$supervisor.manifestSha256}
  $manifest=ObserverPolicyJson (ObserverPolicyRead $manifestRef $false);ObserverRequire ($manifest.sourceCommit -ceq $supervisor.sourceCommit)
