@@ -1,0 +1,205 @@
+{
+  "kind": "real-source-schema-inventory-not-a-complete-bootstrap",
+  "sourceSha": "691f889aa9e87f1c0b840963621add48387699f9",
+  "databaseTarget": "MELISA_CLOUD_FULL_TEST_20261019",
+  "targetCreated": false,
+  "rows": [
+    {
+      "path": "apps/whatsapp-crm-api/infra/postgres/001_initial_schema.sql",
+      "sha256": "7bf8fbfb0703f12deff79e26a90105d122e840c3e75ac9f8d275e82c657c90fd",
+      "bytes": 2962,
+      "applyState": "APPLIED_ISOLATED_POSTGRES",
+      "completesCurrentBusinessSchema": false,
+      "database": "melisa_crm_synthetic",
+      "tableCountReadback": 6,
+      "receipt": "docs/evidence/erp/2026-10-19-cloud-shared/isolated-runtime-receipt.json"
+    },
+    {
+      "path": "infra/sql/migrations/0001_melisa_erp_v2_initial_schema.sql",
+      "sha256": "d358b2c5ea2832bdf79e577b9eead6663223bd7b22c52e24eec2c1a0270ae0a2",
+      "bytes": 21660,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0002_customer_movements.sql",
+      "sha256": "0348c8087b903ec114dd2d42ec64cc9eec95936ebf748477d6b485daac3a2d44",
+      "bytes": 1296,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0003_stock_movement_sales_snapshots.sql",
+      "sha256": "a542d87b6086c783db1d9c5a12b72b1dcb6336bb948dccd4c0f34b268b2ae44b",
+      "bytes": 585,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0004_supplier_movements.sql",
+      "sha256": "d57ecfecfde728f922a2f163d6529a906841caffafc0458f4792bedd51755de8",
+      "bytes": 1317,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0005_average_cost_gross_profit.sql",
+      "sha256": "51031673efeee8f2f3404cc358778312fb53e32ff1f226840ce4fc0cbecd5f79",
+      "bytes": 1100,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0006_auth_live_foundation.sql",
+      "sha256": "2b04046d04d08a35024fda91de8abce72afce103d119e388df6a9ea77d9e7ea4",
+      "bytes": 5163,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0007_import_permission.sql",
+      "sha256": "fefe076712aa2483daa55051c66e5447baeecd056262ec644d5e85550157c508",
+      "bytes": 1579,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0008_finance_collection_payment_movements.sql",
+      "sha256": "d7208b1e84d84259e421ced20e62a933d9ec9ea95ef907a9793b86d884206e72",
+      "bytes": 973,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0009_sales_offers_orders.sql",
+      "sha256": "eb550efaffecb0c3f8958628a66387cd9653c1db09ac977cde2f3160f366e814",
+      "bytes": 6597,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0010_system_settings.sql",
+      "sha256": "fd5bea21942c8f8cb2816da19d3e542347d6259679b0deaf8a79b958f1eb703b",
+      "bytes": 2845,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0011_purchase_discount_defaults.sql",
+      "sha256": "51714cfdb7868dbd120003b2c9eacffbd59d75090c69900bfb5ac615bee27c13",
+      "bytes": 446,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0012_multi_currency_cash_sessions.sql",
+      "sha256": "2f82115bfb3af8d5ec65704f47017edc107a85f24ef2eeb84fe220ebf2d8d5ed",
+      "bytes": 10594,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0013_personnel_terminal_sales.sql",
+      "sha256": "2cc1b2abf7d6043f12ae3bd3cca16b6e026dc673bccc6f7f20eb740333f0632c",
+      "bytes": 3168,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0014_personnel_operational_restrictions.sql",
+      "sha256": "8092d0fe612a5992891419026fb84202cd285f14dbbaba6f5f34805349ead1b9",
+      "bytes": 1539,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0015_vega_product_images.sql",
+      "sha256": "3a726f016d7827f294bbc2805e112cef31dc88d5048ae9237f02f2b6e9a057b6",
+      "bytes": 1631,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0016_vega_product_customs.sql",
+      "sha256": "983a061b6934ca3026eeef3cd4b4ea976f3fe811e7711e520934182c4f1f05f3",
+      "bytes": 1986,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/migrations/0017_development_os_events_read_role.sql",
+      "sha256": "1cfd1d8092ec98d1d5b106c6d546241e0a2989f071b33cbf9da607ab1dfb1d51",
+      "bytes": 1908,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/seeds/0001_reference_roles_permissions.sql",
+      "sha256": "0630bdb30416743149879da687a8889aec02e63e44d4ea75d511ad9394f12e9b",
+      "bytes": 4696,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    },
+    {
+      "path": "infra/sql/seeds/0002_test_products_customers.sql",
+      "sha256": "cc695283c078e0ecee128cf3af3844f0e51e9401a0a8fe97936f125b1f893c6b",
+      "bytes": 8566,
+      "applyState": "NOT_APPLIED",
+      "completesCurrentBusinessSchema": false
+    }
+  ],
+  "blockers": [
+    "17 original SQL migrations and 2 seeds are a foundation draft, not the current business/copy schema",
+    "Existing copy initializer requires restored-source manifests; no old backup or business rows may be used",
+    "Conservative source manifest and inert synthetic plan now exist; 25 reviewed base-DDL gaps, unresolved generated definitions and fresh full-runtime proof integration remain",
+    "Isolated TEST credentials approved18:02:14UTC; full ERP SQL identities/config remain uncreated pending EULA and fresh-profile implementation"
+  ],
+  "seed": {
+    "state": "SPEC_ONLY_NOT_APPLIED",
+    "source": "infra/sql/seeds/0002_test_products_customers.sql",
+    "actualSchemaKeyMapping": "PENDING_NEW_SCHEMA",
+    "productBusinessKeys": [
+      "SYN-P101",
+      "SYN-P102"
+    ],
+    "customerBusinessKeys": [
+      "SYN-C501",
+      "SYN-C502"
+    ],
+    "supplierBusinessKeys": [
+      "SYN-S601"
+    ],
+    "personnelRoles": [
+      "sales",
+      "manager",
+      "crm-assigned",
+      "other-personnel"
+    ],
+    "currencies": [
+      "TRY",
+      "USD",
+      "EUR"
+    ],
+    "activeTestCurrency": "TRY",
+    "initialPieces": [
+      10,
+      8
+    ],
+    "unitPricesTry": [
+      25,
+      40
+    ],
+    "realContacts": false,
+    "providerMessages": "synthetic inbox only, no external delivery",
+    "passwordsOrTokens": "PUBLIC_SPEC_HAS_NONE; approved independent-service keys exist only in ignored protected local files"
+  },
+  "freshSyntheticPreparation": {
+    "manifest": "erp-source-manifest.json",
+    "profile": "synthetic-profile.json",
+    "plan": "synthetic-bootstrap-plan.json",
+    "state": "SOURCE_PLAN_AVAILABLE_INSTALL_BLOCKED",
+    "reviewedMissingBaseDDLCount": 25,
+    "sqlApplied": false,
+    "sqlSyntaxValidated": false
+  }
+}

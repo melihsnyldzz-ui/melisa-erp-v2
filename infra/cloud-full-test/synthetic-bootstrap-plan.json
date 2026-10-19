@@ -1,0 +1,305 @@
+{
+  "schemaVersion": "melisa-full-synthetic-bootstrap-plan.v1",
+  "sourceSha": "691f889aa9e87f1c0b840963621add48387699f9",
+  "inventoryDigest": "c197e39fe3eaf41f92ec80a706402953c4af57fab0fbf5cd820b9c7f0d0ed313",
+  "target": {
+    "server": "erp-sql",
+    "database": "MELISA_CLOUD_FULL_TEST_20261019",
+    "applicationLogin": "melisa_cloud_full_app",
+    "readerLogin": "melisa_cloud_full_reader",
+    "apiPort": 4810,
+    "nativePort": 4811,
+    "webPort": 5810
+  },
+  "state": "SOURCE_PREPARATION_BLOCKED_NOT_A_RUNTIME_GRANT",
+  "canApply": false,
+  "canStart": false,
+  "runtimeGrant": null,
+  "sqlApplied": false,
+  "sqlSyntaxValidated": false,
+  "availableSchemaSources": [
+    {
+      "path": "apps/api/scripts/vega-native-migration-store.mjs",
+      "sha256": "8226ba6ec778bbefc729de69e9a34ab3bde7d152ac9da1a564659587cdf2a5b3",
+      "bytes": 12057
+    },
+    {
+      "path": "infra/sql/migrations/0001_melisa_erp_v2_initial_schema.sql",
+      "sha256": "d358b2c5ea2832bdf79e577b9eead6663223bd7b22c52e24eec2c1a0270ae0a2",
+      "bytes": 21660
+    },
+    {
+      "path": "infra/sql/migrations/0002_customer_movements.sql",
+      "sha256": "0348c8087b903ec114dd2d42ec64cc9eec95936ebf748477d6b485daac3a2d44",
+      "bytes": 1296
+    },
+    {
+      "path": "infra/sql/migrations/0003_stock_movement_sales_snapshots.sql",
+      "sha256": "a542d87b6086c783db1d9c5a12b72b1dcb6336bb948dccd4c0f34b268b2ae44b",
+      "bytes": 585
+    },
+    {
+      "path": "infra/sql/migrations/0004_supplier_movements.sql",
+      "sha256": "d57ecfecfde728f922a2f163d6529a906841caffafc0458f4792bedd51755de8",
+      "bytes": 1317
+    },
+    {
+      "path": "infra/sql/migrations/0005_average_cost_gross_profit.sql",
+      "sha256": "51031673efeee8f2f3404cc358778312fb53e32ff1f226840ce4fc0cbecd5f79",
+      "bytes": 1100
+    },
+    {
+      "path": "infra/sql/migrations/0006_auth_live_foundation.sql",
+      "sha256": "2b04046d04d08a35024fda91de8abce72afce103d119e388df6a9ea77d9e7ea4",
+      "bytes": 5163
+    },
+    {
+      "path": "infra/sql/migrations/0007_import_permission.sql",
+      "sha256": "fefe076712aa2483daa55051c66e5447baeecd056262ec644d5e85550157c508",
+      "bytes": 1579
+    },
+    {
+      "path": "infra/sql/migrations/0008_finance_collection_payment_movements.sql",
+      "sha256": "d7208b1e84d84259e421ced20e62a933d9ec9ea95ef907a9793b86d884206e72",
+      "bytes": 973
+    },
+    {
+      "path": "infra/sql/migrations/0009_sales_offers_orders.sql",
+      "sha256": "eb550efaffecb0c3f8958628a66387cd9653c1db09ac977cde2f3160f366e814",
+      "bytes": 6597
+    },
+    {
+      "path": "infra/sql/migrations/0010_system_settings.sql",
+      "sha256": "fd5bea21942c8f8cb2816da19d3e542347d6259679b0deaf8a79b958f1eb703b",
+      "bytes": 2845
+    },
+    {
+      "path": "infra/sql/migrations/0011_purchase_discount_defaults.sql",
+      "sha256": "51714cfdb7868dbd120003b2c9eacffbd59d75090c69900bfb5ac615bee27c13",
+      "bytes": 446
+    },
+    {
+      "path": "infra/sql/migrations/0012_multi_currency_cash_sessions.sql",
+      "sha256": "2f82115bfb3af8d5ec65704f47017edc107a85f24ef2eeb84fe220ebf2d8d5ed",
+      "bytes": 10594
+    },
+    {
+      "path": "infra/sql/migrations/0013_personnel_terminal_sales.sql",
+      "sha256": "2cc1b2abf7d6043f12ae3bd3cca16b6e026dc673bccc6f7f20eb740333f0632c",
+      "bytes": 3168
+    },
+    {
+      "path": "infra/sql/migrations/0014_personnel_operational_restrictions.sql",
+      "sha256": "8092d0fe612a5992891419026fb84202cd285f14dbbaba6f5f34805349ead1b9",
+      "bytes": 1539
+    },
+    {
+      "path": "infra/sql/migrations/0015_vega_product_images.sql",
+      "sha256": "3a726f016d7827f294bbc2805e112cef31dc88d5048ae9237f02f2b6e9a057b6",
+      "bytes": 1631
+    },
+    {
+      "path": "infra/sql/migrations/0016_vega_product_customs.sql",
+      "sha256": "983a061b6934ca3026eeef3cd4b4ea976f3fe811e7711e520934182c4f1f05f3",
+      "bytes": 1986
+    },
+    {
+      "path": "infra/sql/migrations/0017_development_os_events_read_role.sql",
+      "sha256": "1cfd1d8092ec98d1d5b106c6d546241e0a2989f071b33cbf9da607ab1dfb1d51",
+      "bytes": 1908
+    }
+  ],
+  "originalSeedSources": [
+    {
+      "path": "infra/sql/seeds/0001_reference_roles_permissions.sql",
+      "sha256": "0630bdb30416743149879da687a8889aec02e63e44d4ea75d511ad9394f12e9b",
+      "bytes": 4696
+    },
+    {
+      "path": "infra/sql/seeds/0002_test_products_customers.sql",
+      "sha256": "cc695283c078e0ecee128cf3af3844f0e51e9401a0a8fe97936f125b1f893c6b",
+      "bytes": 8566
+    }
+  ],
+  "missingCreateCaptures": [
+    "dbo.business_product_price_current_guard",
+    "dbo.business_product_price_requests_guard",
+    "dbo.business_product_price_versions_guard",
+    "dbo.ck__test_purc__purch__6b4fd30b",
+    "dbo.ck_customer_movements_type",
+    "dbo.ck_stock_movements_source_type_native",
+    "dbo.ck_supplier_movements_type",
+    "dbo.customer_route_assignments",
+    "dbo.customer_routes",
+    "dbo.fn_customer_contact_predecessor_hash_v1",
+    "dbo.goal8_day_assert_history",
+    "dbo.goal8_day_assert_scope",
+    "dbo.goal8_day_begin",
+    "dbo.goal8_day_history",
+    "dbo.goal8_day_intents",
+    "dbo.goal8_day_manifest",
+    "dbo.goal8_day_payment_context",
+    "dbo.goal8_day_payment_effects",
+    "dbo.goal8_day_purchase_sources",
+    "dbo.goal8_day_quotes",
+    "dbo.goal8_day_scope",
+    "dbo.immutable_business_daily_owned_count_check",
+    "dbo.immutable_stage4_copy_business_collection_history_revisions",
+    "dbo.immutable_stage4_copy_business_selected_collection_revisions",
+    "dbo.immutable_stage4_copy_customer_contact_revisions",
+    "dbo.immutable_stage4_copy_effects_performance_revisions",
+    "dbo.immutable_stage4_copy_ready_performance_revisions",
+    "dbo.immutable_stage4_copy_stock_predicate_revisions",
+    "dbo.inventory_effective_movements",
+    "dbo.invoice_return_items",
+    "dbo.invoice_returns",
+    "dbo.migration_map",
+    "dbo.operation",
+    "dbo.stage4_copy_business_collection_history_revisions",
+    "dbo.stage4_copy_business_daily_owned_count_check",
+    "dbo.stage4_copy_business_selected_collection_revisions",
+    "dbo.stage4_copy_customer_contact_revisions",
+    "dbo.stage4_copy_effects_performance_revisions",
+    "dbo.stage4_copy_ready_performance_revisions",
+    "dbo.stage4_copy_stock_predicate_revisions",
+    "dbo.supplier_identity_quarantine_v2_sales_invoice_items",
+    "dbo.supplier_identity_quarantine_v2_stock_movements",
+    "dbo.terminal_device_customer_routes",
+    "dbo.test_crm_order_product_scope",
+    "dbo.test_crm_order_requests",
+    "dbo.test_daily_accounts",
+    "dbo.test_daily_drafts",
+    "dbo.test_daily_requests",
+    "dbo.test_daily_scope",
+    "dbo.test_finance_accounts",
+    "dbo.test_finance_requests",
+    "dbo.test_goods_receipts",
+    "dbo.test_guard_payment_requests",
+    "dbo.test_payment_accounts",
+    "dbo.test_payment_invoices",
+    "dbo.test_payment_requests",
+    "dbo.test_payment_suppliers",
+    "dbo.test_product_price_evidence",
+    "dbo.test_purchase_links",
+    "dbo.test_purchase_requests",
+    "dbo.test_purchase_scope",
+    "dbo.test_purchase_warehouses",
+    "dbo.test_refund_requests",
+    "dbo.test_refund_scope",
+    "dbo.test_sales_requests",
+    "dbo.test_sales_scope",
+    "dbo.test_stock_reversals",
+    "dbo.uq_finance_account_source",
+    "dbo.usp_business_customer_contact_context_v1",
+    "dbo.usp_business_customer_contact_proof_v1",
+    "dbo.usp_business_customer_contact_update_v1",
+    "dbo.usp_business_daily_context",
+    "dbo.usp_business_daily_count_check_apply_once",
+    "dbo.usp_business_daily_guard",
+    "dbo.usp_business_selected_collection_intent_v1",
+    "dbo.usp_business_selected_sale_context_v2",
+    "dbo.usp_business_selected_sale_guard_v1",
+    "dbo.usp_business_selected_sale_write_intent_v1",
+    "dbo.usp_get_source_version_prices_goal7",
+    "dbo.usp_list_source_version_products_goal7",
+    "dbo.usp_read_shared_current_finance_deltas",
+    "dbo.usp_read_stock_products_goal7",
+    "dbo.usp_read_work_catalog_goal7",
+    "dbo.usp_shared_crm_order_create",
+    "dbo.usp_shared_crm_order_customers",
+    "dbo.usp_shared_crm_order_read",
+    "dbo.usp_shared_crm_price_create_v1",
+    "dbo.usp_shared_crm_price_read_v1",
+    "dbo.usp_test_crm_order_context",
+    "dbo.usp_test_crm_order_create",
+    "dbo.usp_test_crm_order_read",
+    "dbo.vega_history_account_links",
+    "dbo.vega_history_records",
+    "dbo.vega_history_snapshots"
+  ],
+  "reviewedMissingBaseDDL": [
+    "dbo.customer_route_assignments",
+    "dbo.customer_routes",
+    "dbo.invoice_return_items",
+    "dbo.invoice_returns",
+    "dbo.terminal_device_customer_routes",
+    "dbo.test_daily_accounts",
+    "dbo.test_daily_drafts",
+    "dbo.test_daily_requests",
+    "dbo.test_daily_scope",
+    "dbo.test_finance_accounts",
+    "dbo.test_finance_requests",
+    "dbo.test_goods_receipts",
+    "dbo.test_payment_accounts",
+    "dbo.test_payment_invoices",
+    "dbo.test_payment_requests",
+    "dbo.test_payment_suppliers",
+    "dbo.test_purchase_links",
+    "dbo.test_purchase_requests",
+    "dbo.test_purchase_scope",
+    "dbo.test_purchase_warehouses",
+    "dbo.test_refund_requests",
+    "dbo.test_refund_scope",
+    "dbo.test_sales_requests",
+    "dbo.test_sales_scope",
+    "dbo.test_stock_reversals"
+  ],
+  "blockers": [
+    "FULL_SCHEMA_AND_BUSINESS_MODULES_NOT_PROVEN",
+    "RESTORED_COPY_PROOF_NOT_VALID_FOR_FRESH_SYNTHETIC_ORIGIN",
+    "FRESH_SYNTHETIC_RUNTIME_INTEGRATION_NOT_IMPLEMENTED",
+    "SQL_AND_ODBC_LICENSE_ACCEPTANCE_PENDING",
+    "SQL_APPLY_READBACK_AND_NORMAL_AUTH_ACCEPTANCE_NOT_RUN",
+    "PERSISTENT_HOST_AND_PRIVATE_BROWSER_PUBLICATION_UNVERIFIED"
+  ],
+  "proofRequirements": [
+    "Fresh dedicated DB/server and setup/app/reader identities, never original TEST or production",
+    "Complete schema/module/FK/index/grant manifest and deterministic build hashes",
+    "Normal role/permission auth, SERIALIZABLE mutations and existing journal/replay/effect proofs",
+    "Same UUID replay exactly once, changed body rejection and cross-personnel isolation",
+    "Synthetic scope proof generated from new objects/rows; no historical backup/seal/count substitution",
+    "Source/release/DB readback identity binding before any separately authorized startup"
+  ],
+  "seed": {
+    "state": "LOGICAL_SPEC_ONLY_NO_SQL_OR_ID_MAPPING",
+    "replayOriginalSeed": false,
+    "reason": "Original foundation seed contains negative stock and package/unit edge cases; not a clean full-runtime seed",
+    "products": [
+      {
+        "businessKey": "SYN-P101",
+        "unit": "ADET",
+        "seriesFactor": 1,
+        "stockExact3": "10.000",
+        "priceTryExact4": "25.0000"
+      },
+      {
+        "businessKey": "SYN-P102",
+        "unit": "ADET",
+        "seriesFactor": 1,
+        "stockExact3": "8.000",
+        "priceTryExact4": "40.0000"
+      }
+    ],
+    "customers": [
+      "SYN-C501",
+      "SYN-C502"
+    ],
+    "suppliers": [
+      "SYN-S601"
+    ],
+    "roles": [
+      "sales",
+      "manager",
+      "crm-assigned",
+      "other-personnel"
+    ],
+    "currencies": [
+      "TRY",
+      "USD",
+      "EUR"
+    ],
+    "realContacts": false,
+    "credentialsIncluded": false,
+    "businessDocumentRows": 0
+  }
+}

@@ -1,0 +1,331 @@
+{
+  "state": "PARTIAL_ISOLATED_INFRASTRUCTURE_FULL_RUNTIME_BLOCKED",
+  "credentialsApproval": {
+    "state": "APPROVED",
+    "scope": "new isolated TEST database users and application access keys only",
+    "userConsentUtc": "2026-10-19T18:02:14Z",
+    "noExternalTransfer": true,
+    "externalNetworkChanges": false,
+    "paidServices": false,
+    "newLicenseAcceptance": false
+  },
+  "licenseAcceptance": "PENDING",
+  "erp": {
+    "repository": "melihsnyldzz-ui/melisa-erp-v2",
+    "pr": 54,
+    "sha": "691f889aa9e87f1c0b840963621add48387699f9",
+    "branch": "codex/erp-p03-pr53-candidate-20261018",
+    "releaseManifest": "NOT_SUPPLIED_FOR_NEW_SYNTHETIC_PROFILE"
+  },
+  "crm": {
+    "repository": "melihsnyldzz-ui/melisa-crm",
+    "pr": 19,
+    "sha": "03a86097c3fd25551f1faab34881f60ec0fea75b",
+    "branch": "codex/crm-personnel-inbox-current-20261018",
+    "ownerChanges": "NOT_REQUESTED_OR_EDITED"
+  },
+  "terminalNative": {
+    "repository": "melihsnyldzz-ui/melisa-erp-v2",
+    "sha": "691f889aa9e87f1c0b840963621add48387699f9",
+    "path": "apps/terminal-native",
+    "sdk": 36,
+    "jdk": 17,
+    "installed": false,
+    "approvedCloudOrigin": false
+  },
+  "images": [
+    {
+      "image": "mcr.microsoft.com/mssql/server:2022-CU22-ubuntu-22.04",
+      "verified": true,
+      "digest": "sha256:db9a8fe3098b7e8bbde41106bdc7caee942e97124e5fdb71b872ca208de3092d",
+      "mediaType": "application/vnd.docker.distribution.manifest.v2+json",
+      "platforms": [
+        {
+          "os": "linux",
+          "architecture": "amd64",
+          "evidence": "official SQLServer Linux x64 image docs; single-image manifest"
+        }
+      ],
+      "verification": "buildx registry descriptor digest; raw manifest read; no image layer pull"
+    },
+    {
+      "image": "node:24-bookworm-slim",
+      "verified": true,
+      "digest": "sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "platforms": [
+        {
+          "architecture": "amd64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm64",
+          "os": "linux",
+          "variant": "v8"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "ppc64le",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      ]
+    },
+    {
+      "image": "postgres:16-bookworm",
+      "verified": true,
+      "digest": "sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "platforms": [
+        {
+          "architecture": "amd64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm",
+          "os": "linux",
+          "variant": "v7"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm64",
+          "os": "linux",
+          "variant": "v8"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "386",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "ppc64le",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      ]
+    },
+    {
+      "image": "pgvector/pgvector:pg16",
+      "verified": true,
+      "digest": "sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "platforms": [
+        {
+          "architecture": "amd64",
+          "os": "linux"
+        },
+        {
+          "architecture": "arm64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      ]
+    },
+    {
+      "image": "redis:7.2-bookworm",
+      "verified": true,
+      "digest": "sha256:46f15cf64fdef63e483dcda99e74e3d51c017b1175547b6bb874152ee2391aad",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "platforms": [
+        {
+          "architecture": "amd64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm",
+          "os": "linux",
+          "variant": "v7"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm64",
+          "os": "linux",
+          "variant": "v8"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "386",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "ppc64le",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      ]
+    },
+    {
+      "image": "chatwoot/chatwoot:v4.14.2-ce",
+      "verified": true,
+      "digest": "sha256:7d97dd1b1a610448b36f4e9d1f3ab801dd929fa9a774738f1eb5bbfdf6063c63",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "platforms": [
+        {
+          "architecture": "arm64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "amd64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      ]
+    },
+    {
+      "image": "nginx:stable-bookworm",
+      "verified": true,
+      "digest": "sha256:552e7481ca93ffccd046aa658dbbed22caefbc09c66fa7cd247cbb90b8a5c609",
+      "mediaType": "application/vnd.oci.image.index.v1+json",
+      "platforms": [
+        {
+          "architecture": "amd64",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm",
+          "os": "linux",
+          "variant": "v5"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm",
+          "os": "linux",
+          "variant": "v7"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "arm64",
+          "os": "linux",
+          "variant": "v8"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "386",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "mips64le",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "ppc64le",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        },
+        {
+          "architecture": "s390x",
+          "os": "linux"
+        },
+        {
+          "architecture": "unknown",
+          "os": "unknown"
+        }
+      ]
+    }
+  ],
+  "imageLayersPulled": true,
+  "servicesStarted": [
+    "crm-postgres",
+    "chatwoot-postgres",
+    "redis"
+  ],
+  "preview": {
+    "verified": false,
+    "reason": "No workspace port publishing or private preview tool/URL provided in this tool context",
+    "tunnelOrPortChange": false
+  },
+  "approvedIndependentImagePullStarted": true,
+  "sqlServerImageStarted": false,
+  "odbcInstalled": false,
+  "chatwootMigration": "completed exit0,89tables; finished compute container removed without volume removal",
+  "fullApplicationStarted": false,
+  "workspaceStorage": {
+    "driver": "vfs",
+    "capacityGiB": 32,
+    "observedFailure": "No space left on device during real Chatwoot web/worker container creation",
+    "freeAfterRemovingOwnedCompletedMigrationContainerGiB": 2.4,
+    "databaseVolumesPreserved": true
+  }
+}

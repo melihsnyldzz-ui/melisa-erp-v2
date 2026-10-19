@@ -1,0 +1,24 @@
+{
+  "observedUtc": "2026-10-19T18:15:15.981174+00:00",
+  "scope": "isolated infrastructure only, not full ERP/CRM/terminal delivery",
+  "sqlServerStarted": false,
+  "odbcInstalled": false,
+  "microsoftEulaAccepted": false,
+  "publishedHostPorts": false,
+  "privateBrowserUrlVerified": false,
+  "chatwootWebWorkerStarted": false,
+  "chatwootMigrationExitCode": 0,
+  "chatwootMigrationContainerRemovedAfterSuccess": true,
+  "databaseVolumesPreserved": true,
+  "storageDriver": "vfs",
+  "observedDiskFailure": "32GB workspace reached100% during real Chatwoot web/worker container creation",
+  "credentialsInEvidence": false,
+  "crm-postgres": {
+    "readbackExitCode": 0,
+    "tables": 6
+  },
+  "chatwoot-postgres": {
+    "readbackExitCode": 0,
+    "tables": 89
+  }
+}

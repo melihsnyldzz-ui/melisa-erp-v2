@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "melisa-full-synthetic-profile.v1",
+  "sourceSha": "691f889aa9e87f1c0b840963621add48387699f9",
+  "inventoryDigest": "c197e39fe3eaf41f92ec80a706402953c4af57fab0fbf5cd820b9c7f0d0ed313",
+  "target": {
+    "server": "erp-sql",
+    "database": "MELISA_CLOUD_FULL_TEST_20261019",
+    "applicationLogin": "melisa_cloud_full_app",
+    "readerLogin": "melisa_cloud_full_reader",
+    "apiPort": 4810,
+    "nativePort": 4811,
+    "webPort": 5810
+  },
+  "origin": {
+    "kind": "FRESH_SYNTHETIC",
+    "backupUsed": false,
+    "businessDataUsed": false
+  },
+  "externalProvidersDisabled": true
+}

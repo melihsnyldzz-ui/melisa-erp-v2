@@ -36,6 +36,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', path.join(root, 'scripts/canonical/full-synthetic-preparation.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/package-npm.test.mjs')]);
   run(['--test', ...['shared-business-customer-contact-sql','shared-business-customer-contact-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/crm06-captured-recovery.test.mjs')]);
@@ -89,6 +90,9 @@ if (mode === 'quality') {
   if (!tests.length) throw new Error('CI refuses an empty test suite');
   console.log(`${mode}: ${tests.length} unit test files; offline guard active`);
   run(['--experimental-test-module-mocks', '--experimental-vm-modules', '--test', '--test-concurrency=2', ...tests], mode === 'migration' ? root : path.join(root, 'apps', mode));
+} else if (mode === 'cloud-shared') {
+  run(['--test', ...files(path.join(root, 'apps/cloud-shared-test'), name => /\.test\.mjs$/.test(name))]);
+  run([path.join(root, 'apps/sites-workflow/node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.cloud-test.config.mjs'], path.join(root, 'apps/sites-workflow'));
 } else if (mode === 'build') {
   for (const app of ['web-admin', 'sites-workflow']) run([path.join(root, 'apps', app, 'node_modules/vite/bin/vite.js'), 'build'], path.join(root, 'apps', app));
 } else if (mode === 'guard') {
