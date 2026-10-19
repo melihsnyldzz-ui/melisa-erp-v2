@@ -27,6 +27,7 @@ export function createCloudSession(fetcher=globalThis.fetch){
       return value;
     }
     return {work,inbound:work,
+      supplierPayments:async()=>{throw Object.assign(Error('Sentetik tedarikçi ödeme hareketleri bağlı değil.'),{status:501});},
       // Source catalog/media services are deliberately unavailable in this
       // synthetic entry. Real scoped products remain in controller contexts.
       api:async()=>{throw Object.assign(Error('Sentetik katalog dışı kaynak bağlı değil.'),{status:404});},

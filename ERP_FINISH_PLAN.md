@@ -1,3 +1,7 @@
+## 19 Ekim — ERP09 / C01–C04–C05 + CRM06 ortak sentetik Cloud kaynak teslimi
+
+[ERP PR55](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/55) / [CRM PR20](https://github.com/melihsnyldzz-ui/melisa-crm/pull/20): mevcut gerçek ekranlar tek kalıcı sentetik API/store ile bağlandı. 390px gerçek Chromiumda sayım→İlker onayı stok10→14; CRM2adet taslak stok/borçetkisi0; ERPtamamla stok12/borç50TRY; tahsilat20 sonrası30TRY; sayfa+server/SQLite yenidenaçma ve yanlışpersonelgizlilik PASS. 27backend+3ERP+5CRMhedef test,iki cloudbuild ve bağımsızGO;[kaynak/ekran/tekrarüretim kanıtı](docs/evidence/erp/2026-10-19-cloud-shared/README.md). Son exactHEADCI teslimde PRchecks üzerinden ayrı doğrulanır. Owner-privateSites paketleme/yayın parentın desteklenen ortamında BEKLİYOR;henüz Siteyayını/gerçeksharedTEST/Windows/Vega/cihaz/insankabulü yok. Yerelcandidate19/PR31/32korundu. ERP09 ve C01/C04/C05🟡,49/9/39/1/completeDelivery=false ve insanBEKLİYOR aynı; yeniGoal/tracker yok.
+
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
 17 Ekim — **P03 yeni ERP immutable aday paket teknik hazır/inaktif:** Exact1b5a02c, seçili Node24.19/DB02 shared copy,1.991/1.991 manifest+1.886/1.886 kaynak hash ve native require-only doğrulandı; bağımsız incelemede açık P1/P2 yok. Yeni paket kurulu TEST, GUI veya insan kabulü değildir; owner profili/geçiş/readback bekler. Özgün49/9🟢/39🟡/1🔴 korunur. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md#17-ekim--p03-yeni-inaktif-erp-aday-paketi).

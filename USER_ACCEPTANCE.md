@@ -1,3 +1,7 @@
+## 19 Ekim — ortak sentetik Cloud teknik kanıtı, insan kabulü BEKLİYOR
+
+ERP09/C01/C04/C05 ve CRM06 için gerçek mevcut ekranlarda mobil390px sayım/onay→CRMkalıcıtaslak→satıştamamlama→kısmitahsilat ve server/SQLiteyenidenaçma doğrulandı. Bu sanal sentetik tarayıcı sonucu gerçek çalışan/telefon/terminal/Windows/VegaTEST kabulü değildir. [Kanıt ve açık yayın sınırı](docs/evidence/erp/2026-10-19-cloud-shared/README.md); son toplu insan kabulü,özgünUA ve49yaprak aynı BEKLİYOR. Yerel runtime veya gerçek hesaplar değişmedi.
+
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
 
 13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.

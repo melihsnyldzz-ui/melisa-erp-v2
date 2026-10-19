@@ -192,7 +192,7 @@ export function createApplication({ store, sessions = new Map() }) {
       } else if (suffix.startsWith('/work-collections')) {
         requireRole(actor, ['personnel', 'manager']);
         const invoiceId = get ? id(url.searchParams.get('invoiceId')) : id(body.invoiceId), sale = await store.getSale(actor, invoiceId), projected = await invoice(actor, sale);
-        if (get && suffix === '/work-collections/context') result = { invoice: projected, customer: { id: String(sale.customerId), name: (await customer(actor, sale.customerId)).name, synthetic: true, writeEligible: true },
+        if (get && suffix === '/work-collections/context') result = { meta: { source: 'cloud-shared-synthetic', cloudSynthetic: true }, invoice: projected, customer: { id: String(sale.customerId), name: (await customer(actor, sale.customerId)).name, currency: sale.currency, synthetic: true, writeEligible: true },
           accounts: [{ id: '701', name: 'Sentetik TRY kasa', currency: 'TRY', synthetic: true }], capabilities: { canCollect: actor.role === 'manager' && sale.status === 'FINALIZED', canCancelCollection: false }, revision: sale.revision };
         else if (post && ['/work-collections/preview', '/work-collections'].includes(suffix)) {
           requireRole(actor, ['manager']); fields(body, ['invoiceId', 'accountId', 'amountExact4', 'documentDate', ...(suffix === '/work-collections' ? ['requestId', 'previewHash', 'expectedRevision'] : [])]);

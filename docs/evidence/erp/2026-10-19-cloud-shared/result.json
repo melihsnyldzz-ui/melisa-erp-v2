@@ -1,0 +1,25 @@
+{
+  "synthetic": true,
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "passed": [
+    "receiving-count-submit-approval",
+    "actual-crm-catalog-native-draft",
+    "crm-draft-reopen",
+    "erp-order-sale-finalize",
+    "partial-collection",
+    "page-reload",
+    "server-and-sqlite-reopen",
+    "other-personnel-scope"
+  ],
+  "stock3": 12000,
+  "balance4": 300000,
+  "journal": 7,
+  "counts": 1,
+  "orders": 1,
+  "sales": 1,
+  "collections": 1,
+  "pageErrors": []
+}

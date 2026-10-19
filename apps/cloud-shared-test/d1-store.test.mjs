@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createStore, documentRevision as nodeRevision } from './store.mjs';
 import { createD1Store, createD1Sessions, documentRevision, SCHEMA_MARKER } from './d1-store.mjs';
+import { createWorker } from './worker.mjs';
 
 // D1 contract backed by a fresh in-memory SQLite DB: real SQL, CAS and transactions.
 class FakeD1 {
@@ -232,4 +233,126 @@ test('schema-managed mode rejects unsupported definitions without seeding', asyn
   await rejects(() => createD1Store(binding, { schemaManaged: true }), 'FOREIGN_STORE', 409);
   assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0);
   assert.ok(binding.sql.every(sql => !/^(?:CREATE|ALTER|DROP)\b/i.test(sql)));
+});
+
+
+test('Worker HTTP with migrated D1 preserves opaque sessions and one-effect receiving/CRM/sale/collection across fresh handles', async t => {
+  const binding = new FakeD1(); t.after(() => binding.db.close());
+  binding.db.exec(readFileSync(new URL('./migrations/0001_synthetic.sql', import.meta.url), 'utf8'));
+  const origin = 'https://synthetic-worker.invalid', prefix = '/api/cloud-test';
+  const env = { DB: binding };
+  const platform = { 'oai-authenticated-user-id': 'synthetic-owner-fixture' };
+  assert.equal((await createWorker().fetch(new Request(origin + prefix + '/session'), env)).status, 401);
+  assert.equal(binding.db.prepare('SELECT count(*) AS n FROM synthetic_state').get().n, 0, 'platform identity is required before opening the store');
+  const browser = () => {
+    const credentials = { cookie: null, csrf: null, bearer: null };
+    return {
+      credentials,
+      async request(path, body, overrides = {}) {
+        const headers = { ...platform,
+          ...(credentials.cookie ? { cookie: credentials.cookie } : {}),
+          ...(credentials.bearer ? { authorization: 'Bearer ' + credentials.bearer } : {}) };
+        if (body !== undefined) Object.assign(headers, { origin, 'content-type': 'application/json', 'x-cloud-csrf': credentials.csrf ?? '' });
+        for (const [name, value] of Object.entries(overrides)) { if (value === null) delete headers[name]; else headers[name] = value; }
+        // Every request gets a new Worker, application, store and session adapter.
+        const response = await createWorker().fetch(new Request(origin + prefix + path, { method: body === undefined ? 'GET' : 'POST', headers,
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }) }), env);
+        const cookie = response.headers.get('set-cookie');
+        if (cookie) credentials.cookie = cookie.split(';')[0];
+        return { status: response.status, headers: response.headers, body: await response.json() };
+      },
+      async ok(path, body) {
+        const response = await this.request(path, body);
+        assert.equal(response.status, 200, path);
+        assert.equal(response.body.success, true, path);
+        assert.equal(response.headers.get('cache-control'), 'no-store');
+        return response.body.data;
+      },
+      async login(actorId) {
+        const initial = await this.request('/session');
+        assert.equal(initial.status, 200);
+        assert.match(initial.headers.get('set-cookie'), /HttpOnly; SameSite=Strict; Path=\/; Secure/);
+        credentials.csrf = initial.body.data.csrfToken;
+        const selected = await this.ok('/session', { actorId });
+        assert.equal(selected.user.id, actorId);
+        assert.match(selected.accessToken, /^[a-f0-9]{64}$/);
+        assert.match(selected.csrfToken, /^[a-f0-9]{64}$/);
+        assert.notEqual(selected.csrfToken, credentials.csrf);
+        credentials.csrf = selected.csrfToken; credentials.bearer = selected.accessToken;
+        const persisted = await this.ok('/session');
+        assert.equal(persisted.user.id, actorId);
+        assert.equal(persisted.csrfToken === credentials.csrf, true);
+        assert.equal(persisted.accessToken === credentials.bearer, true);
+        return this;
+      },
+    };
+  };
+  const personnel = await browser().login(15), manager = await browser().login(16), crm = await browser().login(17);
+  const initial = await manager.ok('/snapshot');
+  assert.equal(initial.products[0].stock3, 10000);
+  assert.equal(initial.customers[0].balance4, 0);
+  const countRequest = request({ note: 'Sentetik Worker kabulü', lines: [{ clientLineId: 'line-101', productId: '101', stockCode: 'SYN-101', barcode: '8690000000101',
+    physicalQuantityExact3: '4.000', expectedQuantityExact3: null, issue: null, note: '' }] });
+  for (const [path, body, overrides, status, code] of [
+    ['/catalog', undefined, { authorization: null }, 401, 'SYNTHETIC_SESSION_REQUIRED'],
+    ['/catalog', undefined, { authorization: 'Bearer ' + '0'.repeat(64) }, 401, 'SYNTHETIC_SESSION_REQUIRED'],
+    ['/catalog', undefined, { cookie: null }, 401, 'SYNTHETIC_SESSION_REQUIRED'],
+    ['/work-receiving/count-drafts', countRequest, { 'x-cloud-csrf': null }, 403, 'CSRF_REJECTED'],
+    ['/work-receiving/count-drafts', countRequest, { 'x-cloud-csrf': '0'.repeat(64) }, 403, 'CSRF_REJECTED'],
+    ['/work-receiving/count-drafts', countRequest, { origin: 'https://other.invalid' }, 403, 'CSRF_REJECTED'],
+  ]) {
+    const rejected = await personnel.request(path, body, overrides);
+    assert.equal(rejected.status, status, path); assert.equal(rejected.body.error.code, code, path);
+  }
+  assert.deepEqual(await manager.ok('/snapshot'), initial);
+  const count = await personnel.ok('/work-receiving/count-drafts', countRequest);
+  assert.deepEqual(await personnel.ok('/work-receiving/count-drafts', countRequest), { ...count, replayed: true });
+  const submitRequest = request({ expectedRevision: count.draft.revision });
+  const submitted = await personnel.ok(`/work-receiving/count-drafts/${count.draft.id}/submit`, submitRequest);
+  assert.equal(submitted.receipt.state, 'pending');
+  assert.equal((await manager.ok('/snapshot')).products[0].stock3, 10000);
+  const approvalRequest = request({});
+  const approvalPath = `/work-receiving/receipts/${count.draft.id}/approve`;
+  const approved = await manager.ok(approvalPath, approvalRequest);
+  assert.equal(approved.receipt.state, 'accepted');
+  assert.deepEqual(await manager.ok(approvalPath, approvalRequest), { ...approved, replayed: true });
+  assert.equal((await manager.ok('/snapshot')).products[0].stock3, 14000);
+  const match = await crm.ok('/erp/customers?conversationId=55&phone=9000000000501'), customer = match.entries[0];
+  const draftRequest = request({ conversationId: 55, peer: customer.phone, customerId: customer.id,
+    customerMatch: { phone: customer.phone, basis: 'exact-phone', revision: customer.revision, reason: null }, documentCurrency: 'TRY', exchangeRateExact8: '1.00000000',
+    items: [{ productId: 101, stockCode: 'SYN-101', priceId: 101, unitSourceId: 1, tier: 1, currency: 'TRY', priceExact8: '25.00000000', priceSourceKey: 'cloud-synthetic:price:101', quantity: 2 }] });
+  const order = await crm.ok('/erp/drafts', draftRequest);
+  assert.equal(order.grandTotalExact4, '50.0000');
+  assert.deepEqual(await crm.ok('/erp/drafts', draftRequest), order);
+  assert.deepEqual(await crm.ok(`/erp/drafts/${draftRequest.requestId}`), order);
+  for (const effect of ['stockEffect', 'ledgerEffect', 'collectionEffect', 'reservationEffect']) assert.equal(order[effect], false);
+  const saleRequest = request({}), salePath = `/erp/orders/${order.id}/sale`;
+  const sale = await personnel.ok(salePath, saleRequest);
+  assert.deepEqual(await personnel.ok(salePath, saleRequest), sale);
+  const draftState = await manager.ok('/snapshot');
+  assert.equal(draftState.products[0].stock3, 14000); assert.equal(draftState.customers[0].balance4, 0);
+  const finalizeRequest = request({ expectedRevision: sale.revision }), finalizePath = `/work-sales/drafts/${sale.id}/finalize`;
+  const finalized = await personnel.ok(finalizePath, finalizeRequest);
+  assert.equal(finalized.invoice.collections.outstandingExact4, '50.0000');
+  assert.deepEqual(await personnel.ok(finalizePath, finalizeRequest), { ...finalized, replayed: true });
+  const finalizedState = await manager.ok('/snapshot');
+  assert.equal(finalizedState.products[0].stock3, 12000); assert.equal(finalizedState.customers[0].balance4, 500000);
+  const selection = { invoiceId: sale.id, accountId: '701', amountExact4: '20.0000', documentDate: '2026-10-19' };
+  const preview = await manager.ok('/work-collections/preview', selection);
+  const collectionRequest = request({ ...selection, expectedRevision: preview.revision, previewHash: preview.previewHash });
+  const collected = await manager.ok('/work-collections', collectionRequest);
+  assert.equal(collected.invoice.collections.outstandingExact4, '30.0000');
+  assert.equal(collected.invoice.customerBalanceExact4, '30.0000');
+  const finalState = await manager.ok('/snapshot');
+  assert.equal(finalState.products[0].stock3, 12000); assert.equal(finalState.customers[0].balance4, 300000);
+  assert.equal(finalState.orders.length, 1); assert.equal(finalState.sales.length, 1);
+  assert.equal(finalState.sales[0].collections.length, 1);
+  assert.equal(finalState.journal.length, 7);
+  assert.equal(new Set(finalState.journal.map(row => row.requestId)).size, 7);
+  // A new browser facade reuses only the persisted cookie/CSRF/bearer, with no login.
+  const resumed = browser(); Object.assign(resumed.credentials, manager.credentials);
+  assert.deepEqual(await resumed.ok('/snapshot'), finalState);
+  assert.deepEqual(await resumed.ok('/work-collections', collectionRequest), { ...collected, replayed: true });
+  assert.deepEqual(await resumed.ok('/snapshot'), finalState);
+  assert.ok(binding.sql.every(sql => !/^(?:CREATE|ALTER|DROP)\b/i.test(sql)), 'HTTP request handling must not run migration DDL');
 });
