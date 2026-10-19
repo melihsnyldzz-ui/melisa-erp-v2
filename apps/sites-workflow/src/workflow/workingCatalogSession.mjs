@@ -44,7 +44,11 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
   // Carton GETs include cold native source checks; a longer budget adds no retry or API speed gain.
-  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:timeoutMs;
+  // The verified shared-copy invoice reader can take 17–20s while preserving
+  // its native integrity checks. Budget that exact GET, without retrying it or
+  // changing login, catalog, other reads, or the commercial write deadline.
+  const historicalInvoiceRead=!!cartonReadTarget&&method==='GET'&&copyProfile?.scopeKind==='VERIFIED_BUSINESS_TEST'&&/^\/api\/work-sales\/invoices(?:\/[1-9]\d*|\?[^#]+)?$/.test(path);
+  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead?45000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
    const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});

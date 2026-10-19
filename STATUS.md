@@ -1,3 +1,11 @@
+## 19 Ekim — kabul sonucu salt okunur uzlaştırıldı; iki dar istemci düzeltmesi adayda
+
+Önceki pending ekran kanıtından sonra mevcut kabulün actor16 ile accepted olduğu resmi request GET ve bağımsız SQL ile doğrulandı: tek başarılı goods_accept journal ve tek stok etkisi; bağlı yeni alış taslağı yok. Bu tur onay/ret/replay/ticari POST yapılmadı. Aktör kimliği tıklayan kişinin kimliğini kanıtlamaz. Eski pending ekran kanıtı tarihsel olarak korunur.
+
+Kurulu ERP e59/supervisor13b/CRM6bc, DB02/copye16b/T1false korunur. Normal satış fişleri GET'i 17–20 saniyede200 dönüyor; istemci15 saniyede kesiyor. Yalnız exact doğrulanmış business-copy invoice GET için45 saniye sınırı eklendi; otomatik retry veya API hızlanması iddiası yok. Kayıtlı kabul sonucunu yenilemede/güvenli tekrar okumada context+aynıUUID request GET ile doğrulayan dar istemci onarımı eklendi; POST/newUUID üretmez. Fresh copy/seal/rol/tedarikçi-hesap/döviz/depo ve satır bağı ile journal CAS korunur; belirsiz veya geç gelen sonuçta yerel pending korunur.
+
+Hedefli143/143 test ve Sites build PASS. Bunlar kaynak testidir; kurulu e59 üzerinde yeni düzeltme/normal GUI PASS değildir. Mevcut gözetmen profili yalnız önceki439b→e59 geçişine, successor claim de tarihsel tek predecessor'a sabitlidir. Yeni kaynak için mevcut kurulu e59'u OLD olarak kabul eden doğrulanmış sahiplik/geçiş makbuzu yok; eski claim/lock açılmadı, ikinci Apply veya restart yapılmadı. Yeni immutable paket hazırlığı, kurulumdan ayrı tutulur. Kullanıcının ertelediği menü/CRM/Hub/390px bulgularına dokunulmadı. İnsan UA ve49/25 sayaçları aynı. [Ayrıntı](docs/evidence/erp/2026-10-18-office-layout-v75.md).
+
 ## 19 Ekim — iki Chrome rolü ve fiziksel barkod aktarımı gözlendi
 
 Kurulu e59/13b/6bc ve DB02/copye16b/T1false, iki Running gözetmen korundu; paket/servis/DB değişikliği yok. Solda LAN personel15, sağda loopback İlker16 iki normal Chrome penceresinde bağımsız host-origin oturumlarıyla aynı Sayım18→pendingKabul10 açıldı. İki full reload da aktör/kayıt/readonly miktarı korudu; onay/ret personelde kapalı, İlker'de açık. Yeni kayıt/onay/ret veya ticari yazı yok. Ayrı Chrome profili/incognito veya backend negatif POST kanıtı değildir.

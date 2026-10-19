@@ -8,6 +8,18 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 
+for(const path of ['/api/work-sales/invoices','/api/work-sales/invoices?limit=25','/api/work-sales/invoices/42'])test('verified DB02 historical GET can complete after the normal 15s: '+path,async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-deadline-fixture');store.setItem(testSessionModeKey,'manual');let finish;
+ const session=createWorkingCatalogSession({location:worktestLocation('5234'),apiBase:'http://127.0.0.1:4184',copyProfile:homeCopyProfile(),protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise(resolve=>{finish=resolve;});}});
+ await session.start();const read=session.work(path);t.mock.timers.tick(20000);assert.equal(calls[0].signal.aborted,false);assert.equal(calls.length,1);finish(reply({data:[],meta:{total:0}}));await read;assert.equal(calls.length,1);session.dispose();
+});
+test('DB02 historical GET is bounded at45s, never retried, and preserves its actor session',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-deadline-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location:worktestLocation('5234'),apiBase:'http://127.0.0.1:4184',copyProfile:homeCopyProfile(),protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}));}});
+ await session.start();const read=session.work('/api/work-sales/invoices'),rejected=assert.rejects(read,e=>e.status===503);t.mock.timers.tick(44999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);assert.equal(store.getItem(workingCatalogTokenKey),'history-deadline-fixture');session.dispose();
+});
+
 test('invoice history admits only paired customer/currency GET filters and bounded pagination',async()=>{
  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-fixture');store.setItem(testSessionModeKey,'manual');
  const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});return reply({data:[],meta:{page:1,limit:25,total:0}});}});
