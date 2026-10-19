@@ -1,4 +1,5 @@
 import fs from 'node:fs';import path from 'node:path';import {spawn,spawnSync} from 'node:child_process';
+import {request as httpRequest} from 'node:http';
 import {HUB_CSP} from '../../apps/api/src/services/melisaHubReadiness.mjs';
 import {buildLightHubRehearsal,lightSha,lightNoReparse} from './p03-light-hub-builder.mjs';
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
@@ -38,13 +39,34 @@ function start(plan,artifact){
  const ready=new Promise((resolve,reject)=>{let data='';const timer=setTimeout(()=>reject(Error('P03_LIGHT_LAUNCH_TIMEOUT')),20000);child.stdout.setEncoding('utf8');child.stdout.on('data',chunk=>{data+=chunk;if(data.length>16384){clearTimeout(timer);reject(Error('P03_LIGHT_OUTPUT_SIZE'));return;}if(data.includes('\n')){clearTimeout(timer);try{const row=JSON.parse(data.trim());need(row.event==='P03_LIGHT_READY'&&row.applicationSource===artifact.applicationSource&&row.launcherSource===artifact.launcherSource&&row.generation===artifact.generation&&row.sqlFree===true&&row.dailyFlowReady===false&&row.identity.pid===row.pid&&row.identity.parentPid===child.pid,'READY_BINDING');resolve(row);}catch{reject(Error('P03_LIGHT_READY_BINDING'));}}});child.once('error',()=>{clearTimeout(timer);reject(Error('P03_LIGHT_LAUNCH'));});child.once('exit',()=>{clearTimeout(timer);reject(Error('P03_LIGHT_EARLY_EXIT'));});});
  return {child,ready,diagnostic,closed};
 }
+// Undici may replace a caller-supplied Host header. This one negative probe
+// uses HTTP/1 directly, with no URL/destination/body or redirect selector.
+export function readLightForeignHostStatus(requestImpl=httpRequest){
+ return new Promise((resolve,reject)=>{
+  let req,finished=false;
+  const finish=(error,status)=>{if(finished)return;finished=true;clearTimeout(deadline);if(error){req?.destroy();reject(error);}else resolve(status);};
+  const deadline=setTimeout(()=>finish(Error('P03_LIGHT_HOST_PROBE_TIMEOUT')),3000);
+  try{
+   req=requestImpl({protocol:'http:',hostname:'127.0.0.1',port:5354,path:'/melisa-hub/',method:'GET',headers:{Host:'foreign:5354',Connection:'close'},agent:false,maxHeaderSize:8192},response=>{
+    let size=0;
+    response.on('data',chunk=>{size+=Buffer.byteLength(chunk);if(size>4096)finish(Error('P03_LIGHT_HOST_PROBE_SIZE'));});
+    response.on('end',()=>{if(!Number.isInteger(response.statusCode)||response.statusCode<100||response.statusCode>599)finish(Error('P03_LIGHT_HOST_PROBE_STATUS'));else finish(null,response.statusCode);});
+    response.on('error',()=>finish(Error('P03_LIGHT_HOST_PROBE_RESPONSE')));
+    response.on('aborted',()=>finish(Error('P03_LIGHT_HOST_PROBE_RESPONSE')));
+   });
+   req.on('error',()=>finish(Error('P03_LIGHT_HOST_PROBE_REQUEST')));
+   req.setTimeout(3000,()=>finish(Error('P03_LIGHT_HOST_PROBE_TIMEOUT')));
+   req.end();
+  }catch{finish(Error('P03_LIGHT_HOST_PROBE_REQUEST'));}
+ });
+}
 async function checkHttp(plan,artifact){
  const get=async(url,init={})=>fetch('http://127.0.0.1:5354'+url,{...init,redirect:'manual',signal:AbortSignal.timeout(3000)});
  const health=await get('/test-health');need(health.status===200,'HEALTH');const h=await health.json();need(h.environment==='P03_LIGHT_REHEARSAL'&&h.sqlFree===true&&h.applicationSource===artifact.applicationSource&&h.launcherSource===artifact.launcherSource&&h.dailyFlowReady===false,'HEALTH_IDENTITY');
  const html=await get('/melisa-hub/'),raw=Buffer.from(await html.arrayBuffer());const source=plan.outputs.find(f=>f.relative.startsWith(artifact.generation+'/')&&f.relative.endsWith('/web/melisa-hub/index.html'));need(html.status===200&&lightSha(raw)===lightSha(source.data),'REAL_HTML');
  for(const name of ['hub.css','hub.mjs','catalog.mjs']){const response=await get('/melisa-hub/'+name),content=Buffer.from(await response.arrayBuffer()),pin=plan.outputs.find(f=>f.relative.startsWith(artifact.generation+'/')&&f.relative.endsWith('/web/melisa-hub/'+name));need(response.status===200&&lightSha(content)===lightSha(pin.data),'REAL_STATIC');}
  need(html.headers.get('content-security-policy')===HUB_CSP&&html.headers.get('x-content-type-options')==='nosniff'&&html.headers.get('cache-control')==='no-store','RESPONSE_POLICY');
- need((await get('/melisa-hub/',{method:'HEAD'})).status===200,'HEAD');need((await get('/melisa-hub/',{headers:{host:'foreign:5354'}})).status===403,'HOST_DENIED');need((await get('/melisa-hub/',{headers:{origin:'http://foreign:5354'}})).status===403,'ORIGIN_DENIED');
+ need((await get('/melisa-hub/',{method:'HEAD'})).status===200,'HEAD');need((await readLightForeignHostStatus())===403,'HOST_DENIED');need((await get('/melisa-hub/',{headers:{origin:'http://foreign:5354'}})).status===403,'ORIGIN_DENIED');
  const status=await get('/melisa-hub/status.json'),s=await status.json();need(status.status===200&&Object.values(s.services).every(v=>v.state==='unknown'),'NO_FALSE_READINESS');
  const config=await get('/melisa-hub/config.json'),c=await config.json();need(config.status===200&&!c.erp.enabled&&!c.crm.enabled&&!c.test125.enabled&&!c.live.enabled,'NO_CAPABILITIES');
  need((await get('/melisa-hub/status.json',{method:'POST'})).status===405,'POST_DENIED');need((await get('/melisa-hub/status.json',{headers:{'x-forwarded-for':'127.0.0.1'}})).status===403,'FORWARDED_DENIED');
@@ -55,7 +77,7 @@ async function checkHttp(plan,artifact){
 export async function runLightHubRehearsal(request){
  need(process.platform==='win32','PLATFORM');const plan=buildLightHubRehearsal(request);portFree();publishLightFiles(plan,plan.outputs,true);
  let active=null;const runs=[],attempts=[];let failure=null,cleanupConfirmed=false;
- try{for(const generation of ['old','new','old']){const artifact=plan.artifacts.find(a=>a.generation===generation);active=start(plan,artifact);attempts.push({generation,launcherPid:active.child.pid,diagnostic:active.diagnostic});const ready=await active.ready;const http=await checkHttp(plan,artifact);runs.push({generation,applicationSource:artifact.applicationSource,launcherSource:artifact.launcherSource,identity:ready.identity,...http});await closeLightChild(active.child);await active.closed;active=null;portFree();}cleanupConfirmed=true;}catch(error){failure=/^P03_LIGHT_[A-Z_]+$/.test(error?.message)?error.message:'P03_LIGHT_UNCLASSIFIED';if(active){try{await closeLightChild(active.child);await active.closed;active=null;portFree();cleanupConfirmed=true;}catch{cleanupConfirmed=false;}}}
+ try{for(const generation of ['old','new','old']){const artifact=plan.artifacts.find(a=>a.generation===generation);active=start(plan,artifact);const attempt={generation,launcherPid:active.child.pid,diagnostic:active.diagnostic,startupVerified:false,httpVerified:false};attempts.push(attempt);const ready=await active.ready;attempt.ready={identity:ready.identity,applicationSource:ready.applicationSource,launcherSource:ready.launcherSource,generation:ready.generation};attempt.startupVerified=true;const http=await checkHttp(plan,artifact);attempt.httpVerified=true;runs.push({generation,applicationSource:artifact.applicationSource,launcherSource:artifact.launcherSource,identity:ready.identity,...http});await closeLightChild(active.child);await active.closed;active=null;portFree();}cleanupConfirmed=true;}catch(error){failure=/^P03_LIGHT_[A-Z_]+$/.test(error?.message)?error.message:'P03_LIGHT_UNCLASSIFIED';if(active){try{await closeLightChild(active.child);await active.closed;active=null;portFree();cleanupConfirmed=true;}catch{cleanupConfirmed=false;}}}
  const proof={schemaVersion:'melisa-p03-light-hub-proof.v1',completed:failure===null,failedCode:failure,reportedCodes:attempts.flatMap(a=>a.diagnostic.stderr.match(/\b(?:P03_LIGHT_|HUB_)[A-Z_]{1,80}\b/g)??[]).slice(-16),attempts,runs,cleanupConfirmed,sqlFree:true,sqlCalls:0,sharedFullLaunchTested:false,sharedRuntimeChanged:false,normalActorVerified:false,dailyFlowReady:false,humanAcceptance:false,launcherSource:plan.launcherSource,dependencies:plan.dependencies,observedAt:new Date().toISOString()};
  publishLightFiles(plan,[{relative:'proof.json',data:Buffer.from(JSON.stringify(proof))}]);need(proof.completed&&cleanupConfirmed,'REHEARSAL_FAILED_RETAIN_ARTIFACTS');return {status:'LIGHT_HUB_OLD_NEW_OLD_VERIFIED',proofPath:path.win32.join(plan.runRoot,'proof.json'),runs:runs.length,sqlCalls:0,sharedRuntimeChanged:false,normalActorVerified:false,dailyFlowReady:false};
 }
