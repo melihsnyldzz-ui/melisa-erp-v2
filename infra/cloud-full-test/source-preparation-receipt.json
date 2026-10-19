@@ -1,0 +1,51 @@
+{
+  "kind": "offline-source-preparation-not-sql-validation",
+  "fullErpSourceSha": "691f889aa9e87f1c0b840963621add48387699f9",
+  "delivery": "PR55 HEAD; see GitHub for exact commit CI",
+  "inventoryDigest": "c197e39fe3eaf41f92ec80a706402953c4af57fab0fbf5cd820b9c7f0d0ed313",
+  "sourceFileCount": 751,
+  "objectTextCount": 426,
+  "reviewedMissingBaseDDLCount": 25,
+  "unresolvedTemplateCount": 81,
+  "tests": {
+    "command": "node --require ./scripts/ci/offline-guard.cjs --test scripts/canonical/full-synthetic-preparation.test.mjs apps/api/src/services/isolatedOperationCopyContext.test.mjs apps/api/src/services/sharedCopyBootstrap.test.mjs",
+    "pass": 29,
+    "fail": 0,
+    "skip": 0,
+    "newPreparationTests": 12,
+    "unchangedCopyBoundaryTests": 17
+  },
+  "review": {
+    "result": "GO",
+    "remainingP1P2": 0,
+    "fixedP2": [
+      "include actual finops installer despite fixture filename",
+      "align ERP web 5810 with existing inert proxy; reserve 4812 for CRM gateway"
+    ]
+  },
+  "beforeFixEvidence": {
+    "scope": "initial preparation draft before independent-review corrections, not a pre-existing production/runtime bug",
+    "compilerSha256": "610a2c7e630176a8b6b2101e3a73a17df8cce3e5e45bb5c9aa415f7b38c159cd",
+    "fail": 2,
+    "names": [
+      "real finops installer participates in the SQL source inventory",
+      "ERP web profile matches the existing inert reverse proxy"
+    ]
+  },
+  "sourceValidation": {
+    "generatorCheck": "PASS",
+    "nodeSyntax": "PASS",
+    "gitDiffCheck": "PASS",
+    "gitleaks": "PASS final staged scan"
+  },
+  "sqlApplied": false,
+  "sqlSyntaxValidatedByServer": false,
+  "applicationStarted": false,
+  "containersChanged": false,
+  "credentialsChanged": false,
+  "licenseAccepted": false,
+  "networkChanged": false,
+  "canApply": false,
+  "canStart": false,
+  "runtimeGrant": null
+}

@@ -151,7 +151,7 @@
   "blockers": [
     "17 original SQL migrations and 2 seeds are a foundation draft, not the current business/copy schema",
     "Existing copy initializer requires restored-source manifests; no old backup or business rows may be used",
-    "Fresh full synthetic schema/procedure/FK/index inventory and strict synthetic-origin runtime proof compiler are missing",
+    "Conservative source manifest and inert synthetic plan now exist; 25 reviewed base-DDL gaps, unresolved generated definitions and fresh full-runtime proof integration remain",
     "Isolated TEST credentials approved18:02:14UTC; full ERP SQL identities/config remain uncreated pending EULA and fresh-profile implementation"
   ],
   "seed": {
@@ -192,5 +192,14 @@
     "realContacts": false,
     "providerMessages": "synthetic inbox only, no external delivery",
     "passwordsOrTokens": "PUBLIC_SPEC_HAS_NONE; approved independent-service keys exist only in ignored protected local files"
+  },
+  "freshSyntheticPreparation": {
+    "manifest": "erp-source-manifest.json",
+    "profile": "synthetic-profile.json",
+    "plan": "synthetic-bootstrap-plan.json",
+    "state": "SOURCE_PLAN_AVAILABLE_INSTALL_BLOCKED",
+    "reviewedMissingBaseDDLCount": 25,
+    "sqlApplied": false,
+    "sqlSyntaxValidated": false
   }
 }
