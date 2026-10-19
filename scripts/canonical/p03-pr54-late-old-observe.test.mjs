@@ -26,6 +26,75 @@ function Test-Path{param($LiteralPath);return $script:values.ContainsKey($Litera
 function WriteLateEvidence($leaf,$value){if($script:writeFails){throw 'FIXTURE_WRITE_FAILED'};$path=Join-Path $dir $leaf;if($script:values.ContainsKey($path)){throw 'FIXTURE_EXISTS'};$script:values[$path]=$value;$script:writes+=,$leaf}
 ResetFixture
 `;
+
+const currentFixture=String.raw`
+function Need($v,$code){if(-not$v){throw ('P03_PHYSICAL_'+$code)}}
+function LateNow{return $script:now}
+function Test-Path{param($LiteralPath) return $script:values.ContainsKey($LiteralPath)}
+function Start-Sleep{param($Milliseconds) if($Milliseconds-ne500){throw 'FIXTURE_SLEEP'};$script:now=$script:now.AddSeconds($script:sleepSeconds)}
+function ResetCurrent{
+ $script:now=[DateTime]::Parse('2026-10-19T13:00:00Z');$script:dir='C:\fixture\b264';$script:Mode='Observe';$script:frames=0;$script:failAt=@();$script:changeAt=0;$script:fatal=$false;$script:frameSeconds=8;$script:sleepSeconds=10;$script:values=@{}
+ $script:ProfileSha256='a'*64;$script:BeforeImageSha256='b'*64;$script:engineSha='c'*64;$script:candidateSha='d'*64;$script:tailSha='e'*64;$script:currentObserverSha='f'*64;$script:currentClaimSha='1'*64;$script:currentOuterHashes=@(0..25|ForEach-Object{'2'*64})
+ $script:records=@(0..7|ForEach-Object{[pscustomobject]@{observedAt='2026-10-19T12:41:57Z'}});$records[4].observedAt='2026-10-19T12:36:57Z'
+}
+function CurrentLateAuthority{return $script:records}
+function CurrentLateFrame($started){$script:frames++;$script:currentLatePhase='STARTED_OWNER';$script:now=$script:now.AddSeconds($script:frameSeconds);if($script:fatal){throw 'password=DO_NOT_STORE SQL SELECT rawpath token'};if($script:frames-in$script:failAt){throw 'P03_PHYSICAL_STARTED_ROLE_COUNT'};if($script:changeAt-gt0-and$script:frames-ge$script:changeAt){return '9'*64};return '8'*64}
+function WriteCurrentLateEvidence($leaf,$value){$path=Join-Path $dir $leaf;if($script:values.ContainsKey($path)){throw 'FIXTURE_EXISTS'};$script:values[$path]=$value}
+function ExpectCurrentFailure([scriptblock]$block){try{&$block|Out-Null;throw 'FIXTURE_EXPECTED_FAILURE'}catch{if($_.Exception.Message-ceq'FIXTURE_EXPECTED_FAILURE'){throw};$j=$_.Exception.Data['CurrentLateFailure'];if(-not$j){throw};return $j|ConvertFrom-Json}}
+ResetCurrent
+`;
+
+test('CurrentB264 is finite additive authority with pinned failed journals and no engine or transition mutation',()=>{const s=readFileSync(source,'utf8');assert.match(s,/Generation='Historical639'/);for(const pin of ['7effdbf12208c973da6ccbd91ab07afd785d3e9d2bc15a2d00d62980c70ed294','b05242a19ce9bcccd20ba363e213c892aadc89a4e863af9c9186f86206bb3873','99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def','fec69870a70631bcb6cfd2df70bf1566d2ab66eb5b09f7ac96c54ac29f749417','6d9320c8c00cc33c59c65de663a0ece96a82ca0f116194cb7d35f655853f7815','0f45377171afcb85a82dfa3d130592251c31687134abafde0c9cca557879d25c'])assert.ok(s.includes(pin));const authority=s.slice(s.indexOf('function CurrentLateAuthority'),s.indexOf('function CurrentLateFrame'));assert.match(authority,/LateChain/);assert.match(authority,/Count -eq 26/);assert.match(authority,/\$r.event -ceq 'FAILED'/);assert.match(s,/transitionAuthority=\$false;stopAuthority=\$false/);assert.doesNotMatch(s,/Start-ScheduledTask|Stop-Process|Append '|Set-ScheduledTask|RegisterTask|& \$engine/);});
+
+test('actual generation parameter admits only exact canonical spellings before any observer IO',windows,()=>{const s=readFileSync(source,'utf8'),header=s.slice(0,s.indexOf('# The fe engine'));const encoded=Buffer.from(header+"\nreturn $Generation",'utf8').toString('base64');const out=run(`$select=[scriptblock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}')))
+if((&$select)-cne'Historical639'-or(&$select -Generation CurrentB264)-cne'CurrentB264'){throw 'FIXTURE_SELECTOR'}
+foreach($bad in @('currentb264','CURRENTB264','historical639','unknown')){$rejected=$false;try{&$select -Generation $bad|Out-Null}catch{$rejected=$true};if(-not$rejected){throw 'FIXTURE_SELECTOR_ALIAS'}}
+'GENERATION_CLOSED'
+`);assert.match(out,/GENERATION_CLOSED/);});
+
+test('CurrentB264 rejects lowercase mode before IO while historical mode behavior remains unchanged',windows,()=>{const s=readFileSync(source,'utf8'),header=s.slice(0,s.indexOf('# The fe engine'));const encoded=Buffer.from(header+"\n$script:io++;return $Mode",'utf8').toString('base64');const out=run(`$select=[scriptblock]::Create([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}')));$script:io=0
+foreach($bad in @('dryrun','observe','DRYRUN','OBSERVE')){$rejected=$false;try{&$select -Generation CurrentB264 -Mode $bad|Out-Null}catch{if($_.Exception.Message-cne'P03_LATE_CURRENT_MODE'){throw};$rejected=$true};if(-not$rejected-or$io-ne0){throw 'FIXTURE_MODE_IO'}}
+if((&$select -Generation CurrentB264 -Mode DryRun)-cne'DryRun'-or(&$select -Generation CurrentB264 -Mode Observe)-cne'Observe'){throw 'FIXTURE_CANONICAL_MODE'}
+if((&$select -Generation Historical639 -Mode dryrun)-cne'dryrun'){throw 'FIXTURE_HISTORIC_MODE'}
+'CURRENT_MODE_NO_IO'
+`);assert.match(out,/CURRENT_MODE_NO_IO/);});
+
+test('CurrentB264 requires three consecutive full frames over thirty seconds and keeps engine failure separate',windows,()=>{const out=run(currentFixture+'\n'+extract(['CurrentLateSafeCode','CurrentLateFailure','ObserveCurrentB264'])+String.raw`
+$p=ObserveCurrentB264
+if($p.consecutiveFrames-ne3-or$p.diagnostics.Count-ne3-or$p.stableSeconds-ne30-or$p.engineOutcome-cne'ROLLBACK_READBACK_FAILED'-or-not$p.observerOnly-or$p.mutationExecuted-or$p.transitionAuthority-or$p.stopAuthority){throw 'FIXTURE_CURRENT_PROOF'}
+if($values.Count-ne2-or-not$p.firstCompleteAt-or$p.diagnostics[0].elapsedMs-ne8000){throw 'FIXTURE_CURRENT_DIAGNOSTIC'}
+'CURRENT_THREE_FRAMES_PASS'
+ResetCurrent;$script:Mode='DryRun';$p=ObserveCurrentB264;if($values.Count-ne0-or$p.status-cne'CURRENT_B264_LATE_OBSERVATION_DRY_RUN'){throw 'FIXTURE_CURRENT_DRY'}
+'CURRENT_DRY_NO_WRITE'
+`);assert.match(out,/CURRENT_THREE_FRAMES_PASS/);assert.match(out,/CURRENT_DRY_NO_WRITE/);});
+
+test('CurrentB264 resets the consecutive proof on availability failure and identity digest changes',windows,()=>{const out=run(currentFixture+'\n'+extract(['CurrentLateSafeCode','CurrentLateFailure','ObserveCurrentB264'])+String.raw`
+$script:changeAt=3;$p=ObserveCurrentB264;if($frames-ne5-or-not$p.diagnostics[2].digestChanged-or$p.diagnostics[2].consecutiveFrames-ne1){throw 'FIXTURE_CHANGED_RESET'}
+ResetCurrent;$script:failAt=@(3);$p=ObserveCurrentB264;if($frames-ne6-or$p.diagnostics[2].consecutiveFrames-ne0-or$p.diagnostics[2].staticCode-cne'P03_PHYSICAL_STARTED_ROLE_COUNT'){throw 'FIXTURE_FAILED_RESET'}
+'CURRENT_RESETS_PASS'
+`);assert.match(out,/CURRENT_RESETS_PASS/);});
+
+test('CurrentB264 post-frame deadline, row bound and malicious error all fail without a ready file',windows,()=>{const out=run(currentFixture+'\n'+extract(['CurrentLateSafeCode','CurrentLateFailure','ObserveCurrentB264'])+String.raw`
+$script:frameSeconds=601;$p=ExpectCurrentFailure {ObserveCurrentB264};if($values.Count-ne1-or$p.code-cne'NOT_STABLE_WITHIN_BOUND'){throw 'FIXTURE_POST_DEADLINE'}
+ResetCurrent;$script:frameSeconds=0;$script:sleepSeconds=0;$p=ExpectCurrentFailure {ObserveCurrentB264};if($p.diagnostics.Count-ne64-or$values.Count-ne1){throw 'FIXTURE_ROW_BOUND'}
+ResetCurrent;$script:fatal=$true;$p=ExpectCurrentFailure {ObserveCurrentB264};$json=$p|ConvertTo-Json -Depth 12 -Compress;if($p.code-cne'FRAME_REJECTED'-or$p.diagnostics[0].staticCode-cne'UNCLASSIFIED'-or$json-match'DO_NOT_STORE|SELECT|token|rawpath'-or$values.Count-ne1){throw 'FIXTURE_SANITIZER'}
+'CURRENT_BOUNDS_PASS'
+`);assert.match(out,/CURRENT_BOUNDS_PASS/);});
+
+test('CurrentB264 calls unchanged V2 lifetime guard on full raw inventory and never the historical numeric absence filter',windows,()=>{const out=run(extract(['CurrentLateFrame'])+String.raw`
+function Need($v,$code){if(-not$v){throw $code}};$script:trace=@();$script:raw=[pscustomobject]@{all=@([pscustomobject]@{ProcessId=54460;CommandLine='unrelated'});marker='full'}
+function CurrentLateAuthority{$script:trace+=,'authority'};function LateManifestPins{$script:trace+=,'manifest'};function AssertTasks($state){if($state-ne4){throw 'STATE'};$script:trace+=,'tasks'}
+function StartedOwner($started){$script:trace+=,'started';return 'a'*64};function Inventory{return $script:raw};function AssertOldPidLifetimes($inventory){if(-not[object]::ReferenceEquals($inventory,$script:raw)-or$inventory.all.Count-ne1){throw 'RAW_FILTERED'};$script:trace+=,'lifetime'};function ProtectedProcesses($inventory){$script:trace+=,'protected'};function LateOriginalAbsent{throw 'HISTORIC_WRONG_GUARD'}
+$null=CurrentLateFrame ([DateTime]::UtcNow);if(($trace-join',')-cne'authority,manifest,tasks,started,lifetime,protected,tasks'){throw 'FIXTURE_FRAME_ORDER'}
+'CURRENT_FULL_RAW_PASS'
+`);assert.match(out,/CURRENT_FULL_RAW_PASS/);});
+
+test('CurrentB264 closes only its held read handles in the dispatch finally, without process control',windows,()=>{const out=run(extract(['CloseCurrentLateHandles'])+String.raw`
+$script:disposed=0;$h=[pscustomobject]@{};$h|Add-Member ScriptMethod Dispose {$script:disposed++}
+$script:oldReusePins=@{one=[pscustomobject]@{childHandle=$h;parentHandle=$h}}
+CloseCurrentLateHandles;if($disposed-ne2){throw 'FIXTURE_DISPOSE'}
+'READ_HANDLES_DISPOSED'
+`);assert.match(out,/READ_HANDLES_DISPOSED/);assert.match(readFileSync(source,'utf8'),/finally\{CloseCurrentLateHandles\}/);});
 test('literal late observer pins actual eight-event timeout and empty candidate without engine mutation/replay',()=>{
  const s=readFileSync(source,'utf8');
  for(const sha of ['fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037','1a1df3dd63acb1b77834b61df9a17b71b04fb44c942ec092ac35c8ffc9f89bbd','ad72bbabfe2a69033ad4ea3772fc2c0a9288989b24e5fba9ac673db82f8fadb0','fae8b05b72bbc7893ff2051c7c47259b7eece4198b7eb853d2a01463471cb403','6ae5287303efa9ab8b1c7ba1c32e8d368b8a0fe93868cf8e235618c7896dfb1c','6f7f5b31e418f0d98499b77b85120239efee7ae54cfb10c7b6a6d3fc8e9c07a3'])assert.ok(s.includes(sha));
