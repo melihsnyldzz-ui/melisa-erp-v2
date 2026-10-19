@@ -1,3 +1,7 @@
+## 19 Ekim — P03 B264 sürümlü eski-kimlik gözlem alt kanıtı
+
+b75cc5e5 exactPR/push CI SUCCESS;16hedef test/bağımsız kaynak GO. Mevcut eski ortak TEST gerçek DryRun sonrası4tamframe/44,428sn aynı kimlikte gözlendi;11listener/ikiRunninggörev/health/HTTPbytes aynı. Sadece iki protected CreateNew kanıt; engineFAILED/QUARANTINED/journal/lock/claim korunur. Yeni aday kurulumu, fullShared geçiş/rollback veya normalGUI/insan PASS değildir. Aynı P03 içinde B264→yeni tuple kapalı admission/tekilclaim ve guardedShared kapısı açık;49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmez. [Gerçek kapsam](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#mevcut-b264-için-ayrı-salt-okunur-gözlem).
+
 ## 19 Ekim — P03 / ERP-DEC-066 hafif gerçek Hub başlangıç ve geri dönüş alt kanıtı
 
 AyrıSQL'siz5354'te e59→01ef→e59 gerçek Express/Hub old/new/old,17HTTPkontrol/faz ve ownedcleanup doğrulandı. Başlatıcı1433c96b exact PR/push CI SUCCESS; bağımsız source/proof GO. Ortak listener/görev/health/HTTP içerikleri önce–sonra aynı; ilk başarısız HOST_DENIED ve eski b264engineFAILED/journal/claim korunur. Yeni büyük DB/kopya/sharedkurulum yok. Bu, full Shared bootstrap/guardedrollback veya GUI/normalpersonel/insan kabulü değildir; mevcut P03 üst kapanışı,49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmez. [Gerçek kapsam ve sonraki P03 kapısı](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md).

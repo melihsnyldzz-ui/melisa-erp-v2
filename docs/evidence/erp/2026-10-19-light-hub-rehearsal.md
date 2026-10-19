@@ -51,3 +51,31 @@ Bağımsız offline kanıt incelemesi başarılı proof SHA'sını, iki artifact
 Run kökü `C:/Sirket/ERP/rehearsal/ERP-LIGHT-REHEARSAL-20261019-1253/`; root önce/sonra/transport/operator kayıtları `C:/Sirket/ERP/reports/integration-audit-20261019/` altındadır. Ham süreç/SID/özel config/ticari ekran GitHub'a eklenmedi.
 
 **Açık kalan:** Tam shared bootstrap/owner geçişi ve guarded ortak rollback bu provanın kapsamı değildir; yeni aday ortak TEST'e kurulmadı. Windows Computer Use mevcut Chrome URL'sini güvenle belirleyemediğinden GUI BLOCKED kaydı korunur, başka UI aracıyla aşılmaz. Yeni yan-yana personel/İlker turu veya insan kabulü PASS yok. Önceki gerçek barkod arama alanına ulaştı, katalog eşleşmesi0; yeni ürün bağı/ticari hareket ve fiziksel tekrar yok. Özgün USER_ACCEPTANCE ve49ERP/25CRM kapanışları aynı.
+
+## Mevcut B264 için ayrı salt-okunur gözlem
+
+19 Ekim16:54TR: tamamlanmış Light provası tekrarlanmadı. Mevcut `p03-pr54-late-old-observe.ps1` içindeki açık `-Generation CurrentB264` dalı, b264 failed attempt'in literal profile/before/settings/consumedclaim/zeroCandidate ve26outer/8recovery hash zincirini doğrular. VarsayılanHistorical639 davranışı/10fonksiyon gövdesi, canonicalFE ve99bV2 engine byte'ları aynıdır. Yeni dal V2'nin mevcut tam raw envanter ve held child/parent lifetime guard'ını kullanır; PID filtreleme/stop listesi genişletme yok. Yalnız exact `DryRun`/`Observe` kabul edilir; case alias IO öncesi reddedilir.
+
+Kaynak **b75cc5e5d9b9b6eb896ae98a8be64618a98d5f1d**, observer SHA **d93f6d159d36b4a9ad2f5456b135189a373c9776be0bbf963cf3cca026b8517b**. 16hedef test PASS; bağımsız kaynak/özel root runner incelemesi GO. [PR CI39263344720](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39263344720) ve [push CI39263333013](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39263333013) exactsource SUCCESS. Root yalnız bu kapılardan sonra gerçek DryRun ve Observe çalıştırdı.
+
+Gerçek sonuç `CURRENT_B264_LATE_OLD_OBSERVED_READY`; `observerOnly:true`, mutation/transitionAuthority/stopAuthority/newGenerationStarted false, locksRetained true. Bu yeni receipt historical engine'e READY event eklemez. Yalnız mevcut B264 transition dizininde `current-b264-late-old-observation-intent.json` ve `current-b264-late-old-observed-ready.json` protected CreateNew yazılmıştır; retry/locksilme/claimreplay/config/servis/SQL/deploy yok.
+
+| Frame | Tam kontrol süresi | İlk tam frame sonrası kararlı süre | Sonuç |
+| --- | --- | --- | --- |
+| 1 |15.983ms|0ms|OK / aynı digest|
+| 2 |14.185ms|14.696ms|OK / aynı digest|
+| 3 |14.724ms|29.931ms|OK,30sn dolmadığı için READY yok|
+| 4 |13.985ms|44.428ms|OK,4ardışık tam frame ile ayrı receipt|
+
+Zamanlar13:53:48.9525178Z–13:54:49.3639223Z; bunlar sıcak mevcut sistemin yeni gözlemidir. Eski engine15:36:57TR→15:41:57TR beşdakika sonunda FAILED olmuş; son rolün başlamasıyla failure arasında33,150sn vardır. Bugünkü tamframe14–16sn süreleri kontrol maliyetinin anlamlı olduğunu gösterir; eski catch iç hata/timing tutmadığından cold failure'ın kesin sebebi iddia edilmez. Beşdakika veya kimlik kontrolleri gevşetilmedi.
+
+Bağımsız root readback önceki baseline ile11listenerbinding PID/doğum/image/adres/port, ikiRunningtask/actionSHA, e59/DB02/copye16b/T1false health ve3HTTP200 içerikhashini aynı buldu. `sqlContentCompared:false`; tam SQL içerik veya finans/stok mutabakatı iddiası yok. Kurulu e59/13b/6bc korunur; yeni kaynak ortak TEST'e kurulmuş sayılmaz.
+
+| Repo dışındaki kanıt | SHA256 |
+| --- | --- |
+| B264 `current-b264-late-old-observed-ready.json` |097b43d18467a2d594b04586e7ebb9cbcea4133c7dcd2154c4e24e1c8ed42dcf|
+| `current-b264-shared-readback-1349.json` |5d30b52cfceb34b410e915deb3b264e83d347c27a7a32055a24165cf7da9686e|
+
+DryRun/Observe root attempt/results aynı private integration-audit alanında `owner-current-b264-formal-*-1349-*.json`; orijinal runtimejournal/claim/failed event hashleri korunur. Ham süreç/argv/SID/özelconfig/ticari veri yayınlanmaz.
+
+**Sonraki gerçek bağımlılık:** mevcut owner-successor modülü yalnız7b predecessor'ına bağlı, claim B264 tarafından tüketilmiş. Bu ayrı gözlem otomatik yeni Apply yetkisi değildir. Yeni exacttuple için B264 FAILED+bu receipt→taze eskitarget identity→tekil yeni claim/admission ve tamShared başlangıç/guardedrollback kapısı gerekir. Eski claim silinmez/replay edilmez; yeni ortam/port/DB yaratılmaz. GUI güvenlik reddi aşılmaz; personel/İlker normal ekran ve insan kabulü özgün ID'lerde BEKLİYOR kalır.
