@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const helper=fileURLToPath(new URL('./p03-pr54-new-owner-empty-recovery.ps1',import.meta.url));
-const engine=fileURLToPath(new URL('./p03-physical-rollback.ps1',import.meta.url));
+const engine=fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url));
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const quote=s=>"'"+s.replaceAll("'","''")+"'";
 const extract=(file,names)=>`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${quote(file)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};${names.map(name=>`$defs=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq${quote(name)}},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text));`).join('')}`;
