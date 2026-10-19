@@ -1,5 +1,14 @@
 # ERP karar merkezi
 
+### ERP-DEC-066 — 19 Ekim 2026 — İletilen hafif sentetik TEST ve izole paket provası yönü
+
+**Kaynak/alıntı:** Dot üzerinden aynı aktif kurtarma turuna iletilen `DOT-ERP-RECOVERY-FOCUS-20261019-1238` ve `DOT-ERP-LIGHT-TEST-20261019-1243`; kullanıcının iletilen sözü: “Gerekirse bu kadar büyük veri tabanları kullanmaya gerek yok; small testlerle ufak veri tabanlarıyla ayağa kaldıralım testleri”. Bu kayıt mevcut ERP-DEC-060/061 yetkisi içindeki çalışma yöntemini daraltır; yeni ana ajan/Goal/takip sistemi, LIVE veya erişim yetkisi üretmez.
+
+Önce mevcut e59/13b/6bc ortak TEST güvenli sonuca getirilir. Candidate19/HUB_PACKAGE_SCOPE_REJECTED düzeltmesinin gerçek izole yeni başlangıç ve eskiye dönüş kanıtları tamamlanmadan büyük kurulum tekrarlanmaz. Günlük geliştirme ve paket smoke provasında mevcut hafif prova/sentetik altyapısı kullanılır: az ürün/örnek görsel, müşteri, tedarikçi ve ilişkili belgeler; mevcut personel/İlker yetki kurallarını temsil eden sentetik fixture ile mal kabul–alış, satış–tahsilat–bakiye ve CRM siparişinin normal/negatif koşulları. Biten uygulama kodu yeniden geliştirilmez.
+
+İzole hedef kimliği ve çakışmasız sahiplik doğrulanmadan kurulum yok. Tüm arşiv veya büyük DB02 kopyası varsayılan değildir; tam hacim ancak somut gerekçe ve kayıtlı saklama süresiyle kullanılır. Mevcut TEST125/DB02, gerçek veriler/yerel hareketler, karantinalar, LL dışlamaları, roller, journal/claim/başarısızlık kanıtları ve yedekler silinmez/küçültülmez/yeniden aktarılmaz. Güvenlik veya gerçek kimlik bilgisi değişikliği yok; ortak TEST tek yazarı ERP'dir. Kaynak, hafif sentetik TEST, ortak TEST, GUI/cihaz ve insan kabulü ayrı kalır; smoke genel mali/stok/yetki kabulü değildir. Önceki GUI/HTTP erişim retleri aşılmaz; LIVE/Vega/T1/gerçek ticari işlem-mesaj/ücretli API/main merge için ayrı onay sınırı değişmez.
+
+**Bu kayıt anı:** Küçük yeni DB/kurulum henüz yapılmadı; sıradaki tek iş mevcut hafif prova altyapısında aday Hub başlangıcı ve geri dönüşün izole koşullarını kesinleştirmektir. Mevcut kurtarmanın gerçek geç salt-okunur gözlem sonucu STATUS ve tek ortak raporda ayrı tutulur; engine süre aşımı başarıya çevrilmez.
 ### ERP-DEC-065 — 18 Ekim 2026 — v75 ekran sunumunu teknik adayda birleştirme
 
 **19 Ekim kullanıcı devamı:** “kurulu TEST’i koru, bu ekranla eşleştir, sonra günlük akışa geç”. Kurulu e59/13b/6bc temelini ve eski journal/rolleri koru; zaten taşınmış v75 sunumunu yeniden geliştirme veya aynı paketi yeniden kurma. Ekran→kurulu kaynak eşliğini doğruladıktan sonra C01/C02–C03 günlük akışını mevcut kayıtlarla normal GUI'de ilerlet. Teknik ekran kanıtı yeni stok/finans etkisi, genel çok satırlı işletme kabulü veya insan PASS değildir; mevcut yetki ve LIVE sınırları sürer.
