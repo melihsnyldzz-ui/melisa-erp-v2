@@ -1,5 +1,11 @@
 # Shared synthetic Cloud TEST
 
+## Hosted diagnosis — 19 October 2026
+
+The parent published the original ERP6eca9ee/CRMf5ad566 sources to the owner-private Site `appgprj_6ad629f87ea88191bddb006d26edd1fc`, version `appgver_9347c9d3e538819191e243924e59fba2`. Authenticated pages load, but GET `/api/cloud-test/session` returns503. At14:42:09Z request743b207b9d87b6e64f069d4753eb14d3 failed; read-only overview confirms the two application tables, with no state/session rows. This does not prove the root cause. Hosted three-flow acceptance is **NOT PASS**; earlier localhost evidence remains separate.
+
+This source adds diagnostic telemetry only, without relaxing schema/auth guards or changing stored data. Worker logs contain exactly `event`, random `diagnosticId`, closed `stage`, and closed `code`. SQL, exception messages/stacks/causes, request URLs/headers/body, visitor identity, cookies and tokens are never passed to the logger. Initialization failures return a generic JSON503 with the same diagnostic ID. The parent should publish this exact source through the existing private Site, request `/api/cloud-test/session` once using its already authenticated browser, then read only the `MELISA_CLOUD_TEST_FAILURE` record fields. Do not print the surrounding raw platform request headers. The next functional fix depends on that stage; no speculative table allowlist or schema bypass was added.
+
 Existing scope: ERP09 sales/collection, incoming-goods receiving, CRM06 catalog/order draft. This is a separate synthetic source adapter, not the Windows/shared TEST runtime or a new completion tracker. Human/device acceptance remains pending.
 
 The ERP entry mounts the existing `createWorkReceiving`, `createWorkSales` and `createWorkCollections` controllers. CRM companion PR20 uses the existing `CatalogBuilder`, `ERPOrderDialog` and `NativeOrderReceiptDisplay`. Each uses `/api/cloud-test` against one server database. Business records are never sourced from browser storage; existing UI retry/selection journals remain browser-local.

@@ -1,3 +1,7 @@
+## 19 Ekim — özel hosted Cloud başlatma hatası: teşhis kaynağı
+
+Parent aynı ERP6eca9ee/CRMf5ad566 kaynağını owner-only Sites hedefinde yayımladı. Sayfalar açılıyor; authenticated `/api/cloud-test/session`503, request743b207b9d87b6e64f069d4753eb14d3/14:42:09Z. İki D1 uygulama tablosu mevcut, state/session0satır; kök neden henüz kanıtlanmadı. Yeni kaynak yalnız kapalı aşama/kod ve rastgele diagnosticId telemetry ekler; SQL/hata metni/request/credential loglamaz, auth/şema kontrollerini gevşetmez. Regresyon FAIL→PASS, bağımsız GO; exact son HEADCI ayrıca kontrol edilir. Parent aynı özel Site'a tanı sürümünü paketleyip yayımlayacak; hosted üç akış PASS DEĞİL. Önceki localhost kanıtı ve insan/cihaz kabulü ayrı kalır. [Teşhis yönergesi](apps/cloud-shared-test/README.md#hosted-diagnosis--19-october-2026).
+
 ## 19 Ekim — ortak sentetik Cloud teknik kanıtı, insan kabulü BEKLİYOR
 
 ERP09/C01/C04/C05 ve CRM06 için gerçek mevcut ekranlarda mobil390px sayım/onay→CRMkalıcıtaslak→satıştamamlama→kısmitahsilat ve server/SQLiteyenidenaçma doğrulandı. Bu sanal sentetik tarayıcı sonucu gerçek çalışan/telefon/terminal/Windows/VegaTEST kabulü değildir. [Kanıt ve açık yayın sınırı](docs/evidence/erp/2026-10-19-cloud-shared/README.md); son toplu insan kabulü,özgünUA ve49yaprak aynı BEKLİYOR. Yerel runtime veya gerçek hesaplar değişmedi.

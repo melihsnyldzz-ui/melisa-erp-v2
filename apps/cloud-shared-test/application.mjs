@@ -20,7 +20,7 @@ const revision = value => { if (typeof value !== 'string' || !/^[a-f0-9]{64}$/.t
 const validDate = value => { if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString().slice(0, 10) !== value) error(400, 'INVALID_DATE'); return value; };
 const json = (data, status = 200, headers = {}) => new Response(JSON.stringify({ success: status < 400, ...(status < 400 ? { data } : { error: data }) }), { status, headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers } });
 
-export function createApplication({ store, sessions = new Map() }) {
+export function createApplication({ store, sessions = new Map(), onError = () => undefined }) {
   const actors = store.actors();
   const actorView = a => a ? { id: a.id, name: a.name, role: a.role, synthetic: true,
     permissions: a.role === 'manager' ? ['sales.view', 'finance.collection', 'finance.view', 'purchase.view'] : ['sales.view'] } : null;
@@ -211,6 +211,10 @@ export function createApplication({ store, sessions = new Map() }) {
         } else error(404, 'SYNTHETIC_ROUTE_UNSUPPORTED');
       } else error(404, 'SYNTHETIC_ROUTE_UNSUPPORTED');
       return json(result, 200, cookieHeader);
-    } catch (e) { return json({ code: /^[A-Z0-9_]{1,64}$/.test(e?.code ?? '') ? e.code : 'SYNTHETIC_ADAPTER_ERROR', message: 'Sentetik TEST işlemi reddedildi.' }, Number.isInteger(e?.status) && e.status >= 400 && e.status <= 599 ? e.status : 500); }
+    } catch (e) {
+      const status = Number.isInteger(e?.status) && e.status >= 400 && e.status <= 599 ? e.status : 500;
+      let diagnosticId; if (status >= 500) { try { diagnosticId = onError(e); } catch { /* Preserve safe API errors even if telemetry is unavailable. */ } }
+      return json({ code: /^[A-Z0-9_]{1,64}$/.test(e?.code ?? '') ? e.code : 'SYNTHETIC_ADAPTER_ERROR', message: 'Sentetik TEST işlemi reddedildi.', ...(typeof diagnosticId === 'string' && /^[a-f0-9-]{36}$/i.test(diagnosticId) ? { diagnosticId } : {}) }, status);
+    }
   };
 }

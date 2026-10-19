@@ -31,8 +31,13 @@ const ACTORS = [
   { id: 18, role: 'personnel', name: 'Diğer Sentetik Personel', customerId: 502 },
 ];
 
-function fail(status, code, message) {
-  throw Object.assign(new Error(message), { status, statusCode: status, code });
+function fail(status, code, message, cloudStage) {
+  throw Object.assign(new Error(message), { status, statusCode: status, code, ...(cloudStage ? { cloudStage } : {}) });
+}
+async function atStage(cloudStage, operation) {
+  try { return await operation(); }
+  catch (error) { throw Object.assign(new Error('Synthetic D1 operation failed'), { status: Number.isInteger(error?.status) ? error.status : 503,
+    code: ['INVALID_BINDING', 'FOREIGN_STORE', 'SCHEMA_NOT_READY'].includes(error?.code) ? error.code : 'D1_OPERATION_FAILED', cloudStage: error?.cloudStage ?? cloudStage }); }
 }
 function integer(value, name, min = 1, max = MAX) {
   if (!Number.isSafeInteger(value) || value < min || value > max) fail(400, 'INVALID_INPUT', `${name} must be a safe integer in ${min}..${max}`);
@@ -338,22 +343,22 @@ const SESSION_SCHEMA = `CREATE TABLE synthetic_sessions (id TEXT PRIMARY KEY,val
 const normalizeSchema = sql => sql.replace(/IF\s+NOT\s+EXISTS\s+/ig, '').replace(/\s+|;$/g, '').toLowerCase();
 
 async function initialize(db, schemaManaged) {
-  const tables = (await db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()).results;
+  const tables = (await atStage('D1_TABLES_READ', () => db.prepare("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all())).results;
   if (schemaManaged && tables.some(row => row.name === '__drizzle_migrations')) {
-    const columns = (await db.prepare('PRAGMA table_info("__drizzle_migrations")').all()).results;
+    const columns = (await atStage('D1_MIGRATION_COLUMNS_READ', () => db.prepare('PRAGMA table_info("__drizzle_migrations")').all())).results;
     if (columns.length !== 3 || columns[0].name !== 'id' || !['SERIAL', 'INTEGER'].includes(columns[0].type.toUpperCase()) || columns[0].pk !== 1 ||
       columns[1].name !== 'hash' || columns[1].type.toUpperCase() !== 'TEXT' || columns[1].notnull !== 1 ||
-      columns[2].name !== 'created_at' || !['NUMERIC', 'INTEGER'].includes(columns[2].type.toUpperCase())) fail(409, 'FOREIGN_STORE', 'Unsupported migration bookkeeping schema');
+      columns[2].name !== 'created_at' || !['NUMERIC', 'INTEGER'].includes(columns[2].type.toUpperCase())) fail(409, 'FOREIGN_STORE', 'Unsupported migration bookkeeping schema', 'D1_MIGRATION_SCHEMA');
   }
   const names = tables.map(r => r.name).filter(name => !name.startsWith('_cf_') && !(schemaManaged && ['d1_migrations', '__drizzle_migrations'].includes(name)));
-  if (names.some(name => ![STATE_TABLE, SESSION_TABLE].includes(name)) || (names.length && !names.includes(STATE_TABLE))) fail(409, 'FOREIGN_STORE', 'D1 binding is not a dedicated synthetic store');
+  if (names.some(name => ![STATE_TABLE, SESSION_TABLE].includes(name)) || (names.length && !names.includes(STATE_TABLE))) fail(409, 'FOREIGN_STORE', 'D1 binding is not a dedicated synthetic store', 'D1_TABLE_INVENTORY');
   if (schemaManaged) {
-    if (![STATE_TABLE, SESSION_TABLE].every(name => names.includes(name))) fail(503, 'SCHEMA_NOT_READY', 'Apply the synthetic schema migration before starting the preview');
+    if (![STATE_TABLE, SESSION_TABLE].every(name => names.includes(name))) fail(503, 'SCHEMA_NOT_READY', 'Apply the synthetic schema migration before starting the preview', 'D1_SCHEMA_REQUIRED');
     for (const [name, expected] of [[STATE_TABLE, STATE_SCHEMA], [SESSION_TABLE, SESSION_SCHEMA]]) {
-      if (normalizeSchema(tables.find(row => row.name === name).sql ?? '') !== normalizeSchema(expected)) fail(409, 'FOREIGN_STORE', 'Unsupported managed synthetic schema');
+      if (normalizeSchema(tables.find(row => row.name === name).sql ?? '') !== normalizeSchema(expected)) fail(409, 'FOREIGN_STORE', 'Unsupported managed synthetic schema', name === STATE_TABLE ? 'D1_STATE_SCHEMA' : 'D1_SESSIONS_SCHEMA');
     }
     // Migration owns DDL. The runtime only inserts the synthetic seed if absent.
-    await db.prepare(`INSERT OR IGNORE INTO ${STATE_TABLE} (id,marker,revision,data) VALUES (?,?,?,?)`).bind('synthetic', SCHEMA_MARKER, 0, JSON.stringify(seed())).run();
+    await atStage('D1_SEED_INSERT', () => db.prepare(`INSERT OR IGNORE INTO ${STATE_TABLE} (id,marker,revision,data) VALUES (?,?,?,?)`).bind('synthetic', SCHEMA_MARKER, 0, JSON.stringify(seed())).run());
   } else if (!names.length) {
     // A D1 batch is transactional: schema, seed, and marker appear together.
     if (typeof db.batch !== 'function') fail(500, 'INVALID_BINDING', 'D1 atomic batch support is required');
@@ -363,7 +368,7 @@ async function initialize(db, schemaManaged) {
       db.prepare(`INSERT OR IGNORE INTO ${STATE_TABLE} (id,marker,revision,data) VALUES (?,?,?,?)`).bind('synthetic', SCHEMA_MARKER, 0, JSON.stringify(seed())),
     ]);
   }
-  await readState(db); // Never reseed an existing empty, corrupt, or mismarked table in self-managed mode.
+  await atStage('D1_STATE_READ', () => readState(db)); // Never reseed an existing empty, corrupt, or mismarked table in self-managed mode.
   if (names.length && !names.includes(SESSION_TABLE)) fail(409, 'FOREIGN_STORE', 'Synthetic sessions schema is missing');
 }
 
@@ -375,7 +380,7 @@ async function initialize(db, schemaManaged) {
  * schemaManaged:true requires the schema-only migration and performs no DDL.
  */
 export async function createD1Store(binding, { schemaManaged = false } = {}) {
-  const db = primary(binding);
+  const db = await atStage('D1_BINDING', () => primary(binding));
   await initialize(db, schemaManaged);
   const actors = Object.freeze(ACTORS.map(a => Object.freeze(marked(a))));
   let closed = false;
@@ -405,7 +410,7 @@ export async function createD1Store(binding, { schemaManaged = false } = {}) {
 
 /** Ephemeral sessions are separate from durable business state and never logged. */
 export async function createD1Sessions(binding, { schemaManaged = false } = {}) {
-  const db = primary(binding);
+  const db = await atStage('D1_BINDING', () => primary(binding));
   await initialize(db, schemaManaged);
   const key = id => {
     if (typeof id !== 'string' || id.length < 16 || id.length > 256 || !/^[A-Za-z0-9_-]+$/.test(id)) fail(400, 'INVALID_SESSION', 'Invalid opaque session id');
