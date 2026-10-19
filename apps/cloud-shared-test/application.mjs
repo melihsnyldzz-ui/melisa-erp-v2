@@ -134,7 +134,7 @@ export function createApplication({ store, sessions = new Map() }) {
       else if (get && suffix === '/erp/customers') {
         const customerId = url.searchParams.get('conversationId') === '55' ? '501' : url.searchParams.get('conversationId') === '56' ? '502' : null;
         const c = await customer(actor, customerId); if (url.searchParams.get('phone') !== c.phone) error(400, 'SYNTHETIC_PHONE_MISMATCH');
-        result = { phone: c.phone, status: 'matched', entries: [c] };
+        result = { phone: c.phone, status: 'matched', entries: [{ ...c, id: Number(c.id) }] };
       } else if (post && suffix === '/erp/drafts') {
         fields(body, ['requestId', 'conversationId', 'peer', 'customerId', 'customerMatch', 'documentCurrency', 'exchangeRateExact8', 'items']);
         const c = await customer(actor, body.customerId), list = await products(actor);

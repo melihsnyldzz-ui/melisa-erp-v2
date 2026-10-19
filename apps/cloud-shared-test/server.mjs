@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { createApplication } from './application.mjs';
 import { createStore } from './store.mjs';
 
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.woff2': 'font/woff2', '.woff': 'font/woff' };
 export async function loadAssets(roots) {
   const assets = new Map();
   for (const [prefix, directory] of Object.entries(roots)) {
@@ -36,7 +36,7 @@ export async function startCloudServer({ database, assets = new Map(), port = 0 
         if (!['GET', 'HEAD'].includes(incoming.method)) Object.assign(init, { body: incoming, duplex: 'half' });
         response = await application(new Request(url, init));
       } else if (['GET', 'HEAD'].includes(incoming.method)) {
-        const path = url.pathname === '/' ? '/erp/cloud.html' : url.pathname;
+        const path = ({ '/': '/erp/cloud.html', '/erp/': '/erp/cloud.html', '/crm/': '/crm/cloud.html', '/terminal/': '/erp/cloud.html' })[url.pathname] ?? url.pathname;
         const asset = assets.get(path);
         response = asset ? new Response(incoming.method === 'HEAD' ? null : asset.bytes, { headers: { 'Content-Type': asset.type, 'Cache-Control': 'no-store' } }) : new Response('Synthetic route unavailable', { status: 404 });
       } else response = new Response('Method not allowed', { status: 405 });

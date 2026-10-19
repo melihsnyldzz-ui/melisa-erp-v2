@@ -135,20 +135,20 @@ function domain(state, actors, isClosed) {
     if (input.transportHash !== undefined && (typeof input.transportHash !== 'string' || !/^[a-f0-9]{64}$/i.test(input.transportHash))) fail(400, 'INVALID_INPUT', 'transportHash must be SHA256 hex');
     if (input.expectedRevision !== undefined && (typeof input.expectedRevision !== 'string' || !/^[a-f0-9]{64}$/.test(input.expectedRevision))) fail(400, 'INVALID_INPUT', 'expectedRevision must be SHA256 hex');
     const hash = sha256(canonical(input));
-    
+
     try {
       const previous = state.journal.find(r => r.requestId === input.requestId.toLowerCase());
       if (previous) {
         if (previous.actorId !== actor.id || previous.operation !== operation || previous.bodyHash !== hash) fail(409, 'REQUEST_CONFLICT', 'requestId was already used for a different actor, operation, or payload');
-        
+
         return { ...JSON.parse(previous.result), replayed: true };
       }
       const result = { ...run(), synthetic: true, replayed: false };
       state.journal.push({ requestId: input.requestId.toLowerCase(), actorId: actor.id, operation, bodyHash: hash, result: JSON.stringify(result), createdAt: new Date().toISOString() });
-      
+
       return result;
     } catch (error) {
-      
+
       throw error;
     }
   };

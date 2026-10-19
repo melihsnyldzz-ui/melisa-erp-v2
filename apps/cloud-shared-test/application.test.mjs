@@ -79,6 +79,7 @@ test('HTTP rejects duplicate receiving client line identity without poisoning th
 async function crmBody(crm, quantity = 2) {
   const match = await crm.ok('/erp/customers?conversationId=55&phone=9000000000501');
   const customer = match.entries[0];
+  assert.equal(Number.isSafeInteger(customer.id), true, 'unchanged CRM ERPOrderDialog requires a numeric ERP customer ID');
   return requestBody({ conversationId: 55, peer: customer.phone, customerId: customer.id, customerMatch: { phone: customer.phone, basis: 'exact-phone', revision: customer.revision, reason: null }, documentCurrency: 'TRY', exchangeRateExact8: '1.00000000',
     items: [{ productId: 101, stockCode: 'SYN-101', priceId: 101, unitSourceId: 1, tier: 1, currency: 'TRY', priceExact8: '25.00000000', priceSourceKey: 'cloud-synthetic:price:101', quantity }] });
 }

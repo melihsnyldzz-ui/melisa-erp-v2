@@ -6,6 +6,11 @@ import {createCloudSession} from './session.js';
 import './shell.css';
 
 const api=createCloudSession(),root=document.getElementById('cloud-controller'),extra=document.getElementById('cloud-extra'),error=document.getElementById('cloud-error');
+if(location.pathname==='/terminal/'){
+  document.body.classList.add('cloud-terminal');
+  document.querySelector('header h1').textContent='Melisa web terminali';
+  document.querySelectorAll('[data-cloud-view="collections"],[data-cloud-view="crm"]').forEach(button=>button.hidden=true);
+}
 let selected=null,session=null,controller=null,generation=0,busy=false,view='goods';
 const storage={getItem:key=>window.sessionStorage.getItem('melisa-cloud-test:'+key),setItem:(key,value)=>window.sessionStorage.setItem('melisa-cloud-test:'+key,value),removeItem:key=>window.sessionStorage.removeItem('melisa-cloud-test:'+key)};
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

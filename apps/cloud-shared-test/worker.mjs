@@ -16,7 +16,8 @@ export function createWorker(assets = new Map()) {
           const sessions = await createD1Sessions(env.DB, { schemaManaged: true });
           response = await createApplication({ store, sessions })(request);
         } else if (['GET', 'HEAD'].includes(request.method)) {
-          const asset = assets.get(path === '/' ? '/erp/cloud.html' : path);
+          const alias = ({ '/': '/erp/cloud.html', '/erp/': '/erp/cloud.html', '/crm/': '/crm/cloud.html', '/terminal/': '/erp/cloud.html' })[path] ?? path;
+          const asset = assets.get(alias);
           response = asset ? new Response(request.method === 'HEAD' ? null : asset.bytes, { headers: { 'Content-Type': asset.type, 'Cache-Control': 'no-store' } }) : new Response('Synthetic route unavailable', { status: 404 });
         } else response = new Response('Method not allowed', { status: 405 });
       } catch { response = new Response('Synthetic environment unavailable', { status: 503 }); }
