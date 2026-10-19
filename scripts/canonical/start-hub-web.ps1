@@ -23,7 +23,11 @@ $packageName=Split-Path $c.PackageRoot -Leaf
 # completion family whose suffix identifies this pinned source commit.
 $completionName=$packageName -cmatch '^CANONICAL-COMPLETE-TEST-(?:20261011|20261017|20261018)-([a-f0-9]{7,12})$'
 $completionSource=$completionName -and $c.SourceCommit.StartsWith($Matches[1])
-if(!$packageName.StartsWith('CANONICAL-HUB-TEST-') -and !$completionSource){throw 'HUB_PACKAGE_SCOPE_REJECTED'}
+# The reviewed candidate family uses an eight-character prefix on this date.
+# The full source and every package byte remain pinned by the manifest below.
+$candidateName=$packageName -cmatch '^CANONICAL-CANDIDATE-TEST-20261019-([a-f0-9]{8})$'
+$candidateSource=$candidateName -and [regex]::IsMatch($c.SourceCommit,'\A[a-f0-9]{40}\z') -and $c.SourceCommit.StartsWith($Matches[1],[StringComparison]::Ordinal)
+if(!$packageName.StartsWith('CANONICAL-HUB-TEST-') -and !$completionSource -and !$candidateSource){throw 'HUB_PACKAGE_SCOPE_REJECTED'}
 if((Get-FileHash -LiteralPath $c.NodePath -Algorithm SHA256).Hash -ne $c.NodeSha256){throw 'HUB_NODE_PIN_REJECTED'}
 $manifestFile=Join-Path $c.PackageRoot 'release-manifest.json'
 if((Get-FileHash -LiteralPath $manifestFile -Algorithm SHA256).Hash -ne $c.ManifestSha256){throw 'HUB_MANIFEST_PIN_REJECTED'}
