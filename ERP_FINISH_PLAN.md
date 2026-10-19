@@ -1,3 +1,7 @@
+## 19 Ekim — P03 B264 kapalı admission ve readonly tarihsel okuma alt teslimi
+
+d57b2d71 exactPR/push CI SUCCESS,16yeni+62etkilenen kontrol PASS/bağımsız kaynak GO. Gerçek46pin/26outer/8recovery tarihsel okuyucu doğrulandı; yeni saf tuple/öneri kuralları Apply/claimwriter'a bağlı değil. Native actual229f digest parity, yalnız ikiCOMsatırının exactsırası düzeltilerek sağlandı; kimlik/kanıt kontrolleri korunur. Sharedbootstrap/B264V2drainer/gerçekcurrentadmission/claim/kurulum/GUI/insan PASS yok. Eski44sn/Light/CSV kabulü tekrar edilmedi; eskiFAILED/journal/locks/consumedclaim korunur. P03 üst kapanışı ve49ERP9🟢/39🟡/1🔴,25CRM12🟢/13🟡 aynı. [Kanıt ve sonraki kapı](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#b264-kapalı-kabul-kuralları-ve-gerçek-tarihsel-okuyucu).
+
 ## 19 Ekim — P03 B264 sürümlü eski-kimlik gözlem alt kanıtı
 
 b75cc5e5 exactPR/push CI SUCCESS;16hedef test/bağımsız kaynak GO. Mevcut eski ortak TEST gerçek DryRun sonrası4tamframe/44,428sn aynı kimlikte gözlendi;11listener/ikiRunninggörev/health/HTTPbytes aynı. Sadece iki protected CreateNew kanıt; engineFAILED/QUARANTINED/journal/lock/claim korunur. Yeni aday kurulumu, fullShared geçiş/rollback veya normalGUI/insan PASS değildir. Aynı P03 içinde B264→yeni tuple kapalı admission/tekilclaim ve guardedShared kapısı açık;49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmez. [Gerçek kapsam](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#mevcut-b264-için-ayrı-salt-okunur-gözlem).

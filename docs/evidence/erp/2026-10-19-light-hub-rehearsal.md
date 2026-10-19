@@ -79,3 +79,32 @@ Bağımsız root readback önceki baseline ile11listenerbinding PID/doğum/image
 DryRun/Observe root attempt/results aynı private integration-audit alanında `owner-current-b264-formal-*-1349-*.json`; orijinal runtimejournal/claim/failed event hashleri korunur. Ham süreç/argv/SID/özelconfig/ticari veri yayınlanmaz.
 
 **Sonraki gerçek bağımlılık:** mevcut owner-successor modülü yalnız7b predecessor'ına bağlı, claim B264 tarafından tüketilmiş. Bu ayrı gözlem otomatik yeni Apply yetkisi değildir. Yeni exacttuple için B264 FAILED+bu receipt→taze eskitarget identity→tekil yeni claim/admission ve tamShared başlangıç/guardedrollback kapısı gerekir. Eski claim silinmez/replay edilmez; yeni ortam/port/DB yaratılmaz. GUI güvenlik reddi aşılmaz; personel/İlker normal ekran ve insan kabulü özgün ID'lerde BEKLİYOR kalır.
+
+## B264 kapalı kabul kuralları ve gerçek tarihsel okuyucu
+
+19 Ekim17:34TR / aynıP03: [d57b2d719c31e7183f7e60aa11abcbb7893cc95f](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/d57b2d719c31e7183f7e60aa11abcbb7893cc95f) yalnız mevcut successor modülüne B264 dalını ve mevcut sharedIO'ya **ayrı salt-okunur** history reader ekledi. Yeni motor/Goal/tracker/DB/port yok. 639/7b kod prefix'i byte-equivalent korunur. Yeni reader, `runPr54SharedOwnerTransition` veya mevcut claimwriter'a seçici olarak bağlanmadı; bu iki yol B264'ü reddetmeye devam eder. Ürün/GUI kodu ve kurulu uygulama paketi değişmedi.
+
+Yeni saf öneri yalnız exactAPP01ef/manifest8754 +CRM6bc/e276 +SUPeb5b37a555cb/manifest1a9 tuple'ını, ayrı `...-b264-successor.json` settings yolunu ve `successor-of-b264...lock.json` öneri yolunu tanır. Mevcut settings/claim dosyası yeniden kullanılmaz. CURRENT OLD, başarısız aday d461/fec değil **e59/ad3/SUP13b**'dir. Paket union'ı current4+new2=exact6; tarihsel d461 yürütülebilir sete sızmaz. Gelecek fresh before/current/ham8rol+2COM/protected/port/parent/taskXML bağları, actual nativeWeakMap continuity ve kazanılmış fiziksel inceleme token'ı zorunludur. Bool/caller digest/generic predecessor seçimi yok;15dkOS ve60sncurrent sınırları korunur. Fonksiyon yalnız öneri baytı üretir, `transitionAuthority:false/applyExecuted:false`; bu tur gerçekcurrent admission/öneri/claim üretimi yapılmadı.
+
+### Gerçek yeni okuma
+
+Exact [PR CI39269586844](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39269586844)/[push CI39269575175](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39269575175) SUCCESS sonrasında root, pinned source dosyalarından no-args `inspectPr54B264PredecessorIO()` çalıştırdı. **14:34:15.885Z B264_PREDECESSOR_HISTORY_VALIDATED**:12named+26outer+8recovery=46literal pin. ACL owner/SYSTEM exact2ACE, hash/no-reparse/hardlink/boyut, eventset ve yeni claim yokluğu önce–sonra doğrulandı. InheritedACL istisnası yalnız iki exactzero recovery/rollbacklock ve aynı protectedparent'tır. ≤8pinbatch/commandlimit/16MiB limitleri; dış ref, duplicate veya fazla event reddi korunur.
+
+Reader çıktısı yalnız tarihsel closure kanıtıdır; canlı current-owner ya da Shared kurulum PASS değildir. `claimCreated:false`, stop/transitionAuthority/apply false; engine hâlâ `ROLLBACK_READBACK_FAILED/QUARANTINED`. Ortak dosya/servis/config/SQL yazması yok; root yalnız mevcut repo dışı audit alanına CreateNew attempt/result kaydetti. Eski source/runtime e59/13b/6bc ve tüm failedjournal/lock/consumedclaim kayıtları korunur.
+
+### Karşılaştırma regresyonu ve dar düzeltmesi
+
+Yeni JS digest'i için tek-frame ad-hoc capture önce `PARITY_DIGEST` ile reddedildi; failure silinmedi. İlk offline ad-hocPS↔JS eşitliği tek başına native uyum sayılmadı. Değişmemiş canonical observer'ın yalnız DryRun'ı actual229f eski özetini doğruladı; ardından immutable tanımların tek-frame native Hash girdisi salt okunur teşhisle alındı. Observe/stabilite döngüsü veya yeni readyreceipt çalıştırılmadı. Üç tanı okuması yeni karşılaştırma regresyonuna özgüdür; kabul edilmiş44sn/Light/CSV tekrarı değildir.
+
+Native4478byte girdisi ile ad-hoc girdisinde owners8 satır/alan/değer/tip/sıra ve COM2 satırın değerleri aynıydı. **Tek fark COM dizisinin sırası:** native Terminal→Hub, ad-hoc/ilkJS Hub→Terminal. YeniJS yalnız bu finitepredecessor için exactTerminal→Hub sırasına düzeltildi; input array sırası sonucu değiştirmez, her isim tekil olmalıdır. Aynı native girdiyle actual229f digest parity PASS. PID/UID/doğum/binding/hash kontrolleri gevşetilmedi. Sistem ownerdrift'i veya hostversiyonu kaynaklı hata iddia edilmez; teknik düzeltme yalnız yeni karşılaştırıcıdadır, historicalengine değişmedi.
+
+Yerel hedefli kontroller:11yeni saf-admission +5yeni readonlyIO +9current-successor +53etkilenenIO/historical =78PASS. Yeni negatifler geçerli başlangıçtan tek alan değişikliğiyle denenir; testfixture alias'ları kopyalandı. Gerçek PS5 sentetik serializer/ACL fixture'ları ve private immutable-history/native-input paritesi yerelde çalıştı. HostedWindowsCI sentetik kontrolleri çalıştırır; private artifact kontrolleri yalnız yerel kanıt olarak ayrıdır. Bağımsız kaynak incelemesi GO; normalGUI/insan kabulü değildir.
+
+| Private kanıt | SHA256 |
+| --- | --- |
+| `owner-b264-history-admission-read-1434-result.json` |719a77b8cd99642e8d8b15f6dab76354330cc295cab3779b50bfc4900d586864|
+| `b264-native-hash-input-1432.json` |6adcdce369676c14c9dd080bbcfdca0979e271b7e35e9ee7e84dde6d8f8d0184|
+
+Repo dışı aynı `reports/integration-audit-20261019/` alanında kaynak/CI pinli operator/attempt ve ilk1421failure/1425diagnostic/tekcanonicalDryRun kaydı saklanır. Ham argv/SID/COM/özelconfig/ticari veriler GitHub'a eklenmez.
+
+**Sonraki tek kapı:** B264 için V2/drainer ve normal physical-inspection çağıranı, tamShared başlangıç ve guardedrollback uyarlanıp kanıtlanmalı. Mevcut mutator FE/7b varsayımlarıyla bu yeni öneriyi yürütemez. Sonrasında taze before/yedek/native/copy/T1false/tek-owner ve exacttuple gerçekten sağlanmadan claim/Apply yok. Bu teslimde büyük kurulum/stop/restart/SQL/gerçek öneri/claim yapılmadı. Yeni kullanıcı parolası veya işletme kararı gerekmiyor; GUI güvenlik engeli ve özgün insan kabulü bekler,49/25 sayıları aynı.
