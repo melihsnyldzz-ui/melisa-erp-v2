@@ -1,0 +1,459 @@
+{
+  "name": "melisa-full-synthetic-draft-20261019",
+  "x-delivery-state": "PREPARATION_ONLY_BLOCKED_NO_SECRETS_NO_DEPLOY",
+  "services": {
+    "sqlserver": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "mcr.microsoft.com/mssql/server:2022-CU22-ubuntu-22.04@sha256:db9a8fe3098b7e8bbde41106bdc7caee942e97124e5fdb71b872ca208de3092d",
+      "platform": "linux/amd64",
+      "env_file": [
+        ".private/sqlserver.env"
+      ],
+      "environment": {
+        "MSSQL_PID": "Developer",
+        "ACCEPT_EULA": "${SQLSERVER_EULA_ACCEPTED:?Pending explicit license acceptance}"
+      },
+      "volumes": [
+        "sql-data:/var/opt/mssql"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "SQLCMDPASSWORD=\"$${MSSQL_SA_PASSWORD}\" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -Q \"SELECT 1\" -b -o /dev/null"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 30,
+        "start_period": "40s"
+      }
+    },
+    "crm-postgres": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "postgres:16-bookworm@sha256:0ea6700a3b4f0ae6ce746519073558aed4d88a79d8d07622a9a644946c7319c4",
+      "env_file": [
+        ".private/crm-postgres.env"
+      ],
+      "environment": {
+        "POSTGRES_DB": "melisa_crm_synthetic",
+        "POSTGRES_USER": "melisa_crm_synthetic"
+      },
+      "volumes": [
+        "crm-pg-data:/var/lib/postgresql/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U melisa_crm_synthetic -d melisa_crm_synthetic"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 15
+      }
+    },
+    "chatwoot-postgres": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "pgvector/pgvector:pg16@sha256:7b822b0aac60967beb1ea5e576b8602c94c300a157d187f385ae3e0da199b90a",
+      "env_file": [
+        ".private/chatwoot-postgres.env"
+      ],
+      "environment": {
+        "POSTGRES_DB": "chatwoot_synthetic",
+        "POSTGRES_USER": "chatwoot_synthetic"
+      },
+      "volumes": [
+        "chatwoot-pg-data:/var/lib/postgresql/data"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "pg_isready -U chatwoot_synthetic -d chatwoot_synthetic"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 15
+      },
+      "command": [
+        "postgres",
+        "-c",
+        "shared_preload_libraries=pg_stat_statements"
+      ]
+    },
+    "redis": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "redis:7.2-bookworm@sha256:46f15cf64fdef63e483dcda99e74e3d51c017b1175547b6bb874152ee2391aad",
+      "env_file": [
+        ".private/redis.env"
+      ],
+      "command": [
+        "redis-server",
+        "/run/melisa/redis.conf"
+      ],
+      "volumes": [
+        "redis-data:/data",
+        "${MELISA_PRIVATE_DIR:?Pending credential approval}/redis.conf:/run/melisa/redis.conf:ro"
+      ],
+      "healthcheck": {
+        "test": [
+          "CMD-SHELL",
+          "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli ping"
+        ],
+        "interval": "10s",
+        "timeout": "5s",
+        "retries": 15
+      }
+    },
+    "chatwoot-prepare": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "chatwoot/chatwoot:v4.14.2-ce@sha256:7d97dd1b1a610448b36f4e9d1f3ab801dd929fa9a774738f1eb5bbfdf6063c63",
+      "env_file": [
+        ".private/chatwoot-prepare.env"
+      ],
+      "volumes": [
+        "chatwoot-media:/app/storage"
+      ],
+      "depends_on": {
+        "chatwoot-postgres": {
+          "condition": "service_healthy"
+        },
+        "redis": {
+          "condition": "service_healthy"
+        }
+      },
+      "entrypoint": [
+        "bundle",
+        "exec",
+        "rails"
+      ],
+      "command": [
+        "db:chatwoot_prepare"
+      ]
+    },
+    "chatwoot": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "chatwoot/chatwoot:v4.14.2-ce@sha256:7d97dd1b1a610448b36f4e9d1f3ab801dd929fa9a774738f1eb5bbfdf6063c63",
+      "env_file": [
+        ".private/chatwoot.env"
+      ],
+      "volumes": [
+        "chatwoot-media:/app/storage"
+      ],
+      "depends_on": {
+        "chatwoot-prepare": {
+          "condition": "service_completed_successfully"
+        }
+      },
+      "entrypoint": [
+        "bundle",
+        "exec",
+        "rails"
+      ],
+      "command": [
+        "s",
+        "-p",
+        "3000",
+        "-b",
+        "0.0.0.0"
+      ]
+    },
+    "chatwoot-worker": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "chatwoot/chatwoot:v4.14.2-ce@sha256:7d97dd1b1a610448b36f4e9d1f3ab801dd929fa9a774738f1eb5bbfdf6063c63",
+      "env_file": [
+        ".private/chatwoot.env"
+      ],
+      "volumes": [
+        "chatwoot-media:/app/storage"
+      ],
+      "depends_on": {
+        "chatwoot-prepare": {
+          "condition": "service_completed_successfully"
+        }
+      },
+      "command": [
+        "bundle",
+        "exec",
+        "sidekiq",
+        "-C",
+        "config/sidekiq.yml"
+      ]
+    },
+    "erp-api": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "build": {
+        "context": "${MELISA_ERP_RELEASE_DIR:?Full pinned release and new synthetic bootstrap are not prepared}",
+        "dockerfile": "${MELISA_ERP_DOCKERFILE:?Set to reviewed erp.draft.Dockerfile after approval}",
+        "args": {
+          "NODE_IMAGE": "node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+          "ODBC_EULA_ACCEPTED": "${ODBC_EULA_ACCEPTED:?Pending explicit driver license acceptance}",
+          "MSODBCSQL18_VERSION": "${MSODBCSQL18_VERSION:?Must pin reviewed ODBC package version}"
+        }
+      },
+      "working_dir": "/opt/melisa/erp/apps/api",
+      "command": [
+        "node",
+        "start-shared-test-copy.mjs",
+        "erp",
+        "/run/melisa/erp-runtime.json"
+      ],
+      "volumes": [
+        "${MELISA_PRIVATE_DIR:?Pending credential approval}/erp-runtime.json:/run/melisa/erp-runtime.json:ro",
+        "erp-files:/opt/melisa/erp/apps/api/uploads"
+      ],
+      "depends_on": {
+        "sqlserver": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "erp-native-api": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "build": {
+        "context": "${MELISA_ERP_RELEASE_DIR:?Pending full release}",
+        "dockerfile": "${MELISA_ERP_DOCKERFILE:?Pending reviewed Dockerfile}",
+        "args": {
+          "NODE_IMAGE": "node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+          "ODBC_EULA_ACCEPTED": "${ODBC_EULA_ACCEPTED:?Pending license acceptance}",
+          "MSODBCSQL18_VERSION": "${MSODBCSQL18_VERSION:?Pending exact ODBC version}"
+        }
+      },
+      "working_dir": "/opt/melisa/erp/apps/api",
+      "command": [
+        "node",
+        "start-shared-test-copy.mjs",
+        "native",
+        "/run/melisa/erp-runtime.json"
+      ],
+      "volumes": [
+        "${MELISA_PRIVATE_DIR:?Pending credential approval}/erp-runtime.json:/run/melisa/erp-runtime.json:ro"
+      ],
+      "depends_on": {
+        "sqlserver": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "crm-gateway": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "build": {
+        "context": "${MELISA_CRM_RELEASE_DIR:?Pending pinned CRM full release}",
+        "dockerfile": "${MELISA_CRM_DOCKERFILE:?Set to reviewed crm.draft.Dockerfile after approval}",
+        "args": {
+          "NODE_IMAGE": "node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5"
+        }
+      },
+      "working_dir": "/opt/melisa/crm/apps/gateway",
+      "command": [
+        "node",
+        "src/server.js"
+      ],
+      "env_file": [
+        ".private/crm-gateway.env"
+      ],
+      "environment": {
+        "WHATSAPP_CRM_PORT": "4812",
+        "WHATSAPP_PROVIDER": "chatwoot",
+        "WHATSAPP_SEND_ENABLED": "false",
+        "WHATSAPP_AUTO_REPLY_ENABLED": "false",
+        "WAAPI_CHATWOOT_BRIDGE_ENABLED": "false",
+        "OPENAI_API_KEY": ""
+      },
+      "volumes": [
+        "crm-files:/opt/melisa/crm/private-runtime"
+      ],
+      "depends_on": {
+        "crm-postgres": {
+          "condition": "service_healthy"
+        },
+        "chatwoot": {
+          "condition": "service_started"
+        },
+        "redis": {
+          "condition": "service_healthy"
+        }
+      }
+    },
+    "full-web": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "image": "nginx:stable-bookworm@sha256:552e7481ca93ffccd046aa658dbbed22caefbc09c66fa7cd247cbb90b8a5c609",
+      "volumes": [
+        "${MELISA_CRM_WEB_DIR:?Pending full CRM build}:/srv/crm:ro",
+        "./nginx.draft.conf:/etc/nginx/conf.d/default.conf:ro"
+      ],
+      "depends_on": {
+        "erp-api": {
+          "condition": "service_started"
+        },
+        "crm-gateway": {
+          "condition": "service_started"
+        },
+        "erp-web": {
+          "condition": "service_started"
+        }
+      }
+    },
+    "erp-web": {
+      "profiles": [
+        "pending-approval"
+      ],
+      "restart": "no",
+      "networks": [
+        "isolated"
+      ],
+      "labels": {
+        "melisa.owner": "cloud-full-test-source",
+        "melisa.state": "draft-not-installed"
+      },
+      "build": {
+        "context": "${MELISA_ERP_RELEASE_DIR:?Full pinned release and new synthetic bootstrap are not prepared}",
+        "dockerfile": "${MELISA_ERP_DOCKERFILE:?Set to reviewed erp.draft.Dockerfile after approval}",
+        "args": {
+          "NODE_IMAGE": "node:24-bookworm-slim@sha256:a5f4366e834695d5f363b920c104953a535d3a9864d1bdf74566a0ebe01daee5",
+          "ODBC_EULA_ACCEPTED": "${ODBC_EULA_ACCEPTED:?Pending explicit driver license acceptance}",
+          "MSODBCSQL18_VERSION": "${MSODBCSQL18_VERSION:?Must pin reviewed ODBC package version}"
+        }
+      },
+      "working_dir": "/opt/melisa/erp/apps/api",
+      "command": [
+        "node",
+        "start-shared-test-copy-web.mjs",
+        "/run/melisa/erp-runtime.json"
+      ],
+      "volumes": [
+        "${MELISA_PRIVATE_DIR:?Pending credential approval}/erp-runtime.json:/run/melisa/erp-runtime.json:ro",
+        "${MELISA_ERP_WEB_DIR:?Pending full Vite build}:/opt/melisa/erp/apps/sites-workflow/dist-business:ro"
+      ],
+      "depends_on": {
+        "erp-api": {
+          "condition": "service_started"
+        },
+        "erp-native-api": {
+          "condition": "service_started"
+        }
+      }
+    }
+  },
+  "networks": {
+    "isolated": {
+      "internal": true
+    }
+  },
+  "volumes": {
+    "sql-data": {},
+    "crm-pg-data": {},
+    "chatwoot-pg-data": {},
+    "redis-data": {},
+    "chatwoot-media": {},
+    "erp-files": {},
+    "crm-files": {}
+  }
+}

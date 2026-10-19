@@ -1,0 +1,17 @@
+# Copy this into each reviewed release context as .dockerignore before build.
+.git
+.private
+**/.private
+.env
+.env.*
+**/.env
+**/.env.*
+**/node_modules
+**/*.pem
+**/*.key
+**/*.pfx
+**/*.p12
+**/*.bak
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm
