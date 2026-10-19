@@ -109,3 +109,10 @@ fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workin
 
 # Reviewed 2026-10-18: three public release commit IDs and manifest SHA pins; no credential.
 69e99264020d9a0fb24641a52ae12fcf8aca4a2d:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:73
+
+# Independently reviewed 2026-10-19 by root and c09_review: public release
+# commit/manifest pins and synthetic fixture constants; no credentials.
+# Exact historical commit/path/rule/line only; no rule or path suppression.
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-observer-cim-order.test.mjs:generic-api-key:253
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:374

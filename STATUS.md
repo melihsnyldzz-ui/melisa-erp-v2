@@ -1,3 +1,9 @@
+## 19 Ekim — immutable hazırlık DryRun hazır; yeni kurulum hâlâ bekliyor
+
+Supervisor2210016d/manifest0d7691e5,371rawGitbyte dosyası; ERP01ef2089veCRM6bc2292dosya ve bağımlılıklar,30protectedjournalref gerçekten doğrulandı. PrepareDryRun **DRY_RUN_READY**:7yeni çıktının referansı hesaplandı, dosyaları oluşturulmadı/servise uygulanmadı. Önceki cfbf archive reddi tarihsel kanıtta korunur. Kurulu e59/13b/6bc aynı.
+
+221exactCI Windows PASS; quality finite-date testinin19gününü beklememesi, secret-scan ise üç publiccommit/manifestpin falsepositive nedeniyle FAILED. Dar datefixture düzeltmesi1/1PASS; iki bağımsız inceleme yalnız exactcfbfcommit:path:rule:line üçfingerprint'e GO verdi. Gitleaks8.30.1 HEADancestry tekrarında0finding/PASS; genel kural/yol muafiyeti veya geçmiş rewrite yok. Yeni PRHEAD'in otomatik CI sonucu ayrıca doğrulanır; eski failedCI yeşil sayılmaz. Güncel30snownerStable/gerçekApply/normalGUI/insan kabulü ayrı bekler.
+
 ## 19 Ekim — P03 kurulum kapısı kapalı; çalışan TEST korundu
 
 Kaynak cfbf7c67 PR54'e push edildi; immutable supervisor371dosyalık paket üretildi, **kurulmadı**. Yeni profile hazırlığı DryRun, Gitarchive'ın WindowsCRLF çıktısının ham GitLF blob pinlerinden farklı olmasını reddetti; inactive ayar yazısı0. Yalnız19Ekim yeni paket üretiminde process-local Git seçenekleriyle rawblob export düzeltildi; geçmiş paket/Gitconfig değiştirilmedi. Gerçek archive→tarstdout/Gitblob karşılaştırması dahil34/34 hedef test PASS; bağımsız kaynak GO.
