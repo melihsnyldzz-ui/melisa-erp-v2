@@ -14,6 +14,10 @@ export function createWorker(assets = new Map(), { reportError = record => conso
         const diagnosticId = crypto.randomUUID();
         const record = { event: 'MELISA_CLOUD_TEST_FAILURE', diagnosticId,
           stage: stages.has(error?.cloudStage) ? error.cloudStage : stage, code: codes.has(error?.code) ? error.code : 'UNEXPECTED_FAILURE' };
+        const keys = ['application', 'cfCaseVariant', 'sqliteCaseVariant', 'migrationName', 'platformPrefix', 'other'];
+        if (record.stage === 'D1_TABLE_INVENTORY' && error?.cloudInventory && keys.every(key => Number.isInteger(error.cloudInventory[key]) && error.cloudInventory[key] >= 0 && error.cloudInventory[key] <= 16)) {
+          record.inventory = Object.fromEntries(keys.map(key => [key, error.cloudInventory[key]]));
+        }
         try { reportError(record); } catch { /* Telemetry failure never changes the response. */ }
         return diagnosticId;
       };

@@ -18,6 +18,18 @@ test('private Worker keeps platform access required and serves ERP/CRM/terminal 
   assert.equal((await worker.fetch(new Request(origin + '/api/cloud-test/session', { headers: { 'oai-authenticated-user-id': 'synthetic-owner-fixture' } }), {})).status, 503);
 });
 
+test('unknown tables stay rejected while inventory telemetry emits only closed category counts', async () => {
+  const records = [], worker = createWorker(new Map(), { reportError: record => records.push(record) });
+  const tables = ['synthetic_state', 'synthetic_sessions', '_CF_metadata', 'SQLite_shadow', '_drizzle_migrations', '__oai_fixture_metadata', 'private_business_fixture'];
+  let writes = 0;
+  const binding = { prepare() { return { all: async () => ({ results: tables.map(name => ({ name, sql: 'synthetic-do-not-log' })) }), run: async () => { writes++; } }; } };
+  const response = await worker.fetch(new Request(origin + '/api/cloud-test/session', { headers: { 'oai-authenticated-user-id': 'synthetic-owner-fixture' } }), { DB: binding });
+  assert.equal(response.status, 503); assert.equal(writes, 0);
+  assert.equal(records[0].stage, 'D1_TABLE_INVENTORY'); assert.equal(records[0].code, 'FOREIGN_STORE');
+  assert.deepEqual(records[0].inventory, { application: 2, cfCaseVariant: 1, sqliteCaseVariant: 1, migrationName: 1, platformPrefix: 1, other: 1 });
+  assert.doesNotMatch(JSON.stringify(records), /synthetic-do-not-log|private_business_fixture|_CF_metadata|__oai_fixture_metadata|_drizzle_migrations/);
+});
+
 test('initialization failures emit only bounded stage/code telemetry and a correlated safe JSON error', async () => {
   const records = [], worker = createWorker(new Map(), { reportError: record => records.push(record) });
   const request = () => new Request(origin + '/api/cloud-test/session?private=synthetic-do-not-log', { headers: {

@@ -351,7 +351,15 @@ async function initialize(db, schemaManaged) {
       columns[2].name !== 'created_at' || !['NUMERIC', 'INTEGER'].includes(columns[2].type.toUpperCase())) fail(409, 'FOREIGN_STORE', 'Unsupported migration bookkeeping schema', 'D1_MIGRATION_SCHEMA');
   }
   const names = tables.map(r => r.name).filter(name => !name.startsWith('_cf_') && !(schemaManaged && ['d1_migrations', '__drizzle_migrations'].includes(name)));
-  if (names.some(name => ![STATE_TABLE, SESSION_TABLE].includes(name)) || (names.length && !names.includes(STATE_TABLE))) fail(409, 'FOREIGN_STORE', 'D1 binding is not a dedicated synthetic store', 'D1_TABLE_INVENTORY');
+  if (names.some(name => ![STATE_TABLE, SESSION_TABLE].includes(name)) || (names.length && !names.includes(STATE_TABLE))) {
+    const inventory = { application: 0, cfCaseVariant: 0, sqliteCaseVariant: 0, migrationName: 0, platformPrefix: 0, other: 0 };
+    for (const name of names) {
+      const category = [STATE_TABLE, SESSION_TABLE].includes(name) ? 'application' : /^_cf_/i.test(name) ? 'cfCaseVariant' : /^sqlite_/i.test(name) ? 'sqliteCaseVariant'
+        : /(?:^|_)(?:drizzle|d1)_migrations?$/i.test(name) ? 'migrationName' : /^_{1,2}(?:oai|openai|sites)(?:_|$)/i.test(name) ? 'platformPrefix' : 'other';
+      inventory[category] = Math.min(16, inventory[category] + 1);
+    }
+    throw Object.assign(new Error('D1 binding is not a dedicated synthetic store'), { status: 409, statusCode: 409, code: 'FOREIGN_STORE', cloudStage: 'D1_TABLE_INVENTORY', cloudInventory: inventory });
+  }
   if (schemaManaged) {
     if (![STATE_TABLE, SESSION_TABLE].every(name => names.includes(name))) fail(503, 'SCHEMA_NOT_READY', 'Apply the synthetic schema migration before starting the preview', 'D1_SCHEMA_REQUIRED');
     for (const [name, expected] of [[STATE_TABLE, STATE_SCHEMA], [SESSION_TABLE, SESSION_SCHEMA]]) {
