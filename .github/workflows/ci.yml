@@ -34,6 +34,8 @@ jobs:
         run: node scripts/ci/run.mjs windows-process-probe
       - name: P03 offline OLD PID diagnostics and private failure recorder
         run: node --test scripts/canonical/p03-old-reuse-diagnostic.test.mjs scripts/canonical/p03-old-reuse-failure-record.test.mjs
+      - name: Current ERP CRM startup profile with in-memory settings and PS policy fixtures
+        run: node --test scripts/canonical/crm06-current-package-profile.test.mjs scripts/canonical/terminal-completion-logon.test.mjs scripts/canonical/crm06-staff-journal-preflight.test.mjs scripts/canonical/wait-erp-for-hub.test.mjs scripts/canonical/crm06-unified-candidate.test.mjs
   quality-build-test:
     name: quality-build-test
     runs-on: ubuntu-latest
