@@ -1,6 +1,6 @@
 param(
  [ValidateSet('Preflight','Backup')][string]$Mode='Preflight',
- [Parameter(Mandatory=$true)][ValidatePattern('^P03-202610(?:18|19)-[0-9]{6}$')][string]$RunId
+ [Parameter(Mandatory=$true)][ValidatePattern('^P03-202610(?:18|19|20)-[0-9]{6}$')][string]$RunId
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
@@ -22,14 +22,14 @@ function Rows([string]$sql){
 }
 function Execute([string]$sql){$command=$p03Connection.CreateCommand();$command.CommandTimeout=1800;$command.CommandText=$sql;try{[void]$command.ExecuteNonQuery()}finally{$command.Dispose()}}
 function Save-New([string]$name,$value){
- $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12));if($RunId.StartsWith('P03-20261019-',[StringComparison]::Ordinal)){$fileAcl=[Security.AccessControl.FileSecurity]::new();$fileAcl.SetAccessRuleProtection($true,$false);$fileOwner=[Security.Principal.WindowsIdentity]::GetCurrent().User;$fileAcl.SetOwner($fileOwner);foreach($fileSid in @($fileOwner,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$fileAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($fileSid,'FullControl','Allow'))};$stream=New-Object IO.FileStream((Join-Path $p03BackupRoot $name),[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$fileAcl)}else{$stream=[IO.File]::Open((Join-Path $p03BackupRoot $name),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)}
+ $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 12));if($RunId -cmatch '^P03-202610(?:19|20)-[0-9]{6}$'){$fileAcl=[Security.AccessControl.FileSecurity]::new();$fileAcl.SetAccessRuleProtection($true,$false);$fileOwner=[Security.Principal.WindowsIdentity]::GetCurrent().User;$fileAcl.SetOwner($fileOwner);foreach($fileSid in @($fileOwner,[Security.Principal.SecurityIdentifier]::new('S-1-5-18'))){$fileAcl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new($fileSid,'FullControl','Allow'))};$stream=New-Object IO.FileStream((Join-Path $p03BackupRoot $name),[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$fileAcl)}else{$stream=[IO.File]::Open((Join-Path $p03BackupRoot $name),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)}
  try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
 }
 try{
  $p03Connection.Open()
  $identity=@(Rows "SELECT CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)) serverName,DB_NAME() databaseName,IS_SRVROLEMEMBER('sysadmin') isAdmin,CONVERT(int,SERVERPROPERTY('EngineEdition')) edition")[0]
  if($identity.serverName -cne $p03Server -or $identity.databaseName -cne $p03Database -or $identity.isAdmin -ne 1){throw 'P03_WRONG_TEST_IDENTITY'}
- if($RunId.StartsWith('P03-20261019-',[StringComparison]::Ordinal)){$seal=@(Rows "SELECT COUNT_BIG(*) n FROM dbo.stage4_copy_manifest WHERE copy_id='e16b70f0-4057-428b-9abc-6bbcaf35fe82' AND sealed=1")[0];if($seal.n-ne1){throw 'P03_CURRENT_COPY_IDENTITY'}}
+ if($RunId -cmatch '^P03-202610(?:19|20)-[0-9]{6}$'){$seal=@(Rows "SELECT COUNT_BIG(*) n FROM dbo.stage4_copy_manifest WHERE copy_id='e16b70f0-4057-428b-9abc-6bbcaf35fe82' AND sealed=1")[0];if($seal.n-ne1){throw 'P03_CURRENT_COPY_IDENTITY'}}
  $files=@(Rows 'SELECT name,type_desc,CAST(size AS bigint)*8192 sizeBytes FROM sys.database_files ORDER BY file_id')
  if($files.Count -ne 2 -or $files[0].name -cne 'MELISA_ERP_V2' -or $files[1].name -cne 'MELISA_ERP_V2_log'){throw 'P03_TEST_FILE_IDENTITY_MISMATCH'}
  $needed=[long]($files|Measure-Object sizeBytes -Sum).Sum+10GB
@@ -55,7 +55,7 @@ try{
  $fileInfo=Get-Item -LiteralPath $p03BackupFile
  if($fileInfo.Length -le 0){throw 'P03_EMPTY_BACKUP'}
  $proof=[ordered]@{runId=$RunId;server=$p03Server;database=$p03Database;backupFile=$p03BackupFile;bytes=$fileInfo.Length;sha256=(Get-FileHash -LiteralPath $p03BackupFile -Algorithm SHA256).Hash.ToLowerInvariant();startedAt=$started;completedAt=[DateTime]::UtcNow.ToString('o');backupSetGuid=[string]$header[0].BackupSetGUID;firstLsn=[string]$header[0].FirstLSN;lastLsn=[string]$header[0].LastLSN;copyOnly=$true;checksumVerified=$true;restoreVerifyOnly=$true;restoreRehearsed=$false;independentDeviceCopy=$false;sourceRestarted=$false;commercialWrites=$false;deploymentPermitted=$false}
- if($RunId.StartsWith('P03-20261019-',[StringComparison]::Ordinal)){$proof.copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';$proof.actualT1=$false;$proof.observedAt=$proof.completedAt}
+ if($RunId -cmatch '^P03-202610(?:19|20)-[0-9]{6}$'){$proof.copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';$proof.actualT1=$false;$proof.observedAt=$proof.completedAt}
  Save-New 'backup-verified.json' $proof
  $proof|ConvertTo-Json -Depth 5
 }finally{$p03Connection.Dispose()}

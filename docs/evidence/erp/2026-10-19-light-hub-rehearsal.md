@@ -150,3 +150,14 @@ Yedi hedef kontrol/Windowsparse PASS, bağımsız kaynakreviewGO; bu sentetik ko
 Önceki745e940d exactCI secret-scan tek yanlış pozitifti; bağımsız inceleme sonrası yalnız tamfingerprint eklendi. dadd3db427f89c995fa696709a7d5685bf1479ec [PR39407170028](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39407170028) ve [push39407164380](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39407164380) tümüSUCCESS. Sonraki kaynak head için CI ayrıca doğrulanır.
 
 KuruluTEST korunur; fullSharedbaşlangıç/guardedrollback/yeniB264claim ve taze native/yedek/before kapıları açıktır. Bu teslim henüz kurulum değildir.
+
+
+## 20 Ekim — B264 NEW-owner kurtarma ve yeni tarihli native kanıt hazırlığı
+
+Yeni additive adapter pinliV2/helper/observer AST tanımlarını çağırır; orijinal dispatcher ve tarihsel journal çalıştırılmaz/değişmez. Doğrulanabilir0..10altkümeleri gerçekV2collector ile sentetik test edildi; Hublineage tamclosure, strictprobe ve console doğalçıkışı, oldPID/SQL koruması sürer. COREyetimchild/HubWatcherkanıtsızHub kapalıret kalır. COMstop öncesi heldcore+kalıcıcutintent; doğalexit gerçekforcekill gibi raporlanmaz. Bağımsızreview'da canonicalstopdigest ve stopperhash/execute yarışı bulundu; exactdigest ve childtamamlanana kadar deny-writehold ile kapandı.
+
+NEW9 + native/tarih/prefix38 = root47PASS/0skip; bağımsız9/38GO. Bunlar kaynak/mockedWindows provaları; actualDrain/rollback/fullShared/insanPASS değil. YeniPS dosyası -text ile hashbytes korunur.
+
+Gerçek DB02 native kontrolü20Ekim10:30:53.5594930Z QueryStoreREAD_WRITE ve sourceLSNfarkı nedeniyle eski19snapshotın yeniden kullanımını reddetti. DB/copy/seal/T1/GUID/fork aynı; iş verisi değişti sonucu çıkarılmadı. Yeni yedek/sourcecapture henüz çalıştırılmadı, SQLayar değişmedi. Mevcutbackup/snapshot araçları yalnız19|20 finitepath ve20runfloor için genişletildi; eski19nativefactory/prefix aynen, additive20factory typed17field+READ_ONLY+exactLSN/fork+genuine60s token koşullarını korur. Eski kanıtın tarihini değiştirme veya restore yok.
+
+Önceki kaynak f361c27d56a1ff1ac845f8c28ad90c0eda03d5a2 exactPR39408237573/push39408229685 SUCCESS. Bu sonraki kaynakhead için CI ayrı doğrulanır. FullSharedstartup/guardedrollback/taze native/yedek/before/tek-owner halen açık; yeniB264claim ve kurulum0, mevcutTEST korunur.

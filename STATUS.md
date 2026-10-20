@@ -1,3 +1,11 @@
+## 20 Ekim — P03 NEW kurtarma kaynağı ve taze native kanıt gereksinimi
+
+Additive B264 NEW recovery: frozenV2/8partialhelper/probehelper/NEWobserver/normalobserver hashli AST tanımları kullanılır; eski kaynak bytes/journal/FAILED/QUARANTINED değişmez. Sayıya göre8partial sınırı yerine doğrulanabilir0..10altkümeleri, Hublineage ve hamprobe/console sınıflandırması korunur. Corehandle+durablecutintent COMstop öncesinde; doğalcoreexit ile gerçekstopper sonucu ayrı yazılır. Canonicalplan/corefirstdigest exact hesaplanır; stopper deny-write handle çocuk süreç tamamlanana kadar tutulur. Başlangıçta core'suz canlı native veya kanıtsızHub altkümesi güvenli ret: bütün başlangıç arızaları kurtarılır iddiası yok. Bağımsızreview ikiP2'yi buldu/düzeltildi, finalGO;9hedefPASS0skip.
+
+Gerçek native yeniden kullanım kontrolü20Ekim10:30:53.5594930Z: DB02/copy/seal/T1/GUID/fork eşliği doğru; QueryStore actualREAD_WRITE ve sourceLSN farklı. Eski19Ekim snapshotı taze nativecontinuity diye kabul edilmedi. Bu fark tek başına ticari veri değişimi veya yetkisiz yazma kanıtı değildir. Private diagnostic raporda; ham ticari veri GitHub'a yok. SQLconfig/businesswrite/restore/restart yapılmadı. Gerekli taze yedek/sourcecapture mevcut araçlara yalnız20Ekim tarihli finitepath desteği eklenerek hazırlanıyor; datedrunfloor eski19kanıtın20diyeetiketlenmesini reddeder. Legacy19factory/prefix hashı korunur; additive20nativefactory aynı typed17field/READ_ONLY/LSNfork/60snWeakMap doğrulamasını kullanır.
+
+Root birleşik47/47hedefPASS0skip (9NEW+38etkilenen), bağımsızNEW9 ve native38GO. Private log reports/integration-audit-20261020/b264-new-recovery-and-current-native-final.txt. Önceki f361c27d56a1ff1ac845f8c28ad90c0eda03d5a2 exactPR39408237573/push39408229685 tüm3jobSUCCESS; bu yeniheadCIpushsonrası ayrıca doğrulanacak. Kurulu e59/13b/6bc korunur; B264claim/Apply/stop/install0. OLDcutadapter incelemede, gerçekstartup/guardedrollback ve taze native/yedek/before/tek-owner kapanmadan kurulum yok. İnsan/GUI/cihaz49/25aynı.
+
 ## 20 Ekim — P03 bugünkü sahiplik ön gözlemi ve CI onarımı
 
 CI düzeltmesi dadd3db427f89c995fa696709a7d5685bf1479ec exact PR39407170028 / push39407164380 completed SUCCESS; quality-build-test, Windows ve secret-scan üçü de yeşil. 745e940d tek yanlış pozitif kaydı yalnız exact fingerprint ile düzeltildi; tarama kapsamı korunur.
