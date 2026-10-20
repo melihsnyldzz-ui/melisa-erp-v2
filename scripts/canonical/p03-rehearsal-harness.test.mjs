@@ -113,7 +113,8 @@ test('wrapped physical-engine refusal retains only the fixed inner P03 code',{sk
 test('explicit B264V2 mode selects only the same frozen private engine and preserves default rehearsal source payload',()=>{
  assert.equal(parseP03RehearsalMode(['--B264V2DryRun']),'B264V2DryRun');assert.equal(parseP03RehearsalMode(['--B264V2Run']),'B264V2Run');
  for(const args of [['--b264v2run'],['--B264V2Run','--Run'],['--engine','other'],['--B264V2Run-anything']])assert.throws(()=>parseP03RehearsalMode(args));
- const directory=String.raw`C:\synthetic\scripts\canonical`,v2=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n')),calls=[];
+ // Synthetic frozen-runtime fixture only: remove the additive source recorder; production pins stay99b.
+ const directory=String.raw`C:\synthetic\scripts\canonical`,v2=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n').replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'')),calls=[];
  const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,fs:{lstatSync:file=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:file=>{calls.push(file);return file===P03_B264_V2_ENGINE.path?v2:Buffer.from('fixture:'+path.win32.basename(file));}}};
  const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=mode=>JSON.parse(JSON.stringify(make(directory,mode)));
  const dry=fresh('B264V2DryRun'),run=fresh('B264V2Run'),legacy=fresh('DryRun');
@@ -122,6 +123,9 @@ test('explicit B264V2 mode selects only the same frozen private engine and prese
  context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?Buffer.from('changed'):Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
  // Fixture canonicalization does not relax the production raw-byte engine pin.
  context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?Buffer.from(v2.toString('utf8').replaceAll('\n','\r\n')):Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
+ // The new error-record source is not the frozen runtime and must be rejected.
+ const revised=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'));
+ context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?revised:Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
 });
 test('Windows PS5 V2 request gate rejects wrong source/hash/generation without IO or task creation',{skip:process.platform!=='win32'},()=>{
  const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");

@@ -33,8 +33,8 @@ function safe(result){
  assert.equal(result.physicalChecks,'NOT_EVALUATED');
  assert.doesNotMatch(JSON.stringify(result),/private-sentinel|secret-argv|secret\.exe/);
 }
-test('frozen engine is unchanged; diagnostic imports only AST guard and watcher predicate, not a dispatcher',()=>{
- assert.equal(crypto.createHash('sha256').update(fs.readFileSync(engine,'utf8').replaceAll('\r\n','\n')).digest('hex'),'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
+test('failure-record additions recover exact frozen engine; diagnostic labels current source honestly',()=>{
+ assert.equal(crypto.createHash('sha256').update(fs.readFileSync(engine,'utf8').replaceAll('\r\n','\n').replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'')).digest('hex'),'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
  const text=fs.readFileSync(source,'utf8');
  assert.match(text,/AssertOldPidLifetimes','IsWatcherCommand/);
  assert.doesNotMatch(text,/Get-CimInstance|Invoke-CimMethod|Get-NetTCPConnection|GetProcessById|Start-Process|Stop-Process|ScheduledTask|New-Object.*ComObject|SqlConnection|WriteAll|Set-Content/);
@@ -52,7 +52,7 @@ test('same old lifetime still live is rejected by actual birth guard',windows,()
 });
 test('same PID with later birth reaches explicit offline boundary, never physical admission',windows,()=>{
  const r=run('$result=Get-P03OldReuseDiagnostic $ctx $inv');safe(r);
- assert.equal(r.status,'OFFLINE_BOUNDARY');assert.equal(r.rejectingGuard,null);
+ assert.equal(r.status,'OFFLINE_BOUNDARY');assert.equal(r.rejectingGuard,null);assert.equal(r.sourceRevision,'FAILURE_RECORD_SOURCE');assert.notEqual(r.sourceSha256,'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
  assert.ok(r.checks.some(x=>x.guard==='OLD_LIFETIME_PRESENT'&&x.accepted));
  assert.ok(r.checks.some(x=>x.guard==='OLD_REUSE_NEW_LIFETIME'&&x.accepted));
  assert.ok(!r.checks.some(x=>x.guard==='OLD_REUSE_IDENTITY'||x.guard==='OLD_REUSE_IMAGE'));

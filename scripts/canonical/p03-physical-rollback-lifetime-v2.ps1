@@ -68,7 +68,74 @@ function OldReusePin($row){
  $sid=Invoke-CimMethod -InputObject $row -MethodName GetOwnerSid -ErrorAction Stop;Need ($sid.ReturnValue -eq 0 -and $sid.Sid -ceq $owner) 'OLD_REUSE_OWNER'
  return [pscustomobject]@{pid=[int]$row.ProcessId;parentPid=[int]$row.ParentProcessId;nodePath=[string]$row.ExecutablePath;commandLine=[string]$row.CommandLine;ownerSid=$sid.Sid;creationTime=$row.CreationDate.ToUniversalTime().ToString('o');imageHash=(Get-FileHash -LiteralPath $row.ExecutablePath -Algorithm SHA256).Hash}
 }
+# P03_FAILURE_RECORD_BEGIN
+# Source-only failure-record revision; no caller/runtime pin is changed here.
+function WriteOldReuseFailureRecord($failure,$inventory,$row,[string]$guardDefinition){
+ function RecordValue($obj,$name){if($null -ne $obj){$p=$obj.PSObject.Properties[$name];if($null -ne $p){return $p.Value}};return $null}
+ function RecordInt($v){$number=0;if($null -ne $v -and [int]::TryParse([string]$v,[ref]$number) -and $number -ge 0){return $number};return $null}
+ function RecordBirth($v){
+  if($null -eq $v -or [string]::IsNullOrWhiteSpace([string]$v)){return [ordered]@{status='UNKNOWN';utc=$null}}
+  try{$birth=if($v -is [DateTime]){$v}else{[DateTime]::Parse([string]$v)};return [ordered]@{status='SUPPLIED';utc=$birth.ToUniversalTime().ToString('o')}}catch{return [ordered]@{status='UNKNOWN';utc=$null}}
+ }
+ function RecordSha($v){if([string]$v -cmatch '\A[a-f0-9]{64}\z'){return [string]$v};return 'UNKNOWN'}
+ $all=@((RecordValue $inventory 'all')|Where-Object{$null -ne $_});$listeners=@((RecordValue $inventory 'allListeners')|Where-Object{$null -ne $_});$instances=@((RecordValue $inventory 'instances')|Where-Object{$null -ne $_})
+ Need ($all.Count -le 8192 -and $listeners.Count -le 8192 -and $instances.Count -le 256) 'FAILURE_RECORD_BOUNDS'
+ $expected=@();$roles=@('erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer','hub','coreSupervisor','terminalWatcher','hubWatcher')
+ $identities=RecordValue $before 'identities'
+ if($null -ne $identities){foreach($entry in $identities.PSObject.Properties){$expected+=,[ordered]@{role=$(if($entry.Name -cin $roles){$entry.Name}else{'UNKNOWN'});pid=(RecordInt (RecordValue $entry.Value 'pid'));birth=(RecordBirth (RecordValue $entry.Value 'creationTime'))}}}
+ $watchers=@((RecordValue $profile 'oldWatchers')|Where-Object{$null -ne $_})
+ for($i=0;$i -lt $watchers.Count;$i++){$expected+=,[ordered]@{role=('oldWatcher['+$i+']');pid=(RecordInt (RecordValue $watchers[$i] 'pid'));birth=(RecordBirth (RecordValue $watchers[$i] 'creationTime'))}}
+ Need ($expected.Count -le 64) 'FAILURE_RECORD_PIN_BOUNDS'
+ $captured=Get-Variable capturedCandidatePids -Scope Script -ErrorAction SilentlyContinue
+ $candidateIds=@(if($null -ne $captured -and $null -ne $captured.Value){$captured.Value|ForEach-Object{RecordInt $_}})
+ Need ($candidateIds.Count -le 64) 'FAILURE_RECORD_CANDIDATE_BOUNDS'
+ $safeFailure=FailureDiagnostic $failure
+ $sourceFile=$MyInvocation.MyCommand.ScriptBlock.File
+ $sourceSha=if(-not[string]::IsNullOrWhiteSpace($sourceFile)){Hash ([IO.File]::ReadAllBytes($sourceFile))}else{'UNKNOWN'}
+ $triggerPid=RecordInt (RecordValue $row 'ProcessId')
+ $payload=[ordered]@{
+  schemaVersion='melisa-p03-old-pid-failure.v1';sourceRevision='FAILURE_RECORD_SOURCE';sourceFileSha256=$sourceSha
+  guardDefinitionSha256=(Hash ([Text.UTF8Encoding]::new($false).GetBytes($guardDefinition.Replace("`r`n","`n"))))
+  observedAt=[DateTime]::UtcNow.ToString('o');phase='AssertOldPidLifetimes';mode=$(if($Mode -cin @('PreflightOld','PreflightNew','StopNew','RollbackOld')){$Mode}else{'UNKNOWN'})
+  environment=$(if($Environment -cin @('Shared','Rehearsal')){$Environment}else{'UNKNOWN'});culture=[Globalization.CultureInfo]::CurrentCulture.Name;timeZoneId=[TimeZoneInfo]::Local.Id
+  profileSha256=(RecordSha $ProfileSha256);beforeSha256=(RecordSha $BeforeImageSha256);candidateSha256=(RecordSha $CandidateSha256)
+  oldSettingsSha256=(RecordSha (RecordValue (RecordValue $profile 'oldSettings') 'sha256'));newSettingsSha256=(RecordSha (RecordValue (RecordValue $profile 'newSettings') 'sha256'))
+  failure=$safeFailure;trigger=[ordered]@{pid=$triggerPid;birth=(RecordBirth (RecordValue $row 'CreationDate'));roles=@($expected|Where-Object{$null -ne $triggerPid -and $_.pid -eq $triggerPid}|ForEach-Object{$_.role})}
+  expected=$expected;capturedCandidatePidsKnown=($null -ne $captured -and $null -ne $captured.Value);capturedCandidatePids=$candidateIds
+  inputOrigin='SAME_ASSERT_ARGUMENT';projection='PID_BIRTH_TOPOLOGY_ONLY';fullGuardReplayAvailable=$false
+  inventory=[ordered]@{
+   allKnown=($null -ne $inventory.PSObject.Properties['all'] -and $null -ne $inventory.PSObject.Properties['all'].Value);all=@($all|ForEach-Object{[ordered]@{ProcessId=(RecordInt (RecordValue $_ 'ProcessId'));ParentProcessId=(RecordInt (RecordValue $_ 'ParentProcessId'));birth=(RecordBirth (RecordValue $_ 'CreationDate'))}})
+   allListenersKnown=($null -ne $inventory.PSObject.Properties['allListeners'] -and $null -ne $inventory.PSObject.Properties['allListeners'].Value);allListeners=@($listeners|ForEach-Object{[ordered]@{OwningProcess=(RecordInt (RecordValue $_ 'OwningProcess'))}})
+   instancesKnown=($null -ne $inventory.PSObject.Properties['instances'] -and $null -ne $inventory.PSObject.Properties['instances'].Value);instances=@($instances|ForEach-Object{[ordered]@{EnginePID=(RecordInt (RecordValue $_ 'EnginePID'))}})
+  }
+  admissionGranted=$false;stopAuthority=$false;applyExecuted=$false
+ }
+ $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($payload|ConvertTo-Json -Depth 16 -Compress));Need ($bytes.Length -le 2097152) 'FAILURE_RECORD_SIZE'
+ $sha=Hash $bytes
+ # No artifact is placed in the recovery journal: its empty/chain gates stay exact.
+ Need ($Mode -cin @('PreflightOld','PreflightNew','StopNew','RollbackOld') -and $Environment -cin @('Shared','Rehearsal')) 'FAILURE_RECORD_CONTEXT'
+ $recordProfile=[IO.Path]::GetFullPath($ProfilePath);$recordBefore=[IO.Path]::GetFullPath($BeforeImagePath);$recordRoot=[IO.Path]::GetDirectoryName($recordProfile)
+ if($Environment -ceq 'Rehearsal'){
+  Need ($recordProfile -cmatch '\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\profile\.json\z' -and $recordBefore -ceq (Join-Path $recordRoot 'before.json') -and $profile.journalDirectory -ceq (Join-Path $recordRoot 'recovery')) 'FAILURE_RECORD_PATH'
+ }else{
+  Need ($recordProfile -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-profile-[a-f0-9]{32}\.json\z' -and $recordBefore -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z' -and $profile.journalDirectory -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'FAILURE_RECORD_PATH'
+ }
+ $target=Join-Path $recordRoot ('old-pid-failure-'+$sha+'.json');Protected $recordRoot
+ WriteOldReuseFailureFile $target $bytes
+ [void](ReadPinned $target $sha)
+ $failure.Exception.Data['P03OldPidFailureRecordSha256']=$sha
+}
+function WriteOldReuseFailureFile([string]$target,[byte[]]$bytes){
+ $security=[Security.AccessControl.FileSecurity]::new();$security.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$security.SetAccessRuleProtection($true,$false)
+ foreach($sid in @($owner,'S-1-5-18')){[void]$security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),[Security.AccessControl.FileSystemRights]::FullControl,[Security.AccessControl.AccessControlType]::Allow))}
+ $stream=New-Object IO.FileStream($target,[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$security)
+ try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
+}
+# P03_FAILURE_RECORD_END
 function AssertOldPidLifetimes($inventory){
+# P03_FAILURE_RECORD_BEGIN
+ try {
+# P03_FAILURE_RECORD_END
  $candidateIds=if(Get-Variable capturedCandidatePids -Scope Script -ErrorAction SilentlyContinue){@($script:capturedCandidatePids)}else{@()}
  $old=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)
  $oldIds=@($old|ForEach-Object{[int]$_.pid})
@@ -103,6 +170,13 @@ function AssertOldPidLifetimes($inventory){
   foreach($pair in @(@($row,$proof.child),@($parent[0],$proof.parent))){NoReparse $pair[0].ExecutablePath;Need ((Get-FileHash -LiteralPath $pair[0].ExecutablePath -Algorithm SHA256).Hash -ceq $pair[1].imageHash) 'OLD_REUSE_IMAGE'}
  }
  return $observed
+# P03_FAILURE_RECORD_BEGIN
+ }catch{
+  $originalFailure=$_
+  try{[void](WriteOldReuseFailureRecord $originalFailure $inventory (Get-Variable row -Scope 0 -ValueOnly -ErrorAction SilentlyContinue) $MyInvocation.MyCommand.Definition)}catch{}
+  throw
+ }
+# P03_FAILURE_RECORD_END
 }
 function Inventory{
  $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
@@ -296,6 +370,10 @@ function FailureDiagnostic($failure){
  $type=$failure.Exception.GetType().FullName;if($type -cnotin $known){$type='OtherException'}
  $line=[int]$failure.InvocationInfo.ScriptLineNumber;if($line -lt 1 -or $line -gt 10000){$line=0}
  $code=if($failure.Exception.Message -cmatch '\AP03_PHYSICAL_[A-Z0-9_]{1,80}\z'){$failure.Exception.Message}else{'P03_PHYSICAL_UNCLASSIFIED'}
+# P03_FAILURE_RECORD_BEGIN
+ $recordSha=$failure.Exception.Data['P03OldPidFailureRecordSha256']
+ if([string]$recordSha -cmatch '\A[a-f0-9]{64}\z'){return [ordered]@{exceptionType=$type;sourceLine=$line;code=$code;oldPidFailureRecordSha256=[string]$recordSha}}
+# P03_FAILURE_RECORD_END
  return [ordered]@{exceptionType=$type;sourceLine=$line;code=$code}
 }
 function Append([string]$event,$extra=$null,$failure=$null){
