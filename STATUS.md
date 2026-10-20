@@ -1,3 +1,11 @@
+## 20 Ekim — P03 bugünkü sahiplik ön gözlemi ve CI onarımı
+
+CI düzeltmesi dadd3db427f89c995fa696709a7d5685bf1479ec exact PR39407170028 / push39407164380 completed SUCCESS; quality-build-test, Windows ve secret-scan üçü de yeşil. 745e940d tek yanlış pozitif kaydı yalnız exact fingerprint ile düzeltildi; tarama kapsamı korunur.
+
+Yeni salt-okunur current-before köprüsü eski a79df sabit-PID capture'ını çağırmaz. PinnedV2 engine fonksiyonları strictACL/hash/deny-write handle altında AST olarak alınır; dispatcher çalışmaz. Bugünkü8uygulama+2watcher,2COM,görevXML,argv/SID/doğum/parent ve typedSQLservice/PID iki bütün frame'de karşılaştırılır; sourceProof preliminary/physicalAdmissionRequired, claimCreated=false/transitionAuthority=false. Hedefli7/7PASS0skip; bağımsızreviewGO. İlk gerçek okumada komut satırının tırnak temsil farkı reddedildi; ön gözlemde tokens eşitliğiyle çözülürken rawargv aynen korundu, finalphysicalguard değişmedi. Son gerçek okuma 20Ekim10:26:16.5002594Z:8rol+2watcher ön gözlem kaydı private reports/integration-audit-20261020/b264-current-before-readonly-final.json. Bu anlık ölçüm taze native/yedek veya admission yerine geçmez.
+
+Kurulu e59/13b/6bc/DB02 korunur. YeniB264claim, stop/restart/kurulum/ayar/ticariSQL yazısı0. Aynı işte additive NEWrecovery ve heldOLDcut kaynakları geliştirme/incelemededir; fullShareddispatcher ve guardedrollback, taze native/before/yedek ve tek-owner gerçek kapıları kapanmadan Apply yok. Teknik/GUI/cihaz/insan kabulü ayrıdır; özgün49/25 değiştirilmedi.
+
 ## 20 Ekim — P03 exact CI yanlış pozitif düzeltmesi
 
 745e940d exact PR CI39405346007: quality-build-test ve windows-startup-test SUCCESS, secret-scan FAILURE (tek generic-api-key bulgusu, physical-profile-create.mjs:85). Yerel64PASS sonucu CI başarısı yerine kullanılmadı. Root ve bağımsız b264_inspection_review satırın tüm literal değerlerini doğruladı: tüketilmiş639/7b/B264 çalışma kimlikleri, gerçek Git commit kimlikleri ve manifestSHA256; erişim sırrı yok. Mevcut dar prosedürle yalnız745e940d tam commit/path/rule/line fingerprint'i eklendi; scanner/workflow/path/rule kapsamı değişmedi. Yeni exact head CI push sonrası doğrulanacak. Kurulu TEST/DB02/ayar/servis değişmedi; fullShared ve guarded rollback açık, kaynak CI onarımı kurulum değildir.

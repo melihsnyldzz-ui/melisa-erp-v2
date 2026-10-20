@@ -139,3 +139,14 @@ Yerel log repo dışında `C:/Sirket/ERP/reports/integration-audit-20261020/b264
 Güncel salt-okunur port/CIM/iki görev ve API/native test-health okuması: kurulu ERP e59e07ab / CRM6bc / supervisor13b, DB02/copye16b/actualT1false,11listener ve ikiRunninggörev. API/native ok:true; port process release kökleri aynı paketlere aittir. Süreç doğumları20Ekim olduğundan önceki19Ekim229f stable-owner kaydı fresh admission olarak kullanılamaz. Bu tek sağlık ölçümü tam native veri/backup sürekliliği veya normal GUI kabulü değildir. Private config sırları/ticari veriler GitHub'a eklenmedi; canonical kullanıcı dirty package-npm.test.mjs SHA d518d180... aynı kaldı.
 
 **Kalan gerçek kapı:** fullShared başlangıç/guardedrollback ve bugünkü ownership dönemi için taze native/yedek/before/tek-owner kabulü. Tüketilmiş claim tekrar edilmez; eski ready receipt güncel diye sunulmaz. Bu koşullar kanıtlanmadan stop/restart/Apply yok. Mevcut TEST korunarak gerekli sürüm güncellenecek; LIVE/T1/gerçek ticari yazma yetkisi genişletilmedi. Mal kabul/satış/kasa/CRM ve insan/cihaz kabulü bu kontrol kaynağı bitti diye tamam sayılmaz.
+
+
+## 20 Ekim — Bugünkü Windows/SQL sahipliği için ön gözlem
+
+Kaynak current-before köprüsü, tarihsel sabit PID'li capture yerine aynı kurulu oldsettings'in10rolünü iki ardışık bütün frame'de okur. ExactV2/ACL/hash/heldsource ve yedi AST fonksiyonu; uygulama dispatcher'ı, stop veya writer çağrısı yok. COM/görevXML/hamargv/SID/doğum/parent/typedSQLservice değişirse bütün gözlem reddedilir. Tokeneşitliği yalnız quote temsilini karşılaştırır; saklanan hamargv ve sonraki bağımsız physical admission korunur. İç süreç hataları hamstdout/stderr taşımadan sabitP03 koduna çevrilir.
+
+Yedi hedef kontrol/Windowsparse PASS, bağımsız kaynakreviewGO; bu sentetik kontroller insan kabulü değildir. Root gerçek20Ekim10:26:16.5002594Z gözleminde8rol+2watcher/2COM/currentSQL aldı; privateJSON GitHub'a yüklenmedi. Ön gözlem geçiş yetkisi üretmez; claimCreated=false/applyExecuted=false/transitionAuthority=false. İlk quote-format ret kaydı hatalı kurulum veya veri değişimi diye sunulmaz.
+
+Önceki745e940d exactCI secret-scan tek yanlış pozitifti; bağımsız inceleme sonrası yalnız tamfingerprint eklendi. dadd3db427f89c995fa696709a7d5685bf1479ec [PR39407170028](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39407170028) ve [push39407164380](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39407164380) tümüSUCCESS. Sonraki kaynak head için CI ayrıca doğrulanır.
+
+KuruluTEST korunur; fullSharedbaşlangıç/guardedrollback/yeniB264claim ve taze native/yedek/before kapıları açıktır. Bu teslim henüz kurulum değildir.
