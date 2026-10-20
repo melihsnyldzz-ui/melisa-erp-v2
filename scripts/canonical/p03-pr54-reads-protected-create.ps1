@@ -2,7 +2,7 @@ param(
  [Parameter(Mandatory=$true)][string]$Target,
  [Parameter(Mandatory=$true)][string]$Template,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedSha256,
- [ValidateSet('Legacy','B264')][string]$Generation='Legacy',
+ [ValidateSet('Legacy','B264','CurrentB007')][string]$Generation='Legacy',
  [switch]$VerifyOnly
 )
 Set-StrictMode -Version Latest
@@ -20,6 +20,7 @@ try{
 }
 $erp='C:\Sirket\ERP\runtime\terminal-completion-logon'
 $crm='C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014'
+if($Generation -ieq 'CurrentB007' -and $Generation -cne 'CurrentB007'){throw 'GENERATION_REJECTED'}
 $oldSettings=$erp+'\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'
 $oldReceipt=$crm+'\staff-refresh-successor-6bc82e6fe972-erp-e59e07abf7ae.json'
 $allowed=@(
@@ -40,6 +41,18 @@ if($Generation -ceq 'B264'){
   ($erp+'\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
   ($crm+'\staff-refresh-successor-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
   ($crm+'\journal-physical-preflight-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json')
+ )
+}
+if($Generation -ceq 'CurrentB007'){
+ $allowed=@(
+  ($erp+'\erpApiNative-6dc33f417373-dependency-lock.json'),
+  ($erp+'\crm-7ba6e4ebc8b7-node24-dependency-lock.json'),
+  ($erp+'\crm-activation-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
+  ($erp+'\hub-pin-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
+  ($erp+'\hub-startup-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
+  ($erp+'\settings-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
+  ($crm+'\staff-refresh-successor-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
+  ($crm+'\journal-physical-preflight-7ba6e4ebc8b7-erp-6dc33f417373-current.json')
  )
 }
 if(-not($allowed -ccontains $Target)){throw 'TARGET_REJECTED'}

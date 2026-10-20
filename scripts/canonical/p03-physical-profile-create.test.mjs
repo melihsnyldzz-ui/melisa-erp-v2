@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {buildP03PhysicalProfile,deriveP03CandidateRules,validateP03ProtectedSqlService,P03_SQL_SERVICE_CAPTURE_PS} from './p03-physical-profile-create.mjs';
+import {crm06StaffSuccessorProfile,CRM06_STAFF_CURRENT_CRM_PACKAGE,CRM06_STAFF_CURRENT_ERP_PACKAGE,CRM06_STAFF_ERP_PR53_CI_PACKAGE,CRM06_STAFF_INTEGRATED_CRM_PACKAGE,CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME} from './crm06-staff-refresh-successor.mjs';
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 function fixture(){
  const ownerSid='S-1-5-21-2170750028-1005938530-2568122015-1001',database='MELISA_ERP_CRM_SHARED_TEST_20261009_02',copyId='fixture-copy';
@@ -96,4 +97,27 @@ test('Sup20d physical builder accepts only the immutable prepared tuple in its e
  assert(profile.packages.some(p=>p.root===f.newSettings.supervisor.packageRoot&&p.sourceCommit===f.newSettings.supervisor.sourceCommit&&p.manifestSha256===f.newSettings.supervisor.manifestSha256));
  for(const change of [x=>x.generation='pr54-b264-20261020',x=>x.generation='pr54-reads-20261019',x=>x.newSettings.supervisor.sourceCommit='20d7e5b69696'+'0'.repeat(28),x=>x.newSettings.supervisor.manifestSha256='0'.repeat(64),x=>x.newSettings.supervisor.packageRoot+='-other',x=>x.newSettingsRef.sha256='0'.repeat(64),x=>x.newSettingsRef.path+='-other',x=>x.runId='b264594b6f93d560d807c8decc4e6699']){const bad=b264Sup20dPhysicalFixture();change(bad);assert.throws(()=>buildP03PhysicalProfile(bad));}
  const old=b264PhysicalFixture();old.generation='pr54-b264-sup20d-20261020';assert.throws(()=>buildP03PhysicalProfile(old));
+});
+
+const b007Supervisor={packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6',sourceCommit:'b007317f03e6be2c3a3d2271428dcf9dec33e04e',manifestSha256:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac'};
+const oldNativeOrder={packageRoot:'C:\\Sirket\\ERP\\releases\\CRM-ORDER-DRAFT-TEST-20261013-7a41f64',sourceCommit:'7a41f6492273dd1ec0bcb086f820be5575372be8',manifestSha256:'6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'};
+function currentB007Fixture(){
+ const f=readsPhysicalFixture(),config=f.oldSettings.components.erpApiNative.config,component=pin=>({...structuredClone(pin),config:structuredClone(config)});
+ f.generation='pr54-current-b007-20261020';
+ f.oldSettings.components={erpApiNative:component(CRM06_STAFF_ERP_PR53_CI_PACKAGE),hub:component(CRM06_STAFF_ERP_PR53_CI_PACKAGE),crm:component(CRM06_STAFF_INTEGRATED_CRM_PACKAGE),nativeOrder:component(oldNativeOrder)};
+ f.oldSettings.supervisor={packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',sourceCommit:'13bdf75a032ae8f694354a2e57b6ed382aec2f17',manifestSha256:'195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'};
+ f.oldSettings.copyId=f.oldObservation.copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';f.oldSettings.node=structuredClone(CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME);
+ f.newSettings=structuredClone(f.oldSettings);f.newSettings.components.erpApiNative=component(CRM06_STAFF_CURRENT_ERP_PACKAGE);f.newSettings.components.hub=component(CRM06_STAFF_CURRENT_ERP_PACKAGE);f.newSettings.components.crm=component(CRM06_STAFF_CURRENT_CRM_PACKAGE);f.newSettings.supervisor=structuredClone(b007Supervisor);
+ f.newSettingsRef={path:crm06StaffSuccessorProfile(CRM06_STAFF_CURRENT_CRM_PACKAGE.sourceCommit,'erp-crm-current-20261020').nextPaths.settings,sha256:'b'.repeat(64)};return f;
+}
+test('current B007 pure builder binds the exact package pair and seven-package union without output writes',()=>{
+ const f=currentB007Fixture(),before=structuredClone(f),r=buildP03PhysicalProfile(f),p=JSON.parse(Buffer.from(r.profile.bytesBase64,'base64')),b=JSON.parse(Buffer.from(r.before.bytesBase64,'base64'));
+ assert.deepEqual(f,before);assert.equal(r.summary.runtimeMutation,false);assert.deepEqual(p.oldSettings,f.oldObservation.oldConfig);assert.deepEqual(p.newSettings,f.newSettingsRef);assert.equal(b.plan.newSettingsSha256,f.newSettingsRef.sha256);
+ assert.equal(p.packages.length,7);const union=[...new Set([f.oldSettings,f.newSettings].flatMap(s=>[...Object.values(s.components),s.supervisor].map(c=>c.packageRoot)))].sort();assert.deepEqual(p.packages.map(c=>c.root).sort(),union);
+ assert.equal(p.packages.some(c=>c.sourceCommit==='20d7e5b696969d502014ba359b950496dc530410'),false);assert.deepEqual(p.candidateRules,deriveP03CandidateRules(f.newSettings,f.newSettingsRef));
+ assert.deepEqual(b.profile,{erpSource:CRM06_STAFF_CURRENT_ERP_PACKAGE.sourceCommit,erpManifest:CRM06_STAFF_CURRENT_ERP_PACKAGE.manifestSha256,crmSource:CRM06_STAFF_CURRENT_CRM_PACKAGE.sourceCommit,crmManifest:CRM06_STAFF_CURRENT_CRM_PACKAGE.manifestSha256,supervisorSource:b007Supervisor.sourceCommit,supervisorManifest:b007Supervisor.manifestSha256});
+});
+test('current B007 rejects crossed pins and retains owner, time, role, metadata and consumed-run guards',()=>{
+ const mutations=[f=>f.generation='pr54-b264-sup20d-20261020',f=>f.newSettingsRef.path+='-other',f=>f.newSettingsRef.sha256='unknown',f=>f.newSettings.node.path='C:\\Program Files\\nodejs\\node.exe',f=>f.newSettings.node.sha256='0'.repeat(64),f=>f.oldSettings.components.crm.packageRoot+='-other',f=>f.oldSettings.components.nativeOrder.sourceCommit='0'.repeat(40),f=>f.newSettings.components.nativeOrder.config.sha256='0'.repeat(64),f=>f.newSettings.copyId='other',f=>f.newSettings.actualT1=true,f=>f.newSettings.ownerSid='other',f=>f.now+=60001,f=>delete f.oldObservation.identities.erpNative,f=>f.extras.tasks=structuredClone(f.extras.tasks).map((t,i)=>i?{...t,xml:t.xml+'changed'}:t),f=>f.runId='b264594b6f93d560d807c8decc4e6699',...['erpApiNative','crm','hub'].flatMap(name=>['sourceCommit','manifestSha256','packageRoot'].map(key=>f=>f.newSettings.components[name][key]+='wrong')),...['sourceCommit','manifestSha256','packageRoot'].map(key=>f=>f.newSettings.supervisor[key]+='wrong')];
+ for(const mutate of mutations){const f=currentB007Fixture();mutate(f);assert.throws(()=>buildP03PhysicalProfile(f));}
 });
