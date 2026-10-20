@@ -121,10 +121,18 @@ $er.sha256='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037';tr
  const out=ps(program);assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,2);
 });
 
-function sup20dInput(enabled=true){const f=input();if(enabled){f.drainerRef.sha256=hash(fs.readFileSync(leaf('p03-pr54-successor-core-drain.ps1')));f.observerRef.sha256=hash(fs.readFileSync(leaf('p03-physical-recovery-observe.ps1')));}return f;}
+// Historical Sup20d transport fixtures keep their frozen source pins. CurrentB007
+// helper files are a different generation and cannot stand in for these bytes.
+function sup20dInput(enabled=true){const f=input();if(enabled){f.drainerRef.sha256='eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5';f.observerRef.sha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9';}return f;}
+
 test('Sup20d inspection arguments require exact reviewed current bytes and a separate finite policy',()=>{
  const f=sup20dInput(),a=pr54B264Sup20dInspectionArguments(f);assert(a.worker.includes('B264Sup20DInspectOnly'));assert(a.observer.includes('B264Sup20DInspectOnly'));assert.throws(()=>pr54B264InspectionArguments(f));assert.throws(()=>pr54B264Sup20dInspectionArguments(input()));
  for(const change of [x=>x.drainerRef.sha256='f'.repeat(64),x=>x.observerRef.sha256='f'.repeat(64),x=>x.engineRef.sha256='f'.repeat(64),x=>x.transport=()=>{},x=>x.mode='Apply']){const bad=sup20dInput();change(bad);assert.throws(()=>pr54B264Sup20dInspectionArguments(bad));}
+});
+test('historical Sup20d transport rejects replacement by CurrentB007 helper bytes',()=>{
+ for(const [key,file] of [['drainerRef','p03-pr54-successor-core-drain.ps1'],['observerRef','p03-physical-recovery-observe.ps1']]){
+  const f=sup20dInput(),current=hash(fs.readFileSync(leaf(file)));assert.notEqual(current,f[key].sha256);f[key].sha256=current;assert.throws(()=>pr54B264Sup20dInspectionArguments(f),/P03_B264_PHYSICAL_SOURCE/);
+ }
 });
 test('Sup20d private transport token cannot cross into legacy policy or survive clone drift expiry',async()=>{
  const t=transportFixture(true),r=await t.invoke(),args={current:r.current,profile:r.profile,before:r.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now};
