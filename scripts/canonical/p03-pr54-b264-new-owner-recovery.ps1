@@ -1,5 +1,6 @@
 param(
  [ValidateSet('Inspect','Drain')][string]$Action='Inspect',
+ [ValidateSet('LegacyB264','B264Sup20D')][string]$PolicyGeneration='LegacyB264',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$BeforeImageSha256,
  [Parameter(Mandatory=$true)][string]$EnginePath,
@@ -12,6 +13,7 @@ param(
 # Additive B264 NEW-owner recovery. Source AST imports only: no imported dispatcher.
 # This emits an empty candidate; it does not run frozen StopNew/RollbackOld.
 # Unproven orphan/partial ownership is deliberately refused.
+if($PolicyGeneration -cnotin @('LegacyB264','B264Sup20D')){throw 'P03_B264_NEW_RECOVERY_POLICY'}
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
@@ -41,6 +43,13 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  $stream=[IO.File]::Open($path,'Open','Read','None')
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
+function Get-B264RecoverySourcePolicy{
+ if($PolicyGeneration -ceq 'B264Sup20D'){
+  return @{newObserverSha256='6665b60340017c5e2ec6e4ef3eba87446b749bf019f44e7f6a9ce53dc6014d2f';observerSha256='8f62839a616c66e2b265db2796979ce2092e3beac5bead265ea7f5a5ec802f75'}
+ }
+ Require-NewDrain ($PolicyGeneration -ceq 'LegacyB264') 'POLICY'
+ return @{newObserverSha256='1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920';observerSha256='5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5'}
+}
 function Initialize-B264Recovery{
  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ceq $owner) 'OWNER'
  # All sources are read/hash/ACL checked before definitions are imported. None
@@ -48,8 +57,9 @@ function Initialize-B264Recovery{
  $engine=Read-B264Source $EnginePath $engineSha 'p03-physical-rollback.ps1'
  $empty=Read-B264Source $EmptyRecoveryPath 'a742992d20b5eb44f2092249077cf785a5176525c6d498dd300873b0bfaa7f4a' 'p03-pr54-new-owner-empty-recovery.ps1'
  $paused=Read-B264Source $RecoveryHelperPath 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' 'p03-pr54-paused-old-recover.ps1'
- $new=Read-B264Source $NewObserverPath '1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920' 'p03-pr54-new-owner-observe.ps1'
- $observer=Read-B264Source $SourceObserverPath '5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5' 'p03-physical-recovery-observe.ps1'
+ $sourcePolicy=Get-B264RecoverySourcePolicy
+ $new=Read-B264Source $NewObserverPath $sourcePolicy.newObserverSha256 'p03-pr54-new-owner-observe.ps1'
+ $observer=Read-B264Source $SourceObserverPath $sourcePolicy.observerSha256 'p03-physical-recovery-observe.ps1'
  Import-B264Definitions $engine @() @{ConsoleAuxiliaries='B264FrozenConsoleAuxiliaries';HubLineage='B264FrozenHubLineage'}
  Import-B264Definitions $empty @('Assert-NewDrainOldAbsent','Save-NewDrain','Read-NewDrainReceipt','Stop-NewDrainExact','Hold-NewDrainCore','Open-NewDrainOutput')
  Import-B264Definitions $paused @('SourceBytes','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries')
@@ -95,6 +105,19 @@ function Assert-B264StopPlan{
  $stopDigest=Hash ([Text.UTF8Encoding]::new($false).GetBytes(($commitment|ConvertTo-Json -Compress)))
  Require-NewDrain ($claim.stopOrderDigest -ceq $stopDigest) 'B264_STOP_ORDER_DIGEST'
 }
+function Assert-B264RecoveryCandidateTuple{
+ if($PolicyGeneration -ceq 'B264Sup20D'){
+  Require-NewDrain ($claim.candidate.supervisorSource -ceq '20d7e5b696969d502014ba359b950496dc530410') 'B264_SUP20D_SOURCE'
+  Require-NewDrain ($claim.candidate.supervisorManifest -ceq '0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418') 'B264_SUP20D_MANIFEST'
+  Require-NewDrain ($claim.candidate.supervisorRoot -ceq 'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696') 'B264_SUP20D_ROOT'
+  Require-NewDrain ($claim.newSettings.sha256 -ceq 'f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95') 'B264_SUP20D_SETTINGS'
+ }else{
+  Require-NewDrain ($PolicyGeneration -ceq 'LegacyB264') 'POLICY'
+ Require-NewDrain ($claim.candidate.supervisorSource -ceq 'eb5b37a555cbf18e1fcaa491820707c73b354e12') 'B264_SUPERVISOR_SOURCE'
+ Require-NewDrain ($claim.candidate.supervisorManifest -ceq '1a9d7a0ba6d0ed0fa60e9044122fb895e58e725d84f194ceea255a00aece39b0') 'B264_SUPERVISOR_MANIFEST'
+ Require-NewDrain ($claim.candidate.supervisorRoot -ceq 'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-eb5b37a555cb') 'B264_SUPERVISOR_ROOT'
+ }
+}
 function Assert-B264Claim{
  Assert-B264StopPlan
  $keys=@('schemaVersion','currentOwnerDigest','ownerObservedAt','protectedSqlEpoch','predecessorRunId','predecessorProfile','predecessorBefore','predecessorLock','consumedAncestorClaim','failedOuterTail','quarantinedRecoveryTail','readOnlyOldReady','successorRunId','successorProfile','successorBefore','newSettings','candidate','stopOrderDigest','transitionAuthority','applyExecuted')
@@ -105,9 +128,7 @@ function Assert-B264Claim{
  Require-NewDrain ($claim.candidate.erpManifest -ceq '8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf') 'B264_ERP_MANIFEST'
  Require-NewDrain ($claim.candidate.crmSource -ceq '6bc82e6fe9726261ef1d0171d97e5d9da9f5398a') 'B264_CRM_SOURCE'
  Require-NewDrain ($claim.candidate.crmManifest -ceq 'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83') 'B264_CRM_MANIFEST'
- Require-NewDrain ($claim.candidate.supervisorSource -ceq 'eb5b37a555cbf18e1fcaa491820707c73b354e12') 'B264_SUPERVISOR_SOURCE'
- Require-NewDrain ($claim.candidate.supervisorManifest -ceq '1a9d7a0ba6d0ed0fa60e9044122fb895e58e725d84f194ceea255a00aece39b0') 'B264_SUPERVISOR_MANIFEST'
- Require-NewDrain ($claim.candidate.supervisorRoot -ceq 'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-eb5b37a555cb') 'B264_SUPERVISOR_ROOT'
+ Assert-B264RecoveryCandidateTuple
  Require-NewDrain (Same-B264Value $claim.candidate.newSettings $claim.newSettings) 'B264_CANDIDATE_SETTINGS'
  Require-NewDrain ($claim.schemaVersion -ceq 'melisa-p03-b264-current-epoch-claim.v1' -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.successorRunId -ceq $runId) 'B264_CLAIM'
  Require-NewDrain ($claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256 -and (Same-B264Value $claim.newSettings $profile.newSettings)) 'B264_CLAIM_BINDING'

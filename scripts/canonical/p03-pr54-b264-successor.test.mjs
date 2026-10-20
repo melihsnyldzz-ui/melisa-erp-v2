@@ -6,7 +6,7 @@ import {createHash} from 'node:crypto';
 import {validateP03ProtectedSqlService} from './p03-physical-profile-create.mjs';
 import {execFileSync} from 'node:child_process';
 import {p03CoreFirstStopDigest,p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
-import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,PR54_B264_NEW_SETTINGS_PATH,PR54_CURRENT_SUCCESSOR_CLAIM_PATH,assertPr54B264SuccessorCandidate,validatePr54B264Predecessor,pr54B264StartedOwnerDigest} from './p03-pr54-owner-successor.mjs';
+import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,PR54_B264_NEW_SETTINGS_PATH,PR54_CURRENT_SUCCESSOR_CLAIM_PATH,assertPr54B264SuccessorCandidate,assertPr54B264Sup20dCandidate,PR54_B264_SUP20D_SUPERVISOR,PR54_B264_SUP20D_SETTINGS_SHA256,validatePr54B264Predecessor,pr54B264StartedOwnerDigest} from './p03-pr54-owner-successor.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-owner-successor.mjs',import.meta.url),'utf8'),hash=x=>createHash('sha256').update(x).digest('hex'),bytes=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
 const roles=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'],names=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
 const owner='S-1-5-21-2170750028-1005938530-2568122015-1001',database='MELISA_ERP_CRM_SHARED_TEST_20261009_02',copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';
@@ -26,9 +26,10 @@ test('candidate is fixed eb5/01ef/6bc and a distinct settings path, not a generi
 function modeledModule(history){
  const start=source.indexOf('function provePr54B264History(raw){'),end=source.indexOf('\nexport function validatePr54B264Predecessor',start);assert.ok(start>0&&end>start);
  const code=(source.slice(0,start)+'function provePr54B264History(raw){return fixtureHistory(raw);}\n'+source.slice(end)).replace(/^import .*;\r?\n/gm,'').replace(/export /g,'');
+ const sup20dInspections=new WeakMap(),sup20dLookup=(token,args)=>{const f=sup20dInspections.get(token);return f&&args.current===f.current&&args.profile===f.profile&&args.before===f.before&&JSON.stringify(args.profileRef)===JSON.stringify(f.profileRef)&&JSON.stringify(args.beforeRef)===JSON.stringify(f.beforeRef)?[]:null;};
  const inspections=new WeakMap(),lookup=(token,args)=>{const f=inspections.get(token);return f&&args.current===f.current&&args.profile===f.profile&&args.before===f.before&&JSON.stringify(args.profileRef)===JSON.stringify(f.profileRef)&&JSON.stringify(args.beforeRef)===JSON.stringify(f.beforeRef)?[]:null;};
- const mod=new Function('createHash','path','p03CoreFirstStopDigest','lookupPr54CurrentPhysicalInspection','lookupPr54B264PhysicalInspection','fixtureHistory','validateP03ProtectedSqlService',code+'\nreturn {admitPr54B264OwnerSuccessor,admitPr54B264CurrentEpoch,preparePr54CurrentNativeContinuity};')(createHash,path,p03CoreFirstStopDigest,lookup,lookup,raw=>{assert.equal(raw,history);return history;},validateP03ProtectedSqlService);
- return {...mod,mintModeledInspection:f=>{const token=Object.freeze({});inspections.set(token,{...f});return token;}};
+ const mod=new Function('createHash','path','p03CoreFirstStopDigest','lookupPr54CurrentPhysicalInspection','lookupPr54B264PhysicalInspection','lookupPr54B264Sup20dPhysicalInspection','fixtureHistory','validateP03ProtectedSqlService',code+'\nreturn {admitPr54B264OwnerSuccessor,admitPr54B264CurrentEpoch,admitPr54B264Sup20dCurrentEpoch,preparePr54B264NativeContinuity,preparePr54CurrentNativeContinuity};')(createHash,path,p03CoreFirstStopDigest,lookup,lookup,sup20dLookup,raw=>{assert.equal(raw,history);return history;},validateP03ProtectedSqlService);
+ return {...mod,mintModeledSup20dInspection:f=>{const token=Object.freeze({});sup20dInspections.set(token,{...f});return token;},mintModeledInspection:f=>{const token=Object.freeze({});inspections.set(token,{...f});return token;}};
 }
 function seal(f){f.beforeBytes=bytes(f.before);f.beforeRef={path:PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+f.before.runId+'.json',sha256:hash(f.beforeBytes)};f.profile.beforeImage=f.beforeRef;f.profileBytes=bytes(f.profile);f.profileRef={path:PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+f.before.runId+'.json',sha256:hash(f.profileBytes)};return f;}
 function fixture(){
@@ -99,5 +100,37 @@ test('new current epoch has a separate guarded proposal; historical B264 admissi
 test('current epoch cannot substitute an SQL instance, service account/path, process birth, native proof, COM or fake token',()=>{
  for(const mutate of [f=>f.profile.protectedProcesses[0].service.startName='other',f=>f.profile.protectedProcesses[0].service.pathName+=' x',f=>f.profile.protectedProcesses[0].service.processId++,f=>f.profile.protectedProcesses[0].sql.processId++,f=>f.profile.protectedProcesses[0].sql.serverName='other',f=>f.profile.protectedProcesses[0].sql.databaseName='other',f=>f.profile.protectedProcesses[0].creationTime='unknown',f=>f.profile.protectedProcesses[0].creationTime='2026-10-19T14:00:00Z',f=>f.nativeContinuity=null,f=>f.physicalInspection={},f=>f.current.runningInstances[0].enginePid++,f=>f.current.processes[0].creationTime='2026-10-19T13:01:30.1111112Z',f=>f.current.processes[0].commandLine+=' x',f=>f.current.processes[0].parentPid++,f=>f.before.actualT1=true,f=>f.before.copyId='other']){
   const f=currentEpochFixture();assert.ok(f.mod.admitPr54B264CurrentEpoch(f));const originalToken=f.physicalInspection;mutate(f);seal(f);if(f.physicalInspection===originalToken)f.physicalInspection=f.mod.mintModeledInspection(f);assert.throws(()=>f.mod.admitPr54B264CurrentEpoch(f),mutate.toString());
+ }
+});
+
+
+function sup20dCandidate(){return {...candidate(),supervisorSource:PR54_B264_SUP20D_SUPERVISOR.sourceCommit,supervisorManifest:PR54_B264_SUP20D_SUPERVISOR.manifestSha256,supervisorRoot:PR54_B264_SUP20D_SUPERVISOR.packageRoot,newSettings:{path:PR54_B264_NEW_SETTINGS_PATH,sha256:PR54_B264_SUP20D_SETTINGS_SHA256}};}
+function sup20dEpochFixture(){
+ const f=currentEpochFixture(),c=sup20dCandidate();f.candidate=c;f.profile.newSettings=c.newSettings;f.before.newConfig=c.newSettings;
+ f.before.profile=Object.fromEntries(['erpSource','erpManifest','crmSource','crmManifest','supervisorSource','supervisorManifest'].map(k=>[k,c[k]]));
+ const entry=f.profile.packages.at(-1);Object.assign(entry,{root:c.supervisorRoot,sourceCommit:c.supervisorSource,manifestSha256:c.supervisorManifest,manifestPath:c.supervisorRoot+'\\release-manifest.json'});
+ f.before.observedAt='2026-10-20T13:02:00.000Z';f.current.observedAt='2026-10-20T13:02:01.000Z';f.now=Date.parse('2026-10-20T13:02:02.000Z');
+ f.before.plan.newSettingsSha256=c.newSettings.sha256;f.before.plan.digest=p03TransitionDigest(f.before.plan);
+ const old=f.profile.oldSettings,oldRoot='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a';
+ for(const task of f.profile.tasks){task.newXml=task.oldXml.replaceAll(oldRoot,c.supervisorRoot).replaceAll(old.path,c.newSettings.path).replaceAll(old.sha256,c.newSettings.sha256);task.newXmlSha256=hash(task.newXml);}
+ const ref={path:'C:\\Sirket\\ERP\\backups\\P03-20261020-130000\\source-pre-snapshot.json',sha256:'e'.repeat(64)};f.profile.businessDigest=ref;
+ f.backup={...f.backup,startedAt:'2026-10-20T12:59:00.000Z',runId:'P03-20261020-130000'};
+ f.observation={...f.observation,snapshotRef:ref,observedAt:f.current.observedAt};
+ f.nativeContinuity=f.mod.preparePr54B264NativeContinuity(ref,f.snapshot,f.observation,f.backup,f.now);
+ seal(f);f.physicalInspection=f.mod.mintModeledSup20dInspection(f);return f;
+}
+test('Sup20D candidate is a separate exact immutable tuple and never widens the legacy eb5 selector',()=>{
+ const c=sup20dCandidate();assert.deepEqual(assertPr54B264Sup20dCandidate(c),c);assert.throws(()=>assertPr54B264SuccessorCandidate(c));assert.throws(()=>assertPr54B264Sup20dCandidate(candidate()));
+ for(const change of [c=>c.supervisorSource='f'.repeat(40),c=>c.supervisorManifest='f'.repeat(64),c=>c.supervisorRoot+='-other',c=>c.newSettings.sha256='c'.repeat(64),c=>c.newSettings.path=c.newSettings.path.toUpperCase(),c=>c.erpManifest='f'.repeat(64),c=>c.crmSource='f'.repeat(40),c=>c.extra=true]){const bad=sup20dCandidate();change(bad);assert.throws(()=>assertPr54B264Sup20dCandidate(bad));}
+});
+test('Sup20D current epoch proposes only with its own genuine physical generation and 20October native backup continuity',()=>{
+ const f=sup20dEpochFixture(),original=JSON.stringify(f.raw);const p=f.mod.admitPr54B264Sup20dCurrentEpoch(f);
+ assert.equal(p.transitionAuthority,false);assert.equal(p.applyExecuted,false);assert.equal(p.claim.candidate.supervisorSource,PR54_B264_SUP20D_SUPERVISOR.sourceCommit);assert.equal(p.claim.newSettings.sha256,PR54_B264_SUP20D_SETTINGS_SHA256);assert.equal(JSON.stringify(f.raw),original);
+ assert.throws(()=>f.mod.admitPr54B264CurrentEpoch(f));
+ f.physicalInspection=f.mod.mintModeledInspection(f);assert.throws(()=>f.mod.admitPr54B264Sup20dCurrentEpoch(f));
+});
+test('Sup20D rejects fake capabilities, old backup scope, changed exact tuple, stale OS/SQL and history or task drift',()=>{
+ for(const change of [f=>f.physicalInspection={},f=>f.nativeContinuity=null,f=>f.profile.businessDigest.path=f.profile.businessDigest.path.replace('20261020','20261019'),f=>f.candidate.newSettings.sha256='c'.repeat(64),f=>f.current.observedAt='2026-10-20T13:00:00.000Z',f=>f.profile.protectedProcesses[0].service.processId++,f=>f.current.processes[0].ownerSid='foreign',f=>f.profile.tasks[0].newXml+=' ',f=>f.current.runningInstances[0].instanceGuid='',f=>f.profile.packages.push(f.profile.packages[0])]){
+  const f=sup20dEpochFixture();assert.ok(f.mod.admitPr54B264Sup20dCurrentEpoch(f));const token=f.physicalInspection;change(f);seal(f);if(f.physicalInspection===token)f.physicalInspection=f.mod.mintModeledSup20dInspection(f);assert.throws(()=>f.mod.admitPr54B264Sup20dCurrentEpoch(f),change.toString());
  }
 });

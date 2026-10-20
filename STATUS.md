@@ -1,3 +1,13 @@
+## 20 Ekim — Sabit Sup20d nesli ve held-core sırası kaynakta doğrulandı
+
+Yeni açık nesil yalnız hazırlanmış SUP20d7e5b69696 / manifest0959b1b8 ve exact settings f893faf4 kabul eder. Eski B264 eb5, 639/7b ve korumalı FE/V2 tarihsel dosyaları aynen korunur. PS D/O/N/C/R, JS aday/admission ve ayrı physical WeakMap yeni nesli eskiye çeviremez; klon/uydurma token, farklı kaynak/kök/manifest/settings, eski native backup kapsamı, süre aşımı ve ham envanter sapmaları reddedilir. Proposal hâlâ transitionAuthority:false; actual claim/Apply dispatcher açılmadı.
+
+Held-core pure protokolde TASK_STOP_INTENT ve gerçek core EXACT_STOP_INTENT, core handle alıp COM durduran callback'ten önce kalıcılaşır; gerçek cut/drain makbuzu ve core/COM yokluğu olmadan kalan yedi rol veya action değişimi yok. START sonrası hata old action'ı çalışan adayın üzerine otomatik geri yazmaz. Bu kaynak testi, gerçek işletim veya rollback kanıtı değildir.
+
+Bağımsız inceleme yeni PS contract'taki eksik exact settings SHA kontrolünü P2 olarak buldu; yalnız yeni contract'a f893 literal kontrolü ve yanlış64hex negatif eklendi, D→O→N→C/R hash zinciri yenilendi. Final bağımsız GO, açık P0/P1/P2 yok. Root birleşik dokuz suite 153/153 PASS, 0skip (69sn). Önceki 3b637664a0163bcb036de9902a1070e1fe2bc3f4 PR39412310614/push39412305255 tüm üç job SUCCESS; bu yeni kaynak için exact CI ayrıca doğrulanacak. Her kaynak/doküman commit'inde sabit Sup20d paketi yeniden yapılmaz.
+
+Gerçek installed e59/13b/6bc/DB02 korunur; yeni inactive ayarlar var ancak servis/görev/uygulama kurulumu henüz yapılmadı. QueryStore geçici READ_ONLY ve before-image/dönüş kaydı korunuyor. Sıradaki aynı iş: taze before/native/tek-owner ile gerçek salt-okunur Sup20d admission, ardından fullShared dispatch ve guarded rollback bağlantısı; gerçek start/geri okuma olmadan kuruldu denmez. GUI/cihaz/insan kabulü ve özgün49/25 aynı; LIVE/Vega/T1/main yok.
+
 ## 20 Ekim — Inactive ayarlar gerçekten oluşturuldu; kurulu TEST değişmedi
 
 20d7e5b696969d502014ba359b950496dc530410 kaynaklı immutable SUP paketi 389 dosya, manifest 0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418. Gerçek --PrepareNew --B264 PREPARED_INACTIVE: altı private ayar/journal/receipt dosyası CreateNew+ACL+readback ile oluşturuldu; mevcut ERP dependency lock tekrar yazılmadı. Settings SHA f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95. Bu dosyalar etkinleştirilmedi; PrepareNew yeniden çalıştırılmaz, dosyaların üzerine yazılmaz. Sonraki operatör kaynağı bu sabit paket tuple'ını kullanacak; her belge/test commit'inde paket yeniden üretilmeyecek.

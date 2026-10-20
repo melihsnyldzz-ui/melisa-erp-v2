@@ -1,4 +1,5 @@
 param(
+ [string]$PolicyGeneration='B264InspectOnly',
  [ValidateSet('Inspect','Drain')][string]$Mode='Inspect',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][string]$BeforeImageSha256,
@@ -7,8 +8,9 @@ param(
  [Parameter(Mandatory=$true)][string]$DrainerPath,[Parameter(Mandatory=$true)][string]$DrainerSha256,
  [string]$ClaimPath,[string]$ClaimSha256,[string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$RootIntentPath,[string]$RootIntentSha256
 )
+if($PolicyGeneration -cnotin @('B264InspectOnly','B264Sup20DInspectOnly')){throw 'P03_B264_CUT_POLICY'}
 # Definitions-only reuse. No historical dispatcher, claim creation or task start.
-if($EngineSha256 -cne '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def' -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne '34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'){throw 'P03_B264_CUT_SOURCE'}
+if($EngineSha256 -cne '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def' -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'66bab37d8429f9756152b4185b3c2410526e6af35636036fd5419a6c63a42c1a'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_CUT_SOURCE'}
 if($Mode -ceq 'Inspect' -and @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','RootIntentPath','RootIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_CUT_INSPECT_ONLY'}
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
@@ -37,11 +39,11 @@ $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseI
 if($errors.Count){throw 'P03_B264_CUT_ENGINE_PARSE'}
 ImportWorkerFunctions $engineBytes @($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Name})
 ImportWorkerFunctions (ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256) @('SourceBytes','ProbeArgumentsAllowed','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries','PausedTasks','PausedRemaining','PausedRemainingCore','WaitCoreProbeAbsence')
-ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @('AssertB264InspectionContract','WorkerSamePin','Inventory','AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','SeedWorkerAdmission','HoldWorkerCore','StopWorkerCore')
+ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @($(if($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'AssertB264Sup20DInspectionContract'}else{'AssertB264InspectionContract'}),'WorkerSamePin','Inventory','AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','SeedWorkerAdmission','HoldWorkerCore','StopWorkerCore')
 $profile=Json (ReadWorkerPin $ProfilePath $ProfileSha256);$before=Json (ReadWorkerPin $BeforeImagePath $BeforeImageSha256)
 $oldSettings=Json (ReadWorkerPin $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadWorkerPin $profile.newSettings.path $profile.newSettings.sha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
-$Environment='Shared';$isRehearsal=$false;$PolicyGeneration='B264InspectOnly'
+$Environment='Shared';$isRehearsal=$false
 $names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
 $order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative');$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
 $script:consolePins=@{};$script:probePins=@{};$script:legacyConsolePins=@{};$script:drainedPids=@();$script:tasksStopRequested=$false;$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false;$script:lateAdmissionOpen=$false;$script:lateProbePids=@();$script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null;$script:cutWitnessCommitted=$false;$script:b264CutComPins=@()
@@ -75,7 +77,7 @@ function AssertB264CutStopPlan($claim){
 }
 function B264CutAuthority{
  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$EngineSha256),@($RecoveryHelperPath,$RecoveryHelperSha256),@($DrainerPath,$DrainerSha256))){[void](ReadWorkerPin $pin[0] $pin[1])}
- AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)
+ if($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
  foreach($entry in @(@($EnginePath,'p03-physical-rollback.ps1'),@($RecoveryHelperPath,'p03-pr54-paused-old-recover.ps1'),@($DrainerPath,'p03-pr54-successor-core-drain.ps1'))){Need ($entry[0].StartsWith($base+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0]) -ceq $entry[1]) 'B264_CUT_SOURCE_SCOPE'}
  if($Mode -ceq 'Inspect'){return}
  Need ($Mode -ceq 'Drain' -and $ClaimPath -ceq (Join-Path $base 'p03-pr54-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json')) 'B264_CUT_CLAIM_PATH'

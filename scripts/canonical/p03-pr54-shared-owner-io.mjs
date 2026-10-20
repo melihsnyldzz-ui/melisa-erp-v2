@@ -38,6 +38,15 @@ export function validatePr54B264PhysicalInspection(args){
  const {policyGeneration,transitionAuthority,stopAuthority,applyExecuted,protectedProcesses,...raw}=frame;
  return validatePr54PhysicalInspection({...args,frame:{...raw,schemaVersion:'melisa-p03-successor-precut-admission.v1'}},'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
 }
+// The new immutable supervisor generation cannot be relabelled as legacy B264.
+// This validator only checks a frame; physical authority is held in the private
+// transport WeakMap, never granted by this function or a caller boolean.
+export function validatePr54B264Sup20dPhysicalInspection(args){
+ const {frame}=args;need(frame?.schemaVersion==='melisa-p03-b264-precut-inspection.v1'&&frame.policyGeneration==='B264Sup20DInspectOnly'&&frame.transitionAuthority===false&&frame.stopAuthority===false&&frame.applyExecuted===false&&exactKeys(frame,['schemaVersion','profileSha256','beforeSha256','engineSha256','recoveryHelperSha256','observedAt','oldIdentities','oldWatchers','consolePins','probePins','policyGeneration','transitionAuthority','stopAuthority','applyExecuted','protectedProcesses']),'B264_SUP20D_INSPECTION_BINDING');
+ need(Array.isArray(frame.protectedProcesses)&&JSON.stringify(frame.protectedProcesses)===JSON.stringify(args.profile.protectedProcesses),'B264_SUP20D_PROTECTED_NATIVE_FRAME');
+ const {policyGeneration,transitionAuthority,stopAuthority,applyExecuted,protectedProcesses,...raw}=frame;
+ return validatePr54PhysicalInspection({...args,frame:{...raw,schemaVersion:'melisa-p03-successor-precut-admission.v1'}},'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
+}
 function validatePr54PhysicalInspection({frame,current,profile,before,profileRef,beforeRef,engineRef,recoveryHelperRef,now=Date.now()},expectedEngine){
  need(exactKeys(frame,['schemaVersion','profileSha256','beforeSha256','engineSha256','recoveryHelperSha256','observedAt','oldIdentities','oldWatchers','consolePins','probePins'])&&frame.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&frame.profileSha256===profileRef.sha256&&frame.beforeSha256===beforeRef.sha256&&frame.engineSha256===engineRef.sha256&&frame.engineSha256===expectedEngine&&frame.recoveryHelperSha256===recoveryHelperRef.sha256,'CURRENT_INSPECTION_BINDING');
  need(Number.isFinite(now)&&Number.isFinite(Date.parse(frame.observedAt))&&now-Date.parse(frame.observedAt)>=0&&now-Date.parse(frame.observedAt)<60000&&Number.isFinite(Date.parse(current.observedAt))&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(frame.observedAt)>=Date.parse(current.observedAt),'CURRENT_INSPECTION_FRESH');

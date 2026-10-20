@@ -10,8 +10,8 @@ param(
 )
 # B264 is a separately selected read-only generation. Reject mutation inputs
 # before any import, file, owner, SQL or COM access (including empty bound args).
-if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
-if($PolicyGeneration -ceq 'B264InspectOnly'){
+if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
+if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly')){
  if($Mode -cne 'Inspect' -or @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_INSPECT_ONLY'}
  if($EngineSha256 -cne '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def' -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_B264_INSPECTION_SOURCE'}
 }
@@ -24,7 +24,7 @@ foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Uti
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_SUCCESSOR_OWNER'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$predecessor='639e2da815e1e7ac0f1c0d04d7f7bdc3'
-$engineSha=if($PolicyGeneration -ceq 'B264InspectOnly'){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
+$engineSha=if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly')){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
 function ReadWorkerPin([string]$path,[string]$sha){
  if($sha -cnotmatch '\A[a-f0-9]{64}\z' -or -not [IO.Path]::IsPathRooted($path) -or [IO.Path]::GetFullPath($path) -cne $path){throw 'P03_SUCCESSOR_PIN_SCOPE'}
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'P03_SUCCESSOR_REPARSE'}}
@@ -47,7 +47,7 @@ if($engineErrors.Count){throw 'P03_SUCCESSOR_ENGINE_PARSE'}
 $engineNames=@($engineAst.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Name})
 ImportWorkerFunctions $engineBytes $engineNames
 $helperNames=@('SourceBytes','ProbeArgumentsAllowed','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries','PausedTasks','PausedOld','PausedOldCore','PausedRemaining','PausedRemainingCore','WaitCoreProbeAbsence')
-if($PolicyGeneration -ceq 'B264InspectOnly'){$helperNames=@('SourceBytes','ProbeArgumentsAllowed','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries')}
+if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly')){$helperNames=@('SourceBytes','ProbeArgumentsAllowed','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries')}
 ImportWorkerFunctions (ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256) $helperNames
 $profile=Json (ReadWorkerPin $ProfilePath $ProfileSha256);$before=Json (ReadWorkerPin $BeforeImagePath $BeforeImageSha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
@@ -97,14 +97,50 @@ function AssertB264InspectionContract($profile,$before,$oldSettings,$newSettings
  foreach($p in $all){B264Need ($p.pid -gt 0 -and $p.ownerSid -ceq $owner -and $p.creationTime -is [string] -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime())}
  foreach($name in @('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')){B264Need (@($profile.tasks|Where-Object{$_.name -ceq $name}).Count -eq 1)}
 }
+function AssertB264Sup20DInspectionContract($profile,$before,$oldSettings,$newSettings,[string]$profilePath,[string]$beforePath,[string]$beforeSha,[DateTime]$now){
+ function B264Need($ok){if(-not $ok){throw 'P03_B264_INSPECTION_CONTRACT'}}
+ function B264Same($a,$b){return ($a|ConvertTo-Json -Depth 20 -Compress) -ceq ($b|ConvertTo-Json -Depth 20 -Compress)}
+ $root='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
+ $db='MELISA_ERP_CRM_SHARED_TEST_20261009_02';$copy='e16b70f0-4057-428b-9abc-6bbcaf35fe82'
+ $oldPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'
+ $oldSha='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'
+ $newPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'
+ B264Need ($profile.newSettings.sha256 -ceq 'f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95')
+ B264Need ($before.runId -cmatch '\A[a-f0-9]{32}\z' -and $before.runId -cnotin @('639e2da815e1e7ac0f1c0d04d7f7bdc3','7b0821959737f1da0427b17a7dfd4685','b264594b6f93d560d807c8decc4e6699'))
+ B264Need ($profilePath -ceq (Join-Path $root ('MelisaERP-P03-profile-'+$before.runId+'.json')) -and $beforePath -ceq (Join-Path $root ('MelisaERP-P03-before-'+$before.runId+'.json')) -and $profile.beforeImage.path -ceq $beforePath -and $profile.beforeImage.sha256 -ceq $beforeSha)
+ B264Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $db -and $before.database -ceq $db -and $before.copyId -ceq $copy -and $before.actualT1 -ceq $false)
+ $age=($now.ToUniversalTime()-[DateTime]::Parse($before.observedAt).ToUniversalTime()).TotalSeconds;B264Need ($age -ge 0 -and $age -lt 900)
+ B264Need ($profile.oldSettings.path -ceq $oldPath -and $profile.oldSettings.sha256 -ceq $oldSha -and $profile.newSettings.path -ceq $newPath -and $profile.newSettings.sha256 -cmatch '\A[a-f0-9]{64}\z' -and $profile.newSettings.sha256 -cnotin @($oldSha,'fec69870a70631bcb6cfd2df70bf1566d2ab66eb5b09f7ac96c54ac29f749417') -and (B264Same $before.oldConfig $profile.oldSettings) -and (B264Same $before.newConfig $profile.newSettings))
+ B264Need ($before.plan.oldSettingsSha256 -ceq $oldSha -and $before.plan.newSettingsSha256 -ceq $profile.newSettings.sha256)
+ foreach($settings in @($oldSettings,$newSettings)){B264Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $db -and $settings.copyId -ceq $copy -and $settings.actualT1 -ceq $false)}
+ $fixed=@(
+ @($oldSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-COMPLETE-TEST-20261018-e59e07abf7ae','e59e07abf7ae2567cdc2adb93811fe29e0032fe5','2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'),
+ @($oldSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a','13bdf75a032ae8f694354a2e57b6ed382aec2f17','195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'),
+ @($oldSettings.components.crm,'C:\Sirket\CRM\releases\crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'),
+ @($oldSettings.components.nativeOrder,'C:\Sirket\ERP\releases\CRM-ORDER-DRAFT-TEST-20261013-7a41f64','7a41f6492273dd1ec0bcb086f820be5575372be8','6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'),
+ @($newSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a','01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2','8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'),
+ @($newSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696','20d7e5b696969d502014ba359b950496dc530410','0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418')
+ )
+ B264Need (@($profile.packages).Count -eq 6 -and @($profile.packages|Select-Object -ExpandProperty root -Unique).Count -eq 6)
+ foreach($f in $fixed){B264Need ($f[0].packageRoot -ceq $f[1] -and $f[0].sourceCommit -ceq $f[2] -and $f[0].manifestSha256 -ceq $f[3]);B264Need (@($profile.packages|Where-Object{$_.root -ceq $f[1] -and $_.sourceCommit -ceq $f[2] -and $_.manifestSha256 -ceq $f[3] -and $_.manifestPath -ceq ($f[1]+'\release-manifest.json')}).Count -eq 1)}
+ foreach($component in @('crm','nativeOrder')){B264Need (B264Same $oldSettings.components.$component $newSettings.components.$component)}
+ foreach($pair in @(@('erp',$newSettings.components.erpApiNative),@('crm',$newSettings.components.crm),@('supervisor',$newSettings.supervisor))){B264Need ($before.profile.($pair[0]+'Source') -ceq $pair[1].sourceCommit -and $before.profile.($pair[0]+'Manifest') -ceq $pair[1].manifestSha256)}
+ B264Need ($before.oldSupervisor.root -ceq $oldSettings.supervisor.packageRoot -and $before.oldSupervisor.manifest -ceq $oldSettings.supervisor.manifestSha256)
+ B264Need ((@($before.identities.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'coreSupervisor|crmCatalog|crmNativeOrder|crmOrders|crmServer|erpApi|erpNative|hub')
+ B264Need (@($profile.oldWatchers).Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.protectedProcesses|Where-Object{$_.kind -ceq 'ProtectedSqlService'}).Count -eq 1)
+ $all=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)
+ B264Need (@($all|Select-Object -ExpandProperty pid -Unique).Count -eq 10)
+ foreach($p in $all){B264Need ($p.pid -gt 0 -and $p.ownerSid -ceq $owner -and $p.creationTime -is [string] -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime())}
+ foreach($name in @('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')){B264Need (@($profile.tasks|Where-Object{$_.name -ceq $name}).Count -eq 1)}
+}
 function WorkerSamePin($a,$b){
  return $null -ne $a -and $null -ne $b -and $a.pid -eq $b.pid -and $a.parentPid -eq $b.parentPid -and $a.ownerSid -ceq $b.ownerSid -and $a.nodePath -ceq $b.nodePath -and $a.commandLine -ceq $b.commandLine -and [DateTime]::Parse($a.creationTime).ToUniversalTime().Ticks -eq [DateTime]::Parse($b.creationTime).ToUniversalTime().Ticks
 }
 function WorkerAuthority{
- if($PolicyGeneration -ceq 'B264InspectOnly'){
+ if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly')){
   foreach($entry in @(@($EnginePath,'p03-physical-rollback.ps1'),@($RecoveryHelperPath,'p03-pr54-paused-old-recover.ps1'))){Need ($entry[0].StartsWith($base+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0]) -ceq $entry[1]) 'B264_HELPER_SCOPE'}
   foreach($r in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($profile.oldSettings.path,$profile.oldSettings.sha256),@($profile.newSettings.path,$profile.newSettings.sha256))){[void](ReadWorkerPin $r[0] $r[1])}
-  AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)
+  if($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
   return
  }
  $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json');if($currentReadRepair){$predecessor='7b0821959737f1da0427b17a7dfd4685'}
@@ -265,6 +301,6 @@ function DrainWorkerCore{
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
 WorkerAuthority
-if($PolicyGeneration -ceq 'B264InspectOnly'){$frame=CaptureWorkerAdmission;$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']='B264InspectOnly';$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;$frame|ConvertTo-Json -Depth 14 -Compress;return}
+if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly')){$frame=CaptureWorkerAdmission;$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;$frame|ConvertTo-Json -Depth 14 -Compress;return}
 if($Mode -cin @('Inspect','Capture')){CaptureWorkerAdmission|ConvertTo-Json -Depth 14 -Compress;return}
 DrainWorkerCore|ConvertTo-Json -Depth 8 -Compress

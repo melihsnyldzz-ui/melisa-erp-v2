@@ -260,3 +260,9 @@ $settings.supervisor.sourceCommit='13bdf75a032ae8f694354a2e57b6ed382aec2f17';Rej
 `}`);
  assert.match(out,/READ_REPAIR_NEW=New/);assert.match(out,/REJECTED=old-supervisor/);
 });
+
+test('SUP20D normal collector is Physical Old-only and requires its new drainer hash before any source IO',windows,()=>{
+ const text=readFileSync(source,'utf8'),body=text.slice(0,text.indexOf('# Read-only physical collection.')).replace(/^param\([\s\S]*?\n\)\n/,'').replaceAll('$PSBoundParameters','$script:bound');
+ const out=run(`$PolicyGeneration='B264Sup20DInspectOnly';$Environment='Shared';$Purpose='Physical';$ProfilePath='p';$ProfileSha256='s';$EnginePath='e';$EngineSha256='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def';$RecoveryHelperPath='h';$RecoveryHelperSha256='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5';$DrainerPath='d';$DrainerSha256='66bab37d8429f9756152b4185b3c2410526e6af35636036fd5419a6c63a42c1a';$script:bound=@{}\nfunction Reject([scriptblock]$f){try{& $f;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}}\n& {${body}};'VALID'\n$DrainerSha256='34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c';Reject {${body}}\n$DrainerSha256='66bab37d8429f9756152b4185b3c2410526e6af35636036fd5419a6c63a42c1a';$Purpose='CandidateProposal';Reject {${body}};$Purpose='Physical';$PolicyGeneration='b264sup20dinspectonly';Reject {${body}}`);
+ assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,3);
+});

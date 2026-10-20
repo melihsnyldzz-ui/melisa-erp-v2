@@ -84,3 +84,16 @@ for(const [name,patch]of [['old ref',f=>f.oldObservation.oldConfig.sha256='0'.re
 
 function b264PhysicalFixture(){const f=readsPhysicalFixture();f.generation='pr54-b264-20261020';f.newSettingsRef.path=f.newSettingsRef.path.replace('.json','-b264-successor.json');Object.assign(f.newSettings.supervisor,{sourceCommit:'eb5b37a555cbf18e1fcaa491820707c73b354e12',manifestSha256:'1a9d7a0ba6d0ed0fa60e9044122fb895e58e725d84f194ceea255a00aece39b0',packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-eb5b37a555cb'});return f;}
 test('explicit B264 builder makes a new before/profile without modifying or reopening consumed runs',()=>{const f=b264PhysicalFixture(),old=structuredClone(f),r=buildP03PhysicalProfile(f),p=JSON.parse(Buffer.from(r.profile.bytesBase64,'base64'));assert.equal(p.newSettings.path,f.newSettingsRef.path);assert.equal(p.oldSettings.sha256,'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071');assert.deepEqual(f,old);assert.equal(r.summary.runtimeMutation,false);for(const change of [x=>x.runId='b264594b6f93d560d807c8decc4e6699',x=>x.newSettingsRef.path=x.newSettingsRef.path.replace('-b264-successor',''),x=>x.newSettings.supervisor.sourceCommit='8'.repeat(40),x=>x.newSettings.supervisor.manifestSha256='8'.repeat(64)]){const x=b264PhysicalFixture();change(x);assert.throws(()=>buildP03PhysicalProfile(x));}});
+
+function b264Sup20dPhysicalFixture(){
+ const f=b264PhysicalFixture();f.generation='pr54-b264-sup20d-20261020';
+ Object.assign(f.newSettings.supervisor,{sourceCommit:'20d7e5b696969d502014ba359b950496dc530410',manifestSha256:'0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418',packageRoot:String.raw`C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696`});
+ f.newSettingsRef.sha256='f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95';return f;
+}
+test('Sup20d physical builder accepts only the immutable prepared tuple in its explicit generation',()=>{
+ const f=b264Sup20dPhysicalFixture(),original=structuredClone(f),result=buildP03PhysicalProfile(f),profile=JSON.parse(Buffer.from(result.profile.bytesBase64,'base64'));
+ assert.deepEqual(f,original);assert.equal(result.summary.runtimeMutation,false);assert.deepEqual(profile.newSettings,f.newSettingsRef);
+ assert(profile.packages.some(p=>p.root===f.newSettings.supervisor.packageRoot&&p.sourceCommit===f.newSettings.supervisor.sourceCommit&&p.manifestSha256===f.newSettings.supervisor.manifestSha256));
+ for(const change of [x=>x.generation='pr54-b264-20261020',x=>x.generation='pr54-reads-20261019',x=>x.newSettings.supervisor.sourceCommit='20d7e5b69696'+'0'.repeat(28),x=>x.newSettings.supervisor.manifestSha256='0'.repeat(64),x=>x.newSettings.supervisor.packageRoot+='-other',x=>x.newSettingsRef.sha256='0'.repeat(64),x=>x.newSettingsRef.path+='-other',x=>x.runId='b264594b6f93d560d807c8decc4e6699']){const bad=b264Sup20dPhysicalFixture();change(bad);assert.throws(()=>buildP03PhysicalProfile(bad));}
+ const old=b264PhysicalFixture();old.generation='pr54-b264-sup20d-20261020';assert.throws(()=>buildP03PhysicalProfile(old));
+});

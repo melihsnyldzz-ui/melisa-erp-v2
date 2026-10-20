@@ -355,3 +355,62 @@ export function preparePr54B264NativeContinuity(snapshotRef,snapshot,observation
  check(exact(observation,['server','database','copyId','observedAt','actualT1','readOnly','sealed','logEnd','queryStoreMode','snapshotRef','backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'])&&observation.server==='Semih\\MELISADEV'&&observation.database===snapshot.database&&observation.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&observation.actualT1===false&&observation.readOnly===true&&observation.sealed===true&&observation.queryStoreMode==='READ_ONLY'&&['backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'].every(k=>guid(observation[k]))&&observation.backupSetGuid.toLowerCase()===backup.backupSetGuid.toLowerCase()&&observation.databaseGuid.toLowerCase()===observation.backupDatabaseGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupFirstRecoveryForkGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupLastRecoveryForkGuid.toLowerCase()&&observation.logEnd===snapshot.logEndAfter&&same(observation.snapshotRef,snapshotRef)&&time(observation.observedAt)&&Number.isFinite(now)&&now-Date.parse(observation.observedAt)>=0&&now-Date.parse(observation.observedAt)<60000);
  const token=Object.freeze({});currentContinuities.set(token,{snapshotRef:Object.freeze({...snapshotRef}),observedAt:observation.observedAt});return token;
 }
+
+
+// Additive fixed 20d startup-compatible candidate. Historical eb5 admission,
+// journals and 639/7b prefix above are intentionally unchanged.
+import {lookupPr54B264Sup20dPhysicalInspection} from './p03-pr54-b264-physical-io.mjs';
+export const PR54_B264_SUP20D_SUPERVISOR=Object.freeze({
+ sourceCommit:'20d7e5b696969d502014ba359b950496dc530410',
+ packageRoot:"C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696",
+ manifestSha256:'0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418',
+});
+export const PR54_B264_SUP20D_SETTINGS_SHA256='f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95';
+export function assertPr54B264Sup20dCandidate(candidate){
+ check(exact(candidate,['erpSource','erpManifest','crmSource','crmManifest','supervisorSource','supervisorManifest','supervisorRoot','newSettings']));
+ check(candidate.erpSource==='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2');
+ check(candidate.erpManifest==='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf');
+ check(candidate.crmSource===currentOldProfile.crmSource&&candidate.crmManifest===currentOldProfile.crmManifest);
+ check(candidate.supervisorSource===PR54_B264_SUP20D_SUPERVISOR.sourceCommit&&candidate.supervisorManifest===PR54_B264_SUP20D_SUPERVISOR.manifestSha256&&candidate.supervisorRoot===PR54_B264_SUP20D_SUPERVISOR.packageRoot);
+ check(ref(candidate.newSettings)&&candidate.newSettings.path===PR54_B264_NEW_SETTINGS_PATH&&candidate.newSettings.sha256===PR54_B264_SUP20D_SETTINGS_SHA256);
+ return Object.freeze({...candidate,newSettings:Object.freeze({...candidate.newSettings})});
+}
+// Preparation only. The separate physical capability must come from the
+// genuine Sup20D collector; eb5 observations or caller booleans do not qualify.
+export function admitPr54B264Sup20dCurrentEpoch(args){return admitPr54B264Sup20dProposal(args,true);}
+function admitPr54B264Sup20dProposal({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null,physicalInspection=null},currentEpoch){
+ candidate=assertPr54B264Sup20dCandidate(candidate);
+ check(/^C:\\Sirket\\ERP\\backups\\P03-20261020-\d{6}\\source-pre-snapshot\.json$/.test(profile?.businessDigest?.path??''));
+ const history=provePr54B264History(raw),old=history.profile;
+ check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));
+ check(/^[a-f0-9]{32}$/.test(before.runId)&&![PR54_PREDECESSOR_RUN,PR54_CURRENT_PREDECESSOR_RUN,PR54_B264_PREDECESSOR_RUN].includes(before.runId)&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+before.runId+'.json'&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+before.runId+'.json'&&same(profile.beforeImage,beforeRef));
+ check(profile.schemaVersion==='melisa-p03-physical-profile.v1'&&before.schemaVersion==='melisa-p03-owner-observation.v3'&&profile.ownerSid===owner&&before.ownerSid===owner&&profile.database===history.before.database&&before.database===profile.database&&before.actualT1===false&&before.copyId===history.before.copyId);
+ check(same(profile.oldSettings,old.oldSettings)&&same(before.oldConfig,old.oldSettings)&&same(profile.newSettings,candidate.newSettings)&&same(before.newConfig,candidate.newSettings)&&before.plan.oldSettingsSha256===old.oldSettings.sha256&&before.plan.newSettingsSha256===candidate.newSettings.sha256);
+ check(same(before.profile,Object.fromEntries(Object.keys(currentOldProfile).map(k=>[k,candidate[k]])))&&isPr54CurrentNativeContinuity(nativeContinuity,profile.businessDigest,now));p03CoreFirstStopDigest(before.plan);
+ check(Number.isFinite(now)&&time(before.observedAt)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<900000&&Date.parse(before.observedAt)>=Date.parse(history.ready.observedAt)&&time(current?.observedAt)&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(current.observedAt)>=Date.parse(before.observedAt));
+ const oldSources=[currentOldProfile.erpSource,currentOldProfile.crmSource,currentOldProfile.supervisorSource,'7a41f6492273dd1ec0bcb086f820be5575372be8'],retained=old.packages.filter(p=>oldSources.includes(p.sourceCommit));
+ check(retained.length===4&&Array.isArray(profile.packages)&&profile.packages.length===6&&new Set(profile.packages.map(p=>p.root)).size===6&&retained.every(p=>profile.packages.some(q=>same(p,q))));
+ const additions=profile.packages.filter(p=>!retained.some(q=>same(p,q)));check(additions.length===2&&additions.every(p=>exact(p,['root','sourceCommit','manifestPath','manifestSha256'])&&p.manifestPath===p.root+'\\release-manifest.json')&&additions.some(p=>p.root==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a'&&p.sourceCommit===candidate.erpSource&&p.manifestSha256===candidate.erpManifest)&&additions.some(p=>p.root===candidate.supervisorRoot&&p.sourceCommit===candidate.supervisorSource&&p.manifestSha256===candidate.supervisorManifest));
+ check(!currentEpoch||profile.protectedProcesses.every(p=>time(p.creationTime)&&Date.parse(p.creationTime)<=Date.parse(before.observedAt)));
+ check(Array.isArray(profile.protectedProcesses)&&(currentEpoch?sameB264ProtectedEpoch(old.protectedProcesses,profile.protectedProcesses):same(profile.protectedProcesses,old.protectedProcesses))&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService')&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks?.length===2&&current.runningInstances?.length===2&&profile.tasks?.length===2&&profile.oldWatchers?.length===2);
+ check(plain(before.identities)&&Object.keys(before.identities).sort().join('|')===roles.toSorted().join('|'));
+ const owned=[...roles.map(role=>({...before.identities[role],role})),...profile.oldWatchers],previous=[...roles.map(role=>({...history.before.identities[role],role})),...old.oldWatchers];
+ check(new Set(owned.map(p=>p.pid)).size===10&&new Set(owned.map(p=>p.role)).size===10&&new Set(current.processes.map(p=>p.pid)).size===current.processes.length);
+ for(const p of owned){
+  const prior=previous.find(x=>x.role===p.role);check(prior&&p.ownerSid===owner&&Number.isSafeInteger(p.pid)&&p.pid>0&&p.pid!==prior.pid&&p.nodePath===prior.nodePath&&p.commandLine===prior.commandLine&&time(p.creationTime)&&Date.parse(p.creationTime)>=Date.parse(currentEpoch?history.ready.observedAt:history.ready.startedAt)&&Date.parse(p.creationTime)<=Date.parse(currentEpoch?before.observedAt:history.ready.firstCompleteAt)&&identity(p,current.processes.find(x=>x.pid===p.pid)));
+  const priorParent=previous.find(x=>x.pid===prior.parentPid);if(priorParent)check(p.parentPid===owned.find(x=>x.role===priorParent.role)?.pid);
+  if(roles.includes(p.role))check(same(p.bindings,prior.bindings));
+ }
+ const currentOwnerDigest=pr54B264StartedOwnerDigest(history.before,current);
+ if(!currentEpoch)check(currentOwnerDigest===history.ready.identityDigest);
+ const auxiliaries=lookupPr54B264Sup20dPhysicalInspection(physicalInspection,{current,profile,before,profileRef,beforeRef,now});
+ check(Array.isArray(auxiliaries)&&profile.protectedProcesses.every(p=>p.kind==='ProtectedSqlService'||current.processes.some(x=>identity(x,p)))&&current.processes.every(p=>owned.some(x=>identity(p,x))||profile.protectedProcesses.some(x=>identity(p,x))||auxiliaries.some(x=>identity(x.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?{...p,nodePath:x.nodePath}:p,x))));
+ for(const [n,name]of tasks.entries()){
+  const t=profile.tasks.find(t=>t.name===name),prior=old.tasks.find(t=>t.name===name),actual=current.tasks.find(t=>t.name===name),watcher=owned.find(p=>p.role===(n?'hubWatcher':'terminalWatcher'));
+  check(t&&t.oldXml===prior.oldXml&&t.oldXmlSha256===prior.oldXmlSha256&&hash(Buffer.from(t.oldXml))===t.oldXmlSha256&&typeof t.newXml==='string'&&hash(Buffer.from(t.newXml))===t.newXmlSha256&&t.newXml===t.oldXml.replaceAll('C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',candidate.supervisorRoot).replaceAll(old.oldSettings.path,candidate.newSettings.path).replaceAll(old.oldSettings.sha256,candidate.newSettings.sha256)&&t.newXml!==t.oldXml&&actual?.state===4&&actual.xml===t.oldXml);
+  const instances=current.runningInstances.filter(i=>i.name===name);check(instances.length===1&&instances[0].state===4&&instances[0].path==='\\'+name&&instances[0].enginePid===watcher.pid&&typeof instances[0].instanceGuid==='string'&&instances[0].instanceGuid.length>0);
+ }
+ const bindings=rows=>JSON.stringify(rows.map(b=>[b.port,b.address,b.pid]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])||a[2]-b[2]));check(bindings(current.bindings)===bindings(roles.flatMap(r=>before.identities[r].bindings.map(b=>({...b,pid:before.identities[r].pid})))));
+ const claim={schemaVersion:currentEpoch?'melisa-p03-b264-current-epoch-proposal.v1':'melisa-p03-b264-owner-successor-proposal.v1',...(currentEpoch?{currentOwnerDigest,ownerObservedAt:current.observedAt,protectedSqlEpoch:profile.protectedProcesses.find(p=>p.kind==='ProtectedSqlService')}:{}),predecessorRunId:PR54_B264_PREDECESSOR_RUN,predecessorProfile:PR54_B264_REFS.profile,predecessorBefore:PR54_B264_REFS.before,predecessorLock:PR54_B264_REFS.transitionLock,consumedAncestorClaim:PR54_B264_REFS.ancestorClaim,failedOuterTail:PR54_B264_OUTER_REFS.at(-1),quarantinedRecoveryTail:PR54_B264_RECOVERY_REFS.at(-1),readOnlyOldReady:PR54_B264_REFS.ready,successorRunId:before.runId,successorProfile:profileRef,successorBefore:beforeRef,newSettings:profile.newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(before.plan),transitionAuthority:false,applyExecuted:false};
+ const bytes=Buffer.from(JSON.stringify(claim,null,2)+'\n');return {claimPath:PR54_B264_SUCCESSOR_CLAIM_PATH,claim,proposedCreateNew:{ref:{path:PR54_B264_SUCCESSOR_CLAIM_PATH,sha256:hash(bytes)},bytes},proofDigest:hash(Buffer.from(JSON.stringify([...Object.values(PR54_B264_REFS),...PR54_B264_OUTER_REFS,...PR54_B264_RECOVERY_REFS]))),transitionAuthority:false,applyExecuted:false};
+}

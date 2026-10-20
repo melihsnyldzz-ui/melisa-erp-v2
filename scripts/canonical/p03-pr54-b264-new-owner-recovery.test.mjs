@@ -12,7 +12,7 @@ const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe
 const quote=s=>"'"+s.replaceAll("'","''")+"'";
 const extract=(file,names,aliases={})=>`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${quote(file)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};${names.map(name=>`$defs=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq${quote(name)}},$false));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};$text=$defs[0].Extent.Text;${aliases[name]?`$text='function ${aliases[name]}'+$text.Substring(('function '+${quote(name)}).Length);`:''}. ([scriptblock]::Create($text));`).join('')}`;
 function run(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$text=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($text))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',timeout:20000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
-const functions=extract(engine,['OldReuseHold','OldReusePin','AssertOldPidLifetimes','Need','Hash','Json','XmlHash','Field','Identity','CandidateParentSnapshot','CandidateInventory','CandidateInventoryCore','ConsoleAuxiliaries','AssertEmpty'],{ConsoleAuxiliaries:'B264FrozenConsoleAuxiliaries'})+'\n'+extract(empty,['Stop-NewDrainExact','Assert-NewDrainOldAbsent'])+'\n'+extract(paused,['LatePrecutProbeAllowed','ProbeAuxiliaries'])+'\n'+extract(adapter,['Require-NewDrain','Same-B264Value','Get-B264HistoricalPins','Assert-B264StopPlan','Assert-B264Claim','Assert-B264PartialShape','Capture-NewDrainCandidate','ProbeArgumentsAllowed','B264ProbeAuxiliaries','ConsoleAuxiliaries','HubLineage','Current-NewDrainFrame','Assert-B264Com','Complete-B264CoreCut','Wait-B264AuxiliaryAbsence','Publish-B264Empty','Invoke-B264Recovery']);
+const functions=extract(engine,['OldReuseHold','OldReusePin','AssertOldPidLifetimes','Need','Hash','Json','XmlHash','Field','Identity','CandidateParentSnapshot','CandidateInventory','CandidateInventoryCore','ConsoleAuxiliaries','AssertEmpty'],{ConsoleAuxiliaries:'B264FrozenConsoleAuxiliaries'})+'\n'+extract(empty,['Stop-NewDrainExact','Assert-NewDrainOldAbsent'])+'\n'+extract(paused,['LatePrecutProbeAllowed','ProbeAuxiliaries'])+'\n'+extract(adapter,['Require-NewDrain','Get-B264RecoverySourcePolicy','Same-B264Value','Get-B264HistoricalPins','Assert-B264StopPlan','Assert-B264RecoveryCandidateTuple','Assert-B264Claim','Assert-B264PartialShape','Capture-NewDrainCandidate','ProbeArgumentsAllowed','B264ProbeAuxiliaries','ConsoleAuxiliaries','HubLineage','Current-NewDrainFrame','Assert-B264Com','Complete-B264CoreCut','Wait-B264AuxiliaryAbsence','Publish-B264Empty','Invoke-B264Recovery']);
 const fixture=String.raw`
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001';$base='C:\fixture';$BeforeImageSha256='b'*64;$ProfileSha256='a'*64;$isRehearsal=$false;$ProfilePath='C:\fixture\profile.json';$BeforeImagePath='C:\fixture\before.json';$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')
 function Reset-Fixture{
@@ -52,6 +52,7 @@ function Reject($name,[scriptblock]$body){try{&$body;throw 'FIXTURE_EXPECTED_REJ
 `;
 const extra=String.raw`
 function Reset-B264Fixture{
+ $script:PolicyGeneration='LegacyB264'
  Reset-Fixture;$script:newCoreHandle=$null;$script:newCore=$null;$script:b264Mutated=$false
  $script:probePins=@{};$script:lateProbePids=@();$script:probePath='C:\fixture\probe.ps1';$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false;$script:lateAdmissionOpen=$false;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null;$script:coreLifetime=$null;$script:coreCutRecorded=$false;$script:lastCoreStopperResult=$null
  $script:parentPins=@{};$script:watcherPins=@{};$script:consolePins=@{};$script:tasksStopRequested=$false;$script:newGone=@()
@@ -203,4 +204,26 @@ if($calls-ne2-or$held.CanRead){throw 'FIXTURE_CHANGED_BYTES_EXECUTED_OR_HOLD_LEA
 'HELD_BYTES_CHILD_COMPLETION_OUTCOME'
 `);assert.match(out,/HELD_BYTES_CHILD_COMPLETION_OUTCOME/);
  const source=fs.readFileSync(adapter,'utf8');assert.match(source,/function Open-B264StopperHandle[^\n]+FileShare\]::Read/);
+});
+
+
+test('Sup20D recovery selects only exact new immutable tuple and settings, with no legacy cross-generation acceptance',()=>{
+ const out=run(functions+'\n'+fixture+'\n'+extra+String.raw`
+function Seed-Sup20DClaim{
+ Seed-Claim;$script:PolicyGeneration='B264Sup20D'
+ $claim.candidate.supervisorSource='20d7e5b696969d502014ba359b950496dc530410';$claim.candidate.supervisorManifest='0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418';$claim.candidate.supervisorRoot='C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696'
+ $claim.newSettings.sha256='f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95'
+ $before.plan.newSettingsSha256=$claim.newSettings.sha256
+ $canonical=[ordered]@{targets=$before.plan.targets;oldSettingsSha256=$before.plan.oldSettingsSha256;newSettingsSha256=$before.plan.newSettingsSha256};$before.plan.digest=Hash ([Text.Encoding]::UTF8.GetBytes(($canonical|ConvertTo-Json -Compress)))
+ $commitment=[ordered]@{planDigest=$before.plan.digest;stopOrder=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')};$claim.stopOrderDigest=Hash ([Text.Encoding]::UTF8.GetBytes(($commitment|ConvertTo-Json -Compress)))
+}
+Reset-B264Fixture;Seed-Sup20DClaim;Assert-B264Claim
+$policy=Get-B264RecoverySourcePolicy;if($policy.newObserverSha256-cne'6665b60340017c5e2ec6e4ef3eba87446b749bf019f44e7f6a9ce53dc6014d2f'-or$policy.observerSha256-cne'8f62839a616c66e2b265db2796979ce2092e3beac5bead265ea7f5a5ec802f75'){throw 'FIXTURE_NEW_SOURCE_POLICY'}
+$script:PolicyGeneration='LegacyB264';$legacy=Get-B264RecoverySourcePolicy;if($legacy.newObserverSha256-cne'1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920'){throw 'FIXTURE_LEGACY_SOURCE_POLICY'};Reject 'new-under-legacy-policy' {Assert-B264Claim}
+Reset-B264Fixture;Seed-Claim;$script:PolicyGeneration='B264Sup20D';Reject 'legacy-under-new-policy' {Assert-B264Claim}
+Seed-Sup20DClaim;$claim.candidate.supervisorManifest='0'*64;Reject 'sup20d-manifest' {Assert-B264Claim}
+Seed-Sup20DClaim;$claim.candidate.supervisorRoot+='-other';Reject 'sup20d-root' {Assert-B264Claim}
+Seed-Sup20DClaim;$claim.newSettings.sha256='c'*64;Reject 'sup20d-settings' {Assert-B264RecoveryCandidateTuple}
+Seed-Sup20DClaim;$script:PolicyGeneration='b264sup20d';Reject 'policy-case' {Assert-B264RecoveryCandidateTuple}
+`);for(const label of ['new-under-legacy-policy','legacy-under-new-policy','sup20d-manifest','sup20d-root','sup20d-settings','policy-case'])assert.ok(out.includes('REJECTED='+label));
 });
