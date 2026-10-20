@@ -1,0 +1,120 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import {fileURLToPath} from 'node:url';
+import {validatePr54B264PhysicalInspection,validatePr54CurrentPhysicalInspection,lookupPr54CurrentPhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
+import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
+import {pr54B264InspectionArguments,lookupPr54B264PhysicalInspection,inspectPr54B264PhysicalOwner} from './p03-pr54-b264-physical-io.mjs';
+import {PR54_OWNER_ROOT,PR54_B264_REFS,assertPr54B264SuccessorCandidate} from './p03-pr54-owner-successor.mjs';
+const hash=b=>createHash('sha256').update(b).digest('hex'),root=PR54_OWNER_ROOT;
+const leaf=n=>new URL('./'+n,import.meta.url),text=n=>fs.readFileSync(leaf(n),'utf8');
+const drainer=text('p03-pr54-successor-core-drain.ps1'),observer=text('p03-physical-recovery-observe.ps1');
+const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'";
+function input(){const source=n=>({path:root+'\\source-inspect\\'+n,sha256:hash(fs.readFileSync(leaf(n)))});return {profileRef:{path:root+'\\MelisaERP-P03-profile-'+ 'a'.repeat(32)+'.json',sha256:'a'.repeat(64)},beforeRef:{path:root+'\\MelisaERP-P03-before-'+ 'a'.repeat(32)+'.json',sha256:'b'.repeat(64)},engineRef:{...PR54_B264_REFS.engine},recoveryHelperRef:source('p03-pr54-paused-old-recover.ps1'),drainerRef:source('p03-pr54-successor-core-drain.ps1'),observerRef:source('p03-physical-recovery-observe.ps1')};}
+function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',timeout:25000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
+function astFn(file,name){return `$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(new URL(file,import.meta.url)))},[ref]$t,[ref]$e);if($e.Count){throw 'PARSE'};$d=@($a.FindAll({param($x)$x -is [Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -ceq '${name}'},$true));if($d.Count-ne1){throw 'FUNCTION'};. ([scriptblock]::Create($d[0].Extent.Text))`;}
+const windows={skip:process.platform!=='win32'};
+test('B264 normal collector and Inspect argv pin current source bytes; no mutator or caller transport',()=>{
+ const f=input(),a=pr54B264InspectionArguments(f);assert.equal(a.worker[a.worker.indexOf('-Mode')+1],'Inspect');assert.equal(a.observer[a.observer.indexOf('-Purpose')+1],'Physical');assert.equal(a.observer[a.observer.indexOf('-Environment')+1],'Shared');assert.ok(a.worker.includes('B264InspectOnly')&&a.observer.includes('B264InspectOnly'));assert.ok(observer.includes(f.drainerRef.sha256));
+ for(const change of [x=>x.engineRef.sha256='f'.repeat(64),x=>x.engineRef.path=x.engineRef.path.toUpperCase(),x=>x.drainerRef.sha256='f'.repeat(64),x=>x.observerRef.sha256='f'.repeat(64),x=>x.recoveryHelperRef.sha256='f'.repeat(64),x=>x.beforeRef.path=x.beforeRef.path.replace('a'.repeat(32),'b264594b6f93d560d807c8decc4e6699'),x=>x.mode='Apply',x=>x.transport=()=>{},x=>x.profileRef.path+='\\..',x=>x.engineRef.extra=true]){const x=input();change(x);assert.throws(()=>pr54B264InspectionArguments(x));}
+ assert.doesNotMatch(inspectPr54B264PhysicalOwner.toString(),/CreateNew|writeFile|Stop-Process|RegisterTask|claimPr54|runPr54SharedOwnerTransition|DrainWorkerCore/);
+ assert.equal(lookupPr54B264PhysicalInspection({},{}),null);
+});
+test('PS5 B264 mutation aliases, partial pins and legacy-source drift reject before OS/file/COM imports',windows,()=>{
+ const prefix=s=>s.slice(0,s.indexOf('# Source-bound successor worker.'));
+ const gate=prefix(drainer).replace(/^param\([\s\S]*?\n\)\n/,'').replaceAll('$PSBoundParameters','$script:bound');
+ const observerGate=observer.slice(0,observer.indexOf('# Read-only physical collection.')).replace(/^param\([\s\S]*?\n\)\n/,'').replaceAll('$PSBoundParameters','$script:bound');
+ const code=`$PolicyGeneration='B264InspectOnly';$Mode='Inspect';$EngineSha256='${PR54_B264_REFS.engine.sha256}';$RecoveryHelperSha256='${input().recoveryHelperRef.sha256}';$script:bound=@{}\nfunction Reject([scriptblock]$f){try{& $f}catch{if($_.Exception.Message-notmatch'^P03_B264_'){throw};'REJECTED';return};throw 'ACCEPTED'}\n& {${gate}};'VALID'\nforeach($m in @('Capture','Drain','inspect','INSPECT')){$Mode=$m;Reject {${gate}}};$Mode='Inspect'\nforeach($k in @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256')){$script:bound=@{};$script:bound[$k]='';Reject {${gate}}}\n$script:bound=@{};$EngineSha256='${'f'.repeat(64)}';Reject {${gate}}\n$Environment='Shared';$Purpose='Physical';$ProfilePath='x';$ProfileSha256='x';$BeforeImagePath='x';$BeforeImageSha256='x';$EnginePath='x';$RecoveryHelperPath='x';$DrainerPath='x';$DrainerSha256='${input().drainerRef.sha256}';$EngineSha256='${PR54_B264_REFS.engine.sha256}'\n& {${observerGate}};'PHYSICAL_VALID'\nforeach($p in @('CandidateProposal','physical','PHYSICAL')){$Purpose=$p;Reject {${observerGate}}};$Purpose='Physical';$Environment='Rehearsal';Reject {${observerGate}};$Environment='Shared';$DrainerPath='';Reject {${observerGate}}`;
+ const out=ps(code);assert.match(out,/VALID/);assert.match(out,/PHYSICAL_VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,16);
+});
+// Synthetic immutable metadata only; no source database or runtime is read.
+function contractFixture(){
+ const owner='S-1-5-21-2170750028-1005938530-2568122015-1001',db='MELISA_ERP_CRM_SHARED_TEST_20261009_02',copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';
+ const matches=[...drainer.matchAll(/@\(\$(oldSettings|newSettings)\.(components\.\w+|supervisor),'([^']+)','([a-f0-9]{40})','([a-f0-9]{64})'\)/g)];assert.equal(matches.length,6);
+ const old={ownerSid:owner,database:db,copyId,actualT1:false,components:{}},next=structuredClone(old),packages=[];
+ for(const [,which,key,packageRoot,sourceCommit,manifestSha256]of matches){const v={packageRoot,sourceCommit,manifestSha256},o=which==='oldSettings'?old:next;if(key==='supervisor')o.supervisor=v;else o.components[key.split('.')[1]]=v;packages.push({root:packageRoot,sourceCommit,manifestPath:packageRoot+'\\release-manifest.json',manifestSha256});}
+ next.components.crm=structuredClone(old.components.crm);next.components.nativeOrder=structuredClone(old.components.nativeOrder);
+ const oldSettings={path:String.raw`C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json`,sha256:'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'},newSettings={path:String.raw`C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json`,sha256:'c'.repeat(64)};
+ const names=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'],roles=['coreSupervisor','crmCatalog','crmNativeOrder','crmOrders','crmServer','erpApi','erpNative','hub'];
+ const identity=pid=>({pid,ownerSid:owner,creationTime:'2026-10-20T10:00:00.0000000Z'});
+ const before={schemaVersion:'melisa-p03-owner-observation.v3',runId:'a'.repeat(32),ownerSid:owner,database:db,copyId,actualT1:false,observedAt:'2026-10-20T10:01:00.0000000Z',oldConfig:oldSettings,newConfig:newSettings,plan:{oldSettingsSha256:oldSettings.sha256,newSettingsSha256:newSettings.sha256},profile:{},oldSupervisor:{root:old.supervisor.packageRoot,manifest:old.supervisor.manifestSha256},identities:Object.fromEntries(roles.map((r,n)=>[r,identity(n+1)]))};
+ for(const [k,v]of [['erp',next.components.erpApiNative],['crm',next.components.crm],['supervisor',next.supervisor]])Object.assign(before.profile,{[k+'Source']:v.sourceCommit,[k+'Manifest']:v.manifestSha256});
+ const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:owner,database:db,beforeImage:{path:input().beforeRef.path,sha256:input().beforeRef.sha256},oldSettings,newSettings,packages,oldWatchers:[identity(9),identity(10)],tasks:names.map(name=>({name})),protectedProcesses:[{kind:'ProtectedSqlService'}]};return {profile,before,old,next};
+}
+test('PS5 shared B264 contract admits exact metadata and rejects copy/settings/package/source/run/freshness/role drift',windows,()=>{
+ const f=contractFixture(),load=`$fixture=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(JSON.stringify(f)).toString('base64')}'))`;const reset=`$f=$fixture|ConvertFrom-Json`;const invoke=`AssertB264InspectionContract $f.profile $f.before $f.old $f.next ${q(input().profileRef.path)} ${q(input().beforeRef.path)} '${input().beforeRef.sha256}' ([DateTime]::Parse('2026-10-20T10:02:00Z'))`;
+ const mutations=["$f.before.copyId='foreign'","$f.before.actualT1=$true","$f.before.runId='b264594b6f93d560d807c8decc4e6699'","$f.before.observedAt='2026-10-20T09:00:00Z'","$f.before.observedAt='2026-10-20T11:00:00Z'","$f.profile.newSettings.path+='x'","$f.profile.newSettings.sha256=$f.profile.oldSettings.sha256","$f.next.supervisor.manifestSha256='f'*64","$f.next.components.crm.sourceCommit='f'*40","$f.profile.packages[0].root+='x'","$f.profile.packages+=,$f.profile.packages[0]","$f.before.oldSupervisor.root+='x'","$f.before.identities.erpApi.pid=1","$f.before.identities.erpApi.ownerSid='foreign'","$f.before.profile.erpSource='f'*40","$f.profile.tasks[0].name='foreign'","$f.profile.protectedProcesses=@()"];
+ const out=ps(astFn('./p03-pr54-successor-core-drain.ps1','AssertB264InspectionContract')+`\n${load};${reset};${invoke};'VALID'\n`+mutations.map(m=>`${reset};${m};try{${invoke};throw 'ACCEPTED'}catch{if($_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}`).join('\n'));assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,mutations.length);
+});
+
+function physicalFixture(){
+ const f=contractFixture(),refs=input(),now=Date.now(),observed=new Date(now-20).toISOString(),creationTime=new Date(now-2000).toISOString().replace('Z','0000Z');
+ const identity=(pid,parentPid=99)=>({pid,parentPid,nodePath:'C:\\synthetic\\node.exe',ownerSid:f.before.ownerSid,commandLine:'synthetic '+pid,creationTime,bindings:[]});
+ const roles=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
+ f.before.identities=Object.fromEntries(roles.map((r,n)=>[r,identity(n+1,8)]));
+ f.profile.oldWatchers=[{...identity(20),role:'terminalWatcher'},{...identity(21),role:'hubWatcher'}];
+ f.profile.shell={path:shell};f.profile.tasks=f.profile.tasks.map(t=>({...t,oldXml:'xml '+t.name,oldXmlSha256:hash('xml '+t.name)}));
+ const protectedProcess={kind:'ProtectedSqlService',name:'sqlservr.exe',pid:99,creationTime,service:{name:'MSSQL$MELISADEV',state:'Running',processId:99},sql:{serverName:'Semih\\MELISADEV',databaseName:'master',processId:99}};f.profile.protectedProcesses=[protectedProcess];
+ const consoles=[1,20,21].map((pid,n)=>({...identity(40+n,pid),nodePath:String.raw`C:\Windows\System32\conhost.exe`,commandLine:String.raw`\??\C:\WINDOWS\system32\conhost.exe 0x4`}));
+ const current={schemaVersion:'melisa-p03-physical-observation.v1',environment:'Shared',policyGeneration:'B264InspectOnly',transitionAuthority:false,beforeImage:refs.beforeRef,collectionAuthority:'PHYSICAL_OBSERVATION_ONLY',collection:'Schedule.Service.GetRunningTasks(1)',processScope:'CIM.Win32_Process.Unfiltered',portScope:'Get-NetTCPConnection.Listen.Unfiltered',stopPermitted:false,applyAvailable:false,rawScope:{unverifiedCount:0,unverifiedProcesses:[]},observedAt:observed,tasks:f.profile.tasks.map(t=>({name:t.name,state:4,xml:t.oldXml})),runningInstances:f.profile.tasks.map((t,n)=>({name:t.name,path:'\\'+t.name,state:4,enginePid:20+n,instanceGuid:'instance-'+n})),processes:[...Object.values(f.before.identities),...f.profile.oldWatchers,...consoles],bindings:[]};
+ const frame={schemaVersion:'melisa-p03-b264-precut-inspection.v1',policyGeneration:'B264InspectOnly',transitionAuthority:false,stopAuthority:false,applyExecuted:false,protectedProcesses:f.profile.protectedProcesses,profileSha256:refs.profileRef.sha256,beforeSha256:refs.beforeRef.sha256,engineSha256:refs.engineRef.sha256,recoveryHelperSha256:refs.recoveryHelperRef.sha256,observedAt:observed,oldIdentities:Object.values(f.before.identities),oldWatchers:f.profile.oldWatchers,consolePins:consoles,probePins:[]};
+ return {...f,...refs,refs,frame,current,now};
+}
+test('B264 full frame uses the existing ten-UID/COM/port classifier and cannot mint legacy authority',()=>{
+ const f=physicalFixture();assert.equal(validatePr54B264PhysicalInspection(f).length,3);assert.throws(()=>validatePr54CurrentPhysicalInspection(f));assert.equal(lookupPr54CurrentPhysicalInspection({},f),null);assert.equal(lookupPr54B264PhysicalInspection({},f),null);
+ for(const mutate of [x=>x.frame.applyExecuted=true,x=>x.frame.stopAuthority=true,x=>x.frame.transitionAuthority=true,x=>x.frame.policyGeneration='Legacy',x=>x.frame.engineSha256='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037',x=>x.frame.extra=true,x=>x.frame.protectedProcesses=[],x=>x.frame.oldIdentities.pop(),x=>x.frame.oldWatchers[0].pid++,x=>x.frame.observedAt=new Date(x.now-60000).toISOString(),x=>x.current.tasks[0].xml+='x',x=>x.current.runningInstances[0].enginePid++,x=>x.current.processes.push({...x.current.processes[0]}),x=>x.current.bindings.push({pid:40,port:99,address:'127.0.0.1'}),x=>x.frame.consolePins[0].parentPid=999]){const x=physicalFixture();mutate(x);assert.throws(()=>validatePr54B264PhysicalInspection(x));}
+});
+function transportFixture(){
+ const f=physicalFixture(),map=new WeakMap(),events=[],encoded=o=>Buffer.from(JSON.stringify(o)),context={input:f.refs,process:{platform:'win32'},fs:{existsSync:()=>false},Date,Object,JSON,Buffer,hash,bytes:encoded,inspections:map,need:(v,c)=>{if(!v)throw Error(c);},shell,PR54_B264_SUCCESSOR_CLAIM_PATH:'claim',pr54B264InspectionArguments,assertPr54B264SuccessorCandidate:c=>assertPr54B264SuccessorCandidate(JSON.parse(JSON.stringify(c))),validatePr54B264PhysicalInspection,
+ inspectPr54B264PredecessorIO:async()=>{events.push('history');return {transitionAuthority:false};},read:r=>r.path===f.profileRef.path?encoded(f.profile):r.path===f.beforeRef.path?encoded(f.before):Buffer.from('pinned source'),
+ pinnedInvocation:(_ref,argv)=>argv,run:async(_exe,args)=>{events.push(args);return {stderr:'',stdout:JSON.stringify(args.includes('-Mode')?f.frame:f.current)};}};
+ return {f,context,events,invoke:()=>vm.runInNewContext('('+inspectPr54B264PhysicalOwner.toString()+')(input)',context),lookup:vm.runInNewContext('('+lookupPr54B264PhysicalInspection.toString()+')',context)};
+}
+test('private B264 real transport body alone mints a short-lived raw-bound token; clones/legacy/fakes/stale/drift cannot use it',async()=>{
+ const t=transportFixture(),r=await t.invoke(),args={current:r.current,profile:r.profile,before:r.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now};
+ assert.equal(r.status,'B264_PHYSICAL_INSPECTED_READ_ONLY');assert.equal(r.claimCreated,false);assert.equal(r.applyExecuted,false);assert.equal(r.transitionAuthority,false);assert.equal(t.events.filter(e=>e==='history').length,2);assert.equal(t.lookup(r.physicalInspection,args).length,3);
+ assert.equal(t.lookup({},args),null);assert.equal(t.lookup({...r.physicalInspection},args),null);assert.equal(lookupPr54CurrentPhysicalInspection(r.physicalInspection,args),null);assert.equal(t.lookup(r.physicalInspection,{...args,current:structuredClone(args.current)}),null);assert.equal(t.lookup(r.physicalInspection,{...args,now:t.f.now+60000}),null);assert.equal(t.lookup(r.physicalInspection,{...args,beforeRef:{...args.beforeRef,sha256:'f'.repeat(64)}}),null);args.current.processes[0].parentPid++;assert.equal(t.lookup(r.physicalInspection,args),null);
+});
+test('B264 transport fails closed for consumed claim, source drift, stderr, unverified raw frame and missing protected process',async()=>{
+ for(const mutate of [t=>t.context.fs.existsSync=()=>true,t=>t.context.run=async()=>({stdout:'{}',stderr:'ERROR'}),t=>t.f.current.rawScope.unverifiedCount=1,t=>t.f.frame.protectedProcesses=[],t=>{const read=t.context.read;let n=0;t.context.read=r=>{const value=read(r);return ++n>6?Buffer.from('changed'):value;};}]){const t=transportFixture();mutate(t);await assert.rejects(t.invoke());}
+});
+
+test('pinned subprocess runs the authenticated source buffer under deny-write handle, not a replaceable File path',windows,()=>{
+ const source=text('p03-pr54-b264-physical-io.mjs'),start=source.indexOf('function pinnedInvocation('),end=source.indexOf('\nexport async function inspectPr54B264PhysicalOwner',start);assert.ok(start>0&&end>start);
+ const invoke=new Function('Buffer','need',source.slice(start,end)+';return pinnedInvocation;')(Buffer,(v,c)=>assert.ok(v,c));const f=input(),argv=pr54B264InspectionArguments(f);
+ for(const [ref,a]of [[f.observerRef,argv.observer],[f.drainerRef,argv.worker]]){const args=invoke(ref,a);assert.deepEqual(args.slice(0,3),['-NoProfile','-NonInteractive','-EncodedCommand']);const program=Buffer.from(args[3],'base64').toString('utf16le');assert.match(program,/AreAccessRulesProtected/);assert.match(program,/rules.Count-ne2/);assert.match(program,/\[IO.File\]::Open\(\$v.ref.path,'Open','Read','Read'\)/);assert.match(program,/\$sha-cne\$v.ref.sha256/);assert.match(program,/scriptblock\]::Create\(\$code\)\) @bound/);assert.match(program,/finally\{\$s.Dispose\(\)\}/);assert.doesNotMatch(program,/& \$v.ref.path|Start-Process|Stop-Process|WriteAll|Set-Acl/);const encoded=Buffer.from(program).toString('base64');assert.match(ps(`$t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseInput([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}')),[ref]$t,[ref]$e);if($e.Count){throw 'PARSE'};'PARSE_PASS'`),/PARSE_PASS/);}
+});
+
+test('PS5 normal observer B264 Old policy imports V2 tokens and the same finite contract, rejecting New and wrong engine',windows,()=>{
+ const f=contractFixture();f.old.node={path:'C:\\synthetic\\node.exe',sha256:'d'.repeat(64)};f.next.node=structuredClone(f.old.node);f.profile.shell={path:shell,sha256:'e'.repeat(64)};f.before.identities.coreSupervisor.nodePath=f.old.node.path;
+ const enc=o=>Buffer.from(JSON.stringify(o)).toString('base64'),worker=fileURLToPath(leaf('p03-pr54-successor-core-drain.ps1')),engine=fileURLToPath(leaf('p03-physical-rollback-lifetime-v2.ps1')),helper=fileURLToPath(leaf('p03-pr54-paused-old-recover.ps1'));
+ const program=astFn('./p03-pr54-successor-core-drain.ps1','AssertB264InspectionContract')+'\n'+astFn('./p03-physical-recovery-observe.ps1','ObserverImportDefinition')+'\n'+astFn('./p03-physical-recovery-observe.ps1','ObserverInitializeProbePolicy')+`
+$fixture=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${enc(f)}'))|ConvertFrom-Json
+$profile=$fixture.profile;$before=$fixture.before;$owner=$before.ownerSid;$ProfilePath=${q(input().profileRef.path)};$BeforeImagePath=${q(input().beforeRef.path)};$BeforeImageSha256='${input().beforeRef.sha256}'
+# Shift only this synthetic fixture's observation clock; no stored proof is edited.
+$before.observedAt=[DateTime]::UtcNow.ToString('o');foreach($p in @($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)){$p.creationTime=[DateTime]::UtcNow.AddMinutes(-1).ToString('o')}
+$old=$fixture.old;$new=$fixture.next;$engineBytes=[IO.File]::ReadAllBytes(${q(engine)});$helperBytes=[IO.File]::ReadAllBytes(${q(helper)});$script:binaryReads=0
+function ObserverRequire($v){if(-not$v){throw 'POLICY_REJECTED'}}
+function ObserverNoReparse($p){}
+function ObserverPolicyBinary($r){$script:binaryReads++}
+function ObserverPolicyJson($b){return [Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}
+function ObserverPolicyRead($r,[bool]$private=$true){
+ if($r.path-ceq$profile.oldSettings.path){return ,[Text.Encoding]::UTF8.GetBytes(($old|ConvertTo-Json -Depth 20 -Compress))}
+ if($r.path-ceq$profile.newSettings.path){return ,[Text.Encoding]::UTF8.GetBytes(($new|ConvertTo-Json -Depth 20 -Compress))}
+ if($r.path.EndsWith('p03-physical-rollback.ps1')){return ,$engineBytes}
+ if($r.path.EndsWith('p03-pr54-paused-old-recover.ps1')){return ,$helperBytes}
+ if($r.path.EndsWith('release-manifest.json')){return ,[Text.Encoding]::UTF8.GetBytes(([ordered]@{sourceCommit=$old.supervisor.sourceCommit;files=@([ordered]@{path='scripts/canonical/hub-stack-process-probe.ps1';sha256=('f'*64)})}|ConvertTo-Json -Depth 10 -Compress))}
+ if($r.path.EndsWith('hub-stack-process-probe.ps1')){return ,[Text.Encoding]::UTF8.GetBytes('probe')};throw 'UNEXPECTED_READ'
+}
+# Same pinned AST function alias used by normal source, not a boolean mock.
+. ([scriptblock]::Create('function ObserverImportedB264Contract{'+(Get-Command AssertB264InspectionContract).Definition+'}'))
+$er=[pscustomobject]@{path=${q(PR54_B264_REFS.engine.path)};sha256='${PR54_B264_REFS.engine.sha256}'};$hr=[pscustomobject]@{path=${q(input().recoveryHelperRef.path)};sha256='${input().recoveryHelperRef.sha256}'}
+$p=ObserverInitializeProbePolicy $profile $before $before.identities 'Old' $er $hr 'B264InspectOnly';if($p.generation-cne'Old'-or$binaryReads-ne2){throw 'BAD_POLICY'};'VALID'
+try{ObserverInitializeProbePolicy $profile $before $before.identities 'New' $er $hr 'B264InspectOnly'|Out-Null;throw 'ACCEPTED'}catch{if($_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}
+$er.sha256='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037';try{ObserverInitializeProbePolicy $profile $before $before.identities 'Old' $er $hr 'B264InspectOnly'|Out-Null;throw 'ACCEPTED'}catch{if($_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}
+`;
+ const out=ps(program);assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,2);
+});

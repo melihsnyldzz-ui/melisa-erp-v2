@@ -1,10 +1,17 @@
 param(
+ [string]$PolicyGeneration='Legacy',[string]$DrainerPath,[string]$DrainerSha256,
  [ValidateSet('Shared','Rehearsal')][string]$Environment='Shared',
  [ValidateSet('Physical','CandidateProposal')][string]$Purpose='Physical',
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$BeforeImageSha256,
  [string]$ProfilePath,[string]$ProfileSha256,[string]$EnginePath,[string]$EngineSha256,[string]$RecoveryHelperPath,[string]$RecoveryHelperSha256
 )
+# B264 cannot enter candidate/rehearsal or accept partial pins. Pre-IO gate.
+if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
+if($PolicyGeneration -ceq 'B264InspectOnly'){
+ if($Environment -cne 'Shared' -or $Purpose -cne 'Physical' -or @($ProfilePath,$ProfileSha256,$EnginePath,$EngineSha256,$RecoveryHelperPath,$RecoveryHelperSha256,$DrainerPath,$DrainerSha256|Where-Object{[string]::IsNullOrEmpty($_)}).Count){throw 'P03_B264_PHYSICAL_ONLY'}
+ if($EngineSha256 -cne '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def' -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne '34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'){throw 'P03_B264_INSPECTION_SOURCE'}
+}elseif($PSBoundParameters.ContainsKey('DrainerPath') -or $PSBoundParameters.ContainsKey('DrainerSha256')){throw 'P03_B264_DRAINER_SCOPE'}
 # Read-only physical collection. This script never authorizes stop/start/restore.
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
@@ -85,16 +92,20 @@ function ObserverPolicyArgvAllowed($argv,$policy){
  $profile=$policy.profile;$before=[pscustomobject]@{identities=$policy.identityMap}
  return ObserverImportedProbeArgumentsAllowed $argv $policy.probeRef.path
 }
-function ObserverInitializeProbePolicy($profile,$before,$identityMap,[ValidateSet('Old','New')][string]$generation,$engineRef,$helperRef){
+function ObserverInitializeProbePolicy($profile,$before,$identityMap,[ValidateSet('Old','New')][string]$generation,$engineRef,$helperRef,[string]$policyGeneration='Legacy'){
  $root='C:\Sirket\ERP\runtime\P03-OWNER-20261018'
  foreach($entry in @(@($engineRef,'p03-physical-rollback.ps1'),@($helperRef,'p03-pr54-paused-old-recover.ps1'))){ObserverRequire ($entry[0].path.StartsWith($root+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0].path) -ceq $entry[1])}
- ObserverRequire ($engineRef.sha256 -ceq 'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037')
+ if($policyGeneration -ceq 'B264InspectOnly'){ObserverRequire ($generation -ceq 'Old' -and $engineRef.sha256 -ceq '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def')}else{ObserverRequire ($policyGeneration -ceq 'Legacy');
+ ObserverRequire ($engineRef.sha256 -ceq 'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037')}
  ObserverRequire ($helperRef.sha256 -ceq 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5')
  ObserverImportDefinition (ObserverPolicyRead $engineRef) 'Tokens' 'ObserverImportedTokens'
  ObserverImportDefinition (ObserverPolicyRead $helperRef) 'ProbeArgumentsAllowed' 'ObserverImportedProbeArgumentsAllowed'
  ObserverRequire ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -and $before.database -ceq $profile.database -and $before.actualT1 -ceq $false)
  $readRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json')
- if($readRepair){ObserverRequire ($profile.newSettings.sha256-cmatch'^[a-f0-9]{64}$'-and$before.newConfig.sha256-ceq$profile.newSettings.sha256);$readOld=ObserverPolicyJson (ObserverPolicyRead $profile.oldSettings);$readNew=ObserverPolicyJson (ObserverPolicyRead $profile.newSettings);ObserverRequire ($readOld.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$readOld.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17'-and$readNew.components.erpApiNative.sourceCommit-ceq'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'-and$readNew.components.erpApiNative.manifestSha256-ceq'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf')}else{
+ if($policyGeneration -ceq 'B264InspectOnly'){
+  ObserverRequire ($generation -ceq 'Old')
+  ObserverImportedB264Contract $profile $before (ObserverPolicyJson (ObserverPolicyRead $profile.oldSettings)) (ObserverPolicyJson (ObserverPolicyRead $profile.newSettings)) $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)
+ }elseif($readRepair){ObserverRequire ($profile.newSettings.sha256-cmatch'^[a-f0-9]{64}$'-and$before.newConfig.sha256-ceq$profile.newSettings.sha256);$readOld=ObserverPolicyJson (ObserverPolicyRead $profile.oldSettings);$readNew=ObserverPolicyJson (ObserverPolicyRead $profile.newSettings);ObserverRequire ($readOld.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$readOld.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17'-and$readNew.components.erpApiNative.sourceCommit-ceq'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'-and$readNew.components.erpApiNative.manifestSha256-ceq'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf')}else{
  ObserverRequire ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071')
  }
  $settingsRef=if($generation -ceq 'Old'){$profile.oldSettings}else{$profile.newSettings};$settings=ObserverPolicyJson (ObserverPolicyRead $settingsRef)
@@ -182,7 +193,11 @@ try{
   ObserverRequire ($ProfilePath -ceq (Join-Path ([IO.Path]::GetDirectoryName($resolved)) ([IO.Path]::GetFileName($resolved).Replace('MelisaERP-P03-before-','MelisaERP-P03-profile-'))))
   $observerProfile=ObserverPolicyJson (ObserverPolicyRead ([pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256}))
   ObserverRequire ($observerProfile.beforeImage.path -ceq $resolved -and $observerProfile.beforeImage.sha256 -ceq $BeforeImageSha256)
-  $observerProbePolicy=ObserverInitializeProbePolicy $observerProfile $before $before.identities 'Old' ([pscustomobject]@{path=$EnginePath;sha256=$EngineSha256}) ([pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256})
+  if($PolicyGeneration -ceq 'B264InspectOnly'){
+   ObserverRequire ($DrainerPath.StartsWith('C:\Sirket\ERP\runtime\P03-OWNER-20261018\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($DrainerPath) -ceq 'p03-pr54-successor-core-drain.ps1')
+   ObserverImportDefinition (ObserverPolicyRead ([pscustomobject]@{path=$DrainerPath;sha256=$DrainerSha256})) 'AssertB264InspectionContract' 'ObserverImportedB264Contract'
+  }
+  $observerProbePolicy=ObserverInitializeProbePolicy $observerProfile $before $before.identities 'Old' ([pscustomobject]@{path=$EnginePath;sha256=$EngineSha256}) ([pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256}) $PolicyGeneration
  }
  $names=if($rehearsal){@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')}else{@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')}
  $ports=if($rehearsal){@(4284,4286,5334,62710,62711,62712,62713,62714)}else{@(4184,4186,5234,62700,62701,62702,62703,62704)}
@@ -248,5 +263,7 @@ try{
  # No row here is an authenticated identity or a stop/claim authority. Recheck
  # absence immediately before output; parents retain their normal SID checks.
  ObserverAssertVanishedAudits @($vanishedConsoles+$vanishedProbes) $rawSnapshot $observerProbePolicy
- [ordered]@{schemaVersion='melisa-p03-physical-observation.v1';environment=$Environment;beforeImage=[ordered]@{path=$resolved;sha256=$actual};startedAt=$started;observedAt=[DateTime]::UtcNow.ToString('o');collection='Schedule.Service.GetRunningTasks(1)';collectionAuthority=if($Purpose -ceq 'CandidateProposal'){'CANDIDATE_PROPOSAL_ONLY'}else{'PHYSICAL_OBSERVATION_ONLY'};processScope='CIM.Win32_Process.Unfiltered';portScope='Get-NetTCPConnection.Listen.Unfiltered';tasks=$tasks;runningInstances=$instances;processes=$processes;bindings=$bindings;vanishedConsoles=$vanishedConsoles;vanishedProbes=$vanishedProbes;rawScope=[ordered]@{selectedCount=$rawSnapshot.selected.Count;unverifiedCount=$unverifiedRaw.Count;unverifiedProcesses=$unverifiedRaw};stopPermitted=$false;applyAvailable=$false}|ConvertTo-Json -Depth 12
+ $result=[ordered]@{schemaVersion='melisa-p03-physical-observation.v1';environment=$Environment;beforeImage=[ordered]@{path=$resolved;sha256=$actual};startedAt=$started;observedAt=[DateTime]::UtcNow.ToString('o');collection='Schedule.Service.GetRunningTasks(1)';collectionAuthority=if($Purpose -ceq 'CandidateProposal'){'CANDIDATE_PROPOSAL_ONLY'}else{'PHYSICAL_OBSERVATION_ONLY'};processScope='CIM.Win32_Process.Unfiltered';portScope='Get-NetTCPConnection.Listen.Unfiltered';tasks=$tasks;runningInstances=$instances;processes=$processes;bindings=$bindings;vanishedConsoles=$vanishedConsoles;vanishedProbes=$vanishedProbes;rawScope=[ordered]@{selectedCount=$rawSnapshot.selected.Count;unverifiedCount=$unverifiedRaw.Count;unverifiedProcesses=$unverifiedRaw};stopPermitted=$false;applyAvailable=$false}
+ if($PolicyGeneration -ceq 'B264InspectOnly'){$result['policyGeneration']='B264InspectOnly';$result['transitionAuthority']=$false}
+ $result|ConvertTo-Json -Depth 12
 }finally{$stream.Dispose()}
