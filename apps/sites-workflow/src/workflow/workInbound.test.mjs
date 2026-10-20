@@ -308,3 +308,20 @@ test('supplier card joins accepted receipt, invoice, partial payment and reversa
  ui.mount();await tick();assert.deepEqual(calls,['/api/work-supplier-payments/context']);assert.match(d.root.innerHTML,/Mal kabul #9004 → Alış faturası TDAY-FINOPS-20261006/);assert.match(d.root.innerHTML,/Ödenen 100,00 · İade 0,00/);assert.match(d.root.innerHTML,/Kalan borç: <b>200,00 TRY/);assert.match(d.root.innerHTML,/ODI-9011/);assert.match(d.root.innerHTML,/Ödeme ters kaydı/);assert.match(d.root.innerHTML,/OD-9012/);assert.doesNotMatch(d.root.innerHTML,/Mal kabul #9003/);ui.dispose();
  const limited=context();limited.capabilities.canViewSupplier=false;const e=dom(),deniedCalls=[],denied=createWorkSuppliers({root:e.root,session:{inbound:async path=>{deniedCalls.push(path);return limited;},supplierPayments:async()=>{throw Error('unexpected financial read');}},user:{id:15,permissions:['goods.view','supplier.view']}});denied.mount();await tick();assert.deepEqual(deniedCalls,['/api/work-receiving/context']);assert.doesNotMatch(e.root.innerHTML,/Deneme kaydı|200,00 TRY/);assert.match(e.root.innerHTML,/Ödeme geçmişini görüntüleme yetkiniz yok/);denied.dispose();
 });
+
+for(const refreshStatus of [403,503])test('purchase committed result survives following context refresh '+refreshStatus,async()=>{
+ const {createWorkPurchases}=await controller('workPurchases'),d=dom(),store=storage(),c=purchases(),calls=[];let committed=false;
+ const ui=createWorkPurchases({root:d.root,user:{id:16},storage:store,uuid:()=>requestId,session:{inbound:async(path,o)=>{
+  calls.push({path,o});if(path==='/api/work-receiving/context')return context();
+  if(path==='/api/work-purchases/context'){if(committed)throw {status:refreshStatus};return c;}
+  if(path.endsWith('/preview'))return {selection:o.body,currency:'TRY',items:o.body.lines.map((l,i)=>({...l,productId:c.scope.products[i].id,purchasePriceExact8:c.scope.products[i].purchasePriceExact8,lineTotalExact4:(i?'80':'120')+'.0000'})),totals:invoice().totals};
+  if(path==='/api/work-purchases/drafts'){committed=true;return {invoice:invoice(),requestId:o.body.requestId,replayed:false};}throw Error(path);
+ }}});
+ ui.mount();await tick();d.node('[data-purchase-receipt]').onchange({target:{value:'7'}});
+ const form=d.node('[data-purchase-entry]');form.elements.number.value='TSTB-ONE';form.elements.date.value='2026-10-06';const quantities=d.root.querySelectorAll('[data-purchase-qty]');quantities[0].value='2';quantities[1].value='1';quantities[0].oninput();
+ d.node('[data-purchase-preview]').onclick();await tick();d.node('[data-purchase-create]').onclick();await tick();
+ const journal=createInboundJournal({storage:store,key:'melisa-work-inbound-purchase:local:16'}).read();
+ assert.equal(journal.request.status,'done');assert.equal(journal.draft.invoiceId,'8');assert.equal(journal.request.result.invoice.id,'8');
+ assert.match(d.root.innerHTML,/Fatura işlemi kaydedildi/);assert.match(d.root.innerHTML,/Güncel alış bilgileri yenilenemedi/);assert.doesNotMatch(d.root.innerHTML,/Bu işlem için yetkiniz yok|Son faturanın sonucu doğrulanmalı/);assert.match(d.root.innerHTML,/TSTB-ONE/);
+ assert.equal(calls.filter(call=>call.path==='/api/work-purchases/drafts').length,1);assert.equal(ui.requestClose(),true);ui.dispose();
+});
