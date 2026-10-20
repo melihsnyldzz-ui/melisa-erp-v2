@@ -1,3 +1,11 @@
+## 20 Ekim — Inactive ayarlar gerçekten oluşturuldu; kurulu TEST değişmedi
+
+20d7e5b696969d502014ba359b950496dc530410 kaynaklı immutable SUP paketi 389 dosya, manifest 0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418. Gerçek --PrepareNew --B264 PREPARED_INACTIVE: altı private ayar/journal/receipt dosyası CreateNew+ACL+readback ile oluşturuldu; mevcut ERP dependency lock tekrar yazılmadı. Settings SHA f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95. Bu dosyalar etkinleştirilmedi; PrepareNew yeniden çalıştırılmaz, dosyaların üzerine yazılmaz. Sonraki operatör kaynağı bu sabit paket tuple'ını kullanacak; her belge/test commit'inde paket yeniden üretilmeyecek.
+
+20d7e5b6 PR39411904587 quality FAIL: ilk tarih testi geçti, sonraki crm06-unified-candidate.test PS/JS kapalı allowlist testinin beklenen listesinde yeni exact B264 config/CRM6bc satırı eksik. Yalnız test beklentisine bu tek tuple eklendi. Case/alias retleri, tam set eşliği ve legacy 11 profil hashleri korundu; root ve bağımsız iki-suite 9/9 PASS. Bu CI önceki başlıkta bekleniyor olarak kayıtlıydı; gerçek sonuç FAIL, yeşil sunulmadı. Yeni exact CI ayrıca doğrulanacak.
+
+Kurulu ERP e59 / SUP13b / CRM6bc / DB02 sağlıklı; yeni uygulama kurulumu, görev durdurma/başlatma ve ticari kayıt yazması yok. QueryStore geçici READ_ONLY kaydı ve dönüş sınırı korunuyor. FullShared admission, held OLD cut/start ve guarded rollback aynı işte sürüyor; GUI/cihaz/insan kabulü tamamlanmış sayılmadı.
+
 ## 20 Ekim — B264 gerçek yedek, kaynak eşliği ve inactive hazırlık doğrulandı
 
 Kurulu ERP e59e07ab / gözetmen 13bdf75a / CRM 6bc82e6f ve DB02 korunuyor. Yeni uygulama kurulumu, görev/servis durdurma ve ticari SQL yazması yapılmadı. COPY_ONLY yedek 9.268.690.944 bayt; checksum ve RESTORE VERIFYONLY başarılı. Gerçek restore yapılmadı. Before-image ve dönüş SQL'i korunarak yalnız DB02 QueryStore işlem modu geçici READ_ONLY yapıldı; hâlen bu modda, veritabanı READ_ONLY yapılmadı. Bu bir ticari yazma dondurma kanıtı değildir.
