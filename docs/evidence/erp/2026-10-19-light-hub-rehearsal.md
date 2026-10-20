@@ -161,3 +161,12 @@ NEW9 + native/tarih/prefix38 = root47PASS/0skip; bağımsız9/38GO. Bunlar kayna
 Gerçek DB02 native kontrolü20Ekim10:30:53.5594930Z QueryStoreREAD_WRITE ve sourceLSNfarkı nedeniyle eski19snapshotın yeniden kullanımını reddetti. DB/copy/seal/T1/GUID/fork aynı; iş verisi değişti sonucu çıkarılmadı. Yeni yedek/sourcecapture henüz çalıştırılmadı, SQLayar değişmedi. Mevcutbackup/snapshot araçları yalnız19|20 finitepath ve20runfloor için genişletildi; eski19nativefactory/prefix aynen, additive20factory typed17field+READ_ONLY+exactLSN/fork+genuine60s token koşullarını korur. Eski kanıtın tarihini değiştirme veya restore yok.
 
 Önceki kaynak f361c27d56a1ff1ac845f8c28ad90c0eda03d5a2 exactPR39408237573/push39408229685 SUCCESS. Bu sonraki kaynakhead için CI ayrı doğrulanır. FullSharedstartup/guardedrollback/taze native/yedek/before/tek-owner halen açık; yeniB264claim ve kurulum0, mevcutTEST korunur.
+
+
+## 20 Ekim — OLD held-core cut kaynak teslimi ve gerçek hazırlık
+
+OLDadapter kaynakta Inspect varsayılan; gerçekB264claim/rootintent/freshUID/COMdigest bağları, corehandle+durableintent beforeCOM, COMnaturalexit ve exactstop ayrımı, strictprobe/console naturaldrain. Bağımsızreview'daki epochyönüP1 ve canonicalplan/COMGUIDCAS P2 kapandı. Root12/12 ve bağımsız12/12PASS0skip; actualcut/rollback yapılmadı. YeniPS -text, SHA aab5104f0acbd7f29e7091df8cdc25f60976792bbb1175eac90f3dc1632d3e05. Eski kaynak/journal/profil kilitleri değişmedi.
+
+Root aynıDB02/copy/T1false üzerinde P03-20261020-104000 yeniCOPY_ONLY yedeğini9.268.690.944byte/checksum/VERIFYONLY ile doğruladı; restoreprovası/restart değil. QueryStoreistatistik yazımı öncesi before-image, exactsourcehash, SQLPID5360/doğum/service, sağlık/settings/backupmetadata pinleriyle geçiciREAD_ONLY yapıldı. Sonproof private; rollbackSQLREAD_WRITE aynıDB'ye kayıtlıdır. TicariDML/finans/stock/role/restore yok. İlktypedSQLselectionhatası actionöncesinde kaldı; success sonrası kaynak51tablohash okuması sürüyor. READ_ONLYQueryStore işverisini kilitlemez, LSN değişirse nativegate yine reddeder.
+
+TamSharedhazırlık yeni somut enum bağı buldu: eskiSUPeb5 yeniB264settingspath'i kabul etmiyor. Inactiveprofile+startupchain kaynağı ve sonraki yeniimmutableSUPpaketi gereklidir; eskipaket inplace değiştirilmez. Sonraki exactcandidate source/pinleri ve gerçekstartup/guardedrollback/admission kapanmadan claim/Apply/kurulum yok.8c84478d exactPR39409174591/push39409169078 SUCCESS; bu sonraki headCI ayrı.

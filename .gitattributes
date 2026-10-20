@@ -15,3 +15,4 @@ scripts/canonical/p03-pr54-successor-core-drain.ps1 -text
 scripts/canonical/p03-physical-recovery-observe.ps1 -text
 scripts/canonical/p03-pr54-new-owner-observe.ps1 -text
 scripts/canonical/p03-pr54-b264-new-owner-recovery.ps1 -text
+scripts/canonical/p03-pr54-b264-old-owner-cut.ps1 -text
