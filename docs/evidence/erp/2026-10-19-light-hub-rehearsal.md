@@ -1,3 +1,11 @@
+## 20 Ekim — Gerçek metadata farkları daraltıldı; paket yeniden üretilmedi
+
+be9b09439be56d70bd152c3d5e2c9f6e77410843 exact PR39414319241/push39414311989 tüm üç job SUCCESS. Gerçek RO admission, yeni CRM activation dosyasının yolunun değişmesine rağmen içeriğinin aynı9b484883 SHA olduğunu gösterdi. Eski whole-component karşılaştırması bu onaylı dosya yolu değişimini reddediyordu. Yalnız Sup20D sözleşmesi exact CRM6bc tuple, dört component alanı/iki config alanı, sabit eski/yeni activation yolları ve aynı9bSHA ister; unknown path/hash/alanlar reddedilir. NativeOrder tam eşitliği ve legacy B264 sözleşmesi aynen korunur.
+
+İkinci gerçek metadata kontrolünde SQL dışı korunan süreçlerde kind alanının bulunmaması StrictMode hatasına yol açtı. Yeni sözleşmede property varlığı kontrol edilir; bu satırlar SQL diye kabul edilmez, tam bir SQL koruması şartı değişmez. Mixed satır pozitif; eksik/duplicate SQL negatifleri eklendi. Windows PS5, mevcut gerçek5d0c profile/before ve iki hashli settings üzerinden yalnız ASTmetadata kontrolünde ACTUAL_METADATA_VALID verdi; zaman damgası değiştirilmedi. Bu yalnız metadata karşılaştırmasıdır, physical token/claim/Apply değildir.
+
+D/O/N/C/R hash zinciri bu iki dar değişikliğe göre yenilendi. Altı SUP20D hedefi, rootphysical12hedef ve R10hedef PASS; bağımsız metadata2/2 ve reviewGO. Önceki153 test yeni tam küme diye sunulmuyor. Aynı Sup20d paket/altı inactive ayar/DB02 yedeği korundu; ticari veri, servis/görev veya kurulum değişmedi. Yeni exact CI ve gerçek fiziksel/native admission ayrıca doğrulanacak. QueryStore geçici READ_ONLY cleanup kaydı açık; gerçek dönüş/readback teslimde belirtilecek.
+
 ## 20 Ekim — Gerçek salt-okunur admission parametre hatası düzeltildi
 
 19212b73d15f01d2117f1d314a1f48bb6603363d exact PR39413614981 tüm üç job SUCCESS. Yeni control kaynağı beş dosya strict ACL/hash/readback ile kopyalandı; ilk kopya denemesinin yanlış ACL nedeniyle verdiği başarı satırı geçersizdi. Yalnız oluşturulan boş klasörün DACL'i owner yetkisiyle onarıldı; ardından PS5 CreateNew+ACL ile beş dosya bağımsız doğrulandı. Çalışan servis/veri etkisi yok.

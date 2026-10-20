@@ -218,7 +218,7 @@ function Seed-Sup20DClaim{
  $commitment=[ordered]@{planDigest=$before.plan.digest;stopOrder=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')};$claim.stopOrderDigest=Hash ([Text.Encoding]::UTF8.GetBytes(($commitment|ConvertTo-Json -Compress)))
 }
 Reset-B264Fixture;Seed-Sup20DClaim;Assert-B264Claim
-$policy=Get-B264RecoverySourcePolicy;if($policy.newObserverSha256-cne'6665b60340017c5e2ec6e4ef3eba87446b749bf019f44e7f6a9ce53dc6014d2f'-or$policy.observerSha256-cne'8f62839a616c66e2b265db2796979ce2092e3beac5bead265ea7f5a5ec802f75'){throw 'FIXTURE_NEW_SOURCE_POLICY'}
+$policy=Get-B264RecoverySourcePolicy;if($policy.newObserverSha256-cne'b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22'-or$policy.observerSha256-cne'5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'){throw 'FIXTURE_NEW_SOURCE_POLICY'}
 $script:PolicyGeneration='LegacyB264';$legacy=Get-B264RecoverySourcePolicy;if($legacy.newObserverSha256-cne'1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920'){throw 'FIXTURE_LEGACY_SOURCE_POLICY'};Reject 'new-under-legacy-policy' {Assert-B264Claim}
 Reset-B264Fixture;Seed-Claim;$script:PolicyGeneration='B264Sup20D';Reject 'legacy-under-new-policy' {Assert-B264Claim}
 Seed-Sup20DClaim;$claim.candidate.supervisorManifest='0'*64;Reject 'sup20d-manifest' {Assert-B264Claim}

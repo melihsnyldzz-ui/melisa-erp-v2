@@ -18,8 +18,8 @@ const pins=Object.freeze({
 });
 // Fixed source of the prepared Sup20d generation; legacy pins above are unchanged.
 const sup20dPins=Object.freeze({
- drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'66bab37d8429f9756152b4185b3c2410526e6af35636036fd5419a6c63a42c1a'}),
- observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'8f62839a616c66e2b265db2796979ce2092e3beac5bead265ea7f5a5ec802f75'}),
+ drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}),
+ observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}),
  helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
 });
 const inspections=new WeakMap();

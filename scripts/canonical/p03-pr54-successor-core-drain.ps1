@@ -123,11 +123,18 @@ function AssertB264Sup20DInspectionContract($profile,$before,$oldSettings,$newSe
  )
  B264Need (@($profile.packages).Count -eq 6 -and @($profile.packages|Select-Object -ExpandProperty root -Unique).Count -eq 6)
  foreach($f in $fixed){B264Need ($f[0].packageRoot -ceq $f[1] -and $f[0].sourceCommit -ceq $f[2] -and $f[0].manifestSha256 -ceq $f[3]);B264Need (@($profile.packages|Where-Object{$_.root -ceq $f[1] -and $_.sourceCommit -ceq $f[2] -and $_.manifestSha256 -ceq $f[3] -and $_.manifestPath -ceq ($f[1]+'\release-manifest.json')}).Count -eq 1)}
- foreach($component in @('crm','nativeOrder')){B264Need (B264Same $oldSettings.components.$component $newSettings.components.$component)}
+ # SUP20D keeps the identical CRM activation bytes at two exact generation paths.
+ B264Need (B264Same $oldSettings.components.nativeOrder $newSettings.components.nativeOrder)
+ foreach($crm in @($oldSettings.components.crm,$newSettings.components.crm)){
+  B264Need ((@($crm.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'config|manifestSha256|packageRoot|sourceCommit')
+  B264Need ($crm.packageRoot -ceq 'C:\Sirket\CRM\releases\crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a' -and $crm.sourceCommit -ceq '6bc82e6fe9726261ef1d0171d97e5d9da9f5398a' -and $crm.manifestSha256 -ceq 'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83')
+  B264Need ((@($crm.config.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'path|sha256' -and $crm.config.sha256 -ceq '9b484883f89584225bcd5242b7f501a38feb6a1bbaa22d8a8e17accf302785ab')
+ }
+ B264Need ($oldSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $newSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json')
  foreach($pair in @(@('erp',$newSettings.components.erpApiNative),@('crm',$newSettings.components.crm),@('supervisor',$newSettings.supervisor))){B264Need ($before.profile.($pair[0]+'Source') -ceq $pair[1].sourceCommit -and $before.profile.($pair[0]+'Manifest') -ceq $pair[1].manifestSha256)}
  B264Need ($before.oldSupervisor.root -ceq $oldSettings.supervisor.packageRoot -and $before.oldSupervisor.manifest -ceq $oldSettings.supervisor.manifestSha256)
  B264Need ((@($before.identities.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'coreSupervisor|crmCatalog|crmNativeOrder|crmOrders|crmServer|erpApi|erpNative|hub')
- B264Need (@($profile.oldWatchers).Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.protectedProcesses|Where-Object{$_.kind -ceq 'ProtectedSqlService'}).Count -eq 1)
+ B264Need (@($profile.oldWatchers).Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -ccontains 'kind' -and $_.kind -ceq 'ProtectedSqlService'}).Count -eq 1)
  $all=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)
  B264Need (@($all|Select-Object -ExpandProperty pid -Unique).Count -eq 10)
  foreach($p in $all){B264Need ($p.pid -gt 0 -and $p.ownerSid -ceq $owner -and $p.creationTime -is [string] -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime())}

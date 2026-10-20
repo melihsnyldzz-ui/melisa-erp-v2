@@ -45,7 +45,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
 }
 function Get-B264RecoverySourcePolicy{
  if($PolicyGeneration -ceq 'B264Sup20D'){
-  return @{newObserverSha256='6665b60340017c5e2ec6e4ef3eba87446b749bf019f44e7f6a9ce53dc6014d2f';observerSha256='8f62839a616c66e2b265db2796979ce2092e3beac5bead265ea7f5a5ec802f75'}
+  return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }
  Require-NewDrain ($PolicyGeneration -ceq 'LegacyB264') 'POLICY'
  return @{newObserverSha256='1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920';observerSha256='5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5'}
