@@ -13,3 +13,4 @@ scripts/canonical/upgrade-test-night-guard-visibility.sql whitespace=-blank-at-e
 # Exact B264 read-only source pins must survive Windows checkout byte-for-byte.
 scripts/canonical/p03-pr54-successor-core-drain.ps1 -text
 scripts/canonical/p03-physical-recovery-observe.ps1 -text
+scripts/canonical/p03-pr54-new-owner-observe.ps1 -text

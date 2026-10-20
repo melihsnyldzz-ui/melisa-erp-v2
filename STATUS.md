@@ -1,3 +1,11 @@
+## 20 Ekim — Aynı P03: bugünkü Windows/SQL dönemi ve NEW okuma kaynak bağlantısı
+
+Mevcut TEST yeniden kurulmadı. Salt-okunur kontrolde bugünkü ikiRunningCOM6504/9668 ve SQL5360/20Ekim03:54Z görüldü; eski profile SQL6180/15Ekim kaydı tarihsel kalır. Yeni explicit current-epoch proposal, genuine B264physical+nativecontinuity, immutableSQLservice/account/path/server/DB ve yeni before/profile ile bu farkı ayrı ele alır; eski B264229f kabulü/default639/7b değişmez. Profile builder yalnız exactB264suffix/01ef-6bc-eb5 tuple'ı için ek generation tanır. Mevcut NEW observer'a ayrı B264ObserveOnly/V2 yolu, aynı finitecontract, NEWcore/probe/config/binary ve V2lifetime-before/after eklendi. Yeni claim/Apply yolu açılmadı.
+
+Son hedefli koşu **64PASS/0FAIL/0skip**; bağımsız current-epoch/NEW kaynak GO (inceleme63PASS; son ekprobe-policy kontrolüyle rootfinal64). Kaynak/doküman PR54 sonraki head; exact CI push sonrası doğrulanacak. Private log `reports/integration-audit-20261020/b264-current-epoch-new-readback-final.txt`. Süreç/SQLepoch farkı hata veya işletme verisi değişimi diye sunulmaz; eski journal/claim/FAILED/QUARANTINED dokunulmadı. Bu tur runtime/config/SQLbusinesswrite/restart0.
+
+**Aynı işte açık somut parça:** NEW empty recovery şu anda Hub/HubWatcher'sız8partial kapsamını destekliyor; tam10rol/Hublineage/strictliveprobe ve yeni B264claim bağını kapatmadan fullShared update güvenli diye sunulamaz. TamShareddispatcher/guardedrollback ve taze native/yedek/before kapıları hâlâ açık; mevcut TEST e59/13b/6bc korunur. Yeni ortam/reset/CRM reinstall veya kullanıcıdan rutin devam/parola yok. İnsan/GUI/cihaz ve49/25 aynı.
+
 ## 20 Ekim — P03 B264 V2 salt-okunur normal inceleme bağlantısı kaynak teslimi
 
 Kaynak **4cceff0ee77e16e2d5afb0052488ea24e8f0b0d1 / PR54**: drainer ve normal physical collector yalnız explicit `B264InspectOnly` ile V2'ye bağlandı. Capture/Drain/CandidateProposal/yanlış-case/claim-intent girdileri import/dosya/COM öncesinde reddedilir. Exact altı paket, old/new settings, copy/T1false, taze before, sekiz rol/iki watcher/COM/binding ve ham probe/console sınıflandırması korunur. Ayrı private transport ve WeakMap token'ı; exact kaynak bytes strict ACL/hash/no-reparse ve deny-write handle altında UTF-8 buffer'dan yürütülür. B264 claim/Apply/Drain yolu açılmadı; frozen FE/V2 engine byte'ları değişmedi.

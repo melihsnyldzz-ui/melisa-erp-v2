@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {validateP03ProtectedSqlService} from './p03-physical-profile-create.mjs';
 import {execFileSync} from 'node:child_process';
 import {p03CoreFirstStopDigest,p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
 import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,PR54_B264_NEW_SETTINGS_PATH,PR54_CURRENT_SUCCESSOR_CLAIM_PATH,assertPr54B264SuccessorCandidate,validatePr54B264Predecessor,pr54B264StartedOwnerDigest} from './p03-pr54-owner-successor.mjs';
@@ -26,7 +27,7 @@ function modeledModule(history){
  const start=source.indexOf('function provePr54B264History(raw){'),end=source.indexOf('\nexport function validatePr54B264Predecessor',start);assert.ok(start>0&&end>start);
  const code=(source.slice(0,start)+'function provePr54B264History(raw){return fixtureHistory(raw);}\n'+source.slice(end)).replace(/^import .*;\r?\n/gm,'').replace(/export /g,'');
  const inspections=new WeakMap(),lookup=(token,args)=>{const f=inspections.get(token);return f&&args.current===f.current&&args.profile===f.profile&&args.before===f.before&&JSON.stringify(args.profileRef)===JSON.stringify(f.profileRef)&&JSON.stringify(args.beforeRef)===JSON.stringify(f.beforeRef)?[]:null;};
- const mod=new Function('createHash','path','p03CoreFirstStopDigest','lookupPr54CurrentPhysicalInspection','lookupPr54B264PhysicalInspection','fixtureHistory',code+'\nreturn {admitPr54B264OwnerSuccessor,preparePr54CurrentNativeContinuity};')(createHash,path,p03CoreFirstStopDigest,lookup,lookup,raw=>{assert.equal(raw,history);return history;});
+ const mod=new Function('createHash','path','p03CoreFirstStopDigest','lookupPr54CurrentPhysicalInspection','lookupPr54B264PhysicalInspection','fixtureHistory','validateP03ProtectedSqlService',code+'\nreturn {admitPr54B264OwnerSuccessor,admitPr54B264CurrentEpoch,preparePr54CurrentNativeContinuity};')(createHash,path,p03CoreFirstStopDigest,lookup,lookup,raw=>{assert.equal(raw,history);return history;},validateP03ProtectedSqlService);
  return {...mod,mintModeledInspection:f=>{const token=Object.freeze({});inspections.set(token,{...f});return token;}};
 }
 function seal(f){f.beforeBytes=bytes(f.before);f.beforeRef={path:PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+f.before.runId+'.json',sha256:hash(f.beforeBytes)};f.profile.beforeImage=f.beforeRef;f.profileBytes=bytes(f.profile);f.profileRef={path:PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+f.before.runId+'.json',sha256:hash(f.profileBytes)};return f;}
@@ -35,7 +36,7 @@ function fixture(){
  const expected=Object.fromEntries(roles.map((r,n)=>[r,{pid:10+n,parentPid:r==='hub'?31:r==='coreSupervisor'?30:17,nodePath:'C:\\synthetic\\node.exe',commandLine:'node synthetic-'+r+' <&\'quoted>',ownerSid:owner,creationTime:'2026-10-18T12:00:00.1111111Z',bindings:r==='coreSupervisor'?[]:[{port:4100+n,address:'127.0.0.1'}]}]));
  const oldWatchers=['terminalWatcher','hubWatcher'].map((role,n)=>({role,pid:30+n,parentPid:1,nodePath:'C:\\synthetic\\powershell.exe',commandLine:'powershell synthetic-'+role,ownerSid:owner,creationTime:'2026-10-18T12:00:00.1111111Z'}));
  const oldSources=['e59e07abf7ae2567cdc2adb93811fe29e0032fe5',c.crmSource,'13bdf75a032ae8f694354a2e57b6ed382aec2f17','7a41f6492273dd1ec0bcb086f820be5575372be8'];
- const old={ownerSid:owner,oldSettings,packages:oldSources.map((sourceCommit,n)=>({root:'C:\\synthetic\\package'+n,sourceCommit,manifestPath:'C:\\synthetic\\package'+n+'\\release-manifest.json',manifestSha256:String(n).repeat(64)})),oldWatchers,protectedProcesses:[{kind:'ProtectedSqlService',name:'sqlservr.exe',pid:8000,creationTime:'2026-10-17T12:00:00.0000000Z',service:{name:'MSSQL$MELISADEV',state:'Running',processId:8000},sql:{serverName:'Semih\\MELISADEV',databaseName:'master',processId:8000}}],tasks:names.map(name=>{const oldXml=oldRoot+' '+oldSettings.path+' '+oldSettings.sha256;return {name,oldXml,oldXmlSha256:hash(oldXml)};})};
+ const old={ownerSid:owner,oldSettings,packages:oldSources.map((sourceCommit,n)=>({root:'C:\\synthetic\\package'+n,sourceCommit,manifestPath:'C:\\synthetic\\package'+n+'\\release-manifest.json',manifestSha256:String(n).repeat(64)})),oldWatchers,protectedProcesses:[{kind:'ProtectedSqlService',name:'sqlservr.exe',pid:8000,creationTime:'2026-10-17T12:00:00.0000000Z',service:{name:'MSSQL$MELISADEV',state:'Running',processId:8000,startName:'NT Service\\MSSQL$MELISADEV',pathName:'C:\\synthetic\\sqlservr.exe -sMELISADEV'},sql:{serverName:'Semih\\MELISADEV',databaseName:'master',processId:8000}}],tasks:names.map(name=>{const oldXml=oldRoot+' '+oldSettings.path+' '+oldSettings.sha256;return {name,oldXml,oldXmlSha256:hash(oldXml)};})};
  const original={identities:expected,database,copyId},restored=roles.map((role,n)=>({...expected[role],role,pid:100+n,parentPid:role==='hub'?301:role==='coreSupervisor'?300:107,creationTime:'2026-10-19T13:00:10.1111111Z'})),watchers=oldWatchers.map((w,n)=>({...w,pid:300+n,creationTime:'2026-10-19T13:00:01.1234567Z'}));
  const current={observedAt:'2026-10-19T13:02:01.000Z',processes:[...restored,...watchers],bindings:restored.flatMap(p=>p.bindings.map(b=>({...b,pid:p.pid}))),tasks:old.tasks.map(t=>({name:t.name,state:4,xml:t.oldXml})),runningInstances:names.map((name,n)=>({name,path:'\\'+name,state:4,enginePid:300+n,instanceGuid:'{synthetic-'+n+'}'}))};
  const history={profile:old,before:original,ready:{startedAt:'2026-10-19T13:00:00.0000000Z',firstCompleteAt:'2026-10-19T13:00:30.0000000Z',observedAt:'2026-10-19T13:01:00.0000000Z',identityDigest:pr54B264StartedOwnerDigest(original,current)}};
@@ -83,4 +84,20 @@ function privateRaw(){const read=ref=>({ref:{...ref},bytes:fs.readFileSync(ref.p
 test('actual private 26 FAILED / 8 QUARANTINED / protected late OLD proof validates only historical observation',{skip:!available},()=>{const p=validatePr54B264Predecessor(privateRaw());assert.equal(p.status,'HISTORY_VALIDATED');assert.equal(p.engineOutcome,'ROLLBACK_READBACK_FAILED');assert.equal(p.transitionAuthority,false);assert.equal(p.applyExecuted,false);});
 test('actual private closure rejects missing, reordered, tampered, rehashed or foreign historical refs',{skip:!available},()=>{
  for(const change of [r=>r.outer.pop(),r=>r.recovery.reverse(),r=>r.ready.bytes[0]^=1,r=>r.outer[25].bytes[0]^=1,r=>r.globalLock.ref.sha256='f'.repeat(64),r=>r.ancestorClaim.ref.path='C:\\foreign\\claim.json',r=>r.extra=true,r=>{const v=JSON.parse(r.ready.bytes);v.engineOutcome='READY';r.ready.bytes=bytes(v);r.ready.ref.sha256=hash(r.ready.bytes);}]){const raw=privateRaw();change(raw);assert.throws(()=>validatePr54B264Predecessor(raw));}
+});
+
+function currentEpochFixture(){
+ const f=fixture();for(const p of [...Object.values(f.before.identities),...f.profile.oldWatchers])p.creationTime='2026-10-19T13:01:30.1111111Z';
+ for(const p of f.current.processes)p.creationTime='2026-10-19T13:01:30.1111111Z';
+ const sql=f.profile.protectedProcesses[0];sql.pid=8001;sql.creationTime='2026-10-19T13:01:20.0000000Z';sql.service.processId=8001;sql.sql.processId=8001;
+ seal(f);f.physicalInspection=f.mod.mintModeledInspection(f);return f;
+}
+test('new current epoch has a separate guarded proposal; historical B264 admission stays strict and immutable',()=>{
+ const f=currentEpochFixture(),old=JSON.stringify(f.raw);assert.throws(()=>admit(f));
+ const result=f.mod.admitPr54B264CurrentEpoch(f);assert.equal(result.claim.schemaVersion,'melisa-p03-b264-current-epoch-proposal.v1');assert.equal(result.claim.protectedSqlEpoch.pid,8001);assert.equal(result.claim.currentOwnerDigest,pr54B264StartedOwnerDigest(f.raw.before,f.current));assert.notEqual(result.claim.currentOwnerDigest,f.raw.ready.identityDigest);assert.equal(result.transitionAuthority,false);assert.equal(result.applyExecuted,false);assert.equal(JSON.stringify(f.raw),old);
+});
+test('current epoch cannot substitute an SQL instance, service account/path, process birth, native proof, COM or fake token',()=>{
+ for(const mutate of [f=>f.profile.protectedProcesses[0].service.startName='other',f=>f.profile.protectedProcesses[0].service.pathName+=' x',f=>f.profile.protectedProcesses[0].service.processId++,f=>f.profile.protectedProcesses[0].sql.processId++,f=>f.profile.protectedProcesses[0].sql.serverName='other',f=>f.profile.protectedProcesses[0].sql.databaseName='other',f=>f.profile.protectedProcesses[0].creationTime='unknown',f=>f.profile.protectedProcesses[0].creationTime='2026-10-19T14:00:00Z',f=>f.nativeContinuity=null,f=>f.physicalInspection={},f=>f.current.runningInstances[0].enginePid++,f=>f.current.processes[0].creationTime='2026-10-19T13:01:30.1111112Z',f=>f.current.processes[0].commandLine+=' x',f=>f.current.processes[0].parentPid++,f=>f.before.actualT1=true,f=>f.before.copyId='other']){
+  const f=currentEpochFixture();assert.ok(f.mod.admitPr54B264CurrentEpoch(f));const originalToken=f.physicalInspection;mutate(f);seal(f);if(f.physicalInspection===originalToken)f.physicalInspection=f.mod.mintModeledInspection(f);assert.throws(()=>f.mod.admitPr54B264CurrentEpoch(f),mutate.toString());
+ }
 });

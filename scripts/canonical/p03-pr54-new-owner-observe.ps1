@@ -1,4 +1,5 @@
 param(
+ [string]$PolicyGeneration='Legacy',[string]$DrainerPath,[string]$DrainerSha256,
  [ValidateSet('DryRun','Observe')][string]$Mode='Observe',
  [Parameter(Mandatory=$true)][string]$ProfilePath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ProfileSha256,
@@ -13,6 +14,11 @@ param(
  [Parameter(Mandatory=$true)][string]$SourceObserverPath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$SourceObserverSha256
 )
+# Explicit new-generation readback only. No engine dispatcher is executed.
+if($PolicyGeneration -cnotin @('Legacy','B264ObserveOnly')){throw 'P03_B264_NEW_POLICY'}
+if($PolicyGeneration -ceq 'B264ObserveOnly'){
+ if($Mode -cnotin @('DryRun','Observe') -or $EngineSha256 -cne '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def' -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $SourceObserverSha256 -cne '5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5' -or $DrainerSha256 -cne '34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c' -or [string]::IsNullOrEmpty($DrainerPath)){throw 'P03_B264_NEW_SOURCE'}
+}elseif($PSBoundParameters.ContainsKey('DrainerPath') -or $PSBoundParameters.ContainsKey('DrainerSha256')){throw 'P03_B264_NEW_DRAINER_SCOPE'}
 # Separate read-only NEW observation. The frozen engine is imported only as
 # function definitions. No engine PASS/event, task action or process is written.
 Set-StrictMode -Version Latest
@@ -21,7 +27,7 @@ $env:PSModulePath=Join-Path $PSHOME 'Modules'
 foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$name+'\'+$name+'.psd1')) -ErrorAction Stop}
 $invokedAtUtc=[DateTime]::UtcNow
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
-$engineSha='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'
+$engineSha=if($PolicyGeneration -ceq 'B264ObserveOnly'){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_NEW_OBSERVER_OWNER'}
 function NewObserverPin([string]$path,[string]$sha){
@@ -52,6 +58,10 @@ if($RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93c
 ImportNewObserverFunctions (NewObserverPin $EnginePath $engineSha)
 ImportNewObserverFunctions (NewObserverPin $RecoveryHelperPath $RecoveryHelperSha256) @('ProbeArgumentsAllowed')
 ImportSharedObserverFunctions (NewObserverPin $SourceObserverPath $SourceObserverSha256)
+if($PolicyGeneration -ceq 'B264ObserveOnly'){
+ if(-not $DrainerPath.StartsWith($base+'\',[StringComparison]::Ordinal) -or [IO.Path]::GetFileName($DrainerPath) -cne 'p03-pr54-successor-core-drain.ps1'){throw 'P03_B264_NEW_DRAINER_PATH'}
+ ImportNewObserverFunctions (NewObserverPin $DrainerPath $DrainerSha256) @('AssertB264InspectionContract')
+}
 $profile=Json (ReadPinned $ProfilePath $ProfileSha256);$before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $Environment='Shared';$isRehearsal=$false;$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
@@ -70,6 +80,8 @@ function NewPrepareProbeSource{
  $manifest=Json (NewSourceBytes (Join-Path $root 'release-manifest.json') $supervisor.manifestSha256)
  if($supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17'){
  Need ($manifest.sourceCommit -ceq '13bdf75a032ae8f694354a2e57b6ed382aec2f17' -and $manifest.sourceCommit -ceq $supervisor.sourceCommit) 'NEW_PROBE_MANIFEST'
+ }elseif($PolicyGeneration -ceq 'B264ObserveOnly'){
+ Need ($supervisor.sourceCommit -ceq 'eb5b37a555cbf18e1fcaa491820707c73b354e12' -and $supervisor.manifestSha256 -ceq '1a9d7a0ba6d0ed0fa60e9044122fb895e58e725d84f194ceea255a00aece39b0' -and $manifest.sourceCommit -ceq $supervisor.sourceCommit) 'B264_NEW_PROBE_MANIFEST'
  }else{Need ($profile.oldSettings.sha256-ceq'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'-and$profile.newSettings.path-ceq'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json'-and$supervisor.sourceCommit-cmatch'^[a-f0-9]{40}$'-and$supervisor.manifestSha256-cmatch'^[a-f0-9]{64}$'-and$manifest.sourceCommit-ceq$supervisor.sourceCommit-and$supervisor.sourceCommit-ceq$before.profile.supervisorSource-and$supervisor.manifestSha256-ceq$before.profile.supervisorManifest-and$supervisor.packageRoot-ceq('C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+$supervisor.sourceCommit.Substring(0,12))-and$newSettings.components.erpApiNative.sourceCommit-ceq'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'-and$newSettings.components.erpApiNative.manifestSha256-ceq'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf') 'CURRENT_NEW_PROBE_MANIFEST'}
  $files=@($manifest.files|Where-Object{$_.path -ceq 'scripts/canonical/hub-stack-process-probe.ps1'})
  Need ($files.Count -eq 1 -and $files[0].sha256 -cmatch '\A[a-f0-9]{64}\z') 'NEW_PROBE_FILE'
@@ -348,9 +360,16 @@ function NewCandidateInventoryCore($evidence){
  return [pscustomobject]@{inventory=$inventory;selected=$selected}
 }
 function NewAssertCandidateInventoryEquivalence{
+ $body=$script:newFrozenCandidateInventoryBody
+ if($PolicyGeneration -ceq 'B264ObserveOnly'){
+  $lifetime=' $unrelatedOldPids=@(AssertOldPidLifetimes $inventory)'
+  $relevant='($p.ProcessId -in $oldPids -and $p.ProcessId -notin $unrelatedOldPids)'
+  Need ([regex]::Matches($body,[regex]::Escape($lifetime)).Count -eq 1 -and [regex]::Matches($body,[regex]::Escape($relevant)).Count -eq 1) 'B264_NEW_LIFETIME_SOURCE'
+  $body=$body.Replace($lifetime+[Environment]::NewLine,'').Replace($lifetime+"`n",'').Replace($relevant,'$p.ProcessId -in $oldPids')
+ }
  $old='$p.ProcessId -in $oldPids';$replacement='(NewHistoricalOldPidRelevant $p $oldPids $inventory $evidence)'
- Need ([regex]::Matches($script:newFrozenCandidateInventoryBody,[regex]::Escape($old)).Count -eq 1) 'NEW_CANDIDATE_INVENTORY_SOURCE'
- $expected=$script:newFrozenCandidateInventoryBody.Replace($old,$replacement).Replace("`r`n","`n").Trim()
+ Need ([regex]::Matches($body,[regex]::Escape($old)).Count -eq 1) 'NEW_CANDIDATE_INVENTORY_SOURCE'
+ $expected=$body.Replace($old,$replacement).Replace("`r`n","`n").Trim()
  $definition=(Get-Command NewCandidateInventoryCore -CommandType Function).ScriptBlock.Ast
  Need ($definition -is [Management.Automation.Language.FunctionDefinitionAst] -and $definition.Name -ceq 'NewCandidateInventoryCore') 'NEW_CANDIDATE_INVENTORY_DEFINITION'
  Need ($definition.Body.Extent.Text.Replace("`r`n","`n").Trim() -ceq $expected) 'NEW_CANDIDATE_INVENTORY_EQUIVALENCE'
@@ -363,14 +382,19 @@ function NewAuthority{
  Need ($RecoveryHelperSha256 -ceq 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5') 'NEW_RECOVERY_HELPER_PIN'
  Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $database -and $before.database -ceq $database -and $before.actualT1 -ceq $false -and $profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256) 'NEW_OBSERVER_SCOPE'
  $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json')
- if($currentReadRepair){
+ if($PolicyGeneration -ceq 'B264ObserveOnly'){
+  [void](ReadPinned $DrainerPath $DrainerSha256)
+  AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)
+ }elseif($currentReadRepair){
  Need ($runId-cne'7b0821959737f1da0427b17a7dfd4685'-and$before.oldConfig.sha256-ceq$profile.oldSettings.sha256-and$before.newConfig.sha256-ceq$profile.newSettings.sha256-and$oldSettings.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$oldSettings.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17') 'CURRENT_NEW_OBSERVER_SETTINGS'
  }else{
  Need ($profile.oldSettings.sha256 -ceq 'be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96' -and $profile.newSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $before.oldConfig.sha256 -ceq $profile.oldSettings.sha256 -and $before.newConfig.sha256 -ceq $profile.newSettings.sha256) 'NEW_OBSERVER_SETTINGS'
  }
  foreach($settings in @($oldSettings,$newSettings)){Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId -and $settings.actualT1 -ceq $false) 'NEW_OBSERVER_SETTINGS_SCOPE'}
  [void](ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);[void](ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
- if($currentReadRepair){
+ if($PolicyGeneration -ceq 'B264ObserveOnly'){
+  Need ($engineSha -ceq '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def') 'B264_NEW_ENGINE'
+ }elseif($currentReadRepair){
  foreach($pin in @(@($newSettings.components.erpApiNative,'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2','8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'),@($newSettings.components.crm,'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'))){Need ($pin[0].sourceCommit-ceq$pin[1]-and$pin[0].manifestSha256-ceq$pin[2]) 'CURRENT_NEW_OBSERVER_SOURCE'}
  Need ($newSettings.supervisor.sourceCommit-cmatch'^[a-f0-9]{40}$'-and$newSettings.supervisor.manifestSha256-cmatch'^[a-f0-9]{64}$'-and$newSettings.supervisor.sourceCommit-cne'13bdf75a032ae8f694354a2e57b6ed382aec2f17'-and$newSettings.supervisor.packageRoot-ceq('C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+$newSettings.supervisor.sourceCommit.Substring(0,12))) 'CURRENT_NEW_OBSERVER_SUPERVISOR'
  }else{
@@ -378,6 +402,22 @@ function NewAuthority{
  }
  foreach($package in $profile.packages){Need ($package.manifestPath -ceq (Join-Path $package.root 'release-manifest.json')) 'NEW_MANIFEST_PATH';[void](NewSourceBytes $package.manifestPath $package.manifestSha256)}
  NewPrepareProbeSource
+}
+function NewB264ProbePolicy{
+ Need ($PolicyGeneration -ceq 'B264ObserveOnly') 'B264_NEW_POLICY'
+ ObserverImportDefinition (ReadPinned $EnginePath $engineSha) 'Tokens' 'ObserverImportedTokens'
+ ObserverImportDefinition (ReadPinned $RecoveryHelperPath $RecoveryHelperSha256) 'ProbeArgumentsAllowed' 'ObserverImportedProbeArgumentsAllowed'
+ $settings=$newSettings;$supervisor=$settings.supervisor;$core=$script:newCandidateIdentities.coreSupervisor
+ $rules=@($profile.candidateRules|Where-Object{$_.role -ceq 'coreSupervisor'})
+ Need ($rules.Count -eq 1 -and $core.ownerSid -ceq $owner -and $core.nodePath -ceq $settings.node.path -and $rules[0].nodePath -ceq $core.nodePath -and $rules[0].packageRoot -ceq $supervisor.packageRoot -and $rules[0].sourceCommit -ceq $supervisor.sourceCommit -and $rules[0].config.path -ceq $profile.newSettings.path -and $rules[0].config.sha256 -ceq $profile.newSettings.sha256 -and ((Tokens $core.commandLine)|ConvertTo-Json -Compress) -ceq ((Tokens $rules[0].commandLine)|ConvertTo-Json -Compress)) 'B264_NEW_CORE_POLICY'
+ foreach($binary in @($settings.node,$profile.shell)){ObserverPolicyBinary $binary}
+ return [pscustomobject]@{profile=$profile;identityMap=$script:newCandidateIdentities;generation='New';core=$core;engineRef=[pscustomobject]@{path=$EnginePath;sha256=$engineSha};helperRef=[pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256};settingsRef=$profile.newSettings;manifestRef=[pscustomobject]@{path=(Join-Path $supervisor.packageRoot 'release-manifest.json');sha256=$supervisor.manifestSha256};probeRef=[pscustomobject]@{path=$script:newProbeSource.probePath;sha256=$script:newProbeSource.probeSha256};nodeRef=$settings.node;shellRef=$profile.shell}
+}
+function NewB264CandidateInventoryCore($evidence){
+ [void](AssertOldPidLifetimes (Inventory))
+ $result=NewCandidateInventoryCore $evidence
+ [void](AssertOldPidLifetimes $result.inventory)
+ return $result
 }
 function NewProbeArgvAllowed($argv){
  # Dynamic scope is deliberately local: helper optional -ProcessId arguments
@@ -486,11 +526,12 @@ function ObserveNewOwner($evidence){
  }
  throw ('P03_NEW_OWNER_NOT_STABLE_'+$lastFailureCode)
 }
+if($PolicyGeneration -ceq 'B264ObserveOnly'){. ([scriptblock]::Create('function script:CandidateInventoryCore($evidence){return NewB264CandidateInventoryCore $evidence}'))}
 NewAssertHubLineageEquivalence
 NewAssertCandidateInventoryEquivalence
 NewAuthority
 $evidence=AdmitCandidate
 Need (@($evidence.processes).Count -eq 10 -and @($evidence.processes|Select-Object -ExpandProperty role -Unique).Count -eq 10) 'NEW_CANDIDATE_COUNT'
 $script:newCandidateIdentities=[pscustomobject]@{};foreach($row in $evidence.processes){$script:newCandidateIdentities|Add-Member NoteProperty $row.role $row}
-$script:newProbePolicy=ObserverInitializeProbePolicy $profile $before $script:newCandidateIdentities 'New' ([pscustomobject]@{path=$EnginePath;sha256=$engineSha}) ([pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256})
+$script:newProbePolicy=if($PolicyGeneration -ceq 'B264ObserveOnly'){NewB264ProbePolicy}else{ObserverInitializeProbePolicy $profile $before $script:newCandidateIdentities 'New' ([pscustomobject]@{path=$EnginePath;sha256=$engineSha}) ([pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256})}
 ObserveNewOwner $evidence|ConvertTo-Json -Depth 10 -Compress
