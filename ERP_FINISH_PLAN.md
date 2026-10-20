@@ -1,6 +1,6 @@
 ## 20 Ekim — P03 yalnız minimum hata kaydı kaynak alt teslimi
 
-Aynı görevin dar onayıyla aynı actualguardinput private hata kanıtına bağlandı; journal dışı exactroot, strictACL/CreateNew/hashreadback; özgün ret yeniden fırlatılır, işlem sırası/güvenlik kapıları değişmedi. Yeni source1b1919ba / eski frozen-runtime99b ayrı; runtimepin/config değişmedi. Son28hedef PASS/0skip ve ROreviewGO/açıkP1/P2=0; yeniexactCI ayrı bekler. Gerçek prova/kurulum/READY veya insan kabulü değildir. P03/özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 aynı. [Kanıt](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#20-ekim--yalnız-minimum-hata-kaydı-kaynak-hazırlığı).
+Aynı görevin dar onayıyla aynı actualguardinput private hata kanıtına bağlandı; journal dışı exactroot, strictACL/CreateNew/hashreadback; özgün ret yeniden fırlatılır, işlem sırası/güvenlik kapıları değişmedi. Yeni source1b1919ba / eski frozen-runtime99b ayrı; runtimepin/config değişmedi. Son28hedef PASS/0skip ve ROreviewGO/açıkP1/P2=0; 4e3d4a6b exactPR39435425428/push39435414291 completed SUCCESS; belge HEAD CI ayrı. Gerçek prova/kurulum/READY veya insan kabulü değildir. P03/özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 aynı. [Kanıt](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#20-ekim--yalnız-minimum-hata-kaydı-kaynak-hazırlığı).
 
 ## 20 Ekim — P03 OLD PID ret tanısı kaynak/offline alt teslimi
 
