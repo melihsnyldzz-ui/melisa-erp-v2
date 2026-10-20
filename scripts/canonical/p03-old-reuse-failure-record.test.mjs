@@ -8,6 +8,19 @@ import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const engine=fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url));
 const q=s=>"'"+s.replaceAll("'","''")+"'";
+const frozenNoReparse="function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}",fileAttributesNoReparse="function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){Need (([IO.File]::GetAttributes($part) -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}";
+function reconstructFrozenEngine(source){
+ const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+ assert.equal(sha(source),'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f');
+ assert.equal(source.split(fileAttributesNoReparse).length-1,1);
+ const failureRecordSource=source.replace(fileAttributesNoReparse,frozenNoReparse);
+ assert.equal(sha(failureRecordSource),'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054');
+ const regions=/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm;
+ assert.equal([...failureRecordSource.matchAll(regions)].length,4);
+ const frozen=failureRecordSource.replace(regions,'');
+ assert.equal(sha(frozen),'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
+ return {failureRecordSource,frozen};
+}
 const windows={skip:process.platform!=='win32'};
 const extract=names=>`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(engine)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};${names.map(n=>`$f=@($ast.FindAll({param($x)$x-is[Management.Automation.Language.FunctionDefinitionAst]-and$x.Name-ceq${q(n)}},$true));if($f.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($f[0].Extent.Text));`).join('')}`;
 const functions=extract(['Need','Hash','FailureDiagnostic','WriteOldReuseFailureRecord','AssertOldPidLifetimes','IsWatcherCommand']);
@@ -40,9 +53,9 @@ function Catch-Guard{
  }
 }
 `;
-test('only additive error-record regions differ from frozen99b; runtime pin remains99b',()=>{
+test('explicit FileAttributes delta plus additive error-record regions reconstruct frozen99b; historical harness pin remains99b',()=>{
  const source=fs.readFileSync(engine,'utf8').replaceAll('\r\n','\n');
- const old=source.replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'');
+ const {frozen:old}=reconstructFrozenEngine(source);
  assert.equal(crypto.createHash('sha256').update(old).digest('hex'),'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
  assert.notEqual(crypto.createHash('sha256').update(source).digest('hex'),crypto.createHash('sha256').update(old).digest('hex'));
  assert.match(fs.readFileSync(new URL('./p03-rehearsal-harness.mjs',import.meta.url),'utf8'),/sha256:'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'/);

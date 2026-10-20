@@ -2,10 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import os from 'node:os';
+import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const source=fileURLToPath(new URL('./p03-old-reuse-diagnostic.psm1',import.meta.url));
 const engine=fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url));
+const frozenNoReparse="function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}",fileAttributesNoReparse="function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){Need (([IO.File]::GetAttributes($part) -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}";
+function reconstructFrozenEngine(source){
+ const sha=s=>crypto.createHash('sha256').update(s).digest('hex');
+ assert.equal(sha(source),'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f');
+ assert.equal(source.split(fileAttributesNoReparse).length-1,1);
+ const failureRecordSource=source.replace(fileAttributesNoReparse,frozenNoReparse);
+ assert.equal(sha(failureRecordSource),'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054');
+ const regions=/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm;
+ assert.equal([...failureRecordSource.matchAll(regions)].length,4);
+ const frozen=failureRecordSource.replace(regions,'');
+ assert.equal(sha(frozen),'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
+ return {failureRecordSource,frozen};
+}
 const windows={skip:process.platform!=='win32'};
 const fixture=String.raw`
 $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
@@ -22,8 +37,8 @@ function New-Fixture{
 }
 New-Fixture
 `;
-function run(body){
- const cmd=`Import-Module '${source.replaceAll("'","''")}' -Force\n${fixture}\n${body}\n$result|ConvertTo-Json -Depth 12 -Compress`;
+function run(body,moduleSource=source){
+ const cmd=`Import-Module '${moduleSource.replaceAll("'","''")}' -Force\n${fixture}\n${body}\n$result|ConvertTo-Json -Depth 12 -Compress`;
  const wrapper=Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64');
  return JSON.parse(execFileSync(String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,['-NoProfile','-NonInteractive','-EncodedCommand',wrapper],{input:cmd,encoding:'utf8',timeout:15000,windowsHide:true,stdio:['pipe','pipe','pipe']}));
 }
@@ -33,8 +48,8 @@ function safe(result){
  assert.equal(result.physicalChecks,'NOT_EVALUATED');
  assert.doesNotMatch(JSON.stringify(result),/private-sentinel|secret-argv|secret\.exe/);
 }
-test('failure-record additions recover exact frozen engine; diagnostic labels current source honestly',()=>{
- assert.equal(crypto.createHash('sha256').update(fs.readFileSync(engine,'utf8').replaceAll('\r\n','\n').replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'')).digest('hex'),'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
+test('explicit NoReparse and failure-record deltas recover sealed1b then exact frozen99b; diagnostic labels current source honestly',()=>{
+ reconstructFrozenEngine(fs.readFileSync(engine,'utf8').replaceAll('\r\n','\n'));
  const text=fs.readFileSync(source,'utf8');
  assert.match(text,/AssertOldPidLifetimes','IsWatcherCommand/);
  assert.doesNotMatch(text,/Get-CimInstance|Invoke-CimMethod|Get-NetTCPConnection|GetProcessById|Start-Process|Stop-Process|ScheduledTask|New-Object.*ComObject|SqlConnection|WriteAll|Set-Content/);
@@ -52,7 +67,7 @@ test('same old lifetime still live is rejected by actual birth guard',windows,()
 });
 test('same PID with later birth reaches explicit offline boundary, never physical admission',windows,()=>{
  const r=run('$result=Get-P03OldReuseDiagnostic $ctx $inv');safe(r);
- assert.equal(r.status,'OFFLINE_BOUNDARY');assert.equal(r.rejectingGuard,null);assert.equal(r.sourceRevision,'FAILURE_RECORD_SOURCE');assert.notEqual(r.sourceSha256,'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
+ assert.equal(r.status,'OFFLINE_BOUNDARY');assert.equal(r.rejectingGuard,null);assert.equal(r.sourceRevision,'FILE_ATTRIBUTES_V1_FAILURE_RECORD_SOURCE');assert.equal(r.sourceSha256,'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f');assert.notEqual(r.sourceSha256,'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def');
  assert.ok(r.checks.some(x=>x.guard==='OLD_LIFETIME_PRESENT'&&x.accepted));
  assert.ok(r.checks.some(x=>x.guard==='OLD_REUSE_NEW_LIFETIME'&&x.accepted));
  assert.ok(!r.checks.some(x=>x.guard==='OLD_REUSE_IDENTITY'||x.guard==='OLD_REUSE_IMAGE'));
@@ -112,4 +127,16 @@ test('birth diagnostics use the frozen guard current-culture and local-time pars
  for(const value of ['01/02/2026','2026-02-01T12:34:56.1234567']){
   const r=run(`[Threading.Thread]::CurrentThread.CurrentCulture=[Globalization.CultureInfo]::GetCultureInfo('tr-TR');$ctx.before.identities.erpApi.creationTime='${value}';$result=Get-P03OldReuseDiagnostic $ctx $inv;if($result.expected[0].birth.utc-cne[DateTime]::Parse($ctx.before.identities.erpApi.creationTime).ToUniversalTime().ToString('o')){throw 'FIXTURE_BIRTH_SEMANTICS'}`);safe(r);assert.equal(r.expected[0].birth.status,'SUPPLIED');
  }
+});
+
+test('offline diagnostic keeps frozen99b, sealed1b and FileAttributes source labels separate and rejects any unpinned source',windows,()=>{
+ const text=fs.readFileSync(engine,'utf8').replaceAll('\r\n','\n'),{failureRecordSource,frozen}=reconstructFrozenEngine(text),dir=fs.mkdtempSync(path.join(os.tmpdir(),'p03-offline-pin-')),moduleFile=path.join(dir,'p03-old-reuse-diagnostic.psm1'),engineFile=path.join(dir,'p03-physical-rollback-lifetime-v2.ps1');
+ try{
+  fs.copyFileSync(source,moduleFile);
+  for(const [sourceText,sha,label]of [[frozen,'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def','FROZEN_99B'],[failureRecordSource,'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054','FAILURE_RECORD_SOURCE'],[text,'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f','FILE_ATTRIBUTES_V1_FAILURE_RECORD_SOURCE']]){fs.writeFileSync(engineFile,sourceText);const r=run('$result=Get-P03OldReuseDiagnostic $ctx $inv',moduleFile);safe(r);assert.equal(r.sourceSha256,sha);assert.equal(r.sourceRevision,label);assert.equal(r.status,'OFFLINE_BOUNDARY');}
+  fs.writeFileSync(engineFile,text+'\n# unpinned source delta\n');assert.throws(()=>run('$result=Get-P03OldReuseDiagnostic $ctx $inv',moduleFile),error=>String(error.stderr).includes('P03_DIAGNOSTIC_SOURCE_PIN'));
+ }finally{for(const file of [engineFile,moduleFile])if(fs.existsSync(file))fs.unlinkSync(file);fs.rmdirSync(dir);}
+});
+test('offline module source selector is a finite three-hash allowlist without runtime or configurable pin authority',()=>{
+ const text=fs.readFileSync(source,'utf8'),gate=text.match(/if\(\$sha -cnotin @\(([^)]+)\)\)/);assert(gate);assert.deepEqual([...gate[1].matchAll(/[a-f0-9]{64}/g)].map(m=>m[0]),['99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def','1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054','b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f']);assert.doesNotMatch(text,/\$env:|SourceShaOverride|AllowedSource|SourcePathOverride/);
 });

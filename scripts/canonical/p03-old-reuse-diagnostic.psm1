@@ -7,7 +7,7 @@ function Get-P03OldReuseDiagnostic {
  $file=Join-Path $PSScriptRoot 'p03-physical-rollback-lifetime-v2.ps1'
  $text=[IO.File]::ReadAllText($file).Replace("`r`n","`n")
  $sha=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($text))).Replace('-','').ToLowerInvariant()
- if($sha -cnotin @('99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def','1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054')){throw 'P03_DIAGNOSTIC_SOURCE_PIN'}
+ if($sha -cnotin @('99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def','1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054','b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f')){throw 'P03_DIAGNOSTIC_SOURCE_PIN'}
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput($text,[ref]$tokens,[ref]$errors)
  if($errors.Count){throw 'P03_DIAGNOSTIC_PARSE'}
  $definitions=@();$guard=$null
@@ -65,7 +65,7 @@ function Get-P03OldReuseDiagnostic {
    $candidates=@($rows|Where-Object{$candidatePid=PidValue (Value $_ 'ProcessId');$null -ne $candidatePid -and @($expected|Where-Object{(PidValue (Value $_.pin 'pid')) -eq $candidatePid}).Count -gt 0})
    return [ordered]@{
     schemaVersion=1;kind='P03_OLD_REUSE_OFFLINE_DIAGNOSTIC';status=$status;errorKind=$errorKind
-    sourceSha256=$sourceSha;sourceRevision=$(if($sourceSha -ceq '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'){'FROZEN_99B'}else{'FAILURE_RECORD_SOURCE'})
+    sourceSha256=$sourceSha;sourceRevision=$(if($sourceSha -ceq '99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'){'FROZEN_99B'}elseif($sourceSha -ceq '1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'){'FAILURE_RECORD_SOURCE'}else{'FILE_ATTRIBUTES_V1_FAILURE_RECORD_SOURCE'})
     rejectingGuard=$script:reject;phase='AssertOldPidLifetimes';rehearsal=[bool]$isRehearsal;predicateOrder=@($order);checks=@($script:checks);traceTruncated=$script:traceTruncated
     triggerKnown=($null -ne $observedPid);observed=[ordered]@{pid=$observedPid;birth=(BirthValue (Value $script:lastRow 'CreationDate'))}
     expected=$pins;expectedCount=$matches.Count;expectedTruncated=($matches.Count -gt 8)
