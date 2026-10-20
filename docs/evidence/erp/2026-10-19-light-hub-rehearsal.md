@@ -1,3 +1,11 @@
+## 20 Ekim — Gerçek salt-okunur admission parametre hatası düzeltildi
+
+19212b73d15f01d2117f1d314a1f48bb6603363d exact PR39413614981 tüm üç job SUCCESS. Yeni control kaynağı beş dosya strict ACL/hash/readback ile kopyalandı; ilk kopya denemesinin yanlış ACL nedeniyle verdiği başarı satırı geçersizdi. Yalnız oluşturulan boş klasörün DACL'i owner yetkisiyle onarıldı; ardından PS5 CreateNew+ACL ile beş dosya bağımsız doğrulandı. Çalışan servis/veri etkisi yok.
+
+Güncel before/profile 5d0c27837d9af2fe90dde3fe371d495c gerçekten oluşturuldu. İlk operatör girişinde yanlış helper yolu dosya-yok hatası verdi; bu bir owner yetki reddi değildir, doğru mevcut exact e8ec helper yoluna düzeltildi. Sonraki gerçek RO kontrol B264_SOURCE_ARGS ile COM/stop/claim öncesi reddedildi: pinnedInvocation parametre regex'i Sha256 adlarındaki rakamları dışlıyordu. Yalnız ilk harf sonrası alfanümerik kabulü düzeltildi; gerçek üretilmiş PS parser testi ProfileSha256/BeforeImageSha256 pozitif, duplicate/ilk-rakam/metakarakter/tek-argüman negatiflerini doğruluyor. Root12/12 PASS, bağımsız yeni hedef1/1 ve reviewGO; source hash/ACL/held-buffer ve kapalı argv listesi değişmedi.
+
+Bu yeni exact CI ayrıca doğrulanacak. Before/profile paketin kurulumu değildir; aynı hazır Sup20d/altı inactive ayar ve mevcut DB02 yedeği yeniden üretilmedi. Aynı TEST üzerinde taze salt-okunur admission kontrolünden devam edilecek. Actual claim/stop/Apply/kurulum0; kurulu e59/13b/6bc korunur. QueryStore önceki moda cleanup ve gerçek readback sonuçta ayrıca kaydedilecek; teknik/GUI/insan kabulü ayrıdır.
+
 ## 20 Ekim — Sabit Sup20d nesli ve held-core sırası kaynakta doğrulandı
 
 Yeni açık nesil yalnız hazırlanmış SUP20d7e5b69696 / manifest0959b1b8 ve exact settings f893faf4 kabul eder. Eski B264 eb5, 639/7b ve korumalı FE/V2 tarihsel dosyaları aynen korunur. PS D/O/N/C/R, JS aday/admission ve ayrı physical WeakMap yeni nesli eskiye çeviremez; klon/uydurma token, farklı kaynak/kök/manifest/settings, eski native backup kapsamı, süre aşımı ve ham envanter sapmaları reddedilir. Proposal hâlâ transitionAuthority:false; actual claim/Apply dispatcher açılmadı.

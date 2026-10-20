@@ -135,3 +135,14 @@ test('Sup20d private transport token cannot cross into legacy policy or survive 
 test('Sup20d physical transport fails closed for a legacy frame candidate source drift and consumed claim',async()=>{
  for(const change of [t=>t.f.frame.policyGeneration='B264InspectOnly',t=>t.f.current.policyGeneration='B264InspectOnly',t=>t.f.before.profile.supervisorSource='eb5b37a555cbf18e1fcaa491820707c73b354e12',t=>t.f.before.newConfig.sha256='0'.repeat(64),t=>t.context.fs.existsSync=()=>true,t=>t.context.run=async()=>({stdout:'{}',stderr:'ERROR'}),t=>t.f.frame.protectedProcesses=[]]){const t=transportFixture(true);change(t);await assert.rejects(t.invoke());}
 });
+
+test('real pinned invocation named-argument parser admits Sha256 names and rejects malformed or duplicate switches',windows,()=>{
+ const source=text('p03-pr54-b264-physical-io.mjs'),start=source.indexOf('function pinnedInvocation('),end=source.indexOf('\nexport async function inspectPr54B264PhysicalOwner',start);
+ const invoke=new Function('Buffer','need',source.slice(start,end)+';return pinnedInvocation;')(Buffer,(v,c)=>assert.ok(v,c));const f=sup20dInput(),argv=pr54B264Sup20dInspectionArguments(f).worker;
+ const program=Buffer.from(invoke(f.drainerRef,argv)[3],'base64').toString('utf16le'),a=program.indexOf('$bound=@{};'),b=program.indexOf(';$code=',a);assert(a>0&&b>a);const parser=program.slice(a,b);
+ const valid=argv.slice(4),bad=[['-ProfileSha256','a','-ProfileSha256','b'],['-1Alias','x'],['-Profile;Write','x'],['-ProfileSha256']];
+ const cases=Buffer.from(JSON.stringify([valid,...bad])).toString('base64');
+ const out=ps(`$cases=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${cases}'))|ConvertFrom-Json
+ for($i=0;$i-lt$cases.Count;$i++){$v=[pscustomobject]@{args=@($cases[$i])};try{${parser};if($i-ne0){throw 'ACCEPTED'};if(-not$bound.ContainsKey('ProfileSha256')-or-not$bound.ContainsKey('BeforeImageSha256')){throw 'MISSING'};'VALID'}catch{if($i-eq0-or$_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}}`);
+ assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,bad.length);
+});
