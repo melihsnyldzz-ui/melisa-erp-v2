@@ -197,6 +197,26 @@ function b264StartupFixture(){
  s.crmPrivateFiles={...s.crmPrivateFiles,baseline:{path:CRM06_BASELINE_PATH,sha256:hash},crm06Actors:{path:CRM06_ACTOR_AUDIT_PATH,sha256:hash},crm06StaffSuccessor:{path:profile.successorPath,sha256:hash}};
  return s;
 }
+
+// Source-only settings fixture: no supervisor package or runtime is installed.
+function currentPackageStartupFixture(){
+ const s=settings(),crmSource='7ba6e4ebc8b70019136d603e6307741189ba03c1',profile=crm06StaffSuccessorProfile(crmSource,'erp-crm-current-20261020');
+ s.node={path:erp+'\\tools\\node-v24.19.0\\node.exe',sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};
+ const ep={packageRoot:erp+'\\releases\\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41',sourceCommit:'6dc33f41737349c6e3f17fb867a451b570a00acc',manifestSha256:'6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'};
+ s.components.erpApiNative={...ep,config:s.privateSources.operationConfig};s.privateSources.hubPinConfig={path:profile.nextPaths.hubPin,sha256:hash};s.privateSources.hubStartupConfig={path:profile.nextPaths.hubStartup,sha256:hash};s.components.hub={...ep,config:s.privateSources.hubStartupConfig};
+ s.privateSources.crmActivationConfig={path:profile.nextPaths.activation,sha256:hash};s.components.crm={packageRoot:crm+'\\releases\\node-v24.19.0\\crm-shared-test-'+crmSource,sourceCommit:crmSource,manifestSha256:'820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35',config:s.privateSources.crmActivationConfig};
+ s.dependencyLocks.erpApiNative={path:profile.erpDependencyLockPath,sha256:hash};s.dependencyLocks.crm={path:profile.dependencyLockPath,sha256:hash};
+ s.crmPrivateFiles={...s.crmPrivateFiles,baseline:{path:CRM06_BASELINE_PATH,sha256:hash},crm06Actors:{path:CRM06_ACTOR_AUDIT_PATH,sha256:hash},crm06StaffSuccessor:{path:profile.successorPath,sha256:hash}};
+ return s;
+}
+test('current closed settings bind exact ERP6dc and CRM7ba Node24 packages without altering old B264',()=>{
+ const s=currentPackageStartupFixture(),before=structuredClone(s);assert.equal(validateCompletionSettings(s,owner),s);assert.deepEqual(s,before);
+ assert.equal(validateCompletionSettings(b264StartupFixture(),owner).components.crm.sourceCommit,'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a');
+});
+test('current settings reject mixed packages, wrong Node, foreign owner and old profile paths',()=>{
+ const edits=[x=>x.components.erpApiNative.sourceCommit='f'.repeat(40),x=>x.components.erpApiNative.manifestSha256='f'.repeat(64),x=>x.components.hub.packageRoot+='-other',x=>x.components.hub.sourceCommit='f'.repeat(40),x=>x.components.crm.packageRoot=x.components.crm.packageRoot.replace('\\node-v24.19.0',''),x=>x.components.crm.manifestSha256='6c2a1bd98425fbe04f9a97d0555c81a3cc406be019c098fe13de19f7f614693e',x=>x.node.path='C:\\Program Files\\nodejs\\node.exe',x=>x.node.sha256='f'.repeat(64),x=>x.ownerSid=owner+'1',x=>x.actualT1=true,x=>x.dependencyLocks.erpApiNative.path=x.dependencyLocks.erpApiNative.path.replace('6dc33f417373','01ef3e3aa3bd'),x=>{x.crmPrivateFiles.crm06StaffSuccessor.path=b264StartupFixture().crmPrivateFiles.crm06StaffSuccessor.path;},x=>{x.privateSources.hubPinConfig.path=b264StartupFixture().privateSources.hubPinConfig.path;}];
+ for(const edit of edits){const s=currentPackageStartupFixture();edit(s);assert.throws(()=>validateCompletionSettings(s,owner));}
+});
 test('explicit B264 startup accepts only ERP01ef/CRM6bc, Node24 and distinct profile-bound Hub paths',()=>{
  const s=b264StartupFixture(),before=structuredClone(s);assert.equal(validateCompletionSettings(s,owner),s);assert.deepEqual(s,before);
  const edits=[x=>{x.components.erpApiNative.sourceCommit='c'.repeat(40);},x=>{x.components.erpApiNative.manifestSha256='c'.repeat(64);},x=>{x.components.hub.sourceCommit='c'.repeat(40);},x=>{x.components.crm.manifestSha256='c'.repeat(64);},x=>{x.node.path='C:\\Program Files\\nodejs\\node.exe';},x=>{x.node.sha256='c'.repeat(64);},x=>{x.privateSources.hubPinConfig.path=x.privateSources.hubPinConfig.path.replace('-b264-successor','');},x=>{x.privateSources.hubStartupConfig.path=x.privateSources.hubStartupConfig.path.replace('-b264-successor','');x.components.hub.config=x.privateSources.hubStartupConfig;},x=>{x.dependencyLocks.erpApiNative.path=x.dependencyLocks.erpApiNative.path.replace('01ef3e3aa3bd','e59e07abf7ae');},x=>{x.actualT1=true;},x=>{x.copyId='other';},x=>{x.database='LIVE';}];
