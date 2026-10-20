@@ -1,3 +1,15 @@
+## 20 Ekim — B264 gerçek yedek, kaynak eşliği ve inactive hazırlık doğrulandı
+
+Kurulu ERP e59e07ab / gözetmen 13bdf75a / CRM 6bc82e6f ve DB02 korunuyor. Yeni uygulama kurulumu, görev/servis durdurma ve ticari SQL yazması yapılmadı. COPY_ONLY yedek 9.268.690.944 bayt; checksum ve RESTORE VERIFYONLY başarılı. Gerçek restore yapılmadı. Before-image ve dönüş SQL'i korunarak yalnız DB02 QueryStore işlem modu geçici READ_ONLY yapıldı; hâlen bu modda, veritabanı READ_ONLY yapılmadı. Bu bir ticari yazma dondurma kanıtı değildir.
+
+20 Ekim 10:47:04Z tarihli SERIALIZABLE salt-okunur kaynak yakalamasında 51 tablo ve dört metadata grubu önceki kaynakla aynı. 10:49:48Z native süreklilik kontrolü aynı DB/copy/GUID/fork/LSN ve T1false ile geçti; süreli native token kurulum öncesinde yenilenecek. Private kanıtlar reports/integration-audit-20261020 ve backups/P03-20261020-104000 altında; ham veriler GitHub'a eklenmedi.
+
+7a4c804c kaynağından 389 dosyalı gözetmen paketi üretildi fakat etkinleştirilmedi. Salt-okunur --DryRun --B264 gerçek kontrolü DRY_RUN_READY: ERP 2.089 beyan / 25.563 toplam dosya, üç dependency ağacı, CRM paket/dependency eşliği, 31 journal referansı ve altı yeni çıktı planı doğrulandı. Hiçbir yeni private ayar dosyası oluşturulmadı; mevcut ERP dependency lock aynen kullanılabilir.
+
+7a4c804c exact PR CI 39411092255: Windows başlangıç ve secret-scan SUCCESS; quality FAIL. Tek hata p03-package-date.test.mjs dosyasının eski 19 Ekim beklentisi; builder'daki zaten incelenmiş finite 20 Ekim desteğine uygun düzeltildi. 20 Ekim pozitif, 21 Ekim ve tanımsız günler negatif; temiz kaynak, commit prefix ve üzerine yazmama kontrolü korunur. Hedef test 1/1 PASS. Yerel Windows canonical offline koşusu mevcut PS child parse testlerinde CI_OFFLINE_BOUNDARY ile reddedildi; guard gevşetilmedi ve koşu PASS sayılmadı. Linux hosted canonical ve ayrı Windows startup sonucu yeni exact CI üzerinde ayrıca doğrulanacak. Önceki 8c84478d ve 89e02bad CI üçer job SUCCESS.
+
+Sıradaki aynı iş: CI yeşil kaynaktan sabit gözetmen paketi ve inactive ayar hazırlığı; o sabit tuple için B264 admission/worker bağları, fullShared başlatma ve guarded rollback kanıtı. Bu bağlar kapanmadan claim/Apply/kurulum yapılmaz. İnsan/GUI/cihaz kabulü bekliyor; 49/25 kapanış sayıları değişmedi. LIVE/Vega/T1/main yok.
+
 ## 20 Ekim — P03 B264 inactive profile/startup zinciri kaynakta uyumlu; taze native kanıt gerçek
 
 B264 için explicit ayrıvariant, altı yeni özelchild/evidencepath ve aynı01efdependencylock reuse; CRM6bc/ERP01ef/Node24/copy/T1 sınırı korunur. SUPreferansı yalnızkanonik20Ekimroot+40source/64manifest ile inactiveconstructor'a alınır; gerçekadmission için yeniSUPexactpin henüzayrıkapıdır. Nativejournal MJS/PS aynı31refpolitikası; legacyRead19profil/çıktı/paths fingerprintleriaynı. Startup Hubbarrier/PSwatcher ve terminalsettings doğrulaması yeniB264settingspath'ini exacttanır; wildcard/genericadoption yok. DestekleyenimmutableSUPpaketi bu kaynaktan üretilecek, eskieb5paket inplace değiştirilmez.
