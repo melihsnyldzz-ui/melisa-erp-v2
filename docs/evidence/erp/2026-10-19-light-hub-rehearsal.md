@@ -237,3 +237,18 @@ Aynı mevcut SQL-free fixture V2 DryRun gerçekten geçti. Eski iki READY mock g
 19f819c7 Windows CI iki beklenti nedeniyle FAIL; quality/secret SUCCESS. Legacy function body sınırı ve canonical LF fixture düzeltildi; production raw engine hash retleri korundu. Root17/17 PASS. Sup20D mevcut bounded whole-pair collectorları kullanır; karışık churn için en fazla3x3, başarısız frame/token yok. Bağımsız10/10 ve GO.
 
 Actual V2 Run7874 tamamlanmadı, rollback kanıtı değildir. Old mock görevler/prosesler kesin kimlikli quiesce akışında toparlanıyor; iki captured mock UID kaldı. Shared kurulum/claim/stop0. Özgün XML/SDDL restore ve QueryStore original-mode readback henüz sonuçlanmadı; ayrı kanıtlanacak.
+
+## 20 Ekim gerçek toparlama sonucu ve açık kurulum engeli
+
+Kaynak c7c0b09546cd33044f5f098bc097ca634913b610, exact PR39418419770/push39418414281 bütün üç job SUCCESS. Bu CI, çalışan paket veya normal ekran kabulü değildir. App/SUP/CRM hâlâ e59/13b/6bc; API4184/native4186 gerçek health aynı DB02/copye16b/actualT1false/ok:true. ERP5234 ve CRM62700 HTTP200; normal GUI, iki ayrı personel/İlker oturumu ve fiziksel okutma→doğru ürün eşleşmesi bu kontrolde doğrulanmadı. İnsan kabulleri ve49/25 değişmedi.
+
+İkinci aynı-root SQL-free V2 prova bcd4, kontrollü partial start sonrası StopNew aşamasında P03_PHYSICAL_OLD_REUSE_SCOPE ile reddedildi; RECOVERY_FAILED/QUARANTINED dört event zinciri korunur. Hangi yaşamın yeniden görüldüğü kaydedilmedi; PID'nin hangi uygulamaya yeniden verildiği tahmin edilmedi. Aynı engine rollback READY sonucu yok; Shared B264 claim/Apply/kurulum0. Frozen motor, ret veya karantina değiştirilmedi. İlk7874 prova hatasının kesin nedeni de bilinmiyor.
+
+Gerçek cleanup: ilk7874 kalan exact iki mock UID kapatıldı. bcd4 için yalnız kanıtlı native/core durduruldu; iki imzalı Windows konsolu query/synchronize lifetime handle ile izlendi ve doğal kapandı, consoleStop0. İlk lock ACL reddi, engine'in boş lock dosyasının strict parent'tan kalıtılmış iki owner/SYSTEM ACE taşımasıyla açıklandı; yalnız exact boş lock'un etkili izin doğrulaması uyarlandı, genel ReadPinned/ACL/4event zinciri değişmedi. Son konsol ret sebebi actual Windows path yazım farkıydı; yalnız literal actual path'e bağlandı, karşılaştırma gevşetilmedi. OWNED_NEW_TWO_QUIESCED: mockprocess/port0, filesDeleted0, Sharedmutationfalse, journalUntouchedtrue.
+
+İki özgün mock görev gerçekten geri getirildi: ilk RegisterTask+SDDL yöntemi Windows auto-inheritance yüzünden before-image ile eşleşmedi. Desteklenen SetSecurityDescriptor çağrısı döndü fakat SDDL aynı normalize değerinde kaldı; yetki reddi veya alternatif erişim aşması yok. Özgün RegisterTaskDefinition/default-security yöntemiyle iki READY/instances0 tanım exact XML+SDDL eşliğine döndü; receipt c18dca8f. Main iki gözetmen hâlâ RUNNING/tek instance, Shared tam before-frame aynı. Bunlar mock görevlerdir; gerçek ERP rollback başarısı diye sunulmaz.
+
+QueryStore original-mode cleanup GERÇEK: aynı SQL5360/service/birth, DB02/copy/oldhealth/backup/before-image pinleriyle READ_WRITE geri alındı; desired+actual READ_WRITE readback, proof5abbc8d5. DB restore/reset veya ticari veri yazması yok. Süreli eski native/before kanıtı yeniden taze diye kullanılmaz. Paket/altı inactive ayar/yedek yeniden üretilmedi; mevcut yedek ve tüm özel kanıtlar korundu. Kullanıcıya ait canonical dirty dosya d518 hash'i aynı.
+
+Sıradaki tek iş: mevcut V2 SQL-free provanın OLD PID yaşamı ret nedenini kaynakta en dar biçimde çözmek ve aynı motorla gerçek rollback READY kanıtını almak. Bu kapanınca taze current/native/before/tek-owner kapısı, aynı TEST kontrollü Apply ve geri okuma gelir; yeni ortam/DB/ana iş açılmaz. LIVE/Vega/T1/main veya genel ticari işlem yetkisi yok.
+
