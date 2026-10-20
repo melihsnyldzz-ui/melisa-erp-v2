@@ -1,3 +1,7 @@
+## 20 Ekim — P03 OLD PID ret tanısı kaynak/offline alt teslimi
+
+Frozen99b guard/predicate sırası değişmedi; ayrı AST sidecar gerçek guard'ı yalnız supplied snapshot üzerinde çalıştırıp fiziksel helper öncesi durur.15yeni hedef test PASS/0skip; bağımsız RO son review GO/açıkP1/P2=0, exact CI ayrı kaydedilir. Beklenen/gözlenen PID+birth/rol, ret guard, sıra, eksik/belirsiz veri sınırlı çıktıda; tarihsel bcd4 kimliği UNKNOWN, rollback READY veya kurulum değildir. P03 açık, özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmedi; gerçek GUI/cihaz/insan kabulü bekler. [Kanıt](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#20-ekim--frozen-old-pid-guard-kaynakoffline-tanısı).
+
 ## 19 Ekim — P03 B264 kapalı admission ve readonly tarihsel okuma alt teslimi
 
 d57b2d71 exactPR/push CI SUCCESS,16yeni+62etkilenen kontrol PASS/bağımsız kaynak GO. Gerçek46pin/26outer/8recovery tarihsel okuyucu doğrulandı; yeni saf tuple/öneri kuralları Apply/claimwriter'a bağlı değil. Native actual229f digest parity, yalnız ikiCOMsatırının exactsırası düzeltilerek sağlandı; kimlik/kanıt kontrolleri korunur. Sharedbootstrap/B264V2drainer/gerçekcurrentadmission/claim/kurulum/GUI/insan PASS yok. Eski44sn/Light/CSV kabulü tekrar edilmedi; eskiFAILED/journal/locks/consumedclaim korunur. P03 üst kapanışı ve49ERP9🟢/39🟡/1🔴,25CRM12🟢/13🟡 aynı. [Kanıt ve sonraki kapı](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#b264-kapalı-kabul-kuralları-ve-gerçek-tarihsel-okuyucu).
