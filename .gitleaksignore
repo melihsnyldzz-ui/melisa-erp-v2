@@ -121,3 +121,8 @@ cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-pr54-new-owner-ob
 # consumed 639/7b/B264 run IDs plus public release commit/manifest pins only.
 # Exact historical fingerprint; no path/rule exclusion or scanner change.
 745e940d43b730af9bd07f48fd7e32e421cd0900:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
+
+# Independently reviewed 2026-10-20 by root and b264_inspection_review:
+# public ERP release commit ID01ef3e in a synthetic sourceCommit assignment, not a credential.
+# Exact pushed historical fingerprint only; no file/rule/commit-wide suppression.
+b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure-record.test.mjs:generic-api-key:72

@@ -69,7 +69,8 @@ test('recorder failure in ACL/write/readback preserves original exception and ne
 });
 test('guard birth rejection is unchanged and recorder does not rerun any guard or Inventory',windows,()=>{
  const out=run(functions+'\n'+fixture+String.raw`
-$Environment='Shared';$ProfilePath='C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-profile-11111111111111111111111111111111.json';$BeforeImagePath='C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-before-11111111111111111111111111111111.json';$profile.journalDirectory='C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-recovery-11111111111111111111111111111111';$isRehearsal=$false;$before.copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';$profile.oldSettings.sha256='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071';$newSettings.components.erpApiNative.sourceCommit='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'
+$acceptedRelease='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'
+$Environment='Shared';$ProfilePath='C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-profile-11111111111111111111111111111111.json';$BeforeImagePath='C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-before-11111111111111111111111111111111.json';$profile.journalDirectory='C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-recovery-11111111111111111111111111111111';$isRehearsal=$false;$before.copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';$profile.oldSettings.sha256='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071';$newSettings.components.erpApiNative.sourceCommit=$acceptedRelease
 $err=Catch-Guard;if($err.Exception.Message-cne'P03_PHYSICAL_OLD_LIFETIME_PRESENT'-or$writes-ne1){throw 'FIXTURE_BIRTH_GATE'};'BIRTH_REJECTION_UNCHANGED'
 `);assert.equal(out,'BIRTH_REJECTION_UNCHANGED');
 });
