@@ -116,3 +116,8 @@ fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workin
 cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-observer-cim-order.test.mjs:generic-api-key:253
 cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
 cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:374
+
+# Independently reviewed 2026-10-20 by root and b264_inspection_review:
+# consumed 639/7b/B264 run IDs plus public release commit/manifest pins only.
+# Exact historical fingerprint; no path/rule exclusion or scanner change.
+745e940d43b730af9bd07f48fd7e32e421cd0900:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85

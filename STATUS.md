@@ -1,3 +1,7 @@
+## 20 Ekim — P03 exact CI yanlış pozitif düzeltmesi
+
+745e940d exact PR CI39405346007: quality-build-test ve windows-startup-test SUCCESS, secret-scan FAILURE (tek generic-api-key bulgusu, physical-profile-create.mjs:85). Yerel64PASS sonucu CI başarısı yerine kullanılmadı. Root ve bağımsız b264_inspection_review satırın tüm literal değerlerini doğruladı: tüketilmiş639/7b/B264 çalışma kimlikleri, gerçek Git commit kimlikleri ve manifestSHA256; erişim sırrı yok. Mevcut dar prosedürle yalnız745e940d tam commit/path/rule/line fingerprint'i eklendi; scanner/workflow/path/rule kapsamı değişmedi. Yeni exact head CI push sonrası doğrulanacak. Kurulu TEST/DB02/ayar/servis değişmedi; fullShared ve guarded rollback açık, kaynak CI onarımı kurulum değildir.
+
 ## 20 Ekim — Aynı P03: bugünkü Windows/SQL dönemi ve NEW okuma kaynak bağlantısı
 
 Mevcut TEST yeniden kurulmadı. Salt-okunur kontrolde bugünkü ikiRunningCOM6504/9668 ve SQL5360/20Ekim03:54Z görüldü; eski profile SQL6180/15Ekim kaydı tarihsel kalır. Yeni explicit current-epoch proposal, genuine B264physical+nativecontinuity, immutableSQLservice/account/path/server/DB ve yeni before/profile ile bu farkı ayrı ele alır; eski B264229f kabulü/default639/7b değişmez. Profile builder yalnız exactB264suffix/01ef-6bc-eb5 tuple'ı için ek generation tanır. Mevcut NEW observer'a ayrı B264ObserveOnly/V2 yolu, aynı finitecontract, NEWcore/probe/config/binary ve V2lifetime-before/after eklendi. Yeni claim/Apply yolu açılmadı.
