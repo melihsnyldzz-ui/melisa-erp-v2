@@ -6,8 +6,11 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_FILE_ATTRIBUTES_V1_ENGINE,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
+
+// Reconstruct only the historical immutable engine fixture. Production selects sealed bytes.
+const historicalEngine=()=>fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n').replace("{Need (([IO.File]::GetAttributes($part) -band","{$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band");
 
 test('task action update preserves raw exported XML metadata and literal argument quotes',{skip:process.platform!=='win32'},()=>{
  const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
@@ -114,7 +117,7 @@ test('explicit B264V2 mode selects only the same frozen private engine and prese
  assert.equal(parseP03RehearsalMode(['--B264V2DryRun']),'B264V2DryRun');assert.equal(parseP03RehearsalMode(['--B264V2Run']),'B264V2Run');
  for(const args of [['--b264v2run'],['--B264V2Run','--Run'],['--engine','other'],['--B264V2Run-anything']])assert.throws(()=>parseP03RehearsalMode(args));
  // Synthetic frozen-runtime fixture only: remove the additive source recorder; production pins stay99b.
- const directory=String.raw`C:\synthetic\scripts\canonical`,v2=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n').replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'')),calls=[];
+ const directory=String.raw`C:\synthetic\scripts\canonical`,v2=Buffer.from(historicalEngine().replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'')),calls=[];
  const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,fs:{lstatSync:file=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:file=>{calls.push(file);return file===P03_B264_V2_ENGINE.path?v2:Buffer.from('fixture:'+path.win32.basename(file));}}};
  const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=mode=>JSON.parse(JSON.stringify(make(directory,mode)));
  const dry=fresh('B264V2DryRun'),run=fresh('B264V2Run'),legacy=fresh('DryRun');
@@ -124,7 +127,8 @@ test('explicit B264V2 mode selects only the same frozen private engine and prese
  // Fixture canonicalization does not relax the production raw-byte engine pin.
  context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?Buffer.from(v2.toString('utf8').replaceAll('\n','\r\n')):Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
  // The new error-record source is not the frozen runtime and must be rejected.
- const revised=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'));
+ // Reconstruct the historical frozen1b fixture, never the new engine's identity.
+ const revised=Buffer.from(historicalEngine());
  context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?revised:Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
 });
 test('Windows PS5 V2 request gate rejects wrong source/hash/generation without IO or task creation',{skip:process.platform!=='win32'},()=>{
@@ -149,7 +153,7 @@ test('failure-record candidate is a separate exact selection, with no staging, f
  for(const args of [['--FailureRecordV1'],['--failurerecordv1run'],['--FailureRecordV1Run-extra'],['--FailureRecordV1Run','--engine'],['--EngineGeneration'],['--sha256'],['--engine-path']])assert.throws(()=>parseP03RehearsalMode(args));
  assert.ok(Object.isFrozen(P03_FAILURE_RECORD_V1_ENGINE));assert.ok(Object.isFrozen(P03_B264_V2_ENGINE));
  assert.equal(P03_FAILURE_RECORD_V1_ENGINE.path,String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054.ps1`);
- const revised=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'));
+ const revised=Buffer.from(historicalEngine());
  assert.equal(crypto.createHash('sha256').update(revised).digest('hex'),P03_FAILURE_RECORD_V1_ENGINE.sha256);
  assert.notEqual(P03_FAILURE_RECORD_V1_ENGINE.sha256,P03_B264_V2_ENGINE.sha256);
  const old=Buffer.from(revised.toString().replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,''));

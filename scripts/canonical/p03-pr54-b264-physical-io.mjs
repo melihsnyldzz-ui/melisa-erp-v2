@@ -144,8 +144,8 @@ export function lookupPr54CurrentB007PhysicalInspection(token,{current,profile,b
 
 // Explicit CurrentB007 transport. Historical source generations remain sealed.
 const currentB007Pins=Object.freeze({
- drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'41b56ec5e93dfd8c86dcd15d35bc19e4676dd91771807d06a838e0884c3d4a66'}),
- observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'}),
+ drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'97cee59bd1dcd3eedc53f3eba07f261c095674f49fa168a5f074ff7e08c95f19'}),
+ observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'1a76fd772aba76ed318e0624ab35fceb6067750394aeaec35acbcb1d055c3dbd'}),
  helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
 });
 export function pr54CurrentB007InspectionArguments(input){

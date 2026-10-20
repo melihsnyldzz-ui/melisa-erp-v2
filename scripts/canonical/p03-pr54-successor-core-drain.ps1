@@ -13,7 +13,7 @@ param(
 if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
  if($Mode -cne 'Inspect' -or @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_INSPECT_ONLY'}
- if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_B264_INSPECTION_SOURCE'}
+ if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_B264_INSPECTION_SOURCE'}
 }
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 # Source-bound successor worker. Inspect/Capture only read; Drain stops only the exact
@@ -25,7 +25,7 @@ foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Uti
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_SUCCESSOR_OWNER'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$predecessor='639e2da815e1e7ac0f1c0d04d7f7bdc3'
-$engineSha=if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'}elseif($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
+$engineSha=if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}elseif($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
 function ReadWorkerPin([string]$path,[string]$sha){
  if($sha -cnotmatch '\A[a-f0-9]{64}\z' -or -not [IO.Path]::IsPathRooted($path) -or [IO.Path]::GetFullPath($path) -cne $path){throw 'P03_SUCCESSOR_PIN_SCOPE'}
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'P03_SUCCESSOR_REPARSE'}}

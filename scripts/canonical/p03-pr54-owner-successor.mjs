@@ -418,7 +418,7 @@ function admitPr54B264Sup20dProposal({raw,profileRef,beforeRef,profileBytes,befo
 // Additive fixed CurrentB007 application tuple. This does not admit Shared IO.
 import {lookupPr54CurrentB007PhysicalInspection} from './p03-pr54-b264-physical-io.mjs';
 export const PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH=PR54_OWNER_ROOT+'\\p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json';
-export const PR54_CURRENT_B007_ENGINE_SHA256='1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054';
+export const PR54_CURRENT_B007_ENGINE_SHA256='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f';
 export const PR54_CURRENT_B007_SETTINGS_PATH='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json';
 export const PR54_CURRENT_B007_SETTINGS_SHA256='de54c4da7f5b33a5f41b94624f01df4eb315dfa6a20fd2826af9ca37538d3942';
 export function assertPr54CurrentB007Candidate(candidate){

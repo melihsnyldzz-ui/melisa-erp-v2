@@ -19,7 +19,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018'
-$engineSha=if($PolicyGeneration -ceq 'CurrentB007'){'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}
+$engineSha=if($PolicyGeneration -ceq 'CurrentB007'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}
 
 
 function Require-NewDrain($condition,[string]$code){if(-not $condition){throw ('P03_NEW_DRAIN_'+$code)}}
@@ -45,7 +45,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
 function Get-B264RecoverySourcePolicy{
- if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='dd842c40ac7155d8658f87381c52a9528dcf57763a8a07442ffe7eb8356a9155';observerSha256='548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'}}
+ if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='a290f0a6894ae47686e2872e527c8739472703f638c80666d0c09006de2f42a1';observerSha256='1a76fd772aba76ed318e0624ab35fceb6067750394aeaec35acbcb1d055c3dbd'}}
  if($PolicyGeneration -ceq 'B264Sup20D'){
   return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }

@@ -8,7 +8,7 @@ async function currentFixture(){
  let code=legacy.slice(0,legacy.indexOf("test('Legacy B264"))+segment('function contractFixture(',"test('PS5 shared B264")+segment('function physicalFixture(',"test('B264 full frame")+segment('function sup20dInput(',"test('Sup20d inspection arguments");
  code=code.replaceAll('import.meta.url',JSON.stringify(file.href)).replace(/from '(\.\/[^']+)'/g,(_,p)=>'from '+JSON.stringify(new URL(p,file).href));
  const fixture=await import('data:text/javascript;base64,'+Buffer.from(code+'\nexport {physicalFixture};').toString('base64'));
- const f=fixture.physicalFixture(true);f.frame.policyGeneration='CurrentB007InspectOnly';f.frame.protectedConsolePins=[];f.current.policyGeneration='CurrentB007InspectOnly';f.engineRef={path:String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-current-b007-control-123456abcdef\p03-physical-rollback-lifetime-v2.ps1`,sha256:'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'};f.refs.engineRef=f.engineRef;f.frame.engineSha256=f.engineRef.sha256;return f;
+ const f=fixture.physicalFixture(true);f.frame.policyGeneration='CurrentB007InspectOnly';f.frame.protectedConsolePins=[];f.current.policyGeneration='CurrentB007InspectOnly';f.engineRef={path:String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-current-b007-control-123456abcdef\p03-physical-rollback-lifetime-v2.ps1`,sha256:'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'};f.refs.engineRef=f.engineRef;f.frame.engineSha256=f.engineRef.sha256;return f;
 }
 test('CurrentB007 full physical frame preserves ten identities, raw/COM/port/protected-native and freshness checks',async()=>{
  const f=await currentFixture();assert.equal(api.validatePr54CurrentB007PhysicalInspection(f).length,3);
@@ -22,8 +22,8 @@ import vm from 'node:vm';import path from 'node:path';import {createHash} from '
 function bindCurrentRefs(f){
  const dir=path.win32.dirname(f.engineRef.path),root=path.win32.dirname(dir);
  f.refs.recoveryHelperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
- f.refs.drainerRef={path:dir+'\\p03-pr54-successor-core-drain.ps1',sha256:'41b56ec5e93dfd8c86dcd15d35bc19e4676dd91771807d06a838e0884c3d4a66'};
- f.refs.observerRef={path:dir+'\\p03-physical-recovery-observe.ps1',sha256:'548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'};f.recoveryHelperRef=f.refs.recoveryHelperRef;return f;
+ f.refs.drainerRef={path:dir+'\\p03-pr54-successor-core-drain.ps1',sha256:'97cee59bd1dcd3eedc53f3eba07f261c095674f49fa168a5f074ff7e08c95f19'};
+ f.refs.observerRef={path:dir+'\\p03-physical-recovery-observe.ps1',sha256:'1a76fd772aba76ed318e0624ab35fceb6067750394aeaec35acbcb1d055c3dbd'};f.recoveryHelperRef=f.refs.recoveryHelperRef;return f;
 }
 test('CurrentB007 Inspect argv binds engine/control siblings, unchanged helper and unique profile run; mutation flags reject',async()=>{
  const f=bindCurrentRefs(await currentFixture()),argv=physical.pr54CurrentB007InspectionArguments(f.refs);assert(argv.worker.includes('CurrentB007InspectOnly'));assert(argv.worker.includes('Inspect'));assert(argv.observer.includes('Physical'));

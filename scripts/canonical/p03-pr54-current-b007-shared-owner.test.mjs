@@ -20,7 +20,7 @@ const names=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
 const sid='a'.repeat(32),transition=root+'\\MelisaERP-P03-transition-'+sid;
 const control=root+'\\MelisaERP-P03-current-b007-control-0ddaf85067d6';
 const claimPath=root+'\\p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json';
-const shaEngine='1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054';
+const shaEngine='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f';
 const shaSettings='de54c4da7f5b33a5f41b94624f01df4eb315dfa6a20fd2826af9ca37538d3942';
 const pins=Object.fromEntries([...source.slice(source.indexOf('const currentB007SourcePins='),source.indexOf('export async function runPr54CurrentB007SharedOwnerTransition(')).matchAll(/ (\w+):\['([^']+)','([a-f0-9]{64})'\]/g)].map(m=>[m[1],[m[2],m[3]]]));
 const same=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].every(k=>a[k]===b[k]);

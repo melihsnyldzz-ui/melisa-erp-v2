@@ -8,7 +8,7 @@ const windows={skip:process.platform!=='win32'},shell=String.raw`C:\Windows\Syst
 // Current protected helper copies use exact Git LF payloads; an auto-CRLF
 // checkout is source text, not the materialized immutable control copy.
 const leaf=name=>fileURLToPath(new URL('./'+name,import.meta.url)),q=v=>"'"+v.replaceAll("'","''")+"'",sha=name=>crypto.createHash('sha256').update(readFileSync(leaf(name),'utf8').replaceAll('\r\n','\n')).digest('hex');
-const engineSha='1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054',helperSha='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5';
+const engineSha='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f',helperSha='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5';
 function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',windowsHide:true,timeout:20000,stdio:['pipe','pipe','pipe']});}
 const extract=(name,file)=>`$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(leaf(file))},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};$d=@($a.FindAll({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq ${q(name)}},$false));if($d.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($d[0].Extent.Text));`;
 test('CurrentB007 helper closure binds literal Git LF payloads while retaining all legacy source pins',windows,()=>{

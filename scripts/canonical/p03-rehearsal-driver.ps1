@@ -1,4 +1,4 @@
-param([ValidateSet('DryRun','Run')][string]$Mode='DryRun',[ValidateSet('Legacy','B264V2','FailureRecordV1')][string]$EngineGeneration='Legacy')
+param([ValidateSet('DryRun','Run')][string]$Mode='DryRun',[ValidateSet('Legacy','B264V2','FailureRecordV1','FileAttributesV1')][string]$EngineGeneration='Legacy')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 trap{$kind=$_.Exception.GetType().Name;if($kind-cnotin@('MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException','ArgumentException','InvalidOperationException','PropertyNotFoundException','ParameterBindingException','PSInvalidCastException')){$kind='OtherException'};$site=$_.Exception.TargetSite;$method=if($null-ne$site){$site.Name}else{'UnknownMethod'};if($method-cnotin@('Invoke','InvokeMethod','CreateDirectory','Write','Flush','AddAccessRule','SetOwner','CheckActionPreference')){$method='UnknownMethod'};$code=if([string]$_.Exception.Message-cmatch'\bP03_[A-Z_]+\b'){$Matches[0]}else{'P03_REHEARSAL_EXECUTION_REJECTED'};$line=0;if($null-ne$_.InvocationInfo){$line=[int]$_.InvocationInfo.ScriptLineNumber};[Console]::Error.WriteLine(($code+' TYPE_'+$kind+' METHOD_'+$method+' LINE_'+$line));exit 1}
@@ -94,6 +94,10 @@ function AssertRehearsalEngineRequest($value,[string]$generation){
   Need ($value.PSObject.Properties.Name -ccontains 'engineGeneration' -and $value.engineGeneration -ceq 'FailureRecordV1') 'FAILURE_RECORD_ENGINE_GENERATION'
   Need ((@($value.engine.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'path|sha256') 'FAILURE_RECORD_ENGINE_FIELDS'
   Need ($value.engine.path -ceq 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054.ps1' -and $value.engine.sha256 -ceq '1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054') 'FAILURE_RECORD_ENGINE_SCOPE'
+ }elseif($generation -ceq 'FileAttributesV1'){
+  Need ($value.PSObject.Properties.Name -ccontains 'engineGeneration' -and $value.engineGeneration -ceq 'FileAttributesV1') 'FILE_ATTRIBUTES_ENGINE_GENERATION'
+  Need ((@($value.engine.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'path|sha256') 'FILE_ATTRIBUTES_ENGINE_FIELDS'
+  Need ($value.engine.path -ceq 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f.ps1' -and $value.engine.sha256 -ceq 'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f') 'FILE_ATTRIBUTES_ENGINE_SCOPE'
  }else{
   Need ($generation -ceq 'Legacy' -and $value.PSObject.Properties.Name -cnotcontains 'engineGeneration') 'ENGINE_GENERATION'
   Need ($value.engine.path.EndsWith('\scripts\canonical\p03-physical-rollback.ps1',[StringComparison]::OrdinalIgnoreCase)) 'ENGINE_PIN'
@@ -101,11 +105,12 @@ function AssertRehearsalEngineRequest($value,[string]$generation){
 }
 AssertRehearsalEngineRequest $request $EngineGeneration
 if($EngineGeneration -ceq 'FailureRecordV1'){Need ($args.Count -eq 0) 'FAILURE_RECORD_PARAMETERS'}
+if($EngineGeneration -ceq 'FileAttributesV1'){Need ($args.Count -eq 0) 'FILE_ATTRIBUTES_PARAMETERS'}
 NoReparse $request.engine.path
 Need ((Get-FileHash -LiteralPath $request.engine.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$request.engine.sha256) 'ENGINE_PIN'
 
 $protectedBefore=ProtectedSnapshot;$protectedBeforeSha=Hash (Bytes $protectedBefore)
-if($Mode-ceq'DryRun'){$dry=[ordered]@{status='DRY_RUN_READY';ports=$ports;tasks=$names;protectedBeforeSha256=$protectedBeforeSha;sqlFreeFixture=$true;runtimeMutation=$false};if($EngineGeneration -cin @('B264V2','FailureRecordV1')){$dry['engineGeneration']=$EngineGeneration;$dry['engineSha256']=$request.engine.sha256};$dry|ConvertTo-Json -Depth 5;return}
+if($Mode-ceq'DryRun'){$dry=[ordered]@{status='DRY_RUN_READY';ports=$ports;tasks=$names;protectedBeforeSha256=$protectedBeforeSha;sqlFreeFixture=$true;runtimeMutation=$false};if($EngineGeneration -cin @('B264V2','FailureRecordV1','FileAttributesV1')){$dry['engineGeneration']=$EngineGeneration;$dry['engineSha256']=$request.engine.sha256};$dry|ConvertTo-Json -Depth 5;return}
 Need ($request.PSObject.Properties.Name-contains'cloneProof') 'CLONE_PROOF_REQUIRED'
 Need ((Get-FileHash -LiteralPath $request.cloneProof.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$request.cloneProof.sha256) 'CLONE_PROOF_HASH'
 NoReparse $root;if(-not(Test-Path -LiteralPath 'C:\Sirket\ERP\rehearsal')){DirectoryNew 'C:\Sirket\ERP\rehearsal'}
@@ -168,5 +173,5 @@ Need ((Get-FileHash -LiteralPath $engineRef.path -Algorithm SHA256).Hash.ToLower
 $engineResult=(& $engineRef.path @common -Mode RollbackOld -RecoveryTailSha256 $tailSha)|ConvertFrom-Json;Need ($engineResult.status-ceq'RESTORED_READY') 'ROLLBACK_OLD'
 $after=WaitOldReady;$protectedAfter=ProtectedSnapshot;Need ((Hash (Bytes $protectedAfter))-ceq$protectedBeforeSha) 'PROTECTED_BASELINE_CHANGED';Journal 'REHEARSAL_COMPLETE'
 $report=[ordered]@{status='REHEARSAL_ROLLBACK_READY';environment='P03_REHEARSAL';runRoot=$runRoot;engine=$engineRef;engineSha256=$engineRef.sha256;profile=$profileRef;before=$beforeRef;candidate=$candidateRef;protectedBeforeSha256=$protectedBeforeSha;protectedAfterSha256=(Hash (Bytes $protectedAfter));sqlFreeFixture=$true;applicationRollbackVerified=$false;databaseRollbackVerified=$false;sharedTestMutation=$false;cleanupPerformed=$false}
-if($EngineGeneration -cin @('B264V2','FailureRecordV1')){$report['engineGeneration']=$EngineGeneration}
+if($EngineGeneration -cin @('B264V2','FailureRecordV1','FileAttributesV1')){$report['engineGeneration']=$EngineGeneration}
 $reportRef=WriteNew (Join-Path $runRoot 'result.json') (Bytes $report);$report['result']=$reportRef;$report|ConvertTo-Json -Depth 12

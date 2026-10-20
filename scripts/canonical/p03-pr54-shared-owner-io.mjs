@@ -644,16 +644,16 @@ export function validatePr54CurrentB007PhysicalInspection(args){
  // neither the caller's profile nor owned consolePins/STOP roles are changed.
  const protectedView=Object.freeze({...profile,protectedProcesses:Object.freeze([...profile.protectedProcesses,...authenticated])});
  const {policyGeneration,transitionAuthority,stopAuthority,applyExecuted,protectedProcesses,protectedConsolePins,...raw}=frame;
- const auxiliary=validatePr54PhysicalInspection({...args,profile:protectedView,frame:{...raw,schemaVersion:'melisa-p03-successor-precut-admission.v1'}},'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054');
+ const auxiliary=validatePr54PhysicalInspection({...args,profile:protectedView,frame:{...raw,schemaVersion:'melisa-p03-successor-precut-admission.v1'}},'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f');
  return Object.freeze([...auxiliary,...authenticated]);
 }
 // Fixed CurrentB007 generation: same reviewed transition engine and guards.
 const currentB007SourcePins=Object.freeze({
- drainer:['p03-pr54-successor-core-drain.ps1','41b56ec5e93dfd8c86dcd15d35bc19e4676dd91771807d06a838e0884c3d4a66'],
- observer:['p03-physical-recovery-observe.ps1','548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'],
- newObserver:['p03-pr54-new-owner-observe.ps1','dd842c40ac7155d8658f87381c52a9528dcf57763a8a07442ffe7eb8356a9155'],
- oldCut:['p03-pr54-b264-old-owner-cut.ps1','a215b163fcd60b19d612a9292bbe4ae1e2552dc307bbb2742a2ed67e62f11a87'],
- newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','a322554cd87f15d0090031157b98217a32e4d1a6df75b0a2ecec9ef4830110ab'],
+ drainer:['p03-pr54-successor-core-drain.ps1','97cee59bd1dcd3eedc53f3eba07f261c095674f49fa168a5f074ff7e08c95f19'],
+ observer:['p03-physical-recovery-observe.ps1','1a76fd772aba76ed318e0624ab35fceb6067750394aeaec35acbcb1d055c3dbd'],
+ newObserver:['p03-pr54-new-owner-observe.ps1','a290f0a6894ae47686e2872e527c8739472703f638c80666d0c09006de2f42a1'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','bf44656cbb8a70f21a9d2c9abc50cc076a7cf18eab1ea59567bd29302b176f7f'],
+ newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','8bcf773a7472e9e43ffc80244deb171b011095a57f744af4f9c6e7760d9cdd17'],
  invariance:['p03-current-invariance-capture.ps1','7d1dab68e3f285ae7def2c9d3a7a30a6b7eeed715690c30e2bce5341b3c5faa4'],
  emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','ef7e9bc94688b5fd4817d36da174e2d0c768d4d3a9ce33fd2bdaea4fac7297bd'],
 });
