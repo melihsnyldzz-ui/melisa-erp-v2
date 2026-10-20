@@ -1,5 +1,17 @@
 # ERP karar merkezi
 
+### ERP-DEC-067 — 20 Ekim 2026 20:17 UTC — Aynı17 başlıkta kesintisiz yetkili devam
+
+**Kaynak:** Kullanıcının mevcut aktif ERP turuna iletilen doğrudan talimatı; tekil iletim kaydı `DOT-TREE17-CONTINUATION-20261020-2017`. Kullanıcı: “Her iş için benden yeniden seçim veya ‘devam et’ mesajı bekleme.” Bu karar önceki yalnız1–2–3 seçimi/sonraki seçim bekleme yönünü aynı mevcut kapsam içinde günceller; tarihsel kararları veya teslimleri silmez.
+
+Mevcut Melisa Bitiş Ağacı'nın17 sunum başlığı ve özgün49ERP/25CRM=74 yaprağı korunur; yeni ağaç, tracker, Goal, ana ajan, TEST veya otomasyon kurulmaz. Önce gerçek aktif ajan/iş ve bitmiş teslimler doğrulanır. Çalışan görev kesilmez/çoğaltılmaz; biten kod, test veya migration yeniden yapılmaz. Ulaşılamayan owner UNKNOWN kalır, durmuş/tamam sayılmaz. Aynı kod/servise iki eşzamanlı yazar atanmaz. Kurulum ve ortak DB02/SQL/runtime/config/görev/servis tek yazarı mevcut ERP Yerel ana ajanıdır; CRM kendi repo/source/paket sorumlusudur.
+
+Yetkili ana owner, bağımlılığı hazır en öncelikli mevcut işi seçer, izinli kod/test/kurulum ve feature GitHub teslimini doğrular; sonra uygun sıradaki işe yeni rutin devam beklemeden geçer. Kurulum sürerken bağımsız source/offline işler çakışmasız ilerleyebilir. Engel ve çözülmesi için gereken somut adım mevcut kayıtta tutulur; başka yapılabilir iş varsa ilerlenir. Kullanıcıya yalnız gerçek işletme kararı, fiziksel bağlantı/kişiye özgü adım veya mevcut yetkiyi aşan ek onay gerektiğinde sorulur.
+
+Kod tamam, test PASS, pasif paket, TEST'e gerçek kurulum, normal GUI/cihaz denemesi ve insan kabulü ayrı raporlanır. Her başlık yalnız kendi özgün bitiş ölçütleri kanıtlandığında yeşil olur; teknik test insan PASS değildir. Anlamlı ilerlemede ne değiştiği, gerçek erişim adresi ve sıradaki iş kısa raporlanır. Oturum durmuşsa arka planda çalışılıyor denmez; bu karar duraklatılmış Goal/scheduler'ı kendiliğinden açmaz.
+
+Önceki ERP-DEC-057/060/062/063/066 sınırları korunur: fresh target/native/before/owner/ACL/claim ve aynı motor/prova bağları gevşetilmez; OLD_REUSE_SCOPE genişletilmez. KuruluTEST125/DB02, roller, yerel/migration kayıtları, karantina/LL dışlamaları ve yedekler korunur. LIVE/Vega/gerçekT1, gerçek ticari/finansal kayıt, gerçek müşteri mesajı, ücretli API/servis, güvenlik/credential bypass ve main merge/tag/release ayrıca açık onay olmadan yok.
+
 ### ERP-DEC-066 — 19 Ekim 2026 — İletilen hafif sentetik TEST ve izole paket provası yönü
 
 **Kaynak/alıntı:** Dot üzerinden aynı aktif kurtarma turuna iletilen `DOT-ERP-RECOVERY-FOCUS-20261019-1238` ve `DOT-ERP-LIGHT-TEST-20261019-1243`; kullanıcının iletilen sözü: “Gerekirse bu kadar büyük veri tabanları kullanmaya gerek yok; small testlerle ufak veri tabanlarıyla ayağa kaldıralım testleri”. Bu kayıt mevcut ERP-DEC-060/061 yetkisi içindeki çalışma yöntemini daraltır; yeni ana ajan/Goal/takip sistemi, LIVE veya erişim yetkisi üretmez.

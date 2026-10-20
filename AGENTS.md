@@ -1,5 +1,7 @@
 # AI Agent Entry Point
 
+**20 Ekim20:17UTC / ERP-DEC-067:** Aynı mevcut17 başlık/74 yaprakta bağımlılığı hazır yetkili işleri owner kendisi seçer; rutin seçim/devam beklemez. Önce gerçek aktif işleri/teslimleri doğrula, çalışanı kesme/çoğaltma, biteni yeniden yapma; erişilemeyen owner UNKNOWN. Ortak TEST/kurulum tek yazarı ERP Yerel; bağımsız source işleri çakışmasız ilerler. Engel+somut gereken adımı mevcut kayıtta tut ve uygun başka işe geç. Kaynak/test/pasif paket/TEST kurulumu/GUI-cihaz/insan kabulü ayrı; özgün bitiş ölçütü kanıtlanmadan yeşil yok. Yeni Goal/ana ajan/TEST/tracker/scheduler veya güvenlik/LIVE yetkisi yok. Tam karar [PROJECT_DECISIONS.md](PROJECT_DECISIONS.md) ERP-DEC-067; mevcut manuel SUP/Shared işi sürer.
+
 **17 Ekim / ERP-DEC-064:** Mevcut ana konuşmanın `ERP-TEKNIK-23EKIM` native Goal durumu gerçekten active doğrulandı. [Tarihli kapsam](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6232818354), tek ortak rapor ve mevcut STATUS/finish planı üzerinden bağımlılığı hazır teknik işlere devam edilir. Yeni Goal/TEST/plan yok; ekran güvenlik reddi tekrarlanmaz. Kaynak/exact CI, kurulum, normal GUI ve insan kabulü ayrı; 19/23/26–27/28/30 Ekim hedefleri ve önceki izin sınırları korunur.
 
 ## EN YÜKSEK ÖNCELİK — 16 Ekim 2026 / ERP-DEC-063: Büyük iş akışını tamamla, sonra panel
