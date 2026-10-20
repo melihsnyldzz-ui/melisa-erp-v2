@@ -300,6 +300,8 @@ Bu teslimin ilk b2b13103 CI koşuları secret-scan generic-api-key ile FAIL oldu
 
 ## 20 Ekim — Üç dosyalık finite aday bağlantısı
 
+Kaynak **99d7a63229f1c4682bdc7996792b4101d02101ba**, exact [PR39441169812](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39441169812) / [push39441158610](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39441158610) completed SUCCESS; her iki koşuda Windows kaynak testi, kalite/derleme ve secret-scan başarılı. Son yalnız-belge HEAD/CI aynı ortak raporda ayrıca kaydedilir.
+
 `DOT-ERP-P03-CANDIDATE-BIND-20261020-1430`: koordinatörün ilettiği14:30UTC doğrudan kullanıcı onayı yalnız `p03-rehearsal-harness.mjs`, `p03-rehearsal-driver.ps1`, `p03-rehearsal-harness.test.mjs` SOURCE/OFFLINE bağlantısıdır. Bu bölüm/STATUS belge makbuzudur; yeni framework/suite/ajan/Goal/takip sistemi yok. Root tek source yazarı, mevcut reviewer RO. Kaynak ve son belge HEAD CI ayrı kaydedilir; önceki b2 FAIL /4e3+a177 SUCCESS tarihsel kayıtları korunur.
 
 Ayrı finite `FailureRecordV1` generation ve yalnız iki explicit source selector eklendi. Sabit aday yolu `C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054.ps1`, exact raw SHA256 `1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054`. **Bu dosya oluşturulmadı veya varlığı/hash'i denetlenmedi.** Testteki candidate bytes yalnız mevcut kaynak dosyasının canonical-LF sentetik filesystem girdisidir; gerçek staging kanıtı değildir. Sonraki staged dosya rawbyte eşliğini ayrıca sağlamalı; production seçim byte-normalization yapmaz.
