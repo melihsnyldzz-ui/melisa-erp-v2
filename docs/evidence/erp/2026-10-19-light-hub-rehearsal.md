@@ -170,3 +170,12 @@ OLDadapter kaynakta Inspect varsayılan; gerçekB264claim/rootintent/freshUID/CO
 Root aynıDB02/copy/T1false üzerinde P03-20261020-104000 yeniCOPY_ONLY yedeğini9.268.690.944byte/checksum/VERIFYONLY ile doğruladı; restoreprovası/restart değil. QueryStoreistatistik yazımı öncesi before-image, exactsourcehash, SQLPID5360/doğum/service, sağlık/settings/backupmetadata pinleriyle geçiciREAD_ONLY yapıldı. Sonproof private; rollbackSQLREAD_WRITE aynıDB'ye kayıtlıdır. TicariDML/finans/stock/role/restore yok. İlktypedSQLselectionhatası actionöncesinde kaldı; success sonrası kaynak51tablohash okuması sürüyor. READ_ONLYQueryStore işverisini kilitlemez, LSN değişirse nativegate yine reddeder.
 
 TamSharedhazırlık yeni somut enum bağı buldu: eskiSUPeb5 yeniB264settingspath'i kabul etmiyor. Inactiveprofile+startupchain kaynağı ve sonraki yeniimmutableSUPpaketi gereklidir; eskipaket inplace değiştirilmez. Sonraki exactcandidate source/pinleri ve gerçekstartup/guardedrollback/admission kapanmadan claim/Apply/kurulum yok.8c84478d exactPR39409174591/push39409169078 SUCCESS; bu sonraki headCI ayrı.
+
+
+## 20 Ekim — B264 kaynak startup/preparer uyumu ve gerçek51tablo kanıtı
+
+ExplicitB264inactivevariant ve distinctprivatepaths, nativejournal31ref, Hubwait/PSwatcher/terminalsettings exactB264startupdesteği eklendi. LegacyRead19fingerprintleri ve App01ef/CRM6bc/Node24/copy/T1 sabit. CLIpolicy.length legacy30/B26431;6yeni+shareddependencylock allowlist, CreateNew/nooverwrite/strictACL. Builder20canonicaldate/rawGit19|20LF; acceptedoldarchivebehavior korunur. Rootfinal155/0skip kapsamı ve bağımsızconstructor/startup178/CLI6/archive1 farklıtargetsetleridir; toplanmışbaşarı sayısı üretilmez. Araretler korunur.
+
+Gerçek kaynak20Ekim10:47:04.7435307Z51tablohash/membership/permission/module/principal snapshotı SERIALIZABLEsaltokuma ile tamamlandı. 19Ekim51tablodan51'i aynı, metadataprojectionsaynı. YeniCOPY_ONLY9.268.690.944byte/checksum/VERIFYONLY yedek ile20Ekim10:49:48.7057385Z typedgenuine20nativecontinuity READ_ONLY/LSN/GUIDfork/copyT1 geçti. Token60sn; sonrakiApplyöncesi yenidenölçülür, zamandamgası değiştirilmez. QueryStore geçiciREAD_ONLYdurumu ve before/after/rollbackprivateproof kayıtlıdır; ticariDML/DBrestore/servisrestartyok.
+
+89e02bad exactPR39410304961/push39410299504 SUCCESS; sonrakiheadCI ve destekliSUP20paketmakbuzu ayrıbekler. EskiSUPeb5 dosyasıeditlemediyeniinactiveSUPsourcepaketi gereklidir. YeniSUPexactpinler/claim/guardedfullSharedgeçiş henüzkapalı; kurulu e59/13b/6bc/DB02korunur, insan/GUI/cihaz kabulü değişmez.

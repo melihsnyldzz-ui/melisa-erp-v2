@@ -8,7 +8,7 @@ const repo=path.resolve(import.meta.dirname,'../..'),fail=()=>{throw Error('CRM0
 if(process.platform!=='win32'||process.argv.length!==3)fail();
 const commit=execFileSync('git',['rev-parse','HEAD'],{cwd:repo,encoding:'utf8'}).trim();
 if(!/^[a-f0-9]{40}$/.test(commit)||execFileSync('git',['status','--porcelain'],{cwd:repo,encoding:'utf8'}).trim())fail();
-const target=path.resolve(process.argv[2]),expected=['20261014','20261015','20261017','20261018','20261019'].map(day=>path.join('C:\\Sirket\\ERP\\releases','CANONICAL-CRM06-SUPERVISOR-TEST-'+day+'-'+commit.slice(0,12)));
+const target=path.resolve(process.argv[2]),expected=['20261014','20261015','20261017','20261018','20261019','20261020'].map(day=>path.join('C:\\Sirket\\ERP\\releases','CANONICAL-CRM06-SUPERVISOR-TEST-'+day+'-'+commit.slice(0,12)));
 if(!expected.some(value=>target.toLowerCase()===value.toLowerCase())||fs.existsSync(target))fail();
 for(let p=path.dirname(target);;p=path.dirname(p)){if(fs.lstatSync(p).isSymbolicLink())fail();if(p===path.dirname(p))break;}
 fs.mkdirSync(target);
@@ -16,7 +16,7 @@ fs.mkdirSync(target);
 // New read-repair profile verifies raw committed blobs. Keep historical days'
 // checkout conversion unchanged; this finite generation archives exact LF bytes
 // without changing any repository/user Git configuration.
-const archiveOptions=target.includes('TEST-20261019-')?['-c','core.autocrlf=false','-c','core.eol=lf']:[];
+const archiveOptions=/TEST-202610(?:19|20)-/.test(target)?['-c','core.autocrlf=false','-c','core.eol=lf']:[];
 const archive=execFileSync('git',[...archiveOptions,'archive','--format=tar',commit,'scripts/canonical'],{cwd:repo,maxBuffer:32*1024*1024});
 execFileSync('tar.exe',['-xf','-','-C',target],{input:archive,windowsHide:true,maxBuffer:65536});
 const files=[];

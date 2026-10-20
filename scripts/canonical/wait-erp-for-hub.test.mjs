@@ -169,3 +169,24 @@ ConvertTo-Json -InputObject @($results) -Compress`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
  assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.deepEqual(rows.slice(0,2),[{accepted:true,source},{accepted:true,source:previous}]);for(const row of rows.slice(2))assert.equal(row.accepted,false);
 });
+
+
+test('B264 Hub prerequisite accepts one exact successor settings path and preserves old01ef/e59 profiles',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',source='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',next=root+'settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json';
+ for(const suffix of ['01ef3e3aa3bd-b264-successor','01ef3e3aa3bd','e59e07abf7ae'])assert.equal(assertErpHubProfile(root+'settings-crm06-staff-6bc82e6fe972-erp-'+suffix+'.json',source),true);
+ for(const [config,value]of [[next.toUpperCase(),source],[next,source.toUpperCase()],[next,source.slice(0,12)],[next.replace('b264-successor','b264-anything'),source],[next.replace('01ef3e3aa3bd','e59e07abf7ae'),source],[next.replace('6bc82e6fe972','439b63db8376'),source]])assert.throws(()=>assertErpHubProfile(config,value),{code:'ERP_HUB_WAIT_REJECTED'});
+});
+test('Windows PS5 B264 Hub path and Node24 guards run as pure AST without settings IO or a process launch',{skip:process.platform!=='win32'},async()=>{
+ const {spawnSync}=await import('node:child_process'),{fileURLToPath}=await import('node:url');
+ const file=fileURLToPath(new URL('./watch-hub-after-erp.ps1',import.meta.url)).replaceAll("'","''"),root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',next=root+'settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json';
+ const ps=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count){throw 'PARSE_FAILED'}
+$statements=@($ast.EndBlock.Statements);$switch=@($statements|Where-Object{$_.Extent.Text.StartsWith('$expectedCrmSource=switch ')})
+$raw=[IO.File]::ReadAllText('${file}');$start=$raw.IndexOf('$literalCandidateNode=');$end=$raw.IndexOf('$manifest=Read-PinnedJson',$start)
+if($switch.Count-ne1-or$start-lt0-or$end-le$start){throw 'POLICY_AST_MISSING'}
+$policy=[scriptblock]::Create('param($StartupConfigPath,$c,$owner)'+[Environment]::NewLine+$switch[0].Extent.Text+[Environment]::NewLine+$raw.Substring($start,$end-$start)+[Environment]::NewLine+'return $true')
+function Config{[pscustomobject]@{components=[pscustomobject]@{crm=[pscustomobject]@{sourceCommit='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}};ownerSid='fixture-owner';node=[pscustomobject]@{path='C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe';sha256='3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};actualT1=$false;database='MELISA_ERP_CRM_SHARED_TEST_20261009_02';copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82'}}
+$results=@();$c=Config;$results+=,(& $policy '${next}' $c 'fixture-owner')
+foreach($kind in @('node','node-hash','crm','t1','db','copy','case','suffix')){$c=Config;$p='${next}';switch($kind){node{$c.node.path='C:\\Program Files\\nodejs\\node.exe'} 'node-hash'{$c.node.sha256='0'*64} crm{$c.components.crm.sourceCommit='0'*40} t1{$c.actualT1=$true} db{$c.database='LIVE'} copy{$c.copyId='other'} case{$p=$p.ToUpperInvariant()} suffix{$p=$p.Replace('b264-successor','b264-anything')}};try{$null=& $policy $p $c 'fixture-owner';$results+=,$true}catch{$results+=,$false}}
+ConvertTo-Json -InputObject $results -Compress`;
+ const r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(ps,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),[true,...Array(8).fill(false)]);
+});

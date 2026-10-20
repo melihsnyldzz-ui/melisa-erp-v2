@@ -2,6 +2,7 @@ param(
  [Parameter(Mandatory=$true)][string]$Target,
  [Parameter(Mandatory=$true)][string]$Template,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedSha256,
+ [ValidateSet('Legacy','B264')][string]$Generation='Legacy',
  [switch]$VerifyOnly
 )
 Set-StrictMode -Version Latest
@@ -30,6 +31,17 @@ $allowed=@(
  ($crm+'\staff-refresh-successor-6bc82e6fe972-erp-01ef3e3aa3bd.json'),
  ($crm+'\journal-physical-preflight-6bc82e6fe972-erp-01ef3e3aa3bd.json')
 )
+if($Generation -ceq 'B264'){
+ $allowed=@(
+  ($erp+'\erpApiNative-01ef3e3aa3bd-dependency-lock.json'),
+  ($erp+'\crm-activation-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
+  ($erp+'\hub-pin-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
+  ($erp+'\hub-startup-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
+  ($erp+'\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
+  ($crm+'\staff-refresh-successor-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'),
+  ($crm+'\journal-physical-preflight-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json')
+ )
+}
 if(-not($allowed -ccontains $Target)){throw 'TARGET_REJECTED'}
 $expectedTemplate=if($Target.StartsWith($crm+'\',[StringComparison]::Ordinal)){$oldReceipt}else{$oldSettings}
 if($Template -cne $expectedTemplate -or ($VerifyOnly -and -not(Test-Path -LiteralPath $Target)) -or (-not $VerifyOnly -and (Test-Path -LiteralPath $Target))){throw 'TEMPLATE_OR_TARGET_CHANGED'}

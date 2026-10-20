@@ -6,18 +6,19 @@ import {pathToFileURL} from 'node:url';
 import {execFileSync,spawnSync} from 'node:child_process';
 
 import {verifyPr53CompletePackageInventory} from './p03-pr53-package-inventory.mjs';
-import {preparePr54ReadOwnerProfile} from './p03-pr53-ci-owner-preparation.mjs';
+import {preparePr54ReadOwnerProfile,preparePr54B264OwnerProfile} from './p03-pr53-ci-owner-preparation.mjs';
 import {validateCompletionDependencyLock} from './terminal-completion-logon.mjs';
 const require=createRequire(import.meta.url),repo=path.resolve(import.meta.dirname,'../..');
 const writerEnvironment={...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'};
 const stage=name=>console.error(JSON.stringify({stage:name}));
 async function main(){
-if(process.argv.length>3||!['--DryRun','--PrepareNew',undefined].includes(process.argv[2]))throw Error('MODE_REJECTED');
+if(process.argv.length>4||!['--DryRun','--PrepareNew',undefined].includes(process.argv[2])||process.argv[3]!==undefined&&process.argv[3]!=='--B264')throw Error('MODE_REJECTED');
+const b264=process.argv[3]==='--B264';
 const prepareNew=process.argv[2]==='--PrepareNew';
 const sha=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 if(execFileSync('git',['remote','get-url','origin'],{cwd:repo,encoding:'utf8'}).trim()!=='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git'||execFileSync('git',['remote','get-url','--push','origin'],{cwd:repo,encoding:'utf8'}).trim()!=='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git'||execFileSync('git',['branch','--show-current'],{cwd:repo,encoding:'utf8'}).trim()!=='codex/erp-p03-pr53-candidate-20261018')throw Error('SOURCE_REPO_REJECTED');
 const supervisorSource=execFileSync('git',['rev-parse','HEAD'],{cwd:path.resolve(import.meta.dirname,'../..'),encoding:'utf8'}).trim();if(!/^[a-f0-9]{40}$/.test(supervisorSource)||execFileSync('git',['status','--porcelain'],{cwd:path.resolve(import.meta.dirname,'../..'),encoding:'utf8'}).trim())throw Error('CLEAN_SOURCE_REQUIRED');
-const supervisorRoot='C:/Sirket/ERP/releases/CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+supervisorSource.slice(0,12);
+const supervisorRoot='C:/Sirket/ERP/releases/CANONICAL-CRM06-SUPERVISOR-TEST-'+(b264?'20261020':'20261019')+'-'+supervisorSource.slice(0,12);
 if(fs.realpathSync.native(supervisorRoot).toLowerCase()!==path.resolve(supervisorRoot).toLowerCase())throw Error('SUPERVISOR_ROOT_REPARSE');
 const manifestBytes=fs.readFileSync(path.join(supervisorRoot,'release-manifest.json'));
 const supervisorManifest=sha(manifestBytes);
@@ -32,7 +33,7 @@ const {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,CRM06_ST
 const {CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH}=actors;
 const readPinned=ref=>{if(!ref||typeof ref.path!=='string'||!fs.existsSync(ref.path))throw Error('PIN_MISSING');const bytes=fs.readFileSync(ref.path);if(sha(bytes)!==ref.sha256)throw Error('PIN_CHANGED');return bytes;};
 const jsonPinned=ref=>JSON.parse(readPinned(ref).toString('utf8').replace(/^\uFEFF/,''));
-const source='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',variant='erp-crm-pr54-reads-20261019',ownerSid=execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-Command','[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],{windowsHide:true,encoding:'utf8'}).trim();
+const source='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',variant=b264?'erp-crm-pr54-b264-20261020':'erp-crm-pr54-reads-20261019',ownerSid=execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-Command','[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],{windowsHide:true,encoding:'utf8'}).trim();
 const profile=crm06StaffSuccessorProfile(source,variant),root='C:/Sirket/ERP/runtime/terminal-completion-logon';
 const installed={path:path.join(root,'settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'),sha256:'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'};
 jsonPinned(installed);
@@ -80,15 +81,17 @@ crmDependencies(path.join(crmPin.packageRoot,'apps/gateway/node_modules'));if(cr
 stage('DEPENDENCIES_VERIFIED');
 const journal=await import(pathToFileURL(path.join(supervisorRoot,'scripts/canonical/crm06-staff-journal-preflight.mjs')).href);
 const evidence=await journal.inspectCrm06StaffJournalPhysical({ownerSid,source,profileVariant:variant,excludedPaths:journal.crm06StaffJournalExcludedPaths(source,variant)});
-if(evidence.status!=='READY'||evidence.references.length!==30)throw Error('JOURNAL_NOT_READY');
+if(evidence.status!=='READY'||evidence.references.length!==journal.crm06StaffJournalExcludedPaths(source,variant).length)throw Error('JOURNAL_NOT_READY');
 stage('JOURNAL_VERIFIED');
 const evidenceRef={path:profile.journalEvidencePath,sha256:sha(Buffer.from(JSON.stringify(evidence,null,2)+'\n'))};
 const parentInputs={baseline,parentActivation,parentAudit,parentSettings,parentSettingsRef,parentHubPin,parentHubStartup,ownerSid};
-const prepared=preparePr54ReadOwnerProfile({parentInputs,erpDependencyLockRef,erpDependencyLock,crmDependencyLockRef,crmDependencyLock,journalEvidenceRef:evidenceRef,journalEvidence:evidence,supervisorPin});
+const prepared=(b264?preparePr54B264OwnerProfile:preparePr54ReadOwnerProfile)({parentInputs,erpDependencyLockRef,erpDependencyLock,crmDependencyLockRef,crmDependencyLock,journalEvidenceRef:evidenceRef,journalEvidence:evidence,supervisorPin});
 const outputs=[['activation',prepared.activation,prepared.activationRef],['hubPin',prepared.hubPin,prepared.hubPinRef],['hubStartup',prepared.hubStartup,prepared.hubStartupRef],['settings',prepared.settings,prepared.settingsRef],['receipt',prepared.receipt,prepared.receiptRef]];
 for(const [name,value,ref] of outputs){const bytes=Buffer.from(JSON.stringify(value,null,2)+'\n');if(sha(bytes)!==ref.sha256)throw Error('OUTPUT_HASH_DRIFT:'+name);}
 
-const pending=[['erpDependencyLock',erpDependencyLock,erpDependencyLockRef],['journalEvidence',evidence,evidenceRef],...outputs];
+const reusedErpDependency=b264&&fs.existsSync(erpDependencyLockRef.path);
+if(reusedErpDependency)readPinned(erpDependencyLockRef);
+const pending=[...(reusedErpDependency?[]:[['erpDependencyLock',erpDependencyLock,erpDependencyLockRef]]),['journalEvidence',evidence,evidenceRef],...outputs];
 for(const [name,value,ref] of pending){if(fs.existsSync(ref.path))throw Error('NEW_TARGET_EXISTS:'+name);if(sha(Buffer.from(JSON.stringify(value,null,2)+'\n'))!==ref.sha256)throw Error('OUTPUT_HASH_DRIFT:'+name);}
 stage('OUTPUTS_PREPARED');
 if(prepareNew){
@@ -96,11 +99,11 @@ if(prepareNew){
 
  jsonPinned(installed);jsonPinned(installedSettings.crmPrivateFiles.crm06StaffSuccessor);readPinned(parentSettingsRef);
  for(const [name,value,ref] of pending){const bytes=Buffer.from(JSON.stringify(value,null,2)+'\n'),template=name==='receipt'||name==='journalEvidence'?installedSettings.crmPrivateFiles.crm06StaffSuccessor.path:installed.path;
- let result;try{const child=spawnSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(import.meta.dirname,'p03-pr54-reads-protected-create.ps1'),'-Target',ref.path,'-Template',template,'-ExpectedSha256',ref.sha256],{input:bytes,windowsHide:true,timeout:30000,maxBuffer:4096,env:writerEnvironment});if(child.status!==0||child.error||String(child.stderr??'').trim()){if(String(child.stderr??'').includes('P03_BUILTIN_MODULE_IMPORT_FAILED'))throw Error('P03_BUILTIN_MODULE_IMPORT_FAILED');throw Error('P03_PROTECTED_WRITER_EXEC_FAILED');}result=child.stdout.toString('utf8').trim();}catch(error){if(error?.message==='P03_BUILTIN_MODULE_IMPORT_FAILED'||String(error?.stderr??'').includes('P03_BUILTIN_MODULE_IMPORT_FAILED'))throw Error('P03_BUILTIN_MODULE_IMPORT_FAILED');throw Error('P03_PROTECTED_WRITER_EXEC_FAILED');}
+ let result;try{const child=spawnSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(import.meta.dirname,'p03-pr54-reads-protected-create.ps1'),'-Target',ref.path,'-Template',template,'-ExpectedSha256',ref.sha256,...(b264?['-Generation','B264']:[])],{input:bytes,windowsHide:true,timeout:30000,maxBuffer:4096,env:writerEnvironment});if(child.status!==0||child.error||String(child.stderr??'').trim()){if(String(child.stderr??'').includes('P03_BUILTIN_MODULE_IMPORT_FAILED'))throw Error('P03_BUILTIN_MODULE_IMPORT_FAILED');throw Error('P03_PROTECTED_WRITER_EXEC_FAILED');}result=child.stdout.toString('utf8').trim();}catch(error){if(error?.message==='P03_BUILTIN_MODULE_IMPORT_FAILED'||String(error?.stderr??'').includes('P03_BUILTIN_MODULE_IMPORT_FAILED'))throw Error('P03_BUILTIN_MODULE_IMPORT_FAILED');throw Error('P03_PROTECTED_WRITER_EXEC_FAILED');}
  if(result!=='CREATED_PROTECTED '+ref.sha256||sha(fs.readFileSync(ref.path))!==ref.sha256)throw Error('PROTECTED_WRITE_FAILED:'+name);
  stage('CREATED_'+name);
  }
 }
-console.log(JSON.stringify({status:prepareNew?'PREPARED_INACTIVE':'DRY_RUN_READY',installed:false,erpCompleteInventory,outputs:pending.map(([name,,ref])=>({name,path:ref.path,sha256:ref.sha256})),rollbackCurrentSettingsSha256:installed.sha256}));
+console.log(JSON.stringify({status:prepareNew?'PREPARED_INACTIVE':'DRY_RUN_READY',installed:false,profileVariant:variant,reusedErpDependency,erpCompleteInventory,outputs:pending.map(([name,,ref])=>({name,path:ref.path,sha256:ref.sha256})),rollbackCurrentSettingsSha256:installed.sha256}));
 }
 main().catch(error=>{console.error(JSON.stringify({status:'PREPARATION_FAILED_PARTIAL_FILES_RETAINED',reason:/^[A-Z_]+(?::[A-Za-z]+)?$/.test(error?.message??'')?error.message:'PRIVATE_DETAIL_WITHHELD'}));process.exitCode=1;});

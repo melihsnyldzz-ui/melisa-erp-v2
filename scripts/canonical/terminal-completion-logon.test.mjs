@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {crm06StaffSuccessorProfile} from './crm06-staff-refresh-successor.mjs';
+import {CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH} from './crm06-owner-projection.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
@@ -183,4 +185,22 @@ test('approved CRM request metadata admits exactly the existing issuer and separ
  for(const [key,value]of Object.entries(tuple))assert.equal(result[key],value);assert.equal(result.CRM_CUSTOMER_PRODUCT_REQUEST_PROOF,undefined);assert.equal(result.PRIVATE_KEY,undefined);assert.equal(result.WHATSAPP_SEND_ENABLED,'false');assert.equal(result.CRM_PAID_AI_ENABLED,'false');
  for(const key of Object.keys(tuple)){const changed=structuredClone(c);delete changed.environmentVariables[key];assert.throws(()=>completionCrmEnvironment(changed,s),/CRM_CUSTOMER_REQUEST_REJECTED/);}
  for(const change of [v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_ENABLED='false',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_ISSUER_IDS='["admin"]',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_ISSUER_IDS='["crm-agent-test-20261011"]',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_ISSUER_IDS='["crm-patron","crm-patron"]',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_STORE_FILE=crm+'\\runtime\\other.json',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_REFRESH_JOURNAL_PATH=tuple.CRM_CUSTOMER_PRODUCT_REQUEST_STORE_FILE,v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_STORE_FILE=root+'\\..\\other.json',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_PROOF='true',v=>v.CRM_CUSTOMER_PRODUCT_REQUEST_TOKEN='masked-fixture']){const changed=structuredClone(c);change(changed.environmentVariables);assert.throws(()=>completionCrmEnvironment(changed,s));}
+});
+
+function b264StartupFixture(){
+ const s=settings(),crmSource='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',profile=crm06StaffSuccessorProfile(crmSource,'erp-crm-pr54-b264-20261020');
+ s.node={path:erp+'\\tools\\node-v24.19.0\\node.exe',sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};
+ const ep={packageRoot:erp+'\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a',sourceCommit:'01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2',manifestSha256:'8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'};
+ s.components.erpApiNative={...ep,config:s.privateSources.operationConfig};s.privateSources.hubPinConfig={path:profile.nextPaths.hubPin,sha256:hash};s.privateSources.hubStartupConfig={path:profile.nextPaths.hubStartup,sha256:hash};s.components.hub={...ep,config:s.privateSources.hubStartupConfig};
+ s.privateSources.crmActivationConfig={path:profile.nextPaths.activation,sha256:hash};s.components.crm={packageRoot:crm+'\\releases\\crm-shared-test-'+crmSource,sourceCommit:crmSource,manifestSha256:'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83',config:s.privateSources.crmActivationConfig};
+ s.dependencyLocks.erpApiNative={path:profile.erpDependencyLockPath,sha256:hash};s.dependencyLocks.crm={path:profile.dependencyLockPath,sha256:hash};
+ s.crmPrivateFiles={...s.crmPrivateFiles,baseline:{path:CRM06_BASELINE_PATH,sha256:hash},crm06Actors:{path:CRM06_ACTOR_AUDIT_PATH,sha256:hash},crm06StaffSuccessor:{path:profile.successorPath,sha256:hash}};
+ return s;
+}
+test('explicit B264 startup accepts only ERP01ef/CRM6bc, Node24 and distinct profile-bound Hub paths',()=>{
+ const s=b264StartupFixture(),before=structuredClone(s);assert.equal(validateCompletionSettings(s,owner),s);assert.deepEqual(s,before);
+ const edits=[x=>{x.components.erpApiNative.sourceCommit='c'.repeat(40);},x=>{x.components.erpApiNative.manifestSha256='c'.repeat(64);},x=>{x.components.hub.sourceCommit='c'.repeat(40);},x=>{x.components.crm.manifestSha256='c'.repeat(64);},x=>{x.node.path='C:\\Program Files\\nodejs\\node.exe';},x=>{x.node.sha256='c'.repeat(64);},x=>{x.privateSources.hubPinConfig.path=x.privateSources.hubPinConfig.path.replace('-b264-successor','');},x=>{x.privateSources.hubStartupConfig.path=x.privateSources.hubStartupConfig.path.replace('-b264-successor','');x.components.hub.config=x.privateSources.hubStartupConfig;},x=>{x.dependencyLocks.erpApiNative.path=x.dependencyLocks.erpApiNative.path.replace('01ef3e3aa3bd','e59e07abf7ae');},x=>{x.actualT1=true;},x=>{x.copyId='other';},x=>{x.database='LIVE';}];
+ for(const edit of edits){const changed=structuredClone(s);edit(changed);assert.throws(()=>validateCompletionSettings(changed,owner));}
+ // The existing generic non-B264 fixture is unchanged by the new branch.
+ assert.equal(validateCompletionSettings(settings(),owner).actualT1,false);
 });

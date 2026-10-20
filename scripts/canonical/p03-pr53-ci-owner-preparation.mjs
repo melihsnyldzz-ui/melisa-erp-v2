@@ -50,3 +50,29 @@ export function preparePr54ReadOwnerProfile({parentInputs,erpDependencyLockRef,e
  if(!equal(prepared.settings.supervisor,supervisorPin)||prepared.receipt.installed!==false||prepared.receipt.humanAccepted!==false)reject();
  return prepared;
 }
+
+export const PR54_B264_OWNER_VARIANT='erp-crm-pr54-b264-20261020';
+// Explicit inactive B264 preparation. It does not admit a claim or install.
+export function preparePr54B264OwnerProfile(input){
+ const keys=['parentInputs','erpDependencyLockRef','erpDependencyLock','crmDependencyLockRef','crmDependencyLock','journalEvidenceRef','journalEvidence','supervisorPin'];
+ if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==keys.length||!keys.every(key=>{const d=Object.getOwnPropertyDescriptor(input,key);return d?.enumerable&&Object.hasOwn(d,'value');}))reject();
+ const {parentInputs,erpDependencyLockRef,erpDependencyLock,crmDependencyLockRef,crmDependencyLock,journalEvidenceRef,journalEvidence,supervisorPin}=input;
+ const pinKeys=['packageRoot','sourceCommit','manifestSha256'];
+ if(!supervisorPin||Object.getPrototypeOf(supervisorPin)!==Object.prototype||Reflect.ownKeys(supervisorPin).length!==pinKeys.length||!pinKeys.every(key=>{const d=Object.getOwnPropertyDescriptor(supervisorPin,key);return d?.enumerable&&Object.hasOwn(d,'value');})||!/^[a-f0-9]{40}$/.test(supervisorPin.sourceCommit)||!/^[a-f0-9]{64}$/.test(supervisorPin.manifestSha256)||supervisorPin.packageRoot!=='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-'+supervisorPin.sourceCommit.slice(0,12))reject();
+ if(!parentInputs||Object.getPrototypeOf(parentInputs)!==Object.prototype)reject();
+ const source=CRM06_STAFF_INTEGRATED_CRM_PACKAGE.sourceCommit,profile=crm06StaffSuccessorProfile(source,PR54_B264_OWNER_VARIANT);
+ if(erpDependencyLockRef?.path!==profile.erpDependencyLockPath||crmDependencyLockRef?.path!==profile.dependencyLockPath||journalEvidenceRef?.path!==profile.journalEvidencePath||!/^[a-f0-9]{64}$/.test(journalEvidenceRef?.sha256??''))reject();
+ validateCompletionDependencyLock(erpDependencyLock,CRM06_STAFF_ERP_PR54_READS_PACKAGE,'apps/api');
+ validateCompletionDependencyLock(crmDependencyLock,CRM06_STAFF_INTEGRATED_CRM_PACKAGE,'apps/gateway');
+ for(const [value,ref] of [[erpDependencyLock,erpDependencyLockRef],[crmDependencyLock,crmDependencyLockRef],[journalEvidence,journalEvidenceRef]])if(createHash('sha256').update(JSON.stringify(value,null,2)+'\n').digest('hex')!==ref.sha256)reject();
+ const evidence=assertCrm06StaffJournalPhysicalEvidence(journalEvidence,{path:CRM06_STAFF_JOURNAL_PATH,ownerSid:parentInputs.ownerSid,excludedPaths:crm06StaffJournalExcludedPaths(source,PR54_B264_OWNER_VARIANT),source,profileVariant:PR54_B264_OWNER_VARIANT});
+ if(evidence.status!=='READY')reject();
+ // ERP/CRM and scope stay fixed. A supervisor reference is preparation only;
+ // the mutator must independently admit the exact immutable package.
+ const builderInput={...parentInputs,crmPackagePin:{...CRM06_STAFF_INTEGRATED_CRM_PACKAGE},crmIndexSha256:CRM06_STAFF_INTEGRATED_CRM_INDEX,crmDependencyLockRef,supervisorPin:{...supervisorPin},journalEvidenceSha256:journalEvidenceRef.sha256,profileVariant:PR54_B264_OWNER_VARIANT,erpCandidate:{packagePin:{...CRM06_STAFF_ERP_PR54_READS_PACKAGE},dependencyLockRef:erpDependencyLockRef,nodeRuntimePin:{...CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME}}};
+ const prepared=buildCrm06StaffRefreshSuccessor(builderInput);
+ const {baseline,parentActivation,parentAudit,parentSettings,parentHubPin,parentHubStartup,ownerSid}=parentInputs;
+ assertCrm06StaffRefreshSuccessor({baseline,parentActivation,parentAudit,parentSettings,parentHubPin,parentHubStartup,ownerSid,currentActivation:prepared.activation,currentSettings:prepared.settings,currentHubPin:prepared.hubPin,currentHubStartup:prepared.hubStartup,receipt:prepared.receipt});
+ if(!equal(prepared.settings.supervisor,supervisorPin)||prepared.receipt.installed!==false||prepared.receipt.humanAccepted!==false)reject();
+ return prepared;
+}
