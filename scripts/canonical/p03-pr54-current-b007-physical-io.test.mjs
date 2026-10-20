@@ -8,7 +8,7 @@ async function currentFixture(){
  let code=legacy.slice(0,legacy.indexOf("test('Legacy B264"))+segment('function contractFixture(',"test('PS5 shared B264")+segment('function physicalFixture(',"test('B264 full frame")+segment('function sup20dInput(',"test('Sup20d inspection arguments");
  code=code.replaceAll('import.meta.url',JSON.stringify(file.href)).replace(/from '(\.\/[^']+)'/g,(_,p)=>'from '+JSON.stringify(new URL(p,file).href));
  const fixture=await import('data:text/javascript;base64,'+Buffer.from(code+'\nexport {physicalFixture};').toString('base64'));
- const f=fixture.physicalFixture(true);f.frame.policyGeneration='CurrentB007InspectOnly';f.current.policyGeneration='CurrentB007InspectOnly';f.engineRef={path:String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-current-b007-control-123456abcdef\p03-physical-rollback-lifetime-v2.ps1`,sha256:'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'};f.refs.engineRef=f.engineRef;f.frame.engineSha256=f.engineRef.sha256;return f;
+ const f=fixture.physicalFixture(true);f.frame.policyGeneration='CurrentB007InspectOnly';f.frame.protectedConsolePins=[];f.current.policyGeneration='CurrentB007InspectOnly';f.engineRef={path:String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-current-b007-control-123456abcdef\p03-physical-rollback-lifetime-v2.ps1`,sha256:'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'};f.refs.engineRef=f.engineRef;f.frame.engineSha256=f.engineRef.sha256;return f;
 }
 test('CurrentB007 full physical frame preserves ten identities, raw/COM/port/protected-native and freshness checks',async()=>{
  const f=await currentFixture();assert.equal(api.validatePr54CurrentB007PhysicalInspection(f).length,3);
@@ -22,8 +22,8 @@ import vm from 'node:vm';import path from 'node:path';import {createHash} from '
 function bindCurrentRefs(f){
  const dir=path.win32.dirname(f.engineRef.path),root=path.win32.dirname(dir);
  f.refs.recoveryHelperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
- f.refs.drainerRef={path:dir+'\\p03-pr54-successor-core-drain.ps1',sha256:'8d72902b75219a627e55809f714a226c660917f184612429d531f12030456ba7'};
- f.refs.observerRef={path:dir+'\\p03-physical-recovery-observe.ps1',sha256:'fe6e03bb1cd7c1b928fde19b18d74eb1333965f65948e7881c6b3d1079c59385'};f.recoveryHelperRef=f.refs.recoveryHelperRef;return f;
+ f.refs.drainerRef={path:dir+'\\p03-pr54-successor-core-drain.ps1',sha256:'41b56ec5e93dfd8c86dcd15d35bc19e4676dd91771807d06a838e0884c3d4a66'};
+ f.refs.observerRef={path:dir+'\\p03-physical-recovery-observe.ps1',sha256:'548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'};f.recoveryHelperRef=f.refs.recoveryHelperRef;return f;
 }
 test('CurrentB007 Inspect argv binds engine/control siblings, unchanged helper and unique profile run; mutation flags reject',async()=>{
  const f=bindCurrentRefs(await currentFixture()),argv=physical.pr54CurrentB007InspectionArguments(f.refs);assert(argv.worker.includes('CurrentB007InspectOnly'));assert(argv.worker.includes('Inspect'));assert(argv.observer.includes('Physical'));
@@ -57,4 +57,31 @@ test('CurrentB007 diagnostic separates protected typed-envelope identity mismatc
  // Force the existing validator error so the diagnostic alone is examined; no guard is relaxed.
  t.context.validatePr54CurrentB007PhysicalInspection=()=>{throw Error('P03_SHARED_CURRENT_AUX_FRAME_CHANGED');};
  await assert.rejects(t.invoke(),error=>{const row=error.p03CurrentB007Diagnostic?.protectedProcesses[0];assert(row);assert.equal(row.pid,protectedRow.pid);assert.equal(row.kind,'ProtectedSqlService');assert.equal(row.presentInRaw,!absent);assert.equal(row.identityMatches,false);assert.equal(row.rawIdentitySha256===null,absent);return true;});}
+});
+
+function withProtectedConsoles(f){
+ const creationTime=f.before.identities.hub.creationTime;
+ for(let n=0;n<3;n++){
+  const parent={...f.before.identities.hub,pid:110+n,parentPid:1,commandLine:'preserved TEST125 node '+n,bindings:[]};f.profile.protectedProcesses.push(parent);f.current.processes.push({...parent});
+  const pin={pid:160+n,parentPid:parent.pid,nodePath:String.raw`C:\Windows\System32\conhost.exe`,ownerSid:parent.ownerSid,commandLine:String.raw`\??\C:\WINDOWS\system32\conhost.exe 0x4`,creationTime};f.frame.protectedConsolePins.push(pin);f.current.processes.push({...pin});
+ }return f;
+}
+test('CurrentB007 separately authenticates three readonly protected TEST consoles without changing owned stop auxiliaries',async()=>{
+ const f=withProtectedConsoles(await currentFixture()),before=JSON.stringify({profile:f.profile,frame:f.frame,current:f.current}),result=api.validatePr54CurrentB007PhysicalInspection(f);
+ assert.equal(result.length,6);assert.equal(f.frame.consolePins.length,3);assert.equal(f.frame.probePins.length,0);assert.equal(f.frame.protectedConsolePins.length,3);assert.equal(JSON.stringify({profile:f.profile,frame:f.frame,current:f.current}),before);assert(Object.isFrozen(result)&&result.every(Object.isFrozen));for(const p of f.frame.protectedConsolePins)assert(result.some(q=>q.pid===p.pid));assert.equal(physical.lookupPr54CurrentB007PhysicalInspection(result,{}),null);
+});
+test('CurrentB007 readonly protected console rejects foreign/SQL/missing/drifting parents, listeners, duplicate/owned pins and birth/source/ref forgery',async()=>{
+ const mutate=[f=>f.frame.protectedConsolePins[0].parentPid=777,f=>f.frame.protectedConsolePins[0].parentPid=99,f=>f.current.processes=f.current.processes.filter(p=>p.pid!==110),f=>f.current.processes.find(p=>p.pid===110).commandLine+=' changed',f=>f.current.bindings.push({pid:160,port:5999,address:'127.0.0.1'}),f=>f.current.processes.find(p=>p.pid===160).bindings=[{port:5999,address:'127.0.0.1'}],f=>f.frame.protectedConsolePins.push({...f.frame.protectedConsolePins[0]}),f=>f.frame.protectedConsolePins[0].pid=f.before.identities.hub.pid,f=>f.frame.protectedConsolePins[0].pid=f.frame.consolePins[0].pid,f=>f.frame.protectedConsolePins[0].creationTime='2026-10-19T00:00:00.0000000Z',f=>f.frame.protectedConsolePins[0].creationTime='2099-01-01T00:00:00.0000000Z',f=>f.frame.protectedConsolePins[0].commandLine+=' -extra',f=>f.frame.protectedConsolePins[0].nodePath=String.raw`C:\temp\conhost.exe`,f=>f.frame.protectedConsolePins[0].ownerSid='foreign',f=>f.frame.protectedConsolePins[0].signatureValid=true,f=>f.frame.protectedConsolePins[0].sourcePath='untrusted',f=>f.frame.profileSha256='f'.repeat(64),f=>f.frame.engineSha256='f'.repeat(64),f=>f.frame.policyGeneration='B264Sup20DInspectOnly'];
+ for(const change of mutate){const f=withProtectedConsoles(await currentFixture());change(f);assert.throws(()=>api.validatePr54CurrentB007PhysicalInspection(f),change.toString());}
+});
+test('CurrentB007 genuine collector alone carries readonly protected consoles into private raw coverage; cloned witness cannot authorize',async()=>{
+ const t=await collectorFixture();withProtectedConsoles(t.f);const r=await t.invoke(),args={current:r.current,profile:r.profile,before:r.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef};const coverage=t.lookup(r.physicalInspection,args);assert.equal(coverage.length,6);assert(Object.isFrozen(coverage));assert.equal(t.lookup({...r.physicalInspection},args),null);assert.equal(physical.lookupPr54B264Sup20dPhysicalInspection(r.physicalInspection,args),null);assert.equal(r.frame,undefined);assert.equal(r.profile.protectedProcesses.length,4);assert.equal(t.f.frame.consolePins.length,3);assert.equal(r.stopAuthority,false);
+});
+
+test('CurrentB007 protected console accepts six/seven-digit equivalent birth only and reports failed pins without authentication claims',async()=>{
+ const f=withProtectedConsoles(await currentFixture());for(const p of f.frame.protectedConsolePins)p.creationTime=p.creationTime.replace(/(\.\d{6})0Z$/,'$1Z');assert.equal(api.validatePr54CurrentB007PhysicalInspection(f).length,6);
+ const t=await collectorFixture();withProtectedConsoles(t.f);t.f.frame.protectedConsolePins[0].parentPid=777;await assert.rejects(t.invoke(),error=>{assert.match(error.message,/PROTECTED_CONSOLE_PARENT/);const d=error.p03CurrentB007Diagnostic;assert.equal(d.counts.reportedProtectedConsoles,3);assert.equal(d.reportedProtectedConsolePins.length,3);assert(Object.isFrozen(d.reportedProtectedConsolePins)&&d.reportedProtectedConsolePins.every(Object.isFrozen));assert.deepEqual(Object.keys(d.reportedProtectedConsolePins[0]).sort(),['identitySha256','pid']);return true;});
+});
+test('legacy physical validators retain old schema and reject the Current-only protected console witness field',async()=>{
+ const f=await currentFixture();delete f.frame.protectedConsolePins;f.frame.policyGeneration='B264Sup20DInspectOnly';f.frame.engineSha256=f.engineRef.sha256='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def';assert.equal(api.validatePr54B264Sup20dPhysicalInspection(f).length,3);f.frame.protectedConsolePins=[];assert.throws(()=>api.validatePr54B264Sup20dPhysicalInspection(f));
 });

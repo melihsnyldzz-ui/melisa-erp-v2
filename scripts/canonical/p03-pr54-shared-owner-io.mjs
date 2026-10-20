@@ -618,19 +618,42 @@ export async function runPr54B264Sup20dSharedOwnerTransition({mode='DryRun',prof
 }
 
 // Additive fixed CurrentB007 physical frame validator; no authority mint.
+function currentB007ProtectedConsoleCoverage(pins,current,profile,before,observedAt,auxiliaryPins){
+ need(Array.isArray(pins)&&pins.length<=64&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&Array.isArray(auxiliaryPins),'CURRENT_B007_PROTECTED_CONSOLE_ROWS');
+ const owned=[...targets.map(role=>before.identities[role]),...profile.oldWatchers],protectedRows=profile.protectedProcesses,authenticated=[];
+ need(new Set(pins.map(p=>p.pid)).size===pins.length,'CURRENT_B007_PROTECTED_CONSOLE_DUPLICATE');
+ for(const p of pins){
+  need(exactKeys(p,['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'])&&Number.isSafeInteger(p.pid)&&p.pid>0&&!owned.some(q=>q.pid===p.pid)&&!protectedRows.some(q=>q.pid===p.pid)&&!auxiliaryPins.some(q=>q.pid===p.pid),'CURRENT_B007_PROTECTED_CONSOLE_PIN');
+  const parents=protectedRows.filter(q=>q.pid===p.parentPid&&q.kind!=='ProtectedSqlService'),parent=parents[0],rawParents=current.processes.filter(q=>q.pid===p.parentPid);
+  need(parents.length===1&&parent.ownerSid===owner&&rawParents.length===1&&sameIdentity(parent,rawParents[0]),'CURRENT_B007_PROTECTED_CONSOLE_PARENT');
+  need(p.ownerSid===owner&&typeof p.nodePath==='string'&&p.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'&&p.commandLine==='\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4'&&typeof p.creationTime==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6,7}Z$/.test(p.creationTime)&&Number.isFinite(Date.parse(p.creationTime))&&preciseTime(p.creationTime)>=preciseTime(parent.creationTime)&&preciseTime(p.creationTime)<=preciseTime(observedAt),'CURRENT_B007_PROTECTED_CONSOLE_IDENTITY');
+  const rows=current.processes.filter(q=>q.pid===p.pid),raw=rows[0];
+  need(rows.length===1&&typeof raw.nodePath==='string'&&sameIdentity({...raw,nodePath:p.nodePath},p)&&raw.nodePath.toLowerCase()===p.nodePath.toLowerCase()&&!(raw.bindings??[]).length&&!current.bindings.some(q=>q.pid===p.pid),'CURRENT_B007_PROTECTED_CONSOLE_RAW');
+  authenticated.push(Object.freeze(Object.fromEntries(['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].map(k=>[k,raw[k]]))));
+ }
+ return Object.freeze(authenticated);
+}
 export function validatePr54CurrentB007PhysicalInspection(args){
- const {frame}=args;need(frame?.schemaVersion==='melisa-p03-b264-precut-inspection.v1'&&frame.policyGeneration==='CurrentB007InspectOnly'&&frame.transitionAuthority===false&&frame.stopAuthority===false&&frame.applyExecuted===false&&exactKeys(frame,['schemaVersion','profileSha256','beforeSha256','engineSha256','recoveryHelperSha256','observedAt','oldIdentities','oldWatchers','consolePins','probePins','policyGeneration','transitionAuthority','stopAuthority','applyExecuted','protectedProcesses']),'CURRENT_B007_INSPECTION_BINDING');
- need(Array.isArray(frame.protectedProcesses)&&JSON.stringify(frame.protectedProcesses)===JSON.stringify(args.profile.protectedProcesses),'CURRENT_B007_PROTECTED_NATIVE_FRAME');
- const {policyGeneration,transitionAuthority,stopAuthority,applyExecuted,protectedProcesses,...raw}=frame;
- return validatePr54PhysicalInspection({...args,frame:{...raw,schemaVersion:'melisa-p03-successor-precut-admission.v1'}},'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054');
+ const {frame,profile,current,before}=args;
+ need(frame?.schemaVersion==='melisa-p03-b264-precut-inspection.v1'&&frame.policyGeneration==='CurrentB007InspectOnly'&&frame.transitionAuthority===false&&frame.stopAuthority===false&&frame.applyExecuted===false&&exactKeys(frame,['schemaVersion','profileSha256','beforeSha256','engineSha256','recoveryHelperSha256','observedAt','oldIdentities','oldWatchers','consolePins','probePins','policyGeneration','transitionAuthority','stopAuthority','applyExecuted','protectedProcesses','protectedConsolePins']),'CURRENT_B007_INSPECTION_BINDING');
+ need(Array.isArray(frame.protectedProcesses)&&JSON.stringify(frame.protectedProcesses)===JSON.stringify(profile.protectedProcesses),'CURRENT_B007_PROTECTED_NATIVE_FRAME');
+ need(Array.isArray(frame.protectedConsolePins)&&frame.protectedConsolePins.length<=64&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&Array.isArray(frame.consolePins)&&Array.isArray(frame.probePins),'CURRENT_B007_PROTECTED_CONSOLE_ROWS');
+ const authenticated=currentB007ProtectedConsoleCoverage(frame.protectedConsolePins,current,profile,before,frame.observedAt,[...frame.consolePins,...frame.probePins]);
+ // Native signature/hash proof comes only from the pinned worker transport.
+ // This temporary view covers protected consoles for raw-set authentication;
+ // neither the caller's profile nor owned consolePins/STOP roles are changed.
+ const protectedView=Object.freeze({...profile,protectedProcesses:Object.freeze([...profile.protectedProcesses,...authenticated])});
+ const {policyGeneration,transitionAuthority,stopAuthority,applyExecuted,protectedProcesses,protectedConsolePins,...raw}=frame;
+ const auxiliary=validatePr54PhysicalInspection({...args,profile:protectedView,frame:{...raw,schemaVersion:'melisa-p03-successor-precut-admission.v1'}},'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054');
+ return Object.freeze([...auxiliary,...authenticated]);
 }
 // Fixed CurrentB007 generation: same reviewed transition engine and guards.
 const currentB007SourcePins=Object.freeze({
- drainer:['p03-pr54-successor-core-drain.ps1','8d72902b75219a627e55809f714a226c660917f184612429d531f12030456ba7'],
- observer:['p03-physical-recovery-observe.ps1','fe6e03bb1cd7c1b928fde19b18d74eb1333965f65948e7881c6b3d1079c59385'],
- newObserver:['p03-pr54-new-owner-observe.ps1','3bce4718115f83f469129080729d241c3e2acc435a7307f61c4bb73a976eb298'],
- oldCut:['p03-pr54-b264-old-owner-cut.ps1','5d56fa031d00901c95d2ee0b8d4a86e9e0020d05e5dcfb03e45f1f3b196d4bb5'],
- newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','910507cfc5c5976acdfb0c9f114288fee432dd154e031d87d49245ec956a1498'],
+ drainer:['p03-pr54-successor-core-drain.ps1','41b56ec5e93dfd8c86dcd15d35bc19e4676dd91771807d06a838e0884c3d4a66'],
+ observer:['p03-physical-recovery-observe.ps1','548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'],
+ newObserver:['p03-pr54-new-owner-observe.ps1','dd842c40ac7155d8658f87381c52a9528dcf57763a8a07442ffe7eb8356a9155'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','a215b163fcd60b19d612a9292bbe4ae1e2552dc307bbb2742a2ed67e62f11a87'],
+ newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','a322554cd87f15d0090031157b98217a32e4d1a6df75b0a2ecec9ef4830110ab'],
  invariance:['p03-current-invariance-capture.ps1','7d1dab68e3f285ae7def2c9d3a7a30a6b7eeed715690c30e2bce5341b3c5faa4'],
  emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','ef7e9bc94688b5fd4817d36da174e2d0c768d4d3a9ce33fd2bdaea4fac7297bd'],
 });
@@ -729,13 +752,13 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  }
  async function stopped(){const seen=await physical();return seen.runningInstances.length===0&&seen.tasks.length===2&&names.every(n=>seen.tasks.some(t=>t.name===n&&t.state===3))&&!profile.oldWatchers.some(p=>seen.processes.some(q=>q.pid===p.pid));}
  function validateOldSubset(seen){
-  need(cut&&snapshotRef,'CURRENT_B007_HELD_CUT_REQUIRED');pin(cut.cutWitness);const drain=read(cut.drainWitness),snapshot=read(snapshotRef),owned=[...targets.map(r=>before.identities[r]),...profile.oldWatchers],aux=[...snapshot.consolePins,...snapshot.probePins,...drain.consolePins,...drain.probePins];
+  need(cut&&snapshotRef,'CURRENT_B007_HELD_CUT_REQUIRED');pin(cut.cutWitness);const drain=read(cut.drainWitness),snapshot=read(snapshotRef),owned=[...targets.map(r=>before.identities[r]),...profile.oldWatchers],aux=[...snapshot.consolePins,...snapshot.probePins,...drain.consolePins,...drain.probePins],readonly=currentB007ProtectedConsoleCoverage(snapshot.protectedConsolePins,seen,profile,before,snapshot.observedAt,aux);
   need(new Set(seen.processes.map(p=>p.pid)).size===seen.processes.length&&seen.runningInstances.length===0&&seen.tasks.length===2&&names.every(n=>{const task=seen.tasks.find(t=>t.name===n),saved=profile.tasks.find(t=>t.name===n);return task?.state===3&&[saved.oldXmlSha256,saved.newXmlSha256].includes(hash(Buffer.from(task.xml)));}),'CURRENT_B007_OLD_TASK_FRAME');
-  for(const p of seen.processes){const saved=owned.find(q=>q.pid===p.pid)??profile.protectedProcesses.find(q=>q.pid===p.pid)??aux.find(q=>q.pid===p.pid);need(saved&&sameIdentity({...p,nodePath:p.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?saved.nodePath:p.nodePath},saved),'CURRENT_B007_UNCAPTURED_OLD');}
+  for(const p of seen.processes){const saved=owned.find(q=>q.pid===p.pid)??profile.protectedProcesses.find(q=>q.pid===p.pid)??aux.find(q=>q.pid===p.pid)??readonly.find(q=>q.pid===p.pid);need(saved&&sameIdentity({...p,nodePath:p.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?saved.nodePath:p.nodePath},saved),'CURRENT_B007_UNCAPTURED_OLD');}
   for(const b of seen.bindings)need(owned.some(p=>p.pid===b.pid&&(p.bindings??[]).some(q=>q.port===b.port&&q.address===b.address)),'CURRENT_B007_FOREIGN_LISTENER');
-  return {snapshot,drain};
+  return {snapshot,drain,readonly};
  }
- async function empty(){const seen=await physical(),{snapshot,drain}=validateOldSubset(seen);if(seen.bindings.length||seen.processes.some(p=>!profile.protectedProcesses.some(q=>sameIdentity(p,q))))return false;const ids=[...Object.values(before.identities),...profile.oldWatchers,...snapshot.consolePins,...snapshot.probePins,...drain.consolePins,...drain.probePins].map(p=>p.pid),consoles=[...new Map([...snapshot.consolePins,...drain.consolePins].map(p=>[p.pid,p])).values()];return await ps(pr54SuccessorEmptyProgram({ids,consoles}))==='EMPTY';}
+ async function empty(){const seen=await physical(),{snapshot,drain,readonly}=validateOldSubset(seen);if(seen.bindings.length||seen.processes.some(p=>![...profile.protectedProcesses,...readonly].some(q=>sameIdentity(p,q))))return false;const ids=[...Object.values(before.identities),...profile.oldWatchers,...snapshot.consolePins,...snapshot.probePins,...drain.consolePins,...drain.probePins].map(p=>p.pid),consoles=[...new Map([...snapshot.consolePins,...drain.consolePins].map(p=>[p.pid,p])).values()];return await ps(pr54SuccessorEmptyProgram({ids,consoles}))==='EMPTY';}
  async function taskState(kind){const seen=await physical();return seen.tasks.length===2&&names.every(n=>{const t=seen.tasks.find(t=>t.name===n),saved=profile.tasks.find(t=>t.name===n);return t?.state===3&&hash(Buffer.from(t.xml))===saved[kind+'XmlSha256'];});}
  async function changeAction(name,kind){
   need(names.includes(name)&&['old','new'].includes(kind),'CURRENT_B007_ACTION_SCOPE');await guard();need(await stopped()&&await empty(),'CURRENT_B007_ACTION_NOT_EMPTY');const entry=profile.tasks.find(t=>t.name===name),seen=await physical(),task=seen.tasks.find(t=>t.name===name),sha=hash(Buffer.from(task.xml));need([entry.oldXmlSha256,entry.newXmlSha256].includes(sha),'CURRENT_B007_FOREIGN_ACTION');if(sha===entry[kind+'XmlSha256'])return true;
@@ -762,7 +785,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   admit:async()=>{await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_JOURNAL_ADVANCED');return {owner:true,oldHealthy:true,oldActions:true,emptyJournal:true};},persist,
   heldCoreCut:async()=>{
    await guard();await history();const snapshot=await invoke(frozen.oldCut,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','Inspect',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256]);
-   need(snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&snapshot.oldIdentities.length===8&&snapshot.oldWatchers.length===2,'CURRENT_B007_PRECUT');snapshotRef=await protectedWrite(path.win32.join(transitionDir,'successor-precut-admission.json'),jsonBytes(snapshot));
+   need(snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&snapshot.oldIdentities.length===8&&snapshot.oldWatchers.length===2&&snapshot.profileSha256===profileRef.sha256&&snapshot.beforeSha256===beforeRef.sha256&&snapshot.engineSha256===frozen.engine.sha256&&snapshot.recoveryHelperSha256===frozen.helper.sha256&&Array.isArray(snapshot.protectedConsolePins)&&Number.isFinite(Date.parse(snapshot.observedAt))&&Date.now()-Date.parse(snapshot.observedAt)>=0&&Date.now()-Date.parse(snapshot.observedAt)<60000,'CURRENT_B007_PRECUT');snapshotRef=await protectedWrite(path.win32.join(transitionDir,'successor-precut-admission.json'),jsonBytes(snapshot));
    const rootIntent=await protectedWrite(path.win32.join(transitionDir,'b264-old-owner-cut-intent.json'),jsonBytes({event:'B264_OLD_CUT_INTENT',claimSha256:claimRef.sha256,stopOrderDigest:p03CoreFirstStopDigest(before.plan),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:new Date().toISOString()}));
    cutAttempted=true;cut=await invoke(frozen.oldCut,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','Drain',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256,'-ClaimPath',claimRef.path,'-ClaimSha256',claimRef.sha256,'-AdmittedSnapshotPath',snapshotRef.path,'-AdmittedSnapshotSha256',snapshotRef.sha256,'-RootIntentPath',rootIntent.path,'-RootIntentSha256',rootIntent.sha256]);
    need(cut.status==='B264_OLD_OWNER_CORE_DRAINED'&&cut.heldCoreExited===true&&cut.comStopped===true&&['COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED'].includes(cut.coreStopResult),'CURRENT_B007_HELD_CUT');pin(cut.cutWitness);pin(cut.drainWitness);return Object.fromEntries(['coreStopResult','heldCoreExited','comStopped','cutWitness','drainWitness'].map(k=>[k,cut[k]]));

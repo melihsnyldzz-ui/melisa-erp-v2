@@ -144,8 +144,8 @@ export function lookupPr54CurrentB007PhysicalInspection(token,{current,profile,b
 
 // Explicit CurrentB007 transport. Historical source generations remain sealed.
 const currentB007Pins=Object.freeze({
- drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'8d72902b75219a627e55809f714a226c660917f184612429d531f12030456ba7'}),
- observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'fe6e03bb1cd7c1b928fde19b18d74eb1333965f65948e7881c6b3d1079c59385'}),
+ drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'41b56ec5e93dfd8c86dcd15d35bc19e4676dd91771807d06a838e0884c3d4a66'}),
+ observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'548f5ce53cae5b9af2e4280234f09a42376619c8426a8c5b3b6f87d804aaf2e7'}),
  helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
 });
 export function pr54CurrentB007InspectionArguments(input){
@@ -183,11 +183,12 @@ export async function inspectPr54CurrentB007PhysicalOwner(input){
   const digest=p=>hash(bytes(Object.fromEntries(['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].map(k=>[k,k==='creationTime'?precise(p?.[k]):p?.[k]??null]))));
   const summary=p=>freeze({pid:pid(p),identitySha256:digest(p)});
   const raw=rows(current?.processes),owned=[...Object.values(before.identities??{}),...rows(profile.oldWatchers)],protectedRows=rows(profile.protectedProcesses),consolePins=rows(frame?.consolePins),probePins=rows(frame?.probePins),auxiliary=[...probePins,...consolePins];
+  const reportedProtectedConsoles=rows(frame?.protectedConsolePins);
   const extras=raw.filter(p=>!owned.some(q=>same(p,q))&&!protectedRows.some(q=>same(p,q)));
   const extraPids=extras.filter(p=>!auxiliary.some(q=>q.pid===p.pid)),missingAuxiliary=auxiliary.filter(p=>!extras.some(q=>q.pid===p.pid));
   const comparison=(expected,actual,console=false)=>freeze({pid:pid(expected),presentInRaw:!!actual,identityMatches:!!actual&&same(console?{...actual,nodePath:typeof actual.nodePath==='string'&&actual.nodePath.toLowerCase()===expected.nodePath?.toLowerCase()?expected.nodePath:actual.nodePath}:actual,expected),expectedIdentitySha256:digest(expected),rawIdentitySha256:actual?digest(actual):null});
   const identityDrift=[...owned,...auxiliary].map(p=>comparison(p,raw.find(q=>q.pid===p.pid),consolePins.includes(p))).filter(p=>p.presentInRaw&&!p.identityMatches);
-  return freeze({schemaVersion:'melisa-p03-current-b007-physical-diagnostic.v1',counts:freeze({completedPairs,rawProcesses:raw.length,ownedProcesses:owned.length,protectedProcesses:protectedRows.length,expectedAuxiliary:auxiliary.length,rawExtras:extras.length,extraPids:extraPids.length,missingAuxiliaryPids:missingAuxiliary.length,identityDrift:identityDrift.length}),extraPids:freeze(extraPids.map(summary)),missingAuxiliaryPids:freeze(missingAuxiliary.map(summary)),missingOwnedPids:freeze(owned.filter(p=>!raw.some(q=>same(p,q))).map(summary)),identityDrift:freeze(identityDrift),protectedProcesses:freeze(protectedRows.map(p=>freeze({...comparison(p,raw.find(q=>q.pid===p.pid)),kind:p.kind==='ProtectedSqlService'?'ProtectedSqlService':'Other'}))),pins:freeze(Object.fromEntries(Object.entries(input).map(([key,ref])=>[key.replace(/Ref$/,''),ref.sha256])))});
+  return freeze({schemaVersion:'melisa-p03-current-b007-physical-diagnostic.v1',counts:freeze({completedPairs,rawProcesses:raw.length,ownedProcesses:owned.length,protectedProcesses:protectedRows.length,expectedAuxiliary:auxiliary.length,rawExtras:extras.length,extraPids:extraPids.length,missingAuxiliaryPids:missingAuxiliary.length,identityDrift:identityDrift.length,reportedProtectedConsoles:reportedProtectedConsoles.length}),reportedProtectedConsolePins:freeze(reportedProtectedConsoles.map(summary)),extraPids:freeze(extraPids.map(summary)),missingAuxiliaryPids:freeze(missingAuxiliary.map(summary)),missingOwnedPids:freeze(owned.filter(p=>!raw.some(q=>same(p,q))).map(summary)),identityDrift:freeze(identityDrift),protectedProcesses:freeze(protectedRows.map(p=>freeze({...comparison(p,raw.find(q=>q.pid===p.pid)),kind:p.kind==='ProtectedSqlService'?'ProtectedSqlService':'Other'}))),pins:freeze(Object.fromEntries(Object.entries(input).map(([key,ref])=>[key.replace(/Ref$/,''),ref.sha256])))});
  }
  const {current,frame,aux}=await collectPr54CurrentInspectionPair(()=>pr54CollectPhysicalObservation(async()=>{
   // Re-observe the entire raw pair; never retry just the failed worker against
