@@ -29,3 +29,26 @@ test('a flagged receipt line exposes a review warning before approval while full
  assert.ok(html.indexOf('Sayımda 1 satırda kontrol notu var')<html.indexOf('<details class="office-inline-details"'));assert.ok(html.indexOf('Sayımda 1 satırda kontrol notu var')<html.indexOf('data-count-approve="10"'));
  assert.equal(f.calls.length,1);assert.equal(f.calls[0].options,undefined);f.ui.dispose();
 });
+
+test('ambiguous literal barcode persists unresolved through save and reopen without submitting or choosing either product',async()=>{
+ const {countInput,countDto}=await import('../../../api/src/services/workInboundModel.mjs'),c=fixture(),store=memory(),calls=[];
+ c.scope.products[1].barcode=c.scope.products[0].barcode;c.capabilities.canApprove=false;
+ const session={media:async()=>{},api:async()=>{throw Error('Offline catalog');},inbound:async(path,options)=>{
+  calls.push({path,options});if(!options)return c;
+  assert.equal(path,'/api/work-receiving/count-drafts');assert.equal(options.method,'POST');
+  const parsed=countInput(options.body,c.scope.products),draft=countDto({id:'19',version:1,created_by:16,state:'needs_review',note:parsed.note,lines:parsed.lines,receipt_id:null});
+  c.countDrafts.push(draft);return{draft,receipt:null,requestId:options.body.requestId,replayed:false};
+ }};
+ const {createWorkReceiving}=await controller(),d=dom(),ui=createWorkReceiving({root:d.root,session,user:{id:16,permissions:[]},storage:store,uuid:()=>uuid});
+ ui.mount();await tick();d.node('[data-count-new]').onclick();
+ d.node('[data-count-supplier]').value='601';const form=d.node('[data-count-scan]');form.elements.scan.value='00000301';form.onsubmit({preventDefault(){}});await tick();
+ let backup=JSON.parse(store.getItem('melisa-work-inbound-count:local:16')).draft;
+ assert.equal(backup.lines.length,1);assert.equal(backup.lines[0].productId,null);assert.equal(backup.lines[0].stockCode,null);assert.equal(backup.lines[0].barcode,'00000301');
+ assert.match(d.root.innerHTML,/data-count-submit disabled/);d.node('[data-count-submit]').onclick();assert.equal(calls.filter(x=>x.options).length,0);
+ d.root.querySelectorAll('[data-count-qty]')[0].value='1';d.node('[data-count-save]').onclick();await tick();
+ assert.equal(calls.filter(x=>x.options).length,1);assert.equal(c.countDrafts.at(-1).state,'needs_review');assert.equal(c.countDrafts.at(-1).lines[0].productId,null);ui.dispose();
+ const next=dom(),reopened=createWorkReceiving({root:next.root,session,user:{id:16,permissions:[]},storage:store});reopened.mount();await tick();
+ assert.match(next.root.innerHTML,/<h2>Sayım #19/);assert.match(next.root.innerHTML,/Barkod: 00000301/);assert.match(next.root.innerHTML,/data-count-submit disabled/);
+ next.node('[data-count-submit]').onclick();assert.equal(calls.filter(x=>x.options).length,1);assert.equal(calls.some(x=>/\/submit|\/approve/.test(x.path)),false);
+ backup=JSON.parse(store.getItem('melisa-work-inbound-count:local:16')).draft;assert.equal(backup.lines[0].barcode,'00000301');assert.equal(backup.lines[0].productId,null);reopened.dispose();
+});

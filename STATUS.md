@@ -1,3 +1,15 @@
+## 20 Ekim — C01/C02, B04/C04/C05 ve B06/C08/C11 dar günlük ekran düzeltmeleri
+
+Mevcut a36cf15a kaynak tabanı üzerinde üç çakışmasız alt çalışma yürütüldü; ortak runtime sahibi root kaldı. Mal kabulde aynı literal barkoda birden fazla ürün eşleşince satır kayboluyordu. Yeni production-controller regresyonu önce FAIL; yalnız tekil eşleşmenin ürüne bağlanmasıyla belirsiz barkod productId:null inceleme satırı olarak kaydediliyor, sıfırlar ve yeniden açılma korunuyor, gönderim/onay isteği oluşmuyor. Mevcut backend needs_review sözleşmesi kullanıldı; yeni belge sırası veya motor eklenmedi.
+
+Bekleyen satış taslağında sepetten çıkarma, journal UUID/body sabitken ekrandaki satırı silebiliyordu. Önce FAIL; düğme ve handler mevcut locked() kapısına bağlandı. Zorlanmış tıklamada sepet ve journal aynı, yeni POST yok. Satış durumları veya tahsilat hesabı değişmedi; yeni teslim/"Mal gitti" durumu icat edilmedi.
+
+Kasa/banka hareketinde NULL tutarın sıfır görünmesi ve salt görüntüleyen rolün hesap yönetim eylemlerini görmesi ayrı FAIL ile kanıtlandı. Gösterim mevcut exact para helper'ını kullanır; gerçek API'nin numeric 12.5 DTO uyumluluğu bağımsız incelemede yakalanıp ayrıca FAIL→PASS düzeltildi. NULL/geçersiz/güvenli olmayan değer Doğrulanmadı; gerçek sıfır, mevcut numeric DTO ve exact decimal string ayrıdır. Workspace yalnız readOnly prop'unda backend'in mevcut finance.payment/finance.collection/settings.manage kümesini kullanır; TEST salt okunur sınırı üstündür. Yeni grant, route allowlist veya hesaplama değişmedi.
+
+Root mevcut beş dosyalık hedef kümede 30 PASS, son finans davranışında 8 PASS/0skip doğruladı: son kapsam 12 mal-kabul +11 satış +8 finans =31 farklı testtir, koşumlar toplanmadı. Bağımsız çapraz kaynak incelemeleri GO/açıkP1/P2=0; finans son iki hedefi ayrıca PASS. Syntax/diff temiz; exact yeni source CI gönderimden sonra ayrı doğrulanacaktır.
+
+Bu teslim yalnız kaynak/offline düzeyindedir. Kurulu TEST e59/13b/6bc ve hazır SUP20d/ERP01ef/CRM6bc paketleri değiştirilmedi; yeni kaynak düzeltmeleri o immutable pakette yoktur. Ayrı salt okunur admission incelemesi Shared Apply yetkisi üretmedi: başarılı 1b1919 prova mevcut 99b90 motor eşitliği kapısını karşılamaz; tarihsel before taze değildir ve native continuity READ_ONLY isterken Query Store READ_WRITE gözlendi. Claim/Apply/SQL ayarı/kurulum yok. Kanonik kullanıcı dirty dosyası aynı; 49ERP+25CRM, Goal PAUSED ve özgün insan kabulü BEKLİYOR korunur.
+
 ## 20 Ekim — ERP04 / A02–C09 gecikmiş fiyat yanıtında bekleyen kaydı koruma
 
 `DOT-ERP-PRICE-PENDING-CAS-20261020-1515`: mevcut normal fiyat düzenleyicisinde A isteği beklerken storage kaydı B ile değiştiğinde, gecikmiş HTTP400/403/409 yanıtı A/rejected yazarak B kurtarma kaydını eziyordu. Mevcut controller integration düzeneğinde 400/new-request regresyonu önce FAIL; aynı isteğin normal ret kontrolü PASS olarak kanıtlandı.

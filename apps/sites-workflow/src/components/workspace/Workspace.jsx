@@ -394,7 +394,7 @@ const workspaceRouteRegistry = {
   'cash-bank-ledger': {
     permissionKeys: ['dashboard.view', 'finance.view', 'customer.view'],
     unauthorizedMessage: 'Kasa/banka defteri görüntüleme yetkiniz yok.',
-    render: ({ onOpenScreen }) => <CashBankLedgerScreen readOnly={testReadOnly} onOpenScreen={onOpenScreen} commandPanel={testReadOnly ? <FinanceTransferForm /> : null} />,
+    render: ({ onOpenScreen, permissions }) => <CashBankLedgerScreen readOnly={testReadOnly || !hasAnyPermission(permissions, ['finance.payment', 'finance.collection', 'settings.manage'])} onOpenScreen={onOpenScreen} commandPanel={testReadOnly ? <FinanceTransferForm /> : null} />,
   },
   'cash-register': {
     permissionKeys: ['finance.view', 'finance.collection', 'finance.payment'],
