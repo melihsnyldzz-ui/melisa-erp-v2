@@ -171,6 +171,24 @@ export async function inspectPr54CurrentB007PhysicalOwner(input){
  // caller-supplied boolean or a caller-provided current-process frame.
  assertPr54CurrentB007Candidate({...before.profile,supervisorRoot:profile.packages.find(p=>p.sourceCommit===before.profile.supervisorSource)?.root,newSettings:profile.newSettings});
  const options={windowsHide:true,timeout:60000,maxBuffer:8*1024*1024,env:{...process.env,PSModulePath:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\Modules`}};
+ // Error-only, pure projections of the last complete pair; never raw argv,
+ // environment, paths or a capability. Identity hashes use the validator's
+ // six/seven-digit creation-time normalization and exact identity fields.
+ let completedPairs=0;
+ function diagnostic(current,frame){
+  const rows=x=>Array.isArray(x)?x:[],freeze=Object.freeze;
+  const precise=x=>typeof x==='string'?x.replace(/(\.\d{6})Z$/,(_,d)=>d+'0Z'):null;
+  const same=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','commandLine'].every(k=>a[k]===b[k])&&precise(a.creationTime)===precise(b.creationTime);
+  const pid=p=>Number.isSafeInteger(p?.pid)&&p.pid>0?p.pid:null;
+  const digest=p=>hash(bytes(Object.fromEntries(['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].map(k=>[k,k==='creationTime'?precise(p?.[k]):p?.[k]??null]))));
+  const summary=p=>freeze({pid:pid(p),identitySha256:digest(p)});
+  const raw=rows(current?.processes),owned=[...Object.values(before.identities??{}),...rows(profile.oldWatchers)],protectedRows=rows(profile.protectedProcesses),consolePins=rows(frame?.consolePins),probePins=rows(frame?.probePins),auxiliary=[...probePins,...consolePins];
+  const extras=raw.filter(p=>!owned.some(q=>same(p,q))&&!protectedRows.some(q=>same(p,q)));
+  const extraPids=extras.filter(p=>!auxiliary.some(q=>q.pid===p.pid)),missingAuxiliary=auxiliary.filter(p=>!extras.some(q=>q.pid===p.pid));
+  const comparison=(expected,actual,console=false)=>freeze({pid:pid(expected),presentInRaw:!!actual,identityMatches:!!actual&&same(console?{...actual,nodePath:typeof actual.nodePath==='string'&&actual.nodePath.toLowerCase()===expected.nodePath?.toLowerCase()?expected.nodePath:actual.nodePath}:actual,expected),expectedIdentitySha256:digest(expected),rawIdentitySha256:actual?digest(actual):null});
+  const identityDrift=[...owned,...auxiliary].map(p=>comparison(p,raw.find(q=>q.pid===p.pid),consolePins.includes(p))).filter(p=>p.presentInRaw&&!p.identityMatches);
+  return freeze({schemaVersion:'melisa-p03-current-b007-physical-diagnostic.v1',counts:freeze({completedPairs,rawProcesses:raw.length,ownedProcesses:owned.length,protectedProcesses:protectedRows.length,expectedAuxiliary:auxiliary.length,rawExtras:extras.length,extraPids:extraPids.length,missingAuxiliaryPids:missingAuxiliary.length,identityDrift:identityDrift.length}),extraPids:freeze(extraPids.map(summary)),missingAuxiliaryPids:freeze(missingAuxiliary.map(summary)),missingOwnedPids:freeze(owned.filter(p=>!raw.some(q=>same(p,q))).map(summary)),identityDrift:freeze(identityDrift),protectedProcesses:freeze(protectedRows.map(p=>freeze({...comparison(p,raw.find(q=>q.pid===p.pid)),kind:p.kind==='ProtectedSqlService'?'ProtectedSqlService':'Other'}))),pins:freeze(Object.fromEntries(Object.entries(input).map(([key,ref])=>[key.replace(/Ref$/,''),ref.sha256])))});
+ }
  const {current,frame,aux}=await collectPr54CurrentInspectionPair(()=>pr54CollectPhysicalObservation(async()=>{
   // Re-observe the entire raw pair; never retry just the failed worker against
   // an older process frame or delete an ephemeral row from an observation.
@@ -180,7 +198,14 @@ export async function inspectPr54CurrentB007PhysicalOwner(input){
  const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const current=JSON.parse(observe.stdout);
  need(current.schemaVersion==='melisa-p03-physical-observation.v1'&&current.environment==='Shared'&&current.policyGeneration==='CurrentB007InspectOnly'&&current.transitionAuthority===false&&current.collectionAuthority==='PHYSICAL_OBSERVATION_ONLY'&&current.collection==='Schedule.Service.GetRunningTasks(1)'&&current.processScope==='CIM.Win32_Process.Unfiltered'&&current.portScope==='Get-NetTCPConnection.Listen.Unfiltered'&&current.stopPermitted===false&&current.applyAvailable===false&&JSON.stringify(current.beforeImage)===JSON.stringify(beforeRef)&&current.rawScope?.unverifiedCount===0&&current.rawScope?.unverifiedProcesses?.length===0,'OBSERVER_FRAME');
  const inspected=await run(shell,pinnedInvocation(input.drainerRef,argv.worker),options);need(!inspected.stderr,'WORKER_STDERR');const frame=JSON.parse(inspected.stdout);
- const aux=validatePr54CurrentB007PhysicalInspection({frame,current,profile,before,profileRef,beforeRef,engineRef,recoveryHelperRef});
+ completedPairs++;
+ let aux;try{aux=validatePr54CurrentB007PhysicalInspection({frame,current,profile,before,profileRef,beforeRef,engineRef,recoveryHelperRef});}catch(error){
+  // The existing bounded retry receives the identical error. Each failed
+  // complete pair owns its own frozen diagnostic; the final error keeps only
+  // that pair. Diagnostic construction must never mask the validation failure.
+  try{if(error&&typeof error==='object'&&Object.isExtensible(error))Object.defineProperty(error,'p03CurrentB007Diagnostic',{value:diagnostic(current,frame),enumerable:true});}catch{}
+  throw error;
+ }
  // Native worker authenticated protected SQL via service + birth + typed
  // master SELECT, and normal OS identities via the existing engine guard.
  // SQL service envelopes are not normal owner/argv process rows.
