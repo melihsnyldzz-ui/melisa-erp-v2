@@ -7,6 +7,8 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {inspectPr54B264PredecessorIO,validatePr54B264PhysicalInspection,validatePr54B264Sup20dPhysicalInspection,collectPr54CurrentInspectionPair,pr54CollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,assertPr54B264SuccessorCandidate,assertPr54B264Sup20dCandidate} from './p03-pr54-owner-successor.mjs';
+import {validatePr54CurrentB007PhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
+import {PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH,PR54_CURRENT_B007_ENGINE_SHA256,assertPr54CurrentB007Candidate} from './p03-pr54-owner-successor.mjs';
 const run=promisify(execFile),shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const bytes=x=>Buffer.from(JSON.stringify(x));
@@ -133,4 +135,62 @@ export async function inspectPr54B264Sup20dPhysicalOwner(input){
  const token=Object.freeze({}),now=Date.now();need(now-Date.parse(frame.observedAt)>=0&&now-Date.parse(frame.observedAt)<60000,'EXPIRED');
  inspections.set(token,{policy:'B264Sup20DInspectOnly',current,profile,before,profileRef:Object.freeze({...profileRef}),beforeRef:Object.freeze({...beforeRef}),observedAt:frame.observedAt,aux,digest:hash(bytes({current,profile,before}))});
  return {status:'B264_SUP20D_PHYSICAL_INSPECTED_READ_ONLY',current,profile,before,physicalInspection:token,claimCreated:false,applyExecuted:false,stopAuthority:false,transitionAuthority:false};
+}
+
+export function lookupPr54CurrentB007PhysicalInspection(token,{current,profile,before,profileRef,beforeRef,now=Date.now()}){
+ const p=inspections.get(token);
+ return p&&p.policy==='CurrentB007InspectOnly'&&p.current===current&&p.profile===profile&&p.before===before&&JSON.stringify(p.profileRef)===JSON.stringify(profileRef)&&JSON.stringify(p.beforeRef)===JSON.stringify(beforeRef)&&p.digest===hash(bytes({current,profile,before}))&&Number.isFinite(now)&&now-Date.parse(p.observedAt)>=0&&now-Date.parse(p.observedAt)<60000?p.aux:null;
+}
+
+// Explicit CurrentB007 transport. Historical source generations remain sealed.
+const currentB007Pins=Object.freeze({
+ drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'8d72902b75219a627e55809f714a226c660917f184612429d531f12030456ba7'}),
+ observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'fe6e03bb1cd7c1b928fde19b18d74eb1333965f65948e7881c6b3d1079c59385'}),
+ helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
+});
+export function pr54CurrentB007InspectionArguments(input){
+ need(exact(input,['profileRef','beforeRef','engineRef','recoveryHelperRef','drainerRef','observerRef']),'INPUT');
+ const {profileRef,beforeRef,engineRef,recoveryHelperRef,drainerRef,observerRef}=input;
+ for(const r of Object.values(input))need(ref(r),'REF');
+ need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1$/.test(engineRef.path)&&engineRef.sha256===PR54_CURRENT_B007_ENGINE_SHA256,'ENGINE');
+ for(const [r,k]of [[recoveryHelperRef,'helper'],[drainerRef,'drainer'],[observerRef,'observer']])need(path.win32.basename(r.path)===currentB007Pins[k].leaf&&r.sha256===currentB007Pins[k].sha256,'SOURCE');
+ need(recoveryHelperRef.path===PR54_OWNER_ROOT+'\\'+currentB007Pins.helper.leaf&&[drainerRef,observerRef].every(r=>path.win32.dirname(r.path)===path.win32.dirname(engineRef.path)),'SOURCE_DIRECTORY');
+ const runId=path.win32.basename(beforeRef.path).match(/^MelisaERP-P03-before-([a-f0-9]{32})\.json$/)?.[1];
+ need(runId&&!['639e2da815e1e7ac0f1c0d04d7f7bdc3','7b0821959737f1da0427b17a7dfd4685','b264594b6f93d560d807c8decc4e6699'].includes(runId)&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+runId+'.json'&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+runId+'.json','RUN');
+ const common=['-PolicyGeneration','CurrentB007InspectOnly','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256];
+ return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
+}
+export async function inspectPr54CurrentB007PhysicalOwner(input){
+ need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
+ const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
+ need(!fs.existsSync(PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+ await inspectPr54B264PredecessorIO();
+ const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
+ const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
+ // Candidate values are derived from pinned before/settings metadata, never a
+ // caller-supplied boolean or a caller-provided current-process frame.
+ assertPr54CurrentB007Candidate({...before.profile,supervisorRoot:profile.packages.find(p=>p.sourceCommit===before.profile.supervisorSource)?.root,newSettings:profile.newSettings});
+ const options={windowsHide:true,timeout:60000,maxBuffer:8*1024*1024,env:{...process.env,PSModulePath:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\Modules`}};
+ const {current,frame,aux}=await collectPr54CurrentInspectionPair(()=>pr54CollectPhysicalObservation(async()=>{
+  // Re-observe the entire raw pair; never retry just the failed worker against
+  // an older process frame or delete an ephemeral row from an observation.
+  need(!fs.existsSync(PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+  await inspectPr54B264PredecessorIO();
+  for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
+ const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const current=JSON.parse(observe.stdout);
+ need(current.schemaVersion==='melisa-p03-physical-observation.v1'&&current.environment==='Shared'&&current.policyGeneration==='CurrentB007InspectOnly'&&current.transitionAuthority===false&&current.collectionAuthority==='PHYSICAL_OBSERVATION_ONLY'&&current.collection==='Schedule.Service.GetRunningTasks(1)'&&current.processScope==='CIM.Win32_Process.Unfiltered'&&current.portScope==='Get-NetTCPConnection.Listen.Unfiltered'&&current.stopPermitted===false&&current.applyAvailable===false&&JSON.stringify(current.beforeImage)===JSON.stringify(beforeRef)&&current.rawScope?.unverifiedCount===0&&current.rawScope?.unverifiedProcesses?.length===0,'OBSERVER_FRAME');
+ const inspected=await run(shell,pinnedInvocation(input.drainerRef,argv.worker),options);need(!inspected.stderr,'WORKER_STDERR');const frame=JSON.parse(inspected.stdout);
+ const aux=validatePr54CurrentB007PhysicalInspection({frame,current,profile,before,profileRef,beforeRef,engineRef,recoveryHelperRef});
+ // Native worker authenticated protected SQL via service + birth + typed
+ // master SELECT, and normal OS identities via the existing engine guard.
+ // SQL service envelopes are not normal owner/argv process rows.
+ need(profile.protectedProcesses.every(p=>p.kind==='ProtectedSqlService'||current.processes.some(q=>['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].every(k=>p[k]===q[k]))),'PROTECTED');
+ await inspectPr54B264PredecessorIO();
+ for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
+ need(!fs.existsSync(PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+  return {current,frame,aux};
+ },'SUCCESSOR_INSPECT'));
+ const token=Object.freeze({}),now=Date.now();need(now-Date.parse(frame.observedAt)>=0&&now-Date.parse(frame.observedAt)<60000,'EXPIRED');
+ inspections.set(token,{policy:'CurrentB007InspectOnly',current,profile,before,profileRef:Object.freeze({...profileRef}),beforeRef:Object.freeze({...beforeRef}),observedAt:frame.observedAt,aux,digest:hash(bytes({current,profile,before}))});
+ return {status:'CURRENT_B007_PHYSICAL_INSPECTED_READ_ONLY',current,profile,before,physicalInspection:token,claimCreated:false,applyExecuted:false,stopAuthority:false,transitionAuthority:false};
 }

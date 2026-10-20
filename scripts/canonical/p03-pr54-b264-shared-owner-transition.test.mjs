@@ -8,7 +8,8 @@ import {runP03HeldCoreOwnerTransition,p03TransitionDigest,p03CoreFirstStopDigest
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
 const start=source.indexOf('export async function runPr54B264Sup20dSharedOwnerTransition(');
-const body=source.slice(start).replace(/^export /,'');
+const next=source.indexOf('// Additive fixed CurrentB007',start);
+const body=source.slice(start,next<0?undefined:next).replace(/^export /,'');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const bytes=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
 const owner='S-1-5-21-2170750028-1005938530-2568122015-1001';
