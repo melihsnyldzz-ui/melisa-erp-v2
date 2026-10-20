@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
+import path from 'node:path';
+import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
 
 test('task action update preserves raw exported XML metadata and literal argument quotes',{skip:process.platform!=='win32'},()=>{
@@ -105,4 +108,25 @@ test('wrapped physical-engine refusal retains only the fixed inner P03 code',{sk
  const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);$trap=$a.EndBlock.Traps[0].Extent.Text;. ([scriptblock]::Create($trap+[Environment]::NewLine+"throw [InvalidOperationException]::new('wrapped action: P03_PHYSICAL_ACL private-sentinel-value')"))`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
  assert.equal(result.status,1);assert.equal(result.stdout,'');assert.match(result.stderr,/^P03_PHYSICAL_ACL TYPE_[A-Za-z]+ METHOD_[A-Za-z]+ LINE_\d+\r?\n$/);assert.doesNotMatch(result.stderr,/private-sentinel-value|wrapped action|CLIXML/);
+});
+
+test('explicit B264V2 mode selects only the same frozen private engine and preserves default rehearsal source payload',()=>{
+ assert.equal(parseP03RehearsalMode(['--B264V2DryRun']),'B264V2DryRun');assert.equal(parseP03RehearsalMode(['--B264V2Run']),'B264V2Run');
+ for(const args of [['--b264v2run'],['--B264V2Run','--Run'],['--engine','other'],['--B264V2Run-anything']])assert.throws(()=>parseP03RehearsalMode(args));
+ const directory=String.raw`C:\synthetic\scripts\canonical`,v2=fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url)),calls=[];
+ const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,fs:{lstatSync:file=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:file=>{calls.push(file);return file===P03_B264_V2_ENGINE.path?v2:Buffer.from('fixture:'+path.win32.basename(file));}}};
+ const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=mode=>JSON.parse(JSON.stringify(make(directory,mode)));
+ const dry=fresh('B264V2DryRun'),run=fresh('B264V2Run'),legacy=fresh('DryRun');
+ assert.equal(dry.mode,'DryRun');assert.equal(run.mode,'Run');assert.equal(dry.engineGeneration,'B264V2');assert.deepEqual(dry.engine,P03_B264_V2_ENGINE);assert.deepEqual(run.engine,P03_B264_V2_ENGINE);assert.deepEqual(dry.cloneProof,legacy.cloneProof);assert.deepEqual(dry.files,legacy.files);assert.equal(Object.hasOwn(legacy,'engineGeneration'),false);assert.equal(legacy.engine.path,path.win32.join(directory,'p03-physical-rollback.ps1'));
+ assert.equal(crypto.createHash('sha256').update(v2).digest('hex'),P03_B264_V2_ENGINE.sha256);
+ context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?Buffer.from('changed'):Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
+});
+test('Windows PS5 V2 request gate rejects wrong source/hash/generation without IO or task creation',{skip:process.platform!=='win32'},()=>{
+ const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
+ const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count){throw 'PARSE'};foreach($n in @('Need','AssertRehearsalEngineRequest')){$d=@($a.FindAll({param($x)$x-is[Management.Automation.Language.FunctionDefinitionAst]-and$x.Name-ceq$n},$true));if($d.Count-ne1){throw 'FUNCTION'};. ([scriptblock]::Create($d[0].Extent.Text))}
+function Request{[pscustomobject]@{engineGeneration='B264V2';engine=[pscustomobject]@{path='${P03_B264_V2_ENGINE.path}';sha256='${P03_B264_V2_ENGINE.sha256}'}}}
+$r=Request;AssertRehearsalEngineRequest $r 'B264V2';'VALID'
+foreach($kind in @('path','hash','generation','extra','legacy-selector')){$r=Request;$g='B264V2';switch($kind){path{$r.engine.path=$r.engine.path.ToUpperInvariant()} hash{$r.engine.sha256='f'*64} generation{$r.engineGeneration='b264v2'} extra{$r.engine|Add-Member NoteProperty bypass $true} 'legacy-selector'{$g='Legacy'}};try{AssertRehearsalEngineRequest $r $g;throw 'ACCEPTED'}catch{if($_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}}
+$r=[pscustomobject]@{engine=[pscustomobject]@{path='C:\\synthetic\\scripts\\canonical\\p03-physical-rollback.ps1';sha256='a'*64}};AssertRehearsalEngineRequest $r 'Legacy';'LEGACY_VALID'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8'});assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/VALID/);assert.match(result.stdout,/LEGACY_VALID/);assert.equal((result.stdout.match(/REJECTED/g)??[]).length,5);
 });

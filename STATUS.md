@@ -1,3 +1,13 @@
+## 20 Ekim — B264 sonlu dispatcher kaynak teslimi; gerçek V2 prova sürüyor
+
+0ddaf850 exact PR39415311477/push39415305053 bütün üç job SUCCESS. Yeni B264 Sup20D dispatcher ayrı girişte iki genuine physical/native admission, yirmi alanlı CreateNew claim, held core intent/cut, kalan yedi rol, exact iki task CAS, NEW30s/Hub ve kaynak SQL eşliği ile bağlandı. Hata yolunda bağımsız NEW drain/gerçek zero-candidate/aynı frozen engine tail ile kontrollü OLD dönüşü var; kanıtsız partial durum güvenli ret olarak kalır. Legacy FE/7b gövdesi değişmedi.
+
+Bağımsız inceleme tam paket/config dosya taraması eksiğini P1 buldu; her iki admission öncesine held exact V2 PreflightOld ve altı alanlı salt-okunur sonuç doğrulaması eklendi. P1 kapandı; final GO. Agent kapsamı74/74 PASS/0skip, root yeni13/13 PASS; bağımsız yeni2/2 PASS. Yeni suite mevcut Windows CI açık listesine eklendi. Bu kaynak kanıtı gerçek claim/Apply/kurulum değildir.
+
+Yeni V2 rehearsal seçeneği aynı mevcut SQL-free fixture kökü/portları/görevleri kullanır; yeni ERP ortamı veya DB yok. Tarihsel FE prova aynı-engine şartını karşılamadığı için tekrar edilmedi. İki eski mock görev READY/instances0/effective current principal ile doğrulandı; exact XML/SDDL before-image korunarak yalnız bu iki mock kayıt geçici kaldırıldı. Shared önce/sonra aynı. Gerçek V2 DryRun DRY_RUN_READY; Run ve ardından exact mock quiesce/eski tanım geri okuması sürüyor. Ticari kayıt veya Shared servis yazması yok.
+
+Taze b221 before/profile gerçek capture ile oluşturuldu. RO admission Win32_Process owner okumasında süreç kaybolması nedeniyle reddedildi; claim/stop0. Eski 5d0c görüntüsü ayrıca süre aşımından reddedilir, taze diye kullanılmaz. Kurulu e59/13b/6bc ve DB02 korunur; paket/altı inactive ayar/yedek yeniden yapılmadı. QueryStore geçici READ_ONLY cleanup gerçek dönüş/readback ile kapanacak. GUI/cihaz/insan kabulü bekliyor; fiziksel okutma cevabı tek başına ürün eşleşmesi değildir.
+
 ## 20 Ekim — Gerçek metadata farkları daraltıldı; paket yeniden üretilmedi
 
 be9b09439be56d70bd152c3d5e2c9f6e77410843 exact PR39414319241/push39414311989 tüm üç job SUCCESS. Gerçek RO admission, yeni CRM activation dosyasının yolunun değişmesine rağmen içeriğinin aynı9b484883 SHA olduğunu gösterdi. Eski whole-component karşılaştırması bu onaylı dosya yolu değişimini reddediyordu. Yalnız Sup20D sözleşmesi exact CRM6bc tuple, dört component alanı/iki config alanı, sabit eski/yeni activation yolları ve aynı9bSHA ister; unknown path/hash/alanlar reddedilir. NativeOrder tam eşitliği ve legacy B264 sözleşmesi aynen korunur.

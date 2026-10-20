@@ -9,6 +9,9 @@ import {runP03OwnerTransition,runP03CoreFirstOwnerTransition,p03TransitionDigest
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
 import {admitPr54OwnerSuccessor,claimPr54OwnerSuccessor,pr54OwnerSuccessorRefs,PR54_PREDECESSOR_REFS,PR54_PREDECESSOR_TRANSITION,PR54_PREDECESSOR_JOURNAL,PR54_SUCCESSOR_CLAIM_PATH,PR54_REHEARSED_ENGINE_SHA,admitPr54CurrentOwnerSuccessor,preparePr54CurrentNativeContinuity,isPr54CurrentNativeContinuity,assertPr54CurrentSuccessorCandidate,PR54_CURRENT_REFS,PR54_CURRENT_JOURNAL_REFS,PR54_CURRENT_SUCCESSOR_CLAIM_PATH} from './p03-pr54-owner-successor.mjs';
 import {PR54_B264_REFS,PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,validatePr54B264Predecessor} from './p03-pr54-owner-successor.mjs';
+import {runP03HeldCoreOwnerTransition} from './p03-integrated-owner-transition.mjs';
+import {admitPr54B264Sup20dCurrentEpoch,assertPr54B264Sup20dCandidate,preparePr54B264NativeContinuity} from './p03-pr54-owner-successor.mjs';
+import {inspectPr54B264Sup20dPhysicalOwner} from './p03-pr54-b264-physical-io.mjs';
 const run=promisify(execFile),owner='S-1-5-21-2170750028-1005938530-2568122015-1001';
 export const PR54_PROTECT_SQL_CONNECTION='Server=Semih\\MELISADEV;Database=master;Integrated Security=True;Connect Timeout=5;Application Name=P03SharedProtectOnly';
 const shell='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
@@ -420,4 +423,194 @@ export async function runPr54SharedOwnerTransition({mode='DryRun',profileRef,bef
  // remains a separate physical gate before stopping the remaining OLD apps.
  try{return {status:'COMPLETE',...(await (predecessorRef===null?runP03OwnerTransition:runP03CoreFirstOwnerTransition)(callbacks)),transitionDirectory:transitionDir,...(successorClaimRef?{successorClaimRef}:{})};}
  catch(error){lastCallbackFailure??={callback:'TRANSITION',reason:pr54SafeFailure(error),elapsedMs:null,observationStage:error?.p03ObservationStage??'NONE'};if(lastCallbackFailure){try{await protectedWrite(path.win32.join(transitionDir,'io-failure-diagnostic.json'),jsonBytes({...lastCallbackFailure,phase:error.phase??'UNKNOWN',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));}catch{}}if(error.startAttempted||startAttempted){try{const candidate=await captureCandidate();candidateRef=candidate.ref;const recovered=await useFrozenEngine('StopNew',['-CandidatePath',candidate.ref.path,'-CandidateSha256',candidate.ref.sha256]);need(recovered.status==='RECOVERED_OLD_ACTIONS','STOP_NEW_RECOVERY');const restored=await useFrozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','ROLLBACK_OLD');return {status:'FAILED_ROLLED_BACK_OLD_READY',failurePhase:error.phase??'READBACK',transitionDirectory:transitionDir};}catch(recoveryError){return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',failureDiagnostic:lastCallbackFailure,recoveryReason:pr54SafeFailure(recoveryError),transitionDirectory:transitionDir,candidateRef};}}if(taskStopAttempted&&!startAttempted){try{return await recoverBeforeStart();}catch(recoveryError){return {failureDiagnostic:lastCallbackFailure,recoveryReason:pr54SafeFailure(recoveryError),status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',transitionDirectory:transitionDir,candidateRef,recoveryPath:'PRESTART_RECOVERY_REFUSED'};}}return {status:'STOPPED_BEFORE_START',transitionDirectory:transitionDir,failurePhase:error.phase??'ADMISSION'};}
+}
+
+
+// Separate, finite B264/Sup20d dispatcher. The historical FE/7b path above is
+// deliberately unchanged. No transport hooks or caller-supplied capabilities.
+const b264Sup20dSourcePins=Object.freeze({
+ drainer:['p03-pr54-successor-core-drain.ps1','eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'],
+ observer:['p03-physical-recovery-observe.ps1','5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'],
+ newObserver:['p03-pr54-new-owner-observe.ps1','b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','bacf794ef5e6bd1288aa01b869c13f37d5611079c459c91f745ff97a9942424b'],
+ newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','1195eb9f5ca0cf760b16cbbf4f65b8081f9ac16c74d71a1a829114ca439a3c37'],
+ invariance:['p03-current-invariance-capture.ps1','7d1dab68e3f285ae7def2c9d3a7a30a6b7eeed715690c30e2bce5341b3c5faa4'],
+ emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','a742992d20b5eb44f2092249077cf785a5176525c6d498dd300873b0bfaa7f4a'],
+});
+function b264Sup20dHeldInvocation(ref,argv){
+ const payload=Buffer.from(JSON.stringify({ref,args:argv.slice(4)})).toString('base64');
+ const program=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\\'+$n+'\\'+$n+'.psd1')) -ErrorAction Stop};$v=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json;$owner='S-1-5-21-2170750028-1005938530-2568122015-1001';if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-cne$owner){throw 'B264_SOURCE_OWNER'};for($p=$v.ref.path;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B264_SOURCE_REPARSE'}};$i=Get-Item -LiteralPath $v.ref.path -Force;if($i.PSIsContainer-or$i.LinkType){throw 'B264_SOURCE_FILE'};$a=Get-Acl -LiteralPath $v.ref.path;$rules=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if(-not$a.AreAccessRulesProtected-or$a.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne$owner-or$rules.Count-ne2){throw 'B264_SOURCE_ACL'};foreach($sid in @($owner,'S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and-not$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){throw 'B264_SOURCE_ACL'}};$s=[IO.File]::Open($v.ref.path,'Open','Read','Read');try{if($s.Length-le0-or$s.Length-gt16777216){throw 'B264_SOURCE_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$b=$m.ToArray();$sha=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($b)).Replace('-','').ToLowerInvariant();if($sha-cne$v.ref.sha256){throw 'B264_SOURCE_HASH'};$bound=@{};if($v.args.Count%2-ne0){throw 'B264_SOURCE_ARGS'};for($n=0;$n-lt$v.args.Count;$n+=2){$k=[string]$v.args[$n];if($k-cnotmatch'^-[A-Za-z][A-Za-z0-9]*$'-or$bound.ContainsKey($k.Substring(1))){throw 'B264_SOURCE_ARGS'};$bound[$k.Substring(1)]=[string]$v.args[$n+1]};$code=[Text.UTF8Encoding]::new($false,$true).GetString($b);& ([scriptblock]::Create($code)) @bound}finally{$s.Dispose()}`;
+ const encoded=Buffer.from(program,'utf16le').toString('base64');need(encoded.length<30000,'COMMAND_LIMIT');
+ return ['-NoProfile','-NonInteractive','-EncodedCommand',encoded];
+}
+
+export async function runPr54B264Sup20dSharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir}={}){
+ need(['DryRun','Apply'].includes(mode)&&process.platform==='win32','B264_SUP20D_MODE_PLATFORM');
+ const root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
+ need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-b264-sup20d-control-[a-f0-9]{12}$/.test(sourceControlDir),'B264_SUP20D_SOURCE_DIRECTORY');
+ need(typedRef(profileRef)&&typedRef(beforeRef)&&typedRef(rehearsalProofRef)&&exactKeys(currentPreCapture,['snapshotRef','proofRef','backupProofRef'])&&Object.values(currentPreCapture).every(typedRef),'B264_SUP20D_INPUT_REFS');
+ const before=read(beforeRef),profile=read(profileRef),runId=before.runId;
+ need(/^[a-f0-9]{32}$/.test(runId)&&profileRef.path===root+'\\MelisaERP-P03-profile-'+runId+'.json'&&beforeRef.path===root+'\\MelisaERP-P03-before-'+runId+'.json'&&JSON.stringify(profile.beforeImage)===JSON.stringify(beforeRef),'B264_SUP20D_RUN');
+ need(profile.database===currentDatabase&&before.database===currentDatabase&&before.copyId===currentCopy&&before.actualT1===false&&profile.ownerSid===owner&&before.ownerSid===owner,'B264_SUP20D_TARGET');
+ const candidate=assertPr54B264Sup20dCandidate({...before.profile,supervisorRoot:profile.packages?.find(p=>p.sourceCommit===before.profile?.supervisorSource)?.root,newSettings:profile.newSettings});
+ need(before.plan?.digest===p03TransitionDigest(before.plan)&&before.plan.oldSettingsSha256===profile.oldSettings.sha256&&before.plan.newSettingsSha256===profile.newSettings.sha256,'B264_SUP20D_PLAN');
+ need(profile.journalDirectory===root+'\\MelisaERP-P03-recovery-'+runId&&profile.stopper?.path===root+'\\MelisaERP-P03-stopper-'+runId+'.ps1'&&profile.stopper.sha256==='79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d','B264_SUP20D_RECOVERY_SCOPE');
+ need(JSON.stringify(profile.businessDigest)===JSON.stringify(currentPreCapture.snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261020-\d{6}\\source-pre-snapshot\.json$/.test(profile.businessDigest.path),'B264_SUP20D_CAPTURE');
+ need(/^C:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\result\.json$/.test(rehearsalProofRef.path),'B264_SUP20D_REHEARSAL_PATH');
+ const engineRef=PR54_B264_REFS.engine,helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
+ const sources=Object.fromEntries(Object.entries(b264Sup20dSourcePins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
+ const rehearsal=read(rehearsalProofRef);
+ need(rehearsal.status==='REHEARSAL_ROLLBACK_READY'&&rehearsal.environment==='P03_REHEARSAL'&&rehearsal.sharedTestMutation===false&&rehearsal.protectedBeforeSha256===rehearsal.protectedAfterSha256,'ACTUAL_REHEARSAL_REQUIRED');
+ need(rehearsal.engineSha256===engineRef.sha256&&rehearsal.engine?.sha256===engineRef.sha256,'SAME_REHEARSED_ENGINE_REQUIRED');
+ const sourcePre={snapshot:read(currentPreCapture.snapshotRef),proof:read(currentPreCapture.proofRef),backup:read(currentPreCapture.backupProofRef)};
+ const fixedReads=[profileRef,beforeRef,rehearsalProofRef,...Object.values(currentPreCapture),engineRef,helperRef,profile.stopper,profile.oldSettings,profile.newSettings,...Object.values(sources)];
+ need(profile.packages.length===6,'B264_SUP20D_SIX_PACKAGES');
+ let claimRef=null,claimBytes=null,transitionCreated=false,cut=null,snapshotRef=null,started=false,cutAttempted=false,sequence=0,previous=beforeRef.sha256,candidateRef=null;
+ const transitionDir=root+'\\MelisaERP-P03-transition-'+runId,eventRefs=[],frozen={};
+ async function strictPins(refs){
+  for(let n=0;n<refs.length;n+=4){const batch=refs.slice(n,n+4);for(const r of batch)pin(r);const data=Buffer.from(JSON.stringify(batch)).toString('base64');
+   need(await ps(`$pins=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;foreach($r in $pins){$p=$r.path;${psNoReparse}$a=Get-Acl -LiteralPath $p;$rules=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if(-not$a.AreAccessRulesProtected-or$a.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne'${owner}'-or$rules.Count-ne2){throw 'B264_IO_ACL'};foreach($sid in @('${owner}','S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and-not$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){throw 'B264_IO_ACL'}};if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()-cne$r.sha256){throw 'B264_IO_HASH'}};'VERIFIED'`)==='VERIFIED','B264_SUP20D_PIN_ACL');
+  }
+ }
+ async function history(){
+  const refs=b264ReadPins();for(let n=0;n<refs.length;n+=8)need(await ps(pr54B264ReadPinsProgram(refs.slice(n,n+8)))==='VERIFIED','B264_SUP20D_HISTORY_ACL');
+  for(const rows of [PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS])need(JSON.stringify(fs.readdirSync(path.win32.dirname(rows[0].path)).filter(n=>n.startsWith('event-')).sort())===JSON.stringify(rows.map(r=>path.win32.basename(r.path)).sort()),'B264_SUP20D_HISTORY_SCOPE');
+  const raw=Object.fromEntries(Object.entries(PR54_B264_REFS).map(([k,ref])=>[k,{ref,bytes:pin(ref)}]));raw.outer=PR54_B264_OUTER_REFS.map(ref=>({ref,bytes:pin(ref)}));raw.recovery=PR54_B264_RECOVERY_REFS.map(ref=>({ref,bytes:pin(ref)}));validatePr54B264Predecessor(raw);return raw;
+ }
+ async function guardProtected(){
+ const data=Buffer.from(JSON.stringify(profile.protectedProcesses)).toString('base64');
+ await ps(`$expected=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;foreach($e in $expected){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$e.pid);if(-not$p-or$p.CreationDate.ToUniversalTime().Ticks-ne[DateTime]::Parse($e.creationTime).ToUniversalTime().Ticks){throw 'PROTECTED_BIRTH'};if($e.PSObject.Properties.Name-contains'kind'-and$e.kind-ceq'ProtectedSqlService'){$v=@(Get-CimInstance Win32_Service -Filter 'Name="MSSQL$MELISADEV"');if($p.Name-cne'sqlservr.exe'-or$v.Count-ne1-or$v[0].ProcessId-ne$e.pid-or$v[0].State-cne'Running'-or$v[0].StartName-cne$e.service.startName-or$v[0].PathName-cne$e.service.pathName){throw 'SQL_PROTECT'};$c=[Data.SqlClient.SqlConnection]::new(${quote(PR54_PROTECT_SQL_CONNECTION)});$c.Open();try{$q=$c.CreateCommand();$q.CommandTimeout=5;$q.CommandText="SELECT CAST(SERVERPROPERTY('ProcessID') AS int),CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)),DB_NAME()";$reader=$q.ExecuteReader();try{if(-not$reader.Read()-or$reader.GetInt32(0)-ne$e.pid-or$reader.GetString(1)-cne'Semih\\MELISADEV'-or$reader.GetString(2)-cne'master'){throw 'SQL_MASTER_IDENTITY'}}finally{$reader.Dispose()}}finally{$c.Dispose()}}else{$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue-ne0-or$o.Sid-cne$e.ownerSid-or$p.ExecutablePath-ine$e.nodePath-or$p.CommandLine-cne$e.commandLine-or$p.ParentProcessId-ne$e.parentPid){throw 'PROTECTED_IDENTITY'}}};'UNCHANGED'`);
+ return true;
+ }
+
+ async function guard(){
+  await strictPins(fixedReads);for(const p of profile.packages)pin({path:p.manifestPath,sha256:p.manifestSha256});await guardProtected();
+  if(claimRef){await strictPins([claimRef]);need(pin(claimRef).equals(claimBytes),'B264_SUP20D_CLAIM_CHANGED');}else need(!fs.existsSync(PR54_B264_SUCCESSOR_CLAIM_PATH),'B264_SUCCESSOR_ALREADY_CONSUMED');
+  if(transitionCreated){for(const ref of eventRefs)pin(ref);for(const ref of Object.values(frozen))pin(ref);}
+  return true;
+ }
+ async function invoke(ref,args,{timeout=180000,text=false}={}){
+  pin(ref);const result=await run(shell,b264Sup20dHeldInvocation(ref,['-NoProfile','-NonInteractive','-File',ref.path,...args]),{...opts,timeout});need(!result.stderr,'B264_SUP20D_WORKER_STDERR');return text?result.stdout.trim():JSON.parse(result.stdout);
+ }
+ const common=['-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256];
+ async function admit(){
+  await guard();
+  // The frozen engine's read-only dispatcher verifies every payload/config
+  // byte in the same six packages before each genuine physical admission.
+  // It runs BEFORE the immutable claim's short live-owner window begins.
+  const preflight=await invoke(engineRef,['-Environment','Shared',...common,'-Mode','PreflightOld'],{timeout:900000});
+  need(exactKeys(preflight,['status','environment','profileSha256','beforeImageSha256','applyAvailable','mutationExecuted'])&&preflight.status==='OLD_PHYSICAL_PREFLIGHT'&&preflight.environment==='Shared'&&preflight.profileSha256===profileRef.sha256&&preflight.beforeImageSha256===beforeRef.sha256&&preflight.applyAvailable===false&&preflight.mutationExecuted===false,'B264_SUP20D_FULL_PACKAGE_PREFLIGHT');
+  const raw=await history();
+  const physical=await inspectPr54B264Sup20dPhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer});
+  const observation=JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup)));
+  const nativeContinuity=preparePr54B264NativeContinuity(currentPreCapture.snapshotRef,sourcePre.snapshot,observation,sourcePre.backup);
+  validatePr54CurrentPreCapture(currentPreCapture,sourcePre.snapshot,sourcePre.proof,sourcePre.backup,{nativeContinuity});await guardProtected();
+  return admitPr54B264Sup20dCurrentEpoch({raw,profileRef,beforeRef,profileBytes:pin(profileRef),beforeBytes:pin(beforeRef),profile:physical.profile,before:physical.before,current:physical.current,candidate,nativeContinuity,physicalInspection:physical.physicalInspection});
+ }
+ await guard();need(await ps(`[Security.Principal.WindowsIdentity]::GetCurrent().User.Value`)===owner,'CALLER');
+ need(!fs.existsSync(transitionDir)&&fs.readdirSync(profile.journalDirectory).length===0,'B264_SUP20D_PRIOR_JOURNAL');
+ const first=await admit();
+ if(mode==='DryRun')return {status:'B264_SUP20D_DRY_RUN_ONLY',applyExecuted:false,claimCreated:false,transitionAuthority:false,candidate,sourceControlDir,proofDigest:first.proofDigest};
+ async function protectedWrite(file,bytes){
+  need(path.win32.normalize(file)===file&&(file===PR54_B264_SUCCESSOR_CLAIM_PATH||file.startsWith(transitionDir+'\\')||new RegExp('^'+root.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\\\MelisaERP-P03-candidate-[a-f0-9]{32}\\.json$').test(file)),'B264_SUP20D_WRITE_SCOPE');
+  noReparseAncestors(file);const ref={path:file,sha256:hash(bytes)};await psPayload(pr54ProtectedWriteProgram(file,ref.sha256),bytes);need(pin(ref).equals(bytes),'B264_SUP20D_WRITE_READBACK');return ref;
+ }
+ // Two genuine observations agree on identities/history/SQL, not clock bytes.
+ const second=await admit(),stable=x=>{const {ownerObservedAt,...rest}=x.claim;return JSON.stringify({proofDigest:x.proofDigest,claim:rest});};
+ need(stable(first)===stable(second)&&Date.parse(second.claim.ownerObservedAt)>=Date.parse(first.claim.ownerObservedAt)&&Date.now()-Date.parse(second.claim.ownerObservedAt)<60000,'B264_SUP20D_ADMISSION_DRIFT');
+ const actualClaim={...second.claim,schemaVersion:'melisa-p03-b264-current-epoch-claim.v1',transitionAuthority:true,applyExecuted:false};
+ need(Object.keys(actualClaim).length===20,'B264_SUP20D_CLAIM_FIELDS');claimBytes=jsonBytes(actualClaim);
+ claimRef=await protectedWrite(PR54_B264_SUCCESSOR_CLAIM_PATH,claimBytes);await strictPins([claimRef]);
+ // A consumed claim is never re-admitted, overwritten or deleted, even if a
+ // later gate fails. Historical pins remain separately checked after claim.
+ await guard();await history();
+ await ps(`$p=${quote(transitionDir)};${psNoReparse}if(Test-Path -LiteralPath $p){throw 'EXISTS'};$s=[Security.AccessControl.DirectorySecurity]::new();$s.SetOwner([Security.Principal.SecurityIdentifier]::new('${owner}'));$s.SetAccessRuleProtection($true,$false);foreach($id in @('${owner}','S-1-5-18')){$s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($id),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};[void][IO.Directory]::CreateDirectory($p,$s);'CREATED'`);transitionCreated=true;
+ for(const [name,ref]of Object.entries({engine:engineRef,helper:helperRef,...sources}))frozen[name]=await protectedWrite(path.win32.join(transitionDir,path.win32.basename(ref.path)),pin(ref));
+ await protectedWrite(path.win32.join(transitionDir,'transition.lock'),jsonBytes({profileRef,beforeRef,currentPreCapture,rehearsalProofRef,successorClaimRef:claimRef,sourceControlDir}));
+ async function persist(record){need(record.sequence===sequence,'EVENT_SEQUENCE');await guard();const ref=await protectedWrite(path.win32.join(transitionDir,'event-'+String(sequence).padStart(4,'0')+'.json'),jsonBytes({...record,previousSha256:previous,profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));eventRefs.push(ref);previous=ref.sha256;sequence++;return {created:true,sequence:record.sequence};}
+ async function physical(){
+  await guardProtected();return pr54CollectPhysicalObservation(async()=>{
+   // Raw Physical collection only; no CandidateProposal filtering and no use
+   // of a role-only result as a stop authority. NEW observer authenticates it.
+   const seen=await invoke(frozen.observer,['-Environment','Shared','-Purpose','Physical','-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256]);
+   need(seen.schemaVersion==='melisa-p03-physical-observation.v1'&&seen.environment==='Shared'&&seen.collectionAuthority==='PHYSICAL_OBSERVATION_ONLY'&&seen.processScope==='CIM.Win32_Process.Unfiltered'&&seen.portScope==='Get-NetTCPConnection.Listen.Unfiltered'&&seen.stopPermitted===false&&seen.applyAvailable===false&&seen.rawScope?.unverifiedCount===0&&seen.rawScope.unverifiedProcesses?.length===0&&JSON.stringify(seen.beforeImage)===JSON.stringify(beforeRef)&&Number.isFinite(Date.parse(seen.observedAt))&&Date.now()-Date.parse(seen.observedAt)>=0&&Date.now()-Date.parse(seen.observedAt)<60000,'B264_SUP20D_RAW_FRAME');
+   return seen;
+  },'B264_SUP20D_RAW');
+ }
+ async function stopped(){const seen=await physical();return seen.runningInstances.length===0&&seen.tasks.length===2&&names.every(n=>seen.tasks.some(t=>t.name===n&&t.state===3))&&!profile.oldWatchers.some(p=>seen.processes.some(q=>q.pid===p.pid));}
+ function validateOldSubset(seen){
+  need(cut&&snapshotRef,'B264_SUP20D_HELD_CUT_REQUIRED');pin(cut.cutWitness);const drain=read(cut.drainWitness),snapshot=read(snapshotRef),owned=[...targets.map(r=>before.identities[r]),...profile.oldWatchers],aux=[...snapshot.consolePins,...snapshot.probePins,...drain.consolePins,...drain.probePins];
+  need(new Set(seen.processes.map(p=>p.pid)).size===seen.processes.length&&seen.runningInstances.length===0&&seen.tasks.length===2&&names.every(n=>{const task=seen.tasks.find(t=>t.name===n),saved=profile.tasks.find(t=>t.name===n);return task?.state===3&&[saved.oldXmlSha256,saved.newXmlSha256].includes(hash(Buffer.from(task.xml)));}),'B264_SUP20D_OLD_TASK_FRAME');
+  for(const p of seen.processes){const saved=owned.find(q=>q.pid===p.pid)??profile.protectedProcesses.find(q=>q.pid===p.pid)??aux.find(q=>q.pid===p.pid);need(saved&&sameIdentity({...p,nodePath:p.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?saved.nodePath:p.nodePath},saved),'B264_SUP20D_UNCAPTURED_OLD');}
+  for(const b of seen.bindings)need(owned.some(p=>p.pid===b.pid&&(p.bindings??[]).some(q=>q.port===b.port&&q.address===b.address)),'B264_SUP20D_FOREIGN_LISTENER');
+  return {snapshot,drain};
+ }
+ async function empty(){const seen=await physical(),{snapshot,drain}=validateOldSubset(seen);if(seen.bindings.length||seen.processes.some(p=>!profile.protectedProcesses.some(q=>sameIdentity(p,q))))return false;const ids=[...Object.values(before.identities),...profile.oldWatchers,...snapshot.consolePins,...snapshot.probePins,...drain.consolePins,...drain.probePins].map(p=>p.pid),consoles=[...new Map([...snapshot.consolePins,...drain.consolePins].map(p=>[p.pid,p])).values()];return await ps(pr54SuccessorEmptyProgram({ids,consoles}))==='EMPTY';}
+ async function taskState(kind){const seen=await physical();return seen.tasks.length===2&&names.every(n=>{const t=seen.tasks.find(t=>t.name===n),saved=profile.tasks.find(t=>t.name===n);return t?.state===3&&hash(Buffer.from(t.xml))===saved[kind+'XmlSha256'];});}
+ async function changeAction(name,kind){
+  need(names.includes(name)&&['old','new'].includes(kind),'B264_SUP20D_ACTION_SCOPE');await guard();need(await stopped()&&await empty(),'B264_SUP20D_ACTION_NOT_EMPTY');const entry=profile.tasks.find(t=>t.name===name),seen=await physical(),task=seen.tasks.find(t=>t.name===name),sha=hash(Buffer.from(task.xml));need([entry.oldXmlSha256,entry.newXmlSha256].includes(sha),'B264_SUP20D_FOREIGN_ACTION');if(sha===entry[kind+'XmlSha256'])return true;
+  need(await ps(`$s=New-Object -ComObject Schedule.Service;$s.Connect();$f=$s.GetFolder('\\');$t=$f.GetTask(${quote(name)});$sha=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$t.Xml))).Replace('-','').ToLowerInvariant();if([int]$t.State-ne3-or$sha-cne'${sha}'){throw 'B264_ACTION_CAS'};[void]$f.RegisterTask(${quote(name)},[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(entry[kind+'Xml']).toString('base64')}')),4,'${owner}',$null,3,$null);'SET'`)==='SET','B264_SUP20D_ACTION_SET');return true;
+ }
+ async function captureCandidate(){
+  need(started||await empty(),'B264_SUP20D_CANDIDATE_SCOPE');const seen=await physical(),selected=proposePr54CandidateProcesses(seen,profile),receipts=[];
+  for(const p of selected){need(![...Object.values(before.identities),...profile.oldWatchers].some(old=>old.pid===p.pid),'OLD_PID_REUSE');p.bindings=seen.bindings.filter(b=>b.pid===p.pid).map(b=>({port:b.port,address:b.address}));const rule=profile.candidateRules.find(r=>r.role===p.role);if(rule.receipt){const b=fs.readFileSync(rule.receipt.path);receipts.push({role:p.role,path:rule.receipt.path,sha256:hash(b)});}}
+  const hub=selected.find(p=>p.role==='hub');if(hub){const directory='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web',found=[];for(const leaf of fs.readdirSync(directory).filter(n=>/^hub-web-process-[a-f0-9]{32}-[0-3]\.json$/.test(n))){const file=path.win32.join(directory,leaf),b=fs.readFileSync(file);let value;try{value=JSON.parse(b);}catch{continue;}if(value.pid!==hub.pid&&value.processId!==hub.pid)continue;const lineagePath=file.replace('hub-web-process-','hub-web-lineage-');found.push({role:'hub',path:file,sha256:hash(b),lineagePath,lineageSha256:hash(fs.readFileSync(lineagePath))});}need(found.length===1,'HUB_RECEIPT');receipts.push(found[0]);}
+  const value={schemaVersion:'melisa-p03-physical-candidate.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:seen.observedAt,processes:selected,receipts};const ref=await protectedWrite(root+'\\MelisaERP-P03-candidate-'+crypto.randomBytes(16).toString('hex')+'.json',jsonBytes(value));candidateRef=ref;return {ref,value};
+ }
+ async function observeNew(ref,leaf){
+  await guard();const proof=await invoke(frozen.newObserver,['-PolicyGeneration','B264Sup20DObserveOnly','-Mode','Observe',...common,'-CandidatePath',ref.path,'-CandidateSha256',ref.sha256,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-SourceObserverPath',frozen.observer.path,'-SourceObserverSha256',frozen.observer.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256],{timeout:900000});
+  need(proof.status==='NEW_OWNER_OBSERVED_READY'&&proof.profileSha256===profileRef.sha256&&proof.beforeSha256===beforeRef.sha256&&proof.candidateSha256===ref.sha256&&proof.engineSha256===frozen.engine.sha256&&proof.sourceObserverSha256===frozen.observer.sha256&&proof.stableSeconds>=30&&proof.mutationExecuted===false&&proof.sourceProof?.supervisorSourceCommit===candidate.supervisorSource&&proof.sourceProof?.supervisorManifestSha256===candidate.supervisorManifest,'B264_SUP20D_NEW_PROOF');await protectedWrite(path.win32.join(transitionDir,leaf),jsonBytes(proof));return proof;
+ }
+ async function frozenEngine(action,extra){await guard();return invoke(frozen.engine,['-Environment','Shared',...common,'-Mode',action,...extra],{timeout:900000});}
+ async function finishRollback(zeroRef){
+  const zero=read(zeroRef);need(zero.processes.length===0&&zero.receipts.length===0&&zero.profileSha256===profileRef.sha256&&zero.beforeSha256===beforeRef.sha256,'B264_SUP20D_ZERO_CANDIDATE');
+  const recovered=await frozenEngine('StopNew',['-CandidatePath',zeroRef.path,'-CandidateSha256',zeroRef.sha256]);need(recovered.status==='RECOVERED_OLD_ACTIONS'&&/^[a-f0-9]{64}$/.test(recovered.journalTailSha256),'B264_SUP20D_STOPNEW_RESULT');
+  const restored=await frozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','B264_SUP20D_ROLLBACK_READBACK');
+  await protectedWrite(path.win32.join(transitionDir,'rollback-result.json'),jsonBytes({recovered,restored,zeroRef}));return {status:'FAILED_ROLLED_BACK_OLD_READY',transitionDirectory:transitionDir,successorClaimRef:claimRef,humanAcceptance:'BEKLİYOR',applyExecuted:true};
+ }
+ const callbacks={plan:before.plan,
+  admit:async()=>{await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'B264_SUP20D_JOURNAL_ADVANCED');return {owner:true,oldHealthy:true,oldActions:true,emptyJournal:true};},persist,
+  heldCoreCut:async()=>{
+   await guard();await history();const snapshot=await invoke(frozen.oldCut,['-PolicyGeneration','B264Sup20DInspectOnly','-Mode','Inspect',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256]);
+   need(snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&snapshot.oldIdentities.length===8&&snapshot.oldWatchers.length===2,'B264_SUP20D_PRECUT');snapshotRef=await protectedWrite(path.win32.join(transitionDir,'successor-precut-admission.json'),jsonBytes(snapshot));
+   const rootIntent=await protectedWrite(path.win32.join(transitionDir,'b264-old-owner-cut-intent.json'),jsonBytes({event:'B264_OLD_CUT_INTENT',claimSha256:claimRef.sha256,stopOrderDigest:p03CoreFirstStopDigest(before.plan),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:new Date().toISOString()}));
+   cutAttempted=true;cut=await invoke(frozen.oldCut,['-PolicyGeneration','B264Sup20DInspectOnly','-Mode','Drain',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256,'-ClaimPath',claimRef.path,'-ClaimSha256',claimRef.sha256,'-AdmittedSnapshotPath',snapshotRef.path,'-AdmittedSnapshotSha256',snapshotRef.sha256,'-RootIntentPath',rootIntent.path,'-RootIntentSha256',rootIntent.sha256]);
+   need(cut.status==='B264_OLD_OWNER_CORE_DRAINED'&&cut.heldCoreExited===true&&cut.comStopped===true&&['COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED'].includes(cut.coreStopResult),'B264_SUP20D_HELD_CUT');pin(cut.cutWitness);pin(cut.drainWitness);return Object.fromEntries(['coreStopResult','heldCoreExited','comStopped','cutWitness','drainWitness'].map(k=>[k,cut[k]]));
+  },
+  tasksStopped:stopped,
+  stopExact:async role=>{
+   need(targets.includes(role)&&role!=='coreSupervisor','B264_SUP20D_REMAINING_ROLE');await guard();const seen=await physical();validateOldSubset(seen);const saved=before.identities[role],actual=seen.processes.find(p=>p.pid===saved.pid);if(!actual)return 'ALREADY_GONE';need(sameIdentity(actual,saved),'B264_SUP20D_STOP_UID');
+   const proof={pid:saved.pid,parentPid:saved.parentPid,nodePath:saved.nodePath,ownerSid:saved.ownerSid,commandLine:saved.commandLine,creationTime:saved.creationTime.replace(/(\.\d{6})0Z$/,'$1Z')};const result=await invoke(profile.stopper,['-ExpectedJsonBase64',Buffer.from(JSON.stringify(proof)).toString('base64')],{text:true});need(['ALREADY_GONE','EXACT_OBSERVED_PROCESS_STOPPED'].includes(result),'B264_SUP20D_STOP_RESULT');return result;
+  },
+  absent:async role=>!(await physical()).processes.some(p=>p.pid===before.identities[role].pid),portsClear:empty,setAction:changeAction,actionsEqual:taskState,
+  startTasks:async()=>{
+   await guard();need(!started&&await stopped()&&await empty()&&await taskState('new'),'B264_SUP20D_START_SCOPE');const data=Buffer.from(JSON.stringify(profile.tasks.map(t=>({name:t.name,sha:t.newXmlSha256})))).toString('base64');started=true;
+   need(await ps(`$s=New-Object -ComObject Schedule.Service;$s.Connect();$f=$s.GetFolder('\\');$pins=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;foreach($p in $pins){$t=$f.GetTask($p.name);$sha=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$t.Xml))).Replace('-','').ToLowerInvariant();if([int]$t.State-ne3-or$sha-cne$p.sha){throw 'B264_START_CAS'}};[void]$f.GetTask('${names[0]}').Run($null);[void]$f.GetTask('${names[1]}').Run($null);'STARTED'`)==='STARTED','B264_SUP20D_START');return true;
+  },
+  readback:async()=>{
+   const deadline=Date.now()+600000;let capture=null;while(Date.now()<deadline){const frame=await physical();if(proposePr54CandidateProcesses(frame,profile).length===10&&frame.runningInstances.length===2){capture=await captureCandidate();break;}await new Promise(r=>setTimeout(r,1000));}need(capture!==null,'B264_SUP20D_READBACK_TIMEOUT');await observeNew(capture.ref,'new-owner-readback-initial.json');
+   await guard();const captureInfo=validatePr54CurrentPreCapture(currentPreCapture,sourcePre.snapshot,sourcePre.proof,sourcePre.backup,{nativeContinuity:preparePr54B264NativeContinuity(currentPreCapture.snapshotRef,sourcePre.snapshot,JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup))),sourcePre.backup)});
+   const proof=await invoke(frozen.invariance,pr54CurrentSourceCaptureArgs(captureInfo.runId),{timeout:3600000}),snapshotPath=captureInfo.root+'\\source-post-snapshot.json',proofPath=captureInfo.root+'\\source-post-proof.json';
+   const postRefs={snapshotRef:{path:snapshotPath,sha256:hash(fs.readFileSync(snapshotPath))},proofRef:{path:proofPath,sha256:hash(fs.readFileSync(proofPath))}};await strictPins(Object.values(postRefs));need(JSON.stringify(read(postRefs.proofRef))===JSON.stringify(proof),'B264_SUP20D_POST_OUTPUT');const post=read(postRefs.snapshotRef);validatePr54CurrentPreCapture(postRefs,post,proof,null,{phase:'Post',backupRequired:false});const compared=comparePr54CurrentSourceSnapshots(sourcePre.snapshot,post);await protectedWrite(path.win32.join(transitionDir,'invariance-comparison.json'),jsonBytes({...compared,preSnapshotRef:currentPreCapture.snapshotRef,postSnapshotRef:postRefs.snapshotRef}));const final=await captureCandidate();await observeNew(final.ref,'new-owner-readback-final.json');return true;
+  },
+  restoreOldActions:async()=>{await guard();need(await stopped()&&await empty(),'B264_SUP20D_RESTORE_NOT_EMPTY');for(const name of names)await changeAction(name,'old');return true;},
+ };
+ try{return {...await runP03HeldCoreOwnerTransition(callbacks),status:'COMPLETE',transitionDirectory:transitionDir,successorClaimRef:claimRef,candidateRef,applyExecuted:true,humanAcceptance:'BEKLİYOR'};}
+ catch(error){
+  const failurePhase=error.phase??'ADMISSION';try{await protectedWrite(path.win32.join(transitionDir,'io-failure-diagnostic.json'),jsonBytes({phase:failurePhase,reason:pr54SafeFailure(error),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));}catch{}
+  try{
+   await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'B264_SUP20D_RECOVERY_JOURNAL_ADVANCED');
+   if(started){
+    // This independently authenticates ALL raw partial roles. It refuses an
+    // uncaptured core/orphan or Hub without lineage; no universal recovery PASS.
+    const recovered=await invoke(frozen.newRecovery,['-Action','Drain','-PolicyGeneration','B264Sup20D',...common,'-EnginePath',frozen.engine.path,'-ClaimSha256',claimRef.sha256,'-EmptyRecoveryPath',frozen.emptyRecovery.path,'-RecoveryHelperPath',frozen.helper.path,'-NewObserverPath',frozen.newObserver.path,'-SourceObserverPath',frozen.observer.path],{timeout:900000});
+    need(recovered.status==='B264_NEW_OWNER_EMPTY_CANDIDATE_READY'&&recovered.oldOwnerStarted===false&&recovered.engineRecoveryExecuted===false&&recovered.businessWrites===0&&recovered.requiresFrozenStopNewAndRollbackOld===true,'B264_SUP20D_NEW_DRAIN');pin(recovered.candidateRef);return {...await finishRollback(recovered.candidateRef),failurePhase};
+   }
+   // No new COM stop, core kill, or invented witness after an ambiguous cut.
+   // Only an already genuine completed held cut allows the remaining exact OLD
+   // subset to be drained and passed to the reviewed zero-candidate engine.
+   need(cutAttempted&&cut&&snapshotRef&&await stopped(),'B264_SUP20D_PRESTART_CUT_UNPROVEN');for(const role of ['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative']){await callbacks.stopExact(role);need(await callbacks.absent(role),'B264_SUP20D_PRESTART_REMAINS');}
+   need(await empty(),'B264_SUP20D_PRESTART_NOT_EMPTY');for(const name of names)await changeAction(name,'new');const zero=await captureCandidate();return {...await finishRollback(zero.ref),failurePhase};
+  }catch(recoveryError){return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',failurePhase,recoveryReason:pr54SafeFailure(recoveryError),transitionDirectory:transitionDir,successorClaimRef:claimRef,candidateRef,applyExecuted:cutAttempted||started,humanAcceptance:'BEKLİYOR',unprovenPartialRecoveryGranted:false};}
+ }
 }

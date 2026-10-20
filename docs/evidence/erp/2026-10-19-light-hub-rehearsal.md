@@ -225,3 +225,9 @@ ExplicitB264inactivevariant ve distinctprivatepaths, nativejournal31ref, Hubwait
 Gerçek kaynak20Ekim10:47:04.7435307Z51tablohash/membership/permission/module/principal snapshotı SERIALIZABLEsaltokuma ile tamamlandı. 19Ekim51tablodan51'i aynı, metadataprojectionsaynı. YeniCOPY_ONLY9.268.690.944byte/checksum/VERIFYONLY yedek ile20Ekim10:49:48.7057385Z typedgenuine20nativecontinuity READ_ONLY/LSN/GUIDfork/copyT1 geçti. Token60sn; sonrakiApplyöncesi yenidenölçülür, zamandamgası değiştirilmez. QueryStore geçiciREAD_ONLYdurumu ve before/after/rollbackprivateproof kayıtlıdır; ticariDML/DBrestore/servisrestartyok.
 
 89e02bad exactPR39410304961/push39410299504 SUCCESS; sonrakiheadCI ve destekliSUP20paketmakbuzu ayrıbekler. EskiSUPeb5 dosyasıeditlemediyeniinactiveSUPsourcepaketi gereklidir. YeniSUPexactpinler/claim/guardedfullSharedgeçiş henüzkapalı; kurulu e59/13b/6bc/DB02korunur, insan/GUI/cihaz kabulü değişmez.
+
+## 20 Ekim B264 Sup20D finite dispatcher
+
+Ayrı dispatcher, iki genuine admission öncesi held exact V2 tam paket/config PreflightOld, CreateNew claim, held core cut, kalan yedi rol ve guarded NEW rollback akışını bağlar. Legacy FE/7b değiştirilmedi. Root13/13, agent74/74 ve bağımsız yeni2/2 PASS; P1 payload tarama eksiği kapanarak reviewGO alındı. Yeni suite Windows CI açık listesinde.
+
+Aynı mevcut SQL-free fixture V2 DryRun gerçekten geçti. Eski iki READY mock görev exact XML/SDDL before-image ile geçici kaldırıldı; Shared kimliği değişmedi. V2 Run, exact quiesce ve eski mock tanım restore/readback sonucu ayrıca kaydedilecek. Bu fixture gerçek ERP uygulama/DB rollback veya insan kabulü değildir. Güncel RO admission geçici CIM süreç kaybolmasında reddedildi, claim/stop/kurulum yok. QueryStore original-mode cleanup henüz açık.
