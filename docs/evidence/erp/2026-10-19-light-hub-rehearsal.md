@@ -251,4 +251,3 @@ Gerçek cleanup: ilk7874 kalan exact iki mock UID kapatıldı. bcd4 için yalnı
 QueryStore original-mode cleanup GERÇEK: aynı SQL5360/service/birth, DB02/copy/oldhealth/backup/before-image pinleriyle READ_WRITE geri alındı; desired+actual READ_WRITE readback, proof5abbc8d5. DB restore/reset veya ticari veri yazması yok. Süreli eski native/before kanıtı yeniden taze diye kullanılmaz. Paket/altı inactive ayar/yedek yeniden üretilmedi; mevcut yedek ve tüm özel kanıtlar korundu. Kullanıcıya ait canonical dirty dosya d518 hash'i aynı.
 
 Sıradaki tek iş: mevcut V2 SQL-free provanın OLD PID yaşamı ret nedenini kaynakta en dar biçimde çözmek ve aynı motorla gerçek rollback READY kanıtını almak. Bu kapanınca taze current/native/before/tek-owner kapısı, aynı TEST kontrollü Apply ve geri okuma gelir; yeni ortam/DB/ana iş açılmaz. LIVE/Vega/T1/main veya genel ticari işlem yetkisi yok.
-
