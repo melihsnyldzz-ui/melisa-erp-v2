@@ -430,8 +430,22 @@ export function assertPr54CurrentB007Candidate(candidate){
  return Object.freeze({...candidate,newSettings:Object.freeze({...candidate.newSettings})});
 }
 export function admitPr54CurrentB007Epoch(args){return admitPr54CurrentB007Proposal(args,true);}
+// Sealed read-only native proof f1360e7a02357cf9e59b5b3378be85cad8c55c43787645f515b367d1201ad344
+// binds profile 4f923ef9a2ea681e2c9184f08526bb39c451b9a48ad729b6ea12525639b93de4.
+// Only its exact preserved TEST125 parent epoch is admitted; no caller pin.
+function sameCurrentB007ProtectedEpoch(previous,current,owned){
+ check(Array.isArray(previous)&&Array.isArray(current)&&Array.isArray(owned)&&previous.length===1&&current.length===4);
+ const oldSql=previous.filter(p=>p.kind==='ProtectedSqlService'),newSql=current.filter(p=>p.kind==='ProtectedSqlService'),parents=current.filter(p=>p.kind!=='ProtectedSqlService');
+ check(oldSql.length===1&&newSql.length===1&&parents.length===3);sameB264ProtectedEpoch(oldSql,newSql);
+ check(new Set(current.map(p=>p.pid)).size===4&&parents.every(p=>exact(p,['name','pid','parentPid','nodePath','ownerSid','commandLine','creationTime','bindings'])&&p.name==='node.exe'&&typeof p.nodePath==='string'&&path.win32.basename(p.nodePath)===p.name&&Number.isSafeInteger(p.pid)&&p.pid>0&&Number.isSafeInteger(p.parentPid)&&p.parentPid>0&&!owned.some(q=>q.pid===p.pid)&&p.ownerSid===owner&&typeof p.commandLine==='string'&&time(p.creationTime)&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{7}Z$/.test(birth(p.creationTime))&&Array.isArray(p.bindings)&&p.bindings.length===0));
+ const canonical=parents.toSorted((a,b)=>a.pid-b.pid).map(p=>[p.pid,p.parentPid,p.nodePath,p.ownerSid,p.commandLine,birth(p.creationTime)]);
+ check(hash(Buffer.from(JSON.stringify(canonical),'utf8'))==='13680fb207b4df211e992b1eff1d4b6edc68d67d1eaaabb23f77ad20ebcadcae');return true;
+}
 function admitPr54CurrentB007Proposal({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null,physicalInspection=null},currentEpoch){
  candidate=assertPr54CurrentB007Candidate(candidate);
+ // Exact listener multiset: array/property order carries no authority, while
+ // duplicate counts and each literal port/address remain significant.
+ const bindingTuples=rows=>{check(Array.isArray(rows)&&rows.every(b=>exact(b,['port','address'])&&Number.isSafeInteger(b.port)&&b.port>0&&b.port<=65535&&typeof b.address==='string'&&b.address.length>0));return JSON.stringify(rows.map(b=>[b.port,b.address]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])));};
  check(/^C:\\Sirket\\ERP\\backups\\P03-20261020-\d{6}\\source-pre-snapshot\.json$/.test(profile?.businessDigest?.path??''));
  const history=provePr54B264History(raw),old=history.profile;
  check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));
@@ -444,14 +458,14 @@ function admitPr54CurrentB007Proposal({raw,profileRef,beforeRef,profileBytes,bef
  check(retained.length===4&&Array.isArray(profile.packages)&&profile.packages.length===7&&new Set(profile.packages.map(p=>p.root)).size===7&&retained.every(p=>profile.packages.some(q=>same(p,q))));
  const additions=profile.packages.filter(p=>!retained.some(q=>same(p,q)));check(additions.length===3&&additions.every(p=>exact(p,['root','sourceCommit','manifestPath','manifestSha256'])&&p.manifestPath===p.root+'\\release-manifest.json')&&additions.some(p=>p.root==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41'&&p.sourceCommit===candidate.erpSource&&p.manifestSha256===candidate.erpManifest)&&additions.some(p=>p.root==='C:\\Sirket\\CRM\\releases\\node-v24.19.0\\crm-shared-test-7ba6e4ebc8b70019136d603e6307741189ba03c1'&&p.sourceCommit===candidate.crmSource&&p.manifestSha256===candidate.crmManifest)&&additions.some(p=>p.root===candidate.supervisorRoot&&p.sourceCommit===candidate.supervisorSource&&p.manifestSha256===candidate.supervisorManifest));
  check(!currentEpoch||profile.protectedProcesses.every(p=>time(p.creationTime)&&Date.parse(p.creationTime)<=Date.parse(before.observedAt)));
- check(Array.isArray(profile.protectedProcesses)&&(currentEpoch?sameB264ProtectedEpoch(old.protectedProcesses,profile.protectedProcesses):same(profile.protectedProcesses,old.protectedProcesses))&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService')&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks?.length===2&&current.runningInstances?.length===2&&profile.tasks?.length===2&&profile.oldWatchers?.length===2);
+ check(Array.isArray(profile.protectedProcesses)&&(currentEpoch?sameCurrentB007ProtectedEpoch(old.protectedProcesses,profile.protectedProcesses,[...Object.values(before.identities),...profile.oldWatchers]):same(profile.protectedProcesses,old.protectedProcesses))&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService')&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks?.length===2&&current.runningInstances?.length===2&&profile.tasks?.length===2&&profile.oldWatchers?.length===2);
  check(plain(before.identities)&&Object.keys(before.identities).sort().join('|')===roles.toSorted().join('|'));
  const owned=[...roles.map(role=>({...before.identities[role],role})),...profile.oldWatchers],previous=[...roles.map(role=>({...history.before.identities[role],role})),...old.oldWatchers];
  check(new Set(owned.map(p=>p.pid)).size===10&&new Set(owned.map(p=>p.role)).size===10&&new Set(current.processes.map(p=>p.pid)).size===current.processes.length);
  for(const p of owned){
   const prior=previous.find(x=>x.role===p.role);check(prior&&p.ownerSid===owner&&Number.isSafeInteger(p.pid)&&p.pid>0&&p.pid!==prior.pid&&p.nodePath===prior.nodePath&&p.commandLine===prior.commandLine&&time(p.creationTime)&&Date.parse(p.creationTime)>=Date.parse(currentEpoch?history.ready.observedAt:history.ready.startedAt)&&Date.parse(p.creationTime)<=Date.parse(currentEpoch?before.observedAt:history.ready.firstCompleteAt)&&identity(p,current.processes.find(x=>x.pid===p.pid)));
   const priorParent=previous.find(x=>x.pid===prior.parentPid);if(priorParent)check(p.parentPid===owned.find(x=>x.role===priorParent.role)?.pid);
-  if(roles.includes(p.role))check(same(p.bindings,prior.bindings));
+  if(roles.includes(p.role))check(bindingTuples(p.bindings)===bindingTuples(prior.bindings));
  }
  const currentOwnerDigest=pr54B264StartedOwnerDigest(history.before,current);
  if(!currentEpoch)check(currentOwnerDigest===history.ready.identityDigest);
