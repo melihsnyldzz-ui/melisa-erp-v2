@@ -50,7 +50,70 @@ function ResetFixture{
 function ExpectRejected($name,[scriptblock]$action){try{& $action|Out-Null}catch{Write-Output ('REJECTED='+$name);return};throw ('FIXTURE_ACCEPTED_'+$name)}
 ResetFixture
 `;
-const captureFunctions=()=>extract(['ConsoleAuxiliaries'],engine)+'\n'+extract(['AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','WorkerSamePin','SeedWorkerAdmission']);
+const captureFunctions=()=>extract(['ConsoleAuxiliaries'],engine)+'\n'+extract(['GetCurrentB007ProtectedConsolePins','AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','WorkerSamePin','SeedWorkerAdmission']);
+const protectedConsoleFixture=String.raw`
+function ResetProtectedConsoleFixture{
+ ResetFixture;$script:PolicyGeneration='CurrentB007InspectOnly';$script:protectedConsolePins=@{}
+ $script:profile|Add-Member NoteProperty protectedProcesses @([pscustomobject]@{kind='ProtectedSqlService';pid=999})
+ foreach($n in 0..2){$p=[pscustomobject]@{pid=800+$n;parentPid=1;nodePath='C:\protected\node.exe';commandLine=('protected-'+$n);ownerSid=$owner;creationTime='2026-10-18T08:00:00.0000000Z'};$profile.protectedProcesses+=,$p;$inv.all+=,(ProcessFor $p);$console=[pscustomobject]@{pid=900+$n;parentPid=$p.pid;nodePath='C:\Windows\System32\conhost.exe';commandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';ownerSid=$owner;creationTime='2026-10-18T08:00:01.0000000Z'};$inv.all+=,(ProcessFor $console)}
+}
+ResetProtectedConsoleFixture
+`;
+test('CurrentB007 capture authenticates protected TEST consoles separately and leaves owned stop pins and raw rows intact',windows,()=>{
+ const out=run(`${fixture}\n${captureFunctions()}\n${protectedConsoleFixture}\n${String.raw`
+$original=$script:consolePins;$raw=($inv.all|ConvertTo-Json -Depth 10 -Compress);$profileBefore=($profile|ConvertTo-Json -Depth 15 -Compress)
+$frame=CaptureWorkerAdmissionCore
+if($frame.protectedConsolePins.Count-ne3-or$frame.consolePins.Count-ne1-or$frame.probePins.Count-ne0){throw 'FIXTURE_PROTECTED_CONSOLE_COUNTS'}
+if(-not[object]::ReferenceEquals($original,$script:consolePins)-or@($script:consolePins.Keys|Where-Object{$_-ge900}).Count){throw 'FIXTURE_OWNED_CACHE_CHANGED'}
+if(($inv.all|ConvertTo-Json -Depth 10 -Compress)-cne$raw-or($profile|ConvertTo-Json -Depth 15 -Compress)-cne$profileBefore){throw 'FIXTURE_RAW_CHANGED'}
+foreach($pin in $frame.protectedConsolePins){if($pin.pid-notin900..902-or(@($pin.PSObject.Properties.Name|Sort-Object)-join'|')-cne'commandLine|creationTime|nodePath|ownerSid|parentPid|pid'){throw 'FIXTURE_PROTECTED_PIN_SHAPE'}}
+$next=CaptureWorkerAdmissionCore;if($next.protectedConsolePins.Count-ne3-or$next.consolePins.Count-ne1){throw 'FIXTURE_REFRESH_MIXED'}
+'PROTECTED_SEPARATE_3_OWNED_1_NO_WRITES'
+`}`);
+ assert.match(out,/PROTECTED_SEPARATE_3_OWNED_1_NO_WRITES/);
+});
+test('protected console classification rejects source, owner, listener, parent and reused PID drift and restores owned cache on every failure',windows,()=>{
+ const out=run(`${fixture}\n${captureFunctions()}\n${protectedConsoleFixture}\n${String.raw`
+foreach($mode in @('binary','hash','signature','owner','listener','parent','parent-birth','reuse')){
+ ResetProtectedConsoleFixture;$null=ConsoleAuxiliaries $inv (@($order|ForEach-Object{$before.identities.$_})+@($profile.oldWatchers));$owned=$script:consolePins;$ownedBefore=@($owned.Values)|ConvertTo-Json -Depth 10 -Compress
+ if($mode -cin @('parent','reuse')){$null=GetCurrentB007ProtectedConsolePins $inv}
+ $target=@($inv.all|Where-Object{$_.ProcessId-eq900})[0]
+ switch($mode){binary{$target.ExecutablePath='C:\foreign\conhost.exe'} hash{$script:binaryHash='0'*64} signature{$script:signature='Invalid'} owner{$target.OwnerSid='other'} listener{$inv.allListeners=@([pscustomobject]@{OwningProcess=900;LocalPort=4444})} parent{$target.ParentProcessId=100} 'parent-birth'{@($inv.all|Where-Object{$_.ProcessId-eq800})[0].CreationDate=[DateTime]::Parse('2026-10-18T08:00:01Z')} reuse{$target.CreationDate=$target.CreationDate.AddSeconds(1)}}
+ ExpectRejected $mode {GetCurrentB007ProtectedConsolePins $inv}
+ if(-not[object]::ReferenceEquals($owned,$script:consolePins)-or(@($owned.Values)|ConvertTo-Json -Depth 10 -Compress)-cne$ownedBefore){throw 'FIXTURE_OWNED_CACHE_LEAK'}
+}
+ResetProtectedConsoleFixture;$script:tasksStopRequested=$true;ExpectRejected 'after-stop' {GetCurrentB007ProtectedConsolePins $inv}
+'RESTORED_OWNED_CACHE_ALL_FAILURES'
+`}`);
+ for(const mode of ['binary','hash','signature','owner','listener','parent','parent-birth','reuse','after-stop'])assert.match(out,new RegExp('REJECTED='+mode));assert.match(out,/RESTORED_OWNED_CACHE_ALL_FAILURES/);
+});
+test('legacy capture never emits protected console pins and typed SQL children are not admitted as normal protected consoles',windows,()=>{
+ const out=run(`${fixture}\n${captureFunctions()}\n${protectedConsoleFixture}\n${String.raw`
+foreach($generation in @('Legacy','B264InspectOnly','B264Sup20DInspectOnly')){ResetProtectedConsoleFixture;$script:PolicyGeneration=$generation;$frame=CaptureWorkerAdmissionCore;if($frame.Contains('protectedConsolePins')-or$frame.consolePins.Count-ne1){throw 'FIXTURE_LEGACY_CHANGED'}}
+ResetProtectedConsoleFixture;$sqlConsole=[pscustomobject]@{pid=990;parentPid=999;nodePath='C:\Windows\System32\conhost.exe';commandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';ownerSid=$owner;creationTime='2026-10-18T08:00:01.0000000Z'};$inv.all+=,(ProcessFor $sqlConsole)
+$frame=CaptureWorkerAdmissionCore;if($frame.protectedConsolePins.Count-ne3-or990-in@($frame.protectedConsolePins.pid)-or990-in@($frame.consolePins.pid)){throw 'FIXTURE_SQL_CONSOLE_ADMITTED'}
+'LEGACY_UNCHANGED_SQL_NOT_CLASSIFIED'
+`}`);
+ assert.match(out,/LEGACY_UNCHANGED_SQL_NOT_CLASSIFIED/);
+});
+test('CurrentB007 seed carries protected pins separately across held-cut admission and rejects forged or reused protected pins',windows,()=>{
+ const out=run(`${fixture}\n${captureFunctions()}\n${protectedConsoleFixture}\n${String.raw`
+function CurrentSnapshot{return (CaptureWorkerAdmissionCore|ConvertTo-Json -Depth 20 -Compress|ConvertFrom-Json)}
+$snapshot=CurrentSnapshot;$script:consolePins=@{};$script:protectedConsolePins=@{};SeedWorkerAdmission $snapshot
+if($script:consolePins.Count-ne1-or$script:protectedConsolePins.Count-ne3-or@($script:consolePins.Keys|Where-Object{$_-ge900}).Count){throw 'FIXTURE_SEED_MIXED'}
+$next=CaptureWorkerAdmissionCore;if($next.protectedConsolePins.Count-ne3-or$next.consolePins.Count-ne1){throw 'FIXTURE_HELD_CUT_RECAPTURE'}
+foreach($mode in @('owner','parent','overlap','duplicate','reuse')){
+ ResetProtectedConsoleFixture;$snapshot=CurrentSnapshot;$script:consolePins=@{};$script:protectedConsolePins=@{}
+ if($mode-ceq'reuse'){SeedWorkerAdmission $snapshot;$script:consolePins=@{}}
+ switch($mode){owner{$snapshot.protectedConsolePins[0].ownerSid='other'} parent{$snapshot.protectedConsolePins[0].parentPid=999} overlap{$snapshot.protectedConsolePins[0].pid=60} duplicate{$snapshot.protectedConsolePins+=,$snapshot.protectedConsolePins[0]} reuse{$snapshot.protectedConsolePins[0].creationTime='2026-10-18T08:00:02.0000000Z'}}
+ ExpectRejected ('SEED_'+$mode.ToUpperInvariant()) {SeedWorkerAdmission $snapshot}
+ if(@($script:consolePins.Keys|Where-Object{$_-ge900}).Count){throw 'FIXTURE_SEED_OWNED_LEAK'}
+}
+ResetProtectedConsoleFixture;$inv.all=@($inv.all|Where-Object{$_.ProcessId-notin900..902});$empty=CaptureWorkerAdmissionCore;if(@($empty.protectedConsolePins).Count-ne0){throw 'FIXTURE_EMPTY_NULL_PIN'}
+'SEED_PROTECTED_SEPARATE_EMPTY_ARRAY'
+`}`);
+ for(const mode of ['owner','parent','overlap','duplicate','reuse'])assert.match(out,new RegExp('REJECTED=SEED_'+mode.toUpperCase()));assert.match(out,/SEED_PROTECTED_SEPARATE_EMPTY_ARRAY/);
+});
 const timingFunctions=()=>captureFunctions()+'\n'+extract(['Identity','Tokens'],engine)+'\n'+extract(['Inventory'],engine,{Inventory:'LegacyInventory'})+'\n'+extract(['ProbeArgumentsAllowed','LatePrecutProbeAllowed','ProbeAuxiliaries'],recovery)+'\n'+extract(['Inventory']);
 const timingFixture=String.raw`
 function ResetTiming{
@@ -262,4 +325,35 @@ test('CurrentB007 recovery settings function preserves the exact seven-package s
  const changes=["$f.next.components.crm.config.sha256='0'*64","$f.next.components.crm.config.path+='x'","$f.old.components.crm.config.sha256='0'*64","$f.next.components.crm.manifestSha256='0'*64","$f.next.components.erpApiNative.packageRoot+='x'","$f.next.supervisor.sourceCommit='0'*40","$f.next.node.path='C:\\Program Files\\nodejs\\node.exe'","$f.profile.packages+=,$f.profile.packages[0]","$f.next.actualT1=$true","$f.next.copyId='other'","$f.next.components.nativeOrder.sourceCommit='0'*40"];
  const empty=fileURLToPath(new URL('./p03-pr54-new-owner-empty-recovery.ps1',import.meta.url)),out=run(`${extract(['Require-NewDrain','Assert-CurrentB007RecoverySettings'],empty)}\n${reset};${call};'CURRENT_RECOVERY_VALID'\n${changes.map(change=>`${reset};${change};try{${call};throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}`).join('\n')}`);
  assert.match(out,/CURRENT_RECOVERY_VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,changes.length);
+});
+
+
+test('post-cut frozen and NEW candidate readers preserve protected TEST consoles as raw non-owned rows without broad foreign exemptions',windows,()=>{
+ const newer=fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)),v2=fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url));
+ const out=run(`${extract(['CandidateInventoryCore'],v2,{CandidateInventoryCore:'FrozenCandidateInventoryCore'})}\n${extract(['NewCandidateInventoryCore'],newer)}\n${String.raw`
+function Need($v,$code){if(-not$v){throw ('P03_PHYSICAL_'+$code)}}
+function ProtectedProcesses($i){$script:protectedReads++;if(@($i.all|Where-Object{$_.ProcessId-eq800}).Count-ne1){throw 'FIXTURE_PARENT'}}
+function Inventory{return $script:raw}
+function AssertOldPidLifetimes($i){return @()}
+function NewHistoricalOldPidRelevant($p,$old,$i,$e){return $p.ProcessId-in$old}
+function IsWatcherCommand($c){return $false}
+function ConsoleAuxiliaries($i,$selected){if(@($selected).Count){throw 'FIXTURE_OWNED_SELECTION'};return @()}
+$script:owner='owner';$script:isRehearsal=$false;$script:tasksStopRequested=$false;$script:protectedReads=0
+$script:profile=[pscustomobject]@{oldWatchers=@([pscustomobject]@{pid=1},[pscustomobject]@{pid=2});candidateRules=@();packages=@([pscustomobject]@{root='C:\managed'});protectedProcesses=@([pscustomobject]@{pid=800})}
+$script:before=[pscustomobject]@{identities=[pscustomobject]@{hub=[pscustomobject]@{pid=3}};tasks=@()}
+$script:consolePins=@{};$script:protectedConsolePins=@{900=[pscustomobject]@{pid=900;parentPid=800}}
+$parent=[pscustomobject]@{ProcessId=800;ParentProcessId=0;CommandLine='node C:\protected-test125\server.js'}
+$console=[pscustomobject]@{ProcessId=900;ParentProcessId=800;CommandLine='\??\C:\Windows\System32\conhost.exe 0x4'}
+$script:raw=[pscustomobject]@{all=@($parent,$console);listeners=@();instances=@()};$e=[pscustomobject]@{processes=@()}
+foreach($fn in @('FrozenCandidateInventoryCore','NewCandidateInventoryCore')){
+ $json=$raw|ConvertTo-Json -Depth 8 -Compress;$seen=&$fn $e
+ if($seen.inventory.all.Count-ne2-or$seen.selected.Count-ne0-or$script:consolePins.Count-ne0-or$script:admittedExitPins.Count-ne0-or($raw|ConvertTo-Json -Depth 8 -Compress)-cne$json){throw 'FIXTURE_PROTECTED_BECAME_OWNED'}
+ 'RAW_ONLY='+$fn
+ $parent.CommandLine='node C:\managed\foreign.js'
+ try{&$fn $e|Out-Null;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};if($_.Exception.Message-cne'P03_PHYSICAL_FOREIGN_PROCESS'){throw};'FOREIGN_REJECTED'}
+ $parent.CommandLine='node C:\protected-test125\server.js'
+}
+if($protectedReads-ne4){throw 'FIXTURE_PROTECTED_NOT_RECHECKED'}
+`}`);
+ assert.equal((out.match(/RAW_ONLY=/g)??[]).length,2);assert.equal((out.match(/FOREIGN_REJECTED/g)??[]).length,2);
 });

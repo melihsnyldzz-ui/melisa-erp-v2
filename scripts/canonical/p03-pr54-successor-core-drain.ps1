@@ -254,6 +254,29 @@ function AssertWorkerBindings($inv,$selected){
  Need ($inv.listeners.Count -eq $expected.Count) 'SUCCESSOR_BINDING_COUNT'
  foreach($b in $expected){Need (@($inv.listeners|Where-Object{$_.LocalPort -eq $b.port -and $_.LocalAddress -ceq $b.address -and $_.OwningProcess -eq $b.pid}).Count -eq 1) 'SUCCESSOR_BINDING'}
 }
+function GetCurrentB007ProtectedConsolePins($inventory){
+ Need ($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and -not $script:tasksStopRequested) 'CURRENT_PROTECTED_CONSOLE_SCOPE'
+ ProtectedProcesses $inventory
+ $parents=@($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -cnotcontains 'kind'})
+ Need ($parents.Count -le 64 -and @($parents|Select-Object -ExpandProperty pid -Unique).Count -eq $parents.Count) 'CURRENT_PROTECTED_CONSOLE_PARENTS'
+ $ownedPids=@($order|ForEach-Object{$before.identities.$_.pid})+@($profile.oldWatchers|ForEach-Object{$_.pid})+@($script:probePins.Keys)+@($script:consolePins.Keys)
+ foreach($parent in $parents){
+  $actual=@($inventory.all|Where-Object{$_.ProcessId -eq $parent.pid})
+  Need ($parent.pid -gt 0 -and $parent.pid -notin $ownedPids -and $parent.ownerSid -ceq $owner -and $actual.Count -eq 1 -and (Identity $actual[0] $parent)) 'CURRENT_PROTECTED_CONSOLE_PARENT_IDENTITY'
+ }
+ if(-not (Get-Variable protectedConsolePins -Scope Script -ErrorAction SilentlyContinue)){$script:protectedConsolePins=@{}}
+ $ownedCache=$script:consolePins
+ Need (-not [object]::ReferenceEquals($ownedCache,$script:protectedConsolePins)) 'CURRENT_PROTECTED_CONSOLE_CACHE'
+ try{
+  # Reuse the unmodified native classifier with an isolated cache. Its binary,
+  # signature, owner, parent/birth, cached-lifetime and no-listener checks stay
+  # intact; these pins never enter the owned console or process-stop cohort.
+  $script:consolePins=$script:protectedConsolePins
+  $allowed=@(ConsoleAuxiliaries $inventory $parents)
+  $pins=@(foreach($id in $allowed){Need ($id -notin $ownedPids) 'CURRENT_PROTECTED_CONSOLE_OVERLAP';$script:protectedConsolePins[[int]$id]})
+  return $pins
+ }finally{$script:consolePins=$ownedCache}
+}
 function CaptureWorkerAdmissionCore{
  Authority;PrepareProbeSource;$inv=Inventory
  # Expected parents serve only the imported console classifier's lookup.
@@ -263,6 +286,7 @@ function CaptureWorkerAdmissionCore{
  $auxInventory=[pscustomobject]@{all=@($inv.all|Sort-Object CreationDate -Descending);allListeners=$inv.allListeners;listeners=$inv.listeners;instances=$inv.instances}
  $probes=@(ProbeAuxiliaries $auxInventory);$aux=@(ConsoleAuxiliaries $auxInventory @($expectedParents+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
  ProtectedProcesses $inv
+ $protectedPins=@();if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$protectedPins=@(GetCurrentB007ProtectedConsolePins $inv)}
  Need ($inv.instances.Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.oldWatchers).Count -eq 2) 'SUCCESSOR_CAPTURE_COM'
  $selected=@();foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'SUCCESSOR_CAPTURE_APP';$selected+=,$e}
  foreach($entry in $profile.tasks){
@@ -274,9 +298,11 @@ function CaptureWorkerAdmissionCore{
  $relevant=[Collections.Generic.HashSet[int]]::new();foreach($p in $selected){[void]$relevant.Add([int]$p.pid)}
  foreach($p in $inv.all){foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){[void]$relevant.Add([int]$p.ProcessId)}};if(IsWatcherCommand ([string]$p.CommandLine)){[void]$relevant.Add([int]$p.ProcessId)}}
  do{$added=$false;foreach($p in $inv.all){if($relevant.Contains([int]$p.ParentProcessId) -and $relevant.Add([int]$p.ProcessId)){$added=$true}}}while($added)
- foreach($p in $inv.all){if($relevant.Contains([int]$p.ProcessId)){Need ($p.ProcessId -in @($selected|ForEach-Object{$_.pid}) -or $p.ProcessId -in $aux) 'SUCCESSOR_CAPTURE_FOREIGN'}}
+ foreach($p in $inv.all){if($relevant.Contains([int]$p.ProcessId)){Need ($p.ProcessId -in @($selected|ForEach-Object{$_.pid}) -or $p.ProcessId -in $aux -or ($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $p.ProcessId -in @($protectedPins|ForEach-Object{$_.pid}))) 'SUCCESSOR_CAPTURE_FOREIGN'}}
  AssertWorkerBindings $inv @($order|ForEach-Object{$before.identities.$_})
- return [ordered]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;recoveryHelperSha256=$RecoveryHelperSha256;observedAt=[DateTime]::UtcNow.ToString('o');oldIdentities=@($order|ForEach-Object{$before.identities.$_});oldWatchers=@($profile.oldWatchers);consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values)}
+ $frame=[ordered]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;recoveryHelperSha256=$RecoveryHelperSha256;observedAt=[DateTime]::UtcNow.ToString('o');oldIdentities=@($order|ForEach-Object{$before.identities.$_});oldWatchers=@($profile.oldWatchers);consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values)}
+ if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$frame['protectedConsolePins']=@($protectedPins)}
+ return $frame
 }
 function CaptureWorkerAdmission{
  for($attempt=0;$attempt -lt 3;$attempt++){try{return CaptureWorkerAdmissionCore}catch{if($_.Exception.Message -cne 'P03_PAUSED_PROBE_EXIT_RECAPTURE'){throw};if($attempt -eq 2){throw 'P03_SUCCESSOR_PROBE_RECAPTURE_EXHAUSTED'}}}
@@ -292,6 +318,18 @@ function SeedWorkerAdmission($snapshot){
   $parent=@($parents|Where-Object{$_.pid -eq $p.parentPid});Need ($parent.Count -eq 1 -and $p.ownerSid -ceq $owner -and $p.nodePath -ceq 'C:\Windows\System32\conhost.exe' -and $p.commandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -ge [DateTime]::Parse($parent[0].creationTime).ToUniversalTime() -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime() -and -not $script:consolePins.ContainsKey([int]$p.pid)) 'SUCCESSOR_SNAPSHOT_CONSOLE';$script:consolePins[[int]$p.pid]=$p
  }
  foreach($p in $snapshot.probePins){Need ($p.parentPid -eq $before.identities.coreSupervisor.pid -and $p.ownerSid -ceq $owner -and $p.nodePath -ceq $profile.shell.path -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -ge [DateTime]::Parse($before.identities.coreSupervisor.creationTime).ToUniversalTime() -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime() -and (ProbeArgumentsAllowed (Tokens $p.commandLine) $script:probePath) -and -not $script:probePins.ContainsKey([int]$p.pid)) 'SUCCESSOR_SNAPSHOT_PROBE';$script:probePins[[int]$p.pid]=$p}
+ if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){
+  Need (@($snapshot.protectedConsolePins).Count -le 64) 'CURRENT_PROTECTED_SNAPSHOT_COUNT'
+  $nextCache=@{};if(Get-Variable protectedConsolePins -Scope Script -ErrorAction SilentlyContinue){foreach($key in $script:protectedConsolePins.Keys){$nextCache[$key]=$script:protectedConsolePins[$key]}}
+  $seen=@();$forbidden=@($snapshot.oldIdentities|ForEach-Object{$_.pid})+@($snapshot.oldWatchers|ForEach-Object{$_.pid})+@($snapshot.consolePins|ForEach-Object{$_.pid})+@($snapshot.probePins|ForEach-Object{$_.pid})+@($profile.protectedProcesses|ForEach-Object{$_.pid})
+  foreach($pin in $snapshot.protectedConsolePins){
+   $parents=@($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -cnotcontains 'kind' -and $_.pid -eq $pin.parentPid})
+   Need ((@($pin.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'commandLine|creationTime|nodePath|ownerSid|parentPid|pid' -and $pin.pid -gt 0 -and $pin.pid -notin $forbidden -and $pin.pid -notin $seen -and $parents.Count -eq 1 -and $pin.ownerSid -ceq $owner -and $parents[0].ownerSid -ceq $owner -and $pin.nodePath -ceq 'C:\Windows\System32\conhost.exe' -and $pin.commandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [DateTime]::Parse($pin.creationTime).ToUniversalTime() -ge [DateTime]::Parse($parents[0].creationTime).ToUniversalTime() -and [DateTime]::Parse($pin.creationTime).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime()) 'CURRENT_PROTECTED_SNAPSHOT_PIN'
+   if($nextCache.ContainsKey([int]$pin.pid)){Need (WorkerSamePin $pin $nextCache[[int]$pin.pid]) 'CURRENT_PROTECTED_SNAPSHOT_REUSED'}
+   $nextCache[[int]$pin.pid]=[pscustomobject]@{pid=[int]$pin.pid;parentPid=[int]$pin.parentPid;nodePath=[string]$pin.nodePath;ownerSid=[string]$pin.ownerSid;commandLine=[string]$pin.commandLine;creationTime=[string]$pin.creationTime};$seen+=,[int]$pin.pid
+  }
+  $script:protectedConsolePins=$nextCache
+ }
  # The original capture proved the parent while alive. Recheck the binary even
  # for cached children; the fe classifier validates current identity/listeners.
  $binary='C:\Windows\System32\conhost.exe';NoReparse $binary;Need ((Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq 'c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac') 'SUCCESSOR_CONSOLE_BINARY'
