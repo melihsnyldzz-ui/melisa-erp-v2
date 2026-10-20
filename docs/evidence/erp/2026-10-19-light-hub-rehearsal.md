@@ -108,3 +108,34 @@ Yerel hedefli kontroller:11yeni saf-admission +5yeni readonlyIO +9current-succes
 Repo dışı aynı `reports/integration-audit-20261019/` alanında kaynak/CI pinli operator/attempt ve ilk1421failure/1425diagnostic/tekcanonicalDryRun kaydı saklanır. Ham argv/SID/COM/özelconfig/ticari veriler GitHub'a eklenmez.
 
 **Sonraki tek kapı:** B264 için V2/drainer ve normal physical-inspection çağıranı, tamShared başlangıç ve guardedrollback uyarlanıp kanıtlanmalı. Mevcut mutator FE/7b varsayımlarıyla bu yeni öneriyi yürütemez. Sonrasında taze before/yedek/native/copy/T1false/tek-owner ve exacttuple gerçekten sağlanmadan claim/Apply yok. Bu teslimde büyük kurulum/stop/restart/SQL/gerçek öneri/claim yapılmadı. Yeni kullanıcı parolası veya işletme kararı gerekmiyor; GUI güvenlik engeli ve özgün insan kabulü bekler,49/25 sayıları aynı.
+
+
+## 20 Ekim — B264 V2 normal salt-okunur inceleme bağlantısı
+
+Kaynak `4cceff0ee77e16e2d5afb0052488ea24e8f0b0d1`, aynı PR54. Bu teslim aynı mevcut TEST'in güvenli sürüm güncellemesine gerekli salt-okunur bağlantıdır; yeni TEST/ikinci sunucu/reset veya CRM6bc tekrar kurulumu değildir.
+
+- Mevcut drainer ve normal observer'da varsayılan Legacy kalır. Yeni explicit B264InspectOnly yalnız Inspect / Shared Physical kabul eder; mutation/proposal/alias/eksik pin girdileri import/OS/COM öncesinde reddedilir.
+- V2 `99b90fbd...` ve mevcut helper `e8ec0a37...` hashleri sabit. Exact old e59/13b + CRM6bc/native7a ve yeni01ef/eb5 toplam altı paket; settings,copy,T1false ve15dkbefore sınırı korunur. Observer aynı saf contract'ı yalnız pinned AST definition olarak kullanır.
+- Yeni private physical transport gerçek normal observer → gerçek worker Inspect sırasını kurar. Kaynak kodu strictowner/SYSTEM ACL, no-reparse,hash ve deny-write tutamacı altında doğrulanan UTF8buffer'dan çalıştırılır; sonradan değiştirilebilir -File path yürütülmez. İçe aktarma hiçbir runtime IO yapmaz.
+- Native worker ProtectedProcesses doğrulaması sonrasında profile'daki typed SQL service envelope frame'e bağlanır. SQL hizmeti normal owner/argv kimliği değildir. Review'ın bulduğu gerçek şema hatası bu şekilde kapandı; yalnız PID varlığına indirgenmedi. Koruma kontrolü gerektiğinde salt-okunur master SELECT yapabilir; gerçek Inspect SQL-free diye sunulmaz.
+- Aynı8rol/2watcher, COMXML/enginePID, tam port tuple, strict probe/console classifier korunur. B264 token ayrı private WeakMap'te, orijinal raw/profile/before nesneleri+digest+refs+60sn ile bağlıdır. Validator/fake/clone/eski FE token yetki oluşturmaz.
+- 639/7b owner-successor prefix hash'i değişmedi. Eski claimwriter/Apply dispatcher B264'e açılmadı. Frozen FE/V2 motorları ve geçmiş FAILED/QUARANTINED/claim/journal bytes aynı kaldı.
+
+| Kontrol | Sonuç |
+| --- | --- |
+| Yeni B264 argv/pre-IO/contract/token/launcher/normal V2 observer testleri | 8 PASS |
+| Aynı son koşuda etkilenen mevcut hedef kontroller | 98 PASS |
+| Toplam yerel hedefli Windows koşusu | 106 PASS /0FAIL /0skip |
+| Bağımsız review | SQLshape blocker düzeltildi; final source-only GO |
+| Exact kaynak [PR CI39402289664](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39402289664) / [push CI39402283987](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39402283987) | completed SUCCESS; Windows/quality-build/secret-scan başarılı |
+| Gerçek B264 current-owner admission / claim / Apply | ÇALIŞTIRILMADI |
+| Yeni uygulama paketi / mevcut TEST güncellemesi | YAPILMADI |
+| Normal GUI / cihaz / insan kabulü | Yeni PASS yok |
+
+Worker rawSHA `34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c`; observer rawSHA `5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5`. İki PS dosyası için Git -text byte koruması eklendi; source pinleri Windows checkout/archive'da değişmez. Engine FE SHA `fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037`, V2 SHA `99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def` aynı.
+
+Yerel log repo dışında `C:/Sirket/ERP/reports/integration-audit-20261020/b264-physical-source-final-0940.txt` (SHA256 `613ecd0890449bfbe9110ebdf3b3d57030be5aee020778f9cb8802e2db81dd09`). İlk fixture hataları (PS otomatik bound scope, VM realm, sentetik doğum saati) ve review SQLshape bulgusu nihai başarılı sonuç yerine geçirilmez. Yeni kaynak için hedefli testler yapıldı; kabul edilmiş44snOLD/Light/CSV ya da bütün işletme testleri yeniden açılmadı.
+
+Güncel salt-okunur port/CIM/iki görev ve API/native test-health okuması: kurulu ERP e59e07ab / CRM6bc / supervisor13b, DB02/copye16b/actualT1false,11listener ve ikiRunninggörev. API/native ok:true; port process release kökleri aynı paketlere aittir. Süreç doğumları20Ekim olduğundan önceki19Ekim229f stable-owner kaydı fresh admission olarak kullanılamaz. Bu tek sağlık ölçümü tam native veri/backup sürekliliği veya normal GUI kabulü değildir. Private config sırları/ticari veriler GitHub'a eklenmedi; canonical kullanıcı dirty package-npm.test.mjs SHA d518d180... aynı kaldı.
+
+**Kalan gerçek kapı:** fullShared başlangıç/guardedrollback ve bugünkü ownership dönemi için taze native/yedek/before/tek-owner kabulü. Tüketilmiş claim tekrar edilmez; eski ready receipt güncel diye sunulmaz. Bu koşullar kanıtlanmadan stop/restart/Apply yok. Mevcut TEST korunarak gerekli sürüm güncellenecek; LIVE/T1/gerçek ticari yazma yetkisi genişletilmedi. Mal kabul/satış/kasa/CRM ve insan/cihaz kabulü bu kontrol kaynağı bitti diye tamam sayılmaz.
