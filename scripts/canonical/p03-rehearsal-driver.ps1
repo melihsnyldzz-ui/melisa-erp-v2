@@ -40,6 +40,72 @@ function Identity($p){
  $sid=Invoke-CimMethod -InputObject $p -MethodName GetOwnerSid -ErrorAction Stop;Need ($sid.ReturnValue-eq0-and$p.ExecutablePath-and$p.CommandLine) 'IDENTITY_UNAVAILABLE'
  return [ordered]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=[string]$p.ExecutablePath;ownerSid=[string]$sid.Sid;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}
 }
+function OpenRehearsalOldHandle([int]$processId){
+ if(-not ('P03RehearsalOldKernel' -as [type])){Add-Type -TypeDefinition @'
+using System;using System.Text;using System.ComponentModel;using System.Runtime.InteropServices;using Microsoft.Win32.SafeHandles;
+public sealed class P03RehearsalOldHandle:SafeHandleZeroOrMinusOneIsInvalid {
+ public P03RehearsalOldHandle():base(true){}
+ protected override bool ReleaseHandle(){return P03RehearsalOldKernel.CloseHandle(handle);}
+}
+public static class P03RehearsalOldKernel {
+ public sealed class State {public uint Id;public long CreationFileTime;public string Path;public bool Active;}
+ [DllImport("kernel32.dll",SetLastError=true)] static extern P03RehearsalOldHandle OpenProcess(uint access,bool inherit,uint pid);
+ [DllImport("kernel32.dll",SetLastError=true)] public static extern bool CloseHandle(IntPtr handle);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern uint GetProcessId(P03RehearsalOldHandle handle);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetProcessTimes(P03RehearsalOldHandle handle,out long creation,out long exit,out long kernel,out long user);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetExitCodeProcess(P03RehearsalOldHandle handle,out uint code);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern uint WaitForSingleObject(P03RehearsalOldHandle handle,uint milliseconds);
+ [DllImport("kernel32.dll",EntryPoint="QueryFullProcessImageNameW",CharSet=CharSet.Unicode,SetLastError=true)] static extern bool QueryFullProcessImageName(P03RehearsalOldHandle handle,uint flags,StringBuilder path,ref uint size);
+ [DllImport("shell32.dll",SetLastError=true)] static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)]string command,out int count);
+ [DllImport("kernel32.dll")] static extern IntPtr LocalFree(IntPtr pointer);
+ public static P03RehearsalOldHandle Open(uint pid){var handle=OpenProcess(0x00101000,false,pid);if(handle.IsInvalid){int error=Marshal.GetLastWin32Error();handle.Dispose();throw new Win32Exception(error);}return handle;}
+ public static State Read(P03RehearsalOldHandle handle){
+  if(handle.IsClosed||handle.IsInvalid)throw new InvalidOperationException("P03_REHEARSAL_OLD_HANDLE_CLOSED");
+  uint id=GetProcessId(handle),code;long creation,exit,kernel,user;uint wait=WaitForSingleObject(handle,0);
+  if(id==0||!GetProcessTimes(handle,out creation,out exit,out kernel,out user)||!GetExitCodeProcess(handle,out code))throw new Win32Exception(Marshal.GetLastWin32Error());
+  if(wait!=0&&wait!=258)throw new InvalidOperationException("P03_REHEARSAL_OLD_HANDLE_WAIT");
+  bool active=wait==258&&code==259;string image=null;
+  if(active){var path=new StringBuilder(32768);uint size=(uint)path.Capacity;if(!QueryFullProcessImageName(handle,0,path,ref size))throw new Win32Exception(Marshal.GetLastWin32Error());image=path.ToString();}
+  return new State{Id=id,CreationFileTime=creation,Path=image,Active=active};
+ }
+ public static string[] Tokens(string command){int count;IntPtr pointer=CommandLineToArgvW(command,out count);if(pointer==IntPtr.Zero||count<=0)throw new Win32Exception(Marshal.GetLastWin32Error());try{var values=new string[count];for(int i=0;i<count;i++)values[i]=Marshal.PtrToStringUni(Marshal.ReadIntPtr(pointer,i*IntPtr.Size));return values;}finally{LocalFree(pointer);}}
+}
+'@}
+ Need ($processId-gt0) 'OLD_HANDLE_PID';return [P03RehearsalOldKernel]::Open([uint32]$processId)
+}
+function ReadRehearsalOldHandle($handle){return [P03RehearsalOldKernel]::Read($handle)}
+function RehearsalOldArgv([string]$command){return [P03RehearsalOldKernel]::Tokens($command)}
+function SameOriginalOldIdentity($a,$b){return $a.pid-eq$b.pid-and$a.parentPid-eq$b.parentPid-and$a.nodePath-ceq$b.nodePath-and$a.ownerSid-ceq$b.ownerSid-and$a.commandLine-ceq$b.commandLine-and[DateTime]::Parse($a.creationTime).ToUniversalTime().Ticks-eq[DateTime]::Parse($b.creationTime).ToUniversalTime().Ticks}
+function CloseOriginalOldLifetimes($pins){$failed=$false;foreach($entry in $pins){try{$entry.handle.Dispose()}catch{$failed=$true}};Need (-not$failed) 'OLD_HANDLE_CLOSE'}
+function AssertOriginalOldHandle($entry,[bool]$active){
+ $state=ReadRehearsalOldHandle $entry.handle
+ Need ($state.Id-eq$entry.identity.pid-and$state.CreationFileTime-eq$entry.creationFileTime) 'OLD_HANDLE_CHANGED'
+ if($active){Need ($state.Active-and$state.Path-ieq$entry.identity.nodePath) 'OLD_HANDLE_NOT_ACTIVE'}
+}
+function HoldOriginalOldLifetimes($fresh,$before,$profile){
+ Need ($EngineGeneration-ceq'FileAttributesV1'-and$before.environment-ceq'P03_REHEARSAL'-and$profile.environment-ceq'P03_REHEARSAL'-and$before.actualT1-ceq$false-and$profile.database-ceq'MELISA_ERP_P03_RESTORE_TEST_20261018_01'-and$before.database-ceq$profile.database-and$runRoot-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\z') 'OLD_HANDLE_SCOPE'
+ Need (@($fresh.processes).Count-eq8-and@($fresh.watchers).Count-eq2-and@($profile.oldWatchers).Count-eq2-and($before.identities-is[Collections.IDictionary])-and@($before.identities.Keys).Count-eq8) 'OLD_HANDLE_COUNT'
+ $expected=@();foreach($role in $roles){$pin=$before.identities.$role;$actual=@($fresh.processes|Where-Object{$_.role-ceq$role});Need ($actual.Count-eq1-and(SameOriginalOldIdentity $pin $actual[0])) 'OLD_HANDLE_FRESH_ROLE';$expected+=,[pscustomobject]@{role=$role;pin=$pin}}
+ foreach($role in @('terminalWatcher','hubWatcher')){$pin=@($profile.oldWatchers|Where-Object{$_.role-ceq$role});$actual=@($fresh.watchers|Where-Object{$_.role-ceq$role});Need ($pin.Count-eq1-and$actual.Count-eq1-and(SameOriginalOldIdentity $pin[0] $actual[0])) 'OLD_HANDLE_FRESH_WATCHER';$expected+=,[pscustomobject]@{role=$role;pin=$pin[0]}}
+ Need (@($expected|ForEach-Object{$_.pin.pid}|Sort-Object -Unique).Count-eq10) 'OLD_HANDLE_DUPLICATE'
+ $held=[Collections.Generic.List[object]]::new()
+ try{
+  foreach($entry in $expected){$pin=$entry.pin;Need ($pin.ownerSid-ceq$owner-and$pin.pid-gt0-and$pin.pid-notin@($profile.protectedProcesses.pid)) 'OLD_HANDLE_PROTECTED'
+   $raw=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$pin.pid) -ErrorAction Stop);Need ($raw.Count-eq1-and(SameOriginalOldIdentity (Identity $raw[0]) $pin)) 'OLD_HANDLE_CIM_BEFORE'
+   $handle=OpenRehearsalOldHandle ([int]$pin.pid);$record=[pscustomobject]@{identity=([pscustomobject]@{pid=[int]$pin.pid;parentPid=[int]$pin.parentPid;nodePath=[string]$pin.nodePath;ownerSid=[string]$pin.ownerSid;commandLine=[string]$pin.commandLine;creationTime=[string]$pin.creationTime});handle=$handle;creationFileTime=[long]0};$held.Add($record)
+   $argv=@(RehearsalOldArgv $pin.commandLine)
+   if($entry.role-cin$roles){$want=@($node,'--no-maglev',(Join-Path $runRoot 'packages\old\p03-rehearsal-fixture.mjs'),'--role',$entry.role,'--config',(Join-Path $runRoot 'packages\old\fixture-config.json'),'--generation','old');Need ($pin.nodePath-ceq$node) 'OLD_HANDLE_NODE'}else{$index=if($entry.role-ceq'terminalWatcher'){0}else{1};$want=@($shell)+@(RehearsalOldArgv ($shell+' '+(ActionArgs 'old' $index))|Select-Object -Skip 1);Need ($pin.nodePath-ceq$shell) 'OLD_HANDLE_SHELL'}
+   Need (($argv|ConvertTo-Json -Compress)-ceq($want|ConvertTo-Json -Compress)) 'OLD_HANDLE_ARGV'
+   $state=ReadRehearsalOldHandle $handle;$format='yyyy-MM-ddTHH:mm:ss.ffffffZ';$culture=[Globalization.CultureInfo]::InvariantCulture
+   # CIM preserves microseconds; keep its complete raw UID. Match only the finer
+   # native 100 ns remainder at this boundary, then pin the exact raw FILETIME.
+   Need ($state.Id-eq$pin.pid-and$state.Active-and$state.Path-ieq$pin.nodePath-and[DateTime]::FromFileTimeUtc($state.CreationFileTime).ToString($format,$culture)-ceq[DateTime]::Parse($pin.creationTime).ToUniversalTime().ToString($format,$culture)) 'OLD_HANDLE_KERNEL'
+   $record.creationFileTime=[long]$state.CreationFileTime
+   $raw=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$pin.pid) -ErrorAction Stop);Need ($raw.Count-eq1-and(SameOriginalOldIdentity (Identity $raw[0]) $record.identity)) 'OLD_HANDLE_CIM_AFTER';AssertOriginalOldHandle $record $true
+  }
+  foreach($record in $held){AssertOriginalOldHandle $record $true};return ,$held.ToArray()
+ }catch{CloseOriginalOldLifetimes $held.ToArray();throw}
+}
 function ProtectedSnapshot{
  $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-in$protectedPorts}|ForEach-Object{[ordered]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress;pid=[int]$_.OwningProcess}}|Sort-Object port,address,pid)
  $ids=@($listeners|ForEach-Object{$_.pid})+@(Get-CimInstance Win32_Process -Filter "Name='sqlservr.exe'"|ForEach-Object{$_.ProcessId})
@@ -147,9 +213,12 @@ Need ((Get-FileHash -LiteralPath $engineRef.path -Algorithm SHA256).Hash.ToLower
 $engineResult=(& $engineRef.path @common -Mode PreflightOld)|ConvertFrom-Json;Need ($engineResult.status-ceq'OLD_PHYSICAL_PREFLIGHT') 'OLD_PREFLIGHT'
 Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_PRESTOP_PIN'
 Journal 'STOP_OLD_FIXTURE_INTENT'
+$originalOldLifetimePins=@()
+try{
 $fresh=Snapshot;Need ((Hash (Bytes (ProtectedSnapshot)))-ceq$protectedBeforeSha) 'PROTECTED_BEFORE_STOP'
 foreach($entry in $old.tasks){$now=@($fresh.tasks|Where-Object{$_.name-ceq$entry.name});Need ($now.Count-eq1-and$now[0].state-eq4-and$now[0].xml-ceq$entry.xml-and$now[0].enginePid-eq$entry.enginePid-and$now[0].instanceGuid-ceq$entry.instanceGuid) 'OLD_TASK_INSTANCE_CAS'}
 foreach($role in $roles){$actual=@($fresh.processes|Where-Object{$_.role-ceq$role});Need ($actual.Count-eq1-and(($actual[0]|ConvertTo-Json -Depth 8 -Compress)-ceq($identities[$role]|ConvertTo-Json -Depth 8 -Compress))) 'OLD_PROCESS_CAS'}
+if($EngineGeneration-ceq'FileAttributesV1'){$originalOldLifetimePins=HoldOriginalOldLifetimes $fresh $before $profile}
 $active=$schedule.GetRunningTasks(1);$exact=@();foreach($entry in $old.tasks){$match=@();for($i=1;$i-le$active.Count;$i++){$r=$active.Item($i);if($r.Name-ceq$entry.name){$match+=,$r}};Need ($match.Count-eq1-and$match[0].InstanceGuid-ceq$entry.instanceGuid-and$match[0].EnginePID-eq$entry.enginePid) 'COM_INSTANCE_CAS';$exact+=,$match[0]};foreach($instance in $exact){$instance.Stop()}
 foreach($role in $roles){$v=$identities[$role];$proof=[ordered]@{pid=$v.pid;parentPid=$v.parentPid;nodePath=$v.nodePath;ownerSid=$v.ownerSid;commandLine=$v.commandLine;creationTime=([string]$v.creationTime-replace'(\.\d{6})0Z$','$1Z')};$encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress)));Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_EACH_STOP_PIN';$result=& $stopper -ExpectedJsonBase64 $encoded;Need ($result-cin@('EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE')) 'OLD_EXACT_STOP'}
 $stopUntil=[DateTime]::UtcNow.AddSeconds(20)
@@ -175,3 +244,5 @@ $after=WaitOldReady;$protectedAfter=ProtectedSnapshot;Need ((Hash (Bytes $protec
 $report=[ordered]@{status='REHEARSAL_ROLLBACK_READY';environment='P03_REHEARSAL';runRoot=$runRoot;engine=$engineRef;engineSha256=$engineRef.sha256;profile=$profileRef;before=$beforeRef;candidate=$candidateRef;protectedBeforeSha256=$protectedBeforeSha;protectedAfterSha256=(Hash (Bytes $protectedAfter));sqlFreeFixture=$true;applicationRollbackVerified=$false;databaseRollbackVerified=$false;sharedTestMutation=$false;cleanupPerformed=$false}
 if($EngineGeneration -cin @('B264V2','FailureRecordV1','FileAttributesV1')){$report['engineGeneration']=$EngineGeneration}
 $reportRef=WriteNew (Join-Path $runRoot 'result.json') (Bytes $report);$report['result']=$reportRef;$report|ConvertTo-Json -Depth 12
+
+}finally{CloseOriginalOldLifetimes $originalOldLifetimePins}
