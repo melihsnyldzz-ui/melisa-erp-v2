@@ -13,6 +13,26 @@ $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018'
 $engineSha='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'
 function Require-NewDrain($condition,[string]$code){if(-not$condition){throw ('P03_NEW_DRAIN_'+$code)}}
+# Functions-only CurrentB007 reuse. The legacy standalone dispatcher is unchanged.
+function Assert-CurrentB007RecoverySettings($profile,$oldSettings,$newSettings){
+ $owner='S-1-5-21-2170750028-1005938530-2568122015-1001';$runtime='C:\Sirket\ERP\runtime\terminal-completion-logon'
+ Require-NewDrain ($profile.oldSettings.path -ceq ($runtime+'\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json') -and $profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.newSettings.path -ceq ($runtime+'\settings-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json') -and $profile.newSettings.sha256 -ceq 'de54c4da7f5b33a5f41b94624f01df4eb315dfa6a20fd2826af9ca37538d3942') 'CURRENT_SETTINGS_REFS'
+ foreach($settings in @($oldSettings,$newSettings)){Require-NewDrain ($settings.ownerSid -ceq $owner -and $settings.database -ceq 'MELISA_ERP_CRM_SHARED_TEST_20261009_02' -and $settings.copyId -ceq 'e16b70f0-4057-428b-9abc-6bbcaf35fe82' -and $settings.actualT1 -ceq $false -and (@($settings.components.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'crm|erpApiNative|hub|nativeOrder' -and $settings.node.path -ceq 'C:\Sirket\ERP\tools\node-v24.19.0\node.exe' -and $settings.node.sha256 -ceq '3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237') 'CURRENT_SETTINGS_SCOPE'}
+ $fixed=@(
+ @($oldSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-COMPLETE-TEST-20261018-e59e07abf7ae','e59e07abf7ae2567cdc2adb93811fe29e0032fe5','2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'),
+ @($oldSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a','13bdf75a032ae8f694354a2e57b6ed382aec2f17','195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'),
+ @($oldSettings.components.crm,'C:\Sirket\CRM\releases\crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'),
+ @($oldSettings.components.nativeOrder,'C:\Sirket\ERP\releases\CRM-ORDER-DRAFT-TEST-20261013-7a41f64','7a41f6492273dd1ec0bcb086f820be5575372be8','6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'),
+ @($newSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41','6dc33f41737349c6e3f17fb867a451b570a00acc','6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'),
+ @($newSettings.components.crm,'C:\Sirket\CRM\releases\node-v24.19.0\crm-shared-test-7ba6e4ebc8b70019136d603e6307741189ba03c1','7ba6e4ebc8b70019136d603e6307741189ba03c1','820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35'),
+ @($newSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6','b007317f03e6be2c3a3d2271428dcf9dec33e04e','365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac')
+ )
+ Require-NewDrain (@($profile.packages).Count -eq 7 -and @($profile.packages.root|Select-Object -Unique).Count -eq 7) 'CURRENT_PACKAGE_COUNT'
+ foreach($f in $fixed){Require-NewDrain ($f[0].packageRoot -ceq $f[1] -and $f[0].sourceCommit -ceq $f[2] -and $f[0].manifestSha256 -ceq $f[3] -and @($profile.packages|Where-Object{$_.root -ceq $f[1] -and $_.sourceCommit -ceq $f[2] -and $_.manifestSha256 -ceq $f[3] -and $_.manifestPath -ceq ($f[1]+'\release-manifest.json')}).Count -eq 1) 'CURRENT_PACKAGE_BINDING'}
+ Require-NewDrain (($oldSettings.components.nativeOrder|ConvertTo-Json -Depth 20 -Compress) -ceq ($newSettings.components.nativeOrder|ConvertTo-Json -Depth 20 -Compress)) 'CURRENT_NATIVE_RETAINED'
+ foreach($key in @('packageRoot','sourceCommit','manifestSha256')){Require-NewDrain ($oldSettings.components.hub.$key -ceq $oldSettings.components.erpApiNative.$key -and $newSettings.components.hub.$key -ceq $newSettings.components.erpApiNative.$key) 'CURRENT_HUB_BINDING'}
+ Require-NewDrain ($oldSettings.components.crm.config.path -ceq ($runtime+'\crm-activation-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json') -and $oldSettings.components.crm.config.sha256 -ceq '9b484883f89584225bcd5242b7f501a38feb6a1bbaa22d8a8e17accf302785ab' -and $newSettings.components.crm.config.path -ceq ($runtime+'\crm-activation-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json') -and $newSettings.components.crm.config.sha256 -ceq 'b0dce9a873474a6d229d0c48580af1dcf4dd5bac9b881af7b47162322b063d39') 'CURRENT_ACTIVATION'
+}
 function Read-NewDrainEngine{
  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner) 'OWNER'
  Require-NewDrain ([IO.Path]::GetFullPath($EnginePath)-ceq$EnginePath-and$EnginePath.StartsWith($base+'\',[StringComparison]::Ordinal)-and[IO.Path]::GetFileName($EnginePath)-ceq'p03-physical-rollback.ps1') 'ENGINE_PATH'
