@@ -5,7 +5,7 @@ import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {inspectPr54B264PredecessorIO,validatePr54B264PhysicalInspection,validatePr54B264Sup20dPhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
+import {inspectPr54B264PredecessorIO,validatePr54B264PhysicalInspection,validatePr54B264Sup20dPhysicalInspection,collectPr54CurrentInspectionPair,pr54CollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,assertPr54B264SuccessorCandidate,assertPr54B264Sup20dCandidate} from './p03-pr54-owner-successor.mjs';
 const run=promisify(execFile),shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const hash=x=>createHash('sha256').update(x).digest('hex');
@@ -111,6 +111,12 @@ export async function inspectPr54B264Sup20dPhysicalOwner(input){
  // caller-supplied boolean or a caller-provided current-process frame.
  assertPr54B264Sup20dCandidate({...before.profile,supervisorRoot:profile.packages.find(p=>p.sourceCommit===before.profile.supervisorSource)?.root,newSettings:profile.newSettings});
  const options={windowsHide:true,timeout:60000,maxBuffer:8*1024*1024,env:{...process.env,PSModulePath:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\Modules`}};
+ const {current,frame,aux}=await collectPr54CurrentInspectionPair(()=>pr54CollectPhysicalObservation(async()=>{
+  // Re-observe the entire raw pair; never retry just the failed worker against
+  // an older process frame or delete an ephemeral row from an observation.
+  need(!fs.existsSync(PR54_B264_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+  await inspectPr54B264PredecessorIO();
+  for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
  const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const current=JSON.parse(observe.stdout);
  need(current.schemaVersion==='melisa-p03-physical-observation.v1'&&current.environment==='Shared'&&current.policyGeneration==='B264Sup20DInspectOnly'&&current.transitionAuthority===false&&current.collectionAuthority==='PHYSICAL_OBSERVATION_ONLY'&&current.collection==='Schedule.Service.GetRunningTasks(1)'&&current.processScope==='CIM.Win32_Process.Unfiltered'&&current.portScope==='Get-NetTCPConnection.Listen.Unfiltered'&&current.stopPermitted===false&&current.applyAvailable===false&&JSON.stringify(current.beforeImage)===JSON.stringify(beforeRef)&&current.rawScope?.unverifiedCount===0&&current.rawScope?.unverifiedProcesses?.length===0,'OBSERVER_FRAME');
  const inspected=await run(shell,pinnedInvocation(input.drainerRef,argv.worker),options);need(!inspected.stderr,'WORKER_STDERR');const frame=JSON.parse(inspected.stdout);
@@ -122,6 +128,8 @@ export async function inspectPr54B264Sup20dPhysicalOwner(input){
  await inspectPr54B264PredecessorIO();
  for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
  need(!fs.existsSync(PR54_B264_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+  return {current,frame,aux};
+ },'SUCCESSOR_INSPECT'));
  const token=Object.freeze({}),now=Date.now();need(now-Date.parse(frame.observedAt)>=0&&now-Date.parse(frame.observedAt)<60000,'EXPIRED');
  inspections.set(token,{policy:'B264Sup20DInspectOnly',current,profile,before,profileRef:Object.freeze({...profileRef}),beforeRef:Object.freeze({...beforeRef}),observedAt:frame.observedAt,aux,digest:hash(bytes({current,profile,before}))});
  return {status:'B264_SUP20D_PHYSICAL_INSPECTED_READ_ONLY',current,profile,before,physicalInspection:token,claimCreated:false,applyExecuted:false,stopAuthority:false,transitionAuthority:false};

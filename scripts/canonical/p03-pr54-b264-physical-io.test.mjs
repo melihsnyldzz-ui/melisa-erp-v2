@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
-import {validatePr54B264PhysicalInspection,validatePr54B264Sup20dPhysicalInspection,validatePr54CurrentPhysicalInspection,lookupPr54CurrentPhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
+import {validatePr54B264PhysicalInspection,validatePr54B264Sup20dPhysicalInspection,validatePr54CurrentPhysicalInspection,lookupPr54CurrentPhysicalInspection,collectPr54CurrentInspectionPair,pr54CollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {pr54B264InspectionArguments,lookupPr54B264PhysicalInspection,inspectPr54B264PhysicalOwner,pr54B264Sup20dInspectionArguments,lookupPr54B264Sup20dPhysicalInspection,inspectPr54B264Sup20dPhysicalOwner} from './p03-pr54-b264-physical-io.mjs';
@@ -70,7 +70,7 @@ test('B264 full frame uses the existing ten-UID/COM/port classifier and cannot m
  for(const mutate of [x=>x.frame.applyExecuted=true,x=>x.frame.stopAuthority=true,x=>x.frame.transitionAuthority=true,x=>x.frame.policyGeneration='Legacy',x=>x.frame.engineSha256='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037',x=>x.frame.extra=true,x=>x.frame.protectedProcesses=[],x=>x.frame.oldIdentities.pop(),x=>x.frame.oldWatchers[0].pid++,x=>x.frame.observedAt=new Date(x.now-60000).toISOString(),x=>x.current.tasks[0].xml+='x',x=>x.current.runningInstances[0].enginePid++,x=>x.current.processes.push({...x.current.processes[0]}),x=>x.current.bindings.push({pid:40,port:99,address:'127.0.0.1'}),x=>x.frame.consolePins[0].parentPid=999]){const x=physicalFixture();mutate(x);assert.throws(()=>validatePr54B264PhysicalInspection(x));}
 });
 function transportFixture(sup20d=false){
- const f=physicalFixture(sup20d),map=new WeakMap(),events=[],encoded=o=>Buffer.from(JSON.stringify(o)),context={input:f.refs,process:{platform:'win32'},fs:{existsSync:()=>false},Date,Object,JSON,Buffer,hash,bytes:encoded,inspections:map,need:(v,c)=>{if(!v)throw Error(c);},shell,PR54_B264_SUCCESSOR_CLAIM_PATH:'claim',pr54B264InspectionArguments,pr54B264Sup20dInspectionArguments,assertPr54B264Sup20dCandidate:c=>assertPr54B264Sup20dCandidate(JSON.parse(JSON.stringify(c))),validatePr54B264Sup20dPhysicalInspection,assertPr54B264SuccessorCandidate:c=>assertPr54B264SuccessorCandidate(JSON.parse(JSON.stringify(c))),validatePr54B264PhysicalInspection,
+ const f=physicalFixture(sup20d),map=new WeakMap(),events=[],encoded=o=>Buffer.from(JSON.stringify(o)),context={input:f.refs,process:{platform:'win32'},fs:{existsSync:()=>false},Date,Object,JSON,Buffer,hash,bytes:encoded,inspections:map,need:(v,c)=>{if(!v)throw Error(c);},shell,PR54_B264_SUCCESSOR_CLAIM_PATH:'claim',pr54B264InspectionArguments,pr54B264Sup20dInspectionArguments,assertPr54B264Sup20dCandidate:c=>assertPr54B264Sup20dCandidate(JSON.parse(JSON.stringify(c))),validatePr54B264Sup20dPhysicalInspection,collectPr54CurrentInspectionPair,pr54CollectPhysicalObservation,assertPr54B264SuccessorCandidate:c=>assertPr54B264SuccessorCandidate(JSON.parse(JSON.stringify(c))),validatePr54B264PhysicalInspection,
  inspectPr54B264PredecessorIO:async()=>{events.push('history');return {transitionAuthority:false};},read:r=>r.path===f.profileRef.path?encoded(f.profile):r.path===f.beforeRef.path?encoded(f.before):Buffer.from('pinned source'),
  pinnedInvocation:(_ref,argv)=>argv,run:async(_exe,args)=>{events.push(args);return {stderr:'',stdout:JSON.stringify(args.includes('-Mode')?f.frame:f.current)};}};
  return {f,context,events,invoke:()=>vm.runInNewContext('('+(sup20d?inspectPr54B264Sup20dPhysicalOwner:inspectPr54B264PhysicalOwner).toString()+')(input)',context),lookup:vm.runInNewContext('('+(sup20d?lookupPr54B264Sup20dPhysicalInspection:lookupPr54B264PhysicalInspection).toString()+')',context),otherLookup:vm.runInNewContext('('+(sup20d?lookupPr54B264PhysicalInspection:lookupPr54B264Sup20dPhysicalInspection).toString()+')',context)};
@@ -146,3 +146,43 @@ test('real pinned invocation named-argument parser admits Sha256 names and rejec
  for($i=0;$i-lt$cases.Count;$i++){$v=[pscustomobject]@{args=@($cases[$i])};try{${parser};if($i-ne0){throw 'ACCEPTED'};if(-not$bound.ContainsKey('ProfileSha256')-or-not$bound.ContainsKey('BeforeImageSha256')){throw 'MISSING'};'VALID'}catch{if($i-eq0-or$_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}}`);
  assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,bad.length);
 });
+
+function addTransientProbe(f){
+ const probePath=String.raw`C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a\scripts\canonical\hub-stack-process-probe.ps1`,core=f.before.identities.coreSupervisor;
+ const probe={pid:70,parentPid:core.pid,nodePath:shell,ownerSid:core.ownerSid,creationTime:core.creationTime,commandLine:[shell,'-NoProfile','-NonInteractive','-ExecutionPolicy','RemoteSigned','-File',probePath,'-Ports','4186','-ProcessId',String(f.before.identities.erpNative.pid)].map(x=>'"'+x+'"').join(' ')};
+ f.frame.probePins.push(probe);f.current.processes.push({...probe});
+}
+function recapturedAuxiliaryFrame(f){
+ const x=structuredClone(f),ids=new Map([...x.frame.probePins,...x.frame.consolePins].map(p=>[p.pid,p.pid+1000]));
+ for(const rows of [x.current.processes,x.frame.probePins,x.frame.consolePins])for(const p of rows){p.pid=ids.get(p.pid)??p.pid;p.parentPid=ids.get(p.parentPid)??p.parentPid;}
+ return x;
+}
+test('Sup20d retries an exact ephemeral CIM failure with an entirely new observer and worker pair',async()=>{
+ for(const where of ['observer','worker']){
+  const t=transportFixture(true);addTransientProbe(t.f);const next=recapturedAuxiliaryFrame(t.f),seen=[];let failed=false;
+  t.context.run=async(_exe,args)=>{const worker=args.includes('-Mode');seen.push(worker?'worker':'observer');if(!failed&&worker===(where==='worker')){failed=true;throw Object.assign(Error('redacted'),{stderr:'FullyQualifiedErrorId : HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand\r\n'});}return {stderr:'',stdout:JSON.stringify(worker?next.frame:failed?next.current:t.f.current)};};
+  const result=await t.invoke();assert.equal(result.status,'B264_SUP20D_PHYSICAL_INSPECTED_READ_ONLY');assert.deepEqual(seen,where==='worker'?['observer','worker','observer','worker']:['observer','observer','worker']);
+  assert.equal(result.current.processes.some(p=>p.pid===t.f.frame.probePins[0].pid),false);assert.equal(result.current.processes.some(p=>p.pid===next.frame.probePins[0].pid),true);
+  assert.equal(t.lookup(result.physicalInspection,{current:result.current,profile:result.profile,before:result.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now}).length,4);
+ }
+});
+test('Sup20d AUX frame churn recaptures whole pairs and never filters or combines frames',async()=>{
+ const t=transportFixture(true);addTransientProbe(t.f);const next=recapturedAuxiliaryFrame(t.f),seen=[];let workerCalls=0;
+ t.context.run=async(_exe,args)=>{const worker=args.includes('-Mode');seen.push(worker?'worker':'observer');if(worker){workerCalls++;return {stderr:'',stdout:JSON.stringify(next.frame)};}return {stderr:'',stdout:JSON.stringify(workerCalls?next.current:t.f.current)};};
+ const result=await t.invoke();assert.deepEqual(seen,['observer','worker','observer','worker']);assert.equal(result.current.processes.length,next.current.processes.length);assert.equal(result.current.processes.some(p=>p.pid===t.f.frame.probePins[0].pid),false);
+ const bad=transportFixture(true),mismatch=recapturedAuxiliaryFrame(bad.f);let attempts=0;bad.context.run=async(_exe,args)=>{attempts++;return {stderr:'',stdout:JSON.stringify(args.includes('-Mode')?mismatch.frame:bad.f.current)};};
+ await assert.rejects(bad.invoke(),/P03_SHARED_CURRENT_AUX_FRAME_CHANGED/);assert.equal(attempts,6);
+});
+test('Sup20d known transient retries exhaust at three complete attempts; permanent errors never retry',async()=>{
+ const t=transportFixture(true);let observers=0,workers=0;const failure=Error('P03_PROCESS_IDENTITY_UNAVAILABLE');t.context.run=async(_exe,args)=>{if(args.includes('-Mode')){workers++;throw failure;}observers++;return {stderr:'',stdout:JSON.stringify(t.f.current)};};
+ await assert.rejects(t.invoke(),e=>e===failure&&e.p03ObservationStage==='SUCCESSOR_INSPECT');assert.equal(observers,3);assert.equal(workers,3);
+ for(const stderr of ['FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand','FullyQualifiedErrorId : HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand','P03_OWNER','P03_BEFORE_HASH','P03_SHARED_CURRENT_AUX_IDENTITY']){const x=transportFixture(true);let calls=0;x.context.run=async()=>{calls++;throw Object.assign(Error('redacted'),{stderr});};await assert.rejects(x.invoke());assert.equal(calls,1);}
+});
+test('Sup20d recapture rechecks consumed claims and unchanged source bytes before another OS pair',async()=>{
+ for(const changed of ['claim','pin']){const t=transportFixture(true);let calls=0,consumed=false,drift=false;const originalRead=t.context.read;t.context.fs.existsSync=()=>consumed;t.context.read=r=>drift?Buffer.from('changed'):originalRead(r);t.context.run=async()=>{calls++;if(changed==='claim')consumed=true;else drift=true;throw Error('P03_PROCESS_IDENTITY_UNAVAILABLE');};await assert.rejects(t.invoke(),changed==='claim'?/CONSUMED/:/PIN_CHANGED/);assert.equal(calls,1);}
+});
+test('Sup20d source retains raw authority rules, finite collectors and non-mutation',()=>{
+ const body=inspectPr54B264Sup20dPhysicalOwner.toString();assert.match(body,/collectPr54CurrentInspectionPair\(\(\)=>pr54CollectPhysicalObservation\(async\(\)=>/);assert.match(body,/'SUCCESSOR_INSPECT'/);assert.doesNotMatch(body,/current\.processes\.filter|unverifiedProcesses\.filter|CandidateProposal|CreateNew|writeFile|Stop-Process|RegisterTask|setTimeout/);assert.equal((body.match(/inspections\.set\(/g)??[]).length,1);assert(body.indexOf('inspections.set(')>body.indexOf("'SUCCESSOR_INSPECT'"));
+});
+
+test('legacy B264 physical inspection source body remains unchanged',()=>{const s=text('p03-pr54-b264-physical-io.mjs').replaceAll('\r\n','\n'),a=s.indexOf('export async function inspectPr54B264PhysicalOwner('),b=s.indexOf('// Explicit finite generation;',a);assert.equal(hash(Buffer.from(s.slice(a,b).trim())),'34312ccab473aa09d7ed9573731392c1e54b699efc27152df810df57471ea54f');});

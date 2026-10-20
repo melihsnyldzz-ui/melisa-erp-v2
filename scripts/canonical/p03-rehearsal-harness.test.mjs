@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
 
 test('task action update preserves raw exported XML metadata and literal argument quotes',{skip:process.platform!=='win32'},()=>{
@@ -113,13 +113,15 @@ test('wrapped physical-engine refusal retains only the fixed inner P03 code',{sk
 test('explicit B264V2 mode selects only the same frozen private engine and preserves default rehearsal source payload',()=>{
  assert.equal(parseP03RehearsalMode(['--B264V2DryRun']),'B264V2DryRun');assert.equal(parseP03RehearsalMode(['--B264V2Run']),'B264V2Run');
  for(const args of [['--b264v2run'],['--B264V2Run','--Run'],['--engine','other'],['--B264V2Run-anything']])assert.throws(()=>parseP03RehearsalMode(args));
- const directory=String.raw`C:\synthetic\scripts\canonical`,v2=fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url)),calls=[];
+ const directory=String.raw`C:\synthetic\scripts\canonical`,v2=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n')),calls=[];
  const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,fs:{lstatSync:file=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:file=>{calls.push(file);return file===P03_B264_V2_ENGINE.path?v2:Buffer.from('fixture:'+path.win32.basename(file));}}};
  const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=mode=>JSON.parse(JSON.stringify(make(directory,mode)));
  const dry=fresh('B264V2DryRun'),run=fresh('B264V2Run'),legacy=fresh('DryRun');
  assert.equal(dry.mode,'DryRun');assert.equal(run.mode,'Run');assert.equal(dry.engineGeneration,'B264V2');assert.deepEqual(dry.engine,P03_B264_V2_ENGINE);assert.deepEqual(run.engine,P03_B264_V2_ENGINE);assert.deepEqual(dry.cloneProof,legacy.cloneProof);assert.deepEqual(dry.files,legacy.files);assert.equal(Object.hasOwn(legacy,'engineGeneration'),false);assert.equal(legacy.engine.path,path.win32.join(directory,'p03-physical-rollback.ps1'));
  assert.equal(crypto.createHash('sha256').update(v2).digest('hex'),P03_B264_V2_ENGINE.sha256);
  context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?Buffer.from('changed'):Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
+ // Fixture canonicalization does not relax the production raw-byte engine pin.
+ context.fs.readFileSync=file=>file===P03_B264_V2_ENGINE.path?Buffer.from(v2.toString('utf8').replaceAll('\n','\r\n')):Buffer.from('fixture');assert.throws(()=>make(directory,'B264V2Run'),/P03_REHEARSAL_V2_ENGINE/);
 });
 test('Windows PS5 V2 request gate rejects wrong source/hash/generation without IO or task creation',{skip:process.platform!=='win32'},()=>{
  const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
@@ -129,4 +131,11 @@ $r=Request;AssertRehearsalEngineRequest $r 'B264V2';'VALID'
 foreach($kind in @('path','hash','generation','extra','legacy-selector')){$r=Request;$g='B264V2';switch($kind){path{$r.engine.path=$r.engine.path.ToUpperInvariant()} hash{$r.engine.sha256='f'*64} generation{$r.engineGeneration='b264v2'} extra{$r.engine|Add-Member NoteProperty bypass $true} 'legacy-selector'{$g='Legacy'}};try{AssertRehearsalEngineRequest $r $g;throw 'ACCEPTED'}catch{if($_.Exception.Message-ceq'ACCEPTED'){throw};'REJECTED'}}
 $r=[pscustomobject]@{engine=[pscustomobject]@{path='C:\\synthetic\\scripts\\canonical\\p03-physical-rollback.ps1';sha256='a'*64}};AssertRehearsalEngineRequest $r 'Legacy';'LEGACY_VALID'`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8'});assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/VALID/);assert.match(result.stdout,/LEGACY_VALID/);assert.equal((result.stdout.match(/REJECTED/g)??[]).length,5);
+});
+
+test('harness retains bounded driver line and every allowed exception type without copying raw diagnostics',()=>{
+ const types=['MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException','ArgumentException','InvalidOperationException','PropertyNotFoundException','ParameterBindingException','PSInvalidCastException','OtherException'];
+ for(const type of types){const r=p03RehearsalFailureMetadata(`P03_REHEARSAL_EXECUTION_REJECTED TYPE_${type} METHOD_UnknownMethod LINE_141 private-sentinel SQL passwords argv`);assert.deepEqual(r,{status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:'P03_REHEARSAL_EXECUTION_REJECTED',errorType:type,method:'UnknownMethod',line:141});assert.doesNotMatch(JSON.stringify(r),/private-sentinel|SQL|passwords|argv/);}
+ for(const suffix of ['LINE_-1','LINE_1000001','LINE_123456789','LINE_1.5','LINE_1e7']){const r=p03RehearsalFailureMetadata('TYPE_private METHOD_private '+suffix);assert.equal(r.errorType,'OtherException');assert.equal(r.method,'UnknownMethod');assert.equal(r.line,null);}
+ assert.equal(p03RehearsalFailureMetadata('').line,null);
 });

@@ -16,12 +16,16 @@ export function p03RehearsalSourceRequest(directory,mode){
  if(v2&&hash(engineBytes)!==P03_B264_V2_ENGINE.sha256)throw Error('P03_REHEARSAL_V2_ENGINE');
  return {mode:driverMode,...(v2?{engineGeneration:'B264V2'}:{}),files,engine:{path:engine,sha256:hash(engineBytes)},cloneProof:{path:'C:\\Sirket\\ERP\\backups\\P03-20261018-121000\\isolated-restore-v4\\restore-rehearsal-verified.json',sha256:'e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353'}};
 }
+export function p03RehearsalFailureMetadata(stderr){
+ const value=String(stderr??''),codes=value.match(/\bP03_[A-Z_]+\b/g)??[],line=value.match(/\bLINE_([0-9]{1,7})(?=\s|$)/)?.[1],number=line===undefined?null:Number(line);
+ return {status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:codes.at(-1)??'P03_REHEARSAL_EXECUTION_REJECTED',errorType:value.match(/\bTYPE_(MethodInvocationException|RuntimeException|UnauthorizedAccessException|IOException|ArgumentException|InvalidOperationException|PropertyNotFoundException|ParameterBindingException|PSInvalidCastException|OtherException)\b/)?.[1]??'OtherException',method:value.match(/\bMETHOD_(Invoke|InvokeMethod|CreateDirectory|Write|Flush|AddAccessRule|SetOwner|CheckActionPreference|UnknownMethod)\b/)?.[1]??'UnknownMethod',line:Number.isSafeInteger(number)&&number>=0&&number<=1000000?number:null};
+}
 async function main(){
  const mode=parseP03RehearsalMode(process.argv.slice(2));if(process.platform!=='win32')throw Error('P03_REHEARSAL_PLATFORM');
  if(mode==='LightHubRun'){const {runLightHubRehearsal}=await import('./p03-light-hub-driver.mjs');const request=JSON.parse(fs.readFileSync(0,'utf8'));process.stdout.write(JSON.stringify(await runLightHubRehearsal(request))+'\n');return;}
  const directory=path.dirname(fileURLToPath(import.meta.url)),request=p03RehearsalSourceRequest(directory,mode);
  const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-File',path.join(directory,'p03-rehearsal-driver.ps1'),'-Mode',request.mode,...(request.engineGeneration?['-EngineGeneration',request.engineGeneration]:[])],{input:JSON.stringify(request),encoding:'utf8',windowsHide:true,timeout:request.mode==='Run'?600000:60000,maxBuffer:65536,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
- if(child.status!==0||child.error){const stderr=String(child.stderr??''),codes=stderr.match(/\bP03_[A-Z_]+\b/g)??[];process.stderr.write(JSON.stringify({status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:codes.at(-1)??'P03_REHEARSAL_EXECUTION_REJECTED',errorType:stderr.match(/\bTYPE_(MethodInvocationException|RuntimeException|UnauthorizedAccessException|IOException|OtherException)\b/)?.[1]??'OtherException',method:stderr.match(/\bMETHOD_(Invoke|InvokeMethod|CreateDirectory|Write|Flush|AddAccessRule|SetOwner|CheckActionPreference|UnknownMethod)\b/)?.[1]??'UnknownMethod'})+'\n');process.exitCode=1;return;}
+ if(child.status!==0||child.error){process.stderr.write(JSON.stringify(p03RehearsalFailureMetadata(child.stderr))+'\n');process.exitCode=1;return;}
  const result=JSON.parse(child.stdout);if(!['DRY_RUN_READY','REHEARSAL_ROLLBACK_READY'].includes(result.status))throw Error('P03_REHEARSAL_RESULT');
  process.stdout.write(JSON.stringify(result,null,2)+'\n');
 }

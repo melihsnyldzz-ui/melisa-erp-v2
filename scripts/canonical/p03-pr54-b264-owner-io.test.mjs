@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
-import {pr54B264ReadPinsProgram,inspectPr54B264PredecessorIO,assertPr54WriteScope,claimPr54CurrentOwnerSuccessorIO} from './p03-pr54-shared-owner-io.mjs';
+import {pr54B264ReadPinsProgram,inspectPr54B264PredecessorIO,assertPr54WriteScope,claimPr54CurrentOwnerSuccessorIO,runPr54SharedOwnerTransition} from './p03-pr54-shared-owner-io.mjs';
 import {PR54_B264_REFS,PR54_B264_OUTER_REFS,PR54_B264_RECOVERY_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH} from './p03-pr54-owner-successor.mjs';
 const pins=()=>[...Object.values(PR54_B264_REFS),...PR54_B264_OUTER_REFS,...PR54_B264_RECOVERY_REFS];
 test('B264 read program accepts only finite exact pins in bounded unique batches',()=>{
@@ -30,5 +30,5 @@ test('reader refuses consumed claim, extra event, failed ACL transport and any c
 test('new history reader cannot open B264 claim through existing writer or Apply routing',async()=>{
  const root=path.win32.dirname(PR54_B264_SUCCESSOR_CLAIM_PATH),dir=root+'\\MelisaERP-P03-transition-'+ 'a'.repeat(32);assert.throws(()=>assertPr54WriteScope(PR54_B264_SUCCESSOR_CLAIM_PATH,dir,root+'\\p03-pr54-shared-owner.lock.json',PR54_B264_SUCCESSOR_CLAIM_PATH));
  let writes=0;await assert.rejects(claimPr54CurrentOwnerSuccessorIO({guardProtected:async()=>true,inspect:async()=>({claimPath:PR54_B264_SUCCESSOR_CLAIM_PATH}),createNew:async()=>{writes++;},readClaim:async()=>null}));assert.equal(writes,0);
- const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8'),start=source.indexOf('export async function runPr54SharedOwnerTransition('),body=source.slice(start);assert.match(body,/JSON.stringify\(predecessorRef\)===JSON.stringify\(PR54_CURRENT_REFS.profile\)/);assert.doesNotMatch(body,/B264|b264/);
+ const body=runPr54SharedOwnerTransition.toString();assert.match(body,/JSON.stringify\(predecessorRef\)===JSON.stringify\(PR54_CURRENT_REFS.profile\)/);assert.doesNotMatch(body,/B264|b264/);
 });

@@ -231,3 +231,9 @@ Gerçek kaynak20Ekim10:47:04.7435307Z51tablohash/membership/permission/module/pr
 Ayrı dispatcher, iki genuine admission öncesi held exact V2 tam paket/config PreflightOld, CreateNew claim, held core cut, kalan yedi rol ve guarded NEW rollback akışını bağlar. Legacy FE/7b değiştirilmedi. Root13/13, agent74/74 ve bağımsız yeni2/2 PASS; P1 payload tarama eksiği kapanarak reviewGO alındı. Yeni suite Windows CI açık listesinde.
 
 Aynı mevcut SQL-free fixture V2 DryRun gerçekten geçti. Eski iki READY mock görev exact XML/SDDL before-image ile geçici kaldırıldı; Shared kimliği değişmedi. V2 Run, exact quiesce ve eski mock tanım restore/readback sonucu ayrıca kaydedilecek. Bu fixture gerçek ERP uygulama/DB rollback veya insan kabulü değildir. Güncel RO admission geçici CIM süreç kaybolmasında reddedildi, claim/stop/kurulum yok. QueryStore original-mode cleanup henüz açık.
+
+## 20 Ekim gerçek V2 retleri ve dar kaynak düzeltmesi
+
+19f819c7 Windows CI iki beklenti nedeniyle FAIL; quality/secret SUCCESS. Legacy function body sınırı ve canonical LF fixture düzeltildi; production raw engine hash retleri korundu. Root17/17 PASS. Sup20D mevcut bounded whole-pair collectorları kullanır; karışık churn için en fazla3x3, başarısız frame/token yok. Bağımsız10/10 ve GO.
+
+Actual V2 Run7874 tamamlanmadı, rollback kanıtı değildir. Old mock görevler/prosesler kesin kimlikli quiesce akışında toparlanıyor; iki captured mock UID kaldı. Shared kurulum/claim/stop0. Özgün XML/SDDL restore ve QueryStore original-mode readback henüz sonuçlanmadı; ayrı kanıtlanacak.
