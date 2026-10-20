@@ -5,16 +5,19 @@ import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL,fileURLToPath} from 'node:url';
 export const P03_B264_V2_ENGINE=Object.freeze({path:String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-recovery-control-eb5b37a555cb\p03-physical-rollback.ps1`,sha256:'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'});
-export function parseP03RehearsalMode(args){if(args.length>1||!['--DryRun','--Run','--LightHubRun','--B264V2DryRun','--B264V2Run',undefined].includes(args[0]))throw Error('P03_REHEARSAL_MODE');return args[0]?.startsWith('--B264V2')?args[0].slice(2):args[0]==='--LightHubRun'?'LightHubRun':args[0]==='--Run'?'Run':'DryRun';}
+// Separate finite candidate, not staged or admitted by this source declaration.
+export const P03_FAILURE_RECORD_V1_ENGINE=Object.freeze({path:String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054.ps1`,sha256:'1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054'});
+export function parseP03RehearsalMode(args){if(args.length>1||!['--DryRun','--Run','--LightHubRun','--B264V2DryRun','--B264V2Run','--FailureRecordV1DryRun','--FailureRecordV1Run',undefined].includes(args[0]))throw Error('P03_REHEARSAL_MODE');return args[0]?.startsWith('--B264V2')||args[0]?.startsWith('--FailureRecordV1')?args[0].slice(2):args[0]==='--LightHubRun'?'LightHubRun':args[0]==='--Run'?'Run':'DryRun';}
 export function p03RehearsalSourceRequest(directory,mode){
- const v2=['B264V2DryRun','B264V2Run'].includes(mode),driverMode=v2?mode.slice(6):mode;
+ const v2=['B264V2DryRun','B264V2Run'].includes(mode),candidate=['FailureRecordV1DryRun','FailureRecordV1Run'].includes(mode),driverMode=v2?mode.slice(6):candidate?mode.slice('FailureRecordV1'.length):mode;
  if(!['DryRun','Run'].includes(driverMode))throw Error('P03_REHEARSAL_MODE');
  const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
  const names=['p03-rehearsal-fixture.mjs','p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1'];
  const files=names.map(name=>{const source=path.join(directory,name),stat=fs.lstatSync(source);if(!stat.isFile()||stat.isSymbolicLink()||stat.nlink!==1)throw Error('P03_REHEARSAL_SOURCE');const bytes=fs.readFileSync(source);return {name,sha256:hash(bytes),bytesBase64:bytes.toString('base64')};});
- const engine=v2?P03_B264_V2_ENGINE.path:path.join(directory,'p03-physical-rollback.ps1'),engineBytes=fs.readFileSync(engine);
+ const engine=v2?P03_B264_V2_ENGINE.path:candidate?P03_FAILURE_RECORD_V1_ENGINE.path:path.join(directory,'p03-physical-rollback.ps1'),engineBytes=fs.readFileSync(engine);
  if(v2&&hash(engineBytes)!==P03_B264_V2_ENGINE.sha256)throw Error('P03_REHEARSAL_V2_ENGINE');
- return {mode:driverMode,...(v2?{engineGeneration:'B264V2'}:{}),files,engine:{path:engine,sha256:hash(engineBytes)},cloneProof:{path:'C:\\Sirket\\ERP\\backups\\P03-20261018-121000\\isolated-restore-v4\\restore-rehearsal-verified.json',sha256:'e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353'}};
+ if(candidate&&hash(engineBytes)!==P03_FAILURE_RECORD_V1_ENGINE.sha256)throw Error('P03_REHEARSAL_FAILURE_RECORD_ENGINE');
+ return {mode:driverMode,...(v2?{engineGeneration:'B264V2'}:candidate?{engineGeneration:'FailureRecordV1'}:{}),files,engine:{path:engine,sha256:hash(engineBytes)},cloneProof:{path:'C:\\Sirket\\ERP\\backups\\P03-20261018-121000\\isolated-restore-v4\\restore-rehearsal-verified.json',sha256:'e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353'}};
 }
 export function p03RehearsalFailureMetadata(stderr){
  const value=String(stderr??''),codes=value.match(/\bP03_[A-Z_]+\b/g)??[],line=value.match(/\bLINE_([0-9]{1,7})(?=\s|$)/)?.[1],number=line===undefined?null:Number(line);

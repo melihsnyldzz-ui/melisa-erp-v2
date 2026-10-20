@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
 
 test('task action update preserves raw exported XML metadata and literal argument quotes',{skip:process.platform!=='win32'},()=>{
@@ -142,4 +142,63 @@ test('harness retains bounded driver line and every allowed exception type witho
  for(const type of types){const r=p03RehearsalFailureMetadata(`P03_REHEARSAL_EXECUTION_REJECTED TYPE_${type} METHOD_UnknownMethod LINE_141 private-sentinel SQL passwords argv`);assert.deepEqual(r,{status:'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS',reason:'P03_REHEARSAL_EXECUTION_REJECTED',errorType:type,method:'UnknownMethod',line:141});assert.doesNotMatch(JSON.stringify(r),/private-sentinel|SQL|passwords|argv/);}
  for(const suffix of ['LINE_-1','LINE_1000001','LINE_123456789','LINE_1.5','LINE_1e7']){const r=p03RehearsalFailureMetadata('TYPE_private METHOD_private '+suffix);assert.equal(r.errorType,'OtherException');assert.equal(r.method,'UnknownMethod');assert.equal(r.line,null);}
  assert.equal(p03RehearsalFailureMetadata('').line,null);
+});
+
+test('failure-record candidate is a separate exact selection, with no staging, fallback or source-byte normalization',()=>{
+ for(const mode of ['DryRun','Run'])assert.equal(parseP03RehearsalMode(['--FailureRecordV1'+mode]),'FailureRecordV1'+mode);
+ for(const args of [['--FailureRecordV1'],['--failurerecordv1run'],['--FailureRecordV1Run-extra'],['--FailureRecordV1Run','--engine'],['--EngineGeneration'],['--sha256'],['--engine-path']])assert.throws(()=>parseP03RehearsalMode(args));
+ assert.ok(Object.isFrozen(P03_FAILURE_RECORD_V1_ENGINE));assert.ok(Object.isFrozen(P03_B264_V2_ENGINE));
+ assert.equal(P03_FAILURE_RECORD_V1_ENGINE.path,String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054.ps1`);
+ const revised=Buffer.from(fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'));
+ assert.equal(crypto.createHash('sha256').update(revised).digest('hex'),P03_FAILURE_RECORD_V1_ENGINE.sha256);
+ assert.notEqual(P03_FAILURE_RECORD_V1_ENGINE.sha256,P03_B264_V2_ENGINE.sha256);
+ const old=Buffer.from(revised.toString().replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,''));
+ const directory=String.raw`C:\synthetic\scripts\canonical`,reads=[];
+ let candidateBytes=revised,missing=false;
+ const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,fs:{lstatSync:()=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:p=>{reads.push(p);if(p===P03_FAILURE_RECORD_V1_ENGINE.path){if(missing)throw Error('FIXTURE_MISSING_CANDIDATE');return candidateBytes;}if(p===P03_B264_V2_ENGINE.path)return old;return Buffer.from('fixture:'+path.win32.basename(p));}}};
+ const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=m=>JSON.parse(JSON.stringify(make(directory,m)));
+ for(const mode of ['DryRun','Run']){
+  reads.length=0;const result=fresh('FailureRecordV1'+mode);assert.equal(result.mode,mode);assert.equal(result.engineGeneration,'FailureRecordV1');assert.deepEqual(result.engine,P03_FAILURE_RECORD_V1_ENGINE);assert.equal(reads.filter(x=>x===P03_FAILURE_RECORD_V1_ENGINE.path).length,1);assert.ok(!reads.includes(P03_B264_V2_ENGINE.path));
+  const legacy=fresh(mode),frozen=fresh('B264V2'+mode);assert.deepEqual(result.files,legacy.files);assert.deepEqual(result.cloneProof,frozen.cloneProof);assert.deepEqual(frozen.engine,P03_B264_V2_ENGINE);
+ }
+ for(const bytes of [old,Buffer.from('changed'),Buffer.from(revised.toString().replaceAll('\n','\r\n'))]){candidateBytes=bytes;assert.throws(()=>make(directory,'FailureRecordV1Run'),/P03_REHEARSAL_FAILURE_RECORD_ENGINE/);}
+ missing=true;reads.length=0;assert.throws(()=>make(directory,'FailureRecordV1DryRun'),/FIXTURE_MISSING_CANDIDATE/);assert.ok(!reads.includes(P03_B264_V2_ENGINE.path));
+ assert.throws(()=>make(directory,'FailureRecordV1'),/P03_REHEARSAL_MODE/);
+});
+
+test('PS5 actual request gate accepts only the finite candidate and rejects cross-generation paths/hashes/fields', {skip:process.platform!=='win32'},()=>{
+ const file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
+ const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'}
+foreach($name in @('Need','AssertRehearsalEngineRequest')){$f=@($ast.FindAll({param($x)$x-is[Management.Automation.Language.FunctionDefinitionAst]-and$x.Name-ceq$name},$true));if($f.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($f[0].Extent.Text))}
+function Request{[pscustomobject]@{engineGeneration='FailureRecordV1';engine=[pscustomobject]@{path='${P03_FAILURE_RECORD_V1_ENGINE.path}';sha256='${P03_FAILURE_RECORD_V1_ENGINE.sha256}'}}}
+$r=Request;AssertRehearsalEngineRequest $r 'FailureRecordV1';'CANDIDATE_VALID'
+foreach($kind in @('path','hash','upperhash','generation','fields','v2tuple','v2selector','legacyselector','unknownselector')){
+ $r=Request;$generation='FailureRecordV1'
+ switch($kind){path{$r.engine.path=$r.engine.path.ToUpperInvariant()} hash{$r.engine.sha256='f'*64} upperhash{$r.engine.sha256=$r.engine.sha256.ToUpperInvariant()} generation{$r.engineGeneration='failurerecordv1'} fields{$r.engine|Add-Member NoteProperty bypass $true} v2tuple{$r.engine.path='${P03_B264_V2_ENGINE.path}';$r.engine.sha256='${P03_B264_V2_ENGINE.sha256}'} v2selector{$generation='B264V2'} legacyselector{$generation='Legacy'} unknownselector{$generation='Other'}}
+ try{AssertRehearsalEngineRequest $r $generation;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}
+}
+function Inventory{throw 'FIXTURE_LIVE_FORBIDDEN'};function Get-CimInstance{throw 'FIXTURE_LIVE_FORBIDDEN'};function DirectoryNew{throw 'FIXTURE_WRITE_FORBIDDEN'}
+'NO_DISPATCH'
+`;
+ const r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.match(r.stdout,/CANDIDATE_VALID/);assert.match(r.stdout,/NO_DISPATCH/);assert.equal((r.stdout.match(/REJECTED/g)??[]).length,9);
+});
+
+test('candidate parameter binding rejects unknown flags and preserves the prior admission/writes order', {skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),file=fileURLToPath(new URL('./p03-rehearsal-driver.ps1',import.meta.url)).replaceAll("'","''");
+ const extra=source.match(/^if\(\$EngineGeneration -ceq 'FailureRecordV1'\)\{Need \(\$args.Count -eq 0\)[^\r\n]+/m)[0];
+ assert.ok(source.indexOf("'TASK_ALREADY_EXISTS'")<source.indexOf('AssertRehearsalEngineRequest $request $EngineGeneration'));
+ assert.ok(source.indexOf('AssertRehearsalEngineRequest $request $EngineGeneration')<source.indexOf(extra));assert.ok(source.indexOf(extra)<source.indexOf('NoReparse $request.engine.path'));
+ assert.ok(source.indexOf("'ENGINE_PIN'",source.indexOf(extra))<source.indexOf('$protectedBefore=ProtectedSnapshot'));
+ assert.ok(source.indexOf("if($Mode-ceq'DryRun')")<source.indexOf('DirectoryNew $root'));
+ const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e)
+function Need($v,$code){if(-not$v){throw ('P03_REHEARSAL_'+$code)}}
+$parameters=[scriptblock]::Create($ast.ParamBlock.Extent.Text+[Environment]::NewLine+[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(extra).toString('base64')}'))+[Environment]::NewLine+"'PARAMS_BOUND'")
+&$parameters -Mode DryRun -EngineGeneration FailureRecordV1
+foreach($bad in @('Other','FailureRecordV1Run')){try{&$parameters -Mode DryRun -EngineGeneration $bad;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}}
+try{&$parameters -Mode Apply -EngineGeneration FailureRecordV1;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}
+try{&$parameters -Mode DryRun -EngineGeneration FailureRecordV1 -EnginePath private-sentinel;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}
+`;
+ const r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.match(r.stdout,/PARAMS_BOUND/);assert.equal((r.stdout.match(/REJECTED/g)??[]).length,4);
 });
