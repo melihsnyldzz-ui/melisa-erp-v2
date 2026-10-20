@@ -28,7 +28,7 @@ if($isRehearsal){
 }
 function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
 function Hash([byte[]]$bytes){[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}
-function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}
+function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){Need (([IO.File]::GetAttributes($part) -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}
 function Protected([string]$path){
  NoReparse $path
  $acl=Get-Acl -LiteralPath $path
