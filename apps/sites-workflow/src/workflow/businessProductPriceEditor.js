@@ -8,6 +8,23 @@ export function createBusinessProductPriceEditor({api,esc,productId,actorId,stor
   let host=null,context=null,pending=null,editing=null,busy=false,loading=false,generation=0,disposed=false,message='';
   const alive=n=>!disposed&&host?.isConnected&&generation===n;
   const persist=value=>{if(!storage?.setItem)throw Error('Kayıt sonucu korunamıyor. Lütfen bu ekranı yeniden açın.');storage.setItem(key,JSON.stringify(value));pending=value;};
+  const storageUnverified=()=>Object.assign(Error('PENDING_STORAGE_UNVERIFIED'),{code:'PENDING_STORAGE_UNVERIFIED'});
+  function assertRetainedRequest(sent){
+    try{
+      const latest=businessPricePending(JSON.parse(storage.getItem(key)),context,actorId);
+      if(latest.status!=='pending'||['actorId','productId','copyId','sealHash'].some(field=>latest[field]!==sent[field])||JSON.stringify(latest.body)!==JSON.stringify(sent.body))throw storageUnverified();
+    }catch{throw storageUnverified();}
+  }
+  function persistOutcome(sent,status){
+    assertRetainedRequest(sent);
+    try{persist({...sent,status});}catch{throw storageUnverified();}
+  }
+  function blockUnverifiedStorage(n,sent){
+    if(pending===sent)pending=null;
+    if(!alive(n))return;
+    context=null;host.innerHTML='<p role="alert">Bekleyen fiyat kaydı doğrulanamadı. Güncel kaydı yeniden yükleyin.</p><button class="btn" data-business-price-load-retry>Güncel fiyatları yükle</button>';
+    host.querySelector('[data-business-price-load-retry]').onclick=()=>load();
+  }
   const e=value=>esc(String(value??''));
   const label=p=>`Kademe ${p.tuple.tier} · ${p.tuple.currency}`;
   const changedAt=new Intl.DateTimeFormat('tr-TR',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Istanbul'});
@@ -56,20 +73,22 @@ export function createBusinessProductPriceEditor({api,esc,productId,actorId,stor
     if(busy||pending?.status!=='pending'||!context?.canEdit)return;
     const sent=pending,n=generation;let confirmed=false;busy=true;message='Fiyat kaydı kontrol ediliyor…';paint();
     try{
+      assertRetainedRequest(sent);
       const result=businessPriceContext(await api(path,{method:'POST',body:sent.body}),productId);
       const changed=result.recentChanges.some(r=>r.requestId===sent.body.requestId&&r.actorId===String(actorId)&&r.priceId===sent.body.priceId&&tupleKey(r.tuple)===tupleKey(sent.body.tuple)&&r.priceExact===sent.body.priceExact&&r.reason===sent.body.reason);
       if(typeof result.replayed!=='boolean'||!changed)throw Error('RESULT_UNVERIFIED');
-      const latest=businessPricePending(JSON.parse(storage.getItem(key)),context,actorId);
-      if(JSON.stringify(latest.body)!==JSON.stringify(sent.body))throw Error('REQUEST_CHANGED');
-      persist({...sent,status:'saved'});
+      persistOutcome(sent,'saved');
       confirmed=true;
       if(alive(n)){context=result;message='Fiyat kaydı doğrulandı. Güncel liste ve kart yükleniyor…';}
     }catch(error){
       if([400,403,409].includes(error.status??error.statusCode)){
-        persist({...sent,status:'rejected'});
-        if(alive(n))message='İstek kabul edilmedi. Güncel fiyatları yükleyip yeniden kontrol edin.';
-      }else if(alive(n))message='Sonuç henüz doğrulanamadı. Aynı istek korunuyor; kaydın sonucunu kontrol edin.';
-    }finally{busy=false;if(alive(n))paint();}
+        try{
+          persistOutcome(sent,'rejected');
+          if(alive(n))message='İstek kabul edilmedi. Güncel fiyatları yükleyip yeniden kontrol edin.';
+        }catch{blockUnverifiedStorage(n,sent);}
+      }else if(error.code==='PENDING_STORAGE_UNVERIFIED')blockUnverifiedStorage(n,sent);
+      else if(alive(n))message='Sonuç henüz doğrulanamadı. Aynı istek korunuyor; kaydın sonucunu kontrol edin.';
+    }finally{busy=false;if(!loading)paint();}
     if(confirmed&&alive(n)){
       // Persistence is already confirmed. A failed display refresh must never
       // convert it back to a pending request or send another POST.
