@@ -1,4 +1,14 @@
-## 21 Ekim 09:40Z — gerçek Current devir girişimi kesim öncesinde durdu; kurulu TEST korunuyor
+## 21 Ekim — retained-claim durumuna sınırlı Current devam kaynağı
+
+Mevcut kurulum akışı genişletilmeden yalnız gerçek `cffba2988afcb49502ae73ddd797e966` kesim-öncesi başarısız girişim için sonlu devam yolu eklendi. Eski claim, üç olay, profile/before ve failure kaydı exact sekiz path/SHA ile sabit; başarısız dizinin yalnız özgün16 dosyası kabul edilir. Taze Pre/profile/before aynı OLD10, protected süreçler, iki görev/XML, kaynak/hedef tuple ve planı korumalıdır. Devam ayrı CreateNew claim/context ile bağlanır; eski claim/dosyalar üzerine yazılmaz, normal eski Apply tekrar açılmaz.
+
+Fiziksel gözlem aynı native observer/drainer ve özel WeakMap token'ıyla yapılır. Admission/before900 ve ilk snapshot/Seed60 korunur. Yeni dar native adapter, gerçek CaptureWorkerAdmission + sahiplik digest kontrolü tamamlandıktan sonra gerçek frame'i bir kez readonly bağlar; sonraki60s güncellik gerçek tüketim noktasındaki bu kanıttır, tarih yenileme veya çağıranın verdiği saat değildir. PRECOM penceresi hâlâ Capture'dan önce başlar; PRECOM/tamamlanma60 değişmez. İlk hata kodu dış sonuca taşınır. NEW hata/zero-candidate/frozen b33 StopNew→RollbackOld bağlantısı aynı devam context'ine bağlandı; claim sonrası yapısal hash/kimlik doğrulaması kurtarmaya yeni bir900s engeli eklemez. Gerçek admission/cut süre şartı kaldırılmaz.
+
+54/54 hedefli kaynak/AST/VM testi PASS: tamamlanan model devir, tüketilmiş/eski/değişmiş pin veya kimlik reddi, claim yarışı, kesim/başlatma, hatalı NEW→özgün rollback bağlantısı, geç-zaman rollback'e fazladan saat kapısı eklenmemesi, readonly canlı frame ve PRECOM61→COM0. Native motorb33, eski43fc/aa29 controllerları, mevcut yedek ve kabul edilmiş prova değişmedi/tekrarlanmadı. Bu testler gerçek kurulum veya insan kabulü değildir. Sonraki işlem, bağımsız kaynak incelemesi ve exact yeni CI sonrası yeni immutable kontrol dosyaları + korunan yedekle taze Pre/owner/native kanıtı üzerinden yalnız bu devam yolunun gerçek TEST uygulamasıdır. Kurulu e59/6bc/13b ve DB02 şu anda korunuyor; 14 henüz tamam değil, 15 başlamadı.
+
+Önceki tanı teslimi7b8ba67b exact PR39578404634/push39578397856 üçer job SUCCESS; yeni devam kaynağının CI/kurulum/GUI sonucu ayrıca okunmalıdır.
+
+## 21 Ekim — gerçek Current devir girişimi kesim öncesinde durdu; kurulu TEST korunuyor
 
 Microsoft beklenmeden desteklenen dosya yürütmesi gerçek DryRun ve Apply girişine ulaştı; Defender koruması/istisnaları değiştirilmedi. Aynı doğrulanmış yedekle gerçek DryRun `ff5c6c091cfe4e63bebab36875e3e550` 272864ms sonunda `CURRENT_B007_DRY_RUN_ONLY` döndü: claim/kurulum/yazma yetkisi yok. Sonraki gerçek Apply `f1a950c0c6624629a1401a02b4138680`, iki gerçek admission ve değiştirilemez Current claim oluşturulduktan sonra `HELD_CORE_CUT` aşamasında exit1 ile durdu. Bu, önceki claim-öncesi 4171083 reddiyle karıştırılmamalı. Yeni uygulama başlamadı; kurulum tamamlanmadı.
 

@@ -16,6 +16,7 @@ test('CurrentB007 full physical frame preserves ten identities, raw/COM/port/pro
 });
 
 import * as physical from './p03-pr54-b264-physical-io.mjs';
+import {PR54_CURRENT_B007_PRECUT_REFS,PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH} from './p03-pr54-current-b007-precut-continuation.mjs';
 test('CurrentB007 collector exists separately and rejects a fabricated admission token',()=>{assert.equal(typeof physical.pr54CurrentB007InspectionArguments,'function');assert.equal(typeof physical.inspectPr54CurrentB007PhysicalOwner,'function');assert.equal(physical.lookupPr54CurrentB007PhysicalInspection({},{}),null);});
 
 import vm from 'node:vm';import path from 'node:path';import {createHash} from 'node:crypto';
@@ -84,4 +85,49 @@ test('CurrentB007 protected console accepts six/seven-digit equivalent birth onl
 });
 test('legacy physical validators retain old schema and reject the Current-only protected console witness field',async()=>{
  const f=await currentFixture();delete f.frame.protectedConsolePins;f.frame.policyGeneration='B264Sup20DInspectOnly';f.frame.engineSha256=f.engineRef.sha256='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def';assert.equal(api.validatePr54B264Sup20dPhysicalInspection(f).length,3);f.frame.protectedConsolePins=[];assert.throws(()=>api.validatePr54B264Sup20dPhysicalInspection(f));
+});
+
+async function continuationCollectorFixture(){
+ const t=await collectorFixture(),context=t.context,read=context.read,raw=new Map();let validations=0;
+ for(const [key,ref]of Object.entries(PR54_CURRENT_B007_PRECUT_REFS))raw.set(ref.path,Buffer.from('modeled-pinned-'+key));
+ context.PR54_CURRENT_B007_PRECUT_REFS=PR54_CURRENT_B007_PRECUT_REFS;
+ context.PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH=PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH;
+ context.read=ref=>{
+  const fixed=Object.values(PR54_CURRENT_B007_PRECUT_REFS).find(pin=>pin.path===ref.path);
+  if(!fixed)return read(ref);
+  assert.deepEqual(ref,fixed);return raw.get(ref.path);
+ };
+ context.preparePr54CurrentB007PrecutContinuation=args=>{
+  validations++;assert.equal(args.profileRef,t.f.profileRef);assert.equal(args.beforeRef,t.f.beforeRef);
+  assert.equal(args.profile.database,t.f.profile.database);assert.equal(args.before.runId,t.f.before.runId);
+  assert.deepEqual(Object.keys(args.raw),Object.keys(PR54_CURRENT_B007_PRECUT_REFS));
+  for(const [key,ref]of Object.entries(PR54_CURRENT_B007_PRECUT_REFS)){
+   assert.equal(args.raw[key].ref,ref);assert.equal(args.raw[key].bytes.toString(),'modeled-pinned-'+key);
+  }
+  return Object.freeze({schemaVersion:'modeled-history-binding-only'});
+ };
+ context.fs.existsSync=p=>p===context.PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH;
+ return {...t,raw,get validations(){return validations;},invoke:()=>vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutContinuation:true})',context)};
+}
+
+test('CurrentB007 real collector continuation branch mints a genuine private token with retained old claim and unused new slot',async()=>{
+ const t=await continuationCollectorFixture(),r=await t.invoke();
+ assert.equal(r.status,'CURRENT_B007_PHYSICAL_INSPECTED_READ_ONLY');assert.equal(r.claimCreated,false);assert.equal(r.stopAuthority,false);assert.equal(r.applyExecuted,false);
+ assert.equal(t.validations,3);assert.equal(t.events.filter(e=>e==='history').length,3);
+ const args={current:r.current,profile:r.profile,before:r.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now};
+ assert.equal(t.lookup(r.physicalInspection,args).length,3);assert.equal(t.lookup({...r.physicalInspection},args),null);
+ assert(!t.events.some(e=>Array.isArray(e)&&(e.includes('Drain')||e.includes('StopNew')||e.includes('RollbackOld'))));
+});
+
+test('CurrentB007 continuation collector rejects retained bytes, preparer refusal and consumed/racing continuation claims before token mint',async()=>{
+ for(const change of [
+  t=>t.raw.set(PR54_CURRENT_B007_PRECUT_REFS.claim.path,Buffer.from('changed')),
+  t=>t.context.preparePr54CurrentB007PrecutContinuation=()=>{throw Error('MODELED_HISTORY_REJECTED');},
+  t=>t.context.fs.existsSync=()=>true,
+  t=>{let checks=0;const exists=t.context.fs.existsSync;t.context.fs.existsSync=p=>p===PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH?++checks>=2:exists(p);},
+  t=>{let observations=0;const run=t.context.run;t.context.run=async(...args)=>{const result=await run(...args);if(++observations===2)t.raw.set(PR54_CURRENT_B007_PRECUT_REFS.claim.path,Buffer.from('changed-after-pair'));return result;};}
+ ]){
+  const t=await continuationCollectorFixture();change(t);await assert.rejects(t.invoke(),error=>{assert.equal(t.lookup(error,{}),null);return true;});
+  assert(!t.events.some(e=>Array.isArray(e)&&(e.includes('Drain')||e.includes('StopNew')||e.includes('RollbackOld'))));
+ }
 });

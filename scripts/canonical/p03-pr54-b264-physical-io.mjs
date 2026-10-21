@@ -9,6 +9,7 @@ import {inspectPr54B264PredecessorIO,validatePr54B264PhysicalInspection,validate
 import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,assertPr54B264SuccessorCandidate,assertPr54B264Sup20dCandidate} from './p03-pr54-owner-successor.mjs';
 import {validatePr54CurrentB007PhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
 import {PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH,PR54_CURRENT_B007_ENGINE_SHA256,assertPr54CurrentB007Candidate} from './p03-pr54-owner-successor.mjs';
+import {PR54_CURRENT_B007_PRECUT_REFS,PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH,preparePr54CurrentB007PrecutContinuation} from './p03-pr54-current-b007-precut-continuation.mjs';
 const run=promisify(execFile),shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const bytes=x=>Buffer.from(JSON.stringify(x));
@@ -160,13 +161,20 @@ export function pr54CurrentB007InspectionArguments(input){
  const common=['-PolicyGeneration','CurrentB007InspectOnly','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256];
  return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
 }
-export async function inspectPr54CurrentB007PhysicalOwner(input){
+export async function inspectPr54CurrentB007PhysicalOwner(input,{precutContinuation=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
+ need(typeof precutContinuation==='boolean','CONTINUATION_MODE');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
- need(!fs.existsSync(PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
- await inspectPr54B264PredecessorIO();
  const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
  const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
+ const claimSlot=()=>{
+  if(precutContinuation){
+   const raw=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
+   preparePr54CurrentB007PrecutContinuation({raw,profileRef,beforeRef,profile,before});
+  }
+  need(!fs.existsSync(precutContinuation?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+ };
+ claimSlot();await inspectPr54B264PredecessorIO();
  // Candidate values are derived from pinned before/settings metadata, never a
  // caller-supplied boolean or a caller-provided current-process frame.
  assertPr54CurrentB007Candidate({...before.profile,supervisorRoot:profile.packages.find(p=>p.sourceCommit===before.profile.supervisorSource)?.root,newSettings:profile.newSettings});
@@ -193,7 +201,7 @@ export async function inspectPr54CurrentB007PhysicalOwner(input){
  const {current,frame,aux}=await collectPr54CurrentInspectionPair(()=>pr54CollectPhysicalObservation(async()=>{
   // Re-observe the entire raw pair; never retry just the failed worker against
   // an older process frame or delete an ephemeral row from an observation.
-  need(!fs.existsSync(PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+  claimSlot();
   await inspectPr54B264PredecessorIO();
   for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
  const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const current=JSON.parse(observe.stdout);
@@ -213,7 +221,7 @@ export async function inspectPr54CurrentB007PhysicalOwner(input){
  need(profile.protectedProcesses.every(p=>p.kind==='ProtectedSqlService'||current.processes.some(q=>['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].every(k=>p[k]===q[k]))),'PROTECTED');
  await inspectPr54B264PredecessorIO();
  for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
- need(!fs.existsSync(PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH),'CONSUMED');
+ claimSlot();
   return {current,frame,aux};
  },'SUCCESSOR_INSPECT'));
  const token=Object.freeze({}),now=Date.now();need(now-Date.parse(frame.observedAt)>=0&&now-Date.parse(frame.observedAt)<60000,'EXPIRED');
