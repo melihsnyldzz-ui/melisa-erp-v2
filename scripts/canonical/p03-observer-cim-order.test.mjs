@@ -266,3 +266,33 @@ test('SUP20D normal collector is Physical Old-only and requires its new drainer 
  const out=run(`$CaptureMode='Disabled';$PolicyGeneration='B264Sup20DInspectOnly';$Environment='Shared';$Purpose='Physical';$ProfilePath='p';$ProfileSha256='s';$EnginePath='e';$EngineSha256='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def';$RecoveryHelperPath='h';$RecoveryHelperSha256='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5';$DrainerPath='d';$DrainerSha256='eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5';$script:bound=@{}\nfunction Reject([scriptblock]$f){try{& $f;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}}\n& {${body}};'VALID'\n$DrainerSha256='34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c';Reject {${body}}\n$DrainerSha256='eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5';$Purpose='CandidateProposal';Reject {${body}};$Purpose='Physical';$PolicyGeneration='b264sup20dinspectonly';Reject {${body}}`);
  assert.match(out,/VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,3);
 });
+
+
+test('same-capture passes only a cyclic native audit context and rechecks existing audits before and after worker without serializing that context',windows,()=>{
+ const code=String.raw`
+$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(SOURCE,[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'}
+$blocks=@($a.FindAll({param($x)$x-is[Management.Automation.Language.IfStatementAst]-and$x.Extent.Text.StartsWith('if($SameCapture){')-and$x.Extent.Text.Contains('ObserverImportedSameCaptureWorker')},$true));if($blocks.Count-ne1){throw 'FIXTURE_CAPTURE_BLOCK'}
+$block=$blocks[0].Extent.Text
+$script:trace=@();$script:badAudit=$false
+function ObserverAssertVanishedAudits($audits,$raw,$policy){$script:trace+=,'AUDIT';if($script:badAudit){throw 'FIXTURE_FRESH_PID_REUSED'}}
+function ObserverImportDefinition($bytes,$name,$alias){if($name-cne'InvokeP03SuccessorWorker'-or$alias-cne'ObserverImportedSameCaptureWorker'){throw 'FIXTURE_IMPORT'}}
+function ObserverPolicyRead($ref){return ,[byte[]]@(1)}
+function ObserverImportedSameCaptureWorker{param($PolicyGeneration,$Mode,$ProfilePath,$ProfileSha256,$BeforeImagePath,$BeforeImageSha256,$EnginePath,$EngineSha256,$RecoveryHelperPath,$RecoveryHelperSha256,$NativeCapture)
+ $script:trace+=,'WORKER';$context=$NativeCapture.readOnlyAudits
+ if($Mode-cne'Inspect'-or$PolicyGeneration-cne'CurrentB007InspectOnly'-or-not[object]::ReferenceEquals($context.capture,$NativeCapture)-or-not[object]::ReferenceEquals($context.rawSnapshot.all,$NativeCapture.all)-or-not[object]::ReferenceEquals($context.rawSnapshot.allListeners,$NativeCapture.allListeners)-or-not[object]::ReferenceEquals($context.recheck,(Get-Command ObserverAssertVanishedAudits).ScriptBlock)-or$context.captureId-cne$NativeCapture.id){throw 'FIXTURE_NATIVE_POINTER'}
+ if($script:race){$script:badAudit=$true};return [ordered]@{schemaVersion='fixture-frame';captureId=$NativeCapture.id;oldIdentities=@();probePins=@()}
+}
+$SameCapture=$true;$captureId='a'*32;$captureAttempt=1;$started='2026-10-22T10:00:00Z';$inventoryObservedAt=$started;$all=@([pscustomobject]@{ProcessId=1},[pscustomobject]@{ProcessId=2});$listeners=@([pscustomobject]@{LocalPort=4184});$ports=@(4184);$nativeInstances=@();$tasks=@();$rawSnapshot=[pscustomobject]@{all=$all;allListeners=$listeners};$observerProbePolicy=[pscustomobject]@{core='pinned'};$vanishedConsoles=@();$vanishedProbes=@([ordered]@{pid=2;ownerVerified=$false;ownerState='UNVERIFIED_EXITED'});$result=[ordered]@{schemaVersion='fixture-current';vanishedProbes=$vanishedProbes};$DrainerPath='fixture';$DrainerSha256='a'*64;$ProfilePath='fixture';$ProfileSha256='b'*64;$BeforeImagePath='fixture';$BeforeImageSha256='c'*64;$EnginePath='fixture';$EngineSha256='d'*64;$RecoveryHelperPath='fixture';$RecoveryHelperSha256='e'*64;$script:race=$false
+$out=&([scriptblock]::Create($block));$json=$out|ConvertFrom-Json
+if(($trace-join'|')-cne'AUDIT|WORKER|AUDIT'-or$json.capture.processCount-ne2-or$json.current.vanishedProbes[0].ownerVerified-cne$false-or$json.frame.probePins.Count-ne0-or$out-match'readOnlyAudits|ScriptBlock|rawSnapshot'){throw 'FIXTURE_CONTEXT_LEAK_OR_PROMOTION'}
+$script:trace=@();$script:race=$true;try{&([scriptblock]::Create($block));throw 'FIXTURE_RACE_ACCEPTED'}catch{if($_.Exception.Message-cne'FIXTURE_FRESH_PID_REUSED'){throw}}
+'BEFORE_WORKER_AFTER_EXACT_NATIVE_NO_JSON_AUTHORITY'
+`.replace('SOURCE',q(source));assert.match(run(code),/BEFORE_WORKER_AFTER_EXACT_NATIVE_NO_JSON_AUTHORITY/);
+});
+
+test('audit handoff keeps exactly three whole captures and never adds a public audit or NativeCapture CLI parameter',()=>{
+ const text=readFileSync(source,'utf8'),worker=readFileSync(fileURLToPath(new URL('./p03-pr54-successor-core-drain.ps1',import.meta.url)),'utf8');
+ assert.match(text,/\$captureLimit=if\(\$SameCapture\)\{3\}else\{1\}/);assert.match(text,/\$captureAttempt -eq \$captureLimit\)\{throw\}/);
+ const top=worker.slice(0,worker.indexOf('function InvokeP03SuccessorWorker'));assert(!top.includes('[object]$NativeCapture'));assert(!top.includes('readOnlyAudits'));
+ assert.match(worker,/ReferenceEquals\(\$context\.capture,\$native\)/);assert.match(worker,/SAME_CAPTURE_AUDIT_NOT_OWNED/);assert(!worker.includes('ownerVerified=$true'));
+});

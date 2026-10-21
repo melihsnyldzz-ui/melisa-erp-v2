@@ -89,6 +89,7 @@ $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha
 $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json');if($currentReadRepair){$predecessor='7b0821959737f1da0427b17a7dfd4685'}
 $script:consolePins=@{};$script:probePins=@{};$script:legacyConsolePins=@{};$script:drainedPids=@()
 $script:tasksStopRequested=$false;$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false;$script:lateAdmissionOpen=$false;$script:lateProbePids=@()
+$script:sameCaptureAuditContext=if($null-ne$NativeCapture){$NativeCapture}else{$null}
 $script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null
 $script:cutWitnessCommitted=$false
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
@@ -349,16 +350,58 @@ function GetCurrentB007ProtectedConsolePins($inventory){
   return $pins
  }finally{$script:consolePins=$ownedCache}
 }
+
+function CurrentSameCaptureAuditFrame($native){
+ function AuditSame($a,$b){return ($a|ConvertTo-Json -Depth 25 -Compress)-ceq($b|ConvertTo-Json -Depth 25 -Compress)}
+ Need ($PolicyGeneration-ceq'CurrentB007InspectOnly'-and$Mode-ceq'Inspect'-and$null-ne$native-and$native.schemaVersion-ceq'melisa-p03-native-inventory.v1'-and$native.id-cmatch'\A[a-f0-9]{32}\z') 'SAME_CAPTURE_AUDIT_SCOPE'
+ $context=$native.readOnlyAudits
+ Need ((@($context.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'audits|capture|captureId|policy|rawSnapshot|recheck|schemaVersion'-and$context.schemaVersion-ceq'melisa-p03-native-vanished-audits.v1'-and$context.captureId-ceq$native.id-and[object]::ReferenceEquals($context.capture,$native)-and[object]::ReferenceEquals($context.rawSnapshot.all,$native.all)-and[object]::ReferenceEquals($context.rawSnapshot.allListeners,$native.allListeners)) 'SAME_CAPTURE_AUDIT_NATIVE_BINDING'
+ $commands=@(Get-Command -Name ObserverAssertVanishedAudits -CommandType Function -ErrorAction Stop)
+ Need ($commands.Count-eq1-and$context.recheck-is[scriptblock]-and[object]::ReferenceEquals($context.recheck,$commands[0].ScriptBlock)-and(Hash ([Text.Encoding]::UTF8.GetBytes($commands[0].ScriptBlock.Ast.Extent.Text.Replace("`r`n","`n"))))-ceq'59f0f72e86f2c50ee9acbbe9f49627976a4d5f35eb31b48f2273796bf721fd37') 'SAME_CAPTURE_AUDIT_FUNCTION'
+ $policy=$context.policy;$core=$before.identities.coreSupervisor
+ Need ($null-ne$policy-and$policy.generation-ceq'Old'-and(WorkerSamePin $policy.core $core)-and(AuditSame $policy.profile $profile)-and(AuditSame $policy.identityMap $before.identities)-and$policy.engineRef.path-ceq$EnginePath-and$policy.engineRef.sha256-ceq$engineSha-and$policy.helperRef.path-ceq$RecoveryHelperPath-and$policy.helperRef.sha256-ceq$RecoveryHelperSha256-and(AuditSame $policy.settingsRef $profile.oldSettings)-and(AuditSame $policy.shellRef $profile.shell)-and(AuditSame $policy.nodeRef $oldSettings.node)-and$policy.manifestRef.path-ceq(Join-Path $oldSettings.supervisor.packageRoot 'release-manifest.json')-and$policy.manifestRef.sha256-ceq$oldSettings.supervisor.manifestSha256-and$policy.probeRef.path-ceq$script:probePath) 'SAME_CAPTURE_AUDIT_POLICY'
+ Need ($context.audits-is[Array]-and$context.audits.Count-le128) 'SAME_CAPTURE_AUDIT_COUNT'
+ $managed=@($order|ForEach-Object{$before.identities.$_.pid})+@($profile.oldWatchers|ForEach-Object{$_.pid})+@($profile.protectedProcesses|ForEach-Object{$_.pid})
+ $seen=@();$probeAuditPids=@();$consoleAuditPids=@()
+ foreach($audit in $context.audits){
+  $auditKeys=if($audit-is[Collections.IDictionary]){@($audit.Keys)}else{@($audit.PSObject.Properties.Name)}
+  Need ((@($auditKeys|Sort-Object)-join'|')-ceq'creationTime|ownerState|ownerVerified|parentPid|pid|reason'-and$audit.pid-gt0-and$audit.parentPid-gt0-and$audit.pid-ne$audit.parentPid-and$audit.pid-notin$managed-and$audit.pid-notin$seen-and$audit.ownerVerified-ceq$false-and$audit.ownerState-ceq'UNVERIFIED_EXITED') 'SAME_CAPTURE_AUDIT_RECORD'
+  $seen+=,[int]$audit.pid;$rows=@($native.all|Where-Object{$_.ProcessId-eq$audit.pid})
+  Need ($rows.Count-eq1-and$rows[0].ParentProcessId-eq$audit.parentPid-and$rows[0].CreationDate-is[DateTime]-and$rows[0].CreationDate.ToUniversalTime().Ticks-eq[DateTime]::Parse($audit.creationTime).ToUniversalTime().Ticks-and@($native.allListeners|Where-Object{$_.OwningProcess-eq$audit.pid}).Count-eq0) 'SAME_CAPTURE_AUDIT_RAW_IDENTITY'
+  $row=$rows[0];Need ($row.CreationDate.ToUniversalTime()-le[DateTime]::UtcNow) 'SAME_CAPTURE_AUDIT_FUTURE'
+  if($audit.reason-ceq'CIM_NOT_FOUND_CONFIRMED_ABSENT_APPROVED_RO_PROBE'){
+   Need ($row.Name-ieq'powershell.exe'-and$row.ExecutablePath-ieq$profile.shell.path-and$row.ParentProcessId-eq$core.pid-and$row.CreationDate.ToUniversalTime()-ge[DateTime]::Parse($core.creationTime).ToUniversalTime()-and(ProbeArgumentsAllowed (Tokens $row.CommandLine) $script:probePath)) 'SAME_CAPTURE_AUDIT_PROBE'
+   $probeAuditPids+=,[int]$audit.pid
+  }else{
+   Need ($audit.reason-ceq'CIM_NOT_FOUND_CONFIRMED_ABSENT_STANDARD_CONSOLE'-and$row.Name-ieq'conhost.exe'-and$row.ExecutablePath-ieq'C:\Windows\System32\conhost.exe'-and$row.CommandLine-ceq'\??\C:\WINDOWS\system32\conhost.exe 0x4') 'SAME_CAPTURE_AUDIT_CONSOLE'
+   $consoleAuditPids+=,[int]$audit.pid
+  }
+ }
+ foreach($id in $consoleAuditPids){$audit=@($context.audits|Where-Object{$_.pid-eq$id})[0];$parents=@($native.all|Where-Object{$_.ProcessId-eq$audit.parentPid});Need ($parents.Count-eq1-and($audit.parentPid-in$managed-or$audit.parentPid-in$probeAuditPids)-and$parents[0].CreationDate-is[DateTime]-and$parents[0].CreationDate.ToUniversalTime()-le[DateTime]::Parse($audit.creationTime).ToUniversalTime()) 'SAME_CAPTURE_AUDIT_CONSOLE_PARENT'}
+ # Raw descendants remain visible. Only separately audited standard rows may
+ # accompany an exited probe; an unknown descendant is never covered by it.
+ foreach($row in $native.all){if($row.ParentProcessId-in$seen){Need ($row.ProcessId-in$seen) 'SAME_CAPTURE_AUDIT_UNKNOWN_DESCENDANT'}}
+ # This exact pinned observer function rechecks raw+fresh complete families,
+ # managed PID absence, all listeners, core UID and binary/source/argv policy.
+ & $context.recheck $context.audits $context.rawSnapshot $policy
+ # Classification view only. The original raw arrays and their counts remain
+ # unchanged for protected, foreign, listener and full identity accounting.
+ return [pscustomobject]@{auditedPids=@($seen);all=@($native.all|Where-Object{$_.ProcessId-notin$seen})}
+}
+
 function CaptureWorkerAdmissionCore($capturedInventory=$null){
  Authority;PrepareProbeSource;$inv=if($null -eq $capturedInventory){Inventory}else{$capturedInventory}
  # Expected parents serve only the imported console classifier's lookup.
  # Admission still requires all ten live identities below. Authenticate the
  # shortest-lived rows first; sorting retains the entire unfiltered frame.
  $expectedParents=@($order|ForEach-Object{$before.identities.$_})+@($profile.oldWatchers)
- $auxInventory=[pscustomobject]@{all=@($inv.all|Sort-Object CreationDate -Descending);allListeners=$inv.allListeners;listeners=$inv.listeners;instances=$inv.instances}
+ $auditFrame=$null
+ if($null-ne$capturedInventory){$auditNative=Get-Variable -Name sameCaptureAuditContext -Scope Script -ValueOnly -ErrorAction SilentlyContinue;Need ($null-ne$auditNative-and[object]::ReferenceEquals($auditNative,$capturedInventory)) 'SAME_CAPTURE_AUDIT_CONTEXT';$auditFrame=CurrentSameCaptureAuditFrame $capturedInventory}
+ $classificationAll=if($null-ne$auditFrame){$auditFrame.all}else{$inv.all}
+ $auxInventory=[pscustomobject]@{all=@($classificationAll|Sort-Object CreationDate -Descending);allListeners=$inv.allListeners;listeners=$inv.listeners;instances=$inv.instances}
  $probes=@(ProbeAuxiliaries $auxInventory);$aux=@(ConsoleAuxiliaries $auxInventory @($expectedParents+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
  ProtectedProcesses $inv
- $protectedPins=@();if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$protectedPins=@(GetCurrentB007ProtectedConsolePins $inv)}
+ $protectedPins=@();if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$protectedPins=@(GetCurrentB007ProtectedConsolePins $(if($null-ne$auditFrame){$auxInventory}else{$inv}))}
  Need ($inv.instances.Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.oldWatchers).Count -eq 2) 'SUCCESSOR_CAPTURE_COM'
  $selected=@();foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'SUCCESSOR_CAPTURE_APP';$selected+=,$e}
  foreach($entry in $profile.tasks){
@@ -370,7 +413,8 @@ function CaptureWorkerAdmissionCore($capturedInventory=$null){
  $relevant=[Collections.Generic.HashSet[int]]::new();foreach($p in $selected){[void]$relevant.Add([int]$p.pid)}
  foreach($p in $inv.all){foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){[void]$relevant.Add([int]$p.ProcessId)}};if(IsWatcherCommand ([string]$p.CommandLine)){[void]$relevant.Add([int]$p.ProcessId)}}
  do{$added=$false;foreach($p in $inv.all){if($relevant.Contains([int]$p.ParentProcessId) -and $relevant.Add([int]$p.ProcessId)){$added=$true}}}while($added)
- foreach($p in $inv.all){if($relevant.Contains([int]$p.ProcessId)){Need ($p.ProcessId -in @($selected|ForEach-Object{$_.pid}) -or $p.ProcessId -in $aux -or ($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $p.ProcessId -in @($protectedPins|ForEach-Object{$_.pid}))) 'SUCCESSOR_CAPTURE_FOREIGN'}}
+ foreach($p in $inv.all){if($relevant.Contains([int]$p.ProcessId)){Need ($p.ProcessId -in @($selected|ForEach-Object{$_.pid}) -or $p.ProcessId -in $aux -or ($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $p.ProcessId -in @($protectedPins|ForEach-Object{$_.pid})) -or ($null-ne$auditFrame-and$p.ProcessId-in$auditFrame.auditedPids)) 'SUCCESSOR_CAPTURE_FOREIGN'}}
+ if($null-ne$auditFrame){Need (@($script:probePins.Keys|Where-Object{$_-in$auditFrame.auditedPids}).Count-eq0-and@($script:consolePins.Keys|Where-Object{$_-in$auditFrame.auditedPids}).Count-eq0) 'SAME_CAPTURE_AUDIT_NOT_OWNED'}
  AssertWorkerBindings $inv @($order|ForEach-Object{$before.identities.$_})
  $frame=[ordered]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;recoveryHelperSha256=$RecoveryHelperSha256;observedAt=[DateTime]::UtcNow.ToString('o');oldIdentities=@($order|ForEach-Object{$before.identities.$_});oldWatchers=@($profile.oldWatchers);consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values)}
  if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$frame['protectedConsolePins']=@($protectedPins)}

@@ -366,3 +366,50 @@ if($protectedReads-ne4){throw 'FIXTURE_PROTECTED_NOT_RECHECKED'}
 `}`);
  assert.equal((out.match(/RAW_ONLY=/g)??[]).length,2);assert.equal((out.match(/FOREIGN_REJECTED/g)??[]).length,2);
 });
+
+
+const observerAuditSource=fileURLToPath(new URL('./p03-physical-recovery-observe.ps1',import.meta.url));
+const auditFunctions=()=>captureFunctions()+'\n'+extract(['CurrentSameCaptureAuditFrame'])+'\n'+extract(['Hash','Tokens'],engine)+'\n'+extract(['ProbeArgumentsAllowed','ProbeAuxiliaries'],recovery)+'\n'+extract(['ObserverRequire','ObserverAssertVanishedAudits','ObserverAssertAbsentFamily','ObserverPolicyCoreAlive'],observerAuditSource);
+const auditFixture=String.raw`
+function Get-CimInstance{param($ClassName,$Filter,$ErrorAction);if($script:accessDenied){throw [UnauthorizedAccessException]::new('FIXTURE_ACCESS_DENIED')};if($Filter){return @($script:freshRows|Where-Object{$_.ProcessId-eq[int]($Filter-replace'ProcessId=','')})};return $script:freshRows}
+function Get-NetTCPConnection{param($State,$ErrorAction);return $script:freshListeners}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction);if($script:accessDenied){throw [UnauthorizedAccessException]::new('FIXTURE_ACCESS_DENIED')};[pscustomobject]@{ReturnValue=0;Sid=$InputObject.OwnerSid}}
+function ObserverKernelAbsent($id){if($script:kernelError){throw [UnauthorizedAccessException]::new('FIXTURE_KERNEL_DENIED')};return $id-notin$script:kernelLive}
+function ObserverPolicyRead($ref,[bool]$private=$true){if($script:pinBad){throw 'FIXTURE_PIN_DRIFT'};return ,[byte[]]@(1)}
+function ObserverPolicyBinary($ref){if($script:binaryBad){throw 'FIXTURE_BINARY_DRIFT'}}
+function ResetAudit{
+ ResetFixture;$script:PolicyGeneration='CurrentB007InspectOnly';$script:Mode='Inspect';$script:EnginePath='C:\fixture\engine.ps1';$script:RecoveryHelperPath='C:\fixture\helper.ps1';$script:protectedConsolePins=@{}
+ $profile|Add-Member NoteProperty protectedProcesses @([pscustomobject]@{kind='ProtectedSqlService';pid=999})
+ $profile.shell=[pscustomobject]@{path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';sha256=('a'*64)};$profile|Add-Member NoteProperty oldSettings ([pscustomobject]@{path='C:\fixture\settings.json';sha256=('b'*64)})
+ $script:oldSettings=[pscustomobject]@{node=[pscustomobject]@{path='C:\fixture\node.exe';sha256=('c'*64)};supervisor=[pscustomobject]@{packageRoot='C:\fixture\supervisor';manifestSha256=('d'*64)}}
+ $script:probePath='C:\fixture\probe.ps1';$script:probeCommand='"'+$profile.shell.path+'" -NoProfile -NonInteractive -ExecutionPolicy RemoteSigned -File '+$script:probePath+' -Ports 4184'
+ $script:auditProbe=[pscustomobject]@{ProcessId=200;ParentProcessId=100;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=$probeCommand;CreationDate=[DateTime]::Parse('2026-10-18T10:00:01Z').ToUniversalTime();OwnerSid=$owner}
+ $script:auditConsole=[pscustomobject]@{ProcessId=201;ParentProcessId=200;Name='conhost.exe';ExecutablePath='C:\Windows\System32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';CreationDate=[DateTime]::Parse('2026-10-18T10:00:02Z').ToUniversalTime();OwnerSid=$owner}
+ $script:liveProbe=[pscustomobject]@{ProcessId=202;ParentProcessId=100;Name='powershell.exe';ExecutablePath=$profile.shell.path;CommandLine=$probeCommand;CreationDate=[DateTime]::Parse('2026-10-18T10:00:03Z').ToUniversalTime();OwnerSid=$owner}
+ $inv.all+=@($auditProbe,$auditConsole,$liveProbe);$inv|Add-Member NoteProperty schemaVersion 'melisa-p03-native-inventory.v1';$inv|Add-Member NoteProperty id ('a'*32);$inv|Add-Member NoteProperty tasks @($profile.tasks|ForEach-Object{[pscustomobject]@{name=$_.name;State=4;Xml='old'}})
+ $policy=[pscustomobject]@{generation='Old';core=($before.identities.coreSupervisor|ConvertTo-Json -Depth 12|ConvertFrom-Json);profile=($profile|ConvertTo-Json -Depth 12|ConvertFrom-Json);identityMap=($before.identities|ConvertTo-Json -Depth 12|ConvertFrom-Json);engineRef=[pscustomobject]@{path=$EnginePath;sha256=$engineSha};helperRef=[pscustomobject]@{path=$RecoveryHelperPath;sha256=$RecoveryHelperSha256};settingsRef=$profile.oldSettings;shellRef=$profile.shell;nodeRef=$oldSettings.node;manifestRef=[pscustomobject]@{path=(Join-Path $oldSettings.supervisor.packageRoot 'release-manifest.json');sha256=$oldSettings.supervisor.manifestSha256};probeRef=[pscustomobject]@{path=$probePath;sha256=('e'*64)}}
+ $audits=@([ordered]@{pid=200;parentPid=100;creationTime=$auditProbe.CreationDate.ToString('o');ownerVerified=$false;ownerState='UNVERIFIED_EXITED';reason='CIM_NOT_FOUND_CONFIRMED_ABSENT_APPROVED_RO_PROBE'},[ordered]@{pid=201;parentPid=200;creationTime=$auditConsole.CreationDate.ToString('o');ownerVerified=$false;ownerState='UNVERIFIED_EXITED';reason='CIM_NOT_FOUND_CONFIRMED_ABSENT_STANDARD_CONSOLE'})
+ $raw=[pscustomobject]@{all=$inv.all;allListeners=$inv.allListeners;selected=$inv.all}
+ $inv|Add-Member NoteProperty readOnlyAudits ([pscustomobject]@{schemaVersion='melisa-p03-native-vanished-audits.v1';captureId=$inv.id;capture=$inv;rawSnapshot=$raw;policy=$policy;audits=$audits;recheck=(Get-Command ObserverAssertVanishedAudits).ScriptBlock})
+ $script:sameCaptureAuditContext=$inv;$script:freshRows=@($inv.all|Where-Object{$_.ProcessId-notin@(200,201)});$script:freshListeners=@();$script:kernelLive=@();$script:kernelError=$false;$script:accessDenied=$false;$script:pinBad=$false;$script:binaryBad=$false
+}
+`;
+
+test('native same-capture keeps audited-exited rows raw and unverified, while the unchanged live probe classifier still authenticates live probes',windows,()=>{
+ const out=run(`${fixture}\n${auditFunctions()}\n${auditFixture}\n`+String.raw`
+ResetAudit;$originalAll=$inv.all;$count=$inv.all.Count;$rowText=($inv.all|ConvertTo-Json -Depth 15 -Compress)
+foreach($attempt in 1..3){$f=CaptureWorkerAdmissionCore $inv;if($f.probePins.Count-ne1-or$f.probePins[0].pid-ne202-or@($f.consolePins|Where-Object{$_.pid-in@(200,201)}).Count-ne0-or@($script:probePins.Keys|Where-Object{$_-in@(200,201)}).Count-ne0){throw 'FIXTURE_AUDIT_PROMOTED'};if($inv.all.Count-ne$count-or-not[object]::ReferenceEquals($originalAll,$inv.all)-or($inv.all|ConvertTo-Json -Depth 15 -Compress)-cne$rowText){throw 'FIXTURE_RAW_FILTERED'}}
+if(@($inv.readOnlyAudits.audits|Where-Object{$_.ownerVerified-cne$false-or$_.ownerState-cne'UNVERIFIED_EXITED'}).Count){throw 'FIXTURE_OWNER_FORGED'}
+'RAW_COUNT='+$count;'ATTEMPTS=3_NO_RECAPTURE';'LIVE_PIN=202';'AUDIT_OWNED=0'
+`);assert.match(out,/ATTEMPTS=3_NO_RECAPTURE/);assert.match(out,/LIVE_PIN=202/);assert.match(out,/AUDIT_OWNED=0/);
+});
+
+test('native audit handoff rejects pointer serialization, callback copies, capture/source/policy and complete raw-identity drift',windows,()=>{
+ const edits=[['capture-id',"$inv.readOnlyAudits.captureId='b'*32"],['json-pointer',"$inv.readOnlyAudits.capture=[pscustomobject]@{id=$inv.id}"],['raw-array-copy',"$inv.readOnlyAudits.rawSnapshot.all=@($inv.all|ForEach-Object{$_})"],['callback-string',"$inv.readOnlyAudits.recheck='ObserverAssertVanishedAudits'"],['callback-copy',"$inv.readOnlyAudits.recheck=[scriptblock]::Create($inv.readOnlyAudits.recheck.Ast.Extent.Text)"],['foreign-policy',"$inv.readOnlyAudits.policy.engineRef.path='C:\\foreign'"],['unknown-row',"$inv.readOnlyAudits.audits=@($inv.readOnlyAudits.audits|Where-Object{$_.pid-ne200})"],['managed-pid',"$inv.readOnlyAudits.audits[0].pid=100"],['watcher-pid',"$inv.readOnlyAudits.audits[0].pid=10"],['protected-overlap',"$profile.protectedProcesses[0].pid=200"],['forged-owner',"$inv.readOnlyAudits.audits[0].ownerVerified=$true"],['future-birth',"$auditProbe.CreationDate=[DateTime]::UtcNow.AddSeconds(20);$inv.readOnlyAudits.audits[0].creationTime=$auditProbe.CreationDate.ToString('o')"],['source-binary',"$auditProbe.ExecutablePath='C:\\foreign.exe'"],['argv',"$auditProbe.CommandLine+=' -Unknown x'"],['parent',"$auditProbe.ParentProcessId=800"],['birth',"$inv.readOnlyAudits.audits[0].creationTime='2026-10-18T10:00:04Z'"],['raw-listener',"$inv.allListeners=@([pscustomobject]@{OwningProcess=200});$inv.readOnlyAudits.rawSnapshot.allListeners=$inv.allListeners"],['raw-descendant',"$inv.all+=,[pscustomobject]@{ProcessId=209;ParentProcessId=200};$inv.readOnlyAudits.rawSnapshot.all=$inv.all"],['binary-hash',"$script:binaryBad=$true"],['source-hash',"$script:pinBad=$true"]];
+ const out=run(`${fixture}\n${auditFunctions()}\n${auditFixture}\n${edits.map(([name,edit])=>`ResetAudit;${edit};ExpectRejected '${name}' {CaptureWorkerAdmissionCore $inv}`).join('\n')}`);for(const [name]of edits)assert.match(out,new RegExp('REJECTED='+name));
+});
+
+test('the existing audit recheck rejects fresh PID reuse, managed existence, fresh family/listeners, lost core identity and AccessDenied',windows,()=>{
+ const edits=[['fresh-pid',"$script:freshRows+=,$auditProbe"],['managed-pid-live',"$script:kernelLive=@(200)"],['fresh-child',"$script:freshRows+=,[pscustomobject]@{ProcessId=209;ParentProcessId=200}"],['fresh-grandchild',"$script:freshRows+=,[pscustomobject]@{ProcessId=209;ParentProcessId=201}"],['fresh-listener',"$script:freshListeners=@([pscustomobject]@{OwningProcess=201})"],['core-owner',"$script:freshRows[0].OwnerSid='OTHER'"],['access-denied',"$script:accessDenied=$true"],['kernel-access-denied',"$script:kernelError=$true"]];
+ const out=run(`${fixture}\n${auditFunctions()}\n${auditFixture}\n${edits.map(([name,edit])=>`ResetAudit;${edit};ExpectRejected '${name}' {CaptureWorkerAdmissionCore $inv}`).join('\n')}`);for(const [name]of edits)assert.match(out,new RegExp('REJECTED='+name));
+});

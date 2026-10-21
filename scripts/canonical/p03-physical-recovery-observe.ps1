@@ -9,10 +9,11 @@ param(
 $SameCapture=$CaptureMode -ceq 'CurrentB007'
 if($SameCapture -and ($PolicyGeneration -cne 'CurrentB007InspectOnly' -or $Environment -cne 'Shared' -or $Purpose -cne 'Physical')){throw 'P03_SAME_CAPTURE_SCOPE'}
 # B264 cannot enter candidate/rehearsal or accept partial pins. Pre-IO gate.
+$currentDrainers=if($SameCapture){@('9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33','0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710')}else{@('9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33')}
 if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
  if($Environment -cne 'Shared' -or $Purpose -cne 'Physical' -or @($ProfilePath,$ProfileSha256,$EnginePath,$EngineSha256,$RecoveryHelperPath,$RecoveryHelperSha256,$DrainerPath,$DrainerSha256|Where-Object{[string]::IsNullOrEmpty($_)}).Count){throw 'P03_B264_PHYSICAL_ONLY'}
- if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_INSPECTION_SOURCE'}
+ if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$DrainerSha256 -cnotin $currentDrainers}else{$DrainerSha256 -cne $(if($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})})){throw 'P03_B264_INSPECTION_SOURCE'}
 }elseif($PSBoundParameters.ContainsKey('DrainerPath') -or $PSBoundParameters.ContainsKey('DrainerSha256')){throw 'P03_B264_DRAINER_SCOPE'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 # Read-only physical collection. This script never authorizes stop/start/restore.
@@ -278,8 +279,11 @@ try{
  if($SameCapture){
   # Native objects from the collection above, never caller JSON or another scan.
   $nativeCapture=[pscustomobject]@{schemaVersion='melisa-p03-native-inventory.v1';id=$captureId;all=$all;allListeners=$listeners;listeners=@($listeners|Where-Object{$_.LocalPort -in $ports});instances=$nativeInstances;tasks=$tasks}
+  $nativeCapture|Add-Member NoteProperty readOnlyAudits ([pscustomobject]@{schemaVersion='melisa-p03-native-vanished-audits.v1';captureId=$captureId;capture=$nativeCapture;rawSnapshot=$rawSnapshot;policy=$observerProbePolicy;audits=@($vanishedConsoles+$vanishedProbes);recheck=${function:ObserverAssertVanishedAudits}})
+  ObserverAssertVanishedAudits @($vanishedConsoles+$vanishedProbes) $rawSnapshot $observerProbePolicy
   ObserverImportDefinition (ObserverPolicyRead ([pscustomobject]@{path=$DrainerPath;sha256=$DrainerSha256})) 'InvokeP03SuccessorWorker' 'ObserverImportedSameCaptureWorker'
   $frame=ObserverImportedSameCaptureWorker -PolicyGeneration 'CurrentB007InspectOnly' -Mode 'Inspect' -ProfilePath $ProfilePath -ProfileSha256 $ProfileSha256 -BeforeImagePath $BeforeImagePath -BeforeImageSha256 $BeforeImageSha256 -EnginePath $EnginePath -EngineSha256 $EngineSha256 -RecoveryHelperPath $RecoveryHelperPath -RecoveryHelperSha256 $RecoveryHelperSha256 -NativeCapture $nativeCapture
+  ObserverAssertVanishedAudits @($vanishedConsoles+$vanishedProbes) $rawSnapshot $observerProbePolicy
   $result['captureId']=$captureId
   [ordered]@{schemaVersion='melisa-p03-current-b007-same-capture.v1';capture=[ordered]@{id=$captureId;attempt=$captureAttempt;startedAt=$started;inventoryObservedAt=$inventoryObservedAt;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;drainerSha256=$DrainerSha256;processCount=$all.Count;listenerCount=$listeners.Count;runningInstanceCount=$nativeInstances.Count};current=$result;frame=$frame}|ConvertTo-Json -Depth 16 -Compress
  }else{$result|ConvertTo-Json -Depth 12}

@@ -31,6 +31,14 @@ test('CurrentB007 Inspect argv binds engine/control siblings, unchanged helper a
  const f=bindCurrentRefs(await currentFixture()),argv=physical.pr54CurrentB007InspectionArguments(f.refs);assert(argv.worker.includes('CurrentB007InspectOnly'));assert(argv.worker.includes('Inspect'));assert(argv.observer.includes('Physical'));
  for(const mutate of [x=>x.engineRef.sha256='f'.repeat(64),x=>x.engineRef.path=x.engineRef.path.toUpperCase(),x=>x.observerRef.path=x.observerRef.path.replace('123456abcdef','abcdef123456'),x=>x.recoveryHelperRef.path=x.drainerRef.path,x=>x.drainerRef.sha256='f'.repeat(64),x=>x.beforeRef.path=x.beforeRef.path.replace('a'.repeat(32),'b264594b6f93d560d807c8decc4e6699'),x=>x.mode='Drain',x=>x.transport=()=>{}]){const refs=structuredClone(f.refs);mutate(refs);assert.throws(()=>physical.pr54CurrentB007InspectionArguments(refs));}
 });
+test('CurrentB007 finite audited native pair is exact, historical pair remains and mixed source pairs reject',async()=>{
+ const refs=bindCurrentRefs(await currentFixture()).refs;
+ const old={drainer:'9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33',observer:'a92f4d712c59970ae50a8ace92dbbeba52d59fadfe542794879d9da898394812'};
+ const audited={drainer:'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710',observer:'271d9fa16656449727db3ece3000621d1d0a7f2643c2335e409dd0335c9c30c5'};
+ for(const pair of [old,audited]){const r=structuredClone(refs);r.drainerRef.sha256=pair.drainer;r.observerRef.sha256=pair.observer;assert(physical.pr54CurrentB007InspectionArguments(r).observer.includes('-CaptureMode'));}
+ for(const [d,o]of [[old.drainer,audited.observer],[audited.drainer,old.observer],['f'.repeat(64),audited.observer]]){const r=structuredClone(refs);r.drainerRef.sha256=d;r.observerRef.sha256=o;assert.throws(()=>physical.pr54CurrentB007InspectionArguments(r));}
+ for(const [key,leaf]of [['drainer','p03-pr54-successor-core-drain.ps1'],['observer','p03-physical-recovery-observe.ps1']])assert.equal(createHash('sha256').update(fs.readFileSync(new URL('./'+leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')).digest('hex'),audited[key]);
+});
 async function collectorFixture(){
  const f=bindCurrentRefs(await currentFixture()),map=new WeakMap(),events=[],encode=o=>Buffer.from(JSON.stringify(o)),hash=b=>createHash('sha256').update(b).digest('hex');
  const context={input:f.refs,process:{platform:'win32'},fs:{existsSync:()=>false},Date,Object,JSON,Buffer,hash,bytes:encode,inspections:map,need:(v,c)=>{if(!v)throw Error(c);},shell:'memory',PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH:'CURRENT_ONLY_CLAIM',pr54CurrentB007InspectionArguments:physical.pr54CurrentB007InspectionArguments,assertPr54CurrentB007Candidate:()=>true,validatePr54CurrentB007PhysicalInspection:api.validatePr54CurrentB007PhysicalInspection,collectPr54CurrentInspectionPair:api.collectPr54CurrentInspectionPair,pr54CollectPhysicalObservation:api.pr54CollectPhysicalObservation,

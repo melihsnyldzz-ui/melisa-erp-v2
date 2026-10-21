@@ -717,12 +717,12 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const selectedPins=precutB142Continuation?{...currentB007SourcePins,
-  drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],
-  observer:['p03-physical-recovery-observe.ps1','a92f4d712c59970ae50a8ace92dbbeba52d59fadfe542794879d9da898394812'],
-  oldCut:['p03-pr54-b264-old-owner-cut.ps1','5dad92d4ef703230e9bc735cfd51fb3091b56781f355f53553f6c24c670131b1'],
-  newObserver:['p03-pr54-new-owner-observe.ps1','ce53156b649e69023726841091e746f5341fdd0dcd7a69b3acc0ec06054bb242'],
-  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','4e6a2a5cdaf513766d6138f0b233723531f39410f827e9dbbad939dde46a1817'],
-  lateOld:['p03-pr54-current-b007-precut-cut.ps1','dbf7049cb54411766072936f251b3a8eeaaabe0855751154974223e4509a325c'],
+  drainer:['p03-pr54-successor-core-drain.ps1','0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710'],
+  observer:['p03-physical-recovery-observe.ps1','271d9fa16656449727db3ece3000621d1d0a7f2643c2335e409dd0335c9c30c5'],
+  oldCut:['p03-pr54-b264-old-owner-cut.ps1','a7d572a2151d9dc6ab297bbbde932368372fb35bfa8b31c212bfbda5e7be2b84'],
+  newObserver:['p03-pr54-new-owner-observe.ps1','0c5f66743301e2f8c5c82ae4dfd05d50fcca3af318add43e6d63ec76bb11e0d4'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','422776408f69d646a86a1aeb8c1b1d493ada951384a6d10017b20654e97e2164'],
+  lateOld:['p03-pr54-current-b007-precut-cut.ps1','48077e482ed3db0edd45412b3c125ba9cc4c42f57e6234b3a21a2cacdf56b7bb'],
  }:freshOwnerGeneration||precut974dContinuation?{...currentB007SourcePins,
   drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],
   observer:['p03-physical-recovery-observe.ps1','a92f4d712c59970ae50a8ace92dbbeba52d59fadfe542794879d9da898394812'],
