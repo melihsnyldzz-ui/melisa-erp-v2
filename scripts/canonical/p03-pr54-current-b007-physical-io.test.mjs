@@ -167,3 +167,25 @@ test('exact9d2 retry collector rejects prior attempt drift, consumed/racing poin
  for(const mutate of [t=>t.raw.set(PR54_CURRENT_B007_PRECUT_RETRY_REFS.priorAttempt.path,Buffer.from('changed')),t=>t.raw.delete(PR54_CURRENT_B007_PRECUT_RETRY_REFS.failureTail.path),t=>t.context.fs.existsSync=()=>true,t=>{let checks=0;t.context.fs.existsSync=p=>p!==t.attempt||++checks>=2;},t=>t.context.preparePr54CurrentB007PrecutRetry=()=>{throw Error('RETRY_REJECTED');}]){const t=await retryCollectorFixture();mutate(t);await assert.rejects(t.invoke());assert(!t.events.some(e=>Array.isArray(e)&&e.includes('Drain')));}
  for(const flag of ['precutResume','precutContinuation']){const t=await collectorFixture();await assert.rejects(vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutResumeAfter9d2:true,'+flag+':true})',t.context),/CONTINUATION_MODE/);}
 });
+
+const sourceSha=name=>createHash('sha256').update(fs.readFileSync(new URL('./'+name,import.meta.url),'utf8').replaceAll('\r\n','\n')).digest('hex');
+async function sameCaptureCollector(){
+ const t=await collectorFixture(),f=t.f;
+ f.refs.drainerRef.sha256=sourceSha('p03-pr54-successor-core-drain.ps1');f.refs.observerRef.sha256=sourceSha('p03-physical-recovery-observe.ps1');
+ t.context.validatePr54CurrentSameCaptureEnvelope=physical.validatePr54CurrentSameCaptureEnvelope;
+ f.current.startedAt=f.current.observedAt;const id='c'.repeat(32);
+ t.envelope=()=>({schemaVersion:'melisa-p03-current-b007-same-capture.v1',capture:{id,startedAt:f.current.startedAt,inventoryObservedAt:f.current.startedAt,profileSha256:f.refs.profileRef.sha256,beforeSha256:f.refs.beforeRef.sha256,drainerSha256:f.refs.drainerRef.sha256,processCount:f.current.processes.length+100,listenerCount:f.current.bindings.length+10,runningInstanceCount:f.current.runningInstances.length},current:{...f.current,captureId:id},frame:{...f.frame,captureId:id}});
+ t.context.run=async(_exe,args)=>{t.events.push(args);assert(args.includes('-CaptureMode'));return {stderr:'',stdout:JSON.stringify(t.envelope())};};return t;
+}
+test('same-capture collector uses one pinned native invocation and preserves aux equality across monitor generations',async()=>{
+ for(const generation of [0,1,2]){const t=await sameCaptureCollector();for(const pin of t.f.frame.consolePins){const row=t.f.current.processes.find(p=>p.pid===pin.pid);pin.pid+=generation*1000;row.pid=pin.pid;}const result=await t.invoke();assert.equal(result.status,'CURRENT_B007_PHYSICAL_INSPECTED_READ_ONLY');assert.equal(t.events.filter(Array.isArray).length,1);assert.equal(t.lookup(result.physicalInspection,{current:result.current,profile:result.profile,before:result.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now}).length,3);}
+});
+test('same-capture schema nonce source pin time and native identity drift cannot mint a capability',async()=>{
+ const mutations=[v=>v.schemaVersion='external',v=>v.capture.extra=true,v=>v.current.captureId='a'.repeat(32),v=>v.frame.captureId='b'.repeat(32),v=>v.capture.drainerSha256='f'.repeat(64),v=>v.capture.beforeSha256='f'.repeat(64),v=>v.capture.profileSha256='f'.repeat(64),v=>v.capture.inventoryObservedAt=new Date(Date.now()+1000).toISOString(),v=>v.capture.startedAt=new Date(Date.now()-61000).toISOString(),v=>v.capture.runningInstanceCount=0,v=>v.current.runningInstances[0].enginePid++,v=>v.frame.consolePins[0].parentPid=999,v=>v.frame.consolePins[0].creationTime=new Date(Date.now()+1000).toISOString(),v=>v.frame.consolePins[0].ownerSid='foreign',v=>v.current.bindings.push({port:4184,address:'127.0.0.1',pid:999}),v=>v.current.processes.push({...v.current.processes[0],pid:999})];
+ for(const mutate of mutations){const t=await sameCaptureCollector(),original=t.envelope;t.envelope=()=>{const value=structuredClone(original());mutate(value);return value;};await assert.rejects(t.invoke());}
+});
+test('same-capture exact transient recaptures the whole invocation; permanent errors do not retry',async()=>{
+ const t=await sameCaptureCollector(),run=t.context.run;let attempts=0;
+ t.context.run=async(...args)=>{if(++attempts===1){const e=Error('native');e.stderr='FullyQualifiedErrorId : HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand\r\n';throw e;}return run(...args);};await t.invoke();assert.equal(attempts,2);
+ for(const message of ['P03_VANISHED_CONSOLE_REJECTED','P03_ACCESS_DENIED','P03_SAME_CAPTURE_NATIVE_TYPE']){const t=await sameCaptureCollector();let calls=0;t.context.run=async()=>{calls++;throw Error(message);};await assert.rejects(t.invoke());assert.equal(calls,1);}
+});

@@ -1,16 +1,18 @@
 param(
- [string]$PolicyGeneration='Legacy',[string]$DrainerPath,[string]$DrainerSha256,
+ [string]$PolicyGeneration='Legacy',[string]$DrainerPath,[string]$DrainerSha256,[ValidateSet('Disabled','CurrentB007')][string]$CaptureMode='Disabled',
  [ValidateSet('Shared','Rehearsal')][string]$Environment='Shared',
  [ValidateSet('Physical','CandidateProposal')][string]$Purpose='Physical',
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$BeforeImageSha256,
  [string]$ProfilePath,[string]$ProfileSha256,[string]$EnginePath,[string]$EngineSha256,[string]$RecoveryHelperPath,[string]$RecoveryHelperSha256
 )
+$SameCapture=$CaptureMode -ceq 'CurrentB007'
+if($SameCapture -and ($PolicyGeneration -cne 'CurrentB007InspectOnly' -or $Environment -cne 'Shared' -or $Purpose -cne 'Physical')){throw 'P03_SAME_CAPTURE_SCOPE'}
 # B264 cannot enter candidate/rehearsal or accept partial pins. Pre-IO gate.
 if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
  if($Environment -cne 'Shared' -or $Purpose -cne 'Physical' -or @($ProfilePath,$ProfileSha256,$EnginePath,$EngineSha256,$RecoveryHelperPath,$RecoveryHelperSha256,$DrainerPath,$DrainerSha256|Where-Object{[string]::IsNullOrEmpty($_)}).Count){throw 'P03_B264_PHYSICAL_ONLY'}
- if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_INSPECTION_SOURCE'}
+ if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_INSPECTION_SOURCE'}
 }elseif($PSBoundParameters.ContainsKey('DrainerPath') -or $PSBoundParameters.ContainsKey('DrainerSha256')){throw 'P03_B264_DRAINER_SCOPE'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 # Read-only physical collection. This script never authorizes stop/start/restore.
@@ -51,10 +53,6 @@ function ObserverAssertAbsentFamily($evidence,$rawAll,$rawListeners){
 }
 function ObserverVanishedConsole($failure,$process,$rawSelected,$capturedPids,$rawAll,$rawListeners){
  ObserverRequire (ObserverExactNotFound $failure)
- # Failure-only diagnostics for the SAME raw CIM row; never an identity or authority.
- if(-not ($process.Name -ieq 'conhost.exe' -and $process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe' -and $process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [int]$process.ProcessId -gt 0 -and [int]$process.ParentProcessId -gt 0 -and [int]$process.ProcessId -ne [int]$process.ParentProcessId -and $process.CreationDate -is [DateTime]) -and (Get-Variable -Name PolicyGeneration -ValueOnly -ErrorAction SilentlyContinue) -ceq 'CurrentB007InspectOnly'){
-  try{$basic=[ordered]@{nameExact=($process.Name -ieq 'conhost.exe');executablePresent=(-not [string]::IsNullOrEmpty([string]$process.ExecutablePath));executableExact=($process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe');commandPresent=(-not [string]::IsNullOrEmpty([string]$process.CommandLine));commandExact=($process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4');pidPositive=([int]$process.ProcessId -gt 0);parentPositive=([int]$process.ParentProcessId -gt 0);pidDistinct=([int]$process.ProcessId -ne [int]$process.ParentProcessId);creationIsDateTime=($process.CreationDate -is [DateTime])};[Console]::Out.WriteLine('MELISA_NATIVE_RO_PREDICATES='+(ConvertTo-Json -InputObject $basic -Compress))}catch{}
- }
  ObserverRequire ($process.Name -ieq 'conhost.exe' -and $process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe' -and $process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [int]$process.ProcessId -gt 0 -and [int]$process.ParentProcessId -gt 0 -and [int]$process.ProcessId -ne [int]$process.ParentProcessId -and $process.CreationDate -is [DateTime])
  ObserverRequire ($process.ProcessId -notin @($capturedPids) -and @($rawListeners|Where-Object{$_.OwningProcess -eq $process.ProcessId}).Count -eq 0)
  $parents=@($rawSelected|Where-Object{$_.ProcessId -eq $process.ParentProcessId})
@@ -181,9 +179,9 @@ foreach($ace in $acl.Access){
  $sid=$ace.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value
  if($ace.AccessControlType -ne 'Allow' -or $sid -notin @($owner,'S-1-5-18') -or $ace.IsInherited -or $ace.FileSystemRights -ne [Security.AccessControl.FileSystemRights]::FullControl){throw 'P03_ACL_ENTRY'}
 }
-# Keep the file open with no sharing throughout collection to prevent replacement
-# or writes through another hard link while parsing and collecting.
-$stream=[IO.File]::Open($resolved,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+# Retain a deny-write/delete handle throughout collection. Same-capture readers
+# share only reads; writes through this path or another hard link still fail.
+$beforeShare=if($SameCapture){[IO.FileShare]::Read}else{[IO.FileShare]::None};$stream=[IO.File]::Open($resolved,[IO.FileMode]::Open,[IO.FileAccess]::Read,$beforeShare)
 try{
  if($stream.Length -lt 100 -or $stream.Length -gt 1048576){throw 'P03_BEFORE_SIZE'}
  $bytes=New-Object byte[] ([int]$stream.Length)
@@ -207,23 +205,24 @@ try{
  }
  $names=if($rehearsal){@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')}else{@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')}
  $ports=if($rehearsal){@(4284,4286,5334,62710,62711,62712,62713,62714)}else{@(4184,4186,5234,62700,62701,62702,62703,62704)}
- $started=[DateTime]::UtcNow.ToString('o')
+ $started=[DateTime]::UtcNow.ToString('o');$captureId=if($SameCapture){[Guid]::NewGuid().ToString('N')}else{$null}
+ # Collection interval, not an atomic OS snapshot; rows can exit during SID checks.
  # Unfiltered source inventories: selectors belong to the independently reviewed classifier.
  $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
  $schedule=New-Object -ComObject Schedule.Service
  $schedule.Connect()
  $folder=$schedule.GetFolder('\')
  $running=$schedule.GetRunningTasks(1)
- $instances=@()
+ $instances=@();$nativeInstances=@()
  for($i=1;$i -le $running.Count;$i++){
   $r=$running.Item($i)
-  if($r.Name -cin $names){$instances+=,[ordered]@{name=[string]$r.Name;path=[string]$r.Path;instanceGuid=[string]$r.InstanceGuid;enginePid=[int]$r.EnginePID;state=[int]$r.State}}
+  if($r.Name -cin $names){$nativeInstances+=,$r;$instances+=,[ordered]@{name=[string]$r.Name;path=[string]$r.Path;instanceGuid=[string]$r.InstanceGuid;enginePid=[int]$r.EnginePID;state=[int]$r.State}}
  }
  $tasks=@()
  foreach($name in $names){$t=$folder.GetTask($name);$xml=[string]$t.Xml;$tasks+=,[ordered]@{name=$name;state=[int]$t.State;xml=$xml}}
  # Collect processes after the slower listener/COM/XML reads, immediately
  # before selecting and authenticating their still-live identities.
- $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
+ $all=@(Get-CimInstance Win32_Process -ErrorAction Stop);$inventoryObservedAt=[DateTime]::UtcNow.ToString('o')
  # Full processes are retained only in memory; emitted command lines are limited
  # to the P03 release roots/watchers, old identities and target listener owners.
  $pids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})
@@ -254,11 +253,7 @@ try{
  # likely to exit while older parents are queried. Every selected row and
  # every owner/binary/command check is still required; no failure is skipped.
  foreach($p in @($selected|Sort-Object CreationDate -Descending)){
-  # Diagnostic row snapshot before the SAME owner query; never a new source read.
-  $consoleBefore=$null;try{if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $p.Name -ieq 'conhost.exe'){$consoleBefore=[ordered]@{nameExact=($p.Name -ieq 'conhost.exe');executablePresent=(-not [string]::IsNullOrEmpty([string]$p.ExecutablePath));executableExact=($p.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe');commandPresent=(-not [string]::IsNullOrEmpty([string]$p.CommandLine));commandExact=($p.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4');pidPositive=([int]$p.ProcessId -gt 0);parentPositive=([int]$p.ParentProcessId -gt 0);pidDistinct=([int]$p.ProcessId -ne [int]$p.ParentProcessId);creationIsDateTime=($p.CreationDate -is [DateTime])}}}catch{}
   try{$sid=Invoke-CimMethod -InputObject $p -MethodName GetOwnerSid -ErrorAction Stop}catch{
-   # Diagnostic child scope preserves the original catch ErrorRecord and rejection.
-   if($null -ne $consoleBefore){& {param($roFailure,$roProcess,$roBefore)try{$roAfter=[ordered]@{nameExact=($roProcess.Name -ieq 'conhost.exe');executablePresent=(-not [string]::IsNullOrEmpty([string]$roProcess.ExecutablePath));executableExact=($roProcess.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe');commandPresent=(-not [string]::IsNullOrEmpty([string]$roProcess.CommandLine));commandExact=($roProcess.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4');pidPositive=([int]$roProcess.ProcessId -gt 0);parentPositive=([int]$roProcess.ParentProcessId -gt 0);pidDistinct=([int]$roProcess.ProcessId -ne [int]$roProcess.ParentProcessId);creationIsDateTime=($roProcess.CreationDate -is [DateTime])};[Console]::Out.WriteLine('MELISA_NATIVE_RO_ROW='+(ConvertTo-Json -InputObject ([ordered]@{pid=[int]$roProcess.ProcessId;parentPid=[int]$roProcess.ParentProcessId;exactCimNotFound=(ObserverExactNotFound $roFailure);before=$roBefore;after=$roAfter}) -Depth 5 -Compress))}catch{}} $_ $p $consoleBefore}
    if($Purpose -ceq 'Physical' -and (ObserverExactNotFound $_) -and $p.Name -ieq 'conhost.exe'){
     $vanishedConsoles+=,(ObserverVanishedConsole $_ $p $selected $pids $all $listeners);continue
    }
@@ -275,5 +270,12 @@ try{
  ObserverAssertVanishedAudits @($vanishedConsoles+$vanishedProbes) $rawSnapshot $observerProbePolicy
  $result=[ordered]@{schemaVersion='melisa-p03-physical-observation.v1';environment=$Environment;beforeImage=[ordered]@{path=$resolved;sha256=$actual};startedAt=$started;observedAt=[DateTime]::UtcNow.ToString('o');collection='Schedule.Service.GetRunningTasks(1)';collectionAuthority=if($Purpose -ceq 'CandidateProposal'){'CANDIDATE_PROPOSAL_ONLY'}else{'PHYSICAL_OBSERVATION_ONLY'};processScope='CIM.Win32_Process.Unfiltered';portScope='Get-NetTCPConnection.Listen.Unfiltered';tasks=$tasks;runningInstances=$instances;processes=$processes;bindings=$bindings;vanishedConsoles=$vanishedConsoles;vanishedProbes=$vanishedProbes;rawScope=[ordered]@{selectedCount=$rawSnapshot.selected.Count;unverifiedCount=$unverifiedRaw.Count;unverifiedProcesses=$unverifiedRaw};stopPermitted=$false;applyAvailable=$false}
  if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){$result['policyGeneration']=$PolicyGeneration;$result['transitionAuthority']=$false}
- $result|ConvertTo-Json -Depth 12
+ if($SameCapture){
+  # Native objects from the collection above, never caller JSON or another scan.
+  $nativeCapture=[pscustomobject]@{schemaVersion='melisa-p03-native-inventory.v1';id=$captureId;all=$all;allListeners=$listeners;listeners=@($listeners|Where-Object{$_.LocalPort -in $ports});instances=$nativeInstances;tasks=$tasks}
+  ObserverImportDefinition (ObserverPolicyRead ([pscustomobject]@{path=$DrainerPath;sha256=$DrainerSha256})) 'InvokeP03SuccessorWorker' 'ObserverImportedSameCaptureWorker'
+  $frame=ObserverImportedSameCaptureWorker -PolicyGeneration 'CurrentB007InspectOnly' -Mode 'Inspect' -ProfilePath $ProfilePath -ProfileSha256 $ProfileSha256 -BeforeImagePath $BeforeImagePath -BeforeImageSha256 $BeforeImageSha256 -EnginePath $EnginePath -EngineSha256 $EngineSha256 -RecoveryHelperPath $RecoveryHelperPath -RecoveryHelperSha256 $RecoveryHelperSha256 -NativeCapture $nativeCapture
+  $result['captureId']=$captureId
+  [ordered]@{schemaVersion='melisa-p03-current-b007-same-capture.v1';capture=[ordered]@{id=$captureId;startedAt=$started;inventoryObservedAt=$inventoryObservedAt;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;drainerSha256=$DrainerSha256;processCount=$all.Count;listenerCount=$listeners.Count;runningInstanceCount=$nativeInstances.Count};current=$result;frame=$frame}|ConvertTo-Json -Depth 16 -Compress
+ }else{$result|ConvertTo-Json -Depth 12}
 }finally{$stream.Dispose()}

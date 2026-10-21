@@ -712,10 +712,12 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const selectedPins=freshOwnerGeneration?{...currentB007SourcePins,
-  oldCut:['p03-pr54-b264-old-owner-cut.ps1','394e607ad9340dda519eea65579199562fd653f1e4848ab67592b036b99bf8fb'],
-  newObserver:['p03-pr54-new-owner-observe.ps1','de03b8b41dc14249951f62d3031e58654c24b1b4df1d0d933049ddfc1ca25f7f'],
-  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','126211dfa59210eadc55c7b1a6f7c1dcac196e10e7fedc5d0fde15f80142c578'],
-  lateOld:['p03-pr54-current-b007-precut-cut.ps1','97cdb31a06da154e611204b32a20afa7187b5f71920ab5b3756494a632549516'],
+  drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],
+  observer:['p03-physical-recovery-observe.ps1','9fb431598b6ae51eb8a9c3c5eb7c2df1f4fcea8431b36d20a20cd527f572388a'],
+  oldCut:['p03-pr54-b264-old-owner-cut.ps1','86e1995d93438c1920dcd37fb0275ab86f25f4f85fb45bb3d8936e2271696138'],
+  newObserver:['p03-pr54-new-owner-observe.ps1','fafc1384abffca0d3e0788b976e668bd96581539d15c8f39a30dc5267a0e7958'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','82c5dcc280bfe4f86e5a207651619d664667171734cc2506949d413cc77b69bc'],
+  lateOld:['p03-pr54-current-b007-precut-cut.ps1','dbf7049cb54411766072936f251b3a8eeaaabe0855751154974223e4509a325c'],
  }:currentB007SourcePins;
  const sources=Object.fromEntries(Object.entries(selectedPins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
  if(precutContinuation||isResume){

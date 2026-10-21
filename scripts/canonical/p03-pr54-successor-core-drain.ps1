@@ -19,6 +19,37 @@ if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '
 # Source-bound successor worker. Inspect/Capture only read; Drain stops only the exact
 # core after the coordinator's durable intent. Consoles/probes are never killed.
 Set-StrictMode -Version Latest
+
+# Internal in-process entry; NativeCapture is deliberately not a script/CLI parameter.
+function InvokeP03SuccessorWorker{
+param(
+ [string]$PolicyGeneration='Legacy',
+ [ValidateSet('Inspect','Capture','Drain')][string]$Mode='Capture',
+ [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][string]$ProfileSha256,
+ [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][string]$BeforeImageSha256,
+ [Parameter(Mandatory=$true)][string]$EnginePath,[Parameter(Mandatory=$true)][string]$EngineSha256,
+ [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,[Parameter(Mandatory=$true)][string]$RecoveryHelperSha256,
+ [string]$ClaimPath,[string]$ClaimSha256,
+ [string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$StopIntentPath,[string]$StopIntentSha256,
+ [object]$NativeCapture=$null
+)
+if($null -ne $NativeCapture){
+ if($PolicyGeneration -cne 'CurrentB007InspectOnly' -or $Mode -cne 'Inspect' -or $NativeCapture.id -cnotmatch '^[a-f0-9]{32}$' -or $NativeCapture.schemaVersion -cne 'melisa-p03-native-inventory.v1'){throw 'P03_SAME_CAPTURE_SCOPE'}
+ foreach($row in @($NativeCapture.all)+@($NativeCapture.allListeners)){if($row -isnot [Microsoft.Management.Infrastructure.CimInstance]){throw 'P03_SAME_CAPTURE_NATIVE_TYPE'}}
+ foreach($row in @($NativeCapture.instances)){if(-not [Runtime.InteropServices.Marshal]::IsComObject($row)){throw 'P03_SAME_CAPTURE_COM_TYPE'}}
+}
+
+# B264 is a separately selected read-only generation. Reject mutation inputs
+# before any import, file, owner, SQL or COM access (including empty bound args).
+if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
+if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
+ if($Mode -cne 'Inspect' -or @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_INSPECT_ONLY'}
+ if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_B264_INSPECTION_SOURCE'}
+}
+if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
+# Source-bound successor worker. Inspect/Capture only read; Drain stops only the exact
+# core after the coordinator's durable intent. Consoles/probes are never killed.
+Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
 $env:PSModulePath=Join-Path $PSHOME 'Modules'
 foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$module+'\'+$module+'.psd1')) -ErrorAction Stop}
@@ -33,7 +64,7 @@ function ReadWorkerPin([string]$path,[string]$sha){
  $acl=Get-Acl -LiteralPath $path;$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
  if(-not $acl.AreAccessRulesProtected -or $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -cne $owner -or $rules.Count -ne 2){throw 'P03_SUCCESSOR_ACL'}
  foreach($sid in @($owner,'S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value -ceq $sid -and -not $_.IsInherited -and $_.AccessControlType -eq 'Allow' -and $_.FileSystemRights -eq 'FullControl'}).Count -ne 1){throw 'P03_SUCCESSOR_ACL'}}
- $s=[IO.File]::Open($path,'Open','Read','None');try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
+ $share=if($null -ne $NativeCapture){[IO.FileShare]::Read}else{[IO.FileShare]::None};$s=[IO.File]::Open($path,'Open','Read',$share);try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
 }
 function ImportWorkerFunctions([byte[]]$bytes,[string[]]$names){
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$tokens,[ref]$errors)
@@ -318,8 +349,8 @@ function GetCurrentB007ProtectedConsolePins($inventory){
   return $pins
  }finally{$script:consolePins=$ownedCache}
 }
-function CaptureWorkerAdmissionCore{
- Authority;PrepareProbeSource;$inv=Inventory
+function CaptureWorkerAdmissionCore($capturedInventory=$null){
+ Authority;PrepareProbeSource;$inv=if($null -eq $capturedInventory){Inventory}else{$capturedInventory}
  # Expected parents serve only the imported console classifier's lookup.
  # Admission still requires all ten live identities below. Authenticate the
  # shortest-lived rows first; sorting retains the entire unfiltered frame.
@@ -331,7 +362,7 @@ function CaptureWorkerAdmissionCore{
  Need ($inv.instances.Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.oldWatchers).Count -eq 2) 'SUCCESSOR_CAPTURE_COM'
  $selected=@();foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'SUCCESSOR_CAPTURE_APP';$selected+=,$e}
  foreach($entry in $profile.tasks){
-  Need ($entry.name -cin $names) 'SUCCESSOR_CAPTURE_TASK_NAME';$t=$folder.GetTask($entry.name);Need ([int]$t.State -eq 4 -and (XmlHash ([string]$t.Xml)) -ceq $entry.oldXmlSha256) 'SUCCESSOR_CAPTURE_TASK'
+  Need ($entry.name -cin $names) 'SUCCESSOR_CAPTURE_TASK_NAME';$t=if($null -eq $capturedInventory){$folder.GetTask($entry.name)}else{$matches=@($capturedInventory.tasks|Where-Object{$_.name -ceq $entry.name});Need ($matches.Count -eq 1) 'SAME_CAPTURE_TASK_COUNT';$matches[0]};Need ([int]$t.State -eq 4 -and (XmlHash ([string]$t.Xml)) -ceq $entry.oldXmlSha256) 'SUCCESSOR_CAPTURE_TASK'
   $instances=@($inv.instances|Where-Object{$_.Name -ceq $entry.name});Need ($instances.Count -eq 1 -and [int]$instances[0].State -eq 4 -and [string]$instances[0].Path -ceq ('\'+$entry.name)) 'SUCCESSOR_CAPTURE_INSTANCE'
   $watchers=@($profile.oldWatchers|Where-Object{$_.pid -eq [int]$instances[0].EnginePID});Need ($watchers.Count -eq 1) 'SUCCESSOR_CAPTURE_WATCHER';$w=$watchers[0];$actual=@($inv.all|Where-Object{$_.ProcessId -eq $w.pid});Need ($actual.Count -eq 1 -and (Identity $actual[0] $w)) 'SUCCESSOR_CAPTURE_WATCHER_IDENTITY';$selected+=,$w
  }
@@ -430,6 +461,9 @@ function DrainWorkerCore{
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
 WorkerAuthority
-if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){$frame=CaptureWorkerAdmission;$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;$frame|ConvertTo-Json -Depth 14 -Compress;return}
+if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){$frame=if($null -eq $NativeCapture){CaptureWorkerAdmission}else{CaptureWorkerAdmissionCore $NativeCapture};$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;if($null -ne $NativeCapture){$frame['captureId']=$NativeCapture.id;return $frame};$frame|ConvertTo-Json -Depth 14 -Compress;return}
 if($Mode -cin @('Inspect','Capture')){CaptureWorkerAdmission|ConvertTo-Json -Depth 14 -Compress;return}
 DrainWorkerCore|ConvertTo-Json -Depth 8 -Compress
+
+}
+InvokeP03SuccessorWorker @PSBoundParameters

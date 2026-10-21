@@ -37,7 +37,7 @@ function fixture(options={}){
  if(options.recovery)options={...options,retry:true};
  const sid=options.recovery?'42d0d0536cb115cc4aea43ff1f13afbf':'a'.repeat(32),transition=root+'\\MelisaERP-P03-transition-'+sid;
  const isResume=options.resume||options.retry;
- const selected=options.fresh?Object.fromEntries(['oldCut','newObserver','newRecovery','lateOld'].map((key,n)=>{const leaf=['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-b264-new-owner-recovery.ps1','p03-pr54-current-b007-precut-cut.ps1'][n];return [key,[leaf,hash(Buffer.from(fs.readFileSync(new URL(leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')))]];})):{};
+ const selected=options.fresh?Object.fromEntries(['oldCut','newObserver','newRecovery','lateOld','drainer','observer'].map((key,n)=>{const leaf=['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-b264-new-owner-recovery.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-successor-core-drain.ps1','p03-physical-recovery-observe.ps1'][n];return [key,[leaf,hash(Buffer.from(fs.readFileSync(new URL(leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')))]];})):{};
  const activePins={...pins,...selected};
  const files=new Map(),directories=new Set(),calls=[],events=[],writes=[],programs=[];let phase='old',inspections=0,stops=0,emptyWitnessed=false;
  const now=()=>new Date().toISOString();

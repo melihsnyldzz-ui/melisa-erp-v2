@@ -13,31 +13,6 @@ const hash=b=>createHash('sha256').update(b).digest('hex'),root=PR54_OWNER_ROOT;
 const leaf=n=>new URL('./'+n,import.meta.url),text=n=>fs.readFileSync(leaf(n),'utf8');
 const drainer=text('p03-pr54-successor-core-drain.ps1'),observer=text('p03-physical-recovery-observe.ps1');
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'";
-test('owner-query row diagnostics retain before and after bits without replacing the native catch',{skip:process.platform!=='win32'},()=>{
- const lines=observer.split(/\r?\n/),pre=lines[lines.findIndex(x=>x.includes('# Diagnostic row snapshot before the SAME owner query'))+1],hook=lines[lines.findIndex(x=>x.includes('# Diagnostic child scope preserves the original catch'))+1];
- assert(pre.includes('$consoleBefore='));assert(hook.includes('MELISA_NATIVE_RO_ROW='));
- const code=astFn('./p03-physical-recovery-observe.ps1','ObserverExactNotFound')+String.raw`
-Import-Module (Join-Path $PSHOME 'Modules/CimCmdlets/CimCmdlets.psd1')
-foreach($case in @('changed','missingBefore','diagnosticFault','legacy')){
- $PolicyGeneration=if($case-ceq'legacy'){'Legacy'}else{'CurrentB007InspectOnly'}
- $p=[pscustomobject]@{Name='conhost.exe';ExecutablePath='C:\Windows\System32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';ProcessId=123;ParentProcessId=120;CreationDate=[DateTime]::UtcNow}
- if($case-ceq'missingBefore'){$p.CommandLine=$null}
-`+pre+String.raw`
- [Console]::Out.WriteLine('CASE='+$case)
- $nativeError=[Management.Automation.ErrorRecord]::new([Microsoft.Management.Infrastructure.CimException]::new('private-sentinel'),'HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand',[Management.Automation.ErrorCategory]::ObjectNotFound,$null)
- try{if($case-ceq'diagnosticFault'){$p.ProcessId='private-sentinel'}else{$p.CommandLine=$null};throw $nativeError}catch{$beforeHook=$_
-`+hook+String.raw`
- if(-not [object]::ReferenceEquals($_,$beforeHook)){throw 'NATIVE_CATCH_REPLACED'}
- if(-not (ObserverExactNotFound $_)){throw 'NATIVE_CLASSIFICATION_CHANGED'}
- 'ORIGINAL_NATIVE_CATCH_PRESERVED'
- }
-}
-`;
- const out=ps(code);assert.doesNotMatch(out,/private-sentinel/);assert.equal((out.match(/ORIGINAL_NATIVE_CATCH_PRESERVED/g)??[]).length,4);
- const prefix='MELISA_NATIVE_RO_ROW=',rows=out.split(/\r?\n/).filter(x=>x.startsWith(prefix)).map(x=>JSON.parse(x.slice(prefix.length)));
- assert.equal(rows.length,2);for(const row of rows){assert.deepEqual(Object.keys(row).sort(),['after','before','exactCimNotFound','parentPid','pid']);assert.equal(row.exactCimNotFound,true);assert.equal(row.pid,123);assert.equal(row.parentPid,120);assert(Object.values(row.before).every(x=>typeof x==='boolean'));assert(Object.values(row.after).every(x=>typeof x==='boolean'));}
- assert.equal(rows[0].before.commandPresent,true);assert.equal(rows[0].after.commandPresent,false);assert.equal(rows[1].before.commandPresent,false);assert.equal(rows[1].after.commandPresent,false);
-});
 test('Current console failure predicates remain boolean-only and preserve the original rejection',{skip:process.platform!=='win32'},()=>{
  const code=astFn('./p03-physical-recovery-observe.ps1','ObserverRequire')+'\n'+astFn('./p03-physical-recovery-observe.ps1','ObserverVanishedConsole')+String.raw`
 $PolicyGeneration='CurrentB007InspectOnly'
@@ -52,9 +27,7 @@ foreach($case in @('valid','name','emptyExe','wrongExe','emptyCommand','wrongCom
 }
 `;
  const out=ps(code);assert.doesNotMatch(out,/private-sentinel/);assert.match(out,/CASE=valid\r?\nVALID/);assert.match(out,/CASE=legacy\r?\nORIGINAL_REJECTION/);
- const prefix='MELISA_NATIVE_RO_PREDICATES=',rows=out.split(/\r?\n/).filter(x=>x.startsWith(prefix)).map(x=>JSON.parse(x.slice(prefix.length)));
- assert.equal(rows.length,9);for(const row of rows){assert.deepEqual(Object.keys(row).sort(),['commandExact','commandPresent','creationIsDateTime','executableExact','executablePresent','nameExact','parentPositive','pidDistinct','pidPositive'].sort());assert(Object.values(row).every(x=>typeof x==='boolean'));assert(Object.values(row).some(x=>!x));}
- for(const [i,key]of ['nameExact','executablePresent','executableExact','commandPresent','commandExact','pidPositive','parentPositive','pidDistinct','creationIsDateTime'].entries())assert.equal(rows[i][key],false);
+ assert.equal((out.match(/ORIGINAL_REJECTION/g)??[]).length,10);assert.doesNotMatch(out,/MELISA_NATIVE_RO_ROW|MELISA_NATIVE_RO_PREDICATES/);
 });
 function input(){const source=n=>({path:root+'\\source-inspect\\'+n,sha256:n==='p03-pr54-successor-core-drain.ps1'?'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c':n==='p03-physical-recovery-observe.ps1'?'5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5':hash(fs.readFileSync(leaf(n)))});return {profileRef:{path:root+'\\MelisaERP-P03-profile-'+ 'a'.repeat(32)+'.json',sha256:'a'.repeat(64)},beforeRef:{path:root+'\\MelisaERP-P03-before-'+ 'a'.repeat(32)+'.json',sha256:'b'.repeat(64)},engineRef:{...PR54_B264_REFS.engine},recoveryHelperRef:source('p03-pr54-paused-old-recover.ps1'),drainerRef:source('p03-pr54-successor-core-drain.ps1'),observerRef:source('p03-physical-recovery-observe.ps1')};}
 function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',timeout:25000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
@@ -70,7 +43,7 @@ test('PS5 B264 mutation aliases, partial pins and legacy-source drift reject bef
  const prefix=s=>s.slice(0,s.indexOf('# Source-bound successor worker.'));
  const gate=prefix(drainer).replace(/^param\([\s\S]*?\n\)\n/,'').replaceAll('$PSBoundParameters','$script:bound');
  const observerGate=observer.slice(0,observer.indexOf('# Read-only physical collection.')).replace(/^param\([\s\S]*?\n\)\n/,'').replaceAll('$PSBoundParameters','$script:bound');
- const code=`$PolicyGeneration='B264InspectOnly';$Mode='Inspect';$EngineSha256='${PR54_B264_REFS.engine.sha256}';$RecoveryHelperSha256='${input().recoveryHelperRef.sha256}';$script:bound=@{}\nfunction Reject([scriptblock]$f){try{& $f}catch{if($_.Exception.Message-notmatch'^P03_B264_'){throw};'REJECTED';return};throw 'ACCEPTED'}\n& {${gate}};'VALID'\nforeach($m in @('Capture','Drain','inspect','INSPECT')){$Mode=$m;Reject {${gate}}};$Mode='Inspect'\nforeach($k in @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256')){$script:bound=@{};$script:bound[$k]='';Reject {${gate}}}\n$script:bound=@{};$EngineSha256='${'f'.repeat(64)}';Reject {${gate}}\n$Environment='Shared';$Purpose='Physical';$ProfilePath='x';$ProfileSha256='x';$BeforeImagePath='x';$BeforeImageSha256='x';$EnginePath='x';$RecoveryHelperPath='x';$DrainerPath='x';$DrainerSha256='${input().drainerRef.sha256}';$EngineSha256='${PR54_B264_REFS.engine.sha256}'\n& {${observerGate}};'PHYSICAL_VALID'\nforeach($p in @('CandidateProposal','physical','PHYSICAL')){$Purpose=$p;Reject {${observerGate}}};$Purpose='Physical';$Environment='Rehearsal';Reject {${observerGate}};$Environment='Shared';$DrainerPath='';Reject {${observerGate}}`;
+ const code=`$PolicyGeneration='B264InspectOnly';$Mode='Inspect';$EngineSha256='${PR54_B264_REFS.engine.sha256}';$RecoveryHelperSha256='${input().recoveryHelperRef.sha256}';$script:bound=@{}\nfunction Reject([scriptblock]$f){try{& $f}catch{if($_.Exception.Message-notmatch'^P03_B264_'){throw};'REJECTED';return};throw 'ACCEPTED'}\n& {${gate}};'VALID'\nforeach($m in @('Capture','Drain','inspect','INSPECT')){$Mode=$m;Reject {${gate}}};$Mode='Inspect'\nforeach($k in @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256')){$script:bound=@{};$script:bound[$k]='';Reject {${gate}}}\n$script:bound=@{};$EngineSha256='${'f'.repeat(64)}';Reject {${gate}}\n$CaptureMode='Disabled';$Environment='Shared';$Purpose='Physical';$ProfilePath='x';$ProfileSha256='x';$BeforeImagePath='x';$BeforeImageSha256='x';$EnginePath='x';$RecoveryHelperPath='x';$DrainerPath='x';$DrainerSha256='${input().drainerRef.sha256}';$EngineSha256='${PR54_B264_REFS.engine.sha256}'\n& {${observerGate}};'PHYSICAL_VALID'\nforeach($p in @('CandidateProposal','physical','PHYSICAL')){$Purpose=$p;Reject {${observerGate}}};$Purpose='Physical';$Environment='Rehearsal';Reject {${observerGate}};$Environment='Shared';$DrainerPath='';Reject {${observerGate}}`;
  const out=ps(code);assert.match(out,/VALID/);assert.match(out,/PHYSICAL_VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,16);
 });
 // Synthetic immutable metadata only; no source database or runtime is read.

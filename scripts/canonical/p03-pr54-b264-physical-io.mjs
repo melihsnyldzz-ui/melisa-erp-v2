@@ -155,17 +155,29 @@ const currentB007Pins=Object.freeze({
  observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}),
  helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
 });
+const sameCapturePins=Object.freeze({drainer:'9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33',observer:'9fb431598b6ae51eb8a9c3c5eb7c2df1f4fcea8431b36d20a20cd527f572388a'});
 export function pr54CurrentB007InspectionArguments(input){
  need(exact(input,['profileRef','beforeRef','engineRef','recoveryHelperRef','drainerRef','observerRef']),'INPUT');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef,drainerRef,observerRef}=input;
  for(const r of Object.values(input))need(ref(r),'REF');
  need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1$/.test(engineRef.path)&&engineRef.sha256===PR54_CURRENT_B007_ENGINE_SHA256,'ENGINE');
- for(const [r,k]of [[recoveryHelperRef,'helper'],[drainerRef,'drainer'],[observerRef,'observer']])need(path.win32.basename(r.path)===currentB007Pins[k].leaf&&r.sha256===currentB007Pins[k].sha256,'SOURCE');
+ const sameCapture=drainerRef.sha256===sameCapturePins.drainer&&observerRef.sha256===sameCapturePins.observer;
+ for(const [r,k]of [[recoveryHelperRef,'helper'],[drainerRef,'drainer'],[observerRef,'observer']])need(path.win32.basename(r.path)===currentB007Pins[k].leaf&&r.sha256===(sameCapture&&k!=='helper'?sameCapturePins[k]:currentB007Pins[k].sha256),'SOURCE');
  need(recoveryHelperRef.path===PR54_OWNER_ROOT+'\\'+currentB007Pins.helper.leaf&&[drainerRef,observerRef].every(r=>path.win32.dirname(r.path)===path.win32.dirname(engineRef.path)),'SOURCE_DIRECTORY');
  const runId=path.win32.basename(beforeRef.path).match(/^MelisaERP-P03-before-([a-f0-9]{32})\.json$/)?.[1];
  need(runId&&!['639e2da815e1e7ac0f1c0d04d7f7bdc3','7b0821959737f1da0427b17a7dfd4685','b264594b6f93d560d807c8decc4e6699'].includes(runId)&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+runId+'.json'&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+runId+'.json','RUN');
  const common=['-PolicyGeneration','CurrentB007InspectOnly','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256];
- return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
+ return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256,...(sameCapture?['-CaptureMode','CurrentB007']:[])],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
+}
+// Pure shape/pin check only; it cannot mint a physical token or native authority.
+export function validatePr54CurrentSameCaptureEnvelope(value,input){
+ need(exact(value,['schemaVersion','capture','current','frame'])&&value.schemaVersion==='melisa-p03-current-b007-same-capture.v1','SAME_CAPTURE_SCHEMA');
+ const {capture:c,current,frame}=value;
+ need(exact(c,['id','startedAt','inventoryObservedAt','profileSha256','beforeSha256','drainerSha256','processCount','listenerCount','runningInstanceCount'])&&/^[a-f0-9]{32}$/.test(c.id)&&current?.captureId===c.id&&frame?.captureId===c.id,'SAME_CAPTURE_ID');
+ need(c.profileSha256===input.profileRef.sha256&&c.beforeSha256===input.beforeRef.sha256&&c.drainerSha256===input.drainerRef.sha256&&input.drainerRef.sha256===sameCapturePins.drainer&&input.observerRef.sha256===sameCapturePins.observer,'SAME_CAPTURE_PINS');
+ const times=[c.startedAt,c.inventoryObservedAt,current.observedAt,frame.observedAt].map(Date.parse);need(times.every(Number.isFinite)&&times.every((t,i)=>i===0||t>=times[i-1])&&Date.now()-times[0]>=0&&Date.now()-times[0]<60000,'SAME_CAPTURE_TIME');
+ need(c.startedAt===current.startedAt&&[c.processCount,c.listenerCount,c.runningInstanceCount].every(n=>Number.isSafeInteger(n)&&n>=0)&&c.processCount>=current.processes.length&&c.listenerCount>=current.bindings.length&&c.runningInstanceCount===current.runningInstances.length,'SAME_CAPTURE_COUNTS');
+ const {captureId:nativeId,...native}=frame;return {current,frame:native};
 }
 export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGeneration=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
@@ -220,9 +232,9 @@ export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGener
   claimSlot();
   await inspectPr54B264PredecessorIO();
   for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
- const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const current=JSON.parse(observe.stdout);
+ const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const paired=argv.observer.includes('-CaptureMode'),output=JSON.parse(observe.stdout);const envelope=paired?validatePr54CurrentSameCaptureEnvelope(output,input):null,current=paired?envelope.current:output;
  need(current.schemaVersion==='melisa-p03-physical-observation.v1'&&current.environment==='Shared'&&current.policyGeneration==='CurrentB007InspectOnly'&&current.transitionAuthority===false&&current.collectionAuthority==='PHYSICAL_OBSERVATION_ONLY'&&current.collection==='Schedule.Service.GetRunningTasks(1)'&&current.processScope==='CIM.Win32_Process.Unfiltered'&&current.portScope==='Get-NetTCPConnection.Listen.Unfiltered'&&current.stopPermitted===false&&current.applyAvailable===false&&JSON.stringify(current.beforeImage)===JSON.stringify(beforeRef)&&current.rawScope?.unverifiedCount===0&&current.rawScope?.unverifiedProcesses?.length===0,'OBSERVER_FRAME');
- const inspected=await run(shell,pinnedInvocation(input.drainerRef,argv.worker),options);need(!inspected.stderr,'WORKER_STDERR');const frame=JSON.parse(inspected.stdout);
+ const inspected=paired?null:await run(shell,pinnedInvocation(input.drainerRef,argv.worker),options);if(inspected)need(!inspected.stderr,'WORKER_STDERR');const frame=paired?envelope.frame:JSON.parse(inspected.stdout);
  completedPairs++;
  let aux;try{aux=validatePr54CurrentB007PhysicalInspection({frame,current,profile,before,profileRef,beforeRef,engineRef,recoveryHelperRef});}catch(error){
   // The existing bounded retry receives the identical error. Each failed
