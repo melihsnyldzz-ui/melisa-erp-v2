@@ -5,7 +5,12 @@ test('current capture cannot restore or write commercial data and bounds exact s
 });
 test('new19/20 backup and snapshot metadata use explicit two-ACE CreateNew files; BAK/old18 path remain distinct',()=>{
  for(const code of [snapshot,backup]){assert.match(code,/SetAccessRuleProtection\(\$true,\$false\)/);assert.match(code,/SecurityIdentifier\]::new\('S-1-5-18'\)/);assert.match(code,/\[IO\.FileMode\]::CreateNew/);assert.match(code,/\[IO.FileOptions\]::WriteThrough/);assert.match(code,/\.Flush\(\$true\)/);}
- assert.match(backup,/P03-202610\(\?:19\|20\)-/);assert.match(backup,/P03_CURRENT_COPY_IDENTITY/);assert.match(backup,/restoreRehearsed=\$false/);assert.match(backup,/copyOnly=\$true/);assert.match(backup,/checksumVerified=\$true/);assert.match(backup,/restoreVerifyOnly=\$true/);assert.doesNotMatch(backup,/RESTORE DATABASE|WITH REPLACE|DROP DATABASE/i);
+ assert.match(backup,/P03-202610\(\?:19\|20\|21\)-/);assert.match(backup,/P03_CURRENT_COPY_IDENTITY/);assert.match(backup,/restoreRehearsed=\$false/);assert.match(backup,/copyOnly=\$true/);assert.match(backup,/checksumVerified=\$true/);assert.match(backup,/restoreVerifyOnly=\$true/);assert.doesNotMatch(backup,/RESTORE DATABASE|WITH REPLACE|DROP DATABASE/i);
+});
+
+test('dated source parameter contracts admit finite21 only and keep all current backup ACL/copy/proof branches aligned',()=>{
+ for(const code of [snapshot,backup]){const pattern=code.match(/\[ValidatePattern\('([^']+)'\)\]/)[1],gate=new RegExp(pattern);assert(gate.test('P03-20261021-120000'));for(const run of ['P03-20261022-120000','P03-20261021-120000\\..','P03-20261021-120000 -Mode Restore'])assert(!gate.test(run));}
+ assert.equal((backup.match(/\^P03-202610\(\?:19\|20\|21\)-\[0-9\]\{6\}\$/g)||[]).length,3);
 });
 test('PowerShell5 parses capture/backup/observers without executing them',{skip:process.platform!=='win32'},()=>{
  for(const leaf of ['p03-current-invariance-capture.ps1','p03-test-backup.ps1','p03-physical-recovery-observe.ps1','p03-pr54-successor-core-drain.ps1','p03-pr54-new-owner-observe.ps1']){const file=fileURLToPath(new URL('./'+leaf,import.meta.url)).replaceAll("'","''"),command=`$t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count-ne0){exit 2};'PARSE_ONLY'`,r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});assert.equal(r.status,0,leaf);assert.equal(r.stdout.trim(),'PARSE_ONLY');}

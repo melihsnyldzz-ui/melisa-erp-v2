@@ -20,7 +20,7 @@ async function modeledFixture(){
   +legacy.slice(legacy.indexOf('function currentEpochFixture(){'),legacy.indexOf("test('new current epoch"))
   +legacy.slice(legacy.indexOf('function sup20dCandidate(){'),legacy.indexOf("test('Sup20D candidate"));
  code=code.replace("'validateP03ProtectedSqlService',code+","'validateP03ProtectedSqlService','lookupPr54CurrentB007PhysicalInspection',code.replaceAll('13680fb207b4df211e992b1eff1d4b6edc68d67d1eaaabb23f77ad20ebcadcae','"+modeledPin+"')+")
-  .replace('return {admitPr54B264OwnerSuccessor,','return {admitPr54CurrentB007Epoch,admitPr54B264OwnerSuccessor,')
+  .replace('return {admitPr54B264OwnerSuccessor,','return {preparePr54CurrentB007NativeContinuity,admitPr54CurrentB007Epoch,admitPr54B264OwnerSuccessor,')
   .replace('},validateP03ProtectedSqlService);','},validateP03ProtectedSqlService,sup20dLookup);');
  code=code.replaceAll('import.meta.url',JSON.stringify(file.href)).replace(/from '(\.\/[^']+)'/g,(_,p)=>'from '+JSON.stringify(new URL(p,file).href));
  const fixture=await import('data:text/javascript;base64,'+Buffer.from(code+'\nexport {sup20dEpochFixture,seal,p03TransitionDigest,hash};').toString('base64'));
@@ -40,6 +40,12 @@ async function modeledFixture(){
 test('CurrentB007 modeled admission retains old4 plus exact new3 and immutable failed history with no transition authority',async()=>{
  const {f}=await modeledFixture(),history=JSON.stringify(f.raw),r=f.mod.admitPr54CurrentB007Epoch(f);
  assert.equal(r.claimPath,api.PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH);assert.equal(r.claim.schemaVersion,'melisa-p03-current-b007-epoch-proposal.v1');assert.equal(r.transitionAuthority,false);assert.equal(r.applyExecuted,false);assert.equal(f.profile.packages.length,7);assert.equal(JSON.stringify(f.raw),history);
+});
+
+test('CurrentB00721 modeled date admission retains900s before and60s current limits; old B264 and22 stay closed',async()=>{
+ async function dated(){const {f,fixture}=await modeledFixture();f.profile.businessDigest={...f.profile.businessDigest,path:f.profile.businessDigest.path.replace('20261020','20261021')};f.backup={...f.backup,runId:f.backup.runId.replace('20261020','20261021'),startedAt:f.backup.startedAt.replace('2026-10-20','2026-10-21')};f.before.observedAt=f.before.observedAt.replace('2026-10-20','2026-10-21');f.current.observedAt=f.current.observedAt.replace('2026-10-20','2026-10-21');f.now+=86400000;f.observation={...f.observation,snapshotRef:f.profile.businessDigest,observedAt:f.current.observedAt};f.nativeContinuity=f.mod.preparePr54CurrentB007NativeContinuity(f.profile.businessDigest,f.snapshot,f.observation,f.backup,f.now);fixture.seal(f);f.physicalInspection=f.mod.mintModeledSup20dInspection(f);return {f,fixture};}
+ const {f}=await dated();assert.equal(f.mod.admitPr54CurrentB007Epoch(f).transitionAuthority,false);assert.throws(()=>f.mod.admitPr54B264Sup20dCurrentEpoch(f));
+ for(const mutate of [f=>f.profile.businessDigest.path=f.profile.businessDigest.path.replace('20261021','20261022'),f=>f.before.observedAt=new Date(f.now-900000).toISOString(),f=>f.current.observedAt=new Date(f.now-60000).toISOString()]){const {f,fixture}=await dated();mutate(f);fixture.seal(f);f.physicalInspection=f.mod.mintModeledSup20dInspection(f);assert.throws(()=>f.mod.admitPr54CurrentB007Epoch(f));}
 });
 test('CurrentB007 modeled admission rejects package union, native/physical, birth, COM, raw and protected SQL drift',async()=>{
  const mutations=[f=>f.profile.packages.pop(),f=>f.profile.packages.push(f.profile.packages[0]),f=>f.profile.packages[0].manifestSha256='f'.repeat(64),f=>f.profile.packages[5].root+='-other',f=>f.nativeContinuity={},f=>f.physicalInspection={},f=>f.current.runningInstances[0].enginePid++,f=>f.current.processes[0].creationTime='2026-10-19T13:01:30.1111112Z',f=>f.current.processes.push({...f.current.processes[0],pid:999999}),f=>f.profile.protectedProcesses[0].service.startName='OTHER',f=>f.before.actualT1=true,f=>f.before.copyId='foreign',f=>f.profile.newSettings.sha256=api.PR54_B264_SUP20D_SETTINGS_SHA256];

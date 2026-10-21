@@ -1,4 +1,4 @@
-param([ValidateSet('Preflight','SourceCapture')][string]$Mode='Preflight',[Parameter(Mandatory=$true)][ValidateSet('Pre','Post')][string]$Phase,[Parameter(Mandatory=$true)][ValidatePattern('^P03-202610(?:19|20)-[0-9]{6}$')][string]$RunId)
+param([ValidateSet('Preflight','SourceCapture')][string]$Mode='Preflight',[Parameter(Mandatory=$true)][ValidateSet('Pre','Post')][string]$Phase,[Parameter(Mandatory=$true)][ValidatePattern('^P03-202610(?:19|20|21)-[0-9]{6}$')][string]$RunId)
 # Existing hash algorithm, current DB02 SELECT only. No clone/restore/DDL/DML.
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'

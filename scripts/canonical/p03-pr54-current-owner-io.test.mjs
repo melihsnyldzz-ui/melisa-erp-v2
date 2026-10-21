@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 import {p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
-import {PR54_PREDECESSOR_REFS,PR54_CURRENT_REFS,PR54_CURRENT_JOURNAL_REFS,PR54_CURRENT_SUCCESSOR_CLAIM_PATH,PR54_SUCCESSOR_CLAIM_PATH,preparePr54CurrentNativeContinuity,preparePr54B264NativeContinuity} from './p03-pr54-owner-successor.mjs';
+import {PR54_PREDECESSOR_REFS,PR54_CURRENT_REFS,PR54_CURRENT_JOURNAL_REFS,PR54_CURRENT_SUCCESSOR_CLAIM_PATH,PR54_SUCCESSOR_CLAIM_PATH,preparePr54CurrentNativeContinuity,preparePr54B264NativeContinuity,preparePr54CurrentB007NativeContinuity} from './p03-pr54-owner-successor.mjs';
 import {assertPr54SharedProfile,assertPr54WriteScope,validatePr54CurrentPreCapture,comparePr54CurrentSourceSnapshots,pr54CurrentSourceCaptureArgs,pr54CurrentReadPinsProgram,claimPr54CurrentOwnerSuccessorIO,pr54CurrentContinuityProgram,validatePr54CurrentPhysicalInspection,lookupPr54CurrentPhysicalInspection,collectPr54CurrentInspectionPair} from './p03-pr54-shared-owner-io.mjs';
 const hash=x=>createHash('sha256').update(x).digest('hex'),encoded=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
 const owner='S-1-5-21-2170750028-1005938530-2568122015-1001',db='MELISA_ERP_CRM_SHARED_TEST_20261009_02',copy='e16b70f0-4057-428b-9abc-6bbcaf35fe82',root='C:\\Sirket\\ERP\\backups\\P03-20261019-120000',ref=leaf=>({path:root+'\\'+leaf,sha256:'a'.repeat(64)});
@@ -59,7 +59,7 @@ test('20 October capture binds a new dated run and cannot relabel 19 October pro
  assert.equal(validate(f).runId,'P03-20261020-120000');assert.equal(pr54CurrentSourceCaptureArgs('P03-20261020-120000').at(-1),'P03-20261020-120000');
  const oldProof=structuredClone(f);oldProof.proof.startedAt='2026-10-19T12:01:00.000Z';assert.throws(()=>validate(oldProof));
  const oldBackup=structuredClone(f);oldBackup.backup.startedAt='2026-10-19T12:00:00.000Z';assert.throws(()=>validate(oldBackup));
- for(const day of ['18','21','99'])assert.throws(()=>pr54CurrentSourceCaptureArgs('P03-202610'+day+'-120000'));
+ for(const day of ['18','22','99'])assert.throws(()=>pr54CurrentSourceCaptureArgs('P03-202610'+day+'-120000'));
  assert.match(pr54CurrentContinuityProgram(f.refs.snapshotRef,f.backup),/SELECT/);
 });
 
@@ -70,4 +70,14 @@ test('new20 native capability keeps legacy19 closed and rejects LSN drift, writa
  const token=preparePr54B264NativeContinuity(f.refs.snapshotRef,f.snapshot,o,f.backup,f.now);assert.equal(validatePr54CurrentPreCapture(f.refs,f.snapshot,f.proof,f.backup,{now:f.now,nativeContinuity:token}).sourceReadOnly,true);
  for(const change of [x=>x.queryStoreMode='READ_WRITE',x=>x.logEnd+='0',x=>x.backupLastRecoveryForkGuid='44444444-2222-3333-4444-555555555555']){const bad=structuredClone(o);change(bad);assert.throws(()=>preparePr54B264NativeContinuity(f.refs.snapshotRef,f.snapshot,bad,f.backup,f.now));}
  const bad=structuredClone(f.backup);bad.startedAt='2026-10-19T12:00:00Z';assert.throws(()=>preparePr54B264NativeContinuity(f.refs.snapshotRef,f.snapshot,o,bad,f.now));
+});
+
+test('CurrentB00721 capture and native continuity bind real day floor without opening legacy20 or future22',()=>{
+ const f=JSON.parse(JSON.stringify(capture()).replaceAll('20261019','20261021').replaceAll('2026-10-19','2026-10-21'));f.now=Date.parse('2026-10-21T12:03:00.000Z');
+ assert.equal(validate(f).runId,'P03-20261021-120000');assert.equal(pr54CurrentSourceCaptureArgs(f.backup.runId).at(-1),f.backup.runId);assert.match(pr54CurrentReadPinsProgram(Object.values(f.refs)),/VERIFIED/);assert.match(pr54CurrentContinuityProgram(f.refs.snapshotRef,f.backup),/SELECT/);
+ const o=continuity(f);assert.throws(()=>preparePr54B264NativeContinuity(f.refs.snapshotRef,f.snapshot,o,f.backup,f.now));const token=preparePr54CurrentB007NativeContinuity(f.refs.snapshotRef,f.snapshot,o,f.backup,f.now);
+ assert.equal(validatePr54CurrentPreCapture(f.refs,f.snapshot,f.proof,f.backup,{now:f.now,nativeContinuity:token}).sourceReadOnly,true);
+ for(const bad of [x=>x.proof.startedAt='2026-10-20T23:59:59Z',x=>x.backup.startedAt='2026-10-20T23:59:59Z',x=>x.now+=15*60000]){const x=structuredClone(f);bad(x);assert.throws(()=>validate(x));}
+ for(const bad of [x=>x.queryStoreMode='READ_WRITE',x=>x.logEnd+='0',x=>x.backupLastRecoveryForkGuid='44444444-2222-3333-4444-555555555555',x=>x.observedAt=new Date(f.now-60000).toISOString()]){const x=structuredClone(o);bad(x);assert.throws(()=>preparePr54CurrentB007NativeContinuity(f.refs.snapshotRef,f.snapshot,x,f.backup,f.now));}
+ const next=JSON.parse(JSON.stringify(f).replaceAll('20261021','20261022').replaceAll('2026-10-21','2026-10-22'));next.now+=86400000;assert.throws(()=>validate(next));assert.throws(()=>pr54CurrentSourceCaptureArgs(next.backup.runId));assert.throws(()=>pr54CurrentReadPinsProgram(Object.values(next.refs)));assert.throws(()=>preparePr54CurrentB007NativeContinuity(next.refs.snapshotRef,next.snapshot,continuity(next),next.backup,next.now));
 });
