@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {EventEmitter} from 'node:events';
 import {runP03HeldCoreOwnerTransition,p03TransitionDigest,p03CoreFirstStopDigest} from './p03-integrated-owner-transition.mjs';
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
-import {pr54SafeFailure as actualSafeFailure} from './p03-pr54-shared-owner-io.mjs';
+import {pr54SafeFailure as actualSafeFailure,pr54CollectPhysicalObservation as actualCollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
 const start=source.indexOf('export async function runPr54CurrentB007SharedOwnerTransition(');
 const body=source.slice(start).replace(/^export /,'');
@@ -129,7 +129,7 @@ function fixture(options={}){
     const intent=JSON.parse(files.get(transition+'\\completed-cut-recovery-intent.json').bytes);assert.equal(Object.keys(intent).length,9);assert.deepEqual(intent.workerRef,ref);
     const drainWitness=put(transition+'\\successor-core-probe-drain.json',{consolePins:[],probePins:[],goneOldPids:[107]});return {stdout:JSON.stringify({status:'B264_OLD_OWNER_CORE_DRAINED',heldCoreExited:true,comStopped:true,coreStopResult:'COM_STOP_NATURAL_EXIT',cutWitness,drainWitness})};
    }
-   if(at('-Mode')==='Inspect')return {stdout:JSON.stringify({schemaVersion:'melisa-p03-successor-precut-admission.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,engineSha256:at('-EngineSha256'),recoveryHelperSha256:at('-RecoveryHelperSha256'),observedAt:now(),protectedConsolePins:options.protectedConsole?[protectedConsole]:[],oldIdentities:Object.values(identities),oldWatchers:watchers,consolePins:[],probePins:[]})};
+   if(at('-Mode')==='Inspect'){const failures=options.inspectErrors??[];if(failures.length)throw failures.shift();return {stdout:JSON.stringify({schemaVersion:'melisa-p03-successor-precut-admission.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,engineSha256:at('-EngineSha256'),recoveryHelperSha256:at('-RecoveryHelperSha256'),observedAt:now(),protectedConsolePins:options.protectedConsole?[protectedConsole]:[],oldIdentities:Object.values(identities),oldWatchers:watchers,consolePins:[],probePins:[]})};}
    assert(files.has(transition+'\\b264-old-owner-cut-intent.json'));const actualClaimPath=options.fresh?root+'\\p03-pr54-current-b007-generation-'+ 'd'.repeat(64)+'.lock.json':(options.continuation||isResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:claimPath;assert.equal(at('-ClaimPath'),actualClaimPath);assert(files.has(actualClaimPath));assert(events.some(e=>e.event==='EXACT_STOP_INTENT'&&e.target==='coreSupervisor'));
    if(options.continuation||isResume){assert.equal(at('-ContinuationPath'),transition+'\\precut-continuation.json');assert(files.has(at('-ContinuationPath')));}
    if(options.cutError)throw options.cutError;if(options.failCut)throw Error('P03_CUT_UNPROVEN');
@@ -177,7 +177,7 @@ function fixture(options={}){
   inspectPr54CurrentB007PhysicalOwner:async()=>{inspections++;return {profile,before,current:seen(),physicalInspection:secret};},
   preparePr54B264NativeContinuity:()=>secret,preparePr54CurrentB007NativeContinuity:()=>secret,validatePr54CurrentPreCapture:()=>({runId:'P03-20261020-100000',root:base}),pr54CurrentContinuityProgram:()=> 'log_end_lsn',
   admitPr54CurrentB007Epoch:({physicalInspection,current})=>{assert.equal(physicalInspection,secret);const value={schemaVersion:'melisa-p03-current-b007-epoch-proposal.v1',currentOwnerDigest:options.ownerDrift&&inspections>1?'e'.repeat(64):'d'.repeat(64),ownerObservedAt:current.observedAt,protectedSqlEpoch:{kind:'ProtectedSqlService',pid:900},predecessorRunId:'b264594b6f93d560d807c8decc4e6699',predecessorProfile:{},predecessorBefore:{},predecessorLock:{},consumedAncestorClaim:{},failedOuterTail:{},quarantinedRecoveryTail:{},readOnlyOldReady:{},successorRunId:sid,successorProfile:profileRef,successorBefore:beforeRef,newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(plan),transitionAuthority:false,applyExecuted:false};return {claimPath,claim:value,proofDigest:'c'.repeat(64)};},
-  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh?{plainCommandOnly:true}:undefined);assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh?{fileInvocationOnly:true}:undefined);return {ref,args:argv.slice(4)};},pr54CollectPhysicalObservation:(fn,stage)=>{assert.equal(stage,'PHYSICAL');return fn();},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}if(options.recovery){assert(!ids.includes(4900));assert(!consoles.some(p=>p.pid===4900));assert(calls.at(-1).endsWith(':ResumeDrainCheck'));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
+  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh?{plainCommandOnly:true}:undefined);assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh?{fileInvocationOnly:true}:undefined);return {ref,args:argv.slice(4)};},pr54CollectPhysicalObservation:(fn,stage)=>{assert(['PHYSICAL','SUCCESSOR_INSPECT'].includes(stage));return actualCollectPhysicalObservation(fn,stage);},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}if(options.recovery){assert(!ids.includes(4900));assert(!consoles.some(p=>p.pid===4900));assert(calls.at(-1).endsWith(':ResumeDrainCheck'));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
  if(options.retry){env.preparePr54CurrentB007PrecutRetry=input=>env.validatePr54CurrentB007PrecutRetryBinding(input);env.validatePr54CurrentB007PrecutRetryBinding=({raw,profileRef,beforeRef})=>{assert.equal(Object.keys(raw.original).length,8);assert.equal(Object.keys(raw.resume).length,11);assert.equal(Object.keys(raw.retry).length,11);for(const [key,ref]of Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS))pin(ref);return {schemaVersion:'melisa-p03-current-b007-precut-retry.v1',retainedClaimRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim,failureTailRef:PR54_CURRENT_B007_PRECUT_RETRY_REFS.failureTail,retainedProfileRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.profile,retainedBeforeRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.before,profileRef,beforeRef,claimPath:PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH};};}
  const secret=Object.freeze({});
  if(isResume){const modeled=env.admitPr54CurrentB007Epoch({physicalInspection:secret,current:seen()}).claim;put(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.path,{...modeled,schemaVersion:'melisa-p03-current-b007-epoch-claim.v1',transitionAuthority:true,ownerObservedAt:'2026-10-21T10:00:00Z',successorRunId:'452054204a1857ff618b0dd30a59caea',successorProfile:PR54_CURRENT_B007_PRECUT_RESUME_REFS.profile,successorBefore:PR54_CURRENT_B007_PRECUT_RESUME_REFS.before},PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.sha256);}
@@ -446,4 +446,29 @@ test('failed StopNew42d0 finalization refuses crossed flags and worker refs befo
 
 test('failed StopNew42d0 finalization refuses DB drift or unproven native results without fallback recovery',async()=>{
  for(const option of ['recoveryDbDrift','finalizeWrongStatus','finalizeWrongGeneration','finalizeNativeError','finalizeShortProof']){const f=fixture({finalize:true,[option]:true});await assert.rejects(f.fn({...f.input,mode:'Apply'}),undefined,option);assert.equal(f.calls.length,option==='recoveryDbDrift'?0:1);assert.equal(f.writes.length,0);assert.equal(f.stops,0);assert(!f.calls.some(c=>c.endsWith(':StopNew')||c.endsWith(':RollbackOld')||c.endsWith(':ResumeDrain')));}
+});
+
+
+test('CurrentB007 whole held-cut Inspect recaptures exact CIM NotFound without replaying Drain',async()=>{
+ const failure=()=>Object.assign(Error('Command failed: dormant P03_FALSE_LITERAL'),{stderr:'FullyQualifiedErrorId : HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand\r\n'});
+ const f=fixture({inspectErrors:[failure(),failure()]});
+ const r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'COMPLETE');
+ assert.equal(f.calls.filter(c=>c==='p03-pr54-b264-old-owner-cut.ps1:Inspect').length,3);
+ assert.equal(f.calls.filter(c=>c==='p03-pr54-b264-old-owner-cut.ps1:Drain').length,1);
+});
+
+test('CurrentB007 exhausted or permanent held-cut Inspect cannot stop or recover any process',async()=>{
+ for(const [nativeId,count,reason] of [
+  ['HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand',3,'P03_OBSERVER_CIM_OBJECT_NOT_FOUND'],
+  ['HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand',1,'UNCLASSIFIED_IO_FAILURE'],
+  ['HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.GetCimInstanceCommand',1,'UNCLASSIFIED_IO_FAILURE']
+ ]){
+  const make=()=>Object.assign(Error('child failed PRIVATE_SENTINEL'),{stderr:'FullyQualifiedErrorId : '+nativeId+'\r\n'});
+  const f=fixture({inspectErrors:Array.from({length:3},make)});const r=await f.fn({...f.input,mode:'Apply'});
+  assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');
+  assert.deepEqual(r.failureDiagnostic,{stage:'INSPECT',reason});assert.equal(f.stops,0);
+  assert.equal(f.calls.filter(c=>c==='p03-pr54-b264-old-owner-cut.ps1:Inspect').length,count);
+  assert(!f.calls.some(c=>c.includes(':Drain')||c.includes('RollbackOld')||c.includes('StopNew')));
+  assert(!JSON.stringify(r).includes('PRIVATE_SENTINEL'));
+ }
 });

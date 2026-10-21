@@ -158,3 +158,11 @@ test('real adapter is read only by default, freezes helpers and gates success on
  assert.match(source,/if\(taskStopAttempted&&!startAttempted\)/);assert.match(source,/candidate\.value\.processes\.length===0&&candidate\.value\.receipts\.length===0/);
  assert.match(source,/PRESTART_EXACT_OLD_DRAIN_THEN_REVIEWED_ENGINE/);assert.match(source,/PRESTART_RECOVERY_REFUSED/);
 });
+
+
+test('physical recapture ignores dormant command literals and uses native stderr only',async()=>{
+ for(const stderr of ['', 'FullyQualifiedErrorId : HRESULT 0x80041003,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand']){
+  const e=Object.assign(Error('Command failed: throw P03_PROCESS_IDENTITY_UNAVAILABLE'),{stderr});let calls=0;
+  await assert.rejects(pr54CollectPhysicalObservation(async()=>{calls++;throw e;}),x=>x===e);assert.equal(calls,1);
+ }
+});

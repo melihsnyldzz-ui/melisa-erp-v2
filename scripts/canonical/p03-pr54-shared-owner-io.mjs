@@ -78,7 +78,7 @@ export async function collectPr54CurrentInspectionPair(collect){
  for(let attempt=0;attempt<3;attempt++){try{return await collect();}catch(error){if(error?.message!=='P03_SHARED_CURRENT_AUX_FRAME_CHANGED'||attempt===2)throw error;}}
 }
 export function pr54SafeFailure(error){
- const stderr=String(error?.stderr??''),text=String(error?.message??'')+' '+stderr,fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];
+ const stderr=String(error?.stderr??''),message=String(error?.message??''),text=stderr||(/^Command failed:/i.test(message)?'':message),fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];
  // PS5 emits encoded CRLF inside CLIXML Error strings. Decode only that
  // transport delimiter, not a command, message, frame or owner identity.
  const cimText=stderr.startsWith('#< CLIXML')?[...stderr.matchAll(/<S S="Error">([^<]*)<\/S>/g)].map(x=>x[1].replaceAll('_x000D__x000A_','\r\n')).join('\n'):stderr;
@@ -1013,6 +1013,9 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   // execFile messages echo the entire command, including dormant throw literals.
   // Only error output carries native codes; never mine the echoed command text.
   for(const line of String(error?.stderr??'').replace(/_x000D_|_x000A_/g,'\n').split(/\r?\n/)){const token=line.trim().replace(/^PowerShell error:\s*/,'');if(token.length<=180&&allowed.test(token))return token;}
+  // Decode only the existing exact native CIM NotFound signature; never mine
+  // the echoed command text for dormant P03 literals.
+  if(pr54SafeFailure({stderr:error?.stderr})==='P03_OBSERVER_CIM_OBJECT_NOT_FOUND')return 'P03_OBSERVER_CIM_OBJECT_NOT_FOUND';
   if(error?.killed===true||error?.signal)return 'P03_SHARED_CURRENT_B007_WORKER_INTERRUPTED';
   return pr54SafeFailure({message:message.length<=180&&!/^Command failed:/i.test(message)?message:'',code:error?.code});
  }
@@ -1020,7 +1023,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   admit:async()=>{await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_JOURNAL_ADVANCED');return {owner:true,oldHealthy:true,oldActions:true,emptyJournal:true};},persist,
   heldCoreCut:async()=>{
    let stage='INSPECT';try{
-   await guard();await history();const snapshot=await invoke(frozen.oldCut,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','Inspect',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256]);
+   await guard();await history();const snapshot=await pr54CollectPhysicalObservation(()=>invoke(frozen.oldCut,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','Inspect',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256]),'SUCCESSOR_INSPECT');
    stage='SNAPSHOT';
    need(snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&snapshot.oldIdentities.length===8&&snapshot.oldWatchers.length===2&&snapshot.profileSha256===profileRef.sha256&&snapshot.beforeSha256===beforeRef.sha256&&snapshot.engineSha256===frozen.engine.sha256&&snapshot.recoveryHelperSha256===frozen.helper.sha256&&Array.isArray(snapshot.protectedConsolePins)&&Number.isFinite(Date.parse(snapshot.observedAt))&&Date.now()-Date.parse(snapshot.observedAt)>=0&&Date.now()-Date.parse(snapshot.observedAt)<60000,'CURRENT_B007_PRECUT');snapshotRef=await protectedWrite(path.win32.join(transitionDir,'successor-precut-admission.json'),jsonBytes(snapshot));
    stage='ROOT_INTENT';const rootIntent=await protectedWrite(path.win32.join(transitionDir,'b264-old-owner-cut-intent.json'),jsonBytes({event:'B264_OLD_CUT_INTENT',claimSha256:claimRef.sha256,stopOrderDigest:p03CoreFirstStopDigest(before.plan),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:new Date().toISOString()}));
