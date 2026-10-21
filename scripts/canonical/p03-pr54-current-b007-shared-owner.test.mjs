@@ -33,6 +33,7 @@ const pins=Object.fromEntries([...source.slice(source.indexOf('const currentB007
 const same=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].every(k=>a[k]===b[k]);
 const exact=(x,keys)=>!!x&&Object.keys(x).sort().join('|')===keys.toSorted().join('|');
 function fixture(options={}){
+ if(options.finalize)options={...options,postcas:true};
  if(options.postcas)options={...options,recovery:true};
  if(options.recovery)options={...options,retry:true};
  const sid=options.recovery?'42d0d0536cb115cc4aea43ff1f13afbf':'a'.repeat(32),transition=root+'\\MelisaERP-P03-transition-'+sid;
@@ -100,6 +101,11 @@ function fixture(options={}){
  const seen=()=>({schemaVersion:'melisa-p03-physical-observation.v1',environment:'Shared',beforeImage:beforeRef,observedAt:now(),collectionAuthority:'PHYSICAL_OBSERVATION_ONLY',processScope:'CIM.Win32_Process.Unfiltered',portScope:'Get-NetTCPConnection.Listen.Unfiltered',stopPermitted:false,applyAvailable:false,rawScope:{unverifiedCount:options.foreignRaw?1:0,unverifiedProcesses:options.foreignRaw?[{pid:666}]:[]},processes:[...rows,...(options.protectedParentDrift&&phase==='cut'?[{...protectedRow,commandLine:'drift'}]:[protectedRow]),...(options.protectedConsole?[options.protectedDrift&&phase==='cut'?{...protectedConsole,creationTime:'2026-10-20T08:00:01.0000000Z'}:protectedConsole]:[]),...(options.foreignOld&&phase==='cut'?[identity('unknown',66)]:[])],bindings:rows.flatMap(p=>(p.bindings??[]).map(b=>({...b,pid:p.pid}))),tasks:tasks.map((t,n)=>({name:t.name,state:running?4:3,xml:taskXml[n]})),runningInstances:running?names.map((name,n)=>({name,state:4,path:'\\'+name,enginePid:rows.find(p=>p.role===(n?'hubWatcher':'terminalWatcher'))?.pid??108+n,instanceGuid:'g'+n})):[]});
  async function run(shell,request,runOptions){const {ref,args}=request,leaf=path.win32.basename(ref.path),at=k=>args[args.indexOf(k)+1];calls.push(leaf+':'+(args.includes('-Mode')?at('-Mode'):args.includes('-Action')?at('-Action'):''));
   if(leaf==='p03-pr54-b264-old-owner-cut.ps1'||leaf==='p03-pr54-current-b007-precut-cut.ps1'){
+   if(['FinalizeOld42d0Inspect','FinalizeOld42d0Apply'].includes(at('-Mode'))){
+    assert(options.finalize);assert.equal(runOptions.timeout,900000);assert.equal(at('-EngineSha256'),shaEngine);assert.equal(at('-EnginePath'),transition+'\\p03-physical-rollback-lifetime-v2.ps1');assert.equal(at('-WorkerSourceSha256'),ref.sha256);
+    if(options.finalizeNativeError)throw Error('P03_PHYSICAL_FINALIZE42_ALREADY_ATTEMPTED');
+    const apply=at('-Mode')==='FinalizeOld42d0Apply',tail='cc202c25a1917b3263ba034f09457d10c01686b8a0b09031e5d5c15249df96db';return {stdout:JSON.stringify({status:options.finalizeWrongStatus?'UNPROVEN':apply?'B264_COMPLETED42_OLD_RESTORED_READY':'B264_COMPLETED42_FINALIZE_OLD_DRY_RUN',recoveryOnly:true,newGenerationStarted:options.finalizeWrongGeneration===true,profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,mutationExecuted:apply,engineSha256:shaEngine,oldActionsRestored:apply,oldRolesAbsent:!apply,startedTasks:apply?2:0,stableSeconds:options.finalizeShortProof?1:30,identityDigest:'a'.repeat(64),journalTailSha256:tail,quarantinedJournalTailSha256:tail})};
+   }
    if(['ResumeDrainDryRun','ResumeDrain','ResumeDrainCheck'].includes(at('-Mode'))){
     assert.equal(runOptions.timeout,900000);
     assert(options.recovery);if(options.rejectRecoveryNative)throw Error('P03_PHYSICAL_B264_CUT_CONSOLE_CHANGED');
@@ -147,7 +153,7 @@ function fixture(options={}){
  async function ps(code,transport){assert.deepEqual(transport,options.recovery?{plainCommandOnly:true}:undefined);programs.push(code);
   if(code==='ABSENCE_CHECK'){emptyWitnessed=true;return 'EMPTY';}
   if(code.includes('::GetCurrent().User.Value')&&!code.includes('Get-Acl'))return owner;
-  if(code.includes('log_end_lsn')){if(options.recovery){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:'+(options.postcas?'ResumeDrainCheck':'ResumeDrainDryRun')));assert.equal(files.has(transition+'\\completed-cut-recovery-intent.json'),!!options.postcas);}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
+  if(code.includes('log_end_lsn')){if(options.recovery&&!options.finalize){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:'+(options.postcas?'ResumeDrainCheck':'ResumeDrainDryRun')));assert.equal(files.has(transition+'\\completed-cut-recovery-intent.json'),!!options.postcas);}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
   if(code.includes('RegisterTask(')){const n=code.includes("GetTask('"+names[0]+"')")?0:1;taskXml[n]=code.includes(Buffer.from(tasks[n].newXml).toString('base64'))?tasks[n].newXml:tasks[n].oldXml;return 'SET';}
   if(code.includes("'STARTED'")){phase='new';running=true;rows=rules.map((r,n)=>({...identity(r.role,100+n),commandLine:r.commandLine,bindings:n<8?[{port:4184+n,address:'127.0.0.1'}]:[]}));const hubPath=String.raw`C:\Sirket\ERP\runtime\terminal-completion-logon\hub-web\hub-web-process-`+'d'.repeat(32)+'-0.json';put(hubPath,{pid:rows.find(p=>p.role==='hub').pid});put(hubPath.replace('hub-web-process-','hub-web-lineage-'),{lineage:true});return 'STARTED';}
   if(code.includes('CreateDirectory')){directories.add(transition);return 'CREATED';}
@@ -202,6 +208,13 @@ function fixture(options={}){
    if(options.postcasChangedPin)put(transition+'\\completed-cut-recovery-stop-hub-result.json',{changed:true});
    if(options.postcasWorkerError){const old=env.run;env.run=async(...args)=>{const request=args[1];if(path.win32.basename(request.ref.path)==='p03-physical-rollback-lifetime-v2.ps1')throw options.postcasWorkerError;return old(...args);};}
   }
+ }
+ if(options.finalize){
+  input.resumeFailedStopNew42d0=true;const originalControl=root+'\\MelisaERP-P03-current-b007-control-f7c6286076b4';
+  for(const [file,value]of [...files])if(file.startsWith(control+'\\')){const replacement=originalControl+file.slice(control.length);files.set(replacement,{bytes:value.bytes,ref:{...value.ref,path:replacement}});}
+  input.sourceControlDir=originalControl;
+  const literal=body.match(/finalRestoreWorkerRef.path===root\+('[^']+')/)[1],leaf=new Function('return '+literal)(),sha=body.match(/finalRestoreWorkerRef.sha256==='([^']+)'/)[1];
+  input.finalRestoreWorkerRef=put(root+leaf,Buffer.from('finalize worker'),sha);
  }
  const fn=new Function('env',`const {${Object.keys(env).join(',')}}=env;return (${body});`)(env);
  if(options.missingSource)files.delete(control+'\\'+pins.emptyRecovery[0]);
@@ -394,3 +407,15 @@ test('postCAS42d0 error diagnostics ignore echoed guard literals and retain boun
 test('completed42d0 native reference key order is irrelevant while exact shape path and hash remain mandatory',async()=>{for(const mode of ['DryRun','Apply']){const f=fixture({recovery:true,recoveryReverseRefs:true}),r=await f.fn({...f.input,mode});assert.equal(r.status,mode==='DryRun'?'CURRENT_B007_COMPLETED_CUT_RECOVERY_DRY_RUN':'RECOVERED_OLD_READY');}for(const recoveryWrongRef of ['hash','path','extra','missing']){const f=fixture({recovery:true,recoveryWrongRef});await assert.rejects(f.fn({...f.input,mode:'Apply'}),/COMPLETED_CUT_FRESH/);assert.equal(f.writes.length,0);assert.equal(f.stops,0);}});
 
 test('completed42d0 Check rejects altered drain references after the one intent without invoking rollback',async()=>{for(const recoveryWrongDrain of ['hash','path','extra','missing']){const f=fixture({recovery:true,recoveryWrongDrain}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert(f.writes.some(p=>p.endsWith('completed-cut-recovery-intent.json')));assert(!f.calls.some(c=>c.endsWith(':RollbackOld')));}});
+
+test('failed StopNew42d0 finalization uses only the separately pinned existing native phase',async()=>{
+ for(const mode of ['DryRun','Apply']){const f=fixture({finalize:true}),original=new Map([...f.files].map(([p,v])=>[p,Buffer.from(v.bytes)])),r=await f.fn({...f.input,mode});assert.equal(r.status,mode==='Apply'?'B264_COMPLETED42_OLD_RESTORED_READY':'B264_COMPLETED42_FINALIZE_OLD_DRY_RUN');assert.equal(r.applyExecuted,mode==='Apply');assert.equal(r.newGenerationStarted,false);assert.equal(r.humanAcceptance,'BEKLİYOR');assert.equal(f.calls.length,1);assert.equal(f.calls[0],'p03-pr54-current-b007-precut-cut.ps1:'+ (mode==='Apply'?'FinalizeOld42d0Apply':'FinalizeOld42d0Inspect'));assert.equal(f.writes.length,0);assert.equal(f.stops,0);for(const[p,b]of original)assert(f.files.get(p).bytes.equals(b));}
+});
+
+test('failed StopNew42d0 finalization refuses crossed flags and worker refs before native invocation',async()=>{
+ for(const alter of [x=>x.resumeCompletedCut42d0=false,x=>x.resumeCompletedCut42d0PostCas=false,x=>x.finalRestoreWorkerRef=null,x=>x.finalRestoreWorkerRef={...x.finalRestoreWorkerRef,sha256:'0'.repeat(64)},x=>x.finalRestoreWorkerRef={...x.finalRestoreWorkerRef,path:x.finalRestoreWorkerRef.path+'.wrong'},x=>x.sourceControlDir=control]){const f=fixture({finalize:true});alter(f.input);await assert.rejects(f.fn({...f.input,mode:'Apply'}));assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);assert.equal(f.stops,0);}
+});
+
+test('failed StopNew42d0 finalization refuses DB drift or unproven native results without fallback recovery',async()=>{
+ for(const option of ['recoveryDbDrift','finalizeWrongStatus','finalizeWrongGeneration','finalizeNativeError','finalizeShortProof']){const f=fixture({finalize:true,[option]:true});await assert.rejects(f.fn({...f.input,mode:'Apply'}),undefined,option);assert.equal(f.calls.length,option==='recoveryDbDrift'?0:1);assert.equal(f.writes.length,0);assert.equal(f.stops,0);assert(!f.calls.some(c=>c.endsWith(':StopNew')||c.endsWith(':RollbackOld')||c.endsWith(':ResumeDrain')));}
+});

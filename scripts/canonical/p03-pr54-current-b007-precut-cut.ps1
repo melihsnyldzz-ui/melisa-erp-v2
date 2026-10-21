@@ -1,6 +1,6 @@
 param(
  [ValidateSet('CurrentB007InspectOnly')][string]$PolicyGeneration='CurrentB007InspectOnly',
- [ValidateSet('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')][string]$Mode='Inspect',
+ [ValidateSet('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply')][string]$Mode='Inspect',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][string]$BeforeImageSha256,
  [Parameter(Mandatory=$true)][string]$EnginePath,[Parameter(Mandatory=$true)][string]$EngineSha256,
@@ -11,7 +11,8 @@ param(
 )
 if($PolicyGeneration -cnotin @('CurrentB007InspectOnly')){throw 'P03_B264_CUT_POLICY'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
-# Definitions-only reuse. No historical dispatcher, claim creation or task start.
+# Definitions-only bootstrap: no historical dispatcher or claim creation.
+# Only the exact recorded FinalizeOld42d0Apply mode may start restored OLD tasks.
 if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_CUT_SOURCE'}
 if($Mode -ceq 'Inspect' -and @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','RootIntentPath','RootIntentSha256','ContinuationPath','ContinuationSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_CUT_INSPECT_ONLY'}
 if($Mode -cin @('Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -and (-not $PSBoundParameters.ContainsKey('ContinuationPath') -or -not $PSBoundParameters.ContainsKey('ContinuationSha256') -or [string]::IsNullOrEmpty($ContinuationPath) -or $ContinuationSha256 -cnotmatch '\A[a-f0-9]{64}\z')){throw 'P03_CURRENT_B007_CONTINUATION_REQUIRED'}
@@ -23,7 +24,7 @@ $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_B264_CUT_OWNER'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$engineSha=$EngineSha256
 function ReadWorkerPin([string]$path,[string]$sha,[switch]$HeldCode){
- if($HeldCode -and ($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -or $path -cne $PSCommandPath -or $sha -cne $WorkerSourceSha256)){throw 'P03_SUCCESSOR_HELD_CODE_SCOPE'}
+ if($HeldCode -and ($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply') -or $path -cne $PSCommandPath -or $sha -cne $WorkerSourceSha256)){throw 'P03_SUCCESSOR_HELD_CODE_SCOPE'}
  if($sha -cnotmatch '\A[a-f0-9]{64}\z' -or -not [IO.Path]::IsPathRooted($path) -or [IO.Path]::GetFullPath($path) -cne $path){throw 'P03_SUCCESSOR_PIN_SCOPE'}
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'P03_SUCCESSOR_REPARSE'}}
  $item=Get-Item -LiteralPath $path -Force;if($item.PSIsContainer -or $item.LinkType){throw 'P03_SUCCESSOR_FILE'}
@@ -32,9 +33,9 @@ function ReadWorkerPin([string]$path,[string]$sha,[switch]$HeldCode){
  foreach($sid in @($owner,'S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value -ceq $sid -and -not $_.IsInherited -and $_.AccessControlType -eq 'Allow' -and $_.FileSystemRights -eq 'FullControl'}).Count -ne 1){throw 'P03_SUCCESSOR_ACL'}}
  $share=if($HeldCode){[IO.FileShare]::Read}else{[IO.FileShare]::None};$s=[IO.File]::Open($path,'Open','Read',$share);try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
 }
-if($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -and $PSBoundParameters.ContainsKey('WorkerSourceSha256')){throw 'P03_SUCCESSOR_HELD_CODE_UNEXPECTED'}
+if($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply') -and $PSBoundParameters.ContainsKey('WorkerSourceSha256')){throw 'P03_SUCCESSOR_HELD_CODE_UNEXPECTED'}
 function AssertRecoveryWorkerSource{
- if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){
+ if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply')){
   if($WorkerSourceSha256 -cnotmatch '\A[a-f0-9]{64}\z' -or $PSCommandPath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-pr54-current-b007-precut-cut\.ps1\z'){throw 'P03_SUCCESSOR_HELD_CODE_SOURCE'}
   [void](ReadWorkerPin $PSCommandPath $WorkerSourceSha256 -HeldCode)
  }
@@ -530,6 +531,138 @@ function ResumeCompleted42d0Drain{
  $drain=WriteB264CutEvidence 'successor-core-probe-drain.json' $value
  return [ordered]@{status='B264_OLD_OWNER_CORE_DRAINED';coreStopResult=$proof.cut.mechanism;heldCoreExited=$true;comStopped=$true;remainingOldRoles=(8-@($script:drainedPids).Count);goneOldPids=@($script:drainedPids);cutWitness=(Completed42d0Pins).cut;drainWitness=$drain}
 }
+function WriteFinalize42d0Evidence([string]$leaf,$value){
+ Need ($Mode -ceq 'FinalizeOld42d0Apply' -and $runId -ceq '42d0d0536cb115cc4aea43ff1f13afbf' -and $dir -ceq (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) -and $leaf -cin @('completed-cut-finalize-old-intent.json','completed-cut-finalize-old-result.json')) 'FINALIZE42_WRITE_SCOPE'
+ $path=Join-Path $dir $leaf;NoReparse $dir
+ $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 25 -Compress));$acl=[Security.AccessControl.FileSecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false)
+ foreach($sid in @($owner,'S-1-5-18')){[void]$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','Allow'))}
+ $stream=New-Object IO.FileStream($path,[IO.FileMode]::CreateNew,[Security.AccessControl.FileSystemRights]::Write,[IO.FileShare]::None,4096,[IO.FileOptions]::WriteThrough,$acl)
+ try{$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
+ $sha=Hash $bytes;[void](ReadWorkerPin $path $sha);return [ordered]@{path=$path;sha256=$sha}
+}
+function Finalize42d0Pins{
+ $prefix=Join-Path $base 'MelisaERP-P03-transition-42d0d0536cb115cc4aea43ff1f13afbf';$journal=Join-Path $base 'MelisaERP-P03-recovery-42d0d0536cb115cc4aea43ff1f13afbf'
+ return @{
+  firstIntent=@{path=(Join-Path $prefix 'completed-cut-recovery-intent.json');sha256='be80fc9de56013c5d147fff746678aa92f57b941f377a0d29833706bb4865764'}
+  firstResult=@{path=(Join-Path $prefix 'completed-cut-recovery-result.json');sha256='7b85fb2f4b4017de936bbbd772f03f3a7a9d521d8ba584fc4ddcf167d761fd3d'}
+  postcasIntent=@{path=(Join-Path $prefix 'completed-cut-postcas-recovery-intent.json');sha256='af56353949cc78795f7dc25049b27d218a3c5da826f005939fa51d96494e5468'}
+  postcasResult=@{path=(Join-Path $prefix 'completed-cut-postcas-recovery-result.json');sha256='527b43f64e2206bf74220780b3dea6d13b529216836da69ef3e8f9b456f58ea5'}
+  zero=@{path=(Join-Path $base 'MelisaERP-P03-candidate-aa3874662b788202afa74b74c7fd048f.json');sha256='f7f7d29b70983986ee8d79ec5046aeca97cf12b1f04112fa929746d08eaf2f0c'}
+  failure=@{path=(Join-Path $base 'old-pid-failure-4b09f0a924795fe9b7bd95ffc8645ac30ac6ad1b04f7eda871be6bf74a6ea60f.json');sha256='4b09f0a924795fe9b7bd95ffc8645ac30ac6ad1b04f7eda871be6bf74a6ea60f'}
+  archivedWorker=@{path=(Join-Path $base 'MelisaERP-P03-current-b007-control-f7c6286076b4\p03-pr54-current-b007-precut-cut.ps1');sha256='213835b02b8eb367bbb6858a76cfcd36e46103bac960843d04bde3c971d703b7'}
+  journal0=@{path=(Join-Path $journal 'event-0000.json');sha256='b5b4c1626bd3630de4a4e5e72a0e2a5aadbfd388ca6b8f86af9e883c453b050e'}
+  journal1=@{path=(Join-Path $journal 'event-0001.json');sha256='3bb4562ed79440fec3765f3d6276d3e0dc479871a5aab3ebb265a5bb9bf68245'}
+  journal2=@{path=(Join-Path $journal 'event-0002.json');sha256='99f94c9a52e35033a3e9e66bfb06f55fe289c20af2cee3d0470310e70f9d91f2'}
+  journal3=@{path=(Join-Path $journal 'event-0003.json');sha256='c2eb1f562aef369ee7d12d028ed6a089b32d9b7f7f36b475643c056b96d7f131'}
+  journal4=@{path=(Join-Path $journal 'event-0004.json');sha256='cc202c25a1917b3263ba034f09457d10c01686b8a0b09031e5d5c15249df96db'}
+ }
+}
+function AssertFinalize42d0History{
+ Need ($Mode -cin @('FinalizeOld42d0Inspect','FinalizeOld42d0Apply') -and $runId -ceq '42d0d0536cb115cc4aea43ff1f13afbf' -and $dir -ceq (Join-Path $base ('MelisaERP-P03-transition-'+$runId))) 'FINALIZE42_SCOPE'
+ $old=Completed42d0Pins;$pins=Finalize42d0Pins;$values=@{};$original=@{}
+ foreach($key in $old.Keys){$original[$key]=Json (ReadWorkerPin $old[$key].path $old[$key].sha256)}
+ foreach($key in $pins.Keys){if($key -cne 'archivedWorker'){$values[$key]=Json (ReadWorkerPin $pins[$key].path $pins[$key].sha256)}else{[void](ReadWorkerPin $pins[$key].path $pins[$key].sha256)}}
+ foreach($pair in @(@($ProfilePath,$ProfileSha256,'profile'),@($BeforeImagePath,$BeforeImageSha256,'before'),@($ClaimPath,$ClaimSha256,'claim'),@($ContinuationPath,$ContinuationSha256,'context'),@($RootIntentPath,$RootIntentSha256,'root'),@($AdmittedSnapshotPath,$AdmittedSnapshotSha256,'snapshot'))){Need ($pair[0] -ceq $old[$pair[2]].path -and $pair[1] -ceq $old[$pair[2]].sha256) 'FINALIZE42_INPUT'}
+ Need ($EnginePath -ceq (Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1') -and $EngineSha256 -ceq 'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f') 'FINALIZE42_ENGINE'
+ Need ($profile.journalDirectory -ceq (Join-Path $base ('MelisaERP-P03-recovery-'+$runId)) -and $before.copyId -ceq 'e16b70f0-4057-428b-9abc-6bbcaf35fe82' -and $before.actualT1 -ceq $false -and $profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.newSettings.sha256 -ceq '800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329') 'FINALIZE42_TARGET'
+ $files=@(Get-ChildItem -LiteralPath $profile.journalDirectory -Force|ForEach-Object{$_.Name}|Sort-Object);Need (($files-join '|') -ceq 'event-0000.json|event-0001.json|event-0002.json|event-0003.json|event-0004.json|recovery.lock') 'FINALIZE42_JOURNAL_SCOPE'
+ AssertFinalize42d0Lock
+ $previous=$BeforeImageSha256;$events=@('RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_FAILED','QUARANTINED')
+ foreach($n in 0..4){$record=$values['journal'+$n];Need ($record.sequence -eq $n -and $record.previousSha256 -ceq $previous -and $record.profileSha256 -ceq $ProfileSha256 -and $record.beforeSha256 -ceq $BeforeImageSha256 -and $record.event -ceq $events[$n]) 'FINALIZE42_JOURNAL_CHAIN';$previous=$pins['journal'+$n].sha256}
+ Need ($values.journal3.failure.code -ceq 'P03_PHYSICAL_OLD_REUSE_SCOPE' -and $values.journal3.failure.oldPidFailureRecordSha256 -ceq $pins.failure.sha256 -and $values.failure.sourceFileSha256 -ceq $EngineSha256 -and $values.failure.profileSha256 -ceq $ProfileSha256 -and $values.failure.beforeSha256 -ceq $BeforeImageSha256 -and $values.failure.candidateSha256 -ceq $pins.zero.sha256 -and $values.failure.failure.code -ceq 'P03_PHYSICAL_OLD_REUSE_SCOPE' -and $values.failure.trigger.pid -eq 33652 -and $values.failure.stopAuthority -ceq $false -and $values.failure.fullGuardReplayAvailable -ceq $false) 'FINALIZE42_FAILURE'
+ Need ($values.zero.schemaVersion -ceq 'melisa-p03-physical-candidate.v1' -and $values.zero.profileSha256 -ceq $ProfileSha256 -and $values.zero.beforeSha256 -ceq $BeforeImageSha256 -and @($values.zero.processes).Count -eq 0 -and @($values.zero.receipts).Count -eq 0) 'FINALIZE42_ZERO'
+ Need ($values.firstIntent.schemaVersion -ceq 'melisa-p03-current-b007-completed-cut-recovery.v1' -and $values.firstIntent.mode -ceq 'ROLLBACK_OLD_ONLY' -and $values.firstIntent.runId -ceq $runId -and $values.firstIntent.workerRef.path -ceq $pins.archivedWorker.path -and $values.firstIntent.workerRef.sha256 -ceq $pins.archivedWorker.sha256 -and $values.firstResult.status -ceq 'QUARANTINED_REQUIRES_ROOT_INSPECTION' -and $values.firstResult.reason -ceq 'B264_SOURCE_ACL' -and $values.firstResult.recoveryOnly -ceq $true -and $values.firstResult.newGenerationStarted -ceq $false) 'FINALIZE42_FIRST_RESULT'
+ Need ($values.postcasIntent.schemaVersion -ceq 'melisa-p03-current-b007-postcas-recovery.v1' -and $values.postcasIntent.mode -ceq 'ROLLBACK_OLD_ONLY' -and $values.postcasIntent.runId -ceq $runId -and $values.postcasIntent.firstIntentRef.path -ceq $pins.firstIntent.path -and $values.postcasIntent.firstIntentRef.sha256 -ceq $pins.firstIntent.sha256 -and $values.postcasIntent.firstResultRef.sha256 -ceq $pins.firstResult.sha256 -and $values.postcasResult.status -ceq 'QUARANTINED_REQUIRES_ROOT_INSPECTION' -and $values.postcasResult.reason -ceq 'P03_PHYSICAL_OLD_REUSE_SCOPE' -and $values.postcasResult.recoveryOnly -ceq $true -and $values.postcasResult.newGenerationStarted -ceq $false) 'FINALIZE42_POSTCAS_RESULT'
+ $intent=Join-Path $dir 'completed-cut-finalize-old-intent.json';$result=Join-Path $dir 'completed-cut-finalize-old-result.json'
+ Need (-not(Test-Path -LiteralPath $intent)-and-not(Test-Path -LiteralPath $result)) 'FINALIZE42_ONCE'
+ return [pscustomobject]@{pins=$pins;original=$original;values=$values;journalTailSha256=$previous;intentPath=$intent;resultPath=$result}
+}
+function AssertFinalize42d0Lock{
+ # b33 creates this empty file through File.Open(CreateNew); its two ACEs are
+ # inherited from the protected journal. Never rewrite its ACL or contents.
+ Protected $profile.journalDirectory;$lock=Join-Path $profile.journalDirectory 'recovery.lock';NoReparse $lock
+ $item=Get-Item -LiteralPath $lock -Force;Need (-not$item.PSIsContainer-and-not$item.LinkType-and$item.Length-eq0) 'FINALIZE42_LOCK_FILE'
+ $acl=Get-Acl -LiteralPath $lock;$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
+ Need (-not$acl.AreAccessRulesProtected-and$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value-ceq$owner-and$rules.Count-eq2) 'FINALIZE42_LOCK_ACL'
+ foreach($sid in @($owner,'S-1-5-18')){Need (@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-eq1) 'FINALIZE42_LOCK_ACE'}
+ $stream=[IO.File]::Open($lock,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None);try{Need ($stream.Length-eq0) 'FINALIZE42_LOCK_SIZE'}finally{$stream.Dispose()}
+}
+function Finalize42d0Empty([string[]]$phases,$history){
+ # Inventory resolves to the ORIGINAL frozen b33 local definition, never the
+ # native drainer override. Old PID reuse is rejected before any guard logging.
+ foreach($pin in $history.pins.Values){[void](ReadWorkerPin $pin.path $pin.sha256)}
+ foreach($pin in (Completed42d0Pins).Values){[void](ReadWorkerPin $pin.path $pin.sha256)}
+ Need ((@(Get-ChildItem -LiteralPath $profile.journalDirectory -Force|ForEach-Object{$_.Name}|Sort-Object)-join '|') -ceq 'event-0000.json|event-0001.json|event-0002.json|event-0003.json|event-0004.json|recovery.lock') 'FINALIZE42_JOURNAL_CHANGED'
+ $inventory=Inventory;$forbidden=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})+@($history.original.snapshot.consolePins|ForEach-Object{[int]$_.pid})+@($history.original.snapshot.probePins|ForEach-Object{[int]$_.pid})
+ Need (@($inventory.all|Where-Object{$_.ProcessId -in $forbidden}).Count -eq 0) 'FINALIZE42_OLD_PID_PRESENT'
+ AssertEmpty $inventory
+ Need ($phases.Count -eq 2 -and $inventory.instances.Count -eq 0 -and $inventory.listeners.Count -eq 0) 'FINALIZE42_NOT_EMPTY'
+ foreach($n in 0..1){$entry=$profile.tasks|Where-Object{$_.name -ceq $names[$n]};Need (@($entry).Count -eq 1) 'FINALIZE42_TASK';$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq 3 -and (XmlHash ([string]$task.Xml)) -ceq $entry.($phases[$n]+'XmlSha256')) 'FINALIZE42_ACTION_CAS'}
+ return $inventory
+}
+function AssertFinalize42d0Packages{
+ # Same manifest/source/payload contract as the frozen b33 main preflight.
+ # Definitions-only reuse must not silently skip its package loop.
+ $expectedPackages=@{}
+ foreach($settings in @($oldSettings,$newSettings)){
+  Need ($settings.ownerSid -ceq $owner -and $settings.actualT1 -ceq $false -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId) 'FINALIZE42_SETTINGS'
+  NoReparse $settings.node.path;Need ($settings.node.path -ceq 'C:\Sirket\ERP\tools\node-v24.19.0\node.exe' -and (Get-FileHash -LiteralPath $settings.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $settings.node.sha256) 'FINALIZE42_NODE'
+  foreach($component in @($settings.components.PSObject.Properties|ForEach-Object{$_.Value})+@($settings.supervisor)){[void](ReadWorkerPin $component.config.path $component.config.sha256);$root=[IO.Path]::GetFullPath($component.packageRoot);if($expectedPackages.ContainsKey($root)){Need ($expectedPackages[$root].sourceCommit -ceq $component.sourceCommit -and $expectedPackages[$root].manifestSha256 -ceq $component.manifestSha256) 'FINALIZE42_PACKAGE_CONFLICT'}else{$expectedPackages[$root]=$component}}
+ }
+ NoReparse $profile.shell.path;Need ($profile.shell.path -ceq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and (Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'FINALIZE42_SHELL'
+ Need (@($profile.packages).Count -eq 7 -and $expectedPackages.Count -eq 7) 'FINALIZE42_PACKAGE_COUNT';$seen=@()
+ foreach($pkg in $profile.packages){
+  $root=[IO.Path]::GetFullPath($pkg.root);Need ($root -cmatch '\AC:\\Sirket\\(?:ERP|CRM)\\releases\\[^\r\n]+\z' -and $root -cnotin $seen -and $expectedPackages.ContainsKey($root) -and $pkg.sourceCommit -ceq $expectedPackages[$root].sourceCommit -and $pkg.manifestSha256 -ceq $expectedPackages[$root].manifestSha256) 'FINALIZE42_PACKAGE_BINDING';$seen+=,$root
+  NoReparse $pkg.manifestPath;Need ([IO.Path]::GetFullPath($pkg.manifestPath) -ceq (Join-Path $root 'release-manifest.json')) 'FINALIZE42_MANIFEST_PATH'
+  $bytes=[IO.File]::ReadAllBytes($pkg.manifestPath);Need ((Hash $bytes) -ceq $pkg.manifestSha256) 'FINALIZE42_MANIFEST_HASH';$manifest=Json $bytes
+  Need ((PackageManifestSource $manifest $pkg) -ceq $pkg.sourceCommit -and @($manifest.files).Count -gt 0) 'FINALIZE42_MANIFEST_SOURCE'
+  foreach($file in $manifest.files){$filePath=[IO.Path]::GetFullPath((Join-Path $root $file.path));Need ($filePath.StartsWith($root+'\',[StringComparison]::OrdinalIgnoreCase)) 'FINALIZE42_PACKAGE_ESCAPE';NoReparse $filePath;Need ((Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $file.sha256) 'FINALIZE42_PACKAGE_CONTENT'}
+ }
+ [void](ReadWorkerPin $profile.businessDigest.path $profile.businessDigest.sha256);[void](ReadWorkerPin $profile.stopper.path $profile.stopper.sha256)
+}
+function FinalizeOld42d0{
+ # Local definitions from the SAME immutable b33 bytes shadow all native
+ # adapter functions only inside this scope. No dispatcher text is executed.
+ & {
+  $nativeMode=$Mode;$tokens=$null;$errors=$null;$localAst=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($engineBytes),[ref]$tokens,[ref]$errors)
+  if($errors.Count){throw 'P03_FINALIZE42_ENGINE_PARSE'}
+  foreach($definition in $localAst.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)){. ([scriptblock]::Create($definition.Extent.Text))}
+  # A function declared in the outer native script resolves that script's
+  # Inventory override. Re-declare ONLY these fixed own helper definitions
+  # locally too, so their entire call graph binds the original b33 functions.
+  foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','AssertFinalize42d0Lock','Finalize42d0Empty','AssertFinalize42d0Packages','WriteFinalize42d0Evidence')){$own=Get-Command -Name $name -CommandType Function -ErrorAction Stop;. ([scriptblock]::Create('function '+$name+' {'+$own.Definition+'}'))}
+  $history=AssertFinalize42d0History
+  AssertCurrentB007StaticContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256
+  AssertFinalize42d0Packages
+  $phases=@('new','new');[void](Finalize42d0Empty $phases $history)
+  if($nativeMode -ceq 'FinalizeOld42d0Inspect'){return [ordered]@{status='B264_COMPLETED42_FINALIZE_OLD_DRY_RUN';recoveryOnly=$true;newGenerationStarted=$false;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;mutationExecuted=$false;journalTailSha256=$history.journalTailSha256;engineSha256=$EngineSha256;oldRolesAbsent=$true;oldActionsRestored=$false}}
+  Need ($nativeMode -ceq 'FinalizeOld42d0Apply') 'FINALIZE42_MODE'
+  $intent=WriteFinalize42d0Evidence 'completed-cut-finalize-old-intent.json' ([ordered]@{schemaVersion='melisa-p03-current42-finalize-old.v1';mode='RESTORE_OLD_ONLY';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$EngineSha256;quarantinedJournalTailSha256=$history.journalTailSha256;postcasResultSha256=$history.pins.postcasResult.sha256;zeroCandidateSha256=$history.pins.zero.sha256;workerSha256=$WorkerSourceSha256})
+  $stage='RESTORE_ACTIONS';$restoredActions=0;$startedTasks=0
+  try{
+   foreach($n in 0..1){
+    [void](Finalize42d0Empty $phases $history);$entry=$profile.tasks|Where-Object{$_.name -ceq $names[$n]};[xml]$xml=$entry.oldXml;$exec=$xml.Task.Actions.Exec;Need (@($xml.Task.Actions.ChildNodes).Count -eq 1) 'FINALIZE42_SINGLE_ACTION'
+    $action=New-ScheduledTaskAction -Execute ([string]$exec.Command) -Argument ([string]$exec.Arguments) -WorkingDirectory ([string]$exec.WorkingDirectory)
+    [void](Set-ScheduledTask -TaskPath '\' -TaskName $entry.name -Action $action -ErrorAction Stop)
+    Need ((XmlHash ([string]$folder.GetTask($entry.name).Xml)) -ceq $entry.oldXmlSha256) 'FINALIZE42_ACTION_READBACK';$phases[$n]='old';$restoredActions++
+   }
+   [void](Finalize42d0Empty $phases $history);AssertTasks 3
+   $stage='START_OLD';$rollbackStart=[DateTime]::UtcNow
+   Start-ScheduledTask -TaskPath '\' -TaskName $names[0] -ErrorAction Stop;$startedTasks++
+   foreach($entry in $profile.tasks){Need ((XmlHash ([string]$folder.GetTask($entry.name).Xml)) -ceq $entry.oldXmlSha256) 'FINALIZE42_START_XML'}
+   Start-ScheduledTask -TaskPath '\' -TaskName $names[1] -ErrorAction Stop;$startedTasks++
+   $stage='READBACK';$deadline=[DateTime]::UtcNow.AddMinutes(5);$stableSince=$null;$stableDigest=$null;$ready=$false
+   while([DateTime]::UtcNow -lt $deadline){try{AssertTasks 4;$digest=StartedOwner $rollbackStart;if($null -eq $stableSince-or$stableDigest-cne$digest){$stableSince=[DateTime]::UtcNow;$stableDigest=$digest};if(([DateTime]::UtcNow-$stableSince).TotalSeconds -ge 30-and[DateTime]::UtcNow-lt$deadline){$ready=$true;break}}catch{$stableSince=$null;$stableDigest=$null};Start-Sleep -Milliseconds 500}
+   Need $ready 'FINALIZE42_READBACK';ProtectedProcesses (Inventory)
+   $result=[ordered]@{status='B264_COMPLETED42_OLD_RESTORED_READY';recoveryOnly=$true;newGenerationStarted=$false;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;mutationExecuted=$true;engineSha256=$EngineSha256;stableSeconds=30;identityDigest=$stableDigest;oldActionsRestored=$true;startedTasks=$startedTasks;quarantinedJournalTailSha256=$history.journalTailSha256;intentSha256=$intent.sha256}
+   [void](WriteFinalize42d0Evidence 'completed-cut-finalize-old-result.json' $result);return $result
+  }catch{
+   $reason=$_.Exception.Message;if($reason -cnotmatch '\AP03_[A-Z0-9_]{1,160}\z'){$reason='P03_FINALIZE42_FAILED'}
+   [void](WriteFinalize42d0Evidence 'completed-cut-finalize-old-result.json' ([ordered]@{status='QUARANTINED_REQUIRES_ROOT_INSPECTION';recoveryOnly=$true;newGenerationStarted=$false;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;mutationExecuted=$true;stage=$stage;reason=$reason;restoredActions=$restoredActions;startedTasks=$startedTasks;intentSha256=$intent.sha256}));throw
+  }
+ }
+}
+if($Mode -cin @('FinalizeOld42d0Inspect','FinalizeOld42d0Apply')){FinalizeOld42d0|ConvertTo-Json -Depth 25 -Compress;return}
 if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){ResumeCompleted42d0Drain|ConvertTo-Json -Depth 25 -Compress;return}
 B264CutAuthority
 if($Mode -ceq 'Inspect'){CaptureWorkerAdmission|ConvertTo-Json -Depth 25 -Compress;return}

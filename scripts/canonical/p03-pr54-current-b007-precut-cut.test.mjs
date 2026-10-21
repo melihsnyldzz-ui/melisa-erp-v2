@@ -6,6 +6,137 @@ import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const source=new URL('./p03-pr54-current-b007-precut-cut.ps1',import.meta.url);
+const finalizationFixture=String.raw`
+$env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$name+'\'+$name+'.psd1')) -ErrorAction Stop}
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($env:P03_FIXTURE_WORKER,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_WORKER_PARSE'}
+foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','Finalize42d0Empty','FinalizeOld42d0')){$definition=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($definition.Count-ne1){throw 'FIXTURE_DEFINITION'};. ([scriptblock]::Create($definition[0].Extent.Text))}
+$originalEngine=[IO.File]::ReadAllText($env:P03_FIXTURE_ENGINE);$tokens=$null;$errors=$null;$engineAst=[Management.Automation.Language.Parser]::ParseInput($originalEngine,[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'FIXTURE_ENGINE_PARSE'}
+$definitions=@($engineAst.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Extent.Text})-join [Environment]::NewLine
+# Only OS edges are synthetic. AssertEmpty, AssertTasks, AssertOldPidLifetimes,
+# StartedOwner and their identity/port checks are the unchanged engine functions.
+$edges=@'
+function Inventory{return $script:fixtureInventory}
+function ProtectedProcesses($inventory){$script:protectedChecks++;if($script:protectedChanged){throw 'P03_PHYSICAL_PROTECTED_PROCESS_CHANGED'}}
+function Health($owners,$generation='old'){$script:healthChecks++;if($script:healthFailure){throw 'P03_PHYSICAL_HEALTH_FAILED'}}
+function AssertFinalize42d0Packages{$script:packageChecks++;if($script:packageChanged){throw 'P03_PHYSICAL_FINALIZE42_PACKAGE_CONTENT'}}
+function AssertFinalize42d0Lock{if($script:lockChanged){throw 'P03_PHYSICAL_FINALIZE42_LOCK_ACL'}}
+'@
+$script:engineBytes=[Text.Encoding]::UTF8.GetBytes(($definitions+[Environment]::NewLine+$edges))
+function Need($value,$code){if(-not$value){throw ('P03_PHYSICAL_'+$code)}}
+function Json($bytes){return [Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json}
+function ReadWorkerPin($path,$sha){if(-not$script:data.ContainsKey($path)-or$script:hashes[$path]-cne$sha){throw 'FIXTURE_PIN'};return ,[Text.Encoding]::UTF8.GetBytes(($script:data[$path]|ConvertTo-Json -Depth 40 -Compress))}
+function Protected($path){if($path-cne(Join-Path $profile.journalDirectory 'recovery.lock')){throw 'FIXTURE_PROTECTED_PATH'}}
+function Get-ChildItem{param($LiteralPath,[switch]$Force);if($LiteralPath-cne$profile.journalDirectory){throw 'FIXTURE_DIRECTORY'};foreach($name in $script:journalNames){[pscustomobject]@{Name=$name}}}
+function Get-Item{param($LiteralPath,[switch]$Force);if($LiteralPath-cne(Join-Path $profile.journalDirectory 'recovery.lock')){throw 'FIXTURE_ITEM'};return [pscustomobject]@{Length=0}}
+function Test-Path{param($LiteralPath);return $script:data.ContainsKey($LiteralPath)}
+function AssertCurrentB007StaticContract{param($a,$b,$c,$d,$e,$f,$g);if($before.actualT1-ne$false){throw 'P03_PHYSICAL_FIXTURE_T1'}}
+function Inventory{throw 'FIXTURE_NATIVE_INVENTORY_MUST_NOT_RUN'}
+function AssertEmpty{throw 'FIXTURE_NATIVE_EMPTY_MUST_NOT_RUN'}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction);return [pscustomobject]@{ReturnValue=0;Sid=$owner}}
+function New-ScheduledTaskAction{param($Execute,$Argument,$WorkingDirectory);return [pscustomobject]@{Execute=$Execute;Argument=$Argument;WorkingDirectory=$WorkingDirectory}}
+function Set-ScheduledTask{param($TaskPath,$TaskName,$Action,$ErrorAction);$script:casCalls++;if($script:partialCas-and$script:casCalls-eq2){throw 'P03_PHYSICAL_FIXTURE_CAS_FAILED'};$entry=$profile.tasks|Where-Object{$_.name-ceq$TaskName};$script:fixtureTasks[$TaskName].Xml=$entry.oldXml}
+function Start-ScheduledTask{param($TaskPath,$TaskName,$ErrorAction);$script:startCalls++;$script:fixtureTasks[$TaskName].State=4;if($script:startCalls-eq2){$script:fixtureInventory=$script:startedInventory}}
+function WriteFinalize42d0Evidence($leaf,$value){if($Mode-cne'FinalizeOld42d0Apply'-or$leaf-cnotin@('completed-cut-finalize-old-intent.json','completed-cut-finalize-old-result.json')){throw 'FIXTURE_WRITE_SCOPE'};$p=Join-Path $dir $leaf;if($script:data.ContainsKey($p)){throw 'FIXTURE_CREATE_NEW'};$script:data[$p]=$value;$script:writes++;return @{path=$p;sha256=('e'*64)}}
+function ResetFinalization{
+ $script:Mode='FinalizeOld42d0Inspect';$script:base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$script:runId='42d0d0536cb115cc4aea43ff1f13afbf';$script:dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId);$script:owner='fixture-owner';$script:Environment='Shared';$script:isRehearsal=$false
+ $script:names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$script:ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
+ $script:WorkerSourceSha256='f'*64;$script:data=@{};$script:hashes=@{};$script:writes=0;$script:casCalls=0;$script:startCalls=0;$script:healthChecks=0;$script:protectedChecks=0;$script:packageChecks=0;$script:partialCas=$false;$script:protectedChanged=$false;$script:healthFailure=$false;$script:packageChanged=$false;$script:lockChanged=$false
+ $script:journalNames=@('event-0000.json','event-0001.json','event-0002.json','event-0003.json','event-0004.json','recovery.lock')
+ $old=Completed42d0Pins;$pins=Finalize42d0Pins
+ foreach($pin in @($old.Values)+@($pins.Values)){$data[$pin.path]=[pscustomobject]@{unused=$true};$hashes[$pin.path]=$pin.sha256}
+ $script:ProfilePath=$old.profile.path;$script:ProfileSha256=$old.profile.sha256;$script:BeforeImagePath=$old.before.path;$script:BeforeImageSha256=$old.before.sha256;$script:ClaimPath=$old.claim.path;$script:ClaimSha256=$old.claim.sha256;$script:ContinuationPath=$old.context.path;$script:ContinuationSha256=$old.context.sha256;$script:RootIntentPath=$old.root.path;$script:RootIntentSha256=$old.root.sha256;$script:AdmittedSnapshotPath=$old.snapshot.path;$script:AdmittedSnapshotSha256=$old.snapshot.sha256
+ $script:EnginePath=Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1';$script:EngineSha256='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'
+ $identities=[ordered]@{};$roleNames=@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor')
+ for($n=0;$n-lt8;$n++){$role=$roleNames[$n];$identities[$role]=[pscustomobject]@{pid=(100+$n);parentPid=107;ownerSid=$owner;nodePath='C:\fixture\node.exe';commandLine=('node '+$role);creationTime='2026-10-20T00:00:00.0000000Z';bindings=@($(if($n-lt7){[pscustomobject]@{port=$ports[$n];address='127.0.0.1'}}))}}
+ $script:before=[pscustomobject]@{identities=[pscustomobject]$identities;copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82';actualT1=$false}
+ $oldXml='<Task><Actions><Exec><Command>C:\fixture\powershell.exe</Command><Arguments>fixture-old</Arguments><WorkingDirectory>C:\fixture</WorkingDirectory></Exec></Actions></Task>';$newXml=$oldXml.Replace('fixture-old','fixture-new')
+ function XmlFixtureHash($xml){return [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes($xml))).Replace('-','').ToLowerInvariant()}
+ $script:profile=[pscustomobject]@{journalDirectory=(Join-Path $base ('MelisaERP-P03-recovery-'+$runId));oldSettings=@{sha256='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'};newSettings=@{sha256='800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329'};oldWatchers=@(@{pid=108},@{pid=109});protectedProcesses=@();packages=@(@{root='C:\fixture\package'});tasks=@($names|ForEach-Object{[pscustomobject]@{name=$_;oldXml=$oldXml;newXml=$newXml;oldXmlSha256=(XmlFixtureHash $oldXml);newXmlSha256=(XmlFixtureHash $newXml)}})}
+ $script:oldSettings=$profile.oldSettings;$script:newSettings=[pscustomobject]@{components=@{erpApiNative=@{sourceCommit='6dc33f41737349c6e3f17fb867a451b570a00acc'}}}
+ $script:fixtureTasks=@{};foreach($name in $names){$fixtureTasks[$name]=[pscustomobject]@{State=3;Xml=$newXml}}
+ $script:folder=[pscustomobject]@{};$folder|Add-Member ScriptMethod GetTask {param($name);return $script:fixtureTasks[$name]}
+ $script:fixtureInventory=[pscustomobject]@{all=@();allListeners=@();listeners=@();instances=@()}
+ $script:startedInventory=[pscustomobject]@{all=@();allListeners=@();listeners=@();instances=@()}
+ foreach($entry in $before.identities.PSObject.Properties){$p=$entry.Value;$newPid=$p.pid+1000;$newParent=$p.parentPid+1000;$startedInventory.all+=,[pscustomobject]@{ProcessId=$newPid;ParentProcessId=$newParent;ExecutablePath=$p.nodePath;CommandLine=$p.commandLine;CreationDate=[DateTime]::UtcNow.AddHours(1)};foreach($binding in $p.bindings){$startedInventory.listeners+=,[pscustomobject]@{OwningProcess=$newPid;LocalPort=$binding.port;LocalAddress=$binding.address}}}
+ foreach($n in 0..1){$name=$names[$n];$pidValue=2000+$n;$startedInventory.all+=,[pscustomobject]@{ProcessId=$pidValue;ParentProcessId=1;ExecutablePath='C:\fixture\powershell.exe';CommandLine='"C:\fixture\powershell.exe" fixture-old';CreationDate=[DateTime]::UtcNow.AddHours(1)};$startedInventory.instances+=,[pscustomobject]@{Name=$name;EnginePID=$pidValue;InstanceGuid=('guid'+$n)}}
+ $data[$old.snapshot.path]=@{consolePins=@();probePins=@()}
+ $previous=$BeforeImageSha256;$events=@('RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_FAILED','QUARANTINED')
+ foreach($n in 0..4){$record=[ordered]@{sequence=$n;previousSha256=$previous;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;event=$events[$n]};if($n-eq3){$record.failure=@{code='P03_PHYSICAL_OLD_REUSE_SCOPE';oldPidFailureRecordSha256=$pins.failure.sha256}};$data[$pins['journal'+$n].path]=$record;$previous=$pins['journal'+$n].sha256}
+ $data[$pins.failure.path]=@{sourceFileSha256=$EngineSha256;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;candidateSha256=$pins.zero.sha256;failure=@{code='P03_PHYSICAL_OLD_REUSE_SCOPE'};trigger=@{pid=33652};stopAuthority=$false;fullGuardReplayAvailable=$false}
+ $data[$pins.zero.path]=@{schemaVersion='melisa-p03-physical-candidate.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;processes=@();receipts=@()}
+ $data[$pins.firstIntent.path]=@{schemaVersion='melisa-p03-current-b007-completed-cut-recovery.v1';mode='ROLLBACK_OLD_ONLY';runId=$runId;workerRef=$pins.archivedWorker}
+ $data[$pins.firstResult.path]=@{status='QUARANTINED_REQUIRES_ROOT_INSPECTION';reason='B264_SOURCE_ACL';recoveryOnly=$true;newGenerationStarted=$false}
+ $data[$pins.postcasIntent.path]=@{schemaVersion='melisa-p03-current-b007-postcas-recovery.v1';mode='ROLLBACK_OLD_ONLY';runId=$runId;firstIntentRef=$pins.firstIntent;firstResultRef=$pins.firstResult}
+ $data[$pins.postcasResult.path]=@{status='QUARANTINED_REQUIRES_ROOT_INSPECTION';reason='P03_PHYSICAL_OLD_REUSE_SCOPE';recoveryOnly=$true;newGenerationStarted=$false}
+}
+function FinalizeOutcome{try{$value=FinalizeOld42d0;return $value.status}catch{return $_.Exception.Message}}
+`;
+function runFinalization(code,{timeout=15000}={}){
+ const temp=mkdtempSync(path.join(tmpdir(),'melisa-finalize42-fixture-')),file=path.join(temp,'isolated.ps1');
+ try{writeFileSync(file,"Set-StrictMode -Version Latest\n$ErrorActionPreference='Stop'\n"+finalizationFixture+'\n'+code+'\n');return execFileSync(String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{...process.env,P03_FIXTURE_TEMP:temp,P03_FIXTURE_WORKER:fileURLToPath(source),P03_FIXTURE_ENGINE:fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url))}});}finally{const parent=path.resolve(tmpdir())+path.sep,target=path.resolve(temp);assert(target.startsWith(parent)&&path.basename(target).startsWith('melisa-finalize42-fixture-'));rmSync(target,{recursive:true});}
+}
+
+test('finalize42d0 PS5 original empty inherited lock is accepted but extra/protected/nonempty/active locks are rejected',()=>{
+ const out=runFinalization(String.raw`
+& {
+ function Get-Item{param($LiteralPath,[switch]$Force);Microsoft.PowerShell.Management\Get-Item -LiteralPath $LiteralPath -Force:$Force}
+ foreach($name in @('Need','NoReparse','Protected')){$definition=$engineAst.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true);. ([scriptblock]::Create($definition[0].Extent.Text))}
+ $definition=$ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'AssertFinalize42d0Lock'},$true);. ([scriptblock]::Create($definition[0].Extent.Text))
+ $owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$journal=Join-Path $env:P03_FIXTURE_TEMP 'journal';$acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false);foreach($sid in @($owner,'S-1-5-18')){$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};[void][IO.Directory]::CreateDirectory($journal,$acl)
+ $profile=[pscustomobject]@{journalDirectory=$journal};$lock=Join-Path $journal 'recovery.lock';$s=[IO.File]::Open($lock,'CreateNew','Write','None');$s.Dispose();AssertFinalize42d0Lock;'INHERITED_GO'
+ $changed=Get-Acl -LiteralPath $lock;$changed.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new('S-1-5-32-545'),'Read','Allow'));Set-Acl -LiteralPath $lock -AclObject $changed;try{AssertFinalize42d0Lock;throw 'FIXTURE_EXTRA_ACCEPTED'}catch{'EXTRA='+$_.Exception.Message};Need ($lock.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)) 'FIXTURE_DELETE_SCOPE';[IO.File]::Delete($lock);$s=[IO.File]::Open($lock,'CreateNew','Write','None');$s.Dispose()
+ $changed=Get-Acl -LiteralPath $lock;$changed.SetAccessRuleProtection($true,$true);Set-Acl -LiteralPath $lock -AclObject $changed;try{AssertFinalize42d0Lock;throw 'FIXTURE_PROTECTED_ACCEPTED'}catch{'PROTECTED='+$_.Exception.Message};Need ($lock.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)) 'FIXTURE_DELETE_SCOPE';[IO.File]::Delete($lock);$s=[IO.File]::Open($lock,'CreateNew','Write','None');$s.Dispose()
+ $held=[IO.File]::Open($lock,'Open','Read','None');try{try{AssertFinalize42d0Lock;throw 'FIXTURE_ACTIVE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACTIVE_ACCEPTED'){throw};'ACTIVE_REJECTED'}}finally{$held.Dispose()}
+ [IO.File]::WriteAllBytes($lock,[byte[]]@(1));try{AssertFinalize42d0Lock;throw 'FIXTURE_SIZE_ACCEPTED'}catch{'NONEMPTY='+$_.Exception.Message}
+}
+`);assert.match(out,/INHERITED_GO[\s\S]*EXTRA=P03_PHYSICAL_FINALIZE42_LOCK_ACL[\s\S]*PROTECTED=P03_PHYSICAL_FINALIZE42_LOCK_ACL[\s\S]*ACTIVE_REJECTED[\s\S]*NONEMPTY=P03_PHYSICAL_FINALIZE42_LOCK_FILE/);
+});
+
+test('finalize42d0 PS5 seven package preflight rejects payload, manifest, Node, shell and external config drift',()=>{
+ const out=runFinalization(String.raw`
+& {
+ foreach($name in @('Need','Hash','Json','PackageManifestSource')){$definition=$engineAst.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true);. ([scriptblock]::Create($definition[0].Extent.Text))}
+ $definition=$ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'AssertFinalize42d0Packages'},$true);$body=$definition[0].Extent.Text;Need ($body.Contains('[IO.File]::ReadAllBytes($pkg.manifestPath)')) 'FIXTURE_EDGE';$body=$body.Replace('[IO.File]::ReadAllBytes($pkg.manifestPath)','(FixtureReadAllBytes $pkg.manifestPath)');. ([scriptblock]::Create($body))
+ function NoReparse($p){if(-not$script:payload.ContainsKey($p)){throw 'P03_PHYSICAL_FIXTURE_REPARSE'}}
+ function FixtureReadAllBytes($p){return ,$script:payload[$p]}
+ function Get-FileHash{param($LiteralPath,$Algorithm);return [pscustomobject]@{Hash=(Hash $script:payload[$LiteralPath])}}
+ function ReadWorkerPin($p,$sha){$script:configReads++;if(-not$script:payload.ContainsKey($p)-or(Hash $script:payload[$p])-cne$sha){throw 'P03_PHYSICAL_FIXTURE_CONFIG'};return ,$script:payload[$p]}
+ function ResetPackages{
+  $script:isRehearsal=$false;$script:owner='fixture-owner';$script:database='fixture-db';$script:before=[pscustomobject]@{copyId='fixture-copy'};$script:payload=@{};$script:configReads=0;$script:profile=[pscustomobject]@{packages=@();shell=@{path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';sha256=''};businessDigest=@{path='C:\fixture\digest';sha256=''};stopper=@{path='C:\fixture\stopper';sha256=''}}
+  $script:oldSettings=[pscustomobject]@{ownerSid=$owner;actualT1=$false;database=$database;copyId=$before.copyId;node=@{path='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';sha256=''};components=[pscustomobject]@{}}
+  $script:newSettings=$oldSettings|ConvertTo-Json -Depth 10|ConvertFrom-Json
+  foreach($settings in @($oldSettings,$newSettings)){$payload[$settings.node.path]=[Text.Encoding]::UTF8.GetBytes('node');$settings.node.sha256=Hash $payload[$settings.node.path]}
+  foreach($n in 0..6){$root='C:\Sirket\ERP\releases\fixture-'+$n;$config='C:\fixture\config'+$n;$payload[$config]=[Text.Encoding]::UTF8.GetBytes('private'+$n);$filePath=Join-Path $root 'entry.js';$payload[$filePath]=[Text.Encoding]::UTF8.GetBytes('payload'+$n);$commit=([string]$n)*40;$manifest=[ordered]@{sourceCommit=$commit;files=@(@{path='entry.js';sha256=(Hash $payload[$filePath])})};if($n-in@(0,4)){$manifest=[ordered]@{schemaVersion=1;kind='melisa-crm-test-package';environment='TEST';source=@{repository='https://github.com/melihsnyldzz-ui/melisa-crm.git';commit=$commit};files=$manifest.files}};$manifestPath=Join-Path $root 'release-manifest.json';$payload[$manifestPath]=[Text.Encoding]::UTF8.GetBytes(($manifest|ConvertTo-Json -Depth 10 -Compress));$component=[pscustomobject]@{packageRoot=$root;sourceCommit=$commit;manifestSha256=(Hash $payload[$manifestPath]);config=@{path=$config;sha256=(Hash $payload[$config])}};$profile.packages+=,[pscustomobject]@{root=$root;sourceCommit=$commit;manifestPath=$manifestPath;manifestSha256=$component.manifestSha256};$key=if($n-in@(0,4)){'crm'}else{'c'+$n};if($n-lt3){$oldSettings.components|Add-Member NoteProperty $key $component}elseif($n-eq3){$oldSettings|Add-Member NoteProperty supervisor $component;$newSettings|Add-Member NoteProperty supervisor $component}else{$newSettings.components|Add-Member NoteProperty $key $component}}
+  foreach($ref in @($profile.shell,$profile.businessDigest,$profile.stopper)){$payload[$ref.path]=[Text.Encoding]::UTF8.GetBytes('guard');$ref.sha256=Hash $payload[$ref.path]}
+ }
+ function PackageOutcome{try{AssertFinalize42d0Packages;'GO'}catch{$_.Exception.Message}}
+ ResetPackages;'BASE='+(PackageOutcome);'CONFIG_READS='+$configReads
+ ResetPackages;$payload['C:\Sirket\ERP\releases\fixture-0\entry.js']=[byte[]]@(1);'PAYLOAD='+(PackageOutcome)
+ ResetPackages;$payload[$profile.packages[0].manifestPath]=[byte[]]@(1);'MANIFEST='+(PackageOutcome)
+ ResetPackages;$payload[$oldSettings.node.path]=[byte[]]@(1);'NODE='+(PackageOutcome)
+ ResetPackages;$payload[$profile.shell.path]=[byte[]]@(1);'SHELL='+(PackageOutcome)
+ ResetPackages;$payload['C:\fixture\config0']=[byte[]]@(1);'CONFIG='+(PackageOutcome)
+}
+`);assert.match(out,/BASE=GO[\s\S]*CONFIG_READS=10[\s\S]*PAYLOAD=P03_PHYSICAL_FINALIZE42_PACKAGE_CONTENT[\s\S]*MANIFEST=P03_PHYSICAL_FINALIZE42_MANIFEST_HASH[\s\S]*NODE=P03_PHYSICAL_FINALIZE42_NODE[\s\S]*SHELL=P03_PHYSICAL_FINALIZE42_SHELL[\s\S]*CONFIG=P03_PHYSICAL_FIXTURE_CONFIG/);
+});
+
+test('finalize42d0 PS5 Inspect uses isolated original b33 guards and cannot write or start tasks',()=>{
+ const out=runFinalization("ResetFinalization;'STATUS='+(FinalizeOutcome);'WRITES='+$writes;'STARTS='+$startCalls;'PROTECTED='+$protectedChecks");assert.match(out,/STATUS=B264_COMPLETED42_FINALIZE_OLD_DRY_RUN[\s\S]*WRITES=0[\s\S]*STARTS=0[\s\S]*PROTECTED=1/);
+});
+
+test('finalize42d0 PS5 rejects wrong tails, advanced journals, changed source, old PIDs and protected TEST drift before intent',()=>{
+ const edits=["$data[$pins.journal4.path].previousSha256='wrong'","$journalNames+=,'event-0005.json'","$hashes[$pins.firstResult.path]='wrong'","$data[$pins.firstIntent.path].workerRef=@{path='wrong';sha256=('a'*64)}","$fixtureInventory.all+=,[pscustomobject]@{ProcessId=105;CommandLine='unrelated'}","$fixtureInventory.all+=,[pscustomobject]@{ProcessId=12345;CommandLine='node C:\\fixture\\package\\unknown.js'}","$protectedChanged=$true","$packageChanged=$true","$lockChanged=$true","$fixtureTasks[$names[0]].Xml=$profile.tasks[0].oldXml","$data[(Join-Path $dir 'completed-cut-finalize-old-intent.json')]=@{consumed=$true}"];
+ const code=edits.map((edit,n)=>`ResetFinalization;$pins=Finalize42d0Pins;${edit};'CASE${n}='+(FinalizeOutcome);if($writes-ne0-or$startCalls-ne0){throw 'FIXTURE_UNSAFE_MUTATION'}`).join('\n');const out=runFinalization(code);for(let n=0;n<edits.length;n++)assert.match(out,new RegExp('CASE'+n+'=(?:P03_PHYSICAL_|FIXTURE_PIN)'));
+});
+
+test('finalize42d0 PS5 partial action CAS preserves intent and failed result without starting or retrying',()=>{
+ const out=runFinalization("ResetFinalization;$Mode='FinalizeOld42d0Apply';$partialCas=$true;'FIRST='+(FinalizeOutcome);'WRITES='+$writes;'CAS='+$casCalls;'STARTS='+$startCalls;'REPLAY='+(FinalizeOutcome);'REPLAY_WRITES='+$writes");assert.match(out,/FIRST=P03_PHYSICAL_FIXTURE_CAS_FAILED[\s\S]*WRITES=2[\s\S]*CAS=2[\s\S]*STARTS=0[\s\S]*REPLAY=P03_PHYSICAL_FINALIZE42_ONCE[\s\S]*REPLAY_WRITES=2/);
+});
+
+test('finalize42d0 PS5 healthy OLD proof uses unchanged StartedOwner identity and port checks for30 real seconds',()=>{
+ const out=runFinalization("ResetFinalization;$Mode='FinalizeOld42d0Apply';$saved=@($journalNames)-join '|';$result=FinalizeOld42d0;'STATUS='+$result.status;'STABLE='+$result.stableSeconds;'DIGEST='+$result.identityDigest;'STARTS='+$startCalls;'HEALTH='+$healthChecks;'JOURNAL_UNCHANGED='+($saved-ceq($journalNames-join '|'));'REPLAY='+(FinalizeOutcome)",{timeout:90000});assert.match(out,/STATUS=B264_COMPLETED42_OLD_RESTORED_READY[\s\S]*STABLE=30[\s\S]*DIGEST=[a-f0-9]{64}[\s\S]*STARTS=2[\s\S]*HEALTH=[1-9][0-9]*[\s\S]*JOURNAL_UNCHANGED=True[\s\S]*REPLAY=P03_PHYSICAL_FINALIZE42_ONCE/);
+});
 test('finite continuation adapter exists without changing the historical cut worker',()=>{
  const s=readFileSync(source,'utf8');
  assert.match(s,/melisa-p03-current-b007-precut-continuation\.v1/);
@@ -228,7 +359,7 @@ test('fixed9d2 retry rejects every historical pin drift, wrong reason, extra cut
  const out=run(resumeFixture+'\n'+retryFixture+'\n'+edits.map((e,n)=>'SetupRetry;'+e+";try{AssertCurrentB007Continuation $claim;'RETRY"+n+"=ACCEPTED'}catch{'RETRY"+n+"=REJECTED'}").join('\n'));for(let n=0;n<edits.length;n++)assert.match(out,new RegExp('RETRY'+n+'=REJECTED'));
 });
 
-test('completed-cut recovery has an explicit read-only ResumeDrain dispatcher',()=>{const s=readFileSync(source,'utf8');assert.match(s,/ValidateSet\('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)/);assert.match(s,/if\(\$Mode -cin @\('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)\)\{ResumeCompleted42d0Drain/)});
+test('completed-cut recovery has an explicit read-only ResumeDrain dispatcher and exactly two finite OLD finalization modes',()=>{const s=readFileSync(source,'utf8');assert.match(s,/ValidateSet\('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply'\)/);assert.match(s,/if\(\$Mode -cin @\('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)\)\{ResumeCompleted42d0Drain/)});
 const completedExtract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
 foreach($name in @('ContinuationKeys','Completed42d0Pins','AssertCompleted42d0Authority','ResumeCompleted42d0Drain')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};$body=$defs[0].Extent.Text;if($name-ceq'AssertCompleted42d0Authority'){$body=$body.Replace('$PSCommandPath','$script:fixtureWorkerPath')};. ([scriptblock]::Create($body))}`;
 const completedFixture=String.raw`
