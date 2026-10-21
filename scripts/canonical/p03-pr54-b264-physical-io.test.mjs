@@ -13,6 +13,31 @@ const hash=b=>createHash('sha256').update(b).digest('hex'),root=PR54_OWNER_ROOT;
 const leaf=n=>new URL('./'+n,import.meta.url),text=n=>fs.readFileSync(leaf(n),'utf8');
 const drainer=text('p03-pr54-successor-core-drain.ps1'),observer=text('p03-physical-recovery-observe.ps1');
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'";
+test('owner-query row diagnostics retain before and after bits without replacing the native catch',{skip:process.platform!=='win32'},()=>{
+ const lines=observer.split(/\r?\n/),pre=lines[lines.findIndex(x=>x.includes('# Diagnostic row snapshot before the SAME owner query'))+1],hook=lines[lines.findIndex(x=>x.includes('# Diagnostic child scope preserves the original catch'))+1];
+ assert(pre.includes('$consoleBefore='));assert(hook.includes('MELISA_NATIVE_RO_ROW='));
+ const code=astFn('./p03-physical-recovery-observe.ps1','ObserverExactNotFound')+String.raw`
+Import-Module (Join-Path $PSHOME 'Modules/CimCmdlets/CimCmdlets.psd1')
+foreach($case in @('changed','missingBefore','diagnosticFault','legacy')){
+ $PolicyGeneration=if($case-ceq'legacy'){'Legacy'}else{'CurrentB007InspectOnly'}
+ $p=[pscustomobject]@{Name='conhost.exe';ExecutablePath='C:\Windows\System32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';ProcessId=123;ParentProcessId=120;CreationDate=[DateTime]::UtcNow}
+ if($case-ceq'missingBefore'){$p.CommandLine=$null}
+`+pre+String.raw`
+ [Console]::Out.WriteLine('CASE='+$case)
+ $nativeError=[Management.Automation.ErrorRecord]::new([Microsoft.Management.Infrastructure.CimException]::new('private-sentinel'),'HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand',[Management.Automation.ErrorCategory]::ObjectNotFound,$null)
+ try{if($case-ceq'diagnosticFault'){$p.ProcessId='private-sentinel'}else{$p.CommandLine=$null};throw $nativeError}catch{$beforeHook=$_
+`+hook+String.raw`
+ if(-not [object]::ReferenceEquals($_,$beforeHook)){throw 'NATIVE_CATCH_REPLACED'}
+ if(-not (ObserverExactNotFound $_)){throw 'NATIVE_CLASSIFICATION_CHANGED'}
+ 'ORIGINAL_NATIVE_CATCH_PRESERVED'
+ }
+}
+`;
+ const out=ps(code);assert.doesNotMatch(out,/private-sentinel/);assert.equal((out.match(/ORIGINAL_NATIVE_CATCH_PRESERVED/g)??[]).length,4);
+ const prefix='MELISA_NATIVE_RO_ROW=',rows=out.split(/\r?\n/).filter(x=>x.startsWith(prefix)).map(x=>JSON.parse(x.slice(prefix.length)));
+ assert.equal(rows.length,2);for(const row of rows){assert.deepEqual(Object.keys(row).sort(),['after','before','exactCimNotFound','parentPid','pid']);assert.equal(row.exactCimNotFound,true);assert.equal(row.pid,123);assert.equal(row.parentPid,120);assert(Object.values(row.before).every(x=>typeof x==='boolean'));assert(Object.values(row.after).every(x=>typeof x==='boolean'));}
+ assert.equal(rows[0].before.commandPresent,true);assert.equal(rows[0].after.commandPresent,false);assert.equal(rows[1].before.commandPresent,false);assert.equal(rows[1].after.commandPresent,false);
+});
 test('Current console failure predicates remain boolean-only and preserve the original rejection',{skip:process.platform!=='win32'},()=>{
  const code=astFn('./p03-physical-recovery-observe.ps1','ObserverRequire')+'\n'+astFn('./p03-physical-recovery-observe.ps1','ObserverVanishedConsole')+String.raw`
 $PolicyGeneration='CurrentB007InspectOnly'

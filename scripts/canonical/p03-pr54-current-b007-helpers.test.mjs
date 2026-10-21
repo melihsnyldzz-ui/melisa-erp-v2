@@ -13,10 +13,10 @@ const engineSha='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427
 const observerMaterializedSha='8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1';
 test('diagnostic observer differs from the still-pinned normal revision only by error-only predicates',()=>{
  const source=readFileSync(leaf('p03-physical-recovery-observe.ps1'),'utf8').replaceAll('\r\n','\n');
- assert.equal(sha('p03-physical-recovery-observe.ps1'),'8256b68f087a1a391f00558d3e89b463a78240d654824c368bfe99bf758778f1');
+ assert.equal(sha('p03-physical-recovery-observe.ps1'),"93736f1dd8ecb9b8cf5ba7609162fbf4005e13e60bd7721e02e098dcdecba454");
  const lines=source.split('\n'),start=lines.findIndex(x=>x===' # Failure-only diagnostics for the SAME raw CIM row; never an identity or authority.');
  assert(start>=0);assert(lines[start+1].startsWith(' if(-not ('));assert(lines[start+2].includes('MELISA_NATIVE_RO_PREDICATES='));assert.equal(lines[start+3],' }');
- lines.splice(start,4);assert.equal(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'),observerMaterializedSha);
+ lines.splice(start,4);for(const marker of ['  # Diagnostic row snapshot before the SAME owner query; never a new source read.','   # Diagnostic child scope preserves the original catch ErrorRecord and rejection.']){const index=lines.indexOf(marker);assert(index>=0);assert(lines[index+1].includes(marker.startsWith('  # Diagnostic row')?'$consoleBefore=':'MELISA_NATIVE_RO_ROW='));lines.splice(index,2);}assert.equal(crypto.createHash('sha256').update(lines.join('\n')).digest('hex'),observerMaterializedSha);
 });
 function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',windowsHide:true,timeout:20000,stdio:['pipe','pipe','pipe']});}
 const extract=(name,file)=>`$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(leaf(file))},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};$d=@($a.FindAll({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq ${q(name)}},$false));if($d.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($d[0].Extent.Text));`;
