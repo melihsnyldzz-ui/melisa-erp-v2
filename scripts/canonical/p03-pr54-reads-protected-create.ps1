@@ -46,13 +46,13 @@ if($Generation -ceq 'B264'){
 if($Generation -ceq 'CurrentB007'){
  $allowed=@(
   ($erp+'\erpApiNative-6dc33f417373-dependency-lock.json'),
-  ($erp+'\crm-7ba6e4ebc8b7-node24-dependency-lock.json'),
-  ($erp+'\crm-activation-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
-  ($erp+'\hub-pin-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
-  ($erp+'\hub-startup-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
-  ($erp+'\settings-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
-  ($crm+'\staff-refresh-successor-7ba6e4ebc8b7-erp-6dc33f417373-current.json'),
-  ($crm+'\journal-physical-preflight-7ba6e4ebc8b7-erp-6dc33f417373-current.json')
+  ($erp+'\crm-d1e442520624-node24-dependency-lock.json'),
+  ($erp+'\crm-activation-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'),
+  ($erp+'\hub-pin-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'),
+  ($erp+'\hub-startup-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'),
+  ($erp+'\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'),
+  ($crm+'\staff-refresh-successor-d1e442520624-erp-6dc33f417373-current.json'),
+  ($crm+'\journal-physical-preflight-d1e442520624-erp-6dc33f417373-current.json')
  )
 }
 if(-not($allowed -ccontains $Target)){throw 'TARGET_REJECTED'}

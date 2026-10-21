@@ -200,16 +200,16 @@ function b264StartupFixture(){
 
 // Source-only settings fixture: no supervisor package or runtime is installed.
 function currentPackageStartupFixture(){
- const s=settings(),crmSource='7ba6e4ebc8b70019136d603e6307741189ba03c1',profile=crm06StaffSuccessorProfile(crmSource,'erp-crm-current-20261020');
+ const s=settings(),crmSource='d1e4425206249e38445fb103e03601f86baa84ec',profile=crm06StaffSuccessorProfile(crmSource,'erp-crm-current-20261020');
  s.node={path:erp+'\\tools\\node-v24.19.0\\node.exe',sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};
  const ep={packageRoot:erp+'\\releases\\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41',sourceCommit:'6dc33f41737349c6e3f17fb867a451b570a00acc',manifestSha256:'6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'};
  s.components.erpApiNative={...ep,config:s.privateSources.operationConfig};s.privateSources.hubPinConfig={path:profile.nextPaths.hubPin,sha256:hash};s.privateSources.hubStartupConfig={path:profile.nextPaths.hubStartup,sha256:hash};s.components.hub={...ep,config:s.privateSources.hubStartupConfig};
- s.privateSources.crmActivationConfig={path:profile.nextPaths.activation,sha256:hash};s.components.crm={packageRoot:crm+'\\releases\\node-v24.19.0\\crm-shared-test-'+crmSource,sourceCommit:crmSource,manifestSha256:'820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35',config:s.privateSources.crmActivationConfig};
+ s.privateSources.crmActivationConfig={path:profile.nextPaths.activation,sha256:hash};s.components.crm={packageRoot:crm+'\\releases\\node-v24.19.0\\crm-shared-test-'+crmSource,sourceCommit:crmSource,manifestSha256:'a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef',config:s.privateSources.crmActivationConfig};
  s.dependencyLocks.erpApiNative={path:profile.erpDependencyLockPath,sha256:hash};s.dependencyLocks.crm={path:profile.dependencyLockPath,sha256:hash};
  s.crmPrivateFiles={...s.crmPrivateFiles,baseline:{path:CRM06_BASELINE_PATH,sha256:hash},crm06Actors:{path:CRM06_ACTOR_AUDIT_PATH,sha256:hash},crm06StaffSuccessor:{path:profile.successorPath,sha256:hash}};
  return s;
 }
-test('current closed settings bind exact ERP6dc and CRM7ba Node24 packages without altering old B264',()=>{
+test('current closed settings bind exact ERP6dc and CRMd1e Node24 packages without altering old B264',()=>{
  const s=currentPackageStartupFixture(),before=structuredClone(s);assert.equal(validateCompletionSettings(s,owner),s);assert.deepEqual(s,before);
  assert.equal(validateCompletionSettings(b264StartupFixture(),owner).components.crm.sourceCommit,'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a');
 });

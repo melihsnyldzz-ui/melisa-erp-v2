@@ -192,7 +192,7 @@ ConvertTo-Json -InputObject $results -Compress`;
  const r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(ps,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),[true,...Array(8).fill(false)]);
 });
 
-const currentHubProfile=()=>crm06StaffSuccessorProfile('7ba6e4ebc8b70019136d603e6307741189ba03c1','erp-crm-current-20261020');
+const currentHubProfile=()=>crm06StaffSuccessorProfile('d1e4425206249e38445fb103e03601f86baa84ec','erp-crm-current-20261020');
 test('current Hub prerequisite accepts only the exact existing successor path and full CRM source',()=>{
  const profile=currentHubProfile(),config=profile.nextPaths.settings,source=profile.source;
  assert.equal(assertErpHubProfile(config,source),true);

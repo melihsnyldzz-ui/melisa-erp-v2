@@ -27,12 +27,12 @@ function fixture(){
 
 // Pure in-memory projection only. The synthetic supervisor pin below is NOT a
 // built control package, installed candidate or shared admission proof.
-const currentSource='7ba6e4ebc8b70019136d603e6307741189ba03c1',currentVariant='erp-crm-current-20261020';
-const currentCrm={packageRoot:crm+'\\releases\\node-v24.19.0\\crm-shared-test-'+currentSource,sourceCommit:currentSource,manifestSha256:'820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35'};
+const currentSource='d1e4425206249e38445fb103e03601f86baa84ec',currentVariant='erp-crm-current-20261020';
+const currentCrm={packageRoot:crm+'\\releases\\node-v24.19.0\\crm-shared-test-'+currentSource,sourceCommit:currentSource,manifestSha256:'a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef'};
 const currentErp={packageRoot:erp+'\\releases\\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41',sourceCommit:'6dc33f41737349c6e3f17fb867a451b570a00acc',manifestSha256:'6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'};
-const currentIndex='99f72289c4e1bd5940fd8bbad9a2778641303dd92d1102f0f112a109376eeb2b';
+const currentIndex='20c54be38615a81f327a27939a5318d09c2ac5dd4a720e159f61a9b6eeba6f77';
 const currentNode={path:erp+'\\tools\\node-v24.19.0\\node.exe',sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};
-function currentFixture(){const f=structuredClone(fixture());Object.assign(f,{profileVariant:currentVariant,crmPackagePin:structuredClone(currentCrm),crmIndexSha256:currentIndex,crmDependencyLockRef:{path:runtime+'\\crm-7ba6e4ebc8b7-node24-dependency-lock.json',sha256:'f'.repeat(64)},erpCandidate:{packagePin:structuredClone(currentErp),dependencyLockRef:{path:runtime+'\\erpApiNative-6dc33f417373-dependency-lock.json',sha256:'6'.repeat(64)},nodeRuntimePin:structuredClone(currentNode)}});f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261014','20261020');return f;}
+function currentFixture(){const f=structuredClone(fixture());Object.assign(f,{profileVariant:currentVariant,crmPackagePin:structuredClone(currentCrm),crmIndexSha256:currentIndex,crmDependencyLockRef:{path:runtime+'\\crm-d1e442520624-node24-dependency-lock.json',sha256:'f'.repeat(64)},erpCandidate:{packagePin:structuredClone(currentErp),dependencyLockRef:{path:runtime+'\\erpApiNative-6dc33f417373-dependency-lock.json',sha256:'6'.repeat(64)},nodeRuntimePin:structuredClone(currentNode)}});f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261014','20261020');return f;}
 function currentAssertion(f,p){return {baseline:f.baseline,parentActivation:f.parentActivation,parentAudit:f.parentAudit,parentSettings:f.parentSettings,parentHubPin:f.parentHubPin,parentHubStartup:f.parentHubStartup,currentActivation:p.activation,currentSettings:p.settings,currentHubPin:p.hubPin,currentHubStartup:p.hubStartup,receipt:p.receipt,ownerSid:f.ownerSid};}
 test('current literal package pair builds an inactive in-memory projection and preserves parent actors and rollback',()=>{
  const f=currentFixture(),before=structuredClone(f),p=buildCrm06StaffRefreshSuccessor(f),profile=crm06StaffSuccessorProfile(currentSource,currentVariant);
@@ -44,9 +44,13 @@ test('current literal package pair builds an inactive in-memory projection and p
  for(const key of ['operationConfig','nativeOrderConfig'])assert.deepEqual(p.settings.privateSources[key],f.parentSettings.privateSources[key]);
  assert.equal(p.receipt.rollback.settingsRef.path,CRM06_STAFF_PARENT_SETTINGS_PATH);assert.deepEqual(p.receipt.rollback.supervisorPin,f.parentSettings.supervisor);
  for(const key of ['installed','authenticatedOperationsVerified','humanAccepted'])assert.equal(p.receipt[key],false);
- for(const path of [...Object.values(profile.nextPaths),profile.successorPath,profile.journalEvidencePath]){assert.match(path,/7ba6e4ebc8b7-erp-6dc33f417373-current/);assert.doesNotMatch(path,/439b63db8376|6bc82e6fe972|01ef3e3aa3bd/);}
+ for(const path of [...Object.values(profile.nextPaths),profile.successorPath,profile.journalEvidencePath]){assert.match(path,/d1e442520624-erp-6dc33f417373-current/);assert.doesNotMatch(path,/439b63db8376|6bc82e6fe972|01ef3e3aa3bd/);}
 });
 test('current profile rejects crossed source, package, path, Node, supervisor day and parent evidence',()=>{
+ const previous='7ba6e4ebc8b70019136d603e6307741189ba03c1';
+ assert.throws(()=>crm06StaffSuccessorProfile(previous,currentVariant));
+ const stale=currentFixture();stale.crmPackagePin={packageRoot:crm+'\\releases\\node-v24.19.0\\crm-shared-test-'+previous,sourceCommit:previous,manifestSha256:'820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35'};assert.throws(()=>buildCrm06StaffRefreshSuccessor(stale));
+ const crossed=currentFixture();crossed.crmDependencyLockRef.path=runtime+'\\crm-7ba6e4ebc8b7-node24-dependency-lock.json';assert.throws(()=>buildCrm06StaffRefreshSuccessor(crossed));
  for(const change of [f=>f.profileVariant=undefined,f=>f.profileVariant='erp-crm-pr54-b264-20261020',f=>f.crmPackagePin.sourceCommit='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',f=>f.crmPackagePin.packageRoot=crm+'\\releases\\crm-shared-test-'+currentSource,f=>f.crmPackagePin.manifestSha256='0'.repeat(64),f=>f.crmIndexSha256='0'.repeat(64),f=>f.erpCandidate.packagePin.sourceCommit='0'.repeat(40),f=>f.erpCandidate.packagePin.manifestSha256='0'.repeat(64),f=>f.erpCandidate.packagePin.packageRoot+='-other',f=>f.erpCandidate.dependencyLockRef.path=runtime+'\\erpApiNative-01ef3e3aa3bd-dependency-lock.json',f=>f.crmDependencyLockRef.path=runtime+'\\crm-6bc82e6fe972-node24-dependency-lock.json',f=>f.erpCandidate.nodeRuntimePin.path='C:\\Program Files\\nodejs\\node.exe',f=>f.erpCandidate.nodeRuntimePin.sha256='0'.repeat(64),f=>f.supervisorPin.packageRoot=f.supervisorPin.packageRoot.replace('20261020','20261019'),f=>f.parentAudit.nextActivationHash='0'.repeat(64)]){const f=currentFixture();change(f);assert.throws(()=>buildCrm06StaffRefreshSuccessor(f),{code:'CRM06_STAFF_SUCCESSOR_REJECTED'});}
  const profile=crm06StaffSuccessorProfile(currentSource,currentVariant);
  assert.throws(()=>crm06StaffSuccessorProfile(currentSource));assert.throws(()=>crm06StaffSuccessorProfile('6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',currentVariant));assert.throws(()=>crm06StaffSuccessorProfileForPath(currentSource,profile.successorPath+'-other'));

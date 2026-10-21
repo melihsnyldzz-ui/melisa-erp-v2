@@ -35,7 +35,7 @@ const {buildCrm06StaffRefreshSuccessor,assertCrm06StaffRefreshSuccessor,CRM06_ST
 const {CRM06_BASELINE_PATH,CRM06_ACTOR_AUDIT_PATH}=actors;
 const readPinned=ref=>{if(!ref||typeof ref.path!=='string'||!fs.existsSync(ref.path))throw Error('PIN_MISSING');const bytes=fs.readFileSync(ref.path);if(sha(bytes)!==ref.sha256)throw Error('PIN_CHANGED');return bytes;};
 const jsonPinned=ref=>JSON.parse(readPinned(ref).toString('utf8').replace(/^\uFEFF/,''));
-const source=currentB007?'7ba6e4ebc8b70019136d603e6307741189ba03c1':'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',variant=currentB007?'erp-crm-current-20261020':b264?'erp-crm-pr54-b264-20261020':'erp-crm-pr54-reads-20261019',ownerSid=execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-Command','[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],{windowsHide:true,encoding:'utf8'}).trim();
+const source=currentB007?'d1e4425206249e38445fb103e03601f86baa84ec':'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',variant=currentB007?'erp-crm-current-20261020':b264?'erp-crm-pr54-b264-20261020':'erp-crm-pr54-reads-20261019',ownerSid=execFileSync('C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe',['-NoProfile','-NonInteractive','-Command','[Security.Principal.WindowsIdentity]::GetCurrent().User.Value'],{windowsHide:true,encoding:'utf8'}).trim();
 const profile=crm06StaffSuccessorProfile(source,variant),root='C:/Sirket/ERP/runtime/terminal-completion-logon';
 const installed={path:path.join(root,'settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'),sha256:'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'};
 jsonPinned(installed);
@@ -52,7 +52,7 @@ function scanErp(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true}
 scanErp(erpPin.packageRoot);const erpCompleteInventory=verifyPr53CompletePackageInventory(erpManifest,erpObserved);
 if(erpObserved.find(x=>x.path==='release-manifest.json')?.sha256!==erpPin.manifestSha256)throw Error('ERP_MANIFEST_RACE');
 const crmManifest=JSON.parse(readPinned({path:path.win32.join(crmPin.packageRoot,'release-manifest.json'),sha256:crmPin.manifestSha256}));
-if(crmManifest.source?.commit!==crmPin.sourceCommit||crmManifest.source?.tree!==(currentB007?'db824c8a10b030faee6ea84a69cbb3cf86d7293a':'714f198561fb47d1e1c7308c274c117dba40367b')||crmManifest.files.length!==2292)throw Error('CRM_SOURCE_CHANGED');
+if(crmManifest.source?.commit!==crmPin.sourceCommit||crmManifest.source?.tree!==(currentB007?'ce0e2a95a2d9897aedbd021d79a5c6a5e0371d19':'714f198561fb47d1e1c7308c274c117dba40367b')||crmManifest.files.length!==2292)throw Error('CRM_SOURCE_CHANGED');
 if(currentB007){
  const nodePin=sealed.CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME;
  if(process.platform!=='win32'||process.arch!=='x64'||process.version!=='v24.19.0'||path.resolve(process.execPath).toLowerCase()!==path.resolve(nodePin.path).toLowerCase())throw Error('CURRENT_NODE_CHANGED');
