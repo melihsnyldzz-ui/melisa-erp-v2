@@ -23,8 +23,8 @@ import vm from 'node:vm';import path from 'node:path';import {createHash} from '
 function bindCurrentRefs(f){
  const dir=path.win32.dirname(f.engineRef.path),root=path.win32.dirname(dir);
  f.refs.recoveryHelperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
- f.refs.drainerRef={path:dir+'\\p03-pr54-successor-core-drain.ps1',sha256:'b6566e3505af505fb6e0b8d47d6227cf5277d527014db9a8f034093285783486'};
- f.refs.observerRef={path:dir+'\\p03-physical-recovery-observe.ps1',sha256:'1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'};f.recoveryHelperRef=f.refs.recoveryHelperRef;return f;
+ f.refs.drainerRef={path:dir+'\\p03-pr54-successor-core-drain.ps1',sha256:'cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'};
+ f.refs.observerRef={path:dir+'\\p03-physical-recovery-observe.ps1',sha256:'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'};f.recoveryHelperRef=f.refs.recoveryHelperRef;return f;
 }
 test('CurrentB007 Inspect argv binds engine/control siblings, unchanged helper and unique profile run; mutation flags reject',async()=>{
  const f=bindCurrentRefs(await currentFixture()),argv=physical.pr54CurrentB007InspectionArguments(f.refs);assert(argv.worker.includes('CurrentB007InspectOnly'));assert(argv.worker.includes('Inspect'));assert(argv.observer.includes('Physical'));
