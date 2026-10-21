@@ -1,3 +1,7 @@
+## 21 Ekim — özgün iki mock görevin geçici prova hazırlığı
+
+Özgün iki görev restore894 ile gerçekten geri doğrulandı; yeni b33 harness TASK_ALREADY_EXISTS şartını atlamadan prova yapabilmek için ayrı dar release helper00c1dc63 hazır. Yalnız iki sabit özgün task/XML/security/quiet/protected-frame CAS sonrası geçici DeleteTask0; kısmi/lost-response hata missing-only restore894 dener, FAILED/nonzero kalır. Başarılı release sonunda root finally özgün restore+readback zorunludur.4/4 agent+root offline fixture PASS/bağımsız SOURCE GO. Gerçek protected NTFS CreateNew/Flush/ACL2/hash receipt precheck1640cfbe doğrulandı, task yazması yok. Yeni dosya Defender CustomScan çağrısı tamamlandı; gerçek Release/yenib33prova/kurulum henüz bu kaynak tesliminin kanıtı değildir. Önceki2bcf70bc exactPR39552413426/push39552409616 üçer job SUCCESS; yeniHEAD CI ayrı. Kurulu ERP/CRM/DB02 ve insan kabulü aynı.
+
 ## 21 Ekim — Microsoft incelemesi, desteklenen alternatifler ve kurtarma kaynağı
 
 Aynı PR54/Shared bağlama işi; yeni kurulum yapılmadı. Microsoft başvurusu [290c2e8b](https://www.microsoft.com/en-us/wdsi/submission/290c2e8b-8b28-4f5f-8ba7-cec33a2415e1) gerçekten gönderildi; görünen durum In progress, son karar Pending. İlk otomatik tarama Malware detected: yanlış pozitif veya yürütme izni diye yorumlanmaz. Yalnız ayıklanmış 12057 baytlık kanıt paketi gönderildi; özgün komutlar, görev XML/SDDL, sırlar ve ticari veri dışarı çıkarılmadı. Defender koruması/istisnaları değiştirilmedi, engellenen yordam başka executor veya encoding ile yürütülmedi.
