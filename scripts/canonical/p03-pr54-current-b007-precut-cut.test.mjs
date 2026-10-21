@@ -11,6 +11,45 @@ test('finite continuation adapter exists without changing the historical cut wor
  assert.match(s.slice(0,s.indexOf('\n)')),/\[string\]\$ContinuationPath,\[string\]\$ContinuationSha256/);
 });
 const q=s=>"'"+s.replaceAll("'","''")+"'";
+const digestExtract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
+foreach($name in @('ContinuationKeys','CurrentB007OwnerDigestBindings','AssertB264CutCurrentOwner')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
+const digestFixture=String.raw`
+function Hash($bytes){return [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}
+function B264Same($a,$b){return ($a|ConvertTo-Json -Depth 25 -Compress)-ceq($b|ConvertTo-Json -Depth 25 -Compress)}
+function B264CutHistoryPins{return @{predecessorBefore=@{path='history';sha256='history-sha'}}}
+function ProtectedProcesses($v){}
+function Identity($row,$expected){return $row.ProcessId -eq $expected.pid}
+function Inventory{return $inv}
+function SetupDigest{
+ $script:ClaimPath='claim';$script:ClaimSha256='claim-sha';$script:order=@('hub');$script:names=@('Terminal','Hub')
+ $bindings=@([pscustomobject]@{port=5234;address='::'},[pscustomobject]@{port=5234;address='0.0.0.0'})
+ $script:historical=[pscustomobject]@{identities=[pscustomobject]@{hub=[pscustomobject]@{bindings=$bindings}}}
+ $e=[pscustomobject]@{pid=11;parentPid=10;ownerSid='fixture';nodePath='node';commandLine='fixture';creationTime='2026-10-20T09:00:00.1234567Z';bindings=@($bindings[1],$bindings[0])}
+ $script:before=[pscustomobject]@{identities=[pscustomobject]@{hub=$e}}
+ $script:inv=[pscustomobject]@{all=@([pscustomobject]@{ProcessId=11});instances=@([pscustomobject]@{Name='Terminal';State=4;Path='\Terminal';EnginePID=21;InstanceGuid='guid-1'},[pscustomobject]@{Name='Hub';State=4;Path='\Hub';EnginePID=22;InstanceGuid='guid-2'})}
+ $committed=[ordered]@{owners=@([ordered]@{pid=11;parentPid=10;ownerSid='fixture';nodePath='node';commandLine='fixture';creationTime=$e.creationTime;bindings=$bindings});instances=@([ordered]@{name='Terminal';pid=21;guid='guid-1'},[ordered]@{name='Hub';pid=22;guid='guid-2'})}
+ $script:claim=[pscustomobject]@{predecessorBefore=[pscustomobject]@{path='history';sha256='history-sha'};currentOwnerDigest=(Hash ([Text.Encoding]::UTF8.GetBytes(($committed|ConvertTo-Json -Depth 25 -Compress))))}
+ $script:comPinsBefore=@();$script:b264CutComPins=$comPinsBefore
+}
+function ReadWorkerPin($path,$sha){if($path-ceq'claim'-and$sha-ceq'claim-sha'){$v=$claim}elseif($path-ceq'history'-and$sha-ceq'history-sha'){$v=$historical}else{throw 'FIXTURE_PIN'};return ,[Text.Encoding]::UTF8.GetBytes(($v|ConvertTo-Json -Depth 25 -Compress))}
+function DigestOutcome{try{AssertB264CutCurrentOwner;return 'GO'}catch{return $_.Exception.Message}}
+`;
+test('Current PS5 owner digest matches the unchanged JS commitment when Windows reverses listener enumeration',()=>{
+ const out=run(digestExtract+'\n'+digestFixture+"\nSetupDigest;$saved=$claim|ConvertTo-Json -Compress;'RESULT='+(DigestOutcome);'CLAIM_UNCHANGED='+($saved-ceq($claim|ConvertTo-Json -Compress));'COM_PINS='+$b264CutComPins.Count");
+ assert.match(out,/RESULT=GO[\s\S]*CLAIM_UNCHANGED=True[\s\S]*COM_PINS=2/);
+});
+test('Current PS5 digest rejects missing, extra, duplicate-replaced, changed and malformed listeners and foreign history or COM',()=>{
+ const edits=["$before.identities.hub.bindings=@($before.identities.hub.bindings[0])","$before.identities.hub.bindings+=,$before.identities.hub.bindings[0]","$before.identities.hub.bindings=@($before.identities.hub.bindings[0],$before.identities.hub.bindings[0])","$before.identities.hub.bindings[0]=[pscustomobject]@{port=5235;address='0.0.0.0'}","$before.identities.hub.bindings[0]=[pscustomobject]@{port='5234';address='0.0.0.0'}","$before.identities.hub.bindings[0]=[pscustomobject]@{port=5234;address='0.0.0.0';extra=$true}","$claim.predecessorBefore.sha256='foreign'","$inv.instances[0].InstanceGuid='foreign'"];
+ const out=run(digestExtract+'\n'+digestFixture+'\n'+edits.map((edit,n)=>`SetupDigest;${edit};'CASE${n}='+(DigestOutcome);if($b264CutComPins.Count-ne0){throw 'PUBLISHED_REJECTED_COM_PINS'}`).join('\n'));
+ for(let n=0;n<edits.length;n++)assert.match(out,new RegExp('CASE'+n+'=P03_PHYSICAL_'));
+});
+test('Current PS5 listener comparison preserves empty and duplicate arrays without mutating either order',()=>{
+ const out=run(digestExtract+String.raw`
+$empty=CurrentB007OwnerDigestBindings @() @();if($empty.Count-ne0){throw 'EMPTY_SHAPE'}
+$a=[pscustomobject]@{port=5234;address='::'};$b=[pscustomobject]@{port=5234;address='0.0.0.0'};$fresh=@($b,$a,$a);$old=@($a,$b,$a)
+$x=CurrentB007OwnerDigestBindings $fresh $old;if(($x|ConvertTo-Json -Compress)-cne($old|ConvertTo-Json -Compress)-or$fresh[0].address-cne'0.0.0.0'){throw 'ORDER_CHANGED'};'ARRAYS_PRESERVED'
+`);assert.match(out,/ARRAYS_PRESERVED/);
+});
 const extract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
 foreach($name in @('B264Same','ContinuationKeys','ContinuationStable','CurrentB007ResumeStable','AssertCurrentB007ResumeBinding','AssertCurrentB007Continuation','AssertCurrentB007LiveAdmission','DrainB264OldOwner')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
 const fixture=String.raw`
@@ -56,10 +95,11 @@ test('pure native continuation rejects stale/foreign snapshots, wrong retained r
  const output=run(edits.map((e,n)=>`Reset;${e};'CASE${n}='+(Outcome)`).join('\n'));
  for(let n=0;n<edits.length;n++){assert.match(output,new RegExp('CASE'+n+'=P03_PHYSICAL_'));assert(!output.includes('CASE'+n+'=GO'));}
 });
-test('copied native hold, stop, owner digest and COM-CAS functions remain byte equivalent; only explicit adapter accepts continuation',()=>{
+test('native hold, stop and COM-CAS remain byte equivalent; Current digest alone uses the verified predecessor listener order',()=>{
  const old=readFileSync(new URL('./p03-pr54-b264-old-owner-cut.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),s=readFileSync(source,'utf8').replaceAll('\r\n','\n');
  const captureBinding="  $live=CaptureWorkerAdmission;AssertB264CutCurrentOwner\n  Need ($null -eq $script:continuationLiveAdmission) 'CURRENT_CONTINUATION_LIVE_ONCE';$claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256);$rootSnapshot=Json (ReadWorkerPin $AdmittedSnapshotPath $AdmittedSnapshotSha256);AssertCurrentB007LiveAdmission $live $claim $rootSnapshot\n  Set-Variable -Name continuationLiveAdmission -Scope Script -Option ReadOnly -Value (Json ([Text.Encoding]::UTF8.GetBytes(($live|ConvertTo-Json -Depth 25 -Compress))))";
- assert(s.includes(captureBinding));assert.equal(s.slice(s.indexOf('function PausedRemainingCore{')).replace(captureBinding,'  [void](CaptureWorkerAdmission);AssertB264CutCurrentOwner'),old.slice(old.indexOf('function PausedRemainingCore{')));
+ const withoutDigest=text=>text.replace(/function CurrentB007OwnerDigestBindings[\s\S]*?(?=function AssertB264CutCurrentOwner)/,'').replace(/function AssertB264CutCurrentOwner[\s\S]*?(?=function DrainB264OldOwner)/,'');
+ assert(s.includes(captureBinding));assert.equal(withoutDigest(s.slice(s.indexOf('function PausedRemainingCore{')).replace(captureBinding,'  [void](CaptureWorkerAdmission);AssertB264CutCurrentOwner')),withoutDigest(old.slice(old.indexOf('function PausedRemainingCore{'))));
  assert.match(s,/ValidateSet\('CurrentB007InspectOnly'\)/);assert.match(s,/'ContinuationPath','ContinuationSha256'\|/);
  assert(!s.includes('$ownerAge='));assert.match(s,/snapshotAge -lt 60/);
  assert.match(s,/AssertCurrentB007InspectionContract \$profile \$before/);

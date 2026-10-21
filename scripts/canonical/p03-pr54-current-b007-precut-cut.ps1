@@ -251,11 +251,33 @@ function StopB264OldCom{
  Need ($live.Count -eq 0) 'B264_CUT_WATCHER_NOT_ABSENT'
  foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq 3 -and (XmlHash ([string]$task.Xml)) -ceq $entry.oldXmlSha256) 'B264_CUT_COM_READY'}
 }
+function CurrentB007OwnerDigestBindings($fresh,$historical){
+ # The JS claim commits the pinned predecessor array order, not the order in
+ # which Windows enumerates listeners today. Verify the full multiset first;
+ # sorting only comparison keys preserves duplicate counts and every tuple.
+ $sets=@()
+ foreach($bindings in @(@{rows=@($fresh)},@{rows=@($historical)})){
+  [string[]]$keys=@(foreach($binding in $bindings.rows){
+   ContinuationKeys $binding @('port','address')
+   Need (($binding.port -is [int] -or $binding.port -is [long]) -and $binding.port -ge 1 -and $binding.port -le 65535 -and $binding.address -is [string] -and -not[string]::IsNullOrEmpty($binding.address)) 'CURRENT_OWNER_BINDING_FIELDS'
+   [ordered]@{port=$binding.port;address=$binding.address}|ConvertTo-Json -Compress
+  })
+  [Array]::Sort($keys,[StringComparer]::Ordinal);$sets+=,@($keys)
+ }
+ Need ($sets[0].Count -eq $sets[1].Count) 'CURRENT_OWNER_BINDING_COUNT'
+ for($i=0;$i -lt $sets[0].Count;$i++){Need ($sets[0][$i] -ceq $sets[1][$i]) 'CURRENT_OWNER_BINDING_TUPLE'}
+ return ,@($historical)
+}
 function AssertB264CutCurrentOwner{
  $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256);$inv=Inventory;ProtectedProcesses $inv
+ $historicalPin=(B264CutHistoryPins).predecessorBefore
+ ContinuationKeys $claim.predecessorBefore @('path','sha256')
+ Need ($claim.predecessorBefore.path -ceq $historicalPin.path -and $claim.predecessorBefore.sha256 -ceq $historicalPin.sha256) 'CURRENT_OWNER_HISTORY_REF'
+ $historicalBefore=Json (ReadWorkerPin $historicalPin.path $historicalPin.sha256)
  $owners=@(@(foreach($role in $order){
   $e=$before.identities.$role;$rows=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($rows.Count -eq 1 -and (Identity $rows[0] $e)) 'B264_CUT_OWNER_UID'
-  [ordered]@{pid=[int]$e.pid;parentPid=[int]$e.parentPid;ownerSid=$e.ownerSid;nodePath=$e.nodePath;commandLine=$e.commandLine;creationTime=[DateTime]::Parse($e.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ');bindings=@($e.bindings)}
+  $committedBindings=CurrentB007OwnerDigestBindings @($e.bindings) @($historicalBefore.identities.$role.bindings)
+  [ordered]@{pid=[int]$e.pid;parentPid=[int]$e.parentPid;ownerSid=$e.ownerSid;nodePath=$e.nodePath;commandLine=$e.commandLine;creationTime=[DateTime]::Parse($e.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ');bindings=$committedBindings}
  })|Sort-Object { $_.pid })
  Need ($inv.instances.Count -eq 2) 'B264_CUT_OWNER_COM_COUNT'
  $instances=@(foreach($name in $names){$rows=@($inv.instances|Where-Object{$_.Name -ceq $name});Need ($rows.Count -eq 1 -and [int]$rows[0].State -eq 4 -and [string]$rows[0].Path -ceq ('\'+$name) -and -not[string]::IsNullOrEmpty([string]$rows[0].InstanceGuid)) 'B264_CUT_OWNER_COM';[ordered]@{name=$name;pid=[int]$rows[0].EnginePID;guid=[string]$rows[0].InstanceGuid}})

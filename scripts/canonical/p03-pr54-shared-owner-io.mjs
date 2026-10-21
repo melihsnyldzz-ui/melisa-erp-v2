@@ -685,7 +685,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const sources=Object.fromEntries(Object.entries(currentB007SourcePins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
  if(precutContinuation||precutResume){
-  sources.oldCut={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'81d574b7b5efb7aadeacc152f083223884f4987fd4e091b1deded632d8648339'};
+  sources.oldCut={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'0129d1ea33d7f772c547db08881ff74333a7ef14dfdc1bb92941e5e275366870'};
   sources.newRecovery={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-new-recovery.ps1'),sha256:'1f4962efcc289af0826e7caa81d24f3fe414eaf576644a82c1bc6c3f9343ea8f'};
  }
  const rehearsal=read(rehearsalProofRef);
