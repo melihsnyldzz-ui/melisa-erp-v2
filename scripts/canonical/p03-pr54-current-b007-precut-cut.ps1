@@ -1,6 +1,6 @@
 param(
  [ValidateSet('CurrentB007InspectOnly')][string]$PolicyGeneration='CurrentB007InspectOnly',
- [ValidateSet('Inspect','Drain')][string]$Mode='Inspect',
+ [ValidateSet('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')][string]$Mode='Inspect',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][string]$BeforeImageSha256,
  [Parameter(Mandatory=$true)][string]$EnginePath,[Parameter(Mandatory=$true)][string]$EngineSha256,
@@ -14,7 +14,7 @@ if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '
 # Definitions-only reuse. No historical dispatcher, claim creation or task start.
 if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_CUT_SOURCE'}
 if($Mode -ceq 'Inspect' -and @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','RootIntentPath','RootIntentSha256','ContinuationPath','ContinuationSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_CUT_INSPECT_ONLY'}
-if($Mode -ceq 'Drain' -and (-not $PSBoundParameters.ContainsKey('ContinuationPath') -or -not $PSBoundParameters.ContainsKey('ContinuationSha256') -or [string]::IsNullOrEmpty($ContinuationPath) -or $ContinuationSha256 -cnotmatch '\A[a-f0-9]{64}\z')){throw 'P03_CURRENT_B007_CONTINUATION_REQUIRED'}
+if($Mode -cin @('Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -and (-not $PSBoundParameters.ContainsKey('ContinuationPath') -or -not $PSBoundParameters.ContainsKey('ContinuationSha256') -or [string]::IsNullOrEmpty($ContinuationPath) -or $ContinuationSha256 -cnotmatch '\A[a-f0-9]{64}\z')){throw 'P03_CURRENT_B007_CONTINUATION_REQUIRED'}
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
 $env:PSModulePath=Join-Path $PSHOME 'Modules'
@@ -43,7 +43,8 @@ if($errors.Count){throw 'P03_B264_CUT_ENGINE_PARSE'}
 ImportWorkerFunctions $engineBytes @($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Name})
 ImportWorkerFunctions (ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256) @('SourceBytes','ProbeArgumentsAllowed','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries','PausedTasks','PausedRemaining','PausedRemainingCore','WaitCoreProbeAbsence')
 ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @($(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'AssertCurrentB007InspectionContract'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'AssertB264Sup20DInspectionContract'}else{'AssertB264InspectionContract'}),'WorkerSamePin','Inventory','AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','SeedWorkerAdmission','HoldWorkerCore','StopWorkerCore')
-if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @('GetCurrentB007ProtectedConsolePins')}
+if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @('GetCurrentB007ProtectedConsolePins','AssertCurrentB007StaticContract')}
+if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){ImportWorkerFunctions (ReadWorkerPin (Join-Path ([IO.Path]::GetDirectoryName($EnginePath)) 'p03-pr54-new-owner-observe.ps1') '777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4') @('NewHistoricalDigest','NewHistoricalIdentity','NewHistoricalOpenProcess','NewHistoricalReadProcess','NewHistoricalKernel')}
 $profile=Json (ReadWorkerPin $ProfilePath $ProfileSha256);$before=Json (ReadWorkerPin $BeforeImagePath $BeforeImageSha256)
 $oldSettings=Json (ReadWorkerPin $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadWorkerPin $profile.newSettings.path $profile.newSettings.sha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
@@ -248,7 +249,7 @@ function PausedRemainingCore{
  }
 }
 
-function Authority{B264CutAuthority}
+function Authority{if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){[void](AssertCompleted42d0Authority)}else{B264CutAuthority}}
 function LegacyConsoleAuxiliaries($inv){return @()}
 function WriteB264CutEvidence([string]$leaf,$value){
  Need ($leaf -cin @('b264-old-owner-held-cut-intent.json','successor-core-cut-completed.json','successor-core-probe-drain.json')) 'B264_CUT_WRITE_SCOPE'
@@ -346,6 +347,163 @@ function DrainB264OldOwner{
   return [ordered]@{status='B264_OLD_OWNER_CORE_DRAINED';coreStopResult=$mechanism;heldCoreExited=$true;comStopped=$true;remainingOldRoles=(8-@($script:drainedPids).Count);goneOldPids=@($script:drainedPids);cutWitness=$cut;drainWitness=$drain}
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
+function SeedCompleted42d0Admission($snapshot){
+ Need ($snapshot.schemaVersion -ceq 'melisa-p03-successor-precut-admission.v1' -and $snapshot.profileSha256 -ceq $ProfileSha256 -and $snapshot.beforeSha256 -ceq $BeforeImageSha256 -and $snapshot.engineSha256 -ceq $engineSha -and $snapshot.recoveryHelperSha256 -ceq $RecoveryHelperSha256) 'SUCCESSOR_SNAPSHOT'
+ $age=($script:completedCutOpenedAt-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime()).TotalSeconds;Need ($age -ge 0 -and $age -lt 60) 'SUCCESSOR_SNAPSHOT_FRESH'
+ Need (@($snapshot.oldIdentities).Count -eq 8 -and @($snapshot.oldWatchers).Count -eq 2 -and @($snapshot.consolePins).Count -le 64 -and @($snapshot.probePins).Count -le 64) 'SUCCESSOR_SNAPSHOT_COUNT'
+ foreach($role in $order){$e=$before.identities.$role;$rows=@($snapshot.oldIdentities|Where-Object{$_.pid -eq $e.pid});Need ($rows.Count -eq 1 -and (WorkerSamePin $rows[0] $e)) 'SUCCESSOR_SNAPSHOT_APP'}
+ foreach($w in $profile.oldWatchers){$rows=@($snapshot.oldWatchers|Where-Object{$_.pid -eq $w.pid});Need ($rows.Count -eq 1 -and (WorkerSamePin $rows[0] $w)) 'SUCCESSOR_SNAPSHOT_WATCHER'}
+ $parents=@($snapshot.oldIdentities)+@($snapshot.oldWatchers)+@($snapshot.probePins)
+ foreach($p in $snapshot.consolePins){
+  $parent=@($parents|Where-Object{$_.pid -eq $p.parentPid});Need ($parent.Count -eq 1 -and $p.ownerSid -ceq $owner -and $p.nodePath -ceq 'C:\Windows\System32\conhost.exe' -and $p.commandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -ge [DateTime]::Parse($parent[0].creationTime).ToUniversalTime() -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime() -and -not $script:consolePins.ContainsKey([int]$p.pid)) 'SUCCESSOR_SNAPSHOT_CONSOLE';$script:consolePins[[int]$p.pid]=$p
+ }
+ foreach($p in $snapshot.probePins){Need ($p.parentPid -eq $before.identities.coreSupervisor.pid -and $p.ownerSid -ceq $owner -and $p.nodePath -ceq $profile.shell.path -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -ge [DateTime]::Parse($before.identities.coreSupervisor.creationTime).ToUniversalTime() -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime() -and (ProbeArgumentsAllowed (Tokens $p.commandLine) $script:probePath) -and -not $script:probePins.ContainsKey([int]$p.pid)) 'SUCCESSOR_SNAPSHOT_PROBE';$script:probePins[[int]$p.pid]=$p}
+ if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){
+  Need (@($snapshot.protectedConsolePins).Count -le 64) 'CURRENT_PROTECTED_SNAPSHOT_COUNT'
+  $nextCache=@{};if(Get-Variable protectedConsolePins -Scope Script -ErrorAction SilentlyContinue){foreach($key in $script:protectedConsolePins.Keys){$nextCache[$key]=$script:protectedConsolePins[$key]}}
+  $seen=@();$forbidden=@($snapshot.oldIdentities|ForEach-Object{$_.pid})+@($snapshot.oldWatchers|ForEach-Object{$_.pid})+@($snapshot.consolePins|ForEach-Object{$_.pid})+@($snapshot.probePins|ForEach-Object{$_.pid})+@($profile.protectedProcesses|ForEach-Object{$_.pid})
+  foreach($pin in $snapshot.protectedConsolePins){
+   $parents=@($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -cnotcontains 'kind' -and $_.pid -eq $pin.parentPid})
+   Need ((@($pin.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'commandLine|creationTime|nodePath|ownerSid|parentPid|pid' -and $pin.pid -gt 0 -and $pin.pid -notin $forbidden -and $pin.pid -notin $seen -and $parents.Count -eq 1 -and $pin.ownerSid -ceq $owner -and $parents[0].ownerSid -ceq $owner -and $pin.nodePath -ceq 'C:\Windows\System32\conhost.exe' -and $pin.commandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [DateTime]::Parse($pin.creationTime).ToUniversalTime() -ge [DateTime]::Parse($parents[0].creationTime).ToUniversalTime() -and [DateTime]::Parse($pin.creationTime).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime()) 'CURRENT_PROTECTED_SNAPSHOT_PIN'
+   if($nextCache.ContainsKey([int]$pin.pid)){Need (WorkerSamePin $pin $nextCache[[int]$pin.pid]) 'CURRENT_PROTECTED_SNAPSHOT_REUSED'}
+   $nextCache[[int]$pin.pid]=[pscustomobject]@{pid=[int]$pin.pid;parentPid=[int]$pin.parentPid;nodePath=[string]$pin.nodePath;ownerSid=[string]$pin.ownerSid;commandLine=[string]$pin.commandLine;creationTime=[string]$pin.creationTime};$seen+=,[int]$pin.pid
+  }
+  $script:protectedConsolePins=$nextCache
+ }
+ # The original capture proved the parent while alive. Recheck the binary even
+ # for cached children; the fe classifier validates current identity/listeners.
+ $binary='C:\Windows\System32\conhost.exe';NoReparse $binary;Need ((Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq 'c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac') 'SUCCESSOR_CONSOLE_BINARY'
+ $signature=Get-AuthenticodeSignature -LiteralPath $binary;Need ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -ceq 'CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US') 'SUCCESSOR_CONSOLE_SIGNATURE'
+}
+
+function PausedTasks{
+ $inv=Inventory;Need ($inv.instances.Count -eq 0) 'PAUSED_COM'
+ foreach($entry in $profile.tasks){$t=$folder.GetTask($entry.name);$allowed=@($entry.oldXmlSha256);if($Mode -ceq 'ResumeDrainCheck'){$allowed+=,$entry.newXmlSha256};Need ([int]$t.State -eq 3 -and (XmlHash ([string]$t.Xml)) -cin $allowed) 'PAUSED_OLD_ACTION'}
+ return $inv
+}
+function Completed42d0AuxEpochPins{
+ # A single recorded unrelated replacement generation, never a namespace grant.
+ return @(
+  @{pid=10996;parentPid=1316;name='explorer.exe';nodePath='C:\WINDOWS\Explorer.EXE';creationTime='2026-10-20T08:50:12.2095200Z';image='eee089fe6f927c7f0d51b0abd9d70c094157e33673ad760713ec7b1cea18ee11';argv='430d1236a76c6598d4ef2eb955143ba8c9e96c2191d8550725dc57be464363a9';signer='Windows'}
+  @{pid=15168;parentPid=10996;name='ChatGPT.exe';nodePath='C:\Program Files\WindowsApps\OpenAI.Codex_26.1013.4894.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe';creationTime='2026-10-20T15:44:58.8725750Z';image='2f61eaeb01dcee7fd18d572fbb338c88b686c0d891427487fdd182afdd64b4f6';argv='c6daf7a65035cb0b14b7daedb95fa1405d1559fc365f79648c245fc85a4786e8';signer='OpenAI'}
+  @{pid=55744;parentPid=15168;name='codex.exe';nodePath='C:\Users\Xaser\AppData\Local\OpenAI\Codex\bin\896a0166b774037a\codex.exe';creationTime='2026-10-20T15:45:02.7221640Z';image='f6dbf48cb70f62649c645f26c87dc9bf84cc36986202dfad8e12fb5b8ca70312';argv='abecfb4db22b20dd1ee6a70bab829479c24973ccede76abc26c191efe4e438f4';signer='OpenAI'}
+  @{pid=4900;parentPid=55744;name='cmd.exe';nodePath='C:\WINDOWS\system32\cmd.exe';creationTime='2026-10-21T12:10:54.9240010Z';image='15cd209c995b7d3009c91ca40892d5b8f1fb162f3e5f10716642ea278e8e0d7b';argv='026acd2fa673c8312877cda5dc19a579762b616880f3c4202fc3144a9c0250df';signer='Windows'}
+  @{pid=46520;parentPid=4900;name='conhost.exe';nodePath='C:\WINDOWS\system32\conhost.exe';creationTime='2026-10-21T12:10:54.9355440Z';image='c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac';argv='417222c4a0ecb4d60a457ebe8e26fddf3d5406bffb16a5c59af8eeb241beca51';signer='Windows'}
+  @{pid=12092;parentPid=4900;name='node.exe';nodePath='C:\Users\Xaser\AppData\Local\OpenAI\Codex\runtimes\cua_node\78fb63cda1a9e2b2\bin\node.exe';creationTime='2026-10-21T12:10:55.0117390Z';image='edba9f4ef4eb4b9519a9a80674d68ba6ff70eff85d8f1719e072f89b69bf3f2f';argv='d39e616ddf70a14dd06a9f6f9781db395d96966fb8fe5f767c441569319d9f36';signer='OpenAI'}
+ )
+}
+function Completed42d0AuxFrame($inventory,$expected){
+ $all=@($inventory.all);Need ($all.Count -gt 0 -and $all.Count -le 100000) 'COMPLETED42_AUX_INVENTORY'
+ $map=@{};foreach($row in $all){Need (-not$map.ContainsKey([int]$row.ProcessId)) 'COMPLETED42_AUX_DUPLICATE';$map[[int]$row.ProcessId]=$row}
+ Need (-not$map.ContainsKey(1316)) 'COMPLETED42_AUX_ROOT_LINEAGE'
+ $family=[Collections.Generic.HashSet[int]]::new();[void]$family.Add(4900);do{$added=$false;foreach($row in $all){if($family.Contains([int]$row.ParentProcessId)-and$family.Add([int]$row.ProcessId)){$added=$true}};Need ($family.Count-le3) 'COMPLETED42_AUX_FAMILY'}while($added)
+ Need ((@($family|Sort-Object)-join ',') -ceq '4900,12092,46520') 'COMPLETED42_AUX_FAMILY'
+ $forbidden=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{$_.pid})+@($profile.protectedProcesses|ForEach-Object{$_.pid})+@($inventory.instances|ForEach-Object{$_.EnginePID})+@($script:probePins.Keys)+@($script:protectedConsolePins.Keys)
+ $result=@();foreach($pin in $expected){
+  Need ($map.ContainsKey([int]$pin.pid) -and $pin.pid -notin $forbidden) 'COMPLETED42_AUX_MANAGED'
+  $row=$map[[int]$pin.pid];$uid=NewHistoricalIdentity $row
+  Need ($uid.pid-eq$pin.pid-and$uid.parentPid-eq$pin.parentPid-and$uid.name-ceq$pin.name-and$uid.nodePath-ceq$pin.nodePath-and$uid.ownerSid-ceq$owner-and[DateTime]::Parse($uid.creationTime).ToUniversalTime().Ticks-eq[DateTime]::Parse($pin.creationTime).ToUniversalTime().Ticks-and(Hash ([Text.Encoding]::UTF8.GetBytes($uid.commandLine)))-ceq$pin.argv) 'COMPLETED42_AUX_UID'
+  Need (-not(IsWatcherCommand $uid.commandLine)) 'COMPLETED42_AUX_WATCHER'
+  foreach($pkg in $profile.packages){foreach($v in @($uid.nodePath,$uid.commandLine)){Need ($v.Replace('/','\').IndexOf(([string]$pkg.root).Replace('/','\'),[StringComparison]::OrdinalIgnoreCase)-lt0) 'COMPLETED42_AUX_PACKAGE'}}
+  Need (@($inventory.allListeners|Where-Object{$_.OwningProcess-eq$pin.pid}).Count-eq0) 'COMPLETED42_AUX_LISTENER'
+  if($pin.pid-ne10996){Need ($map.ContainsKey([int]$pin.parentPid)-and$row.CreationDate.ToUniversalTime()-ge$map[[int]$pin.parentPid].CreationDate.ToUniversalTime()) 'COMPLETED42_AUX_BIRTH_EDGE'}
+  NoReparse $uid.nodePath;Need ((Get-FileHash -LiteralPath $uid.nodePath -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$pin.image) 'COMPLETED42_AUX_IMAGE'
+  $signature=Get-AuthenticodeSignature -LiteralPath $uid.nodePath;$subject=if($pin.signer-ceq'Windows'){'CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'}else{'CN="OpenAI OpCo, LLC", O="OpenAI OpCo, LLC", L=San Francisco, S=California, C=US'}
+  Need ($signature.Status-eq'Valid'-and$signature.SignerCertificate.Subject-ceq$subject) 'COMPLETED42_AUX_SIGNATURE'
+  $result+=,[pscustomobject]@{pid=$uid.pid;parentPid=$uid.parentPid;name=$uid.name;nodePath=$uid.nodePath;ownerSid=$uid.ownerSid;creationTime=$uid.creationTime;commandLineSha256=$pin.argv;imageSha256=$pin.image;identitySha256=(NewHistoricalDigest $uid)}
+ }
+ return @($result|Sort-Object pid)
+}
+function Completed42d0AuxProof($snapshot){
+ $old=@($snapshot.consolePins|Where-Object{$_.pid-eq4900});Need ($old.Count-eq1-and$old[0].nodePath-ceq'C:\Windows\System32\conhost.exe'-and[DateTime]::Parse($old[0].creationTime).ToUniversalTime().Ticks-eq[DateTime]::Parse('2026-10-20T08:50:12.012338Z').ToUniversalTime().Ticks) 'COMPLETED42_AUX_OLD'
+ $expected=@(Completed42d0AuxEpochPins);$held=@{};try{
+  $first=Inventory;ProtectedProcesses $first;$pins=@(Completed42d0AuxFrame $first $expected)
+  foreach($pin in $pins){$held[[int]$pin.pid]=NewHistoricalOpenProcess $pin.pid;$rows=@($first.all|Where-Object{$_.ProcessId-eq$pin.pid});NewHistoricalKernel $held[[int]$pin.pid] (NewHistoricalIdentity $rows[0])}
+  for($pass=0;$pass-lt2;$pass++){$fresh=Inventory;ProtectedProcesses $fresh;$again=@(Completed42d0AuxFrame $fresh $expected);Need ((NewHistoricalDigest $again)-ceq(NewHistoricalDigest $pins)) 'COMPLETED42_AUX_CAS';foreach($pin in $again){$rows=@($fresh.all|Where-Object{$_.ProcessId-eq$pin.pid});NewHistoricalKernel $held[[int]$pin.pid] (NewHistoricalIdentity $rows[0])}}
+  return [pscustomobject]@{historicalConsolePins=@($old);replacementEpochDigest=(NewHistoricalDigest $pins);family=@($pins|Where-Object{$_.pid-in@(4900,12092,46520)});ancestors=@($pins|Where-Object{$_.pid-in@(10996,15168,55744)});observedAt=[DateTime]::UtcNow.ToString('o');stopPermitted=$false;mutationExecuted=$false}
+ }finally{foreach($handle in $held.Values){$handle.Dispose()}}
+}
+function Completed42d0Pins{
+ $prefix=Join-Path $base 'MelisaERP-P03-transition-42d0d0536cb115cc4aea43ff1f13afbf'
+ return @{
+  profile=@{path=(Join-Path $base 'MelisaERP-P03-profile-42d0d0536cb115cc4aea43ff1f13afbf.json');sha256='a06625191c5b8ccdc622a40555513fcd5192fa81eae784ee706fc258cee9100e'}
+  before=@{path=(Join-Path $base 'MelisaERP-P03-before-42d0d0536cb115cc4aea43ff1f13afbf.json');sha256='e05d2d7d30a8d477457a78adf7bbe342955d4667a0ba005dc0e399b3e3b8e791'}
+  lock=@{path=(Join-Path $prefix 'transition.lock');sha256='529cb039012f157cdbe0395beb760c47e9297e23db8badb08b1b76743ed31478'}
+  context=@{path=(Join-Path $prefix 'precut-continuation.json');sha256='c7e2f4b3a206295173d04c01ff0d4436c49f71b5eaf847da7f89c34b3346bc63'}
+  pointer=@{path=(Join-Path $base 'MelisaERP-P03-transition-9d2e00d572acc83391a0a2e5ac28d046\resume-attempt.json');sha256='c7e2f4b3a206295173d04c01ff0d4436c49f71b5eaf847da7f89c34b3346bc63'}
+  priorPointer=@{path=(Join-Path $base 'MelisaERP-P03-transition-452054204a1857ff618b0dd30a59caea\resume-attempt.json');sha256='7f07000256ed4b1289f36fe5a2290bdfa71e125ff976276f1135b42f0ba4012c'}
+  claim=@{path=(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json');sha256='a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544'}
+  snapshot=@{path=(Join-Path $prefix 'successor-precut-admission.json');sha256='6307733ac07c330f67a47027875bb052f2e45b4aa0b187e630271d8837743175'}
+  root=@{path=(Join-Path $prefix 'b264-old-owner-cut-intent.json');sha256='1ec55968246907d4a21b3019e876f0a69e7f19e9a535dace2c87bce2f284e1b6'}
+  held=@{path=(Join-Path $prefix 'b264-old-owner-held-cut-intent.json');sha256='d02b03d0fff4953211a11029f45d7fa14949bbc95433bca98b669a16c72f996b'}
+  cut=@{path=(Join-Path $prefix 'successor-core-cut-completed.json');sha256='9c34ca6fa5677927a0df780775c13b929e59ed5baf0732cb15f43714179d91fb'}
+  event0=@{path=(Join-Path $prefix 'event-0000.json');sha256='3fe7476876a9373e4add7e69e2b4806490011291533eaa21e8fcdd7c583fc937'}
+  event1=@{path=(Join-Path $prefix 'event-0001.json');sha256='19cf41d5d20ab587176925f4da14879292b0bf1eac208020328c88109b369a15'}
+  tail=@{path=(Join-Path $prefix 'event-0002.json');sha256='9b729821da2461174532b51bd1fb467216d12b4710c2b56a04c5be5ed59d9aef'}
+  diagnostic=@{path=(Join-Path $prefix 'io-failure-diagnostic.json');sha256='ae1d923a995992c5f79b3c199fad8cc3ca99037dbf1a740418aef3d0c5a41b9c'}
+ }
+}
+function AssertCompleted42d0Authority{
+ Need ($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -and $PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $runId -ceq '42d0d0536cb115cc4aea43ff1f13afbf' -and $dir -ceq (Join-Path $base ('MelisaERP-P03-transition-'+$runId))) 'COMPLETED42_SCOPE'
+ $pins=Completed42d0Pins;$values=@{};foreach($key in $pins.Keys){$ref=$pins[$key];$values[$key]=Json (ReadWorkerPin $ref.path $ref.sha256)}
+ foreach($binding in @(@($ProfilePath,$ProfileSha256,'profile'),@($BeforeImagePath,$BeforeImageSha256,'before'),@($ClaimPath,$ClaimSha256,'claim'),@($ContinuationPath,$ContinuationSha256,'context'),@($RootIntentPath,$RootIntentSha256,'root'),@($AdmittedSnapshotPath,$AdmittedSnapshotSha256,'snapshot'))){Need ($binding[0] -ceq $pins[$binding[2]].path -and $binding[1] -ceq $pins[$binding[2]].sha256) 'COMPLETED42_INPUT_REF'}
+ Need ($EnginePath -ceq (Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1') -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'COMPLETED42_SOURCE_SCOPE'
+ foreach($ref in @(@($EnginePath,$EngineSha256),@($RecoveryHelperPath,$RecoveryHelperSha256),@($DrainerPath,$DrainerSha256))){[void](ReadWorkerPin $ref[0] $ref[1])}
+ AssertCurrentB007StaticContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256
+ $claim=$values.claim;AssertB264CutStopPlan $claim
+ $history=B264CutHistoryPins;foreach($key in $history.Keys){$ref=$claim.$key;Need ($ref.path -ceq $history[$key].path -and $ref.sha256 -ceq $history[$key].sha256) 'COMPLETED42_HISTORY';[void](ReadWorkerPin $ref.path $ref.sha256)}
+ foreach($ref in @($values.context.retainedProfileRef,$values.context.retainedBeforeRef,$values.context.failureTailRef)){[void](ReadWorkerPin $ref.path $ref.sha256)}
+ $cut=$values.cut;$held=$values.held;$root=$values.root;$snapshot=$values.snapshot
+ Need ($cut.event -ceq 'B264_OLD_OWNER_CORE_CUT_COMPLETED' -and $cut.heldProcessHandle -ceq $true -and $cut.processAbsent -ceq $true -and $cut.mechanism -cin @('COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED') -and $cut.profileSha256 -ceq $ProfileSha256 -and $cut.beforeSha256 -ceq $BeforeImageSha256 -and $cut.claimSha256 -ceq $ClaimSha256 -and $cut.durableIntent.path -ceq $pins.held.path -and $cut.durableIntent.sha256 -ceq $pins.held.sha256) 'COMPLETED42_CUT'
+ Need ($held.heldProcessHandle -ceq $true -and $held.rootIntentSha256 -ceq $pins.root.sha256 -and $held.admittedSnapshotSha256 -ceq $pins.snapshot.sha256 -and $held.windowOpenedAt -ceq $cut.windowOpenedAt -and $root.claimSha256 -ceq $ClaimSha256 -and $root.stopOrderDigest -ceq $claim.stopOrderDigest) 'COMPLETED42_CHAIN'
+ foreach($f in @('pid','parentPid','nodePath','ownerSid','commandLine','creationTime')){Need ($cut.core.$f -ceq $before.identities.coreSupervisor.$f -and $held.core.$f -ceq $before.identities.coreSupervisor.$f) 'COMPLETED42_CORE_UID'}
+ $opened=[DateTime]::Parse($cut.windowOpenedAt).ToUniversalTime();$completed=[DateTime]::Parse($cut.cutCompletedAt).ToUniversalTime();$beforeTime=[DateTime]::Parse($before.observedAt).ToUniversalTime()
+ Need (($opened-$beforeTime).TotalSeconds -ge 0 -and ($opened-$beforeTime).TotalSeconds -lt 900 -and ($completed-$opened).TotalSeconds -ge 0 -and ($completed-$opened).TotalSeconds -lt 60 -and $completed -le [DateTime]::UtcNow) 'COMPLETED42_HISTORICAL_WINDOW'
+ foreach($stamp in @($root.observedAt,$snapshot.observedAt)){$age=($opened-[DateTime]::Parse($stamp).ToUniversalTime()).TotalSeconds;Need ($age -ge 0 -and $age -lt 60) 'COMPLETED42_ADMISSION_WINDOW'}
+ Need ($values.diagnostic.failureDiagnostic.stage -ceq 'DRAIN' -and $values.diagnostic.failureDiagnostic.reason -ceq 'P03_PHYSICAL_B264_CUT_INTENT_FRESH' -and $values.tail.event -ceq 'FAILED') 'COMPLETED42_FAILURE'
+ $intentPath=Join-Path $dir 'completed-cut-recovery-intent.json'
+ if($Mode -ceq 'ResumeDrainDryRun'){Need (-not(Test-Path -LiteralPath $intentPath)) 'COMPLETED42_RECOVERY_ONCE'}else{
+  $intentSha=(Get-FileHash -LiteralPath $intentPath -Algorithm SHA256).Hash.ToLowerInvariant();$recoveryIntent=Json (ReadWorkerPin $intentPath $intentSha)
+  ContinuationKeys $recoveryIntent @('schemaVersion','mode','runId','profileRef','beforeRef','claimRef','cutRef','failureTailRef','workerRef')
+  Need ($recoveryIntent.schemaVersion -ceq 'melisa-p03-current-b007-completed-cut-recovery.v1' -and $recoveryIntent.mode -ceq 'ROLLBACK_OLD_ONLY' -and $recoveryIntent.runId -ceq $runId) 'COMPLETED42_RECOVERY_INTENT'
+  foreach($pair in @(@('profileRef','profile'),@('beforeRef','before'),@('claimRef','claim'),@('cutRef','cut'),@('failureTailRef','tail'))){$r=$recoveryIntent.($pair[0]);ContinuationKeys $r @('path','sha256');Need ($r.path -ceq $pins[$pair[1]].path -and $r.sha256 -ceq $pins[$pair[1]].sha256) 'COMPLETED42_RECOVERY_INTENT_REF'}
+  $worker=$recoveryIntent.workerRef;ContinuationKeys $worker @('path','sha256')
+  Need ($worker.path -ceq $PSCommandPath -and $worker.path -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-pr54-current-b007-precut-cut\.ps1\z') 'COMPLETED42_RECOVERY_WORKER'
+  [void](ReadWorkerPin $worker.path $worker.sha256)
+ }
+ return $values
+}
+function ResumeCompleted42d0Drain{
+ $proof=AssertCompleted42d0Authority
+ Need ((Test-Path -LiteralPath (Join-Path $dir 'successor-core-probe-drain.json')) -eq ($Mode -ceq 'ResumeDrainCheck')) 'COMPLETED42_DRAIN_ONCE'
+ PrepareProbeSource;$script:completedCutOpenedAt=[DateTime]::Parse($proof.cut.windowOpenedAt).ToUniversalTime();SeedCompleted42d0Admission $proof.snapshot
+ $aux=Completed42d0AuxProof $proof.snapshot;Need ($script:consolePins.ContainsKey(4900)) 'COMPLETED42_AUX_CACHE';$script:consolePins.Remove(4900)
+ # A completed witness is historical evidence, never a replacement kernel handle.
+ # Unknown late children cannot be adopted without the original held lifetime.
+ $script:lateAdmissionOpen=$false;$script:coreQuiesced=$true;$script:probeAdmissionFrozen=$true;$script:tasksStopRequested=$true
+ $inv=Inventory;ProtectedProcesses $inv;$script:drainedPids=@()
+ foreach($role in $order){$e=$before.identities.$role;$rows=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});if($rows.Count -eq 0){$script:drainedPids+=,[int]$e.pid}else{Need ($rows.Count -eq 1 -and (Identity $rows[0] $e)) 'COMPLETED42_REMAINING_UID'}}
+ Need ($before.identities.coreSupervisor.pid -in $script:drainedPids) 'COMPLETED42_CORE_PRESENT'
+ $until=[DateTime]::UtcNow.AddSeconds(20)
+ do{
+  $aux=Completed42d0AuxProof $proof.snapshot
+  $check=RecoveredRemainingCore
+  $afterAux=Completed42d0AuxProof $proof.snapshot;Need ($afterAux.replacementEpochDigest -ceq $aux.replacementEpochDigest) 'COMPLETED42_AUX_AFTER_CAS';$aux=$afterAux
+  $probeIds=@($script:probePins.Keys);$live=@($check.all|Where-Object{$_.ProcessId -in $probeIds -or $_.ParentProcessId -eq $before.identities.coreSupervisor.pid -and $_.ProcessId -notin @($before.identities.PSObject.Properties|ForEach-Object{$_.Value.pid})})
+  if($live.Count -eq 0){break};Start-Sleep -Milliseconds 250
+ }while([DateTime]::UtcNow -lt $until)
+ Need ($live.Count -eq 0) 'COMPLETED42_PROBE_NOT_ABSENT'
+ if($Mode -ceq 'ResumeDrainCheck'){
+  $path=Join-Path $dir 'successor-core-probe-drain.json';$sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();$drain=Json (ReadWorkerPin $path $sha)
+  Need ($drain.event-ceq'B264_OLD_OWNER_CORE_PROBES_ABSENT'-and$drain.profileSha256-ceq$ProfileSha256-and$drain.beforeSha256-ceq$BeforeImageSha256-and$drain.cutWitness.path-ceq(Completed42d0Pins).cut.path-and$drain.cutWitness.sha256-ceq(Completed42d0Pins).cut.sha256) 'COMPLETED42_REFRESH_DRAIN'
+  return [ordered]@{status='B264_COMPLETED_CUT_HISTORICAL_AUX_READ_ONLY';mutationExecuted=$false;stopPermitted=$false;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;cutWitness=(Completed42d0Pins).cut;drainWitness=[pscustomobject]@{path=$path;sha256=$sha};observedAt=$aux.observedAt;historicalConsolePins=$aux.historicalConsolePins;replacementEpochDigest=$aux.replacementEpochDigest;scope='CURRENT42D0_HISTORICAL_CONSOLE_4900_ONLY';family=$aux.family;ancestors=$aux.ancestors}
+ }
+ if($Mode -ceq 'ResumeDrainDryRun'){return [ordered]@{status='B264_COMPLETED_CUT_RESUME_DRY_RUN';mutationExecuted=$false;cutWitness=(Completed42d0Pins).cut;coreAbsent=$true;watchersAbsent=$true;probesAbsent=$true;remainingOldRoles=(8-@($script:drainedPids).Count)}}
+ $value=[ordered]@{event='B264_OLD_OWNER_CORE_PROBES_ABSENT';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;cutWitness=(Completed42d0Pins).cut;observedAt=[DateTime]::UtcNow.ToString('o');consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values);protectedConsolePins=@($script:protectedConsolePins.Values);readOnlyHistoricalAux=$aux;latePrecutProbePids=@();goneOldPids=@($script:drainedPids)}
+ $drain=WriteB264CutEvidence 'successor-core-probe-drain.json' $value
+ return [ordered]@{status='B264_OLD_OWNER_CORE_DRAINED';coreStopResult=$proof.cut.mechanism;heldCoreExited=$true;comStopped=$true;remainingOldRoles=(8-@($script:drainedPids).Count);goneOldPids=@($script:drainedPids);cutWitness=(Completed42d0Pins).cut;drainWitness=$drain}
+}
+if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){ResumeCompleted42d0Drain|ConvertTo-Json -Depth 25 -Compress;return}
 B264CutAuthority
 if($Mode -ceq 'Inspect'){CaptureWorkerAdmission|ConvertTo-Json -Depth 25 -Compress;return}
 DrainB264OldOwner|ConvertTo-Json -Depth 25 -Compress

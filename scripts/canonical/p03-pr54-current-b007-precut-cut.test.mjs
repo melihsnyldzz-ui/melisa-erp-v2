@@ -99,7 +99,9 @@ test('native hold, stop and COM-CAS remain byte equivalent; Current digest alone
  const old=readFileSync(new URL('./p03-pr54-b264-old-owner-cut.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),s=readFileSync(source,'utf8').replaceAll('\r\n','\n');
  const captureBinding="  $live=CaptureWorkerAdmission;AssertB264CutCurrentOwner\n  Need ($null -eq $script:continuationLiveAdmission) 'CURRENT_CONTINUATION_LIVE_ONCE';$claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256);$rootSnapshot=Json (ReadWorkerPin $AdmittedSnapshotPath $AdmittedSnapshotSha256);AssertCurrentB007LiveAdmission $live $claim $rootSnapshot\n  Set-Variable -Name continuationLiveAdmission -Scope Script -Option ReadOnly -Value (Json ([Text.Encoding]::UTF8.GetBytes(($live|ConvertTo-Json -Depth 25 -Compress))))";
  const withoutDigest=text=>text.replace(/function CurrentB007OwnerDigestBindings[\s\S]*?(?=function AssertB264CutCurrentOwner)/,'').replace(/function AssertB264CutCurrentOwner[\s\S]*?(?=function DrainB264OldOwner)/,'');
- assert(s.includes(captureBinding));assert.equal(withoutDigest(s.slice(s.indexOf('function PausedRemainingCore{')).replace(captureBinding,'  [void](CaptureWorkerAdmission);AssertB264CutCurrentOwner')),withoutDigest(old.slice(old.indexOf('function PausedRemainingCore{'))));
+ const originalRegion=old.slice(old.indexOf('function PausedRemainingCore{'),old.lastIndexOf('\nB264CutAuthority\n'));
+ const currentRegion=s.slice(s.indexOf('function PausedRemainingCore{'),s.indexOf('function SeedCompleted42d0Admission(')).trimEnd();
+ assert(s.includes(captureBinding));assert.equal(withoutDigest(currentRegion.replace(captureBinding,'  [void](CaptureWorkerAdmission);AssertB264CutCurrentOwner').replace("function Authority{if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){[void](AssertCompleted42d0Authority)}else{B264CutAuthority}}",'function Authority{B264CutAuthority}')),withoutDigest(originalRegion.trimEnd()));
  assert.match(s,/ValidateSet\('CurrentB007InspectOnly'\)/);assert.match(s,/'ContinuationPath','ContinuationSha256'\|/);
  assert(!s.includes('$ownerAge='));assert.match(s,/snapshotAge -lt 60/);
  assert.match(s,/AssertCurrentB007InspectionContract \$profile \$before/);
@@ -222,4 +224,112 @@ test('fixed9d2 retry binds full native profile context and unchanged452 claim wi
 test('fixed9d2 retry rejects every historical pin drift, wrong reason, extra cut evidence, pointer replay and fresh admission expiry',()=>{
  const edits=["$context.failureTailRef.sha256='wrong'","$hashes[(Join-Path $resumeDir 'resume-attempt.json')]='wrong'","$hashes[(Join-Path $retryDir 'precut-continuation.json')]='wrong'","$data[(Join-Path $retryDir 'io-failure-diagnostic.json')].failureDiagnostic.reason='OTHER'","$data[(Join-Path $retryDir 'event-0001.json')].previousSha256='wrong'","$data[(Join-Path $retryDir 'transition.lock')].successorClaimRef.sha256='wrong'","$data[(Join-Path $retryDir 'successor-precut-admission.json')].oldIdentities=@()","$data[(Join-Path $retryDir 'b264-old-owner-cut-intent.json')].claimSha256='wrong'","$data.Remove((Join-Path $retryDir 'resume-attempt.json'))","$retryFiles+=,'successor-core-cut-completed.json'","$retryFiles+=,'resume-attempt.json'","$resumeFiles+=,'event-0003.json'","$before.observedAt=[DateTime]::UtcNow.AddMinutes(-16).ToString('o');$before.startedAt=$before.observedAt","$snapshot.observedAt=[DateTime]::UtcNow.AddSeconds(-61).ToString('o')","$profile.tasks=@('changed')"];
  const out=run(resumeFixture+'\n'+retryFixture+'\n'+edits.map((e,n)=>'SetupRetry;'+e+";try{AssertCurrentB007Continuation $claim;'RETRY"+n+"=ACCEPTED'}catch{'RETRY"+n+"=REJECTED'}").join('\n'));for(let n=0;n<edits.length;n++)assert.match(out,new RegExp('RETRY'+n+'=REJECTED'));
+});
+
+test('completed-cut recovery has an explicit read-only ResumeDrain dispatcher',()=>{const s=readFileSync(source,'utf8');assert.match(s,/ValidateSet\('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)/);assert.match(s,/if\(\$Mode -cin @\('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)\)\{ResumeCompleted42d0Drain/)});
+const completedExtract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
+foreach($name in @('ContinuationKeys','Completed42d0Pins','AssertCompleted42d0Authority','ResumeCompleted42d0Drain')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};$body=$defs[0].Extent.Text;if($name-ceq'AssertCompleted42d0Authority'){$body=$body.Replace('$PSCommandPath','$script:fixtureWorkerPath')};. ([scriptblock]::Create($body))}`;
+const completedFixture=String.raw`
+function Need($v,$c){if(-not$v){throw ('P03_PHYSICAL_'+$c)}}
+function Json($bytes){return [Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json}
+function ReadWorkerPin($p,$s){$script:reads++;if(-not$data.ContainsKey($p)-or$hashes[$p]-cne$s){throw 'FIXTURE_PIN'};return ,[Text.Encoding]::UTF8.GetBytes(($data[$p]|ConvertTo-Json -Depth 30 -Compress))}
+function AssertCurrentB007StaticContract{$script:staticChecks++}
+function AssertB264CutStopPlan{}
+function B264CutHistoryPins{return @{}}
+function Test-Path{param($LiteralPath);return $script:exists.ContainsKey($LiteralPath)}
+function PrepareProbeSource{}
+function SeedCompleted42d0Admission($snapshot){$script:consolePins[4900]=@{};$script:seeded++;if($snapshot.schemaVersion-cne'melisa-p03-successor-precut-admission.v1'){throw 'FIXTURE_BAD_SEED'}}
+function Completed42d0AuxProof($snapshot){return [pscustomobject]@{replacementEpochDigest=('a'*64);historicalConsolePins=@();observedAt=[DateTime]::UtcNow.ToString('o');family=@();ancestors=@()}}
+function Inventory{return [pscustomobject]@{all=$script:raw}}
+function ProtectedProcesses($i){$script:protectedChecks++}
+function Identity($p,$e){return $p.ProcessId-eq$e.pid -and $p.match-ceq$true}
+function RecoveredRemainingCore{
+ $script:remainingChecks++;[void](AssertCompleted42d0Authority)
+ foreach($w in $profile.oldWatchers){Need (@($raw|Where-Object{$_.ProcessId-eq$w.pid}).Count-eq0) 'FIXTURE_WATCHER_PRESENT'}
+ foreach($r in $order){$e=$before.identities.$r;$rows=@($raw|Where-Object{$_.ProcessId-eq$e.pid});if($e.pid-in$script:drainedPids){Need ($rows.Count-eq0) 'FIXTURE_REAPPEARED'}else{Need ($rows.Count-eq1-and(Identity $rows[0] $e)) 'FIXTURE_REUSED'}}
+ if($script:foreignProbe){throw 'FIXTURE_UNKNOWN_LATE_PROBE'}
+ return [pscustomobject]@{all=$script:raw}
+}
+function WriteB264CutEvidence($leaf,$value){$script:writes++;$script:written=$value;return @{path=(Join-Path $dir $leaf);sha256='fixture-write'}}
+function SetupCompleted{
+ $script:Mode='ResumeDrainDryRun';$script:PolicyGeneration='CurrentB007InspectOnly';$script:base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$script:runId='42d0d0536cb115cc4aea43ff1f13afbf';$script:dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
+ $pins=Completed42d0Pins;$script:data=@{};$script:hashes=@{};$script:exists=@{};$script:reads=0;$script:writes=0;$script:staticChecks=0;$script:protectedChecks=0;$script:seeded=0;$script:remainingChecks=0;$script:foreignProbe=$false;$script:probePins=@{};$script:consolePins=@{};$script:protectedConsolePins=@{}
+ foreach($k in $pins.Keys){$data[$pins[$k].path]=[pscustomobject]@{};$hashes[$pins[$k].path]=$pins[$k].sha256}
+ $script:ProfilePath=$pins.profile.path;$script:ProfileSha256=$pins.profile.sha256;$script:BeforeImagePath=$pins.before.path;$script:BeforeImageSha256=$pins.before.sha256;$script:ClaimPath=$pins.claim.path;$script:ClaimSha256=$pins.claim.sha256;$script:ContinuationPath=$pins.context.path;$script:ContinuationSha256=$pins.context.sha256;$script:RootIntentPath=$pins.root.path;$script:RootIntentSha256=$pins.root.sha256;$script:AdmittedSnapshotPath=$pins.snapshot.path;$script:AdmittedSnapshotSha256=$pins.snapshot.sha256
+ $script:EnginePath=Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1';$script:EngineSha256='engine';$script:RecoveryHelperPath=Join-Path $dir 'p03-pr54-paused-old-recover.ps1';$script:RecoveryHelperSha256='helper';$script:DrainerPath='drainer';$script:DrainerSha256='drainer';foreach($r in @(@($EnginePath,$EngineSha256),@($RecoveryHelperPath,$RecoveryHelperSha256),@($DrainerPath,$DrainerSha256))){$data[$r[0]]=@{};$hashes[$r[0]]=$r[1]}
+ $script:order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative');$ids=[ordered]@{};foreach($n in 0..7){$ids[$order[$n]]=[pscustomobject]@{pid=100+$n;parentPid=1;nodePath='fixture';ownerSid='fixture';commandLine='fixture';creationTime='2026-10-20T00:00:00Z'}}
+ $script:before=[pscustomobject]@{observedAt='2026-10-21T11:52:05.1176953Z';identities=[pscustomobject]$ids};$script:profile=[pscustomobject]@{oldWatchers=@([pscustomobject]@{pid=108},[pscustomobject]@{pid=109})};$script:oldSettings=@{};$script:newSettings=@{};$data[$ProfilePath]=$profile;$data[$BeforeImagePath]=$before
+ $script:cut=[pscustomobject]@{event='B264_OLD_OWNER_CORE_CUT_COMPLETED';heldProcessHandle=$true;processAbsent=$true;mechanism='EXACT_OBSERVED_PROCESS_STOPPED';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;claimSha256=$ClaimSha256;durableIntent=$pins.held;core=$ids.coreSupervisor;windowOpenedAt='2026-10-21T12:05:42.059177Z';cutCompletedAt='2026-10-21T12:06:36.3074653Z'}
+ $data[$pins.cut.path]=$cut;$data[$pins.held.path]=[pscustomobject]@{heldProcessHandle=$true;rootIntentSha256=$pins.root.sha256;admittedSnapshotSha256=$pins.snapshot.sha256;windowOpenedAt=$cut.windowOpenedAt;core=$ids.coreSupervisor}
+ $data[$pins.root.path]=[pscustomobject]@{claimSha256=$ClaimSha256;stopOrderDigest='stop';observedAt='2026-10-21T12:05:31.138Z'};$data[$pins.snapshot.path]=[pscustomobject]@{schemaVersion='melisa-p03-successor-precut-admission.v1';observedAt='2026-10-21T12:05:30.2257717Z'};$data[$pins.claim.path]=[pscustomobject]@{stopOrderDigest='stop'}
+ $data[$pins.context.path]=[pscustomobject]@{retainedProfileRef=$pins.profile;retainedBeforeRef=$pins.before;failureTailRef=$pins.tail};$data[$pins.tail.path]=[pscustomobject]@{event='FAILED'};$data[$pins.diagnostic.path]=[pscustomobject]@{failureDiagnostic=[pscustomobject]@{stage='DRAIN';reason='P03_PHYSICAL_B264_CUT_INTENT_FRESH'}}
+ $script:raw=@(1..7|ForEach-Object{[pscustomobject]@{ProcessId=100+$_;ParentProcessId=1;match=$true}})
+}
+function CompletedOutcome{try{$r=ResumeCompleted42d0Drain;return $r.status}catch{return $_.Exception.Message}}
+`;
+test('completed-cut DryRun validates the actual expired 42d0 window shape and remaining seven without mutation or pretending a held handle',()=>{
+ const out=run(completedExtract+'\n'+completedFixture+"\nSetupCompleted;'RESULT='+(CompletedOutcome);'WRITES='+$writes;'READS='+$reads;'REMAINING_CHECKS='+$remainingChecks;'SEEDED='+$seeded");assert.match(out,/RESULT=B264_COMPLETED_CUT_RESUME_DRY_RUN[\s\S]*WRITES=0[\s\S]*READS=\d+[\s\S]*REMAINING_CHECKS=1[\s\S]*SEEDED=1/);
+});
+test('completed-cut recovery rejects wrong proof, original window, core/remaining identity, watcher, probe and consumed evidence before writes',()=>{
+ const edits=["$ProfileSha256='foreign'","$hashes[(Completed42d0Pins).cut.path]='foreign'","$cut.heldProcessHandle=$false","$cut.core=[pscustomobject]@{pid=999}","$cut.cutCompletedAt='2026-10-21T12:06:42.059177Z'","$before.observedAt='2026-10-21T11:50:42.059177Z'","$script:raw+=,[pscustomobject]@{ProcessId=100;ParentProcessId=1;match=$true}","$script:raw[0].match=$false","$script:raw+=,[pscustomobject]@{ProcessId=108;ParentProcessId=1;match=$true}","$script:foreignProbe=$true","$exists[(Join-Path $dir 'completed-cut-recovery-intent.json')]=$true","$exists[(Join-Path $dir 'successor-core-probe-drain.json')]=$true"];
+ const out=run(completedExtract+'\n'+completedFixture+'\n'+edits.map((e,n)=>`SetupCompleted;${e};'CASE${n}='+(CompletedOutcome);'WRITES${n}='+$writes`).join('\n'));for(let n=0;n<edits.length;n++){assert(!out.includes('CASE'+n+'=B264_COMPLETED'),'case '+n);assert.match(out,new RegExp('WRITES'+n+'=0'));}
+});
+test('completed-cut seed preserves all existing seed checks and changes only the authenticated historical admission clock',()=>{
+ const a=readFileSync(new URL('./p03-pr54-successor-core-drain.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),b=readFileSync(source,'utf8').replaceAll('\r\n','\n');
+ const original=a.slice(a.indexOf('function SeedWorkerAdmission('),a.indexOf('function HoldWorkerCore(')).trim();const actual=b.slice(b.indexOf('function SeedCompleted42d0Admission('),b.indexOf('function PausedTasks{')).trim();
+ assert.equal(actual,original.replace('function SeedWorkerAdmission(','function SeedCompleted42d0Admission(').replace('([DateTime]::UtcNow-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime())','($script:completedCutOpenedAt-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime())'));
+ const resume=b.slice(b.indexOf('function ResumeCompleted42d0Drain{'),b.indexOf("if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){ResumeCompleted42d0Drain"));assert(!/\b(?:StopWorkerCore|StopB264OldCom|HoldWorkerCore|Stop-Process|CaptureWorkerAdmission)\b/.test(resume));assert(!resume.includes('$script:coreLifetime='));
+});
+test('completed-cut Apply requires the single exact recovery intent and writes only one truthful drain witness',()=>{
+ const setup=String.raw`
+ SetupCompleted;$script:Mode='ResumeDrain';$script:fixtureWorkerPath=Join-Path $base 'MelisaERP-P03-current-b007-control-aaaaaaaaaaaa\p03-pr54-current-b007-precut-cut.ps1';$pins=Completed42d0Pins
+ $script:recoveryIntent=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-completed-cut-recovery.v1';mode='ROLLBACK_OLD_ONLY';runId=$runId;profileRef=$pins.profile;beforeRef=$pins.before;claimRef=$pins.claim;cutRef=$pins.cut;failureTailRef=$pins.tail;workerRef=[pscustomobject]@{path=$fixtureWorkerPath;sha256='worker'}}
+ $intentPath=Join-Path $dir 'completed-cut-recovery-intent.json';$data[$intentPath]=$recoveryIntent;$hashes[$intentPath]='intent';$exists[$intentPath]=$true;$data[$fixtureWorkerPath]=@{};$hashes[$fixtureWorkerPath]='worker'
+ function Get-FileHash{param($LiteralPath,$Algorithm);if(-not$hashes.ContainsKey($LiteralPath)){throw 'FIXTURE_MISSING_HASH'};return [pscustomobject]@{Hash=$hashes[$LiteralPath]}}
+ `;
+ const out=run(completedExtract+'\n'+completedFixture+'\n'+setup+"\n'RESULT='+(CompletedOutcome);'WRITES='+$writes;'EVENT='+$written.event;'CUT_SAME='+($written.cutWitness.sha256-ceq$pins.cut.sha256)");assert.match(out,/RESULT=B264_OLD_OWNER_CORE_DRAINED[\s\S]*WRITES=1[\s\S]*EVENT=B264_OLD_OWNER_CORE_PROBES_ABSENT[\s\S]*CUT_SAME=True/);
+ const edits=["$recoveryIntent.mode='INSTALL_NEW'","$recoveryIntent.cutRef=@{path=$pins.cut.path;sha256='foreign'}","$recoveryIntent.workerRef.path='foreign'","$hashes[$fixtureWorkerPath]='foreign'","$data.Remove($intentPath)"];
+ const negative=run(completedExtract+'\n'+completedFixture+'\n'+edits.map((e,n)=>`${setup}\n${e};'CASE${n}='+(CompletedOutcome);'WRITES${n}='+$writes`).join('\n'));for(let n=0;n<edits.length;n++){assert(!negative.includes('CASE'+n+'=B264_OLD_OWNER_CORE_DRAINED'),'case '+n);assert.match(negative,new RegExp('WRITES'+n+'=0'));}
+});
+const auxExtract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
+foreach($name in @('Completed42d0AuxEpochPins','Completed42d0AuxFrame','Completed42d0AuxProof')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));. ([scriptblock]::Create($defs[0].Extent.Text))}
+$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)))},[ref]$tokens,[ref]$errors);foreach($name in @('NewHistoricalDigest','NewHistoricalIdentity','NewHistoricalKernel')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));. ([scriptblock]::Create($defs[0].Extent.Text))}`;
+const auxFixture=String.raw`
+function Hash($bytes){return [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}
+function NoReparse($p){}
+function IsWatcherCommand($s){return $s-ceq'watcher'}
+function Invoke-CimMethod{param($InputObject,$MethodName,$ErrorAction);return [pscustomobject]@{ReturnValue=0;Sid=$InputObject.sid}}
+function Get-FileHash{param($LiteralPath,$Algorithm);$p=@($script:modelExpected|Where-Object{$_.nodePath-ceq$LiteralPath})[0];return [pscustomobject]@{Hash=$(if($script:imageDrift){'foreign'}else{$p.image})}}
+function Get-AuthenticodeSignature{param($LiteralPath);$p=@($script:modelExpected|Where-Object{$_.nodePath-ceq$LiteralPath})[0];return [pscustomobject]@{Status=$(if($script:badSignature){'Invalid'}else{'Valid'});SignerCertificate=[pscustomobject]@{Subject=$(if($p.signer-ceq'Windows'){'CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US'}else{'CN="OpenAI OpCo, LLC", O="OpenAI OpCo, LLC", L=San Francisco, S=California, C=US'})}}}
+function ProtectedProcesses($v){}
+function Inventory{$script:inventoryReads++;if($script:driftAfterRead-and$script:inventoryReads-gt1){$script:raw.all[3].CommandLine='changed'};return $script:raw}
+function NewHistoricalOpenProcess($id){$script:opens++;$row=@($script:raw.all|Where-Object{$_.ProcessId-eq$id})[0];$h=[pscustomobject]@{Id=$id;StartTime=$row.CreationDate;HasExited=$false;MainModule=[pscustomobject]@{FileName=$row.ExecutablePath}};$h|Add-Member -MemberType ScriptMethod -Name Dispose -Value {$script:closes++};return $h}
+function NewHistoricalReadProcess($h){if($script:kernelDrift){return [pscustomobject]@{Id=$h.Id;StartTime=$h.StartTime.AddSeconds(1);HasExited=$false;MainModule=$h.MainModule}};return $h}
+$script:productionExpected=@(Completed42d0AuxEpochPins)
+function Completed42d0AuxEpochPins{return $script:modelExpected}
+function SetupAux{
+ $script:owner='S-1-5-21-2170750028-1005938530-2568122015-1001';$script:opens=0;$script:closes=0;$script:inventoryReads=0;$script:imageDrift=$false;$script:badSignature=$false;$script:kernelDrift=$false;$script:driftAfterRead=$false
+ $script:modelExpected=@($productionExpected|ForEach-Object{$_|ConvertTo-Json|ConvertFrom-Json});$rows=@();foreach($p in $modelExpected){$argv='fixture-argv-'+$p.pid;$p.argv=Hash ([Text.Encoding]::UTF8.GetBytes($argv));$rows+=,[pscustomobject]@{ProcessId=$p.pid;ParentProcessId=$p.parentPid;Name=$p.name;ExecutablePath=$p.nodePath;CommandLine=$argv;CreationDate=[DateTime]::Parse($p.creationTime);sid=$owner}}
+ $script:raw=[pscustomobject]@{all=$rows;allListeners=@();instances=@()};$script:before=[pscustomobject]@{identities=[pscustomobject]@{coreSupervisor=[pscustomobject]@{pid=999}}};$script:profile=[pscustomobject]@{oldWatchers=@();protectedProcesses=@();packages=@([pscustomobject]@{root='C:\Sirket\ERP\releases\managed'})};$script:probePins=@{};$script:protectedConsolePins=@{}
+ $script:auxSnapshot=[pscustomobject]@{consolePins=@([pscustomobject]@{pid=4900;parentPid=100;nodePath='C:\Windows\System32\conhost.exe';ownerSid=$owner;commandLine='historical';creationTime='2026-10-20T08:50:12.012338Z'})}
+}
+function AuxOutcome{try{$p=Completed42d0AuxProof $auxSnapshot;return ('GO:'+ $p.family.Count+':'+$p.ancestors.Count+':'+$p.stopPermitted)}catch{return $_.Exception.Message}}
+`;
+test('4900 unrelated replacement proof holds six query-only lifetimes and retains the historical console with two full fresh frames',()=>{
+ const out=run(auxExtract+'\n'+auxFixture+"\nSetupAux;$saved=$auxSnapshot|ConvertTo-Json -Compress;'RESULT='+(AuxOutcome);'OPEN='+$opens;'CLOSE='+$closes;'FRAMES='+$inventoryReads;'OLD_UNCHANGED='+($saved-ceq($auxSnapshot|ConvertTo-Json -Compress))");assert.match(out,/RESULT=GO:3:3:False[\s\S]*OPEN=6[\s\S]*CLOSE=6[\s\S]*FRAMES=3[\s\S]*OLD_UNCHANGED=True/);
+});
+test('4900 proof rejects foreign UID/kernel/image/signature/owner, causal graph, managed namespace and listeners without any stop grant',()=>{
+ const edits=["$raw.all[3].ParentProcessId=999","$raw.all[3].CreationDate=$raw.all[3].CreationDate.AddSeconds(1)","$raw.all[3].CommandLine='watcher'","$raw.all[3].sid='S-1-5-99'","$script:imageDrift=$true","$script:badSignature=$true","$script:kernelDrift=$true","$script:driftAfterRead=$true","$raw.allListeners=@([pscustomobject]@{OwningProcess=4900})","$profile.protectedProcesses=@([pscustomobject]@{pid=4900})","$raw.all+=,$raw.all[0]","$raw.all+=,[pscustomobject]@{ProcessId=1316;ParentProcessId=0}","$raw.all+=,[pscustomobject]@{ProcessId=9999;ParentProcessId=12092}","$raw.all=@($raw.all|Where-Object{$_.ProcessId-ne46520})","$profile.packages[0].root='fixture-argv-'","$auxSnapshot.consolePins=@()"];
+ const out=run(auxExtract+'\n'+auxFixture+'\n'+edits.map((e,n)=>`SetupAux;${e};'CASE${n}='+(AuxOutcome);'CLOSED${n}='+($opens-eq$closes)`).join('\n'));for(let n=0;n<edits.length;n++){assert(!out.includes('CASE'+n+'=GO'),'case '+n+' '+out);assert.match(out,new RegExp('CLOSED'+n+'=True'));}
+ const s=readFileSync(source,'utf8');assert.match(s,/777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4/);const proof=s.slice(s.indexOf('function Completed42d0AuxProof'),s.indexOf('function Completed42d0Pins'));assert(!/Stop-Process|StopWorkerCore|StopB264OldCom|Kill\(/.test(proof));
+});test('ResumeDrainCheck alone permits exact mixed old/new task CAS XML while preserving stopped state and zero COM instances',()=>{
+ const get=`$a=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$null,[ref]$null);$d=@($a.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'PausedTasks'},$true));. ([scriptblock]::Create($d[0].Extent.Text))`;
+ const fixture=String.raw`
+ function Inventory{return [pscustomobject]@{instances=$script:instances}}
+ function XmlHash($xml){return $xml}
+ function SetTasks{ $script:Mode='ResumeDrainCheck';$script:instances=@();$script:profile=[pscustomobject]@{tasks=@([pscustomobject]@{name='Terminal';oldXmlSha256='old1';newXmlSha256='new1'},[pscustomobject]@{name='Hub';oldXmlSha256='old2';newXmlSha256='new2'})};$script:tasks=@{Terminal=[pscustomobject]@{State=3;Xml='old1'};Hub=[pscustomobject]@{State=3;Xml='old2'}};$script:folder=New-Object PSObject;$folder|Add-Member -MemberType ScriptMethod -Name GetTask -Value {param($n);return $script:tasks[$n]}}
+ function TaskOutcome{try{[void](PausedTasks);return 'GO'}catch{return $_.Exception.Message}}
+ `;
+ const edits=['',"$tasks.Terminal.Xml='new1'","$tasks.Hub.Xml='new2'","$tasks.Terminal.Xml='new1';$tasks.Hub.Xml='new2'","$tasks.Hub.Xml='foreign'","$tasks.Hub.State=4","$script:instances=@(1)","$script:Mode='ResumeDrain';$tasks.Hub.Xml='new2'","$script:Mode='ResumeDrainDryRun';$tasks.Terminal.Xml='new1'","$script:Mode='Drain';$tasks.Hub.Xml='new2'"];
+ const out=run(get+'\n'+fixture+'\n'+edits.map((e,n)=>`SetTasks;${e};'CASE${n}='+(TaskOutcome)`).join('\n'));for(let n=0;n<4;n++)assert.match(out,new RegExp('CASE'+n+'=GO'));for(let n=4;n<edits.length;n++)assert(!out.includes('CASE'+n+'=GO'),'case '+n);
 });
