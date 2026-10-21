@@ -205,6 +205,11 @@ try{
  }
  $names=if($rehearsal){@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')}else{@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')}
  $ports=if($rehearsal){@(4284,4286,5334,62710,62711,62712,62713,62714)}else{@(4184,4186,5234,62700,62701,62702,62703,62704)}
+ # Transfer the worker's existing three exact probe-exit attempts to the WHOLE
+ # capture. Never reuse a raw half, widen the retry class or exceed that budget.
+ $captureLimit=if($SameCapture){3}else{1}
+ for($captureAttempt=1;$captureAttempt -le $captureLimit;$captureAttempt++){
+  try{
  $started=[DateTime]::UtcNow.ToString('o');$captureId=if($SameCapture){[Guid]::NewGuid().ToString('N')}else{$null}
  # Collection interval, not an atomic OS snapshot; rows can exit during SID checks.
  # Unfiltered source inventories: selectors belong to the independently reviewed classifier.
@@ -276,6 +281,12 @@ try{
   ObserverImportDefinition (ObserverPolicyRead ([pscustomobject]@{path=$DrainerPath;sha256=$DrainerSha256})) 'InvokeP03SuccessorWorker' 'ObserverImportedSameCaptureWorker'
   $frame=ObserverImportedSameCaptureWorker -PolicyGeneration 'CurrentB007InspectOnly' -Mode 'Inspect' -ProfilePath $ProfilePath -ProfileSha256 $ProfileSha256 -BeforeImagePath $BeforeImagePath -BeforeImageSha256 $BeforeImageSha256 -EnginePath $EnginePath -EngineSha256 $EngineSha256 -RecoveryHelperPath $RecoveryHelperPath -RecoveryHelperSha256 $RecoveryHelperSha256 -NativeCapture $nativeCapture
   $result['captureId']=$captureId
-  [ordered]@{schemaVersion='melisa-p03-current-b007-same-capture.v1';capture=[ordered]@{id=$captureId;startedAt=$started;inventoryObservedAt=$inventoryObservedAt;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;drainerSha256=$DrainerSha256;processCount=$all.Count;listenerCount=$listeners.Count;runningInstanceCount=$nativeInstances.Count};current=$result;frame=$frame}|ConvertTo-Json -Depth 16 -Compress
+  [ordered]@{schemaVersion='melisa-p03-current-b007-same-capture.v1';capture=[ordered]@{id=$captureId;attempt=$captureAttempt;startedAt=$started;inventoryObservedAt=$inventoryObservedAt;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;drainerSha256=$DrainerSha256;processCount=$all.Count;listenerCount=$listeners.Count;runningInstanceCount=$nativeInstances.Count};current=$result;frame=$frame}|ConvertTo-Json -Depth 16 -Compress
  }else{$result|ConvertTo-Json -Depth 12}
+   break
+  }catch{
+   if(-not $SameCapture -or $_.Exception.Message -cne 'P03_PAUSED_PROBE_EXIT_RECAPTURE' -or $captureAttempt -eq $captureLimit){throw}
+  }
+ }
+
 }finally{$stream.Dispose()}

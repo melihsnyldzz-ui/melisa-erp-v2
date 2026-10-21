@@ -155,7 +155,7 @@ const currentB007Pins=Object.freeze({
  observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}),
  helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
 });
-const sameCapturePins=Object.freeze({drainer:'9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33',observer:'9fb431598b6ae51eb8a9c3c5eb7c2df1f4fcea8431b36d20a20cd527f572388a'});
+const sameCapturePins=Object.freeze({drainer:'9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33',observer:'a92f4d712c59970ae50a8ace92dbbeba52d59fadfe542794879d9da898394812'});
 export function pr54CurrentB007InspectionArguments(input){
  need(exact(input,['profileRef','beforeRef','engineRef','recoveryHelperRef','drainerRef','observerRef']),'INPUT');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef,drainerRef,observerRef}=input;
@@ -173,7 +173,7 @@ export function pr54CurrentB007InspectionArguments(input){
 export function validatePr54CurrentSameCaptureEnvelope(value,input){
  need(exact(value,['schemaVersion','capture','current','frame'])&&value.schemaVersion==='melisa-p03-current-b007-same-capture.v1','SAME_CAPTURE_SCHEMA');
  const {capture:c,current,frame}=value;
- need(exact(c,['id','startedAt','inventoryObservedAt','profileSha256','beforeSha256','drainerSha256','processCount','listenerCount','runningInstanceCount'])&&/^[a-f0-9]{32}$/.test(c.id)&&current?.captureId===c.id&&frame?.captureId===c.id,'SAME_CAPTURE_ID');
+ need(exact(c,['id','attempt','startedAt','inventoryObservedAt','profileSha256','beforeSha256','drainerSha256','processCount','listenerCount','runningInstanceCount'])&&Number.isInteger(c.attempt)&&c.attempt>=1&&c.attempt<=3&&/^[a-f0-9]{32}$/.test(c.id)&&current?.captureId===c.id&&frame?.captureId===c.id,'SAME_CAPTURE_ID');
  need(c.profileSha256===input.profileRef.sha256&&c.beforeSha256===input.beforeRef.sha256&&c.drainerSha256===input.drainerRef.sha256&&input.drainerRef.sha256===sameCapturePins.drainer&&input.observerRef.sha256===sameCapturePins.observer,'SAME_CAPTURE_PINS');
  const times=[c.startedAt,c.inventoryObservedAt,current.observedAt,frame.observedAt].map(Date.parse);need(times.every(Number.isFinite)&&times.every((t,i)=>i===0||t>=times[i-1])&&Date.now()-times[0]>=0&&Date.now()-times[0]<60000,'SAME_CAPTURE_TIME');
  need(c.startedAt===current.startedAt&&[c.processCount,c.listenerCount,c.runningInstanceCount].every(n=>Number.isSafeInteger(n)&&n>=0)&&c.processCount>=current.processes.length&&c.listenerCount>=current.bindings.length&&c.runningInstanceCount===current.runningInstances.length,'SAME_CAPTURE_COUNTS');

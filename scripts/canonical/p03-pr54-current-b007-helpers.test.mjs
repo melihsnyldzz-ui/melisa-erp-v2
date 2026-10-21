@@ -71,3 +71,11 @@ $fixture=[pscustomobject]@{all=$all;allListeners=@();listeners=@();tasks=@([pscu
 $ProfileSha256='a';$BeforeImageSha256='b';$engineSha='c';$RecoveryHelperSha256='d';$result=CaptureWorkerAdmissionCore $fixture;if($result.oldIdentities.Count-ne8-or$result.oldWatchers.Count-ne2){throw 'FRAME'};'SAME_INVENTORY'
 `);assert.match(out,/SAME_INVENTORY/);
 });
+
+test('PS5 known probe exit transfers the original three attempts to a whole capture, never a permanent rejection',windows,()=>{
+ const file=leaf('p03-physical-recovery-observe.ps1');const out=ps(`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(file)},[ref]$t,[ref]$e);if($e.Count){throw 'PARSE'};$loops=@($ast.FindAll({param($x)$x -is [Management.Automation.Language.ForStatementAst] -and $x.Initializer.Extent.Text -like '$captureAttempt=*'},$true));if($loops.Count-ne1){throw 'CAPTURE_LOOP'};$loop=$loops[0];$try=$loop.Body.Statements[0]
+foreach($stage in @('Get-NetTCPConnection -State Listen','Get-CimInstance Win32_Process','ObserverImportedSameCaptureWorker',"melisa-p03-current-b007-same-capture.v1")){if(-not $try.Body.Extent.Text.Contains($stage)){throw 'PARTIAL_CAPTURE_LOOP'}}
+$code=$loop.Extent.Text.Replace($try.Body.Extent.Text,'{$script:calls++;if($script:always-or$script:calls-eq1){throw $script:failure};break}');$SameCapture=$true;$captureLimit=3
+foreach($case in @('transient','exhaust','permanent')){$script:calls=0;$script:always=$case-cne'transient';$script:failure=if($case-ceq'permanent'){'P03_VANISHED_CONSOLE_REJECTED'}else{'P03_PAUSED_PROBE_EXIT_RECAPTURE'};try{& ([scriptblock]::Create($code));'DONE='+$calls}catch{'REJECT='+$calls+':'+$_.Exception.Message}}
+`);assert.match(out,/DONE=2/);assert.match(out,/REJECT=3:P03_PAUSED_PROBE_EXIT_RECAPTURE/);assert.match(out,/REJECT=1:P03_VANISHED_CONSOLE_REJECTED/);
+});
