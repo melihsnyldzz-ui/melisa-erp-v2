@@ -23,6 +23,13 @@ test('early reasons retain first-failure order and native60s expiry without wide
 });
 
 function native21(f){const ref={...f.profile.businessDigest,path:f.profile.businessDigest.path.replace('20261020','20261021')},backup={...f.backup,runId:f.backup.runId.replace('20261020','20261021'),startedAt:f.backup.startedAt.replace('2026-10-20','2026-10-21')},now=f.now+86400000,observation={...f.observation,snapshotRef:ref,observedAt:new Date(now-1000).toISOString()};return {ref,snapshot:structuredClone(f.snapshot),observation,backup,now};}
+test('fresh date21 revision remains a genuine Pre and does not overwrite or rebind backup identity',async()=>{
+ const {f,fixture}=await fixtureModule.modeledFixture(),x=native21(f);x.ref.path=x.ref.path.replace('.json','-'+'ab01'.repeat(8)+'.json');x.observation.snapshotRef=x.ref;
+ f.profile.businessDigest=x.ref;f.backup=x.backup;f.now=x.now;f.before.observedAt=new Date(x.now-2000).toISOString();f.current.observedAt=new Date(x.now-1000).toISOString();
+ f.nativeContinuity=f.mod.preparePr54CurrentB007NativeContinuity(x.ref,x.snapshot,x.observation,x.backup,x.now);fixture.seal(f);f.physicalInspection=f.mod.mintModeledSup20dInspection(f);
+ assert.equal(f.mod.admitPr54CurrentB007Epoch(f).applyExecuted,false);
+ const old=x.ref.path;f.profile.businessDigest={...x.ref,path:old.replace('20261021','20261020')};rejects(()=>f.mod.admitPr54CurrentB007Epoch(f),error('SNAPSHOT_PATH'));
+});
 test('date21 native continuity exposes the first exact static stage with no guard or domain widening',async()=>{
  const cases=[['SNAPSHOT_REF',x=>x.ref.path='foreign'],['SNAPSHOT_LOG',x=>x.snapshot.logEndAfter+='0'],['BACKUP',x=>x.backup.startedAt='2026-10-20T23:59:59Z'],['OBSERVATION_SHAPE',x=>x.observation.extra=true],['DB_IDENTITY',x=>x.observation.copyId=x.observation.copyId.toUpperCase()],['DB_IDENTITY',x=>x.observation.queryStoreMode='READ_WRITE'],['GUID_LINK',x=>x.observation.databaseGuid='bad'],['GUID_LINK',x=>x.observation.backupLastRecoveryForkGuid='11111111-1111-1111-1111-111111111111'],['LOG_CONTINUITY',x=>x.observation.logEnd+='0'],['LOG_CONTINUITY',x=>x.observation.snapshotRef={...x.ref,sha256:'0'.repeat(64)}],['OBSERVATION_AGE',x=>x.observation.observedAt=new Date(x.now-60000).toISOString()]];
  for(const [stage,mutate]of cases){const {f}=await fixtureModule.modeledFixture(),x=native21(f);mutate(x);rejects(()=>f.mod.preparePr54CurrentB007NativeContinuity(x.ref,x.snapshot,x.observation,x.backup,x.now),error('CONTINUITY_'+stage));}

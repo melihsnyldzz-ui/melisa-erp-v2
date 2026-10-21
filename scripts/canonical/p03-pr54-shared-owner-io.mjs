@@ -168,8 +168,10 @@ const typedRef=r=>exactKeys(r,['path','sha256'])&&typeof r.path==='string'&&path
 export function validatePr54CurrentPreCapture(refs,snapshot,proof,backup,{phase='Pre',now=Date.now(),backupRequired=true,nativeContinuity=null}={}){
  need(['Pre','Post'].includes(phase)&&exactKeys(refs,backupRequired?['snapshotRef','proofRef','backupProofRef']:['snapshotRef','proofRef']),'CURRENT_PRE_REFS');
  need(Object.values(refs).every(typedRef),'CURRENT_PRE_PIN');
- const found=/^(C:\\Sirket\\ERP\\backups\\(P03-202610(?:19|20|21)-\d{6}))\\source-(pre|post)-snapshot\.json$/.exec(refs.snapshotRef.path);
- need(found&&found[3]===phase.toLowerCase()&&refs.proofRef.path===found[1]+'\\source-'+phase.toLowerCase()+'-proof.json'&&(!backupRequired||refs.backupProofRef.path===found[1]+'\\backup-verified.json'),'CURRENT_PRE_PATH');
+ const found=/^(C:\\Sirket\\ERP\\backups\\(P03-202610(?:19|20|21)-\d{6}))\\source-(pre|post)-snapshot(?:-([a-f0-9]{32}))?\.json$/.exec(refs.snapshotRef.path);
+ // A fresh Pre revision reuses the exact original backup; it never replaces
+ // an older proof or relabels its clock. Historical dates and Post stay closed.
+ need(found&&(!found[4]||(found[2].startsWith('P03-20261021-')&&phase==='Pre'))&&found[3]===phase.toLowerCase()&&refs.proofRef.path===found[1]+'\\source-'+phase.toLowerCase()+'-proof'+(found[4]?'-'+found[4]:'')+'.json'&&(!backupRequired||refs.backupProofRef.path===found[1]+'\\backup-verified.json'),'CURRENT_PRE_PATH');
  need(exactKeys(proof,['scope','phase','readOnly','criticalTablesHashed','server','database','copyId','actualT1','observedAt','startedAt','snapshotRef','restored','commercialWrites','sourceCaptureKind'])&&proof.scope==='CURRENT_DB02_READ_ONLY'&&proof.phase===phase&&proof.readOnly===true&&proof.criticalTablesHashed===51&&proof.server==='Semih\\MELISADEV'&&proof.database===currentDatabase&&proof.copyId===currentCopy&&proof.actualT1===false&&proof.restored===false&&proof.commercialWrites===false&&proof.sourceCaptureKind==='SERIALIZABLE_READ_ONLY_TRANSACTION'&&JSON.stringify(proof.snapshotRef)===JSON.stringify(refs.snapshotRef),'CURRENT_PRE_PROOF');
  const runFloor=Date.UTC(2026,9,found[2].startsWith('P03-20261021-')?21:found[2].startsWith('P03-20261020-')?20:19),observed=Date.parse(proof.observedAt);need(typeof proof.observedAt==='string'&&Number.isFinite(observed)&&Number.isFinite(now)&&observed>=runFloor&&typeof proof.startedAt==='string'&&Number.isFinite(Date.parse(proof.startedAt))&&Date.parse(proof.startedAt)>=runFloor&&Date.parse(proof.startedAt)<=observed&&now>=observed&&(now-observed<15*60000||(phase==='Pre'&&isPr54CurrentNativeContinuity(nativeContinuity,refs.snapshotRef,now))),'CURRENT_PRE_FRESH');
  if(phase==='Pre')need(typeof snapshot.logEndBefore==='string'&&/^[0-9a-f]{8}:[0-9a-f]{8}:[0-9a-f]{4}$/i.test(snapshot.logEndBefore)&&snapshot.logEndBefore===snapshot.logEndAfter,'CURRENT_SOURCE_LSN');
@@ -185,13 +187,13 @@ export function comparePr54CurrentSourceSnapshots(pre,post){
 }
 export function pr54CurrentSourceCaptureArgs(runId){need(/^P03-202610(?:19|20|21)-\d{6}$/.test(runId),'CURRENT_CAPTURE_RUN');return ['-Mode','SourceCapture','-Phase','Post','-RunId',runId];}
 export function pr54CurrentContinuityProgram(snapshotRef,backup){
- need(typedRef(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-202610(?:19|20|21)-\d{6}\\source-pre-snapshot\.json$/.test(snapshotRef.path)&&typeof backup?.backupSetGuid==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(backup.backupSetGuid),'CURRENT_CONTINUITY_INPUT');
+ need(typedRef(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\(?:P03-202610(?:19|20)-\d{6}\\source-pre-snapshot|P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?)\.json$/.test(snapshotRef.path)&&typeof backup?.backupSetGuid==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(backup.backupSetGuid),'CURRENT_CONTINUITY_INPUT');
  const sql=`SELECT CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)) server,DB_NAME() [database],LOWER(CONVERT(varchar(36),m.copy_id)) copyId,CONVERT(bit,CASE WHEN DB_NAME()=N'MELISA_ERP_CRM_SHARED_TEST_20261009_02' AND CAST(SERVERPROPERTY('ServerName') AS nvarchar(128))=N'Semih\\MELISADEV' AND m.copy_id=@copy AND m.sealed=1 THEN 0 ELSE 1 END) actualT1,CONVERT(bit,m.sealed) sealed,l.log_end_lsn logEnd,q.actual_state_desc queryStoreMode,CONVERT(varchar(36),b.backup_set_uuid) backupSetGuid,CONVERT(varchar(36),r.database_guid) databaseGuid,CONVERT(varchar(36),r.recovery_fork_guid) recoveryForkGuid,CONVERT(varchar(36),b.database_guid) backupDatabaseGuid,CONVERT(varchar(36),b.first_recovery_fork_guid) backupFirstRecoveryForkGuid,CONVERT(varchar(36),b.last_recovery_fork_guid) backupLastRecoveryForkGuid FROM dbo.stage4_copy_manifest m CROSS JOIN sys.dm_db_log_stats(DB_ID()) l CROSS JOIN sys.database_query_store_options q JOIN sys.database_recovery_status r ON r.database_id=DB_ID() JOIN msdb.dbo.backupset b ON b.backup_set_uuid=@backup AND b.database_name=DB_NAME() AND b.server_name=CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)) AND b.is_copy_only=1 AND b.has_backup_checksums=1 AND b.type='D' AND b.is_damaged=0 WHERE m.copy_id=@copy AND m.sealed=1`;
  return `$c=[Data.SqlClient.SqlConnection]::new('Server=Semih\\MELISADEV;Database=${currentDatabase};Integrated Security=True;Connect Timeout=5;Application Name=P03CurrentContinuityReadOnly');try{$c.Open();$q=$c.CreateCommand();$q.CommandTimeout=5;$q.CommandText=${quote(sql)};$p=$q.Parameters.Add('@copy',[Data.SqlDbType]::UniqueIdentifier);$p.Value=[Guid]'${currentCopy}';$p=$q.Parameters.Add('@backup',[Data.SqlDbType]::UniqueIdentifier);$p.Value=[Guid]'${backup.backupSetGuid}';$r=$q.ExecuteReader();try{if(-not$r.Read()){throw 'CONTINUITY_MISSING'};$v=[ordered]@{};for($i=0;$i-lt$r.FieldCount;$i++){if($r.IsDBNull($i)){throw 'CONTINUITY_NULL'};$v[$r.GetName($i)]=$r.GetValue($i)};if($r.Read()){throw 'CONTINUITY_MULTIPLE'};$v.observedAt=[DateTime]::UtcNow.ToString('o');$v.readOnly=$true;$v.snapshotRef=${`([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(JSON.stringify(snapshotRef)).toString('base64')}'))|ConvertFrom-Json)`};$v|ConvertTo-Json -Depth 4 -Compress}finally{$r.Dispose()}}finally{$c.Dispose()}`;
 }
 export function pr54CurrentReadPinsProgram(refs){
  const fixed=[PR54_PREDECESSOR_REFS.globalLock,...Object.values(PR54_CURRENT_REFS),...PR54_CURRENT_JOURNAL_REFS];
- need(Array.isArray(refs)&&refs.length>0&&refs.length<=8&&refs.every(r=>typedRef(r)&&(!fixed.some(p=>p.path===r.path)||fixed.some(p=>p.path===r.path&&p.sha256===r.sha256))&&(fixed.some(p=>p.path===r.path&&p.sha256===r.sha256)||/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:profile|before)-[a-f0-9]{32}\.json$/.test(r.path)||/^C:\\Sirket\\ERP\\backups\\P03-202610(?:19|20|21)-\d{6}\\(?:source-(?:pre|post)-(?:snapshot|proof)|backup-verified)\.json$/.test(r.path))),'CURRENT_READ_PIN_SCOPE');
+ need(Array.isArray(refs)&&refs.length>0&&refs.length<=8&&refs.every(r=>typedRef(r)&&(!fixed.some(p=>p.path===r.path)||fixed.some(p=>p.path===r.path&&p.sha256===r.sha256))&&(fixed.some(p=>p.path===r.path&&p.sha256===r.sha256)||/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:profile|before)-[a-f0-9]{32}\.json$/.test(r.path)||/^C:\\Sirket\\ERP\\backups\\P03-202610(?:19|20|21)-\d{6}\\(?:source-(?:pre|post)-(?:snapshot|proof)|backup-verified)\.json$/.test(r.path)||/^C:\\Sirket\\ERP\\backups\\P03-20261021-\d{6}\\source-pre-(?:snapshot|proof)-[a-f0-9]{32}\.json$/.test(r.path))),'CURRENT_READ_PIN_SCOPE');
  const encoded=Buffer.from(JSON.stringify(refs)).toString('base64');
  return `foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Security')){Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,$name+'.psd1')) -ErrorAction Stop};$pins=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json;foreach($r in $pins){$p=$r.path;${psNoReparse}$i=Get-Item -LiteralPath $p -Force;if($i.PSIsContainer-or($i.Attributes-band[IO.FileAttributes]::ReparsePoint)){throw 'CURRENT_READ_FILE'};$a=Get-Acl -LiteralPath $p;$rules=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if(-not$a.AreAccessRulesProtected-or$a.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne'${owner}'-or$rules.Count-ne2){throw 'CURRENT_READ_ACL'};foreach($sid in @('${owner}','S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and-not$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){throw 'CURRENT_READ_ACL'}};if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()-cne$r.sha256){throw 'CURRENT_READ_HASH'}};'VERIFIED'`;
 }
@@ -499,7 +501,8 @@ export async function runPr54B264Sup20dSharedOwnerTransition({mode='DryRun',prof
   await guard();
   // The frozen engine's read-only dispatcher verifies every payload/config
   // byte in the same six packages before each genuine physical admission.
-  // It runs BEFORE the immutable claim's short live-owner window begins.
+  // Existing before/current freshness limits still apply after this scan;
+  // no timestamp is refreshed or reset by the diagnostic timing.
   const preflight=await invoke(engineRef,['-Environment','Shared',...common,'-Mode','PreflightOld'],{timeout:900000});
   need(exactKeys(preflight,['status','environment','profileSha256','beforeImageSha256','applyAvailable','mutationExecuted'])&&preflight.status==='OLD_PHYSICAL_PREFLIGHT'&&preflight.environment==='Shared'&&preflight.profileSha256===profileRef.sha256&&preflight.beforeImageSha256===beforeRef.sha256&&preflight.applyAvailable===false&&preflight.mutationExecuted===false,'B264_SUP20D_FULL_PACKAGE_PREFLIGHT');
   const raw=await history();
@@ -668,7 +671,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  const candidate=assertPr54CurrentB007Candidate({...before.profile,supervisorRoot:profile.packages?.find(p=>p.sourceCommit===before.profile?.supervisorSource)?.root,newSettings:profile.newSettings});
  need(before.plan?.digest===p03TransitionDigest(before.plan)&&before.plan.oldSettingsSha256===profile.oldSettings.sha256&&before.plan.newSettingsSha256===profile.newSettings.sha256,'CURRENT_B007_PLAN');
  need(profile.journalDirectory===root+'\\MelisaERP-P03-recovery-'+runId&&profile.stopper?.path===root+'\\MelisaERP-P03-stopper-'+runId+'.ps1'&&profile.stopper.sha256==='79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d','CURRENT_B007_RECOVERY_SCOPE');
- need(JSON.stringify(profile.businessDigest)===JSON.stringify(currentPreCapture.snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-202610(?:20|21)-\d{6}\\source-pre-snapshot\.json$/.test(profile.businessDigest.path),'CURRENT_B007_CAPTURE');
+ need(JSON.stringify(profile.businessDigest)===JSON.stringify(currentPreCapture.snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\(?:P03-20261020-\d{6}\\source-pre-snapshot|P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?)\.json$/.test(profile.businessDigest.path),'CURRENT_B007_CAPTURE');
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const sources=Object.fromEntries(Object.entries(currentB007SourcePins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
@@ -707,18 +710,24 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  }
  const common=['-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256];
  async function admit(){
+  const started=Date.now(),completed=[];let stage='GUARD',stageStarted=started;
+  const elapsed=from=>{const value=Date.now()-from;return Number.isFinite(value)&&value>=0?Math.min(Math.floor(value),86400000):0;};
+  const next=name=>{completed.push(Object.freeze({stage,elapsedMs:elapsed(stageStarted)}));stage=name;stageStarted=Date.now();};
+  try{
   await guard();
   // The frozen engine's read-only dispatcher verifies every payload/config
   // byte in the same seven packages before each genuine physical admission.
   // It runs BEFORE the immutable claim's short live-owner window begins.
-  const preflight=await invoke(engineRef,['-Environment','Shared',...common,'-Mode','PreflightOld'],{timeout:900000});
+  next('FULL_PACKAGE_PREFLIGHT');const preflight=await invoke(engineRef,['-Environment','Shared',...common,'-Mode','PreflightOld'],{timeout:900000});
   need(exactKeys(preflight,['status','environment','profileSha256','beforeImageSha256','applyAvailable','mutationExecuted'])&&preflight.status==='OLD_PHYSICAL_PREFLIGHT'&&preflight.environment==='Shared'&&preflight.profileSha256===profileRef.sha256&&preflight.beforeImageSha256===beforeRef.sha256&&preflight.applyAvailable===false&&preflight.mutationExecuted===false,'CURRENT_B007_FULL_PACKAGE_PREFLIGHT');
-  const raw=await history();
-  const physical=await inspectPr54CurrentB007PhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer});
-  const observation=JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup)));
-  const nativeContinuity=preparePr54CurrentB007NativeContinuity(currentPreCapture.snapshotRef,sourcePre.snapshot,observation,sourcePre.backup);
-  validatePr54CurrentPreCapture(currentPreCapture,sourcePre.snapshot,sourcePre.proof,sourcePre.backup,{nativeContinuity});await guardProtected();
+  next('HISTORY');const raw=await history();
+  next('PHYSICAL');const physical=await inspectPr54CurrentB007PhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer});
+  next('CONTINUITY_READ');const observation=JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup)));
+  next('CONTINUITY_VALIDATE');const nativeContinuity=preparePr54CurrentB007NativeContinuity(currentPreCapture.snapshotRef,sourcePre.snapshot,observation,sourcePre.backup);
+  validatePr54CurrentPreCapture(currentPreCapture,sourcePre.snapshot,sourcePre.proof,sourcePre.backup,{nativeContinuity});next('PROTECTED');await guardProtected();
+  next('ADMIT');
   return admitPr54CurrentB007Epoch({raw,profileRef,beforeRef,profileBytes:pin(profileRef),beforeBytes:pin(beforeRef),profile:physical.profile,before:physical.before,current:physical.current,candidate,nativeContinuity,physicalInspection:physical.physicalInspection});
+  }catch(error){try{Object.defineProperty(error,'p03AdmissionTiming',{value:Object.freeze({stage,elapsedMs:elapsed(started),stageElapsedMs:elapsed(stageStarted),completed:Object.freeze(completed)})});}catch{}throw error;}
  }
  await guard();need(await ps(`[Security.Principal.WindowsIdentity]::GetCurrent().User.Value`)===owner,'CALLER');
  need(!fs.existsSync(transitionDir)&&fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_PRIOR_JOURNAL');

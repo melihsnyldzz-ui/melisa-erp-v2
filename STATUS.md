@@ -1,3 +1,9 @@
+## 21 Ekim — aynı yedekle taze Pre revizyonu ve ilk-ret aşaması hazırlanıyor
+
+Kurulumun ilk gerçek alt reddini kaybetmeden okumak için yalnız mevcut admission'a sayısal/statik hata aşaması eklendi; özgün hata kimliği/mesajı, çağrı sırası ve yetkiler değişmedi. Bilinen FULL7 116871ms ve history10521ms ölçümleri tekrarlanmadı. Aynı yedek altında CreateNew `source-pre-snapshot-<32hex>.json` ve eşleşen proof üretimi yalnız 21 Ekim Pre kapsamında açıldı; orijinal dosyalar ve backup-verified/BAK yolu değişmez. Ayrı dar `p03-current-invariance-pre-revision.ps1`, eski capture'ın 51 tablo/transaction/LSN/süre/ACL/yazma sınırı gövdelerini aynen kullanır. Eski `p03-current-invariance-capture.ps1` ve frozen0ff Post controller bütünüyle korundu; yeni motor veya ikinci yedek yok.
+
+Yeni capture/pairing/negatifler ve mevcut Current admission/recovery odaklı44 test PASS. Sonraki gerçek işlem, korunan yedeği salt-okunur handle ile yeniden kullanarak taze Pre + gerçek owner/OLD10 + yalnız DryRun teşhisidir; Apply değildir. QS teknik scope finally geri alınacak. Bu kaynak hazırlığı henüz gerçek DryRun, kurulum, yeni GUI veya insan kabulü değildir. Çalışan e59/6bc/13b ve DB02 korunur.
+
 ## 21 Ekim — gerçek Apply kurulum öncesinde reddedildi; mevcut TEST sağlıklı
 
 Yeni aday için tek gerçek Apply `4171083b14874217bdd14dca005be08d`, 08:13:13Z'de 874120ms sonunda `P03_OWNER_SUCCESSOR_REJECTED` / exit1 ile bitti. Yeni successor claim ve transition dizini oluşmadı; recovery journal boş. Uygulama kesimi/aday kurulumu tamamlanmadı. Query Store geçici READ_ONLY kapsamı finally ile 08:13:16Z'de gerçek READ_WRITE geri okumasıyla kapandı; OLD10 yaşam kimlikleri son kontrolden sonra bırakıldı. Mevcut doğrulanmış COPY_ONLY/CHECKSUM/VERIFYONLY yedek korunuyor; ikinci yedek veya restore yapılmadı. Özel Apply makbuzu SHA e08b38f974f2511a246ecb16192130c0c2d575db822feb16e21ca6d88319b7e6; QS geri okuma makbuzu SHA 34ddf19eb92b774f67b468ff38896c9be669f6ef53bab203808c56b3e7d91cdf.

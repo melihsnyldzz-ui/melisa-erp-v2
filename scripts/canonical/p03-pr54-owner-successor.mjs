@@ -360,7 +360,7 @@ export function preparePr54CurrentB007NativeContinuity(snapshotRef,snapshot,obse
  if(typeof snapshotRef?.path==='string'&&snapshotRef.path.startsWith('C:\\Sirket\\ERP\\backups\\P03-20261020-'))return preparePr54B264NativeContinuity(snapshotRef,snapshot,observation,backup,now);
  let reason='SNAPSHOT_REF';
  try{
- check(exact(snapshotRef,['path','sha256'])&&ref(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261021-\d{6}\\source-pre-snapshot\.json$/.test(snapshotRef.path));
+ check(exact(snapshotRef,['path','sha256'])&&ref(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?\.json$/.test(snapshotRef.path));
  reason='SNAPSHOT_LOG';
  check(snapshot?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&typeof snapshot.logEndBefore==='string'&&/^[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{4}$/.test(snapshot.logEndBefore)&&snapshot.logEndBefore===snapshot.logEndAfter);
  const guid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
@@ -469,7 +469,7 @@ function admitPr54CurrentB007Proposal({raw,profileRef,beforeRef,profileBytes,bef
  // duplicate counts and each literal port/address remain significant.
  const bindingTuples=rows=>{check(Array.isArray(rows)&&rows.every(b=>exact(b,['port','address'])&&Number.isSafeInteger(b.port)&&b.port>0&&b.port<=65535&&typeof b.address==='string'&&b.address.length>0));return JSON.stringify(rows.map(b=>[b.port,b.address]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])));};
  reason='SNAPSHOT_PATH';
- check(/^C:\\Sirket\\ERP\\backups\\P03-202610(?:20|21)-\d{6}\\source-pre-snapshot\.json$/.test(profile?.businessDigest?.path??''));
+ check(/^C:\\Sirket\\ERP\\backups\\(?:P03-20261020-\d{6}\\source-pre-snapshot|P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?)\.json$/.test(profile?.businessDigest?.path??''));
  reason='HISTORY';
  const history=provePr54B264History(raw),old=history.profile;
  reason='PINNED_BYTES';
