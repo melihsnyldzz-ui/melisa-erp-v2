@@ -607,7 +607,12 @@ function AssertFinalize42d0Packages{
  foreach($settings in @($oldSettings,$newSettings)){
   Need ($settings.ownerSid -ceq $owner -and $settings.actualT1 -ceq $false -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId) 'FINALIZE42_SETTINGS'
   NoReparse $settings.node.path;Need ($settings.node.path -ceq 'C:\Sirket\ERP\tools\node-v24.19.0\node.exe' -and (Get-FileHash -LiteralPath $settings.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $settings.node.sha256) 'FINALIZE42_NODE'
-  foreach($component in @($settings.components.PSObject.Properties|ForEach-Object{$_.Value})+@($settings.supervisor)){[void](ReadWorkerPin $component.config.path $component.config.sha256);$root=[IO.Path]::GetFullPath($component.packageRoot);if($expectedPackages.ContainsKey($root)){Need ($expectedPackages[$root].sourceCommit -ceq $component.sourceCommit -and $expectedPackages[$root].manifestSha256 -ceq $component.manifestSha256) 'FINALIZE42_PACKAGE_CONFLICT'}else{$expectedPackages[$root]=$component}}
+  Need ((@($settings.components.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'crm|erpApiNative|hub|nativeOrder') 'FINALIZE42_COMPONENT_SET'
+  foreach($component in @($settings.components.PSObject.Properties|ForEach-Object{$_.Value})){[void](ReadWorkerPin $component.config.path $component.config.sha256)}
+  # The existing supervisor reads the pinned settings file itself; its tuple
+  # has no separate config reference. Do not invent one or skip component refs.
+  Need ((@($settings.supervisor.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'manifestSha256|packageRoot|sourceCommit') 'FINALIZE42_SUPERVISOR_SCHEMA'
+  foreach($component in @($settings.components.PSObject.Properties|ForEach-Object{$_.Value})+@($settings.supervisor)){$root=[IO.Path]::GetFullPath($component.packageRoot);if($expectedPackages.ContainsKey($root)){Need ($expectedPackages[$root].sourceCommit -ceq $component.sourceCommit -and $expectedPackages[$root].manifestSha256 -ceq $component.manifestSha256) 'FINALIZE42_PACKAGE_CONFLICT'}else{$expectedPackages[$root]=$component}}
  }
  NoReparse $profile.shell.path;Need ($profile.shell.path -ceq 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -and (Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'FINALIZE42_SHELL'
  Need (@($profile.packages).Count -eq 7 -and $expectedPackages.Count -eq 7) 'FINALIZE42_PACKAGE_COUNT';$seen=@()
