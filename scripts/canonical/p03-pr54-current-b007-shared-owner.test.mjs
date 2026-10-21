@@ -8,6 +8,8 @@ import {spawnSync} from 'node:child_process';
 import {runP03HeldCoreOwnerTransition,p03TransitionDigest,p03CoreFirstStopDigest} from './p03-integrated-owner-transition.mjs';
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
+const safeFailureSource=source.split(/\r?\n/).find(line=>line.startsWith('export function pr54SafeFailure('));
+const actualSafeFailure=new Function(safeFailureSource.replace(/^export /,'')+';return pr54SafeFailure;')();
 const start=source.indexOf('export async function runPr54CurrentB007SharedOwnerTransition(');
 const body=source.slice(start).replace(/^export /,'');
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -63,7 +65,7 @@ function fixture(options={}){
  async function run(shell,request){const {ref,args}=request,leaf=path.win32.basename(ref.path),at=k=>args[args.indexOf(k)+1];calls.push(leaf+':'+(args.includes('-Mode')?at('-Mode'):args.includes('-Action')?at('-Action'):''));
   if(leaf==='p03-pr54-b264-old-owner-cut.ps1'){
    if(at('-Mode')==='Inspect')return {stdout:JSON.stringify({schemaVersion:'melisa-p03-successor-precut-admission.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,engineSha256:at('-EngineSha256'),recoveryHelperSha256:at('-RecoveryHelperSha256'),observedAt:now(),protectedConsolePins:options.protectedConsole?[protectedConsole]:[],oldIdentities:Object.values(identities),oldWatchers:watchers,consolePins:[],probePins:[]})};
-   assert(files.has(transition+'\\b264-old-owner-cut-intent.json'));assert(files.has(claimPath));assert(events.some(e=>e.event==='EXACT_STOP_INTENT'&&e.target==='coreSupervisor'));if(options.failCut)throw Error('P03_CUT_UNPROVEN');
+   assert(files.has(transition+'\\b264-old-owner-cut-intent.json'));assert(files.has(claimPath));assert(events.some(e=>e.event==='EXACT_STOP_INTENT'&&e.target==='coreSupervisor'));if(options.cutError)throw options.cutError;if(options.failCut)throw Error('P03_CUT_UNPROVEN');
    stops++;phase='cut';running=false;rows=rows.filter(p=>!['coreSupervisor','terminalWatcher','hubWatcher'].includes(p.role));
    const cutWitness=put(transition+'\\successor-core-cut-completed.json',{event:'B264_OLD_OWNER_CORE_CUT_COMPLETED'}),drainWitness=put(transition+'\\successor-core-probe-drain.json',{consolePins:[],probePins:[],goneOldPids:[107]});
    return {stdout:JSON.stringify({status:'B264_OLD_OWNER_CORE_DRAINED',coreStopResult:'COM_STOP_NATURAL_EXIT',heldCoreExited:true,comStopped:true,cutWitness,drainWitness})};
@@ -103,7 +105,7 @@ function fixture(options={}){
   inspectPr54CurrentB007PhysicalOwner:async()=>{inspections++;return {profile,before,current:seen(),physicalInspection:secret};},
   preparePr54B264NativeContinuity:()=>secret,preparePr54CurrentB007NativeContinuity:()=>secret,validatePr54CurrentPreCapture:()=>({runId:'P03-20261020-100000',root:base}),pr54CurrentContinuityProgram:()=> 'log_end_lsn',
   admitPr54CurrentB007Epoch:({physicalInspection,current})=>{assert.equal(physicalInspection,secret);const value={schemaVersion:'melisa-p03-current-b007-epoch-proposal.v1',currentOwnerDigest:options.ownerDrift&&inspections>1?'e'.repeat(64):'d'.repeat(64),ownerObservedAt:current.observedAt,protectedSqlEpoch:{kind:'ProtectedSqlService',pid:900},predecessorRunId:'b264594b6f93d560d807c8decc4e6699',predecessorProfile:{},predecessorBefore:{},predecessorLock:{},consumedAncestorClaim:{},failedOuterTail:{},quarantinedRecoveryTail:{},readOnlyOldReady:{},successorRunId:sid,successorProfile:profileRef,successorBefore:beforeRef,newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(plan),transitionAuthority:false,applyExecuted:false};return {claimPath,claim:value,proofDigest:'c'.repeat(64)};},
-  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b)=>{assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv)=>({ref,args:argv.slice(4)}),pr54CollectPhysicalObservation:(fn,stage)=>{assert.equal(stage,'PHYSICAL');return fn();},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:e=>/^P03_/.test(e.message)?e.message:'P03_SHARED_EXECUTION_REJECTED'};
+  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b)=>{assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv)=>({ref,args:argv.slice(4)}),pr54CollectPhysicalObservation:(fn,stage)=>{assert.equal(stage,'PHYSICAL');return fn();},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
  const secret=Object.freeze({});
  const fn=new Function('env',`const {${Object.keys(env).join(',')}}=env;return (${body});`)(env);
  if(options.missingSource)files.delete(control+'\\'+pins.emptyRecovery[0]);
@@ -126,6 +128,33 @@ test('CurrentB007 binds only the real b33 rehearsal and rejects historical or cr
  }
 });
 test('CurrentB007 unverified OLD raw rows or unproven core cut never grant general recovery',async()=>{for(const option of ['foreignRaw','foreignOld','failCut']){const f=fixture({[option]:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(r.unprovenPartialRecoveryGranted,false);assert(!f.calls.some(c=>c==='p03-physical-rollback-lifetime-v2.ps1:RollbackOld'));}});
+
+test('CurrentB007 retains the first Drain failure without granting unproven recovery',async()=>{
+ const f=fixture({failCut:true}),r=await f.fn({...f.input,mode:'Apply'});
+ const failure={stage:'DRAIN',reason:'P03_CUT_UNPROVEN'};
+ assert.deepEqual(r.failureDiagnostic,failure);
+ assert.deepEqual(JSON.parse(f.files.get(transition+'\\io-failure-diagnostic.json').bytes).failureDiagnostic,failure);
+ assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');
+ assert.equal(r.failurePhase,'HELD_CORE_CUT');assert.equal(r.recoveryReason,actualSafeFailure(Error('P03_SHARED_CURRENT_B007_PRESTART_CUT_UNPROVEN')));
+ assert.equal(r.unprovenPartialRecoveryGranted,false);assert.equal(f.stops,0);
+ assert.equal(f.calls.filter(c=>c==='p03-pr54-b264-old-owner-cut.ps1:Drain').length,1);
+ assert(!f.calls.some(c=>c.includes('new-owner-recovery.ps1:Drain')||c.includes('StopNew')||c.includes('RollbackOld')));
+ assert(!f.writes.some(p=>p.endsWith('successor-core-cut-completed.json')||p.endsWith('successor-core-probe-drain.json')));
+});
+
+test('CurrentB007 preserves the bounded native B264 code without exposing PowerShell stderr',async()=>{
+ const marker='PRIVATE_STDERR_SENTINEL';
+ for(const code of ['P03_PHYSICAL_B264_CUT_OWNER_FRESH',null]){
+  const error=Object.assign(Error('child failed '+marker),{stderr:'PowerShell error: '+(code??'unclassified '+marker)+'\n'+marker});
+  const f=fixture({cutError:error}),r=await f.fn({...f.input,mode:'Apply'});
+  const expected=code??'UNCLASSIFIED_IO_FAILURE';
+  assert.deepEqual(r.failureDiagnostic,{stage:'DRAIN',reason:expected});
+  const diagnostic=JSON.parse(f.files.get(transition+'\\io-failure-diagnostic.json').bytes);
+  assert.deepEqual(diagnostic.failureDiagnostic,r.failureDiagnostic);
+  assert(!JSON.stringify({r,diagnostic}).includes(marker));assert.equal(f.stops,0);
+  assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(r.unprovenPartialRecoveryGranted,false);
+ }
+});
 test('CurrentB007 failed NEW readback uses exact drain, zero candidate and genuine frozen tail',async()=>{const f=fixture({failNew:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'FAILED_ROLLED_BACK_OLD_READY');assert(f.calls.includes('p03-pr54-b264-new-owner-recovery.ps1:Drain'));assert(f.calls.includes('p03-physical-rollback-lifetime-v2.ps1:StopNew'));assert(f.calls.includes('p03-physical-rollback-lifetime-v2.ps1:RollbackOld'));assert(!f.events.some(e=>e.event==='COMPLETE'));});
 test('CurrentB007 unproven NEW partial or failed OLD readback remains quarantined',async()=>{for(const extra of ['unprovenPartial','failRollback']){const f=fixture({failNew:true,[extra]:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(r.unprovenPartialRecoveryGranted,false);assert(!f.events.some(e=>e.event==='COMPLETE'));}});
 test('CurrentB007 source/table drift cannot be marked COMPLETE',async()=>{const f=fixture({sqlDrift:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'FAILED_ROLLED_BACK_OLD_READY');assert(!f.events.some(e=>e.event==='COMPLETE'));});

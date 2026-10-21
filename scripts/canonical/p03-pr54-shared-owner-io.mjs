@@ -790,14 +790,23 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   const restored=await frozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','CURRENT_B007_ROLLBACK_READBACK');
   await protectedWrite(path.win32.join(transitionDir,'rollback-result.json'),jsonBytes({recovered,restored,zeroRef}));return {status:'FAILED_ROLLED_BACK_OLD_READY',transitionDirectory:transitionDir,successorClaimRef:claimRef,humanAcceptance:'BEKLİYOR',applyExecuted:true};
  }
+ let heldCoreFailure=null;
+ const heldCoreReason=error=>{
+  const native=(String(error?.message??'')+' '+String(error?.stderr??'')).match(/\bP03_PHYSICAL_B264_CUT_[A-Z_]{1,80}\b/);
+  return native?native[0]:pr54SafeFailure(error);
+ };
  const callbacks={plan:before.plan,
   admit:async()=>{await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_JOURNAL_ADVANCED');return {owner:true,oldHealthy:true,oldActions:true,emptyJournal:true};},persist,
   heldCoreCut:async()=>{
+   let stage='INSPECT';try{
    await guard();await history();const snapshot=await invoke(frozen.oldCut,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','Inspect',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256]);
+   stage='SNAPSHOT';
    need(snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&snapshot.oldIdentities.length===8&&snapshot.oldWatchers.length===2&&snapshot.profileSha256===profileRef.sha256&&snapshot.beforeSha256===beforeRef.sha256&&snapshot.engineSha256===frozen.engine.sha256&&snapshot.recoveryHelperSha256===frozen.helper.sha256&&Array.isArray(snapshot.protectedConsolePins)&&Number.isFinite(Date.parse(snapshot.observedAt))&&Date.now()-Date.parse(snapshot.observedAt)>=0&&Date.now()-Date.parse(snapshot.observedAt)<60000,'CURRENT_B007_PRECUT');snapshotRef=await protectedWrite(path.win32.join(transitionDir,'successor-precut-admission.json'),jsonBytes(snapshot));
-   const rootIntent=await protectedWrite(path.win32.join(transitionDir,'b264-old-owner-cut-intent.json'),jsonBytes({event:'B264_OLD_CUT_INTENT',claimSha256:claimRef.sha256,stopOrderDigest:p03CoreFirstStopDigest(before.plan),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:new Date().toISOString()}));
+   stage='ROOT_INTENT';const rootIntent=await protectedWrite(path.win32.join(transitionDir,'b264-old-owner-cut-intent.json'),jsonBytes({event:'B264_OLD_CUT_INTENT',claimSha256:claimRef.sha256,stopOrderDigest:p03CoreFirstStopDigest(before.plan),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:new Date().toISOString()}));
+   stage='DRAIN';
    cutAttempted=true;cut=await invoke(frozen.oldCut,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','Drain',...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256,'-ClaimPath',claimRef.path,'-ClaimSha256',claimRef.sha256,'-AdmittedSnapshotPath',snapshotRef.path,'-AdmittedSnapshotSha256',snapshotRef.sha256,'-RootIntentPath',rootIntent.path,'-RootIntentSha256',rootIntent.sha256]);
-   need(cut.status==='B264_OLD_OWNER_CORE_DRAINED'&&cut.heldCoreExited===true&&cut.comStopped===true&&['COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED'].includes(cut.coreStopResult),'CURRENT_B007_HELD_CUT');pin(cut.cutWitness);pin(cut.drainWitness);return Object.fromEntries(['coreStopResult','heldCoreExited','comStopped','cutWitness','drainWitness'].map(k=>[k,cut[k]]));
+   stage='CUT_READBACK';need(cut.status==='B264_OLD_OWNER_CORE_DRAINED'&&cut.heldCoreExited===true&&cut.comStopped===true&&['COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED'].includes(cut.coreStopResult),'CURRENT_B007_HELD_CUT');pin(cut.cutWitness);pin(cut.drainWitness);return Object.fromEntries(['coreStopResult','heldCoreExited','comStopped','cutWitness','drainWitness'].map(k=>[k,cut[k]]));
+   }catch(error){heldCoreFailure??=Object.freeze({stage,reason:heldCoreReason(error)});throw error;}
   },
   tasksStopped:stopped,
   stopExact:async role=>{
@@ -819,7 +828,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  };
  try{return {...await runP03HeldCoreOwnerTransition(callbacks),status:'COMPLETE',transitionDirectory:transitionDir,successorClaimRef:claimRef,candidateRef,applyExecuted:true,humanAcceptance:'BEKLİYOR'};}
  catch(error){
-  const failurePhase=error.phase??'ADMISSION';try{await protectedWrite(path.win32.join(transitionDir,'io-failure-diagnostic.json'),jsonBytes({phase:failurePhase,reason:pr54SafeFailure(error),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));}catch{}
+  const failurePhase=error.phase??'ADMISSION';try{await protectedWrite(path.win32.join(transitionDir,'io-failure-diagnostic.json'),jsonBytes({phase:failurePhase,reason:pr54SafeFailure(error),...(heldCoreFailure?{failureDiagnostic:heldCoreFailure}:{}),profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));}catch{}
   try{
    await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_RECOVERY_JOURNAL_ADVANCED');
    if(started){
@@ -833,6 +842,6 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
    // subset to be drained and passed to the reviewed zero-candidate engine.
    need(cutAttempted&&cut&&snapshotRef&&await stopped(),'CURRENT_B007_PRESTART_CUT_UNPROVEN');for(const role of ['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative']){await callbacks.stopExact(role);need(await callbacks.absent(role),'CURRENT_B007_PRESTART_REMAINS');}
    need(await empty(),'CURRENT_B007_PRESTART_NOT_EMPTY');for(const name of names)await changeAction(name,'new');const zero=await captureCandidate();return {...await finishRollback(zero.ref),failurePhase};
-  }catch(recoveryError){return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',failurePhase,recoveryReason:pr54SafeFailure(recoveryError),transitionDirectory:transitionDir,successorClaimRef:claimRef,candidateRef,applyExecuted:cutAttempted||started,humanAcceptance:'BEKLİYOR',unprovenPartialRecoveryGranted:false};}
+  }catch(recoveryError){return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',failurePhase,...(heldCoreFailure?{failureDiagnostic:heldCoreFailure}:{}),recoveryReason:pr54SafeFailure(recoveryError),transitionDirectory:transitionDir,successorClaimRef:claimRef,candidateRef,applyExecuted:cutAttempted||started,humanAcceptance:'BEKLİYOR',unprovenPartialRecoveryGranted:false};}
  }
 }
