@@ -70,8 +70,8 @@ function AssertCurrentB007InspectionContract($profile,$before,$oldSettings,$newS
  $db='MELISA_ERP_CRM_SHARED_TEST_20261009_02';$copy='e16b70f0-4057-428b-9abc-6bbcaf35fe82'
  $oldPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'
  $oldSha='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'
- $newPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json'
- B264Need ($profile.newSettings.sha256 -ceq 'de54c4da7f5b33a5f41b94624f01df4eb315dfa6a20fd2826af9ca37538d3942')
+ $newPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'
+ B264Need ($profile.newSettings.sha256 -ceq '800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329')
  B264Need ($before.runId -cmatch '\A[a-f0-9]{32}\z' -and $before.runId -cnotin @('639e2da815e1e7ac0f1c0d04d7f7bdc3','7b0821959737f1da0427b17a7dfd4685','b264594b6f93d560d807c8decc4e6699'))
  B264Need ($profilePath -ceq (Join-Path $root ('MelisaERP-P03-profile-'+$before.runId+'.json')) -and $beforePath -ceq (Join-Path $root ('MelisaERP-P03-before-'+$before.runId+'.json')) -and $profile.beforeImage.path -ceq $beforePath -and $profile.beforeImage.sha256 -ceq $beforeSha)
  B264Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $db -and $before.database -ceq $db -and $before.copyId -ceq $copy -and $before.actualT1 -ceq $false)
@@ -85,15 +85,15 @@ function AssertCurrentB007InspectionContract($profile,$before,$oldSettings,$newS
  @($oldSettings.components.crm,'C:\Sirket\CRM\releases\crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'),
  @($oldSettings.components.nativeOrder,'C:\Sirket\ERP\releases\CRM-ORDER-DRAFT-TEST-20261013-7a41f64','7a41f6492273dd1ec0bcb086f820be5575372be8','6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'),
  @($newSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41','6dc33f41737349c6e3f17fb867a451b570a00acc','6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'),
- @($newSettings.components.crm,'C:\Sirket\CRM\releases\node-v24.19.0\crm-shared-test-7ba6e4ebc8b70019136d603e6307741189ba03c1','7ba6e4ebc8b70019136d603e6307741189ba03c1','820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35'),
- @($newSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6','b007317f03e6be2c3a3d2271428dcf9dec33e04e','365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac')
+ @($newSettings.components.crm,'C:\Sirket\CRM\releases\node-v24.19.0\crm-shared-test-d1e4425206249e38445fb103e03601f86baa84ec','d1e4425206249e38445fb103e03601f86baa84ec','a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef'),
+ @($newSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994','da5b394919941f73b9d7098f146fffd362c2a955','b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf')
  )
  B264Need (@($profile.packages).Count -eq 7 -and @($profile.packages|Select-Object -ExpandProperty root -Unique).Count -eq 7)
  foreach($f in $fixed){B264Need ($f[0].packageRoot -ceq $f[1] -and $f[0].sourceCommit -ceq $f[2] -and $f[0].manifestSha256 -ceq $f[3]);B264Need (@($profile.packages|Where-Object{$_.root -ceq $f[1] -and $_.sourceCommit -ceq $f[2] -and $_.manifestSha256 -ceq $f[3] -and $_.manifestPath -ceq ($f[1]+'\release-manifest.json')}).Count -eq 1)}
  B264Need (B264Same $oldSettings.components.nativeOrder $newSettings.components.nativeOrder)
  foreach($crm in @($oldSettings.components.crm,$newSettings.components.crm)){B264Need ((@($crm.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'config|manifestSha256|packageRoot|sourceCommit' -and (@($crm.config.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'path|sha256')}
  B264Need ($oldSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $oldSettings.components.crm.config.sha256 -ceq '9b484883f89584225bcd5242b7f501a38feb6a1bbaa22d8a8e17accf302785ab')
- B264Need ($newSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json' -and $newSettings.components.crm.config.sha256 -ceq 'b0dce9a873474a6d229d0c48580af1dcf4dd5bac9b881af7b47162322b063d39')
+ B264Need ($newSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-d1e442520624-erp-6dc33f417373-current.json' -and $newSettings.components.crm.config.sha256 -ceq '0ef6eb422be2522743753d2b2d9f24f3cbf5c6a3d8b45a904540478e112a3449')
  foreach($settings in @($oldSettings,$newSettings)){B264Need ($settings.node.path -ceq 'C:\Sirket\ERP\tools\node-v24.19.0\node.exe' -and $settings.node.sha256 -ceq '3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237')}
  foreach($key in @('packageRoot','sourceCommit','manifestSha256')){B264Need ($oldSettings.components.hub.$key -ceq $oldSettings.components.erpApiNative.$key -and $newSettings.components.hub.$key -ceq $newSettings.components.erpApiNative.$key)}
  foreach($pair in @(@('erp',$newSettings.components.erpApiNative),@('crm',$newSettings.components.crm),@('supervisor',$newSettings.supervisor))){B264Need ($before.profile.($pair[0]+'Source') -ceq $pair[1].sourceCommit -and $before.profile.($pair[0]+'Manifest') -ceq $pair[1].manifestSha256)}

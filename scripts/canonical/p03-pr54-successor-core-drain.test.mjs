@@ -304,13 +304,13 @@ test('SUP20D contract accepts only exact new metadata; legacy eb5 stays isolated
 function currentB007ContractFixture(){
  const f=sup20DFixture('new'),runtime=String.raw`C:\Sirket\ERP\runtime\terminal-completion-logon`;
  const erp={packageRoot:String.raw`C:\Sirket\ERP\releases\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41`,sourceCommit:'6dc33f41737349c6e3f17fb867a451b570a00acc',manifestSha256:'6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'};
- const crm={packageRoot:String.raw`C:\Sirket\CRM\releases\node-v24.19.0\crm-shared-test-7ba6e4ebc8b70019136d603e6307741189ba03c1`,sourceCommit:'7ba6e4ebc8b70019136d603e6307741189ba03c1',manifestSha256:'820cbf0f0002a7bcd6ce4d2e629d4e1c690027bb3243aa04b19a8ac0aa9edf35'};
- const sup={packageRoot:String.raw`C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6`,sourceCommit:'b007317f03e6be2c3a3d2271428dcf9dec33e04e',manifestSha256:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac'};
+ const crm={packageRoot:String.raw`C:\Sirket\CRM\releases\node-v24.19.0\crm-shared-test-d1e4425206249e38445fb103e03601f86baa84ec`,sourceCommit:'d1e4425206249e38445fb103e03601f86baa84ec',manifestSha256:'a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef'};
+ const sup={packageRoot:String.raw`C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994`,sourceCommit:'da5b394919941f73b9d7098f146fffd362c2a955',manifestSha256:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'};
  Object.assign(f.next.components.erpApiNative,erp);Object.assign(f.next.components.crm,crm);Object.assign(f.next.supervisor,sup);
  f.old.components.hub=structuredClone(f.old.components.erpApiNative);f.next.components.hub=structuredClone(f.next.components.erpApiNative);
  for(const s of[f.old,f.next])s.node={path:String.raw`C:\Sirket\ERP\tools\node-v24.19.0\node.exe`,sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};
- f.next.components.crm.config={path:runtime+'\\crm-activation-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json',sha256:'b0dce9a873474a6d229d0c48580af1dcf4dd5bac9b881af7b47162322b063d39'};
- Object.assign(f.profile.newSettings,{path:runtime+'\\settings-crm06-staff-7ba6e4ebc8b7-erp-6dc33f417373-current.json',sha256:'de54c4da7f5b33a5f41b94624f01df4eb315dfa6a20fd2826af9ca37538d3942'});f.before.newConfig=f.profile.newSettings;f.before.plan.newSettingsSha256=f.profile.newSettings.sha256;
+ f.next.components.crm.config={path:runtime+'\\crm-activation-crm06-staff-d1e442520624-erp-6dc33f417373-current.json',sha256:'0ef6eb422be2522743753d2b2d9f24f3cbf5c6a3d8b45a904540478e112a3449'};
+ Object.assign(f.profile.newSettings,{path:runtime+'\\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json',sha256:'800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329'});f.before.newConfig=f.profile.newSettings;f.before.plan.newSettingsSha256=f.profile.newSettings.sha256;
  for(const [key,value]of[['erp',f.next.components.erpApiNative],['crm',f.next.components.crm],['supervisor',f.next.supervisor]])Object.assign(f.before.profile,{[key+'Source']:value.sourceCommit,[key+'Manifest']:value.manifestSha256});
  const packages=new Map();for(const s of[f.old,f.next])for(const c of[...Object.values(s.components),s.supervisor])packages.set(c.packageRoot,{root:c.packageRoot,sourceCommit:c.sourceCommit,manifestSha256:c.manifestSha256,manifestPath:c.packageRoot+'\\release-manifest.json'});f.profile.packages=[...packages.values()];return f;
 }

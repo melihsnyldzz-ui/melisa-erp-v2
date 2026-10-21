@@ -649,13 +649,13 @@ export function validatePr54CurrentB007PhysicalInspection(args){
 }
 // Fixed CurrentB007 generation: same reviewed transition engine and guards.
 const currentB007SourcePins=Object.freeze({
- drainer:['p03-pr54-successor-core-drain.ps1','97cee59bd1dcd3eedc53f3eba07f261c095674f49fa168a5f074ff7e08c95f19'],
- observer:['p03-physical-recovery-observe.ps1','1a76fd772aba76ed318e0624ab35fceb6067750394aeaec35acbcb1d055c3dbd'],
- newObserver:['p03-pr54-new-owner-observe.ps1','a290f0a6894ae47686e2872e527c8739472703f638c80666d0c09006de2f42a1'],
- oldCut:['p03-pr54-b264-old-owner-cut.ps1','bf44656cbb8a70f21a9d2c9abc50cc076a7cf18eab1ea59567bd29302b176f7f'],
- newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','8bcf773a7472e9e43ffc80244deb171b011095a57f744af4f9c6e7760d9cdd17'],
+ drainer:['p03-pr54-successor-core-drain.ps1','b6566e3505af505fb6e0b8d47d6227cf5277d527014db9a8f034093285783486'],
+ observer:['p03-physical-recovery-observe.ps1','1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'],
+ newObserver:['p03-pr54-new-owner-observe.ps1','8d14522827098dbadf611cbac67b601ec59c416e538503041e9a0a986f59c37f'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','43fc2ccb0af874e5ade92cec775873ea16a549fada4919e338c748dc4b3fecc4'],
+ newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','aa29ff00900a971628c507c0acc9f6e8d4da388966a50fc8f24e93038198f20c'],
  invariance:['p03-current-invariance-capture.ps1','0ff308d092d2c2c11d5dd7afe2af6f471f9a1f41ebc3b0c59ccb64f60d456ce6'],
- emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','ef7e9bc94688b5fd4817d36da174e2d0c768d4d3a9ce33fd2bdaea4fac7297bd'],
+ emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438'],
 });
 export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir}={}){
  need(['DryRun','Apply'].includes(mode)&&process.platform==='win32','CURRENT_B007_MODE_PLATFORM');
