@@ -99,7 +99,7 @@ test('Sup20d physical builder accepts only the immutable prepared tuple in its e
  const old=b264PhysicalFixture();old.generation='pr54-b264-sup20d-20261020';assert.throws(()=>buildP03PhysicalProfile(old));
 });
 
-const b007Supervisor={packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6',sourceCommit:'b007317f03e6be2c3a3d2271428dcf9dec33e04e',manifestSha256:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac'};
+const b007Supervisor={packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994',sourceCommit:'da5b394919941f73b9d7098f146fffd362c2a955',manifestSha256:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'};
 const oldNativeOrder={packageRoot:'C:\\Sirket\\ERP\\releases\\CRM-ORDER-DRAFT-TEST-20261013-7a41f64',sourceCommit:'7a41f6492273dd1ec0bcb086f820be5575372be8',manifestSha256:'6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'};
 function currentB007Fixture(){
  const f=readsPhysicalFixture(),config=f.oldSettings.components.erpApiNative.config,component=pin=>({...structuredClone(pin),config:structuredClone(config)});

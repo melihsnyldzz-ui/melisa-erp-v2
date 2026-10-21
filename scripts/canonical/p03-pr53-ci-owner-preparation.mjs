@@ -79,7 +79,7 @@ export function preparePr54B264OwnerProfile(input){
 
 // Exact inactive current preparation; package existence/admission is checked by the owner CLI.
 export const CURRENT_B007_OWNER_VARIANT='erp-crm-current-20261020';
-export const CURRENT_B007_OWNER_SUPERVISOR=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6',sourceCommit:'b007317f03e6be2c3a3d2271428dcf9dec33e04e',manifestSha256:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac'});
+export const CURRENT_B007_OWNER_SUPERVISOR=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994',sourceCommit:'da5b394919941f73b9d7098f146fffd362c2a955',manifestSha256:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'});
 export function prepareCurrentB007OwnerProfile(input){
  const keys=['parentInputs','erpDependencyLockRef','erpDependencyLock','crmDependencyLockRef','crmDependencyLock','journalEvidenceRef','journalEvidence','supervisorPin'];
  if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==keys.length||!keys.every(key=>{const d=Object.getOwnPropertyDescriptor(input,key);return d?.enumerable&&Object.hasOwn(d,'value');}))reject();

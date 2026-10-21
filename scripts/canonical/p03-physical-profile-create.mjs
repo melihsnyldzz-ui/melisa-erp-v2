@@ -21,7 +21,7 @@ const NEW='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-s
 const TASKS=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
 const ROLES=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
 const ROOT='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
-const CURRENT_B007_SUPERVISOR=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6',sourceCommit:'b007317f03e6be2c3a3d2271428dcf9dec33e04e',manifestSha256:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac'});
+const CURRENT_B007_SUPERVISOR=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994',sourceCommit:'da5b394919941f73b9d7098f146fffd362c2a955',manifestSha256:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'});
 const samePackage=(value,pin)=>['packageRoot','sourceCommit','manifestSha256'].every(key=>value?.[key]===pin[key]);
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const need=(x,code)=>{if(!x)throw Error('P03_PROFILE_CREATE_'+code);};

@@ -58,7 +58,7 @@ test('CurrentB007 pure owner preparation binds exact sealed packages, all32 jour
  const meta=(path,directory,fileId)=>({path,ownerSid:owner,daclProtected:true,foreignWritable:false,foreignAllowed:false,volumeSerial:'1234ABCD',fileId,linkCount:1,reparse:false,directory});
  const references=journal.crm06StaffJournalExcludedPaths(source,variant).map(path=>({path,exists:false,volumeSerial:null,fileId:null,linkCount:null,reparse:false}));
  const journalEvidence={schemaVersion:'crm06-staff-journal-physical.v1',status:'READY',path:journal.CRM06_STAFF_JOURNAL_PATH,actorRoot:journal.CRM06_STAFF_JOURNAL_ROOT,callerSid:owner,ancestorReparse:false,parent:meta(journal.CRM06_STAFF_JOURNAL_ROOT,true,'0000000000000001'),journal:meta(journal.CRM06_STAFF_JOURNAL_PATH,false,'0000000000000002'),references,referenceSha256:journal.crm06StaffJournalReferenceHash(references)};
- const supervisorPin={packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-b007317f03e6',sourceCommit:'b007317f03e6be2c3a3d2271428dcf9dec33e04e',manifestSha256:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac'};
+ const supervisorPin={packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994',sourceCommit:'da5b394919941f73b9d7098f146fffd362c2a955',manifestSha256:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'};
  const input={parentInputs,supervisorPin,erpDependencyLock,crmDependencyLock,journalEvidence,erpDependencyLockRef:{path:p.erpDependencyLockPath,sha256:hash(erpDependencyLock)},crmDependencyLockRef:{path:p.dependencyLockPath,sha256:hash(crmDependencyLock)},journalEvidenceRef:{path:p.journalEvidencePath,sha256:hash(journalEvidence)}};
  const before=structuredClone(input),out=helper.prepareCurrentB007OwnerProfile(input);assert.deepEqual(input,before);assert.deepEqual(out.settings.supervisor,supervisorPin);assert.equal(references.length,32);assert.equal(out.receipt.installed,false);assert.equal(out.receipt.humanAccepted,false);
  assert.deepEqual(out.settings.components.nativeOrder,parentInputs.parentSettings.components.nativeOrder);assert.deepEqual(out.settings.crmPrivateFiles.crm06Actors,parentInputs.parentSettings.crmPrivateFiles.crm06Actors);
@@ -73,8 +73,8 @@ test('CurrentB007 protected creator has only eight new literal destinations with
 test('CurrentB007 actual CLI fixed supervisor, source/tree/count, Node and index guards reject drift in memory',()=>{
  const evalGuard=(guard,values)=>vm.runInNewContext(guard,{currentB007:true,Error,...values});
  const supervisorGuard=cli.match(/if\(currentB007&&\(supervisorManifest[^\n]+/)[0];
- const supervisor={supervisorManifest:'365dc4dd287fb05d171ca30f8c9e8abb037f9d9d5382a79f61fa9356f8d21eac',manifest:{files:Array(394)}};
- assert.doesNotThrow(()=>evalGuard(supervisorGuard,supervisor));for(const value of [{...supervisor,supervisorManifest:'0'.repeat(64)},{...supervisor,manifest:{files:Array(393)}}])assert.throws(()=>evalGuard(supervisorGuard,value),/CURRENT_SUPERVISOR_CHANGED/);
+ const supervisor={supervisorManifest:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf',manifest:{files:Array(408)}};
+ assert.doesNotThrow(()=>evalGuard(supervisorGuard,supervisor));for(const value of [{...supervisor,supervisorManifest:'0'.repeat(64)},{...supervisor,manifest:{files:Array(407)}}])assert.throws(()=>evalGuard(supervisorGuard,value),/CURRENT_SUPERVISOR_CHANGED/);
  const erpGuard=cli.match(/if\(currentB007&&\(erpManifest[^\n]+/)[0],commit='6dc33f41737349c6e3f17fb867a451b570a00acc';
  const erp={erpManifest:{sourceCommit:commit,files:Array(2123)},erpPin:{sourceCommit:commit},repo:'SOURCE_ONLY',execFileSync:()=> 'f9420b46dc5859c49034d1e8bbcffd20648b2822'};
  assert.doesNotThrow(()=>evalGuard(erpGuard,erp));for(const value of [{...erp,erpManifest:{sourceCommit:commit,files:Array(2122)}},{...erp,execFileSync:()=> '0'.repeat(40)},{...erp,erpManifest:{sourceCommit:'0'.repeat(40),files:Array(2123)}}])assert.throws(()=>evalGuard(erpGuard,value),/ERP_PACKAGE_CHANGED/);
@@ -85,7 +85,21 @@ test('CurrentB007 actual CLI fixed supervisor, source/tree/count, Node and index
  assert.doesNotThrow(()=>evalGuard(indexGuard,{sealed,crmManifest:{files:[index]}}));assert.throws(()=>evalGuard(indexGuard,{sealed,crmManifest:{files:[{...index,sha256:'0'.repeat(64)}]}}),/CURRENT_CRM_INDEX_CHANGED/);
  const nodeGuard=cli.match(/if\(process.platform!=='win32'[^\n]+/)[0],nodePin={path:'C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe'},path={resolve:v=>v},process={platform:'win32',arch:'x64',version:'v24.19.0',execPath:nodePin.path};
  assert.doesNotThrow(()=>evalGuard(nodeGuard,{process,nodePin,path}));for(const patch of [{version:'v24.15.0'},{execPath:'C:\\Program Files\\nodejs\\node.exe'},{arch:'arm64'}])assert.throws(()=>evalGuard(nodeGuard,{process:{...process,...patch},nodePin,path}),/CURRENT_NODE_CHANGED/);
- assert.match(cli,/currentB007\?'b007317f03e6be2c3a3d2271428dcf9dec33e04e':currentHead/);
+ assert.match(cli,/currentB007\?'da5b394919941f73b9d7098f146fffd362c2a955':currentHead/);
+});
+test('Current reuses only the exact existing ERP dependency lock; hash drift fails and every other output remains CreateNew',()=>{
+ const code=cli.slice(cli.indexOf('const reusedErpDependency='),cli.indexOf("stage('OUTPUTS_PREPARED')"));
+ const ref=name=>({path:name,sha256:'exact'}),erpDependencyLockRef=ref('ERP_LOCK'),crmDependencyLockRef=ref('CRM_LOCK'),evidenceRef=ref('EVIDENCE');
+ const invoke=({currentB007=true,b264=false,exists=['ERP_LOCK'],badHash=false}={})=>{
+  const reads=[];const result=vm.runInNewContext(code+'\n({reusedErpDependency,names:pending.map(row=>row[0])})',{currentB007,b264,erpDependencyLockRef,erpDependencyLock:{},crmDependencyLockRef,crmDependencyLock:{},evidenceRef,evidence:{},outputs:[['settings',{},ref('SETTINGS')]],fs:{existsSync:p=>exists.includes(p)},readPinned:r=>{reads.push(r);if(badHash)throw Error('PIN_CHANGED');},sha:()=> 'exact',Buffer});return {result:JSON.parse(JSON.stringify(result)),reads};
+ };
+ const ok=invoke();assert.equal(ok.result.reusedErpDependency,true);assert.deepEqual(ok.reads,[erpDependencyLockRef]);assert.deepEqual(ok.result.names,['crmDependencyLock','journalEvidence','settings']);
+ assert.throws(()=>invoke({badHash:true}),/PIN_CHANGED/);
+ assert.throws(()=>invoke({exists:['ERP_LOCK','CRM_LOCK']}),/NEW_TARGET_EXISTS:crmDependencyLock/);
+ assert.throws(()=>invoke({exists:['ERP_LOCK','SETTINGS']}),/NEW_TARGET_EXISTS:settings/);
+ assert.throws(()=>invoke({currentB007:false,b264:false}),/NEW_TARGET_EXISTS:erpDependencyLock/);
+ const absent=invoke({exists:[]});assert.equal(absent.result.reusedErpDependency,false);assert.deepEqual(absent.reads,[]);assert(absent.result.names.includes('erpDependencyLock'));
+ assert.equal(invoke({currentB007:false,b264:true}).result.reusedErpDependency,true);
 });
 test('CurrentB007 actual CLI builds its new CRM lock from sealed gateway files without reading the legacy lock',async()=>{
  const {createHash}=await import('node:crypto'),{validateCompletionDependencyLock}=await import('./terminal-completion-logon.mjs');
