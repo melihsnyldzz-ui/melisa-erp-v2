@@ -423,10 +423,28 @@ function Completed42d0AuxFrame($inventory,$expected){
  }
  return @($result|Sort-Object pid)
 }
+function Completed42d0AuxAbsentFrame($inventory){
+ $ids=@(4900,12092,46520);$all=@($inventory.all);Need ($all.Count-gt0-and$all.Count-le100000) 'COMPLETED42_AUX_INVENTORY'
+ $seen=@{};foreach($p in $all){Need (-not$seen.ContainsKey([int]$p.ProcessId)) 'COMPLETED42_AUX_DUPLICATE';$seen[[int]$p.ProcessId]=$true}
+ if(@($all|Where-Object{$_.ProcessId-in$ids-or$_.ParentProcessId-in$ids}).Count-ne0-or@($inventory.allListeners|Where-Object{$_.OwningProcess-in$ids}).Count-ne0){return $null}
+ # Commit to both complete, unfiltered relation/listener sets. No process UID,
+ # held kernel handle or authority is manufactured for a nonexistent object.
+ $relations=@($all|Sort-Object ProcessId|ForEach-Object{[ordered]@{pid=[int]$_.ProcessId;parentPid=[int]$_.ParentProcessId}})
+ $listeners=@($inventory.allListeners|Sort-Object OwningProcess,LocalPort,LocalAddress|ForEach-Object{[ordered]@{pid=[int]$_.OwningProcess;port=[int]$_.LocalPort;address=[string]$_.LocalAddress}})
+ return [ordered]@{observedAt=[DateTime]::UtcNow.ToString('o');processCount=$all.Count;listenerCount=@($inventory.allListeners).Count;rawRelationsSha256=(Hash ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $relations -Depth 12 -Compress))));rawListenersSha256=(Hash ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $listeners -Depth 12 -Compress))));absentPids=$ids;directDescendantsAbsent=$true;listenersAbsent=$true}
+}
 function Completed42d0AuxProof($snapshot){
  $old=@($snapshot.consolePins|Where-Object{$_.pid-eq4900});Need ($old.Count-eq1-and$old[0].nodePath-ceq'C:\Windows\System32\conhost.exe'-and[DateTime]::Parse($old[0].creationTime).ToUniversalTime().Ticks-eq[DateTime]::Parse('2026-10-20T08:50:12.012338Z').ToUniversalTime().Ticks) 'COMPLETED42_AUX_OLD'
  $expected=@(Completed42d0AuxEpochPins);$held=@{};try{
-  $first=Inventory;ProtectedProcesses $first;$pins=@(Completed42d0AuxFrame $first $expected)
+  $first=Inventory;ProtectedProcesses $first;$absent=Completed42d0AuxAbsentFrame $first
+  if($null-ne$absent){
+   $second=Inventory;ProtectedProcesses $second;$againAbsent=Completed42d0AuxAbsentFrame $second;Need ($null-ne$againAbsent) 'COMPLETED42_AUX_ABSENCE_CAS'
+   $now=[DateTime]::UtcNow;$firstAt=[DateTime]::Parse($absent.observedAt).ToUniversalTime();$secondAt=[DateTime]::Parse($againAbsent.observedAt).ToUniversalTime();Need ($secondAt-ge$firstAt-and($now-$firstAt).TotalSeconds-ge0-and($now-$firstAt).TotalSeconds-lt60-and($now-$secondAt).TotalSeconds-ge0-and($now-$secondAt).TotalSeconds-lt60) 'COMPLETED42_AUX_ABSENCE_FRESH'
+   $commitment=[ordered]@{schemaVersion='melisa-p03-current42d0-aux4900-absence.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;historicalConsoleSha256=(NewHistoricalDigest $old[0]);first=$absent;second=$againAbsent;stopPermitted=$false}
+   $epoch=[ordered]@{schemaVersion='melisa-p03-current42d0-aux4900-epoch.v1';scope='CURRENT42D0_HISTORICAL_CONSOLE_4900_ONLY';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;historicalConsoleSha256=(NewHistoricalDigest $old[0]);replacementEpochState='ABSENT';absentPids=@(4900,12092,46520);stopPermitted=$false}
+   return [pscustomobject]@{historicalConsolePins=@($old);replacementEpochDigest=(NewHistoricalDigest $epoch);replacementEpochState='ABSENT';absenceCommitment=$commitment;family=@();ancestors=@();observedAt=$againAbsent.observedAt;stopPermitted=$false;mutationExecuted=$false}
+  }
+  $pins=@(Completed42d0AuxFrame $first $expected)
   foreach($pin in $pins){$held[[int]$pin.pid]=NewHistoricalOpenProcess $pin.pid;$rows=@($first.all|Where-Object{$_.ProcessId-eq$pin.pid});NewHistoricalKernel $held[[int]$pin.pid] (NewHistoricalIdentity $rows[0])}
   for($pass=0;$pass-lt2;$pass++){$fresh=Inventory;ProtectedProcesses $fresh;$again=@(Completed42d0AuxFrame $fresh $expected);Need ((NewHistoricalDigest $again)-ceq(NewHistoricalDigest $pins)) 'COMPLETED42_AUX_CAS';foreach($pin in $again){$rows=@($fresh.all|Where-Object{$_.ProcessId-eq$pin.pid});NewHistoricalKernel $held[[int]$pin.pid] (NewHistoricalIdentity $rows[0])}}
   return [pscustomobject]@{historicalConsolePins=@($old);replacementEpochDigest=(NewHistoricalDigest $pins);family=@($pins|Where-Object{$_.pid-in@(4900,12092,46520)});ancestors=@($pins|Where-Object{$_.pid-in@(10996,15168,55744)});observedAt=[DateTime]::UtcNow.ToString('o');stopPermitted=$false;mutationExecuted=$false}

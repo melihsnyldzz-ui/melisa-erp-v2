@@ -704,7 +704,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   sources.oldCut={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'ebfbe596906e3c98951df085df4d84648152d581ac774353815cdfea3b3bd138'};
   sources.newRecovery={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-new-recovery.ps1'),sha256:'667ac16f0a83251db2e11e9e337ce9894de4803efc9ed5a2b2fe6129672fb28c'};
  }
- if(resumeCompletedCut42d0)sources.oldCut={...sources.oldCut,sha256:'46a0aafabafe29803bc67fcbcd27c4f3d0c808211db603612b4471d2f226e1ea'};
+ if(resumeCompletedCut42d0)sources.oldCut={...sources.oldCut,sha256:'213835b02b8eb367bbb6858a76cfcd36e46103bac960843d04bde3c971d703b7'};
  const rehearsal=read(rehearsalProofRef);
  need(rehearsal.status==='REHEARSAL_ROLLBACK_READY'&&rehearsal.environment==='P03_REHEARSAL'&&rehearsal.sharedTestMutation===false&&rehearsal.protectedBeforeSha256===rehearsal.protectedAfterSha256,'ACTUAL_REHEARSAL_REQUIRED');
  need(rehearsal.engineSha256===engineRef.sha256&&rehearsal.engine?.sha256===engineRef.sha256,'SAME_REHEARSED_ENGINE_REQUIRED');

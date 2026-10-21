@@ -173,7 +173,7 @@ function fixture(options={}){
   put(transition+'\\transition.lock',{profileRef,beforeRef,currentPreCapture:input.currentPreCapture,rehearsalProofRef,successorClaimRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim,continuationRef:contextRef},hashes['transition.lock']);
   put(transition+'\\successor-precut-admission.json',{consolePins:[historicalConsole],probePins:[],protectedConsolePins:[],observedAt:now()},hashes['successor-precut-admission.json']);
   for(const [leaf,sha]of [['p03-physical-rollback-lifetime-v2.ps1',shaEngine],['p03-pr54-paused-old-recover.ps1','e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'],...Object.values(pins).filter(([leaf])=>!['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-b264-new-owner-recovery.ps1'].includes(leaf)),['p03-pr54-current-b007-precut-cut.ps1','ebfbe596906e3c98951df085df4d84648152d581ac774353815cdfea3b3bd138'],['p03-pr54-current-b007-precut-new-recovery.ps1','667ac16f0a83251db2e11e9e337ce9894de4803efc9ed5a2b2fe6129672fb28c']])put(transition+'\\'+leaf,Buffer.from(leaf),sha);
-  put(control+'\\p03-pr54-current-b007-precut-cut.ps1',Buffer.from('new recovery worker'),'46a0aafabafe29803bc67fcbcd27c4f3d0c808211db603612b4471d2f226e1ea');
+  put(control+'\\p03-pr54-current-b007-precut-cut.ps1',Buffer.from('new recovery worker'),'213835b02b8eb367bbb6858a76cfcd36e46103bac960843d04bde3c971d703b7');
   if(options.recoveryAdvanced)put(transition+'\\unexpected.json',{unknown:true});
   if(options.recoveryUsed)put(transition+'\\completed-cut-recovery-intent.json',{used:true});
  }
@@ -198,7 +198,7 @@ test('held File-only transport retains historical bytes and rejects unsafe nativ
  for(const tail of [['-Mode','bad"quote'],['-Mode','line\n'],['-Mode',''],['-Mode','x','-mode','y'],['Mode','x']])assert.throws(()=>heldInvocation(ref,[...argv.slice(0,4),...tail],{fileInvocationOnly:true}),/FILE_INVOCATION_ARGS/);
 });
 test('held File-only Windows child has real PSCommandPath, compatible self-read and inherited exit status', {skip:process.platform!=='win32'},()=>{
- const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,temp=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-p03-file-invocation-'));
+ const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,temp=fs.realpathSync.native(fs.mkdtempSync(path.join(os.tmpdir(),'melisa-p03-file-invocation-')));
  try{
   const file=path.join(temp,'source with spaces.ps1'),literal="literal $(do-not-run); single'quote [x]";
   fs.writeFileSync(file,"param([string]$Literal,[int]$ExitCode)\n$ErrorActionPreference='Stop'\n$s=[IO.File]::Open($PSCommandPath,'Open','Read','Read');$s.Dispose();$exclusiveDenied=$false;try{$s=[IO.File]::Open($PSCommandPath,'Open','Read','None');$s.Dispose()}catch [IO.IOException]{$exclusiveDenied=$true};[ordered]@{path=$PSCommandPath;literal=$Literal;sharedRead=$true;exclusiveDenied=$exclusiveDenied}|ConvertTo-Json -Compress;exit $ExitCode\n",{flag:'wx'});
@@ -206,7 +206,7 @@ test('held File-only Windows child has real PSCommandPath, compatible self-read 
   const prepared=spawnSync(shell,['-NoProfile','-NonInteractive','-Command',setup],{encoding:'utf8',windowsHide:true,timeout:30000});assert.equal(prepared.status,0,prepared.stderr);const currentOwner=prepared.stdout.trim();assert.match(currentOwner,/^S-1-[0-9-]+$/);
   const fn=new Function('Buffer','need',heldInvocationSource.replaceAll(owner,currentOwner)+';return b264Sup20dHeldInvocation;')(Buffer,(value,code)=>{if(!value)throw Error(code);});
   const ref={path:file,sha256:hash(fs.readFileSync(file))};for(const exitCode of [0,7]){const argv=['-NoProfile','-NonInteractive','-File',file,'-Literal',literal,'-ExitCode',String(exitCode)],r=spawnSync(shell,fn(ref,argv,{fileInvocationOnly:true}),{encoding:'utf8',windowsHide:true,timeout:30000});assert.equal(r.status,exitCode,r.stderr);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),{path:file,literal,sharedRead:true,exclusiveDenied:true});}
- }finally{const base=path.resolve(os.tmpdir())+path.sep,target=path.resolve(temp);assert(target.startsWith(base)&&path.basename(target).startsWith('melisa-p03-file-invocation-'));fs.rmSync(target,{recursive:true});}
+ }finally{const base=fs.realpathSync.native(os.tmpdir())+path.sep,target=path.resolve(temp);assert(target.startsWith(base)&&path.basename(target).startsWith('melisa-p03-file-invocation-'));fs.rmSync(target,{recursive:true});}
 });
 test('fixed completed42d0 cut recovery DryRun only authenticates history and native absence without admission or writes',async()=>{
  const f=fixture({recovery:true}),r=await f.fn(f.input);assert.equal(r.status,'CURRENT_B007_COMPLETED_CUT_RECOVERY_DRY_RUN');assert.equal(r.remainingOldRoles,1);assert.equal(f.stops,0);assert.equal(f.writes.length,0);assert(f.calls.includes('p03-pr54-current-b007-precut-cut.ps1:ResumeDrainDryRun'));assert(!f.calls.some(c=>c.includes('PreflightOld')||c.includes('RollbackOld')));

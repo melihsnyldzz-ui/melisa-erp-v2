@@ -294,7 +294,7 @@ test('completed-cut Apply requires the single exact recovery intent and writes o
  const negative=run(completedExtract+'\n'+completedFixture+'\n'+edits.map((e,n)=>`${setup}\n${e};'CASE${n}='+(CompletedOutcome);'WRITES${n}='+$writes`).join('\n'));for(let n=0;n<edits.length;n++){assert(!negative.includes('CASE'+n+'=B264_OLD_OWNER_CORE_DRAINED'),'case '+n);assert.match(negative,new RegExp('WRITES'+n+'=0'));}
 });
 const auxExtract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
-foreach($name in @('Completed42d0AuxEpochPins','Completed42d0AuxFrame','Completed42d0AuxProof')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));. ([scriptblock]::Create($defs[0].Extent.Text))}
+foreach($name in @('Completed42d0AuxEpochPins','Completed42d0AuxFrame','Completed42d0AuxAbsentFrame','Completed42d0AuxProof')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));. ([scriptblock]::Create($defs[0].Extent.Text))}
 $ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)))},[ref]$tokens,[ref]$errors);foreach($name in @('NewHistoricalDigest','NewHistoricalIdentity','NewHistoricalKernel')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));. ([scriptblock]::Create($defs[0].Extent.Text))}`;
 const auxFixture=String.raw`
 function Hash($bytes){return [BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}
@@ -310,7 +310,7 @@ function NewHistoricalReadProcess($h){if($script:kernelDrift){return [pscustomob
 $script:productionExpected=@(Completed42d0AuxEpochPins)
 function Completed42d0AuxEpochPins{return $script:modelExpected}
 function SetupAux{
- $script:owner='S-1-5-21-2170750028-1005938530-2568122015-1001';$script:opens=0;$script:closes=0;$script:inventoryReads=0;$script:imageDrift=$false;$script:badSignature=$false;$script:kernelDrift=$false;$script:driftAfterRead=$false
+ $script:ProfileSha256='b'*64;$script:BeforeImageSha256='c'*64;$script:owner='S-1-5-21-2170750028-1005938530-2568122015-1001';$script:opens=0;$script:closes=0;$script:inventoryReads=0;$script:imageDrift=$false;$script:badSignature=$false;$script:kernelDrift=$false;$script:driftAfterRead=$false
  $script:modelExpected=@($productionExpected|ForEach-Object{$_|ConvertTo-Json|ConvertFrom-Json});$rows=@();foreach($p in $modelExpected){$argv='fixture-argv-'+$p.pid;$p.argv=Hash ([Text.Encoding]::UTF8.GetBytes($argv));$rows+=,[pscustomobject]@{ProcessId=$p.pid;ParentProcessId=$p.parentPid;Name=$p.name;ExecutablePath=$p.nodePath;CommandLine=$argv;CreationDate=[DateTime]::Parse($p.creationTime);sid=$owner}}
  $script:raw=[pscustomobject]@{all=$rows;allListeners=@();instances=@()};$script:before=[pscustomobject]@{identities=[pscustomobject]@{coreSupervisor=[pscustomobject]@{pid=999}}};$script:profile=[pscustomobject]@{oldWatchers=@();protectedProcesses=@();packages=@([pscustomobject]@{root='C:\Sirket\ERP\releases\managed'})};$script:probePins=@{};$script:protectedConsolePins=@{}
  $script:auxSnapshot=[pscustomobject]@{consolePins=@([pscustomobject]@{pid=4900;parentPid=100;nodePath='C:\Windows\System32\conhost.exe';ownerSid=$owner;commandLine='historical';creationTime='2026-10-20T08:50:12.012338Z'})}
@@ -365,4 +365,32 @@ try{
  `.replace('CHILD',q(child));
  try{const out=execFileSync(String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,['-NoProfile','-NonInteractive','-Command',parent],{encoding:'utf8',windowsHide:true,timeout:20000});assert.match(out,/CASE_good=0[\s\S]*SELF_FILE_READ_OK[\s\S]*OTHER_READ_EXCLUSIVE_PRESERVED/);assert.match(out,/CASE_hash=17[\s\S]*P03_SUCCESSOR_HASH/);assert.match(out,/CASE_path=17[\s\S]*P03_SUCCESSOR_HELD_CODE_SCOPE/);}finally{rmSync(temp,{recursive:true,force:true});}
  assert.match(native,/WorkerSourceSha256 -cnotmatch/);assert.match(native,/\$PSCommandPath -cnotmatch/);assert.match(native,/ReadWorkerPin \$PSCommandPath \$WorkerSourceSha256 -HeldCode/);
+});
+test('4900 historical replacement may naturally disappear only with two complete fresh absence frames and no fabricated kernel lifetimes',()=>{
+ const out=run(auxExtract+'\n'+auxFixture+String.raw`
+SetupAux;$script:raw.all=@($raw.all|Where-Object{$_.ProcessId-notin@(4900,12092,46520)});$saved=$auxSnapshot|ConvertTo-Json -Compress;$p=Completed42d0AuxProof $auxSnapshot
+'ABSENT='+$p.replacementEpochState;'DIGEST='+$p.replacementEpochDigest;'FRAMES='+$inventoryReads;'OPEN='+$opens;'CLOSE='+$closes;'STOP='+$p.stopPermitted;'EMPTY_FAMILY='+($p.family.Count-eq0-and$p.ancestors.Count-eq0);'OLD_SAME='+($saved-ceq($auxSnapshot|ConvertTo-Json -Compress));'RAW_COUNT='+$raw.all.Count
+if($p.absenceCommitment.first.processCount-ne3-or$p.absenceCommitment.second.processCount-ne3-or-not$p.absenceCommitment.first.directDescendantsAbsent-or-not$p.absenceCommitment.second.listenersAbsent){throw 'FIXTURE_INCOMPLETE_COMMITMENT'}
+`);assert.match(out,/ABSENT=ABSENT[\s\S]*DIGEST=[a-f0-9]{64}[\s\S]*FRAMES=2[\s\S]*OPEN=0[\s\S]*CLOSE=0[\s\S]*STOP=False[\s\S]*EMPTY_FAMILY=True[\s\S]*OLD_SAME=True[\s\S]*RAW_COUNT=3/);
+});
+test('4900 absence cannot hide any live replacement, foreign reused PID, descendant, listener or second-frame reappearance',()=>{
+ const absent="SetupAux;$script:raw.all=@($raw.all|Where-Object{$_.ProcessId-notin@(4900,12092,46520)})";
+ const edits=["$raw.all+=,[pscustomobject]@{ProcessId=4900;ParentProcessId=55744}","$raw.all+=,[pscustomobject]@{ProcessId=12092;ParentProcessId=1}","$raw.all+=,[pscustomobject]@{ProcessId=46520;ParentProcessId=1}","$raw.all+=,[pscustomobject]@{ProcessId=9999;ParentProcessId=4900}","$raw.all+=,[pscustomobject]@{ProcessId=9999;ParentProcessId=12092}","$raw.all+=,[pscustomobject]@{ProcessId=9999;ParentProcessId=46520}","$raw.allListeners=@([pscustomobject]@{OwningProcess=4900;LocalPort=9999;LocalAddress='127.0.0.1'})","$raw.all+=,$raw.all[0]"];
+ const out=run(auxExtract+'\n'+auxFixture+'\n'+edits.map((e,n)=>`${absent};${e};'CASE${n}='+(AuxOutcome)`).join('\n')+String.raw`
+SetupAux;$script:raw.all=@($raw.all|Where-Object{$_.ProcessId-notin@(4900,12092,46520)})
+function Inventory{$script:inventoryReads++;if($script:inventoryReads-eq2){$script:raw.all+=,[pscustomobject]@{ProcessId=4900;ParentProcessId=55744}};return $script:raw}
+'CASE8='+(AuxOutcome)
+`);for(let n=0;n<9;n++)assert(!out.includes('CASE'+n+'=GO'),'case '+n+' '+out);assert.match(out,/CASE8=P03_PHYSICAL_COMPLETED42_AUX_ABSENCE_CAS/);
+});test('successive fresh absence proofs keep the same epoch digest while preserving different timestamps and unrelated raw inventory evidence',()=>{
+ const out=run(auxExtract+'\n'+auxFixture+String.raw`
+SetupAux;$script:raw.all=@($raw.all|Where-Object{$_.ProcessId-notin@(4900,12092,46520)})
+$a=Completed42d0AuxProof $auxSnapshot
+$script:raw.all+=,[pscustomobject]@{ProcessId=9999;ParentProcessId=1}
+$b=Completed42d0AuxProof $auxSnapshot
+'EPOCH_SAME='+($a.replacementEpochDigest-ceq$b.replacementEpochDigest)
+'TIME_DIFFERENT='+($a.observedAt-cne$b.observedAt)
+'RAW_COMMIT_DIFFERENT='+($a.absenceCommitment.second.rawRelationsSha256-cne$b.absenceCommitment.first.rawRelationsSha256)
+'COUNT='+$b.absenceCommitment.second.processCount
+'NO_HANDLES='+($opens-eq0-and$closes-eq0)
+`);assert.match(out,/EPOCH_SAME=True[\s\S]*TIME_DIFFERENT=True[\s\S]*RAW_COMMIT_DIFFERENT=True[\s\S]*COUNT=4[\s\S]*NO_HANDLES=True/);
 });
