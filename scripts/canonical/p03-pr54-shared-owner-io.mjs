@@ -674,10 +674,11 @@ const currentB007SourcePins=Object.freeze({
  invariance:['p03-current-invariance-capture.ps1','0ff308d092d2c2c11d5dd7afe2af6f471f9a1f41ebc3b0c59ccb64f60d456ce6'],
  emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438'],
 });
-export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false,resumeCompletedCut42d0=false}={}){
+export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false,resumeCompletedCut42d0=false,resumeCompletedCut42d0PostCas=false}={}){
  need(['DryRun','Apply'].includes(mode)&&process.platform==='win32','CURRENT_B007_MODE_PLATFORM');
  need([precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CURRENT_B007_CONTINUATION_MODE');
  need(typeof resumeCompletedCut42d0==='boolean'&&(!resumeCompletedCut42d0||(precutResumeAfter9d2&&!precutContinuation&&!precutResume)),'CURRENT_B007_COMPLETED_CUT_MODE');
+ need(typeof resumeCompletedCut42d0PostCas==='boolean'&&(!resumeCompletedCut42d0PostCas||resumeCompletedCut42d0),'CURRENT_B007_POSTCAS_MODE');
  const psTransport=resumeCompletedCut42d0?{plainCommandOnly:true}:undefined;
  const isResume=precutResume||precutResumeAfter9d2,resumeRefs=precutResumeAfter9d2?PR54_CURRENT_B007_PRECUT_RETRY_REFS:PR54_CURRENT_B007_PRECUT_RESUME_REFS;
  const prepareResume=precutResumeAfter9d2?preparePr54CurrentB007PrecutRetry:preparePr54CurrentB007PrecutResume,validateResume=precutResumeAfter9d2?validatePr54CurrentB007PrecutRetryBinding:validatePr54CurrentB007PrecutResumeBinding;
@@ -758,7 +759,11 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   return true;
  }
  async function invoke(ref,args,{timeout=180000,text=false}={}){
-  pin(ref);const argv=['-NoProfile','-NonInteractive','-File',ref.path,...args],invocation=resumeCompletedCut42d0?b264Sup20dHeldInvocation(ref,argv,{fileInvocationOnly:true}):b264Sup20dHeldInvocation(ref,argv);const result=await run(shell,invocation,{...opts,timeout});need(!result.stderr,'CURRENT_B007_WORKER_STDERR');return text?result.stdout.trim():JSON.parse(result.stdout);
+  pin(ref);const argv=['-NoProfile','-NonInteractive','-File',ref.path,...args],invocation=resumeCompletedCut42d0?b264Sup20dHeldInvocation(ref,argv,{fileInvocationOnly:true}):b264Sup20dHeldInvocation(ref,argv),began=Date.now();
+  try{const result=await run(shell,invocation,{...opts,timeout});need(!result.stderr,'CURRENT_B007_WORKER_STDERR');return text?result.stdout.trim():JSON.parse(result.stdout);}catch(error){
+   if(resumeCompletedCut42d0){const at=args.indexOf('-Mode'),action=at>=0?args[at+1]:'Physical';try{Object.defineProperty(error,'p03WorkerDiagnostic',{value:Object.freeze({workerLeaf:path.win32.basename(ref.path),action:/^[A-Za-z0-9]{1,40}$/.test(action)?action:'UNKNOWN',elapsedMs:Date.now()-began,exitCode:Number.isInteger(error?.code)?error.code:null,errno:['ETIMEDOUT','EACCES','EPERM','ENOENT','ENOMEM'].includes(error?.code)?error.code:null,killed:error?.killed===true,signal:['SIGTERM','SIGKILL','SIGINT'].includes(error?.signal)?error.signal:null,stderrSha256:hash(Buffer.from(String(error?.stderr??'')))})});}catch{}}
+   throw error;
+  }
  }
  const common=['-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256];
  async function admit(){
@@ -848,11 +853,12 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   need(names.includes(name)&&['old','new'].includes(kind),'CURRENT_B007_ACTION_SCOPE');await guard();need(await stopped()&&await empty(),'CURRENT_B007_ACTION_NOT_EMPTY');const entry=profile.tasks.find(t=>t.name===name),seen=await physical(),task=seen.tasks.find(t=>t.name===name),sha=hash(Buffer.from(task.xml));need([entry.oldXmlSha256,entry.newXmlSha256].includes(sha),'CURRENT_B007_FOREIGN_ACTION');if(sha===entry[kind+'XmlSha256'])return true;
   need(await ps(`$s=New-Object -ComObject Schedule.Service;$s.Connect();$f=$s.GetFolder('\\');$t=$f.GetTask(${quote(name)});$sha=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$t.Xml))).Replace('-','').ToLowerInvariant();if([int]$t.State-ne3-or$sha-cne'${sha}'){throw 'B264_ACTION_CAS'};[void]$f.RegisterTask(${quote(name)},[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(entry[kind+'Xml']).toString('base64')}')),4,'${owner}',$null,3,$null);'SET'`,psTransport)==='SET','CURRENT_B007_ACTION_SET');return true;
  }
- async function captureCandidate(){
+ async function captureCandidate({readOnly=false}={}){
+  need(typeof readOnly==='boolean'&&(!readOnly||resumeCompletedCut42d0PostCas),'CURRENT_B007_CANDIDATE_READ_ONLY_MODE');
   need(started||await empty(),'CURRENT_B007_CANDIDATE_SCOPE');const seen=await physical(),selected=proposePr54CandidateProcesses(seen,profile),receipts=[];
   for(const p of selected){need(![...Object.values(before.identities),...profile.oldWatchers].some(old=>old.pid===p.pid),'OLD_PID_REUSE');p.bindings=seen.bindings.filter(b=>b.pid===p.pid).map(b=>({port:b.port,address:b.address}));const rule=profile.candidateRules.find(r=>r.role===p.role);if(rule.receipt){const b=fs.readFileSync(rule.receipt.path);receipts.push({role:p.role,path:rule.receipt.path,sha256:hash(b)});}}
   const hub=selected.find(p=>p.role==='hub');if(hub){const directory='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web',found=[];for(const leaf of fs.readdirSync(directory).filter(n=>/^hub-web-process-[a-f0-9]{32}-[0-3]\.json$/.test(n))){const file=path.win32.join(directory,leaf),b=fs.readFileSync(file);let value;try{value=JSON.parse(b);}catch{continue;}if(value.pid!==hub.pid&&value.processId!==hub.pid)continue;const lineagePath=file.replace('hub-web-process-','hub-web-lineage-');found.push({role:'hub',path:file,sha256:hash(b),lineagePath,lineageSha256:hash(fs.readFileSync(lineagePath))});}need(found.length===1,'HUB_RECEIPT');receipts.push(found[0]);}
-  const value={schemaVersion:'melisa-p03-physical-candidate.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:seen.observedAt,processes:selected,receipts};const candidatePath=root+'\\MelisaERP-P03-candidate-'+crypto.randomBytes(16).toString('hex')+'.json';if(resumeCompletedCut42d0)recoveryWrites.add(candidatePath);const ref=await protectedWrite(candidatePath,jsonBytes(value));candidateRef=ref;return {ref,value};
+  const value={schemaVersion:'melisa-p03-physical-candidate.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:seen.observedAt,processes:selected,receipts};if(readOnly){need(selected.length===0&&receipts.length===0,'CURRENT_B007_POSTCAS_NOT_ZERO');return {value};}const candidatePath=root+'\\MelisaERP-P03-candidate-'+crypto.randomBytes(16).toString('hex')+'.json';if(resumeCompletedCut42d0)recoveryWrites.add(candidatePath);const ref=await protectedWrite(candidatePath,jsonBytes(value));candidateRef=ref;return {ref,value};
  }
  async function observeNew(ref,leaf){
   await guard();const proof=await invoke(frozen.newObserver,['-PolicyGeneration','CurrentB007ObserveOnly','-Mode','Observe',...common,'-CandidatePath',ref.path,'-CandidateSha256',ref.sha256,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-SourceObserverPath',frozen.observer.path,'-SourceObserverSha256',frozen.observer.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256],{timeout:900000});
@@ -882,6 +888,25 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
    'event-0002.json':'9b729821da2461174532b51bd1fb467216d12b4710c2b56a04c5be5ed59d9aef',
    'io-failure-diagnostic.json':'ae1d923a995992c5f79b3c199fad8cc3ca99037dbf1a740418aef3d0c5a41b9c',
   };
+  if(resumeCompletedCut42d0PostCas)Object.assign(hashes,{
+   'completed-cut-recovery-intent.json':'be80fc9de56013c5d147fff746678aa92f57b941f377a0d29833706bb4865764',
+   'completed-cut-recovery-result.json':'7b85fb2f4b4017de936bbbd772f03f3a7a9d521d8ba584fc4ddcf167d761fd3d',
+   'successor-core-probe-drain.json':'5aa1a47e5a5bd6cb8f09c008fa54f62ca3bf46372c7c4a14fa48574cdd5cacaa',
+   'completed-cut-recovery-stop-hub-intent.json':'c8e383b77d49d62df0730ad91fa3c880f347b57a6f5182d5f998f1a7181d9c26',
+   'completed-cut-recovery-stop-hub-result.json':'3e7d879592e7cf69f8deede2688cb9e91b769f3683a835a8b99fe8e950d26506',
+   'completed-cut-recovery-stop-crmServer-intent.json':'3b761a437d840bd6ba5fa1208a56c9bb3d0c13330b472c3f9f512cd207017843',
+   'completed-cut-recovery-stop-crmServer-result.json':'1862a722a7935325cc488262ffc688b484bb543f4dc0ae8899f9ef0cf82c0cf2',
+   'completed-cut-recovery-stop-crmOrders-intent.json':'a87d700a86e54f8a30c9a1df95fd5bb7a5c76913ddbff8bfa7b995600a30cc14',
+   'completed-cut-recovery-stop-crmOrders-result.json':'000482b96279f7d2f0c378b0000f304ba366a89e2506cc2cec7c9f0e9edb6815',
+   'completed-cut-recovery-stop-crmCatalog-intent.json':'d6ad045d590725ac65bbb5bbdb1318f56e1bb741da1ad88a580ee8216af1d7f2',
+   'completed-cut-recovery-stop-crmCatalog-result.json':'bcb583b7b5d623b5e1b9af9cd42cafdfd78cc7d2d5850c58352030177979df3d',
+   'completed-cut-recovery-stop-crmNativeOrder-intent.json':'215ea03cc8b85dab1294d6e68af6eba5e82e42ffa8fae33927df9a92227a5eec',
+   'completed-cut-recovery-stop-crmNativeOrder-result.json':'49b7b98f043cfe7e9b9bad6d81485ee669aac7b47bfe626b55c6dc8fb1ebcb7f',
+   'completed-cut-recovery-stop-erpApi-intent.json':'2a8968698adbbc5f7d8ad7fad7143e41cd665b027d7eea62e8c7ce8b088f7cf7',
+   'completed-cut-recovery-stop-erpApi-result.json':'3c3c6455eaa75f37fba5b12798dfa789844b3583665dc527f11e4ee5995763d4',
+   'completed-cut-recovery-stop-erpNative-intent.json':'a6213b554dd13cc7a3bb1e98a477ef808aa2b2081c29ee4a02141d2a6864d170',
+   'completed-cut-recovery-stop-erpNative-result.json':'7d50548e6fc30219154a440f3d179a8c982ead49b892011fb910346fde62de82',
+  });
   const refs=Object.fromEntries(Object.entries(hashes).map(([leaf,sha256])=>[leaf,{path:path.win32.join(transitionDir,leaf),sha256}]));
   completedCutPins.push(profileRef,beforeRef,...Object.values(refs));
   const original={engine:engineRef,helper:helperRef,...sources,oldCut:{path:path.win32.join(transitionDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'ebfbe596906e3c98951df085df4d84648152d581ac774353815cdfea3b3bd138'}};
@@ -890,22 +915,35 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   need(JSON.stringify(lock.profileRef)===JSON.stringify(profileRef)&&JSON.stringify(lock.beforeRef)===JSON.stringify(beforeRef)&&JSON.stringify(lock.currentPreCapture)===JSON.stringify(currentPreCapture)&&JSON.stringify(lock.rehearsalProofRef)===JSON.stringify(rehearsalProofRef)&&JSON.stringify(lock.successorClaimRef)===JSON.stringify(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim)&&JSON.stringify(lock.continuationRef)===JSON.stringify(refs['precut-continuation.json']),'CURRENT_B007_COMPLETED_CUT_LOCK');
   claimRef=PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim;claimBytes=pin(claimRef);continuationRef=refs['precut-continuation.json'];snapshotRef=refs['successor-precut-admission.json'];transitionCreated=true;cutAttempted=true;
   eventRefs.push(refs['event-0000.json'],refs['event-0001.json'],refs['event-0002.json']);
-  const intentPath=path.win32.join(transitionDir,'completed-cut-recovery-intent.json'),resultPath=path.win32.join(transitionDir,'completed-cut-recovery-result.json');
+  const roles=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative'];
+  const stem=resumeCompletedCut42d0PostCas?'completed-cut-postcas-recovery':'completed-cut-recovery';
+  const intentPath=path.win32.join(transitionDir,stem+'-intent.json'),resultPath=path.win32.join(transitionDir,stem+'-result.json');
   need(!fs.existsSync(intentPath)&&!fs.existsSync(resultPath)&&fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_COMPLETED_CUT_ALREADY_ATTEMPTED');
+  if(resumeCompletedCut42d0PostCas){
+   const first=read(refs['completed-cut-recovery-intent.json']),failed=read(refs['completed-cut-recovery-result.json']),drain=read(refs['successor-core-probe-drain.json']);
+   need(exactKeys(first,['schemaVersion','mode','runId','profileRef','beforeRef','claimRef','cutRef','failureTailRef','workerRef'])&&first.schemaVersion==='melisa-p03-current-b007-completed-cut-recovery.v1'&&first.mode==='ROLLBACK_OLD_ONLY'&&first.runId===runId&&sameRecoveryRef(first.profileRef,profileRef)&&sameRecoveryRef(first.beforeRef,beforeRef)&&sameRecoveryRef(first.claimRef,claimRef)&&sameRecoveryRef(first.cutRef,refs['successor-core-cut-completed.json'])&&sameRecoveryRef(first.failureTailRef,refs['event-0002.json'])&&sameRecoveryRef(first.workerRef,frozen.oldCut),'CURRENT_B007_POSTCAS_FIRST_INTENT');
+   need(exactKeys(failed,['status','reason','recoveryOnly','newGenerationStarted'])&&failed.status==='QUARANTINED_REQUIRES_ROOT_INSPECTION'&&failed.reason==='B264_SOURCE_ACL'&&failed.recoveryOnly===true&&failed.newGenerationStarted===false,'CURRENT_B007_POSTCAS_FIRST_RESULT');
+   need(drain.event==='B264_OLD_OWNER_CORE_PROBES_ABSENT'&&drain.profileSha256===profileRef.sha256&&drain.beforeSha256===beforeRef.sha256&&sameRecoveryRef(drain.cutWitness,refs['successor-core-cut-completed.json'])&&Array.isArray(drain.consolePins)&&Array.isArray(drain.probePins),'CURRENT_B007_POSTCAS_DRAIN');
+   for(const role of roles){const intent=read(refs['completed-cut-recovery-stop-'+role+'-intent.json']),result=read(refs['completed-cut-recovery-stop-'+role+'-result.json']);need(exactKeys(intent,['role','identity','alreadyAbsent','cutRef'])&&intent.role===role&&JSON.stringify(intent.identity)===JSON.stringify(before.identities[role])&&intent.alreadyAbsent===(role!=='hub')&&sameRecoveryRef(intent.cutRef,refs['successor-core-cut-completed.json'])&&exactKeys(result,['role','result'])&&result.role===role&&result.result===(role==='hub'?'EXACT_OBSERVED_PROCESS_STOPPED':'ALREADY_GONE'),'CURRENT_B007_POSTCAS_STOP_PROOF');}
+   cut={cutWitness:refs['successor-core-cut-completed.json'],drainWitness:refs['successor-core-probe-drain.json']};
+  }
   const nativeArgs=action=>['-PolicyGeneration','CurrentB007InspectOnly','-Mode',action,'-WorkerSourceSha256',frozen.oldCut.sha256,...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256,'-ClaimPath',claimRef.path,'-ClaimSha256',claimRef.sha256,'-AdmittedSnapshotPath',snapshotRef.path,'-AdmittedSnapshotSha256',snapshotRef.sha256,'-RootIntentPath',refs['b264-old-owner-cut-intent.json'].path,'-RootIntentSha256',refs['b264-old-owner-cut-intent.json'].sha256,'-ContinuationPath',continuationRef.path,'-ContinuationSha256',continuationRef.sha256];
   completedCutNativeArgs=nativeArgs;
   await guard();need(await ps('[Security.Principal.WindowsIdentity]::GetCurrent().User.Value',psTransport)===owner,'CALLER');
-  const checked=await invoke(frozen.oldCut,nativeArgs('ResumeDrainDryRun'),{timeout:900000});
-  need(checked.status==='B264_COMPLETED_CUT_RESUME_DRY_RUN'&&checked.mutationExecuted===false&&checked.coreAbsent===true&&checked.watchersAbsent===true&&checked.probesAbsent===true&&Number.isSafeInteger(checked.remainingOldRoles)&&checked.remainingOldRoles>=0&&checked.remainingOldRoles<=7&&sameRecoveryRef(checked.cutWitness,refs['successor-core-cut-completed.json']),'CURRENT_B007_COMPLETED_CUT_FRESH');
+  let remainingOldRoles=0;
+  if(resumeCompletedCut42d0PostCas){need(await taskState('new'),'CURRENT_B007_POSTCAS_TASKS');await captureCandidate({readOnly:true});}else{
+   const checked=await invoke(frozen.oldCut,nativeArgs('ResumeDrainDryRun'),{timeout:900000});
+   need(checked.status==='B264_COMPLETED_CUT_RESUME_DRY_RUN'&&checked.mutationExecuted===false&&checked.coreAbsent===true&&checked.watchersAbsent===true&&checked.probesAbsent===true&&Number.isSafeInteger(checked.remainingOldRoles)&&checked.remainingOldRoles>=0&&checked.remainingOldRoles<=7&&sameRecoveryRef(checked.cutWitness,refs['successor-core-cut-completed.json']),'CURRENT_B007_COMPLETED_CUT_FRESH');remainingOldRoles=checked.remainingOldRoles;
+  }
   await guard();const observation=JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup),psTransport));
   need(observation.server==='Semih\\MELISADEV'&&observation.database===currentDatabase&&observation.copyId===currentCopy&&observation.actualT1===false&&observation.sealed===true&&observation.readOnly===true&&JSON.stringify(observation.snapshotRef)===JSON.stringify(currentPreCapture.snapshotRef)&&observation.backupSetGuid.toLowerCase()===sourcePre.backup.backupSetGuid.toLowerCase()&&Number.isFinite(Date.parse(observation.observedAt))&&Date.now()-Date.parse(observation.observedAt)>=0&&Date.now()-Date.parse(observation.observedAt)<60000,'CURRENT_B007_COMPLETED_CUT_DB_SCOPE');
-  if(mode==='DryRun')return {status:'CURRENT_B007_COMPLETED_CUT_RECOVERY_DRY_RUN',recoveryOnly:true,applyExecuted:false,claimCreated:false,newGenerationStarted:false,remainingOldRoles:checked.remainingOldRoles};
-  const roles=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative'];
+  if(mode==='DryRun')return {status:resumeCompletedCut42d0PostCas?'CURRENT_B007_POSTCAS_RECOVERY_DRY_RUN':'CURRENT_B007_COMPLETED_CUT_RECOVERY_DRY_RUN',recoveryOnly:true,applyExecuted:false,claimCreated:false,newGenerationStarted:false,remainingOldRoles};
   recoveryWrites.add(intentPath);recoveryWrites.add(resultPath);recoveryWrites.add(path.win32.join(transitionDir,'rollback-result.json'));
-  for(const role of roles)for(const kind of ['intent','result'])recoveryWrites.add(path.win32.join(transitionDir,'completed-cut-recovery-stop-'+role+'-'+kind+'.json'));
+  if(!resumeCompletedCut42d0PostCas)for(const role of roles)for(const kind of ['intent','result'])recoveryWrites.add(path.win32.join(transitionDir,'completed-cut-recovery-stop-'+role+'-'+kind+'.json'));
   // CreateNew is the one-shot boundary. No restart or retry after any error.
-  await protectedWrite(intentPath,jsonBytes({schemaVersion:'melisa-p03-current-b007-completed-cut-recovery.v1',mode:'ROLLBACK_OLD_ONLY',runId,profileRef,beforeRef,claimRef,cutRef:refs['successor-core-cut-completed.json'],failureTailRef:refs['event-0002.json'],workerRef:frozen.oldCut}));
+  await protectedWrite(intentPath,jsonBytes(resumeCompletedCut42d0PostCas?{schemaVersion:'melisa-p03-current-b007-postcas-recovery.v1',mode:'ROLLBACK_OLD_ONLY',runId,profileRef,beforeRef,firstIntentRef:refs['completed-cut-recovery-intent.json'],firstResultRef:refs['completed-cut-recovery-result.json'],drainRef:refs['successor-core-probe-drain.json']}:{schemaVersion:'melisa-p03-current-b007-completed-cut-recovery.v1',mode:'ROLLBACK_OLD_ONLY',runId,profileRef,beforeRef,claimRef,cutRef:refs['successor-core-cut-completed.json'],failureTailRef:refs['event-0002.json'],workerRef:frozen.oldCut}));
   try{
+   if(!resumeCompletedCut42d0PostCas){
    cut=await invoke(frozen.oldCut,nativeArgs('ResumeDrain'),{timeout:900000});
    need(cut.status==='B264_OLD_OWNER_CORE_DRAINED'&&cut.heldCoreExited===true&&cut.comStopped===true&&['COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED'].includes(cut.coreStopResult)&&sameRecoveryRef(cut.cutWitness,refs['successor-core-cut-completed.json'])&&cut.drainWitness?.path===path.win32.join(transitionDir,'successor-core-probe-drain.json')&&typedRef(cut.drainWitness),'CURRENT_B007_COMPLETED_CUT_DRAIN');
    recoveryAppendPins.push(cut.drainWitness);await guard();need(await stopped(),'CURRENT_B007_COMPLETED_CUT_TASKS');
@@ -915,15 +953,21 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
     let result='ALREADY_GONE';if(actual){await guard();const latest=await physical();validateOldSubset(latest);need(sameIdentity(latest.processes.find(p=>p.pid===saved.pid),saved),'CURRENT_B007_STOP_UID');const proof={pid:saved.pid,parentPid:saved.parentPid,nodePath:saved.nodePath,ownerSid:saved.ownerSid,commandLine:saved.commandLine,creationTime:saved.creationTime.replace(/(\.\d{6})0Z$/,'$1Z')};result=await invoke(profile.stopper,['-ExpectedJsonBase64',Buffer.from(JSON.stringify(proof)).toString('base64')],{text:true});need(['ALREADY_GONE','EXACT_OBSERVED_PROCESS_STOPPED'].includes(result),'CURRENT_B007_STOP_RESULT');}
     need(!(await physical()).processes.some(p=>p.pid===saved.pid),'CURRENT_B007_PRESTART_REMAINS');await protectedWrite(path.win32.join(transitionDir,'completed-cut-recovery-stop-'+role+'-result.json'),jsonBytes({role,result}));
    }
-   await guard();need(await empty(),'CURRENT_B007_PRESTART_NOT_EMPTY');for(const name of names)await changeAction(name,'new');const zero=await captureCandidate();const result=await finishRollback(zero.ref);
+   await guard();need(await empty(),'CURRENT_B007_PRESTART_NOT_EMPTY');for(const name of names)await changeAction(name,'new');
+   }else{await guard();need(await taskState('new')&&await empty(),'CURRENT_B007_POSTCAS_NOT_EMPTY');}
+   const zero=await captureCandidate();const result=await finishRollback(zero.ref);
    await protectedWrite(resultPath,jsonBytes({status:'RECOVERED_OLD_READY',recoveryOnly:true,newGenerationStarted:false,rollbackResult:result}));return {...result,status:'RECOVERED_OLD_READY',recoveryOnly:true,newGenerationStarted:false};
-  }catch(error){const reason=heldCoreReason(error);try{await protectedWrite(resultPath,jsonBytes({status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',reason,recoveryOnly:true,newGenerationStarted:false}));}catch{}return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',recoveryOnly:true,newGenerationStarted:false,recoveryReason:reason,applyExecuted:true,transitionDirectory:transitionDir,successorClaimRef:claimRef,humanAcceptance:'BEKLİYOR'};}
+  }catch(error){const reason=heldCoreReason(error),diagnostic=error?.p03WorkerDiagnostic?{workerDiagnostic:error.p03WorkerDiagnostic}:{};try{await protectedWrite(resultPath,jsonBytes({status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',reason,recoveryOnly:true,newGenerationStarted:false,...diagnostic}));}catch{}return {status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',recoveryOnly:true,newGenerationStarted:false,recoveryReason:reason,applyExecuted:true,transitionDirectory:transitionDir,successorClaimRef:claimRef,humanAcceptance:'BEKLİYOR',...diagnostic};}
  }
  let heldCoreFailure=null;
  function heldCoreReason(error){
   const allowed=/^(?:P03_(?:PHYSICAL|CURRENT_B007|SHARED_CURRENT_B007|B264)_[A-Z0-9][A-Z0-9_]*|B264_SOURCE_(?:ACL|HASH|ARGS))$/;
-  for(const text of [String(error?.stderr??''),String(error?.message??'')])for(const token of text.replace(/_x000D_|_x000A_/g,'\n').matchAll(/[^\s"'`<>()[\]{},;]+/gu))if(token[0].length<=180&&allowed.test(token[0]))return token[0];
-  return pr54SafeFailure(error);
+  const message=String(error?.message??'').trim();if(message.length<=180&&allowed.test(message))return message;
+  // execFile messages echo the entire command, including dormant throw literals.
+  // Only error output carries native codes; never mine the echoed command text.
+  for(const line of String(error?.stderr??'').replace(/_x000D_|_x000A_/g,'\n').split(/\r?\n/)){const token=line.trim().replace(/^PowerShell error:\s*/,'');if(token.length<=180&&allowed.test(token))return token;}
+  if(error?.killed===true||error?.signal)return 'P03_SHARED_CURRENT_B007_WORKER_INTERRUPTED';
+  return pr54SafeFailure({message:message.length<=180&&!/^Command failed:/i.test(message)?message:'',code:error?.code});
  }
  const callbacks={plan:before.plan,
   admit:async()=>{await guard();need(fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_JOURNAL_ADVANCED');return {owner:true,oldHealthy:true,oldActions:true,emptyJournal:true};},persist,

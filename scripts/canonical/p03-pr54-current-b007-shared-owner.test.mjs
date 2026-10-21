@@ -33,6 +33,7 @@ const pins=Object.fromEntries([...source.slice(source.indexOf('const currentB007
 const same=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','commandLine','creationTime'].every(k=>a[k]===b[k]);
 const exact=(x,keys)=>!!x&&Object.keys(x).sort().join('|')===keys.toSorted().join('|');
 function fixture(options={}){
+ if(options.postcas)options={...options,recovery:true};
  if(options.recovery)options={...options,retry:true};
  const sid=options.recovery?'42d0d0536cb115cc4aea43ff1f13afbf':'a'.repeat(32),transition=root+'\\MelisaERP-P03-transition-'+sid;
  const isResume=options.resume||options.retry;
@@ -146,7 +147,7 @@ function fixture(options={}){
  async function ps(code,transport){assert.deepEqual(transport,options.recovery?{plainCommandOnly:true}:undefined);programs.push(code);
   if(code==='ABSENCE_CHECK')return 'EMPTY';
   if(code.includes('::GetCurrent().User.Value')&&!code.includes('Get-Acl'))return owner;
-  if(code.includes('log_end_lsn')){if(options.recovery){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:ResumeDrainDryRun'));assert(!files.has(transition+'\\completed-cut-recovery-intent.json'));}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
+  if(code.includes('log_end_lsn')){if(options.recovery){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:'+(options.postcas?'ResumeDrainCheck':'ResumeDrainDryRun')));assert.equal(files.has(transition+'\\completed-cut-recovery-intent.json'),!!options.postcas);}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
   if(code.includes('RegisterTask(')){const n=code.includes("GetTask('"+names[0]+"')")?0:1;taskXml[n]=code.includes(Buffer.from(tasks[n].newXml).toString('base64'))?tasks[n].newXml:tasks[n].oldXml;return 'SET';}
   if(code.includes("'STARTED'")){phase='new';running=true;rows=rules.map((r,n)=>({...identity(r.role,100+n),commandLine:r.commandLine,bindings:n<8?[{port:4184+n,address:'127.0.0.1'}]:[]}));const hubPath=String.raw`C:\Sirket\ERP\runtime\terminal-completion-logon\hub-web\hub-web-process-`+'d'.repeat(32)+'-0.json';put(hubPath,{pid:rows.find(p=>p.role==='hub').pid});put(hubPath.replace('hub-web-process-','hub-web-lineage-'),{lineage:true});return 'STARTED';}
   if(code.includes('CreateDirectory')){directories.add(transition);return 'CREATED';}
@@ -180,6 +181,27 @@ function fixture(options={}){
   put(control+'\\p03-pr54-current-b007-precut-cut.ps1',Buffer.from('new recovery worker'),'213835b02b8eb367bbb6858a76cfcd36e46103bac960843d04bde3c971d703b7');
   if(options.recoveryAdvanced)put(transition+'\\unexpected.json',{unknown:true});
   if(options.recoveryUsed)put(transition+'\\completed-cut-recovery-intent.json',{used:true});
+  if(options.postcas){
+   input.resumeCompletedCut42d0PostCas=true;rows=[];taskXml=tasks.map(t=>t.newXml);
+   const fixed=new Function('return ('+body.match(/if\(resumeCompletedCut42d0PostCas\)Object.assign\(hashes,(\{[\s\S]*?\n  \})\);/)[1]+');')();
+   for(const [leaf,sha]of Object.entries(fixed))put(transition+'\\'+leaf,{fixturePostcasPin:true},sha);
+   put(transition+'\\completed-cut-recovery-intent.json',{schemaVersion:'melisa-p03-current-b007-completed-cut-recovery.v1',mode:'ROLLBACK_OLD_ONLY',runId:sid,profileRef,beforeRef,claimRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim,cutRef:files.get(transition+'\\successor-core-cut-completed.json').ref,failureTailRef:files.get(transition+'\\event-0002.json').ref,workerRef:files.get(control+'\\p03-pr54-current-b007-precut-cut.ps1').ref},fixed['completed-cut-recovery-intent.json']);
+   put(transition+'\\completed-cut-recovery-result.json',{status:'QUARANTINED_REQUIRES_ROOT_INSPECTION',reason:'B264_SOURCE_ACL',recoveryOnly:true,newGenerationStarted:false},fixed['completed-cut-recovery-result.json']);
+   put(transition+'\\successor-core-probe-drain.json',{event:'B264_OLD_OWNER_CORE_PROBES_ABSENT',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,cutWitness:files.get(transition+'\\successor-core-cut-completed.json').ref,consolePins:[],probePins:[]},fixed['successor-core-probe-drain.json']);
+   for(const role of ['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative']){
+    put(transition+'\\completed-cut-recovery-stop-'+role+'-intent.json',{role,identity:identities[role],alreadyAbsent:role!=='hub',cutRef:files.get(transition+'\\successor-core-cut-completed.json').ref},fixed['completed-cut-recovery-stop-'+role+'-intent.json']);
+    put(transition+'\\completed-cut-recovery-stop-'+role+'-result.json',{role,result:role==='hub'?'EXACT_OBSERVED_PROCESS_STOPPED':'ALREADY_GONE'},fixed['completed-cut-recovery-stop-'+role+'-result.json']);
+   }
+   if(options.postcasOldAction)taskXml[0]=tasks[0].oldXml;
+   if(options.postcasRunning){running=true;}
+   if(options.postcasLiveRole)rows=[identities.hub];
+   if(options.postcasUsed)put(transition+'\\completed-cut-postcas-recovery-intent.json',{used:true});
+   if(options.postcasJournal)put(profile.journalDirectory+'\\event-0000.json',{advanced:true});
+   if(options.postcasWrongStop){const leaf='completed-cut-recovery-stop-hub-result.json';put(transition+'\\'+leaf,{role:'hub',result:'ALREADY_GONE'},fixed[leaf]);}
+   if(options.postcasWrongResult){const leaf='completed-cut-recovery-result.json';put(transition+'\\'+leaf,{status:'RECOVERED_OLD_READY',reason:'B264_SOURCE_ACL',recoveryOnly:true,newGenerationStarted:false},fixed[leaf]);}
+   if(options.postcasChangedPin)put(transition+'\\completed-cut-recovery-stop-hub-result.json',{changed:true});
+   if(options.postcasWorkerError){const old=env.run;env.run=async(...args)=>{const request=args[1];if(path.win32.basename(request.ref.path)==='p03-physical-rollback-lifetime-v2.ps1')throw options.postcasWorkerError;return old(...args);};}
+  }
  }
  const fn=new Function('env',`const {${Object.keys(env).join(',')}}=env;return (${body});`)(env);
  if(options.missingSource)files.delete(control+'\\'+pins.emptyRecovery[0]);
@@ -231,7 +253,7 @@ test('each completed42d0 empty boundary rechecks only4900 historical epoch and r
  const raw=fixture({recovery:true,recoveryRawUnknown:true}),blocked=await raw.fn({...raw.input,mode:'Apply'});assert.equal(blocked.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(raw.stops,0);assert(!raw.calls.some(c=>c.endsWith(':StopNew')));
 });
 test('completed42d0 recovery retains the first bounded digit-bearing native reason without raw stderr or TDZ',async()=>{
- const secret='PRIVATE_PATH_AND_ARGV_PAYLOAD',error=Object.assign(Error(secret),{stderr:secret+' P03_PHYSICAL_COMPLETED42_AUX_CAS\n'+secret}),f=fixture({recovery:true,recoveryCheckError:error}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.recoveryReason,'P03_PHYSICAL_COMPLETED42_AUX_CAS');assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert(!JSON.stringify(r).includes(secret));const saved=JSON.parse(f.files.get(root+'\\MelisaERP-P03-transition-42d0d0536cb115cc4aea43ff1f13afbf\\completed-cut-recovery-result.json').bytes);assert.equal(saved.reason,r.recoveryReason);assert(!JSON.stringify(saved).includes(secret));
+ const secret='PRIVATE_PATH_AND_ARGV_PAYLOAD',error=Object.assign(Error(secret),{stderr:secret+'\nP03_PHYSICAL_COMPLETED42_AUX_CAS\n'+secret}),f=fixture({recovery:true,recoveryCheckError:error}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.recoveryReason,'P03_PHYSICAL_COMPLETED42_AUX_CAS');assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert(!JSON.stringify(r).includes(secret));const saved=JSON.parse(f.files.get(root+'\\MelisaERP-P03-transition-42d0d0536cb115cc4aea43ff1f13afbf\\completed-cut-recovery-result.json').bytes);assert.equal(saved.reason,r.recoveryReason);assert(!JSON.stringify(saved).includes(secret));
 });
 test('exact9d2 retry modeled dry-run writes nothing and successful handoff preserves both histories and same452 claim',async()=>{
  const dry=fixture({retry:true}),d=await dry.fn(dry.input);assert.equal(d.status,'CURRENT_B007_DRY_RUN_ONLY');assert.equal(dry.writes.length,0);assert.equal(dry.stops,0);
@@ -342,6 +364,28 @@ test('CurrentB007 dispatcher is finite, seven-package and same reviewed engine w
 test('CurrentB007 persistent protected console survives post-cut raw coverage and empty-owned test without becoming a stop target',async()=>{const f=fixture({protectedConsole:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'COMPLETE',JSON.stringify({r,diagnostic:JSON.parse(f.files.get(transition+'\\io-failure-diagnostic.json')?.bytes??'null')}));assert.equal(f.stops,8);assert.equal(f.events.at(-1).event,'COMPLETE');});
 
 test('CurrentB007 post-cut readonly witness rejects live child or protected-parent identity drift without stopping either',async()=>{for(const option of ['protectedDrift','protectedParentDrift']){const f=fixture({protectedConsole:true,[option]:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(r.unprovenPartialRecoveryGranted,false);assert.equal(f.stops,1);assert(!f.events.some(e=>e.event==='COMPLETE'));}});
+
+test('postCAS42d0 DryRun executes exact zero-candidate prerequisites without writes or a second drain',async()=>{
+ const f=fixture({postcas:true}),original=new Map([...f.files].map(([p,v])=>[p,Buffer.from(v.bytes)])),r=await f.fn(f.input);
+ assert.equal(r.status,'CURRENT_B007_POSTCAS_RECOVERY_DRY_RUN');assert.equal(r.remainingOldRoles,0);assert.equal(f.writes.length,0);assert.equal(f.stops,0);assert(f.calls.some(c=>c.endsWith(':ResumeDrainCheck')));assert(f.calls.filter(c=>c==='p03-physical-recovery-observe.ps1:').length>=3);assert(!f.calls.some(c=>c.endsWith(':ResumeDrain')||c.endsWith(':ResumeDrainDryRun')||c.endsWith(':StopNew')));for(const [p,b]of original)assert(f.files.get(p).bytes.equals(b));
+});
+
+test('postCAS42d0 uses a distinct one-shot intent, keeps original recovery proof and restores OLD only',async()=>{
+ const f=fixture({postcas:true}),original=new Map([...f.files].map(([p,v])=>[p,Buffer.from(v.bytes)])),r=await f.fn({...f.input,mode:'Apply'});
+ assert.equal(r.status,'RECOVERED_OLD_READY',JSON.stringify(r));assert.equal(r.newGenerationStarted,false);assert.equal(f.stops,0);assert.equal(f.calls.filter(c=>c.endsWith(':StopNew')).length,1);assert.equal(f.calls.filter(c=>c.endsWith(':RollbackOld')).length,1);assert(!f.calls.some(c=>c.endsWith(':ResumeDrain')||c.endsWith(':ResumeDrainDryRun')));assert(!f.programs.some(p=>p.includes('RegisterTask(')||p.includes("'STARTED'")));for(const [p,b]of original)assert(f.files.get(p).bytes.equals(b));assert.equal(f.writes.filter(p=>p.endsWith('completed-cut-postcas-recovery-intent.json')).length,1);assert.equal(f.writes.filter(p=>p.endsWith('completed-cut-postcas-recovery-result.json')).length,1);await assert.rejects(f.fn({...f.input,mode:'Apply'}),/ALREADY_ATTEMPTED|COMPLETED_CUT_SCOPE/);
+});
+
+test('postCAS42d0 refuses stale scope, old actions, live roles, advanced journals and wrong stop evidence before writing',async()=>{
+ for(const option of ['postcasOldAction','postcasRunning','postcasLiveRole','postcasUsed','postcasJournal','postcasWrongStop','postcasWrongResult','postcasChangedPin','recoveryDbDrift','rejectRecoveryCheck','recoveryAdvanced']){const f=fixture({postcas:true,[option]:true});await assert.rejects(f.fn({...f.input,mode:'Apply'}),undefined,option);assert.equal(f.writes.length,0,option);assert.equal(f.stops,0,option);assert(!f.calls.some(c=>c.endsWith(':StopNew')),option);}
+ const f=fixture({postcas:true});await assert.rejects(f.fn({...f.input,resumeCompletedCut42d0:false}),/POSTCAS_MODE/);assert.equal(f.writes.length,0);
+ const missing=fixture({postcas:true});missing.files.delete(root+'\\MelisaERP-P03-transition-42d0d0536cb115cc4aea43ff1f13afbf\\completed-cut-recovery-stop-hub-result.json');await assert.rejects(missing.fn({...missing.input,mode:'Apply'}));assert.equal(missing.writes.length,0);
+});
+
+test('postCAS42d0 error diagnostics ignore echoed guard literals and retain bounded transport metadata',async()=>{
+ const secret='PRIVATE_COMMAND_PAYLOAD',error=Object.assign(Error("Command failed: "+secret+";throw 'B264_SOURCE_ACL';throw 'P03_PHYSICAL_FAKE'"),{code:'ETIMEDOUT',killed:true,signal:'SIGTERM',stderr:secret+";throw 'B264_SOURCE_ACL'"}),f=fixture({postcas:true,postcasWorkerError:error}),r=await f.fn({...f.input,mode:'Apply'});
+ assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(r.recoveryReason,'P03_SHARED_CURRENT_B007_WORKER_INTERRUPTED');assert.deepEqual(Object.keys(r.workerDiagnostic).sort(),['action','elapsedMs','errno','exitCode','killed','signal','stderrSha256','workerLeaf'].sort());assert.equal(r.workerDiagnostic.workerLeaf,'p03-physical-rollback-lifetime-v2.ps1');assert.equal(r.workerDiagnostic.action,'StopNew');assert.equal(r.workerDiagnostic.errno,'ETIMEDOUT');assert.equal(r.workerDiagnostic.killed,true);assert.equal(r.workerDiagnostic.stderrSha256,hash(Buffer.from(error.stderr)));assert(!JSON.stringify(r).includes(secret));assert(!f.writes.some(p=>p.endsWith('completed-cut-recovery-result.json')));await assert.rejects(f.fn({...f.input,mode:'Apply'}));
+ const echoed=Object.assign(Error("Command failed: throw 'B264_SOURCE_ACL';throw 'P03_PHYSICAL_FAKE'"),{code:'ETIMEDOUT',stderr:"At line:1 char:1\n+throw 'B264_SOURCE_ACL';throw 'P03_PHYSICAL_FAKE'"}),other=fixture({postcas:true,postcasWorkerError:echoed}),rejected=await other.fn({...other.input,mode:'Apply'});assert.equal(rejected.recoveryReason,'ETIMEDOUT');assert.equal(rejected.workerDiagnostic.killed,false);assert.equal(rejected.workerDiagnostic.errno,'ETIMEDOUT');
+});
 
 test('completed42d0 native reference key order is irrelevant while exact shape path and hash remain mandatory',async()=>{for(const mode of ['DryRun','Apply']){const f=fixture({recovery:true,recoveryReverseRefs:true}),r=await f.fn({...f.input,mode});assert.equal(r.status,mode==='DryRun'?'CURRENT_B007_COMPLETED_CUT_RECOVERY_DRY_RUN':'RECOVERED_OLD_READY');}for(const recoveryWrongRef of ['hash','path','extra','missing']){const f=fixture({recovery:true,recoveryWrongRef});await assert.rejects(f.fn({...f.input,mode:'Apply'}),/COMPLETED_CUT_FRESH/);assert.equal(f.writes.length,0);assert.equal(f.stops,0);}});
 
