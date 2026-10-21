@@ -17,7 +17,7 @@ param(
 # Explicit new-generation readback only. No engine dispatcher is executed.
 if($PolicyGeneration -cnotin @('Legacy','B264ObserveOnly','B264Sup20DObserveOnly','CurrentB007ObserveOnly')){throw 'P03_B264_NEW_POLICY'}
 if($PolicyGeneration -cin @('B264ObserveOnly','B264Sup20DObserveOnly','CurrentB007ObserveOnly')){
- if($Mode -cnotin @('DryRun','Observe') -or $EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $SourceObserverSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){'5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}else{'5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5'}) -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'b6566e3505af505fb6e0b8d47d6227cf5277d527014db9a8f034093285783486'}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'}) -or [string]::IsNullOrEmpty($DrainerPath)){throw 'P03_B264_NEW_SOURCE'}
+ if($Mode -cnotin @('DryRun','Observe') -or $EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $SourceObserverSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){'5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}else{'5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5'}) -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'}) -or [string]::IsNullOrEmpty($DrainerPath)){throw 'P03_B264_NEW_SOURCE'}
 }elseif($PSBoundParameters.ContainsKey('DrainerPath') -or $PSBoundParameters.ContainsKey('DrainerSha256')){throw 'P03_B264_NEW_DRAINER_SCOPE'}
 if($PolicyGeneration -ceq 'CurrentB007ObserveOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-[a-f0-9]{32}\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 # Separate read-only NEW observation. The frozen engine is imported only as
@@ -61,7 +61,7 @@ ImportNewObserverFunctions (NewObserverPin $RecoveryHelperPath $RecoveryHelperSh
 ImportSharedObserverFunctions (NewObserverPin $SourceObserverPath $SourceObserverSha256)
 if($PolicyGeneration -cin @('B264ObserveOnly','B264Sup20DObserveOnly','CurrentB007ObserveOnly')){
  if(-not $DrainerPath.StartsWith($base+'\',[StringComparison]::Ordinal) -or [IO.Path]::GetFileName($DrainerPath) -cne 'p03-pr54-successor-core-drain.ps1'){throw 'P03_B264_NEW_DRAINER_PATH'}
- ImportNewObserverFunctions (NewObserverPin $DrainerPath $DrainerSha256) @($(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'AssertCurrentB007InspectionContract'}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){'AssertB264Sup20DInspectionContract'}else{'AssertB264InspectionContract'}))
+ ImportNewObserverFunctions (NewObserverPin $DrainerPath $DrainerSha256) @($(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'AssertCurrentB007StaticContract'}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){'AssertB264Sup20DInspectionContract'}else{'AssertB264InspectionContract'}))
 }
 $profile=Json (ReadPinned $ProfilePath $ProfileSha256);$before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
@@ -378,6 +378,66 @@ function NewAssertCandidateInventoryEquivalence{
  Need ($definition.Body.Extent.Text.Replace("`r`n","`n").Trim() -ceq $expected) 'NEW_CANDIDATE_INVENTORY_EQUIVALENCE'
 }
 function CandidateInventoryCore($evidence){return NewCandidateInventoryCore $evidence}
+function NewCurrentWitnessKeys($value,[string[]]$keys){Need ((@($value.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|')) 'CURRENT_NEW_WITNESS_KEYS'}
+function NewCurrentWitnessRef($ref,[string]$expectedPath){
+ NewCurrentWitnessKeys $ref @('path','sha256');Need ($ref.path -ceq $expectedPath -and $ref.sha256 -cmatch '\A[a-f0-9]{64}\z') 'CURRENT_NEW_WITNESS_REF'
+ return Json (ReadPinned $ref.path $ref.sha256)
+}
+function NewCurrentWitnessArtifact([string]$leaf){
+ Need ($leaf -cin @('transition.lock','successor-core-probe-drain.json','successor-core-cut-completed.json')) 'CURRENT_NEW_WITNESS_LEAF'
+ $path=Join-Path $dir $leaf;Protected $path;$sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();return [pscustomobject]@{ref=[pscustomobject]@{path=$path;sha256=$sha};value=(Json (ReadPinned $path $sha))}
+}
+function NewCurrentCutWitness{
+ Need ($PolicyGeneration -ceq 'CurrentB007ObserveOnly') 'CURRENT_NEW_WITNESS_POLICY'
+ $lock=(NewCurrentWitnessArtifact 'transition.lock').value
+ $keys=@('profileRef','beforeRef','currentPreCapture','rehearsalProofRef','successorClaimRef','sourceControlDir');if($lock.PSObject.Properties.Name -ccontains 'continuationRef'){$keys+=,'continuationRef'}
+ NewCurrentWitnessKeys $lock $keys
+ [void](NewCurrentWitnessRef $lock.profileRef $ProfilePath);Need ($lock.profileRef.sha256 -ceq $ProfileSha256) 'CURRENT_NEW_PROFILE_REF'
+ [void](NewCurrentWitnessRef $lock.beforeRef $BeforeImagePath);Need ($lock.beforeRef.sha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_BEFORE_REF'
+ $claimPath=$lock.successorClaimRef.path;Need ($claimPath -cin @((Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'))) 'CURRENT_NEW_CLAIM_PATH'
+ $claim=NewCurrentWitnessRef $lock.successorClaimRef $claimPath
+ Need ($claim.schemaVersion -ceq 'melisa-p03-current-b007-epoch-claim.v1' -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.newSettings.path -ceq $profile.newSettings.path -and $claim.newSettings.sha256 -ceq $profile.newSettings.sha256) 'CURRENT_NEW_CLAIM'
+ $retained=$false
+ if($lock.PSObject.Properties.Name -ccontains 'continuationRef'){
+  $context=NewCurrentWitnessRef $lock.continuationRef (Join-Path $dir 'precut-continuation.json')
+  $contextKeys=@('schemaVersion','retainedClaimRef','failureTailRef','profileRef','beforeRef','claimPath')
+  if($context.schemaVersion -cin @('melisa-p03-current-b007-precut-resume.v1','melisa-p03-current-b007-precut-retry.v1')){$contextKeys+=@('retainedProfileRef','retainedBeforeRef');$retained=$true}
+  NewCurrentWitnessKeys $context $contextKeys
+  Need ($context.claimPath -ceq $claimPath -and $context.profileRef.path -ceq $ProfilePath -and $context.profileRef.sha256 -ceq $ProfileSha256 -and $context.beforeRef.path -ceq $BeforeImagePath -and $context.beforeRef.sha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_CONTEXT'
+  [void](NewCurrentWitnessRef $context.profileRef $ProfilePath);[void](NewCurrentWitnessRef $context.beforeRef $BeforeImagePath)
+  if($retained){
+   Need ($lock.successorClaimRef.sha256 -ceq 'a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544' -and $context.retainedClaimRef.path -ceq $claimPath -and $context.retainedClaimRef.sha256 -ceq $lock.successorClaimRef.sha256 -and $context.retainedProfileRef.sha256 -ceq '4b808868f23ced8015aad4395a7c390017b374d3c23fe23d48fc6bf7f0397c39' -and $context.retainedBeforeRef.sha256 -ceq '23ae28bc8d01f644c9f56404c6b358bc57afec336bb82bb3ad19158f2bd11d3f' -and $claim.successorRunId -ceq '452054204a1857ff618b0dd30a59caea') 'CURRENT_NEW_RETAINED'
+   [void](NewCurrentWitnessRef $context.retainedClaimRef $claimPath);[void](NewCurrentWitnessRef $context.retainedProfileRef (Join-Path $base 'MelisaERP-P03-profile-452054204a1857ff618b0dd30a59caea.json'));[void](NewCurrentWitnessRef $context.retainedBeforeRef (Join-Path $base 'MelisaERP-P03-before-452054204a1857ff618b0dd30a59caea.json'))
+   $failedRun=if($context.schemaVersion -ceq 'melisa-p03-current-b007-precut-retry.v1'){'9d2e00d572acc83391a0a2e5ac28d046'}else{'452054204a1857ff618b0dd30a59caea'}
+   $failedSha=if($failedRun -ceq '9d2e00d572acc83391a0a2e5ac28d046'){'74d1c6dcdd5597935a9a8f2b814aef4e8167880bbc2c9ebea469d07f8f85af26'}else{'778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777'}
+  }else{
+   Need ($context.schemaVersion -ceq 'melisa-p03-current-b007-precut-continuation.v1' -and $context.retainedClaimRef.sha256 -ceq '3493a3538f95b72a5fa23823748b6dd947a5111f5dc4ba9b15015d6a91b9c408') 'CURRENT_NEW_CONTINUATION'
+   [void](NewCurrentWitnessRef $context.retainedClaimRef (Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'));$failedRun='cffba2988afcb49502ae73ddd797e966';$failedSha='87b537deb4eca741203055c35efb13ad6531e556d8c77a875d1e45d128583d82'
+  }
+  Need ($context.failureTailRef.sha256 -ceq $failedSha) 'CURRENT_NEW_FAILURE_TAIL';[void](NewCurrentWitnessRef $context.failureTailRef (Join-Path $base ('MelisaERP-P03-transition-'+$failedRun+'\event-0002.json')))
+ }
+ if(-not$retained){Need ($claim.successorRunId -ceq $runId -and $claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_CLAIM_REFS'}
+ $completed=NewCurrentWitnessArtifact 'successor-core-cut-completed.json';$cut=$completed.value
+ $drain=(NewCurrentWitnessArtifact 'successor-core-probe-drain.json').value
+ [void](NewCurrentWitnessRef $drain.cutWitness $completed.ref.path);Need ($drain.cutWitness.sha256 -ceq $completed.ref.sha256 -and $drain.event -ceq 'B264_OLD_OWNER_CORE_PROBES_ABSENT' -and $drain.profileSha256 -ceq $ProfileSha256 -and $drain.beforeSha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_DRAIN'
+ Need ($cut.event -ceq 'B264_OLD_OWNER_CORE_CUT_COMPLETED' -and $cut.profileSha256 -ceq $ProfileSha256 -and $cut.beforeSha256 -ceq $BeforeImageSha256 -and $cut.claimSha256 -ceq $lock.successorClaimRef.sha256 -and $cut.heldProcessHandle -ceq $true -and $cut.processAbsent -ceq $true -and $cut.mechanism -cin @('COM_STOP_NATURAL_EXIT','EXACT_OBSERVED_PROCESS_STOPPED')) 'CURRENT_NEW_CUT'
+ $intent=NewCurrentWitnessRef $cut.durableIntent (Join-Path $dir 'b264-old-owner-held-cut-intent.json')
+ Need ($intent.event -ceq 'B264_OLD_OWNER_CUT_INTENT' -and $intent.profileSha256 -ceq $ProfileSha256 -and $intent.beforeSha256 -ceq $BeforeImageSha256 -and $intent.claimSha256 -ceq $lock.successorClaimRef.sha256 -and $intent.heldProcessHandle -ceq $true -and $intent.windowOpenedAt -ceq $cut.windowOpenedAt) 'CURRENT_NEW_HELD_INTENT'
+ $rootRef=[pscustomobject]@{path=(Join-Path $dir 'b264-old-owner-cut-intent.json');sha256=$intent.rootIntentSha256};$rootIntent=NewCurrentWitnessRef $rootRef $rootRef.path
+ Need ($rootIntent.event -ceq 'B264_OLD_CUT_INTENT' -and $rootIntent.profileSha256 -ceq $ProfileSha256 -and $rootIntent.beforeSha256 -ceq $BeforeImageSha256 -and $rootIntent.claimSha256 -ceq $lock.successorClaimRef.sha256 -and $rootIntent.stopOrderDigest -ceq $claim.stopOrderDigest) 'CURRENT_NEW_ROOT_INTENT'
+ $snapshotRef=[pscustomobject]@{path=(Join-Path $dir 'successor-precut-admission.json');sha256=$intent.admittedSnapshotSha256};$snapshot=NewCurrentWitnessRef $snapshotRef $snapshotRef.path
+ Need ($snapshot.schemaVersion -ceq 'melisa-p03-successor-precut-admission.v1' -and $snapshot.profileSha256 -ceq $ProfileSha256 -and $snapshot.beforeSha256 -ceq $BeforeImageSha256 -and $snapshot.engineSha256 -ceq $engineSha -and $snapshot.recoveryHelperSha256 -ceq $RecoveryHelperSha256 -and @($snapshot.oldIdentities).Count -eq 8 -and @($snapshot.oldWatchers).Count -eq 2) 'CURRENT_NEW_SNAPSHOT'
+ $core=$before.identities.coreSupervisor
+ foreach($field in @('pid','parentPid','nodePath','ownerSid','commandLine','creationTime')){Need ($cut.core.$field -ceq $core.$field -and $intent.core.$field -ceq $core.$field) 'CURRENT_NEW_CORE_UID'}
+ foreach($role in @('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor')){$expected=$before.identities.$role;$rows=@($snapshot.oldIdentities|Where-Object{$_.pid -eq $expected.pid});Need ($rows.Count -eq 1) 'CURRENT_NEW_SNAPSHOT_UID';foreach($field in @('pid','parentPid','nodePath','ownerSid','commandLine','creationTime')){Need ($rows[0].$field -ceq $expected.$field) 'CURRENT_NEW_SNAPSHOT_UID'}}
+ foreach($w in $profile.oldWatchers){$rows=@($snapshot.oldWatchers|Where-Object{$_.pid -eq $w.pid});$com=@($intent.runningInstances|Where-Object{$_.pid -eq $w.pid});Need ($rows.Count -eq 1 -and $com.Count -eq 1 -and -not[string]::IsNullOrEmpty($com[0].guid)) 'CURRENT_NEW_WATCHER';foreach($field in @('pid','parentPid','nodePath','ownerSid','commandLine','creationTime')){Need ($rows[0].$field -ceq $w.$field) 'CURRENT_NEW_WATCHER_UID'}}
+ Need (@($intent.runningInstances).Count -eq 2 -and @($intent.tasks).Count -eq 2) 'CURRENT_NEW_COM_PROOF'
+ foreach($task in $profile.tasks){$matches=@($intent.tasks|Where-Object{$_.name -ceq $task.name});$instances=@($intent.runningInstances|Where-Object{$_.name -ceq $task.name});Need ($matches.Count -eq 1 -and $instances.Count -eq 1 -and $matches[0].oldXmlSha256 -ceq $task.oldXmlSha256 -and $matches[0].newXmlSha256 -ceq $task.newXmlSha256) 'CURRENT_NEW_TASK_PROOF'}
+ $opened=[DateTime]::Parse($cut.windowOpenedAt).ToUniversalTime();$done=[DateTime]::Parse($cut.cutCompletedAt).ToUniversalTime();$old=[DateTime]::Parse($before.observedAt).ToUniversalTime()
+ Need (($opened-$old).TotalSeconds -ge 0 -and ($opened-$old).TotalSeconds -lt 900 -and ($done-$opened).TotalSeconds -ge 0 -and ($done-$opened).TotalSeconds -lt 60 -and $done -le [DateTime]::UtcNow) 'CURRENT_NEW_CUT_WINDOW'
+ Need (($opened-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime()).TotalSeconds -ge 0 -and ($opened-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime()).TotalSeconds -lt 60 -and ($opened-[DateTime]::Parse($rootIntent.observedAt).ToUniversalTime()).TotalSeconds -ge 0 -and ($opened-[DateTime]::Parse($rootIntent.observedAt).ToUniversalTime()).TotalSeconds -lt 60 -and [DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime() -le [DateTime]::Parse($snapshot.observedAt).ToUniversalTime() -and [DateTime]::Parse($drain.observedAt).ToUniversalTime() -ge $done) 'CURRENT_NEW_ADMISSION_WINDOW'
+ $raw=NewRawInventory;ProtectedProcesses $raw;$oldPids=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{$_.pid});Need (@($raw.all|Where-Object{$_.ProcessId -in $oldPids}).Count -eq 0) 'CURRENT_NEW_OLD_PRESENT'
+}
 function NewAuthority{
  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($CandidatePath,$CandidateSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($SourceObserverPath,$SourceObserverSha256))){[void](ReadPinned $pin[0] $pin[1])}
  Need ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne '639e2da815e1e7ac0f1c0d04d7f7bdc3' -and $ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json')) -and $EnginePath -ceq (Join-Path $dir $(if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){'p03-physical-rollback-lifetime-v2.ps1'}else{'p03-physical-rollback.ps1'})) -and $RecoveryHelperPath -ceq (Join-Path $dir 'p03-pr54-paused-old-recover.ps1')) 'NEW_OBSERVER_PATH'
@@ -387,7 +447,7 @@ function NewAuthority{
  $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json')
  if($PolicyGeneration -cin @('B264ObserveOnly','B264Sup20DObserveOnly','CurrentB007ObserveOnly')){
   [void](ReadPinned $DrainerPath $DrainerSha256)
-  if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){AssertCurrentB007InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
+  if($PolicyGeneration -ceq 'CurrentB007ObserveOnly'){NewCurrentCutWitness;AssertCurrentB007StaticContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256}elseif($PolicyGeneration -ceq 'B264Sup20DObserveOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
  }elseif($currentReadRepair){
  Need ($runId-cne'7b0821959737f1da0427b17a7dfd4685'-and$before.oldConfig.sha256-ceq$profile.oldSettings.sha256-and$before.newConfig.sha256-ceq$profile.newSettings.sha256-and$oldSettings.components.erpApiNative.sourceCommit-ceq'e59e07abf7ae2567cdc2adb93811fe29e0032fe5'-and$oldSettings.supervisor.sourceCommit-ceq'13bdf75a032ae8f694354a2e57b6ed382aec2f17') 'CURRENT_NEW_OBSERVER_SETTINGS'
  }else{

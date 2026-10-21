@@ -320,6 +320,15 @@ test('CurrentB007 inspection contract preserves seven exact packages, literal ac
  const out=run(`${extract(['AssertCurrentB007InspectionContract'])}\n${reset};${call};'CURRENT_VALID'\n${changes.map(change=>`${reset};${change};try{${call};throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}`).join('\n')}`);
  assert.match(out,/CURRENT_VALID/);assert.equal((out.match(/REJECTED/g)??[]).length,changes.length);
 });
+test('Current static contract removes only admission clock consumption; original OLD wrapper still rejects stale before',windows,()=>{
+ const text=readFileSync(source,'utf8').replaceAll('\r\n','\n'),a=text.indexOf('function AssertCurrentB007InspectionContract('),b=text.indexOf('function AssertCurrentB007StaticContract('),c=text.indexOf('function AssertB264InspectionContract(');
+ const expected=text.slice(a,b).replace('function AssertCurrentB007InspectionContract(','function AssertCurrentB007StaticContract(').replace(',[DateTime]$now){','){').replace(/^ \$age=.*B264Need \(\$age -ge 0 -and \$age -lt 900\)\n/m,'');
+ assert.equal(text.slice(b,c),expected);
+ const f=currentB007ContractFixture(),root=String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018`,p=root+'\\MelisaERP-P03-profile-'+f.before.runId+'.json',beforePath=root+'\\MelisaERP-P03-before-'+f.before.runId+'.json',encoded=Buffer.from(JSON.stringify(f)).toString('base64');
+ const args=`$f.profile $f.before $f.old $f.next ${q(p)} ${q(beforePath)} '${'b'.repeat(64)}'`;
+ const out=run(`${extract(['AssertCurrentB007InspectionContract','AssertCurrentB007StaticContract'])}\n$f=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json;AssertCurrentB007StaticContract ${args};'STATIC_ALL_FIELDS_VALID';try{AssertCurrentB007InspectionContract ${args} ([DateTime]::Parse('2026-10-20T11:02:00Z'));throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'OLD_FRESHNESS_STILL_REJECTS'}`);
+ assert.match(out,/STATIC_ALL_FIELDS_VALID/);assert.match(out,/OLD_FRESHNESS_STILL_REJECTS/);
+});
 test('CurrentB007 recovery settings function preserves the exact seven-package scope without granting dispatcher authority',windows,()=>{
  const f=currentB007ContractFixture(),encoded=Buffer.from(JSON.stringify(f)).toString('base64'),reset=`$f=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json`,call='Assert-CurrentB007RecoverySettings $f.profile $f.old $f.next';
  const changes=["$f.next.components.crm.config.sha256='0'*64","$f.next.components.crm.config.path+='x'","$f.old.components.crm.config.sha256='0'*64","$f.next.components.crm.manifestSha256='0'*64","$f.next.components.erpApiNative.packageRoot+='x'","$f.next.supervisor.sourceCommit='0'*40","$f.next.node.path='C:\\Program Files\\nodejs\\node.exe'","$f.profile.packages+=,$f.profile.packages[0]","$f.next.actualT1=$true","$f.next.copyId='other'","$f.next.components.nativeOrder.sourceCommit='0'*40"];

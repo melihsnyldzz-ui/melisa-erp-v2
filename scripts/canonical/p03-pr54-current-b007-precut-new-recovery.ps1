@@ -47,7 +47,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
 function Get-B264RecoverySourcePolicy{
- if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='8d14522827098dbadf611cbac67b601ec59c416e538503041e9a0a986f59c37f';observerSha256='1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'}}
+ if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4';observerSha256='8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}}
  if($PolicyGeneration -ceq 'B264Sup20D'){
   return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }
@@ -128,13 +128,44 @@ function Assert-B264RecoveryCandidateTuple{
  }
 }
 function CurrentB007ResumeStable($value,[string[]]$excluded){$out=[ordered]@{};foreach($p in $value.PSObject.Properties){if($p.Name -cnotin $excluded){$out[$p.Name]=$p.Value}};return $out}
+function AssertCurrentB007RetryHistory($context,$claim,$priorAttempt,$retainedProfile,$retainedBefore){
+ $retryRun='9d2e00d572acc83391a0a2e5ac28d046';$retryDir=Join-Path $base ('MelisaERP-P03-transition-'+$retryRun)
+ Require-NewDrain ($runId -cnotin @($retryRun,'452054204a1857ff618b0dd30a59caea','cffba2988afcb49502ae73ddd797e966') -and $context.schemaVersion -ceq 'melisa-p03-current-b007-precut-retry.v1') 'CURRENT_RETRY_SCOPE'
+ $refs=@{
+  profile=[ordered]@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$retryRun+'.json'));sha256='ed2c3ad7a253f749bf284ccc6aabe34535a28e3f2f0b71484583387082674c12'}
+  before=[ordered]@{path=(Join-Path $base ('MelisaERP-P03-before-'+$retryRun+'.json'));sha256='97252544d7ff98c0ed3d908bcf785f89cb2bb65dd3f6c79587653f433e740c04'}
+  context=[ordered]@{path=(Join-Path $retryDir 'precut-continuation.json');sha256='7f07000256ed4b1289f36fe5a2290bdfa71e125ff976276f1135b42f0ba4012c'}
+  lock=[ordered]@{path=(Join-Path $retryDir 'transition.lock');sha256='a125f57f3d97993ede102504faf379a373be67a1178d53770fb2f3f2916b4255'}
+  snapshot=[ordered]@{path=(Join-Path $retryDir 'successor-precut-admission.json');sha256='9207fb109e6b2cfe03b9791ed5f1b2e88b100c052094e86350819d83b1550584'}
+  intent=[ordered]@{path=(Join-Path $retryDir 'b264-old-owner-cut-intent.json');sha256='33535a3f165c03892bfb3a225d6ec2ae91b96f47fd2a949b9cf1afa7e2576ee9'}
+  diagnostic=[ordered]@{path=(Join-Path $retryDir 'io-failure-diagnostic.json');sha256='f65e6e001f7c936d4577b45d70de97565f603eef8900d18227315d2388148cea'}
+ }
+ $values=@{};foreach($name in $refs.Keys){$r=$refs[$name];$values[$name]=Json (ReadPinned $r.path $r.sha256)}
+ $priorProfile=$values.profile;$priorBefore=$values.before;$priorContext=$values.context;$priorLock=$values.lock
+ $expected=[ordered]@{schemaVersion='melisa-p03-current-b007-precut-resume.v1';retainedClaimRef=$context.retainedClaimRef;failureTailRef=[pscustomobject][ordered]@{path=(Join-Path $base 'MelisaERP-P03-transition-452054204a1857ff618b0dd30a59caea\event-0002.json');sha256='778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777'};retainedProfileRef=$context.retainedProfileRef;retainedBeforeRef=$context.retainedBeforeRef;profileRef=[pscustomobject]$refs.profile;beforeRef=[pscustomobject]$refs.before;claimPath=$context.claimPath}
+ Require-NewDrain ((Same-B264Value $priorContext $expected) -and (Same-B264Value $priorAttempt $priorContext)) 'CURRENT_RETRY_PRIOR_CONTEXT'
+ Require-NewDrain ($priorBefore.runId -ceq $retryRun -and $priorProfile.beforeImage.path -ceq $refs.before.path -and $priorProfile.beforeImage.sha256 -ceq $refs.before.sha256 -and (Same-B264Value (CurrentB007ResumeStable $priorProfile @('beforeImage','businessDigest','journalDirectory','stopper')) (CurrentB007ResumeStable $retainedProfile @('beforeImage','businessDigest','journalDirectory','stopper'))) -and (Same-B264Value (CurrentB007ResumeStable $priorBefore @('runId','startedAt','observedAt')) (CurrentB007ResumeStable $retainedBefore @('runId','startedAt','observedAt')))) 'CURRENT_RETRY_PRIOR_DRIFT'
+ Require-NewDrain ($priorProfile.stopper.sha256 -ceq $retainedProfile.stopper.sha256 -and $priorProfile.stopper.path -ceq (Join-Path $base ('MelisaERP-P03-stopper-'+$retryRun+'.ps1')) -and $priorProfile.journalDirectory -ceq (Join-Path $base ('MelisaERP-P03-recovery-'+$retryRun)) -and [DateTime]::Parse($before.startedAt).ToUniversalTime() -ge [DateTime]::Parse($priorBefore.observedAt).ToUniversalTime()) 'CURRENT_RETRY_PRIOR_RUN'
+ Require-NewDrain ((@($priorLock.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'beforeRef|continuationRef|currentPreCapture|profileRef|rehearsalProofRef|sourceControlDir|successorClaimRef' -and (Same-B264Value $priorLock.profileRef ([pscustomobject]$refs.profile)) -and (Same-B264Value $priorLock.beforeRef ([pscustomobject]$refs.before)) -and (Same-B264Value $priorLock.successorClaimRef $context.retainedClaimRef) -and (Same-B264Value $priorLock.continuationRef ([pscustomobject]$refs.context))) 'CURRENT_RETRY_LOCK'
+ $eventPins=@('3c25d1da4017da7576cc15dd4a7cb603718cc1a4674897a52048bc56dc703b1f','58741b0f6db3a7596d35d04089d178090412c6f722f9a59a9f09f54d51d519bc','74d1c6dcdd5597935a9a8f2b814aef4e8167880bbc2c9ebea469d07f8f85af26');$previous=$refs.before.sha256
+ foreach($n in 0..2){$e=Json (ReadPinned (Join-Path $retryDir ('event-'+$n.ToString('0000')+'.json')) $eventPins[$n]);$keys=@('sequence','digest','event','stopOrderDigest','previousSha256','profileSha256','beforeSha256');if($n -gt 0){$keys+=,'target'};Require-NewDrain ((@($e.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|') -and $e.sequence -eq $n -and $e.previousSha256 -ceq $previous -and $e.profileSha256 -ceq $refs.profile.sha256 -and $e.beforeSha256 -ceq $refs.before.sha256 -and $e.digest -ceq $before.plan.digest -and $e.stopOrderDigest -ceq $claim.stopOrderDigest -and $e.event -ceq @('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$n]) 'CURRENT_RETRY_EVENT';if($n -gt 0){Require-NewDrain ($e.target -ceq @('coreSupervisor','HELD_CORE_CUT')[$n-1]) 'CURRENT_RETRY_TARGET'};$previous=$eventPins[$n]}
+ $d=$values.diagnostic;Require-NewDrain ((@($d.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'beforeSha256|failureDiagnostic|phase|profileSha256|reason' -and $d.phase -ceq 'HELD_CORE_CUT' -and $d.reason -ceq 'P03_OWNER_TRANSITION_STOPPED' -and (Same-B264Value $d.failureDiagnostic ([pscustomobject]@{stage='DRAIN';reason='P03_PHYSICAL_B264_CUT_OWNER_DIGEST'})) -and $d.profileSha256 -ceq $refs.profile.sha256 -and $d.beforeSha256 -ceq $refs.before.sha256) 'CURRENT_RETRY_FAILURE'
+ $s=$values.snapshot;Require-NewDrain ((@($s.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'beforeSha256|consolePins|engineSha256|observedAt|oldIdentities|oldWatchers|probePins|profileSha256|protectedConsolePins|recoveryHelperSha256|schemaVersion' -and $s.schemaVersion -ceq 'melisa-p03-successor-precut-admission.v1' -and $s.profileSha256 -ceq $refs.profile.sha256 -and $s.beforeSha256 -ceq $refs.before.sha256 -and $s.engineSha256 -ceq 'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f' -and $s.recoveryHelperSha256 -ceq 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -and @($s.oldIdentities).Count -eq 8 -and @($s.oldWatchers).Count -eq 2) 'CURRENT_RETRY_SNAPSHOT'
+ foreach($p in @($priorBefore.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($priorProfile.oldWatchers)){$rows=@(@($s.oldIdentities)+@($s.oldWatchers)|Where-Object{$_.pid -eq $p.pid});Require-NewDrain ($rows.Count -eq 1 -and (Same-B264Value $rows[0] $p)) 'CURRENT_RETRY_SNAPSHOT_IDENTITY'}
+ $i=$values.intent;Require-NewDrain ((@($i.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'beforeSha256|claimSha256|event|observedAt|profileSha256|stopOrderDigest' -and $i.event -ceq 'B264_OLD_CUT_INTENT' -and $i.claimSha256 -ceq $ClaimSha256 -and $i.stopOrderDigest -ceq $claim.stopOrderDigest -and $i.profileSha256 -ceq $refs.profile.sha256 -and $i.beforeSha256 -ceq $refs.before.sha256) 'CURRENT_RETRY_INTENT'
+ Require-NewDrain (@(Get-ChildItem -LiteralPath $priorProfile.journalDirectory -Force).Count -eq 0) 'CURRENT_RETRY_JOURNAL'
+ $files=@('b264-old-owner-cut-intent.json','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','p03-current-invariance-capture.ps1','p03-physical-recovery-observe.ps1','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-current-b007-precut-new-recovery.ps1','p03-pr54-new-owner-empty-recovery.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-paused-old-recover.ps1','p03-pr54-successor-core-drain.ps1','precut-continuation.json','successor-precut-admission.json','transition.lock','resume-attempt.json')
+ Require-NewDrain ((@((Get-ChildItem -LiteralPath $retryDir -Force)|ForEach-Object{$_.Name}|Sort-Object)-join '|') -ceq (($files|Sort-Object)-join '|')) 'CURRENT_RETRY_OLD_SCOPE'
+ $attempt=Json (ReadPinned (Join-Path $retryDir 'resume-attempt.json') $ContinuationSha256);Require-NewDrain (Same-B264Value $attempt $context) 'CURRENT_RETRY_ATTEMPT'
+}
 function AssertCurrentB007ResumeBinding($context,$claim){
+ $isRetry=$context.schemaVersion -ceq 'melisa-p03-current-b007-precut-retry.v1'
  $resumeRun='452054204a1857ff618b0dd30a59caea';$resumeDir=Join-Path $base ('MelisaERP-P03-transition-'+$resumeRun)
  $keys=@('schemaVersion','retainedClaimRef','failureTailRef','retainedProfileRef','retainedBeforeRef','profileRef','beforeRef','claimPath')
- Require-NewDrain ((@($context.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|') -and $context.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1') 'CURRENT_RESUME_FIELDS'
+ Require-NewDrain ((@($context.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|') -and $context.schemaVersion -ceq $(if($isRetry){'melisa-p03-current-b007-precut-retry.v1'}else{'melisa-p03-current-b007-precut-resume.v1'})) 'CURRENT_RESUME_FIELDS'
  $pins=@{
   retainedClaimRef=@{path=(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json');sha256='a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544'}
-  failureTailRef=@{path=(Join-Path $resumeDir 'event-0002.json');sha256='778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777'}
+  failureTailRef=$(if($isRetry){@{path=(Join-Path $base 'MelisaERP-P03-transition-9d2e00d572acc83391a0a2e5ac28d046\event-0002.json');sha256='74d1c6dcdd5597935a9a8f2b814aef4e8167880bbc2c9ebea469d07f8f85af26'}}else{@{path=(Join-Path $resumeDir 'event-0002.json');sha256='778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777'}})
   retainedProfileRef=@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$resumeRun+'.json'));sha256='4b808868f23ced8015aad4395a7c390017b374d3c23fe23d48fc6bf7f0397c39'}
   retainedBeforeRef=@{path=(Join-Path $base ('MelisaERP-P03-before-'+$resumeRun+'.json'));sha256='23ae28bc8d01f644c9f56404c6b358bc57afec336bb82bb3ad19158f2bd11d3f'}
   profileRef=@{path=$ProfilePath;sha256=$ProfileSha256}
@@ -148,7 +179,7 @@ function AssertCurrentB007ResumeBinding($context,$claim){
  Require-NewDrain ((Same-B264Value (CurrentB007ResumeStable $profile @('beforeImage','businessDigest','journalDirectory','stopper')) (CurrentB007ResumeStable $retainedProfile @('beforeImage','businessDigest','journalDirectory','stopper'))) -and $profile.stopper.sha256 -ceq $retainedProfile.stopper.sha256 -and $profile.stopper.path -ceq (Join-Path $base ('MelisaERP-P03-stopper-'+$runId+'.ps1')) -and $profile.journalDirectory -ceq (Join-Path $base ('MelisaERP-P03-recovery-'+$runId))) 'CURRENT_RESUME_PROFILE_DRIFT'
  Require-NewDrain (Same-B264Value (CurrentB007ResumeStable $before @('runId','startedAt','observedAt')) (CurrentB007ResumeStable $retainedBefore @('runId','startedAt','observedAt'))) 'CURRENT_RESUME_BEFORE_DRIFT'
  Require-NewDrain ([DateTime]::Parse($before.startedAt).ToUniversalTime() -ge [DateTime]::Parse($retainedBefore.observedAt).ToUniversalTime() -and [DateTime]::Parse($before.startedAt).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime()) 'CURRENT_RESUME_CLOCK_ORDER'
- $attempt=Json (ReadPinned (Join-Path $resumeDir 'resume-attempt.json') $ContinuationSha256);Require-NewDrain (Same-B264Value $attempt $context) 'CURRENT_RESUME_ATTEMPT'
+ $attempt=Json (ReadPinned (Join-Path $resumeDir 'resume-attempt.json') $(if($isRetry){'7f07000256ed4b1289f36fe5a2290bdfa71e125ff976276f1135b42f0ba4012c'}else{$ContinuationSha256}));if(-not $isRetry){Require-NewDrain (Same-B264Value $attempt $context) 'CURRENT_RESUME_ATTEMPT'}
  $allowed=@('b264-old-owner-cut-intent.json','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','p03-current-invariance-capture.ps1','p03-physical-recovery-observe.ps1','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-current-b007-precut-new-recovery.ps1','p03-pr54-new-owner-empty-recovery.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-paused-old-recover.ps1','p03-pr54-successor-core-drain.ps1','precut-continuation.json','successor-precut-admission.json','transition.lock','resume-attempt.json')
  Require-NewDrain ((@((Get-ChildItem -LiteralPath $resumeDir -Force)|ForEach-Object{$_.Name}|Sort-Object)-join '|') -ceq (($allowed|Sort-Object)-join '|')) 'CURRENT_RESUME_OLD_SCOPE'
  $lock=Json (ReadPinned (Join-Path $resumeDir 'transition.lock') '349cf763daa3c4cca0856640d48d82ed3c034325d0ad476b4019a31d7374eb73')
@@ -161,6 +192,7 @@ function AssertCurrentB007ResumeBinding($context,$claim){
  Require-NewDrain (@(Get-ChildItem -LiteralPath $retainedProfile.journalDirectory -Force).Count -eq 0) 'CURRENT_RESUME_OLD_JOURNAL'
  $eventPins=@('18a78709172e036d3d9f452438af4cf9e21f39c89679271094447f44463da02a','741ea2a53a304ba27aff7bcade2548effa22a63e72ccbcf920189e4c6718330c','778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777');$eventPrevious=$pins.retainedBeforeRef.sha256
  foreach($n in 0..2){$event=Json (ReadPinned (Join-Path $resumeDir ('event-'+$n.ToString('0000')+'.json')) $eventPins[$n]);Require-NewDrain ($event.sequence -eq $n -and $event.previousSha256 -ceq $eventPrevious -and $event.digest -ceq $retainedBefore.plan.digest -and $event.stopOrderDigest -ceq $claim.stopOrderDigest -and $event.profileSha256 -ceq $pins.retainedProfileRef.sha256 -and $event.beforeSha256 -ceq $pins.retainedBeforeRef.sha256 -and $event.event -ceq @('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$n]) 'CURRENT_RESUME_PINNED_EVENT';if($n -gt 0){Require-NewDrain ($event.target -ceq @('coreSupervisor','HELD_CORE_CUT')[$n-1]) 'CURRENT_RESUME_PINNED_TARGET'};$eventPrevious=$eventPins[$n]}
+ if($isRetry){AssertCurrentB007RetryHistory $context $claim $attempt $retainedProfile $retainedBefore}
  # No new owner timestamp or claim is created. The retained epoch is an anchor.
  return [pscustomobject]@{runId=$resumeRun;profileRef=$pins.retainedProfileRef;beforeRef=$pins.retainedBeforeRef;before=$retainedBefore;profile=$retainedProfile}
 }
@@ -170,7 +202,7 @@ function Assert-CurrentB007Continuation{
  $expectedContext=Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) 'precut-continuation.json'
  Require-NewDrain ($claimPath -ceq $expectedClaim -and $ContinuationPath -ceq $expectedContext -and $ContinuationSha256 -cmatch '\A[a-f0-9]{64}\z') 'CONTINUATION_PATH'
  $context=Json (ReadPinned $ContinuationPath $ContinuationSha256)
- if($context.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1'){[void](AssertCurrentB007ResumeBinding $context $claim);return}
+ if($context.schemaVersion -cin @('melisa-p03-current-b007-precut-resume.v1','melisa-p03-current-b007-precut-retry.v1')){[void](AssertCurrentB007ResumeBinding $context $claim);return}
  $keys=@('schemaVersion','retainedClaimRef','failureTailRef','profileRef','beforeRef','claimPath')
  Require-NewDrain ((@($context.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|') -and $context.schemaVersion -ceq 'melisa-p03-current-b007-precut-continuation.v1' -and $context.claimPath -ceq $expectedClaim) 'CONTINUATION_FIELDS'
  $refs=@{
@@ -186,7 +218,7 @@ function Assert-B264Claim{
  Assert-CurrentB007Continuation
  $claimBinding=[pscustomobject]@{runId=$runId;profileRef=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};beforeRef=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};before=$before}
  $bindingContext=Json (ReadPinned $ContinuationPath $ContinuationSha256)
- if($bindingContext.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1'){$claimBinding=AssertCurrentB007ResumeBinding $bindingContext $claim}
+ if($bindingContext.schemaVersion -cin @('melisa-p03-current-b007-precut-resume.v1','melisa-p03-current-b007-precut-retry.v1')){$claimBinding=AssertCurrentB007ResumeBinding $bindingContext $claim}
  Assert-B264StopPlan
  $keys=@('schemaVersion','currentOwnerDigest','ownerObservedAt','protectedSqlEpoch','predecessorRunId','predecessorProfile','predecessorBefore','predecessorLock','consumedAncestorClaim','failedOuterTail','quarantinedRecoveryTail','readOnlyOldReady','successorRunId','successorProfile','successorBefore','newSettings','candidate','stopOrderDigest','transitionAuthority','applyExecuted')
  Require-NewDrain ((@($claim.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|')) 'B264_CLAIM_KEYS'

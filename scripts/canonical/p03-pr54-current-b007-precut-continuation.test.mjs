@@ -29,7 +29,7 @@ test('expired before cannot prepare admission but structural post-claim revalida
  assert.doesNotMatch(bindingBody,/Date\.now|\bnow\b|900000/);
  f.before.identities.erpApi.pid++;assert.throws(()=>api.validatePr54CurrentB007PrecutContinuationBinding(f));
 });
-test('module offers no native IO, mutable global override or execution dispatcher',()=>{assert.doesNotMatch(source,/node:(?:fs|child_process|os)|execFile|spawn|process\.|Apply|Stop-Process|SetQueryStore/);assert.equal((source.match(/export function /g)||[]).length,4);assert(Object.isFrozen(real.PR54_CURRENT_B007_PRECUT_REFS)&&Object.values(real.PR54_CURRENT_B007_PRECUT_REFS).every(Object.isFrozen));});
+test('module offers no native IO, mutable global override or execution dispatcher',()=>{assert.doesNotMatch(source,/node:(?:fs|child_process|os)|execFile|spawn|process\.|Apply|Stop-Process|SetQueryStore/);assert.equal((source.match(/export function /g)||[]).length,6);assert(Object.isFrozen(real.PR54_CURRENT_B007_PRECUT_REFS)&&Object.values(real.PR54_CURRENT_B007_PRECUT_REFS).every(Object.isFrozen));});
 
 function resumeFixture(){
  const base=fixture(),f=base.f,retainedRun='452054204a1857ff618b0dd30a59caea',refs=structuredClone(real.PR54_CURRENT_B007_PRECUT_RESUME_REFS),v={};
@@ -53,4 +53,27 @@ test('same consumed452 claim modeled resume binds fresh supplemental refs withou
 });
 test('resume rejects changed history, replayed run/capture, identity drift and invalid freshness',()=>{
  for(const mutate of [f=>f.raw.resume.claim.bytes=Buffer.from('changed'),f=>delete f.raw.resume.intent,f=>f.raw.resume.extra=f.raw.resume.claim,f=>f.before.runId='452054204a1857ff618b0dd30a59caea',f=>f.before.identities.erpApi.pid++,f=>f.profile.protectedProcesses[0].pid++,f=>f.profile.businessDigest.path=f.profile.businessDigest.path.replace('e'.repeat(32),'c'.repeat(32)),f=>f.now=Date.parse(f.before.observedAt)-1,f=>f.now=Date.parse(f.before.observedAt)+900000]){const {f,api,reseal}=resumeFixture();mutate(f);reseal();assert.throws(()=>api.preparePr54CurrentB007PrecutResume(f));}
+});
+
+function retryFixture(){
+ const base=resumeFixture(),f=base.f,run='9d2e00d572acc83391a0a2e5ac28d046',refs=structuredClone(real.PR54_CURRENT_B007_PRECUT_RETRY_REFS),v={},seal=(key,value)=>{v[key]=value;refs[key].sha256=hash(bytes(value));};
+ f.before.runId=run;f.before.startedAt='2026-10-21T11:00:00Z';f.before.observedAt='2026-10-21T11:00:02Z';f.profile.journalDirectory=root+'\\MelisaERP-P03-recovery-'+run;f.profile.stopper.path=root+'\\MelisaERP-P03-stopper-'+run+'.ps1';base.reseal();
+ seal('before',structuredClone(f.before));seal('profile',structuredClone(f.profile));const context=base.api.validatePr54CurrentB007PrecutResumeBinding(f);seal('context',context);seal('priorAttempt',context);
+ const claim=JSON.parse(f.raw.resume.claim.bytes);seal('transitionLock',{profileRef:refs.profile,beforeRef:refs.before,currentPreCapture:{synthetic:true},rehearsalProofRef:{synthetic:true},successorClaimRef:f.raw.resume.claim.ref,sourceControlDir:'synthetic',continuationRef:refs.context});
+ let previous=refs.before.sha256;for(const [i,event]of ['TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED'].entries()){seal(i===2?'failureTail':'event'+i,{sequence:i,digest:v.before.plan.digest,event,stopOrderDigest:claim.stopOrderDigest,...(i?{target:i===1?'coreSupervisor':'HELD_CORE_CUT'}:{}),previousSha256:previous,profileSha256:refs.profile.sha256,beforeSha256:refs.before.sha256});previous=refs[i===2?'failureTail':'event'+i].sha256;}
+ seal('diagnostic',{phase:'HELD_CORE_CUT',reason:'P03_OWNER_TRANSITION_STOPPED',failureDiagnostic:{stage:'DRAIN',reason:'P03_PHYSICAL_B264_CUT_OWNER_DIGEST'},profileSha256:refs.profile.sha256,beforeSha256:refs.before.sha256});
+ seal('snapshot',{schemaVersion:'melisa-p03-successor-precut-admission.v1',profileSha256:refs.profile.sha256,beforeSha256:refs.before.sha256,oldIdentities:Object.values(v.before.identities),oldWatchers:v.profile.oldWatchers});
+ seal('intent',{event:'B264_OLD_CUT_INTENT',claimSha256:f.raw.resume.claim.ref.sha256,stopOrderDigest:claim.stopOrderDigest,profileSha256:refs.profile.sha256,beforeSha256:refs.before.sha256,observedAt:'2026-10-21T11:01:00Z'});
+ f.raw.retry=Object.fromEntries(Object.entries(v).map(([k,value])=>[k,{ref:refs[k],bytes:bytes(value)}]));
+ f.before.runId='f'.repeat(32);f.before.startedAt='2026-10-21T11:30:00Z';f.before.observedAt='2026-10-21T11:30:02Z';f.profile.businessDigest.path=f.profile.businessDigest.path.replace('e'.repeat(32),'f'.repeat(32));f.profile.journalDirectory=root+'\\MelisaERP-P03-recovery-'+f.before.runId;f.profile.stopper.path=root+'\\MelisaERP-P03-stopper-'+f.before.runId+'.ps1';f.now=Date.parse('2026-10-21T11:30:03Z');base.reseal();
+ let text=source.replace(/^import .*;\r?\n/gm,'').replaceAll('export ','');for(const [kind,fixed]of [['original',real.PR54_CURRENT_B007_PRECUT_REFS],['resume',real.PR54_CURRENT_B007_PRECUT_RESUME_REFS],['retry',real.PR54_CURRENT_B007_PRECUT_RETRY_REFS]])for(const [key,ref]of Object.entries(fixed))text=text.replaceAll(ref.sha256,f.raw[kind][key].ref.sha256);
+ const api=new Function('createHash','Buffer','Uint8Array','TextDecoder',text+'\nreturn {preparePr54CurrentB007PrecutRetry,validatePr54CurrentB007PrecutRetryBinding};')(createHash,Buffer,Uint8Array,TextDecoder);return {f,api,reseal:base.reseal};
+}
+test('exact9d2 failed resume binds a new supplemental context without rewriting either earlier claim or attempt',()=>{
+ const {f,api}=retryFixture(),prior=Buffer.from(f.raw.retry.priorAttempt.bytes),claim=Buffer.from(f.raw.resume.claim.bytes),r=api.preparePr54CurrentB007PrecutRetry(f);
+ assert.equal(r.schemaVersion,'melisa-p03-current-b007-precut-retry.v1');assert.equal(Object.keys(r).length,8);assert.equal(r.failureTailRef.path,real.PR54_CURRENT_B007_PRECUT_RETRY_REFS.failureTail.path);assert.equal(r.retainedClaimRef.path,real.PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH);assert.equal(r.transitionAuthority,undefined);assert.deepEqual(f.raw.retry.priorAttempt.bytes,prior);assert.deepEqual(f.raw.resume.claim.bytes,claim);assert.throws(()=>real.preparePr54CurrentB007PrecutRetry(f));
+ f.now=Date.parse(f.before.observedAt)+900000;assert.throws(()=>api.preparePr54CurrentB007PrecutRetry(f));assert.deepEqual(api.validatePr54CurrentB007PrecutRetryBinding(f),r);
+});
+test('exact9d2 continuation rejects foreign, corrupted or incomplete failures and prior attempts, stale state and repeated run/capture',()=>{
+ for(const mutate of [f=>delete f.raw.retry.priorAttempt,f=>f.raw.retry.priorAttempt.bytes=Buffer.from('changed'),f=>f.raw.retry.failureTail.bytes=Buffer.from('changed'),f=>f.raw.retry.diagnostic.ref.path+='other',f=>f.raw.retry.extra=f.raw.retry.event1,f=>f.before.runId='9d2e00d572acc83391a0a2e5ac28d046',f=>f.before.identities.erpApi.pid++,f=>f.profile.businessDigest.path=f.profile.businessDigest.path.replace('f'.repeat(32),'e'.repeat(32)),f=>f.now=Date.parse(f.before.observedAt)-1,f=>f.now=Date.parse(f.before.observedAt)+900000]){const {f,api,reseal}=retryFixture();mutate(f);reseal();assert.throws(()=>api.preparePr54CurrentB007PrecutRetry(f));}
 });

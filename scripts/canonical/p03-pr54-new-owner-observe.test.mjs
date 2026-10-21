@@ -568,3 +568,54 @@ $script:shellHash='e'*64;ExpectRejected 'shell' {NewPrepareProbeSource}
 `}`);
  assert.match(out,/VALID/);assert.match(out,/HISTORICAL_READS=0/);for(const name of ['historical','manifest','probe','shell'])assert.match(out,new RegExp('REJECTED='+name));
 });
+
+// Function-only fixture. No worker dispatcher, OS inventory, SQL or COM executes.
+const currentCutFixture=String.raw`
+function Need($v,$c){if(-not$v){throw ('P03_PHYSICAL_'+$c)}}
+function Json($b){return [Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}
+function Protected($p){}
+function ProtectedProcesses($raw){$script:protectedReads++}
+function NewRawInventory{return [pscustomobject]@{all=$script:rawRows}}
+function Get-FileHash{param($LiteralPath,$Algorithm);if(-not$store.ContainsKey($LiteralPath)){throw 'FIXTURE_MISSING'};return [pscustomobject]@{Hash=$store[$LiteralPath].sha}}
+function ReadPinned($p,$s){if(-not$store.ContainsKey($p)-or$store[$p].sha-cne$s){throw 'P03_FIXTURE_PIN'};return ,[Text.Encoding]::UTF8.GetBytes(($store[$p].value|ConvertTo-Json -Depth 30 -Compress))}
+function Put($leaf,$value){$p=Join-Path $dir $leaf;$script:store[$p]=@{sha=('a'*63)+($store.Count%10);value=$value};return [pscustomobject]@{path=$p;sha256=$store[$p].sha}}
+function ResetCurrentCut{
+ $script:PolicyGeneration='CurrentB007ObserveOnly';$script:base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$script:runId='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';$script:dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId);$script:ProfilePath=Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json');$script:BeforeImagePath=Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json');$script:ProfileSha256='b'*64;$script:BeforeImageSha256='c'*64;$script:engineSha='d'*64;$script:RecoveryHelperSha256='e'*64;$script:store=@{};$script:protectedReads=0;$script:rawRows=@()
+ $old=[DateTime]::UtcNow.AddSeconds(-1200);$opened=$old.AddSeconds(800);$done=$opened.AddSeconds(5)
+ $ids=[ordered]@{};$roles=@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor')
+ foreach($n in 0..7){$ids[$roles[$n]]=[pscustomobject]@{pid=100+$n;parentPid=1;nodePath='fixture';ownerSid='fixture';commandLine='fixture';creationTime=$old.AddDays(-1).ToString('o')}}
+ $watchers=@([pscustomobject]@{pid=108;parentPid=1;nodePath='fixture';ownerSid='fixture';commandLine='fixture';creationTime=$old.AddDays(-1).ToString('o')},[pscustomobject]@{pid=109;parentPid=1;nodePath='fixture';ownerSid='fixture';commandLine='fixture';creationTime=$old.AddDays(-1).ToString('o')})
+ $tasks=@([pscustomobject]@{name='Terminal';oldXmlSha256='old1';newXmlSha256='new1'},[pscustomobject]@{name='Hub';oldXmlSha256='old2';newXmlSha256='new2'})
+ $script:before=[pscustomobject]@{observedAt=$old.ToString('o');identities=[pscustomobject]$ids};$script:profile=[pscustomobject]@{oldWatchers=$watchers;tasks=$tasks;newSettings=[pscustomobject]@{path='settings';sha256='f'*64}}
+ $store[$ProfilePath]=@{sha=$ProfileSha256;value=$profile};$store[$BeforeImagePath]=@{sha=$BeforeImageSha256;value=$before}
+ $claimPath=Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json';$script:claim=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-epoch-claim.v1';transitionAuthority=$true;applyExecuted=$false;predecessorRunId='b264594b6f93d560d807c8decc4e6699';successorRunId=$runId;successorProfile=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};successorBefore=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};newSettings=$profile.newSettings;stopOrderDigest='stop';ownerObservedAt=$old.ToString('o')};$store[$claimPath]=@{sha=('9'*64);value=$claim};$claimRef=[pscustomobject]@{path=$claimPath;sha256=('9'*64)}
+ $script:lock=[pscustomobject]@{profileRef=$claim.successorProfile;beforeRef=$claim.successorBefore;currentPreCapture=@{};rehearsalProofRef=@{};successorClaimRef=$claimRef;sourceControlDir='fixture'};[void](Put 'transition.lock' $lock)
+ $script:snapshot=[pscustomobject]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;recoveryHelperSha256=$RecoveryHelperSha256;observedAt=$opened.AddSeconds(-3).ToString('o');oldIdentities=@($roles|ForEach-Object{$ids[$_]});oldWatchers=$watchers};$snapRef=Put 'successor-precut-admission.json' $snapshot
+ $script:rootIntent=[pscustomobject]@{event='B264_OLD_CUT_INTENT';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;claimSha256=$claimRef.sha256;stopOrderDigest='stop';observedAt=$opened.AddSeconds(-2).ToString('o')};$rootRef=Put 'b264-old-owner-cut-intent.json' $rootIntent
+ $script:held=[pscustomobject]@{event='B264_OLD_OWNER_CUT_INTENT';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;claimSha256=$claimRef.sha256;heldProcessHandle=$true;windowOpenedAt=$opened.ToString('o');rootIntentSha256=$rootRef.sha256;admittedSnapshotSha256=$snapRef.sha256;core=$ids.coreSupervisor;runningInstances=@([pscustomobject]@{name='Terminal';pid=108;guid='g1'},[pscustomobject]@{name='Hub';pid=109;guid='g2'});tasks=$tasks};$heldRef=Put 'b264-old-owner-held-cut-intent.json' $held
+ $script:cut=[pscustomobject]@{event='B264_OLD_OWNER_CORE_CUT_COMPLETED';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;claimSha256=$claimRef.sha256;heldProcessHandle=$true;processAbsent=$true;mechanism='COM_STOP_NATURAL_EXIT';windowOpenedAt=$opened.ToString('o');cutCompletedAt=$done.ToString('o');durableIntent=$heldRef;core=$ids.coreSupervisor};$cutRef=Put 'successor-core-cut-completed.json' $cut
+ $script:drain=[pscustomobject]@{event='B264_OLD_OWNER_CORE_PROBES_ABSENT';cutWitness=$cutRef;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;observedAt=$done.AddSeconds(1).ToString('o')};[void](Put 'successor-core-probe-drain.json' $drain)
+}
+function CurrentCutOutcome{try{NewCurrentCutWitness;return 'GO'}catch{return $_.Exception.Message}}
+`;
+function runCurrentCut(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-Command',"$ErrorActionPreference='Stop';try{& ([scriptblock]::Create([Console]::In.ReadToEnd()))}catch{[Console]::Error.WriteLine($_.Exception.Message);exit 1}"],{input:"Set-StrictMode -Version Latest\n"+extract(['NewCurrentWitnessKeys','NewCurrentWitnessRef','NewCurrentWitnessArtifact','NewCurrentCutWitness'])+'\n'+currentCutFixture+'\n'+code,encoding:'utf8',windowsHide:true,timeout:15000});}
+test('Current NEW phase proves the real cutoff chain before static contract without renewing an expired OLD before',windows,()=>{
+ const out=runCurrentCut("ResetCurrentCut;$saved=$before.observedAt;'RESULT='+(CurrentCutOutcome);'CLOCK_UNCHANGED='+($before.observedAt-ceq$saved);'PROTECTED='+$protectedReads");assert.match(out,/RESULT=GO[\s\S]*CLOCK_UNCHANGED=True[\s\S]*PROTECTED=1/);
+ const text=readFileSync(source,'utf8');assert.match(text,/CurrentB007ObserveOnly'\)\{NewCurrentCutWitness;AssertCurrentB007StaticContract/);assert(!text.includes('AssertCurrentB007InspectionContract $profile $before'));
+});
+test('Current cutoff phase rejects missing/hash-crossed witnesses, wrong UID/COM/claim, late original windows and live OLD rows',windows,()=>{
+ const edits=["$store.Remove((Join-Path $dir 'successor-core-cut-completed.json'))","$drain.cutWitness.sha256='0'*64","$cut.profileSha256='0'*64","$cut.heldProcessHandle=$false","$cut.processAbsent=$false","$cut.core=[pscustomobject]@{pid=999}","$held.runningInstances[0].guid=''","$claim.successorRunId='foreign'","$rootIntent.stopOrderDigest='wrong'","$snapshot.engineSha256='wrong'","$snapshot.oldIdentities=@()","$cut.cutCompletedAt=([DateTime]::Parse($cut.windowOpenedAt)).AddSeconds(60).ToString('o')","$before.observedAt=([DateTime]::Parse($cut.windowOpenedAt)).AddSeconds(-900).ToString('o')","$snapshot.observedAt=([DateTime]::Parse($cut.windowOpenedAt)).AddSeconds(-60).ToString('o')","$script:rawRows=@([pscustomobject]@{ProcessId=100})","$held.tasks=@()"];
+ const out=runCurrentCut(edits.map((e,n)=>`ResetCurrentCut;${e};'CASE${n}='+(CurrentCutOutcome)`).join('\n'));for(let n=0;n<edits.length;n++){assert(!out.includes('CASE'+n+'=GO'),'case '+n+' '+out);assert.match(out,new RegExp('CASE'+n+'='));}
+});
+test('Current NEW retry uses the fixed retained 452 claim and exact eight-key fresh context without altering its clock',windows,()=>{
+ const setup=String.raw`ResetCurrentCut
+ $savedClock=$claim.ownerObservedAt;$retainedRun='452054204a1857ff618b0dd30a59caea';$active=Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json';$activeSha='a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544'
+ $claim.successorRunId=$retainedRun;$claim.successorProfile=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$retainedRun+'.json'));sha256='4b808868f23ced8015aad4395a7c390017b374d3c23fe23d48fc6bf7f0397c39'};$claim.successorBefore=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-before-'+$retainedRun+'.json'));sha256='23ae28bc8d01f644c9f56404c6b358bc57afec336bb82bb3ad19158f2bd11d3f'}
+ $store[$active]=@{sha=$activeSha;value=$claim};$lock.successorClaimRef=[pscustomobject]@{path=$active;sha256=$activeSha};$cut.claimSha256=$activeSha;$held.claimSha256=$activeSha;$rootIntent.claimSha256=$activeSha
+ $script:context=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-precut-retry.v1';retainedClaimRef=$lock.successorClaimRef;failureTailRef=[pscustomobject]@{path=(Join-Path $base 'MelisaERP-P03-transition-9d2e00d572acc83391a0a2e5ac28d046\event-0002.json');sha256='74d1c6dcdd5597935a9a8f2b814aef4e8167880bbc2c9ebea469d07f8f85af26'};retainedProfileRef=$claim.successorProfile;retainedBeforeRef=$claim.successorBefore;profileRef=$lock.profileRef;beforeRef=$lock.beforeRef;claimPath=$active}
+ foreach($r in @($context.retainedProfileRef,$context.retainedBeforeRef,$context.failureTailRef)){$store[$r.path]=@{sha=$r.sha256;value=[pscustomobject]@{fixture=$true}}};$ref=Put 'precut-continuation.json' $context;$lock|Add-Member -NotePropertyName continuationRef -NotePropertyValue $ref
+ `;
+ const edits=['',"$context.retainedProfileRef.sha256='0'*64","$context.failureTailRef.sha256='0'*64","$context.beforeRef=[pscustomobject]@{path='foreign';sha256=$BeforeImageSha256}","$context|Add-Member -NotePropertyName foreign -NotePropertyValue $true","$store.Remove($context.retainedBeforeRef.path)","$claim.successorRunId='foreign'"];
+ const out=runCurrentCut(edits.map((e,n)=>`${setup}\n${e};'CASE${n}='+(CurrentCutOutcome);'CLOCK${n}='+($claim.ownerObservedAt-ceq$savedClock)`).join('\n'));
+ assert.match(out,/CASE0=GO[\s\S]*CLOCK0=True/);for(let n=1;n<edits.length;n++){assert(!out.includes('CASE'+n+'=GO'),'case '+n+' '+out);assert.match(out,new RegExp('CLOCK'+n+'=True'));}
+});

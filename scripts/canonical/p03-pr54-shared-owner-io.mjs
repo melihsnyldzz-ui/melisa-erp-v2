@@ -1,3 +1,4 @@
+import {PR54_CURRENT_B007_PRECUT_RETRY_REFS,preparePr54CurrentB007PrecutRetry,validatePr54CurrentB007PrecutRetryBinding} from './p03-pr54-current-b007-precut-continuation.mjs';
 // Root-only Windows IO for the finite be8 -> e59/13b shared TEST handoff.
 // Importing this file performs no IO. DryRun is the default. No LIVE/Vega SQL.
 import fs from 'node:fs';
@@ -654,26 +655,28 @@ export function validatePr54CurrentB007PhysicalInspection(args){
 }
 // Fixed CurrentB007 generation: same reviewed transition engine and guards.
 const currentB007SourcePins=Object.freeze({
- drainer:['p03-pr54-successor-core-drain.ps1','b6566e3505af505fb6e0b8d47d6227cf5277d527014db9a8f034093285783486'],
- observer:['p03-physical-recovery-observe.ps1','1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'],
- newObserver:['p03-pr54-new-owner-observe.ps1','8d14522827098dbadf611cbac67b601ec59c416e538503041e9a0a986f59c37f'],
- oldCut:['p03-pr54-b264-old-owner-cut.ps1','43fc2ccb0af874e5ade92cec775873ea16a549fada4919e338c748dc4b3fecc4'],
- newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','aa29ff00900a971628c507c0acc9f6e8d4da388966a50fc8f24e93038198f20c'],
+ drainer:['p03-pr54-successor-core-drain.ps1','cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'],
+ observer:['p03-physical-recovery-observe.ps1','8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'],
+ newObserver:['p03-pr54-new-owner-observe.ps1','777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','0760b0e496ac3246a7c1ec3a46fdf8c5b14476898e36a6ff13e6f56c665b008c'],
+ newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','d4f4321fab70a0adcbab4a9a46d1be958ecaae9be89f537d48f4d794f1c10b76'],
  invariance:['p03-current-invariance-capture.ps1','0ff308d092d2c2c11d5dd7afe2af6f471f9a1f41ebc3b0c59ccb64f60d456ce6'],
  emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438'],
 });
-export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir,precutContinuation=false,precutResume=false}={}){
+export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
  need(['DryRun','Apply'].includes(mode)&&process.platform==='win32','CURRENT_B007_MODE_PLATFORM');
- need(typeof precutContinuation==='boolean'&&typeof precutResume==='boolean'&&!(precutContinuation&&precutResume),'CURRENT_B007_CONTINUATION_MODE');
+ need([precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CURRENT_B007_CONTINUATION_MODE');
+ const isResume=precutResume||precutResumeAfter9d2,resumeRefs=precutResumeAfter9d2?PR54_CURRENT_B007_PRECUT_RETRY_REFS:PR54_CURRENT_B007_PRECUT_RESUME_REFS;
+ const prepareResume=precutResumeAfter9d2?preparePr54CurrentB007PrecutRetry:preparePr54CurrentB007PrecutResume,validateResume=precutResumeAfter9d2?validatePr54CurrentB007PrecutRetryBinding:validatePr54CurrentB007PrecutResumeBinding;
  const root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
  need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}$/.test(sourceControlDir),'CURRENT_B007_SOURCE_DIRECTORY');
  need(typedRef(profileRef)&&typedRef(beforeRef)&&typedRef(rehearsalProofRef)&&exactKeys(currentPreCapture,['snapshotRef','proofRef','backupProofRef'])&&Object.values(currentPreCapture).every(typedRef),'CURRENT_B007_INPUT_REFS');
  const before=read(beforeRef),profile=read(profileRef),runId=before.runId;
- const admissionClaimPath=(precutContinuation||precutResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH;
+ const admissionClaimPath=(precutContinuation||isResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH;
  const continuationRaw=()=>Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}]));
- const resumeRaw=()=>({original:continuationRaw(),resume:Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}]))});
- const continuationReceipt=precutResume?preparePr54CurrentB007PrecutResume({raw:resumeRaw(),profileRef,beforeRef,profile,before}):precutContinuation?preparePr54CurrentB007PrecutContinuation({raw:continuationRaw(),profileRef,beforeRef,profile,before}):null;
- const resumeAttemptPath=precutResume?path.win32.join(path.win32.dirname(PR54_CURRENT_B007_PRECUT_RESUME_REFS.failureTail.path),'resume-attempt.json'):null;
+ const resumeRaw=()=>({original:continuationRaw(),resume:Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}])),...(precutResumeAfter9d2?{retry:Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}]))}:{})});
+ const continuationReceipt=isResume?prepareResume({raw:resumeRaw(),profileRef,beforeRef,profile,before}):precutContinuation?preparePr54CurrentB007PrecutContinuation({raw:continuationRaw(),profileRef,beforeRef,profile,before}):null;
+ const resumeAttemptPath=isResume?path.win32.join(path.win32.dirname(resumeRefs.failureTail.path),'resume-attempt.json'):null;
  let resumeAttemptRef=null;
  need(/^[a-f0-9]{32}$/.test(runId)&&profileRef.path===root+'\\MelisaERP-P03-profile-'+runId+'.json'&&beforeRef.path===root+'\\MelisaERP-P03-before-'+runId+'.json'&&JSON.stringify(profile.beforeImage)===JSON.stringify(beforeRef),'CURRENT_B007_RUN');
  need(profile.database===currentDatabase&&before.database===currentDatabase&&before.copyId===currentCopy&&before.actualT1===false&&profile.ownerSid===owner&&before.ownerSid===owner,'CURRENT_B007_TARGET');
@@ -684,15 +687,15 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const sources=Object.fromEntries(Object.entries(currentB007SourcePins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
- if(precutContinuation||precutResume){
-  sources.oldCut={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'0129d1ea33d7f772c547db08881ff74333a7ef14dfdc1bb92941e5e275366870'};
-  sources.newRecovery={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-new-recovery.ps1'),sha256:'1f4962efcc289af0826e7caa81d24f3fe414eaf576644a82c1bc6c3f9343ea8f'};
+ if(precutContinuation||isResume){
+  sources.oldCut={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'ebfbe596906e3c98951df085df4d84648152d581ac774353815cdfea3b3bd138'};
+  sources.newRecovery={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-new-recovery.ps1'),sha256:'667ac16f0a83251db2e11e9e337ce9894de4803efc9ed5a2b2fe6129672fb28c'};
  }
  const rehearsal=read(rehearsalProofRef);
  need(rehearsal.status==='REHEARSAL_ROLLBACK_READY'&&rehearsal.environment==='P03_REHEARSAL'&&rehearsal.sharedTestMutation===false&&rehearsal.protectedBeforeSha256===rehearsal.protectedAfterSha256,'ACTUAL_REHEARSAL_REQUIRED');
  need(rehearsal.engineSha256===engineRef.sha256&&rehearsal.engine?.sha256===engineRef.sha256,'SAME_REHEARSED_ENGINE_REQUIRED');
  const sourcePre={snapshot:read(currentPreCapture.snapshotRef),proof:read(currentPreCapture.proofRef),backup:read(currentPreCapture.backupProofRef)};
- const fixedReads=[profileRef,beforeRef,rehearsalProofRef,...Object.values(currentPreCapture),engineRef,helperRef,profile.stopper,profile.oldSettings,profile.newSettings,...Object.values(sources),...((precutContinuation||precutResume)?Object.values(PR54_CURRENT_B007_PRECUT_REFS):[]),...(precutResume?Object.values(PR54_CURRENT_B007_PRECUT_RESUME_REFS):[])];
+ const fixedReads=[profileRef,beforeRef,rehearsalProofRef,...Object.values(currentPreCapture),engineRef,helperRef,profile.stopper,profile.oldSettings,profile.newSettings,...Object.values(sources),...((precutContinuation||isResume)?Object.values(PR54_CURRENT_B007_PRECUT_REFS):[]),...(isResume?Object.values(PR54_CURRENT_B007_PRECUT_RESUME_REFS):[]),...(precutResumeAfter9d2?Object.values(PR54_CURRENT_B007_PRECUT_RETRY_REFS):[])];
  need(profile.packages.length===7,'CURRENT_B007_SEVEN_PACKAGES');
  let claimRef=null,claimBytes=null,transitionCreated=false,cut=null,snapshotRef=null,started=false,cutAttempted=false,sequence=0,previous=beforeRef.sha256,candidateRef=null;
  const transitionDir=root+'\\MelisaERP-P03-transition-'+runId,eventRefs=[],frozen={};let continuationRef=null;
@@ -716,13 +719,14 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
 
  async function guard(){
   await strictPins(fixedReads);for(const p of profile.packages)pin({path:p.manifestPath,sha256:p.manifestSha256});await guardProtected();
-  if(precutContinuation||precutResume){
-   if(precutResume){
-    const bind=resumeAttemptRef?validatePr54CurrentB007PrecutResumeBinding:preparePr54CurrentB007PrecutResume;
+  if(precutContinuation||isResume){
+   if(isResume){
+    const bind=resumeAttemptRef?validateResume:prepareResume;
     need(JSON.stringify(bind({raw:resumeRaw(),profileRef,beforeRef,profile,before}))===JSON.stringify(continuationReceipt),'CURRENT_B007_RESUME_CHANGED');
-    const failedDir=path.win32.dirname(PR54_CURRENT_B007_PRECUT_RESUME_REFS.failureTail.path);
+    const failedDir=path.win32.dirname(resumeRefs.failureTail.path);
     const allowed=['transition.lock','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','precut-continuation.json','successor-precut-admission.json','b264-old-owner-cut-intent.json','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-paused-old-recover.ps1',...Object.values(currentB007SourcePins).filter(([leaf])=>!['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-b264-new-owner-recovery.ps1'].includes(leaf)).map(([leaf])=>leaf),'p03-pr54-current-b007-precut-cut.ps1','p03-pr54-current-b007-precut-new-recovery.ps1',...(resumeAttemptRef?['resume-attempt.json']:[])].sort();
     noReparseAncestors(failedDir);need(JSON.stringify(fs.readdirSync(failedDir).sort())===JSON.stringify(allowed),'CURRENT_B007_RESUME_SCOPE_ADVANCED');
+    if(precutResumeAfter9d2){const priorDir=path.win32.dirname(PR54_CURRENT_B007_PRECUT_RESUME_REFS.failureTail.path);noReparseAncestors(priorDir);need(JSON.stringify(fs.readdirSync(priorDir).sort())===JSON.stringify([...allowed.filter(n=>n!=='resume-attempt.json'),'resume-attempt.json'].sort()),'CURRENT_B007_RETRY_PRIOR_SCOPE');need(fs.readdirSync(read(PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile).journalDirectory).length===0,'CURRENT_B007_RETRY_PRIOR_JOURNAL');}
     if(resumeAttemptRef){await strictPins([resumeAttemptRef]);need(pin(resumeAttemptRef).equals(jsonBytes(continuationReceipt)),'CURRENT_B007_RESUME_ATTEMPT_CHANGED');}else need(!fs.existsSync(resumeAttemptPath),'CURRENT_B007_RESUME_ALREADY_ATTEMPTED');
    }else{
    const bind=claimRef?validatePr54CurrentB007PrecutContinuationBinding:preparePr54CurrentB007PrecutContinuation;
@@ -732,7 +736,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
    const allowed=['transition.lock','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','successor-precut-admission.json','b264-old-owner-cut-intent.json','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-paused-old-recover.ps1',...Object.values(currentB007SourcePins).map(p=>p[0])].sort();
    noReparseAncestors(failedDir);need(JSON.stringify(fs.readdirSync(failedDir).sort())===JSON.stringify(allowed),'CURRENT_B007_FAILED_SCOPE_ADVANCED');
   }
-  if(claimRef){await strictPins([claimRef]);need(pin(claimRef).equals(claimBytes),'CURRENT_B007_CLAIM_CHANGED');}else if(precutResume){await strictPins([PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim]);}else need(!fs.existsSync(admissionClaimPath),'B264_SUCCESSOR_ALREADY_CONSUMED');
+  if(claimRef){await strictPins([claimRef]);need(pin(claimRef).equals(claimBytes),'CURRENT_B007_CLAIM_CHANGED');}else if(isResume){await strictPins([PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim]);}else need(!fs.existsSync(admissionClaimPath),'B264_SUCCESSOR_ALREADY_CONSUMED');
   if(transitionCreated){for(const ref of eventRefs)pin(ref);for(const ref of Object.values(frozen))pin(ref);}
   return true;
  }
@@ -752,7 +756,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   next('FULL_PACKAGE_PREFLIGHT');const preflight=await invoke(engineRef,['-Environment','Shared',...common,'-Mode','PreflightOld'],{timeout:900000});
   need(exactKeys(preflight,['status','environment','profileSha256','beforeImageSha256','applyAvailable','mutationExecuted'])&&preflight.status==='OLD_PHYSICAL_PREFLIGHT'&&preflight.environment==='Shared'&&preflight.profileSha256===profileRef.sha256&&preflight.beforeImageSha256===beforeRef.sha256&&preflight.applyAvailable===false&&preflight.mutationExecuted===false,'CURRENT_B007_FULL_PACKAGE_PREFLIGHT');
   next('HISTORY');const raw=await history();
-  next('PHYSICAL');const physical=await inspectPr54CurrentB007PhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer},{precutContinuation,precutResume});
+  next('PHYSICAL');const physical=await inspectPr54CurrentB007PhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer},{precutContinuation,precutResume,precutResumeAfter9d2});
   next('CONTINUITY_READ');const observation=JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup)));
   next('CONTINUITY_VALIDATE');const nativeContinuity=preparePr54CurrentB007NativeContinuity(currentPreCapture.snapshotRef,sourcePre.snapshot,observation,sourcePre.backup);
   validatePr54CurrentPreCapture(currentPreCapture,sourcePre.snapshot,sourcePre.proof,sourcePre.backup,{nativeContinuity});next('PROTECTED');await guardProtected();
@@ -765,7 +769,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  const first=await admit();
  if(mode==='DryRun')return {status:'CURRENT_B007_DRY_RUN_ONLY',applyExecuted:false,claimCreated:false,transitionAuthority:false,candidate,sourceControlDir,proofDigest:first.proofDigest};
  async function protectedWrite(file,bytes){
-  need(path.win32.normalize(file)===file&&((!precutResume&&file===admissionClaimPath)||(precutResume&&file===resumeAttemptPath)||file.startsWith(transitionDir+'\\')||new RegExp('^'+root.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\\\MelisaERP-P03-candidate-[a-f0-9]{32}\\.json$').test(file)),'CURRENT_B007_WRITE_SCOPE');
+  need(path.win32.normalize(file)===file&&((!isResume&&file===admissionClaimPath)||(isResume&&file===resumeAttemptPath)||file.startsWith(transitionDir+'\\')||new RegExp('^'+root.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\\\MelisaERP-P03-candidate-[a-f0-9]{32}\\.json$').test(file)),'CURRENT_B007_WRITE_SCOPE');
   noReparseAncestors(file);const ref={path:file,sha256:hash(bytes)};await psPayload(pr54ProtectedWriteProgram(file,ref.sha256),bytes);need(pin(ref).equals(bytes),'CURRENT_B007_WRITE_READBACK');return ref;
  }
  // Two genuine observations agree on identities/history/SQL, not clock bytes.
@@ -773,7 +777,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(stable(first)===stable(second)&&Date.parse(second.claim.ownerObservedAt)>=Date.parse(first.claim.ownerObservedAt)&&Date.now()-Date.parse(second.claim.ownerObservedAt)<60000,'CURRENT_B007_ADMISSION_DRIFT');
  const actualClaim={...second.claim,schemaVersion:'melisa-p03-current-b007-epoch-claim.v1',transitionAuthority:true,applyExecuted:false};
  need(Object.keys(actualClaim).length===20,'CURRENT_B007_CLAIM_FIELDS');claimBytes=jsonBytes(actualClaim);
- if(precutResume){
+ if(isResume){
   const retained=read(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim),canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])])):value;
   const stableClaim=value=>Object.fromEntries(Object.entries(value).filter(([k])=>!['ownerObservedAt','successorRunId','successorProfile','successorBefore'].includes(k)));
   need(JSON.stringify(canonical(stableClaim(actualClaim)))===JSON.stringify(canonical(stableClaim(retained)))&&Date.parse(second.claim.ownerObservedAt)>=Date.parse(before.observedAt),'CURRENT_B007_RESUME_LIVE_CLAIM_DRIFT');
@@ -786,7 +790,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  await guard();await history();
  await ps(`$p=${quote(transitionDir)};${psNoReparse}if(Test-Path -LiteralPath $p){throw 'EXISTS'};$s=[Security.AccessControl.DirectorySecurity]::new();$s.SetOwner([Security.Principal.SecurityIdentifier]::new('${owner}'));$s.SetAccessRuleProtection($true,$false);foreach($id in @('${owner}','S-1-5-18')){$s.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($id),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};[void][IO.Directory]::CreateDirectory($p,$s);'CREATED'`);transitionCreated=true;
  for(const [name,ref]of Object.entries({engine:engineRef,helper:helperRef,...sources}))frozen[name]=await protectedWrite(path.win32.join(transitionDir,path.win32.basename(ref.path)),pin(ref));
- if(precutContinuation||precutResume)continuationRef=await protectedWrite(path.win32.join(transitionDir,'precut-continuation.json'),jsonBytes(continuationReceipt));
+ if(precutContinuation||isResume)continuationRef=await protectedWrite(path.win32.join(transitionDir,'precut-continuation.json'),jsonBytes(continuationReceipt));
  await protectedWrite(path.win32.join(transitionDir,'transition.lock'),jsonBytes({profileRef,beforeRef,currentPreCapture,rehearsalProofRef,successorClaimRef:claimRef,sourceControlDir,...(continuationRef?{continuationRef}:{})}));
  async function persist(record){need(record.sequence===sequence,'EVENT_SEQUENCE');await guard();const ref=await protectedWrite(path.win32.join(transitionDir,'event-'+String(sequence).padStart(4,'0')+'.json'),jsonBytes({...record,previousSha256:previous,profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256}));eventRefs.push(ref);previous=ref.sha256;sequence++;return {created:true,sequence:record.sequence};}
  async function physical(){

@@ -90,3 +90,39 @@ export function validatePr54CurrentB007PrecutResumeBinding({raw,profileRef,befor
 export function preparePr54CurrentB007PrecutResume({raw,profileRef,beforeRef,profile,before,now=Date.now()}){
  const receipt=validatePr54CurrentB007PrecutResumeBinding({raw,profileRef,beforeRef,profile,before});need(Number.isFinite(now)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<900000);return receipt;
 }
+
+// Exact failed9d2 no-cut continuation in the same dispatcher. This is not a
+// recursive retry policy: the452 claim and its consumed attempt stay immutable.
+const retryFailedRun='9d2e00d572acc83391a0a2e5ac28d046',retryDir=root+'\\MelisaERP-P03-transition-'+retryFailedRun;
+export const PR54_CURRENT_B007_PRECUT_RETRY_REFS=Object.freeze({
+ profile:pin(root+'\\MelisaERP-P03-profile-'+retryFailedRun+'.json','ed2c3ad7a253f749bf284ccc6aabe34535a28e3f2f0b71484583387082674c12'),
+ before:pin(root+'\\MelisaERP-P03-before-'+retryFailedRun+'.json','97252544d7ff98c0ed3d908bcf785f89cb2bb65dd3f6c79587653f433e740c04'),
+ event0:pin(retryDir+'\\event-0000.json','3c25d1da4017da7576cc15dd4a7cb603718cc1a4674897a52048bc56dc703b1f'),
+ event1:pin(retryDir+'\\event-0001.json','58741b0f6db3a7596d35d04089d178090412c6f722f9a59a9f09f54d51d519bc'),
+ failureTail:pin(retryDir+'\\event-0002.json','74d1c6dcdd5597935a9a8f2b814aef4e8167880bbc2c9ebea469d07f8f85af26'),
+ diagnostic:pin(retryDir+'\\io-failure-diagnostic.json','f65e6e001f7c936d4577b45d70de97565f603eef8900d18227315d2388148cea'),
+ context:pin(retryDir+'\\precut-continuation.json','7f07000256ed4b1289f36fe5a2290bdfa71e125ff976276f1135b42f0ba4012c'),
+ transitionLock:pin(retryDir+'\\transition.lock','a125f57f3d97993ede102504faf379a373be67a1178d53770fb2f3f2916b4255'),
+ snapshot:pin(retryDir+'\\successor-precut-admission.json','9207fb109e6b2cfe03b9791ed5f1b2e88b100c052094e86350819d83b1550584'),
+ intent:pin(retryDir+'\\b264-old-owner-cut-intent.json','33535a3f165c03892bfb3a225d6ec2ae91b96f47fd2a949b9cf1afa7e2576ee9'),
+ priorAttempt:pin(resumeDir+'\\resume-attempt.json','7f07000256ed4b1289f36fe5a2290bdfa71e125ff976276f1135b42f0ba4012c'),
+});
+export function validatePr54CurrentB007PrecutRetryBinding({raw,profileRef,beforeRef,profile,before}){
+ need(exact(raw,['original','resume','retry'])&&exact(raw.retry,Object.keys(PR54_CURRENT_B007_PRECUT_RETRY_REFS)));const prior={};
+ for(const [key,fixed]of Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS)){const row=raw.retry[key];need(exact(row,['ref','bytes'])&&same(row.ref,fixed)&&row.bytes instanceof Uint8Array&&row.bytes.byteLength>0&&row.bytes.byteLength<=16777216&&hash(row.bytes)===fixed.sha256);try{prior[key]=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(row.bytes));}catch{need(false);}}
+ const earlier={original:raw.original,resume:raw.resume};
+ const oldReceipt=validatePr54CurrentB007PrecutResumeBinding({raw:earlier,profileRef:PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile,beforeRef:PR54_CURRENT_B007_PRECUT_RETRY_REFS.before,profile:prior.profile,before:prior.before});
+ need(same(prior.context,oldReceipt)&&same(prior.priorAttempt,oldReceipt));
+ const receipt=validatePr54CurrentB007PrecutResumeBinding({raw:earlier,profileRef,beforeRef,profile,before});
+ need(before.runId!==retryFailedRun&&Date.parse(before.startedAt)>=Date.parse(prior.before.observedAt)&&profile.businessDigest.path!==prior.profile.businessDigest.path);
+ const claim=JSON.parse(new TextDecoder().decode(raw.resume.claim.bytes));
+ const lock=prior.transitionLock;
+ need(exact(lock,['profileRef','beforeRef','currentPreCapture','rehearsalProofRef','successorClaimRef','sourceControlDir','continuationRef'])&&same(lock.profileRef,PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile)&&same(lock.beforeRef,PR54_CURRENT_B007_PRECUT_RETRY_REFS.before)&&same(lock.successorClaimRef,PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim)&&same(lock.continuationRef,PR54_CURRENT_B007_PRECUT_RETRY_REFS.context));
+ let previous=PR54_CURRENT_B007_PRECUT_RETRY_REFS.before.sha256;
+ for(const [i,event]of ['TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED'].entries()){const v=prior[i===2?'failureTail':'event'+i];need(exact(v,['sequence','digest','event','stopOrderDigest',...(i?['target']:[]),'previousSha256','profileSha256','beforeSha256'])&&v.sequence===i&&v.event===event&&v.digest===prior.before.plan.digest&&v.stopOrderDigest===claim.stopOrderDigest&&v.previousSha256===previous&&v.profileSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile.sha256&&v.beforeSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.before.sha256&&(i===0||v.target===(i===1?'coreSupervisor':'HELD_CORE_CUT')));previous=PR54_CURRENT_B007_PRECUT_RETRY_REFS[i===2?'failureTail':'event'+i].sha256;}
+ need(exact(prior.diagnostic,['phase','reason','failureDiagnostic','profileSha256','beforeSha256'])&&prior.diagnostic.phase==='HELD_CORE_CUT'&&prior.diagnostic.reason==='P03_OWNER_TRANSITION_STOPPED'&&same(prior.diagnostic.failureDiagnostic,{stage:'DRAIN',reason:'P03_PHYSICAL_B264_CUT_OWNER_DIGEST'})&&prior.diagnostic.profileSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile.sha256&&prior.diagnostic.beforeSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.before.sha256);
+ need(prior.snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&prior.snapshot.profileSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile.sha256&&prior.snapshot.beforeSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.before.sha256&&prior.snapshot.oldIdentities.length===8&&prior.snapshot.oldWatchers.length===2);
+ need(exact(prior.intent,['event','claimSha256','stopOrderDigest','profileSha256','beforeSha256','observedAt'])&&prior.intent.event==='B264_OLD_CUT_INTENT'&&prior.intent.claimSha256===PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.sha256&&prior.intent.stopOrderDigest===claim.stopOrderDigest&&prior.intent.profileSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.profile.sha256&&prior.intent.beforeSha256===PR54_CURRENT_B007_PRECUT_RETRY_REFS.before.sha256);
+ return Object.freeze({...receipt,schemaVersion:'melisa-p03-current-b007-precut-retry.v1',failureTailRef:PR54_CURRENT_B007_PRECUT_RETRY_REFS.failureTail});
+}
+export function preparePr54CurrentB007PrecutRetry(input){const receipt=validatePr54CurrentB007PrecutRetryBinding(input),now=input.now??Date.now();need(Number.isFinite(now)&&now-Date.parse(input.before.observedAt)>=0&&now-Date.parse(input.before.observedAt)<900000);return receipt;}

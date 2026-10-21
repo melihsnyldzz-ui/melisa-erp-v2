@@ -45,7 +45,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
 function Get-B264RecoverySourcePolicy{
- if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='8d14522827098dbadf611cbac67b601ec59c416e538503041e9a0a986f59c37f';observerSha256='1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'}}
+ if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4';observerSha256='8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}}
  if($PolicyGeneration -ceq 'B264Sup20D'){
   return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }

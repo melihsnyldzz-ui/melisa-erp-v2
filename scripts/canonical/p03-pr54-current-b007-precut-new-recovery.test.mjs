@@ -26,7 +26,7 @@ test('new recovery is finite Current-only, requires pinned continuation, and lea
  assert(!old.includes('p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'));
 });
 test('recovery resume binds the unchanged452 claim and one-time pointer without postcut OLD-running or before-age requirements',windows,()=>{
- const extraction=`${parse(adapter)}foreach($name in @('Same-B264Value','CurrentB007ResumeStable','AssertCurrentB007ResumeBinding','Assert-CurrentB007Continuation')){$defs=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
+ const extraction=`${parse(adapter)}foreach($name in @('Same-B264Value','CurrentB007ResumeStable','AssertCurrentB007RetryHistory','AssertCurrentB007ResumeBinding','Assert-CurrentB007Continuation')){$defs=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
  const code=rawFixture('fixture')+'\n'+rawFixture('resumeFixture')+String.raw`
 function Require-NewDrain($value,$code){if(-not$value){throw ('P03_NEW_DRAIN_'+$code)}}
 function ReadPinned($path,$sha){return ,(ReadWorkerPin $path $sha)}
@@ -42,7 +42,7 @@ Assert-CurrentB007Continuation;if(($claim|ConvertTo-Json -Depth 30 -Compress)-cn
  }
 });
 test('PS5 parses the full adapter and every existing native recovery function except the claim binding remains byte-identical',windows,()=>{
- const out=run(`${parse(original)}$old=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+3)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cne'Assert-B264Claim'-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
+ const out=run(`${parse(original)}$old=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+4)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cne'Assert-B264Claim'-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
  assert.match(out,/PARSED_NATIVE_RECOVERY_UNCHANGED/);
 });
 test('PS5 pure continuation guard accepts only own fresh context and pinned retained claim/failure tail; no worker dispatcher runs',windows,()=>{
@@ -83,4 +83,15 @@ Reject 'raw-before-changed' {$script:bad=$BeforeImagePath}
 'NO_NATIVE_NO_DISPATCH'
 `;
  const out=run(parse(adapter)+code);assert.match(out,/VALID_FRESH_CONTEXT_FIVE_PINS/);assert.equal((out.match(/REJECTED=/g)??[]).length,20);assert.match(out,/NO_NATIVE_NO_DISPATCH/);
+});
+test('recovery fixed9d2 retry authenticates unchanged452 and both pointers without postcut OLD-running or before900 gate',windows,()=>{
+ const extraction=`${parse(adapter)}foreach($name in @('Same-B264Value','CurrentB007ResumeStable','AssertCurrentB007RetryHistory','AssertCurrentB007ResumeBinding','Assert-CurrentB007Continuation')){$defs=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
+ const fixtures=rawFixture('fixture')+'\n'+rawFixture('resumeFixture')+'\n'+rawFixture('retryFixture');
+ const stubs='\nfunction Require-NewDrain($v,$c){if(-not$v){throw $c}}\nfunction ReadPinned($p,$s){return ,(ReadWorkerPin $p $s)}\nfunction Same-B264Value($a,$b){return ($a|ConvertTo-Json -Depth 25 -Compress)-ceq($b|ConvertTo-Json -Depth 25 -Compress)}\n';
+ const positive=fixtures+stubs+"SetupRetry;$PolicyGeneration='CurrentB007';Remove-Variable dir -ErrorAction SilentlyContinue;Assert-CurrentB007Continuation;$before.startedAt=[DateTime]::UtcNow.AddMinutes(-20).ToString('o');$before.observedAt=[DateTime]::UtcNow.AddMinutes(-19).ToString('o');$data[$context.retainedBeforeRef.path].observedAt=[DateTime]::UtcNow.AddMinutes(-30).ToString('o');$data[(Join-Path $base ('MelisaERP-P03-before-'+$retryRun+'.json'))].observedAt=[DateTime]::UtcNow.AddMinutes(-25).ToString('o');Assert-CurrentB007Continuation;'RETRY_POSTCUT_NO_CLOCK_OR_OLD_RUNNING'";
+ assert.match(run(extraction+'\n'+positive),/RETRY_POSTCUT_NO_CLOCK_OR_OLD_RUNNING/);
+ for(const edit of ["$context.failureTailRef.sha256='wrong'","$data.Remove((Join-Path $retryDir 'resume-attempt.json'))","$retryFiles+=,'successor-core-cut-completed.json'","$data[(Join-Path $retryDir 'io-failure-diagnostic.json')].failureDiagnostic.reason='OTHER'","$hashes[(Join-Path $resumeDir 'resume-attempt.json')]='wrong'"]){
+  const code=fixtures+stubs+"SetupRetry;$PolicyGeneration='CurrentB007';Remove-Variable dir -ErrorAction SilentlyContinue;"+edit+";try{Assert-CurrentB007Continuation;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'RETRY_REJECTED'}";
+  assert.match(run(extraction+'\n'+code),/RETRY_REJECTED/);
+ }
 });

@@ -1,3 +1,4 @@
+import {PR54_CURRENT_B007_PRECUT_RETRY_REFS,preparePr54CurrentB007PrecutRetry} from './p03-pr54-current-b007-precut-continuation.mjs';
 // Finite B264 physical inspection only. Importing this module does no IO.
 // No public transport hook, token mint, claim, Drain or Apply dispatcher.
 import fs from 'node:fs';
@@ -146,8 +147,8 @@ export function lookupPr54CurrentB007PhysicalInspection(token,{current,profile,b
 
 // Explicit CurrentB007 transport. Historical source generations remain sealed.
 const currentB007Pins=Object.freeze({
- drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'b6566e3505af505fb6e0b8d47d6227cf5277d527014db9a8f034093285783486'}),
- observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'1756b97ccda4d34d8d9e6774016525419ab24fc5764d532b4034a0e9ecc1d511'}),
+ drainer:Object.freeze({leaf:'p03-pr54-successor-core-drain.ps1',sha256:'cc864ca3d9030929f5bc5d30f93ffbaadac72286e40e346bf5d63c32a5926767'}),
+ observer:Object.freeze({leaf:'p03-physical-recovery-observe.ps1',sha256:'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}),
  helper:Object.freeze({leaf:'p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'}),
 });
 export function pr54CurrentB007InspectionArguments(input){
@@ -162,17 +163,18 @@ export function pr54CurrentB007InspectionArguments(input){
  const common=['-PolicyGeneration','CurrentB007InspectOnly','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256];
  return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
 }
-export async function inspectPr54CurrentB007PhysicalOwner(input,{precutContinuation=false,precutResume=false}={}){
+export async function inspectPr54CurrentB007PhysicalOwner(input,{precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
- need(typeof precutContinuation==='boolean'&&typeof precutResume==='boolean'&&!(precutContinuation&&precutResume),'CONTINUATION_MODE');
+ need([precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CONTINUATION_MODE');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
  const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
  const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
  const claimSlot=()=>{
-  if(precutResume){
+  if(precutResume||precutResumeAfter9d2){
    const original=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])),resume=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
-   preparePr54CurrentB007PrecutResume({raw:{original,resume},profileRef,beforeRef,profile,before});
-   need(!fs.existsSync(path.win32.join(path.win32.dirname(PR54_CURRENT_B007_PRECUT_RESUME_REFS.failureTail.path),'resume-attempt.json')),'RESUME_ALREADY_CONSUMED');return;
+   const retry=precutResumeAfter9d2?Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])):null;
+   (precutResumeAfter9d2?preparePr54CurrentB007PrecutRetry:preparePr54CurrentB007PrecutResume)({raw:{original,resume,...(retry?{retry}:{})},profileRef,beforeRef,profile,before});
+   need(!fs.existsSync(path.win32.join(path.win32.dirname((precutResumeAfter9d2?PR54_CURRENT_B007_PRECUT_RETRY_REFS:PR54_CURRENT_B007_PRECUT_RESUME_REFS).failureTail.path),'resume-attempt.json')),'RESUME_ALREADY_CONSUMED');return;
   }
   if(precutContinuation){
    const raw=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));

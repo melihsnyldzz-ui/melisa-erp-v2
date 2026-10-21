@@ -105,6 +105,47 @@ function AssertCurrentB007InspectionContract($profile,$before,$oldSettings,$newS
  foreach($p in $all){B264Need ($p.pid -gt 0 -and $p.ownerSid -ceq $owner -and $p.creationTime -is [string] -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime())}
  foreach($name in @('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')){B264Need (@($profile.tasks|Where-Object{$_.name -ceq $name}).Count -eq 1)}
 }
+function AssertCurrentB007StaticContract($profile,$before,$oldSettings,$newSettings,[string]$profilePath,[string]$beforePath,[string]$beforeSha){
+ function B264Need($ok){if(-not $ok){throw 'P03_B264_INSPECTION_CONTRACT'}}
+ function B264Same($a,$b){return ($a|ConvertTo-Json -Depth 20 -Compress) -ceq ($b|ConvertTo-Json -Depth 20 -Compress)}
+ $root='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
+ $db='MELISA_ERP_CRM_SHARED_TEST_20261009_02';$copy='e16b70f0-4057-428b-9abc-6bbcaf35fe82'
+ $oldPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json'
+ $oldSha='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'
+ $newPath='C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'
+ B264Need ($profile.newSettings.sha256 -ceq '800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329')
+ B264Need ($before.runId -cmatch '\A[a-f0-9]{32}\z' -and $before.runId -cnotin @('639e2da815e1e7ac0f1c0d04d7f7bdc3','7b0821959737f1da0427b17a7dfd4685','b264594b6f93d560d807c8decc4e6699'))
+ B264Need ($profilePath -ceq (Join-Path $root ('MelisaERP-P03-profile-'+$before.runId+'.json')) -and $beforePath -ceq (Join-Path $root ('MelisaERP-P03-before-'+$before.runId+'.json')) -and $profile.beforeImage.path -ceq $beforePath -and $profile.beforeImage.sha256 -ceq $beforeSha)
+ B264Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $profile.ownerSid -ceq $owner -and $before.ownerSid -ceq $owner -and $profile.database -ceq $db -and $before.database -ceq $db -and $before.copyId -ceq $copy -and $before.actualT1 -ceq $false)
+ B264Need ($profile.oldSettings.path -ceq $oldPath -and $profile.oldSettings.sha256 -ceq $oldSha -and $profile.newSettings.path -ceq $newPath -and $profile.newSettings.sha256 -cmatch '\A[a-f0-9]{64}\z' -and $profile.newSettings.sha256 -cnotin @($oldSha,'fec69870a70631bcb6cfd2df70bf1566d2ab66eb5b09f7ac96c54ac29f749417') -and (B264Same $before.oldConfig $profile.oldSettings) -and (B264Same $before.newConfig $profile.newSettings))
+ B264Need ($before.plan.oldSettingsSha256 -ceq $oldSha -and $before.plan.newSettingsSha256 -ceq $profile.newSettings.sha256)
+ foreach($settings in @($oldSettings,$newSettings)){B264Need ($settings.ownerSid -ceq $owner -and $settings.database -ceq $db -and $settings.copyId -ceq $copy -and $settings.actualT1 -ceq $false)}
+ $fixed=@(
+ @($oldSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-COMPLETE-TEST-20261018-e59e07abf7ae','e59e07abf7ae2567cdc2adb93811fe29e0032fe5','2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'),
+ @($oldSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a','13bdf75a032ae8f694354a2e57b6ed382aec2f17','195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'),
+ @($oldSettings.components.crm,'C:\Sirket\CRM\releases\crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','6bc82e6fe9726261ef1d0171d97e5d9da9f5398a','e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'),
+ @($oldSettings.components.nativeOrder,'C:\Sirket\ERP\releases\CRM-ORDER-DRAFT-TEST-20261013-7a41f64','7a41f6492273dd1ec0bcb086f820be5575372be8','6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'),
+ @($newSettings.components.erpApiNative,'C:\Sirket\ERP\releases\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41','6dc33f41737349c6e3f17fb867a451b570a00acc','6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49'),
+ @($newSettings.components.crm,'C:\Sirket\CRM\releases\node-v24.19.0\crm-shared-test-d1e4425206249e38445fb103e03601f86baa84ec','d1e4425206249e38445fb103e03601f86baa84ec','a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef'),
+ @($newSettings.supervisor,'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994','da5b394919941f73b9d7098f146fffd362c2a955','b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf')
+ )
+ B264Need (@($profile.packages).Count -eq 7 -and @($profile.packages|Select-Object -ExpandProperty root -Unique).Count -eq 7)
+ foreach($f in $fixed){B264Need ($f[0].packageRoot -ceq $f[1] -and $f[0].sourceCommit -ceq $f[2] -and $f[0].manifestSha256 -ceq $f[3]);B264Need (@($profile.packages|Where-Object{$_.root -ceq $f[1] -and $_.sourceCommit -ceq $f[2] -and $_.manifestSha256 -ceq $f[3] -and $_.manifestPath -ceq ($f[1]+'\release-manifest.json')}).Count -eq 1)}
+ B264Need (B264Same $oldSettings.components.nativeOrder $newSettings.components.nativeOrder)
+ foreach($crm in @($oldSettings.components.crm,$newSettings.components.crm)){B264Need ((@($crm.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'config|manifestSha256|packageRoot|sourceCommit' -and (@($crm.config.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'path|sha256')}
+ B264Need ($oldSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $oldSettings.components.crm.config.sha256 -ceq '9b484883f89584225bcd5242b7f501a38feb6a1bbaa22d8a8e17accf302785ab')
+ B264Need ($newSettings.components.crm.config.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\crm-activation-crm06-staff-d1e442520624-erp-6dc33f417373-current.json' -and $newSettings.components.crm.config.sha256 -ceq '0ef6eb422be2522743753d2b2d9f24f3cbf5c6a3d8b45a904540478e112a3449')
+ foreach($settings in @($oldSettings,$newSettings)){B264Need ($settings.node.path -ceq 'C:\Sirket\ERP\tools\node-v24.19.0\node.exe' -and $settings.node.sha256 -ceq '3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237')}
+ foreach($key in @('packageRoot','sourceCommit','manifestSha256')){B264Need ($oldSettings.components.hub.$key -ceq $oldSettings.components.erpApiNative.$key -and $newSettings.components.hub.$key -ceq $newSettings.components.erpApiNative.$key)}
+ foreach($pair in @(@('erp',$newSettings.components.erpApiNative),@('crm',$newSettings.components.crm),@('supervisor',$newSettings.supervisor))){B264Need ($before.profile.($pair[0]+'Source') -ceq $pair[1].sourceCommit -and $before.profile.($pair[0]+'Manifest') -ceq $pair[1].manifestSha256)}
+ B264Need ($before.oldSupervisor.root -ceq $oldSettings.supervisor.packageRoot -and $before.oldSupervisor.manifest -ceq $oldSettings.supervisor.manifestSha256)
+ B264Need ((@($before.identities.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'coreSupervisor|crmCatalog|crmNativeOrder|crmOrders|crmServer|erpApi|erpNative|hub')
+ B264Need (@($profile.oldWatchers).Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -ccontains 'kind' -and $_.kind -ceq 'ProtectedSqlService'}).Count -eq 1)
+ $all=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers)
+ B264Need (@($all|Select-Object -ExpandProperty pid -Unique).Count -eq 10)
+ foreach($p in $all){B264Need ($p.pid -gt 0 -and $p.ownerSid -ceq $owner -and $p.creationTime -is [string] -and [DateTime]::Parse($p.creationTime).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime())}
+ foreach($name in @('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')){B264Need (@($profile.tasks|Where-Object{$_.name -ceq $name}).Count -eq 1)}
+}
 function AssertB264InspectionContract($profile,$before,$oldSettings,$newSettings,[string]$profilePath,[string]$beforePath,[string]$beforeSha,[DateTime]$now){
  function B264Need($ok){if(-not $ok){throw 'P03_B264_INSPECTION_CONTRACT'}}
  function B264Same($a,$b){return ($a|ConvertTo-Json -Depth 20 -Compress) -ceq ($b|ConvertTo-Json -Depth 20 -Compress)}
