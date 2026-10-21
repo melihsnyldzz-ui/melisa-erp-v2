@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -226,4 +227,11 @@ Seed-Sup20DClaim;$claim.candidate.supervisorRoot+='-other';Reject 'sup20d-root' 
 Seed-Sup20DClaim;$claim.newSettings.sha256='c'*64;Reject 'sup20d-settings' {Assert-B264RecoveryCandidateTuple}
 Seed-Sup20DClaim;$script:PolicyGeneration='b264sup20d';Reject 'policy-case' {Assert-B264RecoveryCandidateTuple}
 `);for(const label of ['new-under-legacy-policy','legacy-under-new-policy','sup20d-manifest','sup20d-root','sup20d-settings','policy-case'])assert.ok(out.includes('REJECTED='+label));
+});
+
+
+test('latest fresh and exact974d recovery pin the corrected NEW observer without changing legacy closure',()=>{
+ const raw=fs.readFileSync(adapter,'utf8'),newBytes=fs.readFileSync(path('./p03-pr54-new-owner-observe.ps1'),'utf8').replaceAll('\r\n','\n');
+ const crypto=createHash('sha256').update(newBytes).digest('hex');assert(raw.includes(crypto));assert(raw.includes('777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'));
+ assert.match(raw,/ContinuationPath.*ContinuationSha256/);assert.match(raw,/CURRENT_974D_CONTEXT_REQUIRED/);assert(!raw.slice(raw.indexOf('function Assert974dContinuation'),raw.indexOf('function Assert-B264Claim')).includes('UtcNow'));
 });

@@ -1,3 +1,4 @@
+import {PR54_CURRENT_B007_PRECUT974D_REFS,PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH,preparePr54CurrentB007Precut974dContinuation} from './p03-pr54-current-b007-precut-continuation.mjs';
 import {PR54_CURRENT_B007_PRECUT_RETRY_REFS,preparePr54CurrentB007PrecutRetry} from './p03-pr54-current-b007-precut-continuation.mjs';
 // Finite B264 physical inspection only. Importing this module does no IO.
 // No public transport hook, token mint, claim, Drain or Apply dispatcher.
@@ -179,10 +180,10 @@ export function validatePr54CurrentSameCaptureEnvelope(value,input){
  need(c.startedAt===current.startedAt&&[c.processCount,c.listenerCount,c.runningInstanceCount].every(n=>Number.isSafeInteger(n)&&n>=0)&&c.processCount>=current.processes.length&&c.listenerCount>=current.bindings.length&&c.runningInstanceCount===current.runningInstances.length,'SAME_CAPTURE_COUNTS');
  const {captureId:nativeId,...native}=frame;return {current,frame:native};
 }
-export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGeneration=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
+export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGeneration=false,precut974dContinuation=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
- need([precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CONTINUATION_MODE');
- need(typeof freshOwnerGeneration==='boolean'&&(!freshOwnerGeneration||![precutContinuation,precutResume,precutResumeAfter9d2].some(Boolean)),'FRESH_GENERATION_MODE');
+ need([precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CONTINUATION_MODE');
+ need(typeof freshOwnerGeneration==='boolean'&&(!freshOwnerGeneration||![precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].some(Boolean)),'FRESH_GENERATION_MODE');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
  const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
  const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
@@ -190,6 +191,7 @@ export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGener
   // RO inspection does not mint a slot. The owner derives it from two complete
   // native admissions and enforces exclusive creation before any task mutation.
   if(freshOwnerGeneration)return;
+  if(precut974dContinuation){const raw=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT974D_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));preparePr54CurrentB007Precut974dContinuation({raw,profileRef,beforeRef,profile,before});need(!fs.existsSync(PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH),'CONSUMED');return;}
   if(precutResume||precutResumeAfter9d2){
    const original=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])),resume=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
    const retry=precutResumeAfter9d2?Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])):null;

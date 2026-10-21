@@ -1,3 +1,4 @@
+import {PR54_CURRENT_B007_PRECUT974D_REFS,PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH} from './p03-pr54-current-b007-precut-continuation.mjs';
 import {assertPr54CurrentB007Candidate} from './p03-pr54-owner-successor.mjs';
 import {PR54_CURRENT_B007_PRECUT_REFS,PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH,PR54_CURRENT_B007_PRECUT_RESUME_REFS,PR54_CURRENT_B007_PRECUT_RETRY_REFS} from './p03-pr54-current-b007-precut-continuation.mjs';
 import test from 'node:test';
@@ -37,7 +38,7 @@ function fixture(options={}){
  if(options.recovery)options={...options,retry:true};
  const sid=options.recovery?'42d0d0536cb115cc4aea43ff1f13afbf':'a'.repeat(32),transition=root+'\\MelisaERP-P03-transition-'+sid;
  const isResume=options.resume||options.retry;
- const selected=options.fresh?Object.fromEntries(['oldCut','newObserver','newRecovery','lateOld','drainer','observer'].map((key,n)=>{const leaf=['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-b264-new-owner-recovery.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-successor-core-drain.ps1','p03-physical-recovery-observe.ps1'][n];return [key,[leaf,hash(Buffer.from(fs.readFileSync(new URL(leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')))]];})):{};
+ const selected=options.fresh||options.cont974d?Object.fromEntries(['oldCut','newObserver','newRecovery','lateOld','drainer','observer'].map((key,n)=>{const leaf=['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-b264-new-owner-recovery.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-successor-core-drain.ps1','p03-physical-recovery-observe.ps1'][n];return [key,[leaf,hash(Buffer.from(fs.readFileSync(new URL(leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')))]];})):{};
  const activePins={...pins,...selected};
  const files=new Map(),directories=new Set(),calls=[],events=[],writes=[],programs=[];let phase='old',inspections=0,stops=0,emptyWitnessed=false;
  const now=()=>new Date().toISOString();
@@ -73,6 +74,7 @@ function fixture(options={}){
  const outerRef=put(root+'\\history-outer\\event-0000.json',{history:true}),recoveryRef=put(root+'\\history-recovery\\event-0000.json',{history:true});
  const input={profileRef,beforeRef,currentPreCapture:{snapshotRef,proofRef,backupProofRef},rehearsalProofRef,sourceControlDir:control};
  if(options.fresh)input.freshOwnerGeneration=true;
+ if(options.cont974d)input.precut974dContinuation=true;
  if(options.continuation||isResume){
   if(options.retry)input.precutResumeAfter9d2=true;else if(isResume)input.precutResume=true;else input.precutContinuation=true;
   for(const ref of Object.values(PR54_CURRENT_B007_PRECUT_REFS))put(ref.path,{fixtureHistoricalPin:true},ref.sha256);
@@ -104,7 +106,7 @@ function fixture(options={}){
  async function run(shell,request,runOptions){const {ref,args}=request,leaf=path.win32.basename(ref.path),at=k=>args[args.indexOf(k)+1];calls.push(leaf+':'+(args.includes('-Mode')?at('-Mode'):args.includes('-Action')?at('-Action'):''));
   if(leaf==='p03-pr54-b264-old-owner-cut.ps1'||leaf==='p03-pr54-current-b007-precut-cut.ps1'){
    if(at('-Mode')==='ObserveStartedOld'){
-    assert(options.fresh&&options.lateRollback);assert.equal(at('-WorkerSourceSha256'),ref.sha256);assert.equal(runOptions.timeout,660000);
+    assert((options.fresh||options.cont974d)&&options.lateRollback);assert.equal(at('-WorkerSourceSha256'),ref.sha256);assert.equal(runOptions.timeout,660000);
     if(options.lateNativeFailure)throw Error('P03_PHYSICAL_STARTED_PARENT_IDENTITY');
     return {stdout:JSON.stringify({status:'OLD_READY_LATE_OBSERVED',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,engineSha256:at('-EngineSha256'),rollbackFailureTailSha256:at('-RollbackFailureTailSha256'),identityDigest:'e'.repeat(64),stableSeconds:options.lateShortProof?0:30,mutationExecuted:false,startExecuted:false,newGenerationStarted:false})};
    }
@@ -130,8 +132,8 @@ function fixture(options={}){
     const drainWitness=put(transition+'\\successor-core-probe-drain.json',{consolePins:[],probePins:[],goneOldPids:[107]});return {stdout:JSON.stringify({status:'B264_OLD_OWNER_CORE_DRAINED',heldCoreExited:true,comStopped:true,coreStopResult:'COM_STOP_NATURAL_EXIT',cutWitness,drainWitness})};
    }
    if(at('-Mode')==='Inspect'){const failures=options.inspectErrors??[];if(failures.length)throw failures.shift();return {stdout:JSON.stringify({schemaVersion:'melisa-p03-successor-precut-admission.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,engineSha256:at('-EngineSha256'),recoveryHelperSha256:at('-RecoveryHelperSha256'),observedAt:now(),protectedConsolePins:options.protectedConsole?[protectedConsole]:[],oldIdentities:Object.values(identities),oldWatchers:watchers,consolePins:[],probePins:[]})};}
-   assert(files.has(transition+'\\b264-old-owner-cut-intent.json'));const actualClaimPath=options.fresh?root+'\\p03-pr54-current-b007-generation-'+ 'd'.repeat(64)+'.lock.json':(options.continuation||isResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:claimPath;assert.equal(at('-ClaimPath'),actualClaimPath);assert(files.has(actualClaimPath));assert(events.some(e=>e.event==='EXACT_STOP_INTENT'&&e.target==='coreSupervisor'));
-   if(options.continuation||isResume){assert.equal(at('-ContinuationPath'),transition+'\\precut-continuation.json');assert(files.has(at('-ContinuationPath')));}
+   assert(files.has(transition+'\\b264-old-owner-cut-intent.json'));const actualClaimPath=options.cont974d?PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH:options.fresh?root+'\\p03-pr54-current-b007-generation-'+ 'd'.repeat(64)+'.lock.json':(options.continuation||isResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:claimPath;assert.equal(at('-ClaimPath'),actualClaimPath);assert(files.has(actualClaimPath));assert(events.some(e=>e.event==='EXACT_STOP_INTENT'&&e.target==='coreSupervisor'));
+   if(options.cont974d||options.continuation||isResume){assert.equal(at('-ContinuationPath'),transition+'\\precut-continuation.json');assert(files.has(at('-ContinuationPath')));}
    if(options.cutError)throw options.cutError;if(options.failCut)throw Error('P03_CUT_UNPROVEN');
    stops++;phase='cut';running=false;rows=rows.filter(p=>!['coreSupervisor','terminalWatcher','hubWatcher'].includes(p.role));
    const cutWitness=put(transition+'\\successor-core-cut-completed.json',{event:'B264_OLD_OWNER_CORE_CUT_COMPLETED'}),drainWitness=put(transition+'\\successor-core-probe-drain.json',{consolePins:[],probePins:[],goneOldPids:[107]});
@@ -147,17 +149,17 @@ function fixture(options={}){
    const post=structuredClone(snapshot);if(options.sqlDrift)post.tables[0].count=1;const postRef=put(base+'\\source-post-snapshot.json',post),proof={phase:'Post',snapshotRef:postRef};put(base+'\\source-post-proof.json',proof);return {stdout:JSON.stringify(proof)};
   }
   if(leaf==='p03-pr54-b264-new-owner-recovery.ps1'||leaf==='p03-pr54-current-b007-precut-new-recovery.ps1'){
-   if(options.continuation||isResume)assert.equal(at('-ContinuationPath'),transition+'\\precut-continuation.json');
+   if(options.cont974d||options.continuation||isResume)assert.equal(at('-ContinuationPath'),transition+'\\precut-continuation.json');
    if(options.unprovenPartial)throw Error('P03_NEW_DRAIN_CORE_UNPROVEN');rows=[];running=false;const candidateRef=put(root+'\\MelisaERP-P03-candidate-'+('c'.repeat(32))+'.json',{schemaVersion:'melisa-p03-physical-candidate.v1',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,observedAt:now(),processes:[],receipts:[]});return {stdout:JSON.stringify({status:'B264_NEW_OWNER_EMPTY_CANDIDATE_READY',candidateRef,oldOwnerStarted:false,engineRecoveryExecuted:false,businessWrites:0,requiresFrozenStopNewAndRollbackOld:true})};
   }
   if(leaf==='p03-physical-rollback-lifetime-v2.ps1'){
-   if(at('-Mode')==='PreflightOld'){if(!isResume&&!options.fresh)assert(!files.has(options.continuation?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:claimPath));if(options.payloadDrift)throw Error('P03_PHYSICAL_PACKAGE_BYTES');return {stdout:JSON.stringify({status:'OLD_PHYSICAL_PREFLIGHT',environment:'Shared',profileSha256:profileRef.sha256,beforeImageSha256:beforeRef.sha256,applyAvailable:false,mutationExecuted:options.badPreflight===true})};}
+   if(at('-Mode')==='PreflightOld'){if(!isResume&&!options.fresh&&!options.cont974d)assert(!files.has(options.continuation?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:claimPath));if(options.payloadDrift)throw Error('P03_PHYSICAL_PACKAGE_BYTES');return {stdout:JSON.stringify({status:'OLD_PHYSICAL_PREFLIGHT',environment:'Shared',profileSha256:profileRef.sha256,beforeImageSha256:beforeRef.sha256,applyAvailable:false,mutationExecuted:options.badPreflight===true})};}
    if(at('-Mode')==='StopNew'){const c=JSON.parse(pin({path:at('-CandidatePath'),sha256:at('-CandidateSha256')}));assert.equal(c.processes.length,0);put(profile.journalDirectory+'\\event-0000.json',{event:'genuine-frozen-event'});return {stdout:JSON.stringify({status:'RECOVERED_OLD_ACTIONS',journalTailSha256:'f'.repeat(64)})};}
    assert.equal(at('-RecoveryTailSha256'),'f'.repeat(64));if(options.lateRollback){put(profile.journalDirectory+'\\event-0007.json',{sequence:7,event:'QUARANTINED',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256});throw Error(options.lateOtherFailure?'P03_PHYSICAL_STARTED_ROLE_IDENTITY':'P03_PHYSICAL_ROLLBACK_READBACK_FAILED');}return {stdout:JSON.stringify({status:options.failRollback?'ROLLBACK_READBACK_FAILED':'RESTORED_READY'})};
   }
   throw Error('unexpected worker '+leaf);
  }
- async function ps(code,transport){assert.deepEqual(transport,options.recovery||options.fresh?{plainCommandOnly:true}:undefined);programs.push(code);
+ async function ps(code,transport){assert.deepEqual(transport,options.recovery||options.fresh||options.cont974d?{plainCommandOnly:true}:undefined);programs.push(code);
   if(code==='ABSENCE_CHECK'){emptyWitnessed=true;return 'EMPTY';}
   if(code.includes('::GetCurrent().User.Value')&&!code.includes('Get-Acl'))return owner;
   if(code.includes('log_end_lsn')){if(options.recovery&&!options.finalize){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:'+(options.postcas?'ResumeDrainCheck':'ResumeDrainDryRun')));assert.equal(files.has(transition+'\\completed-cut-recovery-intent.json'),!!options.postcas);}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
@@ -177,9 +179,24 @@ function fixture(options={}){
   inspectPr54CurrentB007PhysicalOwner:async()=>{inspections++;return {profile,before,current:seen(),physicalInspection:secret};},
   preparePr54B264NativeContinuity:()=>secret,preparePr54CurrentB007NativeContinuity:()=>secret,validatePr54CurrentPreCapture:()=>({runId:'P03-20261020-100000',root:base}),pr54CurrentContinuityProgram:()=> 'log_end_lsn',
   admitPr54CurrentB007Epoch:({physicalInspection,current})=>{assert.equal(physicalInspection,secret);const value={schemaVersion:'melisa-p03-current-b007-epoch-proposal.v1',currentOwnerDigest:options.ownerDrift&&inspections>1?'e'.repeat(64):'d'.repeat(64),ownerObservedAt:current.observedAt,protectedSqlEpoch:{kind:'ProtectedSqlService',pid:900},predecessorRunId:'b264594b6f93d560d807c8decc4e6699',predecessorProfile:{},predecessorBefore:{},predecessorLock:{},consumedAncestorClaim:{},failedOuterTail:{},quarantinedRecoveryTail:{},readOnlyOldReady:{},successorRunId:sid,successorProfile:profileRef,successorBefore:beforeRef,newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(plan),transitionAuthority:false,applyExecuted:false};return {claimPath,claim:value,proofDigest:'c'.repeat(64)};},
-  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh?{plainCommandOnly:true}:undefined);assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh?{fileInvocationOnly:true}:undefined);return {ref,args:argv.slice(4)};},pr54CollectPhysicalObservation:(fn,stage)=>{assert(['PHYSICAL','SUCCESSOR_INSPECT'].includes(stage));return actualCollectPhysicalObservation(fn,stage);},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}if(options.recovery){assert(!ids.includes(4900));assert(!consoles.some(p=>p.pid===4900));assert(calls.at(-1).endsWith(':ResumeDrainCheck'));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
+  noReparseAncestors:p=>{if(options.journal974dLink&&p===root+'\\prior974dJournal\\scope-check')throw Error('P03_SHARED_REPARSE');},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh||options.cont974d?{plainCommandOnly:true}:undefined);assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv,transport)=>{assert.deepEqual(transport,options.recovery||options.fresh||options.cont974d?{fileInvocationOnly:true}:undefined);return {ref,args:argv.slice(4)};},pr54CollectPhysicalObservation:(fn,stage)=>{assert(['PHYSICAL','SUCCESSOR_INSPECT'].includes(stage));return actualCollectPhysicalObservation(fn,stage);},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}if(options.recovery){assert(!ids.includes(4900));assert(!consoles.some(p=>p.pid===4900));assert(calls.at(-1).endsWith(':ResumeDrainCheck'));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
  if(options.retry){env.preparePr54CurrentB007PrecutRetry=input=>env.validatePr54CurrentB007PrecutRetryBinding(input);env.validatePr54CurrentB007PrecutRetryBinding=({raw,profileRef,beforeRef})=>{assert.equal(Object.keys(raw.original).length,8);assert.equal(Object.keys(raw.resume).length,11);assert.equal(Object.keys(raw.retry).length,11);for(const [key,ref]of Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS))pin(ref);return {schemaVersion:'melisa-p03-current-b007-precut-retry.v1',retainedClaimRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim,failureTailRef:PR54_CURRENT_B007_PRECUT_RETRY_REFS.failureTail,retainedProfileRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.profile,retainedBeforeRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.before,profileRef,beforeRef,claimPath:PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH};};}
+ if(options.cont974d){
+  env.PR54_CURRENT_B007_PRECUT974D_REFS=PR54_CURRENT_B007_PRECUT974D_REFS;env.PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH=PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH;
+  env.validatePr54CurrentB007Precut974dContinuationBinding=({raw,profileRef,beforeRef})=>{if(options.reject974d)throw Error('P03_CURRENT_B007_PRECUT974D_REJECTED');assert.equal(Object.keys(raw).length,8);for(const r of Object.values(PR54_CURRENT_B007_PRECUT974D_REFS))pin(r);return {schemaVersion:'melisa-p03-current-b007-precut974d-continuation.v1',retainedClaimRef:PR54_CURRENT_B007_PRECUT974D_REFS.claim,failureTailRef:PR54_CURRENT_B007_PRECUT974D_REFS.failureTail,profileRef,beforeRef,claimPath:PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH,correctedSourceCommit:'82e741af59cb59f27a4008ded83ca889238fb5c7'};};
+  env.preparePr54CurrentB007Precut974dContinuation=input=>{if(options.expireAfterClaim&&files.has(PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH))throw Error('P03_MODELED_BEFORE_EXPIRED');return env.validatePr54CurrentB007Precut974dContinuationBinding(input);};
+ }
  const secret=Object.freeze({});
+ if(options.cont974d){
+  const refs=PR54_CURRENT_B007_PRECUT974D_REFS,failedDir=path.win32.dirname(refs.failureTail.path),priorJournal=root+'\\prior974dJournal';
+  for(const [key,r] of Object.entries(refs))put(r.path,key==='profile'?{journalDirectory:priorJournal}:{retained974d:true},r.sha256);
+  for(const leaf of ['p03-physical-rollback-lifetime-v2.ps1','p03-pr54-paused-old-recover.ps1',...Object.values(activePins).map(([leaf])=>leaf)])put(failedDir+'\\'+leaf,{retainedPayload:true});
+  if(options.advanced974d)put(failedDir+'\\successor-core-cut-completed.json',{forbidden:true});
+  if(options.journal974d)put(priorJournal+'\\event-0000.json',{forbidden:true});
+  const proposal=env.admitPr54CurrentB007Epoch({physicalInspection:secret,current:seen()}).claim;
+  put(refs.claim.path,{...proposal,schemaVersion:'melisa-p03-current-b007-epoch-claim.v1',transitionAuthority:true,applyExecuted:false,successorRunId:'974d73c7d84b9ea43e1397b0fdf44c01',successorProfile:refs.profile,successorBefore:refs.before,ownerObservedAt:'2026-10-21T18:40:00Z',...(options.retained974dDrift?{currentOwnerDigest:'e'.repeat(64)}:{})},refs.claim.sha256);
+ }
+
  if(isResume){const modeled=env.admitPr54CurrentB007Epoch({physicalInspection:secret,current:seen()}).claim;put(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.path,{...modeled,schemaVersion:'melisa-p03-current-b007-epoch-claim.v1',transitionAuthority:true,ownerObservedAt:'2026-10-21T10:00:00Z',successorRunId:'452054204a1857ff618b0dd30a59caea',successorProfile:PR54_CURRENT_B007_PRECUT_RESUME_REFS.profile,successorBefore:PR54_CURRENT_B007_PRECUT_RESUME_REFS.before},PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.sha256);}
  if(options.recovery){
   input.resumeCompletedCut42d0=true;phase='cut';running=false;rows=[identities.hub];
@@ -471,4 +488,41 @@ test('CurrentB007 exhausted or permanent held-cut Inspect cannot stop or recover
   assert(!f.calls.some(c=>c.includes(':Drain')||c.includes('RollbackOld')||c.includes('StopNew')));
   assert(!JSON.stringify(r).includes('PRIVATE_SENTINEL'));
  }
+});
+
+
+test('974d bound DryRun requires two native admissions and actual held-cut Inspect with zero writes',async()=>{
+ const f=fixture({cont974d:true});const retained=Buffer.from(f.files.get(PR54_CURRENT_B007_PRECUT974D_REFS.claim.path).bytes);
+ const r=await f.fn(f.input);assert.equal(r.status,'CURRENT_B007_DRY_RUN_ONLY');assert.equal(f.writes.length,0);assert.equal(f.stops,0);
+ assert.equal(f.calls.filter(c=>c==='p03-physical-rollback-lifetime-v2.ps1:PreflightOld').length,2);
+ assert.equal(f.calls.filter(c=>c==='p03-pr54-b264-old-owner-cut.ps1:Inspect').length,1);assert(retained.equals(f.files.get(PR54_CURRENT_B007_PRECUT974D_REFS.claim.path).bytes));
+});
+
+test('974d guarded Apply consumes only its exact continuation slot once and preserves prior history',async()=>{
+ const f=fixture({cont974d:true}),old=Object.fromEntries(Object.values(PR54_CURRENT_B007_PRECUT974D_REFS).map(r=>[r.path,Buffer.from(f.files.get(r.path).bytes)]));
+ const r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'COMPLETE',JSON.stringify(r));assert.equal(r.humanAcceptance,'BEKLİYOR');
+ assert.equal(f.writes.filter(p=>p===PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH).length,1);assert(f.files.has(transition+'\\precut-continuation.json'));
+ for(const [p,b] of Object.entries(old))assert(b.equals(f.files.get(p).bytes));
+ await assert.rejects(f.fn({...f.input,mode:'Apply'}));
+});
+
+test('974d advanced scope journal retained owner mismatch and changed second admission fail closed',async()=>{
+ for(const option of ['advanced974d','journal974d','journal974dLink','reject974d','retained974dDrift','ownerDrift']){
+  const f=fixture({cont974d:true,[option]:true});await assert.rejects(f.fn({...f.input,mode:'Apply'}));assert.equal(f.writes.length,0);assert.equal(f.stops,0);
+ }
+});
+
+test('974d failed NEW uses the existing exact StopNew and frozen RollbackOld path',async()=>{
+ const f=fixture({cont974d:true,failNew:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'FAILED_ROLLED_BACK_OLD_READY',JSON.stringify(r));
+ assert(f.calls.includes('p03-pr54-b264-new-owner-recovery.ps1:Drain'));assert(f.calls.includes('p03-physical-rollback-lifetime-v2.ps1:RollbackOld'));assert(!f.events.some(e=>e.event==='COMPLETE'));
+});
+
+
+test('974d late OLD observation preserves frozen failure without replay or a new recovery age gate',async()=>{
+ const f=fixture({cont974d:true,failNew:true,lateRollback:true,expireAfterClaim:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'FAILED_ROLLED_BACK_OLD_READY',JSON.stringify(r));assert.equal(f.calls.filter(c=>c.endsWith(':RollbackOld')).length,1);assert.equal(f.calls.filter(c=>c.endsWith(':ObserveStartedOld')).length,1);
+ for(const option of ['lateOtherFailure','lateNativeFailure','lateShortProof']){const bad=fixture({cont974d:true,failNew:true,lateRollback:true,[option]:true}),v=await bad.fn({...bad.input,mode:'Apply'});assert.equal(v.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(bad.calls.filter(c=>c.endsWith(':RollbackOld')).length,1);}
+});
+
+test('974d parallel attempts cannot consume the continuation pointer twice',async()=>{
+ const f=fixture({cont974d:true});const results=await Promise.allSettled([f.fn({...f.input,mode:'Apply'}),f.fn({...f.input,mode:'Apply'})]);assert.equal(f.writes.filter(p=>p===PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH).length,1);assert.equal(results.filter(r=>r.status==='fulfilled'&&r.value.status==='COMPLETE').length,1);assert.equal(f.stops,8);
 });

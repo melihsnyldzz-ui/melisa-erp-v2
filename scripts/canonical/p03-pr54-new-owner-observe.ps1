@@ -387,6 +387,44 @@ function NewCurrentWitnessArtifact([string]$leaf){
  Need ($leaf -cin @('transition.lock','successor-core-probe-drain.json','successor-core-cut-completed.json')) 'CURRENT_NEW_WITNESS_LEAF'
  $path=Join-Path $dir $leaf;Protected $path;$sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();return [pscustomobject]@{ref=[pscustomobject]@{path=$path;sha256=$sha};value=(Json (ReadPinned $path $sha))}
 }
+
+# Finite metadata-only binding for the one failed974d pre-cut generation.
+# Fresh OLD admission remains in the caller; recovery adds no wall-clock gate.
+function Same974dShape($a,$b,[string[]]$omit=@()){
+ if($null-eq$a-or$null-eq$b){return $null-eq$a-and$null-eq$b}
+ if($a-is[Array]-or$b-is[Array]){if($a-isnot[Array]-or$b-isnot[Array]-or$a.Count-ne$b.Count){return $false};for($i=0;$i-lt$a.Count;$i++){if(-not(Same974dShape $a[$i] $b[$i])){return $false}};return $true}
+ if($a.GetType().FullName-ceq'System.Management.Automation.PSCustomObject'-or$b.GetType().FullName-ceq'System.Management.Automation.PSCustomObject'){if($a.GetType().FullName-cne'System.Management.Automation.PSCustomObject'-or$b.GetType().FullName-cne'System.Management.Automation.PSCustomObject'){return $false};$ak=@($a.PSObject.Properties.Name|Where-Object{$_-cnotin$omit}|Sort-Object);$bk=@($b.PSObject.Properties.Name|Where-Object{$_-cnotin$omit}|Sort-Object);if(($ak-join'|')-cne($bk-join'|')){return $false};foreach($k in $ak){if(-not(Same974dShape $a.$k $b.$k)){return $false}};return $true}
+ return $a.GetType()-eq$b.GetType()-and$a-ceq$b
+}
+function Assert974dContinuation($context,$currentClaim,[scriptblock]$read){
+ $failed='974d73c7d84b9ea43e1397b0fdf44c01';$priorDir=Join-Path $base ('MelisaERP-P03-transition-'+$failed);$expectedClaim=Join-Path $base ('p03-pr54-current-b007-continuation-of-'+$failed+'.lock.json')
+ $keys=@('schemaVersion','retainedClaimRef','failureTailRef','profileRef','beforeRef','claimPath','correctedSourceCommit')
+ Need ((@($context.PSObject.Properties.Name|Sort-Object)-join'|')-ceq(@($keys|Sort-Object)-join'|')-and$context.schemaVersion-ceq'melisa-p03-current-b007-precut974d-continuation.v1'-and$context.correctedSourceCommit-ceq'82e741af59cb59f27a4008ded83ca889238fb5c7'-and$context.claimPath-ceq$expectedClaim) 'CURRENT_974D_CONTEXT'
+ $pins=[ordered]@{
+ claim=[pscustomobject]@{path=(Join-Path $base 'p03-pr54-current-b007-generation-1e076283424add7936fd9979b64edb524e18d12c073be76c2a91545464b7e381.lock.json');sha256='fb736269cb81c53a164f35f2c348dff7c32ec574b46a1b7b00666f9d9f0a5332'}
+ profile=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$failed+'.json'));sha256='68dcb12d3ed557f1ffe48bf99961b24daaa62cf387d1265ac0ad28e608690f3a'}
+ before=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-before-'+$failed+'.json'));sha256='ff97a87aa6caf59ae934d07b055bc4d7f8470677a70f30e0b5a12b3a36e5349f'}
+ transitionLock=[pscustomobject]@{path=(Join-Path $priorDir 'transition.lock');sha256='657702fcb5b1a9255ec65fe6fe012f584c797e87f881f68223394215f24c575c'}
+ event0=[pscustomobject]@{path=(Join-Path $priorDir 'event-0000.json');sha256='ae88c07259811eb76dcaefc52655f3605af89e99be5e87203d5cb8b0bc67d67c'}
+ event1=[pscustomobject]@{path=(Join-Path $priorDir 'event-0001.json');sha256='7452b31c398f56bfea1dbbadf7df1ff295c5bd7673ed04ea4de60c65eb593832'}
+ failureTail=[pscustomobject]@{path=(Join-Path $priorDir 'event-0002.json');sha256='327528179fdbed252553f06c7b8e3ba812cfd3c0a4d96419298ba94163c09706'}
+ diagnostic=[pscustomobject]@{path=(Join-Path $priorDir 'io-failure-diagnostic.json');sha256='a571e5dfdb1e0f00c9102733c0a054827d1230f343351805ed515389f93e8aa8'}
+ }
+ Need ((Same974dShape $context.retainedClaimRef $pins.claim)-and(Same974dShape $context.failureTailRef $pins.failureTail)-and(Same974dShape $context.profileRef ([pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256}))-and(Same974dShape $context.beforeRef ([pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256}))) 'CURRENT_974D_REFS'
+ $old=@{};foreach($key in $pins.Keys){$old[$key]=&$read $pins[$key].path $pins[$key].sha256}
+ Need ($old.claim.successorRunId-ceq$failed-and$old.claim.currentOwnerDigest-ceq'1e076283424add7936fd9979b64edb524e18d12c073be76c2a91545464b7e381'-and$old.claim.transitionAuthority-ceq$true-and$old.claim.applyExecuted-ceq$false-and(Same974dShape $old.claim.successorProfile $pins.profile)-and(Same974dShape $old.claim.successorBefore $pins.before)) 'CURRENT_974D_HISTORY'
+ Need ((Same974dShape $old.transitionLock.profileRef $pins.profile)-and(Same974dShape $old.transitionLock.beforeRef $pins.before)-and(Same974dShape $old.transitionLock.successorClaimRef $pins.claim)-and(Same974dShape $old.transitionLock.currentPreCapture.snapshotRef $old.profile.businessDigest)) 'CURRENT_974D_LOCK'
+ $previous=$pins.before.sha256;foreach($i in 0..2){$key=@('event0','event1','failureTail')[$i];$row=$old[$key];Need ($row.sequence-eq$i-and$row.event-ceq@('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$i]-and$row.previousSha256-ceq$previous-and$row.profileSha256-ceq$pins.profile.sha256-and$row.beforeSha256-ceq$pins.before.sha256-and$row.digest-ceq$old.before.plan.digest-and$row.stopOrderDigest-ceq$old.claim.stopOrderDigest) 'CURRENT_974D_CHAIN';if($i-gt0){Need ($row.target-ceq@('','coreSupervisor','HELD_CORE_CUT')[$i]) 'CURRENT_974D_TARGET'};$previous=$pins[$key].sha256}
+ Need ($old.diagnostic.phase-ceq'HELD_CORE_CUT'-and$old.diagnostic.reason-ceq'P03_OWNER_TRANSITION_STOPPED'-and$old.diagnostic.failureDiagnostic.stage-ceq'INSPECT'-and$old.diagnostic.failureDiagnostic.reason-ceq'UNCLASSIFIED_IO_FAILURE'-and$old.diagnostic.profileSha256-ceq$pins.profile.sha256-and$old.diagnostic.beforeSha256-ceq$pins.before.sha256) 'CURRENT_974D_DIAGNOSTIC'
+ Need ($before.runId-cne$failed-and$before.runId-cmatch'\A[a-f0-9]{32}\z'-and$ProfilePath-ceq(Join-Path $base ('MelisaERP-P03-profile-'+$before.runId+'.json'))-and$BeforeImagePath-ceq(Join-Path $base ('MelisaERP-P03-before-'+$before.runId+'.json'))-and(Same974dShape $profile.beforeImage $context.beforeRef)-and(Same974dShape $before $old.before @('runId','startedAt','observedAt'))-and(Same974dShape $profile $old.profile @('beforeImage','businessDigest','journalDirectory','stopper'))) 'CURRENT_974D_EQUIVALENCE'
+ Need ([DateTime]::Parse($before.startedAt).ToUniversalTime()-le[DateTime]::Parse($before.observedAt).ToUniversalTime()-and[DateTime]::Parse($before.startedAt).ToUniversalTime()-ge[DateTime]::Parse($old.before.observedAt).ToUniversalTime()) 'CURRENT_974D_TIMES'
+ Need ($profile.businessDigest.path-cmatch'\AC:\\Sirket\\ERP\\backups\\P03-20261021-\d{6}\\source-pre-snapshot-[a-f0-9]{32}\.json\z'-and$profile.businessDigest.path-cne$old.profile.businessDigest.path-and[IO.Path]::GetDirectoryName($profile.businessDigest.path)-ceq[IO.Path]::GetDirectoryName($old.profile.businessDigest.path)-and$profile.journalDirectory-ceq(Join-Path $base ('MelisaERP-P03-recovery-'+$before.runId))-and$profile.stopper.path-ceq(Join-Path $base ('MelisaERP-P03-stopper-'+$before.runId+'.ps1'))-and$profile.stopper.sha256-ceq$old.profile.stopper.sha256) 'CURRENT_974D_NEW_REFS'
+ Need ($currentClaim.currentOwnerDigest-ceq$old.claim.currentOwnerDigest-and(Same974dShape $currentClaim.candidate $old.claim.candidate)-and(Same974dShape $currentClaim.protectedSqlEpoch $old.claim.protectedSqlEpoch)-and$currentClaim.stopOrderDigest-ceq$old.claim.stopOrderDigest) 'CURRENT_974D_CLAIM_EQUIVALENCE'
+ # The failed source generation never entered recovery. Preserve its empty journal.
+ Protected $old.profile.journalDirectory;Need (@(Get-ChildItem -LiteralPath $old.profile.journalDirectory -Force).Count-eq0) 'CURRENT_974D_OLD_JOURNAL'
+ foreach($leaf in @('b264-old-owner-held-cut-intent.json','successor-core-cut-completed.json','successor-core-probe-drain.json','new-owner-started.json')){Need (-not(Test-Path -LiteralPath (Join-Path $priorDir $leaf))) 'CURRENT_974D_NO_CUT'}
+}
+
 function NewCurrentCutWitness{
  Need ($PolicyGeneration -ceq 'CurrentB007ObserveOnly') 'CURRENT_NEW_WITNESS_POLICY'
  $lock=(NewCurrentWitnessArtifact 'transition.lock').value
@@ -395,19 +433,21 @@ function NewCurrentCutWitness{
  [void](NewCurrentWitnessRef $lock.profileRef $ProfilePath);Need ($lock.profileRef.sha256 -ceq $ProfileSha256) 'CURRENT_NEW_PROFILE_REF'
  [void](NewCurrentWitnessRef $lock.beforeRef $BeforeImagePath);Need ($lock.beforeRef.sha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_BEFORE_REF'
  $claimPath=$lock.successorClaimRef.path;$freshClaim=$claimPath -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-current-b007-generation-[a-f0-9]{64}\.lock\.json\z'
- Need ($claimPath -cin @((Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'))-or$freshClaim) 'CURRENT_NEW_CLAIM_PATH'
+ Need ($claimPath -cin @((Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-974d73c7d84b9ea43e1397b0fdf44c01.lock.json'))-or$freshClaim) 'CURRENT_NEW_CLAIM_PATH'
  $claim=NewCurrentWitnessRef $lock.successorClaimRef $claimPath
  if($freshClaim){Need ($claimPath -ceq (Join-Path $base ('p03-pr54-current-b007-generation-'+$claim.currentOwnerDigest+'.lock.json'))-and-not($lock.PSObject.Properties.Name-ccontains'continuationRef')) 'CURRENT_NEW_GENERATION_EPOCH'}
  Need ($claim.schemaVersion -ceq 'melisa-p03-current-b007-epoch-claim.v1' -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.newSettings.path -ceq $profile.newSettings.path -and $claim.newSettings.sha256 -ceq $profile.newSettings.sha256) 'CURRENT_NEW_CLAIM'
+ $continuation974d=$claimPath -ceq (Join-Path $base 'p03-pr54-current-b007-continuation-of-974d73c7d84b9ea43e1397b0fdf44c01.lock.json');Need (-not$continuation974d-or($lock.PSObject.Properties.Name-ccontains'continuationRef')) 'CURRENT_974D_CONTEXT_REQUIRED'
  $retained=$false
  if($lock.PSObject.Properties.Name -ccontains 'continuationRef'){
   $context=NewCurrentWitnessRef $lock.continuationRef (Join-Path $dir 'precut-continuation.json')
   $contextKeys=@('schemaVersion','retainedClaimRef','failureTailRef','profileRef','beforeRef','claimPath')
+  if($continuation974d){$contextKeys+=,'correctedSourceCommit'}
   if($context.schemaVersion -cin @('melisa-p03-current-b007-precut-resume.v1','melisa-p03-current-b007-precut-retry.v1')){$contextKeys+=@('retainedProfileRef','retainedBeforeRef');$retained=$true}
   NewCurrentWitnessKeys $context $contextKeys
   Need ($context.claimPath -ceq $claimPath -and $context.profileRef.path -ceq $ProfilePath -and $context.profileRef.sha256 -ceq $ProfileSha256 -and $context.beforeRef.path -ceq $BeforeImagePath -and $context.beforeRef.sha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_CONTEXT'
   [void](NewCurrentWitnessRef $context.profileRef $ProfilePath);[void](NewCurrentWitnessRef $context.beforeRef $BeforeImagePath)
-  if($retained){
+  if($continuation974d){Assert974dContinuation $context $claim {param($p,$h) Json (ReadPinned $p $h)};$failedRun='974d73c7d84b9ea43e1397b0fdf44c01';$failedSha='327528179fdbed252553f06c7b8e3ba812cfd3c0a4d96419298ba94163c09706'}elseif($retained){
    Need ($lock.successorClaimRef.sha256 -ceq 'a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544' -and $context.retainedClaimRef.path -ceq $claimPath -and $context.retainedClaimRef.sha256 -ceq $lock.successorClaimRef.sha256 -and $context.retainedProfileRef.sha256 -ceq '4b808868f23ced8015aad4395a7c390017b374d3c23fe23d48fc6bf7f0397c39' -and $context.retainedBeforeRef.sha256 -ceq '23ae28bc8d01f644c9f56404c6b358bc57afec336bb82bb3ad19158f2bd11d3f' -and $claim.successorRunId -ceq '452054204a1857ff618b0dd30a59caea') 'CURRENT_NEW_RETAINED'
    [void](NewCurrentWitnessRef $context.retainedClaimRef $claimPath);[void](NewCurrentWitnessRef $context.retainedProfileRef (Join-Path $base 'MelisaERP-P03-profile-452054204a1857ff618b0dd30a59caea.json'));[void](NewCurrentWitnessRef $context.retainedBeforeRef (Join-Path $base 'MelisaERP-P03-before-452054204a1857ff618b0dd30a59caea.json'))
    $failedRun=if($context.schemaVersion -ceq 'melisa-p03-current-b007-precut-retry.v1'){'9d2e00d572acc83391a0a2e5ac28d046'}else{'452054204a1857ff618b0dd30a59caea'}

@@ -1,5 +1,38 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {createHash} from 'node:crypto';import * as real from './p03-pr54-current-b007-precut-continuation.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-current-b007-precut-continuation.mjs',import.meta.url),'utf8'),hash=b=>createHash('sha256').update(b).digest('hex'),bytes=x=>Buffer.from(JSON.stringify(x,null,2)+'\n'),root=String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018`,oldRun='cffba2988afcb49502ae73ddd797e966',newRun='a'.repeat(32);
+
+function fixture974d(changeHistory=()=>{}){
+ const base=fixture(),retained='974d73c7d84b9ea43e1397b0fdf44c01',refs=structuredClone(real.PR54_CURRENT_B007_PRECUT974D_REFS),v={},seal=(k,x)=>{v[k]=x;refs[k].sha256=hash(bytes(x));};
+ const before=JSON.parse(base.f.raw.before.bytes);before.runId=retained;seal('before',before);
+ const profile=JSON.parse(base.f.raw.profile.bytes);profile.beforeImage=structuredClone(refs.before);profile.journalDirectory=root+'\\MelisaERP-P03-recovery-'+retained;profile.stopper.path=root+'\\MelisaERP-P03-stopper-'+retained+'.ps1';seal('profile',profile);
+ const claim={...JSON.parse(base.f.raw.claim.bytes),successorRunId:retained,currentOwnerDigest:'1e076283424add7936fd9979b64edb524e18d12c073be76c2a91545464b7e381',successorProfile:structuredClone(refs.profile),successorBefore:structuredClone(refs.before)};seal('claim',claim);
+ seal('transitionLock',{profileRef:refs.profile,beforeRef:refs.before,currentPreCapture:{snapshotRef:profile.businessDigest},rehearsalProofRef:{synthetic:true},successorClaimRef:refs.claim,sourceControlDir:'synthetic-control'});
+ let previous=refs.before.sha256;for(const [i,event]of ['TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED'].entries()){seal(i===2?'failureTail':'event'+i,{sequence:i,digest:before.plan.digest,event,stopOrderDigest:claim.stopOrderDigest,...(i?{target:i===1?'coreSupervisor':'HELD_CORE_CUT'}:{}),previousSha256:previous,profileSha256:refs.profile.sha256,beforeSha256:refs.before.sha256});previous=refs[i===2?'failureTail':'event'+i].sha256;}
+ seal('diagnostic',{phase:'HELD_CORE_CUT',reason:'P03_OWNER_TRANSITION_STOPPED',failureDiagnostic:{stage:'INSPECT',reason:'UNCLASSIFIED_IO_FAILURE'},profileSha256:refs.profile.sha256,beforeSha256:refs.before.sha256});
+ changeHistory(v);for(const [k,value]of Object.entries(v))refs[k].sha256=hash(bytes(value));
+ // These substitutions exist only in this isolated factory; production always
+ // verifies literal immutable974d bytes and supplies no injection option.
+ let text=source.replace(/^import .*;\r?\n/gm,'').replaceAll('export ','');for(const k of Object.keys(refs))text=text.replaceAll(real.PR54_CURRENT_B007_PRECUT974D_REFS[k].sha256,refs[k].sha256);
+ const api=new Function('createHash','Buffer','Uint8Array','TextDecoder',text+'\nreturn {preparePr54CurrentB007Precut974dContinuation,validatePr54CurrentB007Precut974dContinuationBinding};')(createHash,Buffer,Uint8Array,TextDecoder);
+ const f={raw:Object.fromEntries(Object.entries(v).map(([k,value])=>[k,{ref:refs[k],bytes:bytes(value)}])),before:{...structuredClone(before),runId:newRun,startedAt:'2026-10-21T09:30:00Z',observedAt:'2026-10-21T09:30:02Z'},profile:{...structuredClone(profile),businessDigest:{path:profile.businessDigest.path.replace('b'.repeat(32),'c'.repeat(32)),sha256:'7'.repeat(64)},journalDirectory:root+'\\MelisaERP-P03-recovery-'+newRun,stopper:{...profile.stopper,path:root+'\\MelisaERP-P03-stopper-'+newRun+'.ps1'}},now:Date.parse('2026-10-21T09:30:03Z')};
+ const reseal=()=>{f.beforeRef={path:root+'\\MelisaERP-P03-before-'+f.before.runId+'.json',sha256:hash(bytes(f.before))};f.profile.beforeImage=structuredClone(f.beforeRef);f.profileRef={path:root+'\\MelisaERP-P03-profile-'+f.before.runId+'.json',sha256:hash(bytes(f.profile))};};reseal();return {f,api,reseal};
+}
+test('exact974d modeled binding returns a frozen source-correction receipt without authority or IO',()=>{
+ const {f,api}=fixture974d(),receipt=api.preparePr54CurrentB007Precut974dContinuation(f);
+ assert.deepEqual(Object.keys(receipt).sort(),['schemaVersion','retainedClaimRef','failureTailRef','profileRef','beforeRef','claimPath','correctedSourceCommit'].sort());
+ assert.equal(receipt.schemaVersion,'melisa-p03-current-b007-precut974d-continuation.v1');assert.equal(receipt.correctedSourceCommit,'82e741af59cb59f27a4008ded83ca889238fb5c7');assert.equal(receipt.claimPath,real.PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH);
+ assert(Object.isFrozen(receipt)&&Object.isFrozen(receipt.profileRef)&&Object.isFrozen(receipt.retainedClaimRef));assert.throws(()=>real.preparePr54CurrentB007Precut974dContinuation(f));
+ f.now=Date.parse(f.before.observedAt)+900000;assert.throws(()=>api.preparePr54CurrentB007Precut974dContinuation(f));assert.deepEqual(api.validatePr54CurrentB007Precut974dContinuationBinding(f),receipt);
+});
+test('exact974d rejects rehashed bad chain phase direction and retained claim identity',()=>{
+ for(const change of [v=>v.event1.previousSha256='0'.repeat(64),v=>v.failureTail.target='coreSupervisor',v=>v.event0.sequence=1,v=>v.event1.event='FAILED',v=>v.diagnostic.failureDiagnostic.stage='DRAIN',v=>v.diagnostic.failureDiagnostic.reason='P03_OTHER',v=>v.claim.currentOwnerDigest='0'.repeat(64),v=>v.transitionLock.successorClaimRef={path:'foreign',sha256:'0'.repeat(64)}]){const {f,api}=fixture974d(change);assert.throws(()=>api.preparePr54CurrentB007Precut974dContinuation(f));}
+});
+test('exact974d rejects corrupted missing or extra history and rehashed mixed fresh profiles',()=>{
+ for(const mutate of [f=>f.raw.event0.bytes=Buffer.from('tampered'),f=>delete f.raw.diagnostic,f=>f.raw.successorSnapshot=f.raw.event0,f=>f.before.runId='974d73c7d84b9ea43e1397b0fdf44c01',f=>f.before.identities.erpApi.pid++,f=>f.before.tasks[0].xml='other',f=>f.before.newConfig.sha256='0'.repeat(64),f=>f.profile.protectedProcesses[0].pid++,f=>f.profile.oldWatchers[0].pid++,f=>f.profile.packages.push({root:'foreign'}),f=>f.profile.businessDigest.path=f.profile.businessDigest.path.replace('c'.repeat(32),'b'.repeat(32)),f=>f.profile.businessDigest.path=f.profile.businessDigest.path.replace('073731','073732'),f=>f.profile.stopper.sha256='0'.repeat(64),f=>f.now=Date.parse(f.before.observedAt)-1]){const {f,api,reseal}=fixture974d();mutate(f);reseal();assert.throws(()=>api.preparePr54CurrentB007Precut974dContinuation(f));}
+});
+test('exact974d rejects unknown prototypes and accessors before invoking a getter',()=>{
+ for(const mutate of [f=>Object.setPrototypeOf(f.profile,{foreign:true}),f=>Object.setPrototypeOf(f.raw.event0,{foreign:true}),f=>Object.defineProperty(f.raw,'event0',{enumerable:true,get(){throw Error('GETTER_INVOKED');}}),f=>Object.defineProperty(f.profile,'packages',{enumerable:true,get(){throw Error('GETTER_INVOKED');}}),f=>Object.defineProperty(f.profileRef,'path',{enumerable:true,get(){throw Error('GETTER_INVOKED');}})]){const {f,api}=fixture974d();mutate(f);assert.throws(()=>api.preparePr54CurrentB007Precut974dContinuation(f),e=>e.message!=='GETTER_INVOKED');}
+});
 function fixture(){
  const refs=structuredClone(real.PR54_CURRENT_B007_PRECUT_REFS),values={};const seal=(key,value)=>{values[key]=value;refs[key].sha256=hash(bytes(value));};
  const identities=Object.fromEntries(['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'].map((r,i)=>[r,{pid:100+i,parentPid:200,creationTime:'2026-10-21T08:00:00Z',commandLine:'synthetic-'+r}]));
@@ -29,7 +62,7 @@ test('expired before cannot prepare admission but structural post-claim revalida
  assert.doesNotMatch(bindingBody,/Date\.now|\bnow\b|900000/);
  f.before.identities.erpApi.pid++;assert.throws(()=>api.validatePr54CurrentB007PrecutContinuationBinding(f));
 });
-test('module offers no native IO, mutable global override or execution dispatcher',()=>{assert.doesNotMatch(source,/node:(?:fs|child_process|os)|execFile|spawn|process\.|Apply|Stop-Process|SetQueryStore/);assert.equal((source.match(/export function /g)||[]).length,6);assert(Object.isFrozen(real.PR54_CURRENT_B007_PRECUT_REFS)&&Object.values(real.PR54_CURRENT_B007_PRECUT_REFS).every(Object.isFrozen));});
+test('module offers no native IO, mutable global override or execution dispatcher',()=>{assert.doesNotMatch(source,/node:(?:fs|child_process|os)|execFile|spawn|process\.|Apply|Stop-Process|SetQueryStore/);assert.equal((source.match(/export function /g)||[]).length,8);assert(Object.isFrozen(real.PR54_CURRENT_B007_PRECUT_REFS)&&Object.values(real.PR54_CURRENT_B007_PRECUT_REFS).every(Object.isFrozen));});
 
 function resumeFixture(){
  const base=fixture(),f=base.f,retainedRun='452054204a1857ff618b0dd30a59caea',refs=structuredClone(real.PR54_CURRENT_B007_PRECUT_RESUME_REFS),v={};

@@ -17,7 +17,7 @@ if($errors.Count){throw 'FIXTURE_SOURCE_PARSE'}
 ${names.map(name=>`$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq ${q(name)}},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION_MISSING'};$text=$defs[0].Extent.Text${alias[name]?`.Replace('function ${name}','function ${alias[name]}')`:''};. ([scriptblock]::Create($text))`).join('\n')}`;}
 function run(code){
  try{return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$source=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($source))','utf16le').toString('base64')],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n${code}`,encoding:'utf8',timeout:15000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
- catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z_]+/u)?.[0]??String(error.stderr??'FIXTURE_FAILED').slice(0,1400));}
+ catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z0-9_]+/u)?.[0]??String(error.stderr??'FIXTURE_FAILED').slice(0,1400));}
 }
 const fixture=String.raw`
 function Need($value,$code){if(-not$value){throw ('P03_PHYSICAL_'+$code)}}
@@ -200,4 +200,57 @@ test('SUP20D OLD cut selects its exact drainer and distinct contract while keepi
  const whole=readFileSync(source,'utf8'),gate=whole.slice(0,whole.indexOf('Set-StrictMode')).replace(/^param\([\s\S]*?\n\)\n/,'').replaceAll('$PSBoundParameters','$script:bound');
  const out=run(`$PolicyGeneration='B264Sup20DInspectOnly';$Mode='Drain';$EngineSha256='99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def';$RecoveryHelperSha256='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5';$DrainerSha256='eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5';$script:bound=@{}\n& {${gate}};'VALID'\n$DrainerSha256='34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c';try{& {${gate}};throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}`);
  assert.match(out,/VALID/);assert.match(out,/REJECTED/);assert.ok(whole.includes("'AssertB264Sup20DInspectionContract'"));
+});
+
+
+test('exact974d continuation pins and equivalence apply identically in the three native readers',windows,()=>{
+ const files=[source,fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)),fileURLToPath(new URL('./p03-pr54-b264-new-owner-recovery.ps1',import.meta.url))];
+ for(const file of files)run(extract(['Same974dShape','Assert974dContinuation'],file)+String.raw`
+function Need($ok,$reason){if(-not$ok){throw ('P03_'+$reason)}}
+function Protected($p){if($p-cne$oldProfile.journalDirectory){throw 'FIXTURE_JOURNAL'}}
+function Get-ChildItem{param($LiteralPath,[switch]$Force) if($journalDirty){return [pscustomobject]@{Name='unexpected'}};return @()}
+function Test-Path{param($LiteralPath) return $cutExists}
+$base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$failed='974d73c7d84b9ea43e1397b0fdf44c01';$newRun='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';$dir=Join-Path $base ('MelisaERP-P03-transition-'+$newRun)
+$ProfilePath=Join-Path $base ('MelisaERP-P03-profile-'+$newRun+'.json');$BeforeImagePath=Join-Path $base ('MelisaERP-P03-before-'+$newRun+'.json');$ProfileSha256='a'*64;$BeforeImageSha256='b'*64
+function Clone($x){return ($x|ConvertTo-Json -Depth 25 -Compress|ConvertFrom-Json)}
+$oldProfileRef=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$failed+'.json'));sha256='68dcb12d3ed557f1ffe48bf99961b24daaa62cf387d1265ac0ad28e608690f3a'}
+$oldBeforeRef=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-before-'+$failed+'.json'));sha256='ff97a87aa6caf59ae934d07b055bc4d7f8470677a70f30e0b5a12b3a36e5349f'}
+$oldClaimRef=[pscustomobject]@{path=(Join-Path $base 'p03-pr54-current-b007-generation-1e076283424add7936fd9979b64edb524e18d12c073be76c2a91545464b7e381.lock.json');sha256='fb736269cb81c53a164f35f2c348dff7c32ec574b46a1b7b00666f9d9f0a5332'}
+$oldProfile=[pscustomobject]@{beforeImage=$oldBeforeRef;businessDigest=[pscustomobject]@{path='C:\Sirket\ERP\backups\P03-20261021-120000\source-pre-snapshot-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.json';sha256=('c'*64)};journalDirectory=(Join-Path $base ('MelisaERP-P03-recovery-'+$failed));stopper=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-stopper-'+$failed+'.ps1'));sha256=('d'*64)};candidateRules=@([pscustomobject]@{role='core';pid=19});protectedProcesses=@([pscustomobject]@{pid=33});oldWatchers=@(1,2)}
+$oldBefore=[pscustomobject]@{runId=$failed;startedAt='2026-10-21T10:00:00Z';observedAt='2026-10-21T10:01:00Z';plan=[pscustomobject]@{digest=('e'*64)};identities=[pscustomobject]@{core=[pscustomobject]@{pid=19}}}
+$oldClaim=[pscustomobject]@{successorRunId=$failed;currentOwnerDigest='1e076283424add7936fd9979b64edb524e18d12c073be76c2a91545464b7e381';transitionAuthority=$true;applyExecuted=$false;successorProfile=$oldProfileRef;successorBefore=$oldBeforeRef;stopOrderDigest=('f'*64);candidate=[pscustomobject]@{source='same'};protectedSqlEpoch=[pscustomobject]@{pid=33}}
+$profile=Clone $oldProfile;$profile.beforeImage=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};$profile.businessDigest.path='C:\Sirket\ERP\backups\P03-20261021-120000\source-pre-snapshot-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json';$profile.journalDirectory=Join-Path $base ('MelisaERP-P03-recovery-'+$newRun);$profile.stopper.path=Join-Path $base ('MelisaERP-P03-stopper-'+$newRun+'.ps1')
+$before=Clone $oldBefore;$before.runId=$newRun;$before.startedAt='2026-10-21T10:02:00Z';$before.observedAt='2026-10-21T10:03:00Z';$claim=Clone $oldClaim
+$context=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-precut974d-continuation.v1';retainedClaimRef=$oldClaimRef;failureTailRef=[pscustomobject]@{path=(Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$failed)) 'event-0002.json');sha256='327528179fdbed252553f06c7b8e3ba812cfd3c0a4d96419298ba94163c09706'};profileRef=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};beforeRef=$profile.beforeImage;claimPath=(Join-Path $base ('p03-pr54-current-b007-continuation-of-'+$failed+'.lock.json'));correctedSourceCommit='82e741af59cb59f27a4008ded83ca889238fb5c7'}
+$store=@{};$store[[IO.Path]::GetFileName($oldClaimRef.path)]=$oldClaim;$store[[IO.Path]::GetFileName($oldProfileRef.path)]=$oldProfile;$store[[IO.Path]::GetFileName($oldBeforeRef.path)]=$oldBefore
+$store['transition.lock']=[pscustomobject]@{profileRef=$oldProfileRef;beforeRef=$oldBeforeRef;successorClaimRef=$oldClaimRef;currentPreCapture=[pscustomobject]@{snapshotRef=$oldProfile.businessDigest}}
+$previous=$oldBeforeRef.sha256;$eventShas=@('ae88c07259811eb76dcaefc52655f3605af89e99be5e87203d5cb8b0bc67d67c','7452b31c398f56bfea1dbbadf7df1ff295c5bd7673ed04ea4de60c65eb593832','327528179fdbed252553f06c7b8e3ba812cfd3c0a4d96419298ba94163c09706')
+foreach($i in 0..2){$store[('event-'+$i.ToString('0000')+'.json')]=[pscustomobject]@{sequence=$i;event=@('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$i];target=@('','coreSupervisor','HELD_CORE_CUT')[$i];previousSha256=$previous;profileSha256=$oldProfileRef.sha256;beforeSha256=$oldBeforeRef.sha256;digest=$oldBefore.plan.digest;stopOrderDigest=$oldClaim.stopOrderDigest};$previous=$eventShas[$i]}
+$store['io-failure-diagnostic.json']=[pscustomobject]@{phase='HELD_CORE_CUT';reason='P03_OWNER_TRANSITION_STOPPED';failureDiagnostic=[pscustomobject]@{stage='INSPECT';reason='UNCLASSIFIED_IO_FAILURE'};profileSha256=$oldProfileRef.sha256;beforeSha256=$oldBeforeRef.sha256}
+$context=Clone $context;$profile=Clone $profile;$before=Clone $before;$claim=Clone $claim
+$journalDirty=$false;$cutExists=$false;$read={param($p,$h) return $store[[IO.Path]::GetFileName($p)]}
+Assert974dContinuation $context $claim $read
+function Reject974d($label,[scriptblock]$change){$savedContext=Clone $context;$savedProfile=Clone $profile;$savedBefore=Clone $before;$savedClaim=Clone $claim;&$change;try{Assert974dContinuation $context $claim $read;throw 'FIXTURE_UNEXPECTED_PASS'}catch{if($_.Exception.Message-cnotmatch'^P03_CURRENT_974D_'){throw}};Set-Variable -Scope 1 context $savedContext;Set-Variable -Scope 1 profile $savedProfile;Set-Variable -Scope 1 before $savedBefore;Set-Variable -Scope 1 claim $savedClaim}
+Reject974d 'extra receipt' {$context|Add-Member NoteProperty extra 'bad'}
+Reject974d 'wrong corrected source' {$context.correctedSourceCommit='0'*40}
+Reject974d 'wrong claim path' {$context.claimPath+='x'}
+Reject974d 'wrong retained claim' {$context.retainedClaimRef.sha256='0'*64}
+Reject974d 'changed OLD identity' {$before.identities.core.pid=20}
+Reject974d 'changed protected' {$profile.protectedProcesses[0].pid=34}
+Reject974d 'changed candidate' {$claim.candidate.source='other'}
+Reject974d 'changed owner digest' {$claim.currentOwnerDigest='0'*64}
+Reject974d 'old business digest reused' {$profile.businessDigest.path=$oldProfile.businessDigest.path}
+$journalDirty=$true;try{Assert974dContinuation $context $claim $read;throw 'FIXTURE_DIRTY_PASS'}catch{if($_.Exception.Message-cne'P03_CURRENT_974D_OLD_JOURNAL'){throw}};$journalDirty=$false
+$cutExists=$true;try{Assert974dContinuation $context $claim $read;throw 'FIXTURE_CUT_PASS'}catch{if($_.Exception.Message-cne'P03_CURRENT_974D_NO_CUT'){throw}};$cutExists=$false
+'PASS'
+ `);
+});
+
+
+test('exact974d native entry points keep context mandatory and inspect read-only',()=>{
+ const old=readFileSync(source,'utf8'),observe=readFileSync(fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)),'utf8'),recover=readFileSync(fileURLToPath(new URL('./p03-pr54-b264-new-owner-recovery.ps1',import.meta.url)),'utf8');
+ assert.match(old,/RootIntentSha256','ContinuationPath','ContinuationSha256'/);assert.match(old,/if\(\$continuation974d\)\{Need \(\$ContinuationPath -ceq/);
+ assert.match(observe,/CURRENT_974D_CONTEXT_REQUIRED/);assert.match(observe,/if\(\$continuation974d\)\{Assert974dContinuation/);
+ assert.match(recover,/CURRENT_974D_CONTEXT_REQUIRED/);assert.match(recover,/CURRENT_974D_CONTEXT_FORBIDDEN/);
+ for(const raw of [old,observe,recover]){const fn=raw.slice(raw.indexOf('function Assert974dContinuation'),raw.indexOf('function Assert974dContinuation')+raw.slice(raw.indexOf('function Assert974dContinuation')).indexOf('\n}\n')+3);assert(!fn.includes('UtcNow'));assert(!fn.includes('StopNew'));assert(!fn.includes('WriteAllText'));}
 });
