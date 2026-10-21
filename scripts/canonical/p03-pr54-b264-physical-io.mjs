@@ -163,13 +163,17 @@ export function pr54CurrentB007InspectionArguments(input){
  const common=['-PolicyGeneration','CurrentB007InspectOnly','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256];
  return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
 }
-export async function inspectPr54CurrentB007PhysicalOwner(input,{precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
+export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGeneration=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
  need([precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CONTINUATION_MODE');
+ need(typeof freshOwnerGeneration==='boolean'&&(!freshOwnerGeneration||![precutContinuation,precutResume,precutResumeAfter9d2].some(Boolean)),'FRESH_GENERATION_MODE');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
  const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
  const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
  const claimSlot=()=>{
+  // RO inspection does not mint a slot. The owner derives it from two complete
+  // native admissions and enforces exclusive creation before any task mutation.
+  if(freshOwnerGeneration)return;
   if(precutResume||precutResumeAfter9d2){
    const original=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])),resume=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
    const retry=precutResumeAfter9d2?Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])):null;

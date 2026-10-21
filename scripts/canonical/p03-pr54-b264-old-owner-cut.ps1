@@ -77,20 +77,33 @@ function AssertB264CutStopPlan($claim){
  $stopDigest=Hash ([Text.UTF8Encoding]::new($false).GetBytes(($commitment|ConvertTo-Json -Compress)))
  Need ($claim.stopOrderDigest -ceq $stopDigest) 'B264_STOP_ORDER_DIGEST'
 }
+function B264CutAdmissionTime{
+ if(-not $script:cutWitnessCommitted){return [DateTime]::UtcNow}
+ # Once the held core has really exited and its CreateNew witness is committed,
+ # draining that SAME captured generation must not re-admit a vanished owner.
+ # Preserve both original timestamps and the original <60s destructive window.
+ Need ($script:coreQuiesced-and$null-ne$script:coreLifetime-and$script:coreLifetime.HasExited-and$null-ne$script:precutWindowOpenedAt-and$null-ne$script:coreStopCompletedAt) 'B264_CUT_POSTCOMMIT_STATE'
+ $elapsed=($script:coreStopCompletedAt-$script:precutWindowOpenedAt).TotalSeconds
+ Need ($elapsed-ge0-and$elapsed-lt60-and[DateTime]::UtcNow-ge$script:coreStopCompletedAt) 'B264_CUT_POSTCOMMIT_WINDOW'
+ return $script:precutWindowOpenedAt
+}
 function B264CutAuthority{
  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$EngineSha256),@($RecoveryHelperPath,$RecoveryHelperSha256),@($DrainerPath,$DrainerSha256))){[void](ReadWorkerPin $pin[0] $pin[1])}
- if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){AssertCurrentB007InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
+ if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){AssertCurrentB007InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 (B264CutAdmissionTime)}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
  foreach($entry in @(@($EnginePath,$(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'p03-physical-rollback-lifetime-v2.ps1'}else{'p03-physical-rollback.ps1'})),@($RecoveryHelperPath,'p03-pr54-paused-old-recover.ps1'),@($DrainerPath,'p03-pr54-successor-core-drain.ps1'))){Need ($entry[0].StartsWith($base+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0]) -ceq $entry[1]) 'B264_CUT_SOURCE_SCOPE'}
  if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){Need ($(if($Mode -ceq 'Inspect'){$EnginePath -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1\z' -or $EnginePath -ceq (Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1')}else{$EnginePath -ceq (Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1')})) 'CURRENT_B007_ENGINE_RUN'}
  if($Mode -ceq 'Inspect'){return}
- Need ($Mode -ceq 'Drain' -and $ClaimPath -ceq (Join-Path $base $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'}else{'p03-pr54-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'}))) 'B264_CUT_CLAIM_PATH'
+ $legacyClaim=Join-Path $base $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'}else{'p03-pr54-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'})
+ $freshClaim=$PolicyGeneration -ceq 'CurrentB007InspectOnly'-and$ClaimPath -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-current-b007-generation-[a-f0-9]{64}\.lock\.json\z'
+ Need ($Mode -ceq 'Drain' -and ($ClaimPath -ceq $legacyClaim-or$freshClaim)) 'B264_CUT_CLAIM_PATH'
  $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256)
+ if($freshClaim){Need ($ClaimPath -ceq (Join-Path $base ('p03-pr54-current-b007-generation-'+$claim.currentOwnerDigest+'.lock.json'))) 'B264_CUT_GENERATION_EPOCH'}
  $keys=@('schemaVersion','currentOwnerDigest','ownerObservedAt','protectedSqlEpoch','predecessorRunId','predecessorProfile','predecessorBefore','predecessorLock','consumedAncestorClaim','failedOuterTail','quarantinedRecoveryTail','readOnlyOldReady','successorRunId','successorProfile','successorBefore','newSettings','candidate','stopOrderDigest','transitionAuthority','applyExecuted')
  Need ((@($claim.PSObject.Properties.Name|Sort-Object) -join '|') -ceq (@($keys|Sort-Object) -join '|')) 'B264_CUT_CLAIM_FIELDS'
  Need ($claim.schemaVersion -ceq $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'melisa-p03-current-b007-epoch-claim.v1'}else{'melisa-p03-b264-current-epoch-claim.v1'}) -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.successorRunId -ceq $runId -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.currentOwnerDigest -cmatch '\A[a-f0-9]{64}\z') 'B264_CUT_CLAIM'
  Need ($claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256 -and (B264Same $claim.newSettings $profile.newSettings)) 'B264_CUT_CLAIM_REFS'
- Need ((B264Same $claim.protectedSqlEpoch @($profile.protectedProcesses|Where-Object{$_.kind -ceq 'ProtectedSqlService'})[0]) -and [DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime() -ge [DateTime]::Parse($before.observedAt).ToUniversalTime()) 'B264_CUT_EPOCH'
- $ownerAge=([DateTime]::UtcNow-[DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime()).TotalSeconds;Need ($ownerAge -ge 0 -and $ownerAge -lt 60) 'B264_CUT_OWNER_FRESH'
+ Need ((B264Same $claim.protectedSqlEpoch @($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -ccontains 'kind' -and $_.kind -ceq 'ProtectedSqlService'})[0]) -and [DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime() -ge [DateTime]::Parse($before.observedAt).ToUniversalTime()) 'B264_CUT_EPOCH'
+ $ownerAge=((B264CutAdmissionTime)-[DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime()).TotalSeconds;Need ($ownerAge -ge 0 -and $ownerAge -lt 60) 'B264_CUT_OWNER_FRESH'
  AssertB264CutStopPlan $claim
  $candidate=[ordered]@{erpSource=$newSettings.components.erpApiNative.sourceCommit;erpManifest=$newSettings.components.erpApiNative.manifestSha256;crmSource=$newSettings.components.crm.sourceCommit;crmManifest=$newSettings.components.crm.manifestSha256;supervisorSource=$newSettings.supervisor.sourceCommit;supervisorManifest=$newSettings.supervisor.manifestSha256;supervisorRoot=$newSettings.supervisor.packageRoot;newSettings=$profile.newSettings}
  Need (B264Same $claim.candidate $candidate) 'B264_CUT_CANDIDATE'
@@ -100,7 +113,7 @@ function B264CutAuthority{
  Need ($claim.stopOrderDigest -ceq $stopDigest -and $AdmittedSnapshotPath -ceq (Join-Path $dir 'successor-precut-admission.json') -and $RootIntentPath -ceq (Join-Path $dir 'b264-old-owner-cut-intent.json')) 'B264_CUT_INTENT_PATH'
  $intent=Json (ReadWorkerPin $RootIntentPath $RootIntentSha256)
  Need ($intent.event -ceq 'B264_OLD_CUT_INTENT' -and $intent.claimSha256 -ceq $ClaimSha256 -and $intent.stopOrderDigest -ceq $stopDigest -and $intent.profileSha256 -ceq $ProfileSha256 -and $intent.beforeSha256 -ceq $BeforeImageSha256) 'B264_CUT_INTENT'
- $intentAge=([DateTime]::UtcNow-[DateTime]::Parse($intent.observedAt).ToUniversalTime()).TotalSeconds;Need ($intentAge -ge 0 -and $intentAge -lt 60) 'B264_CUT_INTENT_FRESH'
+ $intentAge=((B264CutAdmissionTime)-[DateTime]::Parse($intent.observedAt).ToUniversalTime()).TotalSeconds;Need ($intentAge -ge 0 -and $intentAge -lt 60) 'B264_CUT_INTENT_FRESH'
  Need ((@($intent.PSObject.Properties.Name|Sort-Object) -join '|') -ceq 'beforeSha256|claimSha256|event|observedAt|profileSha256|stopOrderDigest') 'B264_CUT_INTENT_FIELDS'
 }
 function PausedRemainingCore{
@@ -152,11 +165,36 @@ function StopB264OldCom{
  Need ($live.Count -eq 0) 'B264_CUT_WATCHER_NOT_ABSENT'
  foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq 3 -and (XmlHash ([string]$task.Xml)) -ceq $entry.oldXmlSha256) 'B264_CUT_COM_READY'}
 }
+function ContinuationKeys($value,[string[]]$keys){Need ((@($value.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|')) 'CURRENT_OWNER_BINDING_KEYS'}
+function CurrentB007OwnerDigestBindings($fresh,$historical){
+ # The JS claim commits the pinned predecessor array order, not the order in
+ # which Windows enumerates listeners today. Verify the full multiset first;
+ # sorting only comparison keys preserves duplicate counts and every tuple.
+ $sets=@()
+ foreach($bindings in @(@{rows=@($fresh)},@{rows=@($historical)})){
+  [string[]]$keys=@(foreach($binding in $bindings.rows){
+   ContinuationKeys $binding @('port','address')
+   Need (($binding.port -is [int] -or $binding.port -is [long]) -and $binding.port -ge 1 -and $binding.port -le 65535 -and $binding.address -is [string] -and -not[string]::IsNullOrEmpty($binding.address)) 'CURRENT_OWNER_BINDING_FIELDS'
+   [ordered]@{port=$binding.port;address=$binding.address}|ConvertTo-Json -Compress
+  })
+  [Array]::Sort($keys,[StringComparer]::Ordinal);$sets+=,@($keys)
+ }
+ Need ($sets[0].Count -eq $sets[1].Count) 'CURRENT_OWNER_BINDING_COUNT'
+ for($i=0;$i -lt $sets[0].Count;$i++){Need ($sets[0][$i] -ceq $sets[1][$i]) 'CURRENT_OWNER_BINDING_TUPLE'}
+ return ,@($historical)
+}
 function AssertB264CutCurrentOwner{
  $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256);$inv=Inventory;ProtectedProcesses $inv
+ $currentBindingOrder=(Get-Variable -Name PolicyGeneration -ValueOnly -ErrorAction SilentlyContinue)-ceq'CurrentB007InspectOnly'
+ if($currentBindingOrder){
+  $historicalPin=(B264CutHistoryPins).predecessorBefore;ContinuationKeys $claim.predecessorBefore @('path','sha256')
+  Need ($claim.predecessorBefore.path -ceq $historicalPin.path -and $claim.predecessorBefore.sha256 -ceq $historicalPin.sha256) 'CURRENT_OWNER_HISTORY_REF'
+  $historicalBefore=Json (ReadWorkerPin $historicalPin.path $historicalPin.sha256)
+ }
  $owners=@(@(foreach($role in $order){
   $e=$before.identities.$role;$rows=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($rows.Count -eq 1 -and (Identity $rows[0] $e)) 'B264_CUT_OWNER_UID'
-  [ordered]@{pid=[int]$e.pid;parentPid=[int]$e.parentPid;ownerSid=$e.ownerSid;nodePath=$e.nodePath;commandLine=$e.commandLine;creationTime=[DateTime]::Parse($e.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ');bindings=@($e.bindings)}
+  $committedBindings=if($currentBindingOrder){CurrentB007OwnerDigestBindings @($e.bindings) @($historicalBefore.identities.$role.bindings)}else{,@($e.bindings)}
+  [ordered]@{pid=[int]$e.pid;parentPid=[int]$e.parentPid;ownerSid=$e.ownerSid;nodePath=$e.nodePath;commandLine=$e.commandLine;creationTime=[DateTime]::Parse($e.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ');bindings=$committedBindings}
  })|Sort-Object { $_.pid })
  Need ($inv.instances.Count -eq 2) 'B264_CUT_OWNER_COM_COUNT'
  $instances=@(foreach($name in $names){$rows=@($inv.instances|Where-Object{$_.Name -ceq $name});Need ($rows.Count -eq 1 -and [int]$rows[0].State -eq 4 -and [string]$rows[0].Path -ceq ('\'+$name) -and -not[string]::IsNullOrEmpty([string]$rows[0].InstanceGuid)) 'B264_CUT_OWNER_COM';[ordered]@{name=$name;pid=[int]$rows[0].EnginePID;guid=[string]$rows[0].InstanceGuid}})

@@ -8,7 +8,8 @@ param(
  [Parameter(Mandatory=$true)][string]$EmptyRecoveryPath,
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,
  [Parameter(Mandatory=$true)][string]$NewObserverPath,
- [Parameter(Mandatory=$true)][string]$SourceObserverPath
+ [Parameter(Mandatory=$true)][string]$SourceObserverPath,
+ [string]$GenerationClaimPath
 )
 # Additive B264 NEW-owner recovery. Source AST imports only: no imported dispatcher.
 # This emits an empty candidate; it does not run frozen StopNew/RollbackOld.
@@ -45,7 +46,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
 function Get-B264RecoverySourcePolicy{
- if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256='777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4';observerSha256='8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}}
+ if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'de03b8b41dc14249951f62d3031e58654c24b1b4df1d0d933049ddfc1ca25f7f'}else{'777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'});observerSha256='8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'}}
  if($PolicyGeneration -ceq 'B264Sup20D'){
   return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }
@@ -317,7 +318,10 @@ Require-NewDrain ($ProfilePath-cmatch ('\A'+[regex]::Escape($base)+'\\MelisaERP-
 if($PolicyGeneration -ceq 'CurrentB007'){Require-NewDrain ($EnginePath -ceq (Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) 'p03-physical-rollback-lifetime-v2.ps1')) 'CURRENT_B007_ENGINE_RUN'}
 Require-NewDrain ($runId-cnotin@('7b0821959737f1da0427b17a7dfd4685','639e2da815e1e7ac0f1c0d04d7f7bdc3','b264594b6f93d560d807c8decc4e6699')-and$BeforeImagePath-ceq(Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json'))) 'RUN'
 $profile=Json (ReadPinned $ProfilePath $ProfileSha256);$before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256)
-$claimPath=Join-Path $base $(if($PolicyGeneration -ceq 'CurrentB007'){'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'}else{'p03-pr54-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'});$claim=Json (ReadPinned $claimPath $ClaimSha256)
+$claimPath=Join-Path $base $(if($PolicyGeneration -ceq 'CurrentB007'){'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'}else{'p03-pr54-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'})
+if($PSBoundParameters.ContainsKey('GenerationClaimPath')){Require-NewDrain ($PolicyGeneration -ceq 'CurrentB007'-and$GenerationClaimPath -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-current-b007-generation-[a-f0-9]{64}\.lock\.json\z') 'GENERATION_CLAIM_PATH';$claimPath=$GenerationClaimPath}
+$claim=Json (ReadPinned $claimPath $ClaimSha256)
+if($PSBoundParameters.ContainsKey('GenerationClaimPath')){Require-NewDrain ($claimPath -ceq (Join-Path $base ('p03-pr54-current-b007-generation-'+$claim.currentOwnerDigest+'.lock.json'))) 'GENERATION_EPOCH'}
 Assert-B264Claim
 Require-NewDrain ($profile.schemaVersion-ceq'melisa-p03-physical-profile.v1'-and$before.schemaVersion-ceq'melisa-p03-owner-observation.v3'-and$profile.ownerSid-ceq$owner-and$before.ownerSid-ceq$owner-and$profile.database-ceq$database-and$before.database-ceq$database-and$before.actualT1-ceq$false-and$before.copyId-ceq'e16b70f0-4057-428b-9abc-6bbcaf35fe82'-and$profile.beforeImage.path-ceq$BeforeImagePath-and$profile.beforeImage.sha256-ceq$BeforeImageSha256-and$profile.oldSettings.sha256-ceq'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'-and$profile.newSettings.sha256-ceq$claim.newSettings.sha256-and$profile.newSettings.path-ceq$claim.newSettings.path) 'SCOPE'
 $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256)

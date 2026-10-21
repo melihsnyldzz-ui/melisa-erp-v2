@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const adapter=fileURLToPath(new URL('./p03-pr54-current-b007-precut-new-recovery.ps1',import.meta.url));
@@ -41,9 +42,15 @@ Assert-CurrentB007Continuation;if(($claim|ConvertTo-Json -Depth 30 -Compress)-cn
   const out=run(extraction+'\n'+rawFixture('fixture')+'\n'+rawFixture('resumeFixture')+'\nfunction Require-NewDrain($v,$c){if(-not$v){throw $c}}\nfunction ReadPinned($p,$s){return ,(ReadWorkerPin $p $s)}\nfunction Same-B264Value($a,$b){return ($a|ConvertTo-Json -Depth 18 -Compress)-ceq($b|ConvertTo-Json -Depth 18 -Compress)}\nSetupResume;$PolicyGeneration=\'CurrentB007\';'+edit+";try{Assert-CurrentB007Continuation;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}");assert.match(out,/REJECTED/);
  }
 });
-test('PS5 parses the full adapter and every existing native recovery function except the claim binding remains byte-identical',windows,()=>{
- const out=run(`${parse(original)}$old=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+4)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cne'Assert-B264Claim'-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
+test('PS5 parses the full adapter and every existing native recovery function except claim binding and versioned source policy remains byte-identical',windows,()=>{
+ const out=run(`${parse(original)}$old=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+4)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cnotin@('Assert-B264Claim','Get-B264RecoverySourcePolicy')-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
  assert.match(out,/PARSED_NATIVE_RECOVERY_UNCHANGED/);
+});
+
+test('fresh generation recovery pins the current observer while retained current and historical policies keep their exact original bytes',windows,()=>{
+ const observer=fs.readFileSync(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),sha=createHash('sha256').update(observer).digest('hex');
+ const out=run(`${parse(original)}$d=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-cin@('Require-NewDrain','Get-B264RecoverySourcePolicy')},$true));foreach($def in $d){. ([scriptblock]::Create($def.Extent.Text))};$script:PolicyGeneration='CurrentB007';'OLD='+(Get-B264RecoverySourcePolicy).newObserverSha256;$script:GenerationClaimPath='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-current-b007-generation-${'d'.repeat(64)}.lock.json';'FRESH='+(Get-B264RecoverySourcePolicy).newObserverSha256;$script:PolicyGeneration='LegacyB264';'LEGACY='+(Get-B264RecoverySourcePolicy).newObserverSha256`);
+ assert.match(out,new RegExp('OLD=777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4[\\s\\S]*FRESH='+sha+'[\\s\\S]*LEGACY=1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920'));
 });
 test('PS5 pure continuation guard accepts only own fresh context and pinned retained claim/failure tail; no worker dispatcher runs',windows,()=>{
  const code=String.raw`

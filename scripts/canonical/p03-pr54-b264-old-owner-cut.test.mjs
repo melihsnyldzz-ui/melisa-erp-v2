@@ -109,6 +109,7 @@ function BuildCom{
 });
 
 const authorityFixture=String.raw`
+$script:cutWitnessCommitted=$false
 ResetFixture
 $script:base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$script:runId='a'*32;$script:dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $script:ProfilePath=Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json');$script:BeforeImagePath=Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json');$script:ProfileSha256='a'*64;$script:BeforeImageSha256='b'*64
@@ -117,7 +118,7 @@ $script:ClaimPath=Join-Path $base 'p03-pr54-successor-of-b264594b6f93d560d807c8d
 $script:Mode='Drain';$script:reads=@();$script:contractChecks=0
 $profile|Add-Member NoteProperty oldSettings ([pscustomobject]@{path='old';sha256=('6'*64)})
 $profile|Add-Member NoteProperty newSettings ([pscustomobject]@{path='new';sha256=('3'*64)})
-$profile|Add-Member NoteProperty protectedProcesses @([pscustomobject]@{kind='ProtectedSqlService';pid=5360})
+$profile|Add-Member NoteProperty protectedProcesses @([pscustomobject]@{kind='ProtectedSqlService';pid=5360},[pscustomobject]@{pid=5361},[pscustomobject]@{pid=5362},[pscustomobject]@{pid=5363})
 $before|Add-Member NoteProperty observedAt ([DateTime]::UtcNow.ToString('o'));$before|Add-Member NoteProperty oldConfig $profile.oldSettings;$before|Add-Member NoteProperty newConfig $profile.newSettings
 $plan=[ordered]@{targets=@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor');oldSettingsSha256=$profile.oldSettings.sha256;newSettingsSha256=$profile.newSettings.sha256};$digest=Hash ([Text.Encoding]::UTF8.GetBytes(($plan|ConvertTo-Json -Compress)));$plan.digest=$digest;$before|Add-Member NoteProperty plan ([pscustomobject]$plan)
 $script:newSettings=[pscustomobject]@{components=[pscustomobject]@{erpApiNative=[pscustomobject]@{sourceCommit='erp';manifestSha256='erpManifest'};crm=[pscustomobject]@{sourceCommit='crm';manifestSha256='crmManifest'}};supervisor=[pscustomobject]@{sourceCommit='sup';manifestSha256='supManifest';packageRoot='supRoot'}};$script:oldSettings=$newSettings
@@ -128,14 +129,31 @@ function AssertB264InspectionContract{$script:contractChecks++}
 function ReadWorkerPin($path,$sha){$script:reads+=,$path;$value=if($path-ceq$ClaimPath){$script:claim}elseif($path-ceq$RootIntentPath){$script:intent}else{[pscustomobject]@{}};return ,[Text.Encoding]::UTF8.GetBytes(($value|ConvertTo-Json -Depth 25 -Compress))}
 `;
 test('Drain validates exact B264 epoch claim, historical refs and truthful fresh root intent; proposal cannot authorize stop',windows,()=>{
- const definitions=extract(['Hash','Json'],engine)+'\n'+extract(['B264Same','B264CutHistoryPins','AssertB264CutStopPlan','B264CutAuthority']);
+ const definitions=extract(['Hash','Json'],engine)+'\n'+extract(['B264Same','B264CutHistoryPins','AssertB264CutStopPlan','B264CutAdmissionTime','B264CutAuthority']);
  const edits=[['plan-targets',"$before.plan.targets=@($before.plan.targets[1..7])"],['plan-digest',"$before.plan.digest='0'*64"],['plan-extra',"$before.plan|Add-Member NoteProperty bypass $true"],['plan-settings',"$before.plan.oldSettingsSha256=$before.plan.newSettingsSha256"],['proposal',"$claim.schemaVersion='melisa-p03-b264-current-epoch-proposal.v1'"],['authority',"$claim.transitionAuthority=$false"],['extra-field',"$claim|Add-Member NoteProperty bypass $true"],['epoch',"$claim.protectedSqlEpoch=[pscustomobject]@{kind='ProtectedSqlService';pid=1}"],['owner-before',"$claim.ownerObservedAt=[DateTime]::Parse($before.observedAt).AddSeconds(-1).ToString('o')"],['owner-future',"$claim.ownerObservedAt=[DateTime]::UtcNow.AddSeconds(2).ToString('o')"],['owner-stale',"$before.observedAt=[DateTime]::UtcNow.AddSeconds(-62).ToString('o');$claim.ownerObservedAt=[DateTime]::UtcNow.AddSeconds(-61).ToString('o')"],['candidate',"$claim.candidate.crmSource='other'"],['history',"$claim.predecessorBefore.sha256='0'*64"],['intent',"$intent.event='EXACT_STOP_INTENT'"],['stale-root',"$intent.observedAt=[DateTime]::UtcNow.AddSeconds(-61).ToString('o')"],['future-root',"$intent.observedAt=[DateTime]::UtcNow.AddSeconds(2).ToString('o')"],['root-extra',"$intent|Add-Member NoteProperty fake $true"]];
  const out=run(`${fixture}\n${definitions}\n${authorityFixture}\nB264CutAuthority;'VALID=PASS';$before.observedAt=[DateTime]::UtcNow.AddSeconds(-2).ToString('o');$claim.ownerObservedAt=[DateTime]::Parse($before.observedAt).AddSeconds(1).ToString('o');B264CutAuthority;'BEFORE_PLUS_ONE=PASS';${edits.map(([name,edit])=>`${authorityFixture}\n${edit};ExpectRejected '${name}' {B264CutAuthority}`).join('\n')}`);
  assert.match(out,/VALID=PASS/);assert.match(out,/BEFORE_PLUS_ONE=PASS/);for(const [name]of edits)assert.ok(out.includes('REJECTED='+name));
 });
 test('Inspect authority never reads a claim or root mutation intent',windows,()=>{
- const out=run(`${fixture}\n${extract(['Hash','Json'],engine)}\n${extract(['B264Same','B264CutHistoryPins','AssertB264CutStopPlan','B264CutAuthority'])}\n${authorityFixture}\n$script:Mode='Inspect';B264CutAuthority;'CLAIMS='+@($reads|Where-Object{$_-ceq$ClaimPath}).Count;'INTENTS='+@($reads|Where-Object{$_-ceq$RootIntentPath}).Count;'CONTRACT='+$contractChecks`);
+ const out=run(`${fixture}\n${extract(['Hash','Json'],engine)}\n${extract(['B264Same','B264CutHistoryPins','AssertB264CutStopPlan','B264CutAdmissionTime','B264CutAuthority'])}\n${authorityFixture}\n$script:Mode='Inspect';B264CutAuthority;'CLAIMS='+@($reads|Where-Object{$_-ceq$ClaimPath}).Count;'INTENTS='+@($reads|Where-Object{$_-ceq$RootIntentPath}).Count;'CONTRACT='+$contractChecks`);
  assert.match(out,/CLAIMS=0/);assert.match(out,/INTENTS=0/);assert.match(out,/CONTRACT=1/);
+});
+
+test('Current committed cut uses its authenticated original admission clock across the before-image boundary without admitting an expired live owner',windows,()=>{
+ const definitions=extract(['Hash','Json'],engine)+'\n'+extract(['B264Same','B264CutHistoryPins','AssertB264CutStopPlan','B264CutAdmissionTime','B264CutAuthority']);
+ const out=run(`${fixture}\n${definitions}\n${authorityFixture}\n`+String.raw`
+$script:PolicyGeneration='CurrentB007InspectOnly';$script:EnginePath=Join-Path $dir 'p03-physical-rollback-lifetime-v2.ps1'
+$claim.schemaVersion='melisa-p03-current-b007-epoch-claim.v1';$script:ClaimPath=Join-Path $base ('p03-pr54-current-b007-generation-'+$claim.currentOwnerDigest+'.lock.json')
+$script:precutWindowOpenedAt=[DateTime]::UtcNow.AddSeconds(-120);$script:coreStopCompletedAt=$precutWindowOpenedAt.AddSeconds(54)
+$before.observedAt=$precutWindowOpenedAt.AddSeconds(-899).ToString('o');$claim.ownerObservedAt=$precutWindowOpenedAt.ToString('o');$intent.observedAt=$precutWindowOpenedAt.ToString('o')
+$script:coreLifetime=[pscustomobject]@{HasExited=$true};$script:coreQuiesced=$true
+function AssertCurrentB007InspectionContract($p,$b,$o,$n,$pp,$bp,$sha,$at){$age=($at-[DateTime]::Parse($b.observedAt).ToUniversalTime()).TotalSeconds;Need ($age-ge0-and$age-lt900) 'FIXTURE_BEFORE_EXPIRED'}
+ExpectRejected 'expired-live' {B264CutAuthority}
+$script:cutWitnessCommitted=$true;B264CutAuthority;'COMMITTED=PASS'
+$script:coreLifetime.HasExited=$false;ExpectRejected 'live-core' {B264CutAuthority}
+$script:coreLifetime.HasExited=$true;$script:coreStopCompletedAt=$precutWindowOpenedAt.AddSeconds(60);ExpectRejected 'cut-too-late' {B264CutAuthority}
+`);
+ assert.match(out,/REJECTED=expired-live/);assert.match(out,/COMMITTED=PASS/);assert.match(out,/REJECTED=live-core/);assert.match(out,/REJECTED=cut-too-late/);
 });
 
 test('COM-time bounded late probe drains naturally; wrong birth, argv or listener is rejected without a probe stop',windows,()=>{

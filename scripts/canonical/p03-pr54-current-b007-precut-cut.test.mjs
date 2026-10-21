@@ -9,7 +9,7 @@ const source=new URL('./p03-pr54-current-b007-precut-cut.ps1',import.meta.url);
 const finalizationFixture=String.raw`
 $env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$name+'\'+$name+'.psd1')) -ErrorAction Stop}
 $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($env:P03_FIXTURE_WORKER,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_WORKER_PARSE'}
-foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','Finalize42d0Empty','Finalize42d0ReadbackPending','WaitFinalize42d0OldReady','FinalizeOld42d0')){$definition=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($definition.Count-ne1){throw 'FIXTURE_DEFINITION'};. ([scriptblock]::Create($definition[0].Extent.Text))}
+foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','Finalize42d0Empty','Finalize42d0ReadbackPending','WaitFinalize42d0OldReady','FinalizeOld42d0','ObserveStartedOld')){$definition=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($definition.Count-ne1){throw 'FIXTURE_DEFINITION'};. ([scriptblock]::Create($definition[0].Extent.Text))}
 $originalEngine=[IO.File]::ReadAllText($env:P03_FIXTURE_ENGINE);$tokens=$null;$errors=$null;$engineAst=[Management.Automation.Language.Parser]::ParseInput($originalEngine,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'FIXTURE_ENGINE_PARSE'}
 $definitions=@($engineAst.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Extent.Text})-join [Environment]::NewLine
@@ -166,12 +166,55 @@ $missingPort=[pscustomobject]@{all=$full.all;listeners=@($full.listeners|Where-O
 `);assert.match(out,/HEALTHY=False[\s\S]*ABSENT=True[\s\S]*DUPLICATE=False[\s\S]*FOREIGN=False[\s\S]*MISSING_PORT=True[\s\S]*IDENTITY=False[\s\S]*PARENT=False[\s\S]*HEALTH=False/);
 });
 
+test('normal rollback late observation validates the original eight-event failure chain and released locks without another start or journal write',()=>{
+ const out=runFinalization(String.raw`
+function Get-ChildItem{param($LiteralPath,[switch]$Force,[switch]$File);Microsoft.PowerShell.Management\Get-ChildItem -LiteralPath $LiteralPath -Force:$Force -File:$File}
+function Get-Item{param($LiteralPath,[switch]$Force);Microsoft.PowerShell.Management\Get-Item -LiteralPath $LiteralPath -Force:$Force}
+function Get-FileHash{param($LiteralPath,$Algorithm);if(-not$LiteralPath.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)){throw 'FIXTURE_HASH_SCOPE'};return [pscustomobject]@{Hash=([BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash([IO.File]::ReadAllBytes($LiteralPath))).Replace('-',''))}}
+$definition=$ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'WaitFinalize42d0OldReady'},$true)
+. ([scriptblock]::Create($definition[0].Extent.Text.Replace('[DateTime]::UtcNow','(FixtureNow)').Replace('$deadline=$started.AddMinutes(10)','$script:clockBase=$started;$deadline=$started.AddMinutes(10)')))
+$originalFixtureEngine=$engineBytes
+foreach($case in 0..3){
+ ResetFinalization;$script:Mode='ObserveStartedOld';$script:owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$script:base=$env:P03_FIXTURE_TEMP;$script:runId=[guid]::NewGuid().ToString('N')
+ $script:ProfilePath=Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json');$script:BeforeImagePath=Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json')
+ $script:database='MELISA_ERP_CRM_SHARED_TEST_20261009_02';$before|Add-Member NoteProperty ownerSid $owner;$before|Add-Member NoteProperty database $database;$before|Add-Member NoteProperty observedAt ([DateTime]::UtcNow.AddHours(-1).ToString('o'))
+ $profile|Add-Member NoteProperty ownerSid $owner;$profile|Add-Member NoteProperty database $database;$profile|Add-Member NoteProperty beforeImage ([pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256});$profile.journalDirectory=Join-Path $base ('MelisaERP-P03-recovery-'+$runId);$profile.protectedProcesses=@([pscustomobject]@{kind='ProtectedSqlService'},[pscustomobject]@{name='fixture1'},[pscustomobject]@{name='fixture2'},[pscustomobject]@{name='fixture3'})
+ $script:oldSettings=[pscustomobject]@{actualT1=$false};$script:newSettings=[pscustomobject]@{actualT1=$false}
+ $acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false);foreach($sid in @($owner,'S-1-5-18')){$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};[void][IO.Directory]::CreateDirectory($profile.journalDirectory,$acl)
+ foreach($leaf in @('recovery.lock','rollback.lock')){$p=Join-Path $profile.journalDirectory $leaf;$stream=[IO.File]::Open($p,'CreateNew','Write','None');$stream.Dispose();$fileAcl=Get-Acl -LiteralPath $p;$fileAcl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));Set-Acl -LiteralPath $p -AclObject $fileAcl}
+ $events=@('RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_COMPLETE','ROLLBACK_START_INTENT','ROLLBACK_STARTED','ROLLBACK_FAILED','QUARANTINED');$previous=$BeforeImageSha256;$start=[DateTime]::UtcNow.AddMinutes(-6).ToString('o')
+ foreach($n in 0..7){$record=[ordered]@{sequence=$n;previousSha256=$previous;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;event=$events[$n];observedAt=$start};if($n-eq6){$record['failure']=@{code=$(if($case-eq2){'P03_PHYSICAL_STARTED_ROLE_IDENTITY'}else{'P03_PHYSICAL_ROLLBACK_READBACK_FAILED'})}};if($case-eq3-and$n-eq5){$record.previousSha256='wrong'};$p=Join-Path $profile.journalDirectory ('event-'+$n.ToString('0000')+'.json');$bytes=[Text.Encoding]::UTF8.GetBytes(($record|ConvertTo-Json -Depth 10 -Compress));[IO.File]::WriteAllBytes($p,$bytes);$data[$p]=[pscustomobject]$record;$hashes[$p]=(Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant();$previous=$hashes[$p]}
+ $script:RollbackFailureTailSha256=if($case-eq1){'0'*64}else{$previous};$script:clockSeconds=360
+ $script:engineBytes=[Text.Encoding]::UTF8.GetBytes(([Text.Encoding]::UTF8.GetString($originalFixtureEngine)+[Environment]::NewLine+'function FixtureNow{return $script:clockBase.AddSeconds($script:clockSeconds)}'+[Environment]::NewLine+'function Start-Sleep{param($Milliseconds);$script:clockSeconds+=10}'))
+ $script:fixtureInventory=$startedInventory;foreach($name in $names){$fixtureTasks[$name].State=4;$fixtureTasks[$name].Xml=$profile.tasks[0].oldXml}
+ try{$result=ObserveStartedOld;'CASE'+$case+'='+$result.status;'MUTATION='+$result.mutationExecuted;'START='+$result.startExecuted}catch{'CASE'+$case+'='+$_.Exception.Message}
+ 'COUNTERS='+$startCalls+'/'+$writes;'EVENTS='+@(Get-ChildItem -LiteralPath $profile.journalDirectory -File|Where-Object{$_.Name-cmatch'^event-'}).Count
+}
+`,{timeout:30000});assert.match(out,/CASE0=OLD_READY_LATE_OBSERVED[\s\S]*MUTATION=False[\s\S]*START=False[\s\S]*COUNTERS=0\/0[\s\S]*EVENTS=8[\s\S]*CASE1=P03_PHYSICAL_OLD_OBSERVE_FAILURE[\s\S]*CASE2=P03_PHYSICAL_OLD_OBSERVE_FAILURE[\s\S]*CASE3=P03_PHYSICAL_OLD_OBSERVE_JOURNAL_CHAIN/);
+ const fn=readFileSync(source,'utf8').split('function ObserveStartedOld{')[1].split("if($Mode -ceq 'ObserveStartedOld')")[0];assert(!/Start-ScheduledTask|Set-ScheduledTask|WriteFinalize42d0Evidence|\bAppend\s/.test(fn));
+});
+
+test('normal owner cut commits one epoch-derived generation claim and keeps the original60 second admission window after genuine held exit',()=>{
+ const worker=fileURLToPath(new URL('./p03-pr54-b264-old-owner-cut.ps1',import.meta.url));
+ const out=runFinalization(String.raw`
+$t=$null;$e=$null;$normal=[Management.Automation.Language.Parser]::ParseFile('__NORMAL__',[ref]$t,[ref]$e);if($e.Count){throw 'NORMAL_PARSE'}
+$d=$normal.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'B264CutAdmissionTime'},$true);. ([scriptblock]::Create($d[0].Extent.Text))
+function Need($v,$code){if(-not$v){throw ('P03_PHYSICAL_'+$code)}}
+$script:cutWitnessCommitted=$false;$start=[DateTime]::UtcNow;'BEFORE_NOW='+(((B264CutAdmissionTime)-$start).TotalSeconds-lt2)
+$script:cutWitnessCommitted=$true;$script:coreQuiesced=$true;$script:coreLifetime=[pscustomobject]@{HasExited=$true};$script:precutWindowOpenedAt=[DateTime]::UtcNow.AddMinutes(-2);$script:coreStopCompletedAt=$precutWindowOpenedAt.AddSeconds(54)
+'AFTER_SAME_START='+((B264CutAdmissionTime).Ticks-eq$precutWindowOpenedAt.Ticks)
+$script:coreStopCompletedAt=$precutWindowOpenedAt.AddSeconds(60);try{B264CutAdmissionTime;throw 'BAD_WINDOW_ACCEPTED'}catch{'BAD_WINDOW='+$_.Exception.Message}
+$script:coreStopCompletedAt=$precutWindowOpenedAt.AddSeconds(54);$coreLifetime.HasExited=$false;try{B264CutAdmissionTime;throw 'LIVE_ACCEPTED'}catch{'LIVE='+$_.Exception.Message}
+`.replace('__NORMAL__',worker.replaceAll("'","''")));assert.match(out,/BEFORE_NOW=True[\s\S]*AFTER_SAME_START=True[\s\S]*BAD_WINDOW=P03_PHYSICAL_B264_CUT_POSTCOMMIT_WINDOW[\s\S]*LIVE=P03_PHYSICAL_B264_CUT_POSTCOMMIT_STATE/);
+ const s=readFileSync(worker,'utf8');assert(s.includes("'p03-pr54-current-b007-generation-'+$claim.currentOwnerDigest+'.lock.json'"));assert(s.includes("Need ($claim.currentOwnerDigest -ceq $actual) 'B264_CUT_OWNER_DIGEST'"));
+});
+
 test('finalize42d0 virtual six-minute sequential startup retains original owner proof and30 seconds stability, with fixed timeout and fatal identity rejection',()=>{
  const out=runFinalization(String.raw`
 # Replace only the clock/sleep OS edges; actual original StartedOwner and its
 # owner, parent, binding and health checks still run after the delayed spawn.
 $definition=$ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'WaitFinalize42d0OldReady'},$true)
-. ([scriptblock]::Create($definition[0].Extent.Text.Replace('[DateTime]::UtcNow','(FixtureNow)')))
+. ([scriptblock]::Create($definition[0].Extent.Text.Replace('[DateTime]::UtcNow','(FixtureNow)').Replace('$deadline=$started.AddMinutes(10)','$script:clockBase=$started;$deadline=$started.AddMinutes(10)')))
 $clockEdges=@'
 function FixtureNow{return $script:clockBase.AddSeconds($script:clockSeconds)}
 function Start-Sleep{param($Milliseconds);$script:clockSeconds+=10}
@@ -282,7 +325,7 @@ test('pure native continuation rejects stale/foreign snapshots, wrong retained r
 test('native hold, stop and COM-CAS remain byte equivalent; Current digest alone uses the verified predecessor listener order',()=>{
  const old=readFileSync(new URL('./p03-pr54-b264-old-owner-cut.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),s=readFileSync(source,'utf8').replaceAll('\r\n','\n');
  const captureBinding="  $live=CaptureWorkerAdmission;AssertB264CutCurrentOwner\n  Need ($null -eq $script:continuationLiveAdmission) 'CURRENT_CONTINUATION_LIVE_ONCE';$claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256);$rootSnapshot=Json (ReadWorkerPin $AdmittedSnapshotPath $AdmittedSnapshotSha256);AssertCurrentB007LiveAdmission $live $claim $rootSnapshot\n  Set-Variable -Name continuationLiveAdmission -Scope Script -Option ReadOnly -Value (Json ([Text.Encoding]::UTF8.GetBytes(($live|ConvertTo-Json -Depth 25 -Compress))))";
- const withoutDigest=text=>text.replace(/function CurrentB007OwnerDigestBindings[\s\S]*?(?=function AssertB264CutCurrentOwner)/,'').replace(/function AssertB264CutCurrentOwner[\s\S]*?(?=function DrainB264OldOwner)/,'');
+ const withoutDigest=text=>text.replace(/function ContinuationKeys\([^\n]+\n/,'').replace(/function CurrentB007OwnerDigestBindings[\s\S]*?(?=function AssertB264CutCurrentOwner)/,'').replace(/function AssertB264CutCurrentOwner[\s\S]*?(?=function DrainB264OldOwner)/,'');
  const originalRegion=old.slice(old.indexOf('function PausedRemainingCore{'),old.lastIndexOf('\nB264CutAuthority\n'));
  const currentRegion=s.slice(s.indexOf('function PausedRemainingCore{'),s.indexOf('function SeedCompleted42d0Admission(')).trimEnd();
  assert(s.includes(captureBinding));assert.equal(withoutDigest(currentRegion.replace(captureBinding,'  [void](CaptureWorkerAdmission);AssertB264CutCurrentOwner').replace("function Authority{if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){[void](AssertCompleted42d0Authority)}else{B264CutAuthority}}",'function Authority{B264CutAuthority}')),withoutDigest(originalRegion.trimEnd()));
@@ -410,7 +453,7 @@ test('fixed9d2 retry rejects every historical pin drift, wrong reason, extra cut
  const out=run(resumeFixture+'\n'+retryFixture+'\n'+edits.map((e,n)=>'SetupRetry;'+e+";try{AssertCurrentB007Continuation $claim;'RETRY"+n+"=ACCEPTED'}catch{'RETRY"+n+"=REJECTED'}").join('\n'));for(let n=0;n<edits.length;n++)assert.match(out,new RegExp('RETRY'+n+'=REJECTED'));
 });
 
-test('completed-cut recovery has an explicit read-only ResumeDrain dispatcher and exactly two finite OLD finalization modes',()=>{const s=readFileSync(source,'utf8');assert.match(s,/ValidateSet\('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply'\)/);assert.match(s,/if\(\$Mode -cin @\('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)\)\{ResumeCompleted42d0Drain/)});
+test('completed-cut recovery has an explicit read-only ResumeDrain dispatcher and exactly two finite OLD finalization modes',()=>{const s=readFileSync(source,'utf8');assert.match(s,/ValidateSet\('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply','ObserveStartedOld'\)/);assert.match(s,/if\(\$Mode -cin @\('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck'\)\)\{ResumeCompleted42d0Drain/)});
 const completedExtract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
 foreach($name in @('ContinuationKeys','Completed42d0Pins','AssertCompleted42d0Authority','ResumeCompleted42d0Drain')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};$body=$defs[0].Extent.Text;if($name-ceq'AssertCompleted42d0Authority'){$body=$body.Replace('$PSCommandPath','$script:fixtureWorkerPath')};. ([scriptblock]::Create($body))}`;
 const completedFixture=String.raw`

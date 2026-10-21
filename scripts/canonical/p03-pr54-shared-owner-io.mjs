@@ -674,20 +674,23 @@ const currentB007SourcePins=Object.freeze({
  invariance:['p03-current-invariance-capture.ps1','0ff308d092d2c2c11d5dd7afe2af6f471f9a1f41ebc3b0c59ccb64f60d456ce6'],
  emptyRecovery:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438'],
 });
-export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false,resumeCompletedCut42d0=false,resumeCompletedCut42d0PostCas=false,resumeFailedStopNew42d0=false,finalRestoreWorkerRef=null}={}){
+export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',profileRef,beforeRef,currentPreCapture,rehearsalProofRef,sourceControlDir,freshOwnerGeneration=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false,resumeCompletedCut42d0=false,resumeCompletedCut42d0PostCas=false,resumeFailedStopNew42d0=false,finalRestoreWorkerRef=null}={}){
  need(['DryRun','Apply'].includes(mode)&&process.platform==='win32','CURRENT_B007_MODE_PLATFORM');
  need([precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CURRENT_B007_CONTINUATION_MODE');
+ need(typeof freshOwnerGeneration==='boolean'&&(!freshOwnerGeneration||![precutContinuation,precutResume,precutResumeAfter9d2,resumeCompletedCut42d0,resumeCompletedCut42d0PostCas,resumeFailedStopNew42d0].some(Boolean)),'CURRENT_B007_FRESH_GENERATION_MODE');
  need(typeof resumeCompletedCut42d0==='boolean'&&(!resumeCompletedCut42d0||(precutResumeAfter9d2&&!precutContinuation&&!precutResume)),'CURRENT_B007_COMPLETED_CUT_MODE');
  need(typeof resumeCompletedCut42d0PostCas==='boolean'&&(!resumeCompletedCut42d0PostCas||resumeCompletedCut42d0),'CURRENT_B007_POSTCAS_MODE');
  need(typeof resumeFailedStopNew42d0==='boolean'&&(!resumeFailedStopNew42d0||(resumeCompletedCut42d0&&resumeCompletedCut42d0PostCas))&&(resumeFailedStopNew42d0||finalRestoreWorkerRef===null),'CURRENT_B007_FINALIZE_MODE');
- const psTransport=resumeCompletedCut42d0?{plainCommandOnly:true}:undefined;
+ const psTransport=resumeCompletedCut42d0||freshOwnerGeneration?{plainCommandOnly:true}:undefined;
  const isResume=precutResume||precutResumeAfter9d2,resumeRefs=precutResumeAfter9d2?PR54_CURRENT_B007_PRECUT_RETRY_REFS:PR54_CURRENT_B007_PRECUT_RESUME_REFS;
  const prepareResume=precutResumeAfter9d2?preparePr54CurrentB007PrecutRetry:preparePr54CurrentB007PrecutResume,validateResume=precutResumeAfter9d2?validatePr54CurrentB007PrecutRetryBinding:validatePr54CurrentB007PrecutResumeBinding;
  const root='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
  need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}$/.test(sourceControlDir),'CURRENT_B007_SOURCE_DIRECTORY');
  need(typedRef(profileRef)&&typedRef(beforeRef)&&typedRef(rehearsalProofRef)&&exactKeys(currentPreCapture,['snapshotRef','proofRef','backupProofRef'])&&Object.values(currentPreCapture).every(typedRef),'CURRENT_B007_INPUT_REFS');
  const before=read(beforeRef),profile=read(profileRef),runId=before.runId;
- const admissionClaimPath=(precutContinuation||isResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH;
+ // TWO native admissions determine this epoch's CreateNew slot. A random runId
+ // or timestamp cannot reset it; the same OLD process/COM lifetime is one slot.
+ let admissionClaimPath=freshOwnerGeneration?null:(precutContinuation||isResume)?PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH;
  const continuationRaw=()=>Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}]));
  const resumeRaw=()=>({original:continuationRaw(),resume:Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}])),...(precutResumeAfter9d2?{retry:Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS).map(([key,ref])=>[key,{ref,bytes:pin(ref)}]))}:{})});
  const continuationReceipt=isResume?(resumeCompletedCut42d0?validateResume:prepareResume)({raw:resumeRaw(),profileRef,beforeRef,profile,before}):precutContinuation?preparePr54CurrentB007PrecutContinuation({raw:continuationRaw(),profileRef,beforeRef,profile,before}):null;
@@ -701,7 +704,13 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(JSON.stringify(profile.businessDigest)===JSON.stringify(currentPreCapture.snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\(?:P03-20261020-\d{6}\\source-pre-snapshot|P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?)\.json$/.test(profile.businessDigest.path),'CURRENT_B007_CAPTURE');
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
- const sources=Object.fromEntries(Object.entries(currentB007SourcePins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
+ const selectedPins=freshOwnerGeneration?{...currentB007SourcePins,
+  oldCut:['p03-pr54-b264-old-owner-cut.ps1','394e607ad9340dda519eea65579199562fd653f1e4848ab67592b036b99bf8fb'],
+  newObserver:['p03-pr54-new-owner-observe.ps1','de03b8b41dc14249951f62d3031e58654c24b1b4df1d0d933049ddfc1ca25f7f'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','126211dfa59210eadc55c7b1a6f7c1dcac196e10e7fedc5d0fde15f80142c578'],
+  lateOld:['p03-pr54-current-b007-precut-cut.ps1','97cdb31a06da154e611204b32a20afa7187b5f71920ab5b3756494a632549516'],
+ }:currentB007SourcePins;
+ const sources=Object.fromEntries(Object.entries(selectedPins).map(([name,[leaf,sha256]])=>[name,{path:path.win32.join(sourceControlDir,leaf),sha256}]));
  if(precutContinuation||isResume){
   sources.oldCut={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-cut.ps1'),sha256:'ebfbe596906e3c98951df085df4d84648152d581ac774353815cdfea3b3bd138'};
   sources.newRecovery={path:path.win32.join(sourceControlDir,'p03-pr54-current-b007-precut-new-recovery.ps1'),sha256:'667ac16f0a83251db2e11e9e337ce9894de4803efc9ed5a2b2fe6129672fb28c'};
@@ -771,13 +780,13 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
    const allowed=['transition.lock','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','successor-precut-admission.json','b264-old-owner-cut-intent.json','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-paused-old-recover.ps1',...Object.values(currentB007SourcePins).map(p=>p[0])].sort();
    noReparseAncestors(failedDir);need(JSON.stringify(fs.readdirSync(failedDir).sort())===JSON.stringify(allowed),'CURRENT_B007_FAILED_SCOPE_ADVANCED');
   }
-  if(claimRef){await strictPins([claimRef]);need(pin(claimRef).equals(claimBytes),'CURRENT_B007_CLAIM_CHANGED');}else if(isResume){await strictPins([PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim]);}else need(!fs.existsSync(admissionClaimPath),'B264_SUCCESSOR_ALREADY_CONSUMED');
+  if(claimRef){await strictPins([claimRef]);need(pin(claimRef).equals(claimBytes),'CURRENT_B007_CLAIM_CHANGED');}else if(isResume){await strictPins([PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim]);}else if(admissionClaimPath!==null)need(!fs.existsSync(admissionClaimPath),'B264_SUCCESSOR_ALREADY_CONSUMED');
   if(transitionCreated){for(const ref of eventRefs)pin(ref);for(const ref of Object.values(frozen))pin(ref);}
   if(resumeCompletedCut42d0){await strictPins([...completedCutPins,...recoveryAppendPins]);if(completedCutPins.length){const allowed=new Set([...completedCutPins.filter(r=>path.win32.dirname(r.path)===transitionDir).map(r=>path.win32.basename(r.path)),...recoveryAppendPins.filter(r=>path.win32.dirname(r.path)===transitionDir).map(r=>path.win32.basename(r.path))]);need(fs.readdirSync(transitionDir).every(n=>allowed.has(n)),'CURRENT_B007_COMPLETED_CUT_SCOPE');}}
   return true;
  }
  async function invoke(ref,args,{timeout=180000,text=false}={}){
-  pin(ref);const argv=['-NoProfile','-NonInteractive','-File',ref.path,...args],invocation=resumeCompletedCut42d0?b264Sup20dHeldInvocation(ref,argv,{fileInvocationOnly:true}):b264Sup20dHeldInvocation(ref,argv),began=Date.now();
+  pin(ref);const argv=['-NoProfile','-NonInteractive','-File',ref.path,...args],invocation=resumeCompletedCut42d0||freshOwnerGeneration?b264Sup20dHeldInvocation(ref,argv,{fileInvocationOnly:true}):b264Sup20dHeldInvocation(ref,argv),began=Date.now();
   try{const result=await run(shell,invocation,{...opts,timeout});need(!result.stderr,'CURRENT_B007_WORKER_STDERR');return text?result.stdout.trim():JSON.parse(result.stdout);}catch(error){
    if(resumeCompletedCut42d0){const at=args.indexOf('-Mode'),action=at>=0?args[at+1]:'Physical';try{Object.defineProperty(error,'p03WorkerDiagnostic',{value:Object.freeze({workerLeaf:path.win32.basename(ref.path),action:/^[A-Za-z0-9]{1,40}$/.test(action)?action:'UNKNOWN',elapsedMs:Date.now()-began,exitCode:Number.isInteger(error?.code)?error.code:null,errno:['ETIMEDOUT','EACCES','EPERM','ENOENT','ENOMEM'].includes(error?.code)?error.code:null,killed:error?.killed===true,signal:['SIGTERM','SIGKILL','SIGINT'].includes(error?.signal)?error.signal:null,stderrSha256:hash(Buffer.from(String(error?.stderr??'')))})});}catch{}}
    throw error;
@@ -796,7 +805,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   next('FULL_PACKAGE_PREFLIGHT');const preflight=await invoke(engineRef,['-Environment','Shared',...common,'-Mode','PreflightOld'],{timeout:900000});
   need(exactKeys(preflight,['status','environment','profileSha256','beforeImageSha256','applyAvailable','mutationExecuted'])&&preflight.status==='OLD_PHYSICAL_PREFLIGHT'&&preflight.environment==='Shared'&&preflight.profileSha256===profileRef.sha256&&preflight.beforeImageSha256===beforeRef.sha256&&preflight.applyAvailable===false&&preflight.mutationExecuted===false,'CURRENT_B007_FULL_PACKAGE_PREFLIGHT');
   next('HISTORY');const raw=await history();
-  next('PHYSICAL');const physical=await inspectPr54CurrentB007PhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer},{precutContinuation,precutResume,precutResumeAfter9d2});
+  next('PHYSICAL');const physical=await inspectPr54CurrentB007PhysicalOwner({profileRef,beforeRef,engineRef,recoveryHelperRef:helperRef,drainerRef:sources.drainer,observerRef:sources.observer},{freshOwnerGeneration,precutContinuation,precutResume,precutResumeAfter9d2});
   next('CONTINUITY_READ');const observation=JSON.parse(await ps(pr54CurrentContinuityProgram(currentPreCapture.snapshotRef,sourcePre.backup),psTransport));
   next('CONTINUITY_VALIDATE');const nativeContinuity=preparePr54CurrentB007NativeContinuity(currentPreCapture.snapshotRef,sourcePre.snapshot,observation,sourcePre.backup);
   validatePr54CurrentPreCapture(currentPreCapture,sourcePre.snapshot,sourcePre.proof,sourcePre.backup,{nativeContinuity});next('PROTECTED');await guardProtected();
@@ -808,7 +817,8 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  await guard();need(await ps(`[Security.Principal.WindowsIdentity]::GetCurrent().User.Value`,psTransport)===owner,'CALLER');
  need(!fs.existsSync(transitionDir)&&fs.readdirSync(profile.journalDirectory).length===0,'CURRENT_B007_PRIOR_JOURNAL');
  const first=await admit();
- if(mode==='DryRun')return {status:'CURRENT_B007_DRY_RUN_ONLY',applyExecuted:false,claimCreated:false,transitionAuthority:false,candidate,sourceControlDir,proofDigest:first.proofDigest};
+ if(freshOwnerGeneration){need(/^[a-f0-9]{64}$/.test(first.claim.currentOwnerDigest),'CURRENT_B007_FRESH_EPOCH');admissionClaimPath=root+'\\p03-pr54-current-b007-generation-'+first.claim.currentOwnerDigest+'.lock.json';need(!fs.existsSync(admissionClaimPath),'B264_SUCCESSOR_ALREADY_CONSUMED');}
+ if(mode==='DryRun')return {status:'CURRENT_B007_DRY_RUN_ONLY',applyExecuted:false,claimCreated:false,transitionAuthority:false,candidate,sourceControlDir,proofDigest:first.proofDigest,...(freshOwnerGeneration?{generationClaimPath:admissionClaimPath}:{} )};
  async function protectedWrite(file,bytes){
   if(resumeCompletedCut42d0)need(recoveryWrites.has(file),'CURRENT_B007_COMPLETED_CUT_WRITE_SCOPE');
   need(path.win32.normalize(file)===file&&((!isResume&&file===admissionClaimPath)||(isResume&&file===resumeAttemptPath)||file.startsWith(transitionDir+'\\')||new RegExp('^'+root.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\\\MelisaERP-P03-candidate-[a-f0-9]{32}\\.json$').test(file)),'CURRENT_B007_WRITE_SCOPE');
@@ -886,8 +896,18 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  async function finishRollback(zeroRef){
   const zero=read(zeroRef);need(zero.processes.length===0&&zero.receipts.length===0&&zero.profileSha256===profileRef.sha256&&zero.beforeSha256===beforeRef.sha256,'CURRENT_B007_ZERO_CANDIDATE');
   const recovered=await frozenEngine('StopNew',['-CandidatePath',zeroRef.path,'-CandidateSha256',zeroRef.sha256]);need(recovered.status==='RECOVERED_OLD_ACTIONS'&&/^[a-f0-9]{64}$/.test(recovered.journalTailSha256),'CURRENT_B007_STOPNEW_RESULT');
-  const restored=await frozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','CURRENT_B007_ROLLBACK_READBACK');
-  await protectedWrite(path.win32.join(transitionDir,'rollback-result.json'),jsonBytes({recovered,restored,zeroRef}));return {status:'FAILED_ROLLED_BACK_OLD_READY',transitionDirectory:transitionDir,successorClaimRef:claimRef,humanAcceptance:'BEKLİYOR',applyExecuted:true};
+  let restored,originalReadbackFailure=null;
+  try{restored=await frozenEngine('RollbackOld',['-RecoveryTailSha256',recovered.journalTailSha256]);need(restored.status==='RESTORED_READY','CURRENT_B007_ROLLBACK_READBACK');}catch(error){
+   if(!freshOwnerGeneration||heldCoreReason(error)!=='P03_PHYSICAL_ROLLBACK_READBACK_FAILED')throw error;
+   const tailPath=path.win32.join(profile.journalDirectory,'event-0007.json'),tailRef={path:tailPath,sha256:hash(fs.readFileSync(tailPath))};await strictPins([tailRef]);
+   const tail=read(tailRef);need(tail.sequence===7&&tail.event==='QUARANTINED'&&tail.profileSha256===profileRef.sha256&&tail.beforeSha256===beforeRef.sha256,'CURRENT_B007_LATE_OLD_TAIL');
+   // Observe only the already-started OLD tasks. The native reader validates
+   // all eight immutable events and measures 10m from their original start.
+   restored=await invoke(frozen.lateOld,['-PolicyGeneration','CurrentB007InspectOnly','-Mode','ObserveStartedOld','-WorkerSourceSha256',frozen.lateOld.sha256,...common,'-EnginePath',frozen.engine.path,'-EngineSha256',frozen.engine.sha256,'-RecoveryHelperPath',frozen.helper.path,'-RecoveryHelperSha256',frozen.helper.sha256,'-DrainerPath',frozen.drainer.path,'-DrainerSha256',frozen.drainer.sha256,'-RollbackFailureTailSha256',tailRef.sha256],{timeout:660000});
+   need(restored.status==='OLD_READY_LATE_OBSERVED'&&restored.profileSha256===profileRef.sha256&&restored.beforeSha256===beforeRef.sha256&&restored.engineSha256===frozen.engine.sha256&&restored.rollbackFailureTailSha256===tailRef.sha256&&restored.stableSeconds>=30&&/^[a-f0-9]{64}$/.test(restored.identityDigest)&&restored.mutationExecuted===false&&restored.startExecuted===false&&restored.newGenerationStarted===false,'CURRENT_B007_LATE_OLD_PROOF');
+   originalReadbackFailure={code:'P03_PHYSICAL_ROLLBACK_READBACK_FAILED',tailRef};await protectedWrite(path.win32.join(transitionDir,'late-old-readback.json'),jsonBytes(restored));
+  }
+  await protectedWrite(path.win32.join(transitionDir,'rollback-result.json'),jsonBytes({recovered,restored,zeroRef,...(originalReadbackFailure?{originalReadbackFailure}:{} )}));return {status:'FAILED_ROLLED_BACK_OLD_READY',transitionDirectory:transitionDir,successorClaimRef:claimRef,humanAcceptance:'BEKLİYOR',applyExecuted:true};
  }
  async function recoverCompletedCut42d0(){
   // Recovery of this one recorded completed cut, never another admission or
@@ -1026,7 +1046,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
    if(started){
     // This independently authenticates ALL raw partial roles. It refuses an
     // uncaptured core/orphan or Hub without lineage; no universal recovery PASS.
-    const recovered=await invoke(frozen.newRecovery,['-Action','Drain','-PolicyGeneration','CurrentB007',...common,'-EnginePath',frozen.engine.path,'-ClaimSha256',claimRef.sha256,'-EmptyRecoveryPath',frozen.emptyRecovery.path,'-RecoveryHelperPath',frozen.helper.path,'-NewObserverPath',frozen.newObserver.path,'-SourceObserverPath',frozen.observer.path,...(continuationRef?['-ContinuationPath',continuationRef.path,'-ContinuationSha256',continuationRef.sha256]:[])],{timeout:900000});
+    const recovered=await invoke(frozen.newRecovery,['-Action','Drain','-PolicyGeneration','CurrentB007',...common,'-EnginePath',frozen.engine.path,'-ClaimSha256',claimRef.sha256,'-EmptyRecoveryPath',frozen.emptyRecovery.path,'-RecoveryHelperPath',frozen.helper.path,'-NewObserverPath',frozen.newObserver.path,'-SourceObserverPath',frozen.observer.path,...(freshOwnerGeneration?['-GenerationClaimPath',claimRef.path]:[]),...(continuationRef?['-ContinuationPath',continuationRef.path,'-ContinuationSha256',continuationRef.sha256]:[])],{timeout:900000});
     need(recovered.status==='B264_NEW_OWNER_EMPTY_CANDIDATE_READY'&&recovered.oldOwnerStarted===false&&recovered.engineRecoveryExecuted===false&&recovered.businessWrites===0&&recovered.requiresFrozenStopNewAndRollbackOld===true,'CURRENT_B007_NEW_DRAIN');pin(recovered.candidateRef);return {...await finishRollback(recovered.candidateRef),failurePhase};
    }
    // No new COM stop, core kill, or invented witness after an ambiguous cut.

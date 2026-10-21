@@ -1,15 +1,17 @@
 param(
  [ValidateSet('CurrentB007InspectOnly')][string]$PolicyGeneration='CurrentB007InspectOnly',
- [ValidateSet('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply')][string]$Mode='Inspect',
+ [ValidateSet('Inspect','Drain','ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply','ObserveStartedOld')][string]$Mode='Inspect',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][string]$BeforeImageSha256,
  [Parameter(Mandatory=$true)][string]$EnginePath,[Parameter(Mandatory=$true)][string]$EngineSha256,
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,[Parameter(Mandatory=$true)][string]$RecoveryHelperSha256,
  [Parameter(Mandatory=$true)][string]$DrainerPath,[Parameter(Mandatory=$true)][string]$DrainerSha256,
  [string]$ClaimPath,[string]$ClaimSha256,[string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$RootIntentPath,[string]$RootIntentSha256,
- [string]$ContinuationPath,[string]$ContinuationSha256,[string]$WorkerSourceSha256
+ [string]$ContinuationPath,[string]$ContinuationSha256,[string]$WorkerSourceSha256,
+ [string]$RollbackFailureTailSha256
 )
 if($PolicyGeneration -cnotin @('CurrentB007InspectOnly')){throw 'P03_B264_CUT_POLICY'}
+if($Mode -cne 'ObserveStartedOld'-and$PSBoundParameters.ContainsKey('RollbackFailureTailSha256')){throw 'P03_OLD_OBSERVE_ARGUMENTS'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 # Definitions-only bootstrap: no historical dispatcher or claim creation.
 # Only the exact recorded FinalizeOld42d0Apply mode may start restored OLD tasks.
@@ -24,7 +26,7 @@ $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_B264_CUT_OWNER'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$engineSha=$EngineSha256
 function ReadWorkerPin([string]$path,[string]$sha,[switch]$HeldCode){
- if($HeldCode -and ($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply') -or $path -cne $PSCommandPath -or $sha -cne $WorkerSourceSha256)){throw 'P03_SUCCESSOR_HELD_CODE_SCOPE'}
+ if($HeldCode -and ($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply','ObserveStartedOld') -or $path -cne $PSCommandPath -or $sha -cne $WorkerSourceSha256)){throw 'P03_SUCCESSOR_HELD_CODE_SCOPE'}
  if($sha -cnotmatch '\A[a-f0-9]{64}\z' -or -not [IO.Path]::IsPathRooted($path) -or [IO.Path]::GetFullPath($path) -cne $path){throw 'P03_SUCCESSOR_PIN_SCOPE'}
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'P03_SUCCESSOR_REPARSE'}}
  $item=Get-Item -LiteralPath $path -Force;if($item.PSIsContainer -or $item.LinkType){throw 'P03_SUCCESSOR_FILE'}
@@ -33,10 +35,11 @@ function ReadWorkerPin([string]$path,[string]$sha,[switch]$HeldCode){
  foreach($sid in @($owner,'S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value -ceq $sid -and -not $_.IsInherited -and $_.AccessControlType -eq 'Allow' -and $_.FileSystemRights -eq 'FullControl'}).Count -ne 1){throw 'P03_SUCCESSOR_ACL'}}
  $share=if($HeldCode){[IO.FileShare]::Read}else{[IO.FileShare]::None};$s=[IO.File]::Open($path,'Open','Read',$share);try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
 }
-if($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply') -and $PSBoundParameters.ContainsKey('WorkerSourceSha256')){throw 'P03_SUCCESSOR_HELD_CODE_UNEXPECTED'}
+if($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply','ObserveStartedOld') -and $PSBoundParameters.ContainsKey('WorkerSourceSha256')){throw 'P03_SUCCESSOR_HELD_CODE_UNEXPECTED'}
 function AssertRecoveryWorkerSource{
- if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply')){
-  if($WorkerSourceSha256 -cnotmatch '\A[a-f0-9]{64}\z' -or $PSCommandPath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-pr54-current-b007-precut-cut\.ps1\z'){throw 'P03_SUCCESSOR_HELD_CODE_SOURCE'}
+ if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck','FinalizeOld42d0Inspect','FinalizeOld42d0Apply','ObserveStartedOld')){
+  $sourcePattern=if($Mode -ceq 'ObserveStartedOld'){'\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-[a-f0-9]{32}\\p03-pr54-current-b007-precut-cut\.ps1\z'}else{'\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-pr54-current-b007-precut-cut\.ps1\z'}
+  if($WorkerSourceSha256 -cnotmatch '\A[a-f0-9]{64}\z' -or $PSCommandPath -cnotmatch $sourcePattern){throw 'P03_SUCCESSOR_HELD_CODE_SOURCE'}
   [void](ReadWorkerPin $PSCommandPath $WorkerSourceSha256 -HeldCode)
  }
 }
@@ -647,7 +650,7 @@ function WaitFinalize42d0OldReady([datetime]$started){
  # Match the existing new-owner startup allowance, not its 30s stable-health
  # window. Recorded OLD startup needed 6m18s (last CRM spawn), so the previous
  # 5m window expired before the sequential supervisor had finished starting.
- $deadline=[DateTime]::UtcNow.AddMinutes(10);$stableSince=$null;$stableDigest=$null;$attempts=0;$lastPendingCode=$null
+ $deadline=$started.AddMinutes(10);$stableSince=$null;$stableDigest=$null;$attempts=0;$lastPendingCode=$null
  while([DateTime]::UtcNow -lt $deadline){
   AssertTasks 4;$attempts++
   try{$digest=StartedOwner $started}catch{
@@ -701,6 +704,48 @@ function FinalizeOld42d0{
   }
  }
 }
+function ObserveStartedOld{
+ # This is a read-only continuation of normal RollbackOld's health observation,
+ # not another rollback/start or a rewrite of its failed journal. Its total
+ # 10m budget starts at the ORIGINAL journalled ROLLBACK_START_INTENT.
+ & {
+  $tokens=$null;$errors=$null;$original=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($engineBytes),[ref]$tokens,[ref]$errors)
+  Need ($errors.Count-eq0) 'OLD_OBSERVE_ENGINE_PARSE'
+  foreach($definition in $original.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false)){. ([scriptblock]::Create($definition.Extent.Text))}
+  foreach($name in @('Finalize42d0ReadbackPending','WaitFinalize42d0OldReady')){$own=Get-Command $name -CommandType Function;. ([scriptblock]::Create('function '+$name+' {'+$own.Definition+'}'))}
+  Need ($runId-cmatch'\A[a-f0-9]{32}\z'-and$ProfilePath-ceq(Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json'))-and$BeforeImagePath-ceq(Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json'))-and$profile.journalDirectory-ceq(Join-Path $base ('MelisaERP-P03-recovery-'+$runId))-and$profile.beforeImage.path-ceq$BeforeImagePath-and$profile.beforeImage.sha256-ceq$BeforeImageSha256-and$profile.ownerSid-ceq$owner-and$before.ownerSid-ceq$owner) 'OLD_OBSERVE_PROFILE'
+  Need (@($profile.tasks).Count-eq2-and(@($profile.tasks|ForEach-Object{$_.name}|Sort-Object)-join'|')-ceq(@($names|Sort-Object)-join'|')-and@($profile.protectedProcesses).Count-eq4-and@($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name-ccontains'kind'-and$_.kind-ceq'ProtectedSqlService'}).Count-eq1-and@($before.identities.PSObject.Properties).Count-eq8) 'OLD_OBSERVE_PROTECTED_SCOPE'
+  Need ($profile.database-ceq$database-and$before.database-ceq$database-and$before.actualT1-ceq$false-and$before.copyId-ceq'e16b70f0-4057-428b-9abc-6bbcaf35fe82'-and$oldSettings.actualT1-ceq$false-and$newSettings.actualT1-ceq$false-and$profile.oldSettings.sha256-ceq'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'-and$profile.newSettings.sha256-ceq'800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329') 'OLD_OBSERVE_TARGET'
+  Need ($RollbackFailureTailSha256-cmatch'\A[a-f0-9]{64}\z') 'OLD_OBSERVE_TAIL'
+  Protected $profile.journalDirectory
+  $expected=@('RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_COMPLETE','ROLLBACK_START_INTENT','ROLLBACK_STARTED','ROLLBACK_FAILED','QUARANTINED')
+  $files=@(Get-ChildItem -LiteralPath $profile.journalDirectory -File|Where-Object{$_.Name-cmatch'\Aevent-[0-9]{4}\.json\z'}|Sort-Object Name)
+  Need ($files.Count-eq$expected.Count) 'OLD_OBSERVE_JOURNAL_COUNT'
+  $previous=$BeforeImageSha256;$rows=@();$pins=@()
+  foreach($n in 0..7){
+   $path=Join-Path $profile.journalDirectory ('event-'+$n.ToString('0000')+'.json');Need ($files[$n].FullName-ceq$path) 'OLD_OBSERVE_JOURNAL_PATH'
+   $sha=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant();$row=Json (ReadWorkerPin $path $sha)
+   Need ($row.sequence-eq$n-and$row.previousSha256-ceq$previous-and$row.profileSha256-ceq$ProfileSha256-and$row.beforeSha256-ceq$BeforeImageSha256-and$row.event-ceq$expected[$n]) 'OLD_OBSERVE_JOURNAL_CHAIN'
+   $rows+=,$row;$pins+=,[pscustomobject]@{path=$path;sha256=$sha};$previous=$sha
+  }
+  Need ($previous-ceq$RollbackFailureTailSha256-and$rows[6].failure.code-ceq'P03_PHYSICAL_ROLLBACK_READBACK_FAILED') 'OLD_OBSERVE_FAILURE'
+  $started=[DateTime]::Parse($rows[4].observedAt).ToUniversalTime()
+  Need ($started-ge[DateTime]::Parse($before.observedAt).ToUniversalTime()-and[DateTime]::UtcNow-ge$started-and[DateTime]::UtcNow-lt$started.AddMinutes(10)) 'OLD_OBSERVE_START_WINDOW'
+  $holds=@()
+  try{
+   foreach($leaf in @('recovery.lock','rollback.lock')){
+    $path=Join-Path $profile.journalDirectory $leaf;NoReparse $path;$item=Get-Item -LiteralPath $path -Force;$acl=Get-Acl -LiteralPath $path;$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
+    Need (-not$item.PSIsContainer-and$item.Length-eq0-and-not$acl.AreAccessRulesProtected-and$acl.GetOwner([Security.Principal.SecurityIdentifier]).Value-ceq$owner-and$rules.Count-eq2) 'OLD_OBSERVE_LOCK'
+    foreach($sid in @($owner,'S-1-5-18')){Need (@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-eq1) 'OLD_OBSERVE_LOCK_ACE'}
+    $holds+=,[IO.File]::Open($path,'Open','Read','None')
+   }
+   $proof=WaitFinalize42d0OldReady $started
+   foreach($pin in $pins){[void](ReadWorkerPin $pin.path $pin.sha256)};ProtectedProcesses (Inventory)
+   return [ordered]@{status='OLD_READY_LATE_OBSERVED';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$EngineSha256;rollbackFailureTailSha256=$RollbackFailureTailSha256;rollbackStartedAt=$started.ToString('o');observedAt=[DateTime]::UtcNow.ToString('o');identityDigest=$proof.identityDigest;stableSeconds=$proof.stableSeconds;mutationExecuted=$false;startExecuted=$false;newGenerationStarted=$false}
+  }finally{foreach($hold in $holds){$hold.Dispose()}}
+ }
+}
+if($Mode -ceq 'ObserveStartedOld'){ObserveStartedOld|ConvertTo-Json -Depth 25 -Compress;return}
 if($Mode -cin @('FinalizeOld42d0Inspect','FinalizeOld42d0Apply')){FinalizeOld42d0|ConvertTo-Json -Depth 25 -Compress;return}
 if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){ResumeCompleted42d0Drain|ConvertTo-Json -Depth 25 -Compress;return}
 B264CutAuthority

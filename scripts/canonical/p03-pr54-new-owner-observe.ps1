@@ -394,8 +394,10 @@ function NewCurrentCutWitness{
  NewCurrentWitnessKeys $lock $keys
  [void](NewCurrentWitnessRef $lock.profileRef $ProfilePath);Need ($lock.profileRef.sha256 -ceq $ProfileSha256) 'CURRENT_NEW_PROFILE_REF'
  [void](NewCurrentWitnessRef $lock.beforeRef $BeforeImagePath);Need ($lock.beforeRef.sha256 -ceq $BeforeImageSha256) 'CURRENT_NEW_BEFORE_REF'
- $claimPath=$lock.successorClaimRef.path;Need ($claimPath -cin @((Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'))) 'CURRENT_NEW_CLAIM_PATH'
+ $claimPath=$lock.successorClaimRef.path;$freshClaim=$claimPath -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-current-b007-generation-[a-f0-9]{64}\.lock\.json\z'
+ Need ($claimPath -cin @((Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'))-or$freshClaim) 'CURRENT_NEW_CLAIM_PATH'
  $claim=NewCurrentWitnessRef $lock.successorClaimRef $claimPath
+ if($freshClaim){Need ($claimPath -ceq (Join-Path $base ('p03-pr54-current-b007-generation-'+$claim.currentOwnerDigest+'.lock.json'))-and-not($lock.PSObject.Properties.Name-ccontains'continuationRef')) 'CURRENT_NEW_GENERATION_EPOCH'}
  Need ($claim.schemaVersion -ceq 'melisa-p03-current-b007-epoch-claim.v1' -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.newSettings.path -ceq $profile.newSettings.path -and $claim.newSettings.sha256 -ceq $profile.newSettings.sha256) 'CURRENT_NEW_CLAIM'
  $retained=$false
  if($lock.PSObject.Properties.Name -ccontains 'continuationRef'){
