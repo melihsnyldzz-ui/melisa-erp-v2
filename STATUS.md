@@ -1,3 +1,9 @@
+## 22 Ekim — İş14 claim hazırlığı ve tamamlanmış Drain yanıt kaybı kaynak düzeltmesi
+
+Claim sonrası hazırlık artık aynı B142 yolunda aşaması belli STOPPED_BEFORE_DRAIN tanısı bırakır; claim silinmez veya yeniden kullanılmaz. Başarılı native dönüşten sonraki yanıt ayrıştırma kaybında yalnız exact çağrı kaydı, tamamlanmış cut/drain/root intent/claim/lock zinciri, ACL/SHA/UID/COM/zaman ve güncel SQL sürekliliği birlikte doğrulanırsa mevcut geri dönüşe bağlanır; Drain ikinci kez çağrılmaz. Unknown/killed/yarım COM/eksik veya değişmiş tanık yeni mutasyon izni değildir. Shared67 ve timing4 hedefli test (71/71,0skip), syntax ve root bağımsız inceleme GO. Bu source/fixture kanıtıdır; gerçek native prova ve kurulmuş yeni uygulama değildir.
+
+de3f91dd exact PR39686925612/push39686918870 CI SUCCESS. Tek gerçek salt okunur gözlem CURRENT_B007_PHYSICAL_INSPECTED_READ_ONLY: a706edb96df4460888b09417fbd6a892 /2026-10-21T22:33:48.1550648Z/19process/2COM/0vanished; d8990bcb makbuzu private alandadır. Önceki çok satırlı outer argv reddi native çağrıdan önceydi; tek satırlı mevcut çağıranla düzeltildi, özgün makbuz korunur. a980 ham kimlik alt nedeni bu sıfır-probe gözleminden çıkarılmaz. Şimdi mevcut P03 SQL-free alanında açıkça ayrı Rehearsal sözleşmesiyle gerçek cut/rollback provası hazırlanıyor; Shared varsayılanları ve DB02 sınırları gevşetilmez. Kurulu eski TEST, veriler ve insan kabulü BEKLİYOR korunur.
+
 ## 22 Ekim — İş14 yeniden yetkili devam; ham kimlik ret tanısı ve etkin yol incelemesi
 
 Mevcut yetkili koordinasyon kanalından kullanıcının yeniden iş14 tamamlama talimatı alındı;14 ile sınırlı,15 açılmayacak. Etkin yol aynı PR54/privateparent/caller/B142 dispatcher ve hazır6dc/d1e/da5 paketleridir; mevcut3 untracked failure/resume taslağı çalıştırılan yola alınmadı. a980 kaynak/51tablo/strictpair/QS/OLD10/eski ekran kabulleri tekrar açılmadı. Ortak ortamda etkin başka rootparent bulunmadı.
