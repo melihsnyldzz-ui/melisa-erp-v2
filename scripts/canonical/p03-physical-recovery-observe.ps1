@@ -144,7 +144,24 @@ function ObserverPolicyCoreAlive($policy,$rawSnapshot){
 }
 function ObserverTryVanishedProbe($process,$errorRecord,$rawSnapshot,$protectedPids,$policy){
  ObserverRequire ((ObserverExactNotFound $errorRecord) -and $null -ne $policy)
- ObserverRequire ($process.Name -ieq 'powershell.exe' -and $process.ExecutablePath -ieq $policy.shellRef.path -and $process.ParentProcessId -eq $policy.core.pid -and [int]$process.ProcessId -gt 0 -and $process.ProcessId -notin @($protectedPids) -and $process.ProcessId -ne $policy.core.pid -and $process.CreationDate -is [DateTime] -and $process.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($policy.core.creationTime).ToUniversalTime() -and $process.CreationDate.ToUniversalTime() -le [DateTime]::UtcNow)
+ # Only existing captured values; no new scan, audit admission or retry authority.
+ $birthIsDateTime=$process.CreationDate -is [DateTime]
+ $identityChecks=[ordered]@{
+  nameMatch=[bool]($process.Name -ieq 'powershell.exe')
+  shellPathMatch=[bool]($process.ExecutablePath -ieq $policy.shellRef.path)
+  parentMatch=[bool]($process.ParentProcessId -eq $policy.core.pid)
+  pidPositive=[bool]([int]$process.ProcessId -gt 0)
+  notProtected=[bool]($process.ProcessId -notin @($protectedPids))
+  notCore=[bool]($process.ProcessId -ne $policy.core.pid)
+  birthIsDateTime=[bool]$birthIsDateTime
+  birthAfterCore=[bool]($birthIsDateTime -and $process.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($policy.core.creationTime).ToUniversalTime())
+  birthNotFuture=[bool]($birthIsDateTime -and $process.CreationDate.ToUniversalTime() -le [DateTime]::UtcNow)
+ }
+ try{ObserverRequire ($identityChecks.Values -notcontains $false)}catch{
+  # A diagnostic only: fixed keys and booleans, never argv, paths, owner or secrets.
+  $_.Exception.Data['melisaP03VanishedProbeIdentity']=([ordered]@{schemaVersion='melisa-p03-vanished-probe-identity-rejection.v1';guard='RAW_IDENTITY';checks=$identityChecks}|ConvertTo-Json -Depth 4 -Compress)
+  throw
+ }
  ObserverRequire (ObserverPolicyArgvAllowed (ObserverNativeTokens $process.CommandLine) $policy)
  ObserverPolicyCoreAlive $policy $rawSnapshot
  $audit=[ordered]@{pid=[int]$process.ProcessId;parentPid=[int]$process.ParentProcessId;creationTime=$process.CreationDate.ToUniversalTime().ToString('o');ownerVerified=$false;ownerState='UNVERIFIED_EXITED';reason='CIM_NOT_FOUND_CONFIRMED_ABSENT_APPROVED_RO_PROBE'}

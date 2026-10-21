@@ -296,3 +296,29 @@ test('audit handoff keeps exactly three whole captures and never adds a public a
  const top=worker.slice(0,worker.indexOf('function InvokeP03SuccessorWorker'));assert(!top.includes('[object]$NativeCapture'));assert(!top.includes('readOnlyAudits'));
  assert.match(worker,/ReferenceEquals\(\$context\.capture,\$native\)/);assert.match(worker,/SAME_CAPTURE_AUDIT_NOT_OWNED/);assert(!worker.includes('ownerVerified=$true'));
 });
+
+
+test('vanished probe raw identity rejection reports only exact boolean predicates without another scan or admitting an identity',windows,()=>{
+ const cases=[
+  ['nameMatch',"$probe.Name='other.exe'"],
+  ['shellPathMatch',"$probe.ExecutablePath='C:\\private-sentinel\\powershell.exe'"],
+  ['parentMatch',"$probe.ParentProcessId=99"],
+  ['pidPositive',"$probe.ProcessId=0"],
+  ['notProtected',"$protected=@(10,20)"],
+  ['notCore',"$probe.ProcessId=10"],
+  ['birthIsDateTime',"$probe.CreationDate='private-sentinel'"],
+  ['birthAfterCore',"$probe.CreationDate=$old.CreationDate.AddTicks(-1)"],
+  ['birthNotFuture',"$probe.CreationDate=[DateTime]::UtcNow.AddDays(1)"]
+ ];
+ const out=run(`${policySetup}\n${cases.map(([key,edit])=>`ResetPolicy;$policy=InitializePolicy;$protected=@(10);${edit};$caught=$false;try{ObserverTryVanishedProbe $probe $failure $rawSnapshot $protected $policy|Out-Null}catch{$caught=$true;if($_.Exception.Message-cne'P03_VANISHED_CONSOLE_REJECTED'){throw};$data=$_.Exception.Data['melisaP03VanishedProbeIdentity'];if(-not$data){throw 'FIXTURE_DIAGNOSTIC_MISSING'};'DIAGNOSTIC=${key}:'+ $data};if(-not$caught){throw 'FIXTURE_ACCEPTED_IDENTITY'};if($globalReads-ne0-or$listenerReads-ne0){throw 'FIXTURE_DIAGNOSTIC_SCAN'}`).join('\n')}`);
+ const keys=['nameMatch','shellPathMatch','parentMatch','pidPositive','notProtected','notCore','birthIsDateTime','birthAfterCore','birthNotFuture'].sort();
+ const lines=out.split(/\r?\n/).filter(x=>x.startsWith('DIAGNOSTIC='));assert.equal(lines.length,cases.length);
+ for(const [i,line]of lines.entries()){
+  const prefix=`DIAGNOSTIC=${cases[i][0]}:`;assert(line.startsWith(prefix));const data=JSON.parse(line.slice(prefix.length));
+  assert.deepEqual(Object.keys(data).sort(),['checks','guard','schemaVersion']);
+  assert.equal(data.schemaVersion,'melisa-p03-vanished-probe-identity-rejection.v1');assert.equal(data.guard,'RAW_IDENTITY');
+  assert.deepEqual(Object.keys(data.checks).sort(),keys);assert(Object.values(data.checks).every(x=>typeof x==='boolean'));
+  assert.equal(data.checks[cases[i][0]],false);
+ }
+ assert(!out.includes('private-sentinel'));assert(!out.includes('C:\\'));assert(!out.includes('CommandLine'));
+});

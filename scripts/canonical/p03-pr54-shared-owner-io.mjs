@@ -718,10 +718,10 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const selectedPins=precutB142Continuation?{...currentB007SourcePins,
   drainer:['p03-pr54-successor-core-drain.ps1','0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710'],
-  observer:['p03-physical-recovery-observe.ps1','271d9fa16656449727db3ece3000621d1d0a7f2643c2335e409dd0335c9c30c5'],
+  observer:['p03-physical-recovery-observe.ps1','5511027cbb98f29f39008c833ef7db25004cd9cb436acb25c7a744871df1128d'],
   oldCut:['p03-pr54-b264-old-owner-cut.ps1','a7d572a2151d9dc6ab297bbbde932368372fb35bfa8b31c212bfbda5e7be2b84'],
-  newObserver:['p03-pr54-new-owner-observe.ps1','0c5f66743301e2f8c5c82ae4dfd05d50fcca3af318add43e6d63ec76bb11e0d4'],
-  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','422776408f69d646a86a1aeb8c1b1d493ada951384a6d10017b20654e97e2164'],
+  newObserver:['p03-pr54-new-owner-observe.ps1','53d5dc3c117e4f827b8a453f05689cf29c935894d4166fc3fe1f6d93ed701424'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','5fbb307ce01cb9faa314fb4f453a46d28870aa231569b3e666fe79e20dfa34db'],
   lateOld:['p03-pr54-current-b007-precut-cut.ps1','48077e482ed3db0edd45412b3c125ba9cc4c42f57e6234b3a21a2cacdf56b7bb'],
  }:freshOwnerGeneration||precut974dContinuation?{...currentB007SourcePins,
   drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],

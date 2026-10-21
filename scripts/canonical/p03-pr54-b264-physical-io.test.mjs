@@ -122,6 +122,22 @@ test('read-only native failure trace preserves exact rejection and CIM retry ide
  const ok=run("$bound=@{};$code='Write-Output success';"+fragment);assert.equal(ok.status,0,ok.stderr);assert.equal(ok.stdout.trim(),'success');assert.equal(ok.stderr,'');
 });
 
+test('readonly error transport exposes only exact boolean probe identity diagnostics and keeps the original rejection',windows,()=>{
+ const source=text('p03-pr54-b264-physical-io.mjs'),a=source.indexOf('function pinnedInvocation('),b=source.indexOf('\nexport async function inspectPr54B264PhysicalOwner',a),invoke=new Function('Buffer','need',source.slice(a,b)+';return pinnedInvocation;')(Buffer,(v,c)=>assert.ok(v,c)),f=input();
+ const program=Buffer.from(invoke(f.observerRef,pr54B264InspectionArguments(f).observer)[3],'base64').toString('utf16le'),fragment=program.slice(program.indexOf('try{& ([scriptblock]::Create($code)) @bound}catch'),program.lastIndexOf('}finally{$s.Dispose()}'));
+ const checks=Object.fromEntries(['birthAfterCore','birthIsDateTime','birthNotFuture','nameMatch','notCore','notProtected','parentMatch','pidPositive','shellPathMatch'].map(k=>[k,k!=='shellPathMatch']));
+ for(const kind of ['valid','extra','scalar','wrongSchema']){
+  const value={schemaVersion:'melisa-p03-vanished-probe-identity-rejection.v1',guard:'RAW_IDENTITY',checks:{...checks}};
+  if(kind==='extra')value.checks.privateSentinel='private-sentinel';if(kind==='scalar')value.checks.parentMatch=1;if(kind==='wrongSchema')value.schemaVersion='private-sentinel';
+  const json=Buffer.from(JSON.stringify(value)).toString('base64');
+  const code=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$bound=@{};$script:originalError=[Management.Automation.RuntimeException]::new('P03_VANISHED_CONSOLE_REJECTED');$script:originalError.Data['melisaP03VanishedProbeIdentity']=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${json}'));$script:originalError.Data['foreign']='private-sentinel';$code='throw $script:originalError';try{${fragment}}catch{if($_.Exception.Message-cne'P03_VANISHED_CONSOLE_REJECTED'){throw};'CAUGHT';exit 7}`;
+  const result=spawnSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',timeout:20000});
+  assert.equal(result.status,7,result.stderr);assert.match(result.stdout,/CAUGHT/);assert(!result.stdout.includes('private-sentinel'));
+  const line=result.stdout.split(/\r?\n/).find(x=>x.startsWith('MELISA_NATIVE_RO_ERROR='));assert(line,result.stdout);const rows=JSON.parse(line.slice('MELISA_NATIVE_RO_ERROR='.length));assert(rows.length>0&&rows.length<=3);
+  if(kind==='valid')assert.deepEqual(rows[0].vanishedProbeIdentity,value);else assert(rows.every(x=>!Object.hasOwn(x,'vanishedProbeIdentity')));
+ }
+});
+
 test('PS5 normal observer B264 Old policy imports V2 tokens and the same finite contract, rejecting New and wrong engine',windows,()=>{
  const f=contractFixture();f.old.node={path:'C:\\synthetic\\node.exe',sha256:'d'.repeat(64)};f.next.node=structuredClone(f.old.node);f.profile.shell={path:shell,sha256:'e'.repeat(64)};f.before.identities.coreSupervisor.nodePath=f.old.node.path;
  const enc=o=>Buffer.from(JSON.stringify(o)).toString('base64'),worker=fileURLToPath(leaf('p03-pr54-successor-core-drain.ps1')),engine=fileURLToPath(leaf('p03-physical-rollback-lifetime-v2.ps1')),helper=fileURLToPath(leaf('p03-pr54-paused-old-recover.ps1'));
