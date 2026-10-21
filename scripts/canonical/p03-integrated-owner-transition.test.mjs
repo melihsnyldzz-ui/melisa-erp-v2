@@ -63,6 +63,19 @@ function heldFixture(){const f=fixture();f.callbacks.heldCoreCut=async()=>{
  assert.deepEqual(f.events.slice(0,2).map(x=>[x.event,x.target]),[['TASK_STOP_INTENT',undefined],['EXACT_STOP_INTENT','coreSupervisor']]);
  f.calls.push('heldCoreCut');return {coreStopResult:'COM_STOP_NATURAL_EXIT',heldCoreExited:true,comStopped:true,cutWitness:{path:'synthetic/cut',sha256:'a'.repeat(64)},drainWitness:{path:'synthetic/drain',sha256:'b'.repeat(64)}};
 };return f;}
+test('held rehearsal explicitly selects only the two isolated task names; default Shared remains exact',async()=>{
+ for(const [environment,names] of [['Rehearsal',['Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub']],['Shared',['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web']]]){
+  const f=heldFixture();f.callbacks.environment=environment;
+  assert.equal((await runP03HeldCoreOwnerTransition(f.callbacks)).status,'COMPLETE');
+  assert.deepEqual(f.calls.filter(x=>x.startsWith('set:')),names.map(name=>'set:'+name+':new'));
+  assert.deepEqual(f.events.filter(x=>x.event==='ACTION_INTENT').map(x=>x.target),names);
+ }
+ for(const environment of [null,'shared','Physical','',{},['Rehearsal']]){
+  const f=heldFixture();f.callbacks.environment=environment;
+  await assert.rejects(runP03HeldCoreOwnerTransition(f.callbacks),/P03_OWNER_TRANSITION_REJECTED/);
+  assert.deepEqual(f.calls,[]);assert.deepEqual(f.events,[]);
+ }
+});
 test('held-core handoff persists the real core intent before COM-cut callback and drains only seven remaining roles',async()=>{
  const f=heldFixture();assert.deepEqual(await runP03HeldCoreOwnerTransition(f.callbacks),{status:'COMPLETE',stopped:8,started:true});
  assert(!f.calls.includes('stopTasks'));assert(!f.calls.includes('stop:coreSupervisor'));

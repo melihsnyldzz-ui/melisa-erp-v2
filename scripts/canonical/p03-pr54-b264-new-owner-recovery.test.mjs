@@ -235,3 +235,25 @@ test('latest fresh and exact974d recovery pin the corrected NEW observer without
  const crypto=createHash('sha256').update(newBytes).digest('hex');assert(raw.includes(crypto));assert(raw.includes('777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'));
  assert.match(raw,/ContinuationPath.*ContinuationSha256/);assert.match(raw,/CURRENT_974D_CONTEXT_REQUIRED/);assert(!raw.slice(raw.indexOf('function Assert974dContinuation'),raw.indexOf('function Assert-B264Claim')).includes('UtcNow'));
 });
+
+
+test('Rehearsal NEW Inspect stays read-only for full Hub 10/2 and partial 3/1; the same Drain publishes only a verified empty candidate',()=>{
+ const out=run(`${functions}\n${fixture}\n${extra}\n${extract(engine,['RehearsalRolePorts','RehearsalBindings'])}\n${String.raw`
+function Reset-RehearsalFixture{
+ Reset-B264Fixture;Add-Hub;$script:PolicyGeneration='CurrentB142Rehearsal';$script:isRehearsal=$true;$script:Action='Inspect';$script:names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')
+ foreach($r in $script:rows){
+  if($r.role-ceq'hub'){$r.parentPid=108;@($script:all|Where-Object{$_.ProcessId-eq$r.pid})[0].ParentProcessId=108;$path='C:\fixture\hub-fixture.json';$template=@($profile.candidateRules|Where-Object{$_.role-ceq'erpNative'})[0].receipt|ConvertTo-Json -Depth 8|ConvertFrom-Json;$template.path=$path;@($profile.candidateRules|Where-Object{$_.role-ceq'hub'})[0].receipt=$template;$script:receipts[$path]=[ordered]@{run='11111111-2222-3333-4444-555555555555';pid=$r.pid;parentPid=108;parentCreationTime=$birth.ToString('o');creationTime=$r.creationTime;stage='hub';sourceCommit='c'*40;configSha256='d'*64;copyId='copy';actualT1=$false}}
+  $r.bindings=@(RehearsalRolePorts $r.role|ForEach-Object{[pscustomobject]@{port=$_;address='127.0.0.1'}})
+ }
+ foreach($i in 0,1){$script:instances[$i].Name=$script:names[$i];$script:instances[$i].Path='\'+$script:names[$i];@($profile.candidateRules|Where-Object{$_.role-ceq@('terminalWatcher','hubWatcher')[$i]})[0].taskName=$script:names[$i]}
+}
+function Inventory{$listeners=@(foreach($r in $script:rows){if(@($script:all|Where-Object{$_.ProcessId-eq$r.pid}).Count){foreach($b in $r.bindings){[pscustomobject]@{LocalPort=$b.port;LocalAddress=$b.address;OwningProcess=$r.pid}}}});return [pscustomobject]@{all=$script:all;allListeners=$listeners;listeners=$listeners;instances=$script:instances}}
+foreach($kind in @('full','partial')){Reset-RehearsalFixture;$isRehearsal=$true;$names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');if($kind-ceq'partial'){Inspect-Subset @('coreSupervisor','terminalWatcher','erpNative')};$result=Invoke-B264Recovery;if($script:trace.Count-ne0){throw 'FIXTURE_INSPECT_WRITE'};'RESULT='+($result|ConvertTo-Json -Compress)}
+Reset-RehearsalFixture;$script:receipts['C:\fixture\hub-fixture.json'].copyId='foreign';Reject 'hub-receipt-copy' {Invoke-B264Recovery}
+Reset-RehearsalFixture;$isRehearsal=$true;$names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');$Action='Drain';$result=Invoke-B264Recovery;'REHEARSAL_DRAIN='+$result.status+';EMPTY='+$script:saves[-1].processes.Count
+`}`);
+ const results=out.split(/\r?\n/).filter(x=>x.startsWith('RESULT=')).map(x=>JSON.parse(x.slice(7)));assert.equal(results.length,2);
+ assert.equal(results[0].newIdentities,10);assert.equal(results[0].runningInstances,2);assert(results[0].newRoles.includes('hub'));
+ assert.equal(results[1].newIdentities,3);assert.equal(results[1].runningInstances,1);assert.deepEqual([...results[1].newRoles].sort(),['coreSupervisor','erpNative','terminalWatcher']);
+ for(const r of results){assert.equal(r.environment,'P03_REHEARSAL');assert.equal(r.mutationExecuted,false);assert.equal(r.engineRecoveryExecuted,false)}assert.match(out,/REJECTED=hub-receipt-copy/);assert.match(out,/REHEARSAL_DRAIN=B264_NEW_OWNER_EMPTY_CANDIDATE_READY;EMPTY=0/);
+});

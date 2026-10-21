@@ -15,7 +15,7 @@ import {nativeArgumentTokens} from './hub-stack-driver.mjs';
 import {validatePr54CurrentB007PhysicalInspection,pr54SafeFailure as actualSafeFailure,pr54CollectPhysicalObservation as actualCollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
 const start=source.indexOf('export async function runPr54CurrentB007SharedOwnerTransition(');
-const body=source.slice(start).replace(/^export /,'');
+const body=source.slice(start,source.indexOf('// SQL-free, finite native lifecycle proof.',start)).replace(/^export /,'');
 const heldInvocationSource=source.slice(source.indexOf('function b264Sup20dHeldInvocation('),source.indexOf('export async function runPr54B264Sup20dSharedOwnerTransition('));
 const heldInvocation=new Function('Buffer','need',heldInvocationSource+';return b264Sup20dHeldInvocation;')(Buffer,(value,code)=>{if(!value)throw Error(code);});
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
@@ -589,4 +589,101 @@ test('B142 successful closed native child plus complete linked disk proof recove
 });
 test('B142 malformed disk links, COM, foreign process, torn witness and unknown or killed child never grant recovery mutation',async()=>{
  for(const option of ['diskBadCom','diskBadClaim','diskBadProfile','diskBadRoot','diskBadWindow','diskNewActions','diskTorn','diskHalfCom','diskForeign','diskRejectedChild','diskKilled']){const f=fixture({b142:true,diskReplyLoss:true,[option]:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION',option+JSON.stringify(r));assert.equal(f.calls.filter(c=>c.endsWith(':Drain')).length,1);assert(!f.calls.some(c=>c.endsWith(':StopNew')||c.endsWith(':RollbackOld')));assert.equal(f.stops,1);}
+});
+
+// Explicit SQL-free native bridge fixtures. No OS/task/SQL/runtime execution.
+function currentRehearsalFixture(options={}){
+ const body=source.slice(source.indexOf('export async function runPr54CurrentB142RehearsalTransition(')).replace(/^export /,'');
+ const root=String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-${'a'.repeat(32)}`,files=new Map(),calls=[],writes=[],events=[],programs=[];
+ const rows=targets.map((role,i)=>({role,pid:100+i,parentPid:107,nodePath:'node',ownerSid:owner,commandLine:'node '+role,creationTime:'2026-10-21T00:00:00.0000000Z',bindings:[]}));
+ const watchers=['terminalWatcher','hubWatcher'].map((role,i)=>({...rows[0],role,pid:200+i,commandLine:role}));
+ const taskNames=['Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub'];
+ const put=(leaf,value)=>{const ref={path:root+'\\'+leaf,sha256:hash(bytes(value))};files.set(ref.path,{ref,value});return ref;};
+ const plan={targets,oldSettingsSha256:'1'.repeat(64),newSettingsSha256:'2'.repeat(64)};plan.digest=p03TransitionDigest(plan);
+ const before={runId:'a'.repeat(32),environment:'P03_REHEARSAL',database:'MELISA_ERP_P03_RESTORE_TEST_20261018_01',copyId:'P03-RECOVERY-REHEARSAL-20261018',actualT1:false,identities:Object.fromEntries(rows.map(x=>[x.role,x])),plan};
+ const nativePins=Object.fromEntries(['observer','drainer','oldCut','recovery','engine','helper','empty'].map(k=>[k,[k+'.ps1',hash(k)]]));
+ for(const [k,[leaf,sha256]]of Object.entries(nativePins))files.set(root+'\\'+leaf,{ref:{path:root+'\\'+leaf,sha256},value:k});
+ const xml=(g,i)=>g+i+(options.large?'X'.repeat(16000):'');if(options.large)before.transportPadding='b'.repeat(19000);
+ const stopper=put('stopper.ps1','stopper'),profile={environment:'P03_REHEARSAL',database:before.database,tasks:taskNames.map((name,i)=>({name,oldXml:xml('old',i),newXml:xml('new',i),oldXmlSha256:hash(xml('old',i)),newXmlSha256:hash(xml('new',i))})),stopper,newSettings:{path:root+'\\settings-new.json',sha256:plan.newSettingsSha256},journalDirectory:root+'\\recovery'};
+ const beforeRef=put('before.json',before),profileRef=put('profile.json',profile);
+ let processRows=[...rows,...watchers],instances=taskNames.map((name,i)=>({name,pid:200+i,guid:'g'+i})),actions=['old','old'],activeGeneration='old',stopCalls=0,drainCalls=0,recoverCalls=0,clock=Date.now();
+ class D extends Date{constructor(...a){super(...(a.length?a:[clock]));}static now(){return clock;}}
+ const stamp=()=>new D().toISOString();
+ function read(ref){const entry=files.get(ref.path);assert(entry,'unknown ref '+ref.path);assert.equal(entry.ref.sha256,ref.sha256);return entry.value;}
+ function pin(ref){return bytes(read(ref));}
+ function state(){return {processes:processRows,instances,tasks:taskNames.map((name,i)=>({name,state:instances.some(x=>x.name===name)?4:3,sha256:profile.tasks[i][actions[i]+'XmlSha256']})),listeners:processRows.filter(x=>targets.includes(x.role)&&x.role!=='coreSupervisor').map((x,i)=>({pid:x.pid,port:4284+i,address:'127.0.0.1'}))};}
+ const makeFrame=()=>({schemaVersion:'melisa-p03-successor-precut-admission.v1',environment:'P03_REHEARSAL',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,oldIdentities:rows,oldWatchers:watchers,consolePins:[],probePins:[],observedAt:stamp()});
+ const arg=(a,n)=>a[a.indexOf(n)+1];
+ async function nativeRun(_shell,invocation){const {ref,args}=invocation;calls.push([ref.path,args]);const leaf=path.win32.basename(ref.path),mode=arg(args,'-Mode');
+  if(leaf==='engine.ps1'){
+   if(mode==='PreflightOld')return {stderr:'',stdout:JSON.stringify({status:'OLD_PHYSICAL_PREFLIGHT',environment:'Rehearsal',mutationExecuted:false})};
+   if(mode==='StopNew'){actions=['old','old'];put('recovery\\event-0000.json',{event:'RECOVERED'});return {stderr:'',stdout:JSON.stringify({status:'RECOVERED_OLD_ACTIONS'})};}
+   if(mode==='RollbackOld'){processRows=[...rows,...watchers].map(x=>({...x,pid:x.pid+1000}));instances=taskNames.map((name,i)=>({name,pid:1200+i,guid:'restored'+i}));return {stderr:'',stdout:JSON.stringify({status:'RESTORED_READY'})};}
+  }
+  if(leaf==='oldCut.ps1'){
+   if(mode==='Inspect')return {stderr:'',stdout:JSON.stringify(makeFrame())};drainCalls++;
+   if(options.nativeUnknown)throw Error('UNKNOWN_NATIVE_CHILD');
+   processRows=processRows.filter(x=>x.role!=='coreSupervisor'&&!x.role.endsWith('Watcher'));instances=[];
+   const claimRef=files.get(root+'\\rehearsal-claim.json').ref,snapshotRef=files.get(root+'\\successor-precut-admission.json').ref,intentRef=files.get(root+'\\b264-old-owner-cut-intent.json').ref;
+   const held=put('b264-old-owner-held-cut-intent.json',{claimSha256:claimRef.sha256,rootIntentSha256:intentRef.sha256,admittedSnapshotSha256:snapshotRef.sha256});
+   const cutWitness=put('successor-core-cut-completed.json',{event:'B264_OLD_OWNER_CORE_CUT_COMPLETED',profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,claimSha256:claimRef.sha256,durableIntent:held,mechanism:'COM_STOP_NATURAL_EXIT',heldProcessHandle:true,processAbsent:true,core:rows.find(x=>x.role==='coreSupervisor')});
+   const drainWitness=put('successor-core-probe-drain.json',{event:'B264_OLD_OWNER_CORE_PROBES_ABSENT',cutWitness,consolePins:[],probePins:[]});if(options.tornWitness)files.get(drainWitness.path).value.cutWitness={...cutWitness,sha256:'f'.repeat(64)};
+   return {stderr:'',stdout:JSON.stringify({status:'B264_OLD_OWNER_CORE_DRAINED',coreStopResult:'COM_STOP_NATURAL_EXIT',heldCoreExited:true,comStopped:true,cutWitness,drainWitness})};
+  }
+  if(leaf==='observer.ps1')return {stderr:'',stdout:JSON.stringify({schemaVersion:'melisa-p03-current-b007-same-capture.v1',current:{environment:'Rehearsal',observedAt:stamp(),runningInstances:instances.map(x=>({name:x.name,enginePid:x.pid,instanceGuid:x.guid}))},frame:{...makeFrame(),policyGeneration:'CurrentB142Rehearsal',transitionAuthority:false,stopAuthority:false,applyExecuted:false,protectedProcesses:[]}})};
+  if(leaf==='stopper.ps1'){const proof=JSON.parse(Buffer.from(arg(args,'-ExpectedJsonBase64'),'base64'));processRows=processRows.filter(x=>x.pid!==proof.pid);stopCalls++;return {stderr:'',stdout:'EXACT_OBSERVED_PROCESS_STOPPED'};}
+  if(leaf==='recovery.ps1'){
+   const action=arg(args,'-Action');if(action==='Inspect')return {stderr:'',stdout:JSON.stringify({status:'B264_NEW_OWNER_RECOVERY_INSPECTED',newIdentities:processRows.length,runningInstances:instances.length})};
+   recoverCalls++;processRows=[];instances=[];const candidateRef=put('MelisaERP-P03-candidate-'+ 'c'.repeat(32)+'.json',{processes:[],receipts:[]});return {stderr:'',stdout:JSON.stringify({status:'B264_NEW_OWNER_EMPTY_CANDIDATE_READY',candidateRef})};
+  }
+  throw Error('UNMODELED_NATIVE');
+ }
+ async function ps(code){programs.push(code);
+  if(code.endsWith("'OK'")){
+   if(code.includes('REHEARSAL_ACTION_READBACK')){const b64=code.match(/\$a=.*?FromBase64String\('([^']+)'\)/)[1],a=JSON.parse(Buffer.from(b64,'base64'));actions[taskNames.indexOf(a.name)]=a.xml.startsWith('new')?'new':'old';}
+   else if(code.includes('.Run($null)')){activeGeneration='new';const partial=options.scenario==='PartialNew';processRows=[...rows,...watchers].filter(x=>!partial||['coreSupervisor','erpNative','terminalWatcher'].includes(x.role)).map(x=>({...x,pid:x.pid+500}));instances=taskNames.slice(0,partial?1:2).map((name,i)=>({name,pid:700+i,guid:'new'+i}));}
+   return 'OK';
+  }
+  if(code.includes("'HEALTHY'"))return 'HEALTHY';if(code.includes("'VERIFIED'"))return 'VERIFIED';
+  if(code.includes('$o=@('))return 'a'.repeat(64);
+  if(code.includes('$all=@('))return JSON.stringify(state());
+  throw Error('UNMODELED_PS');
+ }
+ async function psPayload(file,b){
+  if(file.includes('REHEARSAL_ACTION_SIZE')){programs.push(file);const m=file.match(/\$a=\[Text.Encoding\].*?FromBase64String\('([^']+)'\)/),a=JSON.parse(Buffer.from(m[1],'base64'));assert.equal(hash(b),a.sha256);assert.equal(b.toString(),profile.tasks.find(x=>x.name===a.name)[a.generation+'Xml']);actions[taskNames.indexOf(a.name)]=a.generation;return;}
+  const value=JSON.parse(b),ref=put(path.win32.basename(file),value);writes.push(ref.path);if(value.event)events.push(value.event);
+ }
+ const params={mode:options.mode??'Apply',scenario:options.scenario??'Normal',runRoot:root,profileRef,beforeRef};
+ const deps={P03_CURRENT_B142_REHEARSAL_NATIVE:nativePins,path,need:(v,c)=>{if(!v)throw Error(c);},pin,read,noReparseAncestors:()=>{},hash,jsonBytes:bytes,targets,p03TransitionDigest,p03CoreFirstStopDigest,run:nativeRun,shell:'shell',b264Sup20dHeldInvocation:(ref,argv)=>({ref,args:argv.slice(4)}),opts:{},psPayload,pr54ProtectedWriteProgram:p=>p,Buffer,owner,psNoReparse:'NOREPARSE;',ps,sameIdentity:same,typedRef:x=>x&&typeof x.path==='string'&&/^[a-f0-9]{64}$/.test(x.sha256),runP03HeldCoreOwnerTransition,Date:D,fs:{readFileSync:p=>bytes(files.get(p).value),readdirSync:()=>['event-0000.json']},setTimeout:(fn,ms)=>{clock+=ms;fn();}};
+ const execute=new Function(...Object.keys(deps),body+';return runPr54CurrentB142RehearsalTransition;')(...Object.values(deps));
+ return {run:()=>execute(params),calls,writes,events,programs,profileBytes:bytes(profile).length,beforeBytes:bytes(before).length,get counts(){return {drainCalls,stopCalls,recoverCalls};}};
+}
+test('CurrentB142 SQL-free native bridge uses the held dispatcher for four finite outcomes',async()=>{
+ for(const scenario of ['Normal','OldCutFailure','ReplyLoss','PartialNew']){const f=currentRehearsalFixture({scenario}),result=await f.run();assert.equal(result.status,'CURRENT_B142_REHEARSAL_SCENARIO_READY');assert.equal(result.scenario,scenario);assert.equal(result.sqlFreeFixture,true);assert.equal(result.applicationRollbackVerified,false);assert.equal(result.databaseRollbackVerified,false);assert.equal(result.sharedHistoryAdmissionVerified,false);assert.equal(f.counts.drainCalls,1);assert.equal(result.recovered,scenario!=='Normal');assert.equal(result.nativeReplyLost,scenario==='ReplyLoss');assert(f.events.includes('EXACT_STOP_INTENT'));}
+});
+test('CurrentB142 rehearsal DryRun never mints a claim or invokes Drain',async()=>{const f=currentRehearsalFixture({mode:'DryRun'});assert.equal((await f.run()).runtimeMutation,false);assert.equal(f.writes.length,0);assert.equal(f.counts.drainCalls,0);});
+test('CurrentB142 rehearsal unknown native child and torn completed witness never begin a second mutation',async()=>{
+ for(const bad of [{nativeUnknown:true},{scenario:'ReplyLoss',tornWitness:true}]){const f=currentRehearsalFixture(bad);await assert.rejects(f.run());assert.equal(f.counts.drainCalls,1);assert.equal(f.counts.stopCalls,0);assert.equal(f.counts.recoverCalls,0);}
+});
+
+test('CurrentB142 rehearsal emitted native PowerShell programs parse in Windows PS5 without executing them',{skip:process.platform!=='win32'},async()=>{
+ const programs=[];for(const scenario of ['Normal','OldCutFailure','ReplyLoss','PartialNew']){const f=currentRehearsalFixture({scenario});await f.run();programs.push(...f.programs);}
+ const data=Buffer.from(JSON.stringify([...new Set(programs)])).toString('base64');
+ const code=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$items=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;$n=0;foreach($x in $items){$t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseInput($x,[ref]$t,[ref]$e);if($e.Count){throw ('EMITTED_PARSE_'+$n+'_'+$e[0].Message)};$n++};'EMITTED_PS5_PASS'`;
+ // Data is supplied on stdin so the AST-only fixture stays below Windows argv limits.
+ const inputCode="$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$data=[Console]::In.ReadToEnd();$items=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($data))|ConvertFrom-Json;$n=0;foreach($x in $items){$t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseInput($x,[ref]$t,[ref]$e);if($e.Count){throw ('EMITTED_PARSE_'+$n+'_'+$e[0].Message)};$n++};'EMITTED_PS5_PASS'";
+ const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',inputCode],{input:data,encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(child.status,0,child.stderr);assert.match(child.stdout,/EMITTED_PS5_PASS/);
+});
+
+test('CurrentB142 real-size profile and task XML use pinned disk reads and stdin, never oversized Windows argv',async(t)=>{
+ const f=currentRehearsalFixture({large:true});await f.run();assert(f.profileBytes>=62540);assert(f.beforeBytes>=18265);let maxEncoded=0,maxPlain=0,maxHeld=0;
+ for(const program of f.programs){
+  assert(!program.includes('X'.repeat(100)));assert(!program.includes(Buffer.from('X'.repeat(100)).toString('base64')));
+  assert.match(program,/profileRef/);assert.match(program,/REHEARSAL_INPUT_ACL/);assert.match(program,/REHEARSAL_INPUT_HASH/);
+  const prefixed="$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;"+program,encoded=Buffer.from(prefixed,'utf16le').toString('base64');
+  maxEncoded=Math.max(maxEncoded,encoded.length+200);maxPlain=Math.max(maxPlain,program.length+200);assert(encoded.length+200<30000,'encoded callback argv exceeds Windows bound');assert(program.length+200<30000,'plain stdin callback argv exceeds Windows bound');
+ }
+ for(const [file,args]of f.calls){const argv=['-NoProfile','-NonInteractive','-File',file,...args],wrapped=heldInvocation({path:file,sha256:'a'.repeat(64)},argv,{fileInvocationOnly:true}),estimated=wrapped.map(x=>'"'+x.replaceAll('"','\\"')+'"').join(' ').length;maxHeld=Math.max(maxHeld,estimated+200);assert(estimated+200<30000,'held File wrapper argv exceeds Windows bound');}
+ t.diagnostic(JSON.stringify({profileBytes:f.profileBytes,beforeBytes:f.beforeBytes,maxEncoded,maxPlain,maxHeld}));
+ const setter=f.programs.filter(p=>p.includes('REHEARSAL_ACTION_SIZE'));assert.equal(setter.length,2);assert(setter.every(p=>p.includes('[Console]::In.ReadToEnd()')&&p.endsWith("'CREATED'")));
 });

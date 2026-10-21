@@ -29,7 +29,7 @@ async function main(){
  for(let q=configPath;;q=path.dirname(q)){need(!fs.lstatSync(q).isSymbolicLink(),'REPARSE');if(q===path.dirname(q))break;}
  const executable=path.join(config.packageRoot,'p03-rehearsal-fixture.mjs');
  if(role==='coreSupervisor'){
-  const roles=generation==='new'?['erpNative']:['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer'];
+  const roles=generation==='new'&&config.partial===true?['erpNative']:['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer'];
   const children=roles.map(child=>spawn(process.execPath,['--no-maglev',executable,'--role',child,'--config',configPath,'--generation',generation],{windowsHide:true,stdio:'ignore'}));
   for(const child of children)child.once('error',()=>{process.exitCode=1;});
   setInterval(()=>{},1000);return;

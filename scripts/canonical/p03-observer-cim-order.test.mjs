@@ -282,7 +282,7 @@ function ObserverImportedSameCaptureWorker{param($PolicyGeneration,$Mode,$Profil
  if($Mode-cne'Inspect'-or$PolicyGeneration-cne'CurrentB007InspectOnly'-or-not[object]::ReferenceEquals($context.capture,$NativeCapture)-or-not[object]::ReferenceEquals($context.rawSnapshot.all,$NativeCapture.all)-or-not[object]::ReferenceEquals($context.rawSnapshot.allListeners,$NativeCapture.allListeners)-or-not[object]::ReferenceEquals($context.recheck,(Get-Command ObserverAssertVanishedAudits).ScriptBlock)-or$context.captureId-cne$NativeCapture.id){throw 'FIXTURE_NATIVE_POINTER'}
  if($script:race){$script:badAudit=$true};return [ordered]@{schemaVersion='fixture-frame';captureId=$NativeCapture.id;oldIdentities=@();probePins=@()}
 }
-$SameCapture=$true;$captureId='a'*32;$captureAttempt=1;$started='2026-10-22T10:00:00Z';$inventoryObservedAt=$started;$all=@([pscustomobject]@{ProcessId=1},[pscustomobject]@{ProcessId=2});$listeners=@([pscustomobject]@{LocalPort=4184});$ports=@(4184);$nativeInstances=@();$tasks=@();$rawSnapshot=[pscustomobject]@{all=$all;allListeners=$listeners};$observerProbePolicy=[pscustomobject]@{core='pinned'};$vanishedConsoles=@();$vanishedProbes=@([ordered]@{pid=2;ownerVerified=$false;ownerState='UNVERIFIED_EXITED'});$result=[ordered]@{schemaVersion='fixture-current';vanishedProbes=$vanishedProbes};$DrainerPath='fixture';$DrainerSha256='a'*64;$ProfilePath='fixture';$ProfileSha256='b'*64;$BeforeImagePath='fixture';$BeforeImageSha256='c'*64;$EnginePath='fixture';$EngineSha256='d'*64;$RecoveryHelperPath='fixture';$RecoveryHelperSha256='e'*64;$script:race=$false
+$PolicyGeneration='CurrentB007InspectOnly';$SameCapture=$true;$captureId='a'*32;$captureAttempt=1;$started='2026-10-22T10:00:00Z';$inventoryObservedAt=$started;$all=@([pscustomobject]@{ProcessId=1},[pscustomobject]@{ProcessId=2});$listeners=@([pscustomobject]@{LocalPort=4184});$ports=@(4184);$nativeInstances=@();$tasks=@();$rawSnapshot=[pscustomobject]@{all=$all;allListeners=$listeners};$observerProbePolicy=[pscustomobject]@{core='pinned'};$vanishedConsoles=@();$vanishedProbes=@([ordered]@{pid=2;ownerVerified=$false;ownerState='UNVERIFIED_EXITED'});$result=[ordered]@{schemaVersion='fixture-current';vanishedProbes=$vanishedProbes};$DrainerPath='fixture';$DrainerSha256='a'*64;$ProfilePath='fixture';$ProfileSha256='b'*64;$BeforeImagePath='fixture';$BeforeImageSha256='c'*64;$EnginePath='fixture';$EngineSha256='d'*64;$RecoveryHelperPath='fixture';$RecoveryHelperSha256='e'*64;$script:race=$false
 $out=&([scriptblock]::Create($block));$json=$out|ConvertFrom-Json
 if(($trace-join'|')-cne'AUDIT|WORKER|AUDIT'-or$json.capture.processCount-ne2-or$json.current.vanishedProbes[0].ownerVerified-cne$false-or$json.frame.probePins.Count-ne0-or$out-match'readOnlyAudits|ScriptBlock|rawSnapshot'){throw 'FIXTURE_CONTEXT_LEAK_OR_PROMOTION'}
 $script:trace=@();$script:race=$true;try{&([scriptblock]::Create($block));throw 'FIXTURE_RACE_ACCEPTED'}catch{if($_.Exception.Message-cne'FIXTURE_FRESH_PID_REUSED'){throw}}
@@ -321,4 +321,21 @@ test('vanished probe raw identity rejection reports only exact boolean predicate
   assert.equal(data.checks[cases[i][0]],false);
  }
  assert(!out.includes('private-sentinel'));assert(!out.includes('C:\\'));assert(!out.includes('CommandLine'));
+});
+
+
+test('actual native pre-IO statements route only explicit Rehearsal pins and reject Shared cross-scope before source IO',windows,()=>{
+ const files=['p03-physical-recovery-observe.ps1','p03-pr54-successor-core-drain.ps1','p03-pr54-b264-old-owner-cut.ps1'];
+ const results=[];
+ for(const file of files){
+  const filePath=fileURLToPath(new URL('./'+file,import.meta.url)),text=readFileSync(filePath,'utf8'),pin=text.match(/DrainerSha256-cne'([A-Za-z0-9_]+)'/)?.[1]??'b'.repeat(64);
+  const base={PolicyGeneration:'CurrentB142Rehearsal',Mode:'Inspect',CaptureMode:'CurrentB142Rehearsal',Environment:'Rehearsal',Purpose:'Physical',EnginePath:String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-`+'a'.repeat(32)+'\\recovery-engine.ps1',EngineSha256:'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f',RecoveryHelperSha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5',DrainerSha256:pin,DrainerPath:'pinned-drainer'};
+  const cases=[{...base},{...base,EnginePath:String.raw`C:\Sirket\ERP\runtime\P03-OWNER-20261018\recovery-engine.ps1`},{...base,EngineSha256:'0'.repeat(64)},{...base,PolicyGeneration:'CurrentB007InspectOnly'}];
+  if(file.includes('physical-recovery-observe'))cases.push({...base,Environment:'Shared'},{...base,CaptureMode:'CurrentB007'},{...base,Purpose:'CandidateProposal'});
+  if(file.includes('successor-core-drain'))cases.push({...base,Mode:'Drain'});
+  const payload=Buffer.from(JSON.stringify(cases)).toString('base64');
+  const out=run(`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(filePath)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};$lines=@();foreach($statement in $ast.EndBlock.Statements){if($statement.Extent.Text.StartsWith('Set-StrictMode ')){break};$lines+=,$statement.Extent.Text};$guard=[scriptblock]::Create(($lines-join[Environment]::NewLine));$cases=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json;$result=@(foreach($case in $cases){try{&{param($case,$guard)$PSBoundParameters=@{DrainerPath=$case.DrainerPath;DrainerSha256=$case.DrainerSha256};foreach($property in $case.PSObject.Properties){Set-Variable $property.Name $property.Value};&$guard} $case $guard|Out-Null;$true}catch{$false}});ConvertTo-Json -InputObject $result -Compress`);
+  results.push([file,JSON.parse(out),cases.map((_,i)=>i===0)]);
+ }
+ for(const [file,actual,expected]of results)assert.deepEqual(actual,expected,file);
 });

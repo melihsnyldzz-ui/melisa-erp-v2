@@ -1,6 +1,6 @@
 param(
  [ValidateSet('Inspect','Drain')][string]$Action='Inspect',
- [ValidateSet('LegacyB264','B264Sup20D','CurrentB007')][string]$PolicyGeneration='LegacyB264',
+ [ValidateSet('LegacyB264','B264Sup20D','CurrentB007','CurrentB142Rehearsal')][string]$PolicyGeneration='LegacyB264',
  [Parameter(Mandatory=$true)][string]$ProfilePath,[Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,[Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$BeforeImageSha256,
  [Parameter(Mandatory=$true)][string]$EnginePath,
@@ -9,18 +9,19 @@ param(
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,
  [Parameter(Mandatory=$true)][string]$NewObserverPath,
  [Parameter(Mandatory=$true)][string]$SourceObserverPath,
- [string]$GenerationClaimPath,[string]$ContinuationPath,[string]$ContinuationSha256
+ [string]$GenerationClaimPath,[string]$ContinuationPath,[string]$ContinuationSha256,[string]$DrainerPath,[string]$DrainerSha256
 )
+if($PolicyGeneration-cne'CurrentB142Rehearsal'-and($PSBoundParameters.ContainsKey('DrainerPath')-or$PSBoundParameters.ContainsKey('DrainerSha256'))){throw 'P03_SHARED_REHEARSAL_ARGS'}
 # Additive B264 NEW-owner recovery. Source AST imports only: no imported dispatcher.
 # This emits an empty candidate; it does not run frozen StopNew/RollbackOld.
 # Unproven orphan/partial ownership is deliberately refused.
-if($PolicyGeneration -cnotin @('LegacyB264','B264Sup20D','CurrentB007')){throw 'P03_B264_NEW_RECOVERY_POLICY'}
+if($PolicyGeneration -cnotin @('LegacyB264','B264Sup20D','CurrentB007','CurrentB142Rehearsal')){throw 'P03_B264_NEW_RECOVERY_POLICY'}
 if($PolicyGeneration -ceq 'CurrentB007' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-[a-f0-9]{32}\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018'
-$engineSha=if($PolicyGeneration -ceq 'CurrentB007'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}
+$engineSha=if($PolicyGeneration -cin @('CurrentB007','CurrentB142Rehearsal')){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}
 
 
 function Require-NewDrain($condition,[string]$code){if(-not $condition){throw ('P03_NEW_DRAIN_'+$code)}}
@@ -46,7 +47,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
 function Get-B264RecoverySourcePolicy{
- if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'53d5dc3c117e4f827b8a453f05689cf29c935894d4166fc3fe1f6d93ed701424'}else{'777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'});observerSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'5511027cbb98f29f39008c833ef7db25004cd9cb436acb25c7a744871df1128d'}else{'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'})}}
+ if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'5e76b633c13702e2dfc125766b2906d7f8f4f3cab2bc965c1a6ee884490006af'}else{'777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'});observerSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'06ab2ac9cd440ff24009f53e6b202503419d48e7333213b0e042e499ebb360d8'}else{'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'})}}
  if($PolicyGeneration -ceq 'B264Sup20D'){
   return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }
@@ -54,6 +55,15 @@ function Get-B264RecoverySourcePolicy{
  return @{newObserverSha256='1644e2d61653e41851698f1f8e98d873e0346dcf21cea6b243f7c4af66c00920';observerSha256='5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5'}
 }
 function Initialize-B264Recovery{
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14') 'REHEARSAL_ENTRY'
+  $engine=Read-B264Source $EnginePath $engineSha 'recovery-engine.ps1';$empty=Read-B264Source $EmptyRecoveryPath 'd1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438' 'p03-pr54-new-owner-empty-recovery.ps1';$drainer=Read-B264Source $DrainerPath $DrainerSha256 'p03-pr54-successor-core-drain.ps1'
+  Import-B264Definitions $engine @() @{ConsoleAuxiliaries='B264FrozenConsoleAuxiliaries';HubLineage='B264FrozenHubLineage'}
+  Import-B264Definitions $empty @('Assert-NewDrainOldAbsent','Save-NewDrain','Read-NewDrainReceipt','Stop-NewDrainExact','Hold-NewDrainCore','Open-NewDrainOutput')
+  Import-B264Definitions $drainer @('AssertCurrentB142RehearsalContract','AssertCurrentB142RehearsalClaim','AssertCurrentB142RehearsalFiles')
+  return
+ }
+
  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ceq $owner) 'OWNER'
  # All sources are read/hash/ACL checked before definitions are imported. None
  # of these files' top-level dispatchers execute.
@@ -78,7 +88,7 @@ function Initialize-B264Bindings{
  $script:newGone=@();$script:newCoreHandle=$null;$script:probePins=@{};$script:lateProbePids=@()
  $script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false;$script:lateAdmissionOpen=$false
  $script:coreCutRecorded=$false;$script:lastCoreStopperResult=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null;$script:coreLifetime=$null
- $oldSettings=$newSettings;PrepareProbeSource
+ $oldSettings=$newSettings;if($PolicyGeneration-cne'CurrentB142Rehearsal'){PrepareProbeSource}
  # Dynamic scope only: PrepareProbeSource checks the candidate supervisor,
  # while the original oldSettings and before image remain immutable.
 }
@@ -204,6 +214,12 @@ function AssertB142Continuation($context,$currentClaim,[scriptblock]$read){
 }
 
 function Assert-B264Claim{
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+  AssertCurrentB142RehearsalContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256
+  AssertCurrentB142RehearsalClaim $claim $profile $before $ProfilePath $ProfileSha256 $BeforeImagePath $BeforeImageSha256 $claimPath ([DateTime]::UtcNow) $true
+  Assert-B264StopPlan;return
+ }
+
  Assert-B264StopPlan
  if((Get-Variable -Name ContinuationPath -ValueOnly -ErrorAction SilentlyContinue)){Require-NewDrain ($PolicyGeneration -ceq 'CurrentB007'-and$GenerationClaimPath -cin @((Join-Path $base 'p03-pr54-current-b007-continuation-of-974d73c7d84b9ea43e1397b0fdf44c01.lock.json'),(Join-Path $base 'p03-pr54-current-b007-continuation-of-b14266ad30507bb10d78ae76e2546221.lock.json'))-and$ContinuationPath -ceq (Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) 'precut-continuation.json')) 'CURRENT_974D_RECOVERY_CONTEXT';$context=Json (ReadPinned $ContinuationPath $ContinuationSha256);if($GenerationClaimPath -ceq (Join-Path $base 'p03-pr54-current-b007-continuation-of-974d73c7d84b9ea43e1397b0fdf44c01.lock.json')){Assert974dContinuation $context $claim {param($p,$h) Json (ReadPinned $p $h)}}else{AssertB142Continuation $context $claim {param($p,$h) Json (ReadPinned $p $h)}}}
  $keys=@('schemaVersion','currentOwnerDigest','ownerObservedAt','protectedSqlEpoch','predecessorRunId','predecessorProfile','predecessorBefore','predecessorLock','consumedAncestorClaim','failedOuterTail','quarantinedRecoveryTail','readOnlyOldReady','successorRunId','successorProfile','successorBefore','newSettings','candidate','stopOrderDigest','transitionAuthority','applyExecuted')
@@ -265,7 +281,7 @@ function Capture-NewDrainCandidate{
   $p=$rows[0];$sid=Invoke-CimMethod $p -MethodName GetOwnerSid -ErrorAction Stop;Require-NewDrain ($sid.ReturnValue -eq 0 -and $sid.Sid -ceq $owner) 'CURRENT_OWNER'
   $identity=[pscustomobject]@{role=$rule.role;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=[string]$p.ExecutablePath;ownerSid=$owner;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@($raw.listeners|Where-Object{$_.OwningProcess -eq $p.ProcessId}|ForEach-Object{[pscustomobject]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress}})}
   $selected+=,$identity
-  if($rule.role -ceq 'hub'){$receipts+=,(Read-B264HubReceipt $identity)}elseif($null -ne $rule.receipt){$receipts+=,(Read-NewDrainReceipt $rule.role $rule.receipt.path)}
+  if($rule.role -ceq 'hub'-and-not$isRehearsal){$receipts+=,(Read-B264HubReceipt $identity)}elseif($null -ne $rule.receipt){$receipts+=,(Read-NewDrainReceipt $rule.role $rule.receipt.path)}
  }
  Assert-B264PartialShape $selected
  return [pscustomobject]@{schemaVersion='melisa-p03-physical-candidate.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;observedAt=[DateTime]::UtcNow.ToString('o');processes=$selected;receipts=$receipts}
@@ -282,6 +298,7 @@ function ProbeArgumentsAllowed($argv,[string]$probe){
  return $false
 }
 function B264ProbeAuxiliaries($inventory){
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){return @()}
  $cores=@($script:newEvidence.processes|Where-Object{$_.role -ceq 'coreSupervisor'})
  if($cores.Count -eq 0){return @()}
  $identities=[ordered]@{};foreach($p in $script:newEvidence.processes){$identities[$p.role]=$p}
@@ -295,7 +312,7 @@ function ConsoleAuxiliaries($inventory,$selected){
  $allowed=@(B264FrozenConsoleAuxiliaries $inventory @($selected+$probes))
  return @($allowed)+@($probes|ForEach-Object{[int]$_.pid})
 }
-function HubLineage($evidence,$expected,$inventory){return NewHubLineage $evidence $expected $inventory}
+function HubLineage($evidence,$expected,$inventory){if($PolicyGeneration-ceq'CurrentB142Rehearsal'){return B264FrozenHubLineage $evidence $expected $inventory};return NewHubLineage $evidence $expected $inventory}
 function Current-NewDrainFrame{
  Assert-NewDrainPins;Complete-B264CoreCut;$frame=CandidateInventory $script:newEvidence;Assert-NewDrainOldAbsent $frame.inventory
  foreach($pidValue in $script:newGone){Require-NewDrain (@($frame.inventory.all|Where-Object{$_.ProcessId -eq $pidValue}).Count -eq 0) 'GONE_PID_REAPPEARED'}
@@ -357,7 +374,7 @@ function Invoke-B264Recovery{
  if($null -ne $script:newCore){$script:newCoreHandle=Hold-NewDrainCore $script:newCore;$script:coreLifetime=$script:newCoreHandle}
  try{
   $admitted=Current-NewDrainFrame;Assert-B264Com $admitted
-  if($Action -ceq 'Inspect'){return [ordered]@{status='B264_NEW_OWNER_RECOVERY_INSPECTED';mutationExecuted=$false;newIdentities=$admitted.selected.Count;liveProbesAccepted=$script:probePins.Count;rawInventoryPreserved=$true;unprovenPartialRecoveryGranted=$false;engineRecoveryExecuted=$false}}
+  if($Action -ceq 'Inspect'){$out=[ordered]@{status='B264_NEW_OWNER_RECOVERY_INSPECTED';mutationExecuted=$false;newIdentities=$admitted.selected.Count;liveProbesAccepted=$script:probePins.Count;rawInventoryPreserved=$true;unprovenPartialRecoveryGranted=$false;engineRecoveryExecuted=$false};if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$out['environment']='P03_REHEARSAL';$out['newRoles']=@($admitted.selected|ForEach-Object{$_.role});$out['runningInstances']=$admitted.inventory.instances.Count};return $out}
   Open-NewDrainOutput;$script:b264OutputOpened=$true
   # A durable intent plus held OS lifetime precedes either COM.Stop. COM.Stop
   # can naturally exit core; that outcome is recorded without a fabricated kill.
@@ -388,9 +405,20 @@ function Invoke-B264Recovery{
 }
 
 
+function Initialize-CurrentB142RehearsalRecovery{
+ $base='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018'
+ Require-NewDrain ($ProfilePath-cmatch('\A'+[regex]::Escape($base)+'\\run-([a-f0-9]{32})\\profile\.json\z')) 'REHEARSAL_PROFILE';$runId=$Matches[1];$runRoot=Join-Path $base ('run-'+$runId);$base=$runRoot;$transitionDir=$runRoot
+ Require-NewDrain ($BeforeImagePath-ceq(Join-Path $runRoot 'before.json')-and$EnginePath-ceq(Join-Path $runRoot 'recovery-engine.ps1')-and$DrainerPath-ceq(Join-Path $runRoot 'p03-pr54-successor-core-drain.ps1')-and$GenerationClaimPath-ceq(Join-Path $runRoot 'rehearsal-claim.json')-and[string]::IsNullOrEmpty($ContinuationPath)-and[string]::IsNullOrEmpty($ContinuationSha256)) 'REHEARSAL_REFS'
+ $Environment='Rehearsal';$isRehearsal=$true;$database='MELISA_ERP_P03_RESTORE_TEST_20261018_01';$names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');$ports=@(4284,4286,5334,62710,62711,62712,62713,62714)
+ $profile=Json (ReadPinned $ProfilePath $ProfileSha256);$before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256);$oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256);$claimPath=$GenerationClaimPath;$claim=Json (ReadPinned $claimPath $ClaimSha256)
+ Assert-B264Claim;AssertCurrentB142RehearsalFiles $profile $oldSettings $newSettings;Protected $profile.journalDirectory
+ $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\');Initialize-B264Bindings
+ Invoke-B264Recovery|ConvertTo-Json -Depth 8 -Compress
+}
 # DISPATCH
 try {
 Initialize-B264Recovery
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){Initialize-CurrentB142RehearsalRecovery;return}
 $Environment='Shared';$isRehearsal=$false;$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02';$runRoot=$null;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
 Require-NewDrain ($ProfilePath-cmatch ('\A'+[regex]::Escape($base)+'\\MelisaERP-P03-profile-([a-f0-9]{32})\.json\z')) 'PROFILE_PATH';$runId=$Matches[1]
 if($PolicyGeneration -ceq 'CurrentB007'){Require-NewDrain ($EnginePath -ceq (Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) 'p03-physical-rollback-lifetime-v2.ps1')) 'CURRENT_B007_ENGINE_RUN'}

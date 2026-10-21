@@ -8,10 +8,14 @@ param(
  [Parameter(Mandatory=$true)][string]$DrainerPath,[Parameter(Mandatory=$true)][string]$DrainerSha256,
  [string]$ClaimPath,[string]$ClaimSha256,[string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$RootIntentPath,[string]$RootIntentSha256,[string]$ContinuationPath,[string]$ContinuationSha256
 )
-if($PolicyGeneration -cnotin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_CUT_POLICY'}
+if($PolicyGeneration -cnotin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly','CurrentB142Rehearsal')){throw 'P03_B264_CUT_POLICY'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 # Definitions-only reuse. No historical dispatcher, claim creation or task start.
-if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_CUT_SOURCE'}
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+ if($EngineSha256-cne'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'-or$RecoveryHelperSha256-cne'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'-or$DrainerSha256-cne'023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14'-or$EnginePath-cnotmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'){throw 'P03_CURRENT_B142_REHEARSAL_ENTRY'}
+}else{
+if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5' -or $DrainerSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'eb56b12fe35c3bc4c1313a7ad9b584336be8dc260a4c40dbb957347413be3cc5'}else{'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c'})){throw 'P03_B264_CUT_SOURCE'}
+}
 if($Mode -ceq 'Inspect' -and @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','RootIntentPath','RootIntentSha256','ContinuationPath','ContinuationSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_CUT_INSPECT_ONLY'}
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue'
@@ -40,14 +44,16 @@ $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseI
 if($errors.Count){throw 'P03_B264_CUT_ENGINE_PARSE'}
 ImportWorkerFunctions $engineBytes @($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Name})
 ImportWorkerFunctions (ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256) @('SourceBytes','ProbeArgumentsAllowed','PrepareProbeSource','LatePrecutProbeAllowed','ProbeAuxiliaries','PausedTasks','PausedRemaining','PausedRemainingCore','WaitCoreProbeAbsence')
-ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @($(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'AssertCurrentB007InspectionContract'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'AssertB264Sup20DInspectionContract'}else{'AssertB264InspectionContract'}),'WorkerSamePin','Inventory','AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','SeedWorkerAdmission','HoldWorkerCore','StopWorkerCore')
+ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @($(if($PolicyGeneration-ceq'CurrentB142Rehearsal'){'AssertCurrentB142RehearsalContract'}elseif($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'AssertCurrentB007InspectionContract'}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){'AssertB264Sup20DInspectionContract'}else{'AssertB264InspectionContract'}),'WorkerSamePin','Inventory','AssertWorkerBindings','CaptureWorkerAdmissionCore','CaptureWorkerAdmission','SeedWorkerAdmission','HoldWorkerCore','StopWorkerCore')
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @('GetCurrentB007ProtectedConsolePins')}
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){ImportWorkerFunctions (ReadWorkerPin $DrainerPath $DrainerSha256) @('AssertCurrentB142RehearsalClaim','AssertCurrentB142RehearsalFiles')}
 $profile=Json (ReadWorkerPin $ProfilePath $ProfileSha256);$before=Json (ReadWorkerPin $BeforeImagePath $BeforeImageSha256)
 $oldSettings=Json (ReadWorkerPin $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadWorkerPin $profile.newSettings.path $profile.newSettings.sha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $Environment='Shared';$isRehearsal=$false
 $names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
-$order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative');$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$base='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018';$runRoot=Join-Path $base ('run-'+$runId);$dir=$runRoot;$Environment='Rehearsal';$isRehearsal=$true;$database='MELISA_ERP_P03_RESTORE_TEST_20261018_01';$names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');$ports=@(4284,4286,5334,62710,62711,62712,62713,62714);function PrepareProbeSource{};function ProbeAuxiliaries($inventory){return @()}}
+$order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative');if($PolicyGeneration-cne'CurrentB142Rehearsal'){$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'}
 $script:consolePins=@{};$script:probePins=@{};$script:legacyConsolePins=@{};$script:drainedPids=@();$script:tasksStopRequested=$false;$script:coreQuiesced=$false;$script:probeAdmissionFrozen=$false;$script:lateAdmissionOpen=$false;$script:lateProbePids=@();$script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null;$script:cutWitnessCommitted=$false;$script:b264CutComPins=@()
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 
@@ -165,6 +171,22 @@ function B264CutAdmissionTime{
  return $script:precutWindowOpenedAt
 }
 function B264CutAuthority{
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+  AssertCurrentB142RehearsalContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256
+  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$EngineSha256),@($RecoveryHelperPath,$RecoveryHelperSha256),@($DrainerPath,$DrainerSha256))){[void](ReadWorkerPin $pin[0] $pin[1])}
+  Need ($EnginePath-ceq(Join-Path $runRoot 'recovery-engine.ps1')-and$DrainerPath-ceq(Join-Path $runRoot 'p03-pr54-successor-core-drain.ps1')) 'REHEARSAL_SOURCE_SCOPE'
+  AssertCurrentB142RehearsalFiles $profile $oldSettings $newSettings
+  if($Mode-ceq'Inspect'){return}
+  Need ($Mode-ceq'Drain'-and[string]::IsNullOrEmpty($ContinuationPath)-and[string]::IsNullOrEmpty($ContinuationSha256)) 'REHEARSAL_DRAIN_SCOPE'
+  $claim=Json (ReadWorkerPin $ClaimPath $ClaimSha256);AssertCurrentB142RehearsalClaim $claim $profile $before $ProfilePath $ProfileSha256 $BeforeImagePath $BeforeImageSha256 $ClaimPath (B264CutAdmissionTime)
+  AssertB264CutStopPlan $claim
+  Need ($AdmittedSnapshotPath-ceq(Join-Path $dir 'successor-precut-admission.json')-and$RootIntentPath-ceq(Join-Path $dir 'b264-old-owner-cut-intent.json')) 'REHEARSAL_INTENT_PATH'
+  $snapshot=Json (ReadWorkerPin $AdmittedSnapshotPath $AdmittedSnapshotSha256);Need ($snapshot.environment-ceq'P03_REHEARSAL') 'REHEARSAL_SNAPSHOT_SCOPE'
+  $intent=Json (ReadWorkerPin $RootIntentPath $RootIntentSha256)
+  Need ((@($intent.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'beforeSha256|claimSha256|event|observedAt|profileSha256|stopOrderDigest'-and$intent.event-ceq'B264_OLD_CUT_INTENT'-and$intent.claimSha256-ceq$ClaimSha256-and$intent.profileSha256-ceq$ProfileSha256-and$intent.beforeSha256-ceq$BeforeImageSha256-and$intent.stopOrderDigest-ceq$claim.stopOrderDigest) 'REHEARSAL_INTENT'
+  $age=((B264CutAdmissionTime)-[DateTime]::Parse($intent.observedAt).ToUniversalTime()).TotalSeconds;Need ($age-ge0-and$age-lt60) 'REHEARSAL_INTENT_FRESH';return
+ }
+
  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$EngineSha256),@($RecoveryHelperPath,$RecoveryHelperSha256),@($DrainerPath,$DrainerSha256))){[void](ReadWorkerPin $pin[0] $pin[1])}
  if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){AssertCurrentB007InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 (B264CutAdmissionTime)}elseif($PolicyGeneration -ceq 'B264Sup20DInspectOnly'){AssertB264Sup20DInspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}else{AssertB264InspectionContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256 ([DateTime]::UtcNow)}
  foreach($entry in @(@($EnginePath,$(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'p03-physical-rollback-lifetime-v2.ps1'}else{'p03-physical-rollback.ps1'})),@($RecoveryHelperPath,'p03-pr54-paused-old-recover.ps1'),@($DrainerPath,'p03-pr54-successor-core-drain.ps1'))){Need ($entry[0].StartsWith($base+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0]) -ceq $entry[1]) 'B264_CUT_SOURCE_SCOPE'}

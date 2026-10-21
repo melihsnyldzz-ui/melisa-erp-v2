@@ -1,4 +1,4 @@
-param([ValidateSet('DryRun','Run')][string]$Mode='DryRun',[ValidateSet('Legacy','B264V2','FailureRecordV1','FileAttributesV1')][string]$EngineGeneration='Legacy')
+param([ValidateSet('DryRun','Run')][string]$Mode='DryRun',[ValidateSet('Legacy','B264V2','FailureRecordV1','FileAttributesV1','CurrentB142Rehearsal')][string]$EngineGeneration='Legacy',[ValidateSet('Normal','OldCutFailure','ReplyLoss','PartialNew')][string]$RehearsalScenario='Normal')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 trap{$kind=$_.Exception.GetType().Name;if($kind-cnotin@('MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException','ArgumentException','InvalidOperationException','PropertyNotFoundException','ParameterBindingException','PSInvalidCastException')){$kind='OtherException'};$site=$_.Exception.TargetSite;$method=if($null-ne$site){$site.Name}else{'UnknownMethod'};if($method-cnotin@('Invoke','InvokeMethod','CreateDirectory','Write','Flush','AddAccessRule','SetOwner','CheckActionPreference')){$method='UnknownMethod'};$code=if([string]$_.Exception.Message-cmatch'\bP03_[A-Z_]+\b'){$Matches[0]}else{'P03_REHEARSAL_EXECUTION_REJECTED'};$line=0;if($null-ne$_.InvocationInfo){$line=[int]$_.InvocationInfo.ScriptLineNumber};[Console]::Error.WriteLine(($code+' TYPE_'+$kind+' METHOD_'+$method+' LINE_'+$line));exit 1}
@@ -145,6 +145,41 @@ function RegisterFixtureTask([int]$index,[string]$generation,[bool]$update){
  if($update){$existing=$folder.GetTask($names[$index]);Need ([int]$existing.State-eq3-and(Hash ([Text.Encoding]::UTF8.GetBytes([string]$existing.Xml)))-ceq$profile.tasks[$index].oldXmlSha256) 'TASK_CAS'}
  [void]$folder.RegisterTaskDefinition($names[$index],$definition,$(if($update){4}else{2}),$owner,$null,3,$null)
 }
+function QuiesceCurrentRehearsal{
+ Need ($EngineGeneration-ceq'CurrentB142Rehearsal'-and$runRoot-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\z') 'CURRENT_CLEANUP_SCOPE'
+ Need ((Hash (Bytes (ProtectedSnapshot)))-ceq$protectedBeforeSha) 'CURRENT_CLEANUP_PROTECTED'
+ $fresh=Snapshot;Need (@($fresh.processes).Count-eq8-and@($fresh.watchers).Count-eq2-and@($fresh.tasks).Count-eq2-and@($fresh.listeners).Count-eq8) 'CURRENT_CLEANUP_FULL_GENERATION'
+ $all=@($fresh.processes)+@($fresh.watchers);Need (@($all.pid|Sort-Object -Unique).Count-eq10) 'CURRENT_CLEANUP_DUPLICATE'
+ $generation=$null
+ foreach($candidate in @('old','new')){if(@($fresh.processes|Where-Object{$_.commandLine.EndsWith('--generation '+$candidate,[StringComparison]::Ordinal)}).Count-eq8){Need ($null-eq$generation) 'CURRENT_CLEANUP_AMBIGUOUS';$generation=$candidate}}
+ Need ($generation-cin@('old','new')) 'CURRENT_CLEANUP_GENERATION'
+ $held=[Collections.Generic.List[object]]::new();$stopperHold=$null
+ try{
+  Need ($stopper-ceq(Join-Path $runRoot 'stop-exact-observed-process.ps1')-and$profile.stopper.path-ceq$stopper-and$profile.stopper.sha256-ceq$stopperSha) 'CURRENT_CLEANUP_STOPPER_SCOPE';NoReparse $stopper;$stopperHold=[IO.File]::Open($stopper,'Open','Read','Read');$stopperMemory=[IO.MemoryStream]::new();$stopperHold.CopyTo($stopperMemory);Need ((Hash $stopperMemory.ToArray())-ceq$stopperSha) 'CURRENT_CLEANUP_HELD_STOPPER'
+  $rawScoped=@(Get-CimInstance Win32_Process -ErrorAction Stop|Where-Object{$_.ProcessId-ne$PID-and([string]$_.CommandLine).IndexOf($runRoot,[StringComparison]::OrdinalIgnoreCase)-ge0});Need ($rawScoped.Count-eq10-and@($rawScoped|Where-Object{$_.ProcessId-notin@($all.pid)}).Count-eq0) 'CURRENT_CLEANUP_RAW_SCOPE'
+  foreach($pin in $all){
+   Need ($pin.ownerSid-ceq$owner-and$pin.pid-gt0-and$pin.pid-notin@($profile.protectedProcesses.pid)) 'CURRENT_CLEANUP_OWNER'
+   $raw=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$pin.pid) -ErrorAction Stop);Need ($raw.Count-eq1-and(SameOriginalOldIdentity (Identity $raw[0]) $pin)) 'CURRENT_CLEANUP_UID'
+   $handle=OpenRehearsalOldHandle $pin.pid;$held.Add([pscustomobject]@{handle=$handle;identity=$pin})
+   $state=ReadRehearsalOldHandle $handle;Need ($state.Active-and$state.Id-eq$pin.pid-and$state.Path-ieq$pin.nodePath-and[DateTime]::FromFileTimeUtc($state.CreationFileTime).ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')-ceq[DateTime]::Parse($pin.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'CURRENT_CLEANUP_HANDLE'
+   if($pin.role-cin$roles){$want=@($node,'--no-maglev',(Join-Path $runRoot ('packages\'+$generation+'\p03-rehearsal-fixture.mjs')),'--role',$pin.role,'--config',(Join-Path $runRoot ('packages\'+$generation+'\fixture-config.json')),'--generation',$generation)}else{Need ($pin.role-cin@('terminalWatcher','hubWatcher')) 'CURRENT_CLEANUP_ROLE';$index=if($pin.role-ceq'terminalWatcher'){0}else{1};$want=@($shell)+@(RehearsalOldArgv ($shell+' '+(ActionArgs $generation $index))|Select-Object -Skip 1)}
+   Need ((@(RehearsalOldArgv $pin.commandLine)|ConvertTo-Json -Compress)-ceq($want|ConvertTo-Json -Compress)) 'CURRENT_CLEANUP_ARGV'
+  }
+  foreach($role in $roles){Need (@($fresh.processes|Where-Object{$_.role-ceq$role}).Count-eq1) 'CURRENT_CLEANUP_ROLE_COUNT'}
+  $snapshotRef=WriteNew (Join-Path $runRoot 'rehearsal-cleanup-before.json') (Bytes $fresh)
+  $active=$schedule.GetRunningTasks(1);$instances=@()
+  foreach($entry in $fresh.tasks){$task=$folder.GetTask($entry.name);$expected=@($profile.tasks|Where-Object{$_.name-ceq$entry.name});Need ($expected.Count-eq1-and[int]$task.State-eq4-and(Hash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-ceq$expected[0].($generation+'XmlSha256')) 'CURRENT_CLEANUP_XML';$rows=@();for($i=1;$i-le$active.Count;$i++){$r=$active.Item($i);if($r.Name-ceq$entry.name){$rows+=,$r}};Need ($rows.Count-eq1-and$rows[0].InstanceGuid-ceq$entry.instanceGuid-and$rows[0].EnginePID-eq$entry.enginePid-and$rows[0].EnginePID-in@($fresh.watchers.pid)) 'CURRENT_CLEANUP_COM';$instances+=,$rows[0]}
+  foreach($instance in $instances){$instance.Stop()}
+  foreach($role in $roles){$pin=@($fresh.processes|Where-Object{$_.role-ceq$role})[0];$proof=[ordered]@{pid=$pin.pid;parentPid=$pin.parentPid;nodePath=$pin.nodePath;ownerSid=$pin.ownerSid;commandLine=$pin.commandLine;creationTime=([string]$pin.creationTime-replace'(\.\d{6})0Z$','$1Z')};$encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($proof|ConvertTo-Json -Compress)));Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'CURRENT_CLEANUP_STOPPER';$stopped=& $stopper -ExpectedJsonBase64 $encoded;Need ($stopped-cin@('EXACT_OBSERVED_PROCESS_STOPPED','ALREADY_GONE')) 'CURRENT_CLEANUP_EXACT_STOP'}
+  $until=[DateTime]::UtcNow.AddSeconds(25);do{$last=Snapshot;if(@($last.processes).Count-eq0-and@($last.watchers).Count-eq0-and@($last.listeners).Count-eq0-and@($last.tasks|Where-Object{$_.state-ne3}).Count-eq0){break};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$until)
+  Need (@($last.processes).Count-eq0-and@($last.watchers).Count-eq0-and@($last.listeners).Count-eq0-and@($last.tasks|Where-Object{$_.state-ne3}).Count-eq0) 'CURRENT_CLEANUP_NOT_EMPTY'
+  foreach($entry in $fresh.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State-eq3-and[string]$task.Xml-ceq[string]$entry.xml) 'CURRENT_CLEANUP_DELETE_CAS';$folder.DeleteTask($entry.name,0)}
+  foreach($name in $names){$exists=$null;try{$exists=$folder.GetTask($name)}catch{};Need ($null-eq$exists) 'CURRENT_CLEANUP_TASK_REMAINS'}
+  Need (@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-in$ports}).Count-eq0-and(Hash (Bytes (ProtectedSnapshot)))-ceq$protectedBeforeSha) 'CURRENT_CLEANUP_FINAL'
+  return [ordered]@{snapshotRef=$snapshotRef;generation=$generation;tasksAbsent=2;portsFree=8;protectedUnchanged=$true;capturedIdentities=10}
+ }finally{foreach($entry in $held){$entry.handle.Dispose()};if($null-ne$stopperHold){$stopperHold.Dispose()}}
+}
+
 Need ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner) 'OWNER'
 $request=[Console]::In.ReadToEnd()|ConvertFrom-Json;Need ($request.mode-ceq$Mode-and@($request.files).Count-eq3) 'REQUEST'
 Need ((Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$nodeSha) 'NODE_PIN'
@@ -160,8 +195,8 @@ function AssertRehearsalEngineRequest($value,[string]$generation){
   Need ($value.PSObject.Properties.Name -ccontains 'engineGeneration' -and $value.engineGeneration -ceq 'FailureRecordV1') 'FAILURE_RECORD_ENGINE_GENERATION'
   Need ((@($value.engine.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'path|sha256') 'FAILURE_RECORD_ENGINE_FIELDS'
   Need ($value.engine.path -ceq 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054.ps1' -and $value.engine.sha256 -ceq '1b1919ba707171ab561ed09eb60b494276a5b1728fc6779976562e6919a91054') 'FAILURE_RECORD_ENGINE_SCOPE'
- }elseif($generation -ceq 'FileAttributesV1'){
-  Need ($value.PSObject.Properties.Name -ccontains 'engineGeneration' -and $value.engineGeneration -ceq 'FileAttributesV1') 'FILE_ATTRIBUTES_ENGINE_GENERATION'
+ }elseif($generation -cin @('FileAttributesV1','CurrentB142Rehearsal')){
+  Need ($value.PSObject.Properties.Name -ccontains 'engineGeneration' -and $value.engineGeneration -ceq $generation) 'FILE_ATTRIBUTES_ENGINE_GENERATION'
   Need ((@($value.engine.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'path|sha256') 'FILE_ATTRIBUTES_ENGINE_FIELDS'
   Need ($value.engine.path -ceq 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\engine-candidate-b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f.ps1' -and $value.engine.sha256 -ceq 'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f') 'FILE_ATTRIBUTES_ENGINE_SCOPE'
  }else{
@@ -186,11 +221,16 @@ foreach($leaf in @('packages','packages\old','packages\new','receipts-old','rece
 $engineRef=WriteNew (Join-Path $runRoot 'recovery-engine.ps1') ([IO.File]::ReadAllBytes($request.engine.path));Need ($engineRef.sha256-ceq$request.engine.sha256) 'ENGINE_COPY_HASH'
 NoReparse $stopperSource;$stopperBytes=[IO.File]::ReadAllBytes($stopperSource);Need ((Hash $stopperBytes)-ceq$stopperSha) 'STOPPER_SOURCE_HASH';$stopperRef=WriteNew (Join-Path $runRoot 'stop-exact-observed-process.ps1') $stopperBytes;Need ($stopperRef.sha256-ceq$stopperSha) 'STOPPER_COPY_HASH';$stopper=$stopperRef.path
 $cloneProof=WriteNew (Join-Path $runRoot 'clone-proof.json') ([IO.File]::ReadAllBytes($request.cloneProof.path));Need ($cloneProof.sha256-ceq$request.cloneProof.sha256) 'CLONE_PROOF_COPY'
+if($EngineGeneration-ceq'CurrentB142Rehearsal'){
+ Need ($request.rehearsalScenario-ceq$RehearsalScenario-and@($request.nativeSources).Count-eq4) 'CURRENT_REQUEST'
+ foreach($file in $request.nativeSources){Need ($file.name-cin@('p03-physical-recovery-observe.ps1','p03-pr54-successor-core-drain.ps1','p03-pr54-b264-old-owner-cut.ps1','p03-pr54-b264-new-owner-recovery.ps1')) 'CURRENT_NATIVE_LEAF';$bytes=[Convert]::FromBase64String($file.bytesBase64);Need ((Hash $bytes)-ceq$file.sha256) 'CURRENT_NATIVE_HASH';[void](WriteNew (Join-Path $runRoot $file.name) $bytes)}
+ foreach($item in @(@('C:\Sirket\ERP\runtime\P03-OWNER-20261018\p03-pr54-paused-old-recover.ps1','p03-pr54-paused-old-recover.ps1','e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'),@('C:\Sirket\ERP\runtime\P03-OWNER-20261018\MelisaERP-P03-current-b007-control-6213b2c673ca\p03-pr54-new-owner-empty-recovery.ps1','p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438'))){NoReparse $item[0];$bytes=[IO.File]::ReadAllBytes($item[0]);Need ((Hash $bytes)-ceq$item[2]) 'CURRENT_HELPER_HASH';[void](WriteNew (Join-Path $runRoot $item[1]) $bytes)}
+}
 $settings=@{};$packagePins=@();$fixtureSource=([string]($request.files|Where-Object{$_.name-ceq'p03-rehearsal-fixture.mjs'}).sha256).Substring(0,40)
 foreach($generation in @('old','new')){
  $packageRoot=Join-Path (Join-Path $runRoot 'packages') $generation;$manifestFiles=@()
  foreach($file in $request.files){Need ($file.name-cin@('p03-rehearsal-fixture.mjs','p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1')) 'SOURCE_NAME';$bytes=[Convert]::FromBase64String($file.bytesBase64);Need ((Hash $bytes)-ceq$file.sha256) 'SOURCE_HASH';[void](WriteNew (Join-Path $packageRoot $file.name) $bytes);$manifestFiles+=,[ordered]@{path=$file.name;sha256=$file.sha256}}
- $cfg=[ordered]@{environment='P03_REHEARSAL';runRoot=$runRoot;generation=$generation;database=$db;copyId=$copy;sourceCommit=$fixtureSource;partial=($generation-ceq'new');packageRoot=$packageRoot;nodePath=$node;actualT1=$false;runUuid=[guid]::NewGuid().ToString()}
+ $cfg=[ordered]@{environment='P03_REHEARSAL';runRoot=$runRoot;generation=$generation;database=$db;copyId=$copy;sourceCommit=$fixtureSource;partial=($generation-ceq'new'-and($EngineGeneration-cne'CurrentB142Rehearsal'-or$RehearsalScenario-ceq'PartialNew'));packageRoot=$packageRoot;nodePath=$node;actualT1=$false;runUuid=[guid]::NewGuid().ToString()}
  $cfgRef=WriteNew (Join-Path $packageRoot 'fixture-config.json') (Bytes $cfg);$manifestFiles+=,[ordered]@{path='fixture-config.json';sha256=$cfgRef.sha256}
  $manifest=[ordered]@{sourceCommit=$fixtureSource;environment='P03_REHEARSAL';files=$manifestFiles};$manifestRef=WriteNew (Join-Path $packageRoot 'release-manifest.json') (Bytes $manifest)
  $component=[ordered]@{packageRoot=$packageRoot;sourceCommit=$fixtureSource;manifestSha256=$manifestRef.sha256;config=$cfgRef}
@@ -200,6 +240,14 @@ foreach($generation in @('old','new')){
 Journal 'REGISTER_OLD_TASKS_INTENT';RegisterFixtureTask 0 'old' $false;RegisterFixtureTask 1 'old' $false;Journal 'START_OLD_INTENT';[void]$folder.GetTask($names[0]).Run($null);[void]$folder.GetTask($names[1]).Run($null)
 $old=WaitOldReady;$identities=[ordered]@{};foreach($role in $roles){$rows=@($old.processes|Where-Object{$_.role-ceq$role});Need ($rows.Count-eq1) 'OLD_ROLE_COUNT';$identities[$role]=$rows[0]}
 $before=[ordered]@{schemaVersion='melisa-p03-owner-observation.v3';environment='P03_REHEARSAL';ownerSid=$owner;database=$db;copyId=$copy;actualT1=$false;observedAt=$old.observedAt;oldConfig=$settings.old;newConfig=$settings.new;tasks=$old.tasks;identities=$identities;oldSupervisor=[ordered]@{root=$packagePins[0].root;manifest=$packagePins[0].manifestSha256};profile=[ordered]@{erpSource=$fixtureSource;crmSource=$fixtureSource;supervisorSource=$fixtureSource;erpManifest=$packagePins[1].manifestSha256;crmManifest=$packagePins[1].manifestSha256;supervisorManifest=$packagePins[1].manifestSha256}}
+if($EngineGeneration-ceq'CurrentB142Rehearsal'){
+ $before['runId']=$runId
+ $plan=[ordered]@{targets=$roles;oldSettingsSha256=$settings.old.sha256;newSettingsSha256=$settings.new.sha256}
+ $data=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($plan|ConvertTo-Json -Compress)))
+ $moduleUrl=([Uri](Join-Path $PSScriptRoot 'p03-integrated-owner-transition.mjs')).AbsoluteUri
+ $program='const m=await import('+[char]39+$moduleUrl+[char]39+');const x=JSON.parse(Buffer.from('+[char]39+$data+[char]39+','+[char]39+'base64'+[char]39+'));process.stdout.write(m.p03TransitionDigest(x));'
+ $digest=(& $node --input-type=module -e $program);Need ($LASTEXITCODE-eq0-and$digest-cmatch'\A[a-f0-9]{64}\z') 'CURRENT_PLAN_DIGEST';$plan['digest']=[string]$digest;$before['plan']=$plan
+}
 $beforeRef=WriteNew (Join-Path $runRoot 'before.json') (Bytes $before)
 $taskPins=@();foreach($index in 0,1){$xml=[string]$old.tasks[$index].xml;$argument=(ActionArgs 'new' $index).Replace('&','&amp;').Replace('<','&lt;').Replace('>','&gt;');$working=(Join-Path (Join-Path $runRoot 'packages') 'new').Replace('&','&amp;').Replace('<','&lt;').Replace('>','&gt;');$newText=[regex]::Replace($xml,'<Arguments>[\s\S]*?</Arguments>',('<Arguments>'+$argument+'</Arguments>'));$newText=[regex]::Replace($newText,'<WorkingDirectory>[\s\S]*?</WorkingDirectory>',('<WorkingDirectory>'+$working+'</WorkingDirectory>'));$taskPins+=,[ordered]@{name=$names[$index];oldXml=$xml;oldXmlSha256=(Hash ([Text.Encoding]::UTF8.GetBytes($xml)));newXml=$newText;newXmlSha256=(Hash ([Text.Encoding]::UTF8.GetBytes($newText)))}}
 $newSettings=Get-Content -LiteralPath $settings.new.path -Raw|ConvertFrom-Json;$rules=@();$newPackage=$newSettings.supervisor.packageRoot
@@ -212,6 +260,18 @@ $common=@{Environment='Rehearsal';ProfilePath=$profileRef.path;ProfileSha256=$pr
 Need ((Get-FileHash -LiteralPath $engineRef.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$engineRef.sha256) 'ENGINE_PHASE_PIN'
 $engineResult=(& $engineRef.path @common -Mode PreflightOld)|ConvertFrom-Json;Need ($engineResult.status-ceq'OLD_PHYSICAL_PREFLIGHT') 'OLD_PREFLIGHT'
 Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_PRESTOP_PIN'
+if($EngineGeneration-ceq'CurrentB142Rehearsal'){
+ Need ((@($request.dispatcher.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'path|sha256'-and$request.dispatcher.sha256-cmatch'\A[a-f0-9]{64}\z') 'CURRENT_DISPATCHER_REF';NoReparse $request.dispatcher.path
+ Need ((Get-FileHash -LiteralPath $request.dispatcher.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$request.dispatcher.sha256-and$request.dispatcher.path-ceq(Join-Path $PSScriptRoot 'p03-pr54-shared-owner-io.mjs')) 'CURRENT_DISPATCHER_PIN'
+ $inputValue=[ordered]@{moduleUrl=([Uri]$request.dispatcher.path).AbsoluteUri;request=[ordered]@{mode='Apply';scenario=$RehearsalScenario;runRoot=$runRoot;profileRef=$profileRef;beforeRef=$beforeRef}}
+ $data=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($inputValue|ConvertTo-Json -Depth 15 -Compress)))
+ $program='const x=JSON.parse(Buffer.from('+[char]39+$data+[char]39+','+[char]39+'base64'+[char]39+'));const m=await import(x.moduleUrl);try{process.stdout.write(JSON.stringify(await m.runPr54CurrentB142RehearsalTransition(x.request)))}catch(e){process.stderr.write(e.message);process.exitCode=1}'
+ $result=(& $node --input-type=module -e $program);Need ($LASTEXITCODE-eq0) 'CURRENT_DISPATCHER_FAILED';$currentResult=$result|ConvertFrom-Json;Need ($currentResult.status-ceq'CURRENT_B142_REHEARSAL_SCENARIO_READY'-and$currentResult.scenario-ceq$RehearsalScenario-and$currentResult.sqlFreeFixture-ceq$true-and$currentResult.applicationRollbackVerified-ceq$false-and$currentResult.databaseRollbackVerified-ceq$false) 'CURRENT_DISPATCHER_RESULT'
+ Journal 'CURRENT_SCENARIO_VERIFIED'
+ $cleanup=QuiesceCurrentRehearsal
+ $report=[ordered]@{status='CURRENT_B142_REHEARSAL_SCENARIO_READY';environment='P03_REHEARSAL';runRoot=$runRoot;scenario=$RehearsalScenario;dispatcher=$request.dispatcher;engineGeneration=$EngineGeneration;engine=$engineRef;engineSha256=$engineRef.sha256;profile=$profileRef;before=$beforeRef;transition=$currentResult;cleanup=$cleanup;protectedBeforeSha256=$protectedBeforeSha;protectedAfterSha256=(Hash (Bytes (ProtectedSnapshot)));sqlFreeFixture=$true;applicationRollbackVerified=$false;databaseRollbackVerified=$false;sharedTestMutation=$false;cleanupPerformed=$true}
+ $reportRef=WriteNew (Join-Path $runRoot 'result.json') (Bytes $report);$report['result']=$reportRef;$report|ConvertTo-Json -Depth 25;return
+}
 Journal 'STOP_OLD_FIXTURE_INTENT'
 $originalOldLifetimePins=@()
 try{

@@ -162,12 +162,14 @@ const sameCapturePins=Object.freeze({drainer:'9a0e0931bbd1897f55d25396cd64619a66
 // Finite audit handoff pair; the historical same-capture pair remains sealed.
 const auditedSameCapturePins=Object.freeze({drainer:'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710',observer:'271d9fa16656449727db3ece3000621d1d0a7f2643c2335e409dd0335c9c30c5'});
 const diagnosticSameCapturePins=Object.freeze({drainer:'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710',observer:'5511027cbb98f29f39008c833ef7db25004cd9cb436acb25c7a744871df1128d'});
+// Explicit current pair after the isolated native scope split; prior pairs remain sealed.
+const rehearsalSplitSameCapturePins=Object.freeze({drainer:'023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14',observer:'06ab2ac9cd440ff24009f53e6b202503419d48e7333213b0e042e499ebb360d8'});
 export function pr54CurrentB007InspectionArguments(input){
  need(exact(input,['profileRef','beforeRef','engineRef','recoveryHelperRef','drainerRef','observerRef']),'INPUT');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef,drainerRef,observerRef}=input;
  for(const r of Object.values(input))need(ref(r),'REF');
  need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1$/.test(engineRef.path)&&engineRef.sha256===PR54_CURRENT_B007_ENGINE_SHA256,'ENGINE');
- const capturePins=[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins].find(p=>drainerRef.sha256===p.drainer&&observerRef.sha256===p.observer),sameCapture=!!capturePins;
+ const capturePins=[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins,rehearsalSplitSameCapturePins].find(p=>drainerRef.sha256===p.drainer&&observerRef.sha256===p.observer),sameCapture=!!capturePins;
  for(const [r,k]of [[recoveryHelperRef,'helper'],[drainerRef,'drainer'],[observerRef,'observer']])need(path.win32.basename(r.path)===currentB007Pins[k].leaf&&r.sha256===(sameCapture&&k!=='helper'?capturePins[k]:currentB007Pins[k].sha256),'SOURCE');
  need(recoveryHelperRef.path===PR54_OWNER_ROOT+'\\'+currentB007Pins.helper.leaf&&[drainerRef,observerRef].every(r=>path.win32.dirname(r.path)===path.win32.dirname(engineRef.path)),'SOURCE_DIRECTORY');
  const runId=path.win32.basename(beforeRef.path).match(/^MelisaERP-P03-before-([a-f0-9]{32})\.json$/)?.[1];
@@ -180,7 +182,7 @@ export function validatePr54CurrentSameCaptureEnvelope(value,input){
  need(exact(value,['schemaVersion','capture','current','frame'])&&value.schemaVersion==='melisa-p03-current-b007-same-capture.v1','SAME_CAPTURE_SCHEMA');
  const {capture:c,current,frame}=value;
  need(exact(c,['id','attempt','startedAt','inventoryObservedAt','profileSha256','beforeSha256','drainerSha256','processCount','listenerCount','runningInstanceCount'])&&Number.isInteger(c.attempt)&&c.attempt>=1&&c.attempt<=3&&/^[a-f0-9]{32}$/.test(c.id)&&current?.captureId===c.id&&frame?.captureId===c.id,'SAME_CAPTURE_ID');
- need(c.profileSha256===input.profileRef.sha256&&c.beforeSha256===input.beforeRef.sha256&&c.drainerSha256===input.drainerRef.sha256&&[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins].some(p=>input.drainerRef.sha256===p.drainer&&input.observerRef.sha256===p.observer),'SAME_CAPTURE_PINS');
+ need(c.profileSha256===input.profileRef.sha256&&c.beforeSha256===input.beforeRef.sha256&&c.drainerSha256===input.drainerRef.sha256&&[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins,rehearsalSplitSameCapturePins].some(p=>input.drainerRef.sha256===p.drainer&&input.observerRef.sha256===p.observer),'SAME_CAPTURE_PINS');
  const times=[c.startedAt,c.inventoryObservedAt,current.observedAt,frame.observedAt].map(Date.parse);need(times.every(Number.isFinite)&&times.every((t,i)=>i===0||t>=times[i-1])&&Date.now()-times[0]>=0&&Date.now()-times[0]<60000,'SAME_CAPTURE_TIME');
  need(c.startedAt===current.startedAt&&[c.processCount,c.listenerCount,c.runningInstanceCount].every(n=>Number.isSafeInteger(n)&&n>=0)&&c.processCount>=current.processes.length&&c.listenerCount>=current.bindings.length&&c.runningInstanceCount===current.runningInstances.length,'SAME_CAPTURE_COUNTS');
  const {captureId:nativeId,...native}=frame;return {current,frame:native};

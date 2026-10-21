@@ -13,15 +13,15 @@ function ReleasePrivate([string]$path){
  $seen=@();foreach($a in $acl.Access){$sid=$a.IdentityReference.Translate([Security.Principal.SecurityIdentifier]).Value;ReleaseNeed ($sid-cin@($script:owner,'S-1-5-18')-and$sid-cnotin$seen-and$a.AccessControlType-eq'Allow'-and-not$a.IsInherited-and$a.FileSystemRights-eq[Security.AccessControl.FileSystemRights]::FullControl) 'ACE';$seen+=$sid}
 }
 function ReadRestoreDefinitions {
- $path='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\source-p03-rehearsal-original-task-restore-8941733a63b6.ps1'
+ $path='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\source-p03-original-restore-c64624a3f45e.ps1'
  ReleasePrivate $path;$file=Get-Item -LiteralPath $path -Force;ReleaseNeed (-not$file.LinkType-and-not$file.Target) 'SOURCE_LINK'
  $s=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
- try{$m=[IO.MemoryStream]::new();try{ReleaseNeed ($s.Length-gt0-and$s.Length-le1048576) 'SOURCE_SIZE';$s.CopyTo($m);$bytes=$m.ToArray();ReleaseNeed ((ReleaseHash $bytes)-ceq'8941733a63b6b89f53087a45284343eaf7454644e93967b296b8a241d2fa4d78') 'SOURCE_HASH';$text=[Text.UTF8Encoding]::new($false,$true).GetString($bytes)}finally{$m.Dispose()}}finally{$s.Dispose()}
+ try{$m=[IO.MemoryStream]::new();try{ReleaseNeed ($s.Length-gt0-and$s.Length-le1048576) 'SOURCE_SIZE';$s.CopyTo($m);$bytes=$m.ToArray();ReleaseNeed ((ReleaseHash $bytes)-ceq'c64624a3f45ef5791dcb82b648f3560c830f354ede2bc814c596099547c9aac9') 'SOURCE_HASH';$text=[Text.UTF8Encoding]::new($false,$true).GetString($bytes)}finally{$m.Dispose()}}finally{$s.Dispose()}
  RestoreDefinitionText $text
 }
 function RestoreDefinitionText([string]$text){
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput($text,[ref]$tokens,[ref]$errors);ReleaseNeed ($errors.Count-eq0) 'SOURCE_PARSE'
- $names=@('Need','Hash','TextHash','NoReparse','ReadOriginalBefore','AssertTarget','TaskMissing','FindTask','AssertOriginalXml','ValidateBefore','DaclBytes','CompareTaskSecurity','AssertAllowEquivalent','AssertExisting','AssertQuietData','AssertQuiet','ProcessFrame','ProtectedFrame','AssertProtected','RestoreOriginalTasks')
+ $names=@('Need','Hash','TextHash','NoReparse','ReadOriginalBefore','AssertTarget','TaskMissing','FindTask','AssertOriginalXml','ValidateBefore','DaclBytes','CompareTaskSecurity','AssertAllowEquivalent','CompareTaskXml','AssertExisting','AssertQuietData','AssertQuiet','ProcessFrame','ProtectedFrame','AssertProtected','RestoreOriginalTasks')
  $definitions=@();foreach($name in $names){$f=@($ast.EndBlock.Statements|Where-Object{$_-is[Management.Automation.Language.FunctionDefinitionAst]-and$_.Name-ceq$name});ReleaseNeed ($f.Count-eq1) 'SOURCE_FUNCTION';$definitions+=$f[0].Extent.Text}
  return $definitions-join[Environment]::NewLine
 }

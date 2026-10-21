@@ -8,9 +8,12 @@ param(
  [string]$ClaimPath,[string]$ClaimSha256,
  [string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$StopIntentPath,[string]$StopIntentSha256
 )
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+ if($Mode-cne'Inspect'-or@('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count-or$EngineSha256-cne'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'-or$RecoveryHelperSha256-cne'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'-or$EnginePath-cnotmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'){throw 'P03_CURRENT_B142_REHEARSAL_ENTRY'}
+}
 # B264 is a separately selected read-only generation. Reject mutation inputs
 # before any import, file, owner, SQL or COM access (including empty bound args).
-if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
+if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly','CurrentB142Rehearsal')){throw 'P03_B264_POLICY_GENERATION'}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
  if($Mode -cne 'Inspect' -or @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_INSPECT_ONLY'}
  if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_B264_INSPECTION_SOURCE'}
@@ -34,14 +37,17 @@ param(
  [object]$NativeCapture=$null
 )
 if($null -ne $NativeCapture){
- if($PolicyGeneration -cne 'CurrentB007InspectOnly' -or $Mode -cne 'Inspect' -or $NativeCapture.id -cnotmatch '^[a-f0-9]{32}$' -or $NativeCapture.schemaVersion -cne 'melisa-p03-native-inventory.v1'){throw 'P03_SAME_CAPTURE_SCOPE'}
+ if($PolicyGeneration -cnotin @('CurrentB007InspectOnly','CurrentB142Rehearsal') -or $Mode -cne 'Inspect' -or $NativeCapture.id -cnotmatch '^[a-f0-9]{32}$' -or $NativeCapture.schemaVersion -cne 'melisa-p03-native-inventory.v1'){throw 'P03_SAME_CAPTURE_SCOPE'}
  foreach($row in @($NativeCapture.all)+@($NativeCapture.allListeners)){if($row -isnot [Microsoft.Management.Infrastructure.CimInstance]){throw 'P03_SAME_CAPTURE_NATIVE_TYPE'}}
  foreach($row in @($NativeCapture.instances)){if(-not [Runtime.InteropServices.Marshal]::IsComObject($row)){throw 'P03_SAME_CAPTURE_COM_TYPE'}}
 }
 
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+ if($Mode-cne'Inspect'-or@('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count-or$EngineSha256-cne'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'-or$RecoveryHelperSha256-cne'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'-or$EnginePath-cnotmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'){throw 'P03_CURRENT_B142_REHEARSAL_ENTRY'}
+}
 # B264 is a separately selected read-only generation. Reject mutation inputs
 # before any import, file, owner, SQL or COM access (including empty bound args).
-if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){throw 'P03_B264_POLICY_GENERATION'}
+if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly','CurrentB142Rehearsal')){throw 'P03_B264_POLICY_GENERATION'}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
  if($Mode -cne 'Inspect' -or @('ClaimPath','ClaimSha256','AdmittedSnapshotPath','AdmittedSnapshotSha256','StopIntentPath','StopIntentSha256'|Where-Object{$PSBoundParameters.ContainsKey($_)}).Count){throw 'P03_B264_INSPECT_ONLY'}
  if($EngineSha256 -cne $(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}else{'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}) -or $RecoveryHelperSha256 -cne 'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'){throw 'P03_B264_INSPECTION_SOURCE'}
@@ -56,7 +62,7 @@ foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Uti
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_SUCCESSOR_OWNER'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$predecessor='639e2da815e1e7ac0f1c0d04d7f7bdc3'
-$engineSha=if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}elseif($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
+$engineSha=if($PolicyGeneration -cin @('CurrentB007InspectOnly','CurrentB142Rehearsal')){'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'}elseif($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){'99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def'}else{'fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037'}
 function ReadWorkerPin([string]$path,[string]$sha){
  if($sha -cnotmatch '\A[a-f0-9]{64}\z' -or -not [IO.Path]::IsPathRooted($path) -or [IO.Path]::GetFullPath($path) -cne $path){throw 'P03_SUCCESSOR_PIN_SCOPE'}
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'P03_SUCCESSOR_REPARSE'}}
@@ -84,6 +90,7 @@ ImportWorkerFunctions (ReadWorkerPin $RecoveryHelperPath $RecoveryHelperSha256) 
 $profile=Json (ReadWorkerPin $ProfilePath $ProfileSha256);$before=Json (ReadWorkerPin $BeforeImagePath $BeforeImageSha256)
 $runId=$before.runId;$dir=Join-Path $base ('MelisaERP-P03-transition-'+$runId)
 $Environment='Shared';$isRehearsal=$false;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$ports=@(4184,4186,5234,62700,62701,62702,62703,62704);$database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
+if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$base='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018';$runRoot=Join-Path $base ('run-'+$runId);$dir=$runRoot;$Environment='Rehearsal';$isRehearsal=$true;$names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');$ports=@(4284,4286,5334,62710,62711,62712,62713,62714);$database='MELISA_ERP_P03_RESTORE_TEST_20261018_01';function PrepareProbeSource{};function ProbeAuxiliaries($inventory){return @()}}
 $order=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')
 $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256);$newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
 $currentReadRepair=($profile.oldSettings.sha256 -ceq 'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071' -and $profile.oldSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json' -and $profile.newSettings.path -ceq 'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json');if($currentReadRepair){$predecessor='7b0821959737f1da0427b17a7dfd4685'}
@@ -95,6 +102,61 @@ $script:cutWitnessCommitted=$false
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 # Pure finite envelope reused by the normal physical collector. This function
 # performs no IO and does not grant admission/claim/stop/Apply authority.
+function AssertCurrentB142RehearsalContract($profile,$before,$oldSettings,$newSettings,[string]$profilePath,[string]$beforePath,[string]$beforeSha){
+ # Separate finite fixture contract; this never admits Shared identities or history.
+ function RNeed($value){if(-not$value){throw 'P03_CURRENT_B142_REHEARSAL_SCOPE'}}
+ function RSame($a,$b){return ($a|ConvertTo-Json -Depth 20 -Compress)-ceq($b|ConvertTo-Json -Depth 20 -Compress)}
+ $fixtureBase='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018';$fixtureOwner='S-1-5-21-2170750028-1005938530-2568122015-1001'
+ RNeed ($before.runId-cmatch'\A[a-f0-9]{32}\z');$fixtureRoot=Join-Path $fixtureBase ('run-'+$before.runId)
+ RNeed ($profilePath-ceq(Join-Path $fixtureRoot 'profile.json')-and$beforePath-ceq(Join-Path $fixtureRoot 'before.json')-and$profile.beforeImage.path-ceq$beforePath-and$profile.beforeImage.sha256-ceq$beforeSha)
+ foreach($value in @($profile,$before,$oldSettings,$newSettings)){RNeed ($value.environment-ceq'P03_REHEARSAL'-and$value.ownerSid-ceq$fixtureOwner-and$value.database-ceq'MELISA_ERP_P03_RESTORE_TEST_20261018_01')}
+ foreach($value in @($before,$oldSettings,$newSettings)){RNeed ($value.copyId-ceq'P03-RECOVERY-REHEARSAL-20261018'-and$value.actualT1-ceq$false)}
+ RNeed ($profile.schemaVersion-ceq'melisa-p03-physical-profile.v1'-and$before.schemaVersion-ceq'melisa-p03-owner-observation.v3'-and(RSame $before.oldConfig $profile.oldSettings)-and(RSame $before.newConfig $profile.newSettings))
+ RNeed ($profile.oldSettings.path-ceq(Join-Path $fixtureRoot 'settings-old.json')-and$profile.newSettings.path-ceq(Join-Path $fixtureRoot 'settings-new.json')-and$profile.oldSettings.sha256-cmatch'\A[a-f0-9]{64}\z'-and$profile.newSettings.sha256-cmatch'\A[a-f0-9]{64}\z'-and$profile.oldSettings.sha256-cne$profile.newSettings.sha256)
+ RNeed ($profile.shell.path-ceq'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'-and$profile.shell.sha256-cmatch'\A[a-f0-9]{64}\z')
+ $fixtureRoles=@('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative');$fixtureTasks=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')
+ RNeed ((@($before.identities.PSObject.Properties.Name|Sort-Object)-join'|')-ceq(($fixtureRoles|Sort-Object)-join'|')-and@($profile.oldWatchers).Count-eq2)
+ $all=@($before.identities.PSObject.Properties|ForEach-Object{$_.Value})+@($profile.oldWatchers);RNeed (@($all|Select-Object -ExpandProperty pid -Unique).Count-eq10)
+ foreach($pin in $all){RNeed ($pin.pid-notin@($profile.protectedProcesses|ForEach-Object{$_.pid})-and$pin.pid-gt0-and$pin.ownerSid-ceq$fixtureOwner-and$pin.creationTime-is[string]-and[DateTime]::Parse($pin.creationTime).ToUniversalTime()-le[DateTime]::Parse($before.observedAt).ToUniversalTime())}
+ RNeed (@($profile.tasks).Count-eq2-and(@($profile.tasks.name|Sort-Object)-join'|')-ceq(($fixtureTasks|Sort-Object)-join'|')-and@($before.tasks).Count-eq2-and(@($before.tasks.name|Sort-Object)-join'|')-ceq(($fixtureTasks|Sort-Object)-join'|'))
+ RNeed ($profile.journalDirectory-ceq(Join-Path $fixtureRoot 'recovery')-and$profile.stopper.path-ceq(Join-Path $fixtureRoot 'stop-exact-observed-process.ps1')-and$profile.stopper.sha256-ceq'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d')
+ RNeed (@($profile.packages).Count-eq2-and@($profile.candidateRules).Count-eq10-and@($profile.candidateRules.role|Sort-Object -Unique).Count-eq10)
+ foreach($generation in @('old','new')){
+  $settings=if($generation-ceq'old'){$oldSettings}else{$newSettings};$packageRoot=Join-Path $fixtureRoot ('packages\'+$generation)
+  RNeed ($settings.generation-ceq$generation-and$settings.runtimeDirectory-ceq$fixtureRoot-and$settings.node.path-ceq'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'-and$settings.node.sha256-ceq'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237')
+  foreach($component in @($settings.components.PSObject.Properties|ForEach-Object{$_.Value})+@($settings.supervisor)){RNeed ($component.packageRoot-ceq$packageRoot-and$component.sourceCommit-cmatch'\A[a-f0-9]{40}\z'-and$component.manifestSha256-cmatch'\A[a-f0-9]{64}\z'-and$component.config.path-ceq(Join-Path $packageRoot 'fixture-config.json')-and$component.config.sha256-cmatch'\A[a-f0-9]{64}\z')}
+  $pins=@($profile.packages|Where-Object{$_.root-ceq$packageRoot});RNeed ($pins.Count-eq1-and$pins[0].manifestPath-ceq(Join-Path $packageRoot 'release-manifest.json')-and$pins[0].manifestSha256-ceq$settings.supervisor.manifestSha256-and$pins[0].sourceCommit-ceq$settings.supervisor.sourceCommit)
+ }
+ # The imported frozen Rehearsal classifier rechecks these protected Shared baselines physically.
+ RNeed (@($profile.protectedProcesses).Count-gt0-and@($profile.protectedBindings).Count-ge8-and@($profile.protectedTasks).Count-eq2-and(@($profile.protectedTasks.name|Sort-Object)-join'|')-ceq'Melisa-Hub-TEST-Web|Melisa-Terminal-Completion-Logon')
+}
+function AssertCurrentB142RehearsalFiles($profile,$oldSettings,$newSettings){
+ foreach($settingsRef in @($profile.oldSettings,$profile.newSettings)){[void](ReadPinned $settingsRef.path $settingsRef.sha256)}
+ foreach($pkg in $profile.packages){
+  $manifest=Json (ReadPinned $pkg.manifestPath $pkg.manifestSha256);Need ((PackageManifestSource $manifest $pkg)-ceq$pkg.sourceCommit-and$manifest.files.Count-eq4) 'REHEARSAL_MANIFEST'
+  $allowed=@('p03-rehearsal-fixture.mjs','p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1','fixture-config.json');Need ((@($manifest.files.path|Sort-Object)-join'|')-ceq(($allowed|Sort-Object)-join'|')) 'REHEARSAL_FILES'
+  foreach($file in $manifest.files){[void](ReadPinned (Join-Path $pkg.root $file.path) $file.sha256)}
+ }
+ foreach($task in $profile.tasks){Need ((XmlHash $task.oldXml)-ceq$task.oldXmlSha256-and(XmlHash $task.newXml)-ceq$task.newXmlSha256) 'REHEARSAL_TASK_HASH';RehearsalTaskAction $task.oldXml 'old' $task.name;RehearsalTaskAction $task.newXml 'new' $task.name}
+ foreach($rule in $profile.candidateRules){VerifyRule $rule}
+ foreach($role in @('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')){
+  $pin=$before.identities.$role;$expected=@($oldSettings.node.path,'--no-maglev',(Join-Path $oldSettings.supervisor.packageRoot 'p03-rehearsal-fixture.mjs'),'--role',$role,'--config',$oldSettings.supervisor.config.path,'--generation','old')
+  Need ($pin.nodePath-ceq$oldSettings.node.path-and((Tokens $pin.commandLine)|ConvertTo-Json -Compress)-ceq($expected|ConvertTo-Json -Compress)) 'REHEARSAL_OLD_ARGV'
+ }
+ foreach($index in 0,1){$name=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')[$index];$task=@($before.tasks|Where-Object{$_.name-ceq$name});Need ($task.Count-eq1-and$task[0].PSObject.Properties.Name-ccontains'enginePid') 'REHEARSAL_OLD_COM';$pin=@($profile.oldWatchers|Where-Object{$_.pid-eq$task[0].enginePid});Need ($pin.Count-eq1) 'REHEARSAL_OLD_WATCHER';$leaf=@('p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1')[$index];$expected=@($profile.shell.path,'-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $oldSettings.supervisor.packageRoot $leaf),'-StartupConfigPath',$profile.oldSettings.path,'-StartupConfigSha256',$profile.oldSettings.sha256);Need ($pin[0].nodePath-ceq$profile.shell.path-and((Tokens $pin[0].commandLine)|ConvertTo-Json -Compress)-ceq($expected|ConvertTo-Json -Compress)) 'REHEARSAL_OLD_WATCHER_ARGV'}
+ Need ($profile.cloneProof.path-ceq(Join-Path $runRoot 'clone-proof.json')-and$profile.cloneProof.sha256-ceq'e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353') 'REHEARSAL_CLONE_PROOF';[void](ReadPinned $profile.cloneProof.path $profile.cloneProof.sha256)
+}
+function AssertCurrentB142RehearsalClaim($claim,$profile,$before,[string]$profilePath,[string]$profileSha,[string]$beforePath,[string]$beforeSha,[string]$claimPath,[DateTime]$admissionTime,[bool]$recovery=$false){
+ function RClaimNeed($value){if(-not$value){throw 'P03_CURRENT_B142_REHEARSAL_CLAIM'}}
+ function RClaimSame($a,$b){return ($a|ConvertTo-Json -Depth 20 -Compress)-ceq($b|ConvertTo-Json -Depth 20 -Compress)}
+ $root=Join-Path 'C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018' ('run-'+$before.runId)
+ $keys=@('schemaVersion','runId','profileRef','beforeRef','newSettings','currentOwnerDigest','ownerObservedAt','stopOrderDigest','transitionAuthority','applyExecuted')
+ RClaimNeed ((@($claim.PSObject.Properties.Name|Sort-Object)-join'|')-ceq(($keys|Sort-Object)-join'|')-and$claim.schemaVersion-ceq'melisa-p03-current-b142-rehearsal-claim.v1'-and$claim.runId-ceq$before.runId-and$claimPath-ceq(Join-Path $root 'rehearsal-claim.json')-and$claim.transitionAuthority-ceq$true-and$claim.applyExecuted-ceq$false)
+ foreach($ref in @($claim.profileRef,$claim.beforeRef,$claim.newSettings)){RClaimNeed ((@($ref.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'path|sha256'-and$ref.sha256-cmatch'\A[a-f0-9]{64}\z')}
+ RClaimNeed ($claim.profileRef.path-ceq$profilePath-and$claim.profileRef.sha256-ceq$profileSha-and$claim.beforeRef.path-ceq$beforePath-and$claim.beforeRef.sha256-ceq$beforeSha-and(RClaimSame $claim.newSettings $profile.newSettings)-and$claim.currentOwnerDigest-cmatch'\A[a-f0-9]{64}\z'-and$claim.stopOrderDigest-cmatch'\A[a-f0-9]{64}\z')
+ $epoch=[DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime();RClaimNeed ($epoch-ge[DateTime]::Parse($before.observedAt).ToUniversalTime())
+ if(-not$recovery){$age=($admissionTime.ToUniversalTime()-$epoch).TotalSeconds;RClaimNeed ($age-ge0-and$age-lt60)}
+}
 function AssertCurrentB007InspectionContract($profile,$before,$oldSettings,$newSettings,[string]$profilePath,[string]$beforePath,[string]$beforeSha,[DateTime]$now){
  function B264Need($ok){if(-not $ok){throw 'P03_B264_INSPECTION_CONTRACT'}}
  function B264Same($a,$b){return ($a|ConvertTo-Json -Depth 20 -Compress) -ceq ($b|ConvertTo-Json -Depth 20 -Compress)}
@@ -260,6 +322,13 @@ function WorkerSamePin($a,$b){
  return $null -ne $a -and $null -ne $b -and $a.pid -eq $b.pid -and $a.parentPid -eq $b.parentPid -and $a.ownerSid -ceq $b.ownerSid -and $a.nodePath -ceq $b.nodePath -and $a.commandLine -ceq $b.commandLine -and [DateTime]::Parse($a.creationTime).ToUniversalTime().Ticks -eq [DateTime]::Parse($b.creationTime).ToUniversalTime().Ticks
 }
 function WorkerAuthority{
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+  AssertCurrentB142RehearsalContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256
+  Need ($EnginePath-ceq(Join-Path $runRoot 'recovery-engine.ps1')) 'REHEARSAL_ENGINE'
+  foreach($pin in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($profile.oldSettings.path,$profile.oldSettings.sha256),@($profile.newSettings.path,$profile.newSettings.sha256))){[void](ReadWorkerPin $pin[0] $pin[1])}
+  AssertCurrentB142RehearsalFiles $profile $oldSettings $newSettings;return
+ }
+
  if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
   foreach($entry in @(@($EnginePath,$(if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){'p03-physical-rollback-lifetime-v2.ps1'}else{'p03-physical-rollback.ps1'})),@($RecoveryHelperPath,'p03-pr54-paused-old-recover.ps1'))){Need ($entry[0].StartsWith($base+'\',[StringComparison]::Ordinal) -and [IO.Path]::GetFileName($entry[0]) -ceq $entry[1]) 'B264_HELPER_SCOPE'}
   foreach($r in @(@($ProfilePath,$ProfileSha256),@($BeforeImagePath,$BeforeImageSha256),@($EnginePath,$engineSha),@($RecoveryHelperPath,$RecoveryHelperSha256),@($profile.oldSettings.path,$profile.oldSettings.sha256),@($profile.newSettings.path,$profile.newSettings.sha256))){[void](ReadWorkerPin $r[0] $r[1])}
@@ -396,14 +465,14 @@ function CaptureWorkerAdmissionCore($capturedInventory=$null){
  # shortest-lived rows first; sorting retains the entire unfiltered frame.
  $expectedParents=@($order|ForEach-Object{$before.identities.$_})+@($profile.oldWatchers)
  $auditFrame=$null
- if($null-ne$capturedInventory){$auditNative=Get-Variable -Name sameCaptureAuditContext -Scope Script -ValueOnly -ErrorAction SilentlyContinue;Need ($null-ne$auditNative-and[object]::ReferenceEquals($auditNative,$capturedInventory)) 'SAME_CAPTURE_AUDIT_CONTEXT';$auditFrame=CurrentSameCaptureAuditFrame $capturedInventory}
+ if($null-ne$capturedInventory){$auditNative=Get-Variable -Name sameCaptureAuditContext -Scope Script -ValueOnly -ErrorAction SilentlyContinue;Need ($null-ne$auditNative-and[object]::ReferenceEquals($auditNative,$capturedInventory)) 'SAME_CAPTURE_AUDIT_CONTEXT';if($PolicyGeneration-ceq'CurrentB142Rehearsal'){Need (@($capturedInventory.readOnlyAudits.audits).Count-eq0-and[object]::ReferenceEquals($capturedInventory.readOnlyAudits.capture,$capturedInventory)) 'REHEARSAL_NATIVE_CONTEXT';$auditFrame=[pscustomobject]@{all=$capturedInventory.all;auditedPids=@()}}else{$auditFrame=CurrentSameCaptureAuditFrame $capturedInventory}}
  $classificationAll=if($null-ne$auditFrame){$auditFrame.all}else{$inv.all}
  $auxInventory=[pscustomobject]@{all=@($classificationAll|Sort-Object CreationDate -Descending);allListeners=$inv.allListeners;listeners=$inv.listeners;instances=$inv.instances}
  $probes=@(ProbeAuxiliaries $auxInventory);$aux=@(ConsoleAuxiliaries $auxInventory @($expectedParents+$probes));$aux+=@($probes|ForEach-Object{$_.pid})
  ProtectedProcesses $inv
  $protectedPins=@();if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$protectedPins=@(GetCurrentB007ProtectedConsolePins $(if($null-ne$auditFrame){$auxInventory}else{$inv}))}
  Need ($inv.instances.Count -eq 2 -and @($profile.tasks).Count -eq 2 -and @($profile.oldWatchers).Count -eq 2) 'SUCCESSOR_CAPTURE_COM'
- $selected=@();foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'SUCCESSOR_CAPTURE_APP';$selected+=,$e}
+ $selected=@();foreach($role in $order){$e=$before.identities.$role;$p=@($inv.all|Where-Object{$_.ProcessId -eq $e.pid});Need ($p.Count -eq 1 -and (Identity $p[0] $e)) 'SUCCESSOR_CAPTURE_APP';if($PolicyGeneration-ceq'CurrentB142Rehearsal'){RehearsalBindings $role $e $inv};$selected+=,$e}
  foreach($entry in $profile.tasks){
   Need ($entry.name -cin $names) 'SUCCESSOR_CAPTURE_TASK_NAME';$t=if($null -eq $capturedInventory){$folder.GetTask($entry.name)}else{$matches=@($capturedInventory.tasks|Where-Object{$_.name -ceq $entry.name});Need ($matches.Count -eq 1) 'SAME_CAPTURE_TASK_COUNT';$matches[0]};Need ([int]$t.State -eq 4 -and (XmlHash ([string]$t.Xml)) -ceq $entry.oldXmlSha256) 'SUCCESSOR_CAPTURE_TASK'
   $instances=@($inv.instances|Where-Object{$_.Name -ceq $entry.name});Need ($instances.Count -eq 1 -and [int]$instances[0].State -eq 4 -and [string]$instances[0].Path -ceq ('\'+$entry.name)) 'SUCCESSOR_CAPTURE_INSTANCE'
@@ -417,6 +486,7 @@ function CaptureWorkerAdmissionCore($capturedInventory=$null){
  if($null-ne$auditFrame){Need (@($script:probePins.Keys|Where-Object{$_-in$auditFrame.auditedPids}).Count-eq0-and@($script:consolePins.Keys|Where-Object{$_-in$auditFrame.auditedPids}).Count-eq0) 'SAME_CAPTURE_AUDIT_NOT_OWNED'}
  AssertWorkerBindings $inv @($order|ForEach-Object{$before.identities.$_})
  $frame=[ordered]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;recoveryHelperSha256=$RecoveryHelperSha256;observedAt=[DateTime]::UtcNow.ToString('o');oldIdentities=@($order|ForEach-Object{$before.identities.$_});oldWatchers=@($profile.oldWatchers);consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values)}
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$frame['environment']='P03_REHEARSAL'}
  if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$frame['protectedConsolePins']=@($protectedPins)}
  return $frame
 }
@@ -424,6 +494,7 @@ function CaptureWorkerAdmission{
  for($attempt=0;$attempt -lt 3;$attempt++){try{return CaptureWorkerAdmissionCore}catch{if($_.Exception.Message -cne 'P03_PAUSED_PROBE_EXIT_RECAPTURE'){throw};if($attempt -eq 2){throw 'P03_SUCCESSOR_PROBE_RECAPTURE_EXHAUSTED'}}}
 }
 function SeedWorkerAdmission($snapshot){
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){Need ($snapshot.environment-ceq'P03_REHEARSAL'-and@($snapshot.probePins).Count-eq0) 'REHEARSAL_SNAPSHOT_SCOPE'}
  Need ($snapshot.schemaVersion -ceq 'melisa-p03-successor-precut-admission.v1' -and $snapshot.profileSha256 -ceq $ProfileSha256 -and $snapshot.beforeSha256 -ceq $BeforeImageSha256 -and $snapshot.engineSha256 -ceq $engineSha -and $snapshot.recoveryHelperSha256 -ceq $RecoveryHelperSha256) 'SUCCESSOR_SNAPSHOT'
  $age=([DateTime]::UtcNow-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime()).TotalSeconds;Need ($age -ge 0 -and $age -lt 60) 'SUCCESSOR_SNAPSHOT_FRESH'
  Need (@($snapshot.oldIdentities).Count -eq 8 -and @($snapshot.oldWatchers).Count -eq 2 -and @($snapshot.consolePins).Count -le 64 -and @($snapshot.probePins).Count -le 64) 'SUCCESSOR_SNAPSHOT_COUNT'
@@ -505,7 +576,7 @@ function DrainWorkerCore{
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
 WorkerAuthority
-if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){$frame=if($null -eq $NativeCapture){CaptureWorkerAdmission}else{CaptureWorkerAdmissionCore $NativeCapture};$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;if($null -ne $NativeCapture){$frame['captureId']=$NativeCapture.id;return $frame};$frame|ConvertTo-Json -Depth 14 -Compress;return}
+if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly','CurrentB142Rehearsal')){$frame=if($null -eq $NativeCapture){CaptureWorkerAdmission}else{CaptureWorkerAdmissionCore $NativeCapture};$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$frame['environment']='P03_REHEARSAL'};$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;if($null -ne $NativeCapture){$frame['captureId']=$NativeCapture.id;return $frame};$frame|ConvertTo-Json -Depth 14 -Compress;return}
 if($Mode -cin @('Inspect','Capture')){CaptureWorkerAdmission|ConvertTo-Json -Depth 14 -Compress;return}
 DrainWorkerCore|ConvertTo-Json -Depth 8 -Compress
 

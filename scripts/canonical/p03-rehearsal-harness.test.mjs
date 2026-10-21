@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_FILE_ATTRIBUTES_V1_ENGINE,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_CURRENT_B142_SCENARIOS,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
 
 // Reconstruct only the historical immutable engine fixture. Production selects sealed bytes.
@@ -119,7 +119,7 @@ test('explicit B264V2 mode selects only the same frozen private engine and prese
  // Synthetic frozen-runtime fixture only: remove the additive source recorder; production pins stay99b.
  const directory=String.raw`C:\synthetic\scripts\canonical`,v2=Buffer.from(historicalEngine().replace(/^# P03_FAILURE_RECORD_BEGIN\n[\s\S]*?^# P03_FAILURE_RECORD_END\n/gm,'')),calls=[];
  const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,fs:{lstatSync:file=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:file=>{calls.push(file);return file===P03_B264_V2_ENGINE.path?v2:Buffer.from('fixture:'+path.win32.basename(file));}}};
- const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=mode=>JSON.parse(JSON.stringify(make(directory,mode)));
+ context.P03_CURRENT_B142_SCENARIOS=P03_CURRENT_B142_SCENARIOS;const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=mode=>JSON.parse(JSON.stringify(make(directory,mode)));
  const dry=fresh('B264V2DryRun'),run=fresh('B264V2Run'),legacy=fresh('DryRun');
  assert.equal(dry.mode,'DryRun');assert.equal(run.mode,'Run');assert.equal(dry.engineGeneration,'B264V2');assert.deepEqual(dry.engine,P03_B264_V2_ENGINE);assert.deepEqual(run.engine,P03_B264_V2_ENGINE);assert.deepEqual(dry.cloneProof,legacy.cloneProof);assert.deepEqual(dry.files,legacy.files);assert.equal(Object.hasOwn(legacy,'engineGeneration'),false);assert.equal(legacy.engine.path,path.win32.join(directory,'p03-physical-rollback.ps1'));
  assert.equal(crypto.createHash('sha256').update(v2).digest('hex'),P03_B264_V2_ENGINE.sha256);
@@ -160,7 +160,7 @@ test('failure-record candidate is a separate exact selection, with no staging, f
  const directory=String.raw`C:\synthetic\scripts\canonical`,reads=[];
  let candidateBytes=revised,missing=false;
  const context={path:path.win32,crypto,Buffer,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,fs:{lstatSync:()=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:p=>{reads.push(p);if(p===P03_FAILURE_RECORD_V1_ENGINE.path){if(missing)throw Error('FIXTURE_MISSING_CANDIDATE');return candidateBytes;}if(p===P03_B264_V2_ENGINE.path)return old;return Buffer.from('fixture:'+path.win32.basename(p));}}};
- const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=m=>JSON.parse(JSON.stringify(make(directory,m)));
+ context.P03_CURRENT_B142_SCENARIOS=P03_CURRENT_B142_SCENARIOS;const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),fresh=m=>JSON.parse(JSON.stringify(make(directory,m)));
  for(const mode of ['DryRun','Run']){
   reads.length=0;const result=fresh('FailureRecordV1'+mode);assert.equal(result.mode,mode);assert.equal(result.engineGeneration,'FailureRecordV1');assert.deepEqual(result.engine,P03_FAILURE_RECORD_V1_ENGINE);assert.equal(reads.filter(x=>x===P03_FAILURE_RECORD_V1_ENGINE.path).length,1);assert.ok(!reads.includes(P03_B264_V2_ENGINE.path));
   const legacy=fresh(mode),frozen=fresh('B264V2'+mode);assert.deepEqual(result.files,legacy.files);assert.deepEqual(result.cloneProof,frozen.cloneProof);assert.deepEqual(frozen.engine,P03_B264_V2_ENGINE);
@@ -205,4 +205,39 @@ try{&$parameters -Mode DryRun -EngineGeneration FailureRecordV1 -EnginePath priv
 `;
  const r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
  assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.match(r.stdout,/PARAMS_BOUND/);assert.equal((r.stdout.match(/REJECTED/g)??[]).length,4);
+});
+
+test('CurrentB142 rehearsal exposes only four finite scenarios and retains the legacy default',()=>{
+ for(const scenario of P03_CURRENT_B142_SCENARIOS)for(const suffix of ['Run','DryRun'])assert.equal(parseP03RehearsalMode(['--CurrentB142'+scenario+suffix]),'CurrentB142'+scenario+suffix);
+ for(const args of [['--CurrentB142Run'],['--CurrentB142NormalApply'],['--CurrentB142normalRun'],['--CurrentB142NormalRun','--Run']])assert.throws(()=>parseP03RehearsalMode(args),/P03_REHEARSAL_MODE/);
+ assert.equal(parseP03RehearsalMode([]),'DryRun');
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
+ assert.match(source,/status='CURRENT_B142_REHEARSAL_SCENARIO_READY'/);
+ assert.match(source,/\$before\['runId'\]=\$runId/);assert.match(source,/p03TransitionDigest\(x\)/);
+ assert.match(source,/partial=\(\$generation-ceq'new'-and\(\$EngineGeneration-cne'CurrentB142Rehearsal'-or\$RehearsalScenario-ceq'PartialNew'\)\)/);
+ assert(source.indexOf('QuiesceCurrentRehearsal\n $report=')>source.indexOf("Journal 'CURRENT_SCENARIO_VERIFIED'"));
+ assert.match(source,/MelisaERP-P03-current-b007-control-6213b2c673ca\\p03-pr54-new-owner-empty-recovery\.ps1/);
+ assert.doesNotMatch(source,/MelisaERP-P03-b264-sup20d-control-0ddaf85067d6/);
+});
+
+test('CurrentB142 driver cleanup refuses foreign scope, changed protection, partial and duplicate captured identities before mutation',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),start=source.indexOf('function QuiesceCurrentRehearsal{'),end=source.indexOf("\nNeed ([Security.Principal.WindowsIdentity]",start),body=source.slice(start,end);
+ assert.match(body,/OpenRehearsalOldHandle/);assert.match(body,/CURRENT_CLEANUP_ARGV/);assert.match(body,/CURRENT_CLEANUP_COM/);assert.match(body,/CURRENT_CLEANUP_DELETE_CAS/);assert.match(body,/\.DeleteTask\(\$entry\.name,0\)/);assert.match(body,/rehearsal-cleanup-before\.json/);assert.doesNotMatch(body,/'before\.json'|'profile\.json'|Stop-Process|Remove-Item|Restore/);
+ const program=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
+ function Need($v,$code){if(-not$v){throw $code}}
+ function ProtectedSnapshot{return 'protected'};function Bytes($x){return $x};function Hash($x){return $x}
+ function Snapshot{return $script:fresh}
+ function Get-CimInstance{throw 'MUTATION_BOUNDARY_REACHED'}
+ ${body}
+ $EngineGeneration='CurrentB142Rehearsal';$runRoot='C:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-${'a'.repeat(32)}';$protectedBeforeSha='protected'
+ function Full{$script:fresh=@{processes=@(1..8|ForEach-Object{@{pid=$_}});watchers=@(@{pid=9},@{pid=10});tasks=@(@{},@{});listeners=@(1..8)}}
+ $checks=0
+ foreach($bad in @('Shared','FileAttributesV1','')){Full;$EngineGeneration=$bad;try{QuiesceCurrentRehearsal;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_CLEANUP_SCOPE'){throw}};$checks++};$EngineGeneration='CurrentB142Rehearsal'
+ $saved=$runRoot;$runRoot='C:\\Sirket\\ERP\\runtime\\Shared';try{QuiesceCurrentRehearsal;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_CLEANUP_SCOPE'){throw}};$runRoot=$saved;$checks++
+ Full;$protectedBeforeSha='changed';try{QuiesceCurrentRehearsal;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_CLEANUP_PROTECTED'){throw}};$protectedBeforeSha='protected';$checks++
+ foreach($count in 0..7){Full;$script:fresh.processes=@(1..8|Select-Object -First $count|ForEach-Object{@{pid=$_}});try{QuiesceCurrentRehearsal;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_CLEANUP_FULL_GENERATION'){throw}};$checks++}
+ Full;$script:fresh.watchers=@(@{pid=1},@{pid=10});try{QuiesceCurrentRehearsal;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_CLEANUP_DUPLICATE'){throw}};$checks++
+ if($checks-ne14){throw 'FIXTURE_COUNT'};'CURRENT_CLEANUP_14_NEGATIVE_PASS'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/CURRENT_CLEANUP_14_NEGATIVE_PASS/);
 });

@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import vm from 'node:vm';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_B264_V2_ENGINE} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_B264_V2_ENGINE,P03_CURRENT_B142_SCENARIOS} from './p03-rehearsal-harness.mjs';
 test('fresh-attributes rehearsal selects only exact new bytes; old frozen modes retain their pins',()=>{
  for(const mode of ['DryRun','Run'])assert.equal(parseP03RehearsalMode(['--FileAttributesV1'+mode]),'FileAttributesV1'+mode);
  for(const args of [['--FileAttributesV1'],['--fileattributesv1run'],['--FileAttributesV1Run','--engine'],['--FileAttributesV1Run-extra']])assert.throws(()=>parseP03RehearsalMode(args));
@@ -15,7 +15,7 @@ test('fresh-attributes rehearsal selects only exact new bytes; old frozen modes 
  const historical=Buffer.from(candidate.toString().replace('{Need (([IO.File]::GetAttributes($part) -band','{$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band'));
  assert.equal(crypto.createHash('sha256').update(historical).digest('hex'),P03_FAILURE_RECORD_V1_ENGINE.sha256);
  let bytes=candidate;const reads=[];
- const context={path:path.win32,crypto,Buffer,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_B264_V2_ENGINE,fs:{lstatSync:()=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:p=>{reads.push(p);if(p===P03_FILE_ATTRIBUTES_V1_ENGINE.path)return bytes;if(p===P03_FAILURE_RECORD_V1_ENGINE.path)return historical;return Buffer.from('fixture:'+path.win32.basename(p));}}};
+ const context={path:path.win32,crypto,Buffer,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_B264_V2_ENGINE,P03_CURRENT_B142_SCENARIOS,fs:{lstatSync:()=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:p=>{reads.push(p);if(p===P03_FILE_ATTRIBUTES_V1_ENGINE.path)return bytes;if(p===P03_FAILURE_RECORD_V1_ENGINE.path)return historical;return Buffer.from('fixture:'+path.win32.basename(p));}}};
  const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),dir=String.raw`C:\synthetic\scripts\canonical`;
  for(const mode of ['DryRun','Run']){reads.length=0;const r=JSON.parse(JSON.stringify(make(dir,'FileAttributesV1'+mode)));assert.equal(r.mode,mode);assert.equal(r.engineGeneration,'FileAttributesV1');assert.deepEqual(r.engine,P03_FILE_ATTRIBUTES_V1_ENGINE);assert.equal(reads.filter(p=>p===P03_FILE_ATTRIBUTES_V1_ENGINE.path).length,1);assert(!reads.includes(P03_FAILURE_RECORD_V1_ENGINE.path));assert.deepEqual(JSON.parse(JSON.stringify(make(dir,'FailureRecordV1'+mode))).engine,P03_FAILURE_RECORD_V1_ENGINE);}
  for(const bad of [historical,Buffer.from('changed'),Buffer.from(candidate.toString().replaceAll('\n','\r\n'))]){bytes=bad;assert.throws(()=>make(dir,'FileAttributesV1Run'),/P03_REHEARSAL_FILE_ATTRIBUTES_ENGINE/);}

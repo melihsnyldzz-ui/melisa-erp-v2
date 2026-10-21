@@ -85,7 +85,9 @@ async function runOrderedOwnerTransition({plan,admit,persist,stopTasks,tasksStop
 
 // B264 successor: the durable core intent precedes the worker that holds the
 // exact core handle and then stops COM. Legacy callbacks keep their old order.
-export async function runP03HeldCoreOwnerTransition({plan,admit,persist,heldCoreCut,tasksStopped,stopExact,absent,portsClear,setAction,actionsEqual,startTasks,readback,restoreOldActions}){
+export async function runP03HeldCoreOwnerTransition({environment='Shared',plan,admit,persist,heldCoreCut,tasksStopped,stopExact,absent,portsClear,setAction,actionsEqual,startTasks,readback,restoreOldActions}){
+ check(environment==='Shared'||environment==='Rehearsal');
+ const heldTaskNames=environment==='Rehearsal'?['Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub']:taskNames;
  check(own(plan,['digest','targets','oldSettingsSha256','newSettingsSha256'])&&plan.digest===p03TransitionDigest(plan));
  const stopOrderDigest=p03CoreFirstStopDigest(plan);
  for(const fn of [admit,persist,heldCoreCut,tasksStopped,stopExact,absent,portsClear,setAction,actionsEqual,startTasks,readback,restoreOldActions])check(typeof fn==='function');
@@ -108,7 +110,7 @@ export async function runP03HeldCoreOwnerTransition({plan,admit,persist,heldCore
    check(await absent(target)===true);await save('EXACT_STOPPED',target);
   }
   phase='PORTS_CLEAR';check(await portsClear()===true&&await tasksStopped()===true);await save('PORTS_CLEAR');
-  for(const name of taskNames){
+  for(const name of heldTaskNames){
    await save('ACTION_INTENT',name);phase='ACTION_'+name;actionAttempted=true;
    check(await portsClear()===true&&await tasksStopped()===true&&await setAction(name,'new')===true);await save('ACTION_SET',name);
   }
