@@ -8,8 +8,10 @@ const original=fileURLToPath(new URL('./p03-pr54-b264-new-owner-recovery.ps1',im
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const q=s=>"'"+s.replaceAll("'","''")+"'";
 const windows={skip:process.platform!=='win32'};
-function run(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$text=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($text))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',windowsHide:true,timeout:20000,stdio:['pipe','pipe','pipe']});}
+function run(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-Command',"$ErrorActionPreference='Stop';try{& ([scriptblock]::Create([Console]::In.ReadToEnd()))}catch{[Console]::Error.WriteLine($_.Exception.Message);exit 1}"],{input:"Set-StrictMode -Version Latest\n"+code,encoding:'utf8',windowsHide:true,timeout:20000,stdio:['pipe','pipe','pipe']});}
 const parse=file=>`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(file)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};`;
+const cutFixtures=fs.readFileSync(new URL('./p03-pr54-current-b007-precut-cut.test.mjs',import.meta.url),'utf8');
+function rawFixture(name){const marker='const '+name+'=String.raw`',start=cutFixtures.indexOf(marker);assert(start>=0);return cutFixtures.slice(start+marker.length,cutFixtures.indexOf('\n`;',start));}
 test('new recovery is finite Current-only, requires pinned continuation, and leaves the historical adapters untouched',()=>{
  const text=fs.readFileSync(adapter,'utf8'),old=fs.readFileSync(original,'utf8');
  assert.match(text,/\[ValidateSet\('CurrentB007'\)\]\[string\]\$PolicyGeneration='CurrentB007'/);
@@ -23,8 +25,24 @@ test('new recovery is finite Current-only, requires pinned continuation, and lea
  assert(!old.includes('function Assert-CurrentB007Continuation'));
  assert(!old.includes('p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'));
 });
+test('recovery resume binds the unchanged452 claim and one-time pointer without postcut OLD-running or before-age requirements',windows,()=>{
+ const extraction=`${parse(adapter)}foreach($name in @('Same-B264Value','CurrentB007ResumeStable','AssertCurrentB007ResumeBinding','Assert-CurrentB007Continuation')){$defs=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($defs.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
+ const code=rawFixture('fixture')+'\n'+rawFixture('resumeFixture')+String.raw`
+function Require-NewDrain($value,$code){if(-not$value){throw ('P03_NEW_DRAIN_'+$code)}}
+function ReadPinned($path,$sha){return ,(ReadWorkerPin $path $sha)}
+function Same-B264Value($a,$b){return ($a|ConvertTo-Json -Depth 18 -Compress)-ceq($b|ConvertTo-Json -Depth 18 -Compress)}
+SetupResume;$PolicyGeneration='CurrentB007';Remove-Variable dir -ErrorAction SilentlyContinue
+$oldClaim=$claim|ConvertTo-Json -Depth 30 -Compress;Assert-CurrentB007Continuation
+$before.startedAt=[DateTime]::UtcNow.AddMinutes(-20).ToString('o');$before.observedAt=[DateTime]::UtcNow.AddMinutes(-19).ToString('o');$data[$context.retainedBeforeRef.path].observedAt=[DateTime]::UtcNow.AddMinutes(-30).ToString('o')
+Assert-CurrentB007Continuation;if(($claim|ConvertTo-Json -Depth 30 -Compress)-cne$oldClaim){throw 'CLAIM_CHANGED'};'RESUME_POSTCUT_NO_OLD_CLOCK_OR_RUNNING_CHECK'
+`;
+ assert.match(run(extraction+'\n'+code),/RESUME_POSTCUT_NO_OLD_CLOCK_OR_RUNNING_CHECK/);
+ for(const edit of ["$context.claimPath+='wrong'","$context.retainedBeforeRef.sha256='wrong'","$before.identities=@('changed')","$profile.tasks=@('changed')","$data.Remove((Join-Path $resumeDir 'resume-attempt.json'))","$resumeFiles+=,'successor-core-cut-completed.json'"]){
+  const out=run(extraction+'\n'+rawFixture('fixture')+'\n'+rawFixture('resumeFixture')+'\nfunction Require-NewDrain($v,$c){if(-not$v){throw $c}}\nfunction ReadPinned($p,$s){return ,(ReadWorkerPin $p $s)}\nfunction Same-B264Value($a,$b){return ($a|ConvertTo-Json -Depth 18 -Compress)-ceq($b|ConvertTo-Json -Depth 18 -Compress)}\nSetupResume;$PolicyGeneration=\'CurrentB007\';'+edit+";try{Assert-CurrentB007Continuation;throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}");assert.match(out,/REJECTED/);
+ }
+});
 test('PS5 parses the full adapter and every existing native recovery function except the claim binding remains byte-identical',windows,()=>{
- const out=run(`${parse(original)}$old=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+1)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cne'Assert-B264Claim'-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
+ const out=run(`${parse(original)}$old=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+3)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cne'Assert-B264Claim'-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
  assert.match(out,/PARSED_NATIVE_RECOVERY_UNCHANGED/);
 });
 test('PS5 pure continuation guard accepts only own fresh context and pinned retained claim/failure tail; no worker dispatcher runs',windows,()=>{

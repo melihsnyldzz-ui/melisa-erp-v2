@@ -10,6 +10,7 @@ import {PR54_OWNER_ROOT,PR54_B264_REFS,PR54_B264_SUCCESSOR_CLAIM_PATH,assertPr54
 import {validatePr54CurrentB007PhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
 import {PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH,PR54_CURRENT_B007_ENGINE_SHA256,assertPr54CurrentB007Candidate} from './p03-pr54-owner-successor.mjs';
 import {PR54_CURRENT_B007_PRECUT_REFS,PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH,preparePr54CurrentB007PrecutContinuation} from './p03-pr54-current-b007-precut-continuation.mjs';
+import {PR54_CURRENT_B007_PRECUT_RESUME_REFS,preparePr54CurrentB007PrecutResume} from './p03-pr54-current-b007-precut-continuation.mjs';
 const run=promisify(execFile),shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const bytes=x=>Buffer.from(JSON.stringify(x));
@@ -161,13 +162,18 @@ export function pr54CurrentB007InspectionArguments(input){
  const common=['-PolicyGeneration','CurrentB007InspectOnly','-ProfilePath',profileRef.path,'-ProfileSha256',profileRef.sha256,'-BeforeImagePath',beforeRef.path,'-BeforeImageSha256',beforeRef.sha256,'-EnginePath',engineRef.path,'-EngineSha256',engineRef.sha256,'-RecoveryHelperPath',recoveryHelperRef.path,'-RecoveryHelperSha256',recoveryHelperRef.sha256];
  return {observer:['-NoProfile','-NonInteractive','-File',observerRef.path,'-Environment','Shared','-Purpose','Physical',...common,'-DrainerPath',drainerRef.path,'-DrainerSha256',drainerRef.sha256],worker:['-NoProfile','-NonInteractive','-File',drainerRef.path,'-Mode','Inspect',...common]};
 }
-export async function inspectPr54CurrentB007PhysicalOwner(input,{precutContinuation=false}={}){
+export async function inspectPr54CurrentB007PhysicalOwner(input,{precutContinuation=false,precutResume=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
- need(typeof precutContinuation==='boolean','CONTINUATION_MODE');
+ need(typeof precutContinuation==='boolean'&&typeof precutResume==='boolean'&&!(precutContinuation&&precutResume),'CONTINUATION_MODE');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
  const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
  const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
  const claimSlot=()=>{
+  if(precutResume){
+   const original=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])),resume=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
+   preparePr54CurrentB007PrecutResume({raw:{original,resume},profileRef,beforeRef,profile,before});
+   need(!fs.existsSync(path.win32.join(path.win32.dirname(PR54_CURRENT_B007_PRECUT_RESUME_REFS.failureTail.path),'resume-attempt.json')),'RESUME_ALREADY_CONSUMED');return;
+  }
   if(precutContinuation){
    const raw=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
    preparePr54CurrentB007PrecutContinuation({raw,profileRef,beforeRef,profile,before});

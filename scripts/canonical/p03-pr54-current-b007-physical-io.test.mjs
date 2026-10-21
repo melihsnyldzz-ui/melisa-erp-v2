@@ -16,7 +16,7 @@ test('CurrentB007 full physical frame preserves ten identities, raw/COM/port/pro
 });
 
 import * as physical from './p03-pr54-b264-physical-io.mjs';
-import {PR54_CURRENT_B007_PRECUT_REFS,PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH} from './p03-pr54-current-b007-precut-continuation.mjs';
+import {PR54_CURRENT_B007_PRECUT_REFS,PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH,PR54_CURRENT_B007_PRECUT_RESUME_REFS} from './p03-pr54-current-b007-precut-continuation.mjs';
 test('CurrentB007 collector exists separately and rejects a fabricated admission token',()=>{assert.equal(typeof physical.pr54CurrentB007InspectionArguments,'function');assert.equal(typeof physical.inspectPr54CurrentB007PhysicalOwner,'function');assert.equal(physical.lookupPr54CurrentB007PhysicalInspection({},{}),null);});
 
 import vm from 'node:vm';import path from 'node:path';import {createHash} from 'node:crypto';
@@ -130,4 +130,23 @@ test('CurrentB007 continuation collector rejects retained bytes, preparer refusa
   const t=await continuationCollectorFixture();change(t);await assert.rejects(t.invoke(),error=>{assert.equal(t.lookup(error,{}),null);return true;});
   assert(!t.events.some(e=>Array.isArray(e)&&(e.includes('Drain')||e.includes('StopNew')||e.includes('RollbackOld'))));
  }
+});
+
+async function resumeCollectorFixture(){
+ const t=await collectorFixture(),context=t.context,read=context.read,raw=new Map(),attempt=path.win32.join(path.win32.dirname(PR54_CURRENT_B007_PRECUT_RESUME_REFS.failureTail.path),'resume-attempt.json');let validations=0;
+ context.path=path;context.PR54_CURRENT_B007_PRECUT_REFS=PR54_CURRENT_B007_PRECUT_REFS;context.PR54_CURRENT_B007_PRECUT_RESUME_REFS=PR54_CURRENT_B007_PRECUT_RESUME_REFS;
+ const refs=[...Object.values(PR54_CURRENT_B007_PRECUT_REFS),...Object.values(PR54_CURRENT_B007_PRECUT_RESUME_REFS)];for(const ref of refs)raw.set(ref.path,Buffer.from('modeled-'+ref.sha256));
+ context.read=ref=>{const fixed=refs.find(r=>r.path===ref.path);if(!fixed)return read(ref);assert.equal(ref.sha256,fixed.sha256);assert(raw.has(ref.path));return raw.get(ref.path);};
+ context.preparePr54CurrentB007PrecutResume=args=>{validations++;assert.equal(args.profileRef,t.f.profileRef);assert.equal(args.beforeRef,t.f.beforeRef);assert.deepEqual(Object.keys(args.raw),['original','resume']);for(const [group,pins]of [['original',PR54_CURRENT_B007_PRECUT_REFS],['resume',PR54_CURRENT_B007_PRECUT_RESUME_REFS]])for(const [key,ref]of Object.entries(pins)){assert.equal(args.raw[group][key].ref,ref);assert.equal(args.raw[group][key].bytes.toString(),'modeled-'+ref.sha256);}return {schemaVersion:'modeled-resume-binding-only'};};
+ context.fs.existsSync=p=>p!==attempt;
+ return {...t,raw,attempt,get validations(){return validations;},invoke:()=>vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutResume:true})',context)};
+}
+test('same452 resume collector authenticates existing immutable claim through genuine read-only pair and weak capability',async()=>{
+ const t=await resumeCollectorFixture(),r=await t.invoke();assert.equal(t.validations,3);assert.equal(r.claimCreated,false);assert.equal(r.applyExecuted,false);assert.equal(r.stopAuthority,false);
+ const args={current:r.current,profile:r.profile,before:r.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now};assert.equal(t.lookup(r.physicalInspection,args).length,3);assert.equal(t.lookup({...r.physicalInspection},args),null);
+ assert(!t.events.some(e=>Array.isArray(e)&&e.includes('Drain')));
+});
+test('same452 resume collector refuses missing/drifting claim, once-pointer, binding failure and mixed flags without token',async()=>{
+ for(const change of [t=>t.raw.delete(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.path),t=>t.raw.set(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.path,Buffer.from('changed')),t=>t.context.fs.existsSync=()=>true,t=>t.context.preparePr54CurrentB007PrecutResume=()=>{throw Error('BINDING_REJECTED');},t=>{let checks=0;t.context.fs.existsSync=p=>p!==t.attempt||++checks>=2;}]){const t=await resumeCollectorFixture();change(t);await assert.rejects(t.invoke());assert(!t.events.some(e=>Array.isArray(e)&&e.includes('Drain')));}
+ const t=await collectorFixture();await assert.rejects(vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutContinuation:true,precutResume:true})',t.context),/CONTINUATION_MODE/);
 });

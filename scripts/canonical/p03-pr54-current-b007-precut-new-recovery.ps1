@@ -127,12 +127,50 @@ function Assert-B264RecoveryCandidateTuple{
  Require-NewDrain ($claim.candidate.supervisorRoot -ceq 'C:\Sirket\ERP\releases\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-eb5b37a555cb') 'B264_SUPERVISOR_ROOT'
  }
 }
+function CurrentB007ResumeStable($value,[string[]]$excluded){$out=[ordered]@{};foreach($p in $value.PSObject.Properties){if($p.Name -cnotin $excluded){$out[$p.Name]=$p.Value}};return $out}
+function AssertCurrentB007ResumeBinding($context,$claim){
+ $resumeRun='452054204a1857ff618b0dd30a59caea';$resumeDir=Join-Path $base ('MelisaERP-P03-transition-'+$resumeRun)
+ $keys=@('schemaVersion','retainedClaimRef','failureTailRef','retainedProfileRef','retainedBeforeRef','profileRef','beforeRef','claimPath')
+ Require-NewDrain ((@($context.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|') -and $context.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1') 'CURRENT_RESUME_FIELDS'
+ $pins=@{
+  retainedClaimRef=@{path=(Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json');sha256='a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544'}
+  failureTailRef=@{path=(Join-Path $resumeDir 'event-0002.json');sha256='778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777'}
+  retainedProfileRef=@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$resumeRun+'.json'));sha256='4b808868f23ced8015aad4395a7c390017b374d3c23fe23d48fc6bf7f0397c39'}
+  retainedBeforeRef=@{path=(Join-Path $base ('MelisaERP-P03-before-'+$resumeRun+'.json'));sha256='23ae28bc8d01f644c9f56404c6b358bc57afec336bb82bb3ad19158f2bd11d3f'}
+  profileRef=@{path=$ProfilePath;sha256=$ProfileSha256}
+  beforeRef=@{path=$BeforeImagePath;sha256=$BeforeImageSha256}
+ }
+ Require-NewDrain ($runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cnotin @($resumeRun,'cffba2988afcb49502ae73ddd797e966') -and $context.claimPath -ceq $claimPath -and $claimPath -ceq $pins.retainedClaimRef.path -and $ClaimSha256 -ceq $pins.retainedClaimRef.sha256 -and $ContinuationPath -ceq (Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) 'precut-continuation.json')) 'CURRENT_RESUME_SCOPE'
+ foreach($key in $pins.Keys){$r=$context.$key;$e=$pins[$key];Require-NewDrain ((@($r.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'path|sha256' -and $r.path -ceq $e.path -and $r.sha256 -ceq $e.sha256) 'CURRENT_RESUME_REF';[void](ReadPinned $r.path $r.sha256)}
+ $retained=Json (ReadPinned $pins.retainedClaimRef.path $pins.retainedClaimRef.sha256);$retainedProfile=Json (ReadPinned $pins.retainedProfileRef.path $pins.retainedProfileRef.sha256);$retainedBefore=Json (ReadPinned $pins.retainedBeforeRef.path $pins.retainedBeforeRef.sha256)
+ Require-NewDrain ((Same-B264Value $retained $claim) -and $retained.successorRunId -ceq $resumeRun -and $retained.successorProfile.path -ceq $pins.retainedProfileRef.path -and $retained.successorProfile.sha256 -ceq $pins.retainedProfileRef.sha256 -and $retained.successorBefore.path -ceq $pins.retainedBeforeRef.path -and $retained.successorBefore.sha256 -ceq $pins.retainedBeforeRef.sha256) 'CURRENT_RESUME_RETAINED'
+ Require-NewDrain ($ProfilePath -ceq (Join-Path $base ('MelisaERP-P03-profile-'+$runId+'.json')) -and $BeforeImagePath -ceq (Join-Path $base ('MelisaERP-P03-before-'+$runId+'.json')) -and $before.runId -ceq $runId -and $retainedBefore.runId -ceq $resumeRun -and $profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256) 'CURRENT_RESUME_FRESH_REFS'
+ Require-NewDrain ((Same-B264Value (CurrentB007ResumeStable $profile @('beforeImage','businessDigest','journalDirectory','stopper')) (CurrentB007ResumeStable $retainedProfile @('beforeImage','businessDigest','journalDirectory','stopper'))) -and $profile.stopper.sha256 -ceq $retainedProfile.stopper.sha256 -and $profile.stopper.path -ceq (Join-Path $base ('MelisaERP-P03-stopper-'+$runId+'.ps1')) -and $profile.journalDirectory -ceq (Join-Path $base ('MelisaERP-P03-recovery-'+$runId))) 'CURRENT_RESUME_PROFILE_DRIFT'
+ Require-NewDrain (Same-B264Value (CurrentB007ResumeStable $before @('runId','startedAt','observedAt')) (CurrentB007ResumeStable $retainedBefore @('runId','startedAt','observedAt'))) 'CURRENT_RESUME_BEFORE_DRIFT'
+ Require-NewDrain ([DateTime]::Parse($before.startedAt).ToUniversalTime() -ge [DateTime]::Parse($retainedBefore.observedAt).ToUniversalTime() -and [DateTime]::Parse($before.startedAt).ToUniversalTime() -le [DateTime]::Parse($before.observedAt).ToUniversalTime()) 'CURRENT_RESUME_CLOCK_ORDER'
+ $attempt=Json (ReadPinned (Join-Path $resumeDir 'resume-attempt.json') $ContinuationSha256);Require-NewDrain (Same-B264Value $attempt $context) 'CURRENT_RESUME_ATTEMPT'
+ $allowed=@('b264-old-owner-cut-intent.json','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','p03-current-invariance-capture.ps1','p03-physical-recovery-observe.ps1','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-current-b007-precut-new-recovery.ps1','p03-pr54-new-owner-empty-recovery.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-paused-old-recover.ps1','p03-pr54-successor-core-drain.ps1','precut-continuation.json','successor-precut-admission.json','transition.lock','resume-attempt.json')
+ Require-NewDrain ((@((Get-ChildItem -LiteralPath $resumeDir -Force)|ForEach-Object{$_.Name}|Sort-Object)-join '|') -ceq (($allowed|Sort-Object)-join '|')) 'CURRENT_RESUME_OLD_SCOPE'
+ $lock=Json (ReadPinned (Join-Path $resumeDir 'transition.lock') '349cf763daa3c4cca0856640d48d82ed3c034325d0ad476b4019a31d7374eb73')
+ Require-NewDrain ($lock.profileRef.path -ceq $pins.retainedProfileRef.path -and $lock.profileRef.sha256 -ceq $pins.retainedProfileRef.sha256 -and $lock.beforeRef.path -ceq $pins.retainedBeforeRef.path -and $lock.beforeRef.sha256 -ceq $pins.retainedBeforeRef.sha256 -and $lock.successorClaimRef.path -ceq $pins.retainedClaimRef.path -and $lock.successorClaimRef.sha256 -ceq $pins.retainedClaimRef.sha256) 'CURRENT_RESUME_OLD_LOCK'
+ $priorContext=Json (ReadPinned (Join-Path $resumeDir 'precut-continuation.json') 'edd1499034512d99153cff12d787a041571195cc59e3a1b01f94bc00dea6b7c1')
+ Require-NewDrain ($priorContext.schemaVersion -ceq 'melisa-p03-current-b007-precut-continuation.v1' -and $priorContext.retainedClaimRef.path -ceq (Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json') -and $priorContext.retainedClaimRef.sha256 -ceq '3493a3538f95b72a5fa23823748b6dd947a5111f5dc4ba9b15015d6a91b9c408' -and $priorContext.failureTailRef.path -ceq (Join-Path $base 'MelisaERP-P03-transition-cffba2988afcb49502ae73ddd797e966\event-0002.json') -and $priorContext.failureTailRef.sha256 -ceq '87b537deb4eca741203055c35efb13ad6531e556d8c77a875d1e45d128583d82') 'CURRENT_RESUME_CFF_HISTORY'
+ $priorClaim=Json (ReadPinned $priorContext.retainedClaimRef.path $priorContext.retainedClaimRef.sha256);[void](ReadPinned $priorContext.failureTailRef.path $priorContext.failureTailRef.sha256)
+ Require-NewDrain ($priorClaim.successorProfile.path -ceq (Join-Path $base 'MelisaERP-P03-profile-cffba2988afcb49502ae73ddd797e966.json') -and $priorClaim.successorProfile.sha256 -ceq '7c3788d9dc97ae182adddec1b3b5f1106a6c408cc542ef00f8f6bc146ec4df8c' -and $priorClaim.successorBefore.path -ceq (Join-Path $base 'MelisaERP-P03-before-cffba2988afcb49502ae73ddd797e966.json') -and $priorClaim.successorBefore.sha256 -ceq 'd6aec6a904ca36bccccc2d295a770d8fae53ca3190b0b763e43788d2e3294f5c') 'CURRENT_RESUME_CFF_REFS'
+ [void](ReadPinned $priorClaim.successorProfile.path $priorClaim.successorProfile.sha256);[void](ReadPinned $priorClaim.successorBefore.path $priorClaim.successorBefore.sha256)
+ Require-NewDrain (@(Get-ChildItem -LiteralPath $retainedProfile.journalDirectory -Force).Count -eq 0) 'CURRENT_RESUME_OLD_JOURNAL'
+ $eventPins=@('18a78709172e036d3d9f452438af4cf9e21f39c89679271094447f44463da02a','741ea2a53a304ba27aff7bcade2548effa22a63e72ccbcf920189e4c6718330c','778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777');$eventPrevious=$pins.retainedBeforeRef.sha256
+ foreach($n in 0..2){$event=Json (ReadPinned (Join-Path $resumeDir ('event-'+$n.ToString('0000')+'.json')) $eventPins[$n]);Require-NewDrain ($event.sequence -eq $n -and $event.previousSha256 -ceq $eventPrevious -and $event.digest -ceq $retainedBefore.plan.digest -and $event.stopOrderDigest -ceq $claim.stopOrderDigest -and $event.profileSha256 -ceq $pins.retainedProfileRef.sha256 -and $event.beforeSha256 -ceq $pins.retainedBeforeRef.sha256 -and $event.event -ceq @('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$n]) 'CURRENT_RESUME_PINNED_EVENT';if($n -gt 0){Require-NewDrain ($event.target -ceq @('coreSupervisor','HELD_CORE_CUT')[$n-1]) 'CURRENT_RESUME_PINNED_TARGET'};$eventPrevious=$eventPins[$n]}
+ # No new owner timestamp or claim is created. The retained epoch is an anchor.
+ return [pscustomobject]@{runId=$resumeRun;profileRef=$pins.retainedProfileRef;beforeRef=$pins.retainedBeforeRef;before=$retainedBefore;profile=$retainedProfile}
+}
 function Assert-CurrentB007Continuation{
  Require-NewDrain ($PolicyGeneration -ceq 'CurrentB007' -and $runId -cmatch '\A[a-f0-9]{32}\z' -and $runId -cne 'cffba2988afcb49502ae73ddd797e966') 'CONTINUATION_RUN'
  $expectedClaim=Join-Path $base 'p03-pr54-current-b007-continuation-of-cffba2988afcb49502ae73ddd797e966.lock.json'
  $expectedContext=Join-Path (Join-Path $base ('MelisaERP-P03-transition-'+$runId)) 'precut-continuation.json'
  Require-NewDrain ($claimPath -ceq $expectedClaim -and $ContinuationPath -ceq $expectedContext -and $ContinuationSha256 -cmatch '\A[a-f0-9]{64}\z') 'CONTINUATION_PATH'
  $context=Json (ReadPinned $ContinuationPath $ContinuationSha256)
+ if($context.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1'){[void](AssertCurrentB007ResumeBinding $context $claim);return}
  $keys=@('schemaVersion','retainedClaimRef','failureTailRef','profileRef','beforeRef','claimPath')
  Require-NewDrain ((@($context.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|') -and $context.schemaVersion -ceq 'melisa-p03-current-b007-precut-continuation.v1' -and $context.claimPath -ceq $expectedClaim) 'CONTINUATION_FIELDS'
  $refs=@{
@@ -146,6 +184,9 @@ function Assert-CurrentB007Continuation{
 }
 function Assert-B264Claim{
  Assert-CurrentB007Continuation
+ $claimBinding=[pscustomobject]@{runId=$runId;profileRef=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};beforeRef=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};before=$before}
+ $bindingContext=Json (ReadPinned $ContinuationPath $ContinuationSha256)
+ if($bindingContext.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1'){$claimBinding=AssertCurrentB007ResumeBinding $bindingContext $claim}
  Assert-B264StopPlan
  $keys=@('schemaVersion','currentOwnerDigest','ownerObservedAt','protectedSqlEpoch','predecessorRunId','predecessorProfile','predecessorBefore','predecessorLock','consumedAncestorClaim','failedOuterTail','quarantinedRecoveryTail','readOnlyOldReady','successorRunId','successorProfile','successorBefore','newSettings','candidate','stopOrderDigest','transitionAuthority','applyExecuted')
  Require-NewDrain ((@($claim.PSObject.Properties.Name|Sort-Object)-join '|') -ceq (($keys|Sort-Object)-join '|')) 'B264_CLAIM_KEYS'
@@ -157,9 +198,9 @@ function Assert-B264Claim{
  Require-NewDrain ($claim.candidate.crmManifest -ceq $(if($PolicyGeneration -ceq 'CurrentB007'){'a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef'}else{'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83'})) 'B264_CRM_MANIFEST'
  Assert-B264RecoveryCandidateTuple
  Require-NewDrain (Same-B264Value $claim.candidate.newSettings $claim.newSettings) 'B264_CANDIDATE_SETTINGS'
- Require-NewDrain ($claim.schemaVersion -ceq $(if($PolicyGeneration -ceq 'CurrentB007'){'melisa-p03-current-b007-epoch-claim.v1'}else{'melisa-p03-b264-current-epoch-claim.v1'}) -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.successorRunId -ceq $runId) 'B264_CLAIM'
- Require-NewDrain ($claim.successorProfile.path -ceq $ProfilePath -and $claim.successorProfile.sha256 -ceq $ProfileSha256 -and $claim.successorBefore.path -ceq $BeforeImagePath -and $claim.successorBefore.sha256 -ceq $BeforeImageSha256 -and (Same-B264Value $claim.newSettings $profile.newSettings)) 'B264_CLAIM_BINDING'
- Require-NewDrain ($claim.currentOwnerDigest -cmatch '\A[a-f0-9]{64}\z' -and $claim.stopOrderDigest -cmatch '\A[a-f0-9]{64}\z' -and [DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime() -ge [DateTime]::Parse($before.observedAt).ToUniversalTime()) 'B264_EPOCH_DIGEST'
+ Require-NewDrain ($claim.schemaVersion -ceq $(if($PolicyGeneration -ceq 'CurrentB007'){'melisa-p03-current-b007-epoch-claim.v1'}else{'melisa-p03-b264-current-epoch-claim.v1'}) -and $claim.transitionAuthority -ceq $true -and $claim.applyExecuted -ceq $false -and $claim.predecessorRunId -ceq 'b264594b6f93d560d807c8decc4e6699' -and $claim.successorRunId -ceq $claimBinding.runId) 'B264_CLAIM'
+ Require-NewDrain ($claim.successorProfile.path -ceq $claimBinding.profileRef.path -and $claim.successorProfile.sha256 -ceq $claimBinding.profileRef.sha256 -and $claim.successorBefore.path -ceq $claimBinding.beforeRef.path -and $claim.successorBefore.sha256 -ceq $claimBinding.beforeRef.sha256 -and (Same-B264Value $claim.newSettings $profile.newSettings)) 'B264_CLAIM_BINDING'
+ Require-NewDrain ($claim.currentOwnerDigest -cmatch '\A[a-f0-9]{64}\z' -and $claim.stopOrderDigest -cmatch '\A[a-f0-9]{64}\z' -and [DateTime]::Parse($claim.ownerObservedAt).ToUniversalTime() -ge [DateTime]::Parse($claimBinding.before.observedAt).ToUniversalTime()) 'B264_EPOCH_DIGEST'
  $sql=@($profile.protectedProcesses|Where-Object{$_.PSObject.Properties.Name -ccontains 'kind' -and $_.kind -ceq 'ProtectedSqlService'})
  Require-NewDrain ($sql.Count -eq 1 -and (Same-B264Value $claim.protectedSqlEpoch $sql[0])) 'B264_SQL_EPOCH'
  Require-NewDrain ($claim.newSettings.path -ceq $(if($PolicyGeneration -ceq 'CurrentB007'){'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json'}else{'C:\Sirket\ERP\runtime\terminal-completion-logon\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json'})) 'B264_NEW_SETTINGS'

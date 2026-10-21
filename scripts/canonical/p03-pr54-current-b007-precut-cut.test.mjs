@@ -12,7 +12,7 @@ test('finite continuation adapter exists without changing the historical cut wor
 });
 const q=s=>"'"+s.replaceAll("'","''")+"'";
 const extract=`$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(source))},[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_PARSE'}
-foreach($name in @('B264Same','ContinuationKeys','ContinuationStable','AssertCurrentB007Continuation','AssertCurrentB007LiveAdmission','DrainB264OldOwner')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
+foreach($name in @('B264Same','ContinuationKeys','ContinuationStable','CurrentB007ResumeStable','AssertCurrentB007ResumeBinding','AssertCurrentB007Continuation','AssertCurrentB007LiveAdmission','DrainB264OldOwner')){$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq $name},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($defs[0].Extent.Text))}`;
 const fixture=String.raw`
 function Need($value,$code){if(-not $value){throw ('P03_PHYSICAL_'+$code)}}
 function Json($bytes){return [Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json}
@@ -80,6 +80,12 @@ test('native live frame rejects stale/future/foreign identities and cannot arriv
  for(let n=0;n<edits.length;n++)assert.match(output,new RegExp('CASE'+n+'=P03_PHYSICAL_'));
  const s=readFileSync(source,'utf8');assert(!s.slice(0,s.indexOf('\n)')).includes('continuationLiveAdmission'));
 });
+test('Drain SQL selection tolerates exactly the real mixed shape of one SQL and three nonSQL protected rows under StrictMode',()=>{
+ const s=readFileSync(source,'utf8'),authority=s.slice(s.indexOf('function B264CutAuthority{'),s.indexOf('function PausedRemainingCore{'));
+ const expression=authority.match(/@\(\$profile\.protectedProcesses\|Where-Object\{[^}]+\}\)\[0\]/)?.[0];assert(expression);
+ const out=run(`$profile=[pscustomobject]@{protectedProcesses=@([pscustomobject]@{kind='ProtectedSqlService';pid=900},[pscustomobject]@{pid=901},[pscustomobject]@{pid=902},[pscustomobject]@{pid=903})};$selected=${expression};if($selected.pid-ne900){throw 'FIXTURE_SQL_WRONG'};'EXACT_SQL_SELECTED'`);
+ assert.match(out,/EXACT_SQL_SELECTED/);
+});
 test('root snapshot remains pinned but genuine one-time native capture owns subsequent freshness within the unchanged PRECOM window',()=>{
  const code=liveFixture+String.raw`
 SetupLive
@@ -102,4 +108,40 @@ try{Set-Variable -Name continuationLiveAdmission -Scope Script -Value $null;'REN
  assert.match(out,/RESULT=FIXTURE_STOP_BEFORE_NATIVE_COM/);assert.match(out,/COM=1/);assert.match(out,/TRACE=SEED\|CAPTURE\|OWNER_DIGEST/);assert.match(out,/HELD=True/);assert.match(out,/DISPOSED=True/);assert.match(out,/READONLY_RENEWAL_REJECTED/);assert(!out.includes('\nRENEWED'));
  const expired=run(code.replace('$script:expiredPrecom=$false','$script:expiredPrecom=$true'));
  assert.match(expired,/RESULT=P03_PHYSICAL_B264_CUT_PRECOM_WINDOW/);assert.match(expired,/COM=0/);assert.match(expired,/DISPOSED=True/);
+});
+const resumeFixture=String.raw`
+function SetupResume{
+ Reset;$script:resumeRun='452054204a1857ff618b0dd30a59caea';$script:resumeDir=Join-Path $base ('MelisaERP-P03-transition-'+$resumeRun)
+ $retainedProfile=Clone $profile;$retainedBefore=Clone $before;$retainedBefore.runId=$resumeRun;$retainedBefore.startedAt=[DateTime]::UtcNow.AddMinutes(-6).ToString('o');$retainedBefore.observedAt=[DateTime]::UtcNow.AddMinutes(-5).ToString('o')
+ $before.startedAt=[DateTime]::UtcNow.AddSeconds(-1).ToString('o');$before.observedAt=[DateTime]::UtcNow.ToString('o');$profile.journalDirectory=Join-Path $base ('MelisaERP-P03-recovery-'+$runId);$profile.stopper.path=Join-Path $base ('MelisaERP-P03-stopper-'+$runId+'.ps1');$profile.beforeImage=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256}
+ $profileRef=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-profile-'+$resumeRun+'.json'));sha256='4b808868f23ced8015aad4395a7c390017b374d3c23fe23d48fc6bf7f0397c39'}
+ $beforeRef=[pscustomobject]@{path=(Join-Path $base ('MelisaERP-P03-before-'+$resumeRun+'.json'));sha256='23ae28bc8d01f644c9f56404c6b358bc57afec336bb82bb3ad19158f2bd11d3f'}
+ $script:ClaimSha256='a5990db676c6308e0899d81a2f6efdde539544109762802d62137d9ec853e544'
+ $claim|Add-Member NoteProperty successorRunId $resumeRun;$claim|Add-Member NoteProperty successorProfile $profileRef;$claim|Add-Member NoteProperty successorBefore $beforeRef
+ $script:context=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-precut-resume.v1';retainedClaimRef=[pscustomobject]@{path=$ClaimPath;sha256=$ClaimSha256};failureTailRef=[pscustomobject]@{path=(Join-Path $resumeDir 'event-0002.json');sha256='778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777'};retainedProfileRef=$profileRef;retainedBeforeRef=$beforeRef;profileRef=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};beforeRef=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};claimPath=$ClaimPath}
+ foreach($entry in @(@($ClaimPath,$ClaimSha256,(Clone $claim)),@($profileRef.path,$profileRef.sha256,$retainedProfile),@($beforeRef.path,$beforeRef.sha256,$retainedBefore),@($ContinuationPath,$ContinuationSha256,$context),@((Join-Path $resumeDir 'resume-attempt.json'),$ContinuationSha256,(Clone $context)))){$data[$entry[0]]=$entry[2];$hashes[$entry[0]]=$entry[1]}
+ $data[$ProfilePath]=$profile;$hashes[$ProfilePath]=$ProfileSha256;$data[$BeforeImagePath]=$before;$hashes[$BeforeImagePath]=$BeforeImageSha256
+ $lock=[pscustomobject]@{profileRef=$profileRef;beforeRef=$beforeRef;successorClaimRef=$context.retainedClaimRef};$lockPath=Join-Path $resumeDir 'transition.lock';$data[$lockPath]=$lock;$hashes[$lockPath]='349cf763daa3c4cca0856640d48d82ed3c034325d0ad476b4019a31d7374eb73'
+ $oldContext=$data[$ContinuationPath];$prior=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-precut-continuation.v1';retainedClaimRef=[pscustomobject]@{path=(Join-Path $base 'p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json');sha256='3493a3538f95b72a5fa23823748b6dd947a5111f5dc4ba9b15015d6a91b9c408'};failureTailRef=[pscustomobject]@{path=(Join-Path $failedDir 'event-0002.json');sha256='87b537deb4eca741203055c35efb13ad6531e556d8c77a875d1e45d128583d82'}}
+ $data[(Join-Path $resumeDir 'precut-continuation.json')]=$prior;$hashes[(Join-Path $resumeDir 'precut-continuation.json')]='edd1499034512d99153cff12d787a041571195cc59e3a1b01f94bc00dea6b7c1'
+ $previous=$beforeRef.sha256;$eventHashes=@('18a78709172e036d3d9f452438af4cf9e21f39c89679271094447f44463da02a','741ea2a53a304ba27aff7bcade2548effa22a63e72ccbcf920189e4c6718330c','778f22864dcbfaf536f5465a255f8d94826f0d16ebfa09cc8927a1fc42f71777')
+ foreach($n in 0..2){$p=Join-Path $resumeDir ('event-'+$n.ToString('0000')+'.json');$data[$p]=[pscustomobject]@{sequence=$n;previousSha256=$previous;profileSha256=$profileRef.sha256;beforeSha256=$beforeRef.sha256;digest=$before.plan.digest;stopOrderDigest=$claim.stopOrderDigest;event=@('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$n];target=@('','coreSupervisor','HELD_CORE_CUT')[$n]};$hashes[$p]=$eventHashes[$n];$previous=$eventHashes[$n]}
+ $script:resumeFiles=@('b264-old-owner-cut-intent.json','event-0000.json','event-0001.json','event-0002.json','io-failure-diagnostic.json','p03-current-invariance-capture.ps1','p03-physical-recovery-observe.ps1','p03-physical-rollback-lifetime-v2.ps1','p03-pr54-current-b007-precut-cut.ps1','p03-pr54-current-b007-precut-new-recovery.ps1','p03-pr54-new-owner-empty-recovery.ps1','p03-pr54-new-owner-observe.ps1','p03-pr54-paused-old-recover.ps1','p03-pr54-successor-core-drain.ps1','precut-continuation.json','successor-precut-admission.json','transition.lock','resume-attempt.json')
+}
+function Get-ChildItem{param($LiteralPath,[switch]$File,[switch]$Force);if($LiteralPath -ceq $resumeDir){return $resumeFiles|ForEach-Object{[pscustomobject]@{Name=$_}}};if($LiteralPath -ceq $failedDir){return $files|ForEach-Object{[pscustomobject]@{Name=$_}}};if($LiteralPath -ceq 'new-journal' -or $LiteralPath -ceq 'old-journal'){return @()};throw 'FIXTURE_DIRECTORY'}
+`;
+test('same452 retained claim resume requires its one-time pointer and preserves bytes/clock while binding fresh supplemental state',()=>{
+ const out=run(resumeFixture+"\nSetupResume;$original=$claim|ConvertTo-Json -Depth 30 -Compress;$oldClock=$claim.ownerObservedAt;AssertCurrentB007Continuation $claim;if(($claim|ConvertTo-Json -Depth 30 -Compress)-cne$original-or$claim.ownerObservedAt-cne$oldClock){throw 'CLAIM_CHANGED'};'RESUME_SAME_CLAIM_FRESH_NATIVE_CONTEXT'");
+ assert.match(out,/RESUME_SAME_CLAIM_FRESH_NATIVE_CONTEXT/);
+});
+test('same452 resume rejects foreign context, rewritten claim, stale snapshot/before, missing pins and advanced/duplicated scopes before mutation',()=>{
+ const edits=["$context.claimPath+='x'","$context.retainedClaimRef.sha256='wrong'","$claim.ownerObservedAt=[DateTime]::UtcNow.ToString('o')","$before.identities=@('changed')","$profile.protectedProcesses=@('changed')","$before.observedAt=[DateTime]::UtcNow.AddMinutes(-16).ToString('o');$before.startedAt=$before.observedAt","$snapshot.observedAt=[DateTime]::UtcNow.AddSeconds(-61).ToString('o')","$data.Remove((Join-Path $resumeDir 'resume-attempt.json'))","$resumeFiles+=,'event-0003.json'","$context|Add-Member NoteProperty extra $true","$hashes[(Join-Path $resumeDir 'event-0001.json')]='wrong'","$resumeFiles+=,'resume-attempt.json'"];
+ const out=run(resumeFixture+'\n'+edits.map((e,n)=>`SetupResume;${e};try{AssertCurrentB007Continuation $claim;'CASE${n}=ACCEPTED'}catch{'CASE${n}=REJECTED'}`).join('\n'));
+ for(let n=0;n<edits.length;n++)assert.match(out,new RegExp('CASE'+n+'=REJECTED'));
+});
+test('resume claim epoch gates select retained refs only for the explicit resume schema',()=>{
+ const s=readFileSync(source,'utf8'),authority=s.slice(s.indexOf('function B264CutAuthority{'),s.indexOf('function PausedRemainingCore{'));
+ assert.match(authority,/if\(\$bindingContext.schemaVersion -ceq 'melisa-p03-current-b007-precut-resume.v1'\)\{\$claimBinding=AssertCurrentB007ResumeBinding \$bindingContext \$claim\}/);
+ assert.match(authority,/\$claim.successorRunId -ceq \$claimBinding.runId/);assert.match(authority,/\$claim.successorProfile.sha256 -ceq \$claimBinding.profileRef.sha256/);assert.match(authority,/Parse\(\$claimBinding.before.observedAt\)/);
+ assert(!authority.includes('$claim.ownerObservedAt='));assert(!authority.includes('$claim.successorRunId='));
 });
