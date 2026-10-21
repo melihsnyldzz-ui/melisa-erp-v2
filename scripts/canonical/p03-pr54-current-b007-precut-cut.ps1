@@ -625,6 +625,42 @@ function AssertFinalize42d0Packages{
  }
  [void](ReadWorkerPin $profile.businessDigest.path $profile.businessDigest.sha256);[void](ReadWorkerPin $profile.stopper.path $profile.stopper.sha256)
 }
+function Finalize42d0ReadbackPending([string]$code,$inventory){
+ # Only an absent role/binding during sequential startup may wait. A duplicate,
+ # foreign port, changed identity/parent, task XML or health failure is not slow
+ # startup and must retain the original failure instead of being swallowed.
+ if($code -cnotin @('P03_PHYSICAL_STARTED_ROLE_COUNT','P03_PHYSICAL_STARTED_PORT_IDENTITY')){return $false}
+ ProtectedProcesses $inventory
+ $missingRoles=0;$missingBindings=0
+ foreach($entry in $before.identities.PSObject.Properties){
+  $expected=$entry.Value;$matches=@($inventory.all|Where-Object{$_.ExecutablePath -ieq $expected.nodePath-and$_.CommandLine -ceq $expected.commandLine})
+  if($matches.Count -gt 1){return $false};if($matches.Count -eq 0){$missingRoles++;continue}
+  foreach($binding in @($expected.bindings)){
+   $bound=@($inventory.listeners|Where-Object{$_.LocalPort -eq $binding.port-and$_.LocalAddress -ceq $binding.address})
+   if($bound.Count -gt 1-or($bound.Count -eq 1-and$bound[0].OwningProcess -ne $matches[0].ProcessId)){return $false}
+   if($bound.Count -eq 0){$missingBindings++}
+  }
+ }
+ return (($code -ceq 'P03_PHYSICAL_STARTED_ROLE_COUNT'-and$missingRoles -gt 0)-or($code -ceq 'P03_PHYSICAL_STARTED_PORT_IDENTITY'-and$missingBindings -gt 0))
+}
+function WaitFinalize42d0OldReady([datetime]$started){
+ # Match the existing new-owner startup allowance, not its 30s stable-health
+ # window. Recorded OLD startup needed 6m18s (last CRM spawn), so the previous
+ # 5m window expired before the sequential supervisor had finished starting.
+ $deadline=[DateTime]::UtcNow.AddMinutes(10);$stableSince=$null;$stableDigest=$null;$attempts=0;$lastPendingCode=$null
+ while([DateTime]::UtcNow -lt $deadline){
+  AssertTasks 4;$attempts++
+  try{$digest=StartedOwner $started}catch{
+   $code=$_.Exception.Message
+   if(-not(Finalize42d0ReadbackPending $code (Inventory))){throw}
+   $lastPendingCode=$code;$stableSince=$null;$stableDigest=$null;Start-Sleep -Milliseconds 500;continue
+  }
+  if($null -eq $stableSince-or$stableDigest-cne$digest){$stableSince=[DateTime]::UtcNow;$stableDigest=$digest}
+  if(([DateTime]::UtcNow-$stableSince).TotalSeconds -ge 30-and[DateTime]::UtcNow-lt$deadline){return [ordered]@{identityDigest=$stableDigest;stableSeconds=30;readbackAttempts=$attempts;lastPendingCode=$lastPendingCode}}
+  Start-Sleep -Milliseconds 500
+ }
+ throw 'P03_PHYSICAL_FINALIZE42_READBACK'
+}
 function FinalizeOld42d0{
  # Local definitions from the SAME immutable b33 bytes shadow all native
  # adapter functions only inside this scope. No dispatcher text is executed.
@@ -635,7 +671,7 @@ function FinalizeOld42d0{
   # A function declared in the outer native script resolves that script's
   # Inventory override. Re-declare ONLY these fixed own helper definitions
   # locally too, so their entire call graph binds the original b33 functions.
-  foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','AssertFinalize42d0Lock','Finalize42d0Empty','AssertFinalize42d0Packages','WriteFinalize42d0Evidence')){$own=Get-Command -Name $name -CommandType Function -ErrorAction Stop;. ([scriptblock]::Create('function '+$name+' {'+$own.Definition+'}'))}
+  foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','AssertFinalize42d0Lock','Finalize42d0Empty','AssertFinalize42d0Packages','WriteFinalize42d0Evidence','Finalize42d0ReadbackPending','WaitFinalize42d0OldReady')){$own=Get-Command -Name $name -CommandType Function -ErrorAction Stop;. ([scriptblock]::Create('function '+$name+' {'+$own.Definition+'}'))}
   $history=AssertFinalize42d0History
   AssertCurrentB007StaticContract $profile $before $oldSettings $newSettings $ProfilePath $BeforeImagePath $BeforeImageSha256
   AssertFinalize42d0Packages
@@ -656,10 +692,8 @@ function FinalizeOld42d0{
    Start-ScheduledTask -TaskPath '\' -TaskName $names[0] -ErrorAction Stop;$startedTasks++
    foreach($entry in $profile.tasks){Need ((XmlHash ([string]$folder.GetTask($entry.name).Xml)) -ceq $entry.oldXmlSha256) 'FINALIZE42_START_XML'}
    Start-ScheduledTask -TaskPath '\' -TaskName $names[1] -ErrorAction Stop;$startedTasks++
-   $stage='READBACK';$deadline=[DateTime]::UtcNow.AddMinutes(5);$stableSince=$null;$stableDigest=$null;$ready=$false
-   while([DateTime]::UtcNow -lt $deadline){try{AssertTasks 4;$digest=StartedOwner $rollbackStart;if($null -eq $stableSince-or$stableDigest-cne$digest){$stableSince=[DateTime]::UtcNow;$stableDigest=$digest};if(([DateTime]::UtcNow-$stableSince).TotalSeconds -ge 30-and[DateTime]::UtcNow-lt$deadline){$ready=$true;break}}catch{$stableSince=$null;$stableDigest=$null};Start-Sleep -Milliseconds 500}
-   Need $ready 'FINALIZE42_READBACK';ProtectedProcesses (Inventory)
-   $result=[ordered]@{status='B264_COMPLETED42_OLD_RESTORED_READY';recoveryOnly=$true;newGenerationStarted=$false;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;mutationExecuted=$true;engineSha256=$EngineSha256;stableSeconds=30;identityDigest=$stableDigest;oldActionsRestored=$true;startedTasks=$startedTasks;quarantinedJournalTailSha256=$history.journalTailSha256;intentSha256=$intent.sha256}
+   $stage='READBACK';$readback=WaitFinalize42d0OldReady $rollbackStart;ProtectedProcesses (Inventory)
+   $result=[ordered]@{status='B264_COMPLETED42_OLD_RESTORED_READY';recoveryOnly=$true;newGenerationStarted=$false;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;mutationExecuted=$true;engineSha256=$EngineSha256;stableSeconds=30;identityDigest=$readback.identityDigest;readbackAttempts=$readback.readbackAttempts;lastPendingCode=$readback.lastPendingCode;oldActionsRestored=$true;startedTasks=$startedTasks;quarantinedJournalTailSha256=$history.journalTailSha256;intentSha256=$intent.sha256}
    [void](WriteFinalize42d0Evidence 'completed-cut-finalize-old-result.json' $result);return $result
   }catch{
    $reason=$_.Exception.Message;if($reason -cnotmatch '\AP03_[A-Z0-9_]{1,160}\z'){$reason='P03_FINALIZE42_FAILED'}

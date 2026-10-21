@@ -9,7 +9,7 @@ const source=new URL('./p03-pr54-current-b007-precut-cut.ps1',import.meta.url);
 const finalizationFixture=String.raw`
 $env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$name+'\'+$name+'.psd1')) -ErrorAction Stop}
 $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($env:P03_FIXTURE_WORKER,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'FIXTURE_WORKER_PARSE'}
-foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','Finalize42d0Empty','FinalizeOld42d0')){$definition=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($definition.Count-ne1){throw 'FIXTURE_DEFINITION'};. ([scriptblock]::Create($definition[0].Extent.Text))}
+foreach($name in @('Completed42d0Pins','Finalize42d0Pins','AssertFinalize42d0History','Finalize42d0Empty','Finalize42d0ReadbackPending','WaitFinalize42d0OldReady','FinalizeOld42d0')){$definition=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));if($definition.Count-ne1){throw 'FIXTURE_DEFINITION'};. ([scriptblock]::Create($definition[0].Extent.Text))}
 $originalEngine=[IO.File]::ReadAllText($env:P03_FIXTURE_ENGINE);$tokens=$null;$errors=$null;$engineAst=[Management.Automation.Language.Parser]::ParseInput($originalEngine,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'FIXTURE_ENGINE_PARSE'}
 $definitions=@($engineAst.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)|ForEach-Object{$_.Extent.Text})-join [Environment]::NewLine
@@ -84,9 +84,13 @@ test('finalize42d0 PS5 original empty inherited lock is accepted but extra/prote
  foreach($name in @('Need','NoReparse','Protected')){$definition=$engineAst.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true);. ([scriptblock]::Create($definition[0].Extent.Text))}
  $definition=$ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'AssertFinalize42d0Lock'},$true);. ([scriptblock]::Create($definition[0].Extent.Text))
  $owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$journal=Join-Path $env:P03_FIXTURE_TEMP 'journal';$acl=[Security.AccessControl.DirectorySecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$acl.SetAccessRuleProtection($true,$false);foreach($sid in @($owner,'S-1-5-18')){$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','ContainerInherit,ObjectInherit','None','Allow'))};[void][IO.Directory]::CreateDirectory($journal,$acl)
- $profile=[pscustomobject]@{journalDirectory=$journal};$lock=Join-Path $journal 'recovery.lock';$s=[IO.File]::Open($lock,'CreateNew','Write','None');$s.Dispose();AssertFinalize42d0Lock;'INHERITED_GO'
- $changed=Get-Acl -LiteralPath $lock;$changed.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new('S-1-5-32-545'),'Read','Allow'));Set-Acl -LiteralPath $lock -AclObject $changed;try{AssertFinalize42d0Lock;throw 'FIXTURE_EXTRA_ACCEPTED'}catch{'EXTRA='+$_.Exception.Message};Need ($lock.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)) 'FIXTURE_DELETE_SCOPE';[IO.File]::Delete($lock);$s=[IO.File]::Open($lock,'CreateNew','Write','None');$s.Dispose()
- $changed=Get-Acl -LiteralPath $lock;$changed.SetAccessRuleProtection($true,$true);Set-Acl -LiteralPath $lock -AclObject $changed;try{AssertFinalize42d0Lock;throw 'FIXTURE_PROTECTED_ACCEPTED'}catch{'PROTECTED='+$_.Exception.Message};Need ($lock.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)) 'FIXTURE_DELETE_SCOPE';[IO.File]::Delete($lock);$s=[IO.File]::Open($lock,'CreateNew','Write','None');$s.Dispose()
+ # File ownership is not inherited from the directory. Elevated Windows CI
+ # may create files owned by Administrators; model the real same-user lock
+ # explicitly, without changing the inherited two-ACE contract under test.
+ function NewFixtureLock{param($path);$s=[IO.File]::Open($path,'CreateNew','Write','None');$s.Dispose();$created=Get-Acl -LiteralPath $path;$created.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));Set-Acl -LiteralPath $path -AclObject $created}
+ $profile=[pscustomobject]@{journalDirectory=$journal};$lock=Join-Path $journal 'recovery.lock';NewFixtureLock $lock;AssertFinalize42d0Lock;'INHERITED_GO'
+ $changed=Get-Acl -LiteralPath $lock;$changed.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new('S-1-5-32-545'),'Read','Allow'));Set-Acl -LiteralPath $lock -AclObject $changed;try{AssertFinalize42d0Lock;throw 'FIXTURE_EXTRA_ACCEPTED'}catch{'EXTRA='+$_.Exception.Message};Need ($lock.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)) 'FIXTURE_DELETE_SCOPE';[IO.File]::Delete($lock);NewFixtureLock $lock
+ $changed=Get-Acl -LiteralPath $lock;$changed.SetAccessRuleProtection($true,$true);Set-Acl -LiteralPath $lock -AclObject $changed;try{AssertFinalize42d0Lock;throw 'FIXTURE_PROTECTED_ACCEPTED'}catch{'PROTECTED='+$_.Exception.Message};Need ($lock.StartsWith($env:P03_FIXTURE_TEMP+'\',[StringComparison]::Ordinal)) 'FIXTURE_DELETE_SCOPE';[IO.File]::Delete($lock);NewFixtureLock $lock
  $held=[IO.File]::Open($lock,'Open','Read','None');try{try{AssertFinalize42d0Lock;throw 'FIXTURE_ACTIVE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACTIVE_ACCEPTED'){throw};'ACTIVE_REJECTED'}}finally{$held.Dispose()}
  [IO.File]::WriteAllBytes($lock,[byte[]]@(1));try{AssertFinalize42d0Lock;throw 'FIXTURE_SIZE_ACCEPTED'}catch{'NONEMPTY='+$_.Exception.Message}
 }
@@ -140,6 +144,49 @@ test('finalize42d0 PS5 partial action CAS preserves intent and failed result wit
 
 test('finalize42d0 PS5 healthy OLD proof uses unchanged StartedOwner identity and port checks for30 real seconds',()=>{
  const out=runFinalization("ResetFinalization;$Mode='FinalizeOld42d0Apply';$saved=@($journalNames)-join '|';$result=FinalizeOld42d0;'STATUS='+$result.status;'STABLE='+$result.stableSeconds;'DIGEST='+$result.identityDigest;'STARTS='+$startCalls;'HEALTH='+$healthChecks;'JOURNAL_UNCHANGED='+($saved-ceq($journalNames-join '|'));'REPLAY='+(FinalizeOutcome)",{timeout:90000});assert.match(out,/STATUS=B264_COMPLETED42_OLD_RESTORED_READY[\s\S]*STABLE=30[\s\S]*DIGEST=[a-f0-9]{64}[\s\S]*STARTS=2[\s\S]*HEALTH=[1-9][0-9]*[\s\S]*JOURNAL_UNCHANGED=True[\s\S]*REPLAY=P03_PHYSICAL_FINALIZE42_ONCE/);
+});
+
+test('finalize42d0 waits only for absent roles or bindings; duplicate, foreign port and identity failures never become startup delay',()=>{
+ const out=runFinalization(String.raw`
+ResetFinalization
+function ProtectedProcesses($inventory){}
+$full=$startedInventory
+'HEALTHY='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_ROLE_COUNT' $full)
+$pending=[pscustomobject]@{all=@($full.all|Where-Object{$_.ProcessId-ne1100});listeners=$full.listeners;instances=$full.instances}
+'ABSENT='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_ROLE_COUNT' $pending)
+$duplicate=[pscustomobject]@{all=@($full.all)+@($full.all|Where-Object{$_.ProcessId-eq1101});listeners=$full.listeners;instances=$full.instances}
+'DUPLICATE='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_ROLE_COUNT' $duplicate)
+$foreign=[pscustomobject]@{all=$full.all;listeners=@($full.listeners|ForEach-Object{[pscustomobject]@{LocalPort=$_.LocalPort;LocalAddress=$_.LocalAddress;OwningProcess=9999}});instances=$full.instances}
+'FOREIGN='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_PORT_IDENTITY' $foreign)
+$missingPort=[pscustomobject]@{all=$full.all;listeners=@($full.listeners|Where-Object{$_.LocalPort-ne4184});instances=$full.instances}
+'MISSING_PORT='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_PORT_IDENTITY' $missingPort)
+'IDENTITY='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_ROLE_IDENTITY' $pending)
+'PARENT='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_STARTED_PARENT_IDENTITY' $pending)
+'HEALTH='+(Finalize42d0ReadbackPending 'P03_PHYSICAL_HEALTH_IDENTITY' $pending)
+`);assert.match(out,/HEALTHY=False[\s\S]*ABSENT=True[\s\S]*DUPLICATE=False[\s\S]*FOREIGN=False[\s\S]*MISSING_PORT=True[\s\S]*IDENTITY=False[\s\S]*PARENT=False[\s\S]*HEALTH=False/);
+});
+
+test('finalize42d0 virtual six-minute sequential startup retains original owner proof and30 seconds stability, with fixed timeout and fatal identity rejection',()=>{
+ const out=runFinalization(String.raw`
+# Replace only the clock/sleep OS edges; actual original StartedOwner and its
+# owner, parent, binding and health checks still run after the delayed spawn.
+$definition=$ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'WaitFinalize42d0OldReady'},$true)
+. ([scriptblock]::Create($definition[0].Extent.Text.Replace('[DateTime]::UtcNow','(FixtureNow)')))
+$clockEdges=@'
+function FixtureNow{return $script:clockBase.AddSeconds($script:clockSeconds)}
+function Start-Sleep{param($Milliseconds);$script:clockSeconds+=10}
+function Inventory{if($script:startCalls-eq2-and($script:neverReady-or$script:clockSeconds-lt360)){return [pscustomobject]@{all=@($script:startedInventory.all|Where-Object{$_.ProcessId-ne1100});listeners=$script:startedInventory.listeners;instances=$script:startedInventory.instances}};return $script:fixtureInventory}
+'@
+$originalFixtureEngine=$engineBytes
+foreach($never in @($false,$true)){
+ ResetFinalization;$Mode='FinalizeOld42d0Apply';$script:clockBase=[DateTime]::UtcNow;$script:clockSeconds=0;$script:neverReady=$never
+ $script:engineBytes=[Text.Encoding]::UTF8.GetBytes(([Text.Encoding]::UTF8.GetString($originalFixtureEngine)+[Environment]::NewLine+$clockEdges))
+ 'NEVER='+$never;'STATUS='+(FinalizeOutcome);'CLOCK='+$clockSeconds;'STARTS='+$startCalls
+}
+ResetFinalization;$Mode='FinalizeOld42d0Apply';$script:clockBase=[DateTime]::UtcNow;$script:clockSeconds=0;$script:neverReady=$false
+$script:engineBytes=[Text.Encoding]::UTF8.GetBytes(([Text.Encoding]::UTF8.GetString($originalFixtureEngine)+[Environment]::NewLine+$clockEdges+[Environment]::NewLine+"function StartedOwner{throw 'P03_PHYSICAL_STARTED_ROLE_IDENTITY'}"))
+'FATAL='+(FinalizeOutcome);'FATAL_CLOCK='+$clockSeconds
+`);assert.match(out,/NEVER=False[\s\S]*STATUS=B264_COMPLETED42_OLD_RESTORED_READY[\s\S]*CLOCK=390[\s\S]*STARTS=2[\s\S]*NEVER=True[\s\S]*STATUS=P03_PHYSICAL_FINALIZE42_READBACK[\s\S]*CLOCK=600[\s\S]*STARTS=2[\s\S]*FATAL=P03_PHYSICAL_STARTED_ROLE_IDENTITY[\s\S]*FATAL_CLOCK=0/);
 });
 test('finite continuation adapter exists without changing the historical cut worker',()=>{
  const s=readFileSync(source,'utf8');
