@@ -13,6 +13,24 @@ const hash=b=>createHash('sha256').update(b).digest('hex'),root=PR54_OWNER_ROOT;
 const leaf=n=>new URL('./'+n,import.meta.url),text=n=>fs.readFileSync(leaf(n),'utf8');
 const drainer=text('p03-pr54-successor-core-drain.ps1'),observer=text('p03-physical-recovery-observe.ps1');
 const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'";
+test('Current console failure predicates remain boolean-only and preserve the original rejection',{skip:process.platform!=='win32'},()=>{
+ const code=astFn('./p03-physical-recovery-observe.ps1','ObserverRequire')+'\n'+astFn('./p03-physical-recovery-observe.ps1','ObserverVanishedConsole')+String.raw`
+$PolicyGeneration='CurrentB007InspectOnly'
+function ObserverExactNotFound($f){return $true}
+function ObserverPinnedConsoleBinary{}
+function ObserverAssertAbsentFamily($a,$b,$c){}
+foreach($case in @('valid','name','emptyExe','wrongExe','emptyCommand','wrongCommand','pid','parent','samePid','date','legacy')){
+ $p=[pscustomobject]@{Name='conhost.exe';ExecutablePath='C:\Windows\System32\conhost.exe';CommandLine='\??\C:\WINDOWS\system32\conhost.exe 0x4';ProcessId=123;ParentProcessId=120;CreationDate=[DateTime]::UtcNow.AddSeconds(-1)}
+ switch($case){'name'{$p.Name='private-sentinel'};'emptyExe'{$p.ExecutablePath=$null};'wrongExe'{$p.ExecutablePath='private-sentinel'};'emptyCommand'{$p.CommandLine=$null};'wrongCommand'{$p.CommandLine='private-sentinel'};'pid'{$p.ProcessId=0};'parent'{$p.ParentProcessId=0};'samePid'{$p.ParentProcessId=123};'date'{$p.CreationDate='private-sentinel'};'legacy'{$PolicyGeneration='Legacy';$p.CommandLine='private-sentinel'}}
+ [Console]::Out.WriteLine('CASE='+$case)
+ try{$r=ObserverVanishedConsole $null $p @([pscustomobject]@{ProcessId=120;CreationDate=[DateTime]::UtcNow.AddMinutes(-1)}) @() @() @();if($case-cne'valid'){throw 'UNEXPECTED_ACCEPT'};'VALID'}catch{if($_.Exception.Message-cne'P03_VANISHED_CONSOLE_REJECTED'){throw};'ORIGINAL_REJECTION'}
+}
+`;
+ const out=ps(code);assert.doesNotMatch(out,/private-sentinel/);assert.match(out,/CASE=valid\r?\nVALID/);assert.match(out,/CASE=legacy\r?\nORIGINAL_REJECTION/);
+ const prefix='MELISA_NATIVE_RO_PREDICATES=',rows=out.split(/\r?\n/).filter(x=>x.startsWith(prefix)).map(x=>JSON.parse(x.slice(prefix.length)));
+ assert.equal(rows.length,9);for(const row of rows){assert.deepEqual(Object.keys(row).sort(),['commandExact','commandPresent','creationIsDateTime','executableExact','executablePresent','nameExact','parentPositive','pidDistinct','pidPositive'].sort());assert(Object.values(row).every(x=>typeof x==='boolean'));assert(Object.values(row).some(x=>!x));}
+ for(const [i,key]of ['nameExact','executablePresent','executableExact','commandPresent','commandExact','pidPositive','parentPositive','pidDistinct','creationIsDateTime'].entries())assert.equal(rows[i][key],false);
+});
 function input(){const source=n=>({path:root+'\\source-inspect\\'+n,sha256:n==='p03-pr54-successor-core-drain.ps1'?'34b490827edb41a5afdc8eb7d5870674f535ec16f347dc7d038ab4299830582c':n==='p03-physical-recovery-observe.ps1'?'5ad242c0708eb3e12b35dedb85b365b0c1d6107826fd1704892612d5d4df26c5':hash(fs.readFileSync(leaf(n)))});return {profileRef:{path:root+'\\MelisaERP-P03-profile-'+ 'a'.repeat(32)+'.json',sha256:'a'.repeat(64)},beforeRef:{path:root+'\\MelisaERP-P03-before-'+ 'a'.repeat(32)+'.json',sha256:'b'.repeat(64)},engineRef:{...PR54_B264_REFS.engine},recoveryHelperRef:source('p03-pr54-paused-old-recover.ps1'),drainerRef:source('p03-pr54-successor-core-drain.ps1'),observerRef:source('p03-physical-recovery-observe.ps1')};}
 function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',timeout:25000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
 function astFn(file,name){return `$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(fileURLToPath(new URL(file,import.meta.url)))},[ref]$t,[ref]$e);if($e.Count){throw 'PARSE'};$d=@($a.FindAll({param($x)$x -is [Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -ceq '${name}'},$true));if($d.Count-ne1){throw 'FUNCTION'};. ([scriptblock]::Create($d[0].Extent.Text))`;}

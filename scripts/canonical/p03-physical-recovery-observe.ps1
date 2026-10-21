@@ -51,6 +51,10 @@ function ObserverAssertAbsentFamily($evidence,$rawAll,$rawListeners){
 }
 function ObserverVanishedConsole($failure,$process,$rawSelected,$capturedPids,$rawAll,$rawListeners){
  ObserverRequire (ObserverExactNotFound $failure)
+ # Failure-only diagnostics for the SAME raw CIM row; never an identity or authority.
+ if(-not ($process.Name -ieq 'conhost.exe' -and $process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe' -and $process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [int]$process.ProcessId -gt 0 -and [int]$process.ParentProcessId -gt 0 -and [int]$process.ProcessId -ne [int]$process.ParentProcessId -and $process.CreationDate -is [DateTime]) -and (Get-Variable -Name PolicyGeneration -ValueOnly -ErrorAction SilentlyContinue) -ceq 'CurrentB007InspectOnly'){
+  try{$basic=[ordered]@{nameExact=($process.Name -ieq 'conhost.exe');executablePresent=(-not [string]::IsNullOrEmpty([string]$process.ExecutablePath));executableExact=($process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe');commandPresent=(-not [string]::IsNullOrEmpty([string]$process.CommandLine));commandExact=($process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4');pidPositive=([int]$process.ProcessId -gt 0);parentPositive=([int]$process.ParentProcessId -gt 0);pidDistinct=([int]$process.ProcessId -ne [int]$process.ParentProcessId);creationIsDateTime=($process.CreationDate -is [DateTime])};[Console]::Out.WriteLine('MELISA_NATIVE_RO_PREDICATES='+(ConvertTo-Json -InputObject $basic -Compress))}catch{}
+ }
  ObserverRequire ($process.Name -ieq 'conhost.exe' -and $process.ExecutablePath -ieq 'C:\Windows\System32\conhost.exe' -and $process.CommandLine -ceq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and [int]$process.ProcessId -gt 0 -and [int]$process.ParentProcessId -gt 0 -and [int]$process.ProcessId -ne [int]$process.ParentProcessId -and $process.CreationDate -is [DateTime])
  ObserverRequire ($process.ProcessId -notin @($capturedPids) -and @($rawListeners|Where-Object{$_.OwningProcess -eq $process.ProcessId}).Count -eq 0)
  $parents=@($rawSelected|Where-Object{$_.ProcessId -eq $process.ParentProcessId})
