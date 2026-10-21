@@ -605,6 +605,8 @@ function currentRehearsalFixture(options={}){
  for(const [k,[leaf,sha256]]of Object.entries(nativePins))files.set(root+'\\'+leaf,{ref:{path:root+'\\'+leaf,sha256},value:k});
  const xml=(g,i)=>g+i+(options.large?'X'.repeat(16000):'');if(options.large)before.transportPadding='b'.repeat(19000);
  const stopper=put('stopper.ps1','stopper'),profile={environment:'P03_REHEARSAL',database:before.database,tasks:taskNames.map((name,i)=>({name,oldXml:xml('old',i),newXml:xml('new',i),oldXmlSha256:hash(xml('old',i)),newXmlSha256:hash(xml('new',i))})),stopper,newSettings:{path:root+'\\settings-new.json',sha256:plan.newSettingsSha256},journalDirectory:root+'\\recovery'};
+ const startup={schemaVersion:'melisa-p03-current-b142-fixture-startup.v1',scenario:options.scenario??'Normal',generation:'new',childRoles:options.scenario==='PartialNew'?['erpNative']:['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer']};if(options.badStartup)startup.scenario='PartialNew';
+ const cfgRef=put('fixture-config.json',{generation:'new',partial:true,startup}),settingsRef=put('settings-new.json',{supervisor:{config:cfgRef}});profile.newSettings=settingsRef;
  const beforeRef=put('before.json',before),profileRef=put('profile.json',profile);
  let processRows=[...rows,...watchers],instances=taskNames.map((name,i)=>({name,pid:200+i,guid:'g'+i})),actions=['old','old'],activeGeneration='old',stopCalls=0,drainCalls=0,recoverCalls=0,clock=Date.now();
  class D extends Date{constructor(...a){super(...(a.length?a:[clock]));}static now(){return clock;}}
@@ -687,3 +689,5 @@ test('CurrentB142 real-size profile and task XML use pinned disk reads and stdin
  t.diagnostic(JSON.stringify({profileBytes:f.profileBytes,beforeBytes:f.beforeBytes,maxEncoded,maxPlain,maxHeld}));
  const setter=f.programs.filter(p=>p.includes('REHEARSAL_ACTION_SIZE'));assert.equal(setter.length,2);assert(setter.every(p=>p.includes('[Console]::In.ReadToEnd()')&&p.endsWith("'CREATED'")));
 });
+
+test('CurrentB142 adapter rejects a mismatched explicit startup scenario before preflight, claim or Drain',async()=>{const f=currentRehearsalFixture({badStartup:true});await assert.rejects(f.run(),/REHEARSAL_STARTUP_CONTRACT/);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);});

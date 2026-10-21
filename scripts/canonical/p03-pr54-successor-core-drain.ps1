@@ -131,12 +131,23 @@ function AssertCurrentB142RehearsalContract($profile,$before,$oldSettings,$newSe
  RNeed (@($profile.protectedProcesses).Count-gt0-and@($profile.protectedBindings).Count-ge8-and@($profile.protectedTasks).Count-eq2-and(@($profile.protectedTasks.name|Sort-Object)-join'|')-ceq'Melisa-Hub-TEST-Web|Melisa-Terminal-Completion-Logon')
 }
 function AssertCurrentB142RehearsalFiles($profile,$oldSettings,$newSettings){
+ function AssertCurrentB142FixtureStartup($config,[string]$generation){
+  Need ($generation-cin@('old','new')-and$config.generation-ceq$generation-and$config.partial-is[bool]-and$config.partial-ceq($generation-ceq'new')) 'REHEARSAL_STARTUP_COMPATIBILITY'
+  if($generation-ceq'old'){Need ($config.PSObject.Properties.Name-cnotcontains'startup') 'REHEARSAL_OLD_STARTUP';return}
+  Need ($config.PSObject.Properties.Name-ccontains'startup') 'REHEARSAL_STARTUP_REQUIRED'
+  $startup=$config.startup
+  Need ((@($startup.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'childRoles|generation|scenario|schemaVersion'-and$startup.schemaVersion-ceq'melisa-p03-current-b142-fixture-startup.v1'-and$startup.scenario-cin@('Normal','OldCutFailure','ReplyLoss','PartialNew')-and$startup.generation-ceq'new') 'REHEARSAL_STARTUP_SCOPE'
+  $expected=if($startup.scenario-ceq'PartialNew'){@('erpNative')}else{@('erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer')}
+  Need ($startup.childRoles-is[array]-and(@($startup.childRoles)-join'|')-ceq($expected-join'|')-and@($startup.childRoles|Where-Object{$_-isnot[string]}).Count-eq0) 'REHEARSAL_STARTUP_CHILDREN'
+ }
+
  foreach($settingsRef in @($profile.oldSettings,$profile.newSettings)){[void](ReadPinned $settingsRef.path $settingsRef.sha256)}
  foreach($pkg in $profile.packages){
   $manifest=Json (ReadPinned $pkg.manifestPath $pkg.manifestSha256);Need ((PackageManifestSource $manifest $pkg)-ceq$pkg.sourceCommit-and$manifest.files.Count-eq4) 'REHEARSAL_MANIFEST'
   $allowed=@('p03-rehearsal-fixture.mjs','p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1','fixture-config.json');Need ((@($manifest.files.path|Sort-Object)-join'|')-ceq(($allowed|Sort-Object)-join'|')) 'REHEARSAL_FILES'
   foreach($file in $manifest.files){[void](ReadPinned (Join-Path $pkg.root $file.path) $file.sha256)}
  }
+ foreach($settings in @($oldSettings,$newSettings)){$config=Json (ReadPinned $settings.supervisor.config.path $settings.supervisor.config.sha256);AssertCurrentB142FixtureStartup $config $settings.generation}
  foreach($task in $profile.tasks){Need ((XmlHash $task.oldXml)-ceq$task.oldXmlSha256-and(XmlHash $task.newXml)-ceq$task.newXmlSha256) 'REHEARSAL_TASK_HASH';RehearsalTaskAction $task.oldXml 'old' $task.name;RehearsalTaskAction $task.newXml 'new' $task.name}
  foreach($rule in $profile.candidateRules){VerifyRule $rule}
  foreach($role in @('coreSupervisor','hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative')){

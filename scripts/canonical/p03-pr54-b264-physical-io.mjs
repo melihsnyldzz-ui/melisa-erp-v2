@@ -163,7 +163,7 @@ const sameCapturePins=Object.freeze({drainer:'9a0e0931bbd1897f55d25396cd64619a66
 const auditedSameCapturePins=Object.freeze({drainer:'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710',observer:'271d9fa16656449727db3ece3000621d1d0a7f2643c2335e409dd0335c9c30c5'});
 const diagnosticSameCapturePins=Object.freeze({drainer:'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710',observer:'5511027cbb98f29f39008c833ef7db25004cd9cb436acb25c7a744871df1128d'});
 // Explicit current pair after the isolated native scope split; prior pairs remain sealed.
-const rehearsalSplitSameCapturePins=Object.freeze({drainer:'023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14',observer:'06ab2ac9cd440ff24009f53e6b202503419d48e7333213b0e042e499ebb360d8'});
+const rehearsalSplitSameCapturePins=Object.freeze({drainer:'cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9',observer:'bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'});
 export function pr54CurrentB007InspectionArguments(input){
  need(exact(input,['profileRef','beforeRef','engineRef','recoveryHelperRef','drainerRef','observerRef']),'INPUT');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef,drainerRef,observerRef}=input;

@@ -7,7 +7,7 @@ import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_CURRENT_B142_SCENARIOS,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
-import {validateRehearsalFixtureArgs,REHEARSAL_PORTS} from './p03-rehearsal-fixture.mjs';
+import {validateRehearsalFixtureArgs,REHEARSAL_PORTS,rehearsalCoreChildRoles} from './p03-rehearsal-fixture.mjs';
 
 // Reconstruct only the historical immutable engine fixture. Production selects sealed bytes.
 const historicalEngine=()=>fs.readFileSync(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n').replace("{Need (([IO.File]::GetAttributes($part) -band","{$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band");
@@ -214,8 +214,8 @@ test('CurrentB142 rehearsal exposes only four finite scenarios and retains the l
  const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
  assert.match(source,/status='CURRENT_B142_REHEARSAL_SCENARIO_READY'/);
  assert.match(source,/\$before\['runId'\]=\$runId/);assert.match(source,/p03TransitionDigest\(x\)/);
- assert.match(source,/partial=\(\$generation-ceq'new'-and\(\$EngineGeneration-cne'CurrentB142Rehearsal'-or\$RehearsalScenario-ceq'PartialNew'\)\)/);
- assert(source.indexOf('QuiesceCurrentRehearsal\n $report=')>source.indexOf("Journal 'CURRENT_SCENARIO_VERIFIED'"));
+ assert.match(source,/partial=\(\$generation-ceq'new'\)/);assert.match(source,/\$cfg\['startup'\]=\[ordered\]@\{schemaVersion='melisa-p03-current-b142-fixture-startup.v1'/);
+ for(const text of [source.replaceAll('\r\n','\n'),source.replaceAll('\r\n','\n').replaceAll('\n','\r\n')]){const cleanup=/QuiesceCurrentRehearsal\r?\n\s*\$report=/.exec(text);assert(cleanup&&cleanup.index>text.indexOf("Journal 'CURRENT_SCENARIO_VERIFIED'"));}
  assert.match(source,/MelisaERP-P03-current-b007-control-6213b2c673ca\\p03-pr54-new-owner-empty-recovery\.ps1/);
  assert.doesNotMatch(source,/MelisaERP-P03-b264-sup20d-control-0ddaf85067d6/);
 });
@@ -240,4 +240,39 @@ test('CurrentB142 driver cleanup refuses foreign scope, changed protection, part
  if($checks-ne14){throw 'FIXTURE_COUNT'};'CURRENT_CLEANUP_14_NEGATIVE_PASS'`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
  assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/CURRENT_CLEANUP_14_NEGATIVE_PASS/);
+});
+
+test('CurrentB142 startup explicitly binds each scenario and exact child tuple without changing legacy partial semantics',()=>{
+ const full=['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer'];
+ assert.deepEqual(rehearsalCoreChildRoles({partial:true},'new'),['erpNative']);assert.deepEqual(rehearsalCoreChildRoles({partial:false},'old'),full);assert.deepEqual(rehearsalCoreChildRoles({partial:false},'new'),full);
+ for(const scenario of P03_CURRENT_B142_SCENARIOS){const childRoles=scenario==='PartialNew'?['erpNative']:full,config={generation:'new',partial:true,startup:{schemaVersion:'melisa-p03-current-b142-fixture-startup.v1',scenario,generation:'new',childRoles}};assert.deepEqual(rehearsalCoreChildRoles(config,'new'),childRoles);
+  const negatives=[c=>delete c.startup.generation,c=>c.startup.extra=true,c=>c.startup.schemaVersion='other',c=>c.startup.scenario='normal',c=>c.startup.scenario='Unknown',c=>c.startup.generation='old',c=>c.generation='old',c=>c.partial=false,c=>c.partial='true',c=>c.startup.childRoles=[...c.startup.childRoles,'hub'],c=>c.startup.childRoles=['erpNative','erpNative'],c=>c.startup.childRoles=[...c.startup.childRoles].reverse(),c=>c.startup.childRoles=null];
+  for(const mutate of negatives){const bad=structuredClone(config);mutate(bad);if(JSON.stringify(bad)===JSON.stringify(config))continue;assert.throws(()=>rehearsalCoreChildRoles(bad,'new'),/P03_REHEARSAL_STARTUP_/);}
+  assert.throws(()=>rehearsalCoreChildRoles(config,'old'),/P03_REHEARSAL_STARTUP_/);
+ }
+});
+
+test('PS5 emits an actual one-element childRoles array and retains frozen NEW partial=true for every Current scenario',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),line=source.split(/\r?\n/).find(x=>x.includes("$cfg['startup']="));assert(line);
+ const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
+ $EngineGeneration='CurrentB142Rehearsal';$generation='new'
+ foreach($RehearsalScenario in @('Normal','OldCutFailure','ReplyLoss','PartialNew')){$cfg=[ordered]@{partial=($generation-ceq'new')}
+ ${line}
+ $read=($cfg|ConvertTo-Json -Depth 8 -Compress)|ConvertFrom-Json;if($read.partial-cne$true-or-not($read.startup.childRoles-is[Array])){throw 'ARRAY_OR_PARTIAL_LOST'};$expected=if($RehearsalScenario-ceq'PartialNew'){1}else{6};if($read.startup.childRoles.Count-ne$expected-or$read.startup.scenario-cne$RehearsalScenario){throw 'WRONG_STARTUP'};if((@($read.startup.PSObject.Properties.Name|Sort-Object)-join'|')-cne'childRoles|generation|scenario|schemaVersion'){throw 'EXTRA_STARTUP_FIELD'}}
+ $EngineGeneration='Legacy';$cfg=[ordered]@{partial=$true};${line};if($cfg.Contains('startup')){throw 'LEGACY_CHANGED'};'CURRENT_STARTUP_JSON_PASS'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(command,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/CURRENT_STARTUP_JSON_PASS/);
+});
+
+test('Current direct frozen read-only preflight refusal alone can clean its captured full fixture, preserving the original error',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),start=source.indexOf('try{\n$engineResult=(& $engineRef.path @common -Mode PreflightOld)'),end=source.indexOf("Need ((Get-FileHash -LiteralPath $stopper",start),block=source.slice(start,end);assert(start>0&&end>start);assert.doesNotMatch(block,/Drain|runPr54CurrentB142RehearsalTransition|Current_DISPATCHER|Mode StopNew/);assert.match(block,/throw \$readonlyPreflightFailure/);
+ const program=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
+ function Need($v,$code){if(-not$v){throw $code}}
+ function Journal($event){$script:events+=,$event}
+ function QuiesceCurrentRehearsal{$script:cleanups++;if($script:cleanupFails){throw 'CLEANUP_FAILED'};return @{capturedIdentities=10}}
+ function FrozenReadOnly{param($Mode);if($Mode-cne'PreflightOld'){throw 'WRONG_MODE'};if($script:preflightFails){throw 'P03_PHYSICAL_REHEARSAL_CONFIG_SCOPE'};return '{"status":"OLD_PHYSICAL_PREFLIGHT"}'}
+ $engineRef=@{path='FrozenReadOnly'};$common=@{}
+ foreach($case in @('current','cleanupFailed','legacy','later')){$EngineGeneration=if($case-ceq'legacy'){'Legacy'}else{'CurrentB142Rehearsal'};$script:preflightFails=$case-cne'later';$script:cleanupFails=$case-ceq'cleanupFailed';$script:cleanups=0;$script:events=@();$reason=$null
+ try{${block};if($case-ceq'later'){throw 'AMBIGUOUS_ADAPTER_FAILURE'}}catch{$reason=$_.Exception.Message}
+ if($case-ceq'later'){if($reason-cne'AMBIGUOUS_ADAPTER_FAILURE'-or$script:cleanups-ne0-or$script:events.Count-ne0){throw 'LATER_CLEANUP_LEAK'}}elseif($case-ceq'legacy'){if($reason-cne'P03_PHYSICAL_REHEARSAL_CONFIG_SCOPE'-or$script:cleanups-ne0-or$script:events.Count-ne0){throw 'LEGACY_CHANGED'}}else{if($reason-cne'P03_PHYSICAL_REHEARSAL_CONFIG_SCOPE'-or$script:cleanups-ne1-or$script:events[0]-cne'CURRENT_PREFLIGHT_READONLY_FAILED'){throw 'ORIGINAL_REASON_LOST'};$last=if($case-ceq'cleanupFailed'){'CURRENT_PREFLIGHT_CLEANUP_FAILED'}else{'CURRENT_PREFLIGHT_CLEANUP_COMPLETE'};if($script:events[-1]-cne$last){throw 'WRONG_JOURNAL'}}};'READONLY_PREFLIGHT_4_BOUNDARIES_PASS'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/READONLY_PREFLIGHT_4_BOUNDARIES_PASS/);
 });

@@ -20,6 +20,19 @@ export function validateRehearsalFixtureArgs(args){
  need(new RegExp('^C:\\\\Sirket\\\\ERP\\\\rehearsal\\\\P03-RECOVERY-20261018\\\\run-[a-f0-9]{32}\\\\packages\\\\'+generation+'\\\\fixture-config\\.json$').test(configPath),'CONFIG_PATH');
  return {role,configPath,generation};
 }
+// `partial` remains the frozen engine's legacy NEW compatibility marker.
+// CurrentB142 child startup is an explicit, versioned operation contract; live
+// 10/2 or 3/1 readback remains required and is never inferred from this field.
+export function rehearsalCoreChildRoles(config,generation){
+ const full=['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer'];
+ if(!Object.hasOwn(config,'startup'))return generation==='new'&&config.partial===true?['erpNative']:full;
+ const value=config.startup;
+ need(generation==='new'&&config.generation==='new'&&config.partial===true&&value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join('|')==='childRoles|generation|scenario|schemaVersion','STARTUP_FIELDS');
+ need(value.schemaVersion==='melisa-p03-current-b142-fixture-startup.v1'&&value.generation==='new'&&['Normal','OldCutFailure','ReplyLoss','PartialNew'].includes(value.scenario),'STARTUP_SCOPE');
+ const expected=value.scenario==='PartialNew'?['erpNative']:full;
+ need(Array.isArray(value.childRoles)&&value.childRoles.length===expected.length&&value.childRoles.every((role,index)=>role===expected[index]),'STARTUP_ROLES');
+ return [...expected];
+}
 function powershell(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from("$ErrorActionPreference='Stop';"+code,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',timeout:15000,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}}).trim();}
 async function main(){
  const {role,configPath,generation}=validateRehearsalFixtureArgs(process.argv.slice(2));
@@ -29,7 +42,7 @@ async function main(){
  for(let q=configPath;;q=path.dirname(q)){need(!fs.lstatSync(q).isSymbolicLink(),'REPARSE');if(q===path.dirname(q))break;}
  const executable=path.join(config.packageRoot,'p03-rehearsal-fixture.mjs');
  if(role==='coreSupervisor'){
-  const roles=generation==='new'&&config.partial===true?['erpNative']:['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer'];
+  const roles=rehearsalCoreChildRoles(config,generation);
   const children=roles.map(child=>spawn(process.execPath,['--no-maglev',executable,'--role',child,'--config',configPath,'--generation',generation],{windowsHide:true,stdio:'ignore'}));
   for(const child of children)child.once('error',()=>{process.exitCode=1;});
   setInterval(()=>{},1000);return;

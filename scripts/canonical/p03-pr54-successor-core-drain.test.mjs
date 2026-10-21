@@ -446,3 +446,33 @@ ResetFixture;$PolicyGeneration='CurrentB142Rehearsal';$inv.all+=,[pscustomobject
 ResetFixture;$PolicyGeneration='CurrentB142Rehearsal';$inv.instances=$inv.instances[0];ExpectRejected 'partial-COM' {CaptureWorkerAdmissionCore}
 `}`);assert.match(out,/REHEARSAL_CORE_VALID/);assert.match(out,/SEED_VALID/);for(const key of ['shared-seed','foreign-child','partial-COM'])assert.match(out,new RegExp('REJECTED='+key));
 });
+
+
+test('CurrentB142 fixture startup explicitly distinguishes six-child normal from one-child partial while preserving frozen compatibility',windows,()=>{
+ const out=run(`${extract(['AssertCurrentB142FixtureStartup'])}\n${String.raw`
+function Need($v,$c){if(-not$v){throw ('P03_PHYSICAL_'+$c)}}
+function Config([string]$scenario){return [pscustomobject]@{generation='new';partial=$true;startup=[pscustomobject]@{schemaVersion='melisa-p03-current-b142-fixture-startup.v1';scenario=$scenario;generation='new';childRoles=@($(if($scenario-ceq'PartialNew'){'erpNative'}else{'erpNative';'erpApi';'crmNativeOrder';'crmCatalog';'crmOrders';'crmServer'}))}}}
+foreach($scenario in @('Normal','OldCutFailure','ReplyLoss','PartialNew')){$cfg=Config $scenario|ConvertTo-Json -Depth 5 -Compress|ConvertFrom-Json;AssertCurrentB142FixtureStartup $cfg 'new';'VALID='+$scenario}
+$cfg=[pscustomobject]@{generation='old';partial=$false};AssertCurrentB142FixtureStartup $cfg 'old';'OLD_UNCHANGED'
+$changes=@(
+ {$cfg.PSObject.Properties.Remove('startup')},
+ {$cfg.startup=$null},
+ {$cfg.startup.schemaVersion='wrong'},
+ {$cfg.startup.scenario='Unknown'},
+ {$cfg.startup.generation='old'},
+ {$cfg.startup|Add-Member NoteProperty extra $true},
+ {$cfg.startup.childRoles+=,'foreign'},
+ {$cfg.startup.childRoles=@('erpNative')},
+ {$cfg.startup.childRoles=@('erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmOrders')},
+ {$cfg.startup.childRoles=@('erpApi','erpNative','crmNativeOrder','crmCatalog','crmOrders','crmServer')},
+ {$cfg.startup.childRoles='erpNative'},
+ {$cfg.partial=$false},
+ {$cfg.partial=1},
+ {$cfg.generation='old'},
+ {$cfg.startup.scenario='PartialNew'}
+)
+foreach($change in $changes){$cfg=Config 'Normal';&$change;try{AssertCurrentB142FixtureStartup $cfg 'new';throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'REJECTED'}}
+$cfg=Config 'PartialNew';$cfg.startup.childRoles=@('erpNative','erpApi');try{AssertCurrentB142FixtureStartup $cfg 'new';throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'PARTIAL_EXTRA_REJECTED'}
+$cfg=[pscustomobject]@{generation='old';partial=$false;startup=[pscustomobject]@{}};try{AssertCurrentB142FixtureStartup $cfg 'old';throw 'FIXTURE_ACCEPTED'}catch{if($_.Exception.Message-ceq'FIXTURE_ACCEPTED'){throw};'OLD_STARTUP_REJECTED'}
+`}`);for(const scenario of ['Normal','OldCutFailure','ReplyLoss','PartialNew'])assert.match(out,new RegExp('VALID='+scenario));assert.match(out,/OLD_UNCHANGED/);assert.equal((out.match(/^REJECTED$/gm)??[]).length,15);assert.match(out,/PARTIAL_EXTRA_REJECTED/);assert.match(out,/OLD_STARTUP_REJECTED/);
+});

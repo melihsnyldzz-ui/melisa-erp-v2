@@ -230,7 +230,10 @@ $settings=@{};$packagePins=@();$fixtureSource=([string]($request.files|Where-Obj
 foreach($generation in @('old','new')){
  $packageRoot=Join-Path (Join-Path $runRoot 'packages') $generation;$manifestFiles=@()
  foreach($file in $request.files){Need ($file.name-cin@('p03-rehearsal-fixture.mjs','p03-rehearsal-watch-core.ps1','p03-rehearsal-watch-hub.ps1')) 'SOURCE_NAME';$bytes=[Convert]::FromBase64String($file.bytesBase64);Need ((Hash $bytes)-ceq$file.sha256) 'SOURCE_HASH';[void](WriteNew (Join-Path $packageRoot $file.name) $bytes);$manifestFiles+=,[ordered]@{path=$file.name;sha256=$file.sha256}}
- $cfg=[ordered]@{environment='P03_REHEARSAL';runRoot=$runRoot;generation=$generation;database=$db;copyId=$copy;sourceCommit=$fixtureSource;partial=($generation-ceq'new'-and($EngineGeneration-cne'CurrentB142Rehearsal'-or$RehearsalScenario-ceq'PartialNew'));packageRoot=$packageRoot;nodePath=$node;actualT1=$false;runUuid=[guid]::NewGuid().ToString()}
+ $cfg=[ordered]@{environment='P03_REHEARSAL';runRoot=$runRoot;generation=$generation;database=$db;copyId=$copy;sourceCommit=$fixtureSource;partial=($generation-ceq'new');packageRoot=$packageRoot;nodePath=$node;actualT1=$false;runUuid=[guid]::NewGuid().ToString()}
+ # Frozen b33 requires NEW partial=true. Only the explicit Current startup
+ # contract controls the finite child tuple; actual 10/2 or 3/1 is checked live.
+ if($EngineGeneration-ceq'CurrentB142Rehearsal'-and$generation-ceq'new'){$cfg['startup']=[ordered]@{schemaVersion='melisa-p03-current-b142-fixture-startup.v1';scenario=$RehearsalScenario;generation='new';childRoles=@(if($RehearsalScenario-ceq'PartialNew'){'erpNative'}else{'erpNative';'erpApi';'crmNativeOrder';'crmCatalog';'crmOrders';'crmServer'})}}
  $cfgRef=WriteNew (Join-Path $packageRoot 'fixture-config.json') (Bytes $cfg);$manifestFiles+=,[ordered]@{path='fixture-config.json';sha256=$cfgRef.sha256}
  $manifest=[ordered]@{sourceCommit=$fixtureSource;environment='P03_REHEARSAL';files=$manifestFiles};$manifestRef=WriteNew (Join-Path $packageRoot 'release-manifest.json') (Bytes $manifest)
  $component=[ordered]@{packageRoot=$packageRoot;sourceCommit=$fixtureSource;manifestSha256=$manifestRef.sha256;config=$cfgRef}
@@ -258,7 +261,13 @@ $profile=[ordered]@{schemaVersion='melisa-p03-physical-profile.v1';environment='
 $profileRef=WriteNew (Join-Path $runRoot 'profile.json') (Bytes $profile)
 $common=@{Environment='Rehearsal';ProfilePath=$profileRef.path;ProfileSha256=$profileRef.sha256;BeforeImagePath=$beforeRef.path;BeforeImageSha256=$beforeRef.sha256}
 Need ((Get-FileHash -LiteralPath $engineRef.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$engineRef.sha256) 'ENGINE_PHASE_PIN'
+try{
 $engineResult=(& $engineRef.path @common -Mode PreflightOld)|ConvertFrom-Json;Need ($engineResult.status-ceq'OLD_PHYSICAL_PREFLIGHT') 'OLD_PREFLIGHT'
+}catch{
+ $readonlyPreflightFailure=$_
+ if($EngineGeneration-ceq'CurrentB142Rehearsal'){try{Journal 'CURRENT_PREFLIGHT_READONLY_FAILED';[void](QuiesceCurrentRehearsal);Journal 'CURRENT_PREFLIGHT_CLEANUP_COMPLETE'}catch{try{Journal 'CURRENT_PREFLIGHT_CLEANUP_FAILED'}catch{}}}
+ throw $readonlyPreflightFailure
+}
 Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_PRESTOP_PIN'
 if($EngineGeneration-ceq'CurrentB142Rehearsal'){
  Need ((@($request.dispatcher.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'path|sha256'-and$request.dispatcher.sha256-cmatch'\A[a-f0-9]{64}\z') 'CURRENT_DISPATCHER_REF';NoReparse $request.dispatcher.path

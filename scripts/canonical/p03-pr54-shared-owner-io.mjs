@@ -717,12 +717,12 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const selectedPins=precutB142Continuation?{...currentB007SourcePins,
-  drainer:['p03-pr54-successor-core-drain.ps1','023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14'],
-  observer:['p03-physical-recovery-observe.ps1','06ab2ac9cd440ff24009f53e6b202503419d48e7333213b0e042e499ebb360d8'],
-  oldCut:['p03-pr54-b264-old-owner-cut.ps1','f204815bc19a297389be904ffd003d219324b6023359049ebb02fd1831e50f5c'],
-  newObserver:['p03-pr54-new-owner-observe.ps1','5e76b633c13702e2dfc125766b2906d7f8f4f3cab2bc965c1a6ee884490006af'],
-  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','4f4fd9749b866a8b2d96d18270d060886e911374d4034900c417f945d8cf6649'],
-  lateOld:['p03-pr54-current-b007-precut-cut.ps1','415166175ead8049122c0588a13b3712cb3b6103835ffa36c1bda11e9553db80'],
+  drainer:['p03-pr54-successor-core-drain.ps1','cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9'],
+  observer:['p03-physical-recovery-observe.ps1','bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'],
+  oldCut:['p03-pr54-b264-old-owner-cut.ps1','32e1cc2cabf255b8e19aa32f2cf64ab115be3e382d151d011e163a6284e18842'],
+  newObserver:['p03-pr54-new-owner-observe.ps1','8f1677cf8474f7c5b16e1b34fea74dc65d719d6a6056a1de43834aaedf7ab045'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','42393bffe974f24d6a18294ed39ed956d383b56e38862446529badf8566f255f'],
+  lateOld:['p03-pr54-current-b007-precut-cut.ps1','1f834a7ae93cefdea1b3d1eeae770404d2c6f9f5ae7fad333a16f1b81778b897'],
  }:freshOwnerGeneration||precut974dContinuation?{...currentB007SourcePins,
   drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],
   observer:['p03-physical-recovery-observe.ps1','a92f4d712c59970ae50a8ace92dbbeba52d59fadfe542794879d9da898394812'],
@@ -1174,10 +1174,10 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
 }
 // SQL-free, finite native lifecycle proof. This is not a Shared admission or SQL proof.
 const P03_CURRENT_B142_REHEARSAL_NATIVE=Object.freeze({
- observer:['p03-physical-recovery-observe.ps1','06ab2ac9cd440ff24009f53e6b202503419d48e7333213b0e042e499ebb360d8'],
- drainer:['p03-pr54-successor-core-drain.ps1','023b33b9d3683a19473251dfa19cf7d86fd804da3859e669440858e97aa40f14'],
- oldCut:['p03-pr54-b264-old-owner-cut.ps1','f204815bc19a297389be904ffd003d219324b6023359049ebb02fd1831e50f5c'],
- recovery:['p03-pr54-b264-new-owner-recovery.ps1','4f4fd9749b866a8b2d96d18270d060886e911374d4034900c417f945d8cf6649'],
+ observer:['p03-physical-recovery-observe.ps1','bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'],
+ drainer:['p03-pr54-successor-core-drain.ps1','cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','32e1cc2cabf255b8e19aa32f2cf64ab115be3e382d151d011e163a6284e18842'],
+ recovery:['p03-pr54-b264-new-owner-recovery.ps1','42393bffe974f24d6a18294ed39ed956d383b56e38862446529badf8566f255f'],
  engine:['recovery-engine.ps1','b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'],
  helper:['p03-pr54-paused-old-recover.ps1','e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'],
  empty:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438']
@@ -1191,6 +1191,9 @@ export async function runPr54CurrentB142RehearsalTransition({mode='DryRun',scena
  const profile=read(profileRef),before=read(beforeRef),taskNames=['Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub'],runId=runRoot.slice(-32),scope='P03_REHEARSAL',localPorts=[4284,4286,5334,62710,62711,62712,62713,62714];
  need(before.runId===runId&&before.environment===scope&&profile.environment===scope&&before.actualT1===false&&before.database==='MELISA_ERP_P03_RESTORE_TEST_20261018_01'&&profile.database===before.database&&before.copyId==='P03-RECOVERY-REHEARSAL-20261018'&&profile.tasks.length===2&&profile.tasks.every((x,i)=>x.name===taskNames[i]),'REHEARSAL_SCOPE');
  need(before.plan.digest===p03TransitionDigest(before.plan)&&JSON.stringify(before.plan.targets)===JSON.stringify(targets),'REHEARSAL_PLAN');
+ const settings=read(profile.newSettings),config=read(settings.supervisor.config),startup=config.startup,childRoles=scenario==='PartialNew'?['erpNative']:['erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer'];
+ need(config.generation==='new'&&config.partial===true&&startup&&Object.keys(startup).sort().join('|')==='childRoles|generation|scenario|schemaVersion'&&startup.schemaVersion==='melisa-p03-current-b142-fixture-startup.v1'&&startup.generation==='new'&&startup.scenario===scenario&&JSON.stringify(startup.childRoles)===JSON.stringify(childRoles),'REHEARSAL_STARTUP_CONTRACT');
+
  async function strictRehearsalPins(pins){
   need(pins.length>0&&pins.length<=12&&pins.every(r=>typedRef(r)&&path.win32.dirname(r.path)===runRoot),'REHEARSAL_DISK_PIN_SCOPE');for(const r of pins){noReparseAncestors(r.path);pin(r);}
   const data=Buffer.from(JSON.stringify(pins)).toString('base64');need(await ps(`$pins=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;foreach($r in $pins){$p=$r.path;${psNoReparse}$a=Get-Acl -LiteralPath $p;$rules=@($a.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if(-not$a.AreAccessRulesProtected-or$a.GetOwner([Security.Principal.SecurityIdentifier]).Value-cne'${owner}'-or$rules.Count-ne2){throw 'REHEARSAL_DISK_ACL'};foreach($sid in @('${owner}','S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value-ceq$sid-and-not$_.IsInherited-and$_.AccessControlType-eq'Allow'-and$_.FileSystemRights-eq'FullControl'}).Count-ne1){throw 'REHEARSAL_DISK_ACL'}};if((Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()-cne$r.sha256){throw 'REHEARSAL_DISK_HASH'}};'VERIFIED'`,{plainCommandOnly:true})==='VERIFIED','REHEARSAL_DISK_ACL');
