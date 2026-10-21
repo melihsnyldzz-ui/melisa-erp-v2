@@ -37,7 +37,7 @@ function fixture(options={}){
  if(options.recovery)options={...options,retry:true};
  const sid=options.recovery?'42d0d0536cb115cc4aea43ff1f13afbf':'a'.repeat(32),transition=root+'\\MelisaERP-P03-transition-'+sid;
  const isResume=options.resume||options.retry;
- const files=new Map(),directories=new Set(),calls=[],events=[],writes=[],programs=[];let phase='old',inspections=0,stops=0;
+ const files=new Map(),directories=new Set(),calls=[],events=[],writes=[],programs=[];let phase='old',inspections=0,stops=0,emptyWitnessed=false;
  const now=()=>new Date().toISOString();
  function put(file,value,expected){const b=Buffer.isBuffer(value)?value:bytes(value),ref={path:file,sha256:expected??hash(b)};files.set(file,{bytes:b,ref});return ref;}
  const engineRef=put(control+'\\p03-physical-rollback-lifetime-v2.ps1',Buffer.from('engine'),shaEngine);
@@ -124,7 +124,7 @@ function fixture(options={}){
    const cutWitness=put(transition+'\\successor-core-cut-completed.json',{event:'B264_OLD_OWNER_CORE_CUT_COMPLETED'}),drainWitness=put(transition+'\\successor-core-probe-drain.json',{consolePins:[],probePins:[],goneOldPids:[107]});
    return {stdout:JSON.stringify({status:'B264_OLD_OWNER_CORE_DRAINED',coreStopResult:'COM_STOP_NATURAL_EXIT',heldCoreExited:true,comStopped:true,cutWitness,drainWitness})};
   }
-  if(leaf==='p03-physical-recovery-observe.ps1')return {stdout:JSON.stringify(seen())};
+  if(leaf==='p03-physical-recovery-observe.ps1'){const frame=seen();if(emptyWitnessed&&options.postcas){if(options.postcasSecondFrameRole)frame.processes.push(identities.hub);if(options.postcasSecondFrameTask)frame.tasks[0]={...frame.tasks[0],state:4};if(options.postcasSecondFrameAction)frame.tasks[0]={...frame.tasks[0],xml:tasks[0].oldXml};if(options.postcasSecondFrameListener)frame.bindings.push({pid:12345,port:5234,address:'127.0.0.1'});if(options.postcasSecondFrameInstance)frame.runningInstances.push({name:names[0],state:4,path:'\\'+names[0],enginePid:108,instanceGuid:'unexpected'});}return {stdout:JSON.stringify(frame)};}
   if(leaf.startsWith('MelisaERP-P03-stopper-')){const proof=JSON.parse(Buffer.from(at('-ExpectedJsonBase64'),'base64'));stops++;rows=rows.filter(p=>p.pid!==proof.pid);return {stdout:'EXACT_OBSERVED_PROCESS_STOPPED'};}
   if(leaf==='p03-pr54-new-owner-observe.ps1'){
    if(options.failNew)throw Error('P03_NEW_READBACK_FAILED');const candidate=JSON.parse(pin({path:at('-CandidatePath'),sha256:at('-CandidateSha256')}));assert.equal(candidate.processes.length,10);
@@ -145,7 +145,7 @@ function fixture(options={}){
   throw Error('unexpected worker '+leaf);
  }
  async function ps(code,transport){assert.deepEqual(transport,options.recovery?{plainCommandOnly:true}:undefined);programs.push(code);
-  if(code==='ABSENCE_CHECK')return 'EMPTY';
+  if(code==='ABSENCE_CHECK'){emptyWitnessed=true;return 'EMPTY';}
   if(code.includes('::GetCurrent().User.Value')&&!code.includes('Get-Acl'))return owner;
   if(code.includes('log_end_lsn')){if(options.recovery){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:'+(options.postcas?'ResumeDrainCheck':'ResumeDrainDryRun')));assert.equal(files.has(transition+'\\completed-cut-recovery-intent.json'),!!options.postcas);}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
   if(code.includes('RegisterTask(')){const n=code.includes("GetTask('"+names[0]+"')")?0:1;taskXml[n]=code.includes(Buffer.from(tasks[n].newXml).toString('base64'))?tasks[n].newXml:tasks[n].oldXml;return 'SET';}
@@ -368,6 +368,10 @@ test('CurrentB007 post-cut readonly witness rejects live child or protected-pare
 test('postCAS42d0 DryRun executes exact zero-candidate prerequisites without writes or a second drain',async()=>{
  const f=fixture({postcas:true}),original=new Map([...f.files].map(([p,v])=>[p,Buffer.from(v.bytes)])),r=await f.fn(f.input);
  assert.equal(r.status,'CURRENT_B007_POSTCAS_RECOVERY_DRY_RUN');assert.equal(r.remainingOldRoles,0);assert.equal(f.writes.length,0);assert.equal(f.stops,0);assert(f.calls.some(c=>c.endsWith(':ResumeDrainCheck')));assert(f.calls.filter(c=>c==='p03-physical-recovery-observe.ps1:').length>=3);assert(!f.calls.some(c=>c.endsWith(':ResumeDrain')||c.endsWith(':ResumeDrainDryRun')||c.endsWith(':StopNew')));for(const [p,b]of original)assert(f.files.get(p).bytes.equals(b));
+});
+
+test('postCAS42d0 read-only zero proof rejects OLD role, task, action, listener or COM drift in the second physical frame',async()=>{
+ for(const option of ['postcasSecondFrameRole','postcasSecondFrameTask','postcasSecondFrameAction','postcasSecondFrameListener','postcasSecondFrameInstance']){const f=fixture({postcas:true,[option]:true});await assert.rejects(f.fn(f.input),/POSTCAS_NOT_ZERO|OLD_TASK_FRAME|FOREIGN_LISTENER/,option);assert.equal(f.writes.length,0,option);assert.equal(f.stops,0,option);assert(!f.calls.some(c=>c.endsWith(':StopNew')),option);}
 });
 
 test('postCAS42d0 uses a distinct one-shot intent, keeps original recovery proof and restores OLD only',async()=>{

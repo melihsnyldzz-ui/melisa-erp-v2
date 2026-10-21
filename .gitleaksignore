@@ -1,3 +1,8 @@
+# Independently reviewed 2026-10-21: exact SHA256 pins of recorded erpApi recovery stop intent/result.
+# Both independently matched protected local artifact bytes; no credential or broad rule/path exclusion.
+21af6a5fad6a9fe6ae3aae64e7c5323f9643c7ff:scripts/canonical/p03-pr54-shared-owner-io.mjs:generic-api-key:905
+21af6a5fad6a9fe6ae3aae64e7c5323f9643c7ff:scripts/canonical/p03-pr54-shared-owner-io.mjs:generic-api-key:906
+
 # Independently reviewed 2026-10-18: three public Git commit IDs and release-manifest SHA256 pins, no credential.
 28c29bb5b56bc9275285a99f4cae8dc53dbbd4e0:scripts/canonical/p03-pr54-receipt-acl.ps1:generic-api-key:161
 
