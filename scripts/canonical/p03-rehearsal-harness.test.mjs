@@ -212,12 +212,49 @@ test('CurrentB142 rehearsal exposes only four finite scenarios and retains the l
  for(const args of [['--CurrentB142Run'],['--CurrentB142NormalApply'],['--CurrentB142normalRun'],['--CurrentB142NormalRun','--Run']])assert.throws(()=>parseP03RehearsalMode(args),/P03_REHEARSAL_MODE/);
  assert.equal(parseP03RehearsalMode([]),'DryRun');
  const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
- assert.match(source,/status='CURRENT_B142_REHEARSAL_SCENARIO_READY'/);
+ assert.match(source,/\$status=if\(\$InspectionOnly\)\{'CURRENT_B142_NATIVE_INSPECTED_READ_ONLY'\}else\{'CURRENT_B142_REHEARSAL_SCENARIO_READY'\}/);
  assert.match(source,/\$before\['runId'\]=\$runId/);assert.match(source,/p03TransitionDigest\(x\)/);
  assert.match(source,/partial=\(\$generation-ceq'new'\)/);assert.match(source,/\$cfg\['startup'\]=\[ordered\]@\{schemaVersion='melisa-p03-current-b142-fixture-startup.v1'/);
  for(const text of [source.replaceAll('\r\n','\n'),source.replaceAll('\r\n','\n').replaceAll('\n','\r\n')]){const cleanup=/QuiesceCurrentRehearsal\r?\n\s*\$report=/.exec(text);assert(cleanup&&cleanup.index>text.indexOf("Journal 'CURRENT_SCENARIO_VERIFIED'"));}
  assert.match(source,/MelisaERP-P03-current-b007-control-6213b2c673ca\\p03-pr54-new-owner-empty-recovery\.ps1/);
  assert.doesNotMatch(source,/MelisaERP-P03-b264-sup20d-control-0ddaf85067d6/);
+});
+
+test('CurrentB142 native failure receipt accepts only bounded typed metadata and never raw diagnostics',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
+ const body=source.slice(source.indexOf('function SaveCurrentNativeFailure('),source.indexOf('function QuiesceCurrentRehearsal{'));
+ assert.match(source,/if\(\$dispatcherExit-ne0[^\n]+SaveCurrentNativeFailure/);assert.match(source,/Need \(\$dispatcherExit-eq0\) 'CURRENT_DISPATCHER_FAILED'/);
+ const good={status:'CURRENT_B142_NATIVE_FAILED',diagnostic:{schemaVersion:'melisa-p03-current-b142-native-failure.v1',worker:'oldCut',action:'Inspect',code:'P03_PHYSICAL_B264_REJECTED',exitCode:1,killed:false,signal:null,errorType:'Error',completed:false}};
+ const cases=[{...good,status:'READY'},{...good,raw:'PRIVATE_SENTINEL'},...[
+  {extra:'PRIVATE_SENTINEL'},{code:'PRIVATE_SENTINEL'},{worker:'foreign'},{action:'Stop-Process'},{schemaVersion:'other'},{exitCode:1.5},{exitCode:2147483648},{killed:'false'},{completed:'false'},{signal:'PRIVATE_SENTINEL'},{errorType:'PRIVATE_SENTINEL'}
+ ].map(change=>({...good,diagnostic:{...good.diagnostic,...change}}))];
+ const data=Buffer.from(JSON.stringify({good,cases})).toString('base64');
+ const command=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+ function Need($v,$code){if(-not$v){throw $code}};function Bytes($v){return $v};function Journal($v){$script:journals++}
+ function WriteNew($p,$v){if($p-cne'C:\\fixture\\native-failure-diagnostic.json'-or$v.status-cne'CURRENT_B142_NATIVE_FAILED'){throw 'BAD_WRITE'};$script:writes++;return $null}
+ ${body}
+ $x=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;$EngineGeneration='CurrentB142Rehearsal';$runRoot='C:\\fixture';$script:writes=0;$script:journals=0
+ SaveCurrentNativeFailure $x.good;if($script:writes-ne1-or$script:journals-ne1){throw 'POSITIVE'}
+ foreach($bad in $x.cases){try{SaveCurrentNativeFailure $bad;throw 'ACCEPTED'}catch{if($_.Exception.Message-cnotmatch'^CURRENT_DIAGNOSTIC_'){throw}}}
+ $EngineGeneration='Shared';try{SaveCurrentNativeFailure $x.good;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_DIAGNOSTIC_SCOPE'){throw}}
+ if($script:writes-ne1-or$script:journals-ne1){throw 'NEGATIVE_WRITE'};'BOUNDED_NATIVE_DIAGNOSTIC_PASS'`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(result.status,0,result.stderr);assert.match(result.stdout,/BOUNDED_NATIVE_DIAGNOSTIC_PASS/);
+});
+
+test('actual PS5 to benign Node error bridge preserves quoted status and digit-bearing metadata without native work',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8');
+ const line=source.split(/\r?\n/).find(x=>x.includes('const m=await import(x.moduleUrl)')&&x.includes('p03RehearsalDiagnostic'));assert(line);
+ const diagnostic={schemaVersion:'melisa-p03-current-b142-native-failure.v1',worker:'oldCut',action:'Inspect',code:'P03_CURRENT_B142_REJECTED',exitCode:1,killed:false,signal:null,errorType:'Error',completed:false};
+ const mock=`export async function runPr54CurrentB142RehearsalTransition(x){const e=Error(x.diagnostic.code);e.p03RehearsalDiagnostic=x.diagnostic;throw e}`;
+ const data=Buffer.from(JSON.stringify({moduleUrl:'data:text/javascript;base64,'+Buffer.from(mock).toString('base64'),request:{diagnostic,privateSentinel:'PRIVATE_SENTINEL'}})).toString('base64');
+ const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$data='${data}';$node='C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe'
+ ${line}
+ $result=(& $node --input-type=module -e $program);$childExit=$LASTEXITCODE
+ if($childExit-ne1){throw 'EXIT'};$x=$result|ConvertFrom-Json;if($x.status-cne'CURRENT_B142_NATIVE_FAILED'-or$x.diagnostic.code-cne'P03_CURRENT_B142_REJECTED'){throw 'METADATA'}
+ [ordered]@{status=$x.status;code=$x.diagnostic.code;childExit=$childExit}|ConvertTo-Json -Compress`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{windowsHide:true,encoding:'utf8',env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
+ assert.equal(result.status,0,result.stderr);assert.deepEqual(JSON.parse(result.stdout),{status:'CURRENT_B142_NATIVE_FAILED',code:'P03_CURRENT_B142_REJECTED',childExit:1});assert.doesNotMatch(result.stdout+result.stderr,/PRIVATE_SENTINEL|ReferenceError/);
 });
 
 test('CurrentB142 driver cleanup refuses foreign scope, changed protection, partial and duplicate captured identities before mutation',{skip:process.platform!=='win32'},()=>{
@@ -275,4 +312,49 @@ test('Current direct frozen read-only preflight refusal alone can clean its capt
  try{${block};if($case-ceq'later'){throw 'AMBIGUOUS_ADAPTER_FAILURE'}}catch{$reason=$_.Exception.Message}
  if($case-ceq'later'){if($reason-cne'AMBIGUOUS_ADAPTER_FAILURE'-or$script:cleanups-ne0-or$script:events.Count-ne0){throw 'LATER_CLEANUP_LEAK'}}elseif($case-ceq'legacy'){if($reason-cne'P03_PHYSICAL_REHEARSAL_CONFIG_SCOPE'-or$script:cleanups-ne0-or$script:events.Count-ne0){throw 'LEGACY_CHANGED'}}else{if($reason-cne'P03_PHYSICAL_REHEARSAL_CONFIG_SCOPE'-or$script:cleanups-ne1-or$script:events[0]-cne'CURRENT_PREFLIGHT_READONLY_FAILED'){throw 'ORIGINAL_REASON_LOST'};$last=if($case-ceq'cleanupFailed'){'CURRENT_PREFLIGHT_CLEANUP_FAILED'}else{'CURRENT_PREFLIGHT_CLEANUP_COMPLETE'};if($script:events[-1]-cne$last){throw 'WRONG_JOURNAL'}}};'READONLY_PREFLIGHT_4_BOUNDARIES_PASS'`;
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.match(result.stdout,/READONLY_PREFLIGHT_4_BOUNDARIES_PASS/);
+});
+
+test('Current NormalInspect is one finite read-only operation, not a fifth scenario or legacy default',()=>{
+ assert.equal(parseP03RehearsalMode(['--CurrentB142NormalInspect']),'CurrentB142NormalInspect');assert.equal(P03_CURRENT_B142_SCENARIOS.length,4);
+ for(const value of ['--CurrentB142PartialNewInspect','--CurrentB142OldCutFailureInspect','--CurrentB142NormalInspectRun','--InspectionOnly'])assert.throws(()=>parseP03RehearsalMode([value]),/P03_REHEARSAL_MODE/);
+ const directory=String.raw`C:\synthetic\scripts\canonical`,engineBytes=Buffer.from('fixture engine'),engine={path:directory+'\\engine.ps1',sha256:crypto.createHash('sha256').update(engineBytes).digest('hex')},context={path:path.win32,crypto,Buffer,P03_CURRENT_B142_SCENARIOS,P03_FILE_ATTRIBUTES_V1_ENGINE:engine,fs:{lstatSync:()=>({isFile:()=>true,isSymbolicLink:()=>false,nlink:1}),readFileSync:p=>p===engine.path?engineBytes:Buffer.from('fixture')}};
+ const make=vm.runInNewContext('('+p03RehearsalSourceRequest.toString()+')',context),request=JSON.parse(JSON.stringify(make(directory,'CurrentB142NormalInspect')));assert.equal(request.mode,'Run');assert.equal(request.engineGeneration,'CurrentB142Rehearsal');assert.equal(request.rehearsalScenario,'Normal');assert.equal(request.inspectionOnly,true);assert.equal(request.nativeSources.length,4);
+ const driver=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),harness=fs.readFileSync(new URL('./p03-rehearsal-harness.mjs',import.meta.url),'utf8');assert.match(driver,/mode=\$\(if\(\$InspectionOnly\)\{'DryRun'\}else\{'Apply'\}\)/);assert.match(harness,/request\.inspectionOnly===true\?\['-InspectionOnly'\]/);assert.match(harness,/request\.inspectionOnly===true\?result\.status!=='CURRENT_B142_NATIVE_INSPECTED_READ_ONLY'/);
+});
+
+test('PS5 inspection flag is typed, Current Normal Run only, and failures clean only the read-only context',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),scope=source.slice(source.indexOf('function AssertInspectionOnly('),source.indexOf("Need ([Security.Principal.WindowsIdentity]"));
+ const start=source.indexOf(' try{\n $result=(& $node --input-type=module -e $program)'),end=source.indexOf(' $status=if($InspectionOnly)',start),branch=source.slice(start,end);assert(start>0&&end>start);assert.match(branch,/if\(\$InspectionOnly\)\{try\{Journal 'CURRENT_READONLY_INSPECTION_FAILED'/);assert.doesNotMatch(branch,/Mode Drain|Restore|RegisterTask|Stop-Process/);
+ const program=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest
+ function Need($v,$code){if(-not$v){throw $code}};${scope}
+ $Mode='Run';$EngineGeneration='CurrentB142Rehearsal';$RehearsalScenario='Normal';$valid=[pscustomobject]@{engineGeneration=$EngineGeneration;rehearsalScenario='Normal';inspectionOnly=$true};AssertInspectionOnly $valid $true
+ $rejects=0;foreach($kind in @('missing','string','false','number','scenario','legacy','dry','unexpected')){$x=$valid|ConvertTo-Json -Compress|ConvertFrom-Json;$Mode='Run';$EngineGeneration='CurrentB142Rehearsal';$RehearsalScenario='Normal';$inspection=$true;switch($kind){missing{$x.PSObject.Properties.Remove('inspectionOnly')} string{$x.inspectionOnly='true'} false{$x.inspectionOnly=$false} number{$x.inspectionOnly=1} scenario{$RehearsalScenario='PartialNew'} legacy{$EngineGeneration='Legacy'} dry{$Mode='DryRun'} unexpected{$inspection=$false}};try{AssertInspectionOnly $x $inspection;throw 'ACCEPTED'}catch{if($_.Exception.Message-cnotmatch'^INSPECTION_ONLY_'){throw};$rejects++}};if($rejects-ne8){throw 'REJECT_COUNT'}
+ $plain=[pscustomobject]@{};AssertInspectionOnly $plain $false
+ function Journal($event){$script:events+=,$event};function SaveCurrentNativeFailure($value){$script:receipts++}
+ function QuiesceCurrentRehearsal{$script:cleanups++;if($script:orphan){throw 'RAW_SCOPE_UNKNOWN_CHILD'}}
+ function NodeReadOnly{param($InputType,$E);$global:LASTEXITCODE=0;if($script:nativeFail){$global:LASTEXITCODE=1;return '{"status":"CURRENT_B142_NATIVE_FAILED","diagnostic":{}}'};return '{"status":"DRY_RUN_READY","environment":"P03_REHEARSAL","scenario":"Normal","claimCreated":false,"runtimeMutation":false,"applyExecuted":false,"transitionAuthority":false,"sqlFreeFixture":true,"applicationRollbackVerified":false,"databaseRollbackVerified":false,"nativeStages":["PreflightOld","Inspect","Capture"]}'}
+ $node='NodeReadOnly';$program='unused';$RehearsalScenario='Normal'
+ foreach($case in @('ok','fail','orphan','applyFail')){$InspectionOnly=$case-cne'applyFail';$script:nativeFail=$case-cne'ok';$script:orphan=$case-ceq'orphan';$script:cleanups=0;$script:events=@();$script:receipts=0;$reason=$null;try{${branch}}catch{$reason=$_.Exception.Message}
+ if($case-ceq'ok'){if($null-ne$reason-or$script:cleanups-ne0-or$script:events[-1]-cne'CURRENT_NATIVE_READ_ONLY_INSPECTION_VERIFIED'){throw 'READONLY_SUCCESS'}}else{if($reason-cne'P03_REHEARSAL_CURRENT_DISPATCHER_FAILED'){throw ('REASON_'+$reason)};$expected=if($case-ceq'applyFail'){0}else{1};if($script:cleanups-ne$expected-or$script:receipts-ne1){throw 'CLEANUP_BOUNDARY'}}};'INSPECTION_SCOPE_AND_CLEANUP_PASS'`;
+ // Use the real Need prefix so result failures match the retained driver's reason.
+ const actual=program.replace("function Need($v,$code){if(-not$v){throw $code}}","function Need($v,$code){if(-not$v){if($code-cmatch'^INSPECTION_ONLY_'){throw $code};throw ('P03_REHEARSAL_'+$code)}}");
+ const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',"$ErrorActionPreference='Stop'; & ([scriptblock]::Create([Console]::In.ReadToEnd()))"],{input:actual,encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(child.status,0,child.stderr);assert.match(child.stdout,/INSPECTION_SCOPE_AND_CLEANUP_PASS/);
+});
+
+test('PS5 inspection result requires exact read-only booleans and all three ordered native stages',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),body=source.slice(source.indexOf('function AssertCurrentInspectionResult('),source.indexOf("Need ([Security.Principal.WindowsIdentity]"));
+ const good={status:'DRY_RUN_READY',environment:'P03_REHEARSAL',scenario:'Normal',claimCreated:false,runtimeMutation:false,applyExecuted:false,transitionAuthority:false,sqlFreeFixture:true,applicationRollbackVerified:false,databaseRollbackVerified:false,nativeStages:['PreflightOld','Inspect','Capture']};
+ const bad=[{status:'CURRENT_B142_REHEARSAL_SCENARIO_READY'},{environment:'Shared'},{scenario:'PartialNew'},{claimCreated:true},{claimCreated:'false'},{runtimeMutation:true},{applyExecuted:true},{transitionAuthority:true},{sqlFreeFixture:false},{sqlFreeFixture:'true'},{applicationRollbackVerified:true},{databaseRollbackVerified:true},{nativeStages:['Inspect','PreflightOld','Capture']},{nativeStages:['PreflightOld|Inspect|Capture']},{nativeStages:'PreflightOld|Inspect|Capture'},{nativeStages:['PreflightOld','Inspect','Capture','Drain']}].map(x=>({...good,...x}));
+ const data=Buffer.from(JSON.stringify({good,bad})).toString('base64'),command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;function Need($v,$code){if(-not$v){throw $code}};${body};$x=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;AssertCurrentInspectionResult $x.good;$n=0;foreach($bad in $x.bad){try{AssertCurrentInspectionResult $bad;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'CURRENT_INSPECTION_RESULT'){throw};$n++}};if($n-ne16){throw 'COUNT'};'INSPECTION_RESULT_16_NEGATIVES_PASS'`;
+ const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(child.status,0,child.stderr);assert.match(child.stdout,/INSPECTION_RESULT_16_NEGATIVES_PASS/);
+});
+
+test('actual PS5 to benign Node inspection request selects DryRun and preserves the separate read-only result',{skip:process.platform!=='win32'},()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),lines=source.split(/\r?\n/),input=lines.find(x=>x.includes('$inputValue=[ordered]')&&x.includes('profileRef')),build=lines.find(x=>x.includes('const m=await import(x.moduleUrl)')&&x.includes('p03RehearsalDiagnostic'));assert(input&&build);
+ const mock="export async function runPr54CurrentB142RehearsalTransition(x){if(x.mode!=='DryRun'||x.scenario!=='Normal')throw Error('BAD_MODE');return {status:'DRY_RUN_READY',environment:'P03_REHEARSAL',claimCreated:false,runtimeMutation:false}}",url='data:text/javascript;base64,'+Buffer.from(mock).toString('base64'),command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$InspectionOnly=$true;$RehearsalScenario='Normal';$runRoot='fixture';$profileRef=@{};$beforeRef=@{};$request=@{dispatcher=@{path='${url}'}};$node='C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe'
+ ${input}
+ $data=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($inputValue|ConvertTo-Json -Depth 15 -Compress)))
+ ${build}
+ $result=(& $node --input-type=module -e $program);if($LASTEXITCODE-ne0){throw 'CHILD_EXIT'};$x=$result|ConvertFrom-Json;if($x.status-cne'DRY_RUN_READY'-or$x.claimCreated-cne$false-or$x.runtimeMutation-cne$false){throw 'RESULT'};'ACTUAL_INSPECTION_TRANSPORT_PASS'`;
+ const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(child.status,0,child.stderr);assert.match(child.stdout,/ACTUAL_INSPECTION_TRANSPORT_PASS/);
 });

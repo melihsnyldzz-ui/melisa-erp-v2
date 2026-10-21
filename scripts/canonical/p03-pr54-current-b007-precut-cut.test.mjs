@@ -504,7 +504,9 @@ test('completed-cut recovery rejects wrong proof, original window, core/remainin
 test('completed-cut seed preserves all existing seed checks and changes only the authenticated historical admission clock',()=>{
  const a=readFileSync(new URL('./p03-pr54-successor-core-drain.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n'),b=readFileSync(source,'utf8').replaceAll('\r\n','\n');
  const original=a.slice(a.indexOf('function SeedWorkerAdmission('),a.indexOf('function HoldWorkerCore(')).trim();const actual=b.slice(b.indexOf('function SeedCompleted42d0Admission('),b.indexOf('function PausedTasks{')).trim();
- assert.equal(actual,original.replace('function SeedWorkerAdmission(','function SeedCompleted42d0Admission(').replace('([DateTime]::UtcNow-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime())','($script:completedCutOpenedAt-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime())'));
+ const rehearsalGuard=" if($PolicyGeneration-ceq'CurrentB142Rehearsal'){Need ($snapshot.environment-ceq'P03_REHEARSAL'-and@($snapshot.probePins).Count-eq0) 'REHEARSAL_SNAPSHOT_SCOPE'}\n";
+ assert.equal(original.split(rehearsalGuard).length,2,'only one explicit additive Rehearsal guard');assert(!actual.includes(rehearsalGuard));
+ assert.equal(actual,original.replace(rehearsalGuard,'').replace('function SeedWorkerAdmission(','function SeedCompleted42d0Admission(').replace('([DateTime]::UtcNow-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime())','($script:completedCutOpenedAt-[DateTime]::Parse($snapshot.observedAt).ToUniversalTime())'));
  const resume=b.slice(b.indexOf('function ResumeCompleted42d0Drain{'),b.indexOf("if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){ResumeCompleted42d0Drain"));assert(!/\b(?:StopWorkerCore|StopB264OldCom|HoldWorkerCore|Stop-Process|CaptureWorkerAdmission)\b/.test(resume));assert(!resume.includes('$script:coreLifetime='));
 });
 test('completed-cut Apply requires the single exact recovery intent and writes only one truthful drain witness',()=>{

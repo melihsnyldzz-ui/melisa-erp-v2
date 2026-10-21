@@ -10,7 +10,10 @@ function extract(names){return `$t=$null;$e=$null;$a=[Management.Automation.Lang
 function run(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$c=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($c))','utf16le').toString('base64')],{input:`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest\n${code}`,encoding:'utf8',windowsHide:true,timeout:30000,stdio:['pipe','pipe','pipe']});}
 test('FileAttributesV1 holds only original OLD lifetimes before COM stop until rollback completion and releases in finally',()=>{
  const s=readFileSync(source,'utf8');assert.match(s,/function HoldOriginalOldLifetimes/);assert.match(s,/OpenProcess\(0x00101000,false,pid\)/);assert.doesNotMatch(s,/TerminateProcess|PROCESS_ALL_ACCESS/);
- const acquire=s.indexOf('$originalOldLifetimePins=HoldOriginalOldLifetimes'),cut=s.indexOf('$instance.Stop()'),ready=s.indexOf("Journal 'REHEARSAL_COMPLETE'");assert.ok(acquire>0&&acquire<cut&&cut<ready);assert.match(s,/if\(\$EngineGeneration-ceq'FileAttributesV1'\)\{\$originalOldLifetimePins=HoldOriginalOldLifetimes/);assert.ok(s.indexOf('finally{CloseOriginalOldLifetimes $originalOldLifetimePins}')>ready);
+ for(const text of [s.replaceAll('\r\n','\n'),s.replaceAll('\r\n','\n').replaceAll('\n','\r\n')]){
+  const marker="Journal 'STOP_OLD_FIXTURE_INTENT'";assert.equal(text.split(marker).length,2);const legacy=text.slice(text.indexOf(marker));
+  const acquire=legacy.indexOf('$originalOldLifetimePins=HoldOriginalOldLifetimes'),cut=legacy.indexOf('$instance.Stop()'),ready=legacy.indexOf("Journal 'REHEARSAL_COMPLETE'");assert.ok(acquire>0&&acquire<cut&&cut<ready);assert.match(legacy,/if\(\$EngineGeneration-ceq'FileAttributesV1'\)\{\$originalOldLifetimePins=HoldOriginalOldLifetimes/);assert.ok(legacy.indexOf('finally{CloseOriginalOldLifetimes $originalOldLifetimePins}')>ready);
+ }
 });
 
 const windows={skip:process.platform!=='win32'};

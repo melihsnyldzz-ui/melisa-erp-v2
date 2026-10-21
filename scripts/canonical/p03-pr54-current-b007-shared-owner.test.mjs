@@ -618,7 +618,12 @@ function currentRehearsalFixture(options={}){
  const arg=(a,n)=>a[a.indexOf(n)+1];
  async function nativeRun(_shell,invocation){const {ref,args}=invocation;calls.push([ref.path,args]);const leaf=path.win32.basename(ref.path),mode=arg(args,'-Mode');
   if(leaf==='engine.ps1'){
-   if(mode==='PreflightOld')return {stderr:'',stdout:JSON.stringify({status:'OLD_PHYSICAL_PREFLIGHT',environment:'Rehearsal',mutationExecuted:false})};
+   if(mode==='PreflightOld'){
+    if(options.preflightError)throw options.preflightError;
+    if(options.preflightStderr)return {stderr:options.preflightStderr,stdout:'PRIVATE_SENTINEL'};
+    if(options.preflightJson)return {stderr:'',stdout:'PRIVATE_SENTINEL invalid json'};
+    return {stderr:'',stdout:JSON.stringify({status:'OLD_PHYSICAL_PREFLIGHT',environment:'Rehearsal',mutationExecuted:false})};
+   }
    if(mode==='StopNew'){actions=['old','old'];put('recovery\\event-0000.json',{event:'RECOVERED'});return {stderr:'',stdout:JSON.stringify({status:'RECOVERED_OLD_ACTIONS'})};}
    if(mode==='RollbackOld'){processRows=[...rows,...watchers].map(x=>({...x,pid:x.pid+1000}));instances=taskNames.map((name,i)=>({name,pid:1200+i,guid:'restored'+i}));return {stderr:'',stdout:JSON.stringify({status:'RESTORED_READY'})};}
   }
@@ -632,7 +637,7 @@ function currentRehearsalFixture(options={}){
    const drainWitness=put('successor-core-probe-drain.json',{event:'B264_OLD_OWNER_CORE_PROBES_ABSENT',cutWitness,consolePins:[],probePins:[]});if(options.tornWitness)files.get(drainWitness.path).value.cutWitness={...cutWitness,sha256:'f'.repeat(64)};
    return {stderr:'',stdout:JSON.stringify({status:'B264_OLD_OWNER_CORE_DRAINED',coreStopResult:'COM_STOP_NATURAL_EXIT',heldCoreExited:true,comStopped:true,cutWitness,drainWitness})};
   }
-  if(leaf==='observer.ps1')return {stderr:'',stdout:JSON.stringify({schemaVersion:'melisa-p03-current-b007-same-capture.v1',current:{environment:'Rehearsal',observedAt:stamp(),runningInstances:instances.map(x=>({name:x.name,enginePid:x.pid,instanceGuid:x.guid}))},frame:{...makeFrame(),policyGeneration:'CurrentB142Rehearsal',transitionAuthority:false,stopAuthority:false,applyExecuted:false,protectedProcesses:[]}})};
+  if(leaf==='observer.ps1')return {stderr:'',stdout:JSON.stringify({schemaVersion:'melisa-p03-current-b007-same-capture.v1',current:{environment:'Rehearsal',observedAt:stamp(),runningInstances:instances.map(x=>({name:x.name,enginePid:x.pid,instanceGuid:x.guid}))},frame:{...makeFrame(),policyGeneration:options.badReadOnlyCapture?'Shared':'CurrentB142Rehearsal',transitionAuthority:false,stopAuthority:false,applyExecuted:false,protectedProcesses:[]}})};
   if(leaf==='stopper.ps1'){const proof=JSON.parse(Buffer.from(arg(args,'-ExpectedJsonBase64'),'base64'));processRows=processRows.filter(x=>x.pid!==proof.pid);stopCalls++;return {stderr:'',stdout:'EXACT_OBSERVED_PROCESS_STOPPED'};}
   if(leaf==='recovery.ps1'){
    const action=arg(args,'-Action');if(action==='Inspect')return {stderr:'',stdout:JSON.stringify({status:'B264_NEW_OWNER_RECOVERY_INSPECTED',newIdentities:processRows.length,runningInstances:instances.length})};
@@ -656,14 +661,16 @@ function currentRehearsalFixture(options={}){
   const value=JSON.parse(b),ref=put(path.win32.basename(file),value);writes.push(ref.path);if(value.event)events.push(value.event);
  }
  const params={mode:options.mode??'Apply',scenario:options.scenario??'Normal',runRoot:root,profileRef,beforeRef};
- const deps={P03_CURRENT_B142_REHEARSAL_NATIVE:nativePins,path,need:(v,c)=>{if(!v)throw Error(c);},pin,read,noReparseAncestors:()=>{},hash,jsonBytes:bytes,targets,p03TransitionDigest,p03CoreFirstStopDigest,run:nativeRun,shell:'shell',b264Sup20dHeldInvocation:(ref,argv)=>({ref,args:argv.slice(4)}),opts:{},psPayload,pr54ProtectedWriteProgram:p=>p,Buffer,owner,psNoReparse:'NOREPARSE;',ps,sameIdentity:same,typedRef:x=>x&&typeof x.path==='string'&&/^[a-f0-9]{64}$/.test(x.sha256),runP03HeldCoreOwnerTransition,Date:D,fs:{readFileSync:p=>bytes(files.get(p).value),readdirSync:()=>['event-0000.json']},setTimeout:(fn,ms)=>{clock+=ms;fn();}};
+ const deps={P03_CURRENT_B142_REHEARSAL_NATIVE:nativePins,pr54SafeFailure:actualSafeFailure,path,need:(v,c)=>{if(!v)throw Error(c);},pin,read,noReparseAncestors:()=>{},hash,jsonBytes:bytes,targets,p03TransitionDigest,p03CoreFirstStopDigest,run:nativeRun,shell:'shell',b264Sup20dHeldInvocation:(ref,argv)=>({ref,args:argv.slice(4)}),opts:{},psPayload,pr54ProtectedWriteProgram:p=>p,Buffer,owner,psNoReparse:'NOREPARSE;',ps,sameIdentity:same,typedRef:x=>x&&typeof x.path==='string'&&/^[a-f0-9]{64}$/.test(x.sha256),runP03HeldCoreOwnerTransition,Date:D,fs:{readFileSync:p=>bytes(files.get(p).value),readdirSync:()=>['event-0000.json']},setTimeout:(fn,ms)=>{clock+=ms;fn();}};
  const execute=new Function(...Object.keys(deps),body+';return runPr54CurrentB142RehearsalTransition;')(...Object.values(deps));
  return {run:()=>execute(params),calls,writes,events,programs,profileBytes:bytes(profile).length,beforeBytes:bytes(before).length,get counts(){return {drainCalls,stopCalls,recoverCalls};}};
 }
 test('CurrentB142 SQL-free native bridge uses the held dispatcher for four finite outcomes',async()=>{
  for(const scenario of ['Normal','OldCutFailure','ReplyLoss','PartialNew']){const f=currentRehearsalFixture({scenario}),result=await f.run();assert.equal(result.status,'CURRENT_B142_REHEARSAL_SCENARIO_READY');assert.equal(result.scenario,scenario);assert.equal(result.sqlFreeFixture,true);assert.equal(result.applicationRollbackVerified,false);assert.equal(result.databaseRollbackVerified,false);assert.equal(result.sharedHistoryAdmissionVerified,false);assert.equal(f.counts.drainCalls,1);assert.equal(result.recovered,scenario!=='Normal');assert.equal(result.nativeReplyLost,scenario==='ReplyLoss');assert(f.events.includes('EXACT_STOP_INTENT'));}
 });
-test('CurrentB142 rehearsal DryRun never mints a claim or invokes Drain',async()=>{const f=currentRehearsalFixture({mode:'DryRun'});assert.equal((await f.run()).runtimeMutation,false);assert.equal(f.writes.length,0);assert.equal(f.counts.drainCalls,0);});
+test('CurrentB142 rehearsal DryRun reads all three native stages before returning with no claim or Drain',async()=>{const f=currentRehearsalFixture({mode:'DryRun'}),r=await f.run();assert.equal(r.runtimeMutation,false);assert.equal(r.claimCreated,false);assert.equal(r.applyExecuted,false);assert.equal(r.transitionAuthority,false);assert.deepEqual(r.nativeStages,['PreflightOld','Inspect','Capture']);assert.equal(f.calls.length,3);assert.equal(f.writes.length,0);assert.equal(f.counts.drainCalls,0);assert.equal(f.counts.stopCalls,0);
+ const bad=currentRehearsalFixture({mode:'DryRun',badReadOnlyCapture:true});await assert.rejects(bad.run(),/REHEARSAL_CAPTURE/);assert.equal(bad.calls.length,3);assert.equal(bad.writes.length,0);assert.equal(bad.counts.drainCalls,0);assert.equal(bad.counts.stopCalls,0);
+});
 test('CurrentB142 rehearsal unknown native child and torn completed witness never begin a second mutation',async()=>{
  for(const bad of [{nativeUnknown:true},{scenario:'ReplyLoss',tornWitness:true}]){const f=currentRehearsalFixture(bad);await assert.rejects(f.run());assert.equal(f.counts.drainCalls,1);assert.equal(f.counts.stopCalls,0);assert.equal(f.counts.recoverCalls,0);}
 });
@@ -691,3 +698,19 @@ test('CurrentB142 real-size profile and task XML use pinned disk reads and stdin
 });
 
 test('CurrentB142 adapter rejects a mismatched explicit startup scenario before preflight, claim or Drain',async()=>{const f=currentRehearsalFixture({badStartup:true});await assert.rejects(f.run(),/REHEARSAL_STARTUP_CONTRACT/);assert.equal(f.calls.length,0);assert.equal(f.writes.length,0);});
+
+
+test('CurrentB142 native refusal diagnostics are bounded and preserve preclaim rejection without secrets',async()=>{
+ const rejected=Object.assign(Error('Command failed: PRIVATE_SENTINEL C:\\private\\secret'),{stderr:'P03_PHYSICAL_REHEARSAL_SCOPE PRIVATE_SENTINEL',code:1,killed:false,signal:null});
+ const cases=[
+  [{preflightError:rejected},'P03_PHYSICAL_REHEARSAL_SCOPE',false,1,'Error'],
+  [{preflightError:Error('PRIVATE_SENTINEL')},'UNCLASSIFIED_IO_FAILURE',false,null,'Error'],
+  [{preflightError:Error('P03_CURRENT_B142_REHEARSAL_SCOPE PRIVATE_SENTINEL')},'P03_CURRENT_B142_REHEARSAL_SCOPE',false,null,'Error'],
+  [{preflightStderr:'P03_PHYSICAL_REHEARSAL_SCOPE PRIVATE_SENTINEL'},'P03_PHYSICAL_REHEARSAL_SCOPE',true,0,'Error'],
+  [{preflightJson:true},'P03_SHARED_REHEARSAL_NATIVE_JSON_INVALID',true,null,'SyntaxError']
+ ];
+ for(const [option,code,completed,exitCode,errorType]of cases){const f=currentRehearsalFixture(option);await assert.rejects(f.run(),e=>{
+  assert.equal(e.message,code);assert.deepEqual(e.p03RehearsalDiagnostic,{schemaVersion:'melisa-p03-current-b142-native-failure.v1',worker:'engine',action:'PreflightOld',code,exitCode,killed:false,signal:null,errorType,completed});
+  assert(!JSON.stringify(e).includes('PRIVATE_SENTINEL'));assert(!JSON.stringify(e).includes('private'));assert.deepEqual(Object.keys(e),['p03RehearsalDiagnostic']);return true;
+ });assert.equal(f.calls.length,1);assert.equal(f.writes.length,0);assert.equal(f.counts.drainCalls,0);}
+});

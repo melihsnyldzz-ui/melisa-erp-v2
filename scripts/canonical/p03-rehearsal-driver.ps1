@@ -1,4 +1,4 @@
-param([ValidateSet('DryRun','Run')][string]$Mode='DryRun',[ValidateSet('Legacy','B264V2','FailureRecordV1','FileAttributesV1','CurrentB142Rehearsal')][string]$EngineGeneration='Legacy',[ValidateSet('Normal','OldCutFailure','ReplyLoss','PartialNew')][string]$RehearsalScenario='Normal')
+param([ValidateSet('DryRun','Run')][string]$Mode='DryRun',[ValidateSet('Legacy','B264V2','FailureRecordV1','FileAttributesV1','CurrentB142Rehearsal')][string]$EngineGeneration='Legacy',[ValidateSet('Normal','OldCutFailure','ReplyLoss','PartialNew')][string]$RehearsalScenario='Normal',[switch]$InspectionOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 trap{$kind=$_.Exception.GetType().Name;if($kind-cnotin@('MethodInvocationException','RuntimeException','UnauthorizedAccessException','IOException','ArgumentException','InvalidOperationException','PropertyNotFoundException','ParameterBindingException','PSInvalidCastException')){$kind='OtherException'};$site=$_.Exception.TargetSite;$method=if($null-ne$site){$site.Name}else{'UnknownMethod'};if($method-cnotin@('Invoke','InvokeMethod','CreateDirectory','Write','Flush','AddAccessRule','SetOwner','CheckActionPreference')){$method='UnknownMethod'};$code=if([string]$_.Exception.Message-cmatch'\bP03_[A-Z_]+\b'){$Matches[0]}else{'P03_REHEARSAL_EXECUTION_REJECTED'};$line=0;if($null-ne$_.InvocationInfo){$line=[int]$_.InvocationInfo.ScriptLineNumber};[Console]::Error.WriteLine(($code+' TYPE_'+$kind+' METHOD_'+$method+' LINE_'+$line));exit 1}
@@ -145,6 +145,15 @@ function RegisterFixtureTask([int]$index,[string]$generation,[bool]$update){
  if($update){$existing=$folder.GetTask($names[$index]);Need ([int]$existing.State-eq3-and(Hash ([Text.Encoding]::UTF8.GetBytes([string]$existing.Xml)))-ceq$profile.tasks[$index].oldXmlSha256) 'TASK_CAS'}
  [void]$folder.RegisterTaskDefinition($names[$index],$definition,$(if($update){4}else{2}),$owner,$null,3,$null)
 }
+function SaveCurrentNativeFailure($value){
+ Need ($EngineGeneration-ceq'CurrentB142Rehearsal') 'CURRENT_DIAGNOSTIC_SCOPE'
+ Need ($value.status-ceq'CURRENT_B142_NATIVE_FAILED'-and((@($value.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'diagnostic|status')) 'CURRENT_DIAGNOSTIC_ENVELOPE'
+ $d=$value.diagnostic
+ Need ((@($d.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'action|code|completed|errorType|exitCode|killed|schemaVersion|signal|worker'-and$d.schemaVersion-ceq'melisa-p03-current-b142-native-failure.v1') 'CURRENT_DIAGNOSTIC_FIELDS'
+ Need ($d.worker-cin@('engine','oldCut','observer','recovery','drainer','empty','helper','stopper','UNKNOWN')-and$d.action-cin@('PreflightOld','StopNew','RollbackOld','Inspect','Drain','Capture','ExactStop','UNKNOWN')) 'CURRENT_DIAGNOSTIC_STAGE'
+ Need ($d.code-is[string]-and($d.code-cmatch'\AP03_[A-Z0-9_]{1,160}\z'-or$d.code-cin@('ENOENT','EACCES','ENAMETOOLONG','ETIMEDOUT','EPIPE','UNCLASSIFIED_IO_FAILURE'))-and$d.killed-is[bool]-and$d.completed-is[bool]-and($null-eq$d.exitCode-or$d.exitCode-is[int])-and($null-eq$d.signal-or$d.signal-cin@('SIGTERM','SIGKILL','SIGINT'))-and$d.errorType-cin@('Error','TypeError','RangeError','SyntaxError','OTHER')) 'CURRENT_DIAGNOSTIC_VALUES'
+ [void](WriteNew (Join-Path $runRoot 'native-failure-diagnostic.json') (Bytes $value));Journal 'CURRENT_NATIVE_FAILURE_RECORDED'
+}
 function QuiesceCurrentRehearsal{
  Need ($EngineGeneration-ceq'CurrentB142Rehearsal'-and$runRoot-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\z') 'CURRENT_CLEANUP_SCOPE'
  Need ((Hash (Bytes (ProtectedSnapshot)))-ceq$protectedBeforeSha) 'CURRENT_CLEANUP_PROTECTED'
@@ -180,8 +189,16 @@ function QuiesceCurrentRehearsal{
  }finally{foreach($entry in $held){$entry.handle.Dispose()};if($null-ne$stopperHold){$stopperHold.Dispose()}}
 }
 
+function AssertInspectionOnly($value,[bool]$inspection){
+ $fields=@($value.PSObject.Properties|ForEach-Object{$_.Name});$present=$fields-ccontains'inspectionOnly'
+ if($inspection){Need ($Mode-ceq'Run'-and$EngineGeneration-ceq'CurrentB142Rehearsal'-and$RehearsalScenario-ceq'Normal'-and$fields-ccontains'engineGeneration'-and$fields-ccontains'rehearsalScenario'-and$value.engineGeneration-ceq'CurrentB142Rehearsal'-and$value.rehearsalScenario-ceq'Normal'-and$present-and$value.inspectionOnly-is[bool]-and$value.inspectionOnly-ceq$true) 'INSPECTION_ONLY_SCOPE'}else{Need (-not$present) 'INSPECTION_ONLY_UNEXPECTED_FIELD'}
+}
+function AssertCurrentInspectionResult($value){
+ Need ($value.status-ceq'DRY_RUN_READY'-and$value.environment-ceq'P03_REHEARSAL'-and$value.scenario-ceq'Normal'-and$value.claimCreated-is[bool]-and$value.claimCreated-ceq$false-and$value.runtimeMutation-is[bool]-and$value.runtimeMutation-ceq$false-and$value.applyExecuted-is[bool]-and$value.applyExecuted-ceq$false-and$value.transitionAuthority-is[bool]-and$value.transitionAuthority-ceq$false-and$value.sqlFreeFixture-is[bool]-and$value.sqlFreeFixture-ceq$true-and$value.applicationRollbackVerified-is[bool]-and$value.applicationRollbackVerified-ceq$false-and$value.databaseRollbackVerified-is[bool]-and$value.databaseRollbackVerified-ceq$false-and$value.nativeStages-is[array]-and$value.nativeStages.Count-eq3-and(@($value.nativeStages)-join'|')-ceq'PreflightOld|Inspect|Capture'-and@($value.nativeStages|Where-Object{$_-isnot[string]}).Count-eq0) 'CURRENT_INSPECTION_RESULT'
+}
 Need ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner) 'OWNER'
 $request=[Console]::In.ReadToEnd()|ConvertFrom-Json;Need ($request.mode-ceq$Mode-and@($request.files).Count-eq3) 'REQUEST'
+Need (-not$PSBoundParameters.ContainsKey('InspectionOnly')-or$InspectionOnly.IsPresent) 'INSPECTION_ONLY_SWITCH';AssertInspectionOnly $request ([bool]$InspectionOnly)
 Need ((Get-FileHash -LiteralPath $node -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$nodeSha) 'NODE_PIN'
 Need (@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-in$ports}).Count-eq0) 'PORT_ALREADY_USED'
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
@@ -272,13 +289,23 @@ Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvaria
 if($EngineGeneration-ceq'CurrentB142Rehearsal'){
  Need ((@($request.dispatcher.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'path|sha256'-and$request.dispatcher.sha256-cmatch'\A[a-f0-9]{64}\z') 'CURRENT_DISPATCHER_REF';NoReparse $request.dispatcher.path
  Need ((Get-FileHash -LiteralPath $request.dispatcher.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$request.dispatcher.sha256-and$request.dispatcher.path-ceq(Join-Path $PSScriptRoot 'p03-pr54-shared-owner-io.mjs')) 'CURRENT_DISPATCHER_PIN'
- $inputValue=[ordered]@{moduleUrl=([Uri]$request.dispatcher.path).AbsoluteUri;request=[ordered]@{mode='Apply';scenario=$RehearsalScenario;runRoot=$runRoot;profileRef=$profileRef;beforeRef=$beforeRef}}
+ $inputValue=[ordered]@{moduleUrl=([Uri]$request.dispatcher.path).AbsoluteUri;request=[ordered]@{mode=$(if($InspectionOnly){'DryRun'}else{'Apply'});scenario=$RehearsalScenario;runRoot=$runRoot;profileRef=$profileRef;beforeRef=$beforeRef}}
  $data=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($inputValue|ConvertTo-Json -Depth 15 -Compress)))
- $program='const x=JSON.parse(Buffer.from('+[char]39+$data+[char]39+','+[char]39+'base64'+[char]39+'));const m=await import(x.moduleUrl);try{process.stdout.write(JSON.stringify(await m.runPr54CurrentB142RehearsalTransition(x.request)))}catch(e){process.stderr.write(e.message);process.exitCode=1}'
- $result=(& $node --input-type=module -e $program);Need ($LASTEXITCODE-eq0) 'CURRENT_DISPATCHER_FAILED';$currentResult=$result|ConvertFrom-Json;Need ($currentResult.status-ceq'CURRENT_B142_REHEARSAL_SCENARIO_READY'-and$currentResult.scenario-ceq$RehearsalScenario-and$currentResult.sqlFreeFixture-ceq$true-and$currentResult.applicationRollbackVerified-ceq$false-and$currentResult.databaseRollbackVerified-ceq$false) 'CURRENT_DISPATCHER_RESULT'
- Journal 'CURRENT_SCENARIO_VERIFIED'
+ $program='const x=JSON.parse(Buffer.from('+[char]39+$data+[char]39+','+[char]39+'base64'+[char]39+'));const m=await import(x.moduleUrl);try{process.stdout.write(JSON.stringify(await m.runPr54CurrentB142RehearsalTransition(x.request)))}catch(e){if(e.p03RehearsalDiagnostic)process.stdout.write(JSON.stringify({status:'+[char]39+'CURRENT_B142_NATIVE_FAILED'+[char]39+',diagnostic:e.p03RehearsalDiagnostic}));process.stderr.write(e.message);process.exitCode=1}'
+ try{
+ $result=(& $node --input-type=module -e $program);$dispatcherExit=$LASTEXITCODE
+ if($dispatcherExit-ne0-and-not[string]::IsNullOrWhiteSpace([string]$result)){SaveCurrentNativeFailure ($result|ConvertFrom-Json)}
+ Need ($dispatcherExit-eq0) 'CURRENT_DISPATCHER_FAILED';$currentResult=$result|ConvertFrom-Json
+ if($InspectionOnly){AssertCurrentInspectionResult $currentResult;Journal 'CURRENT_NATIVE_READ_ONLY_INSPECTION_VERIFIED'}else{Need ($currentResult.status-ceq'CURRENT_B142_REHEARSAL_SCENARIO_READY'-and$currentResult.scenario-ceq$RehearsalScenario-and$currentResult.sqlFreeFixture-ceq$true-and$currentResult.applicationRollbackVerified-ceq$false-and$currentResult.databaseRollbackVerified-ceq$false) 'CURRENT_DISPATCHER_RESULT';Journal 'CURRENT_SCENARIO_VERIFIED'}
+ }catch{
+  $inspectionFailure=$_
+  if($InspectionOnly){try{Journal 'CURRENT_READONLY_INSPECTION_FAILED';[void](QuiesceCurrentRehearsal);Journal 'CURRENT_READONLY_INSPECTION_CLEANUP_COMPLETE'}catch{try{Journal 'CURRENT_READONLY_INSPECTION_CLEANUP_FAILED'}catch{}}}
+  throw $inspectionFailure
+ }
+ $status=if($InspectionOnly){'CURRENT_B142_NATIVE_INSPECTED_READ_ONLY'}else{'CURRENT_B142_REHEARSAL_SCENARIO_READY'}
  $cleanup=QuiesceCurrentRehearsal
- $report=[ordered]@{status='CURRENT_B142_REHEARSAL_SCENARIO_READY';environment='P03_REHEARSAL';runRoot=$runRoot;scenario=$RehearsalScenario;dispatcher=$request.dispatcher;engineGeneration=$EngineGeneration;engine=$engineRef;engineSha256=$engineRef.sha256;profile=$profileRef;before=$beforeRef;transition=$currentResult;cleanup=$cleanup;protectedBeforeSha256=$protectedBeforeSha;protectedAfterSha256=(Hash (Bytes (ProtectedSnapshot)));sqlFreeFixture=$true;applicationRollbackVerified=$false;databaseRollbackVerified=$false;sharedTestMutation=$false;cleanupPerformed=$true}
+ $report=[ordered]@{status=$status;environment='P03_REHEARSAL';runRoot=$runRoot;scenario=$RehearsalScenario;dispatcher=$request.dispatcher;engineGeneration=$EngineGeneration;engine=$engineRef;engineSha256=$engineRef.sha256;profile=$profileRef;before=$beforeRef;transition=$currentResult;cleanup=$cleanup;protectedBeforeSha256=$protectedBeforeSha;protectedAfterSha256=(Hash (Bytes (ProtectedSnapshot)));sqlFreeFixture=$true;applicationRollbackVerified=$false;databaseRollbackVerified=$false;sharedTestMutation=$false;cleanupPerformed=$true}
+ if($InspectionOnly){$report['inspectionOnly']=$true;$report['claimCreated']=$false;$report['nativeMutation']=$false;$report['fixtureSetupExecuted']=$true;$report['fixtureCleanupExecuted']=$true}
  $reportRef=WriteNew (Join-Path $runRoot 'result.json') (Bytes $report);$report['result']=$reportRef;$report|ConvertTo-Json -Depth 25;return
 }
 Journal 'STOP_OLD_FIXTURE_INTENT'

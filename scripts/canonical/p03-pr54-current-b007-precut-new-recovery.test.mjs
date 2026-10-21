@@ -43,7 +43,29 @@ Assert-CurrentB007Continuation;if(($claim|ConvertTo-Json -Depth 30 -Compress)-cn
  }
 });
 test('PS5 parses the full adapter and every existing native recovery function except claim binding and versioned source policy remains byte-identical',windows,()=>{
- const out=run(`${parse(original)}$allOld=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));foreach($name in @('Same974dShape','Assert974dContinuation','AssertB142Continuation')){if(@($allOld|Where-Object{$_.Name-ceq$name}).Count-ne1){throw 'CURRENT_METADATA_FUNCTION_MISSING'}};$old=@($allOld|Where-Object{$_.Name-cnotin@('Same974dShape','Assert974dContinuation','AssertB142Continuation')});${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+4)){throw 'FUNCTION_COUNT'};foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cnotin@('Assert-B264Claim','Get-B264RecoverySourcePolicy')-and$f.Extent.Text.Replace(\"\`r\`n\",\"\`n\")-cne$g[0].Extent.Text.Replace(\"\`r\`n\",\"\`n\")){throw ('FUNCTION_CHANGED_'+$f.Name)}};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
+ const sealed=fs.readFileSync(adapter,'utf8').replaceAll('\r\n','\n');assert.equal(createHash('sha256').update(sealed).digest('hex'),'667ac16f0a83251db2e11e9e337ce9894de4803efc9ed5a2b2fe6129672fb28c','historical adapter remains sealed');
+ // Enumerate only the explicit Rehearsal additions. Every surrounding byte of
+ // every historical function is still compared; no general function skip.
+ const edits=[
+  {name:'Initialize-B264Recovery',from:'function Initialize-B264Recovery{\n',to:String.raw`function Initialize-B264Recovery{
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9') 'REHEARSAL_ENTRY'
+  $engine=Read-B264Source $EnginePath $engineSha 'recovery-engine.ps1';$empty=Read-B264Source $EmptyRecoveryPath 'd1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438' 'p03-pr54-new-owner-empty-recovery.ps1';$drainer=Read-B264Source $DrainerPath $DrainerSha256 'p03-pr54-successor-core-drain.ps1'
+  Import-B264Definitions $engine @() @{ConsoleAuxiliaries='B264FrozenConsoleAuxiliaries';HubLineage='B264FrozenHubLineage'}
+  Import-B264Definitions $empty @('Assert-NewDrainOldAbsent','Save-NewDrain','Read-NewDrainReceipt','Stop-NewDrainExact','Hold-NewDrainCore','Open-NewDrainOutput')
+  Import-B264Definitions $drainer @('AssertCurrentB142RehearsalContract','AssertCurrentB142RehearsalClaim','AssertCurrentB142RehearsalFiles')
+  return
+ }
+
+`},
+  {name:'Initialize-B264Bindings',from:'$oldSettings=$newSettings;PrepareProbeSource',to:"$oldSettings=$newSettings;if($PolicyGeneration-cne'CurrentB142Rehearsal'){PrepareProbeSource}"},
+  {name:'Capture-NewDrainCandidate',from:"if($rule.role -ceq 'hub')",to:"if($rule.role -ceq 'hub'-and-not$isRehearsal)"},
+  {name:'B264ProbeAuxiliaries',from:'function B264ProbeAuxiliaries($inventory){\n',to:"function B264ProbeAuxiliaries($inventory){\n if($PolicyGeneration-ceq'CurrentB142Rehearsal'){return @()}\n"},
+  {name:'HubLineage',from:'{return NewHubLineage',to:"{if($PolicyGeneration-ceq'CurrentB142Rehearsal'){return B264FrozenHubLineage $evidence $expected $inventory};return NewHubLineage"},
+  {name:'Invoke-B264Recovery',from:"if($Action -ceq 'Inspect'){return [ordered]@{status='B264_NEW_OWNER_RECOVERY_INSPECTED';mutationExecuted=$false;newIdentities=$admitted.selected.Count;liveProbesAccepted=$script:probePins.Count;rawInventoryPreserved=$true;unprovenPartialRecoveryGranted=$false;engineRecoveryExecuted=$false}}",to:"if($Action -ceq 'Inspect'){$out=[ordered]@{status='B264_NEW_OWNER_RECOVERY_INSPECTED';mutationExecuted=$false;newIdentities=$admitted.selected.Count;liveProbesAccepted=$script:probePins.Count;rawInventoryPreserved=$true;unprovenPartialRecoveryGranted=$false;engineRecoveryExecuted=$false};if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$out['environment']='P03_REHEARSAL';$out['newRoles']=@($admitted.selected|ForEach-Object{$_.role});$out['runningInstances']=$admitted.inventory.instances.Count};return $out}"}
+ ];
+ const encoded=Buffer.from(JSON.stringify(edits)).toString('base64');
+ const out=run(`$edits=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}'))|ConvertFrom-Json;${parse(original)}$allOld=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));$metadata=@('Same974dShape','Assert974dContinuation','AssertB142Continuation','Initialize-CurrentB142RehearsalRecovery');foreach($name in $metadata){if(@($allOld|Where-Object{$_.Name-ceq$name}).Count-ne1){throw 'CURRENT_METADATA_FUNCTION_MISSING'}};$old=@($allOld|Where-Object{$_.Name-cnotin$metadata});${parse(adapter)}$fresh=@($ast.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]},$false));if($fresh.Count-ne($old.Count+4)){throw 'FUNCTION_COUNT'};$applied=0;foreach($f in $old){$g=@($fresh|Where-Object{$_.Name-ceq$f.Name});if($g.Count-ne1){throw 'FUNCTION_MISSING'};if($f.Name-cnotin@('Assert-B264Claim','Get-B264RecoverySourcePolicy')){$current=$f.Extent.Text.Replace("\`r\`n","\`n");$historical=$g[0].Extent.Text.Replace("\`r\`n","\`n");foreach($edit in @($edits|Where-Object{$_.name-ceq$f.Name})){if([regex]::Matches($historical,[regex]::Escape($edit.from)).Count-ne1-or[regex]::Matches($current,[regex]::Escape($edit.to)).Count-ne1){throw ('REHEARSAL_LITERAL_'+$f.Name)};$historical=$historical.Replace($edit.from,$edit.to);$applied++};if($current-cne$historical){throw ('FUNCTION_CHANGED_'+$f.Name)}}};if($applied-ne6){throw 'REHEARSAL_EDIT_COUNT'};'PARSED_NATIVE_RECOVERY_UNCHANGED'`);
  assert.match(out,/PARSED_NATIVE_RECOVERY_UNCHANGED/);
 });
 
