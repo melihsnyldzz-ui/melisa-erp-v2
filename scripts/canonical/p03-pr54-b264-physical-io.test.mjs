@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {validatePr54B264PhysicalInspection,validatePr54B264Sup20dPhysicalInspection,validatePr54CurrentPhysicalInspection,lookupPr54CurrentPhysicalInspection,collectPr54CurrentInspectionPair,pr54CollectPhysicalObservation} from './p03-pr54-shared-owner-io.mjs';
 import {createHash} from 'node:crypto';
-import {execFileSync} from 'node:child_process';
+import {execFileSync,spawnSync} from 'node:child_process';
 import {pr54B264InspectionArguments,lookupPr54B264PhysicalInspection,inspectPr54B264PhysicalOwner,pr54B264Sup20dInspectionArguments,lookupPr54B264Sup20dPhysicalInspection,inspectPr54B264Sup20dPhysicalOwner} from './p03-pr54-b264-physical-io.mjs';
 import {PR54_OWNER_ROOT,PR54_B264_REFS,assertPr54B264SuccessorCandidate,assertPr54B264Sup20dCandidate} from './p03-pr54-owner-successor.mjs';
 const hash=b=>createHash('sha256').update(b).digest('hex'),root=PR54_OWNER_ROOT;
@@ -88,6 +88,20 @@ test('pinned subprocess runs the authenticated source buffer under deny-write ha
  const source=text('p03-pr54-b264-physical-io.mjs'),start=source.indexOf('function pinnedInvocation('),end=source.indexOf('\nexport async function inspectPr54B264PhysicalOwner',start);assert.ok(start>0&&end>start);
  const invoke=new Function('Buffer','need',source.slice(start,end)+';return pinnedInvocation;')(Buffer,(v,c)=>assert.ok(v,c));const f=input(),argv=pr54B264InspectionArguments(f);
  for(const [ref,a]of [[f.observerRef,argv.observer],[f.drainerRef,argv.worker]]){const args=invoke(ref,a);assert.deepEqual(args.slice(0,3),['-NoProfile','-NonInteractive','-EncodedCommand']);const program=Buffer.from(args[3],'base64').toString('utf16le');assert.match(program,/AreAccessRulesProtected/);assert.match(program,/rules.Count-ne2/);assert.match(program,/\[IO.File\]::Open\(\$v.ref.path,'Open','Read','Read'\)/);assert.match(program,/\$sha-cne\$v.ref.sha256/);assert.match(program,/scriptblock\]::Create\(\$code\)\) @bound/);assert.match(program,/finally\{\$s.Dispose\(\)\}/);assert.doesNotMatch(program,/& \$v.ref.path|Start-Process|Stop-Process|WriteAll|Set-Acl/);const encoded=Buffer.from(program).toString('base64');assert.match(ps(`$t=$null;$e=$null;[void][Management.Automation.Language.Parser]::ParseInput([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${encoded}')),[ref]$t,[ref]$e);if($e.Count){throw 'PARSE'};'PARSE_PASS'`),/PARSE_PASS/);}
+});
+
+test('read-only native failure trace preserves exact rejection and CIM retry identity without disclosing exception content',windows,()=>{
+ const source=text('p03-pr54-b264-physical-io.mjs'),a=source.indexOf('function pinnedInvocation('),b=source.indexOf('\nexport async function inspectPr54B264PhysicalOwner',a),invoke=new Function('Buffer','need',source.slice(a,b)+';return pinnedInvocation;')(Buffer,(v,c)=>assert.ok(v,c)),f=input();
+ const program=Buffer.from(invoke(f.observerRef,pr54B264InspectionArguments(f).observer)[3],'base64').toString('utf16le'),start=program.indexOf('try{& ([scriptblock]::Create($code)) @bound}catch'),end=program.lastIndexOf('}finally{$s.Dispose()}');assert(start>0&&end>start);const fragment=program.slice(start,end);
+ const run=code=>spawnSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from("$ProgressPreference='SilentlyContinue';"+code,'utf16le').toString('base64')],{windowsHide:true,encoding:'utf8',timeout:20000});
+ const prefix="$ErrorActionPreference='Stop';$bound=@{};$code='function DiagnosticLeaf{throw $script:originalError};function DiagnosticOuter{DiagnosticLeaf};DiagnosticOuter';";
+ for(const kind of ['fixed','cim']){
+  const init=kind==='cim'?"Import-Module (Join-Path $PSHOME 'Modules/CimCmdlets/CimCmdlets.psd1');$x=[Microsoft.Management.Infrastructure.CimException]::new('private-sentinel');$script:originalError=[Management.Automation.ErrorRecord]::new($x,'HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand',[Management.Automation.ErrorCategory]::ObjectNotFound,$null);":"$script:originalError='P03_SYNTHETIC_READ_REJECTED private-sentinel';";
+  const r=run(prefix+init+"try{"+fragment+"}catch{[ordered]@{message=$_.Exception.Message;id=$_.FullyQualifiedErrorId;category=[string]$_.CategoryInfo.Category}|ConvertTo-Json -Compress;exit 7}");assert.equal(r.status,7,r.stderr);const caught=JSON.parse(r.stdout.trim().split(/\r?\n/).at(-1));assert(caught.message.includes('private-sentinel'));
+  const match=r.stdout.match(/MELISA_NATIVE_RO_TRACE=(\[[^\r\n]*?\])/);assert(match,r.stdout);const trace=JSON.parse(match[1]);assert(trace.some(x=>x.fn==='DiagnosticLeaf'));assert(trace.length<=6);assert(trace.every(x=>Object.keys(x).sort().join('|')==='fn|line'&&/^[A-Za-z0-9_-]{1,64}$/.test(x.fn)&&Number.isSafeInteger(x.line)));assert(!match[1].includes('private-sentinel'));
+  if(kind==='cim'){assert.equal(caught.id,'HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand');assert.equal(caught.category,'ObjectNotFound');}
+ }
+ const ok=run("$bound=@{};$code='Write-Output success';"+fragment);assert.equal(ok.status,0,ok.stderr);assert.equal(ok.stdout.trim(),'success');assert.equal(ok.stderr,'');
 });
 
 test('PS5 normal observer B264 Old policy imports V2 tokens and the same finite contract, rejecting New and wrong engine',windows,()=>{
