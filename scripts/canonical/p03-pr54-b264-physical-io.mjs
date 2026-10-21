@@ -1,3 +1,4 @@
+import {PR54_CURRENT_B007_PRECUTB142_REFS,PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH,preparePr54CurrentB007PrecutB142Continuation} from './p03-pr54-current-b007-precut-continuation.mjs';
 import {PR54_CURRENT_B007_PRECUT974D_REFS,PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH,preparePr54CurrentB007Precut974dContinuation} from './p03-pr54-current-b007-precut-continuation.mjs';
 import {PR54_CURRENT_B007_PRECUT_RETRY_REFS,preparePr54CurrentB007PrecutRetry} from './p03-pr54-current-b007-precut-continuation.mjs';
 // Finite B264 physical inspection only. Importing this module does no IO.
@@ -180,10 +181,10 @@ export function validatePr54CurrentSameCaptureEnvelope(value,input){
  need(c.startedAt===current.startedAt&&[c.processCount,c.listenerCount,c.runningInstanceCount].every(n=>Number.isSafeInteger(n)&&n>=0)&&c.processCount>=current.processes.length&&c.listenerCount>=current.bindings.length&&c.runningInstanceCount===current.runningInstances.length,'SAME_CAPTURE_COUNTS');
  const {captureId:nativeId,...native}=frame;return {current,frame:native};
 }
-export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGeneration=false,precut974dContinuation=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
+export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGeneration=false,precutB142Continuation=false,precut974dContinuation=false,precutContinuation=false,precutResume=false,precutResumeAfter9d2=false}={}){
  need(process.platform==='win32','PLATFORM');const argv=pr54CurrentB007InspectionArguments(input);
- need([precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CONTINUATION_MODE');
- need(typeof freshOwnerGeneration==='boolean'&&(!freshOwnerGeneration||![precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].some(Boolean)),'FRESH_GENERATION_MODE');
+ need([precutB142Continuation,precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].every(v=>typeof v==='boolean')&&[precutB142Continuation,precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].filter(Boolean).length<=1,'CONTINUATION_MODE');
+ need(typeof freshOwnerGeneration==='boolean'&&(!freshOwnerGeneration||![precutB142Continuation,precut974dContinuation,precutContinuation,precutResume,precutResumeAfter9d2].some(Boolean)),'FRESH_GENERATION_MODE');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef}=input;
  const captured=Object.fromEntries(Object.entries(input).map(([k,r])=>[k,read(r)]));
  const profile=JSON.parse(captured.profileRef),before=JSON.parse(captured.beforeRef);
@@ -191,6 +192,13 @@ export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGener
   // RO inspection does not mint a slot. The owner derives it from two complete
   // native admissions and enforces exclusive creation before any task mutation.
   if(freshOwnerGeneration)return;
+  if(precutB142Continuation){
+   need(argv.observer.includes('-CaptureMode')&&argv.observer.includes('CurrentB007'),'B142_SAME_CAPTURE_REQUIRED');
+   const collect=refs=>Object.fromEntries(Object.entries(refs).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
+   const raw={original:collect(PR54_CURRENT_B007_PRECUT974D_REFS),failed:collect(PR54_CURRENT_B007_PRECUTB142_REFS)};
+   preparePr54CurrentB007PrecutB142Continuation({raw,profileRef,beforeRef,profile,before});
+   need(!fs.existsSync(PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH),'CONSUMED');return;
+  }
   if(precut974dContinuation){const raw=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT974D_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));preparePr54CurrentB007Precut974dContinuation({raw,profileRef,beforeRef,profile,before});need(!fs.existsSync(PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH),'CONSUMED');return;}
   if(precutResume||precutResumeAfter9d2){
    const original=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}])),resume=Object.fromEntries(Object.entries(PR54_CURRENT_B007_PRECUT_RESUME_REFS).map(([key,ref])=>[key,{ref,bytes:read(ref)}]));
@@ -256,5 +264,13 @@ export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGener
  },'SUCCESSOR_INSPECT'));
  const token=Object.freeze({}),now=Date.now();need(now-Date.parse(frame.observedAt)>=0&&now-Date.parse(frame.observedAt)<60000,'EXPIRED');
  inspections.set(token,{policy:'CurrentB007InspectOnly',current,profile,before,profileRef:Object.freeze({...profileRef}),beforeRef:Object.freeze({...beforeRef}),observedAt:frame.observedAt,aux,digest:hash(bytes({current,profile,before}))});
- return {status:'CURRENT_B007_PHYSICAL_INSPECTED_READ_ONLY',current,profile,before,physicalInspection:token,claimCreated:false,applyExecuted:false,stopAuthority:false,transitionAuthority:false};
+ // Only the finite b142 path consumes this already authenticated same-capture
+ // frame. It is evidence, never a capability: the private inspection token is
+ // still required, and caller-provided frames cannot enter this collector.
+ let admissionFrame;
+ if(precutB142Continuation){
+  const freeze=value=>{if(value&&typeof value==='object'){for(const item of Object.values(value))freeze(item);Object.freeze(value);}return value;};
+  admissionFrame=freeze(JSON.parse(JSON.stringify(frame)));
+ }
+ return {status:'CURRENT_B007_PHYSICAL_INSPECTED_READ_ONLY',current,profile,before,physicalInspection:token,...(precutB142Continuation?{admissionFrame}:{}),claimCreated:false,applyExecuted:false,stopAuthority:false,transitionAuthority:false};
 }

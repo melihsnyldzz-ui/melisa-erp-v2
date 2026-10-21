@@ -203,9 +203,7 @@ test('SUP20D OLD cut selects its exact drainer and distinct contract while keepi
 });
 
 
-test('exact974d continuation pins and equivalence apply identically in the three native readers',windows,()=>{
- const files=[source,fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)),fileURLToPath(new URL('./p03-pr54-b264-new-owner-recovery.ps1',import.meta.url))];
- for(const file of files)run(extract(['Same974dShape','Assert974dContinuation'],file)+String.raw`
+const continuation974dFixture=String.raw`
 function Need($ok,$reason){if(-not$ok){throw ('P03_'+$reason)}}
 function Protected($p){if($p-cne$oldProfile.journalDirectory){throw 'FIXTURE_JOURNAL'}}
 function Get-ChildItem{param($LiteralPath,[switch]$Force) if($journalDirty){return [pscustomobject]@{Name='unexpected'}};return @()}
@@ -243,7 +241,10 @@ Reject974d 'old business digest reused' {$profile.businessDigest.path=$oldProfil
 $journalDirty=$true;try{Assert974dContinuation $context $claim $read;throw 'FIXTURE_DIRTY_PASS'}catch{if($_.Exception.Message-cne'P03_CURRENT_974D_OLD_JOURNAL'){throw}};$journalDirty=$false
 $cutExists=$true;try{Assert974dContinuation $context $claim $read;throw 'FIXTURE_CUT_PASS'}catch{if($_.Exception.Message-cne'P03_CURRENT_974D_NO_CUT'){throw}};$cutExists=$false
 'PASS'
- `);
+`;
+test('exact974d continuation pins and equivalence apply identically in the three native readers',windows,()=>{
+ const files=[source,fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)),fileURLToPath(new URL('./p03-pr54-b264-new-owner-recovery.ps1',import.meta.url))];
+ for(const file of files)run(extract(['Same974dShape','Assert974dContinuation'],file)+continuation974dFixture);
 });
 
 
@@ -253,4 +254,52 @@ test('exact974d native entry points keep context mandatory and inspect read-only
  assert.match(observe,/CURRENT_974D_CONTEXT_REQUIRED/);assert.match(observe,/if\(\$continuation974d\)\{Assert974dContinuation/);
  assert.match(recover,/CURRENT_974D_CONTEXT_REQUIRED/);assert.match(recover,/CURRENT_974D_CONTEXT_FORBIDDEN/);
  for(const raw of [old,observe,recover]){const fn=raw.slice(raw.indexOf('function Assert974dContinuation'),raw.indexOf('function Assert974dContinuation')+raw.slice(raw.indexOf('function Assert974dContinuation')).indexOf('\n}\n')+3);assert(!fn.includes('UtcNow'));assert(!fn.includes('StopNew'));assert(!fn.includes('WriteAllText'));}
+});
+
+
+test('exactb142 continuation preserves974d lineage and rejects source, UID, advanced-cut, pointer and tamper drift in all native readers',windows,()=>{
+ const files=[source,fileURLToPath(new URL('./p03-pr54-new-owner-observe.ps1',import.meta.url)),fileURLToPath(new URL('./p03-pr54-b264-new-owner-recovery.ps1',import.meta.url))];
+ const baseFixture=continuation974dFixture.split('Assert974dContinuation $context $claim $read')[0].replace("$newRun='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'","$newRun='b14266ad30507bb10d78ae76e2546221'").replace("$ProfileSha256='a'*64;$BeforeImageSha256='b'*64","$ProfileSha256='8e34643bd8fb360e8ad7e94fcf5bca1e3b9b438a4d19ca1dce01d21b375d8bb2';$BeforeImageSha256='360b5f6551fda107d2f556f1230cdc2812dcc44b0818bf5b8c35d5b453e7f9d1'");
+ for(const file of files)run(extract(['Same974dShape','Assert974dContinuation','AssertB142Continuation'],file)+baseFixture+String.raw`
+$b142='b14266ad30507bb10d78ae76e2546221';$priorDir=Join-Path $base ('MelisaERP-P03-transition-'+$b142)
+$b142Profile=Clone $profile;$b142Before=Clone $before;$b142Context=Clone $context;$b142Claim=Clone $claim;$b142Claim.successorRunId=$b142;$b142Claim.successorProfile=Clone $context.profileRef;$b142Claim.successorBefore=Clone $context.beforeRef
+$b142ClaimRef=[pscustomobject]@{path=$context.claimPath;sha256='442f7d953c6e75512c36a259611d6d3f2275e9073d030991e1f87c177cd461a5'}
+$b142Rows=@{};$b142Rows[$b142ClaimRef.path]=$b142Claim;$b142Rows[$context.profileRef.path]=$b142Profile;$b142Rows[$context.beforeRef.path]=$b142Before
+$b142ContextRef=[pscustomobject]@{path=(Join-Path $priorDir 'precut-continuation.json');sha256='cc3adf31b7e0bf9fda138093c2fd2c6c892cae09884e443bd1a06cee52605e3a'};$b142Rows[$b142ContextRef.path]=$b142Context
+$b142Rows[(Join-Path $priorDir 'transition.lock')]=[pscustomobject]@{profileRef=$b142Claim.successorProfile;beforeRef=$b142Claim.successorBefore;successorClaimRef=$b142ClaimRef;currentPreCapture=[pscustomobject]@{snapshotRef=$b142Profile.businessDigest};continuationRef=$b142ContextRef}
+$previous=$b142Claim.successorBefore.sha256;$eventShas=@('457c86fe6db487b490f1d8db50bf69d90a5090c498f8c00cea121aad1660bef9','dfe8cf9b4be4189ce17aa3482fdcb6d3fa20ba05cf678074f0c2d750ffd43b56','abfbe25fb456df145857d10e96f366d3aacfd91b0cfe14440b0ab51b1c04d77c')
+foreach($i in 0..2){$b142Rows[(Join-Path $priorDir ('event-'+$i.ToString('0000')+'.json'))]=[pscustomobject]@{sequence=$i;event=@('TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED')[$i];target=@('','coreSupervisor','HELD_CORE_CUT')[$i];previousSha256=$previous;profileSha256=$b142Claim.successorProfile.sha256;beforeSha256=$b142Claim.successorBefore.sha256;digest=$b142Before.plan.digest;stopOrderDigest=$b142Claim.stopOrderDigest};$previous=$eventShas[$i]}
+$b142Rows[(Join-Path $priorDir 'io-failure-diagnostic.json')]=[pscustomobject]@{phase='HELD_CORE_CUT';reason='P03_OWNER_TRANSITION_STOPPED';failureDiagnostic=[pscustomobject]@{stage='DRAIN';reason='P03_PHYSICAL_B264_CUT_OWNER_FRESH'};profileSha256=$b142Claim.successorProfile.sha256;beforeSha256=$b142Claim.successorBefore.sha256}
+$ids=@();$b142Before.identities=[pscustomobject]@{};foreach($i in 0..7){$v=[pscustomobject]@{pid=100+$i};$b142Before.identities|Add-Member NoteProperty ('role'+$i) $v;$ids+=,$v};$oldBefore.identities=Clone $b142Before.identities
+$snapshot=[pscustomobject]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$b142Claim.successorProfile.sha256;beforeSha256=$b142Claim.successorBefore.sha256;engineSha256='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f';recoveryHelperSha256='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5';observedAt='2026-10-21T10:04:00Z';oldIdentities=(Clone $ids);oldWatchers=$b142Profile.oldWatchers;consolePins=@();probePins=@();protectedConsolePins=@()}
+$b142Rows[(Join-Path $priorDir 'successor-precut-admission.json')]=$snapshot
+$b142Rows[(Join-Path $priorDir 'b264-old-owner-cut-intent.json')]=[pscustomobject]@{event='B264_OLD_CUT_INTENT';claimSha256=$b142ClaimRef.sha256;stopOrderDigest=$b142Claim.stopOrderDigest;profileSha256=$b142Claim.successorProfile.sha256;beforeSha256=$b142Claim.successorBefore.sha256;observedAt='2026-10-21T10:04:01Z'}
+$newRun='cccccccccccccccccccccccccccccccc';$ProfilePath=Join-Path $base ('MelisaERP-P03-profile-'+$newRun+'.json');$BeforeImagePath=Join-Path $base ('MelisaERP-P03-before-'+$newRun+'.json');$ProfileSha256='c'*64;$BeforeImageSha256='d'*64
+$profile=Clone $b142Profile;$before=Clone $b142Before;$claim=Clone $b142Claim;$profile.beforeImage=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};$before.runId=$newRun;$before.startedAt='2026-10-21T10:05:00Z';$before.observedAt='2026-10-21T10:06:00Z';$profile.businessDigest.path='C:\Sirket\ERP\backups\P03-20261021-120000\source-pre-snapshot-cccccccccccccccccccccccccccccccc.json';$profile.journalDirectory=Join-Path $base ('MelisaERP-P03-recovery-'+$newRun);$profile.stopper.path=Join-Path $base ('MelisaERP-P03-stopper-'+$newRun+'.ps1')
+$context=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-precutb142-continuation.v1';retainedClaimRef=$b142ClaimRef;failureTailRef=[pscustomobject]@{path=(Join-Path $priorDir 'event-0002.json');sha256=$eventShas[2]};profileRef=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};beforeRef=$profile.beforeImage;claimPath=(Join-Path $base ('p03-pr54-current-b007-continuation-of-'+$b142+'.lock.json'));correctedSourceCommit='82e741af59cb59f27a4008ded83ca889238fb5c7'}
+$context=Clone $context
+function Protected($p){if($p-cnotin@($oldProfile.journalDirectory,$b142Profile.journalDirectory)){throw 'FIXTURE_JOURNAL'}}
+$read={param($p,$h) if($b142Rows.ContainsKey($p)){return $b142Rows[$p]};return $store[[IO.Path]::GetFileName($p)]}
+AssertB142Continuation $context $claim $read
+function RejectB142($label,[scriptblock]$change){$savedContext=Clone $context;$savedProfile=Clone $profile;$savedBefore=Clone $before;$savedClaim=Clone $claim;&$change;try{AssertB142Continuation $context $claim $read;throw 'FIXTURE_UNEXPECTED_PASS'}catch{if($_.Exception.Message-cnotmatch'^P03_CURRENT_(?:B142|974D)_'){throw}};Set-Variable -Scope 1 context $savedContext;Set-Variable -Scope 1 profile $savedProfile;Set-Variable -Scope 1 before $savedBefore;Set-Variable -Scope 1 claim $savedClaim}
+RejectB142 'wrong scope' {$context.claimPath+='x'}
+RejectB142 'wrong source' {$context.correctedSourceCommit='0'*40}
+RejectB142 'missingUID' {$before.identities.PSObject.Properties.Remove('role0')}
+RejectB142 'tamper protected' {$profile.protectedProcesses[0].pid=34}
+RejectB142 'tamper retained pointer' {$context.retainedClaimRef.sha256='0'*64}
+$save=Clone $b142Rows[$b142ContextRef.path];$b142Rows[$b142ContextRef.path].claimPath+='wrong';try{AssertB142Continuation $context $claim $read;throw 'FIXTURE_CONTEXT_PASS'}catch{if($_.Exception.Message-cnotmatch'^P03_CURRENT_974D_'){throw}};$b142Rows[$b142ContextRef.path]=$save
+$savedSnapshotIds=Clone $snapshot.oldIdentities;$snapshot.oldIdentities=@($snapshot.oldIdentities[1..7]);try{AssertB142Continuation $context $claim $read;throw 'FIXTURE_UID_PASS'}catch{if($_.Exception.Message-cne'P03_CURRENT_B142_SNAPSHOT'){throw}};$snapshot.oldIdentities=$savedSnapshotIds
+$cutExists=$true;try{AssertB142Continuation $context $claim $read;throw 'FIXTURE_CUT_PASS'}catch{if($_.Exception.Message-cnotmatch'^P03_CURRENT_(?:B142|974D)_'){throw}}
+'PASS'
+ `);
+});
+
+test('Drain rejects a simulated over-sixty-second internal full capture before COM without weakening the real clock',windows,()=>{
+ const out=run(`${fixture}\n${capture()}\n${drain()}\n${setup}\nSetup\n`+String.raw`
+$body=(Get-Command CaptureWorkerAdmission).Definition
+. ([scriptblock]::Create('function FullCaptureForTiming{'+$body+'}'))
+function CaptureWorkerAdmission{$v=FullCaptureForTiming;$script:precutWindowOpenedAt=[DateTime]::UtcNow.AddSeconds(-61);return $v}
+ExpectRejected 'internal-capture-over-window' {DrainB264OldOwner}
+'COM='+$comStops;'STOPS='+$stops;'DISPOSED='+$disposed
+`);assert.match(out,/REJECTED=internal-capture-over-window/);assert.match(out,/COM=0/);assert.match(out,/STOPS=0/);assert.match(out,/DISPOSED=True/);
 });

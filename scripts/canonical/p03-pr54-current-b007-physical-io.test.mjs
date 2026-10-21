@@ -198,3 +198,30 @@ test('974d collector preserves private native authority and checks the exact unu
  const args={current:r.current,profile:r.profile,before:r.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now};assert.equal(t.lookup(r.physicalInspection,args).length,3);assert.equal(t.lookup({...r.physicalInspection},args),null);
  for(const mutate of [t=>{t.context.fs.existsSync=p=>p===PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH;},t=>{t.raw.set(PR54_CURRENT_B007_PRECUT974D_REFS.claim.path,Buffer.from('drift'));},t=>{let n=0;t.context.fs.existsSync=p=>p===PR54_CURRENT_B007_PRECUT974D_CLAIM_PATH&&++n>1;},t=>{t.context.preparePr54CurrentB007Precut974dContinuation=()=>{throw Error('HISTORY_REJECTED');};}]){const bad=await continuationCollectorFixture(true);mutate(bad);await assert.rejects(bad.invoke());assert(!bad.events.some(x=>Array.isArray(x)&&x.includes('Drain')));}
 });
+
+import {PR54_CURRENT_B007_PRECUTB142_REFS,PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH} from './p03-pr54-current-b007-precut-continuation.mjs';
+async function b142CollectorFixture(){
+ const t=await sameCaptureCollector(),raw=new Map(),originalRead=t.context.read;
+ Object.assign(t.context,{PR54_CURRENT_B007_PRECUT974D_REFS,PR54_CURRENT_B007_PRECUTB142_REFS,PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH});
+ for(const ref of [...Object.values(PR54_CURRENT_B007_PRECUT974D_REFS),...Object.values(PR54_CURRENT_B007_PRECUTB142_REFS)])raw.set(ref.path,Buffer.from('modeled-'+ref.sha256));
+ t.context.read=ref=>raw.has(ref.path)?raw.get(ref.path):originalRead(ref);
+ let validations=0;
+ t.context.preparePr54CurrentB007PrecutB142Continuation=args=>{validations++;assert.equal(args.profileRef,t.f.profileRef);assert.equal(args.beforeRef,t.f.beforeRef);assert.deepEqual(Object.keys(args.raw).sort(),['failed','original']);for(const [key,refs]of [['original',PR54_CURRENT_B007_PRECUT974D_REFS],['failed',PR54_CURRENT_B007_PRECUTB142_REFS]])for(const [name,ref]of Object.entries(refs)){assert.equal(args.raw[key][name].ref,ref);assert.equal(args.raw[key][name].bytes.toString(),'modeled-'+ref.sha256);}return {schemaVersion:'modeled-b142-history-only'};};
+ t.raw=raw;Object.defineProperty(t,'validations',{get:()=>validations});t.invoke=()=>vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutB142Continuation:true})',t.context);return t;
+}
+test('b142 returns only its own immutable validated same-capture frame with unchanged observation time',async()=>{
+ const t=await b142CollectorFixture(),result=await t.invoke();
+ assert.equal(t.validations,3);assert.equal(t.events.filter(Array.isArray).length,1);
+ assert.equal(result.admissionFrame.observedAt,t.f.frame.observedAt);assert.equal(result.current.observedAt,t.f.current.observedAt);
+ assert.deepEqual(JSON.parse(JSON.stringify(result.admissionFrame)),JSON.parse(JSON.stringify(t.f.frame)));
+ assert(Object.isFrozen(result.admissionFrame));assert(Object.isFrozen(result.admissionFrame.oldIdentities));assert(Object.isFrozen(result.admissionFrame.oldIdentities[0]));
+ assert.equal(result.claimCreated,false);assert.equal(result.transitionAuthority,false);assert.equal(result.stopAuthority,false);
+ const args={current:result.current,profile:result.profile,before:result.before,profileRef:t.f.profileRef,beforeRef:t.f.beforeRef,now:t.f.now};
+ assert(t.lookup(result.physicalInspection,args));assert.equal(t.lookup(result.admissionFrame,args),null);
+ const normal=await sameCaptureCollector();assert.equal((await normal.invoke()).admissionFrame,undefined);
+});
+test('b142 rejects a consumed slot or history/capture drift before it can expose an admission frame',async()=>{
+ for(const mutate of [t=>{t.context.fs.existsSync=p=>p===PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH;},t=>{t.context.preparePr54CurrentB007PrecutB142Continuation=()=>{throw Error('B142_HISTORY_DRIFT');};},t=>{const envelope=t.envelope;t.envelope=()=>{const r=envelope();r.current.captureId='f'.repeat(32);return r;};},t=>{const envelope=t.envelope;t.envelope=()=>{const r=envelope();r.frame.oldWatchers.pop();return r;};}]){const t=await b142CollectorFixture();mutate(t);await assert.rejects(t.invoke());assert(!t.events.some(x=>Array.isArray(x)&&x.includes('Drain')));}
+ const nonPaired=await collectorFixture();await assert.rejects(vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutB142Continuation:true})',nonPaired.context),/B142_SAME_CAPTURE_REQUIRED/);
+ for(const other of ['freshOwnerGeneration','precut974dContinuation','precutContinuation','precutResume','precutResumeAfter9d2']){const t=await b142CollectorFixture();await assert.rejects(vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutB142Continuation:true,'+other+':true})',t.context));}
+});
