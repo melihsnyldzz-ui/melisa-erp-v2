@@ -1,3 +1,7 @@
+## 21 Ekim15:59UTC — CLIXML bağımlı test düzeneği düzeltildi
+
+90eab140 exact PR39629340829 secret/quality SUCCESS, Windows yalnız Current shared-owner fixture'ının tek satır varsayımı nedeniyle SyntaxError verdi: çok satırlı public safeFailure fonksiyonunun yalnız açılış satırı new Function içine alınıyordu. Runtime değişmedi; test artık IO yapmayan gerçek public export'u import ediyor. Dört ilgili dosya108/108 PASS; diğer tüm line-extraction kullanımları bu sembol için tarandı. Önceki gerçek pre-cut denemesi ve failed CI aynen korunur, yeniApply yapılmadı. Yeni exactCI ayrıca beklenecek;14 açık/15 başlamadı.
+
 ## 21 Ekim15:50UTC — gerçek pre-cut CIM aktarım biçimi ayrıldı; cut ve yeni kurulum yok
 
 ed82a68b exact PR39626222369 üç job SUCCESS. Controlf9f86b4ca77e/caller4bea13f83b3b/owner17c18c070230 aynı mevcut sonlu şablonlardan korumalı immutable revision olarak staged edildi. Tek owner84a44d1e924e4487a725f8f24624a373 mevcut9GB doğrulanmış backupı read-only tuttu; QS before READ_WRITE→READ_ONLY, yeni Pre389b838256594b7cabc02a89e09dbe39/51table görüntüsü200.397ms, profile572c7890c4045ac332aaa481da4229e4 ve gerçek ROCheck212.658ms PASS. TekApply152.882ms sonra PHYSICAL aşamasında native ObjectNotFound ile reddedildi; freshgenerationclaim ve transition.lock YOK, gerçek cut/stop/start0. QS finally READ_WRITE geriokuma veOLD10 finalidentity PASS. Önceki hata/result/journal değişmez;15:50:13 eskiCRM6bc DB02/copy/T1false sağlık kaydı güncel. YeniERP6dc/CRMd1/SUPda5 kurulmuş değildir.
