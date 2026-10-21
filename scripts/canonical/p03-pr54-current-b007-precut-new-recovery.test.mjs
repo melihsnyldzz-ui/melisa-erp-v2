@@ -13,7 +13,7 @@ const parse=file=>`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser
 const cutFixtures=fs.readFileSync(new URL('./p03-pr54-current-b007-precut-cut.test.mjs',import.meta.url),'utf8');
 function rawFixture(name){const marker='const '+name+'=String.raw`',start=cutFixtures.indexOf(marker);assert(start>=0);return cutFixtures.slice(start+marker.length,cutFixtures.indexOf('\n`;',start));}
 test('new recovery is finite Current-only, requires pinned continuation, and leaves the historical adapters untouched',()=>{
- const text=fs.readFileSync(adapter,'utf8'),old=fs.readFileSync(original,'utf8');
+ const text=fs.readFileSync(adapter,'utf8').replaceAll('\r\n','\n'),old=fs.readFileSync(original,'utf8').replaceAll('\r\n','\n');
  assert.match(text,/\[ValidateSet\('CurrentB007'\)\]\[string\]\$PolicyGeneration='CurrentB007'/);
  assert.match(text,/if\(\$PolicyGeneration -cne 'CurrentB007'\)/);
  assert.match(text,/\[Parameter\(Mandatory=\$true\)\]\[string\]\$ContinuationPath/);
