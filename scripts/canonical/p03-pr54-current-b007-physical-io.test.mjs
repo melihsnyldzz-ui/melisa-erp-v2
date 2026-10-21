@@ -225,3 +225,19 @@ test('b142 rejects a consumed slot or history/capture drift before it can expose
  const nonPaired=await collectorFixture();await assert.rejects(vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutB142Continuation:true})',nonPaired.context),/B142_SAME_CAPTURE_REQUIRED/);
  for(const other of ['freshOwnerGeneration','precut974dContinuation','precutContinuation','precutResume','precutResumeAfter9d2']){const t=await b142CollectorFixture();await assert.rejects(vm.runInNewContext('('+physical.inspectPr54CurrentB007PhysicalOwner.toString()+')(input,{precutB142Continuation:true,'+other+':true})',t.context));}
 });
+
+test('b142 readonly transport covers the existing three whole attempts while the final capture remains fresh',async()=>{
+ const t=await b142CollectorFixture(),run=t.context.run,envelope=t.envelope;let clock=Date.now()-70000,seen=0;
+ t.context.Date=class extends Date{static now(){return clock;}};
+ t.envelope=()=>{const value=envelope();value.capture.attempt=3;return value;};
+ t.context.run=async(exe,args,options)=>{seen++;assert.equal(options.timeout,180000);clock+=70000;return run(exe,args,options);};
+ const r=await t.invoke();assert.equal(seen,1);assert.equal(r.admissionFrame.observedAt,t.f.frame.observedAt);assert.equal(r.current.observedAt,t.f.current.observedAt);
+ const legacy=await sameCaptureCollector(),legacyRun=legacy.context.run;legacy.context.run=(exe,args,options)=>{assert.equal(options.timeout,60000);return legacyRun(exe,args,options);};await legacy.invoke();
+ const stale=await b142CollectorFixture(),oldEnvelope=stale.envelope;stale.envelope=()=>{const value=oldEnvelope();value.capture.startedAt=new Date(Date.now()-61000).toISOString();value.current.startedAt=value.capture.startedAt;return value;};await assert.rejects(stale.invoke(),/SAME_CAPTURE_TIME/);
+});
+test('b142 transport rejection retains bounded safe timeout diagnostics without retry or raw error disclosure',async()=>{
+ const t=await b142CollectorFixture();let calls=0;const error=Error('PRIVATE_SECRET_ARGV_MUST_NOT_LEAK');error.killed=true;error.signal='SIGTERM';error.code='ETIMEDOUT';
+ t.context.run=async()=>{calls++;throw error;};await assert.rejects(t.invoke(),e=>e===error);assert.equal(calls,1);
+ const d=error.p03ReadonlyTransportDiagnostic;assert(Object.isFrozen(d));assert.equal(d.timeoutMs,180000);assert.equal(d.killed,true);assert.equal(d.signal,'SIGTERM');assert.equal(d.ioCode,'ETIMEDOUT');assert.equal(d.exitCode,null);assert(Number.isFinite(d.elapsedMs)&&d.elapsedMs>=0&&d.elapsedMs<=86400000);assert(!JSON.stringify(d).includes('PRIVATE_SECRET'));
+ const frozen=await b142CollectorFixture(),original=Object.freeze(Error('NATIVE_OTHER'));frozen.context.run=async()=>{throw original;};await assert.rejects(frozen.invoke(),e=>e===original);
+});

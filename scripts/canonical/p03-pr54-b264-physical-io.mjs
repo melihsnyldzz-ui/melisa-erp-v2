@@ -216,7 +216,9 @@ export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGener
  // Candidate values are derived from pinned before/settings metadata, never a
  // caller-supplied boolean or a caller-provided current-process frame.
  assertPr54CurrentB007Candidate({...before.profile,supervisorRoot:profile.packages.find(p=>p.sourceCommit===before.profile.supervisorSource)?.root,newSettings:profile.newSettings});
- const options={windowsHide:true,timeout:60000,maxBuffer:8*1024*1024,env:{...process.env,PSModulePath:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\Modules`}};
+ // Three existing whole native captures share only the readonly transport
+ // budget. Each accepted capture and every claim/Drain window stays <60s.
+ const options={windowsHide:true,timeout:precutB142Continuation?180000:60000,maxBuffer:8*1024*1024,env:{...process.env,PSModulePath:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\Modules`}};
  // Error-only, pure projections of the last complete pair; never raw argv,
  // environment, paths or a capability. Identity hashes use the validator's
  // six/seven-digit creation-time normalization and exact identity fields.
@@ -242,7 +244,13 @@ export async function inspectPr54CurrentB007PhysicalOwner(input,{freshOwnerGener
   claimSlot();
   await inspectPr54B264PredecessorIO();
   for(const [k,r]of Object.entries(input))need(read(r).equals(captured[k]),'PIN_CHANGED');
- const observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);need(!observe.stderr,'OBSERVER_STDERR');const paired=argv.observer.includes('-CaptureMode'),output=JSON.parse(observe.stdout);const envelope=paired?validatePr54CurrentSameCaptureEnvelope(output,input):null,current=paired?envelope.current:output;
+ let observe;const transportStarted=Date.now();
+ try{observe=await run(shell,pinnedInvocation(input.observerRef,argv.observer),options);}catch(error){
+  // Fixed diagnostic fields only; never copy raw error text, argv or secrets.
+  try{if(error&&typeof error==='object'&&Object.isExtensible(error))Object.defineProperty(error,'p03ReadonlyTransportDiagnostic',{value:Object.freeze({operation:'CURRENT_PHYSICAL_READ_ONLY',timeoutMs:options.timeout,elapsedMs:Math.max(0,Math.min(86400000,Date.now()-transportStarted)),killed:error.killed===true,signal:['SIGTERM','SIGKILL','SIGINT'].includes(error.signal)?error.signal:null,ioCode:['ETIMEDOUT','ENOENT','EACCES','EPERM','ERR_CHILD_PROCESS_STDIO_MAXBUFFER'].includes(error.code)?error.code:null,exitCode:Number.isInteger(error.code)?error.code:null})});}catch{}
+  throw error;
+ }
+ need(!observe.stderr,'OBSERVER_STDERR');const paired=argv.observer.includes('-CaptureMode'),output=JSON.parse(observe.stdout);const envelope=paired?validatePr54CurrentSameCaptureEnvelope(output,input):null,current=paired?envelope.current:output;
  need(current.schemaVersion==='melisa-p03-physical-observation.v1'&&current.environment==='Shared'&&current.policyGeneration==='CurrentB007InspectOnly'&&current.transitionAuthority===false&&current.collectionAuthority==='PHYSICAL_OBSERVATION_ONLY'&&current.collection==='Schedule.Service.GetRunningTasks(1)'&&current.processScope==='CIM.Win32_Process.Unfiltered'&&current.portScope==='Get-NetTCPConnection.Listen.Unfiltered'&&current.stopPermitted===false&&current.applyAvailable===false&&JSON.stringify(current.beforeImage)===JSON.stringify(beforeRef)&&current.rawScope?.unverifiedCount===0&&current.rawScope?.unverifiedProcesses?.length===0,'OBSERVER_FRAME');
  const inspected=paired?null:await run(shell,pinnedInvocation(input.drainerRef,argv.worker),options);if(inspected)need(!inspected.stderr,'WORKER_STDERR');const frame=paired?envelope.frame:JSON.parse(inspected.stdout);
  completedPairs++;
