@@ -77,7 +77,14 @@ function validatePr54PhysicalInspection({frame,current,profile,before,profileRef
 export async function collectPr54CurrentInspectionPair(collect){
  for(let attempt=0;attempt<3;attempt++){try{return await collect();}catch(error){if(error?.message!=='P03_SHARED_CURRENT_AUX_FRAME_CHANGED'||attempt===2)throw error;}}
 }
-export function pr54SafeFailure(error){const text=String(error?.message??'')+' '+String(error?.stderr??'');const fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];if(/FullyQualifiedErrorId\s*:\s*HRESULT 0x80041002,Microsoft\.Management\.Infrastructure\.CimCmdlets\.InvokeCimMethodCommand(?:\s|$)/i.test(String(error?.stderr??'')))return 'P03_OBSERVER_CIM_OBJECT_NOT_FOUND';return ['ENOENT','EACCES','ENAMETOOLONG','ETIMEDOUT','EPIPE'].includes(error?.code)?error.code:'UNCLASSIFIED_IO_FAILURE';}
+export function pr54SafeFailure(error){
+ const stderr=String(error?.stderr??''),text=String(error?.message??'')+' '+stderr,fixed=text.match(/\bP03_[A-Z_]+\b/);if(fixed)return fixed[0];
+ // PS5 emits encoded CRLF inside CLIXML Error strings. Decode only that
+ // transport delimiter, not a command, message, frame or owner identity.
+ const cimText=stderr.startsWith('#< CLIXML')?[...stderr.matchAll(/<S S="Error">([^<]*)<\/S>/g)].map(x=>x[1].replaceAll('_x000D__x000A_','\r\n')).join('\n'):stderr;
+ if(/FullyQualifiedErrorId\s*:\s*HRESULT 0x80041002,Microsoft\.Management\.Infrastructure\.CimCmdlets\.InvokeCimMethodCommand(?:\s|$)/i.test(cimText))return 'P03_OBSERVER_CIM_OBJECT_NOT_FOUND';
+ return ['ENOENT','EACCES','ENAMETOOLONG','ETIMEDOUT','EPIPE'].includes(error?.code)?error.code:'UNCLASSIFIED_IO_FAILURE';
+}
 // A probe can exit between the frozen observer's CIM list and owner read. A
 // retry obtains a whole new observation; no partial frame is reused or admitted.
 export async function pr54CollectPhysicalObservation(collect,stage='PHYSICAL'){

@@ -60,6 +60,14 @@ test('whole physical observation recaptures only the frozen transient identity e
  const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');assert.match(source,/callbackName of \['admit','stopTasks','tasksStopped'\]/);assert.match(source,/callbackName!=='admit'&&result!==true/);assert.match(source,/async function observeRef\(ref\)\{return pr54CollectPhysicalObservation/);assert.match(source,/async function physical\(\)\{return pr54CollectPhysicalObservation/);
  assert.match(source,/async function inspectOldOwnerPhysical\(current=null\)\{return pr54CollectPhysicalObservation/);assert.match(source,/return action==='Capture'\?pr54CollectPhysicalObservation\(collect,'SUCCESSOR_CAPTURE'\):collect\(\)/);assert.match(source,/observationStage:error\?\.p03ObservationStage\?\?'NONE'/);
 });
+test('PS5 CLIXML NotFound obtains a whole fresh observation while foreign IDs and exhausted retries remain rejected',async()=>{
+ const id='HRESULT 0x80041002,Microsoft.Management.Infrastructure.CimCmdlets.InvokeCimMethodCommand';
+ const encoded=value=>'#< CLIXML\r\n<Objs Version="1.1.0.1" xmlns="http://schemas.microsoft.com/powershell/2004/04"><S S="Error">+ FullyQualifiedErrorId : '+value+'_x000D__x000A_</S></Objs>';
+ const error=Object.assign(Error('private'),{stderr:encoded(id)});assert.equal(pr54SafeFailure(error),'P03_OBSERVER_CIM_OBJECT_NOT_FOUND');let count=0;const complete={newWholePair:true};assert.equal(await pr54CollectPhysicalObservation(async()=>{if(++count===1)throw error;return complete;}),complete);assert.equal(count,2);
+ for(const foreign of [id+'suffix',id.replace('80041002','80041003'),id.replace('InvokeCimMethodCommand','GetCimInstanceCommand')]){const bad=Object.assign(Error('private'),{stderr:encoded(foreign)});let attempts=0;await assert.rejects(pr54CollectPhysicalObservation(async()=>{attempts++;throw bad;}),e=>e===bad);assert.equal(attempts,1);}
+ let attempts=0;await assert.rejects(pr54CollectPhysicalObservation(async()=>{attempts++;throw error;}),e=>e===error);assert.equal(attempts,3);assert.equal(error.p03ObservationStage,'PHYSICAL');
+});
+
 test('protected writer transport keeps large payload out of command line, verifies hash and strict ACL and rejects overwrite',{skip:process.platform!=='win32'},()=>{
  const directory=fs.mkdtempSync(path.join(os.tmpdir(),'p03-writer-')),file=path.join(directory,'payload.bin'),bytes=crypto.randomBytes(256*1024),sha=hash(bytes);
  const invoke=(program,data)=>spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(program,'utf16le').toString('base64')],{input:data.toString('base64'),encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});
