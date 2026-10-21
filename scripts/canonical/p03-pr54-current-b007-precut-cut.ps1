@@ -7,7 +7,7 @@ param(
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,[Parameter(Mandatory=$true)][string]$RecoveryHelperSha256,
  [Parameter(Mandatory=$true)][string]$DrainerPath,[Parameter(Mandatory=$true)][string]$DrainerSha256,
  [string]$ClaimPath,[string]$ClaimSha256,[string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$RootIntentPath,[string]$RootIntentSha256,
- [string]$ContinuationPath,[string]$ContinuationSha256
+ [string]$ContinuationPath,[string]$ContinuationSha256,[string]$WorkerSourceSha256
 )
 if($PolicyGeneration -cnotin @('CurrentB007InspectOnly')){throw 'P03_B264_CUT_POLICY'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
@@ -22,15 +22,24 @@ foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Uti
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 if([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -cne $owner){throw 'P03_B264_CUT_OWNER'}
 $base='C:\Sirket\ERP\runtime\P03-OWNER-20261018';$engineSha=$EngineSha256
-function ReadWorkerPin([string]$path,[string]$sha){
+function ReadWorkerPin([string]$path,[string]$sha,[switch]$HeldCode){
+ if($HeldCode -and ($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -or $path -cne $PSCommandPath -or $sha -cne $WorkerSourceSha256)){throw 'P03_SUCCESSOR_HELD_CODE_SCOPE'}
  if($sha -cnotmatch '\A[a-f0-9]{64}\z' -or -not [IO.Path]::IsPathRooted($path) -or [IO.Path]::GetFullPath($path) -cne $path){throw 'P03_SUCCESSOR_PIN_SCOPE'}
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'P03_SUCCESSOR_REPARSE'}}
  $item=Get-Item -LiteralPath $path -Force;if($item.PSIsContainer -or $item.LinkType){throw 'P03_SUCCESSOR_FILE'}
  $acl=Get-Acl -LiteralPath $path;$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
  if(-not $acl.AreAccessRulesProtected -or $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -cne $owner -or $rules.Count -ne 2){throw 'P03_SUCCESSOR_ACL'}
  foreach($sid in @($owner,'S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value -ceq $sid -and -not $_.IsInherited -and $_.AccessControlType -eq 'Allow' -and $_.FileSystemRights -eq 'FullControl'}).Count -ne 1){throw 'P03_SUCCESSOR_ACL'}}
- $s=[IO.File]::Open($path,'Open','Read','None');try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
+ $share=if($HeldCode){[IO.FileShare]::Read}else{[IO.FileShare]::None};$s=[IO.File]::Open($path,'Open','Read',$share);try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
 }
+if($Mode -cnotin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck') -and $PSBoundParameters.ContainsKey('WorkerSourceSha256')){throw 'P03_SUCCESSOR_HELD_CODE_UNEXPECTED'}
+function AssertRecoveryWorkerSource{
+ if($Mode -cin @('ResumeDrain','ResumeDrainDryRun','ResumeDrainCheck')){
+  if($WorkerSourceSha256 -cnotmatch '\A[a-f0-9]{64}\z' -or $PSCommandPath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-pr54-current-b007-precut-cut\.ps1\z'){throw 'P03_SUCCESSOR_HELD_CODE_SOURCE'}
+  [void](ReadWorkerPin $PSCommandPath $WorkerSourceSha256 -HeldCode)
+ }
+}
+AssertRecoveryWorkerSource
 function ImportWorkerFunctions([byte[]]$bytes,[string[]]$names){
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$tokens,[ref]$errors)
  if($errors.Count){throw 'P03_SUCCESSOR_SOURCE_PARSE'}
@@ -469,7 +478,7 @@ function AssertCompleted42d0Authority{
   foreach($pair in @(@('profileRef','profile'),@('beforeRef','before'),@('claimRef','claim'),@('cutRef','cut'),@('failureTailRef','tail'))){$r=$recoveryIntent.($pair[0]);ContinuationKeys $r @('path','sha256');Need ($r.path -ceq $pins[$pair[1]].path -and $r.sha256 -ceq $pins[$pair[1]].sha256) 'COMPLETED42_RECOVERY_INTENT_REF'}
   $worker=$recoveryIntent.workerRef;ContinuationKeys $worker @('path','sha256')
   Need ($worker.path -ceq $PSCommandPath -and $worker.path -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-pr54-current-b007-precut-cut\.ps1\z') 'COMPLETED42_RECOVERY_WORKER'
-  [void](ReadWorkerPin $worker.path $worker.sha256)
+  Need ($worker.sha256 -ceq $WorkerSourceSha256) 'COMPLETED42_RECOVERY_WORKER_SHA';[void](ReadWorkerPin $worker.path $worker.sha256 -HeldCode)
  }
  return $values
 }

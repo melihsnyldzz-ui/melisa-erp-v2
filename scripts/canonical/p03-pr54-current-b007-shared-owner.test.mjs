@@ -4,8 +4,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {EventEmitter} from 'node:events';
 import {runP03HeldCoreOwnerTransition,p03TransitionDigest,p03CoreFirstStopDigest} from './p03-integrated-owner-transition.mjs';
 import {nativeArgumentTokens} from './hub-stack-driver.mjs';
 const source=fs.readFileSync(new URL('./p03-pr54-shared-owner-io.mjs',import.meta.url),'utf8');
@@ -13,6 +15,8 @@ const safeFailureSource=source.split(/\r?\n/).find(line=>line.startsWith('export
 const actualSafeFailure=new Function(safeFailureSource.replace(/^export /,'')+';return pr54SafeFailure;')();
 const start=source.indexOf('export async function runPr54CurrentB007SharedOwnerTransition(');
 const body=source.slice(start).replace(/^export /,'');
+const heldInvocationSource=source.slice(source.indexOf('function b264Sup20dHeldInvocation('),source.indexOf('export async function runPr54B264Sup20dSharedOwnerTransition('));
+const heldInvocation=new Function('Buffer','need',heldInvocationSource+';return b264Sup20dHeldInvocation;')(Buffer,(value,code)=>{if(!value)throw Error(code);});
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const bytes=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
 const owner='S-1-5-21-2170750028-1005938530-2568122015-1001';
@@ -100,7 +104,7 @@ function fixture(options={}){
     assert(options.recovery);if(options.rejectRecoveryNative)throw Error('P03_PHYSICAL_B264_CUT_CONSOLE_CHANGED');
     const cutWitness=files.get(transition+'\\successor-core-cut-completed.json').ref;
     if(at('-Mode')==='ResumeDrainCheck'){
-     assert(files.has(transition+'\\completed-cut-recovery-intent.json'));assert(files.has(transition+'\\successor-core-probe-drain.json'));if(options.rejectRecoveryCheck)throw Error('P03_PHYSICAL_COMPLETED42_EPOCH_CHANGED');
+     assert(files.has(transition+'\\completed-cut-recovery-intent.json'));assert(files.has(transition+'\\successor-core-probe-drain.json'));if(options.recoveryCheckError)throw options.recoveryCheckError;if(options.rejectRecoveryCheck)throw Error('P03_PHYSICAL_COMPLETED42_EPOCH_CHANGED');
      return {stdout:JSON.stringify({status:'B264_COMPLETED_CUT_HISTORICAL_AUX_READ_ONLY',mutationExecuted:false,stopPermitted:options.recoveryProofStop===true,profileSha256:profileRef.sha256,beforeSha256:beforeRef.sha256,cutWitness,drainWitness:files.get(transition+'\\successor-core-probe-drain.json').ref,observedAt:options.recoveryProofStale?'2020-01-01T00:00:00Z':now(),historicalConsolePins:[{...historicalConsole,...(options.recoveryProofWrongPid?{pid:4901}:{}),...(options.recoveryProofWrongBirth?{creationTime:'2026-10-20T08:00:01.0000000Z'}:{})}],replacementEpochDigest:'f'.repeat(64),scope:'CURRENT42D0_HISTORICAL_CONSOLE_4900_ONLY'})};
     }
     if(at('-Mode')==='ResumeDrainDryRun'){assert(!files.has(transition+'\\completed-cut-recovery-intent.json'));return {stdout:JSON.stringify({status:'B264_COMPLETED_CUT_RESUME_DRY_RUN',mutationExecuted:false,coreAbsent:true,watchersAbsent:true,probesAbsent:true,remainingOldRoles:rows.length,cutWitness})};}
@@ -135,7 +139,7 @@ function fixture(options={}){
   }
   throw Error('unexpected worker '+leaf);
  }
- async function ps(code){programs.push(code);
+ async function ps(code,transport){assert.deepEqual(transport,options.recovery?{plainCommandOnly:true}:undefined);programs.push(code);
   if(code==='ABSENCE_CHECK')return 'EMPTY';
   if(code.includes('::GetCurrent().User.Value')&&!code.includes('Get-Acl'))return owner;
   if(code.includes('log_end_lsn')){if(options.recovery){assert(calls.includes('p03-pr54-current-b007-precut-cut.ps1:ResumeDrainDryRun'));assert(!files.has(transition+'\\completed-cut-recovery-intent.json'));}return JSON.stringify(options.recovery?{server:'Semih\\MELISADEV',database:db,copyId:options.recoveryDbDrift?'wrong':copy,actualT1:false,sealed:true,readOnly:true,snapshotRef,backupSetGuid:'a'.repeat(36),observedAt:now()}:{freshNative:true});}
@@ -155,7 +159,7 @@ function fixture(options={}){
   inspectPr54CurrentB007PhysicalOwner:async()=>{inspections++;return {profile,before,current:seen(),physicalInspection:secret};},
   preparePr54B264NativeContinuity:()=>secret,preparePr54CurrentB007NativeContinuity:()=>secret,validatePr54CurrentPreCapture:()=>({runId:'P03-20261020-100000',root:base}),pr54CurrentContinuityProgram:()=> 'log_end_lsn',
   admitPr54CurrentB007Epoch:({physicalInspection,current})=>{assert.equal(physicalInspection,secret);const value={schemaVersion:'melisa-p03-current-b007-epoch-proposal.v1',currentOwnerDigest:options.ownerDrift&&inspections>1?'e'.repeat(64):'d'.repeat(64),ownerObservedAt:current.observedAt,protectedSqlEpoch:{kind:'ProtectedSqlService',pid:900},predecessorRunId:'b264594b6f93d560d807c8decc4e6699',predecessorProfile:{},predecessorBefore:{},predecessorLock:{},consumedAncestorClaim:{},failedOuterTail:{},quarantinedRecoveryTail:{},readOnlyOldReady:{},successorRunId:sid,successorProfile:profileRef,successorBefore:beforeRef,newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(plan),transitionAuthority:false,applyExecuted:false};return {claimPath,claim:value,proofDigest:'c'.repeat(64)};},
-  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b)=>{assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv)=>({ref,args:argv.slice(4)}),pr54CollectPhysicalObservation:(fn,stage)=>{assert.equal(stage,'PHYSICAL');return fn();},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}if(options.recovery){assert(!ids.includes(4900));assert(!consoles.some(p=>p.pid===4900));assert(calls.at(-1).endsWith(':ResumeDrainCheck'));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
+  noReparseAncestors:()=>{},pr54ProtectedWriteProgram:(file,sha)=>({file,sha}),psPayload:async({file,sha},b,transport)=>{assert.deepEqual(transport,options.recovery?{plainCommandOnly:true}:undefined);assert(!files.has(file),'CreateNew must reject overwrite');assert.equal(hash(b),sha);put(file,b);writes.push(file);if(/event-\d{4}\.json$/.test(file))events.push(JSON.parse(b));},ps,run,b264Sup20dHeldInvocation:(ref,argv,transport)=>{assert.deepEqual(transport,options.recovery?{fileInvocationOnly:true}:undefined);return {ref,args:argv.slice(4)};},pr54CollectPhysicalObservation:(fn,stage)=>{assert.equal(stage,'PHYSICAL');return fn();},sameIdentity:same,pr54SuccessorEmptyProgram:({ids,consoles})=>{if(options.protectedConsole){assert(!ids.includes(901));assert(!consoles.some(p=>p.pid===901));}if(options.recovery){assert(!ids.includes(4900));assert(!consoles.some(p=>p.pid===4900));assert(calls.at(-1).endsWith(':ResumeDrainCheck'));}return 'ABSENCE_CHECK';},nativeArgumentTokens,proposePr54CandidateProcesses:(seen,profile)=>seen.processes.flatMap(p=>{const r=profile.candidateRules.find(r=>r.commandLine===p.commandLine&&r.nodePath===p.nodePath);return r?[{...p,role:r.role}]:[];}),pr54CurrentSourceCaptureArgs:runId=>['-Mode','SourceCapture','-Phase','Post','-RunId',runId],comparePr54CurrentSourceSnapshots:(a,b)=>{assert.deepEqual(a,b);return {equal:true,criticalTables:51};},runP03HeldCoreOwnerTransition,pr54SafeFailure:actualSafeFailure};
  if(options.retry){env.preparePr54CurrentB007PrecutRetry=input=>env.validatePr54CurrentB007PrecutRetryBinding(input);env.validatePr54CurrentB007PrecutRetryBinding=({raw,profileRef,beforeRef})=>{assert.equal(Object.keys(raw.original).length,8);assert.equal(Object.keys(raw.resume).length,11);assert.equal(Object.keys(raw.retry).length,11);for(const [key,ref]of Object.entries(PR54_CURRENT_B007_PRECUT_RETRY_REFS))pin(ref);return {schemaVersion:'melisa-p03-current-b007-precut-retry.v1',retainedClaimRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim,failureTailRef:PR54_CURRENT_B007_PRECUT_RETRY_REFS.failureTail,retainedProfileRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.profile,retainedBeforeRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.before,profileRef,beforeRef,claimPath:PR54_CURRENT_B007_CONTINUATION_CLAIM_PATH};};}
  const secret=Object.freeze({});
  if(isResume){const modeled=env.admitPr54CurrentB007Epoch({physicalInspection:secret,current:seen()}).claim;put(PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.path,{...modeled,schemaVersion:'melisa-p03-current-b007-epoch-claim.v1',transitionAuthority:true,ownerObservedAt:'2026-10-21T10:00:00Z',successorRunId:'452054204a1857ff618b0dd30a59caea',successorProfile:PR54_CURRENT_B007_PRECUT_RESUME_REFS.profile,successorBefore:PR54_CURRENT_B007_PRECUT_RESUME_REFS.before},PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim.sha256);}
@@ -169,7 +173,7 @@ function fixture(options={}){
   put(transition+'\\transition.lock',{profileRef,beforeRef,currentPreCapture:input.currentPreCapture,rehearsalProofRef,successorClaimRef:PR54_CURRENT_B007_PRECUT_RESUME_REFS.claim,continuationRef:contextRef},hashes['transition.lock']);
   put(transition+'\\successor-precut-admission.json',{consolePins:[historicalConsole],probePins:[],protectedConsolePins:[],observedAt:now()},hashes['successor-precut-admission.json']);
   for(const [leaf,sha]of [['p03-physical-rollback-lifetime-v2.ps1',shaEngine],['p03-pr54-paused-old-recover.ps1','e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'],...Object.values(pins).filter(([leaf])=>!['p03-pr54-b264-old-owner-cut.ps1','p03-pr54-b264-new-owner-recovery.ps1'].includes(leaf)),['p03-pr54-current-b007-precut-cut.ps1','ebfbe596906e3c98951df085df4d84648152d581ac774353815cdfea3b3bd138'],['p03-pr54-current-b007-precut-new-recovery.ps1','667ac16f0a83251db2e11e9e337ce9894de4803efc9ed5a2b2fe6129672fb28c']])put(transition+'\\'+leaf,Buffer.from(leaf),sha);
-  put(control+'\\p03-pr54-current-b007-precut-cut.ps1',Buffer.from('new recovery worker'),'c1388309cfa1e45ffe143f1f06ff0901002e9b709efb19204089fdeb177d0845');
+  put(control+'\\p03-pr54-current-b007-precut-cut.ps1',Buffer.from('new recovery worker'),'46a0aafabafe29803bc67fcbcd27c4f3d0c808211db603612b4471d2f226e1ea');
   if(options.recoveryAdvanced)put(transition+'\\unexpected.json',{unknown:true});
   if(options.recoveryUsed)put(transition+'\\completed-cut-recovery-intent.json',{used:true});
  }
@@ -179,6 +183,31 @@ function fixture(options={}){
 }
 
 // Source-body IO fixtures only. They do not collect OS state or perform a Shared transition.
+test('existing ps and payload helpers use literal Command only when explicitly selected and retain historical encoded output',async()=>{
+ const lines=source.split(/\r?\n/),code=lines.find(s=>s.startsWith('async function psPayload('))+'\n'+lines.find(s=>s.startsWith('async function ps(')),calls=[];
+ const run=async(shell,args)=>{calls.push(args);return {stdout:'OK',stderr:''};};
+ const spawn=(shell,args)=>{calls.push(args);const child=new EventEmitter();child.stdout=new EventEmitter();child.stderr=new EventEmitter();child.stdin=new EventEmitter();child.stdin.end=input=>{assert.equal(input,Buffer.from('payload').toString('base64'));child.stdout.emit('data','CREATED');child.emit('close',0);};return child;};
+ const helpers=new Function('Buffer','need','run','spawn','shell','opts',code+';return {ps,psPayload};')(Buffer,(v,c)=>{if(!v)throw Error(c);},run,spawn,'fixture',{});
+ await helpers.ps("'OK'");assert.equal(calls.at(-1)[2],'-EncodedCommand');assert.equal(Buffer.from(calls.at(-1)[3],'base64').toString('utf16le'),"$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;'OK'");
+ await helpers.ps("'OK'",{plainCommandOnly:true});assert.equal(calls.at(-1)[2],'-Command');assert.equal(calls.at(-1)[3],"$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;'OK'");
+ await helpers.psPayload("'CREATED'",Buffer.from('payload'));assert.equal(calls.at(-1)[2],'-EncodedCommand');await helpers.psPayload("'CREATED'",Buffer.from('payload'),{plainCommandOnly:true});assert.deepEqual(calls.at(-1),['-NoProfile','-NonInteractive','-Command',"'CREATED'"]);
+});
+test('held File-only transport retains historical bytes and rejects unsafe native argument shapes without encoded code',()=>{
+ const ref={path:'C:\\fixture.ps1',sha256:'a'.repeat(64)},argv=['-NoProfile','-NonInteractive','-File',ref.path,'-Mode','DryRun'];assert.equal(hash(JSON.stringify(heldInvocation(ref,argv))),'573c18a5161adc378408fa0894762a8ee46ec0d2c7397ffa98e213e3fd2f6382');
+ const file=heldInvocation(ref,argv,{fileInvocationOnly:true});assert.equal(file[2],'-Command');assert(!file.includes('-EncodedCommand'));assert(!file[3].toLowerCase().includes('[scriptblock]::create'));assert(file[3].includes("$s=[IO.File]::Open($v.ref.path,'Open','Read','Read')"));assert(file[3].includes("'-File',[string]$v.ref.path"));assert(file[3].includes('exit $childExit'));
+ for(const tail of [['-Mode','bad"quote'],['-Mode','line\n'],['-Mode',''],['-Mode','x','-mode','y'],['Mode','x']])assert.throws(()=>heldInvocation(ref,[...argv.slice(0,4),...tail],{fileInvocationOnly:true}),/FILE_INVOCATION_ARGS/);
+});
+test('held File-only Windows child has real PSCommandPath, compatible self-read and inherited exit status', {skip:process.platform!=='win32'},()=>{
+ const shell=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,temp=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-p03-file-invocation-'));
+ try{
+  const file=path.join(temp,'source with spaces.ps1'),literal="literal $(do-not-run); single'quote [x]";
+  fs.writeFileSync(file,"param([string]$Literal,[int]$ExitCode)\n$ErrorActionPreference='Stop'\n$s=[IO.File]::Open($PSCommandPath,'Open','Read','Read');$s.Dispose();$exclusiveDenied=$false;try{$s=[IO.File]::Open($PSCommandPath,'Open','Read','None');$s.Dispose()}catch [IO.IOException]{$exclusiveDenied=$true};[ordered]@{path=$PSCommandPath;literal=$Literal;sharedRead=$true;exclusiveDenied=$exclusiveDenied}|ConvertTo-Json -Compress;exit $ExitCode\n",{flag:'wx'});
+  const data=Buffer.from(JSON.stringify({file})).toString('base64'),setup=`$ErrorActionPreference='Stop';$env:PSModulePath=Join-Path $PSHOME 'Modules';Import-Module (Join-Path $PSHOME 'Modules\\Microsoft.PowerShell.Security\\Microsoft.PowerShell.Security.psd1') -ErrorAction Stop;$v=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${data}'))|ConvertFrom-Json;$owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$a=[Security.AccessControl.FileSecurity]::new();$a.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$a.SetAccessRuleProtection($true,$false);foreach($sid in @($owner,'S-1-5-18')){$a.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),'FullControl','Allow'))};Set-Acl -LiteralPath $v.file -AclObject $a;$owner`;
+  const prepared=spawnSync(shell,['-NoProfile','-NonInteractive','-Command',setup],{encoding:'utf8',windowsHide:true,timeout:30000});assert.equal(prepared.status,0,prepared.stderr);const currentOwner=prepared.stdout.trim();assert.match(currentOwner,/^S-1-[0-9-]+$/);
+  const fn=new Function('Buffer','need',heldInvocationSource.replaceAll(owner,currentOwner)+';return b264Sup20dHeldInvocation;')(Buffer,(value,code)=>{if(!value)throw Error(code);});
+  const ref={path:file,sha256:hash(fs.readFileSync(file))};for(const exitCode of [0,7]){const argv=['-NoProfile','-NonInteractive','-File',file,'-Literal',literal,'-ExitCode',String(exitCode)],r=spawnSync(shell,fn(ref,argv,{fileInvocationOnly:true}),{encoding:'utf8',windowsHide:true,timeout:30000});assert.equal(r.status,exitCode,r.stderr);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),{path:file,literal,sharedRead:true,exclusiveDenied:true});}
+ }finally{const base=path.resolve(os.tmpdir())+path.sep,target=path.resolve(temp);assert(target.startsWith(base)&&path.basename(target).startsWith('melisa-p03-file-invocation-'));fs.rmSync(target,{recursive:true});}
+});
 test('fixed completed42d0 cut recovery DryRun only authenticates history and native absence without admission or writes',async()=>{
  const f=fixture({recovery:true}),r=await f.fn(f.input);assert.equal(r.status,'CURRENT_B007_COMPLETED_CUT_RECOVERY_DRY_RUN');assert.equal(r.remainingOldRoles,1);assert.equal(f.stops,0);assert.equal(f.writes.length,0);assert(f.calls.includes('p03-pr54-current-b007-precut-cut.ps1:ResumeDrainDryRun'));assert(!f.calls.some(c=>c.includes('PreflightOld')||c.includes('RollbackOld')));
 });
@@ -196,6 +225,9 @@ test('each completed42d0 empty boundary rechecks only4900 historical epoch and r
  const good=fixture({recovery:true}),r=await good.fn({...good.input,mode:'Apply'});assert.equal(r.status,'RECOVERED_OLD_READY');assert(good.calls.filter(c=>c.endsWith(':ResumeDrainCheck')).length>=4);
  for(const option of ['rejectRecoveryCheck','recoveryProofStop','recoveryProofStale','recoveryProofWrongPid','recoveryProofWrongBirth']){const f=fixture({recovery:true,[option]:true}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(f.stops,1);assert(!f.calls.some(c=>c.endsWith(':StopNew')||c.endsWith(':RollbackOld')));assert(!f.programs.some(p=>p.includes('RegisterTask(')));}
  const raw=fixture({recovery:true,recoveryRawUnknown:true}),blocked=await raw.fn({...raw.input,mode:'Apply'});assert.equal(blocked.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert.equal(raw.stops,0);assert(!raw.calls.some(c=>c.endsWith(':StopNew')));
+});
+test('completed42d0 recovery retains the first bounded digit-bearing native reason without raw stderr or TDZ',async()=>{
+ const secret='PRIVATE_PATH_AND_ARGV_PAYLOAD',error=Object.assign(Error(secret),{stderr:secret+' P03_PHYSICAL_COMPLETED42_AUX_CAS\n'+secret}),f=fixture({recovery:true,recoveryCheckError:error}),r=await f.fn({...f.input,mode:'Apply'});assert.equal(r.recoveryReason,'P03_PHYSICAL_COMPLETED42_AUX_CAS');assert.equal(r.status,'QUARANTINED_REQUIRES_ROOT_INSPECTION');assert(!JSON.stringify(r).includes(secret));const saved=JSON.parse(f.files.get(root+'\\MelisaERP-P03-transition-42d0d0536cb115cc4aea43ff1f13afbf\\completed-cut-recovery-result.json').bytes);assert.equal(saved.reason,r.recoveryReason);assert(!JSON.stringify(saved).includes(secret));
 });
 test('exact9d2 retry modeled dry-run writes nothing and successful handoff preserves both histories and same452 claim',async()=>{
  const dry=fixture({retry:true}),d=await dry.fn(dry.input);assert.equal(d.status,'CURRENT_B007_DRY_RUN_ONLY');assert.equal(dry.writes.length,0);assert.equal(dry.stops,0);

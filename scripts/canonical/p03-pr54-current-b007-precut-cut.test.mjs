@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 const source=new URL('./p03-pr54-current-b007-precut-cut.ps1',import.meta.url);
@@ -282,7 +284,7 @@ test('completed-cut seed preserves all existing seed checks and changes only the
 });
 test('completed-cut Apply requires the single exact recovery intent and writes only one truthful drain witness',()=>{
  const setup=String.raw`
- SetupCompleted;$script:Mode='ResumeDrain';$script:fixtureWorkerPath=Join-Path $base 'MelisaERP-P03-current-b007-control-aaaaaaaaaaaa\p03-pr54-current-b007-precut-cut.ps1';$pins=Completed42d0Pins
+ SetupCompleted;$script:WorkerSourceSha256='worker';$script:Mode='ResumeDrain';$script:fixtureWorkerPath=Join-Path $base 'MelisaERP-P03-current-b007-control-aaaaaaaaaaaa\p03-pr54-current-b007-precut-cut.ps1';$pins=Completed42d0Pins
  $script:recoveryIntent=[pscustomobject]@{schemaVersion='melisa-p03-current-b007-completed-cut-recovery.v1';mode='ROLLBACK_OLD_ONLY';runId=$runId;profileRef=$pins.profile;beforeRef=$pins.before;claimRef=$pins.claim;cutRef=$pins.cut;failureTailRef=$pins.tail;workerRef=[pscustomobject]@{path=$fixtureWorkerPath;sha256='worker'}}
  $intentPath=Join-Path $dir 'completed-cut-recovery-intent.json';$data[$intentPath]=$recoveryIntent;$hashes[$intentPath]='intent';$exists[$intentPath]=$true;$data[$fixtureWorkerPath]=@{};$hashes[$fixtureWorkerPath]='worker'
  function Get-FileHash{param($LiteralPath,$Algorithm);if(-not$hashes.ContainsKey($LiteralPath)){throw 'FIXTURE_MISSING_HASH'};return [pscustomobject]@{Hash=$hashes[$LiteralPath]}}
@@ -332,4 +334,35 @@ test('4900 proof rejects foreign UID/kernel/image/signature/owner, causal graph,
  `;
  const edits=['',"$tasks.Terminal.Xml='new1'","$tasks.Hub.Xml='new2'","$tasks.Terminal.Xml='new1';$tasks.Hub.Xml='new2'","$tasks.Hub.Xml='foreign'","$tasks.Hub.State=4","$script:instances=@(1)","$script:Mode='ResumeDrain';$tasks.Hub.Xml='new2'","$script:Mode='ResumeDrainDryRun';$tasks.Terminal.Xml='new1'","$script:Mode='Drain';$tasks.Hub.Xml='new2'"];
  const out=run(get+'\n'+fixture+'\n'+edits.map((e,n)=>`SetTasks;${e};'CASE${n}='+(TaskOutcome)`).join('\n'));for(let n=0;n<4;n++)assert.match(out,new RegExp('CASE'+n+'=GO'));for(let n=4;n<edits.length;n++)assert(!out.includes('CASE'+n+'=GO'),'case '+n);
+});
+test('PS5 real -File child can self-read through a parent read-only code hold; other reads retain exclusive sharing and bad pins fail',()=>{
+ const native=readFileSync(source,'utf8').replaceAll('\r\n','\n');const reader=native.slice(native.indexOf('function ReadWorkerPin('),native.indexOf("\nif($Mode -cnotin @('ResumeDrain'"));assert(reader.includes('[switch]$HeldCode'));
+ const temp=mkdtempSync(path.join(tmpdir(),'melisa-held-code-')),child=path.join(temp,'fixture-native.ps1');
+ const body=String.raw`param([string]$WorkerSourceSha256,[switch]$WrongPath)
+$env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($m in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$m+'\'+$m+'.psd1')) -ErrorAction Stop};Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop';$Mode='ResumeDrainDryRun';$owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+`+reader+String.raw`
+try{
+ $target=if($WrongPath){Join-Path ([IO.Path]::GetDirectoryName($PSCommandPath)) 'other.ps1'}else{$PSCommandPath}
+ [void](ReadWorkerPin $target $WorkerSourceSha256 -HeldCode)
+ 'SELF_FILE_READ_OK'
+ try{[void](ReadWorkerPin $PSCommandPath $WorkerSourceSha256);throw 'FIXTURE_EXCLUSIVE_WEAKENED'}catch{if($_.Exception.Message-ceq'FIXTURE_EXCLUSIVE_WEAKENED'){throw};'OTHER_READ_EXCLUSIVE_PRESERVED'}
+ exit 0
+}catch{[Console]::Error.WriteLine($_.Exception.Message);exit 17}
+`;
+ writeFileSync(child,body,'utf8');
+ const parent=String.raw`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($m in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\'+$m+'\'+$m+'.psd1')) -ErrorAction Stop};Set-StrictMode -Version Latest
+ $file=CHILD;$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$acl=[Security.AccessControl.FileSecurity]::new();$acl.SetOwner([Security.Principal.SecurityIdentifier]::new($sid));$acl.SetAccessRuleProtection($true,$false)
+ foreach($id in @($sid,'S-1-5-18')){[void]$acl.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($id),'FullControl','Allow'))};Set-Acl -LiteralPath $file -AclObject $acl
+ $sha=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant();$held=[IO.File]::Open($file,'Open','Read','Read')
+ try{
+  foreach($case in @('good','hash','path')){
+   $expected=if($case-ceq'hash'){'0'*64}else{$sha};$args='-NoProfile -NonInteractive -File "'+$file+'" -WorkerSourceSha256 '+$expected;if($case-ceq'path'){$args+=' -WrongPath'}
+   $p=New-Object Diagnostics.Process;$p.StartInfo=New-Object Diagnostics.ProcessStartInfo;$p.StartInfo.FileName=Join-Path $PSHOME 'powershell.exe';$p.StartInfo.Arguments=$args;$p.StartInfo.UseShellExecute=$false;$p.StartInfo.CreateNoWindow=$true;$p.StartInfo.RedirectStandardOutput=$true;$p.StartInfo.RedirectStandardError=$true
+   [void]$p.Start();$out=$p.StandardOutput.ReadToEnd();$err=$p.StandardError.ReadToEnd();$p.WaitForExit();'CASE_'+$case+'='+$p.ExitCode;[Console]::Write($out);[Console]::Write($err);$p.Dispose()
+  }
+ }finally{$held.Dispose()}
+ `.replace('CHILD',q(child));
+ try{const out=execFileSync(String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,['-NoProfile','-NonInteractive','-Command',parent],{encoding:'utf8',windowsHide:true,timeout:20000});assert.match(out,/CASE_good=0[\s\S]*SELF_FILE_READ_OK[\s\S]*OTHER_READ_EXCLUSIVE_PRESERVED/);assert.match(out,/CASE_hash=17[\s\S]*P03_SUCCESSOR_HASH/);assert.match(out,/CASE_path=17[\s\S]*P03_SUCCESSOR_HELD_CODE_SCOPE/);}finally{rmSync(temp,{recursive:true,force:true});}
+ assert.match(native,/WorkerSourceSha256 -cnotmatch/);assert.match(native,/\$PSCommandPath -cnotmatch/);assert.match(native,/ReadWorkerPin \$PSCommandPath \$WorkerSourceSha256 -HeldCode/);
 });
