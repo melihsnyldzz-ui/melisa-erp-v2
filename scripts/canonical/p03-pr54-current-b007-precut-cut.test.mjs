@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,rmSync,realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
@@ -73,8 +73,8 @@ function ResetFinalization{
 function FinalizeOutcome{try{$value=FinalizeOld42d0;return $value.status}catch{return $_.Exception.Message}}
 `;
 function runFinalization(code,{timeout=15000}={}){
- const temp=mkdtempSync(path.join(tmpdir(),'melisa-finalize42-fixture-')),file=path.join(temp,'isolated.ps1');
- try{writeFileSync(file,"Set-StrictMode -Version Latest\n$ErrorActionPreference='Stop'\n"+finalizationFixture+'\n'+code+'\n');return execFileSync(String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{...process.env,P03_FIXTURE_TEMP:temp,P03_FIXTURE_WORKER:fileURLToPath(source),P03_FIXTURE_ENGINE:fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url))}});}finally{const parent=path.resolve(tmpdir())+path.sep,target=path.resolve(temp);assert(target.startsWith(parent)&&path.basename(target).startsWith('melisa-finalize42-fixture-'));rmSync(target,{recursive:true});}
+ const temp=realpathSync.native(mkdtempSync(path.join(tmpdir(),'melisa-finalize42-fixture-'))),file=path.join(temp,'isolated.ps1');
+ try{writeFileSync(file,"Set-StrictMode -Version Latest\n$ErrorActionPreference='Stop'\n"+finalizationFixture+'\n'+code+'\n');return execFileSync(String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{...process.env,P03_FIXTURE_TEMP:temp,P03_FIXTURE_WORKER:fileURLToPath(source),P03_FIXTURE_ENGINE:fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url))}});}finally{const parent=realpathSync.native(tmpdir())+path.sep,target=path.resolve(temp);assert(target.startsWith(parent)&&path.basename(target).startsWith('melisa-finalize42-fixture-'));rmSync(target,{recursive:true});}
 }
 
 test('finalize42d0 PS5 original empty inherited lock is accepted but extra/protected/nonempty/active locks are rejected',()=>{

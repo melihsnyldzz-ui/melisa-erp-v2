@@ -1,3 +1,7 @@
+## 21 Ekim15:30UTC — exact Windows CI fixture uyumsuzlukları ayrıldı; runtime değişmedi
+
+26669a18 PR39624971713 secret/quality SUCCESS, Windows FAILURE. Altı assertion üç izole fixture uyumsuzluğu: admit fonksiyonunu VM'e çıkaran timing harness yeni freshOwnerGeneration değişkenini taşımıyordu; helper closure testi korunması gereken historical777 observer pinini güncel freshde03 ile aynı sanıyordu; runner TEMP kısa8.3 yolu ile gerçek journal FullName karşılaştırılıyordu. Yalnız fixture context'e false eklendi, old/fresh policy ayrı doğrulandı, disposable temp yolu native realpath ile kanonikleştirildi (silme sınırı aynı kanonik parent içinde). Runtime kaynak/hash/kimlik/ACL/süre/claim koruması değiştirilmedi. Başarısız exactCI korunur. Değişen6 hedef PASS; yeni exactCI ayrıca beklenecek. Freshprofile/claim/Apply/kurulum0, kurulu eski TEST korunur.
+
 ## 21 Ekim15:20UTC — mevcut normal geçişte fresh owner generation ve sonlu geç rollback okuması
 
 3eb7e1f1 exact PR39620488222 secret/quality/Windows CI üçü SUCCESS. Eski e59/6bc/13b TEST normal ekranları ve DB02 korunur. Mevcut normal admission sabit eski claim'i, retained retry ise tüketilmiş9d2 ve eski PID/doğumları gerektiriyor; bunları sıfırlamak veya42d0 istisnalarını çoğaltmak yerine aynı dispatcher'da açık freshOwnerGeneration seçildi. İki gerçek native admission aynı currentOwnerDigest'i doğrular; yalnız o süreç/COM ömrüne bağlı deterministic CreateNew claim bir kez yazılabilir. Geçmiş claim/journal/intentler ve frozen b33 değişmez; native/SQL/protected/taskXML/parent/health sınırları gevşetilmez.
