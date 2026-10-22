@@ -47,7 +47,7 @@ function Read-B264Source([string]$path,[string]$sha,[string]$leaf){
  try{Require-NewDrain ($stream.Length -gt 0 -and $stream.Length -le 16777216) 'SOURCE_SIZE';$m=[IO.MemoryStream]::new();$stream.CopyTo($m);$bytes=$m.ToArray();$hash=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();Require-NewDrain ($hash -ceq $sha) 'SOURCE_HASH';return ,$bytes}finally{$stream.Dispose()}
 }
 function Get-B264RecoverySourcePolicy{
- if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'c0b759fcc4c74ea486c9107f18ca565dc67d9b1cdabf20675ec105b22e7ae680'}else{'777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'});observerSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'1e5e90fd1162de918f8ae72e4605f8400365a7d45ae05c030fe4fc20d93d555d'}else{'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'})}}
+ if($PolicyGeneration -ceq 'CurrentB007'){return @{newObserverSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'2dfa1c6b9c5ec6b7b0fb6bbf455cd5b87b6eca9af1717841ef67e879b69f7102'}else{'777bc48f04fbdd1a48b9cf92aea4deaed4e34a9004139a2b0e9e5eba094445c4'});observerSha256=$(if((Get-Variable -Name GenerationClaimPath -ValueOnly -ErrorAction SilentlyContinue)){'a976803e7c93140917819d4db0b9570d20b2ffadc546d803abb906d1b0fd778e'}else{'8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1'})}}
  if($PolicyGeneration -ceq 'B264Sup20D'){
   return @{newObserverSha256='b7ba34e3b13899874f0ea3d5cd168682f81fd946ca7d42db586d8a95ff4efa22';observerSha256='5e1f89bd24ba7b1a2c8738cab3f2f29d4ec44ade96b62127d9f1367efd6143f9'}
  }
@@ -56,7 +56,7 @@ function Get-B264RecoverySourcePolicy{
 }
 function Initialize-B264Recovery{
  if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
-  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b') 'REHEARSAL_ENTRY'
+  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'3f4f218fb0dd9500ab1ed2f43e34a47d13c1b33e9e08e8b41add9c62984f027c') 'REHEARSAL_ENTRY'
   $engine=Read-B264Source $EnginePath $engineSha 'recovery-engine.ps1';$empty=Read-B264Source $EmptyRecoveryPath 'd1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438' 'p03-pr54-new-owner-empty-recovery.ps1';$drainer=Read-B264Source $DrainerPath $DrainerSha256 'p03-pr54-successor-core-drain.ps1'
   Import-B264Definitions $engine @() @{ConsoleAuxiliaries='B264FrozenConsoleAuxiliaries';HubLineage='B264FrozenHubLineage'}
   Import-B264Definitions $empty @('Assert-NewDrainOldAbsent','Save-NewDrain','Read-NewDrainReceipt','Stop-NewDrainExact','Hold-NewDrainCore','Open-NewDrainOutput')

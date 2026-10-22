@@ -505,7 +505,48 @@ function CurrentSameCaptureAuditFrame($native){
  return [pscustomobject]@{auditedPids=@($seen);all=@($native.all|Where-Object{$_.ProcessId-notin$seen})}
 }
 
+function InitializeCurrentProtectedBatch{
+ Need ($PolicyGeneration-cin@('CurrentB142Rehearsal','CurrentB007InspectOnly')-and$engineSha-ceq'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f') 'CURRENT_BATCH_SCOPE'
+ $commands=@(Get-Command ProtectedProcesses -CommandType Function -ErrorAction Stop)
+ Need ($commands.Count-eq1-and$commands[0].ScriptBlock.Ast-is[Management.Automation.Language.FunctionDefinitionAst]-and$commands[0].ScriptBlock.Ast.Name-cin@('ProtectedProcesses','script:ProtectedProcesses')-and(Hash ([Text.Encoding]::UTF8.GetBytes($commands[0].ScriptBlock.Ast.Body.Extent.Text.Replace("`r`n","`n"))))-ceq'a84865243b0b97b2d0ad18ac0c3714f553666a99ddf0b745fb353211de3d4c93') 'CURRENT_BATCH_SOURCE'
+ $script:currentProtectedNativeBody=$commands[0].ScriptBlock
+ function script:ProtectedProcesses($inventory){InvokeCurrentProtectedBatch $inventory}
+}
+function InvokeCurrentProtectedBatch($inventory){
+ # Fresh method calls at EVERY protection boundary. No PID/SID cache, and no
+ # result-order assumption: every selected pin requires the SAME literal SID.
+ Need ($PolicyGeneration-cin@('CurrentB142Rehearsal','CurrentB007InspectOnly')-and$owner-ceq'S-1-5-21-2170750028-1005938530-2568122015-1001'-and$script:currentProtectedNativeBody-is[scriptblock]-and$script:currentProtectedNativeBody.Ast-is[Management.Automation.Language.FunctionDefinitionAst]-and$script:currentProtectedNativeBody.Ast.Name-cin@('ProtectedProcesses','script:ProtectedProcesses')-and(Hash ([Text.Encoding]::UTF8.GetBytes($script:currentProtectedNativeBody.Ast.Body.Extent.Text.Replace("`r`n","`n"))))-ceq'a84865243b0b97b2d0ad18ac0c3714f553666a99ddf0b745fb353211de3d4c93') 'CURRENT_BATCH_SOURCE'
+ $pairs=@(foreach($pin in $profile.protectedProcesses){if($pin.PSObject.Properties.Name-cnotcontains'kind'){
+  $rows=@($inventory.all|Where-Object{$_.ProcessId-eq$pin.pid})
+  Need ($rows.Count-eq1-and$rows[0]-is[Microsoft.Management.Infrastructure.CimInstance]-and$rows[0].CimSystemProperties.ClassName-ceq'Win32_Process'-and$pin.ownerSid-ceq$owner) 'CURRENT_BATCH_INPUT'
+  [pscustomobject]@{row=$rows[0];pin=$pin}
+ }})
+ Need ($pairs.Count-gt0-and$pairs.Count-le64-and@($pairs|ForEach-Object{$_.row.ProcessId}|Select-Object -Unique).Count-eq$pairs.Count) 'CURRENT_BATCH_UNIQUE'
+ $results=@($pairs|ForEach-Object{$_.row}|CimCmdlets\Invoke-CimMethod -MethodName GetOwnerSid -ErrorAction Stop)
+ Need ($results.Count-eq$pairs.Count-and@($results|Where-Object{$_.ReturnValue-ne0-or$_.Sid-cne$owner}).Count-eq0) 'CURRENT_BATCH_OWNER'
+ $batchVisits=[Collections.Generic.HashSet[int]]::new()
+ function Identity($actual,$expected){
+  $matched=@($pairs|Where-Object{[object]::ReferenceEquals($_.row,$actual)-and[object]::ReferenceEquals($_.pin,$expected)})
+  Need ($matched.Count-eq1-and$batchVisits.Add([int]$expected.pid)) 'CURRENT_BATCH_REFERENCE'
+  return [int]$actual.ProcessId-eq[int]$expected.pid-and[int]$actual.ParentProcessId-eq[int]$expected.parentPid-and$actual.ExecutablePath-ieq$expected.nodePath-and$actual.CommandLine-ceq$expected.commandLine-and$actual.CreationDate.ToUniversalTime().Ticks-eq[DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks
+ }
+ # Execute the exact frozen body. SQL service/master, fresh listener and Shared
+ # task XML/GUID checks remain in it. The Identity shim exists only this call.
+ & $script:currentProtectedNativeBody $inventory
+ Need ($batchVisits.Count-eq$pairs.Count) 'CURRENT_BATCH_COVERAGE'
+}
+function WorkerAdmissionNativeStamp($inventory){
+ # This is an integrity commitment to native objects inside ONE admission,
+ # not a process/PID cache and never a replacement for effect-boundary reads.
+ $rows=@(foreach($p in $inventory.all){Need ($p-is[Microsoft.Management.Infrastructure.CimInstance]) 'ADMISSION_NATIVE_ROW';[ordered]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;name=[string]$p.Name;path=[string]$p.ExecutablePath;argv=[string]$p.CommandLine;birth=if($null-eq$p.CreationDate){$null}else{$p.CreationDate.ToUniversalTime().ToString('o')}}})
+ $ports=@(foreach($p in $inventory.allListeners){Need ($p-is[Microsoft.Management.Infrastructure.CimInstance]) 'ADMISSION_NATIVE_LISTENER';[ordered]@{pid=[int]$p.OwningProcess;port=[int]$p.LocalPort;address=[string]$p.LocalAddress}})
+ $selectedPorts=@(foreach($p in $inventory.listeners){Need ($p-is[Microsoft.Management.Infrastructure.CimInstance]) 'ADMISSION_NATIVE_LISTENER';[ordered]@{pid=[int]$p.OwningProcess;port=[int]$p.LocalPort;address=[string]$p.LocalAddress}})
+ $runs=@(foreach($p in $inventory.instances){Need ([Runtime.InteropServices.Marshal]::IsComObject($p)) 'ADMISSION_NATIVE_COM';[ordered]@{name=[string]$p.Name;path=[string]$p.Path;pid=[int]$p.EnginePID;guid=[string]$p.InstanceGuid;state=[int]$p.State}})
+ return Hash ([Text.Encoding]::UTF8.GetBytes(([ordered]@{rows=$rows;ports=$ports;selectedPorts=$selectedPorts;runs=$runs}|ConvertTo-Json -Depth 12 -Compress)))
+}
 function CaptureWorkerAdmissionCore($capturedInventory=$null){
+ $admissionSlot=Get-Variable -Name b264AdmissionCapture -Scope Script -ErrorAction SilentlyContinue
+ if($null-ne$admissionSlot){$script:b264AdmissionCapture=$null}
  Authority;PrepareProbeSource
  if($null-ne(Get-Variable -Name currentRehearsalCollectorContext -Scope Script -ValueOnly -ErrorAction SilentlyContinue)){
   Need ($PolicyGeneration-ceq'CurrentB142Rehearsal'-and$Mode-ceq'Inspect'-and$null-eq$capturedInventory-and$script:currentRehearsalCollectorContext.captureCount-eq0) 'REHEARSAL_COLLECTOR_ONCE'
@@ -544,6 +585,10 @@ function CaptureWorkerAdmissionCore($capturedInventory=$null){
  $frame=[ordered]@{schemaVersion='melisa-p03-successor-precut-admission.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;engineSha256=$engineSha;recoveryHelperSha256=$RecoveryHelperSha256;observedAt=[DateTime]::UtcNow.ToString('o');oldIdentities=@($order|ForEach-Object{$before.identities.$_});oldWatchers=@($profile.oldWatchers);consolePins=@($script:consolePins.Values);probePins=@($script:probePins.Values)}
  if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$frame['environment']='P03_REHEARSAL'}
  if($PolicyGeneration -ceq 'CurrentB007InspectOnly'){$frame['protectedConsolePins']=@($protectedPins)}
+ if($null-ne$admissionSlot-and$PolicyGeneration-cin@('CurrentB142Rehearsal','CurrentB007InspectOnly')-and$Mode-ceq'Drain'){
+  Need (-not$script:tasksStopRequested-and-not$script:coreQuiesced) 'ADMISSION_PREMUTATION'
+  $script:b264AdmissionCapture=[pscustomobject]@{schemaVersion='melisa-p03-same-admission-native.v1';inventory=$inv;frame=$frame;stamp=(WorkerAdmissionNativeStamp $inv);metadataStamp=(Hash ([Text.Encoding]::UTF8.GetBytes((@($profile,$before,$frame)|ConvertTo-Json -Depth 30 -Compress))));rows=@($inv.all);allListeners=@($inv.allListeners);listeners=@($inv.listeners);instances=@($inv.instances);profile=$profile;before=$before;producer=${function:CaptureWorkerAdmissionCore};policy=$PolicyGeneration;consumed=$false}
+ }
  return $frame
 }
 function CaptureWorkerAdmission{
@@ -631,6 +676,7 @@ function DrainWorkerCore{
   return [ordered]@{status='SUCCESSOR_CORE_DRAINED';coreStopResult='EXACT_OBSERVED_PROCESS_STOPPED';heldCoreExited=$true;remainingOldRoles=$remainingCount;goneOldPids=@($script:drainedPids);cutWitness=$cut;drainWitness=$drain;authenticatedProbeCount=$script:probePins.Count;latePrecutProbeCount=$script:lateProbePids.Count;consoleCount=$script:consolePins.Count}
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
+if($PolicyGeneration-cin@('CurrentB142Rehearsal','CurrentB007InspectOnly')){InitializeCurrentProtectedBatch}
 WorkerAuthority
 if($null-ne$script:currentRehearsalCollectorContext){
  $frame=CaptureWorkerAdmissionCore;$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;$frame['environment']='P03_REHEARSAL';$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;$frame['captureId']=$script:currentRehearsalCollectorContext.capture.id;return $frame

@@ -165,12 +165,13 @@ const diagnosticSameCapturePins=Object.freeze({drainer:'0233887b0bbc9023efe2bc25
 // Explicit current pair after the isolated native scope split; prior pairs remain sealed.
 const rehearsalSplitSameCapturePins=Object.freeze({drainer:'cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9',observer:'bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'});
 const preparedRehearsalSameCapturePins=Object.freeze({drainer:'ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b',observer:'1e5e90fd1162de918f8ae72e4605f8400365a7d45ae05c030fe4fc20d93d555d'});
+const batchProtectedSameCapturePins=Object.freeze({drainer:'3f4f218fb0dd9500ab1ed2f43e34a47d13c1b33e9e08e8b41add9c62984f027c',observer:'a976803e7c93140917819d4db0b9570d20b2ffadc546d803abb906d1b0fd778e'});
 export function pr54CurrentB007InspectionArguments(input){
  need(exact(input,['profileRef','beforeRef','engineRef','recoveryHelperRef','drainerRef','observerRef']),'INPUT');
  const {profileRef,beforeRef,engineRef,recoveryHelperRef,drainerRef,observerRef}=input;
  for(const r of Object.values(input))need(ref(r),'REF');
  need(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-current-b007-control-[a-f0-9]{12}\\p03-physical-rollback-lifetime-v2\.ps1$/.test(engineRef.path)&&engineRef.sha256===PR54_CURRENT_B007_ENGINE_SHA256,'ENGINE');
- const capturePins=[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins,rehearsalSplitSameCapturePins,preparedRehearsalSameCapturePins].find(p=>drainerRef.sha256===p.drainer&&observerRef.sha256===p.observer),sameCapture=!!capturePins;
+ const capturePins=[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins,rehearsalSplitSameCapturePins,preparedRehearsalSameCapturePins,batchProtectedSameCapturePins].find(p=>drainerRef.sha256===p.drainer&&observerRef.sha256===p.observer),sameCapture=!!capturePins;
  for(const [r,k]of [[recoveryHelperRef,'helper'],[drainerRef,'drainer'],[observerRef,'observer']])need(path.win32.basename(r.path)===currentB007Pins[k].leaf&&r.sha256===(sameCapture&&k!=='helper'?capturePins[k]:currentB007Pins[k].sha256),'SOURCE');
  need(recoveryHelperRef.path===PR54_OWNER_ROOT+'\\'+currentB007Pins.helper.leaf&&[drainerRef,observerRef].every(r=>path.win32.dirname(r.path)===path.win32.dirname(engineRef.path)),'SOURCE_DIRECTORY');
  const runId=path.win32.basename(beforeRef.path).match(/^MelisaERP-P03-before-([a-f0-9]{32})\.json$/)?.[1];
@@ -183,7 +184,7 @@ export function validatePr54CurrentSameCaptureEnvelope(value,input){
  need(exact(value,['schemaVersion','capture','current','frame'])&&value.schemaVersion==='melisa-p03-current-b007-same-capture.v1','SAME_CAPTURE_SCHEMA');
  const {capture:c,current,frame}=value;
  need(exact(c,['id','attempt','startedAt','inventoryObservedAt','profileSha256','beforeSha256','drainerSha256','processCount','listenerCount','runningInstanceCount'])&&Number.isInteger(c.attempt)&&c.attempt>=1&&c.attempt<=3&&/^[a-f0-9]{32}$/.test(c.id)&&current?.captureId===c.id&&frame?.captureId===c.id,'SAME_CAPTURE_ID');
- need(c.profileSha256===input.profileRef.sha256&&c.beforeSha256===input.beforeRef.sha256&&c.drainerSha256===input.drainerRef.sha256&&[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins,rehearsalSplitSameCapturePins,preparedRehearsalSameCapturePins].some(p=>input.drainerRef.sha256===p.drainer&&input.observerRef.sha256===p.observer),'SAME_CAPTURE_PINS');
+ need(c.profileSha256===input.profileRef.sha256&&c.beforeSha256===input.beforeRef.sha256&&c.drainerSha256===input.drainerRef.sha256&&[sameCapturePins,auditedSameCapturePins,diagnosticSameCapturePins,rehearsalSplitSameCapturePins,preparedRehearsalSameCapturePins,batchProtectedSameCapturePins].some(p=>input.drainerRef.sha256===p.drainer&&input.observerRef.sha256===p.observer),'SAME_CAPTURE_PINS');
  const times=[c.startedAt,c.inventoryObservedAt,current.observedAt,frame.observedAt].map(Date.parse);need(times.every(Number.isFinite)&&times.every((t,i)=>i===0||t>=times[i-1])&&Date.now()-times[0]>=0&&Date.now()-times[0]<60000,'SAME_CAPTURE_TIME');
  need(c.startedAt===current.startedAt&&[c.processCount,c.listenerCount,c.runningInstanceCount].every(n=>Number.isSafeInteger(n)&&n>=0)&&c.processCount>=current.processes.length&&c.listenerCount>=current.bindings.length&&c.runningInstanceCount===current.runningInstances.length,'SAME_CAPTURE_COUNTS');
  const {captureId:nativeId,...native}=frame;return {current,frame:native};
