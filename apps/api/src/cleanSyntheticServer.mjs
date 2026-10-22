@@ -36,7 +36,7 @@ if(financeEnabled()){
  app.use('/api',createWorkCollectionRoutes({service:collections}));
  app.use('/api',createWorkSupplierPaymentRoutes({service:createWorkSupplierPaymentService({getStore:async()=>store,actorCheck:cleanFinanceActor})}));
  app.get('/api/work-sales/context',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.context)));
- app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>[await c.invoice('1')])});}catch(e){next(e);}});
+ app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>({data:[await c.invoice('1')],meta:{total:1,page:1,limit:25}}))});}catch(e){next(e);}});
  app.get('/api/work-sales/requests/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.request(req.params.id))));
 }
 app.use('/api',crmOrderV2Routes);app.use(createApp());app.use(errorHandler);
