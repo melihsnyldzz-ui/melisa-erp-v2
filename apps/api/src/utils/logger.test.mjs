@@ -299,3 +299,12 @@ test('clean collection preparation keeps only four reviewed static codes; privat
   }
  }
 });
+
+test('clean network rejection keeps only its reviewed static code',()=>{
+ const code='CLEAN_TEST_ORIGIN_REJECTED';
+ assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'CLEAN_TEST_ORIGIN_'+marker]){
+  const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+  assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+ }
+});
