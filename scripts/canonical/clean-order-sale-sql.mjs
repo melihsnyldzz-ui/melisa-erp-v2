@@ -69,6 +69,26 @@ export function buildCleanOrderSaleProcedures(){
  return objects;
 }
 function createTablePart(file){const text=fs.readFileSync(new URL(`../../infra/sql/migrations/${file}`,import.meta.url),'utf8');const body=text.slice(text.indexOf('GO')+2);return body.split(/\bGO\s*\r?\n/)[0];}
+export function buildCleanOrderSaleCompatibilitySql(){
+ // V2 draft contracts deliberately do not snapshot a barcode. Keep that NULL
+ // in the order and invoice; never infer a barcode or rewrite old evidence.
+ const old='((SELECT COUNT(*) FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=l.product_id AND b.is_primary=1)<>1 OR NOT EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=l.product_id AND b.is_primary=1 AND CONVERT(varbinary(max),b.barcode)=CONVERT(varbinary(max),l.barcode_snapshot)))';
+ const corrected='((SELECT COUNT(*) FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=l.product_id AND b.is_primary=1)>1 OR l.barcode_snapshot IS NOT NULL AND NOT EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=l.product_id AND b.is_primary=1 AND CONVERT(varbinary(max),b.barcode)=CONVERT(varbinary(max),l.barcode_snapshot)))';
+ let body=buildCleanOrderSaleProcedures().usp_clean_order_sale_begin;
+ if(body.split(old).length!==2||body.split('\n IF @@TRANCOUNT=0').length!==2)throw Error('Native compatibility boundary changed');
+ const guard=`IF (SELECT COUNT(*) FROM dbo.clean_order_sale_compatibility)<>2 OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_compatibility d WHERE d.definition_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name)) IS NULL OR (OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'ExecIsTriggerDisabled')<>0)) THROW 51950,'CLEAN_SALE_NOT_READY',1;`;
+ body=body.replace('CREATE PROCEDURE dbo.usp_clean_order_sale_begin ','CREATE PROCEDURE dbo.usp_clean_order_sale_begin_v2 ').replace(old,corrected).replace('\n IF @@TRANCOUNT=0','\n '+guard+'\n IF @@TRANCOUNT=0');
+ const immutable=`CREATE TRIGGER dbo.clean_sale_compatibility_immutable ON dbo.clean_order_sale_compatibility AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END`;
+ const hash=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
+ return `SET XACT_ABORT ON;${ready}BEGIN TRANSACTION;
+ IF OBJECT_ID(N'dbo.clean_order_sale_compatibility') IS NOT NULL OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_links) OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_requests) THROW 51950,'CLEAN_SALE_COMPATIBILITY_SCOPE',1;
+ CREATE TABLE dbo.clean_order_sale_compatibility(name nvarchar(128) PRIMARY KEY,definition_hash char(64) NOT NULL);
+ EXEC(${quote(body)});
+ INSERT dbo.clean_order_sale_compatibility VALUES(N'usp_clean_order_sale_begin_v2','${hash(body)}'),(N'clean_sale_compatibility_immutable','${hash(immutable)}');
+ EXEC(${quote(immutable)});
+ GRANT EXECUTE ON dbo.usp_clean_order_sale_begin_v2 TO [${CLEAN_LOGIN}];
+ COMMIT;SELECT N'CLEAN_ORDER_SALE_COMPATIBILITY_INSTALLED' result;`;
+}
 export function buildCleanOrderSaleInstallSql(passwordHash){
  if(typeof passwordHash!=='string'||!/^\$2[aby]\$\d\d\$[./A-Za-z0-9]{53}$/.test(passwordHash))throw Error('Approver password hash required');
  const definitions=buildCleanOrderSaleProcedures();
@@ -93,6 +113,7 @@ export function buildCleanOrderSaleInstallSql(passwordHash){
  INSERT dbo.permissions(role_id,permission_key,can_view,can_create,can_update,can_approve) VALUES(22,N'product.view',1,0,0,0),(22,N'customer.view',1,0,0,0),(22,N'sales.view',1,0,0,0),(22,N'sales.create',0,1,0,0),(22,N'sales.finalize',0,0,0,1);
  SET IDENTITY_INSERT dbo.users ON;INSERT dbo.users(id,username,password_hash,display_name,role_id) VALUES(17,N'ornek-sorumlu',${quote(passwordHash)},N'Örnek satış sorumlusu',22);SET IDENTITY_INSERT dbo.users OFF;
  ${['customer_movements','system_settings','clean_order_sale_links','clean_order_sale_requests','clean_order_sale_definitions'].map(t=>`GRANT SELECT ON dbo.${t} TO [${CLEAN_LOGIN}];`).join('\n')}
+ ${['erp_migration.operation_quarantine_holds','dbo.crm_order_v2_requests','dbo.crm_order_v2_lines','dbo.crm_order_v2_definitions'].map(t=>`GRANT SELECT ON ${t} TO [${CLEAN_LOGIN}];`).join('\n')}
  GRANT EXECUTE ON dbo.usp_clean_order_sale_begin TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_order_sale_finish TO [${CLEAN_LOGIN}];
  ${[...Object.keys(buildCrmV2Procedures()),'crm_order_v2_requests','crm_order_v2_lines','sales_orders','sales_order_items','crm_order_v2_definitions'].map(name=>`GRANT VIEW DEFINITION ON OBJECT::dbo.${name} TO [${CLEAN_LOGIN}];`).join('\n')}
  ${['sales_invoices','sales_invoice_items','stock_movements','customer_movements','audit_logs'].map(t=>`GRANT INSERT ON dbo.${t} TO [${CLEAN_LOGIN}];`).join('\n')}
@@ -100,5 +121,6 @@ export function buildCleanOrderSaleInstallSql(passwordHash){
  GRANT UPDATE(status,estimated_profit_try,finalized_at,updated_at,account_currency,account_amount,account_exchange_rate_snapshot) ON dbo.sales_invoices TO [${CLEAN_LOGIN}];
  GRANT UPDATE(average_cost_try_snapshot,gross_profit_try,gross_profit_rate) ON dbo.sales_invoice_items TO [${CLEAN_LOGIN}];
  GRANT UPDATE(account_currency,account_amount,account_exchange_rate_snapshot,document_exchange_rate_snapshot,amount_try,balance_effect) ON dbo.customer_movements TO [${CLEAN_LOGIN}];
+ ${buildCleanOrderSaleCompatibilitySql()}
  COMMIT;SELECT N'CLEAN_ORDER_SALE_INSTALLED' result;`;
 }

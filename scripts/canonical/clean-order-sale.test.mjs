@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {saleId,saleAction,saleActor,saleHash,assertSaleLines} from '../../apps/api/src/services/cleanOrderSaleModel.mjs';
-import {buildCleanOrderSaleInstallSql,buildCleanOrderSaleProcedures} from './clean-order-sale-sql.mjs';
+import {buildCleanOrderSaleInstallSql,buildCleanOrderSaleProcedures,buildCleanOrderSaleCompatibilitySql} from './clean-order-sale-sql.mjs';
+import {createCleanOrderSaleService} from '../../apps/api/src/services/cleanOrderSaleService.mjs';
+import {registerCleanContext} from '../../apps/api/src/services/cleanSyntheticContext.mjs';
 import {createWorkingCatalogSession} from '../../apps/sites-workflow/src/workflow/workingCatalogSession.mjs';
 import {createTradeJournal} from '../../apps/sites-workflow/src/workflow/workTradeModel.mjs';
 import {reconcileCleanSaleRejection} from '../../apps/sites-workflow/src/workflow/cleanNativeOrders.js';
@@ -13,6 +15,7 @@ test('only an unchanged positive native ADET/TRY selection can become a sale',()
  for(const patch of [{quantityExact3:'0.000'},{quantityExact3:'-1.000'},{quantityExact3:'1.500'},{stockExact3:'2.000'},{held:1},{unit:'KOLI'},{active:false},{currentPriceExact8:'126.00000000'},{currentPriceExact8:null},{currentName:'Başka ürün'},{currentStockCode:'0007 OTHER'},{mainBarcode:'7'},{currency:'USD'}])assert.throws(()=>assertSaleLines(order,[{...line,...patch}]));
  for(const patch of [{currency:'USD'},{customerCurrency:'USD'},{rateExact8:'2.00000000'},{totalExact4:'0.0000'},{totalExact4:'501.0000'}])assert.throws(()=>assertSaleLines({...order,...patch},[line]));
  assert.throws(()=>assertSaleLines(order,[line,line]));
+ const omitted={...line,barcode:null};assert.doesNotThrow(()=>assertSaleLines(order,[omitted]));assert.equal(omitted.barcode,null);
 });
 test('IDs, action UUID and revision are finite; callers cannot send price or actor',()=>{
  assert.equal(saleId('3'),3);for(const id of ['03','3.0','3e0','../3','9007199254740992',null])assert.throws(()=>saleId(id));
@@ -33,6 +36,8 @@ test('schema adapter is limited to exact new TEST, immutable native proof, per-o
  assert.doesNotMatch(sql,/MELISA_ERP_CRM_SHARED_TEST|MELISA_ERP_SIRKET_TEST|GRANT CONTROL|GRANT ALTER|DISABLE TRIGGER|UPDATE dbo\.permissions|UPDATE dbo\.roles|UPDATE dbo\.crm_order_v2_requests/);
  assert.match(sql,/ALTER TABLE dbo\.sales_invoice_items ALTER COLUMN average_cost_try_snapshot decimal\(18,4\) NULL/);
  assert.throws(()=>buildCleanOrderSaleInstallSql('plain-password'));
+ for(const table of ['erp_migration.operation_quarantine_holds','dbo.crm_order_v2_requests','dbo.crm_order_v2_lines','dbo.crm_order_v2_definitions'])assert.ok(sql.includes('GRANT SELECT ON '+table+' TO [melisa_clean_test_app_20261022]'));
+ const compat=buildCleanOrderSaleCompatibilitySql();assert.match(compat,/CREATE PROCEDURE dbo\.usp_clean_order_sale_begin_v2/);assert.ok(compat.includes('l.barcode_snapshot IS NOT NULL AND NOT EXISTS'));assert.match(compat,/clean_order_sale_compatibility.*\)<>2/);assert.doesNotMatch(compat,/UPDATE dbo\.crm_order_v2|UPDATE dbo\.clean_order_sale_definitions|ALTER TRIGGER|DROP TRIGGER|DISABLE TRIGGER/);
 });
 test('native draft write boundary is unchanged; new write paths are ERP4194 only',()=>{
  const s=fs.readFileSync(new URL('../../apps/api/src/cleanSyntheticServer.mjs',import.meta.url),'utf8');
@@ -58,4 +63,12 @@ test('definitive stale rejection needs fresh authorized read; network/unknown ne
  assert.equal(await reconcileCleanSaleRejection({session,journal,id:3,error,current:()=>false}),false);assert.equal(journal.read().status,'pending');
  assert.equal(await reconcileCleanSaleRejection({session,journal,id:3,error}),true);assert.equal(journal.read().status,'done');assert.equal(journal.read().result.rejected,true);
  const next={requestId:'bf548cee-d9b7-4a49-a5d8-3509cccf83c4',expectedRevision:fresh.revision};journal.begin(path,next);assert.notEqual(journal.read().body.requestId,body.requestId);assert.equal(journal.read().body.expectedRevision,fresh.revision);
+});
+test('identity and transaction-start failures are typed 503 without exposing SQL details',async t=>{
+ const environment={MELISA_CLEAN_TEST:'20261022',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:'MELISA_ERP_CLEAN_TEST_20261022',SQL_USER:'melisa_clean_test_app_20261022',SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false',API_PORT:'4194',MELISA_CLEAN_SALES:'20261022'},previous=Object.fromEntries(Object.keys(environment).map(k=>[k,process.env[k]]));Object.assign(process.env,environment);t.after(()=>{for(const[k,v]of Object.entries(previous))v===undefined?delete process.env[k]:process.env[k]=v;});
+ const identity={databaseName:environment.SQL_DATABASE,serverName:'Semih\\MELISADEV',loginName:environment.SQL_USER,databaseUser:environment.SQL_USER,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'};registerCleanContext(identity);
+ const actor={id:15,permissions:['sales.view','sales.create']},body={requestId:'998022f4-3158-46e8-9cde-248552e53749',expectedRevision:'a'.repeat(64)},typed=e=>e.code==='CLEAN_SALE_UNAVAILABLE'&&e.statusCode===503&&!e.message.includes('private SQL');
+ const unavailable=createCleanOrderSaleService({dependencies:async()=>{throw Object.assign(new Error('private SQL table/login detail'),{code:'EREQUEST'});}});await assert.rejects(unavailable.get(3,actor),typed);await assert.rejects(unavailable.mutate(3,'convert',body,actor),typed);
+ let rollbacks=0;const pool={request:()=>({query:async()=>({recordset:[identity]})})},driver={ISOLATION_LEVEL:{SERIALIZABLE:4},Transaction:class{async begin(){throw Object.assign(new Error('private SQL connection detail'),{code:'ESOCKET'});}async rollback(){rollbacks++;}}};
+ const beginFailure=createCleanOrderSaleService({dependencies:async()=>({getSqlPool:async()=>pool,getSqlDriver:()=>driver})});await assert.rejects(beginFailure.get(3,actor),typed);await assert.rejects(beginFailure.mutate(3,'convert',body,actor),typed);assert.equal(rollbacks,2);
 });

@@ -24,15 +24,16 @@ export function createCleanOrderSaleService({dependencies=noDb,invoices=()=>impo
   return {raw,lines,order,sale,state,revision:saleHash({order:raw,lines,linked})};
  }
  function view(s,actor){const c=assertRegisteredCleanContext();return {schemaVersion:'melisa-order-sale.v1',environment:c.environment,environmentId:c.environmentId,requestId:s.raw.requestId.toLowerCase(),order:s.order,state:s.state,sale:s.sale,revision:s.revision,capabilities:{canConvert:s.state==='NOT_CONVERTED'&&[15,17].includes(Number(actor.id))&&actor.permissions.includes('sales.create'),canFinalize:s.state==='DRAFT'&&Number(actor.id)===17&&actor.permissions.includes('sales.finalize')}};}
- const translate=e=>{if(e.number>=51950&&e.number<=51954)saleFail(e.number===51951?'CLEAN_SALE_FORBIDDEN':e.number===51953?'CLEAN_SALE_CHANGED':'CLEAN_SALE_CONFLICT','Satış bilgileri veya işlem kapsamı değişti. Güncel kaydı yeniden açın.',e.number===51951?403:409);throw e;};
+ const translate=e=>{if(e.statusCode&&typeof e.code==='string'&&e.code.startsWith('CLEAN_'))throw e;if(e.number>=51951&&e.number<=51954)saleFail(e.number===51951?'CLEAN_SALE_FORBIDDEN':e.number===51953?'CLEAN_SALE_CHANGED':'CLEAN_SALE_CONFLICT','Satış bilgileri veya işlem kapsamı değişti. Güncel kaydı yeniden açın.',e.number===51951?403:409);saleFail('CLEAN_SALE_UNAVAILABLE','Siparişin satış bilgileri şu anda doğrulanamıyor.',503);};
  return {
-  async get(orderId,actor){saleActor(actor,'sales.view');const id=saleId(orderId),r=await runtime(),tx=new r.driver.Transaction(r.pool);await tx.begin(r.driver.ISOLATION_LEVEL.SERIALIZABLE);try{const value=view(await snapshot(r,tx,id),actor);await tx.commit();return value;}catch(e){try{await tx.rollback();}catch{}throw e;}},
+  async get(orderId,actor){saleActor(actor,'sales.view');const id=saleId(orderId);let tx;try{const r=await runtime();tx=new r.driver.Transaction(r.pool);await tx.begin(r.driver.ISOLATION_LEVEL.SERIALIZABLE);const value=view(await snapshot(r,tx,id),actor);await tx.commit();return value;}catch(e){if(tx)try{await tx.rollback();}catch{}translate(e);}},
   async mutate(orderId,operation,input,actor){
    if(!['convert','finalize'].includes(operation))saleFail('CLEAN_SALE_INPUT','İşlem geçersiz.',400);
    const actorId=saleActor(actor,operation==='convert'?'sales.create':'sales.finalize'),id=saleId(orderId),body=saleAction(input);
    if(process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_SALES!=='20261022')saleFail('CLEAN_SALE_FORBIDDEN','Bu bağlantıda satış işlemi kapalı.',403);
-   const r=await runtime(),tx=new r.driver.Transaction(r.pool),payloadHash=saleHash({actorId,id,operation,...body});await tx.begin(r.driver.ISOLATION_LEVEL.SERIALIZABLE);
+   const payloadHash=saleHash({actorId,id,operation,...body});let tx;
    try{
+    const r=await runtime();tx=new r.driver.Transaction(r.pool);await tx.begin(r.driver.ISOLATION_LEVEL.SERIALIZABLE);
     const lock=await request(r,tx).input('resource',r.driver.NVarChar(255),'CLEAN_ORDER_SALE/'+id).query("DECLARE @n int;EXEC @n=sys.sp_getapplock @Resource=@resource,@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @n<0 THROW 51952,'CLEAN_SALE_BUSY',1;");
     const existing=(await request(r,tx).input('uuid',r.driver.UniqueIdentifier,body.requestId).query('SELECT payload_hash payloadHash,order_id orderId FROM dbo.clean_order_sale_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=@uuid;')).recordset;
     if(existing.length&&(existing[0].payloadHash!==payloadHash||Number(existing[0].orderId)!==id))saleFail('CLEAN_SALE_REQUEST_CONFLICT','Aynı işlem kimliği farklı içerikle kullanılamaz.');
@@ -41,8 +42,8 @@ export function createCleanOrderSaleService({dependencies=noDb,invoices=()=>impo
     if(operation==='finalize'&&s.state!=='DRAFT')saleFail('CLEAN_SALE_STATE','Önce siparişi satış taslağına aktarın.');
     if(s.revision!==body.expectedRevision)saleFail('CLEAN_SALE_CHANGED','Kayıt değişti. Güncel kaydı yeniden açın.');
     assertSaleLines({...s.order,customerCurrency:s.raw.customerCurrency,rateExact8:s.raw.rateExact8},s.lines);
-    if(s.lines.some(l=>l.primaryBarcodes!==1))saleFail('CLEAN_SALE_CHANGED','Ürünün ana barkodu doğrulanamadı.');
-    await request(r,tx).input('order_id',r.driver.BigInt,id).input('actor_id',r.driver.BigInt,actorId).input('operation',r.driver.NVarChar(10),operation).input('request_id',r.driver.UniqueIdentifier,body.requestId).input('payload_hash',r.driver.Char(64),payloadHash).execute('dbo.usp_clean_order_sale_begin');
+    if(s.lines.some(l=>l.primaryBarcodes>1||l.barcode!==null&&l.primaryBarcodes!==1))saleFail('CLEAN_SALE_CHANGED','Ürünün ana barkodu doğrulanamadı.');
+    await request(r,tx).input('order_id',r.driver.BigInt,id).input('actor_id',r.driver.BigInt,actorId).input('operation',r.driver.NVarChar(10),operation).input('request_id',r.driver.UniqueIdentifier,body.requestId).input('payload_hash',r.driver.Char(64),payloadHash).execute('dbo.usp_clean_order_sale_begin_v2');
     await withCleanOrderSaleMutation({transaction:tx,actorId,orderId:id,operation},async()=>{
      const api=await invoices(),context={transaction:tx,pool:r.pool,sqlDriver:r.driver};
      if(operation==='convert')await api.createSalesDraft({documentNo:'CRS-20261022-'+id,documentDate:s.order.documentDate,customerId:Number(s.order.customerId),customerCurrency:s.order.currency,documentCurrency:s.order.currency,exchangeRate:1,accountExchangeRate:1,discountRate:0,description:'CRM siparişi '+s.order.documentNo,items:s.lines.map(l=>({productId:Number(l.productId),stockCode:l.stockCode,barcode:l.barcode,productName:l.name,quantity:Number(l.quantityExact3),currency:l.currency,unitPrice:Number(l.unitPriceExact4)}))},actor,context);
@@ -50,7 +51,7 @@ export function createCleanOrderSaleService({dependencies=noDb,invoices=()=>impo
      await request(r,tx).execute('dbo.usp_clean_order_sale_finish');
     });
     s=await snapshot(r,tx,id);await tx.commit();return {...view(s,actor),replayed:false,actionRequestId:body.requestId};
-   }catch(e){try{await tx.rollback();}catch{}translate(e);}
+   }catch(e){if(tx)try{await tx.rollback();}catch{}translate(e);}
   },
  };
 }
