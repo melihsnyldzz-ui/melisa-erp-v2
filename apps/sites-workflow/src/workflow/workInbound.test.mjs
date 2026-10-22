@@ -265,16 +265,17 @@ test('supplier search is absent from the existing desktop presentation',async()=
 });
 test('verified copy purchase never mounts legacy synthetic FX adapter, while original purchase still reads it',async()=>{
  const previous=globalThis.window,{createWorkPurchases}=await controller('workPurchases');
- try{for(const copied of [true,false]){
-  const profile=copyProfile();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:copied?'5204':'5194'},__MELISA_OPERATION_COPY__:profile};
+ try{for(const mode of ['copy','clean','legacy']){
+  const copied=mode==='copy',clean=mode==='clean',profile=copyProfile();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:copied?'5204':'5194'},__MELISA_OPERATION_COPY__:profile};
   const receiving=context(),purchase=purchases(),calls=[],d=dom(),store=storage();
   if(copied)for(const c of [receiving,purchase]){
    Object.assign(c.meta,{date:profile.date,operationOrigin:profile.operationOrigin,copyId:profile.copyId,sealHash:profile.sealHash});Object.assign(c.scope,{synthetic:false,operationOrigin:profile.operationOrigin});Object.assign(c.scope.supplier,{synthetic:false,operationOrigin:profile.operationOrigin,currency:'TRY'});c.scope.products.forEach(p=>Object.assign(p,{synthetic:false,operationOrigin:profile.operationOrigin,unit:{label:'ADET',factorExact8:'1.00000000'}}));
   }
+  if(clean)for(const c of [receiving,purchase]){Object.assign(c.meta,{environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});Object.assign(c.scope.supplier,{id:'1',code:'ORNEK-T01'});c.scope.products=[{...c.scope.products[0],id:'1',stockCode:'0007 MELISA'}];c.receipts=[];}
   const ui=createWorkPurchases({root:d.root,session:{inbound:async(path,options)=>{assert.equal(options,undefined);calls.push(path);if(path==='/api/work-receiving/context')return receiving;if(path==='/api/work-purchases/context')return purchase;throw {status:403};}},user:{id:16},storage:store});
   ui.mount();await tick();await tick();assert.match(d.root.innerHTML,/Alış faturaları/);assert.match(d.root.innerHTML,/Döviz<input value="TRY"/);
-  assert.deepEqual(calls,copied?['/api/work-receiving/context','/api/work-purchases/context']:['/api/work-receiving/context','/api/work-purchases/context','/api/work-purchases/fx/context']);
-  if(copied){assert.equal(d.node('[data-inbound-fx-slot]').innerHTML,'');await ui.refresh();assert.equal(calls.some(p=>p.includes('/fx/')),false);assert.equal(store.values.size,0);}
+  assert.deepEqual(calls,copied||clean?['/api/work-receiving/context','/api/work-purchases/context']:['/api/work-receiving/context','/api/work-purchases/context','/api/work-purchases/fx/context']);
+  if(copied||clean){assert.equal(d.node('[data-inbound-fx-slot]').innerHTML,'');await ui.refresh();assert.equal(calls.some(p=>p.includes('/fx/')),false);assert.equal(store.values.size,0);}
   ui.dispose();
  }}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
