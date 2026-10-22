@@ -2,6 +2,16 @@
 
 ## İş2.7 — 23 Ekim salt okunur gün sonu karşılaştırması
 
+### Aynı okuyucunun kaynak düzeltmesi — kurulum ve normal rapor kabulü bekliyor
+
+Mevcut `workReportsReadStore` registered clean context varsa yalnız4194+exactCLEAN_IDENTITY_SQL ile ayrı native temiz şema okumasını seçer. Eski canonical/isolated-copy kimliği veya migration filtreleri gevşetilmedi; başka DB'ye fallback yok. Güncel aktif SQL rol/izinleri ile oturum kesişimi hem context hem her rapor/maliyet projeksiyonunda uygulanır. Native4196/admin shortcut/yanlışDB/kullanıcı/geniş eskiDBerişimi reddedilir. Marka/tür seçenekleri yalnız aynı clean ürün tablosundaki distinct alanlardır; eski16.622ürün snapshot'ı kullanılmaz ve boş marka koddan tahmin edilmez. Desteklenmeyen birim sessizceADET yapılmaz.
+
+Mevcut7rapor/50sayfa/CSV kalır; bu yeni kasa raporu veya stok açılış motoru değildir. Kasa paneli ve sayısal karşılaştırma yukarıdaki mevcut kanıttır. Native stok hareketinin−3/+2 miktarları kapanış23 diye sunulmaz. Finans raporlarında kayıtlı döviz/borç-alacak yönü/ters kayıt işareti korunur, farklı dövizler toplanmaz. Tarih filtresi gerçek bugünü kullanır; örnek22Ekim belgeleri için Dün veya özel22Ekim seçilir. Satış1'in mevcut maliyet snapshot'ıNULL'dır; sonradan girilen kart60 geçmiş satışa taşınmaz. Gerçek0 ile NULL ayrı kalır; kâr hesaplanmaz. Eksik maliyet kapsam yanıtı da sessiz0sayılmaz.
+
+**Kaynak kontrolleri:** Offline guard ile backend16+mevcutfrontend23=39kontrol PASS; değişen ortak batch/clock/dispatch için yalnız3ilgili isolated-copy regresyonu PASS. Bunlar39+3ayrı kontrol, yeni ticari senaryo veya canlıSQLreader kabulü değildir. Aynı minimum SQLapp bağlantısıyla yalnız kimlik ve `HAS_PERMS_BY_NAME(...,'SELECT')` okundu: users/roles/permissions/products/sales_invoices/sales_invoice_items/purchase_invoices/customer_movements/supplier_movements/customers/suppliers/stock_movements12/12yeterli. YeniSQLkullanıcısı/yetki/şema/veri/servis/runtime/installer değişmedi; adaySQLbatch'i gerçek DB'de çalıştırılmadı. Önceki gerçek mağaza günü ve2.6motor provaları tekrar edilmedi. Eski bağımsız reviewer artık aktif olmadığından yeni ajan açılmadı; mevcut koordinatörden yalnız kaynak incelemesi istendi. Exact kaynakCI ve son inceleme sonucu ortak raporda ayrı tutulur.
+
+**Kalan tek kurulum kabulü:** Desteklenen yol açılınca son adayın aynı temiz hedefe kurulup normal rollerde Raporlar→özel22Ekim kapsamı→7rapor/CSV/NULLmaliyet/yanlışrol geri okuması. Bu işlem bu kaynak tesliminde başlatılmadı. Kurulu ERP791/CRMc8 ve önceki ekran görüntüleri değişmedi; yeni normal Raporlar düzeldi denmez.2.6BEKLEMEDE,2.7KISMİ ve insan kabulü aynı.
+
 **Kapsam:** Yalnız 22.10.2026 tarihli kabul edilmiş 2.1–2.5 yapay mağaza işlemleri, 23.10.2026'da yeniden oluşturulmadan okundu. Kullanıcı 2.6 engelini beklemeden devam edilmesini seçti; 2.6 kurulum/normal ekranı **BEKLEMEDE**, 2.7 **KISMİ**. Bu belge insan kabulü veya bütün mağaza gününün kapanışı değildir.
 
 Health/API ve salt okunur SQL kimliği: kurulu ERP `791b82a288adc085380c7827c53b62114bf6d80d`, `MELISA_ERP_CLEAN_TEST_20261022`, environment `e662fd94-d797-4b3b-938a-d143ad758b67`, synthetic=true/actualT1=false/externalOperations=false; CRM c8 aynı. 4194/4196/5244/62800–62803 yedi loopback listener'ı aynı altı süreçte kaldı. Source6e472 kurulu sayılmadı; restart/kurulum/SQL restore/reset yok.

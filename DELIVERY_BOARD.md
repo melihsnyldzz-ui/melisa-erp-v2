@@ -1,10 +1,12 @@
 ## 23 Ekim — İş2.7 mevcut gün sonu kayıtları kısmen doğrulandı
 
+**Rapor bağlantısı KAYNAK HAZIR; kurulum/normal ekran BEKLİYOR:** Mevcut okuyucuda registered clean kimliği/yalnız4194/DB∩oturum sınırıyla7rapor,50sayfa,CSV ve clean sınıflandırma desteklendi.39backend+UI hedefli ve3ilgili copy regresyonu PASS; SQLapp kullanıcısında gerekli12tabloSELECT1 salt okunur doğrulandı, grant/şema/veri yazması0. Yeni kod kurulu değil;2.7 tam yeşil ve insanPASS değil. Mevcut bağımsız inceleyici oturumu kullanılamadığından yeni ajan açılmadı; koordinatör kaynak incelemesi ve exact yeniCI ayrı izlenir.
+
 **2.6 🟡 BEKLEMEDE:** Native motor kanıtları korunur; yeni app kurulumu/normal sayım-iade-iptal ekranları tamamlanmadı. Kullanıcı bu engeli beklemeden bağımsız karşılaştırmaya geçilmesini seçti; ret yeniden denenmedi.
 
 **2.7 🟡 KISMİ:** Mevcut 22 Ekim işlemlerinde ürün1:24−3+2=23ADET; müşteri376,50−376,50=0TRY; tedarikçi120−120=0TRY; kasa0+376,50−120=256,50TRY. Bağımsız SQL farkları0; normal stok/tahsilat/tedarikçi ödeme ve kasa hareketleri ekranları aynı sonucu gösterdi. Toplu Raporlar bağlantısı açılamıyor; clean hedefi destekleyen okuyucu bağı eksik. Bu rapor ve 2.6 sonrası tam gün sonu kapanışı açık; insan kabulü/sayaçlar aynı. Kurulu ERP791/CRMc8 ve aynı7listener/6PID korundu. [Makbuz ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#iş27--23-ekim-salt-okunur-gün-sonu-karşılaştırması).
 
-**Sıradaki tek iş:** Aynı 2.7'nin mevcut Raporlar okuyucusuna clean kapsam bağını tamamlamak; kod/paket gerektiren bu bölüm bu salt okunur turda uygulanmadı. 2.6/5.1 reddi başka yoldan tekrarlanmaz; kabul edilmiş 3/4/5.2 kanıtları yeniden çalıştırılmaz.
+**Sıradaki tek iş:** Desteklenen kurulum yolu açılınca aynı clean hedefte son kaynak adayıyla normal Raporlar/22Ekim özel tarih/rol ve7rapor geri okuma kabulü. Bu kurulum otomatik başlatılmadı. 2.6/5.1 reddi başka yoldan tekrarlanmaz; kabul edilmiş 3/4/5.2 kanıtları yeniden çalıştırılmaz.
 
 ## 22 Ekim — Güncel iş2 / aynı temiz TEST'te mağaza günü
 

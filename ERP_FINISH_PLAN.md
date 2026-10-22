@@ -1,5 +1,7 @@
 ## 23 Ekim — Aynı mağaza günü2.7 KISMİ; 2.6 BEKLEMEDE
 
+**Güncel kaynak alt teslimi:** Toplu Raporlar okuyucusunun clean hedef bağı mevcut iki kaynak dosyasında hazır;39hedefli backend/UI+3ilgili copy kontrolü geçti. Yanlış DB/port/rol retleri, gerçek distinct sınıflandırma, döviz/tarih/NULL maliyet ve eski yollar korundu. SQLapp kullanıcısının gerekli12SELECTyetkisi yeterli; SQLyazması0. Henüz kurulu/normalrapor/insanPASS değil; koordinatör incelemesi+exactCI ayrı. Tek kalan kurulum kabulü aynı clean hedefte son aday ve22Ekim normal rapor geri okuması; otomatik kurulum/ret tekrarı yok.
+
 Kullanıcı kararıyla kurulum engelindeki2.6 atlandı; kapanış/PASS verilmedi. 2.7'de mevcut 22 Ekim işlemlerinin stok23ADET/müşteri0TRY/tedarikçi0TRY/kasa256,50TRY değerleri bağımsız SQL ve normal stok/tahsilat/ödeme/kasa hareketleri ekranlarında eşleşti. Yeni işlem oluşturulmadı; 60TRY sentetik maliyet/+1380TRY değerleme nakit/kâr değildir. Toplu Raporlar okuyucusunun clean kapsam bağlantısı eksik; bu ekran ve 2.6 sonrası tam gün sonu açık. Sonraki tek teknik eksik aynı rapor bağlantısıdır; kurulum reddi tekrar edilmez. İnsan kabulü ve özgün49/25 sayıları aynı. [STATUS](STATUS.md), [tek makbuz ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#iş27--23-ekim-salt-okunur-gün-sonu-karşılaştırması).
 
 ## 22 Ekim — Aynı mağaza günü2.5 teknik teslimi; özgün kabuller bekliyor
