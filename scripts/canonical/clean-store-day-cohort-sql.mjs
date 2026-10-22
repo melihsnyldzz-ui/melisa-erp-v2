@@ -428,7 +428,6 @@ export function buildCleanStoreDayInventorySql(counterHash,supervisorHash){
  ${['test_daily_scope','test_daily_drafts','invoice_returns','invoice_return_items','test_stock_reversals','clean_store_inventory_intents','clean_store_inventory_manifest'].map(t=>`GRANT SELECT ON dbo.${t} TO [${CLEAN_LOGIN}];GRANT VIEW DEFINITION ON OBJECT::dbo.${t} TO [${CLEAN_LOGIN}];`).join('\n')}
  ${['test_daily_drafts','invoice_returns','invoice_return_items','test_stock_reversals'].map(t=>`GRANT INSERT ON dbo.${t} TO [${CLEAN_LOGIN}];`).join('\n')}
  GRANT UPDATE(state,result_json,decided_by,reason) ON dbo.test_daily_drafts TO [${CLEAN_LOGIN}];GRANT UPDATE(status,cancelled_at,cancelled_by,cancel_reason) ON dbo.invoice_returns TO [${CLEAN_LOGIN}];
- GRANT UPDATE(average_cost_try) ON dbo.products TO [${CLEAN_LOGIN}];
  ${['usp_clean_store_inventory_bind','usp_clean_store_inventory_guard','usp_clean_store_inventory_finish'].map(t=>`GRANT EXECUTE ON dbo.${t} TO [${CLEAN_LOGIN}];GRANT VIEW DEFINITION ON OBJECT::dbo.${t} TO [${CLEAN_LOGIN}];`).join('\n')}
  EXEC dbo.usp_clean_store_day_ready;COMMIT;SELECT N'CLEAN_INVENTORY_INSTALLED' result;END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
