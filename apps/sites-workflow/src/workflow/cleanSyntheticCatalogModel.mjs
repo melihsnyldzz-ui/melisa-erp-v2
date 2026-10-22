@@ -12,7 +12,8 @@ export function cleanCatalogProduct(r,m){
  if(!m.canViewSalesPrices&&r.salePrices.length)fail();
  for(const p of r.salePrices)if(!id(p.id)||p.type!=='sale'||p.unitSourceId!=='1'||p.tier!==1||!['TRY','USD','EUR'].includes(p.currency)||!exact(p.priceExact)||p.isMainUnit!==true||p.sourceKey!==r.provenance.sourceKey+'/PRICE/sale/1/1/'+p.currency)fail();
  if(new Set(r.salePrices.map(p=>p.id)).size!==r.salePrices.length||new Set(r.barcodes.map(b=>b.id)).size!==r.barcodes.length)fail();
- if(r.photo?.status!=='missing'||r.photo.url!==null||r.photo.sourceKey!==null||r.photo.verified!==false)fail();return r;
+ if(r.photo?.status==='available'){if(r.photo.verified!==true||r.photo.sourceKey!==r.provenance.sourceKey||r.photo.url!==`/api/catalog/products/${r.id}/photo?variant=preview`||r.photo.thumbnailUrl!==`/api/catalog/products/${r.id}/photo?variant=thumbnail`||!/^[a-f0-9]{64}$/.test(r.photo.sha256))fail();}
+ else if(r.photo?.status!=='missing'||r.photo.url!==null||r.photo.sourceKey!==null||r.photo.verified!==false)fail();return r;
 }
 export function cleanCatalogEnvelope(p,{salesPermission=false,detail=false}={}){
  const m=p?.meta;if(p?.success!==true||m.schemaVersion!=='melisa-catalog.v1'||m.readOnly!==true||m.freshLive!==false||m.sourceAsOf!=='2026-10-22'||!Number.isFinite(Date.parse(m.readAt))||typeof m.canViewSalesPrices!=='boolean'||m.canViewSalesPrices&&!salesPermission||m.scopeCounts?.acceptedOpening!==0||m.scopeCounts.quarantinedSource!==0||!Number.isSafeInteger(m.scopeCounts.syntheticTest)||m.scopeCounts.syntheticTest<1)fail();

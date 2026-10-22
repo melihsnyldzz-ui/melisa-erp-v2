@@ -117,6 +117,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(args.length||path!=='/api/work-system/summary'||!token||!user)throw problem('Sistem durumu okunamıyor.');
    return (await request(path,{expire:true,keepForbiddenSession:true})).data;
   },
+  async orders(id=null){
+   if(!active||!token||!user||!user.permissions.includes('sales.view')||location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5244'||resolvedApiBase!=='http://127.0.0.1:4194'||id!==null&&(!Number.isSafeInteger(id)||id<1))throw problem('Sipariş bağlantısı kullanılamıyor.');
+   return request('/api/sales-orders'+(id===null?'?limit=50&status=draft':'/'+id),{expire:true,keepForbiddenSession:true});
+  },
   async api(path,{envelope=false,...extra}={}){
    const priceRoute=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/current-prices$/.test(path);
    if(priceRoute){

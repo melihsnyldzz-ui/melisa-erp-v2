@@ -1,3 +1,11 @@
+## 22 Ekim — ERP-DEC-068 temiz ortak kurulum sürüyor
+
+Güncel ERP6aee16d1/CRM3861304a temiz kaynaklara alındı; alış/satış eşdeğer yamaları ve son fotoğraf düzeltmesi korunuyor. Yeni `MELISA_ERP_CLEAN_TEST_20261022` temel şema/immutable synthetic marker, sınırlı SQL login, üç yapay ürün/fiyat/barkod ve bir müşteri/tedarikçi hazır. Eski hiçbir DB/servis değiştirilmedi. İlk filtreli indeks ayarı hatası yalnız yeni alandaki eksik şema tamamlanarak giderildi; DB reset/restore yok.
+
+Normal ERP bundle build PASS; API4194/native4196/web5244 gerçekten çalıştı. SQL katalog3/ürün1/TRY125.50000000/barkod0000000000007 ve normal nonadmin actor15 login→refresh→logout gerçek API/SQL PASS. Normal tarayıcı5244#stock giriş formunda açıldı; authenticated GUI, CRM62800, ortak sipariş ve restart kanıtı henüz tamamlanmadı.104 hedefli source test PASS/0skip; yeni source CI ayrı beklenir. Credentials DPAPI+owner/SYSTEM ACL private runtime'da; source/GitHub/loga secret yok. Teknik test insan kabulü değildir; bitiş/UA sayaçları değişmedi.
+
+**Sıradaki iş:** Aynı iki owner ile CRM finite clean profilini yeni alana kur; ürün/fiyat→native SQL sipariş→replay→restart geri okumayı kanıtla. Eski P03 takeover veya migration tekrarına geçme. Kaynak/çalışan paket/GUI/insan kabulü ayrı raporlanır.
+
 ## 22 Ekim — İş14 dört gerçek native senaryo tamam; Shared kurulum etki öncesi freshness reddinde durdu
 
 247503ea exact PR39716370863 ve push39716365565 CI üçer kontrol SUCCESS. Final dispatcher1922d1fb ile gerçek Normal33a6c4df COMPLETE, OldCutFailure8e94c43b RECOVERED, ReplyLoss202be525 RECOVERED (ikinci Drain0), PartialNew42945f8f RECOVERED. Her birinde exact10fixture/2task/8port cleanup ve c646 özgün2task restore/finalReadbacktrue/protectedfd4f51ed aynı; aggregate6b30bb00 private kanıtta. Bunlar uygulama/DB rollback veya insan kabulü değildir.
@@ -2264,11 +2272,3 @@ Aşağıdaki paket ve kapsamlar tarihsel kabul kayıtlarıdır; güncel çalış
 [Bitirme planı](ERP_FINISH_PLAN.md) · [Yeni bağlı akış kabulü](docs/erp-v2/canonical-20261003/linked-purchase-return-acceptance.md) · [Önceki SQL kabulü](docs/erp-v2/canonical-20261003/sql-workflow-acceptance.md) · [Teslim kaydı](docs/erp-v2/canonical-20261003/delivery.json)
 
 CI makbuzu (10 Ekim 2026): PR23 head fe816607cff93b539488c1b7783a3d7112a3ee79 uzak doğrulandı. Actions38085037887 ve38085035350 iş adımları başlamadan hesap ödeme/harcama sınırı nedeniyle FAILURE; quality-build-test, windows-startup-test ve secret-scan steps=[] görülüyor. Yerel PASS CI yerine geçmez. İzleyen doküman commit'inin exact CI sonucu PR teslim yorumunda ayrıca kaydedilir.
-## 22 Ekim — ERP-DEC-068 temiz ortak kurulum sürüyor
-
-Güncel ERP6aee16d1/CRM3861304a temiz kaynaklara alındı; alış/satış eşdeğer yamaları ve son fotoğraf düzeltmesi korunuyor. Yeni `MELISA_ERP_CLEAN_TEST_20261022` temel şema/immutable synthetic marker, sınırlı SQL login, üç yapay ürün/fiyat/barkod ve bir müşteri/tedarikçi hazır. Eski hiçbir DB/servis değiştirilmedi. İlk filtreli indeks ayarı hatası yalnız yeni alandaki eksik şema tamamlanarak giderildi; DB reset/restore yok.
-
-Normal ERP bundle build PASS; API4194/native4196/web5244 gerçekten çalıştı. SQL katalog3/ürün1/TRY125.50000000/barkod0000000000007 ve normal nonadmin actor15 login→refresh→logout gerçek API/SQL PASS. Normal tarayıcı5244#stock giriş formunda açıldı; authenticated GUI, CRM62800, ortak sipariş ve restart kanıtı henüz tamamlanmadı.104 hedefli source test PASS/0skip; yeni source CI ayrı beklenir. Credentials DPAPI+owner/SYSTEM ACL private runtime'da; source/GitHub/loga secret yok. Teknik test insan kabulü değildir; bitiş/UA sayaçları değişmedi.
-
-**Sıradaki iş:** Aynı iki owner ile CRM finite clean profilini yeni alana kur; ürün/fiyat→native SQL sipariş→replay→restart geri okumayı kanıtla. Eski P03 takeover veya migration tekrarına geçme. Kaynak/çalışan paket/GUI/insan kabulü ayrı raporlanır.
-

@@ -1,7 +1,7 @@
 export {moneyDisplay} from './moneyDisplay.mjs';
 import {stockExact,stockRequestGate} from './stockProductsModel.mjs';
 import {currentProductCatalogVersion,currentProductLineage} from './currentProductCatalogModel.mjs';
-import {isCleanCatalogMeta,cleanCatalogProduct,cleanCatalogEnvelope} from './cleanSyntheticCatalogModel.mjs';
+import {isCleanCatalogLocation,isCleanCatalogMeta,cleanCatalogEnvelope} from './cleanSyntheticCatalogModel.mjs';
 export {stockExact as catalogExact,stockRequestGate as catalogRequestGate};
 const fail=()=>{throw Error('Katalog bilgileri doğrulanamadı. Yeniden deneyin.');};
 const id=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v)&&BigInt(v)<=9223372036854775807n;
@@ -65,7 +65,8 @@ export function validateCatalogPhoto(photo,row){
  if(photo.status==='missing'){
   if(Object.keys(photo).length!==4||photo.url!==null||photo.sourceKey!==null||photo.verified!==false)fail();return photo;
  }
- if(photo.status!=='available'||Object.keys(photo).length!==6||photo.verified!==true||typeof photo.sha256!=='string'||!/^[a-f0-9]{64}$/i.test(photo.sha256)||!row||!id(row.id)||row.hold?.blocked!==false||row.provenance?.kind!=='accepted-opening'||row.provenance.verified!==true||photo.sourceKey!==row.provenance.sourceKey||photo.url!==`/api/catalog/products/${row.id}/photo?variant=preview`||photo.thumbnailUrl!==`/api/catalog/products/${row.id}/photo?variant=thumbnail`)fail();
+ const clean=isCleanCatalogLocation(globalThis.location)&&row?.provenance?.kind==='synthetic-test'&&row.provenance.sourceKey==='SYNTHETIC/20261022/products/'+row.id;
+ if(photo.status!=='available'||Object.keys(photo).length!==6||photo.verified!==true||typeof photo.sha256!=='string'||!/^[a-f0-9]{64}$/i.test(photo.sha256)||!row||!id(row.id)||row.hold?.blocked!==false||!clean&&row.provenance?.kind!=='accepted-opening'||row.provenance.verified!==true||photo.sourceKey!==row.provenance.sourceKey||photo.url!==`/api/catalog/products/${row.id}/photo?variant=preview`||photo.thumbnailUrl!==`/api/catalog/products/${row.id}/photo?variant=thumbnail`)fail();
  return photo;
 }
 export function catalogPhotoUrl(photo,row){if(photo?.status==='missing'){validateCatalogPhoto(photo,row);return null;}validateCatalogPhoto(photo,row);return photo.url;}

@@ -1,3 +1,7 @@
+## 22 Ekim — Etkin iş: güncel kaynaklarla temiz ortak kurulum
+
+ERP-DEC-068 kapsamında kaynaklar alındı; yalnız yapay kayıtlı yeni SQL alanı ve normal ERP bundle açıldı. CRM finite profil kurulumu ve gerçek native SQL sipariş/replay/restart bağlantısı sürüyor. Eski kurulum devralma bu işin önkoşulu değildir; kurulu sistem/veri/yedek korunur. Yeni tracker/ağaç/Goal yok; özgün49ERP/25CRM ve insan kabulü sayaçları değişmez. Teknik kanıt/source-paket-GUI ayrımı [STATUS](STATUS.md) içinde.
+
 ## 21 Ekim — desteklenen alternatifler ve dar kurtarma hazırlığı
 
 Microsoft gerçek başvurusu290c2e8b In progress/Pending; ilk tarama Malware detected, false-positive veya kullanım izni değil. Deploy Control gözlem-only, mevcut gözetmende desteklenen app-only farklı-source geçiş yok. Tarihsel1b/12a yolu da özgün mock restorasyonu ve güncel zaman/kimlik kanıtı olmadan Apply yetkisi sağlamaz. Core mevcut O/G/DACL etkili eşdeğerliği gerçek RO kanıtlandı; raw SDDL farklı, SACL gözlenmedi, Hub yeni dar helper8941733a ile gerçekten geri oluşturulup doğrulandı.7/7 offline test/bağımsız GO; Defender dosya taraması tamamlandı, istisna/koruma değişikliği yok. Normal -File Inspect+Restore: Core mevcut/yazma0, Hub CREATE18/finalReadback=true, korunan frameSHA6d87061d aynı. Yeni b33 prova/SharedApply/uygulama kurulumu henüz yapılmadı. Yeni cleanup479c protected GitLF import closure yalnız kaynakta hazır, çalıştırılmadı. Kurulu e59/6bc/13b ve DB02 korunuyor; ERP6dc/CRM7ba/SUPb007 staged. Aynı P03 işi sürer; insan kabulü ve49/25 değişmez. Ayrıntı [STATUS](STATUS.md).
@@ -369,7 +373,3 @@ ERP-PRODUCTCOMPLETION01 kullanıcı tarafından önceliklendirildi; önceki dili
 | ID | Hedef | Kabul kriteri | Durum | Bağımlılık |
 | --- | --- | --- | --- | --- |
 | ERP-D08 | Canlı teslimi engellemeyen yeni fikirleri canlıdan sonra değerlendir. | Somut fikir geldiğinde ERP-DEC-007 uyarınca ID/kabul ölçütüyle kaydedilir; uygulama yeni kullanıcı kararıyla başlar. | Bekleyen fikir havuzu; uygulama onayı yok | Mevcut canlı teslim; yeni kullanıcı kararı |
-## 22 Ekim — Etkin iş: güncel kaynaklarla temiz ortak kurulum
-
-ERP-DEC-068 kapsamında kaynaklar alındı; yalnız yapay kayıtlı yeni SQL alanı ve normal ERP bundle açıldı. CRM finite profil kurulumu ve gerçek native SQL sipariş/replay/restart bağlantısı sürüyor. Eski kurulum devralma bu işin önkoşulu değildir; kurulu sistem/veri/yedek korunur. Yeni tracker/ağaç/Goal yok; özgün49ERP/25CRM ve insan kabulü sayaçları değişmez. Teknik kanıt/source-paket-GUI ayrımı [STATUS](STATUS.md) içinde.
-

@@ -11,6 +11,8 @@ import './officeAccessibility.js';
 import dailySnapshot from './dailySnapshot.json';
 import accountSnapshot from './accountSnapshot.json';
 import {createWorkCatalog} from './workCatalog.js';
+import {createCleanNativeOrders} from './cleanNativeOrders.js';
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 import {createWorkHome} from './workHome.js';
 import {validateWorkHome} from './workHomeModel.mjs';
 import {createWorkSales} from './workSales.js';
@@ -105,6 +107,7 @@ export function nativeApprovalSummary(data){
  return {pendingCount:s.status==='available'?s.pendingCount:null,status:s.status,links};
 }
 function createNativeApprovals({root,session,navigate}){
+ if(isCleanCatalogLocation(window.location))return createCleanNativeOrders({root,session});
  let active=false,generation=0;
  async function refresh(){const token=++generation;root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="status">Bekleyen işler açılıyor…</p></section>';try{
   const view=nativeApprovalSummary(validateWorkHome(await session.home()));if(!active||!root.isConnected||token!==generation)return;
