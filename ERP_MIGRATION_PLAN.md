@@ -1,3 +1,7 @@
+## 22 Ekim — Günlük sentetik TEST kanıtı; yeni migration yok
+
+Aynı clean20261022 hedefinde depo18/sorumlu19 mal kabul3 ve native alış4 çalıştı; stok21→23/borç120TRY/ikinci stok0. Önceki CRMorder3/sale1 ve kaynak fiyat/fotoğraf/maliyet alanları korundu. TEST125/DB02, ürün-cari batch'leri,LL dışlamaları,karantinalar,Vega/LIVE veT1 bu teslimde okunup yeniden aktarılmadı/değiştirilmedi. Bu ayrı yapay işlem gerçek işletme açılışı veya finaldelta değildir. YedekVERIFYONLY gerçekrestore diye sunulmaz; native transaction rollback ve boşyeni cohort inversesinin sınırı [STATUS](STATUS.md)'ta. İnsan/migration kabulleri aynı kalır.
+
 ## ERP-COMPLETE01 — mevcut veri temeli ve geçiş hazırlığı — 11 Ekim 2026
 
 Mevcut kabul edilmiş DB02 kopyası seçildi; kayıtlı kaynak tarihleri bugünkü Vega değeri olarak etiketlenmez. TEST125, önceki283+16 hesap, ürün/stok/barkod/fiyat batch'leri, alış referansı, maliyet, medya, LL dışlama ve karantina yeniden uygulanmaz. Bu tur yeni migration/T1/finans açılışı yazması yok. Gerçek TC21 normal ekranındaki kontrollü DB02 sentetik prova4 yeni request/2 satış etki bileşeniyle ayrı copyId/journal üzerinden izlendi; önceki39request/23etki bileşeni korundu. İlker'e gönderilen sayım pending ve stok/cari/kasa etkisizdir. Koli metadata kaydı SQL ticari etkisi oluşturmaz. Deneme satışının etkisi Vega kaynak açılışına veya cari migration kapsamına eklenmez.

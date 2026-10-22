@@ -1,6 +1,8 @@
-## 22 Ekim — Şimdi iş2 / aynı temiz TEST'te örnek mağaza günü
+## 22 Ekim — Güncel iş2 / aynı temiz TEST'te mağaza günü
 
-ERP-DEC-070 sıralı devamı: **2.1🟢 teknik eşleme**, mevcut product1/customer1/supplier1 ve24→21stok/0→376,50TRYmüşteri/0tedarikçi kayıtları aynı kimliklerle okundu. **2.2🔴 teknik bağlantı açık:** mevcut mal kabul/alış motoru bu cleanDB/ayrılmış roller/guard sürümüne henüz bağlı değil; yeni işlem0. **2.3🟡:** iş1satışkanıtı hazır, yeniden oluşturulmayacak. **2.4🔴tahsilat/ödeme;2.5🔴sayım/iade/iptal;2.6🔴gün sonumutabakatı** aynı işin kalan alt adımlarıdır. Bu alt adım renkleri özgün49/25veinsan kabul sayaçlarını değiştirmez. Çalışan3db/c8 ve eski sistem korunur; yeni Goal/tree/ajan/TEST yok. [Güncel STATUS](STATUS.md).
+**2.1🟢eşleme;2.2🟢mal kabul;2.3🟢alış/tek tedarikçi borcu;2.4🟢önceki satış kanıtının yeniden kullanımı** teknik olarak doğrulandı. Normal depo18→sorumlu19→kabul3/alış4: stok21→23, borç0→120TRY; alış stokta ikinci etki yapmadı. AynıUUID/body ve ayrıUUIDreplay ikinci ticari etki0;9HTTP kontrolü/native4196POST403/native motor+rollback/SQL/API/normalGUI geçti. Kurulu ERP5aa4cb3e/frontend7dc,CRMc8; exactuygulamaPR/pushCI6jobSUCCESS, eski16listener/TEST125/DB02korundu. İnsan kabulleri ve49/25sayaçları aynı.
+
+**ŞİMDİ2.5🔴:** mevcut tahsilat/tedarikçi ödeme/kasa adapterini aynı temiz hedefe bağla. **2.6🔴:** sayım/iade/iptal; **2.7🔴:** gün sonu mutabakatı. Yeni kayıtlı kapsam/Goal/ajan/TEST yok; bitmiş satış/migration yeniden oluşturulmaz. Sonraki yetkili adım için rutin devam/parola beklenmez. [STATUS](STATUS.md), [ekran ve makbuz kanıtı](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki iş1veeski3db kayıtları tarihseldir.
 
 ## 22 Ekim — Önceki iş1: CRM siparişi → normal ERP onayı → tek satış teknik bağlantısı teslim edildi
 

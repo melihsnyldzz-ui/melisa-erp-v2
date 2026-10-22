@@ -1,3 +1,7 @@
+## 22 Ekim — Aynı mağaza günü iş2.2/2.3 teknik teslimi
+
+ERP5aa4cb3e/CRMc8 temiz yapay hedefte normal depo sayımı→sorumlu kabulü→native alış/tedarikçi borcu tamamlandı. Stok21→23 yalnız kabulde; alış120TRYborç, ikinci stok0. Eski CRMorder3/sale1 tekrar oluşturulmadan korunup güncel kaynaktan okundu. Native rollback/rol/replay/SQL/API/normalGUI ve exactuygulamaCI geçti; insan/P03/cihaz/Windowsreboot kapanışı değildir. Özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡/0🔴,74yaprak aynıdır. Güncel alt adımlar2.1eşleme/2.2mal kabul/2.3alış/2.4öncekisatışkanıtı teknik tamam;2.5tahsilat-ödeme-kasa sıradaki,2.6sayım-iade-iptal ve2.7günsonu açık. Yeni plan/tree yok. [Güncel STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
 ## 22 Ekim — ERP09 / CRM06-E02 siparişten satışa teknik devam
 
 ERP-DEC-070'in dar temiz TEST bağlantısı ERP3db0830/CRMc8d0e28'de teknik olarak teslim edildi: normal personel taslak→ayrı sorumlu onayı→tek native satış/3adet stok çıkışı/376,50TRY müşteri borcu→CRM salt okunur FINALIZED sonucu. Native motor sonrası hata/rollback, replay/rol retleri, bağımsız SQL/API ve gerçek GUI doğrulandı. Native4196 draft sözleşmesi/immutable3receipt ve eski veriler korunur;49ERP/25CRM sayaçları ve özgün insan kabulleri aynı. Bu tek bağlantı bütün ERP09/CRM06 veya mağaza günü kapanışı değildir. Kanıtlı teslim koordinatöre verilir; sonraki işlem ayrı mevcut sıradadır. Gerçek sonuç [STATUS](STATUS.md) içindedir; launcher5.1 bu adımın ön koşulu değildir ve önceki ret aşılmadı.
