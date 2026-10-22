@@ -1,3 +1,16 @@
+## 23 Ekim 02:56 TR — LAN erişim arızası sonrası mevcut TEST yeniden açıldı
+
+Kullanıcının güncel talimatı yalnız işyeri iç IP'sine odaklanmaktır. 02:52'de temiz ERP/CRM'nin yedi portunda dinleyici yoktu; LAN IP değişmemiş, Windows yeniden başlamamıştı. Eski süreçlerin neden sonlandığı kanıtlanamadı; uygulama günlüklerinde bunu açıklayan çökme kaydı bulunmadı. Aynı kurulumun mevcut `Melisa-TEST-Ac.cmd` başlatıcısı bir kez çalıştırıldı; yeniden kurulum, build, SQL değişikliği veya ağ kuralı değişikliği yapılmadı.
+
+**Dar düzeltme:** Windows PowerShell 5 soğuk başlatmasında BOM'suz UTF8 `start-crm.ps1`, Örnek Mağaza adını bozuyordu. Dosyanın çözümlenmiş metni birebir korunarak yalnız UTF8 BOM eklendi; exact kimliği doğrulanan üç temiz CRM süreci bir kez yenilendi. ERP süreçleri korunurken normal CRM ekranında Türkçe ad düzeldi.
+
+**Doğrulanan:** Başlatan cmd/PowerShell süreçleri tamamlandıktan sonra altı uygulama süreci/yedi servis portu açık. ERP035fcc08 ve CRMbc8 kurulu kaynakları değişmedi. LAN üzerinden normal personel girişleri, ERP ürün kartı/stok23/125,50TRY/fotoğraf/barkod ve CRM aynı ürün kataloğu okundu; yenilemede oturumlar korundu. 53 veri koruma kapsamı aynı, eski21 listener adres/PID/doğum/executable aynı; firewall profilleri değişmedi. Kaynak CI yeniden çalıştırılmadı. Bu dosya teslimi uygulama kurulumu değildir.
+
+**Adresler:** [ERP](http://192.168.1.46:5244/ornek-akis.html#stock) · [CRM](http://192.168.1.46:62800/).
+**Kalan:** İşyerindeki başka cihazdan erişim kabulü, gerçek Windows reboot/logon ve personel kabulü bekliyor. Geçmiş süreç kapanışının nedeni bilinmiyor; kalıcı çalışma garantisi veya insan PASS verilmedi. Tailscale üzerinde yeni ayar/teşhis yapılmadı. [Kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim-0256-tr--lan-erişim-onarımı).
+
+### Önceki ağ teslimi — tarihsel kayıt
+
 ## 23 Ekim — Esas TEST şirket ağı ve Tailscale adreslerinde çalışıyor
 
 ERP uygulama **035fcc08d8f56cdd0cbc437a290285328fce1ec9**, paket **CLEAN-ERP-20261022-035fcc08d8f5**; CRM uygulama **bc8c307ee29f115b2bb7fd4e61f87e9bf482ba54** aynı `C:\Sirket\ERP\clean\20261022` hedefine kuruldu. DB **MELISA_ERP_CLEAN_TEST_20261022**, synthetic=true/T1=false/externalOperations=false. Bu hedef kullanıcının bundan sonraki tek esas TEST sürümüdür; gerçek LIVE değildir.

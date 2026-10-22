@@ -1,5 +1,26 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim 02:56 TR — LAN erişim onarımı
+
+Kullanıcı iki ağdan sayfaların açılmadığını bildirdi ve sonra kapsamı **normal işyeri iç IP'si** olarak daralttı. 02:52 salt okunur incelemede temiz4194/4196/5244/62800–62803 portlarında dinleyici yoktu. IP192.168.1.46 değişmemiş; Windows son açılışı20Ekim. Uygulama kayıtlarında kapanış nedeni bulunamadı. Önceki sunucu tarayıcısı kanıtı başka cihaz kabulü değildir; süreçlerin neden kapandığı halen **BİLİNMİYOR**.
+
+Mevcut `Melisa-TEST-Ac.cmd` 02:54:17'de bir kez başlatıldı. Önce kaynak ERP035fcc08/CRMbc8, boş hedef portları, önceki53veri özeti ve korunacak eski dinleyiciler doğrulandı; eski log/PID/starter dosyaları private before-image alanına kopyalandı. Yeni installer/build/migration/restore/izin değişimi yok. Başlatan cmd64264 ve PowerShell61624 tamamlandıktan sonra altı temiz uygulama süreci çalışmaya devam etti.
+
+Gerçek normal GUI soğuk açılışta dar bir kodlama kusuru gösterdi: WindowsPowerShell5, UTF8 BOM'suz `start-crm.ps1` içindeki Örnek Mağaza sabitini yanlış çözümlüyordu. UTF8 çözülmüş kaynak metni birebir korunarak yalnız BOM eklendi; bu üç temiz CRM süreci exact PID/doğum/executable/entry/parent kontrolünden sonra bir kez yenilendi. ERP üç süreci korunurken CRM adı doğru Türkçe gösterdi. Uygulama source veya frontend değişmedi; değişmeyen kaynak CI tekrarlanmadı.
+
+| Kontrol | Gözlenen sonuç |
+|---|---|
+| ERP normal LAN girişi | ornek-satis; üç yapay ürün,0007 kartı23ADET/125,50TRY/fotoğraf/0000000000007barkod |
+| CRM normal LAN girişi | ornek-personel; atanmış Örnek Mağaza ve aynı0007fotoğraf/125,50TRYkataloğu |
+| Yenileme | İki normal oturum korundu; CRM Türkçe adı düzeldi |
+| Başlatıcı tamamlanması | cmd64264/PS61624 ve düzeltme başlatıcısı476 kapandı;6uygulama/7port/11listener açık |
+| Koruma |53veri kapsamı aynı;21eski listener adres/PID/doğum/executable aynı; firewall profilleri aynı |
+| Uzak cihaz/Windows reboot/personel | BEKLİYOR; sunucu üzerinden LAN adresinin açılması bunların yerine geçmez |
+
+Private kanıt: `runtime/lan-recovery-20261023T025358/` altında önce/sonra özetleri, eski loglar, normal ekran görüntüleri, başlangıç ve encoding makbuzu. `result.json` SHA256 `FB6E34955E052FE7CFDF63D55674174F492511C5AE57C04A1ADF4024EC91306A`. İlk süreç karşılaştırmasındaki JSON tarih dönüşümü farkı UTC anları karşılaştırılarak ayrıldı; gerçek eski süreç farkı0. Kaynak/kurulum/güvenlik ayarları veya ticari veri değişmiş gibi sunulmadı.
+
+Kullanıcının açacağı mevcut adresler: [ERP LAN](http://192.168.1.46:5244/ornek-akis.html#stock) · [CRM LAN](http://192.168.1.46:62800/). Tailscale üzerinde bu onarım turunda teşhis veya ayar değişikliği yapılmadı; eski hizmete dokunulmadı.
+
 ## 23 Ekim — Esas TEST ağ teslimi
 
 Kullanıcı aynı temiz kurulumu sonraki çalışmaların esas TEST sürümü seçti; şirket ağı ve Tailscale erişimini açıkça yetkilendirdi. Eski kurulumlar korunur. Bu kayıt önceki tarihlerdeki “yalnız loopback” ve eski kaynak kimliklerinin güncel karşılığıdır; eski kanıtlar silinmedi.
