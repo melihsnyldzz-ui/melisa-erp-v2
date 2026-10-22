@@ -1,4 +1,22 @@
-## 22 Ekim — ERP-DEC-068 temiz ortak TEST kurulu; teknik bağlantı geçti, oturum içi GUI bekliyor
+## 22 Ekim — Güncel temiz TEST: normal ekran ve kesinti kontrolleri tamamlandı
+
+ERP-DEC-068/069 kapsamında kurulu ERP source `970cfc24b9fdb0017a79c5ca6c03bb4b59a23bbc` / `CLEAN-ERP-20261022-970cfc24b9fd`; CRM uygulama ve frontend source `1dd07d1f49b01a1847a519a0868294cb05188cd2`. Yeni hedef yalnız `Semih\MELISADEV / MELISA_ERP_CLEAN_TEST_20261022`, environment `e662fd94-d797-4b3b-938a-d143ad758b67`, synthetic=true / actualT1=false / externalOperations=false. Önceki100/a24 makbuz ve restart kanıtı tarihseldir; yeni kurulumla karıştırılmaz.
+
+Normal ornek-personel ve ornek-satis girişleri ajan tarafından mevcut DPAPI kaydı yalnız CUA belleğinden normal parola formuna aktarılarak tamamlandı. Sırlar çıktı/log/pano/kaynak/GitHub'a taşınmadı; token/cookie/enjeksiyon veya auth bypass yok. Yeni temiz hedefte önceki blanket GUI BLOCKED varsayımı gerçek araç kanıtıyla düzeltilmiştir.
+
+CRM atanmış Örnek Mağaza → gerçek ERP katalog/ürün/müşteri/adet/fiyat → native SQL taslak → normal ERP Onaylar zinciri geçti. Son örnek `CR2-450649569C91470FA7B6A9330B`: `0007 MELISA`,3×125,50TRY=376,50TRY. CRM reload ve normal taslak geçmişinden aynı kayıt GET ile açıldı, yeni POST0. İstek öncesi kesintide aynı UUID/body korunup GET404→tek POST200→GET200; commit sonrası yanıt kaybında SQL kaydı oluşmuşken browser timeout/recovery GET kaybı, bağlantı dönünce yalnız GET200 ile aynı kayıt kanıtlandı. Geçici kesintiler kaldırıldı.
+
+İki gerçek ekran açığı giderilip yeni pakette doğrulandı: ERP original fotoğraf çeşidi doğal320×320PNG, ayrı immutable kaynak/SHA metadata ile HTTP200 ve normal CRM galeride açılır; thumbnail büyütülmez. CRM ağ hatası Türkçedir: “Bağlantı kesildi. Taslağınız korunuyor; aynı taslağı yeniden doğrulayın.” Mevcut order3 GET-only kesintisiyle tekrar doğrulandı; yeni sipariş oluşturulmadı.
+
+Bağımsız SQL: önceki order1 korunur; toplam3 farklı UUID/3order/3line/3journal, her UUID1, pending intent0. Stok24/12/0; stok hareketi/fatura0; müşteri/tedarikçi bakiyesi0;8native tanım/hash geçerli. Eski16listener adres/PID/birth birebir aynı, TEST125/DB02/eski veriler/roller/yedekler korunur. HTTP ERP index2f4b180c/CRM index656a01b5 gerçek dist ile eşleşti. Yeni private makbuz `runtime/installation-receipt-gui.json`, SHA256 `9407d35235d5b6575706c57d1c624afbc79d3b29f2bac1c0b5705f0906341014`.
+
+ERP970cfc2 exact [PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39764410141) / [push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39764404384) SUCCESS. CRM1dd07d1 exact [PR CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39764301807), [push CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39764294296), [AI offline](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39764301782) SUCCESS. Son belge HEAD ayrı raporlanır; uygulama source/paket değişmez.
+
+**Tek dar araç engeli5.1:** Mevcut `Melisa-TEST-Ac.cmd`/alt start dosyaları sözdizimi ve eski deneme/release/Desktop bağımsızlığı doğrulandı; alt başlangıç dosyaları gerçek kurulumda kullanıldı. Yedi yeni listener açıkken `.cmd` gerçek çalıştırma çağrısı otomatik onay denetiminde komut başlamadan `rejected: blocked by policy` aldı. Araç ayrıntılı gerekçe vermedi; başka araç/encoded/helper ile ret aşılmadı. Kolay açılış actual testi BLOCKED, Windows reboot/logon DENENMEDİ; iki normal uygulama açık ve kullanılabilir.
+
+[Ayrıntılı mevcut kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Otomatik GUI insan/personel kabulü değildir; özgün49ERP/25CRM ve USER_ACCEPTANCE sayaçları değişmez. **Sıradaki somut halka:**5.1 desteklenen açılış doğrulaması, sonra mevcut ID'lerle personel incelemesi. Yeni migration/eski P03 denemesi/LIVE geçişi yok.
+
+## Tarihsel ilk kurulum — 22 Ekim100/a24; aşağıdaki GUI engeli güncel sonuç değildir
 
 Başlangıç ERP6aee16d1/CRM3861304a güncel temiz kaynakları korunarak uygulama ERP100a9a5596a9d7b2aff27230b03e3a8fbcc03aa1 / CRMa24c00d017ffb76814101013754b70a01cda3a3c gerçekten kuruldu. Yeni `MELISA_ERP_CLEAN_TEST_20261022` immutable synthetic marker, sınırlı SQL login, üç yapay ürün/fiyat/barkod, bir yapay müşteri/tedarikçi ve ürün1 için hashli örnek PNG içerir. Gerçek Vega/ticari veri kopyalanmadı; eski hiçbir DB/servis değiştirilmedi.
 

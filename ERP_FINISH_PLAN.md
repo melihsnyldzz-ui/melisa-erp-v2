@@ -1,3 +1,7 @@
+## 22 Ekim — Temiz ortak TEST normal GUI teknik alt kanıtı
+
+ERP-DEC-068/069: ERP970cfc2/CRM1dd07d1 gerçekten kuruldu; normal iki rol/giriş, CRM katalog/orijinal fotoğraf/müşteri/adet/fiyat→native SQL taslak→ERP Onaylar ve iki browser kesintisi doğrulandı. Her UUID tek kayıt; yenileme/yanıt kaybında ikinci etki0. Eski kurulum/veriler korundu.5.1 mevcut .cmd actual çalıştırma çağrısı genel araç politikası reddiyle BLOCKED;5.2 eski deneme klasörü bağımlılığı yok. Gerçek personel/cihaz/Windows reboot kabulü bekler. Özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡/0🔴 değişmez; teknik kanıt üst kapanış değildir. [Son kurulum ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
 ## 20 Ekim — P03 yalnız minimum hata kaydı kaynak alt teslimi
 
 Aynı görevin dar onayıyla aynı actualguardinput private hata kanıtına bağlandı; journal dışı exactroot, strictACL/CreateNew/hashreadback; özgün ret yeniden fırlatılır, işlem sırası/güvenlik kapıları değişmedi. Yeni source1b1919ba / eski frozen-runtime99b ayrı; runtimepin/config değişmedi. Son28hedef PASS/0skip ve ROreviewGO/açıkP1/P2=0; 4e3d4a6b exactPR39435425428/push39435414291 completed SUCCESS; belge HEAD CI ayrı. Gerçek prova/kurulum/READY veya insan kabulü değildir. P03/özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 aynı. [Kanıt](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#20-ekim--yalnız-minimum-hata-kaydı-kaynak-hazırlığı).

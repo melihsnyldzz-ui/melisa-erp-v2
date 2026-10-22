@@ -1,4 +1,10 @@
-## 22 Ekim — Etkin iş: güncel kaynaklarla temiz ortak kurulum
+## 22 Ekim — Etkin iş: temiz ortak TEST normal ekran kanıtı tamamlandı
+
+ERP-DEC-068/069: ERP970cfc2/CRM1dd07d1 kurulu. Normal iki giriş, CRM ürün/müşteri/adet/fiyat→gerçek native SQL taslak→ERP Onaylar, yenile/tekrar açma, istek öncesi kesinti ve commit sonrası yanıt kaybı doğrulandı. Original fotoğraf ve Türkçe bağlantı uyarısı yeni pakette gerçek ekranda geçti.3farklı UUID'nin her biri tek kayıt; stok/finans etkisi0. Eski16listener ve TEST125/DB02/veri/rol/yedek korunur.5.2 eski deneme klasörüne bağımlılık yok.5.1 mevcut .cmd actual çağrısı otomatik genel politika reddinde başlamadı; kolay açılış PASS değildir. [Güncel STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Özgün49ERP/25CRM ve insan kabulü değişmez.
+
+**Sıradaki tek iş:**5.1 desteklenen açılış doğrulaması; ardından mevcut personel kabulü. Reddedilen çağrı/eski P03/kurulum tekrarı veya yeni ağaç/Goal yok.
+
+## Tarihsel ilk temiz kurulum —100/a24
 
 ERP-DEC-068 kapsamında ERP100a9a5/CRMa24c00d ayrı yapay SQL alanına kuruldu; ürün/fiyat/döviz/fotoğraf→CRM→native SQL sipariş/replay/ret/restart gerçek teknik bağlantısı geçti. Normal iki uygulama giriş ekranında açık; korumalı ilk normal GUI giriş devri olmadığı için oturum içi ekran/insan kabulü BLOCKED/BEKLİYOR. Eski kurulum/veri/yedek ve16listener kimliği korunur. Yeni tracker/ağaç/Goal yok; özgün49ERP/25CRM ve insan kabulü sayaçları değişmez. Sıradaki tek iş desteklenen ilk normal GUI giriş devri; teknik kanıt/source-paket-GUI ayrımı [STATUS](STATUS.md) içinde.
 
