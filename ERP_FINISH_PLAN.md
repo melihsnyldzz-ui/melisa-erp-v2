@@ -1,3 +1,9 @@
+## 23 Ekim — Aynı mağaza günü2.6 ve2.7 teknik kanıtı tamamlandı
+
+Kullanıcının ayar değişikliği sonrası yetkilendirdiği desteklenen yeniden deneme geçti. KuruluERP759bbc62/CRMc8 aynı temiz yapay TEST'tedir.2.6normal personel-sorumlu sayım/iade/onay/gerekçeli inverse/yenileme/replay ve bağımsızSQL tamamlandı;2.7yedi normal rapor/API/SQL/CSV aynı22Ekim belgeleriyle eşleşti. Eski veriler/servisler korunur; yeni gerçek işlem yok.5.1.cmd zaten-açık yolunda exit0/23listeneraynı; gerçek Windows reboot/logon DENENMEDİ. Küçük sayım “Sayan” sabit etiketi açık. İnsan/personel/cihaz kabulü BEKLİYOR, özgün49ERP/25CRM ve74yaprak sayaçları artırılmadı. [Güncel STATUS](STATUS.md), [tek kanıt/ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--yeniden-deneme-sonucu-gerçek-kurulum-ve-ekranlar). Sonraki mevcut kapsam son personel/cihaz/açılış kabulüdür; bitmiş teknik motorları yeniden kurma veya migrate etme.
+
+### Aşağıdaki BEKLEMEDE/KISMİ kayıtları önceki tarihsel durumdur
+
 ## 23 Ekim — Aynı mağaza günü2.7 KISMİ; 2.6 BEKLEMEDE
 
 **Güncel kaynak alt teslimi:** Toplu Raporlar okuyucusunun clean hedef bağı mevcut iki kaynak dosyasında hazır;39hedefli backend/UI+3ilgili copy kontrolü geçti. Yanlış DB/port/rol retleri, gerçek distinct sınıflandırma, döviz/tarih/NULL maliyet ve eski yollar korundu. SQLapp kullanıcısının gerekli12SELECTyetkisi yeterli; SQLyazması0. Henüz kurulu/normalrapor/insanPASS değil; koordinatör incelemesi+exactCI ayrı. Tek kalan kurulum kabulü aynı clean hedefte son aday ve22Ekim normal rapor geri okuması; otomatik kurulum/ret tekrarı yok.

@@ -1,5 +1,66 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — Yeniden deneme sonucu gerçek kurulum ve ekranlar
+
+Kullanıcının izin ayarı değişikliği sonrası doğrudan yeniden deneme talimatıyla mevcut desteklenen escalation yolu çalıştı. Önceki reddin kök nedeninin veya sağlayıcı hatasının düzeltildiği iddia edilmez; yalnız bu çağrılar artık gerçekten yürüdü. Güvenlik kapatma/ret dolanma/yeni helper/ajan/Goal yok.
+
+**Çalışan uygulama:** ERP759bbc62ff2b03341860e2f865101c23dbd596ee / CLEAN-ERP-20261022-759bbc62ff2b; CRM c8d0e28f0ea6cf16133c87dd548a4281381abfb7. Aynı cleanDB/envE662FD94, synthetic=true/actualT1=false/external=false; ERP4194/native4196/web5244/CRM62800–62803. Önce b2a55bba kurulup2.6normalGUI kanıtlandı.2.7router'ının temiz sunucuya hiç bağlanmadığı gerçek ekranda görüldü; mevcut requireAuth+3GET router yalnız4194'te bağlandı. Yeni finans/rol/şema mantığı yok. Koordinatör source ve installer farkını bağımsız inceledi.16hedefli rapor testi PASS; [PR39862025248](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39862025248), [push39862017901](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39862017901):6gerekli check completed/SUCCESS. Belge teslimi çalışan uygulamadan ayrıdır.
+
+**Kurulum/koruma:** Mevcut installer'ın ValidateOnly→Apply yolu,7yeni loopback listener/6PID ve16korunan eski listener kimliğiyle iki kez uygulama güncelledi; CRMsource değişmedi, bağımlı ERPpini yenilendi. NativeSQL veri/şema yazısı veya restore yok. İki kurulumda53kapsam before/after özeti eşit; son rapor/API/GUI okumaları sonrası da aynı. Önceki791→b2veb2→759 starter/dist/git before-image'ları özel arşivde korundu. COPY_ONLY/CHECKSUM+RESTOREVERIFYONLY geçti; gerçek restore yapılmadı.
+
+Özel kanıtlar (ham SQL/credential dosyaları GitHub'a alınmaz):
+
+- runtime/inventory-app-install-20261022T215308Z/result.json ve reports-app-install-20261022T220637Z/result.json: INSTALLED_READBACK_OK/dataUnchanged=true/protectedListeners16/sqlRestore=false.
+- before-inventory-app-20261022T215059Z.bak SHA43DAC60745773A63FE2CDF5BD4EBD28BEA39445E28C47A797C290534B101C277; son provadan sonraki before-reports-app-20261022T220411Z.bak SHA2D2188C22446DB6FCC3CD718A592C3027E5F0D4140B478D4FDBF76F999DCEE47.
+- runtime/inventory-gui-sql-readback.txt; reports-api-readback-20261023.json; reports-gui-after-data.txt; launcher-actual-readback-20261023.json.
+
+### 2.6 — Normal personel ve sorumlu ekranları
+
+|İşlem|Normal ekran sonucu|Bağımsız SQL / korunma|
+|---|---|---|
+|Sayım10|Personel21,0007MELISA/barkod0000000000007,23sistem/24sayılan;+1 farkı gönderir; kendi onay düğmesi yok|Pending ikenstok23;created_by21|
+|Sayım onayı|Sorumlu22 gerekçeyle uygular; aynıUUID GUI tekrarında ikinci etki yok|stock_count10 +1;stok24;decided_by22|
+|Sayım ters kayıt|Gerekçeli iptal ve tekrar doğrulama; yenilemede geçmiş korunur|stock_count_cancel10 −1;stok23;taslakcancelled|
+|Alış iadesi|Personel21,alış4/kabul3'ten1adet taslak11; maliyet personelde redakte. Sorumlu22'de60TRY veonay|invoice_return3 finalized;stok−1→22;tedarikçi−60TRY;özgünalışaynı|
+|İade ters kayıt|Sorumlu gerekçeli geri alır; yenilemede “Ters kayıtla geri alındı”|stock+1→23;tedarikçi+60→0;taslak11/iade3cancelled;özgün kayıtlar silinmez|
+
+Son ürün1stok23/maliyet60, ürün2/3stok12/0; müşteri0/tedarikçi0/kasa256,50TRY;1satış/1alış/2müşteri/2kasa hareketi korunur. Stok6hareket, tedarikçi4hareket; aktifintent0.60TRY yalnız önceki etiketli sentetik maliyet girdisidir. Eski satışmaliyet snapshot'ıNULL kalmıştır. Fiziksel sayım/gerçek mağaza veya insan kabulü değildir.
+
+**Açık küçük ekran eksiği:** Sayım geçmişi “Sayan: Satış ekibi” sabit etiketini gösteriyor. Kaydın gerçek created_by21/decided_by22 kimliği doğru; bunu yeni bir yetki hatası veya yanlış yazan aktör diye sunmuyoruz. Etiket düzeltmesi bu rapor bağlantısı teslimine eklenmedi.
+
+![Personel sayımı ve yetkili kontrolüne gönderim](2026-10-23-inventory-personnel.jpg)
+![Personel iade taslağı](2026-10-23-return-personnel.jpg)
+![Sorumlu iade onayı](2026-10-23-return-approved.jpg)
+![Gerekçeli iade ters kaydı](2026-10-23-return-reversed.jpg)
+
+### 2.7 — Kurulu yedi rapor, aynı gün, doğru roller
+
+Normal17satış,20muhasebe,22stok-sorumlusu oturumlarında7rapor gerçekten açıldı; yetkisiz türler kapalı.22Ekim kapsamı aşağıdaki kayıtlarla eşleşti.23Ekim/Bugün boş sonucu geçmişe sabitlenmedi. Son7gün aynı kayıtları kapsadı; belge tarihi22Ekim, gerçek prova zamanı23Ekim olarak ayrıdır.
+
+|Rapor|Kayıt|TRY sonucu|Normal GUI + bağımsız API/SQL|
+|---|---:|---|---|
+|Satışlar|1|376,50|CRS-20261022-3|
+|Tahsilatlar|1|376,50|Aynı satışın tahsilatı|
+|Alışlar|1|120,00|TSTB-20261022-GUI3|
+|Tedarikçi ödemeleri|1|120,00|Aynı alışın ödemesi|
+|Müşteri hareketleri|2|Borç376,50/alacak376,50/net0|Satış+tahsilat|
+|Tedarikçi hareketleri|4|Borç180/alacak180/net0|Alış+ödeme+iade+ters kayıt|
+|Stok hareketleri|6|Parasal toplam yok|−3,+2,+1,−1,−1,+1; kapanış23ayrı|
+
+MarkaMELISA gruplamasında3ADET/376,50TRY; farklı dövizler toplanmadı. USD/EUR “kayıt yok” bu dövizlerin banka/açılış bakiyesi0kanıtı değildir. Kasa256,50yalnız mevcutTRYhesabı/önceki finans paneli veSQLile karşılaştırılır; yeni kasa raporu uydurulmadı. SatışNULLmaliyet güncel60ile doldurulmadı ve kâr hesaplanmadı.
+
+Normal Chrome CSV düğmesi1alış/120TRY dosyasını Downloads'a indirdi, içerik ve tarih/döviz/kapsam okundu. Download-event bekleyicisi timeout döndürdü, ancak gerçek dosya mevcut ve SHA B696780A486947D4C10C9F68EB4A462B9CA501018ED9DE84090B96B5AECF3FC4 doğrulandı; uygulama indirimi başarısız diye sınıflandırılmadı. API normalauth→GET7rapor; yanlışraporrol403,oturumsuz401,native4196router404,offset50boş/toplam1. APIkontrol oturumları normal logout ile kapandı, tarayıcı oturumları korundu. Rapor okuması ticari yazma0.
+
+![Normal satış raporu](2026-10-23-reports-sales.jpg)
+![Stok hareketleri raporu](2026-10-23-reports-stock.jpg)
+![CRM güncel ERP kataloğunu okuyor](2026-10-23-crm-catalog.jpg)
+
+### 5.1 — Mevcut kolay açılış dosyasının gerçek çalıştırılması
+
+Melisa-TEST-Ac.cmd desteklenen izin yolunda tek actual çağrı/exit0. Öncesinde7yeni listener hazırdı; already-running dalı çalıştı. Önce/sonra23listeneradres/PID/doğum/exe birebir aynı; ikinci süreç/restart0. Nativehealth source759/cleanDB/T1false; iki uygulama adresi açma adımı tamamlandı. Bu soğuk servis açılışı veya gerçek Windows reboot/logon değildir; onlar DENENMEDİ. Eski korunan sistem devralınmadı.
+
+**Kullanılabilir adresler:** [Sayım](http://127.0.0.1:5244/ornek-akis.html#count), [İadeler](http://127.0.0.1:5244/ornek-akis.html#returns), [Raporlar](http://127.0.0.1:5244/ornek-akis.html#reports), [CRM](http://127.0.0.1:62800/). İnsan/gerçek cihaz kabulü ve özgün49/25sayaçları BEKLİYOR/aynı. LIVE/Vega/T1/gerçek ticari veri/mesaj/ücretli servis/main değişmedi. Aşağıdaki eski engel kayıtları tarihsel olarak korunur.
+
 ## İş2.7 — 23 Ekim salt okunur gün sonu karşılaştırması
 
 ### Aynı okuyucunun kaynak düzeltmesi — kurulum ve normal rapor kabulü bekliyor

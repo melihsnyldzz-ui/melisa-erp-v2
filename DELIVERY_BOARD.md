@@ -1,3 +1,12 @@
+## 23 Ekim — Aynı2.6/2.7 kuruldu ve normal ekranlarda teknik olarak doğrulandı
+
+- **2.6 teknik tamam:** Personel21→sorumlu22 sayım10 onay/ters kayıt23→24→23; alış4'e bağlı iade3 ve ters kayıt23→22→23, tedarikçi0→−60→0TRY. GUIreplay ikinci etki0, eski belgeler korunur. Sayan etiketinde sabit “Satış ekibi” küçük kullanım eksiği açık; gerçek aktör/rol doğru.
+- **2.7 teknik tamam:** Kurulu759bbc62 dört satırlık mevcut GET-router bağlantısıyla7rapor normal rollerden okundu. API/SQL ve CSV eşleşti; stok23, müşteri0, tedarikçi0, kasa256,50TRY. Yetki/tarih/döviz/NULLmaliyet ayrımı korundu. Bu yalnız ayrı yapay TEST kanıtıdır.
+- **5.1 kısmi:** Mevcut.cmd zaten-çalışıyor yolu gerçek exit0,23listener aynı/restart0. Soğuk açılış ve gerçek reboot/logon denenmedi.
+- **Teslim:** PR54 uygulama759bbc62, PR/push6checkSUCCESS; CRMsourcec8 aynı. İki kurulumun veri önce/sonra özeti eşit; eski16listener/TEST125/DB02/yedekler aynı. İnsan kabulleri ve49/25sayaçları değişmedi. [Kanıt/ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--yeniden-deneme-sonucu-gerçek-kurulum-ve-ekranlar).
+
+### Önceki durumlar — tarihsel
+
 ## 23 Ekim — İş2.7 mevcut gün sonu kayıtları kısmen doğrulandı
 
 **Rapor bağlantısı KAYNAK HAZIR; kurulum/normal ekran BEKLİYOR:** Mevcut okuyucuda registered clean kimliği/yalnız4194/DB∩oturum sınırıyla7rapor,50sayfa,CSV ve clean sınıflandırma desteklendi.39backend+UI hedefli ve3ilgili copy regresyonu PASS; SQLapp kullanıcısında gerekli12tabloSELECT1 salt okunur doğrulandı, grant/şema/veri yazması0. Yeni kod kurulu değil;2.7 tam yeşil ve insanPASS değil. Mevcut bağımsız inceleyici oturumu kullanılamadığından yeni ajan açılmadı; koordinatör kaynak incelemesi ve exact yeniCI ayrı izlenir.
