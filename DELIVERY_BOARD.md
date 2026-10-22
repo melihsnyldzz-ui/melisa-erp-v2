@@ -1,6 +1,6 @@
 ## 22 Ekim — Etkin iş: güncel kaynaklarla temiz ortak kurulum
 
-ERP-DEC-068 kapsamında kaynaklar alındı; yalnız yapay kayıtlı yeni SQL alanı ve normal ERP bundle açıldı. CRM finite profil kurulumu ve gerçek native SQL sipariş/replay/restart bağlantısı sürüyor. Eski kurulum devralma bu işin önkoşulu değildir; kurulu sistem/veri/yedek korunur. Yeni tracker/ağaç/Goal yok; özgün49ERP/25CRM ve insan kabulü sayaçları değişmez. Teknik kanıt/source-paket-GUI ayrımı [STATUS](STATUS.md) içinde.
+ERP-DEC-068 kapsamında ERP100a9a5/CRMa24c00d ayrı yapay SQL alanına kuruldu; ürün/fiyat/döviz/fotoğraf→CRM→native SQL sipariş/replay/ret/restart gerçek teknik bağlantısı geçti. Normal iki uygulama giriş ekranında açık; korumalı ilk normal GUI giriş devri olmadığı için oturum içi ekran/insan kabulü BLOCKED/BEKLİYOR. Eski kurulum/veri/yedek ve16listener kimliği korunur. Yeni tracker/ağaç/Goal yok; özgün49ERP/25CRM ve insan kabulü sayaçları değişmez. Sıradaki tek iş desteklenen ilk normal GUI giriş devri; teknik kanıt/source-paket-GUI ayrımı [STATUS](STATUS.md) içinde.
 
 ## 21 Ekim — desteklenen alternatifler ve dar kurtarma hazırlığı
 

@@ -1,5 +1,7 @@
 ## 18 Ekim — v75 sunumun native kaynak portu; insan kabulü bekliyor
 
+**22 Ekim / ERP-DEC-068 ek teknik kanıtı:** Ayrı, yalnız yapay kayıtlı ERP100a9a5/CRMa24c00d kurulumunda normal API/SQL ürün/fiyat/fotoğraf/sipariş/replay/restart teknik bağlantısı geçti. İki normal giriş sayfası tarayıcıda açıldı; korumalı ilk normal GUI credential devri desteklenmediğinden oturum içi GUI DENENMEDİ/BLOCKED. Bu sonuç mevcut ERP-UA/CRM06/ERP09 insan kabullerini PASS yapmaz, özgün sayaçları artırmaz. Hiçbir yeni kabul ID'si oluşturulmadı. [Kanıt ve sınır](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
 İş sırası, mal kabul/alış, müşteri bakiyesi–fiş kalan, tahsilat ve iade/onay görünümü güncel teknik adaya taşındı.264offline test+build+bağımsız inceleme insan kabulü değildir; bu adayın normal GUI/mobile kontrolü yönetilen önizleme ortam hatası nedeniyle NOT_RUN. Ortak TEST'e kurulumdan sonra ERP-UA05/07/08/09/10/11/14/16/17/18/32 mevcut adımlarında yetkili kişi/tarih/sonuç alınacak; bu kayıt yeni görev veya PASS yaratmaz. [Kaynak kapsamı ve kalanlar](docs/evidence/erp/2026-10-18-office-layout-v75.md). Önceki gerçek kabuller korunur.
 
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
