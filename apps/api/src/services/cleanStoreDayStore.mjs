@@ -8,8 +8,11 @@ import {normalizeTestBatch,normalizeTestInvoiceDraft} from './testPurchaseBatchM
 import {workInboundSupplierMovement} from './workInboundStore.mjs';
 import {workHash,workScaled,workExact,workFail} from './workSalesModel.mjs';
 import {assertCleanCollectionSource} from './cleanStoreDayCollectionPreparation.mjs';
+import {purchaseSourcesFromRows} from './testDailyReturnSources.mjs';
+import {projectPersonnelDailyResponse} from './personnelDailyProjection.mjs';
 export function cleanInboundActor(actor){assertRegisteredCleanContext();if(!actor||!['18','19'].includes(String(actor.id))||!Array.isArray(actor.permissions))reject('INBOUND_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);return {...actor,id:String(actor.id)};}
 export function cleanFinanceActor(actor){assertRegisteredCleanContext();if(String(actor?.id)!=='20'||actor.isAdmin===true||actor.testAdminSession===true||!Array.isArray(actor.permissions))workFail('CLEAN_COLLECTION_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);return {...actor,id:'20'};}
+export function cleanDailyActor(actor){assertRegisteredCleanContext();if(!['21','22'].includes(String(actor?.id))||actor.isAdmin===true||actor.testAdminSession===true||!Array.isArray(actor.permissions))workFail('CLEAN_INBOUND_SCOPE_REQUIRED','Bu işlem için yetkiniz bulunmuyor.',403);return {...actor,id:String(actor.id)};}
 export function cleanInboundCapabilities(actor,c,key){
  const has=k=>actor.permissions.includes(k)&&c.actual.permissions.includes(k),staff=actor.id==='18',office=actor.id==='19';
  const cap={canView:has('goods.view'),canCount:staff&&has('goods.create'),canSubmit:staff&&has('goods.create'),canApprove:office&&has('goods.approve'),canReject:office&&has('goods.reject'),canViewPurchase:office&&has('purchase.view'),canCreatePurchase:office&&has('purchase.view')&&has('purchase.create'),canFinalizePurchase:office&&has('purchase.view')&&has('purchase.finalize'),canCancelPurchase:false,canViewSupplier:office&&has('supplier.view')&&has('purchase.view')};
@@ -22,8 +25,8 @@ export function cleanRecordedInvoiceBasis(row){
  const {totalExact4,linkCount,itemCount,receiptState,...basis}=row;return {source:'stored-native-invoice',...basis};
 }
 export function createCleanStoreDayStore({dependencies=defaultDependencies,invoices=()=>import('./invoiceDraftService.js'),finance=()=>import('./financeService.js')}={}){
- async function run(actor,write,callback,purpose='inbound'){
-  actor=purpose==='finance'?cleanFinanceActor(actor):cleanInboundActor(actor);let tx;
+ async function run(actor,write,callback,purpose='inbound',flow=null){
+  actor=purpose==='daily'?cleanDailyActor(actor):purpose==='finance'?cleanFinanceActor(actor):cleanInboundActor(actor);let tx;
   try{
    if(process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_STORE_DAY!=='20261022')throw inboundError();
    const db=await dependencies(),pool=await db.getSqlPool(),q=db.getSqlDriver();assertCleanIdentity((await pool.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);
@@ -31,9 +34,13 @@ export function createCleanStoreDayStore({dependencies=defaultDependencies,invoi
    await req().input('mode',q.NVarChar(16),write?'Exclusive':'Shared').query("DECLARE @n int;EXEC @n=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=@mode,@LockOwner=N'Transaction',@LockTimeout=5000;IF @n<0 THROW 51962,'CLEAN_INBOUND_BUSY',1;");
    await req().execute('dbo.usp_clean_store_day_ready');
    const sets=(await req().input('actor',q.BigInt,Number(actor.id)).query("SELECT u.id,u.username,r.code FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id WHERE u.id=@actor AND u.is_active=1;SELECT p.permission_key FROM dbo.permissions p JOIN dbo.users u ON u.role_id=p.role_id WHERE u.id=@actor AND u.is_active=1 AND(p.can_view=1 OR p.can_create=1 OR p.can_approve=1);SELECT CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name,CONVERT(varchar(40),p.current_stock_qty) stockQuantityExact3,(SELECT TOP(1)barcode FROM dbo.product_barcodes WHERE product_id=p.id AND is_primary=1) barcode FROM dbo.products p WHERE p.id=1;SELECT CONVERT(varchar(20),id) id,supplier_code code,name,currency_code currency,CONVERT(varchar(40),balance) balanceExact4 FROM dbo.suppliers WHERE id=1;")).recordsets;
-   const u=sets[0]?.[0];if(sets[0]?.length!==1||u.username!==(actor.id==='20'?'ornek-finans':actor.id==='18'?'ornek-depo':'ornek-kontrol')||u.code!==(actor.id==='20'?'clean_test_finance':actor.id==='18'?'clean_test_warehouse':'clean_test_inbound_supervisor')||sets[2]?.length!==1||sets[3]?.length!==1)throw inboundError();
+   const identities={'18':['ornek-depo','clean_test_warehouse'],'19':['ornek-kontrol','clean_test_inbound_supervisor'],'20':['ornek-finans','clean_test_finance'],'21':['ornek-sayim','clean_test_counter'],'22':['ornek-inceleme','clean_test_inventory_supervisor']};
+   const u=sets[0]?.[0];if(sets[0]?.length!==1||u.username!==identities[actor.id]?.[0]||u.code!==identities[actor.id]?.[1]||sets[2]?.length!==1||sets[3]?.length!==1)throw inboundError();
    const c={actual:{permissions:sets[1].map(x=>x.permission_key)},cleanMeta:{environment:'CLEAN_SYNTHETIC_TEST',environmentId:CLEAN_ENVIRONMENT_ID},products:sets[2].map(p=>({...p,purchasePriceExact8:'60.00000000'})),supplier:sets[3][0],warehouse:{id:'1',label:'Örnek mal kabul deposu'}};
    const nativeContext={pool,transaction:tx,sqlDriver:q,stockAlreadyReceived:true,cleanStoreDayReceived:true};
+   if(purpose==='daily'){
+    await attachCleanDaily(c,{actor,write,flow,req,q,tx,pool});const value=await callback(c);await tx.commit();return write?projectPersonnelDailyResponse(flow,c.actor,value):value;
+   }
    if(purpose==='finance'){
     await attachCleanFinance(c,{actor,write,req,q,tx,pool,finance});const value=await callback(c);await tx.commit();return value;
    }
@@ -105,9 +112,40 @@ export function createCleanStoreDayStore({dependencies=defaultDependencies,invoi
    const value=await callback(c);await tx.commit();return value;
   }catch(e){if(tx)try{await tx.rollback();}catch{}if(e.statusCode)throw e;const failure=inboundError();Object.defineProperty(failure,'cause',{value:e});throw failure;}
  }
- return {read:(actor,fn)=>run(actor,false,fn),mutate:(actor,fn)=>run(actor,true,fn),readFinance:(actor,fn)=>run(actor,false,fn,'finance'),mutateFinance:(actor,fn)=>run(actor,true,fn,'finance')};
+ return {read:(actor,fn)=>run(actor,false,fn),mutate:(actor,fn)=>run(actor,true,fn),readFinance:(actor,fn)=>run(actor,false,fn,'finance'),mutateFinance:(actor,fn)=>run(actor,true,fn,'finance'),daily:(flow,actor,fn,{write=true}={})=>run(actor,write,fn,'daily',flow)};
 }
 export const cleanStoreDayStore=createCleanStoreDayStore();
+
+// Transaction adapter only: the existing daily service, native count motor,
+// invoice return repository and stock reversal motor retain their business rules.
+async function attachCleanDaily(c,{actor,write,flow,req,q,tx,pool}){
+ if(process.env.MELISA_CLEAN_INVENTORY!=='20261022'||!['count','purchase'].includes(flow))throw inboundError();
+ actor={...actor,permissions:actor.permissions.filter(key=>c.actual.permissions.includes(key))};
+ const has=k=>actor.permissions.includes(k)&&c.actual.permissions.includes(k);
+ if(!has(flow==='count'?'product.view':'purchase.view'))workFail('CLEAN_INBOUND_SCOPE_REQUIRED','Bu kayıtları görüntüleme yetkiniz yok.',403);
+ const product=(await req().query("SELECT id,stock_code,name,unit,current_stock_qty,average_cost_try FROM dbo.products WHERE id=1 AND is_active=1 AND is_deleted=0")).recordset;
+ if(product.length!==1||product[0].stock_code!=='0007 MELISA'||product[0].unit!=='ADET'||Number(product[0].average_cost_try)!==60)throw inboundError();
+ Object.assign(c,{pool,transaction:tx,sqlDriver:q,req,actor,cleanDaily:true,cleanMeta:{...assertRegisteredCleanContext(),date:'2026-10-22'},scope:{flow,product_id:1,stock_code:product[0].stock_code,product_name:product[0].name,unit:'ADET',current_stock_qty:product[0].current_stock_qty,average_cost_try:product[0].average_cost_try,supplier_id:flow==='purchase'?1:null,customer_id:null,source_id:flow==='purchase'?4:null,source_kind:flow==='purchase'?'purchase':null,settings_json:'{}'}});
+ c.countProducts=async()=>{
+  const rows=(await req().query("SELECT CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name,p.unit,CONVERT(varchar(40),p.current_stock_qty) stockQuantityExact3,CONVERT(varchar(40),p.average_cost_try) costExact4,(SELECT TOP(1)b.barcode FROM dbo.product_barcodes b WHERE b.product_id=p.id AND b.is_active=1 AND b.is_primary=1) barcode FROM dbo.products p WITH(UPDLOCK,HOLDLOCK) WHERE p.id=1 AND p.is_active=1 AND p.is_deleted=0;SELECT id,quantity_net,source_type,source_id FROM dbo.stock_movements WHERE product_id=1 ORDER BY id;")).recordsets;
+  if(rows[0]?.length!==1||rows[0][0].stockCode!=='0007 MELISA'||rows[0][0].unit!=='ADET'||Number(rows[0][0].costExact4)!==60||!Number.isSafeInteger(Number(rows[0][0].stockQuantityExact3)))throw inboundError();
+  return [{...rows[0][0],stockQuantity:Number(rows[0][0].stockQuantityExact3),movementFingerprint:workHash(rows[1])}];
+ };
+ c.returnSources=async(drafts,includeCancelled)=>{
+  const rows=(await req().query("SELECT p.id,p.document_no,p.status,p.document_currency,p.grand_total,p.supplier_id,s.name supplier_name,s.balance supplier_balance,s.currency_code supplier_currency,i.id item_id,i.product_id,i.quantity,i.line_total,r.stock_code,r.name product_name,r.current_stock_qty,COALESCE((SELECT SUM(ri.quantity) FROM dbo.invoice_return_items ri JOIN dbo.invoice_returns h ON h.id=ri.invoice_return_id WHERE ri.source_purchase_item_id=i.id AND h.source_purchase_invoice_id=p.id AND h.status=N'finalized'),0) returned_quantity FROM dbo.purchase_invoices p JOIN dbo.purchase_invoice_items i ON i.purchase_invoice_id=p.id JOIN dbo.products r ON r.id=i.product_id JOIN dbo.suppliers s ON s.id=p.supplier_id JOIN dbo.test_purchase_batch_links l ON l.invoice_id=p.id AND l.invoice_item_id=i.id JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id JOIN dbo.test_goods_batches b ON b.id=g.batch_id WHERE p.id=4 AND p.status=N'finalized' AND p.supplier_id=1 AND p.document_currency=N'TRY' AND p.account_currency=N'TRY' AND p.exchange_rate_snapshot=1 AND p.account_exchange_rate_snapshot=1 AND p.grand_total=120 AND i.product_id=1 AND i.quantity=2 AND i.purchase_price=60 AND i.line_total=120 AND l.quantity=i.quantity AND g.product_id=i.product_id AND g.unit=N'ADET' AND g.unit_factor=1 AND b.id=3 AND b.state=N'accepted' AND b.supplier_id=1 AND b.warehouse_id=1")).recordset;
+  if(rows.length!==1)throw inboundError();return purchaseSourcesFromRows(rows,drafts).filter(p=>includeCancelled||p.status==='finalized');
+ };
+ c.journal=async(operation,input,execute)=>{
+  const permission=operation.startsWith('stock_count_')?'stock.adjust':'purchase.cancel',draft=operation.endsWith('_draft');
+  if(!write||!['stock_count_draft','stock_count_approve','stock_count_reject','stock_count_cancel','purchase_return_draft','purchase_return_approve','purchase_return_reject','purchase_return_cancel'].includes(operation)||(draft?actor.id!=='21':actor.id!=='22'||!has(permission)))workFail('CLEAN_INBOUND_SCOPE_REQUIRED','Bu işlem için yetkiniz yok.',403);
+  const payloadJson=JSON.stringify(canonical({...input,operation,actorId:actor.id})),payloadHash=createHash('sha256').update(payloadJson,'utf16le').digest('hex');
+  const old=(await req().input('id',q.UniqueIdentifier,input.requestId).query('SELECT * FROM dbo.work_trade_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=@id')).recordset[0];
+  if(old){if(String(old.actor_id)!==actor.id||old.operation!==operation||old.payload_hash.toLowerCase()!==payloadHash||old.payload_json!==payloadJson)workFail('WORK_REQUEST_CONFLICT','Bu işlem kimliği başka içerikle kullanılmış.',409);return {...JSON.parse(old.response_json),replayed:true};}
+  return withCleanStoreDayMutation({transaction:tx,sqlDriver:q,actor:{...actor,id:Number(actor.id)},operation,requestId:input.requestId,payloadJson,payloadHash,receiptId:flow==='purchase'?3:null,invoiceId:flow==='purchase'?4:null},async()=>{
+   const value=await execute();await req().input('id',q.UniqueIdentifier,input.requestId).input('actor',q.BigInt,Number(actor.id)).input('op',q.NVarChar(40),operation).input('hash',q.Char(64),payloadHash.toUpperCase()).input('payload',q.NVarChar(q.MAX),payloadJson).input('response',q.NVarChar(q.MAX),JSON.stringify(value)).query('INSERT dbo.work_trade_requests(request_id,actor_id,operation,payload_hash,payload_json,response_json)VALUES(@id,@actor,@op,@hash,@payload,@response)');return value;
+  });
+ };
+}
 
 async function attachCleanFinance(c,{actor,write,req,q,tx,pool,finance}){
  const has=k=>actor.permissions.includes(k)&&c.actual.permissions.includes(k);
@@ -138,7 +176,12 @@ async function attachCleanFinance(c,{actor,write,req,q,tx,pool,finance}){
  const currentPayments=await payments(),paid=currentPayments.reduce((s,p)=>s+workScaled(p.amountExact4,4),0n);
  const purchase=(await req().query("SELECT CONVERT(varchar(20),i.id) id,i.document_no number,i.status,CONVERT(char(10),i.document_date,23) documentDate,i.document_currency documentCurrency,i.account_currency accountCurrency,CONVERT(varchar(40),i.grand_total) documentAmountExact4,CONVERT(varchar(40),i.account_amount) accountAmountExact4 FROM dbo.purchase_invoices i JOIN dbo.test_purchase_batch_links l ON l.invoice_id=i.id JOIN dbo.test_goods_batch_lines g ON g.id=l.receipt_line_id JOIN dbo.test_goods_batches b ON b.id=g.batch_id WHERE i.id=4 AND i.supplier_id=1 AND i.status=N'finalized' AND i.document_currency=N'TRY' AND i.grand_total=120 AND b.id=3 AND b.state=N'accepted'")).recordset;
  if(purchase.length!==1||paid>1200000n)throw inboundError();
- const suppliers=[{...c.supplier,synthetic:true,writeEligible:true,debtKind:'invoice',invoices:[{...purchase[0],receiptId:'3',receiptKind:'work-clean-store-day-receipt',paidExact4:workExact(paid,4),returnedExact4:'0.0000',remainingExact4:workExact(1200000n-paid,4)}]}];
+ let returned=0n;
+ if(process.env.MELISA_CLEAN_INVENTORY==='20261022'){
+  const returns=(await req().query("SELECT CONVERT(varchar(40),COALESCE(SUM(r.account_amount),0)) amountExact4 FROM dbo.invoice_returns r WHERE r.kind=N'purchase' AND r.source_purchase_invoice_id=4 AND r.supplier_id=1 AND r.status=N'finalized' AND r.document_currency=N'TRY' AND r.account_currency=N'TRY' AND r.created_by=22 AND EXISTS(SELECT 1 FROM dbo.work_trade_requests j WHERE j.actor_id=22 AND j.operation=N'purchase_return_approve' AND TRY_CONVERT(bigint,JSON_VALUE(j.response_json,'$.result.id'))=r.id)")).recordset;
+  if(returns.length!==1)throw inboundError();returned=workScaled(returns[0].amountExact4,4);
+ }
+ const suppliers=[{...c.supplier,synthetic:true,writeEligible:true,debtKind:'invoice',invoices:[{...purchase[0],receiptId:'3',receiptKind:'work-clean-store-day-receipt',paidExact4:workExact(paid,4),returnedExact4:workExact(returned,4),remainingExact4:workExact(1200000n-paid-returned,4)}]}];
  c.context={meta:{schemaVersion:'melisa-work-supplier-payment.v1',source:'native-test',date:'2026-10-22',timeZone:'Europe/Istanbul',environmentId:CLEAN_ENVIRONMENT_ID},scope:{synthetic:true,customer,accounts:[account],products:[]},capabilities:caps,suppliers,accounts:[account],rates:[],payments:currentPayments,limits:{maxAmountExact4:'500.0000',maxPayments:30}};
  c.context.revision=workHash({suppliers,accounts:[account],rates:[],payments:currentPayments});
  c.request=async id=>{const r=(await req().input('id',q.UniqueIdentifier,id).query('SELECT operation,response_json FROM dbo.work_trade_requests WHERE request_id=@id AND actor_id=20')).recordset;if(r.length!==1)workFail('WORK_REQUEST_NOT_FOUND','İşlem bulunamadı.',404);return {requestId:id,operation:r[0].operation,response:JSON.parse(r[0].response_json)};};

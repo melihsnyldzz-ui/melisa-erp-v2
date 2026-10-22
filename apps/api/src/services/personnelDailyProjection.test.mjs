@@ -46,3 +46,8 @@ test('nested count line and fingerprint fields cannot smuggle costs in a personn
  const data=fixture();data.drafts[0].payload_json=JSON.stringify({physical:3,lines:[{productId:1,stockCode:'0007',physical:3,system:4,unitCostTry:60}],fingerprint:[{id:101,quantity_net:4,source_type:'purchase',source_id:11,amount_try:60}],unknownScans:[{value:'0000000',quantity:1,status:'needs_review',cost:60}]});
  const out=projectPersonnelDailyContext('count',{permissions:[]},data),p=JSON.parse(out.drafts[0].payload_json);assert.equal(p.lines[0].stockCode,'0007');assert.equal(p.fingerprint[0].id,101);assert.equal(p.unknownScans[0].value,'0000000');assert.doesNotMatch(JSON.stringify(out),/unitCost|amount_try|"cost"/);
 });
+
+test('reviewer without finance visibility retains count inverse identifiers in decision and replay while nested costs stay private',()=>{
+ const actor={id:22,permissions:['product.view','stock.adjust']},native={id:8,result:{id:8,lines:[{productId:1,stockBefore:23,stockAfter:24,difference:1,movementCreated:true,movementId:11,unitCostTry:60,amountTry:60}],unit_cost_try:60}};
+ for(const replayed of [false,true]){const result=projectPersonnelDailyResponse('count',actor,{...native,replayed});assert.equal(result.result.lines[0].difference,1);assert.equal(result.result.lines[0].movementId,11);assert.equal(result.replayed,replayed);assert.doesNotMatch(JSON.stringify(result),/unitCost|unit_cost|amountTry/);}
+});

@@ -21,6 +21,7 @@ function result(value){
  if(Object.hasOwn(value,'plan'))out.plan=plan(value.plan);
  if(value.result)out.result=result(value.result);
  if(value.reversal)out.reversal=result(value.reversal);
+ if(Array.isArray(value.lines))out.lines=value.lines.map(row=>({...line(row),...pick(row,['difference','movementCreated','movementId'])}));
  return out;
 }
 const invoice=value=>value?pick(value,['id','document_no','status','document_currency']):null;

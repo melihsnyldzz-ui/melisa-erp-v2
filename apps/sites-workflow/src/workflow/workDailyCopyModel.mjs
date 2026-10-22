@@ -4,6 +4,14 @@ const fail=()=>{throw Error('Sayım bilgileri doğrulanamadı. Ürünleri yenile
 const whole=value=>Number.isSafeInteger(value)&&value>=0;
 const fingerprint=value=>typeof value==='string'&&/^[a-f0-9]{64}$/i.test(value);
 
+export function cleanDailyControls(meta,user,flow,{location=globalThis.location}={}){
+ if(meta?.cleanDaily===undefined)return null;
+ const d=meta.cleanDaily,id=String(user?.id),staff=id==='21',supervisor=id==='22';
+ if(meta.environment!=='CLEAN_SYNTHETIC_TEST'||meta.environmentId?.toLowerCase()!=='e662fd94-d797-4b3b-938a-d143ad758b67'||meta.synthetic!==true||meta.actualT1!==false||meta.externalOperations!==false||location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5244'||!['count','purchase'].includes(flow)||d.date!=='2026-10-22'||d.actorId!==id||(!staff&&!supervisor)||user.role?.code!==(staff?'clean_test_counter':'clean_test_inventory_supervisor')||d.canDraft!==staff||d.canReview!==supervisor||!Array.isArray(user.permissions)||!user.permissions.includes(flow==='count'?'product.view':'purchase.view'))fail();
+ if(supervisor&&!user.permissions.includes(flow==='count'?'stock.adjust':'purchase.cancel'))fail();
+ return {date:d.date,canDraft:staff,canReview:supervisor};
+}
+
 // Normal copy pages use native stock quantities. The bounded rehearsal limit
 // applies to the difference, not to the absolute quantity already in stock.
 export function dailyCopyContext(data,flow,options){

@@ -49,3 +49,15 @@ test('finance uses its native binder, exact sale/purchase and real actor20 witho
  const f=fixture({operation:'collection_create',actorId:20,permission:'finance.collection'});Object.assign(f.input,{invoiceId:1,receiptId:null});
  await assert.rejects(withCleanStoreDayMutation(f.input,async()=>assert.fail()));assert.equal(f.calls.length,0);
 });
+
+test('daily count and return require the dedicated native cohort and their real actor; old finance cannot issue inventory authority',async()=>{
+ process.env.MELISA_CLEAN_INVENTORY='20261022';
+ try{for(const [operation,actorId,permission] of [['stock_count_draft',21,'product.view'],['stock_count_approve',22,'stock.adjust'],['purchase_return_draft',21,'purchase.view'],['purchase_return_cancel',22,'purchase.cancel']]){
+  const f=fixture({operation,actorId,permission});Object.assign(f.input,{receiptId:operation.startsWith('purchase_return_')?3:null,invoiceId:operation.startsWith('purchase_return_')?4:null});
+  await withCleanStoreDayMutation(f.input,async()=>assert.equal(isCleanStoreDayMutation(),true));
+  assert.deepEqual(f.calls,['dbo.usp_clean_store_inventory_bind','dbo.usp_clean_store_inventory_finish']);
+  for(const patch of [{actor:{id:20,permissions:[permission]}},{actor:{id:16,permissions:[permission]}},{invoiceId:2}])await assert.rejects(withCleanStoreDayMutation({...f.input,...patch},async()=>assert.fail()));
+  process.env.API_PORT='4196';try{await assert.rejects(withCleanStoreDayMutation(f.input,async()=>assert.fail()));}finally{process.env.API_PORT='4194';}
+ }}finally{delete process.env.MELISA_CLEAN_INVENTORY;}
+ const f=fixture({operation:'stock_count_draft',actorId:21,permission:'product.view'});Object.assign(f.input,{receiptId:null,invoiceId:null});await assert.rejects(withCleanStoreDayMutation(f.input,async()=>assert.fail()));assert.equal(f.calls.length,0);
+});

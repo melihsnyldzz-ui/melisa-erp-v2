@@ -29,6 +29,7 @@ export async function assertNoLaterIsolatedCopyCount(c,d,productId){
  if(later.length)fail('LATER_APPROVED_COUNT',`Bu düzeltmeden sonra #${later[0].id} sayımı onaylanmış. Önce bağlı sayımın düzeltme sırasını çözün; stok değiştirilmedi.`);
 }
 export async function reverseStockDocument(c,d,input){
+ if(c.cleanDaily&&d.kind==='count'&&Array.isArray(d.payload.lines)){if(d.payload.lines.length!==1||d.result?.lines?.length!==1||d.payload.lines[0].productId!=='1')fail('REVERSAL_KIND','Özgün tek sayım satırı gerekli.');const line=d.payload.lines[0];d={...d,payload:{...d.payload,physical:line.physical,system:line.system},result:d.result.lines[0]};}
  if(c.copyContext){copyAssert(isolatedCopyTransactionContext(c.transaction)===c.copyContext,'ISOLATED_COPY_REVERSAL_TRANSACTION');if(d.kind==='count'&&Array.isArray(d.payload.lines)){copyAssert(d.payload.lines.length===1&&d.result?.lines?.length===1,'ISOLATED_COPY_REVERSAL_SINGLE_LINE',409);const line=d.payload.lines[0];copyAssert(c.copyContext.products.some(p=>p.id===line.productId),'ISOLATED_COPY_REVERSAL_PRODUCT',403);c={...c,scope:{...c.scope,product_id:Number(line.productId)}};d={...d,payload:{...d.payload,physical:line.physical,system:line.system},result:d.result.lines[0]};}}
  const q=c.sqlDriver,s=c.scope,reason=String(input.reason||'').trim(),date=input.date;
  if(!['count','uninvoiced'].includes(d.kind))fail('REVERSAL_KIND','Bu belge stok ters kaydı kapsamında değil.');

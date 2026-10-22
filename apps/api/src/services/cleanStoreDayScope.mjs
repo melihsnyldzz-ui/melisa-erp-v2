@@ -9,6 +9,8 @@ const permissions=Object.freeze({
  goods_accept:[19,'goods.approve'],goods_reject:[19,'goods.reject'],
  purchase_draft:[19,'purchase.create'],purchase_finalize:[19,'purchase.finalize'],
  collection_create:[20,'finance.collection'],payment:[20,'finance.payment'],
+ stock_count_draft:[21,'product.view'],stock_count_approve:[22,'stock.adjust'],stock_count_reject:[22,'stock.adjust'],stock_count_cancel:[22,'stock.adjust'],
+ purchase_return_draft:[21,'purchase.view'],purchase_return_approve:[22,'purchase.cancel'],purchase_return_reject:[22,'purchase.cancel'],purchase_return_cancel:[22,'purchase.cancel'],
 });
 const deny=()=>{throw Object.assign(new Error('Mal kabul işlem kapsamı doğrulanamadı.'),{code:'CLEAN_INBOUND_SCOPE_REQUIRED',statusCode:403});};
 const positive=v=>Number.isSafeInteger(v)&&v>0;
@@ -19,8 +21,10 @@ function binding(input){
  if(!input||!input.transaction||!input.sqlDriver||!Object.hasOwn(permissions,input.operation)||!positive(input.actor?.id)||!Array.isArray(input.actor.permissions)||!input.actor.permissions.includes(permissions[input.operation][1])||input.actor.id!==permissions[input.operation][0]||!uuid(input.requestId)||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))deny();
  if(input.receiptId!==null&&!positive(input.receiptId)||input.invoiceId!==null&&!positive(input.invoiceId))deny();
  const financial=['collection_create','payment'].includes(input.operation);
+ const inventory=/^(?:stock_count|purchase_return)_/.test(input.operation);
  if(financial&&process.env.MELISA_CLEAN_FINANCE!=='20261022')deny();
- if(financial?(input.operation==='collection_create'?input.invoiceId!==1||input.receiptId!==null:input.invoiceId!==4||input.receiptId!==3):input.operation==='purchase_finalize'?(!positive(input.receiptId)||!positive(input.invoiceId)):
+ if(inventory&&process.env.MELISA_CLEAN_INVENTORY!=='20261022')deny();
+ if(inventory?(input.operation.startsWith('purchase_return_')?input.invoiceId!==4||input.receiptId!==3:input.invoiceId!==null||input.receiptId!==null):financial?(input.operation==='collection_create'?input.invoiceId!==1||input.receiptId!==null:input.invoiceId!==4||input.receiptId!==3):input.operation==='purchase_finalize'?(!positive(input.receiptId)||!positive(input.invoiceId)):
   input.invoiceId!==null||(['goods_accept','goods_reject','purchase_draft'].includes(input.operation)&&!positive(input.receiptId)))deny();
  let payload;try{payload=JSON.parse(input.payloadJson);}catch{deny();}
  if(!payload||Array.isArray(payload)||payload.requestId!==input.requestId||payload.operation!==input.operation||payload.actorId!==String(input.actor.id)||createHash('sha256').update(input.payloadJson,'utf16le').digest('hex')!==input.payloadHash)deny();
@@ -48,12 +52,12 @@ export async function withCleanStoreDayMutation(input,execute){
   .input('request_id',q.UniqueIdentifier,s.requestId).input('payload_hash',q.Char(64),s.payloadHash)
   .input('payload_json',q.NVarChar(q.MAX),s.payloadJson)
   .input('receipt_id',q.BigInt,s.receiptId).input('invoice_id',q.BigInt,s.invoiceId)
-  .execute(['collection_create','payment'].includes(s.operation)?'dbo.usp_clean_store_finance_bind':'dbo.usp_clean_store_day_bind')).recordset?.[0];
+  .execute(/^(?:stock_count|purchase_return)_/.test(s.operation)?'dbo.usp_clean_store_inventory_bind':['collection_create','payment'].includes(s.operation)?'dbo.usp_clean_store_finance_bind':'dbo.usp_clean_store_day_bind')).recordset?.[0];
  witness(accepted,s,'accepted');
  return scope.run(s,async()=>{
   const result=await execute();
   const checked=(await new q.Request(s.transaction).input('request_id',q.UniqueIdentifier,s.requestId)
-   .execute(['collection_create','payment'].includes(s.operation)?'dbo.usp_clean_store_finance_finish':'dbo.usp_clean_store_day_finish')).recordset?.[0];
+   .execute(/^(?:stock_count|purchase_return)_/.test(s.operation)?'dbo.usp_clean_store_inventory_finish':['collection_create','payment'].includes(s.operation)?'dbo.usp_clean_store_finance_finish':'dbo.usp_clean_store_day_finish')).recordset?.[0];
   witness(checked,s,'verified');
   return result;
  });

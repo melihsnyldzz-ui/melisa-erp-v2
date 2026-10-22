@@ -75,3 +75,18 @@ test('clean bootstrap static import graph cannot load database/auth before its v
  assert.ok(auth.paths.some(p=>p.at(-1)===forbidden),'Regression analyzer must recognize the actual transitive auth/database import');
  assert.ok(fileURLToPath(entry).endsWith('cleanSyntheticServer.mjs'));
 });
+
+test('inventory continuation versions only exact installed verifiers and seals constraints without rewriting old manifests',async()=>{
+ const {buildCleanStoreDayInventoryDefinitions,buildCleanStoreDayInventorySql,buildCleanStoreDayFinanceDefinitions}=await import('./clean-store-day-cohort-sql.mjs');
+ const old=buildCleanStoreDayFinanceDefinitions().definitions,r=buildCleanStoreDayInventoryDefinitions();assert.equal(r.total,12);assert.equal(r.operations.length,8);
+ assert.deepEqual(Object.keys(r.before).sort(),['clean_finance_work_trade_requests_guard','usp_clean_store_day_guard','usp_clean_store_day_ready']);for(const [name,body]of Object.entries(r.before))assert.equal(body,old[name]);
+ assert.match(r.definitions.usp_clean_store_day_ready,/before_hash/);assert.match(r.definitions.usp_clean_store_day_ready,/after_constraints_hash/);assert.match(r.definitions.usp_clean_store_inventory_bind,/ORIGINAL_LOGIN/);assert.match(r.definitions.usp_clean_store_inventory_bind,/CURRENT_TRANSACTION_ID/);assert.match(r.definitions.usp_clean_store_inventory_bind,/role_id=@role/);
+ const ddl=buildCleanStoreDayInventorySql('$2b$12$'+'A'.repeat(53),'$2b$12$'+'B'.repeat(53));assert.doesNotMatch(ddl,/DISABLE TRIGGER|UPDATE dbo\.clean_store_finance_manifest|DELETE dbo\.work_trade_requests|UPDATE dbo\.products SET|UPDATE dbo\.suppliers SET/);assert.match(ddl,/WITH CHECK ADD CONSTRAINT CK_clean_inventory_requests/);assert.match(ddl,/before_constraints_json/);assert.throws(()=>buildCleanStoreDayInventorySql('plain','plain'));
+});
+
+test('explicit synthetic cost setup is owner-only, exact one-shot valuation with a bounded inverse and unchanged historic ledgers',async()=>{
+ const {buildCleanInventoryCostFixtureDefinitions,buildCleanInventoryCostFixtureSql}=await import('./clean-store-day-cohort-sql.mjs');const r=buildCleanInventoryCostFixtureDefinitions();assert.equal(r.total,4);assert.deepEqual(Object.keys(r.before).sort(),['usp_clean_store_day_guard','usp_clean_store_day_ready']);
+ const p=r.definitions.usp_clean_inventory_cost_fixture_prepare,g=r.definitions.usp_clean_store_day_guard;
+ assert.match(p,/IS_SRVROLEMEMBER\(N'sysadmin',ORIGINAL_LOGIN\(\)\)/);assert.match(p,/current_stock_qty=23 AND average_cost_try=@before/);assert.match(p,/SYNTHETIC_SCENARIO_COST_INPUT/);assert.match(p,/IF @old IS NOT NULL/);assert.match(p,/@undo=1/);assert.match(p,/EXISTS\(SELECT 1 FROM dbo.test_daily_drafts\)/);assert.match(g,/CURRENT_TRANSACTION_ID/);assert.match(g,/NOT IN\(N'average_cost_try',N'updated_at',N'row_version'\)/);
+ const ddl=buildCleanInventoryCostFixtureSql();assert.doesNotMatch(ddl,/DISABLE TRIGGER|GRANT EXECUTE|UPDATE dbo\.clean_store_inventory_manifest|DELETE dbo\.stock_movements|UPDATE dbo\.sales_invoice/);assert.match(ddl,/before_definition/);assert.match(ddl,/clean_inventory_cost_manifest_immutable/);
+});

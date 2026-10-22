@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {dailyCopyContext,dailyCopyCountLines} from './workDailyCopyModel.mjs';
+import {dailyCopyContext,dailyCopyCountLines,cleanDailyControls} from './workDailyCopyModel.mjs';
 import {testDaily} from './testDaily.js';
 import {dailyDraftCanReverse} from './dailyReversalModel.mjs';
 
@@ -9,7 +9,38 @@ const copyId='00000000-0000-4000-8000-000000000001',sealHash='A'.repeat(64),fing
 function profile(){return{schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:'ISOLATED_TEST_COPY',copyId,sealHash,backupSHA:'C'.repeat(64),date:'2026-10-08',sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_STAGE04_COPY_TEST_20261008_01'},actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:['301','302'].map(id=>({id,sourceKey:['VEGA2026','F0102TBLSTOKLAR',''].join('/')+id,stockCode:'K-'+id,unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['8'+id],barcodes:['000'+id]})),customers:[{id:'501',partyId:'901',accountId:'1001',currency:'TRY',sourceKey:['VEGA2026','F0102TBLCARI','501'].join('/')}],suppliers:[{id:'601',partyId:'902',accountId:'1002',currency:'TRY',sourceKey:['VEGA2026','F0103TBLCARI','601'].join('/')}],financeAccounts:[{id:'701',currency:'TRY'}]};}
 function data(){return{meta:{date:'2026-10-08',operationOrigin:'ISOLATED_TEST_COPY',copyId,sealHash},operationOrigin:'ISOLATED_TEST_COPY',scope:{flow:'count',product_id:301,stock_code:'K-301',current_stock_qty:153},countProducts:profile().products.map(p=>({id:p.id,stockCode:p.stockCode,name:'Ürün '+p.id,unit:'ADET',stockQuantity:153,barcode:p.barcodes[0],movementFingerprint:fingerprint})),drafts:[],items:[],source:null,party:null,accounts:[],availablePurchaseSources:[]};}
 const options=()=>({profile:profile(),location});
+
+test('clean daily controls require the actual finite role, read permission, environment and frozen date; legacy profiles stay unchanged',()=>{
+ const loc={protocol:'http:',hostname:'127.0.0.1',port:'5244'},meta={environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',synthetic:true,actualT1:false,externalOperations:false};
+ assert.equal(cleanDailyControls({},null,'count'),null);
+ for(const flow of ['count','purchase'])for(const id of ['21','22']){
+  const supervisor=id==='22',user={id,role:{code:supervisor?'clean_test_inventory_supervisor':'clean_test_counter'},permissions:[flow==='count'?'product.view':'purchase.view',...(supervisor?[flow==='count'?'stock.adjust':'purchase.cancel']:[])]},m={...meta,cleanDaily:{date:'2026-10-22',actorId:id,canDraft:!supervisor,canReview:supervisor}};
+  assert.deepEqual(cleanDailyControls(m,user,flow,{location:loc}),{date:'2026-10-22',canDraft:!supervisor,canReview:supervisor});
+  for(const changed of [{...m,actualT1:true},{...m,externalOperations:true},{...m,environmentId:'foreign'},{...m,cleanDaily:{...m.cleanDaily,date:'2026-10-23'}},{...m,cleanDaily:{...m.cleanDaily,actorId:'16'}},{...m,cleanDaily:{...m.cleanDaily,canReview:!supervisor}}])assert.throws(()=>cleanDailyControls(changed,user,flow,{location:loc}));
+  assert.throws(()=>cleanDailyControls(m,{...user,role:{code:'admin'}},flow,{location:loc}));assert.throws(()=>cleanDailyControls(m,{...user,permissions:[]},flow,{location:loc}));assert.throws(()=>cleanDailyControls(m,user,flow,{location:{...loc,port:'5194'}}));
+ }
+});
+
+test('clean inverse displays only the owned single native count result and never treats the clean context as an operation copy',()=>{
+ const row={state:'approved',kind:'count',created_by:21,decided_by:22,payload:{lines:[{productId:'1',stockCode:'0007 MELISA',physical:24,system:23}]},result:{lines:[{productId:1,difference:1,movementCreated:true,movementId:11}]}};
+ assert.equal(dailyDraftCanReverse(row,null,{canReview:true}),true);assert.equal(dailyDraftCanReverse(row),false);assert.equal(dailyDraftCanReverse(row,null,{canReview:false}),false);
+ for(const change of [r=>r.created_by=15,r=>r.decided_by=16,r=>r.payload.lines[0].productId='2',r=>r.result.lines[0].difference=2,r=>r.result.lines[0].movementId=null,r=>r.payload.lines.push(r.payload.lines[0])]){const r=structuredClone(row);change(r);assert.equal(dailyDraftCanReverse(r,null,{canReview:true}),false);}
+});
 const line=(physical=153)=>({productId:'301',stockCode:'K-301',physical,system:153,reason:'Raf tekrar sayıldı',movementFingerprint:fingerprint});
+
+test('normal clean count approval and rejection send the registered document date, not the wall clock',async()=>{
+ const keys=['window','location','document','localStorage','FormData'],saved=Object.fromEntries(keys.map(k=>[k,globalThis[k]]));
+ try{for(const op of ['approve','reject']){
+  const loc={protocol:'http:',hostname:'127.0.0.1',port:'5244'};globalThis.location=loc;globalThis.window={location:loc};
+  const d=data();delete d.operationOrigin;d.meta={environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',synthetic:true,actualT1:false,externalOperations:false,cleanDaily:{date:'2026-10-22',actorId:'22',canDraft:false,canReview:true}};
+  d.scope={flow:'count',product_id:1,stock_code:'0007 MELISA',current_stock_qty:23};d.countProducts=[{id:'1',stockCode:'0007 MELISA',name:'Örnek ürün',unit:'ADET',stockQuantity:23,barcode:'0000000000007',movementFingerprint:fingerprint}];
+  d.drafts=[{id:8,kind:'count',state:'pending',created_by:21,payload_json:JSON.stringify({lines:[{productId:'1',stockCode:'0007 MELISA',physical:24,system:23,reason:'Raf tekrar sayıldı'}],unknownScans:[]}),result_json:null}];
+  const calls=[],button={dataset:{dailyAction:op==='approve'?'review-count':'reject-count',id:'8'}},form={},status={textContent:'',setAttribute(){}},submit={},footer={insertAdjacentHTML(){}},modal={classList:{add(){}},querySelector:q=>q==='.modalfoot'?footer:submit};
+  globalThis.localStorage={getItem:()=>null,setItem(){}};globalThis.document={getElementById:id=>({modal,'demo-form':form,'demo-error':status,'daily-status':status,modalback:{style:{}},'daily-close':{}})[id],querySelector:()=>submit,querySelectorAll:q=>q==='[data-daily-action]'?[button]:[]};globalThis.FormData=class{constructor(){return [['reason','Kontrol tamamlandı']];}};
+  const ui=testDaily({api:async(path,options)=>{calls.push({path,body:options.body});return{id:8};},user:{id:'22',role:{code:'clean_test_inventory_supervisor'},displayName:'Örnek kontrol',permissions:['product.view','stock.adjust']},data:d,flow:'count',refresh:async()=>{},esc:String,normalScreen:true});
+  ui.bind();button.onclick();form.onsubmit({preventDefault(){},target:form});await new Promise(resolve=>setImmediate(resolve));assert.equal(calls.length,1);assert.equal(calls[0].path,'/api/test-daily/count/'+op);assert.equal(calls[0].body.date,'2026-10-22');assert.equal(calls[0].body.reason,'Kontrol tamamlandı');
+ }}finally{for(const[k,v]of Object.entries(saved))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}
+});
 
 test('copied native stock153 is allowed; rehearsal applies to difference5 rather than an absolute30/40 fixture limit',()=>{
  const d=data(),p=dailyCopyContext(d,'count',options()),before=JSON.stringify(d);
