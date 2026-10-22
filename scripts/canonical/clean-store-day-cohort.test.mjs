@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {buildCleanStoreDayDefinitions,buildCleanStoreDayCohortSql} from './clean-store-day-cohort-sql.mjs';
 import {buildCleanCompatibleSaleBegin,buildCleanOrderSaleProcedures} from './clean-order-sale-sql.mjs';
 import {moduleHash} from './stage4-copy-sql.mjs';
+import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 test('closed cohort replaces only native readiness and keeps old immutable definition history',()=>{
  const {definitions:d,guards,total}=buildCleanStoreDayDefinitions();
  assert.equal(total,Object.keys(d).length+3);assert.equal(guards.length,3);
@@ -55,4 +57,21 @@ test('finance native binder and finish require exact actor, target, current ledg
  assert.match(g,/customer_max_before/);assert.match(g,/supplier_max_before/);assert.match(g,/unchanged|FULL JOIN OPENJSON/);
  assert.match(f,/customer_count_before/);assert.match(f,/finance_count_before/);assert.match(f,/stock_count_before/);assert.match(f,/DELETE dbo\.work_trade_intents/);
  assert.doesNotMatch(f,/UPDATE dbo\.products|UPDATE dbo\.sales_invoices|UPDATE dbo\.purchase_invoices/);
+});
+
+test('clean bootstrap static import graph cannot load database/auth before its verified context is registered',()=>{
+ const forbidden=new URL('../../apps/api/src/config/database.js',import.meta.url).href;
+ function trace(start){
+  const seen=new Set(),paths=[];
+  function visit(url,chain=[]){if(seen.has(url.href))return;seen.add(url.href);if(url.href===forbidden){paths.push([...chain,url.href]);return;}
+   const source=readFileSync(url,'utf8'),imports=/^\s*(?:import\s+(?:[^;'\"]*?\s+from\s+)?|export\s+[^;'\"]*?\s+from\s+)['\"](\.[^'\"]+)['\"]/gm;
+   for(const match of source.matchAll(imports))visit(new URL(match[1],url),[...chain,url.href]);
+  }
+  visit(start);return {seen,paths};
+ }
+ const entry=new URL('../../apps/api/src/cleanSyntheticServer.mjs',import.meta.url),beforeRegistration=trace(entry);
+ assert.ok(beforeRegistration.seen.size>20);assert.deepEqual(beforeRegistration.paths,[],'An eager import defeats clean SQL-auth selection and loads the unused native trusted driver');
+ const auth=trace(new URL('../../apps/api/src/routes/workCollectionRoutes.mjs',import.meta.url));
+ assert.ok(auth.paths.some(p=>p.at(-1)===forbidden),'Regression analyzer must recognize the actual transitive auth/database import');
+ assert.ok(fileURLToPath(entry).endsWith('cleanSyntheticServer.mjs'));
 });
