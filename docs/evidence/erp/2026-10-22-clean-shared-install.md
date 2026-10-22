@@ -1,5 +1,7 @@
 # 22 Ekim — Güncel temiz TEST: normal mal kabul → alış → tek borç
 
+**Son CI düzeltmesi yalnız testtedir:**5546d3d5 belgeHEAD'inin PRWindows koşusunda tek eski query-only handle denemesi LIVE_HANDLE ile reddedildi; aynıHEADpush başarılıydı. Deneme toplam3,4sn sürüp ilk aktiflik kontrolünde reddedildi; sabit2,5sn ömürlü çocuk, ilk OpenHandle içindeki tembel C#derleme ve kimlik okuması tamamlanmadan çıkabiliyordu. Fixture artık stdin bekler; ilk PID/aktiflik/doğum kanıtından sonra sinyal/EOF ile doğal çıkar,10sn sınırlıbekleme ve finallyEOF/Dispose temizliği vardır. Tüm nativePID/birth/closed/CIM0 assertions ve productiondriver aynıdır; kontrol/yetki gevşetilmedi. Yerelde eskiEncodedCommandrunner yeniden çalıştırılmadı; yalnızJSsyntax+ilk saf kaynak assertionı1PASS. Gerçek Windows fixture sonucu son PR54HEAD CI'sinde ayrıca izlenir. Kurulu5aa/c8,SQL ve servislerde bu CI düzeltmesi için değişiklik/restart0.
+
 Yalnız yapay mağaza günü kapsamında2.2 ve2.3 normal hesaplarla çalıştı.2.4önceki satış kanıtı yeniden kullanıldı; yeni satış/CRM siparişi oluşturulmadı. İnsan kabulü BEKLİYOR; sonraki2.5tahsilat/ödeme/kasa bu teslimde açık.
 
 | Alan | Son doğrulanmış sonuç |

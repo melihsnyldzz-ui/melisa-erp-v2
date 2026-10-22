@@ -1,5 +1,7 @@
 ## 22 Ekim — Güncel çalışan kurulum: iş2.2 mal kabul ve2.3 alış teknik olarak tamamlandı
 
+**Son CI düzeltmesi yalnız testtedir:**5546d3d5 belgeHEAD'inin PRWindows koşusunda tek eski query-only handle denemesi LIVE_HANDLE ile reddedildi; aynıHEADpush başarılıydı. Deneme toplam3,4sn sürüp ilk aktiflik kontrolünde reddedildi; sabit2,5sn ömürlü çocuk, ilk OpenHandle içindeki tembel C#derleme ve kimlik okuması tamamlanmadan çıkabiliyordu. Fixture artık stdin bekler; ilk PID/aktiflik/doğum kanıtından sonra sinyal/EOF ile doğal çıkar,10sn sınırlıbekleme ve finallyEOF/Dispose temizliği vardır. Tüm nativePID/birth/closed/CIM0 assertions ve productiondriver aynıdır; kontrol/yetki gevşetilmedi. Yerelde eskiEncodedCommandrunner yeniden çalıştırılmadı; yalnızJSsyntax+ilk saf kaynak assertionı1PASS. Gerçek Windows fixture sonucu son PR54HEAD CI'sinde ayrıca izlenir. Kurulu5aa/c8,SQL ve servislerde bu CI düzeltmesi için değişiklik/restart0.
+
 ERP source `5aa4cb3eb143ec1171f0b221e16919d36893883d` / `CLEAN-ERP-20261022-5aa4cb3eb143`; frontend7dc6fac build, sonraki uygulama frontend farkı0. CRM source/frontendc8d0e28 korunur; yalnız yeni native source/paket piniyle temiz CRM bağlantı süreçleri yenilendi. Eski16listener port/adres/PID/doğum birebir aynı; TEST125/DB02, Vega/LIVE, eski veriler/roller/yedekler değişmedi. Normal ERP ve CRM ekranları açıldı; bu yalnız aynı temiz yapay TEST'in teknik teslimidir.
 
 | Mevcut iş2 alt adımı | Teknik sonuç |
