@@ -1,10 +1,10 @@
 ## 22 Ekim — Güncel iş2 / aynı temiz TEST'te mağaza günü
 
-**2.5 devamı yürütülüyor:**459c73b6source/CIilk dilimi kabul; genel iş açık. Aynı cleanhedefte mevcut tahsilat/ödeme/native motoru için versionedfinanscohort ve ayrılmış örnek kasa/rol bağlantısı hazırlanıyor. Kasa0→tahsilat376,50→ödeme120→256,50TRY yalnız kayıtlı yapay senaryodur. GerçekSQL/GUI/kurulum/tek etki henüz PASS değildir; mevcut kullanıcı kabulleri aynı. Bkz. güncel [STATUS](STATUS.md).
+**2.5🟢 teknik olarak doğrulandı; insan kabulü bekliyor:** ERP791b82a/CRMc8 aynı temiz yapay TEST'te kurulu. Normal muhasebe20 tahsilat376,50TRY/ödeme120TRY; müşteri/tedarikçi0, kasa256,50, stok23. Gerçek GUI/SQL/API, commit sonrası yanıt kaybı→reload→aynıUUID replay, çift tıklama/yenile ve rol retleri geçti. Eski kayıtlar/sistemler korunur. Bkz. [STATUS](STATUS.md).
 
 **2.1🟢eşleme;2.2🟢mal kabul;2.3🟢alış/tek tedarikçi borcu;2.4🟢önceki satış kanıtının yeniden kullanımı** teknik olarak doğrulandı. Normal depo18→sorumlu19→kabul3/alış4: stok21→23, borç0→120TRY; alış stokta ikinci etki yapmadı. AynıUUID/body ve ayrıUUIDreplay ikinci ticari etki0;9HTTP kontrolü/native4196POST403/native motor+rollback/SQL/API/normalGUI geçti. Kurulu ERP5aa4cb3e/frontend7dc,CRMc8; exactuygulamaPR/pushCI6jobSUCCESS, eski16listener/TEST125/DB02korundu. İnsan kabulleri ve49/25sayaçları aynı.
 
-**ŞİMDİ2.5🔴:** ilk SOURCE/OFFLINE READ/PREVIEW sözleşmesi ve20hedefli kontrol hazır; kurulu yazma yok. Gerçek cleanhedefte5finans/journal tablosu, tahsilat yetkili rol ve doğrulanmışTRYkasa eksik; native guard/journal+dar owner kurulum bağımlılığı açık. Mevcut tahsilat/tedarikçi ödeme/kasa adapterini bu bağımlılıklar kesinleşince aynı temiz hedefe bağla. **2.6🔴:** sayım/iade/iptal; **2.7🔴:** gün sonu mutabakatı. Yeni kayıtlı kapsam/Goal/ajan/TEST yok; bitmiş satış/migration yeniden oluşturulmaz. [STATUS](STATUS.md), [ekran ve makbuz kanıtı](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki iş1veeski3db kayıtları tarihseldir.
+**ŞİMDİ2.6🔴:** aynı temiz TEST'te mevcut sayım/iade/iptal motorunu normal ekran ve native tek etkiyle tamamla. Ardından **2.7🔴:** gün sonu mutabakatı. Yeni Goal/ajan/TEST/tree yok;2.1–2.5/satış/migration yeniden oluşturulmaz. [STATUS](STATUS.md), [ekran ve makbuz kanıtı](docs/evidence/erp/2026-10-22-clean-shared-install.md). İnsan kabulleri ve özgün49/25aynı.
 
 ## 22 Ekim — Önceki iş1: CRM siparişi → normal ERP onayı → tek satış teknik bağlantısı teslim edildi
 

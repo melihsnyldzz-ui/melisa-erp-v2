@@ -1,3 +1,7 @@
+## 22 Ekim — Aynı mağaza günü2.5 teknik teslimi; özgün kabuller bekliyor
+
+Mevcut B06/C08/ERP09 kapsamında gerçek tahsilat/tedarikçi ödeme/kasa bağlantısı ERP791b82a/CRMc8 temiz yapay TEST'te normal ekran, native SQL/API, rol ve tekrar güvenliğiyle doğrulandı. Müşteri/tedarikçi0, kasa256,50TRY, stok23; eski satış/alış/geçmiş aynı. Sentetik ajan provasıdır; insanPASS veya49/25yaprak artışı değildir. Özgün2.6sayım/iade/iptal ve2.7günsonu devam eder. [STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
 ## 22 Ekim — Aynı mağaza günü iş2.2/2.3 teknik teslimi
 
 ERP5aa4cb3e/CRMc8 temiz yapay hedefte normal depo sayımı→sorumlu kabulü→native alış/tedarikçi borcu tamamlandı. Stok21→23 yalnız kabulde; alış120TRYborç, ikinci stok0. Eski CRMorder3/sale1 tekrar oluşturulmadan korunup güncel kaynaktan okundu. Native rollback/rol/replay/SQL/API/normalGUI ve exactuygulamaCI geçti; insan/P03/cihaz/Windowsreboot kapanışı değildir. Özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡/0🔴,74yaprak aynıdır. Güncel alt adımlar2.1eşleme/2.2mal kabul/2.3alış/2.4öncekisatışkanıtı teknik tamam;2.5tahsilat-ödeme-kasa sıradaki,2.6sayım-iade-iptal ve2.7günsonu açık. Yeni plan/tree yok. [Güncel STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

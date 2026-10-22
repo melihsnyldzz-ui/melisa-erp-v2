@@ -1,5 +1,38 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## İş 2.5 — Normal tahsilat ve ödeme teknik olarak doğrulandı
+
+Uygulama791b82a exact HEAD'inde PR/push'a ait6CI check-run completed/SUCCESS (quality-build-test,windows-startup-test,secret-scan ikişer). [PR39831103076](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39831103076) completed/SUCCESS; [push39831095888](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39831095888) job'ları başarılı fakat REST workflow aggregate ilk okumada in_progress kaldı. Check-run kanıtı commit/check-runs API'sinden bağımsız doğrulandı; aggregate completed diye değiştirilmedi. Son belge HEAD'i çalışan uygulamadan ayrıdır.
+
+ERP uygulama `791b82a288adc085380c7827c53b62114bf6d80d` / `CLEAN-ERP-20261022-791b82a288ad`, PR54; frontend3bf5c7eb build, sonraki frontend farkı0, HTTP/dist SHA eşit. CRM source/frontend `c8d0e28f0ea6cf16133c87dd548a4281381abfb7`, PR3; yalnız runtime native source/paket pini güncellendi. Hedef yalnız `MELISA_ERP_CLEAN_TEST_20261022`, environment `e662fd94-d797-4b3b-938a-d143ad758b67`, synthetic=true/T1=false/externalOperations=false; ERP5244/API4194/native4196, CRM62800–62803 loopback. İnsan kabulü bekliyor.
+
+Mevcut native financeService ve workCollectionService/workSupplierPaymentService kullanıldı. Eski15–19 rolleri aynı; ayrı örnek muhasebe20/rol25 yalnız gereken finans ve görüntüleme izinlerine sahip. Normal giriş mevcut DPAPI kaydından parola formuyla yapıldı; sır çıktısı/token enjeksiyonu yok. Eski23cohort/12SALE/8draft/2compatibility kanıtına dokunulmadan12finans companion tanımı gerçek SQL'de mühürlendi. Aynı transaction/aktör/izin/hash ve tek etki zorunlu; guard kapatma yok. Native4196 finans yazması403.
+
+| Yapay TEST kaydı | Önce | Normal ekran sonrası |
+|---|---:|---:|
+| Mevcut satış1 müşteri borcu |376,50TRY|0,00TRY; tek tahsilat|
+| Mevcut alış4/kabul3 tedarikçi borcu |120,00TRY|0,00TRY; tek ödeme|
+| Yapay kasa1 |0,00TRY|376,50giriş −120,00çıkış =256,50TRY|
+| Ürün1 stok |23ADET|23ADET; eski2stok hareketi aynı|
+| Eski belgeler |3sipariş/1satış/1alış|Aynı kayıtlar/geçmiş; yeniden oluşturulmadı|
+| Finans |0journal/0kasa hareketi|2journal/2kasa hareketi/1tahsilat bağı/0intent|
+
+Tahsilat POST200 ile commit olduktan sonra yalnız cevabı browser ağ aracıyla düşürüldü. Ekran belirsiz sonucu kilitledi; reload sonrası aynı UUID/body korundu, “Son işlemi doğrula”200/replayed ile ikinci tahsilat0. Geçici interception kaldırıldı. Ödeme düğmesine gerçek çift tıklama tekPOST üretti; yenile sonrası aynı `OD-5 → alış4 → kabul3` geçmişi, borç0/kasa256,50; yenilePOST0. İki gerçek GUI isteği API'den ikişer replay edildi:200/ikinci etki0; aynıUUID farklıbody409, native4196POST403, eski15personel tahsilat403. Bağımsız SQL kart/defter/kasa eşit ve native ready geçti.
+
+Native motor sonrası kontrollü hata/rollback ve eski SALE motoru yeni müşteri guard'ıyla önceki gerçek outer-transaction provasında geçti. Son iki düzeltme SQL/finans motorunu değiştirmediği için ticari provalar tekrarlanmadı. COPY_ONLY/CHECKSUM+VERIFYONLY korunur; gerçek restore/reset veya commit sonrası business inverse yapılmadı.
+
+**Gerçek kurulumda düzeltilenler:**5cf statik collection route→auth→database zinciri temiz kimlik kaydından önce gereksiz msnodesqlv8 sürücüsünü seçtirip başlamadı. Çalışan5aa/c8 uygulaması güvenle geri açıldı, DBrestore0.3bf importu doğrulanmış context sonrasına taşıdı; gerçek SQL-auth cold-load ve başlangıç geçti. Normal GUI sonra200liste yanıtındaki eksik `{data,meta}` katmanını gösterdi;791 yalnız RO envelope'u düzeltti.31ilgili test ve mevcut bağımsız incelemede açıkP1/P2=0. İlk installer readback'i uygulamada olmayan yeni purpose etiketi beklemişti; doğru source/native health bağımsız doğrulanınca aynı ERP süreçleri korunup kalan CRMstart tamamlandı. Başarısız aday körlemesine tekrarlanmadı; native sürücü kurulmadı, güvenlik gevşetilmedi.
+
+Eski16listener adres/PID/doğum/executable aynı.20koruma özetinin18business/role/source/history kapsamı eşit; iki users özeti normal15login `last_login_at` ve otomatik SQL `row_version` nedeniyle değişti. İkinci özet yalnız last_login_at'ı dışladığından o da değişir;20/20aynı denmez. Etkili usersUPDATE yalnız last_login_at; eski rol/izin, fiyat/medya/maliyet, sipariş/receipt, belgeler ve eski cari hareketleri eşit. TEST125/DB02/eski DB'lere erişim0; LIVE/Vega/T1/main/gerçek mesaj/ücretli AI yok.
+
+Private makbuz `C:\Sirket\ERP\clean\20261022\runtime\installation-receipt-finance.json`, SHA256 `94d94285f4fed652ff3298042c95d52d9a5b471c1ba292eae49db597adf22cbc`. Native/HTTP/koruma kanıtları private runtime'da; sır/ham ticari veri/yedek yüklenmedi. Görüntüler yalnız yapay TEST'tir.
+
+![Tahsilat ve yanıt kaybı sonrası aynı kayıt](2026-10-22-finance-collection.png)
+![Ödeme geçmişi ve kalan kasa](2026-10-22-finance-payment.png)
+![Aynı ERP ürün/fotoğraf/fiyatını okuyan CRM](2026-10-22-finance-crm.png)
+
+[Tahsilat](http://127.0.0.1:5244/ornek-akis.html#collections), [ödeme](http://127.0.0.1:5244/ornek-akis.html#supplier-payments), [CRM](http://127.0.0.1:62800/). Sıradaki mevcut2.6sayım/iade/iptal, ardından2.7gün sonu. ERP-UA08/14, insan/cihaz/reboot ve özgün49ERP/25CRM kabulleri BEKLİYOR. Yeni Goal/tree/TEST/ajan yok. Aşağıdaki kaynak-only ve eski paket kayıtları tarihseldir.
+
 ## İş2.5 ilk SOURCE/OFFLINE dilimi — kurulu tahsilat değildir
 
 Mevcut B06/C08 ve ERP-UA08/14 kapsamında `cleanStoreDayCollectionPreparation.mjs`, mevcut `workCollectionService` tutar/tarih/revision/hash hesabını değiştirmeden kullanır. Varsayılan DB/route/initializer/native writer yok. Yalnız exact clean order3→sale1/customer1/376,5000TRY, güncel izin kesişimi, aynı ortamın tek doğrulanmış yapayTRYkasası ve tam tahsilat geçmişiyle önizleme hazırlanabilir. Dış yetkiler false; collect/cancel her durumda403. Fixture'daki hazır rol/kasa yalnız çevrimdışı varsayımsal girdidir, gerçekten oluşturulmuş hesap değildir.
