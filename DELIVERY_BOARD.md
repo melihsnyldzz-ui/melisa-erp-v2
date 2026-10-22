@@ -1,4 +1,8 @@
-## 22 Ekim — Etkin iş: temiz ortak TEST normal ekran kanıtı tamamlandı
+## 22 Ekim — Etkin tek iş: CRM siparişi → normal ERP onayı → tek satış
+
+ERP-DEC-070 ile önce mevcut temiz TEST siparişinin normal satışa dönüşümü, sonra örnek mağaza günü sırası yetkilidir. Mevcut native draft/fotoğraf/kesinti yeniden geliştirilmez. ERP09/CRM06-E02 kapsamında mevcut invoice motoruna tekil sipariş/fiş bağı ve kontrollü onay bağlanıyor; CRM yalnız bağlı sonucu okur. Kaynak/SQL/kurulum/GUI/insan sonucu ayrı tutulur. Kurulu970/1dd değişmedi, kaynak henüz uygulanmadı. Yeni SQL'in desteklenen COPY_ONLY/CHECKSUM yedeği ve VERIFYONLY geçerli; restore yok. [Güncel STATUS](STATUS.md). Launcher reddi atlanmaz ve bu işe ön koşul değildir; yeni Goal/tree/ajan yok.
+
+## 22 Ekim — Önceki teslim: temiz ortak TEST normal ekran kanıtı tamamlandı
 
 ERP-DEC-068/069: ERP970cfc2/CRM1dd07d1 kurulu. Normal iki giriş, CRM ürün/müşteri/adet/fiyat→gerçek native SQL taslak→ERP Onaylar, yenile/tekrar açma, istek öncesi kesinti ve commit sonrası yanıt kaybı doğrulandı. Original fotoğraf ve Türkçe bağlantı uyarısı yeni pakette gerçek ekranda geçti.3farklı UUID'nin her biri tek kayıt; stok/finans etkisi0. Eski16listener ve TEST125/DB02/veri/rol/yedek korunur.5.2 eski deneme klasörüne bağımlılık yok.5.1 mevcut .cmd actual çağrısı otomatik genel politika reddinde başlamadı; kolay açılış PASS değildir. [Güncel STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Özgün49ERP/25CRM ve insan kabulü değişmez.
 

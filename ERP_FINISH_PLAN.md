@@ -1,3 +1,7 @@
+## 22 Ekim — ERP09 / CRM06-E02 siparişten satışa teknik devam
+
+ERP-DEC-070 ile mevcut temiz TEST'teki kaynak sipariş→normal ERP onayı→tek satış→tek stok/müşteri hesabı etkisi tamamlanıyor. Native4196 draft sözleşmesi/immutable receipt korunur; ERP4194 kontrollü dönüşüm/onay ve CRM read-only bağlı sonuç ayrı. Mevcut satış motoru yeniden kullanılır; kaynak hazırlanması gerçek SQL/GUI/insan kabulü değildir. Eski veriler ve49ERP/25CRM sayaçları aynı. Etkin sonraki adım ve gerçek sonuç [STATUS](STATUS.md) içindedir; launcher5.1 bu adımın ön koşulu yapılmaz.
+
 ## 22 Ekim — Temiz ortak TEST normal GUI teknik alt kanıtı
 
 ERP-DEC-068/069: ERP970cfc2/CRM1dd07d1 gerçekten kuruldu; normal iki rol/giriş, CRM katalog/orijinal fotoğraf/müşteri/adet/fiyat→native SQL taslak→ERP Onaylar ve iki browser kesintisi doğrulandı. Her UUID tek kayıt; yenileme/yanıt kaybında ikinci etki0. Eski kurulum/veriler korundu.5.1 mevcut .cmd actual çalıştırma çağrısı genel araç politikası reddiyle BLOCKED;5.2 eski deneme klasörü bağımlılığı yok. Gerçek personel/cihaz/Windows reboot kabulü bekler. Özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡/0🔴 değişmez; teknik kanıt üst kapanış değildir. [Son kurulum ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md).

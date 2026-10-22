@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-070 — 22 Ekim 2026 — Temiz TEST'te CRM siparişinden normal satışa devam
+
+**Kaynak:** Kordinatör AJAN kaydındaki kullanıcının “Tamam bu işleri sana bırakıyım sırayla benim için halledebilirmisin” kararı ve mevcut ERP owner'ına ilk tek somut devir. Önce temiz yapay SQL hedefinde mevcut CRM siparişi → normal ERP onay/satış → tek satış belgesi → bir kez stok/müşteri hesabı etkisi tamamlanır. Eski çalışan taslak/fotoğraf/kesinti kanıtı yeniden geliştirilmez. PR55 Cloud örneği normal/native satış yerine sayılmaz; CRM E02 upstream sözleşme eksikliği aynı işte giderilir.
+
+Kaynak aynı kanonik Git'in mevcut PR54 feature worktree'sinde; ana checkout'taki kullanıcı değişikliği korunur. Kurulum yalnız mevcut clean/20261022 hedefi, environment E662FD94-D797-4B3B-938A-D143AD758B67. ERP tek SQL/runtime sahibi; CRM yalnız kendi kaynak/okuyucu sorumlusu. Mevcut invoiceDraftService create/finalize motoru dar işlem bağlamında kullanılır; özgün v2 sipariş/receipt değişmez, sipariş→satış tekil bağı ve replay journal korunur. Güncel fiyat/stok/cari doğrulanmadan dönüşüm/onay yok; değişiklikte409, tahmini fiyat/kur/Peşin kimliği yok. Ayrılmış yapay sorumlu hesabı gerçek mevcut onay iznini taklit eder; eski personel hesabına veya gerçek role yetki eklenmez. Bu görevin gerektirdiği yapay satış/stok/cari etkisi TEST yetkisidir; gerçek ticari kayıt değildir.
+
+CRM draft-only native4196 güvenlik sözleşmesi korunur; satış yazması yalnız ERP4194 normal yetkili akışındadır. Bağlı satış sonucu draft receipt'i gevşetmeden ayrı, yetkili salt okunur sözleşmede gösterilir. Aynı UUID/farklı içerik reddi, farklı UUID/aynı siparişte ikinci satış/etki0, yenileme ve gerçek normal ekran kanıtı gerekir. Launcher5.1 politika reddi aşılmaz/önkoşul yapılmaz. Yeni yardımcı/ajan/Goal/altyapı/otomasyon yok; eski TEST/DB02/veri/rol/yedekler ve insan kabulü korunur. LIVE/Vega/T1/main/gerçek müşteri mesajı/ücretli servis ayrıca onaylı değildir.
+
 ### ERP-DEC-069 — 22 Ekim 2026 — Kalan normal GUI ve kesinti kontrolünü kullanıcı adına tamamla
 
 **Kaynak:** Kordinatör AJAN konuşmasındaki doğrudan kullanıcı “Ben yerime onlarıda hallet” mesajı, turn `01a1631f-8205-70c3-8cd6-2486c3b71d28`, mevcut ERP/CRM owner'larına aynı görevde iletildi. Mevcut beş aşamanın2.4–2.5/3.3–3.5/4.1/4.4/5.1–5.2 teknik kontrolleri tamamlanır; yeni Goal/plan/ajan/helper/altyapı oluşturulmaz. Sadece yeni yapay TEST ve mevcut örnek hesaplar; eski kurulum/veri/ağ etkilenmez. Mevcut başarılı kaynak/kurulum/restart gereksiz tekrarlanmaz, somut hatada en dar ilgili kontrol yenilenir.

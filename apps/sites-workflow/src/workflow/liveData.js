@@ -106,8 +106,8 @@ export function nativeApprovalSummary(data){
  const links=[['goods','Mal kabulü','goods'],['count','Sayım','count'],['returns','İadeler','returns']].filter(([, ,k])=>c[k]===true&&n[k]===true).map(([screen,label])=>({screen,label}));
  return {pendingCount:s.status==='available'?s.pendingCount:null,status:s.status,links};
 }
-function createNativeApprovals({root,session,navigate}){
- if(isCleanCatalogLocation(window.location))return createCleanNativeOrders({root,session});
+function createNativeApprovals({root,session,navigate,user}){
+ if(isCleanCatalogLocation(window.location))return createCleanNativeOrders({root,session,user,storage:storage('localStorage')});
  let active=false,generation=0;
  async function refresh(){const token=++generation;root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="status">Bekleyen işler açılıyor…</p></section>';try{
   const view=nativeApprovalSummary(validateWorkHome(await session.home()));if(!active||!root.isConnected||token!==generation)return;
@@ -180,7 +180,7 @@ function mount(){
   }
   function showHome(current){
    if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);
-   homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
+   homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,user:current,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
   }
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;clearReadOnlyNavigation();homeUI?.dispose();session.dispose();};

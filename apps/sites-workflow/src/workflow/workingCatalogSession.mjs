@@ -38,7 +38,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{if(protectedDevice&&key===workingCatalogTokenKey){deviceToken=value;try{storage?.removeItem(key);}catch{}return;}try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   if(protectedDevice&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
@@ -54,6 +54,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
+   if(cleanSaleErrors&&response.status===409&&payload?.error?.code==='CLEAN_SALE_CHANGED')throw Object.assign(problem('Bilgiler değişti. Güncel kaydı kontrol edin.',409),{code:'CLEAN_SALE_CHANGED'});
    if(!response.ok||payload?.success!==true){if(!startupAuth&&(response.status===401||response.status===403&&!keepForbiddenSession)){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
    return payload;
   }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
@@ -120,6 +121,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   async orders(id=null){
    if(!active||!token||!user||!user.permissions.includes('sales.view')||location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5244'||resolvedApiBase!=='http://127.0.0.1:4194'||id!==null&&(!Number.isSafeInteger(id)||id<1))throw problem('Sipariş bağlantısı kullanılamıyor.');
    return request('/api/sales-orders'+(id===null?'?limit=50&status=draft':'/'+id),{expire:true,keepForbiddenSession:true});
+  },
+  async orderSale(id,{operation=null,body,...extra}={}){
+   if(Object.keys(extra).length||!active||!token||!user||!user.permissions.includes('sales.view')||location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5244'||resolvedApiBase!=='http://127.0.0.1:4194'||!Number.isSafeInteger(id)||id<1||!(operation===null&&body===undefined||['convert','finalize'].includes(operation)&&body&&typeof body==='object'&&!Array.isArray(body)&&user.permissions.includes(operation==='convert'?'sales.create':'sales.finalize')))throw problem('Sipariş satış bağlantısı kullanılamıyor.',403);
+   return request('/api/sales-orders/'+id+'/'+(operation===null?'sale':operation==='convert'?'convert-to-sales-draft':'finalize-linked-sale'),{method:operation===null?'GET':'POST',body,expire:true,keepForbiddenSession:true,workMutation:operation!==null,cleanSaleErrors:true});
   },
   async api(path,{envelope=false,...extra}={}){
    const priceRoute=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/current-prices$/.test(path);
