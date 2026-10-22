@@ -35,3 +35,17 @@ test('SALE and inbound scope cannot nest in either direction',async()=>{
  assert.equal(f.calls.length,0);
  await withCleanStoreDayMutation(f.input,async()=>{await assert.rejects(withCleanOrderSaleMutation({transaction:f.input.transaction,operation:'finalize',orderId:3},async()=>{}));});
 });
+test('finance uses its native binder, exact sale/purchase and real actor20 without aliasing legacy16',async()=>{
+ process.env.MELISA_CLEAN_FINANCE='20261022';
+ try{
+  for(const operation of ['collection_create','payment']){
+   const f=fixture({operation,actorId:20,permission:operation==='payment'?'finance.payment':'finance.collection'});
+   Object.assign(f.input,{invoiceId:operation==='payment'?4:1,receiptId:operation==='payment'?3:null});
+   await withCleanStoreDayMutation(f.input,async()=>{assert.equal(isCleanStoreDayMutation(),true);});
+   assert.deepEqual(f.calls,['dbo.usp_clean_store_finance_bind','dbo.usp_clean_store_finance_finish']);
+   for(const patch of [{actor:{id:16,permissions:['finance.collection','finance.payment']}},{invoiceId:2},{receiptId:0}])await assert.rejects(withCleanStoreDayMutation({...f.input,...patch},async()=>assert.fail()));
+  }
+ }finally{delete process.env.MELISA_CLEAN_FINANCE;}
+ const f=fixture({operation:'collection_create',actorId:20,permission:'finance.collection'});Object.assign(f.input,{invoiceId:1,receiptId:null});
+ await assert.rejects(withCleanStoreDayMutation(f.input,async()=>assert.fail()));assert.equal(f.calls.length,0);
+});

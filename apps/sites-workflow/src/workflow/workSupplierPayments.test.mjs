@@ -101,3 +101,35 @@ test('supplier history with no invoice still opens and retains existing payment 
  ui.mount();await tick();assert.match(d.root.innerHTML,/Henüz bağlı alış faturası yok/);assert.match(d.root.innerHTML,/OD-701/);assert.match(d.root.innerHTML,/Ödemeler ve ters kayıtlar/);assert.doesNotMatch(d.root.innerHTML,/Ödeme geçmişi şu anda açılamıyor|Alış faturası undefined/);
  ui.refresh();await tick();assert.equal(calls.length,2);assert.match(d.root.innerHTML,/OD-701/);ui.dispose();
 });
+function cleanFinanceContext(){
+ const c=context();Object.assign(c.meta,{date:'2026-10-22',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});
+ c.suppliers=[{...c.suppliers[0],id:'1',currency:'TRY',balanceExact4:'120.0000',invoices:[{...c.suppliers[0].invoices[0],id:'4',receiptId:'3',receiptKind:'work-clean-store-day-receipt',documentDate:'2026-10-22',documentCurrency:'TRY',documentAmountExact4:'120.0000',accountAmountExact4:'120.0000',remainingExact4:'120.0000'}]}];
+ c.accounts=[{...c.accounts[0],id:'1',openingBalanceExact4:'0.0000',balanceExact4:'376.5000'}];c.rates=[];
+ return c;
+}
+test('clean store day retains the actual receipt3 purchase4 link without relabelling legacy receipts',()=>{
+ const c=cleanFinanceContext();assert.equal(paymentContext(c),c);
+ const p=supplierPaymentPreview({supplierId:'1',invoiceId:'4',accountId:'1',currency:'TRY',amountExact4:'120.0000',documentDate:'2026-10-22',description:'Örnek alış ödemesi'},c);
+ assert.equal(p.balanceAfterExact4,'0.0000');assert.equal(p.accountBalanceAfterExact4,'256.5000');
+ for(const mutate of [v=>v.meta.environmentId='other',v=>v.suppliers[0].invoices[0].id='5',v=>v.suppliers[0].invoices[0].receiptId='2',v=>v.suppliers[0].invoices[0].receiptKind='work-finops-physical-receipt']){
+  const invalid=structuredClone(c);mutate(invalid);assert.throws(()=>paymentContext(invalid));
+ }
+});
+
+test('clean payment journal is bound to actor20 and exact loopback5244 to4194; old endpoints retain old behavior',()=>{
+ const location={protocol:'http:',hostname:'127.0.0.1',port:'5244'},base={storage:storage(),actorId:'20',apiBase:'http://127.0.0.1:4194',location,makeUuid:()=>requestId};
+ const journal=createPaymentJournal(base);const pending=journal.begin('/api/work-supplier-payments/payments',{amountExact4:'120.0000'});assert.equal(journal.read().request.body.requestId,pending.body.requestId);
+ for(const patch of [{actorId:'16'},{actorId:'19'},{apiBase:'http://127.0.0.1:4196'},{location:{...location,port:'5234'}},{location:{...location,hostname:'192.168.1.46'}}])assert.throws(()=>createPaymentJournal({...base,...patch}));
+ assert.doesNotThrow(()=>createPaymentJournal({storage:storage(),actorId:'16',apiBase}));
+});
+
+test('normal clean finance screen loads its own authorized context and refresh without requiring warehouse permission',async()=>{
+ const {createWorkSupplierPayments}=await controller(),d=dom(),calls=[],c=cleanFinanceContext();
+ const ui=createWorkSupplierPayments({root:d.root,user:{id:20},apiBase:'http://127.0.0.1:4194',location:{protocol:'http:',hostname:'127.0.0.1',port:'5244'},storage:storage(),session:{
+  inbound:async()=>assert.fail('Finance actor must not be routed through warehouse permissions'),
+  supplierPayments:async(path,options)=>{assert.equal(options,undefined);calls.push(path);return c;},
+ }});
+ ui.mount();await tick();assert.deepEqual(calls,['/api/work-supplier-payments/context']);assert.doesNotMatch(d.root.innerHTML,/Ödeme bağlantısı doğrulanamadı/);
+ d.node('[data-sp-supplier]').onchange({target:{value:'1'}});assert.match(d.root.innerHTML,/120,00/);
+ ui.refresh();await tick();assert.equal(calls.length,2);assert.equal(ui.requestClose(),true);ui.dispose();
+});

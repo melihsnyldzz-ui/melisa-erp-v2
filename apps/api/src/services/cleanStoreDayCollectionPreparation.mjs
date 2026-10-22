@@ -32,7 +32,7 @@ export function cleanCollectionDependencies({identity,tableNames,actors,accounts
    'NATIVE_COLLECTION_SCOPE_NOT_INSTALLED'])});
 }
 
-function sourceInvoice(c,invoice){
+export function assertCleanCollectionSource(c,invoice){
  const s=c.source;
  if(s?.orderId!=='3'||s.orderRequestId!=='45064956-9c91-470f-a7b6-a9330b60e456'||
   s.invoiceId!=='1'||s.customerId!=='1'||s.creatorId!=='15'||s.approverId!=='17'||
@@ -72,7 +72,7 @@ export function createCleanStoreDayCollectionReadPreparation({withReadContext}={
    const accounts=c.context?.scope?.accounts;
    if(!Array.isArray(accounts)||accounts.length!==1||accounts[0].id!==d.accountIds[0]||
     !eligibleAccount(accounts[0])||typeof c.invoice!=='function')deny();
-   const invoice=async id=>{if(id!=='1')deny('CLEAN_COLLECTION_SOURCE_CHANGED',409);return sourceInvoice(c,await c.invoice(id));};
+   const invoice=async id=>{if(id!=='1')deny('CLEAN_COLLECTION_SOURCE_CHANGED',409);return assertCleanCollectionSource(c,await c.invoice(id));};
    await invoice('1');
    // Preview reuses existing money/date/revision/hash validation. This private
    // DTO flag only enables calculation; it is never a native write grant.

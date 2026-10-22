@@ -5,9 +5,12 @@ export {tradeInput as paymentInput,tradeAmount as paymentAmount};
 export const paymentEsc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fail=()=>{throw Error('Ödeme bilgileri doğrulanamadı. Yenileyerek tekrar deneyin.');};
 const text=v=>typeof v==='string',currency=v=>['TRY','USD','EUR'].includes(v),money=v=>tradeExact(v,4),positive=v=>money(v)&&BigInt(v.replace('.',''))>0n,nullableId=v=>v===null||tradeId(v),units=v=>BigInt(v.replace('.',''));
-const receiptKinds=['work-finops-physical-receipt','work-goal8-batch-receipt','work-stage4-copy-batch-receipt'];
+const receiptKinds=['work-finops-physical-receipt','work-goal8-batch-receipt','work-stage4-copy-batch-receipt','work-clean-store-day-receipt'];
 function contextReceiptKind(c,copy){
  if(copy)return receiptKinds[2];
+ if(c.meta.environmentId==='e662fd94-d797-4b3b-938a-d143ad758b67'){
+  if(c.meta.date!=='2026-10-22'||c.suppliers.length!==1||c.suppliers[0].id!=='1'||c.accounts.length!==1||c.accounts[0].id!=='1'||c.suppliers[0].invoices.some(i=>i.id!=='4'||i.receiptId!=='3'))fail();return receiptKinds[3];
+ }
  const p=c.meta.testProfile;if(p===undefined)return receiptKinds[0];
  if(p?.id!=='ERP-GOAL8-20261007'||p.sealed!==true||p.synthetic!==true||p.productId!=='325503'||p.supplierId!=='13370'||p.customerId!=='30598'||p.currency!=='TRY'||!tradeId(p.accountId)||!text(p.dayId)||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(p.dayId)||!text(p.definitionHash)||!/^[A-F0-9]{64}$/.test(p.definitionHash)||c.meta.date!=='2026-10-07')fail();
  return receiptKinds[1];
@@ -32,10 +35,13 @@ export function paymentPreview(p,s,c){paymentSelection(s,c);const fields=['suppl
 }
 const uuid=v=>text(v)&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v),object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v),clone=v=>JSON.parse(JSON.stringify(v));
 const writablePath=p=>p==='/api/work-supplier-payments/payments'||/^\/api\/work-supplier-payments\/payments\/[1-9]\d*\/cancel$/.test(p);
-export function createPaymentJournal({storage,actorId,apiBase,makeUuid=tradeUuid}={}){
+export function isCleanFinancePaymentTarget({location=globalThis.window?.location??globalThis.location,actorId,apiBase}={}){
+ return apiBase==='http://127.0.0.1:4194'&&String(actorId)==='20'&&location?.protocol==='http:'&&location.hostname==='127.0.0.1'&&location.port==='5244';
+}
+export function createPaymentJournal({storage,actorId,apiBase,makeUuid=tradeUuid,location=globalThis.window?.location??globalThis.location}={}){
  const businessAPI=['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase);
  if(businessAPI){const location=globalThis.window?.location??globalThis.location,profile=globalThis.window?.__MELISA_OPERATION_COPY__??globalThis.__MELISA_OPERATION_COPY__;validateOperationCopyBootstrap(profile,location);if(location?.port!=='5234'||!operationCopyDailySelection(profile)||location.hostname==='192.168.1.46'&&apiBase!=='http://192.168.1.46:4184'||location.hostname!=='192.168.1.46'&&apiBase!=='http://127.0.0.1:4184')fail();}
- if(!tradeId(String(actorId))||!businessAPI&&!['http://127.0.0.1:4144','http://192.168.1.46:4144','http://127.0.0.1:4154','http://127.0.0.1:4174','http://192.168.1.46:4174'].includes(apiBase))throw Error('Ödeme bağlantısı doğrulanamadı.');
+ if(!tradeId(String(actorId))||!businessAPI&&!isCleanFinancePaymentTarget({location,actorId,apiBase})&&!['http://127.0.0.1:4144','http://192.168.1.46:4144','http://127.0.0.1:4154','http://127.0.0.1:4174','http://192.168.1.46:4174'].includes(apiBase))throw Error('Ödeme bağlantısı doğrulanamadı.');
  const key=`melisa-work-supplier-payment:${apiBase}:${actorId}`,scope={version:1,actorId:String(actorId),apiBase,operation:'supplier-payment'};
  const failure=()=>{throw Error('Ödeme korunamadı; kayıt gönderilmedi. Tekrar deneyin.');};
  function read(){try{const raw=storage?.getItem(key);if(!raw)return {...scope,draft:null,request:null};const v=JSON.parse(raw),r=v.request;if(!Object.keys(scope).every(k=>v[k]===scope[k])||v.draft!==null&&!object(v.draft)||r!==null&&(!object(r)||!writablePath(r.path)||!['pending','confirmed','rejected'].includes(r.status)||!object(r.body)||!uuid(r.body.requestId)))throw Error();return v;}catch{throw Error('Son ödeme kaydı okunamıyor. Yeni kayıt göndermeden önce sonucu kontrol edin.');}}

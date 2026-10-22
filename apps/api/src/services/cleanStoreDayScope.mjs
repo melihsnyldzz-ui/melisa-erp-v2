@@ -8,6 +8,7 @@ const permissions=Object.freeze({
  count_create:[18,'goods.create'],count_update:[18,'goods.create'],count_submit:[18,'goods.create'],count_cancel:[18,'goods.create'],
  goods_accept:[19,'goods.approve'],goods_reject:[19,'goods.reject'],
  purchase_draft:[19,'purchase.create'],purchase_finalize:[19,'purchase.finalize'],
+ collection_create:[20,'finance.collection'],payment:[20,'finance.payment'],
 });
 const deny=()=>{throw Object.assign(new Error('Mal kabul işlem kapsamı doğrulanamadı.'),{code:'CLEAN_INBOUND_SCOPE_REQUIRED',statusCode:403});};
 const positive=v=>Number.isSafeInteger(v)&&v>0;
@@ -17,7 +18,9 @@ function binding(input){
  target();
  if(!input||!input.transaction||!input.sqlDriver||!Object.hasOwn(permissions,input.operation)||!positive(input.actor?.id)||!Array.isArray(input.actor.permissions)||!input.actor.permissions.includes(permissions[input.operation][1])||input.actor.id!==permissions[input.operation][0]||!uuid(input.requestId)||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))deny();
  if(input.receiptId!==null&&!positive(input.receiptId)||input.invoiceId!==null&&!positive(input.invoiceId))deny();
- if(input.operation==='purchase_finalize'?(!positive(input.receiptId)||!positive(input.invoiceId)):
+ const financial=['collection_create','payment'].includes(input.operation);
+ if(financial&&process.env.MELISA_CLEAN_FINANCE!=='20261022')deny();
+ if(financial?(input.operation==='collection_create'?input.invoiceId!==1||input.receiptId!==null:input.invoiceId!==4||input.receiptId!==3):input.operation==='purchase_finalize'?(!positive(input.receiptId)||!positive(input.invoiceId)):
   input.invoiceId!==null||(['goods_accept','goods_reject','purchase_draft'].includes(input.operation)&&!positive(input.receiptId)))deny();
  let payload;try{payload=JSON.parse(input.payloadJson);}catch{deny();}
  if(!payload||Array.isArray(payload)||payload.requestId!==input.requestId||payload.operation!==input.operation||payload.actorId!==String(input.actor.id)||createHash('sha256').update(input.payloadJson,'utf16le').digest('hex')!==input.payloadHash)deny();
@@ -45,12 +48,12 @@ export async function withCleanStoreDayMutation(input,execute){
   .input('request_id',q.UniqueIdentifier,s.requestId).input('payload_hash',q.Char(64),s.payloadHash)
   .input('payload_json',q.NVarChar(q.MAX),s.payloadJson)
   .input('receipt_id',q.BigInt,s.receiptId).input('invoice_id',q.BigInt,s.invoiceId)
-  .execute('dbo.usp_clean_store_day_bind')).recordset?.[0];
+  .execute(['collection_create','payment'].includes(s.operation)?'dbo.usp_clean_store_finance_bind':'dbo.usp_clean_store_day_bind')).recordset?.[0];
  witness(accepted,s,'accepted');
  return scope.run(s,async()=>{
   const result=await execute();
   const checked=(await new q.Request(s.transaction).input('request_id',q.UniqueIdentifier,s.requestId)
-   .execute('dbo.usp_clean_store_day_finish')).recordset?.[0];
+   .execute(['collection_create','payment'].includes(s.operation)?'dbo.usp_clean_store_finance_finish':'dbo.usp_clean_store_day_finish')).recordset?.[0];
   witness(checked,s,'verified');
   return result;
  });

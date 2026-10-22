@@ -32,3 +32,27 @@ test('native admission and finish constrain role, account, receipt and exactly o
  assert.match(d.usp_clean_store_day_guard,/stock_cost_effect_try'\)\),-999999\)<>@total/);
  for(const table of ['clean_order_sale_definitions','clean_order_sale_compatibility'])assert.match(d.usp_clean_store_day_ready,new RegExp(table+'.*ExecIsTriggerDisabled'));
 });
+import {buildCleanStoreDayFinanceDefinitions,buildCleanStoreDayFinanceSql} from './clean-store-day-cohort-sql.mjs';
+
+test('finance continuation preserves the immutable old cohort and only versions exact native guards',()=>{
+ const f=buildCleanStoreDayFinanceDefinitions();assert.equal(f.total,Object.keys(f.definitions).length);
+ assert.deepEqual(Object.keys(f.before).sort(),['clean_sale_customer_movements_guard','clean_sale_customers_guard','usp_clean_store_day_guard','usp_clean_store_day_ready']);
+ for(const name of ['clean_sale_customers_guard','clean_sale_customer_movements_guard']){
+  const body=f.before[name],suffix=body.slice(body.indexOf('AS BEGIN')+8);assert.ok(f.definitions[name].endsWith(suffix));
+ }
+ assert.match(f.definitions.usp_clean_store_day_ready,/f\.before_hash=e\.after_hash/);
+ const install=buildCleanStoreDayFinanceSql('$2b$10$'+'a'.repeat(53));
+ assert.doesNotMatch(install,/DISABLE TRIGGER|DROP TABLE|UPDATE dbo\.clean_store_day_module_manifest|DELETE dbo\.clean_store_day_module_manifest/);
+ assert.match(install,/WITH CHECK ADD CONSTRAINT CK_customer_movements_type/);
+ assert.match(install,/ORNEK-TRY-20261022/);assert.match(install,/opening_balance decimal\(18,4\) NOT NULL DEFAULT\(0\)/);
+ assert.throws(()=>buildCleanStoreDayFinanceSql('plain credential'));
+});
+
+test('finance native binder and finish require exact actor, target, current ledger and one cash counterpart',()=>{
+ const {definitions:d}=buildCleanStoreDayFinanceDefinitions(),b=d.usp_clean_store_finance_bind,g=d.usp_clean_store_finance_guard,f=d.usp_clean_store_finance_finish;
+ assert.match(b,/ISNULL\(@actor_id,-1\)<>20/);assert.match(b,/ISNULL\(@invoice_id,-1\)<>4/);assert.match(b,/ISNULL\(@receipt_id,-1\)<>3/);
+ assert.match(b,/CLEAN_STORE_DAY_20261022/);assert.match(b,/CURRENT_TRANSACTION_ID/);assert.match(b,/@amount>120-@paid/);assert.match(b,/@amount>376\.5-@paid/);assert.match(b,/@amount>@account/);
+ assert.match(g,/customer_max_before/);assert.match(g,/supplier_max_before/);assert.match(g,/unchanged|FULL JOIN OPENJSON/);
+ assert.match(f,/customer_count_before/);assert.match(f,/finance_count_before/);assert.match(f,/stock_count_before/);assert.match(f,/DELETE dbo\.work_trade_intents/);
+ assert.doesNotMatch(f,/UPDATE dbo\.products|UPDATE dbo\.sales_invoices|UPDATE dbo\.purchase_invoices/);
+});
