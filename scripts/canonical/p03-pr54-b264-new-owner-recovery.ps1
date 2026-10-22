@@ -374,7 +374,9 @@ function Publish-B264Empty{
  $frame=Current-NewDrainFrame;AssertEmpty $frame.inventory
  Require-NewDrain ($frame.selected.Count -eq 0 -and @($names|Where-Object{[int]$folder.GetTask($_).State -ne 3}).Count -eq 0) 'FINAL_NOT_EMPTY'
  $zero=[ordered]@{schemaVersion='melisa-p03-physical-candidate.v1';profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;observedAt=[DateTime]::UtcNow.ToString('o');processes=@();receipts=@()}
- $ref=Save-NewDrain (Join-Path $base ('MelisaERP-P03-candidate-'+[guid]::NewGuid().ToString('N')+'.json')) $zero;$tail=Record-NewDrain 'NEW_DRAIN_EMPTY' $ref
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$zero['environment']='P03_REHEARSAL'}
+ $candidatePath=if($PolicyGeneration-ceq'CurrentB142Rehearsal'){Join-Path $base 'candidate.json'}else{Join-Path $base ('MelisaERP-P03-candidate-'+[guid]::NewGuid().ToString('N')+'.json')}
+ $ref=Save-NewDrain $candidatePath $zero;$tail=Record-NewDrain 'NEW_DRAIN_EMPTY' $ref
  return [ordered]@{status='B264_NEW_OWNER_EMPTY_CANDIDATE_READY';candidateRef=$ref;outerTail=$tail;mutationExecuted=$script:b264Mutated;oldOwnerStarted=$false;engineRecoveryExecuted=$false;businessWrites=0;requiresFrozenStopNewAndRollbackOld=$true;unprovenPartialRecoveryGranted=$false}
 }
 function Invoke-B264Recovery{

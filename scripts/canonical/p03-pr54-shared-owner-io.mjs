@@ -721,7 +721,7 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
   observer:['p03-physical-recovery-observe.ps1','a976803e7c93140917819d4db0b9570d20b2ffadc546d803abb906d1b0fd778e'],
   oldCut:['p03-pr54-b264-old-owner-cut.ps1','e748a04028f68d48eac406c9c943d0b84729ef3394b332301db88d22eaa8a99c'],
   newObserver:['p03-pr54-new-owner-observe.ps1','2dfa1c6b9c5ec6b7b0fb6bbf455cd5b87b6eca9af1717841ef67e879b69f7102'],
-  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','0a6a162cba7e6abededba70fde5def8b8bb09feb220d7c9db1de858be31b4809'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','080e05294780d9fc1f87b554b56bf0e674022f05b74397c79b1ba1c0d4a620d5'],
   lateOld:['p03-pr54-current-b007-precut-cut.ps1','630e5ffeee65c4c363f50827a4c149040a2800e1c849df04847c2f40af908e5f'],
  }:freshOwnerGeneration||precut974dContinuation?{...currentB007SourcePins,
   drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],
@@ -1177,7 +1177,7 @@ const P03_CURRENT_B142_REHEARSAL_NATIVE=Object.freeze({
  observer:['p03-physical-recovery-observe.ps1','a976803e7c93140917819d4db0b9570d20b2ffadc546d803abb906d1b0fd778e'],
  drainer:['p03-pr54-successor-core-drain.ps1','3f4f218fb0dd9500ab1ed2f43e34a47d13c1b33e9e08e8b41add9c62984f027c'],
  oldCut:['p03-pr54-b264-old-owner-cut.ps1','e748a04028f68d48eac406c9c943d0b84729ef3394b332301db88d22eaa8a99c'],
- recovery:['p03-pr54-b264-new-owner-recovery.ps1','0a6a162cba7e6abededba70fde5def8b8bb09feb220d7c9db1de858be31b4809'],
+ recovery:['p03-pr54-b264-new-owner-recovery.ps1','080e05294780d9fc1f87b554b56bf0e674022f05b74397c79b1ba1c0d4a620d5'],
  engine:['recovery-engine.ps1','b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'],
  helper:['p03-pr54-paused-old-recover.ps1','e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'],
  empty:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438']

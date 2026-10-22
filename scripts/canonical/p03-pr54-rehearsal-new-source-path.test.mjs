@@ -97,3 +97,42 @@ $script:newCoreHandle.StartTime=[DateTime]::Parse('2026-10-22T01:53:05.8456349Z'
 $script:newCoreHandle.StartTime=[DateTime]::Parse('2026-10-22T01:53:05.8456354Z');$script:newCoreHandle.Id=32865;Reject {Current-NewDrainFrame};'PASS'
 `);assert.match(out,/PASS/);
 });
+
+test('actual publish body bridges exact Rehearsal candidate to frozen admission and keeps other policy shapes',windows,()=>{
+ const engine=fileURLToPath(new URL('./p03-physical-rollback-lifetime-v2.ps1',import.meta.url));
+ const out=run(load+rejects+String.raw`
+$f=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Publish-B264Empty'},$true))[0];. ([scriptblock]::Create($f.Extent.Text))
+$t=$null;$e=$null;$ea=[Management.Automation.Language.Parser]::ParseFile(${q(engine)},[ref]$t,[ref]$e);$f=@($ea.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'AdmitCandidate'},$true))[0];. ([scriptblock]::Create($f.Extent.Text))
+function Need($value,$code){if(-not$value){throw ('FROZEN_'+$code)}}
+function Current-NewDrainFrame{return [pscustomobject]@{inventory=[pscustomobject]@{all=@()};selected=@()}}
+function AssertEmpty($inventory){}
+function Save-NewDrain($file,$value){if($script:exists){throw 'OUTPUT_EXISTS'};$script:savedPath=$file;$script:savedValue=$value;return [ordered]@{path=$file;sha256=('a'*64)}}
+function Record-NewDrain($event,$ref){if($event-cne'NEW_DRAIN_EMPTY'){throw 'EVENT'};return [ordered]@{path='tail';sha256=('b'*64)}}
+function Json($value){return $script:savedValue}
+function ReadPinned($file,$sha){if($file-cne$savedPath-or$sha-cne('a'*64)){throw 'REF'};return [byte[]]@(1)}
+$script:base='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-'+('1'*32);$script:runRoot=$base;$script:names=@('Core','Hub');$script:folder=[pscustomobject]@{};$folder|Add-Member ScriptMethod GetTask {param($n);return [pscustomobject]@{State=3}}
+$script:ProfileSha256='profile';$script:BeforeImageSha256='before';$script:b264Mutated=$true;$script:exists=$false;$script:isRehearsal=$true
+$script:PolicyGeneration='CurrentB142Rehearsal';$result=Publish-B264Empty
+if($result.candidateRef.path-cne(Join-Path $base 'candidate.json')-or$savedValue.environment-cne'P03_REHEARSAL'){throw 'BRIDGE'}
+$script:CandidatePath=$result.candidateRef.path;$script:CandidateSha256=$result.candidateRef.sha256;$script:invokedAtUtc=[DateTime]::UtcNow
+$accepted=AdmitCandidate;if($accepted.processes.Count-ne0-or$accepted.receipts.Count-ne0){throw 'NOT_ZERO'}
+foreach($case in @('path','environment','schema','profile','before','count','old','future')){
+ $script:exists=$false;$result=Publish-B264Empty;$script:CandidatePath=$result.candidateRef.path;$script:invokedAtUtc=[DateTime]::UtcNow
+ switch($case){'path'{$CandidatePath=Join-Path $base 'MelisaERP-P03-candidate-wrong.json'};'environment'{$savedValue.Remove('environment')};'schema'{$savedValue.schemaVersion='wrong'};'profile'{$savedValue.profileSha256='wrong'};'before'{$savedValue.beforeSha256='wrong'};'count'{$savedValue.processes=@(1..11)};'old'{$savedValue.observedAt=[DateTime]::UtcNow.AddMinutes(-2).ToString('o')};'future'{$savedValue.observedAt=[DateTime]::UtcNow.AddMinutes(1).ToString('o')}}
+ Reject {AdmitCandidate}
+}
+$script:exists=$true;Reject {Publish-B264Empty};$script:exists=$false
+foreach($policy in @('LegacyB264','B264Sup20D','CurrentB007','Foreign')){$script:PolicyGeneration=$policy;$result=Publish-B264Empty;if([IO.Path]::GetFileName($result.candidateRef.path)-cnotmatch'^MelisaERP-P03-candidate-[a-f0-9]{32}\.json$'-or$savedValue.Contains('environment')){throw 'SHARED_CHANGED'}};'PASS'
+`);assert.match(out,/PASS/);
+});
+test('genuine Save-NewDrain refuses existing candidate bytes without overwrite',windows,()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'p03-rehearsal-new-source-')),real=fs.realpathSync.native(temp),target=path.join(real,'candidate.json');fs.writeFileSync(target,'existing immutable candidate');
+ try{
+  const empty=fileURLToPath(new URL('./p03-pr54-new-owner-empty-recovery.ps1',import.meta.url));
+  const out=run(load+`
+$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(empty)},[ref]$t,[ref]$e);$f=@($a.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Save-NewDrain'},$true))[0];. ([scriptblock]::Create($f.Extent.Text))
+function NoReparse($p){if($p-cne${q(real)}){throw 'PARENT'}}
+try{Save-NewDrain ${q(target)} ([ordered]@{value=1})|Out-Null;throw 'ACCEPTED'}catch{if($_.Exception.Message-cne'P03_NEW_DRAIN_OUTPUT_EXISTS'){throw}};'PASS'
+`);assert.match(out,/PASS/);assert.equal(fs.readFileSync(target,'utf8'),'existing immutable candidate');
+ }finally{const actual=fs.realpathSync.native(temp),parent=fs.realpathSync.native(os.tmpdir()),rel=path.relative(parent,actual);assert.equal(actual.toLowerCase(),real.toLowerCase());assert.equal(path.dirname(rel),'.');assert.match(path.basename(rel),/^p03-rehearsal-new-source-/);assert.equal(fs.lstatSync(temp).isSymbolicLink(),false);assert.notEqual(actual,path.parse(actual).root);fs.rmSync(actual,{recursive:true});}
+});
