@@ -1,3 +1,11 @@
+## 23 Ekim — İş2.7 mevcut gün sonu kayıtları kısmen doğrulandı
+
+**2.6 🟡 BEKLEMEDE:** Native motor kanıtları korunur; yeni app kurulumu/normal sayım-iade-iptal ekranları tamamlanmadı. Kullanıcı bu engeli beklemeden bağımsız karşılaştırmaya geçilmesini seçti; ret yeniden denenmedi.
+
+**2.7 🟡 KISMİ:** Mevcut 22 Ekim işlemlerinde ürün1:24−3+2=23ADET; müşteri376,50−376,50=0TRY; tedarikçi120−120=0TRY; kasa0+376,50−120=256,50TRY. Bağımsız SQL farkları0; normal stok/tahsilat/tedarikçi ödeme ve kasa hareketleri ekranları aynı sonucu gösterdi. Toplu Raporlar bağlantısı açılamıyor; clean hedefi destekleyen okuyucu bağı eksik. Bu rapor ve 2.6 sonrası tam gün sonu kapanışı açık; insan kabulü/sayaçlar aynı. Kurulu ERP791/CRMc8 ve aynı7listener/6PID korundu. [Makbuz ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#iş27--23-ekim-salt-okunur-gün-sonu-karşılaştırması).
+
+**Sıradaki tek iş:** Aynı 2.7'nin mevcut Raporlar okuyucusuna clean kapsam bağını tamamlamak; kod/paket gerektiren bu bölüm bu salt okunur turda uygulanmadı. 2.6/5.1 reddi başka yoldan tekrarlanmaz; kabul edilmiş 3/4/5.2 kanıtları yeniden çalıştırılmaz.
+
 ## 22 Ekim — Güncel iş2 / aynı temiz TEST'te mağaza günü
 
 **2.6🟡 teknik motor provası geçti, uygulama kurulumu ENGELLİ:** Mevcut count/return/inverse motorları nativeSQL/tek etki/replay/role/hata rollback ile geçti.53koruma ve16eski listener aynı; yalnız açık etiketli yeni yapay maliyet girdisi60/23adet/+1380TRYdeğerleme ayrı kaydedildi. Maliyet UPDATE izni geri alındı; aynı değer için gereksiz UPDATE kaldırıldı. Source21ad+dar düzeltme; kurulu app791/CRMc8aynı. Otomatik güvenlik incelemesi kurulum dosyası hazırlama çağrısını reddetti, servisstop0; ret aşılmadı. DeployControl yalnız eskiDB02observe-only, cleanhedefyetkisi yok. Yeni normalGUI DENENMEDİ;2.6kapanmadı,2.7başlamadı. [STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

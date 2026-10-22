@@ -1,3 +1,7 @@
+## 23 Ekim — Aynı mağaza günü2.7 KISMİ; 2.6 BEKLEMEDE
+
+Kullanıcı kararıyla kurulum engelindeki2.6 atlandı; kapanış/PASS verilmedi. 2.7'de mevcut 22 Ekim işlemlerinin stok23ADET/müşteri0TRY/tedarikçi0TRY/kasa256,50TRY değerleri bağımsız SQL ve normal stok/tahsilat/ödeme/kasa hareketleri ekranlarında eşleşti. Yeni işlem oluşturulmadı; 60TRY sentetik maliyet/+1380TRY değerleme nakit/kâr değildir. Toplu Raporlar okuyucusunun clean kapsam bağlantısı eksik; bu ekran ve 2.6 sonrası tam gün sonu açık. Sonraki tek teknik eksik aynı rapor bağlantısıdır; kurulum reddi tekrar edilmez. İnsan kabulü ve özgün49/25 sayıları aynı. [STATUS](STATUS.md), [tek makbuz ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#iş27--23-ekim-salt-okunur-gün-sonu-karşılaştırması).
+
 ## 22 Ekim — Aynı mağaza günü2.5 teknik teslimi; özgün kabuller bekliyor
 
 Mevcut B06/C08/ERP09 kapsamında gerçek tahsilat/tedarikçi ödeme/kasa bağlantısı ERP791b82a/CRMc8 temiz yapay TEST'te normal ekran, native SQL/API, rol ve tekrar güvenliğiyle doğrulandı. Müşteri/tedarikçi0, kasa256,50TRY, stok23; eski satış/alış/geçmiş aynı. Sentetik ajan provasıdır; insanPASS veya49/25yaprak artışı değildir. Özgün2.6sayım/iade/iptal ve2.7günsonu devam eder. [STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

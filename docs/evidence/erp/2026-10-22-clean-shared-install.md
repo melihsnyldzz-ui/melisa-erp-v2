@@ -1,5 +1,32 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## İş2.7 — 23 Ekim salt okunur gün sonu karşılaştırması
+
+**Kapsam:** Yalnız 22.10.2026 tarihli kabul edilmiş 2.1–2.5 yapay mağaza işlemleri, 23.10.2026'da yeniden oluşturulmadan okundu. Kullanıcı 2.6 engelini beklemeden devam edilmesini seçti; 2.6 kurulum/normal ekranı **BEKLEMEDE**, 2.7 **KISMİ**. Bu belge insan kabulü veya bütün mağaza gününün kapanışı değildir.
+
+Health/API ve salt okunur SQL kimliği: kurulu ERP `791b82a288adc085380c7827c53b62114bf6d80d`, `MELISA_ERP_CLEAN_TEST_20261022`, environment `e662fd94-d797-4b3b-938a-d143ad758b67`, synthetic=true/actualT1=false/externalOperations=false; CRM c8 aynı. 4194/4196/5244/62800–62803 yedi loopback listener'ı aynı altı süreçte kaldı. Source6e472 kurulu sayılmadı; restart/kurulum/SQL restore/reset yok.
+
+| Karşılaştırma | Mevcut işlemlerden beklenen | Güncel kayıt ve normal ekran | Fark / sonuç |
+|---|---|---|---|
+|Ürün1 /0007 MELISA|24 başlangıç −3satış +2mal kabul =23ADET|SQL23, normal Ürün & stok23ADET|0; ürün kartı kapsamı doğrulandı|
+|Müşteri1 /TRY|0 +376,50satış −376,50tahsilat =0|SQL0; normal Tahsilat müşteri bakiyesi0 ve fiş kalan0|0; doğrulandı|
+|Tedarikçi1 /TRY|0 +120alış −120ödeme =0|SQL0; normal Tedarikçi Ödeme borç0 ve OD-5/120geçmişi|0; doğrulandı|
+|Kasa1 /TRY|0 +376,50giriş −120çıkış =256,50|SQL256,50; normal kasa hareketleri aynı giriş/çıkış/net ve ödeme hesabı256,50|0; doğrulandı|
+|Toplu Raporlar ekranı|Aynı tarih/kapsamda rapor toplamları|“Rapor bağlantısı şu anda kurulamıyor”; toplamlar—/Uygula ve CSV kapalı|DOĞRULANMADI; kapsam bağı eksik|
+
+Belgeler: satış1/CRS-20261022-3, mal kabul3→alış4/TSTB-20261022-GUI3, tahsilatTH-7 ve ödemeOD-5; hepsi22Ekim. Rapor ekranındaki23Ekim/Bugün başlığı bu eski belge kapsamıyla karıştırılmadı. Kasa panelindeki USD/EUR0 yalnız gösterilen hareketlerin toplamıdır; ilgili hesap veya banka açılışının0 olduğu iddia edilmez. Banka hesabı bağlı değil. Diğer ürünler12/0 ayrı kaldı, farklı ürünler toplanmadı. Satış stok hareketinin depo alanıNULL, giriş ORNEK-20261022 olduğundan depo bazında tam stok mutabakatı iddia edilmez.
+
+Tek60TRY maliyet girdisi ve hazırlık anındaki+1380TRY sentetik değerleme, nakit hareketi veya kâr değildir; eski satış maliyeti yeniden hesaplanmadı. Committed2.6inventorydraft/iade/ters kayıt0; native rollback provaları bu günlük toplamına eklenmedi. Son sayımlar3sipariş/1satış/1alış/2stok/2müşteri/2tedarikçi/2kasa hareketi; toplamlar önceki kabul edilmiş kayıtlarla aynı. Normal mevcut TEST girişleri dışında yeni ticari/finans/stok kaydı oluşturulmadı; rol veya ayar değiştirilmedi.
+
+**Rapor engelinin dar nedeni:** Mevcut `workReportsReadStore.runtime` canonical TEST veya isolated operation copy hedefini kabul ediyor; bu ayrı cleanDB için okuyucu kapsam bağı yok. Kurulu791 ve source6e dosyasının SHA256'sı aynı: `C228D8A36BAB06EC0B6D96BE891BF4E56173EFC2F94CA9BAA506046C24FEB70E`. Kimlik kontrolünü gevşeterek veya başka DB'nin raporunu kullanarak kapanış yapılmadı. Aynı mevcut okuyucuya clean kapsam uyarlaması kod/paket gerektiriyor; bu salt okunur turda geliştirme veya kurulum başlatılmadı. 2.6/5.1 retleri de tekrar denenmedi. Özgün insan/cihaz/reboot kabulleri ve49/25 sayaçları aynı.
+
+![Mevcut müşteri, tahsilat ve kasa hareketleri](2026-10-23-day-end-cash.jpg)
+![Mevcut tedarikçi borcu ve ödeme geçmişi](2026-10-23-day-end-supplier.jpg)
+![Ürün bazında güncel stok](2026-10-23-day-end-stock.jpg)
+![Toplu Raporlar bağlantısı eksik](2026-10-23-day-end-report-blocked.jpg)
+
+[Stok](http://127.0.0.1:5244/ornek-akis.html#stock), [Tahsilat / Kasa ve banka hareketleri](http://127.0.0.1:5244/ornek-akis.html#collections), [Tedarikçi Ödeme](http://127.0.0.1:5244/ornek-akis.html#supplier-payments), [Raporlar — eksik](http://127.0.0.1:5244/ornek-akis.html#reports). **Sonraki tek iş:** Aynı2.7 toplu rapor okuyucusunun clean kapsam bağını tamamlamak; genel kapanış için kurulum/normal rapor ve daha sonra2.6 tam kapsamı ayrıca gerekir.
+
 ## İş 2.5 — Normal tahsilat ve ödeme teknik olarak doğrulandı
 
 Uygulama791b82a exact HEAD'inde PR/push'a ait6CI check-run completed/SUCCESS (quality-build-test,windows-startup-test,secret-scan ikişer). [PR39831103076](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39831103076) completed/SUCCESS; [push39831095888](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39831095888) job'ları başarılı fakat REST workflow aggregate ilk okumada in_progress kaldı. Check-run kanıtı commit/check-runs API'sinden bağımsız doğrulandı; aggregate completed diye değiştirilmedi. Son belge HEAD'i çalışan uygulamadan ayrıdır.
