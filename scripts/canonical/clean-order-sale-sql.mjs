@@ -69,7 +69,8 @@ export function buildCleanOrderSaleProcedures(){
  return objects;
 }
 function createTablePart(file){const text=fs.readFileSync(new URL(`../../infra/sql/migrations/${file}`,import.meta.url),'utf8');const body=text.slice(text.indexOf('GO')+2);return body.split(/\bGO\s*\r?\n/)[0];}
-export function buildCleanOrderSaleCompatibilitySql(){
+export function cleanOrderSaleReadinessSql(){return ready;}
+export function buildCleanCompatibleSaleBegin(){
  // V2 draft contracts deliberately do not snapshot a barcode. Keep that NULL
  // in the order and invoice; never infer a barcode or rewrite old evidence.
  const old='((SELECT COUNT(*) FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=l.product_id AND b.is_primary=1)<>1 OR NOT EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=l.product_id AND b.is_primary=1 AND CONVERT(varbinary(max),b.barcode)=CONVERT(varbinary(max),l.barcode_snapshot)))';
@@ -78,6 +79,10 @@ export function buildCleanOrderSaleCompatibilitySql(){
  if(body.split(old).length!==2||body.split('\n IF @@TRANCOUNT=0').length!==2)throw Error('Native compatibility boundary changed');
  const guard=`IF (SELECT COUNT(*) FROM dbo.clean_order_sale_compatibility)<>2 OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_compatibility d WHERE d.definition_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name)) IS NULL OR (OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'ExecIsTriggerDisabled')<>0)) THROW 51950,'CLEAN_SALE_NOT_READY',1;`;
  body=body.replace('CREATE PROCEDURE dbo.usp_clean_order_sale_begin ','CREATE PROCEDURE dbo.usp_clean_order_sale_begin_v2 ').replace(old,corrected).replace('\n IF @@TRANCOUNT=0','\n '+guard+'\n IF @@TRANCOUNT=0');
+ return body;
+}
+export function buildCleanOrderSaleCompatibilitySql(){
+ const body=buildCleanCompatibleSaleBegin();
  const immutable=`CREATE TRIGGER dbo.clean_sale_compatibility_immutable ON dbo.clean_order_sale_compatibility AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END`;
  const hash=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
  return `SET XACT_ABORT ON;${ready}BEGIN TRANSACTION;

@@ -29,6 +29,12 @@ function witness(row,s,field){
 export function isCleanStoreDayMutation(){
  const s=scope.getStore();if(!s)return false;target();return true;
 }
+export async function assertCleanPurchaseSupplierItems(sqlDriver,transaction,supplierId,items){
+ const s=scope.getStore();if(!s||!isCleanStoreDayMutation()||!['purchase_draft','purchase_finalize'].includes(s.operation)||s.transaction!==transaction||s.sqlDriver!==sqlDriver||supplierId!==1||!Array.isArray(items)||items.length!==1)deny();
+ const row=(await new sqlDriver.Request(transaction).input('request_id',sqlDriver.UniqueIdentifier,s.requestId)
+  .input('supplier_id',sqlDriver.BigInt,supplierId).input('items_json',sqlDriver.NVarChar(sqlDriver.MAX),JSON.stringify(items))
+  .execute('dbo.usp_clean_store_purchase_party_proof')).recordset?.[0];witness(row,s,'verified');
+}
 export async function withCleanStoreDayMutation(input,execute){
  if(scope.getStore()||isCleanOrderSaleMutation()||typeof execute!=='function')deny();
  const s=binding(input),q=s.sqlDriver;

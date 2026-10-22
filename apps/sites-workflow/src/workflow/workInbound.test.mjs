@@ -19,6 +19,16 @@ const invoice=()=>({id:'8',receiptId:'7',status:'draft',number:'TSTB-ONE',docume
 function storage(){const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),values};}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
+test('one-product receiving and purchase scope requires the exact clean environment and native identity',()=>{
+ const c=context();c.meta={...c.meta,environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'};
+ c.scope.supplier={id:'1',code:'ORNEK-T01',name:'Örnek Tedarikçi'};
+ c.scope.products=[{...c.scope.products[0],id:'1',stockCode:'0007 MELISA',barcode:'0000000000007'}];
+ assert.equal(receivingContext(c),c);
+ const p={...structuredClone(c),scope:{...c.scope,supplier:{...c.scope.supplier,currency:'TRY',balanceExact4:'0.0000'},products:[{id:'1',stockCode:'0007 MELISA',name:'Ürün',purchasePriceExact8:'60.00000000'}]},drafts:[]};
+ assert.equal(purchaseContext(p),p);
+ for(const change of [x=>delete x.meta.environment,x=>x.meta.environmentId='foreign',x=>x.scope.products[0].id='2',x=>x.scope.supplier.code='foreign']){const bad=structuredClone(c);change(bad);assert.throws(()=>receivingContext(bad));}
+});
+
 for(const found of [true,false])test(`pending accepted approval recovers by GET only; journal found=${found}`,async()=>{
  const previous=globalThis.window,{profile,receiving:c}=historicalPurchaseFixture();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:profile};
  try{

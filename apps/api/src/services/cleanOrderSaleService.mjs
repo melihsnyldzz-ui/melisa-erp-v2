@@ -43,12 +43,12 @@ export function createCleanOrderSaleService({dependencies=noDb,invoices=()=>impo
     if(s.revision!==body.expectedRevision)saleFail('CLEAN_SALE_CHANGED','Kayıt değişti. Güncel kaydı yeniden açın.');
     assertSaleLines({...s.order,customerCurrency:s.raw.customerCurrency,rateExact8:s.raw.rateExact8},s.lines);
     if(s.lines.some(l=>l.primaryBarcodes>1||l.barcode!==null&&l.primaryBarcodes!==1))saleFail('CLEAN_SALE_CHANGED','Ürünün ana barkodu doğrulanamadı.');
-    await request(r,tx).input('order_id',r.driver.BigInt,id).input('actor_id',r.driver.BigInt,actorId).input('operation',r.driver.NVarChar(10),operation).input('request_id',r.driver.UniqueIdentifier,body.requestId).input('payload_hash',r.driver.Char(64),payloadHash).execute('dbo.usp_clean_order_sale_begin_v2');
+    await request(r,tx).input('order_id',r.driver.BigInt,id).input('actor_id',r.driver.BigInt,actorId).input('operation',r.driver.NVarChar(10),operation).input('request_id',r.driver.UniqueIdentifier,body.requestId).input('payload_hash',r.driver.Char(64),payloadHash).execute(process.env.MELISA_CLEAN_STORE_DAY==='20261022'?'dbo.usp_clean_order_sale_begin_v3':'dbo.usp_clean_order_sale_begin_v2');
     await withCleanOrderSaleMutation({transaction:tx,actorId,orderId:id,operation},async()=>{
      const api=await invoices(),context={transaction:tx,pool:r.pool,sqlDriver:r.driver};
      if(operation==='convert')await api.createSalesDraft({documentNo:'CRS-20261022-'+id,documentDate:s.order.documentDate,customerId:Number(s.order.customerId),customerCurrency:s.order.currency,documentCurrency:s.order.currency,exchangeRate:1,accountExchangeRate:1,discountRate:0,description:'CRM siparişi '+s.order.documentNo,items:s.lines.map(l=>({productId:Number(l.productId),stockCode:l.stockCode,barcode:l.barcode,productName:l.name,quantity:Number(l.quantityExact3),currency:l.currency,unitPrice:Number(l.unitPriceExact4)}))},actor,context);
      else await api.finalizeSalesInvoice(Number(s.sale.id),actor,context);
-     await request(r,tx).execute('dbo.usp_clean_order_sale_finish');
+     await request(r,tx).execute(process.env.MELISA_CLEAN_STORE_DAY==='20261022'?'dbo.usp_clean_order_sale_finish_v2':'dbo.usp_clean_order_sale_finish');
     });
     s=await snapshot(r,tx,id);await tx.commit();return {...view(s,actor),replayed:false,actionRequestId:body.requestId};
    }catch(e){if(tx)try{await tx.rollback();}catch{}translate(e);}

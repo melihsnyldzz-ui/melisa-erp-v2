@@ -8,6 +8,7 @@ import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { parseOptionalQueryId } from './queryIdentityFilters.mjs';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {isCleanStoreDayMutation,assertCleanPurchaseSupplierItems} from './cleanStoreDayScope.mjs';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
 import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
@@ -1550,6 +1551,7 @@ async function replaceFinalizedPurchaseEffects(sqlDriver, transaction, invoiceId
 }
 
 export async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items) {
+  if(isCleanStoreDayMutation()){await assertCleanPurchaseSupplierItems(sqlDriver,transaction,Number(supplierId),items);return;}
   const dailyWeb = isDailyWebRequest();
   const copy=isIsolatedOperationCopyRuntime()?isolatedCopyTransactionContext(transaction):null;
   if(copy&&(copy!==getIsolatedOperationCopyConfig()||!copy.suppliers.some(s=>s.id===String(supplierId)&&(copy.target.database===BUSINESS_COPY_DATABASE?s.accountId===getBusinessInboundSelection(copy)?.accountId:s.currency==='TRY'))||!items.length||items.some(i=>!copy.products.some(p=>p.id===String(i.productId)))))throw makeServiceError('PURCHASE_PRODUCT_SUPPLIER_MISMATCH','Mal kabulün ürün veya tedarikçi kapsamı değişti.',409);
