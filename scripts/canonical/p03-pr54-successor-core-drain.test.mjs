@@ -506,7 +506,7 @@ test('Current rehearsal deferred collector context has no public entry and rejec
 
 
 test('Current collector source reference retains the real PS5 File path and cannot be replaced with a constructed scriptblock',windows,()=>{
- const observer=readFileSync(new URL('./p03-physical-recovery-observe.ps1',import.meta.url),'utf8'),a=observer.indexOf('function ObserverCollectCurrentB142Native('),b=observer.indexOf('$optionalPins=',a),definition=observer.slice(a,b),temp=fs.mkdtempSync(path.join(os.tmpdir(),'p03-collector-file-')),file=path.join(temp,'p03-physical-recovery-observe.ps1');
+ const observer=readFileSync(new URL('./p03-physical-recovery-observe.ps1',import.meta.url),'utf8'),a=observer.indexOf('function ObserverCollectCurrentB142Native('),b=observer.indexOf('$optionalPins=',a),definition=observer.slice(a,b),temp=fs.mkdtempSync(path.join(os.tmpdir(),'p03-collector-file-')),file=path.join(fs.realpathSync.native(temp),'p03-physical-recovery-observe.ps1');
  try{
   const code=definition+`\n$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$f=(Get-Command ObserverCollectCurrentB142Native).ScriptBlock;if($f.File-cne$PSCommandPath-or$f.File-cne'${file.replaceAll("'","''")}'){throw 'FIXTURE_REAL_FILE_BINDING'};$copy=[scriptblock]::Create($f.ToString());if($copy.File-ceq$PSCommandPath-or[object]::ReferenceEquals($copy,$f)){throw 'FIXTURE_COPY_FILE_BOUND'};'REAL_FILE_CONTEXT_PASS'`;
   fs.writeFileSync(file,code.replace('\\n$ErrorActionPreference','\n$ErrorActionPreference'),'utf8');const result=execFileSync(shell,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:15000,windowsHide:true,stdio:['pipe','pipe','pipe']});assert.match(result,/REAL_FILE_CONTEXT_PASS/);
