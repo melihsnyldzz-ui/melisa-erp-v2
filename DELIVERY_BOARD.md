@@ -1,4 +1,8 @@
-## 22 Ekim — Etkin tek iş: CRM siparişi → normal ERP onayı → tek satış
+## 22 Ekim — CRM siparişi → normal ERP onayı → tek satış: teknik bağlantı teslim edildi
+
+ERP-DEC-070: ERP3db0830/CRMc8d0e28 mevcut temiz yapay TEST'te kurulu. Normal personel taslağı ve ayrı sorumlu onayıyla tek CRS-20261022-3 satışı; stok24→21, müşteri0→376,50TRY. CRM normal atanmış ekranda aynı kayıt/FINALIZED salt okunur GET ile açıldı. Native motor sonrası hata/rollback, eşzamanlı replay/çelişki/rol retleri ve bağımsız SQL/API geçti; eski3sipariş ve yedi korunan SHA aynı,8/12/2tanım geçerli,16eski listener korunur. Kaynak exact ERP/CRM CI SUCCESS; gerçek ekranlar ve [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md) hazır. Genel işletme/insan kabulü,49/25 sayaçları ve launcher5.1 ayrı bekler. **Sıradaki:** kanıtlı ilk bağlantı teslimini koordinatöre vermek; bu tur başka mağaza günü işlemine geçme.
+
+## Tarihsel kaynak hazırlığı — aynı bağlantı
 
 ERP-DEC-070 ile önce mevcut temiz TEST siparişinin normal satışa dönüşümü, sonra örnek mağaza günü sırası yetkilidir. Mevcut native draft/fotoğraf/kesinti yeniden geliştirilmez. ERP09/CRM06-E02 kapsamında mevcut invoice motoruna tekil sipariş/fiş bağı ve kontrollü onay bağlanıyor; CRM yalnız bağlı sonucu okur. Kaynak/SQL/kurulum/GUI/insan sonucu ayrı tutulur. Kurulu970/1dd değişmedi, kaynak henüz uygulanmadı. Yeni SQL'in desteklenen COPY_ONLY/CHECKSUM yedeği ve VERIFYONLY geçerli; restore yok. [Güncel STATUS](STATUS.md). Launcher reddi atlanmaz ve bu işe ön koşul değildir; yeni Goal/tree/ajan yok.
 

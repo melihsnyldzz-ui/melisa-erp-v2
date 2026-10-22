@@ -1,6 +1,6 @@
 ## 22 Ekim — ERP09 / CRM06-E02 siparişten satışa teknik devam
 
-ERP-DEC-070 ile mevcut temiz TEST'teki kaynak sipariş→normal ERP onayı→tek satış→tek stok/müşteri hesabı etkisi tamamlanıyor. Native4196 draft sözleşmesi/immutable receipt korunur; ERP4194 kontrollü dönüşüm/onay ve CRM read-only bağlı sonuç ayrı. Mevcut satış motoru yeniden kullanılır; kaynak hazırlanması gerçek SQL/GUI/insan kabulü değildir. Eski veriler ve49ERP/25CRM sayaçları aynı. Etkin sonraki adım ve gerçek sonuç [STATUS](STATUS.md) içindedir; launcher5.1 bu adımın ön koşulu yapılmaz.
+ERP-DEC-070'in dar temiz TEST bağlantısı ERP3db0830/CRMc8d0e28'de teknik olarak teslim edildi: normal personel taslak→ayrı sorumlu onayı→tek native satış/3adet stok çıkışı/376,50TRY müşteri borcu→CRM salt okunur FINALIZED sonucu. Native motor sonrası hata/rollback, replay/rol retleri, bağımsız SQL/API ve gerçek GUI doğrulandı. Native4196 draft sözleşmesi/immutable3receipt ve eski veriler korunur;49ERP/25CRM sayaçları ve özgün insan kabulleri aynı. Bu tek bağlantı bütün ERP09/CRM06 veya mağaza günü kapanışı değildir. Kanıtlı teslim koordinatöre verilir; sonraki işlem ayrı mevcut sıradadır. Gerçek sonuç [STATUS](STATUS.md) içindedir; launcher5.1 bu adımın ön koşulu değildir ve önceki ret aşılmadı.
 
 ## 22 Ekim — Temiz ortak TEST normal GUI teknik alt kanıtı
 
