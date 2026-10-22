@@ -60,3 +60,46 @@ $child=[Diagnostics.Process]::Start($psi);$h=$null
 try{$id=$child.Id;$h=OpenRehearsalOldHandle $id;$initial=ReadRehearsalOldHandle $h;if($initial.Id-ne$id-or-not$initial.Active-or$initial.CreationFileTime-le0){throw 'LIVE_HANDLE'};$child.WaitForExit();$child.Dispose();$gone=ReadRehearsalOldHandle $h;if($gone.Id-ne$id-or$gone.Active-or$gone.CreationFileTime-ne$initial.CreationFileTime){throw 'HELD_AFTER_EXIT'};if(@(Get-CimInstance Win32_Process -Filter ('ProcessId='+$id) -ErrorAction Stop).Count-ne0){throw 'EXITED_STILL_ENUMERATED'};'BENIGN_CHILD_EXITED_HELD_PID_BIRTH_STABLE';$h.Dispose();try{ReadRehearsalOldHandle $h|Out-Null;throw 'CLOSED_ACCEPTED'}catch{if($_.Exception.Message-ceq'CLOSED_ACCEPTED'){throw}};'CLOSED_HANDLE_REJECTED'}finally{if($null-ne$h){$h.Dispose()};if($null-ne$child){$child.Dispose()}}
 `}`);assert.match(out,/BENIGN_CHILD_EXITED_HELD_PID_BIRTH_STABLE/);assert.match(out,/CLOSED_HANDLE_REJECTED/);
 });
+
+
+test('CurrentB142 reuses the exact ten kernel/UID guards and closes success, caller failure and partial acquisition',windows,()=>{
+ const out=run(`${holdFunctions()}
+${fixture}
+${String.raw`
+$EngineGeneration='CurrentB142Rehearsal';$held=HoldOriginalOldLifetimes $fresh $before $profile;if($held.Count-ne10-or$opened.Count-ne10-or$closed.Count-ne0){throw 'CURRENT_COHORT'}
+foreach($entry in $held){if($entry.creationFileTime-ne([DateTime]::Parse($entry.identity.creationTime).ToFileTimeUtc()+7)){throw 'RAW_LOST'}}
+CloseOriginalOldLifetimes $held;if($closed.Count-ne10){throw 'CURRENT_CLOSE'}
+foreach($case in @('missing','owner','open-fail','after-cim','pid','birth','inactive','image','kernel-drift')){
+ Reset;$EngineGeneration='CurrentB142Rehearsal';$script:mode=$case;Reject $case {HoldOriginalOldLifetimes $fresh $before $profile};$successful=@($opened|Where-Object{$_-ne104-or$mode-cne'open-fail'});if((($successful|Sort-Object)-join',')-cne(($closed|Sort-Object)-join',')){throw 'CURRENT_LEAK'}
+}
+Reset;$EngineGeneration='CurrentB142Rehearsal';$runRoot='C:\Sirket\ERP\runtime\P03-OWNER-20261018';Reject 'shared-root' {HoldOriginalOldLifetimes $fresh $before $profile};if($opened.Count-ne0){throw 'SHARED_OPEN'}
+'CURRENT_TEN_GUARDS_PASS'
+`}`);assert.match(out,/CURRENT_TEN_GUARDS_PASS/);assert.match(out,/REJECTED=shared-root/);
+});
+test('Current production acquisition/finally surround transition, cleanup and serialization; Inspect opens zero extra handles',windows,()=>{
+ const out=run(`${holdFunctions()}
+${fixture}
+${extract([])}
+${String.raw`
+$branches=@($a.FindAll({param($n)$n-is[Management.Automation.Language.IfStatementAst]-and$n.Extent.Text.StartsWith("if($"+'EngineGeneration'+"-ceq'CurrentB142Rehearsal'){")-and$n.Extent.Text.Contains('$originalOldLifetimePins=@()')},$true));if($branches.Count-ne1){throw 'CURRENT_BRANCH'}
+$region=$branches[0].Clauses[0].Item2;$outer=@($region.Statements|Where-Object{$_-is[Management.Automation.Language.TryStatementAst]});if($outer.Count-ne1){throw 'OUTER_TRY'}
+$acquire=$outer[0].Body.Statements[0].Extent.Text;if(-not$acquire.StartsWith('if(-not$InspectionOnly){')){throw 'INSPECT_SCOPE'}
+$close=$outer[0].Finally.Extent.Text;if($close-notmatch'CloseOriginalOldLifetimes \$originalOldLifetimePins'){throw 'CLOSE_SCOPE'}
+$body=$outer[0].Body.Extent.Text;$a=$body.IndexOf('HoldOriginalOldLifetimes');$b=$body.IndexOf('$result=(& $node');$c=$body.IndexOf('$cleanup=QuiesceCurrentRehearsal');$d=$body.IndexOf("$"+'reportRef=WriteNew');$e=$body.IndexOf('$report|ConvertTo-Json -Depth 25;return');if(-not($a-ge0-and$a-lt$b-and$b-lt$c-and$c-lt$d-and$d-lt$e)){throw 'ORDER'}
+function Snapshot{return $script:fresh}
+function ProtectedSnapshot{return 'unchanged'}
+function Bytes($v){[Text.Encoding]::UTF8.GetBytes([string]$v)}
+function Hash($b){[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($b)).Replace('-','').ToLowerInvariant()}
+function SetupCurrent{
+ Reset;$script:EngineGeneration='CurrentB142Rehearsal';$script:identities=$before.identities;$script:protectedBeforeSha=Hash (Bytes (ProtectedSnapshot));$tasks=@(0..1|ForEach-Object{[pscustomobject]@{name=('Task'+$_);state=4;xml='old';enginePid=108+$_;instanceGuid=('guid'+$_)}});$script:old=[pscustomobject]@{tasks=$tasks};$fresh|Add-Member NoteProperty tasks $tasks
+}
+$unit=[scriptblock]::Create('$originalOldLifetimePins=@();try{'+$acquire+';if(-not$InspectionOnly-and$opened.Count-ne10){throw "NO_HOLD"};if($InspectionOnly-and$opened.Count-ne0){throw "INSPECT_OPEN"};if($closed.Count-ne0){throw "EARLY_CLOSE"};$script:stages+=,"transition";if($failAt-ceq"transition"){throw "INJECTED"};$script:stages+=,"cleanup";if($failAt-ceq"cleanup"){throw "INJECTED"};$script:stages+=,"serialize";if($failAt-ceq"serialize"){throw "INJECTED"}}finally{'+$close.Substring(1,$close.Length-2)+'}')
+foreach($case in @('success','transition','cleanup','serialize','partial','inspect')){
+ SetupCurrent;$InspectionOnly=($case-ceq'inspect');$failAt=$case;$script:stages=@();if($case-ceq'partial'){$script:mode='open-fail'}
+ try{&$unit;if($case-cnotin@('success','inspect')){throw 'ACCEPTED'}}catch{if($_.Exception.Message-ceq'ACCEPTED'){throw};if($case-cin@('success','inspect')){throw}}
+ $successful=@($opened|Where-Object{$_-ne104-or$mode-cne'open-fail'});if((($successful|Sort-Object)-join',')-cne(($closed|Sort-Object)-join',')){throw 'FINALLY_LEAK'}
+ if($case-ceq'inspect'-and$opened.Count-ne0){throw 'INSPECT_EXTRA'}
+ if($case-ceq'success'-and($stages-join'|')-cne'transition|cleanup|serialize'){throw 'STAGES'}
+};'CURRENT_LIFECYCLE_PASS'
+`}`);assert.match(out,/CURRENT_LIFECYCLE_PASS/);
+});

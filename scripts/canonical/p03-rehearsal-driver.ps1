@@ -83,7 +83,7 @@ function AssertOriginalOldHandle($entry,[bool]$active){
  if($active){Need ($state.Active-and$state.Path-ieq$entry.identity.nodePath) 'OLD_HANDLE_NOT_ACTIVE'}
 }
 function HoldOriginalOldLifetimes($fresh,$before,$profile){
- Need ($EngineGeneration-ceq'FileAttributesV1'-and$before.environment-ceq'P03_REHEARSAL'-and$profile.environment-ceq'P03_REHEARSAL'-and$before.actualT1-ceq$false-and$profile.database-ceq'MELISA_ERP_P03_RESTORE_TEST_20261018_01'-and$before.database-ceq$profile.database-and$runRoot-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\z') 'OLD_HANDLE_SCOPE'
+ Need ($EngineGeneration-cin@('FileAttributesV1','CurrentB142Rehearsal')-and$before.environment-ceq'P03_REHEARSAL'-and$profile.environment-ceq'P03_REHEARSAL'-and$before.actualT1-ceq$false-and$profile.database-ceq'MELISA_ERP_P03_RESTORE_TEST_20261018_01'-and$before.database-ceq$profile.database-and$runRoot-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\z') 'OLD_HANDLE_SCOPE'
  Need (@($fresh.processes).Count-eq8-and@($fresh.watchers).Count-eq2-and@($profile.oldWatchers).Count-eq2-and($before.identities-is[Collections.IDictionary])-and@($before.identities.Keys).Count-eq8) 'OLD_HANDLE_COUNT'
  $expected=@();foreach($role in $roles){$pin=$before.identities.$role;$actual=@($fresh.processes|Where-Object{$_.role-ceq$role});Need ($actual.Count-eq1-and(SameOriginalOldIdentity $pin $actual[0])) 'OLD_HANDLE_FRESH_ROLE';$expected+=,[pscustomobject]@{role=$role;pin=$pin}}
  foreach($role in @('terminalWatcher','hubWatcher')){$pin=@($profile.oldWatchers|Where-Object{$_.role-ceq$role});$actual=@($fresh.watchers|Where-Object{$_.role-ceq$role});Need ($pin.Count-eq1-and$actual.Count-eq1-and(SameOriginalOldIdentity $pin[0] $actual[0])) 'OLD_HANDLE_FRESH_WATCHER';$expected+=,[pscustomobject]@{role=$role;pin=$pin[0]}}
@@ -287,6 +287,14 @@ $engineResult=(& $engineRef.path @common -Mode PreflightOld)|ConvertFrom-Json;Ne
 }
 Need ((Get-FileHash -LiteralPath $stopper -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$stopperSha) 'STOPPER_PRESTOP_PIN'
 if($EngineGeneration-ceq'CurrentB142Rehearsal'){
+ $originalOldLifetimePins=@()
+ try{
+ if(-not$InspectionOnly){
+  $fresh=Snapshot;Need ((Hash (Bytes (ProtectedSnapshot)))-ceq$protectedBeforeSha) 'PROTECTED_BEFORE_STOP'
+  foreach($entry in $old.tasks){$now=@($fresh.tasks|Where-Object{$_.name-ceq$entry.name});Need ($now.Count-eq1-and$now[0].state-eq4-and$now[0].xml-ceq$entry.xml-and$now[0].enginePid-eq$entry.enginePid-and$now[0].instanceGuid-ceq$entry.instanceGuid) 'OLD_TASK_INSTANCE_CAS'}
+  foreach($role in $roles){$actual=@($fresh.processes|Where-Object{$_.role-ceq$role});Need ($actual.Count-eq1-and(($actual[0]|ConvertTo-Json -Depth 8 -Compress)-ceq($identities[$role]|ConvertTo-Json -Depth 8 -Compress))) 'OLD_PROCESS_CAS'}
+  $originalOldLifetimePins=HoldOriginalOldLifetimes $fresh $before $profile
+ }
  Need ((@($request.dispatcher.PSObject.Properties.Name|Sort-Object)-join'|')-ceq'path|sha256'-and$request.dispatcher.sha256-cmatch'\A[a-f0-9]{64}\z') 'CURRENT_DISPATCHER_REF';NoReparse $request.dispatcher.path
  Need ((Get-FileHash -LiteralPath $request.dispatcher.path -Algorithm SHA256).Hash.ToLowerInvariant()-ceq$request.dispatcher.sha256-and$request.dispatcher.path-ceq(Join-Path $PSScriptRoot 'p03-pr54-shared-owner-io.mjs')) 'CURRENT_DISPATCHER_PIN'
  $inputValue=[ordered]@{moduleUrl=([Uri]$request.dispatcher.path).AbsoluteUri;request=[ordered]@{mode=$(if($InspectionOnly){'DryRun'}else{'Apply'});scenario=$RehearsalScenario;runRoot=$runRoot;profileRef=$profileRef;beforeRef=$beforeRef}}
@@ -307,6 +315,7 @@ if($EngineGeneration-ceq'CurrentB142Rehearsal'){
  $report=[ordered]@{status=$status;environment='P03_REHEARSAL';runRoot=$runRoot;scenario=$RehearsalScenario;dispatcher=$request.dispatcher;engineGeneration=$EngineGeneration;engine=$engineRef;engineSha256=$engineRef.sha256;profile=$profileRef;before=$beforeRef;transition=$currentResult;cleanup=$cleanup;protectedBeforeSha256=$protectedBeforeSha;protectedAfterSha256=(Hash (Bytes (ProtectedSnapshot)));sqlFreeFixture=$true;applicationRollbackVerified=$false;databaseRollbackVerified=$false;sharedTestMutation=$false;cleanupPerformed=$true}
  if($InspectionOnly){$report['inspectionOnly']=$true;$report['claimCreated']=$false;$report['nativeMutation']=$false;$report['fixtureSetupExecuted']=$true;$report['fixtureCleanupExecuted']=$true}
  $reportRef=WriteNew (Join-Path $runRoot 'result.json') (Bytes $report);$report['result']=$reportRef;$report|ConvertTo-Json -Depth 25;return
+ }finally{CloseOriginalOldLifetimes $originalOldLifetimePins}
 }
 Journal 'STOP_OLD_FIXTURE_INTENT'
 $originalOldLifetimePins=@()
