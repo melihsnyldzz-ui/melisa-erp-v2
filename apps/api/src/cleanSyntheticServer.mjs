@@ -46,6 +46,10 @@ if(inventoryEnabled()){
  const {testDailyRoutes}=await import('./routes/testDailyRoutes.mjs');
  app.use('/api',(req,res,next)=>{if(req.path.startsWith('/test-daily/')&&!(req.method==='GET'&&/^\/test-daily\/(?:count|purchase)$/.test(req.path)||req.method==='POST'&&/^\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path)))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu günlük işlem açık değil.'}});next();},testDailyRoutes);
 }
+if(process.env.API_PORT==='4194'){
+ const {workReportsRoutes}=await import('./routes/workReportsRoutes.mjs');
+ app.use('/api',workReportsRoutes);
+}
 app.use('/api',crmOrderV2Routes);app.use(createApp());app.use(errorHandler);
 const server=app.listen(Number(process.env.API_PORT),'127.0.0.1',()=>console.log(JSON.stringify({status:'listening',port:Number(process.env.API_PORT),environment:'CLEAN_SYNTHETIC_TEST',actualT1:false})));
 process.on('SIGTERM',()=>server.close(()=>process.exit(0)));
