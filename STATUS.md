@@ -1,3 +1,10 @@
+## 22 Ekim — İş14 native geri dönüş kanıtı oluştu; dış taşıyıcı süresi son rapordan önce doldu
+
+15e8d70a exact PR39713290280/push39713285946 CI SUCCESS. Yeni OldCutFailuree005dfb8699749409a1249f38c250b5e finaldispatcher1922d1fb ile path/env kapılarını geçti. Frozenengine recoveryjournal RECOVERY_COMPLETE02:56:56.5040604Z, ROLLBACK_STARTED02:57:08.4096881Z, RESTORED_READY02:58:13.2722833Z; tailde31d19405ae1f533bda596d6979c49fdfb5c28a92a0e9c1c8b464865326ccb3. Bu gerçek nativecut/zero/StopNew/old30snreadback bileşen kanıtıdır; uygulama/DBrestore değildir.
+
+Dış harness10dakika sınırı, driver cleanup'ın son raporu yazılmadan doldu; result.json YOK, aggregatePASS YOK. Başarısız/eksik run yeniden kullanılmaz. Cleanup-before68bc26df yeni açılmışOLD8+2watcher/2task/8port bağını içeriyor; taze root okumada0runprocess/0port/iki taskABSENT görüldü. Ardından c646originalrestore CREATED_VERIFIED/finalReadbacktrue/protectedfd4f51ed aynı; çalışan TEST değişmedi. Timeouttan önceki nativeRESTORED_READY, tamamlanmış driverresult yerine konmadı.
+
+Düzeltme yalnız CurrentB142Rehearsal üç recovery senaryosunun DIŞ taşıyıcı bütçesini ölçülen9m11native+cleanup maliyetine uygun sonlu15dakikaya bağlar; Normal/Inspect/legacyRun10dakika veDry1dakika kalır. Native60sn admission/heldcut, per-effectfreshidentity/ACL/CAS/stopper ve frozenengine süreleri değişmez; retry yok. ETIMEDOUT ayrıca boundedP03_REHEARSAL_TRANSPORT_TIMEOUT olarak raporlanır, PASS sayılmaz. Yeni kaynak/CI/gerçeksenaryo kabulü ayrı doğrulanacaktır. KuruluERP e59/CRM6bc/SUP13b,DB02/TEST125/veriler/roller/yedekler/Defender korunur;6dc/d1e/da5 henüz kurulmadı. İş14AÇIK/15BAŞLAMADI/insankabulBEKLİYOR.
 ## 22 Ekim — İş14 Normal gerçek PASS; boş prova adayı frozen sözleşmeye bağlandı
 
 0a1e18d5 exact PR39710882095/push39710875315 CI SUCCESS. Gerçek Normalcda829a5 COMPLETE: resultdd63aa15/dispatcherd58790a8, OLDcut+NEW10/COM2nativeokuma+30snkararlılık/health; cleanup10/2/8/protected55e22aynı, ardından c646originalrestorefinalReadbacktrue/fd4faynı. Bu SQL-freeprova application/DBrollback/Sharedkurulum değildir.

@@ -6,7 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_CURRENT_B142_SCENARIOS,p03RehearsalFailureMetadata} from './p03-rehearsal-harness.mjs';
+import {parseP03RehearsalMode,p03RehearsalSourceRequest,P03_B264_V2_ENGINE,P03_FAILURE_RECORD_V1_ENGINE,P03_FILE_ATTRIBUTES_V1_ENGINE,P03_CURRENT_B142_SCENARIOS,p03RehearsalFailureMetadata,p03RehearsalTransportTimeout} from './p03-rehearsal-harness.mjs';
 import {validateRehearsalFixtureArgs,REHEARSAL_PORTS,rehearsalCoreChildRoles} from './p03-rehearsal-fixture.mjs';
 
 // Reconstruct only the historical immutable engine fixture. Production selects sealed bytes.
@@ -357,4 +357,21 @@ test('actual PS5 to benign Node inspection request selects DryRun and preserves 
  ${build}
  $result=(& $node --input-type=module -e $program);if($LASTEXITCODE-ne0){throw 'CHILD_EXIT'};$x=$result|ConvertFrom-Json;if($x.status-cne'DRY_RUN_READY'-or$x.claimCreated-cne$false-or$x.runtimeMutation-cne$false){throw 'RESULT'};'ACTUAL_INSPECTION_TRANSPORT_PASS'`;
  const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(child.status,0,child.stderr);assert.match(child.stdout,/ACTUAL_INSPECTION_TRANSPORT_PASS/);
+});
+
+
+test('finite recovery transport budget leaves inspection, normal, legacy and dry modes bounded',()=>{
+ for(const scenario of ['OldCutFailure','ReplyLoss','PartialNew'])assert.equal(p03RehearsalTransportTimeout({mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:scenario}),900000);
+ for(const request of [{mode:'Run'},{mode:'Run',engineGeneration:'B264V2',rehearsalScenario:'PartialNew'},{mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:'Normal'},{mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:'Normal',inspectionOnly:true},{mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:'PartialNew',inspectionOnly:true},{mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:'PartialNew',inspectionOnly:false},{mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:'Other'}])assert.equal(p03RehearsalTransportTimeout(request),600000);
+ for(const scenario of ['Normal','OldCutFailure','ReplyLoss','PartialNew'])assert.equal(p03RehearsalTransportTimeout({mode:'DryRun',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:scenario}),60000);
+ for(const request of [null,{}, {mode:'Apply'},{mode:'run'}])assert.throws(()=>p03RehearsalTransportTimeout(request),/P03_REHEARSAL_MODE/);
+});
+test('actual harness main supplies one bounded child budget and timeout cannot become PASS or leak diagnostics',async()=>{
+ const source=fs.readFileSync(new URL('./p03-rehearsal-harness.mjs',import.meta.url),'utf8'),body=source.slice(source.indexOf('async function main(){'),source.indexOf('if(process.argv[1]&&pathToFileURL')).replaceAll('import.meta.url',JSON.stringify('file:///C:/fixture/p03-rehearsal-harness.mjs'));
+ for(const mode of ['timeout','null-status','other-error','success']){
+  const request={mode:'Run',engineGeneration:'CurrentB142Rehearsal',rehearsalScenario:'ReplyLoss'},writes={out:'',err:'',calls:0};
+  const context={path,fileURLToPath,parseP03RehearsalMode:()=> 'CurrentB142ReplyLossRun',p03RehearsalSourceRequest:()=>request,p03RehearsalTransportTimeout,p03RehearsalFailureMetadata,process:{platform:'win32',argv:['node','fixture','--CurrentB142ReplyLossRun'],env:{},stdout:{write:s=>{writes.out+=s;}},stderr:{write:s=>{writes.err+=s;}}},spawnSync:(exe,args,options)=>{writes.calls++;assert.equal(options.timeout,900000);assert.equal(args[args.indexOf('-RehearsalScenario')+1],'ReplyLoss');assert.equal(JSON.parse(options.input).engineGeneration,'CurrentB142Rehearsal');return mode==='success'?{status:0,stdout:JSON.stringify({status:'CURRENT_B142_REHEARSAL_SCENARIO_READY'})}:{status:null,error:mode==='timeout'?{code:'ETIMEDOUT'}:mode==='other-error'?{code:'EACCES'}:undefined,stderr:'sensitive-path argv token P03_SAFE_FAILURE',stdout:'{broken'};}};
+  await vm.runInNewContext(body+';main()',context);assert.equal(writes.calls,1);
+  if(mode==='success'){assert.equal(writes.err,'');assert.equal(JSON.parse(writes.out).status,'CURRENT_B142_REHEARSAL_SCENARIO_READY');}else{assert.equal(writes.out,'');assert.equal(context.process.exitCode,1);const failure=JSON.parse(writes.err);assert.equal(failure.status,'P03_REHEARSAL_FAILED_RETAIN_ALL_ARTIFACTS');assert.equal(failure.reason,mode==='timeout'?'P03_REHEARSAL_TRANSPORT_TIMEOUT':'P03_SAFE_FAILURE');assert.doesNotMatch(writes.err,/sensitive|argv|token|broken/);}
+ }
 });
