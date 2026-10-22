@@ -56,6 +56,8 @@ if (mode === 'quality') {
   run(['--test', ...['shared-business-product-price-revision-sql','shared-business-product-price-bootstrap','shared-business-product-price-sale-sql','shared-business-product-price-sale-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/public-terminal-artifact.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/clean-order-sale.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-store-day-sql.test.mjs')]);
+  run(['--test', path.join(root, 'apps/api/src/services/cleanStoreDayScope.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-completion-logon.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-terminal-completion-private.test.mjs'), path.join(root, 'scripts/canonical/terminal-worktest-package.test.mjs')]);

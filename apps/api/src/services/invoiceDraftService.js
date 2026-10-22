@@ -3082,6 +3082,10 @@ async function assertBusinessReceivedPurchaseContext(context,invoiceId,copy){
 }
 export async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.cleanStoreDayReceived===true){
+    const {assertCleanReceivedPurchaseContext}=await import('./cleanStoreDayScope.mjs');
+    await assertCleanReceivedPurchaseContext(context,invoiceId);return;
+  }
   if(context.isolatedCopyReceived===true){
     const {isolatedCopyTransactionContext}=await import('./isolatedOperationCopyScope.mjs');
     const copy=isolatedCopyTransactionContext(context.transaction);

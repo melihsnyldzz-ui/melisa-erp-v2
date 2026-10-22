@@ -1,0 +1,37 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
+import {registerCleanContext} from './cleanSyntheticContext.mjs';
+import {withCleanStoreDayMutation,isCleanStoreDayMutation,assertCleanReceivedPurchaseContext} from './cleanStoreDayScope.mjs';
+import {withCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
+const env={MELISA_CLEAN_TEST:'20261022',MELISA_CLEAN_STORE_DAY:'20261022',API_PORT:'4194',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:'MELISA_ERP_CLEAN_TEST_20261022',SQL_USER:'melisa_clean_test_app_20261022',SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false'};
+Object.assign(process.env,env);
+registerCleanContext({databaseName:env.SQL_DATABASE,serverName:'Semih\\MELISADEV',loginName:env.SQL_USER,databaseUser:env.SQL_USER,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});
+function fixture({operation='purchase_finalize',actorId=19,permission='purchase.finalize',missing=false,foreign=false}={}){
+ const requestId='b7b88fda-9756-4867-a3c5-38a2ed4acabd',payloadJson=JSON.stringify({requestId,operation,actorId:String(actorId)}),payloadHash=createHash('sha256').update(payloadJson,'utf16le').digest('hex'),transaction={},calls=[];
+ const witness={accepted:true,verified:true,environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',requestId,actorId,operation,payloadHash,receiptId:1,invoiceId:2,stockAlreadyPosted:true};
+ const sqlDriver={BigInt:'bigint',UniqueIdentifier:'uuid',MAX:16,NVarChar:()=>'',Char:()=>'',Request:class{constructor(tx){assert.equal(tx,transaction);}input(){return this;}async execute(name){calls.push(name);if(missing)throw Error('cohort not installed');return {recordset:[foreign?{...witness,environmentId:'wrong'}:witness]};}}};
+ return {input:{transaction,sqlDriver,actor:{id:actorId,permissions:[permission]},operation,requestId,payloadJson,payloadHash,receiptId:1,invoiceId:2},calls,witness};
+}
+test('native bind must succeed before existing motor scope; native finish must verify effects',async()=>{
+ const f=fixture();assert.equal(isCleanStoreDayMutation(),false);
+ const value=await withCleanStoreDayMutation(f.input,async()=>{assert.equal(isCleanStoreDayMutation(),true);await assertCleanReceivedPurchaseContext({...f.input,cleanStoreDayReceived:true},2);return 'existing-native-result';});
+ assert.equal(value,'existing-native-result');assert.equal(isCleanStoreDayMutation(),false);
+ assert.deepEqual(f.calls,['dbo.usp_clean_store_day_bind','dbo.usp_clean_store_received_purchase_proof','dbo.usp_clean_store_day_finish']);
+});
+test('missing cohort and foreign native proof cannot open the scope',async()=>{
+ for(const options of [{missing:true},{foreign:true}]){const f=fixture(options);let ran=false;await assert.rejects(withCleanStoreDayMutation(f.input,async()=>{ran=true;}));assert.equal(ran,false);assert.equal(isCleanStoreDayMutation(),false);}
+});
+test('personnel cannot approve, unsigned payload and wrong target never reach SQL',async()=>{
+ const f=fixture();for(const input of [{...f.input,actor:{id:18,permissions:['purchase.finalize']}},{...f.input,payloadHash:'f'.repeat(64)},{...f.input,operation:'sale_finalize'},{...f.input,receiptId:0},{...f.input,receiptId:null},{...f.input,invoiceId:null}])await assert.rejects(withCleanStoreDayMutation(input,async()=>{}));
+ process.env.API_PORT='4196';try{await assert.rejects(withCleanStoreDayMutation(f.input,async()=>{}));}finally{process.env.API_PORT='4194';}assert.equal(f.calls.length,0);
+});
+test('stockAlreadyReceived flag alone, cross-TX proof, and nested scopes are rejected',async()=>{
+ const f=fixture();await assert.rejects(assertCleanReceivedPurchaseContext({...f.input,cleanStoreDayReceived:true},2));
+ await withCleanStoreDayMutation(f.input,async()=>{await assert.rejects(assertCleanReceivedPurchaseContext({...f.input,transaction:{},cleanStoreDayReceived:true},2));await assert.rejects(withCleanStoreDayMutation(f.input,async()=>{}));await assert.rejects(assertCleanReceivedPurchaseContext({...f.input,cleanStoreDayReceived:true},3));});
+ assert.deepEqual(f.calls,['dbo.usp_clean_store_day_bind','dbo.usp_clean_store_day_finish']);
+});
+test('SALE and inbound scope cannot nest in either direction',async()=>{
+ process.env.MELISA_CLEAN_SALES='20261022';const f=fixture();
+ await withCleanOrderSaleMutation({transaction:f.input.transaction,operation:'finalize',orderId:3},async()=>{await assert.rejects(withCleanStoreDayMutation(f.input,async()=>{}));});
+ assert.equal(f.calls.length,0);
+ await withCleanStoreDayMutation(f.input,async()=>{await assert.rejects(withCleanOrderSaleMutation({transaction:f.input.transaction,operation:'finalize',orderId:3},async()=>{}));});
+});

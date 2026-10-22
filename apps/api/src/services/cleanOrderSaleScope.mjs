@@ -1,5 +1,6 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {assertRegisteredCleanContext} from './cleanSyntheticContext.mjs';
+import {isCleanStoreDayMutation} from './cleanStoreDayScope.mjs';
 const scope=new AsyncLocalStorage();
 const denied=()=>{throw Object.assign(new Error('Satış işlem kapsamı doğrulanamadı.'),{code:'CLEAN_SALE_SCOPE_REQUIRED',statusCode:403});};
 export function isCleanOrderSaleMutation(){
@@ -9,6 +10,6 @@ export function isCleanOrderSaleMutation(){
  return true;
 }
 export async function withCleanOrderSaleMutation(binding,fn){
- if(scope.getStore()||!binding?.transaction||!['convert','finalize'].includes(binding.operation)||!Number.isSafeInteger(binding.orderId)||binding.orderId<1||typeof fn!=='function')denied();
+ if(scope.getStore()||isCleanStoreDayMutation()||!binding?.transaction||!['convert','finalize'].includes(binding.operation)||!Number.isSafeInteger(binding.orderId)||binding.orderId<1||typeof fn!=='function')denied();
  return scope.run(Object.freeze({...binding}),async()=>{isCleanOrderSaleMutation();return fn();});
 }

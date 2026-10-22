@@ -1,4 +1,8 @@
-## 22 Ekim — CRM siparişi → normal ERP onayı → tek satış: teknik bağlantı teslim edildi
+## 22 Ekim — Şimdi iş2 / aynı temiz TEST'te örnek mağaza günü
+
+ERP-DEC-070 sıralı devamı: **2.1🟢 teknik eşleme**, mevcut product1/customer1/supplier1 ve24→21stok/0→376,50TRYmüşteri/0tedarikçi kayıtları aynı kimliklerle okundu. **2.2🔴 teknik bağlantı açık:** mevcut mal kabul/alış motoru bu cleanDB/ayrılmış roller/guard sürümüne henüz bağlı değil; yeni işlem0. **2.3🟡:** iş1satışkanıtı hazır, yeniden oluşturulmayacak. **2.4🔴tahsilat/ödeme;2.5🔴sayım/iade/iptal;2.6🔴gün sonumutabakatı** aynı işin kalan alt adımlarıdır. Bu alt adım renkleri özgün49/25veinsan kabul sayaçlarını değiştirmez. Çalışan3db/c8 ve eski sistem korunur; yeni Goal/tree/ajan/TEST yok. [Güncel STATUS](STATUS.md).
+
+## 22 Ekim — Önceki iş1: CRM siparişi → normal ERP onayı → tek satış teknik bağlantısı teslim edildi
 
 ERP-DEC-070: ERP3db0830/CRMc8d0e28 mevcut temiz yapay TEST'te kurulu. Normal personel taslağı ve ayrı sorumlu onayıyla tek CRS-20261022-3 satışı; stok24→21, müşteri0→376,50TRY. CRM normal atanmış ekranda aynı kayıt/FINALIZED salt okunur GET ile açıldı. Native motor sonrası hata/rollback, eşzamanlı replay/çelişki/rol retleri ve bağımsız SQL/API geçti; eski3sipariş ve yedi korunan SHA aynı,8/12/2tanım geçerli,16eski listener korunur. Kaynak exact ERP/CRM CI SUCCESS; gerçek ekranlar ve [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md) hazır. Genel işletme/insan kabulü,49/25 sayaçları ve launcher5.1 ayrı bekler. **Sıradaki:** kanıtlı ilk bağlantı teslimini koordinatöre vermek; bu tur başka mağaza günü işlemine geçme.
 
