@@ -2,7 +2,7 @@
 
 **2.1🟢eşleme;2.2🟢mal kabul;2.3🟢alış/tek tedarikçi borcu;2.4🟢önceki satış kanıtının yeniden kullanımı** teknik olarak doğrulandı. Normal depo18→sorumlu19→kabul3/alış4: stok21→23, borç0→120TRY; alış stokta ikinci etki yapmadı. AynıUUID/body ve ayrıUUIDreplay ikinci ticari etki0;9HTTP kontrolü/native4196POST403/native motor+rollback/SQL/API/normalGUI geçti. Kurulu ERP5aa4cb3e/frontend7dc,CRMc8; exactuygulamaPR/pushCI6jobSUCCESS, eski16listener/TEST125/DB02korundu. İnsan kabulleri ve49/25sayaçları aynı.
 
-**ŞİMDİ2.5🔴:** mevcut tahsilat/tedarikçi ödeme/kasa adapterini aynı temiz hedefe bağla. **2.6🔴:** sayım/iade/iptal; **2.7🔴:** gün sonu mutabakatı. Yeni kayıtlı kapsam/Goal/ajan/TEST yok; bitmiş satış/migration yeniden oluşturulmaz. Sonraki yetkili adım için rutin devam/parola beklenmez. [STATUS](STATUS.md), [ekran ve makbuz kanıtı](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki iş1veeski3db kayıtları tarihseldir.
+**ŞİMDİ2.5🔴:** ilk SOURCE/OFFLINE READ/PREVIEW sözleşmesi ve20hedefli kontrol hazır; kurulu yazma yok. Gerçek cleanhedefte5finans/journal tablosu, tahsilat yetkili rol ve doğrulanmışTRYkasa eksik; native guard/journal+dar owner kurulum bağımlılığı açık. Mevcut tahsilat/tedarikçi ödeme/kasa adapterini bu bağımlılıklar kesinleşince aynı temiz hedefe bağla. **2.6🔴:** sayım/iade/iptal; **2.7🔴:** gün sonu mutabakatı. Yeni kayıtlı kapsam/Goal/ajan/TEST yok; bitmiş satış/migration yeniden oluşturulmaz. [STATUS](STATUS.md), [ekran ve makbuz kanıtı](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki iş1veeski3db kayıtları tarihseldir.
 
 ## 22 Ekim — Önceki iş1: CRM siparişi → normal ERP onayı → tek satış teknik bağlantısı teslim edildi
 

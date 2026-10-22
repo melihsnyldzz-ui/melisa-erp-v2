@@ -1,4 +1,14 @@
-# 22 Ekim — Güncel temiz TEST: normal mal kabul → alış → tek borç
+# 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
+
+## İş2.5 ilk SOURCE/OFFLINE dilimi — kurulu tahsilat değildir
+
+Mevcut B06/C08 ve ERP-UA08/14 kapsamında `cleanStoreDayCollectionPreparation.mjs`, mevcut `workCollectionService` tutar/tarih/revision/hash hesabını değiştirmeden kullanır. Varsayılan DB/route/initializer/native writer yok. Yalnız exact clean order3→sale1/customer1/376,5000TRY, güncel izin kesişimi, aynı ortamın tek doğrulanmış yapayTRYkasası ve tam tahsilat geçmişiyle önizleme hazırlanabilir. Dış yetkiler false; collect/cancel her durumda403. Fixture'daki hazır rol/kasa yalnız çevrimdışı varsayımsal girdidir, gerçekten oluşturulmuş hesap değildir.
+
+22Ekim16:32UTC gerçek RO SQL: aynı `MELISA_ERP_CLEAN_TEST_20261022`/envE662FD94/T1false/externalfalse. `finance_accounts`, `finance_account_movements`, `work_collection_links`, `work_trade_requests`, `work_trade_intents` yok. Mevcut normal15–19 rollerinde finance.collection yok; doğrulanmış kasa yok. Genel finance hesap okuyucusu otomatik tablo/varsayılan hesap yazabildiğinden çağrılmadı. Mevcut satış376,5000TRY, müşteri376,5000/tedarikçi120,0000, stok23/12/0 ve3sipariş/1müşteri/1tedarikçi/2stok hareketi RO okundu; hiçbir ticari işlem yapılmadı. Private `.tmp/collection-preparation-target-ro.json` dışarı yüklenmedi.
+
+9yeni+11mevcut20hedefli test offline guard altında PASS; mevcut bağımsız reviewer açıkP1/P2=0. Yanlışhedef/rol/döviz/tarih/kasa, fazla tahsilat, kaynak/geçmiş drift ve tekrar çağrıda yazma403 doğrulandı. Bu, **başarılı native tahsilat/replay/yanıt kaybı sonrası tek ticari etki kanıtı değildir**; o kanıt native owner bağımlılıkları çözülüp ayrı dar kurulum yapıldığında gerekir. Yeni kaynak kurulmadı; ERP5aa/CRMc8/5f8049makbuzu/normal ekranlar aynı.2.5açık,2.6/2.7başlatılmadı; insan/cihaz/reboot kabulleri ve49/25sayaçları değişmedi.
+
+## Korunan2.2/2.3 kurulu sonuç
 
 **Son CI düzeltmesi yalnız testtedir:**5546d3d5 belgeHEAD'inin PRWindows koşusunda tek eski query-only handle denemesi LIVE_HANDLE ile reddedildi; aynıHEADpush başarılıydı. Deneme toplam3,4sn sürüp ilk aktiflik kontrolünde reddedildi; sabit2,5sn ömürlü çocuk, ilk OpenHandle içindeki tembel C#derleme ve kimlik okuması tamamlanmadan çıkabiliyordu. Fixture artık stdin bekler; ilk PID/aktiflik/doğum kanıtından sonra sinyal/EOF ile doğal çıkar,10sn sınırlıbekleme ve finallyEOF/Dispose temizliği vardır. Tüm nativePID/birth/closed/CIM0 assertions ve productiondriver aynıdır; kontrol/yetki gevşetilmedi. Yerelde eskiEncodedCommandrunner yeniden çalıştırılmadı; yalnızJSsyntax+ilk saf kaynak assertionı1PASS. Gerçek Windows fixture sonucu son PR54HEAD CI'sinde ayrıca izlenir. Kurulu5aa/c8,SQL ve servislerde bu CI düzeltmesi için değişiklik/restart0.
 
