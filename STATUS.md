@@ -1,3 +1,19 @@
+## 23 Ekim — Esas TEST şirket ağı ve Tailscale adreslerinde çalışıyor
+
+ERP uygulama **035fcc08d8f56cdd0cbc437a290285328fce1ec9**, paket **CLEAN-ERP-20261022-035fcc08d8f5**; CRM uygulama **bc8c307ee29f115b2bb7fd4e61f87e9bf482ba54** aynı `C:\Sirket\ERP\clean\20261022` hedefine kuruldu. DB **MELISA_ERP_CLEAN_TEST_20261022**, synthetic=true/T1=false/externalOperations=false. Bu hedef kullanıcının bundan sonraki tek esas TEST sürümüdür; gerçek LIVE değildir.
+
+ERP5244/CRM62800 yalnız127.0.0.1,192.168.1.46,100.87.188.3 arayüzlerinde;4194/4196/62801–62803 yalnızloopback. Mevcut firewall kuralları değişmedi. Yeni6süreç kontrollü yenilendi; genişletilmiş envanterde21eski listener adres/PID/doğum/executable aynı. COPY_ONLY/CHECKSUM/VERIFYONLY yedek ve eski starter/dist before-image korundu; restore/reset/finans-stok yazması0. Kurulumdan ve normal GUI'den sonra53veri kapsamı aynı.
+
+**Gerçek normal GUI:** İki ağ adresinde ERP ornek-satis ve CRM ornek-personel normal girişleri,3yapay ürün/stok23-12-0/TRY-USD-EUR/fotoğraf/baştaki sıfırlı barkod okundu. CRM atanmış Örnek Mağaza kataloğu0007/125,50TRY/fotoğrafı okudu. ERP mevcut CRM sipariş ayrıntısı tamamlanmışCRS-20261022-3 satışını salt okunur gösterdi. ERP ve CRM yenilemesinde oturum korundu. Yetkisiz katalog401; yanlışOrigin/forwarded başlık403. Bunlar **sunucu bilgisayarındaki tarayıcıdan** ağ adresi kontrolleridir; uzak ikinci cihaz/TC21/insan/reboot-logon PASS değildir.
+
+**Kaynak/CI:** ERP PR54 kaynak035fcc08, [PR39868737448](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39868737448) + [push39868730251](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39868730251),6/6 SUCCESS. CRM PR3 kaynakbc8, PR39868432842/push39868425461/AI39868432917 toplam7/7 SUCCESS. ERP1034UI ve29logger/clean hedefli test geçti; bağımsız kaynak incelemesi mevcut koordinatörde0P1/P2. Belge teslimi uygulama source/paketinden ayrıdır.
+
+[ERP LAN](http://192.168.1.46:5244/ornek-akis.html#stock) · [CRM LAN](http://192.168.1.46:62800/) · [ERP Tailscale](http://100.87.188.3:5244/ornek-akis.html#stock) · [CRM Tailscale](http://100.87.188.3:62800/).
+[Kanıt, ekranlar ve eski adres envanteri](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--esas-test-ağ-teslimi).
+**Sıradaki tek iş:** Başka bir yetkili LAN/Tailscale cihazında bu adreslerden normal giriş ve katalog kabulü; soğuk Windows açılışı ve gerçek personel kabulü mevcut raporda ayrı açık. “Sayan” sabit etiket eksiği korunur. Özgün49/25 sayaçları değişmedi.
+
+### Önceki teslimlerin tarihsel kaydı
+
 ## 23 Ekim — İzin değişikliği sonrası gerçek kurulum; 2.6 ve 2.7 teknik olarak doğrulandı
 
 Kullanıcının “bir ayar denedim, eski bekleyen işleri tekrar dene” kararı sonrası mevcut desteklenen izin yolu çalıştı. Önceki ret başka araçla aşılmadı; yeni izin profiliyle aynı installer hazırlığı/ValidateOnly/Apply yürüdü. Önce b2a55bba kuruldu; normal raporda görülen eksik router bağı yalnız dört satırla giderilip son uygulama **759bbc62ff2b03341860e2f865101c23dbd596ee / CLEAN-ERP-20261022-759bbc62ff2b** kuruldu. CRM **c8d0e28** kaynak/frontend korunarak güncel ERP pinine bağlandı. Son kaynak PR39862025248/push39862017901: altı gerekli check completed/SUCCESS. Kaynak incelemesi mevcut koordinatörce yapıldı; yeni ajan/helper/Goal yok.

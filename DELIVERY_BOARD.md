@@ -1,3 +1,9 @@
+## 23 Ekim — Tek esas TEST ve ağ bağlantısı
+
+ERP-DEC-071: aynı clean20261022 kurulumuna ERP035fcc08/CRMbc8 kuruldu; yalnızweb5244/62800 LAN+Tailscale, içservislerloopback. Normalpersonel giriş/katalog/fotoğraf/fiyat/yenileme sunucu tarayıcısında doğrulandı.21eski listener,firewall ve53veri kapsamı aynı; yeni ticari işlem0. KaynakERP6/6CI,CRM7/7CI başarılı. Eski kurulumlar envanterde korunur. **İkinci fiziksel cihaz ve insan kabulü bekliyor**; özgün49/25sayaçları değişmez. Sonraki iş başka yetkili cihazdan normal giriş/katalog kabulü; yeni göç veya tamamlanmış motor tekrarı yok. [Güncel STATUS](STATUS.md) ve [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--esas-test-ağ-teslimi).
+
+### Önceki teslimlerin tarihsel kaydı
+
 ## 23 Ekim — Aynı2.6/2.7 kuruldu ve normal ekranlarda teknik olarak doğrulandı
 
 - **2.6 teknik tamam:** Personel21→sorumlu22 sayım10 onay/ters kayıt23→24→23; alış4'e bağlı iade3 ve ters kayıt23→22→23, tedarikçi0→−60→0TRY. GUIreplay ikinci etki0, eski belgeler korunur. Sayan etiketinde sabit “Satış ekibi” küçük kullanım eksiği açık; gerçek aktör/rol doğru.

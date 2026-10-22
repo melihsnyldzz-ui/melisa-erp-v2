@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-071 — 23 Ekim 2026 — Tek esas TEST sürümü, şirket ağı ve Tailscale erişimi
+
+**Kaynak:** Mevcut Kordinatör AJAN konuşmasında kullanıcının doğrudan şirket Wi-Fi/LAN ve Tailscale cihazlarına erişim talebi, ardından “bu son sürüm ... ana sürümümüz olacak” kararı root tarafından read_thread ile okundu. Esas çalışma kurulumu `C:\Sirket\ERP\clean\20261022` olarak kalır. “Esas sürüm” TEST çalışma hedefidir; Git main birleştirmesi, LIVE veya gerçek açılış yetkisi değildir.
+
+Yalnız ERP5244 ve CRM62800 kullanıcı ekranları sunucunun192.168.1.46 ve100.87.188.3 adreslerine açılır. API/native/iç servisler loopback'te, kimlik ve yetki kontrolleri aynı kalır. LAN kapsamı mevcut/24; Tailscale kapsamı sahibi tarafından doğrulanmış sonlu cihaz listesidir. İnternet yayını/Funnel/router yönlendirme ve güvenlik duvarını kapatma/genişletme yok. Mevcut exact Node TCP izni yeterli bulundu; firewall değişikliği yapılmadı.
+
+ERP ortak kurulumun tek yazarı, CRM yalnız kendi kaynağının sahibidir. Eski sürümler ayrı envanterde korunur; durdurulmaz/silinmez/taşınmaz. Kullanıcının mevcut raporundaki canlıya kalan A–E işleri ve özgün49/25 kabuller kullanılır; yeni Goal/ajan/helper/takip sistemi yok. Kaynak/CI, gerçek kurulum, sunucu üzerindeki ağ adresi GUI kontrolü, ikinci cihaz ve insan kabulü ayrı tutulur. Son sonuç STATUS ve mevcut tek kanıt belgesindedir.
+
 ### ERP-DEC-070 — 22 Ekim 2026 — Temiz TEST'te CRM siparişinden normal satışa devam
 
 **23 Ekim — doğrudan kullanıcı kararıyla desteklenen yeniden deneme:** “eski bekleyen yapılamayan işleri bir daha denesene bir ayar denedim” talimatı, değişmiş workspace-write/auto_review izin profilinde mevcut bekleyen kurulum ve5.1 için bir gerçek desteklenen denemeyi yetkilendirir. Önceki “ret tekrar edilmez” durumu bu değişmiş koşula uygulanmaz; güvenlik kapatma veya başka yöntemle ret dolanma yetkisi verilmez. Aynı temiz hedef/tek ERP owner/korunan eski sistem şartlarıyla kurulum geçti.2.6normal sayım-iade-inverse ve2.7rapor GUI/API/SQL teknik kanıtı kaydedildi;5.1yalnız zaten çalışan uygulamayı açma yolu exit0. Son uygulama759bbc62/CRMc8, insan kabulü/soğuk Windows açılışı ayrıdır. Önceki aşağıdaki BEKLEMEDE/KISMİ ifadeleri tarihsel; mevcut sonuç STATUS ve tek kanıt belgesindedir. Yeni plan/ajan/helper/TEST/Goal yok; LIVE/Vega/T1/main/gerçek müşteri/ücretli servis sınırları aynı.

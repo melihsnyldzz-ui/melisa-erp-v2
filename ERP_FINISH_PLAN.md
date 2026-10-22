@@ -1,3 +1,9 @@
+## 23 Ekim — Tek esas TEST ve ağ bağlantısı
+
+ERP-DEC-071: aynı clean20261022 kurulumuna ERP035fcc08/CRMbc8 kuruldu; yalnızweb5244/62800 LAN+Tailscale, içservislerloopback. Normalpersonel giriş/katalog/fotoğraf/fiyat/yenileme sunucu tarayıcısında doğrulandı.21eski listener,firewall ve53veri kapsamı aynı; yeni ticari işlem0. KaynakERP6/6CI,CRM7/7CI başarılı. Eski kurulumlar envanterde korunur. **İkinci fiziksel cihaz ve insan kabulü bekliyor**; özgün49/25sayaçları değişmez. Sonraki iş başka yetkili cihazdan normal giriş/katalog kabulü; yeni göç veya tamamlanmış motor tekrarı yok. [Güncel STATUS](STATUS.md) ve [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--esas-test-ağ-teslimi).
+
+### Önceki teslimlerin tarihsel kaydı
+
 ## 23 Ekim — Aynı mağaza günü2.6 ve2.7 teknik kanıtı tamamlandı
 
 Kullanıcının ayar değişikliği sonrası yetkilendirdiği desteklenen yeniden deneme geçti. KuruluERP759bbc62/CRMc8 aynı temiz yapay TEST'tedir.2.6normal personel-sorumlu sayım/iade/onay/gerekçeli inverse/yenileme/replay ve bağımsızSQL tamamlandı;2.7yedi normal rapor/API/SQL/CSV aynı22Ekim belgeleriyle eşleşti. Eski veriler/servisler korunur; yeni gerçek işlem yok.5.1.cmd zaten-açık yolunda exit0/23listeneraynı; gerçek Windows reboot/logon DENENMEDİ. Küçük sayım “Sayan” sabit etiketi açık. İnsan/personel/cihaz kabulü BEKLİYOR, özgün49ERP/25CRM ve74yaprak sayaçları artırılmadı. [Güncel STATUS](STATUS.md), [tek kanıt/ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--yeniden-deneme-sonucu-gerçek-kurulum-ve-ekranlar). Sonraki mevcut kapsam son personel/cihaz/açılış kabulüdür; bitmiş teknik motorları yeniden kurma veya migrate etme.

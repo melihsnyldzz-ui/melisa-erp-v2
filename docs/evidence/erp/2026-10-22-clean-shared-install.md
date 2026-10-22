@@ -1,5 +1,44 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — Esas TEST ağ teslimi
+
+Kullanıcı aynı temiz kurulumu sonraki çalışmaların esas TEST sürümü seçti; şirket ağı ve Tailscale erişimini açıkça yetkilendirdi. Eski kurulumlar korunur. Bu kayıt önceki tarihlerdeki “yalnız loopback” ve eski kaynak kimliklerinin güncel karşılığıdır; eski kanıtlar silinmedi.
+
+| Bileşen | Gerçek kurulu kaynak / hedef |
+|---|---|
+| ERP | `035fcc08d8f56cdd0cbc437a290285328fce1ec9` / `CLEAN-ERP-20261022-035fcc08d8f5` |
+| CRM | `bc8c307ee29f115b2bb7fd4e61f87e9bf482ba54`; mevcut c8 frontend ile kaynak farkı0 |
+| SQL | Semih\\MELISADEV / MELISA_ERP_CLEAN_TEST_20261022; env e662fd94-d797-4b3b-938a-d143ad758b67 |
+| Güvenlik | synthetic=true; actualT1=false; externalOperations=false; app sysadmin/DBcontrol/eskiDB/LIVE erişimi0 |
+| Web | ERP5244 ve CRM62800:127.0.0.1,192.168.1.46,100.87.188.3 |
+| İç servisler |4194/4196/62801/62802/62803 yalnız127.0.0.1 |
+
+**Uygulama:** Mevcut installer ValidateOnly→Apply; altı yeni temiz süreç kontrollü yenilendi. Kaynaklar ff-only, exact commit/DB/port/env/before-image doğrulandı. Yalnız uygulama değişti; SQLrestore/reset/migration/ticari yazma0. Yeni bağlardan sonra11clean listener var. Önceki21eski listener adres/PID/doğum/executable ve bütün firewall kuralları aynı. Mevcut onaylı Node TCP izni kullanıldı; yeni firewall kuralı veya yönetici yükseltmesi yok. Exact interface bind, LAN/24 ve sonlu Tailscale peer listesi; yabancıHost/Origin/forwarded başlığı reddedilir. API/native ağda dinlemez.
+
+**Gerçek ekran:** Şirket ve Tailscale IP'lerinin her ikisinde normal ornek-satis/normal ornek-personel girişleri açıldı. ERP3yapay ürün;0007 MELISA fotoğrafı/23ADET/125,50TRY,0161/12ADET/8,55USD,0205/0ADET/10,25EUR ve baştaki sıfırlı barkodlar okundu. CRM atanmış Örnek Mağaza→Katalog0007fotoğrafı/125,50TRY okudu. ERP Onaylar mevcutCR2-450649569C91470FA7B6A9330B→CRS-20261022-3 tamamlanmış satışını salt okunur gösterdi; yeniden satış yapılmadı. TailscaleERP veCRM sayfa yenilemesinde normal oturum korundu. Ajanın iki ağ adresine **sunucu bilgisayarından** erişmesidir; başka fiziksel cihazdan sonuç değildir.
+
+**Negatif sınırlar:** İki ağ × ikiweb'de yanlışOrigin veforwarded başlık8/8HTTP403; ikiERPweb'de authsizkatalog2/2HTTP401. Normal giriş dışında yetki değişimi yok. Önce/kurulumsonrası/GUIsonrası53/53 veri kapsamı aynı; ticari işlem ve kaynak verisi korunur. Wi-Fi/Tailscale başka cihaz, TC21, gerçek Windows reboot/logon ve personel kabulü **DENENMEDİ/BEKLİYOR**. MevcutADBdevice/mDNS bulunmadı; yalnız TailscaleTC21online bilgisi cihaz ekranı kanıtı sayılmadı.
+
+**Hata ve test:** LAN HTTP'de bulunmayabilen crypto.randomUUID yerine mevcut güvenli tradeUuid kullanıldı; crypto yoksa kapanır, retry aynıUUID taşır. Logger yalnız exactCLEAN_TEST_ORIGIN_REJECTED kodunu tanır, private suffix gizlenir. ÜçVMtestloader gerçek yeni modül bağına uyarlandı; assertionlar gevşetilmedi. Tam1034UI testi ve29logger/clean kontrolü geçti;79öncekihedefli/21ilgili kontroller bu sayılara eklenmiş kabul sayısı değildir. Frontend65c6342f build'i ile kurulu035davranış farkı0. Mevcut koordinatör bağımsız kaynak review0P1/P2. ERPPR54 [PR39868737448](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39868737448) ve [push39868730251](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39868730251)6/6SUCCESS. CRMPR3 exactbc8 PR39868432842/push39868425461/AI39868432917:7/7SUCCESS. Belge commit'i kurulu uygulama değildir.
+
+**Private makbuzlar:** `runtime/network-install-20261022T230726Z/result.json` SHA256 `522D3FF4D22D70864E2729F4963F9B7C63EE974F24A4189D38BAD8CC8C015220`; aynı kökte `network-gui-proof.json` SHA256 `6B32F09BACEA99AE0489A45CB504D4101F464559172EFDD0BCCB34CFA4C9E941`. Kurulum makbuzundaki GUI=PENDING o andaki durumdur; sonraki ayrı GUI makbuzu bu sınırı tamamlar. Yedek `backups/before-network-20261023.bak`: COPY_ONLY/CHECKSUM/VERIFYONLY, SHA256 `82978C57F1E258995178381FAE385479716B4DE6001237AAB8765967E6DE3DD0`; gerçek restore yapılmadı. Sırlar/ham veriler/özel ayarlar/yedek GitHub'a taşınmadı.
+
+### Eski adres envanteri — korundu, yeni esas giriş değildir
+
+| Adres / servis | Gerçek kimlik | Şimdiki sınıf |
+|---|---|---|
+|127.0.0.1:5194;API4144/native4146 |TEST125 runtime klasörü; health source edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d; MELISA_ERP_SIRKET_TEST_20260929_01 |Çalışıyor, eski TEST |
+|127.0.0.1:5234;API4184/native4186 |source e59e07abf7ae2567cdc2adb93811fe29e0032fe5; MELISA_ERP_CRM_SHARED_TEST_20261009_02; copy e16b70f0-4057-428b-9abc-6bbcaf35fe82/T1false |Çalışıyor, eski ortak TEST |
+|127.0.0.1:62700;62701–62704 |crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a runtime |Çalışıyor, eski CRM |
+|5188;4114/4116 |C:\\do-wt\\melisa-production-20260918; start-production-web/erp/native.mjs |Çalışıyor, üretim isimli korunan eski servisler; DB bu görevde sorgulanmadı |
+|5173 |WildcardVite listener; kaynak checkout/DB bu kapsamda tam doğrulanmadı |Çalışıyor; kimlik BELİRSİZ, “gereksiz” sayılmadı |
+
+Yeni esas girişler [ERP LAN](http://192.168.1.46:5244/ornek-akis.html#stock), [CRM LAN](http://192.168.1.46:62800/), [ERP Tailscale](http://100.87.188.3:5244/ornek-akis.html#stock), [CRM Tailscale](http://100.87.188.3:62800/). Rehber: `C:\\Sirket\\ERP\\clean\\20261022\\GIRIS-REHBERI.md`. IP rezervasyonu bu görevde yapılmadı; adres değişirse finite ağ kimliği yeniden doğrulanır.
+
+![ERP şirket ağı normal ürün kartı](2026-10-23-network-erp.jpg)
+
+![CRM Tailscale adresindeki normal katalog](2026-10-23-network-crm.jpg)
+
 ## 23 Ekim — Yeniden deneme sonucu gerçek kurulum ve ekranlar
 
 Kullanıcının izin ayarı değişikliği sonrası doğrudan yeniden deneme talimatıyla mevcut desteklenen escalation yolu çalıştı. Önceki reddin kök nedeninin veya sağlayıcı hatasının düzeltildiği iddia edilmez; yalnız bu çağrılar artık gerçekten yürüdü. Güvenlik kapatma/ret dolanma/yeni helper/ajan/Goal yok.
