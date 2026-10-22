@@ -13,7 +13,7 @@ const engineSha='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427
 const observerMaterializedSha='8260a0d0fc8c378b68c1c7a6303b085cc265a6045c004f9b81586d5a99e617b1';
 test('same-capture source retains the historical observer pin only for sealed historical recovery',()=>{assert.notEqual(sha('p03-physical-recovery-observe.ps1'),observerMaterializedSha);assert(readFileSync(leaf('p03-pr54-shared-owner-io.mjs'),'utf8').includes(observerMaterializedSha));});
 
-function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))','utf16le').toString('base64')],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',windowsHide:true,timeout:20000,stdio:['pipe','pipe','pipe']});}
+function ps(code){return execFileSync(shell,['-NoProfile','-NonInteractive','-Command','$s=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($s))'],{input:"$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n"+code,encoding:'utf8',windowsHide:true,timeout:20000,stdio:['pipe','pipe','pipe']});}
 const extract=(name,file)=>`$t=$null;$e=$null;$a=[Management.Automation.Language.Parser]::ParseFile(${q(leaf(file))},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'};$d=@($a.FindAll({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -ceq ${q(name)}},$false));if($d.Count-ne1){throw 'FIXTURE_FUNCTION'};. ([scriptblock]::Create($d[0].Extent.Text));`;
 test('CurrentB007 helper closure binds literal Git LF payloads while retaining all legacy source pins',windows,()=>{
  const newRecovery=readFileSync(leaf('p03-pr54-b264-new-owner-recovery.ps1'),'utf8'),newObserver=readFileSync(leaf('p03-pr54-new-owner-observe.ps1'),'utf8');
@@ -49,7 +49,7 @@ test('PS5 same-capture input is absent from CLI and JSON/foreign native objects 
 if(@($a.ParamBlock.Parameters|Where-Object{$_.Name.VariablePath.UserPath -ceq 'NativeCapture'}).Count){throw 'CLI_CAPTURE_EXPOSED'}
 $d=@($a.FindAll({param($x)$x -is [Management.Automation.Language.FunctionDefinitionAst] -and $x.Name -ceq 'InvokeP03SuccessorWorker'},$true))
 
-$gate=[scriptblock]::Create($d[0].Body.EndBlock.Statements[0].Extent.Text);$PolicyGeneration='CurrentB007InspectOnly';$Mode='Inspect'
+$gates=@($d[0].FindAll({param($n)$n-is[Management.Automation.Language.IfStatementAst]-and$n.Extent.Text.StartsWith('if($null -ne $NativeCapture){')-and$n.Extent.Text.Contains("throw 'P03_SAME_CAPTURE_SCOPE'")},$true));if($gates.Count-ne1){throw 'FIXTURE_NATIVE_CAPTURE_GATE'};$gate=[scriptblock]::Create($gates[0].Extent.Text);$PolicyGeneration='CurrentB007InspectOnly';$Mode='Inspect'
 foreach($kind in @('json','foreignMode','foreignId','com')){
  $NativeCapture=[pscustomobject]@{schemaVersion='melisa-p03-native-inventory.v1';id=('a'*32);all=@([pscustomobject]@{ProcessId=123});allListeners=@();instances=@()}
  if($kind-ceq'foreignMode'){$Mode='Drain'}elseif($kind-ceq'foreignId'){$NativeCapture.id='bad'}elseif($kind-ceq'com'){$NativeCapture.all=@();$NativeCapture.instances=@([pscustomobject]@{Name='fake'})}
