@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-068 — 22 Ekim 2026 — Güncel kaynaklardan ayrı, yapay verili ortak kurulum
+
+**Kaynak:** Kullanıcının Kordinatör AJAN konuşmasındaki doğrudan kararı ve mevcut ERP/CRM owner'larına iletilen beş aşamalı görev: “Çalışan eski CRM ve ERP’ye ihtiyacım yok; tek ihtiyacım ERP ve CRM’nin son sürümlerini temiz bir repoya çekip bağlayıp bitirmek.” Bu, eski dosya/servis/DB silme veya durdurma izni değildir. Güncel kaynaklar alınır; iki normal uygulama ayrı SQL alanında yapay kayıtlarla açılır; ürün/fiyat ve CRM→ERP sipariş tek kayıt/replay/restart kalıcılığıyla kanıtlanır; kolay açılış/adres/GitHub teslim edilir.
+
+Bu görev için kaynak alanı `C:\Sirket\ERP\clean\20261022\erp` ve `crm`; hedef yalnız `Semih\MELISADEV / MELISA_ERP_CLEAN_TEST_20261022`, immutable environment ID `e662fd94-d797-4b3b-938a-d143ad758b67`. Sonlu loopback topology ERP4194/native4196/web5244, CRM62800/62801/62802/62803; synthetic=true, actualT1=false, externalOperations=false. Eski TEST125/DB02/Shared, kirli kaynak değişiklikleri, ticari/migration/hold/LL/medya/rol/yedek kayıtları korunur. Eski P03 devralma/freshness denemeleri bu kurulum için yeniden başlatılmaz.
+
+Mevcut native v2 request/receipt/CAS/transaction/replay/immutable SQL motoru ayrı hedef ve yapay provenance kanıtıyla yeniden kullanılır. Yapay ürünler Vega kabul verisi gibi etiketlenmez; JSON sipariş kalıcılığı veya dar demo ekranı gerçek iki uygulamanın yerine geçmez. Yeni ana ajan/Goal/takip sistemi/otomasyon yok. ERP SQL/runtime tek sahibi, CRM kendi source/UI sahibidir. Giriş normal kullanıcı/rol yoludur; yeni hesapların parolaları korumalı depoda kalır, güvenlik reddi dolanılmaz. LIVE/Vega/T1/gerçek ticari işlem/gerçek müşteri mesajı/ücretli servis/main merge yetkisi yok; insan kabulü ayrı beklenir.
+
 ### ERP-DEC-067 — 20 Ekim 2026 20:17 UTC — Aynı17 başlıkta kesintisiz yetkili devam
 
 **Kaynak:** Kullanıcının mevcut aktif ERP turuna iletilen doğrudan talimatı; tekil iletim kaydı `DOT-TREE17-CONTINUATION-20261020-2017`. Kullanıcı: “Her iş için benden yeniden seçim veya ‘devam et’ mesajı bekleme.” Bu karar önceki yalnız1–2–3 seçimi/sonraki seçim bekleme yönünü aynı mevcut kapsam içinde günceller; tarihsel kararları veya teslimleri silmez.

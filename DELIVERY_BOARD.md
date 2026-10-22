@@ -369,3 +369,7 @@ ERP-PRODUCTCOMPLETION01 kullanıcı tarafından önceliklendirildi; önceki dili
 | ID | Hedef | Kabul kriteri | Durum | Bağımlılık |
 | --- | --- | --- | --- | --- |
 | ERP-D08 | Canlı teslimi engellemeyen yeni fikirleri canlıdan sonra değerlendir. | Somut fikir geldiğinde ERP-DEC-007 uyarınca ID/kabul ölçütüyle kaydedilir; uygulama yeni kullanıcı kararıyla başlar. | Bekleyen fikir havuzu; uygulama onayı yok | Mevcut canlı teslim; yeni kullanıcı kararı |
+## 22 Ekim — Etkin iş: güncel kaynaklarla temiz ortak kurulum
+
+ERP-DEC-068 kapsamında kaynaklar alındı; yalnız yapay kayıtlı yeni SQL alanı ve normal ERP bundle açıldı. CRM finite profil kurulumu ve gerçek native SQL sipariş/replay/restart bağlantısı sürüyor. Eski kurulum devralma bu işin önkoşulu değildir; kurulu sistem/veri/yedek korunur. Yeni tracker/ağaç/Goal yok; özgün49ERP/25CRM ve insan kabulü sayaçları değişmez. Teknik kanıt/source-paket-GUI ayrımı [STATUS](STATUS.md) içinde.
+

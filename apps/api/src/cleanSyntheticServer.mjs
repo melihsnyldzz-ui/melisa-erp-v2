@@ -1,0 +1,16 @@
+// Real ERP app, auth and native order engine against one fresh synthetic DB.
+import sql from 'mssql';
+import {assertCleanEnvironment,registerCleanContext,CLEAN_IDENTITY_SQL,assertRegisteredCleanContext} from './services/cleanSyntheticContext.mjs';
+assertCleanEnvironment();
+const probe=await new sql.ConnectionPool({server:'127.0.0.1',port:1433,database:process.env.SQL_DATABASE,user:process.env.SQL_USER,password:process.env.SQL_PASSWORD,options:{encrypt:false,trustServerCertificate:true},connectionTimeout:10000,requestTimeout:10000}).connect();
+try{registerCleanContext((await probe.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);}finally{await probe.close();}
+const [{default:express},{default:cors},{createApp},{requireAuth,requirePermission},{crmOrderV2Routes},{readCleanCatalog},{errorHandler}]=await Promise.all([import('express'),import('cors'),import('./app.js'),import('./middleware/authMiddleware.js'),import('./routes/crmOrderV2Routes.mjs'),import('./services/cleanSyntheticCatalog.mjs'),import('./middleware/errorHandler.js')]);
+const app=express();app.disable('x-powered-by');app.use(cors({origin:['http://127.0.0.1:5244','http://127.0.0.1:62800']}));app.use(express.json({limit:'128kb'}));
+app.use((req,res,next)=>{try{assertRegisteredCleanContext();if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!/^\/api\/auth\/(login|refresh|logout)$/.test(req.path)&&!(req.method==='POST'&&req.path==='/api/test/crm/orders/v2/drafts'))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu örnek kurulumda işlem açık değil.'}});next();}catch(e){next(e);}});
+app.get('/api/health',(req,res)=>res.json({success:true,data:{status:'ok',...assertRegisteredCleanContext(),sourceCommit:process.env.CLEAN_SOURCE_COMMIT}}));
+app.get('/test-health',async(req,res,next)=>{try{const {getSqlPool}=await import('./config/database.js'),identity=(await (await getSqlPool()).request().query(CLEAN_IDENTITY_SQL)).recordset[0];res.json({ok:true,...assertRegisteredCleanContext(),databaseName:identity.databaseName,serverName:identity.serverName,originalDatabaseAccess:identity.originalDatabaseAccess,liveDatabaseAccess:identity.liveDatabaseAccess,sysadmin:identity.sysadmin,databaseControl:identity.databaseControl,port:Number(process.env.API_PORT),mode:'erp',writes:true,purpose:'crm-order-draft-only',automaticJobs:false,stockEffect:false,ledgerEffect:false,reservationEffect:false,sourceCommit:process.env.CLEAN_SOURCE_COMMIT,packageId:process.env.CLEAN_PACKAGE_ID});}catch(e){next(e);}});
+const read=detail=>async(req,res,next)=>{try{res.json(await readCleanCatalog(req.query,req.user,detail?req.params.id:null));}catch(e){next(e);}};
+app.get('/api/catalog/products',requireAuth,requirePermission('product.view'),read(false));app.get('/api/catalog/products/:id',requireAuth,requirePermission('product.view'),read(true));
+app.use('/api',crmOrderV2Routes);app.use(createApp());app.use(errorHandler);
+const server=app.listen(Number(process.env.API_PORT),'127.0.0.1',()=>console.log(JSON.stringify({status:'listening',port:Number(process.env.API_PORT),environment:'CLEAN_SYNTHETIC_TEST',actualT1:false})));
+process.on('SIGTERM',()=>server.close(()=>process.exit(0)));

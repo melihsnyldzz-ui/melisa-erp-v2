@@ -6,6 +6,9 @@ import { env } from '../config/env.js';
 import { getSqlPool } from '../config/database.js';
 import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {getCleanContext,assertRegisteredCleanContext} from './cleanSyntheticContext.mjs';
+// Only auth refresh/revocation and last-login writes use this narrow capability.
+function assertAuthWriteEnabled(){if(getCleanContext()){assertRegisteredCleanContext();return;}assertMelisaWriteEnabled();}
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 import {sharedCopyAuthClaims} from './sharedCopyAuthClaims.mjs';
 import {bindNormalTestFingerprint,configuredNormalTestRefreshStore} from './normalTestRefreshSession.mjs';
@@ -209,7 +212,7 @@ async function issueSession(user, userAgent, nativeTerminalCode = null) {
     };
   }
 
-  assertMelisaWriteEnabled();
+  assertAuthWriteEnabled();
 
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
@@ -389,7 +392,7 @@ export async function logout(refreshToken) {
     return { revoked: false };
   }
 
-  assertMelisaWriteEnabled();
+  assertAuthWriteEnabled();
 
   const pool = await getSqlPool();
   const result = await pool.request()
@@ -419,7 +422,7 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
     return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
   }
 
-  assertMelisaWriteEnabled();
+  assertAuthWriteEnabled();
   if (!refreshToken) {
     throw makeAuthError('AUTH_REFRESH_REQUIRED', 'Refresh token is required', 401);
   }

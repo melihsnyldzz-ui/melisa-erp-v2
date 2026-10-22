@@ -1,6 +1,7 @@
 export {moneyDisplay} from './moneyDisplay.mjs';
 import {stockExact,stockRequestGate} from './stockProductsModel.mjs';
 import {currentProductCatalogVersion,currentProductLineage} from './currentProductCatalogModel.mjs';
+import {isCleanCatalogMeta,cleanCatalogProduct,cleanCatalogEnvelope} from './cleanSyntheticCatalogModel.mjs';
 export {stockExact as catalogExact,stockRequestGate as catalogRequestGate};
 const fail=()=>{throw Error('Katalog bilgileri doğrulanamadı. Yeniden deneyin.');};
 const id=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v)&&BigInt(v)<=9223372036854775807n;
@@ -41,6 +42,7 @@ export function catalogProduct(r,{canViewSalesPrices=false,finalVersion:finalCon
 }
 export function catalogEnvelope(p,{salesPermission=false,detail=false}={}){
  const m=p?.meta;
+ if(isCleanCatalogMeta(m))return cleanCatalogEnvelope(p,{salesPermission,detail});
  const final=finalVersion(m?.finalVersion)&&m.sourceAsOf===m.finalVersion.sourceAsOf&&m.scopeCounts?.acceptedOpening===m.finalVersion.productCount;
  const current=currentProductCatalogVersion(m?.currentVersion)&&m.sourceAsOf===m.currentVersion.sourceAsOf&&m.scopeCounts?.acceptedOpening===m.currentVersion.productCount;
  if(m?.currentVersion&&(!current||m?.finalVersion))fail();
