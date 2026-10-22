@@ -12,7 +12,11 @@ assertCleanEnvironment();
 const probe=await new sql.ConnectionPool({server:'127.0.0.1',port:1433,database:process.env.SQL_DATABASE,user:process.env.SQL_USER,password:process.env.SQL_PASSWORD,options:{encrypt:false,trustServerCertificate:true},connectionTimeout:10000,requestTimeout:10000}).connect();
 try{registerCleanContext((await probe.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);if(process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_STORE_DAY==='20261022')await probe.request().execute('dbo.usp_clean_store_day_ready');if(process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_FINANCE==='20261022')await probe.request().query("IF OBJECT_ID(N'dbo.clean_store_finance_manifest') IS NULL THROW 51960,'CLEAN_INBOUND_COHORT_DRIFT',1;EXEC dbo.usp_clean_store_day_ready;");}finally{await probe.close();}
 const [{default:express},{default:cors},{createApp},{requireAuth,requirePermission},{crmOrderV2Routes},{readCleanCatalog,readCleanPhoto},{errorHandler},{createWorkCollectionRoutes}]=await Promise.all([import('express'),import('cors'),import('./app.js'),import('./middleware/authMiddleware.js'),import('./routes/crmOrderV2Routes.mjs'),import('./services/cleanSyntheticCatalog.mjs'),import('./middleware/errorHandler.js'),import('./routes/workCollectionRoutes.mjs')]);
-const app=express();app.disable('x-powered-by');app.use(cors({origin:['http://127.0.0.1:5244','http://127.0.0.1:62800']}));app.use(express.json({limit:'128kb'}));
+const cleanOrigins=['http://127.0.0.1:5244','http://localhost:5244','http://127.0.0.1:62800'];
+if(process.env.MELISA_CLEAN_UI_NETWORK==='lan-tailscale-20261022')for(const host of ['192.168.1.46','100.87.188.3'])for(const port of [5244,62800])cleanOrigins.push(`http://${host}:${port}`);
+const app=express();app.disable('x-powered-by');
+app.use((req,res,next)=>{if(req.get('origin')&&!cleanOrigins.includes(req.get('origin')))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_ORIGIN_REJECTED'}});next();});
+app.use(cors({origin:cleanOrigins}));app.use(express.json({limit:'128kb'}));
 const saleWrite=req=>process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_SALES==='20261022'&&req.method==='POST'&&/^\/api\/sales-orders\/[1-9]\d*\/(?:convert-to-sales-draft|finalize-linked-sale)$/.test(req.path);
 const inboundEnabled=()=>process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_STORE_DAY==='20261022';
 const financeEnabled=()=>inboundEnabled()&&process.env.MELISA_CLEAN_FINANCE==='20261022';

@@ -1,4 +1,5 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -119,11 +120,11 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return (await request(path,{expire:true,keepForbiddenSession:true})).data;
   },
   async orders(id=null){
-   if(!active||!token||!user||!user.permissions.includes('sales.view')||location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5244'||resolvedApiBase!=='http://127.0.0.1:4194'||id!==null&&(!Number.isSafeInteger(id)||id<1))throw problem('Sipariş bağlantısı kullanılamıyor.');
+   if(!active||!token||!user||!user.permissions.includes('sales.view')||!isCleanCatalogLocation(location)||resolvedApiBase!==resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})||id!==null&&(!Number.isSafeInteger(id)||id<1))throw problem('Sipariş bağlantısı kullanılamıyor.');
    return request('/api/sales-orders'+(id===null?'?limit=50&status=draft':'/'+id),{expire:true,keepForbiddenSession:true});
   },
   async orderSale(id,{operation=null,body,...extra}={}){
-   if(Object.keys(extra).length||!active||!token||!user||!user.permissions.includes('sales.view')||location?.protocol!=='http:'||location.hostname!=='127.0.0.1'||location.port!=='5244'||resolvedApiBase!=='http://127.0.0.1:4194'||!Number.isSafeInteger(id)||id<1||!(operation===null&&body===undefined||['convert','finalize'].includes(operation)&&body&&typeof body==='object'&&!Array.isArray(body)&&user.permissions.includes(operation==='convert'?'sales.create':'sales.finalize')))throw problem('Sipariş satış bağlantısı kullanılamıyor.',403);
+   if(Object.keys(extra).length||!active||!token||!user||!user.permissions.includes('sales.view')||!isCleanCatalogLocation(location)||resolvedApiBase!==resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})||!Number.isSafeInteger(id)||id<1||!(operation===null&&body===undefined||['convert','finalize'].includes(operation)&&body&&typeof body==='object'&&!Array.isArray(body)&&user.permissions.includes(operation==='convert'?'sales.create':'sales.finalize')))throw problem('Sipariş satış bağlantısı kullanılamıyor.',403);
    return request('/api/sales-orders/'+id+'/'+(operation===null?'sale':operation==='convert'?'convert-to-sales-draft':'finalize-linked-sale'),{method:operation===null?'GET':'POST',body,expire:true,keepForbiddenSession:true,workMutation:operation!==null,cleanSaleErrors:true});
   },
   async api(path,{envelope=false,...extra}={}){

@@ -1,4 +1,6 @@
 import {operationCopyFromMeta,operationCopyEntity,operationCopyDailySelection,validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
+import {resolveTestApiBase} from './testAdminSession.mjs';
 export {moneyDisplay} from './moneyDisplay.mjs';
 import {tradeExact,tradeId,tradeRevision,tradeDate,tradeInput,tradeAmount,tradeUuid} from './workTradeModel.mjs';
 export {tradeInput as paymentInput,tradeAmount as paymentAmount};
@@ -36,7 +38,7 @@ export function paymentPreview(p,s,c){paymentSelection(s,c);const fields=['suppl
 const uuid=v=>text(v)&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v),object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v),clone=v=>JSON.parse(JSON.stringify(v));
 const writablePath=p=>p==='/api/work-supplier-payments/payments'||/^\/api\/work-supplier-payments\/payments\/[1-9]\d*\/cancel$/.test(p);
 export function isCleanFinancePaymentTarget({location=globalThis.window?.location??globalThis.location,actorId,apiBase}={}){
- return apiBase==='http://127.0.0.1:4194'&&String(actorId)==='20'&&location?.protocol==='http:'&&location.hostname==='127.0.0.1'&&location.port==='5244';
+ return isCleanCatalogLocation(location)&&String(actorId)==='20'&&apiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
 }
 export function createPaymentJournal({storage,actorId,apiBase,makeUuid=tradeUuid,location=globalThis.window?.location??globalThis.location}={}){
  const businessAPI=['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase);
