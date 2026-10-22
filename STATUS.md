@@ -1,3 +1,7 @@
+## 22 Ekim — İş14 CI beklenti düzeltmesi; çalışma kaynağı aynı
+
+a4c04f1e exact PR39706174171/push39706168782 quality-build-test+secret-scan SUCCESS, Windows son Current grubunda tek eski byte-eşliği beklentisi FAILURE. Üretim native/pinler ve yeni8test geçti; eski test C bölgesinin sonunu artık bulunmayan çıplak top-level Authority satırında arıyordu. Test yalnız exact Current dispatch sınırını, tek-use capture dalını ve finally slot sıfırlamasını count1 doğrulayıp bunları açıkça normalize eder; sealed continuation adapter ile kalan her byte/hold/stop/COM/60sn aynı karşılaştırılır. Etkilenen1/1PASS; üretim kodu0değişiklik, yeni exactCI beklenir. Bu düzeltme eski başarısız CI'yi yeşil yapmaz veya kurulum kanıtı üretmez.
+
 ## 22 Ekim — İş14 taze toplu koruma okuması gerçek TEST'te doğrulandı; kesme/kurulum henüz yok
 
 f238ddc9 exact PR39702950921/push39702943532 CI SUCCESS. Ayrı gerçek NormalInspect7540f85726b0409dae5b4e1ac44debee üç native okuma aşamasını geçti: result0dc48cd8/profile30519c29/beforea9e99d63; claim0/Apply0/nativeMutationfalse. Özgün capture/owner/frame saatleri korundu; owner→frame32.4670721sn→23.8320118sn. Kendi10fixture süreci kapatıldı,2prova görevi kaldırıldı,8prova portu boş/protected55e22cb5 aynı; ardından c646 özgün iki görev CREATED_VERIFIED/finalReadbacktrue/protectedfd4f51ed aynı. Bu cut/recovery veya Shared kurulum kabulü değildir.
