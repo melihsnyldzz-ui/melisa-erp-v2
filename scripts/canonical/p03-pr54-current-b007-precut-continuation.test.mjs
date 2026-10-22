@@ -90,7 +90,7 @@ test('expired before cannot prepare admission but structural post-claim revalida
  assert.doesNotMatch(bindingBody,/Date\.now|\bnow\b|900000/);
  f.before.identities.erpApi.pid++;assert.throws(()=>api.validatePr54CurrentB007PrecutContinuationBinding(f));
 });
-test('module offers no native IO, mutable global override or execution dispatcher',()=>{assert.doesNotMatch(source,/node:(?:fs|child_process|os)|execFile|spawn|process\.|Apply|Stop-Process|SetQueryStore/);assert.equal((source.match(/export function /g)||[]).length,10);assert(Object.isFrozen(real.PR54_CURRENT_B007_PRECUT_REFS)&&Object.values(real.PR54_CURRENT_B007_PRECUT_REFS).every(Object.isFrozen));});
+test('module offers no native IO, mutable global override or execution dispatcher',()=>{assert.doesNotMatch(source,/node:(?:fs|child_process|os)|execFile|spawn|process\.|Apply|Stop-Process|SetQueryStore/);assert.equal((source.match(/export function /g)||[]).length,12);assert(Object.isFrozen(real.PR54_CURRENT_B007_PRECUT_REFS)&&Object.values(real.PR54_CURRENT_B007_PRECUT_REFS).every(Object.isFrozen));});
 
 function resumeFixture(){
  const base=fixture(),f=base.f,retainedRun='452054204a1857ff618b0dd30a59caea',refs=structuredClone(real.PR54_CURRENT_B007_PRECUT_RESUME_REFS),v={};

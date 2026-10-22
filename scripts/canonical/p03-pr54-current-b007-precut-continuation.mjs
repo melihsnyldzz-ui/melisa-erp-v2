@@ -205,3 +205,55 @@ export function validatePr54CurrentB007PrecutB142ContinuationBinding({raw,profil
  return Object.freeze({schemaVersion:'melisa-p03-current-b007-precutb142-continuation.v1',retainedClaimRef:PR54_CURRENT_B007_PRECUTB142_REFS.claim,failureTailRef:PR54_CURRENT_B007_PRECUTB142_REFS.failureTail,profileRef:pin(profileRef.path,profileRef.sha256),beforeRef:pin(beforeRef.path,beforeRef.sha256),claimPath:PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH,correctedSourceCommit:'82e741af59cb59f27a4008ded83ca889238fb5c7'});
 }
 export function preparePr54CurrentB007PrecutB142Continuation(input){const receipt=validatePr54CurrentB007PrecutB142ContinuationBinding(input),now=input.now??Date.now();need(Number.isFinite(now)&&now-Date.parse(input.before.observedAt)>=0&&now-Date.parse(input.before.observedAt)<900000);return receipt;}
+
+// One finite continuation of the exact d0 pre-COM freshness failure. No reusable
+// retry/mint facility: every historical byte is literal-bound and read-only.
+const failedD0='d0b5c309194f23c52f459cba6c2cc1c8',dirD0=root+'\\MelisaERP-P03-transition-'+failedD0;
+export const PR54_CURRENT_B007_PRECUTD0_REFS=Object.freeze({
+ claim:pin(PR54_CURRENT_B007_PRECUTB142_CLAIM_PATH,'4d500fb5077108a7b49c22d152dbdd1c230ef37220edff81f6a4b97b1098b7fc'),
+ profile:pin(root+'\\MelisaERP-P03-profile-'+failedD0+'.json','48bcb5effc4b0de3a7376784712e8cf02da581e474390ed79f26aa532fe8871a'),
+ before:pin(root+'\\MelisaERP-P03-before-'+failedD0+'.json','0c541fc791939aab297e35e532717b41073c3a7f30da75ad6e994a809f7c1e4b'),
+ transitionLock:pin(dirD0+'\\transition.lock','c4551d321d9c153c47e1998e26b3c866909f706b378fdab27962af8f06bccb8e'),
+ event0:pin(dirD0+'\\event-0000.json','7ee7fffc2ccbcb988d218b51ca0259d60bc8829e7c57bf6b9b693ec31b37a5a7'),
+ event1:pin(dirD0+'\\event-0001.json','0f48aaf111fe9679ba475b4e5ef4fef9332b306b8cf27d004ac7272efbac7e53'),
+ failureTail:pin(dirD0+'\\event-0002.json','64efee7489226f14b882c79e52abc57d756a6ec56e274b648eb7c4482b292e77'),
+ diagnostic:pin(dirD0+'\\io-failure-diagnostic.json','dc1bcd424dde7ca770415021d4c814afc334027d72cf9d3f2364da72212562f7'),
+ context:pin(dirD0+'\\precut-continuation.json','053f10b4169a810918a47708a89969f9c34958627dd6f86b801357c8cace1336'),
+ snapshot:pin(dirD0+'\\successor-precut-admission.json','9162d79a75cc82600148175a83a7679a75748365af0aa110a2a57d0549298499'),
+ intent:pin(dirD0+'\\b264-old-owner-cut-intent.json','848c931c8a302efc53ac4c56276778f9191bdaf5ffbbbf5a2613e439672bf355'),
+ heldIntent:pin(dirD0+'\\b264-old-owner-held-cut-intent.json','fdea012cb2add639c0ace69e00cdfd09564b54eab333fc1e3a99fb8d6b19666d'),
+});
+export const PR54_CURRENT_B007_PRECUTD0_CLAIM_PATH=root+'\\p03-pr54-current-b007-continuation-of-'+failedD0+'.lock.json';
+export function validatePr54CurrentB007PrecutD0ContinuationBinding({raw,profileRef,beforeRef,profile,before}){
+ need(exact(raw,['original','b142','failed'])&&Object.values(Object.getOwnPropertyDescriptors(raw)).every(d=>Object.hasOwn(d,'value'))&&exact(raw.failed,Object.keys(PR54_CURRENT_B007_PRECUTD0_REFS)));const old={};
+ for(const [key,fixed]of Object.entries(PR54_CURRENT_B007_PRECUTD0_REFS)){
+  const d=Object.getOwnPropertyDescriptor(raw.failed,key);need(d&&Object.hasOwn(d,'value'));const row=d.value;need(exact(row,['ref','bytes'])&&Object.values(Object.getOwnPropertyDescriptors(row)).every(d=>Object.hasOwn(d,'value')));data(row.ref);
+  need(ref(row.ref)&&same(row.ref,fixed)&&row.bytes instanceof Uint8Array&&row.bytes.byteLength>0&&row.bytes.byteLength<=16777216&&hash(row.bytes)===fixed.sha256);try{old[key]=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(row.bytes));}catch{reject();}
+ }
+ const retainedContext=validatePr54CurrentB007PrecutB142ContinuationBinding({raw:{original:raw.original,failed:raw.b142},profileRef:PR54_CURRENT_B007_PRECUTD0_REFS.profile,beforeRef:PR54_CURRENT_B007_PRECUTD0_REFS.before,profile:old.profile,before:old.before});need(same(old.context,retainedContext));
+ const claim=old.claim,prior=old.before,priorProfile=old.profile,lock=old.transitionLock,originalClaim=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw.b142.claim.bytes));
+ need(claim.schemaVersion==='melisa-p03-current-b007-epoch-claim.v1'&&claim.successorRunId===failedD0&&claim.transitionAuthority===true&&claim.applyExecuted===false&&same(claim.successorProfile,PR54_CURRENT_B007_PRECUTD0_REFS.profile)&&same(claim.successorBefore,PR54_CURRENT_B007_PRECUTD0_REFS.before)&&same(omit(claim,['ownerObservedAt','successorRunId','successorProfile','successorBefore']),omit(originalClaim,['ownerObservedAt','successorRunId','successorProfile','successorBefore'])));
+ need(exact(lock,['profileRef','beforeRef','currentPreCapture','rehearsalProofRef','successorClaimRef','sourceControlDir','continuationRef'])&&same(lock.profileRef,claim.successorProfile)&&same(lock.beforeRef,claim.successorBefore)&&same(lock.successorClaimRef,PR54_CURRENT_B007_PRECUTD0_REFS.claim)&&same(lock.continuationRef,PR54_CURRENT_B007_PRECUTD0_REFS.context)&&same(lock.currentPreCapture.snapshotRef,priorProfile.businessDigest));
+ let previous=PR54_CURRENT_B007_PRECUTD0_REFS.before.sha256;
+ for(const [i,event]of ['TASK_STOP_INTENT','EXACT_STOP_INTENT','FAILED'].entries()){const v=old[i===2?'failureTail':'event'+i];need(exact(v,['sequence','digest','event','stopOrderDigest',...(i?['target']:[]),'previousSha256','profileSha256','beforeSha256'])&&v.sequence===i&&v.event===event&&v.digest===prior.plan.digest&&v.stopOrderDigest===claim.stopOrderDigest&&v.previousSha256===previous&&v.profileSha256===PR54_CURRENT_B007_PRECUTD0_REFS.profile.sha256&&v.beforeSha256===PR54_CURRENT_B007_PRECUTD0_REFS.before.sha256&&(i===0||v.target===(i===1?'coreSupervisor':'HELD_CORE_CUT')));previous=PR54_CURRENT_B007_PRECUTD0_REFS[i===2?'failureTail':'event'+i].sha256;}
+ need(exact(old.diagnostic,['phase','reason','failureDiagnostic','profileSha256','beforeSha256'])&&old.diagnostic.phase==='HELD_CORE_CUT'&&old.diagnostic.reason==='P03_OWNER_TRANSITION_STOPPED'&&exact(old.diagnostic.failureDiagnostic,['stage','reason'])&&old.diagnostic.failureDiagnostic.stage==='DRAIN'&&old.diagnostic.failureDiagnostic.reason==='P03_PHYSICAL_B264_CUT_OWNER_FRESH'&&old.diagnostic.profileSha256===claim.successorProfile.sha256&&old.diagnostic.beforeSha256===claim.successorBefore.sha256);
+ const snapshot=old.snapshot,intent=old.intent;need(exact(snapshot,['schemaVersion','profileSha256','beforeSha256','engineSha256','recoveryHelperSha256','observedAt','oldIdentities','oldWatchers','consolePins','probePins','protectedConsolePins'])&&snapshot.schemaVersion==='melisa-p03-successor-precut-admission.v1'&&snapshot.profileSha256===claim.successorProfile.sha256&&snapshot.beforeSha256===claim.successorBefore.sha256&&snapshot.engineSha256==='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'&&snapshot.recoveryHelperSha256==='e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'&&Array.isArray(snapshot.oldIdentities)&&snapshot.oldIdentities.length===8&&Object.values(prior.identities).every(p=>snapshot.oldIdentities.filter(q=>same(q,p)).length===1)&&same(snapshot.oldWatchers,priorProfile.oldWatchers)&&['consolePins','probePins','protectedConsolePins'].every(k=>Array.isArray(snapshot[k]))&&time(snapshot.observedAt));
+ need(exact(intent,['event','claimSha256','stopOrderDigest','profileSha256','beforeSha256','observedAt'])&&intent.event==='B264_OLD_CUT_INTENT'&&intent.claimSha256===PR54_CURRENT_B007_PRECUTD0_REFS.claim.sha256&&intent.stopOrderDigest===claim.stopOrderDigest&&intent.profileSha256===claim.successorProfile.sha256&&intent.beforeSha256===claim.successorBefore.sha256&&time(intent.observedAt)&&Date.parse(intent.observedAt)>=Date.parse(snapshot.observedAt));
+ validatePr54CurrentB007PrecutB142ContinuationBinding({raw:{original:raw.original,failed:raw.b142},profileRef,beforeRef,profile,before});
+ need(before.runId!==failedD0&&Date.parse(before.startedAt)>=Date.parse(prior.observedAt)&&same(omit(before,['runId','startedAt','observedAt']),omit(prior,['runId','startedAt','observedAt']))&&profile.businessDigest.path!==priorProfile.businessDigest.path&&same(omit(profile,['beforeImage','businessDigest','journalDirectory','stopper']),omit(priorProfile,['beforeImage','businessDigest','journalDirectory','stopper'])));
+ const held=old.heldIntent;
+ need(exact(held,['event','profileSha256','beforeSha256','claimSha256','rootIntentSha256','admittedSnapshotSha256','windowOpenedAt','core','heldProcessHandle','tasks','runningInstances'])&&held.event==='B264_OLD_OWNER_CUT_INTENT'&&held.profileSha256===claim.successorProfile.sha256&&held.beforeSha256===claim.successorBefore.sha256&&held.claimSha256===PR54_CURRENT_B007_PRECUTD0_REFS.claim.sha256&&held.rootIntentSha256===PR54_CURRENT_B007_PRECUTD0_REFS.intent.sha256&&held.admittedSnapshotSha256===PR54_CURRENT_B007_PRECUTD0_REFS.snapshot.sha256&&held.heldProcessHandle===true&&same(held.core,prior.identities.coreSupervisor)&&same(held.tasks,priorProfile.tasks)&&time(held.windowOpenedAt)&&Date.parse(held.windowOpenedAt)>=Date.parse(intent.observedAt));
+ const names=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
+ const retainedCom=[{name:names[0],pid:51968,guid:'{9ECC3805-67F0-4750-B003-29378A726415}'},{name:names[1],pid:54836,guid:'{8CE0F183-E1BF-497C-85FF-2F5D4D8B25D6}'}];
+ need(same(held.runningInstances,retainedCom));
+ need(Array.isArray(held.runningInstances)&&held.runningInstances.length===2&&Array.isArray(snapshot.oldWatchers)&&snapshot.oldWatchers.length===2&&Object.keys(prior.identities).length===8&&new Set([...Object.values(prior.identities),...snapshot.oldWatchers].map(x=>x.pid)).size===10);
+ for(const [i,name]of names.entries()){
+  const instance=held.runningInstances[i],role=i===0?'terminalWatcher':'hubWatcher',watchers=snapshot.oldWatchers.filter(x=>x.role===role);
+  need(exact(instance,['name','pid','guid'])&&instance.name===name&&watchers.length===1&&Number.isSafeInteger(instance.pid)&&instance.pid>0&&instance.pid===watchers[0].pid&&typeof instance.guid==='string'&&/^\{[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}\}$/.test(instance.guid));
+ }
+ // This persisted intent is not a completed cut or proof that live tasks remain
+ // unchanged. The physical boundary must independently reject any cut/start or
+ // recovery-journal advance and prove fresh exact OLD10/COM and SQL scope.
+ return Object.freeze({schemaVersion:'melisa-p03-current-b007-precutd0-continuation.v1',retainedClaimRef:PR54_CURRENT_B007_PRECUTD0_REFS.claim,failureTailRef:PR54_CURRENT_B007_PRECUTD0_REFS.failureTail,profileRef:pin(profileRef.path,profileRef.sha256),beforeRef:pin(beforeRef.path,beforeRef.sha256),claimPath:PR54_CURRENT_B007_PRECUTD0_CLAIM_PATH,correctedSourceCommit:'82e741af59cb59f27a4008ded83ca889238fb5c7'});
+}
+export function preparePr54CurrentB007PrecutD0Continuation(input){const receipt=validatePr54CurrentB007PrecutD0ContinuationBinding(input),now=input.now??Date.now();need(Number.isFinite(now)&&now-Date.parse(input.before.observedAt)>=0&&now-Date.parse(input.before.observedAt)<900000);return receipt;}
