@@ -289,3 +289,13 @@ test('native selected collection keeps its exact scope code without opening a pr
   assert.equal(lines[0].payload.code,redacted);noCanary(lines);
  }
 });
+
+test('clean collection preparation keeps only four reviewed static codes; private suffixes remain redacted',()=>{
+ for(const code of ['CLEAN_COLLECTION_PREPARATION_REQUIRED','CLEAN_COLLECTION_SOURCE_CHANGED','CLEAN_COLLECTION_FORBIDDEN','CLEAN_COLLECTION_READ_ONLY']){
+  assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+  for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'CLEAN_COLLECTION_'+marker]){
+   const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+   assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+  }
+ }
+});
