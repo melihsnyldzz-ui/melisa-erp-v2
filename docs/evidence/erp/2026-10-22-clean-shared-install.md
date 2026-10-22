@@ -27,11 +27,13 @@ Normal ERP listesinde özgün immutable CRM siparişi `Taslak` kalır; ayrıntı
 
 ERP3db exact [PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39783687016) / [push CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39783679870) SUCCESS. CRMc8 exact [PR CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39779665785) / [push CI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39779654667) / [offline AI](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39779665786) SUCCESS. Son belge teslimi çalışan source/paketinden ayrıdır.
 
-Private makbuz: `C:\Sirket\ERP\clean\20261022\runtime\installation-receipt-order-sale.json`, SHA256 `495221a160ee67d3cf9806384605460d13db8a858879b4dd4d10c05ac1c6c3e7`. Bağlı kanıtlar: `order-sale-native-rollback.json`, `order-sale-replay-api.json`, `order-sale-independent-final.json`, `order-sale-crm-readback.json`, `order-sale-approval-events.json`, `order-sale-customer-api.json`, companion prova/kurulum logları. Ham private makbuz, sırlar ve ticari arşiv GitHub'a alınmaz; aşağıdaki ekranlar yalnız yapay kayıtlardır.
+Private makbuz: `C:\Sirket\ERP\clean\20261022\runtime\installation-receipt-order-sale.json`, SHA256 `f9231d810a7140f2816ca0ec3edea99be3ccbbe3a675e5b5cc335742f2e19c82`. Bağlı kanıtlar: `order-sale-native-rollback.json`, `order-sale-replay-api.json`, `order-sale-independent-final.json`, `order-sale-crm-readback.json`, `order-sale-approval-events.json`, `order-sale-customer-api.json`, companion prova/kurulum logları. Ham private makbuz, sırlar ve ticari arşiv GitHub'a alınmaz; aşağıdaki ekranlar yalnız yapay kayıtlardır.
 
 ![Personel taslakta sorumlu onayını bekliyor](2026-10-22-order-sale-personnel.jpg)
 
 ![Sorumlu normal ERP ekranında satışı tamamladı](2026-10-22-order-sale-erp.jpg)
+
+![Aynı kaydın alt bölümünde tamamlanmış satış sonucu; yeni işlem yapılmadan görünür alana kaydırıldı](2026-10-22-order-sale-erp-result.jpg)
 
 ![CRM aynı siparişin tamamlanmış satışını yalnız okuyor](2026-10-22-order-sale-crm.jpg)
 
