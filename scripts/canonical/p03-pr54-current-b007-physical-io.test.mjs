@@ -37,9 +37,10 @@ test('CurrentB007 finite audited native pair is exact, historical pair remains a
  const audited={drainer:'0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710',observer:'271d9fa16656449727db3ece3000621d1d0a7f2643c2335e409dd0335c9c30c5'};
  const diagnostic={...audited,observer:'5511027cbb98f29f39008c833ef7db25004cd9cb436acb25c7a744871df1128d'};
  const split={drainer:'cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9',observer:'bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'};
- for(const pair of [old,audited,diagnostic,split]){const r=structuredClone(refs);r.drainerRef.sha256=pair.drainer;r.observerRef.sha256=pair.observer;assert(physical.pr54CurrentB007InspectionArguments(r).observer.includes('-CaptureMode'));}
- for(const [d,o]of [[old.drainer,audited.observer],[audited.drainer,old.observer],[split.drainer,diagnostic.observer],[diagnostic.drainer,split.observer],['f'.repeat(64),audited.observer]]){const r=structuredClone(refs);r.drainerRef.sha256=d;r.observerRef.sha256=o;assert.throws(()=>physical.pr54CurrentB007InspectionArguments(r));}
- for(const [key,leaf]of [['drainer','p03-pr54-successor-core-drain.ps1'],['observer','p03-physical-recovery-observe.ps1']])assert.equal(createHash('sha256').update(fs.readFileSync(new URL('./'+leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')).digest('hex'),split[key]);
+ const prepared={drainer:'ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b',observer:'1e5e90fd1162de918f8ae72e4605f8400365a7d45ae05c030fe4fc20d93d555d'};
+ for(const pair of [old,audited,diagnostic,split,prepared]){const r=structuredClone(refs);r.drainerRef.sha256=pair.drainer;r.observerRef.sha256=pair.observer;assert(physical.pr54CurrentB007InspectionArguments(r).observer.includes('-CaptureMode'));}
+ for(const [d,o]of [[old.drainer,audited.observer],[audited.drainer,old.observer],[split.drainer,diagnostic.observer],[diagnostic.drainer,split.observer],[prepared.drainer,split.observer],[split.drainer,prepared.observer],['f'.repeat(64),audited.observer]]){const r=structuredClone(refs);r.drainerRef.sha256=d;r.observerRef.sha256=o;assert.throws(()=>physical.pr54CurrentB007InspectionArguments(r));}
+ for(const [key,leaf]of [['drainer','p03-pr54-successor-core-drain.ps1'],['observer','p03-physical-recovery-observe.ps1']])assert.equal(createHash('sha256').update(fs.readFileSync(new URL('./'+leaf,import.meta.url),'utf8').replaceAll('\r\n','\n')).digest('hex'),prepared[key]);
 });
 async function collectorFixture(){
  const f=bindCurrentRefs(await currentFixture()),map=new WeakMap(),events=[],encode=o=>Buffer.from(JSON.stringify(o)),hash=b=>createHash('sha256').update(b).digest('hex');

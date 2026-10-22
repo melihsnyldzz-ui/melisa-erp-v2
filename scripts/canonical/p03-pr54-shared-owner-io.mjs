@@ -717,12 +717,12 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
  need(rehearsalProofRef.path===String.raw`C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018\run-06889c3b196045bbacf33a10f450a178\result.json`&&rehearsalProofRef.sha256==='80e22ce1689fe7c7e8ca01cfafbbba5025e5fa31e9097e55810368c34e1fbc62','CURRENT_B007_REHEARSAL_PATH');
  const engineRef={path:path.win32.join(sourceControlDir,'p03-physical-rollback-lifetime-v2.ps1'),sha256:PR54_CURRENT_B007_ENGINE_SHA256},helperRef={path:root+'\\p03-pr54-paused-old-recover.ps1',sha256:'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'};
  const selectedPins=precutB142Continuation?{...currentB007SourcePins,
-  drainer:['p03-pr54-successor-core-drain.ps1','cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9'],
-  observer:['p03-physical-recovery-observe.ps1','bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'],
-  oldCut:['p03-pr54-b264-old-owner-cut.ps1','32e1cc2cabf255b8e19aa32f2cf64ab115be3e382d151d011e163a6284e18842'],
-  newObserver:['p03-pr54-new-owner-observe.ps1','8f1677cf8474f7c5b16e1b34fea74dc65d719d6a6056a1de43834aaedf7ab045'],
-  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','42393bffe974f24d6a18294ed39ed956d383b56e38862446529badf8566f255f'],
-  lateOld:['p03-pr54-current-b007-precut-cut.ps1','1f834a7ae93cefdea1b3d1eeae770404d2c6f9f5ae7fad333a16f1b81778b897'],
+  drainer:['p03-pr54-successor-core-drain.ps1','ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b'],
+  observer:['p03-physical-recovery-observe.ps1','1e5e90fd1162de918f8ae72e4605f8400365a7d45ae05c030fe4fc20d93d555d'],
+  oldCut:['p03-pr54-b264-old-owner-cut.ps1','36e07581f2871463f73035473c5fce4484deb22b9038ebd4767c1bbbfbe249f2'],
+  newObserver:['p03-pr54-new-owner-observe.ps1','c0b759fcc4c74ea486c9107f18ca565dc67d9b1cdabf20675ec105b22e7ae680'],
+  newRecovery:['p03-pr54-b264-new-owner-recovery.ps1','2b8767155ea9f8149ea6cf4a54160b29f74a87c006a858f2615b6d4bf67c45db'],
+  lateOld:['p03-pr54-current-b007-precut-cut.ps1','7a1fd9c45feea32c190c3a45c16ba8253aa95e29d2eebe2232b2dc4ad6abf9c9'],
  }:freshOwnerGeneration||precut974dContinuation?{...currentB007SourcePins,
   drainer:['p03-pr54-successor-core-drain.ps1','9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33'],
   observer:['p03-physical-recovery-observe.ps1','a92f4d712c59970ae50a8ace92dbbeba52d59fadfe542794879d9da898394812'],
@@ -1174,10 +1174,10 @@ export async function runPr54CurrentB007SharedOwnerTransition({mode='DryRun',pro
 }
 // SQL-free, finite native lifecycle proof. This is not a Shared admission or SQL proof.
 const P03_CURRENT_B142_REHEARSAL_NATIVE=Object.freeze({
- observer:['p03-physical-recovery-observe.ps1','bea8250d550f04d042fb97b6ab90a53d9cf9379cda307a7d8416ccf675e63321'],
- drainer:['p03-pr54-successor-core-drain.ps1','cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9'],
- oldCut:['p03-pr54-b264-old-owner-cut.ps1','32e1cc2cabf255b8e19aa32f2cf64ab115be3e382d151d011e163a6284e18842'],
- recovery:['p03-pr54-b264-new-owner-recovery.ps1','42393bffe974f24d6a18294ed39ed956d383b56e38862446529badf8566f255f'],
+ observer:['p03-physical-recovery-observe.ps1','1e5e90fd1162de918f8ae72e4605f8400365a7d45ae05c030fe4fc20d93d555d'],
+ drainer:['p03-pr54-successor-core-drain.ps1','ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b'],
+ oldCut:['p03-pr54-b264-old-owner-cut.ps1','36e07581f2871463f73035473c5fce4484deb22b9038ebd4767c1bbbfbe249f2'],
+ recovery:['p03-pr54-b264-new-owner-recovery.ps1','2b8767155ea9f8149ea6cf4a54160b29f74a87c006a858f2615b6d4bf67c45db'],
  engine:['recovery-engine.ps1','b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'],
  helper:['p03-pr54-paused-old-recover.ps1','e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'],
  empty:['p03-pr54-new-owner-empty-recovery.ps1','d1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438']
@@ -1233,7 +1233,11 @@ export async function runPr54CurrentB142RehearsalTransition({mode='DryRun',scena
  // Same captured current/frame pair immediately precedes the immutable claim.
  const envelope=await parsed(refs.observer,['-PolicyGeneration','CurrentB142Rehearsal','-CaptureMode','CurrentB142Rehearsal','-Environment','Rehearsal','-Purpose','Physical',...common,'-EnginePath',refs.engine.path,'-EngineSha256',refs.engine.sha256,'-RecoveryHelperPath',refs.helper.path,'-RecoveryHelperSha256',refs.helper.sha256,'-DrainerPath',refs.drainer.path,'-DrainerSha256',refs.drainer.sha256]);
  need(envelope.schemaVersion==='melisa-p03-current-b007-same-capture.v1'&&envelope.current.environment==='Rehearsal'&&envelope.frame.environment===scope&&envelope.frame.policyGeneration==='CurrentB142Rehearsal'&&envelope.frame.oldIdentities.length===8&&envelope.frame.oldWatchers.length===2&&envelope.frame.probePins.length===0,'REHEARSAL_CAPTURE');
- if(mode==='DryRun')return {status:'DRY_RUN_READY',environment:scope,scenario,runtimeMutation:false,claimCreated:false,applyExecuted:false,transitionAuthority:false,nativeStages:['PreflightOld','Inspect','Capture'],sqlFreeFixture:true,applicationRollbackVerified:false,databaseRollbackVerified:false};
+ if(mode==='DryRun'){
+  const nativeTiming={captureStartedAt:envelope.capture?.startedAt,inventoryObservedAt:envelope.capture?.inventoryObservedAt,ownerObservedAt:envelope.current.observedAt,frameObservedAt:envelope.frame.observedAt},times=Object.values(nativeTiming).map(x=>typeof x==='string'&&x.endsWith('Z')?Date.parse(x):NaN);
+  need(times.every(x=>Number.isFinite(x)&&x>0)&&times.every((x,i)=>i===0||x>=times[i-1]),'REHEARSAL_NATIVE_TIMING');
+  return {status:'DRY_RUN_READY',environment:scope,scenario,runtimeMutation:false,claimCreated:false,applyExecuted:false,transitionAuthority:false,nativeStages:['PreflightOld','Inspect','Capture'],nativeTiming,sqlFreeFixture:true,applicationRollbackVerified:false,databaseRollbackVerified:false};
+ }
  const digestInstances=taskNames.map(name=>{const rows=envelope.current.runningInstances.filter(r=>r.name===name);need(rows.length===1,'REHEARSAL_DIGEST_INSTANCE');return {name,enginePid:rows[0].enginePid,instanceGuid:rows[0].instanceGuid};});need(envelope.current.runningInstances.length===2&&Buffer.byteLength(JSON.stringify(digestInstances))<=1024,'REHEARSAL_DIGEST_SIZE');
  const digestCode=init+`$c=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${Buffer.from(JSON.stringify({runningInstances:digestInstances})).toString('base64')}'))|ConvertFrom-Json;$o=@(foreach($role in $v.before.plan.targets){$x=$v.before.identities.$role;[ordered]@{pid=[int]$x.pid;parentPid=[int]$x.parentPid;ownerSid=$x.ownerSid;nodePath=$x.nodePath;commandLine=$x.commandLine;creationTime=([DateTime]::Parse($x.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ'));bindings=@($x.bindings)}});$o=@($o|Sort-Object { $_.pid });$i=@(foreach($name in $v.taskNames){$r=@($c.runningInstances|Where-Object{$_.name-ceq$name});if($r.Count-ne1){throw 'REHEARSAL_OWNER_COM'};[ordered]@{name=$name;pid=[int]$r[0].enginePid;guid=[string]$r[0].instanceGuid}});P03RehearsalTextSha256 (([ordered]@{owners=$o;instances=$i})|ConvertTo-Json -Depth 25 -Compress)`;
  const currentOwnerDigest=await ps(digestCode);need(/^[a-f0-9]{64}$/.test(currentOwnerDigest)&&Date.now()-Date.parse(envelope.current.observedAt)>=0&&Date.now()-Date.parse(envelope.current.observedAt)<60000,'REHEARSAL_FRESH');

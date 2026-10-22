@@ -49,7 +49,7 @@ test('PS5 parses the full adapter and every existing native recovery function ex
  const edits=[
   {name:'Initialize-B264Recovery',from:'function Initialize-B264Recovery{\n',to:String.raw`function Initialize-B264Recovery{
  if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
-  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9') 'REHEARSAL_ENTRY'
+  Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b') 'REHEARSAL_ENTRY'
   $engine=Read-B264Source $EnginePath $engineSha 'recovery-engine.ps1';$empty=Read-B264Source $EmptyRecoveryPath 'd1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438' 'p03-pr54-new-owner-empty-recovery.ps1';$drainer=Read-B264Source $DrainerPath $DrainerSha256 'p03-pr54-successor-core-drain.ps1'
   Import-B264Definitions $engine @() @{ConsoleAuxiliaries='B264FrozenConsoleAuxiliaries';HubLineage='B264FrozenHubLineage'}
   Import-B264Definitions $empty @('Assert-NewDrainOldAbsent','Save-NewDrain','Read-NewDrainReceipt','Stop-NewDrainExact','Hold-NewDrainCore','Open-NewDrainOutput')

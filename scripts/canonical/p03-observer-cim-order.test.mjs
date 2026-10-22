@@ -14,7 +14,7 @@ function run(code){
 const actualBlock=`
 $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(${q(source)},[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'FIXTURE_PARSE'}
-$loops=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.ForEachStatementAst] -and $a.Extent.Text.Contains("throw 'P03_PROCESS_IDENTITY_UNAVAILABLE'")},$true))
+$loops=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.ForEachStatementAst] -and $a.Extent.Text.Contains("throw 'P03_PROCESS_IDENTITY_UNAVAILABLE'") -and $a.Extent.StartOffset -gt $ast.Extent.Text.IndexOf('$optionalPins=')},$true))
 if($loops.Count -ne 1){throw 'FIXTURE_LOOP_COUNT'}
 $script:actualText=$loops[0].Extent.Text
 foreach($definition in $ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst]},$false)){. ([scriptblock]::Create($definition.Extent.Text))}
@@ -338,4 +338,29 @@ test('actual native pre-IO statements route only explicit Rehearsal pins and rej
   results.push([file,JSON.parse(out),cases.map((_,i)=>i===0)]);
  }
  for(const [file,actual,expected]of results)assert.deepEqual(actual,expected,file);
+});
+
+
+test('Current rehearsal deferred native collector runs once after complete preparation without changing its clocks',windows,()=>{
+ const worker=fileURLToPath(new URL('./p03-pr54-successor-core-drain.ps1',import.meta.url));
+ const out=run(`
+ $t=$null;$e=$null;$oa=[Management.Automation.Language.Parser]::ParseFile(${q(source)},[ref]$t,[ref]$e);if($e.Count){throw 'FIXTURE_PARSE'}
+ foreach($name in @('ObserverRequire','ObserverAssertVanishedAudits','ObserverCollectCurrentB142Native')){$d=@($oa.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq$name},$true));. ([scriptblock]::Create($d[0].Extent.Text))}
+ $wa=[Management.Automation.Language.Parser]::ParseFile(${q(worker)},[ref]$t,[ref]$e);$d=@($wa.FindAll({param($a)$a-is[Management.Automation.Language.FunctionDefinitionAst]-and$a.Name-ceq'CaptureWorkerAdmissionCore'},$true))[0];$text=$d.Body.Extent.Text;$start=$text.IndexOf('Authority;PrepareProbeSource');$end=$text.IndexOf(' # Read the');if($end-lt0){$end=$text.IndexOf(' # shortest-lived')};if($start-lt0-or$end-lt$start){throw 'FIXTURE_PREFIX'};$prefix=[scriptblock]::Create($text.Substring($start,$end-$start));
+ function Need($v,$c){if(-not$v){throw ('P03_'+$c)}};function PrepareProbeSource{}
+ function Authority{Start-Sleep -Milliseconds 35;$script:preparedAt=[DateTime]::UtcNow;$script:order+='prepared'}
+ function Get-NetTCPConnection{param($State,$ErrorAction);$script:order+='listeners';return @()}
+ function Get-CimInstance{param($Class,$ErrorAction);$script:order+='processes';if($script:foreign){return [pscustomobject]@{ProcessId=7;ParentProcessId=1;CommandLine='foreign';CreationDate=[DateTime]::UtcNow;ExecutablePath='foreign';Name='node.exe'}};return @()}
+ function New-Object{param($ComObject);if($ComObject-cne'Schedule.Service'){throw 'FIXTURE_COM'};$s=[pscustomobject]@{};$s|Add-Member ScriptMethod Connect {};$s|Add-Member ScriptMethod GetRunningTasks {param($flags);[pscustomobject]@{Count=0}};$s|Add-Member ScriptMethod GetFolder {param($path);$f=[pscustomobject]@{};$f|Add-Member ScriptMethod GetTask {param($name);[pscustomobject]@{State=4;Xml='fixed'}};return $f};return $s}
+ $script:PolicyGeneration='CurrentB142Rehearsal';$script:Mode='Inspect';$capturedInventory=$null;$script:order=@();$script:foreign=$false
+ $context=[pscustomobject]@{schemaVersion='melisa-p03-current-b142-native-collector.v1';captureCount=0;capture=$null;current=$null;before=[pscustomobject]@{identities=[pscustomobject]@{};tasks=@()};profile=[pscustomobject]@{};profileRef=[pscustomobject]@{sha256='p'};beforeRef=[pscustomobject]@{path='C:/fixture/before.json';sha256='b'};drainerSha256='d';startedAt=$null;inventoryObservedAt=$null}
+ $script:currentRehearsalCollectorContext=$context;$script:currentRehearsalCollectorFunction=(Get-Command ObserverCollectCurrentB142Native).ScriptBlock
+ . $prefix
+ if($context.captureCount-ne1-or-not[object]::ReferenceEquals($context.capture,$capturedInventory)-or[DateTime]::Parse($context.startedAt).ToUniversalTime()-lt$script:preparedAt-or[DateTime]::Parse($context.current.observedAt).ToUniversalTime()-lt[DateTime]::Parse($context.inventoryObservedAt).ToUniversalTime()-or($script:order-join'|')-cne'prepared|listeners|processes'){throw 'FIXTURE_ORDER_CLOCK'}
+ try{. $prefix;throw 'FIXTURE_REPLAY_ACCEPTED'}catch{if($_.Exception.Message-cne'P03_REHEARSAL_COLLECTOR_ONCE'){throw}}
+ $context.captureCount=0;$context.capture=$null;$context.current=$null;$script:foreign=$true;$capturedInventory=$null
+ try{. $prefix;throw 'FIXTURE_FOREIGN_ACCEPTED'}catch{if($_.Exception.Message-cne'P03_SAME_CAPTURE_NATIVE_TYPE'){throw}}
+ $context.captureCount=0;$context.capture=$null;$context.current=$null;$capturedInventory=$null;$script:currentRehearsalCollectorFunction={throw 'FIXTURE_FOREIGN_FUNCTION_EXECUTED'}
+ try{. $prefix;throw 'FIXTURE_FUNCTION_ACCEPTED'}catch{if($_.Exception.Message-cne'P03_REHEARSAL_COLLECTOR_BINDING'){throw}};'DEFERRED_NATIVE_ORDER_PASS'
+ `);assert.match(out,/DEFERRED_NATIVE_ORDER_PASS/);
 });

@@ -9,7 +9,7 @@ param(
 $SameCapture=$CaptureMode -cin @('CurrentB007','CurrentB142Rehearsal')
 if($SameCapture -and -not(($CaptureMode-ceq'CurrentB007'-and$PolicyGeneration-ceq'CurrentB007InspectOnly'-and$Environment-ceq'Shared'-and$Purpose-ceq'Physical')-or($CaptureMode-ceq'CurrentB142Rehearsal'-and$PolicyGeneration-ceq'CurrentB142Rehearsal'-and$Environment-ceq'Rehearsal'-and$Purpose-ceq'Physical'))){throw 'P03_SAME_CAPTURE_SCOPE'}
 # B264 cannot enter candidate/rehearsal or accept partial pins. Pre-IO gate.
-$currentDrainers=if($SameCapture){@('9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33','0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710','cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9')}else{@('9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33')}
+$currentDrainers=if($SameCapture){@('9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33','0233887b0bbc9023efe2bc25260266c42b588479879f85213bfe4b79f408f710','cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9','ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b')}else{@('9a0e0931bbd1897f55d25396cd64619a663821eccd6ebf8cb00d1250e5bdab33')}
 if($PolicyGeneration -cnotin @('Legacy','B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly','CurrentB142Rehearsal')){throw 'P03_B264_POLICY_GENERATION'}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){
  if($Environment -cne 'Shared' -or $Purpose -cne 'Physical' -or @($ProfilePath,$ProfileSha256,$EnginePath,$EngineSha256,$RecoveryHelperPath,$RecoveryHelperSha256,$DrainerPath,$DrainerSha256|Where-Object{[string]::IsNullOrEmpty($_)}).Count){throw 'P03_B264_PHYSICAL_ONLY'}
@@ -17,7 +17,7 @@ if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB0
 }elseif($PolicyGeneration-cne'CurrentB142Rehearsal'-and($PSBoundParameters.ContainsKey('DrainerPath') -or $PSBoundParameters.ContainsKey('DrainerSha256'))){throw 'P03_B264_DRAINER_SCOPE'}
 if($PolicyGeneration -ceq 'CurrentB007InspectOnly' -and $EnginePath -cnotmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-(?:current-b007-control-[a-f0-9]{12}|transition-[a-f0-9]{32})\\p03-physical-rollback-lifetime-v2\.ps1\z'){throw 'P03_CURRENT_B007_ENGINE_SCOPE'}
 if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
- if(-not$SameCapture-or$Environment-cne'Rehearsal'-or$Purpose-cne'Physical'-or$EngineSha256-cne'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'-or$RecoveryHelperSha256-cne'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'-or$DrainerSha256-cne'cadc063b27bfed9a904df67901f0a1fc068b8193c28fd1a80ac3169043e105c9'-or$EnginePath-cnotmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'){throw 'P03_CURRENT_B142_REHEARSAL_ENTRY'}
+ if(-not$SameCapture-or$Environment-cne'Rehearsal'-or$Purpose-cne'Physical'-or$EngineSha256-cne'b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f'-or$RecoveryHelperSha256-cne'e8ec0a37d8dc0c620beedcdd8ed2bc175817599b18070a93ce6881ff7c287fc5'-or$DrainerSha256-cne'ec55ef6a17b73fa2c13e5adbf3eb37649e54708961f9d0bbdd5d863e0e734c1b'-or$EnginePath-cnotmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'){throw 'P03_CURRENT_B142_REHEARSAL_ENTRY'}
 }
 # Read-only physical collection. This script never authorizes stop/start/restore.
 Set-StrictMode -Version Latest
@@ -181,6 +181,84 @@ function ObserverAssertVanishedAudits($audits,$rawSnapshot,$policy){
   ObserverAssertAbsentFamily $audit $rawSnapshot.all $rawSnapshot.allListeners
  }
 }
+function ObserverCollectCurrentB142Native($context){
+ ObserverRequire ($context.schemaVersion-ceq'melisa-p03-current-b142-native-collector.v1'-and$context.captureCount-is[int]-and$context.captureCount-eq0-and$null-eq$context.capture-and$null-eq$context.current)
+ $context.captureCount=1
+ $before=$context.before;$observerProfile=$context.profile;$resolved=$context.beforeRef.path;$actual=$context.beforeRef.sha256;$ProfileSha256=$context.profileRef.sha256;$BeforeImageSha256=$context.beforeRef.sha256;$DrainerSha256=$context.drainerSha256
+ $Environment='Rehearsal';$Purpose='Physical';$rehearsal=$true;$SameCapture=$true;$captureAttempt=1;$observerProbePolicy=$null;$runRoot=[IO.Path]::GetDirectoryName($resolved)
+ $names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub');$ports=@(4284,4286,5334,62710,62711,62712,62713,62714)
+ $started=[DateTime]::UtcNow.ToString('o');$captureId=if($SameCapture){[Guid]::NewGuid().ToString('N')}else{$null}
+ # Collection interval, not an atomic OS snapshot; rows can exit during SID checks.
+ # Unfiltered source inventories: selectors belong to the independently reviewed classifier.
+ $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
+ $schedule=New-Object -ComObject Schedule.Service
+ $schedule.Connect()
+ $folder=$schedule.GetFolder('\')
+ $running=$schedule.GetRunningTasks(1)
+ $instances=@();$nativeInstances=@()
+ for($i=1;$i -le $running.Count;$i++){
+  $r=$running.Item($i)
+  if($r.Name -cin $names){$nativeInstances+=,$r;$instances+=,[ordered]@{name=[string]$r.Name;path=[string]$r.Path;instanceGuid=[string]$r.InstanceGuid;enginePid=[int]$r.EnginePID;state=[int]$r.State}}
+ }
+ $tasks=@()
+ foreach($name in $names){$t=$folder.GetTask($name);$xml=[string]$t.Xml;$tasks+=,[ordered]@{name=$name;state=[int]$t.State;xml=$xml}}
+ # Collect processes after the slower listener/COM/XML reads, immediately
+ # before selecting and authenticating their still-live identities.
+ $all=@(Get-CimInstance Win32_Process -ErrorAction Stop);$inventoryObservedAt=[DateTime]::UtcNow.ToString('o')
+ # Full processes are retained only in memory; emitted command lines are limited
+ # to the P03 release roots/watchers, old identities and target listener owners.
+ $pids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})
+ $pids+=@($before.tasks|ForEach-Object{if($_.PSObject.Properties.Name -contains 'enginePid'){[int]$_.enginePid}})
+ $pids+=@($instances|ForEach-Object{$_.enginePid})
+ $bindings=@($listeners|Where-Object{$_.LocalPort -in $ports}|ForEach-Object{[ordered]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress;pid=[int]$_.OwningProcess}})
+ $pids+=@($bindings|ForEach-Object{$_.pid})
+ $selected=@(if($rehearsal){@($all|Where-Object{$_.ProcessId -in $pids -or ([string]$_.CommandLine).IndexOf($runRoot,[StringComparison]::OrdinalIgnoreCase) -ge 0})}else{@($all|Where-Object{$_.ProcessId -in $pids -or [string]$_.CommandLine -match '(?i)C:\\Sirket\\(?:ERP|CRM)\\releases\\|watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1'})})
+ # Include every descendant of selected application processes; never add their
+ # OS ancestors (Schedule's parent would otherwise encompass the whole host).
+ do{
+  $selectedPids=@($pids)+@($selected|ForEach-Object{[int]$_.ProcessId})
+  $children=@($all|Where-Object{$_.ParentProcessId -in $selectedPids -and $_.ProcessId -notin $selectedPids})
+  $selected+= $children
+ }while($children.Count -gt 0)
+ $rawSnapshot=[pscustomobject]@{all=$all;selected=@($selected);allListeners=$listeners};$unverifiedRaw=@()
+ if($Purpose -ceq 'CandidateProposal'){
+  $matched=@()
+  foreach($row in $selected){
+   $rules=@();if($row.ExecutablePath -and $row.CommandLine){$rules=@($observerProfile.candidateRules|Where-Object{$_.nodePath -ceq $row.ExecutablePath -and ((ObserverNativeTokens $_.commandLine)|ConvertTo-Json -Compress) -ceq ((ObserverNativeTokens $row.CommandLine)|ConvertTo-Json -Compress)})}
+   ObserverRequire ($rules.Count -le 1)
+   if($rules.Count -eq 1){$matched+=,$row}else{$unverifiedRaw+=,[ordered]@{pid=[int]$row.ProcessId;parentPid=[int]$row.ParentProcessId;creationTime=if($row.CreationDate -is [DateTime]){$row.CreationDate.ToUniversalTime().ToString('o')}else{$null};ownerVerified=$false}}
+  }
+  $selected=$matched
+ }
+ $processes=@();$vanishedConsoles=@();$vanishedProbes=@()
+ # Read the newest identities first so short-lived probe children are less
+ # likely to exit while older parents are queried. Every selected row and
+ # every owner/binary/command check is still required; no failure is skipped.
+ foreach($p in @($selected|Sort-Object CreationDate -Descending)){
+  try{$sid=Invoke-CimMethod -InputObject $p -MethodName GetOwnerSid -ErrorAction Stop}catch{
+   if($Purpose -ceq 'Physical' -and (ObserverExactNotFound $_) -and $p.Name -ieq 'conhost.exe'){
+    $vanishedConsoles+=,(ObserverVanishedConsole $_ $p $selected $pids $all $listeners);continue
+   }
+   if($Purpose -ceq 'Physical' -and $null -ne $observerProbePolicy -and (ObserverExactNotFound $_) -and $p.Name -ieq 'powershell.exe'){
+    $vanishedProbes+=,(ObserverTryVanishedProbe $p $_ $rawSnapshot $pids $observerProbePolicy);continue
+   }
+   throw
+  }
+  if($sid.ReturnValue -ne 0 -or -not $sid.Sid -or -not $p.ExecutablePath -or -not $p.CommandLine){throw 'P03_PROCESS_IDENTITY_UNAVAILABLE'}
+  $processes+=,[ordered]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;ownerSid=[string]$sid.Sid;nodePath=[string]$p.ExecutablePath;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o')}
+ }
+ # No row here is an authenticated identity or a stop/claim authority. Recheck
+ # absence immediately before output; parents retain their normal SID checks.
+ ObserverAssertVanishedAudits @($vanishedConsoles+$vanishedProbes) $rawSnapshot $observerProbePolicy
+ $result=[ordered]@{schemaVersion='melisa-p03-physical-observation.v1';environment=$Environment;beforeImage=[ordered]@{path=$resolved;sha256=$actual};startedAt=$started;observedAt=[DateTime]::UtcNow.ToString('o');collection='Schedule.Service.GetRunningTasks(1)';collectionAuthority=if($Purpose -ceq 'CandidateProposal'){'CANDIDATE_PROPOSAL_ONLY'}else{'PHYSICAL_OBSERVATION_ONLY'};processScope='CIM.Win32_Process.Unfiltered';portScope='Get-NetTCPConnection.Listen.Unfiltered';tasks=$tasks;runningInstances=$instances;processes=$processes;bindings=$bindings;vanishedConsoles=$vanishedConsoles;vanishedProbes=$vanishedProbes;rawScope=[ordered]@{selectedCount=$rawSnapshot.selected.Count;unverifiedCount=$unverifiedRaw.Count;unverifiedProcesses=$unverifiedRaw};stopPermitted=$false;applyAvailable=$false}
+ if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly')){$result['policyGeneration']=$PolicyGeneration;$result['transitionAuthority']=$false}
+ # Native objects from this single collection, never caller JSON or another scan.
+  $nativeCapture=[pscustomobject]@{schemaVersion='melisa-p03-native-inventory.v1';id=$captureId;all=$all;allListeners=$listeners;listeners=@($listeners|Where-Object{$_.LocalPort -in $ports});instances=$nativeInstances;tasks=$tasks}
+  $nativeCapture|Add-Member NoteProperty readOnlyAudits ([pscustomobject]@{schemaVersion='melisa-p03-native-vanished-audits.v1';captureId=$captureId;capture=$nativeCapture;rawSnapshot=$rawSnapshot;policy=$observerProbePolicy;audits=@($vanishedConsoles+$vanishedProbes);recheck=${function:ObserverAssertVanishedAudits}})
+  ObserverAssertVanishedAudits @($vanishedConsoles+$vanishedProbes) $rawSnapshot $observerProbePolicy
+  $context.capture=$nativeCapture;$context.current=$result;$context.startedAt=$started;$context.inventoryObservedAt=$inventoryObservedAt
+  return $nativeCapture
+}
 $optionalPins=@($ProfilePath,$ProfileSha256,$EnginePath,$EngineSha256,$RecoveryHelperPath,$RecoveryHelperSha256|Where-Object{-not [string]::IsNullOrEmpty($_)})
 ObserverRequire ($optionalPins.Count -in @(0,6) -and ($optionalPins.Count -eq 0 -or $Environment -ceq 'Shared' -or $PolicyGeneration-ceq'CurrentB142Rehearsal') -and ($Purpose -cne 'CandidateProposal' -or $optionalPins.Count -eq 6))
 $observerProbePolicy=$null;$observerProfile=$null
@@ -230,6 +308,17 @@ try{
  }
  $names=if($rehearsal){@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')}else{@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')}
  $ports=if($rehearsal){@(4284,4286,5334,62710,62711,62712,62713,62714)}else{@(4184,4186,5234,62700,62701,62702,62703,62704)}
+ if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
+  # Prepare the pinned worker before it requests this observer's one native collection.
+  $collectorContext=[pscustomobject]@{schemaVersion='melisa-p03-current-b142-native-collector.v1';sourceFunction=${function:ObserverCollectCurrentB142Native};observerRef=[pscustomobject]@{path=$PSCommandPath;sha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash.ToLowerInvariant()};profileRef=[pscustomobject]@{path=$ProfilePath;sha256=$ProfileSha256};beforeRef=[pscustomobject]@{path=$BeforeImagePath;sha256=$BeforeImageSha256};drainerRef=[pscustomobject]@{path=$DrainerPath;sha256=$DrainerSha256};captureCount=0;capture=$null;current=$null}
+  ObserverImportDefinition (ObserverPolicyRead ([pscustomobject]@{path=$DrainerPath;sha256=$DrainerSha256})) 'InvokeP03SuccessorWorker' 'ObserverImportedPreparedCaptureWorker'
+  $frame=ObserverImportedPreparedCaptureWorker -PolicyGeneration $PolicyGeneration -Mode 'Inspect' -ProfilePath $ProfilePath -ProfileSha256 $ProfileSha256 -BeforeImagePath $BeforeImagePath -BeforeImageSha256 $BeforeImageSha256 -EnginePath $EnginePath -EngineSha256 $EngineSha256 -RecoveryHelperPath $RecoveryHelperPath -RecoveryHelperSha256 $RecoveryHelperSha256 -NativeCollectorContext $collectorContext
+  ObserverRequire ($collectorContext.captureCount-eq1-and$null-ne$collectorContext.capture-and$null-ne$collectorContext.current-and$frame.captureId-ceq$collectorContext.capture.id)
+  $native=$collectorContext.capture;ObserverAssertVanishedAudits $native.readOnlyAudits.audits $native.readOnlyAudits.rawSnapshot $null
+  $collectorContext.current['captureId']=$native.id
+  [ordered]@{schemaVersion='melisa-p03-current-b007-same-capture.v1';capture=[ordered]@{id=$native.id;attempt=1;startedAt=$collectorContext.startedAt;inventoryObservedAt=$collectorContext.inventoryObservedAt;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;drainerSha256=$DrainerSha256;processCount=$native.all.Count;listenerCount=$native.allListeners.Count;runningInstanceCount=$native.instances.Count};current=$collectorContext.current;frame=$frame}|ConvertTo-Json -Depth 16 -Compress
+  return
+ }
  # Transfer the worker's existing three exact probe-exit attempts to the WHOLE
  # capture. Never reuse a raw half, widen the retry class or exceed that budget.
  $captureLimit=if($SameCapture){3}else{1}

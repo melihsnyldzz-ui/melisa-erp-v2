@@ -34,8 +34,18 @@ param(
  [Parameter(Mandatory=$true)][string]$RecoveryHelperPath,[Parameter(Mandatory=$true)][string]$RecoveryHelperSha256,
  [string]$ClaimPath,[string]$ClaimSha256,
  [string]$AdmittedSnapshotPath,[string]$AdmittedSnapshotSha256,[string]$StopIntentPath,[string]$StopIntentSha256,
- [object]$NativeCapture=$null
+ [object]$NativeCapture=$null,[object]$NativeCollectorContext=$null
 )
+$collectorSourceHold=$null
+try{
+if($null-ne$NativeCollectorContext){
+ if($PolicyGeneration-cne'CurrentB142Rehearsal'-or$Mode-cne'Inspect'-or$null-ne$NativeCapture-or$NativeCollectorContext.GetType().FullName-cne'System.Management.Automation.PSCustomObject'){throw 'P03_REHEARSAL_COLLECTOR_SCOPE'}
+ $contextKeys=@('schemaVersion','sourceFunction','observerRef','profileRef','beforeRef','drainerRef','captureCount','capture','current')
+ if((@($NativeCollectorContext.PSObject.Properties.Name|Sort-Object)-join'|')-cne(@($contextKeys|Sort-Object)-join'|')-or$NativeCollectorContext.schemaVersion-cne'melisa-p03-current-b142-native-collector.v1'-or$NativeCollectorContext.captureCount-isnot[int]-or$NativeCollectorContext.captureCount-ne0-or$null-ne$NativeCollectorContext.capture-or$null-ne$NativeCollectorContext.current){throw 'P03_REHEARSAL_COLLECTOR_CONTEXT'}
+ $sourceCommand=@(Get-Command ObserverCollectCurrentB142Native -CommandType Function -ErrorAction Stop);if($NativeCollectorContext.sourceFunction-isnot[scriptblock]-or$NativeCollectorContext.sourceFunction.File-cne$NativeCollectorContext.observerRef.path-or$sourceCommand.Count-ne1-or-not[object]::ReferenceEquals($sourceCommand[0].ScriptBlock,$NativeCollectorContext.sourceFunction)){throw 'P03_REHEARSAL_COLLECTOR_FILE_BINDING'}
+ foreach($entry in @(@($NativeCollectorContext.profileRef,$ProfilePath,$ProfileSha256),@($NativeCollectorContext.beforeRef,$BeforeImagePath,$BeforeImageSha256))){if((@($entry[0].PSObject.Properties.Name|Sort-Object)-join'|')-cne'path|sha256'-or$entry[0].path-cne$entry[1]-or$entry[0].sha256-cne$entry[2]){throw 'P03_REHEARSAL_COLLECTOR_REF'}}
+ foreach($entry in @(@($NativeCollectorContext.observerRef,'p03-physical-recovery-observe.ps1'),@($NativeCollectorContext.drainerRef,'p03-pr54-successor-core-drain.ps1'))){if((@($entry[0].PSObject.Properties.Name|Sort-Object)-join'|')-cne'path|sha256'-or$entry[0].path-cne(Join-Path ([IO.Path]::GetDirectoryName($BeforeImagePath)) $entry[1])-or$entry[0].sha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'P03_REHEARSAL_COLLECTOR_SOURCE'}}
+}
 if($null -ne $NativeCapture){
  if($PolicyGeneration -cnotin @('CurrentB007InspectOnly','CurrentB142Rehearsal') -or $Mode -cne 'Inspect' -or $NativeCapture.id -cnotmatch '^[a-f0-9]{32}$' -or $NativeCapture.schemaVersion -cne 'melisa-p03-native-inventory.v1'){throw 'P03_SAME_CAPTURE_SCOPE'}
  foreach($row in @($NativeCapture.all)+@($NativeCapture.allListeners)){if($row -isnot [Microsoft.Management.Infrastructure.CimInstance]){throw 'P03_SAME_CAPTURE_NATIVE_TYPE'}}
@@ -70,7 +80,7 @@ function ReadWorkerPin([string]$path,[string]$sha){
  $acl=Get-Acl -LiteralPath $path;$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]))
  if(-not $acl.AreAccessRulesProtected -or $acl.GetOwner([Security.Principal.SecurityIdentifier]).Value -cne $owner -or $rules.Count -ne 2){throw 'P03_SUCCESSOR_ACL'}
  foreach($sid in @($owner,'S-1-5-18')){if(@($rules|Where-Object{$_.IdentityReference.Value -ceq $sid -and -not $_.IsInherited -and $_.AccessControlType -eq 'Allow' -and $_.FileSystemRights -eq 'FullControl'}).Count -ne 1){throw 'P03_SUCCESSOR_ACL'}}
- $share=if($null -ne $NativeCapture){[IO.FileShare]::Read}else{[IO.FileShare]::None};$s=[IO.File]::Open($path,'Open','Read',$share);try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
+ $share=if($null -ne $NativeCapture-or$null-ne$NativeCollectorContext){[IO.FileShare]::Read}else{[IO.FileShare]::None};$s=[IO.File]::Open($path,'Open','Read',$share);try{if($s.Length -le 0 -or $s.Length -gt 16777216){throw 'P03_SUCCESSOR_SIZE'};$m=[IO.MemoryStream]::new();$s.CopyTo($m);$bytes=$m.ToArray();$actual=[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant();if($actual -cne $sha){throw 'P03_SUCCESSOR_HASH'};return ,$bytes}finally{$s.Dispose()}
 }
 function ImportWorkerFunctions([byte[]]$bytes,[string[]]$names){
  $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$tokens,[ref]$errors)
@@ -99,6 +109,32 @@ $script:tasksStopRequested=$false;$script:coreQuiesced=$false;$script:probeAdmis
 $script:sameCaptureAuditContext=if($null-ne$NativeCapture){$NativeCapture}else{$null}
 $script:coreLifetime=$null;$script:precutWindowOpenedAt=$null;$script:coreStopCompletedAt=$null
 $script:cutWitnessCommitted=$false
+$script:currentRehearsalCollectorContext=$null;$script:currentRehearsalCollectorFunction=$null
+if($null-ne$NativeCollectorContext){
+ [void](ReadWorkerPin $NativeCollectorContext.drainerRef.path $NativeCollectorContext.drainerRef.sha256)
+ $collectorRef=$NativeCollectorContext.observerRef
+ # Keep the exact protected observer bytes immutable until this invocation returns.
+ $collectorSourceHold=[IO.File]::Open($collectorRef.path,'Open','Read','Read')
+ $observerBytes=ReadWorkerPin $collectorRef.path $collectorRef.sha256
+ $ot=$null;$oe=$null;$oa=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($observerBytes),[ref]$ot,[ref]$oe);if($oe.Count){throw 'P03_REHEARSAL_COLLECTOR_PARSE'}
+ $collectorPins=[ordered]@{
+ ObserverRequire='3ed75d789e7818f5d02af55dfe2b827ff61e6d79a8481f87b67685bdddb88ae1'
+ ObserverExactNotFound='2f7ebf1dc2fc1e95c81d7a958309f23fdb8c474e00dec1d0fe48faf26e5766f7'
+ ObserverKernelAbsent='66920f6c9f4fbaf21f52b76e6a119056d1b6b5a5d1a941a8255b863d1020fc2a'
+ ObserverPinnedConsoleBinary='f44d8561db0d87a73cc5fa3f590f74026150a7e094c56567349dd9bef009033a'
+ ObserverAssertAbsentFamily='70943f5d96a07682dd11dd4cb4d3d80ec119f97fcdb7d58b6fedbf354e38f7a9'
+ ObserverVanishedConsole='3b29273d33e2918be9f50ff5c5ccd73b9c37df65bfa0be6f5ffdf0049df850ec'
+ ObserverAssertVanishedAudits='59f0f72e86f2c50ee9acbbe9f49627976a4d5f35eb31b48f2273796bf721fd37'
+ ObserverCollectCurrentB142Native='eb8e472362c99cdd53fe2f1385a948b919fda1c0aefb8a9331db11822a60b78e'
+ }
+ foreach($name in $collectorPins.Keys){$definitions=@($oa.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq$name},$true));if($definitions.Count-ne1-or(Hash ([Text.Encoding]::UTF8.GetBytes($definitions[0].Extent.Text.Replace("`r`n","`n"))))-cne$collectorPins[$name]){throw 'P03_REHEARSAL_COLLECTOR_FUNCTION'}}
+ $sourceCollectorAst=$NativeCollectorContext.sourceFunction.Ast;if($sourceCollectorAst.Parent-is[Management.Automation.Language.FunctionDefinitionAst]){$sourceCollectorAst=$sourceCollectorAst.Parent};if((Hash ([Text.Encoding]::UTF8.GetBytes($sourceCollectorAst.Extent.Text.Replace("`r`n","`n"))))-cne$collectorPins.ObserverCollectCurrentB142Native){throw 'P03_REHEARSAL_COLLECTOR_FILE_FUNCTION'}
+ ImportWorkerFunctions $observerBytes @($collectorPins.Keys)
+ $commands=@(Get-Command ObserverCollectCurrentB142Native -CommandType Function -ErrorAction Stop);if($commands.Count-ne1-or(Hash ([Text.Encoding]::UTF8.GetBytes($commands[0].ScriptBlock.Ast.Extent.Text.Replace('function script:ObserverCollectCurrentB142Native','function ObserverCollectCurrentB142Native').Replace("`r`n","`n"))))-cne$collectorPins.ObserverCollectCurrentB142Native){throw 'P03_REHEARSAL_COLLECTOR_FUNCTION'}
+ $script:currentRehearsalCollectorFunction=$commands[0].ScriptBlock
+ $NativeCollectorContext|Add-Member NoteProperty before $before;$NativeCollectorContext|Add-Member NoteProperty profile $profile;$NativeCollectorContext|Add-Member NoteProperty drainerSha256 $NativeCollectorContext.drainerRef.sha256;$NativeCollectorContext|Add-Member NoteProperty startedAt $null;$NativeCollectorContext|Add-Member NoteProperty inventoryObservedAt $null
+ $script:currentRehearsalCollectorContext=$NativeCollectorContext
+}
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 # Pure finite envelope reused by the normal physical collector. This function
 # performs no IO and does not grant admission/claim/stop/Apply authority.
@@ -470,7 +506,16 @@ function CurrentSameCaptureAuditFrame($native){
 }
 
 function CaptureWorkerAdmissionCore($capturedInventory=$null){
- Authority;PrepareProbeSource;$inv=if($null -eq $capturedInventory){Inventory}else{$capturedInventory}
+ Authority;PrepareProbeSource
+ if($null-ne(Get-Variable -Name currentRehearsalCollectorContext -Scope Script -ValueOnly -ErrorAction SilentlyContinue)){
+  Need ($PolicyGeneration-ceq'CurrentB142Rehearsal'-and$Mode-ceq'Inspect'-and$null-eq$capturedInventory-and$script:currentRehearsalCollectorContext.captureCount-eq0) 'REHEARSAL_COLLECTOR_ONCE'
+  $commands=@(Get-Command ObserverCollectCurrentB142Native -CommandType Function -ErrorAction Stop);Need ($commands.Count-eq1-and[object]::ReferenceEquals($commands[0].ScriptBlock,$script:currentRehearsalCollectorFunction)) 'REHEARSAL_COLLECTOR_BINDING'
+  $capturedInventory=& $script:currentRehearsalCollectorFunction $script:currentRehearsalCollectorContext
+  Need ($script:currentRehearsalCollectorContext.captureCount-eq1-and[object]::ReferenceEquals($capturedInventory,$script:currentRehearsalCollectorContext.capture)-and$capturedInventory.schemaVersion-ceq'melisa-p03-native-inventory.v1'-and$capturedInventory.id-cmatch'\A[a-f0-9]{32}\z') 'REHEARSAL_COLLECTOR_NATIVE'
+  foreach($row in @($capturedInventory.all)+@($capturedInventory.allListeners)){Need ($row-is[Microsoft.Management.Infrastructure.CimInstance]) 'SAME_CAPTURE_NATIVE_TYPE'};foreach($row in @($capturedInventory.instances)){Need ([Runtime.InteropServices.Marshal]::IsComObject($row)) 'SAME_CAPTURE_COM_TYPE'}
+  $script:sameCaptureAuditContext=$capturedInventory
+ }
+ $inv=if($null -eq $capturedInventory){Inventory}else{$capturedInventory}
  # Expected parents serve only the imported console classifier's lookup.
  # Admission still requires all ten live identities below. Authenticate the
  # shortest-lived rows first; sorting retains the entire unfiltered frame.
@@ -587,9 +632,13 @@ function DrainWorkerCore{
  }finally{if($null -ne $script:coreLifetime){$script:coreLifetime.Dispose()}}
 }
 WorkerAuthority
+if($null-ne$script:currentRehearsalCollectorContext){
+ $frame=CaptureWorkerAdmissionCore;$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;$frame['environment']='P03_REHEARSAL';$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;$frame['captureId']=$script:currentRehearsalCollectorContext.capture.id;return $frame
+}
 if($PolicyGeneration -cin @('B264InspectOnly','B264Sup20DInspectOnly','CurrentB007InspectOnly','CurrentB142Rehearsal')){$frame=if($null -eq $NativeCapture){CaptureWorkerAdmission}else{CaptureWorkerAdmissionCore $NativeCapture};$frame.schemaVersion='melisa-p03-b264-precut-inspection.v1';$frame['policyGeneration']=$PolicyGeneration;if($PolicyGeneration-ceq'CurrentB142Rehearsal'){$frame['environment']='P03_REHEARSAL'};$frame['protectedProcesses']=@($profile.protectedProcesses);$frame['transitionAuthority']=$false;$frame['stopAuthority']=$false;$frame['applyExecuted']=$false;if($null -ne $NativeCapture){$frame['captureId']=$NativeCapture.id;return $frame};$frame|ConvertTo-Json -Depth 14 -Compress;return}
 if($Mode -cin @('Inspect','Capture')){CaptureWorkerAdmission|ConvertTo-Json -Depth 14 -Compress;return}
 DrainWorkerCore|ConvertTo-Json -Depth 8 -Compress
 
+}finally{if($null-ne$collectorSourceHold){$collectorSourceHold.Dispose()}}
 }
 InvokeP03SuccessorWorker @PSBoundParameters
