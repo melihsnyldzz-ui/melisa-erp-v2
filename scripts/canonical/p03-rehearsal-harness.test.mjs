@@ -248,7 +248,7 @@ test('actual PS5 to benign Node error bridge preserves quoted status and digit-b
  const diagnostic={schemaVersion:'melisa-p03-current-b142-native-failure.v1',worker:'oldCut',action:'Inspect',code:'P03_CURRENT_B142_REJECTED',exitCode:1,killed:false,signal:null,errorType:'Error',completed:false};
  const mock=`export async function runPr54CurrentB142RehearsalTransition(x){const e=Error(x.diagnostic.code);e.p03RehearsalDiagnostic=x.diagnostic;throw e}`;
  const data=Buffer.from(JSON.stringify({moduleUrl:'data:text/javascript;base64,'+Buffer.from(mock).toString('base64'),request:{diagnostic,privateSentinel:'PRIVATE_SENTINEL'}})).toString('base64');
- const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$data='${data}';$node='C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe'
+ const command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$data='${data}';$node='${process.execPath.replaceAll("'","''")}'
  ${line}
  $result=(& $node --input-type=module -e $program);$childExit=$LASTEXITCODE
  if($childExit-ne1){throw 'EXIT'};$x=$result|ConvertFrom-Json;if($x.status-cne'CURRENT_B142_NATIVE_FAILED'-or$x.diagnostic.code-cne'P03_CURRENT_B142_REJECTED'){throw 'METADATA'}
@@ -351,7 +351,7 @@ test('PS5 inspection result requires exact read-only booleans and all three orde
 
 test('actual PS5 to benign Node inspection request selects DryRun and preserves the separate read-only result',{skip:process.platform!=='win32'},()=>{
  const source=fs.readFileSync(new URL('./p03-rehearsal-driver.ps1',import.meta.url),'utf8'),lines=source.split(/\r?\n/),input=lines.find(x=>x.includes('$inputValue=[ordered]')&&x.includes('profileRef')),build=lines.find(x=>x.includes('const m=await import(x.moduleUrl)')&&x.includes('p03RehearsalDiagnostic'));assert(input&&build);
- const mock="export async function runPr54CurrentB142RehearsalTransition(x){if(x.mode!=='DryRun'||x.scenario!=='Normal')throw Error('BAD_MODE');return {status:'DRY_RUN_READY',environment:'P03_REHEARSAL',claimCreated:false,runtimeMutation:false}}",url='data:text/javascript;base64,'+Buffer.from(mock).toString('base64'),command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$InspectionOnly=$true;$RehearsalScenario='Normal';$runRoot='fixture';$profileRef=@{};$beforeRef=@{};$request=@{dispatcher=@{path='${url}'}};$node='C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe'
+ const mock="export async function runPr54CurrentB142RehearsalTransition(x){if(x.mode!=='DryRun'||x.scenario!=='Normal')throw Error('BAD_MODE');return {status:'DRY_RUN_READY',environment:'P03_REHEARSAL',claimCreated:false,runtimeMutation:false}}",url='data:text/javascript;base64,'+Buffer.from(mock).toString('base64'),command=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$InspectionOnly=$true;$RehearsalScenario='Normal';$runRoot='fixture';$profileRef=@{};$beforeRef=@{};$request=@{dispatcher=@{path='${url}'}};$node='${process.execPath.replaceAll("'","''")}'
  ${input}
  $data=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($inputValue|ConvertTo-Json -Depth 15 -Compress)))
  ${build}
