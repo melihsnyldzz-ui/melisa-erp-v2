@@ -630,6 +630,7 @@ function currentRehearsalFixture(options={}){
   if(leaf==='oldCut.ps1'){
    if(mode==='Inspect')return {stderr:'',stdout:JSON.stringify(makeFrame())};drainCalls++;
    if(options.nativeUnknown)throw Error('UNKNOWN_NATIVE_CHILD');
+   if(options.nativeCutError)throw options.nativeCutError;
    processRows=processRows.filter(x=>x.role!=='coreSupervisor'&&!x.role.endsWith('Watcher'));instances=[];
    const claimRef=files.get(root+'\\rehearsal-claim.json').ref,snapshotRef=files.get(root+'\\successor-precut-admission.json').ref,intentRef=files.get(root+'\\b264-old-owner-cut-intent.json').ref;
    const held=put('b264-old-owner-held-cut-intent.json',{claimSha256:claimRef.sha256,rootIntentSha256:intentRef.sha256,admittedSnapshotSha256:snapshotRef.sha256});
@@ -741,5 +742,13 @@ test('CurrentB142 actual generated PS5 initializer uses uniquely named pinned re
   const mocks=`$script:aclReads=0;function Get-Acl{param($LiteralPath);$script:aclReads++;$a=[pscustomobject]@{AreAccessRulesProtected=$true};$a|Add-Member ScriptMethod GetOwner {param($type);[pscustomobject]@{Value='${owner}'}};$a|Add-Member ScriptMethod GetAccessRules {param($explicit,$inherited,$type);foreach($sid in @('${owner}','S-1-5-18')){[pscustomobject]@{IdentityReference=[pscustomobject]@{Value=$sid};IsInherited=$false;AccessControlType='Allow';FileSystemRights='FullControl'}}};return $a};`;
   const code=`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;${mocks}${generated};if($script:aclReads-ne2-or$v.profile.marker-cne'profile-00123'-or$v.before.marker-cne'before-00123'){throw 'PINNED_READER_FAILED'};if((Get-Alias h).Definition-cne'Get-History'-or(Get-Alias rp).Definition-cne'Remove-ItemProperty'){throw 'DEFAULT_ALIAS_CHANGED'};'INIT_HELPERS_PASS'`;
   const child=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command',"& ([scriptblock]::Create([Console]::In.ReadToEnd()))"],{input:code,encoding:'utf8',windowsHide:true,env:{...process.env,PSModulePath:'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules'}});assert.equal(child.status,0,child.stderr);assert.equal(child.stdout.trim(),'INIT_HELPERS_PASS');
- }finally{const resolved=path.resolve(temp),parent=path.resolve(os.tmpdir()),stat=fs.lstatSync(temp);assert(resolved.startsWith(parent+path.sep+'p03-current-init-')&&resolved!==parent&&stat.isDirectory()&&!stat.isSymbolicLink()&&fs.realpathSync.native(temp).toLowerCase()===resolved.toLowerCase());fs.rmSync(resolved,{recursive:true,force:true});}
+ }finally{const resolved=fs.realpathSync.native(temp),parent=fs.realpathSync.native(os.tmpdir()),stat=fs.lstatSync(temp),leaf=path.basename(temp);assert(/^p03-current-init-[a-zA-Z0-9]+$/.test(leaf)&&stat.isDirectory()&&!stat.isSymbolicLink()&&path.dirname(resolved).toLowerCase()===parent.toLowerCase()&&path.basename(resolved).toLowerCase()===leaf.toLowerCase());fs.rmSync(resolved,{recursive:true,force:true});}
+});
+
+
+test('CurrentB142 held-core wrapper retains only the native refusal diagnostic without replay or recovery',async()=>{
+ const refusal=Object.assign(Error('Command failed: PRIVATE_SENTINEL'),{stderr:'P03_CURRENT_B142_REHEARSAL_CLAIM PRIVATE_SENTINEL',code:1,killed:false}),f=currentRehearsalFixture({nativeCutError:refusal});
+ await assert.rejects(f.run(),error=>{assert.equal(error.message,'P03_OWNER_TRANSITION_STOPPED');assert.equal(error.phase,'HELD_CORE_CUT');assert.deepEqual(error.p03RehearsalDiagnostic,{schemaVersion:'melisa-p03-current-b142-native-failure.v1',worker:'oldCut',action:'Drain',code:'P03_CURRENT_B142_REHEARSAL_CLAIM',exitCode:1,killed:false,signal:null,errorType:'Error',completed:false});assert(!JSON.stringify(error).includes('PRIVATE_SENTINEL'));return true;});
+ assert.equal(f.writes.filter(p=>p.endsWith('\\rehearsal-claim.json')).length,1);assert.equal(f.calls.filter(([p,a])=>p.endsWith('oldCut.ps1')&&a[a.indexOf('-Mode')+1]==='Drain').length,1);assert.equal(f.counts.drainCalls,1);assert.equal(f.counts.stopCalls,0);assert.equal(f.counts.recoverCalls,0);assert(f.events.includes('FAILED'));assert(!f.calls.some(([p,a])=>p.endsWith('engine.ps1')&&['StopNew','RollbackOld'].includes(a[a.indexOf('-Mode')+1])));
+ const unknown=currentRehearsalFixture({nativeUnknown:true});await assert.rejects(unknown.run(),e=>{assert.equal(e.p03RehearsalDiagnostic.code,'UNCLASSIFIED_IO_FAILURE');return true;});assert.equal(unknown.counts.drainCalls,1);assert.equal(unknown.counts.recoverCalls,0);
 });
