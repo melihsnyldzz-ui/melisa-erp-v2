@@ -35,6 +35,8 @@ test('synthetic catalog cannot masquerade as accepted Vega catalog',()=>{
 });
 test('native draft projection never mixes currencies or accepts completed/invalid money',()=>{
  const draft={id:1,documentNo:'CR2-example',customerName:'Örnek Mağaza',status:'DRAFT',documentCurrency:'TRY',grandTotal:251};assert.equal(cleanOrderDocument(draft),draft);
+ assert.deepEqual(cleanOrderDocument({...draft,id:'1'}),draft);
+ for(const id of ['01','1.0','1e0','9007199254740992',true,null])assert.throws(()=>cleanOrderDocument({...draft,id}));
  for(const change of [{status:'FINALIZED'},{id:0},{documentCurrency:'LL'},{grandTotal:NaN},{grandTotal:-1}])assert.throws(()=>cleanOrderDocument({...draft,...change}));
 });
 test('normal session confines SQL order reads to new browser/API pair',async()=>{
