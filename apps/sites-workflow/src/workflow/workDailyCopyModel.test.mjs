@@ -28,18 +28,23 @@ test('clean inverse displays only the owned single native count result and never
 });
 const line=(physical=153)=>({productId:'301',stockCode:'K-301',physical,system:153,reason:'Raf tekrar sayıldı',movementFingerprint:fingerprint});
 
-test('normal clean count approval and rejection send the registered document date, not the wall clock',async()=>{
+test('normal clean LAN/Tailscale count form uses secure UUID fallback, frozen date and identical journal retry',async()=>{
  const keys=['window','location','document','localStorage','FormData'],saved=Object.fromEntries(keys.map(k=>[k,globalThis[k]]));
- try{for(const op of ['approve','reject']){
-  const loc={protocol:'http:',hostname:'127.0.0.1',port:'5244'};globalThis.location=loc;globalThis.window={location:loc};
+ const cryptoDescriptor=Object.getOwnPropertyDescriptor(globalThis,'crypto'),nativeCrypto=globalThis.crypto;
+ try{for(const hostname of ['192.168.1.46','100.87.188.3'])for(const op of ['approve','reject']){
+  Object.defineProperty(globalThis,'crypto',{configurable:true,value:{getRandomValues:bytes=>nativeCrypto.getRandomValues(bytes)}});
+  const loc={protocol:'http:',hostname,port:'5244'};globalThis.location=loc;globalThis.window={location:loc};
   const d=data();delete d.operationOrigin;d.meta={environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',synthetic:true,actualT1:false,externalOperations:false,cleanDaily:{date:'2026-10-22',actorId:'22',canDraft:false,canReview:true}};
   d.scope={flow:'count',product_id:1,stock_code:'0007 MELISA',current_stock_qty:23};d.countProducts=[{id:'1',stockCode:'0007 MELISA',name:'Örnek ürün',unit:'ADET',stockQuantity:23,barcode:'0000000000007',movementFingerprint:fingerprint}];
   d.drafts=[{id:8,kind:'count',state:'pending',created_by:21,payload_json:JSON.stringify({lines:[{productId:'1',stockCode:'0007 MELISA',physical:24,system:23,reason:'Raf tekrar sayıldı'}],unknownScans:[]}),result_json:null}];
   const calls=[],button={dataset:{dailyAction:op==='approve'?'review-count':'reject-count',id:'8'}},form={},status={textContent:'',setAttribute(){}},submit={},footer={insertAdjacentHTML(){}},modal={classList:{add(){}},querySelector:q=>q==='.modalfoot'?footer:submit};
-  globalThis.localStorage={getItem:()=>null,setItem(){}};globalThis.document={getElementById:id=>({modal,'demo-form':form,'demo-error':status,'daily-status':status,modalback:{style:{}},'daily-close':{}})[id],querySelector:()=>submit,querySelectorAll:q=>q==='[data-daily-action]'?[button]:[]};globalThis.FormData=class{constructor(){return [['reason','Kontrol tamamlandı']];}};
+  const values=new Map();globalThis.localStorage={getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v)};globalThis.document={getElementById:id=>({modal,'demo-form':form,'demo-error':status,'daily-status':status,modalback:{style:{}},'daily-close':{}})[id],querySelector:()=>submit,querySelectorAll:q=>q==='[data-daily-action]'?[button]:[]};globalThis.FormData=class{constructor(){return [['reason','Kontrol tamamlandı']];}};
   const ui=testDaily({api:async(path,options)=>{calls.push({path,body:options.body});return{id:8};},user:{id:'22',role:{code:'clean_test_inventory_supervisor'},displayName:'Örnek kontrol',permissions:['product.view','stock.adjust']},data:d,flow:'count',refresh:async()=>{},esc:String,normalScreen:true});
   ui.bind();button.onclick();form.onsubmit({preventDefault(){},target:form});await new Promise(resolve=>setImmediate(resolve));assert.equal(calls.length,1);assert.equal(calls[0].path,'/api/test-daily/count/'+op);assert.equal(calls[0].body.date,'2026-10-22');assert.equal(calls[0].body.reason,'Kontrol tamamlandı');
- }}finally{for(const[k,v]of Object.entries(saved))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}
+  assert.match(calls[0].body.requestId,/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/);
+  button.dataset.dailyAction='retry';button.onclick();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls.length,2);assert.deepEqual(calls[1],calls[0]);
+  Object.defineProperty(globalThis,'crypto',{configurable:true,value:{}});button.dataset.dailyAction=op==='approve'?'review-count':'reject-count';button.onclick();form.onsubmit({preventDefault(){},target:form});await new Promise(resolve=>setImmediate(resolve));assert.equal(calls.length,2);assert.match(status.textContent,/kayıt gönderilmedi/);
+ }}finally{Object.defineProperty(globalThis,'crypto',cryptoDescriptor);for(const[k,v]of Object.entries(saved))if(v===undefined)delete globalThis[k];else globalThis[k]=v;}
 });
 
 test('copied native stock153 is allowed; rehearsal applies to difference5 rather than an absolute30/40 fixture limit',()=>{
