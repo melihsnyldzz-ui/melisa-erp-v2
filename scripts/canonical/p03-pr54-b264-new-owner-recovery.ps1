@@ -25,10 +25,16 @@ $engineSha=if($PolicyGeneration -cin @('CurrentB007','CurrentB142Rehearsal')){'b
 
 
 function Require-NewDrain($condition,[string]$code){if(-not $condition){throw ('P03_NEW_DRAIN_'+$code)}}
-function Import-B264Definitions([byte[]]$bytes,[string[]]$only=@(),[hashtable]$aliases=@{}){
+function Import-B264Definitions([byte[]]$bytes,[string[]]$only=@(),[hashtable]$aliases=@{},[switch]$CurrentRehearsalDrainer){
  $t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseInput([Text.UTF8Encoding]::new($false,$true).GetString($bytes),[ref]$t,[ref]$e)
  Require-NewDrain ($e.Count -eq 0) 'SOURCE_PARSE'
  $defs=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst]},$false))
+ if($CurrentRehearsalDrainer){
+  Require-NewDrain ($PolicyGeneration-ceq'CurrentB142Rehearsal'-and$aliases.Count-eq0-and($only-join'|')-ceq'AssertCurrentB142RehearsalContract|AssertCurrentB142RehearsalClaim|AssertCurrentB142RehearsalFiles'-and(Hash $bytes)-ceq$DrainerSha256) 'REHEARSAL_IMPORT_SCOPE'
+  Require-NewDrain ($defs.Count-eq1-and$defs[0].Name-ceq'InvokeP03SuccessorWorker') 'REHEARSAL_IMPORT_WRAPPER'
+  $wrapper=$defs[0];$regions=@($wrapper.Body.EndBlock.Statements|Where-Object{$_-is[Management.Automation.Language.TryStatementAst]});Require-NewDrain ($regions.Count-eq1) 'REHEARSAL_IMPORT_REGION';$region=$regions[0].Body;$defs=@($region.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-cin$only},$true))
+  Require-NewDrain ($defs.Count-eq3-and@($defs.Name|Sort-Object -Unique).Count-eq3-and@($defs|Where-Object{-not[object]::ReferenceEquals($_.Parent,$region)}).Count-eq0) 'REHEARSAL_IMPORT_FUNCTIONS'
+ }
  Require-NewDrain (@($defs.Name|Sort-Object -Unique).Count -eq $defs.Count) 'SOURCE_DUPLICATE'
  foreach($name in $only){Require-NewDrain (@($defs|Where-Object{$_.Name -ceq $name}).Count -eq 1) 'SOURCE_FUNCTION'}
  foreach($d in $defs){if($only.Count -and $d.Name -cnotin $only){continue}
@@ -57,10 +63,13 @@ function Get-B264RecoverySourcePolicy{
 function Initialize-B264Recovery{
  if($PolicyGeneration-ceq'CurrentB142Rehearsal'){
   Require-NewDrain ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value-ceq$owner-and$EnginePath-cmatch'\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\recovery-engine\.ps1\z'-and$DrainerSha256-ceq'3f4f218fb0dd9500ab1ed2f43e34a47d13c1b33e9e08e8b41add9c62984f027c') 'REHEARSAL_ENTRY'
+  $rehearsalSourceRoot=[IO.Path]::GetDirectoryName($EnginePath)
+  Require-NewDrain ($EmptyRecoveryPath-ceq(Join-Path $rehearsalSourceRoot 'p03-pr54-new-owner-empty-recovery.ps1')-and$DrainerPath-ceq(Join-Path $rehearsalSourceRoot 'p03-pr54-successor-core-drain.ps1')) 'REHEARSAL_SOURCE_ROOT'
+  $script:base=$rehearsalSourceRoot
   $engine=Read-B264Source $EnginePath $engineSha 'recovery-engine.ps1';$empty=Read-B264Source $EmptyRecoveryPath 'd1065793fc1cd6dbaae8633036f52e4a60ce65c7e969d5fb7e4b51fb242c1438' 'p03-pr54-new-owner-empty-recovery.ps1';$drainer=Read-B264Source $DrainerPath $DrainerSha256 'p03-pr54-successor-core-drain.ps1'
   Import-B264Definitions $engine @() @{ConsoleAuxiliaries='B264FrozenConsoleAuxiliaries';HubLineage='B264FrozenHubLineage'}
   Import-B264Definitions $empty @('Assert-NewDrainOldAbsent','Save-NewDrain','Read-NewDrainReceipt','Stop-NewDrainExact','Hold-NewDrainCore','Open-NewDrainOutput')
-  Import-B264Definitions $drainer @('AssertCurrentB142RehearsalContract','AssertCurrentB142RehearsalClaim','AssertCurrentB142RehearsalFiles')
+  Import-B264Definitions $drainer @('AssertCurrentB142RehearsalContract','AssertCurrentB142RehearsalClaim','AssertCurrentB142RehearsalFiles') @{} -CurrentRehearsalDrainer
   return
  }
 
@@ -316,7 +325,7 @@ function HubLineage($evidence,$expected,$inventory){if($PolicyGeneration-ceq'Cur
 function Current-NewDrainFrame{
  Assert-NewDrainPins;Complete-B264CoreCut;$frame=CandidateInventory $script:newEvidence;Assert-NewDrainOldAbsent $frame.inventory
  foreach($pidValue in $script:newGone){Require-NewDrain (@($frame.inventory.all|Where-Object{$_.ProcessId -eq $pidValue}).Count -eq 0) 'GONE_PID_REAPPEARED'}
- if($null -ne $script:newCoreHandle){Require-NewDrain ($script:newCoreHandle.Id -eq $script:newCore.pid -and $script:newCoreHandle.StartTime.ToUniversalTime().Ticks -eq [DateTime]::Parse($script:newCore.creationTime).ToUniversalTime().Ticks) 'HELD_CORE_IDENTITY'}
+ if($null -ne $script:newCoreHandle){Require-NewDrain ($script:newCoreHandle.Id -eq $script:newCore.pid -and $script:newCoreHandle.StartTime.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ') -ceq [DateTime]::Parse($script:newCore.creationTime).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')) 'HELD_CORE_IDENTITY'}
  return $frame
 }
 function Assert-B264Com($frame){
