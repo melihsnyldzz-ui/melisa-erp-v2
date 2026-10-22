@@ -14,3 +14,4 @@ export function assertCleanIdentity(identity){
 export function registerCleanContext(identity,environment=process.env){if(registered)fail();assertCleanEnvironment(environment);assertCleanIdentity(identity);registered=Object.freeze({environment:'CLEAN_SYNTHETIC_TEST',environmentId:CLEAN_ENVIRONMENT_ID,database:CLEAN_DATABASE,crmOrigin:'http://127.0.0.1:62801',synthetic:true,actualT1:false,externalOperations:false});return registered;}
 export function getCleanContext(){return registered;}
 export function assertRegisteredCleanContext(){if(!registered)fail();assertCleanEnvironment();return registered;}
+export function parseCleanMediaVariant(query){if(!query||typeof query!=='object'||Array.isArray(query)||Object.keys(query).join()!=='variant'||!['original','preview','thumbnail'].includes(query.variant))throw Object.assign(new Error('Invalid photo variant'),{code:'CATALOG_MEDIA_QUERY_INVALID',statusCode:400});return query.variant;}

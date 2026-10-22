@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-069 — 22 Ekim 2026 — Kalan normal GUI ve kesinti kontrolünü kullanıcı adına tamamla
+
+**Kaynak:** Kordinatör AJAN konuşmasındaki doğrudan kullanıcı “Ben yerime onlarıda hallet” mesajı, turn `01a1631f-8205-70c3-8cd6-2486c3b71d28`, mevcut ERP/CRM owner'larına aynı görevde iletildi. Mevcut beş aşamanın2.4–2.5/3.3–3.5/4.1/4.4/5.1–5.2 teknik kontrolleri tamamlanır; yeni Goal/plan/ajan/helper/altyapı oluşturulmaz. Sadece yeni yapay TEST ve mevcut örnek hesaplar; eski kurulum/veri/ağ etkilenmez. Mevcut başarılı kaynak/kurulum/restart gereksiz tekrarlanmaz, somut hatada en dar ilgili kontrol yenilenir.
+
+Normal form ve izinli sır aktarımı mevcut Computer Use kurallarında destekleniyorsa ajan kullanır; gerçek ret veya kısıt varsa kaynağı açık belirtilir, başka yolla atlanmaz. Yeni clean hesabında Windows DPAPI kaydı CUA belleğinde tutulup normal kullanıcı/parola formu üzerinden auth yapılması gerçek araçta başarıyla çalıştı. Önceki blanket unsupported-first-login kaydı bu yeni hedef için yanlış varsayımdı; mevcut gerçek kanıtla düzeltilir. Sır model/tool çıktısı, sohbet, günlük, kaynak, pano veya GitHub'a çıkmaz; token/cookie yerleştirme, auth/rol/atama kaldırma ve eski gerçek/Shared retlerini dolanma yok.
+
+Kesinti yalnız seçili yeni TEST taslak fetch isteğinde uygulanır ve sonunda kaldırılır. Gönderim öncesi kopma ile sunucu commit'i sonrası yanıt kaybı ayrı kanıtlanır; aynı UUID/body, bekleyen taslak, hata/yeniden deneme ve tek native kayıt korunur. Gerekli yeni yapay GUI senaryo kayıtları mevcut order1'i silmez veya tekrar oluşturmaz; her UUID'nin tek etkisi ayrı sayılır. Kaynak düzeltmesi kendi owner'ında, ortak runtime/SQL yalnız ERP owner'ında. Gerçek müşteri mesajı/ücretli AI/LIVE/Vega/T1/main merge yok; otomatik GUI sonucu insan/personel kabulüne çevrilmez.
+
 ### ERP-DEC-068 — 22 Ekim 2026 — Güncel kaynaklardan ayrı, yapay verili ortak kurulum
 
 **Kaynak:** Kullanıcının Kordinatör AJAN konuşmasındaki doğrudan kararı ve mevcut ERP/CRM owner'larına iletilen beş aşamalı görev: “Çalışan eski CRM ve ERP’ye ihtiyacım yok; tek ihtiyacım ERP ve CRM’nin son sürümlerini temiz bir repoya çekip bağlayıp bitirmek.” Bu, eski dosya/servis/DB silme veya durdurma izni değildir. Güncel kaynaklar alınır; iki normal uygulama ayrı SQL alanında yapay kayıtlarla açılır; ürün/fiyat ve CRM→ERP sipariş tek kayıt/replay/restart kalıcılığıyla kanıtlanır; kolay açılış/adres/GitHub teslim edilir.

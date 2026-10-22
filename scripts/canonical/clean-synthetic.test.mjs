@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildCleanSyntheticOrderSql} from './clean-synthetic-sql.mjs';
 import {buildCrmV2InstallSql} from './crm-order-v2-sql.mjs';
-import {assertCleanEnvironment,assertCleanIdentity,CLEAN_DATABASE,CLEAN_LOGIN,CLEAN_ENVIRONMENT_ID} from '../../apps/api/src/services/cleanSyntheticContext.mjs';
+import {assertCleanEnvironment,assertCleanIdentity,parseCleanMediaVariant,CLEAN_DATABASE,CLEAN_LOGIN,CLEAN_ENVIRONMENT_ID} from '../../apps/api/src/services/cleanSyntheticContext.mjs';
 import {isCleanCatalogMeta,cleanCatalogEnvelope} from '../../apps/sites-workflow/src/workflow/cleanSyntheticCatalogModel.mjs';
 import {resolveTestApiBase,shouldAutoOpenTestAdmin} from '../../apps/sites-workflow/src/workflow/testAdminSession.mjs';
 import {cleanOrderDocument} from '../../apps/sites-workflow/src/workflow/cleanNativeOrders.js';
@@ -14,6 +14,10 @@ test('exact new target only; old or privileged identities fail closed',()=>{
  for(const [key,value] of Object.entries({SQL_DATABASE:'MELISA_ERP_CRM_SHARED_TEST_20261009_02',SQL_SERVER:'Semih\\MELISADEV',SQL_PORT:'1434',SQL_USER:'sa',API_PORT:'4184',SQL_READ_ONLY:'true',VEGA_SQL_SERVER:'anything',OPENAI_API_KEY:'example'}))assert.throws(()=>assertCleanEnvironment({...environment,[key]:value}));
  for(const key of ['sysadmin','databaseControl','originalDatabaseAccess','liveDatabaseAccess'])assert.throws(()=>assertCleanIdentity({...identity,[key]:1}));
  assert.throws(()=>assertCleanIdentity({...identity,environmentId:'different'}));
+});
+test('clean media accepts the requested original without URL/path or query aliases',()=>{
+ for(const variant of ['original','preview','thumbnail'])assert.equal(parseCleanMediaVariant({variant}),variant);
+ for(const query of [{},{variant:'../original'},{variant:'original',path:'other'},{variant:['original']},null,[],{variant:'ORIGINAL'}])assert.throws(()=>parseCleanMediaVariant(query));
 });
 test('existing SQL engine keeps transaction/replay/immutable guards and no business-source claim',()=>{
  const legacy=buildCrmV2InstallSql(),clean=buildCleanSyntheticOrderSql();assert.equal(buildCrmV2InstallSql(),legacy);
