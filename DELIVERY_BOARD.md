@@ -1,3 +1,8 @@
+## 23 Ekim — B5 bilinen ERP rol alt kontrolleri 🟢; gerçek görev/insan kabulü 🟡
+
+KuruluAPI/web98226c7f/3397dosya,exactCI40002707905gerekli3jobSUCCESS.7normalörnekrol/49APIokuma/6yetkisizişlem403;15işveri/roltablosuaynı. NormalGUI'de sorumlu22'ye yanlış açılan yeni/tekrar/devam sayım kontrolleri mevcutcanDraftile kapatıldı; personel21başlatmaenabled/sorumlu22disabled, mevcut10incelemesi açık, reloadaynı.26hedeftestPASS; yeni yetki/ticarikayıt0.53veri+5eközetve7native/CRMlistenerkorundu; B4🟢örnektekniksonuç/kapanmışkasakorunur. GenelB5gerçekkişi–göreveslemesiveinsankabulüiçin🟡; özgün17/74ve49/25sayaçlarıaynı. Bu turB6/B7başlatılmadı. [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
 ## 23 Ekim — B4 açık yapay TEST teknik akışı 🟢; sıradaki B5
 
 TRY kanıtları korundu. USD/EUR kısmi/tam tahsilat ve ödeme, ayrı yetkili gerekçeli ters kayıt, normal yenileme,12kalıcıFXisteğinin ikinci etkisiz replay/409 ve üçdöviz günlük kasa4kapanışı gerçek normalGUI/SQL/API ile tamamlandı. Çekmece10TRY/1USD/2EUR; ana1021TRY/1028USD/1029EUR ayrı. Kurulu APIeeff5381/frontendfe5ead32,exactCI39998879755gerekli3jobSUCCESS. Stok23/maliyet60/eskiTRYkayıtları,CRM/native/yedi listener korunur. Bu yalnız açık yapay örnek kapsamının teknik tamamlanmasıdır; insan/fiziksel kabul, gerçek kişi/kasa/banka girdileri ve özgün49/25sayaçları aynı. B5'in bilinen ERP rol/işlem kontrolleri sırada; yeniB6/B7yok. Ayrıntı ve ilk hatalar [STATUS](STATUS.md) / [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

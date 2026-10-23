@@ -1,3 +1,16 @@
+## 23 Ekim 21:30 TR — B5 bilinen ERP rol kontrolleri ve normal sayım görünümü teslim edildi
+
+**Kurulu API/web:**98226c7fc6bfe19ee47e926eac6b89e4b489438b; CLEAN-ERP-20261023-98226c7fc6bf-B5ROLES/3397dosya; manifest55487B821AEC2AF068BEF6BE9C7AFBBBE36976F0482A11FE8AAB15DF8B3904A2. Gerçek kurulum21:28:42TR; guarded build8,58sn. ExactCI40002707905quality/windows/secretüçzorunlujobSUCCESS. B4eeffkaynağının bütün uygulama/SQLkanıtları korunur; sonradan yapılan belge commit'i kurulu kaynakla aynı değildir.
+
+**B5 bilinen teknik rol halkası tamam; genelB5🟡:**7mevcut normal TEST aktörünün49APIokuma yetkisi ve6gerçekyetkisizistek403doğrulandı. Örnekdepo18sayım/gönderim; kontrol19mal kabul/alış; muhasebe20tahsilat/ödeme/kasa; sayım21taslak; stok sorumlusu22inceleme; finanskontrol23gerekçeliiptal/saltokunurkasa; Semih10018özgünrol28/34izinle desteklenen işlemleri okur. Finansiptaliyetkisi yalnızörnekkontrol23'te kalır; Semih'e veya eski personel rollerine yeni izin eklenmedi. Gerçek kişi–görev listesi ve personel/insan kabulü ayrıca açık; örnek hesaplar gerçek çalışan eşlemesi sayılmaz.
+
+Gerçek normalGUI, sorumlu22'ye canDraftfalseolduğuhâlde yeni/tekrar/devam sayımı gösterdiğini buldu. Yalnız ortakcountUI mevcutcanDraftsonucunu kullanacak şekilde düzeltildi; localstart/open da korumalıdır. Normal personel21başlatmaenabled, sorumlu22başlatma/tekrar disabled, mevcut10kaydı inceleme açık; tamreloadaynı. Yerel taslak sahibinin adı artık mevcut user.displayName; genel“Satış ekibi”sabiti yok. Regresyon eskikoddaFAIL, son26hedefkontrolPASS; hesap/rol/nativeguarddeğişmedi.
+
+B5kurulumuveGUIokumalarındayeniticarikayıt0:53korunanscope+5ekscopeaynı,7native/CRMlistenerPID/doğum/executableaynı; CRM200. ÖncekiB4kasa4closed,30journal/35finanshareketi/stoğu23/maliyet60korunur. Rolprovasının15tablosuönce–sonraaynı. İlk400yanlışdatefiltresi ve401öncekiprocess'te kalmıştokenvarsayımı privatekanıtlarıylakorundu; normalgirişlevegerçekbusinessDatealanıyladüzeltildi. Başarılı49okumasonkeztekrarlanmadı. BağımsızreviewNOT_RUN; teknikGUI/CIgerçekinsankabulüdeğildir.
+
+**Çalışan adresler:**[ERP](http://192.168.1.46:5244/ornek-akis.html#count),[Günlük kasa](http://192.168.1.46:5244/ornek-akis.html#cash),[CRM](http://192.168.1.46:62800/). Private b5-roles-delivery.json,b5-existing-roles-api.json,b5-supervisor-count-before/after.png,b5-supervisor-review-preserved.png,b5-personnel-count-after.png. Hamveri/sırGitHub'ayüklenmedi. EskiTEST125/DB02/LIVE/Vega/mainvebütünyedeklerkorundu; insanPASSveözgün17/74-49/25sayaçlarıdeğişmedi. B4örnekteknik🟢veB5bilinenrolaltkontrolleri🟢; **gerçek kişi–görev ve insan kabulü açık**. Bu tur B6/B7geliştirmesine başlanmadı; sıradaki kayıtlı teknik iş B6önçalışmasının kendi yetki/bağımlılıklarıyla yürütülmesidir.
+
+### Önceki teslimler — tarihsel
 ## 23 Ekim 21:10 TR — B4 örnek döviz ve günlük kasa teknik akışı tamamlandı
 
 **Kurulu:** API eeff5381201fc514350eb6bdcc750737668066f7; aynı frontend dosyalarının guarded build kaynağı fe5ead32. Paket CLEAN-ERP-20261023-eeff5381201f-B4FX,3397dosya; manifest1799F2C97C96C1F7AB3A1B424CAE5C0103A8478F5707036C81E6A8DF0D26BF5E. Gerçek kurulum20:58:33TR; exactCI39998879755 üçzorunlujobSUCCESS. Native035fcc08 ve CRMbc8backend/e1ce12b7frontend aynı; yedi native/CRM listener PID/doğum/executable korundu. Sonradan yapılan belge commit'i çalışan kaynak değildir.
