@@ -4,6 +4,12 @@ import {createCountUI} from './countUI.js';
 import {testDaily} from './testDaily.js';
 
 const state=()=>({products:[['A-01','Ürün','ADET',3,60]],goods:[],supplierReturns:[],counts:[{id:'39-1',batchId:'39',code:'A-01',system:3,physical:4,difference:1,reason:'Raf yeniden sayıldı',state:'pending',countedBy:'Satış ekibi'}],audit:[],countSessions:[]});
+test('review-only count role cannot start, repeat or resume a local draft while saved review stays accessible',()=>{
+ const data=state();data.countSessions=[{id:'local-1',state:'draft',lines:[],revision:1}];const before=structuredClone(data);let writes=0,forms=0;
+ const ui=createCountUI({getState:()=>data,receipts:()=>[],actor:()=> 'Stok sorumlusu',allowed:()=>true,canDraft:()=>false,change:()=>writes++,form:()=>forms++,esc:String,btn:(label,action,id,disabled)=>`<button data-action="${action}" ${disabled?'disabled':''}>${label}</button>`,header:(_a,_b,_c,button)=>button,panel:(_t,b)=>b,table:(_h,rows)=>rows.join(''),td:(...v)=>v.join(' '),note:()=>''});
+ const html=ui.page();for(const action of ['new-count','repeat-count','resume-count'])assert.match(html,new RegExp(`data-action="${action}" disabled`));assert.match(html,/data-action="review-count" >/);
+ ui.start();ui.start('39');ui.open('local-1');assert.equal(writes,0);assert.equal(forms,0);assert.deepEqual(data,before);
+});
 function reviewFixture({allowed=true,onApprove=()=>{},data=state(),normalScreen=false}={}){
  let body,callback;const submit={},footer={insertAdjacentHTML(){}},modal={classList:{add(){}},querySelector:q=>q==='[type=submit]'?submit:footer};
  const oldDocument=globalThis.document;globalThis.document={getElementById:()=>modal};

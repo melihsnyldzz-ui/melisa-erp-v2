@@ -1,3 +1,10 @@
+## 23 Ekim — B5 bilinen roller doğrulandı; sayım başlatma görünümü düzeltmesi kaynakta
+
+Mevcut yedi normal TEST aktörü18/19/20/21/22/23/10018 ile49rol–okuma yolu beklenen200/403vealtı yetkisiz gerçekAPIisteği403geçti. Tüm15işveri/roltablosununJSONsatırları önce–sonra aynı; yalnız normal auth login izi oluştu. İlkprova hataları yanlışdatefiltre400veöncekiprocess token'ınınsaklanmaması401idi; bunlar ürün/yetkiPASSsayılmadı. Başarılı49okuma yeniden çalıştırılmadan eksikaltıret normalgirişle tamamlandı. Private b5-existing-roles-api.json ve iki ilkhatakanıtı saklı. Yeni belge, finans/stok etkisi veya yetki değişikliği yok.
+
+Normal sayım personeli21veayrıstok sorumlusu22gerçekGUI'de mevcut10kaydı okudu. Sorumlu22canDraftfalseolduğuhâldeortakcountUIyeni/tekrar/devam düğmelerini açıyordu; APIzatenreddediyordu. Kaynak düzeltmesi mevcut canDraft sonucunu düğmelere ve localdraftstart/open eylemlerine uygular; kontrol/inceleme yolu korunur. Yerel sayım sahibinin adı mevcut user.displayName'den gelir; eski “Satış ekibi” sabiti kaldırıldı. Yeni regresyon eskikoddaFAIL; son26hedefkontrolPASS. **Henüzkurulmadı:** API/webhâlâeeff5381; exactCI→yeniimmutablepaket→aynıTESTnormalrolGUItekrarıkalanıdır. B4🟢örnekteknikkapsamkorunur. Gerçekkişi–göreveslemeveinsankabulüayrıaçık; B5bütünühenüzyeşildeğil. YeniB6/B7/ajan/helper/TESTyok.
+
+### Önceki kurulu teslim — geçerli B4 temeli
 ## 23 Ekim 21:10 TR — B4 örnek döviz ve günlük kasa teknik akışı tamamlandı
 
 **Kurulu:** API eeff5381201fc514350eb6bdcc750737668066f7; aynı frontend dosyalarının guarded build kaynağı fe5ead32. Paket CLEAN-ERP-20261023-eeff5381201f-B4FX,3397dosya; manifest1799F2C97C96C1F7AB3A1B424CAE5C0103A8478F5707036C81E6A8DF0D26BF5E. Gerçek kurulum20:58:33TR; exactCI39998879755 üçzorunlujobSUCCESS. Native035fcc08 ve CRMbc8backend/e1ce12b7frontend aynı; yedi native/CRM listener PID/doğum/executable korundu. Sonradan yapılan belge commit'i çalışan kaynak değildir.
