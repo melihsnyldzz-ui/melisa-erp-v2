@@ -1,3 +1,8 @@
+## 24 Ekim — B6 kurulu teknik sepet; normal finalize hâlâ açık
+
+B6normalSemih müşteri/barkod/2adet×125,50TRY/taslak10009 ve tamreload gerçekSQL/API/UIile doğrulandı. APIb40a0788kurulu,exactCI3/3SUCCESS; eskiweb/native/CRMaynı. Nativepozitif/replay/hata rollback ve6negatif ret;50farklıhedefkontrolPASS. Son normal finansal finalize tıklaması kullanıcıya bırakıldı; sonrasındaki geriokuma/kalıcıreplaykalan. Teknikhazırlık tamB6veya insanPASSdeğildir. B5korunur/B7başlatılmaz. Özgün17/74,49ERP/25CRMveinsankabulsayaçlarıaynı. Ayrıntı [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki teslim — tarihsel
 ## 24 Ekim — B5 Semih teknik tamam; B6 kalan bağlantı sırada
 
 Normal Semih kendi aktörüyle tahsilat/ödeme ve gerekçeli geri alma, tamreload ve bağımsızSQL sonuçları doğrulandı. Son finansal tıklamaları kullanıcı yaptı; bu geniş personel kabulü değildir. APIa930/SQLmetadataa1b kurulu, web982/nativeprocess035/CRMaynı;32hedef test ve exact kaynak CI SUCCESS. Korunan işverisi/roller ile53kapsamın izinli üç farkı STATUS'ta açıklandı. B5'in bilinen yönetici eksiği🟢; gerçek kişi–görev ve insan kabulü🟡. Özgün17başlık/74yaprak,49ERP/25CRM ve insan kabul sayaçları aynı.

@@ -1,3 +1,25 @@
+## 24 Ekim 01:32 TR — B6 kurulu sepet, normal taslak ve yenileme; son finalize bekliyor
+
+API[ b40a0788](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/b40a0788bea320ee703dfc1abf36ec769298eeff) / CLEAN-ERP-20261024-b40a0788bea3-B6 gerçekten01:32:09TRkuruldu;3401dosya,manifestB62796A9A3872157E31086E463FD51B1B983EFB68EBEA4985657BE6B32DFD6B9. Web982/nativeprocess035/CRMbc8+e1 aynı. B6native20mühür/13exactbefore-image; önceki manifestler korunur. SQLmetadata8a7f0b5eile aynıgövde, son kod217/test-fixtureb40ayrıdır. [ExactCI40033547213](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40033547213)quality/windows/secretüçjobSUCCESS. İlk217kalite13VMassertionFAIL, ikiVMdependency düzeltmesi14/14PASS; beklentiler/CIguardlar aynı. İptal edilen8a koşusu başarı sayılmadı.
+
+Mevcut sepet/fiyat hesabı/nativefatura motoru kullanılır. GenelworkSalesServicecleanretkoruması kaldırılmaz; yalnız normalcleanserver sonlu nativeadapter kurar. CRMreceipt/ürün/fiyat/rol uydurulmaz. İlkprojeksiyon/nativecurrency/row_version retleri özelkanıtta; boşB6historykoşullu exactmetadata inverseprovası tamam, DBrestore/reset/silme yok. Tamamlanmış belge varken bu inverse reddeder. Sadece soğuk mühür checkpoint'i için sürücünün desteklediği30s sonlu bütçe var; otomatikretryyok. NativepozitifaynıUUID/bodytek-etki ve motor-sonrası hata tamrollback;6SQLnegatif(wrongprice/zeroqty/currency/product/actor/hash)51966ret.50farklı hedef testPASS; bağımsızreviewNOT_RUN.
+
+| Normal ekran kontrolü | Gözlenen sonuç |
+|---|---|
+| Normal Semih / müşteri | Örnek Mağaza, ORNEK-M01; kendi actor10018 |
+| Baştaki sıfırlı barkod | 0000000000007 → 0007 MELISA, sepete eklendi |
+| Miktar/fiyat | 2ADET ×125,50TRY=251,00TRY; kaynak fiyatı değişmedi |
+| Döviz ayrımı | 0161MELISA'nın mevcut8,55USDfiyatına TRYfiyatı üretilmedi; TRYekleme kapalı |
+| Taslak | 10009 / DS-fc0b68bf-b788-4f00-9759-0, ownactor10018 |
+| Taslak tamreload | Aynı müşteri,kalem,miktar,toplam,durum ve oturum korundu |
+| BağımsızSQL | Stok23/müşteri1borcu0,directrequest1/link1,intent0;34eski journal/39finanshareketi aynı |
+| Normal finalized | **BEKLİYOR:** kullanıcı Satışı tamamla tıklaması ve sonra teknik geriokuma |
+
+Kurulum sonrası10listener+53veri+5eközet aynı; hedefE662/clean20261022/synthetic/T1false/originalaccess0/liveaccess0,CRM200. COPY_ONLY/CHECKSUM/VERIFYONLY geçti,restore yok. Mevcut eskiTEST125/DB02/LIVE/Vega/main ve bütün yedekler korunur. Normal finalize beklenenstok23→21/müşteri1borcu0→251TRY olup henüz sonuç değildir. Ekran aracı finansal son işlem handoff gerektirir; API/SQLile dolanılmaz. Bu dar kullanıcı tıklaması özgün ERP-UA07geniş personel kabulü değildir.
+
+Özel kanıt runtime/semih-access-20261023/b6-native-positive/failure/negative.json,b6-package.json,b6-installed-readback.json,b6-normal-draft-readback.txt,b6-normal-draft-refresh.txt,gerçek screenshotb6-normal-draft.png. Ham ticari veri/sır/fotoğraf GitHub'a alınmadı. [Normal satış](http://192.168.1.46:5244/ornek-akis.html#sales). B6🟡/B7başlatılmadı; USER_ACCEPTANCE ve özgün sayaçlar aynı.
+
+### Önceki teslim — tarihsel
 ## 24 Ekim 00:33 TR — B5 Semih kendi yönetici işlemleri: kurulum ve normal ekran
 
 API4194 a9304b6a1ae60276621362db5b79478213ce0370 / CLEAN-ERP-20261023-a9304b6a1ae6-B5ADMIN gerçekten00:12TR'de kuruldu;3397dosya,manifest432A31AE72A9BC1E74E7F49D3BB5F830D6902819CCA49121CF331F448608518E. Web5244 eski kabul edilmiş98226c7f dosyalarıyla aynı süreçte kaldı. Native süreç035fcc08; native SQL metadata a1b105d29d723a3689210197c268462172d54dd2; CRMbackendbc8/frontend e1 aynı.10diğer listener kimliği korundu. E662/clean20261022/synthetic/actualT1false/externalfalse ve minimum SQL login sınırları doğrulandı; yedek CHECKSUM/VERIFYONLY geçti, restore yok.

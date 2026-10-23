@@ -1,3 +1,8 @@
+## 24 Ekim — ŞİMDİ B6: kurulu sepet/taslak 🟢, normal satışın son tıklaması ve geri okuma 🟡
+
+APIb40a0788kurulu/3401dosya/exactCI40033547213üçjobSUCCESS; web982/nativeprocess035/CRMaynı. NormalSemih müşteri/barkod0000000000007/2adet×125,50=251TRY/taslak10009/tamreload ve bağımsızSQL geçti; taslakta stok23/müşteri1borcu0korunur.50hedeftest/nativepozitif+kontrollühata rollback ve6native negatif ret tamam.10listener+53veri+5eközet aynı. **Kalan:** kullanıcı normal Satışı tamamla tıklaması, sonra finalized/yenileme/tekstok-cari etki ve kalıcıreplay. GenelinsankabulüBEKLİYOR; B6tamamlandı sayılmaz. B5tekniksonucu korunur; B7'ye geçilmez. Ayrıntı [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki teslim — tarihsel
 ## 24 Ekim — B5 Semih teknik eksiği 🟢; sıradaki B6
 
 Semih10018 mevcut rol28 ile36izin; yalnız iki gerekçeli finans iptali eklendi. Normal tahsilat50/iptal ve ödeme5/iptal kendi aktörüyle tamamlandı; son dört finansal kaydet/onay tıklaması kullanıcıya aittir. Tamreload ve bağımsızSQL müşteri100/tedarikçi80/kasa10TRY, journal34/finanshareketi39, stok23/maliyet60 ile uyumlu. Üçdöviz native replay/ret/hata rollback provaları ve32hedef test geçti. APIa930gerçektenkurulu; web982/nativeprocess035/CRMbc8+e1aynı, SQLmetadataa1b. Exact kaynak CI üç zorunlu job SUCCESS.53koruma kapsamının50'si ve5eközet aynı; izinli üç kapsamın farkı açıklanmıştır.
