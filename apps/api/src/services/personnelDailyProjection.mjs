@@ -33,7 +33,7 @@ export function projectPersonnelDailyContext(flow,actor,data) {
   return {
     scope:pick(data.scope,['flow','product_id','stock_code','product_name','unit','current_stock_qty','source_id','source_kind','supplier_id','customer_id']),
     drafts:data.drafts.map(row=>({
-      ...pick(row,['id','flow','kind','state','created_by','created_at','decided_by','reason']),
+      ...pick(row,['id','flow','kind','state','created_by','created_by_name','created_at','decided_by','decided_by_name','reason']),
       payload_json:JSON.stringify(payload(JSON.parse(row.payload_json))),
       plan_json:flow.startsWith('count')?null:row.plan_json?JSON.stringify(plan(JSON.parse(row.plan_json))):null,
       result_json:row.result_json?JSON.stringify(result(JSON.parse(row.result_json))):null,

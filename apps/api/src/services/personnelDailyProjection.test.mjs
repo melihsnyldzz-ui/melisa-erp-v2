@@ -14,6 +14,11 @@ test('personnel count DTO retains scan, quantities, UUID context and removes cos
 test('finance-authorized office DTO and unrelated flows retain their established contract',()=>{
  const data=fixture();assert.equal(projectPersonnelDailyContext('count',{permissions:['stock.adjust','finance.view']},data),data);assert.equal(projectPersonnelDailyContext('purchase',{permissions:['finance.view']},data),data);assert.equal(projectPersonnelDailyContext('sales',{permissions:['sales.view']},data),data);
 });
+test('personnel projection retains joined creator and decision names without exposing user credentials',()=>{
+ const data=fixture();Object.assign(data.drafts[0],{created_by_name:'Örnek sayım personeli',decided_by:22,decided_by_name:'Örnek stok sorumlusu',password_hash:'private'});
+ const out=projectPersonnelDailyContext('count',{permissions:['product.view']},data);
+ assert.equal(out.drafts[0].created_by_name,'Örnek sayım personeli');assert.equal(out.drafts[0].decided_by_name,'Örnek stok sorumlusu');assert.doesNotMatch(JSON.stringify(out),/password_hash|private|costExact/);
+});
 const purchaseFixture=()=>({
  scope:{flow:'purchase',product_id:1,stock_code:'0007',product_name:'Source product',unit:'ADET',current_stock_qty:4,average_cost_try:60,source_id:11,source_kind:'purchase',supplier_id:2,settings_json:'private'},
  drafts:[{id:31,flow:'purchase',kind:'invoice-return',state:'pending',created_by:15,payload_json:JSON.stringify({requestId:'fixture-uuid',kind:'purchase',sourceInvoiceId:11,reason:'Physical return',documentDate:'2026-10-06',items:[{productId:1,sourceItemId:21,quantity:1,unitCostTry:60}]}),plan_json:JSON.stringify({sourceDocumentNo:'PURCHASE-11',documentCurrency:'TRY',partyName:'Supplier',amount:60,accountAmount:60,amountTry:60,exchangeRate:1,cashEffect:0,items:[{productId:1,sourceItemId:21,stockCode:'0007',quantity:1,stockBefore:4,stockAfter:3,unitCostTry:60,averageCostBefore:60,averageCostAfter:60}]}),result_json:JSON.stringify({id:401,stockAfter:3,balanceEffect:60,supplierEffect:60,account:{id:5,balance:300},reversal:{id:402,reversal_stock_movement_id:501,amount:60}})}],

@@ -6,6 +6,10 @@ import {createCountUI} from './countUI.js';
 import {purchaseReturnSources,invoiceReturnRow,purchaseReturnSelectionKey} from './testDailyPurchaseModel.js';
 import {dailyDraftCanReverse,dailyDraftKindLabel,dailyDraftStateLabel} from './dailyReversalModel.mjs';
 import {dailyCopyContext,dailyCopyCountLines,cleanDailyControls} from './workDailyCopyModel.mjs';
+export function dailyActorName(id,name){
+ if(!/^[1-9]\d{0,18}$/.test(String(id))||BigInt(id)>9223372036854775807n)return 'Kullanıcı bilinmiyor';
+ return typeof name==='string'&&name.trim()&&name.trim().length<=150&&!/[\u0000-\u001f\u007f]/.test(name)?name.trim():'Kullanıcı #'+id;
+}
 export function testDaily({api,user,data,flow,refresh,esc,normalScreen=false}){
  const copy=dailyCopyContext(data,flow),clean=cleanDailyControls(data.meta,user,flow);
  const s=data.scope,rows=data.drafts.map(r=>({...r,id:String(r.id),payload:JSON.parse(r.payload_json),plan:r.plan_json?JSON.parse(r.plan_json):null,result:r.result_json?JSON.parse(r.result_json):null}));
@@ -19,10 +23,10 @@ export function testDaily({api,user,data,flow,refresh,esc,normalScreen=false}){
  const purchases=purchaseReturnSources(data);
  const countHistory=rows.filter(r=>r.kind==='count').flatMap(r=>{
   const reversal=normalScreen&&r.state==='cancelled'?{reversalReason:r.reason}:{};
-  const approval=r.state==='approved'?{actor:r.decided_by==null?null:Number(r.decided_by)===16?'İlker':Number(r.decided_by)===15?'Satış ekibi':'Kullanıcı #'+r.decided_by,approvalReason:r.reason}:{};
-  if(!Array.isArray(r.payload.lines))return [{id:r.id,batchId:String(r.id),code:s.stock_code,system:r.payload.system,physical:r.payload.physical,difference:r.payload.physical-r.payload.system,reason:r.payload.reason,state:r.state==='approved'?'accepted':r.state,countedBy:'Satış ekibi',submittedAt:r.created_at,...approval,...reversal}];
-  const known=r.payload.lines.map((line,index)=>({id:`${r.id}-${index+1}`,batchId:String(r.id),code:line.stockCode,productId:String(line.productId),system:line.system,physical:line.physical,difference:line.physical-line.system,reason:line.reason,state:r.state==='approved'?'accepted':r.state,countedBy:Number(r.created_by)===16?'İlker':'Satış ekibi',submittedAt:r.created_at,unknownScans:[],...approval,...reversal}));
-  const unknown=(r.payload.unknownScans||[]).map((x,index)=>({id:`${r.id}-U${index+1}`,batchId:String(r.id),code:x.value,physical:x.quantity,system:null,difference:null,reason:'Stok kartı gerekli',unknown:true,state:r.state,countedBy:Number(r.created_by)===16?'İlker':'Satış ekibi',submittedAt:r.created_at,unknownScans:[x],...reversal}));
+  const approval=r.state==='approved'?{actor:r.decided_by==null?null:dailyActorName(r.decided_by,r.decided_by_name),approvalReason:r.reason}:{};
+  if(!Array.isArray(r.payload.lines))return [{id:r.id,batchId:String(r.id),code:s.stock_code,system:r.payload.system,physical:r.payload.physical,difference:r.payload.physical-r.payload.system,reason:r.payload.reason,state:r.state==='approved'?'accepted':r.state,countedBy:dailyActorName(r.created_by,r.created_by_name),submittedAt:r.created_at,...approval,...reversal}];
+  const known=r.payload.lines.map((line,index)=>({id:`${r.id}-${index+1}`,batchId:String(r.id),code:line.stockCode,productId:String(line.productId),system:line.system,physical:line.physical,difference:line.physical-line.system,reason:line.reason,state:r.state==='approved'?'accepted':r.state,countedBy:dailyActorName(r.created_by,r.created_by_name),submittedAt:r.created_at,unknownScans:[],...approval,...reversal}));
+  const unknown=(r.payload.unknownScans||[]).map((x,index)=>({id:`${r.id}-U${index+1}`,batchId:String(r.id),code:x.value,physical:x.quantity,system:null,difference:null,reason:'Stok kartı gerekli',unknown:true,state:r.state,countedBy:dailyActorName(r.created_by,r.created_by_name),submittedAt:r.created_at,unknownScans:[x],...reversal}));
   return [...known,...unknown];
  });
  const scopedProducts=flow==='count'?data.countProducts:[{id:String(s.product_id),stockCode:s.stock_code,name:s.product_name,unit:s.unit||'ADET',stockQuantity:Number(s.current_stock_qty),barcode:null}];

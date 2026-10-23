@@ -1,3 +1,9 @@
+## 23 Ekim — B3 sayım geçmişindeki kişi adı düzeltmesi hazırlanıyor
+
+Mevcut kayıt10 gerçekten kullanıcı21 (Örnek sayım personeli), karar veren22 (Örnek stok sorumlusu) tarafından oluşturulmuş. Ekrandaki sabit Satış ekibi etiketi kaldırıldı; GET okuyucusu kullanıcı kimlikleriyle yalnız görünen adları birleştiriyor. Eksik ad için kullanıcı numarası gösterilir; payload veya açık oturum başka kaydın sahibi yerine kullanılmaz.23 hedefli test geçti. Henüz B3 kurulum/normal ekran doğrulaması yapılmadı; tamam işareti bekliyor. Mevcut0f519 paketi, Semih rol28/34izin, veri ve CRM korunur.
+
+### Önceki teslimler
+
 ## 23 Ekim 10:12 TR — Semih yönetici erişimi kuruldu ve normal ekranlar doğrulandı
 
 Semih10018 normal rol28 (Yönetici),34 açık iş izniyle mevcut clean TEST'te çalışıyor. Önceki örnek kullanıcı filtreleri ve403 sonrası yanlış oturum silinmesi düzeltildi; gerçek DB rol/izin denetimi, actorId ve sonlu native işlem sınırları korundu. Parola ve diğer hesap/roller değişmedi. API4194 + web5244 kaynak 0f519b6aef464b0b02bbef9bf7e15d64c27ac1ba, paket CLEAN-ERP-20261022-0f519b6aef46 gerçekten kurulu. Native4196 kaynak035fcc08, CRMbc8c307e aynı süreç/dosyalarda.
