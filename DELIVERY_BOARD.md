@@ -1,6 +1,8 @@
-## 23 Ekim — Semih normal yönetici erişimi: uygulama hazırlanıyor
+## 23 Ekim — Semih yönetici kurulumu ve ekran okuma düzeltmeleri
 
-ERP-DEC-072 kapsamında Semih10018 için ayrı normal rol28; diğer roller/parola/native/CRM korunur. Yetkili ekran okuyucuları, eksik HOME/fiş GET bağlantısı ve403 sonrası yanlış oturum silinmesi kaynakta düzeltildi. Native SQL kurulum provası UTF8 ile işlem içinde geçti ve geri alındı; henüz kurulum yapılmadı. Yedek CHECKSUM/VERIFYONLY tamamlandı, restore yapılmadı. Sıradaki iş: hedefli test, exact CI, dar API/web+rol kurulumu ve normal ekran kontrolü. İnsan kabulleri/sayaçlar değişmez.
+Normal Semih10018 rol28 / 34 açık izin ile kuruldu; API4194 ve web5244 kaynak47d5224d, native035 ve CRMbc8 korunuyor. Exact kaynak CI6/6 geçti. Yedek CHECKSUM/VERIFYONLY ve dar SQL inverse provası tamamlandı; gerçek restore yapılmadı. On altı API okuması ve oturum yenileme başarılı. Mevcut koordinatörün bağımsız normal ekran kontrolünde sayım/iade, satış fişi ve müşteri/tedarikçi kartı sözleşmesi eksikleri bulundu; dar düzeltmeleri hazırlanıyor. Sayım/iade native tek etki, replay, inverse ve personel ret denemesi gerçek SQL transaction içinde geçti ve bütünü geri alındı.
+
+Yeni okuyucular mevcut temiz native müşteri/tedarikçi defterini kendi dövizinde karşılaştırıyor; kaynak açılış veya Vega bakiyesi uydurmuyor. Gerçek salt okunur SQL doğrulamasında bir müşteri ve bir tedarikçi ekran sözleşmesi geçti. Genel serbest sepet yazması açılmadı; temiz kurulumdaki satış CRM siparişinden mevcut Onaylar akışındadır. Hedef API11, ekran1038 ve son döviz sunumu11 test geçti. Sıradaki iş: bu dar kaynak düzeltmesinin exact CI, API/web paketi ve normal GUI geri okuması. İnsan kabulü/sayaçlar değişmez.
 
 ### Önceki teslimler
 

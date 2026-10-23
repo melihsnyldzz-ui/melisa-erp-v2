@@ -3,7 +3,7 @@ import sql from 'mssql';
 import {cleanOrderSaleService} from './services/cleanOrderSaleService.mjs';
 import {createWorkInboundRoutes} from './routes/workInboundRoutes.mjs';
 import {createWorkInboundService} from './services/workInboundService.mjs';
-import {cleanStoreDayStore,cleanInboundActor,cleanInboundCapabilities,cleanFinanceActor} from './services/cleanStoreDayStore.mjs';
+import {cleanStoreDayStore,cleanInboundActor,cleanInboundCapabilities,cleanFinanceActor,cleanSalesReadContext,cleanSalesInvoiceList} from './services/cleanStoreDayStore.mjs';
 import {createWorkCollectionService} from './services/workCollectionService.mjs';
 import {createWorkSupplierPaymentService} from './services/workSupplierPaymentService.mjs';
 import {createWorkSupplierPaymentRoutes} from './routes/workSupplierPaymentRoutes.mjs';
@@ -41,8 +41,8 @@ if(financeEnabled()){
  const collections=createWorkCollectionService({getStore:async()=>({...store,mutate:(a,op,p,fn)=>store.mutate(a,c=>c.journal(op,p,()=>fn(c)))})});
  app.use('/api',createWorkCollectionRoutes({service:collections}));
  app.use('/api',createWorkSupplierPaymentRoutes({service:createWorkSupplierPaymentService({getStore:async()=>store,actorCheck:cleanFinanceActor})}));
- app.get('/api/work-sales/context',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.context)));
- app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>({data:[await c.invoice('1')],meta:{total:1,page:1,limit:25}}))});}catch(e){next(e);}});
+ app.get('/api/work-sales/context',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>cleanSalesReadContext(c.context))));
+ app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>cleanSalesInvoiceList(await c.invoice('1'),req.query))});}catch(e){next(e);}});
  app.get('/api/work-sales/invoices/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.invoice(req.params.id))));
  app.get('/api/work-sales/requests/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.request(req.params.id))));
 }
@@ -52,6 +52,11 @@ if(inventoryEnabled()){
  app.use('/api',(req,res,next)=>{if(req.path.startsWith('/test-daily/')&&!(req.method==='GET'&&/^\/test-daily\/(?:count|purchase)$/.test(req.path)||req.method==='POST'&&/^\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path)))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu günlük işlem açık değil.'}});next();},testDailyRoutes);
 }
 if(process.env.API_PORT==='4194'){
+ const {readCleanCustomerCards}=await import('./services/cleanCustomerCards.mjs');
+ app.get('/api/customer-cards',requireAuth,requirePermission('customer.view'),async(req,res,next)=>{try{res.json(await readCleanCustomerCards(req.query));}catch(e){next(e);}});
+ app.get('/api/customers/:id/card',requireAuth,requirePermission('customer.view'),async(req,res,next)=>{try{res.json(await readCleanCustomerCards(req.query,req.params.id));}catch(e){next(e);}});
+ app.get('/api/supplier-cards',requireAuth,requirePermission('supplier.view'),async(req,res,next)=>{try{res.json(await readCleanCustomerCards(req.query,null,'supplier'));}catch(e){next(e);}});
+ app.get('/api/suppliers/:id/card',requireAuth,requirePermission('supplier.view'),async(req,res,next)=>{try{res.json(await readCleanCustomerCards(req.query,req.params.id,'supplier'));}catch(e){next(e);}});
  const {homeSummaryRoutes}=await import('./routes/homeSummaryRoutes.mjs');
  app.use('/api',homeSummaryRoutes);
  const {workReportsRoutes}=await import('./routes/workReportsRoutes.mjs');
