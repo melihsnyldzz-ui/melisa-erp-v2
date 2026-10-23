@@ -1,3 +1,9 @@
+## 23 Ekim — B5 kaynakça kapalı atama teknik ekran halkası kuruldu
+
+Aynı mevcut B5 kapsamında CRMfrontend e1ce12b7/cleanprofil kuruldu; backendbc8 ve ERP7b/native035 korundu. Normal örnekPersonel atanmış55+reload/katalog, örnekPatron genel okuma/atama menüsü kapalı, diğerPersonel0görüşme doğrulandı. Örnek hesabın adı ornek-mudur, gerçek rolü **Patron**; gerçekmudur/kişi–rol ve insan kabulü açık kalır.58veri/rol+37dinleyicikorundu, SQLyazma/restart0. B4kaynakregresyonu14test/6CIgeçti; kısmiödeme/iptal uygulaması ve B6/B7açık. Yeni yaprak veya sayaç değişikliği yok:17başlık/74yaprak, özgün49ERP/25CRMve insan kabulleri korunur. Kanıt ve bileşen kaynakları [STATUS](STATUS.md) içindedir.
+
+### Önceki teslimin tarihsel kaydı
+
 ## 23 Ekim — B3 teknik ekran hatası kapandı
 
 Sayım10'un gerçek sahibi Örnek sayım personeli normal Semih ekranında, SQL/API ve reload ile doğrulandı. Kurulu API/web7b3d9b8b; native035/CRMbc8 ve veriler korunur. B4 kısmi/döviz/finansal iptal, B5 görevler, B6 sepet ve B7 iletişim açık. Bu düzeltme özgün49ERP/25CRM yaprak sayaçlarını veya insan kabulünü değiştirmez. Güncel STATUS ve tek clean kanıtı esas alınır. Aşağıdaki tarihlendirilmiş eski kaynak/etiket-açık notları tarihseldir.

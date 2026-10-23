@@ -1,5 +1,26 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — B5 kapalı atama frontend kurulumu ve normal rol ekranları
+
+**Uygulanan kaynak:** CRM [e1ce12b7218ef003198f4955fc1e5871e7430383](https://github.com/melihsnyldzz-ui/melisa-crm/commit/e1ce12b7218ef003198f4955fc1e5871e7430383), yalnız frontend. App/liveApi GitblobSHA256 f17330b794c20b7623c0d1817f05eb29b338ea268553c5d264e726f1c8af4164 /3cb8af04e375077e23594db93dd2a7552a51588cc673c009368856006faf9910 doğrulandı. Kanonik CRM çalışma ağacı temiz ve build girdileri e1ile aynı kaldı. CRM sahibinin13hedef/7uyumluluk/review kanıtı tekrar üretilmedi; exact [PR39937110494](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39937110494)/[push39937104202](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39937104202)/[AI39937110495](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39937110495)7/7SUCCESS geri okundu.
+
+**Kurulu paket:** `CLEAN-CRM-FRONTEND-20261023-e1ce12b7218e-CLEAN`,65dosya. Mevcut Vite config/nativeconfigloader/envDir=false ve mevcut offline socketguard kullanılarak dört önceki cleanbayrağıyla derlendi: VITE_CRM_TEST=1, VITE_CRM_ISOLATED_PREPARATION=1, VITE_CRM_CLEAN_SYNTHETIC_TEST=1, VITE_ERP_ORDER_TEST_DATABASE=MELISA_ERP_CLEAN_TEST_20261022. Frontend sourcee1, backendbc8, ERPAPI/web7b3d9b8b/native035 ayrıdır. Yeni backend, hesap, rol, credential veya provider ayarı yok.
+
+**Dar yayın:** Mevcut handler dosyaları istek başına okur. Çakışan aynı adlı assette farklıhash varsa yayın reddedilir; yalnız3yeni content-addressed asset eklendi, index desteklenen File.Replace ile atomik değiştirildi.73öncekiasset ve exactindexbefore-image korunur. IndexSHA256 **F82E4452929643DD13D4B5D77B08EC3EC05E8382CE805EF6E86FDB301852BF26**; HTTPindex/anaJS ve65dosya diskhashleri doğrulandı. Nativehedef cleanDB/environment/synthetic/T1false/externalfalse/sysadmin0/control0 ile pinlendi.37Node listener/PID/doğum/executable, beş korunan runtime dosyası ve58SQLveri/rol özeti hem kurulum hem normalGUI sonrasında aynı. SQLyazma/restart/gerçekişlem0.
+
+**Başarısız adımlar saklandı:** İlk File.Replace çağrısında boş yedek yolu swap öncesinde reddedildi; aynı yakalanmış oldindex/süreç/veri kimliğiyle somutbackupdosyası verilerek devam edildi. İlk hazır genelbuild normal ekranda CANLIetiketi ve eski DBvarsayımıyla fark edildi;13:36'da eskiindexexactgeri alındı, LIVE/Vega/backend hedefi değişmedi. Genelprofil paket ve hata/geri dönüş makbuzları private alanda korunur. Kaynak değiştirilmeden cleanprofil offline rebuild yapılıp13:39'da kuruldu. İlk build launcherının Windows ESM URLhatası dosyaURL'sine düzeltildi; o hata build veya runtime değişmeden oluşmuştu. Aktifpaket yalnız cleanprofil sürümüdür.
+
+| Normal hesap / gerçek rol | Kurulu gerçek ekran sonucu |
+|---|---|
+| ornek-personel / Personel | Kendi55görüşmesi1; atama menüsü yok. Reloadsunucudoğrulamasıyla aynıoturum/görüşme. Katalog0007fotoğraf/125,50TRY; seçim0 |
+| ornek-mudur / **Patron** | Personel2'ye atanmış55'i genelokumada açtı; kaynakça kapalı atama menüsü/penceresi yok. Gerçekmudurrolü diye sayılmadı |
+| ornek-diger / Personel |0görüşme; önceki55ve geçmişi gösterilmedi. Normalçıkış yapıldı |
+| semih / Patron | MevcutIAB oturumu korundu; menüde atama yok. Yönetimkısayolu yalnızboşhavuzu açtı, atamaformu açılmadı. Sonunda YönetimMasası korundu |
+
+YeniChrome sekmesi ayrıprofildedir; kullanıcının mevcut Chrome sekmeleri ve IABSemih oturumları değiştirilmedi. Her örnekhesaba normalforma mevcutDPAPIkaydı yalnız CUA belleğinden aktarıldı; sır çıktısı/pano/HTTPtokenenjeksiyonu/parola/rol değişimi yok. Prova sekmesi normalçıkıştan sonra kapatıldı. YeniChrome siparişregistry'si0kayıt gösterdi; mevcutnative siparişreadback kanıtı bu tur yeniden denenmiş sayılmaz. Yeni sipariş/atama/mesaj oluşturulmadı. Katalog ve orijinalnative belgeler58koruma kapsamında aynı kaldı.
+
+Private **runtime/b5-assignment-20261023/clean-profile/verification.json** SHA256 **14D4555B25195D0504B8A73D00BE7B5D373EA95E5EF56C96E83EE3E19F30E280**. Aynı dizinde9ekran, before-image/assetmanifest/SQLbefore-after ve gerçek kurulum makbuzu bulunur. Bunlar teknikGUIkanıtıdır; gerçek kişi–rol, gerçekmudur, telefon/Zebra ve insanCRM-UA11/ERP-UA20/32kabulü BEKLİYOR.17/74ve49/25sayaçları artırılmadı. B4ödeme/iptalWIP korunur, kurulmadı; yalnız önceki offline dilimffeea515CI6/6vebelgedd2b6fc5CI6/6tamamdır.
+
 ## 23 Ekim — B4 audit predecessor çevrimdışı regresyonu
 
 **Kaynak dilimi:** [ffeea515fa0b2c0df1931581c6d14c0bbbb2882a](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/ffeea515fa0b2c0df1931581c6d14c0bbbb2882a), PR54. İki kaynak/test dosyası: mevcut hedef `clean-finance-rehearsal-sql.mjs` içinden yalnız15satırlık offline predecessor seçicisi ve mevcut cohort testindeki3regresyon. Daha geniş B4installer/fixture/adapter taslağı yayımlanmadı; dosyanın geri kalanı ve diğer WIP çalışma alanında korundu. Yeni motor, framework, runtime fixture, helper servis veya ajan kurulmadı.

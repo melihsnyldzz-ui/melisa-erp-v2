@@ -1,3 +1,9 @@
+## 23 Ekim — B5 kapalı atama düzeltmesi kurulu; B4 yalnız dar offline kaynak teslimi
+
+CRMfrontend e1ce12b7 mevcut cleanTEST profiliyle65dosyalık pakete alınıp statik olarak yayımlandı; backendbc8/ERP7b/native035 aynı. Normal Personel atanmış55/refresh/katalog, ornek-mudur/**Patron** genel okuma+kapalı atama, diğerPersonel0görüşme ve Semih oturumu doğrulandı. Gerçek `mudur` rolü veya insan kabulü değildir. İlk genelprofil adayı geri alındı; yalnız cleanprofil paketi aktiftir.58veri/rol+37Node listener aynı; SQLyazma/restart/atama/mesaj0. B4predecessor kaynakffeea515/14hedeflitest/exact6CI geçti; B4ödeme/iptalWIP kurulmadı. CRMsourcee1exact7CIgeçti. Gerçek kişi–rol/cihaz/insan kabulü ve17/74aynı. **Sıradaki teknik kapsam:** mevcutB4kısmiödeme/iptal. [STATUS](STATUS.md), [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--b5-kapalı-atama-frontend-kurulumu-ve-normal-rol-ekranları).
+
+### Önceki teslimin tarihsel kaydı
+
 ## 23 Ekim 12:08 TR — B3 tamam: sayım geçmişi gerçek kullanıcı adını gösteriyor
 
 🟢 **B3 teknik teslimi tamamlandı.** Mevcut 10 numaralı sayım kaydında sabit “Satış ekibi” yerine **Örnek sayım personeli** görünüyor. SQL created_by=21 ile normal API ve Semih ekranı eşleşti; tam sayfa yenilemesi sonrası ad aynı. Kaydın miktarı, farkı, tarihi ve ters kayıt gerekçesi korunuyor. Yeni sayım/onay/ticari işlem oluşturulmadı.
