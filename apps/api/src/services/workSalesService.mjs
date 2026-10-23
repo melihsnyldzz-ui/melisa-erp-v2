@@ -1,7 +1,15 @@
 import {workActor,workActionInput,workFail,workHash,workId,workKeys,workRevision,workSalePreview,workScaled,workDate,workRequestId,workSelection,workDraftInput} from './workSalesModel.mjs';
+import {getCleanContext,CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
 async function defaultStore(){return (await import('./workTradeStore.mjs')).workTradeStore;}
 const requireCapability=(context,key)=>{if(context.capabilities?.[key]!==true)workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);};
 const requireRevision=(actual,expected)=>{if(workRevision(actual)!==expected)workFail('WORK_STALE','Kayıt değişti. Güncel bilgiyi yükleyip yeniden deneyin.',409);};
+function requireCleanDirectSaleContract(context){
+ const meta=context?.meta;
+ // There is no admitted clean direct-sale contract yet. A capability or claimed
+ // verification flag cannot replace native admission; linked CRM sales use
+ // their existing separate service and are unaffected by this closed boundary.
+ if(getCleanContext()||meta?.environment==='CLEAN_SYNTHETIC_TEST'||meta?.database===CLEAN_DATABASE||meta?.cleanSaleReadOnly===true||(typeof meta?.environmentId==='string'&&meta.environmentId.toLowerCase()===CLEAN_ENVIRONMENT_ID))workFail('WORK_CLEAN_SALE_CONTRACT_REQUIRED','Doğrudan satış bağlantısı henüz hazır değil.',503);
+}
 function selectedReadError(error){
  const info=error?.originalError?.info;
  if(error?.code==='EREQUEST'&&error.number===51904&&info?.number===51904&&info.message==='SELECTED_SALE_NATIVE_PRODUCT_DRIFT')workFail('WORK_SELECTED_PRODUCT_CHANGED','Seçilen ürün satış için uygun değil veya bilgisi değişti. Ürünü ve stoğunu kontrol edin.',409);
@@ -29,14 +37,14 @@ export function createWorkSalesService({getStore=defaultStore}={}){
   async selectionOptions(actor){actor=workActor(actor,'sales.view');const store=await getStore();if(typeof store.selectedSaleEnabled!=='function'||!await store.selectedSaleEnabled(actor))return {enabled:false};return store.read(actor,c=>{if(!c.selectedSaleEnabled||typeof c.selectedSaleOptions!=='function')workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);return c.selectedSaleOptions();});},
   async selectedContext(input,actor){actor=workActor(actor,'sales.create');workKeys(input,['customerId','currency','productIds']);if(!Array.isArray(input.productIds)||input.productIds.length<1||input.productIds.length>200||new Set(input.productIds).size!==input.productIds.length||!['TRY','USD','EUR'].includes(input.currency))workFail('WORK_ITEMS_INVALID','Satış seçimi geçersiz.');const selection={customerId:workId(input.customerId),currency:input.currency,productIds:input.productIds.map(workId)};try{return await (await getStore()).read(actor,c=>{requireCapability(c.context,'canCreate');if(!c.selectedSaleEnabled||typeof c.selectedSaleContext!=='function')workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);return c.selectedSaleContext(selection);});}catch(error){selectedReadError(error);}},
   async preview(input,actor){actor=workActor(actor,'sales.create');return (await getStore()).read(actor,async c=>{requireCapability(c.context,'canCreate');const selection=c.selectedSaleEnabled===true?workSelectedSaleInput(input):workSelection(input,{allowBusinessCurrencies:true});return c.selectedSaleEnabled===true?c.selectedSalePreview(selection):workSalePreview(selection,c.context);});},
-  async createDraft(input,actor){actor=workActor(actor,'sales.create');const store=await getStore(),enabled=typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor),payload=enabled?workSelectedSaleInput(input,{draft:true}):workDraftInput(input,{allowBusinessCurrencies:true});return (store.mutateSelectedSale??store.mutate).call(store,actor,'sale_draft',payload,async c=>{
-   requireCapability(c.context,'canCreate');requireRevision(c.context.revision,payload.expectedRevision);
+  async createDraft(input,actor){actor=workActor(actor,'sales.create');requireCleanDirectSaleContract();const store=await getStore(),enabled=typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor),payload=enabled?workSelectedSaleInput(input,{draft:true}):workDraftInput(input,{allowBusinessCurrencies:true});return (store.mutateSelectedSale??store.mutate).call(store,actor,'sale_draft',payload,async c=>{
+   requireCleanDirectSaleContract(c.context);requireCapability(c.context,'canCreate');requireRevision(c.context.revision,payload.expectedRevision);
    const {requestId,previewHash,expectedRevision,...selection}=payload,preview=c.selectedSaleEnabled===true?await c.selectedSalePreview(selection):workSalePreview(selection,c.context);
    if(preview.previewHash!==previewHash)workFail('WORK_PREVIEW_CHANGED','Önizleme değişti. Yeniden kontrol edin.',409);
    const invoice=await c.createDraft(preview,requestId);return {invoice,requestId,replayed:false};
   });},
-  async finalize(id,input,actor){actor=workActor(actor,'sales.finalize');id=workId(id);const payload={...workActionInput(input),id};return mutateSale(actor,'sale_finalize',payload,async c=>{
-   requireCapability(c.context,'canFinalize');const invoice=await c.invoice(id);requireRevision(invoice.revision,payload.expectedRevision);
+  async finalize(id,input,actor){actor=workActor(actor,'sales.finalize');id=workId(id);const payload={...workActionInput(input),id};requireCleanDirectSaleContract();return mutateSale(actor,'sale_finalize',payload,async c=>{
+   requireCleanDirectSaleContract(c.context);requireCapability(c.context,'canFinalize');const invoice=await c.invoice(id);requireRevision(invoice.revision,payload.expectedRevision);
    if(invoice.status!=='draft')workFail('WORK_INVOICE_STATE','Yalnız taslak satış tamamlanabilir.',409);
    return {invoice:await c.finalize(id),requestId:payload.requestId,replayed:false};
   });},
