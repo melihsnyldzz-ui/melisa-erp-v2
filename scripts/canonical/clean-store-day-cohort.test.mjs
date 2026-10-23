@@ -10,6 +10,26 @@ import {buildCleanFinanceRehearsalPredecessors,buildCleanFinanceRehearsalDefinit
 import {buildCleanFinanceFxCaseFieldRepairSql} from './clean-finance-rehearsal-sql.mjs';
 import {buildCleanFinanceAdministratorDefinitions,buildCleanFinanceAdministratorSql,buildCleanFinanceFxCaseFieldRepairDefinitions} from './clean-finance-rehearsal-sql.mjs';
 
+test('TRY ledger readiness distinguishes a guarded native trigger intermediate from completed financial state',async()=>{
+ const factory=await import('./clean-finance-rehearsal-sql.mjs');
+ const old=buildCleanFinanceAdministratorDefinitions().definitions;
+ const repair=factory.buildCleanFinanceLedgerOrderRepairDefinitions?.();
+ const cash=repair?.definitions.usp_clean_finance_b4_cash_ready??old.usp_clean_finance_b4_cash_ready;
+ assert.match(cash,/TRIGGER_NESTLEVEL\(\)>0/);
+ assert.match(cash,/transaction_id=CURRENT_TRANSACTION_ID\(\)/);
+ assert.match(cash,/APPLOCK_MODE\(N'public',N'CLEAN_STORE_DAY_20261022',N'Transaction'\)/);
+ assert.match(cash,/actor_id IN\(20,23,10018\)/);
+ assert.match(cash,/operation IN\(N'collection_create',N'collection_cancel',N'payment',N'payment_cancel'\)/);
+ assert.match(cash,/a\.current_balance<>a\.opening_balance\+COALESCE/);
+ assert.equal(repair.total,7);assert.equal(Object.keys(repair.before).length,5);
+ for(const[n,b]of Object.entries(repair.before))assert.equal(b,old[n]);
+ const ddl=factory.buildCleanFinanceLedgerOrderRepairSql({probe:true});
+ assert.match(ddl,/B5_LEDGER_ORDER_PROBE_ROLLED_BACK/);assert.match(ddl,/before_definition/);
+ assert.match(ddl,/@preserve<>HASHBYTES/);assert.match(ddl,/@oldSeals<>HASHBYTES/);
+ assert.match(ddl,/usp_clean_finance_b4_ready @verify_balances=1/);
+ assert.doesNotMatch(ddl,/DISABLE TRIGGER|DROP TRIGGER|UPDATE dbo\.(?:permissions|finance_accounts|clean_finance_b5_admin_manifest)|DELETE dbo\.|INSERT dbo\.(?:finance_account_movements|work_trade_requests)\(/);
+});
+
 test('authorized Semih financial reversal extends only his existing role and seals exact installed predecessors',()=>{
  const prior={...buildCleanFinanceRehearsalDefinitions().definitions,...buildCleanFinanceCashDefinitions().definitions,...buildCleanFinanceFxDefinitions().definitions,...buildCleanFinanceFxCaseFieldRepairDefinitions().after},hashes=Object.fromEntries(Object.entries(prior).map(([n,b])=>[n,moduleHash(b)]));
  const {definitions,before,total}=buildCleanFinanceAdministratorDefinitions();assert.equal(total,9);assert.equal(Object.keys(before).length,7);for(const[n,b]of Object.entries(before))assert.equal(b,prior[n]);

@@ -573,3 +573,50 @@ export function buildCleanFinanceAdministratorSql({probe=false}={}){
  ${probe?"ROLLBACK;SELECT N'B5_ADMIN_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B5_ADMIN_INSTALLED' status;"}
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
+
+// The native motor inserts its cash counterpart before updating the account.
+// Row guards still verify every exact effect. Full ledger equality is required
+// before binding, after finishing and on all direct reads; only the intermediate
+// trigger frame of the same sealed TRY intent can observe that two-step write.
+const ledgerOrderManifest='clean_finance_b5_ledger_manifest';
+export function buildCleanFinanceLedgerOrderRepairDefinitions(){
+ const prior=buildCleanFinanceAdministratorDefinitions().definitions;
+ const names=['usp_clean_store_day_ready','usp_clean_finance_b4_ready','usp_clean_finance_b4_cash_ready','usp_clean_finance_b4_fx_ready','usp_clean_finance_b5_admin_ready'];
+ const before=Object.fromEntries(names.map(n=>[n,prior[n]])),definitions={};
+ for(const name of names){
+  let body=before[name].replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,alias)=>`COALESCE((SELECT lo.before_hash FROM dbo.${ledgerOrderManifest} lo WHERE lo.name=${alias}.name AND lo.after_hash=${hash}),${hash})`);
+  body=body.replace('SET NOCOUNT ON;','SET NOCOUNT ON;EXEC dbo.usp_clean_finance_b5_ledger_ready;');
+  if(name==='usp_clean_finance_b4_cash_ready'){
+   const check='IF EXISTS(SELECT 1 FROM dbo.finance_accounts a WHERE a.id BETWEEN 2 AND 7 AND a.current_balance<>';
+   if(body.split(check).length!==2)throw Error('Cash ledger check predecessor changed');
+   body=body.replace(check,`IF NOT(TRIGGER_NESTLEVEL()>0 AND ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2=N'${CLEAN_LOGIN}' AND ISNULL(APPLOCK_MODE(N'public',N'CLEAN_STORE_DAY_20261022',N'Transaction'),N'NoLock')=N'Exclusive' AND EXISTS(SELECT 1 FROM dbo.${intent} WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND actor_id IN(20,23,10018) AND operation IN(N'collection_create',N'collection_cancel',N'payment',N'payment_cancel'))) AND EXISTS(SELECT 1 FROM dbo.finance_accounts a WHERE a.id BETWEEN 2 AND 7 AND a.current_balance<>`);
+  }
+  definitions[name]=body;
+ }
+ definitions.usp_clean_finance_b5_ledger_ready=`CREATE PROCEDURE dbo.usp_clean_finance_b5_ledger_ready WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
+ IF ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${CLEAN_LOGIN}' AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF(SELECT COUNT(*) FROM dbo.${ledgerOrderManifest})<>7 OR EXISTS(SELECT 1 FROM dbo.${ledgerOrderManifest} m WHERE m.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name)) IS NULL OR(OBJECTPROPERTY(OBJECT_ID(N'dbo.'+m.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+m.name),'ExecIsTriggerDisabled')<>0)) ${deny}
+ IF EXISTS(SELECT 1 FROM dbo.${ledgerOrderManifest} f LEFT JOIN sys.sql_modules m ON m.object_id=OBJECT_ID(N'dbo.'+f.name) WHERE ISNULL(m.uses_quoted_identifier,0)<>1 OR ISNULL(m.uses_ansi_nulls,0)<>1) ${deny} END;`;
+ definitions.clean_finance_b5_ledger_immutable=`CREATE TRIGGER dbo.clean_finance_b5_ledger_immutable ON dbo.${ledgerOrderManifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
+ return {definitions,before,total:7};
+}
+export function buildCleanFinanceLedgerOrderRepairSql({probe=false}={}){
+ const {definitions,before}=buildCleanFinanceLedgerOrderRepairDefinitions();
+ return `SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET NOCOUNT ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF OBJECT_ID(N'dbo.${ledgerOrderManifest}') IS NOT NULL BEGIN EXEC dbo.usp_clean_finance_b5_ledger_ready;${Object.entries(definitions).map(([n,b])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${ledgerOrderManifest} WHERE name=${quote(n)} AND after_hash=${quote(moduleHash(b))}) ${deny}`).join('\n')} SELECT N'B5_LEDGER_ORDER_ALREADY_INSTALLED' status;RETURN;END;
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${deny}
+ EXEC dbo.usp_clean_finance_b5_admin_ready;EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
+ IF EXISTS(SELECT 1 FROM dbo.${intent}) OR EXISTS(SELECT 1 FROM dbo.${fxIntent}) OR EXISTS(SELECT 1 FROM dbo.${cashIntent}) ${deny}
+ ${Object.entries(before).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${quote(moduleHash(b))} ${deny}`).join('\n')}
+ DECLARE @preserve varbinary(32)=HASHBYTES('SHA2_256',${adminFinanceProtected}),@oldSeals varbinary(32)=HASHBYTES('SHA2_256',(SELECT * FROM dbo.${adminFinanceManifest} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES));
+ CREATE TABLE dbo.${ledgerOrderManifest}(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_quoted_identifier bit NULL,before_ansi_nulls bit NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ ${Object.entries(definitions).filter(([n])=>!n.endsWith('_immutable')).map(([n,b])=>`INSERT dbo.${ledgerOrderManifest}(name,before_hash,after_hash,before_definition,before_quoted_identifier,before_ansi_nulls)SELECT ${quote(n)},${before[n]?quote(moduleHash(before[n])):'NULL'},${quote(moduleHash(b))},${before[n]?`OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT uses_quoted_identifier FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT uses_ansi_nulls FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'};EXEC(${quote(b.replace(/^CREATE PROCEDURE/,before[n]?'ALTER PROCEDURE':'CREATE PROCEDURE'))});`).join('\n')}
+ INSERT dbo.${ledgerOrderManifest}(name,after_hash)VALUES(N'clean_finance_b5_ledger_immutable',${quote(moduleHash(definitions.clean_finance_b5_ledger_immutable))});EXEC(${quote(definitions.clean_finance_b5_ledger_immutable)});
+ DENY INSERT,UPDATE,DELETE ON dbo.${ledgerOrderManifest} TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_finance_b5_ledger_ready TO [${CLEAN_LOGIN}];
+ IF @preserve<>HASHBYTES('SHA2_256',${adminFinanceProtected}) OR @oldSeals<>HASHBYTES('SHA2_256',(SELECT * FROM dbo.${adminFinanceManifest} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES)) ${deny}
+ EXEC dbo.usp_clean_finance_b5_ledger_ready;EXEC dbo.usp_clean_finance_b5_admin_ready;EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
+ ${probe?"ROLLBACK;SELECT N'B5_LEDGER_ORDER_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B5_LEDGER_ORDER_INSTALLED' status;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
