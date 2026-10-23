@@ -11,6 +11,9 @@ const receiptKinds=['work-finops-physical-receipt','work-goal8-batch-receipt','w
 function contextReceiptKind(c,copy){
  if(copy)return receiptKinds[2];
  if(c.meta.environmentId==='e662fd94-d797-4b3b-938a-d143ad758b67'){
+  if(c.meta.financeCase==='B4-TRY-20261023'){
+   if(c.meta.date!=='2026-10-22'||c.suppliers.length!==2||c.accounts.length!==2||!['1','2'].every(id=>c.suppliers.filter(s=>s.id===id&&s.currency==='TRY').length===1&&c.accounts.filter(a=>a.id===id&&a.currency==='TRY').length===1)||c.suppliers.some(s=>s.invoices.length!==1||s.invoices.some(i=>s.id==='1'?i.id!=='4'||i.receiptId!=='3':i.id!=='5'||i.receiptId!==null||i.receiptKind!==null)))fail();return receiptKinds[3];
+  }
   if(c.meta.date!=='2026-10-22'||c.suppliers.length!==1||c.suppliers[0].id!=='1'||c.accounts.length!==1||c.accounts[0].id!=='1'||c.suppliers[0].invoices.some(i=>i.id!=='4'||i.receiptId!=='3'))fail();return receiptKinds[3];
  }
  const p=c.meta.testProfile;if(p===undefined)return receiptKinds[0];
@@ -38,7 +41,7 @@ export function paymentPreview(p,s,c){paymentSelection(s,c);const fields=['suppl
 const uuid=v=>text(v)&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v),object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v),clone=v=>JSON.parse(JSON.stringify(v));
 const writablePath=p=>p==='/api/work-supplier-payments/payments'||/^\/api\/work-supplier-payments\/payments\/[1-9]\d*\/cancel$/.test(p);
 export function isCleanFinancePaymentTarget({location=globalThis.window?.location??globalThis.location,actorId,apiBase}={}){
- return isCleanCatalogLocation(location)&&['20','10018'].includes(String(actorId))&&apiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
+ return isCleanCatalogLocation(location)&&['20','23','10018'].includes(String(actorId))&&apiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
 }
 export function createPaymentJournal({storage,actorId,apiBase,makeUuid=tradeUuid,location=globalThis.window?.location??globalThis.location}={}){
  const businessAPI=['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase);

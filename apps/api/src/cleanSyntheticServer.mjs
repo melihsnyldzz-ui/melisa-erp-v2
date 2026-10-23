@@ -42,7 +42,7 @@ if(financeEnabled()){
  app.use('/api',createWorkCollectionRoutes({service:collections}));
  app.use('/api',createWorkSupplierPaymentRoutes({service:createWorkSupplierPaymentService({getStore:async()=>store,actorCheck:cleanFinanceActor})}));
  app.get('/api/work-sales/context',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>cleanSalesReadContext(c.context))));
- app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>cleanSalesInvoiceList(await c.invoice('1'),req.query))});}catch(e){next(e);}});
+ app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>cleanSalesInvoiceList(c.invoices?await c.invoices():await c.invoice('1'),req.query))});}catch(e){next(e);}});
  app.get('/api/work-sales/invoices/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.invoice(req.params.id))));
  app.get('/api/work-sales/requests/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.request(req.params.id))));
 }

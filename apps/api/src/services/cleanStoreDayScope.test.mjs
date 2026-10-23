@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 import {registerCleanContext} from './cleanSyntheticContext.mjs';
 import {withCleanStoreDayMutation,isCleanStoreDayMutation,assertCleanReceivedPurchaseContext} from './cleanStoreDayScope.mjs';
 import {withCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
+import {withCleanFinanceRehearsalMutation} from './cleanStoreDayScope.mjs';
 const env={MELISA_CLEAN_TEST:'20261022',MELISA_CLEAN_STORE_DAY:'20261022',API_PORT:'4194',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:'MELISA_ERP_CLEAN_TEST_20261022',SQL_USER:'melisa_clean_test_app_20261022',SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false'};
 Object.assign(process.env,env);
 registerCleanContext({databaseName:env.SQL_DATABASE,serverName:'Semih\\MELISADEV',loginName:env.SQL_USER,databaseUser:env.SQL_USER,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});
@@ -11,6 +12,24 @@ function fixture({operation='purchase_finalize',actorId=19,permission='purchase.
  const sqlDriver={BigInt:'bigint',UniqueIdentifier:'uuid',MAX:16,NVarChar:()=>'',Char:()=>'',Request:class{constructor(tx){assert.equal(tx,transaction);}input(){return this;}async execute(name){calls.push(name);if(missing)throw Error('cohort not installed');return {recordset:[foreign?{...witness,environmentId:'wrong'}:witness]};}}};
  return {input:{transaction,sqlDriver,actor:{id:actorId,permissions:[permission]},operation,requestId,payloadJson,payloadHash,receiptId:1,invoiceId:2},calls,witness};
 }
+
+test('B4 uses a same-transaction native bind/finish and keeps existing creators separate from cancellation checker',async()=>{
+ process.env.MELISA_CLEAN_FINANCE='20261022';process.env.MELISA_CLEAN_FINANCE_B4='20261023';
+ try{
+  for(const operation of ['collection_create','payment','collection_cancel','payment_cancel']){
+   const cancel=operation.endsWith('_cancel'),f=fixture({operation,actorId:cancel?23:20});
+   Object.assign(f.input.actor,{username:cancel?'ornek-finans-kontrol':'ornek-finans',role:{id:cancel?29:25,code:cancel?'clean_test_finance_checker':'clean_test_finance'},permissions:[({collection_create:'finance.collection',payment:'finance.payment',collection_cancel:'finance.collection.cancel',payment_cancel:'finance.payment.cancel'})[operation]]});
+   const payload={actorId:String(f.input.actor.id),operation,requestId:f.input.requestId,documentDate:'2026-10-22',...(cancel?{id:'7',reason:'Yanlış örnek ödeme'}:operation==='payment'?{supplierId:'2',invoiceId:'5',accountId:'2',currency:'TRY'}:{invoiceId:'2',accountId:'2'})};
+   f.input.payloadJson=JSON.stringify(payload);f.input.payloadHash=createHash('sha256').update(f.input.payloadJson,'utf16le').digest('hex');f.witness.payloadHash=f.input.payloadHash;
+   await withCleanFinanceRehearsalMutation(f.input,async()=>assert.equal(isCleanStoreDayMutation(),true));
+   assert.deepEqual(f.calls,['dbo.usp_clean_finance_b4_bind','dbo.usp_clean_finance_b4_finish']);
+   await assert.rejects(withCleanFinanceRehearsalMutation({...f.input,payloadHash:'0'.repeat(64)},async()=>assert.fail()));
+   if(cancel)await assert.rejects(withCleanFinanceRehearsalMutation({...f.input,actor:{...f.input.actor,id:20,username:'ornek-finans',role:{id:25,code:'clean_test_finance'}}},async()=>assert.fail()));
+   const bad=fixture({operation,actorId:cancel?23:20,foreign:true});Object.assign(bad.input,f.input,{transaction:bad.input.transaction,sqlDriver:bad.input.sqlDriver});
+   await assert.rejects(withCleanFinanceRehearsalMutation(bad.input,async()=>assert.fail()));
+  }
+ }finally{delete process.env.MELISA_CLEAN_FINANCE;delete process.env.MELISA_CLEAN_FINANCE_B4;}
+});
 
 test('normal Semih administration keeps its own actor, real permission and native witness',async()=>{
  const f=fixture({actorId:10018});Object.assign(f.input.actor,{username:'semih',role:{id:28,code:'clean_test_administrator'}});

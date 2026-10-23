@@ -107,6 +107,18 @@ function cleanFinanceContext(){
  c.accounts=[{...c.accounts[0],id:'1',openingBalanceExact4:'0.0000',balanceExact4:'376.5000'}];c.rates=[];
  return c;
 }
+
+test('B4 keeps the original paid source alongside one separately identified partial payment case',()=>{
+ const c=cleanFinanceContext();c.meta.financeCase='B4-TRY-20261023';
+ c.suppliers.push({...c.suppliers[0],id:'2',balanceExact4:'200.0000',invoices:[{...c.suppliers[0].invoices[0],id:'5',receiptId:null,receiptKind:null,documentAmountExact4:'200.0000',accountAmountExact4:'200.0000',remainingExact4:'200.0000'}]});
+ c.accounts.push({...c.accounts[0],id:'2',balanceExact4:'100.0000'});
+ assert.equal(paymentContext(c),c);
+ const selection={supplierId:'2',invoiceId:'5',accountId:'2',currency:'TRY',amountExact4:'80.0000',documentDate:'2026-10-22',description:'Kısmi örnek ödeme'};
+ const p=supplierPaymentPreview(selection,c);assert.equal(p.balanceAfterExact4,'120.0000');assert.equal(p.accountBalanceAfterExact4,'20.0000');
+ assert.throws(()=>supplierPaymentPreview({...selection,accountId:'1'},c),{code:'WORK_PAYMENT_SCOPE'});
+ for(const change of [v=>delete v.meta.financeCase,v=>v.accounts[1].id='3',v=>v.suppliers[1].invoices[0].id='6',v=>v.suppliers[1].invoices[0].receiptId='3',v=>v.suppliers[1].currency='USD']){const bad=structuredClone(c);change(bad);assert.throws(()=>paymentContext(bad));}
+ const journal=createPaymentJournal({storage:storage(),actorId:'23',apiBase:'http://127.0.0.1:4194',location:{protocol:'http:',hostname:'127.0.0.1',port:'5244'},makeUuid:()=>requestId});assert.equal(journal.read().request,null);
+});
 test('clean store day retains the actual receipt3 purchase4 link without relabelling legacy receipts',()=>{
  const c=cleanFinanceContext();assert.equal(paymentContext(c),c);
  const p=supplierPaymentPreview({supplierId:'1',invoiceId:'4',accountId:'1',currency:'TRY',amountExact4:'120.0000',documentDate:'2026-10-22',description:'Örnek alış ödemesi'},c);
