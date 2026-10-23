@@ -59,7 +59,7 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
    try{
     const refreshed=validateCollectionContext(await work(`${collectionBase}/context?invoiceId=`+i.id),{selectedSource:sourceMode});
     if(!alive(n))return;if(refreshed.invoice.id!==i.id||sourceMode&&(i.currency!=='TRY'||refreshed.capabilities.canCollect!==true))throw Error();context=refreshed;
-    note=r.replayed?'Kayıt doğrulandı; aynı tahsilat tekrar oluşturulmadı.':'Tahsilat kaydedildi.';
+    note=p.path===collectionBase?(r.replayed?'Kayıt doğrulandı; aynı tahsilat tekrar oluşturulmadı.':'Tahsilat kaydedildi.'):(r.replayed?'Kayıt doğrulandı; aynı iptal tekrar oluşturulmadı.':'Tahsilat iptal edildi.');
    }catch{
     if(alive(n))note=(r.replayed?'Kayıt doğrulandı.':'İşlem kaydedildi.')+' Güncel fiş bilgileri açılamadı. Yenile ile tekrar görüntüleyin.';
    }

@@ -3,7 +3,7 @@ import {AsyncLocalStorage} from 'node:async_hooks';
 import {createHash} from 'node:crypto';
 import {assertRegisteredCleanContext,CLEAN_ENVIRONMENT_ID,isCleanAdministrator} from './cleanSyntheticContext.mjs';
 import {isCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
-import {financeRehearsalBinding} from './cleanFinanceRehearsalModel.mjs';
+import {financeRehearsalBinding,financeCashRehearsalBinding} from './cleanFinanceRehearsalModel.mjs';
 const scope=new AsyncLocalStorage();
 const permissions=Object.freeze({
  count_create:[18,'goods.create'],count_update:[18,'goods.create'],count_submit:[18,'goods.create'],count_cancel:[18,'goods.create'],
@@ -36,6 +36,20 @@ function witness(row,s,field){
 }
 export function isCleanStoreDayMutation(){
  const s=scope.getStore();if(!s)return false;target();return true;
+}
+// Cash-register engines may reuse only the transaction admitted by their own
+// finite native B4 cash binder. An arbitrary context is never a write grant.
+export function assertCleanCashRegisterTransaction(context,operation,actor){
+ target();const s=scope.getStore();
+ if(!s||s.profile!=='B4-CASH-20261023'||!['cash_open','cash_close','cash_transfer','cash_expense'].includes(operation)||s.operation!==operation||s.actor.id!==Number(actor?.id)||s.transaction!==context?.transaction||s.sqlDriver!==context?.sqlDriver||s.pool!==context?.pool)deny();
+ return context;
+}
+export async function withCleanFinanceCashMutation(input,execute){
+ if(scope.getStore()||isCleanOrderSaleMutation()||typeof execute!=='function')deny();
+ target();const s=financeCashRehearsalBinding(input),q=s.sqlDriver;
+ const accepted=(await new q.Request(s.transaction).input('actor_id',q.BigInt,s.actor.id).input('operation',q.NVarChar(40),s.operation).input('request_id',q.UniqueIdentifier,s.requestId).input('payload_hash',q.Char(64),s.payloadHash).input('payload_json',q.NVarChar(q.MAX),s.payloadJson).execute('dbo.usp_clean_finance_b4_cash_bind')).recordset?.[0];
+ witness(accepted,s,'accepted');
+ return scope.run(s,async()=>{const value=await execute();const checked=(await new q.Request(s.transaction).input('request_id',q.UniqueIdentifier,s.requestId).execute('dbo.usp_clean_finance_b4_cash_finish')).recordset?.[0];witness(checked,s,'verified');return value;});
 }
 export async function withCleanFinanceRehearsalMutation(input,execute){
  if(scope.getStore()||isCleanOrderSaleMutation()||typeof execute!=='function')deny();

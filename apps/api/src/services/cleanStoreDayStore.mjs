@@ -2,8 +2,8 @@
 // invoiceDraftService. Domain validation, invoice totals and posting stay there.
 import {createHash} from 'node:crypto';
 import {assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL,CLEAN_ENVIRONMENT_ID,isCleanAdministrator} from './cleanSyntheticContext.mjs';
-import {withCleanStoreDayMutation,withCleanFinanceRehearsalMutation} from './cleanStoreDayScope.mjs';
-import {cleanFinanceRehearsalEnabled,assertFinanceRehearsalActor} from './cleanFinanceRehearsalModel.mjs';
+import {withCleanStoreDayMutation,withCleanFinanceRehearsalMutation,withCleanFinanceCashMutation} from './cleanStoreDayScope.mjs';
+import {cleanFinanceRehearsalEnabled,assertFinanceRehearsalActor,cleanFinanceCashEnabled,financeCashRehearsalBinding,CLEAN_FINANCE_CASH} from './cleanFinanceRehearsalModel.mjs';
 import {canonical,countDto,reject,inboundError} from './workInboundModel.mjs';
 import {normalizeTestBatch,normalizeTestInvoiceDraft} from './testPurchaseBatchModel.mjs';
 import {workInboundSupplierMovement} from './workInboundStore.mjs';
@@ -27,7 +27,7 @@ export function cleanRecordedInvoiceBasis(row){
 }
 export function createCleanStoreDayStore({dependencies=defaultDependencies,invoices=()=>import('./invoiceDraftService.js'),finance=()=>import('./financeService.js')}={}){
  async function run(actor,write,callback,purpose='inbound',flow=null){
-  actor=purpose==='daily'?cleanDailyActor(actor):purpose==='finance'?cleanFinanceActor(actor):cleanInboundActor(actor);let tx;
+  actor=purpose==='daily'?cleanDailyActor(actor):['finance','cash'].includes(purpose)?cleanFinanceActor(actor):cleanInboundActor(actor);let tx;
   try{
    if(process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_STORE_DAY!=='20261022')throw inboundError();
    const db=await dependencies(),pool=await db.getSqlPool(),q=db.getSqlDriver();assertCleanIdentity((await pool.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);
@@ -41,6 +41,9 @@ export function createCleanStoreDayStore({dependencies=defaultDependencies,invoi
    const nativeContext={pool,transaction:tx,sqlDriver:q,stockAlreadyReceived:true,cleanStoreDayReceived:true};
    if(purpose==='daily'){
     await attachCleanDaily(c,{actor,write,flow,req,q,tx,pool});const value=await callback(c);await tx.commit();return write?projectPersonnelDailyResponse(flow,c.actor,value):value;
+   }
+   if(purpose==='cash'){
+    await attachCleanCash(c,{actor,write,req,q,tx});const value=await callback(c);await tx.commit();return value;
    }
    if(purpose==='finance'){
     await attachCleanFinance(c,{actor,write,req,q,tx,pool,finance});
@@ -115,7 +118,7 @@ export function createCleanStoreDayStore({dependencies=defaultDependencies,invoi
    const value=await callback(c);await tx.commit();return value;
   }catch(e){if(tx)try{await tx.rollback();}catch{}if(e.statusCode)throw e;const failure=inboundError();Object.defineProperty(failure,'cause',{value:e});throw failure;}
  }
- return {read:(actor,fn)=>run(actor,false,fn),mutate:(actor,fn)=>run(actor,true,fn),readFinance:(actor,fn)=>run(actor,false,fn,'finance'),mutateFinance:(actor,fn)=>run(actor,true,fn,'finance'),daily:(flow,actor,fn,{write=true}={})=>run(actor,write,fn,'daily',flow)};
+ return {read:(actor,fn)=>run(actor,false,fn),mutate:(actor,fn)=>run(actor,true,fn),readFinance:(actor,fn)=>run(actor,false,fn,'finance'),mutateFinance:(actor,fn)=>run(actor,true,fn,'finance'),readCash:(actor,fn)=>run(actor,false,fn,'cash'),mutateCash:(actor,fn)=>run(actor,true,fn,'cash'),daily:(flow,actor,fn,{write=true}={})=>run(actor,write,fn,'daily',flow)};
 }
 export const cleanStoreDayStore=createCleanStoreDayStore();
 
@@ -210,6 +213,35 @@ async function attachCleanFinance(c,{actor,write,req,q,tx,pool,finance}){
 }
 
 export function cleanSalesReadContext(c){const customer={...c.scope.customer,revision:workHash(c.scope.customer)},accounts=c.scope.accounts.map(a=>({...a,synthetic:true}));const value={meta:{...c.meta,schemaVersion:'melisa-work-trade.v1',environment:'CLEAN_SYNTHETIC_TEST',synthetic:true,actualT1:false,externalOperations:false,cleanSaleReadOnly:true},scope:{synthetic:true,customer,accounts,products:[]},capabilities:{...c.capabilities,canCreate:false,canFinalize:false,canCancel:false,canCancelCollection:false},supportedCurrencies:[customer.currency],limits:{maxItems:0,maxQuantityPerLine:0,maxInvoiceAmountExact4:'0.0000'}};return {...value,revision:workHash(value)};}
+
+async function attachCleanCash(c,{actor,write,req,q,tx}){
+ if(!cleanFinanceCashEnabled())throw inboundError();
+ const has=p=>actor.permissions.includes(p)&&c.actual.permissions.includes(p);
+ if(!['finance.view','finance.collection','finance.payment'].some(has))workFail('WORK_FORBIDDEN','Günlük kasayı görüntüleme yetkiniz yok.',403);
+ const native=await import('./cashRegisterService.js'),pool={request:req},nativeContext={pool,transaction:tx,sqlDriver:q};
+ const state=async()=>{const row=(await req().input('include_state',q.Bit,true).execute('dbo.usp_clean_finance_b4_cash_ready')).recordset?.[0];if(row?.verified!==true||row.profile!==CLEAN_FINANCE_CASH.id||!/^[a-f0-9]{64}$/.test(row.revision??''))throw inboundError();return row.revision;};
+ c.cashOverview=async()=>{
+  const revision=await state(),overview=await native.getCashRegisterOverview({businessDate:CLEAN_FINANCE_CASH.date,drawerId:1},nativeContext);
+  const accounts=(await req().query('SELECT id,account_code code,account_name name,currency_code currency,CONVERT(varchar(40),opening_balance) openingExact4,CONVERT(varchar(40),current_balance) balanceExact4 FROM dbo.finance_accounts WHERE id BETWEEN 2 AND 7 ORDER BY id')).recordset;
+  if(accounts.length!==6)throw inboundError();
+  return {...overview,accounts:accounts.map(a=>({...a,id:Number(a.id),kind:Number(a.id)>=5?'main':'drawer'})),revision,capabilities:{canOpenOrClose:has('finance.collection')||has('finance.payment'),canRecordExpenseOrTransfer:has('finance.payment')},meta:{...assertRegisteredCleanContext(),profile:CLEAN_FINANCE_CASH.id,date:CLEAN_FINANCE_CASH.date}};
+ };
+ c.cashMutate=async(operation,payload)=>{
+  if(!write)throw inboundError();
+  const permissions=['cash_open','cash_close'].includes(operation)?['finance.collection','finance.payment']:['finance.payment'];if(!permissions.some(has))workFail('WORK_FORBIDDEN','Bu kasa işlemi için yetkiniz yok.',403);
+  const payloadJson=JSON.stringify(canonical({...payload,operation,actorId:String(actor.id)})),payloadHash=createHash('sha256').update(payloadJson,'utf16le').digest('hex');
+  const bound={...nativeContext,actor,operation,requestId:payload?.requestId,payloadJson,payloadHash};financeCashRehearsalBinding(bound);
+  const old=(await req().input('id',q.UniqueIdentifier,payload.requestId).query('SELECT actor_id,operation,payload_hash,payload_json,response_json FROM dbo.work_trade_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=@id')).recordset[0];
+  if(old){if(String(old.actor_id)!==String(actor.id)||old.operation!==operation||old.payload_hash.toLowerCase()!==payloadHash||old.payload_json!==payloadJson)workFail('WORK_REQUEST_CONFLICT','Bu işlem kimliği başka içerikle kullanılmış.',409);return {...JSON.parse(old.response_json),replayed:true};}
+  if(payload.expectedRevision!==await state())workFail('WORK_STALE','Kasa bilgileri değişti. Yenileyerek yeniden kontrol edin.',409);
+  return withCleanFinanceCashMutation(bound,async()=>{
+   const method={cash_open:'openCashSession',cash_close:'closeCashSession',cash_transfer:'createCashTransfer',cash_expense:'createCashExpense'}[operation];
+   const result={...await native[method](payload,actor,nativeContext),requestId:payload.requestId,replayed:false};
+   await req().input('id',q.UniqueIdentifier,payload.requestId).input('actor',q.BigInt,Number(actor.id)).input('op',q.NVarChar(40),operation).input('hash',q.Char(64),payloadHash.toUpperCase()).input('payload',q.NVarChar(q.MAX),payloadJson).input('response',q.NVarChar(q.MAX),JSON.stringify(result)).query('INSERT dbo.work_trade_requests(request_id,actor_id,operation,payload_hash,payload_json,response_json)VALUES(@id,@actor,@op,@hash,@payload,@response)');
+   return result;
+  });
+ };
+}
 
 export function cleanSalesInvoiceList(invoice,query={}){if(Object.keys(query).some(k=>!['page','limit','customerId','currency'].includes(k))||(query.customerId===undefined)!==(query.currency===undefined)||query.customerId!==undefined&&(!/^[1-9]\d*$/.test(query.customerId)||!['TRY','USD','EUR'].includes(query.currency)))workFail('WORK_QUERY_INVALID','Fiş filtresi geçersiz.');const read=(v,d,max)=>{if(v===undefined)return d;if(typeof v!=='string'||!/^[1-9]\d*$/.test(v)||Number(v)>max)workFail('WORK_QUERY_INVALID','Sayfalama bilgisi geçersiz.');return Number(v);},page=read(query.page,1,10000),limit=read(query.limit,25,50),rows=(Array.isArray(invoice)?invoice:[invoice]).filter(i=>query.customerId===undefined||i.customerId===query.customerId&&i.currency===query.currency);return {data:rows.slice((page-1)*limit,page*limit),meta:{total:rows.length,page,limit}};}
 

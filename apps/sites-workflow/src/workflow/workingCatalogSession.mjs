@@ -166,6 +166,13 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&(read.test(path)||invoiceListReadPath(path))&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,workMutation:method==='POST',workErrors:method==='POST'&&/^\/api\/work-sales\/drafts\/[1-9]\d*\/cancel$/.test(path)})).data;
   },
+  async cash(path,{method='GET',body,...extra}={}){
+   const read=/^\/api\/finance\/cash-register\?businessDate=2026-10-22$/;
+   const write=/^\/api\/finance\/cash-register\/(?:open|close|transfers|expenses)$/;
+   const clean=isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
+   if(Object.keys(extra).length||!clean||!active||!token||!user||!user.permissions.includes('finance.view')||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Günlük kasa bağlantısı kullanılamıyor.',403);
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async cartons(path,{method='GET',body,...extra}={}){
    const route=/^\/api\/terminal-cartons\/receipts(?:\/[1-9]\d{0,18})?$/;
    if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!cartonReadTarget||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');

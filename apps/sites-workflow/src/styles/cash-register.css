@@ -4,6 +4,10 @@
   align-content: start;
 }
 
+.cash-register-screen .cash-access-note table { width:100%; border-collapse:collapse; text-align:left; }
+.cash-register-screen .cash-access-note th,
+.cash-register-screen .cash-access-note td { padding:8px 12px; border-bottom:1px solid #dfe9e3; white-space:nowrap; }
+
 .cash-register-toolbar .dashboard-toolbar-actions label {
   display: grid;
   gap: 2px;

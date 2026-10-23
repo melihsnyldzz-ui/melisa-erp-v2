@@ -5,6 +5,27 @@ import {assertRegisteredCleanContext,isCleanAdministrator} from './cleanSyntheti
 export const CLEAN_FINANCE_REHEARSAL=Object.freeze({id:'B4-TRY-20261023',date:'2026-10-22',customerId:'2',supplierId:'2',accountId:'2',invoiceId:'2',purchaseInvoiceId:'5',customerOpeningExact4:'251.0000',supplierOpeningExact4:'200.0000',currency:'TRY'});
 export const CLEAN_FINANCE_REHEARSAL_PERMISSIONS=Object.freeze({collection_create:'finance.collection',collection_cancel:'finance.collection.cancel',payment:'finance.payment',payment_cancel:'finance.payment.cancel'});
 export const cleanFinanceRehearsalEnabled=()=>process.env.MELISA_CLEAN_FINANCE_B4==='20261023';
+export const CLEAN_FINANCE_CASH=Object.freeze({id:'B4-CASH-20261023',date:'2026-10-22',drawerId:1,currencies:Object.freeze(['TRY','USD','EUR']),accounts:Object.freeze({TRY:Object.freeze({drawer:2,main:5}),USD:Object.freeze({drawer:3,main:6}),EUR:Object.freeze({drawer:4,main:7})})});
+export const cleanFinanceCashEnabled=()=>cleanFinanceRehearsalEnabled()&&process.env.MELISA_CLEAN_FINANCE_CASH==='20261023';
+export function cleanFinanceCashWrite(request,environment=process.env){return environment.API_PORT==='4194'&&environment.MELISA_CLEAN_STORE_DAY==='20261022'&&environment.MELISA_CLEAN_FINANCE==='20261022'&&environment.MELISA_CLEAN_FINANCE_B4==='20261023'&&environment.MELISA_CLEAN_FINANCE_CASH==='20261023'&&request?.method==='POST'&&/^\/api\/finance\/cash-register\/(?:open|close|transfers|expenses)$/.test(request.path);}
+export function financeCashRehearsalBinding(input){
+ assertRegisteredCleanContext();
+ const permission={cash_open:['finance.collection','finance.payment'],cash_close:['finance.collection','finance.payment'],cash_transfer:['finance.payment'],cash_expense:['finance.payment']}[input?.operation];
+ const actor=input?.actor,normal=String(actor?.id)==='20'&&actor.username==='ornek-finans'&&String(actor.role?.id)==='25'&&actor.role?.code==='clean_test_finance';
+ if(!cleanFinanceRehearsalEnabled()||process.env.MELISA_CLEAN_FINANCE_CASH!=='20261023'||process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_FINANCE!=='20261022'||!permission||(!normal&&!isCleanAdministrator(actor))||actor?.isAdmin===true||actor?.testAdminSession===true||!Array.isArray(actor?.permissions)||!permission.some(p=>actor.permissions.includes(p))||!input.transaction||!input.pool||!input.sqlDriver||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.requestId??'')||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))throw financeRehearsalError();
+ let p;try{p=JSON.parse(input.payloadJson);}catch{throw financeRehearsalError();}
+ const keys=(v,list)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===list.length&&Object.keys(v).every(k=>list.includes(k));
+ const money=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=10000&&Math.abs(v*10000-Math.round(v*10000))<0.000001;
+ const text=v=>typeof v==='string'&&v.length<=500;
+ const common=['actorId','operation','requestId','expectedRevision'],fields={cash_open:['drawerId','businessDate','openingNote','counts'],cash_close:['sessionId','closingNote','counts'],cash_transfer:['sessionId','currency','amount','direction','description'],cash_expense:['sessionId','categoryId','currency','amount','description','documentNo']}[input.operation];
+ if(!keys(p,[...common,...fields])||p.actorId!==String(actor.id)||p.operation!==input.operation||p.requestId!==input.requestId||!/^[a-f0-9]{64}$/.test(p.expectedRevision??'')||createHash('sha256').update(input.payloadJson,'utf16le').digest('hex')!==input.payloadHash)throw financeRehearsalError();
+ if(input.operation==='cash_open'||input.operation==='cash_close'){
+  const opening=input.operation==='cash_open',parts=opening?['physicalOpening','openingTransfer']:['physicalClosing','carryForward'];
+  if(opening?(p.drawerId!==1||p.businessDate!==CLEAN_FINANCE_CASH.date||!text(p.openingNote)):(!Number.isSafeInteger(p.sessionId)||p.sessionId<1||!text(p.closingNote)))throw financeRehearsalError();
+  if(!keys(p.counts,CLEAN_FINANCE_CASH.currencies)||CLEAN_FINANCE_CASH.currencies.some(c=>!keys(p.counts[c],parts)||parts.some(k=>!money(p.counts[c][k]))||(!opening&&p.counts[c].carryForward>p.counts[c].physicalClosing)))throw financeRehearsalError();
+ }else if(!Number.isSafeInteger(p.sessionId)||p.sessionId<1||!CLEAN_FINANCE_CASH.currencies.includes(p.currency)||!money(p.amount)||p.amount<=0||p.amount>500||!text(p.description)||p.description.trim().length<5||(input.operation==='cash_transfer'?!['main_to_drawer','drawer_to_main'].includes(p.direction):p.categoryId!==1||!text(p.documentNo)))throw financeRehearsalError();
+ return Object.freeze({...input,actor:Object.freeze({id:Number(actor.id)}),profile:CLEAN_FINANCE_CASH.id});
+}
 export function cleanFinanceRehearsalWrite(request,environment=process.env){
  return environment.API_PORT==='4194'&&environment.MELISA_CLEAN_STORE_DAY==='20261022'&&environment.MELISA_CLEAN_FINANCE==='20261022'&&environment.MELISA_CLEAN_FINANCE_B4==='20261023'&&request?.method==='POST'&&/^\/api\/(?:work-collections\/[1-9]\d*\/cancel|work-supplier-payments\/payments\/[1-9]\d*\/cancel)$/.test(request.path);
 }

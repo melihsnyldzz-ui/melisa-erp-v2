@@ -2,9 +2,32 @@ import test from 'node:test';import assert from 'node:assert/strict';import {cre
 import {registerCleanContext} from './cleanSyntheticContext.mjs';
 import {withCleanStoreDayMutation,isCleanStoreDayMutation,assertCleanReceivedPurchaseContext} from './cleanStoreDayScope.mjs';
 import {withCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
-import {withCleanFinanceRehearsalMutation} from './cleanStoreDayScope.mjs';
-import {cleanFinanceRehearsalWrite} from './cleanFinanceRehearsalModel.mjs';
+import {withCleanFinanceRehearsalMutation,withCleanFinanceCashMutation,assertCleanCashRegisterTransaction} from './cleanStoreDayScope.mjs';
+import {cleanFinanceRehearsalWrite,cleanFinanceCashWrite} from './cleanFinanceRehearsalModel.mjs';
 const env={MELISA_CLEAN_TEST:'20261022',MELISA_CLEAN_STORE_DAY:'20261022',API_PORT:'4194',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:'MELISA_ERP_CLEAN_TEST_20261022',SQL_USER:'melisa_clean_test_app_20261022',SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false'};
+test('B4 cash engine context is admitted only by its same-transaction native witness; mixed or unbound callers fail closed',async()=>{
+ process.env.MELISA_CLEAN_FINANCE='20261022';process.env.MELISA_CLEAN_FINANCE_B4='20261023';process.env.MELISA_CLEAN_FINANCE_CASH='20261023';
+ try{
+  for(const operation of ['cash_open','cash_close','cash_transfer','cash_expense']){
+   const f=fixture({operation,actorId:20,permission:['cash_open','cash_close'].includes(operation)?'finance.collection':'finance.payment'}),pool={};
+   Object.assign(f.input,{pool,actor:{id:20,username:'ornek-finans',role:{id:25,code:'clean_test_finance'},permissions:['finance.collection','finance.payment']}});
+   const counts=Object.fromEntries(['TRY','USD','EUR'].map(c=>[c,operation==='cash_open'?{physicalOpening:0,openingTransfer:10}:{physicalClosing:10,carryForward:1}]));
+   const body={actorId:'20',operation,requestId:f.input.requestId,expectedRevision:'a'.repeat(64),...(operation==='cash_open'?{drawerId:1,businessDate:'2026-10-22',openingNote:'Örnek kasa provası',counts}:operation==='cash_close'?{sessionId:1,closingNote:'Örnek kapanış',counts}:operation==='cash_transfer'?{sessionId:1,currency:'USD',amount:10,direction:'main_to_drawer',description:'Örnek iç transfer'}:{sessionId:1,categoryId:1,currency:'EUR',amount:2,description:'Örnek kasa gideri',documentNo:'B4-1'})};
+   const setBody=v=>{f.input.payloadJson=JSON.stringify(v);f.input.payloadHash=createHash('sha256').update(f.input.payloadJson,'utf16le').digest('hex');f.witness.payloadHash=f.input.payloadHash;};setBody(body);
+   const nativeContext={pool,transaction:f.input.transaction,sqlDriver:f.input.sqlDriver};
+   assert.throws(()=>assertCleanCashRegisterTransaction(nativeContext,operation,f.input.actor));
+   await withCleanFinanceCashMutation(f.input,async()=>{
+    assert.equal(assertCleanCashRegisterTransaction(nativeContext,operation,f.input.actor),nativeContext);
+    for(const patch of [{transaction:{}},{sqlDriver:{}},{pool:{}}])assert.throws(()=>assertCleanCashRegisterTransaction({...nativeContext,...patch},operation,f.input.actor));
+    assert.throws(()=>assertCleanCashRegisterTransaction(nativeContext,operation,{id:23}));
+    await assert.rejects(withCleanFinanceCashMutation(f.input,async()=>assert.fail()));
+   });
+   assert.deepEqual(f.calls,['dbo.usp_clean_finance_b4_cash_bind','dbo.usp_clean_finance_b4_cash_finish']);
+   for(const patch of [{expectedRevision:''},{extra:true},{actorId:'23'},...(operation==='cash_open'?[{businessDate:'2026-10-23'},{drawerId:2},{counts:{TRY:{physicalOpening:0,openingTransfer:0}}}]:operation==='cash_close'?[{counts:{...counts,USD:{physicalClosing:1,carryForward:2}}}]:[{currency:'GBP'},{amount:0},{amount:500.00001}])]){setBody({...body,...patch});await assert.rejects(withCleanFinanceCashMutation(f.input,async()=>assert.fail()));}
+   setBody(body);delete process.env.MELISA_CLEAN_FINANCE_CASH;await assert.rejects(withCleanFinanceCashMutation(f.input,async()=>assert.fail()));process.env.MELISA_CLEAN_FINANCE_CASH='20261023';
+  }
+ }finally{delete process.env.MELISA_CLEAN_FINANCE;delete process.env.MELISA_CLEAN_FINANCE_B4;delete process.env.MELISA_CLEAN_FINANCE_CASH;}
+});
 test('B4 cancellation HTTP admission is confined to two existing routes and the exact active main-API profile',()=>{
  const profile={...env,MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023'};
  for(const path of ['/api/work-collections/2/cancel','/api/work-supplier-payments/payments/7/cancel']){
@@ -13,6 +36,16 @@ test('B4 cancellation HTTP admission is confined to two existing routes and the 
   for(const method of ['GET','DELETE','PATCH'])assert.equal(cleanFinanceRehearsalWrite({method,path},profile),false);
  }
  for(const path of ['/api/work-collections/02/cancel','/api/work-collections/2/cancel/extra','/api/work-supplier-payments/payments/7','/api/sales-orders/2/finalize-linked-sale','/api/work-sales/invoices/2/cancel'])assert.equal(cleanFinanceRehearsalWrite({method:'POST',path},profile),false);
+});
+test('B4 cash HTTP admission remains closed without every explicit clean flag and exposes only four exact POST routes',()=>{
+ const profile={...env,MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023',MELISA_CLEAN_FINANCE_CASH:'20261023'};
+ for(const action of ['open','close','transfers','expenses']){
+  const request={method:'POST',path:'/api/finance/cash-register/'+action};assert.equal(cleanFinanceCashWrite(request,profile),true);
+  for(const key of ['API_PORT','MELISA_CLEAN_STORE_DAY','MELISA_CLEAN_FINANCE','MELISA_CLEAN_FINANCE_B4','MELISA_CLEAN_FINANCE_CASH'])assert.equal(cleanFinanceCashWrite(request,{...profile,[key]:undefined}),false);
+  for(const method of ['GET','PATCH','DELETE'])assert.equal(cleanFinanceCashWrite({...request,method},profile),false);
+  assert.equal(cleanFinanceCashWrite({...request,path:request.path+'/extra'},profile),false);
+ }
+ assert.equal(cleanFinanceCashWrite({method:'POST',path:'/api/finance/accounts'},profile),false);
 });
 Object.assign(process.env,env);
 registerCleanContext({databaseName:env.SQL_DATABASE,serverName:'Semih\\MELISADEV',loginName:env.SQL_USER,databaseUser:env.SQL_USER,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});

@@ -6,7 +6,18 @@ import {moduleHash} from './stage4-copy-sql.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {buildCleanStoreAdministratorDefinitions,buildCleanStoreAdministratorSql,CLEAN_ADMIN_PERMISSIONS} from './clean-store-day-cohort-sql.mjs';
-import {buildCleanFinanceRehearsalPredecessors} from './clean-finance-rehearsal-sql.mjs';
+import {buildCleanFinanceRehearsalPredecessors,buildCleanFinanceRehearsalDefinitions,buildCleanFinanceCashDefinitions,buildCleanFinanceCashSql,cleanFinanceCashSchemaSql} from './clean-finance-rehearsal-sql.mjs';
+
+test('B4 cash companion preserves exact old finance bodies and retains native schema, constraints and narrow target',()=>{
+ const original=buildCleanFinanceRehearsalDefinitions().definitions,hashes=Object.fromEntries(Object.entries(original).map(([n,b])=>[n,moduleHash(b)])),cash=buildCleanFinanceCashDefinitions();
+ assert.deepEqual(Object.keys(cash.before).sort(),['clean_sale_audit_logs_guard','usp_clean_finance_b4_ready','usp_clean_store_day_ready','usp_clean_store_finance_guard']);
+ for(const [name,body] of Object.entries(cash.before))assert.equal(body,original[name]);
+ assert.deepEqual(Object.fromEntries(Object.entries(buildCleanFinanceRehearsalDefinitions().definitions).map(([n,b])=>[n,moduleHash(b)])),hashes);
+ const schema=cleanFinanceCashSchemaSql();assert.equal((schema.match(/CREATE TABLE dbo\./g)||[]).length,8);assert.match(schema,/DECIMAL\(18,4\)/);assert.match(schema,/FOREIGN KEY/);assert.doesNotMatch(schema,/INSERT INTO|UPDATE |DELETE |ALTER |DROP /);
+ const probe=buildCleanFinanceCashSql({probe:true});assert.match(probe,/B4_CASH_FIXTURE_PROBE_ROLLED_BACK/);assert.match(probe,/protected_hash/);assert.match(probe,/schema_hash/);assert.match(probe,/CLEAN_STORE_DAY_20261022/);assert.match(probe,/CURRENT_TRANSACTION_ID\(\)/);assert.match(probe,/CK_clean_inventory_requests CHECK\(\('/);assert.match(probe,/DENY INSERT ON dbo\.cash_drawers/);
+ assert.doesNotMatch(probe,/DISABLE TRIGGER|ENABLE TRIGGER|EXECUTE AS LOGIN|TRUNCATE TABLE|RESTORE DATABASE|UPDATE dbo\.clean_finance_b4_manifest/);
+ for(const [name,body] of Object.entries(cash.definitions)){assert(!body.includes('/*CASH_COUNT*/'));assert.match(body,name.startsWith('clean_b4_')?/EXEC dbo\.usp_clean_finance_b4_cash_guard N'/:/THROW 51\d{3}/);}
+});
 
 const auditGuard='clean_sale_audit_logs_guard';
 function assertCurrentFinanceAuditPredecessor(selected){

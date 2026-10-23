@@ -71,13 +71,15 @@ function CurrencyPicker({ value, onChange }) {
   );
 }
 
-export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
-  const [businessDate, setBusinessDate] = useState(businessDateInIstanbul);
+const defaultCashApi={closeCashRegister,createCashExpense,createCashTransfer,fetchCashRegister,openCashRegister};
+export function CashRegisterScreen({ onDirtyChange, permissions = [], api=defaultCashApi, initialDate, fixedDate=false }) {
+  const [businessDate, setBusinessDate] = useState(()=>initialDate??businessDateInIstanbul());
   const requestSequence = useRef(0);
   const [loadedDate, setLoadedDate] = useState(null);
   const [overview, setOverview] = useState({ drawers: [], categories: [], session: null, currencies: [], movements: [] });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [openCounts, setOpenCounts] = useState(() => Object.fromEntries(CURRENCIES.map((currency) => [currency, { physicalOpening: '', openingTransfer: '' }])));
@@ -92,7 +94,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
     canOpenOrClose,
     canRecordExpenseOrTransfer,
     isReadOnly,
-  } = resolveCashRegisterCapabilities(permissions);
+  } = resolveCashRegisterCapabilities(overview.capabilities?permissions.filter(p=>p!=='finance.collection'&&p!=='finance.payment'||p==='finance.collection'&&overview.capabilities.canOpenOrClose===true||p==='finance.payment'&&overview.capabilities.canRecordExpenseOrTransfer===true):permissions);
   const selectedAction = canRecordExpenseOrTransfer ? activeAction : canOpenOrClose ? 'close' : null;
 
   async function load(nextDate = businessDate) {
@@ -100,7 +102,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
     setIsLoading(true);
     setErrorMessage('');
     try {
-      const response = await fetchCashRegister({ businessDate: nextDate });
+      const response = await api.fetchCashRegister({ businessDate: nextDate });
       if (sequence !== requestSequence.current) return;
       if (!response?.data || !Array.isArray(response.data.drawers) || !Array.isArray(response.data.currencies)
         || !Array.isArray(response.data.movements) || !Array.isArray(response.data.categories)) {
@@ -157,7 +159,8 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
   }
 
   async function runAction(action, successText) {
-    if (!hasCurrentRead || isSaving) return false;
+    if (!hasCurrentRead || savingRef.current) return false;
+    savingRef.current=true;
     setIsSaving(true);
     setMessage('');
     setErrorMessage('');
@@ -167,9 +170,10 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       await load();
       return true;
     } catch (error) {
-      setErrorMessage(`${error.message || 'İşlem tamamlanamadı.'} (${error.code || 'API_ERROR'})`);
+      setErrorMessage(error.message || 'İşlem tamamlanamadı.');
       return false;
     } finally {
+      savingRef.current=false;
       setIsSaving(false);
     }
   }
@@ -180,7 +184,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       setErrorMessage('Kasayı açma yetkiniz yok. Bu ekran yalnız görüntüleme amacıyla kullanılabilir.');
       return;
     }
-    const succeeded = await runAction(() => openCashRegister({
+    const succeeded = await runAction(() => api.openCashRegister({
       drawerId: drawer?.id,
       businessDate,
       openingNote,
@@ -201,7 +205,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       setErrorMessage('Masraf kaydetmek için ödeme işlemi yetkisi gerekir.');
       return;
     }
-    const succeeded = await runAction(() => createCashExpense({
+    const succeeded = await runAction(() => api.createCashExpense({
       sessionId: overview.session.id,
       categoryId: Number(expense.categoryId),
       currency: expense.currency,
@@ -218,7 +222,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       setErrorMessage('Para transferi kaydetmek için ödeme işlemi yetkisi gerekir.');
       return;
     }
-    const succeeded = await runAction(() => createCashTransfer({
+    const succeeded = await runAction(() => api.createCashTransfer({
       sessionId: overview.session.id,
       ...transfer,
       amount: Number(transfer.amount),
@@ -232,7 +236,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       setErrorMessage('Kasayı kapatma yetkiniz yok. Bu ekran yalnız görüntüleme amacıyla kullanılabilir.');
       return;
     }
-    const succeeded = await runAction(() => closeCashRegister({
+    const succeeded = await runAction(() => api.closeCashRegister({
       sessionId: overview.session.id,
       closingNote,
       counts: Object.fromEntries(CURRENCIES.map((currency) => [currency, {
@@ -256,7 +260,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
         <div className="dashboard-toolbar-actions">
           <label>
             <span>Tarih</span>
-            <input type="date" disabled={isSaving} value={businessDate} onChange={(event) => {
+            <input type="date" disabled={isSaving||fixedDate} value={businessDate} onChange={(event) => {
               requestSequence.current += 1;
               setBusinessDate(event.target.value);
               setIsLoading(false);
@@ -274,6 +278,7 @@ export function CashRegisterScreen({ onDirtyChange, permissions = [] }) {
       {message && <div className="list-state list-state-success" role="status">{message}</div>}
       {errorMessage && <div className="list-state list-state-error" role="alert">{errorMessage}</div>}
       {isLoading && <div className="list-state">Günlük kasa verisi yükleniyor...</div>}
+      {Array.isArray(overview.accounts)&&overview.accounts.length===6&&<section className="cash-access-note" aria-label="Ana kasa ve günlük çekmece bakiyeleri"><table><thead><tr><th>Döviz</th><th>Ana kasa</th><th>Günlük çekmece</th></tr></thead><tbody>{CURRENCIES.map(currency=><tr key={currency}><th>{currency}</th><td>{formatMoney(overview.accounts.find(a=>a.kind==='main'&&a.currency===currency)?.balanceExact4,currency)}</td><td>{formatMoney(overview.accounts.find(a=>a.kind==='drawer'&&a.currency===currency)?.balanceExact4,currency)}</td></tr>)}</tbody></table></section>}
       {!isLoading && !errorMessage && !hasCurrentRead && <div className="list-state">Seçilen tarih için Yenile ile kasa kaydını okuyun.</div>}
 
       {isReadOnly && (

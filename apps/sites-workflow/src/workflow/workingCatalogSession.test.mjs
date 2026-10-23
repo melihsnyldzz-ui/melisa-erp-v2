@@ -8,6 +8,17 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 
+test('daily cash transport is normal authenticated clean-only and rejects unknown routes, targets and actor overrides',async()=>{
+ const place={hostname:'127.0.0.1',protocol:'http:',port:'5244'},account={...user,id:20,role:{code:'clean_test_finance'},permissions:['finance.view','finance.collection','finance.payment']},store=storage(),calls=[];
+ store.setItem(workingCatalogTokenKey,'cash-session-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location:place,apiBase:'http://127.0.0.1:4194',storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(account);calls.push({url,options});return reply({record:true});}});
+ await session.start();await session.cash('/api/finance/cash-register?businessDate=2026-10-22');await session.cash('/api/finance/cash-register/transfers',{method:'POST',body:{requestId:'command'}});
+ assert.equal(calls.length,2);assert(calls.every(c=>c.url.startsWith('http://127.0.0.1:4194/')&&c.options.headers.Authorization==='Bearer cash-session-fixture'));
+ for(const path of ['/api/finance/cash-register?businessDate=2026-10-23','/api/finance/cash-register?businessDate=2026-10-22&actorId=23','/api/finance/cash-register/open/extra','/api/finance/accounts'])await assert.rejects(()=>session.cash(path));
+ await assert.rejects(()=>session.cash('/api/finance/cash-register/transfers',{method:'DELETE',body:{}}));await assert.rejects(()=>session.cash('/api/finance/cash-register/transfers',{method:'POST',body:{},actorId:10018}));assert.equal(calls.length,2);session.dispose();
+ const old=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async()=>reply(account)});await old.start();await assert.rejects(()=>old.cash('/api/finance/cash-register?businessDate=2026-10-22'));old.dispose();
+});
+
 for(const path of ['/api/work-sales/invoices','/api/work-sales/invoices?limit=25','/api/work-sales/invoices/42'])test('verified DB02 historical GET can complete after the normal 15s: '+path,async t=>{
  t.mock.timers.enable({apis:['setTimeout']});
  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-deadline-fixture');store.setItem(testSessionModeKey,'manual');let finish;
