@@ -1,23 +1,31 @@
-## 24 Ekim 01:32 TR — B6 kurulu sepet, normal taslak ve yenileme; son finalize bekliyor
+## 24 Ekim — B6 normal örnek satış, tek etki ve kalıcı replay doğrulandı
 
-API[ b40a0788](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/b40a0788bea320ee703dfc1abf36ec769298eeff) / CLEAN-ERP-20261024-b40a0788bea3-B6 gerçekten01:32:09TRkuruldu;3401dosya,manifestB62796A9A3872157E31086E463FD51B1B983EFB68EBEA4985657BE6B32DFD6B9. Web982/nativeprocess035/CRMbc8+e1 aynı. B6native20mühür/13exactbefore-image; önceki manifestler korunur. SQLmetadata8a7f0b5eile aynıgövde, son kod217/test-fixtureb40ayrıdır. [ExactCI40033547213](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40033547213)quality/windows/secretüçjobSUCCESS. İlk217kalite13VMassertionFAIL, ikiVMdependency düzeltmesi14/14PASS; beklentiler/CIguardlar aynı. İptal edilen8a koşusu başarı sayılmadı.
+B6, yalnız mevcut clean20261022 / E662 / synthetic=true / actualT1=false / external=false hedefinde teknik olarak tamamlandı. Semih10018 mevcut rol28 ve36 izniyle normal yeşil ekranda Örnek Mağaza'yı seçti; 0000000000007 barkodu doğru 0007 MELISA ürününü ekledi. **2 ADET ×125,50 TRY =251,00 TRY** taslak10009 / DS-fc0b68bf-b788-4f00-9759-0 olarak kaydedildi ve aynı belge normal ekrandan tamamlandı. Taslak stok/cari etkisi oluşturmadı. Finalize sonrası stok23→21, müşteri1 TRY borcu0→251; native stok hareketi1/net−2 ve müşteri hareketi1/+251, actor10018. Tahsilat yapılmadı, kasa değişmedi.
 
-Mevcut sepet/fiyat hesabı/nativefatura motoru kullanılır. GenelworkSalesServicecleanretkoruması kaldırılmaz; yalnız normalcleanserver sonlu nativeadapter kurar. CRMreceipt/ürün/fiyat/rol uydurulmaz. İlkprojeksiyon/nativecurrency/row_version retleri özelkanıtta; boşB6historykoşullu exactmetadata inverseprovası tamam, DBrestore/reset/silme yok. Tamamlanmış belge varken bu inverse reddeder. Sadece soğuk mühür checkpoint'i için sürücünün desteklediği30s sonlu bütçe var; otomatikretryyok. NativepozitifaynıUUID/bodytek-etki ve motor-sonrası hata tamrollback;6SQLnegatif(wrongprice/zeroqty/currency/product/actor/hash)51966ret.50farklı hedef testPASS; bağımsızreviewNOT_RUN.
-
-| Normal ekran kontrolü | Gözlenen sonuç |
+| Kontrol | Gerçek sonuç |
 |---|---|
-| Normal Semih / müşteri | Örnek Mağaza, ORNEK-M01; kendi actor10018 |
-| Baştaki sıfırlı barkod | 0000000000007 → 0007 MELISA, sepete eklendi |
-| Miktar/fiyat | 2ADET ×125,50TRY=251,00TRY; kaynak fiyatı değişmedi |
-| Döviz ayrımı | 0161MELISA'nın mevcut8,55USDfiyatına TRYfiyatı üretilmedi; TRYekleme kapalı |
-| Taslak | 10009 / DS-fc0b68bf-b788-4f00-9759-0, ownactor10018 |
-| Taslak tamreload | Aynı müşteri,kalem,miktar,toplam,durum ve oturum korundu |
-| BağımsızSQL | Stok23/müşteri1borcu0,directrequest1/link1,intent0;34eski journal/39finanshareketi aynı |
-| Normal finalized | **BEKLİYOR:** kullanıcı Satışı tamamla tıklaması ve sonra teknik geriokuma |
+| Müşteri / aktör | Örnek Mağaza / Semih10018, rol28 |
+| Barkod / fiyat | 0000000000007 →0007 MELISA;2×125,50=251,00TRY |
+| Taslak |10009 draft; stok23/müşteri1borcu0 |
+| Normal finalize |10009 finalized; stok21/müşteri1borcu251TRY |
+| Native stok / cari |1stok satırı/net−2 ve1müşteri satırı/+251; aynı actor10018 |
+| Reload / Satış fişleri |Aynı tamamlanmış belge,2ADET,251,00TRY; tahsil edilen0 |
+| Committed replay |draft+finalize exact UUID/body:200/replayed=true/10009;18tablo count+SHA aynı |
+| Aynı UUID / farklı body |Her iki operasyonda409 WORK_REQUEST_CONFLICT |
+| Eski iş geçmişi |34work_trade_requests /39finance_account_movements aynı |
+| Koruma özeti |53özetten50aynı;3beklenen belge/müşteri farkı.5eközetten4aynı,ürün1stoğu−2 |
 
-Kurulum sonrası10listener+53veri+5eközet aynı; hedefE662/clean20261022/synthetic/T1false/originalaccess0/liveaccess0,CRM200. COPY_ONLY/CHECKSUM/VERIFYONLY geçti,restore yok. Mevcut eskiTEST125/DB02/LIVE/Vega/main ve bütün yedekler korunur. Normal finalize beklenenstok23→21/müşteri1borcu0→251TRY olup henüz sonuç değildir. Ekran aracı finansal son işlem handoff gerektirir; API/SQLile dolanılmaz. Bu dar kullanıcı tıklaması özgün ERP-UA07geniş personel kabulü değildir.
+Normal tam sayfa yenilemesi ve Satış fişleri aynı tamamlanmış251,00TRY belgeyi gösterdi. İlk finalize denemesi normal oturum süresi dolduğu için401 aldı; SQL'de hâlâ draft/stock23/customer0/request1 olduğu görüldü. Mevcut korumalı kayıtla normal Semih girişi yenilendi; ekrandaki **Son işlemi doğrula** aynı saklı UUID'yi sürdürdü. Yeni satış açılmadı. Kalıcı draft ve finalize istekleri API'den exact UUID/body ile tekrarlandığında replayed=true/aynı10009, farklı body409;18 iş tablosu count+SHA özeti önce/sonra aynı. Final direct request2/link1/intent0. Son gönderimi ajan normal GUI'de yaptı; bu B6 için araç reddi veya bypass yaşanmadı. Önceki ‘kullanıcı son tıklaması bekliyor’ yorumu bu dar yapay TEST işlemi için gereksiz genellemeydi ve artık geçerli değildir; B5'in gerçek kullanıcı tıklaması kayıtları değişmez.
 
-Özel kanıt runtime/semih-access-20261023/b6-native-positive/failure/negative.json,b6-package.json,b6-installed-readback.json,b6-normal-draft-readback.txt,b6-normal-draft-refresh.txt,gerçek screenshotb6-normal-draft.png. Ham ticari veri/sır/fotoğraf GitHub'a alınmadı. [Normal satış](http://192.168.1.46:5244/ornek-akis.html#sales). B6🟡/B7başlatılmadı; USER_ACCEPTANCE ve özgün sayaçlar aynı.
+Önceki B5 müşteri2=100TRY / tedarikçi2=80TRY / kasa2=10TRY, diğer müşteri/tedarikçi/döviz/kasa bakiyeleri, maliyet60 ve eski34 request/39 finans hareketi korundu.53 koruma özetinde yalnız beklenen customers/sales_invoices/sales_invoice_items değişti (50 aynı);5 ek özette yalnız ürün1 stok etkisi değişti, kullanıcı/rol/izin/tedarikçi özetleri aynı. Native eski manifestler, fiyat/barkod/fotoğraflar ve yedekler korunur. LIVE/Vega/CRM/main/TEST125/DB02 değişmedi.
+
+Kurulu API4194 **b40a0788bea320ee703dfc1abf36ec769298eeff**, paket **CLEAN-ERP-20261024-b40a0788bea3-B6**,3401dosya,24Ekim01:32:09TR; manifestB62796A9A3872157E31086E463FD51B1B983EFB68EBEA4985657BE6B32DFD6B9. Web5244 kaynak98226c7f, nativeprocess035fcc08, CRM backendbc8/frontend e1 değişmedi. Kurulum sonrası10 diğer listener kimliği korundu. [Uygulama CI40033547213](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40033547213) ve [önceki belge CI40034636977](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40034636977) gerekli3/3 job SUCCESS; belge commit'i çalışan uygulama kaynağı değildir.
+
+50 farklı hedefli test, native pozitif/replay ve motor-sonrası hata tam rollback,6 native negatif ret kanıtı korunur; bağımsız review NOT_RUN. Normal GUI örneği tek ürün/2ADET/TRY'dir; çok SKU aynı dövizli fiziksel kullanım veya bütün rollerin satışı kanıtlanmış sayılmaz.0161'in8,55USD fiyatına TRY karşılığı uydurulmadı. B6 tahsilat/iptal düğmeleri kapsam dışında kapalı. İnsan/personel/fiziksel kabul **BEKLİYOR**; ERP-UA07 PASS yapılmadı, özgün17/74 ve49ERP/25CRM sayaçları aynı. B7 başlatılmadı.
+
+**Geri dönüş:** COPY_ONLY/CHECKSUM/RESTORE VERIFYONLY doğrulandı; gerçek restore yok. Belge oluşmadan önce exact20mühür/13before-image ve boşhistory koşullu metadata inverse gerçekten denendi; artık link1/request2 bulunduğundan boş inverse uygulanamaz ve kullanılmadı. Sonraki hareketleri silen toplu reset/restore yapılmadı.
+
+**Özel kanıt:** runtime/semih-access-20261023/b6-normal-final.png, b6-normal-receipts.png, b6-normal-final-refresh.txt, b6-normal-final-readback.txt, b6-committed-replay.json, b6-committed-native-private.json, b6-final-protection-summary.json; önceki native-positive/failure/negative ve paket/yedek makbuzları korunur. Ham veri/sır/görseller GitHub'a yüklenmedi. [Normal satış](http://192.168.1.46:5244/ornek-akis.html#sales).
 
 ### Önceki teslim — tarihsel
 ## 24 Ekim 00:33 TR — B5 Semih kendi yönetici işlemleri: kurulum ve normal ekran

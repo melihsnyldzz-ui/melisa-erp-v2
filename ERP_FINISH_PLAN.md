@@ -1,6 +1,8 @@
-## 24 Ekim — B6 kurulu teknik sepet; normal finalize hâlâ açık
+## 24 Ekim — B6 yalnız örnek TEST satış kapsamında teknik tamam
 
-B6normalSemih müşteri/barkod/2adet×125,50TRY/taslak10009 ve tamreload gerçekSQL/API/UIile doğrulandı. APIb40a0788kurulu,exactCI3/3SUCCESS; eskiweb/native/CRMaynı. Nativepozitif/replay/hata rollback ve6negatif ret;50farklıhedefkontrolPASS. Son normal finansal finalize tıklaması kullanıcıya bırakıldı; sonrasındaki geriokuma/kalıcıreplaykalan. Teknikhazırlık tamB6veya insanPASSdeğildir. B5korunur/B7başlatılmaz. Özgün17/74,49ERP/25CRMveinsankabulsayaçlarıaynı. Ayrıntı [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+B6, yalnız mevcut clean20261022 / E662 / synthetic=true / actualT1=false / external=false hedefinde teknik olarak tamamlandı. Semih10018 mevcut rol28 ve36 izniyle normal yeşil ekranda Örnek Mağaza'yı seçti; 0000000000007 barkodu doğru 0007 MELISA ürününü ekledi. **2 ADET ×125,50 TRY =251,00 TRY** taslak10009 / DS-fc0b68bf-b788-4f00-9759-0 olarak kaydedildi ve aynı belge normal ekrandan tamamlandı. Taslak stok/cari etkisi oluşturmadı. Finalize sonrası stok23→21, müşteri1 TRY borcu0→251; native stok hareketi1/net−2 ve müşteri hareketi1/+251, actor10018. Tahsilat yapılmadı, kasa değişmedi.
+
+Native tek stok/cari etkisi, normal reload/fiş ve iki committed exact UUID/body replay doğrulandı; farklı body409,18 iş tablosu ikinci etkisiz. APIb40a0788 kurulu/exact CI3/3SUCCESS. Fiyat/barkod/maliyet/kasa/tedarikçi/roller ve B5 geçmişi korunur. **İnsan kabulü BEKLİYOR**; özgün17/74 ve49ERP/25CRM sayaçları aynı. Tek ürün/2ADET/TRY örneği çok SKU veya bütün rollerin kabulüne genellenmez; B7 başlatılmadı. Ayrıntı [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
 
 ### Önceki teslim — tarihsel
 ## 24 Ekim — B5 Semih teknik tamam; B6 kalan bağlantı sırada
