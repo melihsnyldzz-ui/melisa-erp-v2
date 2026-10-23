@@ -1,3 +1,10 @@
+## 24 Ekim — B5 Semih teknik eksiği 🟢; sıradaki B6
+
+Semih10018 mevcut rol28 ile36izin; yalnız iki gerekçeli finans iptali eklendi. Normal tahsilat50/iptal ve ödeme5/iptal kendi aktörüyle tamamlandı; son dört finansal kaydet/onay tıklaması kullanıcıya aittir. Tamreload ve bağımsızSQL müşteri100/tedarikçi80/kasa10TRY, journal34/finanshareketi39, stok23/maliyet60 ile uyumlu. Üçdöviz native replay/ret/hata rollback provaları ve32hedef test geçti. APIa930gerçektenkurulu; web982/nativeprocess035/CRMbc8+e1aynı, SQLmetadataa1b. Exact kaynak CI üç zorunlu job SUCCESS.53koruma kapsamının50'si ve5eközet aynı; izinli üç kapsamın farkı açıklanmıştır.
+
+GenelB5 gerçekkişi–göreveslemesi/insankabulü için🟡; yeni insanPASS veya sayaç yok. **ŞİMDİ:** B6 mevcut79ed/d937sınır hazırlığından native doğrudan sepet/tek-etki bağlantısı; sonra B7. Bitmiş B4 ve B5 kontrolleri tekrarlanmaz. Ayrıntı [STATUS](STATUS.md), [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
 ## 23 Ekim — B5 bilinen ERP rol alt kontrolleri 🟢; gerçek görev/insan kabulü 🟡
 
 KuruluAPI/web98226c7f/3397dosya,exactCI40002707905gerekli3jobSUCCESS.7normalörnekrol/49APIokuma/6yetkisizişlem403;15işveri/roltablosuaynı. NormalGUI'de sorumlu22'ye yanlış açılan yeni/tekrar/devam sayım kontrolleri mevcutcanDraftile kapatıldı; personel21başlatmaenabled/sorumlu22disabled, mevcut10incelemesi açık, reloadaynı.26hedeftestPASS; yeni yetki/ticarikayıt0.53veri+5eközetve7native/CRMlistenerkorundu; B4🟢örnektekniksonuç/kapanmışkasakorunur. GenelB5gerçekkişi–göreveslemesiveinsankabulüiçin🟡; özgün17/74ve49/25sayaçlarıaynı. Bu turB6/B7başlatılmadı. [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

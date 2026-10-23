@@ -1,3 +1,10 @@
+## 24 Ekim — B5 Semih teknik tamam; B6 kalan bağlantı sırada
+
+Normal Semih kendi aktörüyle tahsilat/ödeme ve gerekçeli geri alma, tamreload ve bağımsızSQL sonuçları doğrulandı. Son finansal tıklamaları kullanıcı yaptı; bu geniş personel kabulü değildir. APIa930/SQLmetadataa1b kurulu, web982/nativeprocess035/CRMaynı;32hedef test ve exact kaynak CI SUCCESS. Korunan işverisi/roller ile53kapsamın izinli üç farkı STATUS'ta açıklandı. B5'in bilinen yönetici eksiği🟢; gerçek kişi–görev ve insan kabulü🟡. Özgün17başlık/74yaprak,49ERP/25CRM ve insan kabul sayaçları aynı.
+
+Mevcut B6 kaynak/offline koruması79ed7a9a/d9376957 korunur; sıradaki teknik kapsam gerçek native doğrudan satış/sepet/journal/tek stok-cari etkisi, ardından B7. Yeni finish tree/TEST/ajan/helper yok. Ayrıntı [STATUS](STATUS.md), [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
 ## 23 Ekim — B5 bilinen ERP rol alt kontrolleri 🟢; gerçek görev/insan kabulü 🟡
 
 KuruluAPI/web98226c7f/3397dosya,exactCI40002707905gerekli3jobSUCCESS.7normalörnekrol/49APIokuma/6yetkisizişlem403;15işveri/roltablosuaynı. NormalGUI'de sorumlu22'ye yanlış açılan yeni/tekrar/devam sayım kontrolleri mevcutcanDraftile kapatıldı; personel21başlatmaenabled/sorumlu22disabled, mevcut10incelemesi açık, reloadaynı.26hedeftestPASS; yeni yetki/ticarikayıt0.53veri+5eközetve7native/CRMlistenerkorundu; B4🟢örnektekniksonuç/kapanmışkasakorunur. GenelB5gerçekkişi–göreveslemesiveinsankabulüiçin🟡; özgün17/74ve49/25sayaçlarıaynı. Bu turB6/B7başlatılmadı. [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

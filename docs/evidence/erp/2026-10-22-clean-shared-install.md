@@ -1,3 +1,23 @@
+## 24 Ekim 00:33 TR — B5 Semih kendi yönetici işlemleri: kurulum ve normal ekran
+
+API4194 a9304b6a1ae60276621362db5b79478213ce0370 / CLEAN-ERP-20261023-a9304b6a1ae6-B5ADMIN gerçekten00:12TR'de kuruldu;3397dosya,manifest432A31AE72A9BC1E74E7F49D3BB5F830D6902819CCA49121CF331F448608518E. Web5244 eski kabul edilmiş98226c7f dosyalarıyla aynı süreçte kaldı. Native süreç035fcc08; native SQL metadata a1b105d29d723a3689210197c268462172d54dd2; CRMbackendbc8/frontend e1 aynı.10diğer listener kimliği korundu. E662/clean20261022/synthetic/actualT1false/externalfalse ve minimum SQL login sınırları doğrulandı; yedek CHECKSUM/VERIFYONLY geçti, restore yok.
+
+Semih10018/rol28 eski34+iki açık iptal izni=36; başka rol/parola değişmedi. Admin9/ledger7mühürü ve before-image doğrulandı. Native12TRY/USD/EURkomut, aynıUUID/body ikinci etki0, farklıbody409, personel iptali403; motor-sonrası hata ve geçerli intent içindeki doğrudan tutarsız defter okuması51965ret. Üç prova bütünüyle dışrollback. İlk yavaş katmanın yalnız metadata inverse'i ve başarısız denemeler özel kanıtta korunur.32farklı hedef kontrolPASS; bağımsızreviewNOT_RUN.
+
+| Normal Semih ekranı | Yeni kayıt | Sonuç / tam yenileme |
+|---|---|---|
+| 50TRY tahsilat | 40043 | Müşteri100→50,kasa10→60; kendi aktörü |
+| Gerekçeli tahsilat iptali | 40043 ters etki | Müşteri100/kasa10; eski geçmiş duruyor |
+| 5TRY tedarikçi ödeme | OD-20048 | Tedarikçi80→75,kasa10→5 |
+| Gerekçeli ödeme iptali | ODI-20049 | Tedarikçi80/kasa10; ödeme+inverse ayrı, eski satırlar korunuyor |
+
+Dört son finansal gönderim düğmesini otomatik güvenlik incelemesi gereği **kullanıcı** tıkladı; ajan normal form hazırlığı/okuma/reload/SQL kontrolünü yaptı. Yeni GUI kayıtlarının kalıcı HTTP replay'i çalıştırılmadı; yeni Semih replay kanıtı native rollback provasıdır. Önceki B4 kalıcı replay kanıtı korunur. Son journal34/finance_account_movements39,intent0,stok23,maliyet60; tüm dört istek actor10018.53koruma kapsamının50'si aynı; müşteri/kasa güncelleme izi ve iki yeni tahsilat bağlantısı izinli farktır.5eközet aynı. UI/SQL sonucu gerçek para veya geniş insan kabulü değildir.
+
+Normal context ilk9057ms/sonraki408ve402ms; soğuk okuma hızlı ilan edilmedi. Screenshot timeout sonrası aynı yakalama tekrarlanmadı; gerçek normal tarayıcı AX/DOM ve kullanıcı adımları privatekanıtta. Dosyalar: b5-admin-delivery.json, b5-admin-final-native-readback.txt, b5-admin-final-protection-summary.json, b5-admin-native-positive/failure/direct-midstate-denied.json, b5-admin-ui-user-collection-cancel-result.txt, b5-admin-ui-payment-full-refresh.txt. Hamveri/parola/token/GitHub aktarımı yok.
+
+Exact kaynakCI [a930/40019314591](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40019314591) ve [a1b/40024535210](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40024535210) gerekliquality/windows/secretjobları SUCCESS. Belge teslimi çalışan API/native kaynağı değildir. [Ödeme ekranı](http://192.168.1.46:5244/ornek-akis.html#supplier-payments),[tahsilat](http://192.168.1.46:5244/ornek-akis.html#collections),[CRM](http://192.168.1.46:62800/). B5bilinenSemihtekniği🟢; gerçekkişi–görev ve insan kabulü🟡,USER_ACCEPTANCE/sayaçlar aynı. Sıradaki B6 mevcut hazırlığının native bağlantısı, sonraB7. Eski TEST125/DB02/LIVE/Vega/main/yedekler değişmedi.
+
+### Önceki teslimler — tarihsel
 ## 23 Ekim 21:30 TR — B5 bilinen ERP rol kontrolleri ve normal sayım görünümü teslim edildi
 
 **Kurulu API/web:**98226c7fc6bfe19ee47e926eac6b89e4b489438b; CLEAN-ERP-20261023-98226c7fc6bf-B5ROLES/3397dosya; manifest55487B821AEC2AF068BEF6BE9C7AFBBBE36976F0482A11FE8AAB15DF8B3904A2. Gerçek kurulum21:28:42TR; guarded build8,58sn. ExactCI40002707905quality/windows/secretüçzorunlujobSUCCESS. B4eeffkaynağının bütün uygulama/SQLkanıtları korunur; sonradan yapılan belge commit'i kurulu kaynakla aynı değildir.
