@@ -1,4 +1,6 @@
-## 23 Ekim — B4 öncelikli; kullanılabilir TRY alt sonuçları tamamlandı, tam B4 açık
+## 23 Ekim — B4 öncelikli; TRY ve günlük kasa alt sonuçları tamamlandı, tam B4 açık
+
+Günlük kasanın mevcut motoru/sonlu şeması kuruldu. Normal muhasebe20üçdövizi ayrıaçtı;EURana kasayateslimveUSDgider,kayıtlıüçistektereplay/çatışki,tamreloadkanıtlandı. Dar yeşilyerleşimcc574cb7kurulu,CI3/3; üçresponsiveölçümdeyataytaşma0. Kontrol23yalnızokuyor;eskiroller/veriler/native/CRMkorunur. Bu emülasyon/ajan teknikkanıtıdır,insan/cihazPASSdeğildir. TamB4🟡; kalanUSD/EURcaribağıveardındannormalGUIkasakapanışı. Yeniyaprak/sayaçyok; ayrıntıSTATUSveaynıkanıtbelgesinde.
 
 ERP-DEC-073: B4 kısmi/tam tahsilat/ödeme ve gerekçeli iptal, ardından kayıtlı TRY/USD/EUR ile ana kasa/günlük kasa ayrımı tamamlanmadan yeni B6/B7işi açılmaz. Önceki B6 kaynak/belge ve kurulu B5 korunur. Normal örnek muhasebe ekranında251−100=151müşteri ve200−80=120tedarikçi, yenileme ve kalan tutarla tam kapanış/kasa51gerçekleşti. Kurulu01a1d9f6normalekranda80ödeme ve100tahsilatı gerekçeli iptal etti; müşteri100/tedarikçi80/kasa31tamreloadveSQLileeş. AltıkalıcıistekteAPIreplayikinci etki0; farklıgövde409. TRYaltkapsamıtekniktamam; tümB4🟡,döviz/anakasa–çekmece açık. Yeni yaprak veya insanPASS/sayaçartışı yok. Kalan döviz/kasa teknik işidir, yeniden para birimi kararı beklenmez. Güncel [STATUS](STATUS.md) ve mevcut tek kanıt esas alınır.
 

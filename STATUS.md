@@ -1,3 +1,13 @@
+## 23 Ekim 19:54 TR — B4 günlük kasa görünümü kurulu, üç dövizli normal kayıtlar korundu
+
+API/web cc574cb7b787b0de0256680c9192bd5a86b068f5 / immutable3397dosya / manifest4FCA505322C4D1D156E30A96EEAA1730BD873984A2F71582EFA824D20486CA78 gerçekten kurulu; makbuz19:51:14TR. ExactCI39989366388üçzorunlujob3/3SUCCESS. Yalnız yeşil yüzün eksik kasa temel stilleri scopedCSSile tamamlandı ve gereksiz statik kasa import'u kaldırıldı; gerçek native motor/haklar/tutar hesabı aynı. Yeni normal girişten sonra mevcut kasa oturumu4veüç kaydedilmiş istek korundu. Önceki15dakikalık erişim oturumu süresi dolduğu için mevcut korumalı TESTparolası normal forma aktarıldı; parola/rol değişikliği veya bypass yok.
+
+Tarayıcıdaki390/1024/1440emülasyonunda gerçek içerik375/1009/1425px,documentgenişliğiaynı,yataytaşma0. İlk üst düzey viewport ayarı ölçümdeetkisizkaldı; desteklenen sekmeCDPboyutuyla ölçüldü ve override sonunda kaldırıldı. Bu fiziksel mobil/Zebra kabulü değildir. Normal kontrol23ekranı aynı bakiyeyi okudu; yalnızgörüntülemedurumunda transfer/gider/kapatmadüğmeleri0. Yenipara/rol etkisi yok. Native/CRM7listenerPID/doğum/executableaynı;53veri+5rolözeti kurulumöncesiyle aynı; HTTPsayfasıaktifpaketlebyteeş,CRM200. Private b4-cash-layout-verification.json,b4-cash-responsive.json,b4-cash-layout-after.png,b4-cash-checker-readonly.png. İnsanPASSve17/74sayaçlarıaynı.
+
+**B4 kalan:** USD/EUR cari tahsilat/ödeme bağının mevcut native finans motoruna sonlu kapsamla eklenmesi, ardından açık günlük kasanın normalGUIkapanışı. Açılış/transfer/gider/replaybölümüteknikdoğrulandı; tamB4🟡. MevcutTRYbaşarılarıyenidenüretilmez; B5sonra, yeniB6/B7işiyok.
+
+### Önceki kasa kurulumu — tarihsel
+
 ## 23 Ekim — B4 günlük kasa kuruldu; normal açılış, transfer, gider ve kalıcı replay doğrulandı
 
 Kurulu API4194+web5244kaynak259f67d21c48ee12824f97f44fa884afdc437c9f; frontend71e9a26b, immutablepaket3398dosya/manifest85E23AF65FDD5762D38A726C2E0ADC2F9A86A563455D5298874E581D969473F7.19:39:17TRmakbuzINSTALLED. ExactpushCI39987294945üçzorunlujob3/3SUCCESS; ayrıPRsynchronizekoşusugörünmediği için6/6denmedi. Kurulumkapısı üçjobadı+exactSHA+görünenherkontrolünSUCCESSolmasınızorunlututar; yinelenenpush/PRsayısıtestşartısayılmaz. İlkPS5kurulumdenemesiJSONdizifiltresiyle stopöncesireddedildi; PID/kaynaklaraynı doğrulanıp mevcutPS7.6hostuylaaynıkontrollergeçti. Hiçbirguardkapısıgevşetilmedi.

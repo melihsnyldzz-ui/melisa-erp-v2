@@ -1,5 +1,19 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — B4 günlük kasa gerçek kurulum ve normal ekran kanıtı
+
+Gerçek motorun tetikleyicili tabloda verdiğiSQL334hatası yalnız dörtINSERT'inOUTPUTINTOşeklinde düzeltilmesiyle çözüldü; trigger/rol/hesapkontrolleri korunur. Regresyon eski koddaFAIL,düzeltmede13/13PASS. MinimumSQLlogin ileTRY/USD/EURaçılış/ana–çekmece/transfer/gider/gerekçelifark/kapanış/replay ve ayrı motor-sonrası hata/ikinci açılış ret provaları gerçeknativeişlemlerle çalıştı; üçü de dıştransactionsonundatamrollback. Private b4-cash-native-positive/failure/duplicate.json, ilk334hatasıayrısaklı.
+
+Mevcut0012'den8tablo,17mühürlümodülvebeşyeni açık yapaykasa hesabı yalnız cleanTEST'e eklendi. Eski finans/cari/stok/belge/rol geçmişi korundu. AnaTRY/USD/EUR1000'er ayrı sentetik girdidir; gerçek işletmeaçılışı veya kaynakVega bakiyesi değildir. COPY_ONLY/CHECKSUMyedek18:48:41VERIFYONLYbaşarılı; aktifyedekrestoreyapılmadı.
+
+API/web259f67d2gerçekkurulumundan sonra normal muhasebe20kasaoturumu4'ü açtı:TRY31mevcut+100anaaktarımı,USD0+10,EUR0+20. Normal5EURana kasayateslimve2USDgiderkalıcı; tamreloadçekmeceTRY131/USD8/EUR15,anaTRY900/USD990/EUR985. ÜçGUIisteği journal'dantamgövde/UUIDilegerçekAPIreplay:3/3ikinci etki0; farklıbody3/3HTTP409. SQL17journal/17finanshareketi,eski14journalaynı,kasaintent0; müşteri100/tedarikçi80/stok23/eski kasa256,50korundu. Günlük kasa açık, normalGUIkapanışı hâlâ bekler.
+
+GUI'nin bulduğu eksik temelstiller/taşma yalnız scopedCSSile giderildi; son kuruluAPI/webcc574cb7b787b0de0256680c9192bd5a86b068f5,3397dosya,manifest4FCA505322C4D1D156E30A96EEAA1730BD873984A2F71582EFA824D20486CA78,19:51:14TR. ExactCI39989366388gerekli3job3/3SUCCESS; önceki259fCI39987294945de3/3SUCCESS. AyrıPRkoşusugörünmediğinden6/6denmedi. Üç isim+exactSHA+görünenherkontrolünSUCCESSşartı korunur; duplicateworkflowadedi testşartı değildir. İlkPS5kurulumdenemesi stopöncesiJSONdizifiltresindedurdu; aynıkimliklerPS7.6hostunda aynıguard'lardangeçti. İlkbaseCIguard/WEB2veeskiHTTP403hataları tarihselkanıtlarıylakorunur.
+
+53veri+5rolözetikurulumönce/sonraaynı,7native/CRMlistenerPID/doğum/executableaynı,aktifHTTPpaketbyteeş/CRM200. Normal kontrol23aynıbakiyeyiokudu;transfer/gider/kapatmadüğmeleri0. Responsive390/1024/1440emülasyonunda scrollbarsonrası375/1009/1425pxgörünürgenişlikveyataytaşma0; sekmeoverridekaldırıldı. Fizikselcihaz/insankabulüBEKLİYOR. Private b4-cash-layout-verification.json,b4-cash-responsive.json,b4-cash-gui-sql-readback.txt,b4-cash-committed-replay.json,b4-cash-layout-after.png. Bağımsızreviewyapılmışsayılmaz.
+
+**TamB4🟡:** kalanUSD/EURcaritahsilat/ödeme bağı ve sonnormalGUIkapanışı. SonraB5; yeniB6/B7yok. Özgün17/74,49ERP/25CRMveinsankabulleriaynı. EskiTEST125/DB02/LIVE/Vega/main değişmedi.
+
 ## 23 Ekim — B4 TRY normal finansal iptal ve kalıcı tekrar güvenliği
 
 Mevcut PR54/source01a1d9f6424b39fcb2115f593d57bc0c6567a77b API-only makbuzu17:35:10TR INSTALLED; web d73a9a22/native035fcc08/CRMbc8c307e+frontend e1ce12b7korundu. KaynakCI PR39969421383/push39969411238gerekli6/6SUCCESSöncedenokundu; bu GUIkanıtında değişmeyenCIyenidenkoşulmadı.10web/native/CRMlisteneradres/PID/doğum/executablemakbuzlaeş.
