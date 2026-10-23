@@ -436,6 +436,8 @@ export async function getCashRegisterOverview(query = {}, context) {
     const typeLabels = {
       collection: 'Nakit Tahsilat',
       payment: 'Nakit Ödeme',
+      collection_cancel: 'Tahsilat Geri Alındı',
+      payment_cancel: 'Ödeme Geri Alındı',
       expense: 'Masraf',
       cash_transfer: row.transfer_direction === 'main_to_drawer' ? 'Ana Kasadan Giriş' : 'Ana Kasaya Teslim',
       cash_adjustment: 'Kasa Fark Düzeltmesi',

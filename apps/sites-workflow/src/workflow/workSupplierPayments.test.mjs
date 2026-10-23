@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {paymentContext,paymentSelection,paymentPreview,paymentRecord,createPaymentJournal} from './workSupplierPaymentsModel.mjs';
 import {supplierPaymentContext,supplierPaymentPreview} from '../../../api/src/services/workSupplierPaymentModel.mjs';
+import {CLEAN_FINANCE_FX_CASES} from '../../../api/src/services/cleanFinanceRehearsalModel.mjs';
 const requestId='00000000-0000-4000-8000-000000000001',apiBase='http://192.168.1.46:4144';
 const actor={id:'16',permissions:['finance.view','supplier.view','finance.payment','finance.payment.cancel']};
 function raw(){return {actorId:'16',roleCode:'isolated_test_ilker',permissions:actor.permissions,documentDate:'2026-10-06',maxAmountExact4:'500.0000',maxPayments:30,suppliers:['TRY','USD','EUR'].map((currency,i)=>({id:String(101+i),code:'SUP-'+currency,name:'Tedarikçi '+currency,currency,balanceExact4:['140.0000','20.0000','30.0000'][i],debtKind:i?'opening':'invoice',snapshotVerified:true,invoices:i?[]:[{id:'139',receiptId:'105',number:'TSTB-PAY',status:'finalized',documentDate:'2026-10-06',receiptKind:'work-finops-physical-receipt',documentCurrency:'USD',documentAmountExact4:'3.5000',accountCurrency:'TRY',accountAmountExact4:'140.0000',paidExact4:'0.0000',returnedExact4:'0.0000',remainingExact4:'140.0000'}]})),accounts:['TRY','USD','EUR'].map((currency,i)=>({id:String(201+i),code:'ACC-'+currency,name:'Hesap '+currency,type:i?'bank':'cash',currency,openingVerified:true,openingBalanceExact4:'1000.0000',balanceExact4:'1000.0000'})),rates:['USD','EUR'].map((currency,i)=>({id:String(401+i),currency,rateToTryExact8:i?'45.00000000':'40.00000000',date:'2026-10-04'})),payments:[]};}
@@ -119,6 +120,18 @@ test('B4 keeps the original paid source alongside one separately identified part
  for(const change of [v=>delete v.meta.financeCase,v=>v.accounts[1].id='3',v=>v.suppliers[1].invoices[0].id='6',v=>v.suppliers[1].invoices[0].receiptId='3',v=>v.suppliers[1].currency='USD']){const bad=structuredClone(c);change(bad);assert.throws(()=>paymentContext(bad));}
  const journal=createPaymentJournal({storage:storage(),actorId:'23',apiBase:'http://127.0.0.1:4194',location:{protocol:'http:',hostname:'127.0.0.1',port:'5244'},makeUuid:()=>requestId});assert.equal(journal.read().request,null);
 });
+test('B4 FX payment screen accepts only the exact native currency/document/drawer/rate tuples and preserves TRY',()=>{
+ const c=cleanFinanceContext();c.meta.financeCase='B4-TRY-20261023';c.meta.financeFxCases=CLEAN_FINANCE_FX_CASES.map(p=>p.id);
+ c.suppliers.push({...c.suppliers[0],id:'2',balanceExact4:'200.0000',invoices:[{...c.suppliers[0].invoices[0],id:'5',receiptId:null,receiptKind:null,documentAmountExact4:'200.0000',accountAmountExact4:'200.0000',remainingExact4:'200.0000'}]});c.accounts.push({...c.accounts[0],id:'2',balanceExact4:'131.0000'});
+ for(const p of CLEAN_FINANCE_FX_CASES){
+  c.suppliers.push({...c.suppliers[0],id:p.supplierId,currency:p.currency,balanceExact4:'200.0000',invoices:[{...c.suppliers[1].invoices[0],id:p.purchaseInvoiceId,number:p.purchaseNumber,documentCurrency:p.currency,accountCurrency:p.currency}]});
+  c.accounts.push({...c.accounts[0],id:p.accountId,currency:p.currency,balanceExact4:'180.0000'});c.rates.push({id:p.fxFixtureId,currency:p.currency,rateToTryExact8:p.rateExact8,date:p.date,caseId:p.id,source:'explicit-synthetic-B4-input'});
+ }
+ assert.equal(paymentContext(c),c);
+ for(const p of CLEAN_FINANCE_FX_CASES){const selection={supplierId:p.supplierId,invoiceId:p.purchaseInvoiceId,accountId:p.accountId,currency:p.currency,amountExact4:'80.0000',documentDate:p.date,description:'Yapay döviz kısmi ödeme'},preview=supplierPaymentPreview(selection,c);assert.equal(paymentPreview(preview,selection,c),preview);assert.equal(preview.balanceAfterExact4,'120.0000');assert.equal(preview.accountBalanceAfterExact4,'100.0000');assert.equal(preview.settlement.amountTryExact4,p.currency==='USD'?'3200.0000':'3600.0000');}
+ for(const change of [v=>delete v.meta.financeFxCases,v=>v.meta.financeFxCases.reverse(),v=>v.accounts[2].id='6',v=>v.suppliers[2].invoices[0].id='5',v=>v.suppliers[3].currency='TRY',v=>v.rates[0].rateToTryExact8='45.00000000',v=>v.rates[0].source='market']){const bad=structuredClone(c);change(bad);assert.throws(()=>paymentContext(bad));}
+});
+
 test('clean store day retains the actual receipt3 purchase4 link without relabelling legacy receipts',()=>{
  const c=cleanFinanceContext();assert.equal(paymentContext(c),c);
  const p=supplierPaymentPreview({supplierId:'1',invoiceId:'4',accountId:'1',currency:'TRY',amountExact4:'120.0000',documentDate:'2026-10-22',description:'Örnek alış ödemesi'},c);

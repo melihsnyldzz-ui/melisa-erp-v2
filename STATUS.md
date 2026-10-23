@@ -1,3 +1,13 @@
+## 23 Ekim — B4 USD/EUR kaynak bağlantısı hazır; native uygulama ve GUI henüz bekliyor
+
+Mevcut finans adapteri aynı native tahsilat/ödeme/inverse/journal motorunu kullanarak yalnız iki yeni açık yapay örneğe parametrelendi. USD müşteri/tedarikçi3, satış3/alış6/çekmece3; EUR4, satış4/alış7/çekmece4. Tarih22Ekim, ayrı hesaplar ve açık sentetik40/45kur girdileri; piyasa/Vega kuru veya gerçek işletme açılışı değildir. Yeni ana motor/DB/hesaprolü yok. TRYkanıtlarıveeski6isteğinbodyşeklikorunur. FXgövdesine server tarafında sabitcaseIdeklenir; yanlışdöviz/hesap/kimlik/flagveeksiknativewitnessreddedilir. Ödemeyüzü yalnızexactdörtcarivehesaptuple'ı,iki sabitkur/metadata ile açılır; kapsamgenelleştirilmedi. Kasa geçmişindeki iki ters kayıt etiketi kullanıcı diline çevrildi.
+
+81farklıhedeflitestPASS (backend/nativeSQLkaynak60+ödemeekranı21); SQLactualmotor/PASSveinsankabulüdeğildir. FXownerDDLprovası22modül/10exactpredecessor/twopartycaseilegerçekcleanSQL'deçalışıp tamrollbackoldu. İlkQUOTE_IDENTIFIER1934veeskiön-ekdeğişkeniyle134hatalarısaklı; mevcutB4SETseçenekleriveayrıprefixdeğişkenleriylegiderildi. ÖncekimodülSETseçenekleribefore-image'aalınıyor;aftermoduleflagsONayrıcadoğrulanır. Sonprova7f567a1084d3a2d5cf151c3a913ead1e0ecb45654450b72e84e32ed10678c8b2; FXmanifestsondaNULL,iki müşteri/iki tedarikçi,17journal/17finanshareketi/1açıkkasakorunur;53korunansatırözetiaynı. Bu **FXşemasıkalıcıkuruldu,gerçekFXmotoruakışıveyanormalGUIgeçti** demekdeğildir. Nativeengine/replay/inverse/rollbackvekurulum/GUIkesinleştirilecektir; bağımsızreviewyapılmadı. TamB4🟡,insanPASS/sayaçyok.
+
+KuruluAPI/webhâlâcc574cb7; bu kaynaktaslağıkurulmadı. EskiB4kasa/TRYteslimleri/CRM/native/rollerkorunur. Private b4-fx-probe.sql,b4-fx-probe-result.txt,b4-fx-probe-protected.after.txt; hatalı provalarayrıdosyalardakorunur. Aynıkapsamdakalan gerçekFXnativeuygulamasısonranormaldöviztahsilat/ödemevekasakapanışı; ardındanB5. YeniB6/B7/helper/ajan/planbaşlamadı.
+
+### Önceki kurulu günlük kasa teslimi — geçerli temel
+
 ## 23 Ekim 19:54 TR — B4 günlük kasa görünümü kurulu, üç dövizli normal kayıtlar korundu
 
 API/web cc574cb7b787b0de0256680c9192bd5a86b068f5 / immutable3397dosya / manifest4FCA505322C4D1D156E30A96EEAA1730BD873984A2F71582EFA824D20486CA78 gerçekten kurulu; makbuz19:51:14TR. ExactCI39989366388üçzorunlujob3/3SUCCESS. Yalnız yeşil yüzün eksik kasa temel stilleri scopedCSSile tamamlandı ve gereksiz statik kasa import'u kaldırıldı; gerçek native motor/haklar/tutar hesabı aynı. Yeni normal girişten sonra mevcut kasa oturumu4veüç kaydedilmiş istek korundu. Önceki15dakikalık erişim oturumu süresi dolduğu için mevcut korumalı TESTparolası normal forma aktarıldı; parola/rol değişikliği veya bypass yok.

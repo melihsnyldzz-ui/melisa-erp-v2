@@ -12,6 +12,13 @@ function contextReceiptKind(c,copy){
  if(copy)return receiptKinds[2];
  if(c.meta.environmentId==='e662fd94-d797-4b3b-938a-d143ad758b67'){
   if(c.meta.financeCase==='B4-TRY-20261023'){
+   if(c.meta.financeFxCases!==undefined){
+    const cases=['B4-USD-20261023','B4-EUR-20261023'],expected=[['1','TRY','4','3'],['2','TRY','5',null],['3','USD','6',null],['4','EUR','7',null]];
+    if(c.meta.date!=='2026-10-22'||!Array.isArray(c.meta.financeFxCases)||c.meta.financeFxCases.length!==2||cases.some((id,i)=>c.meta.financeFxCases[i]!==id)||c.suppliers.length!==4||c.accounts.length!==4||c.rates.length!==2)fail();
+    for(const [id,currency,invoiceId,receiptId]of expected){const parties=c.suppliers.filter(s=>s.id===id&&s.currency===currency),accounts=c.accounts.filter(a=>a.id===id&&a.currency===currency);if(parties.length!==1||accounts.length!==1||parties[0].invoices.length!==1||parties[0].invoices[0].id!==invoiceId||parties[0].invoices[0].receiptId!==receiptId||receiptId===null&&parties[0].invoices[0].receiptKind!==null)fail();}
+    for(const [id,currency,rate,caseId]of [['1','USD','40.00000000',cases[0]],['2','EUR','45.00000000',cases[1]]])if(c.rates.filter(r=>r.id===id&&r.currency===currency&&r.rateToTryExact8===rate&&r.date===c.meta.date&&r.caseId===caseId&&r.source==='explicit-synthetic-B4-input').length!==1)fail();
+    return receiptKinds[3];
+   }
    if(c.meta.date!=='2026-10-22'||c.suppliers.length!==2||c.accounts.length!==2||!['1','2'].every(id=>c.suppliers.filter(s=>s.id===id&&s.currency==='TRY').length===1&&c.accounts.filter(a=>a.id===id&&a.currency==='TRY').length===1)||c.suppliers.some(s=>s.invoices.length!==1||s.invoices.some(i=>s.id==='1'?i.id!=='4'||i.receiptId!=='3':i.id!=='5'||i.receiptId!==null||i.receiptKind!==null)))fail();return receiptKinds[3];
   }
   if(c.meta.date!=='2026-10-22'||c.suppliers.length!==1||c.suppliers[0].id!=='1'||c.accounts.length!==1||c.accounts[0].id!=='1'||c.suppliers[0].invoices.some(i=>i.id!=='4'||i.receiptId!=='3'))fail();return receiptKinds[3];

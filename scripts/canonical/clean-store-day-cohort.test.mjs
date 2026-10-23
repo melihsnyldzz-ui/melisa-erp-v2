@@ -6,7 +6,31 @@ import {moduleHash} from './stage4-copy-sql.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {buildCleanStoreAdministratorDefinitions,buildCleanStoreAdministratorSql,CLEAN_ADMIN_PERMISSIONS} from './clean-store-day-cohort-sql.mjs';
-import {buildCleanFinanceRehearsalPredecessors,buildCleanFinanceRehearsalDefinitions,buildCleanFinanceCashDefinitions,buildCleanFinanceCashSql,cleanFinanceCashSchemaSql} from './clean-finance-rehearsal-sql.mjs';
+import {buildCleanFinanceRehearsalPredecessors,buildCleanFinanceRehearsalDefinitions,buildCleanFinanceCashDefinitions,buildCleanFinanceCashSql,cleanFinanceCashSchemaSql,buildCleanFinanceFxDefinitions,buildCleanFinanceFxSql} from './clean-finance-rehearsal-sql.mjs';
+
+test('B4 FX adds two finite currency cases while preserving the installed TRY and cash definition history',()=>{
+ const prior={...buildCleanFinanceRehearsalDefinitions().definitions,...buildCleanFinanceCashDefinitions().definitions},hashes=Object.fromEntries(Object.entries(prior).map(([n,b])=>[n,moduleHash(b)]));
+ const fx=buildCleanFinanceFxDefinitions();assert.equal(fx.total,22);assert.equal(Object.keys(fx.before).length,10);
+ for(const [name,body]of Object.entries(fx.before))assert.equal(body,prior[name]);
+ assert.deepEqual(Object.fromEntries(Object.entries({...buildCleanFinanceRehearsalDefinitions().definitions,...buildCleanFinanceCashDefinitions().definitions}).map(([n,b])=>[n,moduleHash(b)])),hashes);
+ for(const [currency,party,purchase,rate]of [['USD',3,6,40],['EUR',4,7,45]]){
+  const prefix='usp_clean_finance_b4_fx_'+currency.toLowerCase(),bind=fx.definitions[prefix+'_bind'],guard=fx.definitions[prefix+'_guard'],finish=fx.definitions[prefix+'_finish'];
+  assert.match(bind,new RegExp('B4-'+currency+'-20261023'));assert.ok(bind.includes("N'"+currency+"'"));assert.ok(bind.includes('WHERE id='+party));assert.ok(bind.includes('m.purchase_invoice_id='+purchase));
+  assert.match(bind,/CLEAN_STORE_DAY_20261022/);assert.match(bind,/CURRENT_TRANSACTION_ID/);assert.match(bind,/clean_finance_b4_cash_intents/);assert.match(bind,/clean_finance_b4_intents/);
+  assert.ok(guard.includes("N'_id')),-1)<>"+party));assert.ok(guard.includes('THEN '+party+' ELSE '+purchase+' END'));assert.ok(guard.includes('CONVERT(decimal(18,4),@amount*'+rate+')'));
+  assert.ok(finish.includes('m.document_exchange_rate_snapshot='+rate));assert.ok(finish.includes('m.amount_try=CONVERT(decimal(18,4),@amount*'+rate+')'));
+  assert.doesNotMatch(bind+guard+finish,/\b(?:customer_id|supplier_id|sales_invoice_id|account_id|invoice_id)=2\b|\bpurchase_invoice_id=5\b/);
+ }
+});
+
+test('B4 FX setup is owner-only, replay-safe, preserves old money and stock, and cannot create cash accounts',()=>{
+ const sql=buildCleanFinanceFxSql({probe:true}),{definitions}=buildCleanFinanceFxDefinitions();
+ assert.match(sql,/^SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;/);
+ assert.match(sql,/IS_SRVROLEMEMBER\(N'sysadmin',ORIGINAL_LOGIN\(\)\)/);assert.match(sql,/B4_FX_ALREADY_INSTALLED/);assert.match(sql,/after_hash=/);assert.match(sql,/B4_FX_FIXTURE_PROBE_ROLLED_BACK/);assert.match(sql,/IF @@TRANCOUNT>0 ROLLBACK/);assert.match(sql,/@preserve<>HASHBYTES/);
+ assert.doesNotMatch(sql,/DISABLE TRIGGER|DROP TRIGGER|UPDATE dbo\.clean_finance_b4_manifest|UPDATE dbo\.clean_finance_b4_cash_manifest|DELETE dbo\.work_trade_requests|INSERT dbo\.finance_accounts|UPDATE dbo\.finance_accounts SET|UPDATE dbo\.products SET/);
+ assert.match(sql,/session_status=N'open'/);assert.match(sql,/DENY INSERT,UPDATE,DELETE ON dbo\.clean_finance_b4_fx_intents/);assert.match(sql,/synthetic_rate decimal\(18,8\)/);
+ for(const currency of ['usd','eur'])assert.match(definitions['usp_clean_finance_b4_fx_'+currency+'_guard'],/IF @op=N'fixture_prepare' BEGIN IF @table_name=N'finance_accounts' THROW/);
+});
 
 test('B4 cash companion preserves exact old finance bodies and retains native schema, constraints and narrow target',()=>{
  const original=buildCleanFinanceRehearsalDefinitions().definitions,hashes=Object.fromEntries(Object.entries(original).map(([n,b])=>[n,moduleHash(b)])),cash=buildCleanFinanceCashDefinitions();

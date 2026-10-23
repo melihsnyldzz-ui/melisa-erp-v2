@@ -54,9 +54,9 @@ export async function withCleanFinanceCashMutation(input,execute){
 export async function withCleanFinanceRehearsalMutation(input,execute){
  if(scope.getStore()||isCleanOrderSaleMutation()||typeof execute!=='function')deny();
  target();const s=financeRehearsalBinding(input),q=s.sqlDriver;
- const accepted=(await new q.Request(s.transaction).input('actor_id',q.BigInt,s.actor.id).input('operation',q.NVarChar(40),s.operation).input('request_id',q.UniqueIdentifier,s.requestId).input('payload_hash',q.Char(64),s.payloadHash).input('payload_json',q.NVarChar(q.MAX),s.payloadJson).execute('dbo.usp_clean_finance_b4_bind')).recordset?.[0];
+ const accepted=(await new q.Request(s.transaction).input('actor_id',q.BigInt,s.actor.id).input('operation',q.NVarChar(40),s.operation).input('request_id',q.UniqueIdentifier,s.requestId).input('payload_hash',q.Char(64),s.payloadHash).input('payload_json',q.NVarChar(q.MAX),s.payloadJson).execute('dbo.'+s.nativePrefix+'_bind')).recordset?.[0];
  witness(accepted,s,'accepted');
- return scope.run(s,async()=>{const value=await execute();const checked=(await new q.Request(s.transaction).input('request_id',q.UniqueIdentifier,s.requestId).execute('dbo.usp_clean_finance_b4_finish')).recordset?.[0];witness(checked,s,'verified');return value;});
+ return scope.run(s,async()=>{const value=await execute();const checked=(await new q.Request(s.transaction).input('request_id',q.UniqueIdentifier,s.requestId).execute('dbo.'+s.nativePrefix+'_finish')).recordset?.[0];witness(checked,s,'verified');return value;});
 }
 export async function assertCleanPurchaseSupplierItems(sqlDriver,transaction,supplierId,items){
  const s=scope.getStore();if(!s||!isCleanStoreDayMutation()||!['purchase_draft','purchase_finalize'].includes(s.operation)||s.transaction!==transaction||s.sqlDriver!==sqlDriver||supplierId!==1||!Array.isArray(items)||items.length!==1)deny();

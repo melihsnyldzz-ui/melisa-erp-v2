@@ -3,6 +3,19 @@
 import {createHash} from 'node:crypto';
 import {assertRegisteredCleanContext,isCleanAdministrator} from './cleanSyntheticContext.mjs';
 export const CLEAN_FINANCE_REHEARSAL=Object.freeze({id:'B4-TRY-20261023',date:'2026-10-22',customerId:'2',supplierId:'2',accountId:'2',invoiceId:'2',purchaseInvoiceId:'5',customerOpeningExact4:'251.0000',supplierOpeningExact4:'200.0000',currency:'TRY'});
+// Explicit synthetic inputs, never current exchange rates or Vega balances.
+// The native FX cohort must separately prove these exact identities before use.
+export const CLEAN_FINANCE_FX_CASES=Object.freeze([
+ Object.freeze({...CLEAN_FINANCE_REHEARSAL,id:'B4-USD-20261023',fxFixtureId:'1',customerId:'3',supplierId:'3',accountId:'3',invoiceId:'3',purchaseInvoiceId:'6',currency:'USD',rateExact8:'40.00000000',customerCode:'B4-ORNEK-M-USD',supplierCode:'B4-ORNEK-T-USD',customerName:'B4 Örnek USD Müşteri',supplierName:'B4 Örnek USD Tedarikçi',invoiceNumber:'B4-ORNEK-TAHSILAT-USD',purchaseNumber:'B4-ORNEK-ODEME-USD'}),
+ Object.freeze({...CLEAN_FINANCE_REHEARSAL,id:'B4-EUR-20261023',fxFixtureId:'2',customerId:'4',supplierId:'4',accountId:'4',invoiceId:'4',purchaseInvoiceId:'7',currency:'EUR',rateExact8:'45.00000000',customerCode:'B4-ORNEK-M-EUR',supplierCode:'B4-ORNEK-T-EUR',customerName:'B4 Örnek EUR Müşteri',supplierName:'B4 Örnek EUR Tedarikçi',invoiceNumber:'B4-ORNEK-TAHSILAT-EUR',purchaseNumber:'B4-ORNEK-ODEME-EUR'}),
+]);
+export const cleanFinanceFxEnabled=()=>cleanFinanceCashEnabled()&&process.env.MELISA_CLEAN_FINANCE_FX==='20261023';
+export function cleanFinanceFxCollectionCase(invoice,account){
+ if(!cleanFinanceFxEnabled())return null;
+ assertRegisteredCleanContext();
+ if(process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_STORE_DAY!=='20261022'||process.env.MELISA_CLEAN_FINANCE!=='20261022')throw financeRehearsalError();
+ return CLEAN_FINANCE_FX_CASES.find(p=>p.invoiceId===invoice?.id&&p.customerId===invoice?.customerId&&p.accountId===account?.id&&p.currency===invoice?.currency&&p.currency===account?.currency&&account.synthetic===true)??null;
+}
 export const CLEAN_FINANCE_REHEARSAL_PERMISSIONS=Object.freeze({collection_create:'finance.collection',collection_cancel:'finance.collection.cancel',payment:'finance.payment',payment_cancel:'finance.payment.cancel'});
 export const cleanFinanceRehearsalEnabled=()=>process.env.MELISA_CLEAN_FINANCE_B4==='20261023';
 export const CLEAN_FINANCE_CASH=Object.freeze({id:'B4-CASH-20261023',date:'2026-10-22',drawerId:1,currencies:Object.freeze(['TRY','USD','EUR']),accounts:Object.freeze({TRY:Object.freeze({drawer:2,main:5}),USD:Object.freeze({drawer:3,main:6}),EUR:Object.freeze({drawer:4,main:7})})});
@@ -43,6 +56,9 @@ export function financeRehearsalBinding(input){
  if(!input.transaction||!input.sqlDriver||typeof input.requestId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.requestId)||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))throw financeRehearsalError();
  let p;try{p=JSON.parse(input.payloadJson);}catch{throw financeRehearsalError();}
  if(!p||Array.isArray(p)||p.actorId!==String(input.actor.id)||p.operation!==input.operation||p.requestId!==input.requestId||p.documentDate!==CLEAN_FINANCE_REHEARSAL.date||createHash('sha256').update(input.payloadJson,'utf16le').digest('hex')!==input.payloadHash)throw financeRehearsalError();
- if(input.operation==='collection_create'&&(p.invoiceId!=='2'||p.accountId!=='2')||input.operation==='payment'&&(p.supplierId!=='2'||p.accountId!=='2'||p.invoiceId!=='5'||p.currency!=='TRY')||input.operation.endsWith('_cancel')&&(typeof p.id!=='string'||!/^[1-9]\d*$/.test(p.id)||typeof p.reason!=='string'||p.reason.trim().length<5||p.reason.length>300))throw financeRehearsalError();
- return Object.freeze({...input,actor:Object.freeze({id:Number(input.actor.id)}),profile:CLEAN_FINANCE_REHEARSAL.id});
+ const profile=input.profile===undefined||input.profile===CLEAN_FINANCE_REHEARSAL.id?CLEAN_FINANCE_REHEARSAL:CLEAN_FINANCE_FX_CASES.find(c=>c.id===input.profile);
+ const fx=profile!==CLEAN_FINANCE_REHEARSAL;
+ if(!profile||fx&&(!cleanFinanceFxEnabled()||p.financeCaseId!==profile.id)||!fx&&p.financeCaseId!==undefined)throw financeRehearsalError();
+ if(input.operation==='collection_create'&&(p.invoiceId!==profile.invoiceId||p.accountId!==profile.accountId)||input.operation==='payment'&&(p.supplierId!==profile.supplierId||p.accountId!==profile.accountId||p.invoiceId!==profile.purchaseInvoiceId||p.currency!==profile.currency)||input.operation.endsWith('_cancel')&&(typeof p.id!=='string'||!/^[1-9]\d*$/.test(p.id)||typeof p.reason!=='string'||p.reason.trim().length<5||p.reason.length>300))throw financeRehearsalError();
+ return Object.freeze({...input,actor:Object.freeze({id:Number(input.actor.id)}),profile:profile.id,nativePrefix:fx?'usp_clean_finance_b4_fx':'usp_clean_finance_b4'});
 }

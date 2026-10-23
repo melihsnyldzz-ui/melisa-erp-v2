@@ -3,7 +3,8 @@ import {registerCleanContext} from './cleanSyntheticContext.mjs';
 import {withCleanStoreDayMutation,isCleanStoreDayMutation,assertCleanReceivedPurchaseContext} from './cleanStoreDayScope.mjs';
 import {withCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
 import {withCleanFinanceRehearsalMutation,withCleanFinanceCashMutation,assertCleanCashRegisterTransaction} from './cleanStoreDayScope.mjs';
-import {cleanFinanceRehearsalWrite,cleanFinanceCashWrite} from './cleanFinanceRehearsalModel.mjs';
+import {cleanFinanceRehearsalWrite,cleanFinanceCashWrite,CLEAN_FINANCE_FX_CASES} from './cleanFinanceRehearsalModel.mjs';
+import {createWorkCollectionService} from './workCollectionService.mjs';
 const env={MELISA_CLEAN_TEST:'20261022',MELISA_CLEAN_STORE_DAY:'20261022',API_PORT:'4194',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:'MELISA_ERP_CLEAN_TEST_20261022',SQL_USER:'melisa_clean_test_app_20261022',SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false'};
 test('B4 cash engine context is admitted only by its same-transaction native witness; mixed or unbound callers fail closed',async()=>{
  process.env.MELISA_CLEAN_FINANCE='20261022';process.env.MELISA_CLEAN_FINANCE_B4='20261023';process.env.MELISA_CLEAN_FINANCE_CASH='20261023';
@@ -72,6 +73,39 @@ test('B4 uses a same-transaction native bind/finish and keeps existing creators 
    await assert.rejects(withCleanFinanceRehearsalMutation(bad.input,async()=>assert.fail()));
   }
  }finally{delete process.env.MELISA_CLEAN_FINANCE;delete process.env.MELISA_CLEAN_FINANCE_B4;}
+});
+
+test('B4 FX cases require their own exact native witness, identity and explicit synthetic currency binding',async()=>{
+ Object.assign(process.env,{MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023',MELISA_CLEAN_FINANCE_CASH:'20261023',MELISA_CLEAN_FINANCE_FX:'20261023'});
+ try{
+  for(const profile of CLEAN_FINANCE_FX_CASES)for(const operation of ['collection_create','payment','collection_cancel','payment_cancel']){
+   const cancel=operation.endsWith('_cancel'),f=fixture({operation,actorId:cancel?23:20});
+   Object.assign(f.input.actor,{username:cancel?'ornek-finans-kontrol':'ornek-finans',role:{id:cancel?29:25,code:cancel?'clean_test_finance_checker':'clean_test_finance'},permissions:[({collection_create:'finance.collection',payment:'finance.payment',collection_cancel:'finance.collection.cancel',payment_cancel:'finance.payment.cancel'})[operation]]});
+   f.input.profile=profile.id;
+   const body={actorId:String(f.input.actor.id),operation,requestId:f.input.requestId,financeCaseId:profile.id,documentDate:profile.date,...(cancel?{id:'7',reason:'Yanlış örnek döviz işlemi'}:operation==='payment'?{supplierId:profile.supplierId,invoiceId:profile.purchaseInvoiceId,accountId:profile.accountId,currency:profile.currency,amountExact4:'80.0000'}:{invoiceId:profile.invoiceId,accountId:profile.accountId,amountExact4:'100.0000'})};
+   const setBody=p=>{f.input.payloadJson=JSON.stringify(p);f.input.payloadHash=createHash('sha256').update(f.input.payloadJson,'utf16le').digest('hex');f.witness.payloadHash=f.input.payloadHash;};setBody(body);
+   await withCleanFinanceRehearsalMutation(f.input,async()=>assert.equal(isCleanStoreDayMutation(),true));
+   assert.deepEqual(f.calls,['dbo.usp_clean_finance_b4_fx_bind','dbo.usp_clean_finance_b4_fx_finish']);
+   for(const patch of [{financeCaseId:'B4-TRY-20261023'},...(cancel?[]:[{accountId:'2'},{invoiceId:'1'},...(operation==='payment'?[{currency:'TRY'}]:[])])]){setBody({...body,...patch});const count=f.calls.length;await assert.rejects(withCleanFinanceRehearsalMutation(f.input,async()=>assert.fail()));assert.equal(f.calls.length,count);}
+   setBody(body);delete process.env.MELISA_CLEAN_FINANCE_FX;const count=f.calls.length;await assert.rejects(withCleanFinanceRehearsalMutation(f.input,async()=>assert.fail()));assert.equal(f.calls.length,count);process.env.MELISA_CLEAN_FINANCE_FX='20261023';
+   const absent=fixture({operation,actorId:cancel?23:20,missing:true});Object.assign(absent.input,f.input,{transaction:absent.input.transaction,sqlDriver:absent.input.sqlDriver});let ran=false;await assert.rejects(withCleanFinanceRehearsalMutation(absent.input,async()=>{ran=true;}));assert.equal(ran,false);
+  }
+ }finally{for(const key of ['MELISA_CLEAN_FINANCE','MELISA_CLEAN_FINANCE_B4','MELISA_CLEAN_FINANCE_CASH','MELISA_CLEAN_FINANCE_FX'])delete process.env[key];}
+});
+
+test('B4 FX collection preview preserves four-decimal input and uses only its explicit synthetic rate and account',async()=>{
+ Object.assign(process.env,{MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023',MELISA_CLEAN_FINANCE_CASH:'20261023',MELISA_CLEAN_FINANCE_FX:'20261023'});
+ try{
+  for(const profile of CLEAN_FINANCE_FX_CASES){
+   const account={id:profile.accountId,currency:profile.currency,synthetic:true},invoice={id:profile.invoiceId,customerId:profile.customerId,currency:profile.currency,status:'finalized',collections:{outstandingExact4:'251.0000',receivedExact4:'0.0000',revision:'b'.repeat(64)}};
+   const context={meta:{date:profile.date},scope:{accounts:[account]},capabilities:{canCollect:true}},actor={id:'20',permissions:['customer.view','finance.collection']};
+   const service=createWorkCollectionService({getStore:async()=>({read:async(_actor,fn)=>fn({context,invoice:async()=>invoice})})});
+   const input={invoiceId:profile.invoiceId,accountId:profile.accountId,amountExact4:'0.0001',documentDate:profile.date};
+   const preview=await service.preview(input,actor);assert.equal(preview.currency,profile.currency);assert.equal(preview.outstandingAfterExact4,'250.9999');assert.equal(preview.settlement.amountTryExact4,profile.currency==='USD'?'0.0040':'0.0045');assert.equal(preview.settlement.rateSource.source,'explicit-synthetic-B4-input');
+   account.currency='TRY';await assert.rejects(service.preview(input,actor),{code:'WORK_COLLECTION_SCOPE'});account.currency=profile.currency;
+   delete process.env.MELISA_CLEAN_FINANCE_FX;await assert.rejects(service.preview(input,actor),{code:'WORK_COLLECTION_SCOPE'});process.env.MELISA_CLEAN_FINANCE_FX='20261023';
+  }
+ }finally{for(const key of ['MELISA_CLEAN_FINANCE','MELISA_CLEAN_FINANCE_B4','MELISA_CLEAN_FINANCE_CASH','MELISA_CLEAN_FINANCE_FX'])delete process.env[key];}
 });
 
 test('normal Semih administration keeps its own actor, real permission and native witness',async()=>{

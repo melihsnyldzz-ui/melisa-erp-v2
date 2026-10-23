@@ -1,6 +1,7 @@
 // Additive, finite companion for the existing clean native finance adapter.
 // Old manifests/bodies are retained and verified, not rewritten in-place.
 import {moduleHash} from './stage4-copy-sql.mjs';
+import {CLEAN_FINANCE_FX_CASES} from '../../apps/api/src/services/cleanFinanceRehearsalModel.mjs';
 import {readFileSync} from 'node:fs';
 
 function cashFinishDefinition(){return `CREATE PROCEDURE dbo.usp_clean_finance_b4_cash_finish @request_id uniqueidentifier WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}${cashLoad}
@@ -369,3 +370,117 @@ function cashBindDefinition(){return `CREATE PROCEDURE dbo.usp_clean_finance_b4_
  INSERT dbo.${cashIntent}(session_id,transaction_id,request_id,actor_id,operation,payload_hash,payload_json,before_counts,before_balances,protected_hash,cash_session_id)
  SELECT @@SPID,CURRENT_TRANSACTION_ID(),@request_id,@actor_id,@operation,UPPER(@payload_hash),@payload_json,${cashCounts},(SELECT id,current_balance FROM dbo.finance_accounts WHERE id BETWEEN 2 AND 7 ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES),HASHBYTES('SHA2_256',${cashProtected}),@cashSession;
  DECLARE @actor bigint=@actor_id,@op nvarchar(40)=@operation,@hash char(64)=@payload_hash;${witness('accepted')} END;`;}
+
+// Add only two finite synthetic currency cases to the installed native finance
+// engine. Old TRY/cash manifests and their before-images remain immutable.
+const fxManifest='clean_finance_b4_fx_manifest',fxIntent='clean_finance_b4_fx_intents',fxFixture='clean_finance_b4_fx_fixture';
+function fxLiftHashes(body){
+ return body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,alias)=>`COALESCE((SELECT bf.before_hash FROM dbo.${fxManifest} bf WHERE bf.name=${alias}.name AND bf.after_hash=${hash}),${hash})`);
+}
+function fxNativeBody(body,p,kind){
+ if(p.customerId!==p.supplierId||p.customerId!==p.invoiceId||p.customerId!==p.accountId)throw Error('FX fixed identity contract changed');
+ const rate=Number(p.rateExact8),prefix='usp_clean_finance_b4_fx_'+p.currency.toLowerCase();
+ let out=body.replaceAll(`dbo.${intent}`,`dbo.${fxIntent}`).replaceAll('dbo.usp_clean_finance_b4_ready','dbo.usp_clean_finance_b4_fx_ready').replaceAll('dbo.usp_clean_finance_b4_'+kind,'dbo.'+prefix+'_'+kind).replaceAll("N'TRY'",quote(p.currency));
+ for(const [key,id]of [['customer_id',p.customerId],['supplier_id',p.supplierId],['sales_invoice_id',p.invoiceId],['purchase_invoice_id',p.purchaseInvoiceId],['account_id',p.accountId],['invoice_id',p.invoiceId]])out=out.replace(new RegExp(`\\b${key}=${key==='purchase_invoice_id'?5:2}\\b`,'g'),`${key}=${id}`);
+ out=out.replace(/\bWHERE id=2\b/g,'WHERE id='+p.customerId).replaceAll("<>N'2'",`<>N'${p.customerId}'`).replaceAll("<>N'5'",`<>N'${p.purchaseInvoiceId}'`).replaceAll('THEN 2 ELSE 5 END',`THEN ${p.invoiceId} ELSE ${p.purchaseInvoiceId} END`).replaceAll("N'_id')),-1)<>2",`N'_id')),-1)<>${p.customerId}`);
+ for(const [key,id,old]of [['id',p.customerId,2],['id',p.purchaseInvoiceId,5],['customer_id',p.customerId,2],['supplier_id',p.supplierId,2],['sales_invoice_id',p.invoiceId,2],['purchase_invoice_id',p.purchaseInvoiceId,5],['account_id',p.accountId,2],['invoice_id',p.invoiceId,2]])out=out.replaceAll(`${N(key)}<>${old}`,`${N(key)}<>${id}`);
+ out=out.replaceAll("N'B4-ORNEK-M'",quote(p.customerCode)).replaceAll("N'B4 Örnek Müşteri'",quote(p.customerName)).replaceAll("N'B4-ORNEK-T'",quote(p.supplierCode)).replaceAll("N'B4 Örnek Tedarikçi'",quote(p.supplierName)).replaceAll("N'B4-ORNEK-TRY'",quote('B4-ORNEK-'+p.currency)).replaceAll("N'B4-ORNEK-TAHSILAT'",quote(p.invoiceNumber)).replaceAll("N'B4-ORNEK-ODEME'",quote(p.purchaseNumber));
+ for(const key of ['exchange_rate_snapshot','account_exchange_rate_snapshot','document_exchange_rate_snapshot'])out=out.replaceAll(`${N(key)}<>1`,`${N(key)}<>${rate}`);
+ for(const field of ['document_exchange_rate_snapshot','account_exchange_rate_snapshot'])out=out.replaceAll(`m.${field}=1`,`m.${field}=${rate}`);
+ out=out.replaceAll('m.amount=m.amount_try',`m.amount_try=CONVERT(decimal(18,4),m.amount*${rate})`).replaceAll('m.amount_try=@amount',`m.amount_try=CONVERT(decimal(18,4),@amount*${rate})`);
+ out=out.replaceAll(`${N('amount_try')}<>@amount`,`${N('amount_try')}<>CONVERT(decimal(18,4),@amount*${rate})`).replaceAll(`${N('amount_try')}<>251`,`${N('amount_try')}<>${251*rate}`).replaceAll(`${N('amount_try')}<>200`,`${N('amount_try')}<>${200*rate}`).replaceAll(`${N('line_total_try')}<>200`,`${N('line_total_try')}<>${200*rate}`);
+ if(kind==='bind'){
+  out=out.replace('SET NOCOUNT ON;','SET NOCOUNT ON;'+`IF ISNULL(JSON_VALUE(@payload_json,'$.financeCaseId'),N'')<>${quote(p.id)} ${deny}`);
+  const existing=`OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_intents WHERE session_id=@@SPID)`;
+  if(!out.includes(existing))throw Error('FX binder predecessor changed');
+  out=out.replace(existing,existing+` OR EXISTS(SELECT 1 FROM dbo.${intent} WHERE session_id=@@SPID) OR EXISTS(SELECT 1 FROM dbo.${cashIntent} WHERE session_id=@@SPID)`);
+ }else{
+  const marker=`IF @op IS NULL ${deny}`;if(!out.includes(marker))throw Error('FX intent predecessor changed');
+  out=out.replace(marker,marker+` IF ISNULL(JSON_VALUE(@payload,'$.financeCaseId'),N'')<>${quote(p.id)} ${deny}`);
+ }
+ if(kind==='guard')out=out.replace("IF @op=N'fixture_prepare' BEGIN","IF @op=N'fixture_prepare' BEGIN IF @table_name=N'finance_accounts' "+deny);
+ return out;
+}
+function fxPrefix(body,table){
+ const at=body.indexOf('AS BEGIN')+8;if(at<8)throw Error('FX guard predecessor changed');
+ const declare=table?"DECLARE @b4fxInserted nvarchar(max)=(SELECT * FROM inserted FOR JSON PATH,INCLUDE_NULL_VALUES),@b4fxDeleted nvarchar(max)=(SELECT * FROM deleted FOR JSON PATH,INCLUDE_NULL_VALUES);":'';
+ const args=table?`N'${table}',@b4fxInserted,@b4fxDeleted`:'@table_name,@inserted,@deleted';
+ return body.slice(0,at)+`\n IF EXISTS(SELECT 1 FROM dbo.${fxIntent} WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID()) BEGIN ${declare}EXEC dbo.usp_clean_finance_b4_fx_guard ${args};RETURN;END;\n`+body.slice(at);
+}
+export function buildCleanFinanceFxDefinitions(){
+ const b4=buildCleanFinanceRehearsalDefinitions().definitions,cash=buildCleanFinanceCashDefinitions().definitions,prior={...b4,...cash},definitions={};
+ for(const name of ['usp_clean_store_day_ready','usp_clean_finance_b4_ready','usp_clean_finance_b4_cash_ready'])definitions[name]=fxLiftHashes(prior[name]);
+ for(const [name,table]of [['clean_sale_customers_guard','customers'],['clean_sale_customer_movements_guard','customer_movements'],['clean_sale_sales_invoices_guard','sales_invoices'],['clean_sale_sales_invoice_items_guard','sales_invoice_items'],['clean_sale_audit_logs_guard','audit_logs'],['usp_clean_store_day_guard',null],['usp_clean_store_finance_guard',null]])definitions[name]=fxPrefix(prior[name],table);
+ for(const p of CLEAN_FINANCE_FX_CASES)for(const kind of ['bind','guard','finish'])definitions['usp_clean_finance_b4_fx_'+p.currency.toLowerCase()+'_'+kind]=fxNativeBody(b4['usp_clean_finance_b4_'+kind],p,kind);
+ definitions.usp_clean_finance_b4_fx_bind=`CREATE PROCEDURE dbo.usp_clean_finance_b4_fx_bind @actor_id bigint,@operation nvarchar(40),@request_id uniqueidentifier,@payload_hash char(64),@payload_json nvarchar(max) WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL} DECLARE @case nvarchar(40)=JSON_VALUE(@payload_json,'$.financeCaseId');${CLEAN_FINANCE_FX_CASES.map(p=>`IF @case=${quote(p.id)} BEGIN EXEC dbo.usp_clean_finance_b4_fx_${p.currency.toLowerCase()}_bind @actor_id,@operation,@request_id,@payload_hash,@payload_json;RETURN;END;`).join('')} ${deny} END;`;
+ definitions.usp_clean_finance_b4_fx_finish=`CREATE PROCEDURE dbo.usp_clean_finance_b4_fx_finish @request_id uniqueidentifier WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL} DECLARE @case nvarchar(40)=(SELECT JSON_VALUE(payload_json,'$.financeCaseId') FROM dbo.${fxIntent} WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID() AND request_id=@request_id);${CLEAN_FINANCE_FX_CASES.map(p=>`IF @case=${quote(p.id)} BEGIN EXEC dbo.usp_clean_finance_b4_fx_${p.currency.toLowerCase()}_finish @request_id;RETURN;END;`).join('')} ${deny} END;`;
+ definitions.usp_clean_finance_b4_fx_guard=`CREATE PROCEDURE dbo.usp_clean_finance_b4_fx_guard @table_name sysname,@inserted nvarchar(max),@deleted nvarchar(max) WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL} DECLARE @case nvarchar(40)=(SELECT JSON_VALUE(payload_json,'$.financeCaseId') FROM dbo.${fxIntent} WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID());${CLEAN_FINANCE_FX_CASES.map(p=>`IF @case=${quote(p.id)} BEGIN EXEC dbo.usp_clean_finance_b4_fx_${p.currency.toLowerCase()}_guard @table_name,@inserted,@deleted;RETURN;END;`).join('')} ${deny} END;`;
+ definitions.usp_clean_finance_b4_fx_ready=`CREATE PROCEDURE dbo.usp_clean_finance_b4_fx_ready @verify_balances bit=0 WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
+ IF ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${CLEAN_LOGIN}' AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF(SELECT COUNT(*) FROM dbo.${fxManifest})<>/*FX_COUNT*/ OR EXISTS(SELECT 1 FROM dbo.${fxManifest} m WHERE m.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name)) IS NULL OR(OBJECTPROPERTY(OBJECT_ID(N'dbo.'+m.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+m.name),'ExecIsTriggerDisabled')<>0)) ${deny}
+ IF EXISTS(SELECT 1 FROM dbo.${fxManifest} f LEFT JOIN sys.sql_modules m ON m.object_id=OBJECT_ID(N'dbo.'+f.name) WHERE ISNULL(m.uses_quoted_identifier,0)<>1 OR ISNULL(m.uses_ansi_nulls,0)<>1) ${deny}
+ IF(SELECT COUNT(*) FROM dbo.${fxFixture})<>2 ${deny}
+ ${CLEAN_FINANCE_FX_CASES.map(p=>`IF NOT EXISTS(SELECT 1 FROM dbo.${fxFixture} f JOIN dbo.customers c ON c.id=f.customer_id JOIN dbo.suppliers s ON s.id=f.supplier_id JOIN dbo.finance_accounts a ON a.id=f.account_id JOIN dbo.sales_invoices i ON i.id=f.sales_invoice_id JOIN dbo.purchase_invoices pi ON pi.id=f.purchase_invoice_id WHERE f.id=${p.fxFixtureId} AND f.case_id=${quote(p.id)} AND f.customer_id=${p.customerId} AND f.supplier_id=${p.supplierId} AND f.account_id=${p.accountId} AND f.sales_invoice_id=${p.invoiceId} AND f.purchase_invoice_id=${p.purchaseInvoiceId} AND f.currency=${quote(p.currency)} AND f.synthetic_rate=${Number(p.rateExact8)} AND f.operation_date=CONVERT(date,'20261022',112) AND c.customer_code=${quote(p.customerCode)} AND c.name=${quote(p.customerName)} AND c.currency_code=f.currency AND c.is_active=1 AND c.is_deleted=0 AND s.supplier_code=${quote(p.supplierCode)} AND s.name=${quote(p.supplierName)} AND s.currency_code=f.currency AND s.is_active=1 AND s.is_deleted=0 AND a.account_code=N'B4-ORNEK-${p.currency}' AND a.currency_code=f.currency AND a.account_type=N'cash' AND a.opening_balance=0 AND a.is_active=1 AND i.customer_id=c.id AND i.document_no=${quote(p.invoiceNumber)} AND i.status=N'finalized' AND i.document_currency=f.currency AND i.grand_total=251 AND i.account_amount=251 AND i.account_currency=f.currency AND i.exchange_rate_snapshot=f.synthetic_rate AND i.account_exchange_rate_snapshot=f.synthetic_rate AND i.amount_try=251*f.synthetic_rate AND pi.supplier_id=s.id AND pi.document_no=${quote(p.purchaseNumber)} AND pi.status=N'finalized' AND pi.document_currency=f.currency AND pi.grand_total=200 AND pi.account_amount=200 AND pi.account_currency=f.currency AND pi.exchange_rate_snapshot=f.synthetic_rate AND pi.account_exchange_rate_snapshot=f.synthetic_rate AND pi.amount_try=200*f.synthetic_rate) ${deny}
+ IF EXISTS(SELECT 1 FROM erp_migration.operation_quarantine_holds WHERE(entity=N'customer' AND native_id=${p.customerId})OR(entity=N'supplier' AND native_id=${p.supplierId})OR(entity=N'product' AND native_id=1)) ${deny}
+ IF @verify_balances=1 AND(NOT EXISTS(SELECT 1 FROM dbo.customers c WHERE id=${p.customerId} AND balance=(SELECT COALESCE(SUM(balance_effect),0) FROM dbo.customer_movements WHERE customer_id=c.id AND currency_code=${quote(p.currency)}))OR NOT EXISTS(SELECT 1 FROM dbo.suppliers s WHERE id=${p.supplierId} AND balance=(SELECT COALESCE(SUM(balance_effect),0) FROM dbo.supplier_movements WHERE supplier_id=s.id AND currency_code=${quote(p.currency)}))OR NOT EXISTS(SELECT 1 FROM dbo.finance_accounts a WHERE id=${p.accountId} AND current_balance=(SELECT COALESCE(SUM(CASE WHEN direction=N'in' THEN amount ELSE -amount END),0) FROM dbo.finance_account_movements WHERE account_id=a.id AND currency_code=${quote(p.currency)}))) ${deny}`).join('\n')}
+ END;`;
+ definitions.clean_finance_b4_fx_manifest_immutable=`CREATE TRIGGER dbo.clean_finance_b4_fx_manifest_immutable ON dbo.${fxManifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
+ definitions.clean_finance_b4_fx_fixture_immutable=`CREATE TRIGGER dbo.clean_finance_b4_fx_fixture_immutable ON dbo.${fxFixture} AFTER INSERT,UPDATE,DELETE AS BEGIN SET NOCOUNT ON;IF EXISTS(SELECT 1 FROM deleted) OR(SELECT COUNT(*) FROM inserted)<>1 OR ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 OR NOT EXISTS(SELECT 1 FROM dbo.${fxIntent} t JOIN inserted i ON JSON_VALUE(t.payload_json,'$.financeCaseId')=i.case_id WHERE t.session_id=@@SPID AND t.transaction_id=CURRENT_TRANSACTION_ID() AND t.operation=N'fixture_prepare') ${deny} END;`;
+ const total=Object.keys(definitions).length;for(const name of Object.keys(definitions))definitions[name]=definitions[name].replaceAll('/*FX_COUNT*/',String(total));
+ return {definitions,before:Object.fromEntries(Object.keys(definitions).filter(n=>prior[n]).map(n=>[n,prior[n]])),total};
+}
+
+function fxFixtureDataSql(p,index){
+ if(String(index)!==p.fxFixtureId)throw Error('FX fixture identity changed');
+ const rate=Number(p.rateExact8),party=p.customerId,sale=p.invoiceId,purchase=p.purchaseInvoiceId;
+ return `
+ INSERT dbo.${fxIntent}(session_id,transaction_id,request_id,actor_id,operation,payload_hash,payload_json)VALUES(@@SPID,CURRENT_TRANSACTION_ID(),NEWID(),10018,N'fixture_prepare',REPLICATE('0',64),N'{"financeCaseId":"${p.id}","synthetic":true,"stockEffect":false}');
+ SET IDENTITY_INSERT dbo.customers ON;INSERT dbo.customers(id,customer_code,name,currency_code,balance,created_by)VALUES(${party},${quote(p.customerCode)},${quote(p.customerName)},${quote(p.currency)},251,10018);SET IDENTITY_INSERT dbo.customers OFF;
+ SET IDENTITY_INSERT dbo.suppliers ON;INSERT dbo.suppliers(id,supplier_code,name,currency_code,balance,created_by)VALUES(${p.supplierId},${quote(p.supplierCode)},${quote(p.supplierName)},${quote(p.currency)},200,10018);SET IDENTITY_INSERT dbo.suppliers OFF;
+ SET IDENTITY_INSERT dbo.sales_invoices ON;INSERT dbo.sales_invoices(id,document_no,document_date,customer_id,status,customer_currency,document_currency,exchange_rate_snapshot,description,subtotal,grand_total,amount_try,account_currency,account_amount,account_exchange_rate_snapshot,finalized_at,created_by)VALUES(${sale},${quote(p.invoiceNumber)},CONVERT(date,'20261022',112),${party},N'finalized',${quote(p.currency)},${quote(p.currency)},${rate},N'Yalnız B4 yapay döviz finans provası; stok etkisi yok.',251,251,${251*rate},${quote(p.currency)},251,${rate},SYSUTCDATETIME(),10018);SET IDENTITY_INSERT dbo.sales_invoices OFF;
+ INSERT dbo.sales_invoice_items(sales_invoice_id,product_id,stock_code_snapshot,product_name_snapshot,quantity,currency_code,unit_price,line_total,note)VALUES(${sale},1,N'0007 MELISA',N'Örnek pamuk takım',2,${quote(p.currency)},125.5,251,N'Yalnız yapay finans provası; stok etkisi yok.');
+ SET IDENTITY_INSERT dbo.purchase_invoices ON;INSERT dbo.purchase_invoices(id,document_no,document_date,supplier_id,status,supplier_currency,document_currency,exchange_rate_snapshot,description,subtotal,grand_total,amount_try,account_currency,account_amount,account_exchange_rate_snapshot,finalized_at,created_by)VALUES(${purchase},${quote(p.purchaseNumber)},CONVERT(date,'20261022',112),${p.supplierId},N'finalized',${quote(p.currency)},${quote(p.currency)},${rate},N'Yalnız B4 yapay döviz finans provası; stok/maliyet etkisi yok.',200,200,${200*rate},${quote(p.currency)},200,${rate},SYSUTCDATETIME(),10018);SET IDENTITY_INSERT dbo.purchase_invoices OFF;
+ INSERT dbo.purchase_invoice_items(purchase_invoice_id,product_id,stock_code_snapshot,product_name_snapshot,quantity,currency_code,purchase_price,line_total,line_total_try,stock_effect_snapshot,note)VALUES(${purchase},1,N'0007 MELISA',N'Örnek pamuk takım',2,${quote(p.currency)},100,200,${200*rate},N'none',N'Yalnız yapay finans provası; stok/maliyet etkisi yok.');
+ INSERT dbo.customer_movements(customer_id,sales_invoice_id,movement_type,amount,currency_code,balance_effect,document_date,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try)VALUES(${party},${sale},N'sales_invoice',251,${quote(p.currency)},251,CONVERT(date,'20261022',112),10018,${quote(p.currency)},251,${rate},${rate},${251*rate});DECLARE @fxcm${index} bigint=SCOPE_IDENTITY();
+ INSERT dbo.supplier_movements(supplier_id,purchase_invoice_id,movement_type,amount,currency_code,balance_effect,document_date,created_by,account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try)VALUES(${p.supplierId},${purchase},N'purchase_invoice',200,${quote(p.currency)},200,CONVERT(date,'20261022',112),10018,${quote(p.currency)},200,${rate},${rate},${200*rate});DECLARE @fxsm${index} bigint=SCOPE_IDENTITY();
+ INSERT dbo.${fxFixture}(id,case_id,customer_id,supplier_id,account_id,sales_invoice_id,purchase_invoice_id,customer_movement_id,supplier_movement_id,currency,synthetic_rate,operation_date,created_by,setup_login)VALUES(${index},${quote(p.id)},${party},${p.supplierId},${p.accountId},${sale},${purchase},@fxcm${index},@fxsm${index},${quote(p.currency)},${rate},CONVERT(date,'20261022',112),10018,ORIGINAL_LOGIN());
+ DELETE dbo.${fxIntent} WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID();`;
+}
+const fxSetupProtected=`(SELECT ${[
+ ['products','id',''],['product_prices','id',''],['product_barcodes','id',''],['stock_movements','id',''],
+ ['customers','id','WHERE id NOT IN(3,4)'],['suppliers','id','WHERE id NOT IN(3,4)'],
+ ['customer_movements','id','WHERE customer_id NOT IN(3,4)'],['supplier_movements','id','WHERE supplier_id NOT IN(3,4)'],
+ ['sales_invoices','id','WHERE id NOT IN(3,4)'],['sales_invoice_items','id','WHERE sales_invoice_id NOT IN(3,4)'],
+ ['purchase_invoices','id','WHERE id NOT IN(6,7)'],['purchase_invoice_items','id','WHERE purchase_invoice_id NOT IN(6,7)'],
+ ['finance_accounts','id',''],['finance_account_movements','id',''],['work_trade_requests','request_id',''],
+ ['users','id',''],['roles','id',''],['permissions','id',''],
+ ].map(([table,key,where])=>`JSON_QUERY((SELECT * FROM dbo.${table} ${where} ORDER BY ${key} FOR JSON PATH,INCLUDE_NULL_VALUES)) ${table}`).join(',')} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)`;
+export function buildCleanFinanceFxSql({probe=false}={}){
+ const {definitions,before}=buildCleanFinanceFxDefinitions();
+ const expected=Object.entries(definitions).map(([name,body])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${fxManifest} WHERE name=${quote(name)} AND after_hash=${quote(moduleHash(body))}) ${deny}`).join('\n');
+ return `SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET NOCOUNT ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF OBJECT_ID(N'dbo.${fxManifest}') IS NOT NULL BEGIN EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;${expected} SELECT N'B4_FX_ALREADY_INSTALLED' status;RETURN;END;
+ IF OBJECT_ID(N'dbo.${fxFixture}') IS NOT NULL OR OBJECT_ID(N'dbo.${fxIntent}') IS NOT NULL ${deny}
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${deny}
+ EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;
+ ${Object.entries(before).map(([name,body])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'))),2),N'')<>${quote(moduleHash(body))} ${deny}`).join('\n')}
+ IF EXISTS(SELECT 1 FROM dbo.clean_store_day_intents) OR EXISTS(SELECT 1 FROM dbo.clean_store_inventory_intents) OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_intents) OR EXISTS(SELECT 1 FROM dbo.${intent}) OR EXISTS(SELECT 1 FROM dbo.${cashIntent}) ${deny}
+ IF EXISTS(SELECT 1 FROM dbo.customers WHERE id IN(3,4) OR customer_code IN(N'B4-ORNEK-M-USD',N'B4-ORNEK-M-EUR')) OR EXISTS(SELECT 1 FROM dbo.suppliers WHERE id IN(3,4) OR supplier_code IN(N'B4-ORNEK-T-USD',N'B4-ORNEK-T-EUR')) OR EXISTS(SELECT 1 FROM dbo.sales_invoices WHERE id IN(3,4) OR document_no IN(N'B4-ORNEK-TAHSILAT-USD',N'B4-ORNEK-TAHSILAT-EUR')) OR EXISTS(SELECT 1 FROM dbo.purchase_invoices WHERE id IN(6,7) OR document_no IN(N'B4-ORNEK-ODEME-USD',N'B4-ORNEK-ODEME-EUR')) ${deny}
+ IF(SELECT COUNT(*) FROM dbo.cash_sessions WHERE drawer_id=1 AND business_date=CONVERT(date,'20261022',112) AND session_status=N'open')<>1 ${deny}
+ DECLARE @preserve varbinary(32)=HASHBYTES('SHA2_256',${fxSetupProtected}),@beforeFlags nvarchar(max)=(SELECT o.name,m.uses_quoted_identifier,m.uses_ansi_nulls FROM sys.sql_modules m JOIN sys.objects o ON o.object_id=m.object_id WHERE o.name IN(${Object.keys(before).map(quote).join(',')}) ORDER BY o.name FOR JSON PATH);
+ CREATE TABLE dbo.${fxManifest}(name sysname NOT NULL PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_quoted_identifier bit NULL,before_ansi_nulls bit NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ CREATE TABLE dbo.${fxIntent}(session_id int PRIMARY KEY,transaction_id bigint NOT NULL,request_id uniqueidentifier NOT NULL UNIQUE,actor_id bigint NOT NULL,operation nvarchar(40) NOT NULL,payload_hash char(64) NOT NULL,payload_json nvarchar(max) NOT NULL,amount decimal(18,4) NULL,original_id bigint NULL,account_before decimal(18,4) NULL,customer_before decimal(18,4) NULL,supplier_before decimal(18,4) NULL,customer_count_before bigint NULL,supplier_count_before bigint NULL,finance_count_before bigint NULL,customer_max_before bigint NULL,supplier_max_before bigint NULL,stock_count_before bigint NULL,stock_hash_before varbinary(32) NULL);
+ CREATE TABLE dbo.${fxFixture}(id int NOT NULL PRIMARY KEY,case_id nvarchar(40) NOT NULL UNIQUE,customer_id bigint NOT NULL UNIQUE,supplier_id bigint NOT NULL UNIQUE,account_id bigint NOT NULL UNIQUE,sales_invoice_id bigint NOT NULL UNIQUE,purchase_invoice_id bigint NOT NULL UNIQUE,customer_movement_id bigint NOT NULL,supplier_movement_id bigint NOT NULL,currency nvarchar(3) NOT NULL CHECK(currency IN(N'USD',N'EUR')),synthetic_rate decimal(18,8) NOT NULL CHECK(synthetic_rate>0),operation_date date NOT NULL,created_by bigint NOT NULL,setup_login sysname NOT NULL);
+ ${Object.entries(definitions).filter(([n])=>!n.endsWith('_immutable')).map(([name,body])=>`EXEC(${quote(body.replace(/^CREATE PROCEDURE/,before[name]?'ALTER PROCEDURE':'CREATE PROCEDURE').replace(/^CREATE TRIGGER/,before[name]?'ALTER TRIGGER':'CREATE TRIGGER'))});`).join('\n')}
+ ${Object.entries(definitions).map(([name,body])=>`INSERT dbo.${fxManifest}(name,before_hash,after_hash,before_definition,before_quoted_identifier,before_ansi_nulls)VALUES(${quote(name)},${before[name]?quote(moduleHash(before[name])):'NULL'},${quote(moduleHash(body))},${before[name]?quote(before[name]):'NULL'},(SELECT uses_quoted_identifier FROM OPENJSON(@beforeFlags)WITH(name sysname,uses_quoted_identifier bit) WHERE name=${quote(name)}),(SELECT uses_ansi_nulls FROM OPENJSON(@beforeFlags)WITH(name sysname,uses_ansi_nulls bit) WHERE name=${quote(name)}));`).join('\n')}
+ ${Object.entries(definitions).filter(([n])=>n.endsWith('_immutable')).map(([,body])=>`EXEC(${quote(body)});`).join('\n')}
+ DENY INSERT,UPDATE,DELETE ON dbo.${fxManifest} TO [${CLEAN_LOGIN}];DENY INSERT,UPDATE,DELETE ON dbo.${fxIntent} TO [${CLEAN_LOGIN}];DENY INSERT,UPDATE,DELETE ON dbo.${fxFixture} TO [${CLEAN_LOGIN}];GRANT SELECT ON dbo.${fxFixture} TO [${CLEAN_LOGIN}];
+ GRANT EXECUTE ON dbo.usp_clean_finance_b4_fx_ready TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_finance_b4_fx_bind TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_finance_b4_fx_finish TO [${CLEAN_LOGIN}];
+ ${CLEAN_FINANCE_FX_CASES.map((p,i)=>fxFixtureDataSql(p,i+1)).join('\n')}
+ IF @preserve<>HASHBYTES('SHA2_256',${fxSetupProtected}) ${deny}
+ EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
+ ${probe?"ROLLBACK;SELECT N'B4_FX_FIXTURE_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B4_FX_FIXTURE_INSTALLED' status;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
