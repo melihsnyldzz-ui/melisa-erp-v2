@@ -1,3 +1,8 @@
+## 23 Ekim — B4 açık yapay TEST teknik akışı 🟢; sıradaki B5
+
+TRY kanıtları korundu. USD/EUR kısmi/tam tahsilat ve ödeme, ayrı yetkili gerekçeli ters kayıt, normal yenileme,12kalıcıFXisteğinin ikinci etkisiz replay/409 ve üçdöviz günlük kasa4kapanışı gerçek normalGUI/SQL/API ile tamamlandı. Çekmece10TRY/1USD/2EUR; ana1021TRY/1028USD/1029EUR ayrı. Kurulu APIeeff5381/frontendfe5ead32,exactCI39998879755gerekli3jobSUCCESS. Stok23/maliyet60/eskiTRYkayıtları,CRM/native/yedi listener korunur. Bu yalnız açık yapay örnek kapsamının teknik tamamlanmasıdır; insan/fiziksel kabul, gerçek kişi/kasa/banka girdileri ve özgün49/25sayaçları aynı. B5'in bilinen ERP rol/işlem kontrolleri sırada; yeniB6/B7yok. Ayrıntı ve ilk hatalar [STATUS](STATUS.md) / [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
 ## 23 Ekim — B4 öncelikli; TRY ve günlük kasa alt sonuçları tamamlandı, tam B4 açık
 
 Günlük kasanın mevcut motoru/sonlu şeması kuruldu. Normal muhasebe20üçdövizi ayrıaçtı;EURana kasayateslimveUSDgider,kayıtlıüçistektereplay/çatışki,tamreloadkanıtlandı. Dar yeşilyerleşimcc574cb7kurulu,CI3/3; üçresponsiveölçümdeyataytaşma0. Kontrol23yalnızokuyor;eskiroller/veriler/native/CRMkorunur. Bu emülasyon/ajan teknikkanıtıdır,insan/cihazPASSdeğildir. TamB4🟡; kalanUSD/EURcaribağıveardındannormalGUIkasakapanışı. Yeniyaprak/sayaçyok; ayrıntıSTATUSveaynıkanıtbelgesinde.
