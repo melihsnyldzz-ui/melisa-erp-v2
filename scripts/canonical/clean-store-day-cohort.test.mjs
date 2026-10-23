@@ -7,6 +7,12 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {buildCleanStoreAdministratorDefinitions,buildCleanStoreAdministratorSql,CLEAN_ADMIN_PERMISSIONS} from './clean-store-day-cohort-sql.mjs';
 import {buildCleanFinanceRehearsalPredecessors,buildCleanFinanceRehearsalDefinitions,buildCleanFinanceCashDefinitions,buildCleanFinanceCashSql,cleanFinanceCashSchemaSql,buildCleanFinanceFxDefinitions,buildCleanFinanceFxSql} from './clean-finance-rehearsal-sql.mjs';
+import {buildCleanFinanceFxCaseFieldRepairSql} from './clean-finance-rehearsal-sql.mjs';
+
+test('FX case identity is allowed only alongside its exact required value; installed correction preserves all old seals',()=>{
+ for(const [currency]of [['USD'],['EUR']]){const bind=buildCleanFinanceFxDefinitions().definitions['usp_clean_finance_b4_fx_'+currency.toLowerCase()+'_bind'];assert.match(bind,/NOT IN\(N'financeCaseId',N'actorId'/);assert.ok(bind.includes("'$.financeCaseId'),N'')<>N'B4-"+currency+"-20261023'"));}
+ const sql=buildCleanFinanceFxCaseFieldRepairSql({probe:true});assert.match(sql,/B4_FX_CASEFIELD_PROBE_ROLLED_BACK/);assert.match(sql,/before_quoted_identifier/);assert.match(sql,/@fixtures<>HASHBYTES/);assert.match(sql,/@seals<>HASHBYTES/);assert.match(sql,/ExecIsTriggerDisabled/);assert.match(sql,/B4_FX_CASEFIELD_ALREADY_INSTALLED/);assert.doesNotMatch(sql,/DISABLE TRIGGER|DROP TRIGGER|UPDATE dbo\.clean_finance_b4_fx_manifest|DELETE dbo\.|INSERT dbo\.(?:customers|suppliers|finance_account_movements|work_trade_requests)\b/);
+});
 
 test('B4 FX adds two finite currency cases while preserving the installed TRY and cash definition history',()=>{
  const prior={...buildCleanFinanceRehearsalDefinitions().definitions,...buildCleanFinanceCashDefinitions().definitions},hashes=Object.fromEntries(Object.entries(prior).map(([n,b])=>[n,moduleHash(b)]));

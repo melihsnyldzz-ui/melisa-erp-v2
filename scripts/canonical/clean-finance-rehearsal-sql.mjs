@@ -390,6 +390,7 @@ function fxNativeBody(body,p,kind){
  out=out.replaceAll('m.amount=m.amount_try',`m.amount_try=CONVERT(decimal(18,4),m.amount*${rate})`).replaceAll('m.amount_try=@amount',`m.amount_try=CONVERT(decimal(18,4),@amount*${rate})`);
  out=out.replaceAll(`${N('amount_try')}<>@amount`,`${N('amount_try')}<>CONVERT(decimal(18,4),@amount*${rate})`).replaceAll(`${N('amount_try')}<>251`,`${N('amount_try')}<>${251*rate}`).replaceAll(`${N('amount_try')}<>200`,`${N('amount_try')}<>${200*rate}`).replaceAll(`${N('line_total_try')}<>200`,`${N('line_total_try')}<>${200*rate}`);
  if(kind==='bind'){
+  out=out.replace("NOT IN(N'actorId',N'operation',N'requestId',N'previewHash'","NOT IN(N'financeCaseId',N'actorId',N'operation',N'requestId',N'previewHash'");
   out=out.replace('SET NOCOUNT ON;','SET NOCOUNT ON;'+`IF ISNULL(JSON_VALUE(@payload_json,'$.financeCaseId'),N'')<>${quote(p.id)} ${deny}`);
   const existing=`OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_intents WHERE session_id=@@SPID)`;
   if(!out.includes(existing))throw Error('FX binder predecessor changed');
@@ -482,5 +483,33 @@ export function buildCleanFinanceFxSql({probe=false}={}){
  IF @preserve<>HASHBYTES('SHA2_256',${fxSetupProtected}) ${deny}
  EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
  ${probe?"ROLLBACK;SELECT N'B4_FX_FIXTURE_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B4_FX_FIXTURE_INSTALLED' status;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
+
+// Exact, append-only correction for the first installed FX cohort. Only the
+// two case binders and their verifier change; old seals/rows stay immutable.
+export function buildCleanFinanceFxCaseFieldRepairSql({probe=false}={}){
+ const seal='clean_finance_b4_fx_casefield_manifest',base=buildCleanFinanceFxDefinitions().definitions;
+ const immutable=`CREATE TRIGGER dbo.${seal}_immutable ON dbo.${seal} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
+ const names=['usp_clean_finance_b4_fx_usd_bind','usp_clean_finance_b4_fx_eur_bind','usp_clean_finance_b4_fx_ready'];
+ const before=Object.fromEntries(names.map(n=>[n,n.endsWith('_bind')?base[n].replace("NOT IN(N'financeCaseId',N'actorId'","NOT IN(N'actorId'"):base[n]]));
+ const after={...Object.fromEntries(names.slice(0,2).map(n=>[n,base[n]])),usp_clean_finance_b4_fx_ready:base.usp_clean_finance_b4_fx_ready.replace("m.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2)",`m.after_hash<>COALESCE((SELECT r.before_hash FROM dbo.${seal} r WHERE r.name=m.name AND r.after_hash=CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2)),CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2))`).replace('IF(SELECT COUNT(*) FROM dbo.'+fxManifest,`IF(SELECT COUNT(*) FROM dbo.${seal})<>3 OR EXISTS(SELECT 1 FROM dbo.${seal} r WHERE r.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+r.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+r.name)) IS NULL) ${deny}\n IF(SELECT COUNT(*) FROM dbo.${fxManifest}`)};
+ after.usp_clean_finance_b4_fx_ready=after.usp_clean_finance_b4_fx_ready.replace('IF(SELECT COUNT(*) FROM dbo.'+seal,`IF ISNULL(OBJECTPROPERTY(OBJECT_ID(N'dbo.${seal}_immutable'),'ExecIsTriggerDisabled'),1)<>0 OR ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${seal}_immutable'))),2),N'')<>${quote(moduleHash(immutable))} ${deny}\n IF(SELECT COUNT(*) FROM dbo.${seal}`);
+ return `SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET NOCOUNT ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF OBJECT_ID(N'dbo.${seal}') IS NOT NULL BEGIN EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;${Object.entries(after).map(([n,b])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${seal} WHERE name=${quote(n)} AND after_hash=${quote(moduleHash(b))}) ${deny}`).join('\n')} SELECT N'B4_FX_CASEFIELD_ALREADY_INSTALLED' status;RETURN;END;
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${deny}
+ EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
+ IF EXISTS(SELECT 1 FROM dbo.${fxIntent}) OR EXISTS(SELECT 1 FROM dbo.${intent}) OR EXISTS(SELECT 1 FROM dbo.${cashIntent}) ${deny}
+ ${Object.entries(before).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${quote(moduleHash(b))} ${deny}`).join('\n')}
+ DECLARE @preserve varbinary(32)=HASHBYTES('SHA2_256',${fxSetupProtected}),@fixtures varbinary(32)=HASHBYTES('SHA2_256',(SELECT * FROM dbo.${fxFixture} ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES)),@seals varbinary(32)=HASHBYTES('SHA2_256',(SELECT * FROM dbo.${fxManifest} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES));
+ CREATE TABLE dbo.${seal}(name sysname PRIMARY KEY,before_hash char(64) NOT NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NOT NULL,before_quoted_identifier bit NOT NULL,before_ansi_nulls bit NOT NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ ${Object.entries(after).map(([n,b])=>`INSERT dbo.${seal}(name,before_hash,after_hash,before_definition,before_quoted_identifier,before_ansi_nulls)SELECT ${quote(n)},${quote(moduleHash(before[n]))},${quote(moduleHash(b))},OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}')),uses_quoted_identifier,uses_ansi_nulls FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}');EXEC(${quote(b.replace(/^CREATE PROCEDURE/,'ALTER PROCEDURE'))});`).join('\n')}
+ EXEC(${quote(immutable)});
+ DENY INSERT,UPDATE,DELETE ON dbo.${seal} TO [${CLEAN_LOGIN}];
+ IF @preserve<>HASHBYTES('SHA2_256',${fxSetupProtected}) OR @fixtures<>HASHBYTES('SHA2_256',(SELECT * FROM dbo.${fxFixture} ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES)) OR @seals<>HASHBYTES('SHA2_256',(SELECT * FROM dbo.${fxManifest} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES)) ${deny}
+ EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;
+ ${probe?"ROLLBACK;SELECT N'B4_FX_CASEFIELD_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B4_FX_CASEFIELD_INSTALLED' status;"}
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
