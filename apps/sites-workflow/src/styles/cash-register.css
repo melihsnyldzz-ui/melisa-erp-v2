@@ -4,6 +4,34 @@
   align-content: start;
 }
 
+/* The green work surface does not import the React application's global shell. */
+.trade-workspace .cash-register-screen { min-width:0; color:#243d32; }
+.trade-workspace .cash-register-screen input,
+.trade-workspace .cash-register-screen select,
+.trade-workspace .cash-register-screen textarea { box-sizing:border-box; width:100%; min-width:0; max-width:100%; min-height:38px; padding:8px 10px; border:1px solid #cfddd4; border-radius:8px; background:#fff; color:#243d32; font:inherit; }
+.trade-workspace .cash-register-screen button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:38px; padding:8px 12px; border:1px solid #cfddd4; border-radius:8px; background:#fff; color:#294b39; font:inherit; font-weight:700; cursor:pointer; }
+.trade-workspace .cash-register-screen button:disabled { opacity:.55; cursor:default; }
+.trade-workspace .cash-register-screen button.primary { border-color:#295a40; background:#295a40; color:#fff; }
+.trade-workspace .cash-register-screen .erp-panel { min-width:0; overflow:hidden; border:1px solid #dce7df; border-radius:12px; background:#fff; }
+.trade-workspace .cash-register-screen .panel-title { display:grid; gap:4px; padding:14px; border-bottom:1px solid #e1eae4; }
+.trade-workspace .cash-register-screen .panel-title span,
+.trade-workspace .cash-register-screen .dashboard-toolbar-title span { display:block; color:#64796c; font-size:12px; }
+.trade-workspace .cash-register-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.trade-workspace .cash-register-toolbar .dashboard-toolbar-actions { display:flex; align-items:end; gap:8px; flex-wrap:wrap; }
+.trade-workspace .cash-register-screen .cash-currency-entry-grid { padding:12px; }
+.trade-workspace .cash-register-screen .cash-access-note { display:block; overflow-x:auto; border-color:#dce7df; border-left-color:#427452; background:#f0f6f1; color:#294b39; }
+.trade-workspace .cash-register-screen .cash-opening-guide { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; padding:14px; border:1px solid #dce7df; border-radius:12px; background:#fff; }
+.trade-workspace .cash-register-screen .cash-opening-guide article { display:flex; gap:10px; min-width:0; }
+.trade-workspace .cash-register-screen .cash-opening-guide article span { display:block; margin-top:5px; color:#64796c; font-size:12px; }
+.trade-workspace .cash-register-screen .cash-opening-guide p { grid-column:1/-1; margin:0; font-size:12px; }
+.trade-workspace .cash-register-screen .cash-register-workspace { grid-template-columns:minmax(0,1fr); }
+@media(max-width:900px) {
+ .trade-workspace .cash-register-screen .cash-currency-entry-grid,
+ .trade-workspace .cash-register-screen .cash-currency-summary,
+ .trade-workspace .cash-register-screen .cash-opening-guide { grid-template-columns:1fr; }
+ .trade-workspace .cash-register-screen .cash-form-footer { grid-template-columns:minmax(0,1fr); }
+}
+
 .cash-register-screen .cash-access-note table { width:100%; border-collapse:collapse; text-align:left; }
 .cash-register-screen .cash-access-note th,
 .cash-register-screen .cash-access-note td { padding:8px 12px; border-bottom:1px solid #dfe9e3; white-space:nowrap; }

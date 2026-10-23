@@ -17,7 +17,6 @@ import {createWorkHome} from './workHome.js';
 import {validateWorkHome} from './workHomeModel.mjs';
 import {createWorkSales} from './workSales.js';
 import {createWorkCollections} from './workCollections.js';
-import {createWorkCash} from './workCash.jsx';
 import {createWorkCustomers} from './workCustomers.js';
 import {createWorkReceiving} from './workReceiving.js';
 import {createWorkPurchases} from './workPurchases.js';

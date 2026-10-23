@@ -1,3 +1,11 @@
+## 23 Ekim — B4 günlük kasa kuruldu; normal açılış, transfer, gider ve kalıcı replay doğrulandı
+
+Kurulu API4194+web5244kaynak259f67d21c48ee12824f97f44fa884afdc437c9f; frontend71e9a26b, immutablepaket3398dosya/manifest85E23AF65FDD5762D38A726C2E0ADC2F9A86A563455D5298874E581D969473F7.19:39:17TRmakbuzINSTALLED. ExactpushCI39987294945üçzorunlujob3/3SUCCESS; ayrıPRsynchronizekoşusugörünmediği için6/6denmedi. Kurulumkapısı üçjobadı+exactSHA+görünenherkontrolünSUCCESSolmasınızorunlututar; yinelenenpush/PRsayısıtestşartısayılmaz. İlkPS5kurulumdenemesiJSONdizifiltresiyle stopöncesireddedildi; PID/kaynaklaraynı doğrulanıp mevcutPS7.6hostuylaaynıkontrollergeçti. Hiçbirguardkapısıgevşetilmedi.
+
+Normalornek-finans20oturumuyenidengirişsizkorundu. EkrandaaçılışTRY31ve100ekleme/USD0ve10ekleme/EUR0ve20eklemeylekaydedildi. Sonra5EURana kasayateslim,2USDörnekgider; tamreloadTRY131/USD8/EUR15çekmece,TRY900/USD990/EUR985anakasaayrı. ÜçkalıcıGUIisteğiaynıUUID/bodyAPIreplay'indeikinci etki0; farklıbody3/3HTTP409; private b4-cash-committed-replay.json. Native/CRM7listenerPID/doğum/executableaynı,kurulumönce/sonra53veri+5rolözetiaynı. Cari100/80,stok23,eskikasa256,50korunur. Günlükoturumdövizcariişlemlerikalanıiçinaçıktutuldu; normalGUIkapanışıhenüzdenenmedi. EkrangörüntüsümevcutReactkabukstillerininyeşilyüzdeeksikliğinivealanlardataşmayıgösterdi; yalnızscopedCSSvegereksizstatikimportkaldırmayladarkaynakdüzeltmesihazır,henüzkurulmadı. Bu normalGUIteknikkanıtıinsanPASSdeğildir; tamB4🟡,USD/EURcaribağıaçık.
+
+### Önceki native kasa hazırlığı — tarihsel
+
 ## 23 Ekim — B4 gerçek kasa motoru doğrulandı; normal ekran kurulumu sırada
 
 Yalnız clean20261022'ye mevcut0012şeması ve17mühürlü modül kuruldu; beş yeni açık yapay hesapla TRY/USD/EUR ana kasa1000'er, çekmeceTRY31/USD0/EUR0. Eski hesap1=256,50vehesap2=31setup'ta aynen korundu; diğer52koruma kapsamı ve5rol/veri özeti aynı. Güncel18:48:41COPY_ONLY/CHECKSUMyedekVERIFYONLYbaşarılı; aktifDBrestoreyok. Eski14journal/8finanshareketi ve tüm stok/cari/belge geçmişi korundu. Bu kurulum gerçek işletme açılışı değildir.
