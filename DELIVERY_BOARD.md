@@ -1,10 +1,14 @@
-## 23 Ekim — Semih yönetici kurulumu ve ekran okuma düzeltmeleri
+## 23 Ekim 10:12 TR — Semih yönetici erişimi kuruldu ve normal ekranlar doğrulandı
 
-Normal Semih10018 rol28 / 34 açık izin ile kuruldu; API4194 ve web5244 kaynak47d5224d, native035 ve CRMbc8 korunuyor. Exact kaynak CI6/6 geçti. Yedek CHECKSUM/VERIFYONLY ve dar SQL inverse provası tamamlandı; gerçek restore yapılmadı. On altı API okuması ve oturum yenileme başarılı. Mevcut koordinatörün bağımsız normal ekran kontrolünde sayım/iade, satış fişi ve müşteri/tedarikçi kartı sözleşmesi eksikleri bulundu; dar düzeltmeleri hazırlanıyor. Sayım/iade native tek etki, replay, inverse ve personel ret denemesi gerçek SQL transaction içinde geçti ve bütünü geri alındı.
+Semih10018 normal rol28 (Yönetici),34 açık iş izniyle mevcut clean TEST'te çalışıyor. Önceki örnek kullanıcı filtreleri ve403 sonrası yanlış oturum silinmesi düzeltildi; gerçek DB rol/izin denetimi, actorId ve sonlu native işlem sınırları korundu. Parola ve diğer hesap/roller değişmedi. API4194 + web5244 kaynak 0f519b6aef464b0b02bbef9bf7e15d64c27ac1ba, paket CLEAN-ERP-20261022-0f519b6aef46 gerçekten kurulu. Native4196 kaynak035fcc08, CRMbc8c307e aynı süreç/dosyalarda.
 
-Yeni okuyucular mevcut temiz native müşteri/tedarikçi defterini kendi dövizinde karşılaştırıyor; kaynak açılış veya Vega bakiyesi uydurmuyor. Gerçek salt okunur SQL doğrulamasında bir müşteri ve bir tedarikçi ekran sözleşmesi geçti. Genel serbest sepet yazması açılmadı; temiz kurulumdaki satış CRM siparişinden mevcut Onaylar akışındadır. Hedef API11, ekran1038 ve son döviz sunumu11 test geçti. Sıradaki iş: bu dar kaynak düzeltmesinin exact CI, API/web paketi ve normal GUI geri okuması. İnsan kabulü/sayaçlar değişmez.
+**Kanıt:** mevcut koordinatörün bağımsız normal Chrome kontrolünde15menü açıldı; önceki6okuma hatası giderildi. Sayım23ADET+geçmiş, iade kaynak satırı/geçmiş, müşteri ve tedarikçi kartı/döviz, satış görünümü ve kayıtlı fiş ayrıntısı doğrulandı.20API200, normal giriş/refresh ve tamGUIreload/Yenile geçti.34izin; anonim cari okuyucuları401.94ilkrol testi,16paketpin testi; son değişiklik API11/ekran1038/döviz11hedefli test; exact uygulamaCI gerekli6/6SUCCESS ([PR39915003998](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39915003998), [push39914997310](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39914997310)).
 
-### Önceki teslimler
+**Koruma ve sınır:** Semih sayım/iade native etkisi+replay+inverse gerçek SQL transaction içinde doğrulandı ve bütünü geri alındı; personel onay reddi korundu. Kalıcı ticari yazma0.53veri+5diğer kullanıcı/rol/parola koruması58/58aynı; diğer33listener adres/PID/doğum/executable aynı. Yedek CHECKSUM/VERIFYONLY ve SQLinverse rollback provası var; aktifDBrestore yok. Normal serbest satış sepeti bu temiz kapsamda açık değil; desteklenen satış CRM siparişinden Onaylar yoludur. Cari kartlar okuma içindir; genel kart/iletişim düzenleme bu teslimin kanıtı değildir. Yeni gerçek ticari işlem/LIVE/Vega/main yok.
+
+[ERP](http://192.168.1.46:5244/ornek-akis.html#settings) · [CRM](http://192.168.1.46:62800/) · [Tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim-1012-tr--semih-normal-yönetici-erişimi-ve-ekran-okuyucuları). Private son ekran: runtime/semih-access-20261023/settings-delivery.png. Kaynak/çalışan paket ile sonraki belge commit'i ayrı tutulur. **Sıradaki tek iş:** mevcut insan/personel ve ikinci cihaz kabulü; ERP-UA20/32 ile özgün sayaçlar BEKLİYOR/aynı. Bu erişim tesliminden yeni modül veya migration başlatılmadı.
+
+### Önceki teslimlerin tarihsel kaydı
 
 ## 23 Ekim 08:49 — Ayarlar normal semih ekranında teknik olarak hazır
 
