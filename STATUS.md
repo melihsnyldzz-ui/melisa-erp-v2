@@ -1,3 +1,15 @@
+## 23 Ekim 08:49 TR — Semih hesabında Ayarlar açılıyor; yalnız API4194 güncellendi
+
+Normal Ayarlar `/api/work-system/summary` 404 hatası mevcut router/DTO ile giderildi. Clean okuyucu her istekte kayıtlı TEST/DB kimliğini ve mevcut `settings.manage` yetkisini doğrular; eski kurulumların durum/backup dosyalarına düşmez. Yeni SQL izni, hesap/parola/rol veya ticari veri değişikliği yok. Yedek/geri dönüş ve otomatik başlangıç kanıtı yoksa bilinmiyor; fiziksel Zebra kabulü bekliyor kalır.
+
+**Kurulu kaynak:** API4194 `4af2d4e872985c8743214d004aa29aad8b6de3c8`, ayrı paket `CLEAN-ERP-20261022-4af2d4e87298`. Native4196 ve web5244 kaynak/dosya/süreçleri `035fcc08`; CRM `bc8c307e` ve bütün süreçleri korundu. Mevcut başlatıcının MainApiOnly seçimi yalnız4194'ü açar; sonraki normal başlangıçta bileşenlerin ayrı kaynak ve paketleri korunur. İlk deneme tarih tipinin biçim farkında stop öncesi reddedildi; UTC ticks karşılaştırması aynı süreç kimliğini koruyarak düzeltildi. İkinci deneme kuruldu; geri dönüş çalıştırılmadı, aktif DB restore edilmedi.
+
+**Doğrulama:**38/38 hedefli test; kaynak PR/push [39907032227](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39907032227)/[39907027186](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39907027186) gerekli6/6 SUCCESS. Mevcut koordinatör kaynak/başlatıcı incelemesi ve bağımsız normal semih ekran kontrolü yaptı. Normal LAN Ayarlar açılışı, Yenile, tam reload ve kullanıcı/rol görüldü; dört bağlantı Hazır. API143ms (tek ölçüm), anonim401, satış rolü403, ek filtre400, native4196'da route404. Ürün ekranı ve CRM Yönetim Masası/yenilemesi çalışıyor.53 önceki+5 genişletilmiş koruma özeti58/58aynı; diğer35 Node listener adres/PID/doğum/executable,59web asset ve3korumalı runtime dosyası aynı. Normal girişlerin oturum/audit etkisi ticari işlem değildir.
+
+[ERP Ayarlar](http://192.168.1.46:5244/ornek-akis.html#settings) · [CRM](http://192.168.1.46:62800/) · [Tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim-0849-tr--ayarlar-okuyucusu-ve-korunan-bileşenler). PR54 uygulama kaynağı4af2, sonraki belge commit'i ayrı. **Sıradaki tek iş:** mevcut toplu personel/ikinci cihaz kabulü; gerçek Windows reboot/logon ayrıca bekliyor. ERP-UA20/32 ve özgün sayaçlar değişmedi. Yeni ana iş veya LIVE geçişi başlatılmadı.
+
+### Önceki teslimin tarihsel kaydı
+
 ## 23 Ekim 02:56 TR — LAN erişim arızası sonrası mevcut TEST yeniden açıldı
 
 Kullanıcının güncel talimatı yalnız işyeri iç IP'sine odaklanmaktır. 02:52'de temiz ERP/CRM'nin yedi portunda dinleyici yoktu; LAN IP değişmemiş, Windows yeniden başlamamıştı. Eski süreçlerin neden sonlandığı kanıtlanamadı; uygulama günlüklerinde bunu açıklayan çökme kaydı bulunmadı. Aynı kurulumun mevcut `Melisa-TEST-Ac.cmd` başlatıcısı bir kez çalıştırıldı; yeniden kurulum, build, SQL değişikliği veya ağ kuralı değişikliği yapılmadı.

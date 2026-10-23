@@ -1,3 +1,9 @@
+## 23 Ekim 08:49 — Ayarlar normal semih ekranında teknik olarak hazır
+
+Clean TEST Ayarlar404 düzeltildi; yalnız API4194 yeni4af2 paketine geçti. Native/web035 ve CRMbc8 dosyaları/süreçleri, roller/parolalar ve58veri koruma özeti aynı. Normal Ayarlar/Yenile/reload, stok ve CRM ekranları doğrulandı;38hedefli test ve exactkaynakCI6/6geçti. Bu insan PASS değildir; ERP-UA20/32, ikinci cihaz ve gerçek Windows başlangıcı bekler. Güncel çalışma ve ayrı bileşen kaynakları [STATUS](STATUS.md), kanıt mevcut tek belgededir. Yeni takip/sayaç/ana iş yok.
+
+### Önceki teslimin tarihsel kaydı
+
 ## 23 Ekim — Tek esas TEST ve ağ bağlantısı
 
 ERP-DEC-071: aynı clean20261022 kurulumuna ERP035fcc08/CRMbc8 kuruldu; yalnızweb5244/62800 LAN+Tailscale, içservislerloopback. Normalpersonel giriş/katalog/fotoğraf/fiyat/yenileme sunucu tarayıcısında doğrulandı.21eski listener,firewall ve53veri kapsamı aynı; yeni ticari işlem0. KaynakERP6/6CI,CRM7/7CI başarılı. Eski kurulumlar envanterde korunur. **İkinci fiziksel cihaz ve insan kabulü bekliyor**; özgün49/25sayaçları değişmez. Sonraki iş başka yetkili cihazdan normal giriş/katalog kabulü; yeni göç veya tamamlanmış motor tekrarı yok. [Güncel STATUS](STATUS.md) ve [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--esas-test-ağ-teslimi).

@@ -163,6 +163,7 @@ C11🟡:15/16 için mevcut izin/ret/redaction makbuzları modüllere bağlandı;
 B01🟡: kayıtlı9Ekim günlük akış ve son okuma ayrı, yetkili Raporlar bağlantısı ve readonly kısa yollar normal ekranda teknik hazır. Kayıt bağlantısı bilinmeyen görev kapalı; kasa/vade/borç sayısı uydurulmaz. Genel görev kapsamı/OPS01 hız ve UA05/17/32 bekliyor. [Ana Sayfa kapsam kanıtı](docs/evidence/erp/2026-10-13-home-daily-scope/README.md).49/9/39/1 aynı; eski provasız dar teslim.
 
 ## ERP16 / B08 — dar Ayarlar görünümü hazır, insan kabulü bekliyor — 13 Ekim 2026
+23 Ekim clean TEST güncellemesi: mevcut Ayarlar okuyucusu API4af2 ile bağlandı; normal semih/Yenile/reload ve dört bağlantı teknik doğrulandı. Native/web035 ve CRMbc8 korundu. ERP-UA20/32 bekliyor; B08🟡 ve özgün49/25sayaçları değişmez. Kaynak/kurulum ve insan kabulü ayrıntısı güncel STATUS ve mevcut tek kanıt belgesindedir.
 
 B08🟡: son paket/kullanıcı/rol/bağlantı, tarihli prova ve Yenile normal ekranda teknik hazır. Güncel yedek kapsamı ve gerçek reboot bilinmiyor; UA20/32 bekliyor. [Ayarlar okuma kanıtı](docs/evidence/erp/2026-10-13-settings-read/README.md).49/9/39/1 aynı; eski kabul edilmiş prova tekrar edilmedi.
 
