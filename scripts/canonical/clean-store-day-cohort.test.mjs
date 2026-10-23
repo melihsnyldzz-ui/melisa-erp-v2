@@ -1,11 +1,59 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildCleanStoreDayDefinitions,buildCleanStoreDayCohortSql} from './clean-store-day-cohort-sql.mjs';
+import {buildCleanStoreDayDefinitions,buildCleanStoreDayCohortSql,buildCleanStoreDayInventoryDefinitions} from './clean-store-day-cohort-sql.mjs';
 import {buildCleanCompatibleSaleBegin,buildCleanOrderSaleProcedures} from './clean-order-sale-sql.mjs';
 import {moduleHash} from './stage4-copy-sql.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {buildCleanStoreAdministratorDefinitions,buildCleanStoreAdministratorSql,CLEAN_ADMIN_PERMISSIONS} from './clean-store-day-cohort-sql.mjs';
+import {buildCleanFinanceRehearsalPredecessors} from './clean-finance-rehearsal-sql.mjs';
+
+const auditGuard='clean_sale_audit_logs_guard';
+function assertCurrentFinanceAuditPredecessor(selected){
+ const cohort=buildCleanStoreDayDefinitions();
+ const guard=cohort.guards.find(g=>g.name===auditGuard);
+ assert.equal(moduleHash(selected[auditGuard]),guard.afterHash,'B4 must expect the installed inbound audit guard, not the original sale-only guard');
+ const original=buildCleanOrderSaleProcedures()[auditGuard];
+ assert.notEqual(moduleHash(selected[auditGuard]),moduleHash(original));
+ assert.ok(selected[auditGuard].endsWith(original.slice(original.indexOf('AS BEGIN')+8)),'The complete original SALE guard must remain');
+ assert.match(selected[auditGuard],/EXEC dbo\.usp_clean_store_day_guard/);
+}
+
+async function financePredecessorMutation(from,to){
+ const url=new URL('./clean-finance-rehearsal-sql.mjs',import.meta.url);
+ const source=readFileSync(url,'utf8');
+ assert.equal(source.split(from).length-1,1,'The mutation must affect exactly the intended source boundary');
+ const mutant=source.replace(from,to).replace(/(from\s+)(['"])(\.{1,2}\/[^'"]+)\2/g,(_,prefix,quote,path)=>prefix+quote+new URL(path,url).href+quote);
+ return import('data:text/javascript;base64,'+Buffer.from(mutant).toString('base64'));
+}
+
+test('B4 predecessor regression: current inbound audit guard retains the complete SALE protection',()=>{
+ const selected=buildCleanFinanceRehearsalPredecessors();
+ assertCurrentFinanceAuditPredecessor(selected);
+ for(const guard of buildCleanStoreDayDefinitions().guards)assert.equal(moduleHash(selected[guard.name]),guard.afterHash);
+ const finance=buildCleanStoreDayFinanceDefinitions(),inventory=buildCleanStoreDayInventoryDefinitions(),admin=buildCleanStoreAdministratorDefinitions();
+ assert.equal(selected.clean_sale_customers_guard,finance.definitions.clean_sale_customers_guard);
+ assert.equal(selected.usp_clean_store_finance_guard,admin.definitions.usp_clean_store_finance_guard);
+ assert.equal(selected.clean_finance_work_trade_requests_guard,inventory.definitions.clean_finance_work_trade_requests_guard);
+ assert.equal(selected.usp_clean_store_day_ready,admin.definitions.usp_clean_store_day_ready);
+});
+
+test('B4 predecessor regression rejects the old definitions-only selection using the same contract',async()=>{
+ const legacy=await financePredecessorMutation('...day.definitions,...guards,','...day.definitions,');
+ assert.throws(()=>assertCurrentFinanceAuditPredecessor(legacy.buildCleanFinanceRehearsalPredecessors()),{code:'ERR_ASSERTION'},'The regression must fail when the original omission is restored');
+ assertCurrentFinanceAuditPredecessor(buildCleanFinanceRehearsalPredecessors());
+});
+
+test('B4 predecessor regression rejects exact-body drift and retains native hash denial',async()=>{
+ const drifted=await financePredecessorMutation("const body=g.definition.replace(/^ALTER TRIGGER/,'CREATE TRIGGER');","const body=g.definition.replace(/^ALTER TRIGGER/,'CREATE TRIGGER')+' ';");
+ assert.throws(()=>drifted.buildCleanFinanceRehearsalPredecessors(),/B4 inbound guard predecessor changed/);
+ const hash='$2b$12$'+'.'.repeat(53),sql=buildCleanStoreDayCohortSql(hash,hash);
+ for(const g of buildCleanStoreDayDefinitions().guards){
+  assert.ok(sql.includes(`IF CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${g.name}'))),2)<>N'${g.beforeHash}' THROW 51960,'CLEAN_INBOUND_BEFORE_HASH',1;`));
+  assert.ok(sql.includes(g.afterHash));
+ }
+ assert.doesNotMatch(sql,/DISABLE TRIGGER|DROP TRIGGER|UPDATE dbo\.clean_order_sale_definitions/);
+});
 
 test('Semih normal admin cohort preserves predecessor hashes, original actors and finite business boundaries',()=>{
  const {definitions:d,before,total}=buildCleanStoreAdministratorDefinitions(),sql=buildCleanStoreAdministratorSql();
