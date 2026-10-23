@@ -30,6 +30,7 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/isolatedOperationCopyScope.mjs',
  'apps/api/src/middleware/businessInboundSelectionContext.mjs',
  'apps/api/src/services/homeSummaryReadStoreFactory.mjs',
+ 'apps/api/src/services/cleanSyntheticContext.mjs',
  'apps/api/src/services/createHomeSummaryServiceFactory.mjs',
  'apps/api/src/services/homeSummaryModel.mjs',
  'apps/api/src/services/stockProductModel.mjs',
