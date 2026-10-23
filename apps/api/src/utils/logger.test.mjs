@@ -308,3 +308,13 @@ test('clean network rejection keeps only its reviewed static code',()=>{
   assert.equal(lines[0].payload.code,redacted);noCanary(lines);
  }
 });
+
+test('clean settings keeps its exact identity and permission codes without private suffixes',()=>{
+ for(const code of ['SYSTEM_IDENTITY_INVALID','SYSTEM_PERMISSION_DENIED']){
+  assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+  for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'SYSTEM_'+marker]){
+   const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+   assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+  }
+ }
+});

@@ -8,6 +8,7 @@ const sensitiveKeyPattern = /password|passwd|pwd|secret|token|authorization|auth
 // Snapshot of literal code assignments/error-helper calls (excluding config/tests),
 // plus standard driver errors. The source-coverage test requires review of new codes.
 const knownCodes = new Set(`
+  SYSTEM_IDENTITY_INVALID SYSTEM_PERMISSION_DENIED
   AUTH_SESSION_CONFIRM_BODY_INVALID AUTH_SESSION_CONFIRM_FAILED
   AUTH_ADMIN_CORE_DEPENDENCIES AUTH_ADMIN_CORE_TRANSACTION AUTH_ADMIN_CORE_INSERT_RESULT AUTH_TEST_SEMIH_IDENTITY_INVALID
   BUSINESS_PRICE_CATALOG_UNAVAILABLE BUSINESS_PRODUCT_PRICE_INVALID BUSINESS_PRICE_SALE_PROOF BUSINESS_PRICE_STORE_REQUIRED
