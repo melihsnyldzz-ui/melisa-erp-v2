@@ -52,7 +52,7 @@ test('normal count transport persists the entered approver reason in the exact r
   form.onsubmit({preventDefault(){},target:form});await new Promise(resolve=>setImmediate(resolve));
   assert.equal(calls.length,1);assert.equal(calls[0].path,'/api/test-daily/count/approve');assert.equal(calls[0].body.id,39);assert.equal(calls[0].body.reason,'Yetkili stok farkını doğruladı');
   const pending=JSON.parse(store.get('melisa-daily-count-16'));assert.deepEqual(pending.body,calls[0].body);
-  data.drafts[0]={...data.drafts[0],state:'approved',decided_by:16,reason:'Yetkili stok farkını doğruladı'};data.countProducts[0].stockQuantity=4;
+  data.drafts[0]={...data.drafts[0],state:'approved',decided_by:16,decided_by_name:'İlker',reason:'Yetkili stok farkını doğruladı'};data.countProducts[0].stockQuantity=4;
   testDaily(options).bind();button.onclick();assert.match(modal.innerHTML,/Onay: İlker/);assert.match(modal.innerHTML,/Onay gerekçesi: Yetkili stok farkını doğruladı/);assert.doesNotMatch(modal.innerHTML,/name="reason"/);assert.equal(submit.disabled,true);
  }finally{for(const [key,value] of Object.entries(savedGlobals))if(value===undefined)delete globalThis[key];else globalThis[key]=value}
 });
