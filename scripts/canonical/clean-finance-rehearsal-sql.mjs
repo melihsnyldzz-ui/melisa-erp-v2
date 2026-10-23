@@ -73,7 +73,7 @@ function cashGuardDefinition(){return `CREATE PROCEDURE dbo.usp_clean_finance_b4
 import {CLEAN_TARGET_SQL} from './clean-synthetic-sql.mjs';
 import {CLEAN_LOGIN} from '../../apps/api/src/services/cleanSyntheticContext.mjs';
 import {buildCleanOrderSaleProcedures} from './clean-order-sale-sql.mjs';
-import {buildCleanStoreDayDefinitions,buildCleanStoreDayFinanceDefinitions,buildCleanStoreDayInventoryDefinitions,buildCleanInventoryCostFixtureDefinitions,buildCleanStoreAdministratorDefinitions} from './clean-store-day-cohort-sql.mjs';
+import {buildCleanStoreDayDefinitions,buildCleanStoreDayFinanceDefinitions,buildCleanStoreDayInventoryDefinitions,buildCleanInventoryCostFixtureDefinitions,buildCleanStoreAdministratorDefinitions,CLEAN_ADMIN_PERMISSIONS} from './clean-store-day-cohort-sql.mjs';
 const quote=s=>"N'"+s.replaceAll("'","''")+"'";
 const deny="THROW 51965,'CLEAN_FINANCE_REHEARSAL_DENIED',1;";
 const manifest='clean_finance_b4_manifest',intent='clean_finance_b4_intents',fixture='clean_finance_b4_fixture';
@@ -488,13 +488,17 @@ export function buildCleanFinanceFxSql({probe=false}={}){
 
 // Exact, append-only correction for the first installed FX cohort. Only the
 // two case binders and their verifier change; old seals/rows stay immutable.
-export function buildCleanFinanceFxCaseFieldRepairSql({probe=false}={}){
+export function buildCleanFinanceFxCaseFieldRepairDefinitions(){
  const seal='clean_finance_b4_fx_casefield_manifest',base=buildCleanFinanceFxDefinitions().definitions;
  const immutable=`CREATE TRIGGER dbo.${seal}_immutable ON dbo.${seal} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
  const names=['usp_clean_finance_b4_fx_usd_bind','usp_clean_finance_b4_fx_eur_bind','usp_clean_finance_b4_fx_ready'];
  const before=Object.fromEntries(names.map(n=>[n,n.endsWith('_bind')?base[n].replace("NOT IN(N'financeCaseId',N'actorId'","NOT IN(N'actorId'"):base[n]]));
  const after={...Object.fromEntries(names.slice(0,2).map(n=>[n,base[n]])),usp_clean_finance_b4_fx_ready:base.usp_clean_finance_b4_fx_ready.replace("m.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2)",`m.after_hash<>COALESCE((SELECT r.before_hash FROM dbo.${seal} r WHERE r.name=m.name AND r.after_hash=CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2)),CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2))`).replace('IF(SELECT COUNT(*) FROM dbo.'+fxManifest,`IF(SELECT COUNT(*) FROM dbo.${seal})<>3 OR EXISTS(SELECT 1 FROM dbo.${seal} r WHERE r.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+r.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+r.name)) IS NULL) ${deny}\n IF(SELECT COUNT(*) FROM dbo.${fxManifest}`)};
  after.usp_clean_finance_b4_fx_ready=after.usp_clean_finance_b4_fx_ready.replace('IF(SELECT COUNT(*) FROM dbo.'+seal,`IF ISNULL(OBJECTPROPERTY(OBJECT_ID(N'dbo.${seal}_immutable'),'ExecIsTriggerDisabled'),1)<>0 OR ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${seal}_immutable'))),2),N'')<>${quote(moduleHash(immutable))} ${deny}\n IF(SELECT COUNT(*) FROM dbo.${seal}`);
+ return {seal,before,after,immutable};
+}
+export function buildCleanFinanceFxCaseFieldRepairSql({probe=false}={}){
+ const {seal,before,after,immutable}=buildCleanFinanceFxCaseFieldRepairDefinitions();
  return `SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET NOCOUNT ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
  IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
  IF OBJECT_ID(N'dbo.${seal}') IS NOT NULL BEGIN EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;${Object.entries(after).map(([n,b])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${seal} WHERE name=${quote(n)} AND after_hash=${quote(moduleHash(b))}) ${deny}`).join('\n')} SELECT N'B4_FX_CASEFIELD_ALREADY_INSTALLED' status;RETURN;END;
@@ -511,5 +515,61 @@ export function buildCleanFinanceFxCaseFieldRepairSql({probe=false}={}){
  IF @preserve<>HASHBYTES('SHA2_256',${fxSetupProtected}) OR @fixtures<>HASHBYTES('SHA2_256',(SELECT * FROM dbo.${fxFixture} ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES)) OR @seals<>HASHBYTES('SHA2_256',(SELECT * FROM dbo.${fxManifest} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES)) ${deny}
  EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;
  ${probe?"ROLLBACK;SELECT N'B4_FX_CASEFIELD_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B4_FX_CASEFIELD_INSTALLED' status;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
+
+const adminFinanceManifest='clean_finance_b5_admin_manifest';
+const adminFinanceCancelPermissions=['finance.collection.cancel','finance.payment.cancel'];
+const semihRole=`EXISTS(SELECT 1 FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id WHERE u.id=10018 AND u.username=N'semih' AND u.role_id=28 AND u.is_active=1 AND r.id=28 AND r.code=N'clean_test_administrator' AND r.is_active=1)`;
+const adminFinanceProtected=`(SELECT ${[
+ ['products','id'],['product_prices','id'],['product_barcodes','id'],['stock_movements','id'],['customers','id'],['suppliers','id'],['customer_movements','id'],['supplier_movements','id'],['sales_invoices','id'],['sales_invoice_items','id'],['purchase_invoices','id'],['purchase_invoice_items','id'],['finance_accounts','id'],['finance_account_movements','id'],['work_trade_requests','request_id'],['work_collection_links','movement_id'],['cash_sessions','id'],['cash_session_counts','id'],['cash_transfers','id'],['cash_expenses','id'],['cash_adjustments','id'],['users','id'],['roles','id'],['permissions','id'],
+ ].map(([table,key])=>`JSON_QUERY((SELECT * FROM dbo.${table}${table==='permissions'?` WHERE NOT(role_id=28 AND permission_key IN(${adminFinanceCancelPermissions.map(quote).join(',')}))`:''} ORDER BY ${key} FOR JSON PATH,INCLUDE_NULL_VALUES)) ${table}`).join(',')} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)`;
+function adminFinanceRoleProof(expanded){
+ const keys=[...CLEAN_ADMIN_PERMISSIONS,...(expanded?adminFinanceCancelPermissions:[])];
+ return `IF NOT ${semihRole} OR(SELECT COUNT(*) FROM dbo.permissions WHERE role_id=28)<>${keys.length} OR EXISTS(SELECT 1 FROM dbo.permissions WHERE role_id=28 AND(permission_key NOT IN(${keys.map(quote).join(',')}) OR can_view<>1 OR can_create<>1 OR can_approve<>1 OR can_update<>CASE WHEN permission_key IN(${adminFinanceCancelPermissions.map(quote).join(',')}) THEN 0 ELSE 1 END OR can_delete<>CASE WHEN permission_key IN(${adminFinanceCancelPermissions.map(quote).join(',')}) THEN 0 ELSE 1 END)) ${deny}`;
+}
+// User-authorized application administrator; the existing motor, per-operation
+// permission, finite party/account/currency and same-TX witnesses remain intact.
+export function buildCleanFinanceAdministratorDefinitions(){
+ const prior={...buildCleanFinanceRehearsalDefinitions().definitions,...buildCleanFinanceCashDefinitions().definitions,...buildCleanFinanceFxDefinitions().definitions,...buildCleanFinanceFxCaseFieldRepairDefinitions().after};
+ const names=['usp_clean_finance_b4_bind','usp_clean_finance_b4_fx_usd_bind','usp_clean_finance_b4_fx_eur_bind','usp_clean_store_day_ready','usp_clean_finance_b4_ready','usp_clean_finance_b4_cash_ready','usp_clean_finance_b4_fx_ready'],before=Object.fromEntries(names.map(n=>[n,prior[n]])),definitions={};
+ const checker="u.id=23 AND u.username=N'ornek-finans-kontrol' AND r.id=29 AND r.code=N'clean_test_finance_checker'",administrator="u.id=10018 AND u.username=N'semih' AND r.id=28 AND r.code=N'clean_test_administrator'";
+ for(const name of names){let body=before[name];if(name.endsWith('_bind')){if(body.split(checker).length!==2)throw Error('Administrator binder predecessor changed');body=body.replace(checker,`((${checker})OR(${administrator}))`);}else{
+   body=body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,alias)=>`COALESCE((SELECT sa.before_hash FROM dbo.${adminFinanceManifest} sa WHERE sa.name=${alias}.name AND sa.after_hash=${hash}),${hash})`);
+   if(name==='usp_clean_store_day_ready'){const from='(SELECT after_constraints_hash FROM dbo.clean_finance_b4_cash_manifest';if(!body.includes(from))throw Error('Administrator constraint predecessor changed');body=body.replace(from,`(SELECT after_constraints_hash FROM dbo.${adminFinanceManifest}`);}
+   body=body.replace('SET NOCOUNT ON;','SET NOCOUNT ON;EXEC dbo.usp_clean_finance_b5_admin_ready;');
+  }definitions[name]=body;}
+ definitions.usp_clean_finance_b5_admin_ready=`CREATE PROCEDURE dbo.usp_clean_finance_b5_admin_ready WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
+ IF ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${CLEAN_LOGIN}' AND ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF(SELECT COUNT(*) FROM dbo.${adminFinanceManifest})<>9 OR EXISTS(SELECT 1 FROM dbo.${adminFinanceManifest} m WHERE m.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+m.name)) IS NULL OR(OBJECTPROPERTY(OBJECT_ID(N'dbo.'+m.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+m.name),'ExecIsTriggerDisabled')<>0)) ${deny}
+ IF EXISTS(SELECT 1 FROM dbo.${adminFinanceManifest} f LEFT JOIN sys.sql_modules m ON m.object_id=OBJECT_ID(N'dbo.'+f.name) WHERE ISNULL(m.uses_quoted_identifier,0)<>1 OR ISNULL(m.uses_ansi_nulls,0)<>1) ${deny}
+ IF(SELECT after_constraints_hash FROM dbo.${adminFinanceManifest} WHERE name=N'usp_clean_store_day_ready')<>CONVERT(char(64),HASHBYTES('SHA2_256',${checks}),2) ${deny}
+ ${adminFinanceRoleProof(true)} END;`;
+ definitions.clean_finance_b5_admin_immutable=`CREATE TRIGGER dbo.clean_finance_b5_admin_immutable ON dbo.${adminFinanceManifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
+ if(Object.keys(definitions).length!==9)throw Error('Administrator module count changed');
+ return {definitions,before,total:9};
+}
+export function buildCleanFinanceAdministratorSql({probe=false}={}){
+ const {definitions,before}=buildCleanFinanceAdministratorDefinitions();
+ return `SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET NOCOUNT ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF OBJECT_ID(N'dbo.${adminFinanceManifest}') IS NOT NULL BEGIN EXEC dbo.usp_clean_finance_b5_admin_ready;${Object.entries(definitions).map(([n,b])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${adminFinanceManifest} WHERE name=${quote(n)} AND after_hash=${quote(moduleHash(b))}) ${deny}`).join('\n')} SELECT N'B5_ADMIN_ALREADY_INSTALLED' status;RETURN;END;
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${deny}
+ EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
+ ${adminFinanceRoleProof(false)}
+ IF EXISTS(SELECT 1 FROM dbo.clean_store_day_intents) OR EXISTS(SELECT 1 FROM dbo.clean_store_inventory_intents) OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_intents) OR EXISTS(SELECT 1 FROM dbo.${intent}) OR EXISTS(SELECT 1 FROM dbo.${fxIntent}) OR EXISTS(SELECT 1 FROM dbo.${cashIntent}) ${deny}
+ ${Object.entries(before).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${quote(moduleHash(b))} ${deny}`).join('\n')}
+ DECLARE @preserve varbinary(32)=HASHBYTES('SHA2_256',${adminFinanceProtected}),@beforeChecks nvarchar(max)=${checks},@beforePermissions nvarchar(max)=(SELECT * FROM dbo.permissions WHERE role_id=28 ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES),@constraint nvarchar(max)=(SELECT definition FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.work_trade_requests') AND name=N'CK_clean_inventory_requests');IF @constraint IS NULL ${deny}
+ CREATE TABLE dbo.${adminFinanceManifest}(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_quoted_identifier bit NULL,before_ansi_nulls bit NULL,before_constraints_json nvarchar(max) NULL,after_constraints_hash char(64) NULL,before_permissions_json nvarchar(max) NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ ${adminFinanceCancelPermissions.map(k=>`INSERT dbo.permissions(role_id,permission_key,can_view,can_create,can_update,can_delete,can_approve)VALUES(28,${quote(k)},1,1,0,0,1);`).join('\n')}
+ ALTER TABLE dbo.work_trade_requests DROP CONSTRAINT CK_clean_inventory_requests;
+ EXEC(N'ALTER TABLE dbo.work_trade_requests WITH CHECK ADD CONSTRAINT CK_clean_inventory_requests CHECK(('+@constraint+N')OR(actor_id=10018 AND operation IN(N''collection_cancel'',N''payment_cancel'')))');
+ ${Object.entries(definitions).filter(([n])=>!n.endsWith('_immutable')).map(([n,b])=>`INSERT dbo.${adminFinanceManifest}(name,before_hash,after_hash,before_definition,before_quoted_identifier,before_ansi_nulls,before_constraints_json,after_constraints_hash,before_permissions_json) SELECT ${quote(n)},${before[n]?quote(moduleHash(before[n])):'NULL'},${quote(moduleHash(b))},${before[n]?`OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT uses_quoted_identifier FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT uses_ansi_nulls FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'},${n==='usp_clean_store_day_ready'?'@beforeChecks':'NULL'},${n==='usp_clean_store_day_ready'?`CONVERT(char(64),HASHBYTES('SHA2_256',${checks}),2)`:'NULL'},${n==='usp_clean_store_day_ready'?'@beforePermissions':'NULL'};EXEC(${quote(b.replace(/^CREATE PROCEDURE/,before[n]?'ALTER PROCEDURE':'CREATE PROCEDURE'))});`).join('\n')}
+ ${Object.entries(definitions).filter(([n])=>n.endsWith('_immutable')).map(([n,b])=>`INSERT dbo.${adminFinanceManifest}(name,after_hash)VALUES(${quote(n)},${quote(moduleHash(b))});EXEC(${quote(b)});`).join('\n')}
+ DENY INSERT,UPDATE,DELETE ON dbo.${adminFinanceManifest} TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_finance_b5_admin_ready TO [${CLEAN_LOGIN}];
+ IF @preserve<>HASHBYTES('SHA2_256',${adminFinanceProtected}) ${deny}
+ EXEC dbo.usp_clean_finance_b5_admin_ready;EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_finance_b4_ready @verify_balances=1;EXEC dbo.usp_clean_finance_b4_cash_ready;EXEC dbo.usp_clean_finance_b4_fx_ready @verify_balances=1;
+ ${probe?"ROLLBACK;SELECT N'B5_ADMIN_PROBE_ROLLED_BACK' status;":"COMMIT;SELECT N'B5_ADMIN_INSTALLED' status;"}
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }

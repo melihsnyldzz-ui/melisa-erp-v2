@@ -75,6 +75,17 @@ test('B4 uses a same-transaction native bind/finish and keeps existing creators 
  }finally{delete process.env.MELISA_CLEAN_FINANCE;delete process.env.MELISA_CLEAN_FINANCE_B4;}
 });
 
+test('normal Semih TEST administrator can reverse each finite currency case only with its explicit permission and native witness',async()=>{
+ Object.assign(process.env,{MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023',MELISA_CLEAN_FINANCE_CASH:'20261023',MELISA_CLEAN_FINANCE_FX:'20261023'});
+ try{for(const operation of ['collection_cancel','payment_cancel'])for(const profile of [null,...CLEAN_FINANCE_FX_CASES]){
+  const f=fixture({operation,actorId:10018}),actor={id:10018,username:'semih',role:{id:28,code:'clean_test_administrator'},permissions:[operation==='collection_cancel'?'finance.collection.cancel':'finance.payment.cancel']};Object.assign(f.input,{actor,...(profile?{profile:profile.id}:{})});
+  const payload={actorId:'10018',operation,requestId:f.input.requestId,documentDate:'2026-10-22',id:'7',reason:'Yapay yönetici geri alma provası',...(profile?{financeCaseId:profile.id}:{})};f.input.payloadJson=JSON.stringify(payload);f.input.payloadHash=createHash('sha256').update(f.input.payloadJson,'utf16le').digest('hex');f.witness.payloadHash=f.input.payloadHash;
+  await withCleanFinanceRehearsalMutation(f.input,async()=>assert.equal(isCleanStoreDayMutation(),true));const prefix=profile?'dbo.usp_clean_finance_b4_fx':'dbo.usp_clean_finance_b4';assert.deepEqual(f.calls,[prefix+'_bind',prefix+'_finish']);
+  for(const invalid of [{...actor,permissions:[]},{...actor,username:'another-user'},{...actor,role:{id:2,code:'admin'}},{...actor,isAdmin:true},{...actor,testAdminSession:true},{...actor,isActive:false},{...actor,id:20,username:'ornek-finans',role:{id:25,code:'clean_test_finance'}}]){const n=f.calls.length;await assert.rejects(withCleanFinanceRehearsalMutation({...f.input,actor:invalid},async()=>assert.fail()));assert.equal(f.calls.length,n);}
+  const n=f.calls.length;await assert.rejects(withCleanFinanceRehearsalMutation({...f.input,payloadHash:'0'.repeat(64)},async()=>assert.fail()));assert.equal(f.calls.length,n);
+ }}finally{for(const k of ['MELISA_CLEAN_FINANCE','MELISA_CLEAN_FINANCE_B4','MELISA_CLEAN_FINANCE_CASH','MELISA_CLEAN_FINANCE_FX'])delete process.env[k];}
+});
+
 test('B4 FX cases require their own exact native witness, identity and explicit synthetic currency binding',async()=>{
  Object.assign(process.env,{MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023',MELISA_CLEAN_FINANCE_CASH:'20261023',MELISA_CLEAN_FINANCE_FX:'20261023'});
  try{

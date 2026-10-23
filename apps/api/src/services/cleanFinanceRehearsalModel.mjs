@@ -47,7 +47,7 @@ export function assertFinanceRehearsalActor(actor,operation){
  assertRegisteredCleanContext();
  const normalFinance=String(actor?.id)==='20'&&actor.username==='ornek-finans'&&String(actor.role?.id)==='25'&&actor.role?.code==='clean_test_finance';
  const checker=String(actor?.id)==='23'&&actor.username==='ornek-finans-kontrol'&&String(actor.role?.id)==='29'&&actor.role?.code==='clean_test_finance_checker';
- const allowed=Object.hasOwn(CLEAN_FINANCE_REHEARSAL_PERMISSIONS,operation)&&(operation.endsWith('_cancel')?checker:normalFinance||isCleanAdministrator(actor));
+ const allowed=Object.hasOwn(CLEAN_FINANCE_REHEARSAL_PERMISSIONS,operation)&&(isCleanAdministrator(actor)||(operation.endsWith('_cancel')?checker:normalFinance));
  if(!cleanFinanceRehearsalEnabled()||process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_FINANCE!=='20261022'||!allowed||actor.isAdmin===true||actor.testAdminSession===true||!Array.isArray(actor.permissions)||!actor.permissions.includes(CLEAN_FINANCE_REHEARSAL_PERMISSIONS[operation]))throw financeRehearsalError();
  return actor;
 }

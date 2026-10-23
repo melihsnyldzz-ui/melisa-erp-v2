@@ -1,3 +1,12 @@
+## 23 Ekim 23:20 TR — B5 Semih yönetici eksikliği sürüyor; dar native uyarlama kaynak/prova aşamasında
+
+Kullanıcının özgün geniş uygulama yöneticiliği talebi koordinatör turn01a16761'den doğrulandı ve DEC072/AGENTS'e işlendi. Önceki34izin/dedike23iptal ölçütü B5'in tümünü kapatmıyordu. Yalnız Semih10018/rol28'e iki gerekçeli finans iptal izni eklenmesi, mevcut motorun kendi Semih aktörünü kabul etmesi hazırlanıyor. Personel20iptal yapamaz, kontrol23'ün yetkisi korunur; gerekçe/audit/UUID/hesap/döviz ve clean TEST korumaları aynı. JSregresyon eski kaynakta403FAIL; yeni15scopekontrolüPASS. Native kaynakla toplam31farklıhedefkontrolPASS; gerçek owner metadata provası9modül/7exactpredecessor/ikiizin ve dar trustedCHECK genişlemesini çalıştırıp tamamen rollback etti. Sonunda yeni adminmanifestNULL, Semih34izin,30journal/35finanshareketi aynı. Henüz kalıcı rol/native uygulaması veya normalGUIyöneticiiptali yapılmadı; bağımsızreviewNOT_RUN.
+
+**Kesinti sonrası çalışma:** Tüm clean ERP/CRM süreçleri kapalı bulundu; neden kanıtlanmadı, Windows yeniden başlamamıştı. SQL doğruE662/synthetic/T1false/30journal35hareket ile aynıydı. Yeni build/kurulum/restore yapmadan mevcut start-erp/start-crm dosyaları aynı98226c7f/035/CRMbc8kurulumunu yeniden açtı; ERP/CRMHTTP200ve53veri+5ekrolözeti aynı. İlk hemen nativeprobu bağlantı reddi verdi; log/PIDgecikmeli başlamayı kanıtladı, ERPikinci kez başlatılmadan yalnız kalanCRM açıldı. Private b5-resume-existing-package-readback.json. Eski kapanış logları/süreçkayıtları önce özelkanıta kopyalandı.68903cba belgesinin exactCI40003916388üçjobSUCCESS okundu; uygulama/test/paket tekrar edilmedi.
+
+**Sıradaki:** yeni kaynakCI/paket ve güncel geri dönüş önkoşullarıyla yalnız Semih uygulama yetkisi → gerçek min-SQL/native semih/replay/ret → normal Semih ekranı. B4/kurulu rol görünümü kanıtlarını yeniden yapma; B5 tamamlanınca mevcut B6, ardından B7. İnsan kabulü ve özgün sayaçlar aynı; yeni helper/ajan/TEST yok.
+
+### Önceki teslim — B4 ve B5 alt kontrolleri korunur, yönetici talebi henüz tamamlanmamıştı
 ## 23 Ekim 21:30 TR — B5 bilinen ERP rol kontrolleri ve normal sayım görünümü teslim edildi
 
 **Kurulu API/web:**98226c7fc6bfe19ee47e926eac6b89e4b489438b; CLEAN-ERP-20261023-98226c7fc6bf-B5ROLES/3397dosya; manifest55487B821AEC2AF068BEF6BE9C7AFBBBE36976F0482A11FE8AAB15DF8B3904A2. Gerçek kurulum21:28:42TR; guarded build8,58sn. ExactCI40002707905quality/windows/secretüçzorunlujobSUCCESS. B4eeffkaynağının bütün uygulama/SQLkanıtları korunur; sonradan yapılan belge commit'i kurulu kaynakla aynı değildir.
