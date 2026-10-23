@@ -1,5 +1,25 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — B4 audit predecessor çevrimdışı regresyonu
+
+**Kaynak dilimi:** [ffeea515fa0b2c0df1931581c6d14c0bbbb2882a](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/ffeea515fa0b2c0df1931581c6d14c0bbbb2882a), PR54. İki kaynak/test dosyası: mevcut hedef `clean-finance-rehearsal-sql.mjs` içinden yalnız15satırlık offline predecessor seçicisi ve mevcut cohort testindeki3regresyon. Daha geniş B4installer/fixture/adapter taslağı yayımlanmadı; dosyanın geri kalanı ve diğer WIP çalışma alanında korundu. Yeni motor, framework, runtime fixture, helper servis veya ajan kurulmadı.
+
+**Hata:** Eski seçim `cohort.definitions` sözlüğünü alıp ayrı `cohort.guards` yükseltmelerini atlıyordu. Audit için orijinal SALE-only gövdesi seçiliyor, kurulu inbound yükseltmesinin hash'i beklenmiyordu. Seçici bütün cohort guard gövdelerini mevcut ALTER→CREATE sözleşmesiyle alır, her birinin exact afterHash'ini doğrular; sonra finans/inventory/admin yükseltmelerini mevcut sırayla uygular. Eski hash'i canlı DB'den kopyalama veya koruma kaldırma yoktur.
+
+| Çevrimdışı kontrol | Sonuç |
+|---|---|
+| Güncel audit afterHash ve bütün özgün SALE suffix'i | PASS |
+| Aynı fonksiyonda guards birleşimini bellekte kaldırıp aynı sözleşmeyi çalıştırma | Beklenen ERR_ASSERTION / eski seçim FAIL |
+| Gövdeye yalnız bir boşluk ekleme, afterHash aynı | Derleyici reddi / PASS |
+| Mevcut native SQL exact beforeHash retleri ve immutable afterHash kayıtları | PASS; yalnız üretilen SQL metni incelendi |
+| Diğer finans/inventory/admin tanımlarının seçim sırası | PASS |
+
+`node --test scripts/canonical/clean-store-day-cohort.test.mjs scripts/canonical/clean-store-day-sql.test.mjs`:14/14PASS. Kısmi stage'e giren kaynak ve test içeriği bellekte ayrıca import edilip aynı14kontrol geçti; geniş WIP kaynak dosyası commit'e gizlice katılmadı. İlk yerel koşuda testin eksik inventory import'u düzeltildi; başarısız koşu başarı diye gösterilmedi. Yeni denemeler SQL bağlantısı, kalıcı fixture veya ticari işlem üretmedi.
+
+Exact kaynak CI [PR39938394364](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39938394364) / [push39938387671](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39938387671):quality/Windows/secret gerekli6/6completed/SUCCESS. Her check head_sha=ffeea515fa0b2c0df1931581c6d14c0bbbb2882a olarak geri okundu; izleyen belge HEAD'i ayrı tutulur. Kullanılabilir mevcut reviewer yok; yeni ajan açılmadı, bağımsız inceleme iddiası yok.
+
+**Sınır:** Bu SOURCE/OFFLINE teslimidir. Bu devamda SQL çalıştırma/kurulum/runtime/config/rol/izin değişikliği0; önceki8/8canlıSQLokuması yeni kanıt diye tekrar sayılmaz. Kurulu7b3d9b8b/native035/CRMbc8 aynı. B4kısmi ödeme/iptal ve insan/cihaz kabulleri açık;17/74aynı. Sonraki belge HEAD'i kaynak commit'i veya çalışan paket değildir.
+
 ## 23 Ekim 02:56 TR — LAN erişim onarımı
 
 Kullanıcı iki ağdan sayfaların açılmadığını bildirdi ve sonra kapsamı **normal işyeri iç IP'si** olarak daralttı. 02:52 salt okunur incelemede temiz4194/4196/5244/62800–62803 portlarında dinleyici yoktu. IP192.168.1.46 değişmemiş; Windows son açılışı20Ekim. Uygulama kayıtlarında kapanış nedeni bulunamadı. Önceki sunucu tarayıcısı kanıtı başka cihaz kabulü değildir; süreçlerin neden kapandığı halen **BİLİNMİYOR**.

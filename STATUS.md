@@ -1,3 +1,13 @@
+## 23 Ekim — B4 audit predecessor regresyonu: yalnız SOURCE/OFFLINE teslimi
+
+Kaynak **ffeea515fa0b2c0df1931581c6d14c0bbbb2882a**, mevcut PR54. Yalnız `clean-finance-rehearsal-sql.mjs` içindeki çevrimdışı tanım seçici ve mevcut `clean-store-day-cohort.test.mjs` teslim edildi. Kurulu audit gövdesi cohort.guards zincirinden seçilir; eski SALE gövdesi ve inbound kontrolü aynen kalır. Aynı regresyon eski seçimde beklenen assertion ile FAIL, güncel seçimde PASS; tek boşlukluk hash drift'i reddedilir. Commit'e giren dar içerik bellekte ayrıca çalıştırıldı:14/14hedefli test PASS. Diğer B4 kaynak/adapter/SQL uygulama taslakları çalışma alanında korunur; bu commit'e alınmadı.
+
+Exact kaynak CI [PR39938394364](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39938394364) / [push39938387671](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39938387671):quality/Windows/secret gerekli6/6completed/SUCCESS, aynıffeea515HEADile geri okundu. Uygun mevcut reviewer oturumu bulunmadı, yeni ajan açılmadı; bağımsız review yapılmış sayılmadı. Önceki8/8canlıSQLokuması bu turdaki offline test veya kurulum kanıtı değildir.
+
+Bu dilimde SQL/kurulum/servis/config/hesap/rol/izin işlemi0. Kurulu API/web7b3d9b8b/native035/CRMbc8 korunur. B4 ödeme/iptal akışı tamamlanmadı; kaynak teslimi çalışan paket değildir. İnsan/cihaz kabulü BEKLİYOR;17/74ve özgün sayaçlar aynı. Sonraki bağımsız kurulum adayı, CRM sahibinin hazır B5frontend e1ce12b7 teslimidir; B4WIP'e karıştırılmaz. [Tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--b4-audit-predecessor-çevrimdışı-regresyonu).
+
+### Önceki teslimin tarihsel kaydı
+
 ## 23 Ekim 12:08 TR — B3 tamam: sayım geçmişi gerçek kullanıcı adını gösteriyor
 
 🟢 **B3 teknik teslimi tamamlandı.** Mevcut 10 numaralı sayım kaydında sabit “Satış ekibi” yerine **Örnek sayım personeli** görünüyor. SQL created_by=21 ile normal API ve Semih ekranı eşleşti; tam sayfa yenilemesi sonrası ad aynı. Kaydın miktarı, farkı, tarihi ve ters kayıt gerekçesi korunuyor. Yeni sayım/onay/ticari işlem oluşturulmadı.
