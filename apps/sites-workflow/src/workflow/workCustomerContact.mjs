@@ -4,8 +4,8 @@ const fields=['phone','city','country'];
 const limits={phone:40,city:100,country:100};
 const fail=()=>{throw Error('İletişim bilgileri doğrulanamadı.');};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-export function customerContactContext(value,card){
- if(!value||value.schemaVersion!=='melisa-customer-contact-context.v1'||value.customerId!==String(card?.id)||value.customerCode!==card.customerCode||value.customerName!==card.customerName||typeof value.revision!=='string'||!/^[A-F0-9]{64}$/.test(value.revision)||!value.contact||Object.keys(value.contact).sort().join()!==fields.toSorted().join())fail();
+export function customerContactContext(value,card,kind='customer'){
+ if(!['customer','supplier'].includes(kind)||!value||value.schemaVersion!==`melisa-${kind}-contact-context.v1`||value[kind+'Id']!==String(card?.id)||value[kind+'Code']!==card[kind+'Code']||value[kind+'Name']!==card[kind+'Name']||typeof value.revision!=='string'||!/^[A-F0-9]{64}$/.test(value.revision)||!value.contact||Object.keys(value.contact).sort().join()!==fields.toSorted().join())fail();
  for(const key of fields){const v=value.contact[key];if(v!==null&&(typeof v!=='string'||v.length>limits[key]||/[\u0000-\u001f\u007f-\u009f]/.test(v)))fail();}
  if(value.contact.phone?.includes('*'))fail();
  return value;
@@ -14,8 +14,10 @@ export function customerContactContext(value,card){
 // Contact bodies remain only in memory. The optional storage keeps scope/UUID
 // markers, never plaintext contact PII. Reload recovery is read-only and
 // deliberate; an unresolved journal lookup never creates a replacement POST.
-export function createCustomerContactEditor({read,write,requestId=()=>tradeUuid(),onChange=()=>{},recover,storage,actorId}){
- const markers=storage?createCustomerContactPendingMarker(storage):null;
+export function createCustomerContactEditor({read,write,requestId=()=>tradeUuid(),onChange=()=>{},recover,storage,actorId,kind='customer'}){
+ if(!['customer','supplier'].includes(kind))fail();
+ const markers=storage?createCustomerContactPendingMarker(storage,kind):null;
+ const validate=(value,card)=>customerContactContext(value,card,kind);
  let marker=null,recoveryOnly=false;
  const clearMarker=()=>{if(marker&&markers)markers.clear(marker);marker=null;recoveryOnly=false;};
  let card=null,context=null,draft=null,pending=null,status='closed',message='',version=0,disposed=false;
@@ -25,7 +27,7 @@ export function createCustomerContactEditor({read,write,requestId=()=>tradeUuid(
  return Object.freeze({
   state,
   select(next){if(card&&String(card.id)===String(next?.id)){card=next;return;}version++;card=next;context=null;draft=null;pending=null;status='closed';message='';},
-  async open(){if(disposed||!card||status==='saving')return;const n=++version,selected=card;status='loading';message='İletişim bilgileri açılıyor…';notify();try{const result=customerContactContext(await read(String(selected.id)),selected);if(disposed||n!==version)return;context=result;draft={...result.contact};pending=null;
+  async open(){if(disposed||!card||status==='saving')return;const n=++version,selected=card;status='loading';message='İletişim bilgileri açılıyor…';notify();try{const result=validate(await read(String(selected.id)),selected);if(disposed||n!==version)return;context=result;draft={...result.contact};pending=null;
  const stored=markers?.read();
  if(stored){
   if(stored.actorId!==actorId||stored.customerId!==String(selected.id)||stored.copyId!==result.copyId||stored.sealHash!==result.sealHash)throw Error('Unresolved contact request scope mismatch');
@@ -37,13 +39,13 @@ export function createCustomerContactEditor({read,write,requestId=()=>tradeUuid(
  if(recoveryOnly){
   if(typeof recover!=='function')return;
   status='saving';message='Önceki kayıt kontrol ediliyor…';notify();
-  try{const result=await recover(String(selected.id),marker.requestId);if(disposed||n!==version)return;if(typeof result?.committed!=='boolean')fail();const restored=customerContactContext(result.context,selected);if(restored.copyId!==marker.copyId||restored.sealHash!==marker.sealHash)fail();
+  try{const result=await recover(String(selected.id),marker.requestId);if(disposed||n!==version)return;if(typeof result?.committed!=='boolean')fail();const restored=validate(result.context,selected);if(restored.copyId!==marker.copyId||restored.sealHash!==marker.sealHash)fail();
    if(result.committed){clearMarker();context=restored;draft={...context.contact};status='ready';message='Önceki kayıt sunucuda doğrulandı.';}else{status='uncertain';message='Önceki kayıt henüz doğrulanamadı. Yeni kayıt gönderilmedi; tekrar kontrol edin veya kaydı açıkça bırakın.';}
   }catch{if(disposed||n!==version)return;status='uncertain';message='Önceki kayıt kontrol edilemedi. Yeni kayıt gönderilmedi.';}notify();return;
  }
  try{if(!pending){const id=requestId();if(typeof id!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))throw Error();pending=Object.freeze({requestId:id,expectedRevision:context.revision,...draft});}}catch{message='İşlem hazırlanamadı. Bilgiler gönderilmedi; yeniden deneyin.';status='ready';notify();return;}const body=pending;
  if(markers&&!marker){try{marker={actorId,copyId:context.copyId,customerId:String(selected.id),requestId:body.requestId,sealHash:context.sealHash};markers.put(marker);}catch{marker=null;pending=null;status='ready';message='Kayıt güvenle hazırlanamadı; bilgiler gönderilmedi. Önceki bekleyen kaydı kontrol edin.';notify();return;}}
- status='saving';message='Kaydediliyor…';notify();try{const result=await write(String(selected.id),body);if(disposed||n!==version)return;if(typeof result?.replayed!=='boolean')fail();context=customerContactContext(result.context,selected);draft={...context.contact};clearMarker();pending=null;status='ready';message='İletişim bilgileri kaydedildi.';notify();}catch(error){if(disposed||n!==version)return;if(error?.status===409){status='stale';message='Kart değişmiş. Güncel bilgileri açıp yeniden kontrol edin.';}else if(error?.status===403||error?.status===401){status='error';message='Bu bilgileri kaydetme yetkiniz doğrulanamadı.';}else if(error?.status===400){clearMarker();pending=null;status='ready';message='Telefon, şehir ve ülke bilgilerini kontrol edin.';}else{status='uncertain';message='Kaydın yanıtı alınamadı. Aynı kaydı tekrar kontrol edebilirsiniz.';}notify();}},
+ status='saving';message='Kaydediliyor…';notify();try{const result=await write(String(selected.id),body);if(disposed||n!==version)return;if(typeof result?.replayed!=='boolean')fail();context=validate(result.context,selected);draft={...context.contact};clearMarker();pending=null;status='ready';message='İletişim bilgileri kaydedildi.';notify();}catch(error){if(disposed||n!==version)return;if(error?.status===409){status='stale';message='Kart değişmiş. Güncel bilgileri açıp yeniden kontrol edin.';}else if(error?.status===403||error?.status===401){status='error';message='Bu bilgileri kaydetme yetkiniz doğrulanamadı.';}else if(error?.status===400){clearMarker();pending=null;status='ready';message='Telefon, şehir ve ülke bilgilerini kontrol edin.';}else{status='uncertain';message='Kaydın yanıtı alınamadı. Aynı kaydı tekrar kontrol edebilirsiniz.';}notify();}},
   close(){if(status==='saving')return;if(recoveryOnly||pending)clearMarker();version++;context=null;draft=null;pending=null;status='closed';message='';notify();},
   dispose(){disposed=true;version++;card=null;context=null;draft=null;pending=null;}
  });

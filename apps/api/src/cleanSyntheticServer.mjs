@@ -21,13 +21,14 @@ app.use((req,res,next)=>{if(req.get('origin')&&!cleanOrigins.includes(req.get('o
 app.use(cors({origin:cleanOrigins}));app.use(express.json({limit:'128kb'}));
 const saleWrite=req=>process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_SALES==='20261022'&&req.method==='POST'&&/^\/api\/sales-orders\/[1-9]\d*\/(?:convert-to-sales-draft|finalize-linked-sale)$/.test(req.path);
 const directSaleWrite=req=>process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_SALES==='20261022'&&req.method==='POST'&&/^\/api\/work-sales\/(?:preview|drafts(?:\/[1-9]\d*\/finalize)?)$/.test(req.path);
+const contactWrite=req=>process.env.API_PORT==='4194'&&req.method==='POST'&&/^\/api\/(?:customers|suppliers)\/[1-4]\/contact$/.test(req.path);
 const inboundEnabled=()=>process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_STORE_DAY==='20261022';
 const financeEnabled=()=>inboundEnabled()&&process.env.MELISA_CLEAN_FINANCE==='20261022';
 const inventoryEnabled=()=>inboundEnabled()&&process.env.MELISA_CLEAN_INVENTORY==='20261022';
 const inventoryWrite=req=>inventoryEnabled()&&req.method==='POST'&&/^\/api\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path);
 const financeWrite=req=>financeEnabled()&&req.method==='POST'&&(/^\/api\/(?:work-collections(?:\/preview)?|work-supplier-payments\/(?:preview|payments))$/.test(req.path)||cleanFinanceRehearsalWrite(req)||cleanFinanceCashWrite(req));
 const inboundWrite=req=>inboundEnabled()&&req.method==='POST'&&/^\/api\/(?:work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/finalize)?))$/.test(req.path);
-app.use((req,res,next)=>{try{assertRegisteredCleanContext();if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!/^\/api\/auth\/(login|refresh|logout)$/.test(req.path)&&!(req.method==='POST'&&req.path==='/api/test/crm/orders/v2/drafts')&&!saleWrite(req)&&!directSaleWrite(req)&&!inboundWrite(req)&&!financeWrite(req)&&!inventoryWrite(req))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu örnek kurulumda işlem açık değil.'}});next();}catch(e){next(e);}});
+app.use((req,res,next)=>{try{assertRegisteredCleanContext();if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!/^\/api\/auth\/(login|refresh|logout)$/.test(req.path)&&!(req.method==='POST'&&req.path==='/api/test/crm/orders/v2/drafts')&&!saleWrite(req)&&!directSaleWrite(req)&&!contactWrite(req)&&!inboundWrite(req)&&!financeWrite(req)&&!inventoryWrite(req))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu örnek kurulumda işlem açık değil.'}});next();}catch(e){next(e);}});
 app.get('/api/health',(req,res)=>res.json({success:true,data:{status:'ok',...assertRegisteredCleanContext(),sourceCommit:process.env.CLEAN_SOURCE_COMMIT}}));
 app.get('/test-health',async(req,res,next)=>{try{const {getSqlPool}=await import('./config/database.js'),identity=(await (await getSqlPool()).request().query(CLEAN_IDENTITY_SQL)).recordset[0],sales=process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_SALES==='20261022';res.json({ok:true,...assertRegisteredCleanContext(),databaseName:identity.databaseName,serverName:identity.serverName,originalDatabaseAccess:identity.originalDatabaseAccess,liveDatabaseAccess:identity.liveDatabaseAccess,sysadmin:identity.sysadmin,databaseControl:identity.databaseControl,port:Number(process.env.API_PORT),mode:'erp',writes:true,purpose:inboundEnabled()?'clean-store-day-inbound-and-sales':sales?'crm-order-approval-sales-only':'crm-order-draft-only',automaticJobs:false,stockEffect:sales,ledgerEffect:sales,reservationEffect:false,sourceCommit:process.env.CLEAN_SOURCE_COMMIT,packageId:process.env.CLEAN_PACKAGE_ID});}catch(e){next(e);}});
 const read=detail=>async(req,res,next)=>{try{res.json(await readCleanCatalog(req.query,req.user,detail?req.params.id:null));}catch(e){next(e);}};
@@ -68,6 +69,14 @@ if(inventoryEnabled()){
  app.use('/api',(req,res,next)=>{if(req.path.startsWith('/test-daily/')&&!(req.method==='GET'&&/^\/test-daily\/(?:count|purchase)$/.test(req.path)||req.method==='POST'&&/^\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path)))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu günlük işlem açık değil.'}});next();},testDailyRoutes);
 }
 if(process.env.API_PORT==='4194'){
+ const {createCleanContactService}=await import('./services/cleanContactService.mjs'),contacts=createCleanContactService();
+ for(const kind of ['customer','supplier']){
+  const base='/api/'+kind+'s/:id/contact',access=[requireAuth,requirePermission(kind+'.view'),requirePermission(kind+'.edit')];
+  const noQuery=(req,res,next)=>Object.keys(req.query).length?res.status(400).json({success:false,error:{code:'CLEAN_CONTACT_QUERY_INVALID'}}):next();
+  app.get(base,...access,noQuery,saleHandle(req=>contacts.context(kind,req.params.id,req.user)));
+  app.post(base,...access,noQuery,saleHandle(req=>contacts.update(kind,req.params.id,req.body,req.user)));
+  app.get(base+'/requests/:requestId',...access,noQuery,saleHandle(req=>contacts.recover(kind,req.params.id,req.params.requestId,req.user)));
+ }
  const {readCleanCustomerCards}=await import('./services/cleanCustomerCards.mjs');
  app.get('/api/customer-cards',requireAuth,requirePermission('customer.view'),async(req,res,next)=>{try{res.json(await readCleanCustomerCards(req.query));}catch(e){next(e);}});
  app.get('/api/customers/:id/card',requireAuth,requirePermission('customer.view'),async(req,res,next)=>{try{res.json(await readCleanCustomerCards(req.query,req.params.id));}catch(e){next(e);}});

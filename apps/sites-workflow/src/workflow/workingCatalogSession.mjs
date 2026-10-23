@@ -152,6 +152,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(Object.keys(extra).length||typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
    return (await request('/api/customers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
   },
+  async supplierContactRecovery(id,requestId){
+   if(typeof id!=='string'||! /^[1-4]$/.test(id)||typeof requestId!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||!token||!user||!['supplier.view','supplier.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim kaydını kontrol etme yetkiniz yok.',403);
+   return (await request('/api/suppliers/'+id+'/contact/requests/'+requestId,{method:'GET',expire:true,keepForbiddenSession:true})).data;
+  },
+  async supplierContact(id,{method='GET',body,...extra}={}){
+   if(Object.keys(extra).length||typeof id!=='string'||! /^[1-4]$/.test(id)||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['supplier.view','supplier.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
+   return (await request('/api/suppliers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async work(path,{method='GET',body,...extra}={}){
    if(typeof path==='string'&&path.startsWith('/api/work-collections/selected-source')){
     const read=/^\/api\/work-collections\/selected-source\/context\?invoiceId=[1-9]\d*$/;
