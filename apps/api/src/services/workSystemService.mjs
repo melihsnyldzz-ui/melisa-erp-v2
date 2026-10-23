@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import {reportError} from './workReportsModel.mjs';
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,isolatedCopyTopology} from './isolatedOperationCopyContext.mjs';
+import {assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL,CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
 const ERP_STATUS='C:/Sirket/ERP/runtime/canonical-test/health-status.json';
 const CRM_STATUS='C:/Sirket/CRM/runtime/test-completion/health-status.json';
 const BACKUP_STATUS='C:/Sirket/ERP/runtime/canonical-test/backup-status.json';
@@ -55,3 +56,35 @@ export function createWorkSystemService({read=readStatus,health=probe,database=p
  return {environment:'TEST',package:{sourceCommit:release.sourceCommit,packageId:release.packageId},currentUser:{id:Number(actor.id),displayName:String(actor.displayName||actor.username||'Personel'),roleCodes:[String(actor.role?.code||'')],permissionsSummary},services:[{id:'api',label:'ERP bağlantısı',status:'ready',checkedAt},{id:'database',label:'Veri bağlantısı',status:databaseReady?'ready':'unavailable',checkedAt},{id:'native',label:'İşlem servisi',status:nativeReady?'ready':'unavailable',checkedAt},{id:'crm',label:'CRM bağlantısı',status:crmReady?'ready':'unavailable',checkedAt}],terminal:{webReady:true,physicalAcceptance:'pending',lastAccessAt:null},...backupProjection(back),autostart:{erp:startupProjection(erp,{sourceCommit:release.sourceCommit,now:clock().getTime()}),crm:startupProjection(crm,{now:clock().getTime()})}};
  }};}
 export const workSystemService=createWorkSystemService();
+
+// A separate, authenticated read path for the installed synthetic TEST. Never
+// fall back to canonical/copy health files, backups or SQL identities here.
+async function cleanSystemRuntime(){
+ const context=assertRegisteredCleanContext();
+ const {getSqlPool}=await import('../config/database.js');
+ const identity=(await(await getSqlPool()).request().query(CLEAN_IDENTITY_SQL)).recordset?.[0];
+ return {context,identity,port:Number(process.env.API_PORT),sourceCommit:process.env.CLEAN_SOURCE_COMMIT,packageId:process.env.CLEAN_PACKAGE_ID,nativeSourceCommit:process.env.CLEAN_SYSTEM_NATIVE_SOURCE_COMMIT||process.env.CLEAN_SOURCE_COMMIT};
+}
+const cleanPackage=source=>'CLEAN-ERP-20261022-'+source.slice(0,12);
+function cleanSystemIdentity(r){
+ const c=r?.context;
+ if(r?.port!==4194||c?.environment!=='CLEAN_SYNTHETIC_TEST'||c.environmentId!==CLEAN_ENVIRONMENT_ID||c.database!==CLEAN_DATABASE||c.synthetic!==true||c.actualT1!==false||c.externalOperations!==false||!/^[a-f0-9]{40}$/.test(r.sourceCommit??'')||r.packageId!==cleanPackage(r.sourceCommit)||!/^[a-f0-9]{40}$/.test(r.nativeSourceCommit??''))throw reportError(503,'SYSTEM_IDENTITY_INVALID');
+ assertCleanIdentity(r.identity);
+}
+export function createCleanWorkSystemService({runtime=cleanSystemRuntime,health=probe,clock=()=>new Date()}={}){
+ return {async summary(actor){
+  // requireAuth obtains this actor from the current active SQL user/role. No
+  // test-admin override or client-supplied role is accepted by the clean path.
+  if(!actor||actor.isAdmin===true||actor.testAdminSession===true||!Number.isSafeInteger(Number(actor.id))||Number(actor.id)<1||typeof actor.role?.code!=='string'||!actor.role.code||!Array.isArray(actor.permissions)||!actor.permissions.includes('settings.manage'))throw reportError(403,'SYSTEM_PERMISSION_DENIED');
+  const r=await runtime();cleanSystemIdentity(r);
+  const checkedAt=clock().toISOString();
+  const [nativeReady,crmReady]=await Promise.all([
+   health('http://127.0.0.1:4196/test-health',b=>b.ok===true&&b.environment==='CLEAN_SYNTHETIC_TEST'&&b.environmentId===CLEAN_ENVIRONMENT_ID&&b.database===CLEAN_DATABASE&&b.databaseName===CLEAN_DATABASE&&b.serverName==='Semih\\MELISADEV'&&b.synthetic===true&&b.actualT1===false&&b.externalOperations===false&&b.mode==='erp'&&b.port===4196&&b.purpose==='crm-order-draft-only'&&b.automaticJobs===false&&b.stockEffect===false&&b.ledgerEffect===false&&b.reservationEffect===false&&[b.sysadmin,b.databaseControl,b.originalDatabaseAccess,b.liveDatabaseAccess].every(v=>v===0)&&b.sourceCommit===r.nativeSourceCommit&&b.packageId===cleanPackage(r.nativeSourceCommit)),
+   // This reports the local CRM health response, not provider/message readiness.
+   health('http://127.0.0.1:62801/health',b=>b.success===true&&b.meta?.source==='whatsapp-crm-health'&&b.data?.status==='ok'&&b.data.appName==='melisa-whatsapp-crm-api'&&b.data.authMode==='crm-local'&&b.data.provider==='disabled-preparation'&&b.data.providerConnected===false&&b.data.sendReady===false&&b.data.bridgeReady===false&&b.data.translationEnabled===false&&b.data.sendEnabled===false),
+  ]);
+  const permissionsSummary=[];
+  for(const [key,label] of [['sales.view','Satış görüntüleme'],['purchase.view','Alış görüntüleme'],['product.view','Ürün görüntüleme'],['finance.view','Finans görüntüleme'],['settings.manage','Ayarlar yönetimi']])if(actor.permissions.includes(key))permissionsSummary.push(label);
+  return {environment:'TEST',package:{sourceCommit:r.sourceCommit,packageId:r.packageId},currentUser:{id:Number(actor.id),displayName:String(actor.displayName||actor.username||'Personel'),roleCodes:[actor.role.code],permissionsSummary},services:[{id:'api',label:'ERP bağlantısı',status:'ready',checkedAt},{id:'database',label:'Veri bağlantısı',status:'ready',checkedAt},{id:'native',label:'İşlem servisi',status:nativeReady?'ready':'unavailable',checkedAt},{id:'crm',label:'CRM bağlantısı',status:crmReady?'ready':'unavailable',checkedAt}],terminal:{webReady:true,physicalAcceptance:'pending',lastAccessAt:null},...backupProjection(null),autostart:{erp:{status:'unknown',lastCheckAt:null},crm:{status:'unknown',lastCheckAt:null}}};
+ }};
+}

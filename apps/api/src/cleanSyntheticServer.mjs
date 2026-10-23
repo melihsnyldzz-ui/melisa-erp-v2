@@ -53,6 +53,8 @@ if(inventoryEnabled()){
 if(process.env.API_PORT==='4194'){
  const {workReportsRoutes}=await import('./routes/workReportsRoutes.mjs');
  app.use('/api',workReportsRoutes);
+ const [{createWorkSystemRoutes},{createCleanWorkSystemService}]=await Promise.all([import('./routes/workSystemRoutes.mjs'),import('./services/workSystemService.mjs')]);
+ app.use('/api',createWorkSystemRoutes({service:createCleanWorkSystemService()}));
 }
 app.use('/api',crmOrderV2Routes);app.use(createApp());app.use(errorHandler);
 const server=app.listen(Number(process.env.API_PORT),'127.0.0.1',()=>console.log(JSON.stringify({status:'listening',port:Number(process.env.API_PORT),environment:'CLEAN_SYNTHETIC_TEST',actualT1:false})));
