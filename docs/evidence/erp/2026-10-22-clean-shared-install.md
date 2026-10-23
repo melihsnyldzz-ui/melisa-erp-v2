@@ -437,3 +437,32 @@ Son independentkoruma53seçiliveri+5tümkullanıcı/parola/diğerrol/izin/stok/t
 **Tamamlanmış sayılmayanlar:** temiz kurulum genelserbestsepetyazmasını desteklemiyor; yenisatış CRM siparişindenmevcutOnaylarakışında. Cari kartlar okuma; geneliletişimdüzenlemebusonucunparçasıdeğil. FizikselZebra, ikincicihaz, gerçekWindowsreboot/logon ve insan/personel kabulü BEKLİYOR. Ayarlarekranındakiyedek/autostartokuyucusu henüzbukeyfilekanıtlarınıbağlamadığıiçin bilinmiyorgösterir; teknikbackupkanıtıekrarekaydıyerinegeçmez. ERP-UA20/32 veorijinalsayaçlardeğişmez. Yeni modül/migration/ana iş/LIVE yok.
 
 Private kanıt mevcut runtime/semih-access-20261023 içinde: installation.json/reader-installation.json,reader-ci.json,native-positive-rollback.json,inverse-probe.txt,reader-api-readback.private.json,card-readers.json,verification.json,before/afterSQLözetleri,reader-start.before/candidate.ps1veapply-reader-update.ps1. Ekranlar: receipts-after.png,count-after.png,returns-after.png,customer-after.png,supplier-after.png,sales-after.png,settings-delivery.png,crm-preserved.png. Hamveri/sır/hashcredential/GitHubyok.
+
+
+## 23 Ekim 12:08 TR — B3 sayım kaydının gerçek sahibi
+
+**B3 tamamlandı:** aynı mevcut sayım10, created_by21 / “Örnek sayım personeli”, decided_by22 / “Örnek stok sorumlusu”. Önce normal Semih ekranında “Sayan: Satış ekibi” vardı; son pakette “Sayan: Örnek sayım personeli” var. Tam reload ve yeniden Sayımı incele aynı sonucu verdi. Fiziksel24/sistem23/fark+1, iptal durumu, tarih ve iki özgün gerekçe aynıdır. Stok23 ve mevcut kayıtlar korunur; yeni sayım, onay, ödeme veya başka ticari işlem yok.
+
+### Dar kaynak ve gerçek kurulum
+
+GET dailyContext iki kullanıcı kimliğini dbo.users.display_name ile LEFT JOIN eder. Yalnız created_by_name/decided_by_name alanları personel DTO'suna eklenir; parola/rol/iletişim veya maliyet ifşası yok. Ekran server adını kullanır, ad yoksa kullanıcı numarası gösterir. Payload adı veya şu anda giriş yapan Semih, başka kaydın sahibi yerine kullanılamaz. Legacy tek satır, çok satır ve bilinmeyen barkod satırı aynı kuralla gösterilir. İç demo rolü ve yetki/miktar/motor kuralları değiştirilmedi.
+
+İlk kaynak218b5db6; ilgili23test geçti. CI'de mevcut countUI transport fixture'ı adı olmadan16numaradan İlker bekliyordu. Kontrol korunarak fixture'a gerçek okuyucunun verdiği decided_by_name eklendi. Son kaynak7b3d9b8b0c9198dc6eeb04de1db697b1d22271e9:23hedefli ve1040tam ekran testi başarılı; [PR CI39928530390](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39928530390) / [push CI39928524447](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39928524447), gerekli6/6SUCCESS. Mevcut koordinatör kaynak incelemesinde engel bulmadı; source/test tek başına tamam sayılmadı.
+
+12:06:10TR'de yalnız API4194/web5244 güncellendi. Paket **CLEAN-ERP-20261022-7b3d9b8b0c91**; mevcut pasif aday dizini **C:/Sirket/ERP/releases/CLEAN-ERP-20261023-218b5db62f59** kullanıldı. Dizin adı ilk adaydan kalır; gerçek source/manifest7b3d9b8b'dir. İki commit arasında yalnız test fixture farkı vardır ve aday o dosyayla eşitlendi; yürütülen ürün kodu değişmediği için aynı derleme korundu.3388dosya manifest SHA256368779D1205F983C67D7F69C2412B92C9E20C8591103DF04469D46D6DB57E9A5. Önceki0f519 uygulaması ve başlatıcı before-image geri dönüş için korunur. Yeni TEST alanı, şema, rol, native/CRM kurulumu veya DB restore yok; geri dönüş çalıştırılması gerekmedi.
+
+Kimlik yalnız Semih\MELISADEV / MELISA_ERP_CLEAN_TEST_20261022 / environmentIde662fd94-d797-4b3b-938a-d143ad758b67; synthetictrue/T1false/externalfalse. Native4196 kaynak035fcc08/PID44588; CRMbc8/PID49984,13676,50036 ve diğer33listener adres/PID/doğum/executable aynıdır. Bağımsız53+5koruma özeti58/58aynı; Semih10018/rol28/34izin aynı. SQLwrite0 ve yeni ticari kayıt0. Kayıtlı hesabın normal giriş oturum/audit etkisi ticari yazma değildir.
+
+Private kanıt mevcut runtime/semih-access-20261023 içinde: b3-installation.json,b3-ci.json,b3-read-proof.json,b3-verification.json,b3-protected/extended.after.txt ve b3-start.before/candidate.ps1. b3-count-before.png, b3-count-after.png,b3-count-refresh.png normal LAN ekranıdır. Aynı kaynak API ile kaydın kullanıcı adları bağımsız doğrulandı; salt okunur kaynak provasında stok ve taslak sayısı değişmedi. Kullanıcı sırları/ham ticari veri GitHub'a yüklenmez.
+
+### B4 için mevcut kanıttan çıkarılan kalanlar
+
+| Dal | Var olan kanıt | Bu clean kurulumda kalan somut iş |
+|---|---|---|
+| Tam TRY tahsilat/ödeme | Önceki normal GUI/native/UUID tek etki kabulü tamam; tekrarlanmadı | Mevcut satış ve alış tamamen ödenmiş; yeni kısmi etkiyi bu sıfır kalanlara zorla yazma |
+| Kısmi TRY ödeme/tahsilat | Genel servis ve kaynak testlerinde kısmi+tam hesaplama; SQL finance binder pozitif tutarı kalan borç/kasa ile sınırlar | Mevcut kayıtları koruyan, geri alınabilir sonlu senaryoda native ve normal ekran kanıtı eksik |
+| TRY/USD/EUR | Genel domain/model testleri ve para birimi eşitliği korumaları mevcut | Clean adapter ve mühürlü SQL kohortu yalnız tek TRY kasa/müşteri/tedarikçi hesabında. USD/EUR seçeneği eklemek yeterli değildir; onaylı hesap/kur kaynağı ve tutarlı native bağ gerekir |
+| Finansal iptal | Genel servislerde özgün ödeme/kur snapshot'ını koruyan ters kayıt modeli mevcut | Clean canCancel/canCancelCollection=false; journal yalnız collection_create/payment kabul ediyor; cancelCollection/cancel/ownsPayment temiz bağları ve native inverse admission/finish eksik |
+| Fatura/satış iptali | Sayım/iade ters kayıtları önceki2.6'da tamam | canCancelPurchase ve clean serbest satış/cancel kapalı; bunlar sayım/iade inverse kanıtıyla tamam sayılamaz |
+
+İşletme girdisi: kullanılacak dövizler ve kasa/banka hesap adları (numara gerekmez), B5 için gerçek çalışan/görev dağılımı. Koordinatör aynı soruyu zaten sordu; bu teslimde tekrar parola veya işletme sorusu açılmadı. Teknik olarak hazır TRY kısmi/finansal iptal kaynak işi kullanıcı girdisinden bağımsız seçilebilir, fakat bu B3 tesliminde yeni finans yazması yapılmadı. B4–B7 açık; insan kabulleri ve özgün finish sayaçları değişmedi.

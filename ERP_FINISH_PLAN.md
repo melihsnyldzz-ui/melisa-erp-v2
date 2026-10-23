@@ -1,3 +1,7 @@
+## 23 Ekim — B3 teknik ekran hatası kapandı
+
+Sayım10'un gerçek sahibi Örnek sayım personeli normal Semih ekranında, SQL/API ve reload ile doğrulandı. Kurulu API/web7b3d9b8b; native035/CRMbc8 ve veriler korunur. B4 kısmi/döviz/finansal iptal, B5 görevler, B6 sepet ve B7 iletişim açık. Bu düzeltme özgün49ERP/25CRM yaprak sayaçlarını veya insan kabulünü değiştirmez. Güncel STATUS ve tek clean kanıtı esas alınır. Aşağıdaki tarihlendirilmiş eski kaynak/etiket-açık notları tarihseldir.
+
 ## 23 Ekim — Tek esas TEST ve ağ bağlantısı
 
 ERP-DEC-071: aynı clean20261022 kurulumuna ERP035fcc08/CRMbc8 kuruldu; yalnızweb5244/62800 LAN+Tailscale, içservislerloopback. Normalpersonel giriş/katalog/fotoğraf/fiyat/yenileme sunucu tarayıcısında doğrulandı.21eski listener,firewall ve53veri kapsamı aynı; yeni ticari işlem0. KaynakERP6/6CI,CRM7/7CI başarılı. Eski kurulumlar envanterde korunur. **İkinci fiziksel cihaz ve insan kabulü bekliyor**; özgün49/25sayaçları değişmez. Sonraki iş başka yetkili cihazdan normal giriş/katalog kabulü; yeni göç veya tamamlanmış motor tekrarı yok. [Güncel STATUS](STATUS.md) ve [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--esas-test-ağ-teslimi).

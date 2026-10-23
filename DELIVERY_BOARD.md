@@ -1,8 +1,14 @@
-## 23 Ekim — B3 sayım geçmişindeki kişi adı düzeltmesi hazırlanıyor
+## 23 Ekim 12:08 TR — B3 tamam: sayım geçmişi gerçek kullanıcı adını gösteriyor
 
-Mevcut kayıt10 gerçekten kullanıcı21 (Örnek sayım personeli), karar veren22 (Örnek stok sorumlusu) tarafından oluşturulmuş. Ekrandaki sabit Satış ekibi etiketi kaldırıldı; GET okuyucusu kullanıcı kimlikleriyle yalnız görünen adları birleştiriyor. Eksik ad için kullanıcı numarası gösterilir; payload veya açık oturum başka kaydın sahibi yerine kullanılmaz.23 hedefli test geçti. Henüz B3 kurulum/normal ekran doğrulaması yapılmadı; tamam işareti bekliyor. Mevcut0f519 paketi, Semih rol28/34izin, veri ve CRM korunur.
+🟢 **B3 teknik teslimi tamamlandı.** Mevcut 10 numaralı sayım kaydında sabit “Satış ekibi” yerine **Örnek sayım personeli** görünüyor. SQL created_by=21 ile normal API ve Semih ekranı eşleşti; tam sayfa yenilemesi sonrası ad aynı. Kaydın miktarı, farkı, tarihi ve ters kayıt gerekçesi korunuyor. Yeni sayım/onay/ticari işlem oluşturulmadı.
 
-### Önceki teslimler
+**Kurulu uygulama:** API4194 + web5244 kaynak7b3d9b8b0c9198dc6eeb04de1db697b1d22271e9 / CLEAN-ERP-20261022-7b3d9b8b0c91. Native035fcc08 ve CRMbc8c307e aynı süreç/dosyalarda. Semih10018/rol28/34izin, diğer hesaplar/parolalar ve58veri koruma özeti aynı; diğer33listener kimliği korundu.23hedefli ve1040ekran testi başarılı. Uygulama exact CI6/6SUCCESS ([PR39928530390](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39928530390), [push39928524447](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39928524447)).
+
+**Mevcut B listesi:** B1–B2 önceki yapay TEST kabulü korunur; B3 tamam. B4 kısmi ödeme/döviz/finansal iptal, B5 personel görevleri, B6 doğrudan satış sepeti ve B7 iletişim düzenleme açık. Yeni plan/Goal/ajan yok. B4 için mevcut TRY hesapları tamamen ödenmiş; kalan dal yalnız eski tam ödeme işlemini tekrarlayarak kanıtlanamaz. TRY kısmi ödeme ve gerekçeli finansal iptal için mevcut clean adapter/SQL sözleşmesinin eksik dalları sıradaki bağımsız teknik iştir. USD/EUR ve kasa/banka adları ile B5 gerçek personel görevleri için koordinatörde sorulmuş işletme bilgisi bekleniyor; tahmin yapılmadı.
+
+[Sayım ekranı](http://192.168.1.46:5244/ornek-akis.html#count) → Sayımı incele. [Tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim-1208-tr--b3-sayım-kaydının-gerçek-sahibi). Private görüntü runtime/semih-access-20261023/b3-count-refresh.png. İnsan/personel/ikinci cihaz kabulleri ve özgün49/25sayaçları aynı; B3 ekran hatasının kapanması insan PASS değildir.
+
+### Önceki teslimlerin tarihsel kaydı
 
 ## 23 Ekim 10:12 TR — Semih yönetici erişimi kuruldu ve normal ekranlar doğrulandı
 

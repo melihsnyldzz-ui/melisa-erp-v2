@@ -1,3 +1,7 @@
+## 23 Ekim — B3 kişi adı teknik doğrulaması; insan kabulü değişmedi
+
+Mevcut sayım10'da Sayan artık kimlik21'e bağlı Örnek sayım personeli. Normal Semih ekranı, SQL/API ve reload kanıtı var; yeni işlem yok. Teknik B3 düzeltmesi ERP-UA15/16/18/32 veya diğer özgün insan kabulünü PASS yapmaz. Mevcut kişi/tarih/işletme sonuçları ve sayaçlar korunur.
+
 **23 Ekim — ERP-UA20 / B08 teknik ekran düzeltmesi:** Esas temiz TEST'te normal semih hesabıyla Ayarlar/Yenile/reload, mevcut kullanıcı/rol ve dört bağlantı doğrulandı. API4af2; native/web035 ve CRMbc8 korundu. Bu ajan/koordinatör teknik ekran kanıtıdır; ERP-UA20/32 insan sonucu **BEKLİYOR** kalır. Yedek/otomatik başlangıç bilinmiyor ve fiziksel Zebra kabulü bekliyor bilgileri sahte PASS'a dönüşmedi. Yeni UA veya sayaç artışı yok. [Kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim-0849-tr--ayarlar-okuyucusu-ve-korunan-bileşenler).
 
 **22 Ekim / ERP-DEC-070 iş2.2–2.3 teknik ekran sonucu:** Aynı temiz yapay TEST'te normal depo18 sayım3/başında sıfırlı barkod/2ADET→sorumlu19kabul3→nativealış4/120TRYborç doğrulandı. Yenile aynı kayıt; stok yalnız kabulde21→23, fatura ikinci stok yaratmadı; kayıtlı kur/hesap tutarı normal ekranda görüldü. Personel onayı/alış yetkisi ret, replay/UUIDçatışma, nativeSQL/API ve mevcut CRMorder3/sale1okuması geçti. Bu ajan kontrolüdür, İlker/personel/işletme kabulü değildir. Özgün ERP-UA/CRM06/ERP09 kayıtları BEKLİYOR, PASS/yeniUA/sayaç artışı yok. [Kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki3db/önceki paket kayıtları tarihseldir.
