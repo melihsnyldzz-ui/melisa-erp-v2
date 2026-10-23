@@ -1,4 +1,4 @@
-import {createCustomerContactEditor,customerContactHtml,bindCustomerContact} from './workCustomerContact.mjs';
+import {createCustomerContactEditor,customerContactHtml,bindCustomerContact,contactCardFromContext} from './workCustomerContact.mjs';
 import {workOperationLabels} from './workCopyPresentation.mjs';
 import {currencyAccountsHtml,sourceComparisonHtml} from './currencyAccountPresentation.mjs';
 import './workInbound.css';
@@ -8,7 +8,7 @@ import {paymentContext as validatePaymentContext} from './workSupplierPaymentsMo
 export function createWorkSuppliers({root,session,user,navigate=()=>{}}={}){
  let active=false,generation=0,detailGeneration=0,context=null,financeState='loading',paymentContext=null,paymentState='loading',rows=[],listMeta=null,card=null,page=1,search='',readerState='loading',note='',busy=false,abandonArmed=false;
  let contactStorage;try{contactStorage=globalThis.sessionStorage;if(typeof window!=='undefined'&&!contactStorage)throw Error();}catch{contactStorage={getItem(){throw Error('Contact storage unavailable');}};}
- const contactEditor=createCustomerContactEditor({kind:'supplier',storage:contactStorage,actorId:user.id,read:id=>session.supplierContact(id),write:(id,body)=>session.supplierContact(id,{method:'POST',body}),recover:(id,key)=>session.supplierContactRecovery(id,key),onChange:()=>{if(contactEditor.state().status!=='uncertain')abandonArmed=false;paint();}});
+ const contactEditor=createCustomerContactEditor({kind:'supplier',storage:contactStorage,actorId:user.id,read:id=>session.supplierContact(id),write:(id,body)=>session.supplierContact(id,{method:'POST',body}),recover:(id,key)=>session.supplierContactRecovery(id,key),onChange:state=>{if(state.status==='ready'&&state.context&&card)card=contactCardFromContext(card,state.context,'supplier');if(state.status!=='uncertain')abandonArmed=false;paint();}});
  const contactLocked=()=>['saving','uncertain'].includes(contactEditor.state().status);
  const alive=n=>active&&root?.isConnected&&n===generation;
  const typeLabel=type=>({purchase_invoice:'Alış faturası',purchase_invoice_cancel:'Fatura iptali'})[type]??'Kayıtlı hareket';

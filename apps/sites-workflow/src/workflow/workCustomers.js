@@ -4,13 +4,13 @@ import './workSales.css';
 import {customerListPath,customerListEnvelope,validateCustomerCard} from './testCustomersModel.mjs';
 import {moneyDisplay,tradeContext,tradeAmount} from './workTradeModel.mjs';
 import {invoicePaymentState,customerHistoryCurrencies,createCustomerHistoryReader} from './workOpenAccountPresentation.mjs';
-import {createCustomerContactEditor,customerContactHtml,bindCustomerContact} from './workCustomerContact.mjs';
+import {createCustomerContactEditor,customerContactHtml,bindCustomerContact,contactCardFromContext} from './workCustomerContact.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function createWorkCustomers({root,session,user,navigate=()=>{},storage=globalThis.localStorage}={}){
  let active=false,generation=0,detailVersion=0,page=1,search='',rows=[],meta=null,card=null,selectedCardId='',scope=null,note='',history=[],historyState='loading',historyCurrency='',historyPage=1,historyMeta=null,abandonArmed=false;
  const alive=n=>active&&root?.isConnected&&n===generation,reader=createCustomerHistoryReader(path=>session.work(path));
  let contactStorage;try{contactStorage=globalThis.sessionStorage;if(typeof window!=='undefined'&&!contactStorage)throw Error('Contact storage unavailable');}catch{contactStorage={getItem(){throw Error('Contact storage unavailable');}};}
- const contactEditor=createCustomerContactEditor({storage:contactStorage,actorId:user.id,recover:(id,requestId)=>session.customerContactRecovery(id,requestId),read:id=>session.customerContact(id),write:(id,body)=>session.customerContact(id,{method:'POST',body}),onChange:()=>{if(contactEditor.state().status!=='uncertain')abandonArmed=false;paint();}});
+ const contactEditor=createCustomerContactEditor({storage:contactStorage,actorId:user.id,recover:(id,requestId)=>session.customerContactRecovery(id,requestId),read:id=>session.customerContact(id),write:(id,body)=>session.customerContact(id,{method:'POST',body}),onChange:state=>{if(state.status==='ready'&&state.context&&card)card=contactCardFromContext(card,state.context,'customer');if(state.status!=='uncertain')abandonArmed=false;paint();}});
  const contactNavigationLocked=()=>['saving','uncertain'].includes(contactEditor.state().status);
  const contactNavigationNotice=()=>contactEditor.state().status==='saving'?'İletişim kaydı tamamlanana kadar bu ekrandan ayrılamazsınız.':contactEditor.state().status==='uncertain'?abandonArmed?'Sunucu kaydı tamamlamış olabilir. Bu ekrandaki tekrar deneme kimliği silinecek. Kaydı bırakmayı onaylayın veya vazgeçin.':'Kayıt sonucu belirsiz. Sunucu kaydı tamamlamış olabilir; aynı kimlikle tekrar kontrol etmek önerilir.':'';
  const selection=()=>selectedCardId?(card&&historyCurrency?{customerId:String(card.id),currency:historyCurrency,page:historyPage}:null):scope?{customerId:scope.scope.customer.id,currency:scope.scope.customer.currency,page:historyPage}:null;

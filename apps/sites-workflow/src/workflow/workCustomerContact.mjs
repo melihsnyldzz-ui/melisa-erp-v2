@@ -11,6 +11,14 @@ export function customerContactContext(value,card,kind='customer'){
  return value;
 }
 
+// Only a validated server context may refresh the visible contact summary.
+export function contactCardFromContext(card,context,kind='customer'){
+ customerContactContext(context,card,kind);
+ const value=context.contact.phone,digits=String(value??'').replace(/\D/g,'');
+ const phoneMasked=!value?null:digits.length>=7?digits.slice(0,4)+'****'+digits.slice(-2):value.length<=3?'*'.repeat(value.length):value.slice(0,2)+'*'.repeat(value.length-3)+value.slice(-1);
+ return {...card,fields:{...card.fields,phoneMasked,city:context.contact.city,country:context.contact.country}};
+}
+
 // Contact bodies remain only in memory. The optional storage keeps scope/UUID
 // markers, never plaintext contact PII. Reload recovery is read-only and
 // deliberate; an unresolved journal lookup never creates a replacement POST.
