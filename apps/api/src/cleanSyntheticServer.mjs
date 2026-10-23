@@ -43,6 +43,7 @@ if(financeEnabled()){
  app.use('/api',createWorkSupplierPaymentRoutes({service:createWorkSupplierPaymentService({getStore:async()=>store,actorCheck:cleanFinanceActor})}));
  app.get('/api/work-sales/context',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.context)));
  app.get('/api/work-sales/invoices',requireAuth,requirePermission('finance.view'),async(req,res,next)=>{try{res.json({success:true,data:await store.read(req.user,async c=>({data:[await c.invoice('1')],meta:{total:1,page:1,limit:25}}))});}catch(e){next(e);}});
+ app.get('/api/work-sales/invoices/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.invoice(req.params.id))));
  app.get('/api/work-sales/requests/:id',requireAuth,requirePermission('finance.view'),saleHandle(req=>store.read(req.user,c=>c.request(req.params.id))));
 }
 if(inventoryEnabled()){
@@ -51,6 +52,8 @@ if(inventoryEnabled()){
  app.use('/api',(req,res,next)=>{if(req.path.startsWith('/test-daily/')&&!(req.method==='GET'&&/^\/test-daily\/(?:count|purchase)$/.test(req.path)||req.method==='POST'&&/^\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path)))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu günlük işlem açık değil.'}});next();},testDailyRoutes);
 }
 if(process.env.API_PORT==='4194'){
+ const {homeSummaryRoutes}=await import('./routes/homeSummaryRoutes.mjs');
+ app.use('/api',homeSummaryRoutes);
  const {workReportsRoutes}=await import('./routes/workReportsRoutes.mjs');
  app.use('/api',workReportsRoutes);
  const [{createWorkSystemRoutes},{createCleanWorkSystemService}]=await Promise.all([import('./routes/workSystemRoutes.mjs'),import('./services/workSystemService.mjs')]);

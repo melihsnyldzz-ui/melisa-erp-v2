@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-072 — 23 Ekim 2026 — Semih normal TEST yönetici erişimi
+
+Kordinatör AJAN konuşmasındaki doğrudan kullanıcı kararı root tarafından okundu: semih kullanıcısı, mevcut desteklenen TEST ekranlarını yönetici olarak deneyebilmelidir. Yalnız clean20261022 / semih10018 için ayrı normal uygulama rolü28 (clean_test_administrator) ve açık izinler hazırlanır. Paylaşılan admin rolü2, diğer kullanıcılar ve parolalar korunur. İşlemler semih'in kendi aktörüyle izlenir; başka personel kimliğine eşleme, admin bayrağı, giriş bypass veya SQL yönetici yetkisi yoktur. Mevcut sonlu ürün/hesap/tutar/tarih, replay, native guard ve TEST hedef sınırları değişmez.
+
+ERP tek kurulum/SQL sahibi olarak yedek ve dar before-image ile API/web bağlantısını tamamlar; native4196/CRM ve eski kurulumları korur. Her desteklenen normal ekran, yenileme ve yetki reddinde oturum davranışı doğrulanır. Kaynak/CI/kurulum/GUI ayrı; insan kabulü bekler. Yeni modül, gerçek ticari kayıt, LIVE/Vega/main değişikliği yok.
+
+
+
 ### ERP-DEC-071 — 23 Ekim 2026 — Tek esas TEST sürümü, şirket ağı ve Tailscale erişimi
 
 **Kaynak:** Mevcut Kordinatör AJAN konuşmasında kullanıcının doğrudan şirket Wi-Fi/LAN ve Tailscale cihazlarına erişim talebi, ardından “bu son sürüm ... ana sürümümüz olacak” kararı root tarafından read_thread ile okundu. Esas çalışma kurulumu `C:\Sirket\ERP\clean\20261022` olarak kalır. “Esas sürüm” TEST çalışma hedefidir; Git main birleştirmesi, LIVE veya gerçek açılış yetkisi değildir.

@@ -11,6 +11,16 @@ function fixture({operation='purchase_finalize',actorId=19,permission='purchase.
  const sqlDriver={BigInt:'bigint',UniqueIdentifier:'uuid',MAX:16,NVarChar:()=>'',Char:()=>'',Request:class{constructor(tx){assert.equal(tx,transaction);}input(){return this;}async execute(name){calls.push(name);if(missing)throw Error('cohort not installed');return {recordset:[foreign?{...witness,environmentId:'wrong'}:witness]};}}};
  return {input:{transaction,sqlDriver,actor:{id:actorId,permissions:[permission]},operation,requestId,payloadJson,payloadHash,receiptId:1,invoiceId:2},calls,witness};
 }
+
+test('normal Semih administration keeps its own actor, real permission and native witness',async()=>{
+ const f=fixture({actorId:10018});Object.assign(f.input.actor,{username:'semih',role:{id:28,code:'clean_test_administrator'}});
+ await withCleanStoreDayMutation(f.input,async()=>assert.equal(isCleanStoreDayMutation(),true));
+ assert.deepEqual(f.calls,['dbo.usp_clean_store_day_bind','dbo.usp_clean_store_day_finish']);
+ for(const patch of [{id:1},{username:'other'},{role:{id:2,code:'admin'}},{permissions:[]},{isAdmin:true},{testAdminSession:true}]){
+  const bad={...f.input,actor:{...f.input.actor,...patch}};let ran=false;await assert.rejects(withCleanStoreDayMutation(bad,async()=>{ran=true;}));assert.equal(ran,false);
+ }
+ const missing=fixture({actorId:10018,missing:true});missing.input.actor={...f.input.actor};await assert.rejects(withCleanStoreDayMutation(missing.input,async()=>assert.fail()));
+});
 test('native bind must succeed before existing motor scope; native finish must verify effects',async()=>{
  const f=fixture();assert.equal(isCleanStoreDayMutation(),false);
  const value=await withCleanStoreDayMutation(f.input,async()=>{assert.equal(isCleanStoreDayMutation(),true);await assertCleanReceivedPurchaseContext({...f.input,cleanStoreDayReceived:true},2);return 'existing-native-result';});

@@ -1,3 +1,9 @@
+## 23 Ekim — Semih normal yönetici erişimi: uygulama hazırlanıyor
+
+ERP-DEC-072 kapsamında Semih10018 için ayrı normal rol28; diğer roller/parola/native/CRM korunur. Yetkili ekran okuyucuları, eksik HOME/fiş GET bağlantısı ve403 sonrası yanlış oturum silinmesi kaynakta düzeltildi. Native SQL kurulum provası UTF8 ile işlem içinde geçti ve geri alındı; henüz kurulum yapılmadı. Yedek CHECKSUM/VERIFYONLY tamamlandı, restore yapılmadı. Sıradaki iş: hedefli test, exact CI, dar API/web+rol kurulumu ve normal ekran kontrolü. İnsan kabulleri/sayaçlar değişmez.
+
+### Önceki teslimler
+
 ## 23 Ekim 08:49 TR — Semih hesabında Ayarlar açılıyor; yalnız API4194 güncellendi
 
 Normal Ayarlar `/api/work-system/summary` 404 hatası mevcut router/DTO ile giderildi. Clean okuyucu her istekte kayıtlı TEST/DB kimliğini ve mevcut `settings.manage` yetkisini doğrular; eski kurulumların durum/backup dosyalarına düşmez. Yeni SQL izni, hesap/parola/rol veya ticari veri değişikliği yok. Yedek/geri dönüş ve otomatik başlangıç kanıtı yoksa bilinmiyor; fiziksel Zebra kabulü bekliyor kalır.

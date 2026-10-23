@@ -5,6 +5,25 @@ import {buildCleanCompatibleSaleBegin,buildCleanOrderSaleProcedures} from './cle
 import {moduleHash} from './stage4-copy-sql.mjs';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {buildCleanStoreAdministratorDefinitions,buildCleanStoreAdministratorSql,CLEAN_ADMIN_PERMISSIONS} from './clean-store-day-cohort-sql.mjs';
+
+test('Semih normal admin cohort preserves predecessor hashes, original actors and finite business boundaries',()=>{
+ const {definitions:d,before,total}=buildCleanStoreAdministratorDefinitions(),sql=buildCleanStoreAdministratorSql();
+ assert.equal(total,11);assert.equal(Object.keys(before).length,10);
+ for(const name of Object.keys(before)){assert.notEqual(moduleHash(d[name]),moduleHash(before[name]));assert.ok(sql.includes(moduleHash(before[name])));}
+ assert.match(d.usp_clean_store_day_bind,/au\.id=10018.*ar\.id=28.*clean_test_administrator/);
+ assert.match(d.usp_clean_store_day_bind,/created_by=@actor_id OR @admin=1 AND created_by IN\(18,10018\)/);
+ assert.match(d.usp_clean_store_finance_bind,/@request_id,@actor_id,@operation/);
+ assert.doesNotMatch(d.usp_clean_store_finance_bind,/@request_id,20,@operation/);
+ assert.match(d.usp_clean_store_inventory_bind,/actor_id=\(SELECT created_by FROM dbo.test_daily_drafts WHERE id=@id\)/);
+ assert.match(d.usp_clean_store_inventory_guard,/original_approved_by.*SELECT decided_by FROM dbo.test_daily_drafts/);
+ assert.match(sql,/UPDATE dbo.users SET role_id=28 WHERE id=10018 AND username=N'semih' AND role_id=2/);
+ assert.ok(CLEAN_ADMIN_PERMISSIONS.includes('goods.approve'));assert.ok(CLEAN_ADMIN_PERMISSIONS.includes('stock.adjust'));
+ assert.match(sql,/WITH CHECK ADD CONSTRAINT CK_clean_inventory_requests/);
+ assert.doesNotMatch(sql,/DISABLE TRIGGER|UPDATE dbo\.permissions|UPDATE dbo\.clean_store_inventory_manifest|UPDATE dbo\.products|UPDATE dbo\.suppliers SET balance|password_hash\s*=/);
+ assert.match(d.usp_clean_store_inventory_bind,/@stock\+@qty<0/);assert.match(d.usp_clean_store_finance_bind,/@amount>@account/);
+ assert.match(d.usp_clean_store_day_ready,/a\.before_hash=|SELECT a.before_hash/);assert.match(d.usp_clean_store_day_ready,/clean_inventory_cost_manifest/);
+});
 test('closed cohort replaces only native readiness and keeps old immutable definition history',()=>{
  const {definitions:d,guards,total}=buildCleanStoreDayDefinitions();
  assert.equal(total,Object.keys(d).length+3);assert.equal(guards.length,3);

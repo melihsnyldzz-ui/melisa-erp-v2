@@ -5,6 +5,7 @@ import {CLEAN_TARGET_SQL} from './clean-synthetic-sql.mjs';
 import {CLEAN_LOGIN} from '../../apps/api/src/services/cleanSyntheticContext.mjs';
 import {buildCleanOrderSaleProcedures,buildCleanCompatibleSaleBegin,cleanOrderSaleReadinessSql} from './clean-order-sale-sql.mjs';
 import {cleanInboundGuardUpgradePlan,cleanInboundEffectiveDefinitionHashSql} from './clean-store-day-sql.mjs';
+import {GRANULAR_PERMISSIONS} from '../../apps/api/src/services/permissionCatalog.js';
 const quote=s=>"N'"+s.replaceAll("'","''")+"'";
 const deny="THROW 51961,'CLEAN_INBOUND_WRITE_DENIED',1;";
 const original=`IF ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${CLEAN_LOGIN}' ${deny}`;
@@ -489,6 +490,96 @@ export function buildCleanInventoryCostFixtureSql(){
  CREATE TABLE dbo.clean_inventory_cost_manifest(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL);
  ${Object.entries(definitions).filter(([n])=>n!==trigger).map(([n,b])=>`EXEC(${quote(b.replace(/^CREATE PROCEDURE/,(before[n]?'ALTER':'CREATE')+' PROCEDURE'))});`).join('\n')}
  ${Object.entries(definitions).map(([n,b])=>`INSERT dbo.clean_inventory_cost_manifest(name,before_hash,after_hash,before_definition)VALUES(${quote(n)},${before[n]?quote(moduleHash(before[n])):'NULL'},${quote(moduleHash(b))},${before[n]?quote(before[n]):'NULL'});`).join('\n')}
+ EXEC(${quote(definitions[trigger])});EXEC dbo.usp_clean_store_day_ready;COMMIT;
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
+
+// Explicit normal-user administration of the existing synthetic operation set.
+// Old manifests remain immutable. Each replacement is tied to its exact prior
+// definition; none of the amount, product, warehouse, replay or ledger gates move.
+export const CLEAN_ADMIN_PERMISSIONS=Object.freeze([...new Set([...GRANULAR_PERMISSIONS,'goods.view','goods.create','goods.approve','goods.reject','stock.adjust'])].sort());
+const adminRow=(id='@actor_id')=>`EXISTS(SELECT 1 FROM dbo.users au JOIN dbo.roles ar ON ar.id=au.role_id WHERE au.id=${id} AND au.id=10018 AND au.username=N'semih' AND au.is_active=1 AND ar.id=28 AND ar.code=N'clean_test_administrator' AND ar.is_active=1)`;
+const replaceExact=(body,from,to,count=1)=>{if(body.split(from).length-1!==count)throw Error('Clean administrator predecessor changed: '+from.slice(0,80));return body.replaceAll(from,to);};
+export function buildCleanStoreAdministratorDefinitions(){
+ const prior={...buildCleanStoreDayDefinitions().definitions,...buildCleanStoreDayFinanceDefinitions().definitions,...buildCleanStoreDayInventoryDefinitions().definitions,...buildCleanInventoryCostFixtureDefinitions().definitions},defs={},manifest='clean_store_administrator_manifest';
+ let b=prior.usp_clean_store_day_bind;
+ b=replaceExact(b,'DECLARE @permission nvarchar(80)=',`DECLARE @admin bit=CASE WHEN ${adminRow()} THEN 1 ELSE 0 END;\n DECLARE @permission nvarchar(80)=`);
+ b=replaceExact(b,"AND @operation NOT LIKE N'count[_]%')) AND p.permission_key", "AND @operation NOT LIKE N'count[_]%')OR(@admin=1)) AND r.is_active=1 AND p.permission_key");
+ b=replaceExact(b,'@actor_id<>18','(@actor_id<>18 AND @admin<>1)');
+ b=replaceExact(b,'@actor_id<>19','(@actor_id<>19 AND @admin<>1)',3);
+ b=replaceExact(b,'AND created_by=18 AND state', 'AND(created_by=@actor_id OR @admin=1 AND created_by IN(18,10018)) AND state');
+ b=replaceExact(b,'AND created_by=18;', 'AND(created_by=18 OR @admin=1 AND created_by=10018);');
+ defs.usp_clean_store_day_bind=b;
+ b=prior.usp_clean_store_day_guard;
+ b=replaceExact(b,'@actor<>18','@actor NOT IN(18,10018)');
+ b=replaceExact(b,`${N('created_by')}<>18`,`${N('created_by')}<>CASE WHEN @nd=0 THEN @actor ELSE TRY_CONVERT(bigint,JSON_VALUE(@deleted,'$[0].created_by')) END`,2);
+ b=replaceExact(b,`${N('created_by')}<>19`,`${N('created_by')}<>@actor`);
+ b=replaceExact(b,`${N('decided_by')}<>19`,`${N('decided_by')}<>@actor`);
+ defs.usp_clean_store_day_guard=b;
+ b=prior.usp_clean_store_finance_bind;
+ b=replaceExact(b,'ISNULL(@actor_id,-1)<>20',`(ISNULL(@actor_id,-1)<>20 AND NOT ${adminRow()})`);
+ b=replaceExact(b,"ISNULL(JSON_VALUE(@payload_json,'$.actorId'),N'')<>N'20'","ISNULL(JSON_VALUE(@payload_json,'$.actorId'),N'')<>CONVERT(nvarchar(20),@actor_id)");
+ b=replaceExact(b,'FROM dbo.permissions p WHERE p.role_id=25 AND p.permission_key=@permission',"FROM dbo.permissions p JOIN dbo.users u ON u.role_id=p.role_id JOIN dbo.roles r ON r.id=u.role_id WHERE u.id=@actor_id AND u.is_active=1 AND r.is_active=1 AND ((u.id=20 AND u.username=N'ornek-finans' AND r.id=25 AND r.code=N'clean_test_finance') OR "+adminRow()+') AND p.permission_key=@permission');
+ b=replaceExact(b,'@request_id,20,@operation','@request_id,@actor_id,@operation');
+ b=replaceExact(b,'DECLARE @actor bigint=20,','DECLARE @actor bigint=@actor_id,');
+ defs.usp_clean_store_finance_bind=b;
+ for(const name of ['usp_clean_store_finance_guard','usp_clean_store_finance_finish']){
+  b=replaceExact(prior[name],'@actor<>20','@actor NOT IN(20,10018)');
+  for(const key of ['created_by','actor_id','actor_user_id'])b=b.replaceAll(`${N(key)}<>20`,`${N(key)}<>@actor`);
+  b=b.replaceAll('AND actor_id=20 AND operation=@op','AND actor_id=@actor AND operation=@op');defs[name]=b;
+ }
+ b=prior.usp_clean_store_inventory_bind;
+ b=replaceExact(b,'SET @role=CASE WHEN @draft=1 THEN 26 ELSE 27 END;',`DECLARE @admin bit=CASE WHEN ${adminRow()} THEN 1 ELSE 0 END;SET @role=CASE WHEN @admin=1 THEN 28 WHEN @draft=1 THEN 26 ELSE 27 END;`);
+ b=replaceExact(b,'ISNULL(@actor_id,-1)<>CASE WHEN @draft=1 THEN 21 ELSE 22 END','(ISNULL(@actor_id,-1)<>CASE WHEN @draft=1 THEN 21 ELSE 22 END AND @admin<>1)');
+ b=replaceExact(b,'AND created_by=21;', 'AND(created_by=21 OR @admin=1 AND created_by=10018);');
+ b=replaceExact(b,'WHERE actor_id=21 AND operation=', 'WHERE actor_id=(SELECT created_by FROM dbo.test_daily_drafts WHERE id=@id) AND operation=');
+ b=replaceExact(b,'WHERE actor_id=22 AND operation=', 'WHERE actor_id=(SELECT decided_by FROM dbo.test_daily_drafts WHERE id=@id) AND operation=');
+ b=replaceExact(b,'AND r.created_by=22 AND r.amount=', 'AND r.created_by=(SELECT decided_by FROM dbo.test_daily_drafts WHERE id=@id) AND r.amount=');
+ defs.usp_clean_store_inventory_bind=b;
+ for(const name of ['usp_clean_store_inventory_guard','usp_clean_store_inventory_finish']){
+  b=replaceExact(prior[name],'@actor NOT IN(21,22)','@actor NOT IN(21,22,10018)');
+  b=b.replaceAll('@actor<>22','@actor NOT IN(22,10018)');
+  for(const key of ['created_by','decided_by','cancelled_by'])b=b.replaceAll(`${N(key)}<>22`,`${N(key)}<>@actor`);
+  b=b.replaceAll(`${N('created_by')}<>21`,`${N('created_by')}<>CASE WHEN @isDraft=1 THEN @actor ELSE TRY_CONVERT(bigint,JSON_VALUE(@deleted,'$[0].created_by')) END`);
+  b=b.replaceAll(`${N('original_approved_by')}<>22`,`${N('original_approved_by')}<>(SELECT decided_by FROM dbo.test_daily_drafts WHERE id=@id)`);
+  b=b.replaceAll('AND created_by=22)', 'AND created_by=@actor)');
+  // The original adjustment can belong to the fixture approver or Semih.
+  b=b.replaceAll("source_type=N'stock_count' AND source_id=@id AND quantity_net=-@qty AND created_by=@actor)","source_type=N'stock_count' AND source_id=@id AND quantity_net=-@qty AND created_by=(SELECT decided_by FROM dbo.test_daily_drafts WHERE id=@id))");
+  b=b.replaceAll('AND d.created_by=21 AND d.flow=', 'AND d.created_by=CASE WHEN @draft=1 THEN @actor ELSE(SELECT created_by FROM dbo.test_daily_drafts WHERE id=@id)END AND d.flow=');
+  defs[name]=b;
+ }
+ b=prior.usp_clean_order_sale_begin_v3;
+ b=replaceExact(b,'u.id IN(15,17)',`(u.id IN(15,17) OR ${adminRow('u.id')})`);
+ b=replaceExact(b,"u.id=17 AND p.permission_key",`(u.id=17 OR ${adminRow('u.id')}) AND p.permission_key`);
+ defs.usp_clean_order_sale_begin_v3=b;
+ let ready=prior.usp_clean_store_day_ready;
+ for(const alias of ['cf','d','e','f','v']){const hash=`CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+${alias}.name))),2)`;ready=ready.replaceAll(hash,`COALESCE((SELECT a.before_hash FROM dbo.${manifest} a WHERE a.name=${alias}.name AND a.after_hash=${hash}),${hash})`);}
+ ready=replaceExact(ready,"(SELECT after_constraints_hash FROM dbo.clean_store_inventory_manifest WHERE name=N'usp_clean_store_day_ready')",`(SELECT after_constraints_hash FROM dbo.${manifest} WHERE name=N'usp_clean_store_day_ready')`);
+ defs.usp_clean_store_day_ready=ready.replace('\n END;',`\n IF(SELECT COUNT(*) FROM dbo.${manifest})<>11 OR EXISTS(SELECT 1 FROM dbo.${manifest} a WHERE a.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+a.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+a.name)) IS NULL OR(OBJECTPROPERTY(OBJECT_ID(N'dbo.'+a.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+a.name),'ExecIsTriggerDisabled')<>0)) ${deny}\n END;`);
+ defs.clean_store_administrator_immutable=`CREATE TRIGGER dbo.clean_store_administrator_immutable ON dbo.${manifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
+ if(Object.keys(defs).length!==11)throw Error('Administrator manifest count changed');
+ return {definitions:defs,before:Object.fromEntries(Object.keys(defs).filter(n=>prior[n]).map(n=>[n,prior[n]])),total:11};
+}
+export function buildCleanStoreAdministratorSql(){
+ const {definitions,before}=buildCleanStoreAdministratorDefinitions(),manifest='clean_store_administrator_manifest',trigger='clean_store_administrator_immutable';
+ const constraints="(SELECT OBJECT_NAME(parent_object_id) table_name,name,definition,is_disabled,is_not_trusted FROM sys.check_constraints WHERE parent_object_id IN(OBJECT_ID(N'dbo.work_trade_requests'),OBJECT_ID(N'dbo.stock_movements'),OBJECT_ID(N'dbo.supplier_movements')) ORDER BY parent_object_id,name FOR JSON PATH,INCLUDE_NULL_VALUES)";
+ return `SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
+ IF OBJECT_ID(N'dbo.${manifest}') IS NOT NULL BEGIN EXEC dbo.usp_clean_store_day_ready;IF NOT ${adminRow('10018')} ${deny} RETURN;END;
+ EXEC dbo.usp_clean_store_day_ready;
+ BEGIN TRY BEGIN TRANSACTION;DECLARE @l int;EXEC @l=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @l<0 THROW 51962,'CLEAN_INBOUND_BUSY',1;
+ ${Object.entries(before).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${quote(moduleHash(b))} ${deny}`).join('\n')}
+ IF EXISTS(SELECT 1 FROM dbo.clean_store_day_intents) OR EXISTS(SELECT 1 FROM dbo.clean_store_inventory_intents) OR EXISTS(SELECT 1 FROM dbo.clean_order_sale_intents) OR EXISTS(SELECT 1 FROM dbo.work_trade_intents) ${deny}
+ IF NOT EXISTS(SELECT 1 FROM dbo.users WHERE id=10018 AND username=N'semih' AND role_id=2 AND is_active=1) OR EXISTS(SELECT 1 FROM dbo.roles WHERE id=28 OR code=N'clean_test_administrator') ${deny}
+ DECLARE @checks nvarchar(max)=${constraints};
+ CREATE TABLE dbo.${manifest}(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_constraints_json nvarchar(max) NULL,after_constraints_hash char(64) NULL);
+ SET IDENTITY_INSERT dbo.roles ON;INSERT dbo.roles(id,code,name,description,is_active)VALUES(28,N'clean_test_administrator',N'Yönetici',N'Semih: mevcut temiz TEST işlemlerinin normal yetkili yöneticisi',1);SET IDENTITY_INSERT dbo.roles OFF;
+ ${CLEAN_ADMIN_PERMISSIONS.map(k=>`INSERT dbo.permissions(role_id,permission_key,can_view,can_create,can_update,can_delete,can_approve)VALUES(28,${quote(k)},1,1,1,1,1);`).join('\n')}
+ UPDATE dbo.users SET role_id=28 WHERE id=10018 AND username=N'semih' AND role_id=2 AND is_active=1;IF @@ROWCOUNT<>1 ${deny}
+ ALTER TABLE dbo.work_trade_requests DROP CONSTRAINT CK_clean_inventory_requests;
+ ALTER TABLE dbo.work_trade_requests WITH CHECK ADD CONSTRAINT CK_clean_inventory_requests CHECK((actor_id IN(20,10018) AND operation IN(N'collection_create',N'payment'))OR(actor_id IN(21,10018) AND operation IN(N'stock_count_draft',N'purchase_return_draft'))OR(actor_id IN(22,10018) AND operation IN(N'stock_count_approve',N'stock_count_reject',N'stock_count_cancel',N'purchase_return_approve',N'purchase_return_reject',N'purchase_return_cancel')));
+ ${Object.entries(definitions).filter(([n])=>n!==trigger).map(([n,b])=>`EXEC(${quote(b.replace(/^CREATE PROCEDURE/,'ALTER PROCEDURE'))});`).join('\n')}
+ ${Object.entries(definitions).map(([n,b])=>`INSERT dbo.${manifest}(name,before_hash,after_hash,before_definition,before_constraints_json,after_constraints_hash)VALUES(${quote(n)},${before[n]?quote(moduleHash(before[n])):'NULL'},${quote(moduleHash(b))},${before[n]?quote(before[n]):'NULL'},${n==='usp_clean_store_day_ready'?'@checks':'NULL'},${n==='usp_clean_store_day_ready'?"CONVERT(char(64),HASHBYTES('SHA2_256',"+constraints+'),2)':'NULL'});`).join('\n')}
  EXEC(${quote(definitions[trigger])});EXEC dbo.usp_clean_store_day_ready;COMMIT;
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }

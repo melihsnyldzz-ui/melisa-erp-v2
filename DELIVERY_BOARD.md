@@ -1,3 +1,9 @@
+## 23 Ekim — Semih normal yönetici erişimi: uygulama hazırlanıyor
+
+ERP-DEC-072 kapsamında Semih10018 için ayrı normal rol28; diğer roller/parola/native/CRM korunur. Yetkili ekran okuyucuları, eksik HOME/fiş GET bağlantısı ve403 sonrası yanlış oturum silinmesi kaynakta düzeltildi. Native SQL kurulum provası UTF8 ile işlem içinde geçti ve geri alındı; henüz kurulum yapılmadı. Yedek CHECKSUM/VERIFYONLY tamamlandı, restore yapılmadı. Sıradaki iş: hedefli test, exact CI, dar API/web+rol kurulumu ve normal ekran kontrolü. İnsan kabulleri/sayaçlar değişmez.
+
+### Önceki teslimler
+
 ## 23 Ekim 08:49 — Ayarlar normal semih ekranında teknik olarak hazır
 
 Clean TEST Ayarlar404 düzeltildi; yalnız API4194 yeni4af2 paketine geçti. Native/web035 ve CRMbc8 dosyaları/süreçleri, roller/parolalar ve58veri koruma özeti aynı. Normal Ayarlar/Yenile/reload, stok ve CRM ekranları doğrulandı;38hedefli test ve exactkaynakCI6/6geçti. Bu insan PASS değildir; ERP-UA20/32, ikinci cihaz ve gerçek Windows başlangıcı bekler. Güncel çalışma ve ayrı bileşen kaynakları [STATUS](STATUS.md), kanıt mevcut tek belgededir. Yeni takip/sayaç/ana iş yok.

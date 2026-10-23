@@ -3,5 +3,6 @@ export function createHomeSummaryService({store,clock=()=>new Date()}={}){if(typ
  if(!Array.isArray(actor?.permissions))throw homeError(403);const actorId=homeActorId(actor.id),now=clock(),date=homeDate(now);
  const raw=await store.read({actorId,sessionPermissions:actor.permissions,date}),dto=homeSummaryDto(raw,{date:raw.copyMeta?.date??date,readAt:now.toISOString()});
  if(raw.copyMeta)Object.assign(dto.meta,raw.copyMeta);
+ if(raw.cleanMeta){Object.assign(dto.meta,raw.cleanMeta);dto.sections.refunds.salesCount=null;dto.sections.approvals.sourceCoverage=['goods','count','purchase-return'];}
  return dto;
 }};}

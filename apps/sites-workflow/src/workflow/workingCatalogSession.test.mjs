@@ -210,7 +210,14 @@ test('manual normal login stores token/mode only, not password; malformed auth r
  const bad=fixture(async()=>reply({user:{...user,permissions:'admin'},accessToken:'bad'}));await assert.rejects(()=>bad.session.start());assert.equal(bad.store.getItem(workingCatalogTokenKey),null);
 });
 test('revoked auth clears token and invokes expiration; raw server errors never reach screen',async()=>{
- let count=0,expired=0;const store=storage(),s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async()=>count++===0?reply({user,accessToken:'x'}):reply(null,403)});await s.start();await assert.rejects(()=>s.api('/api/catalog/products'),e=>e.status===403&&!e.message.includes('SQL'));assert.equal(store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);await assert.rejects(()=>s.api('/api/catalog/products'));
+ let count=0,expired=0;const store=storage(),s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async()=>count++===0?reply({user,accessToken:'x'}):reply(null,401)});await s.start();await assert.rejects(()=>s.api('/api/catalog/products'),e=>e.status===401&&!e.message.includes('SQL'));assert.equal(store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);await assert.rejects(()=>s.api('/api/catalog/products'));
+});
+
+test('a normal permission refusal cannot log out the user or block the next permitted screen',async()=>{
+ let expired=0;const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'normal-session');store.setItem(testSessionModeKey,'manual');
+ const s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async(url)=>{calls.push(url);return url.endsWith('/auth/me')?reply(user):url.endsWith('/work-sales/context')?reply(null,403):reply({items:[]});}});
+ await s.start();await assert.rejects(()=>s.work('/api/work-sales/context'),e=>e.status===403);assert.equal(store.getItem(workingCatalogTokenKey),'normal-session');assert.equal(expired,0);
+ assert.deepEqual(await s.api('/api/catalog/products'),{items:[]});assert.equal(calls.filter(x=>x.includes('/auth/')).length,1);s.dispose();
 });
 test('navigation disposal aborts pending auth and prevents late token persistence',async()=>{
  let resolve;const f=fixture(async()=>new Promise(r=>resolve=r));const pending=f.session.start();f.session.dispose();assert.equal(f.calls[0].options.signal.aborted,true);resolve(reply({user,accessToken:'late'}));await assert.rejects(()=>pending);assert.equal(f.store.getItem(workingCatalogTokenKey),null);
@@ -385,7 +392,7 @@ test('temporary desktop bootstrap cannot normalize an invalid target or make any
 test('scoped HOME keeps15s deadline, auth-expiry and disposal without retry or new session',async t=>{
  t.mock.timers.enable({apis:['setTimeout']});
  const f=worktestHomeSession({respond:async(url,options)=>new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}))});await f.session.start();const request=f.session.home(),rejection=assert.rejects(request,e=>e.status===503);t.mock.timers.tick(15000);await rejection;assert.equal(f.calls.length,2);assert.equal(f.store.getItem(workingCatalogTokenKey),'worktest-home-fixture');f.session.dispose();
- for(const status of [401,403]){let expired=0;const lost=worktestHomeSession({respond:async()=>reply(null,status),onExpired:()=>expired++});await lost.session.start();await assert.rejects(()=>lost.session.home(),e=>e.status===status&&!e.message.includes('SQL'));assert.equal(lost.store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);lost.session.dispose();}
+ for(const status of [401,403]){let expired=0;const lost=worktestHomeSession({respond:async()=>reply(null,status),onExpired:()=>expired++});await lost.session.start();await assert.rejects(()=>lost.session.home(),e=>e.status===status&&!e.message.includes('SQL'));assert.equal(lost.store.getItem(workingCatalogTokenKey),status===401?null:'worktest-home-fixture');assert.equal(expired,status===401?1:0);lost.session.dispose();}
  let finish;const late=worktestHomeSession({respond:async()=>new Promise(resolve=>finish=resolve)});await late.session.start();const pending=late.session.home();late.session.dispose();assert.equal(late.calls.at(-1).options.signal.aborted,true);finish(reply({meta:{readOnly:true}}));await assert.rejects(()=>pending);assert.equal(late.calls.length,2);
 });
 
@@ -395,3 +402,5 @@ test('HOME flag cannot override a missing, different-copy or malformed DB02 oper
   const desktop=worktestHomeSession({target:worktestLocation('5264'),profile});await assert.rejects(()=>desktop.session.start());assert.equal(desktop.calls.length,0);desktop.session.dispose();
  }
 });
+
+test('normal clean administrator label remains Yönetici',()=>{assert.equal(workingCatalogUserLabel({id:10018,displayName:'Semih',role:{code:'clean_test_administrator'}}),'Yönetici');});
