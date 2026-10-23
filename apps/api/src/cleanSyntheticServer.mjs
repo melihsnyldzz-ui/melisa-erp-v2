@@ -5,6 +5,7 @@ import {createWorkInboundRoutes} from './routes/workInboundRoutes.mjs';
 import {createWorkInboundService} from './services/workInboundService.mjs';
 import {cleanStoreDayStore,cleanInboundActor,cleanInboundCapabilities,cleanFinanceActor,cleanSalesReadContext,cleanSalesInvoiceList} from './services/cleanStoreDayStore.mjs';
 import {createWorkCollectionService} from './services/workCollectionService.mjs';
+import {cleanFinanceRehearsalWrite} from './services/cleanFinanceRehearsalModel.mjs';
 import {createWorkSupplierPaymentService} from './services/workSupplierPaymentService.mjs';
 import {createWorkSupplierPaymentRoutes} from './routes/workSupplierPaymentRoutes.mjs';
 import {assertCleanEnvironment,registerCleanContext,CLEAN_IDENTITY_SQL,assertRegisteredCleanContext} from './services/cleanSyntheticContext.mjs';
@@ -22,7 +23,7 @@ const inboundEnabled=()=>process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN
 const financeEnabled=()=>inboundEnabled()&&process.env.MELISA_CLEAN_FINANCE==='20261022';
 const inventoryEnabled=()=>inboundEnabled()&&process.env.MELISA_CLEAN_INVENTORY==='20261022';
 const inventoryWrite=req=>inventoryEnabled()&&req.method==='POST'&&/^\/api\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path);
-const financeWrite=req=>financeEnabled()&&req.method==='POST'&&/^\/api\/(?:work-collections(?:\/preview)?|work-supplier-payments\/(?:preview|payments))$/.test(req.path);
+const financeWrite=req=>financeEnabled()&&req.method==='POST'&&(/^\/api\/(?:work-collections(?:\/preview)?|work-supplier-payments\/(?:preview|payments))$/.test(req.path)||cleanFinanceRehearsalWrite(req));
 const inboundWrite=req=>inboundEnabled()&&req.method==='POST'&&/^\/api\/(?:work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/finalize)?))$/.test(req.path);
 app.use((req,res,next)=>{try{assertRegisteredCleanContext();if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!/^\/api\/auth\/(login|refresh|logout)$/.test(req.path)&&!(req.method==='POST'&&req.path==='/api/test/crm/orders/v2/drafts')&&!saleWrite(req)&&!inboundWrite(req)&&!financeWrite(req)&&!inventoryWrite(req))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu örnek kurulumda işlem açık değil.'}});next();}catch(e){next(e);}});
 app.get('/api/health',(req,res)=>res.json({success:true,data:{status:'ok',...assertRegisteredCleanContext(),sourceCommit:process.env.CLEAN_SOURCE_COMMIT}}));

@@ -5,6 +5,9 @@ import {assertRegisteredCleanContext,isCleanAdministrator} from './cleanSyntheti
 export const CLEAN_FINANCE_REHEARSAL=Object.freeze({id:'B4-TRY-20261023',date:'2026-10-22',customerId:'2',supplierId:'2',accountId:'2',invoiceId:'2',purchaseInvoiceId:'5',customerOpeningExact4:'251.0000',supplierOpeningExact4:'200.0000',currency:'TRY'});
 export const CLEAN_FINANCE_REHEARSAL_PERMISSIONS=Object.freeze({collection_create:'finance.collection',collection_cancel:'finance.collection.cancel',payment:'finance.payment',payment_cancel:'finance.payment.cancel'});
 export const cleanFinanceRehearsalEnabled=()=>process.env.MELISA_CLEAN_FINANCE_B4==='20261023';
+export function cleanFinanceRehearsalWrite(request,environment=process.env){
+ return environment.API_PORT==='4194'&&environment.MELISA_CLEAN_STORE_DAY==='20261022'&&environment.MELISA_CLEAN_FINANCE==='20261022'&&environment.MELISA_CLEAN_FINANCE_B4==='20261023'&&request?.method==='POST'&&/^\/api\/(?:work-collections\/[1-9]\d*\/cancel|work-supplier-payments\/payments\/[1-9]\d*\/cancel)$/.test(request.path);
+}
 export function financeRehearsalError(){return Object.assign(new Error('Örnek finans işlemi doğrulanamadı.'),{code:'CLEAN_INBOUND_SCOPE_REQUIRED',statusCode:403});}
 export function assertFinanceRehearsalActor(actor,operation){
  assertRegisteredCleanContext();

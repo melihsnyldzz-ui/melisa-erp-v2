@@ -3,7 +3,17 @@ import {registerCleanContext} from './cleanSyntheticContext.mjs';
 import {withCleanStoreDayMutation,isCleanStoreDayMutation,assertCleanReceivedPurchaseContext} from './cleanStoreDayScope.mjs';
 import {withCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
 import {withCleanFinanceRehearsalMutation} from './cleanStoreDayScope.mjs';
+import {cleanFinanceRehearsalWrite} from './cleanFinanceRehearsalModel.mjs';
 const env={MELISA_CLEAN_TEST:'20261022',MELISA_CLEAN_STORE_DAY:'20261022',API_PORT:'4194',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:'MELISA_ERP_CLEAN_TEST_20261022',SQL_USER:'melisa_clean_test_app_20261022',SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false'};
+test('B4 cancellation HTTP admission is confined to two existing routes and the exact active main-API profile',()=>{
+ const profile={...env,MELISA_CLEAN_FINANCE:'20261022',MELISA_CLEAN_FINANCE_B4:'20261023'};
+ for(const path of ['/api/work-collections/2/cancel','/api/work-supplier-payments/payments/7/cancel']){
+  assert.equal(cleanFinanceRehearsalWrite({method:'POST',path},profile),true);
+  for(const patch of [{API_PORT:'4196'},{MELISA_CLEAN_FINANCE_B4:undefined},{MELISA_CLEAN_STORE_DAY:undefined},{MELISA_CLEAN_FINANCE:undefined}])assert.equal(cleanFinanceRehearsalWrite({method:'POST',path},{...profile,...patch}),false);
+  for(const method of ['GET','DELETE','PATCH'])assert.equal(cleanFinanceRehearsalWrite({method,path},profile),false);
+ }
+ for(const path of ['/api/work-collections/02/cancel','/api/work-collections/2/cancel/extra','/api/work-supplier-payments/payments/7','/api/sales-orders/2/finalize-linked-sale','/api/work-sales/invoices/2/cancel'])assert.equal(cleanFinanceRehearsalWrite({method:'POST',path},profile),false);
+});
 Object.assign(process.env,env);
 registerCleanContext({databaseName:env.SQL_DATABASE,serverName:'Semih\\MELISADEV',loginName:env.SQL_USER,databaseUser:env.SQL_USER,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});
 function fixture({operation='purchase_finalize',actorId=19,permission='purchase.finalize',missing=false,foreign=false}={}){
