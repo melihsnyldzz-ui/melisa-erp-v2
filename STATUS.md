@@ -1,3 +1,14 @@
+## 24 Ekim — B6 native sepet bağlantısı kaynakta ve rollback provasında; normal paket sırada
+
+ERP-DEC-074: kullanıcı B6'yı yalnız örnek TEST satışıyla tamamlama yetkisi verdi. Aynı clean20261022/E662/T1false ve Semih10018/rol28/36izin kullanılır. Önceki79ed/d937 genel clean fail-closed koruması kaldırılmadı; normal clean server ayrı doğrulanmış adapterle mevcut sepet/fiyat hesabı ve native createSalesDraft/finalizeSalesInvoice motoruna bağlanır. CRM siparişi/receipt uydurulmaz. Yeni20mühürlü companion,13exactbefore-image,aynıtransaction/exclusivekilit/nativefiyat-birim-barkod/karantina/aktör ve30istek/500TRY sınırı vardır; eski manifestler değişmedi. Yalnız Semih'in mevcut sales.create/finalize izinleri kullanılır; başka rol/parola değişmez.
+
+Yedek COPY_ONLY/CHECKSUM/VERIFYONLY geçti. Metadata ilk projection ve nativecurrency/otomatikrow_version retleri rollback kanıtlarıyla saklandı. Henüz B6 belgesi yokken exactmühür+boşhistorykoşullu metadata-only inverse ile düzeltildi; eski işverisi restore/reset/silme yok. Native motorun başlangıç actor/currency snapshot'ı yalnız doğrulanmış directscope'ta atomik yazılır; diğer motor yolları aynıdır.
+
+Gerçek minimum SQL/native Semih provası: taslakta stok/cari etkisi0; finalize bir kez stok−1/müşteri+125,50TRY; aynıUUID/body iki komutta ikinci etki0, farklıbody409, stale revision ve eksik izin ret. Ayrı motor-sonrası hata tam dışrollback. Sonunda eski müşteri1=0,müşteri2=100/tedarikçi2=80/kasa2=10TRY,stok23/maliyet60,34eski journal/39finanshareketi ve B6request/link0 aynı.36farklı hedef testPASS; bağımsızreviewNOT_RUN. Normal API/web henüz a930/982; bu kaynak/native hazırlığı çalışan yeni ekran teslimi değildir.
+
+Mevcut ürün1 0007 MELISA125,50TRY, ürün2 0161 MELISA8,55USD; ikinci ürüne TRY fiyatı uydurulmadı. TRY sepeti yalnız uygunquote'u kabul eder. Sonraki adım exactCI→API-only immutablekurulum→normal Semih müşteri/barkod/miktar/önizleme/taslak/finalize/yenileme ve bağımsızSQL. Son finansal GUIgönderim için gereken otomatikreviewhandoff korunur; APIile ret dolanılmaz. USER_ACCEPTANCE/sayaçlar BEKLİYOR aynı; B7başlatılmaz. Private b6-native-positive/failure.json,b6-backup-result.txt,b6-empty-inverse-result.txt,b6-rowversion-inverse-result.txt.
+
+### Önceki teslim — tarihsel
 ## 24 Ekim 00:33 TR — B5 Semih yönetici işlemleri kurulu ve normal ekranda doğrulandı
 
 **B5'in bilinen Semih teknik eksiği tamamlandı; gerçek kişi–görev eşlemesi ve insan kabulü bekliyor.** Normal Semih10018/rol28 kendi aktörüyle tahsilat ve ödeme yapıp gerekçeli geri alabiliyor. Eski34 izin korunarak yalnız finance.collection.cancel ve finance.payment.cancel eklendi; toplam36. Diğer roller/parolalar aynı; isAdmin, impersonation, auth bypass veya SQL/OS yönetici yetkisi yok.

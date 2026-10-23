@@ -1,5 +1,9 @@
 # ERP karar merkezi
 
+### ERP-DEC-074 — 24 Ekim 2026 — B6 doğrudan satış sepetini yalnız örnek TEST ile tamamla
+
+Kullanıcının doğrudan “B6 satış sepetini tamamla, yalnız TEST’te örnek satışla doğrula” talimatı mevcut B4/B5 sonrası sıranın B6 uygulamasını yetkilendirir. Aynı clean20261022, Semih'in mevcut normal rolü ve yalnız doğrulanmış yapay ürün/müşteri kapsamı kullanılır; yeni TEST/rol/ana ajan/takip sistemi yok. Mevcut sepet, fiyat hesabı ve native fatura motoru korunur; taslak, finalize, fiyat/revision kontrolü, işlem kimliği ve ikinci etkisiz tekrar gerçek SQL/API/normal ekranla doğrulanır. CRM sipariş geçmişi sahte doğrudan siparişe dönüştürülmez. B5 ve eski veriler korunur. İnsan kabulü ayrıca bekler; LIVE/Vega/gerçek müşteri/finans açılışı/main yetkisi verilmez. Bu tur B7'ye kapsam genişletilmez.
+
 ### ERP-DEC-073 — 23 Ekim 2026 — B4 tamamlanmadan yeni B6/B7 çalışması yok
 
 Kordinatör AJAN konuşması 01a15d42-a70f-7510-9fce-73ce1cb433e9 içindeki doğrudan kullanıcı mesajı read_thread ile doğrulandı: “B4 bitmeden neden B6’ya geçtik? Önce kısmi ödeme ve iptal işini tamamlasın, sonra sıradakine geçsin. Çalışan sistemi bozmadan devam et, bitenleri listede göster.” Mevcut B4 taslakları ve B6'nın79ed7a9a/d9376957 teslimleri korunur. Sıra B4 kısmi tahsilat/ödeme ve gerekçeli iptal → B4 kayıtlı TRY/USD/EUR ile ana kasa/günlük kasa ayrımı → B5 kalanları → B6 → B7. Yeni plan, ana ajan veya takip sistemi yok.
