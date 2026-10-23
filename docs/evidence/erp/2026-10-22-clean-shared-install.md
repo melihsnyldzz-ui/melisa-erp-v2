@@ -1,5 +1,31 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — B6 clean doğrudan satış kaynak sınırı
+
+**Son kaynak:** [79ed7a9a578d64c8705d88766928fa11326469d1](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/79ed7a9a578d64c8705d88766928fa11326469d1), mevcut PR54; ilk kaynak9bbf5f7c ardından dar CIuyumu düzeltmesi. İki dosya: `apps/api/src/services/workSalesService.mjs` ve mevcut `workSalesService.test.mjs`. B4'ün geniş native/adapter taslağı aynı çalışma ağacında korunur ve commit'e alınmadı. Yeni modül, native bağ, runtime fixture, yardımcı geliştirici, ajan, Goal veya takip sistemi yok.
+
+Eski servis kaynağı60256fd0 tabanında, temiz olarak işaretlenmiş enjekte bellek store'unda canCreate/canFinalize=true taslak/finalize taklit motoruna ulaşabiliyordu. Kurulu router/native guard zaten bu genel clean yolu açmıyordu; bu gerçek TEST'te yapılmış bir satış veya kanıtlanmış native güvenlik aşımı değildir. Kaynak sınırı eksikliği gelecekteki adapter bağında capability'nin tek başına yeterli sanılmasını engellemek için kapatıldı.
+
+Mevcut getCleanContext kaydı önce denetlenir; clean kayıt varken getStore bile çağrılmaz. Ayrı bellek context'lerinde clean environment/database/environmentId/readonly işaretleri callback başlamadan reddedilir. Doğrulanmış bir native direct-sale contract henüz bulunmadığından bütün clean doğrudan taslak/finalize yolu kapalı kalır; claimed verified=true kabul eden yeni bir mekanizma kurulmadı. Ayrı CRM orderId/receipt/convert/finalize servisi, native SQL admission ve mevcut canonical/copy davranışı değiştirilmedi. Salt-okunur erişim ve genel preview yeniden geliştirilmedi.
+
+| Kontrol | Eski kaynakta ilk koşu | Son kaynak |
+|---|---|---|
+| Clean canCreate=true / sözleşmesiz draft | FAIL: beklenen ret yok | Ret; draft/finalize çağrısı0 |
+| Clean canFinalize=true / sözleşmesiz finalize | FAIL: beklenen ret yok | Ret; draft durumu korunur |
+| Yanlış hedef, kısmi clean işaretleri, claimed doğrulama | FAIL: beklenen ret yok | Altı bellek varyantı reddedilir |
+| Eksik actor izni, client admin bayrakları | PASS | PASS; store açılması0 |
+| Mevcut non-clean yolda eski revision ve eski fiyat tanığı | PASS | PASS; taklit engine/journal yazısı0 |
+| Mevcut in-memory journal: aynı UUID/full body replay, farklı body | PASS | PASS; tek finalize olayı ve bir journal sonucu |
+| Kayıtlı clean runtime, metadata'sız legacy fallback ve sonradan yanlış hedef | İlk altıdan sonra eklendi; eski-kaynak red iddiası yok | İzole worker belleğinde4ret, getStore0 |
+
+İlk6kontrolün sonucu3FAIL/3PASS; source değişimi bundan sonra yapıldı. Son `node --test --test-name-pattern='B6 contract' apps/api/src/services/workSalesService.test.mjs`:7/7PASS. Tüm aynı dosya `node --test apps/api/src/services/workSalesService.test.mjs`:18/18PASS;7B6kontrolü bu18teste dahildir. Mevcut draft replay testindeki olay listesi yalnız draft çağrısını gösterir; bu draft orchestration ayrımıdır, gerçek native stok/cari etkisizliği kanıtı değildir. Fixture journal'ın taklit ettiği replay gerçek SQL kalıcılığı olarak sayılmaz. Worker'a uygulama sırrı aktarılmaz; kimlik ve çevre değerleri yalnız childprocess bellek girdisidir, SQL/config/runtime kurulumu değildir. Bağlantı veya SQL sorgusu yoktur.
+
+İlk9bbf5f7c exactCI [PR39952664421](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39952664421)/[push39952658263](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39952658263) kalite işi2hata verdi: worker zorunlu --require offlineguard argümanını taşımıyordu; yeni özel errorcode logun kapalı listesinde değildi. Aynı çalıştırıcı mevcut zorunlu guard ile kullanıldı, ret başka araçla aşılmadı. MevcutWORK_UNAVAILABLE/503 yeniden kullanıldı; logger/izinlistesi/CIguard dosyaları değiştirilmedi. Yerel `node --require ./scripts/ci/offline-guard.cjs --test apps/api/src/services/workSalesService.test.mjs`:18/18PASS. Son79ed7a9a exactCI [PR39953335228](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39953335228)/[push39953328462](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39953328462):quality-build-test/windows-startup-test/secret-scan gerekli6/6completed/SUCCESS aynı79ed7a9a head_shaile nihai geri okundu. Önceki Windows-running notu tarihsel ara durumdur. İzleyen belge HEAD'i ve onun CI sonucu ayrı tutulur; bu nihai belge turunda kaynak veya testler yeniden çalıştırılmadı.
+
+**Bağımsız inceleme:** Bu B6 diliminde bağımsız review yapılmadı. Önceki CRM veya B4 incelemesi B6 review'u olarak sayılmaz; yeni ajan açılmadı.
+
+**Kapanış sınırı:** Bu yalnız SOURCE/OFFLINE fail-closed alt teslimidir; normal sepet açılmadı, kurulum/SQL/GUI/servis/config/hesap/rol/izin veya gerçek işlem yapılmadı. Önceki çalışan bileşenlerin sağlığı bu tur yeniden ispatlanmadı. Taslak kimliği, gerçek fiyat/revision tanığı, native işlem kapsamı, kalıcı UUID journal ve tek stok/cari etkisi bağlanmadan tam B6/B04/C04/C05 kapanmaz. B4 ve tahsilat ayrı, B7 başlamadı;17/74ve insan kabulü BEKLİYOR aynı.
+
 ## 23 Ekim — B5 kapalı atama frontend kurulumu ve normal rol ekranları
 
 **Uygulanan kaynak:** CRM [e1ce12b7218ef003198f4955fc1e5871e7430383](https://github.com/melihsnyldzz-ui/melisa-crm/commit/e1ce12b7218ef003198f4955fc1e5871e7430383), yalnız frontend. App/liveApi GitblobSHA256 f17330b794c20b7623c0d1817f05eb29b338ea268553c5d264e726f1c8af4164 /3cb8af04e375077e23594db93dd2a7552a51588cc673c009368856006faf9910 doğrulandı. Kanonik CRM çalışma ağacı temiz ve build girdileri e1ile aynı kaldı. CRM sahibinin13hedef/7uyumluluk/review kanıtı tekrar üretilmedi; exact [PR39937110494](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39937110494)/[push39937104202](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39937104202)/[AI39937110495](https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/39937110495)7/7SUCCESS geri okundu.
