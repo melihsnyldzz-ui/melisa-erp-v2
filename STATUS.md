@@ -1,3 +1,11 @@
+## 23 Ekim — B4 gerçek kasa motoru doğrulandı; normal ekran kurulumu sırada
+
+Yalnız clean20261022'ye mevcut0012şeması ve17mühürlü modül kuruldu; beş yeni açık yapay hesapla TRY/USD/EUR ana kasa1000'er, çekmeceTRY31/USD0/EUR0. Eski hesap1=256,50vehesap2=31setup'ta aynen korundu; diğer52koruma kapsamı ve5rol/veri özeti aynı. Güncel18:48:41COPY_ONLY/CHECKSUMyedekVERIFYONLYbaşarılı; aktifDBrestoreyok. Eski14journal/8finanshareketi ve tüm stok/cari/belge geçmişi korundu. Bu kurulum gerçek işletme açılışı değildir.
+
+MinimumSQLlogin ile ilk gerçek kasa motoru SQL334buldu: tetikleyicili tabloda OUTPUT inserted.id doğrudan kullanılamıyor. İşlem bütünüyle rollback; hata kaydı saklı. Dört mevcut kasa insert'i yalnız OUTPUT INTO+SELECT biçimine çevrildi; tetikleyici/izin/finans hesabı değiştirilmedi. Regresyon eski biçimde12PASS/1FAIL, düzeltmede13/13PASS. Gerçek native motor açılış+üç dövizde ana→çekmece, EURters transfer, USDgider, gerekçeliEURfarkı ve kapanış/carry/delivery/replay/çatışkiyi geçti. Ayrı motor-sonrası hata ve ikinci açılış reddi provaları da başarılı; üçünün tamamı dış transaction sonunda geri alındı. Müşteri100/tedarikçi80/stok23/eski kasa256,50vebaşlangıç kasa31aynı. Kaynak 71e9a26b üzerine bu dar düzeltmedir; yeni uygulama henüz kurulmadı, GUI/kaydedilmiş kasa oturumu veya insanPASS yok. Private b4-cash-native-positive/failure/duplicate.json ve b4-cash-native-trigger-output-334.json. TRY/USD/EUR cari tahsilat/ödeme bağı hâlâ açık; tamB4🟡. YeniB6/B7/ajan/helperyok.
+
+### Önceki TRY teslimi ve kasa hazırlığı — tarihsel
+
 ## 23 Ekim — B4 TRY normal iptal ve kalıcı replay tamam; döviz/kasa halkası sürüyor
 
 **Kasa devamı — kaynak/prova, henüz kurulum değil:** Mevcut `cashRegisterService` motoruna yalnız native binder'ın doğruladığı aynı transaction'ı kullanma yolu eklendi; normal bağımsız motorun kendi commit/rollback davranışı korunur. Aynı clean adapter, normal oturum, mevcut UUID journal ve mevcut günlük kasa ekranı kullanılır. Günlük kasa ekranı ayrı dinamik chunk olur; ürün kataloğuna React/kasa yükü eklenmez. Ana kasa/çekmece üç dövizde ayrı görünür. Tahsilat iptalinin yanlış başarı metni kaynakta düzeltildi; mevcut iptal yeniden üretilmedi.

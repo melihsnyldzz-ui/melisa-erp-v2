@@ -200,14 +200,16 @@ async function createAdjustment(transaction, sqlDriver, {
     .input('adjustmentReason', sqlDriver.NVarChar(500), reason)
     .input('adjustmentCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
     .query(`
+      DECLARE @created TABLE (id bigint NOT NULL);
       INSERT INTO dbo.cash_adjustments (
         session_id, currency_code, adjustment_kind, direction, amount, reason, created_by
       )
-      OUTPUT inserted.id
+      OUTPUT inserted.id INTO @created(id)
       VALUES (
         @adjustmentSessionId, @adjustmentCurrency, @adjustmentKind,
         @adjustmentDirection, @adjustmentAmount, @adjustmentReason, @adjustmentCreatedBy
       );
+      SELECT id FROM @created;
     `);
   const adjustmentId = Number(result.recordset[0].id);
   await insertFinanceMovement(new sqlDriver.Request(transaction), {
@@ -246,14 +248,16 @@ async function createTransfer(transaction, sqlDriver, {
     .input('transferDescription', sqlDriver.NVarChar(500), description || null)
     .input('transferCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
     .query(`
+      DECLARE @created TABLE (id bigint NOT NULL);
       INSERT INTO dbo.cash_transfers (
         session_id, currency_code, transfer_direction, amount, description, created_by
       )
-      OUTPUT inserted.id
+      OUTPUT inserted.id INTO @created(id)
       VALUES (
         @transferSessionId, @transferCurrency, @transferDirection,
         @transferAmount, @transferDescription, @transferCreatedBy
       );
+      SELECT id FROM @created;
     `);
   const transferId = Number(transferResult.recordset[0].id);
   const mainToDrawer = direction === 'main_to_drawer';
@@ -515,9 +519,11 @@ export async function openCashSession(payload, actor, context) {
       .input('sessionOpeningNote', sqlDriver.NVarChar(500), openingNote || null)
       .input('sessionOpenedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @created TABLE (id bigint NOT NULL);
         INSERT INTO dbo.cash_sessions (drawer_id, business_date, opening_note, opened_by)
-        OUTPUT inserted.id
+        OUTPUT inserted.id INTO @created(id)
         VALUES (@sessionDrawerId, @sessionBusinessDate, @sessionOpeningNote, @sessionOpenedBy);
+        SELECT id FROM @created;
       `);
     const sessionId = Number(sessionInsert.recordset[0].id);
 
@@ -627,16 +633,18 @@ export async function createCashExpense(payload, actor, context) {
       .input('insertExpenseDescription', sqlDriver.NVarChar(500), description)
       .input('insertExpenseCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @created TABLE (id bigint NOT NULL);
         INSERT INTO dbo.cash_expenses (
           session_id, expense_category_id, currency_code, amount,
           document_no, description, created_by
         )
-        OUTPUT inserted.id
+        OUTPUT inserted.id INTO @created(id)
         VALUES (
           @insertExpenseSessionId, @insertExpenseCategoryId, @insertExpenseCurrency,
           @insertExpenseAmount, @insertExpenseDocumentNo, @insertExpenseDescription,
           @insertExpenseCreatedBy
         );
+        SELECT id FROM @created;
       `);
     const expenseId = Number(expenseInsert.recordset[0].id);
     await insertFinanceMovement(new sqlDriver.Request(transaction), {
