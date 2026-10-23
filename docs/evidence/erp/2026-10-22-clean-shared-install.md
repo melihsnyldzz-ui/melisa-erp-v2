@@ -1,5 +1,17 @@
 # 22 Ekim — Korunan temiz TEST ve mağaza günü teknik kanıtları
 
+## 23 Ekim — B4 TRY normal finansal iptal ve kalıcı tekrar güvenliği
+
+Mevcut PR54/source01a1d9f6424b39fcb2115f593d57bc0c6567a77b API-only makbuzu17:35:10TR INSTALLED; web d73a9a22/native035fcc08/CRMbc8c307e+frontend e1ce12b7korundu. KaynakCI PR39969421383/push39969411238gerekli6/6SUCCESSöncedenokundu; bu GUIkanıtında değişmeyenCIyenidenkoşulmadı.10web/native/CRMlisteneradres/PID/doğum/executablemakbuzlaeş.
+
+Normal ayrılmış kontrol23hesabı mevcut80TRYtedarikçiödemesi20021'i gerekçeliiptaletti. Eskiödeme silinmedi; ters20023vebozulmayan120ödeme20022göründü. Tedarikçiborcu0→80,kasa51→131;tamreloadkorudu. Mevcut100TRYmüşteritahsilatı20015gerekçeliiptal;151tahsilatı korundu. Müşteriborcu0→100,kasa131→31;tamreloadveSQLaynı. Bunlar yalnız açık yapayB4kapsamıdır; gerçek ticari belge veya fiziksel mal kabulü diye sunulmaz.
+
+Mevcut özel native-proof yoluna kalıcıreplay modu eklendi: normalAPIlogin20/23ile öncekiGUI'dekialtıisteğinUUID/gövdesi journal'danokunup aynıHTTPyoluna yenidenverildi.6/6replayed=true,heradımSQLdeğerleri/sayılarıaynı; aynıUUIDfarklıtutar/gerekçe6/6HTTP409. Öncekitransactionsonundagerialınanprovailebukalıcıkayıtkanıtıayrıdır. SonSQLmüşteri100/tedarikçi80/kasa31;14journal/8kasahareketi,intent0. Eski müşteri0/tedarikçi0/kasa256,50/stok23korundu.
+
+Privatekanıtlar: clean/20261022/runtime/semih-access-20261023/b4-committed-replay.json,b4-gui-payment-inverse-sql.txt,b4-final-inverse-and-cash-schema.txt,b4-ui-payment-cancel.png,b4-ui-collection-cancel.png. Ekraniptaltamammesajı “Tahsilat kaydedildi”diyor; durum/geçmişdoğru,bu dardilkusurukayıtlıdır. İlkHTTP403denemesietki0veöncekiderleme/rollbackkanıtlarıkorunur. BağımsızB4reviewyapılmadı; teknikkapanışinsankabulüdeğildir.
+
+TRYaltkapsamıtamam. TamB4🟡: aynıcleanDB'de0012günlükkasatablolarıyok; kayıtlıTRY/USD/EURveana–çekmeceişlevimevcutmotorla tamamlanacak. Gerçekbankaadları/açılışlarıbu yapayişibekletmez. B4sonraB5kalanları; yeniB6/B7işiyok. Özgün17başlık/74yaprakveinsankabullerideğişmedi.
+
 ## 23 Ekim — B6 clean doğrudan satış kaynak sınırı
 
 **Son kaynak:** [79ed7a9a578d64c8705d88766928fa11326469d1](https://github.com/melihsnyldzz-ui/melisa-erp-v2/commit/79ed7a9a578d64c8705d88766928fa11326469d1), mevcut PR54; ilk kaynak9bbf5f7c ardından dar CIuyumu düzeltmesi. İki dosya: `apps/api/src/services/workSalesService.mjs` ve mevcut `workSalesService.test.mjs`. B4'ün geniş native/adapter taslağı aynı çalışma ağacında korunur ve commit'e alınmadı. Yeni modül, native bağ, runtime fixture, yardımcı geliştirici, ajan, Goal veya takip sistemi yok.

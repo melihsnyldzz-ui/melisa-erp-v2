@@ -1,5 +1,11 @@
 # ERP karar merkezi
 
+### ERP-DEC-073 — 23 Ekim 2026 — B4 tamamlanmadan yeni B6/B7 çalışması yok
+
+Kordinatör AJAN konuşması 01a15d42-a70f-7510-9fce-73ce1cb433e9 içindeki doğrudan kullanıcı mesajı read_thread ile doğrulandı: “B4 bitmeden neden B6’ya geçtik? Önce kısmi ödeme ve iptal işini tamamlasın, sonra sıradakine geçsin. Çalışan sistemi bozmadan devam et, bitenleri listede göster.” Mevcut B4 taslakları ve B6'nın79ed7a9a/d9376957 teslimleri korunur. Sıra B4 kısmi tahsilat/ödeme ve gerekçeli iptal → B4 kayıtlı TRY/USD/EUR ile ana kasa/günlük kasa ayrımı → B5 kalanları → B6 → B7. Yeni plan, ana ajan veya takip sistemi yok.
+
+Teknik kapanış normal ekranda kısmi tutar, kalan borç, kasa karşılığı, tam kapama, gerekçeli ters kayıt, yenileme ve ikinci etkisiz tekrar ile kanıtlanır; kaynak/CI tek başına kapanış değildir. §10/§22 ve DEC005 kararları yeniden sorulmaz. Gerçek banka adları/açılışlar/kişi görevleri ayrı girdidir, yapay B4'ü bekletmez. Eski roller genişletilmez; mevcut geniş izole TEST hesabı hazırlama yetkisiyle yalnız ayrı normal iptal kontrol hesabı hazırlanabilir. Bu gerçek çalışan rolü veya insan kabulü değildir. Aynı clean TEST'in tek yazarı ERP; LIVE/Vega/T1/main/gerçek ticari kayıt ve müşteri mesajı sınırları değişmez.
+
 ### ERP-DEC-072 — 23 Ekim 2026 — Semih normal TEST yönetici erişimi
 
 Kordinatör AJAN konuşmasındaki doğrudan kullanıcı kararı root tarafından okundu: semih kullanıcısı, mevcut desteklenen TEST ekranlarını yönetici olarak deneyebilmelidir. Yalnız clean20261022 / semih10018 için ayrı normal uygulama rolü28 (clean_test_administrator) ve açık izinler hazırlanır. Paylaşılan admin rolü2, diğer kullanıcılar ve parolalar korunur. İşlemler semih'in kendi aktörüyle izlenir; başka personel kimliğine eşleme, admin bayrağı, giriş bypass veya SQL yönetici yetkisi yoktur. Mevcut sonlu ürün/hesap/tutar/tarih, replay, native guard ve TEST hedef sınırları değişmez.

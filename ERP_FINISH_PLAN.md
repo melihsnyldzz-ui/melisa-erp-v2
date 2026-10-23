@@ -1,3 +1,7 @@
+## 23 Ekim — B4 öncelikli; kullanılabilir TRY alt sonuçları tamamlandı, tam B4 açık
+
+ERP-DEC-073: B4 kısmi/tam tahsilat/ödeme ve gerekçeli iptal, ardından kayıtlı TRY/USD/EUR ile ana kasa/günlük kasa ayrımı tamamlanmadan yeni B6/B7işi açılmaz. Önceki B6 kaynak/belge ve kurulu B5 korunur. Normal örnek muhasebe ekranında251−100=151müşteri ve200−80=120tedarikçi, yenileme ve kalan tutarla tam kapanış/kasa51gerçekleşti. Kurulu01a1d9f6normalekranda80ödeme ve100tahsilatı gerekçeli iptal etti; müşteri100/tedarikçi80/kasa31tamreloadveSQLileeş. AltıkalıcıistekteAPIreplayikinci etki0; farklıgövde409. TRYaltkapsamıtekniktamam; tümB4🟡,döviz/anakasa–çekmece açık. Yeni yaprak veya insanPASS/sayaçartışı yok. Kalan döviz/kasa teknik işidir, yeniden para birimi kararı beklenmez. Güncel [STATUS](STATUS.md) ve mevcut tek kanıt esas alınır.
+
 ## 23 Ekim — B5 kaynakça kapalı atama teknik ekran halkası kuruldu
 
 Aynı mevcut B5 kapsamında CRMfrontend e1ce12b7/cleanprofil kuruldu; backendbc8 ve ERP7b/native035 korundu. Normal örnekPersonel atanmış55+reload/katalog, örnekPatron genel okuma/atama menüsü kapalı, diğerPersonel0görüşme doğrulandı. Örnek hesabın adı ornek-mudur, gerçek rolü **Patron**; gerçekmudur/kişi–rol ve insan kabulü açık kalır.58veri/rol+37dinleyicikorundu, SQLyazma/restart0. B4kaynakregresyonu14test/6CIgeçti; kısmiödeme/iptal uygulaması ve B6/B7açık. Yeni yaprak veya sayaç değişikliği yok:17başlık/74yaprak, özgün49ERP/25CRMve insan kabulleri korunur. Kanıt ve bileşen kaynakları [STATUS](STATUS.md) içindedir.

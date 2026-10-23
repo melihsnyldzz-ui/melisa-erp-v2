@@ -1,3 +1,16 @@
+## 23 Ekim — ŞİMDİ B4: TRY kısmi/tam ödeme ve iki normal iptal tamam; döviz/kasa kalanları
+
+ERP-DEC-073: B4 bitmeden B6/B7'de yeni iş yok; B1–B3, kurulu B5 ve B6 kaynak/belge teslimleri korunur. Aynı temiz TEST kullanılır, yeni takip ağacı yok.
+
+- [x] TRY normal ekran: ayrı örnek müşteri251→100tahsilat→151kalan;151tahsilat→0. Tam sayfa yenilemede aynı sonuç.
+- [x] TRY normal ekran: ayrı örnek tedarikçi200→80ödeme→120kalan;120ödeme→0. Kasa100→20→171→51; eski kasa256,50ve stok23korunur.
+- [x] Native motor: iki kısmi/tam ödeme, gerekçeli iki inverse, full-body UUID replay/çatışki, izinsiz yaratıcı iptal retleri ve kontrollü motor-sonrası hata rollback'i gerçek SQL'de doğrulandı; bu provalar dış transaction sonunda geri alındı.
+- [x] Normal iptal: kurulu01a1d9f6ile örnek kontrol23,80TRYödemeyi ve100TRYtahsilatı gerekçeyle geri aldı. Eski kayıtlar durur; müşteri100/tedarikçi80/prova kasa31. Tam yenilemede korundu. Altı kalıcı isteğin aynıUUID/gövde APIreplay'i ikinci etki0; altı farklıgövde409. SQLbağımsız okuma:14journal/8kasa hareketi,intent0,eski kasa256,50/stok23aynı.
+- [ ] TRY/USD/EUR kalan native/normal kapsamı ve ana kasa/günlük kasa ayrımı. Kayıtlı döviz kararı yeniden sorulmaz; gerçek banka adları ayrı, yapay kapsamı bekletmez.
+- [ ] İnsan/cihaz ve gerçek kişi–rol kabulü BEKLİYOR;17başlık/74yaprak ve özgün sayaçlar aynı.
+
+Kurulu API01a1d9f6/webd73a9a22 WEB2; native035/CRMbc8+frontend e1 korunur. Son APIkurulumu yalnız4194'ü değiştirdi;10korunmuş web/native/CRMdinleyicisi eş. İlk API adresi olmayan derleme geri alındı; aynı güvenlik koruması ve açık sabit4194derleme hedefiyle WEB2 düzeltildi. Kasaoturumu tabloları bu temizDB'de henüz yok; mevcut0012motor/adapter sınırıyla döviz/kasa halkası sırada, yeni gerçek banka bilgisi beklenmiyor. Güncel ayrıntı [STATUS](STATUS.md) ve [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdakiler tarihli teslimlerdir.
+
 ## 23 Ekim — B5 kapalı atama düzeltmesi kurulu; B4 yalnız dar offline kaynak teslimi
 
 CRMfrontend e1ce12b7 mevcut cleanTEST profiliyle65dosyalık pakete alınıp statik olarak yayımlandı; backendbc8/ERP7b/native035 aynı. Normal Personel atanmış55/refresh/katalog, ornek-mudur/**Patron** genel okuma+kapalı atama, diğerPersonel0görüşme ve Semih oturumu doğrulandı. Gerçek `mudur` rolü veya insan kabulü değildir. İlk genelprofil adayı geri alındı; yalnız cleanprofil paketi aktiftir.58veri/rol+37Node listener aynı; SQLyazma/restart/atama/mesaj0. B4predecessor kaynakffeea515/14hedeflitest/exact6CI geçti; B4ödeme/iptalWIP kurulmadı. CRMsourcee1exact7CIgeçti. Gerçek kişi–rol/cihaz/insan kabulü ve17/74aynı. **Sıradaki teknik kapsam:** mevcutB4kısmiödeme/iptal. [STATUS](STATUS.md), [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--b5-kapalı-atama-frontend-kurulumu-ve-normal-rol-ekranları).

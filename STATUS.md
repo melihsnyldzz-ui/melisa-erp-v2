@@ -1,3 +1,23 @@
+## 23 Ekim — B4 TRY normal iptal ve kalıcı replay tamam; döviz/kasa halkası sürüyor
+
+**Yeni gerçek sonuç:** API01a1d9f6yalnız4194'e17:35TRkuruldu; webd73WEB2/native035/CRMbackendbc8/frontend e1korundu.10kritikweb/native/CRMlistenerPID/doğum/executableaynı. Normal kontrol23, mevcut80ödeme20021'i gerekçeli iptal etti; ters20023veeski120ödemesi geçmişte korundu. Tedarikçi80/kasa131tamreloadileeş. Mevcut100tahsilat20015gerekçeliiptal; müşteri100/kasa31tamreloadveSQLileeş. İki yeni ters kayıt dışında eski tahsilat/ödeme yeniden oluşturulmadı. AltıkalıcıGUIisteğisameUUID/bodyAPİreplayikinci etki0; farklıgövde6/6HTTP409. SQLmüşteri100/tedarikçi80/kasa31,14journal/8kasahareketi,intent0;eski müşteri0/tedarikçi0/kasa256,50/stok23aynı.
+
+**Kanıt ve sıra:** Private semih-access-20261023/b4-committed-replay.json, b4-ui-payment-cancel.png,b4-ui-collection-cancel.png,b4-final-inverse-and-cash-schema.txt. Kaynak01a1exactCI[PR39969421383](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39969421383)/[push39969411238](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/39969411238)6/6SUCCESSöncekiturdaokundu,tekrarlanmadı. BağımsızB4reviewyapılmadı; insanPASSyok. TRYkısmi/tam/iptalaltkapsamıtamam; tamB4açık. AynıcleanDB'degünlükkasa0012tablolarıyok; mevcutnativecashmotorvefinansadapterineTRY/USD/EUR/ana–çekmecebağısırada. Gerçekbankaadı/açılışıbeklemeveyaB6/B7yeniişyok. Yeni03/06kutarımahattıaçılmadı.
+
+### Önceki B4 kurulum ve kaynak kanıtı — tarihsel
+
+ERP-DEC-073 kullanıcının gerçek mesajından doğrulandı. B6/B7'de yeni çalışma yok. B4kaynakf844a29e, native provanın bulduğu tahsilat iptal capability düzeltmesid73a9a22; son HTTP kapısı düzeltmesi01a1d9f6424b39fcb2115f593d57bc0c6567a77b. d73kaynağı6/6exactCIbaşarılı.01a1henüz kurulmadı; CI/kurulum/normaliptal ayrı kapanacaktır.
+
+**Gerçek kurulu:** ERP API4194/web5244d73a9a22, immutable CLEAN-ERP-20261023-d73a9a22ff21-WEB2,3390dosya/manifestF6CE32DA18CB359C77036535A886AC6918EE6AEA2A32858F1A7E021A0510A2B8. Native035fcc08veCRMbackendbc8/frontend e1değişmedi;7kritik native/CRMlistener PID/doğum/executable eş. İlk genel CIguard ortamı VITE hedefini kaldırdığı için bir aday GUI'de bağlantı vermedi; önceki7b3pakete kontrollü geri dönüldü. Aynı hashli offlineguard korunarak Vite'a envDir=false ve yalnız açık sabitTEST4194define girdisiyle WEB2 üretildi;7APIçağrısı derlenmişhedefle doğrulandı. Hatalı aday/rollbackkanıtı saklı; güvenlik gevşetilmedi.
+
+**Normal muhasebe20:** Müşteri2/fiş2:251−100=151;yenilemede151, ardından151ile0. Tedarikçi2/fatura5:200−80=120;yenilemede120/kasa20, ardından120ile0/kasa51. İlk kasagirişi100;ikinci151girişle171,120çıkışla51. Eski müşteri/tedarikçi1=0,eski kasa1=256,50ve stok23 korunur. Bunlar yalnız açık etiketli yeni yapay finans örnekleridir; kabul edilmiş tam ödeme kayıtları tekrar kullanılmadı.
+
+**Native kanıt ve sınır:** Gerçek minimum SQL login ile aynı transaction bind/finish,2tahsilat+2ödeme+2inverse ve UUID/full-body replay/çatışki çalıştı; dış rollback sonrası tüm başlangıç değerleri aynı. Ayrı motor-sonrası kontrollü hata provasında gerçekten151cari/100kasa oluştuğu görülüp rollback ile251/0'a döndü.73hedeflikontrol, son dar HTTP/guard34kontrol başarılı. Eski roller/parolalar genişletilmedi. Ayrı normal örnek kullanıcı23/rol29 yalnız3okuma ve2iptal izniyle, mevcut desteklenen TEST provisioning/DPAPI yolunda hazırlandı; yaratıcı20veSemih'in iptal izni yoktur. Bu gerçek kişi–görev kabulü veya genel yöneticilere yeni kural değildir.
+
+**Kalan:** Normal kontrol23ekranında ödeme iptali HTTP üstkapıda403ile durdu; para etkisi0. Yeni01a1yalnız iki mevcut iptal adresini B4profiline bağlar; native/rol/finans korumaları aynı. Kurulum/GUIiptal, ardından B4döviz ve kasa ayrımı tamamlanacak. TamB4veinsankabulü açık;17/74/sayaçlar aynı. [Tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki tamamlanmış kaynak teslimi
+
 ## 23 Ekim — B6 clean doğrudan satış sınırı: yalnız kaynak/offline teslimi
 
 Son kaynak **79ed7a9a578d64c8705d88766928fa11326469d1**, PR54; yalnız `workSalesService.mjs` ve mevcut `workSalesService.test.mjs`. Doğrulanmış clean doğrudan satış sözleşmesi hâlâ yoktur. Kayıtlı clean runtime'da genel taslak/finalize store açılmadan503/mevcutWORK_UNAVAILABLE ile durur; callback'te clean hedef/ortam/readonly işaretleri ayrıca denetlenir. canCreate/canFinalize veya claimed verified=true yazma izni değildir. Mevcut ayrı CRM siparişinden satış servisi, fiyat hesabı, UUID journal, eski/copy akışları ve mevcut rol kararları değiştirilmedi. Her yöneticiye yeni kendi-taslağını-onaylama yasağı konmadı.
