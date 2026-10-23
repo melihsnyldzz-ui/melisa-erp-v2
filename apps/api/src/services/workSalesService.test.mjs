@@ -7,6 +7,7 @@ import {withWorkNightScope,isWorkNightProduct} from './workNightScope.mjs';
 import {fixtureContext} from './isolatedOperationCopyContext.test.mjs';
 import {bindIsolatedCopyOperationDTO,validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
 import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 const revision='a'.repeat(64),uuid='a2a49b48-3696-4f2d-b237-e519af1e1b88';
 const actor={id:'16',testAdminSession:true,permissions:['sales.view','sales.create','sales.finalize','sales.cancel','customer.view','finance.collection','finance.collection.cancel']};
 const products=['400001','400002'].map((id,i)=>({id,stockCode:`NIGHT-${i+1}`,name:`Ürün ${i+1}`,synthetic:true,writeEligible:true,stockQuantityExact3:'10.000',unit:{label:'ADET',factorExact8:'1.00000000'},prices:[{quoteId:String(i+1),currency:'TRY',unitPriceExact8:i?'20.12345000':'10.00000000'}]}));
@@ -27,7 +28,7 @@ test('strict body refuses client prices/roles, duplicate products, decimals and 
 function fixture(localContext=context){const requests=new Map(),events=[],current=invoice();const c={context:localContext,invoice:async()=>structuredClone(current),createDraft:async()=>{events.push('draft');return structuredClone(current);},finalize:async()=>{events.push('finalize');current.status='finalized';return structuredClone(current);},cancel:async()=>{events.push('cancel');current.status='cancelled';return structuredClone(current);},collect:async p=>{events.push('collect');const item={id:'900001',invoiceId:current.id,accountId:p.selection.accountId,amountExact4:p.amountExact4,currency:'TRY',documentDate:p.selection.documentDate,status:'active',revision};current.collections.receivedExact4=p.receivedAfterExact4;current.collections.outstandingExact4=p.outstandingAfterExact4;current.collections.items.push(item);return item;},collection:async()=>current.collections.items[0],cancelCollection:async()=>{events.push('reverse');current.collections.receivedExact4='0.0000';current.collections.outstandingExact4='40.1235';current.collections.items[0].status='cancelled';return current.collections.items[0];}};
  const store={context:async()=>localContext,read:async(a,fn)=>fn(c),mutate:async(a,operation,payload,fn)=>{const hash=workHash({actorId:a.id,operation,payload}),old=requests.get(payload.requestId);if(old){if(old.hash!==hash)throw Object.assign(Error('Conflict'),{statusCode:409});return {...old.response,replayed:true};}const response=await fn(c);requests.set(payload.requestId,{hash,response:structuredClone(response)});return response;}};return{store,events,current,requests,context:localContext};}
 
-const cleanBoundaryError={code:'WORK_CLEAN_SALE_CONTRACT_REQUIRED',statusCode:503};
+const cleanBoundaryError={code:'WORK_UNAVAILABLE',statusCode:503};
 function cleanBoundaryFixture(meta={environment:'CLEAN_SYNTHETIC_TEST'}){
  const local=structuredClone(context);local.meta={...local.meta,...meta};return fixture(local);
 }
@@ -96,12 +97,13 @@ test('B6 contract: registered clean runtime refuses legacy fallback before openi
  let opened=0;const service=createWorkSalesService({getStore:async()=>{opened++;throw Error('Unexpected store access');}}),actor={id:'10018',permissions:['sales.create','sales.finalize']};
  const requestId='${uuid}',expectedRevision='${revision}',body={requestId,expectedRevision,previewHash:expectedRevision,customerId:'1',documentDate:'2026-10-22',currency:'TRY',items:[{productId:'1',quoteId:'1',quantityExact3:'1.000'}]};
  for(const database of[CLEAN_DATABASE,'LIVE']){process.env.SQL_DATABASE=database;
-  await assert.rejects(service.createDraft(body,actor),{code:'WORK_CLEAN_SALE_CONTRACT_REQUIRED',statusCode:503});
-  await assert.rejects(service.finalize('1',{requestId,expectedRevision},actor),{code:'WORK_CLEAN_SALE_CONTRACT_REQUIRED',statusCode:503});
+  await assert.rejects(service.createDraft(body,actor),{code:'WORK_UNAVAILABLE',statusCode:503});
+  await assert.rejects(service.finalize('1',{requestId,expectedRevision},actor),{code:'WORK_UNAVAILABLE',statusCode:503});
  }
  assert.equal(opened,0);console.log(JSON.stringify({registeredClean:true,storeCalls:opened,denied:4}));`;
  const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>/^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|LOCALAPPDATA|APPDATA|USERPROFILE|HOME|HOMEDRIVE|HOMEPATH|NODE_OPTIONS)$/i.test(key)));
- const result=spawnSync(process.execPath,['--input-type=module','-e',worker],{env,encoding:'utf8',windowsHide:true,timeout:10000});
+ const guard=fileURLToPath(new URL('../../../../scripts/ci/offline-guard.cjs',import.meta.url));
+ const result=spawnSync(process.execPath,['--require',guard,'--input-type=module','-e',worker],{env,encoding:'utf8',windowsHide:true,timeout:10000});
  assert.ifError(result.error);assert.equal(result.status,0,result.stderr||result.stdout);
  assert.deepEqual(JSON.parse(result.stdout.trim()),{registeredClean:true,storeCalls:0,denied:4});
 });

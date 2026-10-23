@@ -8,7 +8,7 @@ function requireCleanDirectSaleContract(context){
  // There is no admitted clean direct-sale contract yet. A capability or claimed
  // verification flag cannot replace native admission; linked CRM sales use
  // their existing separate service and are unaffected by this closed boundary.
- if(getCleanContext()||meta?.environment==='CLEAN_SYNTHETIC_TEST'||meta?.database===CLEAN_DATABASE||meta?.cleanSaleReadOnly===true||(typeof meta?.environmentId==='string'&&meta.environmentId.toLowerCase()===CLEAN_ENVIRONMENT_ID))workFail('WORK_CLEAN_SALE_CONTRACT_REQUIRED','Doğrudan satış bağlantısı henüz hazır değil.',503);
+ if(getCleanContext()||meta?.environment==='CLEAN_SYNTHETIC_TEST'||meta?.database===CLEAN_DATABASE||meta?.cleanSaleReadOnly===true||(typeof meta?.environmentId==='string'&&meta.environmentId.toLowerCase()===CLEAN_ENVIRONMENT_ID))workFail('WORK_UNAVAILABLE','Doğrudan satış bağlantısı henüz hazır değil.',503);
 }
 function selectedReadError(error){
  const info=error?.originalError?.info;
