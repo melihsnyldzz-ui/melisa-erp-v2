@@ -583,9 +583,13 @@ export function buildCleanFinanceLedgerOrderRepairDefinitions(){
  const prior=buildCleanFinanceAdministratorDefinitions().definitions;
  const names=['usp_clean_store_day_ready','usp_clean_finance_b4_ready','usp_clean_finance_b4_cash_ready','usp_clean_finance_b4_fx_ready','usp_clean_finance_b5_admin_ready'];
  const before=Object.fromEntries(names.map(n=>[n,prior[n]])),definitions={};
+ const predecessors=`SELECT ${names.map(n=>`MAX(CASE WHEN name=${quote(n)} THEN before_hash END) [${n}]`).join(',')} FROM dbo.${ledgerOrderManifest} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER`;
  for(const name of names){
-  let body=before[name].replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,alias)=>`COALESCE((SELECT lo.before_hash FROM dbo.${ledgerOrderManifest} lo WHERE lo.name=${alias}.name AND lo.after_hash=${hash}),${hash})`);
-  body=body.replace('SET NOCOUNT ON;','SET NOCOUNT ON;EXEC dbo.usp_clean_finance_b5_ledger_ready;');
+  // Validate every current module first, then materialize predecessor hashes
+  // once. Expanding another scalar subquery inside every historical hash lift
+  // multiplies the optimizer tree and stalls the minimum-login ready path.
+  let body=before[name].replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,alias)=>`COALESCE(JSON_VALUE(@ledgerOrderPredecessors,N'$.'+${alias}.name),${hash})`);
+  body=body.replace('SET NOCOUNT ON;',`SET NOCOUNT ON;EXEC dbo.usp_clean_finance_b5_ledger_ready;DECLARE @ledgerOrderPredecessors nvarchar(max)=(${predecessors});`);
   if(name==='usp_clean_finance_b4_cash_ready'){
    const check='IF EXISTS(SELECT 1 FROM dbo.finance_accounts a WHERE a.id BETWEEN 2 AND 7 AND a.current_balance<>';
    if(body.split(check).length!==2)throw Error('Cash ledger check predecessor changed');

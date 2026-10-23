@@ -21,6 +21,9 @@ test('TRY ledger readiness distinguishes a guarded native trigger intermediate f
  assert.match(cash,/actor_id IN\(20,23,10018\)/);
  assert.match(cash,/operation IN\(N'collection_create',N'collection_cancel',N'payment',N'payment_cancel'\)/);
  assert.match(cash,/a\.current_balance<>a\.opening_balance\+COALESCE/);
+ assert.match(cash,/EXEC dbo\.usp_clean_finance_b5_ledger_ready;DECLARE @ledgerOrderPredecessors/);
+ assert.match(cash,/JSON_VALUE\(@ledgerOrderPredecessors/);
+ assert.doesNotMatch(cash,/SELECT lo\.before_hash/);
  assert.equal(repair.total,7);assert.equal(Object.keys(repair.before).length,5);
  for(const[n,b]of Object.entries(repair.before))assert.equal(b,old[n]);
  const ddl=factory.buildCleanFinanceLedgerOrderRepairSql({probe:true});

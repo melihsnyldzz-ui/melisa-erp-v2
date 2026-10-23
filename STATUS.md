@@ -1,3 +1,10 @@
+## 24 Ekim — B5 native ara kontrolü: ilk metadata katmanı güvenle geri alındı, mühür okuması daraltıldı
+
+8f19a276 source CI40023273579 üç zorunlu kontrol SUCCESS. İlk7modüllük repair kuruldu; gerçek minimum SQL provasında ana ready20sn zaman aşımı verdi ve bütün deneme etkileri rollback oldu. Salt okunur ayrıştırmada ledger_ready55ms/admin_ready82ms, store_day_ready20077ms timeout: yeni iç içe hash alt sorguları ana doğrulamayı ağırlaştırıyordu. Tam before-image/mühür arşivi saklanarak yalnız bu7metadata nesnesi exact inverse ile geri alındı;5eski prosedür geri yüklendi. Semih36izin/önceki9adminmühürü/30journal35finanshareketi ve kurulu982API/web korunur. AktifDBrestore/reset veya ticari kayıt silme yok. Başarısız SQLCMD arşiv çağrısı seçenek uyumsuzluğunda yazma öncesi durdu; yalnız seçenek düzeltilerek arşiv/inverse tamamlandı.
+
+Yeni kaynak mevcut7mühürü önce doğrular, beş predecessor hash'ini bir JSON değişkenine bir kez alır; tarihsel hash projeksiyonlarına iç içe ek alt sorgu çoğaltmaz. Geçici ledger eşitsizliği yalnız aynı transaction/exclusive intent'in gerçek trigger çerçevesine sınırlıdır; doğrudan/bind/finish tam mutabakatı korunur.32farklı etkilenen test PASS; tekrar testler toplanıp yeni sayı üretilmedi. Bu sürümün owner rollback/minimum login süre/native motor/normal Semih ekranı ve API-only kurulumu henüz bekliyor. Normal Semih girişi korumalı mevcut kayıtla gerçek forma yapıldı; parola/rol bypass yok. Yeni insanPASS veya sayaç yok.
+
+### Önceki adım — tarihsel
 ## 23 Ekim — B5 Semih native izni kuruldu; TRY ara defter kontrolü için dar kaynak düzeltmesi
 
 Exact a9304b6a CI40019314591 üç zorunlu kontrol SUCCESS. Güncel30journal/35finanshareketi durumunun COPY_ONLY/CHECKSUM yedeği VERIFYONLY geçti; restore yapılmadı. Aynı clean E662/T1false üzerinde yalnız Semih rol28'e iki finans iptal izni eklendi;36izin/9mühürlü admin modülü doğrulandı.53koruma kapsamı ve5ekrol/veri özeti aynı. API/web henüz98226c7f;3397dosyalık a930 aday inaktif, frontend yeniden derlenmedi.
