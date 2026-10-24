@@ -1,3 +1,9 @@
+## 24 Ekim — A5 giriş rehberi uygulandı; B5 kimlik bağı açık
+
+[Güncel rehber](docs/erp-v2/clean-test-entry-guide.md) mevcut esas kurulum dosyasına gerçekten uygulandı, byte-eş geri okundu. LAN5244/62800/semih, önceki C1/C2, eski port ayrımı ve kısa başka-cihaz denemesi güncel; Tailscale aktif seçenek değil. Servis/SQL/rol/ağ ayarı değişmedi. A2/A3/C3/C5/C6 ve insan kabulü bekliyor. B5 envanter ekranı hazır;9gerçek kişinin kesin hesap/temsilci/müşteri bağları mevcut makbuzlarda yok, eşleme uydurulmadı. Sonraki en küçük C6 adımı yalnız mevcut yedeğin başlık/dosya/boş hedef/alan okumasıdır; restore/yeniDB/reboot başlatılmadı. Yeni takip sistemi veya sayaç yok. [STATUS](STATUS.md).
+
+### Önceki teslim — korundu
+
 ## 24 Ekim — B5 normal hesap envanteri teknik tamam; gerçek kişi bağları bekliyor
 
 Aynı temiz TEST'te CRM a32 sabit profil kuruldu. Ayarlar→hesap envanteri normal yönetici oturumunda açıldı; yenile/tamreload/yeniden aç aynı dört hesabı gösterdi. 53 SQL özeti ve ERP süreçleri aynı; hesap/rol/atama değişmedi. B6/B7 tamamlanmış örnek teknik sonuçları korunur. B5'in gerçek personel–hesap–müşteri atama bağları kanıtlanmadı; insan kabulü ve özgün sayaçlar BEKLİYOR. İki sunum sınırlaması (kesilen uzun adlar, genel atama açıklaması) STATUS'ta açık. Yeni B dışı iş yok. [Çalışan CRM](http://192.168.1.46:62800/) · [Kanıt](STATUS.md).

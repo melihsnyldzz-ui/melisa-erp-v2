@@ -1,3 +1,11 @@
+## 24 Ekim — A5 mevcut giriş rehberi teslimi
+
+Mevcut `clean/20261022/GIRIS-REHBERI.md` dosyası hazır taslaktan güncellendi; [kaynak kopyası](../../../erp-v2/clean-test-entry-guide.md) SHA256 `2CFD0AEEE1F06B8E207209C7D88C456E3E6DC40584D955032C65332CCC13D6F6` ile aynı. Eski rehber before-image private alanda saklandı. LAN5244/62800/semih, önceki C1/C2, eski adres ayrımı, başka-cihaz üç adımı güncel. Tailscale aktif giriş seçeneği değil; mevcut network bind/kuralları korunur. Yedi korumalı launcher/start/process/credential dosya hash'i aynı; SQL/servis/restart/kurulum/atama/ticari işlem yok. Private `a5-entry-guide-delivery.json` geri okuma makbuzu; açılış testleri tekrarlanmadı.
+
+B5'in4CRM/11ERP mevcut tam kapsam makbuzunda onaylı9gerçek kişinin kesin kimlik/atama bağları yok; benzersiz uygulanabilir yeni gerçek-kişi eşlemesi0. İsim benzerliğiyle veya örnek kullanıcıyı yeniden adlandırarak bağ kurulmadı. İnsan/başka-cihaz/C3/C5/C6 kabulü değişmedi. Hazır C6/D1-D2 kaynak planları okundu; yedek mevcut/C:41,09GiB/önerilen dizin yok yalnız dosya hazırlığıdır, SQL HEADERONLY/FILELISTONLY/restore/yeniDB veya geçmiş aktarımı yapılmadı. Somut sonraki kontrol STATUS'ta.
+
+### Önceki teslim — korundu
+
 ## 24 Ekim — B5 normal hesap envanteri kurulum ve ekran kanıtı
 
 CRM kaynak a32e071221f5f242dc08996b8ace0c1b1294214e, mevcut offline guard sonrasında yalnız sabit clean20261022 profilini uygulayan desteklenen build yoluyla derlendi. Env keşfi/ağ/sır koruması kaldırılmadı. Gerçek üretim main dosyasının SHA'sı kaynak sahibinin build'iyle ve HTTP'den sunulan dosyayla eşleşti. Önceki c1/4ead paketleri profil-silinmesi nedeniyle normal GUI başarı kanıtı değildir; başarısızlık kayıtları korundu.

@@ -1,3 +1,7 @@
+## 24 Ekim — A5 rehber hazır; A2/A3 ve özgün kabuller bekliyor
+
+Güncel LAN adresleriyle kısa başka-cihaz kontrolü [giriş rehberinde](docs/erp-v2/clean-test-entry-guide.md). Bu tur başka cihaz/gerçek personel/Windows reboot/logon denemesi yapılmadı. Önceki C1/C2 kanıtı yeniden çalıştırılmadı, mevcut paket için yeni cold-start iddiası yok. B5 envanter sonucu gerçek9kişinin hesap/atama uygulaması veya insan kabulü değildir. Yeni UA/PASS/sayaç yok.
+
 ## 24 Ekim — B5 normal envanter ajan kontrolü; insan kabulü BEKLİYOR
 
 CRM a32 aynı temiz TEST'te mevcut örnek yönetici hesabıyla Ayarlar→hesap envanteri, yenile ve tamreload/yeniden aç doğrulandı. Teknik envanter sonucu gerçek personelin hesabı/görevi/atanmış müşterisi veya işletme kabulü değildir. Gerçek kişi eşlemesi kanıtlanmadı; yeni atama/rol yazması yok. Özgün kabul ID'leri, kişi/tarih alanları ve sayaçlar değişmedi; yeni UA/PASS oluşturulmadı. [Teknik sonuç](STATUS.md).

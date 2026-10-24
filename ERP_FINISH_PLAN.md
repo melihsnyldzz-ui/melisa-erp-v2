@@ -1,3 +1,9 @@
+## 24 Ekim — A5 rehber teknik bakımı; insan kabulü ayrı
+
+Mevcut kurulum giriş rehberi hazır taslakla güncellendi ve sürümlü kopyayla byte-eş doğrulandı. A5 doküman bakımı tamam; A2/A3 başka-cihaz ve C3/C5/C6 kabulü bu sonuçtan yeşile dönmez. B5 gerçek9kişi kimlik/atama uygulaması makbuzu eksik; envanter teknik sonucu ayrı tamam. C6 sonraki dar önkontrolü ve C5 hedef/saklama boşluğu STATUS'ta; restore/veri aktarımı/reboot yapılmadı. Özgün17/74,49ERP/25CRM ve insan sayaçları aynı. [Rehber](docs/erp-v2/clean-test-entry-guide.md).
+
+### Önceki teslim — korundu
+
 ## 24 Ekim — B5 envanter teknik sonucu; genel kabul değişmedi
 
 CRM a32 sabit profil gerçekten kuruldu; normal Ayarlar girişinden tam yapılandırılmış hesap envanteri, yenile ve tamreload geçti. Kurulum/GUI sonrası53 koruma özeti aynı. Bu yalnız dört mevcut örnek hesabın salt okunur teknik sonucudur; gerçek kişi–ERP/CRM hesabı–temsilci–müşteri atama zinciri kanıtlanmış değildir. B5 genel kapsamı ve insan kabulü 🟡; B6/B7 teknik teslimleri korunur. Yeni yaprak/UA/plan/sayaç yok;17/74 ve49ERP/25CRM aynı. Ayrıntı [STATUS](STATUS.md).
