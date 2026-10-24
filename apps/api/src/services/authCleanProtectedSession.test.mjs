@@ -24,8 +24,15 @@ test('existing normal clean login refresh pair confirmation and logout reuse one
  const grant=await auth.login({username:row.username,password:'fixture-password'});
  assert.equal(grant.user.id,18);assert.equal(grant.user.role.code,'clean_test_warehouse');assert.equal(typeof grant.refreshToken,'string');assert(!fs.readFileSync(file,'utf8').includes(grant.refreshToken));assert(!JSON.stringify(grant.user).includes(row.password_hash));
  const confirmed=await auth.confirmProtectedNormalSession(grant.accessToken,grant.refreshToken);assert.equal(confirmed.confirmed,true);assert.equal(confirmed.user.id,18);
+ const signedFamily=auth.verifyAccessToken(grant.accessToken).normalTestSessionId;
+ assert.equal(typeof confirmed.normalTestSessionId,'string');assert.equal(confirmed.normalTestSessionId,signedFamily);
+ const described=await auth.readProtectedNormalSession(18,signedFamily);assert.equal(described.normalTestSessionId,signedFamily);assert.equal(described.user.id,18);assert(described.expiresAt>confirmed.expiresAt);
+ await assert.rejects(()=>auth.readProtectedNormalSession(19,signedFamily));
+ for(const secret of [grant.accessToken,grant.refreshToken,row.password_hash])assert(!JSON.stringify(confirmed).includes(secret));
  const next=await auth.refreshAccessToken(grant.refreshToken);assert.notEqual(next.refreshToken,grant.refreshToken);await assert.rejects(()=>auth.refreshAccessToken(grant.refreshToken));
+ assert.equal((await auth.confirmProtectedNormalSession(next.accessToken,next.refreshToken)).normalTestSessionId,signedFamily);
  await auth.logout(grant.refreshToken);await assert.rejects(()=>auth.confirmProtectedNormalSession(next.accessToken,next.refreshToken));assert(factoryOptions.length>0);assert(queries.length>0);
+ await assert.rejects(()=>auth.readProtectedNormalSession(18,signedFamily));
 });
 
 test('clean normal login requires real matching credentials and active role; stale password fingerprint revokes refresh',async()=>{

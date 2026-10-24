@@ -1,3 +1,9 @@
+## 24 Ekim — E1 ERP handoff sağlayıcısı kaynak/test hazır, ortak kurulum henüz yok
+
+Mevcut normal aile/store + explicitrelation +30s/PKCE/one-use peer adapter;20hedef test mevcut offlineguard ilePASS. Exact clean4194/default-off/loopbackpeer ve credential ayrımı korunur. [Wire sözleşmesi](docs/erp-v2/terminal-handoff-contract.md); bağımsız review/exactCI/nativebağ/CRMortakE2E/kurulum/cihaz/insan ayrı bekler. KuruluERP8aa/CRM09a/native035 bu işte değiştirilmedi. Yeni iş/sayaç yok; mevcut E1 devam eder. [STATUS](STATUS.md).
+
+### Önceki C5 kurulum teslimi — korundu
+
 ## 24 Ekim10:14 — C5 görev kuruldu; ilk gerçek zamanlı yedek bekleniyor
 
 Tek mevcut runner korumalı bakım konumunda source74e/hash ile kurulu; native kaynak pini/starter aynı. Günlük03:00 Türkiye, mevcut Windows sahibi, InteractiveToken/Limited, IgnoreNew/silmesiz görev kaydı/eylem/NextRunTime doğrulandı. İlk çalışma25Ekim03:00; elle backup/tetikleme yok. C5genel🟡, zamanlı başarı makbuzu olmadan yeşil değil. ERP8aa/CRM09a/native035/37listener-satırı/53SQLaynı. Kapsam SQLyalnız; NAS/oturumkapalı/tümCRM/C6restore/insan açık. [STATUS](STATUS.md).

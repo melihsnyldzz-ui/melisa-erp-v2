@@ -1,3 +1,13 @@
+## 24 Ekim — E1 ERP tek kullanımlık oturum devri sağlayıcısı kaynakta hazır; kurulum bekliyor
+
+Mevcut normal auth/store'a dar server-only aile okuyucusu ve doğrulanmış UUID metadata'sı eklendi. Yeni provider30s tek kullanımlık PKCE code/atomik take, açık kişi–CRM–agent revision bağı, taze aile/rol/fingerprint, peer loopback+ayrıkey, exact clean4194/config/default-off ve dört exact POST yolu kullanır. ERP credential'ları CRM'ye taşınmaz; yeni SQL/login/journal/gerçek kişi eşlemesi yok. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md) gerçek wire/body/11alan ve sınırları içerir.
+
+**Yerel teknik kanıt:** mevcut offline CI guard ile20/20 hedefli test; gerçek rastgele loopback HTTP router/normal auth fixture/core yarış-replay/revoke/config negatifleri. İlk sandbox dosya kilidi ve loopback EACCES ayrı tutuldu; izinli hostta guard kaldırılmadan geçti. Syntax/diff kontrolü geçti. Bağımsız kaynak incelemesi ve exact GitHub CI sonucu henüz bekliyor; source commit PR54 teslimiyle kaydedilecek.
+
+**Kurulu durum değişmedi:** ERP8aa/CRM09a/native035'e bu işte kurulum/restart/config/SQL yazması yapılmadı. Android first-empty-CRMget sağlayıcısı, CRM exact backendconsumer ortak E2E/kurulum ve gerçek cihaz/insan sonucu henüz yok; E1 tamam veya insan PASS sayılmaz. B5 CRM kaynak sahibi mevcut işi sürdürüyor, bitmiş envanter/sunum yeniden açılmadı. C5'in25Ekim03:00 gerçek zamanlı makbuzu ayrıca bekliyor;49/25/17/74 ve özgünUA aynı. Sıradaki somut işlem: kaynak sözleşmesi bağımsız review/CI ardından mevcut native get/put/clear yoluna dar bağ; iki owner exact source/kanıt hizalanmadan ortak TEST kurulumu yok.
+
+### Önceki C5 kurulum teslimi — korundu
+
 ## 24 Ekim10:14 — C5 günlük temiz TEST SQL yedeği görevi kuruldu; ilk zamanlı çalışma bekleniyor
 
 **Kaynak ve mevcut paket koruması:** PR56 `2afc48935287c69b969103395bcc44e2d9fe78f9` yalnız dört C5dosyası mevcut owner dalına alındı. TaskDefinition'ın clean native checkout'a yazacak yolu, aynı mevcut runner'ın korumalı `clean/20261022/runtime/maintenance/c5` konumuna dar olarak uyarlandı; mevcut native035 checkout/starter kaynak pini veya korumasına istisna eklenmedi. Değişiklik source `74e1361947665166d54ade57d46d54449b8612d7` / PR54; gerçek PS5 görev XML testi1/1PASS, bağımsız koordinatör kaynak incelemesi engelleyici bulgu0. [Exact CI40072827445](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40072827445) ve [40072824141](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40072824141) gerekli3'erjobSUCCESS. PR56/D57 worktree'leri değiştirilmedi; yeni backup motoru/uygulama paketi/restart yok.

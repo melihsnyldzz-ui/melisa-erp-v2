@@ -1,3 +1,7 @@
+## 24 Ekim — E1 kaynak handoff kanıtı insan kabulü değildir
+
+ERP sağlayıcı20hedef kaynak/offline HTTP testi geçti; henüz kurulu native/CRM aynı kişi geçişi, AndroidKeystore/aç-kapa/çıkış/gerçek cihaz veya çalışan sonucu yok. Mevcut E1/özgünUA BEKLİYOR; sayaç ve eski insan sonuçları aynı. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). KuruluTEST değişmedi.
+
 ## 24 Ekim10:14 — C5 görev teknik kurulumu; zamanlı çalışma/insan kabulü BEKLİYOR
 
 Günlük03:00 temiz TEST SQL backup görevi mevcut Windows sahibiyle kurulu/geri okunmuş; ilk gerçek çalışma25Ekim03:00 bekleniyor. Kaynak/CI/XML/Preflight ve görev kurulumu gerçek zamanlı yedek veya restore PASS değildir. Elle yedek/tetikleme yok; SQLdışıCRM/haricihedef/oturumkapalı çalışma ayrı açık. ÖzgünUA/kişi/tarih/sayaç değiştirilmedi. [Teknik sonuç](STATUS.md).
