@@ -1,3 +1,7 @@
+## 24 Ekim 15:38 — B5 native bağlam beklemesi azaltıldı; genel kabul kısmi
+
+Aynı normal sentetik kişiyle satış19.246→4.652/2.873ms, mal kabul19.774→2.738/2.601ms. Bunlar API süreleri; bir saniye altı veya insan PASS değildir. Mevcut yeşil tarayıcıda giriş/satış/tam yenileme/mal kabul/Yenile doğrulandı, ticari işlem0. c1a15d4e yalnız native metadata paketi15:30'da kurulu; API/web64f/native035/CRMacb2/37dinleyici aynı, restart0. Üç gerçek rollback/ret provası,53 veri koruması ve199ms ikinci-etkisiz replay geçti; exact altı CI SUCCESS. 2,6–4,7s maliyet, username/ilk-hata, uzun oturum/gerçek kişi/Android/insan kabulü açık. B5 ve özgün sayaçlar değişmedi. [STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
 ## 24 Ekim 14:38 — B5 normal personel teknik alt kanıtı kurulu; genel kabul kısmi
 
 ERP API/web64f, 3.442 dosyalı B944 paketi14:30'da kuruldu; exact PR/push altı CI kontrolü başarılı. Yalnız yeni sentetik kullanıcı10021/personel1 bir kez oluşturuldu; eski11 kullanıcı ve diğer52 kapsam korundu. NormalAPI17 kontrolü ve gerçek tarayıcıda giriş/kısa yenileme/satış/mal kabul okuması geçti. Son53 SQL özeti aynı; yeni ticari işlem yok. Native19–20s gecikme, kullanıcı adı karakter uyumsuzluğu, ilk hatayı örten EABORT, uzun masaüstü oturumu ve gerçek kişi/Android/insan kabulü açık. B5 ve özgünUA kapanmadı;49/25/17/74 aynı. Sıradaki teknik iş, güvenliği koruyarak native bağlam okumalarını hızlandırmaktır. [STATUS](STATUS.md), [teslim kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).

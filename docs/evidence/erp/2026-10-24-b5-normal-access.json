@@ -81,12 +81,12 @@
     "originalUserRowsUnchanged": true
   },
   "unresolved": [
-    "19-20 second native operational context reads; 30 second UI wait is not a speed improvement",
+    "Operational reads improved to 2.6-4.7 seconds by the installed native patch; further improvement remains",
     "Native username pattern rejects hyphen and underscore accepted by JS",
     "Aborted transaction rollback can mask the first native error",
-    "Long desktop session retention and physical Android/Keystore not accepted",
+    "Long desktop session retention unresolved; physical Android/Keystore acceptance belongs separately to E1/E2",
     "Recorded nine-person account and task/CRM/carton mapping not completed",
-    "Human acceptance remains pending"
+    "Separate E2 human acceptance remains pending"
   ],
   "fullB5Acceptance": "PENDING",
   "finishCountsUnchanged": {
@@ -95,5 +95,101 @@
     "crm": 25,
     "leaves": 74
   },
-  "privateEvidence": "Existing owner runtime evidence folder; no private images, secrets or commercial rows published"
+  "privateEvidence": "Existing owner runtime evidence folder; no private images, secrets or commercial rows published",
+  "readinessPerformanceImprovement": {
+    "nativeMetadataSource": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
+    "installedAt": "2026-10-24T15:30:27.4439728+03:00",
+    "applicationPackageUnchanged": true,
+    "nativeHttpSourceUnchanged": true,
+    "crmSourceUnchanged": true,
+    "restart": false,
+    "listenerCount": 37,
+    "artifact": {
+      "root": "C:/Sirket/ERP/releases/CLEAN-READY-EXPRESSION-20261024-c1a15d4e3da1",
+      "source": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
+      "manifestSha256": "F772E1ABB41B8E15DB3129487AFF503C713EBC4D2683798FC8F6536F8843D9DB",
+      "files": 4,
+      "sqlSha256": "92422D782892EA18FBC2BAC4C05B94DF04178F96386869E1A32A47091497FEB8"
+    },
+    "changedReadyModules": 10,
+    "hashFallbackExpressions": 2259,
+    "cache": false,
+    "controlsSkipped": 0,
+    "databaseOptionsChanged": false,
+    "targetedTests": {
+      "passed": 9,
+      "failed": 0
+    },
+    "nativeProbes": [
+      "positive rollback",
+      "guard self-hash rejection rollback",
+      "encrypted non-guard contact NULL-definition rejection rollback"
+    ],
+    "hashEquivalence": {
+      "cases": 18,
+      "mismatches": 0,
+      "overlengthBytesPreserved": 130
+    },
+    "beforeNormalReadsMs": {
+      "sales": 19246,
+      "receiving": 19774
+    },
+    "afterNormalReadsMs": {
+      "sales": [
+        4652,
+        2873
+      ],
+      "receiving": [
+        2738,
+        2601
+      ]
+    },
+    "measurementKind": "Normal API response time, not browser click timing",
+    "normalGui": {
+      "login": true,
+      "sales": true,
+      "salesFullReload": true,
+      "receiving": true,
+      "receivingRefresh": true,
+      "existingReceiptWarningPreserved": true,
+      "longSession": "Expired; existing protected TEST credential used for normal re-login",
+      "physicalAndroid": "NOT_TESTED",
+      "humanAcceptance": "PENDING"
+    },
+    "preserved": {
+      "protected53": true,
+      "oldSealsRolesAndPersonalRows": true,
+      "runtimeFiles": true,
+      "nodeListeners": true
+    },
+    "replay": {
+      "status": "NO_SECOND_EFFECT",
+      "elapsedMs": 199,
+      "metadataAndSealRowsByteEqual": true
+    },
+    "ci": {
+      "source": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
+      "prRun": 40093597880,
+      "pushRun": 40093594680,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS",
+      "priorFalsePositive": "Single public source-commit fingerprint; exact historical allowlist only"
+    },
+    "failedPreparationsPreserved": [
+      "SQLCMD forward-slash path: SQL not started; installation-v1 FAILED",
+      "Readback splatting typo: zero HTTP requests; readback-v1 FAILED",
+      "Local all-ref secret scan: MSYS textconv failure; not PASS"
+    ],
+    "postCommitInverseRestore": "NOT_TESTED; exact before definitions retained, no automatic restore/reset",
+    "commercialWrites": 0,
+    "fullB5": "PENDING",
+    "remaining": [
+      "2.6-4.7 second read cost",
+      "Native username dash/underscore mismatch",
+      "First native error masked by rollback EABORT",
+      "Long desktop session and native Keystore",
+      "Nine real-person identities and assignments",
+      "Separate E1/E2/Windows physical-device and human acceptance"
+    ]
+  }
 }
