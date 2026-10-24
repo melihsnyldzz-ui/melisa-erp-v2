@@ -1,3 +1,8 @@
+## 24 Ekim11:56 — B5 CRM kurulu ve normal ekran kanıtlı; ERP son frontend bağı bekleniyor
+
+CRM sourceacb2/787/55FFpaketi11:51:30TR gerçektentekownerilekuruldu. NormalAPIyeni sentetikpersonel/155ataması17kontrol,normalGUIgiriş/reload/ownlogout/hesapenvanteri ve yalnız yeni ownhesabın kapatılması/401 sonucu doğrulandı. Eski4hesap/53SQLkorundu; gerçek9kişi/insanPASSdeğil. ERPPR58ed815 gerçekmetadata-rollbackprobasıPASS ve exactikiCI3/3SUCCESS; kalıcıkurulumhenüzyok. ÜçSitesfront/modelkopyası mevcutowner'da; ardından tekERPkurulumhalkası. E1statik10actor→yeni membershipkalıcıoturum bağı ayrıdarhazırlık, temelB5'eekgateyok. [STATUS](STATUS.md);49/25/17/74aynı.
+
+### Önceki E1 kurulum teslimi — korundu
 ## 24 Ekim11:38 — E1 kurulu sunucu/normal ekran alt kapsamı doğrulandı
 
 ERPf4/CRM59ca clean5244/62800'e gerçekten kurulu; mevcut normaloturum→explicitPKCEhandoff→atanmışgörüşme/refresh/ret/ownlogouttekrarı teknik olarak doğrulandı. Doğal authwait sonrası dar12HTTPkapanışmakbuzuPASS; önceki429FAILEDkorundu. NormalERPpersonelhome ve normalCRMatanmışgörüşme/tamreload görüldü;53SQLözeti korunur. Natived114 exactikiCI3/3SUCCESS/13JVM/v2APKpasifhazır; Android0/Keystore/insanBEKLİYOR, E1bütünkabulPASSdeğil. [STATUS](STATUS.md). Sıradaki hazır teknik halka B5PR58+CRMmanagementsource önkontrol/tekownerkurulumudur; yeniiş/sayaç/gerçekkişi tahmini yok.
