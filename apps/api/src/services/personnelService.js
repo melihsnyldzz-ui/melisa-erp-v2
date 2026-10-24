@@ -1,4 +1,6 @@
 import bcrypt from 'bcrypt';
+import {assertCleanPersonnelWrite,bindCleanPersonnelWrite,cleanPersonnelOptions} from './cleanPersonnelManagement.mjs';
+
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
@@ -178,8 +180,10 @@ export async function getPersonnelOverview() {
     `),
   ]);
 
+  const cleanPersonnel=await cleanPersonnelOptions(pool);
   return {
     restrictionSchemaReady,
+    ...(cleanPersonnel?{cleanPersonnel}:{}),
     employees: employeesResult.recordset.map(toEmployeeDto),
     users: usersResult.recordset.map((row) => ({
       id: Number(row.id),
@@ -234,7 +238,7 @@ function normalizeEmployeePayload(payload = {}) {
 }
 
 export async function createEmployee(payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'employee_create'))assertMelisaWriteEnabled();
   const employee = normalizeEmployeePayload(payload);
   const loginUsername = normalizeLoginUsername(payload.loginUsername);
   const loginPassword = normalizeLoginPassword(payload.loginPassword);
@@ -256,6 +260,7 @@ export async function createEmployee(payload = {}, actor = null) {
 
   await transaction.begin();
   try {
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'employee_create',{...employee,loginUsername,loginPassword},null);
     let linkedUserId = employee.userId;
     if (loginUsername) {
       const roleResult = await new sqlDriver.Request(transaction)
@@ -272,13 +277,15 @@ export async function createEmployee(payload = {}, actor = null) {
         .input('loginRoleId', sql.BigInt, Number(terminalRole.id))
         .input('loginActorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
         .query(`
+          DECLARE @createdUser TABLE(id bigint);
           INSERT INTO dbo.users (
             username, password_hash, display_name, role_id, is_active, created_by, updated_by
           )
-          OUTPUT INSERTED.id
+          OUTPUT INSERTED.id INTO @createdUser(id)
           VALUES (
             @loginUsername, @loginPasswordHash, @loginDisplayName, @loginRoleId, 1, @loginActorId, @loginActorId
           );
+          SELECT id FROM @createdUser;
         `);
       linkedUserId = Number(userResult.recordset[0].id);
       await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -309,17 +316,19 @@ export async function createEmployee(payload = {}, actor = null) {
       .input('isActive', sql.Bit, employee.isActive)
       .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @createdEmployee TABLE(id bigint);
         INSERT INTO dbo.employees (
           employee_code, full_name, phone, department, job_title, user_id,
           ${restrictionSchemaReady ? 'can_terminal_sale, can_change_sale_price, max_sale_discount_percent,' : ''}
           is_active, created_by, updated_by
         )
-        OUTPUT INSERTED.id
+        OUTPUT INSERTED.id INTO @createdEmployee(id)
         VALUES (
           @employeeCode, @fullName, @phone, @department, @jobTitle, @userId,
           ${restrictionSchemaReady ? '@canTerminalSale, @canChangeSalePrice, @maxSaleDiscountPercent,' : ''}
           @isActive, @actorId, @actorId
         );
+        SELECT id FROM @createdEmployee;
       `);
     const employeeId = Number(result.recordset[0].id);
     await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -329,6 +338,7 @@ export async function createEmployee(payload = {}, actor = null) {
       afterSnapshot: { ...employee, userId: linkedUserId, loginAccountCreated: Boolean(loginUsername) },
       actor,
     });
+    await finish();
     await transaction.commit();
     return getPersonnelOverview();
   } catch (error) {
@@ -341,7 +351,7 @@ export async function createEmployee(payload = {}, actor = null) {
 }
 
 export async function updateEmployee(employeeId, payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'employee_update'))assertMelisaWriteEnabled();
   const id = Number(employeeId);
   if (!Number.isInteger(id) || id < 1) {
     throw serviceError('PERSONNEL_ID_INVALID', 'Employee id is invalid');
@@ -355,6 +365,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
 
   await transaction.begin();
   try {
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'employee_update',employee,id);
     const beforeResult = await new sqlDriver.Request(transaction)
       .input('beforeId', sql.BigInt, id)
       .query('SELECT TOP (1) * FROM dbo.employees WHERE id = @beforeId;');
@@ -400,6 +411,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
       afterSnapshot: employee,
       actor,
     });
+    await finish();
     await transaction.commit();
     return getPersonnelOverview();
   } catch (error) {
