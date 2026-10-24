@@ -1,3 +1,7 @@
+## 24 Ekim 16:16 — B5 ilk-hata/rollback teknik alt teslimi kurulu
+
+API83e8/3444dosya/06D1 paketi16:10:39'da yalnız4194'e kuruldu; frontend64f/native035/C1metadata/CRMacb2/21 diğer dinleyici korundu.17 hedefli test ve exact6CI geçti. Kontrollü gerçekSQL backendTHROW/autoabort ve normalrollback ikiPASS/commit0/intent0/account0; normalAPI/GUI create-fault kabulü değildir. Aynı mevcut kişiyle normal ekran/kısa yenileme ve53veri koruması doğrulandı. İlk çift-yol hatalı kurulum geri döndü; yanlış guard teşhisi geri alındı, ayrıV2 geçti. Username-/underscore ayrı açık, B5 kısmi; E1/E2/Windows kabulleri ve49/25/17/74 aynı. [STATUS](STATUS.md).
+
 ## 24 Ekim 15:38 — B5 native bağlam beklemesi azaltıldı; genel kabul kısmi
 
 Aynı normal sentetik kişiyle satış19.246→4.652/2.873ms, mal kabul19.774→2.738/2.601ms. Bunlar API süreleri; bir saniye altı veya insan PASS değildir. Mevcut yeşil tarayıcıda giriş/satış/tam yenileme/mal kabul/Yenile doğrulandı, ticari işlem0. c1a15d4e yalnız native metadata paketi15:30'da kurulu; API/web64f/native035/CRMacb2/37dinleyici aynı, restart0. Üç gerçek rollback/ret provası,53 veri koruması ve199ms ikinci-etkisiz replay geçti; exact altı CI SUCCESS. 2,6–4,7s maliyet, username/ilk-hata, uzun oturum/gerçek kişi/Android/insan kabulü açık. B5 ve özgün sayaçlar değişmedi. [STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-24-b5-normal-access.json).

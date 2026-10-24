@@ -1,3 +1,7 @@
+## 24 Ekim 16:16 — B5 hesap hata/rollback alt parçası teslim edildi; sayaç aynı
+
+Normal create catch ilk hatayı ve cleanup hatasını ayrı korur;17 hedefli test/2 kontrollü gerçekSQL backendfault kanıtı/6exactCI. API83e8 gerçek kurulu, frontend64f/C1metadata/CRM aynı. Normal mevcut kişi okuması/kısa yenileme/53koruma geçti; yeni hesap veya ticari işlem0. Bu, normalAPI/GUI create-fault veya insan kabulü değildir. B5 teknik username tire/alt çizgi sözleşmesi ayrı açık, gerçek kişi/atama kısmi; E1/E2/Windows kabulü ayrıca BEKLİYOR.49 ERP/25 CRM/17 başlık/74 yaprak aynı. [STATUS](STATUS.md).
+
 ## 24 Ekim 15:38 — Mevcut B5 teknik alt teslimi; bitiş sayacı aynı
 
 Native metadata c1a15d4e kuruldu; aynı personelin satış/mal kabul normal API okuması19–20s'den2,6–4,7s'ye indi. Aynı yeşil ekranlarda normal giriş, satış tam yenileme ve mal kabul yenileme doğrulandı. Kaynak9 test/3 gerçek rollback-ret probası/exact6CI;53 iş özeti, eski roller/mühürler,37 dinleyici ve API/web64f/native035/CRMacb2 aynı. Restart/ticari işlem0; tekrar199ms/ikinci etki0. Hız hâlâ bir saniye altı değil. Uzun oturum sona erdi ve normal yeniden giriş gerekti; bunu kalıcı oturum kabulü sayma. B5 teknik kişi/atama ve native karakter/ilk-hata açık; fiziksel cihaz ve insan kabulü ayrı E1/E2/Windows kapsamındadır. Yeni yaprak/Goal/PASS yok;49 ERP/25 CRM/17 başlık/74 yaprak korunur. [STATUS](STATUS.md).
