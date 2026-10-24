@@ -39,7 +39,7 @@ jobs:
       - name: Current shared protection and immutable failed-run binding
         run: node --test scripts/canonical/p03-pr54-shared-protected-batch.test.mjs scripts/canonical/p03-pr54-current-pin-payload.test.mjs scripts/canonical/p03-pr54-current-b007-precut-d0-continuation.test.mjs
       - name: Clean backup preflight guards with offline PowerShell fixtures
-        run: node --test scripts/canonical/goal6-restore-contract.test.mjs
+        run: node --test scripts/canonical/goal6-restore-contract.test.mjs scripts/canonical/goal7-clean-backup.test.mjs
   quality-build-test:
     name: quality-build-test
     runs-on: ubuntu-latest
