@@ -130,7 +130,7 @@ export async function getUserById(userId) {
 
   const row = userResult.recordset?.[0];
 
-  if (!row || !row.is_active || (row.username==='erp-semih-test-20261012'&&!row.role_is_active)) {
+  if (!row || !row.is_active || ((getCleanContext()||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
     throw makeAuthError('AUTH_USER_INACTIVE', 'User is inactive or not found', 401);
   }
 
@@ -172,7 +172,7 @@ export async function authenticateUserCredentials({ username, password }) {
     ? await bcrypt.compare(normalizedPassword, row.password_hash)
     : false;
 
-  if (!row || !row.is_active || !passwordOk || (row.username==='erp-semih-test-20261012'&&!row.role_is_active)) {
+  if (!row || !row.is_active || !passwordOk || ((getCleanContext()||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
     throw makeAuthError('AUTH_INVALID_CREDENTIALS', 'Username or password is invalid', 401);
   }
 
@@ -473,7 +473,7 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
   };
 }
 
-function normalTestIdentityOptions(){return {copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
+function normalTestIdentityOptions(){return getCleanContext()?{clean:assertRegisteredCleanContext()}:{copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
 function normalTestStore(){return configuredNormalTestRefreshStore(normalTestIdentityOptions());}
 export async function confirmProtectedNormalSession(accessToken,refreshToken){
  const payload=verifyAccessToken(accessToken),store=normalTestStore();

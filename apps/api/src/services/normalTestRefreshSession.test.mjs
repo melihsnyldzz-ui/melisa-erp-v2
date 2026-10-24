@@ -1,7 +1,19 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
-import{bindNormalTestFingerprint,createNormalTestRefreshStore,configuredNormalTestRefreshStore}from'./normalTestRefreshSession.mjs';
+import{bindNormalTestFingerprint,createNormalTestRefreshStore,configuredNormalTestRefreshStore,normalTestRefreshTarget,cleanProtectedSessionReadAllowed}from'./normalTestRefreshSession.mjs';
 const user=(pw='hash',role='personel')=>bindNormalTestFingerprint({id:15,username:'test',role:{id:4,code:role},permissions:['sales.view']},{password_hash:pw});
 function fixture(t){const dir=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-auth-test-'));t.after(()=>fs.rmSync(dir,{recursive:true,force:true}));const file=path.join(dir,'grants.json');let now=1000;return{file,store:createNormalTestRefreshStore({file,now:()=>now,ttlMs:1000}),expire:()=>now=2001};}
+
+test('clean protected refresh target is optional and pinned to the registered clean API namespace',()=>{
+ const clean={environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',database:'MELISA_ERP_CLEAN_TEST_20261022',synthetic:true,actualT1:false,externalOperations:false};
+ const config={MELISA_TEST_PROTECTED_SESSION_PATH:'C:\\Sirket\\ERP\\clean\\20261022\\runtime\\protected-erp-sessions\\grants.json',MELISA_CLEAN_TEST:'20261022',SQL_DATABASE:clean.database,API_PORT:'4194'};
+ assert.equal(normalTestRefreshTarget({clean,config}),config.MELISA_TEST_PROTECTED_SESSION_PATH);assert.equal(normalTestRefreshTarget({clean,config:{}}),null);
+ for(const edit of [{environmentId:'other'},{database:'LIVE'},{synthetic:false},{actualT1:true},{externalOperations:true}])assert.throws(()=>normalTestRefreshTarget({clean:{...clean,...edit},config}));
+ for(const edit of [{SQL_DATABASE:'OTHER'},{API_PORT:'4196'},{MELISA_CLEAN_TEST:'old'},{MELISA_TEST_PROTECTED_SESSION_PATH:'C:\\Sirket\\ERP\\runtime\\test.json'},{MELISA_TEST_PROTECTED_SESSION_PATH:'C:\\Sirket\\ERP\\clean\\20261022\\runtime\\..\\runtime\\protected-erp-sessions\\grants.json'}])assert.throws(()=>normalTestRefreshTarget({clean,config:{...config,...edit}}));
+ assert.throws(()=>normalTestRefreshTarget({clean,copy:{copyId:'other'},config}));
+ const req={method:'POST',path:'/api/auth/session-confirm',query:{}};assert.equal(cleanProtectedSessionReadAllowed(req,{clean,config}),true);
+ for(const patch of [{method:'GET'},{path:'/api/auth/session-confirm/other'},{query:{userId:'other'}}])assert.equal(cleanProtectedSessionReadAllowed({...req,...patch},{clean,config}),false);
+ assert.equal(cleanProtectedSessionReadAllowed(req,{clean,config:{}}),false);assert.equal(cleanProtectedSessionReadAllowed(req,{clean,config:{...config,API_PORT:'4196'}}),false);
+});
 test('verified normal identity survives store reopening without persisting secrets',t=>{const{file,store}=fixture(t),u=user(),g=store.issue(u);const reopened=createNormalTestRefreshStore({file,now:()=>1001});assert.equal(reopened.userId(g.refreshToken),'15');assert.equal(reopened.verify(g.sid,u),true);assert(!fs.readFileSync(file,'utf8').includes(g.refreshToken));assert(!JSON.stringify(u).includes('hash'));});
 test('refresh rotation rejects replay and logout revokes access and refresh',t=>{const{store}=fixture(t),u=user(),g=store.issue(u),r=store.rotate(g.refreshToken,u);assert.notEqual(r.refreshToken,g.refreshToken);assert.throws(()=>store.userId(g.refreshToken));assert.equal(store.verify(r.sid,u),true);store.revoke(r.refreshToken);assert.throws(()=>store.verify(r.sid,u));assert.throws(()=>store.rotate(r.refreshToken,u));});
 test('logout with a token overtaken by refresh still revokes the entire grant',t=>{const{store}=fixture(t),u=user(),g=store.issue(u),r=store.rotate(g.refreshToken,u);store.revoke(g.refreshToken);assert.throws(()=>store.verify(r.sid,u));assert.throws(()=>store.rotate(r.refreshToken,u));assert.throws(()=>store.userId(g.refreshToken));});

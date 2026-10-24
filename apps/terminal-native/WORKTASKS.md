@@ -2,6 +2,8 @@
 
 ## 24 Ekim — E1 temiz TEST kaynak profili; kurulum değildir
 
+**Sonraki kaynak halkası:** ERP'nin mevcut normal refresh store'u exact clean profil ve mevcut kimliklerle18hedef testte uyarlandı; runtime state/ACL/API-web kurulumu henüz yapılmadı. Çalışan eski web'e yeni APK'yı bağlayarak korumalı oturum kabulü verilmez. Pasif worktestRelease APK/lint derlemesi ve v2imza doğrulandı;45.326.137bayt/SHA22AB8FDDF1276B0CB3A4BF0C2A1F3C925C0380821D41B9F1B7692E12FA2935F6. Cihaza kurulmadı; aynı kişi CRM/koli/fiziksel kullanım ayrı bekler. Aşağıdaki eski store sınırı, uyarlama öncesi kaynak inceleme bulgusudur.
+
 `-PworkOrigin=http://192.168.1.46:5244` açık build seçeneği temiz ERP5244 / CRM62800 çiftini seçer. LAN API okumaları mevcut ERP web proxy'sinden geçer;4194/4196 veya CRM iç servisleri LAN'a açılmaz.127.0.0.1:5244 yalnız geliştirme seçeneğidir ve yerel4194 kullanır. Eski5234/62700 profili ve varsayılan build seçimi korunur; eski porttan yeni profile otomatik geçiş veya vault taşıma yapılmaz. Yeni profil eski home-summary/personel-bootstrap yolunu açmaz.
 
 Android korumalı ERP/CRM kasaları tam origin ile ayrı anahtar kullanır; önceki kurulum kasası devralınmaz. Yeni web eşlemesi5244→62800 ve Android bridge allowlist'i aynı sabit çifti tanır. Desteklenmeyen native origin veya eksik bridge tarayıcı deposuna düşmez. Parola/token URL'ye, cihazlar arasında veya ERP ile CRM arasında kopyalanmaz; normal sunucu auth/refresh/revoke ve mevcut roller yetkilidir.

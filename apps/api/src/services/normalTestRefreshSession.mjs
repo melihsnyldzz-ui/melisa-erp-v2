@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import {CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
 export const normalTestFingerprint=Symbol('normal-test-session-fingerprint');
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const reject=()=>Object.assign(new Error('Session is invalid or revoked'),{code:'AUTH_REFRESH_INVALID',statusCode:401});
@@ -24,9 +25,22 @@ export function createNormalTestRefreshStore({file,now=Date.now,random=()=>crypt
   revoke(t){return mutate(d=>{const h=digest(t),g=d.grants.find(g=>g.tokenHash===h||g.revocationHashes?.includes(h));if(g)g.revoked=true;return{loggedOut:true};});},
  };
 }
-export function configuredNormalTestRefreshStore({copy,config=process.env}={}){
+export function normalTestRefreshTarget({copy,clean,config=process.env}={}){
  const file=config.MELISA_TEST_PROTECTED_SESSION_PATH;if(!file)return null;
+ if(clean!==undefined){
+  const expected='C:\\Sirket\\ERP\\clean\\20261022\\runtime\\protected-erp-sessions\\grants.json';
+  if(copy||clean?.environment!=='CLEAN_SYNTHETIC_TEST'||clean.environmentId!==CLEAN_ENVIRONMENT_ID||clean.database!==CLEAN_DATABASE||clean.synthetic!==true||clean.actualT1!==false||clean.externalOperations!==false||config.MELISA_CLEAN_TEST!=='20261022'||config.SQL_DATABASE!==CLEAN_DATABASE||String(config.API_PORT)!=='4194'||typeof file!=='string'||path.win32.resolve(file)!==expected||file!==expected)throw Error('AUTH_TEST_SESSION_TARGET');
+  return file;
+ }
  const root=path.win32.resolve('C:/Sirket/ERP/runtime'),relative=path.win32.relative(root,file);
  if(copy?.copyId!=='e16b70f0-4057-428b-9abc-6bbcaf35fe82'||copy.target?.database!=='MELISA_ERP_CRM_SHARED_TEST_20261009_02'||copy.target?.server!=='Semih\\MELISADEV'||!path.win32.isAbsolute(file)||!relative||relative.startsWith('..')||path.win32.isAbsolute(relative)||path.win32.extname(file)!=='.json')throw Error('AUTH_TEST_SESSION_TARGET');
- return createNormalTestRefreshStore({file});
+ return file;
+}
+export function configuredNormalTestRefreshStore(options={}){
+ const file=normalTestRefreshTarget(options);
+ return file?createNormalTestRefreshStore({file}):null;
+}
+export function cleanProtectedSessionReadAllowed(req,options={}){
+ if(req?.method!=='POST'||req.path!=='/api/auth/session-confirm'||req.query&&Object.keys(req.query).length||!options.clean)return false;
+ try{return normalTestRefreshTarget(options)!==null;}catch{return false;}
 }

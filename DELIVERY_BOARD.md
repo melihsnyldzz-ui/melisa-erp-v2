@@ -1,3 +1,9 @@
+## 24 Ekim — E1 mevcut normal refresh motoru kaynak/test hazır; B5 sunum gerçekten kurulu
+
+Clean exact kaynak/API/state yolu ve mevcut10kimlik/rol+FP ile normal refresh uyarlaması18hedef testle hazır; yeni hesap/rol/endpoint/bypass yok. Henüz ERPweb/API'ye kurulmadı, state ACL ve normal kalıcılık sonucu bekliyor. Native pasif APK imza/lint/build ile üretildi; cihazda çalışır teslim değil. B5CRM635 dar sunumu04:19TR gerçekten kuruldu/normalyenileme geçti;16listener/rehber/53SQLaynı. CRM E1source2c bu kurulumda yok. B5 gerçek kişi bağı, E1 aynı kişi/koli/cihaz ve insan kabulü açık. C6metadata/A5rehber ve Dmodel sonuçları ayrı korunur. [STATUS](STATUS.md).
+
+### Önceki D1/D2 kaynak teslimi — korundu
+
 ## 24 Ekim — D1/D2 dar biçim dönüşümü kaynak/test hazır
 
 Mevcut history core legacy belge/satır adapteri ve açık manifest scope'u7hedef testle doğrulandı; aynıID/şirket/dönem/aile ayrımı, raw ondalık/NULL/iptal ve PREVIEW ikinci-etkisiz plan korunur. Mevcut API/default2026 değişmez; gerçek arşiv/kaynak metadata/yükleyici olmadan aktarım veya çok dönem ekranı çalışır sayılmaz. D açık; yeni Vega/SQL/veri işlemi yok. E1 source31web+15Kotlin, C6 önkontrol ve A5 rehber teslimi korunur; insan/sayaç aynı. [STATUS](STATUS.md).
