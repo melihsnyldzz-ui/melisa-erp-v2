@@ -47,3 +47,18 @@ test('schema prerequisites are inside the existing rollback transaction after pr
  assert.match(sql,/GRANT SELECT ON dbo.employees TO \[melisa_clean_test_app_20261022\]/);
  assert.match(sql,/COL_LENGTH\(N'dbo.employees',N'can_terminal_sale'\) IS NULL/);
 });
+test('schema LOWER inputs have explicit ASCII case mapping; Turkish I does not reject the canonical filter/default or accept a different schema',()=>{
+ const sql=buildCleanPersonnelSchemaSql(),normalize=(s,locale)=>s.replace(/[()[\] ]/g,'').toLocaleLowerCase(locale);
+ // Three sites generate seven concrete checks: index filter, five defaults,
+ // and discount constraint. Collate the LOWER argument, not its result.
+ assert.equal((sql.match(/ COLLATE Latin1_General_100_CI_AS\)=N'/g)??[]).length,7);
+ assert.equal((sql.match(/LOWER\(/g)??[]).length,7);
+ const checks=[...sql.matchAll(/LOWER\((.+?)\)=N'([^']*)'/g)];
+ assert.equal(checks.length,7);
+ for(const [,argument]of checks)assert.match(argument,/ COLLATE Latin1_General_100_CI_AS$/);
+ // Offline case-mapping fixture, not a SQL Server execution result.
+ const cases=[['([user_id] IS NOT NULL)','user_idisnotnull'],['(SYSUTCDATETIME())','sysutcdatetime'],['([max_sale_discount_percent]>=(0) AND [max_sale_discount_percent]<=(100))','max_sale_discount_percent>=0andmax_sale_discount_percent<=100']];
+ for(const [definition,expected]of cases)assert.equal(normalize(definition,'en-US'),expected);
+ assert.notEqual(normalize(cases[0][0],'tr-TR'),cases[0][1]);assert.notEqual(normalize(cases[1][0],'tr-TR'),cases[1][1]);
+ for(const [definition,expected]of [['[user_id] IS NULL','user_idisnotnull'],['SYSDATETIME()','sysutcdatetime'],['max_sale_discount_percent>=0 AND max_sale_discount_percent<=1000',cases[2][1]],['([user_id] IS NOT NULL) OR 1=1','user_idisnotnull']])assert.notEqual(normalize(definition,'en-US'),expected);
+});

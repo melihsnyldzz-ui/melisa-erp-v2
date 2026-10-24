@@ -149,3 +149,28 @@ sıfır sözdizimi hatası. `c4d4eb81` kaynak dilimindeki 18 stored definition v
 Sonraki uygulama yine yalnız ERP sahibindedir: düzeltilmiş exact kaynak/CI ile
 aynı temiz hedefte bir rollback-probe; ancak gerçek SQL kabulü gelirse kendi
 normal yönetim kurulum ve ekran denemesi. Bu çocuk görev SQL çalıştırmadı.
+
+## 24 Ekim 11.49 TR: Türkçe kolasyonda şema karşılaştırması
+
+ERP sahibinin `b98b6620` ile yeni rollback-probe'u satır152'de
+`B5_MANAGEMENT_PERSONNEL_SCHEMA_INCOMPATIBLE` verdi. Sahibin salt okunur
+ayrımı, filtre tanımındaki `IS` sözcüğünün Türkçe kolasyonda `LOWER` ile
+`ıs` olmasına bağlandı. Aynı risk `SYSUTCDATETIME()` default tanımında da
+vardır. Bu başarısız gerçek makbuz korunur; aynı probe tekrar edilmez.
+Sahip, rollback sonrası tablo/sütun/indeks/FK/modül/izin ve 53 veri özetinin
+eşliğini, hesap ve yeniden başlatma sayısının sıfır olduğunu bildirdi.
+
+Dar kaynak düzeltmesi, filtre/default/CHECK tanımlarının küçük harfe çevrilen
+girdisine açık `Latin1_General_100_CI_AS` kolasyonu koyar. Kolasyon `LOWER`
+sonucuna sonradan eklenmez. Yedi somut karşılaştırmanın beklenen tanımı ve
+yanlış şemayı reddetmesi değişmedi; veri tabanının kolasyonu değiştirilmedi.
+
+Yedi hedefli kaynak kontrolü PASS: doğru filtre ve UTC default için Türkçe
+`I` farkını gösteren offline fixture; yanlış IS NULL, yerel saat default'u,
+1000 üst sınırı ve ek OR koşulu retleri. Bu fixture gerçek SQL Server sonucu
+değildir. ScriptDom ile aynı 32 kaynak girdisi sözdizimi açısından geçti.
+18 stored definition ve öncül hash byte'ları değişmedi; PR59 `095b8ce8`
+kişisel iş tesliminin kabulünü veya E1 dosyalarını yeniden açmadık.
+
+Gerçek şema/transaction kabulü hâlâ ERP sahibinin yeni exact commit ile
+yapacağı rollback-probe'a bağlıdır. Kaynak CI sonucu kurulum kanıtı değildir.
