@@ -1,3 +1,15 @@
+## 25 Ekim01:41 — B5 altı hesap için yeni bağlam da reddedildi; sıfır oluşturma doğrulandı
+
+Altı ayrı sentetik TEST hesabı için güncel normal yönetim önkontrolü altısında da kullanıcı ve personelin eksik olduğunu, çakışma olmadığını doğruladı. Mevcut 15 kullanıcı/4 personel, eski rol ve üyelikler, 53 katkı sözleşmesi ve fiş/koli için yeni önce-görüntüler alındı. Koordinatör konuşmasındaki doğrudan insan mesajı “Sen hepsini kordine et ve çalıştır”, önceki somut altı-hesap engeli ve eski ret açıkça belirtilerek aynı normal araç incelemesine sunuldu. Bu mesaj özel onay diye yeniden yazılmadı.
+
+**Otomatik onay incelemesi reddetti:** genel devam ifadesi, altı kalıcı TEST kullanıcı/personel çifti ve korumalı giriş kaydı oluşturmak için yeterli açık özel onay sayılmadı. CreateProcess öncesi ret; uygulama süreci başlamadı. Başka araç/rota, SQL yazması veya dolaylı yürütme denenmedi. Salt okunur normal geri okuma altı kimliğin de hâlâ eksik olduğunu doğruladı: yeni kullanıcı0, personel0, DPAPI teslim dosyası0, ticari/CRM yazısı0, restart0. Eski hesaplar/roller, 53 katkı, fiş/koli ve korumalı dosyalar önce–sonra byte-eş. Yalnız kendi normal yönetim giriş/çıkış journal etkisi ayrı.
+
+**Gereken tek karar:** Mehmet, Rüstem, İsmail, Yaman, Veronica ve Ahmet görevleri için yalnız clean TEST’te altı ayrı kişisel SENTETİK hesabın mevcut rol30 ile açılmasına açık, özgül onay. Yalnız Mehmet için koli yetkisi; hepsinde fiyat değiştirme kapalı ve iskonto0. Gerçek çalışan kimliği veya CRM ataması iddia edilmiyor. Mevcut Müdür hesabı onayı bu altılıya genişletilmedi. Aynı genel mesajla tekrar deneme ve yeni aynı soru üretimi yok; bu özgül onay olmadan oluşturma bekler.10021 pasif kontrolü ve özel envanter aktarımı ayrı bekler.
+
+Ana Kasa/Tahsilat okuma teslimi b89 / B5FINANCEPROFILE ve belge7529ac3d korundu; ek hareket özeti hâlâ açık. Kabul edilmiş sayım/koli/CRM kanıtları yeniden çalıştırılmadı. Yeni uygulama kodu, paket, kurulum veya CI yok. İnsan E2/özgün UA ve 49/25/17/74 sayaçları aynı.
+
+[Makine kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
 ## 25 Ekim01:30 — B5 ana Kasa/Tahsilat okuması doğrulandı; ek hareket özeti açık
 
 **Ajan normal tarayıcıda doğruladı:** sentetik muhasebe hesabı 10024 / personel 4 / mevcut rol 32 ile normal giriş yapıldı. Kasa durumu, ayrı TRY/USD/EUR hesapları ve eski hareketler görüldü; tam yenilemede aynı kimlik ve sonuç korundu. Tahsilat listesinde dört mevcut fiş, seçilen fiş 1 ve eski tahsilat geçmişi görüldü; tam yenilemede seçim ve geçmiş korundu. Tutar veya hesap girilmedi; önizleme, kaydetme, iptal ve onay yapılmadı. Bu yalnız ana finans okuma yollarının ajan kontrolüdür; insan kabulü değildir.

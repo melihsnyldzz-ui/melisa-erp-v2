@@ -2555,7 +2555,7 @@
       "observedAt": "2026-10-25T00:52:34.4483529+03:00"
     },
     "currentStatus": "CORE_FINANCE_READS_AGENT_VERIFIED; optional multi-party movement panel unsupported",
-    "next": "Separate six-account normal review with new direct human continuation; no automatic approval",
+    "next": "Six synthetic user/employee pairs blocked pending specific direct approval; no general-context retry",
     "roleOrPermissionWidening": false,
     "otherSixAccountsCreated": 0,
     "fullB5Completed": false,
@@ -2872,5 +2872,231 @@
     "firstElapsed236msNotUsed": true,
     "humanAcceptance": "PENDING",
     "fullB5Completed": false
+  },
+  "sixPersonalContextReview": {
+    "directNewContext": {
+      "messageId": "01a16fe7-f715-7861-aafd-8e925d7bd88e",
+      "actualUserText": "Sen hepsini kordine et ve çalıştır",
+      "notAutomaticSpecificApproval": true
+    },
+    "preflight": {
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "observedAt": "2026-10-25T01:39:45.5899335+03:00",
+      "phase": "Preflight",
+      "synthetic": true,
+      "mutationAttempted": false,
+      "stage": "inspect exact independent synthetic identity: ahmet",
+      "calls": [
+        {
+          "method": "POST",
+          "success": true,
+          "path": "/api/auth/login",
+          "elapsedMs": 274
+        },
+        {
+          "method": "GET",
+          "success": true,
+          "path": "/api/auth-admin/overview",
+          "elapsedMs": 680
+        },
+        {
+          "method": "GET",
+          "success": true,
+          "path": "/api/personnel/overview",
+          "elapsedMs": 200
+        }
+      ],
+      "status": "READ_ONLY_READY",
+      "tradeWrites": 0,
+      "rows": [
+        {
+          "plannedRole": 30,
+          "key": "mehmet",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": true
+        },
+        {
+          "plannedRole": 30,
+          "key": "rustem",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "ismail",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "yaman",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "veronica",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "ahmet",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        }
+      ],
+      "metadataDdl": 0,
+      "roleId": 30,
+      "crmWrites": 0,
+      "restart": 0,
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "realPersonIdentityClaimed": false,
+      "ownSetupLogoutConfirmed": true
+    },
+    "rejection": {
+      "crmWrites": 0,
+      "missingBoth": 6,
+      "reviewReason": "General continuation is not explicit approval for six persistent synthetic user/employee pairs and DPAPI credentials",
+      "protectedFilesSame": true,
+      "newUsers": 0,
+      "priorRejectionPreserved": true,
+      "restart": 0,
+      "status": "AUTO_REVIEW_REJECTED_BEFORE_PROCESS_START",
+      "metadataDdl": 0,
+      "tradeWrites": 0,
+      "accountPasswordDeliveriesCreated": 0,
+      "processStarted": false,
+      "newContextActualUserText": "Sen hepsini kordine et ve çalıştır",
+      "newEmployees": 0,
+      "humanAcceptance": "PENDING",
+      "newContextMessageId": "01a16fe7-f715-7861-aafd-8e925d7bd88e",
+      "observedAt": "2026-10-25T01:40:58.3967765+03:00",
+      "protectedScopesSame": {
+        "old-accounts": true,
+        "own-fixture": true,
+        "existing-contributions": true
+      },
+      "workaroundAttempted": false
+    },
+    "readback": {
+      "roleId": 30,
+      "synthetic": true,
+      "tradeWrites": 0,
+      "calls": [
+        {
+          "success": true,
+          "method": "POST",
+          "path": "/api/auth/login",
+          "elapsedMs": 249
+        },
+        {
+          "success": true,
+          "method": "GET",
+          "path": "/api/auth-admin/overview",
+          "elapsedMs": 716
+        },
+        {
+          "success": true,
+          "method": "GET",
+          "path": "/api/personnel/overview",
+          "elapsedMs": 189
+        }
+      ],
+      "phase": "Readback",
+      "restart": 0,
+      "metadataDdl": 0,
+      "observedAt": "2026-10-25T01:40:48.6199402+03:00",
+      "realPersonIdentityClaimed": false,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "crmWrites": 0,
+      "status": "MISSING_PAIRS_NOT_WRITTEN",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "rows": [
+        {
+          "plannedSale": true,
+          "plannedPacking": true,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "mehmet"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "rustem"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "ismail"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "yaman"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "veronica"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "ahmet"
+        }
+      ],
+      "stage": "inspect exact independent synthetic identity: ahmet",
+      "mutationAttempted": false,
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "ownSetupLogoutConfirmed": true
+    },
+    "preservation": {
+      "phase": "After",
+      "oldOwnInvoiceEffectsComplete": true,
+      "oldUsersIdCeiling": 10024,
+      "auditRowScope": "Not included: normal account creation appends expected audit entries",
+      "oldMemberUserCeiling": 10024,
+      "fullRolesPermissionsAndOldSeals": true,
+      "contributionContracts": 53,
+      "observedAt": "2026-10-25T01:40:49.1675202+03:00",
+      "oldEmployeeIdCeiling": 4,
+      "comparisons": {
+        "old-accounts": true,
+        "own-fixture": true,
+        "existing-contributions": true
+      },
+      "wholeDatabaseClaimed": false,
+      "status": "EXISTING_DATA_AND_ROLES_PRESERVED"
+    },
+    "oldRejectionPreserved": true,
+    "otherRouteAttempted": false,
+    "accountCreationPendingSpecificHumanApproval": true,
+    "scope": {
+      "roleId": 30,
+      "packingOnly": "Mehmet synthetic duty",
+      "priceEdit": false,
+      "maxDiscount": 0,
+      "realIdentityClaimed": false,
+      "crmMappingCreated": false
+    },
+    "humanAcceptance": "PENDING"
   }
 }
