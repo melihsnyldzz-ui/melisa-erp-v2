@@ -77,3 +77,12 @@ test('EXECUTE AS OWNER also proves the actual object/schema owner and preserves 
  assert.match(sql,/COALESCE\(before_owner_principal_id,before_schema_owner_principal_id\)/);
  assert.doesNotMatch(sql,/ALTER AUTHORIZATION|sp_changedbowner|CREATE USER|ALTER ROLE/);
 });
+test('new packing column check compiles only in a post-DDL dynamic batch in the same transaction',()=>{
+ const sql=compiler.buildCleanReadyExpressionRepairSql({packingUpgrade:true}),outer=sql.replace(/N?'(?:''|[^'])*'/g,"''");
+ assert.doesNotMatch(outer,/WHERE can_terminal_packing<>0/);
+ const check="EXEC(N'IF EXISTS(SELECT 1 FROM dbo.employees WHERE can_terminal_packing<>0) THROW 51980,''CLEAN_PERSONNEL_PACKING_NOT_READY'',1;');";
+ assert.ok(sql.includes(check));assert.ok(sql.indexOf(check)>sql.indexOf('ADD can_terminal_packing bit NOT NULL'));
+ assert.match(sql,/@packingEmployeesBefore/);assert.match(sql,/IF @@TRANCOUNT>0 ROLLBACK;THROW/);
+ assert.equal((outer.match(/BEGIN TRANSACTION/g)||[]).length,1);assert.doesNotMatch(outer,/^\s*GO\s*$/m);
+ assert.equal(hash(JSON.stringify(compiler.buildCleanPersonnelPackingUpgradeDefinitions().definitions)),'7b43aeb8140ac8427789246600f3aba3a60dc771d7f3e9af5533aa8acde4c0d2');
+});

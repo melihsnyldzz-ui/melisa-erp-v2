@@ -381,7 +381,8 @@ function buildCleanPersonnelPackingUpgradeSql({probe}){
  ${Object.entries(definitions).map(([n,b])=>`EXEC(${Q(b.replace(/^CREATE PROCEDURE/,before[n]?'ALTER PROCEDURE':'CREATE PROCEDURE'))});`).join('\n')}
  DENY INSERT,UPDATE,DELETE ON dbo.${manifest} TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.${guard} TO [${CLEAN_LOGIN}];
  ${afterProof} EXEC dbo.${guard};EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
- IF ISNULL(@packingEmployeesBefore,N'')<>ISNULL(${packingEmployeeHash},N'') OR ISNULL(@packingRolesBefore,N'')<>ISNULL(${packingRoleHash},N'') OR ISNULL(@packingPermissionsBefore,N'')<>ISNULL(${packingPermissionHash},N'') OR ISNULL(@packingOldSealsBefore,N'')<>ISNULL(${packingOldSealHash},N'') OR EXISTS(SELECT 1 FROM dbo.employees WHERE can_terminal_packing<>0) ${packingUpgradeBad}
+ IF ISNULL(@packingEmployeesBefore,N'')<>ISNULL(${packingEmployeeHash},N'') OR ISNULL(@packingRolesBefore,N'')<>ISNULL(${packingRoleHash},N'') OR ISNULL(@packingPermissionsBefore,N'')<>ISNULL(${packingPermissionHash},N'') OR ISNULL(@packingOldSealsBefore,N'')<>ISNULL(${packingOldSealHash},N'') ${packingUpgradeBad}
+ EXEC(${Q(`IF EXISTS(SELECT 1 FROM dbo.employees WHERE can_terminal_packing<>0) ${packingUpgradeBad}`)});
  ${probe?"ROLLBACK;SELECT N'PERSONNEL_PACKING_UPGRADE_PROBE_ROLLED_BACK' result;":"COMMIT;SELECT N'PERSONNEL_PACKING_UPGRADE_INSTALLED' result;"}
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
