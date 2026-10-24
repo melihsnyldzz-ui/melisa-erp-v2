@@ -1,3 +1,7 @@
+## 24 Ekim — B7 / mevcut C06-C07 teknik kanıtı; insan sonucu değişmedi
+
+Normal clean20261022 / API04a83e53/UI0993a123 içinde yalnız yapay müşteri1 ve tedarikçi1 telefon/şehir/ülke kaydetme, anında maskeli özet, tamreload/reopen ve4kalıcıistek/replay/409 doğrulandı. Bakiye/finans/rol/ticari kayıt değişmedi. Bu ajan teknik denemesidir; gerçek çalışan/kişi/deneme tarihi/işletme sonucu **BEKLİYOR**. Yeni UA ID/PASS/sayaç oluşturulmadı; B6/ERP-UA07 ve diğer özgün kayıtlar aynıdır. Soğuk ilk okuma/perf ve B5 gerçek kişi bağlantısı ayrı kalır. [Teknik kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
 ## 23 Ekim — B3 kişi adı teknik doğrulaması; insan kabulü değişmedi
 
 Mevcut sayım10'da Sayan artık kimlik21'e bağlı Örnek sayım personeli. Normal Semih ekranı, SQL/API ve reload kanıtı var; yeni işlem yok. Teknik B3 düzeltmesi ERP-UA15/16/18/32 veya diğer özgün insan kabulünü PASS yapmaz. Mevcut kişi/tarih/işletme sonuçları ve sayaçlar korunur.

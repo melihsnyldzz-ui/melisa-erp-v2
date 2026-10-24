@@ -1,3 +1,11 @@
+## 24 Ekim — B7 iletişim teknik tamam; kalan B5 normal envanter girişi
+
+B7 normal müşteri/tedarikçi iletişim kaydı, anında maskeli özet ve tamreload/reopen;4kalıcı UUID/replay/recovery/farklıbody409 ve22iştablosu ikinci etkisiz kanıtlandı. API04a83e53/UI0993a123/3407dosya kurulu; exact kaynak CI40042560683 üç gerekli job SUCCESS. B6 tek örnek satış ve B1–B4 sonuçları korunur. Genel gerçek kart/kişi/personel/insan kabulü ve17/74,49/25sayaçları aynı. Soğuk ilk read11,1sn hızlı ilan edilmez; ilk GUI hata/sıcak yenileme sonucu STATUS'ta ayrı kayıtlı.
+
+B5c1saltokunur CRM envanteri kurulu:4aktif/1temsilcisiz/0çakışma/1yapay atama; manager200/personel403/anonim401. Mevcut Ayarlar'dan panel girişinin eksikliği gerçek GUI'de görüldü; CRM dar düzeltmesi aynı işte sürüyor. Gerçek kişi–hesap–temsilci ataması uydurulmaz; insanPENDING. [STATUS](STATUS.md) / [mevcut tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki teslimler — tarihsel
+
 ## 24 Ekim — B6 örnek satış teknik tamam 🟢; insan kabulü 🟡
 
 B6, yalnız mevcut clean20261022 / E662 / synthetic=true / actualT1=false / external=false hedefinde teknik olarak tamamlandı. Semih10018 mevcut rol28 ve36 izniyle normal yeşil ekranda Örnek Mağaza'yı seçti; 0000000000007 barkodu doğru 0007 MELISA ürününü ekledi. **2 ADET ×125,50 TRY =251,00 TRY** taslak10009 / DS-fc0b68bf-b788-4f00-9759-0 olarak kaydedildi ve aynı belge normal ekrandan tamamlandı. Taslak stok/cari etkisi oluşturmadı. Finalize sonrası stok23→21, müşteri1 TRY borcu0→251; native stok hareketi1/net−2 ve müşteri hareketi1/+251, actor10018. Tahsilat yapılmadı, kasa değişmedi.
