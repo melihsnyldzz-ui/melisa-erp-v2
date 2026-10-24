@@ -1,3 +1,8 @@
+## 24 Ekim12:37 — B5 birleşik native proba geçti; yeni aday kurulumu hazırlanıyor
+
+Yeni PR59 uyumunda SQL CASE sınırı Msg125 bulundu; eski kabul edilen ed815 tek başına tekrar açılmadı. Yalnız yeni iki hash fallback COALESCE→ISNULL dar düzeltmesi, önceFAIL/sonra12metadataPASS ve bağımsız kaynakreview0 ile doğrulandı. Birleşik yeni gerçekSQL rollback12:36:48PASS;metadata/grants/eskirole-izinrows/53işözeti aynı, hesap/restart0. Kimlik sayaçlarında rollback'in geri almadığı IDboşlukları kaydedildi, reseed/reset yapılmadı. Privateb5-combined-isnull-metadata-probe.json/SQL1662C2F2; ilkCB2A CASEFAILEDmakbuzu korundu. Son source/paket/exactCI ve tekownerkurulum henüz bekler; kuruluERPf4/native035/CRM acb2aynı. Kaynaklar55etkilenen testPASS, SQLdüzeltmesi12metadatakontrolPASS(kapsamlar toplanmaz). Sıradaki adaybuild/CI→metadata+API/webkurulumu→normal kişisel TEST doğrulamasıdır. İnsan/cihaz/gerçekT1/LIVE yok.
+
+### Önceki birleşik kaynak kaydı — tarihsel
 ## 24 Ekim — B5 birleşik ERP kaynak adayı
 
 PR58ed815, PR59095b8ce, PR60a209337 ve PR619aafb36 hazır kaynakları mevcut owner dalına çatışmasız alındı. Üç Sites yönetim ekranı/modeli gerçek paket yoluna bağlandı; mevcut normal kişisel issuer/fingerprint aynı metadata üyeliği ve taze SQL kimliğiyle çalışır. Eski E1 aile/10örnek/owner politikaları korunur. Oniki etkilenen test dosyasında55kontrol offlineguard ilePASS; API/normaloturum/Sites/SQLkaynak/kişiseliş ve E1route birlikte doğrulandı. Bu kaynak yeni exactCI/pasifpaket/kurulum kabulü değildir.

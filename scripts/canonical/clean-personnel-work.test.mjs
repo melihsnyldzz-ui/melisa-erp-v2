@@ -5,6 +5,16 @@ import {buildCleanPersonnelManagementDefinitions} from './clean-personnel-manage
 import {buildCleanDirectSaleDefinitions} from './clean-direct-sale-sql.mjs';
 import {moduleHash} from './stage4-copy-sql.mjs';
 const bundle=buildCleanPersonnelWorkDefinitions(),d=bundle.definitions;
+test('new predecessor fallback adds no CASE layer above the existing SQL Server readiness chain',()=>{
+ for(const [name,body] of Object.entries(d).filter(([name])=>name.endsWith('_ready')&&bundle.before[name])){
+  assert.match(body,/ISNULL\(JSON_VALUE\(@workPredecessors/,name);
+  assert.doesNotMatch(body,/COALESCE\(JSON_VALUE\(@workPredecessors/,name);
+ }
+ // The new fallback changes neither the immediately preceding sealed bytes
+ // nor the rule that a missing entry uses the actual current module hash.
+ assert.equal(bundle.before.usp_clean_personnel_ready,buildCleanPersonnelManagementDefinitions().definitions.usp_clean_personnel_ready);
+ assert.match(d.usp_clean_store_day_ready,/ISNULL\(JSON_VALUE\(@workPredecessors,N'\$\.'\+\w+\.name\),CONVERT\(char\(64\),HASHBYTES/);
+});
 test('personal actor is a native active member/employee/user/role join, not a user-supplied flag or a sample account rename',()=>{
  for(const name of ['usp_clean_personnel_work_actor','usp_clean_direct_sale_bind','usp_clean_store_day_bind','usp_clean_store_finance_bind','usp_clean_store_inventory_bind','usp_clean_finance_b4_bind','usp_clean_finance_b4_fx_usd_bind','usp_clean_finance_b4_fx_eur_bind','usp_clean_finance_b4_cash_bind']){
   const b=d[name];assert.match(b,/JOIN dbo\.employees pe WITH\(HOLDLOCK\) ON pe\.id=pm\.employee_id AND pe\.user_id=pm\.user_id/);assert.match(b,/pe\.is_active=1 AND pu\.is_active=1 AND pr\.is_active=1/);assert.match(b,/pm\.user_id NOT IN\(15,16,17,18,19,20,21,22,23,10018\)/);assert.match(b,/MELISA_ERP_CLEAN_TEST_20261022/);assert.match(b,/melisa_clean_test_app_20261022/);

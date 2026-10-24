@@ -102,8 +102,10 @@ export function buildCleanPersonnelWorkDefinitions(){
  const projected=`SELECT ${changedNames.filter(n=>prior[n]).map(n=>`MAX(CASE WHEN name=${Q(n)} THEN before_hash END) [${n}]`).join(',')} FROM dbo.${seal} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER`;
  for(const n of Object.keys(prior).filter(n=>n.endsWith('_ready'))){
   b=prior[n];
-  b=b.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,a)=>`COALESCE(JSON_VALUE(@workPredecessors,N'$.'+${a}.name),${hash})`);
-  b=b.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',(\w+)\.definition\),2\)/g,(hash)=>`COALESCE(JSON_VALUE(@workPredecessors,N'$.personnelPlaceholder'),${hash})`);
+  // Two-argument ISNULL preserves the hash fallback without adding a CASE
+  // level to the predecessor chain (SQL Server limits CASE nesting to ten).
+  b=b.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,a)=>`ISNULL(JSON_VALUE(@workPredecessors,N'$.'+${a}.name),${hash})`);
+  b=b.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',(\w+)\.definition\),2\)/g,(hash)=>`ISNULL(JSON_VALUE(@workPredecessors,N'$.personnelPlaceholder'),${hash})`);
   // The only raw module-definition scan is management's d.name / m.definition.
   b=b.replaceAll("N'$.personnelPlaceholder'","N'$.'+d.name");
   if(n==='usp_clean_store_day_ready'||n==='usp_clean_finance_b5_admin_ready')b=b.replaceAll('SELECT after_constraints_hash FROM dbo.clean_finance_b5_admin_manifest','SELECT after_constraints_hash FROM dbo.'+seal);

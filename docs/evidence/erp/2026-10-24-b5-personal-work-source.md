@@ -86,3 +86,8 @@ anahtar değildir (`terminalCartonService` mevcut `sales.view` kullanır).
 Mehmet/Turgay ve Angela için bu ayrım E1 sahibine açık bağımlılıktır; terminal,
 Android/Keystore, kalıcı oturum, CRM ataması ve handoff dosyaları bu teslimde
 değişmedi. Gerçek personel kimlik/hesap eşlemesi ve son cihaz/insan kabulü açıktır.
+## Birleşik gerçek SQL provası — 24 Ekim
+
+PR58/59/60/61 kaynakları birleştirildi;55hedef kontrol geçti. Gerekli yeni SQL uyum provası, iki mevcut metadata installer'ını tek dış owner transaction'ında çalıştırıp geri alır; yeni migration motoru veya hesap seed'i yoktur. İlk birleşim SQLServerMsg125/usp_clean_store_day_ready ile CASE iç içe sınırında reddedildi. Yeni hash fallback'inin COALESCE ile eski katmanlara CASE eklemesi neden olarak ayrıldı; yalnız iki yeni @workPredecessors wrapper'ı aynı iki-argüman null/hash anlamını koruyan ISNULL ile üretildi. Koruma/öncül bytes/rol/işlemler değişmedi. Kaynak regresyonu önceFAIL, sonra metadata12/12PASS; koordinatörün bağımsız dar incelemesinde engelleyici bulgu yok.
+
+Değişen birleşimin gerçek SQL rollback provası24Ekim12:36:48TR PASS: kurulu eski tablo/sütun/index/FK/modül/izin metadata'sı, eski roles/permissions satır hash'leri ve53iş verisi özeti byte-eş. Hesap/ticari kayıt/servisrestart0. SQLServer kimlik tahsisleri rollback'te geri sarılmaz: bu provalar roles/permissions sıra boşlukları ayırdı; otomatik reseed/reset yapılmadı ve 'hiçbir SQL durumu değişmedi' denmedi. Önceki FAILED ve yeni PASS makbuzları ayrı private kanıtta korundu. Bu, kaynak/native derleme provasıdır; kalıcı metadata, aday kurulum, normal kişisel iş, gerçek cihaz veya insan kabulü değildir.
