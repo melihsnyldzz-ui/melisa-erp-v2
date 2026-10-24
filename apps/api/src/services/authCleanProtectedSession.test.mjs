@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import * as normal from './normalTestRefreshSession.mjs';
+import * as cleanContext from './cleanSyntheticContext.mjs';
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-clean-auth-')),file=path.join(root,'grants.json');
 after(()=>fs.rmSync(root,{recursive:true,force:true}));
 const store=normal.createNormalTestRefreshStore({file}),clean={environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',database:'MELISA_ERP_CLEAN_TEST_20261022',synthetic:true,actualT1:false,externalOperations:false};
@@ -16,7 +17,7 @@ mock.module('../config/database.js',{namedExports:{getSqlPool:async()=>({request
 mock.module('./writeGuardService.js',{namedExports:{assertMelisaWriteEnabled:()=>{throw Error('Legacy write guard must not be bypassed');}}});
 mock.module('../config/isolatedOperationCopyRuntime.mjs',{namedExports:{isIsolatedOperationCopyRuntime:()=>false,getIsolatedOperationCopyConfig:()=>{throw Error('No shared copy');}}});
 mock.module('./sharedCopyAuthClaims.mjs',{namedExports:{sharedCopyAuthClaims:context=>{assert.equal(context,null);return {};}}});
-mock.module('./cleanSyntheticContext.mjs',{namedExports:{CLEAN_DATABASE:clean.database,CLEAN_ENVIRONMENT_ID:clean.environmentId,getCleanContext:()=>clean,assertRegisteredCleanContext:()=>clean}});
+mock.module('./cleanSyntheticContext.mjs',{namedExports:{...cleanContext,getCleanContext:()=>clean,assertRegisteredCleanContext:()=>clean}});
 mock.module('./normalTestRefreshSession.mjs',{namedExports:{...normal,configuredNormalTestRefreshStore:options=>{factoryOptions.push(options);assert.deepEqual(options,{clean});return store;}}});
 const auth=await import('./authService.js');
 
