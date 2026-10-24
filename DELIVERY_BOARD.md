@@ -1,3 +1,9 @@
+## 24 Ekim — C6 güvenli önkontrol kaynak + gerçek yedek okuması tamam
+
+Eski Goal6 yolu dar clean profille yalnız Preflight destekler; yazma modları SQL öncesi kapalı.5hedef test ve mevcut yedekte gerçek header/file-list/kaynak kimliği/boş hedef/alan/hash okuması geçti. YeniDB/restore/backup/reboot/servis işlemi0. C6 geri açma ve uygulama kurtarma kabulü BEKLİYOR; B7 öncesi yedek güncel tüm sistem diye sunulmadı. A5 uygulanmış rehber ve B5 gerçek kimlik boşluğu korunur; özgün sayaç yok. Teknik sıra ERP-DEC-077 / [STATUS](STATUS.md).
+
+### Önceki A5 teslimi — korundu
+
 ## 24 Ekim — A5 giriş rehberi uygulandı; B5 kimlik bağı açık
 
 [Güncel rehber](docs/erp-v2/clean-test-entry-guide.md) mevcut esas kurulum dosyasına gerçekten uygulandı, byte-eş geri okundu. LAN5244/62800/semih, önceki C1/C2, eski port ayrımı ve kısa başka-cihaz denemesi güncel; Tailscale aktif seçenek değil. Servis/SQL/rol/ağ ayarı değişmedi. A2/A3/C3/C5/C6 ve insan kabulü bekliyor. B5 envanter ekranı hazır;9gerçek kişinin kesin hesap/temsilci/müşteri bağları mevcut makbuzlarda yok, eşleme uydurulmadı. Sonraki en küçük C6 adımı yalnız mevcut yedeğin başlık/dosya/boş hedef/alan okumasıdır; restore/yeniDB/reboot başlatılmadı. Yeni takip sistemi veya sayaç yok. [STATUS](STATUS.md).

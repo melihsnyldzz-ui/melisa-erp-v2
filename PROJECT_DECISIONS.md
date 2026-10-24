@@ -1,5 +1,13 @@
 # ERP karar merkezi
 
+### ERP-DEC-077 — 24 Ekim 2026 — 25 Ekim10.00'a kadar mevcut yetkili teknik sırayı sürdür
+
+Mevcut koordinatör konuşması `01a15d42-a70f-7510-9fce-73ce1cb433e9`, doğrudan kullanıcı mesajı `01a16b6d-3d65-7853-970f-db1e6474b083` salt okunur doğrulandı: “Tamam yarın sabah 10 a kadar geliştirmeleri sıralı şekilde yap ve neler yaptığını madde madde rapor ver”. Son zaman25Ekim2026Pazar10.00 Europe/Istanbul; mevcut çalışma kapsamında rutin devam beklenmez. Bu mesaj yeni scheduler/Goal/ana ajan/plan oluşturmaz ve çalışmayan oturumda arka planda gelişme iddiası vermez.
+
+Mevcut A5 tamamlanır; B5'in kesin kişi/kimlik boşluğu tahminle doldurulmaz. Hazır C5/C6 planından bağımlılığı hazır dar kaynak/önkontrol işi, ardından mevcut E1 terminal kaynak bağlantısı ve D1/D2 readonly geçmiş eşleme uyarlamaları seçilir.09.30'dan sonra uzun yeni uygulama başlatılmaz, mevcut adım güvenli noktada sonuçlandırılır. Tamamlanan/kurulu/yalmız kaynak/somut engel ve kullanıcı adına seçilmiş geri alınabilir varsayımlar mevcut A–E kodlarıyla ayrılır; insan kabulü E2'de ayrıca bekler.
+
+ERP ortak uygulamanın tek yazarıdır; mevcut kişiler/roller/aktarımlar/TEST125/DB02/LL/karantina/yedekler korunur. Çalışan sisteme restore, reset/silme, yeni Windows reboot, gerçek veri aktarımı, LIVE/Vega/T1/gerçek ticari-finansal işlem/müşteri mesajı/ücretli servis/main merge/tag/yayın/güvenlik bypass yok. Ayrı hedefte gerçek restore veya yeni kalıcı kimlik için mevcut somut yetki ve araç kapıları doğrulanmadan uygulama yapılmaz. C6 bu aşamada mevcut operatorun salt okunur Preflight profiliyle sınırlı; başlık/dosya okuması gerçek restore kabulü değildir.
+
 ### ERP-DEC-076 — 24 Ekim 2026 — B5 kesin kimlik bağı ayrı; hazır A5 rehber bakımını tamamla
 
 Mevcut Kordinatör AJAN konuşması `01a15d42-a70f-7510-9fce-73ce1cb433e9`, doğrudan kullanıcı mesajı `01a16b68-35f2-7550-a9b3-6239624c891d` salt okunur doğrulandı: B5 sonrası giriş rehberi ve erişim hazırlığı sırası anlatıldıktan sonra “Tamam, yeni işi ver o zaman”. Mevcut koordinatörün açık devri A5 hazır taslağını esas kurulum rehberine uygulamaktır. B5'in kesin gerçek kişi–hesap–görev/atama bağı varsa mevcut yetkili kapsamda ilerler; yoksa tahmin/isim benzerliği/yeni gerçek hesapla doldurulmaz, somut eksik ayrı kalır. Bu A5 doküman bakımı için ERP-DEC-075'in B dışına geçmeme sınırını dar olarak günceller; B6/B7 kabul edilmiş teknik sonuçları tekrarlanmaz.

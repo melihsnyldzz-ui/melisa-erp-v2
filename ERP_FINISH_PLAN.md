@@ -1,3 +1,9 @@
+## 24 Ekim — C6 önkontrol alt kapsamı teknik tamam; restore kabulü açık
+
+Mevcut Goal6 operator yolunun sabit clean Preflight profili source/test ve gerçek SQL yedek metadata okumasıyla doğrulandı. Bu sonuç restore veya geri açılmış veri değildir; C6 tam kapsamı ve özgün UA bekliyor. Yeni hedef/backup/restore/reboot yapılmadı. A5 rehber teslimi ve B5 kimlik/insan boşluğu korunur;17/74 ve49/25 sayıları aynı. [STATUS](STATUS.md).
+
+### Önceki A5 teslimi — korundu
+
 ## 24 Ekim — A5 rehber teknik bakımı; insan kabulü ayrı
 
 Mevcut kurulum giriş rehberi hazır taslakla güncellendi ve sürümlü kopyayla byte-eş doğrulandı. A5 doküman bakımı tamam; A2/A3 başka-cihaz ve C3/C5/C6 kabulü bu sonuçtan yeşile dönmez. B5 gerçek9kişi kimlik/atama uygulaması makbuzu eksik; envanter teknik sonucu ayrı tamam. C6 sonraki dar önkontrolü ve C5 hedef/saklama boşluğu STATUS'ta; restore/veri aktarımı/reboot yapılmadı. Özgün17/74,49ERP/25CRM ve insan sayaçları aynı. [Rehber](docs/erp-v2/clean-test-entry-guide.md).

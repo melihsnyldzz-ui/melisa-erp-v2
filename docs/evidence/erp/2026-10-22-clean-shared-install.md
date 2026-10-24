@@ -1,3 +1,11 @@
+## 24 Ekim — C6 kaynak uyarlaması ve salt okunur yedek önkontrolü
+
+Mevcut `scripts/canonical/goal6-backup-restore.ps1 -Profile Clean20261022 -Mode Preflight` gerçek sabit clean kaynak/var olan B7 yedeği/önerilen boş restore hedefinde çalıştı. SQL HEADERONLY/FILELISTONLY, kaynak E662/synthetic/T1false/externalfalse, COPY_ONLY/checksum/tam-set kimliği, bütün mantıksal dosyalar, boş DB/dizin ve disk alanı doğrulandı; yedek hash'i önce/sonra aynı. Başlık24Ekim02:29:58–02:29:59/2dosya,~1,141GiB gerekli/~40,90GiB müsait. Başlık saati timezone alanı taşımaz. Makbuz private mevcut `c6-clean-backup-preflight.json`; ham SQLmetadata GitHub'a taşınmadı.
+
+Profil yalnız Preflight: diğer modlar ve eski proof reuse SQL bağlantısından önce reddedilir. Yeni backup/restore/DB/dizin/servis/uygulama bağlantısı değişikliği0.5hedef test gerçek PowerShell5 saf guard/negatif modlarla geçti; yeni Windows CI adımı SQL'sizdir. İlk sandbox AuthorizationManager ret sonucu başarısız olarak korundu; host politikası değişmedi. C6 restore/örnek geri okuma/ERP+CRM felaket kurtarma ve insan kabulü henüz YAPILMADI. Yedek B7 iletişiminden öncedir, güncel tüm veri gibi kullanılmaz. Bağımsız reviewer NOT_RUN.
+
+### Önceki A5 teslimi — korundu
+
 ## 24 Ekim — A5 mevcut giriş rehberi teslimi
 
 Mevcut `clean/20261022/GIRIS-REHBERI.md` dosyası hazır taslaktan güncellendi; [kaynak kopyası](../../../erp-v2/clean-test-entry-guide.md) SHA256 `2CFD0AEEE1F06B8E207209C7D88C456E3E6DC40584D955032C65332CCC13D6F6` ile aynı. Eski rehber before-image private alanda saklandı. LAN5244/62800/semih, önceki C1/C2, eski adres ayrımı, başka-cihaz üç adımı güncel. Tailscale aktif giriş seçeneği değil; mevcut network bind/kuralları korunur. Yedi korumalı launcher/start/process/credential dosya hash'i aynı; SQL/servis/restart/kurulum/atama/ticari işlem yok. Private `a5-entry-guide-delivery.json` geri okuma makbuzu; açılış testleri tekrarlanmadı.
