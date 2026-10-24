@@ -2,6 +2,8 @@
 
 ERP sağlayıcı20hedef kaynak/offline HTTP testi geçti; henüz kurulu native/CRM aynı kişi geçişi, AndroidKeystore/aç-kapa/çıkış/gerçek cihaz veya çalışan sonucu yok. Mevcut E1/özgünUA BEKLİYOR; sayaç ve eski insan sonuçları aynı. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). KuruluTEST değişmedi.
 
+Son kaynak8df23309 exactCI40075059772/40075056364 her3jobSUCCESS;1170APIpass/13platformskip/fail0. Bu kaynak kanıtıdır, kurulum veya insan PASS değildir.
+
 ## 24 Ekim10:14 — C5 görev teknik kurulumu; zamanlı çalışma/insan kabulü BEKLİYOR
 
 Günlük03:00 temiz TEST SQL backup görevi mevcut Windows sahibiyle kurulu/geri okunmuş; ilk gerçek çalışma25Ekim03:00 bekleniyor. Kaynak/CI/XML/Preflight ve görev kurulumu gerçek zamanlı yedek veya restore PASS değildir. Elle yedek/tetikleme yok; SQLdışıCRM/haricihedef/oturumkapalı çalışma ayrı açık. ÖzgünUA/kişi/tarih/sayaç değiştirilmedi. [Teknik sonuç](STATUS.md).

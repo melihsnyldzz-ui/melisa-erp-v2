@@ -2,6 +2,8 @@
 
 ERP mevcut normal aile/hashstore üzerinde tek kullanımlık30s/PKCE/explicitrelation peer adapter ve18offlineguard test hazır. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). Kaynak henüz kurulu değil; native/CRM ortak E2E/cihaz/insan açık. B5 kimlik boşlukları tahminle kapatılmadı,49/25/17/74 aynı.
 
+Son kaynak8df23309 exactCI40075059772/40075056364 her3jobSUCCESS;1170APIpass/13platformskip/fail0. Bu kaynak kanıtıdır, kurulum veya insan PASS değildir.
+
 ## 24 Ekim10:14 — C5 düzenli SQL yedeği görev alt kapsamı kurulu, genel kabul kısmi
 
 Source74e exactCI/inceleme ve sabit korumalı bakım runner'ı sonrası günlük03:00 görevi Windows'tan geri okundu.25Ekim03:00 ilk zamanlı başarılı çalışma/backup-result makbuzu henüz yok; C5genel🟡 kalır. Bu SQLdışıCRM/NAS/oturumkapalı/restore veya insan kabulü değildir. Uygulama/veri/rol/yedekler ve49/25/17/74 aynı. [STATUS](STATUS.md).
