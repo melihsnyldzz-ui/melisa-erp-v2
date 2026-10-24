@@ -1,3 +1,12 @@
+## 24 Ekim11:43 — B5 gerçek şema önkoşulu ayrıldı; CRM aday paketi pasif hazır
+
+Kullanıcının açık B5 mesaj onayı mevcut CRM ana konuşmasına iletildi; mevcut aktif kaynak işi kullanıldı, ikinci görev açılmadı. CRM uygulama7d09/sonsourceacb2a3a0ce917d68221372e5f21bb788e90475aa exact7CI başarılı, ownerreview0; ortak SQL/runtime/hesap/kurulum yazarı ERP olarak kaldı. Yeni pasif aday `CLEAN-CRM-20261024-acb2a3a0ce91-B5MGMT`,787dosya/manifest55FFBC1A70D9ADE3AA7C8270E445B07575FE3817F24BC3E591E2F14DAF197C92; offlineguard build mainCeCdOZfo/912719bayt/SHA213d54b16d10c7f984b4e4bb518d093e8778a8ba85ac62d02b77e00210791587 owner ile eş. KuruluCRM59ca değişmedi.
+
+**Gerçekmetadata proba sonucu FAILED/geri alındı:** PR58c4d4 kaynağı exactcleanDB/E662/tekowner kontrolüyle nativeSQL'de denendi; Line24/CLEAN_PERSONNEL_DENIED. Saltokumada dbo.employees yok, terminal_devices.assigned_employee_id ve sales_invoices.employee_id eksik. NormalpersonnelService'in0013önkoşulu da bunu gerektiriyor. SQLşema/izin before-after byte-eş,53veriözeti aynı; kalıcımetadata/hesap/ticari kayıt0, restart0. İlk before-image komutundaki sqlcmd-h/-y0 çakışması SQLprobasını başlatmamıştı; çıktı seçenekleri düzeltildi, gerçek başarısız SQL makbuzu korundu. Private `b5-management-metadata-probe.json` / output / SQL616EA6D8 bu sonucu tutar; yeniden aynı probe çalıştırılmayacak.
+
+**Sıradaki somut iş:** Mevcut kaynak sahibi normal0013/0014 şema önkoşulunu dar ve atomik clean hedefe uyarlıyor; gerçek/uyumsuz mevcut şema reddedilecek, normalguardlar gevşetilmeyecek. Yeni kaynak/exactCI alınınca değişen önkoşulun rollbackprobası, sonra uygun B5kurulumu ve normal sentetik kullanıcı/personelbağı readback yapılır. PR59 kişisel görev source ayrı alt kapsamdır, kurulu kabul değildir. Android/insan/gerçek9kişi açık;49/25/17/74 ve eskiUA korunur.
+
+### Önceki E1 tamamlanan teknik teslim — korundu
 ## 24 Ekim11:38 — E1 sunucu bağı ve normal tarayıcı doğrulandı; Android kabulü açık
 
 **Son kalan kapanış tamam:** Doğal15dk auth penceresi beklendi; limiter/config/servis değiştirilmedi. Ayrı dar prova yalnız gerekli yeni kendiERP→CRM sentetik oturumunu kurup ERPçıkış→CRMret→aynı CRMlogout iki200 sonucunu aldı;12HTTPçağrısı/1yeni linkedfamily/ownclosuretrue/eski aileler korunmuş/53SQLözeti aynı. Önceki22kontrollü FAILEDmakbuz ve429 aynen korundu; geniş negatifler tekrarlanmadı. Sandbox ilkhealthsocketreddi sunucuya ulaşmadı, izinli hostta doğru hedefle yürütüldü. Private `e1-link-runtime-close-proof.json` PASS ve `e1-link-final-delivery.json` kaynak/kurulum/GUI ayrımını tutar.
