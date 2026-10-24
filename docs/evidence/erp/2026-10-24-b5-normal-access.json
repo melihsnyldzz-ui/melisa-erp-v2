@@ -1,8 +1,8 @@
 {
   "schemaVersion": "melisa-clean-b5-delivery-evidence.v1",
-  "observedAt": "2026-10-24T17:12:12.2507704+03:00",
+  "observedAt": "2026-10-24T15:50:13.055Z",
   "scope": "Existing B5 isolated clean TEST technical sub-delivery",
-  "sourceCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+  "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
   "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
   "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54",
   "commonReport": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6337512025",
@@ -193,23 +193,25 @@
     "observationScope": "Historical C1 baseline before the username layer; current measurements are in usernameContractRepair"
   },
   "currentRuntime": {
-    "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
-    "packageId": "CLEAN-ERP-20261022-83e8d7cfd19f",
-    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-83e8d7cfd19f-B5ROLLBACK",
-    "files": 3444,
-    "manifestDigest": "06D1F89D08592BC5F883A62EA22F5CD26F4D587141FE379CC0A57E185A4F6E38",
-    "frontendSourceUnchanged": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "packageId": "CLEAN-ERP-20261022-55c2fc22e81f",
+    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-55c2fc22e81f-B5COUNT",
+    "files": 3446,
+    "manifestDigest": "1B0AB2365589A53F5EC50F464B0D5924A6F9784FB1E70CE8E69D8DC60BC227D9",
+    "frontendSourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "serverLogicBaselineCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+    "nativeMetadataSource": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
     "crmSourceUnchanged": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
     "changedPorts": [
-      4194
+      4194,
+      5244
     ],
-    "preservedCapturedListeners": 21,
-    "installedAt": "2026-10-24T16:10:39.4579372+03:00",
-    "nativeMetadataSource": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
-    "nativeMetadataInstalledAt": "2026-10-24T16:57:00.8688618+03:00",
-    "previousC1ManifestRowsPreserved": true,
-    "readyModuleBytesUpdatedWithNewVerifiedLayer": true
+    "preservedCapturedListeners": 18,
+    "installedAt": "2026-10-24T18:29:53.2823079+03:00",
+    "protectedSessionFilesPreservedAtInstallation": true,
+    "actualNewRoleIds": []
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -422,7 +424,7 @@
     "postCommitRestore": "NOT_TESTED; exact before-image retained, no automatic reset/restore",
     "humanAcceptance": "PENDING",
     "fullB5": "PENDING",
-    "nextTechnicalItem": "Reduce measured B5 readiness-layer read cost without skipping immutable/NULL-definition/permission checks",
+    "nextTechnicalItem": "Historical next item investigated; operational read cost remains open, own count technical sub-delivery recorded below",
     "recordCheck": {
       "acceptedTestsRepeated": false,
       "wholeClosureGranted": false,
@@ -430,5 +432,199 @@
       "erpPreflightBlocked": 3,
       "status": "CHECK_REQUIRED"
     }
+  },
+  "countWorkflowDelivery": {
+    "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "scope": "Existing synthetic person own inbound count only; full B5 and human acceptance remain pending",
+    "schemaRepair": {
+      "sourceCommit": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
+      "artifact": {
+        "root": "C:/Sirket/ERP/releases/CLEAN-PERSONNEL-INBOUND-OWNER-20261024-794bd3d15ca7",
+        "sourceCommit": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
+        "manifestSha256": "156CA7D1165C29E9D98AD5332B5E89083550C8B8E3C7E23D7F5FDC6D643C0B01",
+        "sqlSha256": "6694D08DAB3B9830CDEB43DA9CFD349EC31998631B5BFAE17E141CFBACB6146D",
+        "files": 4
+      },
+      "installedAt": "2026-10-24T18:08:38.4399304+03:00",
+      "authorization": "Existing native live membership/active user-employee-role, actor and transaction predicates unchanged; FKs enforce existing user identity only",
+      "moduleOrRoleOrPermissionChanges": 0,
+      "sourceTests": {
+        "passed": 13,
+        "failed": 0
+      },
+      "nativeProofs": [
+        "Positive fullready/DDL rollback",
+        "Unknown-owner actual FK547/rollback",
+        "Existing finance actor20/actualrole25 native51961/rollback"
+      ],
+      "replay": {
+        "status": "NO_SECOND_EFFECT",
+        "elapsedMs": 6173,
+        "current53AndOwnRecordDigestsEqual": true
+      },
+      "postCommitInverse": "No automatic restore/reset; old sample CHECK cannot be restored over newer personal-owner rows"
+    },
+    "transportRepair": {
+      "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+      "cleanTargetOnly": true,
+      "countPostOperations": [
+        "create",
+        "update",
+        "submit",
+        "cancel"
+      ],
+      "existingWriteBudgetMs": 60000,
+      "defaultReadBudgetMsUnchanged": 15000,
+      "automaticRetries": 0,
+      "uuidBodyJournalUnchanged": true,
+      "newRegressionBefore": {
+        "passed": 1,
+        "failed": 2
+      },
+      "targetedModuleAfter": {
+        "passed": 59,
+        "failed": 0
+      },
+      "unrelatedPurchaseApprovalFinanceAndLegacyBudgetsUnchanged": true,
+      "speedImprovementClaim": false
+    },
+    "normalBrowser": {
+      "status": "OWN_COUNT_SUBMITTED_AND_RELOADED",
+      "applicationSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+      "userId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "countId": 10006,
+      "receiptId": 4,
+      "productId": 1,
+      "stockCode": "0007 MELISA",
+      "barcode": "0000000000007",
+      "physicalQuantity": "2.000",
+      "countState": "submitted",
+      "receiptState": "pending",
+      "normalFormLogin": true,
+      "savedDraftPreservedAcrossInstaller": true,
+      "existingCreateUuidRecoveredByNormalReplay": true,
+      "submitFirstRequestDelivered": true,
+      "fullReloadRetainedOwnIdAndLink": true,
+      "approvalAndRejectDisabled": true,
+      "newAccounts": 0,
+      "stockApprovals": 0,
+      "financialActions": 0,
+      "physicalDevice": "NOT_TESTED",
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-24T15:37:22.908Z"
+    },
+    "independentSql": {
+      "countId": 10006,
+      "creatorId": 10021,
+      "username": "b5erp20261024",
+      "roleId": 30,
+      "employeeId": 1,
+      "countState": "submitted",
+      "version": 2,
+      "receiptId": 4,
+      "receiptCreatorId": 10021,
+      "receiptState": "pending",
+      "decidedBy": null,
+      "decidedAt": null,
+      "productId": "1",
+      "barcode": "0000000000007",
+      "stockCode": "0007 MELISA",
+      "physicalQuantityExact3": "2.000",
+      "ownCountRows": 1,
+      "ownCreateRequests": 1,
+      "ownSubmitRequests": 1,
+      "ownReceiptRows": 1,
+      "receiptLineRows": 1,
+      "purchaseLinks": 0,
+      "activeDayIntents": 0,
+      "requests": [
+        {
+          "operation": "count_create",
+          "actorId": 10021,
+          "countId": 10006,
+          "responseCountId": "10006",
+          "responseState": "draft"
+        },
+        {
+          "operation": "count_submit",
+          "actorId": 10021,
+          "countId": 10006,
+          "responseCountId": "10006",
+          "responseState": "submitted",
+          "responseReceiptId": "4"
+        }
+      ]
+    },
+    "preservation": {
+      "oldRecordsModulesManifestsRolesPermissionsProductsAndStockEqual": true,
+      "fullFinanceMovementDigestsEqual": true,
+      "expectedChangedScopes": [
+        "dbo.test_goods_batch_lines",
+        "dbo.test_goods_batches",
+        "dbo.work_inbound_counts",
+        "dbo.work_inbound_requests"
+      ],
+      "unchangedOtherScopes": 49,
+      "actualNewAccounts": 0,
+      "actualNewRoles": 0,
+      "actualNewPermissions": 0,
+      "stockApprovals": 0,
+      "purchaseInvoices": 0,
+      "financialActions": 0,
+      "identityReseedOrReset": false
+    },
+    "ci": {
+      "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+      "prRun": 40106637446,
+      "pushRun": 40106632253,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS"
+    },
+    "humanAcceptance": "PENDING",
+    "fullB5": "PENDING",
+    "remaining": [
+      "Recorded real-person identities/roles/assignments",
+      "Native operational read cost",
+      "Long session/native Keystore",
+      "E1/E2/Windows and human acceptance"
+    ],
+    "failedPreparationsPreserved": [
+      "Diagnostic v1 legacy actorCheck stopped before SQL; v2 actual clean config identified547",
+      "DDL probe v1 SQL102 stopped before mutations; corrected794 passed",
+      "Wrong-role v1 assumed role20; actual role25 read then v2 native rejection passed",
+      "Transport red fixture initially lacked abort listener; test-only process interrupted; v2 red and final59PASS retained"
+    ]
+  },
+  "readinessReadCostDiagnosis": {
+    "sourceMetadataCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "status": "OPEN_NOT_OPTIMIZED",
+    "fullReadyCalls": {
+      "usernameReady": 384,
+      "c1Ready": 192
+    },
+    "measuredMainReadyMs": [
+      5538,
+      6646
+    ],
+    "usernameGuardAggregateCpuMs": 1026,
+    "readOnlyJoinShape100ValidationsMs": {
+      "before": 479,
+      "after": 385
+    },
+    "candidateAggregationInstalled": false,
+    "guardsSkipped": 0,
+    "databaseSettingsChanged": 0,
+    "cacheIntroduced": false,
+    "lastNormalSalesMs": [
+      6970,
+      4867
+    ],
+    "lastNormalReceivingMs": [
+      5396,
+      5005
+    ],
+    "rebenchmarkedAfterTransportPackage": false
   }
 }
