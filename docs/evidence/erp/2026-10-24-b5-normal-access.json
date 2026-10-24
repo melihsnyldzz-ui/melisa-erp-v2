@@ -215,7 +215,18 @@
     "previousApplicationSource": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
     "serverLogicBaselineCommit": "b9dd984876c808482017365556538078601187b8",
     "crmObservation": "ERP unchanged at b9; CRM updated separately in personalCrmNormalUsage installation",
-    "crmSourceCommit": "1ab47029d54cc6aa341b29328de29ea690e6d4f1"
+    "crmSourceCommit": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+    "sameSourceRelationRestart": {
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "at": "2026-10-24T23:56:11.6429619+03:00",
+      "changedPorts": [
+        4194
+      ],
+      "oldPid": 20676,
+      "newPid": 45284,
+      "codeChanged": false,
+      "newApplicationPackage": false
+    }
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -1565,7 +1576,8 @@
       }
     ],
     "personCrmIdentity": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
-    "managerCrmIdentity": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f"
+    "managerCrmIdentity": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f",
+    "observationScope": "Historical normal create/read phase; contextual continuation below supersedes its four-operation pending state, not the separate six-account or older approvals"
   },
   "standardStaffSixPreparation": {
     "existingUsers": 13,
@@ -1607,6 +1619,248 @@
     "applicationCodeChanged": false,
     "newCiOrAcceptedFlowRetests": false,
     "normalGuiNewAccounts": "NOT_CREATED",
+    "b5Completed": false
+  },
+  "personalCrmLinkContinuation": {
+    "authority": {
+      "userMessageId": "01a16fa6-85b2-7452-8ee2-7d82f2e4f2d8",
+      "actualUserText": "Devam ettir ve nerde olduğumuzu söyle",
+      "context": "Immediately after four disclosed operations",
+      "moreSpecificApprovalWordingInvented": false,
+      "sixAccountApproval": false
+    },
+    "managerApplication": {
+      "realPersonIdentityClaimed": false,
+      "synthetic": true,
+      "status": "SEPARATE_SYNTHETIC_ERP_MANAGER_PAIR_READY",
+      "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+      "userCreated": true,
+      "oldAccountsRolesSealsCountsUnchanged": true,
+      "observedAt": "2026-10-24T23:50:20.3131702+03:00",
+      "authority": "Contextual direct human continuation, message01a16fa6-85b2-7452-8ee2-7d82f2e4f2d8",
+      "calls": [
+        {
+          "elapsedMs": 268,
+          "path": "/api/auth/login",
+          "success": true,
+          "method": "POST"
+        },
+        {
+          "elapsedMs": 768,
+          "path": "/api/auth-admin/overview",
+          "success": true,
+          "method": "GET"
+        },
+        {
+          "elapsedMs": 218,
+          "path": "/api/personnel/overview",
+          "success": true,
+          "method": "GET"
+        },
+        {
+          "elapsedMs": 13528,
+          "path": "/api/auth-admin/users",
+          "success": true,
+          "method": "POST"
+        },
+        {
+          "elapsedMs": 11224,
+          "path": "/api/personnel/employees",
+          "success": true,
+          "method": "POST"
+        },
+        {
+          "elapsedMs": 11,
+          "path": "/api/auth/logout",
+          "success": true,
+          "method": "POST"
+        }
+      ],
+      "userId": 10023,
+      "setupLogoutConfirmed": true,
+      "existingRolesChanged": 0,
+      "employeeCreated": true,
+      "employeeId": 3,
+      "currentStage": "normal own manager employee link",
+      "roleId": 31,
+      "sixOtherAccountsCreated": 0
+    },
+    "relationApplication": {
+      "protectedFilesSame": true,
+      "restartCount": 1,
+      "status": "PERSONAL_RELATIONS_PUBLISHED_SAME_SOURCE_API_RESTARTED",
+      "allThreeDataScopesSame": true,
+      "newPid": 45284,
+      "peerKeyChanged": false,
+      "preservedListeners": 36,
+      "ciRepeated": false,
+      "sqlDml": 0,
+      "totalRelations": 3,
+      "package": "CLEAN-ERP-20261022-b9dd984876c8",
+      "frontendUnchanged": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "existingRelationPreserved": 1,
+      "changedPorts": [
+        4194
+      ],
+      "codeChanged": false,
+      "oldPid": 20676,
+      "nativeMetadataUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "observedAt": "2026-10-24T23:56:11.6429619+03:00",
+      "sixOtherAccountsCreated": 0,
+      "newRelations": 2,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "crmUnchanged": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "metadataDdl": 0,
+      "nativeHttpUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9"
+    },
+    "normalGui": {
+      "assignedAgent": 1002,
+      "personAndManagerFullReloadSameIdentity": true,
+      "screenshots": [
+        {
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-crm-assigned-detail.png",
+          "sha256": "DCE80736E5327C0334631D61EEE119D27716BAD5E8535B4F40F925610BC386D4"
+        },
+        {
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-crm-assigned-reloaded.png",
+          "sha256": "860D726AD72F642442ED8D8084A4F4CFC9E53813B180B6C4E851F6CA00591E5B"
+        },
+        {
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-erp-manager-settings.png",
+          "sha256": "37274BC4D087308B15BA5FD38A49B6EFC79299B2F680AACE4EBDB5F2956DE380"
+        }
+      ],
+      "realMessages": 0,
+      "normalGuiCrossRealmSso": "NOT_PROVEN; current E1 server transition403 under source investigation",
+      "businessWrites": 0,
+      "personVisibleConversationsAfterReload": 1,
+      "conversation": 156,
+      "status": "NORMAL_PERSONAL_ASSIGNMENT_AND_ERP_MANAGER_GUI_VERIFIED",
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-25T00:09:23.8108722+03:00",
+      "normalPersonCrmId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+      "normalManagerThreeConversationsAfterReload": true,
+      "normalAssignmentSubmitCount": 1,
+      "normalManagerCrmRole": "mudur",
+      "personOnlyOwn156": true,
+      "normalErpManager": {
+        "userId": 10023,
+        "greenSettingsAndRoleRead": true,
+        "fullReloadSameIdentity": true,
+        "normalFormLogin": true,
+        "employeeId": 3,
+        "roleId": 31
+      }
+    },
+    "firstServerProof": {
+      "failure": "Unexpected response at crm/auth/terminal-handoff: 403",
+      "allOwnLinkedFamiliesRevoked": false,
+      "businessWrites": 0,
+      "credentialsOutput": false,
+      "cases": [
+        {
+          "path": "/api/auth/login",
+          "status": 200,
+          "role": "personel",
+          "realm": "erp",
+          "elapsedMs": 305
+        },
+        {
+          "path": "/api/auth/session-confirm",
+          "status": 200,
+          "role": "personel",
+          "realm": "erp",
+          "elapsedMs": 23
+        },
+        {
+          "path": "/api/auth/terminal-handoff/prepare",
+          "status": 200,
+          "role": "personel",
+          "realm": "erp",
+          "elapsedMs": 74
+        },
+        {
+          "path": "/auth/terminal-handoff",
+          "status": 403,
+          "role": "personel",
+          "realm": "crm",
+          "elapsedMs": 95
+        }
+      ],
+      "normalGuiCrossRealmSso": "NOT_CLAIMED; direct normal personal GUI and native server link proof recorded separately",
+      "caseCount": 4,
+      "observedAt": "2026-10-24T23:59:38.3865315+03:00",
+      "actors": [
+        {
+          "agent": 1002,
+          "normalGui": "Own normal login/read/assignment/reload observed separately; native WebView not tested",
+          "status": "STARTED",
+          "erpUserId": 10022,
+          "employeeId": 2,
+          "crmUserId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+          "role": "personel",
+          "serverTechnicalProofOnly": true
+        }
+      ],
+      "crmSource": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "oldNormalFamiliesPreserved": true,
+      "ownNewLinkedFamilies": 1,
+      "nativeKeystore": "NOT_TESTED",
+      "physicalAndroid": "NOT_TESTED",
+      "stage": "fresh paired handoff: personel",
+      "humanAcceptance": "PENDING",
+      "status": "NOT_CONFIRMED_INSPECT_BEFORE_RETRY",
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "assignmentWrites": 0,
+      "accountOrRoleWrites": 0,
+      "cleanupFailed": false
+    },
+    "readOnlyDiagnostic": {
+      "realMessageOrBusinessWrite": 0,
+      "ownProvisionalFamilies": 1,
+      "firstAttemptCases": 4,
+      "normalPersonGuiAssigned156AndReloadVerified": true,
+      "sameFailedRequestRetried": false,
+      "originalProofExpectedTwoRolesAndIsNotMarkedPassed": true,
+      "sourceOwner": "Existing CRM owner source-only investigation",
+      "crmStatus": 403,
+      "firstThreeStatuses": [
+        200,
+        200,
+        200
+      ],
+      "allAttemptedOwnProvisionalFamiliesRevoked": true,
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-25T00:05:13.2569098+03:00",
+      "status": "FIRST_PERSONAL_HANDOFF_403_PROVISIONAL_GRANT_SAFELY_REVOKED",
+      "crmCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+      "elapsedMs": 95,
+      "secondRoleAttempted": false
+    },
+    "preservation": {
+      "status": "NORMAL_ASSIGNMENT_RELOAD_ERP_MANAGER_AND_LINK_ATTEMPT_DATA_PRESERVED",
+      "fullExistingAndNewManagerUserEmployeeRowsPreserved": true,
+      "sessionJournalsExpectedOwnAuthChanges": true,
+      "sixOtherAccountsCreated": 0,
+      "allRolesPermissionsSealsCountsPreserved": true,
+      "crmAccountsAndSingleAssignmentStoreUnchangedAfterRestart": true,
+      "ownInvoiceAndCartonsPreserved": true,
+      "wholeDatabaseClaimed": false,
+      "dataScopes": {
+        "native": true,
+        "all-current-contributions": true,
+        "own-fixture": true
+      },
+      "observedAt": "2026-10-25T00:07:16.7766598+03:00",
+      "businessWrites": 0
+    },
+    "sourceInvestigation": {
+      "owner": "Existing CRM source owner only",
+      "status": "ACTIVE_ISOLATED_SOURCE_NEW403",
+      "privateRosterOrKeysShared": false,
+      "sameFailedRequestRepeated": false
+    },
+    "humanAcceptance": "PENDING",
     "b5Completed": false
   }
 }

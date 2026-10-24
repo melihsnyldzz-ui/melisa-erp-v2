@@ -1,3 +1,13 @@
+## 25 Ekim00:12 — B5 kişisel normal atama ve iki ilişki yayımlandı; E1 ilk403 kaynakta inceleniyor
+
+**Ajan doğruladı — normal kullanım:** bağımsız gerçek mudur rolündeki kişisel sentetik hesap yalnız yapay156→Personel1002 atamasını normal ekrandan1kez kaydetti. Personel Mesajlarım listesinde yalnız156yı açtı; tamreload aynı kimlik/tek görüşme. Müdür tamreload3yapay görüşme ve yeni sorumluyu gördü. Kaynak yönetim revision5→6; önceki55/155atamaları ve7hesap metadata kapsamı korundu. Gerçek mesaj/AI/ticari işlem yok. Ayrı sentetik ERP10023/personel3/mevcutrol31 normal yönetim API yoluyla oluştu; kendi normal yeşil giriş/Ayarlar/rol ekranı ve tamreload aynı kimlikle görüldü. Bu gerçek Angela kimliği veya insan UX PASS değildir.
+
+İki kişisel bağ aynı korumalı kaynakta yayımlandı; b9source1APIrestart/36diğerlistener ve3SQLçifti korundu. Yeni paket/CI değildir. İlk kişisel handoff403; provisionalgrantiptal/eskiailelerkorundu. Mevcut CRM sahibi yalnız bu gerçek yeni kaynak hatasını izole inceliyor; native/GUI/insan PASS yok.
+
+**Kalan:** E1 yeni kişisel geçiş403 kök-neden/dar kaynak düzeltmesi ve yalnız değişen adayın gerçek TEST geri okuması. Ayrı altı standart ERP hesabı sorusu hâlâ yanıt bekliyor; oluşturma yeniden denenmedi. Önceki altı-kayıt ret makbuzundaki13kullanıcı/2personel tarihi korunur; daha sonra yalnız onay bağlamındaki tek ERP yönetici eklendi.10021/Sayım10006/Kabul4,10022/fiş10010/iki koli, Semih/CRMtemel4/kapalı1001 korunur. B5 teknik açık; insan UX ayrıE2,49/25/17/74veözgün UA sayaçları aynı. Yeni ajan/Goal/tree/gerçekmüşteri/finans/LIVE/Vega/T1/main yok.
+
+[STATUS](STATUS.md).
+
 ## 24 Ekim23:38 — B5 altı standart kişisel TEST bağı önkontrolü hazır; oluşturma komutu özel onay nedeniyle çalışmadı
 
 Aynı B5(1) altı görev için normal exact active/passive envanter: çakışma0/mevcutçift0/eksik6. Mevcut rol30, tek ek kolileme görevi/diğer5kapalı; gerçek hesap sahipliği veya kimlik uydurulmadı.

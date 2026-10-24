@@ -1,3 +1,7 @@
+## 25 Ekim00:12 — B5 kişisel normal atama ve iki ilişki yayımlandı; E1 ilk403 kaynakta inceleniyor
+
+Normal kişisel Müdür ataması156→1002, Personeltek görüşme ve tamreload, Müdür3görüşme ve kendiERP yönetici normalgiriş/yenileme **Ajan doğruladı**. İki ilişki kurulu fakat ilk serverhandoff403; tek-giriş/Android/Keystore veya insan UX PASS yok. Özgün UAID/kişi/tarih/sonuç/sayaçlar aynı; insanE2ayrıBEKLİYOR ve yeni B5 teknik kapanış kapısı değildir. [Teknik durum](STATUS.md).
+
 ## 24 Ekim23:27 — B5 kişisel CRM Personel ve bağımsız Müdür normal okuması kurulu; atama/ERP bağı onay bekliyor
 
 İki ayrı sentetik kişisel CRM hesabı normal formdan oluşturuldu; gerçek mudur rolü ve Personel normal giriş/tamreload/okuma ekranları **Ajan doğruladı**. Atama ve kişisel ERPbağı henüz yapılmadı; ilgili teknik sonuç açık. Bu gerçek personel, native Android veya insan UX PASS değildir. E2/özgün UA ID/kişi/tarih/sonuç/sayaçlar BEKLİYOR ve aynı; insan UX yeni bir B5 teknik önkoşulu yapılmadı. [Teknik durum](STATUS.md).
