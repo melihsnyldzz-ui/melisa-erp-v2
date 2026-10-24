@@ -198,7 +198,7 @@
     "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL",
     "files": 3459,
     "manifestDigest": "DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E",
-    "frontendSourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+    "frontendSourceCommit": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
     "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
     "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
@@ -226,6 +226,33 @@
       "newPid": 45284,
       "codeChanged": false,
       "newApplicationPackage": false
+    },
+    "frontendOnlyInstallation": {
+      "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE",
+      "threeSqlScopesSame": true,
+      "apiSource": "b9dd984876c808482017365556538078601187b8",
+      "protectedFilesSame": true,
+      "persistentStarterPinned": true,
+      "servedEntrySha": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "files": 3459,
+      "newWebPid": 9856,
+      "servedBundleSha": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080",
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "businessWrites": 0,
+      "buildApiBasePinnedAfterGuard": true,
+      "preservedListeners": 34,
+      "installedAt": "2026-10-25T01:17:55.4899640+03:00",
+      "manifestSha": "DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72",
+      "metadataDdl": 0,
+      "oldWebPid": 22784,
+      "status": "INSTALLED_FRONTEND_ONLY",
+      "sqlDml": 0,
+      "changedPorts": [
+        5244
+      ],
+      "accountWrites": 0,
+      "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e"
     }
   },
   "accountRollbackRepair": {
@@ -2527,11 +2554,323 @@
       "restart": 0,
       "observedAt": "2026-10-25T00:52:34.4483529+03:00"
     },
-    "currentStatus": "PARTIAL_ACCOUNT_READY_NORMAL_FINANCE_READ_ERROR",
-    "next": "Resolve this role32 normal cash/collections reader without redoing accepted work",
+    "currentStatus": "CORE_FINANCE_READS_AGENT_VERIFIED; optional multi-party movement panel unsupported",
+    "next": "Separate six-account normal review with new direct human continuation; no automatic approval",
     "roleOrPermissionWidening": false,
     "otherSixAccountsCreated": 0,
     "fullB5Completed": false,
     "humanAcceptance": "PENDING"
+  },
+  "personalAccountingFinanceReadDelivery": {
+    "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+    "review": {
+      "backendSpeedupClaimed": false,
+      "review": "GO",
+      "observedAt": "2026-10-25T01:03:34.3457124+03:00",
+      "owner": "Existing CRM source owner read-only",
+      "p2": 0,
+      "testPass": 102,
+      "files": {
+        "apps/sites-workflow/src/workflow/workingCatalogSession.test.mjs": "61C57C69CE5C184FF36A4B2233E38F241606022A26FE2E3C7EF45B6CAF38B677",
+        "apps/sites-workflow/src/workflow/workingCatalogSession.mjs": "7EE4ADA64A2DF0F82FC59904E431DE5B4DB49A71874869AF0A34A437FCC9427E"
+      },
+      "p1": 0
+    },
+    "ci": {
+      "requiredChecks": [
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000292111,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136924812/job/121000292111"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000291978,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136924812/job/121000291978"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000291796,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136924812/job/121000291796"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000283021,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136921474/job/121000283021"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000283015,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136921474/job/121000283015"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000282877,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136921474/job/121000282877"
+        }
+      ],
+      "observedAt": "2026-10-25T01:10:07.1175746+03:00",
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be"
+    },
+    "package": {
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "root": "C:/Sirket/ERP/releases/CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE",
+      "kind": "ERP_FRONTEND_ONLY",
+      "files": 3459,
+      "manifestSha": "DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72",
+      "previousFrontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "previousManifestSha": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+      "backendUnchanged": "b9dd984876c808482017365556538078601187b8",
+      "nativeUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "crmUnchanged": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "buildMs": 11374,
+      "offlineBuild": true,
+      "buildApiBasePinnedAfterGuard": true,
+      "frontendBuildApiBase": "http://127.0.0.1:4194",
+      "pageEntryBundle": {
+        "path": "apps/sites-workflow/dist/assets/example-DF84lNur.js",
+        "sha256": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b"
+      },
+      "rejectedProfilePackagePreserved": true,
+      "lockedDependenciesReused": true,
+      "changedTransportBundle": {
+        "path": "apps/sites-workflow/dist/assets/workingCatalogSession-DzdLhyvV.js",
+        "sha256": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080"
+      },
+      "backendSpeedupClaimed": false,
+      "installed": false
+    },
+    "installation": {
+      "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE",
+      "threeSqlScopesSame": true,
+      "apiSource": "b9dd984876c808482017365556538078601187b8",
+      "protectedFilesSame": true,
+      "persistentStarterPinned": true,
+      "servedEntrySha": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "files": 3459,
+      "newWebPid": 9856,
+      "servedBundleSha": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080",
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "businessWrites": 0,
+      "buildApiBasePinnedAfterGuard": true,
+      "preservedListeners": 34,
+      "installedAt": "2026-10-25T01:17:55.4899640+03:00",
+      "manifestSha": "DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72",
+      "metadataDdl": 0,
+      "oldWebPid": 22784,
+      "status": "INSTALLED_FRONTEND_ONLY",
+      "sqlDml": 0,
+      "changedPorts": [
+        5244
+      ],
+      "accountWrites": 0,
+      "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e"
+    },
+    "firstProfileRejected": {
+      "installation": {
+        "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEREAD",
+        "apiSource": "b9dd984876c808482017365556538078601187b8",
+        "accountWrites": 0,
+        "newWebPid": 16904,
+        "oldWebPid": 50580,
+        "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+        "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+        "status": "INSTALLED_FRONTEND_ONLY",
+        "sqlDml": 0,
+        "servedBundleSha": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080",
+        "threeSqlScopesSame": true,
+        "protectedFilesSame": true,
+        "preservedListeners": 34,
+        "installedAt": "2026-10-25T01:10:24.6545434+03:00",
+        "metadataDdl": 0,
+        "files": 3459,
+        "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+        "businessWrites": 0,
+        "changedPorts": [
+          5244
+        ],
+        "manifestSha": "165D77CD60560716065785CF06132DDB473776AAC83894713B9CF0A0ED244E95",
+        "persistentStarterPinned": true
+      },
+      "recovery": {
+        "recoveredPid": 22784,
+        "apiSource": "b9dd984876c808482017365556538078601187b8",
+        "status": "PREVIOUS_WEB_RESTORED_PROFILE_CANDIDATE_REJECTED",
+        "rejectedFrontendSource": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+        "rejectedPid": 16904,
+        "persistentOldStarterRestored": true,
+        "accountWrites": 0,
+        "observedAt": "2026-10-25T01:14:55.8894642+03:00",
+        "businessWrites": 0,
+        "oldArtifactReadback": true,
+        "preservedListeners": 34,
+        "recoveredFrontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+        "sqlRestore": 0
+      },
+      "diagnosis": {
+        "firstProfileAccepted": false,
+        "oldWebRecoveryVerified": true,
+        "ciReusedSameSource": true,
+        "fixedBuildApiBase": "http://127.0.0.1:4194",
+        "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+        "firstBadPackagePreserved": true,
+        "profileReassertedAfterGuard": true,
+        "guardClearsVitePrefix": true,
+        "offlineGuardPreserved": true
+      },
+      "normalGuiAccepted": false
+    },
+    "normalGui": {
+      "roleId": 32,
+      "noRecordsDroppedOrGuessed": true,
+      "selectedExistingInvoiceId": 1,
+      "userId": 10024,
+      "normalPasswordFormUsed": true,
+      "employeeId": 4,
+      "noAmountOrAccountEntered": true,
+      "optionalMovementPanel": "NOT_PASSED: current projection requires one customer/TRY; actual approved rows have four customers/three currencies",
+      "oldCollectionHistoryRows": 1,
+      "observedAt": "2026-10-25T01:31:49.4057809+03:00",
+      "collectionListRows": 4,
+      "humanAcceptance": "PENDING",
+      "cashExistingHistoryVisible": true,
+      "cashReadAndReload": true,
+      "screenshots": [
+        {
+          "sha256": "D95E924D4CA7713EE827CF271DBFEF6456D9F7556F6818EFF2FB6EC5225486CA",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-cash.png"
+        },
+        {
+          "sha256": "D95E924D4CA7713EE827CF271DBFEF6456D9F7556F6818EFF2FB6EC5225486CA",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-cash-reloaded.png"
+        },
+        {
+          "sha256": "FFE616BCF5D55C8F8D7DC7035635EC19C228C0A1B63211543BEDD554ADF2B503",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-collections-list.png"
+        },
+        {
+          "sha256": "5569EDCA72BEC31909654956941FDBF6F0613017194FE3047D21511CFB3DE7D0",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-collection-detail.png"
+        },
+        {
+          "sha256": "440913BE4706E8DA6E30FE9AA070FA4A06A0062F9D831604094D125A0E634824",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-collections-reloaded.png"
+        },
+        {
+          "sha256": "780193B87592A2CF2A9603858D807631F7442D3F2A27F5A7AD4993336D2CDF4A",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-ledger-scope-blocked.png"
+        }
+      ],
+      "financialActionClicks": 0,
+      "collectionsListDetailAndReload": true,
+      "longExpiryOrAndroid": "NOT_TESTED",
+      "cashCurrenciesSeparate": true
+    },
+    "preservation": {
+      "status": "NORMAL_FINANCE_READS_NATIVE_AND_COMMERCIAL_EFFECTS_UNCHANGED",
+      "accountWrites": 0,
+      "full53ContributionScopesSame": true,
+      "ownReceiptAndCartonsSame": true,
+      "oldErpApiAndNativeAndCrmNotRestarted": true,
+      "humanAcceptance": "PENDING",
+      "normalOwnLoginJournalEffectsSeparate": true,
+      "threeScopesSame": {
+        "native": true,
+        "own-fixture": true,
+        "all-current-contributions": true
+      },
+      "businessWrites": 0,
+      "observedAt": "2026-10-25T01:31:50.3783476+03:00",
+      "all15UsersFourEmployeesRolesPermissionsSealsCountsAuditSame": true
+    },
+    "optionalMovementPanel": {
+      "accepted": false,
+      "reason": "Single-customer TRY projection rejects actual four-customer/three-currency input; no labels or account links guessed",
+      "api": {
+        "ownLogout": true,
+        "businessWrites": 0,
+        "observedAt": "2026-10-25T01:28:14.4947909+03:00",
+        "sequentialDiagnostic": true,
+        "calls": [
+          {
+            "code": null,
+            "path": "/api/work-sales/context",
+            "status": 200,
+            "elapsedMs": 28594
+          },
+          {
+            "code": null,
+            "path": "/api/work-supplier-payments/context",
+            "status": 200,
+            "elapsedMs": 25622
+          }
+        ],
+        "restart": 0,
+        "accountWrites": 0
+      },
+      "model": {
+        "accepted": false,
+        "reason": "Tahsilat kaynağı doğrulanamadı.",
+        "sourceShape": {
+          "salesOk": true,
+          "paymentsOk": true,
+          "customerCount": 1,
+          "invoiceCount": 4,
+          "invoiceCustomerIds": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "salesCustomerId": "1",
+          "salesAccountCurrencies": [
+            "TRY"
+          ],
+          "invoiceCurrencies": [
+            "TRY",
+            "TRY",
+            "USD",
+            "EUR"
+          ],
+          "invoiceFieldNames": [
+            "id",
+            "documentNo",
+            "documentDate",
+            "status",
+            "customerId",
+            "currency",
+            "subtotalExact4",
+            "grandTotalExact4",
+            "amountTryExact4",
+            "customerBalanceExact4",
+            "items",
+            "collections",
+            "revision"
+          ],
+          "accountCount": 4
+        }
+      }
+    },
+    "backendSpeedupClaimed": false,
+    "normalSourceDurationsMs": {
+      "cash": 16612,
+      "invoiceList": 27730
+    },
+    "firstElapsed236msNotUsed": true,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
   }
 }

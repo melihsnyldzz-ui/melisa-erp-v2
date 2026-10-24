@@ -1,3 +1,9 @@
+## 25 Ekim01:30 — B5 ana Kasa/Tahsilat okuması doğrulandı; ek hareket özeti açık
+
+**Ajan normal tarayıcıda doğruladı:** sentetik muhasebe hesabı 10024 / personel 4 / mevcut rol 32 ile normal giriş yapıldı. Kasa durumu, ayrı TRY/USD/EUR hesapları ve eski hareketler görüldü; tam yenilemede aynı kimlik ve sonuç korundu. Tahsilat listesinde dört mevcut fiş, seçilen fiş 1 ve eski tahsilat geçmişi görüldü; tam yenilemede seçim ve geçmiş korundu. Tutar veya hesap girilmedi; önizleme, kaydetme, iptal ve onay yapılmadı. Bu yalnız ana finans okuma yollarının ajan kontrolüdür; insan kabulü değildir.
+
+Ek “Kasa ve banka hareketleri” paneli sözleşme eksikliği nedeniyle hazır değil. Finansal yazma, gerçek personel, Android, Windows reboot ve insan PASS iddiası yok. E2 ve özgün UA kimlikleri/kişi/tarih/sonuç/sayaçları BEKLİYOR. [Teknik ayrıntı](STATUS.md).
+
 ## 25 Ekim00:52 — B5 ayrı sentetik muhasebe hesabı bağlı; normal finans okuması kısmi
 
 Yeni sentetik10024–4–32 normalgiriş/tamreload, yönetimkapalı/satışreadonly ve normalAPI toplama/CRMret **Ajan doğruladı**. Kasa/Tahsilat normalGUIhatası nedeniyle muhasebe dalı kısmi; API200/16.612ms ekran veya insanPASS değildir. Parasal işlem0. E2veözgünUAID/kişi/tarih/sonuç/sayaçları aynıBEKLİYOR. [STATUS](STATUS.md).

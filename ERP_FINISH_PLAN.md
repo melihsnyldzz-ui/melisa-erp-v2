@@ -1,3 +1,15 @@
+## 25 Ekim01:30 — B5 ana Kasa/Tahsilat okuması doğrulandı; ek hareket özeti açık
+
+**Ajan normal tarayıcıda doğruladı:** sentetik muhasebe hesabı 10024 / personel 4 / mevcut rol 32 ile normal giriş yapıldı. Kasa durumu, ayrı TRY/USD/EUR hesapları ve eski hareketler görüldü; tam yenilemede aynı kimlik ve sonuç korundu. Tahsilat listesinde dört mevcut fiş, seçilen fiş 1 ve eski tahsilat geçmişi görüldü; tam yenilemede seçim ve geçmiş korundu. Tutar veya hesap girilmedi; önizleme, kaydetme, iptal ve onay yapılmadı. Bu yalnız ana finans okuma yollarının ajan kontrolüdür; insan kabulü değildir.
+
+**Açık kalan ek panel — PASS değil:** Tahsilattaki “Kasa ve banka hareketleri” özeti tek müşteri/TRY hesabı bekliyor; gerçek izinli liste dört müşteri ve TRY/USD/EUR içeriyor. Bağımsız sales-context ve payment-context GET yanıtları 200 (28,594 / 25,622 saniye), aynı yanıtlarla mevcut model deterministik “Tahsilat kaynağı doğrulanamadı” reddi veriyor. DTO diğer müşteri adları ve hesap bağlarını taşımıyor. Üç fiş sessizce atılmadı, kimlik veya hesap tahmin edilmedi, dövizler birleştirilmedi. Yeni genel aggregator/native değişikliği yapılmadı. Ana Kasa ve Tahsilat listesi/ayrıntısı/geçmişi çalışıyor; bu ek özet henüz hazır değil.
+
+**Koruma:** son GUI sonrası üç SQL kapsamı byte-eş: 53 katkı sözleşmesi, mevcut 15 kullanıcı/4 personel/roller/izinler/mühürler/sayım/audit ve kendi fiş/koli etkileri. Korumalı giriş kayıtları, relation, CRM store ve koli dosyaları aynı; kendi normal girişinin auth-journal etkisi ayrı. Bu finans okuma düzeltmesinde yeni hesap, finans, stok, fiş veya CRM kaydı yok. TEST125, DB02, karantinalar ve önceki kabuller korundu. B5 bütünü tamamlanmadı; E2/özgün insan kabulleri ve 49/25/17/74 sayaçları değişmedi.
+
+**Sıradaki tek iş:** mevcut altı standart sentetik ERP hesabı için gerçek yeni insan mesajını aynı normal araç incelemesine sun. Bu otomatik özel onay değildir. Ret olursa yalnız salt okunur etki kontrolü; başka rota veya aynı soru tekrarı yok. 10021 pasif kontrolü ve özel envanter aktarımı ayrı bekler.
+
+[Teknik ayrıntı](STATUS.md).
+
 ## 25 Ekim00:52 — B5 ayrı sentetik muhasebe hesabı bağlı; normal finans okuması kısmi
 
 AynıB5muhasebe dalında ayrı sentetik10024–personel4–mevcutrol32 hazır; normalform/giriş/yönetimret/fullreload ve salesreadonly ajan tarafından doğrulandı. Koli/CRMprepare403, finansal işlem0.
