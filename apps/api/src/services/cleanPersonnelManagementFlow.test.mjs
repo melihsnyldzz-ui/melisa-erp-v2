@@ -11,7 +11,9 @@ Object.assign(process.env,environment);
 registerCleanContext({databaseName:CLEAN_DATABASE,serverName:'Semih\\MELISADEV',loginName:CLEAN_LOGIN,databaseUser:CLEAN_LOGIN,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:CLEAN_ENVIRONMENT_ID},environment);
 const fixtureSecret=randomUUID(),fixtureHash=await bcrypt.hash(fixtureSecret,12);
 const roles=[{id:28,code:'clean_test_administrator',name:'Fixture manager',is_active:true},{id:20,code:'clean_test_sales',name:'Fixture sales',is_active:true},{id:25,code:'clean_test_finance',name:'Fixture finance',is_active:true}];
+roles.push({id:30,code:'clean_test_personnel',name:'Fixture combined staff',is_active:true},{id:31,code:'clean_test_personnel_manager',name:'Fixture personal manager',is_active:true});
 const permissions=[{role_id:28,permission_key:'settings.manage',can_create:true},{role_id:28,permission_key:'audit.view',can_view:true},{role_id:28,permission_key:'dashboard.view',can_view:true},{role_id:20,permission_key:'product.view',can_view:true},{role_id:20,permission_key:'sales.create',can_create:true}];
+permissions.push({role_id:30,permission_key:'sales.view',can_view:true},{role_id:30,permission_key:'sales.create',can_create:true},{role_id:30,permission_key:'goods.create',can_create:true},{role_id:30,permission_key:'product.view',can_view:true},{role_id:31,permission_key:'settings.manage',can_create:true},{role_id:31,permission_key:'product.view',can_view:true});
 const initial={users:[{id:10018,username:'semih',password_hash:fixtureHash,display_name:'Fixture manager',role_id:28,is_active:true},{id:15,username:'ornek-satis',password_hash:fixtureHash,display_name:'Protected sample',role_id:20,is_active:true}],employees:[],members:[],audits:[],refresh:[],sequence:50100,employeeSequence:60100};
 let state=structuredClone(initial),failAudit=false,denyNative=false;
 const denied=(number=51972)=>{throw Object.assign(Error('Synthetic native denial'),{number});};
@@ -28,9 +30,9 @@ class Request{
  async execute(name){
   const t=this.transaction,s=t?.data,p=this.params;assert.ok(t);
   if(name==='dbo.usp_clean_personnel_bind'){
-   if(denyNative)denied();const actor=userRow(s,p.actor_id);if(!actor?.is_active||actor.username!=='semih'||actor.role_id!==28)denied();
+   if(denyNative)denied();const actor=userRow(s,p.actor_id);if(!actor?.is_active||!(actor.username==='semih'&&actor.role_id===28||actor.role_id===31&&s.members.some(m=>m.user_id===actor.id&&s.employees.some(e=>e.id===m.employee_id&&e.user_id===actor.id&&e.is_active))))denied();
    const data=JSON.parse(p.payload_json);assert.doesNotMatch(p.payload_json,/passwordHash|password_hash|loginPassword/);
-   if(data.roleId!==undefined&&![20,23,25,26].includes(data.roleId))denied(51974);
+   if(data.roleId!==undefined&&![20,23,25,26,30,31,32].includes(data.roleId))denied(51974);
    if(['user_update','user_password','employee_update'].includes(p.operation)&&!s.members.some(m=>(p.operation==='employee_update'?m.employee_id:m.user_id)===p.target_id))denied(51973);
    if(p.operation.startsWith('employee_')&&!s.members.some(m=>m.user_id===data.userId&&(p.operation==='employee_create'?m.employee_id===null:m.employee_id===p.target_id)&&userRow(s,m.user_id)?.is_active))denied(51973);
    assert.equal(t.intent,null);t.intent={...p,data,changed:0,audited:0};return result([{accepted:true,actorId:p.actor_id,operation:p.operation}]);
@@ -40,7 +42,7 @@ class Request{
  }
  async query(text){
   const s=this.transaction?.data??state,p=this.params,t=this.transaction,i=t?.intent;
-  if(text.includes('OBJECT_ID')&&text.includes('clean_personnel_members'))return {recordsets:[[{ready:true}],s.members]};
+  if(text.includes('OBJECT_ID')&&text.includes('clean_personnel_members'))return {recordsets:[[{ready:true}],s.members,[{personalWorkReady:true}]]};
   if(text.includes('COL_LENGTH'))return result([{is_ready:1}]);
   if(text.includes('INSERT INTO dbo.users')){
    assert.equal(i?.operation,'user_create');assert.match(text,/OUTPUT INSERTED.id INTO @createdUser/);
@@ -53,7 +55,7 @@ class Request{
    const id=++s.employeeSequence;s.employees.push({id,employee_code:p.employeeCode,full_name:p.fullName,phone:p.phone,department:p.department,job_title:p.jobTitle,user_id:p.userId,can_terminal_sale:p.canTerminalSale,can_change_sale_price:p.canChangeSalePrice,max_sale_discount_percent:p.maxSaleDiscountPercent,is_active:p.isActive,created_by:p.actorId,updated_by:p.actorId});s.members.find(m=>m.user_id===p.userId).employee_id=id;i.target_id=id;i.changed++;return result([{id}]);
   }
   if(text.includes('INSERT INTO dbo.audit_logs')){
-   if(failAudit)throw Error('Synthetic audit failure');assert.equal(i.changed,1);assert.equal(p.auditActorUserId,10018);assert.equal(p.auditEntityId,i.target_id);i.audited++;s.audits.push({id:s.audits.length+1,actor_user_id:p.auditActorUserId,action:p.auditAction,entity_type:p.auditEntityType,entity_id:p.auditEntityId,before_json:p.auditBeforeJson,after_json:p.auditAfterJson});return result([]);
+   if(failAudit)throw Error('Synthetic audit failure');assert.equal(i.changed,1);assert.equal(p.auditActorUserId,i.actor_id);assert.equal(p.auditEntityId,i.target_id);i.audited++;s.audits.push({id:s.audits.length+1,actor_user_id:p.auditActorUserId,action:p.auditAction,entity_type:p.auditEntityType,entity_id:p.auditEntityId,before_json:p.auditBeforeJson,after_json:p.auditAfterJson});return result([]);
   }
   if(text.includes('INSERT INTO dbo.auth_refresh_tokens')){s.refresh.push({userId:p.loginUserId,tokenHash:p.refreshTokenHash});return result([]);}
   if(text.includes('UPDATE dbo.users')&&text.includes('password_hash =')){assert.equal(i.operation,'user_password');s.users.find(u=>u.id===p.userId).password_hash=p.passwordHash;s.refresh=s.refresh.filter(r=>r.userId!==p.userId);i.changed++;return result([]);}
@@ -151,4 +153,10 @@ test('normal account disable rejects the same earlier token and password; passiv
  assert.equal((await call('POST','/api/auth-admin/users',credentials,managerToken)).status,409);
  assert.equal((await call('DELETE',`/api/auth-admin/users/${newUserId}`,null,managerToken)).status,403);
  assert.deepEqual(state.users.filter(u=>u.id<50000),initial.users);
+});
+test('normal management selects combined jobs, creates linked personal manager and staff; manager cannot adopt Semih or samples',async()=>{
+ const create=async(username,roleId,token)=>{const body={username,roleId,displayName:'Synthetic personal '+roleId,password:randomUUID()},created=await call('POST','/api/auth-admin/users',body,token);assert.equal(created.status,201,JSON.stringify(created.body));const id=created.body.data.users.find(u=>u.username===username).id;assert.ok(created.body.data.cleanPersonnel.roleIds.includes(roleId));const employee=await call('POST','/api/personnel/employees',{employeeCode:'FIX-'+id,fullName:body.displayName,userId:id,canTerminalSale:true},token);assert.equal(employee.status,201,JSON.stringify(employee.body));return {id,token:(await login(body)).accessToken};};
+ const personalManager=await create('fixture.personal.manager',31,managerToken),personalStaff=await create('fixture.personal.worker',30,personalManager.token);
+ const read=await call('GET','/api/fixture/allowed-read',null,personalStaff.token);assert.equal(read.status,200);assert.equal(read.body.id,personalStaff.id);assert.ok(read.body.permissions.includes('sales.create'));assert.ok(read.body.permissions.includes('goods.create'));assert.ok(!read.body.permissions.includes('settings.manage'));
+ assert.equal((await call('PATCH','/api/auth-admin/users/10018',{displayName:'Changed'},personalManager.token)).status,403);assert.equal((await call('POST','/api/personnel/employees',{employeeCode:'FIX-NO-ADOPT',fullName:'Do not adopt',userId:15},personalManager.token)).status,403);assert.deepEqual(state.users.filter(u=>u.id<50000),initial.users);
 });

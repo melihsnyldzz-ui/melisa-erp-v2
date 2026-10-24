@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {assertRegisteredCleanContext,CLEAN_ENVIRONMENT_ID,isCleanAdministrator} from './cleanSyntheticContext.mjs';
 import {isCleanOrderSaleMutation} from './cleanOrderSaleScope.mjs';
 import {financeRehearsalBinding,financeCashRehearsalBinding} from './cleanFinanceRehearsalModel.mjs';
+import {isCleanPersonalWorkCandidate} from './cleanPersonnelManagement.mjs';
 const scope=new AsyncLocalStorage();
 const permissions=Object.freeze({
  count_create:[18,'goods.create'],count_update:[18,'goods.create'],count_submit:[18,'goods.create'],count_cancel:[18,'goods.create'],
@@ -19,7 +20,7 @@ const uuid=v=>typeof v==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab]
 function target(){assertRegisteredCleanContext();if(process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_STORE_DAY!=='20261022')deny();}
 function binding(input){
  target();
- if(!input||!input.transaction||!input.sqlDriver||!Object.hasOwn(permissions,input.operation)||!positive(input.actor?.id)||!Array.isArray(input.actor.permissions)||!input.actor.permissions.includes(permissions[input.operation][1])||(input.actor.id!==permissions[input.operation][0]&&!isCleanAdministrator(input.actor))||!uuid(input.requestId)||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))deny();
+ if(!input||!input.transaction||!input.sqlDriver||!Object.hasOwn(permissions,input.operation)||!positive(input.actor?.id)||!Array.isArray(input.actor.permissions)||!input.actor.permissions.includes(permissions[input.operation][1])||(input.actor.id!==permissions[input.operation][0]&&!isCleanAdministrator(input.actor)&&!isCleanPersonalWorkCandidate(input.actor,input.operation))||!uuid(input.requestId)||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))deny();
  if(input.receiptId!==null&&!positive(input.receiptId)||input.invoiceId!==null&&!positive(input.invoiceId))deny();
  const financial=['collection_create','payment'].includes(input.operation);
  const inventory=/^(?:stock_count|purchase_return)_/.test(input.operation);
