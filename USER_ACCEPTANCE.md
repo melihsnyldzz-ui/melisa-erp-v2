@@ -1,3 +1,7 @@
+## 24 Ekim09:46 — E1 CRM normal ekran ajan kanıtı; insan kabulü BEKLİYOR
+
+CRM09a gerçek cleanTEST'te mevcut örnek personelle normal giriş/atanmış konuşma/tamreload/çıkış/reload kapalı görüldü;16APIkontrolü ve kendi3deneme ailesinin sunucuda iptali ayrı doğrulandı. Bu gerçek çalışan/Android/Keystore/uygulama kapat-aç veya ERP→CRM aynı-kişi kabulü değildir. Yenihesap/rol/atama/ticariyazma/mesaj yok; mevcut Chromeoturumları korundu. Özgün UA ID/sonuç/kişi/tarih/sayaç değişmedi; [teknik makbuz STATUS'ta](STATUS.md).
+
 ## 24 Ekim — E1 kurulu normal-auth ve tarayıcı teknik kanıtı; insan sonucu BEKLİYOR
 
 ERP8aa mevcut temiz TEST'e kuruldu;13normal giriş/refresh/logout kontrolü, Semih normalgiriş ve ürün ekranı tamreload geçti. CRM B5sunum635 ayrıca kurulu/normal ekranla doğrulandı. Bu ajan kontrolleri gerçek personel veya Android Keystore/uygulama yenidenaçılış/aynı-personel CRM devri kabulü değildir. Fiziksel cihaz denenmedi, pasifAPK kurulmadı; B5gerçekkişi bağı ve özgün terminal kabulleri bekler. Yeni UA/PASS/kişi/tarih/kapanış sayacı üretilmedi. [Teknik sonuç](STATUS.md).

@@ -1,3 +1,9 @@
+## 24 Ekim09:46 — E1 CRM kendi normal oturumu kurulu ve gerçek ekranla doğrulandı
+
+CRM09a kaynak/frontend/backend,772dosya,09:44TR mevcut temiz TEST'e kuruldu; exactCI7/7/inceleme0.16normal APIkontrolü, normal personel atanmış konuşma/tamreload/çıkış/yenilemede kapalı sonucu ve sunucuda3aile iptali geçti. ERP8aa/native035/diğer16listener ve53SQLaynı, mesaj/ticari/hesap/rol/atama yazması0. Önceden kapalı mevcut7cleanport aynı starter'larla geri açılmıştı; neden kanıtlanmadı, reboot değildir. E1aynı-kişi/koli/Android/gerçekpersonel/insan açık; pasifAPK kurulmadı. Yeni takip/sayaç yok. [STATUS](STATUS.md).
+
+### Önceki ERP E1 kurulum teslimi — korundu
+
 ## 24 Ekim04:38 — E1 sunucu/web oturum alt kapsamı kurulu; cihaz/CRM kişi devri açık
 
 ERP8aa exactCI3/3 ve bağımsız kaynak incelemesi sonrası yalnız mevcut clean4194/5244'e kuruldu.13normal-auth kontrolü, mevcut Semih normal tarayıcı girişi/ürün tamreload ve53SQLkoruma özeti geçti; native/CRM/diğer18listener korundu. AndroidAPK pasif; CRM2c kurulmadı, clean CRMrenewal/eş-kişi/koli/gerçek cihaz ve insan sonucu BEKLİYOR. B5 gerçek9kişi bağı tahmin edilmedi; A5/C6önkontrol/Dmodel alt teslimleri korunur. Tamamlama sayaçları değişmedi. [STATUS](STATUS.md).

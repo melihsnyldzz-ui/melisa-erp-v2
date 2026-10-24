@@ -1,3 +1,9 @@
+## 24 Ekim09:46 — E1 CRM normal oturum alt kapsamı gerçek TEST'te hazır
+
+CRM09a kurulu:16normal APIkontrolü ve normal personel ekranı/atanmış konuşma/reload/çıkış/reload kapalı geçti;53SQL ve ERP8aa/native035 korundu. ERP→CRM aynı kişi eşlemesi, koli, fizikselAndroid/yenidenaçılış ve insan kabulü hâlâ açık; tekil CRMnormal oturum sonucu bu şartları kapatmaz. YeniUA/PASS/sayaç yok;49/25/17/74 aynı. [STATUS](STATUS.md).
+
+### Önceki ERP E1 alt teslimi — korundu
+
 ## 24 Ekim — E1 normal sunucu oturumu teknik alt kapsamı TEST'te doğrulandı
 
 ERP8aa web/API kurulu;13gerçek normal-auth kontrolü, Semih normalgiriş/ürün tamreload ve53SQLkoruma özeti geçti. Bu Android yenidenaçılış/ERP-CRM aynı kişi/koli/insan kabulü değildir. PasifAPK kurulmadı, E1 tam kapsamı ve B5 gerçek9kişi bağı açık.49ERP/25CRM ve17/74 özgün sayaç aynı. A5gerçekrehber/C6önkontrol/Dsafmodel önceki alt kanıtları korunur. [STATUS](STATUS.md).
