@@ -484,7 +484,7 @@ export async function confirmProtectedNormalSession(accessToken,refreshToken){
  store.verifyPair(payload.normalTestSessionId,refreshToken,user);
  // Metadata belongs to the already verified JWT + current user + refresh pair.
  // It is not a CRM identity, a transferable grant, or a client-selected family.
- return {confirmed:true,user,normalTestSessionId:payload.normalTestSessionId,expiresAt:payload.exp*1000};
+ return {confirmed:true,user,...(getCleanContext()?{normalTestSessionId:payload.normalTestSessionId}:{}),expiresAt:payload.exp*1000};
 }
 export function verifyNormalTestAccessSession(payload,user){if(payload.normalTestSessionId){const store=normalTestStore();if(!store)throw makeAuthError('AUTH_REFRESH_INVALID','Session configuration unavailable',401);if(!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);store.verify(payload.normalTestSessionId,user);}}
 // Server-only adapter read. No HTTP caller can select a user/family through it.

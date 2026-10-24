@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {logger, requestLogPath} from './logger.js';
 
+test('terminal handoff diagnostic admits only the reviewed code and redacts credentials and suffixes',()=>{
+ const code='TERMINAL_HANDOFF_INVALID';
+ const result=capture(()=>logger.error('API error normalized',{code,refreshToken:'fixture-private-refresh',peerKey:'fixture-private-peer',deviceBinding:'fixture-private-device'}));
+ assert.equal(result[0].payload.code,code);assert.doesNotMatch(JSON.stringify(result),/fixture-private/);
+ for(const value of [code+'_PRIVATE',code.toLowerCase(),'TERMINAL_HANDOFF_UNKNOWN'])assert.equal(capture(()=>logger.error('API error normalized',{code:value}))[0].payload.code,redacted);
+});
+
 const requestId = '11111111-2222-4333-8444-555555555555';
 const marker = 'harmless-canary-unique-head-and-tail';
 const redacted = '[REDACTED]';
