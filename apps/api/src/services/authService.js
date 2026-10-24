@@ -12,7 +12,7 @@ function assertAuthWriteEnabled(){if(getCleanContext()){assertRegisteredCleanCon
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 import {sharedCopyAuthClaims} from './sharedCopyAuthClaims.mjs';
 import {bindNormalTestFingerprint,configuredNormalTestRefreshStore} from './normalTestRefreshSession.mjs';
-import {allowsProtectedNormalTestUser,configuredSemihTestIdentity,matchesSemihTestUser} from './semihTestIdentityPolicy.mjs';
+import {allowsProtectedNormalTestUser,configuredSemihTestIdentity,matchesSemihTestUser,requiresCleanPersonalNormalWitness,bindCleanPersonalNormalTestUser} from './semihTestIdentityPolicy.mjs';
 
 function makeAuthError(code, message, statusCode = 401) {
   const error = new Error(message);
@@ -52,10 +52,10 @@ function getRefreshExpiresAt() {
   return new Date(Date.now() + milliseconds);
 }
 
-function toUserDto(row, permissions = []) {
+function toUserDto(row, permissions = [], fingerprint = true) {
   const expandedPermissions = applyRolePermissionDefaults(permissions, row.role_code);
 
-  return bindNormalTestFingerprint({
+  const user={
     id: Number(row.id),
     username: row.username,
     displayName: row.display_name,
@@ -65,7 +65,41 @@ function toUserDto(row, permissions = []) {
       name: row.role_name,
     },
     permissions: expandedPermissions,
-  },row);
+  };
+  return fingerprint?bindNormalTestFingerprint(user,row):user;
+}
+
+async function toNormalUserDto(pool,row,permissions){
+ const user=toUserDto(row,permissions,false);
+ if(!getCleanContext())return bindNormalTestFingerprint(user,row);
+ const options=normalTestIdentityOptions();
+ if(!requiresCleanPersonalNormalWitness(user,options))return bindNormalTestFingerprint(user,row);
+ // One current, read-only joined observation. Neither supplied JWT roles nor
+ // client confirmation can stand in for enrollment and an active employee.
+ let result;
+ try{result=await pool.request().input('personalSessionUserId',sql.BigInt,user.id).query(`
+  SELECT m.user_id actorId,p.id employeeId,p.user_id employeeUserId,u.username,
+   u.password_hash passwordHash,r.id roleId,r.code roleCode,
+   u.is_active userActive,r.is_active roleActive,p.is_active employeeActive,
+   CONVERT(varchar(18),u.row_version,1) userVersion,
+   CONVERT(varchar(18),r.row_version,1) roleVersion,
+   CONVERT(varchar(18),p.row_version,1) employeeVersion,
+   CONVERT(varchar(33),m.created_at,126) memberCreatedAt,
+   DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,
+   ORIGINAL_LOGIN() loginName,USER_NAME() databaseUser,
+   CONVERT(varchar(36),e.environment_id) environmentId,e.synthetic,
+   e.actual_t1 actualT1,e.external_operations externalOperations,
+   (SELECT permission_key,can_view,can_create,can_update,can_delete,can_approve,
+     CONVERT(varchar(18),row_version,1) version FROM dbo.permissions
+     WHERE role_id=r.id ORDER BY permission_key FOR JSON PATH) permissionState
+  FROM dbo.clean_personnel_members m
+  JOIN dbo.employees p ON p.id=m.employee_id AND p.user_id=m.user_id
+  JOIN dbo.users u ON u.id=m.user_id JOIN dbo.roles r ON r.id=u.role_id
+  CROSS JOIN dbo.clean_test_environment e
+  WHERE m.user_id=@personalSessionUserId AND e.id=1;
+ `);}catch(error){if(error.number===208)throw makeAuthError('AUTH_REFRESH_INVALID','Personal TEST session schema is unavailable',401);throw error;}
+ if(result.recordset?.length!==1)throw makeAuthError('AUTH_REFRESH_INVALID','Personal TEST session enrollment is unavailable',401);
+ return bindCleanPersonalNormalTestUser(user,row,result.recordset[0],options);
 }
 
 function signAccessToken(user, nativeTerminalCode = null, normalTestSessionId = null) {
@@ -135,7 +169,7 @@ export async function getUserById(userId) {
   }
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
-  return toUserDto(row, permissions);
+  return toNormalUserDto(pool,row,permissions);
 }
 
 export async function authenticateUserCredentials({ username, password }) {
@@ -177,7 +211,7 @@ export async function authenticateUserCredentials({ username, password }) {
   }
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
-  const user = toUserDto(row, permissions);
+  const user = await toNormalUserDto(pool,row,permissions);
   return user;
 }
 
