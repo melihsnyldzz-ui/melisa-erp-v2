@@ -55,6 +55,9 @@ class WorkTasksActivity : ComponentActivity() {
     private val protectedPolicy by lazy { WorkProtectedSessionPolicy(contract.origin) }
     private val protectedVault by lazy { Vault(this) }
     private val protectedSessionLock = Mutex()
+    private val sessionHandoff by lazy {
+        if (contract.origin.endsWith(":5244")) WorkSessionHandoff(contract.origin, protectedVault::get, protectedVault::put, WorkHandoffHttp(contract.origin)) else null
+    }
     private var protectedStorageReady = false
     private val labels = linkedMapOf("goods" to "Mal kabul", "sales" to "Satış", "packing" to "Koli hazırlama", "crm" to "Müşterilerim")
 
@@ -125,11 +128,12 @@ class WorkTasksActivity : ComponentActivity() {
                 val key = protectedPolicy.key(sourceOrigin.toString(), isMainFrame, view.url.orEmpty())
                 val request = runCatching { parseWorkProtectedRequest(message.data ?: "") }.getOrNull()
                 if (key == null || request == null) return@addWebMessageListener
+                val epoch = if (request.action == "get") sessionHandoff?.epoch() else sessionHandoff?.invalidate()
                 lifecycleScope.launch {
                     protectedSessionLock.withLock {
                         if (protectedPolicy.key(sourceOrigin.toString(), isMainFrame, view.url.orEmpty()) != key) return@withLock
                         val result = runCatching {
-                            when (request.action) {
+                            if (sessionHandoff != null) sessionHandoff!!.execute(key, request, epoch!!) else when (request.action) {
                                 "put" -> { protectedVault.put(key, request.session!!.toString()); null }
                                 "clear" -> { protectedVault.put(key, null); null }
                                 else -> protectedVault.get(key)?.let { raw ->
@@ -140,7 +144,7 @@ class WorkTasksActivity : ComponentActivity() {
                                 }
                             }
                         }
-                        if (protectedPolicy.key(sourceOrigin.toString(), isMainFrame, view.url.orEmpty()) == key) {
+                        if ((epoch == null || sessionHandoff?.epoch() == epoch) && protectedPolicy.key(sourceOrigin.toString(), isMainFrame, view.url.orEmpty()) == key) {
                             runCatching { reply.postMessage(protectedSessionReply(request.id, result.isSuccess, result.getOrNull())) }
                         }
                     }
@@ -215,5 +219,5 @@ class WorkTasksActivity : ComponentActivity() {
     override fun onPause() { resumed = false; gate.pause(); scanner.onPause(); web.onPause(); super.onPause() }
     override fun onStop() { scanner.onStop(); super.onStop() }
     override fun onSaveInstanceState(outState: Bundle) { web.saveState(outState); if (!home) outState.putString("task", task); super.onSaveInstanceState(outState) }
-    override fun onDestroy() { gate.pause(); scanner.close(); web.destroy(); super.onDestroy() }
+    override fun onDestroy() { sessionHandoff?.invalidate(); gate.pause(); scanner.close(); web.destroy(); super.onDestroy() }
 }

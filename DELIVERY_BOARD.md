@@ -1,3 +1,9 @@
+## 24 Ekim — E1 native bağlayıcı kaynak ve APK derlemesi hazır; kurulum/cihaz açık
+
+Mevcut Keystore/get-put-clear/FIFO'da ilk boşCRM alanı kendi ERPkişisiyle açılır; taze serverkimlik, ownfamilyclose/persistpendingclose/generation ve ERPwebrenew korunur.18JVM+41webPASS, gerçek offline APK/Androidlint başarılı/v2imza/debugfalse; nativeROreview0. Son exactCI ve CRMlinked15sn sourcepin bekliyor. ADBcihaz0/AVD0; normalAPKGUI/gerçekKeystore/insan denenmedi. KuruluERP8aa/CRM09a/native035,veri/roller/C5 aynı; [STATUS](STATUS.md). Sonraki teknik halka sonkaynak/CI/paket eşlemesi ve mevcuttekownerkurulumdur; fizikselAndroid girdisi ayrı açık. Yeni iş/sayaç yok.
+
+### Önceki E1 sağlayıcı kaynak teslimi — korundu
+
 ## 24 Ekim — E1 ERP handoff sağlayıcısı kaynak/test hazır, ortak kurulum henüz yok
 
 Mevcut normal aile/store + explicitrelation +30s/PKCE/one-use peer adapter;20hedef test mevcut offlineguard ilePASS. Exact clean4194/default-off/loopbackpeer ve credential ayrımı korunur. [Wire sözleşmesi](docs/erp-v2/terminal-handoff-contract.md); ROreview0/exact8dfCIikiçalışmada3/3SUCCESS;CRMowner5ortakkaynakPASS, gerçekERPauth/nativebağ/kurulum/cihaz/insan ayrı bekler. KuruluERP8aa/CRM09a/native035 bu işte değiştirilmedi. Yeni iş/sayaç yok; mevcut E1 devam eder. [STATUS](STATUS.md).

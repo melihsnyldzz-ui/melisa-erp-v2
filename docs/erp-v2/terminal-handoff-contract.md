@@ -1,6 +1,6 @@
 # E1 — mevcut normal oturumlar arasında dar TEST devri
 
-24 Ekim 2026. Bu belge mevcut E1 sözleşmesidir; yeni kimlik, login veya takip sistemi değildir. ERP sağlayıcı kaynağı ve sentetik HTTP testleri hazırdır. Android tüketici, CRM exact kaynakla ortak uçtan uca doğrulama, kurulum ve insan kabulü henüz tamamlanmadı. Kurulu ERP8aa/CRM09a/native035 bu kaynak tesliminde değiştirilmez.
+24 Ekim 2026. Bu belge mevcut E1 sözleşmesidir; yeni kimlik, login veya takip sistemi değildir. ERP sağlayıcısı ve Android bağlayıcı kaynağı/gerçek APK derlemesi hazırdır. CRM exact kaynakla ortak kaynak fixture'si vardır; kurulum/normal native ekran ve insan kabulü henüz tamamlanmadı. Kurulu ERP8aa/CRM09a/native035 bu kaynak tesliminde değiştirilmez.
 
 ## Otorite ve sınır
 
@@ -38,7 +38,17 @@ RequestId UUIDv4; deviceBinding native korumalı cihaz psödoniminin küçük he
 
 `version, environmentId, database, erpOrigin, crmOrigin, erpUserId, erpNormalSessionId, crmUserId, chatwootAgentId, bindingRevision, expiresAt`.
 
-Identity expiresAt her verify'de yeniden üretilir, en fazla30s ve aile ömrüyle sınırlıdır; cache bu kontrolü atlayamaz. Mevcut JS get/put/clear ve parent activate/logout protokolü değişmez. Native ERP çıkış/hesap değişiminde kendi eski CRM ailesini kapatmalı; geç cevap/generation veya kapanış belirsizliği eski kullanıcıyı yayımlamamalıdır. Android'deki bu bağlayıcı henüz bu teslimin sonucu değildir.
+Identity expiresAt her verify'de yeniden üretilir, en fazla30s ve aile ömrüyle sınırlıdır; cache bu kontrolü atlayamaz. Mevcut JS get/put/clear ve parent activate/logout protokolü değişmez. Native ERP çıkış/hesap değişiminde kendi eski CRM ailesini kapatır; geç cevap/generation veya kapanış belirsizliği eski kullanıcıyı yayımlamaz. Aşağıdaki native kaynak kontrolü cihaz kabulü değildir.
+
+## Native kaynak ve APK alt kanıtı
+
+WorkSessionHandoff yalnız clean5244 ve mevcut KeystoreVault/serileştirilmiş mutex içinde çalışır; eski5234 yolu değişmez. ERPput normal session-confirm ile kendi çiftini doğrular, ayrı aile metadata'sı saklanır. İlkboşCRMget prepare→CRMissuer→freshme yolunu kullanır; sadece kendi CRM normal grant'i ayrı CRMrealm'ine kaydedilir. Native ERP refresh'i web kodunun arkasından çevrilmez: ERPweb CRMactivationöncesi mevcut renew/me çağrısını yapar. Yeniden açma ve CRMrefresh kendi mevcut issuer/freshme yolundadır. CRMrol/izin/11alan/ERPfamily/revision karşılaştırması her nativeget/put'ta tekrarlanır; bu backend doğrulamasının yerine geçmez.
+
+Çıkışta/hesap değişiminde sadece kendi eski CRM/ERP ailesi kapanır. Kapanış gönderiminden önce eski grant yalnız korumalı pending-close alanına alınır; bu kayıt uygulama aç-kapa sırasında da kapanış doğrulanmadan yeni kullanıcıya geçilmesini engeller. Generation mesaj alımında, mutex beklenmeden değişir; eski sıradaki veya geç cevap yeni kullanıcıya yayımlanmaz. Bilinen geç issuer cevabı kendi grant'ini kapatır. Yanıt tamamen kaybolmuşsa native eline ulaşmayan grant'in kapandığı iddia edilmez; hiçbir native grant/UI yayımlanmaz, ERP aile iptali backend linked kullanımını da reddeder. Native process ölümü/gerçek ağ kaybı/Keystore cihaz kanıtı henüz yoktur.
+
+WorkHandoffHttp sabit ERP/CRM yollarına bağlıdır; peer RPC/anahtar taşımaz. Redirect/cookie/otomatikHTTPtekrarı yok;3sn call/2sn connect ve64KiB response sınırı. Hata/response/credential günlüğü yok. Eski taslak/finans/stok/scanner yoluna dokunulmadı.
+
+18JVM kontrolü (11handoff+6realm+1HTTPtarget),41ilgili web kontrolüPASS; gerçek offline Gradle test/assembleWorktestRelease/lint başarılı. APK45.358.905bayt/SHA256 EF94FD383F09BDD3F427CAFBC8B16D637F4CA67D8E16686098461C6F5ED72717, applicationId com.melisaerp.nativeterminal.worktest, minSDK28/target35, debugfalse/v2imzalı. Lint0Error/6Warning yalnız değişmeyen kaynaklarda. Bağımsız CRMROincelemesi somutP1/P2=0; cihaztesti yapılmadı. TekADBlistesinde cihaz0/mevcutAVD0. PaketCI,CRMlinked15sn budget sonkaynağı ve tekownerkurulum ayrıca bekliyor; APKkurulu/insanPASS yoktur.
 
 ## Kanıt
 

@@ -99,8 +99,13 @@ async function requestCrmLogout(){
  crmLogoutPending=true;storage.setItem('crmLogoutPending','true');
  await new Promise(resolve=>{logoutResolve=resolve;recoverCrmLogout();setTimeout(()=>{if(logoutResolve===resolve){logoutResolve=null;resolve();}},4000);});
 }
-function openCrm(){
+async function openCrm(){
  syncCrmHeight();requestAnimationFrame(syncCrmHeight);
+ if(/MelisaProtectedWork\/1/.test(navigator.userAgent)&&location.port==='5244'){
+  const starting=session,version=navigationVersion;frame.hidden=true;crm.dataset.ready='false';
+  try{await starting?.prepareCrm();if(!starting||session!==starting||version!==navigationVersion||route!=='crm')return;}
+  catch{if(session===starting&&version===navigationVersion){crmStatus.textContent='ERP oturumu şu anda doğrulanamıyor. Bağlantıyı kontrol edip yeniden deneyin.';frame.hidden=true;}return;}
+ }
  if(crmLogoutPending){frame.hidden=true;crm.dataset.ready='false';crmStatus.textContent='Önceki müşteri oturumunun kapanışı doğrulanıyor. ERP işlerinize devam edebilirsiniz.';recoverCrmLogout();return;}
  frame.hidden=false;
  if(!online()){crmStatus.textContent=terminalOfflineText;crm.dataset.ready='false';return;}

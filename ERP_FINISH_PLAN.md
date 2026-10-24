@@ -1,3 +1,7 @@
+## 24 Ekim — mevcut E1 native kaynak/APK teknik alt kanıtı
+
+18JVM+41webPASS, gerçek offlineworktestAPK/lint/v2imza/debugfalse hazır. İlkboşCRMget/aynıkişirotation/ownclosure/pendingbarrier/generation kaynakta bağlı; [STATUS](STATUS.md). Kurulum/nativeGUI/gerçekKeystore/cihaz/insan henüz yok, ADB0/AVD0. Son kaynakCI/CRMtimeoutpin ve tekownerkurulum sıradaki; B5 ayrıowner'da.49/25/17/74 ve özgünUA aynı.
+
 ## 24 Ekim — mevcut E1 sağlayıcı kaynak alt kanıtı, bitiş sayısı değişmedi
 
 ERP mevcut normal aile/hashstore üzerinde tek kullanımlık30s/PKCE/explicitrelation peer adapter ve18offlineguard test hazır. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). Kaynak henüz kurulu değil; native/CRM ortak E2E/cihaz/insan açık. B5 kimlik boşlukları tahminle kapatılmadı,49/25/17/74 aynı.

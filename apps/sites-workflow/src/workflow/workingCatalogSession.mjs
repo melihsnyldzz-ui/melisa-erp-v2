@@ -77,6 +77,12 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
  return {
+  async prepareCrm(){
+   if(!protectedDevice||!isCleanCatalogLocation(location)||!active||!token||!user)throw problem('ERP oturumu doğrulanamadı.',401);
+   const version=generation,expected={id:user.id,username:user.username};
+   const payload=await request('/api/auth/me',{expire:true});
+   if(!active||generation!==version||payload.data?.id!==expected.id||payload.data?.username!==expected.username)throw problem('ERP oturumu değişti.',401);
+  },
   async start(){
    if(protectedDevice){
     if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{storage?.removeItem(workingCatalogTokenKey);}catch{}

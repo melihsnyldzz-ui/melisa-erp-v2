@@ -1,3 +1,7 @@
+## 24 Ekim — E1 Android bağlayıcı/APK derlemesi, gerçek cihaz ve insan BEKLİYOR
+
+18JVM+41web ve gerçek offline Androidtest/APK/lint/v2imza teknik olarak geçti. Bunlar memoryvault/sunucufixture ve kaynak kanıtıdır; Keystore/normal cihaz ekranı/yeniden açma/TC21/personel kabulü değildir. ADBbağlıcihaz0/mevcutAVD0; APKkurulmadı. SonCI/CRMtimeout/ortakkurulum ayrı bekler; eski insan sonuçları ve sayaçlar değişmedi. [STATUS](STATUS.md).
+
 ## 24 Ekim — E1 kaynak handoff kanıtı insan kabulü değildir
 
 ERP sağlayıcı20hedef kaynak/offline HTTP testi geçti; henüz kurulu native/CRM aynı kişi geçişi, AndroidKeystore/aç-kapa/çıkış/gerçek cihaz veya çalışan sonucu yok. Mevcut E1/özgünUA BEKLİYOR; sayaç ve eski insan sonuçları aynı. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). KuruluTEST değişmedi.
