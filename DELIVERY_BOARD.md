@@ -1,3 +1,11 @@
+## 24 Ekim23:38 — B5 altı standart kişisel TEST bağı önkontrolü hazır; oluşturma komutu özel onay nedeniyle çalışmadı
+
+Aynı B5(1) altı görev için normal exact active/passive envanter: çakışma0/mevcutçift0/eksik6. Mevcut rol30, tek ek kolileme görevi/diğer5kapalı; gerçek hesap sahipliği veya kimlik uydurulmadı.
+
+**Yeni somut engel:** Normal yönetim API'siyle altı ayrı sentetik hesap/personel oluşturma komutu CreateProcess öncesi otomatik incelemece, bu altı kimlik/görev için özel doğrudan onay eksikliği gerekçesiyle reddedildi. ProcessStarted=false; sonrasında yalnız salt okunur SQL yeni kullanıcı0/personel0, toplam eski kullanıcı13/personel2 ve korumalı dosyalar byte-aynı sonucunu doğruladı. Parola teslim dosyası0; uygulama API çağrısı/SQL DML/metadata/restart/CRM/ticari yazı0. Ret başka komut/GUI/hesap/ajanla aşılmadı. Altı kapsamı tek soruda açıkça adlandıran ayrı doğrudan kullanıcı yanıtı bekliyor; önceki dört işlemlik onay sorusu ve10021pasif/özel envanter aktarımı soruları ayrı kalır. Mevcut genel yetki veya koordinatör devri bu ret için onay yerine kullanılmadı.
+
+KuruluERP/CRM,10021sayım/kabul ve10022fiş/iki koli aynı. Yeni kullanılabilir hesap0; B5 teknik açık/insanE2ayrı, sayaçlar aynı. [STATUS](STATUS.md).
+
 ## 24 Ekim23:27 — B5 kişisel CRM Personel ve bağımsız Müdür normal okuması kurulu; atama/ERP bağı onay bekliyor
 
 Mevcut normal CRM Ayarlar→hesap envanteri→Yeni TEST hesabı→Hesabı kaydet yolu gerçekten iki kez gönderildi. Ayrı kişisel sentetik Personel/temsilci1002 ve kullanıcı tarafından özel olarak onaylanan gerçek mudur rolünde bağımsız Müdür/temsilci1003 oluşturuldu. Müdür adına Patron hesabı kullanılmadı. Her biri ayrı normal tarayıcı sekmesinden kendi korumalı teslimiyle giriş yaptı; tamreload sonrası aynı kimlik kaldı. Müdür üç yapay görüşmeyi ve7hesaplık yönetim envanterini okudu; Personel henüz atanmamışken0görüşme gördü, normal Ayarlar ekranında yönetim envanteri yok. Bu **Ajan doğruladı** sonucudur; atanmış görüşme/handoff/gerçek kişi veya insan UX kabulü değildir.

@@ -1,3 +1,11 @@
+## 24 Ekim23:38 — B5 altı standart kişisel TEST bağı önkontrolü hazır; oluşturma komutu özel onay nedeniyle çalışmadı
+
+Bekleyen TEST156ataması/ERP31yönetici/iki kişisel ERP–CRM bağı/4194restartı zincirinden bağımsız olarak aynı B5(1) içindeki altı standart personel görevi ele alındı. Normal mevcut Semih yönetimi üzerinden active/passive kullanıcı ve personel envanteri okundu: altı ayrılmış sentetik kullanıcı adı/personel kodunda çakışma0, kesin mevcut çift0, iki tarafı da eksik6. Yeni gerçek kişi kimliği veya mevcut hesap sahipliği tahmin edilmedi. Mevcut rol30; satış/mal kabul/sayım, yalnız bir temsilcide ek kolileme, diğer beşinde kapalı; fiyat değiştirme kapalı/iskonto0 planlandı. Turgay görev temsilcisi10022/personel2 ve eski10021 değiştirilmedi; aynı satış/sayım/koli işlemi tekrarlanmadı.
+
+**Yeni somut engel:** Normal yönetim API'siyle altı ayrı sentetik hesap/personel oluşturma komutu CreateProcess öncesi otomatik incelemece, bu altı kimlik/görev için özel doğrudan onay eksikliği gerekçesiyle reddedildi. ProcessStarted=false; sonrasında yalnız salt okunur SQL yeni kullanıcı0/personel0, toplam eski kullanıcı13/personel2 ve korumalı dosyalar byte-aynı sonucunu doğruladı. Parola teslim dosyası0; uygulama API çağrısı/SQL DML/metadata/restart/CRM/ticari yazı0. Ret başka komut/GUI/hesap/ajanla aşılmadı. Altı kapsamı tek soruda açıkça adlandıran ayrı doğrudan kullanıcı yanıtı bekliyor; önceki dört işlemlik onay sorusu ve10021pasif/özel envanter aktarımı soruları ayrı kalır. Mevcut genel yetki veya koordinatör devri bu ret için onay yerine kullanılmadı.
+
+Özgün B5 dört sonuç,49ERP/25CRM/17başlık/74yaprak aynı. Önkontrol/önce görüntüsü kullanılabilir hesap teslimi değildir; bekleyen yanıt olmadan bu altı bağ veya reddedilmiş CRM/ERP yönetici zinciri uygulanmaz. [Kanıt](STATUS.md).
+
 ## 24 Ekim23:27 — B5 kişisel CRM Personel ve bağımsız Müdür normal okuması kurulu; atama/ERP bağı onay bekliyor
 
 Mevcut B5 üçüncü/dördüncü kullanım sonucunda iki kişisel sentetik CRM form kaydı, ayrı Personel ve gerçek mudur rolünde normal giriş/tamreload/okuma kanıtlandı. Atanmış görüşme ve exact ERP–CRM kişisel bağ henüz yok; kapandı sayılmaz.803dosyalık yeni Node24.19 CRM kurulu, ERP ve native aynı.
