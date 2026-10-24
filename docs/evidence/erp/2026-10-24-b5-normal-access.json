@@ -2862,6 +2862,113 @@
           ],
           "accountCount": 4
         }
+      },
+      "sourceContractInvestigation": {
+        "status": "BLOCKED_NORMAL_READ_DTO_MISSING_REVERSAL_EVIDENCE",
+        "observedAt": "2026-10-24T23:06:24.420Z",
+        "api": {
+          "businessWrites": 0,
+          "calls": [
+            {
+              "code": null,
+              "path": "/api/work-collections/context?invoiceId=2",
+              "elapsedMs": 31618,
+              "status": 200
+            },
+            {
+              "code": null,
+              "path": "/api/work-collections/context?invoiceId=3",
+              "elapsedMs": 25741,
+              "status": 200
+            }
+          ],
+          "restart": 0,
+          "ownLogout": true,
+          "observedAt": "2026-10-25T02:05:29.1102722+03:00",
+          "accountWrites": 0,
+          "scope": "Only two existing inputs needed by optional movement panel"
+        },
+        "source": {
+          "path": "apps/api/src/services/cleanStoreDayStore.mjs",
+          "sha256": "48ddba92b8fc8d69135052bff47ef7d7f604c7e964235a5514f1ee5514026757",
+          "installedApiCommit": "b9dd984876c808482017365556538078601187b8",
+          "normalCleanReaderChecksCancellationExistence": true,
+          "normalCleanReaderExposesReversalFields": false,
+          "historicalGenericReaderIsNotCurrentCleanAdapter": true
+        },
+        "cases": [
+          {
+            "invoiceId": "2",
+            "customerMatchesInvoice": true,
+            "customerId": "2",
+            "currency": "TRY",
+            "customerCodeAndNamePresent": true,
+            "accounts": [
+              {
+                "id": "2",
+                "currency": "TRY",
+                "namePresent": true
+              }
+            ],
+            "cancelledCount": 2,
+            "missingFields": [
+              "reversalId",
+              "reversalAccountId",
+              "reversalAmountExact4",
+              "reversalCurrency",
+              "reversalDocumentDate",
+              "reversalCreatedAt"
+            ],
+            "allCancelledSourcesIncomplete": true,
+            "currentModelFailureAfterExactCustomerAndAccountSelection": "Tahsilat ters kaydı doğrulanamadı."
+          },
+          {
+            "invoiceId": "3",
+            "customerMatchesInvoice": true,
+            "customerId": "3",
+            "currency": "USD",
+            "customerCodeAndNamePresent": true,
+            "accounts": [
+              {
+                "id": "3",
+                "currency": "USD",
+                "namePresent": true
+              }
+            ],
+            "cancelledCount": 1,
+            "missingFields": [
+              "reversalId",
+              "reversalAccountId",
+              "reversalAmountExact4",
+              "reversalCurrency",
+              "reversalDocumentDate",
+              "reversalCreatedAt"
+            ],
+            "allCancelledSourcesIncomplete": true,
+            "currentModelFailureAfterExactCustomerAndAccountSelection": "Tahsilat hesabı doğrulanamadı."
+          }
+        ],
+        "missingReversalFields": [
+          "reversalId",
+          "reversalAccountId",
+          "reversalAmountExact4",
+          "reversalCurrency",
+          "reversalDocumentDate",
+          "reversalCreatedAt"
+        ],
+        "exactPartyAndAccountMetadataExistsInInvoiceContext": true,
+        "clientOnlyFixSufficient": false,
+        "sqlDataAbsenceClaimed": false,
+        "backendReaderChangeApplied": false,
+        "rowsDiscarded": 0,
+        "guessedBindings": 0,
+        "timeoutWidening": 0,
+        "accountWrites": 0,
+        "businessWrites": 0,
+        "restart": 0,
+        "applicationCodeChanged": false,
+        "newPackage": false,
+        "humanAcceptance": "PENDING"
       }
     },
     "backendSpeedupClaimed": false,

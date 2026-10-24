@@ -1,3 +1,17 @@
+## 25 Ekim02:07 — B5 ek hareket panelinin eksik normal kaynak alanları kesinleşti
+
+Yalnız ek hareket panelinin iki mevcut girdisi, aynı sentetik muhasebe10024/rol32 ile normal GET üzerinden okundu: fiş2/TRY 200,31,618s; fiş3/USD 200,25,741s. Her iki yanıtta müşteri kimliği/adı/kodu ve fişle aynı dövizdeki doğru finans hesabı mevcut. Bu bilgiler listede yok, fişe özel tahsilat context yanıtında bulunuyor. İki mevcut giriş okuması dışında kabul edilmiş ana Kasa/Tahsilat, sayım, koli veya CRM kontrolleri yeniden yürütülmedi. Kendi geçici normal oturumu kapatıldı.
+
+**İstemci düzeltmesini engelleyen somut eksik:** fiş2’deki iki ve fiş3’teki bir iptal edilmiş tahsilatın hiçbirinde reversalId, reversalAccountId, reversalAmountExact4, reversalCurrency, reversalDocumentDate, reversalCreatedAt dönmüyor. Kurulu APIb9 cleanStoreDayStore/attachCleanFinanceRehearsal okuyucusu yalnız ters bağlantı var mı diye EXISTS ile cancelled durumunu üretiyor; ters kaydı ve finans satırını döndürmüyor. Başka tarihsel workTradeStore okuyucusunda bu alanların bulunması, onu güncel clean hedefte kullanma kanıtı veya yetkisi değildir. SQL’de ters kayıt yok denmedi; normal yetkili DTO’da kanıt eksik.
+
+**Yeni dar kanıt:** gerçek fişe özel müşteri/hesap bağlarıyla mevcut model yerel olarak sınandı. TRY fiş2 “Tahsilat ters kaydı doğrulanamadı”, USD fiş3 “Tahsilat hesabı doğrulanamadı” ile kapalı kaldı. Böylece yalnız müşteri seçimini düzeltmenin yetmediği; TRY sabit kabulü ve eksik ters kayıt kanıtının ayrı sorunlar olduğu görüldü. Bu negatif kaynak teşhisidir, panel PASS değildir. İlk context yanıtı mevcut30s sınıfını da aşıyor; ek timeout artırılmadı ve hızlanma iddiası yok.
+
+**Uygulanan değişiklik:** yalnız mevcut teknik kayıtlar güncellendi. Uygulama kodu, SQL metadata, yetki, hesap, görev, atama, finans/stok/fiş, paket, servis veya kurulum değişmedi; yeni CI yok. b89 FINANCEPROFILE web/APIb9/CRM476 korunur. Yeni genel aggregator/cache veya eksik ters kaydı tahmin ederek satır üretme yapılmadı; hiçbir kayıt sessizce atılmadı. Kaynak/API/GUI/insan kabulü ayrı; E2/özgün UA ve sayaçlar aynı.
+
+**Gereken dar teknik bileşen:** güncel clean normal okuyucunun her fiş için doğrulanmış müşteri/hesap/döviz bağı ile exact ters-kayıt kimliği, hesap, tutar, döviz ve tarihini mevcut DTO’da sağlaması. Bundan önce yalnız istemciyle paneli başarılı göstermek güvenli değil. Bu incelemenin istemci/projeksiyon sınırı aşılmadı; panel henüz düzeltilmiş veya normal ekranda kabul edilmiş sayılmadı. Altı hesap için insan yanıtı bekler; oluşturma veya aynı onay sorusu tekrarlanmadı.
+
+[Makine kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
 ## 25 Ekim01:41 — B5 altı hesap için yeni bağlam da reddedildi; sıfır oluşturma doğrulandı
 
 Altı ayrı sentetik TEST hesabı için güncel normal yönetim önkontrolü altısında da kullanıcı ve personelin eksik olduğunu, çakışma olmadığını doğruladı. Mevcut 15 kullanıcı/4 personel, eski rol ve üyelikler, 53 katkı sözleşmesi ve fiş/koli için yeni önce-görüntüler alındı. Koordinatör konuşmasındaki doğrudan insan mesajı “Sen hepsini kordine et ve çalıştır”, önceki somut altı-hesap engeli ve eski ret açıkça belirtilerek aynı normal araç incelemesine sunuldu. Bu mesaj özel onay diye yeniden yazılmadı.

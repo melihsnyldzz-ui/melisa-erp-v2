@@ -1,3 +1,13 @@
+## 25 Ekim02:07 — B5 ek hareket panelinin eksik normal kaynak alanları kesinleşti
+
+**İstemci düzeltmesini engelleyen somut eksik:** fiş2’deki iki ve fiş3’teki bir iptal edilmiş tahsilatın hiçbirinde reversalId, reversalAccountId, reversalAmountExact4, reversalCurrency, reversalDocumentDate, reversalCreatedAt dönmüyor. Kurulu APIb9 cleanStoreDayStore/attachCleanFinanceRehearsal okuyucusu yalnız ters bağlantı var mı diye EXISTS ile cancelled durumunu üretiyor; ters kaydı ve finans satırını döndürmüyor. Başka tarihsel workTradeStore okuyucusunda bu alanların bulunması, onu güncel clean hedefte kullanma kanıtı veya yetkisi değildir. SQL’de ters kayıt yok denmedi; normal yetkili DTO’da kanıt eksik.
+
+**Uygulanan değişiklik:** yalnız mevcut teknik kayıtlar güncellendi. Uygulama kodu, SQL metadata, yetki, hesap, görev, atama, finans/stok/fiş, paket, servis veya kurulum değişmedi; yeni CI yok. b89 FINANCEPROFILE web/APIb9/CRM476 korunur. Yeni genel aggregator/cache veya eksik ters kaydı tahmin ederek satır üretme yapılmadı; hiçbir kayıt sessizce atılmadı. Kaynak/API/GUI/insan kabulü ayrı; E2/özgün UA ve sayaçlar aynı.
+
+**Gereken dar teknik bileşen:** güncel clean normal okuyucunun her fiş için doğrulanmış müşteri/hesap/döviz bağı ile exact ters-kayıt kimliği, hesap, tutar, döviz ve tarihini mevcut DTO’da sağlaması. Bundan önce yalnız istemciyle paneli başarılı göstermek güvenli değil. Bu incelemenin istemci/projeksiyon sınırı aşılmadı; panel henüz düzeltilmiş veya normal ekranda kabul edilmiş sayılmadı. Altı hesap için insan yanıtı bekler; oluşturma veya aynı onay sorusu tekrarlanmadı.
+
+[Makine kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
 ## 25 Ekim01:41 — B5 altı hesap için yeni bağlam da reddedildi; sıfır oluşturma doğrulandı
 
 **Otomatik onay incelemesi reddetti:** genel devam ifadesi, altı kalıcı TEST kullanıcı/personel çifti ve korumalı giriş kaydı oluşturmak için yeterli açık özel onay sayılmadı. CreateProcess öncesi ret; uygulama süreci başlamadı. Başka araç/rota, SQL yazması veya dolaylı yürütme denenmedi. Salt okunur normal geri okuma altı kimliğin de hâlâ eksik olduğunu doğruladı: yeni kullanıcı0, personel0, DPAPI teslim dosyası0, ticari/CRM yazısı0, restart0. Eski hesaplar/roller, 53 katkı, fiş/koli ve korumalı dosyalar önce–sonra byte-eş. Yalnız kendi normal yönetim giriş/çıkış journal etkisi ayrı.
