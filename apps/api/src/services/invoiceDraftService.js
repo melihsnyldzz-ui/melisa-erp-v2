@@ -8,6 +8,8 @@ import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { parseOptionalQueryId } from './queryIdentityFilters.mjs';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {isCleanStoreDayMutation,assertCleanPurchaseSupplierItems} from './cleanStoreDayScope.mjs';
+import {cleanDirectSaleActorId} from './cleanOrderSaleScope.mjs';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
 import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
@@ -1550,6 +1552,7 @@ async function replaceFinalizedPurchaseEffects(sqlDriver, transaction, invoiceId
 }
 
 export async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items) {
+  if(isCleanStoreDayMutation()){await assertCleanPurchaseSupplierItems(sqlDriver,transaction,Number(supplierId),items);return;}
   const dailyWeb = isDailyWebRequest();
   const copy=isIsolatedOperationCopyRuntime()?isolatedCopyTransactionContext(transaction):null;
   if(copy&&(copy!==getIsolatedOperationCopyConfig()||!copy.suppliers.some(s=>s.id===String(supplierId)&&(copy.target.database===BUSINESS_COPY_DATABASE?s.accountId===getBusinessInboundSelection(copy)?.accountId:s.currency==='TRY'))||!items.length||items.some(i=>!copy.products.some(p=>p.id===String(i.productId)))))throw makeServiceError('PURCHASE_PRODUCT_SUPPLIER_MISMATCH','Mal kabulün ürün veya tedarikçi kapsamı değişti.',409);
@@ -1844,6 +1847,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_draft',actor,null,draft);
+    const directActor=cleanDirectSaleActorId(transaction,'sale_draft',actor),initialSettlement=!!selectedSale||directActor!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
     else await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
     preserveSelectedSourceSalesNames(payload,draft,selectedSale);
@@ -1862,7 +1866,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       .input('initialSalesAccountCurrency',sql.NVarChar(3),settlement.accountCurrency)
       .input('initialSalesAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
       .input('initialSalesAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
-      .input('initialSalesActor',sql.BigInt,selectedSale?selectedSale.scope.actorId:null)
+      .input('initialSalesActor',sql.BigInt,selectedSale?selectedSale.scope.actorId:directActor)
       .input('exchangeRate', sql.Decimal(18, 8), draft.exchangeRate)
       .input('description', sql.NVarChar(500), draft.description || null)
       .input('subtotal', sql.Decimal(18, 4), draft.subtotal)
@@ -1882,7 +1886,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           customer_currency,
           document_currency,
           exchange_rate_snapshot,
-          ${selectedSale ? 'account_currency, account_amount, account_exchange_rate_snapshot,' : ''}
+          ${initialSettlement ? 'account_currency, account_amount, account_exchange_rate_snapshot,' : ''}
           description,
           subtotal,
           discount_rate,
@@ -1903,7 +1907,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @customerCurrency,
           @documentCurrency,
           @exchangeRate,
-          ${selectedSale ? '@initialSalesAccountCurrency, @initialSalesAccountAmount, @initialSalesAccountRate,' : ''}
+          ${initialSettlement ? '@initialSalesAccountCurrency, @initialSalesAccountAmount, @initialSalesAccountRate,' : ''}
           @description,
           @subtotal,
           @discountRate,
@@ -1911,8 +1915,8 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @grandTotal,
           @amountTry,
           @estimatedProfitTry,
-          ${selectedSale ? '@initialSalesActor' : 'NULL'},
-          ${selectedSale ? '@initialSalesActor' : 'NULL'}
+          ${initialSettlement ? '@initialSalesActor' : 'NULL'},
+          ${initialSettlement ? '@initialSalesActor' : 'NULL'}
         );
         SELECT invoiceId FROM @createdSalesIds;
       `);
@@ -2097,6 +2101,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     await assertInvoiceSettlementParty(sqlDriver, transaction, 'sales', beforeSnapshot, settlement, { active: true });
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Satış fişi kesinleştirme');
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_finalize',actor,invoiceId,beforeSnapshot);
+    const directFinalize=cleanDirectSaleActorId(transaction,'sale_finalize',actor)!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
     else await assertPilotCashCustomer(new sqlDriver.Request(transaction), beforeSnapshot.customerId, beforeSnapshot.documentCurrency);
     await assertPilotSaleProducts(() => new sqlDriver.Request(transaction), beforeSnapshot.items, {consume: true, allowNegativeStock: nativeTransaction});
@@ -2269,6 +2274,11 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
       .input('customerMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
       .input('customerMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
       .input('customerMovementCreatedBy', sql.BigInt, actorId)
+      .input('directAccountCurrency',sql.NVarChar(3),settlement.accountCurrency)
+      .input('directAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
+      .input('directDocumentRate',sql.Decimal(18,8),settlement.documentRateToTry)
+      .input('directAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
+      .input('directAmountTry',sql.Decimal(18,4),settlement.amountTry)
       .query(`
         INSERT INTO dbo.customer_movements (
           customer_id,
@@ -2280,6 +2290,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           document_date,
           created_at,
           created_by
+          ${directFinalize?', account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try':''}
         )
         VALUES (
           @customerMovementCustomerId,
@@ -2291,6 +2302,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           @customerMovementDocumentDate,
           SYSUTCDATETIME(),
           @customerMovementCreatedBy
+          ${directFinalize?', @directAccountCurrency,@directAccountAmount,@directDocumentRate,@directAccountRate,@directAmountTry':''}
         );
       `);
 
@@ -3082,6 +3094,10 @@ async function assertBusinessReceivedPurchaseContext(context,invoiceId,copy){
 }
 export async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.cleanStoreDayReceived===true){
+    const {assertCleanReceivedPurchaseContext}=await import('./cleanStoreDayScope.mjs');
+    await assertCleanReceivedPurchaseContext(context,invoiceId);return;
+  }
   if(context.isolatedCopyReceived===true){
     const {isolatedCopyTransactionContext}=await import('./isolatedOperationCopyScope.mjs');
     const copy=isolatedCopyTransactionContext(context.transaction);

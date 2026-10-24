@@ -8,6 +8,56 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 
+test('clean personal count mutations use the existing finite write budget and keep one exact UUID body',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const path of ['/api/work-receiving/count-drafts','/api/work-receiving/count-drafts/10006/update','/api/work-receiving/count-drafts/10006/submit','/api/work-receiving/count-drafts/10006/cancel']){
+  const store=storage(),calls=[];let finish;store.setItem(workingCatalogTokenKey,'count-write-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:{hostname:'127.0.0.1',protocol:'http:',port:'5244'},apiBase:'http://127.0.0.1:4194',protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply({...user,id:10021,role:{code:'clean_test_personnel'}});calls.push(options);return new Promise((resolve,reject)=>{finish=resolve;options.signal.addEventListener('abort',()=>reject(Error('fixture aborted')),{once:true});});}});
+  await s.start();const body={requestId:'00000000-0000-4000-8000-000000000001'},journal=createTradeJournal({storage:store,key:'count-write-fixture-journal'}),entry=journal.begin(path,body),p=s.inbound(path,{method:'POST',body:entry.body}),caught=p.then(value=>({value}),error=>({error}));
+  try{t.mock.timers.tick(15001);assert.equal(calls[0].signal.aborted,false,path);assert.equal(calls.length,1);assert.equal(journal.read().status,'pending');assert.deepEqual(JSON.parse(calls[0].body),body);finish(reply({requestId:body.requestId,replayed:false}));const result=await caught;assert.equal(result.error,undefined);journal.done(entry,result.value);assert.equal(journal.read().status,'done');}finally{s.dispose();await caught;}
+ }
+});
+
+test('clean count write deadline ends at60s once and leaves the original pending journal for supported recovery',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'count-write-fixture');store.setItem(testSessionModeKey,'manual');
+ const s=createWorkingCatalogSession({location:{hostname:'127.0.0.1',protocol:'http:',port:'5244'},apiBase:'http://127.0.0.1:4194',protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture aborted')),{once:true}));}});
+ await s.start();const body={requestId:'00000000-0000-4000-8000-000000000001'},journal=createTradeJournal({storage:store,key:'count-bounded-journal'}),entry=journal.begin('/api/work-receiving/count-drafts',body),p=s.inbound(entry.path,{method:'POST',body:entry.body}),rejected=assert.rejects(p,e=>e.status===503);
+ t.mock.timers.tick(59999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);assert.equal(journal.read().status,'pending');assert.deepEqual(journal.read().body,body);assert.equal(store.getItem(workingCatalogTokenKey),'count-write-fixture');s.dispose();
+});
+
+test('count-only write routing keeps legacy count, purchase preview and receipt approval on their existing15s budget',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const [place,base,path] of [[location,apiBase,'/api/work-receiving/count-drafts'],[{hostname:'127.0.0.1',protocol:'http:',port:'5244'},'http://127.0.0.1:4194','/api/work-purchases/preview'],[{hostname:'127.0.0.1',protocol:'http:',port:'5244'},'http://127.0.0.1:4194','/api/work-receiving/receipts/3/approve']]){
+  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'unchanged-inbound-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:place,apiBase:base,protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture aborted')),{once:true}));}});
+  await s.start();await assert.rejects(()=>s.inbound(path,{method:'POST',body:{},workMutation:true}));assert.equal(calls.length,0);
+  const p=s.inbound(path,{method:'POST',body:{requestId:'fixture'}}),rejected=assert.rejects(p,e=>e.status===503);t.mock.timers.tick(14999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);s.dispose();
+ }
+});
+
+test('daily cash transport is normal authenticated clean-only and rejects unknown routes, targets and actor overrides',async()=>{
+ const place={hostname:'127.0.0.1',protocol:'http:',port:'5244'},account={...user,id:20,role:{code:'clean_test_finance'},permissions:['finance.view','finance.collection','finance.payment']},store=storage(),calls=[];
+ store.setItem(workingCatalogTokenKey,'cash-session-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location:place,apiBase:'http://127.0.0.1:4194',storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(account);calls.push({url,options});return reply({record:true});}});
+ await session.start();await session.cash('/api/finance/cash-register?businessDate=2026-10-22');await session.cash('/api/finance/cash-register/transfers',{method:'POST',body:{requestId:'command'}});
+ assert.equal(calls.length,2);assert(calls.every(c=>c.url.startsWith('http://127.0.0.1:4194/')&&c.options.headers.Authorization==='Bearer cash-session-fixture'));
+ for(const path of ['/api/finance/cash-register?businessDate=2026-10-23','/api/finance/cash-register?businessDate=2026-10-22&actorId=23','/api/finance/cash-register/open/extra','/api/finance/accounts'])await assert.rejects(()=>session.cash(path));
+ await assert.rejects(()=>session.cash('/api/finance/cash-register/transfers',{method:'DELETE',body:{}}));await assert.rejects(()=>session.cash('/api/finance/cash-register/transfers',{method:'POST',body:{},actorId:10018}));assert.equal(calls.length,2);session.dispose();
+ const old=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async()=>reply(account)});await old.start();await assert.rejects(()=>old.cash('/api/finance/cash-register?businessDate=2026-10-22'));old.dispose();
+});
+
+for(const path of ['/api/work-sales/invoices','/api/work-sales/invoices?limit=25','/api/work-sales/invoices/42'])test('verified DB02 historical GET can complete after the normal 15s: '+path,async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-deadline-fixture');store.setItem(testSessionModeKey,'manual');let finish;
+ const session=createWorkingCatalogSession({location:worktestLocation('5234'),apiBase:'http://127.0.0.1:4184',copyProfile:homeCopyProfile(),protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise(resolve=>{finish=resolve;});}});
+ await session.start();const read=session.work(path);t.mock.timers.tick(20000);assert.equal(calls[0].signal.aborted,false);assert.equal(calls.length,1);finish(reply({data:[],meta:{total:0}}));await read;assert.equal(calls.length,1);session.dispose();
+});
+test('DB02 historical GET is bounded at45s, never retried, and preserves its actor session',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-deadline-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location:worktestLocation('5234'),apiBase:'http://127.0.0.1:4184',copyProfile:homeCopyProfile(),protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}));}});
+ await session.start();const read=session.work('/api/work-sales/invoices'),rejected=assert.rejects(read,e=>e.status===503);t.mock.timers.tick(44999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);assert.equal(store.getItem(workingCatalogTokenKey),'history-deadline-fixture');session.dispose();
+});
+
 test('invoice history admits only paired customer/currency GET filters and bounded pagination',async()=>{
  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'history-fixture');store.setItem(testSessionModeKey,'manual');
  const session=createWorkingCatalogSession({location,apiBase,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});return reply({data:[],meta:{page:1,limit:25,total:0}});}});
@@ -61,6 +111,27 @@ test('GET and login retain15s and callers cannot inject a longer work deadline',
  const read=session.work('/api/work-sales/context'),readRejected=assert.rejects(read,e=>e.status===503);t.mock.timers.tick(15000);await readRejected;assert.equal(calls[0].options.signal.aborted,true);
  const login=session.login({username:'fixture',password:'fixture-only'}),loginRejected=assert.rejects(login,e=>e.status===503);t.mock.timers.tick(15000);await loginRejected;assert.equal(calls[1].options.signal.aborted,true);
  session.dispose();
+});
+
+test('only the two pinned clean operational context reads wait up to30s without retry',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const place={hostname:'127.0.0.1',protocol:'http:',port:'5244'},store=storage(),calls=[];
+ store.setItem(workingCatalogTokenKey,'clean-context-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location:place,apiBase:'http://127.0.0.1:4194',storage:store,fetchImpl:async(url,options)=>{
+  if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});
+  return new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}));
+ }});
+ await session.start();
+ for(const [operation,path]of [['work','/api/work-sales/context'],['inbound','/api/work-receiving/context']]){
+  const pending=session[operation](path),rejected=assert.rejects(pending,e=>e.status===503),count=calls.length;
+  t.mock.timers.tick(15000);assert.equal(calls.at(-1).options.signal.aborted,false);
+  t.mock.timers.tick(14999);assert.equal(calls.at(-1).options.signal.aborted,false);
+  t.mock.timers.tick(1);await rejected;assert.equal(calls.at(-1).options.signal.aborted,true);assert.equal(calls.length,count);
+ }
+ for(const [operation,path]of [['api','/api/catalog/products?limit=50'],['work','/api/work-sales/selection-options']]){
+  const pending=session[operation](path),rejected=assert.rejects(pending,e=>e.status===503);t.mock.timers.tick(15000);await rejected;assert.equal(calls.at(-1).options.signal.aborted,true);
+ }
+ const count=calls.length;await assert.rejects(session.work('/api/work-sales/context',{timeoutMs:600000}));assert.equal(calls.length,count);session.dispose();
 });
 test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
  const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
@@ -198,7 +269,14 @@ test('manual normal login stores token/mode only, not password; malformed auth r
  const bad=fixture(async()=>reply({user:{...user,permissions:'admin'},accessToken:'bad'}));await assert.rejects(()=>bad.session.start());assert.equal(bad.store.getItem(workingCatalogTokenKey),null);
 });
 test('revoked auth clears token and invokes expiration; raw server errors never reach screen',async()=>{
- let count=0,expired=0;const store=storage(),s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async()=>count++===0?reply({user,accessToken:'x'}):reply(null,403)});await s.start();await assert.rejects(()=>s.api('/api/catalog/products'),e=>e.status===403&&!e.message.includes('SQL'));assert.equal(store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);await assert.rejects(()=>s.api('/api/catalog/products'));
+ let count=0,expired=0;const store=storage(),s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async()=>count++===0?reply({user,accessToken:'x'}):reply(null,401)});await s.start();await assert.rejects(()=>s.api('/api/catalog/products'),e=>e.status===401&&!e.message.includes('SQL'));assert.equal(store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);await assert.rejects(()=>s.api('/api/catalog/products'));
+});
+
+test('a normal permission refusal cannot log out the user or block the next permitted screen',async()=>{
+ let expired=0;const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'normal-session');store.setItem(testSessionModeKey,'manual');
+ const s=createWorkingCatalogSession({location,apiBase,storage:store,onExpired:()=>expired++,fetchImpl:async(url)=>{calls.push(url);return url.endsWith('/auth/me')?reply(user):url.endsWith('/work-sales/context')?reply(null,403):reply({items:[]});}});
+ await s.start();await assert.rejects(()=>s.work('/api/work-sales/context'),e=>e.status===403);assert.equal(store.getItem(workingCatalogTokenKey),'normal-session');assert.equal(expired,0);
+ assert.deepEqual(await s.api('/api/catalog/products'),{items:[]});assert.equal(calls.filter(x=>x.includes('/auth/')).length,1);s.dispose();
 });
 test('navigation disposal aborts pending auth and prevents late token persistence',async()=>{
  let resolve;const f=fixture(async()=>new Promise(r=>resolve=r));const pending=f.session.start();f.session.dispose();assert.equal(f.calls[0].options.signal.aborted,true);resolve(reply({user,accessToken:'late'}));await assert.rejects(()=>pending);assert.equal(f.store.getItem(workingCatalogTokenKey),null);
@@ -287,6 +365,28 @@ const homeBootstrap={path:'/api/terminal-worktest/home-summary',copyId:'e16b70f0
 const worktestLocation=port=>({hostname:'127.0.0.1',protocol:'http:',port,origin:`http://127.0.0.1:${port}`});
 function homeCopyProfile(){return {schemaVersion:'melisa-stage4-isolated-operation-copy.v1',operationOrigin:'ISOLATED_TEST_COPY',copyId:homeBootstrap.copyId,sealHash:'A'.repeat(64),backupSHA:'B'.repeat(64),sourceDatabase:'MELISA_ERP_SIRKET_TEST_20260929_01',target:{server:'Semih\\MELISADEV',database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02'},date:'2026-10-09',scopeKind:'VERIFIED_BUSINESS_TEST',businessScopeHash:'C'.repeat(64),businessInvoiceMaxExact4:'20000.0000',actors:[{id:'15',role:'isolated_test_sales'},{id:'16',role:'isolated_test_ilker'}],products:[{id:'301',supplierId:'601',sourceKey:'VEGA2026/F0102TBLSTOKLAR/301',stockCode:'FIXTURE-301',unit:'ADET',unitFactorExact8:'1.00000000',priceIds:['801'],barcodes:['000301']}],customers:[{id:'501',partyId:'901',accountId:'1001',currency:'TRY',sourceKey:'VEGA2026/F0102TBLCARI/501'}],suppliers:[{id:'601',partyId:'902',accountId:'1002',currency:'TRY',sourceKey:'VEGA2026/F0103TBLCARI/601'}],financeAccounts:[{id:'701',currency:'TRY'}]};}
 
+test('selected-source collection transport is constructor gated to the DB02 business copy and actor 16',async()=>{
+ const target=worktestLocation('5234'),base='http://127.0.0.1:4184',path='/api/work-collections/selected-source/context?invoiceId=42';
+ const person={...user,role:{code:'isolated_test_ilker'},permissions:['finance.view','customer.view','finance.collection','finance.collection.cancel']};
+ const make=({enabled=false,location=target,apiBase=base,profile=homeCopyProfile(),actor=person,respond=()=>reply({safe:true})}={})=>{
+  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'selected-fixture');store.setItem(testSessionModeKey,'manual');
+  const session=createWorkingCatalogSession({location,apiBase,copyProfile:profile,selectedSourceCollections:enabled,storage:store,fetchImpl:async(url,options)=>{calls.push({url,options});return url.endsWith('/auth/me')?reply(actor):respond(url,options);}});
+  return {session,calls,store};
+ };
+ for(const variant of [{},{enabled:true,location:worktestLocation('5224'),apiBase:'http://127.0.0.1:4174'},{enabled:true,apiBase:'http://192.168.1.46:4184'},{enabled:true,profile:{...homeCopyProfile(),target:{...homeCopyProfile().target,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_01'}}},{enabled:true,actor:{...person,id:15}},{enabled:true,actor:{...person,role:{code:'admin'}}},{enabled:true,actor:{...person,permissions:['finance.view','customer.view']}}]){
+  const f=make(variant);try{await f.session.start();}catch{}const count=f.calls.length;await assert.rejects(()=>f.session.work(path),e=>e.status===403);assert.equal(f.calls.length,count);f.session.dispose();
+ }
+ const f=make({enabled:true});await f.session.start();const body={requestId:'00000000-0000-4000-8000-000000000001'};
+ for(const [route,options] of [[path,{}],['/api/work-collections/selected-source/preview',{method:'POST',body}],['/api/work-collections/selected-source',{method:'POST',body}],['/api/work-collections/selected-source/77/cancel',{method:'POST',body}]]){
+  assert.deepEqual(await f.session.work(route,options),{safe:true});assert.equal(f.calls.at(-1).url,base+route);assert.equal(f.calls.at(-1).options.headers.Authorization,'Bearer selected-fixture');
+ }
+ const count=f.calls.length;
+ for(const [route,options] of [['/api/work-collections/selected-source/context?invoiceId=042',{}],['/api/work-collections/selected-source/context?invoiceId=42&x=1',{}],['/api/work-collections/selected-source/preview?x=1',{method:'POST',body}],['/api/work-collections/selected-source/77/cancel/extra',{method:'POST',body}],['/api/work-collections/selected-source/0/cancel',{method:'POST',body}],['/api/work-collections/selected-source/preview',{method:'GET'}],['/api/work-collections/selected-source/preview',{method:'POST'}],['/api/work-collections/selected-source/preview',{method:'POST',body:[]}],['/api/work-collections/selected-source/preview',{method:'POST',body,headers:{x:'override'}}],[path,{body}],['https://other/api/work-collections/selected-source/preview',{method:'POST',body}]])await assert.rejects(()=>f.session.work(route,options));
+ assert.equal(f.calls.length,count);f.session.dispose();
+ const withoutCancel=make({enabled:true,actor:{...person,permissions:person.permissions.filter(p=>p!=='finance.collection.cancel')}});await withoutCancel.session.start();const before=withoutCancel.calls.length;await assert.rejects(()=>withoutCancel.session.work('/api/work-collections/selected-source/77/cancel',{method:'POST',body}),e=>e.status===403);assert.equal(withoutCancel.calls.length,before);withoutCancel.session.dispose();
+ const forbidden=make({enabled:true,respond:()=>reply(null,403)});await forbidden.session.start();await assert.rejects(()=>forbidden.session.work(path),e=>e.status===403);assert.equal(forbidden.store.getItem(workingCatalogTokenKey),'selected-fixture');forbidden.session.dispose();
+});
+
 test('normal price editor uses only exact DB02 routes, preserves denial and sends unchanged UUID/body',async()=>{
  for(const host of ['127.0.0.1','192.168.1.46']){
   const target={hostname:host,protocol:'http:',port:'5234',origin:`http://${host}:5234`},store=storage(),calls=[];
@@ -351,7 +451,7 @@ test('temporary desktop bootstrap cannot normalize an invalid target or make any
 test('scoped HOME keeps15s deadline, auth-expiry and disposal without retry or new session',async t=>{
  t.mock.timers.enable({apis:['setTimeout']});
  const f=worktestHomeSession({respond:async(url,options)=>new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}))});await f.session.start();const request=f.session.home(),rejection=assert.rejects(request,e=>e.status===503);t.mock.timers.tick(15000);await rejection;assert.equal(f.calls.length,2);assert.equal(f.store.getItem(workingCatalogTokenKey),'worktest-home-fixture');f.session.dispose();
- for(const status of [401,403]){let expired=0;const lost=worktestHomeSession({respond:async()=>reply(null,status),onExpired:()=>expired++});await lost.session.start();await assert.rejects(()=>lost.session.home(),e=>e.status===status&&!e.message.includes('SQL'));assert.equal(lost.store.getItem(workingCatalogTokenKey),null);assert.equal(expired,1);lost.session.dispose();}
+ for(const status of [401,403]){let expired=0;const lost=worktestHomeSession({respond:async()=>reply(null,status),onExpired:()=>expired++});await lost.session.start();await assert.rejects(()=>lost.session.home(),e=>e.status===status&&!e.message.includes('SQL'));assert.equal(lost.store.getItem(workingCatalogTokenKey),status===401?null:'worktest-home-fixture');assert.equal(expired,status===401?1:0);lost.session.dispose();}
  let finish;const late=worktestHomeSession({respond:async()=>new Promise(resolve=>finish=resolve)});await late.session.start();const pending=late.session.home();late.session.dispose();assert.equal(late.calls.at(-1).options.signal.aborted,true);finish(reply({meta:{readOnly:true}}));await assert.rejects(()=>pending);assert.equal(late.calls.length,2);
 });
 
@@ -361,3 +461,5 @@ test('HOME flag cannot override a missing, different-copy or malformed DB02 oper
   const desktop=worktestHomeSession({target:worktestLocation('5264'),profile});await assert.rejects(()=>desktop.session.start());assert.equal(desktop.calls.length,0);desktop.session.dispose();
  }
 });
+
+test('normal clean administrator label remains Yönetici',()=>{assert.equal(workingCatalogUserLabel({id:10018,displayName:'Semih',role:{code:'clean_test_administrator'}}),'Yönetici');});

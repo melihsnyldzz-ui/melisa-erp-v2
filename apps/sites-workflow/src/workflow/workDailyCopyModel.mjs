@@ -1,8 +1,17 @@
 import {operationCopyFromMeta,operationCopyDailySelection} from './isolatedOperationCopyModel.mjs';
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 
 const fail=()=>{throw Error('Sayım bilgileri doğrulanamadı. Ürünleri yenileyerek yeniden kontrol edin.');};
 const whole=value=>Number.isSafeInteger(value)&&value>=0;
 const fingerprint=value=>typeof value==='string'&&/^[a-f0-9]{64}$/i.test(value);
+
+export function cleanDailyControls(meta,user,flow,{location=globalThis.location}={}){
+ if(meta?.cleanDaily===undefined)return null;
+ const d=meta.cleanDaily,id=String(user?.id),administrator=id==='10018'&&user?.username==='semih'&&String(user.role?.id)==='28'&&user.role.code==='clean_test_administrator'&&user.isAdmin!==true&&user.testAdminSession!==true,staff=id==='21'||administrator,supervisor=id==='22'||administrator;
+ if(meta.environment!=='CLEAN_SYNTHETIC_TEST'||meta.environmentId?.toLowerCase()!=='e662fd94-d797-4b3b-938a-d143ad758b67'||meta.synthetic!==true||meta.actualT1!==false||meta.externalOperations!==false||!isCleanCatalogLocation(location)||!['count','purchase'].includes(flow)||d.date!=='2026-10-22'||d.actorId!==id||(!staff&&!supervisor)||user.role?.code!==(administrator?'clean_test_administrator':staff?'clean_test_counter':'clean_test_inventory_supervisor')||d.canDraft!==staff||d.canReview!==supervisor||!Array.isArray(user.permissions)||!user.permissions.includes(flow==='count'?'product.view':'purchase.view'))fail();
+ if(supervisor&&!user.permissions.includes(flow==='count'?'stock.adjust':'purchase.cancel'))fail();
+ return {date:d.date,canDraft:staff,canReview:supervisor};
+}
 
 // Normal copy pages use native stock quantities. The bounded rehearsal limit
 // applies to the difference, not to the absolute quantity already in stock.

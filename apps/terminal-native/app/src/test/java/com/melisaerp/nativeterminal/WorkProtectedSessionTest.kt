@@ -6,6 +6,20 @@ import org.junit.Test
 import java.io.File
 
 class WorkProtectedSessionTest {
+    @Test fun cleanVaultRealmsAreSeparateFromLegacyAndFromEachOther() {
+        val cleanOrigin = "http://192.168.1.46:5244"
+        val page = "$cleanOrigin/terminal.html?worktest=1#crm"
+        val clean = WorkProtectedSessionPolicy(cleanOrigin)
+        val erpKey = clean.key(cleanOrigin, true, page)
+        val crmKey = clean.key("http://192.168.1.46:62800", false, page)
+        assertNotNull(erpKey); assertNotNull(crmKey); assertNotEquals(erpKey, crmKey)
+        assertNotEquals(policy.key(origin, true, this.page), erpKey)
+        assertNull(clean.key("http://192.168.1.46:62700", false, page))
+        assertNull(clean.key(cleanOrigin, false, page))
+        assertNull(clean.key("http://192.168.1.46:62800", true, page))
+        assertNull(clean.key(cleanOrigin, true, this.page))
+        assertNull(policy.key(cleanOrigin, true, page))
+    }
     private val origin = "http://192.168.1.46:5234"
     private val page = "$origin/terminal.html?worktest=1#crm"
     private val policy = WorkProtectedSessionPolicy(origin)

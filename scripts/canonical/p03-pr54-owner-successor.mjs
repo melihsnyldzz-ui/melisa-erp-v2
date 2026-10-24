@@ -1,0 +1,514 @@
+// Pure, single-predecessor admission. This returns proposed CreateNew bytes;
+// it does not release a lock, touch Windows, or authorize a replay.
+import {createHash} from 'node:crypto';
+import path from 'node:path';
+import {p03CoreFirstStopDigest} from './p03-integrated-owner-transition.mjs';
+export const PR54_OWNER_ROOT='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
+export const PR54_PREDECESSOR_RUN='639e2da815e1e7ac0f1c0d04d7f7bdc3';
+export const PR54_PREDECESSOR_TRANSITION=PR54_OWNER_ROOT+'\\MelisaERP-P03-transition-'+PR54_PREDECESSOR_RUN;
+export const PR54_PREDECESSOR_JOURNAL=PR54_OWNER_ROOT+'\\MelisaERP-P03-recovery-'+PR54_PREDECESSOR_RUN;
+export const PR54_SUCCESSOR_CLAIM_PATH=PR54_OWNER_ROOT+'\\p03-pr54-successor-of-'+PR54_PREDECESSOR_RUN+'.lock.json';
+export const PR54_REHEARSED_ENGINE_SHA='fe053b5d070b5aff724c323e51a6a15b9d6f6de9b140f98f1bed81a6ad49e037';
+const fixed=(leaf,sha256,root=PR54_PREDECESSOR_TRANSITION)=>Object.freeze({path:root+'\\'+leaf,sha256});
+export const PR54_PREDECESSOR_REFS=Object.freeze({
+ globalLock:fixed('p03-pr54-shared-owner.lock.json','69bf4c022904e6c8d2baa2ea5766e3c115dde2b9e2412d6cfbe0a004e2cf235b',PR54_OWNER_ROOT),
+ transitionLock:fixed('transition.lock','aa00995da40dd5d2c4f5d5c6a9f3d71624e86e6ea3843aabc37197e714b1a1f4'),
+ profile:fixed('MelisaERP-P03-profile-'+PR54_PREDECESSOR_RUN+'.json','17fec444c09d04331a12e73264039f1d65c23158ed7d289c43880bfe25fbc041',PR54_OWNER_ROOT),
+ before:fixed('MelisaERP-P03-before-'+PR54_PREDECESSOR_RUN+'.json','c58fdcd36ff3c16e9c2df8965982c17a0830cf527314df5a66bfe71f69e6d256',PR54_OWNER_ROOT),
+ event0:fixed('event-0000.json','fd09519005b519dbb953e6d030f66cf8e6c586bf15bd27043ce9d5dccec056a2'),
+ event1:fixed('event-0001.json','52e907db361e7aeb1e89976734cdccedab1a435747914ae48c9e73dbe12d72fa'),
+ priorIntent:fixed('paused-old-recovery-intent.json','6eb43d46509faeb8bef1b740c19d8410a33699232137a27576522be02f68f263'),
+ priorFailure:fixed('paused-old-recovery-failed.json','6bf3d88d0c866ae0c7c1f83df044e9b64f427e1565be6f82f5f6bbca8e0241b8'),
+ originalConsoleIntent:fixed('paused-old-console-recovery-intent.json','6d89a9eadffdec76df380a5c6feb7ae819c6ebfbf20544598938f3f9f227a2ed'),
+ originalConsoleCut:fixed('paused-old-console-core-cut-observation.json','cd086021c17e6b15a3abead8fc328782a5d5a378b29e82abc95153aa8b247be0'),
+ originalConsoleCompleted:fixed('paused-old-console-core-cut-completed.json','c89baea866c1f7610f230eff18a866e2f689196833ddd16888e36072b322a1a0'),
+ originalConsoleFailure:fixed('paused-old-console-recovery-failed.json','62c0f948119081e250e6cc62626c39e9f9f834bd4950c99d6c47d09c955df26b'),
+ resumeIntent:fixed('paused-old-console-resume-intent.json','1a1df3dd63acb1b77834b61df9a17b71b04fb44c942ec092ac35c8ffc9f89bbd'),
+ resumeFailure:fixed('paused-old-console-resume-failed.json','ad72bbabfe2a69033ad4ea3772fc2c0a9288989b24e5fba9ac673db82f8fadb0'),
+ engine:fixed('p03-physical-rollback.ps1',PR54_REHEARSED_ENGINE_SHA),
+});
+const owner='S-1-5-21-2170750028-1005938530-2568122015-1001';
+const tasks=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
+const roles=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
+const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
+const fail=()=>{throw Error('P03_OWNER_SUCCESSOR_REJECTED');};
+const check=value=>{if(!value)fail();};
+const plain=value=>value&&Object.getPrototypeOf(value)===Object.prototype;
+const exact=(value,keys)=>plain(value)&&Object.keys(value).sort().join('|')===keys.toSorted().join('|');
+const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
+const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+const time=value=>typeof value==='string'&&Number.isFinite(Date.parse(value));
+const birth=value=>typeof value==='string'?value.replace(/(\.\d{6})Z$/,(_,part)=>part+'0Z'):null;
+const identity=(a,b)=>a&&b&&['pid','parentPid','nodePath','ownerSid','commandLine'].every(key=>a[key]===b[key])&&birth(a.creationTime)===birth(b.creationTime);
+const ref=value=>exact(value,['path','sha256'])&&typeof value.path==='string'&&path.win32.normalize(value.path)===value.path&&!value.path.includes('/')&&sha(value.sha256);
+const bytesOf=row=>{check(row?.bytes instanceof Uint8Array&&ref(row.ref)&&hash(row.bytes)===row.ref.sha256);return JSON.parse(Buffer.from(row.bytes).toString('utf8'));};
+// The fixed predecessor bytes are verified by the real IO reader, never by a
+// caller-provided boolean. Pure fixtures can supply the already-pinned objects.
+export function pr54OwnerSuccessorRefs(predecessorRef){
+ check(exact(predecessorRef,['recoveryResult','candidate','consoleIntent','consoleCut','recoveryTail']));
+ for(const value of Object.values(predecessorRef))check(ref(value));
+ check(predecessorRef.recoveryResult.path===PR54_PREDECESSOR_TRANSITION+'\\late-old-owner-observed-ready.json');
+ check(same(predecessorRef.consoleIntent,PR54_PREDECESSOR_REFS.resumeIntent));
+ check(predecessorRef.consoleCut.path===PR54_PREDECESSOR_TRANSITION+'\\paused-old-console-core-cut-observation.json');
+ check(/^C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-[a-f0-9]{32}\.json$/.test(predecessorRef.candidate.path));
+ check(predecessorRef.recoveryTail.path===PR54_PREDECESSOR_JOURNAL+'\\event-0007.json'&&predecessorRef.recoveryTail.sha256==='6f7f5b31e418f0d98499b77b85120239efee7ae54cfb10c7b6a6d3fc8e9c07a3');
+ return {...PR54_PREDECESSOR_REFS,...predecessorRef};
+}
+function proveRecovery({refs,previous,raw}){
+ check(exact(previous,['globalLock','transitionLock','profile','before','event0','event1','priorIntent','priorFailure','originalConsoleIntent','originalConsoleCut','originalConsoleCompleted','originalConsoleFailure','resumeIntent','resumeFailure']));
+ const oldProfile=previous.profile,oldBefore=previous.before;
+ for(const lock of [previous.globalLock,previous.transitionLock])check(same(lock.profileRef,refs.profile)&&same(lock.beforeRef,refs.before));
+ check(previous.globalLock.transitionDirectory===PR54_PREDECESSOR_TRANSITION);
+ check(oldBefore.runId===PR54_PREDECESSOR_RUN&&same(oldProfile.beforeImage,refs.before)&&oldProfile.journalDirectory===PR54_PREDECESSOR_JOURNAL);
+ check(previous.event0.event==='TASK_STOP_INTENT'&&previous.event0.sequence===0&&previous.event1.event==='FAILED'&&previous.event1.target==='TASK_STOP'&&previous.event1.sequence===1);
+ const originalIntent=previous.originalConsoleIntent,originalCut=previous.originalConsoleCut,completed=previous.originalConsoleCompleted,originalFailure=previous.originalConsoleFailure;
+ const oldPids=roles.map(role=>oldBefore.identities[role].pid).sort((a,b)=>a-b);
+ const intentHeader=row=>row.event==='PAUSED_OLD_CONSOLE_RECOVERY_INTENT'&&row.priorIntentSha256===refs.priorIntent.sha256&&row.priorFailureSha256===refs.priorFailure.sha256&&Array.isArray(row.oldPids)&&same([...row.oldPids].sort((a,b)=>a-b),oldPids)&&['consolePins','legacyConsolePins','probePins'].every(key=>Array.isArray(row[key]));
+ for(const row of [originalIntent,originalCut,completed])check(row.profileSha256===refs.profile.sha256&&row.beforeSha256===refs.before.sha256&&row.engineSha256===PR54_REHEARSED_ENGINE_SHA);
+ check(intentHeader(originalIntent)&&time(originalIntent.observedAt));
+ check(originalCut.event==='PAUSED_OLD_CORE_CUT_OBSERVATION'&&identity(originalCut.core,oldBefore.identities.coreSupervisor)&&time(originalCut.observedAt)&&Date.parse(originalCut.observedAt)>=Date.parse(originalIntent.observedAt));
+ check(completed.event==='PAUSED_OLD_CORE_CUT_COMPLETED'&&identity(completed.core,oldBefore.identities.coreSupervisor)&&completed.heldProcessHandle===true&&completed.processAbsent===true&&time(completed.windowOpenedAt)&&time(completed.cutCompletedAt)&&Date.parse(completed.windowOpenedAt)>=Date.parse(originalIntent.observedAt)&&Date.parse(originalCut.observedAt)>=Date.parse(completed.windowOpenedAt)&&Date.parse(completed.cutCompletedAt)>=Date.parse(originalCut.observedAt));
+ check(exact(originalFailure,['exceptionType','sourceLine','code'])&&typeof originalFailure.exceptionType==='string'&&originalFailure.exceptionType.length>0&&Number.isSafeInteger(originalFailure.sourceLine)&&originalFailure.sourceLine>=0&&originalFailure.sourceLine<=10000&&originalFailure.code==='P03_PHYSICAL_PAUSED_REMAINING_IDENTITY');
+ const result=bytesOf(raw.recoveryResult),candidate=bytesOf(raw.candidate),intent=bytesOf(raw.consoleIntent),cut=bytesOf(raw.consoleCut);
+ check(same(intent,previous.resumeIntent));
+ for(const key of ['recoveryResult','candidate','consoleIntent','consoleCut'])check(same(raw[key].ref,refs[key]));
+ check(exact(result,['status','profileSha256','beforeSha256','engineSha256','candidateSha256','recoveryTailSha256','startedAt','observedAt','stableSeconds','identityDigest','engineOutcome','newGenerationStarted','mutationExecuted','locksRetained'])&&result.status==='LATE_OLD_OWNER_OBSERVED_READY'&&result.profileSha256===refs.profile.sha256&&result.beforeSha256===refs.before.sha256&&result.engineSha256===PR54_REHEARSED_ENGINE_SHA&&result.candidateSha256===refs.candidate.sha256&&result.recoveryTailSha256===refs.recoveryTail.sha256&&Number.isFinite(result.stableSeconds)&&result.stableSeconds>=30&&sha(result.identityDigest)&&time(result.startedAt)&&time(result.observedAt)&&result.engineOutcome==='ROLLBACK_READBACK_FAILED'&&result.newGenerationStarted===false&&result.mutationExecuted===false&&result.locksRetained===true);
+ check(candidate.schemaVersion==='melisa-p03-physical-candidate.v1'&&candidate.profileSha256===refs.profile.sha256&&candidate.beforeSha256===refs.before.sha256&&time(candidate.observedAt)&&Array.isArray(candidate.processes)&&candidate.processes.length===0&&Array.isArray(candidate.receipts)&&candidate.receipts.length===0);
+ for(const row of [intent,cut])check(row.profileSha256===refs.profile.sha256&&row.beforeSha256===refs.before.sha256&&row.engineSha256===PR54_REHEARSED_ENGINE_SHA&&time(row.observedAt));
+ check(intentHeader(intent)&&Date.parse(intent.observedAt)>=Date.parse(completed.cutCompletedAt));
+ // The original cut predates the resumed attempt. Both reads refer to the
+ // same immutable fixed file; IO pins its cd086... bytes before this function.
+ check(same(cut,originalCut)&&Date.parse(intent.observedAt)>=Date.parse(cut.observedAt)&&Date.parse(candidate.observedAt)>=Date.parse(intent.observedAt));
+ const expected=['RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_COMPLETE','ROLLBACK_START_INTENT','ROLLBACK_STARTED','ROLLBACK_FAILED','QUARANTINED'];
+ check(Array.isArray(raw.journal)&&raw.journal.length===expected.length);
+ let previousSha=refs.before.sha256,previousTime=Date.parse(candidate.observedAt);const records=[];
+ for(const [n,row]of raw.journal.entries()){
+  check(ref(row.ref)&&row.ref.path===PR54_PREDECESSOR_JOURNAL+'\\event-'+String(n).padStart(4,'0')+'.json');
+  const record=bytesOf(row);
+  // These are the exact fields emitted by the unchanged fe engine Append().
+  check(exact(record,['sequence','previousSha256','profileSha256','beforeSha256','event','observedAt',...(n===6?['failure']:[])])&&record.sequence===n&&record.previousSha256===previousSha&&record.profileSha256===refs.profile.sha256&&record.beforeSha256===refs.before.sha256&&record.event===expected[n]&&time(record.observedAt)&&Date.parse(record.observedAt)>=previousTime);
+  if(n===6)check(exact(record.failure,['exceptionType','sourceLine','code'])&&record.failure.exceptionType==='System.Management.Automation.RuntimeException'&&record.failure.sourceLine===29&&record.failure.code==='P03_PHYSICAL_ROLLBACK_READBACK_FAILED'&&same(record.failure,previous.resumeFailure));
+  previousSha=row.ref.sha256;previousTime=Date.parse(record.observedAt);records.push(record);
+ }
+ check(same(raw.journal.at(-1).ref,refs.recoveryTail)&&previousSha===result.recoveryTailSha256&&result.startedAt===records[4].observedAt&&Date.parse(result.observedAt)-Date.parse(records[7].observedAt)>=30000);
+ // The frozen engine remains failed/quarantined. Only this separately pinned,
+ // read-only observation proves the OLD owner subsequently became stable.
+ return {oldProfile,oldBefore,restoredAt:result.observedAt,startedAt:records[4].observedAt};
+}
+export function admitPr54OwnerSuccessor({predecessorRef,previous,raw,profileRef,beforeRef,profile,before,current,now=Date.now()}){
+ const refs=pr54OwnerSuccessorRefs(predecessorRef),{oldProfile,oldBefore,restoredAt,startedAt}=proveRecovery({refs,previous,raw});
+ check(ref(profileRef)&&ref(beforeRef)&&before.runId!==PR54_PREDECESSOR_RUN&&/^[a-f0-9]{32}$/.test(before.runId));
+ check(profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+before.runId+'.json'&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+before.runId+'.json'&&same(profile.beforeImage,beforeRef));
+ check(profile.ownerSid===owner&&before.ownerSid===owner&&profile.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&before.database===profile.database&&before.actualT1===false&&before.copyId===oldBefore.copyId);
+ check(profile.schemaVersion==='melisa-p03-physical-profile.v1'&&before.schemaVersion==='melisa-p03-owner-observation.v3'&&profile.oldSettings.sha256==='be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96'&&profile.newSettings.sha256==='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071');
+ check(same(profile.oldSettings,oldProfile.oldSettings)&&same(profile.newSettings,oldProfile.newSettings)&&same(before.profile,oldBefore.profile)&&same(before.plan,oldBefore.plan));
+ // This immutable before-image anchors the full package preflight, which can
+ // take several minutes. It is never timestamp-refreshed. Each claim inspection
+ // independently reauthenticates the full current owner within sixty seconds.
+ check(time(before.observedAt)&&Number.isFinite(now)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<15*60000&&Date.parse(before.observedAt)>=Date.parse(restoredAt));
+ check(current&&time(current.observedAt)&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(current.observedAt)>=Date.parse(before.observedAt));
+ const protectedRows=rows=>JSON.stringify([...rows].sort((a,b)=>a.pid-b.pid));
+ check(Array.isArray(profile.protectedProcesses)&&protectedRows(profile.protectedProcesses)===protectedRows(oldProfile.protectedProcesses)&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService'));
+ // The observer intentionally omits unrelated protected OS/SQL processes.
+ // Real IO must run guardProtected() (including master SQL identity) before
+ // this pure proposal and again around the atomic claim; this is no OS proof.
+ check(Array.isArray(current.processes)&&Array.isArray(current.bindings));
+ check(profile.tasks.length===2&&current.tasks.length===2&&Array.isArray(current.runningInstances)&&current.runningInstances.length===2&&profile.oldWatchers.length===2);
+ const oldPids=[...Object.values(oldBefore.identities),...oldProfile.oldWatchers].map(p=>p.pid),newPids=new Set();
+ for(const role of roles){const row=before.identities[role];check(row&&row.ownerSid===owner&&Number.isSafeInteger(row.pid)&&row.pid>0&&!newPids.has(row.pid)&&!oldPids.includes(row.pid)&&time(row.creationTime)&&Date.parse(row.creationTime)>=Date.parse(startedAt)&&identity(current.processes.find(p=>p.pid===row.pid),row));newPids.add(row.pid);}
+ for(const [n,name]of tasks.entries()){
+  const task=profile.tasks.find(t=>t.name===name),oldTask=oldProfile.tasks.find(t=>t.name===name),actual=current.tasks.find(t=>t.name===name),watcher=profile.oldWatchers.find(p=>p.role===(n===0?'terminalWatcher':'hubWatcher'));
+  check(task&&oldTask&&task.oldXmlSha256===oldTask.oldXmlSha256&&task.newXmlSha256===oldTask.newXmlSha256&&actual?.state===4&&hash(Buffer.from(actual.xml))===task.oldXmlSha256&&watcher&&watcher.ownerSid===owner&&!oldPids.includes(watcher.pid)&&!newPids.has(watcher.pid)&&time(watcher.creationTime)&&Date.parse(watcher.creationTime)>=Date.parse(startedAt)&&identity(current.processes.find(p=>p.pid===watcher.pid),watcher));
+  const instances=current.runningInstances.filter(p=>p.name===name);check(instances.length===1&&instances[0].state===4&&instances[0].path==='\\'+name&&instances[0].enginePid===watcher.pid&&typeof instances[0].instanceGuid==='string'&&instances[0].instanceGuid.length>0);newPids.add(watcher.pid);
+ }
+ check(!current.processes.some(p=>oldPids.includes(p.pid))&&newPids.size===10);
+ const expectedBindings=roles.flatMap(role=>(before.identities[role].bindings??[]).map(b=>({...b,pid:before.identities[role].pid})));
+ const bindings=rows=>JSON.stringify(rows.map(b=>[b.port,b.address,b.pid]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])||a[2]-b[2]));
+ check(bindings(current.bindings)===bindings(expectedBindings));
+ const claim={schemaVersion:'melisa-p03-owner-successor-claim.v1',predecessorRunId:PR54_PREDECESSOR_RUN,predecessorLock:refs.globalLock,predecessorProfile:refs.profile,predecessorBefore:refs.before,recoveryResult:refs.recoveryResult,recoveryTail:refs.recoveryTail,engineSha256:PR54_REHEARSED_ENGINE_SHA,stopOrderDigest:p03CoreFirstStopDigest(before.plan),successorRunId:before.runId,successorProfile:profileRef,successorBefore:beforeRef,newSettings:profile.newSettings};
+ return {claimPath:PR54_SUCCESSOR_CLAIM_PATH,claim,refs,proofDigest:hash(Buffer.from(JSON.stringify(raw.journal.map(row=>row.ref))))};
+}
+// The injected writer must be the protected atomic CreateNew writer. A failed
+// readback consumes this predecessor too; this adapter never removes a claim.
+export async function claimPr54OwnerSuccessor({inspect,createNew,readClaim}){
+ check([inspect,createNew,readClaim].every(fn=>typeof fn==='function'));
+ const first=await inspect();check(first?.claimPath===PR54_SUCCESSOR_CLAIM_PATH&&sha(first.proofDigest));
+ const bytes=Buffer.from(JSON.stringify(first.claim,null,2)+'\n'),ref={path:first.claimPath,sha256:hash(bytes)};
+ const created=await createNew({ref,bytes});check(created?.created===true&&same(created.ref,ref));
+ const second=await inspect();check(same(first,second));
+ const actual=await readClaim(ref);check(actual instanceof Uint8Array&&hash(actual)===ref.sha256&&Buffer.from(actual).equals(bytes));
+ return Object.freeze(ref);
+}
+
+// Additive current-owner proposal. The failed 7b controller and its 26 records
+// remain immutable; separate read-only NEW_READY evidence does not rewrite it.
+import {lookupPr54CurrentPhysicalInspection} from './p03-pr54-shared-owner-io.mjs';
+export const PR54_CURRENT_PREDECESSOR_RUN='7b0821959737f1da0427b17a7dfd4685';
+export const PR54_CURRENT_SUCCESSOR_CLAIM_PATH=PR54_OWNER_ROOT+'\\p03-pr54-successor-of-'+PR54_CURRENT_PREDECESSOR_RUN+'.lock.json';
+export const PR54_CURRENT_REFS=Object.freeze(Object.fromEntries(Object.entries({"profile":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-profile-7b0821959737f1da0427b17a7dfd4685.json","sha256":"cf176e37c795f6de01353f04f4f1747499aab5f695d79519c2ecf3233b80967a"},"before":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-before-7b0821959737f1da0427b17a7dfd4685.json","sha256":"b89366ce31aa8254e8ad7c0ef2c342520b427e0dbbbf37263a68001d92ab2443"},"transitionLock":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\transition.lock","sha256":"a0622af3cca2076c56c38c7ca030124e7c264980ea5657e8d0efaf08a4832e05"},"ancestorClaim":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-successor-of-639e2da815e1e7ac0f1c0d04d7f7bdc3.lock.json","sha256":"23c5369ebd2657961566ded8f0417713be0ba4e2a4b3843e1d7899eda6049203"},"controller":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\controller-outcome.json","sha256":"7e47bd7fa12baf349783b229a6aa80c48dcb9e7231063c0c76a7c18aca3b9fe2"},"ready":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\late-new-owner-final.json","sha256":"37d19530131f006d8332827f673d7e35284f891b081875653df6b60383be1f5d"},"candidate":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-e2e7d8011a1cd4236dab9f959acd94a4.json","sha256":"143ca5b5242a702e846e421d8210afa254cc8d30a85961f41c152762b415f1ef"}}).map(([key,value])=>[key,Object.freeze(value)])));
+export const PR54_CURRENT_JOURNAL_REFS=Object.freeze([{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0000.json","sha256":"991f6f661069e72d5eb2e65d1da4f2d89929b56077c0baebe01a87dda3418839"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0001.json","sha256":"616939fde13980c9c04c5a39719716d90effa0715b7dbf9a4ac8ef21b2f11967"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0002.json","sha256":"aafe1f93fb57c188ea8e686b563a931db924b791bef279321bfda987da9e87a0"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0003.json","sha256":"1f0923d6c1a723f85227bf9210d5328605e74567019823f5a82fb49639d783f6"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0004.json","sha256":"638a963206354ad9d4f5423830a0ba41ad016f83519e2617b2449af58f205d95"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0005.json","sha256":"8ef524eb73cdafe9727889a563dccdf3efd7f5debd009149260b7fcd7bc7f642"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0006.json","sha256":"2b6d7565c1920cab700d5b60a2df44968ebdd576da02ed230c0cdf2323d77065"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0007.json","sha256":"92ac9b0083577b2d9915bc29173ad650c6e78b13c27f6fa40c2024f744edaf5e"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0008.json","sha256":"c4c87ff42d035f57d9e7bdeb5c30d80b7dc7587b939dc7d150d9c95c0d996a9b"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0009.json","sha256":"14e6cfe5771ba532ee895466f11aefd5baafd43c4b3995cb73446080095aabd8"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0010.json","sha256":"4977be119d7074e09107408ef0efeacd5206e408e5e05a92aebf1659d55052c6"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0011.json","sha256":"b0bac53db4be0c0c6278d81a2e7d5d0d0b3870dc1503277497faaf909f9a9ec7"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0012.json","sha256":"15e5327413b53d3f65aadbd26e9635fb9fd97261842ce70aaa7dd864bb1a523a"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0013.json","sha256":"248fb48a73d230fdd9ad2aa2fc8b2b81c59a214039f30c2564a173707f4ba783"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0014.json","sha256":"17c2569ac9733cad69c54875c44b192403609a10fc2e076b7100cbff554b8a1a"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0015.json","sha256":"94b194b7d2d446de688e559a2ab386ef96dd32ef66fe8047db8d23357136b37e"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0016.json","sha256":"344113bc27cc583d6796a7a33e0bd06f769aa75faee962f704ba3d7950e2769f"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0017.json","sha256":"bab5a627ec74e2f43c7647093f5ffcf6302267dc917bb9616f6debf9afe26012"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0018.json","sha256":"210ee83ebf78844c89fd6d8cf516f508562ba630455c1ebdd459b57d01f5bf24"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0019.json","sha256":"b1c5724129b112c833663b490b507e531be51a0be394b20e7e3c382b83cb833d"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0020.json","sha256":"93b7903b427eca78bf020a24fa577660133d909d47b377c5df17fbbedc54800e"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0021.json","sha256":"460069d9b9ffbe86c0c3e5139a4a48d07734d09280d2193a19ddd82ce3ba23a2"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0022.json","sha256":"5796cd27268e564aab33f2d15356d599f260f2aec0746643900eb1e8d52457d1"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0023.json","sha256":"0d25ac95600646bb387fb03750fe2ab0607662e7c601eea991bfdb9dfdf585ad"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0024.json","sha256":"c9baea46d2844835cca10a49c07204916e47ef4876e7a5f5062c2e9b5666eb7c"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-7b0821959737f1da0427b17a7dfd4685\\event-0025.json","sha256":"bd455b43c46e124ae46699f7f32bcd8bab02f67bfc146d040951f66c1a5a0760"}].map(Object.freeze));
+const currentOldProfile=Object.freeze({erpSource:'e59e07abf7ae2567cdc2adb93811fe29e0032fe5',erpManifest:'2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7',crmSource:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',crmManifest:'e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83',supervisorSource:'13bdf75a032ae8f694354a2e57b6ed382aec2f17',supervisorManifest:'195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'});
+function provePr54CurrentHistory(raw){
+ check(exact(raw,[...Object.keys(PR54_CURRENT_REFS),'journal']));
+ const decoded={};for(const [key,pin]of Object.entries(PR54_CURRENT_REFS)){check(same(raw[key]?.ref,pin));decoded[key]=bytesOf(raw[key]);}
+ const {profile,before,transitionLock,ancestorClaim,controller,ready,candidate}=decoded;
+ check(before.runId===PR54_CURRENT_PREDECESSOR_RUN&&same(before.profile,currentOldProfile)&&before.actualT1===false&&before.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&before.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02');
+ check(same(profile.beforeImage,PR54_CURRENT_REFS.before)&&same(transitionLock.profileRef,PR54_CURRENT_REFS.profile)&&same(transitionLock.beforeRef,PR54_CURRENT_REFS.before)&&same(transitionLock.successorClaimRef,PR54_CURRENT_REFS.ancestorClaim));
+ check(ancestorClaim.predecessorRunId===PR54_PREDECESSOR_RUN&&ancestorClaim.successorRunId===PR54_CURRENT_PREDECESSOR_RUN&&same(ancestorClaim.successorProfile,PR54_CURRENT_REFS.profile)&&same(ancestorClaim.successorBefore,PR54_CURRENT_REFS.before)&&same(ancestorClaim.newSettings,profile.newSettings));
+ check(controller.status==='QUARANTINED_REQUIRES_ROOT_INSPECTION'&&controller.failedPhase==='READBACK'&&controller.recoveryReason==='P03_PHYSICAL_ACL'&&controller.runId===PR54_CURRENT_PREDECESSOR_RUN&&controller.controllerSessionCompleted===true&&controller.originalJournalRetained===true&&controller.successorClaimRetained===true&&controller.recoveryIntentCreated===false&&controller.postCaptureStarted===false);
+ check(Array.isArray(raw.journal)&&raw.journal.length===26);
+ let previousSha=PR54_CURRENT_REFS.before.sha256;
+ const stopRoles=['coreSupervisor',...roles.filter(role=>role!=='coreSupervisor')],events=[['TASK_STOP_INTENT'],['TASKS_STOPPED'],...stopRoles.flatMap(role=>[['EXACT_STOP_INTENT',role],['EXACT_STOPPED',role]]),['PORTS_CLEAR'],...tasks.flatMap(name=>[['ACTION_INTENT',name],['ACTION_SET',name]]),['START_INTENT'],['STARTED'],['FAILED','READBACK']];
+ for(const [n,row]of raw.journal.entries()){
+  check(same(row.ref,PR54_CURRENT_JOURNAL_REFS[n]));const value=bytesOf(row),[event,target]=events[n];
+  check(exact(value,['sequence','digest','event','stopOrderDigest','previousSha256','profileSha256','beforeSha256',...(target?['target']:[])])&&value.sequence===n&&value.event===event&&value.target===target&&value.previousSha256===previousSha&&value.profileSha256===PR54_CURRENT_REFS.profile.sha256&&value.beforeSha256===PR54_CURRENT_REFS.before.sha256&&value.digest===before.plan.digest&&value.stopOrderDigest===p03CoreFirstStopDigest(before.plan));previousSha=row.ref.sha256;
+ }
+ const proof=ready.proof;
+ check(exact(ready,['candidateRef','observerRef','proof'])&&same(ready.candidateRef,PR54_CURRENT_REFS.candidate)&&proof.status==='NEW_OWNER_OBSERVED_READY'&&proof.profileSha256===PR54_CURRENT_REFS.profile.sha256&&proof.beforeSha256===PR54_CURRENT_REFS.before.sha256&&proof.candidateSha256===PR54_CURRENT_REFS.candidate.sha256&&proof.engineSha256===PR54_REHEARSED_ENGINE_SHA&&proof.sourceProof.supervisorSourceCommit===currentOldProfile.supervisorSource&&proof.sourceProof.supervisorManifestSha256===currentOldProfile.supervisorManifest&&proof.mutationExecuted===false&&proof.stableSeconds>=30&&time(proof.observedAt)&&time(candidate.observedAt)&&Date.parse(proof.observedAt)>=Date.parse(candidate.observedAt)&&candidate.profileSha256===PR54_CURRENT_REFS.profile.sha256&&candidate.beforeSha256===PR54_CURRENT_REFS.before.sha256&&candidate.processes.length===10);
+ return {...decoded,readyAt:proof.observedAt};
+}
+// Candidate supervisor source/manifest and newly generated settings are explicit
+// required pins. No fallback to the old supervisor, generic source or registry.
+export function assertPr54CurrentSuccessorCandidate(candidate){
+ check(exact(candidate,['erpSource','erpManifest','crmSource','crmManifest','supervisorSource','supervisorManifest','supervisorRoot','newSettings']));
+ check(candidate.erpSource==='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'&&candidate.erpManifest==='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'&&candidate.crmSource===currentOldProfile.crmSource&&candidate.crmManifest===currentOldProfile.crmManifest&&/^[a-f0-9]{40}$/.test(candidate.supervisorSource)&&candidate.supervisorSource!==currentOldProfile.supervisorSource&&sha(candidate.supervisorManifest)&&candidate.supervisorManifest!==currentOldProfile.supervisorManifest&&ref(candidate.newSettings)&&candidate.newSettings.sha256!=='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071');
+ check(candidate.newSettings.path==='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json'&&typeof candidate.supervisorRoot==='string'&&/^C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-[a-f0-9]{12}$/.test(candidate.supervisorRoot)&&candidate.supervisorRoot.endsWith(candidate.supervisorSource.slice(0,12)));
+ return Object.freeze({...candidate,newSettings:Object.freeze({...candidate.newSettings})});
+}
+// IO must independently authenticate ACL/no-reparse files, source manifests,
+// protected SQL/OS identities and full health before/after atomic CreateNew.
+// These bytes are an admission proposal, never OS proof or permission to replay.
+const currentContinuities=new WeakMap();
+export function preparePr54CurrentNativeContinuity(snapshotRef,snapshot,observation,backup,now=Date.now()){
+ check(exact(snapshotRef,['path','sha256'])&&ref(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261019-\d{6}\\source-pre-snapshot\.json$/.test(snapshotRef.path));
+ check(snapshot?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&typeof snapshot.logEndBefore==='string'&&/^[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{4}$/.test(snapshot.logEndBefore)&&snapshot.logEndBefore===snapshot.logEndAfter);
+ const guid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
+ check(guid(backup?.backupSetGuid));
+ check(exact(observation,['server','database','copyId','observedAt','actualT1','readOnly','sealed','logEnd','queryStoreMode','snapshotRef','backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'])&&observation.server==='Semih\\MELISADEV'&&observation.database===snapshot.database&&observation.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&observation.actualT1===false&&observation.readOnly===true&&observation.sealed===true&&observation.queryStoreMode==='READ_ONLY'&&['backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'].every(k=>guid(observation[k]))&&observation.backupSetGuid.toLowerCase()===backup.backupSetGuid.toLowerCase()&&observation.databaseGuid.toLowerCase()===observation.backupDatabaseGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupFirstRecoveryForkGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupLastRecoveryForkGuid.toLowerCase()&&observation.logEnd===snapshot.logEndAfter&&same(observation.snapshotRef,snapshotRef)&&time(observation.observedAt)&&Number.isFinite(now)&&now-Date.parse(observation.observedAt)>=0&&now-Date.parse(observation.observedAt)<60000);
+ const token=Object.freeze({});currentContinuities.set(token,{snapshotRef:Object.freeze({...snapshotRef}),observedAt:observation.observedAt});return token;
+}
+export function isPr54CurrentNativeContinuity(token,snapshotRef,now=Date.now()){
+ const proof=currentContinuities.get(token);return Boolean(proof&&same(proof.snapshotRef,snapshotRef)&&Number.isFinite(now)&&now-Date.parse(proof.observedAt)>=0&&now-Date.parse(proof.observedAt)<60000);
+}
+export function admitPr54CurrentOwnerSuccessor({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null,physicalInspection=null}){
+ candidate=assertPr54CurrentSuccessorCandidate(candidate);
+ const history=provePr54CurrentHistory(raw),old=history.profile;
+ check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));
+ check(/^[a-f0-9]{32}$/.test(before.runId)&&![PR54_PREDECESSOR_RUN,PR54_CURRENT_PREDECESSOR_RUN].includes(before.runId)&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+before.runId+'.json'&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+before.runId+'.json'&&same(profile.beforeImage,beforeRef));
+ check(profile.schemaVersion==='melisa-p03-physical-profile.v1'&&before.schemaVersion==='melisa-p03-owner-observation.v3'&&profile.ownerSid===owner&&before.ownerSid===owner&&profile.database===history.before.database&&before.database===profile.database&&before.actualT1===false&&before.copyId===history.before.copyId);
+ check(same(profile.oldSettings,old.newSettings)&&same(before.oldConfig,old.newSettings)&&same(profile.newSettings,candidate.newSettings)&&same(before.newConfig,candidate.newSettings)&&before.plan.oldSettingsSha256===old.newSettings.sha256&&before.plan.newSettingsSha256===candidate.newSettings.sha256);
+ const target=Object.fromEntries(Object.keys(currentOldProfile).map(key=>[key,candidate[key]]));check(same(before.profile,target));p03CoreFirstStopDigest(before.plan);
+ // The frozen engine checks the OLD/NEW settings union, not all historical packages.
+ // The hash-bound old profile still preserves all eight ancestor package descriptors.
+ const currentRoots=[
+  ['C:\\Sirket\\ERP\\releases\\CANONICAL-COMPLETE-TEST-20261018-e59e07abf7ae',currentOldProfile.erpSource],
+  ['C:\\Sirket\\ERP\\releases\\CRM-ORDER-DRAFT-TEST-20261013-7a41f64','7a41f6492273dd1ec0bcb086f820be5575372be8'],
+  ['C:\\Sirket\\CRM\\releases\\crm-shared-test-6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',currentOldProfile.crmSource],
+  ['C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',currentOldProfile.supervisorSource]
+ ];
+ const currentPackages=currentRoots.map(([root,sourceCommit])=>{const matches=old.packages.filter(p=>p.root===root&&p.sourceCommit===sourceCommit);check(matches.length===1);return matches[0];});
+ check(Array.isArray(profile.packages)&&profile.packages.length===6&&new Set(profile.packages.map(p=>p.root)).size===6&&currentPackages.every(pin=>profile.packages.some(p=>same(p,pin))));
+ const additions=profile.packages.filter(p=>!currentPackages.some(pin=>same(p,pin)));
+ check(additions.length===2&&additions.every(p=>exact(p,['root','sourceCommit','manifestPath','manifestSha256'])&&ref({path:p.root,sha256:p.manifestSha256})&&p.manifestPath===p.root+'\\release-manifest.json'));
+ check(additions.some(p=>p.root==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a'&&p.sourceCommit===candidate.erpSource&&p.manifestSha256===candidate.erpManifest)&&additions.some(p=>p.root===candidate.supervisorRoot&&p.sourceCommit===candidate.supervisorSource&&p.manifestSha256===candidate.supervisorManifest));
+ check(Number.isFinite(now)&&time(before.observedAt)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<15*60000&&Date.parse(before.observedAt)>=Date.parse(history.readyAt)&&time(current?.observedAt)&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(current.observedAt)>=Date.parse(before.observedAt));
+ check(Array.isArray(profile.protectedProcesses)&&same(profile.protectedProcesses,old.protectedProcesses)&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService'));
+ check(Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks.length===2&&current.runningInstances.length===2&&profile.tasks.length===2&&profile.oldWatchers.length===2);
+ const known=history.candidate.processes,owned=[...roles.map(role=>({...before.identities[role],role})),...profile.oldWatchers];check(new Set(owned.map(p=>p.pid)).size===10&&new Set(current.processes.map(p=>p.pid)).size===current.processes.length);
+ for(const p of owned){const prior=known.find(x=>x.role===p.role);check(prior&&p.ownerSid===owner&&Number.isSafeInteger(p.pid)&&p.pid>0&&p.nodePath===prior.nodePath&&p.commandLine===prior.commandLine&&time(p.creationTime)&&identity(p,current.processes.find(x=>x.pid===p.pid)));if(p.pid===prior.pid)check(identity(p,prior));else check(!known.some(x=>x.pid===p.pid)&&birth(p.creationTime)>birth(prior.creationTime)&&Date.parse(p.creationTime)<=Date.parse(before.observedAt));const priorParent=known.find(x=>x.pid===prior.parentPid);if(priorParent)check(p.parentPid===owned.find(x=>x.role===priorParent.role)?.pid);}
+ const auxiliaries=lookupPr54CurrentPhysicalInspection(physicalInspection,{current,profile,before,profileRef,beforeRef,now})??[];
+ check(current.processes.every(p=>owned.some(x=>identity(p,x))||profile.protectedProcesses.some(x=>identity(p,x))||auxiliaries.some(x=>identity(x.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?{...p,nodePath:x.nodePath}:p,x))));
+ for(const [n,name]of tasks.entries()){const t=profile.tasks.find(t=>t.name===name),previous=old.tasks.find(t=>t.name===name),actual=current.tasks.find(t=>t.name===name),watcher=owned.find(p=>p.role===(n?'hubWatcher':'terminalWatcher'));check(t&&t.oldXml===previous.newXml&&t.oldXmlSha256===previous.newXmlSha256&&hash(Buffer.from(t.oldXml))===t.oldXmlSha256&&typeof t.newXml==='string'&&hash(Buffer.from(t.newXml))===t.newXmlSha256&&t.newXml===t.oldXml.replaceAll('C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',candidate.supervisorRoot).replaceAll(old.newSettings.path,candidate.newSettings.path).replaceAll(old.newSettings.sha256,candidate.newSettings.sha256)&&t.newXml!==t.oldXml&&actual?.state===4&&actual.xml===t.oldXml);const instances=current.runningInstances.filter(p=>p.name===name);check(instances.length===1&&instances[0].state===4&&instances[0].path==='\\'+name&&instances[0].enginePid===watcher.pid&&typeof instances[0].instanceGuid==='string'&&instances[0].instanceGuid.length>0);}
+ const bindings=rows=>JSON.stringify(rows.map(b=>[b.port,b.address,b.pid]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])||a[2]-b[2]));check(bindings(current.bindings)===bindings(roles.flatMap(role=>(before.identities[role].bindings??[]).map(b=>({...b,pid:before.identities[role].pid})))));
+ const claim={schemaVersion:'melisa-p03-current-owner-successor-claim.v1',predecessorRunId:PR54_CURRENT_PREDECESSOR_RUN,ancestorClaim:PR54_CURRENT_REFS.ancestorClaim,predecessorLock:PR54_CURRENT_REFS.transitionLock,predecessorProfile:PR54_CURRENT_REFS.profile,predecessorBefore:PR54_CURRENT_REFS.before,quarantinedController:PR54_CURRENT_REFS.controller,failedJournalTail:PR54_CURRENT_JOURNAL_REFS.at(-1),readOnlyNewReady:PR54_CURRENT_REFS.ready,successorRunId:before.runId,successorProfile:profileRef,successorBefore:beforeRef,newSettings:profile.newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(before.plan)};
+ const bytes=Buffer.from(JSON.stringify(claim,null,2)+'\n');return {claimPath:PR54_CURRENT_SUCCESSOR_CLAIM_PATH,claim,proposedCreateNew:{ref:{path:PR54_CURRENT_SUCCESSOR_CLAIM_PATH,sha256:hash(bytes)},bytes},proofDigest:hash(Buffer.from(JSON.stringify([...Object.values(PR54_CURRENT_REFS),...PR54_CURRENT_JOURNAL_REFS])))};
+}
+
+// Additive B264 proposal: failed engine history stays FAILED. No IO or writer dispatch.
+import {lookupPr54B264PhysicalInspection} from './p03-pr54-b264-physical-io.mjs';
+import {validateP03ProtectedSqlService} from './p03-physical-profile-create.mjs';
+export const PR54_B264_PREDECESSOR_RUN='b264594b6f93d560d807c8decc4e6699';
+export const PR54_B264_SUCCESSOR_CLAIM_PATH=PR54_OWNER_ROOT+'\\p03-pr54-successor-of-'+PR54_B264_PREDECESSOR_RUN+'.lock.json';
+export const PR54_B264_REFS=Object.freeze(Object.fromEntries(Object.entries({"globalLock":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-shared-owner.lock.json","sha256":"69bf4c022904e6c8d2baa2ea5766e3c115dde2b9e2412d6cfbe0a004e2cf235b"},"transitionLock":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\transition.lock","sha256":"4d3741a78dd88adc7c9a2b3fc88a8b7135862458285a9591e1be326f3ed1b65d"},"profile":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-profile-b264594b6f93d560d807c8decc4e6699.json","sha256":"7effdbf12208c973da6ccbd91ab07afd785d3e9d2bc15a2d00d62980c70ed294"},"before":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-before-b264594b6f93d560d807c8decc4e6699.json","sha256":"b05242a19ce9bcccd20ba363e213c892aadc89a4e863af9c9186f86206bb3873"},"ancestorClaim":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\p03-pr54-successor-of-7b0821959737f1da0427b17a7dfd4685.lock.json","sha256":"6d9320c8c00cc33c59c65de663a0ece96a82ca0f116194cb7d35f655853f7815"},"engine":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-control-eb5b37a555cb\\p03-physical-rollback.ps1","sha256":"99b90fbd359852818bf1f7bf3c938d0ec0c3621f4fedccca3bf4951e6ef76def"},"intent":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\current-b264-late-old-observation-intent.json","sha256":"cd99972dd58930aa814092acab9a6bc2fab4ce2935b01291d34375ac669c7c29"},"ready":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\current-b264-late-old-observed-ready.json","sha256":"097b43d18467a2d594b04586e7ebb9cbcea4133c7dcd2154c4e24e1c8ed42dcf"},"candidate":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-cb97c326069f4289b91bda904bac46d6.json","sha256":"71b7c2c53cd537337dc3bdc6a926531de9042504339f088d8c3b04f56fdc5539"},"failure":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\io-failure-diagnostic.json","sha256":"5deeaa4db9b9f6108bbfb4bd87f15bc75a35e9089637145857423bcd904dc0e3"},"recoveryLock":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\recovery.lock","sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},"rollbackLock":{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\rollback.lock","sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}}).map(([k,v])=>[k,Object.freeze(v)])));
+export const PR54_B264_OUTER_REFS=Object.freeze([{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0000.json","sha256":"e2688d3d2bff5192ea09e6f3a6949bcac92fc8908ce74316daf01d238fec23c4"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0001.json","sha256":"d2cbcca6721c7a23026d2def93fa5052168caf89760d74689736cd622b7b8f17"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0002.json","sha256":"1a3f09771c3dc30622c4e97a60d6cda2b9ffc27a631933b1a8e2e54209785562"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0003.json","sha256":"b07a47b1927fda8b18cd5e8292a7c774003dcdfb4c860804aa098f14f6522415"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0004.json","sha256":"97c162d94876c598352af3572cdbf0a792b89c011838a4aadb069fc87aa91144"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0005.json","sha256":"180e1fe50a34fa321972ee7fed51e51355f722650de742dd2d0d7117ed814b6d"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0006.json","sha256":"80dcc9229aa8258bbe7e089cf4ebebf0ae5e7024bdd3367a922adebed28e32c5"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0007.json","sha256":"e8b62eabdcc7b4718b639a0c7bd0825bef68936e828ca40e979e9fe9b7feb237"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0008.json","sha256":"9f658d54382961c9e97cd161d2caf48939b8b484f94d487d8c1050021a5bc8bb"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0009.json","sha256":"5b6c5bac79437a8c784c2174e21d71f782b693c7d9abe0b3b48ff5b5dab5d95d"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0010.json","sha256":"fabeb6427961df98bf2397fd162f941737614819d26425791176e4d9f321976b"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0011.json","sha256":"c4884afae143015605b668c9fca00957bf4cba6cfc584ed70d031dd156acc53a"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0012.json","sha256":"8e9baa602c5d8fd5721075c211918003c23e7ed3c60ab9c26f335414b5dfbc6d"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0013.json","sha256":"b187ed279cb98f2f589cc191a1be0d87bb91b6447a04a7d8899fc3cf1ac96456"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0014.json","sha256":"11957198af7119b4d4d35f314b778c05ecc0dfef7e55e26e040b2e5685dec176"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0015.json","sha256":"e821611f629a378319a90e592bd4c9a275a1e6f39eb8d4b927f2bd7464b2f82e"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0016.json","sha256":"7b9fecda257868fbf21b8afdf096d11479ed74b5d51156b6be5c6570de13fa67"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0017.json","sha256":"eb204b451b2e9361121d3a6175aceb74aebe410470d92421187f7eff92b61eb8"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0018.json","sha256":"456fcae4fb90049ad3fb4afe683caff6ed785379f655dcc35b42cf772714bbed"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0019.json","sha256":"b2de09d9883e7d45380e05021e951127e56fd3191b7144dc83ce8f7f596ea207"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0020.json","sha256":"56a0b750f705af7839d1e8a49582d888a03fce5779f270621d9b186747e89d5e"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0021.json","sha256":"09ce26ca9f9ce4781f7aaeed49009fade13ce924103d5b8d9e90dac510414c0a"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0022.json","sha256":"cfd2784dfe51bf752471dbc83f29cb0fc2d188a288bb3f1ff06489f686d19cd7"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0023.json","sha256":"9c7c607dac7b943dd74db435bf1683adeaa818aa55ac36d0612e210aa2388c13"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0024.json","sha256":"263243bdf61d433498b8f555197465321f1a9411fabd45a35121a66d8c8cf3d9"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-transition-b264594b6f93d560d807c8decc4e6699\\event-0025.json","sha256":"89821e3d15838cb549b14b1738fe5214e6325ce87c1ebd12c273c9c9bcecafd3"}].map(Object.freeze));
+export const PR54_B264_RECOVERY_REFS=Object.freeze([{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0000.json","sha256":"776f6d951da6ff86c1318ea647de88d24e3004fde77a6423b041e48cb2e8e37f"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0001.json","sha256":"beb55e1df0adf60eca58fc421082d50921b98239a6084cf3c59e8f4c5373038a"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0002.json","sha256":"c263a0a7aaf42278ca6d8ec2e3d4f33efbc87e633b030f4436ac8167a6835800"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0003.json","sha256":"f1a5c64d25d303a9e1dfe41ee0415d6813ab08cde095dcf7cc5dc1dda347d0c3"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0004.json","sha256":"b5df5df691c708c646b8a7ba1918254778fd75108e40e1a2aa4b86190b470e38"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0005.json","sha256":"9cd24ec26be0a462cd1c32fd3bdd9ebcd145f00be003eab6a9e36f906984a232"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0006.json","sha256":"e369add55dead16375c6a72912668b6e65a9052ccdd9774ec1b8f681dad57a0c"},{"path":"C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-b264594b6f93d560d807c8decc4e6699\\event-0007.json","sha256":"0f45377171afcb85a82dfa3d130592251c31687134abafde0c9cca557879d25c"}].map(Object.freeze));
+export const PR54_B264_NEW_SETTINGS_PATH='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json';
+function provePr54B264History(raw){
+ check(exact(raw,[...Object.keys(PR54_B264_REFS),'outer','recovery']));
+ const decoded={};
+ for(const [key,pin]of Object.entries(PR54_B264_REFS)){
+  const row=raw[key];check(same(row?.ref,pin)&&row.bytes instanceof Uint8Array&&hash(row.bytes)===pin.sha256);
+  decoded[key]=['engine','recoveryLock','rollbackLock'].includes(key)?null:JSON.parse(Buffer.from(row.bytes).toString('utf8'));
+ }
+ const {profile,before,transitionLock,ancestorClaim,intent,ready,candidate,failure}=decoded;
+ check(profile.ownerSid===owner&&before.ownerSid===owner&&before.runId===PR54_B264_PREDECESSOR_RUN&&before.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&profile.database===before.database&&before.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&before.actualT1===false);
+ check(same(profile.beforeImage,PR54_B264_REFS.before)&&same(profile.oldSettings,before.oldConfig)&&same(profile.newSettings,before.newConfig)&&profile.oldSettings.sha256==='ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071'&&profile.newSettings.sha256==='fec69870a70631bcb6cfd2df70bf1566d2ab66eb5b09f7ac96c54ac29f749417');
+ check(same(transitionLock.profileRef,PR54_B264_REFS.profile)&&same(transitionLock.beforeRef,PR54_B264_REFS.before)&&same(transitionLock.successorClaimRef,PR54_B264_REFS.ancestorClaim));
+ check(ancestorClaim.schemaVersion==='melisa-p03-current-owner-successor-claim.v1'&&ancestorClaim.predecessorRunId===PR54_CURRENT_PREDECESSOR_RUN&&ancestorClaim.successorRunId===PR54_B264_PREDECESSOR_RUN&&same(ancestorClaim.successorProfile,PR54_B264_REFS.profile)&&same(ancestorClaim.successorBefore,PR54_B264_REFS.before)&&same(ancestorClaim.newSettings,profile.newSettings)&&same(ancestorClaim.predecessorProfile,PR54_CURRENT_REFS.profile)&&same(ancestorClaim.predecessorBefore,PR54_CURRENT_REFS.before));
+ const stopRoles=['coreSupervisor',...roles.filter(r=>r!=='coreSupervisor')],events=[['TASK_STOP_INTENT'],['TASKS_STOPPED'],...stopRoles.flatMap(r=>[['EXACT_STOP_INTENT',r],['EXACT_STOPPED',r]]),['PORTS_CLEAR'],...tasks.flatMap(n=>[['ACTION_INTENT',n],['ACTION_SET',n]]),['START_INTENT'],['STARTED'],['FAILED','READBACK']];
+ check(Array.isArray(raw.outer)&&raw.outer.length===26&&Array.isArray(raw.recovery)&&raw.recovery.length===8);
+ let previous=PR54_B264_REFS.before.sha256;
+ for(const [n,row]of raw.outer.entries()){
+  check(same(row.ref,PR54_B264_OUTER_REFS[n]));const v=bytesOf(row),[event,target]=events[n];
+  check(exact(v,['sequence','digest','event','stopOrderDigest','previousSha256','profileSha256','beforeSha256',...(target?['target']:[])])&&v.sequence===n&&v.event===event&&v.target===target&&v.previousSha256===previous&&v.profileSha256===PR54_B264_REFS.profile.sha256&&v.beforeSha256===PR54_B264_REFS.before.sha256&&v.digest===before.plan.digest&&v.stopOrderDigest===p03CoreFirstStopDigest(before.plan)&&v.stopOrderDigest===ancestorClaim.stopOrderDigest);previous=row.ref.sha256;
+ }
+ const recoveryEvents=['RECOVERY_INTENT','RECOVERY_TASKS_STOPPED','RECOVERY_OLD_ACTION_RESTORE_INTENT','RECOVERY_COMPLETE','ROLLBACK_START_INTENT','ROLLBACK_STARTED','ROLLBACK_FAILED','QUARANTINED'],records=[];
+ previous=PR54_B264_REFS.before.sha256;let previousTime=-Infinity;
+ for(const [n,row]of raw.recovery.entries()){
+  check(same(row.ref,PR54_B264_RECOVERY_REFS[n]));const v=bytesOf(row);
+  check(exact(v,['sequence','previousSha256','profileSha256','beforeSha256','event','observedAt',...(n===6?['failure']:[])])&&v.sequence===n&&v.event===recoveryEvents[n]&&v.previousSha256===previous&&v.profileSha256===PR54_B264_REFS.profile.sha256&&v.beforeSha256===PR54_B264_REFS.before.sha256&&time(v.observedAt)&&Date.parse(v.observedAt)>=previousTime);previousTime=Date.parse(v.observedAt);previous=row.ref.sha256;records.push(v);
+ }
+ check(same(records[6].failure,{exceptionType:'System.Management.Automation.RuntimeException',sourceLine:29,code:'P03_PHYSICAL_ROLLBACK_READBACK_FAILED'})&&failure.callback==='TRANSITION'&&failure.reason==='P03_OWNER_TRANSITION_STOPPED'&&failure.phase==='READBACK'&&failure.profileSha256===PR54_B264_REFS.profile.sha256&&failure.beforeSha256===PR54_B264_REFS.before.sha256);
+ check(candidate.schemaVersion==='melisa-p03-physical-candidate.v1'&&candidate.profileSha256===PR54_B264_REFS.profile.sha256&&candidate.beforeSha256===PR54_B264_REFS.before.sha256&&same(candidate.processes,[])&&same(candidate.receipts,[]));
+ const common={observerSourceSha256:'d93f6d159d36b4a9ad2f5456b135189a373c9776be0bbf963cf3cca026b8517b',profileSha256:PR54_B264_REFS.profile.sha256,beforeSha256:PR54_B264_REFS.before.sha256,engineSha256:PR54_B264_REFS.engine.sha256,candidateSha256:PR54_B264_REFS.candidate.sha256,consumedClaimSha256:PR54_B264_REFS.ancestorClaim.sha256,recoveryTailSha256:PR54_B264_RECOVERY_REFS.at(-1).sha256,engineOutcome:'ROLLBACK_READBACK_FAILED',observerOnly:true,mutationExecuted:false,transitionAuthority:false,stopAuthority:false};
+ check(exact(intent,['status',...Object.keys(common)])&&intent.status==='CURRENT_B264_LATE_OBSERVATION_INTENT'&&Object.entries(common).every(([k,v])=>intent[k]===v));
+ check(exact(ready,['status',...Object.keys(common),'outerFailedTailSha256','startedAt','observedAt','firstCompleteAt','stableSeconds','consecutiveFrames','identityDigest','diagnostics','newGenerationStarted','locksRetained'])&&ready.status==='CURRENT_B264_LATE_OLD_OBSERVED_READY'&&Object.entries(common).every(([k,v])=>ready[k]===v)&&ready.outerFailedTailSha256===PR54_B264_OUTER_REFS.at(-1).sha256&&ready.startedAt===records[4].observedAt&&ready.newGenerationStarted===false&&ready.locksRetained===true&&ready.stableSeconds===30&&sha(ready.identityDigest));
+ check(time(ready.observedAt)&&time(ready.firstCompleteAt)&&Date.parse(ready.firstCompleteAt)>previousTime&&Date.parse(ready.observedAt)-Date.parse(ready.firstCompleteAt)>=30000&&Array.isArray(ready.diagnostics)&&ready.diagnostics.length>=3&&ready.diagnostics.length<=64&&Buffer.byteLength(JSON.stringify(ready))<=65536);
+ let since=null,count=0,lastEnd=-Infinity;
+ for(const [n,d]of ready.diagnostics.entries()){
+  check(exact(d,['frame','startedAt','endedAt','elapsedMs','phase','staticCode','digestChanged','stableElapsedMs','consecutiveFrames'])&&d.frame===n+1&&time(d.startedAt)&&time(d.endedAt)&&Date.parse(d.startedAt)>=lastEnd&&Date.parse(d.endedAt)>=Date.parse(d.startedAt)&&Number.isSafeInteger(d.elapsedMs)&&Math.abs(d.elapsedMs-(Date.parse(d.endedAt)-Date.parse(d.startedAt)))<=1&&d.elapsedMs>=0&&d.phase==='TASKS_AFTER'&&d.staticCode==='OK'&&d.digestChanged===false);
+  lastEnd=Date.parse(d.endedAt);since??=lastEnd;count++;check(d.consecutiveFrames===count&&Number.isSafeInteger(d.stableElapsedMs)&&Math.abs(d.stableElapsedMs-(lastEnd-since))<=1);
+ }
+ check(count===ready.consecutiveFrames&&count>=3&&lastEnd-since>=30000&&Math.abs(since-Date.parse(ready.firstCompleteAt))<=1&&Date.parse(ready.observedAt)>=lastEnd);
+ return {...decoded,records};
+}
+export function validatePr54B264Predecessor(raw){
+ const h=provePr54B264History(raw);
+ return Object.freeze({status:'HISTORY_VALIDATED',predecessorRunId:PR54_B264_PREDECESSOR_RUN,engineOutcome:'ROLLBACK_READBACK_FAILED',outerEvents:26,recoveryEvents:8,readyRef:PR54_B264_REFS.ready,identityDigest:h.ready.identityDigest,observedAt:h.ready.observedAt,transitionAuthority:false,applyExecuted:false});
+}
+export function assertPr54B264SuccessorCandidate(candidate){
+ check(exact(candidate,['erpSource','erpManifest','crmSource','crmManifest','supervisorSource','supervisorManifest','supervisorRoot','newSettings']));
+ check(candidate.erpSource==='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'&&candidate.erpManifest==='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'&&candidate.crmSource===currentOldProfile.crmSource&&candidate.crmManifest===currentOldProfile.crmManifest&&candidate.supervisorSource==='eb5b37a555cbf18e1fcaa491820707c73b354e12'&&candidate.supervisorManifest==='1a9d7a0ba6d0ed0fa60e9044122fb895e58e725d84f194ceea255a00aece39b0'&&candidate.supervisorRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-eb5b37a555cb'&&ref(candidate.newSettings)&&candidate.newSettings.path===PR54_B264_NEW_SETTINGS_PATH&&!['ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071','fec69870a70631bcb6cfd2df70bf1566d2ab66eb5b09f7ac96c54ac29f749417'].includes(candidate.newSettings.sha256));
+ return Object.freeze({...candidate,newSettings:Object.freeze({...candidate.newSettings})});
+}
+// Windows PowerShell 5 ConvertTo-Json uses Json.NET EscapeHtml. No shell, IO,
+// caller digest, PID substitution or time truncation participates in this hash.
+export function pr54B264StartedOwnerDigest(before,current){
+ check(plain(before?.identities)&&Object.keys(before.identities).sort().join('|')===roles.toSorted().join('|')&&Array.isArray(current?.processes)&&Array.isArray(current.runningInstances)&&current.runningInstances.length===2);
+ const owners=roles.map(role=>{
+  const expected=before.identities[role],matches=current.processes.filter(p=>p.nodePath===expected.nodePath&&p.commandLine===expected.commandLine);check(matches.length===1);
+  const p=matches[0],creationTime=birth(p.creationTime);check(Number.isSafeInteger(p.pid)&&Number.isSafeInteger(p.parentPid)&&p.ownerSid===owner&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{7}Z$/.test(creationTime)&&time(creationTime)&&Array.isArray(expected.bindings));
+  return {pid:p.pid,parentPid:p.parentPid,ownerSid:p.ownerSid,nodePath:p.nodePath,commandLine:p.commandLine,creationTime,bindings:expected.bindings};
+ }).sort((a,b)=>a.pid-b.pid);
+ // The pinned native 229f commitment records Terminal then Hub. Its exact
+ // captured OrderedDictionary pipeline is not an alphabetical JS object sort.
+ const instances=tasks.map(name=>{const matches=current.runningInstances.filter(i=>i.name===name);check(matches.length===1);const i=matches[0];check(Number.isSafeInteger(i.enginePid)&&typeof i.instanceGuid==='string'&&i.instanceGuid.length>0);return {name:i.name,pid:i.enginePid,guid:i.instanceGuid};});
+ check(new Set(instances.map(i=>i.name)).size===2);
+ const serialized=JSON.stringify({owners,instances}).replace(/[<>&'\u0085\u2028\u2029]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
+ return hash(Buffer.from(serialized));
+}
+export function admitPr54B264OwnerSuccessor(args){return admitPr54B264Proposal(args,false);}
+// A new observed Windows/SQL lifetime is never substituted into historical
+// recovery proof. This explicit path requires the same genuine current native
+// and physical capabilities, immutable package/config/service identity, and a
+// new before/profile. It still cannot write a claim or execute a transition.
+export function admitPr54B264CurrentEpoch(args){return admitPr54B264Proposal(args,true);}
+function sameB264ProtectedEpoch(previous,current){
+ check(Array.isArray(previous)&&Array.isArray(current)&&current.length===previous.length);
+ const oldSql=previous.filter(p=>p.kind==='ProtectedSqlService'),newSql=current.filter(p=>p.kind==='ProtectedSqlService');check(oldSql.length===1&&newSql.length===1);
+ const a=validateP03ProtectedSqlService(oldSql[0]),b=validateP03ProtectedSqlService(newSql[0]);
+ const stable=p=>({kind:p.kind,name:p.name,service:{name:p.service.name,state:p.service.state,startName:p.service.startName,pathName:p.service.pathName},sql:{serverName:p.sql.serverName,databaseName:p.sql.databaseName}});
+ check(same(stable(a),stable(b))&&Date.parse(b.creationTime)>=Date.parse(a.creationTime)&&same(previous.filter(p=>p.kind!=='ProtectedSqlService'),current.filter(p=>p.kind!=='ProtectedSqlService')));
+ return true;
+}
+function admitPr54B264Proposal({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null,physicalInspection=null},currentEpoch){
+ candidate=assertPr54B264SuccessorCandidate(candidate);const history=provePr54B264History(raw),old=history.profile;
+ check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));
+ check(/^[a-f0-9]{32}$/.test(before.runId)&&![PR54_PREDECESSOR_RUN,PR54_CURRENT_PREDECESSOR_RUN,PR54_B264_PREDECESSOR_RUN].includes(before.runId)&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+before.runId+'.json'&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+before.runId+'.json'&&same(profile.beforeImage,beforeRef));
+ check(profile.schemaVersion==='melisa-p03-physical-profile.v1'&&before.schemaVersion==='melisa-p03-owner-observation.v3'&&profile.ownerSid===owner&&before.ownerSid===owner&&profile.database===history.before.database&&before.database===profile.database&&before.actualT1===false&&before.copyId===history.before.copyId);
+ check(same(profile.oldSettings,old.oldSettings)&&same(before.oldConfig,old.oldSettings)&&same(profile.newSettings,candidate.newSettings)&&same(before.newConfig,candidate.newSettings)&&before.plan.oldSettingsSha256===old.oldSettings.sha256&&before.plan.newSettingsSha256===candidate.newSettings.sha256);
+ check(same(before.profile,Object.fromEntries(Object.keys(currentOldProfile).map(k=>[k,candidate[k]])))&&isPr54CurrentNativeContinuity(nativeContinuity,profile.businessDigest,now));p03CoreFirstStopDigest(before.plan);
+ check(Number.isFinite(now)&&time(before.observedAt)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<900000&&Date.parse(before.observedAt)>=Date.parse(history.ready.observedAt)&&time(current?.observedAt)&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(current.observedAt)>=Date.parse(before.observedAt));
+ const oldSources=[currentOldProfile.erpSource,currentOldProfile.crmSource,currentOldProfile.supervisorSource,'7a41f6492273dd1ec0bcb086f820be5575372be8'],retained=old.packages.filter(p=>oldSources.includes(p.sourceCommit));
+ check(retained.length===4&&Array.isArray(profile.packages)&&profile.packages.length===6&&new Set(profile.packages.map(p=>p.root)).size===6&&retained.every(p=>profile.packages.some(q=>same(p,q))));
+ const additions=profile.packages.filter(p=>!retained.some(q=>same(p,q)));check(additions.length===2&&additions.every(p=>exact(p,['root','sourceCommit','manifestPath','manifestSha256'])&&p.manifestPath===p.root+'\\release-manifest.json')&&additions.some(p=>p.root==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a'&&p.sourceCommit===candidate.erpSource&&p.manifestSha256===candidate.erpManifest)&&additions.some(p=>p.root===candidate.supervisorRoot&&p.sourceCommit===candidate.supervisorSource&&p.manifestSha256===candidate.supervisorManifest));
+ check(!currentEpoch||profile.protectedProcesses.every(p=>time(p.creationTime)&&Date.parse(p.creationTime)<=Date.parse(before.observedAt)));
+ check(Array.isArray(profile.protectedProcesses)&&(currentEpoch?sameB264ProtectedEpoch(old.protectedProcesses,profile.protectedProcesses):same(profile.protectedProcesses,old.protectedProcesses))&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService')&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks?.length===2&&current.runningInstances?.length===2&&profile.tasks?.length===2&&profile.oldWatchers?.length===2);
+ check(plain(before.identities)&&Object.keys(before.identities).sort().join('|')===roles.toSorted().join('|'));
+ const owned=[...roles.map(role=>({...before.identities[role],role})),...profile.oldWatchers],previous=[...roles.map(role=>({...history.before.identities[role],role})),...old.oldWatchers];
+ check(new Set(owned.map(p=>p.pid)).size===10&&new Set(owned.map(p=>p.role)).size===10&&new Set(current.processes.map(p=>p.pid)).size===current.processes.length);
+ for(const p of owned){
+  const prior=previous.find(x=>x.role===p.role);check(prior&&p.ownerSid===owner&&Number.isSafeInteger(p.pid)&&p.pid>0&&p.pid!==prior.pid&&p.nodePath===prior.nodePath&&p.commandLine===prior.commandLine&&time(p.creationTime)&&Date.parse(p.creationTime)>=Date.parse(currentEpoch?history.ready.observedAt:history.ready.startedAt)&&Date.parse(p.creationTime)<=Date.parse(currentEpoch?before.observedAt:history.ready.firstCompleteAt)&&identity(p,current.processes.find(x=>x.pid===p.pid)));
+  const priorParent=previous.find(x=>x.pid===prior.parentPid);if(priorParent)check(p.parentPid===owned.find(x=>x.role===priorParent.role)?.pid);
+  if(roles.includes(p.role))check(same(p.bindings,prior.bindings));
+ }
+ const currentOwnerDigest=pr54B264StartedOwnerDigest(history.before,current);
+ if(!currentEpoch)check(currentOwnerDigest===history.ready.identityDigest);
+ const auxiliaries=lookupPr54B264PhysicalInspection(physicalInspection,{current,profile,before,profileRef,beforeRef,now});
+ check(Array.isArray(auxiliaries)&&profile.protectedProcesses.every(p=>p.kind==='ProtectedSqlService'||current.processes.some(x=>identity(x,p)))&&current.processes.every(p=>owned.some(x=>identity(p,x))||profile.protectedProcesses.some(x=>identity(p,x))||auxiliaries.some(x=>identity(x.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?{...p,nodePath:x.nodePath}:p,x))));
+ for(const [n,name]of tasks.entries()){
+  const t=profile.tasks.find(t=>t.name===name),prior=old.tasks.find(t=>t.name===name),actual=current.tasks.find(t=>t.name===name),watcher=owned.find(p=>p.role===(n?'hubWatcher':'terminalWatcher'));
+  check(t&&t.oldXml===prior.oldXml&&t.oldXmlSha256===prior.oldXmlSha256&&hash(Buffer.from(t.oldXml))===t.oldXmlSha256&&typeof t.newXml==='string'&&hash(Buffer.from(t.newXml))===t.newXmlSha256&&t.newXml===t.oldXml.replaceAll('C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',candidate.supervisorRoot).replaceAll(old.oldSettings.path,candidate.newSettings.path).replaceAll(old.oldSettings.sha256,candidate.newSettings.sha256)&&t.newXml!==t.oldXml&&actual?.state===4&&actual.xml===t.oldXml);
+  const instances=current.runningInstances.filter(i=>i.name===name);check(instances.length===1&&instances[0].state===4&&instances[0].path==='\\'+name&&instances[0].enginePid===watcher.pid&&typeof instances[0].instanceGuid==='string'&&instances[0].instanceGuid.length>0);
+ }
+ const bindings=rows=>JSON.stringify(rows.map(b=>[b.port,b.address,b.pid]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])||a[2]-b[2]));check(bindings(current.bindings)===bindings(roles.flatMap(r=>before.identities[r].bindings.map(b=>({...b,pid:before.identities[r].pid})))));
+ const claim={schemaVersion:currentEpoch?'melisa-p03-b264-current-epoch-proposal.v1':'melisa-p03-b264-owner-successor-proposal.v1',...(currentEpoch?{currentOwnerDigest,ownerObservedAt:current.observedAt,protectedSqlEpoch:profile.protectedProcesses.find(p=>p.kind==='ProtectedSqlService')}:{}),predecessorRunId:PR54_B264_PREDECESSOR_RUN,predecessorProfile:PR54_B264_REFS.profile,predecessorBefore:PR54_B264_REFS.before,predecessorLock:PR54_B264_REFS.transitionLock,consumedAncestorClaim:PR54_B264_REFS.ancestorClaim,failedOuterTail:PR54_B264_OUTER_REFS.at(-1),quarantinedRecoveryTail:PR54_B264_RECOVERY_REFS.at(-1),readOnlyOldReady:PR54_B264_REFS.ready,successorRunId:before.runId,successorProfile:profileRef,successorBefore:beforeRef,newSettings:profile.newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(before.plan),transitionAuthority:false,applyExecuted:false};
+ const bytes=Buffer.from(JSON.stringify(claim,null,2)+'\n');return {claimPath:PR54_B264_SUCCESSOR_CLAIM_PATH,claim,proposedCreateNew:{ref:{path:PR54_B264_SUCCESSOR_CLAIM_PATH,sha256:hash(bytes)},bytes},proofDigest:hash(Buffer.from(JSON.stringify([...Object.values(PR54_B264_REFS),...PR54_B264_OUTER_REFS,...PR54_B264_RECOVERY_REFS]))),transitionAuthority:false,applyExecuted:false};
+}
+
+// Additive 20 October native proof; historical 639/7b prefix stays byte-exact.
+export function preparePr54B264NativeContinuity(snapshotRef,snapshot,observation,backup,now=Date.now()){
+ check(exact(snapshotRef,['path','sha256'])&&ref(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261020-\d{6}\\source-pre-snapshot\.json$/.test(snapshotRef.path));
+ check(snapshot?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&typeof snapshot.logEndBefore==='string'&&/^[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{4}$/.test(snapshot.logEndBefore)&&snapshot.logEndBefore===snapshot.logEndAfter);
+ const guid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
+ check(guid(backup?.backupSetGuid)&&time(backup.startedAt)&&Date.parse(backup.startedAt)>=Date.UTC(2026,9,20)&&backup.runId===snapshotRef.path.split('\\').at(-2));
+ check(exact(observation,['server','database','copyId','observedAt','actualT1','readOnly','sealed','logEnd','queryStoreMode','snapshotRef','backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'])&&observation.server==='Semih\\MELISADEV'&&observation.database===snapshot.database&&observation.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&observation.actualT1===false&&observation.readOnly===true&&observation.sealed===true&&observation.queryStoreMode==='READ_ONLY'&&['backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'].every(k=>guid(observation[k]))&&observation.backupSetGuid.toLowerCase()===backup.backupSetGuid.toLowerCase()&&observation.databaseGuid.toLowerCase()===observation.backupDatabaseGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupFirstRecoveryForkGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupLastRecoveryForkGuid.toLowerCase()&&observation.logEnd===snapshot.logEndAfter&&same(observation.snapshotRef,snapshotRef)&&time(observation.observedAt)&&Number.isFinite(now)&&now-Date.parse(observation.observedAt)>=0&&now-Date.parse(observation.observedAt)<60000);
+ const token=Object.freeze({});currentContinuities.set(token,{snapshotRef:Object.freeze({...snapshotRef}),observedAt:observation.observedAt});return token;
+}
+// CurrentB007 date closure only; historical B264 continuity above stays exact.
+export function preparePr54CurrentB007NativeContinuity(snapshotRef,snapshot,observation,backup,now=Date.now()){
+ if(typeof snapshotRef?.path==='string'&&snapshotRef.path.startsWith('C:\\Sirket\\ERP\\backups\\P03-20261020-'))return preparePr54B264NativeContinuity(snapshotRef,snapshot,observation,backup,now);
+ let reason='SNAPSHOT_REF';
+ try{
+ check(exact(snapshotRef,['path','sha256'])&&ref(snapshotRef)&&/^C:\\Sirket\\ERP\\backups\\P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?\.json$/.test(snapshotRef.path));
+ reason='SNAPSHOT_LOG';
+ check(snapshot?.database==='MELISA_ERP_CRM_SHARED_TEST_20261009_02'&&typeof snapshot.logEndBefore==='string'&&/^[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8}:[0-9A-Fa-f]{4}$/.test(snapshot.logEndBefore)&&snapshot.logEndBefore===snapshot.logEndAfter);
+ const guid=x=>typeof x==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(x);
+ reason='BACKUP';
+ check(guid(backup?.backupSetGuid)&&time(backup.startedAt)&&Date.parse(backup.startedAt)>=Date.UTC(2026,9,21)&&backup.runId===snapshotRef.path.split('\\').at(-2));
+ reason='OBSERVATION_SHAPE';check(exact(observation,['server','database','copyId','observedAt','actualT1','readOnly','sealed','logEnd','queryStoreMode','snapshotRef','backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid']));
+ reason='DB_IDENTITY';check(observation.server==='Semih\\MELISADEV'&&observation.database===snapshot.database&&observation.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&observation.actualT1===false&&observation.readOnly===true&&observation.sealed===true&&observation.queryStoreMode==='READ_ONLY');
+ reason='GUID_LINK';check(['backupSetGuid','databaseGuid','recoveryForkGuid','backupDatabaseGuid','backupFirstRecoveryForkGuid','backupLastRecoveryForkGuid'].every(k=>guid(observation[k]))&&observation.backupSetGuid.toLowerCase()===backup.backupSetGuid.toLowerCase()&&observation.databaseGuid.toLowerCase()===observation.backupDatabaseGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupFirstRecoveryForkGuid.toLowerCase()&&observation.recoveryForkGuid.toLowerCase()===observation.backupLastRecoveryForkGuid.toLowerCase());
+ reason='LOG_CONTINUITY';check(observation.logEnd===snapshot.logEndAfter&&same(observation.snapshotRef,snapshotRef));
+ reason='OBSERVATION_AGE';check(time(observation.observedAt)&&Number.isFinite(now)&&now-Date.parse(observation.observedAt)>=0&&now-Date.parse(observation.observedAt)<60000);
+ const token=Object.freeze({});currentContinuities.set(token,{snapshotRef:Object.freeze({...snapshotRef}),observedAt:observation.observedAt});return token;
+ }catch(error){if(error?.message==='P03_OWNER_SUCCESSOR_REJECTED')throw Error('P03_OWNER_SUCCESSOR_REJECTED_CURRENT_B007_CONTINUITY_'+reason);throw error;}
+}
+
+
+
+// Additive fixed 20d startup-compatible candidate. Historical eb5 admission,
+// journals and 639/7b prefix above are intentionally unchanged.
+import {lookupPr54B264Sup20dPhysicalInspection} from './p03-pr54-b264-physical-io.mjs';
+export const PR54_B264_SUP20D_SUPERVISOR=Object.freeze({
+ sourceCommit:'20d7e5b696969d502014ba359b950496dc530410',
+ packageRoot:"C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696",
+ manifestSha256:'0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418',
+});
+export const PR54_B264_SUP20D_SETTINGS_SHA256='f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95';
+export function assertPr54B264Sup20dCandidate(candidate){
+ check(exact(candidate,['erpSource','erpManifest','crmSource','crmManifest','supervisorSource','supervisorManifest','supervisorRoot','newSettings']));
+ check(candidate.erpSource==='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2');
+ check(candidate.erpManifest==='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf');
+ check(candidate.crmSource===currentOldProfile.crmSource&&candidate.crmManifest===currentOldProfile.crmManifest);
+ check(candidate.supervisorSource===PR54_B264_SUP20D_SUPERVISOR.sourceCommit&&candidate.supervisorManifest===PR54_B264_SUP20D_SUPERVISOR.manifestSha256&&candidate.supervisorRoot===PR54_B264_SUP20D_SUPERVISOR.packageRoot);
+ check(ref(candidate.newSettings)&&candidate.newSettings.path===PR54_B264_NEW_SETTINGS_PATH&&candidate.newSettings.sha256===PR54_B264_SUP20D_SETTINGS_SHA256);
+ return Object.freeze({...candidate,newSettings:Object.freeze({...candidate.newSettings})});
+}
+// Preparation only. The separate physical capability must come from the
+// genuine Sup20D collector; eb5 observations or caller booleans do not qualify.
+export function admitPr54B264Sup20dCurrentEpoch(args){return admitPr54B264Sup20dProposal(args,true);}
+function admitPr54B264Sup20dProposal({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null,physicalInspection=null},currentEpoch){
+ candidate=assertPr54B264Sup20dCandidate(candidate);
+ check(/^C:\\Sirket\\ERP\\backups\\P03-20261020-\d{6}\\source-pre-snapshot\.json$/.test(profile?.businessDigest?.path??''));
+ const history=provePr54B264History(raw),old=history.profile;
+ check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));
+ check(/^[a-f0-9]{32}$/.test(before.runId)&&![PR54_PREDECESSOR_RUN,PR54_CURRENT_PREDECESSOR_RUN,PR54_B264_PREDECESSOR_RUN].includes(before.runId)&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+before.runId+'.json'&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+before.runId+'.json'&&same(profile.beforeImage,beforeRef));
+ check(profile.schemaVersion==='melisa-p03-physical-profile.v1'&&before.schemaVersion==='melisa-p03-owner-observation.v3'&&profile.ownerSid===owner&&before.ownerSid===owner&&profile.database===history.before.database&&before.database===profile.database&&before.actualT1===false&&before.copyId===history.before.copyId);
+ check(same(profile.oldSettings,old.oldSettings)&&same(before.oldConfig,old.oldSettings)&&same(profile.newSettings,candidate.newSettings)&&same(before.newConfig,candidate.newSettings)&&before.plan.oldSettingsSha256===old.oldSettings.sha256&&before.plan.newSettingsSha256===candidate.newSettings.sha256);
+ check(same(before.profile,Object.fromEntries(Object.keys(currentOldProfile).map(k=>[k,candidate[k]])))&&isPr54CurrentNativeContinuity(nativeContinuity,profile.businessDigest,now));p03CoreFirstStopDigest(before.plan);
+ check(Number.isFinite(now)&&time(before.observedAt)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<900000&&Date.parse(before.observedAt)>=Date.parse(history.ready.observedAt)&&time(current?.observedAt)&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(current.observedAt)>=Date.parse(before.observedAt));
+ const oldSources=[currentOldProfile.erpSource,currentOldProfile.crmSource,currentOldProfile.supervisorSource,'7a41f6492273dd1ec0bcb086f820be5575372be8'],retained=old.packages.filter(p=>oldSources.includes(p.sourceCommit));
+ check(retained.length===4&&Array.isArray(profile.packages)&&profile.packages.length===6&&new Set(profile.packages.map(p=>p.root)).size===6&&retained.every(p=>profile.packages.some(q=>same(p,q))));
+ const additions=profile.packages.filter(p=>!retained.some(q=>same(p,q)));check(additions.length===2&&additions.every(p=>exact(p,['root','sourceCommit','manifestPath','manifestSha256'])&&p.manifestPath===p.root+'\\release-manifest.json')&&additions.some(p=>p.root==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a'&&p.sourceCommit===candidate.erpSource&&p.manifestSha256===candidate.erpManifest)&&additions.some(p=>p.root===candidate.supervisorRoot&&p.sourceCommit===candidate.supervisorSource&&p.manifestSha256===candidate.supervisorManifest));
+ check(!currentEpoch||profile.protectedProcesses.every(p=>time(p.creationTime)&&Date.parse(p.creationTime)<=Date.parse(before.observedAt)));
+ check(Array.isArray(profile.protectedProcesses)&&(currentEpoch?sameB264ProtectedEpoch(old.protectedProcesses,profile.protectedProcesses):same(profile.protectedProcesses,old.protectedProcesses))&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService')&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks?.length===2&&current.runningInstances?.length===2&&profile.tasks?.length===2&&profile.oldWatchers?.length===2);
+ check(plain(before.identities)&&Object.keys(before.identities).sort().join('|')===roles.toSorted().join('|'));
+ const owned=[...roles.map(role=>({...before.identities[role],role})),...profile.oldWatchers],previous=[...roles.map(role=>({...history.before.identities[role],role})),...old.oldWatchers];
+ check(new Set(owned.map(p=>p.pid)).size===10&&new Set(owned.map(p=>p.role)).size===10&&new Set(current.processes.map(p=>p.pid)).size===current.processes.length);
+ for(const p of owned){
+  const prior=previous.find(x=>x.role===p.role);check(prior&&p.ownerSid===owner&&Number.isSafeInteger(p.pid)&&p.pid>0&&p.pid!==prior.pid&&p.nodePath===prior.nodePath&&p.commandLine===prior.commandLine&&time(p.creationTime)&&Date.parse(p.creationTime)>=Date.parse(currentEpoch?history.ready.observedAt:history.ready.startedAt)&&Date.parse(p.creationTime)<=Date.parse(currentEpoch?before.observedAt:history.ready.firstCompleteAt)&&identity(p,current.processes.find(x=>x.pid===p.pid)));
+  const priorParent=previous.find(x=>x.pid===prior.parentPid);if(priorParent)check(p.parentPid===owned.find(x=>x.role===priorParent.role)?.pid);
+  if(roles.includes(p.role))check(same(p.bindings,prior.bindings));
+ }
+ const currentOwnerDigest=pr54B264StartedOwnerDigest(history.before,current);
+ if(!currentEpoch)check(currentOwnerDigest===history.ready.identityDigest);
+ const auxiliaries=lookupPr54B264Sup20dPhysicalInspection(physicalInspection,{current,profile,before,profileRef,beforeRef,now});
+ check(Array.isArray(auxiliaries)&&profile.protectedProcesses.every(p=>p.kind==='ProtectedSqlService'||current.processes.some(x=>identity(x,p)))&&current.processes.every(p=>owned.some(x=>identity(p,x))||profile.protectedProcesses.some(x=>identity(p,x))||auxiliaries.some(x=>identity(x.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?{...p,nodePath:x.nodePath}:p,x))));
+ for(const [n,name]of tasks.entries()){
+  const t=profile.tasks.find(t=>t.name===name),prior=old.tasks.find(t=>t.name===name),actual=current.tasks.find(t=>t.name===name),watcher=owned.find(p=>p.role===(n?'hubWatcher':'terminalWatcher'));
+  check(t&&t.oldXml===prior.oldXml&&t.oldXmlSha256===prior.oldXmlSha256&&hash(Buffer.from(t.oldXml))===t.oldXmlSha256&&typeof t.newXml==='string'&&hash(Buffer.from(t.newXml))===t.newXmlSha256&&t.newXml===t.oldXml.replaceAll('C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',candidate.supervisorRoot).replaceAll(old.oldSettings.path,candidate.newSettings.path).replaceAll(old.oldSettings.sha256,candidate.newSettings.sha256)&&t.newXml!==t.oldXml&&actual?.state===4&&actual.xml===t.oldXml);
+  const instances=current.runningInstances.filter(i=>i.name===name);check(instances.length===1&&instances[0].state===4&&instances[0].path==='\\'+name&&instances[0].enginePid===watcher.pid&&typeof instances[0].instanceGuid==='string'&&instances[0].instanceGuid.length>0);
+ }
+ const bindings=rows=>JSON.stringify(rows.map(b=>[b.port,b.address,b.pid]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])||a[2]-b[2]));check(bindings(current.bindings)===bindings(roles.flatMap(r=>before.identities[r].bindings.map(b=>({...b,pid:before.identities[r].pid})))));
+ const claim={schemaVersion:currentEpoch?'melisa-p03-b264-current-epoch-proposal.v1':'melisa-p03-b264-owner-successor-proposal.v1',...(currentEpoch?{currentOwnerDigest,ownerObservedAt:current.observedAt,protectedSqlEpoch:profile.protectedProcesses.find(p=>p.kind==='ProtectedSqlService')}:{}),predecessorRunId:PR54_B264_PREDECESSOR_RUN,predecessorProfile:PR54_B264_REFS.profile,predecessorBefore:PR54_B264_REFS.before,predecessorLock:PR54_B264_REFS.transitionLock,consumedAncestorClaim:PR54_B264_REFS.ancestorClaim,failedOuterTail:PR54_B264_OUTER_REFS.at(-1),quarantinedRecoveryTail:PR54_B264_RECOVERY_REFS.at(-1),readOnlyOldReady:PR54_B264_REFS.ready,successorRunId:before.runId,successorProfile:profileRef,successorBefore:beforeRef,newSettings:profile.newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(before.plan),transitionAuthority:false,applyExecuted:false};
+ const bytes=Buffer.from(JSON.stringify(claim,null,2)+'\n');return {claimPath:PR54_B264_SUCCESSOR_CLAIM_PATH,claim,proposedCreateNew:{ref:{path:PR54_B264_SUCCESSOR_CLAIM_PATH,sha256:hash(bytes)},bytes},proofDigest:hash(Buffer.from(JSON.stringify([...Object.values(PR54_B264_REFS),...PR54_B264_OUTER_REFS,...PR54_B264_RECOVERY_REFS]))),transitionAuthority:false,applyExecuted:false};
+}
+
+// Additive fixed CurrentB007 application tuple. This does not admit Shared IO.
+import {lookupPr54CurrentB007PhysicalInspection} from './p03-pr54-b264-physical-io.mjs';
+export const PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH=PR54_OWNER_ROOT+'\\p03-pr54-current-b007-successor-of-b264594b6f93d560d807c8decc4e6699.lock.json';
+export const PR54_CURRENT_B007_ENGINE_SHA256='b33d82ca1866fb859be3be1fa005d65f64d337402d6f98c2bf574fd73aef427f';
+export const PR54_CURRENT_B007_SETTINGS_PATH='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json';
+export const PR54_CURRENT_B007_SETTINGS_SHA256='800329af39652d7fcf111a2b8441d7a00cb0bef94b37668e2ed261e4324ba329';
+export function assertPr54CurrentB007Candidate(candidate){
+ check(exact(candidate,['erpSource','erpManifest','crmSource','crmManifest','supervisorSource','supervisorManifest','supervisorRoot','newSettings']));
+ check(candidate.erpSource==='6dc33f41737349c6e3f17fb867a451b570a00acc'&&candidate.erpManifest==='6bdf40638a3e4816e1b22f6c5c7c3f400de1ef47cd78d72b22bf075f2de9ca49');
+ check(candidate.crmSource==='d1e4425206249e38445fb103e03601f86baa84ec'&&candidate.crmManifest==='a0e86fccbdb95eeb97e4dc08e383db7bf8f12a29b040f34a78f6c37e3093b5ef');
+ check(candidate.supervisorSource==='da5b394919941f73b9d7098f146fffd362c2a955'&&candidate.supervisorManifest==='b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'&&candidate.supervisorRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994');
+ check(ref(candidate.newSettings)&&candidate.newSettings.path===PR54_CURRENT_B007_SETTINGS_PATH&&candidate.newSettings.sha256===PR54_CURRENT_B007_SETTINGS_SHA256);
+ return Object.freeze({...candidate,newSettings:Object.freeze({...candidate.newSettings})});
+}
+export function admitPr54CurrentB007Epoch(args){return admitPr54CurrentB007Proposal(args,true);}
+// Sealed read-only native proof f1360e7a02357cf9e59b5b3378be85cad8c55c43787645f515b367d1201ad344
+// binds profile 4f923ef9a2ea681e2c9184f08526bb39c451b9a48ad729b6ea12525639b93de4.
+// Only its exact preserved TEST125 parent epoch is admitted; no caller pin.
+function sameCurrentB007ProtectedEpoch(previous,current,owned){
+ check(Array.isArray(previous)&&Array.isArray(current)&&Array.isArray(owned)&&previous.length===1&&current.length===4);
+ const oldSql=previous.filter(p=>p.kind==='ProtectedSqlService'),newSql=current.filter(p=>p.kind==='ProtectedSqlService'),parents=current.filter(p=>p.kind!=='ProtectedSqlService');
+ check(oldSql.length===1&&newSql.length===1&&parents.length===3);sameB264ProtectedEpoch(oldSql,newSql);
+ check(new Set(current.map(p=>p.pid)).size===4&&parents.every(p=>exact(p,['name','pid','parentPid','nodePath','ownerSid','commandLine','creationTime','bindings'])&&p.name==='node.exe'&&typeof p.nodePath==='string'&&path.win32.basename(p.nodePath)===p.name&&Number.isSafeInteger(p.pid)&&p.pid>0&&Number.isSafeInteger(p.parentPid)&&p.parentPid>0&&!owned.some(q=>q.pid===p.pid)&&p.ownerSid===owner&&typeof p.commandLine==='string'&&time(p.creationTime)&&/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{7}Z$/.test(birth(p.creationTime))&&Array.isArray(p.bindings)&&p.bindings.length===0));
+ const canonical=parents.toSorted((a,b)=>a.pid-b.pid).map(p=>[p.pid,p.parentPid,p.nodePath,p.ownerSid,p.commandLine,birth(p.creationTime)]);
+ check(hash(Buffer.from(JSON.stringify(canonical),'utf8'))==='13680fb207b4df211e992b1eff1d4b6edc68d67d1eaaabb23f77ad20ebcadcae');return true;
+}
+function admitPr54CurrentB007Proposal({raw,profileRef,beforeRef,profileBytes,beforeBytes,profile,before,current,candidate,now=Date.now(),nativeContinuity=null,physicalInspection=null},currentEpoch){
+ let reason='CANDIDATE';
+ try{
+ candidate=assertPr54CurrentB007Candidate(candidate);
+ // Exact listener multiset: array/property order carries no authority, while
+ // duplicate counts and each literal port/address remain significant.
+ const bindingTuples=rows=>{check(Array.isArray(rows)&&rows.every(b=>exact(b,['port','address'])&&Number.isSafeInteger(b.port)&&b.port>0&&b.port<=65535&&typeof b.address==='string'&&b.address.length>0));return JSON.stringify(rows.map(b=>[b.port,b.address]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])));};
+ reason='SNAPSHOT_PATH';
+ check(/^C:\\Sirket\\ERP\\backups\\(?:P03-20261020-\d{6}\\source-pre-snapshot|P03-20261021-\d{6}\\source-pre-snapshot(?:-[a-f0-9]{32})?)\.json$/.test(profile?.businessDigest?.path??''));
+ reason='HISTORY';
+ const history=provePr54B264History(raw),old=history.profile;
+ reason='PINNED_BYTES';
+ check(ref(profileRef)&&ref(beforeRef)&&same(bytesOf({ref:profileRef,bytes:profileBytes}),profile)&&same(bytesOf({ref:beforeRef,bytes:beforeBytes}),before));
+ reason='PROFILE_PATH';
+ check(/^[a-f0-9]{32}$/.test(before.runId)&&![PR54_PREDECESSOR_RUN,PR54_CURRENT_PREDECESSOR_RUN,PR54_B264_PREDECESSOR_RUN].includes(before.runId)&&profileRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-profile-'+before.runId+'.json'&&beforeRef.path===PR54_OWNER_ROOT+'\\MelisaERP-P03-before-'+before.runId+'.json'&&same(profile.beforeImage,beforeRef));
+ reason='PROFILE_SCOPE';
+ check(profile.schemaVersion==='melisa-p03-physical-profile.v1'&&before.schemaVersion==='melisa-p03-owner-observation.v3'&&profile.ownerSid===owner&&before.ownerSid===owner&&profile.database===history.before.database&&before.database===profile.database&&before.actualT1===false&&before.copyId===history.before.copyId);
+ reason='SETTINGS';
+ check(same(profile.oldSettings,old.oldSettings)&&same(before.oldConfig,old.oldSettings)&&same(profile.newSettings,candidate.newSettings)&&same(before.newConfig,candidate.newSettings)&&before.plan.oldSettingsSha256===old.oldSettings.sha256&&before.plan.newSettingsSha256===candidate.newSettings.sha256);
+ reason='PROFILE_CANDIDATE';check(same(before.profile,Object.fromEntries(Object.keys(currentOldProfile).map(k=>[k,candidate[k]]))));
+ reason='NATIVE_CONTINUITY';check(isPr54CurrentNativeContinuity(nativeContinuity,profile.businessDigest,now));p03CoreFirstStopDigest(before.plan);
+ reason='BEFORE_AGE';check(Number.isFinite(now)&&time(before.observedAt)&&now-Date.parse(before.observedAt)>=0&&now-Date.parse(before.observedAt)<900000&&Date.parse(before.observedAt)>=Date.parse(history.ready.observedAt));
+ reason='CURRENT_AGE';check(time(current?.observedAt)&&now-Date.parse(current.observedAt)>=0&&now-Date.parse(current.observedAt)<60000&&Date.parse(current.observedAt)>=Date.parse(before.observedAt));
+ reason=null;
+ const oldSources=[currentOldProfile.erpSource,currentOldProfile.crmSource,currentOldProfile.supervisorSource,'7a41f6492273dd1ec0bcb086f820be5575372be8'],retained=old.packages.filter(p=>oldSources.includes(p.sourceCommit));
+ check(retained.length===4&&Array.isArray(profile.packages)&&profile.packages.length===7&&new Set(profile.packages.map(p=>p.root)).size===7&&retained.every(p=>profile.packages.some(q=>same(p,q))));
+ const additions=profile.packages.filter(p=>!retained.some(q=>same(p,q)));check(additions.length===3&&additions.every(p=>exact(p,['root','sourceCommit','manifestPath','manifestSha256'])&&p.manifestPath===p.root+'\\release-manifest.json')&&additions.some(p=>p.root==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261020-6dc33f41'&&p.sourceCommit===candidate.erpSource&&p.manifestSha256===candidate.erpManifest)&&additions.some(p=>p.root==='C:\\Sirket\\CRM\\releases\\node-v24.19.0\\crm-shared-test-d1e4425206249e38445fb103e03601f86baa84ec'&&p.sourceCommit===candidate.crmSource&&p.manifestSha256===candidate.crmManifest)&&additions.some(p=>p.root===candidate.supervisorRoot&&p.sourceCommit===candidate.supervisorSource&&p.manifestSha256===candidate.supervisorManifest));
+ check(!currentEpoch||profile.protectedProcesses.every(p=>time(p.creationTime)&&Date.parse(p.creationTime)<=Date.parse(before.observedAt)));
+ check(Array.isArray(profile.protectedProcesses)&&(currentEpoch?sameCurrentB007ProtectedEpoch(old.protectedProcesses,profile.protectedProcesses,[...Object.values(before.identities),...profile.oldWatchers]):same(profile.protectedProcesses,old.protectedProcesses))&&profile.protectedProcesses.some(p=>p.kind==='ProtectedSqlService')&&Array.isArray(current.processes)&&Array.isArray(current.bindings)&&current.tasks?.length===2&&current.runningInstances?.length===2&&profile.tasks?.length===2&&profile.oldWatchers?.length===2);
+ check(plain(before.identities)&&Object.keys(before.identities).sort().join('|')===roles.toSorted().join('|'));
+ const owned=[...roles.map(role=>({...before.identities[role],role})),...profile.oldWatchers],previous=[...roles.map(role=>({...history.before.identities[role],role})),...old.oldWatchers];
+ check(new Set(owned.map(p=>p.pid)).size===10&&new Set(owned.map(p=>p.role)).size===10&&new Set(current.processes.map(p=>p.pid)).size===current.processes.length);
+ for(const p of owned){
+  const prior=previous.find(x=>x.role===p.role);check(prior&&p.ownerSid===owner&&Number.isSafeInteger(p.pid)&&p.pid>0&&p.pid!==prior.pid&&p.nodePath===prior.nodePath&&p.commandLine===prior.commandLine&&time(p.creationTime)&&Date.parse(p.creationTime)>=Date.parse(currentEpoch?history.ready.observedAt:history.ready.startedAt)&&Date.parse(p.creationTime)<=Date.parse(currentEpoch?before.observedAt:history.ready.firstCompleteAt)&&identity(p,current.processes.find(x=>x.pid===p.pid)));
+  const priorParent=previous.find(x=>x.pid===prior.parentPid);if(priorParent)check(p.parentPid===owned.find(x=>x.role===priorParent.role)?.pid);
+  if(roles.includes(p.role))check(bindingTuples(p.bindings)===bindingTuples(prior.bindings));
+ }
+ const currentOwnerDigest=pr54B264StartedOwnerDigest(history.before,current);
+ if(!currentEpoch)check(currentOwnerDigest===history.ready.identityDigest);
+ const auxiliaries=lookupPr54CurrentB007PhysicalInspection(physicalInspection,{current,profile,before,profileRef,beforeRef,now});
+ check(Array.isArray(auxiliaries)&&profile.protectedProcesses.every(p=>p.kind==='ProtectedSqlService'||current.processes.some(x=>identity(x,p)))&&current.processes.every(p=>owned.some(x=>identity(p,x))||profile.protectedProcesses.some(x=>identity(p,x))||auxiliaries.some(x=>identity(x.nodePath.toLowerCase()==='c:\\windows\\system32\\conhost.exe'?{...p,nodePath:x.nodePath}:p,x))));
+ for(const [n,name]of tasks.entries()){
+  const t=profile.tasks.find(t=>t.name===name),prior=old.tasks.find(t=>t.name===name),actual=current.tasks.find(t=>t.name===name),watcher=owned.find(p=>p.role===(n?'hubWatcher':'terminalWatcher'));
+  check(t&&t.oldXml===prior.oldXml&&t.oldXmlSha256===prior.oldXmlSha256&&hash(Buffer.from(t.oldXml))===t.oldXmlSha256&&typeof t.newXml==='string'&&hash(Buffer.from(t.newXml))===t.newXmlSha256&&t.newXml===t.oldXml.replaceAll('C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',candidate.supervisorRoot).replaceAll(old.oldSettings.path,candidate.newSettings.path).replaceAll(old.oldSettings.sha256,candidate.newSettings.sha256)&&t.newXml!==t.oldXml&&actual?.state===4&&actual.xml===t.oldXml);
+  const instances=current.runningInstances.filter(i=>i.name===name);check(instances.length===1&&instances[0].state===4&&instances[0].path==='\\'+name&&instances[0].enginePid===watcher.pid&&typeof instances[0].instanceGuid==='string'&&instances[0].instanceGuid.length>0);
+ }
+ const bindings=rows=>JSON.stringify(rows.map(b=>[b.port,b.address,b.pid]).sort((a,b)=>a[0]-b[0]||a[1].localeCompare(b[1])||a[2]-b[2]));check(bindings(current.bindings)===bindings(roles.flatMap(r=>before.identities[r].bindings.map(b=>({...b,pid:before.identities[r].pid})))));
+ const claim={schemaVersion:currentEpoch?'melisa-p03-current-b007-epoch-proposal.v1':'melisa-p03-b264-owner-successor-proposal.v1',...(currentEpoch?{currentOwnerDigest,ownerObservedAt:current.observedAt,protectedSqlEpoch:profile.protectedProcesses.find(p=>p.kind==='ProtectedSqlService')}:{}),predecessorRunId:PR54_B264_PREDECESSOR_RUN,predecessorProfile:PR54_B264_REFS.profile,predecessorBefore:PR54_B264_REFS.before,predecessorLock:PR54_B264_REFS.transitionLock,consumedAncestorClaim:PR54_B264_REFS.ancestorClaim,failedOuterTail:PR54_B264_OUTER_REFS.at(-1),quarantinedRecoveryTail:PR54_B264_RECOVERY_REFS.at(-1),readOnlyOldReady:PR54_B264_REFS.ready,successorRunId:before.runId,successorProfile:profileRef,successorBefore:beforeRef,newSettings:profile.newSettings,candidate,stopOrderDigest:p03CoreFirstStopDigest(before.plan),transitionAuthority:false,applyExecuted:false};
+ const bytes=Buffer.from(JSON.stringify(claim,null,2)+'\n');return {claimPath:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH,claim,proposedCreateNew:{ref:{path:PR54_CURRENT_B007_SUCCESSOR_CLAIM_PATH,sha256:hash(bytes)},bytes},proofDigest:hash(Buffer.from(JSON.stringify([...Object.values(PR54_B264_REFS),...PR54_B264_OUTER_REFS,...PR54_B264_RECOVERY_REFS]))),transitionAuthority:false,applyExecuted:false};
+ }catch(error){if(reason!==null&&error?.message==='P03_OWNER_SUCCESSOR_REJECTED')throw Error('P03_OWNER_SUCCESSOR_REJECTED_CURRENT_B007_'+reason);throw error;}
+}

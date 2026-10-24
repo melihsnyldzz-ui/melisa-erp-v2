@@ -1,5 +1,10 @@
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 export const testSessionModeKey = 'melisaTestSessionMode';
 export function resolveTestApiBase({location,apiBase}){
+ if(location?.port==='5244'){
+  if(!isCleanCatalogLocation(location)||apiBase!=='http://127.0.0.1:4194')return null;
+  return ['127.0.0.1','localhost'].includes(location.hostname)?apiBase:`http://${location.hostname}:5244`;
+ }
  if(location?.protocol==='http:'&&location.port==='5234'){
   if(['127.0.0.1','localhost'].includes(location.hostname))return apiBase==='http://127.0.0.1:4184'?apiBase:null;
   if(location.hostname==='192.168.1.46'&&['http://127.0.0.1:4184','http://192.168.1.46:4184'].includes(apiBase))return 'http://192.168.1.46:4184';
@@ -18,5 +23,6 @@ export function resolveTestApiBase({location,apiBase}){
 }
 export function isTestSessionTarget(context){return resolveTestApiBase(context)!==null;}
 export function shouldAutoOpenTestAdmin({ location, apiBase, mode }) {
+  if(location?.port==='5244')return false;
   return isTestSessionTarget({location,apiBase}) && mode !== 'manual';
 }

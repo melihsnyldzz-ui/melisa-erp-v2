@@ -13,11 +13,14 @@ import { ledgerTargetActionLabel, openLedgerTarget } from '../shared/ledgerNavig
 import {sumCashAmounts,formatCashMoney} from './cashReadMoney.js';
 
 function formatMoney(value, currency = 'TRY') {
-  return new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  }).format(Number(value || 0));
+  if (typeof value === 'number' && !Number.isSafeInteger(value)) {
+    const decimal = String(value);
+    // Adapt existing numeric DTOs for display without inventing decimal precision.
+    const safeDecimal = Number.isFinite(value) && /^-?\d+\.\d{1,8}$/.test(decimal)
+      && BigInt(decimal.replace(/[-.]/g, '')) <= BigInt(Number.MAX_SAFE_INTEGER);
+    return formatCashMoney(safeDecimal ? decimal : null, currency);
+  }
+  return formatCashMoney(value, currency);
 }
 
 function formatCurrencyTotals(totals, key = 'net') {

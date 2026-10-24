@@ -1,3 +1,62 @@
+## 24 Ekim11:38 — E1 insan/cihaz kabulü BEKLİYOR
+
+GerçekcleanERP/CRMkurulumu,12HTTPdarownclosuretekrar ve normalERPpersonel/CRMatanmışgörüşme/tamreload teknik olarak doğrulandı. NativeAPKderleme/v2imza/exactCIbaşarısı fizikselAndroid/Keystore/tek-giriş/aç-kapa/insan kabulünün yerine geçmez. BağlıAndroid0/AVD0; özgünUAsonuçları/sayaçlar değişmedi. [STATUS](STATUS.md).
+
+### Önceki E1 kaynak aşaması — tarihsel
+## 24 Ekim — E1 Android bağlayıcı/APK derlemesi, gerçek cihaz ve insan BEKLİYOR
+
+18JVM+43web ve gerçek offline Androidtest/APK/lint/v2imza teknik olarak geçti. Bunlar memoryvault/sunucufixture ve kaynak kanıtıdır; Keystore/normal cihaz ekranı/yeniden açma/TC21/personel kabulü değildir. ADBbağlıcihaz0/mevcutAVD0; APKkurulmadı. SonCI/CRMtimeout/ortakkurulum ayrı bekler; eski insan sonuçları ve sayaçlar değişmedi. [STATUS](STATUS.md).
+
+## 24 Ekim — E1 kaynak handoff kanıtı insan kabulü değildir
+
+ERP sağlayıcı20hedef kaynak/offline HTTP testi geçti; henüz kurulu native/CRM aynı kişi geçişi, AndroidKeystore/aç-kapa/çıkış/gerçek cihaz veya çalışan sonucu yok. Mevcut E1/özgünUA BEKLİYOR; sayaç ve eski insan sonuçları aynı. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). KuruluTEST değişmedi.
+
+Son kaynak8df23309 exactCI40075059772/40075056364 her3jobSUCCESS;1170APIpass/13platformskip/fail0. Bu kaynak kanıtıdır, kurulum veya insan PASS değildir.
+
+## 24 Ekim10:14 — C5 görev teknik kurulumu; zamanlı çalışma/insan kabulü BEKLİYOR
+
+Günlük03:00 temiz TEST SQL backup görevi mevcut Windows sahibiyle kurulu/geri okunmuş; ilk gerçek çalışma25Ekim03:00 bekleniyor. Kaynak/CI/XML/Preflight ve görev kurulumu gerçek zamanlı yedek veya restore PASS değildir. Elle yedek/tetikleme yok; SQLdışıCRM/haricihedef/oturumkapalı çalışma ayrı açık. ÖzgünUA/kişi/tarih/sayaç değiştirilmedi. [Teknik sonuç](STATUS.md).
+
+## 24 Ekim09:46 — E1 CRM normal ekran ajan kanıtı; insan kabulü BEKLİYOR
+
+CRM09a gerçek cleanTEST'te mevcut örnek personelle normal giriş/atanmış konuşma/tamreload/çıkış/reload kapalı görüldü;16APIkontrolü ve kendi3deneme ailesinin sunucuda iptali ayrı doğrulandı. Bu gerçek çalışan/Android/Keystore/uygulama kapat-aç veya ERP→CRM aynı-kişi kabulü değildir. Yenihesap/rol/atama/ticariyazma/mesaj yok; mevcut Chromeoturumları korundu. Özgün UA ID/sonuç/kişi/tarih/sayaç değişmedi; [teknik makbuz STATUS'ta](STATUS.md).
+
+## 24 Ekim — E1 kurulu normal-auth ve tarayıcı teknik kanıtı; insan sonucu BEKLİYOR
+
+ERP8aa mevcut temiz TEST'e kuruldu;13normal giriş/refresh/logout kontrolü, Semih normalgiriş ve ürün ekranı tamreload geçti. CRM B5sunum635 ayrıca kurulu/normal ekranla doğrulandı. Bu ajan kontrolleri gerçek personel veya Android Keystore/uygulama yenidenaçılış/aynı-personel CRM devri kabulü değildir. Fiziksel cihaz denenmedi, pasifAPK kurulmadı; B5gerçekkişi bağı ve özgün terminal kabulleri bekler. Yeni UA/PASS/kişi/tarih/kapanış sayacı üretilmedi. [Teknik sonuç](STATUS.md).
+
+## 24 Ekim — A5 rehber hazır; A2/A3 ve özgün kabuller bekliyor
+
+Güncel LAN adresleriyle kısa başka-cihaz kontrolü [giriş rehberinde](docs/erp-v2/clean-test-entry-guide.md). Bu tur başka cihaz/gerçek personel/Windows reboot/logon denemesi yapılmadı. Önceki C1/C2 kanıtı yeniden çalıştırılmadı, mevcut paket için yeni cold-start iddiası yok. B5 envanter sonucu gerçek9kişinin hesap/atama uygulaması veya insan kabulü değildir. Yeni UA/PASS/sayaç yok.
+
+## 24 Ekim — B5 normal envanter ajan kontrolü; insan kabulü BEKLİYOR
+
+CRM a32 aynı temiz TEST'te mevcut örnek yönetici hesabıyla Ayarlar→hesap envanteri, yenile ve tamreload/yeniden aç doğrulandı. Teknik envanter sonucu gerçek personelin hesabı/görevi/atanmış müşterisi veya işletme kabulü değildir. Gerçek kişi eşlemesi kanıtlanmadı; yeni atama/rol yazması yok. Özgün kabul ID'leri, kişi/tarih alanları ve sayaçlar değişmedi; yeni UA/PASS oluşturulmadı. [Teknik sonuç](STATUS.md).
+
+## 24 Ekim — B7 / mevcut C06-C07 teknik kanıtı; insan sonucu değişmedi
+
+Normal clean20261022 / API04a83e53/UI0993a123 içinde yalnız yapay müşteri1 ve tedarikçi1 telefon/şehir/ülke kaydetme, anında maskeli özet, tamreload/reopen ve4kalıcıistek/replay/409 doğrulandı. Bakiye/finans/rol/ticari kayıt değişmedi. Bu ajan teknik denemesidir; gerçek çalışan/kişi/deneme tarihi/işletme sonucu **BEKLİYOR**. Yeni UA ID/PASS/sayaç oluşturulmadı; B6/ERP-UA07 ve diğer özgün kayıtlar aynıdır. Soğuk ilk okuma/perf ve B5 gerçek kişi bağlantısı ayrı kalır. [Teknik kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+## 23 Ekim — B3 kişi adı teknik doğrulaması; insan kabulü değişmedi
+
+Mevcut sayım10'da Sayan artık kimlik21'e bağlı Örnek sayım personeli. Normal Semih ekranı, SQL/API ve reload kanıtı var; yeni işlem yok. Teknik B3 düzeltmesi ERP-UA15/16/18/32 veya diğer özgün insan kabulünü PASS yapmaz. Mevcut kişi/tarih/işletme sonuçları ve sayaçlar korunur.
+
+**23 Ekim — ERP-UA20 / B08 teknik ekran düzeltmesi:** Esas temiz TEST'te normal semih hesabıyla Ayarlar/Yenile/reload, mevcut kullanıcı/rol ve dört bağlantı doğrulandı. API4af2; native/web035 ve CRMbc8 korundu. Bu ajan/koordinatör teknik ekran kanıtıdır; ERP-UA20/32 insan sonucu **BEKLİYOR** kalır. Yedek/otomatik başlangıç bilinmiyor ve fiziksel Zebra kabulü bekliyor bilgileri sahte PASS'a dönüşmedi. Yeni UA veya sayaç artışı yok. [Kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim-0849-tr--ayarlar-okuyucusu-ve-korunan-bileşenler).
+
+**22 Ekim / ERP-DEC-070 iş2.2–2.3 teknik ekran sonucu:** Aynı temiz yapay TEST'te normal depo18 sayım3/başında sıfırlı barkod/2ADET→sorumlu19kabul3→nativealış4/120TRYborç doğrulandı. Yenile aynı kayıt; stok yalnız kabulde21→23, fatura ikinci stok yaratmadı; kayıtlı kur/hesap tutarı normal ekranda görüldü. Personel onayı/alış yetkisi ret, replay/UUIDçatışma, nativeSQL/API ve mevcut CRMorder3/sale1okuması geçti. Bu ajan kontrolüdür, İlker/personel/işletme kabulü değildir. Özgün ERP-UA/CRM06/ERP09 kayıtları BEKLİYOR, PASS/yeniUA/sayaç artışı yok. [Kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki3db/önceki paket kayıtları tarihseldir.
+
+**22 Ekim / ERP-DEC-070 iş2.5 teknik ekran sonucu:** Normal örnek muhasebe20 tahsilat376,50TRY ve ödeme120TRY yaptı. Müşteri/tedarikçi0, kasa256,50, stok23. Yanıt kaybı/reload/aynıUUID replay, çift tıklama/yenile ve bağımsız native SQL/API doğrulandı. Bu ajan GUI kontrolüdür; ERP-UA08/14 ve özgün kişi/işletme/cihaz kabulleri BEKLİYOR. Yeni UA/PASS/sayaç artışı yok. [Ekran ve kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+## 18 Ekim — v75 sunumun native kaynak portu; insan kabulü bekliyor
+
+**22 Ekim / ERP-DEC-070 teknik bağlantı sonucu:** ERP3db0830/CRMc8d0e28 temiz yapay TEST'te normal personel15 mevcut CRM siparişini satış taslağına aktardı; ayrı normal sorumlu17 onayladı. Tek belge/tek stok çıkışı/tek376,50TRY müşteri etkisi SQL/API ve normal ERP ekranında, bağlı FINALIZED sonuç CRM'nin atanmış personel ekranında GET-only doğrulandı. Yenile/replay/rol retleri ve native motor sonrası transaction rollback kanıtı vardır. Bu ajan GUI kontrolüdür; gerçek personel/işletme kabulü değildir. ERP09/CRM06 ve özgün ERP-UA kayıtları **BEKLİYOR** kalır; PASS, yeni kabul ID'si veya sayaç artışı yok. [Güncel kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki970/1dd ve100/a24 kayıtları tarihseldir.
+
+**22 Ekim / ERP-DEC-069 güncel teknik ekran sonucu:** Ayrı yapay ERP970cfc2/CRM1dd07d1 üzerinde normal personel girişleri, orijinal fotoğraf/katalog/müşteri/adet/fiyat→native SQL taslak→ERP Onaylar, yenile/tekrar açma ve iki browser kesintisi doğrulandı. Yeni Türkçe uyarı gerçek ekranda görüldü. Her UUID tek kayıt; toplam3ayrı yapay senaryo, stok/cari etkisi0. Bu hedefte önceki GUI BLOCKED varsayımı düzeltilmiştir.5.1 actual launcher çağrısı otomatik politika reddiyle başlamadı; Windows reboot/logon ve gerçek personel/cihaz kabulü BEKLİYOR. Özgün ERP-UA/CRM06/ERP09 kabulü PASS yapılmadı, yeni ID/sayaç artışı yok. [Güncel kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md). Aşağıdaki100/a24 notu tarihseldir.
+
+**22 Ekim / ERP-DEC-068 ek teknik kanıtı:** Ayrı, yalnız yapay kayıtlı ERP100a9a5/CRMa24c00d kurulumunda normal API/SQL ürün/fiyat/fotoğraf/sipariş/replay/restart teknik bağlantısı geçti. İki normal giriş sayfası tarayıcıda açıldı; korumalı ilk normal GUI credential devri desteklenmediğinden oturum içi GUI DENENMEDİ/BLOCKED. Bu sonuç mevcut ERP-UA/CRM06/ERP09 insan kabullerini PASS yapmaz, özgün sayaçları artırmaz. Hiçbir yeni kabul ID'si oluşturulmadı. [Kanıt ve sınır](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+İş sırası, mal kabul/alış, müşteri bakiyesi–fiş kalan, tahsilat ve iade/onay görünümü güncel teknik adaya taşındı.264offline test+build+bağımsız inceleme insan kabulü değildir; bu adayın normal GUI/mobile kontrolü yönetilen önizleme ortam hatası nedeniyle NOT_RUN. Ortak TEST'e kurulumdan sonra ERP-UA05/07/08/09/10/11/14/16/17/18/32 mevcut adımlarında yetkili kişi/tarih/sonuç alınacak; bu kayıt yeni görev veya PASS yaratmaz. [Kaynak kapsamı ve kalanlar](docs/evidence/erp/2026-10-18-office-layout-v75.md). Önceki gerçek kabuller korunur.
+
 ## ERP04 / C09 — normal fiyat kartı ve değişiklik geçmişi — bekliyor
 
 13 Ekim 2026, source59c444f/DB02/5234. Normal Ürün & Stok kartında mevcut fiyatı, kademeyi/dövizi ve Son fiyat değişiklikleri bölümündeki önce/sonra/gerekçeyi inceleyin; Yenile sonrası aynı kaydı kontrol edin. Yeni ticari işlem gerekmez. [Teknik kanıt](docs/evidence/erp/2026-10-13-price-write/README.md): ajan iki gerekçeli kayıtla ilk tutarı korudu, SQL/API replay ikinci etki0. Bu teknik sonuç insan kabulü değildir; ERP-UA26/32 kişi/tarih/sonuç bekliyor, önceki kabuller değişmedi. CRM MANUAL sipariş bağlantısı ayrıca tamamlanmayı bekliyor.
@@ -273,3 +332,6 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 ## Önceki kapsamın kabul kayıtları
 
 Önceki teknik/kullanıcı kanıtları [finish tree](ERP_FINISH_PLAN.md) ve bağlı modül kabul belgelerinde korunur. Bu kurulum hiçbir eski maddeyi PASS veya FAIL yapmaz; aynı kanıt buraya kopyalanmaz. Yeni görsel denemeler gerektiğinde ilgili iş ID'siyle buraya eklenir. Personel ve fiziksel terminal kabulü teknik TEST sonucu ile kapatılmaz.
+## ERP-UA07 / B6 — 24 Ekim 2026 teknik örnek tamam; insan kabulü bekliyor
+
+Özgün ERP-UA07/B04-C04-C05 kaydı sürer; yeni kabul ID'si veya PASS yok. APIb40a0788/web982/clean20261022 yalnız yapay TEST. Ajan normal Semih GUI'de müşteri/0000000000007barkod/2ADET×125,50TRY/taslak10009/finalize/reload/fiş görünümünü doğruladı. Bağımsız SQL stok23→21/müşteri1borcu0→251TRY, birer stok/cari hareketi ve kasa aynı; exact kalıcı draft/finalize replay ikinci etkisiz, farklı body409. Son gönderimi ajan normal GUI'de yaptı; önceki ‘kullanıcı son tıklaması’ bekleme notu artık geçerli değildir. Bu otomatik teknik kanıt personel veya işletme sahibi kabulü değildir. Gerçek kullanıcı/kişi/tarih/açık sonuç **BEKLİYOR**; eski B5 kullanıcı tıklamaları bu kabulü kapatmaz. [Normal satış](http://192.168.1.46:5244/ornek-akis.html#sales), [teknik kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

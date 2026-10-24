@@ -1,8 +1,8 @@
 import {paymentDate,paymentFail,paymentId,paymentKeys,paymentText,paymentUuid,supplierPaymentInput,supplierPaymentPreview} from './workSupplierPaymentModel.mjs';
 async function defaultStore(){return (await import('./workSupplierPaymentStore.mjs')).workSupplierPaymentStore;}
-function actorCheck(actor){if(String(actor?.id)!=='16'||!Array.isArray(actor.permissions))paymentFail('Bu işlem için yetkiniz bulunmuyor.',403,'WORK_PAYMENT_FORBIDDEN');return {...actor,id:'16'};}
+function defaultActorCheck(actor){if(String(actor?.id)!=='16'||!Array.isArray(actor.permissions))paymentFail('Bu işlem için yetkiniz bulunmuyor.',403,'WORK_PAYMENT_FORBIDDEN');return {...actor,id:'16'};}
 function requireCap(c,key){if(c.context.capabilities[key]!==true)paymentFail('Bu işlem için yetkiniz bulunmuyor.',403,'WORK_PAYMENT_FORBIDDEN');}
-export function createWorkSupplierPaymentService({getStore=defaultStore}={}){
+export function createWorkSupplierPaymentService({getStore=defaultStore,actorCheck=defaultActorCheck}={}){
  const read=async(actor,fn)=>{actor=actorCheck(actor);return (await getStore()).read(actor,c=>{requireCap(c,'canView');return fn(c);});};
  return {
   context:actor=>read(actor,c=>c.context),

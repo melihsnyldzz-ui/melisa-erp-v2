@@ -26,8 +26,10 @@ export function createManagedAuthUserCore({sql,request,hashPassword,writeAudit})
    .input('username',sql.NVarChar(80),username).input('passwordHash',sql.NVarChar(255),passwordHash)
    .input('displayName',sql.NVarChar(150),displayName).input('roleId',sql.BigInt,roleId)
    .input('actorId',sql.BigInt,actor?.id?Number(actor.id):null)
-   .query(`INSERT INTO dbo.users (username, password_hash, display_name, role_id, is_active, created_by, updated_by)
-    OUTPUT INSERTED.id VALUES (@username, @passwordHash, @displayName, @roleId, 1, @actorId, @actorId);`);
+   .query(`DECLARE @createdUser TABLE(id bigint);
+    INSERT INTO dbo.users (username, password_hash, display_name, role_id, is_active, created_by, updated_by)
+    OUTPUT INSERTED.id INTO @createdUser(id) VALUES (@username, @passwordHash, @displayName, @roleId, 1, @actorId, @actorId);
+    SELECT id FROM @createdUser;`);
   const userId=Number(inserted.recordset?.[0]?.id);
   if(!Number.isSafeInteger(userId)||userId<1)throw Error('AUTH_ADMIN_CORE_INSERT_RESULT');
   await writeAudit(request(transaction),{action:'user_created',entityType:'user',entityId:userId,

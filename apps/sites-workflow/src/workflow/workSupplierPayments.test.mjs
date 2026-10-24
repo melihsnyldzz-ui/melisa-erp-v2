@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {paymentContext,paymentSelection,paymentPreview,paymentRecord,createPaymentJournal} from './workSupplierPaymentsModel.mjs';
 import {supplierPaymentContext,supplierPaymentPreview} from '../../../api/src/services/workSupplierPaymentModel.mjs';
+import {CLEAN_FINANCE_FX_CASES} from '../../../api/src/services/cleanFinanceRehearsalModel.mjs';
 const requestId='00000000-0000-4000-8000-000000000001',apiBase='http://192.168.1.46:4144';
 const actor={id:'16',permissions:['finance.view','supplier.view','finance.payment','finance.payment.cancel']};
 function raw(){return {actorId:'16',roleCode:'isolated_test_ilker',permissions:actor.permissions,documentDate:'2026-10-06',maxAmountExact4:'500.0000',maxPayments:30,suppliers:['TRY','USD','EUR'].map((currency,i)=>({id:String(101+i),code:'SUP-'+currency,name:'Tedarikçi '+currency,currency,balanceExact4:['140.0000','20.0000','30.0000'][i],debtKind:i?'opening':'invoice',snapshotVerified:true,invoices:i?[]:[{id:'139',receiptId:'105',number:'TSTB-PAY',status:'finalized',documentDate:'2026-10-06',receiptKind:'work-finops-physical-receipt',documentCurrency:'USD',documentAmountExact4:'3.5000',accountCurrency:'TRY',accountAmountExact4:'140.0000',paidExact4:'0.0000',returnedExact4:'0.0000',remainingExact4:'140.0000'}]})),accounts:['TRY','USD','EUR'].map((currency,i)=>({id:String(201+i),code:'ACC-'+currency,name:'Hesap '+currency,type:i?'bank':'cash',currency,openingVerified:true,openingBalanceExact4:'1000.0000',balanceExact4:'1000.0000'})),rates:['USD','EUR'].map((currency,i)=>({id:String(401+i),currency,rateToTryExact8:i?'45.00000000':'40.00000000',date:'2026-10-04'})),payments:[]};}
@@ -100,4 +101,60 @@ test('supplier history with no invoice still opens and retains existing payment 
  const ui=createWorkSuppliers({root:d.root,session:{supplierPayments:async(path,options)=>{calls.push({path,options});assert.equal(options,undefined);return c;}},user:{id:16,permissions:['finance.view','supplier.view']}});
  ui.mount();await tick();assert.match(d.root.innerHTML,/Henüz bağlı alış faturası yok/);assert.match(d.root.innerHTML,/OD-701/);assert.match(d.root.innerHTML,/Ödemeler ve ters kayıtlar/);assert.doesNotMatch(d.root.innerHTML,/Ödeme geçmişi şu anda açılamıyor|Alış faturası undefined/);
  ui.refresh();await tick();assert.equal(calls.length,2);assert.match(d.root.innerHTML,/OD-701/);ui.dispose();
+});
+function cleanFinanceContext(){
+ const c=context();Object.assign(c.meta,{date:'2026-10-22',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'});
+ c.suppliers=[{...c.suppliers[0],id:'1',currency:'TRY',balanceExact4:'120.0000',invoices:[{...c.suppliers[0].invoices[0],id:'4',receiptId:'3',receiptKind:'work-clean-store-day-receipt',documentDate:'2026-10-22',documentCurrency:'TRY',documentAmountExact4:'120.0000',accountAmountExact4:'120.0000',remainingExact4:'120.0000'}]}];
+ c.accounts=[{...c.accounts[0],id:'1',openingBalanceExact4:'0.0000',balanceExact4:'376.5000'}];c.rates=[];
+ return c;
+}
+
+test('B4 keeps the original paid source alongside one separately identified partial payment case',()=>{
+ const c=cleanFinanceContext();c.meta.financeCase='B4-TRY-20261023';
+ c.suppliers.push({...c.suppliers[0],id:'2',balanceExact4:'200.0000',invoices:[{...c.suppliers[0].invoices[0],id:'5',receiptId:null,receiptKind:null,documentAmountExact4:'200.0000',accountAmountExact4:'200.0000',remainingExact4:'200.0000'}]});
+ c.accounts.push({...c.accounts[0],id:'2',balanceExact4:'100.0000'});
+ assert.equal(paymentContext(c),c);
+ const selection={supplierId:'2',invoiceId:'5',accountId:'2',currency:'TRY',amountExact4:'80.0000',documentDate:'2026-10-22',description:'Kısmi örnek ödeme'};
+ const p=supplierPaymentPreview(selection,c);assert.equal(p.balanceAfterExact4,'120.0000');assert.equal(p.accountBalanceAfterExact4,'20.0000');
+ assert.throws(()=>supplierPaymentPreview({...selection,accountId:'1'},c),{code:'WORK_PAYMENT_SCOPE'});
+ for(const change of [v=>delete v.meta.financeCase,v=>v.accounts[1].id='3',v=>v.suppliers[1].invoices[0].id='6',v=>v.suppliers[1].invoices[0].receiptId='3',v=>v.suppliers[1].currency='USD']){const bad=structuredClone(c);change(bad);assert.throws(()=>paymentContext(bad));}
+ const journal=createPaymentJournal({storage:storage(),actorId:'23',apiBase:'http://127.0.0.1:4194',location:{protocol:'http:',hostname:'127.0.0.1',port:'5244'},makeUuid:()=>requestId});assert.equal(journal.read().request,null);
+});
+test('B4 FX payment screen accepts only the exact native currency/document/drawer/rate tuples and preserves TRY',()=>{
+ const c=cleanFinanceContext();c.meta.financeCase='B4-TRY-20261023';c.meta.financeFxCases=CLEAN_FINANCE_FX_CASES.map(p=>p.id);
+ c.suppliers.push({...c.suppliers[0],id:'2',balanceExact4:'200.0000',invoices:[{...c.suppliers[0].invoices[0],id:'5',receiptId:null,receiptKind:null,documentAmountExact4:'200.0000',accountAmountExact4:'200.0000',remainingExact4:'200.0000'}]});c.accounts.push({...c.accounts[0],id:'2',balanceExact4:'131.0000'});
+ for(const p of CLEAN_FINANCE_FX_CASES){
+  c.suppliers.push({...c.suppliers[0],id:p.supplierId,currency:p.currency,balanceExact4:'200.0000',invoices:[{...c.suppliers[1].invoices[0],id:p.purchaseInvoiceId,number:p.purchaseNumber,documentCurrency:p.currency,accountCurrency:p.currency}]});
+  c.accounts.push({...c.accounts[0],id:p.accountId,currency:p.currency,balanceExact4:'180.0000'});c.rates.push({id:p.fxFixtureId,currency:p.currency,rateToTryExact8:p.rateExact8,date:p.date,caseId:p.id,source:'explicit-synthetic-B4-input'});
+ }
+ assert.equal(paymentContext(c),c);
+ for(const p of CLEAN_FINANCE_FX_CASES){const selection={supplierId:p.supplierId,invoiceId:p.purchaseInvoiceId,accountId:p.accountId,currency:p.currency,amountExact4:'80.0000',documentDate:p.date,description:'Yapay döviz kısmi ödeme'},preview=supplierPaymentPreview(selection,c);assert.equal(paymentPreview(preview,selection,c),preview);assert.equal(preview.balanceAfterExact4,'120.0000');assert.equal(preview.accountBalanceAfterExact4,'100.0000');assert.equal(preview.settlement.amountTryExact4,p.currency==='USD'?'3200.0000':'3600.0000');}
+ for(const change of [v=>delete v.meta.financeFxCases,v=>v.meta.financeFxCases.reverse(),v=>v.accounts[2].id='6',v=>v.suppliers[2].invoices[0].id='5',v=>v.suppliers[3].currency='TRY',v=>v.rates[0].rateToTryExact8='45.00000000',v=>v.rates[0].source='market']){const bad=structuredClone(c);change(bad);assert.throws(()=>paymentContext(bad));}
+});
+
+test('clean store day retains the actual receipt3 purchase4 link without relabelling legacy receipts',()=>{
+ const c=cleanFinanceContext();assert.equal(paymentContext(c),c);
+ const p=supplierPaymentPreview({supplierId:'1',invoiceId:'4',accountId:'1',currency:'TRY',amountExact4:'120.0000',documentDate:'2026-10-22',description:'Örnek alış ödemesi'},c);
+ assert.equal(p.balanceAfterExact4,'0.0000');assert.equal(p.accountBalanceAfterExact4,'256.5000');
+ for(const mutate of [v=>v.meta.environmentId='other',v=>v.suppliers[0].invoices[0].id='5',v=>v.suppliers[0].invoices[0].receiptId='2',v=>v.suppliers[0].invoices[0].receiptKind='work-finops-physical-receipt']){
+  const invalid=structuredClone(c);mutate(invalid);assert.throws(()=>paymentContext(invalid));
+ }
+});
+
+test('clean payment journal is bound to actor20 and exact loopback5244 to4194; old endpoints retain old behavior',()=>{
+ const location={protocol:'http:',hostname:'127.0.0.1',port:'5244'},base={storage:storage(),actorId:'20',apiBase:'http://127.0.0.1:4194',location,makeUuid:()=>requestId};
+ const journal=createPaymentJournal(base);const pending=journal.begin('/api/work-supplier-payments/payments',{amountExact4:'120.0000'});assert.equal(journal.read().request.body.requestId,pending.body.requestId);
+ for(const patch of [{actorId:'16'},{actorId:'19'},{apiBase:'http://127.0.0.1:4196'},{location:{...location,port:'5234'}},{location:{...location,hostname:'192.168.1.46'}}])assert.throws(()=>createPaymentJournal({...base,...patch}));
+ assert.doesNotThrow(()=>createPaymentJournal({storage:storage(),actorId:'16',apiBase}));
+});
+
+test('normal clean finance screen loads its own authorized context and refresh without requiring warehouse permission',async()=>{
+ const {createWorkSupplierPayments}=await controller(),d=dom(),calls=[],c=cleanFinanceContext();
+ const ui=createWorkSupplierPayments({root:d.root,user:{id:20},apiBase:'http://127.0.0.1:4194',location:{protocol:'http:',hostname:'127.0.0.1',port:'5244'},storage:storage(),session:{
+  inbound:async()=>assert.fail('Finance actor must not be routed through warehouse permissions'),
+  supplierPayments:async(path,options)=>{assert.equal(options,undefined);calls.push(path);return c;},
+ }});
+ ui.mount();await tick();assert.deepEqual(calls,['/api/work-supplier-payments/context']);assert.doesNotMatch(d.root.innerHTML,/Ödeme bağlantısı doğrulanamadı/);
+ d.node('[data-sp-supplier]').onchange({target:{value:'1'}});assert.match(d.root.innerHTML,/120,00/);
+ ui.refresh();await tick();assert.equal(calls.length,2);assert.equal(ui.requestClose(),true);ui.dispose();
 });

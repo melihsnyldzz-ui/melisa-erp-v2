@@ -6,10 +6,13 @@ import { env } from '../config/env.js';
 import { getSqlPool } from '../config/database.js';
 import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {getCleanContext,assertRegisteredCleanContext} from './cleanSyntheticContext.mjs';
+// Only auth refresh/revocation and last-login writes use this narrow capability.
+function assertAuthWriteEnabled(){if(getCleanContext()){assertRegisteredCleanContext();return;}assertMelisaWriteEnabled();}
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
 import {sharedCopyAuthClaims} from './sharedCopyAuthClaims.mjs';
 import {bindNormalTestFingerprint,configuredNormalTestRefreshStore} from './normalTestRefreshSession.mjs';
-import {allowsProtectedNormalTestUser,configuredSemihTestIdentity,matchesSemihTestUser} from './semihTestIdentityPolicy.mjs';
+import {allowsProtectedNormalTestUser,configuredSemihTestIdentity,matchesSemihTestUser,requiresCleanPersonalNormalWitness,bindCleanPersonalNormalTestUser} from './semihTestIdentityPolicy.mjs';
 
 function makeAuthError(code, message, statusCode = 401) {
   const error = new Error(message);
@@ -49,10 +52,10 @@ function getRefreshExpiresAt() {
   return new Date(Date.now() + milliseconds);
 }
 
-function toUserDto(row, permissions = []) {
+function toUserDto(row, permissions = [], fingerprint = true) {
   const expandedPermissions = applyRolePermissionDefaults(permissions, row.role_code);
 
-  return bindNormalTestFingerprint({
+  const user={
     id: Number(row.id),
     username: row.username,
     displayName: row.display_name,
@@ -62,7 +65,41 @@ function toUserDto(row, permissions = []) {
       name: row.role_name,
     },
     permissions: expandedPermissions,
-  },row);
+  };
+  return fingerprint?bindNormalTestFingerprint(user,row):user;
+}
+
+async function toNormalUserDto(pool,row,permissions){
+ const user=toUserDto(row,permissions,false);
+ if(!getCleanContext())return bindNormalTestFingerprint(user,row);
+ const options=normalTestIdentityOptions();
+ if(!requiresCleanPersonalNormalWitness(user,options))return bindNormalTestFingerprint(user,row);
+ // One current, read-only joined observation. Neither supplied JWT roles nor
+ // client confirmation can stand in for enrollment and an active employee.
+ let result;
+ try{result=await pool.request().input('personalSessionUserId',sql.BigInt,user.id).query(`
+  SELECT m.user_id actorId,p.id employeeId,p.user_id employeeUserId,u.username,
+   u.password_hash passwordHash,r.id roleId,r.code roleCode,
+   u.is_active userActive,r.is_active roleActive,p.is_active employeeActive,
+   CONVERT(varchar(18),CONVERT(binary(8),u.row_version),1) userVersion,
+   CONVERT(varchar(18),CONVERT(binary(8),r.row_version),1) roleVersion,
+   CONVERT(varchar(18),CONVERT(binary(8),p.row_version),1) employeeVersion,
+   CONVERT(varchar(33),m.created_at,126) memberCreatedAt,
+   DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,
+   ORIGINAL_LOGIN() loginName,USER_NAME() databaseUser,
+   CONVERT(varchar(36),e.environment_id) environmentId,e.synthetic,
+   e.actual_t1 actualT1,e.external_operations externalOperations,
+   (SELECT permission_key,can_view,can_create,can_update,can_delete,can_approve,
+     CONVERT(varchar(18),CONVERT(binary(8),row_version),1) version FROM dbo.permissions
+     WHERE role_id=r.id ORDER BY permission_key FOR JSON PATH) permissionState
+  FROM dbo.clean_personnel_members m
+  JOIN dbo.employees p ON p.id=m.employee_id AND p.user_id=m.user_id
+  JOIN dbo.users u ON u.id=m.user_id JOIN dbo.roles r ON r.id=u.role_id
+  CROSS JOIN dbo.clean_test_environment e
+  WHERE m.user_id=@personalSessionUserId AND e.id=1;
+ `);}catch(error){if(error.number===208)throw makeAuthError('AUTH_REFRESH_INVALID','Personal TEST session schema is unavailable',401);throw error;}
+ if(result.recordset?.length!==1)throw makeAuthError('AUTH_REFRESH_INVALID','Personal TEST session enrollment is unavailable',401);
+ return bindCleanPersonalNormalTestUser(user,row,result.recordset[0],options);
 }
 
 function signAccessToken(user, nativeTerminalCode = null, normalTestSessionId = null) {
@@ -127,12 +164,12 @@ export async function getUserById(userId) {
 
   const row = userResult.recordset?.[0];
 
-  if (!row || !row.is_active || (row.username==='erp-semih-test-20261012'&&!row.role_is_active)) {
+  if (!row || !row.is_active || ((getCleanContext()||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
     throw makeAuthError('AUTH_USER_INACTIVE', 'User is inactive or not found', 401);
   }
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
-  return toUserDto(row, permissions);
+  return toNormalUserDto(pool,row,permissions);
 }
 
 export async function authenticateUserCredentials({ username, password }) {
@@ -169,12 +206,12 @@ export async function authenticateUserCredentials({ username, password }) {
     ? await bcrypt.compare(normalizedPassword, row.password_hash)
     : false;
 
-  if (!row || !row.is_active || !passwordOk || (row.username==='erp-semih-test-20261012'&&!row.role_is_active)) {
+  if (!row || !row.is_active || !passwordOk || ((getCleanContext()||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
     throw makeAuthError('AUTH_INVALID_CREDENTIALS', 'Username or password is invalid', 401);
   }
 
   const permissions = await getPermissionKeys(pool.request(), row.role_id);
-  const user = toUserDto(row, permissions);
+  const user = await toNormalUserDto(pool,row,permissions);
   return user;
 }
 
@@ -209,7 +246,7 @@ async function issueSession(user, userAgent, nativeTerminalCode = null) {
     };
   }
 
-  assertMelisaWriteEnabled();
+  assertAuthWriteEnabled();
 
   const refreshToken = createRefreshToken();
   const refreshTokenHash = hashRefreshToken(refreshToken);
@@ -389,7 +426,7 @@ export async function logout(refreshToken) {
     return { revoked: false };
   }
 
-  assertMelisaWriteEnabled();
+  assertAuthWriteEnabled();
 
   const pool = await getSqlPool();
   const result = await pool.request()
@@ -419,7 +456,7 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
     return {user,accessToken,expiresAt,refreshToken:grant.refreshToken,refreshExpiresAt:grant.refreshExpiresAt,tokenType:'Bearer',expiresIn:env.auth.accessExpiresIn};
   }
 
-  assertMelisaWriteEnabled();
+  assertAuthWriteEnabled();
   if (!refreshToken) {
     throw makeAuthError('AUTH_REFRESH_REQUIRED', 'Refresh token is required', 401);
   }
@@ -470,7 +507,7 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
   };
 }
 
-function normalTestIdentityOptions(){return {copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
+function normalTestIdentityOptions(){return getCleanContext()?{clean:assertRegisteredCleanContext()}:{copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
 function normalTestStore(){return configuredNormalTestRefreshStore(normalTestIdentityOptions());}
 export async function confirmProtectedNormalSession(accessToken,refreshToken){
  const payload=verifyAccessToken(accessToken),store=normalTestStore();
@@ -479,9 +516,19 @@ export async function confirmProtectedNormalSession(accessToken,refreshToken){
  if(!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);
  verifyNormalTestAccessSession(payload,user);
  store.verifyPair(payload.normalTestSessionId,refreshToken,user);
- return {confirmed:true,user,expiresAt:payload.exp*1000};
+ // Metadata belongs to the already verified JWT + current user + refresh pair.
+ // It is not a CRM identity, a transferable grant, or a client-selected family.
+ return {confirmed:true,user,...(getCleanContext()?{normalTestSessionId:payload.normalTestSessionId}:{}),expiresAt:payload.exp*1000};
 }
 export function verifyNormalTestAccessSession(payload,user){if(payload.normalTestSessionId){const store=normalTestStore();if(!store)throw makeAuthError('AUTH_REFRESH_INVALID','Session configuration unavailable',401);if(!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Session user differs',401);store.verify(payload.normalTestSessionId,user);}}
+// Server-only adapter read. No HTTP caller can select a user/family through it.
+export async function readProtectedNormalSession(userId,normalTestSessionId){
+ if(!getCleanContext()||!Number.isSafeInteger(userId)||userId<1||typeof normalTestSessionId!=='string')throw makeAuthError('AUTH_REFRESH_INVALID','Protected normal family is unavailable',401);
+ const user=await getUserById(userId),store=normalTestStore();
+ if(!store||!allowsProtectedNormalTestUser(user,normalTestIdentityOptions()))throw makeAuthError('AUTH_REFRESH_INVALID','Protected normal family is unavailable',401);
+ const family=store.describe(normalTestSessionId,user);
+ return {user,normalTestSessionId:family.sid,expiresAt:family.expiresAt};
+}
 export function verifyAccessToken(token) {
   assertAuthSecretsConfigured();
 

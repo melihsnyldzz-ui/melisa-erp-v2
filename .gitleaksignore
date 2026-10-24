@@ -1,3 +1,11 @@
+# Independently reviewed 2026-10-21: exact SHA256 pins of recorded erpApi recovery stop intent/result.
+# Both independently matched protected local artifact bytes; no credential or broad rule/path exclusion.
+21af6a5fad6a9fe6ae3aae64e7c5323f9643c7ff:scripts/canonical/p03-pr54-shared-owner-io.mjs:generic-api-key:905
+21af6a5fad6a9fe6ae3aae64e7c5323f9643c7ff:scripts/canonical/p03-pr54-shared-owner-io.mjs:generic-api-key:906
+
+# Independently reviewed 2026-10-18: three public Git commit IDs and release-manifest SHA256 pins, no credential.
+28c29bb5b56bc9275285a99f4cae8dc53dbbd4e0:scripts/canonical/p03-pr54-receipt-acl.ps1:generic-api-key:161
+
 # Exact false positives independently reviewed on 2026-10-03; no broad exclusions.
 # Independently reviewed 2026-10-11 against historical source and HEAD 1a14a33.
 # Synthetic provenance/source identifiers and a public scope identifier, not credentials.
@@ -98,3 +106,32 @@ fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workin
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:20
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:8
+
+# Independently reviewed 2026-10-18 by root and review_hub: synthetic fixture
+# product301/customer501/supplier601 VEGA provenance paths, never credentials.
+# Exact historical commit/path/rule/line only; no file or rule exclusion.
+90b0bc03dd1b377a18d188b6fbd1feaae86a42e3:apps/sites-workflow/src/workflow/selectedSourceCollectionHandoff.test.mjs:generic-api-key:10
+
+# Reviewed 2026-10-18: three public release commit IDs and manifest SHA pins; no credential.
+69e99264020d9a0fb24641a52ae12fcf8aca4a2d:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:73
+
+# Independently reviewed 2026-10-19 by root and c09_review: public release
+# commit/manifest pins and synthetic fixture constants; no credentials.
+# Exact historical commit/path/rule/line only; no rule or path suppression.
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-observer-cim-order.test.mjs:generic-api-key:253
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:374
+
+# Independently reviewed 2026-10-20 by root and b264_inspection_review:
+# consumed 639/7b/B264 run IDs plus public release commit/manifest pins only.
+# Exact historical fingerprint; no path/rule exclusion or scanner change.
+745e940d43b730af9bd07f48fd7e32e421cd0900:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
+
+# Independently reviewed 2026-10-20 by root and b264_inspection_review:
+# public ERP release commit ID01ef3e in a synthetic sourceCommit assignment, not a credential.
+# Exact pushed historical fingerprint only; no file/rule/commit-wide suppression.
+b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure-record.test.mjs:generic-api-key:72
+
+# Reviewed 2026-10-24 by ERP owner and existing coordinator: public installed
+# ERP source commit 64f273df, not an API key. Exact historical fingerprint only.
+9e7b7169b3d3593feb86194105a7e1bf84a3d10e:docs/evidence/erp/2026-10-24-b5-normal-access.json:generic-api-key:16

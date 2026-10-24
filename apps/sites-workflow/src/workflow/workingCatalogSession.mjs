@@ -1,4 +1,5 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -28,29 +29,38 @@ function validUser(user){
  if(!user||!Number.isSafeInteger(user.id)||user.id<1||!Array.isArray(user.permissions)||user.permissions.some(p=>typeof p!=='string'))throw problem('Oturum bilgileri doğrulanamadı.');
  return user;
 }
-export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
-export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,protectedDevice=createProtectedDeviceSession()}={}){
+export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return ['admin','clean_test_administrator'].includes(user?.role?.code)?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
+export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,selectedSourceCollections=false,protectedDevice=createProtectedDeviceSession()}={}){
  const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
  const cartonReadTarget=cartonReadOrigin(location,copyProfile);
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
+ const cleanCartonTarget=isCleanCatalogLocation(location)&&resolvedApiBase!==null&&apiBase==='http://127.0.0.1:4194';
  let active=true,token=null,user=null,generation=0,switching=false,deviceToken=null,refreshToken=null,expiresAt=0,renewing=null;const controllers=new Set();
  const target=()=>isTestSessionTarget({location,apiBase});
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{if(protectedDevice&&key===workingCatalogTokenKey){deviceToken=value;try{storage?.removeItem(key);}catch{}return;}try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
   if(protectedDevice&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
   // Carton GETs include cold native source checks; a longer budget adds no retry or API speed gain.
-  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:timeoutMs;
+  // The verified shared-copy invoice reader can take 17–20s while preserving
+  // its native integrity checks. Budget that exact GET, without retrying it or
+  // changing login, catalog, other reads, or the commercial write deadline.
+  const historicalInvoiceRead=!!cartonReadTarget&&method==='GET'&&copyProfile?.scopeKind==='VERIFIED_BUSINESS_TEST'&&/^\/api\/work-sales\/invoices(?:\/[1-9]\d*|\?[^#]+)?$/.test(path);
+  // These two clean context reads retain the full native integrity proof,
+  // measured at 19–20s. This is a finite wait, not a retry or a speed gain.
+  const cleanContextRead=method==='GET'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})&&['/api/work-sales/context','/api/work-receiving/context'].includes(path);
+  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead?45000:cleanContextRead?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
    const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
-   if(!response.ok||payload?.success!==true){if(!startupAuth&&(response.status===401||response.status===403&&!keepForbiddenSession)){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
+   if(cleanSaleErrors&&response.status===409&&payload?.error?.code==='CLEAN_SALE_CHANGED')throw Object.assign(problem('Bilgiler değişti. Güncel kaydı kontrol edin.',409),{code:'CLEAN_SALE_CHANGED'});
+   if(!response.ok||payload?.success!==true){if(!startupAuth&&response.status===401){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
    return payload;
   }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
  }
@@ -71,6 +81,12 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
  return {
+  async prepareCrm(){
+   if(!protectedDevice||!isCleanCatalogLocation(location)||!active||!token||!user)throw problem('ERP oturumu doğrulanamadı.',401);
+   const version=generation,expected={id:user.id,username:user.username};
+   const payload=await request('/api/auth/me',{expire:true});
+   if(!active||generation!==version||payload.data?.id!==expected.id||payload.data?.username!==expected.username)throw problem('ERP oturumu değişti.',401);
+  },
   async start(){
    if(protectedDevice){
     if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{storage?.removeItem(workingCatalogTokenKey);}catch{}
@@ -113,6 +129,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(args.length||path!=='/api/work-system/summary'||!token||!user)throw problem('Sistem durumu okunamıyor.');
    return (await request(path,{expire:true,keepForbiddenSession:true})).data;
   },
+  async orders(id=null){
+   if(!active||!token||!user||!user.permissions.includes('sales.view')||!isCleanCatalogLocation(location)||resolvedApiBase!==resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})||id!==null&&(!Number.isSafeInteger(id)||id<1))throw problem('Sipariş bağlantısı kullanılamıyor.');
+   return request('/api/sales-orders'+(id===null?'?limit=50&status=draft':'/'+id),{expire:true,keepForbiddenSession:true});
+  },
+  async orderSale(id,{operation=null,body,...extra}={}){
+   if(Object.keys(extra).length||!active||!token||!user||!user.permissions.includes('sales.view')||!isCleanCatalogLocation(location)||resolvedApiBase!==resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})||!Number.isSafeInteger(id)||id<1||!(operation===null&&body===undefined||['convert','finalize'].includes(operation)&&body&&typeof body==='object'&&!Array.isArray(body)&&user.permissions.includes(operation==='convert'?'sales.create':'sales.finalize')))throw problem('Sipariş satış bağlantısı kullanılamıyor.',403);
+   return request('/api/sales-orders/'+id+'/'+(operation===null?'sale':operation==='convert'?'convert-to-sales-draft':'finalize-linked-sale'),{method:operation===null?'GET':'POST',body,expire:true,keepForbiddenSession:true,workMutation:operation!==null,cleanSaleErrors:true});
+  },
   async api(path,{envelope=false,...extra}={}){
    const priceRoute=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/current-prices$/.test(path);
    if(priceRoute){
@@ -130,26 +154,56 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/(?:customer-cards\?[^#]*|customers\/[1-9]\d*\/card)$/.test(path)||!token||!user)throw problem('Müşteri kartları okunamıyor.');
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;
   },
+  async customerContactRecovery(id,requestId){
+   if(typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim kaydını kontrol etme yetkiniz yok.',403);
+   return (await request('/api/customers/'+id+'/contact/requests/'+requestId,{method:'GET',expire:true,keepForbiddenSession:true})).data;
+  },
   async customerContact(id,{method='GET',body,...extra}={}){
    if(Object.keys(extra).length||typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
    return (await request('/api/customers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
   },
+  async supplierContactRecovery(id,requestId){
+   if(typeof id!=='string'||! /^[1-4]$/.test(id)||typeof requestId!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||!token||!user||!['supplier.view','supplier.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim kaydını kontrol etme yetkiniz yok.',403);
+   return (await request('/api/suppliers/'+id+'/contact/requests/'+requestId,{method:'GET',expire:true,keepForbiddenSession:true})).data;
+  },
+  async supplierContact(id,{method='GET',body,...extra}={}){
+   if(Object.keys(extra).length||typeof id!=='string'||! /^[1-4]$/.test(id)||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['supplier.view','supplier.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
+   return (await request('/api/suppliers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async work(path,{method='GET',body,...extra}={}){
+   if(typeof path==='string'&&path.startsWith('/api/work-collections/selected-source')){
+    const read=/^\/api\/work-collections\/selected-source\/context\?invoiceId=[1-9]\d*$/;
+    const write=/^\/api\/work-collections\/selected-source(?:\/preview|\/[1-9]\d*\/cancel)?$/;
+    const cancel=/^\/api\/work-collections\/selected-source\/[1-9]\d*\/cancel$/;
+    const allowed=selectedSourceCollections===true&&!!token&&!!user&&!!cartonReadTarget&&resolvedApiBase===`http://${location.hostname}:4184`&&user.id===16&&user.role?.code==='isolated_test_ilker'&&['finance.view','customer.view','finance.collection'].every(p=>user.permissions.includes(p))&&(!cancel.test(path)||user.permissions.includes('finance.collection.cancel'));
+    if(Object.keys(extra).length||!allowed||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Tahsilat bağlantısı kullanılamıyor.',403);
+    return (await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+   }
    const read=/^\/api\/(?:work-sales\/(?:context|selection-options|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
    const write=/^\/api\/(?:work-sales\/(?:selected-context|preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&(read.test(path)||invoiceListReadPath(path))&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,workMutation:method==='POST',workErrors:method==='POST'&&/^\/api\/work-sales\/drafts\/[1-9]\d*\/cancel$/.test(path)})).data;
   },
+  async cash(path,{method='GET',body,...extra}={}){
+   const read=/^\/api\/finance\/cash-register\?businessDate=2026-10-22$/;
+   const write=/^\/api\/finance\/cash-register\/(?:open|close|transfers|expenses)$/;
+   const clean=isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
+   if(Object.keys(extra).length||!clean||!active||!token||!user||!user.permissions.includes('finance.view')||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Günlük kasa bağlantısı kullanılamıyor.',403);
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async cartons(path,{method='GET',body,...extra}={}){
    const route=/^\/api\/terminal-cartons\/receipts(?:\/[1-9]\d{0,18})?$/;
-   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!cartonReadTarget||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
-   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:true})).data;
+   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!(cartonReadTarget||cleanCartonTarget)||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:!!cartonReadTarget})).data;
   },
   async inbound(path,{method='GET',body,...extra}={}){
    const read=/^\/api\/(?:test-daily\/(?:count|purchase)|work-receiving\/(?:context|home|count-drafts(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-purchases\/(?:context|drafts\/[1-9]\d*|fx\/(?:context|drafts\/[1-9]\d*))|work-suppliers\/(?:context|history))$/;
    const write=/^\/api\/(?:test-daily\/(?:count\/(?:draft|approve|reject|cancel)|purchase\/(?:draft|approve|reject|cancel))|work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?|fx\/(?:preview|receipts(?:\/[1-9]\d*\/(?:approve|reject))?|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)))$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Mal kabulü bağlantısı kullanılamıyor.');
-   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true,headers:createBusinessSupplierSelection({storage,userId:user.id,profile:copyProfile,location})?.headers()??{}})).data;
+   // These finite clean count writes retain the existing UUID journal and write
+   // budget; a read deadline must not hide their already committed response.
+   const cleanCountMutation=method==='POST'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})&&/^\/api\/work-receiving\/count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?$/.test(path);
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true,workMutation:cleanCountMutation,headers:createBusinessSupplierSelection({storage,userId:user.id,profile:copyProfile,location})?.headers()??{}})).data;
   },
   businessSupplierSelection(){
    if(!active||!token||!user)throw problem('Tedarikçi seçimi için oturum gerekli.');
