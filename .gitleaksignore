@@ -131,3 +131,7 @@ cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-pr54-new-owner-ob
 # public ERP release commit ID01ef3e in a synthetic sourceCommit assignment, not a credential.
 # Exact pushed historical fingerprint only; no file/rule/commit-wide suppression.
 b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure-record.test.mjs:generic-api-key:72
+
+# Reviewed 2026-10-24 by ERP owner and existing coordinator: public installed
+# ERP source commit 64f273df, not an API key. Exact historical fingerprint only.
+9e7b7169b3d3593feb86194105a7e1bf84a3d10e:docs/evidence/erp/2026-10-24-b5-normal-access.json:generic-api-key:16
