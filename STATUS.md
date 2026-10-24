@@ -1,3 +1,14 @@
+## 24 Ekim11:38 — E1 sunucu bağı ve normal tarayıcı doğrulandı; Android kabulü açık
+
+**Son kalan kapanış tamam:** Doğal15dk auth penceresi beklendi; limiter/config/servis değiştirilmedi. Ayrı dar prova yalnız gerekli yeni kendiERP→CRM sentetik oturumunu kurup ERPçıkış→CRMret→aynı CRMlogout iki200 sonucunu aldı;12HTTPçağrısı/1yeni linkedfamily/ownclosuretrue/eski aileler korunmuş/53SQLözeti aynı. Önceki22kontrollü FAILEDmakbuz ve429 aynen korundu; geniş negatifler tekrarlanmadı. Sandbox ilkhealthsocketreddi sunucuya ulaşmadı, izinli hostta doğru hedefle yürütüldü. Private `e1-link-runtime-close-proof.json` PASS ve `e1-link-final-delivery.json` kaynak/kurulum/GUI ayrımını tutar.
+
+**Normal ekran:** ERP5244 terminal ana ekranı örnek satış personeliyle açıldı. CRM62800 normal mevcut örnek personel girişi→atanmış Örnek Mağaza→tamreload→aynı tek görüşmeyi yeniden açma geçti; gönderim/ücretliAI kapalı, yeni mesaj/ticari kayıt yok. NormalGUIsonrası53korunanSQLözeti byte-eş. İki private ekran `e1-link-normal-erp-home.png` / `e1-link-normal-crm-reloaded.png`. Bu tarayıcı girişi native ERP→CRM tek-giriş/Keystore/Android yeniden açma kanıtı değildir.
+
+**Teslim ayrımı:** Native sonsource `d11412060e9a14a6884373089800973004b875f5`, exactCI40078294328/40078290788 her3jobSUCCESS; CRMbağımsızreview P1/P2=0. İmzalı E408APK ve KURULUM.md mevcut yeni `releases/TERMINAL-E1-CLEAN-20261024-d11412060e9a` klasöründe pasif teslimdir; cihaza kurulmadı, ağdan APKindirme yolu henüz sunulmadı. KuruluERPf4/CRM59ca/native035 önceki makbuzdaki gibi aynı. ÖzgünUA/49/25/17/74/C5zamanlıbekleyişi korunur.
+
+**Sıradaki iş:** E1gerçekcihaz/Keystore/insan kısmı ADB0/AVD0 nedeniyle açık kalır. Hazır B5normalpersonel kaynağı PR58/c4d4eb81 ve CRMsourceacb2a3a/kanıt2f836da mevcuttekowner sırasına alınır; önce predecessor/metadata/rollbackprobe, sonra uygun dar kurulum ve normal sentetik yönetim kanıtı. Gerçek9kişi/atama tahmini yok. Kayıtkontrolü bir kez CHECK_REQUIRED/eskiBLOCKEDönkoşullar; yeniTESTbaşarısı eskiSharedengellerini otomatik yeşil yapmadı.
+
+### Önceki E1 uygulama kaydı — tarihsel
 ## 24 Ekim11:16 — E1 ERP/CRM gerçek clean TEST kurulumu ve LAN oturum bağı
 
 **Kurulu:** ERP API/web `f4db4884c3a85f799c98e955b43d6c6745d7db55` / CLEAN-ERP-20261024-f4db4884c3a8-E1LINK (3424dosya, manifestA057B46C7A3DB6DC66FCAAFF1903093A98FF81CF73A7754A135A6530EB55777C); CRM `59ca114b858f4042e30cd1736825be3d7c68599c` / CLEAN-CRM-20261024-59ca114b858f-E1LINK (783dosya, manifest49A76E90623CCABA3541DA7D82AB4563878AC682AB5B4C105933729E88930E03). Exact sourceCI ERP40076713210/40076710303 her3job, CRM40076309087/40076305978/40076308994 toplam7jobSUCCESS. Native SQL035 aynı. Eski paketler/diğerlistener'lar/53SQLözeti/normalhashjournallar korundu; hesap/rol/ticari yazı0. Mevcut DPAPI dosyasında ayrı server-only peerkey ve yalnız zaten mevcut sentetik ERP15→CRMstaff/agent2 açık ilişki kullanıldı. Gerçek9kişi eşlemesi uydurulmadı.

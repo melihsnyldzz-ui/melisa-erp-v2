@@ -1,3 +1,8 @@
+## 24 Ekim11:38 — E1 kurulum ve normal ekran alt kanıtı; sayaçlar aynı
+
+Kurulu ERPf4/CRM59ca kaynak/manifest/53korunanSQL geriokuması, gerçekLANnormalhandoff/refresh/negatif/çıkıştekrarı ve normaltarayıcı ERPpersonelhome/CRMatanmışgörüşme/tamreload kanıtlandı. Natived114 exactCIikiçalışmada3/3SUCCESS, imzalıE408APKpasifteslim; cihaz0/gerçekKeystore/nativeGUI/insanBEKLİYOR. E1özgünkapanışı veya gerçek9kişi bağı tamam sayılmaz;49/25/17/74 korunur. [STATUS](STATUS.md). HazırB5source sonrakiizinliteknikhalka.
+
+### Önceki E1 kaynak kanıtı — tarihsel
 ## 24 Ekim — mevcut E1 native kaynak/APK teknik alt kanıtı
 
 18JVM+43webPASS, gerçek offlineworktestAPK/lint/v2imza/debugfalse hazır. İlkboşCRMget/aynıkişirotation/ownclosure/pendingbarrier/generation kaynakta bağlı; [STATUS](STATUS.md). Kurulum/nativeGUI/gerçekKeystore/cihaz/insan henüz yok, ADB0/AVD0. Son kaynakCI/CRMtimeoutpin ve tekownerkurulum sıradaki; B5 ayrıowner'da.49/25/17/74 ve özgünUA aynı.

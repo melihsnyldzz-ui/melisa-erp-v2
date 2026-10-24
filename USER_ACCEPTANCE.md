@@ -1,3 +1,8 @@
+## 24 Ekim11:38 — E1 insan/cihaz kabulü BEKLİYOR
+
+GerçekcleanERP/CRMkurulumu,12HTTPdarownclosuretekrar ve normalERPpersonel/CRMatanmışgörüşme/tamreload teknik olarak doğrulandı. NativeAPKderleme/v2imza/exactCIbaşarısı fizikselAndroid/Keystore/tek-giriş/aç-kapa/insan kabulünün yerine geçmez. BağlıAndroid0/AVD0; özgünUAsonuçları/sayaçlar değişmedi. [STATUS](STATUS.md).
+
+### Önceki E1 kaynak aşaması — tarihsel
 ## 24 Ekim — E1 Android bağlayıcı/APK derlemesi, gerçek cihaz ve insan BEKLİYOR
 
 18JVM+43web ve gerçek offline Androidtest/APK/lint/v2imza teknik olarak geçti. Bunlar memoryvault/sunucufixture ve kaynak kanıtıdır; Keystore/normal cihaz ekranı/yeniden açma/TC21/personel kabulü değildir. ADBbağlıcihaz0/mevcutAVD0; APKkurulmadı. SonCI/CRMtimeout/ortakkurulum ayrı bekler; eski insan sonuçları ve sayaçlar değişmedi. [STATUS](STATUS.md).

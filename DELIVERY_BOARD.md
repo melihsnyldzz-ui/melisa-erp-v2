@@ -1,3 +1,8 @@
+## 24 Ekim11:38 — E1 kurulu sunucu/normal ekran alt kapsamı doğrulandı
+
+ERPf4/CRM59ca clean5244/62800'e gerçekten kurulu; mevcut normaloturum→explicitPKCEhandoff→atanmışgörüşme/refresh/ret/ownlogouttekrarı teknik olarak doğrulandı. Doğal authwait sonrası dar12HTTPkapanışmakbuzuPASS; önceki429FAILEDkorundu. NormalERPpersonelhome ve normalCRMatanmışgörüşme/tamreload görüldü;53SQLözeti korunur. Natived114 exactikiCI3/3SUCCESS/13JVM/v2APKpasifhazır; Android0/Keystore/insanBEKLİYOR, E1bütünkabulPASSdeğil. [STATUS](STATUS.md). Sıradaki hazır teknik halka B5PR58+CRMmanagementsource önkontrol/tekownerkurulumudur; yeniiş/sayaç/gerçekkişi tahmini yok.
+
+### Önceki E1 kaynak aşaması — tarihsel
 ## 24 Ekim — E1 native bağlayıcı kaynak ve APK derlemesi hazır; kurulum/cihaz açık
 
 Mevcut Keystore/get-put-clear/FIFO'da ilk boşCRM alanı kendi ERPkişisiyle açılır; taze serverkimlik, ownfamilyclose/persistpendingclose/generation ve ERPwebrenew korunur.18JVM+43webPASS, gerçek offline APK/Androidlint başarılı/v2imza/debugfalse; nativeROreview0. Son exactCI ve CRMlinked15sn sourcepin bekliyor. ADBcihaz0/AVD0; normalAPKGUI/gerçekKeystore/insan denenmedi. KuruluERP8aa/CRM09a/native035,veri/roller/C5 aynı; [STATUS](STATUS.md). Sonraki teknik halka sonkaynak/CI/paket eşlemesi ve mevcuttekownerkurulumdur; fizikselAndroid girdisi ayrı açık. Yeni iş/sayaç yok.
