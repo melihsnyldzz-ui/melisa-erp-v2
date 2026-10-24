@@ -4,6 +4,7 @@ $path='C:\Sirket\ERP\clean\20261022\runtime\carton-packing'
 $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $directory=Get-Item -LiteralPath $path -Force
 if(!$directory.PSIsContainer -or ($directory.Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'CARTON_DIRECTORY'}
+Import-Module -Name "$PSHOME\Modules\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.psd1" -ErrorAction Stop
 $acl=Get-Acl -LiteralPath $path
 if(!$acl.AreAccessRulesProtected -or $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $sid){throw 'CARTON_DIRECTORY'}
 $rules=$acl.GetAccessRules($true,$true,[System.Security.Principal.SecurityIdentifier])

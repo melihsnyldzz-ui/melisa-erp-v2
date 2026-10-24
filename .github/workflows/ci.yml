@@ -26,6 +26,8 @@ jobs:
           node-version: '24'
       - name: Windows owner and single-instance startup boundaries
         run: node --test scripts/canonical/start-owned-test.test.mjs
+      - name: Native Windows carton ACL module discovery
+        run: node --test apps/api/src/services/cleanTerminalCartonDirectory.test.mjs
       - name: P03 Hub lineage PowerShell 5 source boundaries
         run: node --test scripts/canonical/p03-hub-lineage.test.mjs scripts/canonical/p03-light-hub.test.mjs
       - name: P03 physical recovery and isolated rehearsal source boundaries
