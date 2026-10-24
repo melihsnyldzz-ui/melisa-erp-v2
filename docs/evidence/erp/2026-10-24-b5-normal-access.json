@@ -743,7 +743,8 @@
       "existingLayerRefusal": "PACKING_FRESH_WORK_LAYER_REQUIRED",
       "freshLayerSqlCompiledOnly": true,
       "newReadinessLayerAdded": false,
-      "cacheOrTimeoutChanges": false
+      "cacheOrTimeoutChanges": false,
+      "followOnInPlaceUpgradeSourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44"
     },
     "passivePackage": {
       "package": "CLEAN-ERP-20261022-747840db0659",
@@ -837,11 +838,163 @@
     ],
     "review": {
       "localSourceReview": true,
-      "independentReview": "PENDING_NOT_CLAIMED",
+      "independentReview": "NO_BLOCKING_FINDINGS_AT_747_SOURCE_PARTIAL_BOUNDARY_ONLY",
       "coordinatorMessageSent": false
     },
     "humanAcceptance": "PENDING",
     "newFinishLeaves": 0,
     "observedAt": "2026-10-24T17:03:41.217Z"
+  },
+  "personalPackingNativeUpgrade": {
+    "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+    "status": "SOURCE_READY_NATIVE_EXECUTION_PENDING",
+    "usageOutcome": "Existing B5 outcome2: an explicitly assigned person packs under their own normal account; NOT yet usable in installed TEST",
+    "fieldDefault": false,
+    "sourceScopeOnly": true,
+    "expectedPrecursorModules": 35,
+    "plannedChangedModules": 15,
+    "plannedAddedModules": 2,
+    "actualModulesChanged": 0,
+    "predecessorContract": {
+      "layers": [
+        "C1 ready expression",
+        "8ee6d734 username",
+        "794bd3d1 creator FKs"
+      ],
+      "wrongOrUnreadableDefinitionDeniedInGeneratedSql": true,
+      "ansiQuotedExecutionFlagsProvedInGeneratedSql": true,
+      "actualDboObjectOrSchemaOwnerProvedInGeneratedSql": true,
+      "triggerParentAndEnabledStateProvedInGeneratedSql": true,
+      "trustedNoActionCreatorFksRequired": true,
+      "acceptedDefaultGeneratorBytesUnchanged": true
+    },
+    "preservationContract": {
+      "oldImmutableRowsNotUpdated": true,
+      "oldImmutableTriggersNotAltered": true,
+      "employeesOld16FieldsAndRowVersionDigestBeforeAfter": true,
+      "rolesPermissionsAndThreeOldSealDigestsBeforeAfter": true,
+      "noAutomaticTaskAssignment": true,
+      "noUserOrRoleRecreation": true,
+      "idleWriterProofBeforeReplayAndFirstApply": true,
+      "replayPreservesLaterTaskAssignments": true,
+      "transactionRollbackProbeCompiled": true,
+      "postCommitAutomaticInverse": false,
+      "cacheOrTimeoutOrAggregatorAdded": false
+    },
+    "sourceTests": {
+      "firstPass": 1,
+      "initialMissingBehaviorFailures": 5,
+      "baseSourceChecksPassed": 8,
+      "newPostDdlBoundaryCheckRed": 1,
+      "newPostDdlBoundaryCheckPassed": 1,
+      "finalSourceCaseCount": 9,
+      "oldCasesReusedAfterUnchangedModuleDefinitions": true,
+      "verificationLayer": "Offline source compiler only; no SQL execution",
+      "acceptedOldRuntimeProofsRepeated": false
+    },
+    "package": {
+      "payloadFiles": 4,
+      "totalFiles": 5,
+      "manifestSha256": "7A3BB0606FE901F6616BF0666B4678184D5BC30685D28CB2A76A417D3E376A35",
+      "applySqlSha256": "e7ce664f0f2ad52e3fa0a07c03d30a26c3056b0ae500fa5a537e4ee266126277",
+      "probeSqlSha256": "14073e60d7111f3136e3e36340edc6b216175c3ca81a14a9d74bbcf5322217d4",
+      "installationAllowed": false,
+      "sqlExecuted": false,
+      "actualPrecursorRead": false,
+      "beforeImagesCaptured": false
+    },
+    "ci": {
+      "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "runId": 40117378160,
+          "name": "quality-build-test",
+          "status": "completed",
+          "id": 120941345518
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117378160,
+          "name": "windows-startup-test",
+          "status": "completed",
+          "id": 120941345779
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117378160,
+          "name": "secret-scan",
+          "status": "completed",
+          "id": 120941345794
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117374276,
+          "name": "windows-startup-test",
+          "status": "completed",
+          "id": 120941332893
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117374276,
+          "name": "secret-scan",
+          "status": "completed",
+          "id": 120941333041
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117374276,
+          "name": "quality-build-test",
+          "status": "completed",
+          "id": 120941333093
+        }
+      ],
+      "complete": true,
+      "runs": [
+        {
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40117378160",
+          "conclusion": "success",
+          "event": "pull_request",
+          "status": "completed",
+          "id": 40117378160
+        },
+        {
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40117374276",
+          "conclusion": "success",
+          "event": "push",
+          "status": "completed",
+          "id": 40117374276
+        }
+      ],
+      "observedAt": "2026-10-24T17:50:13.2863920Z"
+    },
+    "currentInstalledSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "applicationSourceUnchangedFrom": "747840db065972963b3a1c1f9cc426e030af8df9",
+    "applicationBuildRepeated": false,
+    "cleanRouteClientOpened": false,
+    "sharedRuntimeWrites": 0,
+    "sqlMetadataOrDataWrites": 0,
+    "realApplicationLogins": 0,
+    "accountOrRoleChanges": 0,
+    "newCommercialActions": 0,
+    "b5ClosureScope": [
+      "Nine recorded people: individual TEST account/employee/approved task bindings",
+      "Representative normal-screen persistent result per distinct duty branch, including packing",
+      "Wrong role, protected/inactive account and permission-change boundaries",
+      "Personal ERP-CRM binding, CRM normal GUI-create and independent manager"
+    ],
+    "accepted10021LoginAndCountReopened": false,
+    "newB5RequirementsAdded": false,
+    "independentReview": {
+      "prior747SourcePartial": "Existing coordinator read-only review: no blocking findings at that partial boundary; no native/runtime acceptance",
+      "nativeDb5Review": "One reported batch-compilation finding; other reviewed 35/15/2 owner/hash/flags/FK scope retained",
+      "postDdlFindingFixedInSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "actualSqlAcceptance": false
+    },
+    "nextSingleTechnicalAction": "Controlled native rollback probe of this exact expected TEST baseline, within a later admitted ERP-owner runtime step; not executed in this source-only stage",
+    "humanAcceptance": "PENDING",
+    "b5Completed": false,
+    "finishCountsUnchanged": true,
+    "observedAt": "2026-10-24T17:50:16.311Z"
   }
 }
