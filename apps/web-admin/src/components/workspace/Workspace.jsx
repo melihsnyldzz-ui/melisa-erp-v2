@@ -95,7 +95,7 @@ const workspaceRouteRegistry = {
     permissionKeys: ['dashboard.view', 'finance.view'],
     permissionMode: 'all',
     unauthorizedMessage: 'Vega geçmişini görüntülemek için rapor ve finans yetkisi gerekiyor.',
-    render: ({ activeTab, permissions }) => <VegaHistoryScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.company, activeTab.payload?.partySourceId])} permissions={permissions} initialCompany={activeTab.payload?.company} initialPartySourceId={activeTab.payload?.partySourceId} />,
+    render: ({ activeTab, permissions }) => <VegaHistoryScreen key={JSON.stringify([activeTab.contextRevision, activeTab.payload?.sourceDatabase, activeTab.payload?.period, activeTab.payload?.company, activeTab.payload?.partySourceId])} permissions={permissions} initialSourceDatabase={activeTab.payload?.sourceDatabase} initialPeriod={activeTab.payload?.period} initialCompany={activeTab.payload?.company} initialPartySourceId={activeTab.payload?.partySourceId} />,
   },
   dashboard: {
     permissionKeys: ['dashboard.view'],

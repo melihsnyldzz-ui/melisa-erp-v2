@@ -1,16 +1,16 @@
-import { HISTORY_EFFECTS, HISTORY_SOURCE, hashHistoryRecord, historyError, parseHistoryAccountLinkQuery, parseHistoryQuery, validateHistoryRecord } from './vegaHistoryCore.mjs';
+import { HISTORY_EFFECTS, HISTORY_SOURCE, canonicalJson, hashHistoryRecord, historyError, historySourceScopes, parseHistoryAccountLinkQuery, parseHistoryQuery, validateHistoryRecord } from './vegaHistoryCore.mjs';
 
 const columns = `source_key, company, period, source_table, source_id, kind, document_family,
  header_source_id, party_source_id, CONVERT(char(10),document_date,23) AS source_date,
  currency, payload_json, payload_hash, record_hash`;
-export function mapHistoryRecord(row) {
+export function mapHistoryRecord(row, { approvedSource = HISTORY_SOURCE } = {}) {
   try {
     const record = { sourceKey: row.source_key, company: row.company, period: row.period, table: row.source_table,
       sourceId: row.source_id, kind: row.kind, documentFamily: row.document_family ?? null,
       headerSourceId: row.header_source_id ?? null, partySourceId: row.party_source_id ?? null,
       date: row.source_date ?? null, currency: row.currency ?? null,
       payload: JSON.parse(row.payload_json), payloadHash: row.payload_hash };
-    validateHistoryRecord(record);
+    validateHistoryRecord(record, { approvedSource });
     if (hashHistoryRecord(record) !== row.record_hash) throw Error('Record hash differs');
     return record;
   } catch {
@@ -19,7 +19,7 @@ export function mapHistoryRecord(row) {
 }
 function envelope(data, options, total, metadata) {
   return { success: true, archiveOnly: true, operationalEffects: { ...HISTORY_EFFECTS },
-    source: { database: HISTORY_SOURCE.database, company: options.company, period: HISTORY_SOURCE.period, dateFrom: HISTORY_SOURCE.dateFrom, dateToExclusive: HISTORY_SOURCE.dateToExclusive, captureCompletedAt: metadata?.captureCompletedAt ?? null, importedAt: metadata?.importedAt ?? null, ...(options.family ? { documentFamily: options.family } : {}) },
+    source: { database: options.source.database, company: options.company, period: options.source.period, dateFrom: options.source.dateFrom, dateToExclusive: options.source.dateToExclusive, captureCompletedAt: metadata?.captureCompletedAt ?? null, importedAt: metadata?.importedAt ?? null, ...(options.family ? { documentFamily: options.family } : {}) },
     data, meta: { page: options.page, limit: options.limit, total, totalPages: Math.ceil(total / options.limit) } };
 }
 const likeValue = search => search == null ? null : `%${search.replace(/[~%_\[]/g, char => `~${char}`)}%`;
@@ -30,7 +30,8 @@ const sourceInteger = value => typeof value === 'string' && /^[1-9]\d*$/.test(va
 // matching amount, currency, latest date or coincident movement IND is not a link.
 export function resolveHistoryRelation(record, candidates, targetKind) {
   let matches = [], reason = 'NO_MATCH';
-  const scoped = candidates.filter(target => target.company === record.company && target.period === record.period && target.kind === targetKind);
+  const database = record.sourceKey?.split('/')[0];
+  const scoped = candidates.filter(target => target.sourceKey?.split('/')[0] === database && target.company === record.company && target.period === record.period && target.kind === targetKind);
   if (targetKind === 'document' && record.kind === 'account_movement') {
     const type = sourceText(record.payload[record.documentFamily === 'CARIHAREKETLERI' ? 'IZAHAT' : 'BELGEIZAHAT']);
     const id = record.documentFamily === 'KASA' ? sourceInteger(record.payload.BELGELINK)
@@ -54,7 +55,10 @@ export function resolveHistoryRelation(record, candidates, targetKind) {
 }
 
 // Dependency injection keeps tests offline. Defaults connect only when a GET is handled.
-export function createVegaHistoryService({ getPool, sql } = {}) {
+export function createVegaHistoryService({ getPool, sql, approvedSources = [HISTORY_SOURCE] } = {}) {
+  const sources = historySourceScopes(approvedSources);
+  const legacyScope = sources.length === 1 && canonicalJson(sources[0]) === canonicalJson(HISTORY_SOURCE);
+  const parse = (query, requirements = {}) => parseHistoryQuery(query, { ...requirements, approvedSources: sources });
   async function runtime() {
     if (getPool) { if (!sql) throw Error('Injected SQL driver is required.'); return { pool: await getPool(), driver: sql }; }
     const database = await import('../config/database.js');
@@ -64,24 +68,26 @@ export function createVegaHistoryService({ getPool, sql } = {}) {
     try {
       const context = await runtime();
       const schema = await context.pool.request().query(`SELECT CASE WHEN OBJECT_ID(N'dbo.vega_history_records',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.vega_history_snapshots',N'U') IS NOT NULL THEN 1 ELSE 0 END AS ready;
-        IF OBJECT_ID(N'dbo.vega_history_snapshots',N'U') IS NOT NULL
-          SELECT TOP (1) CONVERT(varchar(33),completed_at,126)+'Z' AS captureCompletedAt,CONVERT(varchar(33),imported_at,126)+'Z' AS importedAt FROM dbo.vega_history_snapshots ORDER BY id DESC;`);
-      if (schema.recordset?.[0]?.ready !== 1) throw historyError('HISTORY_ARCHIVE_NOT_READY', '2026 geçmiş arşivi bu veritabanında henüz hazırlanmadı.', 503);
-      if (!Array.isArray(schema.recordsets?.[1])) throw historyError('HISTORY_READ_FAILED', 'Arşiv paket tarihi okunamadı.', 503);
-      context.metadata = schema.recordsets[1][0] ?? null;
+        ${legacyScope ? `IF OBJECT_ID(N'dbo.vega_history_snapshots',N'U') IS NOT NULL
+          SELECT TOP (1) CONVERT(varchar(33),completed_at,126)+'Z' AS captureCompletedAt,CONVERT(varchar(33),imported_at,126)+'Z' AS importedAt FROM dbo.vega_history_snapshots ORDER BY id DESC;` : ''}`);
+      if (schema.recordset?.[0]?.ready !== 1) throw historyError('HISTORY_ARCHIVE_NOT_READY', 'Geçmiş arşivi bu veritabanında henüz hazırlanmadı.', 503);
+      if (legacyScope && !Array.isArray(schema.recordsets?.[1])) throw historyError('HISTORY_READ_FAILED', 'Arşiv paket tarihi okunamadı.', 503);
+      // The legacy snapshot schema has no proven period binding. Never label a
+      // selected historical period with another period's latest import time.
+      context.metadata = legacyScope ? schema.recordsets[1][0] ?? null : null;
       if (context.metadata && [context.metadata.captureCompletedAt, context.metadata.importedAt].some(value => typeof value !== 'string' || !value.endsWith('Z') || !Number.isFinite(Date.parse(value)))) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv paket tarihi geçersiz.', 503);
       return await action(context);
     } catch (error) {
       if (String(error.code || '').startsWith('HISTORY_')) throw error;
-      if ([207, 208].includes(Number(error.number))) throw historyError('HISTORY_ARCHIVE_NOT_READY', '2026 geçmiş arşiv şeması henüz hazır değil.', 503);
-      throw historyError('HISTORY_READ_FAILED', '2026 geçmiş arşivi okunamadı.', 503);
+      if ([207, 208].includes(Number(error.number))) throw historyError('HISTORY_ARCHIVE_NOT_READY', 'Seçilen kapsamın geçmiş arşiv şeması henüz hazır değil.', 503);
+      throw historyError('HISTORY_READ_FAILED', 'Geçmiş arşivi okunamadı.', 503);
     }
   }
   function request({ pool, driver }, options, kind) {
     return pool.request()
-      .input('sourceDatabase', driver.NVarChar(64), HISTORY_SOURCE.database)
+      .input('sourceDatabase', driver.NVarChar(64), options.source.database)
       .input('company', driver.NVarChar(5), options.company)
-      .input('period', driver.NVarChar(5), HISTORY_SOURCE.period)
+      .input('period', driver.NVarChar(5), options.source.period)
       .input('kind', driver.NVarChar(24), kind)
       .input('partySourceId', driver.NVarChar(128), options.partySourceId)
       .input('family', driver.NVarChar(128), options.family)
@@ -104,7 +110,11 @@ export function createVegaHistoryService({ getPool, sql } = {}) {
     const total = Number(response.recordsets?.[0]?.[0]?.total);
     if (!Number.isSafeInteger(total) || total < 0 || !Array.isArray(response.recordsets?.[1])) throw historyError('HISTORY_READ_FAILED', 'Arşiv sayfalama bilgisi geçersiz.', 503);
     if (response.recordsets[1].length !== Math.min(options.limit, Math.max(0, total - (options.page - 1) * options.limit))) throw historyError('HISTORY_READ_FAILED', 'Arşiv sayfası eksik döndü.', 503);
-    return envelope(response.recordsets[1].map(mapHistoryRecord), options, total, context.metadata);
+    const records = response.recordsets[1].map(row => mapHistoryRecord(row, { approvedSource: options.source }));
+    if (new Set(records.map(record => record.sourceKey)).size !== records.length || records.some(record => record.company !== options.company || record.kind !== kind
+      || (options.family && record.documentFamily !== options.family) || (options.headerSourceId && record.headerSourceId !== options.headerSourceId)
+      || (options.partySourceId && record.partySourceId !== options.partySourceId))) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv sayfası seçilen kapsamla eşleşmiyor.', 503);
+    return envelope(records, options, total, context.metadata);
   }
   async function relationCandidates(context, options, kind, sourceIds = null) {
     if (sourceIds && !sourceIds.length) return [];
@@ -122,36 +132,40 @@ export function createVegaHistoryService({ getPool, sql } = {}) {
       SELECT ${columns} FROM dbo.vega_history_records WHERE id<=@relationCeiling AND ${scope};`);
     const total = Number(result.recordsets?.[0]?.[0]?.total), rows = result.recordsets?.[1];
     if (!Number.isSafeInteger(total) || total < 0 || !Array.isArray(rows) || rows.length !== total) throw historyError('HISTORY_READ_FAILED', 'Arşiv bağlantısı için kaynak kayıtları tam okunamadı.', 503);
-    const records = rows.map(mapHistoryRecord);
+    const records = rows.map(row => mapHistoryRecord(row, { approvedSource: options.source }));
     if (new Set(records.map(record => record.sourceKey)).size !== records.length
-      || records.some(record => record.company !== options.company || record.period !== HISTORY_SOURCE.period || record.kind !== kind
+      || records.some(record => record.company !== options.company || record.period !== options.source.period || record.kind !== kind
         || (kind === 'document' && record.partySourceId !== options.partySourceId) || (ids && !ids.includes(record.sourceId)))) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv bağlantı kapsamı doğrulanamadı.', 503);
     return records;
   }
   return {
     accountLink(query) {
-      const options = parseHistoryAccountLinkQuery(query);
+      const options = parseHistoryAccountLinkQuery(query, { approvedSources: sources });
       return read(async context => {
         const response = await context.pool.request()
+          .input('sourceDatabase', context.driver.NVarChar(64), options.source.database)
+          .input('period', context.driver.NVarChar(5), options.source.period)
           .input('company', context.driver.NVarChar(5), options.company)
           .input('entityType', context.driver.NVarChar(10), options.entityType)
           .input('entityId', context.driver.BigInt, options.entityId)
-          .query(`SELECT TOP (2) l.company,l.party_source_id,l.entity_type,l.entity_id,l.evidence_hash
+          .query(`SELECT TOP (2) l.company,l.party_source_id,l.entity_type,l.entity_id,l.evidence_hash${legacyScope ? '' : ',l.source_database,l.period'}
             FROM dbo.vega_history_account_links l
             WHERE l.company=@company AND l.entity_type=@entityType AND l.entity_id=@entityId
-              AND EXISTS(SELECT 1 FROM dbo.vega_history_records r WHERE r.source_database=N'VEGA2026'
-                AND r.company=l.company AND r.period=N'D0007' AND r.kind=N'account'
+              ${legacyScope ? '' : 'AND l.source_database=@sourceDatabase AND l.period=@period'}
+              AND EXISTS(SELECT 1 FROM dbo.vega_history_records r WHERE r.source_database=@sourceDatabase
+                AND r.company=l.company AND r.period=@period AND r.kind=N'account'
                 AND r.source_id COLLATE Latin1_General_100_BIN2=l.party_source_id COLLATE Latin1_General_100_BIN2);`);
         if (!Array.isArray(response.recordset) || response.recordset.length > 1) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv cari bağlantısı tekil değil.', 503);
         const row = response.recordset[0];
-        if (row && (row.company !== options.company || row.entity_type !== options.entityType || Number(row.entity_id) !== options.entityId || typeof row.party_source_id !== 'string' || !row.party_source_id.trim() || !/^[a-f0-9]{64}$/.test(row.evidence_hash))) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv cari bağlantısı doğrulanamadı.', 503);
+        if (row && (row.company !== options.company || row.entity_type !== options.entityType || Number(row.entity_id) !== options.entityId || typeof row.party_source_id !== 'string' || !row.party_source_id.trim() || !/^[a-f0-9]{64}$/.test(row.evidence_hash)
+          || (!legacyScope && (row.source_database !== options.source.database || row.period !== options.source.period)))) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Arşiv cari bağlantısı doğrulanamadı.', 503);
         return envelope(row ? { company: row.company, partySourceId: row.party_source_id, entityType: row.entity_type, entityId: options.entityId, evidenceHash: row.evidence_hash } : null, { ...options, page: 1, limit: 1 }, row ? 1 : 0, context.metadata);
       });
     },
-    listParties(query) { const options = parseHistoryQuery(query); return read(context => page(context, { ...options, family: null, partySourceId: null }, 'account')); },
-    listDocuments(query) { const options = parseHistoryQuery(query); return read(context => page(context, options, 'document')); },
+    listParties(query) { const options = parse(query); return read(context => page(context, { ...options, family: null, partySourceId: null }, 'account')); },
+    listDocuments(query) { const options = parse(query); return read(context => page(context, options, 'document')); },
     listLedger(query) {
-      const options = parseHistoryQuery(query, { requireParty: true });
+      const options = parse(query, { requireParty: true });
       const family = options.family || 'CARIHAREKETLERI';
       if (!['CARIHAREKETLERI', 'CARIGENELHAREKET', 'KASA'].includes(family)) throw historyError('HISTORY_INVALID_QUERY', 'Cari hareket kaynağı geçersiz.');
       return read(async context => {
@@ -161,14 +175,14 @@ export function createVegaHistoryService({ getPool, sql } = {}) {
       });
     },
     documentDetail(query) {
-      const options = parseHistoryQuery(query, { requireSourceKey: true });
+      const options = parse(query, { requireSourceKey: true });
       return read(async context => {
         const response = await request(context, options, 'document')
           .input('sourceKey', context.driver.NVarChar(450), options.sourceKey)
           .query(`SELECT TOP (1) ${columns} FROM dbo.vega_history_records WHERE source_database=@sourceDatabase AND company=@company AND period=@period AND kind=@kind AND source_key=@sourceKey;`);
         if (!response.recordset?.length) throw historyError('HISTORY_RECORD_NOT_FOUND', 'Kaynak belge bu şirketin arşivinde bulunamadı.', 404);
-        const document = mapHistoryRecord(response.recordset[0]);
-        if (document.company !== options.company || document.period !== HISTORY_SOURCE.period || document.kind !== 'document' || document.sourceKey !== options.sourceKey) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Kaynak belge kapsamı doğrulanamadı.', 503);
+        const document = mapHistoryRecord(response.recordset[0], { approvedSource: options.source });
+        if (document.company !== options.company || document.period !== options.source.period || document.kind !== 'document' || document.sourceKey !== options.sourceKey) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Kaynak belge kapsamı doğrulanamadı.', 503);
         const lines = await page(context, { ...options, family: document.documentFamily, headerSourceId: document.sourceId, partySourceId: null, search: null }, 'line');
         const products = await relationCandidates(context, options, 'product', lines.data.map(line => sourceInteger(line.payload.STOKNO)).filter(Boolean));
         const parties = await relationCandidates(context, options, 'account', document.partySourceId ? [document.partySourceId] : []);
