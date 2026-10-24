@@ -1,8 +1,8 @@
 {
   "schemaVersion": "melisa-clean-b5-delivery-evidence.v1",
-  "observedAt": "2026-10-24T14:38:00+03:00",
+  "observedAt": "2026-10-24T17:12:12.2507704+03:00",
   "scope": "Existing B5 isolated clean TEST technical sub-delivery",
-  "sourceCommit": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+  "sourceCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
   "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
   "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54",
   "commonReport": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6337512025",
@@ -82,8 +82,7 @@
     "originalUserRowsUnchanged": true
   },
   "unresolved": [
-    "Operational reads improved to 2.6-4.7 seconds by the installed native patch; further improvement remains",
-    "Native username pattern rejects hyphen and underscore accepted by JS",
+    "Current username metadata adds measured normal-read cost: sales 6970/4867ms and receiving 5396/5005ms; previous C1 performance is historical",
     "Account-create masking repaired; password reset/update catches remain outside this repair",
     "Long desktop session retention unresolved; physical Android/Keystore acceptance belongs separately to E1/E2",
     "Recorded nine-person account and task/CRM/carton mapping not completed",
@@ -186,12 +185,12 @@
     "fullB5": "PENDING",
     "remaining": [
       "2.6-4.7 second read cost",
-      "Native username dash/underscore mismatch",
       "Account-create masking repaired in accountRollbackRepair; other flows outside scope",
       "Long desktop session and native Keystore",
       "Nine real-person identities and assignments",
       "Separate E1/E2/Windows physical-device and human acceptance"
-    ]
+    ],
+    "observationScope": "Historical C1 baseline before the username layer; current measurements are in usernameContractRepair"
   },
   "currentRuntime": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -201,13 +200,16 @@
     "manifestDigest": "06D1F89D08592BC5F883A62EA22F5CD26F4D587141FE379CC0A57E185A4F6E38",
     "frontendSourceUnchanged": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
-    "nativeMetadataSourceUnchanged": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
     "crmSourceUnchanged": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
     "changedPorts": [
       4194
     ],
     "preservedCapturedListeners": 21,
-    "installedAt": "2026-10-24T16:10:39.4579372+03:00"
+    "installedAt": "2026-10-24T16:10:39.4579372+03:00",
+    "nativeMetadataSource": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "nativeMetadataInstalledAt": "2026-10-24T16:57:00.8688618+03:00",
+    "previousC1ManifestRowsPreserved": true,
+    "readyModuleBytesUpdatedWithNewVerifiedLayer": true
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -299,6 +301,134 @@
       "E2 human acceptance",
       "Windows reboot/logon"
     ],
-    "nextSeparateTechnicalItem": "Native username dash/underscore contract"
+    "nextSeparateTechnicalItem": "Historical next item completed in usernameContractRepair; current next item is B5 readiness read cost"
+  },
+  "usernameContractRepair": {
+    "sourceCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "installedAt": "2026-10-24T16:57:00.8688618+03:00",
+    "artifact": {
+      "root": "C:/Sirket/ERP/releases/CLEAN-PERSONNEL-USERNAME-20261024-8ee6d7341b54",
+      "source": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+      "manifestSha256": "7BD4A54EB7220ED24128C76DE6CBFEA751F47084CF4A039541E0A63BB492BACA",
+      "files": 4,
+      "sqlSha256": "ABDB51BB197B98D8E62821B8451CEF03F16C6E8E1F6DA13B65E22A2F7A78C713"
+    },
+    "allowedContract": "3-80 ASCII letters/digits/dot/dash/underscore; only LIKE hyphen placement changed",
+    "sqlComparison": {
+      "newMismatch": 0,
+      "cases": 153,
+      "observedAt": "2026-10-24T16:25:49.0557844+03:00",
+      "oldMismatch": 6,
+      "writes": 0,
+      "newUnexpectedAccept": 0,
+      "collation": "Latin1_General_100_BIN2",
+      "excluded": [
+        "NCHAR(0)"
+      ],
+      "allUnicodeClaim": false
+    },
+    "sourceTests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "newLayerNativeProbes": [
+      "Positive transactional install/ready/rollback",
+      "Modified personnel guard rejected 51978 then rollback",
+      "Encrypted NULL-definition personnel guard rejected 51978 then rollback"
+    ],
+    "normalManagement": {
+      "status": "PASS",
+      "userId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "renamed": true,
+      "originalNameRestored": true,
+      "oldFamilyMeAndRefreshDeniedAfterBothUpdates": true,
+      "expectedOwnAuditIds": [
+        147,
+        148
+      ],
+      "ownRowVersionAndUpdateMetadataChanged": true,
+      "newAccounts": 0,
+      "commercialWrites": 0
+    },
+    "normalBrowser": {
+      "status": "NORMAL_ALIAS_AND_ORIGINAL_LOGIN_VERIFIED",
+      "userId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "temporaryUsername": "b5-erp_20261024",
+      "originalUsername": "b5erp20261024",
+      "aliasNormalFormLogin": true,
+      "aliasReceivingRead": true,
+      "restoredAliasSessionReturnedToLogin": true,
+      "originalNormalFormLogin": true,
+      "originalFullReload": true,
+      "existingReceipt": 3,
+      "existingCountLinkWarningPreserved": true,
+      "newAccount": 0,
+      "newDraftOrTrade": 0,
+      "selectorWaitTimeoutObserved": true,
+      "actualStateAfterWait": "Receiving content visibly loaded",
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-24T14:13:08.011Z"
+    },
+    "preservation": {
+      "otherElevenUsersStableFields": true,
+      "ownImmutableFields": true,
+      "rolesPermissionsEmployeeMembership": true,
+      "priorAuditRows": true,
+      "oldManifestRows": true,
+      "protected53ContributionDigests": true
+    },
+    "replay": {
+      "status": "NO_SECOND_EFFECT",
+      "elapsedMs": 6473,
+      "metadataUsersAuditFlagsAndManifestRowsEqual": true,
+      "protected53Equal": true
+    },
+    "performance": {
+      "measurementKind": "Normal API response times on installed username layer; not GUI click timing",
+      "salesMs": [
+        6970,
+        4867
+      ],
+      "receivingMs": [
+        5396,
+        5005
+      ],
+      "regressionAgainstHistoricalC1": true,
+      "resolved": false
+    },
+    "processOutcome": {
+      "normalProofReceipt": "PASS; restored=true; cleanupFailed=false",
+      "shellExit": 1,
+      "reason": "Fixture left stdin open after final receipt; only completed helper interrupted with Ctrl+C; not shell exit0",
+      "realApplicationProcessesStopped": false
+    },
+    "failedPreparationsPreserved": [
+      "Initial negative probe preparation SQL parse error from JavaScript replacement-dollar expansion; zero business effect, callback V2 passed",
+      "One browser locator timeout; actual receiving content and separate controlled reload subsequently observed"
+    ],
+    "runtimeRestarted": false,
+    "allNodeListenersPreserved": true,
+    "ci": {
+      "sourceCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+      "prRun": 40099628596,
+      "pushRun": 40099625215,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS"
+    },
+    "postCommitRestore": "NOT_TESTED; exact before-image retained, no automatic reset/restore",
+    "humanAcceptance": "PENDING",
+    "fullB5": "PENDING",
+    "nextTechnicalItem": "Reduce measured B5 readiness-layer read cost without skipping immutable/NULL-definition/permission checks",
+    "recordCheck": {
+      "acceptedTestsRepeated": false,
+      "wholeClosureGranted": false,
+      "crmPreflightBlocked": 2,
+      "erpPreflightBlocked": 3,
+      "status": "CHECK_REQUIRED"
+    }
   }
 }

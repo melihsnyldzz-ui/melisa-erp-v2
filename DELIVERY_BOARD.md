@@ -1,3 +1,7 @@
+## 24 Ekim 17:18 — B5 kullanıcı adı alt teslimi kurulu; genel kabul kısmi
+
+Native8ee/7BD4 metadata16:57'de kuruldu; API83e/web64f/nativeHTTP035/CRMacb2/37dinleyici aynı, restart0. 153 gerçek SQL örneği0 yeni uyuşmazlık,8 kaynak testi/3 yeni katman rollback-ret/6exactCI geçti. Mevcut10021'in normal geçici tire/alt çizgili adla girişi, eski oturum reddi ve özgün ada dönüşü gerçek ekranda doğrulandı; yeni hesap/ticari işlem0. İki own audit beklenen değişiklik; eski11 sabit kullanıcı/rol/izin/53 katkı korundu. Replay6473ms/ikinci etki0. Yeni satış6970/4867 ve mal kabul5396/5005ms, önceki C1'den yavaş: aynı B5 okuma maliyeti sıradaki teknik eksiktir. Helper makbuzuPASS sonrası açık stdin Ctrl+C/exit1 ayrı kaydedildi; shellPASS iddiası yok. Gerçek9kişi/uzun oturum/cihaz/insan ve49/25/17/74 aynı. [STATUS](STATUS.md).
+
 ## 24 Ekim 16:16 — B5 ilk-hata/rollback teknik alt teslimi kurulu
 
 API83e8/3444dosya/06D1 paketi16:10:39'da yalnız4194'e kuruldu; frontend64f/native035/C1metadata/CRMacb2/21 diğer dinleyici korundu.17 hedefli test ve exact6CI geçti. Kontrollü gerçekSQL backendTHROW/autoabort ve normalrollback ikiPASS/commit0/intent0/account0; normalAPI/GUI create-fault kabulü değildir. Aynı mevcut kişiyle normal ekran/kısa yenileme ve53veri koruması doğrulandı. İlk çift-yol hatalı kurulum geri döndü; yanlış guard teşhisi geri alındı, ayrıV2 geçti. Username-/underscore ayrı açık, B5 kısmi; E1/E2/Windows kabulleri ve49/25/17/74 aynı. [STATUS](STATUS.md).

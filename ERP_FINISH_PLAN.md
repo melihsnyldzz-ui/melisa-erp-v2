@@ -1,3 +1,7 @@
+## 24 Ekim 17:18 — Mevcut B5 kullanıcı adı teknik alt parçası kurulu; sayaç aynı
+
+Native8ee metadata gerçek TEST'te; API83e/web64f/nativeHTTP035/CRM aynı, restart/ticari işlem0.8 kaynak testi,153 gerçekSQL örneği0 yeni uyuşmazlık,3 yeni rollback/ret ve6exactCI geçti. Aynı kişi10021'in normal geçici tire/alt çizgili adla form girişi ve özgün ada dönüşü/oturum iptali/yenileme görüldü. Eski kullanıcı sabit alanları/rol/izin/53 katkı aynı, yalnız iki own audit/güncelleme beklenir. Replay6473ms ikinci etki0. Güncel satış4,9–7,0s/mal kabul5,0–5,4s önceki C1'den yavaştır; B5 okuma maliyeti teknik açık kalır. İnsan/gerçek9kişi/uzun oturum/E1/E2/Windows kabulü verilmedi;49 ERP/25 CRM/17 başlık/74 yaprak ve özgün UA'lar aynı. [STATUS](STATUS.md).
+
 ## 24 Ekim 16:16 — B5 hesap hata/rollback alt parçası teslim edildi; sayaç aynı
 
 Normal create catch ilk hatayı ve cleanup hatasını ayrı korur;17 hedefli test/2 kontrollü gerçekSQL backendfault kanıtı/6exactCI. API83e8 gerçek kurulu, frontend64f/C1metadata/CRM aynı. Normal mevcut kişi okuması/kısa yenileme/53koruma geçti; yeni hesap veya ticari işlem0. Bu, normalAPI/GUI create-fault veya insan kabulü değildir. B5 teknik username tire/alt çizgi sözleşmesi ayrı açık, gerçek kişi/atama kısmi; E1/E2/Windows kabulü ayrıca BEKLİYOR.49 ERP/25 CRM/17 başlık/74 yaprak aynı. [STATUS](STATUS.md).
