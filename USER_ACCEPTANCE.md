@@ -1,3 +1,7 @@
+## 24 Ekim — E1 kurulu normal-auth ve tarayıcı teknik kanıtı; insan sonucu BEKLİYOR
+
+ERP8aa mevcut temiz TEST'e kuruldu;13normal giriş/refresh/logout kontrolü, Semih normalgiriş ve ürün ekranı tamreload geçti. CRM B5sunum635 ayrıca kurulu/normal ekranla doğrulandı. Bu ajan kontrolleri gerçek personel veya Android Keystore/uygulama yenidenaçılış/aynı-personel CRM devri kabulü değildir. Fiziksel cihaz denenmedi, pasifAPK kurulmadı; B5gerçekkişi bağı ve özgün terminal kabulleri bekler. Yeni UA/PASS/kişi/tarih/kapanış sayacı üretilmedi. [Teknik sonuç](STATUS.md).
+
 ## 24 Ekim — A5 rehber hazır; A2/A3 ve özgün kabuller bekliyor
 
 Güncel LAN adresleriyle kısa başka-cihaz kontrolü [giriş rehberinde](docs/erp-v2/clean-test-entry-guide.md). Bu tur başka cihaz/gerçek personel/Windows reboot/logon denemesi yapılmadı. Önceki C1/C2 kanıtı yeniden çalıştırılmadı, mevcut paket için yeni cold-start iddiası yok. B5 envanter sonucu gerçek9kişinin hesap/atama uygulaması veya insan kabulü değildir. Yeni UA/PASS/sayaç yok.

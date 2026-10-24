@@ -1,3 +1,9 @@
+## 24 Ekim04:38 — E1 sunucu/web oturum alt kapsamı kurulu; cihaz/CRM kişi devri açık
+
+ERP8aa exactCI3/3 ve bağımsız kaynak incelemesi sonrası yalnız mevcut clean4194/5244'e kuruldu.13normal-auth kontrolü, mevcut Semih normal tarayıcı girişi/ürün tamreload ve53SQLkoruma özeti geçti; native/CRM/diğer18listener korundu. AndroidAPK pasif; CRM2c kurulmadı, clean CRMrenewal/eş-kişi/koli/gerçek cihaz ve insan sonucu BEKLİYOR. B5 gerçek9kişi bağı tahmin edilmedi; A5/C6önkontrol/Dmodel alt teslimleri korunur. Tamamlama sayaçları değişmedi. [STATUS](STATUS.md).
+
+### Önceki E1 kaynak teslimi — korundu
+
 ## 24 Ekim — E1 mevcut normal refresh motoru kaynak/test hazır; B5 sunum gerçekten kurulu
 
 Clean exact kaynak/API/state yolu ve mevcut10kimlik/rol+FP ile normal refresh uyarlaması18hedef testle hazır; yeni hesap/rol/endpoint/bypass yok. Henüz ERPweb/API'ye kurulmadı, state ACL ve normal kalıcılık sonucu bekliyor. Native pasif APK imza/lint/build ile üretildi; cihazda çalışır teslim değil. B5CRM635 dar sunumu04:19TR gerçekten kuruldu/normalyenileme geçti;16listener/rehber/53SQLaynı. CRM E1source2c bu kurulumda yok. B5 gerçek kişi bağı, E1 aynı kişi/koli/cihaz ve insan kabulü açık. C6metadata/A5rehber ve Dmodel sonuçları ayrı korunur. [STATUS](STATUS.md).

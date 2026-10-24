@@ -1,3 +1,9 @@
+## 24 Ekim — E1 normal sunucu oturumu teknik alt kapsamı TEST'te doğrulandı
+
+ERP8aa web/API kurulu;13gerçek normal-auth kontrolü, Semih normalgiriş/ürün tamreload ve53SQLkoruma özeti geçti. Bu Android yenidenaçılış/ERP-CRM aynı kişi/koli/insan kabulü değildir. PasifAPK kurulmadı, E1 tam kapsamı ve B5 gerçek9kişi bağı açık.49ERP/25CRM ve17/74 özgün sayaç aynı. A5gerçekrehber/C6önkontrol/Dsafmodel önceki alt kanıtları korunur. [STATUS](STATUS.md).
+
+### Önceki D1/D2 kaynak teslimi — korundu
+
 ## 24 Ekim — D1/D2 kaynak modeli alt kapsamı; gerçek geçmiş ayrı
 
 Mevcut arşiv core'un legacy belge/satır dönüşümü ve açık manifest kapsamı7hedef testle hazır.2020+ dönemi source metadata ile ele alınabilir; API/service/UI varsayılanı2026 olarak korunur. Gerçek arşiv metadata/kolon/ilişki ve yükleyici makbuzu yok; veri aktarılmadı, D tam kapsamı kapanmadı. E1/C6/A5 alt teslimleri ve B5 kimlik boşluğu ayrı, insan/özgün49/25/17/74 aynı. [STATUS](STATUS.md).
