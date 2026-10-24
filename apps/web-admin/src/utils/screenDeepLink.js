@@ -43,10 +43,15 @@ export function readScreenDeepLink(search, screenRegistry, allowedScreenIds = nu
   if (screenId === 'vega-history') {
     const company = params.get('historyCompany');
     const partySourceId = params.get('historyParty');
-    if (params.getAll('historyCompany').length > 1 || params.getAll('historyParty').length > 1) return null;
+    const sourceDatabase = params.get('historyDatabase');
+    const period = params.get('historyPeriod');
+    if (['historyCompany', 'historyParty', 'historyDatabase', 'historyPeriod'].some(key => params.getAll(key).length > 1)) return null;
     if (company !== null && !['F0102', 'F0103'].includes(company)) return null;
     if (partySourceId !== null && (!company || !/^[1-9]\d{0,18}$/.test(partySourceId))) return null;
-    return { screenId, payload: { ...(company ? { company } : {}), ...(partySourceId ? { partySourceId } : {}) } };
+    if ((sourceDatabase !== null || period !== null) && (!/^VEGA20\d{2}$/.test(sourceDatabase || '') || !/^D\d{4}$/.test(period || ''))) return null;
+    // This preserves identity only. The reader still requires a registered
+    // manifest scope; a well-formed URL cannot authorize a new period.
+    return { screenId, payload: { ...(company ? { company } : {}), ...(partySourceId ? { partySourceId } : {}), ...(sourceDatabase ? { sourceDatabase, period } : {}) } };
   }
   if (recordKey && params.has(recordKey)) {
     const id = validRecordId(params.get(recordKey));
@@ -132,6 +137,12 @@ export function buildScreenDeepLink(search, screenId, payload = {}) {
   recordKeys.forEach((key) => params.delete(key));
   params.delete('historyCompany');
   params.delete('historyParty');
+  params.delete('historyDatabase');
+  params.delete('historyPeriod');
+  if (screenId === 'vega-history' && (payload.sourceDatabase !== undefined || payload.period !== undefined)) {
+    params.set('historyDatabase', String(payload.sourceDatabase ?? ''));
+    params.set('historyPeriod', String(payload.period ?? ''));
+  }
   if (screenId === 'vega-history' && ['F0102', 'F0103'].includes(payload.company)) {
     params.set('historyCompany', payload.company);
     if (/^[1-9]\d{0,18}$/.test(String(payload.partySourceId || ''))) params.set('historyParty', String(payload.partySourceId));
