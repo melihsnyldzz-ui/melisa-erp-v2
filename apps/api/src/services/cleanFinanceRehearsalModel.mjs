@@ -2,6 +2,7 @@
 // alternate database, login, currency inference or general write capability.
 import {createHash} from 'node:crypto';
 import {assertRegisteredCleanContext,isCleanAdministrator} from './cleanSyntheticContext.mjs';
+import {isCleanPersonalWorkCandidate} from './cleanPersonnelManagement.mjs';
 export const CLEAN_FINANCE_REHEARSAL=Object.freeze({id:'B4-TRY-20261023',date:'2026-10-22',customerId:'2',supplierId:'2',accountId:'2',invoiceId:'2',purchaseInvoiceId:'5',customerOpeningExact4:'251.0000',supplierOpeningExact4:'200.0000',currency:'TRY'});
 // Explicit synthetic inputs, never current exchange rates or Vega balances.
 // The native FX cohort must separately prove these exact identities before use.
@@ -25,7 +26,7 @@ export function financeCashRehearsalBinding(input){
  assertRegisteredCleanContext();
  const permission={cash_open:['finance.collection','finance.payment'],cash_close:['finance.collection','finance.payment'],cash_transfer:['finance.payment'],cash_expense:['finance.payment']}[input?.operation];
  const actor=input?.actor,normal=String(actor?.id)==='20'&&actor.username==='ornek-finans'&&String(actor.role?.id)==='25'&&actor.role?.code==='clean_test_finance';
- if(!cleanFinanceRehearsalEnabled()||process.env.MELISA_CLEAN_FINANCE_CASH!=='20261023'||process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_FINANCE!=='20261022'||!permission||(!normal&&!isCleanAdministrator(actor))||actor?.isAdmin===true||actor?.testAdminSession===true||!Array.isArray(actor?.permissions)||!permission.some(p=>actor.permissions.includes(p))||!input.transaction||!input.pool||!input.sqlDriver||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.requestId??'')||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))throw financeRehearsalError();
+ if(!cleanFinanceRehearsalEnabled()||process.env.MELISA_CLEAN_FINANCE_CASH!=='20261023'||process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_FINANCE!=='20261022'||!permission||(!normal&&!isCleanAdministrator(actor)&&!isCleanPersonalWorkCandidate(actor,'cash'))||actor?.isAdmin===true||actor?.testAdminSession===true||!Array.isArray(actor?.permissions)||!permission.some(p=>actor.permissions.includes(p))||!input.transaction||!input.pool||!input.sqlDriver||typeof input.payloadJson!=='string'||input.payloadJson.length>16000||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(input.requestId??'')||!/^[a-f0-9]{64}$/.test(input.payloadHash??''))throw financeRehearsalError();
  let p;try{p=JSON.parse(input.payloadJson);}catch{throw financeRehearsalError();}
  const keys=(v,list)=>v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).length===list.length&&Object.keys(v).every(k=>list.includes(k));
  const money=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&v<=10000&&Math.abs(v*10000-Math.round(v*10000))<0.000001;
@@ -47,7 +48,7 @@ export function assertFinanceRehearsalActor(actor,operation){
  assertRegisteredCleanContext();
  const normalFinance=String(actor?.id)==='20'&&actor.username==='ornek-finans'&&String(actor.role?.id)==='25'&&actor.role?.code==='clean_test_finance';
  const checker=String(actor?.id)==='23'&&actor.username==='ornek-finans-kontrol'&&String(actor.role?.id)==='29'&&actor.role?.code==='clean_test_finance_checker';
- const allowed=Object.hasOwn(CLEAN_FINANCE_REHEARSAL_PERMISSIONS,operation)&&(isCleanAdministrator(actor)||(operation.endsWith('_cancel')?checker:normalFinance));
+ const allowed=Object.hasOwn(CLEAN_FINANCE_REHEARSAL_PERMISSIONS,operation)&&(isCleanAdministrator(actor)||isCleanPersonalWorkCandidate(actor,operation)||(operation.endsWith('_cancel')?checker:normalFinance));
  if(!cleanFinanceRehearsalEnabled()||process.env.API_PORT!=='4194'||process.env.MELISA_CLEAN_FINANCE!=='20261022'||!allowed||actor.isAdmin===true||actor.testAdminSession===true||!Array.isArray(actor.permissions)||!actor.permissions.includes(CLEAN_FINANCE_REHEARSAL_PERMISSIONS[operation]))throw financeRehearsalError();
  return actor;
 }
