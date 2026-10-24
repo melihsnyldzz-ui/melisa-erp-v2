@@ -7,7 +7,7 @@ import {cleanFinanceRehearsalEnabled,assertFinanceRehearsalActor,cleanFinanceCas
 import {canonical,countDto,reject,inboundError} from './workInboundModel.mjs';
 import {normalizeTestBatch,normalizeTestInvoiceDraft} from './testPurchaseBatchModel.mjs';
 import {workInboundSupplierMovement} from './workInboundStore.mjs';
-import {workHash,workScaled,workExact,workFail} from './workSalesModel.mjs';
+import {workHash,workScaled,workExact,workFail,workId,workDate} from './workSalesModel.mjs';
 import {assertCleanCollectionSource} from './cleanStoreDayCollectionPreparation.mjs';
 import {purchaseSourcesFromRows} from './testDailyReturnSources.mjs';
 import {projectPersonnelDailyResponse} from './personnelDailyProjection.mjs';
@@ -273,8 +273,33 @@ async function attachCleanFinanceRehearsal(c,{actor,write,req,q,tx,pool,finance}
  if(fx){c.context.rates.push({id:profile.fxFixtureId,currency:profile.currency,rateToTryExact8:profile.rateExact8,date:profile.date,source:'explicit-synthetic-B4-input',caseId:profile.id});c.context.meta.financeFxCases=[...(c.context.meta.financeFxCases??[]),profile.id];}
  c.context.revision=workHash({suppliers:c.context.suppliers,accounts:c.context.accounts,rates:c.context.rates,payments:c.context.payments});
  c.collection=async id=>{
-  const found=(await req().input('id',q.BigInt,id).query(`SELECT CONVERT(varchar(20),m.id) id,CONVERT(varchar(20),m.created_by) createdBy,N'${profile.invoiceId}' invoiceId,N'${profile.accountId}' accountId,CONVERT(varchar(40),m.amount) amountExact4,m.currency_code currency,CONVERT(char(10),m.document_date,23) documentDate,CASE WHEN EXISTS(SELECT 1 FROM dbo.work_collection_links x WHERE x.original_id=m.id) THEN N'cancelled' ELSE N'active' END status,CONVERT(varchar(19),m.created_at,120) createdAt FROM dbo.work_collection_links l JOIN dbo.customer_movements m ON m.id=l.movement_id JOIN dbo.finance_account_movements f ON f.party_movement_id=m.id AND f.party_type=N'customer' AND f.source_type=N'collection' AND f.account_id=${profile.accountId} WHERE m.id=@id AND m.customer_id=${profile.customerId} AND l.invoice_id=${profile.invoiceId} AND l.original_id IS NULL AND m.movement_type=N'collection'`)).recordset;
-  if(!found.length)return legacy.collection(id);if(found.length!==1)throw inboundError();return {...found[0],revision:workHash(found[0])};
+  const found=(await req().input('id',q.BigInt,id).query(`SELECT CONVERT(varchar(20),m.id) id,CONVERT(varchar(20),m.created_by) createdBy,N'${profile.invoiceId}' invoiceId,N'${profile.accountId}' accountId,CONVERT(varchar(40),m.amount) amountExact4,m.currency_code currency,CONVERT(char(10),m.document_date,23) documentDate,CASE WHEN links.reversalLinkCount=0 THEN N'active' ELSE N'cancelled' END status,CONVERT(varchar(19),m.created_at,120) createdAt,
+   CONVERT(varchar(20),links.reversalLinkCount) reversalLinkCount,
+   CONVERT(varchar(20),rev.id) reversalId,CONVERT(varchar(20),rev.accountId) reversalAccountId,CONVERT(varchar(40),rev.amount) reversalAmountExact4,rev.currency reversalCurrency,CONVERT(char(10),rev.documentDate,23) reversalDocumentDate,CONVERT(varchar(19),rev.createdAt,120) reversalCreatedAt,
+   CONVERT(varchar(20),rev.invoiceId) reversalInvoiceId,CONVERT(varchar(20),rev.customerId) reversalCustomerId,CONVERT(varchar(20),rev.sourceId) reversalSourceId,rev.movementType reversalMovementType,rev.direction reversalDirection,CONVERT(varchar(20),rev.salesInvoiceId) reversalSalesInvoiceId,
+   CONVERT(varchar(40),rev.financeAmount) reversalFinanceAmountExact4,rev.financeCurrency reversalFinanceCurrency,CONVERT(char(10),rev.financeDate,23) reversalFinanceDocumentDate
+   FROM dbo.work_collection_links l JOIN dbo.customer_movements m ON m.id=l.movement_id JOIN dbo.finance_account_movements f ON f.party_movement_id=m.id AND f.party_type=N'customer' AND f.source_type=N'collection' AND f.account_id=${profile.accountId}
+   OUTER APPLY(SELECT COUNT_BIG(*) reversalLinkCount FROM dbo.work_collection_links x WHERE x.original_id=m.id) links
+   OUTER APPLY(SELECT r.id,rf.account_id accountId,r.amount,r.currency_code currency,r.document_date documentDate,r.created_at createdAt,rl.invoice_id invoiceId,r.customer_id customerId,rl.original_id sourceId,r.movement_type movementType,rf.direction,r.sales_invoice_id salesInvoiceId,rf.amount financeAmount,rf.currency_code financeCurrency,rf.document_date financeDate
+    FROM dbo.work_collection_links rl LEFT JOIN dbo.customer_movements r ON r.id=rl.movement_id LEFT JOIN dbo.finance_account_movements rf ON rf.party_movement_id=r.id AND rf.party_type=N'customer' AND rf.source_type=N'collection_cancel' WHERE rl.original_id=m.id) rev
+   WHERE m.id=@id AND m.customer_id=${profile.customerId} AND l.invoice_id=${profile.invoiceId} AND l.original_id IS NULL AND m.movement_type=N'collection'`)).recordset;
+  if(!found.length)return legacy.collection(id);if(found.length!==1)throw inboundError();
+  // Do not select TOP(1) or filter away malformed reversal links. Missing,
+  // duplicate or foreign evidence must fail in this same guarded transaction.
+  const {reversalLinkCount,reversalId,reversalAccountId,reversalAmountExact4,reversalCurrency,reversalDocumentDate,reversalCreatedAt,reversalInvoiceId,reversalCustomerId,reversalSourceId,reversalMovementType,reversalDirection,reversalSalesInvoiceId,reversalFinanceAmountExact4,reversalFinanceCurrency,reversalFinanceDocumentDate,...value}=found[0];
+  const reversal={reversalId,reversalAccountId,reversalAmountExact4,reversalCurrency,reversalDocumentDate,reversalCreatedAt};
+  try{
+   workId(value.id);workDate(value.documentDate);if(value.id!==id||value.invoiceId!==profile.invoiceId||value.accountId!==profile.accountId||value.currency!==profile.currency||value.documentDate!==profile.date||workScaled(value.amountExact4,4)<=0n)throw inboundError();
+   if(reversalLinkCount==='0'){
+    if(value.status!=='active'||[...Object.values(reversal),reversalInvoiceId,reversalCustomerId,reversalSourceId,reversalMovementType,reversalDirection,reversalSalesInvoiceId,reversalFinanceAmountExact4,reversalFinanceCurrency,reversalFinanceDocumentDate].some(v=>v!==null))throw inboundError();
+    // Keep the original active DTO and revision; null proof columns stay private.
+    return {...value,revision:workHash(value)};
+   }
+   workId(reversalId);workId(reversalAccountId);workDate(reversalDocumentDate);
+   if(reversalLinkCount!=='1'||value.status!=='cancelled'||reversalId===value.id||reversalSourceId!==value.id||reversalInvoiceId!==profile.invoiceId||reversalSalesInvoiceId!==profile.invoiceId||reversalCustomerId!==profile.customerId||reversalMovementType!=='collection_cancel'||reversalDirection!=='out'||reversalAccountId!==value.accountId||reversalAmountExact4!==value.amountExact4||reversalCurrency!==value.currency||reversalDocumentDate!==profile.date||reversalFinanceAmountExact4!==reversalAmountExact4||reversalFinanceCurrency!==reversalCurrency||reversalFinanceDocumentDate!==reversalDocumentDate||typeof reversalCreatedAt!=='string'||!/^\d{4}-\d{2}-\d{2} (?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/.test(reversalCreatedAt))throw inboundError();
+   workDate(reversalCreatedAt.slice(0,10));
+  }catch{throw inboundError();}
+  const result={...value,...reversal};return {...result,revision:workHash(result)};
  };
  c.invoice=async id=>{
   if(id!==profile.invoiceId){c.context.scope.customer=legacy.customer;c.context.scope.accounts=legacy.accounts;c.context.capabilities.canCancelCollection=false;return legacy.invoice(id);}

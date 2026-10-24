@@ -2978,7 +2978,102 @@
     },
     "firstElapsed236msNotUsed": true,
     "humanAcceptance": "PENDING",
-    "fullB5Completed": false
+    "fullB5Completed": false,
+    "offlineReversalReader": {
+      "taskId": "ERP-B5-REVERSAL-READ-OFFLINE-20261024-2327",
+      "baseCommit": "f0e8f86b18c4486921aba3c3dd93b9d37f1b809f",
+      "sourceFiles": {
+        "apps/api/src/services/cleanStoreDayStore.mjs": "22CF15BCE581DDDA65ED8B3CA331D9F85C00BC083F4E6C566404C9EC5349EBEA",
+        "apps/api/src/services/cleanStoreDayStore.test.mjs": "562EB1AB6B5B54D57C46BC09A73C877462BCEB5208A3366987CA0F4E7E273195"
+      },
+      "scope": "Only the current clean B4 collection reader and its offline tests",
+      "regression": {
+        "beforeFixFailingCurrencyCases": [
+          "TRY",
+          "USD",
+          "EUR"
+        ],
+        "missingField": "reversalId",
+        "actualBefore": "undefined"
+      },
+      "targetedTests": {
+        "pass": 87,
+        "fail": 0,
+        "guard": "scripts/ci/offline-guard.cjs",
+        "files": [
+          "apps/api/src/services/cleanStoreDayStore.test.mjs",
+          "apps/api/src/services/cleanStoreDayReady.test.mjs",
+          "apps/api/src/services/cleanStoreDayScope.test.mjs",
+          "apps/api/src/services/workSalesService.test.mjs"
+        ],
+        "fixture": "Injected Request/Transaction from the existing clean readiness fixture with finite B4 synthetic native-row projections; no SQL engine or connection"
+      },
+      "review": {
+        "verdict": "GO",
+        "p1": 0,
+        "p2": 0,
+        "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+        "scope": "Independent read-only source review and narrow date-proof follow-up; no tests or runtime operations by reviewer",
+        "files": {
+          "apps/api/src/services/cleanStoreDayStore.mjs": "22CF15BCE581DDDA65ED8B3CA331D9F85C00BC083F4E6C566404C9EC5349EBEA",
+          "apps/api/src/services/cleanStoreDayStore.test.mjs": "562EB1AB6B5B54D57C46BC09A73C877462BCEB5208A3366987CA0F4E7E273195"
+        },
+        "previousNoGoPreserved": true,
+        "originalAndReversalDocumentDatesPinnedToProfile": true,
+        "actualCreatedAtDayNotForced": true,
+        "installationOrHumanAcceptance": false
+      },
+      "initialReview": {
+        "verdict": "NO-GO",
+        "p1": 0,
+        "p2": 1,
+        "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+        "finding": "Matching valid but foreign document dates were not pinned to the finite profile.date",
+        "sourceSha256": "A065FF4C565900780CB2B8B2294879B197529F15BAE8183BF3BC215C5F130578",
+        "testSha256": "ED1A9BEC457242F40AF2AD34B93AB542249C01BD346D174C07140C534C35A57A",
+        "remediation": "Two meaningful date rejection regressions first failed; source pins original and reversal document dates, preserves actual creation timestamp"
+      },
+      "reviewRemediationRegressions": {
+        "wrongMatchingDocumentDayFailuresBeforeFix": 2,
+        "createdAtNotPinned": true
+      },
+      "fieldsAdded": [
+        "reversalId",
+        "reversalAccountId",
+        "reversalAmountExact4",
+        "reversalCurrency",
+        "reversalDocumentDate",
+        "reversalCreatedAt"
+      ],
+      "rejects": [
+        "duplicate or orphan links",
+        "wrong invoice, customer or original collection",
+        "wrong account, amount, currency or direction",
+        "missing or inconsistent source and finance dates"
+      ],
+      "activeDtoAndRevisionUnchanged": true,
+      "exactFourDecimalAmountsPreserved": true,
+      "privateProofColumnsRemoved": true,
+      "originalGuardsAndWritersUnchanged": true,
+      "ci": {
+        "evidence": "Matching final delivery commit checks on existing PR54 and existing common GitHub report",
+        "localTestsAreNotCI": true
+      },
+      "delivery": {
+        "applicationSourcePrepared": true,
+        "sqlExecuted": false,
+        "nativeDatabaseTested": false,
+        "passivePackageCreated": false,
+        "installed": false,
+        "restarted": false,
+        "guiTested": false,
+        "humanAcceptance": "PENDING",
+        "multiCustomerClientChanged": false,
+        "accountsOrRolesChanged": false,
+        "fullB5Closed": false,
+        "countersUnchanged": true
+      }
+    }
   },
   "sixPersonalContextReview": {
     "directNewContext": {
