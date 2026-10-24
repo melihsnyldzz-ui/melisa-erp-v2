@@ -202,7 +202,6 @@
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
     "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
     "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
-    "crmSourceUnchanged": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
     "changedPorts": [
       4194
     ],
@@ -214,7 +213,9 @@
     "nativePackingMetadataManifestDigest": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
     "nativePackingFieldDefault": false,
     "previousApplicationSource": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
-    "serverLogicBaselineCommit": "b9dd984876c808482017365556538078601187b8"
+    "serverLogicBaselineCommit": "b9dd984876c808482017365556538078601187b8",
+    "crmObservation": "ERP unchanged at b9; CRM updated separately in personalCrmNormalUsage installation",
+    "crmSourceCommit": "1ab47029d54cc6aa341b29328de29ea690e6d4f1"
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -954,7 +955,7 @@
           "id": 40117374276
         }
       ],
-      "observedAt": "2026-10-24T17:50:13.2863920Z"
+      "observedAt": "2026-10-24T17:50:13.286392Z"
     },
     "currentInstalledSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
     "applicationSourceUnchangedFrom": "747840db065972963b3a1c1f9cc426e030af8df9",
@@ -1110,7 +1111,7 @@
       "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
       "synthetic": true,
       "actualT1": false,
-      "installedAt": "2026-10-24T21:54:01.4230900+03:00"
+      "installedAt": "2026-10-24T21:54:01.42309+03:00"
     },
     "ci": [
       {
@@ -1172,7 +1173,7 @@
       "humanAcceptance": "PENDING",
       "screenshot": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-clean-carton-normal-denied-reload.png",
       "screenshotSha256": "67be5a852fd9e6ddbee342731601b55d4c12834c9a420c4cebe0fe5a77eadce2",
-      "observedAt": "2026-10-24T19:00:02.230Z"
+      "observedAt": "2026-10-24T19:00:02.23Z"
     },
     "targetedControlsPassed": 16,
     "legacyClientControlsPassed": 3,
@@ -1412,5 +1413,158 @@
     "newSyntheticSaleFixtures": 1,
     "actualRealPeopleIdentityBindingsCompleted": 0,
     "nextSingleTechnicalAction": "Remaining original B5 personal account/task/CRM bindings and independent normal usage; accepted carton proof not repeated"
+  },
+  "personalCrmNormalUsage": {
+    "status": "INSTALLED_NORMAL_PERSON_AND_INDEPENDENT_MANAGER_READ_VERIFIED_LINK_PENDING_APPROVAL",
+    "observedAt": "2026-10-24T23:26:34.574868+03:00",
+    "package": {
+      "source": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261024-1ab47029d54c-B5PERSONAL-NODE24",
+      "files": 803,
+      "manifestSha": "4EBF63D14C65A6F1C0B5BDA8F50F26D2EA52FB42033E84EDBAD8D1CA70B1BE57",
+      "node": {
+        "version": "v24.19.0",
+        "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "path": "C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe"
+      },
+      "mainPath": "/assets/index-CkcbNSPr.js",
+      "mainSha": "6ad0d9795c79807b66c82995ba6cc4ab75f376ffa388fe0ee8ca3fb47396c817",
+      "buildMs": 31006,
+      "profile": "clean-synthetic-20261022",
+      "offlineBuild": true,
+      "existingLockAndDependenciesReused": true,
+      "passiveManifestUnchanged": true,
+      "ci": "REUSE coordinator-verified exact 1ab47029 seven SUCCESS; source unchanged",
+      "installed": false
+    },
+    "installation": {
+      "status": "INSTALLED",
+      "source": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "frontendSource": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "backendSource": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261024-1ab47029d54c-B5PERSONAL-NODE24",
+      "manifestSha": "4EBF63D14C65A6F1C0B5BDA8F50F26D2EA52FB42033E84EDBAD8D1CA70B1BE57",
+      "files": 803,
+      "changedPorts": [
+        62800,
+        62801,
+        62802,
+        62803
+      ],
+      "preservedListeners": 16,
+      "erpSource": "b9dd984876c808482017365556538078601187b8",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "dataSummariesUnchanged": 53,
+      "installedAt": "2026-10-24T23:15:43.5925023+03:00"
+    },
+    "readback": {
+      "personRole": "personel",
+      "baselineFourAndOldClosedPreserved": true,
+      "observedAt": "2026-10-24T23:20:32.0446698+03:00",
+      "managerPresent": true,
+      "mutations": "Own protected delivery metadata only; no CRM store edit",
+      "inventoryAccounts": 7,
+      "personId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+      "revision": 5,
+      "managerId": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f",
+      "source": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "personAgent": 1002
+    },
+    "normalGui": {
+      "personFullReloadSameIdentity": true,
+      "managerInventoryAccounts": 7,
+      "commercialWrites": 0,
+      "personManagementInventoryAbsent": true,
+      "managerFullReloadSameIdentity": true,
+      "managerRole": "mudur",
+      "managerThreeSyntheticConversations": true,
+      "personUnassignedInboxCount": 0,
+      "realMessagesSent": 0,
+      "createSubmittedFromNormalForm": 2,
+      "managerNotPatron": true,
+      "personRole": "personel"
+    },
+    "completedPackingReopened": false,
+    "personErpIdentity": {
+      "roleId": 30,
+      "employeeId": 2,
+      "userId": 10022
+    },
+    "erpPersonalRelationsPublished": 0,
+    "erpOrNativeRestart": 0,
+    "managerAccountSpecificUserApproval": true,
+    "pendingApproval": [
+      "Assign only synthetic conversation156 to person-agent1002",
+      "Create separate synthetic ERP role31 manager and own employee",
+      "Publish two exact personal ERP-CRM relations in protected existing config",
+      "One same-source4194 API restart required to load static relations"
+    ],
+    "humanAcceptance": "PENDING",
+    "b5Completed": false,
+    "sourceTestsAndCiRepeated": false,
+    "privateRosterTransferred": false,
+    "preservation": {
+      "oldPackingJournalProtected": true,
+      "normalGuiAuthJournalExpectedToChange": true,
+      "erpRelationConfigUnchanged": true,
+      "observedAt": "2026-10-24T23:27:11.1282417+03:00",
+      "erpApiRestarted": false,
+      "status": "CRM_INSTALL_AND_TWO_NORMAL_GUI_CREATES_ERP_DATA_PRESERVED",
+      "sqlScopes": {
+        "all-current-contributions": true,
+        "personnel": true,
+        "own-fixture": true
+      },
+      "protectedSessionFilesPreservedAtInstall": true,
+      "managedCrmStoreExpectedTwoNewAccounts": true,
+      "wholeDatabaseClaimed": false
+    },
+    "managerAccountSpecificApproval": "Direct human reply: Bu belirli sentetik TEST Müdür hesabını oluşturmayı onaylıyorum",
+    "assignmentAutoReviewRejected": true,
+    "assignmentPerformed": false,
+    "combinedRemainingApproval": "PENDING",
+    "normalPersonReadBoundary": {
+      "status": "NEW_PERSONAL_ROLE_READ_BOUNDARY_VERIFIED_BEFORE_ASSIGNMENT",
+      "cases": [
+        {
+          "path": "/auth/login",
+          "status": 200
+        },
+        {
+          "path": "/crm/inbox",
+          "status": 200
+        },
+        {
+          "path": "/crm/users",
+          "status": 403
+        },
+        {
+          "path": "/crm/conversations/55",
+          "status": 403
+        },
+        {
+          "path": "/crm/conversations/156",
+          "status": 403
+        }
+      ],
+      "helperLogout": "NOT_CONFIRMED; helper combined Authorization and refresh body; no source guard change or workaround"
+    },
+    "screenshots": [
+      {
+        "privateLocalPath": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-personal-crm-manager-normal.png"
+      },
+      {
+        "privateLocalPath": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-personal-crm-manager-identity.png"
+      },
+      {
+        "privateLocalPath": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-personal-crm-person-identity.png"
+      }
+    ],
+    "personCrmIdentity": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+    "managerCrmIdentity": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f"
   }
 }

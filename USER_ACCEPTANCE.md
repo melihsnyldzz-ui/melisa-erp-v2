@@ -1,3 +1,7 @@
+## 24 Ekim23:27 — B5 kişisel CRM Personel ve bağımsız Müdür normal okuması kurulu; atama/ERP bağı onay bekliyor
+
+İki ayrı sentetik kişisel CRM hesabı normal formdan oluşturuldu; gerçek mudur rolü ve Personel normal giriş/tamreload/okuma ekranları **Ajan doğruladı**. Atama ve kişisel ERPbağı henüz yapılmadı; ilgili teknik sonuç açık. Bu gerçek personel, native Android veya insan UX PASS değildir. E2/özgün UA ID/kişi/tarih/sonuç/sayaçlar BEKLİYOR ve aynı; insan UX yeni bir B5 teknik önkoşulu yapılmadı. [Teknik durum](STATUS.md).
+
 ## 24 Ekim 23:05 — B5 kişisel iki koli normal kullanımını ajan doğruladı; insan kabulü bekliyor
 
 Kişisel sentetik görev temsilcisi kendi normal ekranında fiş10010'u iki koliye1+1ADET ayırıp bir kez kaydetti; tamreload aynı kimlik/READY iki koli ve1journal isteğiyle geri okundu. Bağımsız kaynak/personel/fiş-etki özetleri aynı; packing ek stok/cari etkisi0. Bu yalnız **Ajan doğruladı** kaydıdır. Gerçek kişi hesabı, fiziksel Android, uzun oturum yenileme veya insan UX PASS değildir. Özgün UA ID/sonuç/kişi/tarih/sayaçlar değişmedi; E2/ilgili insan kabulü **BEKLİYOR**. [Teknik kanıt](docs/evidence/erp/2026-10-24-b5-normal-access.json).

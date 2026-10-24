@@ -1,3 +1,13 @@
+## 24 Ekim23:27 — B5 kişisel CRM Personel ve bağımsız Müdür normal okuması kurulu; atama/ERP bağı onay bekliyor
+
+Mevcut normal CRM Ayarlar→hesap envanteri→Yeni TEST hesabı→Hesabı kaydet yolu gerçekten iki kez gönderildi. Ayrı kişisel sentetik Personel/temsilci1002 ve kullanıcı tarafından özel olarak onaylanan gerçek mudur rolünde bağımsız Müdür/temsilci1003 oluşturuldu. Müdür adına Patron hesabı kullanılmadı. Her biri ayrı normal tarayıcı sekmesinden kendi korumalı teslimiyle giriş yaptı; tamreload sonrası aynı kimlik kaldı. Müdür üç yapay görüşmeyi ve7hesaplık yönetim envanterini okudu; Personel henüz atanmamışken0görüşme gördü, normal Ayarlar ekranında yönetim envanteri yok. Bu **Ajan doğruladı** sonucudur; atanmış görüşme/handoff/gerçek kişi veya insan UX kabulü değildir.
+
+CRM1ab/803dosya/4EBF63D1 gerçek kurulu; Node24.19 fixed profil offline build, kaynakCI7SUCCESS REUSE. ERP/native/SQL ve önceki kişisel koli korunmuş; yeni hesaplar normal GUI ile oluştu.
+
+**Somut kalan/onay:** İlk yeni Müdür hesabı gönderimi otomatik incelemece özel hesap/rol onayı eksik diye reddedildi; hiçbir yan yol denenmedi. Kullanıcının açık özel yanıtı geldikten sonra aynı normal form bir kez başarıyla gönderildi. Sonraki TEST156→Personel1002 ataması ayrı kalıcı işlem olarak reddedildi ve uygulanmadı. Gereken dört işlem tek doğrudan soruda toplandı: yalnız156ataması; ayrı sentetik ERP31yönetici/personel kartı; iki exact ERP–CRM kişisel bağ; mevcut ilişki kaynağı yalnız process.env başlangıcında okunduğundan aynı b9 sürümü4194için tek dar restart. Bu birleşik yanıt henüz yok: yeniERPhesap0/ilişkiyayını0/ERPrestart0. Atama API veya başka hesapla tekrarlanmadı. Normal linked-CRM/atanmış Personel/bağlı çıkış henüz kanıtlanmış değil. B5 teknik kapsamı bu somut halkalar nedeniyle açık; insan UX ayrı E2 aşamasında BEKLİYOR, yeni teknik kapanış şartı yapılmadı. Önceki10021pasif testi/özel envanter mesajı onayları aynı;49/25/17/74 ve özgün UA sayaçları değişmedi. Yeni ajan/Goal/tracker/LIVE/Vega/T1/main yok.
+
+[Ayrıntılı kurulum ve koruma](STATUS.md).
+
 ## 24 Ekim 23:05 — B5 kişisel iki koli normal kullanımını ajan doğruladı; insan kabulü bekliyor
 
 Kişisel sentetik görev temsilcisi10022/personel2/rol30, kendi normal terminal oturumunda kendi fişi10010 üzerindeki sıfırlı barkodu0000000000007 elle girerek iki koliye1+1ADET yerleştirdi. Tek Kaydet sonrası tam sayfa yenilendi; aynı kişi ikinci girişsiz geri geldi, aynı fiş yeniden açıldığında gereken2.000/toplanan2.000/kalan0.000 ve READY iki koli korundu. Journal1belge/1istek; reload öncesi/sonrası SHA256 birebir aynı. **Ajan doğruladı**; gerçek Turgay kimliği veya insan UX kabulü değildir.
