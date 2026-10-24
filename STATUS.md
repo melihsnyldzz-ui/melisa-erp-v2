@@ -1,3 +1,9 @@
+## 24 Ekim 19:00 — B5 ek oturum kabulü çalıştırılmadı; spesifik onay bekliyor
+
+Tamamlanan kişisel sayım teslimi33215b84 ve çalışan55c2fc22/3.446dosya/1B0 paketi korunur; kodun altı CI sonucu geçerli, yeni build/kurulum yok. Sıradaki yalnız10021 hesabını geçici pasif→özgün aktif yaparak eski kendi oturumunun geri gelmediğini doğrulama komutu **CreateProcess başlamadan otomatik onay incelemesince reddedildi**: bu spesifik erişim değişikliği için doğrudan kullanıcı onayı bulunamadı. Hazır teknik prova çalıştırılmadı; credential decode/API login/PATCH/etkinlik/audit değişikliği0. Başka araç/ajan üzerinden yürütülmedi. Yalnız bu hesap ve bu sınır için tek açık kullanıcı onayı soruldu; cevap gelmeden uygulanmaz.
+
+Son salt okunur SQL19:00:10021 etkin/rol30/personel1; Sayım10006 submitted→Kabul4pending/deciderNULL; activeintent0. Sayım/tek etki/finans koruma kabulü geri açılmadı; pasif hesap testi PASS değildir. B5 geneli, gerçek9kişi/atama, uzun oturum, E1/E2/Windows ve insan kabulleri açık;49/25/17/74 aynı. Bu engel, bitmiş sayımın veya kurulu paketin başarısızlığı değildir.
+
 ## 24 Ekim 18:50 — B5 kişisel mal sayımı normal ekrandan kontrole gönderildi
 
 **Çalışan paket:** API/web source55c2fc22, CLEAN-ERP-20261022-55c2fc22e81f, klasör CLEAN-ERP-20261024-55c2fc22e81f-B5COUNT,3.446 dosya/manifest1B0AB236;18:29:53'te yalnız4194/5244 değişti. API iş kodu83e8 ile byte-identical, yalnız frontend sayım taşıma bağlantısı değişti. NativeHTTP035/4196, native modül8ee, sahiplik şeması794, CRMacb2 ve18 yakalanmış diğer dinleyici/korumalı oturum dosyaları aynı. Güncel source55 için PR40106637446/push40106632253 altı zorunlu CI SUCCESS. Metadata sahiplik paketi794/4dosya/156CA7D1 ayrıca18:08:38 kurulu; onun exact altı CI'si de geçti. Belge HEAD yeni uygulama değildir.

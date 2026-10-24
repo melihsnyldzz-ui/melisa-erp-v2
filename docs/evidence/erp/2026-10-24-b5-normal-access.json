@@ -626,5 +626,28 @@
       5005
     ],
     "rebenchmarkedAfterTransportPackage": false
+  },
+  "ownActivityLifecycle": {
+    "commercialActions": 0,
+    "employeeId": 1,
+    "credentialDecoded": false,
+    "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "receiptState": "pending",
+    "userId": 10021,
+    "originalActiveState": true,
+    "status": "NOT_EXECUTED_AUTO_REVIEW_BLOCKED",
+    "rolesChanged": 0,
+    "activityWrites": 0,
+    "countId": 10006,
+    "countState": "submitted",
+    "processCreated": false,
+    "currentActiveStateReadBack": true,
+    "receiptId": 4,
+    "observedAt": "2026-10-24T19:02:31.5318194+03:00",
+    "roleId": 30,
+    "reason": "Automatic approval review did not find specific human approval for temporary account suspension/reactivation",
+    "passwordsChanged": 0,
+    "humanAcceptance": "PENDING",
+    "approvalRequested": true
   }
 }
