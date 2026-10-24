@@ -5,8 +5,14 @@ import {CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
 export const normalTestFingerprint=Symbol('normal-test-session-fingerprint');
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const reject=()=>Object.assign(new Error('Session is invalid or revoked'),{code:'AUTH_REFRESH_INVALID',statusCode:401});
-export function bindNormalTestFingerprint(user,row){
- if(typeof row.password_hash==='string'&&row.password_hash)Object.defineProperty(user,normalTestFingerprint,{value:hash(JSON.stringify([String(user.id),user.username,user.role.id,user.role.code,[...user.permissions].sort(),row.password_hash]))});
+export function bindNormalTestFingerprint(user,row,personnelBinding){
+ if(typeof row.password_hash==='string'&&row.password_hash){
+  const identity=[String(user.id),user.username,user.role.id,user.role.code,[...user.permissions].sort(),row.password_hash];
+  // Existing actors retain their exact fingerprint. Personal accounts add the
+  // server-read row versions, so deactivate/re-enable cannot revive an old family.
+  if(personnelBinding!==undefined)identity.push(personnelBinding);
+  Object.defineProperty(user,normalTestFingerprint,{value:hash(JSON.stringify(identity))});
+ }
  return user;
 }
 export function createNormalTestRefreshStore({file,now=Date.now,random=()=>crypto.randomBytes(32).toString('base64url'),ttlMs=30*86400000}){

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {canManageCleanRecord,availablePersonnelAccounts,personnelLoginFields} from './personnelManagementModel.mjs';
 import {
   CheckCircle2,
   KeyRound,
@@ -55,7 +56,7 @@ function toForm(employee) {
     userId: employee?.userId ? String(employee.userId) : '',
     loginUsername: employee?.username || '',
     loginPassword: '',
-    canTerminalSale: true,
+    canTerminalSale: employee?.canTerminalSale !== false,
     canChangeSalePrice: Boolean(employee?.canChangeSalePrice),
     maxSaleDiscountPercent: Number(employee?.maxSaleDiscountPercent || 0),
     isActive: employee?.isActive !== false,
@@ -107,6 +108,10 @@ export function PersonnelDefinitionsScreen() {
       ].join(' ')).includes(term);
     });
   }, [overview.employees, search, statusFilter]);
+
+  const manageable=canManageCleanRecord(overview.cleanPersonnel,'employee',selectedId);
+  const linkableUsers=availablePersonnelAccounts(overview,selectedId);
+  const existingOnly=overview.cleanPersonnel?.existingAccountRequired===true;
 
   const activeCount = overview.employees.filter((employee) => employee.isActive).length;
   const terminalReadyCount = overview.employees.filter(
@@ -167,15 +172,17 @@ export function PersonnelDefinitionsScreen() {
   }
 
   async function saveEmployee() {
+    if(!manageable){setErrorMessage('Bu kayıt bu personel yönetimi kapsamında değiştirilemez.');return;}
+    if(existingOnly&&!form.userId){setErrorMessage('Kullanıcı Yönetimi ekranında açtığınız kişisel hesabı seçin.');return;}
     if (!form.employeeCode.trim() || !form.fullName.trim()) {
       setErrorMessage('Personel kodu ve ad soyad zorunludur.');
       return;
     }
-    if (!selectedId && !form.loginUsername.trim()) {
+    if (!selectedId && !form.userId && !form.loginUsername.trim()) {
       setErrorMessage('Terminal girişinde kullanılacak kullanıcı adını yazın.');
       return;
     }
-    if (!selectedId && form.loginPassword.length < 8) {
+    if (!selectedId && !form.userId && form.loginPassword.length < 8) {
       setErrorMessage('İlk şifre en az 8 karakter olmalıdır.');
       return;
     }
@@ -189,10 +196,8 @@ export function PersonnelDefinitionsScreen() {
         phone: form.phone.trim(),
         department: form.department.trim(),
         jobTitle: form.jobTitle.trim(),
-        userId: form.userId ? Number(form.userId) : null,
-        loginUsername: selectedId ? undefined : form.loginUsername.trim(),
-        loginPassword: selectedId ? undefined : form.loginPassword,
-        canTerminalSale: true,
+        ...personnelLoginFields({...form,selectedId}),
+        canTerminalSale: Boolean(form.canTerminalSale),
         canChangeSalePrice: Boolean(form.canChangeSalePrice),
         maxSaleDiscountPercent: Number(form.maxSaleDiscountPercent || 0),
         isActive: Boolean(form.isActive),
@@ -215,6 +220,7 @@ export function PersonnelDefinitionsScreen() {
   }
 
   async function changePassword() {
+    if(!manageable){setErrorMessage('Bu mevcut hesap bu adımda değiştirilemez.');return;}
     if (!selectedEmployee?.userId) {
       setErrorMessage('Bu personele bağlı bir giriş hesabı bulunmuyor.');
       return;
@@ -351,20 +357,29 @@ export function PersonnelDefinitionsScreen() {
             </div>
           </div>
 
+          {overview.cleanPersonnel&&!overview.cleanPersonnel.ready&&<p role="status">Kişisel hesap yönetimi henüz kurulmadı. Mevcut kayıtlar görüntülenebilir.</p>}
+          {selectedId&&!manageable&&<p role="status">Mevcut örnek personel korunur. Yeni kişi için ayrı bir hesap ve personel kartı oluşturun.</p>}
           <div className="personnel-form-section personnel-account-section">
             <div className="personnel-section-title"><span>2</span><div><strong>Terminal giriş hesabı</strong><small>Personel terminalde bu hesapla oturum açar</small></div></div>
+            {!selectedId&&<label><span>Mevcut kişisel hesap</span>
+              <select value={form.userId} onChange={event=>{const user=linkableUsers.find(u=>String(u.id)===event.target.value);setForm(current=>({...current,userId:event.target.value,loginUsername:user?.username||'',loginPassword:''}));}}>
+                <option value="">{existingOnly?'Kişisel hesabı seçin':'Yeni hesap oluştur veya mevcut hesabı seç'}</option>
+                {linkableUsers.map(user=><option key={user.id} value={user.id}>{user.displayName} (@{user.username}) — {user.roleName}</option>)}
+              </select>
+              {existingOnly&&<small>Önce Kullanıcı Yönetimi ekranında hesabı ve görev rolünü oluşturun. Örnek hesaplar başka personele atanmaz.</small>}
+            </label>}
             <div className="personnel-form-grid">
               <label>
                 <span>Kullanıcı adı *</span>
                 <input
                   value={form.loginUsername}
-                  disabled={Boolean(selectedId)}
+                  disabled={Boolean(selectedId)||Boolean(form.userId)||existingOnly}
                   onChange={(event) => setForm((current) => ({ ...current, loginUsername: event.target.value }))}
                   placeholder="Örn. ahmet"
                   autoComplete="off"
                 />
               </label>
-              {!selectedId ? (
+              {!selectedId&&!form.userId&&!existingOnly ? (
                 <label>
                   <span>İlk şifre *</span>
                   <input
@@ -378,7 +393,7 @@ export function PersonnelDefinitionsScreen() {
               ) : (
                 <div className="personnel-password-action">
                   <span>Şifre</span>
-                  <button type="button" onClick={() => setPasswordOpen((current) => !current)} disabled={!selectedEmployee?.userId}>
+                  <button type="button" onClick={() => setPasswordOpen((current) => !current)} disabled={!selectedEmployee?.userId||!manageable}>
                     <KeyRound size={15} /> {passwordOpen ? 'Şifre Alanını Kapat' : 'Şifre Değiştir'}
                   </button>
                 </div>
@@ -390,7 +405,7 @@ export function PersonnelDefinitionsScreen() {
                 <div><KeyRound size={18} /><span><strong>Yeni şifre belirleyin</strong><small>Değişiklikten sonra açık terminal oturumları güvenlik için kapatılır.</small></span></div>
                 <label><span>Yeni şifre</span><input type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="En az 8 karakter" autoComplete="new-password" /></label>
                 <label><span>Yeni şifre tekrar</span><input type="password" value={passwordRepeat} onChange={(event) => setPasswordRepeat(event.target.value)} placeholder="Şifreyi tekrar yazın" autoComplete="new-password" /></label>
-                <button type="button" className="primary" onClick={changePassword} disabled={passwordSaving}>
+                <button type="button" className="primary" onClick={changePassword} disabled={passwordSaving||!manageable}>
                   <KeyRound size={15} /> {passwordSaving ? 'Değiştiriliyor...' : 'Yeni Şifreyi Kaydet'}
                 </button>
               </div>
@@ -403,8 +418,8 @@ export function PersonnelDefinitionsScreen() {
           </div>
 
           <div className="personnel-form-footer">
-            <span>{selectedEmployee ? 'Değişiklikleri kaydetmeyi unutmayın.' : 'Kaydedildiğinde terminal hesabı otomatik oluşturulur.'}</span>
-            <button type="button" className="primary" onClick={saveEmployee} disabled={isSaving}>
+            <span>{selectedEmployee ? 'Değişiklikleri kaydetmeyi unutmayın.' : form.userId?'Seçilen hesap bu personelle eşleştirilir.':'Kaydedildiğinde terminal hesabı otomatik oluşturulur.'}</span>
+            <button type="button" className="primary" onClick={saveEmployee} disabled={isSaving||!manageable}>
               <Save size={16} /> {isSaving ? 'Kaydediliyor...' : selectedEmployee ? 'Değişiklikleri Kaydet' : 'Personeli Oluştur'}
             </button>
           </div>

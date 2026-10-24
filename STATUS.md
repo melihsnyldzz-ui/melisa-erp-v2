@@ -1,3 +1,10 @@
+## 24 Ekim — B5 birleşik ERP kaynak adayı
+
+PR58ed815, PR59095b8ce, PR60a209337 ve PR619aafb36 hazır kaynakları mevcut owner dalına çatışmasız alındı. Üç Sites yönetim ekranı/modeli gerçek paket yoluna bağlandı; mevcut normal kişisel issuer/fingerprint aynı metadata üyeliği ve taze SQL kimliğiyle çalışır. Eski E1 aile/10örnek/owner politikaları korunur. Oniki etkilenen test dosyasında55kontrol offlineguard ilePASS; API/normaloturum/Sites/SQLkaynak/kişiseliş ve E1route birlikte doğrulandı. Bu kaynak yeni exactCI/pasifpaket/kurulum kabulü değildir.
+
+PR59 birleşik görev tanımları, ilk yönetim SQL'inin rol predicate'lerini de değiştirdiği için yeni birleşimin rollbackprobası mevcut iki installer tek owner transaction'ında yürütülüyor; ed815'in tek başına kabulü sebepsiz tekrarlanmadı. Önceki ikiFAIL ve ed815PASS korundu. Source/paket/gerçekSQL/normalGUI/insan ayrı; kuruluERPf4/native035/CRM acb2 bu kaynak aşamasında aynı. Sıradaki: birleşimin gerekli native sonucu, exactCI ve paket→tekowner cleankurulum→normal yeni sentetikuser/employee/refresh/ownwork/retler, ardından kayıtlı kişisel görev uygulaması. LIVE/Vega/main/gerçekmüşteri/ticariişlem yok.
+
+### Önceki CRM kurulu teslim ve ERP proba kaydı — korundu
 ## 24 Ekim11:56 — CRM B5 gerçek kurulum/API/normal ekran tamam; ERP şema proba geçti
 
 **CRM gerçekten kurulu:** `acb2a3a0ce917d68221372e5f21bb788e90475aa`, CLEAN-CRM-20261024-acb2a3a0ce91-B5MGMT /787dosya /55FFBC1A70D9ADE3AA7C8270E445B07575FE3817F24BC3E591E2F14DAF197C92,24Ekim11:51:30TR. Sourceexact7CI/ownerROeşlemesi hazır. Yalnız62800–62803/3yakalanmışsüreç değişti; diğer16listener/ERPf4/native035/53SQLözeti/öncekinormaljournallar ve korumalı hesap/linkayarları korundu. İki açık, exactclean management ayarı yalnızCRMserverhook'unda; dışmesaj/AI/legacyatama guardları aynı. StoreyalnızprivateownerACL ile mevcut normalatomicwrite yolunda oluştu.
