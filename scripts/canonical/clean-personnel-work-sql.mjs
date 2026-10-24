@@ -153,3 +153,90 @@ export function buildCleanPersonnelWorkSql({probe=false}={}){
  ${probe?"ROLLBACK;SELECT N'B5_PERSONAL_WORK_METADATA_PROBE_ROLLED_BACK' result;":"COMMIT;SELECT N'B5_PERSONAL_WORK_METADATA_INSTALLED' result;"}
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
+
+// SQL Server rewrites COALESCE(subquery,fallback) into CASE and can evaluate
+// the subquery twice. Historical hash projections nest this thousands of times.
+// This finite repair changes only those string-hash expressions. The MAX cast
+// is essential: ISNULL otherwise adopts the first CHAR(64) width and could hide
+// an invalid overlength fallback. No result is cached and every guard still runs.
+export function rewriteCleanReadyHashFallbacks(source){
+ let replacements=0;
+ const quotedEnd=(sql,start)=>{
+  const quote=sql[start],end=quote==='['?']':quote;
+  for(let i=start+1;i<sql.length;i++)if(sql[i]===end){if(sql[i+1]===end){i++;continue;}return i+1;}
+  throw Error('Unbalanced SQL quote');
+ };
+ const skip=(sql,i)=>{
+  if(sql[i]==="'"||sql[i]==='['||sql[i]==='"')return quotedEnd(sql,i);
+  if(sql.startsWith('--',i)){const end=sql.indexOf('\n',i+2);return end<0?sql.length:end;}
+  if(sql.startsWith('/*',i)){const end=sql.indexOf('*/',i+2);if(end<0)throw Error('Unbalanced SQL comment');return end+2;}
+  return i;
+ };
+ const rewrite=sql=>{
+  let out='';
+  for(let i=0;i<sql.length;){
+   const skipped=skip(sql,i);if(skipped!==i){out+=sql.slice(i,skipped);i=skipped;continue;}
+   if(sql.slice(i,i+9).toUpperCase()!=='COALESCE('||i>0&&/[\w@]/.test(sql[i-1])){out+=sql[i++];continue;}
+   let depth=1,j=i+9,arg=j;const parts=[];
+   for(;j<sql.length;j++){
+    const end=skip(sql,j);if(end!==j){j=end-1;continue;}
+    if(sql[j]==='(')depth++;
+    else if(sql[j]===')'){if(--depth===0){parts.push(sql.slice(arg,j));break;}}
+    else if(sql[j]===','&&depth===1){parts.push(sql.slice(arg,j));arg=j+1;}
+   }
+   if(depth!==0)throw Error('Unbalanced SQL expression');
+   const hashFirst=/^[\s(]*SELECT\s+\w+\.(?:before_hash|after_hash)\b/i.test(parts[0])||/^\s*JSON_VALUE\(@\w+Predecessors\b/i.test(parts[0]);
+   if(parts.length===2&&hashFirst){replacements++;out+='ISNULL(CONVERT(nvarchar(max),'+rewrite(parts[0])+'),'+rewrite(parts[1])+')';}
+   else out+='COALESCE('+parts.map(rewrite).join(',')+')';
+   i=j+1;
+  }
+  return out;
+ };
+ const body=rewrite(source);return {body,replacements};
+}
+
+// Existing immutable before/after repair pattern; old seals and all write
+// binders, account rows, permissions, constraints and transaction rules survive.
+export function buildCleanReadyExpressionRepairDefinitions(){
+ const prior=buildCleanPersonnelWorkDefinitions().definitions;
+ const before=Object.fromEntries(Object.entries(prior).filter(([name])=>name.endsWith('_ready')));
+ const names=Object.keys(before),definitions={},counts={};
+ const manifest='clean_ready_expression_manifest',immutable='clean_ready_expression_immutable';
+ const guard='usp_clean_ready_expression_ready',bad="THROW 51976,'CLEAN_READY_EXPRESSION_DENIED',1;";
+ definitions[immutable]=`CREATE TRIGGER dbo.${immutable} ON dbo.${manifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${bad} END;`;
+ definitions[guard]=`CREATE PROCEDURE dbo.${guard} WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
+ IF(SELECT COUNT(*) FROM dbo.${manifest})<>${names.length+2} OR EXISTS(SELECT 1 FROM dbo.${manifest} d LEFT JOIN sys.sql_modules m ON m.object_id=OBJECT_ID(N'dbo.'+d.name) WHERE m.object_id IS NULL OR m.definition IS NULL OR d.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',m.definition),2) OR m.uses_ansi_nulls<>1 OR m.uses_quoted_identifier<>1 OR(OBJECTPROPERTY(m.object_id,'IsTrigger')=1 AND OBJECTPROPERTY(m.object_id,'ExecIsTriggerDisabled')<>0)) ${bad} END;`;
+ const pinned=`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${guard}'))),2),N'')<>${Q(moduleHash(definitions[guard]))} OR ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${immutable}'))),2),N'')<>${Q(moduleHash(definitions[immutable]))} OR ISNULL(OBJECTPROPERTY(OBJECT_ID(N'dbo.${immutable}'),'ExecIsTriggerDisabled'),1)<>0 ${bad}`;
+ const projected=`SELECT ${names.map(n=>`MAX(CASE WHEN name=${Q(n)} THEN before_hash END) [${n}]`).join(',')} FROM dbo.${manifest} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER`;
+ for(const [name,original]of Object.entries(before)){
+  const optimized=rewriteCleanReadyHashFallbacks(original);counts[name]=optimized.replacements;
+  // Prove new bytes before exposing immediately preceding hashes to any old
+  // layer. Missing entries still use the real current definition hash.
+  let body=optimized.body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,a)=>`ISNULL(JSON_VALUE(@readyExpressionPredecessors,N'$.'+${a}.name),${hash})`);
+  body=body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',(\w+)\.definition\),2\)/g,(hash)=>`ISNULL(JSON_VALUE(@readyExpressionPredecessors,N'$.'+d.name),${hash})`);
+  if(body===optimized.body)throw Error('Ready expression predecessor seam missing: '+name);
+  definitions[name]=exact(body,'SET NOCOUNT ON;',`SET NOCOUNT ON;${pinned}EXEC dbo.${guard};DECLARE @readyExpressionPredecessors nvarchar(max)=(${projected});`);
+ }
+ return {before,definitions,counts,manifest,guard};
+}
+
+export function buildCleanReadyExpressionRepairSql({probe=false}={}){
+ const {before,definitions,manifest,guard}=buildCleanReadyExpressionRepairDefinitions();
+ const bad="THROW 51976,'CLEAN_READY_EXPRESSION_DENIED',1;";
+ const proof=Object.entries(definitions).map(([name,body])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'))),2),N'')<>${Q(moduleHash(body))} ${bad}`).join('\n');
+ return `SET NOCOUNT ON;SET ANSI_NULLS ON;SET QUOTED_IDENTIFIER ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 OR @@TRANCOUNT<>0 ${bad}
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${bad}
+ IF OBJECT_ID(N'dbo.${manifest}') IS NOT NULL BEGIN ${proof} EXEC dbo.${guard};COMMIT;SELECT N'READY_EXPRESSION_ALREADY_INSTALLED' result;RETURN;END;
+ EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
+ ${Object.entries(before).map(([name,body])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'))),2),N'')<>${Q(moduleHash(body))} ${bad}`).join('\n')}
+ IF EXISTS(SELECT 1 FROM dbo.clean_store_day_intents) OR EXISTS(SELECT 1 FROM dbo.clean_personnel_intents) OR EXISTS(SELECT 1 FROM dbo.clean_direct_sale_intents) OR EXISTS(SELECT 1 FROM dbo.clean_store_inventory_intents) OR EXISTS(SELECT 1 FROM dbo.clean_finance_b4_intents) OR EXISTS(SELECT 1 FROM dbo.clean_finance_b4_fx_intents) OR EXISTS(SELECT 1 FROM dbo.clean_finance_b4_cash_intents) OR EXISTS(SELECT 1 FROM dbo.clean_contact_intents) ${bad}
+ CREATE TABLE dbo.${manifest}(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_quoted_identifier bit NULL,before_ansi_nulls bit NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ ${Object.entries(definitions).map(([name,body])=>`INSERT dbo.${manifest}(name,before_hash,after_hash,before_definition,before_quoted_identifier,before_ansi_nulls)SELECT ${Q(name)},${before[name]?Q(moduleHash(before[name])):'NULL'},${Q(moduleHash(body))},${before[name]?`OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'))`:'NULL'},${before[name]?`(SELECT uses_quoted_identifier FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${name}'))`:'NULL'},${before[name]?`(SELECT uses_ansi_nulls FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${name}'))`:'NULL'};`).join('\n')}
+ ${Object.entries(definitions).map(([name,body])=>`EXEC(${Q(body.replace(/^CREATE PROCEDURE/,before[name]?'ALTER PROCEDURE':'CREATE PROCEDURE'))});`).join('\n')}
+ DENY INSERT,UPDATE,DELETE ON dbo.${manifest} TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.${guard} TO [${CLEAN_LOGIN}];
+ ${proof} EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
+ ${probe?"ROLLBACK;SELECT N'READY_EXPRESSION_PROBE_ROLLED_BACK' result;":"COMMIT;SELECT N'READY_EXPRESSION_INSTALLED' result;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
