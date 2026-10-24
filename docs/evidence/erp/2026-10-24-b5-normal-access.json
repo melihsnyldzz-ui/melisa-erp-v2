@@ -648,6 +648,52 @@
     "reason": "Automatic approval review did not find specific human approval for temporary account suspension/reactivation",
     "passwordsChanged": 0,
     "humanAcceptance": "PENDING",
-    "approvalRequested": true
+    "approvalRequested": true,
+    "preparedHelperReview": {
+      "originalActiveStateRequired": true,
+      "restoreOnlyAfterDisableAttempt": true,
+      "responseLossRestorationPreserved": true,
+      "unexpectedOwnSessionCounterPreserved": true,
+      "syntaxChecked": true,
+      "executed": false
+    }
+  },
+  "personalAccountReadiness": {
+    "observedAt": "2026-10-24T16:16:16.068Z",
+    "scope": "Existing nine-person B5/C01-C02 preparation, read-only only",
+    "privateInventoryPublished": false,
+    "recordedRequestedUsernameCount": 3,
+    "rolesCompared": [
+      30,
+      31,
+      32
+    ],
+    "roleSourceDifferences": 0,
+    "installedSourceFilesByteEqual": 4,
+    "realPersonBindingsVerified": false,
+    "identityGuesses": 0,
+    "newUsernamesInvented": 0,
+    "packingSeparatelyConfigurable": false,
+    "clean5244CartonClientSupported": false,
+    "existingPackingExceptionPermissionUnchanged": true,
+    "crmFullInventoryFreshLogin": false,
+    "crmHistoricalBaselineClearlySeparated": true,
+    "mutations": {
+      "applicationLogins": 0,
+      "accountWrites": 0,
+      "roleWrites": 0,
+      "employeeWrites": 0,
+      "metadataWrites": 0,
+      "commercialWrites": 0,
+      "serviceRestarts": 0
+    },
+    "humanAcceptance": "PENDING",
+    "newFinishLeaves": 0,
+    "coordinatorTransfer": {
+      "status": "NOT_SENT_AUTO_REVIEW_BLOCKED",
+      "requestedScope": "Secret-free technical summary only",
+      "directHumanTargetApproval": "PENDING",
+      "alternativeTransferAttempted": false
+    }
   }
 }
