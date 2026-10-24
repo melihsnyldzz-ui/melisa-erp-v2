@@ -79,6 +79,7 @@ test('personal sale uses its own ID through draft, journal, native scope, finali
  const action={requestId:randomUUID(),expectedRevision:made.invoice.revision},done=await f.sale.finalize(made.invoice.id,action,staff);assert.equal(done.invoice.status,'finalized');assert.equal(f.state.balance,100);assert.equal(f.state.stock,9);
  assert.equal((await f.sale.finalize(made.invoice.id,action,staff)).replayed,true);assert.equal(f.state.balance,100);assert.equal(f.state.stock,9);assert.equal((await f.sale.invoice(made.invoice.id,staff)).createdBy,String(staff.id));assert.equal((await f.sale.list({},staff)).meta.total,1);assert.equal((await f.sale.list({},other)).meta.total,0);
  await assert.rejects(()=>f.sale.invoice(made.invoice.id,other),{statusCode:403});await assert.rejects(()=>f.sale.finalize(made.invoice.id,{requestId:randomUUID(),expectedRevision:done.invoice.revision},other),{statusCode:403});await assert.rejects(()=>f.sale.createDraft(body,other),{statusCode:409});
+ await assert.rejects(()=>f.sale.invoice('999999',staff),{code:'WORK_INVOICE_NOT_FOUND',statusCode:404});
  assert.ok(f.state.requests.every(r=>r.actor_id===staff.id));
 });
 test('missing active employee, foreign native proof, lost permission, wrong target and failed native finish never commit',async()=>{
