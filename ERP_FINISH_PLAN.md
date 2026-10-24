@@ -1,3 +1,11 @@
+## 25 Ekim00:29 — B5 kişisel iki sunucu bağı doğrulandı; yeni CRM teşhis paketi kurulu
+
+AynıB5kişisel dalı:iki serverbağı/28çağrı+yenipaket sonrasıiki normalCRMreload **Ajan doğruladı**.
+
+**Tarihi403:** yeni tanı kaynağındaki bu tek provada tekrarlanmadı. Kaynak değişikliği guard/fix değil tanıdır; kök neden UNKNOWN kalır. Önceki başarısız kanıt korunur; onu PASSa çevirmedik, aynı değişmeyen1abüstünde retry/ek hata üretimi yapmadık. İnsanE2/özgünUA hâlâ BEKLİYOR; sayaçlar49/25/17/74aynı. Onay mesajı mevcut sentetik Müdür hesabının tekrarıdır; ikinci hesap oluşturulmadı ve ayrı altı standart ERP hesabı/10021pasif/özel envanter aktarımı retlerini çözmez. Bu kapsamdaB5tamam iddiası yok.
+
+Kapsam/49ERP-25CRM/özgünUA ve altıhesap/önceki özelret ayrımı korunur; yeni teknik/insan kapanış şartı eklenmedi. [STATUS](STATUS.md).
+
 ## 25 Ekim00:12 — B5 kişisel normal atama ve iki ilişki yayımlandı; E1 ilk403 kaynakta inceleniyor
 
 Aynı B5'in kişisel normal atama ve bağımsız yönetici dalında ajan sonucu: normal156→1002tek atama/Personeltek görüşme/Müdür3görüşme/tamreload; ayrıERP10023/employee3/rol31normalgiriş. İki exactrelation mevcutkaynakta kurulu, yalnızaynıb9API1restart.

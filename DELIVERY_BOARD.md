@@ -1,3 +1,13 @@
+## 25 Ekim00:29 — B5 kişisel iki sunucu bağı doğrulandı; yeni CRM teşhis paketi kurulu
+
+**Yeni gerçek E1 sonucu — ajan teknik doğrulaması:** eski1ab FAIL receipt değiştirilmeden yeni diagnosticreceipt altında iki kişisel rol toplam28HTTP çağrısıyla doğrulandı. Personel exact11alan/aynıbindingrevision ile yalnızatanmış156,diğergörüşme/yönetim403; bağımsızmudur3görüşme/7hesap/revision6. İki rolde one-use replayret,refreshaynıkimlik,ERPownlogout sonrasıCRMerişimret veCRMownlogout geçti.2kendi yeni linkedfamily revoked=true,eski normal aileler korundu. Bu server/API bağıdır; GUIcrossrealm/AndroidKeystore veya fiziksel cihaz sonucu değildir. Yeni paket sonrası iki eski normal CRM sekmesi tamreload ile girişistemeden aynı kapsamda açıldı; Personel156detayını açtı,Müdür3görüşme+kendiMüdüradını gördü. Yeni mesaj/AI/ticari işlem0.
+
+CRM47646b6/804/F6411556 gerçektenkurulu;exact7CI SUCCESS,ERPb9aynı ve3korumaSQLkapsamı byte-eş.
+
+**Tarihi403:** yeni tanı kaynağındaki bu tek provada tekrarlanmadı. Kaynak değişikliği guard/fix değil tanıdır; kök neden UNKNOWN kalır. Önceki başarısız kanıt korunur; onu PASSa çevirmedik, aynı değişmeyen1abüstünde retry/ek hata üretimi yapmadık. İnsanE2/özgünUA hâlâ BEKLİYOR; sayaçlar49/25/17/74aynı. Onay mesajı mevcut sentetik Müdür hesabının tekrarıdır; ikinci hesap oluşturulmadı ve ayrı altı standart ERP hesabı/10021pasif/özel envanter aktarımı retlerini çözmez. Bu kapsamdaB5tamam iddiası yok.
+
+**Sıradaki:** özel altı-hesap yanıtı gelirse yalnızayrıkapsam; değişmeyen oturum/prova/migration tekrarı yok. [STATUS](STATUS.md).
+
 ## 25 Ekim00:12 — B5 kişisel normal atama ve iki ilişki yayımlandı; E1 ilk403 kaynakta inceleniyor
 
 **Ajan doğruladı — normal kullanım:** bağımsız gerçek mudur rolündeki kişisel sentetik hesap yalnız yapay156→Personel1002 atamasını normal ekrandan1kez kaydetti. Personel Mesajlarım listesinde yalnız156yı açtı; tamreload aynı kimlik/tek görüşme. Müdür tamreload3yapay görüşme ve yeni sorumluyu gördü. Kaynak yönetim revision5→6; önceki55/155atamaları ve7hesap metadata kapsamı korundu. Gerçek mesaj/AI/ticari işlem yok. Ayrı sentetik ERP10023/personel3/mevcutrol31 normal yönetim API yoluyla oluştu; kendi normal yeşil giriş/Ayarlar/rol ekranı ve tamreload aynı kimlikle görüldü. Bu gerçek Angela kimliği veya insan UX PASS değildir.

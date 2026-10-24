@@ -1,3 +1,7 @@
+## 25 Ekim00:29 — B5 kişisel iki sunucu bağı doğrulandı; yeni CRM teşhis paketi kurulu
+
+YeniCRM47646b6üzerinde28çağrıyla iki kişisel sunucu bağı ve iki mevcut normalCRMsekmesinin fullreload/atanmışgörüşme/Müdürkapsamı **Ajan doğruladı**. GUIcrossrealm/Android/Keystore/gerçekpersonelUX veya LIVE PASS değildir. Tarihi403yeni provada tekrarlanmadı,kökUNKNOWN; eskiFAILkorunur. ÖzgünUAID/kişi/tarih/sonuç/sayaçlar aynı; E2insanBEKLİYOR. [STATUS](STATUS.md).
+
 ## 25 Ekim00:12 — B5 kişisel normal atama ve iki ilişki yayımlandı; E1 ilk403 kaynakta inceleniyor
 
 Normal kişisel Müdür ataması156→1002, Personeltek görüşme ve tamreload, Müdür3görüşme ve kendiERP yönetici normalgiriş/yenileme **Ajan doğruladı**. İki ilişki kurulu fakat ilk serverhandoff403; tek-giriş/Android/Keystore veya insan UX PASS yok. Özgün UAID/kişi/tarih/sonuç/sayaçlar aynı; insanE2ayrıBEKLİYOR ve yeni B5 teknik kapanış kapısı değildir. [Teknik durum](STATUS.md).

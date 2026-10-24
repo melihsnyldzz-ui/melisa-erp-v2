@@ -214,8 +214,8 @@
     "nativePackingFieldDefault": false,
     "previousApplicationSource": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
     "serverLogicBaselineCommit": "b9dd984876c808482017365556538078601187b8",
-    "crmObservation": "ERP unchanged at b9; CRM updated separately in personalCrmNormalUsage installation",
-    "crmSourceCommit": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+    "crmObservation": "ERP remains b9; current CRM diagnostic installation below supersedes historical 1ab installation, not original receipts",
+    "crmSourceCommit": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
     "sameSourceRelationRestart": {
       "source": "b9dd984876c808482017365556538078601187b8",
       "at": "2026-10-24T23:56:11.6429619+03:00",
@@ -1856,11 +1856,425 @@
     },
     "sourceInvestigation": {
       "owner": "Existing CRM source owner only",
-      "status": "ACTIVE_ISOLATED_SOURCE_NEW403",
+      "status": "BOUNDED_DIAGNOSTICS_DELIVERED; HISTORICAL403_NOT_REPRODUCED_ROOT_UNKNOWN",
       "privateRosterOrKeysShared": false,
       "sameFailedRequestRepeated": false
     },
     "humanAcceptance": "PENDING",
     "b5Completed": false
+  },
+  "personalCrmLinkDiagnosticDelivery": {
+    "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+    "package": {
+      "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "tree": "ae2d9116e4ae3743e716a4b57bbbb3d4106e3379",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261025-47646b6bfc4f-B5DIAGNOSTIC-NODE24",
+      "files": 804,
+      "manifestSha": "F641155657DB255000D48E8B7D5614DD38198B0B320F8C66094D9FDC71838C51",
+      "node": {
+        "version": "v24.19.0",
+        "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "path": "C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe"
+      },
+      "mainPath": "/assets/index-CkcbNSPr.js",
+      "mainSha": "6ad0d9795c79807b66c82995ba6cc4ab75f376ffa388fe0ee8ca3fb47396c817",
+      "profile": "clean-synthetic-20261022",
+      "ownerPassiveFilesVerified": 2299,
+      "ownerBuildReused": true,
+      "existingLockAndDependenciesReused": true,
+      "diagnosticOnly": true,
+      "rootCause": "NOT_PROVEN",
+      "installed": false
+    },
+    "installation": {
+      "status": "INSTALLED",
+      "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "frontendSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "backendSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261025-47646b6bfc4f-B5DIAGNOSTIC-NODE24",
+      "manifestSha": "F641155657DB255000D48E8B7D5614DD38198B0B320F8C66094D9FDC71838C51",
+      "files": 804,
+      "changedPorts": [
+        62800,
+        62801,
+        62802,
+        62803
+      ],
+      "preservedListeners": 16,
+      "erpSource": "b9dd984876c808482017365556538078601187b8",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "dataSummariesUnchanged": 53,
+      "installedAt": "2026-10-25T00:27:08.6428233+03:00"
+    },
+    "ci": {
+      "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "checks": [
+        {
+          "name": "windows-startup-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880100/job/120991167230"
+        },
+        {
+          "name": "secret-scan",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880100/job/120991167210"
+        },
+        {
+          "name": "quality-build-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880100/job/120991167106"
+        },
+        {
+          "name": "ai-sales-offline",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880098/job/120991166911"
+        },
+        {
+          "name": "quality-build-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133875053/job/120991151922"
+        },
+        {
+          "name": "secret-scan",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133875053/job/120991151850"
+        },
+        {
+          "name": "windows-startup-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133875053/job/120991151663"
+        }
+      ]
+    },
+    "newServerProof": {
+      "status": "TWO_NEW_PERSONAL_BINDINGS_SERVER_VERIFIED",
+      "humanAcceptance": "PENDING",
+      "nativeKeystore": "NOT_TESTED",
+      "normalGuiCrossRealmSso": "NOT_CLAIMED; direct normal personal GUI and native server link proof recorded separately",
+      "credentialsOutput": false,
+      "failure": null,
+      "accountOrRoleWrites": 0,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "cases": [
+        {
+          "elapsedMs": 298,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/login",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 26,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/session-confirm",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 52,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/terminal-handoff/prepare",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 321,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/terminal-handoff",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 43,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 59,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/inbox",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 50,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/conversations/156",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 61,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 403,
+          "path": "/crm/conversations/55",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 42,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 403,
+          "path": "/crm/users",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 19,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/terminal-handoff",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 76,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/refresh",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 54,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 10,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/logout",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 38,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/me",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 17,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/logout",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 226,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/login",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 16,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/session-confirm",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 40,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/terminal-handoff/prepare",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 71,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/terminal-handoff",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 39,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 46,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/inbox",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 50,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/users",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 6,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/terminal-handoff",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 80,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/refresh",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 43,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 9,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/logout",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 27,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/me",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 19,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/logout",
+          "role": "mudur"
+        }
+      ],
+      "cleanupFailed": false,
+      "businessWrites": 0,
+      "observedAt": "2026-10-25T00:27:37.5390321+03:00",
+      "ownNewLinkedFamilies": 2,
+      "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "stage": "fresh paired handoff: mudur",
+      "assignmentWrites": 0,
+      "oldNormalFamiliesPreserved": true,
+      "physicalAndroid": "NOT_TESTED",
+      "changedDiagnosticSource": true,
+      "allOwnLinkedFamiliesRevoked": true,
+      "actors": [
+        {
+          "agent": 1002,
+          "onlyAssigned156": true,
+          "visibleConversations": 1,
+          "erpUserId": 10022,
+          "bindingRevisionMatched": true,
+          "erpOwnLogoutClosesLinkedAccess": true,
+          "role": "personel",
+          "oneUseReplayDenied": true,
+          "status": "NEW_PERSONAL_BINDING_SERVER_VERIFIED",
+          "serverTechnicalProofOnly": true,
+          "crmUserId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+          "employeeId": 2,
+          "linkedRefreshSameIdentity": true,
+          "freshIdentityFieldCount": 11,
+          "normalGui": "Own normal login/read/assignment/reload observed separately; native WebView not tested"
+        },
+        {
+          "normalGui": "Own normal login/read/assignment/reload observed separately; native WebView not tested",
+          "erpOwnLogoutClosesLinkedAccess": true,
+          "accountsRead": 7,
+          "visibleConversations": 3,
+          "crmUserId": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f",
+          "freshIdentityFieldCount": 11,
+          "assignmentRevision": 6,
+          "status": "NEW_PERSONAL_BINDING_SERVER_VERIFIED",
+          "erpUserId": 10023,
+          "linkedRefreshSameIdentity": true,
+          "agent": 1003,
+          "role": "mudur",
+          "bindingRevisionMatched": true,
+          "oneUseReplayDenied": true,
+          "employeeId": 3,
+          "serverTechnicalProofOnly": true,
+          "accountMetadataPreserved": true
+        }
+      ],
+      "caseCount": 28,
+      "previousFailurePreserved": true
+    },
+    "preservation": {
+      "dataScopes": {
+        "own-fixture": true,
+        "all-current-contributions": true,
+        "native": true
+      },
+      "status": "NEW_DIAGNOSTIC_INSTALL_AND_TWO_PERSONAL_LINKS_PRESERVED",
+      "oldFailurePreserved": true,
+      "rootCauseOfHistorical403": "UNKNOWN; not reproduced on changed diagnostic source",
+      "businessWrites": 0,
+      "assignmentWrites": 0,
+      "accountWrites": 0,
+      "oldPackingAndManagedAssignmentUnchanged": true,
+      "observedAt": "2026-10-25T00:28:16.8035328+03:00",
+      "currentUsersEmployeesRolesPreserved": true,
+      "oldNormalFamiliesPreserved": true,
+      "humanAcceptance": "PENDING",
+      "twoOwnTemporaryFamiliesRevoked": true
+    },
+    "normalGuiAfterChangedInstallation": {
+      "observedAt": "2026-10-25T00:28:40+03:00",
+      "personOwnAssigned156": true,
+      "independentManagerThreeConversationsAndOwnRole": true,
+      "bothExistingSessionsFullReloadWithoutLogin": true,
+      "screenshots": [
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-diagnostic-crm-manager-reload.png",
+          "sha256": "dcc64eca68ef6e93c5e797e26b5d6e9b7e7a6d1972df0c64930203af7efc0c45"
+        },
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-diagnostic-crm-person-assigned.png",
+          "sha256": "50ec0102dc308d867dd2bd032cf00e3c6fdd19cb43ee8c585270d226b6566d4c"
+        }
+      ],
+      "normalGuiCrossRealm": "NOT_CLAIMED"
+    },
+    "historicalFailure": "Preserved unchanged; not reproduced, root UNKNOWN",
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
   }
 }
