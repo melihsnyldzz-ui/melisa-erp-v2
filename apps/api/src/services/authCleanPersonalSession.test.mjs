@@ -30,6 +30,10 @@ class Request{
  async query(sql){
   state.queries.push(sql);assert.doesNotMatch(sql,/\b(?:INSERT|UPDATE|DELETE|MERGE|EXEC)\b/i,'session must perform SQL reads only');
   if(sql.includes('FROM dbo.clean_personnel_members')){
+   // SQL Server's timestamp type must first become binary; converting the
+   // timestamp directly to varchar ignores the hex style on the real target.
+   for(const column of ['u.row_version','r.row_version','p.row_version','row_version'])
+    assert(sql.includes(`CONVERT(varchar(18),CONVERT(binary(8),${column}),1)`));
    assert.equal(this.inputs.personalSessionUserId,state.user.id);
    assert.match(sql,/p\.id=m\.employee_id AND p\.user_id=m\.user_id/);
    if(state.missingSchema)throw Object.assign(Error('synthetic absent table'),{number:208});

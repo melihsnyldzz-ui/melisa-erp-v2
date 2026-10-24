@@ -1,3 +1,12 @@
+## 24 Ekim14:04 — B5 sentetik hesap/personel oluşturuldu; normal girişin sürüm okuyucusu düzeltildi
+
+KuruluAPI4f7e0654/frontend3cee/native035/CRMacb2 korunur.4f7 exactPR40086812903/push40086809224 altıCIjobSUCCESS;3442/9121BB8A paketi13:47 yalnız4194'e kuruldu;21diğerlistener/53SQL/korumalıdosyalar aynı. Yeni APIadmission30s altında çalıştı. İkinciPOST503/EABORT20.663ms ilkhatayı örttüğü için aynıistektekrar edilmeden ALWAYSROLLBACKnativeproba yapıldı: bind20.109ms/role3ms geçti, userINSERT62ms→51972/usp_clean_personnel_guard/line26. ProbaCOMMIT0/rollbacktrue/53aynı; ilkBIGINTtanıtxöncesiFAILkorundu.
+
+**Açık uyumsuzluk:** SQLBIN2kullanıcıadıpattern'i JS'nin izin verdiği tire/altçizgiyi reddediyor. Saltokur8örnek matrisle ölçüldü; guard/manifest değiştirilmedi veya gevşetilmedi. Henüz oluşmamış agentTESTadı yerine mevcutnativekurala uygun b5erp20261024 seçildi; orijinalFAILED/dedicatedDPAPIkaydıkorundu. V3normalAPI yeniuser10021/role30 ve employee1/user10021 bağını201/19.872s ve201/19.218s ile gerçekten oluşturdu. Gerçekçalışan0/ticariyazı0. Bağımsız native eski11userhash+diğer52scopebyteeş; kullanıcıscope'unun yeni12hesabı içermesi açıkça ayrı,53aynıiddiasıyok.
+
+İlkkişiselgiriş401AUTH_REFRESH_INVALID verdi; V3FAILEDkaldı, hesap yeniden oluşturulmaz. Gerçek timestamp8NOTNULL sütunlarında doğrudanCONVERTvarcharstyle1 raw8byte döndürdüğü için18hexwitnessregexhaklıreddetti. Readonlyexplicitbinary8cast user/role/employee ve7permission için18hexkanıtlandı. Yalnız authServicefreshSELECT4dönüşümünde explicitbinary8eklendi; WeakMap/rol/izin/regex/iptal ve sırdeposuaynı.7SQLcontractregresyonu önceFAIL; doğruwritableizolefixtureTEMPile20testPASS. İlkdefaultTEMP8PASS/12storageFAILkorundu; kurulu privatejournal testte kullanılmadı. Bağımsızreview/exactCI/APIpaketi/normalissuer+GUI hâlâ bekler. İnsan/gerçek9kişi/cihaz/Windows ve özgünsayaçlar aynı.
+
+### Önceki admission süre teslimi — tarihsel
 ## 24 Ekim13:37 — ERP kurtarıldı; B5 hesap bağlama kontrolünde dar süre düzeltmesi
 
 3cee44d0 exactPR40085896989/push40085892954 altıCIjobSUCCESS;3442dosya/DD2BD6C6873E74A277CA3023C98E1C3B427A04EEA14CF3FE9B074B4217D58C60 paket13:33:06 gerçekten kuruldu. Yalnız boş4194/5244başladı, stop0;native035/CRMacb2/18listenerPID+birth/53SQL/eskirolrows/korumalıdosyalar aynı. MevcutSemih normalGUI tamreload→11eskiuser/17rol→PersonelTanımları0 görüldü; kullanıcıgirişi istenmedi. Private b5-startup-recovery.json ve b5-erp-recovered-normal-management.png.

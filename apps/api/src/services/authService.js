@@ -81,16 +81,16 @@ async function toNormalUserDto(pool,row,permissions){
   SELECT m.user_id actorId,p.id employeeId,p.user_id employeeUserId,u.username,
    u.password_hash passwordHash,r.id roleId,r.code roleCode,
    u.is_active userActive,r.is_active roleActive,p.is_active employeeActive,
-   CONVERT(varchar(18),u.row_version,1) userVersion,
-   CONVERT(varchar(18),r.row_version,1) roleVersion,
-   CONVERT(varchar(18),p.row_version,1) employeeVersion,
+   CONVERT(varchar(18),CONVERT(binary(8),u.row_version),1) userVersion,
+   CONVERT(varchar(18),CONVERT(binary(8),r.row_version),1) roleVersion,
+   CONVERT(varchar(18),CONVERT(binary(8),p.row_version),1) employeeVersion,
    CONVERT(varchar(33),m.created_at,126) memberCreatedAt,
    DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,
    ORIGINAL_LOGIN() loginName,USER_NAME() databaseUser,
    CONVERT(varchar(36),e.environment_id) environmentId,e.synthetic,
    e.actual_t1 actualT1,e.external_operations externalOperations,
    (SELECT permission_key,can_view,can_create,can_update,can_delete,can_approve,
-     CONVERT(varchar(18),row_version,1) version FROM dbo.permissions
+     CONVERT(varchar(18),CONVERT(binary(8),row_version),1) version FROM dbo.permissions
      WHERE role_id=r.id ORDER BY permission_key FOR JSON PATH) permissionState
   FROM dbo.clean_personnel_members m
   JOIN dbo.employees p ON p.id=m.employee_id AND p.user_id=m.user_id
