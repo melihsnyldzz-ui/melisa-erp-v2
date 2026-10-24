@@ -49,7 +49,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   // its native integrity checks. Budget that exact GET, without retrying it or
   // changing login, catalog, other reads, or the commercial write deadline.
   const historicalInvoiceRead=!!cartonReadTarget&&method==='GET'&&copyProfile?.scopeKind==='VERIFIED_BUSINESS_TEST'&&/^\/api\/work-sales\/invoices(?:\/[1-9]\d*|\?[^#]+)?$/.test(path);
-  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead?45000:timeoutMs;
+  // These two clean context reads retain the full native integrity proof,
+  // measured at 19–20s. This is a finite wait, not a retry or a speed gain.
+  const cleanContextRead=method==='GET'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})&&['/api/work-sales/context','/api/work-receiving/context'].includes(path);
+  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead?45000:cleanContextRead?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
    const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});

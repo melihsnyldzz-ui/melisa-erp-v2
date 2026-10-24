@@ -85,6 +85,27 @@ test('GET and login retain15s and callers cannot inject a longer work deadline',
  const login=session.login({username:'fixture',password:'fixture-only'}),loginRejected=assert.rejects(login,e=>e.status===503);t.mock.timers.tick(15000);await loginRejected;assert.equal(calls[1].options.signal.aborted,true);
  session.dispose();
 });
+
+test('only the two pinned clean operational context reads wait up to30s without retry',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ const place={hostname:'127.0.0.1',protocol:'http:',port:'5244'},store=storage(),calls=[];
+ store.setItem(workingCatalogTokenKey,'clean-context-fixture');store.setItem(testSessionModeKey,'manual');
+ const session=createWorkingCatalogSession({location:place,apiBase:'http://127.0.0.1:4194',storage:store,fetchImpl:async(url,options)=>{
+  if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});
+  return new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true}));
+ }});
+ await session.start();
+ for(const [operation,path]of [['work','/api/work-sales/context'],['inbound','/api/work-receiving/context']]){
+  const pending=session[operation](path),rejected=assert.rejects(pending,e=>e.status===503),count=calls.length;
+  t.mock.timers.tick(15000);assert.equal(calls.at(-1).options.signal.aborted,false);
+  t.mock.timers.tick(14999);assert.equal(calls.at(-1).options.signal.aborted,false);
+  t.mock.timers.tick(1);await rejected;assert.equal(calls.at(-1).options.signal.aborted,true);assert.equal(calls.length,count);
+ }
+ for(const [operation,path]of [['api','/api/catalog/products?limit=50'],['work','/api/work-sales/selection-options']]){
+  const pending=session[operation](path),rejected=assert.rejects(pending,e=>e.status===503);t.mock.timers.tick(15000);await rejected;assert.equal(calls.at(-1).options.signal.aborted,true);
+ }
+ const count=calls.length;await assert.rejects(session.work('/api/work-sales/context',{timeoutMs:600000}));assert.equal(calls.length,count);session.dispose();
+});
 test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
  const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
  store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'carton-fixture');

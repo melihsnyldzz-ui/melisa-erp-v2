@@ -1,3 +1,12 @@
+## 24 Ekim14:20 — B5 normal kişisel oturum geçti; iki bağlam ekranının bekleme sınırı düzeltiliyor
+
+86369147 exactPR40088434627/push40088430905 altıCIjobSUCCESS;3442/326A013E paketi14:12:29 yalnızAPI4194'e gerçekten kuruldu. Frontend3cee/native035/CRMacb2/21listener ve o andaki53SQLözetikorundu. Mevcutuser10021/employee1 yenidenoluşturulmadı. MinimumappfreshSQL→değişmemişkişiselwitnesspolicy ROkanıtı ayrıgeçti; token/journalüretimi0, normalgiriş yerine sayılmadı.
+
+**Gerçek normal API17kontrolPASS14:13:33:** kişisellogin253ms, confirm/me/refresh/aynıfamily, eskiRefresh401, yönetim/finans403, katalog22ms, ownlogout.53mevcutözet veeskioturumaileleri byteeş. Private b5-personnel-existing-session-proof.json. NormalCUA'dakorunmuşdedicatedparola yalnızbellektennormalform→yeşil4kart/personeladı→tamreloadaynıkişi geçti; b5-personal-normal-home/reloaded PNG. Bu gerçekçalışan veyaAndroid/Keystore kabulü değildir.
+
+**Kalan gerçekGUIhatası:** satışcontextAPI19.246s/malkabul19.774s, browsertransport15s'dekesiyor; gerçekSatışekranı 'bilgilerihenüzhazırdeğil' gösterdi. FAILEDgörselkorundu; aynıYeniletekrarıyok. Yalnızexactclean5244/uygun4194 veGET /api/work-sales/context ile /api/work-receiving/context için30sbeklemedüzeltmesi kaynakta; APIguard/metadata,normalcatalog/auth/diğerGET15s,POST/UUID/journalaynı. Yeni1regresyonönceFAIL→tümtransport56PASS; bu hızkazancıdeğil. Review/exactCI/paket/gerçekGUIsonuçbekler. Native20sfullintegrityperformanseksiği, yeniuseradıtire/altçizgiSQL/JSuyumsuzluğu veEABORTilkhatayıörtmeayrıaçık. Gerçek9kişi/koli/Müşterilerim/cihaz/insan ve49/25/17/74aynı; LIVE/Vega/T1/main yok.
+
+### Önceki sürüm okuyucusu teslimi — tarihsel
 ## 24 Ekim14:04 — B5 sentetik hesap/personel oluşturuldu; normal girişin sürüm okuyucusu düzeltildi
 
 KuruluAPI4f7e0654/frontend3cee/native035/CRMacb2 korunur.4f7 exactPR40086812903/push40086809224 altıCIjobSUCCESS;3442/9121BB8A paketi13:47 yalnız4194'e kuruldu;21diğerlistener/53SQL/korumalıdosyalar aynı. Yeni APIadmission30s altında çalıştı. İkinciPOST503/EABORT20.663ms ilkhatayı örttüğü için aynıistektekrar edilmeden ALWAYSROLLBACKnativeproba yapıldı: bind20.109ms/role3ms geçti, userINSERT62ms→51972/usp_clean_personnel_guard/line26. ProbaCOMMIT0/rollbacktrue/53aynı; ilkBIGINTtanıtxöncesiFAILkorundu.
