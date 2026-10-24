@@ -1,5 +1,6 @@
 const bridges=new WeakMap();
-export function createProtectedDeviceSession({host=globalThis.window,timeoutMs=5000}={}){
+export function createProtectedDeviceSession({host=globalThis.window,timeoutMs}={}){
+ timeoutMs??=['http://192.168.1.46:5244','http://127.0.0.1:5244'].includes(host?.location?.origin)&&/MelisaProtectedWork\/1/.test(host?.navigator?.userAgent??'')?15000:5000;
  const windows=host?.MelisaWindowsProtectedSession;
  if(host?.location?.origin==='http://127.0.0.1:5234' && windows && ['get','put','clear'].every(k=>typeof windows[k]==='function')){
   if(bridges.has(windows))return bridges.get(windows);

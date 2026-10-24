@@ -1,5 +1,22 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import{createProtectedDeviceSession}from'./protectedDeviceSession.mjs';import{createWorkingCatalogSession,workingCatalogTokenKey}from'./workingCatalogSession.mjs';
+test('only clean Android uses the longer own-family closure budget; late get cannot complete clear',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const sent=[];
+ const host={location:{origin:'http://192.168.1.46:5244'},navigator:{userAgent:'Android MelisaProtectedWork/1'},MelisaProtectedSession:{postMessage:raw=>sent.push(JSON.parse(raw))}};
+ const bridge=createProtectedDeviceSession({host});let state='pending';
+ const get=bridge.get().then(v=>{state='done';return v;},e=>{state='timeout';throw e;});await new Promise(resolve=>setImmediate(resolve));t.mock.timers.tick(6000);assert.equal(state,'pending');
+ host.MelisaProtectedSession.onmessage({data:JSON.stringify({v:1,id:sent[0].id,ok:true,session:null})});await get;
+ const clear=bridge.clear().then(()=>{state='cleared';});await new Promise(resolve=>setImmediate(resolve));
+ host.MelisaProtectedSession.onmessage({data:JSON.stringify({v:1,id:sent[0].id,ok:true,session:null})});t.mock.timers.tick(6000);assert.equal(state,'done');
+ host.MelisaProtectedSession.onmessage({data:JSON.stringify({v:1,id:sent[1].id,ok:true,session:null})});await clear;assert.equal(state,'cleared');
+});
+test('legacy, non-native clean and explicit timeout retain their existing deadline',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const [origin,ua,override,deadline]of [['http://192.168.1.46:5234','Android MelisaProtectedWork/1',undefined,5000],['http://192.168.1.46:5244','Chrome',undefined,5000],['http://192.168.1.46:5244','Android MelisaProtectedWork/1',300,300]]){
+  const host={location:{origin},navigator:{userAgent:ua},MelisaProtectedSession:{postMessage(){}}};
+  const result=createProtectedDeviceSession({host,timeoutMs:override}).get();const denied=assert.rejects(result,/yanıt vermedi/);await new Promise(resolve=>setImmediate(resolve));t.mock.timers.tick(deadline+1);await denied;
+ }
+});
 const user={id:15,username:'test-personel',role:{code:'isolated_test_sales'},permissions:['sales.view']},location={origin:'http://192.168.1.46:5234',protocol:'http:',hostname:'192.168.1.46',port:'5234'};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>({success:status===200,data:data?.accessToken?{expiresAt:Date.now()+15*60000,...data}:data})});
 

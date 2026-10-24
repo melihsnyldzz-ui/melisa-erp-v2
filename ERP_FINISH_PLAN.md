@@ -1,6 +1,6 @@
 ## 24 Ekim — mevcut E1 native kaynak/APK teknik alt kanıtı
 
-18JVM+41webPASS, gerçek offlineworktestAPK/lint/v2imza/debugfalse hazır. İlkboşCRMget/aynıkişirotation/ownclosure/pendingbarrier/generation kaynakta bağlı; [STATUS](STATUS.md). Kurulum/nativeGUI/gerçekKeystore/cihaz/insan henüz yok, ADB0/AVD0. Son kaynakCI/CRMtimeoutpin ve tekownerkurulum sıradaki; B5 ayrıowner'da.49/25/17/74 ve özgünUA aynı.
+18JVM+43webPASS, gerçek offlineworktestAPK/lint/v2imza/debugfalse hazır. İlkboşCRMget/aynıkişirotation/ownclosure/pendingbarrier/generation kaynakta bağlı; [STATUS](STATUS.md). Kurulum/nativeGUI/gerçekKeystore/cihaz/insan henüz yok, ADB0/AVD0. Son kaynakCI/CRMtimeoutpin ve tekownerkurulum sıradaki; B5 ayrıowner'da.49/25/17/74 ve özgünUA aynı.
 
 ## 24 Ekim — mevcut E1 sağlayıcı kaynak alt kanıtı, bitiş sayısı değişmedi
 

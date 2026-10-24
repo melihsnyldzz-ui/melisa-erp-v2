@@ -1,6 +1,6 @@
 ## 24 Ekim — E1 native bağlayıcı kaynak ve APK derlemesi hazır; kurulum/cihaz açık
 
-Mevcut Keystore/get-put-clear/FIFO'da ilk boşCRM alanı kendi ERPkişisiyle açılır; taze serverkimlik, ownfamilyclose/persistpendingclose/generation ve ERPwebrenew korunur.18JVM+41webPASS, gerçek offline APK/Androidlint başarılı/v2imza/debugfalse; nativeROreview0. Son exactCI ve CRMlinked15sn sourcepin bekliyor. ADBcihaz0/AVD0; normalAPKGUI/gerçekKeystore/insan denenmedi. KuruluERP8aa/CRM09a/native035,veri/roller/C5 aynı; [STATUS](STATUS.md). Sonraki teknik halka sonkaynak/CI/paket eşlemesi ve mevcuttekownerkurulumdur; fizikselAndroid girdisi ayrı açık. Yeni iş/sayaç yok.
+Mevcut Keystore/get-put-clear/FIFO'da ilk boşCRM alanı kendi ERPkişisiyle açılır; taze serverkimlik, ownfamilyclose/persistpendingclose/generation ve ERPwebrenew korunur.18JVM+43webPASS, gerçek offline APK/Androidlint başarılı/v2imza/debugfalse; nativeROreview0. Son exactCI ve CRMlinked15sn sourcepin bekliyor. ADBcihaz0/AVD0; normalAPKGUI/gerçekKeystore/insan denenmedi. KuruluERP8aa/CRM09a/native035,veri/roller/C5 aynı; [STATUS](STATUS.md). Sonraki teknik halka sonkaynak/CI/paket eşlemesi ve mevcuttekownerkurulumdur; fizikselAndroid girdisi ayrı açık. Yeni iş/sayaç yok.
 
 ### Önceki E1 sağlayıcı kaynak teslimi — korundu
 

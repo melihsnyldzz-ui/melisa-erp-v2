@@ -48,7 +48,7 @@ WorkSessionHandoff yalnız clean5244 ve mevcut KeystoreVault/serileştirilmiş m
 
 WorkHandoffHttp sabit ERP/CRM yollarına bağlıdır; peer RPC/anahtar taşımaz. Redirect/cookie/otomatikHTTPtekrarı yok;3sn call/2sn connect ve64KiB response sınırı. Hata/response/credential günlüğü yok. Eski taslak/finans/stok/scanner yoluna dokunulmadı.
 
-18JVM kontrolü (11handoff+6realm+1HTTPtarget),41ilgili web kontrolüPASS; gerçek offline Gradle test/assembleWorktestRelease/lint başarılı. APK45.358.905bayt/SHA256 EF94FD383F09BDD3F427CAFBC8B16D637F4CA67D8E16686098461C6F5ED72717, applicationId com.melisaerp.nativeterminal.worktest, minSDK28/target35, debugfalse/v2imzalı. Lint0Error/6Warning yalnız değişmeyen kaynaklarda. Bağımsız CRMROincelemesi somutP1/P2=0; cihaztesti yapılmadı. TekADBlistesinde cihaz0/mevcutAVD0. PaketCI,CRMlinked15sn budget sonkaynağı ve tekownerkurulum ayrıca bekliyor; APKkurulu/insanPASS yoktur.
+18JVM kontrolü (11handoff+6realm+1HTTPtarget),43ilgili web kontrolüPASS; gerçek offline Gradle test/assembleWorktestRelease/lint başarılı. APK45.358.905bayt/SHA256 EF94FD383F09BDD3F427CAFBC8B16D637F4CA67D8E16686098461C6F5ED72717, applicationId com.melisaerp.nativeterminal.worktest, minSDK28/target35, debugfalse/v2imzalı. Lint0Error/6Warning yalnız değişmeyen kaynaklarda. Bağımsız CRMROincelemesi somutP1/P2=0; cihaztesti yapılmadı. TekADBlistesinde cihaz0/mevcutAVD0. PaketCI,CRMlinked15sn budget sonkaynağı ve tekownerkurulum ayrıca bekliyor; APKkurulu/insanPASS yoktur.
 
 ## Kanıt
 

@@ -1,6 +1,6 @@
 ## 24 Ekim — E1 Android bağlayıcı/APK derlemesi, gerçek cihaz ve insan BEKLİYOR
 
-18JVM+41web ve gerçek offline Androidtest/APK/lint/v2imza teknik olarak geçti. Bunlar memoryvault/sunucufixture ve kaynak kanıtıdır; Keystore/normal cihaz ekranı/yeniden açma/TC21/personel kabulü değildir. ADBbağlıcihaz0/mevcutAVD0; APKkurulmadı. SonCI/CRMtimeout/ortakkurulum ayrı bekler; eski insan sonuçları ve sayaçlar değişmedi. [STATUS](STATUS.md).
+18JVM+43web ve gerçek offline Androidtest/APK/lint/v2imza teknik olarak geçti. Bunlar memoryvault/sunucufixture ve kaynak kanıtıdır; Keystore/normal cihaz ekranı/yeniden açma/TC21/personel kabulü değildir. ADBbağlıcihaz0/mevcutAVD0; APKkurulmadı. SonCI/CRMtimeout/ortakkurulum ayrı bekler; eski insan sonuçları ve sayaçlar değişmedi. [STATUS](STATUS.md).
 
 ## 24 Ekim — E1 kaynak handoff kanıtı insan kabulü değildir
 
