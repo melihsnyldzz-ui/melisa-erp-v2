@@ -1,5 +1,6 @@
 // Real ERP app, auth and native order engine against one fresh synthetic DB.
 import sql from 'mssql';
+import {cleanPersonnelRequestAllowed} from './services/cleanPersonnelManagement.mjs';
 import {cleanOrderSaleService} from './services/cleanOrderSaleService.mjs';
 import {createCleanDirectSaleService} from './services/cleanDirectSaleService.mjs';
 import {createWorkInboundRoutes} from './routes/workInboundRoutes.mjs';
@@ -30,7 +31,7 @@ const inventoryEnabled=()=>inboundEnabled()&&process.env.MELISA_CLEAN_INVENTORY=
 const inventoryWrite=req=>inventoryEnabled()&&req.method==='POST'&&/^\/api\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path);
 const financeWrite=req=>financeEnabled()&&req.method==='POST'&&(/^\/api\/(?:work-collections(?:\/preview)?|work-supplier-payments\/(?:preview|payments))$/.test(req.path)||cleanFinanceRehearsalWrite(req)||cleanFinanceCashWrite(req));
 const inboundWrite=req=>inboundEnabled()&&req.method==='POST'&&/^\/api\/(?:work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/finalize)?))$/.test(req.path);
-app.use((req,res,next)=>{try{const clean=assertRegisteredCleanContext();if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!/^\/api\/auth\/(login|refresh|logout)$/.test(req.path)&&!cleanProtectedSessionReadAllowed(req,{clean})&&!terminalHandoffRequestAllowed(req,{context:clean})&&!(req.method==='POST'&&req.path==='/api/test/crm/orders/v2/drafts')&&!saleWrite(req)&&!directSaleWrite(req)&&!contactWrite(req)&&!inboundWrite(req)&&!financeWrite(req)&&!inventoryWrite(req))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu örnek kurulumda işlem açık değil.'}});next();}catch(e){next(e);}});
+app.use((req,res,next)=>{try{const clean=assertRegisteredCleanContext();if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!/^\/api\/auth\/(login|refresh|logout)$/.test(req.path)&&!cleanProtectedSessionReadAllowed(req,{clean})&&!terminalHandoffRequestAllowed(req,{context:clean})&&!(req.method==='POST'&&req.path==='/api/test/crm/orders/v2/drafts')&&!cleanPersonnelRequestAllowed(req)&&!saleWrite(req)&&!directSaleWrite(req)&&!contactWrite(req)&&!inboundWrite(req)&&!financeWrite(req)&&!inventoryWrite(req))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu örnek kurulumda işlem açık değil.'}});next();}catch(e){next(e);}});
 if(process.env.MELISA_TERMINAL_LINK_ENABLED==='true'){
  const [{confirmProtectedNormalSession,readProtectedNormalSession},{createTerminalHandoffRoutes},{apiRateLimit,securityHeaders}]=await Promise.all([import('./services/authService.js'),import('./routes/terminalHandoffRoutes.mjs'),import('./middleware/security.js')]);
  const provider=createTerminalHandoffRuntime({getContext:assertRegisteredCleanContext,confirmErpPair:confirmProtectedNormalSession,readErpFamily:readProtectedNormalSession});

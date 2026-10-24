@@ -58,6 +58,7 @@ if (mode === 'quality') {
   run(['--test', path.join(root, 'scripts/canonical/clean-order-sale.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/clean-store-day-sql.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/clean-store-day-cohort.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-management.test.mjs')]);
   run(['--test', path.join(root, 'apps/api/src/services/cleanStoreDayScope.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-completion-logon.test.mjs')]);
