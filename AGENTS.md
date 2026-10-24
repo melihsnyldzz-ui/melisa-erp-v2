@@ -1,3 +1,5 @@
+**24 Ekim / mevcut B5 kullanıcı teyidi:** İnsan kullanmadan önce ajan normal ekran+kayıt+yenileme sonucunu bir kez doğrular; yalnız kaynak/CI/kurulum yeterli değildir. Sonuç “Ajan doğruladı” yazılır, insan UX PASS sayılmaz. Sentetik görev temsilcisi gerçek kişi kimliği yerine geçmez. Aynı B5 dört sonucu ve mevcut owner/ret/LIVE sınırları korunur; yeni plan/ajan/Goal yok. Ayrıntı karar077 altındaki24Ekim ekidir.
+
 **23 Ekim / ERP-DEC-072 kapsam teyidi:** Semih10018 mevcut clean TEST rol28 ile desteklenen uygulama yöneticiliğini kendi hesabından kullanmalıdır; 34 izni dondurmak finans iptali ihtiyacını karşılamaz. Yetkili iki ek finance.collection.cancel / finance.payment.cancel yalnız rol28'e, aynı native sınırlar/gerekçe/audit/replay korunarak uygulanır. Diğer personel ve parolalar aynı; OS/SQL/LIVE yetkisi yok. Önce B5'in bu kalanını gerçek normal GUI ile bitir, sonra mevcut B6→B7 sırası. Karar072'deki özgün kullanıcı mesajı esas alınır; yeni helper/ajan/TEST/tracker yok.
 # AI Agent Entry Point
 

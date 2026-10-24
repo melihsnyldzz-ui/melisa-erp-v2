@@ -1,3 +1,13 @@
+## 24 Ekim 23:05 — B5 kişisel iki koli normal kullanımını ajan doğruladı; insan kabulü bekliyor
+
+Kişisel sentetik görev temsilcisi10022/personel2/rol30, kendi normal terminal oturumunda kendi fişi10010 üzerindeki sıfırlı barkodu0000000000007 elle girerek iki koliye1+1ADET yerleştirdi. Tek Kaydet sonrası tam sayfa yenilendi; aynı kişi ikinci girişsiz geri geldi, aynı fiş yeniden açıldığında gereken2.000/toplanan2.000/kalan0.000 ve READY iki koli korundu. Journal1belge/1istek; reload öncesi/sonrası SHA256 birebir aynı. **Ajan doğruladı**; gerçek Turgay kimliği veya insan UX kabulü değildir.
+
+API b9dd9848/web dd8ef414/native6c/CRM acb aynı temiz TEST'te çalışıyor; iki gerçek destek/Windows ACL hatası düzeltildi ve kaynağın6zorunluCI'si geçti. Tek koli journal isteği ve tamreload sonrası kalıcılık; packing ek stok/cari etkisi0, gerçek kaynak/rol geçmişi korundu. Sentetik satış fixture hazırlığı ayrı API kanıtıdır.
+
+**Kalan aynı B5 kapsamı:** kayıtlı9gerçek kişinin kesin hesap–personel–onaylı görev/CRM bağları, diğer farklı görev dallarının kalıcı normal sonuçları, yanlış rol/korunan-pasif hesap/yetki değişimi ve bağımsız Müdür/CRM GUI-create. Sentetik görev temsilcisi gerçek kişi eşlemesi yerine geçmez. Önceki10021 pasif testi ve özel envanteri koordinatöre gönderme için bekleyen iki doğrudan onay başka araçla aşılmadı.49ERP/25CRM/17başlık/74yaprak ve özgün UA sonuçları/sayaçlar aynı; E2 insan kabulü BEKLİYOR.15dakika sonrası oturum yenileme, Android/Keystore/uygulama kapat-aç/fiziksel okuyucu bu prova ile kanıtlanmış değildir. Yeni Goal/ajan/tracker veya LIVE/Vega/T1/main/gerçek ticari kapsam yok.
+
+Sonraki tek iş aynı B5'in kişi–görev/CRM bağları ve bağımsız kalan normal kullanım sonucu; [ayrıntı STATUS](STATUS.md).
+
 ## 24 Ekim 21:54 — B5 kişisel toplama normal bağlantısı TEST'te kurulu; atanmış kişiyle sonuç henüz yok
 
 **Çalışan teslim:** kaynak dd8ef414/PR54, CLEAN-ERP-20261022-dd8ef4144482;3458dosya/manifest1C0E6076. Aynı clean5244→4194 normal koli route/client bağı kuruldu. Sunucu her list/detail/save isteğinde mevcut native user–employee–role/member ve açık canTerminalPacking görevini transaction içinde yeniden kanıtlar; istemci alanı, sales.view veya packing.exception tek başına yeterli değildir. Mevcut journal, UUID/replay/CAS ve kaynak birim/barkod/karantina kontrolü kullanılır; yeni motor/cache/timeout yok. Yalnız kişinin kendi clean_direct_sale_links içindeki finalized fişleri; başka personelin fişleri açılmaz. Fiyat/cari/finans bilgileri koli DTO'suna taşınmaz. Eski5234/Vega yolu aynı, clean pending journal ayrı çevre anahtarında.

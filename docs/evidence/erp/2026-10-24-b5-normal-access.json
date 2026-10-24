@@ -1,7 +1,7 @@
 {
   "schemaVersion": "melisa-clean-b5-delivery-evidence.v1",
   "observedAt": "2026-10-24T15:50:13.055Z",
-  "scope": "Existing B5 isolated clean TEST technical sub-delivery",
+  "scope": "Historical B5 evidence retained; currentRuntime and personalPackingAgentUsage identify current installed application and latest normal usage",
   "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
   "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
   "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54",
@@ -193,29 +193,28 @@
     "observationScope": "Historical C1 baseline before the username layer; current measurements are in usernameContractRepair"
   },
   "currentRuntime": {
-    "sourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
-    "packageId": "CLEAN-ERP-20261022-dd8ef4144482",
-    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-dd8ef4144482-B5PACKING",
-    "files": 3458,
-    "manifestDigest": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+    "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+    "packageId": "CLEAN-ERP-20261022-b9dd984876c8",
+    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL",
+    "files": 3459,
+    "manifestDigest": "DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E",
     "frontendSourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
     "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
     "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
     "crmSourceUnchanged": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
     "changedPorts": [
-      4194,
-      5244
+      4194
     ],
-    "preservedCapturedListeners": 33,
-    "installedAt": "2026-10-24T21:54:01.4230900+03:00",
+    "preservedCapturedListeners": 36,
+    "installedAt": "2026-10-24T22:54:43.4769299+03:00",
     "protectedSessionFilesPreservedAtInstallation": true,
     "actualNewRoleIds": [],
     "nativeMetadataInstalledAt": "2026-10-24T18:18:31.877Z",
     "nativePackingMetadataManifestDigest": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
     "nativePackingFieldDefault": false,
-    "previousApplicationSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
-    "serverLogicBaselineCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e"
+    "previousApplicationSource": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
+    "serverLogicBaselineCommit": "b9dd984876c808482017365556538078601187b8"
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -847,7 +846,8 @@
     },
     "humanAcceptance": "PENDING",
     "newFinishLeaves": 0,
-    "observedAt": "2026-10-24T17:03:41.217Z"
+    "observedAt": "2026-10-24T17:03:41.217Z",
+    "observationScope": "Historical 747 source preparation; current native installation and assigned normal usage supersede its pending fields"
   },
   "personalPackingNativeUpgrade": {
     "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
@@ -1182,9 +1182,9 @@
     "nativeInstallationRepeated": false,
     "accountOrRoleOrTaskWrites": 0,
     "commercialWrites": 0,
-    "assignedPackerNormalUsage": "NOT_EXECUTED",
+    "assignedPackerNormalUsage": "AGENT_VERIFIED_SYNTHETIC_PROXY_SEE_personalPackingAgentUsage",
     "humanAcceptance": "PENDING",
-    "nextSingleTechnicalAction": "Existing personal TEST account/employee/approved-task bindings, then assigned representative normal persistent packing result",
+    "nextSingleTechnicalAction": "Remaining original B5 personal account/task/CRM bindings and independent normal usage; accepted carton proof not repeated",
     "b5Completed": false,
     "preparedPackageSnapshot": {
       "source": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
@@ -1210,6 +1210,207 @@
       "lockedDependenciesUnchanged": true,
       "installed": false,
       "sharedWrites": 0
-    }
+    },
+    "observationScope": "Historical dd8 route installation and unassigned actor denial; assigned proxy outcome recorded separately below"
+  },
+  "personalPackingAgentUsage": {
+    "cartons": 2,
+    "preservation": {
+      "own-fixture": true,
+      "all-current-contributions": true,
+      "personnel": true
+    },
+    "journalRequests": 1,
+    "actorId": 10022,
+    "packingAdditionalStockOrCustomerEffect": 0,
+    "humanAcceptance": "PENDING",
+    "manualBarcode": "0000000000007",
+    "wholeDatabaseClaimed": false,
+    "normalBrowserFullReloadSameIdentity": true,
+    "screenshot": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-packing-reloaded.png",
+    "label": "Ajan doğruladı",
+    "invoiceId": 10010,
+    "scope": "53 existing contribution contracts (some historic filters retained), complete own invoice/items/sale journal/link/customer-stock effects, all personnel/user/role/member/old seals/count-receipt-audit contracts",
+    "allocationPerCartonExact3": "1.000",
+    "journalSha256": "E58E1783346190AA2187F49C7E1C9278C351475BD1B9FEB38A1E11E8130A5198",
+    "b5Completed": false,
+    "syntheticDutyProxy": true,
+    "statusAfterReload": "READY",
+    "fixturePreparation": "One authorized synthetic finalized sale via normal API before pre-save baselines; NOT GUI sale acceptance",
+    "longSessionRenewal": "NOT_PROVEN",
+    "observedAt": "2026-10-24T23:05:24.8784457+03:00",
+    "requiredExact3": "2.000",
+    "normalSaveClicks": 1,
+    "roleId": 30,
+    "physicalDevice": "NOT_TESTED",
+    "normalGuiLoginCount": 2,
+    "itemId": 40010,
+    "realTurgayIdentityClaimed": false,
+    "journalDocuments": 1,
+    "employeeId": 2,
+    "screenshotSha256": "D8562DB1DB5F517B5FCB1F96CA4D158C8AC317D11650865F273EE50E1B70834D",
+    "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+    "journalUnchangedAfterReload": true,
+    "status": "AGENT_VERIFIED_NORMAL_PERSONAL_PACKING",
+    "supportReaderFix": {
+      "sourceCommit": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
+      "problem": "OBJECT_DEFINITION hidden from existing minimum SQL login; native packing_ready already succeeds",
+      "change": "Use existing native ready proof without metadata visibility grant",
+      "newFocusedCase": "1 RED to 1 GREEN",
+      "installation": {
+        "status": "INSTALLED",
+        "source": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
+        "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+        "package": "CLEAN-ERP-20261022-d8e74e0f5b0b",
+        "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-d8e74e0f5b0b-B5PACKINGACCESS",
+        "files": 3458,
+        "manifestSha": "217C8418FE9D9C221427757A4106853B702962076B590275CD42F9CA220204ED",
+        "changedPorts": [
+          4194
+        ],
+        "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+        "preservedListeners": 36,
+        "crmStatus": 200,
+        "existingContributionScopesUnchanged": 53,
+        "newRoleIds": [],
+        "existingRoleIdsPreserved": [
+          30,
+          31,
+          32
+        ],
+        "nativeMetadataSourceUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "nativeSqlExecuted": false,
+        "protectedSessionStatePreserved": true,
+        "database": "MELISA_ERP_CLEAN_TEST_20261022",
+        "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+        "synthetic": true,
+        "actualT1": false,
+        "installedAt": "2026-10-24T22:25:17.8915182+03:00"
+      },
+      "ci": [
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124600544/job/120963225319"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124600544/job/120963225293"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124600544/job/120963225071"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124595970/job/120963210445"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124595970/job/120963210279"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124595970/job/120963210099"
+        }
+      ]
+    },
+    "windowsAclFix": {
+      "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+      "problem": "Windows PowerShell 5.1 Get-Acl autoload inherited incompatible PowerShell 7 module path under Node child",
+      "change": "Explicit import of current Windows host PSHOME Microsoft.PowerShell.Security module; same owner/no-reparse/ACL validation",
+      "encodedCommand": false,
+      "executionPolicyBypass": false,
+      "endpointSecurityChanged": false,
+      "newWindowsBehaviorCase": "1 RED to 1 GREEN; Windows CI step added",
+      "installation": {
+        "status": "INSTALLED",
+        "source": "b9dd984876c808482017365556538078601187b8",
+        "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+        "package": "CLEAN-ERP-20261022-b9dd984876c8",
+        "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL",
+        "files": 3459,
+        "manifestSha": "DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E",
+        "changedPorts": [
+          4194
+        ],
+        "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+        "preservedListeners": 36,
+        "crmStatus": 200,
+        "existingContributionScopesUnchanged": 53,
+        "newRoleIds": [],
+        "existingRoleIdsPreserved": [
+          30,
+          31,
+          32
+        ],
+        "nativeMetadataSourceUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "nativeSqlExecuted": false,
+        "protectedSessionStatePreserved": true,
+        "database": "MELISA_ERP_CLEAN_TEST_20261022",
+        "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+        "synthetic": true,
+        "actualT1": false,
+        "installedAt": "2026-10-24T22:54:43.4769299+03:00"
+      },
+      "ci": [
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126761014/job/120969749725"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126761014/job/120969749642"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126761014/job/120969749514"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126757580/job/120969739414"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126757580/job/120969739355"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126757580/job/120969739119"
+        }
+      ]
+    },
+    "frontendRebuilt": false,
+    "frontendReusedByteIdentical": true,
+    "nativeSqlInstallationRepeated": false,
+    "old10021ActivityMutations": 0,
+    "newSyntheticAccounts": 1,
+    "newSyntheticEmployees": 1,
+    "newSyntheticSaleFixtures": 1,
+    "actualRealPeopleIdentityBindingsCompleted": 0,
+    "nextSingleTechnicalAction": "Remaining original B5 personal account/task/CRM bindings and independent normal usage; accepted carton proof not repeated"
   }
 }

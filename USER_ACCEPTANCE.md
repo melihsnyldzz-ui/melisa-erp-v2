@@ -1,3 +1,7 @@
+## 24 Ekim 23:05 — B5 kişisel iki koli normal kullanımını ajan doğruladı; insan kabulü bekliyor
+
+Kişisel sentetik görev temsilcisi kendi normal ekranında fiş10010'u iki koliye1+1ADET ayırıp bir kez kaydetti; tamreload aynı kimlik/READY iki koli ve1journal isteğiyle geri okundu. Bağımsız kaynak/personel/fiş-etki özetleri aynı; packing ek stok/cari etkisi0. Bu yalnız **Ajan doğruladı** kaydıdır. Gerçek kişi hesabı, fiziksel Android, uzun oturum yenileme veya insan UX PASS değildir. Özgün UA ID/sonuç/kişi/tarih/sayaçlar değişmedi; E2/ilgili insan kabulü **BEKLİYOR**. [Teknik kanıt](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
 ## 24 Ekim11:38 — E1 insan/cihaz kabulü BEKLİYOR
 
 GerçekcleanERP/CRMkurulumu,12HTTPdarownclosuretekrar ve normalERPpersonel/CRMatanmışgörüşme/tamreload teknik olarak doğrulandı. NativeAPKderleme/v2imza/exactCIbaşarısı fizikselAndroid/Keystore/tek-giriş/aç-kapa/insan kabulünün yerine geçmez. BağlıAndroid0/AVD0; özgünUAsonuçları/sayaçlar değişmedi. [STATUS](STATUS.md).
