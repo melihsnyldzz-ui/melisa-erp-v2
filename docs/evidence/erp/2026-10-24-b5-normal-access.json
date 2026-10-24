@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "melisa-clean-b5-delivery-evidence.v1",
+  "observedAt": "2026-10-24T14:38:00+03:00",
+  "scope": "Existing B5 isolated clean TEST technical sub-delivery",
+  "sourceCommit": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+  "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
+  "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54",
+  "commonReport": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6337512025",
+  "runtime": {
+    "database": "MELISA_ERP_CLEAN_TEST_20261022",
+    "files": 3442,
+    "actualT1": false,
+    "synthetic": true,
+    "externalOperations": false,
+    "package": "CLEAN-ERP-20261024-64f273df4e1a-B5CONTEXT",
+    "erpApiSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "manifestSha256": "B944424DC380DBB051F70DC25213125C3098915F009D867F65EE23D45298EEDB",
+    "erpFrontendSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+    "installedAt": "2026-10-24T14:30:31.5345699+03:00",
+    "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+    "crmApplicationSource": "acb2a3a0ce917d68221372e5f21bb788e90475aa"
+  },
+  "ci": {
+    "source": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "requiredJobs": 6,
+    "runs": [
+      "40089724047",
+      "40089721286"
+    ],
+    "conclusion": "success"
+  },
+  "targetedTests": {
+    "overlappingScopesNotSummed": true,
+    "transport": 56,
+    "personalSessionAndPolicy": 20
+  },
+  "normalApiProof": {
+    "normalLoginMs": 253,
+    "cases": 17,
+    "catalogMs": 22,
+    "oldRefreshRejected": true,
+    "source": "86369147dcd106cb3b1040e16d4ead2822f9246d",
+    "reuseBasis": "No apps/api diff between 86369147 and 64f273df",
+    "roleDenials": [
+      "management",
+      "finance"
+    ],
+    "receivingContextMs": 19774,
+    "sameFamilyRefresh": true,
+    "status": "PASS",
+    "ownLogout": true,
+    "salesContextMs": 19246
+  },
+  "normalBrowser": {
+    "longWaitReload": "LOGIN_FORM_OBSERVED_NORMAL_RELOGIN_COMPLETED",
+    "nativeKeystore": "NOT_TESTED",
+    "longSessionRetention": "NOT_PROVEN",
+    "receivingRead": "VERIFIED",
+    "humanAcceptance": "PENDING",
+    "salesRead": "VERIFIED",
+    "credentialFormLogin": "VERIFIED",
+    "newSalesCountsOrApprovals": 0,
+    "observedSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "physicalAndroid": "NOT_TESTED",
+    "samePersonShortReload": "VERIFIED"
+  },
+  "preservation": {
+    "commercialWritesInThisSubDelivery": 0,
+    "otherBusinessScopesUnchangedAfterAccountCreation": 52,
+    "originalTest125Untouched": true,
+    "existingScopesUnchangedAfterFinalGui": 53,
+    "newSyntheticEmployeeLinks": 1,
+    "realEmployeesCreated": 0,
+    "newSyntheticUsers": 1,
+    "originalUserRows": 11,
+    "oldNormalFamiliesPreservedInApiProof": true,
+    "otherListenersPreservedOnFinalInstall": 18,
+    "oldRolesPreserved": true,
+    "originalUserRowsUnchanged": true
+  },
+  "unresolved": [
+    "19-20 second native operational context reads; 30 second UI wait is not a speed improvement",
+    "Native username pattern rejects hyphen and underscore accepted by JS",
+    "Aborted transaction rollback can mask the first native error",
+    "Long desktop session retention and physical Android/Keystore not accepted",
+    "Recorded nine-person account and task/CRM/carton mapping not completed",
+    "Human acceptance remains pending"
+  ],
+  "fullB5Acceptance": "PENDING",
+  "finishCountsUnchanged": {
+    "headings": 17,
+    "erp": 49,
+    "crm": 25,
+    "leaves": 74
+  },
+  "privateEvidence": "Existing owner runtime evidence folder; no private images, secrets or commercial rows published"
+}

@@ -1,3 +1,7 @@
+## 24 Ekim 14:38 — B5 normal personel teknik alt kanıtı kurulu; genel kabul kısmi
+
+ERP API/web64f, 3.442 dosyalı B944 paketi14:30'da kuruldu; exact PR/push altı CI kontrolü başarılı. Yalnız yeni sentetik kullanıcı10021/personel1 bir kez oluşturuldu; eski11 kullanıcı ve diğer52 kapsam korundu. NormalAPI17 kontrolü ve gerçek tarayıcıda giriş/kısa yenileme/satış/mal kabul okuması geçti. Son53 SQL özeti aynı; yeni ticari işlem yok. Native19–20s gecikme, kullanıcı adı karakter uyumsuzluğu, ilk hatayı örten EABORT, uzun masaüstü oturumu ve gerçek kişi/Android/insan kabulü açık. B5 ve özgünUA kapanmadı;49/25/17/74 aynı. Sıradaki teknik iş, güvenliği koruyarak native bağlam okumalarını hızlandırmaktır. [STATUS](STATUS.md), [teslim kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+### Önceki durum — tarihsel
 ## 24 Ekim11:56 — B5 CRM kurulu ve normal ekran kanıtlı; ERP son frontend bağı bekleniyor
 
 CRM sourceacb2/787/55FFpaketi11:51:30TR gerçektentekownerilekuruldu. NormalAPIyeni sentetikpersonel/155ataması17kontrol,normalGUIgiriş/reload/ownlogout/hesapenvanteri ve yalnız yeni ownhesabın kapatılması/401 sonucu doğrulandı. Eski4hesap/53SQLkorundu; gerçek9kişi/insanPASSdeğil. ERPPR58ed815 gerçekmetadata-rollbackprobasıPASS ve exactikiCI3/3SUCCESS; kalıcıkurulumhenüzyok. ÜçSitesfront/modelkopyası mevcutowner'da; ardından tekERPkurulumhalkası. E1statik10actor→yeni membershipkalıcıoturum bağı ayrıdarhazırlık, temelB5'eekgateyok. [STATUS](STATUS.md);49/25/17/74aynı.
