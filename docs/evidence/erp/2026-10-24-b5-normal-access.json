@@ -201,7 +201,7 @@
     "frontendSourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
     "serverLogicBaselineCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
-    "nativeMetadataSource": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
     "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
     "crmSourceUnchanged": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
     "changedPorts": [
@@ -211,7 +211,10 @@
     "preservedCapturedListeners": 18,
     "installedAt": "2026-10-24T18:29:53.2823079+03:00",
     "protectedSessionFilesPreservedAtInstallation": true,
-    "actualNewRoleIds": []
+    "actualNewRoleIds": [],
+    "nativeMetadataInstalledAt": "2026-10-24T18:18:31.877Z",
+    "nativePackingMetadataManifestDigest": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
+    "nativePackingFieldDefault": false
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -847,7 +850,7 @@
   },
   "personalPackingNativeUpgrade": {
     "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
-    "status": "SOURCE_READY_NATIVE_EXECUTION_PENDING",
+    "status": "NATIVE_INSTALLED_NORMAL_USAGE_PENDING",
     "usageOutcome": "Existing B5 outcome2: an explicitly assigned person packs under their own normal account; NOT yet usable in installed TEST",
     "fieldDefault": false,
     "sourceScopeOnly": true,
@@ -991,10 +994,84 @@
       "postDdlFindingFixedInSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
       "actualSqlAcceptance": false
     },
-    "nextSingleTechnicalAction": "Controlled native rollback probe of this exact expected TEST baseline, within a later admitted ERP-owner runtime step; not executed in this source-only stage",
+    "nextSingleTechnicalAction": "Connect existing clean5244 normal packing route/client to4194 with actual personal/native role/task proof; not yet activated",
     "humanAcceptance": "PENDING",
     "b5Completed": false,
     "finishCountsUnchanged": true,
-    "observedAt": "2026-10-24T17:50:16.311Z"
+    "observedAt": "2026-10-24T17:50:16.311Z",
+    "nativeExecution": {
+      "status": "INSTALLED",
+      "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "artifact": {
+        "root": "C:/Sirket/ERP/releases/CLEAN-PERSONNEL-PACKING-UPGRADE-20261024-6c564a5b913c-INSTALL",
+        "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "manifestSha256": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
+        "sqlSha256": "E7CE664F0F2AD52E3FA0A07C03D30A26C3056B0AE500FA5A537E4EE266126277",
+        "status": "ADMITTED_NOT_EXECUTED",
+        "payloadFiles": 3,
+        "totalFiles": 4
+      },
+      "changedExistingModules": 15,
+      "newModules": 2,
+      "canTerminalPackingAssignedRows": 0,
+      "independentReadback": true,
+      "oldEmployee16FieldsAndRowVersionsEqual": true,
+      "all53DataScopesEqual": true,
+      "oldSealsUsersRolesMembersCountsReceiptsAndAuditsEqual": true,
+      "unrelatedNativeMetadataEqual": true,
+      "onlyFourExpectedAppPermissionsAdded": true,
+      "runtimeFilesEqual": true,
+      "listenersPreserved": true,
+      "runtimeRestarted": false,
+      "commercialWrites": 0,
+      "accountOrAssignmentWrites": 0,
+      "normalPackingRouteActivated": false,
+      "guiAcceptance": "NOT_EXECUTED",
+      "humanAcceptance": "PENDING",
+      "sqlElapsedMs": 21191,
+      "observedAt": "2026-10-24T18:18:31.877Z",
+      "rollbackProofs": [
+        {
+          "status": "PASS",
+          "elapsedMs": 20815,
+          "expectedResult": "PERSONNEL_PACKING_UPGRADE_PROBE_ROLLED_BACK",
+          "metadataEqual": true,
+          "oldEmployeesRowVersionsUsersRolesSealsCountsAndAuditsEqual": true,
+          "all53DataScopesEqual": true
+        },
+        {
+          "status": "PASS",
+          "elapsedMs": 21303,
+          "expectedResult": "PACKING_BAD_DEFINITION_REJECTED_AND_ROLLED_BACK",
+          "metadataEqual": true,
+          "oldEmployeesRowVersionsUsersRolesSealsCountsAndAuditsEqual": true,
+          "all53DataScopesEqual": true
+        },
+        {
+          "status": "PASS",
+          "elapsedMs": 20917,
+          "expectedResult": "PACKING_UNREADABLE_DEFINITION_REJECTED_AND_ROLLED_BACK",
+          "metadataEqual": true,
+          "oldEmployeesRowVersionsUsersRolesSealsCountsAndAuditsEqual": true,
+          "all53DataScopesEqual": true
+        }
+      ],
+      "replay": {
+        "runtimeRestarted": false,
+        "metadataEqual": true,
+        "all53DataScopesEqual": true,
+        "observedAt": "2026-10-24T21:19:16.8323764+03:00",
+        "elapsedMs": 14108,
+        "status": "PASS",
+        "protectedOldEmployeeUsersRolesSealsCountReceiptEqual": true,
+        "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "secondEffect": false,
+        "sqlExit": 0
+      },
+      "freshCopyOnlyBackupChecksumAndVerifyOnly": true,
+      "restorePerformed": false,
+      "actualPrecursorModules": 35,
+      "privateEvidencePrefix": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-packing-native"
+    }
   }
 }
