@@ -5,6 +5,7 @@ import {createWorkSales} from './workSales.js';
 import {createWorkCount} from './workCount.js';
 import {createWorkSupplierReturns} from './workSupplierReturns.js';
 import {createCartonPacking} from './cartonPacking.js';
+import {isCleanCatalogLocation,cleanCatalogEnvironmentId} from './cleanSyntheticCatalogModel.mjs';
 import {compactTerminalHelp} from './terminalCompactHelp.mjs';
 import {moneyDisplay,catalogPath,catalogEnvelope,catalogMainPrice,catalogExact} from './workCatalogModel.mjs';
 import {createCatalogPhotoLoader,createCatalogThumbnailLoader} from './workCatalogPhoto.mjs';
@@ -57,7 +58,7 @@ function go(value,{initial=false}={}){
  if(!user){showLogin();return true;}
  if(route==='home')home();else if(route==='crm')openCrm();else if(route==='products'){controller=products();controller.mount();}else if(route==='packing'){
   const scoped=client(),base='/api/terminal-cartons/receipts';
-  controller=createCartonPacking({root,user,scopeKey:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount(); // gitleaks:allow -- fixed public TEST copy UUID; not a credential.
+  controller=createCartonPacking({root,user,scopeKey:isCleanCatalogLocation(location)?cleanCatalogEnvironmentId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount(); // gitleaks:allow -- fixed public TEST copy UUID; not a credential.
  }else{
   const args={root,session:client(),user,storage:localStorage,navigate:go};
   controller=route==='goods'?createWorkReceiving(args):route==='sales'?createWorkSales(args):route==='count'?createWorkCount(args):createWorkSupplierReturns(args);

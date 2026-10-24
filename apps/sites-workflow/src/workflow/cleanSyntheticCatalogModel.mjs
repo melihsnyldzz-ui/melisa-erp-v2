@@ -1,4 +1,5 @@
 const environmentId='e662fd94-d797-4b3b-938a-d143ad758b67';
+export {environmentId as cleanCatalogEnvironmentId};
 const fail=()=>{throw Error('Örnek katalog kimliği doğrulanamadı.');};
 export const isCleanCatalogLocation=l=>l?.protocol==='http:'&&['127.0.0.1','localhost','192.168.1.46','100.87.188.3'].includes(l.hostname)&&l.port==='5244';
 export function isCleanCatalogMeta(meta,location=globalThis.location){return isCleanCatalogLocation(location)&&meta?.environment==='CLEAN_SYNTHETIC_TEST'&&meta.environmentId===environmentId&&meta.synthetic===true&&meta.actualT1===false&&meta.externalOperations===false;}

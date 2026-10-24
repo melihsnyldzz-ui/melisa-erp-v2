@@ -34,6 +34,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
  const cartonReadTarget=cartonReadOrigin(location,copyProfile);
  const resolvedApiBase=resolveTestApiBase({location,apiBase});
+ const cleanCartonTarget=isCleanCatalogLocation(location)&&resolvedApiBase!==null&&apiBase==='http://127.0.0.1:4194';
  let active=true,token=null,user=null,generation=0,switching=false,deviceToken=null,refreshToken=null,expiresAt=0,renewing=null;const controllers=new Set();
  const target=()=>isTestSessionTarget({location,apiBase});
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
@@ -192,8 +193,8 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   },
   async cartons(path,{method='GET',body,...extra}={}){
    const route=/^\/api\/terminal-cartons\/receipts(?:\/[1-9]\d{0,18})?$/;
-   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!cartonReadTarget||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
-   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:true})).data;
+   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!(cartonReadTarget||cleanCartonTarget)||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:!!cartonReadTarget})).data;
   },
   async inbound(path,{method='GET',body,...extra}={}){
    const read=/^\/api\/(?:test-daily\/(?:count|purchase)|work-receiving\/(?:context|home|count-drafts(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-purchases\/(?:context|drafts\/[1-9]\d*|fx\/(?:context|drafts\/[1-9]\d*))|work-suppliers\/(?:context|history))$/;

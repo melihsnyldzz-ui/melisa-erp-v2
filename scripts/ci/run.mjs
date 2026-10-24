@@ -65,6 +65,7 @@ if (mode === 'quality') {
   run(['--test', path.join(root, 'scripts/canonical/clean-personnel-inbound-owner.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/clean-personnel-packing.test.mjs'), path.join(root, 'apps/api/src/services/cleanPersonnelPacking.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/clean-personnel-packing-upgrade.test.mjs')]);
+  run(['--test', path.join(root, 'apps/api/src/services/cleanTerminalCartonService.test.mjs'), path.join(root, 'apps/sites-workflow/src/workflow/cleanCartonSession.test.mjs')]);
   run(['--experimental-test-module-mocks','--test',path.join(root,'apps/api/src/services/personnelPackingService.test.mjs')]);
   run(['--experimental-test-module-mocks','--test','--test-name-pattern=packing task row-version',path.join(root,'apps/api/src/services/authCleanPersonalSession.test.mjs')]);
   run(['--test', path.join(root, 'apps/api/src/services/cleanStoreDayScope.test.mjs')]);
