@@ -69,3 +69,11 @@ test('duplicate/missing metadata cannot hide a module and replay preserves later
   for(const old of ['usp_clean_ready_expression_ready','usp_clean_personnel_username_ready'])if(p.before[n].includes(`OBJECT_ID(N'dbo.${old}')`))assert.ok(body.includes(`JSON_VALUE(@packingPredecessors,N'$.${old}')`),n+' literal precursor');
  }
 });
+test('EXECUTE AS OWNER also proves the actual object/schema owner and preserves it in the before image',()=>{
+ const p=compiler.buildCleanPersonnelPackingUpgradeDefinitions(),sql=compiler.buildCleanReadyExpressionRepairSql({packingUpgrade:true});
+ assert.ok(p.definitions[p.guard].includes("ISNULL(COALESCE(o.principal_id,s.principal_id),-999)<>DATABASE_PRINCIPAL_ID(N'dbo')"));
+ assert.ok(sql.includes("ISNULL(COALESCE(o.principal_id,s.principal_id),-999)=DATABASE_PRINCIPAL_ID(N'dbo')"));
+ assert.match(sql,/before_owner_principal_id int NULL,before_schema_owner_principal_id int NULL/);
+ assert.match(sql,/COALESCE\(before_owner_principal_id,before_schema_owner_principal_id\)/);
+ assert.doesNotMatch(sql,/ALTER AUTHORIZATION|sp_changedbowner|CREATE USER|ALTER ROLE/);
+});
