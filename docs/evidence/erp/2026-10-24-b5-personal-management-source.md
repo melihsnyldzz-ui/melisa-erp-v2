@@ -72,6 +72,12 @@ bu testlerle kurulu doğrulanmış sayılmaz. Yeni kişisel kullanıcıyla satı
 mal kabul, sayım veya finans işlemi bu teslimde başarılı gösterilmedi.
 Build'in mevcut lucide/chunk boyutu uyarıları sürer.
 
+İlk PR CI40077308840 API aşamasında, yedi yeni sabit hata kodunun mevcut
+logger sözlüğüne kaydedilmemesi nedeniyle başarısız oldu. Kodlar kapalı mevcut
+sözlüğe tek tek eklendi; ham hata/parola metnine veya bir kod önekine izin
+verilmedi. Değişen logger kapsamının mevcut21 kontrolü PASS. Bu düzeltme yeni
+head'in CI sonucunu bekler; ilk başarısız çalışma gizlenmez.
+
 ## Tek sonraki uygulama adımı
 
 ERP sahibi exact kaynak/CI ve kendi güncel E1 değişiklikleriyle çakışma incelemesi
