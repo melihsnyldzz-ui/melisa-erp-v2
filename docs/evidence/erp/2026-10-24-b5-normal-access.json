@@ -12,14 +12,15 @@
     "actualT1": false,
     "synthetic": true,
     "externalOperations": false,
-    "package": "CLEAN-ERP-20261024-64f273df4e1a-B5CONTEXT",
+    "package": "CLEAN-ERP-20261022-64f273df4e1a",
     "erpApiSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
     "manifestSha256": "B944424DC380DBB051F70DC25213125C3098915F009D867F65EE23D45298EEDB",
     "erpFrontendSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
     "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
     "installedAt": "2026-10-24T14:30:31.5345699+03:00",
     "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
-    "crmApplicationSource": "acb2a3a0ce917d68221372e5f21bb788e90475aa"
+    "crmApplicationSource": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
+    "releaseDirectory": "CLEAN-ERP-20261024-64f273df4e1a-B5CONTEXT"
   },
   "ci": {
     "source": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
