@@ -38,6 +38,11 @@ test('real PS5 task definition is offline, exact clean runner, daily, interactiv
     ['-Profile', 'Clean20261022', '-Mode', 'TaskDefinition', '-OwnerSid', 'SYSTEM'],
     ['-Profile', 'Clean20261022', '-Mode', 'TaskDefinition', '-OwnerSid', sid, '-RunId', '..\\OLD'],
   ]) assert.throws(() => run([source, ...args]));
+  // ValidateSet must not admit a spelling that misses the case-sensitive dispatch.
+  for (const args of [
+    ['-Profile', 'clean20261022', '-Mode', 'TaskDefinition', '-OwnerSid', sid],
+    ['-Profile', 'Clean20261022', '-Mode', 'taskdefinition', '-OwnerSid', sid],
+  ]) assert.throws(() => run([source, ...args]), error => String(error.stderr).includes('ParameterArgumentValidationError'));
 });
 
 test('real PS5 exact clean identity rejects other server/database/environment, T1, external operations and missing flags', windows, async () => {

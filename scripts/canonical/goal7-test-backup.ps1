@@ -1,6 +1,6 @@
 param(
- [ValidateSet('Preflight','Backup','TaskDefinition')][string]$Mode='Preflight',
- [ValidateSet('Goal7','Clean20261022')][string]$Profile='Goal7',
+ [ValidateSet('Preflight','Backup','TaskDefinition',IgnoreCase=$false)][string]$Mode='Preflight',
+ [ValidateSet('Goal7','Clean20261022',IgnoreCase=$false)][string]$Profile='Goal7',
  [string]$RunId='',
  [string]$OwnerSid='',
  [ValidatePattern('^(?:[01][0-9]|2[0-3]):[0-5][0-9]$')][string]$DailyAt='03:00'
