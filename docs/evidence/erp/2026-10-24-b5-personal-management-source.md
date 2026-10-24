@@ -116,3 +116,36 @@ rolü vermek tek başına satış/mal kabul/sayım/finansı çalıştırmaz. En 
 
 Genel writeGuard/auth/permission kapatma, yeni yönetim motoru, gerçek SQL yazısı,
 runtime değişikliği, main merge, yayın veya insan kabulü yapılmadı.
+
+## 24 Ekim 11.40 TR: kurulu önkoşul eksikliğinin kaynak düzeltmesi
+
+ERP sahibinin gerçek rollback-probe sonucu `51972/CLEAN_PERSONNEL_DENIED`,
+üretilen SQL satır24 olarak geldi. Sahibin salt okunur ayrımı: `dbo.employees`
+yok; `terminal_devices` ve `sales_invoices` gerçek tablolardır ama sırasıyla
+`assigned_employee_id` ve `employee_id` eksiktir. Bu kurulu bulgu kaynak testinin
+gösteremediği eksiktir; ilk probe başarılı sayılmadı veya aynen tekrarlanmadı.
+
+Mevcut `0013_personnel_terminal_sales.sql` ve
+`0014_personnel_operational_restrictions.sql` kaynaklarının yalnız şema gövdeleri
+aynı yönetim kurucusuna alındı. On bir canonical DDL bloğu mevcut exact-clean
+kimlik kontrolü, kaynak hash denetimi, kilit ve tek transaction içinde çalışır.
+Her DDL sonraki bloğun derlenmesinden önce tamamlanır; kaynak migration'ın
+bağımsız transaction/LIVE hedef kontrolleri bu temiz hedefe çalıştırılmaz.
+
+Kapsam boş personel tablosu, mevcut terminal/satış tablolarına NULL ilişki
+sütunları, canonical FK/indeksler ve üç personel kısıt alanıdır. Geçmiş satış
+sahibi atanmaz, cihaz bağlanmaz, kişi/rol/işlem kaydı eklenmez. Yeni tablonun
+normal envanter okuması için yalnız `employees` SELECT izni eklenir; native
+yazma guard'ları ve DELETE reddi korunur. Yanlış nesne türü, uyumsuz sütun,
+kimlik, ilişki, benzersizlik veya default düzeltme adıyla ezilmez; ret verir.
+Personel servisinin mevcut şema guard'ı kaldırılmadı.
+
+Değişen altı kaynak kontrolü PASS. Microsoft ScriptDom ile 18 mevcut native
+tanım, 11 migration bloğu, önkoşul gövdesi, kurulum ve probe: 32 kaynak girdisi,
+sıfır sözdizimi hatası. `c4d4eb81` kaynak dilimindeki 18 stored definition ve
+öncüllerin byte eşliği ayrıca doğrulandı; PR59 kişisel işlem devamının native
+öncül hash'leri değişmedi. Bu kontroller gerçek SQL yürütme değildir.
+
+Sonraki uygulama yine yalnız ERP sahibindedir: düzeltilmiş exact kaynak/CI ile
+aynı temiz hedefte bir rollback-probe; ancak gerçek SQL kabulü gelirse kendi
+normal yönetim kurulum ve ekran denemesi. Bu çocuk görev SQL çalıştırmadı.

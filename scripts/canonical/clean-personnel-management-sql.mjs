@@ -7,6 +7,7 @@ import {CLEAN_TARGET_SQL} from './clean-synthetic-sql.mjs';
 import {CLEAN_LOGIN} from '../../apps/api/src/services/cleanSyntheticContext.mjs';
 import {CLEAN_PERSONNEL_ROLES} from '../../apps/api/src/services/cleanPersonnelManagement.mjs';
 import {moduleHash} from './stage4-copy-sql.mjs';
+import {readFileSync} from 'node:fs';
 const Q=s=>"N'"+s.replaceAll("'","''")+"'";
 const deny="THROW 51972,'CLEAN_PERSONNEL_DENIED',1;";
 const active='SELECT 1 FROM dbo.clean_personnel_intents WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID()';
@@ -14,6 +15,39 @@ const allowedRole=(id,code)=>'('+Object.entries(CLEAN_PERSONNEL_ROLES).map(([n,c
 const unchanged=fields=>`IF EXISTS(SELECT 1 FROM OPENJSON(JSON_QUERY(@inserted,'$[0]')) i FULL JOIN OPENJSON(JSON_QUERY(@deleted,'$[0]')) d ON i.[key]=d.[key] WHERE COALESCE(i.[key],d.[key]) NOT IN(${fields.map(Q).join(',')}) AND(i.[key] IS NULL OR d.[key] IS NULL OR i.type<>d.type OR ISNULL(i.value,N'') COLLATE Latin1_General_100_BIN2<>ISNULL(d.value,N'') COLLATE Latin1_General_100_BIN2)) ${deny}`;
 const J=(name,from='@inserted')=>`JSON_VALUE(${from},'$[0].${name}')`;
 const N=name=>`ISNULL(TRY_CONVERT(bigint,${J(name)}),-1)`;
+// Reuse only the schema bodies of the established personnel migrations. Their
+// original LIVE database guards and independent transactions are not executed;
+// the existing exact clean target, lock and atomic installer own this context.
+// Each top-level IF is compiled after the previous DDL, including new columns.
+export function cleanPersonnelSchemaBatches(){
+ return [['0013_personnel_terminal_sales.sql',7],['0014_personnel_operational_restrictions.sql',4]].flatMap(([name,count])=>{
+  const source=readFileSync(new URL('../../infra/sql/migrations/'+name,import.meta.url),'utf8');
+  const start=source.indexOf('BEGIN TRANSACTION;'),end=source.indexOf('COMMIT TRANSACTION;',start);
+  if(start<0||end<0)throw Error('Canonical personnel migration boundary changed');
+  const body=source.slice(start+'BEGIN TRANSACTION;'.length,end).replace(/^GO\s*$/gm,'').trim();
+  const batches=body.split(/(?=^IF )/m).map(b=>b.trim()).filter(Boolean);
+  if(batches.length!==count||batches.some(b=>!b.startsWith('IF ')||/\b(?:INSERT|UPDATE|DELETE|MERGE|TRUNCATE|DROP|EXEC(?:UTE)?)\b|\b(?:BEGIN|COMMIT|ROLLBACK) TRANSACTION\b/i.test(b)))throw Error('Canonical personnel migration scope changed');
+  return batches;
+ });
+}
+const personnelColumns=[
+ ['id','bigint',8,0,1],['employee_code','nvarchar',100,0,0],['full_name','nvarchar',300,0,0],['phone','nvarchar',80,1,0],['department','nvarchar',200,1,0],['job_title','nvarchar',200,1,0],['user_id','bigint',8,1,0],['is_active','bit',1,0,0],['created_at','datetime2',null,0,0],['created_by','bigint',8,1,0],['updated_at','datetime2',null,1,0],['updated_by','bigint',8,1,0],['row_version','timestamp',8,0,0],['can_terminal_sale','bit',1,0,0],['can_change_sale_price','bit',1,0,0],['max_sale_discount_percent','decimal',null,0,0]
+];
+const personnelShape=`EXISTS(SELECT 1 FROM(VALUES ${personnelColumns.map(([n,t,len,nullable,identity])=>`(${Q(n)},${Q(t)},${len??'NULL'},${nullable},${identity})`).join(',')}) expected(name,type_name,max_length,is_nullable,is_identity) LEFT JOIN sys.columns c ON c.object_id=OBJECT_ID(N'dbo.employees',N'U') AND c.name=expected.name WHERE c.column_id IS NULL OR TYPE_NAME(c.system_type_id)<>expected.type_name OR expected.max_length IS NOT NULL AND c.max_length<>expected.max_length OR c.is_nullable<>expected.is_nullable OR c.is_identity<>expected.is_identity OR c.is_computed<>0 OR(expected.type_name=N'datetime2' AND c.scale<>0)OR(expected.name=N'max_sale_discount_percent' AND(c.precision<>5 OR c.scale<>2)))`;
+const personnelLinks=[['employees','user_id','FK_employees_users','users'],['terminal_devices','assigned_employee_id','FK_terminal_devices_employees','employees'],['sales_invoices','employee_id','FK_sales_invoices_employees','employees']];
+const personnelIndexes=[['employees','PK_employees',1,'id'],['employees','UQ_employees_employee_code',1,'employee_code'],['employees','IX_employees_active_name',0,'is_active,full_name,id'],['employees','UX_employees_user_id',1,'user_id'],['terminal_devices','IX_terminal_devices_assigned_employee',0,'assigned_employee_id,is_active,id'],['sales_invoices','IX_sales_invoices_employee_date',0,'employee_id,document_date,status,id']];
+export function buildCleanPersonnelSchemaSql(){
+ const bad="THROW 51972,'B5_MANAGEMENT_PERSONNEL_SCHEMA_INCOMPATIBLE',1;";
+ return `IF OBJECT_ID(N'dbo.terminal_devices',N'U') IS NULL OR OBJECT_ID(N'dbo.sales_invoices',N'U') IS NULL OR(OBJECT_ID(N'dbo.employees') IS NOT NULL AND OBJECT_ID(N'dbo.employees',N'U') IS NULL) ${bad}
+ IF OBJECT_ID(N'dbo.employees',N'U') IS NOT NULL AND ${personnelShape} ${bad}
+ ${personnelLinks.slice(1).map(([table,col])=>`IF COL_LENGTH(N'dbo.${table}',N'${col}') IS NOT NULL AND NOT EXISTS(SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.${table}',N'U') AND name=N'${col}' AND system_type_id=127 AND is_nullable=1 AND is_computed=0 AND is_identity=0) ${bad}`).join('\n')}
+ ${cleanPersonnelSchemaBatches().map(b=>`EXEC(${Q(b)});`).join('\n')}
+ IF ${personnelShape} ${bad}
+ ${personnelLinks.map(([table,col,fk,target])=>`IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys f JOIN sys.foreign_key_columns c ON c.constraint_object_id=f.object_id WHERE f.parent_object_id=OBJECT_ID(N'dbo.${table}',N'U') AND f.name=N'${fk}' AND f.referenced_object_id=OBJECT_ID(N'dbo.${target}',N'U') AND f.is_disabled=0 AND f.is_not_trusted=0 AND f.delete_referential_action=0 AND f.update_referential_action=0 AND c.parent_column_id=COLUMNPROPERTY(f.parent_object_id,N'${col}',N'ColumnId') AND c.referenced_column_id=COLUMNPROPERTY(f.referenced_object_id,N'id',N'ColumnId') AND(SELECT COUNT(*) FROM sys.foreign_key_columns x WHERE x.constraint_object_id=f.object_id)=1) ${bad}`).join('\n')}
+ ${personnelIndexes.map(([table,name,unique,columns])=>`IF NOT EXISTS(SELECT 1 FROM sys.indexes i WHERE i.object_id=OBJECT_ID(N'dbo.${table}',N'U') AND i.name=N'${name}' AND i.is_unique=${unique} AND i.is_disabled=0 ${name==='PK_employees'?'AND i.is_primary_key=1':name==='UQ_employees_employee_code'?'AND i.is_unique_constraint=1':''} AND(SELECT STRING_AGG(CONVERT(nvarchar(max),c.name),N',') WITHIN GROUP(ORDER BY k.key_ordinal) FROM sys.index_columns k JOIN sys.columns c ON c.object_id=k.object_id AND c.column_id=k.column_id WHERE k.object_id=i.object_id AND k.index_id=i.index_id AND k.key_ordinal>0)=N'${columns}' AND ${name==='UX_employees_user_id'?"LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(i.filter_definition,N'(',N''),N')',N''),N'[',N''),N']',N''),N' ',N''))=N'user_idisnotnull'":"i.has_filter=0"}) ${bad}`).join('\n')}
+ ${[['is_active','1'],['created_at','sysutcdatetime'],['can_terminal_sale','1'],['can_change_sale_price','0'],['max_sale_discount_percent','0']].map(([column,value])=>`IF NOT EXISTS(SELECT 1 FROM sys.default_constraints d JOIN sys.columns c ON c.object_id=d.parent_object_id AND c.column_id=d.parent_column_id WHERE d.parent_object_id=OBJECT_ID(N'dbo.employees',N'U') AND c.name=N'${column}' AND LOWER(REPLACE(REPLACE(REPLACE(d.definition,N'(',N''),N')',N''),N' ',N''))=N'${value}') ${bad}`).join('\n')}
+ IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.employees',N'U') AND name=N'CK_employees_max_sale_discount' AND is_disabled=0 AND is_not_trusted=0 AND LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(definition,N'(',N''),N')',N''),N'[',N''),N']',N''),N' ',N''))=N'max_sale_discount_percent>=0andmax_sale_discount_percent<=100') ${bad}`;
+}
 const load=`${CLEAN_TARGET_SQL}
  IF ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${CLEAN_LOGIN}' OR @@TRANCOUNT<>1 OR ISNULL(APPLOCK_MODE(N'public',N'CLEAN_STORE_DAY_20261022',N'Transaction'),N'NoLock')<>N'Exclusive' OR(SELECT COUNT(*) FROM dbo.clean_personnel_intents WHERE session_id=@@SPID AND transaction_id=CURRENT_TRANSACTION_ID())<>1 ${deny}
  DECLARE @op nvarchar(24),@actor bigint,@target bigint,@payload nvarchar(max),@changed int,@audited int;
@@ -122,8 +156,9 @@ export function buildCleanPersonnelManagementSql({probe=false}={}){
  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
  DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${deny}
  EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_contact_ready;
- IF COL_LENGTH(N'dbo.employees',N'can_terminal_sale') IS NULL OR COL_LENGTH(N'dbo.employees',N'can_change_sale_price') IS NULL OR COL_LENGTH(N'dbo.employees',N'max_sale_discount_percent') IS NULL ${deny}
  ${Object.entries(before).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${Q(moduleHash(b))} THROW 51972,${Q('B5_MANAGEMENT_PREDECESSOR_'+n)},1;`).join('\n')}
+ ${buildCleanPersonnelSchemaSql()}
+ IF COL_LENGTH(N'dbo.employees',N'can_terminal_sale') IS NULL OR COL_LENGTH(N'dbo.employees',N'can_change_sale_price') IS NULL OR COL_LENGTH(N'dbo.employees',N'max_sale_discount_percent') IS NULL ${deny}
  CREATE TABLE dbo.clean_personnel_manifest(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL);
  CREATE TABLE dbo.clean_personnel_members(user_id bigint NOT NULL PRIMARY KEY REFERENCES dbo.users(id),employee_id bigint NULL REFERENCES dbo.employees(id),created_by bigint NOT NULL REFERENCES dbo.users(id),created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
  CREATE UNIQUE INDEX UX_clean_personnel_employee ON dbo.clean_personnel_members(employee_id) WHERE employee_id IS NOT NULL;
@@ -131,6 +166,7 @@ export function buildCleanPersonnelManagementSql({probe=false}={}){
  ${Object.entries(definitions).sort(([a],[b])=>(a==='clean_personnel_manifest_immutable'?1:0)-(b==='clean_personnel_manifest_immutable'?1:0)).map(([n,b])=>`INSERT dbo.clean_personnel_manifest VALUES(${Q(n)},${before[n]?Q(moduleHash(before[n])):'NULL'},${Q(moduleHash(b))},${before[n]?Q(before[n]):'NULL'});EXEC(${Q(b.replace(/^CREATE PROCEDURE/,before[n]?'ALTER PROCEDURE':'CREATE PROCEDURE').replace(/^CREATE TRIGGER/,before[n]?'ALTER TRIGGER':'CREATE TRIGGER'))});`).join('\n')}
  ${['manifest','members','intents'].map(t=>`DENY INSERT,UPDATE,DELETE ON dbo.clean_personnel_${t} TO [${CLEAN_LOGIN}];`).join('\n')}
  GRANT SELECT ON dbo.clean_personnel_members TO [${CLEAN_LOGIN}];
+ GRANT SELECT ON dbo.employees TO [${CLEAN_LOGIN}];
  GRANT INSERT,UPDATE ON dbo.users TO [${CLEAN_LOGIN}];GRANT INSERT,UPDATE ON dbo.employees TO [${CLEAN_LOGIN}];DENY DELETE ON dbo.users TO [${CLEAN_LOGIN}];DENY DELETE ON dbo.employees TO [${CLEAN_LOGIN}];
  GRANT EXECUTE ON dbo.usp_clean_personnel_bind TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_personnel_finish TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.usp_clean_personnel_ready TO [${CLEAN_LOGIN}];
  EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_contact_ready;EXEC dbo.usp_clean_personnel_ready;
