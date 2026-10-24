@@ -1,3 +1,12 @@
+## 24 Ekim13:25 — B5 metadata kurulu; ERP başlangıç timeout kurtarması sürüyor
+
+CRM acb2 B5 normal ekran kanıtı korunur. ERP bee297/3440dosya/exact6CI başarılı adayın metadata kurulum12:56 ve replay12:58 makbuzları tamam: eski role/izin satırları ile53korunan işözeti aynı; yeni ERP hesap/ticari kayıt0. API/web başlangıcı başarısız, otomatik f4 dönüşü de ETIMEOUT:4194/5244 şu an kapalı. Native4196/CRM62800–03 ve eski TEST125 korunur. Bu aday **kurulu çalışan teslim değildir**.
+
+Minimum uygulama hesabında saltokur ölçüm: kimlik198ms, fullready19.857ms; yinelenen finance+ready10.324/10.354ms, varsayılan10s sınırını aşıyor. İlk tanı aracının UUID harf kontrolü mevcut assertCleanIdentity ile düzeltildi; ilk FAILED korunur. Yeni startup helper finans/envanter manifest kontrolleri +tamready'yi yalnız bir30sisteğinde çalıştırır; identity/normalistek10s, native4196profili, DB/auth/işlemguardları aynı; cache/atlama/yazı yok.6hedef testPASS; yanlış guard dosya uzantılı ilk test hazırlığı başarısızdı, doğru mevcutCJSguardile geçti. Gerçek minimumappSQL yeni tekbatch19.701msPASS. Private b5-readiness-app-measure-v2.json ve b5-readiness-startup-single.json.
+
+**Sıradaki:** bağımsız kaynak inceleme/exactCI/yeni mühürlüpaket→tekowner4194/5244kurtarması→normalgiriş/ekran/yenileme. Aynıbee/f4kurulumu tekrar edilmez; metadata tekrar kurulmaz. Kişisel9hesap/cihaz/Keystore/insan/Windows/C5ilkzamanlımakbuz açık,49/25/17/74aynı. LIVE/Vega/T1/main/gerçekmüşteri/ticariişlem/ücretliservis yok.
+
+### Önceki birleşik kaynak kaydı — tarihsel
 ## 24 Ekim — C6 kaynak uyarlaması ve salt okunur yedek önkontrolü
 
 Mevcut `scripts/canonical/goal6-backup-restore.ps1 -Profile Clean20261022 -Mode Preflight` gerçek sabit clean kaynak/var olan B7 yedeği/önerilen boş restore hedefinde çalıştı. SQL HEADERONLY/FILELISTONLY, kaynak E662/synthetic/T1false/externalfalse, COPY_ONLY/checksum/tam-set kimliği, bütün mantıksal dosyalar, boş DB/dizin ve disk alanı doğrulandı; yedek hash'i önce/sonra aynı. Başlık24Ekim02:29:58–02:29:59/2dosya,~1,141GiB gerekli/~40,90GiB müsait. Başlık saati timezone alanı taşımaz. Makbuz private mevcut `c6-clean-backup-preflight.json`; ham SQLmetadata GitHub'a taşınmadı.

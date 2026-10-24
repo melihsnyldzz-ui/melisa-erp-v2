@@ -13,9 +13,10 @@ import {createWorkSupplierPaymentRoutes} from './routes/workSupplierPaymentRoute
 import {assertCleanEnvironment,registerCleanContext,CLEAN_IDENTITY_SQL,assertRegisteredCleanContext} from './services/cleanSyntheticContext.mjs';
 import {cleanProtectedSessionReadAllowed} from './services/normalTestRefreshSession.mjs';
 import {terminalHandoffRequestAllowed,createTerminalHandoffRuntime} from './services/terminalHandoffRuntime.mjs';
+import {validateCleanOperationalStartup} from './services/cleanSyntheticStartup.mjs';
 assertCleanEnvironment();
 const probe=await new sql.ConnectionPool({server:'127.0.0.1',port:1433,database:process.env.SQL_DATABASE,user:process.env.SQL_USER,password:process.env.SQL_PASSWORD,options:{encrypt:false,trustServerCertificate:true},connectionTimeout:10000,requestTimeout:10000}).connect();
-try{registerCleanContext((await probe.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);if(process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_STORE_DAY==='20261022')await new sql.Request(probe,{requestTimeout:30000}).execute('dbo.usp_clean_store_day_ready');if(process.env.API_PORT==='4194'&&process.env.MELISA_CLEAN_FINANCE==='20261022')await probe.request().query("IF OBJECT_ID(N'dbo.clean_store_finance_manifest') IS NULL THROW 51960,'CLEAN_INBOUND_COHORT_DRIFT',1;EXEC dbo.usp_clean_store_day_ready;");}finally{await probe.close();}
+try{registerCleanContext((await probe.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);await validateCleanOperationalStartup({pool:probe,sql});}finally{await probe.close();}
 const [{default:express},{default:cors},{createApp},{requireAuth,requirePermission},{crmOrderV2Routes},{readCleanCatalog,readCleanPhoto},{errorHandler},{createWorkCollectionRoutes}]=await Promise.all([import('express'),import('cors'),import('./app.js'),import('./middleware/authMiddleware.js'),import('./routes/crmOrderV2Routes.mjs'),import('./services/cleanSyntheticCatalog.mjs'),import('./middleware/errorHandler.js'),import('./routes/workCollectionRoutes.mjs')]);
 const cleanOrigins=['http://127.0.0.1:5244','http://localhost:5244','http://127.0.0.1:62800'];
 if(process.env.MELISA_CLEAN_UI_NETWORK==='lan-tailscale-20261022')for(const host of ['192.168.1.46','100.87.188.3'])for(const port of [5244,62800])cleanOrigins.push(`http://${host}:${port}`);
@@ -72,7 +73,6 @@ if(financeEnabled()){
  app.get('/api/work-sales/requests/:id',requireAuth,requirePermission('sales.view'),saleHandle(req=>directSales.request(req.params.id,req.user)));
 }
 if(inventoryEnabled()){
- const {getSqlPool}=await import('./config/database.js');await(await getSqlPool()).request().query("IF OBJECT_ID(N'dbo.clean_store_inventory_manifest') IS NULL THROW 51960,'CLEAN_INBOUND_COHORT_DRIFT',1;EXEC dbo.usp_clean_store_day_ready;");
  const {testDailyRoutes}=await import('./routes/testDailyRoutes.mjs');
  app.use('/api',(req,res,next)=>{if(req.path.startsWith('/test-daily/')&&!(req.method==='GET'&&/^\/test-daily\/(?:count|purchase)$/.test(req.path)||req.method==='POST'&&/^\/test-daily\/(?:count|purchase)\/(?:draft|approve|reject|cancel)$/.test(req.path)))return res.status(403).json({success:false,error:{code:'CLEAN_TEST_OPERATION_DISABLED',message:'Bu günlük işlem açık değil.'}});next();},testDailyRoutes);
 }

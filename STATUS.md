@@ -1,3 +1,12 @@
+## 24 Ekim13:25 — B5 metadata kurulu; ERP başlangıç timeout kurtarması sürüyor
+
+CRM acb2 B5 normal ekran kanıtı korunur. ERP bee297/3440dosya/exact6CI başarılı adayın metadata kurulum12:56 ve replay12:58 makbuzları tamam: eski role/izin satırları ile53korunan işözeti aynı; yeni ERP hesap/ticari kayıt0. API/web başlangıcı başarısız, otomatik f4 dönüşü de ETIMEOUT:4194/5244 şu an kapalı. Native4196/CRM62800–03 ve eski TEST125 korunur. Bu aday **kurulu çalışan teslim değildir**.
+
+Minimum uygulama hesabında saltokur ölçüm: kimlik198ms, fullready19.857ms; yinelenen finance+ready10.324/10.354ms, varsayılan10s sınırını aşıyor. İlk tanı aracının UUID harf kontrolü mevcut assertCleanIdentity ile düzeltildi; ilk FAILED korunur. Yeni startup helper finans/envanter manifest kontrolleri +tamready'yi yalnız bir30sisteğinde çalıştırır; identity/normalistek10s, native4196profili, DB/auth/işlemguardları aynı; cache/atlama/yazı yok.6hedef testPASS; yanlış guard dosya uzantılı ilk test hazırlığı başarısızdı, doğru mevcutCJSguardile geçti. Gerçek minimumappSQL yeni tekbatch19.701msPASS. Private b5-readiness-app-measure-v2.json ve b5-readiness-startup-single.json.
+
+**Sıradaki:** bağımsız kaynak inceleme/exactCI/yeni mühürlüpaket→tekowner4194/5244kurtarması→normalgiriş/ekran/yenileme. Aynıbee/f4kurulumu tekrar edilmez; metadata tekrar kurulmaz. Kişisel9hesap/cihaz/Keystore/insan/Windows/C5ilkzamanlımakbuz açık,49/25/17/74aynı. LIVE/Vega/T1/main/gerçekmüşteri/ticariişlem/ücretliservis yok.
+
+### Önceki birleşik kaynak kaydı — tarihsel
 ## 24 Ekim12:37 — B5 birleşik native proba geçti; yeni aday kurulumu hazırlanıyor
 
 Yeni PR59 uyumunda SQL CASE sınırı Msg125 bulundu; eski kabul edilen ed815 tek başına tekrar açılmadı. Yalnız yeni iki hash fallback COALESCE→ISNULL dar düzeltmesi, önceFAIL/sonra12metadataPASS ve bağımsız kaynakreview0 ile doğrulandı. Birleşik yeni gerçekSQL rollback12:36:48PASS;metadata/grants/eskirole-izinrows/53işözeti aynı, hesap/restart0. Kimlik sayaçlarında rollback'in geri almadığı IDboşlukları kaydedildi, reseed/reset yapılmadı. Privateb5-combined-isnull-metadata-probe.json/SQL1662C2F2; ilkCB2A CASEFAILEDmakbuzu korundu. Son source/paket/exactCI ve tekownerkurulum henüz bekler; kuruluERPf4/native035/CRM acb2aynı. Kaynaklar55etkilenen testPASS, SQLdüzeltmesi12metadatakontrolPASS(kapsamlar toplanmaz). Sıradaki adaybuild/CI→metadata+API/webkurulumu→normal kişisel TEST doğrulamasıdır. İnsan/cihaz/gerçekT1/LIVE yok.
