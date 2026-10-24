@@ -4,6 +4,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class WorkTasksContractTest {
+    @Test fun cleanPairUsesLanProxyAndCannotReachLegacyOrInternalServices() {
+        val clean = WorkTasksContract("http://192.168.1.46:5244")
+        WorkTasksContract.TASKS.forEach { assertTrue(clean.allowedRequest(clean.taskUrl(it), true)) }
+        assertTrue(clean.allowedRequest("http://192.168.1.46:5244/api/auth/me", false))
+        assertTrue(clean.allowedRequest("http://192.168.1.46:5244/api/catalog/products/1/photo?variant=thumbnail", false))
+        assertTrue(clean.allowedRequest("http://192.168.1.46:62800/?terminal=1", false))
+        assertTrue(clean.allowedRequest("http://192.168.1.46:62800/api/live/crm/users", false))
+        assertFalse(clean.allowedRequest("http://192.168.1.46:62800/", true))
+        for (port in listOf(4184, 4194, 4196, 5234, 62700, 62701, 62801, 62802, 62803)) {
+            assertFalse("Wrong port $port", clean.allowedRequest("http://192.168.1.46:$port/api/auth/me", false))
+        }
+        assertFalse(clean.allowedRequest("http://192.168.1.46:5244/api/terminal-worktest/home-summary", false))
+        assertFalse(clean.allowedRequest("http://192.168.1.46:62800/api/test-personnel/session", false, "POST"))
+        assertFalse(WorkTasksContract("http://127.0.0.1:5244").allowedRequest("http://127.0.0.1:62800/api/test-personnel/session", false, "POST"))
+        assertTrue(WorkTasksContract("http://127.0.0.1:5244").allowedRequest("http://127.0.0.1:4194/api/auth/me", false))
+        assertFalse(clean.allowedRequest("http://127.0.0.1:4194/api/auth/me", false))
+        assertFalse(WorkTasksContract("http://192.168.1.46:5234").allowedRequest("http://192.168.1.46:62800/", false))
+        assertTrue(runCatching { WorkTasksContract("http://192.168.1.46:5194") }.isFailure)
+    }
     private val c = WorkTasksContract("http://127.0.0.1:5234")
     @Test fun exactPairAndTasks() {
         WorkTasksContract.TASKS.forEach { assertTrue(c.allowedRequest(c.taskUrl(it), true)); assertEquals(it, c.taskOf(c.taskUrl(it))) }

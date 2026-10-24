@@ -1,5 +1,15 @@
 # Dört görevli izole Android çalışma yüzü
 
+## 24 Ekim — E1 temiz TEST kaynak profili; kurulum değildir
+
+`-PworkOrigin=http://192.168.1.46:5244` açık build seçeneği temiz ERP5244 / CRM62800 çiftini seçer. LAN API okumaları mevcut ERP web proxy'sinden geçer;4194/4196 veya CRM iç servisleri LAN'a açılmaz.127.0.0.1:5244 yalnız geliştirme seçeneğidir ve yerel4194 kullanır. Eski5234/62700 profili ve varsayılan build seçimi korunur; eski porttan yeni profile otomatik geçiş veya vault taşıma yapılmaz. Yeni profil eski home-summary/personel-bootstrap yolunu açmaz.
+
+Android korumalı ERP/CRM kasaları tam origin ile ayrı anahtar kullanır; önceki kurulum kasası devralınmaz. Yeni web eşlemesi5244→62800 ve Android bridge allowlist'i aynı sabit çifti tanır. Desteklenmeyen native origin veya eksik bridge tarayıcı deposuna düşmez. Parola/token URL'ye, cihazlar arasında veya ERP ile CRM arasında kopyalanmaz; normal sunucu auth/refresh/revoke ve mevcut roller yetkilidir.
+
+31web hedef testi ve15Kotlin sözleşme testi gerçek Android derlemesiyle geçti. İlk offline derlemede pinli Android plugin önbellekte yoktu; projenin mevcut resmi registry'lerinden aynı sürümler çözülüp hedefli derleme geçti. Sürüm/politika/lisans atlatma yapılmadı. Bu sonuç normal cihaz girişi, sunucu refresh'i, aynı kişiyle CRM geçişi, koli adapteri, fiziksel okuma veya insan kabulü değildir. Mevcut protected refresh store eski Shared hedefe sabittir; temiz hedefte normal refresh/kimlik devri ayrıca doğrulanmalıdır. Eski koli copy kimliği yeni temiz hedef için değiştirilmedi. Kaynak profili bütün E1 akışını çalışır ilan etmez; APK/kurulum makbuzu ayrıca gerekir.
+
+### Aşağıdaki5234/62700 kayıtları önceki profilin sözleşmesidir
+
 Candidate.18-t2'nin mevcut native akışları korunur. Debug varyantının uygulama
 kimliği `com.melisaerp.nativeterminal.worktest`, başlatıcısı `WorkTasksActivity`'dir.
 Release başlatıcısı, kimliği, Room/Vault verisi ve eski imzalı APK değiştirilmez.

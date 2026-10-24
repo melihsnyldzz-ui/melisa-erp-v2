@@ -1,3 +1,13 @@
+## 24 Ekim — E1 terminal temiz bağlantı kaynak profili hazır; kurulmadı
+
+Mevcut WorkTasksContract/WorkProtectedSession ve web personnelTerminalModel/protectedDeviceSession dar uyarlaması sabit5244/62800 çiftini tanır. Gradle `workOrigin` açık seçimiyle clean profil alınabilir; eski varsayılan5234/62700 ve eski kasalar korunur. LAN API yalnız aynı-origin ERP5244 proxy'si; native4196/API4194 ve CRM iç62801–3 LAN'a açılmaz.127development çifti yalnız kendi4194'ünü kullanır; profiller/hostlar karışmaz. Eski home-summary ve geçici personel-bootstrap clean profilde kapalıdır. Desteklenmeyen native origin/eksik bridge tarayıcı storage fallback'i oluşturmaz. Normal auth/rol/refresh/parentlogout/iptal mekanizması kaldırılmadı; ERP/CRM token veya kişi kimliği kopyalanmadı.
+
+**Kanıt:**31web hedef kontrolü ve gerçek JDK17/SDK36/Kotlin derlemesiyle15test(WorkTasksContract9/WorkProtectedSession6) geçti. İlk offline plugin8.11.0 eksikliği BUILD_FAILED olarak korundu; aynı pinler projenin mevcut Google/Maven/Gradle registry'lerinden çözülünce gerçek derleme3dk42sn/BUILD_SUCCESSFUL. Sürüm yükseltme, imza/izin/endpoint güvenliği gevşetilmedi. Gradle uyarıları eski simge deprecation/nullable test satırıdır; hata diye yeni iş açılmadı. Native CI derlemesi yok; yerel Android kanıtı Node CI yerine sayılmaz. CRM sahibi kendi kaynaklarını ayrı tutar; ayrıntılı teknik devir otomatik incelemede reddedildi, yalnız hassas olmayan çakışmasız çalışma özeti gönderildi.
+
+**Kurulu değildir:** ERP04a/UI099/native035/CRMa32+c1 korunur; web/paket/APK kurulumu veya cihaz işlemi yapılmadı. Mevcut korumalı normal refresh store eski Shared hedefe sabit; clean normal refresh/aynı kişinin CRM devri henüz kanıtlı değil. Koli adapteri eski copy kimliğiyle kapalı kalır; yeni kimlik/rol/atama uydurulmaz. Bu profil bağlantı kaynak halkasıdır; E1 normal terminal uçtan uca/cihaz/insan kabulü BEKLİYOR. B5 gerçek kişi kimlik boşluğu E1 port değişikliğiyle kapanmaz.
+
+### Önceki C6 teslimi — korundu
+
 ## 24 Ekim — C6 mevcut yedek için gerçek salt okunur önkontrol tamam
 
 Mevcut `goal6-backup-restore.ps1` yoluna sabit `Clean20261022` profili eklendi; yalnız Preflight kabul edilir. Rehearse/Proof/Negatives ve eski proof reuse seçeneği daha SQL bağlantısı açılmadan reddedilir. Eski Goal6 varsayılanı ve sabit hedef korumaları aynı. Yeni profil kaynak cleanDB/E662/synthetic/T1false/externalfalse kimliğini, mevcut COPY_ONLY/checksum/tam yedek başlığını, tek backup-set kimliğini, bütün D/L mantıksal dosyaları, benzersiz tamsayı FileId/pozitif bayt boyutlarını, hedef DB/dizin boşluğunu ve C: alanını doğrular. İki dosya varsayılmaz; bütün MOVE yolları yalnız öneri olarak ayrı köke üretilir. RESTORE DATABASE, yeni backup veya hedef oluşturma bu profilde yok.

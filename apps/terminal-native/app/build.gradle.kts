@@ -38,7 +38,7 @@ android {
     sourceSets.getByName("worktestRelease").manifest.srcFile("src/debug/AndroidManifest.xml")
     // Installed workflow APKs use the approved company LAN. Loopback remains an explicit development-only build option.
     val workOrigin = providers.gradleProperty("workOrigin").getOrElse("http://192.168.1.46:5234")
-    require(workOrigin in setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234")) { "Unknown isolated terminal origin" }
+    require(workOrigin in setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234", "http://192.168.1.46:5244", "http://127.0.0.1:5244")) { "Unknown isolated terminal origin" }
     defaultConfig { buildConfigField("String", "WORK_ORIGIN", "\"$workOrigin\"") }
     testOptions { unitTests.isIncludeAndroidResources = true }
     packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }

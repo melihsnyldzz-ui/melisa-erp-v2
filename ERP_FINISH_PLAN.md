@@ -1,3 +1,9 @@
+## 24 Ekim — E1 bağlantı kaynak alt kapsamı hazır; kurulum/insan ayrı
+
+Terminalin clean5244/62800 sabit kaynak profili ve korumalı realm ayrımı31web/15Kotlin testle doğrulandı; eski profil ve roller değişmedi. Bu web/APK kurulumu veya çalışır dört görev kabulü değildir; clean normal refresh/kişi devri, koli bağlantısı ve fiziksel kullanım henüz kanıtlı değil. E1/özgün terminal kabulleri bekler;17/74,49/25 aynı. C6 metadata önkontrolü ve A5 bakım sonucu ayrı korunur. [STATUS](STATUS.md).
+
+### Önceki C6 teslimi — korundu
+
 ## 24 Ekim — C6 önkontrol alt kapsamı teknik tamam; restore kabulü açık
 
 Mevcut Goal6 operator yolunun sabit clean Preflight profili source/test ve gerçek SQL yedek metadata okumasıyla doğrulandı. Bu sonuç restore veya geri açılmış veri değildir; C6 tam kapsamı ve özgün UA bekliyor. Yeni hedef/backup/restore/reboot yapılmadı. A5 rehber teslimi ve B5 kimlik/insan boşluğu korunur;17/74 ve49/25 sayıları aynı. [STATUS](STATUS.md).

@@ -1,3 +1,9 @@
+## 24 Ekim — E1 temiz terminal bağlantı profili kaynak/test hazır
+
+Sabit clean çift, aynı-origin LAN API proxy'si ve ayrı vault origin'leri kaynakta tamam;31web+15gerçek Kotlin test geçti. Eski varsayılan ve mevcut kurulum korunur. Web/APK kurulmadı, clean sunucu refresh/aynı kişi CRM devri ve koli adapteri/cihaz sonucu kanıtlı değil; E1 bütünü ve insan kabulü açık. C6 kaynak0a0d1085 exactCI40048267911 üçjobSUCCESS; gerçek metadata önkontrolü restore değildir. A5 uygulanmış rehber/B5 gerçek kimlik boşluğu korunur. [STATUS](STATUS.md).
+
+### Önceki C6 teslimi — korundu
+
 ## 24 Ekim — C6 güvenli önkontrol kaynak + gerçek yedek okuması tamam
 
 Eski Goal6 yolu dar clean profille yalnız Preflight destekler; yazma modları SQL öncesi kapalı.5hedef test ve mevcut yedekte gerçek header/file-list/kaynak kimliği/boş hedef/alan/hash okuması geçti. YeniDB/restore/backup/reboot/servis işlemi0. C6 geri açma ve uygulama kurtarma kabulü BEKLİYOR; B7 öncesi yedek güncel tüm sistem diye sunulmadı. A5 uygulanmış rehber ve B5 gerçek kimlik boşluğu korunur; özgün sayaç yok. Teknik sıra ERP-DEC-077 / [STATUS](STATUS.md).
