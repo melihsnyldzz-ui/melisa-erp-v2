@@ -249,7 +249,9 @@ export function buildCleanReadyExpressionRepairDefinitions(){
  return {before,definitions,counts,manifest,guard};
 }
 
-export function buildCleanReadyExpressionRepairSql({probe=false,username=false}={}){
+export function buildCleanReadyExpressionRepairSql({probe=false,username=false,packingUpgrade=false}={}){
+ if(typeof packingUpgrade!=='boolean'||packingUpgrade&&username)throw Error('Invalid installed packing repair selector');
+ if(packingUpgrade)return buildCleanPersonnelPackingUpgradeSql({probe});
  const {before,definitions,manifest,guard}=username?buildCleanPersonnelUsernameRepairDefinitions():buildCleanReadyExpressionRepairDefinitions();
  const resultPrefix=username?'PERSONNEL_USERNAME':'READY_EXPRESSION';
  const bad="THROW 51976,'CLEAN_READY_EXPRESSION_DENIED',1;";
@@ -302,6 +304,86 @@ export function buildCleanPersonnelUsernameRepairDefinitions(){
   definitions[name]=exact(body,'SET NOCOUNT ON;',`SET NOCOUNT ON;${pinned}EXEC dbo.${guard};DECLARE @usernamePredecessors nvarchar(max)=(${projected});`);
  }
  return {before,definitions,manifest,guard};
+}
+
+// One finite field upgrade over the installed C1/username/owner-FK baseline.
+// No accepted generator or older immutable row is rewritten. The same proof-
+// before-predecessor projection used above preserves those historical seals.
+const packingUpgradeBad="THROW 51980,'CLEAN_PERSONNEL_PACKING_NOT_READY',1;";
+function packingModuleProof(name,body){
+ const trigger=body.startsWith('CREATE TRIGGER '),type=trigger?'TR':'P';
+ if(!trigger&&!body.startsWith('CREATE PROCEDURE '))throw Error('Unsupported packing predecessor module');
+ const owner=body.slice(0,body.indexOf('BEGIN')).includes('WITH EXECUTE AS OWNER');
+ const parent=trigger?/^CREATE TRIGGER dbo\.[a-zA-Z0-9_]+ ON dbo\.([a-zA-Z0-9_]+)/.exec(body)?.[1]:null;
+ if(trigger&&!parent)throw Error('Unbound packing predecessor trigger');
+ return `IF NOT EXISTS(SELECT 1 FROM sys.objects o JOIN sys.sql_modules m ON m.object_id=o.object_id WHERE o.object_id=OBJECT_ID(${Q('dbo.'+name)},N'${type}') AND o.schema_id=SCHEMA_ID(N'dbo') AND m.definition IS NOT NULL AND CONVERT(char(64),HASHBYTES('SHA2_256',m.definition),2)=${Q(moduleHash(body))} AND m.uses_ansi_nulls=1 AND m.uses_quoted_identifier=1 AND ${owner?'ISNULL(m.execute_as_principal_id,-999)=-2':'m.execute_as_principal_id IS NULL'}${trigger?` AND EXISTS(SELECT 1 FROM sys.triggers t WHERE t.object_id=o.object_id AND t.parent_class=1 AND t.parent_id=OBJECT_ID(${Q('dbo.'+parent)},N'U') AND t.is_disabled=0 AND t.is_instead_of_trigger=0)`:''}) ${packingUpgradeBad}`;
+}
+function packingOwnerProof(){
+ return ['work_inbound_counts','test_goods_batches'].map(table=>`IF NOT EXISTS(SELECT 1 FROM sys.foreign_keys f JOIN sys.foreign_key_columns k ON k.constraint_object_id=f.object_id WHERE f.name=${Q('FK_clean_personnel_'+table+'_creator')} AND f.parent_object_id=OBJECT_ID(${Q('dbo.'+table)},N'U') AND f.referenced_object_id=OBJECT_ID(N'dbo.users',N'U') AND f.is_disabled=0 AND f.is_not_trusted=0 AND f.delete_referential_action=0 AND f.update_referential_action=0 AND k.parent_column_id=COLUMNPROPERTY(f.parent_object_id,N'created_by',N'ColumnId') AND k.referenced_column_id=COLUMNPROPERTY(f.referenced_object_id,N'id',N'ColumnId') AND(SELECT COUNT(*) FROM sys.foreign_key_columns a WHERE a.constraint_object_id=f.object_id)=1) OR(SELECT COUNT(*) FROM sys.foreign_key_columns a WHERE a.parent_object_id=OBJECT_ID(${Q('dbo.'+table)}) AND a.parent_column_id=COLUMNPROPERTY(a.parent_object_id,N'created_by',N'ColumnId'))<>1 OR EXISTS(SELECT 1 FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(${Q('dbo.'+table)}) AND definition=N'([created_by]=(18))') ${packingUpgradeBad}`).join('\n');
+}
+const packingOldEmployeeColumns='id,employee_code,full_name,phone,department,job_title,user_id,is_active,created_at,created_by,updated_at,updated_by,row_version,can_terminal_sale,can_change_sale_price,max_sale_discount_percent';
+const packingEmployeeHash=`CONVERT(char(64),HASHBYTES('SHA2_256',(SELECT ${packingOldEmployeeColumns} FROM dbo.employees ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES)),2)`;
+const packingRoleHash=`CONVERT(char(64),HASHBYTES('SHA2_256',(SELECT * FROM dbo.roles ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES)),2)`;
+const packingPermissionHash=`CONVERT(char(64),HASHBYTES('SHA2_256',(SELECT * FROM dbo.permissions ORDER BY id FOR JSON PATH,INCLUDE_NULL_VALUES)),2)`;
+const packingOldSealHash=`CONVERT(char(64),HASHBYTES('SHA2_256',CONCAT(${['clean_personnel_work_manifest','clean_ready_expression_manifest','clean_personnel_username_manifest'].map(t=>`(SELECT * FROM dbo.${t} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES)`).join(',')})),2)`;
+
+export function buildCleanPersonnelPackingUpgradeDefinitions(){
+ const username=buildCleanPersonnelUsernameRepairDefinitions().definitions;
+ const prior={...buildCleanPersonnelWorkDefinitions().definitions,...buildCleanReadyExpressionRepairDefinitions().definitions,...username};
+ const readyNames=Object.keys(username).filter(n=>n.endsWith('_ready'));
+ const names=['usp_clean_personnel_bind','usp_clean_personnel_guard','usp_clean_personnel_work_actor',...readyNames];
+ const before=Object.fromEntries(names.map(n=>[n,prior[n]])),definitions={};
+ const manifest='clean_personnel_packing_manifest',guard='usp_clean_personnel_packing_ready',immutable='clean_personnel_packing_immutable';
+ definitions.usp_clean_personnel_bind=withPersonalPackingField('usp_clean_personnel_bind',before.usp_clean_personnel_bind);
+ definitions.usp_clean_personnel_guard=withPersonalPackingField('usp_clean_personnel_guard',before.usp_clean_personnel_guard);
+ definitions.usp_clean_personnel_work_actor=exact(before.usp_clean_personnel_work_actor,'p.can_terminal_sale canTerminalSale','p.can_terminal_sale canTerminalSale,p.can_terminal_packing canTerminalPacking');
+ definitions[immutable]=`CREATE TRIGGER dbo.${immutable} ON dbo.${manifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${packingUpgradeBad} END;`;
+ const allNames=[...names,immutable,guard];
+ definitions[guard]=`CREATE PROCEDURE dbo.${guard} WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
+ IF(SELECT COUNT(*) FROM dbo.${manifest})<>${allNames.length} OR EXISTS(SELECT name FROM dbo.${manifest} GROUP BY name HAVING COUNT(*)<>1) OR EXISTS(SELECT 1 FROM dbo.${manifest} d LEFT JOIN sys.objects o ON o.object_id=OBJECT_ID(N'dbo.'+d.name) LEFT JOIN sys.sql_modules m ON m.object_id=o.object_id WHERE d.name COLLATE Latin1_General_100_BIN2 NOT IN(${allNames.map(Q).join(',')}) OR m.object_id IS NULL OR m.definition IS NULL OR d.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',m.definition),2) OR m.uses_ansi_nulls<>1 OR m.uses_quoted_identifier<>1 OR ISNULL(m.execute_as_principal_id,-999)<>CASE WHEN d.name=${Q(immutable)} THEN -999 ELSE -2 END OR o.type<>CASE WHEN d.name=${Q(immutable)} THEN N'TR' ELSE N'P' END) ${packingUpgradeBad}
+ IF NOT EXISTS(SELECT 1 FROM sys.triggers WHERE object_id=OBJECT_ID(N'dbo.${immutable}',N'TR') AND parent_class=1 AND parent_id=OBJECT_ID(N'dbo.${manifest}',N'U') AND is_disabled=0 AND is_instead_of_trigger=0) ${packingUpgradeBad}
+ IF(SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.employees',N'U'))<>17 OR NOT EXISTS(SELECT 1 FROM sys.columns c JOIN sys.default_constraints d ON d.object_id=c.default_object_id AND d.parent_object_id=c.object_id AND d.parent_column_id=c.column_id WHERE c.object_id=OBJECT_ID(N'dbo.employees',N'U') AND c.name=N'can_terminal_packing' AND c.system_type_id=104 AND c.user_type_id=104 AND c.max_length=1 AND c.is_nullable=0 AND c.is_computed=0 AND c.is_identity=0 AND d.name=N'DF_clean_employee_packing' AND REPLACE(REPLACE(REPLACE(d.definition,N'(',N''),N')',N''),N' ',N'')=N'0') ${packingUpgradeBad}
+ ${packingOwnerProof()}
+ ${['clean_personnel_work_manifest_immutable','clean_ready_expression_immutable','clean_personnel_username_immutable'].map(n=>packingModuleProof(n,prior[n])).join('\n')} END;`;
+ const pinned=packingModuleProof(guard,definitions[guard])+'\n'+packingModuleProof(immutable,definitions[immutable]);
+ const projected=`SELECT ${names.map(n=>`MAX(CASE WHEN name=${Q(n)} THEN before_hash END) [${n}]`).join(',')} FROM dbo.${manifest} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER`;
+ for(const name of readyNames){
+  let body=before[name];
+  body=body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,a)=>`ISNULL(JSON_VALUE(@packingPredecessors,N'$.'+${a}.name),${hash})`);
+  body=body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',(\w+)\.definition\),2\)/g,hash=>`ISNULL(JSON_VALUE(@packingPredecessors,N'$.'+d.name),${hash})`);
+  for(const oldGuard of ['usp_clean_ready_expression_ready','usp_clean_personnel_username_ready']){
+   const hash=`CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${oldGuard}'))),2)`;
+   body=body.replaceAll(hash,`ISNULL(JSON_VALUE(@packingPredecessors,N'$.${oldGuard}'),${hash})`);
+  }
+  if(body===before[name])throw Error('Packing predecessor projection seam missing: '+name);
+  definitions[name]=exact(body,'SET NOCOUNT ON;',`SET NOCOUNT ON;${pinned}EXEC dbo.${guard};DECLARE @packingPredecessors nvarchar(max)=(${projected});`);
+ }
+ return {prior,before,definitions,manifest,guard,immutable};
+}
+function buildCleanPersonnelPackingUpgradeSql({probe}){
+ const {prior,before,definitions,manifest,guard,immutable}=buildCleanPersonnelPackingUpgradeDefinitions();
+ const afterProof=Object.entries(definitions).map(([n,b])=>packingModuleProof(n,b)).join('\n');
+ return `SET NOCOUNT ON;SET ANSI_NULLS ON;SET QUOTED_IDENTIFIER ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 OR @@TRANCOUNT<>0 ${packingUpgradeBad}
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${packingUpgradeBad}
+ IF ${['clean_store_day_intents','clean_personnel_intents','clean_direct_sale_intents','clean_order_sale_intents','clean_store_inventory_intents','clean_finance_b4_intents','clean_finance_b4_fx_intents','clean_finance_b4_cash_intents','clean_contact_intents'].map(t=>`EXISTS(SELECT 1 FROM dbo.${t})`).join(' OR ')} ${packingUpgradeBad}
+ IF OBJECT_ID(N'dbo.${manifest}') IS NOT NULL BEGIN IF OBJECT_ID(N'dbo.${manifest}',N'U') IS NULL ${packingUpgradeBad} ${afterProof} EXEC dbo.${guard};EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;${probe?'ROLLBACK':'COMMIT'};SELECT N'PERSONNEL_PACKING_UPGRADE_ALREADY_INSTALLED' result;RETURN;END;
+ ${Object.entries(prior).map(([n,b])=>packingModuleProof(n,b)).join('\n')}
+ ${packingOwnerProof()} EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
+ IF COL_LENGTH(N'dbo.employees',N'can_terminal_packing') IS NOT NULL OR(SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.employees',N'U'))<>16 OR OBJECT_ID(N'dbo.DF_clean_employee_packing') IS NOT NULL OR OBJECT_ID(N'dbo.${guard}') IS NOT NULL OR OBJECT_ID(N'dbo.${immutable}') IS NOT NULL ${packingUpgradeBad}
+ DECLARE @packingEmployeesBefore char(64)=${packingEmployeeHash},@packingRolesBefore char(64)=${packingRoleHash},@packingPermissionsBefore char(64)=${packingPermissionHash},@packingOldSealsBefore char(64)=${packingOldSealHash};
+ IF @packingEmployeesBefore IS NULL OR @packingRolesBefore IS NULL OR @packingPermissionsBefore IS NULL OR @packingOldSealsBefore IS NULL ${packingUpgradeBad}
+ ALTER TABLE dbo.employees ADD can_terminal_packing bit NOT NULL CONSTRAINT DF_clean_employee_packing DEFAULT(0) WITH VALUES;
+ CREATE TABLE dbo.${manifest}(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_quoted_identifier bit NULL,before_ansi_nulls bit NULL,before_execute_as_principal_id int NULL,before_employee_hash char(64) NULL,created_at datetime2 NOT NULL DEFAULT SYSUTCDATETIME());
+ ${Object.entries(definitions).map(([n,b])=>`INSERT dbo.${manifest}(name,before_hash,after_hash,before_definition,before_quoted_identifier,before_ansi_nulls,before_execute_as_principal_id,before_employee_hash)SELECT ${Q(n)},${before[n]?Q(moduleHash(before[n])):'NULL'},${Q(moduleHash(b))},${before[n]?`OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT uses_quoted_identifier FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT uses_ansi_nulls FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'},${before[n]?`(SELECT execute_as_principal_id FROM sys.sql_modules WHERE object_id=OBJECT_ID(N'dbo.${n}'))`:'NULL'},${n===guard?'@packingEmployeesBefore':'NULL'};`).join('\n')}
+ IF EXISTS(SELECT 1 FROM dbo.${manifest} WHERE before_hash IS NOT NULL AND(before_definition IS NULL OR before_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',before_definition),2) OR before_quoted_identifier<>1 OR before_ansi_nulls<>1 OR ISNULL(before_execute_as_principal_id,-999)<>-2)) ${packingUpgradeBad}
+ ${Object.entries(definitions).map(([n,b])=>`EXEC(${Q(b.replace(/^CREATE PROCEDURE/,before[n]?'ALTER PROCEDURE':'CREATE PROCEDURE'))});`).join('\n')}
+ DENY INSERT,UPDATE,DELETE ON dbo.${manifest} TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.${guard} TO [${CLEAN_LOGIN}];
+ ${afterProof} EXEC dbo.${guard};EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
+ IF ISNULL(@packingEmployeesBefore,N'')<>ISNULL(${packingEmployeeHash},N'') OR ISNULL(@packingRolesBefore,N'')<>ISNULL(${packingRoleHash},N'') OR ISNULL(@packingPermissionsBefore,N'')<>ISNULL(${packingPermissionHash},N'') OR ISNULL(@packingOldSealsBefore,N'')<>ISNULL(${packingOldSealHash},N'') OR EXISTS(SELECT 1 FROM dbo.employees WHERE can_terminal_packing<>0) ${packingUpgradeBad}
+ ${probe?"ROLLBACK;SELECT N'PERSONNEL_PACKING_UPGRADE_PROBE_ROLLED_BACK' result;":"COMMIT;SELECT N'PERSONNEL_PACKING_UPGRADE_INSTALLED' result;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
 
 // The personal native actor/binder/trigger already proves membership, active
