@@ -193,13 +193,12 @@
     "observationScope": "Historical C1 baseline before the username layer; current measurements are in usernameContractRepair"
   },
   "currentRuntime": {
-    "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
-    "packageId": "CLEAN-ERP-20261022-55c2fc22e81f",
-    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-55c2fc22e81f-B5COUNT",
-    "files": 3446,
-    "manifestDigest": "1B0AB2365589A53F5EC50F464B0D5924A6F9784FB1E70CE8E69D8DC60BC227D9",
-    "frontendSourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
-    "serverLogicBaselineCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
+    "sourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+    "packageId": "CLEAN-ERP-20261022-dd8ef4144482",
+    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-dd8ef4144482-B5PACKING",
+    "files": 3458,
+    "manifestDigest": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+    "frontendSourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
     "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
     "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
     "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
@@ -208,13 +207,15 @@
       4194,
       5244
     ],
-    "preservedCapturedListeners": 18,
-    "installedAt": "2026-10-24T18:29:53.2823079+03:00",
+    "preservedCapturedListeners": 33,
+    "installedAt": "2026-10-24T21:54:01.4230900+03:00",
     "protectedSessionFilesPreservedAtInstallation": true,
     "actualNewRoleIds": [],
     "nativeMetadataInstalledAt": "2026-10-24T18:18:31.877Z",
     "nativePackingMetadataManifestDigest": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
-    "nativePackingFieldDefault": false
+    "nativePackingFieldDefault": false,
+    "previousApplicationSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "serverLogicBaselineCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e"
   },
   "accountRollbackRepair": {
     "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
@@ -853,11 +854,6 @@
     "status": "NATIVE_INSTALLED_NORMAL_USAGE_PENDING",
     "usageOutcome": "Existing B5 outcome2: an explicitly assigned person packs under their own normal account; NOT yet usable in installed TEST",
     "fieldDefault": false,
-    "sourceScopeOnly": true,
-    "expectedPrecursorModules": 35,
-    "plannedChangedModules": 15,
-    "plannedAddedModules": 2,
-    "actualModulesChanged": 0,
     "predecessorContract": {
       "layers": [
         "C1 ready expression",
@@ -894,17 +890,6 @@
       "oldCasesReusedAfterUnchangedModuleDefinitions": true,
       "verificationLayer": "Offline source compiler only; no SQL execution",
       "acceptedOldRuntimeProofsRepeated": false
-    },
-    "package": {
-      "payloadFiles": 4,
-      "totalFiles": 5,
-      "manifestSha256": "7A3BB0606FE901F6616BF0666B4678184D5BC30685D28CB2A76A417D3E376A35",
-      "applySqlSha256": "e7ce664f0f2ad52e3fa0a07c03d30a26c3056b0ae500fa5a537e4ee266126277",
-      "probeSqlSha256": "14073e60d7111f3136e3e36340edc6b216175c3ca81a14a9d74bbcf5322217d4",
-      "installationAllowed": false,
-      "sqlExecuted": false,
-      "actualPrecursorRead": false,
-      "beforeImagesCaptured": false
     },
     "ci": {
       "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
@@ -975,11 +960,6 @@
     "applicationSourceUnchangedFrom": "747840db065972963b3a1c1f9cc426e030af8df9",
     "applicationBuildRepeated": false,
     "cleanRouteClientOpened": false,
-    "sharedRuntimeWrites": 0,
-    "sqlMetadataOrDataWrites": 0,
-    "realApplicationLogins": 0,
-    "accountOrRoleChanges": 0,
-    "newCommercialActions": 0,
     "b5ClosureScope": [
       "Nine recorded people: individual TEST account/employee/approved task bindings",
       "Representative normal-screen persistent result per distinct duty branch, including packing",
@@ -994,7 +974,7 @@
       "postDdlFindingFixedInSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
       "actualSqlAcceptance": false
     },
-    "nextSingleTechnicalAction": "Connect existing clean5244 normal packing route/client to4194 with actual personal/native role/task proof; not yet activated",
+    "nextSingleTechnicalAction": "Native installation accepted; normal clean carton route now delivered in personalPackingNormalConnection",
     "humanAcceptance": "PENDING",
     "b5Completed": false,
     "finishCountsUnchanged": true,
@@ -1072,6 +1052,164 @@
       "restorePerformed": false,
       "actualPrecursorModules": 35,
       "privateEvidencePrefix": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-packing-native"
+    },
+    "historicalSourcePhase": {
+      "stage": "2026-10-24T20:49+03:00 SOURCE_ONLY_NOT_EXECUTED",
+      "sourceScopeOnly": true,
+      "expectedPrecursorModules": 35,
+      "plannedChangedModules": 15,
+      "plannedAddedModules": 2,
+      "actualModulesChanged": 0,
+      "sharedRuntimeWrites": 0,
+      "sqlMetadataOrDataWrites": 0,
+      "realApplicationLogins": 0,
+      "accountOrRoleChanges": 0,
+      "newCommercialActions": 0
+    },
+    "historicalSourcePackage": {
+      "payloadFiles": 4,
+      "totalFiles": 5,
+      "manifestSha256": "7A3BB0606FE901F6616BF0666B4678184D5BC30685D28CB2A76A417D3E376A35",
+      "applySqlSha256": "e7ce664f0f2ad52e3fa0a07c03d30a26c3056b0ae500fa5a537e4ee266126277",
+      "probeSqlSha256": "14073e60d7111f3136e3e36340edc6b216175c3ca81a14a9d74bbcf5322217d4",
+      "installationAllowed": false,
+      "sqlExecuted": false,
+      "actualPrecursorRead": false,
+      "beforeImagesCaptured": false
+    }
+  },
+  "personalPackingNormalConnection": {
+    "status": "INSTALLED_NORMAL_ROUTE_VERIFIED_ASSIGNMENT_OUTCOME_PENDING",
+    "sourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+    "installation": {
+      "status": "INSTALLED",
+      "source": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "package": "CLEAN-ERP-20261022-dd8ef4144482",
+      "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-dd8ef4144482-B5PACKING",
+      "files": 3458,
+      "manifestSha": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+      "changedPorts": [
+        4194,
+        5244
+      ],
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "preservedListeners": 33,
+      "crmStatus": 200,
+      "existingContributionScopesUnchanged": 53,
+      "newRoleIds": [],
+      "existingRoleIdsPreserved": [
+        30,
+        31,
+        32
+      ],
+      "nativeMetadataSourceUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "nativeSqlExecuted": false,
+      "protectedSessionStatePreserved": true,
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "installedAt": "2026-10-24T21:54:01.4230900+03:00"
+    },
+    "ci": [
+      {
+        "name": "quality-build-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122177664/job/120955921844"
+      },
+      {
+        "name": "windows-startup-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122177664/job/120955921795"
+      },
+      {
+        "name": "secret-scan",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122177664/job/120955921729"
+      },
+      {
+        "name": "secret-scan",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122172883/job/120955907671"
+      },
+      {
+        "name": "quality-build-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122172883/job/120955907569"
+      },
+      {
+        "name": "windows-startup-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122172883/job/120955907455"
+      }
+    ],
+    "normalBrowser": {
+      "status": "NORMAL_ROUTE_CONNECTED_UNASSIGNED_TASK_DENIED",
+      "sourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "normalUrl": "http://127.0.0.1:5244/terminal.html?worktest=1#packing",
+      "actorId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "taskFlagConfirmedFalse": true,
+      "normalLoginViaExistingOwnDpapiDelivery": true,
+      "initialSessionRestore": "Returned to login; cause not diagnosed or guessed",
+      "normalLoginCount": 1,
+      "passwordOrAccountChanged": false,
+      "secretOutput": false,
+      "reloadRestoredSamePersonWithoutSecondLogin": true,
+      "visibleResult": "Bu kayıtları görüntüleme yetkiniz yok.",
+      "existingCount10006SubmittedAndReceipt4PendingPreserved": true,
+      "cartonDirectoryFileCount": 0,
+      "packingBusinessActionExecuted": false,
+      "assignedPackerNormalOutcome": "NOT_EXECUTED",
+      "humanAcceptance": "PENDING",
+      "screenshot": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-clean-carton-normal-denied-reload.png",
+      "screenshotSha256": "67be5a852fd9e6ddbee342731601b55d4c12834c9a420c4cebe0fe5a77eadce2",
+      "observedAt": "2026-10-24T19:00:02.230Z"
+    },
+    "targetedControlsPassed": 16,
+    "legacyClientControlsPassed": 3,
+    "sourceScope": "Existing native actor/task proof and carton journal; own finalized invoices only; no price/finance DTO",
+    "transactionScope": "Fresh user/employee/role/task proof, source HOLDLOCK read and existing carton journal operation enclosed in one native transaction",
+    "noCacheOrTimeoutIncrease": true,
+    "nativeInstallationRepeated": false,
+    "accountOrRoleOrTaskWrites": 0,
+    "commercialWrites": 0,
+    "assignedPackerNormalUsage": "NOT_EXECUTED",
+    "humanAcceptance": "PENDING",
+    "nextSingleTechnicalAction": "Existing personal TEST account/employee/approved-task bindings, then assigned representative normal persistent packing result",
+    "b5Completed": false,
+    "preparedPackageSnapshot": {
+      "source": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "root": "C:/Sirket/ERP/releases/CLEAN-ERP-20261024-dd8ef4144482-B5PACKING",
+      "files": 3458,
+      "manifestSha": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+      "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "builds": [
+        {
+          "app": "sites-workflow",
+          "status": "PASS",
+          "elapsedMs": 11693
+        },
+        {
+          "app": "web-admin",
+          "status": "PASS",
+          "elapsedMs": 6669
+        }
+      ],
+      "nativeSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "nativeSqlExecuted": false,
+      "lockedDependenciesUnchanged": true,
+      "installed": false,
+      "sharedWrites": 0
     }
   }
 }
