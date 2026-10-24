@@ -1,3 +1,11 @@
+## 25 Ekim00:52 — B5 ayrı sentetik muhasebe hesabı bağlı; normal finans okuması kısmi
+
+AynıB5muhasebe dalında ayrı sentetik10024–personel4–mevcutrol32 hazır; normalform/giriş/yönetimret/fullreload ve salesreadonly ajan tarafından doğrulandı. Koli/CRMprepare403, finansal işlem0.
+
+**Normal finans ekranı hazır değil:** Günlük Kasa API_ERROR, Tahsilat fiş okuması hata gösterdi. Bir bağımsız aynı muhasebe normal APIcashGET200/16.612ms; normal okuyucunun mevcut sınırı15.000ms. Bu ölçülmüş süre uyuşmazlığı açıklayıcı bulgudur; ilkGUIisteğinin networktracei alınmadığından kesin ilkret nedeni ilan edilmedi. Kasa normalGUI PASS değil. Genel/dar yeni timeout,cache,aggregator,SQLmetadata,guard kaldırma veya kurulum/restart yapılmadı. Mevcut kalın bütünlük zinciri korunur; ilgili yeni finance rolü normal okuma sorunu aynıB5te açık kalır.
+
+GenelB5veinsanE2açık; yeni yaprak/kabul ID/yeşil sayaç artışı yok. [STATUS](STATUS.md).
+
 ## 25 Ekim00:29 — B5 kişisel iki sunucu bağı doğrulandı; yeni CRM teşhis paketi kurulu
 
 AynıB5kişisel dalı:iki serverbağı/28çağrı+yenipaket sonrasıiki normalCRMreload **Ajan doğruladı**.

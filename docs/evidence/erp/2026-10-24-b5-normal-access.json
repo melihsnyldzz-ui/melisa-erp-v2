@@ -2276,5 +2276,262 @@
     "historicalFailure": "Preserved unchanged; not reproduced, root UNKNOWN",
     "humanAcceptance": "PENDING",
     "fullB5Completed": false
+  },
+  "personalAccountingDuty": {
+    "preflight": {
+      "restart": 0,
+      "plannedUsername": "b5ilker20261025",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "tradeWrites": 0,
+      "crmWrites": 0,
+      "observedAt": "2026-10-25T00:36:55.7285590+03:00",
+      "employeeCount": 3,
+      "exactEmployeeMatches": 0,
+      "plannedCrmLink": false,
+      "calls": [
+        {
+          "success": true,
+          "path": "/api/auth/login",
+          "method": "POST"
+        },
+        {
+          "success": true,
+          "path": "/api/auth-admin/overview",
+          "method": "GET"
+        },
+        {
+          "success": true,
+          "path": "/api/personnel/overview",
+          "method": "GET"
+        },
+        {
+          "success": true,
+          "path": "/api/auth/logout",
+          "method": "POST"
+        }
+      ],
+      "status": "READ_ONLY_READY_MISSING_BOTH",
+      "usersCount": 14,
+      "realPersonIdentityClaimed": false,
+      "allowedPersonnelRoleIds": [
+        20,
+        23,
+        25,
+        26,
+        30,
+        31,
+        32
+      ],
+      "plannedPacking": false,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "plannedEmployeeCode": "B5ILKER25",
+      "role": {
+        "id": 32,
+        "code": "clean_test_personnel_finance",
+        "name": "Muhasebe — tahsilat, ödeme ve kasa",
+        "description": "Kayıtlı kişisel personel; yalnız mevcut temiz TEST iş kapsamı",
+        "isSystemRole": false,
+        "isActive": true,
+        "userCount": 0
+      },
+      "ownSetupLogoutConfirmed": true,
+      "exactUserMatches": 0,
+      "roleId": 32,
+      "plannedPriceEdit": false,
+      "plannedSale": false,
+      "synthetic": true,
+      "accountWrites": 0
+    },
+    "applicationOriginalPreserved": {
+      "calls": [
+        {
+          "path": "/api/auth/login",
+          "elapsedMs": 252,
+          "method": "POST",
+          "success": true
+        },
+        {
+          "path": "/api/auth-admin/overview",
+          "elapsedMs": 669,
+          "method": "GET",
+          "success": true
+        },
+        {
+          "path": "/api/personnel/overview",
+          "elapsedMs": 222,
+          "method": "GET",
+          "success": true
+        },
+        {
+          "path": "/api/auth-admin/users",
+          "elapsedMs": 13172,
+          "method": "POST",
+          "success": true
+        },
+        {
+          "path": "/api/personnel/employees",
+          "elapsedMs": 11001,
+          "method": "POST",
+          "success": true
+        },
+        {
+          "path": "/api/auth/logout",
+          "elapsedMs": 10,
+          "method": "POST",
+          "success": true
+        }
+      ],
+      "status": "NOT_CONFIRMED_INSPECT_BEFORE_RETRY",
+      "userId": 10024,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "stage": "normal own accounting employee link",
+      "crmWrites": 0,
+      "roleId": 32,
+      "tradeWrites": 0,
+      "ownSetupLogoutConfirmed": true,
+      "employeeCreated": true,
+      "employeeId": 4,
+      "synthetic": true,
+      "otherSixAccountsCreated": 0,
+      "restart": 0,
+      "observedAt": "2026-10-25T00:39:11.3252505+03:00",
+      "realPersonIdentityClaimed": false,
+      "userCreated": true,
+      "existingRoleOrPermissionChanges": 0
+    },
+    "reconciliation": {
+      "usersBefore": 14,
+      "usersAfter": 15,
+      "normalGui": "NOT_YET_TESTED",
+      "exactNewUserId": 10024,
+      "humanAcceptance": "PENDING",
+      "otherContributionScopesSame": 52,
+      "crmRelationAbsent": true,
+      "runtimeProtectedFilesSame": true,
+      "originalApplicationReceiptPreserved": true,
+      "status": "EXPECTED_NEW_USER_ONLY_RECONCILED_EXACT_ACCOUNTING_PAIR_READY",
+      "roleId": 32,
+      "employeesAfter": 4,
+      "observedAt": "2026-10-25T00:40:33.4749867+03:00",
+      "initialAccountCreationReplayed": false,
+      "initialGuardIssue": "All-user snapshot included newly approved user; old14 users separately byte-identical",
+      "ownFixtureSame": true,
+      "newMutation": 0,
+      "tradeWrites": 0,
+      "old14UsersThreeEmployeesAndAllRolesPermissionsMembersPreserved": true,
+      "exactEmployeeId": 4,
+      "otherContributionLinesSame": 158
+    },
+    "boundaries": {
+      "status": "ACCOUNTING_READ_ROLE_NARROW_BOUNDARIES_VERIFIED",
+      "userId": 10024,
+      "crmPrepareDeniedNoRelation": true,
+      "saleCreateAndFinalizePermissionsAbsent": true,
+      "crmContact": 0,
+      "observedAt": "2026-10-25T00:50:55.9714283+03:00",
+      "businessWrites": 0,
+      "existingNormalGuiSessionPreserved": true,
+      "roleId": 32,
+      "cartonReadDenied": true,
+      "financeReadAndExistingFinancePermissionsPreserved": true,
+      "accountWrites": 0,
+      "employeeId": 4,
+      "calls": [
+        {
+          "path": "/api/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/auth-admin/overview",
+          "status": 403
+        },
+        {
+          "path": "/api/terminal-cartons/receipts",
+          "status": 403
+        },
+        {
+          "path": "/api/auth/terminal-handoff/prepare",
+          "status": 403
+        }
+      ],
+      "ownLogoutConfirmed": true,
+      "managementDenied": true
+    },
+    "cashApiRead": {
+      "restart": 0,
+      "ownLogout": true,
+      "observedAt": "2026-10-25T00:43:55.2393614+03:00",
+      "accountWrites": 0,
+      "businessWrites": 0,
+      "calls": [
+        {
+          "status": 200,
+          "elapsedMs": 24,
+          "path": "/api/auth/me",
+          "code": null
+        },
+        {
+          "status": 200,
+          "elapsedMs": 16612,
+          "path": "/api/finance/cash-register?businessDate=2026-10-22&drawerId=1",
+          "code": null
+        }
+      ]
+    },
+    "normalGui": {
+      "observedAt": "2026-10-24T21:53:57.056Z",
+      "normalPasswordFormLogin": true,
+      "fullReloadSameIdentity": true,
+      "normalSettingsForbidden": true,
+      "normalSalesReadOnlyNoCreateOrFinalize": true,
+      "normalCash": "API_ERROR; not passed",
+      "normalCollections": "Read failed; not passed",
+      "normalCashApiIndependentRead": {
+        "status": 200,
+        "elapsedMs": 16612
+      },
+      "existingGeneralReadDeadlineMs": 15000,
+      "firstGuiRequestNetworkTrace": "NOT_CAPTURED; deadline mismatch is a measured explanatory lead, not an instrumented root cause",
+      "newTimeoutCacheOrMetadata": false,
+      "financialRecordsCreated": 0,
+      "humanAcceptance": "PENDING",
+      "screenshots": [
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-accounting-cash-before.png",
+          "sha256": "1299a9e627064d6ab7558ba0aa28404e2dfc14b7ec374aadd6f729d2600a82e3"
+        },
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-accounting-settings-reloaded.png",
+          "sha256": "55668ea208ad3e52081d1d42bec403bad543878198262b62dbe98589ba7d4dff"
+        },
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-accounting-sales-read-only.png",
+          "sha256": "8a414b4b239c7f689f2d4f3b5db93159bddb50df320ebdc95d49e6eedb6f3057"
+        }
+      ]
+    },
+    "preservation": {
+      "privateRuntimeFilesSame": true,
+      "businessWrites": 0,
+      "scopesSame": {
+        "all-current-contributions": true,
+        "own-fixture": true,
+        "old-rows": true
+      },
+      "full53CurrentContributionScopesSameAfterCreate": true,
+      "existing14UsersThreeEmployeesRolesPermissionsMembersSame": true,
+      "otherSixAccountsCreated": 0,
+      "status": "ACCOUNTING_GUI_AND_BOUNDARY_READS_PRESERVED",
+      "ownNewUser10024Employee4Role32Same": true,
+      "humanAcceptance": "PENDING",
+      "restart": 0,
+      "observedAt": "2026-10-25T00:52:34.4483529+03:00"
+    },
+    "currentStatus": "PARTIAL_ACCOUNT_READY_NORMAL_FINANCE_READ_ERROR",
+    "next": "Resolve this role32 normal cash/collections reader without redoing accepted work",
+    "roleOrPermissionWidening": false,
+    "otherSixAccountsCreated": 0,
+    "fullB5Completed": false,
+    "humanAcceptance": "PENDING"
   }
 }

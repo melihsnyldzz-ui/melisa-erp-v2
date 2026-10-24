@@ -1,3 +1,7 @@
+## 25 Ekim00:52 — B5 ayrı sentetik muhasebe hesabı bağlı; normal finans okuması kısmi
+
+Yeni sentetik10024–4–32 normalgiriş/tamreload, yönetimkapalı/satışreadonly ve normalAPI toplama/CRMret **Ajan doğruladı**. Kasa/Tahsilat normalGUIhatası nedeniyle muhasebe dalı kısmi; API200/16.612ms ekran veya insanPASS değildir. Parasal işlem0. E2veözgünUAID/kişi/tarih/sonuç/sayaçları aynıBEKLİYOR. [STATUS](STATUS.md).
+
 ## 25 Ekim00:29 — B5 kişisel iki sunucu bağı doğrulandı; yeni CRM teşhis paketi kurulu
 
 YeniCRM47646b6üzerinde28çağrıyla iki kişisel sunucu bağı ve iki mevcut normalCRMsekmesinin fullreload/atanmışgörüşme/Müdürkapsamı **Ajan doğruladı**. GUIcrossrealm/Android/Keystore/gerçekpersonelUX veya LIVE PASS değildir. Tarihi403yeni provada tekrarlanmadı,kökUNKNOWN; eskiFAILkorunur. ÖzgünUAID/kişi/tarih/sonuç/sayaçlar aynı; E2insanBEKLİYOR. [STATUS](STATUS.md).
