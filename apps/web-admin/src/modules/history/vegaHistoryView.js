@@ -172,7 +172,7 @@ export function readVegaHistoryResponse(response, { company, page = 1, limit = 1
     validateRecord(response.data.document, company, 'document', selected);
     if (response.data.document.sourceKey !== sourceKey) invalid('Belge kimliği eşleşmiyor.');
     if (partySourceId && response.data.document.partySourceId !== partySourceId) invalid('Belge başka bir cariye bağlı.');
-    for (const row of rows) if (row.headerSourceId !== response.data.document.sourceId || row.documentFamily !== response.data.document.documentFamily || (row.date != null && row.date !== response.data.document.date)) invalid('Belge satırı başka bir başlığa bağlı.');
+    for (const row of rows) if (row.headerSourceId !== response.data.document.sourceId || row.documentFamily !== response.data.document.documentFamily) invalid('Belge satırı başka bir başlığa bağlı.');
   }
   if (response.relations !== undefined) validateRelations(response.relations, sourceKey ? [response.data.document, ...rows] : rows, company, selected);
   return response;

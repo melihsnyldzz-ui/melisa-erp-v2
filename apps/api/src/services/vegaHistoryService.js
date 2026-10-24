@@ -184,7 +184,6 @@ export function createVegaHistoryService({ getPool, sql, approvedSources = [HIST
         const document = mapHistoryRecord(response.recordset[0], { approvedSource: options.source });
         if (document.company !== options.company || document.period !== options.source.period || document.kind !== 'document' || document.sourceKey !== options.sourceKey) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Kaynak belge kapsamı doğrulanamadı.', 503);
         const lines = await page(context, { ...options, family: document.documentFamily, headerSourceId: document.sourceId, partySourceId: null, search: null }, 'line');
-        if (lines.data.some(line => line.date !== null && line.date !== document.date)) throw historyError('HISTORY_ARCHIVE_CORRUPT', 'Belge satırının kaynak tarihi başlıkla eşleşmiyor.', 503);
         const products = await relationCandidates(context, options, 'product', lines.data.map(line => sourceInteger(line.payload.STOKNO)).filter(Boolean));
         const parties = await relationCandidates(context, options, 'account', document.partySourceId ? [document.partySourceId] : []);
         return { ...lines, data: { document, lines: lines.data }, relations: [resolveHistoryRelation(document, parties, 'account'), ...lines.data.map(line => resolveHistoryRelation(line, products, 'product'))] };

@@ -6,6 +6,8 @@
 
 Mevcut legacy dönüşüm ve PREVIEW planı korunur. Okuyucu artık doğrulanmış manifestteki `database`, `companies`, `period`, `dateFrom` ve `dateToExclusive` kapsamını sorgu, satır doğrulaması, belge/satır ilişkisi, cari bağlantısı ve görünüm boyunca taşır. Aynı kayıt numarası başka şirket, dönem veya kaynak veritabanının kaydıyla birleştirilmez. Arşiv okumaları stok, cari veya kasa hareketi oluşturmaz.
 
+Başlık ve satırın özgün tarihleri ayrı korunur; tarihlerin birbirine eşit olması şart değildir. Her kaydın tarihi kendi doğrulanmış dönem aralığında olmalı, satır aynı başlık ve belge ailesine bağlı kalmalıdır.
+
 Eski çağrılar aynı `VEGA2026 / F0102,F0103 / D0007 / 2026` varsayılanını kullanır. Bu varsayılanın varlığı, gerçek arşivin kurulmuş olduğu anlamına gelmez. Yeni dönemler bu değişiklikte otomatik etkinleştirilmedi.
 
 ## Mevcut kodun bağlanma noktaları

@@ -92,18 +92,22 @@ test('valid hash is insufficient for rows from another company, period, database
   }
 });
 
-test('document detail retains the same period and family for lines, products and party', async () => {
-  const header = record(), line = record('line', historical, { sourceId: '10' }), product = record('product', historical, { sourceId: '9' }), party = record('account', historical, { sourceId: '8' });
+test('document detail retains period and family while preserving distinct in-period header and line dates', async () => {
+  const header = record(), line = record('line', historical, { sourceId: '10', date: '2020-02-21' }), product = record('product', historical, { sourceId: '9' }), party = record('account', historical, { sourceId: '8' });
   const fake = fakeService([schema, { recordset: [stored(header)] }, page([line]), page([product]), page([party])]);
   const result = await fake.service.documentDetail({ ...selected, sourceKey: header.sourceKey });
   fake.calls.slice(1).forEach(call => assertScope(call));
   assert.equal(fake.calls[2].parameters.family, 'SATFAT');
   assert.equal(fake.calls[2].parameters.headerSourceId, '7');
   assert.deepEqual(result.data, { document: header, lines: [line] });
+  assert.equal(result.data.document.date, '2020-02-20');
+  assert.equal(result.data.lines[0].date, '2020-02-21');
   assert.deepEqual(result.relations.map(relation => relation.status), ['linked', 'linked']);
   const crossFamily = record('line', historical, { documentFamily: 'ALFAT', table: 'F0102D0001TBLALFATHAREKET' });
-  const rejected = fakeService([schema, { recordset: [stored(header)] }, page([crossFamily])]);
-  await assert.rejects(rejected.service.documentDetail({ ...selected, sourceKey: header.sourceKey }), { code: 'HISTORY_ARCHIVE_CORRUPT' });
+  for (const invalidLine of [crossFamily, record('line', historical, { headerSourceId: '99' }), record('line', historical, { date: '2021-01-01' })]) {
+    const rejected = fakeService([schema, { recordset: [stored(header)] }, page([invalidLine])]);
+    await assert.rejects(rejected.service.documentDetail({ ...selected, sourceKey: header.sourceKey }), { code: 'HISTORY_ARCHIVE_CORRUPT' });
+  }
 });
 
 test('ledger links cannot cross databases, periods or companies with the same source IND', async () => {

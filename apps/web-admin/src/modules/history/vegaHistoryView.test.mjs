@@ -42,12 +42,14 @@ test('response source and every record must match the selected manifest, not the
   assert.doesNotThrow(() => readVegaHistoryResponse(response([record('document', VEGA_HISTORY_DEFAULT_SCOPE)], VEGA_HISTORY_DEFAULT_SCOPE), { company, kind: 'document' }));
 });
 
-test('header and lines cannot cross family, period or source date', () => {
-  const header = record(), line = record('line'), data = response([line]);
+test('header and lines retain their own in-period dates and cannot cross family, header or period', () => {
+  const header = record(), line = record('line', historical, { date: '2020-02-21' }), data = response([line]);
   data.data = { document: header, lines: [line] };
   const detailOptions = { ...options, sourceKey: header.sourceKey };
-  assert.doesNotThrow(() => readVegaHistoryResponse(data, detailOptions));
-  for (const alter of [value => { value.data.lines[0].documentFamily = 'ALFAT'; }, value => { value.data.lines[0].date = '2020-02-21'; }, value => { value.data.lines[0] = record('line', VEGA_HISTORY_DEFAULT_SCOPE); }]) {
+  const result = readVegaHistoryResponse(data, detailOptions);
+  assert.equal(result.data.document.date, '2020-02-20');
+  assert.equal(result.data.lines[0].date, '2020-02-21');
+  for (const alter of [value => { value.data.lines[0].documentFamily = 'ALFAT'; }, value => { value.data.lines[0].headerSourceId = '99'; }, value => { value.data.lines[0].date = '2021-01-01'; }, value => { value.data.lines[0] = record('line', VEGA_HISTORY_DEFAULT_SCOPE); }]) {
     const changed = structuredClone(data); alter(changed);
     assert.throws(() => readVegaHistoryResponse(changed, detailOptions), { code: 'HISTORY_INVALID_RESPONSE' });
   }
