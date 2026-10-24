@@ -188,11 +188,27 @@ export async function createAuthAdminUser(payload = {}, actor = null) {
     await transaction.commit();
     return getAuthAdminOverview();
   } catch (error) {
-    await transaction.rollback();
-    if (error.number === 2601 || error.number === 2627) {
-      throw makeServiceError('AUTH_ADMIN_USERNAME_DUPLICATE', 'Username already exists', 409);
+    let rollbackError;
+    try {
+      await transaction.rollback();
+    } catch (cleanupError) {
+      rollbackError = cleanupError;
     }
-    throw error;
+    let failure = error;
+    if (error.number === 2601 || error.number === 2627) {
+      failure = makeServiceError('AUTH_ADMIN_USERNAME_DUPLICATE', 'Username already exists', 409);
+    }
+    if (rollbackError) {
+      // XACT_ABORT may already have rolled back the native guard failure.
+      // Preserve both failures for the caller without exposing either SQL
+      // message through the normal controller's public error contract.
+      throw Object.assign(new AggregateError([error, rollbackError],
+        failure.statusCode ? failure.message : 'Auth admin request failed', { cause: error }), {
+        code: failure.code || 'AUTH_ADMIN_USER_CREATE_FAILED',
+        statusCode: failure.statusCode || 503,
+      });
+    }
+    throw failure;
   }
 }
 
