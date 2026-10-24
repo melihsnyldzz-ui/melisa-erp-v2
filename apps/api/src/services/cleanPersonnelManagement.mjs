@@ -48,11 +48,8 @@ export async function cleanPersonnelOptions(pool){
     IF OBJECT_ID(N'dbo.clean_personnel_members',N'U') IS NULL OR OBJECT_ID(N'dbo.usp_clean_personnel_ready',N'P') IS NULL SELECT CONVERT(bit,0) ready;
     ELSE EXEC(N'EXEC dbo.usp_clean_personnel_ready; SELECT CONVERT(bit,1) ready; SELECT user_id,employee_id FROM dbo.clean_personnel_members;');
     IF OBJECT_ID(N'dbo.usp_clean_personnel_work_ready',N'P') IS NOT NULL EXEC(N'EXEC dbo.usp_clean_personnel_work_ready; SELECT CONVERT(bit,1) personalWorkReady;');
-    SELECT CONVERT(bit,CASE WHEN COL_LENGTH(N'dbo.employees',N'can_terminal_packing') IS NOT NULL
-      AND OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_clean_personnel_bind')) LIKE N'%canTerminalPacking%'
-      AND OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_clean_personnel_guard')) LIKE N'%can_terminal_packing%'
-      AND OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_clean_personnel_work_actor')) LIKE N'%p.can_terminal_packing canTerminalPacking%'
-      THEN 1 ELSE 0 END) packingTaskSupported;
+    IF COL_LENGTH(N'dbo.employees',N'can_terminal_packing') IS NULL OR OBJECT_ID(N'dbo.usp_clean_personnel_packing_ready',N'P') IS NULL SELECT CONVERT(bit,0) packingTaskSupported;
+    ELSE EXEC(N'EXEC dbo.usp_clean_personnel_packing_ready; SELECT CONVERT(bit,1) packingTaskSupported;');
   `);
   return {ready:result.recordsets?.[0]?.[0]?.ready===true,roleIds:[...Object.keys(CLEAN_PERSONNEL_ROLES),...(result.recordsets?.[2]?.[0]?.personalWorkReady===true?Object.keys(CLEAN_PERSONNEL_WORK_ROLES):[])].map(Number),
     userIds:(result.recordsets?.[1]??[]).map(r=>Number(r.user_id)),employeeIds:(result.recordsets?.[1]??[]).filter(r=>r.employee_id!==null).map(r=>Number(r.employee_id)),
