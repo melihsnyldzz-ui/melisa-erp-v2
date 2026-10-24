@@ -218,3 +218,24 @@ test('unready personal-account metadata and missing manager permission do not op
   await noPermission.button('Kullanıcı Yetkisini Kaydet').props.onClick();
   assert.equal(noPermission.writes.length, 0);
 });
+
+test('packing task stays absent from the real form and payload until native metadata supports it',async()=>{
+ const h=screen('PersonnelDefinitionsScreen');await h.settle();assert.doesNotMatch(h.text,/Toplama ve kolileme/);
+ h.change('Ad soyad *','Fixture employee');h.change('Mevcut kişisel hesap','50101');await h.click('Personeli Oluştur');
+ assert.equal(Object.hasOwn(h.writes[0].body,'canTerminalPacking'),false);
+});
+test('supported real personnel form defaults packing off and saves only the selected personal task',async()=>{
+ const data=overview();data.cleanPersonnel.packingTaskSupported=true;const h=screen('PersonnelDefinitionsScreen',data);await h.settle();
+ assert.equal(h.field('Toplama ve kolileme').props.checked,false);assert.equal(h.field('Toplama ve kolileme').props.disabled,true);
+ h.change('Ad soyad *','Fixture packer');h.change('Mevcut kişisel hesap','50101');assert.equal(h.field('Toplama ve kolileme').props.disabled,false);
+ h.field('Toplama ve kolileme').props.onChange({target:{checked:true}});h.render();await h.click('Personeli Oluştur');
+ assert.equal(h.writes[0].body.canTerminalPacking,true);assert.equal(h.writes[0].body.userId,50101);assert.equal(h.writes[0].body.canChangeSalePrice,false);
+});
+test('packing edit stays separate from sale and finance cannot inherit the task',async()=>{
+ for(const roleId of [31,32]){
+  const data=overview();data.cleanPersonnel.packingTaskSupported=true;data.users.find(u=>u.id===50102).roleId=roleId;data.employees.find(e=>e.id===60101).canTerminalPacking=true;
+  const h=screen('PersonnelDefinitionsScreen',data);await h.settle();h.find(node=>node.type==='button'&&nodes(node,c=>c.type==='strong'&&text(c)==='Fixture linked employee').length)[0].props.onClick();h.render();
+  assert.equal(h.field('Toplama ve kolileme').props.disabled,roleId===32);
+  await h.click('Değişiklikleri Kaydet');assert.equal(h.writes[0].body.canTerminalPacking,roleId===31);assert.equal(h.writes[0].body.canTerminalSale,false);
+ }
+});

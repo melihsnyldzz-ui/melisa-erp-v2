@@ -80,6 +80,7 @@ function toEmployeeDto(row) {
     userRoleName: row.user_role_name || '',
     isActive: Boolean(row.is_active),
     canTerminalSale: row.can_terminal_sale === undefined ? true : Boolean(row.can_terminal_sale),
+    canTerminalPacking: row.can_terminal_packing === true,
     canChangeSalePrice: Boolean(row.can_change_sale_price),
     maxSaleDiscountPercent: Number(row.max_sale_discount_percent || 0),
     terminalCount: Number(row.terminal_count || 0),
@@ -106,6 +107,8 @@ export async function getPersonnelOverview() {
   const pool = await getSqlPool();
   await assertPersonnelSchema(pool);
   const restrictionSchemaReady = await hasPersonnelRestrictionSchema(pool);
+  const cleanPersonnel=await cleanPersonnelOptions(pool);
+  const packingTaskSupported=cleanPersonnel?.packingTaskSupported===true;
   const restrictionColumns = restrictionSchemaReady
     ? `e.can_terminal_sale,
        e.can_change_sale_price,
@@ -124,6 +127,7 @@ export async function getPersonnelOverview() {
         e.department,
         e.job_title,
         ${restrictionColumns}
+        ${packingTaskSupported?'e.can_terminal_packing,':''}
         e.user_id,
         u.username,
         u.role_id AS user_role_id,
@@ -180,7 +184,6 @@ export async function getPersonnelOverview() {
     `),
   ]);
 
-  const cleanPersonnel=await cleanPersonnelOptions(pool);
   return {
     restrictionSchemaReady,
     ...(cleanPersonnel?{cleanPersonnel}:{}),
@@ -205,6 +208,7 @@ export async function getPersonnelOverview() {
 }
 
 function normalizeEmployeePayload(payload = {}) {
+  if(Object.hasOwn(payload,'canTerminalPacking')&&typeof payload.canTerminalPacking!=='boolean')throw serviceError('PERSONNEL_PACKING_INVALID','Toplama görevi açık veya kapalı olmalıdır.');
   const employeeCode = trimText(payload.employeeCode, 50);
   const fullName = trimText(payload.fullName);
   const userId = payload.userId ? Number(payload.userId) : null;
@@ -231,6 +235,7 @@ function normalizeEmployeePayload(payload = {}) {
     jobTitle: trimText(payload.jobTitle, 100),
     userId,
     canTerminalSale: payload.canTerminalSale === undefined ? true : Boolean(payload.canTerminalSale),
+    ...(Object.hasOwn(payload,'canTerminalPacking')?{canTerminalPacking:payload.canTerminalPacking}:{}),
     canChangeSalePrice: Boolean(payload.canChangeSalePrice),
     maxSaleDiscountPercent,
     isActive: payload.isActive === undefined ? true : Boolean(payload.isActive),
@@ -255,6 +260,7 @@ export async function createEmployee(payload = {}, actor = null) {
   const pool = await getSqlPool();
   await assertPersonnelSchema(pool);
   const restrictionSchemaReady = await hasPersonnelRestrictionSchema(pool);
+  if(Object.hasOwn(employee,'canTerminalPacking')&&(await cleanPersonnelOptions(pool))?.packingTaskSupported!==true)throw serviceError('PERSONNEL_PACKING_UNAVAILABLE','Kişisel toplama görevi henüz hazır değil.',503);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
 
@@ -311,6 +317,7 @@ export async function createEmployee(payload = {}, actor = null) {
       .input('jobTitle', sql.NVarChar(100), employee.jobTitle || null)
       .input('userId', sql.BigInt, linkedUserId)
       .input('canTerminalSale', sql.Bit, employee.canTerminalSale)
+      .input('canTerminalPacking', sql.Bit, employee.canTerminalPacking??false)
       .input('canChangeSalePrice', sql.Bit, employee.canChangeSalePrice)
       .input('maxSaleDiscountPercent', sql.Decimal(5, 2), employee.maxSaleDiscountPercent)
       .input('isActive', sql.Bit, employee.isActive)
@@ -320,12 +327,14 @@ export async function createEmployee(payload = {}, actor = null) {
         INSERT INTO dbo.employees (
           employee_code, full_name, phone, department, job_title, user_id,
           ${restrictionSchemaReady ? 'can_terminal_sale, can_change_sale_price, max_sale_discount_percent,' : ''}
+          ${Object.hasOwn(employee,'canTerminalPacking')?'can_terminal_packing,':''}
           is_active, created_by, updated_by
         )
         OUTPUT INSERTED.id INTO @createdEmployee(id)
         VALUES (
           @employeeCode, @fullName, @phone, @department, @jobTitle, @userId,
           ${restrictionSchemaReady ? '@canTerminalSale, @canChangeSalePrice, @maxSaleDiscountPercent,' : ''}
+          ${Object.hasOwn(employee,'canTerminalPacking')?'@canTerminalPacking,':''}
           @isActive, @actorId, @actorId
         );
         SELECT id FROM @createdEmployee;
@@ -360,6 +369,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
   const pool = await getSqlPool();
   await assertPersonnelSchema(pool);
   const restrictionSchemaReady = await hasPersonnelRestrictionSchema(pool);
+  if(Object.hasOwn(employee,'canTerminalPacking')&&(await cleanPersonnelOptions(pool))?.packingTaskSupported!==true)throw serviceError('PERSONNEL_PACKING_UNAVAILABLE','Kişisel toplama görevi henüz hazır değil.',503);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
 
@@ -382,6 +392,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
       .input('jobTitle', sql.NVarChar(100), employee.jobTitle || null)
       .input('userId', sql.BigInt, employee.userId)
       .input('canTerminalSale', sql.Bit, employee.canTerminalSale)
+      .input('canTerminalPacking', sql.Bit, employee.canTerminalPacking??false)
       .input('canChangeSalePrice', sql.Bit, employee.canChangeSalePrice)
       .input('maxSaleDiscountPercent', sql.Decimal(5, 2), employee.maxSaleDiscountPercent)
       .input('isActive', sql.Bit, employee.isActive)
@@ -397,6 +408,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
             ${restrictionSchemaReady ? `can_terminal_sale = @canTerminalSale,
             can_change_sale_price = @canChangeSalePrice,
             max_sale_discount_percent = @maxSaleDiscountPercent,` : ''}
+            ${Object.hasOwn(employee,'canTerminalPacking')?'can_terminal_packing = @canTerminalPacking,':''}
             is_active = @isActive,
             updated_at = SYSUTCDATETIME(),
             updated_by = @actorId

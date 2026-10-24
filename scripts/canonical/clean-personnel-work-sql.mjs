@@ -23,7 +23,30 @@ const checks=`(SELECT OBJECT_NAME(parent_object_id) table_name,name,definition,i
 const inboundChecks=`(SELECT name,definition,is_disabled,is_not_trusted FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.work_inbound_requests') ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES)`;
 const permissionRows=()=>Object.entries(CLEAN_PERSONNEL_WORK_ROLES).flatMap(([id,r])=>[...new Set([...r.view,...r.create,...r.approve])].sort().map(k=>({id:Number(id),key:k,view:r.view.includes(k)?1:0,create:r.create.includes(k)?1:0,approve:r.approve.includes(k)?1:0})));
 
-export function buildCleanPersonnelWorkDefinitions(){
+// Explicit source variant of the SAME work layer, not an upgrade over an
+// installed immutable work/username seal. Defaults and old hashes stay exact.
+// Current installations must remain closed until a reviewed in-place upgrade
+// exists; the compiler deliberately refuses to overwrite that layer.
+const packingColumnProof=`
+ IF NOT EXISTS(SELECT 1 FROM sys.columns c JOIN sys.default_constraints d ON d.parent_object_id=c.object_id AND d.parent_column_id=c.column_id WHERE c.object_id=OBJECT_ID(N'dbo.employees') AND c.name=N'can_terminal_packing' AND c.system_type_id=104 AND c.is_nullable=0 AND c.is_computed=0 AND c.is_identity=0 AND REPLACE(REPLACE(REPLACE(d.definition,N'(',N''),N')',N''),N' ',N'')=N'0') ${deny}`;
+function withPersonalPackingField(name,source){
+ if(name==='usp_clean_personnel_bind'){
+  let b=exact(source,"N'canTerminalSale',N'canChangeSalePrice'","N'canTerminalSale',N'canTerminalPacking',N'canChangeSalePrice'");
+  b=exact(b,'(SELECT COUNT(*) FROM OPENJSON(@payload_json))<>10',"(SELECT COUNT(*) FROM OPENJSON(@payload_json))<>(10+CASE WHEN EXISTS(SELECT 1 FROM OPENJSON(@payload_json) WHERE [key]=N'canTerminalPacking') THEN 1 ELSE 0 END)");
+  const boundary="IF ISNULL(JSON_VALUE(@payload_json,'$.canChangeSalePrice')";
+  return exact(b,boundary,`IF EXISTS(SELECT 1 FROM OPENJSON(@payload_json) WHERE [key]=N'canTerminalPacking' AND type<>3) ${deny}
+  IF JSON_VALUE(@payload_json,'$.canTerminalPacking')=N'true' AND NOT EXISTS(SELECT 1 FROM dbo.users u WITH(UPDLOCK,HOLDLOCK) JOIN dbo.roles r WITH(HOLDLOCK) ON r.id=u.role_id WHERE u.id=@user AND u.is_active=1 AND r.is_active=1 AND ${roleMatch('r.id','r.code',[30,31])}) ${deny}
+  ${boundary}`);
+ }
+ let b=exact(source,"N'can_terminal_sale',N'can_change_sale_price'","N'can_terminal_sale',N'can_terminal_packing',N'can_change_sale_price'");
+ b=exact(b,"WHEN N'canTerminalSale' THEN N'can_terminal_sale'","WHEN N'canTerminalSale' THEN N'can_terminal_sale' WHEN N'canTerminalPacking' THEN N'can_terminal_packing'");
+ const boundary="IF EXISTS(SELECT 1 FROM OPENJSON(@payload) p LEFT JOIN OPENJSON(JSON_QUERY(@inserted,'$[0]')) i ON i.[key]=CASE p.[key] WHEN N'employeeCode'";
+ return exact(b,boundary,`IF JSON_VALUE(@payload,'$.canTerminalPacking') IS NULL AND(@op=N'employee_create' AND ISNULL(JSON_VALUE(@inserted,'$[0].can_terminal_packing'),N'')<>N'false' OR @op=N'employee_update' AND ISNULL(JSON_VALUE(@inserted,'$[0].can_terminal_packing'),N'')<>ISNULL(JSON_VALUE(@deleted,'$[0].can_terminal_packing'),N'')) ${deny}
+  ${boundary}`);
+}
+
+export function buildCleanPersonnelWorkDefinitions({packingTask=false}={}){
+ if(typeof packingTask!=='boolean')throw Error('Invalid personal packing selector');
  const prior=allPrior(),definitions={},before={};
  const set=(name,body)=>{if(body===prior[name])throw Error('B5 work unchanged '+name);before[name]=prior[name];definitions[name]=body;};
  // B6 remains limited to one's own synthetic customer 1 / products 1,2 sale.
@@ -88,12 +111,13 @@ export function buildCleanPersonnelWorkDefinitions(){
    b=exact(b,'OR @actor_id<>10018 OR',`OR(@actor_id<>10018 AND NOT ${personal('@actor_id','manager')}) OR`);
    b=exact(b,"u.id=@actor_id AND u.username=N'semih' AND u.is_active=1 AND r.id=28 AND r.code=N'clean_test_administrator' AND r.is_active=1",`u.id=@actor_id AND u.is_active=1 AND r.is_active=1 AND((u.username=N'semih' AND r.id=28 AND r.code=N'clean_test_administrator')OR ${personal('u.id','manager')})`);
   }
+  if(packingTask)b=withPersonalPackingField(n,b);
   set(n,b);
  }
  definitions.usp_clean_personnel_work_actor=`CREATE PROCEDURE dbo.usp_clean_personnel_work_actor @actor_id bigint WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
  IF ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>N'${CLEAN_LOGIN}' OR @@TRANCOUNT<>1 OR NOT ${personal('@actor_id')} ${deny}
  EXEC dbo.usp_clean_personnel_work_ready;
- SELECT CONVERT(bit,1) accepted,CONVERT(varchar(36),e.environment_id) environmentId,u.id actorId,u.username,r.id roleId,r.code roleCode,p.id employeeId,p.can_terminal_sale canTerminalSale
+ SELECT CONVERT(bit,1) accepted,CONVERT(varchar(36),e.environment_id) environmentId,u.id actorId,u.username,r.id roleId,r.code roleCode,p.id employeeId,p.can_terminal_sale canTerminalSale${packingTask?',p.can_terminal_packing canTerminalPacking':''}
  FROM dbo.clean_personnel_members m JOIN dbo.employees p ON p.id=m.employee_id AND p.user_id=m.user_id JOIN dbo.users u ON u.id=m.user_id JOIN dbo.roles r ON r.id=u.role_id CROSS JOIN dbo.clean_test_environment e WHERE m.user_id=@actor_id AND e.id=1;END;`;
 
  // Preserve the predecessor byte records. All old ready functions see the
@@ -117,26 +141,29 @@ export function buildCleanPersonnelWorkDefinitions(){
  definitions.usp_clean_personnel_work_ready=`CREATE PROCEDURE dbo.usp_clean_personnel_work_ready WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
  IF(SELECT COUNT(*) FROM dbo.${seal})<>WORK_TOTAL OR EXISTS(SELECT 1 FROM dbo.${seal} d LEFT JOIN sys.sql_modules m ON m.object_id=OBJECT_ID(N'dbo.'+d.name) WHERE m.object_id IS NULL OR d.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',m.definition),2) OR m.uses_ansi_nulls<>1 OR m.uses_quoted_identifier<>1 OR(OBJECTPROPERTY(m.object_id,'IsTrigger')=1 AND OBJECTPROPERTY(m.object_id,'ExecIsTriggerDisabled')<>0)) ${deny}
  IF ISNULL((SELECT after_constraints_hash FROM dbo.${seal} WHERE name=N'usp_clean_store_day_ready'),N'')<>CONVERT(char(64),HASHBYTES('SHA2_256',${checks}),2) OR ISNULL((SELECT inbound_constraints_hash FROM dbo.${seal} WHERE name=N'usp_clean_store_day_ready'),N'')<>CONVERT(char(64),HASHBYTES('SHA2_256',${inboundChecks}),2) ${deny}
- ${roleChecks}
+ ${roleChecks}${packingTask?packingColumnProof:''}
  ${permissionRows().map(p=>`IF NOT EXISTS(SELECT 1 FROM dbo.permissions WHERE role_id=${p.id} AND permission_key=${Q(p.key)} AND can_view=${p.view} AND can_create=${p.create} AND can_approve=${p.approve} AND can_update=0 AND can_delete=0) ${deny}`).join('\n')} END;`;
  definitions.clean_personnel_work_manifest_immutable=`CREATE TRIGGER dbo.clean_personnel_work_manifest_immutable ON dbo.${seal} AFTER INSERT,UPDATE,DELETE AS BEGIN ${deny} END;`;
  definitions.usp_clean_personnel_work_ready=definitions.usp_clean_personnel_work_ready.replace('WORK_TOTAL',Object.keys(definitions).length);
  return {before,definitions};
 }
 
-export function buildCleanPersonnelWorkSql({probe=false,inboundOwnerLinks=false}={}){
+export function buildCleanPersonnelWorkSql({probe=false,inboundOwnerLinks=false,packingTask=false}={}){
  if(typeof inboundOwnerLinks!=='boolean')throw Error('Invalid inbound owner repair selector');
+ if(typeof packingTask!=='boolean'||inboundOwnerLinks&&packingTask)throw Error('Incompatible personal packing selector');
  if(inboundOwnerLinks)return buildCleanInboundOwnerLinksSql({probe});
- const {before,definitions}=buildCleanPersonnelWorkDefinitions();
+ const {before,definitions}=buildCleanPersonnelWorkDefinitions({packingTask});
  const operations=['collection_create','collection_cancel','payment','payment_cancel','cash_open','cash_close','cash_transfer','cash_expense','stock_count_draft','stock_count_approve','stock_count_reject','stock_count_cancel','purchase_return_draft','purchase_return_approve','purchase_return_reject','purchase_return_cancel'];
  return `SET NOCOUNT ON;SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
  IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 ${deny}
- IF OBJECT_ID(N'dbo.${seal}') IS NOT NULL BEGIN EXEC dbo.usp_clean_personnel_work_ready;${Object.entries(definitions).map(([n,b])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${seal} WHERE name=${Q(n)} AND after_hash=${Q(moduleHash(b))}) ${deny}`).join('\n')} SELECT N'B5_PERSONAL_WORK_ALREADY_INSTALLED' result;RETURN;END;
+ IF OBJECT_ID(N'dbo.${seal}') IS NOT NULL BEGIN ${packingTask?`IF COL_LENGTH(N'dbo.employees',N'can_terminal_packing') IS NULL OR NOT EXISTS(SELECT 1 FROM dbo.${seal} WHERE name=N'usp_clean_personnel_work_actor' AND after_hash=${Q(moduleHash(definitions.usp_clean_personnel_work_actor))}) THROW 51975,'PACKING_FRESH_WORK_LAYER_REQUIRED',1;`:''}EXEC dbo.usp_clean_personnel_work_ready;${Object.entries(definitions).map(([n,b])=>`IF NOT EXISTS(SELECT 1 FROM dbo.${seal} WHERE name=${Q(n)} AND after_hash=${Q(moduleHash(b))}) ${deny}`).join('\n')} SELECT N'B5_PERSONAL_WORK_ALREADY_INSTALLED' result;RETURN;END;
  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
  DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${deny}
  EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_ready;
  ${Object.entries(before).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${Q(moduleHash(b))} THROW 51975,${Q('B5_WORK_PREDECESSOR_'+n)},1;`).join('\n')}
- IF EXISTS(SELECT 1 FROM dbo.roles WHERE id IN(30,31,32) OR code IN(${Object.values(CLEAN_PERSONNEL_WORK_ROLES).map(r=>Q(r.code)).join(',')})) OR EXISTS(SELECT 1 FROM dbo.permissions WHERE role_id IN(30,31,32)) ${deny}
+ IF EXISTS(SELECT 1 FROM dbo.roles WHERE id IN(30,31,32) OR code IN(${Object.values(CLEAN_PERSONNEL_WORK_ROLES).map(r=>Q(r.code)).join(',')})) OR EXISTS(SELECT 1 FROM dbo.permissions WHERE role_id IN(30,31,32)) ${deny}${packingTask?`
+ IF COL_LENGTH(N'dbo.employees',N'can_terminal_packing') IS NOT NULL THROW 51975,'CLEAN_PACKING_SCHEMA_CONFLICT',1;
+ ALTER TABLE dbo.employees ADD can_terminal_packing bit NOT NULL CONSTRAINT DF_clean_employee_packing DEFAULT(0) WITH VALUES;`:''}
  DECLARE @beforeChecks nvarchar(max)=${checks},@beforeInbound nvarchar(max)=${inboundChecks},@constraint nvarchar(max)=(SELECT definition FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.work_trade_requests') AND name=N'CK_clean_inventory_requests' AND is_disabled=0 AND is_not_trusted=0),@inbound sysname=(SELECT name FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.work_inbound_requests') AND definition=N'([actor_id]=(19) OR [actor_id]=(18))' AND is_disabled=0 AND is_not_trusted=0);
  IF @constraint IS NULL OR @inbound IS NULL ${deny}
  CREATE TABLE dbo.${seal}(name sysname PRIMARY KEY,before_hash char(64) NULL,after_hash char(64) NOT NULL,before_definition nvarchar(max) NULL,before_constraints_json nvarchar(max) NULL,after_constraints_hash char(64) NULL,before_inbound_constraints_json nvarchar(max) NULL,inbound_constraints_hash char(64) NULL);

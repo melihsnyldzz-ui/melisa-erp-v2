@@ -140,3 +140,13 @@ test('logout with the pre-rotation token revokes the complete personal family an
  await assert.rejects(auth.refreshAccessToken(next.refreshToken),{code:'AUTH_REFRESH_INVALID'});await assert.rejects(auth.confirmProtectedNormalSession(next.accessToken,next.refreshToken),{code:'AUTH_REFRESH_INVALID'});await assert.rejects(auth.readProtectedNormalSession(40101,sid),{code:'AUTH_REFRESH_INVALID'});
  const fresh=await auth.login(credentials());assert.notEqual(family(fresh),sid);
 });
+
+test('packing task row-version revocation closes the old normal family even after the task is restored',async()=>{
+ state.witnessPatch={canTerminalPacking:true};const grant=await auth.login(credentials()),sid=family(grant);
+ state.witnessPatch={canTerminalPacking:false};state.employeeVersion++;
+ await assert.rejects(auth.refreshAccessToken(grant.refreshToken),{code:'AUTH_REFRESH_INVALID'});
+ await assert.rejects(auth.readProtectedNormalSession(40101,sid),{code:'AUTH_REFRESH_INVALID'});
+ state.witnessPatch={canTerminalPacking:true};state.employeeVersion++;
+ await assert.rejects(auth.refreshAccessToken(grant.refreshToken),{code:'AUTH_REFRESH_INVALID'});
+ await assert.rejects(auth.confirmProtectedNormalSession(grant.accessToken,grant.refreshToken),{code:'AUTH_REFRESH_INVALID'});
+});

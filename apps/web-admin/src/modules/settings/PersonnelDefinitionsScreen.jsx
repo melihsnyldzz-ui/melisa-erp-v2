@@ -40,6 +40,7 @@ function emptyForm(employeeCode = '') {
     loginUsername: '',
     loginPassword: '',
     canTerminalSale: true,
+    canTerminalPacking: false,
     canChangeSalePrice: false,
     maxSaleDiscountPercent: 0,
     isActive: true,
@@ -57,6 +58,7 @@ function toForm(employee) {
     loginUsername: employee?.username || '',
     loginPassword: '',
     canTerminalSale: employee?.canTerminalSale !== false,
+    canTerminalPacking: employee?.canTerminalPacking===true,
     canChangeSalePrice: Boolean(employee?.canChangeSalePrice),
     maxSaleDiscountPercent: Number(employee?.maxSaleDiscountPercent || 0),
     isActive: employee?.isActive !== false,
@@ -112,6 +114,8 @@ export function PersonnelDefinitionsScreen() {
   const manageable=canManageCleanRecord(overview.cleanPersonnel,'employee',selectedId);
   const linkableUsers=availablePersonnelAccounts(overview,selectedId);
   const existingOnly=overview.cleanPersonnel?.existingAccountRequired===true;
+  const packingTaskSupported=overview.cleanPersonnel?.packingTaskSupported===true;
+  const packingRoleAllowed=[30,31].includes(Number(overview.users.find(u=>String(u.id)===String(form.userId))?.roleId));
 
   const activeCount = overview.employees.filter((employee) => employee.isActive).length;
   const terminalReadyCount = overview.employees.filter(
@@ -198,6 +202,7 @@ export function PersonnelDefinitionsScreen() {
         jobTitle: form.jobTitle.trim(),
         ...personnelLoginFields({...form,selectedId}),
         canTerminalSale: Boolean(form.canTerminalSale),
+        ...(packingTaskSupported?{canTerminalPacking:packingRoleAllowed&&form.canTerminalPacking===true}:{}),
         canChangeSalePrice: Boolean(form.canChangeSalePrice),
         maxSaleDiscountPercent: Number(form.maxSaleDiscountPercent || 0),
         isActive: Boolean(form.isActive),
@@ -360,6 +365,7 @@ export function PersonnelDefinitionsScreen() {
           {overview.cleanPersonnel&&!overview.cleanPersonnel.ready&&<p role="status">Kişisel hesap yönetimi henüz kurulmadı. Mevcut kayıtlar görüntülenebilir.</p>}
           {selectedId&&!manageable&&<p role="status">Mevcut örnek personel korunur. Yeni kişi için ayrı bir hesap ve personel kartı oluşturun.</p>}
           <div className="personnel-form-section personnel-account-section">
+            {packingTaskSupported&&<label><span>Toplama ve kolileme</span><input type="checkbox" checked={packingRoleAllowed&&form.canTerminalPacking} disabled={!manageable||!packingRoleAllowed} onChange={event=>setForm(current=>({...current,canTerminalPacking:event.target.checked}))} /><small>Bu kişi satış fişlerine bağlı koli hazırlayabilir. Muhasebe görevine bu izin verilmez.</small></label>}
             <div className="personnel-section-title"><span>2</span><div><strong>Terminal giriş hesabı</strong><small>Personel terminalde bu hesapla oturum açar</small></div></div>
             {!selectedId&&<label><span>Mevcut kişisel hesap</span>
               <select value={form.userId} onChange={event=>{const user=linkableUsers.find(u=>String(u.id)===event.target.value);setForm(current=>({...current,userId:event.target.value,loginUsername:user?.username||'',loginPassword:''}));}}>
