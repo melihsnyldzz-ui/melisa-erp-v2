@@ -199,7 +199,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    const read=/^\/api\/(?:test-daily\/(?:count|purchase)|work-receiving\/(?:context|home|count-drafts(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-purchases\/(?:context|drafts\/[1-9]\d*|fx\/(?:context|drafts\/[1-9]\d*))|work-suppliers\/(?:context|history))$/;
    const write=/^\/api\/(?:test-daily\/(?:count\/(?:draft|approve|reject|cancel)|purchase\/(?:draft|approve|reject|cancel))|work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?|fx\/(?:preview|receipts(?:\/[1-9]\d*\/(?:approve|reject))?|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)))$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Mal kabulü bağlantısı kullanılamıyor.');
-   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true,headers:createBusinessSupplierSelection({storage,userId:user.id,profile:copyProfile,location})?.headers()??{}})).data;
+   // These finite clean count writes retain the existing UUID journal and write
+   // budget; a read deadline must not hide their already committed response.
+   const cleanCountMutation=method==='POST'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})&&/^\/api\/work-receiving\/count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?$/.test(path);
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true,workMutation:cleanCountMutation,headers:createBusinessSupplierSelection({storage,userId:user.id,profile:copyProfile,location})?.headers()??{}})).data;
   },
   businessSupplierSelection(){
    if(!active||!token||!user)throw problem('Tedarikçi seçimi için oturum gerekli.');

@@ -8,6 +8,33 @@ const user={id:16,displayName:'TEST ADMIN',role:{code:'admin'},permissions:['pro
 const storage=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 const reply=(data,status=200)=>({ok:status===200,status,json:async()=>status===200?{success:true,data}:{success:false,error:{message:'RAW SQL INTERNAL'}}});
 
+test('clean personal count mutations use the existing finite write budget and keep one exact UUID body',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const path of ['/api/work-receiving/count-drafts','/api/work-receiving/count-drafts/10006/update','/api/work-receiving/count-drafts/10006/submit','/api/work-receiving/count-drafts/10006/cancel']){
+  const store=storage(),calls=[];let finish;store.setItem(workingCatalogTokenKey,'count-write-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:{hostname:'127.0.0.1',protocol:'http:',port:'5244'},apiBase:'http://127.0.0.1:4194',protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply({...user,id:10021,role:{code:'clean_test_personnel'}});calls.push(options);return new Promise((resolve,reject)=>{finish=resolve;options.signal.addEventListener('abort',()=>reject(Error('fixture aborted')),{once:true});});}});
+  await s.start();const body={requestId:'00000000-0000-4000-8000-000000000001'},journal=createTradeJournal({storage:store,key:'count-write-fixture-journal'}),entry=journal.begin(path,body),p=s.inbound(path,{method:'POST',body:entry.body}),caught=p.then(value=>({value}),error=>({error}));
+  try{t.mock.timers.tick(15001);assert.equal(calls[0].signal.aborted,false,path);assert.equal(calls.length,1);assert.equal(journal.read().status,'pending');assert.deepEqual(JSON.parse(calls[0].body),body);finish(reply({requestId:body.requestId,replayed:false}));const result=await caught;assert.equal(result.error,undefined);journal.done(entry,result.value);assert.equal(journal.read().status,'done');}finally{s.dispose();await caught;}
+ }
+});
+
+test('clean count write deadline ends at60s once and leaves the original pending journal for supported recovery',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'count-write-fixture');store.setItem(testSessionModeKey,'manual');
+ const s=createWorkingCatalogSession({location:{hostname:'127.0.0.1',protocol:'http:',port:'5244'},apiBase:'http://127.0.0.1:4194',protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture aborted')),{once:true}));}});
+ await s.start();const body={requestId:'00000000-0000-4000-8000-000000000001'},journal=createTradeJournal({storage:store,key:'count-bounded-journal'}),entry=journal.begin('/api/work-receiving/count-drafts',body),p=s.inbound(entry.path,{method:'POST',body:entry.body}),rejected=assert.rejects(p,e=>e.status===503);
+ t.mock.timers.tick(59999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);assert.equal(journal.read().status,'pending');assert.deepEqual(journal.read().body,body);assert.equal(store.getItem(workingCatalogTokenKey),'count-write-fixture');s.dispose();
+});
+
+test('count-only write routing keeps legacy count, purchase preview and receipt approval on their existing15s budget',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const [place,base,path] of [[location,apiBase,'/api/work-receiving/count-drafts'],[{hostname:'127.0.0.1',protocol:'http:',port:'5244'},'http://127.0.0.1:4194','/api/work-purchases/preview'],[{hostname:'127.0.0.1',protocol:'http:',port:'5244'},'http://127.0.0.1:4194','/api/work-receiving/receipts/3/approve']]){
+  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'unchanged-inbound-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:place,apiBase:base,protectedDevice:null,storage:store,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture aborted')),{once:true}));}});
+  await s.start();await assert.rejects(()=>s.inbound(path,{method:'POST',body:{},workMutation:true}));assert.equal(calls.length,0);
+  const p=s.inbound(path,{method:'POST',body:{requestId:'fixture'}}),rejected=assert.rejects(p,e=>e.status===503);t.mock.timers.tick(14999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);s.dispose();
+ }
+});
+
 test('daily cash transport is normal authenticated clean-only and rejects unknown routes, targets and actor overrides',async()=>{
  const place={hostname:'127.0.0.1',protocol:'http:',port:'5244'},account={...user,id:20,role:{code:'clean_test_finance'},permissions:['finance.view','finance.collection','finance.payment']},store=storage(),calls=[];
  store.setItem(workingCatalogTokenKey,'cash-session-fixture');store.setItem(testSessionModeKey,'manual');
