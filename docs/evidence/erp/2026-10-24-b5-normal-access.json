@@ -695,5 +695,153 @@
       "directHumanTargetApproval": "PENDING",
       "alternativeTransferAttempted": false
     }
+  },
+  "personalPackingPreparation": {
+    "status": "SOURCE_PARTIAL_NATIVE_UPGRADE_REQUIRED",
+    "sourceCommit": "747840db065972963b3a1c1f9cc426e030af8df9",
+    "firstSourceCommit": "48d7bb4225bb3532031a58b575be76306c2d0584",
+    "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
+    "field": "canTerminalPacking / employees.can_terminal_packing",
+    "defaultEnabled": false,
+    "newRoles": 0,
+    "newAccounts": 0,
+    "personalAssignmentsApplied": 0,
+    "sourceBehavior": {
+      "existingNormalEmployeeManagement": true,
+      "strictBooleanOnly": true,
+      "omittedTaskPreserved": true,
+      "financeRoleExcluded": true,
+      "managerRequiresExplicitPersonalTask": true,
+      "actorNameOrIdGrants": false,
+      "freshNativeMembershipRequired": true,
+      "clientPackingFlagGrants": false,
+      "eachCartonCallReprovesTask": true,
+      "employeeRowVersionRevokesOldFamily": true,
+      "existingPackingExceptionUnchanged": true,
+      "legacy5234AndVegaPathsUnchanged": true,
+      "clean5244ClientStillClosed": true
+    },
+    "localVerification": {
+      "initialNewChecksRed": 8,
+      "changedBoundaryChecksPassed": 36,
+      "diagnosticVocabularyCheckPassed": 1,
+      "nativeSqlExecuted": false,
+      "normalGuiExecuted": false,
+      "manualOldSessionSuiteRepeated": false,
+      "acceptedNativeSqlProofsRepeated": false,
+      "count10006Replayed": false,
+      "ownActive10021Run": false,
+      "syntaxPassed": true,
+      "sourceSecretScanPassed": true
+    },
+    "nativePreparation": {
+      "compiler": "Existing buildCleanPersonnelWorkSql explicit packingTask selector, same existing work layer",
+      "defaultDefinitionsSha256": "e2cdb2f4df59590e9c55d2de4c2c4b834d1564e166aef08c3bd6d3b718f4225b",
+      "defaultSqlSha256": "47358f1cfccf9bb482bf7600c993d2c567cf1f1df1dde0d06c9b4f9b6835bfb5",
+      "acceptedDefaultBytesUnchanged": true,
+      "existingImmutableLayerUpgradePrepared": false,
+      "existingLayerRefusal": "PACKING_FRESH_WORK_LAYER_REQUIRED",
+      "freshLayerSqlCompiledOnly": true,
+      "newReadinessLayerAdded": false,
+      "cacheOrTimeoutChanges": false
+    },
+    "passivePackage": {
+      "package": "CLEAN-ERP-20261022-747840db0659",
+      "files": 3451,
+      "manifestSha256": "25A7EBFF4B69FAB3A923BBBCF5879EBAAAE0742003008D78FCC1F5FE4AD62D33",
+      "frontendSourceCommit": "48d7bb4225bb3532031a58b575be76306c2d0584",
+      "sitesOfflineBuildSeconds": 9.06,
+      "frontendReusedAfterLoggerOnlyChange": true,
+      "webAdminBuiltLocally": false,
+      "webAdminLocalFailure": "Missing Vite in reused package; no second attempt",
+      "bothFrontendsExactCiBuildSucceeded": true,
+      "installed": false,
+      "installationAllowed": false
+    },
+    "ci": {
+      "sourceCommit": "747840db065972963b3a1c1f9cc426e030af8df9",
+      "observedAt": "2026-10-24T17:03:40.4522159Z",
+      "complete": true,
+      "jobs": [
+        {
+          "id": 120931103145,
+          "status": "completed",
+          "runId": 40113860839,
+          "name": "quality-build-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 120931103151,
+          "status": "completed",
+          "runId": 40113860839,
+          "name": "secret-scan",
+          "conclusion": "success"
+        },
+        {
+          "id": 120931103246,
+          "status": "completed",
+          "runId": 40113860839,
+          "name": "windows-startup-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 120930962009,
+          "status": "completed",
+          "runId": 40113857579,
+          "name": "secret-scan",
+          "conclusion": "success"
+        },
+        {
+          "id": 120930962137,
+          "status": "completed",
+          "runId": 40113857579,
+          "name": "windows-startup-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 120930962182,
+          "status": "completed",
+          "runId": 40113857579,
+          "name": "quality-build-test",
+          "conclusion": "success"
+        }
+      ],
+      "runs": [
+        {
+          "id": 40113860839,
+          "status": "completed",
+          "conclusion": "success",
+          "event": "pull_request",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40113860839"
+        },
+        {
+          "id": 40113857579,
+          "status": "completed",
+          "conclusion": "success",
+          "event": "push",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40113857579"
+        }
+      ]
+    },
+    "currentInstalledSourceUnchanged": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "currentInstalledFiles": 3446,
+    "sharedRuntimeWrites": 0,
+    "sqlDataOrMetadataWrites": 0,
+    "realApplicationLogins": 0,
+    "accountActivityChanges": 0,
+    "newCommercialActions": 0,
+    "concreteRemaining": [
+      "Current immutable work/username layer needs reviewed in-place field/guard compatibility; fresh-layer compiler deliberately refuses installed target",
+      "Same-transaction fresh packing authorization and existing carton storage must be wired to exact clean5244/4194 only after native upgrade is proved",
+      "Independent source review, installed normal GUI and human/device acceptance remain pending"
+    ],
+    "review": {
+      "localSourceReview": true,
+      "independentReview": "PENDING_NOT_CLAIMED",
+      "coordinatorMessageSent": false
+    },
+    "humanAcceptance": "PENDING",
+    "newFinishLeaves": 0,
+    "observedAt": "2026-10-24T17:03:41.217Z"
   }
 }
