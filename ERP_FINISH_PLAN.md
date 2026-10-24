@@ -1,3 +1,9 @@
+## 24 Ekim10:14 — C5 düzenli SQL yedeği görev alt kapsamı kurulu, genel kabul kısmi
+
+Source74e exactCI/inceleme ve sabit korumalı bakım runner'ı sonrası günlük03:00 görevi Windows'tan geri okundu.25Ekim03:00 ilk zamanlı başarılı çalışma/backup-result makbuzu henüz yok; C5genel🟡 kalır. Bu SQLdışıCRM/NAS/oturumkapalı/restore veya insan kabulü değildir. Uygulama/veri/rol/yedekler ve49/25/17/74 aynı. [STATUS](STATUS.md).
+
+### Önceki E1 CRM alt teslimi — korundu
+
 ## 24 Ekim09:46 — E1 CRM normal oturum alt kapsamı gerçek TEST'te hazır
 
 CRM09a kurulu:16normal APIkontrolü ve normal personel ekranı/atanmış konuşma/reload/çıkış/reload kapalı geçti;53SQL ve ERP8aa/native035 korundu. ERP→CRM aynı kişi eşlemesi, koli, fizikselAndroid/yenidenaçılış ve insan kabulü hâlâ açık; tekil CRMnormal oturum sonucu bu şartları kapatmaz. YeniUA/PASS/sayaç yok;49/25/17/74 aynı. [STATUS](STATUS.md).

@@ -1,3 +1,9 @@
+## 24 Ekim10:14 — C5 görev kuruldu; ilk gerçek zamanlı yedek bekleniyor
+
+Tek mevcut runner korumalı bakım konumunda source74e/hash ile kurulu; native kaynak pini/starter aynı. Günlük03:00 Türkiye, mevcut Windows sahibi, InteractiveToken/Limited, IgnoreNew/silmesiz görev kaydı/eylem/NextRunTime doğrulandı. İlk çalışma25Ekim03:00; elle backup/tetikleme yok. C5genel🟡, zamanlı başarı makbuzu olmadan yeşil değil. ERP8aa/CRM09a/native035/37listener-satırı/53SQLaynı. Kapsam SQLyalnız; NAS/oturumkapalı/tümCRM/C6restore/insan açık. [STATUS](STATUS.md).
+
+### Önceki E1 CRM kurulum teslimi — korundu
+
 ## 24 Ekim09:46 — E1 CRM kendi normal oturumu kurulu ve gerçek ekranla doğrulandı
 
 CRM09a kaynak/frontend/backend,772dosya,09:44TR mevcut temiz TEST'e kuruldu; exactCI7/7/inceleme0.16normal APIkontrolü, normal personel atanmış konuşma/tamreload/çıkış/yenilemede kapalı sonucu ve sunucuda3aile iptali geçti. ERP8aa/native035/diğer16listener ve53SQLaynı, mesaj/ticari/hesap/rol/atama yazması0. Önceden kapalı mevcut7cleanport aynı starter'larla geri açılmıştı; neden kanıtlanmadı, reboot değildir. E1aynı-kişi/koli/Android/gerçekpersonel/insan açık; pasifAPK kurulmadı. Yeni takip/sayaç yok. [STATUS](STATUS.md).

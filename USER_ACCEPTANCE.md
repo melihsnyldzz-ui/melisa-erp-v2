@@ -1,3 +1,7 @@
+## 24 Ekim10:14 — C5 görev teknik kurulumu; zamanlı çalışma/insan kabulü BEKLİYOR
+
+Günlük03:00 temiz TEST SQL backup görevi mevcut Windows sahibiyle kurulu/geri okunmuş; ilk gerçek çalışma25Ekim03:00 bekleniyor. Kaynak/CI/XML/Preflight ve görev kurulumu gerçek zamanlı yedek veya restore PASS değildir. Elle yedek/tetikleme yok; SQLdışıCRM/haricihedef/oturumkapalı çalışma ayrı açık. ÖzgünUA/kişi/tarih/sayaç değiştirilmedi. [Teknik sonuç](STATUS.md).
+
 ## 24 Ekim09:46 — E1 CRM normal ekran ajan kanıtı; insan kabulü BEKLİYOR
 
 CRM09a gerçek cleanTEST'te mevcut örnek personelle normal giriş/atanmış konuşma/tamreload/çıkış/reload kapalı görüldü;16APIkontrolü ve kendi3deneme ailesinin sunucuda iptali ayrı doğrulandı. Bu gerçek çalışan/Android/Keystore/uygulama kapat-aç veya ERP→CRM aynı-kişi kabulü değildir. Yenihesap/rol/atama/ticariyazma/mesaj yok; mevcut Chromeoturumları korundu. Özgün UA ID/sonuç/kişi/tarih/sayaç değişmedi; [teknik makbuz STATUS'ta](STATUS.md).
