@@ -124,7 +124,9 @@ export function buildCleanPersonnelWorkDefinitions(){
  return {before,definitions};
 }
 
-export function buildCleanPersonnelWorkSql({probe=false}={}){
+export function buildCleanPersonnelWorkSql({probe=false,inboundOwnerLinks=false}={}){
+ if(typeof inboundOwnerLinks!=='boolean')throw Error('Invalid inbound owner repair selector');
+ if(inboundOwnerLinks)return buildCleanInboundOwnerLinksSql({probe});
  const {before,definitions}=buildCleanPersonnelWorkDefinitions();
  const operations=['collection_create','collection_cancel','payment','payment_cancel','cash_open','cash_close','cash_transfer','cash_expense','stock_count_draft','stock_count_approve','stock_count_reject','stock_count_cancel','purchase_return_draft','purchase_return_approve','purchase_return_reject','purchase_return_cancel'];
  return `SET NOCOUNT ON;SET QUOTED_IDENTIFIER ON;SET ANSI_NULLS ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
@@ -273,4 +275,35 @@ export function buildCleanPersonnelUsernameRepairDefinitions(){
   definitions[name]=exact(body,'SET NOCOUNT ON;',`SET NOCOUNT ON;${pinned}EXEC dbo.${guard};DECLARE @usernamePredecessors nvarchar(max)=(${projected});`);
  }
  return {before,definitions,manifest,guard};
+}
+
+// The personal native actor/binder/trigger already proves membership, active
+// employee/user/role and same-transaction ownership. A sample-only creator CHECK
+// must not contradict that proof. Replace it with referential identity integrity;
+// this is not an authorization grant and never substitutes the native proof.
+function buildCleanInboundOwnerLinksSql({probe}){
+ const tables=['work_inbound_counts','test_goods_batches'];
+ const name=t=>'FK_clean_personnel_'+t+'_creator';
+ const bad="THROW 51979,'CLEAN_INBOUND_OWNER_LINKS_CONFLICT',1;";
+ const pin=Object.entries(buildCleanPersonnelUsernameRepairDefinitions().definitions).map(([n,b])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${n}'))),2),N'')<>${Q(moduleHash(b))} ${bad}`).join('\n');
+ const linked=t=>`EXISTS(SELECT 1 FROM sys.foreign_keys f WHERE f.name=${Q(name(t))} AND f.parent_object_id=OBJECT_ID(N'dbo.${t}') AND f.referenced_object_id=OBJECT_ID(N'dbo.users') AND f.is_disabled=0 AND f.is_not_trusted=0 AND f.delete_referential_action=0 AND f.update_referential_action=0 AND(SELECT COUNT(*) FROM sys.foreign_key_columns c WHERE c.constraint_object_id=f.object_id)=1 AND EXISTS(SELECT 1 FROM sys.foreign_key_columns c WHERE c.constraint_object_id=f.object_id AND c.parent_column_id=COLUMNPROPERTY(f.parent_object_id,N'created_by',N'ColumnId') AND c.referenced_column_id=COLUMNPROPERTY(f.referenced_object_id,N'id',N'ColumnId')))`;
+ const old=t=>`SELECT COUNT(*) FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.${t}') AND definition=N'([created_by]=(18))' AND is_disabled=0 AND is_not_trusted=0`;
+ const parentIds=tables.map(t=>`OBJECT_ID(N'dbo.${t}')`).join(',');
+ return `SET NOCOUNT ON;SET ANSI_NULLS ON;SET QUOTED_IDENTIFIER ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
+ IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 OR @@TRANCOUNT<>0 ${bad}
+ SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
+ DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${bad}
+ ${pin} EXEC dbo.usp_clean_store_day_ready;
+ IF EXISTS(SELECT 1 FROM dbo.clean_store_day_intents) OR EXISTS(SELECT 1 FROM dbo.clean_personnel_intents) OR EXISTS(SELECT 1 FROM dbo.clean_direct_sale_intents) OR EXISTS(SELECT 1 FROM dbo.clean_store_inventory_intents) OR EXISTS(SELECT 1 FROM dbo.clean_contact_intents) ${bad}
+ IF ${tables.map(t=>linked(t)).join(' AND ')} AND NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE parent_object_id IN(${parentIds}) AND definition=N'([created_by]=(18))') BEGIN ${probe?'ROLLBACK':'COMMIT'};SELECT N'B5_INBOUND_OWNER_LINKS_ALREADY_INSTALLED' result;RETURN;END;
+ IF ${tables.map(t=>`(${old(t)})<>1`).join(' OR ')} OR EXISTS(SELECT 1 FROM sys.objects WHERE name IN(${tables.map(t=>Q(name(t))).join(',')})) OR EXISTS(SELECT 1 FROM sys.foreign_key_columns c WHERE c.parent_object_id IN(${parentIds}) AND c.parent_column_id=COLUMNPROPERTY(c.parent_object_id,N'created_by',N'ColumnId')) ${bad}
+ DECLARE @beforeOwnerChecks nvarchar(max)=(SELECT OBJECT_NAME(parent_object_id) table_name,name,definition,is_disabled,is_not_trusted FROM sys.check_constraints WHERE parent_object_id IN(${parentIds}) ORDER BY parent_object_id,name FOR JSON PATH,INCLUDE_NULL_VALUES);
+ ${tables.map((t,i)=>`DECLARE @old${i} sysname=(SELECT name FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.${t}') AND definition=N'([created_by]=(18))' AND is_disabled=0 AND is_not_trusted=0);
+ EXEC(N'ALTER TABLE dbo.${t} DROP CONSTRAINT '+QUOTENAME(@old${i}));
+ ALTER TABLE dbo.${t} WITH CHECK ADD CONSTRAINT ${name(t)} FOREIGN KEY(created_by) REFERENCES dbo.users(id) ON DELETE NO ACTION ON UPDATE NO ACTION;`).join('\n')}
+ IF ${tables.map(t=>'NOT '+linked(t)).join(' OR ')} ${bad}
+ ${pin} EXEC dbo.usp_clean_store_day_ready;
+ SELECT @beforeOwnerChecks before_owner_constraints_json;
+ ${probe?"ROLLBACK;SELECT N'B5_INBOUND_OWNER_LINKS_PROBE_ROLLED_BACK' result;":"COMMIT;SELECT N'B5_INBOUND_OWNER_LINKS_INSTALLED' result;"}
+ END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
 }
