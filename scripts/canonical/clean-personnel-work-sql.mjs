@@ -299,7 +299,7 @@ function buildCleanInboundOwnerLinksSql({probe}){
  IF ${tables.map(t=>`(${old(t)})<>1`).join(' OR ')} OR EXISTS(SELECT 1 FROM sys.objects WHERE name IN(${tables.map(t=>Q(name(t))).join(',')})) OR EXISTS(SELECT 1 FROM sys.foreign_key_columns c WHERE c.parent_object_id IN(${parentIds}) AND c.parent_column_id=COLUMNPROPERTY(c.parent_object_id,N'created_by',N'ColumnId')) ${bad}
  DECLARE @beforeOwnerChecks nvarchar(max)=(SELECT OBJECT_NAME(parent_object_id) table_name,name,definition,is_disabled,is_not_trusted FROM sys.check_constraints WHERE parent_object_id IN(${parentIds}) ORDER BY parent_object_id,name FOR JSON PATH,INCLUDE_NULL_VALUES);
  ${tables.map((t,i)=>`DECLARE @old${i} sysname=(SELECT name FROM sys.check_constraints WHERE parent_object_id=OBJECT_ID(N'dbo.${t}') AND definition=N'([created_by]=(18))' AND is_disabled=0 AND is_not_trusted=0);
- EXEC(N'ALTER TABLE dbo.${t} DROP CONSTRAINT '+QUOTENAME(@old${i}));
+ DECLARE @drop${i} nvarchar(max)=N'ALTER TABLE dbo.${t} DROP CONSTRAINT '+QUOTENAME(@old${i});EXEC(@drop${i});
  ALTER TABLE dbo.${t} WITH CHECK ADD CONSTRAINT ${name(t)} FOREIGN KEY(created_by) REFERENCES dbo.users(id) ON DELETE NO ACTION ON UPDATE NO ACTION;`).join('\n')}
  IF ${tables.map(t=>'NOT '+linked(t)).join(' OR ')} ${bad}
  ${pin} EXEC dbo.usp_clean_store_day_ready;

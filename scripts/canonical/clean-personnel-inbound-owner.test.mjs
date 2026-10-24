@@ -7,6 +7,7 @@ test('inbound owner repair replaces only two obsolete sample-only creator CHECKs
   assert.match(sql,new RegExp('ALTER TABLE dbo\\.'+table+' WITH CHECK ADD CONSTRAINT FK_clean_personnel_'+table+'_creator FOREIGN KEY\\(created_by\\) REFERENCES dbo\\.users\\(id\\)'));
  }
  assert.equal((sql.match(/WITH CHECK ADD CONSTRAINT FK_clean_personnel_/g)||[]).length,2);
+ assert.doesNotMatch(sql,/EXEC\(N'ALTER TABLE[^;]+\+QUOTENAME\(/,'SQL EXEC concatenation cannot invoke QUOTENAME directly');
  assert.doesNotMatch(sql,/CHECK\(created_by>0\)|created_by=10021|CREATE (?:TABLE|FUNCTION|PROCEDURE|TRIGGER)|DISABLE TRIGGER|NOCHECK CONSTRAINT|GRANT /);
 });
 
