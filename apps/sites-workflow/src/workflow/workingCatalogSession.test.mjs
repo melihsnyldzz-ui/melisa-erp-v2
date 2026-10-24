@@ -113,7 +113,7 @@ test('GET and login retain15s and callers cannot inject a longer work deadline',
  session.dispose();
 });
 
-test('only the two pinned clean operational context reads wait up to30s without retry',async t=>{
+test('pinned clean operational context reads wait up to30s without retry',async t=>{
  t.mock.timers.enable({apis:['setTimeout']});
  const place={hostname:'127.0.0.1',protocol:'http:',port:'5244'},store=storage(),calls=[];
  store.setItem(workingCatalogTokenKey,'clean-context-fixture');store.setItem(testSessionModeKey,'manual');
@@ -132,6 +132,30 @@ test('only the two pinned clean operational context reads wait up to30s without 
   const pending=session[operation](path),rejected=assert.rejects(pending,e=>e.status===503);t.mock.timers.tick(15000);await rejected;assert.equal(calls.at(-1).options.signal.aborted,true);
  }
  const count=calls.length;await assert.rejects(session.work('/api/work-sales/context',{timeoutMs:600000}));assert.equal(calls.length,count);session.dispose();
+});
+
+test('clean finance reads retain their sealed response until a finite deadline without retry or broader write budgets',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const host of ['127.0.0.1','192.168.1.46']){
+  const store=storage(),calls=[],place={hostname:host,protocol:'http:',port:'5244'};
+  store.setItem(workingCatalogTokenKey,'accounting-read-fixture');store.setItem(testSessionModeKey,'manual');
+  const session=createWorkingCatalogSession({location:place,apiBase:'http://127.0.0.1:4194',storage:store,protectedDevice:null,fetchImpl:async(url,options)=>{
+   if(url.endsWith('/auth/me'))return reply({...user,id:10024,role:{id:32,code:'clean_test_personnel_finance'},permissions:['sales.view','finance.view','finance.collection','finance.payment']});
+   calls.push({url,options});return new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture abort')),{once:true}));
+  }});
+  await session.start();
+  for(const [method,path,budget]of [['cash','/api/finance/cash-register?businessDate=2026-10-22',30000],['work','/api/work-sales/invoices',45000],['work','/api/work-collections/context?invoiceId=1',30000],['supplierPayments','/api/work-supplier-payments/context',30000]]){
+   const pending=session[method](path),rejected=assert.rejects(pending,e=>e.status===503),count=calls.length;
+   t.mock.timers.tick(15000);assert.equal(calls.at(-1).options.signal.aborted,false,path);
+   t.mock.timers.tick(budget-15001);assert.equal(calls.at(-1).options.signal.aborted,false,path);
+   t.mock.timers.tick(1);await rejected;assert.equal(calls.length,count);assert.equal(calls.at(-1).options.method,'GET');assert.equal(calls.at(-1).options.body,undefined);
+   assert.equal(store.getItem(workingCatalogTokenKey),'accounting-read-fixture');
+  }
+  const other=session.work('/api/work-sales/invoices?limit=25'),otherRejected=assert.rejects(other,e=>e.status===503);t.mock.timers.tick(15000);await otherRejected;
+  const post=session.cash('/api/finance/cash-register/transfers',{method:'POST',body:{requestId:'fixture'}}),postRejected=assert.rejects(post,e=>e.status===503);
+  t.mock.timers.tick(59999);assert.equal(calls.at(-1).options.signal.aborted,false);t.mock.timers.tick(1);await postRejected;
+  session.dispose();
+ }
 });
 test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
  const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
