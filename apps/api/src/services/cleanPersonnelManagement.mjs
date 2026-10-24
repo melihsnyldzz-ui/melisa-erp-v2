@@ -68,7 +68,10 @@ export async function bindCleanPersonnelWrite(transaction,driver,actor,operation
   }
   if(metadata.roleId!==undefined&&!Object.hasOwn(CLEAN_PERSONNEL_ROLES,metadata.roleId)&&!Object.hasOwn(CLEAN_PERSONNEL_WORK_ROLES,metadata.roleId))fail('CLEAN_PERSONNEL_ROLE_FORBIDDEN','Bu adımda yalnız izin verilen personel görev rolü seçilebilir.');
   let row;
-  try {row=(await new driver.Request(transaction).input('actor_id',driver.BigInt,Number(actor.id))
+  // Native admission proves the complete layered store seal before binding.
+  // Give only this proof the same finite budget as startup, never the writes,
+  // finish, pool defaults or subsequent normal requests.
+  try {row=(await new driver.Request(transaction,{requestTimeout:30000}).input('actor_id',driver.BigInt,Number(actor.id))
     .input('operation',driver.NVarChar(24),operation).input('target_id',driver.BigInt,targetId)
     .input('payload_json',driver.NVarChar(driver.MAX),JSON.stringify(metadata)).execute('dbo.usp_clean_personnel_bind')).recordset?.[0];}
   catch(error){

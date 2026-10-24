@@ -1,3 +1,12 @@
+## 24 Ekim13:37 — ERP kurtarıldı; B5 hesap bağlama kontrolünde dar süre düzeltmesi
+
+3cee44d0 exactPR40085896989/push40085892954 altıCIjobSUCCESS;3442dosya/DD2BD6C6873E74A277CA3023C98E1C3B427A04EEA14CF3FE9B074B4217D58C60 paket13:33:06 gerçekten kuruldu. Yalnız boş4194/5244başladı, stop0;native035/CRMacb2/18listenerPID+birth/53SQL/eskirolrows/korumalıdosyalar aynı. MevcutSemih normalGUI tamreload→11eskiuser/17rol→PersonelTanımları0 görüldü; kullanıcıgirişi istenmedi. Private b5-startup-recovery.json ve b5-erp-recovered-normal-management.png.
+
+B5'te yalnız bir yeni sentetik hesabın normalPOSToluşturma isteği503/EABORT/10054ms verdi; tekrar edilmedi. Native rollback geriokuması prepared_actor_rows0/employee0/personnel_intents0/53hashaynı. İlk FAILEDmakbuz ve DPAPIhazıraccountkaydı korundu; gerçekçalışan/parola/ticariyazı0. Yeni görev açılmadı: usp_clean_personnel_bind içinde zaten bulunan fullready'nin ~19.7s kontrolü için yalnız admissionRequest30s yapılır. Finish, asıl yazma sorguları, transaction/rol/SQLguardları, normalpool10s aynı. Yeni2regresyon önceFAIL;4management+3core+5startup12PASS. Bağımsızreview/exactCI/APIpaketkurulumu ve normal yeniuser→employee→issuer/refresh sonucu henüz bekler. Mevcutkurulu3cee çalışıyor; ikinci metadata kurulumu yok.
+
+**Sıradaki:** dar APIadmissionbudget teslimi→hazır tek sentetikaccountkanıtı, ardından kayıtlı kişisel kapsam. CRM kaynak sahibine özel onay mevcut görevde iletildi; paralel sharedwriter yok. İnsan/Android/Windows/C5zamanlımakbuz ve49/25/17/74aynı. LIVE/Vega/T1/main/gerçekişlem/ücretliservis yok.
+
+### Önceki kurtarma tanısı — tarihsel
 ## 24 Ekim13:25 — B5 metadata kurulu; ERP başlangıç timeout kurtarması sürüyor
 
 CRM acb2 B5 normal ekran kanıtı korunur. ERP bee297/3440dosya/exact6CI başarılı adayın metadata kurulum12:56 ve replay12:58 makbuzları tamam: eski role/izin satırları ile53korunan işözeti aynı; yeni ERP hesap/ticari kayıt0. API/web başlangıcı başarısız, otomatik f4 dönüşü de ETIMEOUT:4194/5244 şu an kapalı. Native4196/CRM62800–03 ve eski TEST125 korunur. Bu aday **kurulu çalışan teslim değildir**.

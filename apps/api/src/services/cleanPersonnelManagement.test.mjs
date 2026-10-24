@@ -20,14 +20,22 @@ test('real manager permission and exact target are required; admin-looking flags
 });
 test('native admission and finish use one transaction, only metadata; failures never grant a general mutation scope',async()=>{
  const transaction={},calls=[];
- class Request{constructor(tx){assert.equal(tx,transaction);this.params={};}input(k,_t,v){this.params[k]=v;return this;}async execute(name){calls.push({name,params:this.params});return {recordset:[{[name.endsWith('_bind')?'accepted':'verified']:true,operation:'user_create',actorId:10018}]};}}
+ class Request{constructor(tx,options){assert.equal(tx,transaction);this.options=options;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async execute(name){calls.push({name,params:this.params,options:this.options});return {recordset:[{[name.endsWith('_bind')?'accepted':'verified']:true,operation:'user_create',actorId:10018}]};}}
  const q={Request,BigInt:'bigint',NVarChar:()=>'',MAX:'MAX'};
  const finish=await bindCleanPersonnelWrite(transaction,q,actor,'user_create',{username:'fixture.staff',displayName:'Fixture Staff',roleId:20,password:'never-export-this-value'});await finish();
  assert.deepEqual(calls.map(c=>c.name),['dbo.usp_clean_personnel_bind','dbo.usp_clean_personnel_finish']);assert.doesNotMatch(JSON.stringify(calls),/never-export|password/);
+ assert.deepEqual(calls[0].options,{requestTimeout:30000});assert.equal(calls[1].options,undefined);
  await assert.rejects(()=>bindCleanPersonnelWrite(transaction,q,actor,'user_create',{roleId:2}),{code:'CLEAN_PERSONNEL_ROLE_FORBIDDEN'});
  await assert.rejects(()=>bindCleanPersonnelWrite(transaction,q,actor,'employee_create',{userId:50101,loginPassword:'not-allowed'}),{code:'CLEAN_PERSONNEL_ACCOUNT_REQUIRED'});
  q.Request=class extends Request{async execute(){return {recordset:[{accepted:false,actorId:10018,operation:'user_create'}]};}};
  await assert.rejects(()=>bindCleanPersonnelWrite(transaction,q,actor,'user_create',{roleId:20}),{code:'CLEAN_PERSONNEL_ADMISSION_INVALID'});
  q.Request=class extends Request{async execute(){throw Object.assign(Error('protected'),{number:51973});}};
  await assert.rejects(()=>bindCleanPersonnelWrite(transaction,q,actor,'user_update',{},10018),{code:'CLEAN_PERSONNEL_PROTECTED_RECORD',statusCode:403});
+});
+
+test('bounded native admission timeout cannot produce a finish capability or retry',async()=>{
+ const timeout=Object.assign(Error('readiness timed out'),{code:'ETIMEOUT'});let requests=0;
+ class Request{constructor(_tx,options){requests++;assert.deepEqual(options,{requestTimeout:30000});}input(){return this;}async execute(name){assert.equal(name,'dbo.usp_clean_personnel_bind');throw timeout;}}
+ await assert.rejects(bindCleanPersonnelWrite({}, {Request,BigInt:'bigint',NVarChar:()=>'',MAX:'MAX'},actor,'user_create',{username:'fixture.staff',displayName:'Fixture',roleId:30}),error=>error===timeout);
+ assert.equal(requests,1);
 });
