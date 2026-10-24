@@ -1,3 +1,9 @@
+## 24 Ekim — D1/D2 kaynak modeli alt kapsamı; gerçek geçmiş ayrı
+
+Mevcut arşiv core'un legacy belge/satır dönüşümü ve açık manifest kapsamı7hedef testle hazır.2020+ dönemi source metadata ile ele alınabilir; API/service/UI varsayılanı2026 olarak korunur. Gerçek arşiv metadata/kolon/ilişki ve yükleyici makbuzu yok; veri aktarılmadı, D tam kapsamı kapanmadı. E1/C6/A5 alt teslimleri ve B5 kimlik boşluğu ayrı, insan/özgün49/25/17/74 aynı. [STATUS](STATUS.md).
+
+### Önceki E1 teslimi — korundu
+
 ## 24 Ekim — E1 bağlantı kaynak alt kapsamı hazır; kurulum/insan ayrı
 
 Terminalin clean5244/62800 sabit kaynak profili ve korumalı realm ayrımı31web/15Kotlin testle doğrulandı; eski profil ve roller değişmedi. Bu web/APK kurulumu veya çalışır dört görev kabulü değildir; clean normal refresh/kişi devri, koli bağlantısı ve fiziksel kullanım henüz kanıtlı değil. E1/özgün terminal kabulleri bekler;17/74,49/25 aynı. C6 metadata önkontrolü ve A5 bakım sonucu ayrı korunur. [STATUS](STATUS.md).

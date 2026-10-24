@@ -1,3 +1,9 @@
+## 24 Ekim — D1/D2 dar biçim dönüşümü kaynak/test hazır
+
+Mevcut history core legacy belge/satır adapteri ve açık manifest scope'u7hedef testle doğrulandı; aynıID/şirket/dönem/aile ayrımı, raw ondalık/NULL/iptal ve PREVIEW ikinci-etkisiz plan korunur. Mevcut API/default2026 değişmez; gerçek arşiv/kaynak metadata/yükleyici olmadan aktarım veya çok dönem ekranı çalışır sayılmaz. D açık; yeni Vega/SQL/veri işlemi yok. E1 source31web+15Kotlin, C6 önkontrol ve A5 rehber teslimi korunur; insan/sayaç aynı. [STATUS](STATUS.md).
+
+### Önceki E1 teslimi — korundu
+
 ## 24 Ekim — E1 temiz terminal bağlantı profili kaynak/test hazır
 
 Sabit clean çift, aynı-origin LAN API proxy'si ve ayrı vault origin'leri kaynakta tamam;31web+15gerçek Kotlin test geçti. Eski varsayılan ve mevcut kurulum korunur. Web/APK kurulmadı, clean sunucu refresh/aynı kişi CRM devri ve koli adapteri/cihaz sonucu kanıtlı değil; E1 bütünü ve insan kabulü açık. C6 kaynak0a0d1085 exactCI40048267911 üçjobSUCCESS; gerçek metadata önkontrolü restore değildir. A5 uygulanmış rehber/B5 gerçek kimlik boşluğu korunur. [STATUS](STATUS.md).
