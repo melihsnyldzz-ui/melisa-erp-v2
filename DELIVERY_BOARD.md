@@ -1,3 +1,9 @@
+## 24 Ekim — B5 normal hesap envanteri teknik tamam; gerçek kişi bağları bekliyor
+
+Aynı temiz TEST'te CRM a32 sabit profil kuruldu. Ayarlar→hesap envanteri normal yönetici oturumunda açıldı; yenile/tamreload/yeniden aç aynı dört hesabı gösterdi. 53 SQL özeti ve ERP süreçleri aynı; hesap/rol/atama değişmedi. B6/B7 tamamlanmış örnek teknik sonuçları korunur. B5'in gerçek personel–hesap–müşteri atama bağları kanıtlanmadı; insan kabulü ve özgün sayaçlar BEKLİYOR. İki sunum sınırlaması (kesilen uzun adlar, genel atama açıklaması) STATUS'ta açık. Yeni B dışı iş yok. [Çalışan CRM](http://192.168.1.46:62800/) · [Kanıt](STATUS.md).
+
+### Önceki teslim — tarihsel
+
 ## 24 Ekim — B7 iletişim teknik tamam; kalan B5 normal envanter girişi
 
 B7 normal müşteri/tedarikçi iletişim kaydı, anında maskeli özet ve tamreload/reopen;4kalıcı UUID/replay/recovery/farklıbody409 ve22iştablosu ikinci etkisiz kanıtlandı. API04a83e53/UI0993a123/3407dosya kurulu; exact kaynak CI40042560683 üç gerekli job SUCCESS. B6 tek örnek satış ve B1–B4 sonuçları korunur. Genel gerçek kart/kişi/personel/insan kabulü ve17/74,49/25sayaçları aynı. Soğuk ilk read11,1sn hızlı ilan edilmez; ilk GUI hata/sıcak yenileme sonucu STATUS'ta ayrı kayıtlı.

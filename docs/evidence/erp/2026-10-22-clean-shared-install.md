@@ -1,3 +1,15 @@
+## 24 Ekim — B5 normal hesap envanteri kurulum ve ekran kanıtı
+
+CRM kaynak a32e071221f5f242dc08996b8ace0c1b1294214e, mevcut offline guard sonrasında yalnız sabit clean20261022 profilini uygulayan desteklenen build yoluyla derlendi. Env keşfi/ağ/sır koruması kaldırılmadı. Gerçek üretim main dosyasının SHA'sı kaynak sahibinin build'iyle ve HTTP'den sunulan dosyayla eşleşti. Önceki c1/4ead paketleri profil-silinmesi nedeniyle normal GUI başarı kanıtı değildir; başarısızlık kayıtları korundu.
+
+24Ekim03:35:05TR gerçek paket CLEAN-CRM-20261024-a32e071221f5-B5PROFILE,761dosya,manifest70CB206650625C2E26D472DD78EAD854C99B7926A4797343D4175D2DE440835D. Backend davranışı c1; ERP04a/UI099/native035 korunur. Exact CRM CI7/7SUCCESS kurulumdan önce doğrulandı.16diğerlistener/dörtözelayar/53SQLözeti aynı; GUI sonrası53özet tekrar aynı. Yeni SQL/rol/atama/ticari işlem0.
+
+Normal Chrome mevcut örnek yönetici oturumunda Ayarlar→Hesap envanterini göster, panel yenileme ve tamreload→yeniden aç gerçekten geçti:4yapılandırılmış hesap/4etkin/0kapalı/1temsilcisiz/1yapay konuşma ataması. Normal oturum korundu. Önceki değişmeyen backend manager200/no-store,anonim401,personel403,send/assignfalse kanıtı geçerli. Uzun hesap adlarının kartlarda kesilmesi ve genel atama açıklamasının assignfalse ile uyumsuzluğu ayrı sunum sınırlamasıdır; gerçek atama denenmedi/açılmadı.
+
+Private b5-final-delivery.json, b5-crm-inventory-profile-installation.json, b5-crm-inventory-profile-build-proof.json, b5-final-data.after-gui.txt, b5-final-crm-inventory-reloaded.txt/png mevcut semih-access-20261023 alanında. Ham metadata/sırlar/görüntüler GitHub'a taşınmaz. B5 envanter teknik halkası tamam; gerçek personel–hesap–temsilci–müşteri bağı NOT_PROVEN, insan PENDING. B6/B7 ve özgün sayaçlar aynı. Ayrıntılı konuşmalar arası makbuz otomatik incelemede reddedildi; yalnız hassas olmayan sonuç özeti CRM sahibine gönderildi.
+
+### Önceki teslimler — tarihsel
+
 ## 24 Ekim — B7 iletişim teknik teslimi tamam; B5 tam envanter bağlantısı sürüyor
 
 **B7 yalnız açık yapay TEST kapsamında teknik tamam.** Mevcut normal yeşil Müşteriler/Tedarikçiler editörü aynı clean20261022/E662 hedefinde telefon/şehir/ülkeyi kaydeder. Semih10018/rol28/36izin, exact kart1–4/kimlik/birim/döviz/hold sınırları korunur. Müşteri1 ve tedarikçi1 üzerinde normal GUI'den ilk iletişim kaydı ve gözlenen kart-özeti düzeltmesini doğrulayan birer şehir değişikliği yapıldı; toplam4immutable B7 journal, intent0. İki kartın özeti kayıttan hemen sonra güncel; tamreload/reopen aynı. Yetkili düzenleyici gerçek değeri, kapalı kart özeti maskeli telefonu gösterir. Diğer kart/hesap/rol/karantina veya ticari alan yazması yok.

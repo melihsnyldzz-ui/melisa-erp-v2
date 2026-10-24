@@ -1,3 +1,7 @@
+## 24 Ekim — B5 normal envanter ajan kontrolü; insan kabulü BEKLİYOR
+
+CRM a32 aynı temiz TEST'te mevcut örnek yönetici hesabıyla Ayarlar→hesap envanteri, yenile ve tamreload/yeniden aç doğrulandı. Teknik envanter sonucu gerçek personelin hesabı/görevi/atanmış müşterisi veya işletme kabulü değildir. Gerçek kişi eşlemesi kanıtlanmadı; yeni atama/rol yazması yok. Özgün kabul ID'leri, kişi/tarih alanları ve sayaçlar değişmedi; yeni UA/PASS oluşturulmadı. [Teknik sonuç](STATUS.md).
+
 ## 24 Ekim — B7 / mevcut C06-C07 teknik kanıtı; insan sonucu değişmedi
 
 Normal clean20261022 / API04a83e53/UI0993a123 içinde yalnız yapay müşteri1 ve tedarikçi1 telefon/şehir/ülke kaydetme, anında maskeli özet, tamreload/reopen ve4kalıcıistek/replay/409 doğrulandı. Bakiye/finans/rol/ticari kayıt değişmedi. Bu ajan teknik denemesidir; gerçek çalışan/kişi/deneme tarihi/işletme sonucu **BEKLİYOR**. Yeni UA ID/PASS/sayaç oluşturulmadı; B6/ERP-UA07 ve diğer özgün kayıtlar aynıdır. Soğuk ilk okuma/perf ve B5 gerçek kişi bağlantısı ayrı kalır. [Teknik kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).

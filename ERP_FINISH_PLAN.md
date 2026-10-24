@@ -1,3 +1,9 @@
+## 24 Ekim — B5 envanter teknik sonucu; genel kabul değişmedi
+
+CRM a32 sabit profil gerçekten kuruldu; normal Ayarlar girişinden tam yapılandırılmış hesap envanteri, yenile ve tamreload geçti. Kurulum/GUI sonrası53 koruma özeti aynı. Bu yalnız dört mevcut örnek hesabın salt okunur teknik sonucudur; gerçek kişi–ERP/CRM hesabı–temsilci–müşteri atama zinciri kanıtlanmış değildir. B5 genel kapsamı ve insan kabulü 🟡; B6/B7 teknik teslimleri korunur. Yeni yaprak/UA/plan/sayaç yok;17/74 ve49ERP/25CRM aynı. Ayrıntı [STATUS](STATUS.md).
+
+### Önceki teslim — tarihsel
+
 ## 24 Ekim — B7 iletişim teknik tamam; kalan B5 normal envanter girişi
 
 B7 normal müşteri/tedarikçi iletişim kaydı, anında maskeli özet ve tamreload/reopen;4kalıcı UUID/replay/recovery/farklıbody409 ve22iştablosu ikinci etkisiz kanıtlandı. API04a83e53/UI0993a123/3407dosya kurulu; exact kaynak CI40042560683 üç gerekli job SUCCESS. B6 tek örnek satış ve B1–B4 sonuçları korunur. Genel gerçek kart/kişi/personel/insan kabulü ve17/74,49/25sayaçları aynı. Soğuk ilk read11,1sn hızlı ilan edilmez; ilk GUI hata/sıcak yenileme sonucu STATUS'ta ayrı kayıtlı.
