@@ -220,15 +220,16 @@ export function buildCleanReadyExpressionRepairDefinitions(){
  return {before,definitions,counts,manifest,guard};
 }
 
-export function buildCleanReadyExpressionRepairSql({probe=false}={}){
- const {before,definitions,manifest,guard}=buildCleanReadyExpressionRepairDefinitions();
+export function buildCleanReadyExpressionRepairSql({probe=false,username=false}={}){
+ const {before,definitions,manifest,guard}=username?buildCleanPersonnelUsernameRepairDefinitions():buildCleanReadyExpressionRepairDefinitions();
+ const resultPrefix=username?'PERSONNEL_USERNAME':'READY_EXPRESSION';
  const bad="THROW 51976,'CLEAN_READY_EXPRESSION_DENIED',1;";
  const proof=Object.entries(definitions).map(([name,body])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'))),2),N'')<>${Q(moduleHash(body))} ${bad}`).join('\n');
  return `SET NOCOUNT ON;SET ANSI_NULLS ON;SET QUOTED_IDENTIFIER ON;SET XACT_ABORT ON;${CLEAN_TARGET_SQL}
  IF ISNULL(IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN()),0)<>1 OR @@TRANCOUNT<>0 ${bad}
  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;BEGIN TRANSACTION;BEGIN TRY
  DECLARE @lock int;EXEC @lock=sys.sp_getapplock @Resource=N'CLEAN_STORE_DAY_20261022',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=5000;IF @lock<0 ${bad}
- IF OBJECT_ID(N'dbo.${manifest}') IS NOT NULL BEGIN ${proof} EXEC dbo.${guard};COMMIT;SELECT N'READY_EXPRESSION_ALREADY_INSTALLED' result;RETURN;END;
+ IF OBJECT_ID(N'dbo.${manifest}') IS NOT NULL BEGIN ${proof} EXEC dbo.${guard};${username?'EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;':''}COMMIT;SELECT N'${resultPrefix}_ALREADY_INSTALLED' result;RETURN;END;
  EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
  ${Object.entries(before).map(([name,body])=>`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${name}'))),2),N'')<>${Q(moduleHash(body))} ${bad}`).join('\n')}
  IF EXISTS(SELECT 1 FROM dbo.clean_store_day_intents) OR EXISTS(SELECT 1 FROM dbo.clean_personnel_intents) OR EXISTS(SELECT 1 FROM dbo.clean_direct_sale_intents) OR EXISTS(SELECT 1 FROM dbo.clean_store_inventory_intents) OR EXISTS(SELECT 1 FROM dbo.clean_finance_b4_intents) OR EXISTS(SELECT 1 FROM dbo.clean_finance_b4_fx_intents) OR EXISTS(SELECT 1 FROM dbo.clean_finance_b4_cash_intents) OR EXISTS(SELECT 1 FROM dbo.clean_contact_intents) ${bad}
@@ -237,6 +238,39 @@ export function buildCleanReadyExpressionRepairSql({probe=false}={}){
  ${Object.entries(definitions).map(([name,body])=>`EXEC(${Q(body.replace(/^CREATE PROCEDURE/,before[name]?'ALTER PROCEDURE':'CREATE PROCEDURE'))});`).join('\n')}
  DENY INSERT,UPDATE,DELETE ON dbo.${manifest} TO [${CLEAN_LOGIN}];GRANT EXECUTE ON dbo.${guard} TO [${CLEAN_LOGIN}];
  ${proof} EXEC dbo.usp_clean_store_day_ready;EXEC dbo.usp_clean_personnel_work_ready;
- ${probe?"ROLLBACK;SELECT N'READY_EXPRESSION_PROBE_ROLLED_BACK' result;":"COMMIT;SELECT N'READY_EXPRESSION_INSTALLED' result;"}
+ ${probe?`ROLLBACK;SELECT N'${resultPrefix}_PROBE_ROLLED_BACK' result;`:`COMMIT;SELECT N'${resultPrefix}_INSTALLED' result;`}
  END TRY BEGIN CATCH IF @@TRANCOUNT>0 ROLLBACK;THROW;END CATCH;`;
+}
+
+// Finite username-only repair above the already installed C1 readiness layer.
+// C1 and all older immutable rows/definitions remain exact before images. The
+// native user guard changes one LIKE literal; no actor, role or data rule moves.
+export function buildCleanPersonnelUsernameRepairDefinitions(){
+ const c1=buildCleanReadyExpressionRepairDefinitions().definitions;
+ const prior={...buildCleanPersonnelWorkDefinitions().definitions,...c1};
+ const readyNames=Object.keys(c1).filter(n=>n.endsWith('_ready'));
+ const names=['usp_clean_personnel_guard',...readyNames];
+ const before=Object.fromEntries(names.map(n=>[n,prior[n]])),definitions={};
+ const manifest='clean_personnel_username_manifest',guard='usp_clean_personnel_username_ready',immutable='clean_personnel_username_immutable';
+ const bad="THROW 51978,'CLEAN_PERSONNEL_USERNAME_NOT_READY',1;";
+ definitions.usp_clean_personnel_guard=exact(before.usp_clean_personnel_guard,"N'%[^a-zA-Z0-9._-]%'","N'%[^-a-zA-Z0-9._]%'");
+ definitions[immutable]=`CREATE TRIGGER dbo.${immutable} ON dbo.${manifest} AFTER INSERT,UPDATE,DELETE AS BEGIN ${bad} END;`;
+ definitions[guard]=`CREATE PROCEDURE dbo.${guard} WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;${CLEAN_TARGET_SQL}
+ IF(SELECT COUNT(*) FROM dbo.${manifest})<>${names.length+2} OR EXISTS(SELECT 1 FROM dbo.${manifest} d LEFT JOIN sys.sql_modules m ON m.object_id=OBJECT_ID(N'dbo.'+d.name) WHERE m.object_id IS NULL OR m.definition IS NULL OR d.after_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',m.definition),2) OR m.uses_ansi_nulls<>1 OR m.uses_quoted_identifier<>1 OR(OBJECTPROPERTY(m.object_id,'IsTrigger')=1 AND OBJECTPROPERTY(m.object_id,'ExecIsTriggerDisabled')<>0)) ${bad} END;`;
+ const pinned=`IF ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${guard}'))),2),N'')<>${Q(moduleHash(definitions[guard]))} OR ISNULL(CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.${immutable}'))),2),N'')<>${Q(moduleHash(definitions[immutable]))} OR ISNULL(OBJECTPROPERTY(OBJECT_ID(N'dbo.${immutable}'),'ExecIsTriggerDisabled'),1)<>0 ${bad}`;
+ const projected=`SELECT ${names.map(n=>`MAX(CASE WHEN name=${Q(n)} THEN before_hash END) [${n}]`).join(',')} FROM dbo.${manifest} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER`;
+ for(const name of readyNames){
+  let body=before[name];
+  body=body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',OBJECT_DEFINITION\(OBJECT_ID\(N'dbo\.'\+(\w+)\.name\)\)\),2\)/g,(hash,a)=>`ISNULL(JSON_VALUE(@usernamePredecessors,N'$.'+${a}.name),${hash})`);
+  body=body.replace(/CONVERT\(char\(64\),HASHBYTES\('SHA2_256',(\w+)\.definition\),2\)/g,(hash)=>`ISNULL(JSON_VALUE(@usernamePredecessors,N'$.'+d.name),${hash})`);
+  // C1's ten ready bodies pin its guard literally, not through d.name. Only
+  // after the new complete proof may this pin see C1's exact old guard hash.
+  if(name!=='usp_clean_ready_expression_ready'){
+   const hash="CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_clean_ready_expression_ready'))),2)";
+   body=exact(body,hash,`ISNULL(JSON_VALUE(@usernamePredecessors,N'$.usp_clean_ready_expression_ready'),${hash})`);
+  }
+  if(body===before[name])throw Error('Username repair predecessor seam missing: '+name);
+  definitions[name]=exact(body,'SET NOCOUNT ON;',`SET NOCOUNT ON;${pinned}EXEC dbo.${guard};DECLARE @usernamePredecessors nvarchar(max)=(${projected});`);
+ }
+ return {before,definitions,manifest,guard};
 }
