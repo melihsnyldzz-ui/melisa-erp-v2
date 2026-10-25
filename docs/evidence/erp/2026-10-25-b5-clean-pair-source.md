@@ -1,3 +1,17 @@
+## 0948 — İki yeni bağımlılık bulgusunun dar düzeltmesi
+
+Bağımsız0940 incelemenin iki P1 bulgusu korunur; eski recovery/JSON bulguları yeniden açılmadı. Eski paket lock dosyası her paketin kendi sabit manifestindeki tekil ham SHA ile doğrulanır;349 envanteri yalnız modüllerin doğrulanmasında donor sözleşmesi olarak kalır. Kaynak dosya veya lock dönüştürülmez. Eksik/çift/yanlış own lock pini reddedilir; birleşik pakette own pin ile dependency lock pini de aynı olmalıdır.
+
+Pinli Node built-in createRequire.resolve.paths yalnız çözümleme yollarını hesaplar; paket/uygulama çalıştırmaz. Her payload dizini ve üç dependency kökünün varsayılan CJS ara/üst/global yolları birlikte korunur. Envanteri donmuş üç kökün dışındaki lookup yolları **yok** olmalıdır; mevcut ya da sonradan eklenen yol/reparse reddedilir. Özel NODE_PATH/NODE_OPTIONS desteklenmez; hiçbiri temizlenmez/değiştirilmez. HOME/USERPROFILE/HOMEDRIVE/HOMEPATH/APPDATA/LOCALAPPDATA süreç değerlerinin yalnız hash'i tutulur, sınırda değişim reddedilir. Bu muhafazakâr sabit profilin dışında meşru global modüller varsa kurulum kapalı kalır; onları silme veya taramayı gevşetme yetkisi yoktur.
+
+İki yeni regresyon eski201 kaynağında0PASS/2FAIL/skip0: geçerli eski own-lock byte reddi, ara src/services/node_modules kabulü. Kaynak düzeltmesinde iki yeni vaka, gerçek dependency/freeze regresyonu ve kapalı Apply kontrolleri5PASS/skip0; gerçek CRLF örneği ve uyarlanmış RAM orchestration ayrıca2PASS/skip0 (6ayrı vaka). Gerçek geçici shadow yolu Node resolve tarafından seçildi; throw içeren modül çalıştırılmadı. Başlangıçta ve sonradan shadow retleri, ara/üst yollar, inventory içi nested ekleme ve lookup stamp değişimi kapsandı. Ham RED/GREEN özel ignored kanıtta; sandbox policy reddi kusur RED'i sayılmadı. Yeni bağımsız review/CI ayrı bekler. Üretim handoff kapısı değişmedi; ortak runtime/SQL/HTTP/hesap/kurulum bu **kaynak** adımında0.
+
+### Ayrı B5 erişim ve normal ekran sonucu
+
+İnsan tarafından ayrıca onaylanan mevcut sentetik10021 için tek pasifleştirme+tek özgün etkinlik geri dönüşü gerçek normal API'de tamamlandı. Pasifte giriş/access/refresh401; geri etkinleştirmeden sonra eski oturum yine401, yeni giriş200. Kendi test oturumları kapatıldı. Diğer hesap/rol/izin/personel/seal,53 katkı sözleşmesi ve korunan dosyalar eş; hedef updated_at/by/row_version ile beklenen auth/audit ekleri tam byte geri yükleme diye sunulmaz. İnsan kabulü bekler.
+
+Mevcut normal personel9+1 okuma/reload kanıtı korunur. Kullanıcı yönetimi1280×720 CSS-RO ölçümünde user/role grid90px karşısında içerik336/416px, audit90/559px: yükseklik sıkışması doğrulandı. CSS/zoom/viewport değişikliği0; tam görsel/form kabulü açık. Özel görüntü/envanter yayımlanmadı.
+
 # B5 sabit clean API + web geçiş kaynağı — 25 Ekim 2026
 
 ## 0907 inceleme düzeltmesi — bağımsız tekrar inceleme bekliyor

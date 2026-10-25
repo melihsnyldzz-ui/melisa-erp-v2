@@ -4008,5 +4008,511 @@
     "full38PriorResultPreserved": true,
     "newTestWorkingSha256": "3e9e754e4251f5fb1fadc8db787f8d928c54e0a99fcb58f030f921743bef4e18",
     "finalHeadCi": "PENDING_NEW_COMMIT"
+  },
+  "b5NormalPersonnelRead0941": {
+    "taskId": "ERP-B5-REMAINING-ACCEPTANCE-CLOSE-20261025-0941",
+    "observedAt": "2026-10-25T09:56:16.198Z",
+    "normalManagementUrl": "http://192.168.1.46:5244/legacy-admin.html?screen=personnel-definitions",
+    "existingSemihSessionRenewedWithoutSecretTransfer": true,
+    "personnel": {
+      "records": 10,
+      "fixedPersonalDutyRecords": 9,
+      "oldGeneralSyntheticCardPreserved": 1,
+      "newSixSeen": true,
+      "topAndLowerListsVisuallyObserved": true,
+      "fullReloadSameSessionAndRecords": true,
+      "selectedCardAfterReloadReopened": true,
+      "mehmetPackingChecked": true,
+      "rustemPackingUnchecked": true,
+      "selectionPersisted": false
+    },
+    "users": {
+      "visibleDomRowsMatchSix": true,
+      "activeCount": 21,
+      "roles": 17,
+      "fullReloadRowsPersist": true,
+      "newUserFormOpenedEmpty": true,
+      "positiveCreateFormSubmit": false,
+      "renderingAt1280x720": "PARTIAL: multiple panels clip/overlap, DOM rows are not full visual usability proof"
+    },
+    "mutations": {
+      "newUserOrEmployee": 0,
+      "save": 0,
+      "roleOrTask": 0,
+      "passwordOrActive": 0,
+      "trade": 0,
+      "serviceOrInstall": 0
+    },
+    "publicScreenshotsUploaded": false,
+    "privateScreenshots": [
+      {
+        "name": "personnel-mehmet-before-reload.jpg",
+        "bytes": 108088,
+        "sha256": "9adaa19394a8083fe65ab620974a497b230982aa9e5581dcb494b6e95b867dfc"
+      },
+      {
+        "name": "personnel-mehmet-after-reload.jpg",
+        "bytes": 98200,
+        "sha256": "d90df455bdd5e17595745635894ba945868030e1c8e2cb18fb3b2f8939c28d87"
+      },
+      {
+        "name": "new-user-form-not-submitted.jpg",
+        "bytes": 91970,
+        "sha256": "b61c3fc2c9807b3123e7d67870389e612fdba2e4a89481266a31842b4e635487"
+      },
+      {
+        "name": "users-after-reload.jpg",
+        "bytes": 95363,
+        "sha256": "b3d80152aaafa4a3ded2215a2c8876d4d1882295e6dc160a2f0c2aae6c0bc0db"
+      },
+      {
+        "name": "personnel-fixed-nine-lower-list.jpg",
+        "bytes": 101931,
+        "sha256": "6debaad12e99e1869ca927570fb14d1804c06c66642b447095b45414c5df8f0f"
+      },
+      {
+        "name": "personnel-rustem-packing-off.jpg",
+        "bytes": 95729,
+        "sha256": "d819adce286d037dad05501d3bbbc19fb9f8b80205b5c9a9e9cc9b7b201c6db3"
+      }
+    ],
+    "normalGuiRead": true,
+    "normalGuiCreateSubmit": false,
+    "ownRepresentativeApiLogin": {
+      "userId": 10025,
+      "roleId": 30,
+      "login": true,
+      "managementGet403": true,
+      "ownLogout": true,
+      "gui": false
+    },
+    "sourceDeliveryCi": {
+      "commit": "201eb32f111f432d6d8d465a1067e15a3be363a6",
+      "jobsSuccess": 6,
+      "failed": 0,
+      "pushRun": 40181419662,
+      "prRun": 40181422082
+    },
+    "technicalFixedOutcomes": [
+      {
+        "outcome": 1,
+        "state": "TECHNICAL_BINDINGS_AND_PERSONNEL_GUI_READ_VERIFIED",
+        "humanAcceptance": "PENDING"
+      },
+      {
+        "outcome": 2,
+        "state": "PARTIAL",
+        "remaining": "Extra finance panel and user-management clipping; GUI final create submit not attempted"
+      },
+      {
+        "outcome": 3,
+        "state": "PARTIAL",
+        "remaining": "Specific10021 passive/old-session approval received; rehearsal queued, not run"
+      },
+      {
+        "outcome": 4,
+        "state": "PRIOR_CRM_TECHNICAL_ACCEPTANCE_REUSED",
+        "newCrmActions": 0
+      }
+    ],
+    "newDependencySourceReview": "NO_GO_TWO_P1_QUEUED",
+    "originalCountersUnchanged": true
+  },
+  "b5ApprovedInactivity1012": {
+    "status": "TECHNICAL_INACTIVITY_RESTORE_AND_OLD_SESSION_REJECTION_VERIFIED",
+    "phase": "Apply",
+    "userId": 10021,
+    "employeeId": 1,
+    "roleId": 30,
+    "authorityUserMessage": "01a17279-4e92-7733-b9c0-1667f9576392",
+    "authorityText": "Evet yap abi, gerekiyorsa yapın yani",
+    "originalActive": true,
+    "deactivated": true,
+    "inactiveAccessDenied": true,
+    "inactiveLoginDenied": true,
+    "inactiveRefreshDenied": true,
+    "originalActiveRestored": true,
+    "oldAccessStillDenied": true,
+    "oldRefreshStillDenied": true,
+    "activeLoginRestored": true,
+    "protectedScopesEqual": true,
+    "ownSessionsClosed": true,
+    "activityRequests": 1,
+    "restoreRequests": 1,
+    "accountCreate": 0,
+    "rolePasswordTaskChanges": 0,
+    "tradeWrites": 0,
+    "serviceInstallRestart": 0,
+    "humanAcceptance": "PENDING",
+    "failure": null,
+    "observedAt": "2026-10-25T13:12:28.6534467+03:00",
+    "calls": [
+      {
+        "path": "/api/auth/login",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/personnel/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/session-confirm",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/users/10021",
+        "expected": 200,
+        "method": "PATCH",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/me",
+        "expected": 401,
+        "method": "GET",
+        "code": "AUTH_USER_INACTIVE",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/login",
+        "expected": 401,
+        "method": "POST",
+        "code": "AUTH_INVALID_CREDENTIALS",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/refresh",
+        "expected": 401,
+        "method": "POST",
+        "code": "AUTH_USER_INACTIVE",
+        "status": 401
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/users/10021",
+        "expected": 200,
+        "method": "PATCH",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/me",
+        "expected": 401,
+        "method": "GET",
+        "code": "AUTH_REFRESH_INVALID",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/refresh",
+        "expected": 401,
+        "method": "POST",
+        "code": "AUTH_REFRESH_INVALID",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/login",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/logout",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/logout",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/logout",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      }
+    ],
+    "proofScope": "Normal API; native SQL before/after hashes for 53 contribution definitions, all other users/roles/permissions/employees/seals and own stable user fields; expected target updated_at/by/row_version and auth/audit changes excluded",
+    "normalGui": false,
+    "installedApplicationUnchanged": true,
+    "privateEvidence": ".tmp/b5-inactive-approved-20261025/",
+    "privateRawInventoryPublished": false
+  },
+  "b5LayoutMeasure1006": {
+    "observedAt": "2026-10-25T10:13:05.121Z",
+    "viewport": {
+      "dpr": 1,
+      "height": 720,
+      "width": 1280
+    },
+    "media1280": true,
+    "root": {
+      "className": "work-area auth-admin-screen auth-admin-modern-screen",
+      "clientHeight": 588,
+      "display": "grid",
+      "flex": "0 1 auto",
+      "gridAutoRows": "auto",
+      "gridTemplateColumns": "1018px",
+      "gridTemplateRows": "54px 147.875px 43.5469px 90.1875px 90.2031px 92.1875px",
+      "minHeight": "0px",
+      "overflowX": "auto",
+      "overflowY": "auto",
+      "position": "static",
+      "rect": {
+        "bottom": 692,
+        "height": 588,
+        "width": 1048,
+        "x": 232,
+        "y": 104
+      },
+      "scrollHeight": 802
+    },
+    "panels": [
+      {
+        "className": "dashboard-toolbar auth-admin-toolbar",
+        "clientHeight": 52,
+        "display": "flex",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "52px",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 168,
+          "height": 54,
+          "width": 1018,
+          "x": 242,
+          "y": 114
+        },
+        "scrollHeight": 52
+      },
+      {
+        "className": "dashboard-kpi-grid auth-admin-kpis",
+        "clientHeight": 148,
+        "display": "grid",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "505px 505px",
+        "gridTemplateRows": "69.9375px 69.9375px",
+        "minHeight": "auto",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 325.875,
+          "height": 147.875,
+          "width": 1018,
+          "x": 242,
+          "y": 178
+        },
+        "scrollHeight": 148
+      },
+      {
+        "className": "",
+        "clientHeight": 18,
+        "display": "block",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "auto",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 366.421875,
+          "height": 17.546875,
+          "width": 1018,
+          "x": 242,
+          "y": 348.875
+        },
+        "scrollHeight": 18
+      },
+      {
+        "className": "erp-panel critical-locks-panel",
+        "clientHeight": 0,
+        "display": "none",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "0px",
+        "overflowX": "hidden",
+        "overflowY": "hidden",
+        "position": "static",
+        "rect": {
+          "bottom": 0,
+          "height": 0,
+          "width": 0,
+          "x": 0,
+          "y": 0
+        },
+        "scrollHeight": 0
+      },
+      {
+        "className": "split-grid auth-admin-split-grid auth-admin-user-grid",
+        "clientHeight": 90,
+        "display": "grid",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "1018px",
+        "gridTemplateRows": "40.0938px 40.0938px",
+        "minHeight": "0px",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 479.609375,
+          "height": 90.1875,
+          "width": 1018,
+          "x": 242,
+          "y": 389.421875
+        },
+        "scrollHeight": 336
+      },
+      {
+        "className": "split-grid auth-admin-split-grid auth-admin-role-grid",
+        "clientHeight": 90,
+        "display": "grid",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "1018px",
+        "gridTemplateRows": "40.0938px 40.1094px",
+        "minHeight": "0px",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 579.8125,
+          "height": 90.203125,
+          "width": 1018,
+          "x": 242,
+          "y": 489.609375
+        },
+        "scrollHeight": 416
+      },
+      {
+        "className": "erp-panel auth-admin-audit-panel",
+        "clientHeight": 90,
+        "display": "block",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "0px",
+        "overflowX": "hidden",
+        "overflowY": "hidden",
+        "position": "static",
+        "rect": {
+          "bottom": 682,
+          "height": 92.1875,
+          "width": 1018,
+          "x": 242,
+          "y": 589.8125
+        },
+        "scrollHeight": 559
+      }
+    ],
+    "reads": "CSS geometry only; no text, input values, session or store",
+    "cssOrViewportChanges": 0,
+    "hypothesis": "CONFIRMED_HEIGHT_COMPRESSION; exact CSS repair not applied/tested",
+    "humanAcceptance": "PENDING"
+  },
+  "cleanPairDependencyReviewFix0948": {
+    "kind": "SOURCE_OFFLINE_ONLY",
+    "priorReview": "NO_GO_TWO_P1",
+    "reviewerTurn": "01a1726c-cdb4-7d80-9fc5-fec9b60a8ae7",
+    "oldRecoveryAndJsonFindingsNotReopened": true,
+    "rawLocks": "Each immutable own manifest files row; no byte normalization",
+    "modules": "349 inventory still required separately for each app; default Node createRequire lookup paths computed for all pinned payload directories and dependency roots; unsealed intermediate/ancestor/global paths must be absent at baseline and every action boundary",
+    "environment": "NODE_PATH/NODE_OPTIONS rejected, path-related process environment stamped, no settings changed",
+    "newRed": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "skip": 0,
+      "log": ".tmp/b5-review-0948/new-red-unsandboxed.log",
+      "defects": [
+        "B5_DEPENDENCY_LOCK_CHANGED on valid own raw lock",
+        "SHADOW_PATH_ACCEPTED_apps/api/src/services/node_modules"
+      ]
+    },
+    "targetedGreen": {
+      "firstSet": 5,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 14952.4577,
+      "lastChangedRawAndFixture": 2,
+      "lastDurationMs": 1808.6346,
+      "totalDistinctCases": 6,
+      "logs": [
+        ".tmp/b5-review-0948/final-targeted.log",
+        ".tmp/b5-review-0948/final-raw-and-fixture.log"
+      ]
+    },
+    "newIndependentReview": "PENDING",
+    "newHeadCi": "PENDING",
+    "applyGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "runtimeOperations": 0,
+    "buildOrPackage": 0
   }
 }

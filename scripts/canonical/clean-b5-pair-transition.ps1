@@ -99,6 +99,7 @@ function Get-B5DependencyFiles([string]$Base,[string]$Directory=$Base){
  }
 }
 function Get-B5DependencyDigest($Rows){
+ $null=Get-B5LookupEnvironmentStamp
  # Match the already accepted package inventory algorithm exactly: Node ICU
  # path.localeCompare, ordered path/sha256 objects, compact UTF8 JSON. Only
  # ASCII base64 metadata goes to this pinned Node's stdin; no helper file,
@@ -109,11 +110,44 @@ function Get-B5DependencyDigest($Rows){
  $value=$encoded|& (Get-B5Pins).node -e $program
  if($LASTEXITCODE -ne 0 -or $value -cnotmatch '^[0-9a-f]{64}$'){B5Fail 'B5_DEPENDENCY_DIGEST_FAILED'};return $value
 }
+function Get-B5LookupEnvironmentStamp {
+ # Default Node lookup only. Never clear/change caller settings or permit
+ # preload hooks/custom search roots which this fixed profile did not pin.
+ if($env:NODE_PATH -or $env:NODE_OPTIONS){B5Fail 'B5_DEPENDENCY_LOOKUP_ENVIRONMENT'}
+ $state=[ordered]@{};foreach($name in @('HOME','USERPROFILE','HOMEDRIVE','HOMEPATH','APPDATA','LOCALAPPDATA')){$state[$name]=[Environment]::GetEnvironmentVariable($name,'Process')}
+ return B5Hash ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $state -Compress)))
+}
+function Get-B5ModuleLookupDirectories([string]$Root,$Manifest){
+ $null=Get-B5LookupEnvironmentStamp
+ $origins=@(foreach($f in $Manifest.files){
+  if($f.path -match '(^/|\\|:|[\r\n])' -or @($f.path.Split('/')|Where-Object {$_ -in @('','..','.')}).Count){B5Fail 'B5_DEPENDENCY_LOOKUP_PATH'}
+  $full=[IO.Path]::GetFullPath((Join-Path $Root $f.path));Assert-B5Path $full;$full
+ })
+ if(!$origins.Count){B5Fail 'B5_DEPENDENCY_LOOKUP_PATH'}
+ # Built-in createRequire computes the actual CJS lookup paths without loading
+ # any package/application code. All payload directories are included, plus
+ # the dependency-root origins: nested dependency paths are already sealed.
+ foreach($app in @('api','sites-workflow','web-admin')){$origins+=Join-Path $Root ('apps\'+$app+'\node_modules\__b5_lookup__.js')}
+ $encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($origins) -Compress)))
+ $program="const fs=require('node:fs'),p=require('node:path'),m=require('node:module');const a=JSON.parse(Buffer.from(fs.readFileSync(0,'utf8').trim(),'base64').toString('utf8'));const dirs=[...new Set(a.map(x=>p.dirname(x)))];const r=[...new Set(dirs.flatMap(d=>m.createRequire(p.join(d,'__b5_lookup__.js')).resolve.paths('mssql')||[]))].sort();process.stdout.write(JSON.stringify(r));"
+ $value=$encoded|& (Get-B5Pins).node -e $program
+ if($LASTEXITCODE -ne 0 -or !$value){B5Fail 'B5_DEPENDENCY_LOOKUP_FAILED'}
+ $paths=@($value|ConvertFrom-Json);if(!$paths.Count){B5Fail 'B5_DEPENDENCY_LOOKUP_FAILED'}
+ return $paths
+}
+function Assert-B5ModuleLookupContext($Context){
+ if((Get-B5LookupEnvironmentStamp) -cne $Context.environment){B5Fail 'B5_DEPENDENCY_LOOKUP_ENVIRONMENT_CHANGED'}
+ foreach($path in $Context.absent){
+  Assert-B5NoReparse $path
+  if(Test-Path -LiteralPath $path){B5Fail 'B5_DEPENDENCY_LOOKUP_SHADOW'}
+ }
+}
 function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
  $p=Get-B5Pins;$contract=$Manifest
  if(!$contract.PSObject.Properties['dependencies']){
   # Old b9/b89 manifests have no module list. Their dependencies must match
-  # the existing pinned 349 inventory copied from b9, including each lock.
+  # the existing pinned 349 module inventory copied from b9. Raw lock bytes
+  # remain pinned by each old package's OWN immutable manifest, not 349's LF.
   # A mismatch closes recovery; an old manifest is never relabelled.
   if($Manifest.sourceCommit -cnotin @($p.oldApi,$p.oldWeb)){B5Fail 'B5_DEPENDENCY_CONTRACT_MISSING'}
   $bytes=B5ReadFrozen (Join-Path $p.root 'release-manifest.json') $Lease
@@ -126,7 +160,11 @@ function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
  foreach($d in $contract.dependencies){
   if($d.app -cnotin $apps -or $seen.ContainsKey($d.app) -or !($d.files -is [int] -or $d.files -is [long]) -or $d.files -le 0 -or $d.inventorySha256 -notmatch '^[0-9a-fA-F]{64}$' -or $d.lockSha256 -notmatch '^[0-9a-fA-F]{64}$'){B5Fail 'B5_DEPENDENCY_CONTRACT_INVALID'}
   $seen[$d.app]=$true;$app=Join-Path $Root ('apps\'+$d.app)
-  if((B5Hash (B5ReadFrozen (Join-Path $app 'package-lock.json') $Lease)) -ine $d.lockSha256){B5Fail 'B5_DEPENDENCY_LOCK_CHANGED'}
+  $lockPath='apps/'+$d.app+'/package-lock.json'
+  $ownLock=@($Manifest.files|Where-Object path -CEQ $lockPath)
+  if($ownLock.Count -ne 1 -or $ownLock[0].sha256 -notmatch '^[0-9a-fA-F]{64}$'){B5Fail 'B5_DEPENDENCY_LOCK_PIN_MISSING'}
+  if([object]::ReferenceEquals($contract,$Manifest) -and $ownLock[0].sha256 -ine $d.lockSha256){B5Fail 'B5_DEPENDENCY_LOCK_CONTRACT_CHANGED'}
+  if((B5Hash (B5ReadFrozen (Join-Path $app 'package-lock.json') $Lease)) -ine $ownLock[0].sha256){B5Fail 'B5_DEPENDENCY_LOCK_CHANGED'}
   $base=Join-Path $app 'node_modules';$entries=@(Get-B5DependencyFiles $base);$rows=@();$paths=@{}
   foreach($entry in $entries){if($paths.ContainsKey($entry.path)){B5Fail 'B5_DEPENDENCY_DUPLICATE'};$paths[$entry.path]=$true;$rows+=@([ordered]@{path=$entry.path;sha256=(B5Hash (B5ReadFrozen $entry.full $Lease)).ToLowerInvariant()})}
   if($rows.Count -ne $d.files -or (Get-B5DependencyDigest $rows) -ine $d.inventorySha256){B5Fail 'B5_DEPENDENCY_INVENTORY_CHANGED'}
@@ -134,11 +172,22 @@ function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
   $again=@(Get-B5DependencyFiles $base);if($again.Count -ne $entries.Count -or @($again|Where-Object {!$paths.ContainsKey($_.path)}).Count){B5Fail 'B5_DEPENDENCY_DIRECTORY_CHANGED'}
   if($Lease){Assert-B5Lease $Lease;if(!$Lease.PSObject.Properties['dependencyDirectories']){$Lease|Add-Member -NotePropertyName dependencyDirectories -NotePropertyValue (New-Object Collections.Generic.List[object])};$Lease.dependencyDirectories.Add(@{root=$base;paths=$paths})}
  }
+ $sealed=@(foreach($name in $apps){[IO.Path]::GetFullPath((Join-Path $Root ('apps\'+$name+'\node_modules')))})
+ $absent=@(foreach($candidate in (Get-B5ModuleLookupDirectories $Root $Manifest)){
+  if(!($candidate -is [string]) -or ![IO.Path]::IsPathRooted($candidate) -or $candidate -match '[\r\n]'){B5Fail 'B5_DEPENDENCY_LOOKUP_PATH'}
+  $full=[IO.Path]::GetFullPath($candidate);$covered=$false
+  foreach($base in $sealed){if($full.Equals($base,[StringComparison]::OrdinalIgnoreCase) -or $full.StartsWith($base+'\',[StringComparison]::OrdinalIgnoreCase)){$covered=$true;break}}
+  if(!$covered){$full}
+ })
+ $context=[pscustomobject]@{environment=(Get-B5LookupEnvironmentStamp);absent=$absent};Assert-B5ModuleLookupContext $context
+ if($Lease){Assert-B5Lease $Lease;if(!$Lease.PSObject.Properties['moduleSearchContexts']){$Lease|Add-Member -NotePropertyName moduleSearchContexts -NotePropertyValue (New-Object Collections.Generic.List[object])};$Lease.moduleSearchContexts.Add($context)}
 }
 function Assert-B5DependencyDirectories($Lease){
  Assert-B5Lease $Lease
  if(!$Lease.PSObject.Properties['dependencyDirectories']){B5Fail 'B5_DEPENDENCY_FREEZE_MISSING'}
  foreach($d in $Lease.dependencyDirectories){$entries=@(Get-B5DependencyFiles $d.root);if($entries.Count -ne $d.paths.Count -or @($entries|Where-Object {!$d.paths.ContainsKey($_.path)}).Count){B5Fail 'B5_DEPENDENCY_DIRECTORY_CHANGED'}}
+ if(!$Lease.PSObject.Properties['moduleSearchContexts']){B5Fail 'B5_DEPENDENCY_LOOKUP_FREEZE_MISSING'}
+ foreach($context in $Lease.moduleSearchContexts){Assert-B5ModuleLookupContext $context}
 }
 function Read-B5Health([int]$Port){if($Port -notin @(4194,4196)){B5Fail 'B5_HEALTH_PORT'};return Invoke-RestMethod ('http://127.0.0.1:'+$Port+'/test-health') -TimeoutSec 5}
 function Assert-B5Health($Health,[int]$Port,[string]$Source,[string]$Package){

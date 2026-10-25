@@ -19,7 +19,7 @@ function New-B5FixtureFacts([int]$Id,[string]$Root,[int]$Port){
 function Assert-Fx($Value,[string]$Message){if(!$Value){throw ('FIXTURE_ASSERT_'+$Message)}}
 function Fx-ExpectedError([scriptblock]$Body,[string]$Pattern){$failed=$false;try{& $Body|Out-Null}catch{$failed=$true;Assert-Fx ($_.Exception.Message -match $Pattern) ('wrong-error-'+$_.Exception.Message)};Assert-Fx $failed 'expected-error'}
 function Get-B5WriterHandoff {return [pscustomobject]@{testOnly='synthetic-provider'}}
-function Enter-B5Lease($Handoff){if($script:fx.failure -eq 'owner-busy'){throw 'B5_OWNER_BUSY'};$script:fx.held=$true;$script:fx.events.Add('lease-enter');return [pscustomobject]@{sid='S-1-fixture';handoff=$Handoff;dependencyDirectories=(New-Object Collections.Generic.List[object])}}
+function Enter-B5Lease($Handoff){if($script:fx.failure -eq 'owner-busy'){throw 'B5_OWNER_BUSY'};$script:fx.held=$true;$script:fx.events.Add('lease-enter');return [pscustomobject]@{sid='S-1-fixture';handoff=$Handoff;dependencyDirectories=(New-Object Collections.Generic.List[object]);moduleSearchContexts=(New-Object Collections.Generic.List[object])}}
 function Assert-B5Lease($Lease){Assert-Fx $script:fx.held 'lease-not-held';if($script:fx.failure -eq 'lease-lost' -and $script:fx.context.stopped.Count -eq 2){throw 'B5_LEASE_LOST'}}
 function Exit-B5Lease($Lease){$script:fx.events.Add('lease-exit');$script:fx.held=$false}
 function Complete-B5WriterHandoff($Lease,[string]$Outcome,$Context){Assert-B5Lease $Lease;$script:fx.events.Add('handoff-'+$Outcome)}

@@ -4,6 +4,63 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(ps,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+win('review old recovery locks use their own pinned raw bytes without converting CRLF',String.raw`
+ $p=Get-B5Pins;$script:pins=$p;function Get-B5Pins{return $script:pins}
+ $crlf=[string][char]13+[char]10;$lfOnly=[string][char]10
+ $raw=[Text.Encoding]::UTF8.GetBytes('{'+$crlf+'}'+$crlf);$lf=[Text.Encoding]::UTF8.GetBytes('{'+$lfOnly+'}'+$lfOnly);$script:raw=$raw
+ $deps=@(foreach($app in @('api','sites-workflow','web-admin')){[pscustomobject]@{app=$app;files=1;inventorySha256=('a'*64);lockSha256=(B5Hash $lf)}})
+ $own=@(foreach($app in @('api','sites-workflow','web-admin')){[pscustomobject]@{path=('apps/'+$app+'/package-lock.json');sha256=(B5Hash $raw)}})
+ $old=[pscustomobject]@{sourceCommit=$p.oldApi;files=$own}
+ $donor=[pscustomobject]@{dependencies=$deps;dependencyDonorManifestSha256=$p.oldApiHash}
+ $script:donorBytes=[Text.Encoding]::UTF8.GetBytes(($donor|ConvertTo-Json -Depth 8));$script:pins.manifest=B5Hash $script:donorBytes
+ function Assert-B5Manifest($Manifest,$Source,[switch]$Combined){}
+ function B5ReadFrozen($Path,$Lease){if($Path.EndsWith('release-manifest.json')){return ,$script:donorBytes};return ,$script:raw}
+ function Get-B5DependencyFiles($Base){return [pscustomobject]@{path='fixture.js';full=(Join-Path $Base 'fixture.js')}}
+ function Get-B5DependencyDigest($Rows){return ('a'*64)}
+ function Get-B5ModuleLookupDirectories($Root,$Manifest){return 'C:\fixture\node_modules'}
+ function Assert-B5ModuleLookupContext($Context){}
+ Read-B5Dependencies $p.oldApiRoot $old $null
+ foreach($bad in @('missing','duplicate','changed')){
+  $old.files=if($bad -eq 'missing'){@($own|Select-Object -Skip 1)}elseif($bad -eq 'duplicate'){@($own)+@($own[0])}else{@(foreach($f in $own){[pscustomobject]@{path=$f.path;sha256=('b'*64)}})}
+  $failed=$false;try{Read-B5Dependencies $p.oldApiRoot $old $null}catch{$failed=$true};if(!$failed){throw ('OWN_RAW_LOCK_NOT_PINNED_'+$bad)}
+ };'PASS'`);
+
+test('review Node intermediate and ancestor shadows are rejected before and after dependency freeze',{skip:process.platform!=='win32'},()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'b5-shadow-')),dir=fs.realpathSync.native(temp),hash=b=>createHash('sha256').update(b).digest('hex');
+ const pack=path.join(dir,'owned','package'),files=[],deps=[];
+ for(const app of ['api','sites-workflow','web-admin']){const base=path.join(pack,'apps',app);fs.mkdirSync(path.join(base,'node_modules','mssql'),{recursive:true});fs.writeFileSync(path.join(base,'node_modules','mssql','index.js'),'throw new Error("MUST_NOT_EXECUTE")');fs.writeFileSync(path.join(base,'package-lock.json'),'{}');const row={path:'mssql/index.js',sha256:hash(fs.readFileSync(path.join(base,'node_modules','mssql','index.js')))};files.push({path:`apps/${app}/package-lock.json`,sha256:hash('{}')});deps.push({app,files:1,inventorySha256:hash(JSON.stringify([row])),lockSha256:hash('{}')});}
+ const entry=path.join(pack,'apps','api','src','services','entry.js');fs.mkdirSync(path.dirname(entry),{recursive:true});fs.writeFileSync(entry,'// Not executed');files.push({path:'apps/api/src/services/entry.js',sha256:hash('// Not executed')});
+ const enc=v=>Buffer.from(JSON.stringify(v)).toString('base64'),quote=v=>v.replaceAll("'","''"),node=fs.realpathSync.native(process.execPath);
+ try{runWin(String.raw`
+  $p=Get-B5Pins;$script:pins=$p;$script:pins.root='${quote(pack)}';$script:pins.node='${quote(node)}';$script:pins.nodeHash='${hash(fs.readFileSync(node)).toUpperCase()}'
+  function Get-B5Pins{return $script:pins};function Assert-B5Lease($Lease){}
+  function Assert-B5Path($Path){$full=[IO.Path]::GetFullPath($Path);if($full -cne $script:pins.node -and !$full.StartsWith('${quote(dir)}\',[StringComparison]::OrdinalIgnoreCase)){throw 'FIXTURE_PATH_ESCAPE'};Assert-B5NoReparse $full}
+  $m=[pscustomobject]@{sourceCommit=$p.source;files=(ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${enc(files)}'))));dependencies=(ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${enc(deps)}'))))}
+  $lease=[pscustomobject]@{resources=(New-Object Collections.Generic.List[IDisposable])}
+  try{
+   Read-B5Dependencies $script:pins.root $m $lease;Assert-B5DependencyDirectories $lease
+   foreach($relative in @('apps\api\src\services\node_modules','apps\api\src\node_modules','apps\api\node_modules\mssql\node_modules','apps\node_modules','node_modules','..\node_modules')){
+    $shadow=[IO.Path]::GetFullPath((Join-Path $script:pins.root $relative))
+    if(!$shadow.StartsWith('${quote(dir)}\',[StringComparison]::OrdinalIgnoreCase)){throw 'FIXTURE_DELETE_PATH_ESCAPE'}
+    # Nested under sealed node_modules is independently rejected by its inventory.
+    $null=[IO.Directory]::CreateDirectory((Join-Path $shadow 'mssql'));[IO.File]::WriteAllText((Join-Path $shadow 'mssql\index.js'),'throw "MUST_NOT_EXECUTE"')
+    if($relative -ceq 'apps\api\src\services\node_modules'){
+     $resolved=& $script:pins.node -e "process.stdout.write(require('node:module').createRequire(process.argv[1]).resolve('mssql'))" '${quote(entry)}'
+     if($LASTEXITCODE -ne 0 -or $resolved -ine (Join-Path $shadow 'mssql\index.js')){throw 'ACTUAL_NODE_SHADOW_NOT_PROVEN'}
+     $fresh=[pscustomobject]@{resources=(New-Object Collections.Generic.List[IDisposable])};$initialBlocked=$false
+     try{try{Read-B5Dependencies $script:pins.root $m $fresh}catch{$initialBlocked=$_.Exception.Message -ceq 'B5_DEPENDENCY_LOOKUP_SHADOW'}}finally{foreach($f in $fresh.resources){$f.Dispose()}}
+     if(!$initialBlocked){throw 'INITIAL_SHADOW_ACCEPTED'}
+    }
+    $failed=$false;try{Assert-B5DependencyDirectories $lease}catch{$failed=$true}
+    if(!$failed){throw ('SHADOW_PATH_ACCEPTED_'+$relative)}
+    [IO.Directory]::Delete($shadow,$true)
+   };Assert-B5DependencyDirectories $lease
+   $saved=$lease.moduleSearchContexts[0].environment;$lease.moduleSearchContexts[0].environment='changed-fixture-stamp';$blocked=$false
+   try{Assert-B5DependencyDirectories $lease}catch{$blocked=$_.Exception.Message -ceq 'B5_DEPENDENCY_LOOKUP_ENVIRONMENT_CHANGED'}
+   if(!$blocked){throw 'LOOKUP_ENVIRONMENT_CHANGE_ACCEPTED'};$lease.moduleSearchContexts[0].environment=$saved
+  }finally{foreach($f in $lease.resources){$f.Dispose()}};'PASS'`,60000);
+ }finally{assert.equal(path.dirname(path.resolve(temp)),path.resolve(os.tmpdir()));assert.match(path.basename(temp),/^b5-shadow-/);fs.rmSync(temp,{recursive:true,force:true});}
+});
 win('production handoff is closed before any mutex, filesystem or runtime operation',String.raw`function Enter-B5Lease{throw 'MUTEX_MUST_NOT_RUN'};try{Invoke-B5CleanTransition;throw 'unexpected'}catch{if($_.Exception.Message -ne 'B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING'){throw}};'PASS'`);
 win('caller booleans and idle/empty-port claims are not a live lease or writer handoff',String.raw`foreach($claim in @([pscustomobject]@{exclusive=$true;writerIdle=$true;portsEmpty=$true},[pscustomobject]@{held=$true;handoff=$true})){$failed=$false;try{Assert-B5Lease $claim}catch{$failed=$true};if(!$failed){throw 'accepted forged lease'}};'PASS'`);
 win('legacy mutex naming is reused without importing or widening the legacy runtime profile',String.raw`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${path.join(root,'start-owned-test.ps1').replaceAll("'","''")}',[ref]$t,[ref]$e);$f=$ast.Find({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Get-ErpMutexName'},$true);. ([scriptblock]::Create($f.Extent.Text));if((Get-B5MutexName 'C:\fixture\repo' 'S-1-fixture') -cne (Get-ErpMutexName 'c:/fixture/repo/.' 'S-1-fixture')){throw 'mutex mismatch'};'PASS'`);
