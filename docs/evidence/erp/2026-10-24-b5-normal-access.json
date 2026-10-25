@@ -3587,5 +3587,100 @@
         }
       ]
     }
+  },
+  "userResume0738": {
+    "task": "ERP-B5-USER-RESUME-20261025-0738",
+    "observedAt": "2026-10-25T10:42:32.9438491+03:00",
+    "directHumanMessage": {
+      "thread": "01a15d42-a70f-7510-9fce-73ce1cb433e9",
+      "id": "01a171fb-57ff-78c1-9308-628fbb1a2b12",
+      "text": "başlat diğer ajanlarıda o zaman",
+      "precedingScope": "Six named missing personal synthetic TEST accounts, reviewed financial package safe deployment and remaining B5 checks",
+      "notAutomaticSpecificApproval": true
+    },
+    "sourceApplication": "349fae354e2a90852cd0594ada485105bf091e43",
+    "installed": {
+      "api": "b9dd984876c808482017365556538078601187b8",
+      "web": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "native": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "externalOperations": false,
+      "originalAccess": 0,
+      "liveAccess": 0
+    },
+    "freshRead": {
+      "apiObservedUtc": "2026-10-25T07:38:47.7505097Z",
+      "nativeAndWebObservedUtc": "2026-10-25T07:42:05.6867686Z",
+      "acceptedWebEntry": "assets/example-DF84lNur.js",
+      "servedSha256": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b",
+      "servedBytesEqualAccepted": true
+    },
+    "sixAccounts": {
+      "preflightMissing": 6,
+      "preflightConflicts": 0,
+      "applyReview": "REJECTED_BEFORE_PROCESS_CREATION",
+      "reason": "New start-other-agents context did not specifically reauthorize previously rejected permanent six-account creation",
+      "created": 0,
+      "newEmployeeLinks": 0,
+      "newCredentialDeliveries": 0,
+      "applyReceiptExists": false,
+      "readbackMissing": 6,
+      "ownSetupLogoutConfirmed": true,
+      "existingQuestionPreserved": true,
+      "newQuestionCreated": false,
+      "otherRouteTried": false
+    },
+    "protection": {
+      "before": "2026-10-25T10:39:59.8791045+03:00",
+      "after": "2026-10-25T10:41:59.9534721+03:00",
+      "oldAccounts": true,
+      "existingContributionContracts": 53,
+      "existingContributionsUnchanged": true,
+      "ownFixtureUnchanged": true,
+      "rolesPermissionsOldSealsUnchanged": true,
+      "wholeDatabaseClaimed": false,
+      "normalAuthAuditExcluded": true
+    },
+    "processObservation": {
+      "utc": "2026-10-25T07:42:32.9438491Z",
+      "allRelevantOsOwnersMatchCurrent": true,
+      "pids": {
+        "api4194": 45284,
+        "web5244": 9856,
+        "native4196": 16224,
+        "crm62800And62801": 44612,
+        "crm62802": 34084,
+        "crm62803": 34424
+      },
+      "exclusiveRuntimeClaimHeld": false
+    },
+    "technicalBoundary": {
+      "source": "scripts/canonical/start-owned-test.ps1",
+      "scopeLine": 49,
+      "portsLine": 56,
+      "supportedDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "supportedPorts": [
+        4144,
+        4146,
+        5194
+      ],
+      "cleanProfileNotSupported": true,
+      "existingMutexPrimitiveIsNotCleanAdmissionProof": true,
+      "legacyGuardNotWidened": true,
+      "newGeneralAdmissionEngineCreated": false,
+      "offline0102BlockRetained": true
+    },
+    "artifactIndependentReview": "IN_PROGRESS_IN_EXISTING_CRM_THREAD_ASSIGNED_BY_COORDINATOR",
+    "installation": false,
+    "restart": false,
+    "financialOrStockWrite": false,
+    "rolesChanged": false,
+    "existingAcceptancesRepeated": false,
+    "prior87And83TestsOrBuildOrPackageRepeated": false,
+    "normalNewPanelGui": "NOT_TESTED",
+    "humanAcceptance": "PENDING"
   }
 }
