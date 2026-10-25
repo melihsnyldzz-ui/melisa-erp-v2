@@ -1,3 +1,11 @@
+## 26 Ekim — GREENCOMBINED kabul ve CSS koruyan rollback bağları düzeltildi; gerçek devir hâlâ yok
+
+Hazır uygulama paketi değişmedi: API/frontend349fae354e2a + yalnızCSSb6de5305; manifest3aa51a25. Mevcut çift-geçiş kaynağı ve başlangıç şablonu yalnız bu kesin composite kind/patch/root/hash'e bağlandı. Rollback APIb9 + mevcut b89/CSSb6/61328e6b; eski API'nin bağımlılık kanıtı ayrı immutable349/9614e9cf sözleşmesinde kaldı. Exact WEBONLY rollback yalnızSites envanterini doğrular; own-lock/file/digest/freeze ve bütün ek lookup-shadow kontrolleri korunur. Eski paket/manifestler değişmedi.
+
+Beş benzersiz dar RAM fixture doğrulandı; son değişen iki fixture2PASS/0skip. İlk WindowsPS5 sandbox kayıt-defteri reddi güvenlik ayarı değiştirilmeden normal araç incelemesiyle aşıldı; ilk fixture NodeSHA harf biçimi düzeltmesi yalnız test girdisidir. Bağımsız kaynak incelemesi GO/açıkP1-P2=0. Mevcut normal kurulu başlatıcının dokuz kesin bağ değişikliğiyle pasif kopyası da hazır:75739cbe; inverse bütün17aec baseline byte'larını geri verir. Bu bir runtime kurulumu değildir.
+
+Gerçek desteklenen -Apply girişi denendi ve ilk B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING kapısında, mutex/dosya/süreç işlemlerinden önce durdu. Kamu handoff ve template B5_OFFLINE_SOURCE_ONLY kapıları değişmedi; yeni sahiplik/installer/host/credential yolu kurulmadı. APIb9, web b89/CSSb6, native035, CRM ve TEST verileri korunur; kurulum/stop/start/SQL/ticari yazı0. Yeni aday GUI DENENMEDİ; insanE2/özgünUA ve sayaçlar aynı. Tek kalan teknik koşul: mevcut clean sahibinin gerçek, sürekli doğrulanabilir API+web devir sözleşmesini sağlayabilmesi. Yeni uygulama build'i, paket üretimi veya kapalı geniş test/CI tekrarı yapılmadı.
+
 ## 25 Ekim — 1704 dar web-only host adapteri SOURCE/OFFLINE
 
 Base `ef3135524cffcb72caf9e6f5c64ba6510f8c24ac`; CRM1654 turn `01a173fc-c19e-7302-8dad-d61b116f2b5d` dar SOURCE GO / rollback P1 kapalı / delta P1-P2 yok sonucu koordinatörden alındı. Kapalı fix/test/review döngüsü tekrarlanmadı.

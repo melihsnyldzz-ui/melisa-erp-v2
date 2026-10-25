@@ -9,10 +9,11 @@ function Get-B5Pins {
   runtime='C:\Sirket\ERP\clean\20261022\runtime';database='MELISA_ERP_CLEAN_TEST_20261022';environment='e662fd94-d797-4b3b-938a-d143ad758b67'
   node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'
   oldApiRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL';oldApi='b9dd984876c808482017365556538078601187b8';oldApiHash='DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E'
-  oldWebRoot='C:\Sirket\ERP\releases\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE';oldWeb='b89cc651dc26b40eb9a30a0382d52336c3d1f5be';oldWebHash='DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72'
-  root='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE';source='349fae354e2a90852cd0594ada485105bf091e43';tree='1240b0752cab2c99daf1bf2f2ca4eaa9093ec187';manifest='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
-  native='035fcc08d8f56cdd0cbc437a290285328fce1ec9';starter='181DFB178863CDFBE54BF14D55388726A487A700481DCF22A79CAF7B30DC9591';records='7A70DBAB558E8E7AAF8B8FDB9AD6A51BF69C2A90505361AE5E324F1EE8216DB7'
-  template='27B6A2FD4C82349BF81A13FB580169653001A099B5F9B860BA6715E06A09486A'
+  oldWebRoot='C:\Sirket\ERP\releases\CLEAN-ERP-WEB-20261025-b89cc651-B6AUTHHEIGHT-WEBONLY';oldWeb='b89cc651dc26b40eb9a30a0382d52336c3d1f5be';oldWebHash='61328E6BCED8DE827C00A4672329B5FAE3E417FF04007E3B60549085B5A3BAB2'
+  root='C:\Sirket\ERP\releases\CLEAN-ERP-20261026-349fae354e2a-b6de5305-GREENCOMBINED-OFFLINE';source='349fae354e2a90852cd0594ada485105bf091e43';tree='1240b0752cab2c99daf1bf2f2ca4eaa9093ec187';manifest='3AA51A25970B0EFE512E865B5572C0378931A5EB848E1AB81AB571F4DE19178F';frontendPatch='b6de5305ba46478997ea77beaa41fdb1bb2b3af0'
+  dependencyRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE';dependencyManifest='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
+  native='035fcc08d8f56cdd0cbc437a290285328fce1ec9';starter='17AEC0255BF17EDE43A72A9F42F8E49D7BB9C125DC984DF78D0B1F4388E569DB';records='92F417D2E1B262A1564FD698566B338C8D0747EB6BF28F078C9D6B5B998FCCC5'
+  template='4C2DCA8F87368E6EF291FA4E1517E5E19C12FA8A8BCC7D39217A219F1728C509'
  }
 }
 function B5Fail([string]$Code){throw $Code}
@@ -76,7 +77,7 @@ function Test-B5Zero($Value){return (($Value -is [int] -or $Value -is [long]) -a
 function Assert-B5Manifest($Manifest,[string]$Source,[switch]$Combined){
  $p=Get-B5Pins
  if($Manifest.sourceCommit -cne $Source -or $Manifest.database -cne $p.database -or $Manifest.environmentId -cne $p.environment -or !($Manifest.synthetic -is [bool]) -or $Manifest.synthetic -ne $true -or !($Manifest.actualT1 -is [bool]) -or $Manifest.actualT1 -ne $false -or !($Manifest.externalOperations -is [bool]) -or $Manifest.externalOperations -ne $false -or $Manifest.nativeSourceCommit -cne $p.native){B5Fail 'B5_MANIFEST_TARGET'}
- if($Combined -and ($Manifest.component -cne 'clean-erp-api-web' -or $Manifest.sourceTree -cne $p.tree -or $Manifest.backendSourceCommit -cne $Source -or $Manifest.frontendSourceCommit -cne $Source -or $Manifest.frontendBuildApiBase -cne 'http://127.0.0.1:4194' -or $Manifest.nodeRuntime.path.Replace('/','\') -cne $p.node -or $Manifest.nodeRuntime.version -cne 'v24.19.0' -or $Manifest.nodeRuntime.sha256 -ine $p.nodeHash)){B5Fail 'B5_COMBINED_PROFILE'}
+ if($Combined -and ($Manifest.kind -cne 'ERP_API_FRONTEND_COMPOSITE_OFFLINE' -or $Manifest.frontendPatchCommit -cne $p.frontendPatch -or $Manifest.component -cne 'clean-erp-api-web' -or $Manifest.sourceTree -cne $p.tree -or $Manifest.backendSourceCommit -cne $Source -or $Manifest.frontendSourceCommit -cne $Source -or $Manifest.frontendBuildApiBase -cne 'http://127.0.0.1:4194' -or $Manifest.nodeRuntime.path.Replace('/','\') -cne $p.node -or $Manifest.nodeRuntime.version -cne 'v24.19.0' -or $Manifest.nodeRuntime.sha256 -ine $p.nodeHash)){B5Fail 'B5_COMBINED_PROFILE'}
 }
 function Read-B5Artifact([string]$Root,[string]$Hash,[string]$Source,[switch]$Combined,$Lease=$null){
  $p=Get-B5Pins;if((B5Hash (B5ReadFrozen $p.node $Lease)) -cne $p.nodeHash){B5Fail 'B5_NODE_CHANGED'}
@@ -150,13 +151,19 @@ function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
   # remain pinned by each old package's OWN immutable manifest, not 349's LF.
   # A mismatch closes recovery; an old manifest is never relabelled.
   if($Manifest.sourceCommit -cnotin @($p.oldApi,$p.oldWeb)){B5Fail 'B5_DEPENDENCY_CONTRACT_MISSING'}
-  $bytes=B5ReadFrozen (Join-Path $p.root 'release-manifest.json') $Lease
-  if((B5Hash $bytes) -cne $p.manifest){B5Fail 'B5_DEPENDENCY_CONTRACT_CHANGED'}
-  $contract=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json;Assert-B5Manifest $contract $p.source -Combined
+  $bytes=B5ReadFrozen (Join-Path $p.dependencyRoot 'release-manifest.json') $Lease
+  if((B5Hash $bytes) -cne $p.dependencyManifest){B5Fail 'B5_DEPENDENCY_CONTRACT_CHANGED'}
+  # The exact immutable 9614 contract retains the original b9 donor chain.
+  # It is metadata for rollback dependencies, never an installable candidate.
+  $contract=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json;Assert-B5Manifest $contract $p.source
   if($contract.dependencyDonorManifestSha256 -ine $p.oldApiHash){B5Fail 'B5_DEPENDENCY_DONOR_CHANGED'}
  }
  $apps=@('api','sites-workflow','web-admin');$seen=@{}
- if(@($contract.dependencies).Count -ne 3){B5Fail 'B5_DEPENDENCY_CONTRACT_MISSING'}
+ if($Root -ceq $p.oldWebRoot -and $Manifest.PSObject.Properties['component'] -and $Manifest.component -ceq 'clean-erp-web'){
+  if($Manifest.kind -cne 'ERP_FRONTEND_ONLY' -or $Manifest.sourceCommit -cne $p.oldWeb -or $Manifest.frontendSourceCommit -cne $p.oldWeb -or $Manifest.backendSourceCommit -cne $p.oldApi -or $Manifest.frontendPatchCommit -cne $p.frontendPatch){B5Fail 'B5_ROLLBACK_PAIR_CHANGED'}
+  $apps=@('sites-workflow')
+ }
+ if(@($contract.dependencies).Count -ne $apps.Count){B5Fail 'B5_DEPENDENCY_CONTRACT_MISSING'}
  foreach($d in $contract.dependencies){
   if($d.app -cnotin $apps -or $seen.ContainsKey($d.app) -or !($d.files -is [int] -or $d.files -is [long]) -or $d.files -le 0 -or $d.inventorySha256 -notmatch '^[0-9a-fA-F]{64}$' -or $d.lockSha256 -notmatch '^[0-9a-fA-F]{64}$'){B5Fail 'B5_DEPENDENCY_CONTRACT_INVALID'}
   $seen[$d.app]=$true;$app=Join-Path $Root ('apps\'+$d.app)
@@ -270,7 +277,7 @@ function Read-B5Baseline($Lease){
  $new=Read-B5Artifact $p.root $p.manifest $p.source -Combined -Lease $Lease
  $old=Read-B5Artifact $p.oldApiRoot $p.oldApiHash $p.oldApi -Lease $Lease
  $web=Read-B5Artifact $p.oldWebRoot $p.oldWebHash $p.oldWeb -Lease $Lease
- if($web.kind -cne 'ERP_FRONTEND_ONLY' -or $web.backendSourceCommit -cne $p.oldApi -or $web.frontendSourceCommit -cne $p.oldWeb){B5Fail 'B5_ROLLBACK_PAIR_CHANGED'}
+ if($web.kind -cne 'ERP_FRONTEND_ONLY' -or $web.frontendPatchCommit -cne $p.frontendPatch -or $web.backendSourceCommit -cne $p.oldApi -or $web.frontendSourceCommit -cne $p.oldWeb){B5Fail 'B5_ROLLBACK_PAIR_CHANGED'}
  Assert-B5Health (Read-B5Health 4194) 4194 $p.oldApi $old.packageId
  Assert-B5Health (Read-B5Health 4196) 4196 $p.native ('CLEAN-ERP-20261022-'+$p.native.Substring(0,12))
  $control=Read-B5Controls;if((B5Hash $control.starter) -cne $p.starter -or (B5Hash $control.records) -cne $p.records){B5Fail 'B5_OLD_CONTROL_CHANGED'}

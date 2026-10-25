@@ -12,9 +12,9 @@ win('review old recovery locks use their own pinned raw bytes without converting
  $own=@(foreach($app in @('api','sites-workflow','web-admin')){[pscustomobject]@{path=('apps/'+$app+'/package-lock.json');sha256=(B5Hash $raw)}})
  $old=[pscustomobject]@{sourceCommit=$p.oldApi;files=$own}
  $donor=[pscustomobject]@{dependencies=$deps;dependencyDonorManifestSha256=$p.oldApiHash}
- $script:donorBytes=[Text.Encoding]::UTF8.GetBytes(($donor|ConvertTo-Json -Depth 8));$script:pins.manifest=B5Hash $script:donorBytes
+ $script:donorBytes=[Text.Encoding]::UTF8.GetBytes(($donor|ConvertTo-Json -Depth 8));$script:pins.dependencyManifest=B5Hash $script:donorBytes
  function Assert-B5Manifest($Manifest,$Source,[switch]$Combined){}
- function B5ReadFrozen($Path,$Lease){if($Path.EndsWith('release-manifest.json')){return ,$script:donorBytes};return ,$script:raw}
+ function B5ReadFrozen($Path,$Lease){if($Path -ceq (Join-Path $script:pins.dependencyRoot 'release-manifest.json')){return ,$script:donorBytes};if($Path.EndsWith('release-manifest.json')){throw 'UNEXPECTED_DONOR_READ'};return ,$script:raw}
  function Get-B5DependencyFiles($Base){return [pscustomobject]@{path='fixture.js';full=(Join-Path $Base 'fixture.js')}}
  function Get-B5DependencyDigest($Rows){return ('a'*64)}
  function Get-B5ModuleLookupDirectories($Root,$Manifest){return 'C:\fixture\node_modules'}
@@ -68,8 +68,45 @@ test('review Node intermediate and ancestor shadows are rejected before and afte
 win('production handoff is closed before any mutex, filesystem or runtime operation',String.raw`function Enter-B5Lease{throw 'MUTEX_MUST_NOT_RUN'};try{Invoke-B5CleanTransition;throw 'unexpected'}catch{if($_.Exception.Message -ne 'B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING'){throw}};'PASS'`);
 win('caller booleans and idle/empty-port claims are not a live lease or writer handoff',String.raw`foreach($claim in @([pscustomobject]@{exclusive=$true;writerIdle=$true;portsEmpty=$true},[pscustomobject]@{held=$true;handoff=$true})){$failed=$false;try{Assert-B5Lease $claim}catch{$failed=$true};if(!$failed){throw 'accepted forged lease'}};'PASS'`);
 win('legacy mutex naming is reused without importing or widening the legacy runtime profile',String.raw`$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${path.join(root,'start-owned-test.ps1').replaceAll("'","''")}',[ref]$t,[ref]$e);$f=$ast.Find({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Get-ErpMutexName'},$true);. ([scriptblock]::Create($f.Extent.Text));if((Get-B5MutexName 'C:\fixture\repo' 'S-1-fixture') -cne (Get-ErpMutexName 'c:/fixture/repo/.' 'S-1-fixture')){throw 'mutex mismatch'};'PASS'`);
-const manifest=String.raw`$p=Get-B5Pins;$m=[pscustomobject]@{sourceCommit=$p.source;database=$p.database;environmentId=$p.environment;synthetic=$true;actualT1=$false;externalOperations=$false;nativeSourceCommit=$p.native;component='clean-erp-api-web';sourceTree=$p.tree;backendSourceCommit=$p.source;frontendSourceCommit=$p.source;frontendBuildApiBase='http://127.0.0.1:4194';nodeRuntime=[pscustomobject]@{path=$p.node;version='v24.19.0';sha256=$p.nodeHash}};`;
-win('clean exact profile accepted; wrong DB/env/source/tree/node/base and string booleans rejected',manifest+String.raw`Assert-B5Manifest $m $p.source -Combined;foreach($field in @('database','environmentId','sourceCommit','sourceTree','frontendBuildApiBase','synthetic','actualT1','externalOperations')){$copy=$m.PSObject.Copy();$copy.$field='wrong';$bad=$false;try{Assert-B5Manifest $copy $p.source -Combined}catch{$bad=$true};if(!$bad){throw ('accepted '+$field)}};$m.synthetic='true';$bad=$false;try{Assert-B5Manifest $m $p.source -Combined}catch{$bad=$true};if(!$bad){throw 'accepted string bool'};'PASS'`);
+const manifest=String.raw`$p=Get-B5Pins;$m=[pscustomobject]@{sourceCommit=$p.source;database=$p.database;environmentId=$p.environment;synthetic=$true;actualT1=$false;externalOperations=$false;nativeSourceCommit=$p.native;kind='ERP_API_FRONTEND_COMPOSITE_OFFLINE';frontendPatchCommit=$p.frontendPatch;component='clean-erp-api-web';sourceTree=$p.tree;backendSourceCommit=$p.source;frontendSourceCommit=$p.source;frontendBuildApiBase='http://127.0.0.1:4194';nodeRuntime=[pscustomobject]@{path=$p.node;version='v24.19.0';sha256=$p.nodeHash.ToLowerInvariant()}};`;
+win('green composite exact pins and actual template guards retain CSS rollback and closed gates',manifest+String.raw`
+ if($p.manifest -cne '3AA51A25970B0EFE512E865B5572C0378931A5EB848E1AB81AB571F4DE19178F' -or $p.oldWebHash -cne '61328E6BCED8DE827C00A4672329B5FAE3E417FF04007E3B60549085B5A3BAB2' -or $p.dependencyManifest -cne '9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059' -or $p.root -cnotlike '*GREENCOMBINED-OFFLINE' -or $p.oldWebRoot -cnotlike '*B6AUTHHEIGHT-WEBONLY'){throw 'GREEN_PIN_BINDING'}
+ $text=[IO.File]::ReadAllText('${template}');if((B5Hash ([IO.File]::ReadAllBytes('${template}'))) -cne $p.template){throw 'GREEN_TEMPLATE_PIN'}
+ if(([regex]::Matches($text,"throw 'B5_OFFLINE_SOURCE_ONLY: supported fresh clean-owner admission contract is missing; no runtime action permitted'")).Count -ne 1){throw 'GREEN_TEMPLATE_GATE_CHANGED'}
+ $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseInput($text,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'GREEN_TEMPLATE_SYNTAX'}
+ $apiGuard=$ast.Find({param($n)$n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text -like 'if($apiManifest.kind*'},$true)
+ $webGuard=$ast.Find({param($n)$n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text -like 'if($webManifest.kind*'},$true)
+ if(!$apiGuard -or !$webGuard){throw 'GREEN_TEMPLATE_GUARD_MISSING'}
+ function Get-FileHash{param($LiteralPath);if($LiteralPath -cne $p.node){throw 'UNEXPECTED_FIXTURE_HASH'};return [pscustomobject]@{Hash=$p.nodeHash}}
+ $mainApiSource=$p.source;$cleanNode=$p.node;$apiManifest=$m;$webManifest=$m
+ . ([scriptblock]::Create($apiGuard.Extent.Text));. ([scriptblock]::Create($webGuard.Extent.Text))
+ foreach($field in @('kind','frontendPatchCommit','sourceTree','environmentId','backendSourceCommit')){
+  $bad=$m.PSObject.Copy();$bad.$field='wrong';$apiManifest=$bad;$webManifest=$bad
+  foreach($guard in @($apiGuard,$webGuard)){$rejected=$false;try{. ([scriptblock]::Create($guard.Extent.Text))}catch{$rejected=$true};if(!$rejected){throw ('GREEN_TEMPLATE_ACCEPTED_'+$field)}}
+ };'PASS'`);
+win('green current WEBONLY rollback verifies its one Sites inventory and absent API shadows',String.raw`
+ $p=Get-B5Pins;$script:lock=[Text.Encoding]::UTF8.GetBytes('{}');$script:file=[Text.Encoding]::UTF8.GetBytes('fixture');$lockHash=B5Hash $script:lock
+ $d=[pscustomobject]@{app='sites-workflow';files=1;inventorySha256=('a'*64);lockSha256=$lockHash}
+ $m=[pscustomobject]@{component='clean-erp-web';kind='ERP_FRONTEND_ONLY';sourceCommit=$p.oldWeb;frontendSourceCommit=$p.oldWeb;backendSourceCommit=$p.oldApi;frontendPatchCommit=$p.frontendPatch;dependencies=@($d);files=@([pscustomobject]@{path='apps/sites-workflow/package-lock.json';sha256=$lockHash})}
+ $script:site=Join-Path $p.oldWebRoot 'apps\sites-workflow\node_modules';$script:api=Join-Path $p.oldWebRoot 'apps\api\node_modules';$script:web=Join-Path $p.oldWebRoot 'apps\web-admin\node_modules';$script:shadow='';$script:digest='a'*64
+ function B5ReadFrozen($Path,$Lease){if($Path -ceq (Join-Path $script:site 'fixture.js')){return ,$script:file};if($Path -ceq (Join-Path $p.oldWebRoot 'apps\sites-workflow\package-lock.json')){return ,$script:lock};throw 'UNEXPECTED_FIXTURE_READ'}
+ function Get-B5DependencyFiles($Base){if($Base -cne $script:site){throw 'WEBONLY_READ_UNRELATED_APP'};return [pscustomobject]@{path='fixture.js';full=(Join-Path $Base 'fixture.js')}}
+ function Get-B5DependencyDigest($Rows){return $script:digest}
+ function Get-B5LookupEnvironmentStamp{return 'fixture-env'}
+ function Get-B5ModuleLookupDirectories($Root,$Manifest){return @($script:site,$script:api,$script:web)}
+ function Test-Path{param($LiteralPath);return ($LiteralPath -ceq $script:shadow)}
+ function Get-Item{param($LiteralPath,[switch]$Force);return [pscustomobject]@{Attributes=[IO.FileAttributes]::Normal}}
+ $script:realLookup=(Get-Command Assert-B5ModuleLookupContext -CommandType Function).ScriptBlock
+ function Assert-B5ModuleLookupContext($Context){$script:captured=$Context;& $script:realLookup $Context}
+ Read-B5Dependencies $p.oldWebRoot $m $null
+ if($script:captured.absent -cnotcontains $script:api -or $script:captured.absent -cnotcontains $script:web){throw 'WEBONLY_SHADOW_SCOPE_REDUCED'}
+ foreach($case in @('extra','missing','wrong-app','wrong-patch','own-lock','inventory')){
+  $bad=$m.PSObject.Copy();$script:digest='a'*64
+  if($case -eq 'extra'){$bad.dependencies=@($d,$d)}elseif($case -eq 'missing'){$bad.dependencies=@()}elseif($case -eq 'wrong-app'){$wrong=$d.PSObject.Copy();$wrong.app='api';$bad.dependencies=@($wrong)}elseif($case -eq 'wrong-patch'){$bad.frontendPatchCommit='wrong'}elseif($case -eq 'own-lock'){$bad.files=@([pscustomobject]@{path='apps/sites-workflow/package-lock.json';sha256=('b'*64)})}else{$script:digest='b'*64}
+  $rejected=$false;try{Read-B5Dependencies $p.oldWebRoot $bad $null}catch{$rejected=$true};if(!$rejected){throw ('WEBONLY_ACCEPTED_'+$case)}
+ }
+ $script:shadow=$script:api;$rejected=$false;try{& $script:realLookup $script:captured}catch{$rejected=$true;if($_.Exception.Message -ne 'B5_DEPENDENCY_LOOKUP_SHADOW'){throw}};if(!$rejected){throw 'WEBONLY_LATE_SHADOW_ACCEPTED'};'PASS'`);
+win('clean exact profile accepted; wrong DB/env/source/tree/node/base and string booleans rejected',manifest+String.raw`Assert-B5Manifest $m $p.source -Combined;foreach($field in @('kind','frontendPatchCommit','database','environmentId','sourceCommit','sourceTree','frontendBuildApiBase','synthetic','actualT1','externalOperations')){$copy=$m.PSObject.Copy();$copy.$field='wrong';$bad=$false;try{Assert-B5Manifest $copy $p.source -Combined}catch{$bad=$true};if(!$bad){throw ('accepted '+$field)}};$m.synthetic='true';$bad=$false;try{Assert-B5Manifest $m $p.source -Combined}catch{$bad=$true};if(!$bad){throw 'accepted string bool'};'PASS'`);
 win('artifact reader checks exact bytes, traversal, duplicate entries and changed payload using memory-only reads',manifest+String.raw`
  $script:pins=$p;$node=[Text.Encoding]::UTF8.GetBytes('fixture-node');$script:pins.nodeHash=B5Hash $node;$m.nodeRuntime.sha256=$script:pins.nodeHash
  function Get-B5Pins{return $script:pins}

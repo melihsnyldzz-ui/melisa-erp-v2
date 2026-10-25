@@ -5,14 +5,14 @@ $cleanRoot='C:\Sirket\ERP\clean\20261022'
 $cleanNode='C:\Sirket\ERP\tools\node-v24.19.0\node.exe'
 $mainApiSource='349fae354e2a90852cd0594ada485105bf091e43'
 $nativeSource='035fcc08d8f56cdd0cbc437a290285328fce1ec9'
-$mainApiRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE'
-$apiManifestSha='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
+$mainApiRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261026-349fae354e2a-b6de5305-GREENCOMBINED-OFFLINE'
+$expectedManifestSha256='3AA51A25970B0EFE512E865B5572C0378931A5EB848E1AB81AB571F4DE19178F'
 if(($MainApiOnly -and ($ApiOnly -or $BuildWeb -or $ApiWebOnly)) -or ($ApiWebOnly -and ($ApiOnly -or $BuildWeb))){throw 'MainApiOnly cannot rebuild or replace other components'}
 $manifestPath=Join-Path $mainApiRoot 'release-manifest.json'
-if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash -cne $apiManifestSha){throw 'API package manifest differs; no process started'}
+if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash -cne $expectedManifestSha256){throw 'API package manifest differs; no process started'}
 $apiManifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
 if($apiManifest.sourceCommit -cne $mainApiSource -or $apiManifest.nativeSourceCommit -cne $nativeSource -or $apiManifest.database -cne 'MELISA_ERP_CLEAN_TEST_20261022' -or $apiManifest.synthetic -ne $true -or $apiManifest.actualT1 -ne $false){throw 'API package identity differs'}
-if($apiManifest.component -cne 'clean-erp-api-web' -or $apiManifest.sourceTree -cne '1240b0752cab2c99daf1bf2f2ca4eaa9093ec187' -or $apiManifest.backendSourceCommit -cne $mainApiSource -or $apiManifest.environmentId -cne 'e662fd94-d797-4b3b-938a-d143ad758b67' -or $apiManifest.externalOperations -ne $false -or $apiManifest.nodeRuntime.version -cne 'v24.19.0' -or $apiManifest.nodeRuntime.path.Replace('/','\') -cne $cleanNode -or $apiManifest.nodeRuntime.sha256 -cne '3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237' -or (Get-FileHash -LiteralPath $cleanNode).Hash -ine $apiManifest.nodeRuntime.sha256){throw 'Exact combined profile or Node differs'}
+if($apiManifest.kind -cne 'ERP_API_FRONTEND_COMPOSITE_OFFLINE' -or $apiManifest.frontendPatchCommit -cne 'b6de5305ba46478997ea77beaa41fdb1bb2b3af0' -or $apiManifest.component -cne 'clean-erp-api-web' -or $apiManifest.sourceTree -cne '1240b0752cab2c99daf1bf2f2ca4eaa9093ec187' -or $apiManifest.backendSourceCommit -cne $mainApiSource -or $apiManifest.environmentId -cne 'e662fd94-d797-4b3b-938a-d143ad758b67' -or $apiManifest.externalOperations -ne $false -or $apiManifest.nodeRuntime.version -cne 'v24.19.0' -or $apiManifest.nodeRuntime.path.Replace('/','\') -cne $cleanNode -or $apiManifest.nodeRuntime.sha256 -cne '3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237' -or (Get-FileHash -LiteralPath $cleanNode).Hash -ine $apiManifest.nodeRuntime.sha256){throw 'Exact combined profile or Node differs'}
 foreach($f in $apiManifest.files){
  $itemPath=Join-Path $mainApiRoot $f.path
  if((Get-FileHash -LiteralPath $itemPath -Algorithm SHA256).Hash -ine $f.sha256){throw 'API package content differs; no process started'}
@@ -60,11 +60,11 @@ foreach($name in @('MELISA_TERMINAL_LINK_ENABLED','MELISA_TERMINAL_LINK_PEER_KEY
 $env:CLEAN_SOURCE_COMMIT=$mainApiSource
 $env:CLEAN_PACKAGE_ID=$apiManifest.packageId
 if(!$ApiOnly -and !$MainApiOnly){
- $webPackageRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE'
- $webManifestSha='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
+ $webPackageRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261026-349fae354e2a-b6de5305-GREENCOMBINED-OFFLINE'
+ $webManifestSha='3AA51A25970B0EFE512E865B5572C0378931A5EB848E1AB81AB571F4DE19178F'
  if((Get-FileHash "$webPackageRoot\release-manifest.json").Hash -cne $webManifestSha){throw 'Frontend immutable manifest differs'}
  $webManifest=Get-Content "$webPackageRoot\release-manifest.json" -Raw|ConvertFrom-Json
- if($webManifest.component -cne 'clean-erp-api-web' -or $webManifest.sourceCommit -cne $mainApiSource -or $webManifest.frontendSourceCommit -cne $mainApiSource -or $webManifest.backendSourceCommit -cne $mainApiSource -or $webManifest.sourceTree -cne '1240b0752cab2c99daf1bf2f2ca4eaa9093ec187' -or $webManifest.frontendBuildApiBase -cne 'http://127.0.0.1:4194' -or $webManifest.environmentId -cne 'e662fd94-d797-4b3b-938a-d143ad758b67' -or $webManifest.database -cne 'MELISA_ERP_CLEAN_TEST_20261022' -or !$webManifest.synthetic -or $webManifest.actualT1 -or $webManifest.externalOperations){throw 'Frontend exact target differs'}
+ if($webManifest.kind -cne 'ERP_API_FRONTEND_COMPOSITE_OFFLINE' -or $webManifest.frontendPatchCommit -cne 'b6de5305ba46478997ea77beaa41fdb1bb2b3af0' -or $webManifest.component -cne 'clean-erp-api-web' -or $webManifest.sourceCommit -cne $mainApiSource -or $webManifest.frontendSourceCommit -cne $mainApiSource -or $webManifest.backendSourceCommit -cne $mainApiSource -or $webManifest.sourceTree -cne '1240b0752cab2c99daf1bf2f2ca4eaa9093ec187' -or $webManifest.frontendBuildApiBase -cne 'http://127.0.0.1:4194' -or $webManifest.environmentId -cne 'e662fd94-d797-4b3b-938a-d143ad758b67' -or $webManifest.database -cne 'MELISA_ERP_CLEAN_TEST_20261022' -or !$webManifest.synthetic -or $webManifest.actualT1 -or $webManifest.externalOperations){throw 'Frontend exact target differs'}
  foreach($f in $webManifest.files){if((Get-FileHash (Join-Path $webPackageRoot $f.path)).Hash -ine $f.sha256){throw 'Frontend immutable file differs'}}
  $webReady=$false
  $readyDeadline=[DateTime]::UtcNow.AddSeconds(60);while([DateTime]::UtcNow -lt $readyDeadline){try{$h=Invoke-RestMethod 'http://127.0.0.1:4194/test-health' -TimeoutSec 2;if($h.sourceCommit -ceq $env:CLEAN_SOURCE_COMMIT -and $h.packageId -ceq $env:CLEAN_PACKAGE_ID -and $h.database -ceq 'MELISA_ERP_CLEAN_TEST_20261022' -and $h.synthetic -eq $true -and $h.actualT1 -eq $false){$webReady=$true;break}}catch{};Start-Sleep -Milliseconds 250}
