@@ -2,6 +2,9 @@
 
 ### ERP-DEC-077 — 24 Ekim 2026 — 25 Ekim10.00'a kadar mevcut yetkili teknik sırayı sürdür
 
+**25 Ekim0808 kaynak sınırı:** sabit clean API+web geçiş executor kaynağı yeni31 izole testle doğrulandı; desteklenen cooperating writer handoff/CWD/retirement bileşeni eksik olduğu için -Apply IO öncesinde kapalı. Yeni mutex veya boş intent tek-owner kanıtı değildir; legacy guard genişlemez, kurulum/hesap/runtime yazması yapılmaz. Koordinatör yeni kaynağı ayrıca inceler. Mevcut özel Angela Müdür yanıtı zaten oluşturulmuş aynı hesabın onayıdır; tekrar oluşturma veya altı personel kapsamına genişletme yok. Ayrıntı STATUS ve mevcut B5 kanıtında.
+
+
 Mevcut koordinatör konuşması `01a15d42-a70f-7510-9fce-73ce1cb433e9`, doğrudan kullanıcı mesajı `01a16b6d-3d65-7853-970f-db1e6474b083` salt okunur doğrulandı: “Tamam yarın sabah 10 a kadar geliştirmeleri sıralı şekilde yap ve neler yaptığını madde madde rapor ver”. Son zaman25Ekim2026Pazar10.00 Europe/Istanbul; mevcut çalışma kapsamında rutin devam beklenmez. Bu mesaj yeni scheduler/Goal/ana ajan/plan oluşturmaz ve çalışmayan oturumda arka planda gelişme iddiası vermez.
 
 Mevcut A5 tamamlanır; B5'in kesin kişi/kimlik boşluğu tahminle doldurulmaz. Hazır C5/C6 planından bağımlılığı hazır dar kaynak/önkontrol işi, ardından mevcut E1 terminal kaynak bağlantısı ve D1/D2 readonly geçmiş eşleme uyarlamaları seçilir.09.30'dan sonra uzun yeni uygulama başlatılmaz, mevcut adım güvenli noktada sonuçlandırılır. Tamamlanan/kurulu/yalnız kaynak/somut engel ve kullanıcı adına seçilmiş geri alınabilir varsayımlar mevcut A–E kodlarıyla ayrılır; insan kabulü E2'de ayrıca bekler.

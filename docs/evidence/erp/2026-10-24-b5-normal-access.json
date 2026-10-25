@@ -3682,5 +3682,62 @@
     "prior87And83TestsOrBuildOrPackageRepeated": false,
     "normalNewPanelGui": "NOT_TESTED",
     "humanAcceptance": "PENDING"
+  },
+  "cleanPairTransitionSource0808": {
+    "taskId": "ERP-B5-CLEAN-TRANSITION-ADAPTER-SOURCE-20261025-0808",
+    "observedAt": "2026-10-25T08:42:49.625Z",
+    "status": "SOURCE_PARTIAL_NOT_EXECUTED",
+    "applicationSource": "349fae354e2a90852cd0594ada485105bf091e43",
+    "applicationManifestSha256": "9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059",
+    "targetPorts": [
+      4194,
+      5244
+    ],
+    "legacyStartupChanged": false,
+    "localTests": {
+      "engine": "Windows PowerShell 5 and Node24",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 18356.4583,
+      "realOrchestrationWithMemoryLeaves": true,
+      "temporaryFileCasFixture": true,
+      "liveKernelHandleCalls": false,
+      "sharedSqlHttpGuiOrAccountCalls": 0
+    },
+    "productionGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "missingComponent": "Pinned cooperating clean-owner handoff, authenticated old CWD provenance, continuous writer exclusion and final publication/retirement acknowledgment",
+    "exclusiveSharedOwnershipProved": false,
+    "installation": false,
+    "realRollback": false,
+    "normalGui": false,
+    "independentSourceReview": "PENDING_COORDINATOR_ASSIGNMENT",
+    "sharedRuntimeWrites": 0,
+    "financialOrStockWrites": 0,
+    "accountRoleOrAssignmentWrites": 0,
+    "oldApplicationTestsOrBuildRepeated": false,
+    "acceptedArtifactReviewReused": true,
+    "humanAcceptance": "PENDING",
+    "originalCountersUnchanged": true,
+    "duplicateManagerApprovalCreatesSecondAccount": false,
+    "report": "2026-10-25-b5-clean-pair-source.md",
+    "files": [
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.ps1",
+        "windowsWorkingBytesSha256": "1121a04c3d92d77c95a73ea5e4bcdef9180bda1153cb8f41306c5a88d1de4e5e"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.fixture.ps1",
+        "windowsWorkingBytesSha256": "a6fbcf0d12af5bc53e5cd08bd741d49a8844cd681eebc3e37f9b55b2dc5ff6f2"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.test.mjs",
+        "windowsWorkingBytesSha256": "95016d84b325203e94dea22fdce56abdd2e3196d29ae219df449a0972f5809fc"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-start.template.ps1",
+        "windowsWorkingBytesSha256": "1e61a9a54beb262f53abba936c0c302acf846f87ad310e7cd0f4e7ea183c9076"
+      }
+    ]
   }
 }
