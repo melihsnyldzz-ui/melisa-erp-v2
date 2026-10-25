@@ -4626,5 +4626,118 @@
     "manualRerun": 0,
     "fullLocalSuiteRepeated": 0,
     "sharedRuntimeOperations": 0
+  },
+  "b5Source65CiCompletion": {
+    "source": "65bfe6f01d1963a4866820e34d89387457fa1b1a",
+    "result": "SIX_REQUIRED_CHECKS_SUCCESS",
+    "runs": [
+      40184854158,
+      40184856697
+    ],
+    "windows": 2,
+    "quality": 2,
+    "secretScan": 2,
+    "manualRerun": 0
+  },
+  "b5CssAndFixtureReview1034": {
+    "source": "65bfe6f01d1963a4866820e34d89387457fa1b1a",
+    "reviewerTurn": "01a172a2-cfee-7ce1-899c-df75f5279f2a",
+    "result": "GO",
+    "p1": 0,
+    "p2": 0,
+    "testsRepeated": 0,
+    "installOrGuiGo": false,
+    "outcome3": "TECHNICAL_CLOSED: after restore old access/refresh401 occurred before logout; new login200; common b9 fingerprint includes user/role/permission/password and user-role-personnel rowversions"
+  },
+  "b5WebBaselineCssPassive1032": {
+    "status": "PASSIVE_WEB_ONLY_BUILT_AND_READ_BACK",
+    "root": "C:/Sirket/ERP/releases/CLEAN-ERP-WEB-20261025-b89cc651-B6AUTHHEIGHT-WEBONLY",
+    "baselineCommit": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+    "patchCommit": "b6de5305ba46478997ea77beaa41fdb1bb2b3af0",
+    "compositeIdentityExplicit": true,
+    "onlyChangedSource": "apps/sites-workflow/src/styles/erp-modern.css",
+    "sourceFiles": 645,
+    "payloadFiles": 698,
+    "distFiles": 53,
+    "dependencyFiles": 6637,
+    "dependencyInventorySha256": "9c59bbb6a80c639295e915c62ead972f94b613e11484ef846c929ba91567fb92",
+    "manifestSha256": "61328e6bced8de827c00a4672329b5fae3e417ff04007e3b60549085b5a3bab2",
+    "nodeVersion": "v24.19.0",
+    "nodeHash": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "buildMs": 8627,
+    "offlineGuard": true,
+    "envDiscovery": false,
+    "apiBase": "http://127.0.0.1:4194",
+    "buildOnlySource": {
+      "path": "apps/api/src/services/goal8DaySqlProof.mjs",
+      "sourceCommit": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "gitBlob": "b31552ec2e50580a24599333cab915485c8fbd4b",
+      "sha256": "a31d970fded902f6baeb667747e842b5c1c8c896496893cd0db37787deec0c50",
+      "payloadIncluded": false
+    },
+    "noApiOrOperatorPayload": true,
+    "rollbackManifestPreserved": true,
+    "lockProvenance": [
+      {
+        "path": "apps/sites-workflow/package.json",
+        "donorRawSha256": "e1beacf2ce8b88b6127ec3bbc10b2be021a9a68287f0ca902bfd5b8e5fc75cd0",
+        "newGitRawSha256": "bfa44affa9732e0d3591fe5c8faf642093ce562ef1bed04a2bd346ebd04c1e8c",
+        "filesConverted": 0
+      },
+      {
+        "path": "apps/sites-workflow/package-lock.json",
+        "donorRawSha256": "7b6623d7688cc80f4134d66d9cafe99a16958947dbf90a4ff5441ac13e6a9a9f",
+        "newGitRawSha256": "13694e04632e9916477113dc65bc9577ed7c88e1198f4f4a76061d960e85c2d6",
+        "filesConverted": 0
+      }
+    ],
+    "firstArchiveRejectionPreserved": true,
+    "firstBuildFailurePreserved": true,
+    "canonicalArchiveFlags": "git -c core.autocrlf=false -c core.eol=lf archive; process-local only",
+    "persistentGitConfigChanged": false,
+    "installed": false,
+    "sharedTestActions": 0,
+    "normalGuiAfterFix": false,
+    "oldFilePreviewPolicyNotCircumvented": true,
+    "observedAt": "2026-10-25T10:47:21.545Z",
+    "passiveManifestNotInstallApproval": true,
+    "currentInstalledTargetNotProbedInThisSourceTask": true,
+    "installCondition": "Supported exclusive old-web owner handoff with CWD binding, continuous writer exclusion and final publication/retirement acknowledgement; existing B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING/0102 gates remain closed",
+    "noNewOwnerInstallerOrWatchdog": true
+  },
+  "b5FixedFourResults1032": [
+    {
+      "outcome": 1,
+      "state": "TECHNICAL_CLOSED",
+      "evidence": "Nine synthetic account-employee-duty bindings; six exact API/native readbacks and prior three bindings; 0941 personnel nine+one/reload",
+      "remaining": "None in this technical binding scope; no repeated create"
+    },
+    {
+      "outcome": 2,
+      "state": "PARTIAL_NORMAL_MANAGEMENT_GUI",
+      "evidence": "Personal packing/count/main accounting accepts reused; personnel read/reload verified;1006 User Management height compression measured; b89+singleCSS passive build/readback now complete",
+      "remaining": "After supported authorized installation: existing User Management1280x720 panel height, page/table scroll and reload. No new account or create-submit needed"
+    },
+    {
+      "outcome": 3,
+      "state": "TECHNICAL_CLOSED",
+      "evidence": "Prior wrong-role/protected/native boundaries plus specifically approved10021 inactivity/restore and old-session rejection before logout; independent1034 review agrees common fingerprint/rowversion coverage",
+      "remaining": "No repeated role/password/task changes per person; separate field-change GUI and human acceptance were not claimed"
+    },
+    {
+      "outcome": 4,
+      "state": "TECHNICAL_CLOSED",
+      "evidence": "Existing personal ERP-CRM two server links, normal CRM personal/independent Manager GUI/create/reload accepted evidence reused",
+      "remaining": "No new CRM account, assignment or message; E1/E2 Android/human acceptance separate"
+    }
+  ],
+  "b5TechnicalClosure1032": {
+    "state": "NOT_CLOSED",
+    "onlyTechnicalUsageGap": "Existing normal User Management layout/scroll/reload after supported CSS installation",
+    "newAccountCreateRequired": false,
+    "createSubmitRepetitionRequired": false,
+    "extraFinancePanelIsB5Prerequisite": false,
+    "androidOrHumanAddedAsNewB5Gate": false,
+    "originalFinishCountersUnchanged": true
   }
 }

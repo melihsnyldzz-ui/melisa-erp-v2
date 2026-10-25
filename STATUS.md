@@ -1,3 +1,20 @@
+## 25 Ekim — B5: b89+tekCSS pasif WEB-ONLY gerçekten derlendi ve geri okundu
+
+1032 teslimi: **C:/Sirket/ERP/releases/CLEAN-ERP-WEB-20261025-b89cc651-B6AUTHHEIGHT-WEBONLY**. Composite kaynak kimliği açık: kabul edilmiş b89cc651 + yalnız b6de5305 AuthAdmin CSS satırı; b6/65 tüm uygulama kaynağı diye etiketlenmedi.645 kaynak Gitblob ile eş, değişen tekdosya erp-modern.css. Node24.19.0,6637mevcut Sites modülü kabul edilmiş envanter piniyle aynı; npm install/internet0. Offlineguard/envDirfalse ve API4194 pinli build gerçekten tamamlandı: 8627ms. 698payload/53dist bağımsız hashgeriokuması; derlenmişCSSkuralı ve normalbootstrapAPIbase kontrolü. ManifestSHA256 **61328e6bced8de827c00a4672329b5fae3e417ff04007e3b60549085b5a3bab2**. Finalde API/web-admin/operator yok; eski b89 rollbackmanifesti aynı.
+
+İlk raw-lock assertion stagingöncesi, WindowsCRLFarchive rawblobret ve ilk buildin b89puremetadata importeksiği ayrı korundu. Eski dosyalar dönüştürülmedi. Yeni kanonik Gitarchive yalnız komut-içi autocrlf=false/eol=lf, kalıcıGitayar0; bütün645rawblob doğrulandı. Baseline goal8DaySqlProof sabit exportu sadecebuildgirdisi olarak sağlandı; finalpaketteAPI dizini yok. Başarısız arşiv/buildlogları silinmedi; başka paket kaynakları349/API/operator karıştırılmadı.
+
+65bfe6f0 exactCI6/6SUCCESS:push40184854158/PR40184856697. CRM1034 küçükCSS+testdeltaGO/P1-P2=0;3.sabitB5sonucu teknikKAPALI: eskiaccess/refresh401 restore-sonrasılogoutöncesi; yeni giriş200. Önceki d62WindowsFAIL geçmişte korunur; aynıCI rerun0.
+
+| Sabit B5 sonucu | Güncel durum | Kalan |
+|---|---|---|
+| 1. Dokuz hesap–personel–görev bağı | Teknik kapalı | Tekrar hesap oluşturma yok. |
+| 2. Normal görev ekranı ve kalıcılık | Kısmi | Destekli yetkili CSSkurulumundan sonra mevcutKullanıcıYönetimi1280×720 panel/aşağıkaydırma/tablokaydırma/reload. Yeni hesap/create-submit yok. |
+| 3. Yanlışrol/pasif/korunan/yetki sınırı | Teknik kapalı | Ortakfingerprint/rowversion kanıtı yeterli; her alan/kişide değişikliktekrarı yok. GUIfieldchange/insankabulü iddiası yok. |
+| 4. Kişisel ERP–CRM/normalCRMform/Müdür | Teknik kapalı | Önceki kabul korunur, CRMişlemi0. |
+
+**Tek gerçek uygulama koşulu:** eski5244websahibinden CWDbağı+sürekli tek-yazar dışlaması+sonpublication/retirementACK sağlayan desteklenen doğrulanmış devir. Üretici yok; B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING/0102 kapıları aynen kapalı. Yeni genelinstaller/watchdog/owner helper yazılmadı. **Kurulum ve normalGUIsonrası kabul YAPILMADI; B5NOT_CLOSED.** Bu kaynak/pasifturda sharedHTTP/CIM/SQL/GUI/config/lock/beforeimage/servis/restart/kurulum/hesap/ticari yazı0. Kuruluwebb89/APIb9/native035/CRM476 son kabul edilmişkimlikler olarak korunur; bu tur taze runtimehealth iddiası yok. Ekfinanspaneli/E1-E2 yeniB5önkoşulu yapılmadı; insan/17–74 aynı.
+
 ## 25 Ekim13:29 — İki dependency P1 için bağımsız kaynak GO; Windows fixture farkı dar düzeltildi
 
 CRM turn01a17293-071c-7580-bf7a-0f5c8bcbe284 finali doğrudan okundu: exactd62d36ac ikiP1 KAPALI/P1-P2=0. Genel geçiş SOURCE_PARTIAL, üretim handoff kapalı; kurulum/GUI/insan GO değil. Bu review'dan sonra üretimPS1+RAMfixture kaynağı d62ile birebir aynı; yalnız yeni testin gizliTEMP metadata adapteri değişti.
