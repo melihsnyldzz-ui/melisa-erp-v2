@@ -1,3 +1,16 @@
+## 25 Ekim13:26 — B5 kullanıcı yönetimi yükseklik düzeltmesi SOURCE; sabit dört sonuç
+
+Yalnız AuthAdmin yerel gridine grid-auto-rows:max-content tek satır eklendi. Mevcut1006 ölçüm yeniden yapılmadı;1280 tek sütun, tablo kaydırma/overflow ve başka ekran kuralları değişmedi. Yapay statik önce/sonra HTML+tam kaynakCSS hazırlandı; file:// açılışı browser URL policy tarafından işlemden önce reddedildi. Başka protokol/HTTPserver/CDP/tarayıcıyla dolanma yok. Offline render ve kuruluGUI sonrası doğrulama YAPILMADI. Kod kaynakta; build/paket/kurulum/servis/config/hesap/rol/görev/ticari yazı0. d62d36ac üç dependency review kaynağı aynı.
+
+| Sabit B5 sonucu | Durum | Mevcut kanıt / kalan |
+|---|---|---|
+| 1. Dokuz kişinin hesap–personel–görev bağı | Teknik kapalı | Yeni6 exact API/native + eski3 ayrı kişisel bağ +9/1 normal liste/reload. Yeniden hesap oluşturma yok. |
+| 2. Farklı görev, normal ekran ve kalıcılık | Kısmi | Kişisel koli/sayım/ana muhasebe kabulleri korunur; personel okuma/reload tamam. Kullanıcı Yönetimi kırpılması için kaynakfix var; yeni kuruluGUI ve ERP form finalsubmit kanıtı yok. |
+| 3. Yanlış rol/pasif/korunan kayıt sınırı | Teknik doğrulandı; katman sınırı açık | Normal403, onaylı10021 pasif401/restore/eskioturum401/yeni200 tamam. Korumalı kayıt/yetki sınırı önceki source/native kontratında; yeni gerçek rol/parola/görev değişimi veya GUI kabulü iddiası yok. |
+| 4. Kişisel ERP–CRM, normal CRM formu ve Müdür | Teknik kapalı | İki serverbağı + normal Personel/Müdür GUI/reload ve2formcreate önceki kanıttan korunur; yeniden CRMişlemi0. E1/E2/Android ayrı, yeni B5 önkoşulu yapılmadı. |
+
+**B5 tam kapanmadı:** normal ERP Kullanıcı Yönetimi görsel/form sonucu kısmi. Ekfinanspaneli ve güvenli kurulum devri ayrı açık; aynı erişim provasını veya kabul edilmiş işleri tekrar açma. İnsanE2/17–74 aynı. Exact CI mevcut feature/PR54 üzerinde ayrıca; rerun yok.
+
 ## 25 Ekim13:12–13:18 — Onaylı 10021 pasif hesap provası tamam; iki dependency P1 kaynak düzeltmesi hazır
 
 Doğrudan insan yanıtı userMessage01a17279-4e92-7733-b9c0-1667f9576392 mevcut koordinatör kaydından okundu: yalnız eski sentetik10021 geçici pasif→özgün aktif. Taze clean APIb9/native035, e662fd94/T1false/externalfalse, portların aynı OS sahibi ve exact user10021/employee1/rol30 doğrulandı. İlk sandbox socket reddinde yazma0; desteklenen izinli preflight başarılı. Normal yönetim PATCH yalnız isActive=false1, finally özgün true1. Pasifte old access/login/refresh401; restore sonrası old access/refresh401, yeni login200. Ownlogouttrue, korunan SQL hashleri/config dosyaları eş. Başka kullanıcı/rol/parola/görev/ticari kayıt/kurulum0. Özgün etkinlik geri geldi; row_version/updated_at/by ve normal auth/audit beklenen değişikliktir, birebir bütünDB restore iddiası yok. Teknik API kanıtı; insanE2/17–74 aynı.

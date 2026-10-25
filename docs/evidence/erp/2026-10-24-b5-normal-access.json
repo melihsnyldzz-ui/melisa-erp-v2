@@ -4514,5 +4514,77 @@
     "applyGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
     "runtimeOperations": 0,
     "buildOrPackage": 0
+  },
+  "b5AuthAdminHeightSource1023": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "changedFile": "apps/sites-workflow/src/styles/erp-modern.css",
+    "change": "One AuthAdmin-local grid-auto-rows: max-content declaration; columns, table scroll, overflow, other screens unchanged",
+    "basis": "Existing b5LayoutMeasure1006; not measured again",
+    "offlineFixture": "Synthetic static AuthAdmin-like hierarchy, source CSS before/after; no application JS/API/forms/accounts/external resources",
+    "renderAttempt": "BLOCKED_BEFORE_OPEN",
+    "browserPolicy": "file protocol not allowed; only http/https. No alternate protocol/surface/server/CDP workaround attempted",
+    "offlineRenderPassed": false,
+    "installedGuiAfterFix": "NOT_TESTED",
+    "newLocalMirrorTests": 0,
+    "newBuildOrPackage": 0,
+    "sharedRuntimeChanges": 0,
+    "existingThreeDependencyReviewSourcesUnchanged": true,
+    "ci": "Automatic exact head checks separate; no manual rerun"
+  },
+  "b5FixedFourResults1023": [
+    {
+      "outcome": 1,
+      "state": "TECHNICAL_CLOSED",
+      "result": "Nine synthetic duty user-employee bindings verified; source does not claim real-person identities",
+      "evidence": [
+        "sixSpecificApprovalApplied0927",
+        "personalPackingAgentUsage",
+        "personalCrmLinkContinuation.managerApplication",
+        "personalAccountingDuty.reconciliation",
+        "b5NormalPersonnelRead0941"
+      ],
+      "remaining": "No new account replay required; real-person handover/human acceptance remains separate"
+    },
+    {
+      "outcome": 2,
+      "state": "PARTIAL_NORMAL_MANAGEMENT_GUI",
+      "result": "Personal packing, own count/receiving and main accounting read/reload evidence reused; normal personnel nine+one list and task read/reload verified",
+      "evidence": [
+        "personalPackingAgentUsage",
+        "personalAccountingFinanceReadDelivery.normalGui",
+        "b5NormalPersonnelRead0941",
+        "b5LayoutMeasure1006"
+      ],
+      "remaining": "User Management clipped; single-rule source fix not installed/visually verified, normal ERP create-form final submit not claimed. No seventh synthetic account created for repetition"
+    },
+    {
+      "outcome": 3,
+      "state": "TECHNICAL_BOUNDARIES_VERIFIED_SCOPE_LIMITED",
+      "result": "Normal person management/finance403; specifically approved temporary inactive access/login/refresh401, restore true, old sessions still401 and new login200. Protected-account and role/assignment boundaries retain existing source/native contracts",
+      "evidence": [
+        "normalApiProof",
+        "b5ApprovedInactivity1012",
+        "sixSpecificApprovalApplied0927"
+      ],
+      "remaining": "No new role/password/task change or protected real/example-account mutation performed. Existing protected-record source/model tests are not represented as a new installed GUI change acceptance"
+    },
+    {
+      "outcome": 4,
+      "state": "TECHNICAL_CLOSED",
+      "result": "Personal ERP-CRM two server bindings, normal personal/independent Manager CRM GUI and two normal CRM form creations/reloads reused; assigned and wrong-person scope proved",
+      "evidence": [
+        "personalCrmNormalUsage.normalGui",
+        "personalCrmLinkDiagnosticDelivery.newServerProof",
+        "personalCrmLinkDiagnosticDelivery.normalGuiAfterChangedInstallation"
+      ],
+      "remaining": "No repeated CRM creation/assignment; cross-realm Android/browser SSO and real-human E1/E2 remain their existing separate acceptance scope"
+    }
+  ],
+  "b5TechnicalClosure1023": {
+    "state": "NOT_CLOSED",
+    "reason": "Normal ERP User Management visual/form usage remains partial; CSS source is not installed proof",
+    "extraFinancePanel": "Separate open installation/read-only UI work, not a new account-mapping prerequisite",
+    "fullHumanAcceptance": "PENDING",
+    "originalFinishCountersUnchanged": true
   }
 }
