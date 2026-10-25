@@ -290,6 +290,11 @@ namespace Melisa.CleanWeb1056 {
   public bool TryCooperatingWriter() { Host();if(!gate.Wait(0))return false;try { current.Verify();generation++;File.AppendAllText(control,"writer\n");return true; }finally{gate.Release();} }
   public string State { get { return phase; } }
   public Outcome ReadOutcome(Lease l){Host();if(Object.ReferenceEquals(last,l)&&receipt!=null&&l.Closed&&receipt.Generation==generation)return receipt;return Pending(l);}
+  internal bool WaitForOwnedChildExit(int milliseconds) {
+   Host();if(active!=null)throw new InvalidOperationException("WEB_FINAL_ACK_REQUIRED");
+   if(milliseconds < -1)throw new ArgumentOutOfRangeException("milliseconds");
+   if(!current.Exited)current.Verify();return current.Process.WaitForExit(milliseconds);
+  }
   public void RequestFixtureCandidateExit() { if(!fixture||candidate==null)throw new InvalidOperationException("WEB_FIXTURE_SCOPE");candidate.Process.StandardInput.WriteLine("exit");candidate.Process.StandardInput.Flush();if(!candidate.Process.WaitForExit(5000))throw new InvalidOperationException("WEB_FIXTURE_EXIT"); }
   // Fixture teardown is not runtime recovery. Only the restrictive temp factory
   // can create this public object; retained handles never target other PIDs.
@@ -301,6 +306,72 @@ namespace Melisa.CleanWeb1056 {
    disposed=true;foreach(var c in born){try{if(!c.Exited)Kernel.Stop(c.Handle,c.Birth);}finally{c.Dispose();}}
    if(active!=null){foreach(var f in active.Held)f.Dispose();active.Closed=true;active=null;gate.Release();}foreach(var f in birthPins)f.Dispose();gate.Dispose();
   }
+ }
+ // Narrow host adapter, not an installed-owner issuer or a background service.
+ // Start receives the existing assembly-internal trusted-host contract. Its
+ // authority includes legacy-owner retirement, continuous writer exclusion,
+ // and the FULL preserved data/local/synthetic boundary, not just PID/health.
+ // This source does not issue that authority or substitute fixture bytes for it.
+ public sealed class VerifiedCleanWebHost : IDisposable {
+  readonly Owner owner; readonly bool fixture;
+  Lease lease; Claim initial;
+  VerifiedCleanWebHost(Owner owned,bool isFixture){owner=owned;fixture=isFixture;}
+  internal static VerifiedCleanWebHost Start(CooperativeBirthBinding verifiedBinding) {
+   if(verifiedBinding==null)throw new InvalidOperationException("B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING");
+   return new VerifiedCleanWebHost(Owner.StartNewWebFromCooperatingHost(verifiedBinding),false);
+  }
+  // The ONLY public factory is confined to a new direct child of OS temp.
+  // Caller-supplied fixture pins can never enter Start/CooperativeBirthBinding.
+  public static VerifiedCleanWebHost StartOwnedFixture(string dir,string exe,IDictionary<string,string> expectedFiles) {
+   var full=Kernel.LongPath(dir).TrimEnd(Path.DirectorySeparatorChar);
+   var temp=Kernel.LongPath(Path.GetTempPath()).TrimEnd(Path.DirectorySeparatorChar);
+   if(!String.Equals(Path.GetDirectoryName(full),temp,StringComparison.OrdinalIgnoreCase)||!Path.GetFileName(full).StartsWith("melisa-web-owner-",StringComparison.Ordinal))throw new InvalidOperationException("WEB_FIXTURE_SCOPE");
+   for(var p=full;!String.IsNullOrEmpty(p);p=Path.GetDirectoryName(p))if((File.GetAttributes(p)&FileAttributes.ReparsePoint)!=0)throw new InvalidOperationException("WEB_REPARSE");
+   var names=new[]{"rollback.manifest","candidate.manifest","rollback/worker.cjs","candidate/worker.cjs","protected.bin"};
+   if(expectedFiles==null||expectedFiles.Count!=names.Length)throw new InvalidOperationException("WEB_HOST_FIXTURE_PINS_MISSING");
+   var held=new List<FileStream>();
+   try {
+    foreach(var name in names) {
+     string expected;if(!expectedFiles.TryGetValue(name,out expected)||expected==null||expected.Length!=64)throw new InvalidOperationException("WEB_HOST_FIXTURE_PIN");
+     var file=Path.Combine(full,name.Replace('/',Path.DirectorySeparatorChar));
+     for(var p=file;!String.IsNullOrEmpty(p);p=Path.GetDirectoryName(p))if((File.GetAttributes(p)&FileAttributes.ReparsePoint)!=0)throw new InvalidOperationException("WEB_REPARSE");
+     var stream=new FileStream(file,FileMode.Open,FileAccess.Read,FileShare.Read);held.Add(stream);
+     using(var hash=SHA256.Create())if(BitConverter.ToString(hash.ComputeHash(stream)).Replace("-","").ToLowerInvariant()!=expected)throw new InvalidOperationException("WEB_HOST_FIXTURE_PIN");
+    }
+    // Owner freezes these same files before birth. Retain verifier handles
+    // until Owner has acquired its own lifetime handles; no verification gap.
+    return new VerifiedCleanWebHost(Owner.StartOwnedFixture(full,exe),true);
+   } finally {foreach(var stream in held)stream.Dispose();}
+  }
+  public Claim CurrentClaim(){return owner.CurrentClaim();}
+  public string State {get{return owner.State;}}
+  public void Begin(int ttlMs) {
+   if(lease!=null)throw new InvalidOperationException("WEB_HOST_TRANSITION_ALREADY_STARTED");
+   var claim=owner.CurrentClaim();var issued=owner.Begin(claim,ttlMs);initial=claim;lease=issued;
+  }
+  void RequireLease(){if(lease==null)throw new InvalidOperationException("WEB_HOST_TRANSITION_NOT_STARTED");}
+  public Outcome StageCandidate() {
+   RequireLease();if(owner.State!="Prepared")throw new InvalidOperationException("WEB_HOST_STAGE_ALREADY_STARTED");
+   owner.Validate(lease,initial);owner.StopOld(lease);owner.StartCandidate(lease);return owner.PublishCandidate(lease);
+  }
+  public Outcome ReadOutcome(){RequireLease();return owner.ReadOutcome(lease);}
+  public Outcome Acknowledge() {
+   RequireLease();var pending=owner.ReadOutcome(lease);
+   if(pending.FinalAcknowledged)return pending;
+   return owner.Acknowledge(lease,pending.TransitionId,pending.State);
+  }
+  public Outcome Recover() {
+   RequireLease();var pending=owner.ReadOutcome(lease);
+   if(pending.FinalAcknowledged)throw new InvalidOperationException("WEB_HOST_FINALIZED");
+   if(owner.State!="RollbackPublishedAwaitingAck")pending=owner.Rollback(lease);
+   return owner.Acknowledge(lease,pending.TransitionId,pending.State);
+  }
+  // Keeps this host and its original handles alive with its own web. No timer,
+  // discovery, auto-restart, process adoption or new task is introduced.
+  public bool WaitForOwnedWebExit(int milliseconds){return owner.WaitForOwnedChildExit(milliseconds);}
+  public bool TryFixtureWriter(){if(!fixture)throw new InvalidOperationException("WEB_FIXTURE_SCOPE");return owner.TryCooperatingWriter();}
+  public void RequestFixtureCandidateExit(){if(!fixture)throw new InvalidOperationException("WEB_FIXTURE_SCOPE");owner.RequestFixtureCandidateExit();}
+  public void Dispose(){owner.Dispose();}
  }
  public static class Consumer {
   public static Outcome Commit(Owner owner,Lease lease,Claim claim) { owner.Validate(lease,claim);owner.StopOld(lease);owner.StartCandidate(lease);var p=owner.PublishCandidate(lease);return owner.Acknowledge(lease,p.TransitionId,p.State); }

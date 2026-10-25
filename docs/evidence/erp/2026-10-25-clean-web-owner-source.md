@@ -1,5 +1,60 @@
 # Clean WEB5244: işbirlikçi owner devir bileşeni — SOURCE/OFFLINE
 
+## 25 Ekim / 1704: dar host adapteri
+
+Base `ef3135524cffcb72caf9e6f5c64ba6510f8c24ac`. Koordinatör CRM1654
+`01a173fc-c19e-7302-8dad-d61b116f2b5d` dar SOURCE GO / rollback P1 kapalı sonucunu
+iletti. O fix ve inceleme yeniden çalıştırılmadı; bu teslim yalnız yeni adapterdir.
+
+`VerifiedCleanWebHost.Start(CooperativeBirthBinding)` aynı assembly içinde kalır
+ve mevcut gerçek-owner factory'sine bağlanır. Sabit üretim Node/b89 rollback ve
+b89+CSSb6/61328 pin doğrulaması mevcut factory'dedir. Adapter bir mevcut süreç/PID
+almıyor; yeni owner'ın kendi doğurduğu child ve tuttuğu aynı gate/handle ile
+çalışıyor. Begin, aday yayını, ACK, mevcut outcome okuması ve rollback+ACK somut
+olarak Owner'a gider. Finalized recovery reddedilir. WaitForOwnedWebExit aynı
+own child'ın yaşamını bekler; aktif lease varken final ACK olmadan beklemeye
+geçmez. Timer/restart/keşif/daemon/servis/gözetmen/görev/autostart eklenmedi.
+
+**Üretim authority sınırı:** internal binding gerçek legacy-owner retirement,
+kesintisiz writer dışlaması ve tam korunmuş veri/yerel/sentetik kapsamın sır
+içermeyen gerçek witness'ını gerektirir. Adapter bunları üretmez. Yalnız process
+kimliği veya fixture bytes bu kapsamın yerine konulmadı. Mevcut runtime için
+issuer hâlâ yok; public PS girişi önce Get-InstalledCleanWebHandoff çağırıp
+B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING ile kapanır. Eski wrapper/pair/template
+ve kurulu başlatıcı değişmedi. Read-B5Protection/SQL/özel dosya okuyucusu taşınmadı.
+Üretim Start, sabit paket/TCP/HTTP dalları ve gerçek issuer **çalıştırılmadı**.
+
+Public fixture factory yalnız yeni doğrudan OS-temp alt dizinini kabul eder.
+İki manifest, iki worker ve korunma snapshot'ı beklenen SHA'larla doğrulanıp açık
+stream'lerle tutulur; Owner kendi lifetime pinlerini almadan bu verifier stream'leri
+bırakılmaz. Bunlar açıkça FIXTURE ONLY bytes'tır; üretim paketi/authority değildir.
+Fixture dışında production Start için public factory veya JSON/boolean girişi yok.
+
+**Yeni 5 test, final 5 PASS / 0 FAIL / 0 SKIP,11336.4466ms:**
+
+- Public function ve gerçek -Apply girişi derleme/hedef işlemi öncesi kapalı.
+- Gerçek own child doğumu/PID/CWD, pin tutma, aynı writer gate, aday yayını,
+  lost-response okuma, final ACK replay ve kendi child yaşamını bekleme.
+- Yanlış rollback/candidate/payload pininde claim/child doğumu sıfır; fixture
+  dizin sınırı ve production Start/internal binding görünürlüğü.
+- Gerçek aday çıkışından sonra aynı Owner üzerinden rollback+ACK; tekrar çağrıda
+  yeni child yok.
+- Fixture veri witness değişmişken process aynı olsa da stop öncesi ret; korunma
+  tanığı taze olmadan devam yok.
+
+İlk5 test fonksiyon girişini sınadı. Gerçek -Apply eklendiğinde dot-source
+parametre gölgelenmesi 1 FAIL / APPLY_ENTRY_DID_NOT_CLOSE_BEFORE_COMPILE ile
+yakalandı; yeni wrapper giriş kipini yükleme öncesi saklayarak düzeltildi.
+İlk/RED/final loglar `.tmp/b5-web-host-adapter-1704/` içinde korunur. Sonraki 5PASS
+gerçek -Apply kapanışını da içerir. Eski13/31/38/87/83/build/paket/CI rerun yok.
+
+Gerçek start/install/shared bağlantı, SQL, privateenv/store/DPAPI/envanter/parola,
+GUI ve cihaz işlemi sıfır. İlk kontrollü geçişte hâlâ eski web'in desteklenen
+sahibinden kapatılması, eski yenidenbaşlatıcının dışlanması, gerçek full-scope
+witness ve özgül uygulama onayı gerekir. Mevcut Owner önce kendi b89 baseline'ını
+doğurur; sonra aday için onu emekliye ayırır. Yeni adapter bunu tek restart diye
+sunmaz. Bağımsız yeni delta incelemesi ve exact CI ayrı; **B5 tamamlanmadı**.
+
 ## 25 Ekim / 1644: rollback retry P1 için dar düzeltme
 
 Tamamlanan CRM incelemesi `01a173b4-3cb8-7272-89eb-152ade5512f8`, başlangıç

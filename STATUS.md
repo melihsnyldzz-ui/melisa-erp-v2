@@ -1,3 +1,17 @@
+## 25 Ekim — 1704 dar web-only host adapteri SOURCE/OFFLINE
+
+Base `ef3135524cffcb72caf9e6f5c64ba6510f8c24ac`; CRM1654 turn `01a173fc-c19e-7302-8dad-d61b116f2b5d` dar SOURCE GO / rollback P1 kapalı / delta P1-P2 yok sonucu koordinatörden alındı. Kapalı fix/test/review döngüsü tekrarlanmadı.
+
+`clean-web-owner.cs` içindeki **VerifiedCleanWebHost.Start**, aynı assembly'nin mevcut internal CooperativeBirthBinding sözleşmesini Owner.StartNewWebFromCooperatingHost'a bağlar; üretim pinleri b89 B5FINANCEPROFILE rollback + yalnız CSSb6/61328 adaydır. Bu adapter gerçek legacy-retirement/continuous-writer/full korunmuş veri-yerel-sentetik kapsamı authority'sini ÜRETMEZ. Üretim issuer yoktur; bu sözleşme boolean/JSON/processkimliği/fixture ile tamamlanmış sayılmaz. Gerçek Start/pinli üretim/TCP-HTTP dalları çalıştırılmadı.
+
+Adapter aynı Owner/retained handle/gate'i Begin → StageCandidate → Acknowledge veya Recover boyunca tutar; lost ACK sonucu okunur, finalized recovery yeni etki üretmez. WaitForOwnedWebExit aynı own child yaşamını bekler; aktif devirde finalACK ister. Yeni daemon/servis/gözetmen/görev/autostart yok. Yeni `clean-web-host.ps1 -Apply` ilk gerçek işlemde mevcut **B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING** kapısına gider; eski owner wrapper, pair operator/template ve kurulu start-erp.ps1 değişmedi.
+
+**5/5 yeni adapter testi PASS,0FAIL,0SKIP,11.336s.** Gerçek own fixture child/PID/CWD/retained pin/writergate; yayın/sonACK/replay; ownchild yaşamı; yanlış manifest/payload pininde doğum0; gerçek candidate exit sonrası rollback+ACK; fixture veri witness drift'inde stop öncesi ret. Public production Start/internal binding metadata sınırı doğrulandı. Fixture public girişi yalnız yeni doğrudan OS-temp alt dizinine sınırlı; fixture pinleri üretim authority'sine çevrilmez. Test sonunda sadece kendi retained handle ve temp dosyaları temizlenir.
+
+İlk5 fonksiyon düzeyi PASS sonrası gerçek -Apply çağrısı eklendi: dot-source kütüphanesi giriş kipini gölgeliyordu; **1FAIL/APPLY_ENTRY_DID_NOT_CLOSE_BEFORE_COMPILE** ile görüldü, yeni wrapper kendi kipini saklayarak düzeltildi. İlk/RED/final loglar `.tmp/b5-web-host-adapter-1704/` içinde korunur. Eski13/31/38/87/83 ve kabul edilmiş akışlar/build/paket/manuelCIrerun0. Yeni exacthead otomatikCI ve bağımsız adapter delta incelemesi ayrı bekler.
+
+SharedTEST/port5244/APIHTTP/SQL/GUI/config/servis/install/hesap/cihaz0; privateenv/store/DPAPI/parola/envanter0; WIP ve kurulu ERP/CRM/veriler korundu. **İlk gerçek geçiş önkoşulu:** legacy web'in desteklenen sahibinden kontrollü kapatma + eski yenidenbaşlatıcıların kesintisiz dışlanması + tam kapsamlı sır içermeyen gerçek korunma tanığı ve bu web-only etkiye özgül uygulama onayı. Host source bunları icat etmez; runtime/GUI/insan kabulü yok, **B5 açık**. [Kanıt](docs/evidence/erp/2026-10-25-clean-web-owner-source.md).
+
 ## 25 Ekim — 1644 rollback tekrar tekilliği P1: dar kaynak düzeltmesi
 
 CRM incelemesi `01a173b4-3cb8-7272-89eb-152ade5512f8`, exact `56d8ed222d816f554b6a030ab8507ff216a591e5` için SOURCE NO-GO / 1 P1 verdi: rollback child doğduktan sonra yayın reddedilirse evre CandidateStarted kalıyor ve tekrar çağrı ikinci child doğuruyor. Bu tamamlanmış inceleme, önceki platform hatasından ayrıdır; erişim/Daybreak onayı değildir.

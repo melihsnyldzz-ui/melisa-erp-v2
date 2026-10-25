@@ -4873,5 +4873,64 @@
     "guiAfterFix": false,
     "humanAcceptance": "PENDING",
     "fullB5Completed": false
+  },
+  "webHostAdapterSource1704": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "baseCommit": "ef3135524cffcb72caf9e6f5c64ba6510f8c24ac",
+    "baseDeltaReviewReportedByCoordinator": {
+      "turn": "01a173fc-c19e-7302-8dad-d61b116f2b5d",
+      "result": "NARROW_SOURCE_GO_ROLLBACK_P1_CLOSED",
+      "reviewRepeated": false
+    },
+    "sourceWorkingTreeSha256": {
+      "scripts/canonical/clean-web-owner.cs": "edd7e1b967e9675b32781ec6a15beddea41b51b965860ced3978a57d3b81b67a",
+      "scripts/canonical/clean-web-host.ps1": "572ccca57d4f64657ae7286776f95e5c04c437007e9e3ffcf88b39217e152470",
+      "scripts/canonical/clean-web-host.test.mjs": "66fc0187f969ce833aa5b7aea87b42f92d816fabc624ba032b5302383c876ea0"
+    },
+    "host": "VerifiedCleanWebHost.Start with assembly-internal CooperativeBirthBinding",
+    "runtimeIssuerImplemented": false,
+    "legacyRetirementAndContinuousWriterExclusionRequired": true,
+    "fullPreservedDataLocalSyntheticWitnessRequired": true,
+    "processIdentityOnlyNotAcceptedAsFullScopeProof": true,
+    "fixturePinsAreNotProductionAuthority": true,
+    "productionStartExecuted": false,
+    "fixedProductionPinTcpHttpBranchesExecuted": false,
+    "newTests": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 11336.4466,
+      "log": ".tmp/b5-web-host-adapter-1704/final.log",
+      "realOwnChildBirthAndLifetime": true,
+      "sameOwnerGateThroughFinalAck": true,
+      "retainedFixturePinsBeforeBirth": true,
+      "wrongPackageAndPayloadPinsRejectedBeforeBirth": true,
+      "realCandidateExitRollbackAckAndNoReplayBirth": true,
+      "fullFixtureWitnessDriftRefusedBeforeStop": true,
+      "actualApplyClosedBeforeCompilation": true
+    },
+    "wrapperApplyRegression": {
+      "redFail": 1,
+      "reason": "APPLY_ENTRY_DID_NOT_CLOSE_BEFORE_COMPILE",
+      "cause": "Dot-sourced library parameters shadowed the new wrapper mode",
+      "fix": "Preserve requested Apply and Library mode before source load",
+      "log": ".tmp/b5-web-host-adapter-1704/apply-entry-red.log"
+    },
+    "existingWrapperPairTemplateUnchanged": true,
+    "installedGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "sharedTargetConnections": 0,
+    "sharedRuntimeMutations": 0,
+    "privateStoreEnvCredentialInventorySqlReads": 0,
+    "newBuildOrPackage": 0,
+    "oldFullSuitesRepeated": 0,
+    "manualCiReruns": 0,
+    "newDaemonServiceWatcherTaskAutostart": false,
+    "deltaReview": "PENDING_INDEPENDENT_REVIEW",
+    "ci": "NEW_EXACT_HEAD_PENDING_AUTOMATIC_CHECKS",
+    "installation": false,
+    "guiAfterFix": false,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
   }
 }

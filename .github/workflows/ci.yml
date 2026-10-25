@@ -46,6 +46,8 @@ jobs:
         run: node --test scripts/canonical/clean-b5-pair-transition.test.mjs
       - name: Clean WEB owner birth and cooperative handoff on own temporary children
         run: node --test scripts/canonical/clean-web-owner.test.mjs
+      - name: Clean WEB host adapter with pinned own temporary children
+        run: node --test scripts/canonical/clean-web-host.test.mjs
   quality-build-test:
     name: quality-build-test
     runs-on: ubuntu-latest
