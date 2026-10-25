@@ -3073,6 +3073,82 @@
         "fullB5Closed": false,
         "countersUnchanged": true
       }
+    },
+    "offlineMultiCustomerPanel": {
+      "taskId": "ERP-B5-MULTICUSTOMER-PANEL-OFFLINE-20261024-2352",
+      "baseCommit": "7a2ad1b65ad2d2506b87bec2bf93a427e7fa987a",
+      "sourceFiles": {
+        "apps/sites-workflow/src/workflow/workCollections.js": "BF3B02180B04C74D8EF55A1758352CE2EFF17F6C56547925DAA77F4CFC265BCF",
+        "apps/sites-workflow/src/workflow/workFinanceMovements.mjs": "1FC0F58FF1C6873C6FBC1F2B9FDE3A4CC2F82EE20358C854838EC1E63C6EB1F2",
+        "apps/sites-workflow/src/workflow/workFinanceMovements.test.mjs": "2AA62647132628B76F50F51869DA5F439B8A53975A0F7B5E54345BEC8652101F",
+        "apps/sites-workflow/src/workflow/workCollectionsCache.test.mjs": "EB5FB30927C30D1E6C5783E46088397F73D46E85E90765785C0B1ECBBB69234B"
+      },
+      "review": {
+        "verdict": "GO",
+        "p1": 0,
+        "p2": 0,
+        "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+        "files": {
+          "apps/sites-workflow/src/workflow/workCollections.js": "BF3B02180B04C74D8EF55A1758352CE2EFF17F6C56547925DAA77F4CFC265BCF",
+          "apps/sites-workflow/src/workflow/workFinanceMovements.mjs": "1FC0F58FF1C6873C6FBC1F2B9FDE3A4CC2F82EE20358C854838EC1E63C6EB1F2",
+          "apps/sites-workflow/src/workflow/workFinanceMovements.test.mjs": "2AA62647132628B76F50F51869DA5F439B8A53975A0F7B5E54345BEC8652101F",
+          "apps/sites-workflow/src/workflow/workCollectionsCache.test.mjs": "EB5FB30927C30D1E6C5783E46088397F73D46E85E90765785C0B1ECBBB69234B"
+        },
+        "normalApiContextContractCrossCheckedInSource": true,
+        "testsRerunByReviewer": false,
+        "controllerBuilderStubIsNotNativeOrGuiAcceptance": true,
+        "runtimeOrDataChanged": false
+      },
+      "regression": {
+        "beforeFix": "Four-customer exact-context positive failed with Tahsilat kaynağı doğrulanamadı",
+        "afterFixPass": 83,
+        "afterFixFail": 0,
+        "reader87TestsNotRepeated": true
+      },
+      "tests": {
+        "files": [
+          "workFinanceMovements.test.mjs",
+          "workCollectionsCache.test.mjs",
+          "workCollectionsSelectedSource.test.mjs"
+        ],
+        "offlineGuard": "scripts/ci/offline-guard.cjs",
+        "controller": "Synthetic session and builder stub prove request, all-or-nothing rendering and generation/dispose orchestration",
+        "model": "Real buildWorkFinanceMovements with normal clean four-customer/three-currency synthetic DTOs proves exact math and source links",
+        "notNativeOrGuiIntegration": true
+      },
+      "behavior": {
+        "existingPerInvoiceContextGetOnly": true,
+        "allContextsRequired": true,
+        "partialPageTotalsRejected": true,
+        "firstCustomerOrAccountFallback": false,
+        "unknownNamesGuessed": false,
+        "duplicateOriginalAndReversalRejected": true,
+        "invoiceContextSnapshotAndRevisionsMatch": true,
+        "sourceCurrencyTotalsSeparateExact4": true,
+        "allOrNothingOutput": true,
+        "legacyAndSelectedCopyUnchanged": true,
+        "generationAndDisposePreserved": true,
+        "newEndpoint": false,
+        "newCache": false,
+        "newTimeout": false,
+        "automaticRetry": false
+      },
+      "delivery": {
+        "sourceOnly": true,
+        "realDbOrHttpOrGuiCalls": false,
+        "apiOrNativeChanged": false,
+        "installedApiRemainsPreviousB9": true,
+        "passivePackageCreated": false,
+        "testInstallation": false,
+        "roleOrAccountChanges": false,
+        "fullB5Closed": false,
+        "humanAcceptance": "PENDING",
+        "originalCountersUnchanged": true
+      },
+      "ci": {
+        "evidence": "Matching final delivery commit checks on PR54 and existing common report",
+        "localTestsAreNotCI": true
+      }
     }
   },
   "sixPersonalContextReview": {
@@ -3300,5 +3376,38 @@
       "crmMappingCreated": false
     },
     "humanAcceptance": "PENDING"
+  },
+  "c5FirstScheduledRead": {
+    "checksum": true,
+    "firstCombinedCommandExit": 1,
+    "newBackupOrRestore": false,
+    "fullSystemRecoveryProven": false,
+    "shaEvidence": "Existing successful backup-result.json; no new binary hash or SQL VERIFYONLY",
+    "sha256": "FD9096307DCB058813E7A8732A4665C4CD9809CBA257403A88EAE8978795C891",
+    "manualTrigger": false,
+    "crmFilesCovered": false,
+    "server": "Semih\\MELISADEV",
+    "taskOrRuntimeChanges": false,
+    "verifyOnlyPassed": true,
+    "taskId": "C5-FIRST-SCHEDULED-READ-20261025-0300",
+    "backupSetGuid": "b8b6ee89-1886-4fbd-be27-065343c02d25",
+    "lastTaskResult": 0,
+    "completedAtTR": "2026-10-25T03:00:02.7658792+03:00",
+    "lastRunTimeTR": "2026-10-25T03:00:00+03:00",
+    "startedAtTR": "2026-10-25T03:00:02.2149990+03:00",
+    "directory": "CLEAN-20261022-C5-20261025T000001357Z-512ec2b3bf8f478ca37e1851c8a821d2",
+    "nextRunTimeTR": "2026-10-26T03:00:00+03:00",
+    "sqlRevalidation": false,
+    "sizeBytes": 100458496,
+    "timeZone": "Europe/Istanbul",
+    "copyOnly": true,
+    "backupShaRecomputed": false,
+    "humanAcceptance": "PENDING",
+    "sizeMatchesExistingFile": true,
+    "status": "SCHEDULED_TASK_RESULT_AND_MATCHING_BACKUP_RECEIPT_VERIFIED",
+    "isolatedSupportedTaskInfoReadExit": 0,
+    "sourceDatabase": "MELISA_ERP_CLEAN_TEST_20261022",
+    "taskFullName": "\\Melisa-Clean-20261022-NightlyBackup",
+    "receiptIsoStringsPreservedBeforeParsing": true
   }
 }

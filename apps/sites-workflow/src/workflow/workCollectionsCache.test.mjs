@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createTradeJournal} from './workTradeModel.mjs';
 const revision='a'.repeat(64),requestId='00000000-0000-4000-8000-000000000001',tick=()=>new Promise(r=>setImmediate(r));
-async function controller(){let s=await readFile(new URL('./workCollections.js',import.meta.url),'utf8');s=s.replace("import './workSales.css';",'');for(const file of ['workOpenAccountPresentation.mjs','isolatedOperationCopyModel.mjs','workCopyPresentation.mjs','workTradeModel.mjs','workFinanceMovements.mjs'])s=s.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return (await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'))).createWorkCollections;}
+async function controller(financeBuilder){let s=await readFile(new URL('./workCollections.js',import.meta.url),'utf8');s=s.replace("import './workSales.css';",'');if(financeBuilder)s=s.replace("import {buildWorkFinanceMovements} from './workFinanceMovements.mjs';",'const buildWorkFinanceMovements='+financeBuilder.toString()+';');for(const file of ['workOpenAccountPresentation.mjs','isolatedOperationCopyModel.mjs','workCopyPresentation.mjs','workTradeModel.mjs','workFinanceMovements.mjs'])s=s.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return (await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'))).createWorkCollections;}
 const invoice=id=>({id,documentNo:'SAT-'+id,documentDate:'2026-10-07',status:'finalized',customerId:'501',currency:'TRY',revision,subtotalExact4:'120.0000',grandTotalExact4:'120.0000',amountTryExact4:'120.0000',customerBalanceExact4:'120.0000',collections:{revision,receivedExact4:'0.0000',outstandingExact4:'120.0000',items:[]},items:[{productId:'325503',stockCode:'TEST-P2',name:'Sentetik ürün',quantityExact3:'1.000',unitPriceExact8:'120.00000000',unitPriceExact4:'120.0000',lineTotalExact4:'120.0000',currency:'TRY'}]});
 const context=id=>({invoice:invoice(id),revision,customer:{id:'501',name:'Deneme müşterisi',synthetic:true,writeEligible:true},accounts:[{id:'99',name:'Nakit',synthetic:true,currency:'TRY'}],capabilities:{canCollect:true,canCancelCollection:true}});
 function storage(){const values=new Map(),removed=[];return {removed,getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>{removed.push(k);values.delete(k);}};}
@@ -109,4 +109,42 @@ test('finance disclosure preserves the user choice through its own refresh and a
  pending[1]({status:500});await tick();assert.match(d.root.innerHTML,/<details[^>]*data-collection-finance-panel open>/);assert.match(d.root.innerHTML,/Hareket bilgileri şu anda açılamıyor/);
  d.node('[data-collection-finance-panel]').open=false;ui.refresh();await tick();pending[2]({status:500});await tick();
  assert.doesNotMatch(d.root.innerHTML,/<details[^>]*data-collection-finance-panel open>/);assert.ok(calls.every(c=>!c.options?.method));ui.dispose();
+});
+
+// Controller tests isolate request/generation orchestration. Exact arithmetic,
+// source bindings and reversal validation use the real model in its own tests.
+const panelBuilder=({invoices,collectionContexts})=>{if(collectionContexts?.length!==invoices.length||collectionContexts.some(c=>c.customer.id!==c.invoice.customerId))throw Error('Incomplete source');return {summary:[],bankAccounts:[],rows:collectionContexts.map(c=>({kind:'Müşteri tahsilatı',partyName:c.customer.name,date:c.invoice.documentDate,reference:c.invoice.documentNo,accountName:c.accounts[0].name,status:'Aktif',direction:'in',currency:c.invoice.currency,amountExact4:'1.0000'}))};};
+function panelFixture(){
+ const currencies=['TRY','TRY','USD','EUR'],rows=currencies.map((currency,n)=>{const i=invoice(String(n+1));return {...i,customerId:String(501+n),currency,items:i.items.map(item=>({...item,currency}))};});
+ const contexts=new Map(rows.map((i,n)=>[i.id,{...context(i.id),invoice:structuredClone(i),customer:{id:i.customerId,name:'Yapay kişi '+i.customerId,synthetic:true,writeEligible:true},accounts:[{id:String(91+n),name:i.currency+' hesap',currency:i.currency,synthetic:true}]}]));
+ return {rows,contexts,list:{data:rows,meta:{total:4,page:1,limit:25}},sales:{meta:{cleanSaleReadOnly:true}}};
+}
+
+test('clean panel reads every existing invoice context once and never publishes a partial source set',async()=>{
+ const create=await controller(panelBuilder),d=dom(),f=panelFixture(),pending=new Map(),calls=[];
+ const session={work:async(path,options)=>{calls.push({path,options});if(path==='/api/work-sales/invoices')return f.list;if(path==='/api/work-sales/context')return f.sales;const id=path.split('=').at(-1);return new Promise(resolve=>pending.set(id,resolve));},supplierPayments:async()=>({})};
+ const ui=create({root:d.root,session,user:{id:16},storage:storage()});ui.mount();await tick();assert.deepEqual([...pending.keys()],['1','2','3','4']);
+ for(const id of ['4','2','1'])pending.get(id)(f.contexts.get(id));await tick();assert.doesNotMatch(d.root.innerHTML,/class="finance-movement"/);assert.match(d.root.innerHTML,/Hareketler yükleniyor/);
+ pending.get('3')(f.contexts.get('3'));await tick();for(const id of ['501','502','503','504'])assert.match(d.root.innerHTML,new RegExp('Yapay kişi '+id));assert.equal(calls.filter(c=>c.path.startsWith('/api/work-collections/context?')).length,4);assert.ok(calls.every(c=>!c.options?.method));ui.dispose();
+});
+
+for(const failure of ['denied','malformed','partial-page'])test('clean panel keeps invoices but no movement totals after '+failure,async()=>{
+ const create=await controller(panelBuilder),d=dom(),f=panelFixture(),calls=[];if(failure==='partial-page')f.list.meta.total=5;
+ const session={work:async path=>{calls.push(path);if(path==='/api/work-sales/invoices')return f.list;if(path==='/api/work-sales/context')return f.sales;const id=path.split('=').at(-1);if(id==='3'&&failure==='denied')throw {status:403};const c=structuredClone(f.contexts.get(id));if(id==='3'&&failure==='malformed')c.customer.id='999';return c;},supplierPayments:async()=>({})};
+ const ui=create({root:d.root,session,user:{id:16},storage:storage()});ui.mount();await tick();assert.match(d.root.innerHTML,/SAT-4/);assert.doesNotMatch(d.root.innerHTML,/class="finance-movement"|finance-movement-summary/);assert.match(d.root.innerHTML,failure==='denied'?/Finans hareketlerini görüntüleme yetkiniz yok/:/Hareket bilgileri şu anda açılamıyor/);assert.equal(calls.filter(p=>p.startsWith('/api/work-collections/context?')).length,failure==='partial-page'?0:4);ui.dispose();
+});
+
+test('clean context responses from an old generation cannot replace a refreshed panel',async()=>{
+ const create=await controller(panelBuilder),d=dom(),f=panelFixture(),pending=[];let pass=0;
+ const session={work:async path=>{if(path==='/api/work-sales/invoices'){pass++;return f.list;}if(path==='/api/work-sales/context')return f.sales;const generation=pass,id=path.split('=').at(-1);return new Promise(resolve=>pending.push(()=>{const c=structuredClone(f.contexts.get(id));c.customer.name=generation===1?'Ancak eski kaynak':'Yeni kaynak '+id;resolve(c);}));},supplierPayments:async()=>({})};
+ const ui=create({root:d.root,session,user:{id:16},storage:storage()});ui.mount();await tick();assert.equal(pending.length,4);ui.refresh();await tick();assert.equal(pending.length,8);pending.slice(4).forEach(resolve=>resolve());await tick();assert.match(d.root.innerHTML,/Yeni kaynak 4/);pending.slice(0,4).forEach(resolve=>resolve());await tick();assert.match(d.root.innerHTML,/Yeni kaynak 4/);assert.doesNotMatch(d.root.innerHTML,/Ancak eski kaynak/);ui.dispose();
+});
+
+test('dispose before clean source admission prevents further detail reads',async()=>{
+ const create=await controller(panelBuilder),d=dom(),f=panelFixture(),calls=[];let resolveSales;
+ const ui=create({root:d.root,user:{id:16},storage:storage(),session:{work:async path=>{calls.push(path);if(path==='/api/work-sales/invoices')return f.list;if(path==='/api/work-sales/context')return new Promise(r=>{resolveSales=r;});throw Error('No detail read after dispose');},supplierPayments:async()=>({})}});ui.mount();await tick();const rendered=d.root.innerHTML;ui.dispose();resolveSales(f.sales);await tick();assert.equal(d.root.innerHTML,rendered);assert.equal(calls.filter(p=>p.startsWith('/api/work-collections/context?')).length,0);
+});
+
+test('legacy finance does not add clean detail reads',async()=>{
+ const create=await controller(),d=dom(),calls=[];const ui=create({root:d.root,user:{id:16},storage:storage(),session:{work:async path=>{calls.push(path);return path==='/api/work-sales/invoices'?{data:[invoice('42')]}:{};},supplierPayments:async()=>({})}});ui.mount();await tick();assert.deepEqual(calls,['/api/work-sales/invoices','/api/work-sales/context']);ui.dispose();
 });

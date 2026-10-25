@@ -1,3 +1,21 @@
+## 25 Ekim — B5 çok müşterili hareket paneli: yalnız kaynak/offline teslimi
+
+**Tek görev:** ERP-B5-MULTICUSTOMER-PANEL-OFFLINE-20261024-2352. HEAD/origin/feature ve hedef dosyalarda çakışmasız temiz durum doğrulandı; mevcut WIP/P03 dosyaları korundu. Uygulama farkı yalnız workCollections.js, workFinanceMovements.mjs ve iki mevcut testi. Kabul edilmiş7a2 okuyucusu/API/native dosyaları ve87test teslimi yeniden açılmadı.
+
+**Dar istemci davranışı:** mevcut clean fiş listesi ve her fişin mevcut tahsilat context GET’i kullanılır. Müşteri/ad/kod ve hesap adı/döviz gerçek DTO’dan gelir; ilk müşteri/hesap seçilmez. Fiş, kalemler, hareketler ve revision snapshot’ları eşleşir. Bütün context’ler ve tam liste metadata’sı tamamlanmadan özet yayımlanmaz; tek hata/eksik sayfa bütün finans özetini reddeder, fiş listesi korunur. Tahsilat ve ödeme ters çiftleri tekil ve karşılıklı doğrulanır; TRY/USD/EUR ayrı BigInt4hane hesaplanır. Yetim/çift/çelişkili fiş/müşteri/hesap/döviz/tutar/tarih reddedilir; alan veya satır uydurulmaz/atlanmaz. Yeni endpoint, genel aggregate motoru, cache, timeout veya retry yok. Legacy/selected-source/DB02 yolu, session taşıması ve generation/dispose sınırları korunur.
+
+**Offline kanıt:** dört müşteri/üç döviz pozitif regresyonu önce mevcut modelde RED verdi. Değişiklik sonrası üç ilgili test dosyasında83PASS. Gerçek model exact netleri ve olumsuz kaynakları sınar; controller builder stub yalnız bütün kaynakları bekleme,403/bozuk context/eksik sayfa, eski generation, dispose ve yazmasız istek sırasını sınar. Bu iki fixture katmanı native/normal GUI entegrasyon kabulü değildir. Mevcut bağımsız CRM incelemecisi GO/P1-P2=0; dört final dosya hash’i eşleşti. Exact final teslim CI sonucu PR54 ve ortak raporda esas alınır; yerel83test CI değildir.
+
+**Sınır/kalan:** gerçek DB/HTTP/GUI veya TEST kurulumu yok; API hâlâ önceki b9 kurulumudur ve7a2 kaynak okuyucusu henüz kurulu değildir. Son kayıtlı web b89 FINANCEPROFILE/CRM476 değiştirilmedi; pasif paket ve uygulama sağlığı bu görevde yeniden kanıtlanmadı. Altı hesap/10021/rol/atama/config/servis/finans/stok/fiş ve LIVE/Vega/T1/main yok. Panelin gerçek ekranı, kurulum ve insan E2 kabulü ayrı bekler; B5/17–74 kapanışı yok. [Makine kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
+## 25 Ekim03.00 — C5 ilk planlı görev sonucu: yalnız kayıt/makbuz okuması
+
+**Ayrı görev:** C5-FIRST-SCHEDULED-READ-20261025-0300. Mevcut kayıtla tam ad eşleşti: \Melisa-Clean-20261022-NightlyBackup. Desteklenen Get-ScheduledTaskInfo okuması LastRunTime=25Ekim03:00TR, LastTaskResult=0, NextRunTime=26Ekim03:00TR verdi. İlk birleşik okuma teşhis vermeden1 döndü; görev değiştirilmedi. İzole aynı desteklenen metadata okuması başarılıydı. Makbuz ISO tarihleri string korunarak okundu; Windows yerelleştirme dönüşümü için göreve veya SQL’e tekrar çağrı yapılmadı.
+
+**Eşleşen gerçek çıktı:** CLEAN-20261022-C5-20261025T000001357Z-512ec2b3bf8f478ca37e1851c8a821d2; backupSetGuid=b8b6ee89-1886-4fbd-be27-065343c02d25. Kaynak Semih\MELISADEV / MELISA_ERP_CLEAN_TEST_20261022; makbuz başlangıcı03:00:02TR. COPY_ONLY=true, CHECKSUM=true, VERIFYONLY=true. Boyut 100458496bayt, mevcut dosya metadata’sıyla eşit. Yedek SHA256=FD9096307DCB058813E7A8732A4665C4CD9809CBA257403A88EAE8978795C891; bu SHA mevcut başarılı backup-result.json kanıtıdır, ikili dosya yeniden hash edilmedi ve SQL VERIFYONLY tekrarlanmadı.
+
+**Başarı sınırı:** bu ilk planlı clean TEST SQL yedeğinin görev sonucu ve makbuzu doğrulandı. Elle tetikleme, yeni backup/restore, görev/servis/runtime/config değişimi veya SQL çalıştırması yapılmadı. CRM dosya/medya/credential, ayrı disk/NAS, kapalı Windows oturumu, gerçek restore ve tam sistem kurtarma kanıtı değildir. C5 genel/human kabulü veya özgün sayaçlar otomatik kapatılmadı. Sıfır operasyonla alınan ayrı okuma makbuzu ignored .tmp/c5-first-scheduled-read-20261025-0300.json; sırsız özet mevcut makine kanıtında ayrı C5 anahtarındadır.
+
 ## 25 Ekim — B5 ters kayıt okuyucusu: yalnız kaynak/offline teslimi
 
 **Tek görev:** ERP-B5-REVERSAL-READ-OFFLINE-20261024-2327. Aynı feature worktree/dal ve f0e8f86b tabanı doğrulandı; hedef iki dosyada başka WIP veya aynı görev kaydı yoktu. Önceki .tmp/P03 dosyaları korundu. Uygulama/test farkı yalnız cleanStoreDayStore.mjs ve cleanStoreDayStore.test.mjs; istemci, rol, yetki, konfigürasyon veya runtime farkı yok.
