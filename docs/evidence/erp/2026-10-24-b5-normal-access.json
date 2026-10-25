@@ -4739,5 +4739,92 @@
     "extraFinancePanelIsB5Prerequisite": false,
     "androidOrHumanAddedAsNewB5Gate": false,
     "originalFinishCountersUnchanged": true
+  },
+  "cleanWebOwnerSource1056": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "kind": "IN_PROCESS_COOPERATIVE_BIRTH_OWNER_AND_CONSUMER",
+    "files": [
+      {
+        "path": "scripts/canonical/clean-web-owner.cs",
+        "sha256": "21b851374e0ae6cc0557ce5dafc5ed3fb88be616a724f50416c78d4b3c9b4a5f"
+      },
+      {
+        "path": "scripts/canonical/clean-web-owner.ps1",
+        "sha256": "fe8a3fa8a4f11ef924ae60e9809a6a863a131b3dbdce6cede3a5b7edf4f47f6e"
+      },
+      {
+        "path": "scripts/canonical/clean-web-owner.test.mjs",
+        "sha256": "6bf59a51c1d8877523d7b38e5935a3450833b31290f9f1085dde3623731c1668"
+      }
+    ],
+    "newLocalTests": {
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 29446.6613,
+      "log": ".tmp/b5-web-owner-1056/final13.log",
+      "realOwnNodeChildren": true,
+      "retainedKernelBirthImageAndOsArgv": true,
+      "launchCwdWitness": true,
+      "realSemaphoreAndFileShareExclusion": true,
+      "realCandidateStartupFailureAndExit": true,
+      "expiredLeaseKeptExclusive": true,
+      "lostPublicationAndFinalAckResponses": true,
+      "ackReplayNoSecondEffect": true,
+      "onlyOwnFixtureCleanup": true,
+      "productionTcpHttpBranchExecuted": false,
+      "changedLiveWitnessRefusedNextStop": true
+    },
+    "sourceBehavior": [
+      "No process adoption/PID reopen or PID kill",
+      "Current generation and exact active lease object reference required",
+      "Birth snapshot freeze before CreateProcess; fresh guarded stop/start/publish/rollback/ACK",
+      "Real cooperating writer semaphore held through final acknowledged flush",
+      "Typed internal host binding, fixed candidate/rollback/composite identity",
+      "OS environment allowlist and existing non-secret web environment; no parent SQL/AI secret propagation",
+      "Fixed production5244 listener-owner/immutable HTML readiness code, not executed here",
+      "Default installed handoff remains closed before file/process/compile"
+    ],
+    "runtimeIntegration": "NOT_BOUND: existing accepted starter does not issue live producer binding; no public production issuer supplied",
+    "independentSourceReview": "PENDING",
+    "ci": "NEW_EXACT_HEAD_PENDING_AUTOMATIC_CHECKS",
+    "newGeneralInstallerOrService": false,
+    "manualOldSuitesRepeated": 0,
+    "sharedTestActions": {
+      "helper": 0,
+      "http": 0,
+      "cim": 0,
+      "sql": 0,
+      "gui": 0,
+      "config": 0,
+      "lock": 0,
+      "beforeImage": 0,
+      "restart": 0,
+      "install": 0,
+      "account": 0,
+      "trade": 0
+    },
+    "credentialsOrPrivateStoreRead": 0,
+    "installedOwnerProven": false,
+    "installation": false,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
+  },
+  "b5PassiveWebReview1055": {
+    "manifestSha256": "61328e6bced8de827c00a4672329b5fae3e417ff04007e3b60549085b5a3bab2",
+    "reviewerTurn": "01a172b6-31f1-7563-a813-697e853e3145",
+    "review": "GO",
+    "p1": 0,
+    "p2": 0,
+    "rawGitFilesIndividuallyEqual": 645,
+    "dependencyFilesEqual": 6637,
+    "physicalFilesExpectedAndActual": 7336,
+    "extraFiles": 0,
+    "apiPayloadFiles": 0,
+    "sourceInventoryAggregateReproduced": false,
+    "aggregateSerializationLimitationPreserved": true,
+    "reviewBasis": "Individual raw Git blob and payload SHA equality plus immutable manifest SHA, not unreproduced aggregate",
+    "newBuildTestOrRuntimeOperations": 0
   }
 }
