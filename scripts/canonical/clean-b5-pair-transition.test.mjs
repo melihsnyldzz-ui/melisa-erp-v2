@@ -83,7 +83,9 @@ test('review real dependency inventories and frozen API/vite files reject change
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'b5-dependencies-')),hash=b=>createHash('sha256').update(b).digest('hex'),apps=['api','sites-workflow','web-admin'],relative={api:'lib/index.js','sites-workflow':'vite/bin/vite.js','web-admin':'lib/index.js'};
  const files=[];const deps=[];
  for(const app of apps){const base=path.join(dir,'apps',app),lock=path.join(base,'package-lock.json'),rows=[];for(const name of [relative[app],'.bin/tool.cmd','z-package/package.json','unicode/ç.txt']){const dep=path.join(base,'node_modules',name);fs.mkdirSync(path.dirname(dep),{recursive:true});fs.writeFileSync(dep,name===relative[app]?'fixture-'+app:'fixture-extra');rows.push({path:name,sha256:hash(fs.readFileSync(dep))});}rows.sort((a,b)=>a.path.localeCompare(b.path));fs.writeFileSync(lock,'{}');files.push({path:'apps/'+app+'/package-lock.json',sha256:hash(fs.readFileSync(lock))});deps.push({app,files:rows.length,lockSha256:hash(fs.readFileSync(lock)),inventorySha256:hash(JSON.stringify(rows))});}
- const enc=v=>Buffer.from(JSON.stringify(v)).toString('base64'),quoted=dir.replaceAll("'","''"),node=process.execPath.replaceAll("'","''"),nodeHash=hash(fs.readFileSync(process.execPath)).toUpperCase();
+ // GitHub Windows TEMP may contain RUNNER~1. FileInfo expands that alias;
+ // admit the same canonical real directory, never a broader prefix.
+ const enc=v=>Buffer.from(JSON.stringify(v)).toString('base64'),quoted=fs.realpathSync.native(dir).replaceAll("'","''"),node=fs.realpathSync.native(process.execPath).replaceAll("'","''"),nodeHash=hash(fs.readFileSync(process.execPath)).toUpperCase();
  try{runWin(manifest+String.raw`
   $script:pins=$p;$script:pins.node='${node}';$script:pins.nodeHash='${nodeHash}';$script:pins.root='${quoted}';$m.nodeRuntime.path=$script:pins.node;$m.nodeRuntime.sha256=$script:pins.nodeHash
   function Get-B5Pins{return $script:pins};function Assert-B5Lease($Lease){}

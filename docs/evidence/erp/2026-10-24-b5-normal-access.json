@@ -3846,5 +3846,167 @@
         "windowsWorkingBytesSha256": "27b6a2fd4c82349bf81a13fb580169653001a099b5f9b860ba6715e06a09486a"
       }
     ]
+  },
+  "sixSpecificApprovalApplied0927": {
+    "observedAt": "2026-10-25T09:37:02.877Z",
+    "directHumanMessage": "01a17258-fbe6-7053-9171-fad80a9e06cc",
+    "questionId": "call_b6bb57a97b664fcdb815411b57c75f6e",
+    "exactUserReply": "Bu altı sentetik TEST hesabını ve görev bağını oluşturmayı onaylıyorum.",
+    "target": {
+      "apiSource": "b9dd984876c808482017365556538078601187b8",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "externalOperations": false,
+      "oldAndLiveAccess": 0,
+      "freshIdentityObserved": "2026-10-25T12:27:27+03:00"
+    },
+    "preflight": {
+      "missingPairs": 6,
+      "conflicts": 0,
+      "ownLogout": true
+    },
+    "application": {
+      "normalExistingManagementEndpoints": true,
+      "userCreates": 6,
+      "employeeCreates": 6,
+      "createdPairs": 6,
+      "conflicts": 0,
+      "requestRetry": 0,
+      "ownLogout": true
+    },
+    "readback": {
+      "normalGetExistingPairs": 6,
+      "newCreates": 0,
+      "missing": 0,
+      "conflicts": 0,
+      "ownLogout": true,
+      "independentNativeSqlRows": 6,
+      "nativeMemberships": 6,
+      "packingEnabledWithinSix": 1,
+      "priceEditingEnabled": 0,
+      "initialSqlcmdArgumentFailurePreserved": true
+    },
+    "rows": [
+      {
+        "duty": "mehmet",
+        "userId": 10025,
+        "employeeId": 5,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": true,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "rustem",
+        "userId": 10026,
+        "employeeId": 6,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "ismail",
+        "userId": 10027,
+        "employeeId": 7,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "yaman",
+        "userId": 10028,
+        "employeeId": 8,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "veronica",
+        "userId": 10029,
+        "employeeId": 9,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "ahmet",
+        "userId": 10030,
+        "employeeId": 10,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      }
+    ],
+    "preservation": {
+      "oldAccounts": true,
+      "allRolesPermissionsOldSeals": true,
+      "oldEmployeesAllColumns": true,
+      "contributionContracts": 53,
+      "allExistingContributionDigests": true,
+      "oldOwnInvoiceEffects": true,
+      "protectedConfigAndCrmFiles": true,
+      "wholeDatabaseClaimed": false,
+      "expectedNewAccountAndAuditRowsExcluded": true
+    },
+    "credentials": {
+      "newPasswordsGenerated": true,
+      "ownerProtectedDpapiOnly": true,
+      "secretsTransferred": false,
+      "realOrSharedPasswordsChanged": false
+    },
+    "boundaries": {
+      "crmAccountOrAssignmentWrites": 0,
+      "financialOrStockWrites": 0,
+      "metadataDdl": 0,
+      "restartOrInstallation": 0,
+      "realPersonIdentityClaimed": false,
+      "own10021Probe": false,
+      "privateRosterTransfer": false,
+      "liveVegaT1Main": false,
+      "normalGui": false,
+      "physicalDevice": false,
+      "humanAcceptance": "PENDING",
+      "fullB5Closed": false,
+      "originalCountersUnchanged": true
+    },
+    "report": "2026-10-25-b5-six-approved-accounts.md"
+  },
+  "cleanPairTransitionCiFixtureRepair": {
+    "sourceCommit": "c6b78291db0956dfe14c3934d2c1c2607c1dadce",
+    "qualityAndSecretSuccess": 4,
+    "windowsFailures": 2,
+    "failedStep": "Fixed clean B5 pair transition with isolated source fixtures",
+    "failure": "FIXTURE_PATH_ESCAPE: RUNNER~1 TEMP alias differs from FileInfo path",
+    "repair": "Only fixture root and Node path canonicalization using fs.realpathSync.native",
+    "productionCodeChangedAfterC6": false,
+    "changedTest": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 9475.208
+    },
+    "full38PriorResultPreserved": true,
+    "newTestWorkingSha256": "3e9e754e4251f5fb1fadc8db787f8d928c54e0a99fcb58f030f921743bef4e18",
+    "finalHeadCi": "PENDING_NEW_COMMIT"
   }
 }

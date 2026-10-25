@@ -2,6 +2,13 @@
 
 ## 0907 inceleme düzeltmesi — bağımsız tekrar inceleme bekliyor
 
+Kaynak commit'i c6b78291db0956dfe14c3934d2c1c2607c1dadce. İlk exact CI:
+quality ve secret-scan4 SUCCESS; Windows2 FAIL yalnız yeni dependency fixture'ın
+RUNNER~1 kısa TEMP yolu/gerçek FileInfo yolu eşliği nedeniyle. Sonraki dar
+düzeltme yalnız fixture kökünü ve Node yolunu fs.realpathSync.native ile
+kanonikleştirir; üretim path/reparse guard'ı değişmez. Değişen tek test yerelde
+1 PASS/skip0; ilk38 hedefli sonuç korunur, final CI ayrıca doğrulanır.
+
 `CRM-B5-CLEAN-TRANSITION-SOURCE-REVIEW-20261025-0852`,
 CRM turn `01a17243-55e9-77d2-82c8-5885ff84a03e`, exact6875903d için
 **NO-GO / 2 P1 + 1 P2** verdi. Aşağıdaki0808 teslimi tarihsel kalır;
