@@ -35,6 +35,10 @@ test('review Node intermediate and ancestor shadows are rejected before and afte
   $p=Get-B5Pins;$script:pins=$p;$script:pins.root='${quote(pack)}';$script:pins.node='${quote(node)}';$script:pins.nodeHash='${hash(fs.readFileSync(node)).toUpperCase()}'
   function Get-B5Pins{return $script:pins};function Assert-B5Lease($Lease){}
   function Assert-B5Path($Path){$full=[IO.Path]::GetFullPath($Path);if($full -cne $script:pins.node -and !$full.StartsWith('${quote(dir)}\',[StringComparison]::OrdinalIgnoreCase)){throw 'FIXTURE_PATH_ESCAPE'};Assert-B5NoReparse $full}
+  # CI TEMP is under hidden AppData; read its actual attributes, preserving
+  # reparse rejection and the exact fixture path restriction above.
+  function Get-Item{param($LiteralPath,[switch]$Force);return Microsoft.PowerShell.Management\Get-Item -LiteralPath $LiteralPath -Force}
+  [IO.File]::SetAttributes('${quote(dir)}',([IO.File]::GetAttributes('${quote(dir)}') -bor [IO.FileAttributes]::Hidden))
   $m=[pscustomobject]@{sourceCommit=$p.source;files=(ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${enc(files)}'))));dependencies=(ConvertFrom-Json ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${enc(deps)}'))))}
   $lease=[pscustomobject]@{resources=(New-Object Collections.Generic.List[IDisposable])}
   try{

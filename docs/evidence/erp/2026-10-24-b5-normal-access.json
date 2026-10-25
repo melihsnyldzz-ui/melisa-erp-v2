@@ -4509,8 +4509,33 @@
         ".tmp/b5-review-0948/final-raw-and-fixture.log"
       ]
     },
-    "newIndependentReview": "PENDING",
-    "newHeadCi": "PENDING",
+    "newIndependentReview": {
+      "result": "GO_TWO_P1_CLOSED",
+      "p1": 0,
+      "p2": 0,
+      "source": "d62d36ac12c43e254aedd3adfc9564c44bd47c1d",
+      "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+      "reviewerTurn": "01a17293-071c-7580-bf7a-0f5c8bcbe284",
+      "scope": "Only the two new dependency fixes; no runtime/install/GUI GO; test-only hidden-parent adapter is a later delta"
+    },
+    "newHeadCi": {
+      "source": "d62d36ac12c43e254aedd3adfc9564c44bd47c1d",
+      "quality": 2,
+      "secretScan": 2,
+      "windowsFailures": 2,
+      "runs": [
+        40184204701,
+        40184207830
+      ],
+      "failedB5Step": {
+        "pass": 39,
+        "fail": 1,
+        "skip": 0,
+        "cause": "New shadow fixture under hidden runner AppData: Test-Path true but unforced PS5 Get-Item cannot read that parent"
+      },
+      "failedLog": ".tmp/b5-review-0948/windows-failure.log",
+      "historicalFailurePreserved": true
+    },
     "applyGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
     "runtimeOperations": 0,
     "buildOrPackage": 0
@@ -4586,5 +4611,20 @@
     "extraFinancePanel": "Separate open installation/read-only UI work, not a new account-mapping prerequisite",
     "fullHumanAcceptance": "PENDING",
     "originalFinishCountersUnchanged": true
+  },
+  "b5HiddenParentFixtureRepair": {
+    "productionSourceUnchangedFromReviewedD62": true,
+    "delta": "Test-only Get-Item metadata adapter uses -Force, retains actual reparse attributes and exact temporary root; own fixture root is deliberately Hidden to exercise the condition deterministically",
+    "targetedTest": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 5002.784,
+      "log": ".tmp/b5-review-0948/fixture-actual-hidden-green.log"
+    },
+    "newExactHeadCi": "PENDING_AUTOMATIC_CHECKS",
+    "manualRerun": 0,
+    "fullLocalSuiteRepeated": 0,
+    "sharedRuntimeOperations": 0
   }
 }

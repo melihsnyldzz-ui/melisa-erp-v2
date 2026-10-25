@@ -1,3 +1,11 @@
+## 25 Ekim13:29 — İki dependency P1 için bağımsız kaynak GO; Windows fixture farkı dar düzeltildi
+
+CRM turn01a17293-071c-7580-bf7a-0f5c8bcbe284 finali doğrudan okundu: exactd62d36ac ikiP1 KAPALI/P1-P2=0. Genel geçiş SOURCE_PARTIAL, üretim handoff kapalı; kurulum/GUI/insan GO değil. Bu review'dan sonra üretimPS1+RAMfixture kaynağı d62ile birebir aynı; yalnız yeni testin gizliTEMP metadata adapteri değişti.
+
+D62CI push40184204701/PR40184207830 quality+secret4SUCCESS,Windows2FAIL. Gerçek mevcut log B5serisinde39PASS/1FAIL/skip0: yeni shadow fixture gizli runnerAppData üst dizininde Get-Item-Force eksikliği. Aynı eskiworkflow rerun edilmedi. Test-only adapter gerçek attribute okumayı -Force yaptı; reparse/yol/lease/lookup guardı kaldırılmadı. Benzersiz fixture kökü gerçektenHidden yapılarak tek hedefli test1PASS/skip0,5,003s; tam40/38 veya build/paket tekrarı yok. Yeni exacthead otomatikCI ayrıca beklenir; önceki2FAIL saklı.
+
+B6de5305 tek CSSsatırı+mevcut kanıttaki4sonuç matrisi kaynak teslimidir. File-protocol policy reddi sonrası başka yol denenmedi; kuruluGUI hâlâ doğrulanmadı.10021provası kapalı, yineleme yok; kurulu APIb9/webb89/native035/CRM476 ve ticari veriler korunur.
+
 ## 25 Ekim13:26 — B5 kullanıcı yönetimi yükseklik düzeltmesi SOURCE; sabit dört sonuç
 
 Yalnız AuthAdmin yerel gridine grid-auto-rows:max-content tek satır eklendi. Mevcut1006 ölçüm yeniden yapılmadı;1280 tek sütun, tablo kaydırma/overflow ve başka ekran kuralları değişmedi. Yapay statik önce/sonra HTML+tam kaynakCSS hazırlandı; file:// açılışı browser URL policy tarafından işlemden önce reddedildi. Başka protokol/HTTPserver/CDP/tarayıcıyla dolanma yok. Offline render ve kuruluGUI sonrası doğrulama YAPILMADI. Kod kaynakta; build/paket/kurulum/servis/config/hesap/rol/görev/ticari yazı0. d62d36ac üç dependency review kaynağı aynı.
