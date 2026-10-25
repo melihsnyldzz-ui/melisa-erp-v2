@@ -109,7 +109,10 @@ function Read-CleanRestoreReceipt {
  $bytes=[IO.File]::ReadAllBytes($CleanPreflightReceipt)
  $hash=[BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($bytes)).Replace('-','')
  if($hash -ine $CleanPreflightSha256){throw 'CLEAN_RESTORE_RECEIPT_HASH_MISMATCH'}
- $receipt=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
+ # PS7.5+ otherwise converts ISO strings to DateTime, unlike PS5. Preserve receipt bytes' date semantics.
+ $jsonOptions=@{}
+ if((Get-Command ConvertFrom-Json -CommandType Cmdlet).Parameters.ContainsKey('DateKind')){$jsonOptions.DateKind='String'}
+ $receipt=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json @jsonOptions
  Assert-CleanRestoreReceipt $receipt ([datetimeoffset]::UtcNow) ((Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash)
  return $receipt
 }

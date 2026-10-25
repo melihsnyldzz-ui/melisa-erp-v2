@@ -170,7 +170,7 @@ Write-Output 'C6_RESTORE_OFFLINE_WORKFLOW_PASS'
  assert.match(output,/C6_RESTORE_OFFLINE_WORKFLOW_PASS/);
 });
 
-test('clean receipt reader binds the exact fresh JSON bytes and read lock excludes backup replacement', {skip:process.platform!=='win32'},async()=>{
+test('clean receipt reader preserves ISO strings on PS5 and PS7 and read lock excludes backup replacement', {skip:process.platform!=='win32'},async()=>{
  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'melisa-c6-receipt-'));
  const harness=path.join(dir,'receipt.test.ps1');
  await fs.writeFile(harness,String.raw`param([string]$Source,[string]$TempRoot)
@@ -187,13 +187,21 @@ function WriteFixture {
  [IO.File]::WriteAllText($CleanPreflightReceipt,($r|ConvertTo-Json -Depth 14),[Text.UTF8Encoding]::new($false))
  $bytes=[IO.File]::ReadAllBytes($CleanPreflightReceipt);$script:CleanPreflightSha256=[BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($bytes)).Replace('-','')
 }
+# Match the production canonical root; PS5 expands CI's RUNNER~1 temporary path.
+$TempRoot=[IO.Path]::GetFullPath($TempRoot)
 $evidenceRoot=$TempRoot;$CleanPreflightReceipt=Join-Path $TempRoot 'c6-clean-preflight-11111111111111111111111111111111.json'
 $server='Semih\MELISADEV';$sourceDb='MELISA_ERP_CLEAN_TEST_20261022';$restoreDb='MELISA_ERP_CLEAN_RESTORE_TEST_20261024_01';$restoreRoot='C:\Sirket\ERP\data\CLEAN-RESTORE-20261024-01';$backupFile='C:\Sirket\ERP\backups\CLEAN-20261022-before-B7-20261024.bak';$CleanBackup='BeforeB7'
 $r=@{schemaVersion='melisa-goal6.clean-preflight.v2';status='READY';server=$server;sourceDatabase=$sourceDb;proposedRestoreDatabase=$restoreDb;restoreRoot=$restoreRoot;backupFile=$backupFile;cleanBackup=$CleanBackup;operatorSha256=('B'*64);backupSha256=('A'*64);backupSetGuid='ed3002fc-6661-4ff0-a4f1-e9f8b29f8f11';synthetic=$true;actualT1=$false;externalOperations=$false;copyOnly=$true;checksum=$true;restoreExecuted=$false;targetCreated=$false;sourceBackupCreated=$false;applicationConnectionChanged=$false;observedAt=[DateTime]::UtcNow.ToString('o')}
+$r.sqlBackupStart='2026-10-25T03:00:01.3570000';$r.sqlBackupFinish='2026-10-25T03:00:02.3570000'
 WriteFixture
-if((Read-CleanRestoreReceipt).backupSha256 -cne ('A'*64)){throw 'RECEIPT_POSITIVE_FAILED'}
+$read=Read-CleanRestoreReceipt
+if($read.backupSha256 -cne ('A'*64)){throw 'RECEIPT_POSITIVE_FAILED'}
+foreach($key in @('observedAt','sqlBackupStart','sqlBackupFinish')){if($read.$key -isnot [string] -or $read.$key -cne $r.$key){throw ('RECEIPT_ISO_STRING_CHANGED_'+$key)}}
 $CleanPreflightSha256='D'*64;Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_RECEIPT_HASH_MISMATCH'
 WriteFixture;$r.observedAt=[DateTime]::UtcNow.AddMinutes(-31).ToString('o');WriteFixture;Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_PREFLIGHT_STALE'
+$r.observedAt=[DateTime]::UtcNow.AddMinutes(1).ToString('o');WriteFixture;Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_PREFLIGHT_STALE'
+$r.observedAt=[DateTime]::UtcNow.ToString('o').Replace('Z','+00:00');WriteFixture;Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_PREFLIGHT_STALE'
+$r.observedAt=[DateTime]::UtcNow.ToString('o').Replace('Z','');WriteFixture;Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_PREFLIGHT_STALE'
 $r.observedAt=[DateTime]::UtcNow.ToString('o');$r.cleanBackup='C5-20261025-0300';WriteFixture;Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_PREFLIGHT_MISMATCH'
 $CleanPreflightReceipt=Join-Path $TempRoot 'unrelated.json';Reject {Read-CleanRestoreReceipt} 'CLEAN_RESTORE_RECEIPT_PATH_INVALID'
 # Only this newly created synthetic file is used for the OS file-sharing assertion.
@@ -207,7 +215,8 @@ try{
 if([IO.File]::ReadAllText($backupFile) -cne 'synthetic'){throw 'READ_LOCK_BYTES_CHANGED'}
 Write-Output 'C6_PINNED_RECEIPT_AND_READ_LOCK_PASS'
 `);
- const shell=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
- const output=execFileSync(shell,['-NoProfile','-NonInteractive','-File',harness,'-Source',fileURLToPath(new URL('./goal6-backup-restore.ps1',import.meta.url)),'-TempRoot',dir],{encoding:'utf8',windowsHide:true,stdio:'pipe'});
- assert.match(output,/C6_PINNED_RECEIPT_AND_READ_LOCK_PASS/);
+ for(const shell of [path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),'pwsh.exe']){
+  const output=execFileSync(shell,['-NoProfile','-NonInteractive','-File',harness,'-Source',fileURLToPath(new URL('./goal6-backup-restore.ps1',import.meta.url)),'-TempRoot',dir],{encoding:'utf8',windowsHide:true,stdio:'pipe'});
+  assert.match(output,/C6_PINNED_RECEIPT_AND_READ_LOCK_PASS/);
+ }
 });
