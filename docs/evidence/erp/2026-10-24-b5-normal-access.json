@@ -3409,5 +3409,183 @@
     "sourceDatabase": "MELISA_ERP_CLEAN_TEST_20261022",
     "taskFullName": "\\Melisa-Clean-20261022-NightlyBackup",
     "receiptIsoStringsPreservedBeforeParsing": true
+  },
+  "offlineCombinedPackage": {
+    "task": "ERP-B5-COMBINED-PACKAGE-OFFLINE-20261025-0021",
+    "observedAt": "2026-10-25T00:41:38.641Z",
+    "source": "349fae354e2a90852cd0594ada485105bf091e43",
+    "tree": "1240b0752cab2c99daf1bf2f2ca4eaa9093ec187",
+    "root": "C:/Sirket/ERP/releases/CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE",
+    "files": 3459,
+    "sourceFiles": 3402,
+    "sourceGitlinks": [
+      {
+        "path": "tmp/melisa-os-reference",
+        "commit": "c0f2def25aa0ffac88d46d1d3e6638a542521397",
+        "materialized": false
+      }
+    ],
+    "manifestSha256": "9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059",
+    "payloadInventorySha256": "dcf4864a2a338a0306064947c8a789939997eca72ba35f475563425220cfa7d1",
+    "sourceArchiveSha256": "68ee8fca1cf144b0436c506e83a2abe23f77a85cc663330325c63186ab1b4157",
+    "node": {
+      "path": "C:/Sirket/ERP/tools/node-v24.19.0/node.exe",
+      "version": "v24.19.0",
+      "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237"
+    },
+    "builds": [
+      {
+        "app": "sites-workflow",
+        "status": "PASS",
+        "elapsedMs": 8496,
+        "offlineGuard": true,
+        "envDiscovery": false,
+        "apiBasePinnedAfterGuard": true
+      },
+      {
+        "app": "web-admin",
+        "status": "PASS",
+        "elapsedMs": 6680,
+        "offlineGuard": true,
+        "envDiscovery": false,
+        "apiBasePinnedAfterGuard": true
+      }
+    ],
+    "dependencies": [
+      {
+        "app": "api",
+        "files": 10339,
+        "inventorySha256": "1077f0d4cee80339148269fbaaf330965da5a2ca7e1107bfd0401499db33c675",
+        "lockSha256": "40899a8259f11e455881065f5744ee532b65491a2fbb78b71d06b3a991039cd6"
+      },
+      {
+        "app": "sites-workflow",
+        "files": 6637,
+        "inventorySha256": "9c59bbb6a80c639295e915c62ead972f94b613e11484ef846c929ba91567fb92",
+        "lockSha256": "13694e04632e9916477113dc65bc9577ed7c88e1198f4f4a76061d960e85c2d6"
+      },
+      {
+        "app": "web-admin",
+        "files": 6496,
+        "inventorySha256": "34443bff92d7a3ab0d4c40a644872c855c748bb06e25202f6192c59d2ffbf8b6",
+        "lockSha256": "fa9b004f140d80ff665c00733ae435015d4ded357f436ee2886b9c4b8a0b602a"
+      }
+    ],
+    "sourceProofs": [
+      {
+        "path": "apps/api/src/services/cleanStoreDayStore.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "equalsBackendCommit": "7a2ad1b65ad2d2506b87bec2bf93a427e7fa987a",
+        "gitBlob": "0f1078cf2ba0b61728c6846c86cc56ef1d66e4ef",
+        "sha256": "22cf15bce581ddda65ed8b3ca331d9f85c00bc083f4e6c566404c9ec5349ebea",
+        "byteEqual": true
+      },
+      {
+        "path": "apps/api/src/services/cleanStoreDayStore.test.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "equalsBackendCommit": "7a2ad1b65ad2d2506b87bec2bf93a427e7fa987a",
+        "gitBlob": "9c17453549eeb91171e3fba7d2ab302d9a933edf",
+        "sha256": "562eb1ab6b5b54d57c46bc09a73c877462bceb5208a3366987ca0f4e7e273195",
+        "byteEqual": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workCollections.js",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "0edf9e4230de0aed13ff288844174d93c0bb9546",
+        "sha256": "51d6a2dd0ad40c074c5bf002beab479f068a2072e1c7c6d8f3fec9910660bc48",
+        "canonicalGitBytes": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workFinanceMovements.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "5695d1d1067c0cb36c1beee8de6f6f5cc52daee2",
+        "sha256": "4f846cefc30f4ace967160ab106288680859f4590e4469ba808e07ab1d292bdc",
+        "canonicalGitBytes": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workFinanceMovements.test.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "c99fd4d127e7d3dbaf6d8c7074066d80f802f2eb",
+        "sha256": "b3949198d718e30bf92ae0d38b723f0dabfa0eec94c0b8d0173084e88d9a50d2",
+        "canonicalGitBytes": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workCollectionsCache.test.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "d5772d9640b3226aa660bd25549d38c7da7e09b8",
+        "sha256": "c6cb609df638e1ef85e6f5fbc83d76bfa33aa4e83e41752dad3555b88196489d",
+        "canonicalGitBytes": true
+      }
+    ],
+    "canonicalSourceCorrection": {
+      "proof": "C:\\Sirket\\ERP\\worktrees\\erp-p03-pr53-candidate-20261018\\.tmp\\b5-combined-offline/canonical-source-repair.json",
+      "strictVerifierUnchanged": true,
+      "firstRejectionPreserved": true
+    },
+    "pageEntry": {
+      "path": "apps/sites-workflow/dist/assets/example-BZkW2Crf.js",
+      "sha256": "3bb71e9bc43a33a90ea9ab3285fdda07db66184ecdc6d414460a17f7220ae15a"
+    },
+    "transport": {
+      "path": "apps/sites-workflow/dist/assets/workingCatalogSession-DzdLhyvV.js",
+      "sha256": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080"
+    },
+    "profile": {
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "externalOperations": false,
+      "apiBase": "http://127.0.0.1:4194"
+    },
+    "verification": "PASSIVE_MANIFEST_ALL_FILES_AND_GIT_BLOBS_READ_BACK",
+    "installed": false,
+    "sqlConnected": false,
+    "httpRequests": 0,
+    "runtimeWrites": 0,
+    "crmChanged": false,
+    "humanAcceptance": "PENDING",
+    "ci": {
+      "applicationSource": "349fae354e2a90852cd0594ada485105bf091e43",
+      "requiredChecks": 6,
+      "conclusion": "success",
+      "runs": [
+        "40145559350",
+        "40145562878"
+      ],
+      "reusedExistingExactSourceResult": true,
+      "rerun": false
+    },
+    "preservation": {
+      "newAccounts": 0,
+      "rolesChanged": false,
+      "configChanged": false,
+      "servicesChanged": false,
+      "runtimeChanged": false,
+      "sqlExecuted": false,
+      "oldPackagesPreserved": true,
+      "originalCanonicalDirtyFilePreserved": true,
+      "priorC5EvidenceUnchanged": true,
+      "originalCountersUnchanged": true
+    },
+    "deliveryCommitIsDocumentationOnly": true,
+    "runtimeInstallation": "NOT_PERFORMED",
+    "normalGui": "NOT_TESTED",
+    "archiveByteCorrection": {
+      "cause": "Windows archive working-tree conversion: core.autocrlf plus native EOL",
+      "supportedCommand": "git -c core.autocrlf=false -c core.eol=lf archive",
+      "correctedEolFiles": 2386,
+      "explicitLfProbeByteEqual": true,
+      "firstRejectedArchivePreserved": true,
+      "strictBlobVerifierUnchanged": true,
+      "persistentGitConfigChanged": false,
+      "gitlinksNotMaterialized": [
+        {
+          "path": "tmp/melisa-os-reference",
+          "commit": "c0f2def25aa0ffac88d46d1d3e6638a542521397",
+          "materialized": false
+        }
+      ]
+    }
   }
 }
