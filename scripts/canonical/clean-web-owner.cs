@@ -153,7 +153,7 @@ namespace Melisa.CleanWeb1056 {
   readonly Func<byte[]> preservedBoundary;
   readonly Dictionary<string,string> webEnvironment;
   readonly List<FileStream> birthPins=new List<FileStream>();
-  readonly List<Child> born=new List<Child>(); Child current,old,candidate;
+  readonly List<Child> born=new List<Child>(); Child current,old,candidate,rollback;
   long generation=1; Lease active,last; Outcome receipt; string lastAckRequest,phase="Owned"; bool disposed;
   Owner(string dir,string exe,CooperativeBirthBinding binding) {
    root=Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar);node=Path.GetFullPath(exe);hostPid=Process.GetCurrentProcess().Id;
@@ -223,7 +223,7 @@ namespace Melisa.CleanWeb1056 {
    try { Match(claim);l=new Lease { Owner=this,Generation=generation,Deadline=Clock+(long)(ttlMs*(double)Stopwatch.Frequency/1000),Id=Guid.NewGuid().ToString("N") };
     foreach(var p in pins) { NoReparse(p.Key);var f=new FileStream(p.Key,FileMode.Open,FileAccess.Read,FileShare.Read);l.Held.Add(f);var h=Hash(Bytes(f));if(h!=p.Value)throw new InvalidOperationException("WEB_PIN_CHANGED");l.Hashes.Add(p.Key,h); }
     var state=new FileStream(control,FileMode.Open,FileAccess.ReadWrite,FileShare.Read);l.Held.Add(state);l.Before=Bytes(state);l.ControlHash=Hash(l.Before);
-    active=l;old=current;candidate=null;phase="Prepared";Guard(l);return l;
+    active=l;old=current;candidate=null;rollback=null;phase="Prepared";Guard(l);return l;
    } catch { if(l!=null)foreach(var f in l.Held)f.Dispose();active=null;gate.Release();throw; }
   }
   void Guard(Lease l) {
@@ -262,9 +262,15 @@ namespace Melisa.CleanWeb1056 {
   void Publish(Lease l,string artifact) { Guard(l);Ready(l,current);Guard(l);var s=l.Held[l.Held.Count-1];var b=Encoding.UTF8.GetBytes(artifact+"\n"+l.Id+"\n"+generation);s.Position=0;s.Write(b,0,b.Length);s.SetLength(b.Length);s.Flush(true);l.ControlHash=Hash(b); }
   public Outcome PublishCandidate(Lease l) { Guard(l);if(phase!="CandidateStarted")throw new InvalidOperationException("WEB_PHASE");candidate.Verify();if(!old.Exited)throw new InvalidOperationException("WEB_OLD_NOT_RETIRED");current=candidate;Publish(l,current.Artifact);phase="CandidatePublishedOldRetiredAwaitingAck";return Pending(l); }
   public Outcome Rollback(Lease l) {
-   Guard(l);if(phase!="OldRetired"&&phase!="CandidateStarted"&&phase!="CandidatePublishedOldRetiredAwaitingAck")throw new InvalidOperationException("WEB_PHASE");
-   if(candidate!=null&&!candidate.Exited){candidate.Verify();Guard(l);candidate.Stop();}
-   Guard(l);if(!old.Exited)throw new InvalidOperationException("WEB_OLD_NOT_RETIRED");current=Birth(rollbackEntry,"rollback");Publish(l,current.Artifact);phase="RollbackPublishedAwaitingAck";return Pending(l);
+   Guard(l);if(phase!="OldRetired"&&phase!="CandidateStarted"&&phase!="CandidatePublishedOldRetiredAwaitingAck"&&phase!="RollbackStarted")throw new InvalidOperationException("WEB_PHASE");
+   if(phase!="RollbackStarted") {
+    if(candidate!=null&&!candidate.Exited){candidate.Verify();Guard(l);candidate.Stop();}
+    Guard(l);if(!old.Exited)throw new InvalidOperationException("WEB_OLD_NOT_RETIRED");
+    rollback=Birth(rollbackEntry,"rollback");phase="RollbackStarted";
+   }
+   // Publication can fail after birth. Retain that exact child and phase so a
+   // retry can only publish it; a stale/dead child never grants another birth.
+   rollback.Verify();current=rollback;Publish(l,current.Artifact);phase="RollbackPublishedAwaitingAck";return Pending(l);
   }
   public Outcome Pending(Lease l) { Guard(l);return new Outcome { TransitionId=l.Id,State=phase,Artifact=current.Artifact,Generation=generation,Pid=current.Pid,OldRetired=old.Exited,FinalAcknowledged=false,BeforeSha256=Hash(l.Before),PublishedSha256=l.ControlHash }; }
   public Outcome Acknowledge(Lease l,string transitionId,string outcome) {

@@ -4826,5 +4826,52 @@
     "aggregateSerializationLimitationPreserved": true,
     "reviewBasis": "Individual raw Git blob and payload SHA equality plus immutable manifest SHA, not unreproduced aggregate",
     "newBuildTestOrRuntimeOperations": 0
+  },
+  "rollbackRetryP1Fix1644": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "baseCommit": "56d8ed222d816f554b6a030ab8507ff216a591e5",
+    "completedReviewTurn": "01a173b4-3cb8-7272-89eb-152ade5512f8",
+    "baseReview": "SOURCE_NO_GO_ONE_P1",
+    "finding": "Rollback publication failure after birth allowed a retry to create a second live child",
+    "fix": "Retained rollback child and RollbackStarted phase before publication; retry reuses exact child",
+    "sourceWorkingTreeSha256": {
+      "scripts/canonical/clean-web-owner.cs": "eed72630e925db167b0468aee52b51abe88b11da51297880f95c3f4a1c46606d",
+      "scripts/canonical/clean-web-owner.test.mjs": "61b2f8ab5b7c48b9a40cc05414365c17ecc0e7904acd78375ffcaad76698a571"
+    },
+    "red": {
+      "tests": 1,
+      "pass": 0,
+      "fail": 1,
+      "durationMs": 3734.0777,
+      "failure": "SECOND_ROLLBACK_CHILD_AFTER_FAILED_PUBLICATION",
+      "log": ".tmp/b5-rollback-retry-1644/red.log"
+    },
+    "green": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 12217.9847,
+      "log": ".tmp/b5-rollback-retry-1644/green.log",
+      "sameRollbackPidAfterRetry": true,
+      "rollbackBirthsIncludingInitialBaseline": 2,
+      "firstRollbackChildHeartbeatAdvanced": true,
+      "writerHeldUntilFinalAck": true,
+      "secondRetryChild": false
+    },
+    "publicWrapperUnchanged": true,
+    "installedGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "sharedTargetConnections": 0,
+    "sharedRuntimeMutations": 0,
+    "newBuildOrPackage": 0,
+    "oldFullSuitesRepeated": 0,
+    "manualCiReruns": 0,
+    "deltaReview": "PENDING_INDEPENDENT_REVIEW",
+    "ci": "NEW_EXACT_HEAD_PENDING_AUTOMATIC_CHECKS",
+    "installedOwnerProven": false,
+    "installation": false,
+    "guiAfterFix": false,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
   }
 }

@@ -1,3 +1,13 @@
+## 25 Ekim — 1644 rollback tekrar tekilliği P1: dar kaynak düzeltmesi
+
+CRM incelemesi `01a173b4-3cb8-7272-89eb-152ade5512f8`, exact `56d8ed222d816f554b6a030ab8507ff216a591e5` için SOURCE NO-GO / 1 P1 verdi: rollback child doğduktan sonra yayın reddedilirse evre CandidateStarted kalıyor ve tekrar çağrı ikinci child doğuruyor. Bu tamamlanmış inceleme, önceki platform hatasından ayrıdır; erişim/Daybreak onayı değildir.
+
+Yeni izole regresyon önce **1 FAIL / 0 PASS**, `SECOND_ROLLBACK_CHILD_AFTER_FAILED_PUBLICATION` üretti. Dar düzeltme: ayrı retained rollback referansı ve doğumdan hemen sonra **RollbackStarted** evresi. Yayın tekrarı aynı doğrulanmış child'ı kullanır; kayıp/ölü child yeni doğum yetkisi üretmez. Yeni lease'te referans sıfırlanır; mevcut tazelik, koruma ve final ACK kontrolleri korunur.
+
+**5/5 ilgili test PASS / 0 FAIL / 0 SKIP, 12.218s:** yeni post-birth yayın hatası/retry regresyonu; eski rollback yayın yanıtı kaybı; candidate exit; candidate startup failure; public girişin ilk adımdan kapalı olması. İlk rollback child heartbeat'i sürerken koruma bozulması ve ikinci çağrı reddi; koruma geri gelince aynı PID, toplam yalnız iki rollback doğumu (ilk baseline + tek replacement), son ACK ve replay'de ikinci etki olmaması doğrulandı. Loglar `.tmp/b5-rollback-retry-1644/red.log` ve `green.log`. Eski13 tam suite, diğer31/38/87/83, build/paket ve CI rerun yok.
+
+Yalnız kendi geçici fixture dosyaları ve child/retained handle'ları kullanıldı. Public PS wrapper byte/git-diff aynı; **B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING** kapalı. Shared TEST/SQL/HTTP/GUI/config/servis/kurulum/hesap/cihaz işlemi0; mevcut WIP korunur. Bağımsız delta incelemesi ve yeni exact commit CI ayrı bekler. Gerçek host binding/kurulum/normal GUI hâlâ yok; **B5 tamamlanmadı**. [Kanıt](docs/evidence/erp/2026-10-25-clean-web-owner-source.md).
+
 ## 25 Ekim — 1056 clean WEB owner producer/consumer kaynak ve13 gerçek izole test
 
 Mevcut başlatıcı sözleşmesi okundu; legacy start-owned-test.ps1 ve kurulu başlatıcı değiştirilmedi. Yeni clean-web-owner.cs/.ps1/.test.mjs: kendi child'ını doğumdan nativehandle/PID100ns/exe/OSargv ve açıkCWD ile bağlayan producer; owner-ref/generation/expire lease; aynı gerçek cooperativeSemaphore; doğumöncesi snapshotfreeze; beforeimage/CASpublication; candidate-oldretirement/rollback ve dosyaya flush edilen finalACK. Consumer aynıhost içi opaque referanslarla çalışır; JSON/boolean/mutex/boşport authority değildir. Mevcut sürece PIDadoption/OpenProcess/PIDkill yok. Ana Nodeöncesi envallowlist; gerçek privateenv/store/DPAPI okunmadı/aktarılmadı.

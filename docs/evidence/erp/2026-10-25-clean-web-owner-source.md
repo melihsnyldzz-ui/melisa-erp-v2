@@ -1,5 +1,36 @@
 # Clean WEB5244: işbirlikçi owner devir bileşeni — SOURCE/OFFLINE
 
+## 25 Ekim / 1644: rollback retry P1 için dar düzeltme
+
+Tamamlanan CRM incelemesi `01a173b4-3cb8-7272-89eb-152ade5512f8`, başlangıç
+`56d8ed222d816f554b6a030ab8507ff216a591e5` kaynağına **NO-GO / 1 P1** verdi.
+Rollback child doğduktan sonra yayın koruma kontrolü reddedince evre
+`CandidateStarted` kalıyor; aynı lease ile tekrar çağrı ikinci child doğuruyordu.
+Bu sonuç önceki platform engelinden ayrıdır; erişim onayı anlamına gelmez.
+
+Yeni regresyonda yalnız fixture rollback worker'ı kendi ikinci doğumunda, startup
+satırını vermeden önce kendi mutable witness dosyasını değiştirir. Böylece gerçek
+child doğar, yayın reddedilir; heartbeat ilk child'ın hâlâ çalıştığını gösterir.
+Koruma bozukken tekrar ret, fixture witness geri getirildikten sonra tekrar yayın
+denenir. Eski kaynakta test **SECOND_ROLLBACK_CHILD_AFTER_FAILED_PUBLICATION** ile
+başarısız oldu: 1 FAIL / 0 PASS, 3734.0777ms.
+
+Dar düzeltme retained `rollback` alanı ve child doğduktan hemen sonraki
+`RollbackStarted` evresidir. Tekrar çağrı bu referansı doğrular ve aynı child'ı
+yayınlar. Child kayıp/ölüyse doğrulama kapanır; yeni child doğurulmaz. Yeni lease
+referansı sıfırlar. Public wrapper ve diğer guard/ACK/yetki kapıları değişmedi.
+
+Hedefli GREEN: **5 PASS / 0 FAIL / 0 SKIP, 12217.9847ms**. Yeni regresyon + mevcut
+rollback yanıt kaybı + candidate exit + candidate startup failure + kapalı public
+giriş testleri çalıştı. Yeni regresyon aynı PID'yi, iki toplam rollback doğumunu
+(ilk baseline + tek replacement), son ACK'ye kadar writer dışlamasını ve ACK/replay
+sonrası ikinci child oluşmamasını doğruladı. Diğer eski testler/build/paket/CI
+rerun edilmedi. Yerel RED/GREEN logları `.tmp/b5-rollback-retry-1644/` içinde.
+
+Yalnız kendi geçici dosyaları/child/retained handle'ları kullanıldı; kurulu hedefe
+bağlantı veya işlem yok. Yeni delta bağımsız incelemesi ve exact commit CI ayrı
+bekler. Gerçek host binding/kurulum/GUI ve insan kabulü yapılmadı; **B5 açık**.
+
 Bu teslim yeni bir servis/daemon/gözetmen/kurucu değildir. `start-owned-test.ps1`,
 eski DB/4144/4146/5194 yolu, kurulu başlatıcı, pasif paketler ve gerçek süreçler
 değişmedi. Normal giriş, veri veya GUI kabulü değildir.
