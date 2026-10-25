@@ -3739,5 +3739,112 @@
         "windowsWorkingBytesSha256": "1e61a9a54beb262f53abba936c0c302acf846f87ad310e7cd0f4e7ea183c9076"
       }
     ]
+  },
+  "cleanPairTransitionReviewFix0907": {
+    "taskId": "ERP-B5-TRANSITION-REVIEW-FIX-OFFLINE-20261025-0907",
+    "observedAt": "2026-10-25T09:23:59.437Z",
+    "baselineSource": "6875903de1f30c9b915d0643b6e15ddb49c76d68",
+    "review": {
+      "taskId": "CRM-B5-CLEAN-TRANSITION-SOURCE-REVIEW-20261025-0852",
+      "turnId": "01a17243-55e9-77d2-82c8-5885ff84a03e",
+      "result": "NO_GO",
+      "P1": 2,
+      "P2": 1,
+      "prior31PassNotSafetyProof": true
+    },
+    "red": {
+      "reviewerUnsafeStopsAfterProtectionChange": 1,
+      "reviewerUnsafeWritesAfterProtectionChange": 2,
+      "reviewerUnsafeWritesAfterLeaseLoss": 1,
+      "reviewerTemplateError": "B5_RECORD_ROW_REQUIRED",
+      "newRecoveryTemplate": {
+        "failed": 4,
+        "passed": 1,
+        "skipped": 0
+      },
+      "exact687Dependency": {
+        "failed": 1,
+        "passed": 0,
+        "skipped": 0,
+        "error": "DEPENDENCY_CASE_ACCEPTED_api-changed"
+      },
+      "firstFixturePreparationFailuresPreservedButNotCountedAsDefectEvidence": true
+    },
+    "fixes": {
+      "freshRecoveryTicketBeforeEveryStopAndControlWrite": true,
+      "confirmedChildExitUpdatesExpectedState": true,
+      "eachWrittenControlHashUpdatedImmediately": true,
+      "saferThanProductionFakeLeaseGuardsRemoved": true,
+      "realModuleInventoriesAndLocksReadAndFrozen": true,
+      "existingLocaleCompareJsonUtf8DigestPreserved": true,
+      "lateModulePathsRejectedAtActionBoundaries": true,
+      "oldPackagesMustMatchPinned349DonorInventory": true,
+      "newDependencyInstall": false,
+      "actualTemplateRecordExpressionsUsedInRamFixture": true,
+      "templateRowsExplicitlyEnumerated": true,
+      "oldRollbackNativeJsonParsingFlattenedOnlyInInvocationScope": true,
+      "oldStarterBeforeImageUnchanged": true,
+      "templateSha256": "27B6A2FD4C82349BF81A13FB580169653001A099B5F9B860BA6715E06A09486A"
+    },
+    "localTests": {
+      "passed": 38,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 36103.8564,
+      "newRegressionCases": 7,
+      "layer": "Windows PowerShell5 RAM and unique temporary dependency files; no shared runtime",
+      "dependencyNegatives": [
+        "api-changed",
+        "vite-changed",
+        "missing",
+        "extra",
+        "lock-changed",
+        "missing-inventory",
+        "unsafe-app",
+        "duplicate-app",
+        "reparse",
+        "late-module",
+        "frozen-file-write"
+      ],
+      "unicodeInventorySorting": true
+    },
+    "securityException": {
+      "directHumanReply": "Yalnız bu üç kesin bulguya izin ver",
+      "questionId": "call_fe0b5ef06e244432becfbde72479d400",
+      "historicalCommit": "6875903de1f30c9b915d0643b6e15ddb49c76d68",
+      "exactFingerprintCount": 3,
+      "priorRejectionAndTwoFailedScansPreserved": true,
+      "noRuleOrFileWideExclusion": true,
+      "noNewFindingAutomaticallyAllowed": true
+    },
+    "independentRereview": "PENDING_EXISTING_COORDINATOR",
+    "productionGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "installed": false,
+    "sharedSqlHttpGuiProcessOrConfigurationWrites": 0,
+    "accountRoleAssignmentOrTradeWrites": 0,
+    "applicationSourceUnchanged": "349fae354e2a90852cd0594ada485105bf091e43",
+    "passivePackageUnchanged": true,
+    "oldApplicationTestsBuildAndInventoryReviewRepeated": false,
+    "humanAcceptance": "PENDING",
+    "originalCountersUnchanged": true,
+    "sixSpecificSyntheticAccountsApprovalQueuedSeparatelyNotApplied": true,
+    "files": [
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.ps1",
+        "windowsWorkingBytesSha256": "43e1300b24ac6c2a1961bc7f72b433e4f8bcc5c54203fdf754fa82661b1af322"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.fixture.ps1",
+        "windowsWorkingBytesSha256": "c64f7d4779e8025e7722e5724499d3706a1f41d609c1547597e27a01fbae35a2"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.test.mjs",
+        "windowsWorkingBytesSha256": "3cdc90ad6983e000d141a4904db5216f2c838473e824ba62993c290ea474eecd"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-start.template.ps1",
+        "windowsWorkingBytesSha256": "27b6a2fd4c82349bf81a13fb580169653001a099b5f9b860ba6715e06a09486a"
+      }
+    ]
   }
 }

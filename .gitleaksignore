@@ -135,3 +135,9 @@ b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure
 # Reviewed 2026-10-24 by ERP owner and existing coordinator: public installed
 # ERP source commit 64f273df, not an API key. Exact historical fingerprint only.
 9e7b7169b3d3593feb86194105a7e1bf84a3d10e:docs/evidence/erp/2026-10-24-b5-normal-access.json:generic-api-key:16
+
+# Exact three public commit/manifest pins approved by the human on 2026-10-25,
+# reply to call_fe0b5ef06e244432becfbde72479d400. No file/rule-wide exclusion.
+6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-transition.ps1:generic-api-key:11
+6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-start.template.ps1:generic-api-key:6
+6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-start.template.ps1:generic-api-key:9

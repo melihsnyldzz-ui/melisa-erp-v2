@@ -1,5 +1,69 @@
 # B5 sabit clean API + web geçiş kaynağı — 25 Ekim 2026
 
+## 0907 inceleme düzeltmesi — bağımsız tekrar inceleme bekliyor
+
+`CRM-B5-CLEAN-TRANSITION-SOURCE-REVIEW-20261025-0852`,
+CRM turn `01a17243-55e9-77d2-82c8-5885ff84a03e`, exact6875903d için
+**NO-GO / 2 P1 + 1 P2** verdi. Aşağıdaki0808 teslimi tarihsel kalır;
+31 PASS, bu kusurların olmadığı kanıtı değildir. Yeni görev
+`ERP-B5-TRANSITION-REVIEW-FIX-OFFLINE-20261025-0907` yalnız kaynak/offline'dır.
+
+**Korunan RED:** incelemecinin RAM sonuçlarında ilk stop sonrası koruma
+değişince1 uygunsuz stop+2 yazı; ilk yazı sonrası lease kaybında1 uygunsuz
+yazı; gerçek template okuyucusunda B5_RECORD_ROW_REQUIRED. Yeni dar recovery/
+template regresyonları düzeltme öncesi4 FAIL/1 PASS/skip0 verdi; zaten mevcut
+CAS'ın yakaladığı kontrol değişimi pozitif karşı örnek olarak saklandı. Doğru
+fixture hazırlığıyla exact687 kaynağı ayrıca API bağımlılığı değişimini
+`DEPENDENCY_CASE_ACCEPTED_api-changed` ile kabul etti:1 FAIL/skip0. İlk fixture
+Node SHA harf biçimi ve PS5 dizi hazırlığı hataları ayrıca saklandı; bunlar
+bağımlılık kusurunun RED kanıtı sayılmadı. Ham günlükler ignored yerel
+`.tmp/b5-review-0907` alanındadır; genel depoya taşınmadı.
+
+**Gerçek kaynak düzeltmeleri:**
+
+- Her recovery stop'u ve her iki kontrol dosyası yazısı öncesinde yeni tek-use
+  sınır bileti lease/koruma/port/kontrol/korunan süreç/native kimliğini yeniden
+  doğrular. Doğrulanmış çıkış, sonraki kontrol öncesi beklenen child durumundan
+  çıkarılır; her başarılı dosya yazısından sonra beklenen hash güncellenir.
+  Stop ve yazma fixture yapraklarındaki fazladan lease kontrolleri kaldırıldı.
+- Manifestteki ayrı API/sites/web-admin bağımlılık envanterleri gerçek dosya
+  yollarından sayım+SHA256+package-lock ile doğrulanır ve aynı lease altında
+  açık tutamaçlarla dondurulur. Digest, mevcut Node localeCompare/JSON/UTF8
+  algoritmasını aynen kullanır. Sonraki sınırlar eklenen/silinen modül yolunu
+  da reddeder. Yeni kurulum/indirme/dependency sürümü yok. Eski b9/b89
+  manifestlerinde liste bulunmadığı için yalnız pinli349'un b9 donor bağıyla
+  doğrulanmış mevcut envanteri kullanılır; eski dosyalar ve lock aynı değilse
+  geri dönüş kapalı kalır. Bu tur gerçek eski paket envanteri tekrar taranmadı.
+- Template58/74/76 ve son yayını açık satır enumerasyonu/JSON array kullanır.
+  Fixture, düzeltilmiş template'in gerçek append/yayın ifadelerini RAM dosya
+  yapraklarıyla yürütür. Byte-eş korunacak eski rollback başlatıcısının aynı
+  PS5 kusuru için yalnız çağrı scope'unda native ConvertFrom-Json çıktısını
+  satır satır veren dar uyumluluk kullanılır; orijinal eski ifadelerle ayrıca
+  sınandı. Koşulsuz OFFLINE/handoff engelleri aynıdır. Template yeni SHA pini
+  27B6A2FD4C82349BF81A13FB580169653001A099B5F9B860BA6715E06A09486A.
+
+**38/38 hedefli test PASS / skip0**,36,104 saniye. Yedi ek regresyon, dört
+recovery drift'i, gerçek yeni/eski JSON ifadeleri ve gerçek geçici bağımlılık
+dosyalarında değişmiş/eksik/fazla/uygunsuz app/reparse/lock reddi, Unicode
+inventory digest'i, API/Vite yazma engeli ve sonradan modül ekleme reddini kapsar.
+Bu sonuç ikinci bağımsız review GO değildir; koordinatörün mevcut inceleme
+sırasında değerlendirilir. Gerçek TEST kurulumu/geri dönüşü veya insan kabulü yok.
+
+**Ayrı doğrudan insan yanıtı:** call_fe0b5ef06e244432becfbde72479d400 için
+“Yalnız bu üç kesin bulguya izin ver” cevabıyla yalnız6875903d'nin üç mevcut
+commit/path/rule/line fingerprint'i .gitleaksignore'a eklendi. Önceki ret ve
+2 secret-scan FAIL tarihçesi korundu; tarayıcı veya genel kural değişmedi,
+yeni bulguya otomatik izin yok. Bu, kaynak düzeltme görevinin verdiği varsayılan
+izin değildir. Son exact head CI PR54 üzerinde ayrıca raporlanır.
+
+Handoff/CWD/sürekli writer dışlama/publication-retirement üreticisi hâlâ yok;
+üretim -Apply ilk adımdan kapalıdır. Ortak TEST/HTTP/SQL/GUI/servis/config/
+hesap/rol/finans/stok yazması0; eski uygulama349, paket9614 ve kurulu b9/b89
+değişmedi. Altı sentetik hesap için ayrıca iletilen özgül kullanıcı onayı ayrı
+sıraya alındı; bu kaynak turunda uygulanmadı.17/74 ve insan E2 aynı.
+
+---
+
 Görev: `ERP-B5-CLEAN-TRANSITION-ADAPTER-SOURCE-20261025-0808`.
 **SOURCE_PARTIAL / NOT_EXECUTED / INDEPENDENT_REVIEW_PENDING**.
 

@@ -19,7 +19,7 @@ function New-B5FixtureFacts([int]$Id,[string]$Root,[int]$Port){
 function Assert-Fx($Value,[string]$Message){if(!$Value){throw ('FIXTURE_ASSERT_'+$Message)}}
 function Fx-ExpectedError([scriptblock]$Body,[string]$Pattern){$failed=$false;try{& $Body|Out-Null}catch{$failed=$true;Assert-Fx ($_.Exception.Message -match $Pattern) ('wrong-error-'+$_.Exception.Message)};Assert-Fx $failed 'expected-error'}
 function Get-B5WriterHandoff {return [pscustomobject]@{testOnly='synthetic-provider'}}
-function Enter-B5Lease($Handoff){if($script:fx.failure -eq 'owner-busy'){throw 'B5_OWNER_BUSY'};$script:fx.held=$true;$script:fx.events.Add('lease-enter');return [pscustomobject]@{sid='S-1-fixture';handoff=$Handoff}}
+function Enter-B5Lease($Handoff){if($script:fx.failure -eq 'owner-busy'){throw 'B5_OWNER_BUSY'};$script:fx.held=$true;$script:fx.events.Add('lease-enter');return [pscustomobject]@{sid='S-1-fixture';handoff=$Handoff;dependencyDirectories=(New-Object Collections.Generic.List[object])}}
 function Assert-B5Lease($Lease){Assert-Fx $script:fx.held 'lease-not-held';if($script:fx.failure -eq 'lease-lost' -and $script:fx.context.stopped.Count -eq 2){throw 'B5_LEASE_LOST'}}
 function Exit-B5Lease($Lease){$script:fx.events.Add('lease-exit');$script:fx.held=$false}
 function Complete-B5WriterHandoff($Lease,[string]$Outcome,$Context){Assert-B5Lease $Lease;$script:fx.events.Add('handoff-'+$Outcome)}
@@ -33,9 +33,9 @@ function Get-B5Listeners{return $script:fx.listeners}
 function Get-B5Process([int]$ProcessId){return $script:fx.processes[$ProcessId]}
 function Read-B5Artifact([string]$Root,[string]$Hash,[string]$Source,[switch]$Combined,$Lease=$null){if($script:fx.failure -eq 'rollback-artifact-changed'){throw 'B5_MANIFEST_CHANGED'};return [pscustomobject]@{}}
 function Save-B5BeforeImage($Context){$Context.before='C:\fixture\before';foreach($name in @('starter','records')){$script:fx.files[(Join-Path $Context.before ($name+'.before'))]=$Context.controls[$name]};$script:fx.events.Add('before-image')}
-function Write-B5Control([string]$Path,[string]$ExpectedHash,[byte[]]$Bytes){Assert-B5Lease $script:fx.context.lease;if((B5Hash (B5Read $Path)) -cne $ExpectedHash){throw 'B5_CONTROL_WRITE_RACE'};$script:fx.files[$Path]=$Bytes;$script:fx.events.Add('control-write')}
+function Write-B5Control([string]$Path,[string]$ExpectedHash,[byte[]]$Bytes){if((B5Hash (B5Read $Path)) -cne $ExpectedHash){throw 'B5_CONTROL_WRITE_RACE'};$script:fx.files[$Path]=$Bytes;$script:fx.events.Add('control-write')}
 function Open-B5BoundProcess($Facts){$script:fx.events.Add('open-'+$Facts.pid);$h=[pscustomobject]@{id=$Facts.pid;disposed=$false};$h|Add-Member -MemberType ScriptMethod -Name Dispose -Value {$this.disposed=$true};return $h}
-function Stop-B5Handle($Handle,$Facts){Assert-B5Lease $script:fx.context.lease;if($script:fx.failure -eq 'stop-web' -and $Facts.pid -eq 102){throw 'B5_TEST_SECOND_STOP_FAILED'};$script:fx.events.Add('stop-'+$Facts.pid);$script:fx.listeners=@($script:fx.listeners|Where-Object OwningProcess -ne $Facts.pid);$script:fx.processes.Remove([int]$Facts.pid);if(($script:fx.failure -eq 'stop-api-after-exit' -and $Facts.pid -eq 101) -or ($script:fx.failure -eq 'stop-web-after-exit' -and $Facts.pid -eq 102)){throw 'B5_TEST_STOP_CONFIRMATION_LOST'}}
+function Stop-B5Handle($Handle,$Facts){if($script:fx.failure -eq 'stop-web' -and $Facts.pid -eq 102){throw 'B5_TEST_SECOND_STOP_FAILED'};$script:fx.events.Add('stop-'+$Facts.pid);$script:fx.listeners=@($script:fx.listeners|Where-Object OwningProcess -ne $Facts.pid);$script:fx.processes.Remove([int]$Facts.pid);if(($script:fx.failure -eq 'stop-api-after-exit' -and $Facts.pid -eq 101) -or ($script:fx.failure -eq 'stop-web-after-exit' -and $Facts.pid -eq 102)){throw 'B5_TEST_STOP_CONFIRMATION_LOST'}}
 function Test-B5HandleExited($Handle,$Facts){return !$script:fx.processes.ContainsKey([int]$Facts.pid)}
 function New-B5OsChild($FilePath,$ArgumentList,$WorkingDirectory,$RedirectStandardOutput,$RedirectStandardError){
  Assert-B5Lease $script:fx.context.lease;$p=Get-B5Pins;$port=if($WorkingDirectory -like '*sites-workflow'){5244}else{4194};$candidate=$script:fx.mode -eq 'Candidate'
@@ -44,11 +44,23 @@ function New-B5OsChild($FilePath,$ArgumentList,$WorkingDirectory,$RedirectStanda
 }
 function Invoke-B5PinnedStarter($Context,[string]$Mode){
  $script:fx.mode=$Mode;$p=Get-B5Pins;$ports=if($Mode -eq 'OldApi'){@(4194)}else{@(4194,5244)}
+ $lines=[IO.File]::ReadAllText($script:fixtureTemplate) -split "\r?\n"
+ $cleanRoot=Split-Path $p.runtime -Parent;$startPorts=@(4194);$newProcesses=@();$ApiWebOnly=$Mode -ne 'OldApi'
+ # Execute the actual template's record append/publication statements. Only
+ # filesystem leaves are RAM substitutes; the PS5 JSON logic is not copied.
+ function Get-Content{param($LiteralPath,[switch]$Raw);if($LiteralPath -cne (Join-Path $p.runtime 'erp-processes.json')){throw 'FIXTURE_READ_SCOPE'};return [Text.Encoding]::UTF8.GetString((B5Read $LiteralPath))}
+ function Set-Content{param($LiteralPath,$Encoding,[Parameter(ValueFromPipeline=$true)]$Value);process{if($LiteralPath -cne (Join-Path $p.runtime 'erp-processes.json')){throw 'FIXTURE_WRITE_SCOPE'};$script:fx.files[$LiteralPath]=[Text.Encoding]::UTF8.GetBytes($Value)}}
  foreach($port in $ports){$candidate=$Mode -eq 'Candidate';$root=if($candidate){$p.root}elseif($port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot};$cwd=if($port -eq 4194){$root+'\apps\api'}else{$root+'\apps\sites-workflow'};$args=if($port -eq 4194){@('src\cleanSyntheticServer.mjs')}else{@('node_modules\vite\bin\vite.js','preview','--host','127.0.0.1','--port','5244','--strictPort')}
-  Start-Process -FilePath $p.node -ArgumentList $args -WorkingDirectory $cwd -WindowStyle Hidden -PassThru -RedirectStandardOutput 'fixture.stdout' -RedirectStandardError 'fixture.stderr'|Out-Null
-  $rows=@(ConvertFrom-B5Records (B5Read (Join-Path $p.runtime 'erp-processes.json')));$child=@($Context.children|Where-Object {$_.port -eq $port})[0];$source=if($candidate){$p.source}elseif($port -eq 4194){$p.oldApi}else{$p.oldWeb};$entry=if($port -eq 4194){'cleanSyntheticServer.mjs'}else{'vite-preview'};$row=[ordered]@{port=$port;pid=$child.facts.pid;entry=$entry;sourceCommit=$source};if($port -eq 4194){$row.packageId=if($candidate){'candidate-package'}else{'old-api-package'}};$row.root=$root
-  $rows=@($rows|ForEach-Object {if($_.port -eq $port){[pscustomobject]$row}else{$_}});$script:fx.files[(Join-Path $p.runtime 'erp-processes.json')]=[Text.Encoding]::UTF8.GetBytes(($rows|ConvertTo-Json -Depth 8))
+  $newProcess=Start-Process -FilePath $p.node -ArgumentList $args -WorkingDirectory $cwd -WindowStyle Hidden -PassThru -RedirectStandardOutput 'fixture.stdout' -RedirectStandardError 'fixture.stderr'
+  if($port -eq 4194){$newPort=$port;$processRoot=$root;$env:CLEAN_SOURCE_COMMIT=if($candidate){$p.source}else{$p.oldApi};$env:CLEAN_PACKAGE_ID=if($candidate){'candidate-package'}else{'old-api-package'}
+   $line=@($lines|Where-Object {$_ -like ' $newProcesses+=[[]pscustomobject]@{port=$newPort*'})[0];. ([scriptblock]::Create($line))
+   $line=@($lines|Where-Object {$_ -like '$oldRecords=*'})[0];. ([scriptblock]::Create($line))
+  }else{$webPackageRoot=$root;$webManifest=[pscustomobject]@{frontendSourceCommit=$(if($candidate){$p.source}else{$p.oldWeb})}
+   $line=@($lines|Where-Object {$_ -like ' $newProcesses+=[[]pscustomobject]@{port=5244*'})[0];. ([scriptblock]::Create($line))
+  }
  }
+ $line=if($ApiWebOnly){@($lines|Where-Object {$_ -like ' if($ApiWebOnly)*'})[0]}else{@($lines|Where-Object {$_ -like ' $newProcesses+=@(*'})[0]};. ([scriptblock]::Create($line))
+ $line=@($lines|Where-Object {$_ -like 'ConvertTo-Json -InputObject @($newProcesses)*'})[0];. ([scriptblock]::Create($line))
  if($Mode -eq 'Candidate' -and $script:fx.failure -eq 'protection-after-start'){$script:fx.protected.native='CHANGED'}
  if($Mode -eq 'Candidate' -and $script:fx.failure -eq 'foreign-after-start'){$script:fx.listeners=@($script:fx.listeners|Where-Object LocalPort -ne 5244);$script:fx.processes[777]=New-B5FixtureFacts 777 'C:\foreign' 5244;$script:fx.listeners+=[pscustomobject]@{LocalPort=5244;LocalAddress='127.0.0.1';OwningProcess=777};throw 'B5_TEST_FOREIGN_RESPAWN'}
 }

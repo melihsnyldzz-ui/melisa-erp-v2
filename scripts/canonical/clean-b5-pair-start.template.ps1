@@ -55,7 +55,7 @@ foreach($newPort in $startPorts){
  $newProcess=Start-Process -FilePath $cleanNode -ArgumentList @('src\cleanSyntheticServer.mjs') -WorkingDirectory "$processRoot\apps\api" -WindowStyle Hidden -PassThru -RedirectStandardOutput "$cleanRoot\runtime\erp-$newPort.stdout.log" -RedirectStandardError "$cleanRoot\runtime\erp-$newPort.stderr.log"
  $newProcesses+=[pscustomobject]@{port=$newPort;pid=$newProcess.Id;entry='cleanSyntheticServer.mjs';sourceCommit=$env:CLEAN_SOURCE_COMMIT;packageId=$env:CLEAN_PACKAGE_ID;root=$processRoot}
 }
-$oldRecords=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object { $_.port -notin $startPorts });@($newProcesses)+$oldRecords|ConvertTo-Json|Set-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Encoding utf8
+$oldRecords=@(foreach($row in (ConvertFrom-Json -InputObject (Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw))){if($row.port -notin $startPorts){$row}});ConvertTo-Json -InputObject @(@($newProcesses)+$oldRecords)|Set-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Encoding utf8
 foreach($name in @('MELISA_TERMINAL_LINK_ENABLED','MELISA_TERMINAL_LINK_PEER_KEY','MELISA_TERMINAL_LINK_RELATIONS')){Remove-Item "Env:$name" -ErrorAction SilentlyContinue}
 $env:CLEAN_SOURCE_COMMIT=$mainApiSource
 $env:CLEAN_PACKAGE_ID=$apiManifest.packageId
@@ -71,9 +71,9 @@ if(!$ApiOnly -and !$MainApiOnly){
  if(!$webReady){throw 'Clean ERP health is not ready; network web was not started'}
  $newProcess=Start-Process -FilePath $cleanNode -ArgumentList @('node_modules\vite\bin\vite.js','preview','--host','127.0.0.1','--port','5244','--strictPort') -WorkingDirectory "$webPackageRoot\apps\sites-workflow" -WindowStyle Hidden -PassThru -RedirectStandardOutput "$cleanRoot\runtime\erp-5244.stdout.log" -RedirectStandardError "$cleanRoot\runtime\erp-5244.stderr.log"
  $newProcesses+=[pscustomobject]@{port=5244;pid=$newProcess.Id;entry='vite-preview';sourceCommit=$webManifest.frontendSourceCommit;root=$webPackageRoot}
- if($ApiWebOnly){$newProcesses+=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object port -eq 4196)}
+ if($ApiWebOnly){$newProcesses+=@(foreach($row in (ConvertFrom-Json -InputObject (Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw))){if($row.port -eq 4196){$row}})}
 }else{
- $newProcesses+=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object { $_.port -notin $startPorts })
+ $newProcesses+=@(foreach($row in (ConvertFrom-Json -InputObject (Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw))){if($row.port -notin $startPorts){$row}})
 }
-$newProcesses|ConvertTo-Json|Set-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Encoding utf8
+ConvertTo-Json -InputObject @($newProcesses)|Set-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Encoding utf8
 $newProcesses|Format-Table

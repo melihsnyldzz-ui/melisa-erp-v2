@@ -12,7 +12,7 @@ function Get-B5Pins {
   oldWebRoot='C:\Sirket\ERP\releases\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE';oldWeb='b89cc651dc26b40eb9a30a0382d52336c3d1f5be';oldWebHash='DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72'
   root='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE';source='349fae354e2a90852cd0594ada485105bf091e43';tree='1240b0752cab2c99daf1bf2f2ca4eaa9093ec187';manifest='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
   native='035fcc08d8f56cdd0cbc437a290285328fce1ec9';starter='181DFB178863CDFBE54BF14D55388726A487A700481DCF22A79CAF7B30DC9591';records='7A70DBAB558E8E7AAF8B8FDB9AD6A51BF69C2A90505361AE5E324F1EE8216DB7'
-  template='1E61A9A54BEB262F53ABBA936C0C302ACF846F87AD310E7CD0F4E7EA183C9076'
+  template='27B6A2FD4C82349BF81A13FB580169653001A099B5F9B860BA6715E06A09486A'
  }
 }
 function B5Fail([string]$Code){throw $Code}
@@ -20,6 +20,9 @@ function B5Hash([byte[]]$Bytes){$h=[Security.Cryptography.SHA256]::Create();try{
 function B5Read([string]$Path){Assert-B5Path $Path;return ,[IO.File]::ReadAllBytes($Path)}
 function Assert-B5Path([string]$Path){
  $full=[IO.Path]::GetFullPath($Path);if($full -match '[\r\n]' -or !$full.StartsWith('C:\Sirket\ERP\',[StringComparison]::OrdinalIgnoreCase)){B5Fail 'B5_PATH_SCOPE'}
+ Assert-B5NoReparse $full
+}
+function Assert-B5NoReparse([string]$full){
  for($item=$full;$item;$item=[IO.Path]::GetDirectoryName($item)){if((Test-Path -LiteralPath $item) -and ((Get-Item -LiteralPath $item).Attributes -band [IO.FileAttributes]::ReparsePoint)){B5Fail 'B5_REPARSE'}}
 }
 function Get-B5Clock {return [double][Diagnostics.Stopwatch]::GetTimestamp()/[Diagnostics.Stopwatch]::Frequency}
@@ -54,7 +57,7 @@ function Enter-B5Lease($Handoff){
  $p=Get-B5Pins;$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
  $mutex=New-Object Threading.Mutex($false,(Get-B5MutexName $p.runtime $sid))
  try{try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();B5Fail 'B5_ABANDONED_OWNER'};if(!$held){B5Fail 'B5_OWNER_BUSY'}
-  $script:B5Lease=[pscustomobject]@{mutex=$mutex;sid=$sid;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;handoff=$Handoff;sequence=0;closed=$false;resources=(New-Object Collections.Generic.List[IDisposable])}
+  $script:B5Lease=[pscustomobject]@{mutex=$mutex;sid=$sid;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;handoff=$Handoff;sequence=0;closed=$false;resources=(New-Object Collections.Generic.List[IDisposable]);dependencyDirectories=(New-Object Collections.Generic.List[object])}
   return $script:B5Lease
  }catch{$mutex.Dispose();throw}
 }
@@ -80,7 +83,62 @@ function Read-B5Artifact([string]$Root,[string]$Hash,[string]$Source,[switch]$Co
  $bytes=B5ReadFrozen (Join-Path $Root 'release-manifest.json') $Lease;if((B5Hash $bytes) -cne $Hash){B5Fail 'B5_MANIFEST_CHANGED'}
  $m=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json;Assert-B5Manifest $m $Source -Combined:$Combined
  $seen=@{};foreach($f in $m.files){if($f.path -match '(^/|\\|:|[\r\n])' -or @($f.path.Split('/')|Where-Object {$_ -in @('','..','.')}).Count -or $seen.ContainsKey($f.path)){B5Fail 'B5_PAYLOAD_PATH'};$seen[$f.path]=$true;if((B5Hash (B5ReadFrozen (Join-Path $Root $f.path) $Lease)) -ine $f.sha256){B5Fail 'B5_PAYLOAD_CHANGED'}}
- if(!$seen.Count){B5Fail 'B5_EMPTY_PAYLOAD'};return $m
+ if(!$seen.Count){B5Fail 'B5_EMPTY_PAYLOAD'};Read-B5Dependencies $Root $m $Lease;return $m
+}
+function Get-B5DependencyFiles([string]$Base,[string]$Directory=$Base){
+ Assert-B5Path $Directory
+ if(![IO.Directory]::Exists($Directory)){B5Fail 'B5_DEPENDENCY_DIRECTORY_MISSING'}
+ foreach($entry in [IO.Directory]::EnumerateFileSystemEntries($Directory)){
+  Assert-B5Path $entry;$item=Get-Item -LiteralPath $entry -Force
+  if($item.PSIsContainer){Get-B5DependencyFiles $Base $entry}else{
+   if(!($item -is [IO.FileInfo])){B5Fail 'B5_DEPENDENCY_FILE_TYPE'}
+   $relative=$item.FullName.Substring($Base.TrimEnd('\').Length+1).Replace('\','/')
+   if($relative -match '(^/|\\|:|[\r\n]|(^|/)\.env($|\.(?!example)))' -or @($relative.Split('/')|Where-Object {$_ -in @('','..','.')}).Count){B5Fail 'B5_DEPENDENCY_PATH'}
+   [pscustomobject]@{path=$relative;full=$item.FullName}
+  }
+ }
+}
+function Get-B5DependencyDigest($Rows){
+ # Match the already accepted package inventory algorithm exactly: Node ICU
+ # path.localeCompare, ordered path/sha256 objects, compact UTF8 JSON. Only
+ # ASCII base64 metadata goes to this pinned Node's stdin; no helper file,
+ # package module, SQL, network or credential is loaded by the digest program.
+ $json=ConvertTo-Json -InputObject @($Rows) -Depth 3 -Compress
+ $encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($json))
+ $program="const fs=require('node:fs'),c=require('node:crypto');const r=JSON.parse(Buffer.from(fs.readFileSync(0,'utf8').trim(),'base64').toString('utf8'));r.sort((a,b)=>a.path.localeCompare(b.path));process.stdout.write(c.createHash('sha256').update(JSON.stringify(r)).digest('hex'));"
+ $value=$encoded|& (Get-B5Pins).node -e $program
+ if($LASTEXITCODE -ne 0 -or $value -cnotmatch '^[0-9a-f]{64}$'){B5Fail 'B5_DEPENDENCY_DIGEST_FAILED'};return $value
+}
+function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
+ $p=Get-B5Pins;$contract=$Manifest
+ if(!$contract.PSObject.Properties['dependencies']){
+  # Old b9/b89 manifests have no module list. Their dependencies must match
+  # the existing pinned 349 inventory copied from b9, including each lock.
+  # A mismatch closes recovery; an old manifest is never relabelled.
+  if($Manifest.sourceCommit -cnotin @($p.oldApi,$p.oldWeb)){B5Fail 'B5_DEPENDENCY_CONTRACT_MISSING'}
+  $bytes=B5ReadFrozen (Join-Path $p.root 'release-manifest.json') $Lease
+  if((B5Hash $bytes) -cne $p.manifest){B5Fail 'B5_DEPENDENCY_CONTRACT_CHANGED'}
+  $contract=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json;Assert-B5Manifest $contract $p.source -Combined
+  if($contract.dependencyDonorManifestSha256 -ine $p.oldApiHash){B5Fail 'B5_DEPENDENCY_DONOR_CHANGED'}
+ }
+ $apps=@('api','sites-workflow','web-admin');$seen=@{}
+ if(@($contract.dependencies).Count -ne 3){B5Fail 'B5_DEPENDENCY_CONTRACT_MISSING'}
+ foreach($d in $contract.dependencies){
+  if($d.app -cnotin $apps -or $seen.ContainsKey($d.app) -or !($d.files -is [int] -or $d.files -is [long]) -or $d.files -le 0 -or $d.inventorySha256 -notmatch '^[0-9a-fA-F]{64}$' -or $d.lockSha256 -notmatch '^[0-9a-fA-F]{64}$'){B5Fail 'B5_DEPENDENCY_CONTRACT_INVALID'}
+  $seen[$d.app]=$true;$app=Join-Path $Root ('apps\'+$d.app)
+  if((B5Hash (B5ReadFrozen (Join-Path $app 'package-lock.json') $Lease)) -ine $d.lockSha256){B5Fail 'B5_DEPENDENCY_LOCK_CHANGED'}
+  $base=Join-Path $app 'node_modules';$entries=@(Get-B5DependencyFiles $base);$rows=@();$paths=@{}
+  foreach($entry in $entries){if($paths.ContainsKey($entry.path)){B5Fail 'B5_DEPENDENCY_DUPLICATE'};$paths[$entry.path]=$true;$rows+=@([ordered]@{path=$entry.path;sha256=(B5Hash (B5ReadFrozen $entry.full $Lease)).ToLowerInvariant()})}
+  if($rows.Count -ne $d.files -or (Get-B5DependencyDigest $rows) -ine $d.inventorySha256){B5Fail 'B5_DEPENDENCY_INVENTORY_CHANGED'}
+  # Detect new/removed paths during the read, not just changed expected bytes.
+  $again=@(Get-B5DependencyFiles $base);if($again.Count -ne $entries.Count -or @($again|Where-Object {!$paths.ContainsKey($_.path)}).Count){B5Fail 'B5_DEPENDENCY_DIRECTORY_CHANGED'}
+  if($Lease){Assert-B5Lease $Lease;if(!$Lease.PSObject.Properties['dependencyDirectories']){$Lease|Add-Member -NotePropertyName dependencyDirectories -NotePropertyValue (New-Object Collections.Generic.List[object])};$Lease.dependencyDirectories.Add(@{root=$base;paths=$paths})}
+ }
+}
+function Assert-B5DependencyDirectories($Lease){
+ Assert-B5Lease $Lease
+ if(!$Lease.PSObject.Properties['dependencyDirectories']){B5Fail 'B5_DEPENDENCY_FREEZE_MISSING'}
+ foreach($d in $Lease.dependencyDirectories){$entries=@(Get-B5DependencyFiles $d.root);if($entries.Count -ne $d.paths.Count -or @($entries|Where-Object {!$d.paths.ContainsKey($_.path)}).Count){B5Fail 'B5_DEPENDENCY_DIRECTORY_CHANGED'}}
 }
 function Read-B5Health([int]$Port){if($Port -notin @(4194,4196)){B5Fail 'B5_HEALTH_PORT'};return Invoke-RestMethod ('http://127.0.0.1:'+$Port+'/test-health') -TimeoutSec 5}
 function Assert-B5Health($Health,[int]$Port,[string]$Source,[string]$Package){
@@ -179,14 +237,16 @@ function Read-B5Baseline($Lease){
  $preserved=@();foreach($l in $listeners|Where-Object {$_.LocalPort -notin @(4194,5244) -and $_.OwningProcess -in $nodeIds}){$proc=Get-B5Process $l.OwningProcess;if(!$proc){B5Fail 'B5_PRESERVED_PROCESS_VANISHED'};$preserved+=@{port=$l.LocalPort;address=$l.LocalAddress;process=$proc}}
  return @{controls=$control;originalTargets=$targets;preserved=$preserved;protection=(Read-B5Protection);newManifest=$new;oldManifest=$old;webManifest=$web;stopIntents=@();stopped=@();children=@();controlHash=$p.starter;recordHash=$p.records;generation=0;ticket=$null;lease=$Lease;before=$null}
 }
-function Assert-B5State($Context){
+function Assert-B5State($Context,[switch]$Recovery){
  Assert-B5Lease $Context.lease;$control=Read-B5Controls
  if((B5Hash $control.starter) -cne $Context.controlHash -or (B5Hash $control.records) -cne $Context.recordHash){B5Fail 'B5_CONTROL_RACE'}
  Assert-B5Protection (Read-B5Protection) $Context.protection
+ Assert-B5DependencyDirectories $Context.lease
  $listeners=Get-B5Listeners
  foreach($port in @(4194,5244)){$expected=if($port -in $Context.stopped){@($Context.children|Where-Object {$_.port -eq $port}|ForEach-Object {$_.facts})}else{$Context.originalTargets[$port]};if(@($expected).Count -gt 1){B5Fail 'B5_DUPLICATE_CHILD'};Assert-B5Port $listeners $port $expected}
  Assert-B5KeptProcesses $Context $listeners
- Assert-B5StageHealth $Context
+ Assert-B5StageHealth $Context -Recovery:$Recovery
+ Assert-B5Lease $Context.lease
 }
 function Assert-B5StageHealth($Context,[switch]$Recovery){
  $p=Get-B5Pins;Assert-B5Health (Read-B5Health 4196) 4196 $p.native ('CLEAN-ERP-20261022-'+$p.native.Substring(0,12))
@@ -197,15 +257,15 @@ function Assert-B5StageHealth($Context,[switch]$Recovery){
 function Assert-B5KeptProcesses($Context,$Listeners){
  foreach($keep in $Context.preserved){if(@($Listeners|Where-Object {$_.LocalPort -eq $keep.port -and $_.LocalAddress -ceq $keep.address -and $_.OwningProcess -eq $keep.process.pid}).Count -ne 1){B5Fail 'B5_PRESERVED_LISTENER_CHANGED'};Assert-B5Process (Get-B5Process $keep.process.pid) $keep.process}
 }
-function Assert-B5Boundary($Context){
- Assert-B5State $Context
- $Context.generation++;$Context.ticket=[pscustomobject]@{context=$Context;lease=$Context.lease;generation=$Context.generation;time=(Get-B5Clock);used=$false}
+function Assert-B5Boundary($Context,[switch]$Recovery){
+ Assert-B5State $Context -Recovery:$Recovery
+ $Context.generation++;$Context.ticket=[pscustomobject]@{context=$Context;lease=$Context.lease;generation=$Context.generation;time=(Get-B5Clock);used=$false;recovery=[bool]$Recovery}
  return $Context.ticket
 }
 function Use-B5Boundary($Context,$Ticket){
  Assert-B5Lease $Context.lease
  if(!$Ticket -or ![object]::ReferenceEquals($Ticket,$Context.ticket) -or ![object]::ReferenceEquals($Ticket.context,$Context) -or $Ticket.used -or $Ticket.generation -ne $Context.generation -or (Get-B5Clock)-$Ticket.time -lt 0 -or (Get-B5Clock)-$Ticket.time -gt 60){B5Fail 'B5_STALE_ACTION_TICKET'}
- Assert-B5State $Context
+ Assert-B5State $Context -Recovery:$Ticket.recovery
  if(![object]::ReferenceEquals($Ticket,$Context.ticket) -or $Ticket.used -or $Ticket.generation -ne $Context.generation -or (Get-B5Clock)-$Ticket.time -gt 60){B5Fail 'B5_STALE_ACTION_TICKET'}
  $Ticket.used=$true
 }
@@ -289,10 +349,21 @@ function Sync-B5OwnedRecords($Context){
 function New-B5OsChild($FilePath,$ArgumentList,$WorkingDirectory,$RedirectStandardOutput,$RedirectStandardError){
  return Microsoft.PowerShell.Management\Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -WorkingDirectory $WorkingDirectory -WindowStyle Hidden -PassThru -RedirectStandardOutput $RedirectStandardOutput -RedirectStandardError $RedirectStandardError
 }
+function Invoke-B5JsonCompatible([scriptblock]$Body){
+ # The pinned original rollback starter is restored byte-for-byte. Its PS5
+ # pipeline must emit each root JSON row, just as the corrected template does.
+ # Only this invocation scope shadows the cmdlet; parsing is still the native
+ # Microsoft cmdlet, with no new data, filtering or target relaxation.
+ function ConvertFrom-Json {
+  param([Parameter(ValueFromPipeline=$true)][string]$InputObject)
+  process{$parsed=Microsoft.PowerShell.Utility\ConvertFrom-Json -InputObject $InputObject;foreach($row in $parsed){$row}}
+ }
+ & $Body
+}
 function Invoke-B5PinnedStarter($Context,[string]$Mode){
  $file=Join-Path (Get-B5Pins).runtime 'start-erp.ps1'
  if((B5Hash (B5Read $file)) -cne $Context.controlHash){B5Fail 'B5_STARTER_CHANGED_BEFORE_INVOKE'}
- if($Mode -eq 'OldApi'){& $file -MainApiOnly|Out-Null}else{& $file -ApiWebOnly|Out-Null}
+ Invoke-B5JsonCompatible {if($Mode -eq 'OldApi'){& $file -MainApiOnly|Out-Null}else{& $file -ApiWebOnly|Out-Null}}
 }
 function Start-B5Pair($Context,[string]$Mode){
  if($Mode -notin @('Candidate','OldPair','OldApi')){B5Fail 'B5_START_MODE'}
@@ -332,8 +403,8 @@ function Assert-B5Completed($Context,[switch]$Old){
 function Restore-B5Pair($Context){
  Assert-B5Lease $Context.lease;Assert-B5BeforeImage $Context
  $p=Get-B5Pins
- Read-B5Artifact $p.oldApiRoot $p.oldApiHash $p.oldApi|Out-Null
- Read-B5Artifact $p.oldWebRoot $p.oldWebHash $p.oldWeb|Out-Null
+ Read-B5Artifact $p.oldApiRoot $p.oldApiHash $p.oldApi -Lease $Context.lease|Out-Null
+ Read-B5Artifact $p.oldWebRoot $p.oldWebHash $p.oldWeb -Lease $Context.lease|Out-Null
  # Classify both ports completely BEFORE stopping any replacement. A stranger
  # or respawned legacy watcher prevents all recovery mutation.
  $listeners=Get-B5Listeners
@@ -347,12 +418,21 @@ function Restore-B5Pair($Context){
   if($ids.Count){$own=@($Context.children|Where-Object {$_.port -eq $port -and $_.facts.pid -eq $ids[0]});if($ids.Count -ne 1 -or $own.Count -ne 1){B5Fail 'B5_RECOVERY_FOREIGN_OWNER_PRESERVED'};Assert-B5Process (Get-B5Process $ids[0]) $own[0].facts}
  }
  if(!$Context.stopped.Count){return}
- Assert-B5Protection (Read-B5Protection) $Context.protection
- foreach($child in $Context.children){$facts=Get-B5Process $child.facts.pid;if($facts){Assert-B5Process $facts $child.facts;Assert-B5Lease $Context.lease;Stop-B5Handle $child.handle $child.facts};$child.handle.Dispose()}
- $p=Get-B5Pins;$control=Read-B5Controls
- if((B5Hash $control.starter) -cne $Context.controlHash -or (B5Hash $control.records) -cne $Context.recordHash){B5Fail 'B5_RECOVERY_CONTROL_RACE'}
- foreach($name in @('starter','records')){$file=if($name -eq 'starter'){'start-erp.ps1'}else{'erp-processes.json'};$expected=if($name -eq 'starter'){$Context.controlHash}else{$Context.recordHash};Write-B5Control (Join-Path $p.runtime $file) $expected $Context.controls[$name]}
- $Context.controlHash=B5Hash $Context.controls.starter;$Context.recordHash=B5Hash $Context.controls.records;$Context.children=@()
+ foreach($child in @($Context.children)){
+  $ticket=Assert-B5Boundary $Context -Recovery;Use-B5Boundary $Context $ticket
+  Stop-B5Handle $child.handle $child.facts
+  if(!(Test-B5HandleExited $child.handle $child.facts)){B5Fail 'B5_RECOVERY_STOP_NOT_CONFIRMED'}
+  Assert-B5Lease $Context.lease;Assert-B5Port (Get-B5Listeners) $child.port $null
+  # A confirmed exit changes the expected state BEFORE the next fresh gate;
+  # retained records remain pinned until their own guarded control write.
+  $Context.children=@($Context.children|Where-Object {$_.facts.pid -ne $child.facts.pid});$child.handle.Dispose()
+ }
+ foreach($name in @('starter','records')){
+  $file=if($name -eq 'starter'){'start-erp.ps1'}else{'erp-processes.json'};$expected=if($name -eq 'starter'){$Context.controlHash}else{$Context.recordHash}
+  $ticket=Assert-B5Boundary $Context -Recovery;Use-B5Boundary $Context $ticket
+  Write-B5Control (Join-Path $p.runtime $file) $expected $Context.controls[$name]
+  if($name -eq 'starter'){$Context.controlHash=B5Hash $Context.controls.starter}else{$Context.recordHash=B5Hash $Context.controls.records}
+ }
  $mode=if($Context.stopped.Count -eq 2){'OldPair'}else{'OldApi'}
  Start-B5Pair $Context $mode;Assert-B5Completed $Context -Old;Complete-B5WriterHandoff $Context.lease 'OldPairRestored' $Context
 }
