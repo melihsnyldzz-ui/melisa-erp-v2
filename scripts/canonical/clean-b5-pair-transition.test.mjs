@@ -4,6 +4,28 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(ps,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+win('dependency row append preserves array order values count and pinned digest in PS5',String.raw`
+ $tokens=$null;$errors=$null;[Management.Automation.Language.Parser]::ParseFile('${script}',[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){throw 'APPEND_PS5_SYNTAX'}
+ $p=Get-B5Pins;$script:lock=[Text.Encoding]::UTF8.GetBytes('{}');$lockHash=B5Hash $script:lock
+ $script:dependencyBase=Join-Path $p.oldWebRoot 'apps\sites-workflow\node_modules';$script:entries=@();$script:bytes=@{};$legacy=@()
+ foreach($relative in @('zeta.js',('T'+[char]252+'rk'+[char]231+'e/'+[char]351+'.js'),'alpha.js',([char]197+'ngstrom.js'))){
+  $full=Join-Path $script:dependencyBase $relative;$data=[Text.Encoding]::UTF8.GetBytes('fixture:'+ $relative)
+  $script:entries+=,[pscustomobject]@{path=$relative;full=$full};$script:bytes[$full]=$data
+  $legacy+=,[ordered]@{path=$relative;sha256=(B5Hash $data).ToLowerInvariant()}
+ }
+ function Get-B5LookupEnvironmentStamp{return 'fixture-environment'}
+ $script:realDigest=(Get-Command Get-B5DependencyDigest -CommandType Function).ScriptBlock
+ $expectedDigest=& $script:realDigest $legacy;$script:seen=$null;$script:digestCalls=0
+ function Get-B5DependencyDigest($Rows){$script:digestCalls++;$script:seen=@($Rows);return (& $script:realDigest $Rows)}
+ function B5ReadFrozen($Path,$Lease){if($Path -ceq (Join-Path $p.oldWebRoot 'apps\sites-workflow\package-lock.json')){return ,$script:lock};if(!$script:bytes.ContainsKey($Path)){throw 'APPEND_UNEXPECTED_READ'};return ,$script:bytes[$Path]}
+ function Get-B5DependencyFiles($Base){if($Base -cne $script:dependencyBase){throw 'APPEND_UNEXPECTED_APP'};return $script:entries}
+ function Get-B5ModuleLookupDirectories($Root,$Manifest){return 'C:\fixture-absent\node_modules'}
+ function Assert-B5ModuleLookupContext($Context){}
+ $m=[pscustomobject]@{component='clean-erp-web';kind='ERP_FRONTEND_ONLY';sourceCommit=$p.oldWeb;frontendSourceCommit=$p.oldWeb;backendSourceCommit=$p.oldApi;frontendPatchCommit=$p.frontendPatch;dependencies=@([pscustomobject]@{app='sites-workflow';files=4;inventorySha256=$expectedDigest;lockSha256=$lockHash});files=@([pscustomobject]@{path='apps/sites-workflow/package-lock.json';sha256=$lockHash})}
+ $output=@(Read-B5Dependencies $p.oldWebRoot $m $null)
+ if($output.Count -or $script:digestCalls -ne 1 -or $script:seen.Count -ne 4){throw 'APPEND_OUTPUT_OR_COUNT_CHANGED'}
+ if((ConvertTo-Json -InputObject @($script:seen) -Depth 3 -Compress) -cne (ConvertTo-Json -InputObject @($legacy) -Depth 3 -Compress)){throw 'APPEND_ORDER_OR_VALUES_CHANGED'}
+ if((& $script:realDigest $script:seen) -cne $expectedDigest){throw 'APPEND_DIGEST_CHANGED'};'PASS'`);
 const oneOffSetup=setup+String.raw`
  Add-Type -TypeDefinition 'public sealed class B5OneOffMemoryFixture:System.IO.MemoryStream{public void Flush(bool flushToDisk){base.Flush();}}'
  $p=Get-B5Pins;$script:onePins=$p;function Get-B5Pins{return $script:onePins}

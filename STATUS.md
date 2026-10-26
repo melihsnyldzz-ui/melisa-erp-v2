@@ -1,3 +1,11 @@
+## 26 Ekim — Paket denetimi birikimi ve erken SQL hazırlığı: kaynak hazır, kurulum yapılmadı
+
+`Read-B5Dependencies` içindeki karesel array append yalnız üç satırla `List[object].Add` ve tek `ToArray()` dönüşümüne çevrildi. Sıra/değer/sayı ve gerçek pinli Node digest eşliği dört ASCII/Unicode satırlı Windows PS5 fixture'ında **1 PASS / 0 FAIL / 0 SKIP (1.145 sn)**; reparse/directory/module kontrolleri ve digest gövdesi aynı. Üretim kaynak SHA256 `1dff366bcac346aa9dbd4e3e556bbcf93e9aeec04aed6eb5c3e1519894266fcb`.
+
+Mevcut özel tek-deneme caller'ında üç SQL girdisi ve ucuz exit/schema kontrolü pahalı hazırlığın önüne alındı; erken sonuç atılıyor, stop öncesi ve her stop/recovery sınırındaki taze koruma okuması korunuyor. Sınırlı ilerleme yalnız sabit ana faz, UTC, toplam süre ve sayı taşır. Çağrı çalıştırılmadan yapılan PS5 offline kontrolünde 18 schema durumu, erken hatanın ağır işe ulaşmaması, değişmeyen stop boundary ve dört alanlı progress çıktısı doğrulandı; bağımsız statik GO. Önceki makbuzlar ve tek-deneme guardı korundu.
+
+Bu hazırlıkta gerçek SQL/kurulum/stop/start/restore/61.197 dosya taraması **0**; yeni paket veya eski geniş test tekrarı yok. Gerçek toplam hız kazanımı ölçülmedi; doğrulanan karesel birikim önceki son bir saatlik beklemeyi tek başına açıklamaz. Aday manifest, kurulu TEST ve özgün insan kabulleri aynı; C6 restore **BEKLİYOR**. Sonraki iş, dar kaynak teslimi/exact CI ve bağımsız inceleme ardından aynı doğru birleşik adayın mevcut güvenli kurulum sınırında değerlendirilmesidir; bu kayıt kurulum veya GUI PASS değildir.
+
 ## 26 Ekim — Tek seferlik API/web bakımına kayıt yayını ve geri alma adaptörü: kaynak hazır, kurulum yapılmadı
 
 Mevcut bir defalık bakım çağrısı için `Start-B5OneOffApiWithRecordView` girişi eklendi. Normal `-MainApiOnly` başlatıcısının iki operational JSON yazısı RAM'de tutulur; gerçek disk hash'i ayrı kalır. API ve web'in aynı yakalanmış native handle/doğum kimlikleri doğrulanmadan son kayıt yayımlanmaz. Caller'ın tuttuğu iki gerçek kontrol akışı üzerinden before-image/CAS yayını ve dar inverse yapılır; farklı/yarım içerik veya kayıp koruma tanığı yeni yazma yetkisi üretmez.

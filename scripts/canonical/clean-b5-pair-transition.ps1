@@ -172,9 +172,9 @@ function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
   if($ownLock.Count -ne 1 -or $ownLock[0].sha256 -notmatch '^[0-9a-fA-F]{64}$'){B5Fail 'B5_DEPENDENCY_LOCK_PIN_MISSING'}
   if([object]::ReferenceEquals($contract,$Manifest) -and $ownLock[0].sha256 -ine $d.lockSha256){B5Fail 'B5_DEPENDENCY_LOCK_CONTRACT_CHANGED'}
   if((B5Hash (B5ReadFrozen (Join-Path $app 'package-lock.json') $Lease)) -ine $ownLock[0].sha256){B5Fail 'B5_DEPENDENCY_LOCK_CHANGED'}
-  $base=Join-Path $app 'node_modules';$entries=@(Get-B5DependencyFiles $base);$rows=@();$paths=@{}
-  foreach($entry in $entries){if($paths.ContainsKey($entry.path)){B5Fail 'B5_DEPENDENCY_DUPLICATE'};$paths[$entry.path]=$true;$rows+=@([ordered]@{path=$entry.path;sha256=(B5Hash (B5ReadFrozen $entry.full $Lease)).ToLowerInvariant()})}
-  if($rows.Count -ne $d.files -or (Get-B5DependencyDigest $rows) -ine $d.inventorySha256){B5Fail 'B5_DEPENDENCY_INVENTORY_CHANGED'}
+  $base=Join-Path $app 'node_modules';$entries=@(Get-B5DependencyFiles $base);$rows=[Collections.Generic.List[object]]::new();$paths=@{}
+  foreach($entry in $entries){if($paths.ContainsKey($entry.path)){B5Fail 'B5_DEPENDENCY_DUPLICATE'};$paths[$entry.path]=$true;$rows.Add([ordered]@{path=$entry.path;sha256=(B5Hash (B5ReadFrozen $entry.full $Lease)).ToLowerInvariant()})}
+  if($rows.Count -ne $d.files -or (Get-B5DependencyDigest ($rows.ToArray())) -ine $d.inventorySha256){B5Fail 'B5_DEPENDENCY_INVENTORY_CHANGED'}
   # Detect new/removed paths during the read, not just changed expected bytes.
   $again=@(Get-B5DependencyFiles $base);if($again.Count -ne $entries.Count -or @($again|Where-Object {!$paths.ContainsKey($_.path)}).Count){B5Fail 'B5_DEPENDENCY_DIRECTORY_CHANGED'}
   if($Lease){Assert-B5Lease $Lease;if(!$Lease.PSObject.Properties['dependencyDirectories']){$Lease|Add-Member -NotePropertyName dependencyDirectories -NotePropertyValue (New-Object Collections.Generic.List[object])};$Lease.dependencyDirectories.Add(@{root=$base;paths=$paths})}
