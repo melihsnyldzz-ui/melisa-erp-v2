@@ -1,9 +1,16 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import path from 'node:path';import os from 'node:os';import{createHash}from'node:crypto';import{execFileSync}from'node:child_process';
 const root=import.meta.dirname,script=path.join(root,'clean-b5-pair-transition.ps1').replaceAll("'","''"),fixture=path.join(root,'clean-b5-pair-transition.fixture.ps1').replaceAll("'","''"),template=path.join(root,'clean-b5-pair-start.template.ps1').replaceAll("'","''");
 const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
-function runWin(body,timeout=30000){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(ps,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
+function runWin(body,timeout=30000,executable=ps){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(executable,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+test('finance read BOM record decoding preserves raw before-image bytes in PS5 and PS7',{skip:process.platform!=='win32'},()=>{
+ const body=String.raw`
+ $json='[{"port":4194,"pid":1},{"port":5244,"pid":2},{"port":4196,"pid":3}]'
+ foreach($prefix in @('',([string][char]0xFEFF))){$bytes=[Text.Encoding]::UTF8.GetBytes($prefix+$json);$before=B5Hash $bytes;$rows=@(ConvertFrom-B5Records $bytes);if($rows.Count -ne 3 -or ($rows.port -join ',') -cne '4194,5244,4196' -or (B5Hash $bytes) -cne $before){throw 'BOM_ROWS_OR_RAW_BEFORE_IMAGE_CHANGED'}}
+ foreach($invalid in @(([string][char]0xFEFF+'{"port":4194}'),(' '+[char]0xFEFF+$json),([string][char]0xFEFF+[char]0xFEFF+$json))){$failed=$false;try{ConvertFrom-B5Records ([Text.Encoding]::UTF8.GetBytes($invalid))|Out-Null}catch{$failed=$true};if(!$failed){throw 'BOM_INVALID_ROOT_ACCEPTED'}};'PASS'`;
+ runWin(body);runWin(body,30000,'pwsh.exe');
+});
 const finance=String.raw`. '${script}' -Library -FinanceReadPatch;`;
 const financeManifest=finance+String.raw`
  $p=Get-B5Pins

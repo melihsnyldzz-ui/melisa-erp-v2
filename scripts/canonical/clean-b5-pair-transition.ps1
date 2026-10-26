@@ -315,7 +315,11 @@ function Read-B5Controls {
  $p=Get-B5Pins;return @{starter=(B5Read (Join-Path $p.runtime 'start-erp.ps1'));records=(B5Read (Join-Path $p.runtime 'erp-processes.json'))}
 }
 function ConvertFrom-B5Records([byte[]]$Bytes){
- $text=[Text.Encoding]::UTF8.GetString($Bytes);if(!$text.TrimStart().StartsWith('[')){B5Fail 'B5_RECORD_ARRAY_REQUIRED'}
+ $text=[Text.Encoding]::UTF8.GetString($Bytes)
+ # Normal PS5 startup writes UTF8 with BOM. Decode its leading marker only;
+ # the original bytes remain untouched for held before-image/CAS/inverse.
+ if($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF){$text=$text.Substring(1)}
+ if(!$text.TrimStart().StartsWith('[')){B5Fail 'B5_RECORD_ARRAY_REQUIRED'}
  $parsed=ConvertFrom-Json -InputObject $text
  # Windows PowerShell5 writes a JSON array as one pipeline object. Explicit
  # row output avoids treating .port as an implicitly enumerated array value.
