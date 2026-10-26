@@ -1,3 +1,5 @@
+**26 Ekim — B5 / PR54, yalnız kaynak:** Kapalı hareket paneli ilk açılışta ve yenileme nesli başına tek yüklenir; eski DOM/yanıt yeni sonucu ezmez. Yalnız clean `GET /api/work-collections/context?invoiceId=<pozitif-tamsayı>` mevcut 45sn okuma sınıfına alındı; bu hız kazanımı değildir. 48 hedefli offline test PASS (37+9+2); kurulu 349+b6 değişmedi, GUI/runtime/SQL/kurulum yapılmadı. İnsan kabulü bekliyor.
+
 ## 26 Ekim — Paket denetimi birikimi ve erken SQL hazırlığı: kaynak hazır, kurulum yapılmadı
 
 `Read-B5Dependencies` içindeki karesel array append yalnız üç satırla `List[object].Add` ve tek `ToArray()` dönüşümüne çevrildi. Sıra/değer/sayı ve gerçek pinli Node digest eşliği dört ASCII/Unicode satırlı Windows PS5 fixture'ında **1 PASS / 0 FAIL / 0 SKIP (1.145 sn)**; reparse/directory/module kontrolleri ve digest gövdesi aynı. Üretim kaynak SHA256 `1dff366bcac346aa9dbd4e3e556bbcf93e9aeec04aed6eb5c3e1519894266fcb`.

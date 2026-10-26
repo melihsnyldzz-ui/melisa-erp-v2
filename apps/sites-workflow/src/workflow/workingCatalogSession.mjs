@@ -54,9 +54,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   // cash and invoice-list reads measured 16.6s and 27.7s, beyond the default
   // 15s. Reuse the existing bounded read classes; no retry or speedup is claimed.
   const cleanReadTarget=method==='GET'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
-  const cleanContextRead=cleanReadTarget&&(['/api/work-sales/context','/api/work-receiving/context','/api/finance/cash-register?businessDate=2026-10-22','/api/work-supplier-payments/context'].includes(path)||/^\/api\/work-collections\/context\?invoiceId=[1-9]\d*$/.test(path));
+  const cleanContextRead=cleanReadTarget&&['/api/work-sales/context','/api/work-receiving/context','/api/finance/cash-register?businessDate=2026-10-22','/api/work-supplier-payments/context'].includes(path);
+  const cleanCollectionContextRead=cleanReadTarget&&/^\/api\/work-collections\/context\?invoiceId=[1-9]\d*$/.test(path);
   const cleanInvoiceListRead=cleanReadTarget&&path==='/api/work-sales/invoices';
-  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead||cleanInvoiceListRead?45000:cleanContextRead?30000:timeoutMs;
+  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead||cleanInvoiceListRead||cleanCollectionContextRead?45000:cleanContextRead?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
    const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});

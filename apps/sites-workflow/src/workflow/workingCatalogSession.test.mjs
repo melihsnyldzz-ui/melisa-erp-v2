@@ -144,7 +144,7 @@ test('clean finance reads retain their sealed response until a finite deadline w
    calls.push({url,options});return new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture abort')),{once:true}));
   }});
   await session.start();
-  for(const [method,path,budget]of [['cash','/api/finance/cash-register?businessDate=2026-10-22',30000],['work','/api/work-sales/invoices',45000],['work','/api/work-collections/context?invoiceId=1',30000],['supplierPayments','/api/work-supplier-payments/context',30000]]){
+  for(const [method,path,budget]of [['cash','/api/finance/cash-register?businessDate=2026-10-22',30000],['work','/api/work-sales/invoices',45000],['work','/api/work-collections/context?invoiceId=1',45000],['supplierPayments','/api/work-supplier-payments/context',30000]]){
    const pending=session[method](path),rejected=assert.rejects(pending,e=>e.status===503),count=calls.length;
    t.mock.timers.tick(15000);assert.equal(calls.at(-1).options.signal.aborted,false,path);
    t.mock.timers.tick(budget-15001);assert.equal(calls.at(-1).options.signal.aborted,false,path);
@@ -157,6 +157,29 @@ test('clean finance reads retain their sealed response until a finite deadline w
   session.dispose();
  }
 });
+test('exact clean collection context GET can complete after30s without retry',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const host of ['127.0.0.1','192.168.1.46']){
+  const store=storage(),calls=[];let finish;store.setItem(workingCatalogTokenKey,'collection-read-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:{hostname:host,protocol:'http:',port:'5244'},apiBase:'http://127.0.0.1:4194',storage:store,protectedDevice:null,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push({url,options});return new Promise(resolve=>{finish=resolve;});}});
+  await s.start();const read=s.work('/api/work-collections/context?invoiceId=42');t.mock.timers.tick(30001);assert.equal(calls[0].options.signal.aborted,false);assert.equal(calls.length,1);
+  finish(reply({sealed:'same existing context'}));assert.deepEqual(await read,{sealed:'same existing context'});assert.equal(calls.length,1);assert.equal(store.getItem(workingCatalogTokenKey),'collection-read-fixture');s.dispose();
+ }
+});
+
+test('collection context45s budget excludes nonclean targets and malformed or POST context routes',async t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ for(const [place,base] of [[location,apiBase],[{hostname:'127.0.0.1',protocol:'http:',port:'5234'},'http://127.0.0.1:4184']]){
+  const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'old-target-fixture');store.setItem(testSessionModeKey,'manual');
+  const s=createWorkingCatalogSession({location:place,apiBase:base,storage:store,protectedDevice:null,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return new Promise((_,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture abort')),{once:true}));}});
+  await s.start();const read=s.work('/api/work-collections/context?invoiceId=42'),rejected=assert.rejects(read,e=>e.status===503);t.mock.timers.tick(14999);assert.equal(calls[0].signal.aborted,false);t.mock.timers.tick(1);await rejected;assert.equal(calls.length,1);s.dispose();
+ }
+ const store=storage(),calls=[];store.setItem(workingCatalogTokenKey,'clean-route-fixture');store.setItem(testSessionModeKey,'manual');
+ const s=createWorkingCatalogSession({location:{hostname:'127.0.0.1',protocol:'http:',port:'5244'},apiBase:'http://127.0.0.1:4194',storage:store,protectedDevice:null,fetchImpl:async(url,options)=>{if(url.endsWith('/auth/me'))return reply(user);calls.push(options);return reply({});}});await s.start();
+ for(const path of ['/api/work-collections/context','/api/work-collections/context?invoiceId=0','/api/work-collections/context?invoiceId=01','/api/work-collections/context?invoiceId=42&actorId=10018','/api/work-collections/context?invoiceId=42#extra'])await assert.rejects(()=>s.work(path));
+ await assert.rejects(()=>s.work('/api/work-collections/context?invoiceId=42',{method:'POST',body:{}}));await assert.rejects(()=>s.work('/api/work-collections/context?invoiceId=42',{timeoutMs:600000}));assert.equal(calls.length,0);s.dispose();
+});
+
 test('carton metadata stays on the exact authenticated device origin and rejects cross-target routes before network',async()=>{
  const target={hostname:'127.0.0.1',protocol:'http:',port:'5234',origin:'http://127.0.0.1:5234'},store=storage(),calls=[],person={id:15,permissions:['sales.view'],role:{code:'isolated_test_sales'}};
  store.setItem(testSessionModeKey,'manual');store.setItem(workingCatalogTokenKey,'carton-fixture');
