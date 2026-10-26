@@ -4,6 +4,113 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(ps,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+const oneOffSetup=setup+String.raw`
+ Add-Type -TypeDefinition 'public sealed class B5OneOffMemoryFixture:System.IO.MemoryStream{public void Flush(bool flushToDisk){base.Flush();}}'
+ $p=Get-B5Pins;$script:onePins=$p;function Get-B5Pins{return $script:onePins}
+ $script:newStarter=[Text.Encoding]::UTF8.GetBytes('fixed-composite-starter');$script:onePins.oneOffStarter=B5Hash $script:newStarter
+ $c.stopped=@(4194,5244);$script:witnessLive=$true;$script:writeCount=0;$script:spawnCount=0;$script:failure='';$script:apiMode='Candidate'
+ function Get-B5WriterHandoff{throw 'GENERIC_HANDOFF_MUST_NOT_RUN'}
+ function Assert-B5Lease($Lease){throw 'GENERIC_LEASE_MUST_NOT_RUN'}
+ function Assert-B5Path($Path){if(!$Path.StartsWith('C:\Sirket\ERP\')){throw 'FIXTURE_PATH_SCOPE'}}
+ function Get-B5HeldPublicationStream($Scope,$Name){if($Name -cnotin @('starter','records') -or !$Scope.streams[$Name].CanRead){throw 'B5_HELD_CONTROL_STREAM'};return $Scope.streams[$Name]}
+ function Assert-B5HeldPublicationChildren($Scope){foreach($child in $Scope.context.children){if($child.handle.disposed -or !$script:fx.processes.ContainsKey([int]$child.facts.pid)){throw 'B5_HELD_CHILD_IDENTITY'}}}
+ function New-B5OsChild($FilePath,$ArgumentList,$WorkingDirectory,$RedirectStandardOutput,$RedirectStandardError){
+  $script:spawnCount++;$script:fx.next++;$id=$script:fx.next;$port=if($WorkingDirectory -like '*sites-workflow'){5244}else{4194};$root=if($script:apiMode -eq 'Candidate'){$p.root}elseif($port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot}
+  $script:fx.processes[$id]=New-B5FixtureFacts $id $root $port;return [pscustomobject]@{Id=$id}
+ }
+ function Capture-B5OneOffApiChild($Scope,$Process,$Mode){if($script:failure -eq 'capture'){throw 'FIXTURE_CAPTURE_OPEN_FAILED'};$facts=$script:fx.processes[$Process.Id];$h=Open-B5BoundProcess $facts;$child=@{port=4194;facts=$facts;handle=$h;mode=$Mode;parentChecked=$true};$Scope.context.children+=,$child;return $child}
+ function Fx-OneOffRow($child){$candidate=$child.mode -ceq 'Candidate';$row=[ordered]@{port=$child.port;pid=$child.facts.pid;entry=$(if($child.port -eq 4194){'cleanSyntheticServer.mjs'}else{'vite-preview'});sourceCommit=$(if($candidate){$p.source}elseif($child.port -eq 4194){$p.oldApi}else{$p.oldWeb})};if($child.port -eq 4194){$row.packageId=if($candidate){'candidate-package'}else{'old-api-package'}};$row.root=if($candidate){$p.root}elseif($child.port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot};return $row}
+ function Invoke-B5OneOffNormalApiStarter($StarterFile){
+  $root=if($script:apiMode -eq 'Candidate'){$p.root}else{$p.oldApiRoot};$process=Start-Process -FilePath $p.node -ArgumentList @('src\cleanSyntheticServer.mjs') -WorkingDirectory ($root+'\apps\api') -WindowStyle Hidden -PassThru -RedirectStandardOutput 'fixture.out' -RedirectStandardError 'fixture.err'
+  $lines=[IO.File]::ReadAllText('${template}') -split "\r?\n";$startPorts=@(4194);$newProcesses=@((Fx-OneOffRow $c.children[-1]));$cleanRoot=Split-Path $p.runtime -Parent
+  $line=@($lines|Where-Object {$_ -like '$oldRecords=*'})[0];. ([scriptblock]::Create($line))
+  $first=Get-Content -LiteralPath (Join-Path $p.runtime 'erp-processes.json') -Raw
+  if(@(ConvertFrom-B5Records ([Text.Encoding]::UTF8.GetBytes($first))|Where-Object pid -eq $process.Id).Count -ne 1){throw 'RAM_FIRST_WRITE_NOT_VISIBLE'}
+  $line=@($lines|Where-Object {$_ -like ' $newProcesses+=@(*'})[0];. ([scriptblock]::Create($line))
+  $line=@($lines|Where-Object {$_ -like 'ConvertTo-Json -InputObject @($newProcesses)*'})[0];. ([scriptblock]::Create($line))
+ }
+ $script:candidatePath='C:\Sirket\ERP\evidence\fixture\candidate.ps1';$script:rollbackPath='C:\Sirket\ERP\evidence\fixture\rollback.ps1'
+ $script:fx.files[$script:candidatePath]=$script:newStarter;$script:fx.files[$script:rollbackPath]=$c.controls.starter
+ $script:realHeldCas=(Get-Command Write-B5HeldPublicationCas -CommandType Function).ScriptBlock
+ function Write-B5HeldPublicationCas($Scope,$Name,$Expected,$Bytes){
+  if($Name -eq 'records' -and $script:failure -eq 'record-before'){throw 'FIXTURE_RECORD_WRITE_FAILED'}
+  if($Name -eq 'records' -and $script:failure -eq 'partial'){$s=$Scope.streams.records;$s.SetLength(0);$s.WriteByte(33);$script:writeCount++;throw 'FIXTURE_PARTIAL_WRITE'}
+  & $script:realHeldCas $Scope $Name $Expected $Bytes;$script:writeCount++
+  if(($Name -eq 'records' -and $script:failure -eq 'lost-ack') -or ($script:failure -ceq ('inverse-ack-'+$Name))){$script:failure='';throw 'FIXTURE_RESPONSE_LOST'}
+ }
+ function Fx-OneOffScope{
+  $a=[B5OneOffMemoryFixture]::new();$a.Write($c.controls.starter,0,$c.controls.starter.Length);$a.Position=0
+  $b=[B5OneOffMemoryFixture]::new();$b.Write($c.controls.records,0,$c.controls.records.Length);$b.Position=0
+  return (New-B5HeldPublication $c $a $b {param($scope)if(!$script:witnessLive){throw 'FIXTURE_WITNESS_LOST'};if($scope.context.controlHash -cne $scope.expected.starter -or $scope.context.recordHash -cne $scope.expected.records){throw 'FIXTURE_REAL_CONTEXT_HASH_STALE'}})
+ }
+ function Fx-OneOffAddWeb{
+  $root=if($script:apiMode -eq 'Candidate'){$p.root}else{$p.oldWebRoot};$process=New-B5OsChild $p.node @() ($root+'\apps\sites-workflow') 'fixture.out' 'fixture.err';$facts=$script:fx.processes[$process.Id];$h=Open-B5BoundProcess $facts
+  $c.children+=,@{port=5244;facts=$facts;handle=$h;mode=$(if($script:apiMode -eq 'Candidate'){'Candidate'}else{'OldPair'})}
+  $native=@(ConvertFrom-B5Records $c.controls.records|Where-Object port -eq 4196)[0]
+  $rows=@((Fx-OneOffRow $c.children[0]),(Fx-OneOffRow $c.children[1]),$native)
+  Set-B5OwnedRecordStage $c ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 8)))
+ }
+`;
+win('one-off API entry stages both actual record statements and replay uses the same captured child',oneOffSetup+String.raw`
+ $scope=Fx-OneOffScope;$before=$c.recordHash
+ Start-B5OneOffApiWithRecordView $scope $script:candidatePath
+ if($script:spawnCount -ne 1 -or $c.children.Count -ne 1 -or $c.recordHash -cne $before -or (B5Hash (Read-B5HeldPublicationBytes $scope 'records')) -cne $before -or $script:writeCount){throw 'ONEOFF_STAGE_WROTE_DISK'}
+ $same=$c.children[0];Start-B5OneOffApiWithRecordView $scope $script:candidatePath
+ if($script:spawnCount -ne 1 -or ![object]::ReferenceEquals($same,$c.children[0])){throw 'ONEOFF_REPLAY_SPAWNED'}
+ $rejected=$false;try{Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes}catch{$rejected=$true;if($_.Exception.Message -ne 'B5_FINAL_RECORD_MISSING_CHILD'){throw}};if(!$rejected -or $script:writeCount){throw 'API_ONLY_PUBLISHED_AS_PAIR'};'PASS'`);
+win('one-off held two-file publication reconciles lost ACK without duplicate writes or child adoption',oneOffSetup+String.raw`
+ $scope=Fx-OneOffScope;Start-B5OneOffApiWithRecordView $scope $script:candidatePath;Fx-OneOffAddWeb;$script:failure='lost-ack'
+ $failed=$false;try{Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes}catch{$failed=$true;if($_.Exception.Message -ne 'FIXTURE_RESPONSE_LOST'){throw}};if(!$failed -or $script:writeCount -ne 2){throw 'LOST_ACK_EFFECT'}
+ $children=@($c.children);Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes
+ if($script:writeCount -ne 2 -or $scope.phase -cne 'Committed' -or $c.recordHash -cne $c.stagedRecordHash){throw 'LOST_ACK_NOT_RECONCILED'}
+ Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes;Start-B5OneOffApiWithRecordView $scope $script:candidatePath
+ if($script:writeCount -ne 2 -or $script:spawnCount -ne 2 -or ![object]::ReferenceEquals($children[0],$c.children[0])){throw 'PUBLICATION_REPLAY_EFFECT'}
+ $bad=@(ConvertFrom-B5Records $c.stagedRecordBytes);$bad[0].pid=777;$rejected=$false;try{Set-B5OwnedRecordStage $c ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $bad -Depth 8)))}catch{$rejected=$true};if(!$rejected){throw 'OBSERVED_PID_ADOPTED'};'PASS'`);
+win('one-off second control write failure has exact inverse and repeated inverse is inert',oneOffSetup+String.raw`
+ $scope=Fx-OneOffScope;Start-B5OneOffApiWithRecordView $scope $script:candidatePath;Fx-OneOffAddWeb;$script:failure='record-before'
+ $failed=$false;try{Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes}catch{$failed=$true};if(!$failed -or $script:writeCount -ne 1){throw 'SECOND_WRITE_FAILURE_NOT_PARTIAL'}
+ $script:failure='';Undo-B5HeldPublication $scope
+ foreach($name in @('starter','records')){if((B5Hash (Read-B5HeldPublicationBytes $scope $name)) -cne $scope.beforeHash[$name]){throw 'INVERSE_NOT_EXACT'}}
+ $count=$script:writeCount;Undo-B5HeldPublication $scope;if($script:writeCount -ne $count -or $script:spawnCount -ne 2){throw 'INVERSE_REPLAY_EFFECT'};'PASS'`);
+win('one-off unknown partial write foreign bytes and lost witness fail closed',oneOffSetup+String.raw`
+ $scope=Fx-OneOffScope;Start-B5OneOffApiWithRecordView $scope $script:candidatePath;Fx-OneOffAddWeb;$script:failure='partial'
+ try{Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes}catch{};$count=$script:writeCount
+ $failed=$false;try{Undo-B5HeldPublication $scope}catch{$failed=$true;if($_.Exception.Message -ne 'B5_HELD_PARTIAL_WRITE_UNCERTAIN'){throw}};if(!$failed -or $script:writeCount -ne $count){throw 'UNCERTAIN_WRITE_OVERWRITTEN'}
+ $c.controlHash=B5Hash $c.controls.starter;$c.recordHash=B5Hash $c.controls.records;$scope2=Fx-OneOffScope;$script:failure='';$script:witnessLive=$false
+ $failed=$false;try{Publish-B5HeldControls $scope2 $script:newStarter $c.stagedRecordBytes}catch{$failed=$true;if($_.Exception.Message -ne 'FIXTURE_WITNESS_LOST'){throw}};if(!$failed -or $script:writeCount -ne $count){throw 'WITNESS_LOSS_MUTATION'}
+ $script:witnessLive=$true;$scope3=Fx-OneOffScope;$script:failure='record-before';try{Publish-B5HeldControls $scope3 $script:newStarter $c.stagedRecordBytes}catch{}
+ $foreign=[Text.Encoding]::UTF8.GetBytes('foreign');$scope3.streams.starter.SetLength(0);$scope3.streams.starter.Write($foreign,0,$foreign.Length);$count=$script:writeCount
+ $failed=$false;try{Undo-B5HeldPublication $scope3}catch{$failed=$true;if($_.Exception.Message -ne 'B5_HELD_CONTROL_RACE'){throw}};if(!$failed -or $script:writeCount -ne $count -or (B5Hash (Read-B5HeldPublicationBytes $scope3 'starter')) -cne (B5Hash $foreign)){throw 'FOREIGN_BYTES_OVERWRITTEN'};'PASS'`);
+win('one-off API then web failure preserves disk and rollback publishes real new rollback child rows once',oneOffSetup+String.raw`
+ $scope=Fx-OneOffScope;Start-B5OneOffApiWithRecordView $scope $script:candidatePath;$ownApi=$c.children[0]
+ if($script:writeCount -or $scope.phase -cne 'Staging'){throw 'API_PARTIAL_ALREADY_PUBLISHED'}
+ # The already-authorized one-off caller compensates its captured child;
+ # publication itself never discovers/adopts a PID or stops an old process.
+ Stop-B5Handle $ownApi.handle $ownApi.facts;$ownApi.handle.Dispose();$c.children=@();Undo-B5HeldPublication $scope
+ $rollback=New-B5HeldPublication $c $scope.streams.starter $scope.streams.records {param($s)if(!$script:witnessLive){throw 'FIXTURE_WITNESS_LOST'}}
+ $script:apiMode='OldPair';Start-B5OneOffApiWithRecordView $rollback $script:rollbackPath -Mode Rollback;Fx-OneOffAddWeb
+ Publish-B5HeldControls $rollback $c.controls.starter $c.stagedRecordBytes
+ $actual=@(ConvertFrom-B5Records (Read-B5HeldPublicationBytes $rollback 'records'))
+ if(@($actual|Where-Object {$_.port -in @(4194,5244) -and $_.pid -in @(101,102)}).Count -or @($actual|Where-Object {$_.port -eq 4196 -and $_.pid -eq 103}).Count -ne 1){throw 'ROLLBACK_PUBLISHED_DEAD_OR_NATIVE_PID'}
+ $count=$script:writeCount;$spawns=$script:spawnCount;$stops=@($script:fx.events|Where-Object {$_ -like 'stop-*'}).Count
+ Undo-B5HeldPublication $scope;Publish-B5HeldControls $rollback $c.controls.starter $c.stagedRecordBytes
+ if($script:writeCount -ne $count -or $script:spawnCount -ne $spawns -or @($script:fx.events|Where-Object {$_ -like 'stop-*'}).Count -ne $stops){throw 'ROLLBACK_SECOND_CALL_EFFECT'};'PASS'`);
+win('one-off inverse lost ACK at first or last write preserves exact context and repeat has no duplicate effect',oneOffSetup+String.raw`
+ foreach($lost in @('records','starter')){
+  $c=Reset-B5Fixture;$c.stopped=@(4194,5244);$script:fx.files[$script:candidatePath]=$script:newStarter;$script:fx.files[$script:rollbackPath]=$c.controls.starter
+  $scope=Fx-OneOffScope;Start-B5OneOffApiWithRecordView $scope $script:candidatePath;Fx-OneOffAddWeb;Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes
+  $script:failure='inverse-ack-'+$lost;$failed=$false;try{Undo-B5HeldPublication $scope}catch{$failed=$true;if($_.Exception.Message -ne 'FIXTURE_RESPONSE_LOST'){throw}};if(!$failed){throw 'INVERSE_LOST_ACK_NOT_EXERCISED'}
+  if($c.controlHash -cne $scope.expected.starter -or $c.recordHash -cne $scope.expected.records){throw 'INVERSE_CONTEXT_NOT_RECONCILED'}
+  $count=$script:writeCount;Undo-B5HeldPublication $scope;$expectedRemaining=if($lost -eq 'records'){1}else{0}
+  if($script:writeCount -ne ($count+$expectedRemaining)){throw 'INVERSE_DUPLICATE_WRITE'}
+  foreach($name in @('starter','records')){if((B5Hash (Read-B5HeldPublicationBytes $scope $name)) -cne $scope.beforeHash[$name]){throw 'INVERSE_LOST_ACK_NOT_EXACT'}}
+  $count=$script:writeCount;Undo-B5HeldPublication $scope;if($script:writeCount -ne $count){throw 'FINAL_INVERSE_REPLAY_EFFECT'}
+ };'PASS'`);
+win('one-off OS receipt survives failed capture and cannot trigger a duplicate spawn or unknown stop',oneOffSetup+String.raw`
+ $scope=Fx-OneOffScope;$script:failure='capture';$failed=$false;try{Start-B5OneOffApiWithRecordView $scope $script:candidatePath}catch{$failed=$true;if($_.Exception.Message -ne 'FIXTURE_CAPTURE_OPEN_FAILED'){throw}}
+ if(!$failed -or $script:spawnCount -ne 1 -or $c.children.Count -or !$scope.pendingApiSpawn.process -or $scope.pendingApiSpawn.capturedChild){throw 'PENDING_OS_RECEIPT_LOST'}
+ $receipt=$scope.pendingApiSpawn.process;$failed=$false;try{Start-B5OneOffApiWithRecordView $scope $script:candidatePath}catch{$failed=$true;if($_.Exception.Message -ne 'B5_ONEOFF_API_CAPTURE_PENDING'){throw}}
+ if(!$failed -or $script:spawnCount -ne 1 -or ![object]::ReferenceEquals($receipt,$scope.pendingApiSpawn.process) -or @($script:fx.events|Where-Object {$_ -like 'stop-*'}).Count -or $script:writeCount){throw 'PENDING_RECEIPT_ADOPTED_OR_DUPLICATED'};'PASS'`);
 win('review old recovery locks use their own pinned raw bytes without converting CRLF',String.raw`
  $p=Get-B5Pins;$script:pins=$p;function Get-B5Pins{return $script:pins}
  $crlf=[string][char]13+[char]10;$lfOnly=[string][char]10

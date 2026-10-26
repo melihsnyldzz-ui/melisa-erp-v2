@@ -13,7 +13,7 @@ function Get-B5Pins {
   root='C:\Sirket\ERP\releases\CLEAN-ERP-20261026-349fae354e2a-b6de5305-GREENCOMBINED-OFFLINE';source='349fae354e2a90852cd0594ada485105bf091e43';tree='1240b0752cab2c99daf1bf2f2ca4eaa9093ec187';manifest='3AA51A25970B0EFE512E865B5572C0378931A5EB848E1AB81AB571F4DE19178F';frontendPatch='b6de5305ba46478997ea77beaa41fdb1bb2b3af0'
   dependencyRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE';dependencyManifest='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
   native='035fcc08d8f56cdd0cbc437a290285328fce1ec9';starter='17AEC0255BF17EDE43A72A9F42F8E49D7BB9C125DC984DF78D0B1F4388E569DB';records='92F417D2E1B262A1564FD698566B338C8D0747EB6BF28F078C9D6B5B998FCCC5'
-  template='4C2DCA8F87368E6EF291FA4E1517E5E19C12FA8A8BCC7D39217A219F1728C509'
+  template='4C2DCA8F87368E6EF291FA4E1517E5E19C12FA8A8BCC7D39217A219F1728C509';oneOffStarter='75739CBE11E716D6736CCBB80B189D573A7C6F4D0FB3B3051ED704A896F72B21'
  }
 }
 function B5Fail([string]$Code){throw $Code}
@@ -384,23 +384,243 @@ function Write-B5Control([string]$Path,[string]$ExpectedHash,[byte[]]$Bytes){
  $stream=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
  try{$memory=New-Object IO.MemoryStream;$stream.CopyTo($memory);try{if((B5Hash $memory.ToArray()) -cne $ExpectedHash){B5Fail 'B5_CONTROL_WRITE_RACE'}}finally{$memory.Dispose()};$stream.Position=0;$stream.SetLength(0);$stream.Write($Bytes,0,$Bytes.Length);$stream.Flush($true)}finally{$stream.Dispose()}
 }
-function Sync-B5OwnedRecords($Context){
+function Assert-B5OwnedRecordBytes($Context,[byte[]]$Bytes,[switch]$Final){
  # The pinned launcher can publish a new API row before the web spawn fails.
  # Accept only rows for the original tuple or the immediately captured child;
  # never turn an arbitrary post-failure JSON file into an owned process.
- $bytes=B5Read (Join-Path (Get-B5Pins).runtime 'erp-processes.json')
- $rows=@(ConvertFrom-B5Records $bytes);$old=@(ConvertFrom-B5Records $Context.controls.records)
+ $rows=@(ConvertFrom-B5Records $Bytes);$old=@(ConvertFrom-B5Records $Context.controls.records)
  if($rows.Count -ne $old.Count){B5Fail 'B5_LAUNCH_RECORD_RACE'}
  foreach($row in $rows){
   $prior=@($old|Where-Object port -eq $row.port);if($prior.Count -ne 1 -or @($rows|Where-Object port -eq $row.port).Count -ne 1){B5Fail 'B5_LAUNCH_RECORD_RACE'}
-  if(($row|ConvertTo-Json -Depth 8 -Compress) -ceq ($prior[0]|ConvertTo-Json -Depth 8 -Compress)){continue}
+  if(($row|ConvertTo-Json -Depth 8 -Compress) -ceq ($prior[0]|ConvertTo-Json -Depth 8 -Compress)){
+   if($Final -and $row.port -in $Context.stopped){B5Fail 'B5_FINAL_RECORD_MISSING_CHILD'}
+   continue
+  }
   $child=@($Context.children|Where-Object {$_.port -eq $row.port -and $_.facts.pid -eq $row.pid});if($child.Count -ne 1){B5Fail 'B5_LAUNCH_RECORD_RACE'}
   $p=Get-B5Pins;$candidate=$child[0].mode -ceq 'Candidate';$root=if($candidate){$p.root}elseif($row.port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot};$source=if($candidate){$p.source}elseif($row.port -eq 4194){$p.oldApi}else{$p.oldWeb}
   $entry=if($row.port -eq 4194){'cleanSyntheticServer.mjs'}else{'vite-preview'}
   $expected=[ordered]@{port=$row.port;pid=$row.pid;entry=$entry;sourceCommit=$source};if($row.port -eq 4194){$expected.packageId=if($candidate){$Context.newManifest.packageId}else{$Context.oldManifest.packageId}};$expected.root=$root
   if(($row|ConvertTo-Json -Depth 8 -Compress) -cne ($expected|ConvertTo-Json -Depth 8 -Compress)){B5Fail 'B5_LAUNCH_RECORD_RACE'}
  }
+}
+function Read-B5RecordViewDisk($Context){
+ if($Context.ContainsKey('heldRecordPublication')){
+  $scope=$Context.heldRecordPublication
+  if(![object]::ReferenceEquals($scope.context,$Context)){B5Fail 'B5_HELD_RECORD_CONTEXT'}
+  return ,(Read-B5HeldPublicationBytes $scope 'records')
+ }
+ return ,(B5Read (Join-Path (Get-B5Pins).runtime 'erp-processes.json'))
+}
+function Sync-B5OwnedRecords($Context){
+ $bytes=Read-B5RecordViewDisk $Context
+ Assert-B5OwnedRecordBytes $Context $bytes
+ if($Context.ContainsKey('stagedRecordBytes') -and (B5Hash $bytes) -cne $Context.recordHash){B5Fail 'B5_RECORD_VIEW_DISK_CHANGED'}
  $Context.recordHash=B5Hash $bytes
+}
+function Set-B5OwnedRecordStage($Context,[byte[]]$Bytes){
+ Assert-B5OwnedRecordBytes $Context $Bytes
+ $Context.stagedRecordBytes=[byte[]]$Bytes.Clone();$Context.stagedRecordHash=B5Hash $Bytes
+}
+function Invoke-B5StarterRecordView($Context,[scriptblock]$Body){
+ # This adapter neither issues ownership nor starts/adopts a process. The
+ # existing caller captures real birth handles. Disk hash remains separate
+ # from both MainApiOnly writes until the pair has actually been validated.
+ $recordPath=Join-Path (Get-B5Pins).runtime 'erp-processes.json'
+ $before=Read-B5RecordViewDisk $Context
+ if((B5Hash $before) -cne $Context.recordHash){B5Fail 'B5_RECORD_VIEW_RACE'}
+ $Context.stagedRecordBytes=[byte[]]$before.Clone();$Context.stagedRecordHash=B5Hash $before
+ $recordContext=$Context
+ try{& {
+  function Get-Content {
+   param([string]$LiteralPath,[switch]$Raw)
+   if($LiteralPath -ceq $recordPath){
+    if(!$Raw){B5Fail 'B5_RECORD_VIEW_RAW_REQUIRED'}
+    return [Text.Encoding]::UTF8.GetString($recordContext.stagedRecordBytes)
+   }
+   Microsoft.PowerShell.Management\Get-Content @PSBoundParameters
+  }
+  function Set-Content {
+   param([string]$LiteralPath,[string]$Encoding,[Parameter(ValueFromPipeline=$true)]$Value)
+   process{
+    if($LiteralPath -cne $recordPath -or $Encoding -ine 'utf8' -or !($Value -is [string])){B5Fail 'B5_RECORD_VIEW_WRITE_SCOPE'}
+    $bytes=[Text.UTF8Encoding]::new($false).GetBytes($Value)
+    Set-B5OwnedRecordStage $recordContext $bytes
+   }
+  }
+  & $Body
+ }}finally{
+  if((B5Hash (Read-B5RecordViewDisk $Context)) -cne $Context.recordHash){B5Fail 'B5_RECORD_VIEW_DISK_CHANGED'}
+ }
+}
+function Publish-B5StagedRecords($Context){
+ if(!$Context.ContainsKey('stagedRecordBytes')){B5Fail 'B5_RECORD_STAGE_MISSING'}
+ Assert-B5OwnedRecordBytes $Context $Context.stagedRecordBytes -Final
+ $hash=B5Hash $Context.stagedRecordBytes
+ if($hash -cne $Context.stagedRecordHash){B5Fail 'B5_RECORD_STAGE_CHANGED'}
+ $ticket=Assert-B5Boundary $Context;Assert-B5BeforeImage $Context
+ if($Context.recordHash -ceq $hash){return}
+ Use-B5Boundary $Context $ticket
+ Write-B5Control (Join-Path (Get-B5Pins).runtime 'erp-processes.json') $Context.recordHash $Context.stagedRecordBytes
+ $read=B5Read (Join-Path (Get-B5Pins).runtime 'erp-processes.json')
+ if((B5Hash $read) -cne $hash){B5Fail 'B5_RECORD_PUBLICATION_NOT_CONFIRMED'}
+ $Context.recordHash=$hash
+}
+function Get-B5HeldPublicationStream($Scope,[string]$Name){
+ if($Name -cnotin @('starter','records')){B5Fail 'B5_HELD_CONTROL_SCOPE'}
+ $stream=$Scope.streams[$Name];$file=if($Name -eq 'starter'){'start-erp.ps1'}else{'erp-processes.json'}
+ $path=Join-Path (Get-B5Pins).runtime $file
+ if(!($stream -is [IO.FileStream]) -or !$stream.CanRead -or !$stream.CanWrite -or $stream.Name -cne $path){B5Fail 'B5_HELD_CONTROL_STREAM'}
+ Assert-B5Path $path;return $stream
+}
+function Read-B5HeldPublicationBytes($Scope,[string]$Name){
+ $stream=Get-B5HeldPublicationStream $Scope $Name;$position=$stream.Position;$memory=[IO.MemoryStream]::new()
+ try{$stream.Position=0;$stream.CopyTo($memory);return ,$memory.ToArray()}finally{$stream.Position=$position;$memory.Dispose()}
+}
+function Assert-B5HeldPublicationChildren($Scope){
+ # A record row is never a child-ownership source. Only native birth handles
+ # already captured by the existing one-off caller may reach publication.
+ foreach($child in $Scope.context.children){
+  if(!($child.handle -is [B5PairHandle]) -or $child.handle.IsClosed -or $child.handle.IsInvalid -or $child.handle.CreationTicks -lt $Scope.createdUtcTicks -or [B5PairKernel]::Exited($child.handle,[long]$child.facts.birth)){B5Fail 'B5_HELD_CHILD_IDENTITY'}
+  if($child.ContainsKey('parentChecked') -and !$child.parentChecked){B5Fail 'B5_ONEOFF_CHILD_PARENT'}
+ }
+}
+function Assert-B5HeldPublicationBoundary($Scope){
+ if(!($Scope.boundary -is [scriptblock])){B5Fail 'B5_HELD_BOUNDARY_REQUIRED'}
+ # This is the existing operator's real fresh witness, not a new admission
+ # issuer. This component cannot exclude restarters or authorize stop/start.
+ & $Scope.boundary $Scope
+ Assert-B5HeldPublicationChildren $Scope
+ foreach($name in @('starter','records')){
+  if((B5Hash $Scope.before[$name]) -cne $Scope.beforeHash[$name]){B5Fail 'B5_HELD_BEFORE_IMAGE_CHANGED'}
+  $null=Get-B5HeldPublicationStream $Scope $name
+ }
+}
+function New-B5HeldPublication($Context,$StarterStream,$RecordStream,[scriptblock]$Boundary){
+ $scope=@{context=$Context;streams=@{starter=$StarterStream;records=$RecordStream};boundary=$Boundary;before=@{};beforeHash=@{};expected=@{starter=$Context.controlHash;records=$Context.recordHash};writes=@{};phase='Staging';uncertain=$false;createdUtcTicks=[DateTime]::UtcNow.Ticks}
+ foreach($name in @('starter','records')){
+  $bytes=Read-B5HeldPublicationBytes $scope $name
+  if((B5Hash $bytes) -cne $scope.expected[$name]){B5Fail 'B5_HELD_INITIAL_CAS'}
+  $scope.before[$name]=[byte[]]$bytes.Clone();$scope.beforeHash[$name]=B5Hash $bytes
+ }
+ Assert-B5HeldPublicationBoundary $scope;return $scope
+}
+function Write-B5HeldPublicationCas($Scope,[string]$Name,[string]$Expected,[byte[]]$Bytes){
+ Assert-B5HeldPublicationBoundary $Scope
+ if((B5Hash (Read-B5HeldPublicationBytes $Scope $Name)) -cne $Expected){B5Fail 'B5_HELD_CONTROL_RACE'}
+ $stream=Get-B5HeldPublicationStream $Scope $Name
+ $stream.Position=0;$stream.SetLength(0);$stream.Write($Bytes,0,$Bytes.Length);$stream.Flush($true)
+ if((B5Hash (Read-B5HeldPublicationBytes $Scope $Name)) -cne (B5Hash $Bytes)){B5Fail 'B5_HELD_WRITE_NOT_CONFIRMED'}
+}
+function Publish-B5HeldControls($Scope,[byte[]]$StarterStage,[byte[]]$RecordStage){
+ if($Scope.phase -eq 'Undone' -or $Scope.uncertain){B5Fail 'B5_HELD_PUBLICATION_CLOSED'}
+ Assert-B5OwnedRecordBytes $Scope.context $RecordStage -Final
+ $p=Get-B5Pins;$modes=@($Scope.context.children|ForEach-Object {$_.mode}|Sort-Object -Unique)
+ if($modes.Count -ne 1 -or $modes[0] -cnotin @('Candidate','OldPair') -or @($Scope.context.stopped|Sort-Object -Unique).Count -ne 2 -or 4194 -notin $Scope.context.stopped -or 5244 -notin $Scope.context.stopped){B5Fail 'B5_HELD_PAIR_SCOPE'}
+ $starterHash=if($modes[0] -ceq 'Candidate'){$p.oneOffStarter}else{B5Hash $Scope.context.controls.starter}
+ if((B5Hash $StarterStage) -cne $starterHash){B5Fail 'B5_HELD_STARTER_IDENTITY'}
+ $stages=@{starter=$StarterStage;records=$RecordStage}
+ foreach($name in @('starter','records')){
+  $hash=B5Hash $stages[$name]
+  if($Scope.writes.ContainsKey($name)){
+   if($Scope.writes[$name].after -cne $hash){B5Fail 'B5_HELD_PUBLICATION_BODY_CHANGED'}
+   if($Scope.writes[$name].applied){Assert-B5HeldPublicationBoundary $Scope;if((B5Hash (Read-B5HeldPublicationBytes $Scope $name)) -cne $hash){B5Fail 'B5_HELD_CONTROL_RACE'};if($name -eq 'starter'){$Scope.context.controlHash=$hash}else{$Scope.context.recordHash=$hash};continue}
+  }else{$Scope.writes[$name]=@{before=$Scope.expected[$name];after=$hash;applied=$false}}
+  if($Scope.expected[$name] -ceq $hash){Assert-B5HeldPublicationBoundary $Scope;if((B5Hash (Read-B5HeldPublicationBytes $Scope $name)) -cne $hash){B5Fail 'B5_HELD_CONTROL_RACE'};continue}
+  try{
+   Write-B5HeldPublicationCas $Scope $name $Scope.expected[$name] $stages[$name]
+   $Scope.writes[$name].applied=$true;$Scope.expected[$name]=$hash
+  }catch{
+   # An exact own after-image covers a lost acknowledgment. Unknown partial
+   # bytes never become a new CAS baseline and cannot trigger an inverse.
+   $actual=B5Hash (Read-B5HeldPublicationBytes $Scope $name)
+   if($actual -ceq $Scope.writes[$name].after){
+    $Scope.writes[$name].applied=$true;$Scope.expected[$name]=$actual
+    if($name -eq 'starter'){$Scope.context.controlHash=$actual}else{$Scope.context.recordHash=$actual}
+   }
+   elseif($actual -cne $Scope.writes[$name].before){$Scope.uncertain=$true}
+   $Scope.phase='PublicationFailed';throw
+  }
+  if($name -eq 'starter'){$Scope.context.controlHash=$hash}else{$Scope.context.recordHash=$hash}
+ }
+ $Scope.phase='Committed'
+}
+function Undo-B5HeldPublication($Scope){
+ if($Scope.phase -eq 'Undone'){return}
+ if($Scope.uncertain){B5Fail 'B5_HELD_PARTIAL_WRITE_UNCERTAIN'}
+ foreach($name in @('records','starter')){
+  if(!$Scope.writes.ContainsKey($name) -or !$Scope.writes[$name].applied){continue}
+  try{Write-B5HeldPublicationCas $Scope $name $Scope.writes[$name].after $Scope.before[$name]}
+  catch{
+   $actual=B5Hash (Read-B5HeldPublicationBytes $Scope $name)
+   if($actual -ceq $Scope.beforeHash[$name]){
+    $Scope.writes[$name].applied=$false;$Scope.expected[$name]=$actual
+    if($name -eq 'starter'){$Scope.context.controlHash=$actual}else{$Scope.context.recordHash=$actual}
+   }elseif($actual -cne $Scope.writes[$name].after){$Scope.uncertain=$true}
+   throw
+  }
+  $Scope.writes[$name].applied=$false;$Scope.expected[$name]=$Scope.beforeHash[$name]
+  if($name -eq 'starter'){$Scope.context.controlHash=$Scope.beforeHash[$name]}else{$Scope.context.recordHash=$Scope.beforeHash[$name]}
+ }
+ $Scope.phase='Undone'
+}
+function Invoke-B5OneOffNormalApiStarter([string]$StarterFile){
+ Invoke-B5JsonCompatible {& $StarterFile -MainApiOnly|Out-Null}
+}
+function Capture-B5OneOffApiChild($Scope,$Process,[string]$Mode){
+ $p=Get-B5Pins
+ if(!($Process -is [Diagnostics.Process]) -or $Process.StartTime.ToUniversalTime().Ticks -lt $Scope.createdUtcTicks){B5Fail 'B5_ONEOFF_NEW_CHILD_REQUIRED'}
+ # Capture the OS creation receipt before any later query can fail. This is
+ # a child returned by the qualified Start-Process call below, not a PID read
+ # from operational JSON or an old process adopted into a new owner.
+ $facts=@{pid=$Process.Id;birth=$Process.StartTime.ToUniversalTime().Ticks;exe=$p.node;parent=$PID}
+ $handle=Open-B5BoundProcess $facts
+ $child=@{port=4194;facts=$facts;handle=$handle;mode=$Mode;spawnReceipt=$Process;parentChecked=$false}
+ $Scope.context.children+=,$child
+ $actual=Get-CimInstance Win32_Process -Filter ('ProcessId='+$Process.Id)|Select-Object ProcessId,ParentProcessId,ExecutablePath
+ if(!$actual -or $actual.ParentProcessId -ne $PID -or $actual.ExecutablePath -cne $p.node){B5Fail 'B5_ONEOFF_CHILD_PARENT'}
+ $child.parentChecked=$true
+ return $child
+}
+function Start-B5OneOffApiWithRecordView($Scope,[string]$StarterFile,[ValidateSet('Candidate','Rollback')][string]$Mode='Candidate'){
+ # Reachable from the separately authorized, existing one-off maintenance
+ # session. It does not call/override the generic handoff or lease functions.
+ # The caller must already hold both controls and supply its real fresh
+ # restart-exclusion/preserved-process witness; this adapter cannot issue it.
+ Assert-B5HeldPublicationBoundary $Scope
+ $p=Get-B5Pins;$expected=if($Mode -ceq 'Candidate'){$p.oneOffStarter}else{B5Hash $Scope.context.controls.starter}
+ Assert-B5Path $StarterFile
+ if((B5Hash (B5Read $StarterFile)) -cne $expected){B5Fail 'B5_ONEOFF_NORMAL_STARTER_CHANGED'}
+ if(4194 -notin $Scope.context.stopped -or 5244 -notin $Scope.context.stopped){B5Fail 'B5_ONEOFF_STOP_SCOPE'}
+ if($Scope.context.ContainsKey('oneOffApiStage')){
+  $prior=$Scope.context.oneOffApiStage;$current=@($Scope.context.children|Where-Object {[object]::ReferenceEquals($_,$prior.child)})
+  if($current.Count){
+   if($prior.mode -cne $Mode -or $prior.starterHash -cne $expected){B5Fail 'B5_ONEOFF_API_STAGE_CHANGED'}
+   if(!$prior.completed){B5Fail 'B5_ONEOFF_API_STAGE_INCOMPLETE'}
+   Assert-B5OwnedRecordBytes $Scope.context $Scope.context.stagedRecordBytes;return
+  }
+ }
+ if($Scope.ContainsKey('pendingApiSpawn') -and !$Scope.pendingApiSpawn.capturedChild){B5Fail 'B5_ONEOFF_API_CAPTURE_PENDING'}
+ $Scope.context.heldRecordPublication=$Scope
+ $oneOffScope=$Scope;$oneOffMode=$Mode
+ Invoke-B5StarterRecordView $Scope.context {& {
+  function Start-Process {
+   param($FilePath,$ArgumentList,$WorkingDirectory,$WindowStyle,[switch]$PassThru,$RedirectStandardOutput,$RedirectStandardError)
+   $s=$oneOffScope;$pins=Get-B5Pins;$candidate=$oneOffMode -ceq 'Candidate';$root=if($candidate){$pins.root}else{$pins.oldApiRoot}
+   if($FilePath -cne $pins.node -or $WorkingDirectory -cne ($root+'\apps\api') -or ($ArgumentList -join '|') -cne 'src\cleanSyntheticServer.mjs' -or $WindowStyle -ine 'Hidden' -or !$PassThru -or @($s.context.children|Where-Object port -eq 4194).Count){B5Fail 'B5_ONEOFF_API_START_SCOPE'}
+   Assert-B5HeldPublicationBoundary $s
+   $process=New-B5OsChild $FilePath @((Join-Path $WorkingDirectory 'src\cleanSyntheticServer.mjs')) $WorkingDirectory $RedirectStandardOutput $RedirectStandardError
+   # Keep the actual returned OS receipt before StartTime, OpenProcess or CIM
+   # can fail. A pending receipt is not permission to adopt or kill a PID.
+   $s.pendingApiSpawn=@{process=$process;mode=$oneOffMode;capturedChild=$null}
+   $captured=Capture-B5OneOffApiChild $s $process $(if($candidate){'Candidate'}else{'OldPair'})
+   $s.pendingApiSpawn.capturedChild=$captured
+   $s.context.oneOffApiStage=@{child=$captured;mode=$oneOffMode;starterHash=$(if($candidate){$pins.oneOffStarter}else{B5Hash $s.context.controls.starter});completed=$false}
+   return $process
+  }
+  Invoke-B5OneOffNormalApiStarter $StarterFile
+ }}
+ if(!$Scope.context.ContainsKey('oneOffApiStage')){B5Fail 'B5_ONEOFF_API_NOT_CAPTURED'}
+ $Scope.context.oneOffApiStage.completed=$true
 }
 function New-B5OsChild($FilePath,$ArgumentList,$WorkingDirectory,$RedirectStandardOutput,$RedirectStandardError){
  return Microsoft.PowerShell.Management\Start-Process -FilePath $FilePath -ArgumentList $ArgumentList -WorkingDirectory $WorkingDirectory -WindowStyle Hidden -PassThru -RedirectStandardOutput $RedirectStandardOutput -RedirectStandardError $RedirectStandardError
@@ -445,7 +665,7 @@ function Start-B5Pair($Context,[string]$Mode){
    $bound=Open-B5BoundProcess $facts;$c.children+=@{port=$port;facts=$facts;handle=$bound;mode=$script:B5LaunchMode}
    $child
   }
-  Invoke-B5PinnedStarter $Context $Mode
+  Invoke-B5StarterRecordView $Context {Invoke-B5PinnedStarter $Context $Mode}
  }}finally{Sync-B5OwnedRecords $Context}
 }
 function Assert-B5Completed($Context,[switch]$Old){
@@ -455,6 +675,7 @@ function Assert-B5Completed($Context,[switch]$Old){
  $root=if($Old){$p.oldWebRoot}else{$p.root};$m=if($Old){$Context.webManifest}else{$Context.newManifest};$entry=@($m.files|Where-Object path -match '^apps/sites-workflow/dist/assets/example-[^.]+\.js$')
  if($entry.Count -ne 1){B5Fail 'B5_WEB_ENTRY'};$url='http://127.0.0.1:5244/'+($entry[0].path -replace '^apps/sites-workflow/dist/','');$r=Invoke-WebRequest $url -UseBasicParsing -Headers @{'Accept-Encoding'='identity'} -TimeoutSec 5
  if((B5Hash $r.RawContentStream.ToArray()) -ine $entry[0].sha256){B5Fail 'B5_SERVED_WEB_CHANGED'}
+ Publish-B5StagedRecords $Context
 }
 function Restore-B5Pair($Context){
  Assert-B5Lease $Context.lease;Assert-B5BeforeImage $Context
