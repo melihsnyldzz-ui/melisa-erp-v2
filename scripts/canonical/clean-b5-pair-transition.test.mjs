@@ -4,8 +4,10 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(ps,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
-win('dependency row append preserves array order values count and pinned digest in PS5',String.raw`
+win('dependency row append preserves array order values count and real Node digest in PS5',String.raw`
  $tokens=$null;$errors=$null;[Management.Automation.Language.Parser]::ParseFile('${script}',[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){throw 'APPEND_PS5_SYNTAX'}
+ $script:appendPins=(Get-B5Pins).PSObject.Copy();$script:appendPins.node='${process.execPath.replaceAll("'","''")}'
+ function Get-B5Pins{return $script:appendPins}
  $p=Get-B5Pins;$script:lock=[Text.Encoding]::UTF8.GetBytes('{}');$lockHash=B5Hash $script:lock
  $script:dependencyBase=Join-Path $p.oldWebRoot 'apps\sites-workflow\node_modules';$script:entries=@();$script:bytes=@{};$legacy=@()
  foreach($relative in @('zeta.js',('T'+[char]252+'rk'+[char]231+'e/'+[char]351+'.js'),'alpha.js',([char]197+'ngstrom.js'))){
