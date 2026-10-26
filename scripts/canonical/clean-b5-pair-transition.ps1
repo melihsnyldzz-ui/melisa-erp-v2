@@ -1,11 +1,12 @@
-param([switch]$Library,[switch]$Apply)
+param([switch]$Library,[switch]$Apply,[switch]$FinanceReadPatch)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $script:B5Lease=$null
 $script:B5Handoff=$null
+$script:B5FinanceReadPatch=[bool]$FinanceReadPatch
 
 function Get-B5Pins {
- [pscustomobject]@{
+ $pins=[pscustomobject]@{
   runtime='C:\Sirket\ERP\clean\20261022\runtime';database='MELISA_ERP_CLEAN_TEST_20261022';environment='e662fd94-d797-4b3b-938a-d143ad758b67'
   node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'
   oldApiRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL';oldApi='b9dd984876c808482017365556538078601187b8';oldApiHash='DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E'
@@ -14,7 +15,43 @@ function Get-B5Pins {
   dependencyRoot='C:\Sirket\ERP\releases\CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE';dependencyManifest='9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059'
   native='035fcc08d8f56cdd0cbc437a290285328fce1ec9';starter='17AEC0255BF17EDE43A72A9F42F8E49D7BB9C125DC984DF78D0B1F4388E569DB';records='92F417D2E1B262A1564FD698566B338C8D0747EB6BF28F078C9D6B5B998FCCC5'
   template='4C2DCA8F87368E6EF291FA4E1517E5E19C12FA8A8BCC7D39217A219F1728C509';oneOffStarter='75739CBE11E716D6736CCBB80B189D573A7C6F4D0FB3B3051ED704A896F72B21'
+  financeReadPatch=$false;webRoot=$null;webManifest=$null;publicationStarter=$null;frontendReadPatch=$null
  }
+ $pins.webRoot=$pins.root;$pins.webManifest=$pins.manifest
+ if($script:B5FinanceReadPatch){
+  # Exact one-off delta only: API bytes/root stay at the installed 349+b6.
+  # No saved PID/record digest can admit a future maintenance operation.
+  $pins.financeReadPatch=$true
+  $pins.oldApiRoot=$pins.root;$pins.oldWebRoot=$pins.root
+  $pins.oldApi=$pins.source;$pins.oldWeb=$pins.source
+  $pins.oldApiHash=$pins.manifest;$pins.oldWebHash=$pins.manifest
+  $pins.starter=$pins.oneOffStarter;$pins.records=$null
+  $pins.webRoot='C:\Sirket\ERP\releases\CLEAN-ERP-WEB-20261026-349fae-b6-10b6535a-B5LAZY-OFFLINE'
+  $pins.webManifest='EBB1CE99867A108F96B7FC2FEEA39B9904B0B023D052AA47A88C46F07F5150ED'
+  $pins.frontendReadPatch='10b6535ab47f6fcab645f55dfd3266cf64864cfa'
+  $pins.publicationStarter='C73D8C0E7088E6AF25AB23AE99275F32B033E0CFE5BB9E09A4E4FE425C06FDA3'
+ }
+ return $pins
+}
+function Get-B5FinanceReadStarterBytes([byte[]]$Baseline){
+ # Pure byte adaptation; never reads/writes a runtime file or invokes it.
+ $p=Get-B5Pins
+ if(!$p.financeReadPatch -or (B5Hash $Baseline) -cne $p.oneOffStarter){B5Fail 'B5_FINANCE_STARTER_BASE_CHANGED'}
+ $encoding=[Text.UTF8Encoding]::new($false,$true);$text=$encoding.GetString($Baseline)
+ $newline=if($text.Contains("`r`n")){"`r`n"}else{"`n"};$lines=$text -split '\r?\n'
+ foreach($prefix in @(' $webPackageRoot=',' $webManifestSha=',' if($webManifest.kind -cne ')){
+  $indices=@(for($i=0;$i -lt $lines.Count;$i++){if($lines[$i].StartsWith($prefix,[StringComparison]::Ordinal)){$i}})
+  if($indices.Count -ne 1){B5Fail 'B5_FINANCE_STARTER_LINE_SCOPE'};$index=$indices[0]
+  if($prefix -ceq ' $webPackageRoot='){$lines[$index]=" `$webPackageRoot='"+$p.webRoot+"'"}
+  elseif($prefix -ceq ' $webManifestSha='){$lines[$index]=" `$webManifestSha='"+$p.webManifest+"'"}
+  else{
+   $line=$lines[$index].Replace("'ERP_API_FRONTEND_COMPOSITE_OFFLINE'","'ERP_FRONTEND_ONLY'").Replace("'clean-erp-api-web'","'clean-erp-web'").Replace('$webManifest.sourceTree','$webManifest.sourceIdentity.baselineTree')
+   $lines[$index]=$line.Replace(' -or $webManifest.frontendBuildApiBase'," -or `$webManifest.frontendReadPatchCommit -cne '"+$p.frontendReadPatch+"' -or `$webManifest.frontendBuildApiBase")
+  }
+ }
+ $bytes=$encoding.GetBytes(($lines -join $newline))
+ if((B5Hash $bytes) -cne $p.publicationStarter){B5Fail 'B5_FINANCE_STARTER_OUTPUT_CHANGED'}
+ return ,$bytes
 }
 function B5Fail([string]$Code){throw $Code}
 function B5Hash([byte[]]$Bytes){$h=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($h.ComputeHash($Bytes)).Replace('-','')}finally{$h.Dispose()}}
@@ -78,6 +115,15 @@ function Assert-B5Manifest($Manifest,[string]$Source,[switch]$Combined){
  $p=Get-B5Pins
  if($Manifest.sourceCommit -cne $Source -or $Manifest.database -cne $p.database -or $Manifest.environmentId -cne $p.environment -or !($Manifest.synthetic -is [bool]) -or $Manifest.synthetic -ne $true -or !($Manifest.actualT1 -is [bool]) -or $Manifest.actualT1 -ne $false -or !($Manifest.externalOperations -is [bool]) -or $Manifest.externalOperations -ne $false -or $Manifest.nativeSourceCommit -cne $p.native){B5Fail 'B5_MANIFEST_TARGET'}
  if($Combined -and ($Manifest.kind -cne 'ERP_API_FRONTEND_COMPOSITE_OFFLINE' -or $Manifest.frontendPatchCommit -cne $p.frontendPatch -or $Manifest.component -cne 'clean-erp-api-web' -or $Manifest.sourceTree -cne $p.tree -or $Manifest.backendSourceCommit -cne $Source -or $Manifest.frontendSourceCommit -cne $Source -or $Manifest.frontendBuildApiBase -cne 'http://127.0.0.1:4194' -or $Manifest.nodeRuntime.path.Replace('/','\') -cne $p.node -or $Manifest.nodeRuntime.version -cne 'v24.19.0' -or $Manifest.nodeRuntime.sha256 -ine $p.nodeHash)){B5Fail 'B5_COMBINED_PROFILE'}
+}
+function Assert-B5FinanceReadWebManifest($Manifest){
+ $p=Get-B5Pins;if(!$p.financeReadPatch){B5Fail 'B5_FINANCE_PROFILE_REQUIRED'}
+ Assert-B5Manifest $Manifest $p.source
+ if($Manifest.kind -cne 'ERP_FRONTEND_ONLY' -or $Manifest.component -cne 'clean-erp-web' -or $Manifest.frontendSourceCommit -cne $p.source -or $Manifest.backendSourceCommit -cne $p.source -or $Manifest.frontendPatchCommit -cne $p.frontendPatch -or $Manifest.frontendReadPatchCommit -cne $p.frontendReadPatch -or $Manifest.frontendBuildApiBase -cne 'http://127.0.0.1:4194' -or $Manifest.sourceIdentity.baselineTree -cne $p.tree -or $Manifest.sourceIdentity.baselineManifestSha256 -ine $p.manifest -or $Manifest.sourceIdentity.completeFeatureBranchApplication -isnot [bool] -or $Manifest.sourceIdentity.completeFeatureBranchApplication){B5Fail 'B5_FINANCE_WEB_PROFILE'}
+ $expected=@{'apps/sites-workflow/src/workflow/workingCatalogSession.mjs'='21a6904a7626109dae851daa1328845d45388ab32f4740e82d892771e12a49ba';'apps/sites-workflow/src/workflow/workCollections.js'='44eb46aff7b90cc4e76c0030157e7e740c3a935046788acad935b4ffa24e8911'}
+ $seen=@{};$overlays=@($Manifest.sourceIdentity.onlyNewSourceOverlays)
+ if($overlays.Count -ne 2){B5Fail 'B5_FINANCE_WEB_SOURCE_SCOPE'}
+ foreach($f in $overlays){if($f.path -cnotin @($expected.Keys) -or $seen.ContainsKey($f.path) -or $f.sourceCommit -cne $p.frontendReadPatch -or $f.sha256 -cne $expected[$f.path]){B5Fail 'B5_FINANCE_WEB_SOURCE_SCOPE'};$seen[$f.path]=$true}
 }
 function Read-B5Artifact([string]$Root,[string]$Hash,[string]$Source,[switch]$Combined,$Lease=$null){
  $p=Get-B5Pins;if((B5Hash (B5ReadFrozen $p.node $Lease)) -cne $p.nodeHash){B5Fail 'B5_NODE_CHANGED'}
@@ -159,7 +205,10 @@ function Read-B5Dependencies([string]$Root,$Manifest,$Lease){
   if($contract.dependencyDonorManifestSha256 -ine $p.oldApiHash){B5Fail 'B5_DEPENDENCY_DONOR_CHANGED'}
  }
  $apps=@('api','sites-workflow','web-admin');$seen=@{}
- if($Root -ceq $p.oldWebRoot -and $Manifest.PSObject.Properties['component'] -and $Manifest.component -ceq 'clean-erp-web'){
+ if($p.financeReadPatch -and $Root -ceq $p.webRoot){
+  Assert-B5FinanceReadWebManifest $Manifest;$apps=@('sites-workflow')
+ }
+ elseif($Root -ceq $p.oldWebRoot -and $Manifest.PSObject.Properties['component'] -and $Manifest.component -ceq 'clean-erp-web'){
   if($Manifest.kind -cne 'ERP_FRONTEND_ONLY' -or $Manifest.sourceCommit -cne $p.oldWeb -or $Manifest.frontendSourceCommit -cne $p.oldWeb -or $Manifest.backendSourceCommit -cne $p.oldApi -or $Manifest.frontendPatchCommit -cne $p.frontendPatch){B5Fail 'B5_ROLLBACK_PAIR_CHANGED'}
   $apps=@('sites-workflow')
  }
@@ -397,7 +446,7 @@ function Assert-B5OwnedRecordBytes($Context,[byte[]]$Bytes,[switch]$Final){
    continue
   }
   $child=@($Context.children|Where-Object {$_.port -eq $row.port -and $_.facts.pid -eq $row.pid});if($child.Count -ne 1){B5Fail 'B5_LAUNCH_RECORD_RACE'}
-  $p=Get-B5Pins;$candidate=$child[0].mode -ceq 'Candidate';$root=if($candidate){$p.root}elseif($row.port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot};$source=if($candidate){$p.source}elseif($row.port -eq 4194){$p.oldApi}else{$p.oldWeb}
+  $p=Get-B5Pins;$candidate=$child[0].mode -ceq 'Candidate';$root=if($candidate -and $row.port -eq 5244){$p.webRoot}elseif($candidate){$p.root}elseif($row.port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot};$source=if($candidate){$p.source}elseif($row.port -eq 4194){$p.oldApi}else{$p.oldWeb}
   $entry=if($row.port -eq 4194){'cleanSyntheticServer.mjs'}else{'vite-preview'}
   $expected=[ordered]@{port=$row.port;pid=$row.pid;entry=$entry;sourceCommit=$source};if($row.port -eq 4194){$expected.packageId=if($candidate){$Context.newManifest.packageId}else{$Context.oldManifest.packageId}};$expected.root=$root
   if(($row|ConvertTo-Json -Depth 8 -Compress) -cne ($expected|ConvertTo-Json -Depth 8 -Compress)){B5Fail 'B5_LAUNCH_RECORD_RACE'}
@@ -516,7 +565,7 @@ function Publish-B5HeldControls($Scope,[byte[]]$StarterStage,[byte[]]$RecordStag
  Assert-B5OwnedRecordBytes $Scope.context $RecordStage -Final
  $p=Get-B5Pins;$modes=@($Scope.context.children|ForEach-Object {$_.mode}|Sort-Object -Unique)
  if($modes.Count -ne 1 -or $modes[0] -cnotin @('Candidate','OldPair') -or @($Scope.context.stopped|Sort-Object -Unique).Count -ne 2 -or 4194 -notin $Scope.context.stopped -or 5244 -notin $Scope.context.stopped){B5Fail 'B5_HELD_PAIR_SCOPE'}
- $starterHash=if($modes[0] -ceq 'Candidate'){$p.oneOffStarter}else{B5Hash $Scope.context.controls.starter}
+ $starterHash=if($modes[0] -ceq 'Candidate'){if($p.financeReadPatch){$p.publicationStarter}else{$p.oneOffStarter}}else{B5Hash $Scope.context.controls.starter}
  if((B5Hash $StarterStage) -cne $starterHash){B5Fail 'B5_HELD_STARTER_IDENTITY'}
  $stages=@{starter=$StarterStage;records=$RecordStage}
  foreach($name in @('starter','records')){
@@ -727,5 +776,6 @@ function Invoke-B5CleanTransition {
  }finally{if($context){foreach($child in $context.children){if($child.handle){$child.handle.Dispose()}}};if($lease){Exit-B5Lease $lease}}
 }
 if($Library){return}
+if($FinanceReadPatch){B5Fail 'B5_FINANCE_READ_LIBRARY_ONLY'}
 if(!$Apply){B5Fail 'B5_SOURCE_ONLY_APPLY_NOT_REQUESTED'}
 Invoke-B5CleanTransition

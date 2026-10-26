@@ -4,6 +4,55 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(ps,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+const finance=String.raw`. '${script}' -Library -FinanceReadPatch;`;
+const financeManifest=finance+String.raw`
+ $p=Get-B5Pins
+ function MustReject([scriptblock]$Body,[string]$Code){$failed=$false;try{& $Body|Out-Null}catch{$failed=$true;if($_.Exception.Message -cne $Code){throw}};if(!$failed){throw 'FINANCE_ACCEPTED_INVALID_INPUT'}}
+ $m=[pscustomobject]@{sourceCommit=$p.source;database=$p.database;environmentId=$p.environment;synthetic=$true;actualT1=$false;externalOperations=$false;nativeSourceCommit=$p.native;kind='ERP_FRONTEND_ONLY';component='clean-erp-web';frontendSourceCommit=$p.source;backendSourceCommit=$p.source;frontendPatchCommit=$p.frontendPatch;frontendReadPatchCommit=$p.frontendReadPatch;frontendBuildApiBase='http://127.0.0.1:4194';sourceIdentity=[pscustomobject]@{baselineTree=$p.tree;baselineManifestSha256=$p.manifest;completeFeatureBranchApplication=$false;onlyNewSourceOverlays=@([pscustomobject]@{path='apps/sites-workflow/src/workflow/workingCatalogSession.mjs';sourceCommit=$p.frontendReadPatch;sha256='21a6904a7626109dae851daa1328845d45388ab32f4740e82d892771e12a49ba'},[pscustomobject]@{path='apps/sites-workflow/src/workflow/workCollections.js';sourceCommit=$p.frontendReadPatch;sha256='44eb46aff7b90cc4e76c0030157e7e740c3a935046788acad935b4ffa24e8911'})}}
+`;
+win('finance read binding pins unchanged API and both rollback roots to installed 349 plus exact WEB delta',finance+String.raw`
+ $p=Get-B5Pins
+ if(!$p.financeReadPatch -or $p.root -cne $p.oldApiRoot -or $p.root -cne $p.oldWebRoot -or $p.source -cne $p.oldApi -or $p.source -cne $p.oldWeb -or $p.manifest -cne $p.oldApiHash -or $p.manifest -cne $p.oldWebHash){throw 'FINANCE_ROLLBACK_NOT_CURRENT'}
+ if($p.source -cne '349fae354e2a90852cd0594ada485105bf091e43' -or $p.manifest -cne '3AA51A25970B0EFE512E865B5572C0378931A5EB848E1AB81AB571F4DE19178F' -or $p.frontendPatch -cne 'b6de5305ba46478997ea77beaa41fdb1bb2b3af0' -or $p.records -ne $null){throw 'FINANCE_BASELINE_DRIFT'}
+ if($p.webRoot -ceq $p.root -or $p.webManifest -cne 'EBB1CE99867A108F96B7FC2FEEA39B9904B0B023D052AA47A88C46F07F5150ED' -or $p.frontendReadPatch -cne '10b6535ab47f6fcab645f55dfd3266cf64864cfa' -or $p.oneOffStarter -cne '75739CBE11E716D6736CCBB80B189D573A7C6F4D0FB3B3051ED704A896F72B21' -or $p.publicationStarter -cne 'C73D8C0E7088E6AF25AB23AE99275F32B033E0CFE5BB9E09A4E4FE425C06FDA3'){throw 'FINANCE_WEB_OR_STARTER_DRIFT'}
+ $blocked=$false;try{Get-B5WriterHandoff}catch{$blocked=$_.Exception.Message -ceq 'B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING'};if(!$blocked){throw 'FINANCE_GENERIC_GATE_OPENED'}
+ $blocked=$false;try{& '${script}' -FinanceReadPatch -Apply}catch{$blocked=$_.Exception.Message -ceq 'B5_FINANCE_READ_LIBRARY_ONLY'};if(!$blocked){throw 'FINANCE_GENERIC_APPLY_REACHED'};'PASS'`);
+win('finance read binding WEB contract rejects target source scope and synthetic boundary drift',financeManifest+String.raw`
+ Assert-B5FinanceReadWebManifest $m
+ foreach($field in @('sourceCommit','database','environmentId','nativeSourceCommit','synthetic','actualT1','externalOperations')){$x=$m|ConvertTo-Json -Depth 8|ConvertFrom-Json;$x.$field='wrong';MustReject {Assert-B5FinanceReadWebManifest $x} 'B5_MANIFEST_TARGET'}
+ foreach($field in @('kind','component','frontendSourceCommit','backendSourceCommit','frontendPatchCommit','frontendReadPatchCommit','frontendBuildApiBase')){$x=$m|ConvertTo-Json -Depth 8|ConvertFrom-Json;$x.$field='wrong';MustReject {Assert-B5FinanceReadWebManifest $x} 'B5_FINANCE_WEB_PROFILE'}
+ foreach($field in @('baselineTree','baselineManifestSha256','completeFeatureBranchApplication')){$x=$m|ConvertTo-Json -Depth 8|ConvertFrom-Json;$x.sourceIdentity.$field='wrong';MustReject {Assert-B5FinanceReadWebManifest $x} 'B5_FINANCE_WEB_PROFILE'}
+ foreach($field in @('path','sourceCommit','sha256')){$x=$m|ConvertTo-Json -Depth 8|ConvertFrom-Json;$x.sourceIdentity.onlyNewSourceOverlays[0].$field='wrong';MustReject {Assert-B5FinanceReadWebManifest $x} 'B5_FINANCE_WEB_SOURCE_SCOPE'}
+ $x=$m|ConvertTo-Json -Depth 8|ConvertFrom-Json;$x.sourceIdentity.onlyNewSourceOverlays[1]=$x.sourceIdentity.onlyNewSourceOverlays[0];MustReject {Assert-B5FinanceReadWebManifest $x} 'B5_FINANCE_WEB_SOURCE_SCOPE';'PASS'`);
+win('finance read binding starter transformation preserves every non WEB line and rejects changed base or output',finance+String.raw`
+ $script:financePins=(Get-B5Pins).PSObject.Copy();function Get-B5Pins{return $script:financePins};$p=Get-B5Pins
+ $before=@('API-AND-AUTH-UNCHANGED',(' $webPackageRoot='''+$p.root+''''),(' $webManifestSha='''+$p.manifest+''''),(' if($webManifest.kind -cne ''ERP_API_FRONTEND_COMPOSITE_OFFLINE'' -or $webManifest.component -cne ''clean-erp-api-web'' -or $webManifest.sourceTree -cne '''+$p.tree+''' -or $webManifest.frontendBuildApiBase -cne ''http://127.0.0.1:4194''){throw ''fixture''}'),'REST-UNCHANGED','')
+ $after=@($before);$after[1]=' $webPackageRoot='''+$p.webRoot+'''';$after[2]=' $webManifestSha='''+$p.webManifest+''''
+ $after[3]=$after[3].Replace("'ERP_API_FRONTEND_COMPOSITE_OFFLINE'","'ERP_FRONTEND_ONLY'").Replace("'clean-erp-api-web'","'clean-erp-web'").Replace('$webManifest.sourceTree','$webManifest.sourceIdentity.baselineTree').Replace(' -or $webManifest.frontendBuildApiBase',(' -or $webManifest.frontendReadPatchCommit -cne '''+$p.frontendReadPatch+''' -or $webManifest.frontendBuildApiBase'))
+ foreach($eol in @([string][char]10,([string][char]13+[char]10))){
+  $bytes=[Text.Encoding]::UTF8.GetBytes(($before -join $eol));$expected=[Text.Encoding]::UTF8.GetBytes(($after -join $eol));$p.oneOffStarter=B5Hash $bytes;$p.publicationStarter=B5Hash $expected
+  if((B5Hash (Get-B5FinanceReadStarterBytes $bytes)) -cne (B5Hash $expected)){throw 'FINANCE_TRANSFORM_CHANGED_UNRELATED_BYTES'}
+  $bad=$false;try{Get-B5FinanceReadStarterBytes ([Text.Encoding]::UTF8.GetBytes('changed'))}catch{$bad=$_.Exception.Message -ceq 'B5_FINANCE_STARTER_BASE_CHANGED'};if(!$bad){throw 'FINANCE_CHANGED_STARTER_ACCEPTED'}
+  $p.publicationStarter='0'*64;$bad=$false;try{Get-B5FinanceReadStarterBytes $bytes}catch{$bad=$_.Exception.Message -ceq 'B5_FINANCE_STARTER_OUTPUT_CHANGED'};if(!$bad){throw 'FINANCE_CHANGED_OUTPUT_ACCEPTED'}
+ };'PASS'`);
+win('finance read binding record stage allows only unchanged API new WEB and current rollback while preserving native',finance+setup+String.raw`
+ $p=Get-B5Pins;$c.newManifest.packageId=$c.oldManifest.packageId
+ $c.stopped=@(4194,5244);$c.children=@(@{port=4194;facts=@{pid=901};mode='Candidate'},@{port=5244;facts=@{pid=902};mode='Candidate'})
+ $native=@(ConvertFrom-B5Records $c.controls.records|Where-Object port -eq 4196)[0]
+ $rows=@([ordered]@{port=4194;pid=901;entry='cleanSyntheticServer.mjs';sourceCommit=$p.source;packageId=$c.oldManifest.packageId;root=$p.root},[ordered]@{port=5244;pid=902;entry='vite-preview';sourceCommit=$p.source;root=$p.webRoot},$native)
+ $bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 8));Assert-B5OwnedRecordBytes $c $bytes -Final
+ foreach($port in @(4194,5244)){$x=$rows|ConvertTo-Json -Depth 8|ConvertFrom-Json;$row=@($x|Where-Object port -eq $port)[0];$row.root=if($port -eq 4194){$p.webRoot}else{$p.root};Fx-ExpectedError {Assert-B5OwnedRecordBytes $c ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($x) -Depth 8))) -Final} 'B5_LAUNCH_RECORD_RACE'}
+ $c.children|ForEach-Object {$_.mode='OldPair'};$rows[1].root=$p.oldWebRoot;Assert-B5OwnedRecordBytes $c ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 8))) -Final
+ if((ConvertTo-Json $native -Compress) -cne (ConvertTo-Json (@(ConvertFrom-B5Records $c.controls.records|Where-Object port -eq 4196)[0]) -Compress)){throw 'FINANCE_NATIVE_CHANGED'};'PASS'`);
+win('finance read binding WEB dependencies use only the existing Sites contract and retain lock checks',financeManifest+String.raw`
+ $script:lock=[Text.Encoding]::UTF8.GetBytes('{}');$lockHash=B5Hash $script:lock;$entryBytes=[Text.Encoding]::UTF8.GetBytes('offline-vite-fixture');$script:dependencyBase=Join-Path $p.webRoot 'apps\sites-workflow\node_modules';$script:file=Join-Path $script:dependencyBase 'vite.js';$script:entryBytes=$entryBytes;$script:digestCalls=0
+ function B5ReadFrozen($Path,$Lease){if($Path -ceq (Join-Path $p.webRoot 'apps\sites-workflow\package-lock.json')){return ,$script:lock};if($Path -ceq $script:file){return ,$script:entryBytes};throw 'FINANCE_UNEXPECTED_FILE_READ'}
+ function Get-B5DependencyFiles($Base){if($Base -cne $script:dependencyBase){throw 'FINANCE_UNEXPECTED_DEPENDENCY_APP'};return [pscustomobject]@{path='vite.js';full=$script:file}}
+ function Get-B5DependencyDigest($Rows){$script:digestCalls++;if(@($Rows).Count -ne 1 -or $Rows[0].sha256 -cne (B5Hash $script:entryBytes).ToLowerInvariant()){throw 'FINANCE_DEPENDENCY_BYTES_CHANGED'};return ('a'*64)}
+ function Get-B5ModuleLookupDirectories($Root,$Manifest){return 'C:\fixture-absent\node_modules'};function Get-B5LookupEnvironmentStamp{return 'fixture'};function Assert-B5ModuleLookupContext($Context){}
+ $m|Add-Member -NotePropertyName dependencies -NotePropertyValue @([pscustomobject]@{app='sites-workflow';files=1;inventorySha256=('a'*64);lockSha256=$lockHash});$m|Add-Member -NotePropertyName files -NotePropertyValue @([pscustomobject]@{path='apps/sites-workflow/package-lock.json';sha256=$lockHash})
+ Read-B5Dependencies $p.webRoot $m $null;if($script:digestCalls -ne 1){throw 'FINANCE_DEPENDENCIES_NOT_VALIDATED'}
+ $m.dependencies[0].lockSha256='0'*64;MustReject {Read-B5Dependencies $p.webRoot $m $null} 'B5_DEPENDENCY_LOCK_CONTRACT_CHANGED';'PASS'`);
 win('dependency row append preserves array order values count and real Node digest in PS5',String.raw`
  $tokens=$null;$errors=$null;[Management.Automation.Language.Parser]::ParseFile('${script}',[ref]$tokens,[ref]$errors)|Out-Null;if($errors.Count){throw 'APPEND_PS5_SYNTAX'}
  $script:appendPins=(Get-B5Pins).PSObject.Copy();$script:appendPins.node='${process.execPath.replaceAll("'","''")}'
@@ -75,6 +124,25 @@ const oneOffSetup=setup+String.raw`
   Set-B5OwnedRecordStage $c ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 8)))
  }
 `;
+win('finance read binding held publication requires the WEB starter and rollback publishes current roots without native changes',finance+oneOffSetup+String.raw`
+ $p=Get-B5Pins;$c.newManifest.packageId=$c.oldManifest.packageId
+ $script:financeStarter=[Text.Encoding]::UTF8.GetBytes('finance-web-starter');$p.publicationStarter=B5Hash $script:financeStarter
+ function Fx-OneOffRow($child){$candidate=$child.mode -ceq 'Candidate';$row=[ordered]@{port=$child.port;pid=$child.facts.pid;entry=$(if($child.port -eq 4194){'cleanSyntheticServer.mjs'}else{'vite-preview'});sourceCommit=$(if($candidate){$p.source}elseif($child.port -eq 4194){$p.oldApi}else{$p.oldWeb})};if($child.port -eq 4194){$row.packageId=$c.oldManifest.packageId};$row.root=if($candidate -and $child.port -eq 5244){$p.webRoot}elseif($candidate){$p.root}elseif($child.port -eq 4194){$p.oldApiRoot}else{$p.oldWebRoot};return $row}
+ function Add-FinanceWeb {
+  $script:fx.next++;$id=$script:fx.next;$root=if($script:apiMode -eq 'Candidate'){$p.webRoot}else{$p.oldWebRoot};$facts=New-B5FixtureFacts $id $root 5244;$script:fx.processes[$id]=$facts
+  $c.children+=,@{port=5244;facts=$facts;handle=(Open-B5BoundProcess $facts);mode=$(if($script:apiMode -eq 'Candidate'){'Candidate'}else{'OldPair'})}
+  $native=@(ConvertFrom-B5Records $c.controls.records|Where-Object port -eq 4196)[0];$rows=@((Fx-OneOffRow $c.children[0]),(Fx-OneOffRow $c.children[1]),$native)
+  Set-B5OwnedRecordStage $c ([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 8)))
+ }
+ $scope=Fx-OneOffScope;Start-B5OneOffApiWithRecordView $scope $script:candidatePath;Add-FinanceWeb
+ Fx-ExpectedError {Publish-B5HeldControls $scope $script:newStarter $c.stagedRecordBytes} 'B5_HELD_STARTER_IDENTITY';if($script:writeCount){throw 'FINANCE_OLD_STARTER_PUBLISHED'}
+ Publish-B5HeldControls $scope $script:financeStarter $c.stagedRecordBytes;$count=$script:writeCount;$spawns=$script:spawnCount
+ Publish-B5HeldControls $scope $script:financeStarter $c.stagedRecordBytes;if($script:writeCount -ne $count -or $script:spawnCount -ne $spawns){throw 'FINANCE_PUBLICATION_REPLAY_EFFECT'}
+ Undo-B5HeldPublication $scope;foreach($name in @('starter','records')){if((B5Hash (Read-B5HeldPublicationBytes $scope $name)) -cne $scope.beforeHash[$name]){throw 'FINANCE_INVERSE_NOT_EXACT'}}
+ $c.children=@();$script:apiMode='OldPair';$rollback=New-B5HeldPublication $c $scope.streams.starter $scope.streams.records {param($s)if(!$script:witnessLive){throw 'FIXTURE_WITNESS_LOST'}}
+ Start-B5OneOffApiWithRecordView $rollback $script:rollbackPath -Mode Rollback;Add-FinanceWeb;Publish-B5HeldControls $rollback $c.controls.starter $c.stagedRecordBytes
+ $rows=@(ConvertFrom-B5Records (Read-B5HeldPublicationBytes $rollback 'records'))
+ if(@($rows|Where-Object {$_.port -in @(4194,5244) -and ($_.root -cne $p.root -or $_.sourceCommit -cne $p.source)}).Count -or @($rows|Where-Object {$_.port -eq 4196 -and $_.pid -eq 103}).Count -ne 1){throw 'FINANCE_ROLLBACK_WRONG_ROOT_OR_NATIVE'};'PASS'`);
 win('one-off API entry stages both actual record statements and replay uses the same captured child',oneOffSetup+String.raw`
  $scope=Fx-OneOffScope;$before=$c.recordHash
  Start-B5OneOffApiWithRecordView $scope $script:candidatePath
