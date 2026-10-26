@@ -1,6 +1,6 @@
 # B5 finans WEB geçişi — kaynak/offline bağlama
 
-**Durum: kaynak ve offline doğrulama hazır; kurulum, normal GUI ve insan kabulü yapılmadı.** Mevcut PR54 / iki dosyalı `10b6535a` finans teslimi korunur. Yeni auth davranışı, uygulama derlemesi, installer, servis veya owner framework yok.
+**Güncel durum26Ekim14:53UTC: hazır finans WEB adayı TEST kurulum/finalACK doğrulandı; finans GUI ve insan kabulü bekliyor.** Mevcut PR54 / iki dosyalı `10b6535a` finans teslimi korunur. Yeni auth davranışı, uygulama derlemesi, installer, servis veya owner framework yok.
 
 | Hedef | Kesin bağ |
 | --- | --- |
@@ -70,3 +70,13 @@ Mevcut publisher aynı scope içinde doğmuş iki gerçek çocuk gerektiriyordu.
 Normal starter SHA256 `75739cbe11e716d6736ccbb80b189d573a7c6f4d0fb3b3051ed704a896f72b21` değişmedi. Son süreç-kayıt SHA256 `f9a808d153764cae848d8498d17a8be9efa8f0d403d6b08e69fe5bd67edbe6f1`. POSTCHECK'te API/native exact health, normal yeşil ekranın üç sunulan asset hash'i, WEB'in loopback/LAN/Tailscale binding'leri, korunacak5port kimliği ve SQL koruma tanığı geçti. FINISHED/cleanup13:06:15UTC; toplam53.607 saniye. SQL/ticari yazma0, restore:false; native/CRM stop0. Normal3459 payload kontrolü korundu; dependency envanteri/build/geniş test/CIrerun0.
 
 Private kanıt mevcut dizindeki `recover-greencombined-b3c5cf2b/recovery-receipt.json` ve `progress.jsonl`; ham süreç kimlikleri GitHub'a eklenmez. Finans10b/ebb adayı **uygulanmadı**. Normal GUI root koordinatörün salt okunur kontrolüne bırakıldı; bu makbuz GUI veya insan kabulü değildir. Son GUI sonucu gelene kadar shared TEST stop/start/kurulum/yazma yok.
+
+## 26 Ekim 14:53 UTC — Hazır finans adayı TEST'e uygulandı
+
+Mevcut kaynak ve aynı one-off bakım çağrısı kullanıldı; yeni uygulama kodu/build/test/CI rerun üretilmedi. Yalnız çağrının kaynak pini incelenmiş `b3c5cf2b3e67fd228456fd0ef01eb39ba8f8d29d` ve kendine ait yeni tek-deneme kanıt diziniyle güncellendi. Mevcut zorunlu artifact/dependency/lookup/path/manifest kontrolleri atlanmadı:4154 payload,30109 dependency ve34282 açık dosya kilidi. Hazırlık yaklaşık100 dakika sürdü; bu uygulamanın ekran yanıt süresi değildir. 14:52:50UTC öncesinde servis stop çağrısı yoktu. Taze iki gerçek API/WEB kimliği, iki exclusive kontrol, dokuz opaque metadata kilidi, native/CRM ve SQL koruma tanığı sağlandıktan sonra dar geçiş yapıldı.
+
+Sonuç **CANDIDATE_INSTALLED / failure:null / recoveryFailure:null**. POSTCHECK14:53:41UTC; CLEANUP/FINISHED14:53:42UTC, tüm kilitler bırakıldı. Mevcut API paketi `CLEAN-ERP-20261026-349fae354e2a-b6de5305-GREENCOMBINED-OFFLINE`, source `349fae354e2a90852cd0594ada485105bf091e43`, manifest3aa korunur. Yeni WEB `CLEAN-ERP-WEB-20261026-349fae-b6-10b6535a-B5LAZY-OFFLINE`, manifest `ebb1ce99867a108f96b7fc2feea39b9904b0b023d052aa47a88c46f07f5150ed`; baseline349 ve CSS `b6de5305ba46478997ea77beaa41fdb1bb2b3af0` üzerinde yalnız önceden incelenmiş `10b6535ab47f6fcab645f55dfd3266cf64864cfa` okuma düzeltmesi. `c73...` API uygulama source'u değildir: yeni WEB bağını içeren normal başlangıç dosyasının SHA256'sıdır.
+
+Bağımsız son kontrol, gerçek disk starter SHA256 `c73d8c0e7088e6af25ab23ae99275f32b033e0cfe5bb9e09a4e4fe425c06fda3` ve süreç-kayıt SHA256 `827d197c4599d676f0cdbbed7ecabc5cb1d901bc364ce150a3b25453a2620807` değerlerini makbuzla eşleştirdi; iki gerçek yeni child ve **finalAck:true**. Mevcut publisher/CAS/rollback ve349+b6 geri dönüşü korundu; b9/b89 kullanılmadı. API/native health, WEB'in üç served-asset hash'i ve mevcut loopback/LAN/Tailscale bağları, korunacak native4196/CRM62800–03 kimlikleri ve SQL koruma tanığı POSTCHECK'te geçti. SQL/ticari yazma0; gerçek restorefalse; native/CRM stop0.
+
+Private kanıt aynı mevcut dizindeki `apply-b3c5cf2b-finance-20261026T131227388Z/apply-receipt.json`, `final-controls-readback.json` ve `progress.jsonl`; ham süreç kimlikleri/özel kayıtlar GitHub'a taşınmadı. Normal adres `http://192.168.1.46:5244/ornek-akis.html#collections`. Root koordinatör mevcut normal oturumla fiş ayrıntısı ve tam yenilemeyi salt okunur kontrol edecek. Bu kurulum makbuzu finans GUI veya insan kabulü değildir; B5 açık, özgün insan kabulleri değişmez. Bu GUI kontrolü sırasında yeni runtime/kurulum/stop/start/ticari yazma yok.
