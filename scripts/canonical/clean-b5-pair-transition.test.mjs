@@ -4,6 +4,35 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000,executable=ps){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(executable,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+test('finance recovery pin profile survives actual starter file scope in PS5 and PS7 without launching processes',{skip:process.platform!=='win32'},()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-b5-pin-scope-'));
+ try{
+  const plain=path.join(dir,'starter.ps1'),shadow=path.join(dir,'starter-shadow.ps1');
+  const body=String.raw`param([switch]$MainApiOnly)
+Set-StrictMode -Version Latest
+if(!$MainApiOnly){throw 'FIXTURE_EXPECTED_NORMAL_ENTRY'}
+Start-Process -FilePath 'fixture-only' -ArgumentList @('no-real-process')
+`;
+  fs.writeFileSync(plain,body);
+  fs.writeFileSync(shadow,body.replace("Start-Process -FilePath",'$script:B5FinanceReadPatch=$false;$B5FinanceReadProfile=$false\nStart-Process -FilePath'));
+  const psBody=String.raw`
+ $seen=[Collections.Generic.List[object]]::new()
+ function Start-Process{param($FilePath,$ArgumentList);if($FilePath -cne 'fixture-only' -or ($ArgumentList -join '|') -cne 'no-real-process'){throw 'FIXTURE_REAL_SPAWN_FORBIDDEN'};$seen.Add((Get-B5Pins))}
+ . '${script}' -Library -FinanceReadPatch
+ foreach($mode in @('Candidate','Rollback')){foreach($file in @('${plain.replaceAll("'","''")}','${shadow.replaceAll("'","''")}')){Invoke-B5OneOffNormalApiStarter $file}}
+ if($seen.Count -ne 4){throw 'FILE_SCOPE_CALLBACK_MISSING'}
+ foreach($p in $seen){if(!$p.financeReadPatch -or $p.root -cne $p.oldApiRoot -or $p.root -cne $p.oldWebRoot -or $p.starter -cne '75739CBE11E716D6736CCBB80B189D573A7C6F4D0FB3B3051ED704A896F72B21' -or $p.webRoot -ceq $p.root){throw 'CROSS_FILE_PROFILE_DRIFT'}}
+ . '${script}' -Library
+ Invoke-B5OneOffNormalApiStarter '${plain.replaceAll("'","''")}'
+ if($seen.Count -ne 5 -or $seen[4].financeReadPatch -or $seen[4].oldApi -cne 'b9dd984876c808482017365556538078601187b8'){throw 'LEGACY_PROFILE_CHANGED'}
+ $closed=$false;try{Get-B5WriterHandoff}catch{$closed=$_.Exception.Message -ceq 'B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING'};if(!$closed){throw 'GENERIC_GATE_OPENED'};'PASS'`;
+  runWin(psBody);runWin(psBody,30000,'pwsh.exe');
+ }finally{
+  const relative=path.relative(path.resolve(os.tmpdir()),path.resolve(dir));
+  assert.ok(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative)&&path.basename(dir).startsWith('melisa-b5-pin-scope-'));
+  fs.rmSync(dir,{recursive:true,force:true});
+ }
+});
 test('finance read BOM record decoding preserves raw before-image bytes in PS5 and PS7',{skip:process.platform!=='win32'},()=>{
  const body=String.raw`
  $json='[{"port":4194,"pid":1},{"port":5244,"pid":2},{"port":4196,"pid":3}]'

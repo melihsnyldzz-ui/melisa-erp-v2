@@ -3,7 +3,6 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 $script:B5Lease=$null
 $script:B5Handoff=$null
-$script:B5FinanceReadPatch=[bool]$FinanceReadPatch
 
 function Get-B5Pins {
  $pins=[pscustomobject]@{
@@ -18,7 +17,7 @@ function Get-B5Pins {
   financeReadPatch=$false;webRoot=$null;webManifest=$null;publicationStarter=$null;frontendReadPatch=$null
  }
  $pins.webRoot=$pins.root;$pins.webManifest=$pins.manifest
- if($script:B5FinanceReadPatch){
+ if($B5FinanceReadProfile){
   # Exact one-off delta only: API bytes/root stay at the installed 349+b6.
   # No saved PID/record digest can admit a future maintenance operation.
   $pins.financeReadPatch=$true
@@ -33,6 +32,12 @@ function Get-B5Pins {
  }
  return $pins
 }
+# A supported starter is a separate script scope. Bind only this fixed loader
+# option, rather than resolving script: state in whichever file calls back.
+${function:Get-B5Pins} = & {
+ param([bool]$B5FinanceReadProfile,[scriptblock]$Reader)
+ $Reader.GetNewClosure()
+} ([bool]$FinanceReadPatch) ${function:Get-B5Pins}
 function Get-B5FinanceReadStarterBytes([byte[]]$Baseline){
  # Pure byte adaptation; never reads/writes a runtime file or invokes it.
  $p=Get-B5Pins
