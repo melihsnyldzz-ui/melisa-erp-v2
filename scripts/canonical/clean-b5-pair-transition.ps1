@@ -493,7 +493,11 @@ function Invoke-B5StarterRecordView($Context,[scriptblock]$Body){
    param([string]$LiteralPath,[switch]$Raw)
    if($LiteralPath -ceq $recordPath){
     if(!$Raw){B5Fail 'B5_RECORD_VIEW_RAW_REQUIRED'}
-    return [Text.Encoding]::UTF8.GetString($recordContext.stagedRecordBytes)
+    # Match normal Get-Content -Raw UTF8 decoding for the starter callback.
+    # Only the returned text loses its preamble; staged/disk CAS bytes do not.
+    $text=[Text.Encoding]::UTF8.GetString($recordContext.stagedRecordBytes)
+    if($text.Length -gt 0 -and $text[0] -eq [char]0xFEFF){$text=$text.Substring(1)}
+    return $text
    }
    Microsoft.PowerShell.Management\Get-Content @PSBoundParameters
   }

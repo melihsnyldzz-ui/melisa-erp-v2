@@ -4,6 +4,46 @@ const ps=path.join(process.env.SystemRoot||'C:/Windows','System32/WindowsPowerSh
 function runWin(body,timeout=30000,executable=ps){const pre=String.raw`$ErrorActionPreference='Stop';. '${script}' -Library;function Get-NetTCPConnection{throw 'LIVE_NETWORK_FORBIDDEN'};function Get-CimInstance{throw 'LIVE_PROCESS_FORBIDDEN'};function Invoke-RestMethod{throw 'LIVE_HTTP_FORBIDDEN'};function Invoke-WebRequest{throw 'LIVE_HTTP_FORBIDDEN'};function Start-Process{throw 'LIVE_SPAWN_FORBIDDEN'};function Stop-Process{throw 'LIVE_STOP_FORBIDDEN'};function Invoke-CimMethod{throw 'LIVE_CIM_FORBIDDEN'};`;const out=execFileSync(executable,['-NoProfile','-NonInteractive','-Command',pre+body],{encoding:'utf8',timeout,windowsHide:true,stdio:['ignore','pipe','pipe']});assert.equal(out.trim(),'PASS',out);}
 const win=(name,body)=>test(name,{skip:process.platform!=='win32'},()=>runWin(body));
 const setup=String.raw`$script:fixtureTemplate='${template}';. '${fixture}';$c=Reset-B5Fixture;`;
+test('recovery starter record-view BOM preserves raw fixture bytes across actual file statements',{skip:process.platform!=='win32'},()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-b5-record-view-'));
+ try{
+  fs.mkdirSync(path.join(dir,'runtime'));
+  const starter=path.join(dir,'starter.ps1'),quotedDir=dir.replaceAll("'","''");
+  fs.writeFileSync(starter,String.raw`param([switch]$MainApiOnly)
+Set-StrictMode -Version Latest
+if(!$MainApiOnly){throw 'EXPECTED_NORMAL_ENTRY'}
+$p=Get-B5Pins;$cleanRoot='${quotedDir}';$startPorts=@(4194)
+$newProcesses=@([ordered]@{port=4194;pid=901;entry='cleanSyntheticServer.mjs';sourceCommit=$p.oldApi;packageId='fixture-base';root=$p.oldApiRoot})
+$oldRecords=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object { $_.port -notin $startPorts });@($newProcesses)+$oldRecords|ConvertTo-Json|Set-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Encoding utf8
+$newProcesses+=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object { $_.port -notin $startPorts })
+$newProcesses|ConvertTo-Json|Set-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Encoding utf8
+`);
+  const body=String.raw`
+ . '${script}' -Library -FinanceReadPatch
+ $fixtureRoot='${quotedDir}';$fixturePins=(Get-B5Pins).PSObject.Copy()
+ $fixturePins.runtime=Join-Path $fixtureRoot 'runtime';$fixturePins.root=Join-Path $fixtureRoot 'package';$fixturePins.oldApiRoot=$fixturePins.root;$fixturePins.oldWebRoot=$fixturePins.root
+ function Get-B5Pins{return $fixturePins}
+ $p=Get-B5Pins;$recordPath=Join-Path $p.runtime 'erp-processes.json'
+ if(![IO.Path]::GetFullPath($recordPath).StartsWith([IO.Path]::GetFullPath($fixtureRoot)+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'FIXTURE_PATH_ESCAPE'}
+ $rows=@([ordered]@{port=4194;pid=101;entry='cleanSyntheticServer.mjs';sourceCommit=$p.oldApi;packageId='fixture-base';root=$p.oldApiRoot},[ordered]@{port=5244;pid=102;entry='vite-preview';sourceCommit=$p.oldWeb;root=$p.oldWebRoot},[ordered]@{port=4196;pid=103;entry='native';sourceCommit=$p.native;root=(Join-Path $fixtureRoot 'native')})
+ foreach($bom in @($false,$true)){
+  $json=ConvertTo-Json -InputObject $rows -Depth 6;$text=if($bom){[string][char]0xFEFF+$json}else{$json};$before=[Text.Encoding]::UTF8.GetBytes($text);$beforeHash=B5Hash $before
+  [IO.File]::WriteAllBytes($recordPath,$before)
+  if(@(ConvertFrom-B5Records $before).Count -ne 3){throw 'OWN_RECORD_READER_NOT_READY'}
+  function B5Read($Path){if($Path -cne $recordPath){throw 'REAL_FILE_READ_FORBIDDEN'};return ,[IO.File]::ReadAllBytes($recordPath)}
+  $ctx=@{controls=@{records=$before};recordHash=$beforeHash;children=@(@{port=4194;facts=@{pid=901};mode='OldPair'});stopped=@(4194);newManifest=[pscustomobject]@{packageId='fixture-base'};oldManifest=[pscustomobject]@{packageId='fixture-base'}}
+  Invoke-B5StarterRecordView $ctx {Invoke-B5OneOffNormalApiStarter '${starter.replaceAll("'","''")}'}
+  $after=@(ConvertFrom-B5Records $ctx.stagedRecordBytes)
+  if($after.Count -ne 3 -or @($after|Where-Object {$_.port -eq 4194 -and $_.pid -eq 901}).Count -ne 1 -or @($after|Where-Object {$_.port -eq 4196 -and $_.pid -eq 103}).Count -ne 1){throw 'STARTER_RECORD_STATEMENTS_WRONG'}
+  if((B5Hash $before) -cne $beforeHash -or (B5Hash $ctx.controls.records) -cne $beforeHash -or $ctx.recordHash -cne $beforeHash -or (B5Hash ([IO.File]::ReadAllBytes($recordPath))) -cne $beforeHash){throw 'RAW_BEFORE_IMAGE_OR_DISK_CHANGED'}
+ };'PASS'`;
+  runWin(body,30000,'pwsh.exe');runWin(body);
+ }finally{
+  const relative=path.relative(path.resolve(os.tmpdir()),path.resolve(dir));
+  assert.ok(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative)&&path.basename(dir).startsWith('melisa-b5-record-view-'));
+  fs.rmSync(dir,{recursive:true,force:true});
+ }
+});
 test('finance recovery pin profile survives actual starter file scope in PS5 and PS7 without launching processes',{skip:process.platform!=='win32'},()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-b5-pin-scope-'));
  try{
