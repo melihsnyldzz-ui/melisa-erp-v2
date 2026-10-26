@@ -19,6 +19,37 @@ const invoice=()=>({id:'8',receiptId:'7',status:'draft',number:'TSTB-ONE',docume
 function storage(){const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),values};}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
+test('PC receiving guide changes only tutorial progress while normal sample preparation retains values and sends no write',async()=>{
+ const previous=globalThis.window;globalThis.window={location:{pathname:'/ornek-akis.html',hash:'#goods',origin:'http://sample.test:5244'}};
+ try{
+  const {createWorkReceiving}=await controller('workReceiving'),d=dom(),store=storage(),calls=[],c=context();
+  const session={media:async()=>{},inbound:async(path,options)=>{calls.push({path,options});assert.equal(options,undefined);return c;}};
+  const ui=createWorkReceiving({root:d.root,session,user:{id:15,permissions:[]},storage:store,uuid:()=>requestId});ui.mount();await tick();
+  assert.match(d.root.innerHTML,/data-receiving-guide/);const slot=d.node('[data-receiving-guide]'),click=action=>d.node(`[data-guide-${action}]`).onclick();
+  click('open');click('next');assert.match(slot.innerHTML,/1 \/ 4/);assert.equal(store.values.size,0);
+  d.node('[data-count-new]').onclick();click('next');assert.match(slot.innerHTML,/2 \/ 4/);
+  const supplier=d.node('[data-count-supplier]');supplier.value='13370';supplier.onchange({target:supplier});click('next');assert.match(slot.innerHTML,/3 \/ 4/);
+  d.node('[data-count-product]').value='301985';d.node('[data-count-add-product]').onclick();click('next');assert.match(slot.innerHTML,/4 \/ 4/);
+  const qty=d.root.querySelectorAll('[data-count-qty]')[0];qty.value='1.5';qty.oninput();click('next');assert.match(slot.innerHTML,/4 \/ 4/);assert.doesNotMatch(slot.innerHTML,/Hazırlık adımları gözden geçirildi/);
+  qty.value='3';qty.oninput();const key='melisa-work-inbound-count:local:15',journalBefore=store.getItem(key),paints=d.paints();
+  click('next');assert.match(slot.innerHTML,/Hazırlık adımları gözden geçirildi/);click('restart');click('close');click('open');
+  assert.equal(d.paints(),paints);assert.equal(store.getItem(key),journalBefore);assert.equal(qty.value,'3');assert.equal(supplier.value,'13370');
+  assert.equal(calls.length,1);assert.ok(calls.every(call=>call.options===undefined));assert.equal(JSON.parse(journalBefore).request??null,null);
+  ui.dispose();assert.equal(slot.innerHTML,'');
+  const e=dom(),other=createWorkReceiving({root:e.root,session,user:{id:16,permissions:[]},storage:store});other.mount();await tick();assert.match(e.node('[data-receiving-guide]').innerHTML,/adım adım/);assert.doesNotMatch(e.node('[data-receiving-guide]').innerHTML,/4 \/ 4/);other.dispose();
+ }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+
+test('inline receiving guide stays absent without count permission and on the terminal surface',async()=>{
+ const previous=globalThis.window,{createWorkReceiving}=await controller('workReceiving');
+ try{for(const mode of ['denied','terminal']){
+  globalThis.window={location:{pathname:mode==='terminal'?'/terminal.html':'/ornek-akis.html',hash:'#goods',origin:'http://sample.test:5244'}};
+  const d=dom(),c=context(),store=storage();if(mode==='denied')c.capabilities.canCount=false;
+  const ui=createWorkReceiving({root:d.root,session:{inbound:async()=>c,media:async()=>{}},user:{id:15,permissions:[]},storage:store});ui.mount();await tick();
+  assert.doesNotMatch(d.root.innerHTML,/data-receiving-guide/);assert.equal(store.values.size,0);ui.dispose();
+ }}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+
 test('one-product receiving and purchase scope requires the exact clean environment and native identity',()=>{
  const c=context();c.meta={...c.meta,environment:'CLEAN_SYNTHETIC_TEST',environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67'};
  c.scope.supplier={id:'1',code:'ORNEK-T01',name:'Örnek Tedarikçi'};
