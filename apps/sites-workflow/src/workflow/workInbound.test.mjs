@@ -336,3 +336,17 @@ for(const refreshStatus of [403,503])test('purchase committed result survives fo
  assert.match(d.root.innerHTML,/Fatura işlemi kaydedildi/);assert.match(d.root.innerHTML,/Güncel alış bilgileri yenilenemedi/);assert.doesNotMatch(d.root.innerHTML,/Bu işlem için yetkiniz yok|Son faturanın sonucu doğrulanmalı/);assert.match(d.root.innerHTML,/TSTB-ONE/);
  assert.equal(calls.filter(call=>call.path==='/api/work-purchases/drafts').length,1);assert.equal(ui.requestClose(),true);ui.dispose();
 });
+
+
+test('unavailable business receiving connection shows honest navigation, keeps pending storage and never offers a write',async()=>{
+ const store=storage(),d=dom(),navigations=[];store.setItem('melisa-work-inbound-count:local:17','existing-pending-preserved');const before=[...store.values.entries()];let reads=0;
+ const {createWorkReceiving}=await controller('workReceiving'),ui=createWorkReceiving({root:d.root,user:{id:17,permissions:['goods.view','goods.create','goods.approve']},storage:store,navigate:page=>navigations.push(page),session:{media:async()=>{assert.fail('no media request');},inbound:async(path,options)=>{reads++;assert.equal(path,'/api/work-receiving/context');assert.equal(options,undefined);throw Object.assign(Error('private upstream detail'),{status:403,code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});}}});
+ ui.mount();await tick();await tick();assert.equal(reads,1);assert.match(d.root.innerHTML,/mal kabul henüz hazır değil/);assert.doesNotMatch(d.root.innerHTML,/yetkiniz yok|private upstream|data-count-new|data-count-save|data-count-submit|data-count-approve|data-count-refresh/);assert.deepEqual([...store.values.entries()],before);
+ d.node('[data-count-open-stock]').onclick();d.node('[data-count-open-suppliers]').onclick();assert.deepEqual(navigations,['stock','suppliers']);assert.equal(reads,1);ui.dispose();
+});
+
+test('real permission denial retains its own error while unavailable scope never exposes internal messages',()=>{
+ assert.equal(inboundError({status:403,code:'AUTH_PERMISSION_DENIED',message:'private'}),'Bu işlem için yetkiniz yok.');
+ assert.match(inboundError({status:403,code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE',message:'private'}),/mal kabul henüz hazır değil/);
+ assert.doesNotMatch(inboundError({status:403,code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE',message:'private'}),/yetkiniz yok|private/);
+});

@@ -45,7 +45,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
  async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
-  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path))throw problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403);
+  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path))throw Object.assign(problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
   if((protectedDevice||businessBrowser)&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.

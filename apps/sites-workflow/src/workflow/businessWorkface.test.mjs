@@ -72,3 +72,12 @@ test('confirmed access near expiry rotates once and keeps the same verified iden
  const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async url=>{paths.push(new URL(url).pathname);return{ok:true,status:200,json:async()=>({success:true,data:url.endsWith('/session-confirm')?{confirmed:true,user,expiresAt:Date.now()+10000}:{browserSession:true,user,accessToken:'renewed',expiresAt:Date.now()+900000}})};}});
  assert.equal((await session.start()).id,17);assert.deepEqual(paths,['/api/auth/session-confirm','/api/auth/refresh']);assert.equal(saved.getItem('melisaTestSalesAccessToken'),'renewed');
 });
+
+
+test('unsupported business receiving scope is distinct from role denial and preserves the existing login',async()=>{
+ const saved=storage();saved.setItem('melisaTestSalesAccessToken','fixture');let calls=0,expired=0;
+ const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,onExpired:()=>expired++,fetchImpl:async url=>{calls++;assert(url.endsWith('/auth/session-confirm'));return{ok:true,status:200,json:async()=>({success:true,data:{confirmed:true,user:{...user,permissions:[...user.permissions,'goods.view','goods.create','goods.approve']},expiresAt:Date.now()+900000}})};}});
+ await session.start();
+ for(const [path,options] of [['/api/work-receiving/context',undefined],['/api/work-receiving/count-drafts',{method:'POST',body:{requestId:'00000000-0000-4000-8000-000000000001'}}]])await assert.rejects(()=>session.inbound(path,options),error=>error.status===403&&error.code==='BUSINESS_WORKFACE_SCOPE_UNAVAILABLE');
+ assert.equal(calls,1);assert.equal(expired,0);assert.equal(saved.getItem('melisaTestSalesAccessToken'),'fixture');assert.equal(allowed('GET','/api/work-receiving/context'),false);assert.equal(allowed('POST','/api/work-receiving/count-drafts'),false);session.dispose();
+});
