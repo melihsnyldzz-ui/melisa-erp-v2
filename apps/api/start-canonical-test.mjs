@@ -50,6 +50,10 @@ app.use((req,res,next)=>{
   next();
 });
 if(mode==='erp'){
+  if(businessSession){
+    const {canonicalBusinessSaleReadRoutes}=await import('./src/routes/canonicalBusinessSaleReadRoutes.mjs');
+    app.use('/api',canonicalBusinessSaleReadRoutes);
+  }
   const {configureWorkSystem}=await import('./src/services/workSystemService.mjs');
   configureWorkSystem({identity,release});
   const {workSystemRoutes}=await import('./src/routes/workSystemRoutes.mjs');
