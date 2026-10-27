@@ -1,5 +1,8 @@
 ### ERP-DEC-083 — 27 Ekim 2026 — Semih kimliğinin aynı izinlerle gerçek-veri TEST hedefinde hazırlanması
 
+**28 Ekim depo işletme teyidi:** Kullanıcı, yeni gelen malların fiziksel olarak Vega F0102 / 1 / MERKEZ deposuna kabul edildiğini doğrudan teyit etti. Bu kaynak depo kararıdır; native TEST-V70-GOODS-WH/1 ile aynı varlık veya ticari işlem yetkisi değildir. Mevcut normal Semih17 oturumunda yalnız zaten izinli gerçek tedarikçi/ürün okuyucularıyla Gelen Mal kontrol yüzü hazırlanabilir; kayıt/gönderim/onay ve nativegerçekdepo/aktör bağları ayrıca kapalı tutulur. Roller ve önceki otomatik ret korunur.
+
+
 **28 Ekim kullanıcı giriş adı kararı:** Kullanıcı normal 5244 girişinde `semih` adını açıkça seçti. Bu ad yalnız mevcut native kullanıcı17 / rol17 / `unified-semih-test` hesabına giriş etiketi olarak çözülür; yeni kişi, rol, izin, anonim erişim veya alternatif parola kontrolü oluşturulmaz. Kullanıcının doğrudan verdiği mevcut parola yalnız normal giriş formunda kullanılabilir; sohbette tekrar edilmez, kaynak/rapor/GitHub/düz metin dosyada saklanmaz. Önceden kullanıcı tarafından tamamlanan kişisel parola belirleme korunur; başka hesap sıfırlanmaz. İlk modül yüklenirken ikinci render nedeniyle başarılı normal çerez yenilemesinin iptal olmasını önleyen dar açılış düzeltmesi aynı mevcut görev kapsamındadır. Gerçek giriş, yenileme ve yeni sekme sonuçları STATUS üzerinde ayrı kanıtlanır; insan kabulü değildir.
 
 
