@@ -105,3 +105,17 @@ Bu dar kaynak düzeltmesi yeni5536kartının veya diğer eksik kartların aktar�
 10 hedefli yerel test PASS: managed-user çekirdeği4, exact hedef/onay/izin policy4 (biri private gerçek izin kanıtı; CI'da dosya yoksa SKIP), UNKNOWN2. İlgili JS syntax kontrolleri geçti. Bu sonuç kaynak/yerel SQL/API kanıtıdır; yeni backend/GUI/insan kabulü veya CI PASS değildir.
 
 Private kanıtlar aynı ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027/private alanındadır: account-target-admission.json, account-before-*.json, account-install-*.json, account-normal-api-proof.json. Kimlik ve şifreli ilk giriş runtime/UNIFIED-5244-SEMIH-20261027 altında tutulur; GitHub'a eklenmez.
+
+## 5244 business backend ve normal oturum adayı
+
+27 Ekim20:39TR: canonical4144 aynı DB/SQL kimliğini korur. Yeni isteğe bağlı businessWorkface profili yalnız Semih17/rol17 ve onaylı36satır için, gerçek servis pool'undan yeni SQL tanığı ile açılır. Başka DB/port, sysadmin/control/LIVE erişimi, CLEAN bayrağı, yanlış kullanıcı veya değişmiş izin seti reddedilir. Normal user read sırasında permission satır hash'i yeniden kontrol edilir; fingerprint kullanıcı ve rol row_version'larını da içerir. Eski/native/CLEAN/DB02 davranışı isteğe bağlı profil yoksa aynıdır.
+
+Mevcut normal refresh store ve normal login/refresh/logout/session-confirm kullanılır; yeni parola/login motoru veya SQL yetkisi yok. Yalnız bu kimlikte açık çıkış ömrü kullanılır; accessJWT kısa, yenileme rotasyonlu ve iptal edilebilir kalır. Yeniden açılan depo, eski yenilemenin reddi, eski token ile bütün family logout, aktiflik/rol/row-version değişimi test edildi. Kalıcı oturum henüz kurulu API'de açılmadı.
+
+Aynı yeşil5244 için ilk aday, explicit build profiliyle mevcut4144'e same-origin proxy yapar. Başlangıçta source/package/DB/login/uygulama profili ve yeni kalıcı-session health'i eşleşmeden web bağlanmaz; eski CLEAN sağlık cevabı kabul edilmez. Interface/Host/Origin/finite Tailscale peer ve forwarded-header koruması korunur. Normal browser yenileme sırrı JSON veya localStorage'a verilmez; host-only HttpOnly/SameSiteStrict çerezi ve normal API akışı kullanılır. Yerel şirket TEST'inin mevcut HTTP taşımacılığı değişmedi; LIVE/TLS kabulü değildir. Native protected-device taşıması ayrı kalır; CRM kimlik/oturum eşlemesi açılmadı.
+
+İlk adayın veri kapsamı bilinçli olarak ürün/katalog/fotoğraf ve müşteri/tedarikçi kart okumalarıdır. Proxy ve istemci normal auth lifecycle dışında ticari yazmayı reddeder. Bu, geçmiş satış/finans akışlarının gerçek veri kapsamına açıldığı iddiası değildir. customers/suppliers scalar NOTNULL/default0 sorunu nedeniyle yeni UNKNOWN kartların yazıcısı hâlâ admit edilmez; mevcut ayrı döviz hesaplarının NULL/UNKNOWN gösterimi değiştirilmez veya0yapılmaz.
+
+Gerçek servis tanığı private business-session-service-witness.json ve profil fragmanı business-session-profile.json içinde: mevcut named SQL principal, sysadmin0/control0/LIVE erişimi0; hedef/actor/36izin ve session hedefi kabul edildi. SQL DML0, grant dosyası0, listener0, kurulum0. Bu bağımsız metadata kontrolü normal yeni GUI veya gerçek oturum yenilemesi değildir.
+
+99 farklı yerel hedefli test geçti: backend identity/session/route retleri, mevcut CLEAN ve protected-device kapsamları, proxy origin/health/CLEAN karışma retleri, cookie body/family enjeksiyon retleri, browser factory reopen/logout ve safe logging. Yerel private tanığı olmayan CI'da iki LOCAL test SKIP olur. Frontend/API paket üretimi ve gerçek normal ekran kontrolü ayrı sonraki fiziksel adımlardır.

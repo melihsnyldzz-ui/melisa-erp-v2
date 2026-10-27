@@ -5,6 +5,7 @@ import {normalTestFingerprint,bindNormalTestFingerprint,normalTestRefreshTarget}
 import {CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID,CLEAN_LOGIN} from './cleanSyntheticContext.mjs';
 import {CLEAN_PERSONNEL_WORK_ROLES} from './cleanPersonnelManagement.mjs';
 import {expandPermissions,applyRolePermissionDefaults} from './permissionCatalog.js';
+import {businessSessionUserAllowed} from './canonicalBusinessSessionContext.mjs';
 const personalUsers=new WeakMap();
 const legacyIds=new Set([15,16,17,18,19,20,21,22,23,10018]);
 const personalReject=()=>{throw Object.assign(new Error('Personal TEST session identity is unavailable'),{code:'AUTH_REFRESH_INVALID',statusCode:401});};
@@ -53,6 +54,7 @@ export function matchesSemihTestUser(user,identity) {
  return !!(identity&&user&&String(user.id)===identity.userId&&user.username===identity.username&&user.displayName===identity.displayName&&String(user.role?.id)===identity.role.id&&user.role?.code===identity.role.code&&user[normalTestFingerprint]===identity.fingerprint);
 }
 export function allowsProtectedNormalTestUser(user,options) {
+ if(options?.business!==undefined)return !options.copy&&!options.clean&&businessSessionUserAllowed(user,options.business,user?.[normalTestFingerprint]);
  if(options?.clean!==undefined){
   const clean=options.clean;
   if(options.copy||clean?.environment!=='CLEAN_SYNTHETIC_TEST'||clean.environmentId!==CLEAN_ENVIRONMENT_ID||clean.database!==CLEAN_DATABASE||clean.synthetic!==true||clean.actualT1!==false||clean.externalOperations!==false||user?.isActive===false||user?.isAdmin===true||user?.testAdminSession===true||!Array.isArray(user?.permissions)||user.permissions.some(p=>typeof p!=='string')||!/^[a-f0-9]{64}$/.test(user?.[normalTestFingerprint]??''))return false;

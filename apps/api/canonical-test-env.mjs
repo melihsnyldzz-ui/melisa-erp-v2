@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { networkPolicy } from './canonical-test-network.mjs';
 import {canonicalListenerPolicy} from './canonical-test-listeners.mjs';
+import {BUSINESS_SESSION,validateBusinessSessionProfile,configureCanonicalBusinessSession} from './src/services/canonicalBusinessSessionContext.mjs';
 
 export function canonicalGoal8Policy(config,{mode,writes}){
   if(config.goal8SyntheticDayProfile!==undefined&&typeof config.goal8SyntheticDayProfile!=='boolean')throw Error('TEST_GOAL8_PROFILE_CONFIG_REJECTED');
@@ -19,6 +20,7 @@ export function canonicalGoal8Policy(config,{mode,writes}){
 export async function configureCanonicalTest(configPath, mode) {
   if (!path.isAbsolute(configPath || '') || !['erp','native'].includes(mode)) throw Error('TEST_ARGUMENT_REJECTED');
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  if(config.businessWorkface!==undefined)validateBusinessSessionProfile(config.businessWorkface);
   const expectedDatabase = 'MELISA_ERP_SIRKET_TEST_20260929_01';
   const readLogin = 'melisa_sirket_test_20260929_01';
   const writes = mode === 'erp' && config.salesEnabled === true;
@@ -56,6 +58,7 @@ export async function configureCanonicalTest(configPath, mode) {
     TERMINAL_CATALOG_CACHE_DIR:path.resolve('.canonical-runtime/catalog'), PILOT_CATALOG_DIR:path.resolve('.canonical-runtime/pilot'),
     CORS_ORIGINS:listenerPolicy.corsOrigins.join(','),
   });
+  if(mode==='erp'&&config.businessWorkface)process.env.MELISA_TEST_PROTECTED_SESSION_PATH=BUSINESS_SESSION.sessionPath;
   for (const file of ['.env','.env.local']) if(fs.existsSync(path.resolve(file))) throw Error('TEST_DOTENV_REJECTED');
   const { env } = await import('./src/config/env.js');
   if(env.sql.database!==expectedDatabase || env.sql.readOnly!==!writes || env.sql.trustedConnection || env.vega.enabled || env.whatsapp.enabled || env.nakliyat.enabled || env.receiptPrinting.enabled || env.port!==port) throw Error('TEST_ENVIRONMENT_REJECTED');
@@ -68,5 +71,6 @@ export async function configureCanonicalTest(configPath, mode) {
     const guards=(await pool.request().query("SELECT COUNT(*) n FROM sys.triggers WHERE name IN(N'test_guard_products',N'test_guard_stock_movements',N'test_guard_sales_invoices',N'test_guard_customer_movements',N'test_guard_purchase_invoices',N'test_guard_supplier_movements',N'test_guard_finance_accounts',N'test_guard_finance_movements') AND is_disabled=0")).recordset[0];
     if(Number(guards.n)!==8 || permissions.some(p=>['CONTROL','ALTER','TAKE OWNERSHIP'].includes(p.permission_name)))throw Error('TEST_WRITER_GUARDS_REJECTED');
   }
-  return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy};
+  const businessSession=await configureCanonicalBusinessSession({config,identity,mode,port,writes,pool});
+  return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy,businessSession};
 }

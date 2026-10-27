@@ -1,7 +1,7 @@
 import { configureCanonicalTest } from './canonical-test-env.mjs';
 import {startCanonicalListeners,canonicalInboundMiddleware,canonicalReadiness} from './canonical-test-listeners.mjs';
 const [mode, configPath] = process.argv.slice(2);
-const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy}=await configureCanonicalTest(configPath,mode);
+const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession}=await configureCanonicalTest(configPath,mode);
 const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
 if(config.goal7SourceVersion)configureCatalogSourceVersion(config.goal7SourceVersion);
 if(mode==='erp'){
@@ -31,7 +31,7 @@ const app=express();app.disable('x-powered-by');
 app.use(canonicalInboundMiddleware({port,policy:listenerPolicy}));
 app.use(securityHeaders(),cors(corsOptions()),requestContext,apiRateLimit(),express.json({limit:'2mb'}));
 app.use((_req,res,next)=>{res.set('X-Melisa-Environment','CANONICAL-TEST');res.set('Cache-Control','no-store');next();});
-const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId};
+const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId,...(businessSession?{businessWorkfaceId:config.businessWorkface.id,normalSessionUserId:businessSession.userId,persistentNormalSession:true,actualT1:false}: {})};
 const readiness=canonicalReadiness();
 app.get('/test-health',(_req,res)=>readiness.send(res,health));
 app.get('/production-switch-health',(_req,res)=>readiness.send(res,health));
@@ -46,7 +46,7 @@ if(mode==='erp' && writes){
 }
 app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'TEST_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
   next();
 });
 if(mode==='erp'){

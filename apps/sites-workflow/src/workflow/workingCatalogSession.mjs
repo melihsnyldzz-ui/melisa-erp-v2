@@ -1,5 +1,6 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
-import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
+import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheticCatalogModel.mjs';
+import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed} from './businessWorkface.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -30,19 +31,22 @@ function validUser(user){
  return user;
 }
 export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return ['admin','clean_test_administrator'].includes(user?.role?.code)?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
-export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,selectedSourceCollections=false,protectedDevice=createProtectedDeviceSession()}={}){
+export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,selectedSourceCollections=false,protectedDevice=createProtectedDeviceSession(),businessProfile=import.meta.env?.VITE_ERP_WORKFACE}={}){
+ const businessTarget=isBusinessWorkfaceTarget({location,apiBase,profile:businessProfile}),businessBrowser=businessTarget&&!protectedDevice;
+ const isCleanCatalogLocation=loc=>!businessTarget&&isOriginalCleanLocation(loc);
  const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
  const cartonReadTarget=cartonReadOrigin(location,copyProfile);
- const resolvedApiBase=resolveTestApiBase({location,apiBase});
+ const resolvedApiBase=resolveTestApiBase({location,apiBase,businessProfile});
  const cleanCartonTarget=isCleanCatalogLocation(location)&&resolvedApiBase!==null&&apiBase==='http://127.0.0.1:4194';
  let active=true,token=null,user=null,generation=0,switching=false,deviceToken=null,refreshToken=null,expiresAt=0,renewing=null;const controllers=new Set();
- const target=()=>isTestSessionTarget({location,apiBase});
+ const target=()=>isTestSessionTarget({location,apiBase,businessProfile});
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{if(protectedDevice&&key===workingCatalogTokenKey){deviceToken=value;try{storage?.removeItem(key);}catch{}return;}try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
  async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
-  if(protectedDevice&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
+  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path))throw problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403);
+  if((protectedDevice||businessBrowser)&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
   // Carton GETs include cold native source checks; a longer budget adds no retry or API speed gain.
@@ -60,7 +64,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead||cleanInvoiceListRead||cleanCollectionContextRead?45000:cleanContextRead?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
-   const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
+   const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:businessBrowser?'same-origin':'omit',redirect:'error',headers:{'Content-Type':'application/json',...(businessTarget&&protectedDevice?{'X-Melisa-Session-Transport':'native'}:{}),...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    if(cleanSaleErrors&&response.status===409&&payload?.error?.code==='CLEAN_SALE_CHANGED')throw Object.assign(problem('Bilgiler değişti. Güncel kaydı kontrol edin.',409),{code:'CLEAN_SALE_CHANGED'});
@@ -71,6 +75,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  async function accept(payload){
   const data=payload?.data;if(typeof data?.accessToken!=='string'||!data.accessToken.length)throw problem('Oturum doğrulanamadı.');
   const next=validUser(data.user);if(!active)throw problem('İstek iptal edildi.');const version=generation,nextExpiry=data.expiresAt;
+  if(businessBrowser){if(data.browserSession!==true||data.refreshToken!==undefined||next.id!==17||next.username!=='unified-semih-test'||next.role?.id!==17||next.role.code!=='unified_test_semih'||!Number.isSafeInteger(nextExpiry)||nextExpiry<=Date.now())throw problem('Kalıcı oturum doğrulanamadı.',401);refreshToken='http-only-cookie';expiresAt=nextExpiry;}
   if(protectedDevice){
    let vaultCommitted=false;
    try{if(typeof data.refreshToken!=='string'||!data.refreshToken||typeof next.username!=='string'||next.testAdminSession||!Number.isSafeInteger(nextExpiry)||nextExpiry<=Date.now())throw problem('Kalıcı personel oturumu hazırlanamadı.');await protectedDevice.put({accessToken:data.accessToken,refreshToken:data.refreshToken,userId:String(next.id),username:next.username,expiresAt:nextExpiry});vaultCommitted=true;if(!active||version!==generation)throw problem('İstek iptal edildi.');}
@@ -82,7 +87,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  }
  async function renew(){
   if(renewing)return renewing;const expected=user&&{id:user.id,username:user.username},version=generation,old=refreshToken;
-  renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
+  renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
  return {
   async prepareCrm(){
@@ -92,6 +97,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!active||generation!==version||payload.data?.id!==expected.id||payload.data?.username!==expected.username)throw problem('ERP oturumu değişti.',401);
   },
   async start(){
+   if(businessBrowser){if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{return await accept(await request('/api/auth/refresh',{method:'POST',body:{},startupAuth:true}));}catch(e){if([401,403].includes(e?.status)){clear({force:true});return null;}throw e;}}
    if(protectedDevice){
     if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{storage?.removeItem(workingCatalogTokenKey);}catch{}
     const version=generation,saved=await protectedDevice.get();if(!active||version!==generation)throw problem('İstek iptal edildi.');if(!saved)return null;
@@ -104,8 +110,8 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!shouldAutoOpenTestAdmin({location,apiBase,mode:stored(testSessionModeKey)}))return null;
    return accept(await request('/api/auth/test-admin',{method:'POST',body:{}}));
   },
-  async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);const old=refreshToken;if(old)await request('/api/auth/logout',{method:'POST',body:{refreshToken:old},startupAuth:true});save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
-  async logout(){const old=refreshToken;try{if(old)await request('/api/auth/logout',{method:'POST',body:{refreshToken:old},startupAuth:true});}finally{clear({force:true});if(protectedDevice)await protectedDevice.clear();}},
+  async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);const old=refreshToken;if(old)await request('/api/auth/logout',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password},startupAuth:true}));},
+  async logout(){const old=refreshToken;try{if(old)await request('/api/auth/logout',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});}finally{clear({force:true});if(protectedDevice)await protectedDevice.clear();}},
   async selectCopyActor(actorId){
    if(protectedDevice)throw problem('Kullanıcı değiştirmek için mevcut oturumu kapatın.',403);
    const profile=validateOperationCopyBootstrap(copyProfile,location),selected=profile.actors.find(a=>a.id===actorId);
@@ -225,7 +231,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   },
   async media(path,{signal,...extra}={}){
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/catalog\/products\/[1-9]\d*\/photo\?variant=(?:preview|thumbnail)$/.test(path)||!token||!user||!active||!target()||signal?.aborted)throw problem('Ürün fotoğrafı açılamıyor.');
-   if(protectedDevice&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
+   if((protectedDevice||businessBrowser)&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
    if(signal?.aborted||!active||!token||!user)throw problem('Ürün fotoğrafı açılamıyor.');
    const controller=new AbortController(),version=generation,requestToken=token,abort=()=>controller.abort();controllers.add(controller);signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,timeoutMs);
    const current=()=>active&&!controller.signal.aborted&&version===generation&&requestToken===token;

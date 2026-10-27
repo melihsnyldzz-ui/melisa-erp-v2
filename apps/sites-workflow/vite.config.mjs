@@ -1,5 +1,7 @@
 import http from 'node:http';
 import os from 'node:os';
+import {businessWorkfaceId,businessWorkfaceRequestAllowed} from './src/workflow/businessWorkface.mjs';
+import {createBusinessBrowserSessionTransport} from './business-preview-session.mjs';
 
 // The existing preview serves only this explicitly installed synthetic package.
 // Native/API listeners remain loopback; remote browsers use this same-origin proxy.
@@ -58,8 +60,33 @@ const cleanPreview={
     }catch(error){extra.forEach(s=>s.close());throw error;}
   },
 };
+export function businessPreviewNetwork(environment=process.env,interfaces=os.networkInterfaces()){
+ if(environment.MELISA_BUSINESS_UI_NETWORK===undefined)return false;
+ if(environment.MELISA_BUSINESS_UI_NETWORK!=='lan-tailscale-20261027'||environment.MELISA_BUSINESS_WORKFACE!==businessWorkfaceId||environment.MELISA_CLEAN_TEST||environment.MELISA_CLEAN_UI_NETWORK||environment.VITE_API_BASE_URL!=='http://127.0.0.1:4144'||environment.VITE_ERP_WORKFACE!==businessWorkfaceId||! /^[a-f0-9]{40}$/.test(environment.BUSINESS_SOURCE_COMMIT??'')||typeof environment.BUSINESS_PACKAGE_ID!=='string'||!environment.BUSINESS_PACKAGE_ID)throw Error('BUSINESS_UI_PROFILE_REQUIRED');
+ cleanPreviewTailPeers(environment.MELISA_BUSINESS_UI_TAILSCALE_PEERS);
+ for(const [address,netmask] of [['192.168.1.46','255.255.255.0'],['100.87.188.3','255.255.255.255']])if(!Object.values(interfaces).flat().some(e=>e?.family==='IPv4'&&!e.internal&&e.address===address&&e.netmask===netmask))throw Error('BUSINESS_UI_INTERFACE_REQUIRED');
+ return true;
+}
+export function validateBusinessPreviewHealth(h,environment=process.env){
+ if(h?.ok!==true||h.environment!=='CANONICAL_TEST'||h.mode!=='erp'||h.port!==4144||h.databaseName!=='MELISA_ERP_SIRKET_TEST_20260929_01'||h.serverName?.toLowerCase()!=='semih\\melisadev'||h.loginName!=='melisa_sirket_sales_test_20260929_01'||h.databaseUser!==h.loginName||h.sysadmin!==0||h.databaseControl!==0||h.liveDatabaseAccess!==0||h.writes!==true||h.sqlReadOnly!==false||h.actualT1!==false||h.externalOperations!==false||h.automaticJobs!==false||h.businessWorkfaceId!==businessWorkfaceId||h.normalSessionUserId!==17||h.persistentNormalSession!==true||h.sourceCommit!==environment.BUSINESS_SOURCE_COMMIT||h.packageId!==environment.BUSINESS_PACKAGE_ID)throw Error('BUSINESS_UI_API_IDENTITY_REQUIRED');return h;
+}
+const businessPreview={
+ name:'melisa-business-preview-network',
+ config(){if(!businessPreviewNetwork())return;return{preview:{host:'127.0.0.1',port:5244,strictPort:true,cors:false,proxy:{'^/api/':{target:'http://127.0.0.1:4144',changeOrigin:true,ws:false}}}};},
+ async configurePreviewServer(server){
+  if(!businessPreviewNetwork())return;
+  if(server.config.preview.host!=='127.0.0.1'||server.config.preview.port!==5244||server.config.preview.strictPort!==true)throw Error('BUSINESS_UI_PREVIEW_TARGET_REQUIRED');
+  const response=await fetch('http://127.0.0.1:4144/test-health',{redirect:'error',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('BUSINESS_UI_API_NOT_READY');validateBusinessPreviewHealth(await response.json());
+  const peers=cleanPreviewTailPeers(process.env.MELISA_BUSINESS_UI_TAILSCALE_PEERS);
+  const sessionTransport=createBusinessBrowserSessionTransport();
+  server.middlewares.use((req,res,next)=>{if(!cleanPreviewRequestAllowed(req,peers)||!['GET','HEAD'].includes(req.method)&&!req.url.startsWith('/api/')){res.writeHead(403,{'Cache-Control':'no-store'});res.end('BUSINESS_UI_ORIGIN_REQUIRED');return;}if(req.url.startsWith('/api/')&&!businessWorkfaceRequestAllowed(req.method,req.url)){res.writeHead(403,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({success:false,error:{code:'BUSINESS_UI_READ_ONLY'}}));return;}void sessionTransport(req,res,next);});
+  const extra=[];server.httpServer.once('close',()=>extra.forEach(s=>s.close()));
+  try{for(const address of ['192.168.1.46','100.87.188.3']){const listener=http.createServer(server.middlewares);extra.push(listener);await new Promise((resolve,reject)=>{listener.once('error',reject);listener.listen(5244,address,resolve);});}}
+  catch(error){extra.forEach(s=>s.close());throw error;}
+ },
+};
 export default {
-  plugins:[cleanPreview],
+  plugins:[cleanPreview,businessPreview],
   build: { rollupOptions: { input: { main: 'index.html', workflow: 'is-akisi-taslagi.html', example: 'ornek-akis.html', terminal: 'terminal.html', legacy: 'legacy-admin.html', acceptance: 'responsive-acceptance.html', trainingGuide: 'kullanim-egitimi.html' } } },
   server: { host: '0.0.0.0', allowedHosts: ['terminal.local'] },
 };

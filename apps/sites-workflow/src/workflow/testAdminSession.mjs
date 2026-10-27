@@ -1,6 +1,8 @@
 import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
+import {isBusinessWorkfaceTarget} from './businessWorkface.mjs';
 export const testSessionModeKey = 'melisaTestSessionMode';
-export function resolveTestApiBase({location,apiBase}){
+export function resolveTestApiBase({location,apiBase,businessProfile}){
+ if(businessProfile!==undefined&&location?.port==='5244')return isBusinessWorkfaceTarget({location,apiBase,profile:businessProfile})?location.origin:null;
  if(location?.port==='5244'){
   if(!isCleanCatalogLocation(location)||apiBase!=='http://127.0.0.1:4194')return null;
   return ['127.0.0.1','localhost'].includes(location.hostname)?apiBase:`http://${location.hostname}:5244`;

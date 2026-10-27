@@ -7,6 +7,7 @@ import { getSqlPool } from '../config/database.js';
 import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import {getCleanContext,assertRegisteredCleanContext} from './cleanSyntheticContext.mjs';
+import {getCanonicalBusinessSession,businessSessionFingerprintWitness,assertBusinessSessionPermissionRows} from './canonicalBusinessSessionContext.mjs';
 // Only auth refresh/revocation and last-login writes use this narrow capability.
 function assertAuthWriteEnabled(){if(getCleanContext()){assertRegisteredCleanContext();return;}assertMelisaWriteEnabled();}
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
@@ -71,7 +72,7 @@ function toUserDto(row, permissions = [], fingerprint = true) {
 
 async function toNormalUserDto(pool,row,permissions){
  const user=toUserDto(row,permissions,false);
- if(!getCleanContext())return bindNormalTestFingerprint(user,row);
+ if(!getCleanContext())return bindNormalTestFingerprint(user,row,businessSessionFingerprintWitness(user,row));
  const options=normalTestIdentityOptions();
  if(!requiresCleanPersonalNormalWitness(user,options))return bindNormalTestFingerprint(user,row);
  // One current, read-only joined observation. Neither supplied JWT roles nor
@@ -126,6 +127,7 @@ async function getPermissionKeys(request, roleId) {
         can_view,
         can_create,
         can_update,
+        can_delete,
         can_approve
       FROM dbo.permissions
       WHERE role_id = @permissionRoleId
@@ -133,6 +135,7 @@ async function getPermissionKeys(request, roleId) {
       ORDER BY permission_key ASC;
     `);
 
+  assertBusinessSessionPermissionRows(roleId,result.recordset || []);
   return expandPermissions(result.recordset || []);
 }
 
@@ -156,6 +159,8 @@ export async function getUserById(userId) {
         r.code AS role_code,
         r.name AS role_name,
         r.is_active AS role_is_active,
+        CONVERT(varchar(18),u.row_version,1) AS user_version,
+        CONVERT(varchar(18),r.row_version,1) AS role_version,
         u.is_active
       FROM dbo.users u
       INNER JOIN dbo.roles r ON r.id = u.role_id
@@ -164,7 +169,7 @@ export async function getUserById(userId) {
 
   const row = userResult.recordset?.[0];
 
-  if (!row || !row.is_active || ((getCleanContext()||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
+  if (!row || !row.is_active || ((getCleanContext()||getCanonicalBusinessSession()?.username===row.username||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
     throw makeAuthError('AUTH_USER_INACTIVE', 'User is inactive or not found', 401);
   }
 
@@ -195,6 +200,8 @@ export async function authenticateUserCredentials({ username, password }) {
         r.code AS role_code,
         r.name AS role_name,
         r.is_active AS role_is_active,
+        CONVERT(varchar(18),u.row_version,1) AS user_version,
+        CONVERT(varchar(18),r.row_version,1) AS role_version,
         u.is_active
       FROM dbo.users u
       INNER JOIN dbo.roles r ON r.id = u.role_id
@@ -206,7 +213,7 @@ export async function authenticateUserCredentials({ username, password }) {
     ? await bcrypt.compare(normalizedPassword, row.password_hash)
     : false;
 
-  if (!row || !row.is_active || !passwordOk || ((getCleanContext()||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
+  if (!row || !row.is_active || !passwordOk || ((getCleanContext()||getCanonicalBusinessSession()?.username===row.username||row.username==='erp-semih-test-20261012')&&!row.role_is_active)) {
     throw makeAuthError('AUTH_INVALID_CREDENTIALS', 'Username or password is invalid', 401);
   }
 
@@ -507,7 +514,7 @@ export async function refreshAccessToken(refreshToken, { nativeTerminal = false,
   };
 }
 
-function normalTestIdentityOptions(){return getCleanContext()?{clean:assertRegisteredCleanContext()}:{copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
+function normalTestIdentityOptions(){const business=getCanonicalBusinessSession();if(business)return {business};return getCleanContext()?{clean:assertRegisteredCleanContext()}:{copy:isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null};}
 function normalTestStore(){return configuredNormalTestRefreshStore(normalTestIdentityOptions());}
 export async function confirmProtectedNormalSession(accessToken,refreshToken){
  const payload=verifyAccessToken(accessToken),store=normalTestStore();

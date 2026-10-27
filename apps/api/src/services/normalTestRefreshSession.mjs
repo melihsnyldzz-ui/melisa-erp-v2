@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import {CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
+import {assertCanonicalBusinessSession} from './canonicalBusinessSessionContext.mjs';
 export const normalTestFingerprint=Symbol('normal-test-session-fingerprint');
 const hash=s=>crypto.createHash('sha256').update(s).digest('hex');
 const reject=()=>Object.assign(new Error('Session is invalid or revoked'),{code:'AUTH_REFRESH_INVALID',statusCode:401});
@@ -32,7 +33,12 @@ export function createNormalTestRefreshStore({file,now=Date.now,random=()=>crypt
   revoke(t){return mutate(d=>{const h=digest(t),g=d.grants.find(g=>g.tokenHash===h||g.revocationHashes?.includes(h));if(g)g.revoked=true;return{loggedOut:true};});},
  };
 }
-export function normalTestRefreshTarget({copy,clean,config=process.env}={}){
+export function normalTestRefreshTarget({copy,clean,business,config=process.env}={}){
+ if(business!==undefined){
+  const context=assertCanonicalBusinessSession(business);
+  if(copy||clean||config.MELISA_TEST_PROTECTED_SESSION_PATH!==context.sessionPath)throw Error('AUTH_TEST_SESSION_TARGET');
+  return context.sessionPath;
+ }
  const file=config.MELISA_TEST_PROTECTED_SESSION_PATH;if(!file)return null;
  if(clean!==undefined){
   const expected='C:\\Sirket\\ERP\\clean\\20261022\\runtime\\protected-erp-sessions\\grants.json';
@@ -45,7 +51,10 @@ export function normalTestRefreshTarget({copy,clean,config=process.env}={}){
 }
 export function configuredNormalTestRefreshStore(options={}){
  const file=normalTestRefreshTarget(options);
- return file?createNormalTestRefreshStore({file}):null;
+ // Only the approved dedicated business identity has explicit-logout lifetime.
+ // Access JWTs remain short-lived; logout, row-version/permission/password
+ // checks and refresh rotation still revoke the entire existing family.
+ return file?createNormalTestRefreshStore({file,...(options.business?{ttlMs:Date.UTC(9999,11,31)-Date.now()}:{} )}):null;
 }
 export function cleanProtectedSessionReadAllowed(req,options={}){
  if(req?.method!=='POST'||req.path!=='/api/auth/session-confirm'||req.query&&Object.keys(req.query).length||!options.clean)return false;
