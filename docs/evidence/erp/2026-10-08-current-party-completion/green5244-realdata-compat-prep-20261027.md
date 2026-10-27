@@ -154,3 +154,17 @@ GerçekChrome yeni ayrı sekmede `http://192.168.1.46:5244/ornek-akis.html#stock
 **GUI:** sayfa ve giriş formu görüldü; authenticated ürün/cari/refresh/reopen/logout DENENMEDİ/BLOCKED. **API:** önceki V5 normal HTTP kapsamı doğrulandı; GUI yerine geçmez. **İnsan:** özgünUA kayıtları BEKLİYOR; PASS/sayaç değişmedi. Kalıcı launcher webroot/pin'i güncellendi; gerçek Windows reboot/logon ve DHCP/IP rezervasyonu denenmedi.5244tekport sabitliği bu kabullerin yerine geçmez.
 
 Eski5194veCLEAN4194/4196/CRM giriş/bağımlılıkları, veritabanları, yedekler ve önceki taslaklar korunur. Ürün/cari/bakiye yeniden migrate edilmedi. Yeni alış/satış/finans yetkisi açılmadı. Kullanıcının tümcariler/güncelbakiyeler isteği bu kurulum kanıtıyla tamamlanmış sayılmaz. Kalan somut halka desteklenen korumalı normalGUIilk giriş teslimidir; bunun ardından normal gerçekürün/cari ve sekmeyeniden açılış/çıkış doğrulaması, sonra eski giriş bağımlılıklarının kapatılabilirliği gelir.
+## 27 Ekim — tekrar oturum ve giriş mesajının dar düzeltmesi, kurulmadı
+
+Kullanıcı giriş denemesinde de “Oturumunuz sona erdi” gördüğünü bildirdi. MevcutChrome5244Ürün&Stok ekranında mesaj gözlendi; gerçekbaşarılıbrowserlogin veya hangiisteğin bunu doğurduğu kanıtlanmadı. Başka İşsırası sekmesindeki “bu alanı doldurun” HTMLformuyarısı kimlik doğrulama yanıtı değildir. Bunlar gerçek oturum süresi doldu diye genellenmez. Parola görülmedi/aktarılmadı/istenmedi; mevcut araç retleri başka kanalla aşılmadı.
+
+Kaynak `66a9c3bc` ve ek hedefli kabul testleri:
+
+- Yanlış/eksik normal login401 artık “Kullanıcı adı veya şifre doğrulanamadı” der; ilk giriş hatası süre doldu diye sunulmaz.
+- Ekran değişimi/reload'da sessionStorage'daki mevcut accessJWT ile HttpOnlycookie normal `/api/auth/session-confirm` üzerinden sunucuda birlikte doğrulanır. Kimlik17/rol17, aktiflik/izinler/süre ve çiftin eşliği korunur. Geçerliyse cookie gereksiz yere döndürülmez; süresi yakınsa bir kez normal refresh kullanılır. Yeni sekmede cache yoksa mevcut normal refresh yolu kalır; yeni oturum motoru yok.
+- Geçersiz/replay/missing refresh ve session-confirm401 backend'de hâlâ reddedilir; geciken hata yanıtı başka sekmede daha sonra yenilenmiş geçerli cookie'yi silemez. Yalnız açıklogout cookie'yi siler; role/user değişimi ile geçersiz aile kullanılabilir hale gelmez. Ham refresh JS/localStorage'a taşınmaz.
+- Yalnızbusinessbrowser'da fotoğraf403, geçerli kimliği logout yapmaz; 401 hâlâ oturum sınırıdır. Legacy/native fotoğraf403 davranışı değiştirilmedi.
+
+75hedefliyereltestPASS: paralel4ekranda confirm/rotasyon0, yakınexpiry tekrefresh, yanlışkimlik ret,503durumunda cache/taslak koruma, eski401'in yeniCookie'ye etkisizliği, çıkışsonrasıyenaçılış ret ve mevcut operasyon/UUID sınırları. Bunlar fixture/adapter kanıtıdır; fizikselChromeoturumkabulü değildir.
+
+Yeni derleme private `frontend-business-session-v2-receipt.json`:53dist/11CSShash-eş,8.43s, mevcut bağımlılıklar saltokunur yeniden kullanıldı; listener/SQL/kurulum0. Aday source66a9c3bc. Kuruluweb hâlâERP-BUSINESS-WEB-5244-10cdc0ee; API/DB/roller aynı. Düzeltmenin çalışana yansıması için yeni darwebpaketi/kontrollügeçiş gerekir; API/DB yeniden kurma gerekmez. GUIkorumalıilk giriş engeli açık olduğu için geniş/insan kabulü PASS değil. Mevcutkullanıcısekmesi/taslak/oturum değiştirilmedi.

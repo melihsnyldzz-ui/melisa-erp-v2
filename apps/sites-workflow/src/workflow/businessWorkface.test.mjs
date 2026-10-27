@@ -60,3 +60,15 @@ test('a forbidden photo does not destroy an otherwise valid session',async()=>{
  await session.login({username:user.username,password:'fixture'});await assert.rejects(session.media('/api/catalog/products/12/photo?variant=thumbnail'),e=>e.status===403);
  assert.equal(expired,0);assert.equal(saved.getItem('melisaTestSalesAccessToken'),'fixture');
 });
+
+test('parallel screen reopening confirms the cached pair without rotating the shared cookie',async()=>{
+ const saved=storage();saved.setItem('melisaTestSalesAccessToken','fixture');let confirms=0;
+ const make=()=>createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async(url,o)=>{assert(url.endsWith('/auth/session-confirm'));assert.equal(o.headers.Authorization,'Bearer fixture');confirms++;return{ok:true,status:200,json:async()=>({success:true,data:{confirmed:true,user,expiresAt:Date.now()+900000}})};}});
+ const sessions=Array.from({length:4},make);assert.deepEqual((await Promise.all(sessions.map(s=>s.start()))).map(u=>u.id),[17,17,17,17]);assert.equal(confirms,4);sessions.forEach(s=>s.dispose());
+});
+
+test('confirmed access near expiry rotates once and keeps the same verified identity',async()=>{
+ const saved=storage();saved.setItem('melisaTestSalesAccessToken','fixture');const paths=[];
+ const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async url=>{paths.push(new URL(url).pathname);return{ok:true,status:200,json:async()=>({success:true,data:url.endsWith('/session-confirm')?{confirmed:true,user,expiresAt:Date.now()+10000}:{browserSession:true,user,accessToken:'renewed',expiresAt:Date.now()+900000}})};}});
+ assert.equal((await session.start()).id,17);assert.deepEqual(paths,['/api/auth/session-confirm','/api/auth/refresh']);assert.equal(saved.getItem('melisaTestSalesAccessToken'),'renewed');
+});
