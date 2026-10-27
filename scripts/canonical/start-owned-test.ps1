@@ -59,17 +59,26 @@ function Read-ErpStartupConfig($Path) {
  if($c.PSObject.Properties['ApiComponent']){
   $api=Get-ErpApiComponentConfig $c
   $m=Assert-ErpRelease $api
-  if($m.kind -cne 'CANONICAL_TEST125_BUSINESS_WORKFACE_CANDIDATE' -or $m.businessWorkfaceId -cne 'ERP-5244-REALDATA-20261027' -or $m.businessWorkfaceReadOnly -ne $true -or $m.normalSessionSourceCommit -cnotmatch '^[a-f0-9]{40}$' -or !$m.PSObject.Properties['businessSessionSignerDomain'] -or $m.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or !$privateConfig.PSObject.Properties['businessWorkface'] -or $privateConfig.businessWorkface.id -cne $m.businessWorkfaceId -or $privateConfig.businessWorkface.userId -ne 17 -or $privateConfig.businessWorkface.actualT1 -ne $false -or $privateConfig.businessWorkface.externalOperations -ne $false){throw 'TEST_STARTUP_COMPONENT_PROFILE_REJECTED'}
+  $apiPrivate=Get-Content -LiteralPath $api.ConfigPath -Raw | ConvertFrom-Json
+  if($m.kind -cne 'CANONICAL_TEST125_BUSINESS_WORKFACE_CANDIDATE' -or $m.businessWorkfaceId -cne 'ERP-5244-REALDATA-20261027' -or $m.businessWorkfaceReadOnly -ne $true -or $m.normalSessionSourceCommit -cnotmatch '^[a-f0-9]{40}$' -or !$m.PSObject.Properties['businessSessionSignerDomain'] -or $m.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or !$apiPrivate.PSObject.Properties['businessWorkface'] -or $apiPrivate.businessWorkface.id -cne $m.businessWorkfaceId -or $apiPrivate.businessWorkface.userId -ne 17 -or $apiPrivate.businessWorkface.actualT1 -ne $false -or $apiPrivate.businessWorkface.externalOperations -ne $false){throw 'TEST_STARTUP_COMPONENT_PROFILE_REJECTED'}
+  # The original native/web profile and its package seal stay unchanged. Only
+  # the API projection may carry a different package ID and business signer.
+  Assert-ErpApiPrivateProfile $privateConfig $apiPrivate $m
  }
  return $c
 }
+function Assert-ErpApiPrivateProfile($Base,$Api,$Manifest){
+ $comparison=$Api.PSObject.Copy();$comparison.PSObject.Properties.Remove('businessWorkface');$comparison.PSObject.Properties.Remove('businessSessionAccessSecret')
+ $comparison.goal8SyntheticDaySeal=$Base.goal8SyntheticDaySeal
+ if(($comparison|ConvertTo-Json -Depth 100 -Compress) -cne ($Base|ConvertTo-Json -Depth 100 -Compress) -or $Api.goal8SyntheticDaySeal.sourceCommit -cne $Base.goal8SyntheticDaySeal.sourceCommit -or $Api.goal8SyntheticDaySeal.dayId -cne $Base.goal8SyntheticDaySeal.dayId -or $Api.goal8SyntheticDaySeal.definitionHash -cne $Base.goal8SyntheticDaySeal.definitionHash -or $Api.goal8SyntheticDaySeal.packageId -cne $Manifest.packageId){throw 'TEST_STARTUP_COMPONENT_PROFILE_DELTA_REJECTED'}
+}
 function Get-ErpApiComponentConfig($Config){
  if(!$Config.PSObject.Properties['ApiComponent']){return $Config}
- $part=$Config.ApiComponent;$keys=@('ReleaseRoot','SourceCommit','ManifestSha256')
- if(!$part -or @($part.PSObject.Properties.Name).Count -ne 3 -or @($part.PSObject.Properties.Name|Where-Object {$_ -notin $keys}).Count -or !$part.ReleaseRoot -or $part.SourceCommit -cne $Config.SourceCommit -or $part.ManifestSha256 -cnotmatch '^[a-fA-F0-9]{64}$'){throw 'TEST_STARTUP_COMPONENT_PIN_REJECTED'}
+ $part=$Config.ApiComponent;$keys=@('ReleaseRoot','SourceCommit','ManifestSha256','ConfigPath')
+ if(!$part -or @($part.PSObject.Properties.Name).Count -ne 4 -or @($part.PSObject.Properties.Name|Where-Object {$_ -notin $keys}).Count -or !$part.ReleaseRoot -or $part.SourceCommit -cne $Config.SourceCommit -or $part.ManifestSha256 -cnotmatch '^[a-fA-F0-9]{64}$' -or $part.ConfigPath -cne 'C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json' -or (Same-ErpPath $part.ConfigPath $Config.ConfigPath)){throw 'TEST_STARTUP_COMPONENT_PIN_REJECTED'}
  if(![IO.Path]::IsPathRooted($part.ReleaseRoot) -or $part.ReleaseRoot -match '["\r\n]' -or !([IO.Path]::GetFullPath($part.ReleaseRoot).StartsWith('C:\Sirket\ERP\releases\',[StringComparison]::OrdinalIgnoreCase)) -or !(Outside-ErpPath $part.ReleaseRoot $Config.RepoRoot) -or !(Outside-ErpPath $Config.RepoRoot $part.ReleaseRoot) -or !(Outside-ErpPath $part.ReleaseRoot $Config.RuntimeDir) -or !(Outside-ErpPath $part.ReleaseRoot $Config.ReleaseRoot) -or !(Outside-ErpPath $Config.ReleaseRoot $part.ReleaseRoot)){throw 'TEST_STARTUP_COMPONENT_PATH_REJECTED'}
  $copy=[pscustomobject]@{};foreach($property in $Config.PSObject.Properties){if($property.Name -ne 'ApiComponent'){$copy|Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value}}
- $copy.ReleaseRoot=$part.ReleaseRoot;$copy.SourceCommit=$part.SourceCommit;$copy.ManifestSha256=$part.ManifestSha256
+ $copy.ReleaseRoot=$part.ReleaseRoot;$copy.SourceCommit=$part.SourceCommit;$copy.ManifestSha256=$part.ManifestSha256;$copy.ConfigPath=$part.ConfigPath
  return $copy
 }
 function Get-ErpServiceConfig($Config,$Definition){if($Definition.Name -ceq 'api'){return Get-ErpApiComponentConfig $Config};return $Config}
@@ -92,7 +101,7 @@ function Get-ErpServiceDefinitions($Config) {
  return @(
   @{Name='web';Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@($Config.ConfigPath);WorkingDirectory=$api},
   @{Name='native';Port=4146;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('native',$Config.ConfigPath);WorkingDirectory=$api},
-  @{Name='api';Port=4144;Script=(Join-Path $mainApi 'start-canonical-test.mjs');Args=@('erp',$Config.ConfigPath);WorkingDirectory=$mainApi}
+  @{Name='api';Port=4144;Script=(Join-Path $mainApi 'start-canonical-test.mjs');Args=@('erp',$component.ConfigPath);WorkingDirectory=$mainApi}
  )
 }
 function Get-ErpProcess($ProcessId){return Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$ProcessId)}
