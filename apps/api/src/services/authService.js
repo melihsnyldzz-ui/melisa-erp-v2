@@ -161,8 +161,8 @@ export async function getUserById(userId) {
         r.code AS role_code,
         r.name AS role_name,
         r.is_active AS role_is_active,
-        CONVERT(varchar(18),u.row_version,1) AS user_version,
-        CONVERT(varchar(18),r.row_version,1) AS role_version,
+        CONVERT(varchar(18),CONVERT(binary(8),u.row_version),1) AS user_version,
+        CONVERT(varchar(18),CONVERT(binary(8),r.row_version),1) AS role_version,
         u.is_active
       FROM dbo.users u
       INNER JOIN dbo.roles r ON r.id = u.role_id
@@ -202,8 +202,8 @@ export async function authenticateUserCredentials({ username, password }) {
         r.code AS role_code,
         r.name AS role_name,
         r.is_active AS role_is_active,
-        CONVERT(varchar(18),u.row_version,1) AS user_version,
-        CONVERT(varchar(18),r.row_version,1) AS role_version,
+        CONVERT(varchar(18),CONVERT(binary(8),u.row_version),1) AS user_version,
+        CONVERT(varchar(18),CONVERT(binary(8),r.row_version),1) AS role_version,
         u.is_active
       FROM dbo.users u
       INNER JOIN dbo.roles r ON r.id = u.role_id
