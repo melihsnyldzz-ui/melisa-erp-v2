@@ -1,0 +1,87 @@
+param([switch]$Library,[string]$OutputPath)
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+$test125LibraryOnly=[bool]$Library
+$test125OutputPath=$OutputPath
+. (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library
+
+# Preparation only. This file deliberately has no stop/start/apply mode.
+function Assert-Test125MaintenanceTask($Task,$Config,$StartupPath) {
+ $exe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+ $launcher=Join-Path $Config.RepoRoot 'scripts\canonical\start-owned-test.ps1'
+ $argsText='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$launcher+'" -StartupConfigPath "'+$StartupPath+'"'
+ $sid=if($Task.Principal.UserId -like 'S-1-*'){$Task.Principal.UserId}else{(New-Object Security.Principal.NTAccount($Task.Principal.UserId)).Translate([Security.Principal.SecurityIdentifier]).Value}
+ if($Task.TaskName -cne 'Melisa-ERP-TEST-Canonical' -or $Task.TaskPath -cne '\' -or [string]$Task.State -cne 'Running' -or !$Task.Settings.Enabled -or !$Task.Settings.AllowHardTerminate -or [string]$Task.Settings.MultipleInstances -cne 'IgnoreNew' -or [string]$Task.Principal.LogonType -cne 'Interactive' -or [string]$Task.Principal.RunLevel -cne 'Limited' -or $sid -cne $Config.OwnerSid -or @($Task.Actions).Count -ne 1){throw 'TEST125_TASK_IDENTITY_REJECTED'}
+ $action=$Task.Actions[0]
+ if(!(Same-ErpPath $action.Execute $exe) -or $action.Arguments -cne $argsText -or !(Same-ErpPath $action.WorkingDirectory $Config.RepoRoot)){throw 'TEST125_TASK_ACTION_REJECTED'}
+ return @{Executable=$exe;Arguments=$argsText;Launcher=$launcher}
+}
+
+function Assert-Test125MaintenancePin($Before,$After) {
+ # Only stable admission fields; observation time and supervisor heartbeat are not pins.
+ foreach($key in @('runId','source','database','startupHash','launcherHash','manifestHash','taskXmlHash','taskInstance','supervisor','supervisorBirth','children')) {
+  if(($Before.$key | ConvertTo-Json -Depth 8 -Compress) -cne ($After.$key | ConvertTo-Json -Depth 8 -Compress)){throw 'TEST125_BOUNDARY_CHANGED'}
+ }
+}
+
+function Get-Test125BoundMaintenancePlan {
+ $startup='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
+ $config=Read-ErpStartupConfig $startup
+ if(!(Same-ErpPath $config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2') -or $config.SourceCommit -cne 'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $config.ExpectedDatabase -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $config.TaskName -cne 'Melisa-ERP-TEST-Canonical'){throw 'TEST125_EXACT_TARGET_REJECTED'}
+ $task=Get-ScheduledTask -TaskName $config.TaskName -TaskPath '\' -ErrorAction Stop
+ $action=Assert-Test125MaintenanceTask $task $config $startup
+ foreach($command in @('Stop-ScheduledTask','Start-ScheduledTask')){if(!(Get-Command $command -Module ScheduledTasks -ErrorAction SilentlyContinue)){throw 'TEST125_SUPPORTED_TASK_COMMAND_MISSING'}}
+ $owned=Get-Content -Raw -LiteralPath (Join-Path $config.RuntimeDir 'owned-processes.json') | ConvertFrom-Json
+ if($owned.sourceCommit -cne $config.SourceCommit){throw 'TEST125_OWNED_SOURCE_CHANGED'}
+ $scheduler=New-Object -ComObject Schedule.Service
+ $scheduler.Connect()
+ $registered=$scheduler.GetFolder('\').GetTask($config.TaskName)
+ $instances=$registered.GetInstances(0)
+ if($instances.Count -ne 1){throw 'TEST125_TASK_INSTANCE_COUNT_REJECTED'}
+ $instance=$instances.Item(1)
+ $supervisor=Get-ErpProcess $owned.supervisor
+ if(!$supervisor -or [int]$instance.EnginePID -ne [int]$supervisor.ProcessId){throw 'TEST125_TASK_SUPERVISOR_NOT_BOUND'}
+ $owner=Invoke-CimMethod -InputObject $supervisor -MethodName GetOwnerSid
+ $remaining=[regex]::Replace([string]$supervisor.CommandLine,('^"?'+[regex]::Escape($action.Executable)+'"?\s+'),'')
+ if($owner.ReturnValue -ne 0 -or $owner.Sid -cne $config.OwnerSid -or !(Same-ErpPath $supervisor.ExecutablePath $action.Executable) -or $remaining -cne $action.Arguments -or $supervisor.CreationDate.ToUniversalTime() -gt ([datetime]$owned.startedAt).ToUniversalTime()){throw 'TEST125_SUPERVISOR_IDENTITY_REJECTED'}
+ $children=[ordered]@{}
+ foreach($definition in Get-ErpServiceDefinitions $config){
+  $record=$owned.children.($definition.Name)
+  $process=Assert-ErpOwnedProcess $record.pid $config $definition $record.createdAt
+  if(!$process){throw 'TEST125_CHILD_MISSING'}
+  $listeners=@(Get-ErpServiceListeners $definition $config)
+  if(!$listeners.Count -or @($listeners | Where-Object {$_.OwningProcess -ne $process.ProcessId}).Count){throw 'TEST125_CHILD_LISTENER_CHANGED'}
+  $health=Assert-ErpHealth $config $definition
+  if($definition.Name -eq 'native' -and ($health.sqlReadOnly -ne $true -or $health.sysadmin -ne 0)){throw 'TEST125_NATIVE_READONLY_CHANGED'}
+  $children[$definition.Name]=[ordered]@{port=$definition.Port;pid=$process.ProcessId;birth=$process.CreationDate.ToUniversalTime().ToString('o');ownerVerified=$true;healthy=[bool]$health.ok}
+ }
+ $fresh=Get-ErpProcess $owned.supervisor
+ $again=$registered.GetInstances(0)
+ if(!$fresh -or $fresh.CreationDate -ne $supervisor.CreationDate -or $again.Count -ne 1 -or $again.Item(1).InstanceGuid -cne $instance.InstanceGuid -or [int]$again.Item(1).EnginePID -ne [int]$fresh.ProcessId){throw 'TEST125_SUPERVISOR_CHANGED_DURING_PROBE'}
+ $sha=[Security.Cryptography.SHA256]::Create()
+ try{$xmlHash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$registered.Xml))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ return [ordered]@{
+  schema='melisa-test125-bound-maintenance-preparation.v1';observedAt=(Get-Date).ToUniversalTime().ToString('o')
+  runId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7';source=$config.SourceCommit;database=$config.ExpectedDatabase
+  startupHash=(Get-FileHash -LiteralPath $startup -Algorithm SHA256).Hash
+  launcherHash=(Get-FileHash -LiteralPath $action.Launcher -Algorithm SHA256).Hash
+  manifestHash=$config.ManifestSha256;taskXmlHash=$xmlHash;taskInstance=[string]$instance.InstanceGuid
+  supervisor=$supervisor.ProcessId;supervisorBirth=$supervisor.CreationDate.ToUniversalTime().ToString('o');children=$children
+  supportedTaskStopStart=$true;pauseReady=$false;status='PREPARED_NOT_REHEARSED';stopStartCalls=0;taskChanges=0;commercialWrites=0
+ }
+}
+
+if(!$test125LibraryOnly){
+ try{
+  $result=Get-Test125BoundMaintenancePlan
+  if($test125OutputPath){
+   $full=[IO.Path]::GetFullPath($test125OutputPath)
+   $base='C:\Sirket\ERP\evidence\ERP-GREENCOMBINED-APIWEB-PREFLIGHT-20261026\private\business-catalog-20261027\'
+   if(!$full.StartsWith($base,[StringComparison]::OrdinalIgnoreCase) -or [IO.Path]::GetFileName($full) -notmatch '^active-221-test125-maintenance-preparation-[a-z0-9-]+\.json$'){throw 'TEST125_OUTPUT_SCOPE_REJECTED'}
+   $bytes=[Text.Encoding]::UTF8.GetBytes(($result | ConvertTo-Json -Depth 10))
+   $stream=[IO.File]::Open($full,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+   try{$stream.Write($bytes,0,$bytes.Length)}finally{$stream.Dispose()}
+  }
+  [ordered]@{status=$result.status;runId=$result.runId;taskIdentityVerified=$true;taskEngineBoundToSupervisor=$true;childrenVerified=3;supportedTaskStopStart=$true;pauseReady=$false;stopStartCalls=0;taskChanges=0;commercialWrites=0} | ConvertTo-Json -Compress
+ }catch{[ordered]@{status='REJECTED';code=(Get-ErpSafeCode $_.Exception);stopStartCalls=0;taskChanges=0;commercialWrites=0} | ConvertTo-Json -Compress;exit 1}
+}
