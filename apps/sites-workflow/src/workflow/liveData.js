@@ -266,7 +266,11 @@ function mount(){
  const returns=root.querySelector('#live-return-kind');if(returns)returns.onchange=e=>{kind=e.target.value;reset()};
  paint();load();
 }
-document.addEventListener('workflow-render',mount);
+// The later demo module performs the initial render. Start auth only after
+// all deferred modules finish, so it cannot abort a successful cookie rotation.
+let workflowBootReady=document.readyState==='complete';
+document.addEventListener('workflow-render',()=>{if(workflowBootReady)mount();});
 window.addEventListener('storage',e=>{if(['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','count','returns'].includes(workflow.screen()))return;if(['melisaVegaProductsAccessToken','melisaVegaProductsRefreshToken'].includes(e.key)){user=null;dispose();workflow.render();restore()}});
 async function restore(){if(!client.hasSession()||authBusy)return;authBusy=true;paintToolbar();try{const r=await client.get('/api/auth/me');if(!Array.isArray(r.data?.permissions))throw new Error('ERP yetkileri eksik.');user=r.data}catch{user=null}finally{authBusy=false;workflow.render()}}
-mount();if(mode==='live'&&!['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','count','returns','reports','settings'].includes(workflow.screen()))restore();
+function bootWorkingScreen(){workflowBootReady=true;mount();if(mode==='live'&&!['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','count','returns','reports','settings'].includes(workflow.screen()))restore();}
+if(workflowBootReady)bootWorkingScreen();else document.addEventListener('DOMContentLoaded',bootWorkingScreen,{once:true});
