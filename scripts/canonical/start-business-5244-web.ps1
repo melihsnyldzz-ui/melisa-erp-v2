@@ -2,11 +2,11 @@ param([switch]$Library)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 function Get-Business5244WebPins {
- return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-10cdc0ee';manifest='6CA2E178CF805ABE5063D134E08C052EB44D80B11A494681639EA07BD5C01069';package='ERP-BUSINESS-WEB-5244-10cdc0ee';apiPackage='CANONICAL-TEST125-BUSINESS5244-10cdc0ee';apiManifest='3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='87447c7004a55af925af9698cee0b90242ec2f8b';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+ return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-66a9c3bc';manifest='C8B399DCA0A5260AF1A964661FB2181576A7CF72A40E031633A0F4FFB1996094';package='ERP-BUSINESS-WEB-5244-66a9c3bc';apiPackage='CANONICAL-TEST125-BUSINESS5244-10cdc0ee';apiManifest='3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='66a9c3bc1d7624c62eca22774150946a9b759760';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
 }
 function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
  $sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($Baseline)).Replace('-','')}finally{$sha.Dispose()}
- if($hash -cne 'C73D8C0E7088E6AF25AB23AE99275F32B033E0CFE5BB9E09A4E4FE425C06FDA3' -or $LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_STARTER_BASE_CHANGED'}
+ if($hash -cne 'A8A0283F64AE0477A9158749B44CB42DB4DF8505B674CD5FF0286709731ACF85' -or $LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_STARTER_BASE_CHANGED'}
  return Get-Business5244StarterProjection $Baseline $LauncherHash
 }
 function Get-Business5244StarterProjection([byte[]]$Baseline,[string]$LauncherHash){
@@ -18,7 +18,7 @@ function Get-Business5244StarterProjection([byte[]]$Baseline,[string]$LauncherHa
  $a=$text.IndexOf($start,[StringComparison]::Ordinal);$b=$text.IndexOf($end,[StringComparison]::Ordinal);if($b -le $a){throw 'BUSINESS_WEB_STARTER_SEAM'}
  $body=@'
 if(!$ApiOnly -and !$MainApiOnly){
- $businessLauncher='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\start-business-5244-web.ps1'
+ $businessLauncher='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\start-business-5244-web-66a9c3bc.ps1'
  if((Get-FileHash -LiteralPath $businessLauncher).Hash -cne '{LAUNCHER_HASH}'){throw 'BUSINESS_WEB_LAUNCHER_CHANGED'}
  . $businessLauncher -Library
  $newProcess=Start-Business5244Web
