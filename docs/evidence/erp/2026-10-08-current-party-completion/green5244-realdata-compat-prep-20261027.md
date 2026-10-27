@@ -72,3 +72,36 @@ Derleme 16:49:33.692–16:49:44.070UTC (19:49TR), nodev24.19.0, Vite7.3.3; confi
 Private çıktı: frontend-build-v2/dist; makbuz frontend-build-v2-receipt.json, log frontend-build-v2.log, ek kaynak bağı frontend-build-v2-shared-closure.json. Makbuz SHA25636997cd0cc8e99317dfc9d38f053ff429d22e9c7708f5cc0b5db8b4f8f64c81d. Script build-frontend-candidate-v2.mjs SHA25652557bd4758ca745e5692ffe659711b39b6cd52bf3494a2760d20b2c8d91199f. Makbuz FRONTEND_ONLY_BUILT_NOT_INSTALLED, executionAllowedfalse, databaseCalls0, normalLoginVerifiedfalse, sameDbBackendReadyfalse. Eski kaynakoverlay makbuzu ayrı tarihsel artefakttır; derlenmiş yeni çıktı onun yerine sessizce sunulmaz.
 
 Normal kullanıcı için kaynakta aynı36izin satırı ve hedefte kullanıcıyokluğu dar SELECT ile hazırlandı; hedef mevcut başka role eşitlenmedi. Yeni hesap/rol henüz yaratılmadı. Bu özel kimlik işlemi için kullanıcı sorusu açık; genel5244onayı ile Windows/SQL/LIVE yetkisi açılmadı. Yeni5244çalışır doğrulanmadan eski5194durmaz.
+
+## Semih TEST kimliği — gerçek hazırlık
+
+27 Ekim2026 20:17–20:18TR; ERP-DEC-083. Özel onay koordinatörün doğrudan insan yanıtından doğrulandı. Eski CLEAN hesabı ve parolası değişmedi. Yeni kimlik ayrı native ID ile aynı36 izin satırını kullanır; varsayılan admin rolü veya SQL/Windows grant verilmedi.
+
+| Kontrol | Gerçek sonuç |
+| --- | --- |
+| Hedef | Semih\\MELISADEV / MELISA_ERP_SIRKET_TEST_20260929_01 |
+| Yeni normal hesap / rol | unified-semih-test / unified_test_semih; native17 /17 |
+| İzinler |36 satır; kaynak ve hedef hash-eş; etkin izin kümesi de aynı |
+| Eski hesaplar ve roller | Transaction öncesi/sonrası kullanıcı, rol ve izin özetleri aynı |
+| Korunan ticari etkiler | Stok/müşteri/tedarikçi/finans/audit hareket sayıları aynı; bu kurulum yalnız auth tablolarına yazar |
+| Korumalı giriş | Yeni rastgele parola yalnız CurrentUser DPAPI; owner+SYSTEM dosya erişimi. Parola/hash/token çıktı veya GitHub'da yok |
+| Tekrar | Ayrı süreçte ALREADY_PREPARED_VERIFIED; yeni kullanıcı0/rol0/izin0 |
+| Bağımsız SQL | Native kimlik, aktif rol,36izin ve exact hash doğrulandı |
+| Normal API | Mevcut4144 normal login200; aynıhesap/rol; katalog50satır,16992toplam |
+| Kalıcı giriş | Mevcut4144 refresh vermiyor.5244tekDB/persistent normal session henüz kurulmadı |
+| GUI / insan kabulü | Yeni birleşik5244 GUI denenmedi; insan kabulü verilmedi |
+| Runtime | Servis/port/profile/kurulum0; eski ERP girişleri aynı, CRM/Vega/LIVE değişmedi |
+
+Yerel kurulum normal yönetimin kullandığı createManagedAuthUserCore'u yeniden kullanır; hedef transaction, owner ve izin pinleri yerel kurulum sahibindedir. Normal API write guard'ı, trigger, SQL grant veya parolalı giriş kontrolü gevşetilmedi. Eski kurulum yolundaki gibi bu özel hazırlığın audit kanıtı private yerel installer günlüğüdür; SQL ticari audit kaydı eklenmedi. Before-image mevcut auth satırlarının server-side hashleri ve yeni username/rol yokluğudur. Commit öncesi hata rollback; commit sonrası otomatik silme/restore yok, yalnız bu yeni kimliğin kullanım bağları incelenerek dar devre dışı bırakma değerlendirilebilir.
+
+İlk Windows ACL kontrolü SQL yazmadan durdu: PS7'den miras PSModulePath, PS5.1 Security modülünü yükletmiyordu. Aynı hatalı komut körlemesine tekrarlanmadı; çocuk Windows PowerShell kendi varsayılan modül yolu ile çalıştırıldı. Güvenlik ayarı/Defender/execution policy değişmedi. Bağımsız readback ilk bigint string/number tip kontrolünde durdu; Number ile kimlik karşılaştırması düzeltildi, hedef/veri değiştirilmedi.
+
+### UNKNOWN okuyucu hazırlığı
+
+Customer list/detail ve supplier DTO'daki Number(row.balance || 0) dönüşümü nativePartyBalance ile değiştirildi. NULL/eksik/geçersiz değer null kalır; gerçek0 ve negatif tutar mevcut sayısal gösterim anlamını korur. Kaynak hassasiyeti veya saklanan bakiye değiştirilmedi; döviz hesabının yerine scalar kullanılmaz.
+
+Bu dar kaynak düzeltmesi yeni5536kartının veya diğer eksik kartların aktarımı değildir. customers/suppliers.balance NOT NULL ve normal create yolunun0varsayımı hâlâ storage/write engelidir. Mevcut protected session hedefleri CLEAN/DB02'ye bağlıdır; gerçek veri hedefinin desteklenen backend/persistent-session profili de ayrıca tamamlanmalıdır. CLEAN synthetic bayrağını kaldırmak veya gerçek veriye CLEAN oturumunu taşımak çözüm sayılmaz.
+
+10 hedefli yerel test PASS: managed-user çekirdeği4, exact hedef/onay/izin policy4 (biri private gerçek izin kanıtı; CI'da dosya yoksa SKIP), UNKNOWN2. İlgili JS syntax kontrolleri geçti. Bu sonuç kaynak/yerel SQL/API kanıtıdır; yeni backend/GUI/insan kabulü veya CI PASS değildir.
+
+Private kanıtlar aynı ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027/private alanındadır: account-target-admission.json, account-before-*.json, account-install-*.json, account-normal-api-proof.json. Kimlik ve şifreli ilk giriş runtime/UNIFIED-5244-SEMIH-20261027 altında tutulur; GitHub'a eklenmez.

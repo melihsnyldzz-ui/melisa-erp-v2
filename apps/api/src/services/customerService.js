@@ -1,4 +1,5 @@
 import sql from 'mssql';
+import {nativePartyBalance} from './nativePartyBalance.mjs';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
@@ -36,7 +37,7 @@ function toCustomerDto(row) {
     country: row.country,
     currency: row.currency_code,
     customerType: row.customer_type,
-    balance: Number(row.balance || 0),
+    balance: nativePartyBalance(row.balance),
     isPassive: !row.is_active,
   };
 }
@@ -51,7 +52,7 @@ function toCustomerDetailDto(row) {
     country: row.country,
     currency: row.currency_code,
     customerType: row.customer_type,
-    balance: Number(row.balance || 0),
+    balance: nativePartyBalance(row.balance),
     isPassive: !row.is_active,
     lastTransactionDate: row.last_transaction_date || null,
     movements: row.movements || [],
