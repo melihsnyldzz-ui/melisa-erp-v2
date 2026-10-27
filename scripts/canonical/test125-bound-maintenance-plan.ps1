@@ -24,7 +24,8 @@ function Assert-Test125MaintenancePin($Before,$After) {
  }
 }
 
-function Get-Test125BoundMaintenancePlan {
+function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7') {
+ if($RunId -cnotin @('PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7','PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8')){throw 'TEST125_RUN_SCOPE_REJECTED'}
  $startup='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
  $config=Read-ErpStartupConfig $startup
  if(!(Same-ErpPath $config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2') -or $config.SourceCommit -cne 'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $config.ExpectedDatabase -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $config.TaskName -cne 'Melisa-ERP-TEST-Canonical'){throw 'TEST125_EXACT_TARGET_REJECTED'}
@@ -62,7 +63,7 @@ function Get-Test125BoundMaintenancePlan {
  try{$xmlHash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$registered.Xml))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
  return [ordered]@{
   schema='melisa-test125-bound-maintenance-preparation.v1';observedAt=(Get-Date).ToUniversalTime().ToString('o')
-  runId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7';source=$config.SourceCommit;database=$config.ExpectedDatabase
+  runId=$RunId;source=$config.SourceCommit;database=$config.ExpectedDatabase
   startupHash=(Get-FileHash -LiteralPath $startup -Algorithm SHA256).Hash
   launcherHash=(Get-FileHash -LiteralPath $action.Launcher -Algorithm SHA256).Hash
   manifestHash=$config.ManifestSha256;taskXmlHash=$xmlHash;taskInstance=[string]$instance.InstanceGuid
