@@ -1,3 +1,9 @@
+### ERP-DEC-081 — 27 Ekim 2026 — Tüm cari kartları ve 2026 güncel döviz bakiyeleri
+
+Kullanıcı sesli olarak “Bütün mevcut kartları geçirelim. Bakiyeleriyle birlikte 2026'nın güncel bakiyeleriyle birlikte geçirelim” dedi. 5536 yalnız ilk teknik örnektir; nihai kapsam değildir. F0102 müşteri ve muhasebe F0103 cari kartlarının aktif/pasif kapsamı korunur; temizlik/birleştirme sonraya kalır. Güncel kaynak Döviz Bakiye, hesabın TRY/USD/EUR para birimi ve B/A yönü birlikte değerlendirilir. Peşin TL/USD/EUR ayrı, iki LL dışlaması ve karantinalar aynı kalır. Önceki283+16 hesap, journal, gerçek yerel hareketler ve kaynak açılışı ikinci kez eklenmez.
+
+Kullanıcının günlük çalışma yüzü5244 olduğundan, yeni kapsam sessizce5194'e uygulanıp5244 teslimi sayılmaz. Tek uygulama/DB, normal kullanıcı ve mevcut izin eşliği önce desteklenen yolla tamamlanmalıdır. Bu karar aynı TEST çalışmasının bütün cari kapsamını ilerletir; Vega/LIVE/T1, gerçek finans işlemi, kullanıcı rolü/grant genişletme veya eski sistem kapatma onayı değildir. Yeni güncel tutarlar tarihli/tekil kaynak kimlikleriyle sabitlenir; çözülemeyen kimlik/döviz/kapanış UNKNOWN kalır, hareket yokluğu veya ham Genel Bakiye ile sıfır üretilmez. Fiziksel uygulama, gerçek kaynak/hedef drift kontrolleri, güncel yedek, mevcut guarded writer için uygun exact kapsam ve tekrar güvenliği olmadan yapılmaz. İnsan kabulü ayrı kalır.
+
 **27 Ekim — ERP-DEC-080: onaylı negatif stok kapsamı TEST'e uygulandı.**
 
 PRODUCT-b40b0745 commit edildi, yayımlandı ve aynı paket sağlıklı döndü. 10 yeni aktif kartın 8'i negatif, 2'si pozitiftir; önceki sorudaki “10 negatif yeni kart” sayısı kayıt bazında düzeltildi. 193 mevcut stok farkı (191 negatif ve 2 exact KALAN=0), yeni kartlarla birlikte 203 stok etkisi; ayrıca 30 yeni satış fiyatı, 10 barkod ve 10 alias: toplam 456 native etki. 229 grubun 203'ü değişti; 26 grupta köken engeli nedeniyle ticari yazma yapılmadı.
