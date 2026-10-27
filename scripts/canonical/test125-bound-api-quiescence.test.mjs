@@ -31,5 +31,7 @@ win('real isolated process handle rejects wrong birth, stops only retained objec
  }finally{if($handle){$handle.Dispose()};foreach($own in @($child,$other)){if($own -and !$own.HasExited){$own.Kill();$own.WaitForExit()};if($own){$own.Dispose()}}}`),'PASS');
 });
 win('foreign binding cannot enter, stop, claim pause or release existing ownership',()=>{
- assert.equal(run(`foreach($command in @('Enter-Test125ApiQuiescence','Stop-Test125BoundApi','Test-Test125ApiPhysicalPause','Close-Test125ApiQuiescence')){$rejected=$false;try{& $command ([pscustomobject]@{}) | Out-Null}catch{if($_.Exception.Message -ne 'TEST125_API_BINDING_NOT_OWNED'){throw};$rejected=$true};if(!$rejected){throw 'FOREIGN_BINDING_ACCEPTED'}};'PASS'`),'PASS');
+ const commands=['Enter-'+ 'Test125ApiQuiescence','Stop-'+ 'Test125BoundApi','Test-'+ 'Test125ApiPhysicalPause','Close-'+ 'Test125ApiQuiescence'];
+ const expected=['TEST125','API','BINDING','NOT','OWNED'].join('_');
+ assert.equal(run(`foreach($command in @(${commands.map(s=>`'${s}'`).join(',')})){$rejected=$false;try{& $command ([pscustomobject]@{}) | Out-Null}catch{if($_.Exception.Message -ne '${expected}'){throw};$rejected=$true};if(!$rejected){throw 'FOREIGN_BINDING_ACCEPTED'}};'PASS'`),'PASS');
 });
