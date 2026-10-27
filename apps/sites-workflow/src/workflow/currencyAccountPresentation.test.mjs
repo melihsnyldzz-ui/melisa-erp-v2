@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {accountExact,accountPresentation,currencyAccountsHtml,validateSourceComparison,sourceComparisonHtml} from './currencyAccountPresentation.mjs';
+import {partyHistoryResult,parsePartyHistoryQuery} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
 const a=(balance,currency='TRY')=>({currency,balanceExact:balance,nativeBalanceExact:balance,reconciled:true,confidence:'source-matched',sourceOpeningBalanceExact:'10.00000000',localDeltaExact:null});
 test('synthetic native card requires matching ledger, role identity and explicit native provenance',()=>{for(const role of ['customer','supplier']){const field=role==='customer'?'nativeCustomerId':'nativeSupplierId';const row={...a('12.00000001'),confidence:'verified-native',sourceStatus:'synthetic',[field]:1,sourceOpeningBalanceExact:null,localDeltaExact:'12.00000001'};assert.equal(accountPresentation(row,{role}).known,true);assert.equal(accountPresentation(row,{role}).direction,role==='customer'?'B':'A');const html=currencyAccountsHtml([row],{role,detail:true});assert.match(html,/12,00 TRY/);assert.doesNotMatch(html,/30.09.2026/);for(const patch of [{[field]:null},{localDeltaExact:'11.0'},{sourceStatus:'accepted-opening'},{currency:'LL'},{reconciled:false}])assert.equal(accountPresentation({...row,...patch},{role}).known,false);}});
 test('approved source delta stays separate from opening and local effects in real card presentation',()=>{const row={...a('85.00000000','USD'),sourceOpeningBalanceExact:'100.00000001',localDeltaExact:'5.00000001',sourceDeltaExact:'-20.00000002'};const p=accountPresentation(row,{role:'supplier'});assert.equal(p.delta,'5,00');assert.equal(p.sourceDelta,'−20,00');const html=currencyAccountsHtml([row],{role:'supplier',detail:true});assert.match(html,/Kayıtlı yerel hareket etkisi: 5,00 USD/);assert.match(html,/Kaynak bakiye güncellemesi: −20,00 USD/);assert.match(html,/Güncel ERP döviz bakiyesi: 85,00 USD · A/);for(const sourceDeltaExact of [null,'bad','-21.00000002']){const unknown=accountPresentation({...row,sourceDeltaExact},{role:'supplier'});assert.equal(unknown.delta,'Bilinmiyor');assert.equal(unknown.sourceDelta,null);}assert.equal(accountPresentation(row,{role:'supplier',blocked:true}).sourceDelta,null);assert.equal(accountPresentation({...row,reconciled:false},{role:'supplier'}).sourceDelta,null);const noDelta={...a('15.00000001'),localDeltaExact:'5.00000001'};assert.equal(accountPresentation(noDelta,{role:'customer'}).delta,'5,00');assert.doesNotMatch(currencyAccountsHtml([noDelta],{role:'customer',detail:true}),/Kaynak bakiye güncellemesi/);});
@@ -43,5 +44,22 @@ test('normal customer/supplier card controllers show mixed current/prior source 
   ui.mount();await tick();node('card-button').onclick();await tick();
   assert.match(root.innerHTML,/Kaynak bakiye güncellemesi: −30,00 USD/);assert.match(root.innerHTML,/Kayıtlı yerel hareket etkisi: 5,00 USD/);
   assert.match(root.innerHTML,new RegExp('Güncel ERP döviz bakiyesi: 75,00 USD · '+(role==='customer'?'B':'A')));ui.dispose();
+ }
+});
+
+test('normal business customer and supplier cards use exact account history without calling synthetic trade endpoints',async()=>{
+ const {readFile}=await import('node:fs/promises'),tick=()=>new Promise(r=>setImmediate(r));
+ for(const role of ['customer','supplier']){
+  let script=await readFile(new URL('./'+(role==='customer'?'workCustomers':'workSuppliers')+'.js',import.meta.url),'utf8');
+  script=script.replace(/import '\.\/[^']+\.css';/g,'').replace(/from '(\.\/[^']+)'/g,(_,path)=>'from '+JSON.stringify(new URL(path,import.meta.url).href));
+  const module=await import('data:text/javascript;base64,'+Buffer.from(script).toString('base64'));
+  const row={id:1,[role+'Code']:'SYN-CARD',[role+'Name']:'Synthetic card',isPassive:false,quarantine:{blocked:false,reasons:[]},source:{status:'accepted-opening',sourceAsOf:'2026-09-30',freshLive:false},accountCount:2,hasUnknownAccounts:false,accounts:['USD','EUR'].map((currency,i)=>({...a('5.00000000',currency),accountId:String(i+7),sourceStatus:'accepted-opening',sourceAsOf:'2026-09-30'})),fields:{phoneMasked:null,city:null,country:null,note:null}};
+  const nodes=new Map(),node=k=>{if(!nodes.has(k))nodes.set(k,{value:'',querySelector:selector=>node(selector),dataset:{[role+'Card']:'1'},elements:{dateFrom:{value:''},dateTo:{value:''}},addEventListener(e,f){this['on'+e]=f;}});return nodes.get(k);};
+  const root={isConnected:true,innerHTML:'',querySelector:node,querySelectorAll:()=>[node('card-button')]},calls=[];
+  const session={partyHistoryAvailable:kind=>kind===role,[role+'s']:async path=>path.endsWith('/card')?row:{success:true,data:[row],meta:{readOnly:true,sourceAsOf:'2026-09-30',freshLive:false,total:1,page:1,limit:25}},work:async()=>assert.fail('synthetic sales called'),inbound:async()=>assert.fail('synthetic receiving called'),supplierPayments:async()=>assert.fail('synthetic finance called'),partyHistory:async input=>{calls.push(input);return {success:true,...partyHistoryResult({account:{id:input.accountId,partyId:'1',currency:input.currency,partyEntityId:null,oppositePartyId:null},total:'0',unassignedCount:'2',conflictCount:'0',rows:[]},parsePartyHistoryQuery({...input,page:String(input.page)}),{readAt:'2026-10-28T00:00:00.000Z'})};}};
+  const ui=module[role==='customer'?'createWorkCustomers':'createWorkSuppliers']({root,session,user:{id:17,role:{id:17},permissions:['finance.view','customer.view','supplier.view','purchase.view','sales.view']}});
+  ui.mount();await tick();node('card-button').onclick();await tick();assert.match(root.innerHTML,/Hesap hareketleri/);assert.equal(calls.length,0);
+  node('[data-bph-account]').value='7';node('[data-bph-account]').onchange({target:{value:'7'}});await tick();assert.equal(calls.length,1);assert.equal(calls[0].accountId,'7');assert.equal(calls[0].currency,'USD');
+  await ui.refresh();await tick();assert.equal(calls.length,2);assert.equal(calls[1].accountId,'7');assert.equal(calls[1].currency,'USD');ui.dispose();
  }
 });

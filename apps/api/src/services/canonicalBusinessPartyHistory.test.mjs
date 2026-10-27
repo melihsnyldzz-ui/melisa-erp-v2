@@ -50,7 +50,7 @@ test('existing browser session reads exact history through same-origin GET witho
   if(u.pathname==='/api/auth/refresh')return {ok:true,status:200,json:async()=>({success:true,data:{user:actor(),accessToken:'fixture-access',browserSession:true,expiresAt:Date.now()+900000}})};
   assert.equal(options.method,'GET');assert.equal(options.body,undefined);assert.equal(u.pathname+u.search,partyHistoryPath(input));return {ok:true,status:200,json:async()=>payload};
  }});
- await session.start();assert.equal(await session.partyHistory(input),payload);assert.equal(calls.at(-1).path,partyHistoryPath(input));assert(!JSON.stringify([...values.values()]).includes('refreshToken'));
+ assert.equal(session.partyHistoryAvailable('customer'),false);await session.start();assert.equal(session.partyHistoryAvailable('customer'),true);assert.equal(session.partyHistoryAvailable('supplier'),true);assert.equal(session.partyHistoryAvailable('unknown'),false);assert.equal(await session.partyHistory(input),payload);assert.equal(calls.at(-1).path,partyHistoryPath(input));assert(!JSON.stringify([...values.values()]).includes('refreshToken'));
 });
 
 test('isolated HTTP route guards query shadowing and rejects financial methods without touching readers',async()=>{

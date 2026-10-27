@@ -92,6 +92,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
  return {
+  partyHistoryAvailable(kind){
+   const required=kind==='supplier'?['finance.view','supplier.view','purchase.view']:kind==='customer'?['finance.view','customer.view','sales.view']:null;
+   return !!(required&&businessTarget&&active&&token&&user&&String(user.id)==='17'&&String(user.role?.id)==='17'&&required.every(p=>user.permissions.includes(p)));
+  },
   async partyHistory(selection){
    const required=selection?.kind==='supplier'?['finance.view','supplier.view','purchase.view']:['finance.view','customer.view','sales.view'];
    if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!required.every(p=>user.permissions.includes(p)))throw problem('Hesap geçmişi bağlantısı kullanılamıyor.',403);
