@@ -1,3 +1,5 @@
+**27 Ekim ERP03/A01–B02:** Aynı TEST125 için dar pasif katalog uyum paketi hazır;3/4 bağlam ve gerçek mevcut DB/bootstrap uyumu doğrulandı. Kurulum/187grup uygulaması yapılmadı; Goal8 dağıtım bağlamı yalnız RAM projection, insan kabulü aynı. Tam manifest/delta/üç alanlı profil geçişi mevcut ürün tamamlanma raporunda.
+
 **27 Ekim — mevcut ERP03/A01–B02, ERP-DEC-078:** Gerçek Vega/native üç ürün diliminin source ve normal gerçek TEST ekranı mutabakatı hazır; yeni dated PRODUCT devamında eski lineage kaybı kaynakta düzeltildi. Yeni kod henüz kurulmadı; CLEAN'e gerçek kayıt yazılmadı. Ortak gerçek işletme profili/native oturum ve CRM bağları açık. Yeni pano işi veya insan PASS oluşturulmadı. [Ayrıntı](docs/evidence/erp/2026-10-08-product-completion/README.md#27-ekim--güncel-kaynak-dilimi-ve-ikinci-tarihli-katalog-zinciri).
 
 ## 25 Ekim02:07 — B5 ek hareket panelinin eksik normal kaynak alanları kesinleşti

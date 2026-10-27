@@ -139,3 +139,48 @@ Desteklenen OS semantiği: [Stop-ScheduledTask](https://learn.microsoft.com/en-u
 **27 Ekim — API handle hazırlığı ve kurulu runtime uyumluluğu:** test125-bound-api-quiescence.ps1 yalnız mevcut TEST125/run/source/API4144 scope ile taze admitted kimliği açılmış OS handle/doğumuna bağlar. Eski handle üzerinden stop; yanlış PID-birth/owner/source/port veya task değişiminde ret. Görev durduktan sonra aynı startup mutex tutulmadan ve native4146/web5194 koruması olmadan API stop yok. Yordam hiçbir task/host başlatmaz veya writer.verifyPause true üretmez; otomatik CLI yok.4 yeni test gerçek izole node süreçleriyle yanlış birth ret, aynı handle stop, çıkmış handleın yeni childı hedefleyememesi ve foreign binding retlerini doğruladı.21 logger testiyle toplam25 PASS; yalnız PRODUCT_PREVIOUS_CATALOG_LINEAGE statik hata kodu güvenli kayıt listesine eklendi, prefix/serbest metin açılmadı.
 
 Aktarım öncesinde kurulu source edb3c891 currentProductCatalogContext modülü doğrudan offline çağrıldı: gerçek mevcut bağlam kabul; yeni planın4 halkalı lineageRevision2 bağlamı CURRENT_PRODUCT_CATALOG_CONTEXT_INVALID ile ret. Aynı plan ve gerçek GOAL7 atasından4 SQL okuyucu mevcut kaynakta üretilebiliyor; binding placeholderları yalnız yapısal derleme içindir, transaction/SQL/normal GUI kanıtı değildir. Private active-221-installed-context-compatibility-v1.json kurulu modül hashini ve sonuçları tutar. Kurulu kod ancestry.length===3 koşulu içerir. Paket kurulumu bu dar pencerenin dışında olduğundan reader-admission sorunu varken ikinci pencere açılmadı ve data0 kaldı. Handle kaynak hazırlığı gerçek ERP API stop, yeni driver admission, uygulanmış187grup veya normal kullanıcı kabulü değildir. Sonraki bağımlılık desteklenen okuyucu paketi uyumudur; eski bağlamı dört halkaya zorla kabul ettiren guard istisnası veya eski release üzerinde değişiklik yapılmadı.
+
+### 27 Ekim — Tek pasif TEST125 katalog uyumluluk paketi: hazır, kurulmadı
+
+Paket: `C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778`
+
+Manifest SHA256: `0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64`.
+
+- Yeni paket kimliği: `CANONICAL-TEST-edb3c8915ef0-catalog-0a221778`.
+- Temel kurulu paket/source: TEST125 / `edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d`; temel manifest `6fc93edbed59083155e43d8f70e43889e07dae77165d6a078ed172e85d0b9d00`.
+- Yalnız katalog bileşen source: `0a22177889268a00772ea25aa0b2a9f1578e4d64`.
+- Pasif üretici source: `a2217de7c58e722f9f5ba134231243986bceec55`; bu tüm uygulama source'u değildir. Manifest sourceCommit temel edb'yi, catalogCompatibility gerçek bileşen/üretici commitlerini ayrı taşır.
+- Mevcut immutable-türev düzeni ve mevcut `runPinnedNpm`/Vite build yolu kullanıldı. Yeni installer/host/task/daemon veya npm kurulumu yok. Tüm güncel dal pakete alınmadı.
+
+**Tam dosya deltası** (manifestin kendisi ayrıca yenidir):
+
+| Tür | Dosya |
+|---|---|
+| API kaynak | `apps/api/src/services/currentProductCatalogContext.mjs` |
+| Tarayıcı kaynak | `apps/sites-workflow/src/workflow/currentProductCatalogModel.mjs` |
+| Derlenmiş JS, yeni | `apps/sites-workflow/dist/assets/example-B2grNNXY.js` |
+| Derlenmiş JS, yeni | `apps/sites-workflow/dist/assets/terminal-4w7gZsE5.js` |
+| Derlenmiş JS, yeni | `apps/sites-workflow/dist/assets/workingCatalogSession-CV5tcNzi.js` |
+| Yalnız derleme referansları | `apps/sites-workflow/dist/ornek-akis.html` |
+| Yalnız derleme referansları | `apps/sites-workflow/dist/terminal.html` |
+
+1.584 manifest kaydı; 25.057 payload dosyası. Eski25.050 dosya ve23.473 bağımlılık dosyası byte-eş. Eski JS varlıkları silinmedi. CSS deltası0; normal ürün ekranının inline stil hash'i aynı. Önce temel kaynak/dependency ile web build'i gerçek eski çıktıyı byte-eş yeniden üretti, sonra yalnız iki kaynak modülüyle aday build alındı. Geniş güncel frontend/finans/logging değişimleri taşınmadı. Eski logger statik hata kodu kayıt listesi öncesidir: ilk üretim `LOGGER_TEMPLATE` ile mühürlenmeden durdu. Değişmez temel tekrar kopyalanmadı; bilinen yalnız iki katalog overlay'i ve kalan payload hash eşliğiyle aynı pasif dizinden devam edildi. Eski logger byte-eş kaldı. Güncel kaynak CI'deki kesin hata kodu kaydı düzeltmesi eski logger'a geniş sürüm taşıma gerekçesi sayılmadı. Eski paket hiç değiştirilmedi; üç üretici hedef testi PASS.
+
+**Gerçek paket dosyaları üzerinden uyum:** Mevcut gerçek üç halkalı bağlam ve hazırlanmış dört halkalı bağlam, paketin API doğrulayıcısında, tarayıcı modelinde ve normal reader configuration yolunda kabul edildi. Kayıp önceki bağlam, eksik/çoğul ancestry ve actualT1=true olmak üzere4 yanlış durum reddedildi. Yeni dört halkalı bağlam henüz native'de yayımlanmadı; türetilmiş binding placeholderları yalnız yapısal sınamadır, gerçek SQL4/admission/GUI PASS değildir.
+
+**Gerçek mevcut DB/profil:** Yeni paket configureCanonicalTest ve normal sınıflandırma/medya başlangıcı, mevcut TEST125 native DB ve gerçek mevcut API SQL hesabıyla çalıştı; sysadmin0 ve aynı sunucu/DB doğrulandı. SQL classification başlangıcı mevcut16.743 ürün sürümünü kullandı; yeniden aktarım veya yeni ticari deneme yapılmadı. Bu sadece süreç içi kütüphane/SQL okumasıdır: yeni listener/servis açılmadı.
+
+Goal8 için packageId bir dağıtım bağıdır, SQL kabulü değildir. `canonical-test-env.mjs` exact release source/package eşliğini; `goal8DayProfile.mjs` gerçek dayId/definitionHash ile üretilmiş meta eşliğini denetler. Bu pakette ilgili15 Goal8/profil/SQL kaynak dosyası temel ile byte-eş; gerçek SQL scope dayId/definitionHash/sealed meta ve eski profil ile aynı; bayrak/scope/roller değiştirilmedi. İlk normal configure değişmemiş eski packageId ile beklenen `TEST_GOAL8_PROFILE_SEAL_REJECTED` verdi. Ardından yalnız `goal8SyntheticDaySeal.packageId` yeni dağıtıma bağlanan **RAM projection** ile normal configure ve gerçek mevcut SQL okuma geçti. DayId, definitionHash, sourceCommit ve bayraklar aynı; profil dosyası veya SQL mühür değiştirilmedi. Eski Goal8 kabulü yeni pakette yeniden yapılmış sayılmadı. Bu kayıt yalnız **paket/profile kimlik uyumluluğu**dur.
+
+**İlerideki geçiş/geri dönüşün exact profil farkı — bu tur yazılmadı:**
+
+| Mevcut dosya | İleri geçişte alan | Geri dönüş |
+|---|---|---|
+| `runtime/canonical-test/startup-config.json` | `ReleaseRoot` → yukarıdaki yeni kök; `ManifestSha256` → yeni manifest | İki eski alan before-image/CAS ile geri |
+| `config/TEST-20260929-01/runtime-private.json` | Yalnız `goal8SyntheticDaySeal.packageId` → yeni paket kimliği | Eski paket kimliği before-image/CAS ile geri |
+
+Startup `SourceCommit` edb kalır; owner/Node/RepoRoot/ConfigPath/DB/task/schedule aynı. Runtime seal sourceCommit/dayId/hash, Goal8 bayrakları, tüm diğer ayar/credential/rol aynı. Mevcut source-version ve classification şu pasif paket geçişinde değişmez. Sonraki ürün uygulamasında yeni native sürüm/readmodel ve classification yayını ayrıca mevcut writer sınırında ele alınır. Yukarıdaki paket geri dönüşü **veri aktarımı öncesi** paket geçişi içindir; sonradan uygulanmış veri üzerine eski okuyucu körlemesine döndürülmez veya DB restore edilmez. Operational owned-processes/health kayıtları ileride yalnız mevcut owner başlatıcısı tarafından taze doğumlarla üretilebilir; eski PID'den yeni paket çalışıyor denmez.
+
+Private `active-221-passive-catalog-package.json`, `active-221-passive-package-delta-summary.json`, `active-221-passive-package-bootstrap.json` tam hash/fark/sonuç kanıtıdır; ham profil veya ticari veriler GitHub'a alınmadı. Gerçek runtime/startup dosyaları byte-eş kaldı. Son üç TEST125 health eski package/source ile sağlıklı; kurulum, stop/start ve SQL DML0. CLEAN ve CRM'ye işlem yapılmadı; insan kabulü aynı.
+
+`0a221778` exact CI run40487506201: quality-build-test ve windows-startup-test SUCCESS; secret-scan, `test125-bound-api-quiescence.test.mjs:34` sabit komut fixture bulgusuyla FAIL. Eski run tekrar çalıştırılmadı, yeni tarama istisnası eklenmedi; kaynak/CI, pasif paket, gerçek kurulum ve insan kabulü ayrıdır. Sonraki adım bu somut paketin/profil projection'ının kontrollü kurulum değerlendirmesidir; bu hazırlık paketi kurmadı veya187grubu uygulamadı.
