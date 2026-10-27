@@ -35,9 +35,10 @@ function Get-ErpRecoveryDecision($Failures,$StableSeconds) {
 function Read-ErpStartupConfig($Path) {
  if(![IO.Path]::IsPathRooted($Path)){throw 'TEST_STARTUP_CONFIG_ABSOLUTE_REQUIRED'}
  $c=Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
- $keys=@('RepoRoot','ReleaseRoot','ConfigPath','RuntimeDir','LogDir','NodePath','NodeSha256','OwnerSid','SourceCommit','ManifestSha256','ExpectedDatabase','TaskName')
+ $required=@('RepoRoot','ReleaseRoot','ConfigPath','RuntimeDir','LogDir','NodePath','NodeSha256','OwnerSid','SourceCommit','ManifestSha256','ExpectedDatabase','TaskName')
+ $keys=$required+@('ApiComponent')
  foreach($property in $c.PSObject.Properties.Name){if($property -notin $keys){throw 'TEST_STARTUP_CONFIG_UNKNOWN_FIELD'}}
- foreach($key in $keys){if(!$c.PSObject.Properties[$key] -or !$c.$key){throw 'TEST_STARTUP_CONFIG_FIELD_REQUIRED'}}
+ foreach($key in $required){if(!$c.PSObject.Properties[$key] -or !$c.$key){throw 'TEST_STARTUP_CONFIG_FIELD_REQUIRED'}}
  foreach($key in @('RepoRoot','ReleaseRoot','ConfigPath','RuntimeDir','LogDir','NodePath')){
   if(![IO.Path]::IsPathRooted($c.$key) -or $c.$key -match '["\r\n]'){throw 'TEST_STARTUP_CONFIG_PATH_REJECTED'}
   if($key -notin @('RuntimeDir','LogDir') -and !(Test-Path -LiteralPath $c.$key)){throw 'TEST_STARTUP_CONFIG_PATH_MISSING'}
@@ -55,8 +56,23 @@ function Read-ErpStartupConfig($Path) {
  $privateConfig=Get-Content -LiteralPath $c.ConfigPath -Raw | ConvertFrom-Json
  if($privateConfig.database -ne $c.ExpectedDatabase -or $privateConfig.server -ne '127.0.0.1' -or $privateConfig.sqlPort -ne 1433 -or $privateConfig.erpPort -ne 4144 -or $privateConfig.nativePort -ne 4146 -or $privateConfig.webPort -ne 5194){throw 'TEST_STARTUP_DATABASE_CONFIG_MISMATCH'}
  Assert-ErpRelease $c | Out-Null
+ if($c.PSObject.Properties['ApiComponent']){
+  $api=Get-ErpApiComponentConfig $c
+  $m=Assert-ErpRelease $api
+  if($m.kind -cne 'CANONICAL_TEST125_BUSINESS_WORKFACE_CANDIDATE' -or $m.businessWorkfaceId -cne 'ERP-5244-REALDATA-20261027' -or $m.businessWorkfaceReadOnly -ne $true -or $m.normalSessionSourceCommit -cnotmatch '^[a-f0-9]{40}$' -or !$m.PSObject.Properties['businessSessionSignerDomain'] -or $m.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or !$privateConfig.PSObject.Properties['businessWorkface'] -or $privateConfig.businessWorkface.id -cne $m.businessWorkfaceId -or $privateConfig.businessWorkface.userId -ne 17 -or $privateConfig.businessWorkface.actualT1 -ne $false -or $privateConfig.businessWorkface.externalOperations -ne $false){throw 'TEST_STARTUP_COMPONENT_PROFILE_REJECTED'}
+ }
  return $c
 }
+function Get-ErpApiComponentConfig($Config){
+ if(!$Config.PSObject.Properties['ApiComponent']){return $Config}
+ $part=$Config.ApiComponent;$keys=@('ReleaseRoot','SourceCommit','ManifestSha256')
+ if(!$part -or @($part.PSObject.Properties.Name).Count -ne 3 -or @($part.PSObject.Properties.Name|Where-Object {$_ -notin $keys}).Count -or !$part.ReleaseRoot -or $part.SourceCommit -cne $Config.SourceCommit -or $part.ManifestSha256 -cnotmatch '^[a-fA-F0-9]{64}$'){throw 'TEST_STARTUP_COMPONENT_PIN_REJECTED'}
+ if(![IO.Path]::IsPathRooted($part.ReleaseRoot) -or $part.ReleaseRoot -match '["\r\n]' -or !([IO.Path]::GetFullPath($part.ReleaseRoot).StartsWith('C:\Sirket\ERP\releases\',[StringComparison]::OrdinalIgnoreCase)) -or !(Outside-ErpPath $part.ReleaseRoot $Config.RepoRoot) -or !(Outside-ErpPath $Config.RepoRoot $part.ReleaseRoot) -or !(Outside-ErpPath $part.ReleaseRoot $Config.RuntimeDir) -or !(Outside-ErpPath $part.ReleaseRoot $Config.ReleaseRoot) -or !(Outside-ErpPath $Config.ReleaseRoot $part.ReleaseRoot)){throw 'TEST_STARTUP_COMPONENT_PATH_REJECTED'}
+ $copy=[pscustomobject]@{};foreach($property in $Config.PSObject.Properties){if($property.Name -ne 'ApiComponent'){$copy|Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value}}
+ $copy.ReleaseRoot=$part.ReleaseRoot;$copy.SourceCommit=$part.SourceCommit;$copy.ManifestSha256=$part.ManifestSha256
+ return $copy
+}
+function Get-ErpServiceConfig($Config,$Definition){if($Definition.Name -ceq 'api'){return Get-ErpApiComponentConfig $Config};return $Config}
 function Assert-ErpRelease($Config) {
  if((Get-FileHash -LiteralPath $Config.NodePath -Algorithm SHA256).Hash -ne $Config.NodeSha256){throw 'TEST_STARTUP_NODE_HASH_MISMATCH'}
  $manifestPath=Join-Path $Config.ReleaseRoot 'release-manifest.json'
@@ -72,10 +88,11 @@ function Assert-ErpRelease($Config) {
 }
 function Get-ErpServiceDefinitions($Config) {
  $api=Join-Path $Config.ReleaseRoot 'apps\api'
+ $component=Get-ErpApiComponentConfig $Config;$mainApi=Join-Path $component.ReleaseRoot 'apps\api'
  return @(
   @{Name='web';Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@($Config.ConfigPath);WorkingDirectory=$api},
   @{Name='native';Port=4146;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('native',$Config.ConfigPath);WorkingDirectory=$api},
-  @{Name='api';Port=4144;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('erp',$Config.ConfigPath);WorkingDirectory=$api}
+  @{Name='api';Port=4144;Script=(Join-Path $mainApi 'start-canonical-test.mjs');Args=@('erp',$Config.ConfigPath);WorkingDirectory=$mainApi}
  )
 }
 function Get-ErpProcess($ProcessId){return Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$ProcessId)}
@@ -92,10 +109,12 @@ function Assert-ErpOwnedProcess($ProcessId,$Config,$Definition,$CreatedAt='') {
  return $p
 }
 function Assert-ErpHealth($Config,$Definition) {
+ $baseConfig=$Config;$Config=Get-ErpServiceConfig $Config $Definition
  $h=Invoke-RestMethod ('http://127.0.0.1:'+$Definition.Port+'/test-health') -TimeoutSec 3
  $m=Get-Content -LiteralPath (Join-Path $Config.ReleaseRoot 'release-manifest.json') -Raw | ConvertFrom-Json
  if(!$h.ok -or $h.environment -ne 'CANONICAL_TEST' -or $h.port -ne $Definition.Port -or $h.sourceCommit -ne $Config.SourceCommit -or $h.packageId -ne $m.packageId){throw 'TEST_STARTUP_HEALTH_IDENTITY_MISMATCH'}
  if($Definition.Name -ne 'web' -and ($h.databaseName -ne $Config.ExpectedDatabase -or $h.serverName -ine 'Semih\MELISADEV')){throw 'TEST_STARTUP_HEALTH_DATABASE_MISMATCH'}
+ if($Definition.Name -ceq 'api' -and $baseConfig.PSObject.Properties['ApiComponent'] -and ($h.businessWorkfaceId -cne 'ERP-5244-REALDATA-20261027' -or $h.normalSessionUserId -ne 17 -or $h.persistentNormalSession -ne $true -or $h.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or $h.actualT1 -ne $false -or $h.sysadmin -ne 0 -or $h.databaseControl -ne 0 -or $h.liveDatabaseAccess -ne 0)){throw 'TEST_STARTUP_COMPONENT_HEALTH_REJECTED'}
  return $h
 }
 function Get-ErpServiceListeners($Definition,$Config) {
@@ -147,7 +166,7 @@ function Invoke-ErpOwnedSession($Config,[switch]$SinglePass) {
       Write-ErpState (Join-Path $Config.LogDir ($d.Name+'-last-event.json')) @{event='service-closed';observedAt=(Get-Date).ToUniversalTime().ToString('o');code=$s.lastCode;state=$s.state}
      }
      if($s.state -eq 'circuit-open' -or ($s.nextRestartAt -and (Get-Date) -lt $s.nextRestartAt)){continue}
-     Assert-ErpRelease $Config | Out-Null
+     Assert-ErpRelease (Get-ErpServiceConfig $Config $d) | Out-Null
      if(@(Get-ErpServiceListeners $d $Config).Count){throw 'TEST_STARTUP_PORT_CHANGED'}
      $argsList=@($d.Script)+$d.Args | ForEach-Object {'"'+$_+'"'}
      $child=Start-Process -FilePath $Config.NodePath -ArgumentList $argsList -WorkingDirectory $d.WorkingDirectory -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $Config.LogDir ($d.Name+'.out.log')) -RedirectStandardError (Join-Path $Config.LogDir ($d.Name+'.err.log'))
