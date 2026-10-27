@@ -1,3 +1,5 @@
+**28 Ekim ERP09 teknik altadım:** ba9261c4 normal17 gerçek satışseçimi readadapteri kaynak/izole19hedef ve offlinefrontendbuild ile hazır; kurulum/normalSatışcontrollerı/writer/GUI/insan kabulü kapanmadı, özgün sayaçlar değişmez. Ayrıntı STATUS ve mevcut PR54ortakrapordadır.
+
 **27 Ekim — ERP-DEC-080: onaylı negatif stok kapsamı TEST'e uygulandı.**
 
 PRODUCT-b40b0745 commit edildi, yayımlandı ve aynı paket sağlıklı döndü. 10 yeni aktif kartın 8'i negatif, 2'si pozitiftir; önceki sorudaki “10 negatif yeni kart” sayısı kayıt bazında düzeltildi. 193 mevcut stok farkı (191 negatif ve 2 exact KALAN=0), yeni kartlarla birlikte 203 stok etkisi; ayrıca 30 yeni satış fiyatı, 10 barkod ve 10 alias: toplam 456 native etki. 229 grubun 203'ü değişti; 26 grupta köken engeli nedeniyle ticari yazma yapılmadı.
