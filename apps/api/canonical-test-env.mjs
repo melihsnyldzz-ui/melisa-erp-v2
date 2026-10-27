@@ -30,6 +30,10 @@ export async function configureCanonicalTest(configPath, mode) {
   const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
   const goal8Seal=config.goal8SyntheticDaySeal;
   if(goal8SqlInstalled&&(!goal8Seal||! /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(goal8Seal.dayId??'')||! /^[A-F0-9]{64}$/.test(goal8Seal.definitionHash??'')||goal8Seal.sourceCommit!==release.sourceCommit||goal8Seal.packageId!==release.packageId))throw Error('TEST_GOAL8_PROFILE_SEAL_REJECTED');
+  if(mode==='erp'&&config.businessWorkface){
+    const {verifyBusinessApiClosure}=await import('../../scripts/canonical/business-workface-api-closure.mjs');
+    await verifyBusinessApiClosure(release,file=>fs.promises.readFile(path.resolve('../../',file)));
+  }
   const expectedLogin = writes ? 'melisa_sirket_sales_test_20260929_01' : readLogin;
   if (config.database !== expectedDatabase || config.sqlUser !== readLogin || (writes && config.salesSqlUser !== expectedLogin) || config.server !== '127.0.0.1' || config.sqlPort !== 1433 || config.host !== '127.0.0.1' || config.erpPort !== 4144 || config.nativePort !== 4146 || config.webPort !== 5194) throw Error('TEST_CONFIG_IDENTITY_REJECTED');
   const listenerPolicy=canonicalListenerPolicy(config,{mode,writes});
