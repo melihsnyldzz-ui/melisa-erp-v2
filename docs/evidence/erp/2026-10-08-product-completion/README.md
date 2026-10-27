@@ -1,5 +1,21 @@
 # Aşama 3 — doğrulanmış ürün alt kapsamı TEST uygulaması
 
+## 27 Ekim — ERP-DEC-079 aktif stok devamı gerçekten TEST'e uygulandı
+
+Mevcut TEST125/5194/4144/4146 ve Semih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01 korundu. Önceki PRODUCT-48099bf7 partisi187grup/1283etki COMMITTED, fresh-connection replay0 ve normal GUI ile kanıtlandı; tekrar uygulanmadı. Ardından kullanıcı hareketi olmayan aktif kartların yalnız bu nedenle dışlanmamasını istedi. İki gerçek SELECT geçişinde exact0 KALAN, ADET/1, UID ve depo bağı doğrulanan5yeni kart yeni partide yer aldı; NULL miktar sıfırlanmadı.
+
+Yeni PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8: **5yeni kart,824stok katkı farkı,31yeni+140güncel satış fiyatı,16barkod,5alias**; **921değişen tekil grup +321ticari no-op =1242scope**,1935nativeetki. Seçili kaynak1242kartın iki geçişi27Ekim16:01:54TR/drift0, atomik/finalT1 değil. Bağımsız SQL tüm1935afterHash ve829stokclosure mismatch0;73tablo projected koruma before/after eş; ayrı Node/targetPool replay REPLAY_NOOP/0. Writer çekirdeği aynı. Kaynak fonksiyonun KALAN dayanağı, dönem hareketi hesabından ayrı tutulur; fiziksel mağaza sayımı iddiası yoktur.
+
+İlk tek pencere DML öncesi914ayrı CASE dalı üreten protected-products sorgusunda180040ms timeout/rollback ile bitti; sealedreceipt yok ve sağlıklı dönüş kanıtlandı. Eski immutable helper korunup aynı alanları çıkaran projeksiyonlar gruplanarak914→3dal yapıldı. Gerçek TEST8satır byte-eş;53271eski product satırının koruma sorgusu4545ms, aynı73tablo kapsamı;4yeni hedefli unit PASS. Aynı plan/hash ve güncel post187 yedekle ikinci pencere COMMITTED/yayın/sağlıklı dönüş17:11:24TR. Eski pause/makbuz yeni run yerine geçirilmedi: yalnız iki açıkça izinli run için exact beklenen kimlik bağı ve3hedefli admission kontrolü PASS. Yeni rol/principal veya genel kapsam izni yoktur.
+
+Kurulu uygulama paketi aynı **CANONICAL-TEST-edb3c8915ef0-catalog-0a221778**, manifest0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64. Owner/protection kaynakfe73ec2a; SQL reader compileree490828. Yeni yayımlı bağlam16928ürün/64951fiyat; bunlar teslim commit'iyle veya yeni uygulama paketiyle karıştırılmaz. EskiCLEAN5244/CRM/DB02 ve Vega/LIVE değişmedi. Restore/reset/silme yok. Yeni COPY_ONLY/CHECKSUM/VERIFYONLY/SHA yedek9332195328bayt; gerçek restore provası yapılmadı.
+
+Normal yeşil GUI'de yeni aktif sıfır stok kartı, değişmiş adet/fiyat, ek başı sıfırlı barkod, mevcut fotoğraf ve reload doğrulandı. Teknik TEST admin kanıtıdır; Semih/personel insan kabulü ve özgün sayaçlar aynı. Sayfa50; sıcak iki tur ilk50=832/736ms, next50=583/580ms, kod574/571ms, barkod362/370ms, kart167/166ms. UI/CSS değişmedi, debug/TEST metni eklenmedi. Kurulum/SQL/API/GUI/insan kabulü ayrı tutulur.
+
+Tarihli aktif kaynak12071içinde kullanılabilir yayımlı12032;39eski istisna=22karantina+2legacy+10negatif yeni kart+5barkodçelişkisi. Seçili mevcutstokta217negatif politika ve113köken kanıtı bekler; ayrıca2mevcut KALAN/miktar çatışması katkı/witness kontrolündedir. Bu kümeler ürün toplamına körlemesine eklenmez. Pasif kart alınmadı/karantina kaldırılmadı; yerel hareketler, eski283+16cari, LL dışlama, maliyet/alış referansları/medya/roller korunur. Cari/finans/gerçekT1 yazısı0; kaynak fiyat tarihi/alış/maliyet bu okumada NOT_READ. Son mağaza delta karşılaştırması işlemler durduktan sonraki ayrı adımdır.
+
+Private kanıt kökü: C:/Sirket/ERP/evidence/ERP-GREENCOMBINED-APIWEB-PREFLIGHT-20261026/private/business-catalog-20261027/. Gerçek ikinci sonuç active-user079-bound-application-result-v2.json; bağımsızSQL active-user079-independent-postcommit-proof.json; API/üyelik/warm-performans ve active-user079-remaining-exceptions.json. Tam private kullanıcı raporu active-user079-delivery-report.md; raw fiyatlar/kimlikler/fotoğraflar GitHub'a yüklenmedi. Son exactCI ayrı doğrulanır; geçmiş secret-scan bulgusu yeşil sayılmaz.
+
 ERP-DEC-032 / ERP-PRODUCTCOMPLETION01, 8 Ekim 2026. Mevcut Goal7 migration motoru, journal/before-image, kaynağa bağlı stok katkısı ve sürümlü fiyat okuması kullanıldı. Genel ürün/veri temizliği, fiziksel mağaza sayımı ve gerçek final T1 yapılmadı. İnsan ERP-UA26 bekliyor; bu dar kapsam sonunda DUR.
 
 ## Gerçek uygulama ve ayrı sayılar
