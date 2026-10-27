@@ -30,7 +30,7 @@ function enumerate(root,rel=''){
  return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{check(!e.isSymbolicLink(),'SYMLINK');const p=rel?rel+'/'+e.name:e.name;return e.isDirectory()?enumerate(root,p):[p];});
 }
 function annotate(file,bytes){if(!['is-akisi-taslagi.html','legacy-admin.html'].includes(file))return bytes;const label=file==='is-akisi-taslagi.html'?'TEST · SQL iş akışları · LIVE’dan ayrı':'TEST · Ayrı örnek ekran';return Buffer.from(bytes.toString('utf8').replace('<title>','<title>TEST · ').replace('<body>','<body><div style="position:fixed;bottom:0;right:0;z-index:2147483647;background:#854d0e;color:white;padding:4px 12px;font:12px sans-serif">'+label+' · '+P.baseCommit.slice(0,12)+'</div>'));}
-export async function prepareTest125CatalogPackage(){
+export async function prepareTest125CatalogPackage({resumeKnownLoggerTemplateFailure=false}={}){
  check(process.platform==='win32','WINDOWS_REQUIRED');
  const repo=path.resolve(import.meta.dirname,'../..'),git=(...args)=>cp.execFileSync('git',args,{cwd:repo,windowsHide:true});
  check(git('remote','get-url','origin').toString().trim()==='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git'&&git('remote','get-url','--push','origin').toString().trim()==='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git','ORIGIN');
@@ -39,29 +39,37 @@ export async function prepareTest125CatalogPackage(){
  const startup=JSON.parse(fs.readFileSync('C:/Sirket/ERP/runtime/canonical-test/startup-config.json','utf8'));
  check(path.resolve(startup.ReleaseRoot)===path.resolve(P.base)&&startup.SourceCommit===P.baseCommit&&startup.ManifestSha256.toLowerCase()===P.baseManifest&&startup.ExpectedDatabase===P.database,'CURRENT_TARGET');
  const baseBytes=read(P.base+'/release-manifest.json'),base=JSON.parse(baseBytes);validateTest125Base(base,sha(baseBytes));
- check(process.version===base.node,'NODE_VERSION');check(!fs.existsSync(P.destination),'DESTINATION_EXISTS');
+ check(process.version===base.node,'NODE_VERSION');
+ const baseline=P.evidence+'/test125-catalog-build-baseline',candidate=P.evidence+'/test125-catalog-build-candidate';
+ if(resumeKnownLoggerTemplateFailure){check(fs.existsSync(P.destination)&&!fs.existsSync(P.destination+'/release-manifest.json')&&fs.existsSync(baseline)&&!fs.existsSync(candidate),'KNOWN_UNSEALED_STAGE_REQUIRED');}
+ else check(!fs.existsSync(P.destination),'DESTINATION_EXISTS');
  const declared=new Map(base.files.map(f=>[f.path,f.sha256])),paths=enumerate(P.base),payload=paths.filter(p=>p!=='release-manifest.json');
  check(payload.every(p=>declared.has(p)||/^apps\/(?:api|web-admin|sites-workflow)\/node_modules\//.test(p)),'UNDECLARED_RUNTIME_FILE');
  const total=payload.reduce((n,p)=>n+regular(P.base+'/'+p).size,0),disk=fs.statfsSync('C:/');check(disk.bavail*disk.bsize>total+2*1024**3,'FREE_SPACE');
- fs.mkdirSync(P.destination);const copied=[];
+ if(!resumeKnownLoggerTemplateFailure)fs.mkdirSync(P.destination);const copied=[];
  for(const [i,p]of payload.entries()){
   const bytes=read(P.base+'/'+p),hash=sha(bytes);if(declared.has(p))check(hash===declared.get(p),'BASE_FILE_HASH');
-  const out=P.destination+'/'+p;fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,bytes,{flag:'wx'});check(sha(read(out))===hash,'COPY_HASH');copied.push({path:p,sha256:hash});
+  const out=P.destination+'/'+p;
+  if(!resumeKnownLoggerTemplateFailure){fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,bytes,{flag:'wx'});}
+  const expected=resumeKnownLoggerTemplateFailure&&P.overlays.includes(p)?sha(git('show',P.component+':'+p)):hash;
+  check(sha(read(out))===expected,'COPY_HASH');copied.push({path:p,sha256:hash});
   if((i+1)%5000===0)console.log(JSON.stringify({phase:'PASSIVE_COPY',copied:i+1,total:payload.length}));
  }
  check(declared.size===base.files.length&&[...declared].every(([p])=>copied.some(r=>r.path===p)),'COPY_COVERAGE');
  const env={};for(const k of ['SystemRoot','WINDIR','ComSpec','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA','PATH','Path'])if(process.env[k])env[k]=process.env[k];
  Object.assign(env,{VITE_API_BASE_URL:'http://127.0.0.1:4144',VITE_VEGA_PRODUCTS_BASE_URL:'http://127.0.0.1:4144',VITE_MELISA_PILOT:'true',VITE_DEMO_MODE:'false',VITE_LOCAL_PASSWORDLESS_LOGIN:'false',VITE_TEST_READ_ONLY:'false'});
- const baseline=P.evidence+'/test125-catalog-build-baseline',candidate=P.evidence+'/test125-catalog-build-candidate';
- check(!fs.existsSync(baseline)&&!fs.existsSync(candidate),'BUILD_OUTPUT_EXISTS');
+ if(!resumeKnownLoggerTemplateFailure)check(!fs.existsSync(baseline)&&!fs.existsSync(candidate),'BUILD_OUTPUT_EXISTS');
  const build=out=>runPinnedNpm(['run','build','--','--outDir',out],P.destination+'/apps/sites-workflow',env);
- build(baseline);
+ if(!resumeKnownLoggerTemplateFailure)build(baseline);
  const baselineFiles=enumerate(baseline),baselineDiff=[];
  for(const file of baselineFiles){const expected=P.base+'/apps/sites-workflow/dist/'+file,bytes=annotate(file,read(baseline+'/'+file));if(!fs.existsSync(expected)||sha(bytes)!==sha(read(expected)))baselineDiff.push(file);}
  check(baselineDiff.length===0,'WEB_BASELINE_NOT_REPRODUCED');
  const sourceDelta=[];
- for(const file of P.overlays){const bytes=git('show',P.component+':'+file),before=read(P.destination+'/'+file);fs.writeFileSync(P.destination+'/'+file,bytes);sourceDelta.push({path:file,before:sha(before),after:sha(bytes),componentCommit:P.component});}
- const loggerBefore=read(P.destination+'/'+P.logger),loggerAfter=addCatalogLineageDiagnostic(loggerBefore);fs.writeFileSync(P.destination+'/'+P.logger,loggerAfter);sourceDelta.push({path:P.logger,before:sha(loggerBefore),after:sha(loggerAfter),componentCommit:P.component,kind:'EXACT_STATIC_CODE_INSERTION_ON_BASE'});
+ for(const file of P.overlays){const bytes=git('show',P.component+':'+file),before=read(P.base+'/'+file);fs.writeFileSync(P.destination+'/'+file,bytes);sourceDelta.push({path:file,before:sha(before),after:sha(bytes),componentCommit:P.component});}
+ const loggerBefore=read(P.destination+'/'+P.logger);let loggerProjection='UNCHANGED_BASE_PRE_REGISTRY';
+ if(loggerBefore.toString('utf8').includes('PRODUCT_NOT_FOUND PRODUCT_STOCK_CODE_DUPLICATE')){
+  const loggerAfter=addCatalogLineageDiagnostic(loggerBefore);fs.writeFileSync(P.destination+'/'+P.logger,loggerAfter);sourceDelta.push({path:P.logger,before:sha(loggerBefore),after:sha(loggerAfter),componentCommit:P.component,kind:'EXACT_STATIC_CODE_INSERTION_ON_BASE'});loggerProjection='EXACT_STATIC_CODE_INSERTION';
+ }else check(sha(loggerBefore)===declared.get(P.logger),'BASE_LOGGER_CHANGED');
  build(candidate);const webDelta=[];
  for(const file of enumerate(candidate)){
   const rel='apps/sites-workflow/dist/'+file,bytes=annotate(file,read(candidate+'/'+file)),dest=P.destination+'/'+rel;
@@ -75,10 +83,10 @@ export async function prepareTest125CatalogPackage(){
  for(const row of sourceDelta)check(sha(read(P.base+'/'+row.path))===row.before,'BASE_SOURCE_CHANGED');
  const files=base.files.map(row=>({path:row.path,sha256:sha(read(P.destination+'/'+row.path))}));
  for(const row of actualDelta.filter(r=>r.before===null))files.push({path:row.path,sha256:row.after});files.sort((a,b)=>a.path.localeCompare(b.path,'en'));
- const metadata={schemaVersion:'melisa-test125-catalog-compatibility-package.v1',basePackageRoot:P.base,baseSourceCommit:P.baseCommit,baseManifestSha256:P.baseManifest,componentSourceCommit:P.component,producerCommit,sourceDelta,webDelta,actualDelta,payloadFiles:all.length,payloadBytes:total,preservedDependencyFiles:dependencies.length,dependencyInventorySha256:sha(Buffer.from(JSON.stringify(dependencies))),webBaselineReproduced:true,currentTarget:P.database,ports:{web:5194,native:4146,api:4144},installed:false};
+ const metadata={schemaVersion:'melisa-test125-catalog-compatibility-package.v1',basePackageRoot:P.base,baseSourceCommit:P.baseCommit,baseManifestSha256:P.baseManifest,componentSourceCommit:P.component,producerCommit,sourceDelta,loggerProjection,webDelta,actualDelta,payloadFiles:all.length,payloadBytes:total,preservedDependencyFiles:dependencies.length,dependencyInventorySha256:sha(Buffer.from(JSON.stringify(dependencies))),webBaselineReproduced:true,currentTarget:P.database,ports:{web:5194,native:4146,api:4144},installed:false};
  const manifest={...base,packageId:'CANONICAL-TEST-'+P.baseCommit.slice(0,12)+'-catalog-'+P.component.slice(0,8),builtAt:new Date().toISOString(),catalogCompatibility:metadata,files};
  const bytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');fs.writeFileSync(P.destination+'/release-manifest.json',bytes,{flag:'wx'});
- const result={packageRoot:P.destination,packageId:manifest.packageId,baseSource:P.baseCommit,componentSource:P.component,producerCommit,manifestSha256:sha(bytes),declaredFiles:files.length,sourceDelta,webDelta,payloadFiles:all.length,installed:false,sqlWrites:0,stopStart:0};
+ const result={packageRoot:P.destination,packageId:manifest.packageId,baseSource:P.baseCommit,componentSource:P.component,producerCommit,manifestSha256:sha(bytes),declaredFiles:files.length,sourceDelta,loggerProjection,webDelta,payloadFiles:all.length,installed:false,sqlWrites:0,stopStart:0};
  fs.writeFileSync(P.evidence+'/active-221-passive-catalog-package.json',JSON.stringify(result,null,2)+'\n',{flag:'wx'});console.log(JSON.stringify(result));return result;
 }
-if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){if(process.argv.slice(2).join(' ')!=='--prepare')throw Error('TEST125_PACKAGE_ARGUMENTS');await prepareTest125CatalogPackage();}
+if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){const mode=process.argv.slice(2).join(' ');if(!['--prepare','--resume-known-logger-template-failure'].includes(mode))throw Error('TEST125_PACKAGE_ARGUMENTS');await prepareTest125CatalogPackage({resumeKnownLoggerTemplateFailure:mode==='--resume-known-logger-template-failure'});}
