@@ -2,7 +2,7 @@ param([switch]$Library)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 function Get-Business5244WebPins {
- return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-0d2ebdba';manifest='EA8F81A9D273091BF0F8242CA8A172B812FA01D54F7237BBA6928DE0F9555438';package='ERP-BUSINESS-WEB-5244-0d2ebdba';apiPackage='CANONICAL-TEST125-BUSINESS5244-0d2ebdba';apiManifest='6f58486418bbf7307529ef83dc7e60630c0a58f12e09666faa12c021d3294850';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='87447c7004a55af925af9698cee0b90242ec2f8b';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+ return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-10cdc0ee';manifest='6CA2E178CF805ABE5063D134E08C052EB44D80B11A494681639EA07BD5C01069';package='ERP-BUSINESS-WEB-5244-10cdc0ee';apiPackage='CANONICAL-TEST125-BUSINESS5244-10cdc0ee';apiManifest='3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='87447c7004a55af925af9698cee0b90242ec2f8b';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
 }
 function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
  $sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($Baseline)).Replace('-','')}finally{$sha.Dispose()}
