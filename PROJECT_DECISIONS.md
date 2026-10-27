@@ -1,3 +1,11 @@
+### ERP-DEC-082 — 27 Ekim 2026 — Tek kalıcı ERP çalışma girişi5244
+
+Kullanıcı sesli olarak mevcut gerçek stokların da kullandığı5244TEST'te görünmesini, yalnız5244'ü kullanmayı ve bunu sabitlemeyi istedi; gereksiz diğer ERP TEST girişlerinin kapatılmasını kabul etti. Amaç yeni kaynak aktarımını ikinci kez üretmek değil, kabul edilmiş gerçek ürün/stok/cari verisi ve doğru yeşil günlük ekranları tek tutarlı uygulama/DB ve normal kullanıcı altında çalıştırmaktır. Önceden aktarılmış ürün/stok/fiyat/fotoğraf/283+16 hesap ve geçmiş journal korunur.5244CLEAN/5194TEST125 iki ayrıDB sessizce bir akışta karıştırılmaz; adres/CORS/synthetic bayrağı değişimi tek başına tamamlanma değildir.
+
+Sıra bağlayıcıdır: uygulanabilir aynıDB API/native/frontend ve mevcut normal kimlik/yetki sözleşmesini hazırla; kayıp/çift etki olmadan kaynak veriyi5244normal ekranda ve yenilemede doğrula; sonra yalnız eski ve artık gereksiz ERP TEST girişlerini exact sahiplik/servis bağı ve geri dönüşle durdur. Yeni5244sağlıklı doğrulanmadan5194 veya başka eskiERP kapatılmaz. Veritabanı/release/yedek/journal silme, otomatik restore/reset veya geri dönüşü kaldırma yok. API/native iç portları5244'ün çalışması için gerekliyse korunur; kullanıcı tek web girişi görür. Vega, CRM, LIVE/T1 veya gerçek müşteri/ücretli servis bu kapatma/onay kapsamına girmez. Normal kimlik doğru doğrulanmadan başka rol ödünç alınmaz; önceki hesap/rol/grant ve finans onayı sınırları kendiliğinden genişlemez.
+
+Kararlı giriş talebi web5244ve desteklenen kalıcı başlatma içindir; router DHCP rezervasyonu/statik LAN IP bugün yapılmış sayılmaz. Kaynak adayı8a060591 yalnız3dosyalıderlenmemiş overlay ve8yerel kontrat testidir; kurulmuş/çalışan birleşik ERP değildir.
+
 ### ERP-DEC-081 — 27 Ekim 2026 — Tüm cari kartları ve 2026 güncel döviz bakiyeleri
 
 Kullanıcı sesli olarak “Bütün mevcut kartları geçirelim. Bakiyeleriyle birlikte 2026'nın güncel bakiyeleriyle birlikte geçirelim” dedi. 5536 yalnız ilk teknik örnektir; nihai kapsam değildir. F0102 müşteri ve muhasebe F0103 cari kartlarının aktif/pasif kapsamı korunur; temizlik/birleştirme sonraya kalır. Güncel kaynak Döviz Bakiye, hesabın TRY/USD/EUR para birimi ve B/A yönü birlikte değerlendirilir. Peşin TL/USD/EUR ayrı, iki LL dışlaması ve karantinalar aynı kalır. Önceki283+16 hesap, journal, gerçek yerel hareketler ve kaynak açılışı ikinci kez eklenmez.
