@@ -1,3 +1,15 @@
+**27 Ekim — ERP-DEC-080: onaylı negatif stok kapsamı TEST'e uygulandı.**
+
+PRODUCT-b40b0745 commit edildi, yayımlandı ve aynı paket sağlıklı döndü. 10 yeni aktif kartın 8'i negatif, 2'si pozitiftir; önceki sorudaki “10 negatif yeni kart” sayısı kayıt bazında düzeltildi. 193 mevcut stok farkı (191 negatif ve 2 exact KALAN=0), yeni kartlarla birlikte 203 stok etkisi; ayrıca 30 yeni satış fiyatı, 10 barkod ve 10 alias: toplam 456 native etki. 229 grubun 203'ü değişti; 26 grupta köken engeli nedeniyle ticari yazma yapılmadı.
+
+Kaynak 27 Ekim 17:37:24–25 TR: iki tam okuma, 229 kararlı kart, 0 drift. Atomik final T1 değildir. Bağımsız SQL'de 456 afterHash ve 203 stok kapanışı eşleşti; 73 tablo koruması eş, 21 guard geri kurulu. Ayrı süreç/pool tekrarında REPLAY_NOOP ve 0 ikinci etki. Yeni post-b1 COPY_ONLY/CHECKSUM/VERIFY/SHA yedek doğrulandı; restore/reset/silme yok.
+
+Yayımlanmış 16.938 ürün ve 64.981 fiyat var. Tarihli aktif kaynak kapsamı 12.071; kullanılabilir yayımlanmış aktif kart 12.042. 29 kart (22 karantina, 2 legacy, 5 barkod çatışması) ve ayrıca 139 stok alanı köken kanıtı bekliyor. Tüm mağaza veya fiziksel sayım tamamlandı denmez.
+
+Normal API, yeşil ekran, yeni/eski kart ve yenileme sonrası barkod doğrulandı; insan kabulü PASS yapılmadı. Sıcak iki tur: ilk50 734–837 ms, sonraki50 568–589 ms, kod584–596 ms, barkod347–357 ms, kart157–160 ms. Paket edb3c891+0a221778 / manifest0927 aynı; policy/owner source c0556b64. TEST5194/API4144/native4146; CLEAN5244/CRM, cari/finans, LL, hold, roller, maliyet, medya, Vega/LIVE korunur.
+
+Private kanıt: active-negative-delivery-report.md, active-negative-independent-postcommit-proof.json, active-negative-normal-api-proof.json, active-negative-remaining-exceptions.json; ekranlar negative-new-card.png / negative-existing-card.png / negative-refreshed-barcode-card.png. Ham ticari veriler GitHub'a alınmadı. Uygulama source c0556b64 CI: kalite ve Windows başlangıç SUCCESS, secret-scan FAIL; yeşil değildir. Son teslim commit'inin CI'si ayrıca izlenir.
+
 ### ERP-DEC-080 — 27 Ekim 2026 — Kanıtı tam negatif kaynak adetleri yalnız TEST'te aynen korunur
 
 Kullanıcı, bu konuşmadaki stok kararı sorusuna açıkça “Kanıtı tam eksi adetleri TEST ERP’ye aynen al (Önerilen)” yanıtını verdi. Önceki negatif stok politika beklemesi yalnız bu yönde güncellenir: gerçek kaynak kimliği/UID, ADET/çarpan, depo, iki geçiş kararlılığı ve mevcut kaynak/yerel hareket katkısı kanıtı tam olan negatif miktar TEST'e işareti ve hassasiyeti korunarak alınabilir. Kanıtlı yeni fiziksel kartta negatif kaynak açılışı da aynı exact kimlik/birim/depo şartlarıyla kapsamdadır. Eksik kimlik, birim, döviz, karantina, barkod sahipliği veya hareket kökeni çözülmüş sayılmaz; bilinmeyen sıfırlanmaz. Mevcut yerel/sentetik hareketler üzerine doğrudan kaynak toplamı yazılmaz.
