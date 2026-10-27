@@ -7,7 +7,7 @@ export function createCanonicalBusinessSaleReadService({authority=()=>assertCano
   if(String(user?.id)!=='17'||user.username!==c.username||String(user.role?.id)!=='17'||user.role.code!==c.roleCode||user.isActive===false||user.isAdmin===true||user.testAdminSession===true||!Array.isArray(user.permissions)||!['sales.view','customer.view','product.view'].every(k=>user.permissions.includes(k))||JSON.stringify([...user.permissions].sort())!==JSON.stringify([...c.permissions].sort()))throw businessSaleReadError('AUTH_PERMISSION_DENIED',403);
   return c;
  }
- return {async selection(query,user){
+ return {assertActor:authorize,async selection(query,user){
   const context=authorize(user),selection=parseBusinessSaleReadQuery(query);
   const [customer,catalog]=await Promise.all([readCustomer(selection.customerId),readProduct(selection.productId,user)]);
   if(authorize(user)!==context)throw businessSaleReadError('BUSINESS_SALE_READER_CHANGED',409);

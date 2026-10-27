@@ -2,6 +2,7 @@ import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
 import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheticCatalogModel.mjs';
 import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed} from './businessWorkface.mjs';
 import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
+import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -91,6 +92,11 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
  return {
+  async partyHistory(selection){
+   const required=selection?.kind==='supplier'?['finance.view','supplier.view','purchase.view']:['finance.view','customer.view','sales.view'];
+   if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!required.every(p=>user.permissions.includes(p)))throw problem('Hesap geçmişi bağlantısı kullanılamıyor.',403);
+   const payload=await request(partyHistoryPath(selection),{expire:true,keepForbiddenSession:true});return validatePartyHistoryEnvelope(payload,selection);
+  },
   async businessSaleSelection(selection){
    if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!['sales.view','customer.view','product.view'].every(p=>user.permissions.includes(p)))throw problem('Satış seçimi bağlantısı kullanılamıyor.',403);
    const path=businessSaleReadPath(selection),payload=await request(path,{expire:true,keepForbiddenSession:true});

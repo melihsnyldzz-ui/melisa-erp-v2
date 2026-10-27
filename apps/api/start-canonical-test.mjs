@@ -53,6 +53,8 @@ if(mode==='erp'){
   if(businessSession){
     const {canonicalBusinessSaleReadRoutes}=await import('./src/routes/canonicalBusinessSaleReadRoutes.mjs');
     app.use('/api',canonicalBusinessSaleReadRoutes);
+    const {canonicalBusinessPartyHistoryRoutes}=await import('./src/routes/canonicalBusinessPartyHistoryRoutes.mjs');
+    app.use('/api',canonicalBusinessPartyHistoryRoutes);
   }
   const {configureWorkSystem}=await import('./src/services/workSystemService.mjs');
   configureWorkSystem({identity,release});

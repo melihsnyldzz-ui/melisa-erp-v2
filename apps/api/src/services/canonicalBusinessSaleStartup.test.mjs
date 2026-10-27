@@ -24,7 +24,7 @@ test('actual canonical bootstrap mounts business selection after app/security an
   for(const value of [false,true]){
    enabled=value;ready=false;appUnderTest=null;await import('../../start-canonical-test.mjs?selection-fixture='+value);assert.equal(ready,true);assert(appUnderTest);
    const server=appUnderTest.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
-   try{const response=await fetch('http://127.0.0.1:'+server.address().port+'/api/business-sales/selection');assert.equal(response.status,value?401:404);assert.equal(response.headers.get('x-melisa-environment'),'CANONICAL-TEST');}finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
+   try{for(const path of ['/api/business-sales/selection','/api/business-party-history/customer/155/7?currency=USD']){const response=await fetch('http://127.0.0.1:'+server.address().port+path);assert.equal(response.status,value?401:404);assert.equal(response.headers.get('x-melisa-environment'),'CANONICAL-TEST');}}finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
   }
  }finally{process.argv=argv;console.log=log;for(const [name,before] of signals)for(const listener of process.listeners(name))if(!before.has(listener))process.removeListener(name,listener);}
 });
