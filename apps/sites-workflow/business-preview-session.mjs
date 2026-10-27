@@ -1,5 +1,6 @@
 // Same-origin HttpOnly transport for the existing normal ERP refresh store.
-// No password/session journal, JWT signer, identity mapping or SQL connection.
+// No password/session journal, JWT signer or SQL connection.
+// The explicitly approved login label semih resolves only to existing actor 17.
 export const businessSessionCookie='melisa_erp_business_5244';
 const refreshPattern=/^[A-Za-z0-9_-]{43}$/;
 const emptyCookie=()=>`${businessSessionCookie}=; Path=/api/auth; HttpOnly; SameSite=Strict; Max-Age=0`;
@@ -19,7 +20,7 @@ export function createBusinessBrowserSessionTransport({fetchImpl=globalThis.fetc
    let body;try{body=JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{json(res,400,{success:false,error:{code:'SESSION_BODY_INVALID'}});return;}
    if(!body||Object.getPrototypeOf(body)!==Object.prototype){json(res,400,{success:false,error:{code:'SESSION_BODY_INVALID'}});return;}
    const login=path==='/api/auth/login',logout=path==='/api/auth/logout';
-   if(login){if(Object.keys(body).sort().join(',')!=='password,username'||body.username!=='unified-semih-test'||typeof body.password!=='string'){json(res,401,{success:false,error:{code:'AUTH_INVALID_CREDENTIALS'}});return;}}
+   if(login){if(Object.keys(body).sort().join(',')!=='password,username'||!['unified-semih-test','semih'].includes(body.username)||typeof body.password!=='string'){json(res,401,{success:false,error:{code:'AUTH_INVALID_CREDENTIALS'}});return;}body={...body,username:'unified-semih-test'};}
    else{
     // A caller cannot substitute a family/body token or read the HttpOnly value.
     if(Object.keys(body).length){json(res,400,{success:false,error:{code:'SESSION_BODY_INVALID'}});return;}

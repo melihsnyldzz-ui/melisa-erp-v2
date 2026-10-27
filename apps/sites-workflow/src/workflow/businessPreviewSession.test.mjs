@@ -33,3 +33,12 @@ test('late rejected refresh cannot erase the newer HttpOnly cookie from a concur
  const missing=await call(handler);assert.equal(missing.status,401);assert.equal(missing.headers['Set-Cookie'],undefined);
  const logout=await call(handler,{path:'/api/auth/logout'});assert.match(logout.headers['Set-Cookie'],/Max-Age=0/);
 });
+
+
+test('approved semih label uses only existing native actor; password and role checks stay native',async()=>{
+ const calls=[];const handler=createBusinessBrowserSessionTransport({fetchImpl:async(url,o)=>{calls.push(JSON.parse(o.body));return {ok:false,status:401,text:async()=>JSON.stringify({success:false,error:{code:'AUTH_INVALID_CREDENTIALS'}})};}});
+ const result=await call(handler,{path:'/api/auth/login',body:{username:'semih',password:'fixture-only'}});
+ assert.equal(result.status,401);assert.deepEqual(calls,[{username:'unified-semih-test',password:'fixture-only'}]);assert.equal(result.headers['Set-Cookie'],undefined);
+ for(const username of ['Semih','semih ','admin','unified-other'])assert.equal((await call(handler,{path:'/api/auth/login',body:{username,password:'fixture-only'}})).status,401);
+ assert.equal(calls.length,1);
+});
