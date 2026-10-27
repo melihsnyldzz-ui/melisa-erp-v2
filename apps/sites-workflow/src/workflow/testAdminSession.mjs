@@ -1,7 +1,7 @@
 import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 import {isBusinessWorkfaceTarget} from './businessWorkface.mjs';
 export const testSessionModeKey = 'melisaTestSessionMode';
-export function resolveTestApiBase({location,apiBase,businessProfile}){
+export function resolveTestApiBase({location,apiBase,businessProfile=import.meta.env?.VITE_ERP_WORKFACE}){
  if(businessProfile!==undefined&&location?.port==='5244')return isBusinessWorkfaceTarget({location,apiBase,profile:businessProfile})?location.origin:null;
  if(location?.port==='5244'){
   if(!isCleanCatalogLocation(location)||apiBase!=='http://127.0.0.1:4194')return null;
