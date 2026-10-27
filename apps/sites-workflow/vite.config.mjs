@@ -68,7 +68,7 @@ export function businessPreviewNetwork(environment=process.env,interfaces=os.net
  return true;
 }
 export function validateBusinessPreviewHealth(h,environment=process.env){
- if(h?.ok!==true||h.environment!=='CANONICAL_TEST'||h.mode!=='erp'||h.port!==4144||h.databaseName!=='MELISA_ERP_SIRKET_TEST_20260929_01'||h.serverName?.toLowerCase()!=='semih\\melisadev'||h.loginName!=='melisa_sirket_sales_test_20260929_01'||h.databaseUser!==h.loginName||h.sysadmin!==0||h.databaseControl!==0||h.liveDatabaseAccess!==0||h.writes!==true||h.sqlReadOnly!==false||h.actualT1!==false||h.externalOperations!==false||h.automaticJobs!==false||h.businessWorkfaceId!==businessWorkfaceId||h.normalSessionUserId!==17||h.persistentNormalSession!==true||h.sourceCommit!==environment.BUSINESS_SOURCE_COMMIT||h.packageId!==environment.BUSINESS_PACKAGE_ID)throw Error('BUSINESS_UI_API_IDENTITY_REQUIRED');return h;
+ if(h?.ok!==true||h.environment!=='CANONICAL_TEST'||h.mode!=='erp'||h.port!==4144||h.databaseName!=='MELISA_ERP_SIRKET_TEST_20260929_01'||h.serverName?.toLowerCase()!=='semih\\melisadev'||h.loginName!=='melisa_sirket_sales_test_20260929_01'||h.databaseUser!==h.loginName||h.sysadmin!==0||h.databaseControl!==0||h.liveDatabaseAccess!==0||h.writes!==true||h.sqlReadOnly!==false||h.actualT1!==false||h.externalOperations!==false||h.automaticJobs!==false||h.businessWorkfaceId!==businessWorkfaceId||h.normalSessionUserId!==17||h.persistentNormalSession!==true||h.businessSessionSignerDomain!=='dedicated-business-key-v1'||h.sourceCommit!==environment.BUSINESS_SOURCE_COMMIT||h.packageId!==environment.BUSINESS_PACKAGE_ID)throw Error('BUSINESS_UI_API_IDENTITY_REQUIRED');return h;
 }
 const businessPreview={
  name:'melisa-business-preview-network',

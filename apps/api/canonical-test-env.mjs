@@ -58,7 +58,10 @@ export async function configureCanonicalTest(configPath, mode) {
     TERMINAL_CATALOG_CACHE_DIR:path.resolve('.canonical-runtime/catalog'), PILOT_CATALOG_DIR:path.resolve('.canonical-runtime/pilot'),
     CORS_ORIGINS:listenerPolicy.corsOrigins.join(','),
   });
-  if(mode==='erp'&&config.businessWorkface)process.env.MELISA_TEST_PROTECTED_SESSION_PATH=BUSINESS_SESSION.sessionPath;
+  if(mode==='erp'&&config.businessWorkface){
+    if(! /^[A-Za-z0-9_-]{64,128}$/.test(config.businessSessionAccessSecret??'')||config.businessSessionAccessSecret===config.jwtAccessSecret)throw Error('AUTH_BUSINESS_TEST_TARGET_INVALID');
+    process.env.MELISA_TEST_PROTECTED_SESSION_PATH=BUSINESS_SESSION.sessionPath;process.env.MELISA_BUSINESS_SESSION_SECRET=config.businessSessionAccessSecret;
+  }
   for (const file of ['.env','.env.local']) if(fs.existsSync(path.resolve(file))) throw Error('TEST_DOTENV_REJECTED');
   const { env } = await import('./src/config/env.js');
   if(env.sql.database!==expectedDatabase || env.sql.readOnly!==!writes || env.sql.trustedConnection || env.vega.enabled || env.whatsapp.enabled || env.nakliyat.enabled || env.receiptPrinting.enabled || env.port!==port) throw Error('TEST_ENVIRONMENT_REJECTED');

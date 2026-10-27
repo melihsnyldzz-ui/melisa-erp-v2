@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {BUSINESS_SESSION as p,validateBusinessSessionProfile,validateBusinessSessionWitness,configureCanonicalBusinessSession,assertCanonicalBusinessSession,businessSessionUserAllowed,businessSessionFingerprintWitness,assertBusinessSessionPermissionRows} from './canonicalBusinessSessionContext.mjs';
 const profile=()=>({id:p.id,userId:17,permissionHash:p.permissionHash,sessionPath:p.sessionPath,actualT1:false,externalOperations:false});
-const environment=()=>({MELISA_CANONICAL_TEST:'true',SQL_DATABASE:p.database,SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_USER:p.login,SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false',API_PORT:'4144',MELISA_TEST_PROTECTED_SESSION_PATH:p.sessionPath});
+const environment=()=>({MELISA_CANONICAL_TEST:'true',SQL_DATABASE:p.database,SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_USER:p.login,SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false',API_PORT:'4144',MELISA_TEST_PROTECTED_SESSION_PATH:p.sessionPath,MELISA_BUSINESS_SESSION_SECRET:'s'.repeat(64),JWT_ACCESS_SECRET:'legacy-fixture-only'});
 const identity=()=>({databaseName:p.database,serverName:p.server,loginName:p.login,databaseUser:p.login,sysadmin:0,databaseControl:0,liveDatabaseAccess:0,canInsertSales:1});
 const user=()=>({id:17,username:p.username,userActive:true,roleId:17,roleCode:p.roleCode,roleActive:true,systemRole:false});
 test('business session profile is explicit, finite and has no default/alternate target',()=>{

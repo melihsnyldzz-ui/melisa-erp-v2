@@ -52,7 +52,7 @@ export function normalTestRefreshTarget({copy,clean,business,config=process.env}
 export function configuredNormalTestRefreshStore(options={}){
  const file=normalTestRefreshTarget(options);
  // Only the approved dedicated business identity has explicit-logout lifetime.
- // Access JWTs remain short-lived; logout, row-version/permission/password
+ // Access JWT lifetime stays unchanged; logout, row-version/permission/password
  // checks and refresh rotation still revoke the entire existing family.
  return file?createNormalTestRefreshStore({file,...(options.business?{ttlMs:Date.UTC(9999,11,31)-Date.now()}:{} )}):null;
 }

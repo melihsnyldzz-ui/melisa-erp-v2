@@ -7,7 +7,7 @@ import { getSqlPool } from '../config/database.js';
 import { applyRolePermissionDefaults, expandPermissions } from './permissionCatalog.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import {getCleanContext,assertRegisteredCleanContext} from './cleanSyntheticContext.mjs';
-import {getCanonicalBusinessSession,businessSessionFingerprintWitness,assertBusinessSessionPermissionRows} from './canonicalBusinessSessionContext.mjs';
+import {getCanonicalBusinessSession,businessSessionFingerprintWitness,assertBusinessSessionPermissionRows,getCanonicalBusinessSigningKey} from './canonicalBusinessSessionContext.mjs';
 // Only auth refresh/revocation and last-login writes use this narrow capability.
 function assertAuthWriteEnabled(){if(getCleanContext()){assertRegisteredCleanContext();return;}assertMelisaWriteEnabled();}
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig} from '../config/isolatedOperationCopyRuntime.mjs';
@@ -104,16 +104,18 @@ async function toNormalUserDto(pool,row,permissions){
 }
 
 function signAccessToken(user, nativeTerminalCode = null, normalTestSessionId = null) {
+  const business=normalTestSessionId&&getCanonicalBusinessSession();
   return jwt.sign(
     {
       sub: String(user.id),
       ...(nativeTerminalCode ? { nativeTerminalCode } : {}),
       ...(normalTestSessionId ? { normalTestSessionId } : {}),
+      ...(business?{businessWorkfaceId:'ERP-5244-REALDATA-20261027'}:{}),
       username: user.username,
       role: user.role.code,
       ...sharedCopyAuthClaims(isIsolatedOperationCopyRuntime() ? getIsolatedOperationCopyConfig() : null),
     },
-    env.auth.jwtSecret,
+    business?getCanonicalBusinessSigningKey(business):env.auth.jwtSecret,
     { expiresIn: env.auth.accessExpiresIn },
   );
 }
@@ -538,14 +540,18 @@ export async function readProtectedNormalSession(userId,normalTestSessionId){
 }
 export function verifyAccessToken(token) {
   assertAuthSecretsConfigured();
-
+  const business=getCanonicalBusinessSession();let failure;
   try {
-    return jwt.verify(token, env.auth.jwtSecret);
-  } catch (error) {
-    throw makeAuthError(
-      error.name === 'TokenExpiredError' ? 'AUTH_TOKEN_EXPIRED' : 'AUTH_TOKEN_INVALID',
-      'Access token is invalid or expired',
-      401,
-    );
+    const payload=jwt.verify(token, env.auth.jwtSecret);
+    if(business&&payload.sub==='17'&&payload.normalTestSessionId)throw Error('Business family must use its own signer');
+    return payload;
+  } catch(error){failure=error;}
+  if(business){
+    try{
+      const payload=jwt.verify(token,getCanonicalBusinessSigningKey(business));
+      if(payload.sub!=='17'||payload.username!=='unified-semih-test'||payload.role!=='unified_test_semih'||payload.businessWorkfaceId!=='ERP-5244-REALDATA-20261027'||typeof payload.normalTestSessionId!=='string'||!/^[a-f0-9-]{36}$/.test(payload.normalTestSessionId)||Object.hasOwn(payload,'nativeTerminalCode'))throw Error('Business family differs');
+      return payload;
+    }catch(error){if(error.name==='TokenExpiredError')failure=error;}
   }
+  throw makeAuthError(failure.name==='TokenExpiredError'?'AUTH_TOKEN_EXPIRED':'AUTH_TOKEN_INVALID','Access token is invalid or expired',401);
 }

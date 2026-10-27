@@ -31,7 +31,7 @@ const app=express();app.disable('x-powered-by');
 app.use(canonicalInboundMiddleware({port,policy:listenerPolicy}));
 app.use(securityHeaders(),cors(corsOptions()),requestContext,apiRateLimit(),express.json({limit:'2mb'}));
 app.use((_req,res,next)=>{res.set('X-Melisa-Environment','CANONICAL-TEST');res.set('Cache-Control','no-store');next();});
-const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId,...(businessSession?{businessWorkfaceId:config.businessWorkface.id,normalSessionUserId:businessSession.userId,persistentNormalSession:true,actualT1:false}: {})};
+const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId,...(businessSession?{businessWorkfaceId:config.businessWorkface.id,normalSessionUserId:businessSession.userId,persistentNormalSession:true,businessSessionSignerDomain:'dedicated-business-key-v1',actualT1:false}: {})};
 const readiness=canonicalReadiness();
 app.get('/test-health',(_req,res)=>readiness.send(res,health));
 app.get('/production-switch-health',(_req,res)=>readiness.send(res,health));

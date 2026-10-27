@@ -10,7 +10,7 @@ export function validateBusinessSessionProfile(profile){
  return profile;
 }
 function assertEnvironment(e){
- if(e.MELISA_CANONICAL_TEST!=='true'||e.SQL_DATABASE!==BUSINESS_SESSION.database||e.SQL_SERVER!=='127.0.0.1'||String(e.SQL_PORT)!=='1433'||e.SQL_USER!==BUSINESS_SESSION.login||e.SQL_READ_ONLY!=='false'||e.SQL_TRUSTED_CONNECTION!=='false'||String(e.API_PORT)!=='4144'||e.MELISA_CLEAN_TEST||e.MELISA_ISOLATED_OPERATION_COPY||e.MELISA_TEST_PROTECTED_SESSION_PATH!==BUSINESS_SESSION.sessionPath)fail();
+ if(e.MELISA_CANONICAL_TEST!=='true'||e.SQL_DATABASE!==BUSINESS_SESSION.database||e.SQL_SERVER!=='127.0.0.1'||String(e.SQL_PORT)!=='1433'||e.SQL_USER!==BUSINESS_SESSION.login||e.SQL_READ_ONLY!=='false'||e.SQL_TRUSTED_CONNECTION!=='false'||String(e.API_PORT)!=='4144'||e.MELISA_CLEAN_TEST||e.MELISA_ISOLATED_OPERATION_COPY||e.MELISA_TEST_PROTECTED_SESSION_PATH!==BUSINESS_SESSION.sessionPath||! /^[A-Za-z0-9_-]{64,128}$/.test(e.MELISA_BUSINESS_SESSION_SECRET??'')||e.MELISA_BUSINESS_SESSION_SECRET===e.JWT_ACCESS_SECRET)fail();
 }
 function assertTarget({profile,identity,mode,port,writes,environment}){
  validateBusinessSessionProfile(profile);assertEnvironment(environment);
@@ -34,6 +34,7 @@ export async function configureCanonicalBusinessSession({config,identity,mode,po
  registered=validateBusinessSessionWitness({profile:config.businessWorkface,identity,mode,port,writes,environment,user:user[0],rows});environments.set(registered,environment);return registered;
 }
 export function getCanonicalBusinessSession(){return registered;}
+export function getCanonicalBusinessSigningKey(context){assertCanonicalBusinessSession(context);return environments.get(context).MELISA_BUSINESS_SESSION_SECRET;}
 export function assertBusinessSessionPermissionRows(roleId,rows){
  if(!registered||Number(roleId)!==17)return;
  assertCanonicalBusinessSession(registered);
