@@ -8,6 +8,16 @@ const invoice=id=>({id,documentNo:'SAT-'+id,documentDate:'2026-10-07',status:'fi
 function storage(){const values=new Map();return {getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};}
 function done(store){const j=createTradeJournal({storage:store,key}),p=j.begin('/api/work-sales/drafts/34617/finalize',{requestId,expectedRevision:revision});j.done(p,{invoice:invoice('34617'),requestId,replayed:false});return store.getItem(key);}
 async function controller(){let s=await readFile(new URL('./workSales.js',import.meta.url),'utf8');s=s.replace(/^import ['"]\.\/[^'"]+\.css['"];\s*$/gm,'').replace(/from '(\.\/[^']+)'/g,(_,path)=>'from '+JSON.stringify(new URL(path,import.meta.url).href));return (await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'))).createWorkSales;}
+test('business scope rejection is distinct from real role denial and sends no trade write',async()=>{
+ for(const scoped of [true,false]){
+  const create=await controller(),d=dom(),store=storage(),calls=[];
+  const ui=create({root:d.root,storage:store,user:{id:17,permissions:['sales.view']},session:{media:async()=>{},work:async(path,options)=>{calls.push({path,options});throw {status:403,...(scoped?{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'}:{})};}}});
+  ui.mount();await tick();
+  assert.match(d.root.innerHTML,scoped?/Satış işlemleri bu çalışma ekranına henüz bağlı değil/:/Bu işlemi yapma yetkiniz yok/);
+  if(scoped)assert.doesNotMatch(d.root.innerHTML,/yetkiniz yok/);
+  assert.equal(ui.requestClose(),true);assert.deepEqual(calls,[{path:'/api/work-sales/context',options:undefined}]);ui.dispose();
+ }
+});
 function dom(){let html='',nodes=new Map();const list=/<div data-sale-invoice-list>([\s\S]*?)<\/div><\/section>/;
  const node=k=>{if(nodes.has(k))return nodes.get(k);let inner=k==='[data-sale-invoice-list]'?(list.exec(html)?.[1]??''):'';const n={isConnected:true,dataset:{},elements:{search:{value:''}},value:'',setAttribute(k,v){this[k]=v;},remove(){},addEventListener(e,f){this['on'+e]=f;},querySelector:node,querySelectorAll(selector){return select(selector,inner);}};Object.defineProperty(n,'innerHTML',{get:()=>inner,set:v=>{inner=v;if(k==='[data-sale-invoice-list]')html=html.replace(list,()=>'<div data-sale-invoice-list>'+v+'</div></section>');}});nodes.set(k,n);return n;};
  const select=(selector,source)=>{const field=selector.slice(1,-1),attr=field.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return [...source.matchAll(new RegExp(field+'="([^"]+)"','g'))].map(m=>{const n=node(selector+m[1]);n.dataset[attr]=m[1];return n;});};

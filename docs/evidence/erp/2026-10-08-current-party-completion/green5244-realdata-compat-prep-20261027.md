@@ -1,3 +1,19 @@
+## 28 Ekim — 5244 satış bağlantısı ve menü denetimi (SOURCE; kurulum yok)
+
+Kullanıcı F0102 / 1 / MERKEZ fiziksel mal kabul deposunu teyit etti; önceki ERP-DEC-083 kaydı korunur. Native deneme deposuyla aynı sayılmadı.
+
+Normal Semih oturumunda Satış ekranındaki yetki uyarısı görüldü. Somut ilk neden: businessWorkfaceRequestAllowed, work-sales/context isteğini gönderilmeden reddediyor. Bu, mevcut satış izninin eksik olduğunu kanıtlamaz. Gelen Mal yalnız zaten izinli katalog/tedarikçi kartlarını okur; kayıt/gönder/onay çalışıyor değildir. Sadece allowlist açarak eski operasyon aktörünü kullanma veya yetki artırımı yapılmadı.
+
+Menüler gerçek Chrome arayüzünden tıklandı. İş Sırası, Ürün & stok, müşteri/tedarikçi kartları önceki okuma teslimiyle erişilebilir. Gelen Mal kontrol görünümü var, ticari zincir kapalı. Alış faturaları bağlantı hazır değil; Satış ve Satış fişleri scope reddi; Tahsilat, Sayım, İadeler yetki dili gösteriyor (her biri ayrıca domain/scope incelemesi ister); Günlük kasa API_ERROR. Onaylar, Raporlar ve Ayarlar açılıyor; açılması verinin/işlemin doğrulandığı veya insan kabulü anlamına gelmez. Raporun 0 kaydı genel finans mutabakatı değildir. Geçici yükleme durumları başarı sayılmadı. Ödeme dışındaki 15 menünün nihai DOM kanıtı ve ödeme engeli private alandadır.
+
+İkinci somut kusur: business 5244 same-origin adresi ödeme journalinin desteklediği hedef değil. Journal oluşturulmadan hata oluşunca ekran başlangıç açıklamasını boyamıyor ve requestClose, backupFailed nedeniyle var olmayan ödeme için gezinmeyi kilitliyor. Dar düzeltme: journal hiç oluşmamışsa bağlantı hatasını göster ve ayrılmaya izin ver; gerçek pending/backup korumasını koru. Journal/endpoint allowlist, izin, kayıt veya storage içeriği değiştirilmedi.
+
+Satıştaki yerel BUSINESS_WORKFACE_SCOPE_UNAVAILABLE, gerçek rol403ünden ayrı kullanıcı açıklaması gösterir. Bu mesaj düzeltmesi satış bağlantısını tamamlamaz.
+
+42 hedefli test PASS: satış yerel scope/gerçek403 ayrımı, ödeme desteklenmeyen hedefte storage okuma/yazma ve API çağrısı0, gerçek pending isteğinde çıkış kilidi ve UUID/body korunumu, mevcut oturum/allowlist sınırları. git diff --check temiz. Kurulu web d4f52345/frontend d875dc6e ve API10cdc0ee korunur; yeni kod KURULMADI. Ticari işlem, SQL, rol değişikliği ve restart0. İnsan kabulü BEKLİYOR.
+
+Sıradaki somut iş: normal17 ve doğru gerçek-veri hedefi için destekli satış/okuma adapterini mevcut sözleşmeye bağlamak; 5194 eski aktör veya farklı hedefi sessizce kullanmamak. Cari geçmişi okuma bağlantısı önceki görev olarak korunur. Ham ekranlar/tutarlar private; GitHub'a eklenmez.
+
 # 5244 yeşil ekran + gerçek veri — dar uyumluluk adayı
 
 27 Ekim 2026; mevcut ERP03/A01–B02 kapsamıdır. **Kaynak adayı hazır, birleşik çalışan paket hazır değildir.** Yeni Goal/ajan/takip sistemi yoktur. 5244/4194/5194/4144, native, profil/config, hesap/rol/grant, gerçek kart/bakiye, CRM veya Vega değiştirilmedi. Restore/deploy/restart yapılmadı.

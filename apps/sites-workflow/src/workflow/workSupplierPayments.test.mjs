@@ -18,6 +18,19 @@ function record(s=selected()){return {id:'701',supplierId:s.supplierId,accountId
 function storage(){const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k),map};}
 async function controller(){let s=await readFile(new URL('./workSupplierPayments.js',import.meta.url),'utf8');s=s.replace("import './workSupplierPayments.css';",'');for(const file of ['workCopyPresentation.mjs','workSupplierPaymentsModel.mjs','workInboundModel.mjs','workTradeModel.mjs','testAdminSession.mjs'])s=s.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'));}
 const tick=()=>new Promise(r=>setImmediate(r));
+test('unsupported 5244 payment journal permits leaving without touching storage or sending requests',async()=>{
+ const {createWorkSupplierPayments}=await controller(),d=dom();let reads=0,writes=0,calls=0;
+ const ui=createWorkSupplierPayments({root:d.root,user:{id:17},apiBase:'http://192.168.1.46:5244',location:{protocol:'http:',hostname:'192.168.1.46',port:'5244'},storage:{getItem(){reads++;throw Error();},setItem(){writes++;throw Error();}},session:{inbound(){calls++;throw Error();},supplierPayments(){calls++;throw Error();}}});
+ ui.mount();await tick();assert.match(d.root.innerHTML,/Ödeme bağlantısı doğrulanamadı/);assert.equal(ui.requestClose(),true);assert.equal(reads,0);assert.equal(writes,0);assert.equal(calls,0);ui.dispose();
+});
+test('a real pending payment still blocks leaving and preserves the request without automatic resend',async()=>{
+ const {createWorkSupplierPayments}=await controller(),d=dom(),store=storage(),calls=[];
+ const journal=createPaymentJournal({storage:store,actorId:'16',apiBase,makeUuid:()=>requestId});
+ journal.begin('/api/work-supplier-payments/payments',{supplierId:'101',invoiceId:null,accountId:'201',amountExact4:'1.0000',documentDate:'2026-10-06'});
+ const before=[...store.map.entries()];
+ const ui=createWorkSupplierPayments({root:d.root,user:{id:16},storage:store,apiBase,session:{inbound:async()=>receiving(),supplierPayments:async(path,options)=>{calls.push({path,options});if(path.endsWith('/context'))return context();throw {status:404};}}});
+ ui.mount();await tick();assert.equal(ui.requestClose(),false);assert.match(d.root.innerHTML,/Son ödemeyi doğruladıktan sonra/);assert.deepEqual([...store.map.entries()],before);assert.ok(calls.every(c=>c.options?.method!=='POST'));ui.dispose();
+});
 test('payment history retains the escaped audit description inside closed details with no write',async()=>{
  const {createWorkSupplierPayments}=await controller(),d=dom(),c=context(),calls=[];
  c.payments=[record({...selected(),description:'Audit <note & detail>'})];
