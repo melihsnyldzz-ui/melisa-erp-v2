@@ -13,7 +13,7 @@ const require=createRequire(driverRoot+'/apps/api/package.json');
 const check=(v,code)=>{if(!v)throw Error('UNIFIED_SEMIH_'+code);};
 function writeNew(file,obj){const fd=fs.openSync(file,'wx',0o600);try{fs.writeFileSync(fd,JSON.stringify(obj,null,2)+'\n');fs.fsyncSync(fd);}finally{fs.closeSync(fd);}}
 function regular(file){const s=fs.lstatSync(file);check(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1&&s.size<65536,'PRIVATE_FILE');return fs.readFileSync(file);}
-function privateRootCheck(owner){
+export function privateRootCheck(owner){
  for(let at=root;;at=path.dirname(at)){if(fs.existsSync(at))check(!fs.lstatSync(at).isSymbolicLink(),'PRIVATE_ANCESTOR');if(at===path.dirname(at))break;}
  check(fs.existsSync(root)&&fs.statSync(root).isDirectory(),'PRIVATE_ROOT');
  // The installer does not repair ACLs or broaden access. The existing owner
@@ -28,6 +28,7 @@ const readRows=q=>q.query(`SELECT p.permission_key,p.can_view,p.can_create,p.can
 export async function installUnifiedSemihAccount({expectedOwnerSid,approvalTurn}={}){
  check(process.platform==='win32','WINDOWS_ONLY');
  const owner=execFileSync('whoami.exe',['/user','/fo','csv','/nh'],{encoding:'utf8',windowsHide:true}).match(/S-1-5-21-(?:\d+-){3}\d+/)?.[0];check(owner===expectedOwnerSid,'OWNER');privateRootCheck(owner);
+ check(!fs.existsSync(path.join(root,'personal-password-state.json')),'USER_MANAGED_PASSWORD_USE_NORMAL_LOGIN');
  check(sha(fs.readFileSync(driverRoot+'/release-manifest.json'))==='0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64','DRIVER_PIN');
  const {targetPool}=await import('file:///C:/Sirket/ERP/melisa-erp-v2/scripts/migration/goal73-supplier-delta-runtime.mjs');
  const {pool,sql,identity}=await targetPool();const bcrypt=require('bcrypt');const tx=new sql.Transaction(pool);let active=false,committed=false;

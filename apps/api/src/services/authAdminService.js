@@ -6,6 +6,7 @@ import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { createManagedAuthUserCore, normalizeManagedAuthUser } from './createManagedAuthUserCore.mjs';
+import {createResetManagedAuthPasswordCore} from './resetManagedAuthPasswordCore.mjs';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -226,39 +227,8 @@ export async function resetAuthAdminUserPassword(userId, payload = {}, actor = n
 
   try {
     const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'user_password',{},id);
-    const beforeResult = await new sqlDriver.Request(transaction)
-      .input('userId', sql.BigInt, id)
-      .query('SELECT TOP (1) id, username, display_name, is_active FROM dbo.users WHERE id = @userId;');
-    const user = beforeResult.recordset?.[0];
-    if (!user) {
-      throw makeServiceError('AUTH_ADMIN_USER_NOT_FOUND', 'User not found', 404);
-    }
-
-    await new sqlDriver.Request(transaction)
-      .input('userId', sql.BigInt, id)
-      .input('passwordHash', sql.NVarChar(255), passwordHash)
-      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
-      .query(`
-        UPDATE dbo.users
-        SET password_hash = @passwordHash,
-            updated_at = SYSUTCDATETIME(),
-            updated_by = @actorId
-        WHERE id = @userId;
-
-        UPDATE dbo.auth_refresh_tokens
-        SET revoked_at = SYSUTCDATETIME()
-        WHERE user_id = @userId AND revoked_at IS NULL;
-      `);
-
-    await writeAuditLog(new sqlDriver.Request(transaction), {
-      action: 'user_password_reset',
-      entityType: 'user',
-      entityId: id,
-      beforeSnapshot: { username: user.username, passwordConfigured: true },
-      afterSnapshot: { username: user.username, passwordConfigured: true, sessionsRevoked: true },
-      actor,
-    });
-
+    const reset=createResetManagedAuthPasswordCore({sql:sqlDriver,request:()=>new sqlDriver.Request(transaction),hashPassword:async()=>passwordHash,writeAudit:writeAuditLog});
+    await reset(transaction,id,payload,actor);
     await finish();
     await transaction.commit();
     return getAuthAdminOverview();
