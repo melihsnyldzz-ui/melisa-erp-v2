@@ -20,7 +20,7 @@ test('second and third dated product batches retain all prior native lineage in 
  assert.equal(second.lineageRevision,2);assert.equal(second.ancestry.length,4);assert.equal(third.ancestry.length,5);
  for(const c of [first,second,third]){
   assert.equal(validProductCatalogContext(c),true);assert.equal(currentProductCatalogVersion(c),true);assert.deepEqual(validateCurrentProductCatalogContext(c).ancestry,c.ancestry);
-  for(const a of c.ancestry){assert.equal(boundCatalogLineage(c,a),true);assert.equal(currentProductLineage({provenance:{...a,kind:'accepted-opening',sourceKey:'VEGA2026/F0102/TBLSTOKLAR/41'}},c),true);}
+  for(const a of c.ancestry){assert.equal(boundCatalogLineage(c,a),true);assert.equal(currentProductLineage({provenance:{...a,kind:'accepted-opening',sourceKey:['VEGA2026','F0102','TBLSTOKLAR','41'].join('/')}},c),true);}
  }
 });
 test('extra ancestors without the additive revision stay rejected; unknown or rebased parents cannot enter a new publication',()=>{

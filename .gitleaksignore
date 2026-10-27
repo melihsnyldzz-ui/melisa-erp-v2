@@ -141,3 +141,8 @@ b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure
 6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-transition.ps1:generic-api-key:11
 6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-start.template.ps1:generic-api-key:6
 6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-start.template.ps1:generic-api-key:9
+# Two literal synthetic Vega fixture paths in the published 5a01d96d test commit.
+# Neither is a credential; current fixtures now assemble the explicit path segments.
+# Exact historical findings only; no file-wide or rule-wide suppression.
+5a01d96d56e67a68475f8fedb434f76576562e7d:scripts/migration/product-catalog-lineage.test.mjs:generic-api-key:23
+5a01d96d56e67a68475f8fedb434f76576562e7d:scripts/migration/current-vega-product-slice.test.mjs:generic-api-key:27

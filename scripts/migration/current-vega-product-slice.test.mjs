@@ -24,7 +24,7 @@ test('dated live slice feeds established typed-price contract without creating a
  assert.equal(s.products[1].quantity,'-2.00000000');assert.equal(s.products[0].stockApplicationReady,false);assert.equal(s.products[0].warehouseAllocation,null);
  assert.equal(s.acceptedOpening,false);assert.equal(s.source.atomic,false);assert.equal(s.source.actualT1,false);
  assert.equal(s.products[0].provenance.kind,'DATED_SOURCE_READ');assert.equal(s.products[0].averageCostTry,null);
- assert.equal(s.products[0].nativeSourceKey,'VEGA2026/F0102TBLSTOKLAR/41');
+ assert.equal(s.products[0].nativeSourceKey,['VEGA2026','F0102TBLSTOKLAR','41'].join('/'));
  const {snapshotHash,...body}=s;assert.equal(snapshotHash,hash(body));
 });
 test('wrong company, snapshot database, missing page, duplicate card and wrong unit owner fail closed',()=>{

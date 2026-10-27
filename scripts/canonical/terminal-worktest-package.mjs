@@ -4,6 +4,7 @@ const problem=()=>Object.assign(new Error('WORKTEST_PACKAGE_PIN'),{code:'WORKTES
 export const FEATURE_ENTRY='scripts/canonical/start-terminal-worktest.mjs';
 // Closed set of the entry's current relative-import graph, including its validators.
 export const FEATURE_SOURCE_FILES=Object.freeze([
+ 'scripts/migration/product-catalog-lineage.mjs',
  'apps/api/src/services/businessDailyHomeReadProof.mjs',
  'apps/api/src/services/businessSelectedSaleNativeContext.mjs',
  'apps/api/src/services/businessSelectedSaleInvoiceRead.mjs',
