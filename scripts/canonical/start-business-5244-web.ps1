@@ -9,6 +9,19 @@ function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
  if($hash -cne '5B2995C261C64726A19A1F21CE8680FB97A8516A31CF0F979E4779DBF9C6FD6A' -or $LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_STARTER_BASE_CHANGED'}
  return Get-Business5244StarterProjection $Baseline $LauncherHash
 }
+function Assert-Business5244FreshSpawnArguments($Facts){
+ # Argument validation only, not recovery admission. The caller must retain
+ # its original Start-Process object/native birth handle and prove the child
+ # was born after its live publication scope. Never apply to an orphan.
+ $p=Get-Business5244WebPins
+ if(!$Facts -or $Facts.parent -ne $PID -or $Facts.exe -cne $p.node -or $Facts.sid -cne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value){throw 'BUSINESS_WEB_FRESH_CHILD_REQUIRED'}
+ $entry=Join-Path $p.root 'apps\sites-workflow\node_modules\vite\bin\vite.js'
+ $prefix='"'+$p.node+'" ';$suffix=' preview --host 127.0.0.1 --port 5244 --strictPort'
+ $exact=@(($prefix+$entry+$suffix),($prefix+'"'+$entry+'"'+$suffix))
+ # Start-Process may serialize one terminal ASCII space; no extra argument.
+ $allowed=@($exact)+@($exact|ForEach-Object {$_+' '})
+ if($Facts.command -cnotin $allowed){throw 'BUSINESS_WEB_FRESH_ARGUMENTS_REJECTED'}
+}
 function Get-Business5244StarterProjection([byte[]]$Baseline,[string]$LauncherHash){
  # Pure transformation. The maintenance owner calls the exact-hash wrapper.
  if($LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_LAUNCHER_HASH'}

@@ -1,3 +1,18 @@
+## 28 Ekim — 5cb web adayı çalışıyor; kalıcı kurulum MANUAL_RECOVERY_REQUIRED
+
+Uygulama source5cb682d8, owner/pins8904f7a2. Yeni immutable paket ERP-BUSINESS-WEB-5244-5cb682d8 / bfb85a12333772bd40467f6258984ce08277f643dc544ff85b3d7ba39e86a617,7337dosya/53dist/11CSSaynı.42frontend+4ilkowner hedefPASS, bağımsız review engelleyici bulgu yok. Yalnız5244web geçişi denendi; API10cdc0ee/DBaynı.
+
+Kurulum, yeni çocuğun argv doğrulamasında B5_PROCESS_ARGUMENTS_OR_CWD ile durdu. Windows exact absolute komutun sonuna tek ASCII32 eklemiş (199/198karakter); ek argüman veya başka root saptanmadı. Installer pending spawn bilinmeyen-sahiplik koruması WEB_ONLY_PENDING_SPAWN_NO_ADOPTION ile kapanır. Sonuç installed=false / MANUAL_RECOVERY_REQUIRED; starter/records before-image hashleri aynı, yayın yapılmadı. Aynı installer tekrar çalıştırılmadı, orphan adopt/stop yapılmadı.
+
+YeniPID21408 mevcut5244adreslerini sunuyor; bu kalıcı kurulum kanıtı değildir. Normal Semih Chrome yeni sekme: Ödeme bağlantısı doğrulanamadı açıklaması görünür; Satış terminaline menüyle geçiş başarılı, sahte bekleyen-ödeme kilidi yok. Satış açıklaması artık bağlantı eksikliğini söyler; satış kaydı hâlâ kapalı. Private GUI JSON+PNG var. TicariPOST/SQL/rol yazması0.
+
+Saltokunur failure sonrası audit: önceki kabul edilmiş D4 baselineına göre72koruma özeti eş, API4144/native4146/5194/CLEAN4194/4196/CRM62800–62803 PID/birth/exe/adres tupleları eş. Audit karşılaştırmasında PSCustomObject/hashtable ve süreçler arası JSON anahtar sırası farkları dar düzeltilerek gerçek tuple/hash karşılaştırıldı; veri değişikliği sayılmadı. Bu karşılaştırma kayıp özgün spawn sahiplik zincirini tamamlamaz.
+
+Bağımsız review: failure receipt özgün child nativebirth/owner-spawn zinciri ve installer belleğindeki protectionBefore/keptBefore bilgilerini taşımıyor. Yeni scope mevcutorphanı kabul edemez; scope zamanı/parentChecked değiştirilmedi. Eski2000başlangıç kaydı yeni21408ile sessizce değiştirilmedi. Kaynakta yalnız gelecekteki özgün Start-Process/nativehandle/freshscope altında kullanılabilecek Assert-Business5244FreshSpawnArguments eklendi: exactabsolute argv, en fazla1sonASCIIspace; parent/EXE/SID exact. Yeni5Windows testPASS (orphan/relative/ekarg/iki boşluk/tab ret). Bu helper runtimea kurulmadı ve mevcut21408i kabul etmek için kullanılmadı. Genel transition guard aynı.
+
+5194 Satış normaltarayıcıda Yönetici / bilgiler henüz hazır değil gösterdi. Kaynak adapteri tarihli sentetik15/16/ikiürün/TRY sözleşmesine bağlı; gerçek5244Semih17yerine geçirilemez. Mevcut native GET sales-invoices SELECT-only ve sales.view ile yeniden kullanılabilir, ancak currency belge dövizidir; cari hesap dövizi/hesap tutarı/tahsilat DTOsu yok, Number hassasiyeti ve boş sayfada total0 sınırı var. Cari döviz geçmişi diye bağlanmadı.
+
+Somut açık iş: özgün owner-spawn kanıtına dayanan destekli kurtarma/boş-port yeni sahip başlangıcı sağlanmadan kalıcı kontrol yayını yok. Bu çözüldükten sonra gerçek17 satış/hesap-dövizi okuyucu adapteri gerekir. İnsanUA ve ticari akış PASS değildir. Yeni Görev/Goal/ana ajan/takip sistemi yok.
 ## 28 Ekim — 5244 satış bağlantısı ve menü denetimi (SOURCE; kurulum yok)
 
 Kullanıcı F0102 / 1 / MERKEZ fiziksel mal kabul deposunu teyit etti; önceki ERP-DEC-083 kaydı korunur. Native deneme deposuyla aynı sayılmadı.
