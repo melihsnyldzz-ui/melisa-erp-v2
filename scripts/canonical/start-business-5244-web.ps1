@@ -40,6 +40,15 @@ function Assert-Business5244ApiHealth($Health){
  $p=Get-Business5244WebPins
  if($Health.ok -ne $true -or $Health.environment -cne 'CANONICAL_TEST' -or $Health.mode -cne 'erp' -or $Health.port -ne 4144 -or $Health.databaseName -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Health.serverName -ine 'Semih\MELISADEV' -or $Health.loginName -cne 'melisa_sirket_sales_test_20260929_01' -or $Health.databaseUser -cne $Health.loginName -or $Health.sysadmin -ne 0 -or $Health.databaseControl -ne 0 -or $Health.liveDatabaseAccess -ne 0 -or $Health.sourceCommit -cne $p.baseSource -or $Health.packageId -cne $p.apiPackage -or $Health.businessWorkfaceId -cne $p.profile -or $Health.normalSessionUserId -ne 17 -or $Health.persistentNormalSession -ne $true -or $Health.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or $Health.actualT1 -ne $false -or $Health.externalOperations -ne $false -or $Health.automaticJobs -ne $false){throw 'BUSINESS_WEB_API_REJECTED'}
 }
+function Assert-Business5244RecordStage($Before,$After,[int]$ExpectedPid,[ValidateSet('Candidate','Rollback')][string]$Mode){
+ if($ExpectedPid -le 0 -or @($Before).Count -ne 3 -or @($After).Count -ne 3 -or ((@($Before|ForEach-Object {$_.port}|Sort-Object) -join '|') -cne '4194|4196|5244') -or ((@($After|ForEach-Object {$_.port}|Sort-Object) -join '|') -cne '4194|4196|5244')){throw 'BUSINESS_WEB_RECORD_SCOPE'}
+ $oldKept=ConvertTo-Json -InputObject @($Before|Where-Object {$_.port -ne 5244}) -Depth 30 -Compress;$newKept=ConvertTo-Json -InputObject @($After|Where-Object {$_.port -ne 5244}) -Depth 30 -Compress
+ if($oldKept -cne $newKept){throw 'BUSINESS_WEB_PRESERVED_RECORD_CHANGED'}
+ $old=@($Before|Where-Object {$_.port -eq 5244})[0];$row=@($After|Where-Object {$_.port -eq 5244})[0]
+ if($row.pid -ne $ExpectedPid -or $row.entry -cne 'vite-preview'){throw 'BUSINESS_WEB_NEW_RECORD_IDENTITY'}
+ if($Mode -ceq 'Candidate'){$p=Get-Business5244WebPins;if((@($row.PSObject.Properties.Name|Sort-Object) -join '|') -cne 'backendPort|businessWorkfaceId|entry|pid|port|root|sourceCommit' -or $row.root -cne $p.root -or $row.sourceCommit -cne $p.frontendSource -or $row.backendPort -ne 4144 -or $row.businessWorkfaceId -cne $p.profile){throw 'BUSINESS_WEB_NEW_RECORD_IDENTITY'}}
+ else{$copy=$old.PSObject.Copy();$copy.pid=$ExpectedPid;if(($copy|ConvertTo-Json -Depth 30 -Compress) -cne ($row|ConvertTo-Json -Depth 30 -Compress)){throw 'BUSINESS_WEB_ROLLBACK_RECORD_CHANGED'}}
+}
 function Start-Business5244Web {
  $p=Get-Business5244WebPins
  if((Get-FileHash -LiteralPath $p.node).Hash -cne $p.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $p.root 'release-manifest.json')).Hash -cne $p.manifest){throw 'BUSINESS_WEB_PACKAGE_PIN_CHANGED'}
