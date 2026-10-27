@@ -1,8 +1,8 @@
 // Bounded connector capture -> existing native product/source-version contract.
 // No database, filesystem, credentials, writer, opening batch or runtime on import.
-import {decimal,hash,requireRule as check} from './mapping-opening.mjs';
+import {decimal,sumDecimals,hash,requireRule as check} from './mapping-opening.mjs';
 import {sourceTypedPrices} from './goal7-source-version.mjs';
-import {sourceNativeKey} from './product-completion-plan.mjs';
+import {sourceNativeKey,buildProductCompletionPlan} from './product-completion-plan.mjs';
 
 const id=v=>{check((typeof v==='string'&&/^[1-9]\d*$/.test(v))||(Number.isSafeInteger(v)&&v>0),'CURRENT_PRODUCT_SOURCE_ID');return String(v);};
 const optionalText=v=>{check(v===null||typeof v==='string','CURRENT_PRODUCT_SOURCE_TEXT');return v===null||!v.trim()?null:v;};
@@ -120,3 +120,60 @@ export function compareCurrentVegaSliceWithNative(slice,native){
  });
  return {schemaVersion:'melisa-current-product-readback.v1',snapshotHash,results,sourceWrites:0,targetWrites:0,openingApplied:false};
 }
+
+// Adapts two REAL bounded SELECT passes to the EXISTING completion writer.
+// No connection, account, SQL write, guard change or default stock is created.
+export function buildCurrentVegaCompletionInput({capture,nativeInput,warehouseMapping=null}){
+ check(capture?.schemaVersion==='melisa-active-stock-bounded-two-pass.v1'&&capture.actualT1===false&&capture.atomic===false,'CURRENT_COMPLETION_CAPTURE');
+ const proof=capture.sourceIdentity,identity=proof?.identity,perms=proof?.permissions;
+ check(identity?.server==='DESKTOP-KSRK0EQ'&&identity.database==='VEGA2026'&&proof.readOnly===true&&iso(proof.readAt),'CURRENT_COMPLETION_SOURCE_IDENTITY');
+ const permissionKeys=['sysadmin','controlServer','dbControl','dbInsert','dbUpdate','dbDelete','dbExecute','dbAlter','dbCreateTable'];
+ check(perms&&permissionKeys.every(k=>perms[k]===0),'CURRENT_COMPLETION_SOURCE_SELECT_ONLY');
+ const tables=['F0102TBLSTOKLAR','F0102TBLBIRIMLEREX','F0102D0007TBLSTOKHAREKETLERI'];
+ check(Array.isArray(proof.tablePermissions)&&proof.tablePermissions.length===3&&new Set(proof.tablePermissions.map(t=>t.name)).size===3&&tables.every(n=>proof.tablePermissions.some(t=>t.name===n&&t.canSelect===1&&['canInsert','canUpdate','canDelete','canAlter'].every(k=>t[k]===0))),'CURRENT_COMPLETION_TABLE_PERMISSIONS');
+ check(proof.companies?.length===1&&proof.companies[0].IND===102&&proof.periods?.length===1&&proof.periods[0].FIND===102&&proof.periods[0].IND===7&&proof.periods[0].DONEM===2026,'CURRENT_COMPLETION_SOURCE_PERIOD');
+ check(Array.isArray(capture.expectedSourceIds)&&capture.expectedSourceIds.length>0,'CURRENT_COMPLETION_SCOPE');
+ const expected=capture.expectedSourceIds.map(id),scope=new Set(expected);
+ check(scope.size===expected.length&&Array.isArray(capture.passes)&&capture.passes.length===2,'CURRENT_COMPLETION_TWO_PASSES');
+ const [a,b]=capture.passes;
+ for(const pass of [a,b]){
+  check(iso(pass.readStartedAt)&&iso(pass.readCompletedAt)&&pass.readStartedAt<=pass.readCompletedAt&&['cards','units','warehouseRows'].every(k=>Array.isArray(pass[k])),'CURRENT_COMPLETION_PASS_SHAPE');
+  check(new Set(pass.cards.map(r=>id(r.IND))).size===pass.cards.length&&new Set(pass.units.map(r=>id(r.IND))).size===pass.units.length,'CURRENT_COMPLETION_SOURCE_DUPLICATE');
+  check(pass.cards.every(r=>scope.has(id(r.IND))&&Object.hasOwn(r,'UID')&&(r.UID===null||typeof r.UID==='string'))&&pass.units.every(r=>scope.has(id(r.STOKNO))&&Object.hasOwn(r,'UID')&&(r.UID===null||typeof r.UID==='string'))&&pass.warehouseRows.every(r=>scope.has(id(r.STOKNO))),'CURRENT_COMPLETION_UID_AND_SCOPE');
+  check(new Set(pass.warehouseRows.map(r=>JSON.stringify([r.STOKNO,r.BIRIMEX,r.DEPO]))).size===pass.warehouseRows.length,'CURRENT_COMPLETION_DEPOT_DUPLICATE');
+ }
+ check(a.readCompletedAt<=b.readStartedAt,'CURRENT_COMPLETION_INDEPENDENT_PASSES');
+ check(nativeInput?.targetIdentity?.server==='Semih\\MELISADEV'&&nativeInput.targetIdentity.database==='MELISA_ERP_SIRKET_TEST_20260929_01','CURRENT_COMPLETION_NATIVE_TARGET');
+ check(Array.isArray(nativeInput.evidence?.products)&&new Set(nativeInput.evidence.products.map(e=>id(e.sourceId))).size===nativeInput.evidence.products.length,'CURRENT_COMPLETION_NATIVE_EVIDENCE');
+ if(warehouseMapping){const p=warehouseMapping.proof;check(p?.kind==='ACCEPTED_SOURCE_DEPOT_MAPPING'&&p.sourceCompany==='F0102'&&typeof p.sourceWarehouseId==='string'&&/^[1-9]\d*$/.test(p.sourceWarehouseId)&&p.targetWarehouse==='MERKEZ'&&p.target?.server===nativeInput.targetIdentity.server&&p.target.database===nativeInput.targetIdentity.database&&Array.isArray(p.nativeWitnessRows)&&p.nativeWitnessRows.length>0&&p.nativeWitnessRows.every(r=>r.sourceWarehouseId===p.sourceWarehouseId&&r.targetWarehouse===p.targetWarehouse)&&hash(p)===warehouseMapping.proofHash,'CURRENT_COMPLETION_DEPOT_MAPPING');}
+ const project=(pass,sid)=>({cards:pass.cards.filter(r=>String(r.IND)===sid),units:pass.units.filter(r=>String(r.STOKNO)===sid),warehouseRows:pass.warehouseRows.filter(r=>String(r.STOKNO)===sid)});
+ const unstable=expected.filter(sid=>project(a,sid).cards.length!==1||project(b,sid).cards.length!==1||hash(project(a,sid))!==hash(project(b,sid)));
+ const stable=expected.filter(sid=>!unstable.includes(sid)),products=[],evidenceRows=[],fieldIssues=[];
+ check(stable.length>0,'CURRENT_COMPLETION_NO_STABLE_PRODUCTS');
+ for(const sid of stable){
+  const raw=project(a,sid),row=raw.cards[0],sourceUid=optionalText(row.UID),e=nativeInput.evidence.products.find(e=>String(e.sourceId)===sid);
+  check(e,'CURRENT_COMPLETION_NATIVE_EVIDENCE_MISSING');
+  const main=raw.units.find(u=>String(u.IND)===String(row.ANABIRIM)),mainKnown=main?.BIRIMADI==='ADET'&&decimal(main.CARPAN)==='1.00000000';
+  const validMovement=raw.warehouseRows.length>0&&raw.warehouseRows.every(m=>m.invalid_quantity===0&&m.quantity!==null&&raw.units.some(u=>String(u.IND)===String(m.BIRIMEX)&&u.BIRIMADI==='ADET'&&decimal(u.CARPAN)==='1.00000000'));
+  const observedQuantity=mainKnown?(raw.warehouseRows.length?(validMovement?sumDecimals(raw.warehouseRows.map(r=>r.quantity)):null):decimal(row.KALAN)):null;
+  const depotIds=raw.warehouseRows.length?[...new Set(raw.warehouseRows.map(r=>r.DEPO===null?null:String(r.DEPO)))]:[row.DEPO===null||row.DEPO===undefined?null:String(row.DEPO)];
+  const depotKnown=warehouseMapping!==null&&depotIds.length===1&&depotIds[0]===warehouseMapping.proof.sourceWarehouseId;
+  const makeEnvelope=(object,items,period=null)=>({source:'vega',database:'VEGA2026',company:'F0102',readOnly:true,readAt:a.readCompletedAt,objects:[{schemaName:'dbo',objectName:object}],period,periodYear:period?2026:null,items,hasMore:false,nextCursor:null,filters:[{field:'STOKNO',op:'eq',value:Number(sid)}]});
+  const quantity={source_id:Number(sid),stock_code:row.STOKKODU,source_unit:mainKnown?'ADET':null,source_unit_id:mainKnown?row.ANABIRIM:null,erp_quantity:observedQuantity,quantity_basis:raw.warehouseRows.length?'period_movements':'stock_card_fallback'};
+  let p;
+  try{p=buildCurrentVegaProductSlice({cards:makeEnvelope('F0102TBLSTOKLAR',[row]),units:[makeEnvelope('F0102TBLBIRIMLEREX',raw.units)],prices:[makeEnvelope('F0102TBLBIRIMLEREX',raw.units)],quantities:[makeEnvelope('F0102D0007TBLSTOKHAREKETLERI',[quantity],'D0007')]}).products[0];}
+  catch(error){check(['CURRENT_PRODUCT_CARD_IDENTITY','CURRENT_PRODUCT_ACTIVE_SCOPE_ONLY'].includes(error.message),'CURRENT_COMPLETION_SOURCE_NORMALIZATION');p={sourceId:sid,sourceKey:['VEGA2026','F0102','TBLSTOKLAR',sid].join('/'),stockCode:row.STOKKODU,name:row.MALINCINSI,brand:optionalText(row.KOD1),category:optionalText(row.KOD4),isActive:row.STATUS===1&&!row.DELETED&&!row.IPTAL,unit:null,unitFactor:null,unitStatus:'UNKNOWN',mainUnitSourceId:null,barcodes:[],prices:[],issues:[{reason:error.message}]};}
+  const issues=[...(p.issues??[])];if(!depotKnown)issues.push({field:'quantity',reason:'SOURCE_DEPOT_MAPPING_NOT_VERIFIED'});
+  const prices=(p.prices??[]).filter(v=>{const u=raw.units.find(u=>String(u.IND)===v.unitSourceId);const okay=u?.BIRIMADI==='ADET'&&decimal(u.CARPAN)==='1.00000000';if(!okay)issues.push({field:'salePrice',reason:'SOURCE_PRICE_UNIT_UNSUPPORTED',unitSourceId:v.unitSourceId,tier:v.tier});return okay;});
+  const product={...p,sourceUid,company:'F0102',sourceCompany:'F0102',sourceTable:'F0102TBLSTOKLAR',scope:p.isActive===true?'IN_SCOPE_ACTIVE':'OUTSIDE_ACTIVE_SCOPE',quantity:depotKnown?observedQuantity:null,observedSourceQuantity:observedQuantity,warehouseSourceId:depotKnown?depotIds[0]:null,warehouseGroups:raw.warehouseRows,mainUnitUid:main?optionalText(main.UID):null,prices,barcodes:(p.barcodes??[]).map(v=>{const u=raw.units.find(u=>String(u.IND)===v.sourceId);return {...v,sourceUid:optionalText(u.UID),unit:u.BIRIMADI,factor:decimal(u.CARPAN)};}),purchasePrice:null,issues};
+  if(Array.isArray(p.typedSalePrices))product.typedSalePrices=p.typedSalePrices.filter(v=>prices.some(s=>s.unitSourceId===v.unitSourceId&&s.tier===v.tier&&s.currency===v.currency));
+  if(e.nativeId===null&&product.barcodes.some(b=>(e.barcodeOwners??[]).some(o=>o.barcode.trimEnd().toLocaleUpperCase('tr-TR')===b.barcode.trimEnd().toLocaleUpperCase('tr-TR')))){product.scope='REVIEW_NATIVE_BARCODE_OWNER_CONFLICT';issues.push({field:'barcode',reason:'NATIVE_BARCODE_OWNER_CONFLICT'});}
+  const sourceIdentityProof={company:'F0102',table:'F0102TBLSTOKLAR',sourceId:sid,sourceUid,captureProductHash:hash(raw)};
+  const physicalSourceProof={sourceId:sid,stockType:row.STOKTIPI,physical:row.STOKTIPI===0,sameFrozenCardFingerprint:true,twoPassStable:true,captureProductHash:hash(raw)};
+  products.push(product);evidenceRows.push({...e,sourceIdentityProof,sourceIdentityProofHash:hash(sourceIdentityProof),physicalSourceProof,physicalSourceProofHash:hash(physicalSourceProof)});fieldIssues.push({sourceId:sid,issues});
+ }
+ const sourceSnapshot={schemaVersion:'melisa-product-current-source.v1',identity:{...identity,selectOnly:true},selectOnly:true,twoPassStable:true,actualT1:false,atomicSnapshot:false,captureStartedAt:a.readStartedAt,exportAt:b.readCompletedAt,consistencyBasis:'TWO_COMPLETE_BOUNDED_PASSES_EQUAL_FOR_SELECTED_PRODUCTS',captureHash:hash(capture),sourceReadProof:proof,expectedSourceIds:expected,unstableSourceIds:unstable,products};
+ const input={...nativeInput,sourceSnapshot,sourceHash:hash(sourceSnapshot),evidence:{...nativeInput.evidence,products:evidenceRows}};
+ return {input,report:{expected:expected.length,stable:stable.length,unstableSourceIds:unstable,fieldIssues,sourceWrites:0,targetWrites:0,accountChanges:0,actualT1:false}};
+}
+export function buildCurrentVegaCompletionPlan(options){const adapted=buildCurrentVegaCompletionInput(options);return {...adapted,plan:buildProductCompletionPlan(adapted.input)};}

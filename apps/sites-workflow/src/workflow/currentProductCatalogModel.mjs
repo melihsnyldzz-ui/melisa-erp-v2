@@ -1,5 +1,5 @@
 // A dated TEST publication is distinct from the final frozen cutover contract.
-import {validProductCatalogContext} from '../../../../scripts/migration/product-catalog-lineage.mjs';
+import {validProductCatalogContext} from '../../../../apps/api/src/services/currentProductCatalogContext.mjs';
 export function currentProductCatalogVersion(v){
  return validProductCatalogContext(v);
 }

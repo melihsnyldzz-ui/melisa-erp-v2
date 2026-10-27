@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {buildCurrentVegaProductSlice,compareCurrentVegaSliceWithNative,selectActiveVegaProductCards} from './current-vega-product-slice.mjs';
 import {hash} from './mapping-opening.mjs';
+import {buildProductCompletionPlan} from './product-completion-plan.mjs';
 
 function fixture(){
  const common={source:'vega',database:'VEGA2026',company:'F0102',period:null,readAt:'2026-10-27T01:00:00.000Z',readOnly:true,hasMore:false,nextCursor:null};
@@ -15,6 +16,11 @@ function fixture(){
  const quantities=cards.items.map(c=>({...envelope('F0102D0007TBLSTOKHAREKETLERI',[{source_id:c.IND,stock_code:c.STOKKODU,source_unit:'ADET',source_unit_id:c.ANABIRIM,erp_quantity:c.IND===41?'0.00000000':'-2.00000000',quantity_basis:'period_movements'}]),period:'D0007',periodYear:2026}));
  return {cards,units,prices,quantities};
 }
+
+test('dated readback capture cannot masquerade as an admitted frozen writer input',()=>{
+ const sourceSnapshot=buildCurrentVegaProductSlice(fixture());
+ assert.throws(()=>buildProductCompletionPlan({actorId:'1',sourceSnapshot,sourceHash:hash(sourceSnapshot)}),/^Error: PRODUCT_FROZEN_SNAPSHOT$/);
+});
 test('dated live slice feeds established typed-price contract without creating an opening or inventing metadata',()=>{
  const input=fixture(),raw=JSON.stringify(input),s=buildCurrentVegaProductSlice(input);
  assert.equal(JSON.stringify(input),raw);assert.equal(s.products.length,2);assert.equal(s.products[0].stockCode,'0007 ÖRNEK');
