@@ -21,6 +21,7 @@ test('normal browser reopens through HttpOnly transport without storing refresh 
   if(path==='/api/auth/login'){assert.deepEqual(body,{username:user.username,password:'fixture-password'});authenticated=true;}
   else if(path==='/api/auth/refresh'){assert.deepEqual(body,{});if(!authenticated)return{ok:false,status:401,json:async()=>({success:false,error:{code:'AUTH_REFRESH_INVALID'}})};}
   else if(path==='/api/auth/logout'){assert.deepEqual(body,{});authenticated=false;return{ok:true,status:200,json:async()=>({success:true,data:{loggedOut:true}})};}
+  else if(path==='/api/auth/session-confirm'){assert.deepEqual(body,{});assert.equal(o.headers.Authorization,'Bearer fixture-access-token');return{ok:authenticated,status:authenticated?200:401,json:async()=>({success:authenticated,data:{confirmed:true,user,expiresAt:Date.now()+900000}})};}
   else throw Error('Unexpected request');
   return{ok:true,status:200,json:async()=>({success:true,data:{user,accessToken:'fixture-access-token',expiresAt:Date.now()+900000,browserSession:true}})};
  };
@@ -28,4 +29,34 @@ test('normal browser reopens through HttpOnly transport without storing refresh 
  const first=make();assert.equal(await first.start(),null);assert.equal((await first.login({username:user.username,password:'fixture-password'})).id,17);
  const reopened=make();assert.equal((await reopened.start()).id,17);assert(!JSON.stringify([...saved.data]).includes('refreshToken'));await reopened.logout();assert.equal(await make().start(),null);
  assert(!calls.some(c=>c.url.includes('local-passwordless-admin')||c.url.includes(':4194')));
+ assert.equal(calls.filter(c=>c.url.endsWith('/auth/session-confirm')).length,1);
+ assert.equal(calls.filter(c=>c.url.endsWith('/auth/refresh')).length,2);
+});
+
+test('failed first login is not described as an expired session and never clears a saved work draft',async()=>{
+ const saved=storage();saved.setItem('saved-draft','keep');let expired=0;
+ const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,onExpired:()=>expired++,fetchImpl:async()=>({ok:false,status:401,json:async()=>({success:false})})});
+ await assert.rejects(session.login({username:user.username,password:'fixture-invalid'}),e=>e.status===401&&e.message==='Kullanıcı adı veya şifre doğrulanamadı.');
+ assert.equal(expired,0);assert.equal(saved.getItem('saved-draft'),'keep');
+});
+
+test('confirmation outage preserves cached access and work draft instead of rotating or pretending logout',async()=>{
+ const saved=storage();saved.setItem('melisaTestSalesAccessToken','fixture');saved.setItem('saved-draft','keep');const paths=[];
+ const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async url=>{paths.push(new URL(url).pathname);return{ok:false,status:503,json:async()=>({success:false})};}});
+ await assert.rejects(session.start(),e=>e.status===503);assert.deepEqual(paths,['/api/auth/session-confirm']);assert.equal(saved.getItem('melisaTestSalesAccessToken'),'fixture');assert.equal(saved.getItem('saved-draft'),'keep');
+});
+
+test('rejected old access pair uses only the current HttpOnly refresh cookie and rejects changed identity',async()=>{
+ for(const accepted of [true,false]){
+  const saved=storage();saved.setItem('melisaTestSalesAccessToken','old');const paths=[];
+  const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async(url,o)=>{const p=new URL(url).pathname;paths.push(p);assert.deepEqual(JSON.parse(o.body),{});if(p.endsWith('/session-confirm'))return{ok:false,status:401,json:async()=>({success:false})};return{ok:true,status:200,json:async()=>({success:true,data:{browserSession:true,user:accepted?user:{...user,id:18},accessToken:'new',expiresAt:Date.now()+900000}})};}});
+  const current=await session.start();assert.equal(current?.id??null,accepted?17:null);assert.deepEqual(paths,['/api/auth/session-confirm','/api/auth/refresh']);
+ }
+});
+
+test('a forbidden photo does not destroy an otherwise valid session',async()=>{
+ const saved=storage();let expired=0;
+ const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,onExpired:()=>expired++,fetchImpl:async url=>url.includes('/photo?')?{ok:false,status:403}:{ok:true,status:200,json:async()=>({success:true,data:{browserSession:true,user,accessToken:'fixture',expiresAt:Date.now()+900000}})}});
+ await session.login({username:user.username,password:'fixture'});await assert.rejects(session.media('/api/catalog/products/12/photo?variant=thumbnail'),e=>e.status===403);
+ assert.equal(expired,0);assert.equal(saved.getItem('melisaTestSalesAccessToken'),'fixture');
 });

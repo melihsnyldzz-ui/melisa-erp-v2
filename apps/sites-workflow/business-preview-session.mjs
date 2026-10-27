@@ -23,13 +23,16 @@ export function createBusinessBrowserSessionTransport({fetchImpl=globalThis.fetc
    else{
     // A caller cannot substitute a family/body token or read the HttpOnly value.
     if(Object.keys(body).length){json(res,400,{success:false,error:{code:'SESSION_BODY_INVALID'}});return;}
-    const refreshToken=cookieValue(req.headers.cookie);if(!refreshToken){json(res,401,{success:false,error:{code:'AUTH_REFRESH_INVALID'}},{'Set-Cookie':emptyCookie()});return;}body={refreshToken};
+    const refreshToken=cookieValue(req.headers.cookie);if(!refreshToken){json(res,401,{success:false,error:{code:'AUTH_REFRESH_INVALID'}},logout?{'Set-Cookie':emptyCookie()}:{});return;}body={refreshToken};
    }
    const headers={'Content-Type':'application/json'};
    if(typeof req.headers.authorization==='string')headers.Authorization=req.headers.authorization;
    const response=await fetchImpl('http://127.0.0.1:4144'+path,{method:'POST',redirect:'error',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
    const text=await response.text();if(text.length>131072)throw Error('SESSION_RESPONSE_LIMIT');const payload=JSON.parse(text);
-   if(!response.ok){json(res,response.status,payload,[401,403].includes(response.status)||logout?{'Set-Cookie':emptyCookie()}:{});return;}
+   // A late rejected refresh/confirmation must not delete a newer cookie set
+   // by another tab. The API still rejects every invalid/replayed credential;
+   // only explicit logout is allowed to clear the browser's current cookie.
+   if(!response.ok){json(res,response.status,payload,logout?{'Set-Cookie':emptyCookie()}:{});return;}
    const data=payload.data;
    if(login||path==='/api/auth/refresh'){
     if(data?.user?.id!==17||data.user.username!=='unified-semih-test'||data.user.role?.id!==17||data.user.role.code!=='unified_test_semih'||data.user.isAdmin===true||data.user.testAdminSession===true||!refreshPattern.test(data.refreshToken??'')||!Number.isSafeInteger(data.refreshExpiresAt)||data.refreshExpiresAt<=Date.now()||!Number.isSafeInteger(data.expiresAt)||data.expiresAt<=Date.now())throw Error('SESSION_IDENTITY_INVALID');

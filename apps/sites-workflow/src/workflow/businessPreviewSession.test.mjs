@@ -22,3 +22,14 @@ test('wrong native actor never creates a browser cookie; logout expires only its
  const bad=createBusinessBrowserSessionTransport({fetchImpl:async()=>({ok:true,status:200,text:async()=>JSON.stringify({data:{user:{...actor,id:10018}}})})});assert.equal((await call(bad,{path:'/api/auth/login',body:{username:actor.username,password:'fixture-password'}})).status,503);
  const good=createBusinessBrowserSessionTransport({fetchImpl:async()=>({ok:true,status:200,text:async()=>JSON.stringify({success:true,data:{loggedOut:true}})})});const out=await call(good,{path:'/api/auth/logout',cookie:name+'='+'A'.repeat(43)});assert.match(out.headers['Set-Cookie'],/Max-Age=0/);
 });
+
+test('late rejected refresh cannot erase the newer HttpOnly cookie from a concurrent tab',async()=>{
+ let releaseOld;const oldResult=new Promise(resolve=>{releaseOld=resolve;});
+ const handler=createBusinessBrowserSessionTransport({fetchImpl:async(url,o)=>JSON.parse(o.body).refreshToken==='A'.repeat(43)?oldResult:{ok:true,status:200,text:async()=>JSON.stringify({success:true,data:{user:actor,accessToken:'fixture',refreshToken:'C'.repeat(43),expiresAt:Date.now()+900000,refreshExpiresAt:Date.now()+86400000}})}});
+ const old=call(handler,{cookie:name+'='+'A'.repeat(43)});
+ const fresh=await call(handler,{cookie:name+'='+'B'.repeat(43)});assert.equal(fresh.status,200);assert.match(fresh.headers['Set-Cookie'],/^melisa_erp_business_5244=C/);
+ releaseOld({ok:false,status:401,text:async()=>JSON.stringify({success:false,error:{code:'AUTH_REFRESH_INVALID'}})});
+ const rejected=await old;assert.equal(rejected.status,401);assert.equal(rejected.headers['Set-Cookie'],undefined);
+ const missing=await call(handler);assert.equal(missing.status,401);assert.equal(missing.headers['Set-Cookie'],undefined);
+ const logout=await call(handler,{path:'/api/auth/logout'});assert.match(logout.headers['Set-Cookie'],/Max-Age=0/);
+});

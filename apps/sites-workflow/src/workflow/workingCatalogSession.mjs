@@ -68,7 +68,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    if(cleanSaleErrors&&response.status===409&&payload?.error?.code==='CLEAN_SALE_CHANGED')throw Object.assign(problem('Bilgiler değişti. Güncel kaydı kontrol edin.',409),{code:'CLEAN_SALE_CHANGED'});
-   if(!response.ok||payload?.success!==true){if(!startupAuth&&response.status===401){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
+   if(!response.ok||payload?.success!==true){if(!startupAuth&&response.status===401){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?(path==='/api/auth/login'?'Kullanıcı adı veya şifre doğrulanamadı.':'Oturumunuz sona erdi. Yeniden giriş yapın.'):response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
    return payload;
   }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
  }
@@ -97,7 +97,22 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!active||generation!==version||payload.data?.id!==expected.id||payload.data?.username!==expected.username)throw problem('ERP oturumu değişti.',401);
   },
   async start(){
-   if(businessBrowser){if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{return await accept(await request('/api/auth/refresh',{method:'POST',body:{},startupAuth:true}));}catch(e){if([401,403].includes(e?.status)){clear({force:true});return null;}throw e;}}
+   if(businessBrowser){
+    if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
+    // Screen changes/reloads keep the existing access + HttpOnly refresh pair.
+    // Confirm it against the normal server instead of rotating on every page.
+    const cached=stored(workingCatalogTokenKey);
+    if(cached){
+     token=cached;
+     try{
+      const p=await request('/api/auth/session-confirm',{method:'POST',body:{},startupAuth:true}),data=p.data,next=validUser(data?.user);
+      if(data.confirmed!==true||next.id!==17||next.username!=='unified-semih-test'||next.role?.id!==17||next.role.code!=='unified_test_semih'||next.isAdmin===true||next.testAdminSession===true||!Number.isSafeInteger(data.expiresAt)||data.expiresAt<=Date.now())throw problem('Oturum doğrulanamadı.',401);
+      user=next;refreshToken='http-only-cookie';expiresAt=data.expiresAt;
+      if(expiresAt>Date.now()+60000)return user;
+     }catch(e){if(![401,403].includes(e?.status))throw e;clear({force:true});}
+    }
+    try{return await accept(await request('/api/auth/refresh',{method:'POST',body:{},startupAuth:true}));}catch(e){if([401,403].includes(e?.status)){clear({force:true});return null;}throw e;}
+   }
    if(protectedDevice){
     if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{storage?.removeItem(workingCatalogTokenKey);}catch{}
     const version=generation,saved=await protectedDevice.get();if(!active||version!==generation)throw problem('İstek iptal edildi.');if(!saved)return null;
@@ -238,7 +253,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    try{
     const response=await fetchImpl(resolvedApiBase+path,{method:'GET',credentials:'omit',redirect:'error',headers:{Accept:'image/jpeg, image/png, image/webp',Authorization:`Bearer ${requestToken}`},signal:controller.signal});
     if(!current())throw problem('İstek iptal edildi.');
-    if(!response.ok){if(response.status===401||response.status===403){clear();if(active)onExpired();}throw problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Ürün fotoğrafını görüntüleme yetkiniz yok.':'Ürün fotoğrafı şu anda açılamıyor.',response.status);}
+    if(!response.ok){if(response.status===401||response.status===403&&!businessBrowser){clear();if(active)onExpired();}throw problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Ürün fotoğrafını görüntüleme yetkiniz yok.':'Ürün fotoğrafı şu anda açılamıyor.',response.status);}
     const type=response.headers?.get('Content-Type')?.split(';')[0].trim().toLowerCase();
     if(!['image/jpeg','image/png','image/webp'].includes(type))throw problem('Ürün fotoğrafı açılamıyor.');
     const blob=await response.blob();if(!current())throw problem('İstek iptal edildi.');
