@@ -2,6 +2,7 @@
 import {digest,sqlJsonHash,TARGET} from './goal7-test-delta.mjs';
 import {decimal,roundDecimal,sumDecimals,requireRule as check} from './mapping-opening.mjs';
 import {sourceTypedPrices} from './goal7-source-version.mjs';
+import {nextProductCatalogAncestry} from './product-catalog-lineage.mjs';
 export const PRODUCT_COMPLETION_SCHEMA='melisa-product-completion-plan.v1';
 export const validId=v=>typeof v==='string'&&/^[1-9]\d{0,17}$/.test(v);
 export const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/i.test(v);
@@ -24,7 +25,7 @@ export function productCompletionContext({runId,sourceAsOf,sourceHash,planHash,p
  check(/^20\d{2}-\d{2}-\d{2}$/.test(sourceAsOf)&&hex(sourceHash)&&hex(planHash)&&previousVersion?.context&&Number.isInteger(productCount)&&productCount>0&&Number.isInteger(priceCount)&&priceCount>=0,'PRODUCT_CONTEXT');
  const suffix=runId.replaceAll('-','_').toLowerCase();
  return {schemaVersion:'melisa-product-completion-catalog-context.v1',evidenceKind:'DATED_TEST_PRODUCT_SCOPE',runId,sourceAsOf,sourceHash,snapshotHash:sourceHash,planHash,bindingsHash,productCount,priceCount,actualT1:false,previousSourceVersion:previousVersion.context,previousVersionHash:digest(previousVersion),
-  ancestry:[{runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30'},{runId:'GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',sourceAsOf:'2026-10-07'},{runId,sourceAsOf}],
+  ...nextProductCatalogAncestry(previousVersion.context,{runId,sourceAsOf}),
   procedures:{catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`}};
 }
 export function verifyProductStockProof(p,e){
