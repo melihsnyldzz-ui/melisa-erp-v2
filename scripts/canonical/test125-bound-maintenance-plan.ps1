@@ -25,7 +25,7 @@ function Assert-Test125MaintenancePin($Before,$After) {
 }
 
 function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7') {
- if($RunId -cnotin @('PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7','PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8')){throw 'TEST125_RUN_SCOPE_REJECTED'}
+ if($RunId -cnotin @('PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7','PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8','PRODUCT-b40b0745-1fa0-4970-b19f-1479cf75d67a')){throw 'TEST125_RUN_SCOPE_REJECTED'}
  $startup='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
  $config=Read-ErpStartupConfig $startup
  if(!(Same-ErpPath $config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2') -or $config.SourceCommit -cne 'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $config.ExpectedDatabase -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $config.TaskName -cne 'Melisa-ERP-TEST-Canonical'){throw 'TEST125_EXACT_TARGET_REJECTED'}

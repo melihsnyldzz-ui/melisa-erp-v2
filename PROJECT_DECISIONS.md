@@ -1,3 +1,9 @@
+### ERP-DEC-080 — 27 Ekim 2026 — Kanıtı tam negatif kaynak adetleri yalnız TEST'te aynen korunur
+
+Kullanıcı, bu konuşmadaki stok kararı sorusuna açıkça “Kanıtı tam eksi adetleri TEST ERP’ye aynen al (Önerilen)” yanıtını verdi. Önceki negatif stok politika beklemesi yalnız bu yönde güncellenir: gerçek kaynak kimliği/UID, ADET/çarpan, depo, iki geçiş kararlılığı ve mevcut kaynak/yerel hareket katkısı kanıtı tam olan negatif miktar TEST'e işareti ve hassasiyeti korunarak alınabilir. Kanıtlı yeni fiziksel kartta negatif kaynak açılışı da aynı exact kimlik/birim/depo şartlarıyla kapsamdadır. Eksik kimlik, birim, döviz, karantina, barkod sahipliği veya hareket kökeni çözülmüş sayılmaz; bilinmeyen sıfırlanmaz. Mevcut yerel/sentetik hareketler üzerine doğrudan kaynak toplamı yazılmaz.
+
+Uygulama mevcut writer'da run + aktör + kaynak hash'i + exact kaynak kimlik kümesi + doğru TEST sunucu/DB'ye bağlı sayısal planla yürür; genel allow-negative bayrağı veya rol genişletmesi yapılmaz. Bu, bedelsiz satış/negatif stoktan satış izni, cari/finans açılışı, Vega/LIVE/T1/main veya gerçek müşteri işlemi onayı değildir. ERP-DEC-079 sırası ve tüm eski kabul/yedek/journal korumaları devam eder; teknik sonuç ve insan kabulü ayrı kalır.
+
 ### ERP-DEC-079 — 27 Ekim 2026 — Önce bütün aktif stok kartları; hareketsizlik dışlama nedeni değildir
 
 Doğrudan bu ERP sohbetindeki kullanıcı planı esas alınır: önce Vega'nın aktif stok kartları mevcut bilgileri ve kaynakta görünen kalan adetleriyle normal yeşil TEST ERP'de kullanılabilir tamamlanır; sonra bütün müşteri carileri, ayrı peşin TRY/USD/EUR kartları ve muhasebe/F0103 tedarikçi carileri; sonra bağlı 2026 belgeleri, ayrı geçmiş yıllar; en son ekran sadeleştirme, terminal ve personel provası. Mevcut pano/finish tree ve tek ERP uygulayıcısı korunur; yeni takip sistemi/ajan yok.
