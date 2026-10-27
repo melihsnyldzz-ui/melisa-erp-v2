@@ -4,6 +4,34 @@ $ErrorActionPreference='Stop'
 function Get-Business5244WebPins {
  return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-ba09a225';manifest='5801A9CEE6514477CC040A291563F07E2BDE076104C2DD0765967B5A453CC773';package='ERP-BUSINESS-WEB-5244-ba09a225';apiPackage='CANONICAL-TEST125-BUSINESS5244-ba09a225';apiManifest='1f6656c0210de6029686951927afb9a7c76f7be9e013e80b2803965d35c8ffff';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='87447c7004a55af925af9698cee0b90242ec2f8b';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
 }
+function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
+ $sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($Baseline)).Replace('-','')}finally{$sha.Dispose()}
+ if($hash -cne 'C73D8C0E7088E6AF25AB23AE99275F32B033E0CFE5BB9E09A4E4FE425C06FDA3' -or $LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_STARTER_BASE_CHANGED'}
+ return Get-Business5244StarterProjection $Baseline $LauncherHash
+}
+function Get-Business5244StarterProjection([byte[]]$Baseline,[string]$LauncherHash){
+ # Pure transformation. The maintenance owner calls the exact-hash wrapper.
+ if($LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_LAUNCHER_HASH'}
+ $p=Get-Business5244WebPins;$encoding=New-Object Text.UTF8Encoding($false,$true);$text=$encoding.GetString($Baseline);$eol=if($text.Contains("`r`n")){"`r`n"}else{"`n"}
+ $start='if(!$ApiOnly -and !$MainApiOnly){';$end='$newProcesses|ConvertTo-Json|Set-Content'
+ if(([regex]::Matches($text,[regex]::Escape($start))).Count -ne 1 -or ([regex]::Matches($text,[regex]::Escape($end))).Count -ne 1){throw 'BUSINESS_WEB_STARTER_SEAM'}
+ $a=$text.IndexOf($start,[StringComparison]::Ordinal);$b=$text.IndexOf($end,[StringComparison]::Ordinal);if($b -le $a){throw 'BUSINESS_WEB_STARTER_SEAM'}
+ $body=@'
+if(!$ApiOnly -and !$MainApiOnly){
+ $businessLauncher='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\start-business-5244-web.ps1'
+ if((Get-FileHash -LiteralPath $businessLauncher).Hash -cne '{LAUNCHER_HASH}'){throw 'BUSINESS_WEB_LAUNCHER_CHANGED'}
+ . $businessLauncher -Library
+ $newProcess=Start-Business5244Web
+ $newProcesses+=[pscustomobject]@{port=5244;pid=$newProcess.Id;entry='vite-preview';sourceCommit='{FRONTEND_SOURCE}';root='{WEB_ROOT}';backendPort=4144;businessWorkfaceId='ERP-5244-REALDATA-20261027'}
+ if($ApiWebOnly){$newProcesses+=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object port -eq 4196)}
+}else{
+ $newProcesses+=@(Get-Content -LiteralPath "$cleanRoot\runtime\erp-processes.json" -Raw|ConvertFrom-Json|Where-Object { $_.port -notin $startPorts })
+}
+'@
+ $body=$body.Replace('{LAUNCHER_HASH}',$LauncherHash).Replace('{FRONTEND_SOURCE}',$p.frontendSource).Replace('{WEB_ROOT}',$p.root)
+ $body=($body -split '\r?\n') -join $eol
+ return ,$encoding.GetBytes($text.Substring(0,$a)+$body+$eol+$text.Substring($b))
+}
 function Assert-Business5244WebManifest($Manifest){
  $p=Get-Business5244WebPins
  if($Manifest.kind -cne 'ERP_BUSINESS_WORKFACE_WEB_CANDIDATE' -or $Manifest.packageId -cne $p.package -or $Manifest.database -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Manifest.sourceCommit -cne $p.frontendSource -or $Manifest.businessWorkfaceId -cne $p.profile -or $Manifest.backendPackageId -cne $p.apiPackage -or $Manifest.backendManifestSha256 -cne $p.apiManifest -or $Manifest.actualT1 -ne $false -or $Manifest.externalOperations -ne $false -or $Manifest.businessSessionSignerDomain -cne 'dedicated-business-key-v1'){throw 'BUSINESS_WEB_MANIFEST_REJECTED'}
