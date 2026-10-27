@@ -15,6 +15,8 @@ export const FEATURE_SOURCE_FILES=Object.freeze([
  'apps/api/src/services/productCopyPurchaseReferencePin.mjs',
  'apps/api/src/services/businessSelectedSaleStartup.mjs',
  'apps/api/src/services/normalTestRefreshSession.mjs',
+ 'apps/api/src/services/canonicalBusinessSessionContext.mjs',
+ 'apps/api/src/services/permissionCatalog.js',
  'apps/api/src/services/businessSelectedSaleWriteIntent.mjs',
  'apps/api/src/services/businessSelectedSaleWriteScope.mjs',
  'apps/api/src/services/businessSelectedCollectionWriteScope.mjs',
