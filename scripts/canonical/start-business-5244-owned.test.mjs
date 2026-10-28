@@ -6,12 +6,13 @@ import os from 'node:os';
 import path from 'node:path';
 const dir=import.meta.dirname,ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const quote=s=>"'"+s.replaceAll("'","''")+"'";
-function run(body){
- const temp=fs.mkdtempSync(path.join(os.tmpdir(),'erp-5244-owned-test-'));
+function run(body,{tempRoot}={}){
+ const parent=fs.realpathSync.native(tempRoot||process.env.RUNNER_TEMP||os.tmpdir());
+ const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-5244-owned-test-')));
  try{
   const file=path.join(temp,'run.ps1');fs.writeFileSync(file,"$ErrorActionPreference='Stop'\n"+body);
   return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();
- }finally{fs.rmSync(temp,{recursive:true,force:true});}
+ }finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-5244-owned-test-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}
 }
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 // Every invocation has its own mkdtemp root. Exercise the production lease
@@ -34,6 +35,13 @@ function Assert-Business5244ReadyChild($Native,$Pins){Assert-Business5244Created
 function New-Business5244PinnedChild($Pins,$Lease){$script:ownedLease=$Lease;Initialize-Business5244WebNative;$n=[Business5244WebNative]::new();$file=Join-Path $env:TEMP 'init-child.ps1';[IO.File]::WriteAllText($file,'Start-Sleep -Seconds 60');$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$file+'"'),$env:TEMP);$script:initNative=$n;return $n}
 foreach($name in @('Publish-Business5244CurrentRecord','Undo-Business5244CurrentBootstrap')){$body=(Get-Command $name).Definition.Replace('C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json',$script:initRecords);. ([scriptblock]::Create('function '+$name+' {'+$body+'}'))}
 function Open-Business5244RetirementChannel($OwnerLease){if($script:initFailureMode-ceq'drift'){[IO.File]::AppendAllText($script:initRecords,' ')};throw 'ISOLATED_PRECHANNEL_FAILURE'}
+function Get-InitFixtureFailureDiagnostic($Failure){
+ $code='NO_FAILURE';$where='unknown';$phase='none';$retired=[bool]($script:initNative-and$script:initNative.RetirementConfirmed)
+ if($Failure){$message=[string]$Failure.Exception.Message;$code=if($message-cmatch'^[A-Z][A-Z0-9_]{0,119}$'){$message}else{$Failure.Exception.GetType().Name};$stack=[regex]::Match([string]$Failure.ScriptStackTrace,'at ([A-Za-z][A-Za-z0-9_-]*),[^\r\n]*: line ([0-9]+)');if($stack.Success){$where=$stack.Groups[1].Value+':'+$stack.Groups[2].Value}}
+ if($script:Business5244Retirements.Count){$last=$script:Business5244Retirements[$script:Business5244Retirements.Count-1];$phase=[string]$last.phase}
+ $restored=(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-ceq$script:initHash
+ return ('inner='+$code+';source='+$where+';nativeClosed='+$retired+';restored='+$restored+';pending='+(Test-Path -LiteralPath $script:initPending)+';phase='+$phase)
+}
 `;
 win('production native child creation retains its creation handle and stops only that child',()=>{
  assert.equal(run(`${load} Initialize-Business5244WebNative;$n=[Business5244WebNative]::new();$script=Join-Path $env:TEMP 'sleep.ps1';[IO.File]::WriteAllText($script,'Start-Sleep -Seconds 300');try{$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$script+'"'),$env:TEMP);if(!$n.ChildAlive() -or $n.ChildPid -le 0){throw 'CHILD_NOT_LIVE'};$birth=$n.ChildBirth;$n.Stop();if($n.ChildAlive() -or $n.ChildBirth -cne $birth){throw 'STOP_NOT_BOUND'};$denied=$false;try{$n.Stop()}catch{$denied=$true};if(!$denied){throw 'STOP_REPLAY'}}finally{$n.Dispose()};'PASS'`),'PASS');
@@ -65,7 +73,7 @@ win('changed source scripts parse under Windows PowerShell',()=>{
 win('B6 pre-channel failure restores its own bootstrap and issues code73 only for the original exception after complete cleanup',()=>{
  assert.equal(run(load+initRecoveryFixture+String.raw`
  $failure=$null;try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028'|Out-Null}catch{$failure=$_}
- if(!$failure-or$failure.Exception.Message-cne'ISOLATED_PRECHANNEL_FAILURE'-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73-or!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-cne$script:initHash-or(Test-Path -LiteralPath $script:initPending)){throw 'INIT_VERIFIED_EXIT_NOT_BOUND'}
+ if(!$failure-or$failure.Exception.Message-cne'ISOLATED_PRECHANNEL_FAILURE'-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73-or!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-cne$script:initHash-or(Test-Path -LiteralPath $script:initPending)){throw ('INIT_VERIFIED_EXIT_NOT_BOUND '+(Get-InitFixtureFailureDiagnostic $failure))}
  foreach($arg in @($null,([Exception]::new('ISOLATED_PRECHANNEL_FAILURE')),($failure.Exception|ConvertTo-Json -Depth 4|ConvertFrom-Json))){if((Get-Business5244VerifiedInitializationExitCode $arg)-ne1){throw 'INIT_EXIT_COPY_ADMITTED'}}
  $o=$script:Business5244LastInitializationOutcome;$o.thread++;if((Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1){throw 'INIT_EXIT_FOREIGN_THREAD'};$o.thread--
  $l=Enter-Business5244StartupLease -Kind Owner;Exit-Business5244StartupLease $l;'PASS'`),'PASS');
@@ -74,7 +82,7 @@ win('B6 init record drift prevents restoration and code73 while preserving exclu
  assert.equal(run(load+initRecoveryFixture+String.raw`
  $script:initFailureMode='drift';$failure=$null
  try{try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028'|Out-Null}catch{$failure=$_}
-  if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1-or!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-ceq$script:initHash){throw 'INIT_DRIFT_FALSE_OUTCOME'}
+  if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1-or!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-ceq$script:initHash){throw ('INIT_DRIFT_FALSE_OUTCOME '+(Get-InitFixtureFailureDiagnostic $failure))}
   Assert-Business5244StartupLease $script:ownedLease -Kind Owner
  }finally{if($script:ownedLease){Exit-Business5244StartupLease $script:ownedLease}};'PASS'`),'PASS');
 });
@@ -82,7 +90,9 @@ win('B6 verified bootstrap inverse cannot issue code73 when later cleanup or lea
  assert.equal(run(load+initRecoveryFixture+String.raw`
  function Close-Business5244PinnedChildren($Lease){throw 'ISOLATED_FINAL_CLEANUP_FAILURE'}
  $failure=$null;try{try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028'|Out-Null}catch{$failure=$_}
-  if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1-or!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-cne$script:initHash){throw 'INIT_CLEANUP_FALSE_OUTCOME'}
+  $actualState=$script:Business5244Retirements[$script:Business5244Retirements.Count-1]
+  $inverseArchived=$actualState.ContainsKey('currentBootstrap')-and$actualState.currentBootstrap-and$actualState.currentBootstrap.inverse-and$actualState.currentBootstrap.inverse.phase-ceq'Archived'
+  if(!$failure-or$failure.Exception.Message-cne'OWNED_WEB_CLEANUP_UNCONFIRMED'-or$actualState.phase-cne'InitializationRestored'-or!$inverseArchived-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1-or!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-cne$script:initHash){throw ('INIT_CLEANUP_FALSE_OUTCOME '+(Get-InitFixtureFailureDiagnostic $failure))}
   Assert-Business5244StartupLease $script:ownedLease -Kind Owner
  }finally{if($script:ownedLease){Exit-Business5244StartupLease $script:ownedLease}};'PASS'`),'PASS');
 });
@@ -90,6 +100,16 @@ win('owner initialization rejects differently cased scope names before acquiring
  assert.equal(run(load+String.raw`
  function Enter-Business5244StartupLease {throw 'UNEXPECTED_LEASE_ACQUISITION'}
  foreach($scope in @('test125-api-b6-ca620bac-20261028','TEST125-api-READ2b-20261028-41d3c213')){$denied=$false;try{Start-Business5244OwnedSupervisor -ScopeName $scope|Out-Null}catch{if($_.Exception.Message-cne'OWNED_WEB_SCOPE_REJECTED'){throw};$denied=$true};if(!$denied){throw 'CASED_SCOPE_ADMITTED'}};'PASS'`),'PASS');
+});
+win('fixture canonicalizes an aliased runner temp root before native initialization while production reparse guards stay unchanged',()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),root=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-owned-temp-root-')));
+ try{
+  const physical=path.join(root,'physical'),redirect=path.join(root,'redirect');fs.mkdirSync(physical);fs.symlinkSync(physical,redirect,'junction');assert.equal(fs.realpathSync.native(redirect),fs.realpathSync.native(physical));
+  assert.equal(run(load+initRecoveryFixture+String.raw`
+   if($env:TEMP-clike'*\redirect\*'){throw 'TEST_ROOT_WAS_NOT_CANONICAL'}
+   $failure=$null;try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028'|Out-Null}catch{$failure=$_}
+   if(!$failure-or$failure.Exception.Message-cne'ISOLATED_PRECHANNEL_FAILURE'-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73-or!$script:initNative.RetirementConfirmed){throw ('CANONICAL_TEMP_INIT_FAILED '+(Get-InitFixtureFailureDiagnostic $failure))};'PASS'`,{tempRoot:redirect}),'PASS');
+ }finally{const full=fs.realpathSync.native(root);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('melisa-owned-temp-root-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}
 });
 win('startup publication observation is true only for the actual B6 bootstrap and a published channel cannot obtain init inverse code73',()=>{
  assert.equal(run(load+initRecoveryFixture+String.raw`
@@ -101,7 +121,7 @@ win('startup publication observation is true only for the actual B6 bootstrap an
   $seen=[Collections.Generic.List[object]]::new();$failure=$null
   try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName $scope|ForEach-Object{$seen.Add($_)}}catch{$failure=$_}
   $expected=$scope-ceq'TEST125-API-B6-ca620bac-20261028'
-  if(!$failure-or$failure.Exception.Message-cne'ISOLATED_AFTER_CHANNEL_PUBLISHED'-or$seen.Count-ne1-or$seen[0].installedRecordPublished-ne$expected-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1-or!$script:initNative.RetirementConfirmed){throw 'STARTUP_PUBLICATION_CLAIM_OR_LATE_INVERSE'}
+  if(!$failure-or$failure.Exception.Message-cne'ISOLATED_AFTER_CHANNEL_PUBLISHED'-or$seen.Count-ne1-or$seen[0].installedRecordPublished-ne$expected-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne1-or!$script:initNative.RetirementConfirmed){throw ('STARTUP_PUBLICATION_CLAIM_OR_LATE_INVERSE '+(Get-InitFixtureFailureDiagnostic $failure))}
  }
  'PASS'`),'PASS');
 });
