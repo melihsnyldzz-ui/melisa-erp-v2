@@ -1,3 +1,5 @@
+**28 Ekim ERP09 geçici sepet SOURCE/İZOLE altadımı:** 2b744f5b; exact hesap/fiyat, tam adet, ürünbazı stok, ürün toplamı ve drift kontrolü;62hedefPASS/reviewGO/offlinebuild. Kalıcısepet, fatura, satış yazması, kurulum, normalGUI ve insanUA henüz yok. Sonraki mevcut bağımlılık destekli ownerrecovery+pairedAPI/frontend+normalekran; özgün sayaçlar aynı.
+
 **28 Ekim ERP09 readUI altadımı:** c0c31b03 normalSatışcontrollerı kaynak/izoleolarak readadapterinebağlandı;44hedef ve sentetikChromeakışı var. Kurulum/normalgerçekGUI/genişlikler/yazanakış/insanUA açık, özgün sayaçlar değişmez. Sonraki zorunlubileşen mevcutlifecyclekurtarmasıdır; restoreertelendi.
 
 **28 Ekim ERP09 teknik altadım:** ba9261c4 normal17 gerçek satışseçimi readadapteri kaynak/izole19hedef ve offlinefrontendbuild ile hazır; kurulum/normalSatışcontrollerı/writer/GUI/insan kabulü kapanmadı, özgün sayaçlar değişmez. Ayrıntı STATUS ve mevcut PR54ortakrapordadır.
