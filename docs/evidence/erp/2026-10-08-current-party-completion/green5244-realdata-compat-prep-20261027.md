@@ -447,3 +447,24 @@ SQL/ticari/rol/özelayar/profile/görev yazması ve API/native/CLEAN/CRM restart
 Source2a8fcd7e: requestöncesi immutablepaketseal ve exactfailed-start recovery kaynakları,18hedefPASS; ayrıcontrollednativepeer hedef1PASS. Son ec316a63: actualpipeabortowner-preservation hedef1PASS. Exactec CI40667948912 quality-build-test ve windows-startup-test SUCCESS; secret-scan FAILURE, genelCI yeşildeğil. Taramaistinası veya korumakapatma yok. Source/kurulum/normalGUI/insanUA ayrı tutuldu.
 
 Private: current-owner-2a8fcd7e-replace.json, current-owner-2a8fcd7e-v2-replace.json, current-owner-ac860e8d.stderr.log, current-owner-ec316a63-package.json, current-owner-ec316a63-before.json, current-owner-ec316a63-start.json, current-owner-ec316a63-peer-status.json, current-owner-ec316a63-gui-result.json. Önceki9/12fileownerbundle'ları veCurrent5cbrollbackpaketi korunur; fotoğraf/veri/yedek silinmedi. Bu teslimden sonra yeniAPI/başka finish işi kendiliğinden başlatılmaz.
+
+## 28 Ekim — READ2b kuruluma hazırlık denetimi; mevcut5244 korunur
+
+| Başlık | Kanıta göre sonuç | Gerçek çalışma ayrımı |
+|---|---|---|
+| Frozenowner | Eskiac860 yerineec316a63 çalışıyor; gerekliAPI/dispatchkaynağı aynı12filecore içinde var. | Çalışanentry PrepareReadPairfalse; APItransitionissueddeğil. Kaynakvarlığı yeniAPImodunun etkinleştiği anlamına gelmez. |
+| Request15sn | Ağırhash/seal hazırlığı owneriçinde requestkanalı açılmadan; freshistekte kısa kimlik/CAS/health; protokol15snaynı. | Öncekiizolekaynakkanıtı korunur; gerçekREAD2bgeçişi henüz denenmedi, sürehedefi runtimePASS değildir. |
+| FailedAPIstartup | ExactCOM/GUID/ilkCIMbirth/record/argv/SID/parent+erkenkernelcapture; kanıtlıtimeout/earlyexit→eski10cdc+5cbkaynakrollback yolu var. | İlkkanıt oluşmadan ölüm/foreign/ilerlemişkayıt failclosedownerrecovery; otomatikforceadopt/restore yok. Önceki18hedef tekrar edilmedi. |
+| Current→sonraki başlangıç | Yeni küçükrouter exacteskiAPIde Current+Prepare, kesincommittedREAD2bAPIde doğrudansteadyReadPair seçer. Böylece sonraki başlangıç eski10cdc'yi zorlamaz veya batch'i tekrarlamaz. | İkidosyalıentryoverlay yalnızhazırlık; aktifecentry değiştirilmedi.3yeni purehedefPASS ve darreviewGO. |
+| Legacygirişler | Gerçek5standaloneweb+CLEANstart-erp için mevcutpureprojectionlarla6ASTPASS; before/afterhashler privateartifactte. CLEANstarter embeddedD4pin'i, değişecekD4launcherafterhash'iyle aynıprojeksiyonda eşlendi. | Bu6giriş henüz ortakgate'e katılmadı; gerçekdosyalara yazılmadı. Baremutex veya sourcetestlegacyexclusion değildir. |
+| CLEANwebmetadata | Sonkurulum makbuzu installedRecordPublished=false; mevcutstale kayıt korunuyor. | İlkgerçekCurrentchild→rowbootstrap ve soncandidate/rollback yayını exclusiveCAS ile uygulama kapsamına alınmalı; eskiPIDbaşarıdiye yayımlanamaz. |
+
+### Bu turun tek kalan uygulama bileşeni
+
+MevcutkaynakfonksiyonlarıvepasifAPI/webpaketleri hazırdır, fakat **coldownerdevri,6legacygiriş+helperCASyayını, routerentryyayını, aynıprocess/threadissuedAPItransition ile tekretire, yanıt kaybında saltokunuruzlaştırma ve darrollback'i bağlayan mevcutbakımyürütücüsünün exactbuçifte uyarlanması henüz tamamlanmadı**. Sonweb-onlyfreshdriver bunu yapmaz. Yeniengine/anaajan/Goal/tracker gerekmiyor; mevcutyordamın birleşikadaptörü gerekir. Bu nedenle henüz kullanıcıdan onay istenmiyor ve “onaya/kuruluma hazır” yazılmıyor.
+
+### Tamamlanınca sunulacak tek onay taslağı — şu an soru değildir
+
+“YalnızTEST'te4144APIbileşenini hazırREAD2bpaketine ve5244'ü eşliwebpaketine geçirmemi onaylıyor musun? İşlem; korumalıDPAPIbefore-image, startup.ApiComponentiki alanCAS, privateAPIayarında yalnızgoal8SyntheticDaySeal.packageId tekalanCAS, altıeskibaşlatıcının yalnızwebdışlaması/helper ve exactroutergirişi, gerçekwebPIDmetadataCASyayını ve kısa4144/5244kesintisini kapsar. 4146/5194/CLEAN/CRMservisleri, veritabanı/ticari veriler/roller ve diğerprivatealan/sırlar korunur. Hata halinde yalnızkanıtıtam aynıscope'ta exact10cdcAPI+5cbwebçiftine ve öncekiayar/başlatıcıbefore-image'larına dönülür; foreign/bilinmeyen süreçte zorla stop/restore yapılmaz. LIVE/Vega/T1/main veya ticari yazma yapılmaz.”
+
+Kaynak15sn/rollbackkanıtları ve mevcutpaketler yeniden üretilmedi. Bu tur yalnızyeni router3hedef ve gerçekgirişlerinpure6projectionASTkontrolü yapıldı; productionmutex/servis/HTTP/SQLstartçağrısıyok. Çalışanec/5cb/10cdc ve kullanıcının oturumu aynı. Privateartifact: read2b-entry-gate-projection-20261028.json; payload değil yalnızhash/path/sözdizimi sonucu içerir. Hamayar/secret/tutar GitHub'a alınmadı. İnsanUA/sayaçlarBEKLİYOR; genişişletmetesti veya APIkurulumu başlatılmadı.
