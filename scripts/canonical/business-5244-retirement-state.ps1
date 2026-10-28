@@ -33,6 +33,90 @@ function Assert-Business5244RetirementRecord($State,[IO.FileStream]$Records){
  Assert-Business5244RecordStage $rows $rows $r.childPid Candidate $r.pins
  return ,$before
 }
+function Get-Business5244CurrentBootstrapPins {
+ # This is the exact stale CLEAN record observed before the fresh Current start.
+ # A caller cannot supply another baseline, PID or product/database target.
+ return @{hash='24bb8c6553b039981761dd188584c7787798fa1a3be972082e7439f34fd5e560';pid=2000;root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-d4f52345';source='d875dc6e59d70230b8c931f718bac30438778ec1'}
+}
+function Assert-Business5244CurrentBootstrapBefore($State,[IO.FileStream]$Records){
+ $r=Get-Business5244RetirementState $State;$fixed=Get-Business5244WebPins;$stale=Get-Business5244CurrentBootstrapPins
+ Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
+ if($r.phase -cne 'Running' -or $r.records -or $r.pending -or !$Records.CanRead -or !$Records.CanWrite -or $r.childPid -ne $r.native.ChildPid -or $r.childBirth -cne $r.native.ChildBirth){throw 'CURRENT_BOOTSTRAP_NOT_ADMITTED'}
+ foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($r.pins[$key] -cne $fixed[$key]){throw 'CURRENT_BOOTSTRAP_NOT_FIXED_CURRENT'}}
+ Assert-Business5244CreatedChild $r.native $fixed;Assert-Business5244ReadyChild $r.native $fixed
+ if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $Records)) -cne $stale.hash){throw 'CURRENT_BOOTSTRAP_BASE_CHANGED'}
+ if(Get-CimInstance Win32_Process -Filter ('ProcessId='+$stale.pid)){throw 'CURRENT_BOOTSTRAP_OLD_PID_PRESENT'}
+}
+function Publish-Business5244HeldCurrentRecord($State,[IO.FileStream]$Records,[IO.FileStream]$Pending){
+ $r=Get-Business5244RetirementState $State
+ Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
+ $fixed=Get-Business5244WebPins
+ foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($r.pins[$key] -cne $fixed[$key]){throw 'CURRENT_BOOTSTRAP_NOT_FIXED_CURRENT'}}
+ if($r.phase -cne 'Running' -or $r.records -or $r.pending -or !$Records.CanRead -or !$Records.CanWrite -or $r.childPid -ne $r.native.ChildPid -or $r.childBirth -cne $r.native.ChildBirth){throw 'CURRENT_BOOTSTRAP_NOT_ADMITTED'}
+ Assert-Business5244CreatedChild $r.native $fixed;Assert-Business5244ReadyChild $r.native $fixed
+ $before=Read-Business5244RetirementBytes $Records;$beforeHash=Get-Business5244StartupHash $before
+ $rows=ConvertFrom-Business5244RecordBytes $before
+ if($r.ContainsKey('currentBootstrap') -and $r.currentBootstrap){
+  $last=$r.currentBootstrap
+  if($last.phase -cne 'Archived' -or $last.childPid -ne $r.childPid -or $last.childBirth -cne $r.childBirth -or $beforeHash -cne $last.afterHash){throw 'CURRENT_BOOTSTRAP_REPLAY_CONFLICT'}
+  Assert-Business5244RecordStage $rows $rows $r.childPid Candidate $fixed
+  return [pscustomobject]@{published=$true;replayed=$true;childPid=$r.childPid;recordHash=$beforeHash}
+ }
+ $stale=Get-Business5244CurrentBootstrapPins
+ if($beforeHash -cne $stale.hash){throw 'CURRENT_BOOTSTRAP_BASE_CHANGED'}
+ $old=@($rows|Where-Object {$_.port -eq 5244})
+ if($old.Count -ne 1 -or $old[0].pid -ne $stale.pid -or $old[0].root -cne $stale.root -or $old[0].sourceCommit -cne $stale.source -or $old[0].entry -cne 'vite-preview' -or $old[0].backendPort -ne 4144 -or $old[0].businessWorkfaceId -cne $fixed.profile){throw 'CURRENT_BOOTSTRAP_STALE_IDENTITY_CHANGED'}
+ if(Get-CimInstance Win32_Process -Filter ('ProcessId='+$stale.pid)){throw 'CURRENT_BOOTSTRAP_OLD_PID_PRESENT'}
+ if(!$Pending.CanRead -or !$Pending.CanWrite -or $Pending.Length -ne 0){throw 'CURRENT_BOOTSTRAP_PENDING_NOT_FRESH'}
+ $after=@($rows|ForEach-Object {if($_.port -eq 5244){[pscustomobject]@{port=5244;pid=$r.childPid;entry='vite-preview';sourceCommit=$fixed.frontendSource;root=$fixed.root;backendPort=4144;businessWorkfaceId=$fixed.profile}}else{$_}})
+ Assert-Business5244RecordStage $rows $after $r.childPid Candidate $fixed
+ $bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $after -Depth 30));$hash=Get-Business5244StartupHash $bytes
+ $id=[Guid]::NewGuid().ToString('N');$archive=$Pending.Name+'.'+$id+'.bootstrap.completed'
+ $seal=[Text.Encoding]::UTF8.GetBytes((@{schema='business-5244-current-bootstrap.v1';operationId=$id;ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth;beforeHash=$beforeHash;afterHash=$hash;beforeBase64=[Convert]::ToBase64String($before)}|ConvertTo-Json -Compress))
+ # Keep both exclusive record ownership and durable evidence through publication.
+ # An uncertain write never restores the stale PID or stops any process.
+ $r.records=$Records;$r.pending=$Pending;$r.currentBootstrap=@{phase='Preparing';childPid=$r.childPid;childBirth=$r.childBirth;afterHash=$hash;archive=$archive}
+ try{
+  $Pending.Write($seal,0,$seal.Length);$Pending.Flush($true)
+  if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $Pending)) -cne (Get-Business5244StartupHash $seal)){throw 'CURRENT_BOOTSTRAP_BEFORE_NOT_DURABLE'}
+  Assert-Business5244CreatedChild $r.native $fixed;Assert-Business5244ReadyChild $r.native $fixed
+  if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $Records)) -cne $beforeHash){throw 'CURRENT_BOOTSTRAP_RECORD_CAS_CHANGED'}
+  $Records.Position=0;$Records.SetLength(0);$Records.Write($bytes,0,$bytes.Length);$Records.Flush($true)
+  if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $Records)) -cne $hash){throw 'CURRENT_BOOTSTRAP_WRITE_UNCONFIRMED'}
+  Assert-Business5244CreatedChild $r.native $fixed;Assert-Business5244ReadyChild $r.native $fixed
+  $pendingName=$Pending.Name;$Pending.Dispose();$r.pending=$null
+  try{Move-Business5244PendingArchive $pendingName $archive}catch{if((Test-Path -LiteralPath $pendingName) -or !(Test-Path -LiteralPath $archive) -or (Get-FileHash -LiteralPath $archive).Hash -ine (Get-Business5244StartupHash $seal)){throw}}
+  if((Test-Path -LiteralPath $pendingName) -or (Get-FileHash -LiteralPath $archive).Hash -ine (Get-Business5244StartupHash $seal)){throw 'CURRENT_BOOTSTRAP_ARCHIVE_UNCONFIRMED'}
+  $r.currentBootstrap.phase='Archived';$r.records=$null
+  return [pscustomobject]@{published=$true;replayed=$false;childPid=$r.childPid;recordHash=$hash}
+ }catch{
+  $failure=$_;$r.phase='Unknown';$r.currentBootstrap.phase='Unknown'
+  if(!$r.pending){
+   # Even a failure after archival must keep restart blocked. Never turn a
+   # missing ACK into permission to publish the stale predecessor again.
+   try{$marker=[IO.File]::Open($Pending.Name,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read);$r.pending=$marker;$marker.Write($seal,0,$seal.Length);$marker.Flush($true)}catch{}
+  }
+  throw $failure
+ }
+}
+function Publish-Business5244CurrentRecord($State){
+ $r=Get-Business5244RetirementState $State
+ $recordsPath='C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json';$pendingPath=Get-Business5244RetirementPendingPath
+ $records=$null;$pending=$null
+ try{
+  foreach($file in @($recordsPath,$pendingPath)){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Test-Path -LiteralPath $part) -and ((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'CURRENT_BOOTSTRAP_REPARSE_POINT'}}}
+  $records=[IO.File]::Open($recordsPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  # Replayed successful bootstrap only reads the published record; it cannot
+  # manufacture a new empty pending file or repeat a CAS write.
+  if($r.ContainsKey('currentBootstrap') -and $r.currentBootstrap -and $r.currentBootstrap.phase -ceq 'Archived'){
+   return Publish-Business5244HeldCurrentRecord $State $records $null
+  }else{
+   Assert-Business5244CurrentBootstrapBefore $State $records
+   $pending=[IO.File]::Open($pendingPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+  }
+  return Publish-Business5244HeldCurrentRecord $State $records $pending
+ }finally{if(!$r.records){if($records){$records.Dispose()};if($pending){$pending.Dispose()}}}
+}
 function Invoke-Business5244HeldRetirement($State,[IO.FileStream]$Records,[IO.FileStream]$Pending){
  # Core accepts already-held streams; the normal entry below fixes their real
  # paths. No serialized PID, ACK or caller flag can mint this registered state.

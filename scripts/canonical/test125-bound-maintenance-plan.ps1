@@ -24,10 +24,28 @@ function Assert-Test125MaintenancePin($Before,$After) {
  }
 }
 
-function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7') {
- if($RunId -cnotin @('PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7','PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8','PRODUCT-b40b0745-1fa0-4970-b19f-1479cf75d67a')){throw 'TEST125_RUN_SCOPE_REJECTED'}
+# Finite READ2b preparation; selecting a historical PRODUCT run cannot issue it.
+function Get-Test125ReadPairScope {
+ return [pscustomobject][ordered]@{
+  name='TEST125-API-READ2b-20261028-41d3c213';source='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';database='MELISA_ERP_SIRKET_TEST_20260929_01'
+  current=[pscustomobject][ordered]@{ReleaseRoot='C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-10cdc0ee';SourceCommit='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';ManifestSha256='3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33';ConfigPath='C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'}
+  candidate=[pscustomobject][ordered]@{ReleaseRoot='C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213';SourceCommit='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';ManifestSha256='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090';ConfigPath='C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'}
+ }
+}
+function Assert-Test125ReadPairConfig($Config,[ValidateSet('Current','Candidate')][string]$Mode='Current') {
+ $scope=Get-Test125ReadPairScope;$expected=if($Mode-ceq'Current'){$scope.current}else{$scope.candidate}
+ if($Config.SourceCommit-cne$scope.source-or$Config.ExpectedDatabase-cne$scope.database-or!(Same-ErpPath $Config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2')-or$Config.TaskName-cne'Melisa-ERP-TEST-Canonical'-or!$Config.PSObject.Properties['ApiComponent']){throw 'TEST125_READPAIR_TARGET_REJECTED'}
+ $part=$Config.ApiComponent
+ if(@($part.PSObject.Properties.Name).Count-ne4-or@($part.PSObject.Properties.Name|Where-Object{$_-cnotin@('ReleaseRoot','SourceCommit','ManifestSha256','ConfigPath')}).Count){throw 'TEST125_READPAIR_COMPONENT_REJECTED'}
+ foreach($key in @('ReleaseRoot','SourceCommit','ManifestSha256','ConfigPath')){if($part.$key-cne$expected.$key){throw 'TEST125_READPAIR_COMPONENT_REJECTED'}}
+ return $scope
+}
+
+function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7',[switch]$ReadPairPreparation,[ValidateSet('Current','Candidate')][string]$ReadPairMode='Current') {
+ if($ReadPairPreparation){if($RunId-cne(Get-Test125ReadPairScope).name){throw 'TEST125_RUN_SCOPE_REJECTED'}}elseif($RunId -cnotin @('PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7','PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8','PRODUCT-b40b0745-1fa0-4970-b19f-1479cf75d67a')){throw 'TEST125_RUN_SCOPE_REJECTED'}
  $startup='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
  $config=Read-ErpStartupConfig $startup
+ if($ReadPairPreparation){[void](Assert-Test125ReadPairConfig $config $ReadPairMode)}
  if(!(Same-ErpPath $config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2') -or $config.SourceCommit -cne 'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $config.ExpectedDatabase -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $config.TaskName -cne 'Melisa-ERP-TEST-Canonical'){throw 'TEST125_EXACT_TARGET_REJECTED'}
  $task=Get-ScheduledTask -TaskName $config.TaskName -TaskPath '\' -ErrorAction Stop
  $action=Assert-Test125MaintenanceTask $task $config $startup

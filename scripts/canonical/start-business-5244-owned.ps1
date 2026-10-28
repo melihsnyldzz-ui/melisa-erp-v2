@@ -40,20 +40,32 @@ function Assert-Business5244OwnedPackage($Pins){
   if((Get-FileHash -LiteralPath $full).Hash -ine $file.sha256){throw 'OWNED_WEB_CONTENT_CHANGED'}
  }
 }
-function Get-Business5244MaintenancePlan($State){
+function Get-Business5244MaintenancePlan($State,$ApiTransition=$null){
  $r=Get-Business5244RetirementState $State;$candidate=Get-Business5244ReadPairPins
  $identity=@($candidate.package,$candidate.manifest,$candidate.apiPackage,$candidate.apiManifest,$candidate.nodeHash,$candidate.profile) -join '|'
+ if($null -ne $ApiTransition){
+  [void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)
+  $old=Get-Business5244WebPins
+  $keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')
+  foreach($key in $keys){if($r.pins[$key] -cne $old[$key]){throw 'OWNED_WEB_PAIRED_BASE_CHANGED'}}
+  $contract=Get-Test125ReadPairTransitionContract -Transition $ApiTransition
+  if($contract.scope -cne 'TEST125-API-READ2b-20261028-41d3c213' -or $contract.contractSha256 -cnotmatch '^[a-f0-9]{64}$' -or $contract.mode -cne 'Current' -or $contract.phase -cnotin @('PREPARED','VERIFIED')){throw 'OWNED_WEB_API_CONTRACT_CHANGED'}
+  $identity='business-5244-read-pair.v1|'+$contract.contractSha256+'|'+(($keys|ForEach-Object {$candidate[$_]}) -join '|')+'|'+(($keys|ForEach-Object {$old[$_]}) -join '|')
+ }
  return @{candidate=$candidate;rollback=$r.pins.Clone();hash=(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($identity)))}
 }
-function Assert-Business5244MaintenancePlan($Plan,$State){
+function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  $r=Get-Business5244RetirementState $State
- if($r.phase -cnotin @('Running','Retired') -or $Plan.hash -cne (Get-Business5244MaintenancePlan $State).hash){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
+ if($r.phase -cnotin @('Running','Retired') -or $Plan.hash -cne (Get-Business5244MaintenancePlan $State $ApiTransition).hash){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
+ $fixedCandidate=Get-Business5244ReadPairPins
+ foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.candidate[$key] -cne $fixedCandidate[$key]){throw 'OWNED_WEB_CANDIDATE_PINS_CHANGED'}}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.rollback[$key] -cne $r.pins[$key]){throw 'OWNED_WEB_ROLLBACK_PINS_CHANGED'}}
  Assert-Business5244OwnedPackage $Plan.candidate
  # API upgrades are outside this web-only dispatcher. Both the candidate and
  # rollback must work against the SAME current API before the old child stops.
  $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 3
- Assert-Business5244ApiHealth $health $Plan.candidate
+ if($null -eq $ApiTransition){Assert-Business5244ApiHealth $health $Plan.candidate}
+ else{[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)}
  Assert-Business5244ApiHealth $health $Plan.rollback
  if($Plan.rollback.root -cne $Plan.candidate.root -or $Plan.rollback.manifest -cne $Plan.candidate.manifest){Assert-Business5244OwnedPackage $Plan.rollback}
  if((Get-FileHash -LiteralPath (Join-Path $Plan.rollback.root 'release-manifest.json')).Hash -cne $Plan.rollback.manifest){throw 'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'}

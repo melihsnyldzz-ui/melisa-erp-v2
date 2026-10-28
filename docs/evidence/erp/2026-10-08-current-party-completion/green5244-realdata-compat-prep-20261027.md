@@ -385,3 +385,32 @@ Runtime değişikliği yalnız canonical startup-config.ApiComponent.ReleaseRoot
 **Mevcut uygulama yolu:** Eski API bakım yordamı yalnız üç eskiPRODUCTrun'a exactpinned; yeni run için dar kaynak uyarlaması gerekir. Güncel5244dispatcher aday ve rollback'in aynı çalışan APIhealth'iyle uyumunu stopöncesi zorunlu tutar; bu pin mevcut10cdc ile yeniREAD-2b çiftinin birlikte geçişine uygun değildir. Guardı kaldırmak veya yeniAPIyi eski rollback diye tanıtmak çözüm değildir. Aynı mevcut APIcomponent ve5244dispatcher içinde iki exact çiftli fazların bağlanması ve installedRecordPublished=false/stale kayıt için gerçek CAS girişinin hedefli kanıtı gerekir. Yeniowner/engine/tracker kurulmaz. Bu kaynak uyarlaması ve ayrıAPIkapsamı tamamlanmadan varolan driver'ı çalıştırmak uygulanabilir kurulum değildir.
 
 Bu incelemede stop/restart/config/SQL/rol/CRM değişikliği0. Çalışan5244korunur. Private read-pair-api-owner-scope-20261028.json. İnsanUA BEKLİYOR.
+
+## 28 Ekim — Aynı yordamlarda iki exactçift SOURCE uyarlaması; runtime uygulanmadı
+
+Yeni kaynak kapsamı mevcut test125-bound-maintenance-plan/api-quiescence ve5244owner/retirement/dispatcher içindedir; yeniowner/engine/tracker yok. READ2b scope TEST125-API-READ2b-20261028-41d3c213 yalnız hazırlık constructorı ve aynıprocess/thread/referenceissued transition ile kullanılır. EskiüçPRODUCTRunId bu yeni scope yerine geçmez. Token exactstartup/privateprofile/baseprofile hashlerini, eski/yeniAPIcomponentini ve korunacak4146/5194kimliklerini bağlar. Plan hash'i exactAPIcontracthash ve ikiwebçiftinin10pinini birlikte taşır. Normalweb-onlyretire hâlâ aday/rollback'in aynıAPIyle uyumunu zorunlu tutar; parametreflagı veya serializedtoken bu yolu açamaz.
+
+Önceki dar kapsam raporundaki yalnızstartup2alan varsayımı düzeltildi: APIprivateprofile.goal8SyntheticDaySeal.packageId ayrıca yeni exactpaketle eşleşmelidir. Kaynakadapter yalnız bu tekalanı değiştiren fullprofilebefore/after hashCAS ve DPAPICurrentUser+owner/SYSTEMprivatebeforeimage hazırlar. DB/SQLlogin/signer/rol/hesap/izin/ticari/sentetikdaydiğeralanları değişmez; Assert-ErpApiPrivateProfile gevşetilmedi. Bu runtimeyazma onayı veya uygulanmışconfig değildir.
+
+Yeni dispatcher sırası: exactCurrentAPI+web/issuedAPIcontract doğrula → sabitstaleCLEANrow'u gerçekheldCurrentchild ile exclusiveCASyayınla → kendiwebchild'ını retire et → mevcut APIcomponent/quiescence ile yeniAPI → eşliweb yenichild → kayıt/yayın/durablecommit/aynıownergate. Doğrulanabilir hata durumunda candidatecleanup → eskiAPI → yeni5cbrollbackchild; unknown/foreign/archived belirsizliğinde zorla stop/restore yok. Committed/lostACK uzlaştırması finalAPICurrent/Candidate kimliğini de tekrar doğrular; replay yeniAPIstop veya webspawn üretmez.
+
+Bootstrap tek exactbaseline24bb8c... ve eskiD4row/PID2000 yokluğunu ister; gerçekcurrentnativechild creationhandle/Job/SID/argv/portlease yerini recordJSON alamaz. Korunan ikiCLEANrow byteanlamı aynı kalır. Pendingbeforeimage Flush(true), recordCAS ve archivehash doğrulanmadan published denmez; flushbelirsizliğinde Unknown/marker korunur, stalePID otomatik geri yazılmaz. Üretim girişinde ön kontrol pending yaratılmadan yapılır. Bu fonksiyon gerçekinstalledrecord'a çağrılmadı; installedRecordPublished=false hâlâ gerçekdurumdur.
+
+**Yeni hedefler:** business-5244-paired-maintenance8PASS (bootstrap/replay/hashdrift/oldPID/flushfail; forgedtoken/defaultsameAPIret; başarı/rollback/unknown); test125-read2b-pair6PASS (scope/copytoken/mutation/CAS/preservedchildren; aday→rollback/replay; profilCASsonrasıstartupfail; restartreadytimeoutret). BeşdeğişenPSdosyası syntaxPASS. API bakımplanı mevcut4darhedef de agenttarafındanPASS. Testler tempdosya ve kendiömrübağlıPSsleepchild veya scheduler/network/nativebindingfixture kullanır; productionmutex/task/HTTP/SQL/runtimeçağrısı0. WindowsCI yeniikihedefi seriallistesine ekledi; tümgeçmişsuite/paket taraması yerelde yeniden çalıştırılmadı. Darbağımsızreview runtimeişlemi yapmadı.
+
+### Kalan üç somut teknik bağ; henüz kullanıcıdan kurulum onayı istenmiyor
+
+1. Kurulu frozenac860owner bu repodaki yeniAPIadapter/pairedfonksiyonları hotloadetmez. Desteklenen ownergenerationdevri ayrıca bağlanmalı; kaynakdeğişikliği kurulmuşuygulama değildir.
+2. Mevcutpipe isteği15saniyedir. Ağır fullpayload/API hazırlığı owner içinde yeniistek oluşmadan tamamlanmalı; yeniistek sonrası kısa CAS/health/kimlik doğrulaması korunmalıdır. Deadline uzatılmaz veya freshness atlanmaz. Şimdiki kaynak bu ağır hazırlık bağını tekbaşına çözmez.
+3. YeniAPI Startsonrası hiçsağlıklıadmissionvermezse mevcutadapter eldekibinding'i kapatmış olur ve TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER ile reddeder. Unknown/Blocked güvenli sonuçtur; otomatik10cdc+5cbkurtarıldı iddiası değildir. Test bu durumda ikinci scheduler/APIstop/configetkisi olmadığını kanıtlar. Desteklenen failed-start ownerrecoverybağı gereklidir.
+
+Bu bağlar çözülmeden genel 'kuruluma hazır' veya gerçekkurulum/GUI/insanPASS yazılmadı. DEC084 yalnızwebyetkisinin dışındaAPIrestart onayı da ayrıca gerekir. Bu tur runtime/config/servis/task/restart/SQL/rol yazımı0; önceki çalışan5244aynı.
+
+### Teknik bağlar kapanınca sunulacak tek onayın altı kısa adımı (bugün uygulanmadı)
+
+1. Çalışan API/web kimliklerini ve korunan servisleri sabitle, dar geri dönüş kopyalarını korumalı al.
+2. Yalnız4144API ve onu yöneten gözetmen için kısa bakım aç;4146/5194/CRM çalışmaya devam etsin.
+3. API'yi hazır READ2b paketine geçir; startup2alan ve APIayarındaki tekpaketkimliği birlikte doğrulansın.
+4. Sağlıklı yeniAPI görülünce5244'ü eşliwebpaketine geçir; Semih oturumu ve taslakları koru.
+5. Stok, satış seçimi ve cari geçmişini normalekranda saltokunur+yenilemeyle kontrol et; yeni ticari işlem yapma.
+6. Hata halinde yalnızkanıtıtam sınırda10cdcAPI+5cbwebçiftine dön; DB/roller/veriler/yedekler/diğerservisler değişmesin. Belirsizsahiplikte zorla geri dönüş yapma.
