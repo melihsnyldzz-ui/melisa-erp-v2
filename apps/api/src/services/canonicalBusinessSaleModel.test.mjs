@@ -82,7 +82,8 @@ if(!process.execArgv.includes('--experimental-test-module-mocks')){
   f.adapter.selectedSaleContext=async()=>structuredClone(f.context);await assert.rejects(f.service.selectedContext(f.selection,f.actor),{code:'WORK_CANONICAL_SALE_SCOPE'});
  });
  test('client flags do not enable canonical parsing; an inconsistent server adapter fails closed',async()=>{
-  const legacy=serviceFixture(false);await assert.rejects(legacy.service.selectedContext(legacy.selection,legacy.actor));assert.deepEqual(legacy.seen,[]);
+  const legacy=serviceFixture(false);let mismatchedReads=0;legacy.store.read=async()=>{mismatchedReads++;throw Error('shape mismatch must reject before adapter read');};await assert.rejects(legacy.service.selectedContext(legacy.selection,legacy.actor),{code:'WORK_SELECTED_SALE_UNAVAILABLE'});assert.equal(mismatchedReads,0);assert.deepEqual(legacy.seen,[]);
+  const inverse=serviceFixture();inverse.store.read=legacy.store.read;await assert.rejects(inverse.service.selectedContext({customerId:'155',currency:'USD',productIds:['12']},inverse.actor),{code:'WORK_SELECTED_SALE_UNAVAILABLE'});assert.equal(mismatchedReads,0);
   const f=serviceFixture();f.adapter.selectedSaleEnabled='true';await assert.rejects(f.service.selectedContext(f.selection,f.actor),{code:'WORK_SELECTED_SALE_UNAVAILABLE'});f.adapter.selectedSaleEnabled=false;await assert.rejects(f.service.preview(f.selection,f.actor),{code:'WORK_SELECTED_SALE_UNAVAILABLE'});f.store.selectedSaleEnabled=async()=>false;await assert.rejects(f.service.createDraft({...f.selection,requestId,previewHash:nativeHash,expectedRevision:revision},f.actor),{code:'WORK_SELECTED_SALE_UNAVAILABLE'});assert.deepEqual(f.seen,[]);
  });
 }
