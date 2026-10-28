@@ -690,3 +690,9 @@ a38f08d74ae533db6d89a71908435255c78e0899:scripts/canonical/start-business-5244-w
 ```
 
 Bu tur yalnız karar hazırlığı/dokümantasyon: hiçbir fingerprint eklenmedi; scanner/workflow değişmedi. B6 kaynak/gerçek SQL/prova/kurulum/normal yazan ekran/insan kabulü ayrı ve tamamlanmamıştır.
+
+### 28 Ekim — exact13 kullanıcı onayı uygulama sonucu
+
+**28 Ekim — kullanıcı onaylı exact13 tarama istisnası uygulandı:** Koordinatörün özgün kullanıcı onayı saltokunur doğrulandı; yalnız incelenmiş13 tarihsel commit/dosya/kural/satır `.gitleaksignore` girdisi eklendi, eski içerik aynı ve bağımsızreviewGO. Sabit8.30.1/checksum doğrulandı. Dalın3301c480 tümataları taraması0bulgu/exit0; aynı yerel depodaki tümref taraması iki ayrı ajancheckpoint geçmişinde54 ekbulgu/exit1 verdi, bunların0ıHEADatalarında. Bu54 incelenmedi/istisna yapılmadı; tümref sonucu yeşil değildir. CIscanner/rule/workflow/maskeleme/history aynı; gerçek hosted yenihead sonucu ayrıca kaydedilir. KuruluREAD2b/SQL/veri/rol/servis/CRM değişimi0; B6kurulum/normal satış/insanUA açık.
+
+Önceki karar önerisi tarihsel kayıttır; kullanıcı artık yalnız o13exact girdiyi açıkça onaylamıştır. Liste özel kanıt kümesiyle13/13 aynı, unique13, wildcard0, eski girdiler aynıprefix; scanner/rule/path/futurebulgu kapsamı değişmez. Yerel tümref taraması currentbranch ile eşit sayılmadı;54 ek bulgu iki refs/agents checkpoint commitindedir, çözülmüş veya false-positive ilan edilmedi ve bu görev kapsamına alınmadı. Ref/geçmiş silme veya yeniden yazma yok. Tam fetched-history tarayan hosted CI scripti değiştirilmedi.

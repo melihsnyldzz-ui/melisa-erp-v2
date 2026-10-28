@@ -146,3 +146,20 @@ b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure
 # Exact historical findings only; no file-wide or rule-wide suppression.
 5a01d96d56e67a68475f8fedb434f76576562e7d:scripts/migration/product-catalog-lineage.test.mjs:generic-api-key:23
 5a01d96d56e67a68475f8fedb434f76576562e7d:scripts/migration/current-vega-product-slice.test.mjs:generic-api-key:27
+
+# User approved 2026-10-28: exactly 13 independently verified historical false positives.
+# Nine release-manifest SHA256 pins, two operational status texts, one synthetic FX source, one PS function symbol.
+# Exact commit/file/rule/line only; no path/rule/global or future finding exclusion.
+af56e36ca89bca988dc7f521125b7a9263310811:apps/api/src/services/canonicalBusinessSaleModel.test.mjs:generic-api-key:24
+d303218681fe212155b6a91f8fb62b1274721842:STATUS.md:generic-api-key:1
+f0568be74d8e2d35c4adefef92b6c60c67cfb6ec:docs/evidence/erp/2026-10-08-current-party-completion/green5244-realdata-compat-prep-20261027.md:generic-api-key:364
+b990f65b63e341657495e6030e7bcf36307ac859:scripts/canonical/start-business-5244-web.ps1:generic-api-key:15
+8904f7a2f991da91d0290986896c33f10aa0f23a:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+e577646ed0f160149556e19c2bc5fd27ea9ab058:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+a38f08d74ae533db6d89a71908435255c78e0899:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+71bf21089874677bf4062c1a31de0b14aa0e8d84:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+491edafe4852625c7fdb851329bce6e6d34e5a8c:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+9177143cfc252924c015518f7bac151f51aa0a8f:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+76106c22e816175c51306dfac1e4d7dd1a45dc93:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+8a060591b38ad484db60c98f0ea61423809d2cd1:scripts/canonical/prepare-green5244-realdata-compat.mjs:generic-api-key:9
+0a22177889268a00772ea25aa0b2a9f1578e4d64:scripts/canonical/test125-bound-api-quiescence.test.mjs:generic-api-key:34
