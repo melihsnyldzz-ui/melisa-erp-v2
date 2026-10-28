@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
+import {realpathSync,lstatSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -15,14 +16,17 @@ const root=process.env.SystemRoot??'C:\\Windows';
 const ps=path.join(root,'System32/WindowsPowerShell/v1.0/powershell.exe');
 const win={skip:process.platform!=='win32',timeout:130000};
 async function fixture(t){
- const directory=await mkdtemp(path.join(os.tmpdir(),'erp-readpair-admission-')),children=[];
+ // CI's os.tmpdir() can contain an 8.3 user path beneath hidden AppData.
+ // Keep the real production ancestor guards, using the runner's canonical temp root.
+ const tempRoot=realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir());
+ const directory=realpathSync.native(await mkdtemp(path.join(tempRoot,'erp-readpair-admission-'))),children=[];
  const native=await readFile(path.join(dir,'business-5244-retirement-peer.cs'),'utf8');
  const runtime=path.join(directory,'isolated-runtime'),peer=path.join(directory,'isolated-peer.cs');
  const literal=String.raw`C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027`;
  assert(native.includes(literal));
  await writeFile(peer,native.replaceAll(literal,runtime.replaceAll('\\','\\\\')));
  const isolate=`function Initialize-Business5244RetirementPeer{if(!('Business5244RetirementPeer' -as [type])){Add-Type -LiteralPath ${q(peer)}}};function Get-Business5244StartupMutexName{return ('Global\\MelisaERP5244Startup-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+'-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes(${q(runtime)}.ToLowerInvariant()))))};function Get-Business5244RetirementPendingPath{return ${q(path.join(directory,'retirement.pending'))}};`;
- t.after(async()=>{for(const p of children)if(p.exitCode===null){p.kill();await p.finished;}await rm(directory,{recursive:true,force:true,maxRetries:10,retryDelay:100});});
+ t.after(async()=>{for(const p of children)if(p.exitCode===null){p.kill();await p.finished;}const full=realpathSync.native(directory);assert.equal(path.dirname(full).toLowerCase(),tempRoot.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-admission-'));assert(!lstatSync(full).isSymbolicLink());await rm(full,{recursive:true,force:true,maxRetries:10,retryDelay:100});});
  return {directory,children,isolate};
 }
 async function child(f,body,name){
