@@ -27,6 +27,9 @@ win('maintenance blocks both source launchers before package, environment or net
 win('owned startup releases its lease on package failure without starting or adopting anything',()=>{
  assert.equal(run(`${load}function Assert-Business5244OwnedPackage{throw 'ISOLATED_PACKAGE_FAILURE'};function Invoke-RestMethod{throw 'UNEXPECTED_NETWORK'};$denied=$false;try{Start-Business5244OwnedSupervisor|Out-Null}catch{if($_.Exception.Message -ceq 'ISOLATED_PACKAGE_FAILURE'){$denied=$true}else{throw}};if(!$denied){throw 'EXPECTED_FAILURE_MISSING'};$l=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease -Lease $l;'PASS'`),'PASS');
 });
+win('Current startup selects only the fixed 5cb package and leaves ReadPair as the explicit default',()=>{
+ assert.equal(run(`${load}$script:chosen=$null;function Assert-Business5244OwnedPackage($Pins){$script:chosen=$Pins;throw 'ISOLATED_SLOT_CHECK'};foreach($slot in @('Current','current','ReadPair')){$denied=$false;try{Start-Business5244OwnedSupervisor -InitialSlot $slot|Out-Null}catch{if($_.Exception.Message -ceq 'ISOLATED_SLOT_CHECK'){$denied=$true}else{throw}};$expected=if($slot -ieq 'Current'){'ERP-BUSINESS-WEB-5244-5cb682d8'}else{'ERP-BUSINESS-WEB-5244-2b744f5b-API-READ'};if(!$denied -or $script:chosen.package -cne $expected){throw 'WRONG_FIXED_SLOT'}};'PASS'`),'PASS');
+});
 win('new package pins stay paired and generic B5 handoff remains closed',()=>{
  assert.equal(run(`${load}$p=Get-Business5244ReadPairPins;if($p.apiPackage -cne 'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213' -or $p.manifest -cne '91EE8B23C37A46EC89F8060967BC7A0106F68F2DE9A4A1F4199941CCE5A9E0FD'){throw 'PAIR_CHANGED'};. ${quote(path.join(dir,'clean-b5-pair-transition.ps1'))} -Library;$denied=$false;try{Get-B5WriterHandoff}catch{if($_.Exception.Message -ceq 'B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING'){$denied=$true}else{throw}};if(!$denied){throw 'GENERIC_HANDOFF_OPEN'};'PASS'`),'PASS');
 });

@@ -1,4 +1,4 @@
-param([Alias('Library')][switch]$OwnedLibrary)
+param([Alias('Library')][switch]$OwnedLibrary,[ValidateSet('Current','ReadPair')][string]$OwnerInitialSlot='ReadPair')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
@@ -118,12 +118,13 @@ function Close-Business5244PinnedChildren($Lease){
  if($failed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
 }
 function Start-Business5244OwnedSupervisor {
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair')
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and initial publication remain separate gates.
  $lease=Enter-Business5244StartupLease -Kind Owner
  $native=$null;$retirement=$null;$channel=$null
  try{
-  $pins=Get-Business5244ReadPairPins
+  $pins=if($InitialSlot -ieq 'Current'){Get-Business5244WebPins}else{Get-Business5244ReadPairPins}
   $native=New-Business5244PinnedChild $pins $lease
   $retirement=Register-Business5244OwnedRetirement $lease $native $pins
   $channel=Open-Business5244RetirementChannel -OwnerLease $lease
@@ -160,4 +161,4 @@ function Start-Business5244OwnedSupervisor {
   Exit-Business5244StartupLease -Lease $lease
  }
 }
-if(!$OwnedLibrary){Start-Business5244OwnedSupervisor}
+if(!$OwnedLibrary){Start-Business5244OwnedSupervisor -InitialSlot $OwnerInitialSlot}
