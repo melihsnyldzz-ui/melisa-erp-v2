@@ -33,13 +33,20 @@ function Assert-Business5244RetirementRecord($State,[IO.FileStream]$Records){
  Assert-Business5244RecordStage $rows $rows $r.childPid Candidate $r.pins
  return ,$before
 }
-function Get-Business5244CurrentBootstrapPins {
+function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='') {
  # This is the exact stale CLEAN record observed before the fresh Current start.
  # A caller cannot supply another baseline, PID or product/database target.
+ # The first approved attempt durably published this exact Current after-image
+ # before request expiry. It is a metadata baseline ONLY: it grants no stop,
+ # no Unknown recovery and no authority from an external outcome assertion.
+ # Both callers still reject a live old PID and require a new owned child.
+ if($BeforeHash-ceq'3bfd7f5df1aaedae5835709fd048f27cf35aa97f97a7c561cbd89ee0342827fc'){
+  return @{hash=$BeforeHash;pid=25564;root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-5cb682d8';source='5cb682d8523552745b81422b1c2f0273cc8feb03'}
+ }
  return @{hash='24bb8c6553b039981761dd188584c7787798fa1a3be972082e7439f34fd5e560';pid=2000;root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-d4f52345';source='d875dc6e59d70230b8c931f718bac30438778ec1'}
 }
 function Assert-Business5244CurrentBootstrapBefore($State,[IO.FileStream]$Records){
- $r=Get-Business5244RetirementState $State;$fixed=Get-Business5244WebPins;$stale=Get-Business5244CurrentBootstrapPins
+ $r=Get-Business5244RetirementState $State;$fixed=Get-Business5244WebPins;$stale=Get-Business5244CurrentBootstrapPins (Get-Business5244StartupHash (Read-Business5244RetirementBytes $Records))
  Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
  if($r.phase -cne 'Running' -or $r.records -or $r.pending -or !$Records.CanRead -or !$Records.CanWrite -or $r.childPid -ne $r.native.ChildPid -or $r.childBirth -cne $r.native.ChildBirth){throw 'CURRENT_BOOTSTRAP_NOT_ADMITTED'}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($r.pins[$key] -cne $fixed[$key]){throw 'CURRENT_BOOTSTRAP_NOT_FIXED_CURRENT'}}
@@ -62,7 +69,7 @@ function Publish-Business5244HeldCurrentRecord($State,[IO.FileStream]$Records,[I
   Assert-Business5244RecordStage $rows $rows $r.childPid Candidate $fixed
   return [pscustomobject]@{published=$true;replayed=$true;childPid=$r.childPid;recordHash=$beforeHash}
  }
- $stale=Get-Business5244CurrentBootstrapPins
+ $stale=Get-Business5244CurrentBootstrapPins $beforeHash
  if($beforeHash -cne $stale.hash){throw 'CURRENT_BOOTSTRAP_BASE_CHANGED'}
  $old=@($rows|Where-Object {$_.port -eq 5244})
  if($old.Count -ne 1 -or $old[0].pid -ne $stale.pid -or $old[0].root -cne $stale.root -or $old[0].sourceCommit -cne $stale.source -or $old[0].entry -cne 'vite-preview' -or $old[0].backendPort -ne 4144 -or $old[0].businessWorkfaceId -cne $fixed.profile){throw 'CURRENT_BOOTSTRAP_STALE_IDENTITY_CHANGED'}

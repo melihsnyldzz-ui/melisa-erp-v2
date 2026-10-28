@@ -33,6 +33,11 @@ function Assert-ReadPairExpectedEqual($Left,$Right){
  foreach($key in @('planHash','baseHash','startupPath','apiPath','basePath')){if($Left.$key-cne$Right.$key){throw 'READPAIR_EXPECTED_PLAN_DRIFT'}}
  foreach($mode in @('Current','Candidate')){foreach($key in @('startup','api')){if($Left.$mode.$key-cne$Right.$mode.$key){throw 'READPAIR_EXPECTED_PLAN_DRIFT'}}}
 }
+function Get-ReadPairFinalPeerState($Observed,[int]$OwnerPid,[string]$OwnerBirth){
+ if(!$Observed.nativePeerVerified-or$Observed.reply-cne'Status'-or$Observed.state.ownerPid-ne$OwnerPid-or$Observed.state.ownerBirth-cne$OwnerBirth){throw 'READPAIR_FINAL_PEER_CHANGED'}
+ if($Observed.state.phase-ceq'Unknown'){throw 'READPAIR_FINAL_OWNER_UNKNOWN'}
+ return $Observed.state
+}
 function Publish-ReadPairSealedFile([string]$Path,[byte[]]$Bytes){
  $hash=Get-Business5244StartupHash $Bytes
  $writer=[IO.File]::Open($Path,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
@@ -188,11 +193,17 @@ function Get-ReadPairExpectedHashes {
  $nextConfig.ApiComponent.ReleaseRoot=$scope.candidate.ReleaseRoot;$nextConfig.ApiComponent.ManifestSha256=$scope.candidate.ManifestSha256
  $startupAfter=[Text.Encoding]::UTF8.GetBytes(($nextConfig|ConvertTo-Json -Depth 100))
  $baseHash=Get-Business5244StartupHash ([IO.File]::ReadAllBytes($config.ConfigPath))
- $shape=[pscustomobject][ordered]@{schema='melisa-test125-read2b-api-transition.v1';scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Business5244StartupHash $api);apiProfileCandidateSha256=(Get-Business5244StartupHash $apiAfter);baseProfileSha256=$baseHash;startupBeforeSha256=(Get-Business5244StartupHash $startup);startupCandidateSha256=(Get-Business5244StartupHash $startupAfter);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
+ $releasePins=Get-ReadPairExpectedReleasePins $config $scope
+ $shape=[pscustomobject][ordered]@{schema='melisa-test125-read2b-api-transition.v1';packageProof=$releasePins;scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Business5244StartupHash $api);apiProfileCandidateSha256=(Get-Business5244StartupHash $apiAfter);baseProfileSha256=$baseHash;startupBeforeSha256=(Get-Business5244StartupHash $startup);startupCandidateSha256=(Get-Business5244StartupHash $startupAfter);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
  $contractHash=Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes(($shape|ConvertTo-Json -Depth 12 -Compress)))
  $keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile');$new=Get-Business5244ReadPairPins;$old=Get-Business5244WebPins
  $identity='business-5244-read-pair.v1|'+$contractHash+'|'+(($keys|ForEach-Object {$new[$_]})-join'|')+'|'+(($keys|ForEach-Object {$old[$_]})-join'|')
  return @{planHash=(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($identity)));baseHash=$baseHash;startupPath=$path;apiPath=$scope.current.ConfigPath;basePath=$config.ConfigPath;Current=@{startup=$shape.startupBeforeSha256;api=$shape.apiProfileBeforeSha256};Candidate=@{startup=$shape.startupCandidateSha256;api=$shape.apiProfileCandidateSha256}}
+}
+function Get-ReadPairExpectedReleasePins($Config,$Scope){
+ # Deterministic public pins only; no opaque token, registry id or capability.
+ if($Config.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778'-or$Config.ManifestSha256-cne'0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64'){throw 'READPAIR_EXPECTED_BASE_RELEASE_CHANGED'}
+ return [pscustomobject][ordered]@{policy='test125-package-file-identity.v2';baseRoot=$Config.ReleaseRoot;baseManifest=$Config.ManifestSha256;currentApiRoot=$Scope.current.ReleaseRoot;currentApiManifest=$Scope.current.ManifestSha256;candidateApiRoot=$Scope.candidate.ReleaseRoot;candidateApiManifest=$Scope.candidate.ManifestSha256;node=$Config.NodePath;nodeSha256=$Config.NodeSha256;source=$Config.SourceCommit;database=$Config.ExpectedDatabase}
 }
 function Open-ReadPairPublication {
  # First pin every source, then lock ALL six legacy entry files. While held,
@@ -289,8 +300,10 @@ function Wait-ReadPairFinalState {
  do{
   if($newHost.HasExited){throw 'READPAIR_PREPARED_OWNER_EXITED'}
   try{
-   $s=Owner-Status
-   if($s.ownerPid-ne$newHost.Id-or$s.ownerBirth-cne$ready.ownerBirth){throw 'READPAIR_FINAL_PEER_CHANGED'}
+   $connection=Connect-Business5244RetirementPeer
+   $observed=Send-Business5244RetirementRequest $connection status
+   $s=Get-ReadPairFinalPeerState $observed $newHost.Id $ready.ownerBirth
+   if($s.phase-cne'Running'){throw 'READPAIR_FINAL_STATE_NOT_TERMINAL'}
    $files=@(Select-ReadPairCommitArchives @(Get-ChildItem -LiteralPath $pins.runtime -Filter '5244-retirement.pending.*.completed' -File) $archives)
    if($files.Count-eq1-and!(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){
     $lines=@([IO.File]::ReadAllLines($files[0].FullName)|Where-Object {$_});if($lines.Count-ne2){throw 'READPAIR_ARCHIVE_FORMAT'}
@@ -317,7 +330,7 @@ function Wait-ReadPairFinalState {
     $result.final=@{mode=$c.mode;ownerPid=$s.ownerPid;ownerBirth=$s.ownerBirth;childPid=$s.childPid;childBirth=$s.childBirth;archiveSha256=(Get-FileHash $files[0].FullName).Hash;planHash=$c.planHash;apiPackage=$health.packageId;webPackage=$chosen.package;webHttp=200;observation='READONLY_FINAL_STATE_NOT_PRIVATE_TOKEN'}
     return $(if($c.mode-ceq'Candidate'){'CandidateVerified'}else{'RollbackVerified'})
    }
-  }catch{if($_.Exception.Message-cmatch'^READPAIR_(?:ARCHIVE|FINAL_PEER|RECORD|PROTECTION)'){throw}}
+  }catch{if($_.Exception.Message-cmatch'^READPAIR_(?:ARCHIVE|FINAL_PEER|FINAL_OWNER|RECORD|PROTECTION)'){throw}}
   Start-Sleep -Milliseconds 750
  }while([DateTime]::UtcNow-lt$deadline)
  throw 'READPAIR_RECONCILIATION_TIMEOUT_NO_REPLAY'
@@ -376,4 +389,6 @@ Check-Bundle $oldRoot $oldHash 'ec316a63b535544e53a566370b1614a1721f940c'
 . (Join-Path $oldRoot 'start-owned-test.ps1') -Library
 . (Join-Path $oldRoot 'test125-bound-api-quiescence.ps1')
 Initialize-Business5244WebNative;Initialize-Business5244RetirementPeer;$pins=Get-Business5244WebPins
+$generation=[Business5244PackageSeal]::new()
+try{if(!$generation.GetType().GetProperty('PolicyVersion')-or$generation.PolicyVersion-cne'test125-package-file-identity.v2'){throw 'READPAIR_PREPARED_API_CORE_GENERATION_REQUIRED'}}finally{$generation.Dispose()}
 try{Invoke-ReadPairInstallSequence}catch{$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}

@@ -32,7 +32,50 @@ function Get-ErpRecoveryDecision($Failures,$StableSeconds) {
  if($Failures -ge 5){return @{State='circuit-open';Failures=$Failures;DelaySeconds=0}}
  return @{State='restart-wait';Failures=($Failures+1);DelaySeconds=([Math]::Min(60,5*[Math]::Pow(2,$Failures)))}
 }
-function Read-ErpStartupConfig($Path) {
+# Read-only immutable payload proof for the one finite READ2b pair. It is not
+# startup/process authority. Config references are issued only by the real
+# startup reader and its API projection; matching caller-built shapes reject.
+if(!(Get-Variable -Name ErpReadPairReleaseProofs -Scope Script -ErrorAction SilentlyContinue)){$script:ErpReadPairReleaseProofs=[Collections.ArrayList]::new()}
+function Get-ErpReadPairReleaseProofContext($Proof){
+ $found=$null;foreach($row in $script:ErpReadPairReleaseProofs){if([object]::ReferenceEquals($row.token,$Proof)){$found=$row;break}}
+ if(!$found-or$found.closed-or$found.pid-ne$PID-or$found.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-cne$found.owner-or($Proof|ConvertTo-Json -Compress)-cne$found.tokenJson){throw 'TEST125_RELEASE_PROOF_NOT_ISSUED'}
+ return $found
+}
+function New-ErpReadPairPreparedReleaseProof($Config){
+ if(!('Business5244PackageSeal' -as[type])){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
+ $seal=[Business5244PackageSeal]::new()
+ try{
+  if(!$seal.PSObject.Properties['PolicyVersion']-or$seal.PolicyVersion-cne'test125-package-file-identity.v2'){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
+  $actual=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
+  if(($Config|ConvertTo-Json -Depth 100 -Compress)-cne($actual|ConvertTo-Json -Depth 100 -Compress)){throw 'TEST125_RELEASE_PROOF_CONFIG_CHANGED'}
+  $scope=Assert-Test125ReadPairConfig $actual Current
+  if($actual.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778'-or$actual.ManifestSha256-cne'0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64'-or$actual.SourceCommit-cne$scope.source-or$actual.ExpectedDatabase-cne$scope.database){throw 'TEST125_RELEASE_PROOF_SCOPE'}
+  $next=$actual|ConvertTo-Json -Depth 100|ConvertFrom-Json;$next.ApiComponent.ReleaseRoot=$scope.candidate.ReleaseRoot;$next.ApiComponent.ManifestSha256=$scope.candidate.ManifestSha256
+  $oldApi=Get-ErpApiComponentConfig $actual;$newApi=Get-ErpApiComponentConfig $next
+  $all=@($actual,$oldApi,$newApi);$manifests=@{};$shapes=@();$baseShapes=@();$projectedShapes=@()
+  foreach($configShape in @($actual,$next)){$baseShapes+=,($configShape|ConvertTo-Json -Depth 100 -Compress)}
+  foreach($configShape in @($oldApi,$newApi)){$projectedShapes+=,($configShape|ConvertTo-Json -Depth 100 -Compress)}
+  $shapes=@($baseShapes)+@($projectedShapes)
+  foreach($package in $all){$m=Assert-ErpRelease $package -RetainedSeal $seal;$manifests[$package.ReleaseRoot]=[IO.File]::ReadAllText((Join-Path $package.ReleaseRoot 'release-manifest.json'))}
+  $seal.Freeze();$seal.Validate()
+  $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-immutable-release-proof.v1';id=[guid]::NewGuid().ToString('N')}
+  $pins=[pscustomobject][ordered]@{policy=$seal.PolicyVersion;baseRoot=$actual.ReleaseRoot;baseManifest=$actual.ManifestSha256;currentApiRoot=$oldApi.ReleaseRoot;currentApiManifest=$oldApi.ManifestSha256;candidateApiRoot=$newApi.ReleaseRoot;candidateApiManifest=$newApi.ManifestSha256;node=$actual.NodePath;nodeSha256=$actual.NodeSha256;source=$actual.SourceCommit;database=$actual.ExpectedDatabase}
+  [void]$script:ErpReadPairReleaseProofs.Add([pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=$actual.OwnerSid;seal=$seal;shapes=$shapes;baseShapes=$baseShapes;projectedShapes=$projectedShapes;configs=[Collections.ArrayList]::new();manifests=$manifests;pins=$pins;closed=$false})
+  return $token
+ }catch{$seal.Dispose();throw}
+}
+function Get-ErpReadPairReleaseProofPins($Proof){$c=Get-ErpReadPairReleaseProofContext $Proof;return ($c.pins|ConvertTo-Json -Depth 8|ConvertFrom-Json)}
+function Close-ErpReadPairReleaseProof($Proof){$c=Get-ErpReadPairReleaseProofContext $Proof;$c.seal.Dispose();$c.closed=$true;$c.configs.Clear()}
+function Get-ErpReadPairPreparedManifest($Proof,$Config){
+ $c=Get-ErpReadPairReleaseProofContext $Proof;$issued=$false;foreach($configRef in $c.configs){if([object]::ReferenceEquals($configRef,$Config)){$issued=$true;break}}
+ if(!$issued-or($Config|ConvertTo-Json -Depth 100 -Compress)-cnotin$c.shapes){throw 'TEST125_RELEASE_CONFIG_NOT_ISSUED'}
+ $c.seal.Validate()
+ foreach($file in @($Config.NodePath,(Join-Path $Config.ReleaseRoot 'release-manifest.json'))){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST125_RELEASE_PROOF_REPARSE'}}}
+ if((Get-FileHash -LiteralPath $Config.NodePath -Algorithm SHA256).Hash.ToLowerInvariant()-cne$Config.NodeSha256.ToLowerInvariant()-or(Get-FileHash -LiteralPath (Join-Path $Config.ReleaseRoot 'release-manifest.json') -Algorithm SHA256).Hash.ToLowerInvariant()-cne$Config.ManifestSha256.ToLowerInvariant()){throw 'TEST125_RELEASE_PROOF_PIN_CHANGED'}
+ return ($c.manifests[$Config.ReleaseRoot]|ConvertFrom-Json)
+}
+
+function Read-ErpStartupConfig($Path,$PreparedReleaseProof=$null) {
  if(![IO.Path]::IsPathRooted($Path)){throw 'TEST_STARTUP_CONFIG_ABSOLUTE_REQUIRED'}
  $c=Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
  $required=@('RepoRoot','ReleaseRoot','ConfigPath','RuntimeDir','LogDir','NodePath','NodeSha256','OwnerSid','SourceCommit','ManifestSha256','ExpectedDatabase','TaskName')
@@ -55,10 +98,11 @@ function Read-ErpStartupConfig($Path) {
  $push=& git -C $c.RepoRoot remote get-url --push origin; if($LASTEXITCODE -ne 0 -or $push -ne $origin){throw 'TEST_STARTUP_PUSH_ORIGIN_MISMATCH'}
  $privateConfig=Get-Content -LiteralPath $c.ConfigPath -Raw | ConvertFrom-Json
  if($privateConfig.database -ne $c.ExpectedDatabase -or $privateConfig.server -ne '127.0.0.1' -or $privateConfig.sqlPort -ne 1433 -or $privateConfig.erpPort -ne 4144 -or $privateConfig.nativePort -ne 4146 -or $privateConfig.webPort -ne 5194){throw 'TEST_STARTUP_DATABASE_CONFIG_MISMATCH'}
- Assert-ErpRelease $c | Out-Null
+ if($null-ne$PreparedReleaseProof){$proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;if($Path-cne'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'-or($c|ConvertTo-Json -Depth 100 -Compress)-cnotin$proof.baseShapes){throw 'TEST125_RELEASE_PROOF_CONFIG_CHANGED'};[void]$proof.configs.Add($c)}
+ Assert-ErpRelease $c -PreparedReleaseProof $PreparedReleaseProof | Out-Null
  if($c.PSObject.Properties['ApiComponent']){
-  $api=Get-ErpApiComponentConfig $c
-  $m=Assert-ErpRelease $api
+  $api=Get-ErpApiComponentConfig $c -PreparedReleaseProof $PreparedReleaseProof
+  $m=Assert-ErpRelease $api -PreparedReleaseProof $PreparedReleaseProof
   $apiPrivate=Get-Content -LiteralPath $api.ConfigPath -Raw | ConvertFrom-Json
   if($m.kind -cne 'CANONICAL_TEST125_BUSINESS_WORKFACE_CANDIDATE' -or $m.businessWorkfaceId -cne 'ERP-5244-REALDATA-20261027' -or $m.businessWorkfaceReadOnly -ne $true -or $m.normalSessionSourceCommit -cnotmatch '^[a-f0-9]{40}$' -or !$m.PSObject.Properties['businessSessionSignerDomain'] -or $m.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or !$apiPrivate.PSObject.Properties['businessWorkface'] -or $apiPrivate.businessWorkface.id -cne $m.businessWorkfaceId -or $apiPrivate.businessWorkface.userId -ne 17 -or $apiPrivate.businessWorkface.actualT1 -ne $false -or $apiPrivate.businessWorkface.externalOperations -ne $false){throw 'TEST_STARTUP_COMPONENT_PROFILE_REJECTED'}
   # The original native/web profile and its package seal stay unchanged. Only
@@ -72,26 +116,29 @@ function Assert-ErpApiPrivateProfile($Base,$Api,$Manifest){
  $comparison.goal8SyntheticDaySeal=$Base.goal8SyntheticDaySeal
  if(($comparison|ConvertTo-Json -Depth 100 -Compress) -cne ($Base|ConvertTo-Json -Depth 100 -Compress) -or $Api.goal8SyntheticDaySeal.sourceCommit -cne $Base.goal8SyntheticDaySeal.sourceCommit -or $Api.goal8SyntheticDaySeal.dayId -cne $Base.goal8SyntheticDaySeal.dayId -or $Api.goal8SyntheticDaySeal.definitionHash -cne $Base.goal8SyntheticDaySeal.definitionHash -or $Api.goal8SyntheticDaySeal.packageId -cne $Manifest.packageId){throw 'TEST_STARTUP_COMPONENT_PROFILE_DELTA_REJECTED'}
 }
-function Get-ErpApiComponentConfig($Config){
+function Get-ErpApiComponentConfig($Config,$PreparedReleaseProof=$null){
  if(!$Config.PSObject.Properties['ApiComponent']){return $Config}
  $part=$Config.ApiComponent;$keys=@('ReleaseRoot','SourceCommit','ManifestSha256','ConfigPath')
  if(!$part -or @($part.PSObject.Properties.Name).Count -ne 4 -or @($part.PSObject.Properties.Name|Where-Object {$_ -notin $keys}).Count -or !$part.ReleaseRoot -or $part.SourceCommit -cne $Config.SourceCommit -or $part.ManifestSha256 -cnotmatch '^[a-fA-F0-9]{64}$' -or $part.ConfigPath -cne 'C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json' -or (Same-ErpPath $part.ConfigPath $Config.ConfigPath)){throw 'TEST_STARTUP_COMPONENT_PIN_REJECTED'}
  if(![IO.Path]::IsPathRooted($part.ReleaseRoot) -or $part.ReleaseRoot -match '["\r\n]' -or !([IO.Path]::GetFullPath($part.ReleaseRoot).StartsWith('C:\Sirket\ERP\releases\',[StringComparison]::OrdinalIgnoreCase)) -or !(Outside-ErpPath $part.ReleaseRoot $Config.RepoRoot) -or !(Outside-ErpPath $Config.RepoRoot $part.ReleaseRoot) -or !(Outside-ErpPath $part.ReleaseRoot $Config.RuntimeDir) -or !(Outside-ErpPath $part.ReleaseRoot $Config.ReleaseRoot) -or !(Outside-ErpPath $Config.ReleaseRoot $part.ReleaseRoot)){throw 'TEST_STARTUP_COMPONENT_PATH_REJECTED'}
  $copy=[pscustomobject]@{};foreach($property in $Config.PSObject.Properties){if($property.Name -ne 'ApiComponent'){$copy|Add-Member -NotePropertyName $property.Name -NotePropertyValue $property.Value}}
  $copy.ReleaseRoot=$part.ReleaseRoot;$copy.SourceCommit=$part.SourceCommit;$copy.ManifestSha256=$part.ManifestSha256;$copy.ConfigPath=$part.ConfigPath
+ if($null-ne$PreparedReleaseProof){$proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;$issued=$false;foreach($ref in $proof.configs){if([object]::ReferenceEquals($ref,$Config)){$issued=$true;break}};if(!$issued-or($Config|ConvertTo-Json -Depth 100 -Compress)-cnotin$proof.baseShapes-or($copy|ConvertTo-Json -Depth 100 -Compress)-cnotin$proof.projectedShapes){throw 'TEST125_RELEASE_CONFIG_NOT_ISSUED'};[void]$proof.configs.Add($copy)}
  return $copy
 }
 function Get-ErpServiceConfig($Config,$Definition){if($Definition.Name -ceq 'api'){return Get-ErpApiComponentConfig $Config};return $Config}
-function Assert-ErpRelease($Config) {
- if((Get-FileHash -LiteralPath $Config.NodePath -Algorithm SHA256).Hash -ne $Config.NodeSha256){throw 'TEST_STARTUP_NODE_HASH_MISMATCH'}
+function Assert-ErpRelease($Config,$PreparedReleaseProof=$null,$RetainedSeal=$null) {
+ if($null-ne$PreparedReleaseProof){if($null-ne$RetainedSeal){throw 'TEST125_RELEASE_PROOF_MODE'};return Get-ErpReadPairPreparedManifest $PreparedReleaseProof $Config}
+ if($null-ne$RetainedSeal-and!($RetainedSeal-is[Business5244PackageSeal])){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
+ if($null-ne$RetainedSeal){$RetainedSeal.Add($Config.NodePath,$Config.NodeSha256)}elseif((Get-FileHash -LiteralPath $Config.NodePath -Algorithm SHA256).Hash -ne $Config.NodeSha256){throw 'TEST_STARTUP_NODE_HASH_MISMATCH'}
  $manifestPath=Join-Path $Config.ReleaseRoot 'release-manifest.json'
- if((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash -ne $Config.ManifestSha256){throw 'TEST_STARTUP_MANIFEST_HASH_MISMATCH'}
+ if($null-ne$RetainedSeal){$RetainedSeal.Add($manifestPath,$Config.ManifestSha256)}elseif((Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash -ne $Config.ManifestSha256){throw 'TEST_STARTUP_MANIFEST_HASH_MISMATCH'}
  $m=Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
  if($m.sourceCommit -ne $Config.SourceCommit -or $m.database -ne $Config.ExpectedDatabase -or $m.writes -ne $true -or $m.writeScope -ne 'existing-named-test-records' -or !$m.baselineReproduced){throw 'TEST_STARTUP_RELEASE_IDENTITY_MISMATCH'}
  foreach($file in $m.files){
   $target=[IO.Path]::GetFullPath((Join-Path $Config.ReleaseRoot $file.path))
   if(!( $target.StartsWith($Config.ReleaseRoot.TrimEnd('\','/')+'\',[StringComparison]::OrdinalIgnoreCase)) -or (((Get-Item -LiteralPath $target).Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)){throw 'TEST_STARTUP_MANIFEST_PATH_REJECTED'}
-  if((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $file.sha256){throw 'TEST_STARTUP_RELEASE_HASH_MISMATCH'}
+  if($null-ne$RetainedSeal){$RetainedSeal.Add($target,$file.sha256)}elseif((Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash -ne $file.sha256){throw 'TEST_STARTUP_RELEASE_HASH_MISMATCH'}
  }
  return $m
 }

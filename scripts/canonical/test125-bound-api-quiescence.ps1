@@ -38,9 +38,10 @@ function Assert-Test125ApiAdmission($Admission,[string]$ExpectedRunId='PRODUCT-4
 function Open-Test125ApiQuiescence($Admission,[string]$ExpectedRunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7'){
  Assert-Test125ApiAdmission $Admission $ExpectedRunId
  if($script:Test125ApiBinding){throw 'TEST125_API_BINDING_ALREADY_OPEN'}
- $fresh=if($ExpectedRunId-ceq(Get-Test125ReadPairScope).name){Get-Test125BoundMaintenancePlan -RunId $ExpectedRunId -ReadPairPreparation -ReadPairMode $script:Test125ReadPairContext.mode}else{Get-Test125BoundMaintenancePlan -RunId $ExpectedRunId}
+ $fresh=if($ExpectedRunId-ceq(Get-Test125ReadPairScope).name){Get-Test125BoundMaintenancePlan -RunId $ExpectedRunId -ReadPairPreparation -ReadPairMode $script:Test125ReadPairContext.mode -PreparedReleaseProof $script:Test125ReadPairContext.releaseProof}else{Get-Test125BoundMaintenancePlan -RunId $ExpectedRunId}
  Assert-Test125MaintenancePin $Admission $fresh
- $config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
+ $releaseProof=if($ExpectedRunId-ceq(Get-Test125ReadPairScope).name){$script:Test125ReadPairContext.releaseProof}else{$null}
+ $config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json' -PreparedReleaseProof $releaseProof
  $definition=@(Get-ErpServiceDefinitions $config | Where-Object {$_.Name -eq 'api'})[0]
  $process=Assert-ErpOwnedProcess $Admission.children.api.pid $config $definition $Admission.children.api.birth
  if(!$process){throw 'TEST125_API_MISSING_BEFORE_OPEN'}
@@ -50,7 +51,7 @@ function Open-Test125ApiQuiescence($Admission,[string]$ExpectedRunId='PRODUCT-48
  try{
   $again=Assert-ErpOwnedProcess $process.ProcessId $config $definition $Admission.children.api.birth
   if(!$again -or $again.CreationDate -ne $process.CreationDate){throw 'TEST125_API_CHANGED_DURING_OPEN'}
-  $binding=[pscustomobject]@{admission=$Admission;config=$config;definition=$definition;handle=$handle;birth=$birth;mutex=$null;held=$false;stopped=$false}
+  $binding=[pscustomobject]@{admission=$Admission;config=$config;definition=$definition;handle=$handle;birth=$birth;mutex=$null;held=$false;stopped=$false;releaseProof=$releaseProof}
   $script:Test125ApiBinding=$binding;return $binding
  }catch{$handle.Dispose();throw}
 }
@@ -58,7 +59,9 @@ function Assert-Test125ApiStoppedSupervisor($Binding){
  if(!$Binding -or ![object]::ReferenceEquals($Binding,$script:Test125ApiBinding)){throw 'TEST125_API_BINDING_NOT_OWNED'}
  $a=$Binding.admission;$c=$Binding.config
  if((Get-FileHash -LiteralPath 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json' -Algorithm SHA256).Hash -cne $a.startupHash -or (Get-FileHash -LiteralPath (Join-Path $c.RepoRoot 'scripts\canonical\start-owned-test.ps1') -Algorithm SHA256).Hash -cne $a.launcherHash){throw 'TEST125_API_CONFIG_CHANGED'}
- Assert-ErpRelease $c | Out-Null
+ $releaseProof=if($Binding.PSObject.Properties['releaseProof']){$Binding.releaseProof}else{$null}
+ if($a.runId-ceq(Get-Test125ReadPairScope).name-and$null-eq$releaseProof){throw 'TEST125_RELEASE_PROOF_REQUIRED'}
+ Assert-ErpRelease $c -PreparedReleaseProof $releaseProof | Out-Null
  $service=New-Object -ComObject Schedule.Service;$service.Connect();$task=$service.GetFolder('\').GetTask('Melisa-ERP-TEST-Canonical')
  $sha=[Security.Cryptography.SHA256]::Create()
  try{$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$task.Xml))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
@@ -110,6 +113,7 @@ function Get-Test125ReadPairHash([byte[]]$Bytes){$h=[Security.Cryptography.SHA25
 function Assert-Test125ReadPairIssued($Transition){
  $c=$script:Test125ReadPairContext
  if(!$c-or![object]::ReferenceEquals($Transition,$c.token)-or$c.pid-ne$PID-or$c.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or($Transition|ConvertTo-Json -Depth 12 -Compress)-cne$c.tokenJson){throw 'TEST125_READPAIR_NOT_ISSUED'}
+ [void](Get-ErpReadPairReleaseProofContext $c.releaseProof)
  return $c
 }
 function New-Test125ReadPairTransition {
@@ -131,19 +135,20 @@ function New-Test125ReadPairTransition {
  Assert-ErpApiPrivateProfile ([Text.Encoding]::UTF8.GetString($baseProfileBytes)|ConvertFrom-Json) $apiNext $manifest
  $apiCandidate=[Text.Encoding]::UTF8.GetBytes(($apiNext|ConvertTo-Json -Depth 100))
  $nextBytes=[Text.Encoding]::UTF8.GetBytes(($next|ConvertTo-Json -Depth 100))
- $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-api-transition.v1';scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Test125ReadPairHash $apiBefore);apiProfileCandidateSha256=(Get-Test125ReadPairHash $apiCandidate);baseProfileSha256=(Get-Test125ReadPairHash $baseProfileBytes);startupBeforeSha256=(Get-Test125ReadPairHash $bytes);startupCandidateSha256=(Get-Test125ReadPairHash $nextBytes);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
- $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;candidateAttempted=$false;failedStartProof=$null}
+ $releaseProof=New-ErpReadPairPreparedReleaseProof $config;$releasePins=Get-ErpReadPairReleaseProofPins $releaseProof
+ $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-api-transition.v1';packageProof=$releasePins;scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Test125ReadPairHash $apiBefore);apiProfileCandidateSha256=(Get-Test125ReadPairHash $apiCandidate);baseProfileSha256=(Get-Test125ReadPairHash $baseProfileBytes);startupBeforeSha256=(Get-Test125ReadPairHash $bytes);startupCandidateSha256=(Get-Test125ReadPairHash $nextBytes);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
+ $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);releaseProof=$releaseProof;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;candidateAttempted=$false;failedStartProof=$null}
  return $token
 }
 function Assert-Test125ReadPairTransition($Transition,[ValidateSet('Current','Candidate')][string]$Mode='Current'){
  $c=Assert-Test125ReadPairIssued $Transition
  if($c.mode-cne$Mode-or$c.phase-cnotin@('PREPARED','VERIFIED')){throw 'TEST125_READPAIR_PHASE_REJECTED'}
- $config=Read-ErpStartupConfig $c.startupPath;[void](Assert-Test125ReadPairConfig $config $Mode)
+ $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof;[void](Assert-Test125ReadPairConfig $config $Mode)
  $expected=if($Mode-ceq'Current'){$Transition.startupBeforeSha256}else{$Transition.startupCandidateSha256}
  if((Get-FileHash -LiteralPath $c.startupPath -Algorithm SHA256).Hash.ToLowerInvariant()-cne$expected){throw 'TEST125_READPAIR_STARTUP_DRIFT'}
  $apiExpected=if($Mode-ceq'Current'){$Transition.apiProfileBeforeSha256}else{$Transition.apiProfileCandidateSha256}
  if((Get-FileHash -LiteralPath $c.apiPath -Algorithm SHA256).Hash.ToLowerInvariant()-cne$apiExpected-or(Get-FileHash -LiteralPath $config.ConfigPath -Algorithm SHA256).Hash.ToLowerInvariant()-cne$Transition.baseProfileSha256){throw 'TEST125_READPAIR_PROFILE_DRIFT'}
- $fresh=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $Mode
+ $fresh=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $Mode -PreparedReleaseProof $c.releaseProof
  foreach($name in @('native','web')){if(($fresh.children.$name|ConvertTo-Json -Depth 8 -Compress)-cne($c.baseline.children.$name|ConvertTo-Json -Depth 8 -Compress)){throw 'TEST125_READPAIR_COMPANION_CHANGED'}}
  foreach($key in @('source','database','launcherHash','manifestHash','taskXmlHash')){if($fresh.$key-cne$c.baseline.$key){throw 'TEST125_READPAIR_BOUNDARY_CHANGED'}}
  Assert-Test125MaintenancePin $c.admission $fresh
@@ -194,7 +199,7 @@ function Get-Test125ReadPairFailedStartEvidence($Context){
  try{
  $t=$c.token
  if($c.mode-cne'Candidate'-or!$c.changed-or!$c.apiChanged-or!$c.resumedEngine-or!$c.resumedInstance-or!$c.resumedBirth-or$c.resumedEngine-eq$c.baseline.supervisor){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
- $config=Read-ErpStartupConfig $c.startupPath;[void](Assert-Test125ReadPairConfig $config Candidate)
+ $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof;[void](Assert-Test125ReadPairConfig $config Candidate)
  foreach($entry in @(@($c.startupPath,$t.startupCandidateSha256),@($c.apiPath,$t.apiProfileCandidateSha256),@($config.ConfigPath,$t.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}
  if((Get-FileHash -LiteralPath (Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1') -Algorithm SHA256).Hash-cne$c.baseline.launcherHash){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
  $task=Get-Test125ReadPairTask;$instances=$task.GetInstances(0)
@@ -237,7 +242,7 @@ function Open-Test125ReadPairFailedStart($Context){
   if(($again.evidence|ConvertTo-Json -Depth 12 -Compress)-cne($first.evidence|ConvertTo-Json -Depth 12 -Compress)-or!$again.api-or$again.api.CreationDate-ne$first.api.CreationDate){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
   $a=$c.baseline|ConvertTo-Json -Depth 32|ConvertFrom-Json;$a.startupHash=$c.token.startupCandidateSha256.ToUpperInvariant();$a.supervisor=$c.resumedEngine;$a.supervisorBirth=$first.evidence.supervisorBirth;$a.taskInstance=$c.resumedInstance
   $a.children.api=[pscustomobject]@{port=4144;pid=$first.api.ProcessId;birth=$first.api.CreationDate.ToUniversalTime().ToString('o');ownerVerified=$true;healthy=$false}
-  $binding=[pscustomobject]@{admission=$a;config=$first.config;definition=$first.definition;handle=$handle;birth=$birth;mutex=$null;held=$false;stopped=$false}
+  $binding=[pscustomobject]@{admission=$a;config=$first.config;definition=$first.definition;handle=$handle;birth=$birth;mutex=$null;held=$false;stopped=$false;releaseProof=$c.releaseProof}
   $c.admission=$a;$c.admissionJson=($a|ConvertTo-Json -Depth 32 -Compress);$c.failedStartProof=$first.evidence;$script:Test125ApiBinding=$binding;return $binding
  }catch{$handle.Dispose();throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
 }
@@ -263,7 +268,7 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
  if($c.phase-ceq'FAILED'-and$Mode-cne'Rollback'){throw 'TEST125_READPAIR_FAILED_REQUIRES_ROLLBACK'}
  if($c.phase-ceq'FAILED'-and$Mode-ceq'Rollback'-and!$c.taskStopped-and$c.activeBinding-and!$c.changed-and!$c.apiChanged){
   # Failure before the first supported task-stop request has no runtime change.
-  $fresh=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode Current
+  $fresh=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode Current -PreparedReleaseProof $c.releaseProof
   Assert-Test125MaintenancePin $c.admission $fresh;Close-Test125ApiQuiescence $c.activeBinding;$c.activeBinding=$null;$c.phase='PREPARED'
   [void](Assert-Test125ReadPairTransition $Transition Current);return [pscustomobject]@{status='ALREADY_VERIFIED';mode='Current';secondEffect=$false;companionStops=0;sqlWrites=0}
  }
@@ -294,7 +299,7 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
    }
    # Before-image work may take time; task/source/children must still be the
    # exact admitted generation immediately before the supported stop request.
-   if($c.failedStartProof){$again=Get-Test125ReadPairFailedStartEvidence $c;if(($again.evidence|ConvertTo-Json -Depth 12 -Compress)-cne($c.failedStartProof|ConvertTo-Json -Depth 12 -Compress)){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}else{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $c.mode;Assert-Test125MaintenancePin $c.admission $last}
+   if($c.failedStartProof){$again=Get-Test125ReadPairFailedStartEvidence $c;if(($again.evidence|ConvertTo-Json -Depth 12 -Compress)-cne($c.failedStartProof|ConvertTo-Json -Depth 12 -Compress)){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}else{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $c.mode -PreparedReleaseProof $c.releaseProof;Assert-Test125MaintenancePin $c.admission $last}
    $task=Get-Test125ReadPairTask;$instances=$task.GetInstances(0)
    if((Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-cne$c.admission.taskXmlHash-or$instances.Count-ne1-or[string]$instances.Item(1).InstanceGuid-cne$c.admission.taskInstance-or[int]$instances.Item(1).EnginePID-ne$c.admission.supervisor){if($c.failedStartProof){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'};throw 'TEST125_READPAIR_TASK_CAS_CHANGED'}
    $c.phase='PAUSING';$c.taskStopped=$true
@@ -334,7 +339,7 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
    if($destination-ceq'Candidate'-and$c.resumedEngine-and!$c.activeBinding){try{$c.activeBinding=Open-Test125ReadPairFailedStart $c}catch{}}
 
    Assert-Test125ReadPairCompanions $c
-   try{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $destination}catch{$last=$null}
+   try{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $destination -PreparedReleaseProof $c.releaseProof}catch{$last=$null}
    if($last){break};Start-Sleep -Milliseconds 500
   }while([DateTime]::UtcNow-lt$deadline)
   if(!$last-or$last.supervisor-eq$retiredSupervisor){throw 'TEST125_READPAIR_API_READY_TIMEOUT'}

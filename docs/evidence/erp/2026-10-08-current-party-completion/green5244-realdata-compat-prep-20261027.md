@@ -523,3 +523,34 @@ Continuation başlatma komutu (bu kayıt anında henüz çalıştırılmadı):
 ```
 
 İlave hedefler: gerçek temp PS reader1PASS, exact continuation negatifleri1PASS, map-sırası bağımsız exact alan/baseline negatifleri1PASS; gerçek hedefte yalnız readonly continuation admission PASS. Eski geniş suite/paket taraması tekrarlanmadı. Kalıcı Hub/logon/reboot ve insan kabulü aynı ayrı açık sınırdadır.
+
+
+## 28 Ekim — gerçek nonce süresi engeli, immutable API/base düzeltmesi ve harici bakım sınırı
+
+### Gerçek sonuç
+
+Continuation tek retire denemesi11:12:25.663Z, bootstrap yazımı11:13:36.356Z (**70,693223sn**). Ardından ilk `Invoke-Business5244OwnedRetirement` request reference/deadline guard'ı15sn süresi dolmuş isteği kabul etmedi. Dispatcher Unknown'da Current native child'ı korudu; API geçişi başlamadı. Controller91708 kendi15dk salt okunur uzlaştırma sınırında11:27:42Z `READPAIR_RECONCILIATION_TIMEOUT_NO_REPLAY` ile kapandı. İkinci retire/owner stop/inverse/restore yapılmadı. Eski başarısız ilk loader çağrısı ve ayrı Current kurtarma kanıtları da korunur.
+
+Bağımsız post-close native status: owner42216/child25564, `Unknown`; Current web5cb HTTP200; API10cdc/user17/aynıTESTDB; startup, privateAPI ve base profile hashleri aynı; diğer servis port/PID/doğum/dosya koruma imzası aynı. Yalnız Current metadata bootstrap arşivi var; gerçek paired commit/pending yok. Bu, owner'ın private terminal `NoEffects` yetkisini ürettiği anlamına gelmez.
+
+Gerçek Chrome'da mevcut Semih oturumu reload sonrası geri geldi; stok16.992/50, müşteri listesi ve ayrıUSD kartı görüldü. Eski5cb Satış “henüz bağlı değil”; yeni hesap geçmişi API'si kurulmadığından geçmiş açılamıyor. Bunlar yeniREAD2b GUI kabulü olarak işaretlenmedi; ticari kayıt/form gönderimi yok. Stok ekranının görüntüsü sohbette gösterildi; yeni bir PNG dosyası üretildiği iddia edilmez.
+
+### Aynı dolaylı çağrı yolundaki kaynak düzeltmesi
+
+`New-Test125ReadPairTransition` nonce açılmadan önce base+CurrentAPI+CandidateAPI payload'larını gerçek `Business5244PackageSeal` v2 ile hashler ve read handle'larını tutar. Her ancestor için native directory handle (shareREAD|WRITE/noDELETE), başlangıç finalpathname/volume/FileID/type/reparse bağı; her payload gerçek READ/shareREAD handle üstünde SHA. Request-time `Validate` native handle/fileID/type/reparse'ı kontrol eder; payload yeniden hashlenmez. Yeni policyversion zorunlu; eski frozen native sınıfı hotload ile kabul edilmez.
+
+Prepared proof process/thread/SID/issued object reference'e bağlıdır. Yalnız gerçek `Read-ErpStartupConfig`'in ürettiği config referansı ve ondan türeyen API projection fastpath kullanabilir. Caller-built veya JSON copy config/proof reddedilir. Node ve manifest freshSHA/reparse/source, privateprofile/config exacthash, owner/health ve hedef koşulları kalır. Varsayılan standalone/canonical ReadStartup/AssertRelease FULL'dür. Paired GetPlan/Open/StoppedSupervisor/failedStart/beforeStart ve transition/rollback dolaylı okuyucuları aynı proof'u taşır. Owner finally owned child'lar kapandıktan sonra proof'u kapatır; hata halinde gate güvenli kalır.
+
+Installer beklenen token/plan hash'ine aynı ordered **public** packageProof pinleri eklendi; opaque token/id aktarılmaz. Gerçek inert constructor ile aynı immutable pins/contract/planSHA eşliği ayrıca test edildi. Future controller authenticatedUnknown'u hemen terminalfailure sayar; stop/inverse/replay eklemez.
+
+### Dar doğrulama
+
+Yeni production-path dosyasında5 hedef PASS/0skip: standaloneFULL/nativeclass yokken gerçekhash doğrulaması, gerçektemp native write/delete/ancestorrename engeli+unrelatedwrite izni, junction reddi, gerçekConstructor/ReadStartup/AssertRelease/pairdolaylıcallpath payloadhash0, foreign/copy/thread/closed/profile/manifest/candidatecorruption negatifleri. Installer gerçekconstructorpublicpins/planhash entegrasyonu yeni1PASS. Etkilenen eski constructor/taskCAS/replay fixture'larının4 hedefi güncellenip PASS; tüm eski18/suite/payload paketi tekrar çalıştırılmadı. FutureUnknown classification ve currentmetadatafinitebaseline yeni hedefleri PASS. Bağımsız native/API/root entegrasyon incelemesi GO; gerçek15sn yeni owner provası ve yeni kurulum henüz yok.
+
+### Desteklenen çıkışın gerçek sınırı
+
+Frozen ec owner, aynı issued request/plan'a bağlı terminal `PreRetireExpired/NoEffects` capability üretmiyor. Status/CIM/bootstrap/API eşliği bu capability yerine konamaz. `OpenControlledShutdown` gerçek peer handle'ı verse de Unknown stop guard'ını dolanma yetkisi değildir. Agent CLI/UI/nativekill, frozenhotpatch veya JSON token üretme yapmayacak.
+
+Tek uygulanabilir **harici insan** bakım eylemi: o anda source/argv/native PID-doğumu tekrar gösterilen **yalnız owner42216** kullanıcının Windows Görev Yöneticisi'nden kendisinin sonlandırmasıdır. Child25564 owner'ın Job'u ile kapanır; API4144/native4146/web5194/CLEAN/CRM kapatılmaz, reboot gerekmez. Bu yalnız5244 kısa kesinti oluşturur; yapılmadan önce yeni başlatıcı/fresh-start malzemesi hazır olmalıdır. Ajan aynı kararı otomatik kill iznine dönüştürmez. Sonrasında tüm eski web kaynaklarının çıkışı, boş5244/pendingyokluğu, aynıAPI/profile/koruma ve yeni original creator/Job koşulları yeniden doğrulanır; yabancı işgal/ret varsa zorlanmaz.
+
+Mevcut Current metadata hash3bfd.../PID25564 için source publisher'a yalnız **bu exact after-image** finite CAS baseline eklendi; PID25564 canlıysa hâlâ ret. Bu yalnız yeni owned Current child'ın metadata'sını, harici bakım gerçekten tamamlandıktan sonra yazmaya yarar; hiçbir shutdown/Unknown reset yetkisi vermez. Eski commands/frozenec API-proof generation v1 ile yeni prepared flow çalıştırılmaz; yeni core/router source malzemesi gerekir. KalıcıHub/logon/reboot ve insanUA aynı ayrı açık sınırdadır.

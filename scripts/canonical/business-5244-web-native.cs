@@ -39,19 +39,50 @@ public sealed class Business5244PackageSeal:IDisposable {
  readonly int thread=System.Threading.Thread.CurrentThread.ManagedThreadId;
  readonly System.Collections.Generic.Dictionary<string,System.IO.FileStream> files=new System.Collections.Generic.Dictionary<string,System.IO.FileStream>(StringComparer.OrdinalIgnoreCase);
  readonly System.Collections.Generic.Dictionary<string,string> hashes=new System.Collections.Generic.Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+ sealed class Identity {
+  public Microsoft.Win32.SafeHandles.SafeFileHandle Handle;public uint Volume,High,Low;public bool Directory;
+ }
+ [StructLayout(LayoutKind.Sequential)] struct INFO {
+  public uint Attributes,CreationLow,CreationHigh,AccessLow,AccessHigh,WriteLow,WriteHigh,Volume,SizeHigh,SizeLow,Links,High,Low;
+ }
+ [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern Microsoft.Win32.SafeHandles.SafeFileHandle CreateFile(string name,uint access,uint share,IntPtr security,uint mode,uint flags,IntPtr template);
+ [DllImport("kernel32.dll",SetLastError=true)] static extern bool GetFileInformationByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle handle,out INFO info);
+ [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)] static extern uint GetFinalPathNameByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle handle,StringBuilder path,uint length,uint flags);
+ readonly System.Collections.Generic.Dictionary<string,Identity> directories=new System.Collections.Generic.Dictionary<string,Identity>(StringComparer.OrdinalIgnoreCase);
+ readonly System.Collections.Generic.Dictionary<string,Identity> identities=new System.Collections.Generic.Dictionary<string,Identity>(StringComparer.OrdinalIgnoreCase);
  bool frozen,disposed;
+ public string PolicyVersion{get{return "test125-package-file-identity.v2";}}
  public int Count{get{return files.Count;}}
  void Owner(){if(disposed||pid!=System.Diagnostics.Process.GetCurrentProcess().Id||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId)throw new InvalidOperationException("PACKAGE_SEAL_NOT_CURRENT");}
+ Identity Capture(Microsoft.Win32.SafeHandles.SafeFileHandle handle,string path,bool directory){
+  INFO info;if(handle.IsClosed||handle.IsInvalid||!GetFileInformationByHandle(handle,out info)||(info.Attributes&0x400)!=0||((info.Attributes&0x10)!=0)!=directory)throw new InvalidOperationException("PACKAGE_SEAL_PATH_IDENTITY_CHANGED");
+  var final=new StringBuilder(32768);uint size=GetFinalPathNameByHandle(handle,final,(uint)final.Capacity,0);
+  string actual=final.ToString();if(actual.StartsWith(@"\\?\",StringComparison.Ordinal))actual=actual.Substring(4);
+  if(size==0||size>=final.Capacity||!String.Equals(actual.TrimEnd('\\'),path.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("PACKAGE_SEAL_PATH_IDENTITY_CHANGED");
+  return new Identity{Handle=handle,Volume=info.Volume,High=info.High,Low=info.Low,Directory=directory};
+ }
+ void PinDirectory(string path){
+  path=System.IO.Path.GetFullPath(path);if(directories.ContainsKey(path))return;
+  string parent=System.IO.Path.GetDirectoryName(path);if(!String.IsNullOrEmpty(parent)&&!String.Equals(parent,path,StringComparison.OrdinalIgnoreCase))PinDirectory(parent);
+  // Share writes to unrelated files/directories normally. Do not share DELETE:
+  // no ancestor can be renamed/replaced while payload handles are retained.
+  var handle=CreateFile(path,0x80,3,IntPtr.Zero,3,0x02200000,IntPtr.Zero);
+  try{directories.Add(path,Capture(handle,path,true));}catch{handle.Dispose();throw;}
+ }
+ void ValidateIdentity(Identity identity){
+  INFO info;if(identity.Handle.IsClosed||identity.Handle.IsInvalid||!GetFileInformationByHandle(identity.Handle,out info)||(info.Attributes&0x400)!=0||((info.Attributes&0x10)!=0)!=identity.Directory||info.Volume!=identity.Volume||info.High!=identity.High||info.Low!=identity.Low)throw new InvalidOperationException("PACKAGE_SEAL_PATH_IDENTITY_CHANGED");
+ }
  public void Add(string path,string expected){
   Owner();if(frozen)throw new InvalidOperationException("PACKAGE_SEAL_FROZEN");path=System.IO.Path.GetFullPath(path);
   if(files.ContainsKey(path)){if(!String.Equals(hashes[path],expected,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("PACKAGE_SEAL_HASH_CONFLICT");return;}
+  PinDirectory(System.IO.Path.GetDirectoryName(path));
   var file=new System.IO.FileStream(path,System.IO.FileMode.Open,System.IO.FileAccess.Read,System.IO.FileShare.Read);
-  try{string actual;using(var sha=System.Security.Cryptography.SHA256.Create()){actual=BitConverter.ToString(sha.ComputeHash(file)).Replace("-","").ToLowerInvariant();}
+  try{var identity=Capture(file.SafeFileHandle,path,false);string actual;using(var sha=System.Security.Cryptography.SHA256.Create()){actual=BitConverter.ToString(sha.ComputeHash(file)).Replace("-","").ToLowerInvariant();}
    if(!String.Equals(actual,expected,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("PACKAGE_SEAL_CONTENT_CHANGED");
-   file.Position=0;files.Add(path,file);hashes.Add(path,actual);
+   file.Position=0;files.Add(path,file);hashes.Add(path,actual);identities.Add(path,identity);
   }catch{file.Dispose();throw;}
  }
  public void Freeze(){Owner();if(frozen||files.Count==0)throw new InvalidOperationException("PACKAGE_SEAL_NOT_PREPARED");frozen=true;Validate();}
- public void Validate(){Owner();if(!frozen)throw new InvalidOperationException("PACKAGE_SEAL_NOT_PREPARED");foreach(var file in files.Values){if(!file.CanRead||file.SafeFileHandle.IsClosed||file.SafeFileHandle.IsInvalid)throw new InvalidOperationException("PACKAGE_SEAL_LOST_HANDLE");}}
- public void Dispose(){if(disposed)return;foreach(var file in files.Values)file.Dispose();files.Clear();hashes.Clear();disposed=true;}
+ public void Validate(){Owner();if(!frozen)throw new InvalidOperationException("PACKAGE_SEAL_NOT_PREPARED");foreach(var file in files.Values){if(!file.CanRead||file.SafeFileHandle.IsClosed||file.SafeFileHandle.IsInvalid)throw new InvalidOperationException("PACKAGE_SEAL_LOST_HANDLE");}foreach(var identity in identities.Values)ValidateIdentity(identity);foreach(var identity in directories.Values)ValidateIdentity(identity);}
+ public void Dispose(){if(disposed)return;foreach(var file in files.Values)file.Dispose();foreach(var identity in directories.Values)identity.Handle.Dispose();files.Clear();hashes.Clear();identities.Clear();directories.Clear();disposed=true;}
 }

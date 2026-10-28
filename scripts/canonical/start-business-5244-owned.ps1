@@ -203,6 +203,7 @@ function Start-Business5244OwnedSupervisor {
   if($retirement){try{Close-Business5244RetirementState $retirement}catch{$cleanupFailed=$true}}
   if($native){try{$native.Dispose()}catch{$cleanupFailed=$true}}
   try{Close-Business5244PinnedChildren $lease}catch{$cleanupFailed=$true}
+  if($apiTransition){try{$apiContext=Assert-Test125ReadPairIssued $apiTransition;Close-ErpReadPairReleaseProof $apiContext.releaseProof}catch{$cleanupFailed=$true}}
   if($cleanupFailed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
   Exit-Business5244StartupLease -Lease $lease
  }

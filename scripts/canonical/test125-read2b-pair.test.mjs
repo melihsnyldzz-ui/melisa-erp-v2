@@ -21,6 +21,13 @@ function Read-ErpStartupConfig{param($Path);return (Get-Content -Raw $startup|Co
 function Assert-ErpRelease{param($c);return [pscustomobject]@{packageId='CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'}}
 function Assert-ErpApiPrivateProfile{param($base,$candidate,$manifest);if($candidate.untouched-cne'private-fixture'-or$candidate.goal8SyntheticDaySeal.packageId-cne$manifest.packageId){throw 'PROFILE_DELTA'}}
 function Get-ErpApiComponentConfig{param($c);return $c}
+# This older fixture isolates task/CAS/replay IO, not package validation.
+# Actual payload seals/issued config refs are exercised by the new production
+# call-path tests in test125-read2b-prepared-api.test.mjs.
+$script:inertReleaseProof=[pscustomobject]@{kind='inert-payload-fixture'}
+function New-ErpReadPairPreparedReleaseProof{param($Config);return $script:inertReleaseProof}
+function Get-ErpReadPairReleaseProofContext{param($Proof);if(![object]::ReferenceEquals($Proof,$script:inertReleaseProof)){throw 'FIXTURE_RELEASE_REFERENCE'};return @{}}
+function Get-ErpReadPairReleaseProofPins{param($Proof);[void](Get-ErpReadPairReleaseProofContext $Proof);return [pscustomobject]@{policy='inert-payload-fixture'}}
 function Get-Test125BoundMaintenancePlan{
  param($RunId,[switch]$ReadPairPreparation,$ReadPairMode)
  if(!$ReadPairPreparation-or$RunId-cne$originalScope.name){throw 'PLAN_SCOPE'}
