@@ -83,7 +83,9 @@ export async function configureCanonicalTest(configPath, mode) {
   if(mode==='erp'&&config.businessSaleAdmission!==undefined){
     if(!businessSession)throw Error('CANONICAL_BUSINESS_SALE_PROFILE_TARGET_REJECTED');
     await configureCanonicalBusinessSaleLegacyProof({profile:config.businessSaleAdmission,identity,mode,port,pool});
-    configureCanonicalBusinessSaleAdmission(businessSession,config.businessSaleAdmission,{writesEnabled:config.businessSaleWritesEnabled===true});
+    const saleRuntimeBootstrap=configureCanonicalBusinessSaleAdmission(businessSession,config.businessSaleAdmission,{writesEnabled:config.businessSaleWritesEnabled===true});
+    const {configureCanonicalBusinessSaleRuntime}=await import('./src/services/canonicalBusinessSaleRuntime.mjs');
+    configureCanonicalBusinessSaleRuntime(saleRuntimeBootstrap);
   }
   return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy,businessSession};
 }
