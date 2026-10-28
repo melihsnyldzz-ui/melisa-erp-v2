@@ -97,19 +97,34 @@ function Complete-B5WriterHandoff($Lease,[string]$Outcome,$Context){
 }
 function Enter-B5Lease($Handoff){
  Assert-B5WriterHandoff $Handoff
+ . (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
+ $startupLease=Enter-Business5244StartupLease -Kind Maintenance
+ $mutex=$null
+ try{
  $p=Get-B5Pins;$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
  $mutex=New-Object Threading.Mutex($false,(Get-B5MutexName $p.runtime $sid))
- try{try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();B5Fail 'B5_ABANDONED_OWNER'};if(!$held){B5Fail 'B5_OWNER_BUSY'}
-  $script:B5Lease=[pscustomobject]@{mutex=$mutex;sid=$sid;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;handoff=$Handoff;sequence=0;closed=$false;resources=(New-Object Collections.Generic.List[IDisposable]);dependencyDirectories=(New-Object Collections.Generic.List[object])}
+ try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();B5Fail 'B5_ABANDONED_OWNER'};if(!$held){B5Fail 'B5_OWNER_BUSY'}
+  $script:B5Lease=[pscustomobject]@{mutex=$mutex;startupLease=$startupLease;sid=$sid;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;handoff=$Handoff;sequence=0;closed=$false;resources=(New-Object Collections.Generic.List[IDisposable]);dependencyDirectories=(New-Object Collections.Generic.List[object])}
   return $script:B5Lease
- }catch{$mutex.Dispose();throw}
+ }catch{if($mutex){$mutex.Dispose()};Exit-Business5244StartupLease -Lease $startupLease;throw}
 }
 function Assert-B5Lease($Lease){
  if(!$Lease -or !$script:B5Lease -or ![object]::ReferenceEquals($Lease,$script:B5Lease) -or $Lease.closed -or $Lease.process -ne $PID -or $Lease.thread -ne [Threading.Thread]::CurrentThread.ManagedThreadId -or !($Lease.mutex -is [Threading.Mutex])){B5Fail 'B5_INVALID_LIVE_LEASE'}
  Assert-B5WriterHandoff $Lease.handoff
+ Assert-Business5244StartupLease -Lease $Lease.startupLease -Kind Maintenance
  try{if(!$Lease.mutex.WaitOne(0)){B5Fail 'B5_LEASE_LOST'};$Lease.mutex.ReleaseMutex()}catch{B5Fail 'B5_LEASE_LOST'}
 }
-function Exit-B5Lease($Lease){if($Lease -and [object]::ReferenceEquals($Lease,$script:B5Lease) -and !$Lease.closed){$Lease.closed=$true;try{foreach($r in $Lease.resources){$r.Dispose()};$Lease.mutex.ReleaseMutex()}finally{$Lease.mutex.Dispose();$script:B5Lease=$null}}}
+function Exit-B5Lease($Lease){
+ if(!$Lease -or ![object]::ReferenceEquals($Lease,$script:B5Lease) -or $Lease.closed){return}
+ if($Lease.process -ne $PID -or $Lease.thread -ne [Threading.Thread]::CurrentThread.ManagedThreadId -or !($Lease.mutex -is [Threading.Mutex])){B5Fail 'B5_LEASE_EXIT_FOREIGN_OWNER'}
+ $Lease.closed=$true;$failed=$false
+ try{foreach($resource in $Lease.resources){try{$resource.Dispose()}catch{$failed=$true}}}
+ finally{try{$Lease.mutex.ReleaseMutex()}catch{$failed=$true}finally{try{$Lease.mutex.Dispose()}catch{$failed=$true}}}
+ # On uncertain retirement retain the cooperative gate in this process.
+ # Neither a cleanup exception nor partial disposal publishes free ownership.
+ if($failed){B5Fail 'B5_LEASE_CLEANUP_UNCONFIRMED'}
+ Exit-Business5244StartupLease -Lease $Lease.startupLease;$script:B5Lease=$null
+}
 function B5ReadFrozen([string]$Path,$Lease){
  if(!$Lease){return ,(B5Read $Path)};Assert-B5Lease $Lease;Assert-B5Path $Path
  $stream=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$Lease.resources.Add($stream)

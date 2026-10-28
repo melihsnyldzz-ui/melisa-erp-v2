@@ -1,8 +1,19 @@
 param([switch]$Library)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
 function Get-Business5244WebPins {
  return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-5cb682d8';manifest='BFB85A12333772BD40467F6258984CE08277F643DC544FF85B3D7BA39E86A617';package='ERP-BUSINESS-WEB-5244-5cb682d8';apiPackage='CANONICAL-TEST125-BUSINESS5244-10cdc0ee';apiManifest='3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='5cb682d8523552745b81422b1c2f0273cc8feb03';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+}
+function Get-Business5244ReadPairPins {
+ $p=Get-Business5244WebPins
+ $p.root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-2b744f5b-API-READ'
+ $p.package='ERP-BUSINESS-WEB-5244-2b744f5b-API-READ'
+ $p.manifest='91EE8B23C37A46EC89F8060967BC7A0106F68F2DE9A4A1F4199941CCE5A9E0FD'
+ $p.frontendSource='2b744f5b9ebda05b1355602126b1a8e5f114be83'
+ $p.apiPackage='CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'
+ $p.apiManifest='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'
+ return $p
 }
 function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
  $sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($Baseline)).Replace('-','')}finally{$sha.Dispose()}
@@ -60,12 +71,12 @@ if(!$ApiOnly -and !$MainApiOnly){
  $body=($body -split '\r?\n') -join $eol
  return ,$encoding.GetBytes($text.Substring(0,$a)+$body+$eol+$text.Substring($b))
 }
-function Assert-Business5244WebManifest($Manifest){
- $p=Get-Business5244WebPins
+function Assert-Business5244WebManifest($Manifest,$Pins=(Get-Business5244WebPins)){
+ $p=$Pins
  if($Manifest.kind -cne 'ERP_BUSINESS_WORKFACE_WEB_CANDIDATE' -or $Manifest.packageId -cne $p.package -or $Manifest.database -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Manifest.sourceCommit -cne $p.frontendSource -or $Manifest.businessWorkfaceId -cne $p.profile -or $Manifest.backendPackageId -cne $p.apiPackage -or $Manifest.backendManifestSha256 -cne $p.apiManifest -or $Manifest.actualT1 -ne $false -or $Manifest.externalOperations -ne $false -or $Manifest.businessSessionSignerDomain -cne 'dedicated-business-key-v1'){throw 'BUSINESS_WEB_MANIFEST_REJECTED'}
 }
-function Assert-Business5244ApiHealth($Health){
- $p=Get-Business5244WebPins
+function Assert-Business5244ApiHealth($Health,$Pins=(Get-Business5244WebPins)){
+ $p=$Pins
  if($Health.ok -ne $true -or $Health.environment -cne 'CANONICAL_TEST' -or $Health.mode -cne 'erp' -or $Health.port -ne 4144 -or $Health.databaseName -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Health.serverName -ine 'Semih\MELISADEV' -or $Health.loginName -cne 'melisa_sirket_sales_test_20260929_01' -or $Health.databaseUser -cne $Health.loginName -or $Health.sysadmin -ne 0 -or $Health.databaseControl -ne 0 -or $Health.liveDatabaseAccess -ne 0 -or $Health.sourceCommit -cne $p.baseSource -or $Health.packageId -cne $p.apiPackage -or $Health.businessWorkfaceId -cne $p.profile -or $Health.normalSessionUserId -ne 17 -or $Health.persistentNormalSession -ne $true -or $Health.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or $Health.actualT1 -ne $false -or $Health.externalOperations -ne $false -or $Health.automaticJobs -ne $false){throw 'BUSINESS_WEB_API_REJECTED'}
 }
 function Assert-Business5244RecordStage($Before,$After,[int]$ExpectedPid,[ValidateSet('Candidate','Rollback')][string]$Mode){
@@ -78,6 +89,10 @@ function Assert-Business5244RecordStage($Before,$After,[int]$ExpectedPid,[Valida
  else{$copy=$old.PSObject.Copy();$copy.pid=$ExpectedPid;if(($copy|ConvertTo-Json -Depth 30 -Compress) -cne ($row|ConvertTo-Json -Depth 30 -Compress)){throw 'BUSINESS_WEB_ROLLBACK_RECORD_CHANGED'}}
 }
 function Start-Business5244Web {
+ param($StartupLease)
+ $ownsStartupLease=($null -eq $StartupLease)
+ if($ownsStartupLease){$StartupLease=Enter-Business5244StartupLease -Kind Owner}else{Assert-Business5244StartupLease -Lease $StartupLease -Kind Owner}
+ try{
  $p=Get-Business5244WebPins
  if((Get-FileHash -LiteralPath $p.node).Hash -cne $p.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $p.root 'release-manifest.json')).Hash -cne $p.manifest){throw 'BUSINESS_WEB_PACKAGE_PIN_CHANGED'}
  $m=Get-Content -LiteralPath (Join-Path $p.root 'release-manifest.json') -Raw|ConvertFrom-Json;Assert-Business5244WebManifest $m
@@ -98,5 +113,6 @@ function Start-Business5244Web {
   $cwd=Join-Path $p.root 'apps\sites-workflow';$entry=Join-Path $cwd 'node_modules\vite\bin\vite.js'
   return Microsoft.PowerShell.Management\Start-Process -FilePath $p.node -ArgumentList @($entry,'preview','--host','127.0.0.1','--port','5244','--strictPort') -WorkingDirectory $cwd -WindowStyle Hidden -PassThru -RedirectStandardOutput (Join-Path $p.runtime 'web.stdout.log') -RedirectStandardError (Join-Path $p.runtime 'web.stderr.log')
  }finally{foreach($e in Get-ChildItem Env:){[Environment]::SetEnvironmentVariable($e.Name,$null,'Process')};foreach($e in $saved.GetEnumerator()){[Environment]::SetEnvironmentVariable($e.Key,$e.Value,'Process')};$saved.Clear()}
+ }finally{if($ownsStartupLease){Exit-Business5244StartupLease -Lease $StartupLease}}
 }
 if(!$Library){Start-Business5244Web|Select-Object Id,StartTime}
