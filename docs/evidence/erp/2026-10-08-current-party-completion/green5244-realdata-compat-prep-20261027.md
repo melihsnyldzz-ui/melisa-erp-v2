@@ -356,3 +356,32 @@ Koruma makbuzu: companionsPreserved=true, controlsPreserved=true, apiPreserved=t
 **Açık somut kapsam:** yeni2b744f5b normal satış/cari readers API ve eşli web henüz kurulmadı. Bunun için4144 API hedefinin mevcut10cdc→pasif READ-2b paketi geçişi, exact sahibi/beforeimage/downtime/rollback ve korunacak native4146/5194/5244/DB/roller ayrı değerlendirilmelidir. Yalnız5244web DEC084 yetkisi API restart yetkisi yerine kullanılmaz. Yeni geçiş tamamlanmadan yeni satış/cari ekranlarını kurulu diye sunma.
 
 Private: current-owner-ac860e8d-start.json, current-owner-ac860e8d-before.json, current-owner-ac860e8d-peer-status.json, current-owner-ac860e8d-gui-result.json. Ham ticari veri, sırlar ve ekran içerikleri repoya alınmadı.
+
+## 28 Ekim — READ-2b eşli API/web geçişinin dar kapsamı (UYGULANMADI)
+
+### Doğrulanan mevcut sahip ve geri dönüş
+
+4144API23156, parent/scheduler engine26476; canonical görev tek instance. TaskXML SHA256e959af0b36ea9d2bd0fabdd6371174c4bd406258e64dc904e38833f79820d99a. Başlatıcı canonical scripts/canonical/start-owned-test.ps1 SHA25629bf5c5cf566a73aa60d2347360890dff5da17b3fccdd0dc663198296d501b9e; startup-config SHA256d7ea40fecf11fb0a926547a4cd62f8b17858534801621dcc89fb95d474396676. Mevcut startup-config.ApiComponent exact10cdc pakete bağlı. API23156/CANONICAL-TEST125-BUSINESS5244-10cdc0ee; manifest3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33. Geri dönüş bu paket + Current5cb webdir; eskiPID yeniden yayınlanmaz. İşlem anında bunlar taze nativehandle/owner/argv/port ve CAS ile yeniden doğrulanmalıdır; bu okuma tek başına stop yetkisi değildir.
+
+### Hedef ve değişecek alanlar
+
+API hedefi C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213; manifest8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090. Eşliweb C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-2b744f5b-API-READ; manifest91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd. Source read2b744f5b, baseAPIedb3c891. Önceden doğrulanmış pasif paketler yeniden taranmadı/build edilmedi.
+
+Runtime değişikliği yalnız canonical startup-config.ApiComponent.ReleaseRoot ve ManifestSha256; SourceCommit ve private ConfigPath aynı kalır. Config before-image korumalıDPAPI, atomikCAS; özelprofile/rol/hesap/parola değişmez. Owned-processes/health kayıtlarını mevcut supervisor yeniAPIPID/birth ile kendisi yayımlar. Canonical başlatıcı/görevXML/baseRelease/native/web5194 değişmez. 5244 kaydı stalePID2000 olarak başarı diye tutulmaz veya yeniPID elle kanıtsız yazılmaz; mevcut web yayın sözleşmesinde exact eski kayıt→kanıtlanmış gerçekchild CAS önkoşulu ayrıca gerekir.
+
+### Sıra ve kesinti
+
+1. Exact API ve web sahipleri/tek çalışma/görevinstance, korunacak süreçler/DB/T1false, eski-yeni paket pinleri ve korumalı before-image tek işlem sınırında sabitlenir.
+2. Mevcut TEST125 API component bakım/quiescence yordamı kullanılır; geçmiş PRODUCT runID'leri yeni işlem diye replay edilmez. Canonical supervisor görevi desteklenen Stop-ScheduledTask ile kısa süre durur; native4146 veweb5194 çocukları durdurulmaz. Gözetmenin bellekte tuttuğu eski config yüzünden yalnızAPIyi öldürerek kurulum yapılmaz.
+3. Yeni API için only4144 exacthandle stop; config.ApiComponent CAS; aynı görev yeniden başlar. Diğer native/web çocuklarının PID/birth/health aynı kalması zorunlu. Kesinti4144 API hizmetindedir;5244iş sayfalarının API okumaları da geçici kullanılamaz. Süre ölçülmeden saniye garantisi verilmez.
+4. YeniAPI health/package/DB/normal17/T1false ve yeni GET okuyucular doğrulanır; yalnız sonra5244 eşliweb owned geçişi yapılır. Mevcut Current sahibi/lease korunur; yeni web hazır olana kadar Current uygulama başarı diye yeniden etiketlenmez.
+5. Normal Semih stok/kart, satış müşteri+ürün+fiyat seçimi ve cari exacthesap geçmişi normal Chrome'da saltokunur görülür; yenileme/taslak/oturum korunur. Ticari yazma yok.
+6. Herhangi bir safhada hata: sonraki eşleşmeyen web başlatılmaz. Aynı sınırda exact APIyi10cdc vewebi5cb uyumlu çiftine yenichild kimlikleriyle döndür; config before-image CAS ve korunmuş native/5194/CRM teyidi. DB restore/reset veya geçmiş kayıt silme yok. Bilinmeyen ownership/CAS durumunda zorla geri dönüş yok; somut hata kaydıyla dur.
+
+### Uygulamadan önce gerçek iki engel
+
+**Yetki:** ERP-DEC-084 metni4144/API upgrade'ini açıkça kapsam dışı bırakır. Eski geniş izoleTESTyetkisi veya yalnızweb yeni kullanıcı talimatı bu daha dar sınırı kendiliğinden kaldırmaz. İstenen ek kapsam yalnız mevcut4144API komponenti ve onu gözeten canonical görev için kısa kontrollü bakım + eşli5244web; DB/roller/veri/native5194/CRM değiştirme değildir.
+
+**Mevcut uygulama yolu:** Eski API bakım yordamı yalnız üç eskiPRODUCTrun'a exactpinned; yeni run için dar kaynak uyarlaması gerekir. Güncel5244dispatcher aday ve rollback'in aynı çalışan APIhealth'iyle uyumunu stopöncesi zorunlu tutar; bu pin mevcut10cdc ile yeniREAD-2b çiftinin birlikte geçişine uygun değildir. Guardı kaldırmak veya yeniAPIyi eski rollback diye tanıtmak çözüm değildir. Aynı mevcut APIcomponent ve5244dispatcher içinde iki exact çiftli fazların bağlanması ve installedRecordPublished=false/stale kayıt için gerçek CAS girişinin hedefli kanıtı gerekir. Yeniowner/engine/tracker kurulmaz. Bu kaynak uyarlaması ve ayrıAPIkapsamı tamamlanmadan varolan driver'ı çalıştırmak uygulanabilir kurulum değildir.
+
+Bu incelemede stop/restart/config/SQL/rol/CRM değişikliği0. Çalışan5244korunur. Private read-pair-api-owner-scope-20261028.json. İnsanUA BEKLİYOR.
