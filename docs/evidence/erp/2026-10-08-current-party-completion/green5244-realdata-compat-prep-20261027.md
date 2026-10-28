@@ -477,7 +477,7 @@ Mevcut `scripts/canonical/install-business-5244-readpair.ps1`, önceki private V
 Hazır komut (bu tur **çalıştırılmadı**):
 
 ```powershell
-& C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018\scripts\canonical\install-business-5244-readpair.ps1 -Apply -SourceSha256 E428BF2C93701F811ED6B53DE711AF11774814A95C87E812CDEC7541A0F27F69
+& C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018\scripts\canonical\install-business-5244-readpair.ps1 -Apply -SourceSha256 D48A9D269891F60CA3A6C37DE7313551BA022FD8DC99065C082F64FDE8942E3C
 ```
 
 ### Sonlu etki ve geri dönüş
@@ -499,3 +499,10 @@ Hazır komut (bu tur **çalıştırılmadı**):
 **Kalıcı giriş ayrı açık:** router exact committed config'ten doğrudan ReadPair boot edebilir; ancak bu komut onu bu oturum için başlatır. Altı eski entry yalnız gate alır, Hub/görev/logon otomatik olarak router'a yönlendirilmez. Windows reboot/logon sonrası yeniden açılma kanıtlanmadı; kalıcı normal giriş teslimi tamamlandı denmez. Bu kapsamda yeni scheduler/servis değişikliği yapılmadı.
 
 **Uygulamadan önce gereken ayrı kapsam onayı:** mevcut4144 API +5244 eşli web için kısa kesinti; startup2alan/private seal1alan CAS; altı giriş/helper/router ve gerçek5244 metadata CAS. DB/SQL/rol, native4146/web5194/CLEAN/CRM, diğer sırlar, Vega/LIVE/T1 ve main korunacak. Kaynak komut tek başına bu onayı oluşturmaz.
+
+
+### Ayrı API bakım onayı ve son salt okunur admission
+
+Koordinatör kaydında kullanıcı,4144+5244 kısa kesinti/eşli güncelleme, dar config/başlatma ayarları ve eski uygulama çiftine dönüş sorusuna açıkça “onaylıyorum” dedi. İletilen kapsam mevcut83303ed7 yürütücüsünün before-image/startup2alan/private seal1alan/6entry/helper/router/gerçekwebmetadata CAS işlemidir. Hub/task/logon kalıcılığı ve reboot kapsam dışı; rol/DB/ticari/diğer servisler aynı.
+
+Taze salt okunur kontrolde API10cdc/aynıTESTDB, owner41156/child50028 ve beş web kaynağı doğrulandı. Gerçek Windows Start-Process argv sonunda tek ASCII boşluk bulundu; kurulum denemeden önce dar kabul düzeltildi. Yalnız exact argv veya exact argv+tek boşluk kabul edilir; Trim/genel whitespace/ek argüman kabulü yok. Yeni hedefli1 test PASS; kaynak SHA yukarıdaki komuta güncellendi. API bakım uygulaması bu kayıt anında henüz başlamadı. Önceki CI kalite SUCCESS/Windows sürüyor/secret-scan11 aynı tarihsel bulgu FAIL; genel CI yeşil değildir.

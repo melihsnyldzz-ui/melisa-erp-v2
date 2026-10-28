@@ -9,6 +9,9 @@ function Read-ReadPairHeldBytes($Stream){
 function Select-ReadPairCommitArchives($Files,$Before){
  return @($Files|Where-Object {$_.FullName-cnotin$Before-and$_.Name-cmatch'^5244-retirement\.pending\.[a-f0-9]{32}\.completed$'})
 }
+function Test-ReadPairOwnerArguments([string]$Actual,[string]$Expected){
+ return ($Actual -cin @($Expected,($Expected+' ')))
+}
 function Write-ReadPairHeldCas($Stream,[string]$Expected,[byte[]]$Bytes){
  $prior=Read-ReadPairHeldBytes $Stream
  if((Get-Business5244StartupHash $prior)-cne$Expected){throw 'READPAIR_ENTRY_CAS_CHANGED'}
@@ -93,7 +96,9 @@ function Assert-OldTarget($Status){
  $argsText=[regex]::Replace([string]$p.CommandLine,('^"?'+[regex]::Escape($p.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
  $entryName=if($oldRoot -ceq $newRoot){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'}
  $expected='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$oldRoot+'\'+$entryName+' -ManifestSha256 '+$oldHash.ToUpperInvariant()
- if($argsText -cne $expected){throw 'FROZEN_OWNER_ARGV_CHANGED'}
+ # Windows Start-Process serializes one optional terminal ASCII space for
+ # this exact fixed argv. Do not Trim or accept extra arguments/whitespace.
+ if(!(Test-ReadPairOwnerArguments $argsText $expected)){throw 'FROZEN_OWNER_ARGV_CHANGED'}
  $actual=@{parent=$child.ParentProcessId;exe=$child.ExecutablePath;sid=(Child-Sid $child);command=$child.CommandLine}
  # Same exact Vite/Node argument contract as a fresh child; actual parent is
  # the authenticated source-pinned owner, rather than this maintenance caller.
