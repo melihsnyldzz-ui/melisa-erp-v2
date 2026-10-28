@@ -6,12 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 const dir=import.meta.dirname,ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const quote=s=>"'"+s.replaceAll("'","''")+"'";
-function run(body,{tempRoot,timeout=20000}={}){
+function run(body,{tempRoot,timeout=20000,isolatedModulePath=false}={}){
  const parent=fs.realpathSync.native(tempRoot||process.env.RUNNER_TEMP||os.tmpdir());
  const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-5244-owned-test-')));
  try{
-  const file=path.join(temp,'run.ps1');fs.writeFileSync(file,"$ErrorActionPreference='Stop'\n"+body);
-  return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();
+  const file=path.join(temp,'run.ps1');fs.writeFileSync(file,"$ErrorActionPreference='Stop'\n[Console]::Error.WriteLine('OWNED_FIXTURE_STAGE_BEGIN')\nforeach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Microsoft.PowerShell.Core\\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$module,($module+'.psd1'))) -Scope Local}\n[Console]::Error.WriteLine('OWNED_FIXTURE_STAGE_BUILTINS_READY')\n"+body+"\n[Console]::Error.WriteLine('OWNED_FIXTURE_STAGE_COMPLETE')\n");
+  return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp,...(isolatedModulePath?{PSModulePath:path.join(temp,'unused-module-search')}:{})}}).trim();
  }finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-5244-owned-test-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}
 }
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
@@ -43,6 +43,9 @@ function Get-InitFixtureFailureDiagnostic($Failure){
  return ('inner='+$code+';source='+$where+';nativeClosed='+$retired+';restored='+$restored+';pending='+(Test-Path -LiteralPath $script:initPending)+';phase='+$phase)
 }
 `;
+win('fixture uses trusted Windows builtins even with an unavailable module search path',()=>{
+ assert.equal(run(`${load} foreach($row in @(@('Join-Path','Microsoft.PowerShell.Management'),@('Get-FileHash','Microsoft.PowerShell.Utility'),@('Get-Acl','Microsoft.PowerShell.Security'))){$command=Get-Command $row[0] -Module $row[1] -ErrorAction Stop;$expected=[IO.Path]::Combine($PSHOME,'Modules',$row[1],($row[1]+'.psd1'));if(!$command.Module.Path.Equals($expected,[StringComparison]::OrdinalIgnoreCase)){throw 'UNTRUSTED_FIXTURE_MODULE'}};'PASS'`,{isolatedModulePath:true}),'PASS');
+});
 win('production native child creation retains its creation handle and stops only that child',()=>{
  // This fixture includes cold Windows PowerShell/CIM startup on hosted runners.
  // Give only this whole test process a bounded minute; native stop/replay and
