@@ -163,3 +163,5 @@ a38f08d74ae533db6d89a71908435255c78e0899:scripts/canonical/start-business-5244-w
 76106c22e816175c51306dfac1e4d7dd1a45dc93:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
 8a060591b38ad484db60c98f0ea61423809d2cd1:scripts/canonical/prepare-green5244-realdata-compat.mjs:generic-api-key:9
 0a22177889268a00772ea25aa0b2a9f1578e4d64:scripts/canonical/test125-bound-api-quiescence.test.mjs:generic-api-key:34
+c3004917e96da22b4410f2dafff3f635a7d435f9:scripts/canonical/canonical-business-sale-maintenance.ps1:generic-api-key:31
+c3004917e96da22b4410f2dafff3f635a7d435f9:scripts/canonical/prepare-business-sale-owner-bundle.mjs:generic-api-key:32
