@@ -1,3 +1,5 @@
+**28 Ekim — ERP09 sepet SOURCE/İZOLE:** PR54 source2b744f5b/kanıt a3a58717. Exact hesap/döviz, pozitif tam adet, ortak ürün stok sınırı, ürün toplamı, drift ve eşzamanlı kontrol koruması;62hedef PASS/bağımsızreviewGO,52dist/11CSSaynı offlinebuild. Kalıcıtaslak/fatura/satışwrite yok.5244HTTP200 ama yeni kaynak KURULMADI, normalGUI/insanUA bekler; destekliowner recovery ve API4144okuyucu kurulumu açık. SQL/finans/rol/CRM/restart/restore0; eski veriler/userdirtykorundu. [Ortak rapor](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54#issuecomment-6448803704).**
+
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
 17 Ekim — **P03 yeni ERP immutable aday paket teknik hazır/inaktif:** Exact1b5a02c, seçili Node24.19/DB02 shared copy,1.991/1.991 manifest+1.886/1.886 kaynak hash ve native require-only doğrulandı; bağımsız incelemede açık P1/P2 yok. Yeni paket kurulu TEST, GUI veya insan kabulü değildir; owner profili/geçiş/readback bekler. Özgün49/9🟢/39🟡/1🔴 korunur. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md#17-ekim--p03-yeni-inaktif-erp-aday-paketi).
