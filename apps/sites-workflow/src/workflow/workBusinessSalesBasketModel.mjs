@@ -1,4 +1,5 @@
 import {validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
+import {businessSalePreviewSelectionAllowed} from './businessWorkface.mjs';
 const schema='melisa-business-sales-basket.v1',scale=100000000n;
 const error=code=>Object.assign(new Error('Sepet bilgileri doğrulanamadı.'),{code});
 const fail=code=>{throw error('BUSINESS_SALE_BASKET_'+code);};
@@ -69,4 +70,32 @@ export function setBusinessSalesBasketQuantity(basket,lineKey,quantityString){
 }
 export function removeBusinessSalesBasketLine(basket,lineKey){
  const input=entries(basket),index=basket.lines.findIndex(line=>line.key===lineKey);if(index<0)fail('LINE_NOT_FOUND');return build(input.filter((_entry,i)=>i!==index));
+}
+
+// Source selection is input to the native owner, never a write grant. Keep the
+// explicit account and exact quote; two tiers for one product cannot merge.
+export function businessSalesNativeSelection(basket,documentDate){
+ entries(basket);
+ const value={customerId:basket.scope?.customerId,customerAccountId:basket.scope?.accountId,documentDate,currency:basket.scope?.currency,items:basket.lines.map(l=>({productId:l.selection.productId,quoteId:l.selection.priceId,quantityExact3:l.quantity+'.000'}))};
+ if(!businessSalePreviewSelectionAllowed(value))fail('NATIVE_SELECTION_INVALID');
+ return snapshot(value);
+}
+export function validateBusinessSalesNativePreview(result,selection,basket){
+ const expected=businessSalesNativeSelection(basket,selection?.documentDate),same=(a,b)=>a?.customerId===b.customerId&&a.customerAccountId===b.customerAccountId&&a.currency===b.currency&&a.documentDate===b.documentDate&&JSON.stringify(a.items)===JSON.stringify(b.items);
+ if(!businessSalePreviewSelectionAllowed(selection)||!same(selection,expected))fail('NATIVE_SELECTION_CHANGED');
+ const c=result?.context,p=result?.preview,cap=c?.capabilities,customer=c?.scope?.customer,hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v),amount=v=>typeof v==='string'&&/^(?:0|[1-9]\d{0,13})\.\d{4}$/.test(v),date=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
+ const first=basket.lines[0].evidence.data;
+ if(c?.meta?.schemaVersion!=='melisa-work-trade.v1'||c.meta.source!=='canonical-business-test'||c.meta.operationOrigin!=='CANONICAL_TEST_BUSINESS_SALE'||c.meta.date!==selection.documentDate||!hash(c.revision)||cap?.canCreate!==true||typeof cap.canFinalize!=='boolean'||typeof cap.canCancel!=='boolean'||cap.canCollect!==false||cap.canCancelCollection!==false||c.scope?.synthetic!==false||c.scope.operationOrigin!=='CANONICAL_TEST_BUSINESS_SALE'||customer?.id!==selection.customerId||customer.accountId!==selection.customerAccountId||customer.currency!==selection.currency||customer.writeEligible!==true||customer.balanceExact8!==first.customer.account.balanceExact||customer.name!==first.customer.name||!Array.isArray(c.scope.accounts)||c.scope.accounts.length!==0||!Array.isArray(c.scope.products)||c.scope.products.length!==selection.items.length||JSON.stringify(c.supportedCurrencies)!==JSON.stringify([selection.currency])||c.limits?.maxItems!==2||c.limits.maxQuantityPerLine!==5||c.limits.maxInvoiceAmountExact4!=='500.0000'||c.limits.maxAmountTryExact4!=='500.0000')fail('NATIVE_CONTEXT_INVALID');
+ if(!p||!same(p.selection,selection)||p.scopeRevision!==c.revision||!hash(p.previewHash)||p.writable!==true||p.currency!==selection.currency||!Array.isArray(p.items)||p.items.length!==selection.items.length||!['subtotalExact4','grandTotalExact4','amountTryExact4'].every(k=>amount(p[k])))fail('NATIVE_PREVIEW_INVALID');
+ const rate=c.rate,settlement=p.settlement;
+ if(rate?.currency!==selection.currency||!exact(rate.rateExact8)||units(rate.rateExact8)<=0n||!date(rate.rateDate)||rate.rateDate>selection.documentDate||selection.currency==='TRY'&&rate.rateExact8!=='1.00000000'||settlement?.accountId!==selection.customerAccountId||settlement.documentCurrency!==selection.currency||settlement.accountCurrency!==selection.currency||settlement.documentRateExact8!==rate.rateExact8||settlement.accountRateExact8!==rate.rateExact8)fail('NATIVE_RATE_INVALID');
+ let total=0n;
+ for(let n=0;n<selection.items.length;n++){
+  const selected=selection.items[n],line=basket.lines[n],product=c.scope.products[n],item=p.items[n],quote=product?.prices?.[0];
+  const price4=(units(line.unitPriceExact8)+5000n)/10000n,quantity=BigInt(line.quantity),line4=price4*quantity;
+  if(product?.id!==selected.productId||product.stockCode!==line.product.stockCode||product.name!==line.product.name||product.writeEligible!==true||product.unit?.label!=='ADET'||product.unit.factorExact8!=='1.00000000'||typeof product.stockQuantityExact3!=='string'||!/^\d+\.\d{3}$/.test(product.stockQuantityExact3)||BigInt(product.stockQuantityExact3.replace('.',''))<quantity*1000n||BigInt(product.stockQuantityExact3.replace('.',''))*100000n!==units(line.stockQuantityExact8)||!Array.isArray(product.prices)||product.prices.length!==1||quote.quoteId!==selected.quoteId||quote.currency!==selection.currency||quote.unitPriceExact8!==line.unitPriceExact8||item?.productId!==selected.productId||item.quoteId!==selected.quoteId||item.quantityExact3!==selected.quantityExact3||item.stockCode!==line.product.stockCode||item.name!==line.product.name||item.unitPriceExact8!==line.unitPriceExact8||item.unit?.label!=='ADET'||item.unit.factorExact8!=='1.00000000'||item.unit.sourceId!==line.selection.unitSourceId||!amount(item.unitPriceExact4)||BigInt(item.unitPriceExact4.replace('.',''))!==price4||!amount(item.lineTotalExact4)||BigInt(item.lineTotalExact4.replace('.',''))!==line4)fail('NATIVE_LINE_CHANGED');
+  total+=line4;
+ }
+ if(total<=0n||total>5000000n||p.subtotalExact4!==p.grandTotalExact4||BigInt(p.grandTotalExact4.replace('.',''))!==total||BigInt(p.amountTryExact4.replace('.',''))!==(total*units(rate.rateExact8)+50000000n)/100000000n||BigInt(p.amountTryExact4.replace('.',''))<=0n||BigInt(p.amountTryExact4.replace('.',''))>5000000n)fail('NATIVE_TOTAL_INVALID');
+ return snapshot({documentDate:selection.documentDate,currency:p.currency,grandTotalExact4:p.grandTotalExact4,amountTryExact4:p.amountTryExact4,rateExact8:rate.rateExact8,scopeRevision:c.revision,previewHash:p.previewHash,readOnly:true,canSave:false});
 }

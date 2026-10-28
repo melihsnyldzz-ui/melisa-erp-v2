@@ -1,6 +1,6 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
 import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheticCatalogModel.mjs';
-import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed} from './businessWorkface.mjs';
+import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor} from './businessWorkface.mjs';
 import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
 import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
@@ -45,9 +45,9 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{if(protectedDevice&&key===workingCatalogTokenKey){deviceToken=value;try{storage?.removeItem(key);}catch{}return;}try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,businessSalePreview=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
-  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path))throw Object.assign(problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
+  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path)&&!(businessSalePreview&&businessSalePreviewRequestAllowed(method,path,user)))throw Object.assign(problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
   if((protectedDevice||businessBrowser)&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
@@ -105,6 +105,18 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!['sales.view','customer.view','product.view'].every(p=>user.permissions.includes(p)))throw problem('Satış seçimi bağlantısı kullanılamıyor.',403);
    const path=businessSaleReadPath(selection),payload=await request(path,{expire:true,keepForbiddenSession:true});
    return validateBusinessSaleReadEnvelope(payload,selection);
+  },
+  async businessSalePreview(selection){
+   if(!businessTarget||!active||!token||!isBusinessSalePreviewActor(user)||!businessSalePreviewSelectionAllowed(selection))throw problem('Satış önizleme seçimi doğrulanamadı.',403);
+   const selected=structuredClone(selection),version=generation,identity=JSON.stringify([user.id,user.username,user.role,[...user.permissions].sort()]);
+   const unchanged=()=>{if(!active||version!==generation||!token||!isBusinessSalePreviewActor(user)||JSON.stringify([user.id,user.username,user.role,[...user.permissions].sort()])!==identity)throw problem('ERP oturumu değişti.',401);};
+   const options={expire:true,keepForbiddenSession:true,businessSalePreview:true};
+   const base=(await request('/api/work-sales/context',options)).data;unchanged();
+   if(!businessSalePreviewAvailable(base,user))throw problem('Satış önizleme bağlantısı henüz hazır değil.',503);
+   const context=(await request('/api/work-sales/selected-context',{...options,method:'POST',body:selected})).data;unchanged();
+   if(context?.meta?.schemaVersion!=='melisa-work-trade.v1'||context.meta.source!=='canonical-business-test'||context.meta.operationOrigin!=='CANONICAL_TEST_BUSINESS_SALE'||context.meta.date!==selected.documentDate||! /^[a-f0-9]{64}$/.test(context.revision??'')||context.capabilities?.canCreate!==true||context.capabilities.canCollect!==false||context.capabilities.canCancelCollection!==false||context.scope?.synthetic!==false||context.scope.customer?.id!==selected.customerId||context.scope.customer.accountId!==selected.customerAccountId||context.scope.customer.currency!==selected.currency)throw problem('Satış önizleme kapsamı değişti.',503);
+   const preview=(await request('/api/work-sales/preview',{...options,method:'POST',body:selected})).data;unchanged();
+   return {context,preview};
   },
   async prepareCrm(){
    if(!protectedDevice||!isCleanCatalogLocation(location)||!active||!token||!user)throw problem('ERP oturumu doğrulanamadı.',401);
