@@ -292,7 +292,7 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   # Its literal pin has no self-cycle: the producer reads installer Git bytes
   # only at preparation time; it embeds no installer/content hash in its source.
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  Hold-B6ReadPairSource $producer '72b2e79ccc328bb8da8f943cd26895d42d33e431d8a38d47fa47eccc0e42489a'
+  Hold-B6ReadPairSource $producer '566a08414f289f109cfa95492bf2005406892350421173b03978672aff11141a'
   $verifiedText=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'}
   $verified=$verifiedText|ConvertFrom-Json

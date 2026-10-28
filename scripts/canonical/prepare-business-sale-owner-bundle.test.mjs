@@ -55,6 +55,26 @@ test('producer writes only isolated roots and pins exact13 source files with dis
  if(process.platform==='win32')for(const name of [path.join(core,'run-current-owner.ps1'),path.join(router,'start-business-5244-readpair-router.ps1')]){const q=v=>"'"+v.replaceAll("'","''")+"'",cmd='$e=$null;$t=$null;[void][Management.Automation.Language.Parser]::ParseFile('+q(name)+",[ref]$t,[ref]$e);if($e.Count){throw 'GENERATED_PARSE_FAILED'};'PASS'";assert.equal(cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-Command',cmd],{encoding:'utf8',windowsHide:true}).trim(),'PASS');}
  }finally{f.close();}
 });
+test('generated router loads its real startup and finite-pair libraries before reading configuration', {skip:process.platform!=='win32'},()=>{
+ const f=fixture();try{
+  f.run();const core=f.output(f.values('CORE')),router=f.output(f.values('ROUTER')),proof=f.output(f.values('PROOF'));
+  const entry=fs.readFileSync(path.join(router,'start-business-5244-readpair-router.ps1'),'utf8');
+  // Execute the emitted import block with real library bytes in disposable
+  // roots. Never execute the production entry, config read or owner startup.
+  const start=entry.indexOf(". (Join-Path $core 'start-business-5244-owned.ps1')"),end=entry.indexOf('$config=Read-ErpStartupConfig');
+  assert(start>=0&&end>start);const imports=entry.slice(start,end),q=v=>"'"+v.replaceAll("'","''")+"'";
+  const file=path.join(proof,'router-library-closure.ps1');
+  fs.writeFileSync(file,"$ErrorActionPreference='Stop';\n"+f.values('trustedModuleImports()')+'\n$core='+q(core)+';$root='+q(router)+';\n'+imports+String.raw`
+foreach($name in @('Read-ErpStartupConfig','Get-Test125ReadPairScope','Assert-Test125ReadPairConfig','New-ErpBusinessSaleNativeProfileAdmission','Get-Business5244ReadPairRouterMode')){
+ $command=Get-Command -Name $name -CommandType Function -ErrorAction Stop
+ if(!$command.ScriptBlock.File.StartsWith($core+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)-and!$command.ScriptBlock.File.StartsWith($root+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase)){throw 'ROUTER_LIBRARY_OUTSIDE_ISOLATED_ROOT'}
+}
+'PASS'
+`);
+  const before=fs.readdirSync(core).sort(),result=cp.spawnSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000,env:{...process.env,PSModulePath:path.join(f.temp,'absent-module-root')}});
+  assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),'PASS');assert.deepEqual(fs.readdirSync(core).sort(),before);
+ }finally{f.close();}
+});
 test('dirty or missing source and unsuccessful or empty-step hosted CI reject before any output creation',()=>{
  for(const options of [{dirty:true},{missingBlob:'canonical-business-sale-maintenance.ps1'},{ciFailure:true},{jobFailure:'quality-build-test'},{emptySteps:true},{filter:true},{encoding:true}]){const f=fixture(options);try{assert.throws(f.run);assert.equal(f.writes(),0);}finally{f.close();}}
 });
