@@ -342,3 +342,17 @@ Desteklenen sözleşmeler: native workInboundService varsayılan aktör kontrol�
 Ürün/tedarikçi alanları tek bir ticari çift olarak bağlanmaz; mevcut normal saltokunur kartları ayrı gösterir. Nativeişlemaktörü ve gerçekişdeposu bağları henüz aktif değildir; kaynakdepoteyidi bunları otomatikoluşturmaz. YeniGelenMalkontrolünde veriokunur fakat mal kabul belgesi oluşturulamaz. Kurulu görüntülemeyi tam günlük mal kabul zinciri diye sunma.
 
 Private kanıt: `web-only-receiving-read-d4f52345/receipt.json`, `receiving-read-independent-postcheck.json`, `receiving-read-installed-gui-result.json`, `receiving-read-installed-normal-screen.png`. AltıkartGETinin200yanıtı, iki arama ve yenidenokuma kaydedildi; authyenileme dışında ticariPOSTyok. Tarayıcı tamreloadsonrası aynıSemih/533/12064doğrulandı. Source/paket/kurulum/gerçekGUIveinsanUA ayrı. Kullanıcıya yeni parola veya ikinci fizikselişlem yüklenmedi.
+
+## 28 Ekim — Boş5244 portunda Current web kurtarıldı; normal Chrome doğrulandı
+
+Eski21408 süreci ve5244listener yoktu; ajan eski süreci durdurmadı veya sahiplenmedi. Desteklenen boşport başlangıcıyla yalnız Current web5cb7337dosya sözleşmesi ve mevcut10cdc API uyumuyla başlatıldı. ac860e8d kaynak owner bundle manifest24c7d8f91a7090ebca7ec56526b66707a5792a90c08f80b3bb4a700367f5978c; app ERP-BUSINESS-WEB-5244-5cb682d8. Source owner ile uygulama source/paket birbirinden ayrıdır.
+
+Gerçek fresh-start makbuzu FRESH_CURRENT_OWNER_READY: HTTP200; creator3484/owner49848/child42952, exact native doğum kimlikleri private makbuzda. AynıSID authenticatedpipe yalnız status isteği gerçek server birth-handle'ını doğruladı, phase Running. Bu saltokunur status stop yetkisi değildir. Uzun yaşayan owner, ilk oluşturduğu web child native Job/creation-handle'ını tutuyor.
+
+Koruma makbuzu: companionsPreserved=true, controlsPreserved=true, apiPreserved=true; stopCalls0/apiRestarts0/sqlCalls0/configWrites0. API4144 CANONICAL-TEST125-BUSINESS5244-10cdc0ee, native4146 ve5194 dahil diğer mevcut servisler korundu. Process-record hâlâ eski kaydı içerir; installedRecordPublished=false açıkça kaydedildi. Mevcut launcher/config/scheduledtask değiştirilmedi; tam kalıcı launcher dönüşümü veya yeni readerAPI kurulumu tamamlandı denmez.
+
+**Normal ekran:** Chrome extension ekran aracı başarılı envanter ve mevcut5244tab bağlantısı verdi. Mevcut Semih oturumunda normal Ürün&Stok açıldı; kullanıcı ekranındaki Yenile düğmesinden sonra16.992ürün/50satır yeniden görüldü. Stok, barkod, satış fiyatı/döviz ve durum alanları görünür. Ekran görüntüsü bu konuşmada gösterildi; ticari satırlar GitHub'a taşınmadı. Önceki ekran aracı zaman aşımının kök nedeni kesinleşmedi; portun boş/ulaşılamaz olduğu ayrı kanıt, şu an tarayıcı kontrolü çalışıyor. İnsanUA/logout/tümChrome yenidenbaşlatma denenmedi.
+
+**Açık somut kapsam:** yeni2b744f5b normal satış/cari readers API ve eşli web henüz kurulmadı. Bunun için4144 API hedefinin mevcut10cdc→pasif READ-2b paketi geçişi, exact sahibi/beforeimage/downtime/rollback ve korunacak native4146/5194/5244/DB/roller ayrı değerlendirilmelidir. Yalnız5244web DEC084 yetkisi API restart yetkisi yerine kullanılmaz. Yeni geçiş tamamlanmadan yeni satış/cari ekranlarını kurulu diye sunma.
+
+Private: current-owner-ac860e8d-start.json, current-owner-ac860e8d-before.json, current-owner-ac860e8d-peer-status.json, current-owner-ac860e8d-gui-result.json. Ham ticari veri, sırlar ve ekran içerikleri repoya alınmadı.
