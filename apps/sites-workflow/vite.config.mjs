@@ -1,6 +1,6 @@
 import http from 'node:http';
 import os from 'node:os';
-import {businessWorkfaceId,businessWorkfaceRequestAllowed} from './src/workflow/businessWorkface.mjs';
+import {businessWorkfaceId,businessWorkfaceRequestAllowed,businessSaleBrowserRequestAllowed} from './src/workflow/businessWorkface.mjs';
 import {createBusinessBrowserSessionTransport} from './business-preview-session.mjs';
 
 // The existing preview serves only this explicitly installed synthetic package.
@@ -79,7 +79,7 @@ const businessPreview={
   const response=await fetch('http://127.0.0.1:4144/test-health',{redirect:'error',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('BUSINESS_UI_API_NOT_READY');validateBusinessPreviewHealth(await response.json());
   const peers=cleanPreviewTailPeers(process.env.MELISA_BUSINESS_UI_TAILSCALE_PEERS);
   const sessionTransport=createBusinessBrowserSessionTransport();
-  server.middlewares.use((req,res,next)=>{if(!cleanPreviewRequestAllowed(req,peers)||!['GET','HEAD'].includes(req.method)&&!req.url.startsWith('/api/')){res.writeHead(403,{'Cache-Control':'no-store'});res.end('BUSINESS_UI_ORIGIN_REQUIRED');return;}if(req.url.startsWith('/api/')&&!businessWorkfaceRequestAllowed(req.method,req.url)){res.writeHead(403,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({success:false,error:{code:'BUSINESS_UI_READ_ONLY'}}));return;}void sessionTransport(req,res,next);});
+  server.middlewares.use((req,res,next)=>{if(!cleanPreviewRequestAllowed(req,peers)||!['GET','HEAD'].includes(req.method)&&!req.url.startsWith('/api/')){res.writeHead(403,{'Cache-Control':'no-store'});res.end('BUSINESS_UI_ORIGIN_REQUIRED');return;}if(req.url.startsWith('/api/')&&!businessWorkfaceRequestAllowed(req.method,req.url)&&!businessSaleBrowserRequestAllowed(req.method,req.url)){res.writeHead(403,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify({success:false,error:{code:'BUSINESS_UI_READ_ONLY'}}));return;}void sessionTransport(req,res,next);});
   const extra=[];server.httpServer.once('close',()=>extra.forEach(s=>s.close()));
   try{for(const address of ['192.168.1.46','100.87.188.3']){const listener=http.createServer(server.middlewares);extra.push(listener);await new Promise((resolve,reject)=>{listener.once('error',reject);listener.listen(5244,address,resolve);});}}
   catch(error){extra.forEach(s=>s.close());throw error;}

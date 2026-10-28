@@ -18,7 +18,7 @@ export function businessWorkfaceRequestAllowed(method,path){
 
 // This is only the authenticated, read-only native preview seam. It never
 // admits a draft, finalize, cancel, collection or a client-selected actor.
-export const isBusinessSalePreviewActor=user=>String(user?.id)==='17'&&user.username==='unified-semih-test'&&String(user.role?.id)==='17'&&user.role.code==='unified_test_semih'&&user.isActive!==false&&user.isAdmin!==true&&user.testAdminSession!==true&&Array.isArray(user.permissions)&&['sales.view','sales.create','customer.view','product.view'].every(p=>user.permissions.includes(p));
+export const isBusinessSalePreviewActor=user=>String(user?.id)==='17'&&user.username==='unified-semih-test'&&String(user.role?.id)==='17'&&user.role.code==='unified_test_semih'&&user.isActive!==false&&user.isAdmin!==true&&user.testAdminSession!==true&&user.nativeTerminalSession!==true&&Array.isArray(user.permissions)&&['sales.view','sales.create','customer.view','product.view'].every(p=>user.permissions.includes(p));
 export function businessSalePreviewRequestAllowed(method,path,user){
  return isBusinessSalePreviewActor(user)&&(method==='GET'&&path==='/api/work-sales/context'||method==='POST'&&['/api/work-sales/selected-context','/api/work-sales/preview'].includes(path));
 }
@@ -30,4 +30,12 @@ export function businessSalePreviewSelectionAllowed(value){
 export function businessSalePreviewAvailable(context,user){
  const c=context,cap=c?.capabilities,s=c?.scope,l=c?.limits;
  return !!(isBusinessSalePreviewActor(user)&&c?.meta?.schemaVersion==='melisa-work-trade.v1'&&c.meta.source==='canonical-business-test'&&c.meta.operationOrigin==='CANONICAL_TEST_BUSINESS_SALE'&&c.revision==='0'.repeat(64)&&cap?.canCreate===true&&typeof cap.canFinalize==='boolean'&&typeof cap.canCancel==='boolean'&&cap.canCollect===false&&cap.canCancelCollection===false&&s?.synthetic===false&&s.operationOrigin==='CANONICAL_TEST_BUSINESS_SALE'&&s.customer===null&&Array.isArray(s.products)&&s.products.length===0&&Array.isArray(s.accounts)&&s.accounts.length===0&&JSON.stringify(c.supportedCurrencies)==='["TRY","USD","EUR"]'&&l?.maxItems===2&&l.maxQuantityPerLine===5&&l.maxInvoiceAmountExact4==='500.0000'&&l.maxAmountTryExact4==='500.0000');
+}
+
+// Separate authenticated BFF dispatch; the generic read gate stays closed.
+export const isBusinessSaleReceiptActor=user=>String(user?.id)==='17'&&user.username==='unified-semih-test'&&String(user.role?.id)==='17'&&user.role.code==='unified_test_semih'&&user.isActive!==false&&user.isAdmin!==true&&user.testAdminSession!==true&&user.nativeTerminalSession!==true&&Array.isArray(user.permissions)&&['sales.view','customer.view','finance.view'].every(p=>user.permissions.includes(p));
+export function businessSaleReceiptRequestAllowed(method,path,user){return isBusinessSaleReceiptActor(user)&&method==='GET'&&typeof path==='string'&&/^\/api\/work-sales\/invoices\/[1-9]\d{0,18}$/.test(path)&&BigInt(path.slice(path.lastIndexOf('/')+1))<=9223372036854775807n;}
+export function businessSaleBrowserRequestAllowed(method,path){
+ if(method==='GET'&&path==='/api/work-sales/context'||method==='POST'&&['/api/work-sales/selected-context','/api/work-sales/preview'].includes(path))return true;
+ return method==='GET'&&typeof path==='string'&&/^\/api\/work-sales\/invoices\/[1-9]\d{0,18}$/.test(path)&&BigInt(path.slice(path.lastIndexOf('/')+1))<=9223372036854775807n;
 }

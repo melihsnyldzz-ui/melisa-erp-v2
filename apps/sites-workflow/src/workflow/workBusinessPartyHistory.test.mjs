@@ -11,7 +11,7 @@ function envelope(query,{total=1,unassigned=2,edit=()=>{}}={}){
 }
 function dom(){
  let markup='',nodes=new Map();
- const host={querySelector:node},root={querySelector:selector=>selector.startsWith('[data-business-party-history=')&&markup?host:null};
+ const host={querySelector:node,querySelectorAll(selector){return selector==='[data-bph-invoice]'?[...markup.matchAll(/data-bph-invoice="([^"]+)"/g)].map(m=>{const n=node('[data-bph-invoice]');n.dataset={bphInvoice:m[1]};return n;}):[];}},root={querySelector:selector=>selector.startsWith('[data-business-party-history=')&&markup?host:null};
  Object.defineProperty(root,'innerHTML',{set(){assert.fail('Controller must not own parent root');}});
  function node(selector){
   const attr=selector.slice(1,-1);if(!markup.includes(attr))return null;
@@ -25,10 +25,10 @@ function dom(){
  }
  return {root,node,render(value){markup=value;nodes=new Map();},html:()=>markup};
 }
-function fixture({kind='customer',read=q=>envelope(q),isLocked=()=>false}={}){
+function fixture({kind='customer',read=q=>envelope(q),isLocked=()=>false,invoiceRead=null,invoiceAvailable=false}={}){
  const d=dom(),calls=[];let selectedCard=null,ui,paints=0;
  const paint=()=>{paints++;ui.select(selectedCard);d.render(ui.html());ui.bind(d.root);};
- ui=createBusinessPartyHistory({kind,session:{partyHistory:async query=>{calls.push({...query});return read(query);}},onChange:paint,locked:isLocked});
+ ui=createBusinessPartyHistory({kind,session:{partyHistory:async query=>{calls.push({...query});return read(query);},...(invoiceRead?{businessSaleInvoice:invoiceRead,businessSaleInvoiceAvailable:()=>invoiceAvailable}:{})},onChange:paint,locked:isLocked});
  const select=c=>{selectedCard=c;ui.select(c);paint();};
  const emit=(selector,event,value)=>{const n=d.node(selector);assert(n,'Expected '+selector);if(value!==undefined)n.value=value;return n['on'+event]?.({target:n,preventDefault(){}});};
  return {ui,d,calls,select,emit,paint,paints:()=>paints};
@@ -78,4 +78,19 @@ test('locked and disposed controllers reject even forced handlers; late completi
  let lock=true,finish;const f=fixture({isLocked:()=>lock,read:q=>new Promise(r=>{finish=()=>r(envelope(q));})});f.select(card());assert.match(f.d.html(),/data-bph-account disabled/);await f.emit('[data-bph-account]','change','7');await f.ui.refresh();assert.equal(f.calls.length,0);
  lock=false;f.paint();const pending=f.emit('[data-bph-account]','change','7');await tick();const before=f.paints();f.ui.dispose();finish();await pending;assert.equal(f.paints(),before);assert.equal(f.ui.html(),'');await f.ui.refresh();assert.equal(f.calls.length,1);
  for(const kind of [undefined,'finance',[],{},'Customer'])assert.throws(()=>createBusinessPartyHistory({kind,session:{partyHistory(){assert.fail();}}}));
+});
+
+const readInvoice=()=>({id:'51',documentNo:'SYNTHETIC-RECEIPT',documentDate:'2026-01-02',customerId:'155',currency:'USD',status:'finalized',subtotalExact4:'2.0000',grandTotalExact4:'2.0000',amountTryExact4:'4.0000',customerBalanceExact4:'0.0000',revision:'a'.repeat(64),items:[{productId:'12',stockCode:'SYNTHETIC',name:'Sentetik ürün',quantityExact3:'1.000',unitPriceExact8:'2.00000000',unitPriceExact4:'2.0000',lineTotalExact4:'2.0000',currency:'USD'}],collections:{revision:'b'.repeat(64),receivedExact4:'0.0000',outstandingExact4:'2.0000',items:[]}});
+const salesHistory=q=>envelope(q,{edit:r=>{r.kind='sales_invoice';}});
+test('existing customer history displays only movement-bound readonly invoice, with no lifecycle controls',async()=>{
+ const calls=[],f=fixture({read:salesHistory,invoiceAvailable:true,invoiceRead:async(q,id)=>{calls.push({q,id});return {...readInvoice(),capabilities:{canFinalize:true,canCancel:true,canCollect:true}};}});f.select(card());await f.emit('[data-bph-account]','change','7');assert.match(f.d.html(),/data-bph-invoice/);await f.emit('[data-bph-invoice]','click');assert.equal(calls[0].q.accountId,'7');assert.equal(calls[0].id,'1000');assert.match(f.d.html(),/Satış fişi · SYNTHETIC-RECEIPT/);assert.doesNotMatch(f.d.html(),/data-sale-draft|data-sale-finalize|data-sale-cancel|data-sale-collect/);await f.emit('[data-bph-account]','change','9');assert.doesNotMatch(f.d.html(),/SYNTHETIC-RECEIPT/);f.ui.dispose();
+});
+test('receipt capability is explicit; supplier, old/clean transport and unrelated movement never get an invoice button',async()=>{
+ for(const options of [{kind:'supplier',invoiceAvailable:true,read:salesHistory},{invoiceAvailable:false,read:salesHistory},{invoiceAvailable:true,read:q=>envelope(q)},{invoiceAvailable:true,read:q=>envelope(q,{edit:r=>{r.kind='sales_invoice';r.accountCurrency=null;}})}]){
+  const f=fixture({...options,invoiceRead:()=>assert.fail('no receipt fetch')});f.select(card());await f.emit('[data-bph-account]','change','7');assert.doesNotMatch(f.d.html(),/data-bph-invoice/);f.ui.dispose();
+ }
+});
+test('account switch and disposal cannot restore a late receipt or expose a failed invoice from another customer',async()=>{
+ let finish;const f=fixture({read:salesHistory,invoiceAvailable:true,invoiceRead:()=>new Promise(resolve=>{finish=()=>resolve(readInvoice());})});f.select(card());await f.emit('[data-bph-account]','change','7');const pending=f.emit('[data-bph-invoice]','click');await tick();await f.emit('[data-bph-account]','change','9');finish();await pending;assert.doesNotMatch(f.d.html(),/SYNTHETIC-RECEIPT/);f.ui.dispose();
+ const g=fixture({read:salesHistory,invoiceAvailable:true,invoiceRead:()=>({...readInvoice(),customerId:'156'})});g.select(card());await g.emit('[data-bph-account]','change','7');await g.emit('[data-bph-invoice]','click');assert.match(g.d.html(),/bu hesaba bağlantısı doğrulanamadı/);assert.doesNotMatch(g.d.html(),/SYNTHETIC-RECEIPT/);g.ui.dispose();
 });

@@ -1,8 +1,9 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
 import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheticCatalogModel.mjs';
-import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor} from './businessWorkface.mjs';
+import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor,businessSaleReceiptRequestAllowed,isBusinessSaleReceiptActor} from './businessWorkface.mjs';
 import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
 import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
+import {tradeInvoice} from './workTradeModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -45,9 +46,9 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{if(protectedDevice&&key===workingCatalogTokenKey){deviceToken=value;try{storage?.removeItem(key);}catch{}return;}try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,businessSalePreview=false,headers={}}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,businessSalePreview=false,businessSaleReceipt=false,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
-  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path)&&!(businessSalePreview&&businessSalePreviewRequestAllowed(method,path,user)))throw Object.assign(problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
+  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path)&&!(businessSalePreview&&businessSalePreviewRequestAllowed(method,path,user))&&!(businessSaleReceipt&&businessSaleReceiptRequestAllowed(method,path,user)))throw Object.assign(problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
   if((protectedDevice||businessBrowser)&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
@@ -105,6 +106,21 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!['sales.view','customer.view','product.view'].every(p=>user.permissions.includes(p)))throw problem('Satış seçimi bağlantısı kullanılamıyor.',403);
    const path=businessSaleReadPath(selection),payload=await request(path,{expire:true,keepForbiddenSession:true});
    return validateBusinessSaleReadEnvelope(payload,selection);
+  },
+  businessSaleInvoiceAvailable(){return !!(businessTarget&&active&&token&&isBusinessSaleReceiptActor(user));},
+  async businessSaleInvoice(selection,movementId){
+   if(!businessTarget||!active||!token||!isBusinessSaleReceiptActor(user)||selection?.kind!=='customer'||typeof movementId!=='string'||! /^[1-9]\d{0,18}$/.test(movementId))throw problem('Fiş bağlantısı doğrulanamadı.',403);
+   const query=structuredClone(selection),version=generation,identity=JSON.stringify(user);
+   const unchanged=()=>{if(!active||!token||generation!==version||JSON.stringify(user)!==identity)throw problem('Oturum değişti.',403);};
+   // Re-read exact account history; a caller-supplied invoice ID/envelope is
+   // never enough to associate an invoice with a currency account.
+   const history=validatePartyHistoryEnvelope(await request(partyHistoryPath(query),{expire:true,keepForbiddenSession:true}),query);unchanged();
+   const rows=history.data.filter(r=>r.id===movementId&&['sales_invoice','sales_invoice_cancel'].includes(r.kind)&&r.accountCurrency===query.currency);
+   const invoiceId=rows.length===1?rows[0].invoiceId:null,path='/api/work-sales/invoices/'+invoiceId;
+   if(!businessSaleReceiptRequestAllowed('GET',path,user))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
+   const invoice=tradeInvoice((await request(path,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data);unchanged();
+   if(!['finalized','cancelled'].includes(invoice.status)||invoice.id!==invoiceId||invoice.customerId!==query.partyId||invoice.currency!==query.currency||invoice.customerBalanceDisplayOnly!==true||typeof invoice.customerBalanceExact8!=='string'||! /^-?(?:0|[1-9]\d*)\.\d{8}$/.test(invoice.customerBalanceExact8))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
+   return structuredClone(invoice);
   },
   async businessSalePreview(selection){
    if(!businessTarget||!active||!token||!isBusinessSalePreviewActor(user)||!businessSalePreviewSelectionAllowed(selection))throw problem('Satış önizleme seçimi doğrulanamadı.',403);

@@ -18,3 +18,15 @@ test('same-origin adapter keeps exact host, physical interface and forwarded-hea
  assert.equal(cleanPreviewRequestAllowed(req),true);
  for(const patch of [{host:'other:5244'},{origin:'http://127.0.0.1:5244'},{'x-forwarded-for':'127.0.0.1'},{'sec-fetch-site':'cross-site'}])assert.equal(cleanPreviewRequestAllowed({...req,headers:{...req.headers,...patch}}),false);
 });
+
+test('actual business middleware applies host/origin guard before exact authenticated dispatch and never generic-proxies a write',async()=>{
+ const {readFile}=await import('node:fs/promises'),{runInNewContext}=await import('node:vm');
+ const {businessSaleBrowserRequestAllowed,businessWorkfaceRequestAllowed}=await import('./businessWorkface.mjs');
+ const source=await readFile(new URL('../../vite.config.mjs',import.meta.url),'utf8'),start=source.indexOf('server.middlewares.use((req,res,next)=>',source.indexOf('const businessPreview=')),end=source.indexOf(');\n  const extra=',start);
+ assert(start>0&&end>start);const handler=runInNewContext(source.slice(start+'server.middlewares.use('.length,end),{cleanPreviewRequestAllowed,businessWorkfaceRequestAllowed,businessSaleBrowserRequestAllowed,peers:[],sessionTransport:(req,res,next)=>{req.dispatched=true;res.end('authenticated-dispatch');}});
+ const base={method:'POST',url:'/api/work-sales/preview',socket:{localAddress:'127.0.0.1',remoteAddress:'127.0.0.1'},headers:{host:'127.0.0.1:5244',origin:'http://127.0.0.1:5244','sec-fetch-site':'same-origin'}};
+ function call(patch={}){const req={...base,...patch},out={status:null,next:false};handler(req,{writeHead(s){out.status=s;},end(value){out.body=value;}},()=>{out.next=true;});return {...out,dispatched:req.dispatched===true};}
+ assert.equal(call().dispatched,true);assert.equal(call({method:'GET',url:'/api/work-sales/invoices/51'}).dispatched,true);
+ for(const headers of [{...base.headers,origin:'http://elsewhere:5244'},{...base.headers,'x-forwarded-for':'127.0.0.1'},{...base.headers,'sec-fetch-site':'cross-site'}]){const r=call({headers});assert.equal(r.status,403);assert.equal(r.dispatched,false);assert.equal(r.next,false);}
+ for(const [method,url] of [['GET','/api/work-sales/invoices'],['GET','/api/work-sales/invoices/51?accountId=7'],['POST','/api/work-sales/drafts'],['POST','/api/work-sales/drafts/51/finalize'],['POST','/api/work-sales/drafts/51/cancel'],['POST','/api/work-collections']]){const r=call({method,url});assert.equal(r.status,403);assert.equal(r.dispatched,false);assert.equal(r.next,false);}
+});
