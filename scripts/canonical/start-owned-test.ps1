@@ -1,6 +1,7 @@
 param([string]$StartupConfigPath, [switch]$Library, [switch]$Once)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'canonical-business-sale-maintenance.ps1')
 
 function Same-ErpPath($A,$B) {
  if (!$A -or !$B) {return $false}
@@ -41,14 +42,15 @@ function Get-ErpReadPairReleaseProofContext($Proof){
  if(!$found-or$found.closed-or$found.pid-ne$PID-or$found.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-cne$found.owner-or($Proof|ConvertTo-Json -Compress)-cne$found.tokenJson){throw 'TEST125_RELEASE_PROOF_NOT_ISSUED'}
  return $found
 }
-function New-ErpReadPairPreparedReleaseProof($Config){
+function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null){
+ if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){[void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)}elseif($null-ne$NativeProfileAdmission){throw 'B6_NATIVE_SCOPE_REJECTED'}
  if(!('Business5244PackageSeal' -as[type])){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
  $seal=[Business5244PackageSeal]::new()
  try{
   if(!$seal.PSObject.Properties['PolicyVersion']-or$seal.PolicyVersion-cne'test125-package-file-identity.v2'){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
   $actual=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
   if(($Config|ConvertTo-Json -Depth 100 -Compress)-cne($actual|ConvertTo-Json -Depth 100 -Compress)){throw 'TEST125_RELEASE_PROOF_CONFIG_CHANGED'}
-  $scope=Assert-Test125ReadPairConfig $actual Current
+  $scope=Assert-Test125ReadPairConfig $actual Current -ScopeName $ScopeName
   if($actual.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778'-or$actual.ManifestSha256-cne'0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64'-or$actual.SourceCommit-cne$scope.source-or$actual.ExpectedDatabase-cne$scope.database){throw 'TEST125_RELEASE_PROOF_SCOPE'}
   $next=$actual|ConvertTo-Json -Depth 100|ConvertFrom-Json;$next.ApiComponent.ReleaseRoot=$scope.candidate.ReleaseRoot;$next.ApiComponent.ManifestSha256=$scope.candidate.ManifestSha256
   $oldApi=Get-ErpApiComponentConfig $actual;$newApi=Get-ErpApiComponentConfig $next
@@ -57,10 +59,17 @@ function New-ErpReadPairPreparedReleaseProof($Config){
   foreach($configShape in @($oldApi,$newApi)){$projectedShapes+=,($configShape|ConvertTo-Json -Depth 100 -Compress)}
   $shapes=@($baseShapes)+@($projectedShapes)
   foreach($package in $all){$m=Assert-ErpRelease $package -RetainedSeal $seal;$manifests[$package.ReleaseRoot]=[IO.File]::ReadAllText((Join-Path $package.ReleaseRoot 'release-manifest.json'))}
+  $businessSaleOwnerPins=$null
+  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+   $ownerSource=Get-ErpBusinessSaleOwnerSource $NativeProfileAdmission
+   $seal.Add($ownerSource.manifestPath,$ownerSource.manifestSha256)
+   foreach($file in $ownerSource.files){$seal.Add((Join-Path $ownerSource.root $file.path),$file.sha256)}
+   $businessSaleOwnerPins=[pscustomobject]@{path=$ownerSource.launcher;sha256=$ownerSource.launcherSha256;coreManifestSha256=$ownerSource.manifestSha256}
+  }
   $seal.Freeze();$seal.Validate()
   $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-immutable-release-proof.v1';id=[guid]::NewGuid().ToString('N')}
   $pins=[pscustomobject][ordered]@{policy=$seal.PolicyVersion;baseRoot=$actual.ReleaseRoot;baseManifest=$actual.ManifestSha256;currentApiRoot=$oldApi.ReleaseRoot;currentApiManifest=$oldApi.ManifestSha256;candidateApiRoot=$newApi.ReleaseRoot;candidateApiManifest=$newApi.ManifestSha256;node=$actual.NodePath;nodeSha256=$actual.NodeSha256;source=$actual.SourceCommit;database=$actual.ExpectedDatabase}
-  [void]$script:ErpReadPairReleaseProofs.Add([pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=$actual.OwnerSid;seal=$seal;shapes=$shapes;baseShapes=$baseShapes;projectedShapes=$projectedShapes;configs=[Collections.ArrayList]::new();manifests=$manifests;pins=$pins;closed=$false})
+  [void]$script:ErpReadPairReleaseProofs.Add([pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=$actual.OwnerSid;seal=$seal;shapes=$shapes;baseShapes=$baseShapes;projectedShapes=$projectedShapes;configs=[Collections.ArrayList]::new();manifests=$manifests;pins=$pins;businessSaleOwnerPins=$businessSaleOwnerPins;closed=$false})
   return $token
  }catch{$seal.Dispose();throw}
 }
@@ -112,6 +121,8 @@ function Read-ErpStartupConfig($Path,$PreparedReleaseProof=$null) {
  return $c
 }
 function Assert-ErpApiPrivateProfile($Base,$Api,$Manifest){
+ if($Manifest.packageId-ceq'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'-and(!$Api.PSObject.Properties['businessSaleAdmission']-or!$Api.PSObject.Properties['businessSaleWritesEnabled'])){throw 'B6_PROFILE_DESCRIPTOR_REQUIRED'}
+ if($Api.PSObject.Properties['businessSaleAdmission']-or$Api.PSObject.Properties['businessSaleWritesEnabled']){$Api=Assert-ErpBusinessSaleProfileDelta $Base $Api $Manifest}
  $comparison=$Api.PSObject.Copy();$comparison.PSObject.Properties.Remove('businessWorkface');$comparison.PSObject.Properties.Remove('businessSessionAccessSecret')
  $comparison.goal8SyntheticDaySeal=$Base.goal8SyntheticDaySeal
  if(($comparison|ConvertTo-Json -Depth 100 -Compress) -cne ($Base|ConvertTo-Json -Depth 100 -Compress) -or $Api.goal8SyntheticDaySeal.sourceCommit -cne $Base.goal8SyntheticDaySeal.sourceCommit -or $Api.goal8SyntheticDaySeal.dayId -cne $Base.goal8SyntheticDaySeal.dayId -or $Api.goal8SyntheticDaySeal.definitionHash -cne $Base.goal8SyntheticDaySeal.definitionHash -or $Api.goal8SyntheticDaySeal.packageId -cne $Manifest.packageId){throw 'TEST_STARTUP_COMPONENT_PROFILE_DELTA_REJECTED'}

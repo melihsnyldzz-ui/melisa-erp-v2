@@ -1,0 +1,205 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import {execFileSync} from 'node:child_process';
+const dir=import.meta.dirname,ps=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'",win={skip:process.platform!=='win32'};
+function run(body){return execFileSync(ps,['-NoProfile','-NonInteractive','-Command','$s=[Console]::In.ReadToEnd();&([scriptblock]::Create($s))'],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;foreach($m in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules/'+$m+'/'+$m+'.psd1'))};. ${q(path.join(dir,'canonical-business-sale-maintenance.ps1'))};${body}`,encoding:'utf8',timeout:30000,windowsHide:true}).trim();}
+const fixture=String.raw`
+function Read-ErpBusinessSalePinnedFile {param($Path,$Hash);if($Hash-cnotin@('4c66f2e48beda43e6ab420d053b3ddaf24410f96bc6ff56242ba7821e188128b','ed70836fbe3a8fe99c6f64d5ea0b7325084a57d5f2aa1b616998e5e5793921b1')){throw 'FIXTURE_INPUT_PIN'};return ,([byte[]](0))}
+function Get-ErpBusinessSaleNativeInputs {if(Get-Variable pinnedFixtureArtifact -Scope Script -ErrorAction SilentlyContinue){return [pscustomobject]@{artifactHash='4c66f2e48beda43e6ab420d053b3ddaf24410f96bc6ff56242ba7821e188128b';artifact=($script:pinnedFixtureArtifact|ConvertTo-Json -Depth 32|ConvertFrom-Json)}};return [pscustomobject]@{artifactHash='4c66f2e48beda43e6ab420d053b3ddaf24410f96bc6ff56242ba7821e188128b'}}
+$cap=[pscustomobject]@{schema='fixture-cap';id='fixture'}
+$r=[pscustomobject]@{token=$cap;tokenJson=($cap|ConvertTo-Json -Compress);closed=$false;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;inputHash='4c66f2e48beda43e6ab420d053b3ddaf24410f96bc6ff56242ba7821e188128b';phase='Prepared';candidateBytes=[byte[]](1,2,3);profilePath='fixture-profile';profileBeforeHash='fixture-before';transition=$null;rehearsed=$false;backup=$null;backupSignature=$null;journalHash=$null;events=[Collections.ArrayList]::new();inputs=[pscustomobject]@{artifact=[pscustomobject]@{applyBatches=@([pscustomobject]@{sql='apply-before'},[pscustomobject]@{sql='apply-after'});inverseBatches=@([pscustomobject]@{sql='inverse-history-cas'},[pscustomobject]@{sql='inverse-before'})}}}
+[void]$script:ErpBusinessSaleAdmissions.Add($r)
+function Reject([scriptblock]$f){$failed=$false;try{&$f|Out-Null}catch{$failed=$true};if(!$failed){throw 'EXPECTED_REJECTION'}}
+`;
+const nativeFixture=fixture+String.raw`
+$script:pinnedFixtureArtifact=$r.inputs.artifact|ConvertTo-Json -Depth 32|ConvertFrom-Json
+$script:trace=[Collections.ArrayList]::new();$script:fail='';$script:commits=0;$script:rollbacks=0;$script:opens=0
+function Assert-ErpBusinessSaleNativeQuiescence {param($Record);[pscustomobject]@{vault='fixture-only'}}
+function Write-ErpBusinessSaleNativeEvent {param($Record,$Event);[void]$script:trace.Add('event:'+ $Event)}
+function Open-ErpBusinessSaleSqlConnection {
+ $script:opens++;$tx=[pscustomobject]@{}
+ $tx|Add-Member ScriptMethod Commit {$script:commits++;if($script:fail-ceq'commit'){throw 'LOST_COMMIT_ACK'}}
+ $tx|Add-Member ScriptMethod Rollback {$script:rollbacks++}
+ $tx|Add-Member ScriptMethod Dispose {}
+ $connection=[pscustomobject]@{tx=$tx}
+ $connection|Add-Member ScriptMethod BeginTransaction {param($isolation);return $this.tx}
+ $connection|Add-Member ScriptMethod Dispose {}
+ return $connection
+}
+function Invoke-ErpBusinessSaleSqlBatch {param($Connection,$Transaction,$Sql);[void]$script:trace.Add($Sql);if($script:fail-ceq$Sql){throw 'NATIVE_CAS_REJECTED'}}
+function New-ErpBusinessSaleVerifiedBackup {param($Connection);[void]$script:trace.Add('backup');if($script:fail-ceq'backup'){throw 'BACKUP_NOT_VERIFIED'};return [pscustomobject]@{path='fixture-backup';restored=$false}}
+function Test-ErpBusinessSaleVerifiedBackup {param($Record,$Connection);[void]$script:trace.Add('backup-reverify');if($script:fail-ceq'backup-reverify'){throw 'BACKUP_NOT_VERIFIED'}}
+function Test-ErpBusinessSaleBefore {param($Inputs);[void]$script:trace.Add('before-readback')}
+function Test-ErpBusinessSaleAfter {param($Inputs);[void]$script:trace.Add('after-readback');if($script:fail-ceq'after-readback'){throw 'AFTER_CHANGED'}}
+`;
+test('library import creates no SQL connection or process/service action',win,()=>{
+ assert.equal(run(`function Open-ErpBusinessSaleSqlConnection {throw 'SQL_FORBIDDEN'};if($script:ErpBusinessSaleAdmissions.Count-ne0){throw 'IMPORT_ISSUED_AUTHORITY'};'PASS'`),'PASS');
+ const text=fs.readFileSync(path.join(dir,'canonical-business-sale-maintenance.ps1'),'utf8');
+ assert(!/EncodedCommand|Invoke-Expression|Stop-Process|Start-Process|Invoke-RestMethod|Set-MpPreference/i.test(text));
+});
+test('real SqlClient builder accepts the fixed keywords without connecting or relaxing TLS',win,()=>{
+ assert.equal(run(String.raw`$s=New-ErpBusinessSaleSqlConnectionString;$b=[Data.SqlClient.SqlConnectionStringBuilder]::new($s);if($b.DataSource-cne'Semih\MELISADEV'-or$b.InitialCatalog-cne'MELISA_ERP_SIRKET_TEST_20260929_01'-or!$b.IntegratedSecurity-or!$b.Encrypt-or$b.TrustServerCertificate-or$b.Pooling-or$b.ConnectTimeout-ne5-or$b.ApplicationName-cne'Melisa-B6-Finite-Maintenance'){throw 'FIXED_SQL_CONNECTION_CHANGED'};$c=[Data.SqlClient.SqlConnection]::new($s);try{if($c.State-ne[Data.ConnectionState]::Closed){throw 'UNEXPECTED_CONNECTION'}}finally{$c.Dispose()};'PASS'`),'PASS');
+});
+test('each native command declares the compiler scratch variable in its own SQL scope',win,()=>{
+ assert.equal(run(String.raw`
+$script:observed=$null;$command=[pscustomobject]@{CommandTimeout=0;Transaction=$null;CommandText=''}
+$command|Add-Member ScriptMethod ExecuteNonQuery {$script:observed=$this.CommandText;return 0};$command|Add-Member ScriptMethod Dispose {}
+$connection=[pscustomobject]@{command=$command};$connection|Add-Member ScriptMethod CreateCommand {return $this.command}
+$tx=[pscustomobject]@{fixture=$true};Invoke-ErpBusinessSaleSqlBatch $connection $tx 'SET @b6_ddl=N''fixture'';'
+if($script:observed-cne("SET XACT_ABORT ON; DECLARE @b6_ddl nvarchar(max);"+[char]10+"SET @b6_ddl=N'fixture';")-or![object]::ReferenceEquals($command.Transaction,$tx)){throw 'BATCH_VARIABLE_SCOPE'};'PASS'
+`),'PASS');
+});
+test('native admission denies JSON copies, altered token, foreign PID/thread/owner and wrong phase',win,()=>{
+ assert.equal(run(fixture+String.raw`
+[void](Assert-ErpBusinessSaleNativeProfileAdmission $cap Prepared)
+Reject {Assert-ErpBusinessSaleNativeProfileAdmission ($cap|ConvertTo-Json|ConvertFrom-Json) Prepared}
+foreach($field in @('pid','thread','owner','phase')){$old=$r.$field;$r.$field=if($field-ceq'owner'){'foreign-owner'}elseif($field-ceq'phase'){'Applied'}else{-1};Reject {Assert-ErpBusinessSaleNativeProfileAdmission $cap Prepared};$r.$field=$old}
+$cap.id='altered';Reject {Assert-ErpBusinessSaleNativeProfileAdmission $cap Identity};$cap.id='fixture'
+$copy=Get-ErpBusinessSaleCandidateProfileBytes $cap;$copy[0]=9;if((Get-ErpBusinessSaleCandidateProfileBytes $cap)[0]-ne1){throw 'BYTES_ESCAPED'}
+$r.phase='Unknown';Reject {Assert-ErpBusinessSaleNativeProfileAdmission $cap Identity};'PASS'
+`),'PASS');
+});
+test('native binding rejects changed profile before/candidate hashes and a second transition',win,()=>{
+ assert.equal(run(fixture+String.raw`
+$t=[pscustomobject]@{scope='TEST125-API-B6-ca620bac-20261028';apiProfileBeforeSha256='fixture-before';apiProfileCandidateSha256=(Get-ErpBusinessSaleHash $r.candidateBytes)}
+$script:c=[pscustomobject]@{nativeProfileAdmission=$cap;apiPath='fixture-profile'}
+function Assert-Test125ReadPairIssued {param($Transition);if(![object]::ReferenceEquals($Transition,$t)){throw 'NOT_ISSUED'};return $script:c}
+$t.apiProfileBeforeSha256='changed';Reject {Bind-ErpBusinessSaleNativeProfileTransition $cap $t};$t.apiProfileBeforeSha256='fixture-before'
+$t.apiProfileCandidateSha256='changed';Reject {Bind-ErpBusinessSaleNativeProfileTransition $cap $t};$t.apiProfileCandidateSha256=Get-ErpBusinessSaleHash $r.candidateBytes
+Bind-ErpBusinessSaleNativeProfileTransition $cap $t;Reject {Bind-ErpBusinessSaleNativeProfileTransition $cap $t};'PASS'
+`),'PASS');
+});
+test('native mutation requires the same retained paused API binding, stopped supervisor and durable vault',win,()=>{
+ assert.equal(run(fixture+String.raw`
+$r.transition=[pscustomobject]@{fixture='transition'};$binding=[pscustomobject]@{held=$true;stopped=$true};$script:Test125ApiBinding=$binding
+$script:c=[pscustomobject]@{activeBinding=$binding;taskStopped=$true;vault='fixture-vault'}
+function Assert-Test125ReadPairIssued {param($Transition);if(![object]::ReferenceEquals($Transition,$r.transition)){throw 'NOT_ISSUED'};return $script:c}
+function Assert-Test125ApiStoppedSupervisor {param($Binding)};function Test-Test125ApiPhysicalPause {param($Binding);return $true};function Assert-Test125ReadPairCompanions {param($Context)}
+[void](Assert-ErpBusinessSaleNativeQuiescence $r)
+foreach($field in @('held','stopped')){$binding.$field=$false;Reject {Assert-ErpBusinessSaleNativeQuiescence $r};$binding.$field=$true}
+$script:c.taskStopped=$false;Reject {Assert-ErpBusinessSaleNativeQuiescence $r};$script:c.taskStopped=$true
+$script:c.vault=$null;Reject {Assert-ErpBusinessSaleNativeQuiescence $r};$script:c.vault='fixture-vault'
+$script:c.activeBinding=[pscustomobject]@{held=$true;stopped=$true};Reject {Assert-ErpBusinessSaleNativeQuiescence $r};'PASS'
+`),'PASS');
+});
+test('native journal persists intent and rejects changed bytes or adoption of an existing unissued journal',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-journal-')));
+ try{assert.equal(run(fixture+`$script:vault=${q(temp)};`+String.raw`
+function Assert-ErpBusinessSaleNativeQuiescence {param($Record);[pscustomobject]@{vault=$script:vault}}
+Write-ErpBusinessSaleNativeEvent $r 'APPLY_INTENT';$first=$r.journalHash;Write-ErpBusinessSaleNativeEvent $r 'BACKUP_VERIFIED'
+if(!$first-or$r.journalHash-ceq$first){throw 'JOURNAL_NOT_DURABLE'}
+$file=Join-Path $script:vault 'native-b6-journal.jsonl';[IO.File]::AppendAllText($file,'foreign');Reject {Write-ErpBusinessSaleNativeEvent $r 'APPLY_VERIFIED'}
+$r.journalHash=$null;Reject {Write-ErpBusinessSaleNativeEvent $r 'ADOPT_EXISTING'};'PASS'
+`),'PASS');}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-journal-'));fs.rmSync(temp,{recursive:true});}
+});
+test('rehearsal runs apply and inverse then rolls back; apply requires backup and fresh after-readback',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};if($script:opens-ne0){throw 'EARLY_SQL'}
+Invoke-ErpBusinessSaleNativeRevision $cap Rehearse
+if(!$r.rehearsed-or$r.phase-cne'Prepared'-or$script:commits-ne0-or$script:rollbacks-ne1-or!$script:trace.Contains('inverse-history-cas')){throw 'REHEARSAL_NOT_RESTORED'}
+Invoke-ErpBusinessSaleNativeRevision $cap Apply
+if($r.phase-cne'Applied'-or$script:commits-ne1-or$script:trace.IndexOf('backup')-gt$script:trace.IndexOf('apply-before')-or@($script:trace|Where-Object{$_-ceq'backup'}).Count-ne1-or!$script:trace.Contains('backup-reverify')-or!$script:trace.Contains('after-readback')){throw 'APPLY_NOT_VERIFIED'}
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};if($script:commits-ne1){throw 'SECOND_EFFECT'}
+Invoke-ErpBusinessSaleNativeRevision $cap Inverse;if($r.phase-cne'Restored'-or$script:commits-ne2){throw 'INVERSE_FAILED'}
+Invoke-ErpBusinessSaleNativeRevision $cap Inverse;if($script:commits-ne2){throw 'SECOND_INVERSE'};'PASS'
+`),'PASS');
+});
+test('failed compile or unverified backup prevents commit and does not produce Applied',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+$script:fail='apply-after';Reject {Invoke-ErpBusinessSaleNativeRevision $cap Rehearse}
+if($r.rehearsed-or$r.phase-cne'Prepared'-or$script:commits-ne0-or$script:rollbacks-ne1){throw 'FAILED_REHEARSAL_ACCEPTED'}
+;'PASS'
+`),'PASS');
+ assert.equal(run(nativeFixture+String.raw`
+$script:fail='backup';Reject {Invoke-ErpBusinessSaleNativeRevision $cap Rehearse}
+if($r.rehearsed-or$r.phase-cne'Prepared'-or$script:commits-ne0-or$script:trace.Contains('apply-before')){throw 'REHEARSAL_WITHOUT_BACKUP'}
+$script:fail='backup-reverify';$r.rehearsed=$true;Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply}
+if($r.phase-cne'Prepared'-or$script:commits-ne0-or$script:trace.Contains('apply-before')){throw 'BACKUP_BYPASS'};'PASS'
+`),'PASS');
+});
+test('mutable retained diagnostic inputs never become the SQL source',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+$r.inputs.artifact.applyBatches[0].sql='unapproved-retained-sql';$r.rehearsed=$true
+Invoke-ErpBusinessSaleNativeRevision $cap Apply
+if($script:trace.Contains('unapproved-retained-sql')-or!$script:trace.Contains('apply-before')){throw 'UNPINNED_SQL_SOURCE'};'PASS'
+`),'PASS');
+});
+test('backup reuse requires the exact immutable proof, hard-root path and fresh timestamp before VERIFYONLY',win,()=>{
+ assert.equal(run(fixture+String.raw`
+Add-Type -AssemblyName System.Data;$native=[Data.SqlClient.SqlCommand]::new();$script:verified=0
+function Open-ErpBusinessSaleVerifiedBackupStream {param($Path,$Sha256);return [IO.MemoryStream]::new([byte[]](1,2,3))}
+$command=[pscustomobject]@{CommandTimeout=0;CommandText='';Parameters=$native.Parameters}
+$command|Add-Member ScriptMethod ExecuteNonQuery {$script:verified++;if($this.CommandText-cne'RESTORE VERIFYONLY FROM DISK=@path WITH CHECKSUM;'){throw 'UNEXPECTED_SQL'};return 0};$command|Add-Member ScriptMethod Dispose {}
+$connection=[pscustomobject]@{command=$command};$connection|Add-Member ScriptMethod CreateCommand {return $this.command}
+$r.backup=[pscustomobject]@{path='C:\Sirket\ERP\backups\B6\B6-before-00000000000000000000000000000000.bak';sha256=$r.inputHash;verifiedAt=[datetime]::UtcNow.ToString('o');restored=$false};$r.backupSignature=$r.backup|ConvertTo-Json -Compress
+Test-ErpBusinessSaleVerifiedBackup $r $connection;if($script:verified-ne1){throw 'BACKUP_NOT_REVERIFIED'}
+foreach($case in @('mutated','stale','future','outside','restored')){
+ $saved=$r.backup|ConvertTo-Json -Compress;$savedSig=$r.backupSignature
+ switch($case){mutated{$r.backup.sha256='changed'}stale{$r.backup.verifiedAt=[datetime]::UtcNow.AddMinutes(-11).ToString('o')}future{$r.backup.verifiedAt=[datetime]::UtcNow.AddMinutes(1).ToString('o')}outside{$r.backup.path='C:\other\B6-before-00000000000000000000000000000000.bak'}restored{$r.backup.restored=$true}}
+ if($case-cne'mutated'){$r.backupSignature=$r.backup|ConvertTo-Json -Compress};Reject {Test-ErpBusinessSaleVerifiedBackup $r $connection}
+ $r.backup=$saved|ConvertFrom-Json;$r.backupSignature=$savedSig
+}
+if($script:verified-ne1){throw 'INVALID_BACKUP_REACHED_SQL'};$native.Dispose();'PASS'
+`),'PASS');
+});
+test('backup verification streams and retains exact file identity without loading a database backup into memory',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-backup-stream-'))),file=path.join(temp,'inert.bak');fs.writeFileSync(file,Buffer.alloc(1024*1024,0x5a));
+ try{assert.equal(run(`$file=${q(file)};`+String.raw`
+$sha=(Get-FileHash -LiteralPath $file).Hash.ToLowerInvariant();$stream=Open-ErpBusinessSaleVerifiedBackupStream $file $sha
+try{
+ if($stream-isnot[IO.FileStream]-or$stream.Position-ne0-or$stream.Length-ne1048576){throw 'NOT_RETAINED_STREAM'}
+ $denied=$false;try{$writer=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::ReadWrite);$writer.Dispose()}catch{$denied=$true};if(!$denied){throw 'BACKUP_WRITE_NOT_EXCLUDED'}
+}finally{$stream.Dispose()}
+$rejected=$false;try{$bad=Open-ErpBusinessSaleVerifiedBackupStream $file ('0'*64);$bad.Dispose()}catch{$rejected=$true};if(!$rejected){throw 'BACKUP_HASH_NOT_CHECKED'};'PASS'
+`),'PASS');}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-backup-stream-'));fs.rmSync(temp,{recursive:true});}
+});
+test('lost commit acknowledgement or independent after-readback failure becomes Unknown without inverse/retry',win,()=>{
+ for(const failure of ['commit','after-readback'])assert.equal(run(nativeFixture+`$r.rehearsed=$true;$script:fail=${q(failure)};`+String.raw`
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};if($r.phase-cne'Unknown'){throw 'UNKNOWN_ADOPTED'}
+$count=$script:commits;Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};Reject {Invoke-ErpBusinessSaleNativeRevision $cap Inverse}
+if($script:commits-ne$count){throw 'UNKNOWN_REPLAYED'};'PASS'
+`),'PASS');
+});
+test('native history inverse rejection preserves Applied and never commits a destructive rollback',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+$r.phase='Applied';$script:fail='inverse-history-cas';Reject {Invoke-ErpBusinessSaleNativeRevision $cap Inverse}
+if($r.phase-cne'Applied'-or$script:commits-ne0-or$script:rollbacks-ne1-or$script:trace.Contains('inverse-before')){throw 'HISTORY_BYPASS'};'PASS'
+`),'PASS');
+});
+test('B6 startup accepts only the exact descriptor and read-only profile delta; legacy seals and secrets stay unchanged',win,()=>{
+ assert.equal(run(`. ${q(path.join(dir,'start-owned-test.ps1'))} -Library;`+String.raw`
+$script:d=[pscustomobject]@{schemaVersion='fixture';readerDefinitions=[pscustomobject]@{reader='fixture-hash'}}
+function Get-ErpBusinessSaleNativeInputs {[pscustomobject]@{descriptor=$script:d}}
+$base=[pscustomobject]@{database='fixture';jwtAccessSecret='fixture-only';goal8SyntheticDaySeal=[pscustomobject]@{packageId='base';sourceCommit='fixture-source';dayId='fixture-day';definitionHash='fixture-definition'}}
+$before=$base|ConvertTo-Json -Depth 32 -Compress;$api=$base|ConvertTo-Json -Depth 32|ConvertFrom-Json
+$api.goal8SyntheticDaySeal.packageId='CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'
+$api|Add-Member businessWorkface ([pscustomobject]@{id='fixture-workface'});$api|Add-Member businessSessionAccessSecret 'fixture-business'
+$api|Add-Member businessSaleAdmission ($script:d|ConvertTo-Json -Depth 32|ConvertFrom-Json);$api|Add-Member businessSaleWritesEnabled $false
+$m=[pscustomobject]@{packageId=$api.goal8SyntheticDaySeal.packageId;sourceCommit='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';businessSaleSourceCommit='ca620bac30f96034b33d4410dc43576a38a38707';businessSaleCandidate=[pscustomobject]@{recordingEnabled=$false}}
+Assert-ErpApiPrivateProfile $base $api $m
+foreach($case in @('enable','reader','secret','seal','extra','missing')){
+ $bad=$api|ConvertTo-Json -Depth 32|ConvertFrom-Json
+ switch($case){enable{$bad.businessSaleWritesEnabled=$true}reader{$bad.businessSaleAdmission.readerDefinitions.reader='changed'}secret{$bad.jwtAccessSecret='changed'}seal{$bad.goal8SyntheticDaySeal.definitionHash='changed'}extra{$bad|Add-Member unsafeField $true}missing{$bad.PSObject.Properties.Remove('businessSaleAdmission')}}
+ $rejected=$false;try{Assert-ErpApiPrivateProfile $base $bad $m}catch{$rejected=$true};if(!$rejected){throw 'B6_PROFILE_EXPANSION'}
+}
+if(($base|ConvertTo-Json -Depth 32 -Compress)-cne$before-or$api.businessSaleWritesEnabled){throw 'ORIGINAL_PROFILE_CHANGED'};'PASS'
+`),'PASS');
+});
+test('real Unknown audit guard recursion persists the failure while normal execution remains rejected',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-unknown-')));
+ try{assert.equal(run(`. ${q(path.join(dir,'test125-bound-api-quiescence.ps1'))};`+fixture+`$vault=${q(temp)};`+String.raw`
+$t=[pscustomobject]@{scope='TEST125-API-B6-ca620bac-20261028';fixture='transition'};$proof=[pscustomobject]@{fixture='retained-proof'};$binding=[pscustomobject]@{held=$true;stopped=$true}
+$script:Test125ApiBinding=$binding;$script:Test125ReadPairContext=[pscustomobject]@{token=$t;tokenJson=($t|ConvertTo-Json -Depth 12 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;releaseProof=$proof;nativeProfileAdmission=$cap;activeBinding=$binding;taskStopped=$true;vault=$vault}
+$r.transition=$t;$r.phase='Unknown'
+function Get-ErpReadPairReleaseProofContext {param($Proof);if(![object]::ReferenceEquals($Proof,$script:Test125ReadPairContext.releaseProof)){throw 'PROOF_NOT_ISSUED'};return [pscustomobject]@{fixture='retained'}}
+function Assert-Test125ApiStoppedSupervisor {param($Binding)};function Test-Test125ApiPhysicalPause {param($Binding);return $true};function Assert-Test125ReadPairCompanions {param($Context)}
+Reject {Assert-Test125ReadPairIssued $t}
+Write-ErpBusinessSaleNativeEvent $r 'APPLY_FAILED_NO_REPLAY'
+$row=Get-Content -Raw -LiteralPath (Join-Path $vault 'native-b6-journal.jsonl')|ConvertFrom-Json
+if($row.phase-cne'Unknown'-or$row.event-cne'APPLY_FAILED_NO_REPLAY'){throw 'UNKNOWN_NOT_DURABLE'}
+Reject {Write-ErpBusinessSaleNativeEvent $r 'APPLY_VERIFIED'};Reject {Assert-Test125ReadPairIssued $t};'PASS'
+`),'PASS');}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-unknown-'));fs.rmSync(temp,{recursive:true});}
+});

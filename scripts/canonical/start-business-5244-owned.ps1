@@ -1,4 +1,4 @@
-param([Alias('Library')][switch]$OwnedLibrary,[ValidateSet('Current','ReadPair')][string]$OwnerInitialSlot='ReadPair',[switch]$PrepareReadPairMaintenance)
+param([Alias('Library')][switch]$OwnedLibrary,[ValidateSet('Current','ReadPair')][string]$OwnerInitialSlot='ReadPair',[switch]$PrepareReadPairMaintenance,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$OwnerScopeName='TEST125-API-READ2b-20261028-41d3c213')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
@@ -24,9 +24,9 @@ function Assert-Business5244CreatedChild($Native,$Pins){
  Assert-Business5244FreshSpawnArguments @{parent=$actual.ParentProcessId;exe=$actual.ExecutablePath;sid=$owner.Sid;command=$actual.CommandLine} $Pins
 }
 function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
- # Only the two fixed source pins are supported (current/ReadPair). No executable,
+ # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
- $exact=if($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+ $exact=if($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
  if((Get-FileHash -LiteralPath $Pins.node).Hash -cne $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -cne $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
@@ -43,14 +43,14 @@ function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  }
 }
 function Get-Business5244MaintenancePlan($State,$ApiTransition=$null){
- $r=Get-Business5244RetirementState $State;$candidate=Get-Business5244ReadPairPins
+ $r=Get-Business5244RetirementState $State;$scopeName=if($r.ContainsKey('scopeName')){$r.scopeName}else{'TEST125-API-READ2b-20261028-41d3c213'};$candidate=Get-Business5244FinitePairPins -ScopeName $scopeName -Mode Candidate
  $identity=@($candidate.package,$candidate.manifest,$candidate.apiPackage,$candidate.apiManifest,$candidate.nodeHash,$candidate.profile) -join '|'
  if($null -ne $ApiTransition){
-  $old=Get-Business5244WebPins
+  $old=Get-Business5244FinitePairPins -ScopeName $scopeName -Mode Current
   $keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')
   foreach($key in $keys){if($r.pins[$key] -cne $old[$key]){throw 'OWNED_WEB_PAIRED_BASE_CHANGED'}}
   $contract=Get-Test125ReadPairTransitionContract -Transition $ApiTransition
-  if($contract.scope -cne 'TEST125-API-READ2b-20261028-41d3c213' -or $contract.contractSha256 -cnotmatch '^[a-f0-9]{64}$' -or $contract.mode -cne 'Current' -or $contract.phase -cnotin @('PREPARED','VERIFIED')){throw 'OWNED_WEB_API_CONTRACT_CHANGED'}
+  if($contract.scope -cne $scopeName -or $contract.contractSha256 -cnotmatch '^[a-f0-9]{64}$' -or $contract.mode -cne 'Current' -or $contract.phase -cnotin @('PREPARED','VERIFIED')){throw 'OWNED_WEB_API_CONTRACT_CHANGED'}
   $identity='business-5244-read-pair.v1|'+$contract.contractSha256+'|'+(($keys|ForEach-Object {$candidate[$_]}) -join '|')+'|'+(($keys|ForEach-Object {$old[$_]}) -join '|')
  }
  return @{candidate=$candidate;rollback=$r.pins.Clone();hash=(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($identity)))}
@@ -60,6 +60,10 @@ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
  Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
  if($r.phase -cne 'Running' -or $r.ContainsKey('preparedPair')){throw 'OWNED_WEB_PAIR_PREPARATION_NOT_ADMITTED'}
  [void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)
+ if($r.scopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($r.initializationApiTransition-and![object]::ReferenceEquals($r.initializationApiTransition,$ApiTransition)){throw 'OWNED_WEB_INIT_API_REFERENCE_CHANGED'}
+  $r.initializationApiTransition=$ApiTransition
+ }
  $plan=Get-Business5244MaintenancePlan $State $ApiTransition
  Initialize-Business5244WebNative;$seal=[Business5244PackageSeal]::new()
  try{
@@ -95,7 +99,7 @@ function Assert-Business5244PreparedPair($State,$ApiTransition,[string]$PlanHash
 function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  $r=Get-Business5244RetirementState $State
  if($r.phase -cnotin @('Running','Retired') -or $Plan.hash -cne (Get-Business5244MaintenancePlan $State $ApiTransition).hash){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
- $fixedCandidate=Get-Business5244ReadPairPins
+ $fixedCandidate=Get-Business5244FinitePairPins -ScopeName $(if($r.ContainsKey('scopeName')){$r.scopeName}else{'TEST125-API-READ2b-20261028-41d3c213'}) -Mode Candidate
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.candidate[$key] -cne $fixedCandidate[$key]){throw 'OWNED_WEB_CANDIDATE_PINS_CHANGED'}}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.rollback[$key] -cne $r.pins[$key]){throw 'OWNED_WEB_ROLLBACK_PINS_CHANGED'}}
  if($null -eq $ApiTransition){Assert-Business5244OwnedPackage $Plan.candidate}else{Assert-Business5244PreparedPair $State $ApiTransition $Plan.hash}
@@ -180,25 +184,36 @@ function Close-Business5244PinnedChildren($Lease){
  if($failed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
 }
 function Start-Business5244OwnedSupervisor {
- param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair)
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'OWNED_WEB_SCOPE_REJECTED'}
  if($PrepareReadPair -and $InitialSlot -ine 'Current'){throw 'OWNED_WEB_PAIR_REQUIRES_CURRENT_START'}
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and initial publication remain separate gates.
  $lease=Enter-Business5244StartupLease -Kind Owner
- $native=$null;$retirement=$null;$channel=$null;$apiTransition=$null
+ $native=$null;$retirement=$null;$channel=$null;$apiTransition=$null;$initializationFailure=$null;$verifiedInitCleanup=$null;$initRecoveryBlocked=$false
+ $script:Business5244LastInitializationOutcome=$null
  try{
-  $pins=if($InitialSlot -ieq 'Current'){Get-Business5244WebPins}else{Get-Business5244ReadPairPins}
+  $pins=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $(if($InitialSlot -ieq 'Current'){'Current'}else{'Candidate'})
   $native=New-Business5244PinnedChild $pins $lease
-  $retirement=Register-Business5244OwnedRetirement $lease $native $pins
+  $retirement=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName $ScopeName
   if($PrepareReadPair){
    . (Join-Path $PSScriptRoot 'test125-bound-api-quiescence.ps1')
-   $apiTransition=New-Test125ReadPairTransition
+   if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleNativeProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}else{$apiTransition=New-Test125ReadPairTransition}
+   (Get-Business5244RetirementState $retirement).initializationApiTransition=$apiTransition
    Prepare-Business5244PairedMaintenance $retirement $apiTransition
+  }elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$InitialSlot-ieq'Current'){
+   # The finite recovery wrapper publishes only its own fresh Current child.
+   # It does not issue an API transition or change any component/profile.
+   . (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library
+   Publish-Business5244CurrentRecord $retirement|Out-Null
   }
   $channel=Open-Business5244RetirementChannel -OwnerLease $lease
+  (Get-Business5244RetirementState $retirement).initializing=$false
   # Retain the real creation handle and Job for the entire child lifetime.
   # Merely serializing this observation never grants maintenance authority.
-  [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=$false}
+  $startupRecord=Get-Business5244RetirementState $retirement
+  $recordPublished=$ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$startupRecord.ContainsKey('currentBootstrap')-and$startupRecord.currentBootstrap-and$startupRecord.currentBootstrap.phase-ceq'Archived'
+  [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=[bool]$recordPublished}
   while($true){
    Assert-Business5244StartupLease -Lease $lease
    $snapshot=Get-Business5244RetirementSnapshot $retirement
@@ -222,8 +237,17 @@ function Start-Business5244OwnedSupervisor {
    }
    Start-Sleep -Milliseconds 200
   }
+ }catch{
+  $initializationFailure=$_
+  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$InitialSlot-ieq'Current'-and$retirement){
+   $r=Get-Business5244RetirementState $retirement
+   if($r.initializing-and$r.ContainsKey('currentBootstrap')-and$r.currentBootstrap){
+    try{$verifiedInitCleanup=Undo-Business5244CurrentBootstrap $retirement}catch{$initRecoveryBlocked=$true;throw 'OWNED_WEB_INITIALIZATION_RECOVERY_UNCONFIRMED'}
+   }
+  }
+  throw
  }finally{
-  $cleanupFailed=$false
+  $cleanupFailed=$initRecoveryBlocked
   if($channel){try{Close-Business5244RetirementChannel -Channel $channel}catch{$cleanupFailed=$true}}
   if($retirement){try{Close-Business5244RetirementState $retirement}catch{$cleanupFailed=$true}}
   if($native){try{$native.Dispose()}catch{$cleanupFailed=$true}}
@@ -231,6 +255,16 @@ function Start-Business5244OwnedSupervisor {
   if($apiTransition){try{Close-Test125ReadPairRequestAdmission $apiTransition;$apiContext=Assert-Test125ReadPairIssued $apiTransition;Close-ErpReadPairReleaseProof $apiContext.releaseProof}catch{$cleanupFailed=$true}}
   if($cleanupFailed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
   Exit-Business5244StartupLease -Lease $lease
+  if($verifiedInitCleanup-and$initializationFailure){
+   # Issue the finite process outcome only after every cleanup and lease
+   # release succeeded. The original exception reference cannot be serialized.
+   $script:Business5244LastInitializationOutcome=@{exception=$initializationFailure.Exception;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;stateRecord=$r;native=$native;verified=$verifiedInitCleanup;exitCode=73}
+  }
  }
 }
-if(!$OwnedLibrary){Start-Business5244OwnedSupervisor -InitialSlot $OwnerInitialSlot -PrepareReadPair:$PrepareReadPairMaintenance}
+function Get-Business5244VerifiedInitializationExitCode($Exception){
+ $o=if(Get-Variable Business5244LastInitializationOutcome -Scope Script -ErrorAction SilentlyContinue){$script:Business5244LastInitializationOutcome}else{$null}
+ if(!$o-or!$Exception-or![object]::ReferenceEquals($Exception,$o.exception)-or$o.process-ne$PID-or$o.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$o.exitCode-ne73-or!$o.verified.verified-or!$o.native.RetirementConfirmed-or$o.stateRecord.phase-cne'InitializationRestored'-or$o.stateRecord.currentBootstrap.inverse.phase-cne'Archived'-or![object]::ReferenceEquals($o.native,$o.stateRecord.native)){return 1}
+ return 73
+}
+if(!$OwnedLibrary){try{Start-Business5244OwnedSupervisor -InitialSlot $OwnerInitialSlot -PrepareReadPair:$PrepareReadPairMaintenance -ScopeName $OwnerScopeName}catch{if((Get-Business5244VerifiedInitializationExitCode $_.Exception)-eq73){exit 73};throw}}

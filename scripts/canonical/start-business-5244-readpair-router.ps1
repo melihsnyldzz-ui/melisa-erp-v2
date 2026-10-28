@@ -1,14 +1,23 @@
-param([switch]$Library,[string]$ManifestSha256)
+param([switch]$Library,[string]$ManifestSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-function Get-Business5244ReadPairRouterMode($Config){
+if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
+function Get-Business5244ReadPairRouterMode($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213'){
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
  if(!$Config -or !$Config.PSObject.Properties['ApiComponent']){throw 'READPAIR_ROUTER_CONFIG_REQUIRED'}
- $scope=Get-Test125ReadPairScope
- if($Config.ApiComponent.ReleaseRoot -ceq $scope.current.ReleaseRoot){[void](Assert-Test125ReadPairConfig $Config Current);return 'PrepareCurrent'}
- [void](Assert-Test125ReadPairConfig $Config Candidate)
+ $pairScope=if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){Get-Test125ReadPairScope}else{Get-Test125ReadPairScope -Name $ScopeName}
+ if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  foreach($mode in @('Current','Candidate')){$pins=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;$part=if($mode-ceq'Current'){$pairScope.current}else{$pairScope.candidate};if($pins.apiManifest-cne$part.ManifestSha256-or$pins.baseSource-cne$pairScope.source){throw 'READPAIR_ROUTER_FINITE_PAIR_CHANGED'}}
+ }
+ if($Config.ApiComponent.ReleaseRoot -ceq $pairScope.current.ReleaseRoot){if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){[void](Assert-Test125ReadPairConfig $Config Current)}else{[void](Assert-Test125ReadPairConfig $Config Current -ScopeName $ScopeName)};return 'PrepareCurrent'}
+ if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){[void](Assert-Test125ReadPairConfig $Config Candidate)}else{[void](Assert-Test125ReadPairConfig $Config Candidate -ScopeName $ScopeName)}
  return 'SteadyReadPair'
 }
 if($Library){return}
+# The new core/router/current-entry generation has not been produced or admitted.
+# Reject B6 before reading any private/runtime file or starting an owner.
+if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){throw 'B6_OWNER_BUNDLE_NOT_PREPARED'}
+if($ScopeName-cne'TEST125-API-READ2b-20261028-41d3c213'){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
 # This is a two-file entry overlay on the already frozen ec316a63 libraries.
 # No general package rebuild or arbitrary path/mode/command input is accepted.
 $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-READ2B-ROUTER-ec316a63-20261028'
@@ -27,7 +36,7 @@ foreach($file in $coreManifest.files){$path=Join-Path $core $file.path;if($file.
 . (Join-Path $core 'start-business-5244-owned.ps1') -Library
 . (Join-Path $core 'test125-bound-api-quiescence.ps1')
 $config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
-$mode=Get-Business5244ReadPairRouterMode $config
+$mode=Get-Business5244ReadPairRouterMode $config -ScopeName $ScopeName
 # Before cutover prepare both exact pairs BEFORE accepting a nonce/request.
 # After a verified API commit, a restart must boot ReadPair directly instead
 # of requiring the superseded Current API or replaying the old migration.

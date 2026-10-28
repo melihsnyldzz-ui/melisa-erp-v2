@@ -15,6 +15,25 @@ function Get-Business5244ReadPairPins {
  $p.apiManifest='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'
  return $p
 }
+function Get-Business5244FinitePairPins {
+ param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',[ValidateSet('Current','Candidate')][string]$Mode='Current')
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')-or$Mode-cnotin@('Current','Candidate')){throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'}
+ if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){if($Mode-ceq'Current'){return Get-Business5244WebPins};if($Mode-ceq'Candidate'){return Get-Business5244ReadPairPins}}
+ elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  $pins=Get-Business5244ReadPairPins
+  if($Mode-ceq'Current'){return $pins}
+  if($Mode-ceq'Candidate'){
+   $pins.root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-ca620bac-PASSIVE-20261028'
+   $pins.package='ERP-BUSINESS-WEB-5244-B6-ca620bac-PASSIVE-20261028'
+   $pins.manifest='3881c27d0dd5ae126ead89d72a5ae28614386b040183eec3f1486c73f5bd0877'
+   $pins.frontendSource='ca620bac30f96034b33d4410dc43576a38a38707'
+   $pins.apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'
+   $pins.apiManifest='85ff1157f4d1ed69582d4a08dead319518d1c79c4ea74ea0f2a0606037a1289d'
+   return $pins
+  }
+ }
+ throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'
+}
 function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
  $sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash($Baseline)).Replace('-','')}finally{$sha.Dispose()}
  if($hash -cne '5B2995C261C64726A19A1F21CE8680FB97A8516A31CF0F979E4779DBF9C6FD6A' -or $LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_STARTER_BASE_CHANGED'}
