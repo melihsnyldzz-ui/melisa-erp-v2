@@ -7,6 +7,70 @@ try{$channel=Open-Business5244RetirementChannel -OwnerLease $lease;[Console]::Wr
 const serverEnd=String.raw`}finally{if($channel){Close-Business5244RetirementChannel $channel};Assert-Business5244StartupLease -Lease $lease;Exit-Business5244StartupLease -Lease $lease}`;
 const snapshot=String.raw`$snapshot=@{phase='Running';ownerPid=$PID;ownerBirth=[Business5244RetirementPeer]::CurrentBirth;childPid=$null;childBirth=$null;requestId=$request.requestId}`;
 const connect=pid=>`$connection=Connect-Business5244RetirementPeer;if($connection.serverPid -ne ${pid}){Close-Business5244RetirementPeer $connection;throw 'NOT_OUR_DISPOSABLE_SERVER'};`;
+async function isolatedAdmission(f){
+ const native=await readFile(path.join(import.meta.dirname,'business-5244-retirement-peer.cs'),'utf8'),runtime=path.join(f.directory,'admission-runtime'),cs=path.join(f.directory,'admission-peer.cs');
+ await writeFile(cs,native.replaceAll(String.raw`C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027`,runtime.replaceAll('\\','\\\\')));
+ return `function Initialize-Business5244RetirementPeer{if(!('Business5244RetirementPeer' -as [type])){Add-Type -LiteralPath ${q(cs)}}};function Get-Business5244StartupMutexName{return ('Global\\MelisaERP5244Startup-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+'-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes(${q(runtime)}.ToLowerInvariant()))))};function Get-Business5244RetirementPendingPath{return ${q(path.join(f.directory,'admission.pending'))}};`;
+}
+const acceptAdmission=String.raw`$request=$null;$end=[DateTime]::UtcNow.AddSeconds(12);while(!$request-and[DateTime]::UtcNow-lt$end){$request=Receive-Business5244RetirementRequest $channel;Start-Sleep -Milliseconds 5};if(!$request){throw 'NO_DISPOSABLE_REQUEST'};$r=Get-Business5244RetirementRecord $channel;$q=$r.request;`;
+test('separate admission accepts a valid body after input deadline while preserving exact peer/reference guards',win,async t=>{
+ const f=await fixture(t),isolate=await isolatedAdmission(f);
+ const server=await child(f,isolate+serverStart+acceptAdmission+String.raw`
+if($q.admissionDeadlineUtc-ne$q.acceptedUtc.AddSeconds(60)-or@($request.PSObject.Properties.Name).Count-ne2){throw 'CLIENT_CONTROLLED_TTL'}
+$r.deadline=[DateTime]::UtcNow.AddSeconds(-5);$q.acceptedTicks-=20L*[Diagnostics.Stopwatch]::Frequency;$q.acceptedUtc=$q.acceptedUtc.AddSeconds(-20);$q.admissionDeadlineUtc=$q.acceptedUtc.AddSeconds(60)
+$info=Get-Business5244RetirementRequestAdmission $channel $request
+if($info.expired-or$info.elapsedMilliseconds-lt20000-or!$info.nativePeerVerified-or$info.stopAuthorized-or$info.bodyHash-cne$q.hash){throw 'ADMISSION_WINDOW_WRONG'}
+foreach($copy in @(($request|ConvertTo-Json|ConvertFrom-Json),([pscustomobject]@{operation=$request.operation;requestId=$request.requestId}))){$caught=$false;try{Get-Business5244RetirementRequestAdmission $channel $copy|Out-Null}catch{$caught=$true};if(!$caught){throw 'COPIED_REQUEST_ADMITTED'}}
+$original=$request.operation;$request.operation='status';$caught=$false;try{Get-Business5244RetirementRequestAdmission $channel $request|Out-Null}catch{$caught=$true};if(!$caught){throw 'MUTATED_REQUEST_ADMITTED'};$request.operation=$original
+Assert-Business5244RetirementRequest $channel $request
+if($null-ne(Receive-Business5244RetirementRequest $channel)){throw 'REQUEST_REISSUED'};`+snapshot+String.raw`;Complete-Business5244RetirementRequest $channel $request RetireAccepted $snapshot|Out-Null
+for($i=0;$i-lt15;$i++){Receive-Business5244RetirementRequest $channel|Out-Null;Start-Sleep -Milliseconds 5};'PASS'`+serverEnd,'admission-valid-server');
+ assert.equal(await server.line(),'READY');
+ const client=await child(f,isolate+connect(server.pid)+String.raw`$answer=Send-Business5244RetirementRequest $connection retire;if($answer.reply-cne'RetireAccepted'-or$answer.stopAuthorized){throw 'BAD_REPLY'};'PASS'`,'admission-valid-client');
+ const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);assert.match(sr.stdout,/PASS/);
+});
+test('admission expiry is typed and read-only; late ACK resets without writing or granting replay',win,async t=>{
+ const f=await fixture(t),isolate=await isolatedAdmission(f);
+ const server=await child(f,isolate+serverStart+acceptAdmission+String.raw`
+$q.acceptedTicks-=61L*[Diagnostics.Stopwatch]::Frequency;$q.acceptedUtc=$q.acceptedUtc.AddSeconds(-61);$q.admissionDeadlineUtc=$q.acceptedUtc.AddSeconds(60)
+$info=Get-Business5244RetirementRequestAdmission $channel $request
+if(!$info.expired-or$info.elapsedMilliseconds-lt61000-or$info.stopAuthorized-or!$info.nativePeerVerified-or$q.completed-or$q.closed){throw 'EXPIRY_OBSERVATION_MUTATED_STATE'}
+$originalHash=$q.hash;$q.hash='0'*64;$caught=$false;try{Get-Business5244RetirementRequestAdmission $channel $request|Out-Null}catch{if($_.Exception.Message-ceq'RETIREMENT_REQUEST_REFERENCE_CHANGED'){$caught=$true}else{throw}};if(!$caught){throw 'ALTERED_BODY_HASH_OBSERVED'};$q.hash=$originalHash
+$caught=$false;try{Assert-Business5244RetirementRequest $channel $request}catch{if($_.Exception.Message-ceq'RETIREMENT_ADMISSION_EXPIRED'){$caught=$true}else{throw}};if(!$caught){throw 'EXPIRY_NOT_TYPED'}
+$copy=$request|ConvertTo-Json|ConvertFrom-Json;$caught=$false;try{Get-Business5244RetirementRequestAdmission $channel $copy|Out-Null}catch{if($_.Exception.Message-ceq'RETIREMENT_REQUEST_REFERENCE_CHANGED'){$caught=$true}else{throw}};if(!$caught){throw 'COPY_MINTED_EXPIRY'};`+snapshot+String.raw`
+$caught=$false;try{Complete-Business5244RetirementRequest $channel $request RetireAccepted $snapshot|Out-Null}catch{if($_.Exception.Message-ceq'RETIREMENT_ADMISSION_EXPIRED'){$caught=$true}else{throw}};if(!$caught-or$r.phase-cne'Accept'-or$r.request-or!$q.closed-or$q.completed){throw 'LATE_ACK_WAS_AUTHORITY'}
+$caught=$false;try{Get-Business5244RetirementRequestAdmission $channel $request|Out-Null}catch{$caught=$true};if(!$caught){throw 'EXPIRED_TOKEN_REPLAY'};'PASS'`+serverEnd,'admission-expired-server');
+ assert.equal(await server.line(),'READY');
+ const client=await child(f,isolate+connect(server.pid)+String.raw`$caught=$false;try{Send-Business5244RetirementRequest $connection retire|Out-Null}catch{if($_.Exception.Message-ceq'RETIREMENT_EXCHANGE_NOT_CONFIRMED'){$caught=$true}else{throw}};if(!$caught){throw 'EXPIRED_ACK_ACCEPTED'};'PASS'`,'admission-expired-client');
+ const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);assert.match(sr.stdout,/PASS/);
+});
+test('input deadline remains 15 seconds and cannot issue an admission for an unfinished body',win,async t=>{
+ const f=await fixture(t),isolate=await isolatedAdmission(f);
+ const server=await child(f,isolate+serverStart+String.raw`
+$r=Get-Business5244RetirementRecord $channel;$end=[DateTime]::UtcNow.AddSeconds(10)
+while($r.phase-cne'Read'-and[DateTime]::UtcNow-lt$end){if(Receive-Business5244RetirementRequest $channel){throw 'BODY_UNEXPECTED'};Start-Sleep -Milliseconds 5};if($r.phase-cne'Read'){throw 'NO_INPUT_READ'}
+if(($r.deadline-[DateTime]::UtcNow).TotalSeconds-gt15-or$r.request){throw 'INPUT_TTL_CHANGED'};$r.deadline=[DateTime]::UtcNow.AddMilliseconds(-1)
+$caught=$false;try{Receive-Business5244RetirementRequest $channel|Out-Null}catch{if($_.Exception.Message-ceq'RETIREMENT_REQUEST_NOT_CONFIRMED'){$caught=$true}else{throw}};if(!$caught-or$r.request-or$r.phase-cne'Accept'){throw 'UNFINISHED_BODY_ADMITTED'};'PASS'`+serverEnd,'admission-input-server');
+ assert.equal(await server.line(),'READY');
+ const client=await child(f,isolate+String.raw`Initialize-Business5244RetirementPeer;$p=[Business5244RetirementPipe]::Connect();$peer=[Business5244RetirementPeer]::CaptureServer($p);try{if($peer.Pid-neEXPECTED){throw 'NOT_OUR_DISPOSABLE_SERVER'};$hello=Read-Business5244RetirementLine $p 192;$b=[byte[]]::new(1);$task=$p.ReadAsync($b,0,1);if(!$task.Wait(5000)){throw 'INPUT_NOT_CLOSED'};try{if($task.GetAwaiter().GetResult()-gt0){throw 'UNFINISHED_ACK'}}catch{if($_.Exception.Message-ceq'UNFINISHED_ACK'){throw}};'PASS'}finally{$peer.Dispose();$p.Dispose()}`.replace('EXPECTED',String(server.pid)),'admission-input-client');
+ const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);assert.match(sr.stdout,/PASS/);
+});
+test('admission expiry cannot hide a dead native peer or a second body after acceptance',win,async t=>{
+ for(const mode of ['extra','dead']){
+  const f=await fixture(t),isolate=await isolatedAdmission(f);
+  const server=await child(f,isolate+serverStart+acceptAdmission+String.raw`
+$q.acceptedTicks-=61L*[Diagnostics.Stopwatch]::Frequency;$q.acceptedUtc=$q.acceptedUtc.AddSeconds(-61);$q.admissionDeadlineUtc=$q.acceptedUtc.AddSeconds(60)
+[Console]::WriteLine('REQUESTED');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null
+$caught=$false;try{Get-Business5244RetirementRequestAdmission $channel $request|Out-Null}catch{if($_.Exception.Message-match'EXPECTED'){$caught=$true}else{throw}};if(!$caught){throw 'EXPIRY_HID_PEER_OR_EXTRA_BODY'};'PASS'`.replace('EXPECTED',mode==='extra'?'RETIREMENT_SECOND_BODY_REJECTED':'RETIREMENT_NATIVE_PEER_CHANGED')+serverEnd,'admission-native-'+mode+'-server');
+  assert.equal(await server.line(),'READY');
+  const extra=String.raw`Initialize-Business5244RetirementPeer;$pipe=[Business5244RetirementPipe]::Connect();$peer=[Business5244RetirementPeer]::CaptureServer($pipe);try{if($peer.Pid-neEXPECTED){throw 'NOT_OUR_DISPOSABLE_SERVER'};$hello=Read-Business5244RetirementLine $pipe 192;$bytes=[Text.Encoding]::ASCII.GetBytes(('{"operation":"retire","requestId":"'+$hello.requestId+'"}')+[char]10);$pipe.Write($bytes,0,$bytes.Length);$pipe.Flush();[Console]::ReadLine()|Out-Null;$pipe.WriteByte(88);$pipe.Flush();[Console]::WriteLine('EXTRA_SENT');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null;'PASS'}finally{$peer.Dispose();$pipe.Dispose()}`.replace('EXPECTED',String(server.pid));
+  const client=await child(f,isolate+(mode==='extra'?extra:connect(server.pid)+String.raw`Send-Business5244RetirementRequest $connection retire|Out-Null`),'admission-native-'+mode+'-client');
+  assert.equal(await server.line(),'REQUESTED');
+  if(mode==='extra'){client.stdin.write('EXTRA\n');assert.equal(await client.line(),'EXTRA_SENT');}else{client.kill();await client.finished;}
+  server.stdin.end();const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);assert.match(sr.stdout,/PASS/);
+  if(mode==='extra'){client.stdin.end();const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);}
+ }
+});
 test('normal wire handler has no stop, execution, credential, arbitrary pipe/PID or lease-release primitive',async()=>{const ps=await readFile(source,'utf8'),cs=await readFile(path.join(import.meta.dirname,'business-5244-retirement-peer.cs'),'utf8');assert.doesNotMatch(ps,/Exit-Business5244StartupLease|Stop-Process|Start-Process|Invoke-RestMethod|TerminateProcess|JWT_|SQL_PASSWORD|Cookie/);assert.match(cs,/GetNamedPipeClientProcessId/);assert.match(cs,/GetNamedPipeServerProcessId/);assert.match(cs,/SetAccessRuleProtection\(true,false\)/);assert.match(cs,/0x40080003,8,1,512,512/);});
 test('controlled maintenance retains the actual server handle; client role and disposed control cannot stop',win,async t=>{
  const f=await fixture(t),pipeName='melisa-disposable-control-'+path.basename(f.directory);

@@ -31,8 +31,8 @@ function Receive-Business5244RetirementRequest {
  try{
   if($r.phase -ceq 'Unavailable'){Reset-Business5244RetirementConnection $r}
   for($step=0;$step -lt 4;$step++){
-   if($r.phase -cne 'Accept' -and [DateTime]::UtcNow -gt $r.deadline){throw 'RETIREMENT_MESSAGE_TIMEOUT'}
    if($r.phase -ceq 'Request'){$r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe);return $null}
+   if($r.phase -cne 'Accept' -and [DateTime]::UtcNow -gt $r.deadline){throw 'RETIREMENT_MESSAGE_TIMEOUT'}
    if(!$r.task.IsCompleted){return $null}
    if($r.phase -ceq 'Accept'){
     [void]$r.task.GetAwaiter().GetResult();$r.peer=[Business5244RetirementPeer]::CaptureClient($r.pipe);$r.peer.Validate();$r.nonce=[Guid]::NewGuid().ToString('N');$r.deadline=[DateTime]::UtcNow.AddSeconds(15)
@@ -52,28 +52,50 @@ function Receive-Business5244RetirementRequest {
     try{$body=$text.Substring(0,$line)|ConvertFrom-Json -ErrorAction Stop}catch{throw 'RETIREMENT_UNKNOWN_BODY'}
     if(!$body -or ($body.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'operation,requestId' -or $body.operation -isnot [string] -or $body.operation -cnotin @('status','retire') -or $body.requestId -isnot [string] -or $body.requestId -cne $r.nonce){throw 'RETIREMENT_UNKNOWN_OR_REPLAY_BODY'}
     $r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe)
+    # The input/nonce has its original 15-second bound. Only after the exact
+    # body AND retained native peer pass do we issue a separate, server-only
+    # 60-second admission. The wire cannot choose or extend either deadline.
+    $acceptedUtc=[DateTime]::UtcNow;$acceptedTicks=[Diagnostics.Stopwatch]::GetTimestamp()
+    if($acceptedUtc -gt $r.deadline){throw 'RETIREMENT_MESSAGE_TIMEOUT'}
     $token=[pscustomobject]@{operation=[string]$body.operation;requestId=$r.nonce}
-    $r.request=@{token=$token;operation=[string]$body.operation;id=$r.nonce;hash=(Get-Business5244StartupHash ([Text.Encoding]::ASCII.GetBytes($text)));closed=$false;completed=$false};$r.phase='Request';return $token
+    $r.request=@{token=$token;operation=[string]$body.operation;id=$r.nonce;hash=(Get-Business5244StartupHash ([Text.Encoding]::ASCII.GetBytes($text)));closed=$false;completed=$false;acceptedUtc=$acceptedUtc;acceptedTicks=$acceptedTicks;admissionDeadlineUtc=$acceptedUtc.AddSeconds(60)};$r.phase='Request';return $token
    }
   };return $null
  }catch{if($_.Exception.Message -ceq 'RETIREMENT_CHANNEL_UNAVAILABLE'){throw};try{Reset-Business5244RetirementConnection $r}catch{throw 'RETIREMENT_CHANNEL_UNAVAILABLE'};throw 'RETIREMENT_REQUEST_NOT_CONFIRMED'}
 }
-function Assert-Business5244RetirementRequest {
+function Get-Business5244RetirementRequestAdmission {
  param([Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request)
  Assert-Business5244RetirementChannel $Channel;$r=Get-Business5244RetirementRecord $Channel;$q=$r.request
- if(!$q -or ![object]::ReferenceEquals($q.token,$Request) -or $q.closed -or $q.completed -or $r.phase -cne 'Request' -or (($Request.PSObject.Properties.Name|Sort-Object) -join ',') -cne 'operation,requestId' -or $Request.operation -isnot [string] -or $Request.requestId -isnot [string] -or $Request.operation -cne $q.operation -or $Request.requestId -cne $q.id -or [DateTime]::UtcNow -gt $r.deadline){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
+ if(!$q -or ![object]::ReferenceEquals($q.token,$Request) -or $q.closed -or $q.completed -or $r.phase -cne 'Request' -or (($Request.PSObject.Properties.Name|Sort-Object) -join ',') -cne 'operation,requestId' -or $Request.operation -isnot [string] -or $Request.requestId -isnot [string] -or $Request.operation -cne $q.operation -or $Request.requestId -cne $q.id){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
+ # Expiry is observable only for this same issued request and live native
+ # peer with no extra body. A copied token or a dead peer cannot mint a safe
+ # expiry outcome. This observation grants no stop/reset/publication right.
  $r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe)
+ $canonical=[Text.Encoding]::ASCII.GetBytes(('{"operation":"'+$q.operation+'","requestId":"'+$q.id+'"}')+"`n")
+ if($q.operation -cnotin @('status','retire') -or $q.id -cnotmatch '^[a-f0-9]{32}$' -or $q.hash -cne (Get-Business5244StartupHash $canonical)){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
+ if($q.acceptedUtc -isnot [DateTime] -or $q.admissionDeadlineUtc -isnot [DateTime] -or $q.admissionDeadlineUtc -ne $q.acceptedUtc.AddSeconds(60) -or $q.acceptedTicks -isnot [long] -or $q.hash -cnotmatch '^[a-f0-9]{64}$'){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
+ $elapsed=[Diagnostics.Stopwatch]::GetTimestamp()-$q.acceptedTicks
+ if($elapsed -lt 0){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
+ return [pscustomobject]@{operation=$q.operation;requestId=$q.id;bodyHash=$q.hash;acceptedUtc=$q.acceptedUtc.ToString('o');admissionDeadlineUtc=$q.admissionDeadlineUtc.ToString('o');elapsedMilliseconds=[long][Math]::Floor(($elapsed*1000.0)/[Diagnostics.Stopwatch]::Frequency);expired=($elapsed -ge (60L*[Diagnostics.Stopwatch]::Frequency));nativePeerVerified=$true;stopAuthorized=$false}
+}
+function Assert-Business5244RetirementRequest {
+ param([Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request)
+ $admission=Get-Business5244RetirementRequestAdmission -Channel $Channel -Request $Request
+ if($admission.expired){throw 'RETIREMENT_ADMISSION_EXPIRED'}
 }
 function Complete-Business5244RetirementRequest {
  param([Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request,[Parameter(Mandatory)][ValidateSet('Status','RetireAccepted','Rejected')][string]$Reply,[Parameter(Mandatory)]$Snapshot)
- Assert-Business5244RetirementRequest $Channel $Request;$r=Get-Business5244RetirementRecord $Channel
+ $admission=Get-Business5244RetirementRequestAdmission -Channel $Channel -Request $Request;$r=Get-Business5244RetirementRecord $Channel
+ # Never send a late ACK as if it renewed authority. Retire is not replayed;
+ # close this exchange and leave the controller to read-only reconciliation.
+ if($admission.expired){Reset-Business5244RetirementConnection $r;throw 'RETIREMENT_ADMISSION_EXPIRED'}
  $snapshotKeys=if($Snapshot -is [Collections.IDictionary]){@($Snapshot.Keys)}else{@($Snapshot.PSObject.Properties.Name)}
  if((($snapshotKeys|Sort-Object) -join ',') -cne 'childBirth,childPid,ownerBirth,ownerPid,phase,requestId' -or $Snapshot.phase -isnot [string] -or $Snapshot.phase -cnotin @('Running','Retiring','Retired','Rejected','Unknown') -or ($Snapshot.ownerPid -isnot [int] -and $Snapshot.ownerPid -isnot [long]) -or $Snapshot.ownerPid -ne $PID -or $Snapshot.ownerBirth -isnot [string] -or $Snapshot.ownerBirth -cne $r.birth -or $Snapshot.requestId -isnot [string] -or $Snapshot.requestId -cne $r.request.id){throw 'RETIREMENT_SNAPSHOT_INVALID'}
  if(($null -eq $Snapshot.childPid) -ne ($null -eq $Snapshot.childBirth) -or $null -ne $Snapshot.childPid -and (($Snapshot.childPid -isnot [int] -and $Snapshot.childPid -isnot [long]) -or $Snapshot.childPid -le 0 -or $Snapshot.childBirth -isnot [string] -or $Snapshot.childBirth -cnotmatch '^[1-9][0-9]{0,18}$')){throw 'RETIREMENT_CHILD_OBSERVATION_INVALID'}
  if($Request.operation -ceq 'status' -and $Reply -ceq 'RetireAccepted' -or $Request.operation -ceq 'retire' -and $Reply -ceq 'Status'){throw 'RETIREMENT_REPLY_OPERATION_MISMATCH'}
  $copy=[ordered]@{phase=[string]$Snapshot.phase;ownerPid=$PID;ownerBirth=$r.birth;childPid=$Snapshot.childPid;childBirth=$Snapshot.childBirth;requestId=$r.request.id}
  $r.wire=[Text.Encoding]::ASCII.GetBytes((@{protocol='business-5244-retirement.v1';reply=$Reply;requestId=$r.request.id;state=$copy}|ConvertTo-Json -Depth 4 -Compress)+"`n");if($r.wire.Length -gt 512){throw 'RETIREMENT_REPLY_TOO_LARGE'}
- $r.request.completed=$true;$r.phase='Reply'
+ $r.request.completed=$true;$r.phase='Reply';$r.deadline=[DateTime]::UtcNow.AddSeconds(15)
  try{$r.task=$r.pipe.WriteAsync($r.wire,0,$r.wire.Length)}catch{Reset-Business5244RetirementConnection $r;throw 'RETIREMENT_ACK_NOT_CONFIRMED'}
  return [pscustomobject]@{ackQueued=$true;deliveryConfirmed=$false;stopAuthorized=$false}
 }

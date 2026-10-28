@@ -69,7 +69,20 @@ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
   Assert-Business5244OwnedPackage $plan.candidate $seal
   $seal.Freeze();Assert-Business5244ReadyChild $r.native $r.pins
   [void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)
+  Prepare-Test125ReadPairRequestAdmission $ApiTransition
+  # Metadata rebind and its durable archive finish before opening any nonce.
+  # This remains an exact stale-record CAS, never process adoption.
+  Publish-Business5244CurrentRecord -State $State|Out-Null
   $r.preparedPair=@{apiTransition=$ApiTransition;planHash=$plan.hash;seal=$seal;ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth}
+  # Exercise the full read-only admission path while no request exists.
+  # Keep margin below the independent 15-second client ACK wait; the server
+  # admission ceiling does not authorize a disconnected peer.
+  $clock=[Diagnostics.Stopwatch]::StartNew()
+  Assert-Business5244MaintenancePlan -Plan $plan -State $State -ApiTransition $ApiTransition
+  $recordStream=[IO.File]::Open('C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json',[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  try{[void](Assert-Business5244RetirementRecord $State $recordStream);[void](Assert-Business5244RetirementRecord $State $recordStream)}finally{$recordStream.Dispose()}
+  $clock.Stop();$r.preparedPair.preflightMilliseconds=$clock.ElapsedMilliseconds
+  if($clock.ElapsedMilliseconds -ge 10000){throw 'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'}
  }catch{$seal.Dispose();throw}
 }
 function Assert-Business5244PreparedPair($State,$ApiTransition,[string]$PlanHash){
@@ -90,11 +103,23 @@ function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  # rollback must work against the SAME current API before the old child stops.
  $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 3
  if($null -eq $ApiTransition){Assert-Business5244ApiHealth $health $Plan.candidate}
- else{[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)}
+ else{[void](Assert-Test125ReadPairRequestAdmission -Transition $ApiTransition)}
  Assert-Business5244ApiHealth $health $Plan.rollback
  if($null -eq $ApiTransition -and ($Plan.rollback.root -cne $Plan.candidate.root -or $Plan.rollback.manifest -cne $Plan.candidate.manifest)){Assert-Business5244OwnedPackage $Plan.rollback}
  if((Get-FileHash -LiteralPath (Join-Path $Plan.rollback.root 'release-manifest.json')).Hash -cne $Plan.rollback.manifest){throw 'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'}
- if($r.phase -ceq 'Running'){Assert-Business5244CreatedChild $r.native $r.pins;Assert-Business5244ReadyChild $r.native $r.pins}
+ if($r.phase -ceq 'Running'){
+  if($null -eq $ApiTransition){Assert-Business5244CreatedChild $r.native $r.pins;Assert-Business5244ReadyChild $r.native $r.pins}
+  else{
+   # The sealed preparation verified SID/argv/CIM before nonce. The same
+   # creation handle/Job and immutable child identity cannot be reconstructed
+   # from an observation. Fresh native and TCP checks remain mandatory here.
+   $r.native.Validate()
+   if(!$r.native.ChildAlive() -or $r.native.RetirementConfirmed -or $r.native.ChildPid -ne $r.childPid -or $r.native.ChildBirth -cne $r.childBirth){throw 'OWNED_WEB_PREPARED_CHILD_CHANGED'}
+   $allListeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
+   Assert-Business5244OwnedListeners @($allListeners|Where-Object {$_.OwningProcess -eq $r.childPid -or $_.LocalPort -eq 5244}) $r.childPid
+   $r.native.Validate()
+  }
+ }
  else{
   Assert-Business5244StartupLease -Lease $r.lease -Kind Maintenance
   if(!$r.native.RetirementConfirmed -or !$r.records -or !$r.pending -or (Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $r.recordExpected -or (Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.pending)) -cne $r.pendingHash){throw 'OWNED_WEB_RETIRED_SCOPE_CHANGED'}
@@ -203,7 +228,7 @@ function Start-Business5244OwnedSupervisor {
   if($retirement){try{Close-Business5244RetirementState $retirement}catch{$cleanupFailed=$true}}
   if($native){try{$native.Dispose()}catch{$cleanupFailed=$true}}
   try{Close-Business5244PinnedChildren $lease}catch{$cleanupFailed=$true}
-  if($apiTransition){try{$apiContext=Assert-Test125ReadPairIssued $apiTransition;Close-ErpReadPairReleaseProof $apiContext.releaseProof}catch{$cleanupFailed=$true}}
+  if($apiTransition){try{Close-Test125ReadPairRequestAdmission $apiTransition;$apiContext=Assert-Test125ReadPairIssued $apiTransition;Close-ErpReadPairReleaseProof $apiContext.releaseProof}catch{$cleanupFailed=$true}}
   if($cleanupFailed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
   Exit-Business5244StartupLease -Lease $lease
  }

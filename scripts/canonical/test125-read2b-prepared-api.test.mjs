@@ -120,3 +120,56 @@ try{
 }finally{Close-ErpReadPairReleaseProof $context.releaseProof};'PASS'
 `);assert.equal(out,'PASS');
 }));
+
+test('query-only kernel handles validate their exact lifetime and reject termination access',win,()=>{
+ const quick=api.slice(api.indexOf('function Assert-Test125ReadPairRequestAdmission'),api.indexOf('function Close-Test125ReadPairRequestAdmission'));assert.doesNotMatch(quick,/Get-CimInstance|Invoke-CimMethod|Get-Test125BoundMaintenancePlan|Assert-Test125ReadPairTransition/);
+ assert.match(api,/QueryOnlyOpen\(int pid,long birth\)\{var h=OpenProcess\(0x00101000,false/);
+ assert.equal(run(`. ${q(path.join(dir,'test125-bound-api-quiescence.ps1'))};Initialize-Test125ApiKernel;$child=$null;$handle=$null;try{
+ $si=[Diagnostics.ProcessStartInfo]::new(${q(process.execPath)},'-e "setTimeout(()=>{},1200)"');$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$child=[Diagnostics.Process]::Start($si);$birth=$child.StartTime.ToUniversalTime().Ticks;$handle=[Test125ApiKernel]::QueryOnlyOpen($child.Id,$birth);[Test125ApiKernel]::ValidateReadOnly($handle,$birth);
+ $rejected=$false;try{[Test125ApiKernel]::Stop($handle,$birth)}catch{$rejected=$true};if(!$rejected-or$child.HasExited){throw 'QUERY_HANDLE_MUTATED'};
+ $rejected=$false;try{[Test125ApiKernel]::ValidateReadOnly($handle,$birth+10)}catch{$rejected=$true};if(!$rejected){throw 'WRONG_BIRTH'};
+ if(!$child.WaitForExit(10000)){throw 'CHILD_TIMEOUT'};$rejected=$false;try{[Test125ApiKernel]::ValidateReadOnly($handle,$birth)}catch{$rejected=$true};if(!$rejected){throw 'EXITED_ACCEPTED'};$handle.Dispose();$rejected=$false;try{[Test125ApiKernel]::ValidateReadOnly($handle,$birth)}catch{$rejected=$true};if(!$rejected){throw 'CLOSED_ACCEPTED'};'PASS'
+ }finally{if($handle){$handle.Dispose()};if($child){if(!$child.HasExited){if($child.StartTime.ToUniversalTime().Ticks-ne$birth){throw 'CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}}`),'PASS');
+});
+test('quick request admission uses retained live native objects plus fresh mutable guards, with no CIM/full boundary rescans',win,()=>withTemp(temp=>{
+ const out=run(`. ${q(path.join(dir,'test125-bound-api-quiescence.ps1'))};. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;$temp=${q(temp)};${loadSeal};${fixture};$testNode=${q(process.execPath)};`+String.raw`
+$children=[Collections.ArrayList]::new();$rows=@{};$t=$null
+try{
+ foreach($role in @('supervisor','api','native','web')){$si=[Diagnostics.ProcessStartInfo]::new($testNode,'-e "setTimeout(()=>{},60000)"');$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$child=[Diagnostics.Process]::Start($si);[void]$children.Add($child);$rows[$role]=@{pid=$child.Id;birth=$child.StartTime.ToUniversalTime().ToString('o')}}
+ function Get-Test125BoundMaintenancePlan{param($RunId,[switch]$ReadPairPreparation,$ReadPairMode,$PreparedReleaseProof);$cfg=Read-ErpStartupConfig $startup -PreparedReleaseProof $PreparedReleaseProof;return [pscustomobject]@{schema='melisa-test125-bound-maintenance-preparation.v1';runId=$RunId;source=$source;database=$db;startupHash=(Get-FileHash $startup).Hash;launcherHash=(Get-FileHash (Join-Path $repo 'scripts\canonical\start-owned-test.ps1')).Hash;manifestHash=$baseHash;taskXmlHash=(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes('fixture-xml')));taskInstance='fixture-guid';supervisor=$rows.supervisor.pid;supervisorBirth=$rows.supervisor.birth;children=@{api=@{port=4144;pid=$rows.api.pid;birth=$rows.api.birth};native=@{port=4146;pid=$rows.native.pid;birth=$rows.native.birth};web=@{port=5194;pid=$rows.web.pid;birth=$rows.web.birth}}}}
+ $ownedPath=Join-Path $runtime 'owned-processes.json';$ownedFixture=@{sourceCommit=$source;supervisor=$rows.supervisor.pid;startedAt=$rows.supervisor.birth;children=@{}};foreach($role in @('api','native','web')){$ownedFixture.children[$role]=@{pid=$rows[$role].pid;createdAt=$rows[$role].birth}};[IO.File]::WriteAllText($ownedPath,($ownedFixture|ConvertTo-Json -Depth 10))
+ $t=New-Test125ReadPairTransition;$c=$script:Test125ReadPairContext;$full=(Get-Command Assert-Test125ReadPairTransition).ScriptBlock;$global:fullChecks=0
+ function Assert-Test125ReadPairTransition{param($Transition,$Mode);$global:fullChecks++;&$full $Transition $Mode}
+ $prepared=Prepare-Test125ReadPairRequestAdmission $t;if($prepared.processes-ne4-or$global:fullChecks-ne2){throw 'PREPARE_NOT_FULL'}
+ $global:payloadReads=0;$global:tcp=0;$global:health=0;$global:mode='ok';$global:sourceReads=0
+ function Get-Test125BoundMaintenancePlan{throw 'UNEXPECTED_FULL_PLAN'};function Assert-Test125ReadPairTransition{throw 'UNEXPECTED_FULL_BOUNDARY'};function Get-CimInstance{throw 'UNEXPECTED_CIM'};function Invoke-CimMethod{throw 'UNEXPECTED_CIM'}
+ $reader=(Get-Command Read-ErpStartupConfig).ScriptBlock;function Read-ErpStartupConfig{param($Path,$PreparedReleaseProof);$global:sourceReads++;&$reader $Path $PreparedReleaseProof}
+ function Get-Test125ReadPairTask{
+  $task=[pscustomobject]@{Xml=$(if($global:mode-ceq'task-xml'){'foreign'}else{'fixture-xml'})};$task|Add-Member ScriptMethod GetInstances {param($unused);$list=[pscustomobject]@{Count=$(if($global:mode-ceq'multiple-com'){2}else{1})};$list|Add-Member ScriptMethod Item {param($index);return [pscustomobject]@{InstanceGuid=$(if($global:mode-ceq'guid'){'foreign'}else{'fixture-guid'});EnginePID=$(if($global:mode-ceq'engine'){99999}else{$rows.supervisor.pid})}};return $list};return $task
+ }
+ function Get-NetTCPConnection{[CmdletBinding()]param($State,$LocalPort);$global:tcp++;if(($LocalPort-join'|')-cne'4144|4146|5194'-or$State-cne'Listen'){throw 'TCP_SCOPE'};if($global:mode-ceq'tcp-error'){throw 'FIXTURE_TCP_UNAVAILABLE'};foreach($role in @('api','native','web')){if($global:mode-ceq'missing-port'-and$role-ceq'native'){continue};[pscustomobject]@{LocalPort=$c.admission.children.$role.port;OwningProcess=$(if($global:mode-ceq'foreign-port'-and$role-ceq'api'){99999}else{$rows[$role].pid});LocalAddress=$(if($global:mode-ceq'foreign-bind'){'0.0.0.0'}else{'127.0.0.1'})}}}
+ function Assert-ErpHealth{param($Config,$Definition);$global:health++;if($global:mode-ceq'api-health'-and$Definition.Name-ceq'api'){throw 'FIXTURE_HEALTH'};return [pscustomobject]@{ok=$true;sqlReadOnly=($global:mode-cne'native-write');sysadmin=0}}
+ [void](Assert-Test125ReadPairRequestAdmission $t);if($global:sourceReads-ne1-or$global:tcp-ne1-or$global:health-ne3-or$global:payloadReads-ne0){throw 'QUICK_CALLPATH'}
+ $ownedBytes=[IO.File]::ReadAllBytes($ownedPath)
+ foreach($case in @('source','supervisor','startedAt','api-pid','native-birth','web-pid')){
+  $o=Get-Content -LiteralPath $ownedPath -Raw|ConvertFrom-Json
+  switch($case){source{$o.sourceCommit='foreign'}supervisor{$o.supervisor=99999}startedAt{$o.startedAt=([datetime]$rows.supervisor.birth).AddSeconds(-1).ToString('o')}'api-pid'{$o.children.api.pid=99999}'native-birth'{$o.children.native.createdAt=([datetime]$rows.native.birth).AddSeconds(1).ToString('o')}'web-pid'{$o.children.web.pid=99999}}
+  [IO.File]::WriteAllText($ownedPath,($o|ConvertTo-Json -Depth 10));Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_OWNED_RECORD_CHANGED';[IO.File]::WriteAllBytes($ownedPath,$ownedBytes)
+ }
+ # Legitimate journal heartbeat/extra observation fields do not change identity.
+ $o=Get-Content -LiteralPath $ownedPath -Raw|ConvertFrom-Json;$o|Add-Member heartbeat 'later';[IO.File]::WriteAllText($ownedPath,($o|ConvertTo-Json -Depth 10));[void](Assert-Test125ReadPairRequestAdmission $t);[IO.File]::WriteAllBytes($ownedPath,$ownedBytes)
+ Reject {Prepare-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_ALREADY_PREPARED'
+ $copy=$t|ConvertTo-Json -Depth 20|ConvertFrom-Json;Reject {Assert-Test125ReadPairRequestAdmission $copy} 'TEST125_READPAIR_NOT_ISSUED'
+ $cap=$c.requestAdmission;$c.requestAdmission=$cap.PSObject.Copy();Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_NOT_ISSUED';$c.requestAdmission=$cap
+ foreach($key in @('changed','apiChanged','taskStopped','candidateAttempted')){foreach($bad in @($true,$null,0,'false')){$c.$key=$bad;Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_PHASE_REJECTED'};$c.$key=$false}
+ foreach($bad in @($false,0,'',([pscustomobject]@{}))){$c.activeBinding=$bad;Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_PHASE_REJECTED'};$c.activeBinding=$null
+ $old=$c.phase;$c.phase='FAILED';Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_PHASE_REJECTED';$c.phase=$old
+ $old=$cap.thread;$cap.thread++;Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_NOT_ISSUED';$cap.thread=$old
+ $old=$cap.records[0].birth;$cap.records[0].birth++;Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_PROCESS_CHANGED';$cap.records[0].birth=$old
+ foreach($case in @('task-xml','multiple-com','guid','engine','missing-port','foreign-port','foreign-bind','tcp-error','api-health','native-write')){$global:mode=$case;Reject {Assert-Test125ReadPairRequestAdmission $t} ''};$global:mode='ok'
+ $before=[IO.File]::ReadAllBytes($apiProfile);$a=Get-Content -Raw $apiProfile|ConvertFrom-Json;$a.businessWorkface.userId=18;[IO.File]::WriteAllText($apiProfile,($a|ConvertTo-Json -Depth 20));Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST_STARTUP_COMPONENT_PROFILE_REJECTED';[IO.File]::WriteAllBytes($apiProfile,$before)
+ [void](Assert-Test125ReadPairRequestAdmission $t);if($global:payloadReads-ne0){throw 'REHASH_IN_REQUEST'}
+ $cap.records[1].handle.Dispose();Reject {Assert-Test125ReadPairRequestAdmission $t} '';Close-Test125ReadPairRequestAdmission $t;Reject {Assert-Test125ReadPairRequestAdmission $t} 'TEST125_READPAIR_REQUEST_NOT_ISSUED';'PASS'
+}finally{if($t){Close-Test125ReadPairRequestAdmission $t;Close-ErpReadPairReleaseProof $c.releaseProof};foreach($child in $children){if(!$child.HasExited){$expected=@($rows.Values|Where-Object{$_.pid-eq$child.Id})[0];if($child.StartTime.ToUniversalTime().ToString('o')-cne$expected.birth){throw 'CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}}
+`);assert.equal(out,'PASS');
+}));

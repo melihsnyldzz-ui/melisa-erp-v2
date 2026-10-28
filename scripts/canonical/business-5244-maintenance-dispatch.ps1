@@ -28,6 +28,29 @@ function Test-Business5244DispatchUncertain($Record,$Failure){
  if($Record.ContainsKey('commit') -and $Record.commit -and $Record.commit.phase -cin @('Archived','Unknown')){return $true}
  return (Get-Business5244DispatchErrorCode $Failure) -cin @('OWNED_WEB_CLEANUP_UNCONFIRMED','OWNED_WEB_CHILD_EXIT_UNCONFIRMED','OWNED_WEB_JOB_CLOSE_UNCONFIRMED','OWNED_WEB_HANDLE_CLOSE_UNCONFIRMED')
 }
+function Test-Business5244PreRetireExpiredNoEffects($State,$Dispatch,$Channel,$Request,$Failure){
+ # Classification only, not a recovery/reset or a new admission. Every unknown
+ # or post-write condition keeps the existing Unknown/blocked outcome.
+ try{
+  if((Get-Business5244DispatchErrorCode $Failure)-cne'RETIREMENT_ADMISSION_EXPIRED'-or$Dispatch.stage-cne'Retiring'-or$Dispatch.phase-cne'InProgress'-or$null-eq$Dispatch.apiTransition){return $false}
+  $r=Get-Business5244RetirementState $State
+  if(!$r.ContainsKey('dispatch')-or![object]::ReferenceEquals($r.dispatch,$Dispatch)-or![object]::ReferenceEquals($r,$Dispatch.retiringRecord)-or![object]::ReferenceEquals($Request,$Dispatch.retiringRequest)-or![object]::ReferenceEquals($Channel,$Dispatch.retiringChannel)-or$r.phase-cne'Running'){return $false}
+  foreach($key in @('records','pending','pendingHash','before','expected','recordExpected','publication','commit','operationId','lastCompletion')){if(!$r.ContainsKey($key)-or$null-ne$r[$key]){return $false}}
+  if($null-ne$Dispatch.candidateNative-or$null-ne$Dispatch.rollbackNative){return $false}
+  if(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath) -ErrorAction Stop){return $false}
+  if(!($r.native-is[Business5244WebNative])-or![object]::ReferenceEquals($r.native,$Dispatch.retiringNative)-or$r.native.RetirementConfirmed-or$r.ownerBirth-cne$Dispatch.retiringOwnerBirth-or$r.childPid-ne$Dispatch.retiringChildPid-or$r.childBirth-cne$Dispatch.retiringChildBirth-or$r.native.OwnerBirth-cne$r.ownerBirth-or$r.native.ChildPid-ne$r.childPid-or$r.native.ChildBirth-cne$r.childBirth){return $false}
+  $r.native.Validate();if(!$r.native.ChildAlive()){return $false}
+  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($r.pins[$key]-cne$Dispatch.plan.rollback[$key]){return $false}}
+  $admission=Get-Business5244RetirementRequestAdmission -Channel $Channel -Request $Request
+  if($admission.expired-isnot[bool]-or!$admission.expired-or$admission.nativePeerVerified-isnot[bool]-or!$admission.nativePeerVerified-or$admission.stopAuthorized-isnot[bool]-or$admission.stopAuthorized-or$admission.operation-cne'retire'-or$admission.requestId-cne$Request.requestId-or$admission.bodyHash-cnotmatch'^[a-f0-9]{64}$'-or$admission.bodyHash-cne$Dispatch.retiringAdmission.bodyHash-or$admission.requestId-cne$Dispatch.retiringAdmission.requestId){return $false}
+  if($r.requestProof-and(![object]::ReferenceEquals($r.requestProof.channel,$Channel)-or![object]::ReferenceEquals($r.requestProof.request,$Request))){return $false}
+  $api=Assert-Test125ReadPairIssued $Dispatch.apiTransition
+  if($api.mode-cne'Current'-or$api.phase-cnotin@('PREPARED','VERIFIED')-or$null-ne$api.activeBinding){return $false}
+  foreach($key in @('changed','apiChanged','taskStopped','candidateAttempted')){if($api.$key-isnot[bool]-or$api.$key){return $false}}
+  [void](Assert-Test125ReadPairRequestAdmission -Transition $Dispatch.apiTransition)
+  return $true
+ }catch{return $false}
+}
 function Invoke-Business5244OwnerMaintenance {
  param([Parameter(Mandatory)]$State,[Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request,$ApiTransition=$null)
  Assert-Business5244RetirementRequest -Channel $Channel -Request $Request
@@ -57,11 +80,13 @@ function Invoke-Business5244OwnerMaintenance {
   if($null -eq $ApiTransition){Assert-Business5244MaintenancePlan -Plan $d.plan -State $State}
   else{
    Assert-Business5244MaintenancePlan -Plan $d.plan -State $State -ApiTransition $ApiTransition
-   # Only an issued exact API transition may enter the two-pair path. The
-   # default remote retire command remains web-only and cannot switch an API.
-   Publish-Business5244CurrentRecord -State $State|Out-Null
+   # Current bootstrap publication belongs to pre-request preparation.
   }
+  # The final peer/deadline check is still preflight: a lost peer here has
+  # caused no transition operation and cannot be mistaken for a partial cut.
+  Assert-Business5244RetirementRequest -Channel $Channel -Request $Request
   $d.stage='Retiring'
+  if($null-ne$ApiTransition){$d.retiringRecord=$r;$d.retiringRequest=$Request;$d.retiringChannel=$Channel;$d.retiringNative=$r.native;$d.retiringOwnerBirth=$r.ownerBirth;$d.retiringChildPid=$r.childPid;$d.retiringChildBirth=$r.childBirth;$d.retiringAdmission=Get-Business5244RetirementRequestAdmission -Channel $Channel -Request $Request}
   Invoke-Business5244OwnedRetirement $State $Channel $Request
   $r=Get-Business5244RetirementState $State
   Assert-Business5244StartupLease -Lease $r.lease -Kind Maintenance
@@ -81,6 +106,10 @@ function Invoke-Business5244OwnerMaintenance {
   if($d.stage -ceq 'Preflight'){
    if($r.phase -ceq 'Running'){$d.phase='PreflightFailed'}else{$d.phase='Blocked'}
    throw $failure
+  }
+  if(Test-Business5244PreRetireExpiredNoEffects $State $d $Channel $Request $failure){
+   $d.failureCode='BUSINESS_5244_PRERETIRE_EXPIRED_NO_TRANSITION_EFFECTS';$d.phase='PreflightFailed';$d.stage='PreRetireExpiredNoTransitionEffects'
+   throw 'BUSINESS_5244_PRERETIRE_EXPIRED_NO_TRANSITION_EFFECTS'
   }
   # Complete may have lost its return after a verified archive/resume. Only the
   # same bound child/plan/result can reconcile it; no write or stop is replayed.

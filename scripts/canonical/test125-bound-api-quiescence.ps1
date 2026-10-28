@@ -9,7 +9,7 @@ function Initialize-Test125ApiKernel {
  # Same retained-handle contract as the existing B5 kernel; separate TEST125 scope.
  Add-Type -TypeDefinition @'
 using System;using System.Runtime.InteropServices;using Microsoft.Win32.SafeHandles;
-public sealed class Test125ApiHandle:SafeHandleZeroOrMinusOneIsInvalid{public long Birth;public Test125ApiHandle():base(true){}protected override bool ReleaseHandle(){return Test125ApiKernel.CloseHandle(handle);}}
+public sealed class Test125ApiHandle:SafeHandleZeroOrMinusOneIsInvalid{public long Birth;public bool QueryOnly;public Test125ApiHandle():base(true){}protected override bool ReleaseHandle(){return Test125ApiKernel.CloseHandle(handle);}}
 public static class Test125ApiKernel{
  [DllImport("kernel32.dll",SetLastError=true)]static extern Test125ApiHandle OpenProcess(uint access,bool inherit,uint pid);
  [DllImport("kernel32.dll",SetLastError=true)]public static extern bool CloseHandle(IntPtr h);
@@ -20,12 +20,15 @@ public static class Test125ApiKernel{
  public static bool MatchesCim(long native,long cim){return cim%10==0?native/10==cim/10:native==cim;}
  static void Check(Test125ApiHandle h,long expected){long c,e,k,u;if(h==null||h.IsClosed||h.IsInvalid||!GetProcessTimes(h,out c,out e,out k,out u)||DateTime.FromFileTimeUtc(c).Ticks!=h.Birth||!MatchesCim(h.Birth,expected))throw new InvalidOperationException("TEST125_API_HANDLE_IDENTITY");}
  public static Test125ApiHandle Open(int pid,long birth){var h=OpenProcess(0x00101001,false,(uint)pid);long c,e,k,u;if(h.IsInvalid||!GetProcessTimes(h,out c,out e,out k,out u)||!MatchesCim(DateTime.FromFileTimeUtc(c).Ticks,birth)||WaitForSingleObject(h,0)!=258){h.Dispose();throw new InvalidOperationException("TEST125_API_HANDLE_IDENTITY");}h.Birth=DateTime.FromFileTimeUtc(c).Ticks;return h;}
+ public static Test125ApiHandle QueryOnlyOpen(int pid,long birth){var h=OpenProcess(0x00101000,false,(uint)pid);long c,e,k,u;if(h.IsInvalid||!GetProcessTimes(h,out c,out e,out k,out u)||!MatchesCim(DateTime.FromFileTimeUtc(c).Ticks,birth)||WaitForSingleObject(h,0)!=258){h.Dispose();throw new InvalidOperationException("TEST125_API_HANDLE_IDENTITY");}h.Birth=DateTime.FromFileTimeUtc(c).Ticks;h.QueryOnly=true;return h;}
+ public static void ValidateReadOnly(Test125ApiHandle h,long birth){if(h==null||!h.QueryOnly)throw new InvalidOperationException("TEST125_API_READ_HANDLE_REQUIRED");Check(h,birth);if(WaitForSingleObject(h,0)!=258)throw new InvalidOperationException("TEST125_API_READ_HANDLE_EXITED");}
  public static bool Exited(Test125ApiHandle h,long birth){Check(h,birth);return WaitForSingleObject(h,0)==0;}
- public static void Stop(Test125ApiHandle h,long birth){Check(h,birth);if(WaitForSingleObject(h,0)!=258)throw new InvalidOperationException("TEST125_API_ALREADY_EXITED");if(!TerminateProcess(h,1)||WaitForSingleObject(h,10000)!=0)throw new InvalidOperationException("TEST125_API_STOP_UNCONFIRMED");}
+ public static void Stop(Test125ApiHandle h,long birth){if(h!=null&&h.QueryOnly)throw new InvalidOperationException("TEST125_API_READ_HANDLE_REQUIRED");Check(h,birth);if(WaitForSingleObject(h,0)!=258)throw new InvalidOperationException("TEST125_API_ALREADY_EXITED");if(!TerminateProcess(h,1)||WaitForSingleObject(h,10000)!=0)throw new InvalidOperationException("TEST125_API_STOP_UNCONFIRMED");}
 }
 '@
 }
 $script:Test125ReadPairContext=$null
+$script:Test125ReadPairRequestAdmissions=[Collections.ArrayList]::new()
 function Assert-Test125ApiAdmission($Admission,[string]$ExpectedRunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7'){
  if($PSVersionTable.PSEdition -cne 'Desktop'){throw 'TEST125_WINDOWS_POWERSHELL_REQUIRED'}
  if($ExpectedRunId-ceq(Get-Test125ReadPairScope).name){
@@ -137,7 +140,7 @@ function New-Test125ReadPairTransition {
  $nextBytes=[Text.Encoding]::UTF8.GetBytes(($next|ConvertTo-Json -Depth 100))
  $releaseProof=New-ErpReadPairPreparedReleaseProof $config;$releasePins=Get-ErpReadPairReleaseProofPins $releaseProof
  $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-api-transition.v1';packageProof=$releasePins;scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Test125ReadPairHash $apiBefore);apiProfileCandidateSha256=(Get-Test125ReadPairHash $apiCandidate);baseProfileSha256=(Get-Test125ReadPairHash $baseProfileBytes);startupBeforeSha256=(Get-Test125ReadPairHash $bytes);startupCandidateSha256=(Get-Test125ReadPairHash $nextBytes);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
- $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);releaseProof=$releaseProof;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;candidateAttempted=$false;failedStartProof=$null}
+ $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);releaseProof=$releaseProof;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;candidateAttempted=$false;failedStartProof=$null;requestAdmission=$null}
  return $token
 }
 function Assert-Test125ReadPairTransition($Transition,[ValidateSet('Current','Candidate')][string]$Mode='Current'){
@@ -155,6 +158,81 @@ function Assert-Test125ReadPairTransition($Transition,[ValidateSet('Current','Ca
  return $true
 }
 
+# Pre-nonce only. Query/Synchronize handles retain the exact already admitted
+# kernel objects but possess no process-termination right or mutation authority.
+function Assert-Test125ReadPairRequestPhase($Context){
+ $c=Assert-Test125ReadPairContext $Context
+ if($c.mode-cne'Current'-or$c.phase-cne'PREPARED'-or$null-ne$c.activeBinding){throw 'TEST125_READPAIR_REQUEST_PHASE_REJECTED'}
+ foreach($key in @('changed','apiChanged','taskStopped','candidateAttempted')){if($c.$key-isnot[bool]-or$c.$key){throw 'TEST125_READPAIR_REQUEST_PHASE_REJECTED'}}
+ return $c
+}
+function Prepare-Test125ReadPairRequestAdmission($Transition){
+ $c=Assert-Test125ReadPairIssued $Transition;[void](Assert-Test125ReadPairRequestPhase $c)
+ if($c.requestAdmission){throw 'TEST125_READPAIR_REQUEST_ALREADY_PREPARED'}
+ [void](Assert-Test125ReadPairTransition $Transition Current)
+ Initialize-Test125ApiKernel
+ if(![Test125ApiKernel].GetMethod('QueryOnlyOpen')-or![Test125ApiKernel].GetMethod('ValidateReadOnly')){throw 'TEST125_READPAIR_REQUEST_NATIVE_GENERATION_REQUIRED'}
+ $records=[Collections.ArrayList]::new();$pids=[Collections.Generic.HashSet[int]]::new()
+ try{
+  foreach($role in @('supervisor','api','native','web')){
+   $row=if($role-ceq'supervisor'){[pscustomobject]@{pid=$c.admission.supervisor;birth=$c.admission.supervisorBirth}}else{$c.admission.children.$role}
+   $number=[int]$row.pid;$birth=([datetime]$row.birth).ToUniversalTime().Ticks
+   if($number-le0-or!$pids.Add($number)){throw 'TEST125_READPAIR_REQUEST_PROCESS_DUPLICATE'}
+   $handle=[Test125ApiKernel]::QueryOnlyOpen($number,$birth)
+   [void]$records.Add([pscustomobject]@{role=$role;pid=$number;birth=$birth;handle=$handle})
+  }
+  # Full pre-request validation closes capture races in SID/argv/ports/task
+  # identity before an admission is published or any nonce is opened.
+  [void](Assert-Test125ReadPairTransition $Transition Current)
+  foreach($row in $records){[Test125ApiKernel]::ValidateReadOnly($row.handle,$row.birth)}
+  $cap=[pscustomobject]@{transition=$Transition;context=$c;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;admissionJson=$c.admissionJson;records=$records;closed=$false}
+  $recordPins=@($records|ForEach-Object{[pscustomobject]@{role=$_.role;pid=$_.pid;birth=$_.birth}})
+  [void]$script:Test125ReadPairRequestAdmissions.Add([pscustomobject]@{cap=$cap;admissionJson=$c.admissionJson;recordJson=($recordPins|ConvertTo-Json -Depth 8 -Compress);handles=@($records|ForEach-Object{$_.handle})})
+  $c.requestAdmission=$cap
+  return [pscustomobject]@{status='READ_ONLY_REQUEST_ADMISSION_PREPARED';processes=4;runtimeMutation=$false}
+ }catch{foreach($row in $records){$row.handle.Dispose()};throw}
+}
+function Assert-Test125ReadPairRequestAdmission($Transition){
+ $c=Assert-Test125ReadPairIssued $Transition;[void](Assert-Test125ReadPairRequestPhase $c)
+ $cap=$c.requestAdmission;$issued=$null;foreach($row in $script:Test125ReadPairRequestAdmissions){if([object]::ReferenceEquals($row.cap,$cap)){$issued=$row;break}}
+ if(!$issued-or!$cap-or$cap.closed-isnot[bool]-or$cap.closed-or![object]::ReferenceEquals($cap.transition,$Transition)-or![object]::ReferenceEquals($cap.context,$c)-or$cap.pid-ne$PID-or$cap.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$cap.admissionJson-cne$issued.admissionJson-or$c.admissionJson-cne$issued.admissionJson-or($c.admission|ConvertTo-Json -Depth 32 -Compress)-cne$c.admissionJson){throw 'TEST125_READPAIR_REQUEST_NOT_ISSUED'}
+ $recordPins=@($cap.records|ForEach-Object{[pscustomobject]@{role=$_.role;pid=$_.pid;birth=$_.birth}})
+ if($cap.records.Count-ne4-or($recordPins|ConvertTo-Json -Depth 8 -Compress)-cne$issued.recordJson){throw 'TEST125_READPAIR_REQUEST_PROCESS_CHANGED'}
+ for($i=0;$i-lt4;$i++){if(![object]::ReferenceEquals($cap.records[$i].handle,$issued.handles[$i])){throw 'TEST125_READPAIR_REQUEST_HANDLE_CHANGED'};[Test125ApiKernel]::ValidateReadOnly($cap.records[$i].handle,$cap.records[$i].birth)}
+ # Exactly one prepared startup read: immutable package identity/seal and fresh
+ # owner/source/node/manifest/private-profile validation stay mandatory.
+ $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof;[void](Assert-Test125ReadPairConfig $config Current)
+ foreach($entry in @(@($c.startupPath,$Transition.startupBeforeSha256),@($c.apiPath,$Transition.apiProfileBeforeSha256),@($config.ConfigPath,$Transition.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'TEST125_READPAIR_REQUEST_FILE_CHANGED'}}
+ if((Get-FileHash -LiteralPath (Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1') -Algorithm SHA256).Hash-cne$c.baseline.launcherHash){throw 'TEST125_READPAIR_REQUEST_LAUNCHER_CHANGED'}
+ # The supervisor's mutable ownership journal stays fresh. Compare semantic
+ # identity, not a raw heartbeat hash; never defer drift until after web stop.
+ $owned=Get-Content -LiteralPath (Join-Path $config.RuntimeDir 'owned-processes.json') -Raw|ConvertFrom-Json
+ if($owned.sourceCommit-cne$config.SourceCommit-or$owned.supervisor-ne$c.admission.supervisor-or([datetime]$owned.startedAt).ToUniversalTime()-lt([datetime]$c.admission.supervisorBirth).ToUniversalTime()){throw 'TEST125_READPAIR_REQUEST_OWNED_RECORD_CHANGED'}
+ foreach($role in @('api','native','web')){
+  $row=$owned.children.$role;$expected=$c.admission.children.$role
+  if($row.pid-ne$expected.pid-or![Test125ApiKernel]::MatchesCim(([datetime]$row.createdAt).ToUniversalTime().Ticks,([datetime]$expected.birth).ToUniversalTime().Ticks)){throw 'TEST125_READPAIR_REQUEST_OWNED_RECORD_CHANGED'}
+ }
+
+ $task=Get-Test125ReadPairTask;$instances=$task.GetInstances(0)
+ if((Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-cne$c.admission.taskXmlHash-or$instances.Count-ne1-or[int]$instances.Item(1).EnginePID-ne$c.admission.supervisor-or[string]$instances.Item(1).InstanceGuid-cne$c.admission.taskInstance){throw 'TEST125_READPAIR_REQUEST_TASK_CHANGED'}
+ $tcpErrors=@();$listeners=@(Get-NetTCPConnection -State Listen -LocalPort @(4144,4146,5194) -ErrorAction SilentlyContinue -ErrorVariable +tcpErrors)
+ foreach($err in $tcpErrors){if($err.CategoryInfo.Category-ne[Management.Automation.ErrorCategory]::ObjectNotFound){throw 'TEST125_READPAIR_REQUEST_TCP_UNAVAILABLE'}}
+ $private=Get-Content -LiteralPath $config.ConfigPath -Raw|ConvertFrom-Json;$lan=if($private.PSObject.Properties['lanHost']){[string]$private.lanHost}else{''}
+ foreach($definition in Get-ErpServiceDefinitions $config){
+  $expected=$c.admission.children.($definition.Name);$rows=@($listeners|Where-Object{$_.LocalPort-eq$definition.Port})
+  if(!$rows.Count-or@($rows|Where-Object{$_.OwningProcess-ne$expected.pid-or($_.LocalAddress-cne'127.0.0.1'-and!($definition.Name-cne'native'-and$lan-and$_.LocalAddress-ceq$lan))}).Count){throw 'TEST125_READPAIR_REQUEST_PORT_CHANGED'}
+  $health=Assert-ErpHealth $config $definition
+  if($definition.Name-ceq'native'-and($health.sqlReadOnly-ne$true-or$health.sysadmin-ne0)){throw 'TEST125_READPAIR_REQUEST_NATIVE_NOT_READONLY'}
+ }
+ foreach($row in $cap.records){[Test125ApiKernel]::ValidateReadOnly($row.handle,$row.birth)}
+ return $true
+}
+function Close-Test125ReadPairRequestAdmission($Transition){
+ $c=Assert-Test125ReadPairIssued $Transition;$cap=$c.requestAdmission
+ if(!$cap){return};$issued=$null;foreach($row in $script:Test125ReadPairRequestAdmissions){if([object]::ReferenceEquals($row.cap,$cap)){$issued=$row;break}}
+ if(!$issued-or![object]::ReferenceEquals($cap.transition,$Transition)-or![object]::ReferenceEquals($cap.context,$c)){throw 'TEST125_READPAIR_REQUEST_NOT_ISSUED'}
+ if(!$cap.closed){foreach($handle in $issued.handles){$handle.Dispose()};$cap.closed=$true}
+}
 function Get-Test125ReadPairTransitionContract($Transition){
  $c=Assert-Test125ReadPairIssued $Transition
  return [pscustomobject]@{scope=$Transition.scope;contractSha256=(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($c.tokenJson)));mode=$c.mode;phase=$c.phase;runtimeApplied=($c.mode-ceq'Candidate')}

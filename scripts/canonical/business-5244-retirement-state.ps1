@@ -40,6 +40,11 @@ function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='') {
  # before request expiry. It is a metadata baseline ONLY: it grants no stop,
  # no Unknown recovery and no authority from an external outcome assertion.
  # Both callers still reject a live old PID and require a new owned child.
+ # Second failed admission published this exact same Current package. This
+ # pin permits metadata CAS only after external exit; it cannot stop its owner.
+ if($BeforeHash-ceq'f0ace9f544671c8028d374e41ceb69a743fb01975998ea4bfedf4ec7661823c7'){
+  return @{hash=$BeforeHash;pid=41116;root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-5cb682d8';source='5cb682d8523552745b81422b1c2f0273cc8feb03'}
+ }
  if($BeforeHash-ceq'3bfd7f5df1aaedae5835709fd048f27cf35aa97f97a7c561cbd89ee0342827fc'){
   return @{hash=$BeforeHash;pid=25564;root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-5cb682d8';source='5cb682d8523552745b81422b1c2f0273cc8feb03'}
  }
@@ -131,6 +136,7 @@ function Invoke-Business5244HeldRetirement($State,[IO.FileStream]$Records,[IO.Fi
  if($r.phase -cne 'Running'){throw 'RETIREMENT_ALREADY_REQUESTED'}
  $before=Assert-Business5244RetirementRecord $State $Records
  if(!$Pending.CanWrite -or $Pending.Length -ne 0){throw 'RETIREMENT_PENDING_NOT_FRESH'}
+ if($r.requestProof){Assert-Business5244RetirementRequest -Channel $r.requestProof.channel -Request $r.requestProof.request}
  $r.operationId=[Guid]::NewGuid().ToString('N')
  $seal=[ordered]@{schema='business-5244-retirement-before.v1';operationId=$r.operationId;ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth;beforeSha256=(Get-Business5244StartupHash $before);beforeBase64=[Convert]::ToBase64String($before)}
  $bytes=[Text.Encoding]::UTF8.GetBytes(($seal|ConvertTo-Json -Compress))
@@ -157,6 +163,7 @@ function Invoke-Business5244OwnedRetirement($State,[Parameter(Mandatory)]$Channe
   foreach($file in @($recordsPath,(Get-Business5244RetirementPendingPath))){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Test-Path -LiteralPath $part) -and ((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint)){throw 'RETIREMENT_REPARSE_POINT'}}}
   $records=[IO.File]::Open($recordsPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
   $null=Assert-Business5244RetirementRecord $State $records
+  Assert-Business5244RetirementRequest -Channel $Channel -Request $Request
   $pending=[IO.File]::Open((Get-Business5244RetirementPendingPath),[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
   Invoke-Business5244HeldRetirement $State $records $pending
  }finally{

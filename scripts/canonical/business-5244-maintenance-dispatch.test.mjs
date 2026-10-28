@@ -1,8 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';import cp from 'node:child_process';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 const dir=import.meta.dirname,ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),q=s=>"'"+s.replaceAll("'","''")+"'";
-const setup=String.raw`$ErrorActionPreference='Stop';trap{if($script:r -and $script:r.dispatch){[Console]::Error.WriteLine(('ISOLATED_DISPATCH_FAILURE='+$script:r.dispatch.failureCode+';stage='+$script:r.dispatch.stage))};break};
+const setup=String.raw`$ErrorActionPreference='Stop';$script:r=$null;trap{if($script:r -and $script:r.dispatch){[Console]::Error.WriteLine(('ISOLATED_DISPATCH_FAILURE='+$script:r.dispatch.failureCode+';stage='+$script:r.dispatch.stage))};break};
 . '__GATE__' -Library;. '__WEB__' -Library;. '__STATE__' -Library;. '__DISPATCH__' -Library;
 Add-Type -LiteralPath '__NATIVE__';
+function Get-Business5244StartupMutexName{return ('Local\Melisa5244DispatchTest-'+[IO.Path]::GetFileName($env:TEMP))};
 $lease=Enter-Business5244StartupLease -Kind Owner;$pins=Get-Business5244ReadPairPins;$scriptFile=Join-Path $env:TEMP 'sleep.ps1';[IO.File]::WriteAllText($scriptFile,'Start-Sleep -Seconds 300');
 function New-TestNative{$n=[Business5244WebNative]::new();$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$scriptFile+'"'),$env:TEMP);return $n}
 $native=New-TestNative;$state=Register-Business5244OwnedRetirement $lease $native $pins;$script:r=Get-Business5244RetirementState $state;$script:r.commit=@{phase='None'};
