@@ -1,3 +1,10 @@
+### ERP-DEC-084 — 28 Ekim 2026 — Yalnız5244 web için kullanıcı adına kontrollü bakım devri
+
+**Doğrudan kullanıcı kararı:** “Bu bakım devrini benim yerime güvenli şekilde sen yapmanın yolunu bul. Yalnız5244 web adayını kontrollü toparla, diğer servisleri ve verileri koru; hazır sürümü kurup ekranları doğrula.” Önceki dış bakım devri bağımlılığı bu dar hedef için güncellenir. Bu yeni bakım yetkisidir; eski failed-spawn owner kanıtı var sayılmaz veya eski parentChecked/fresh-scope üretilemez.
+
+Yeni bakımın maintenanceTarget kimliği; exact mevcut paket/Node/argv/SID, PID+native doğum-handle, hedefPID'nin bütün listenerlarının yalnız üç5244 adresi olması, diğer süreç/servis/DB koruma before-image'ı, restart-exclusion ve exclusive yayın/CAS kilitleriyle doğrulanır. Yalnız bu yeni bakımda tutulan handle durdurulabilir; başka PID/port/çocuk-ağacı sahiplenilmez. Yeni başlatılan aday/geri dönüş de gerçek yeni owner child'ı olarak kanıtlanır. Önceki failed makbuz ve veriler korunur; geri dönüş eski stalePID kayıtlarını yayımlamaz.
+
+Bu karar4144/native/CLEAN/CRM restart veya API upgrade, SQL/ticari veri/rol yazması, LIVE/Vega/T1/main/ücretli servis veya güvenlik bypass yetkisi değildir. Hazır web ile henüz kurulmamış API route'larının normal ekranda çalışması ayrı sınırlamadır ve gizlenmez. İnsan kabulü otomatik PASS olmaz.
 ### ERP-DEC-083 — 27 Ekim 2026 — Semih kimliğinin aynı izinlerle gerçek-veri TEST hedefinde hazırlanması
 
 **28 Ekim depo işletme teyidi:** Kullanıcı, yeni gelen malların fiziksel olarak Vega F0102 / 1 / MERKEZ deposuna kabul edildiğini doğrudan teyit etti. Bu kaynak depo kararıdır; native TEST-V70-GOODS-WH/1 ile aynı varlık veya ticari işlem yetkisi değildir. Mevcut normal Semih17 oturumunda yalnız zaten izinli gerçek tedarikçi/ürün okuyucularıyla Gelen Mal kontrol yüzü hazırlanabilir; kayıt/gönderim/onay ve nativegerçekdepo/aktör bağları ayrıca kapalı tutulur. Roller ve önceki otomatik ret korunur.

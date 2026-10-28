@@ -22,6 +22,21 @@ function Assert-Business5244FreshSpawnArguments($Facts){
  $allowed=@($exact)+@($exact|ForEach-Object {$_+' '})
  if($Facts.command -cnotin $allowed){throw 'BUSINESS_WEB_FRESH_ARGUMENTS_REJECTED'}
 }
+function Assert-Business5244MaintenanceTarget($Actual,$Expected,$Listeners,[string]$OwnerSid){
+ # ERP-DEC-084 explicit new maintenance authority. This validates the CURRENT
+ # target, never an original child/issuer or an adoption/publication grant.
+ # The caller must hold its new birth-bound native handle, publication locks,
+ # restart exclusion and persisted protection before-image throughout stop.
+ $p=Get-Business5244WebPins
+ if(!$Actual -or !$Expected -or !$OwnerSid -or $Actual.pid -le 0 -or $Actual.pid -ne $Expected.pid -or $Actual.birth -cne $Expected.birth -or $Actual.exe -cne $p.node -or $Actual.exe -cne $Expected.exe -or $Actual.sid -cne $OwnerSid -or $Actual.sid -cne $Expected.sid -or $Actual.command -cne $Expected.command -or $Actual.parent -ne $Expected.parent){throw 'BUSINESS_WEB_MAINTENANCE_TARGET_CHANGED'}
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-5cb682d8'
+ $entry=Join-Path $root 'apps\sites-workflow\node_modules\vite\bin\vite.js'
+ $prefix='"'+$p.node+'" ';$suffix=' preview --host 127.0.0.1 --port 5244 --strictPort'
+ $exact=@(($prefix+$entry+$suffix),($prefix+'"'+$entry+'"'+$suffix));$allowed=@($exact)+@($exact|ForEach-Object {$_+' '})
+ if($Actual.command -cnotin $allowed){throw 'BUSINESS_WEB_MAINTENANCE_ARGUMENTS'}
+ $rows=@($Listeners);$addresses=@('100.87.188.3','127.0.0.1','192.168.1.46')
+ if($rows.Count -ne 3 -or @($rows|Where-Object {$_.OwningProcess -ne $Actual.pid -or $_.LocalPort -ne 5244}).Count -or ((@($rows|ForEach-Object {$_.LocalAddress}|Sort-Object) -join '|') -cne ($addresses -join '|'))){throw 'BUSINESS_WEB_MAINTENANCE_LISTENERS'}
+}
 function Get-Business5244StarterProjection([byte[]]$Baseline,[string]$LauncherHash){
  # Pure transformation. The maintenance owner calls the exact-hash wrapper.
  if($LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_LAUNCHER_HASH'}
