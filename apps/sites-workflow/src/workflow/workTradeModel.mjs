@@ -1,3 +1,4 @@
+import {businessSalePreviewSelectionAllowed} from './businessWorkface.mjs';
 export {moneyDisplay} from './moneyDisplay.mjs';
 import {operationCopyFromMeta,operationCopyEntity,operationCopyQuote,operationCopyDailySelection} from './isolatedOperationCopyModel.mjs';
 import {GOAL8_DAY_SQL_PROFILE_META} from '../../../api/src/services/goal8DaySqlProof.mjs';
@@ -52,9 +53,65 @@ function lines(items){if(!Array.isArray(items)||!items.length||new Set(items.map
 export function tradePreview(p,c,expected){if(!object(p)||!tradeRevision(p.previewHash)||!tradeRevision(p.scopeRevision)||p.scopeRevision!==c.revision||!['TRY','USD','EUR'].includes(p.currency)||!['subtotalExact4','grandTotalExact4','amountTryExact4'].every(k=>tradeExact(p[k],4))||p.writable!==true)bad();tradeSelection(p.selection,c);lines(p.items);if(p.items.length!==p.selection.items.length||p.currency!==p.selection.currency)bad();if(expected&&(!['customerId','documentDate','currency'].every(k=>p.selection[k]===expected[k])||JSON.stringify(p.selection.items)!==JSON.stringify(expected.items)))bad();for(const i of p.items){const selected=p.selection.items.find(s=>s.productId===i.productId),product=c.scope.products.find(s=>s.id===i.productId),quote=product?.prices.find(q=>q.quoteId===i.quoteId);if(!selected||i.quoteId!==selected.quoteId||i.quantityExact3!==selected.quantityExact3||i.stockCode!==product.stockCode||i.name!==product.name||!quote||i.unitPriceExact8!==quote.unitPriceExact8||i.unit?.label!==product.unit.label||i.unit.factorExact8!==product.unit.factorExact8)bad();}return p;}
 export function tradeInvoice(i){if(!object(i)||!tradeId(i.id)||typeof i.documentNo!=='string'||!tradeDate(i.documentDate)||!['draft','finalized','cancelled'].includes(i.status)||!tradeId(i.customerId)||!['TRY','USD','EUR'].includes(i.currency)||!tradeRevision(i.revision)||!['subtotalExact4','grandTotalExact4','amountTryExact4','customerBalanceExact4'].every(k=>tradeExact(i[k],4))||!tradeRevision(i.collections?.revision)||!['receivedExact4','outstandingExact4'].every(k=>tradeExact(i.collections[k],4))||!Array.isArray(i.collections.items))bad();lines(i.items);if(i.items.some(l=>l.currency!==i.currency))bad();i.collections.items.forEach(c=>{tradeCollection(c);if(c.invoiceId!==i.id||c.currency!==i.currency)bad();});return i;}
 export function tradeCollection(c){if(!object(c)||!['active','cancelled'].includes(c.status)||!tradeId(c.id)||!tradeId(c.invoiceId)||!tradeId(c.accountId)||!tradeRevision(c.revision)||!tradeExact(c.amountExact4,4)||!['TRY','USD','EUR'].includes(c.currency)||!tradeDate(c.documentDate))bad();return c;}
-export function createTradeJournal({storage,key}){const save=v=>{try{storage.setItem(key,JSON.stringify(v));}catch{throw Error('İşlem saklanamadı; kayıt gönderilmedi.');}};return {read(){try{const raw=storage.getItem(key);if(!raw)return null;const p=JSON.parse(raw);if(p?.version!==1||!['pending','done'].includes(p.status)||typeof p.path!=='string'||!object(p.body)||typeof p.body.requestId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(p.body.requestId))throw Error();return p;}catch{throw Error('Son işlem okunamıyor. İşlem sonucu kontrol edilmeli.');}},begin(path,body){const p={version:1,path,body,status:'pending'};save(p);return p;},done(p,result){const next={...p,status:'done',result};save(next);return next;},clear(){storage.removeItem(key);}};}
+export function createTradeJournal({storage,key}){const save=v=>{try{storage.setItem(key,JSON.stringify(v));}catch{throw Error('İşlem saklanamadı; kayıt gönderilmedi.');}};return {read(){try{const raw=storage.getItem(key);if(!raw)return null;const p=JSON.parse(raw);if(p?.version!==1||!['pending','done'].includes(p.status)||typeof p.path!=='string'||!object(p.body)||typeof p.body.requestId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(p.body.requestId))throw Error();if(p.invoiceWitness!==undefined&&!canonicalWitness(p.invoiceWitness))throw Error();return p;}catch{throw Error('Son işlem okunamıyor. İşlem sonucu kontrol edilmeli.');}},begin(path,body,options){const p={version:1,path,body,status:'pending'};if(options!==undefined){if(!keys(options,['invoiceWitness'])||!canonicalWitness(options.invoiceWitness))bad();p.invoiceWitness=structuredClone(options.invoiceWitness);}save(p);return p;},done(p,result){const next={...p,status:'done',result};save(next);return next;},clear(){storage.removeItem(key);}};}
 
 export function tradeUuid(crypto=globalThis.crypto){
  const valid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
  try{if(typeof crypto?.randomUUID==='function'){const id=crypto.randomUUID();if(!valid(id))throw Error();return id;}if(typeof crypto?.getRandomValues!=='function')throw Error();const bytes=new Uint8Array(16);crypto.getRandomValues(bytes);bytes[6]=(bytes[6]&15)|64;bytes[8]=(bytes[8]&63)|128;const hex=Array.from(bytes,n=>n.toString(16).padStart(2,'0')).join('');const id=hex.slice(0,8)+'-'+hex.slice(8,12)+'-'+hex.slice(12,16)+'-'+hex.slice(16,20)+'-'+hex.slice(20);if(!valid(id))throw Error();return id;}catch{throw Error('İşlem hazırlanamadı; kayıt gönderilmedi. Lütfen tekrar deneyin.');}
+}
+
+// Public canonical witnesses are presentation/correlation data. These checks
+// never issue native authority or enable a mutation transport.
+const canonicalId=v=>tradeId(v)&&v.length<=19&&BigInt(v)<=9223372036854775807n;
+const canonicalUuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
+const canonicalWitness=w=>keys(w,['id','customerId','customerAccountId','partyEntityId','currency','creationRequestId','operationOrigin','revision','status'])&&[w.id,w.customerId,w.customerAccountId,w.partyEntityId].every(canonicalId)&&canonicalUuid(w.creationRequestId)&&w.operationOrigin==='CANONICAL_TEST_BUSINESS_SALE'&&tradeRevision(w.revision)&&['draft','finalized'].includes(w.status)&&['TRY','USD','EUR'].includes(w.currency);
+const canonicalScope=s=>object(s)&&canonicalId(s.customerId)&&canonicalId(s.customerAccountId)&&['TRY','USD','EUR'].includes(s.currency);
+export function tradeCanonicalSaleInvoice(value,expected){
+ const i=tradeInvoice(value);
+ if(!canonicalScope(expected)||!canonicalId(i.id)||i.operationOrigin!=='CANONICAL_TEST_BUSINESS_SALE'||!canonicalId(i.customerAccountId)||!canonicalId(i.partyEntityId)||!canonicalUuid(i.creationRequestId)||i.customerId!==expected.customerId||i.customerAccountId!==expected.customerAccountId||i.currency!==expected.currency||!tradeExact(i.customerBalanceExact8,8)||i.customerBalanceDisplayOnly!==true||i.collections.receivedExact4!=='0.0000'||i.collections.items.length!==0)bad();
+ for(const key of ['invoiceId','creationRequestId','partyEntityId'])if(expected[key]!==undefined&&i[key==='invoiceId'?'id':key]!==expected[key])bad();
+ if(i.items.length>2||i.items.some(l=>!canonicalId(l.productId)||!canonicalId(l.quoteId)||! /^[1-5]\.000$/.test(l.quantityExact3)||!canonicalId(l.unit?.sourceId)||l.unit.label!=='ADET'||l.unit.factorExact8!=='1.00000000'))bad();
+ const money=v=>typeof v==='string'&&/^(?:0|[1-9]\d{0,13})\.\d{4}$/.test(v),scaled=v=>BigInt(v.replace('.',''));
+ if(![i.subtotalExact4,i.grandTotalExact4,i.amountTryExact4].every(money)||i.subtotalExact4!==i.grandTotalExact4||scaled(i.grandTotalExact4)<=0n||scaled(i.grandTotalExact4)>5000000n||scaled(i.amountTryExact4)<=0n||scaled(i.amountTryExact4)>5000000n||i.collections.outstandingExact4!==(i.status==='finalized'?i.grandTotalExact4:'0.0000')||i.currency==='TRY'&&i.amountTryExact4!==i.grandTotalExact4)bad();
+ let total=0n;for(const l of i.items){if(!money(l.unitPriceExact4)||!money(l.lineTotalExact4)||! /^(?:0|[1-9]\d{0,13})\.\d{8}$/.test(l.unitPriceExact8)||scaled(l.unitPriceExact8)<=0n||scaled(l.unitPriceExact4)!==(scaled(l.unitPriceExact8)+5000n)/10000n||scaled(l.lineTotalExact4)!==scaled(l.unitPriceExact4)*BigInt(l.quantityExact3.slice(0,-4)))bad();total+=scaled(l.lineTotalExact4);}if(total!==scaled(i.grandTotalExact4))bad();
+ return i;
+}
+export function tradeCanonicalSaleRequest({operation,requestId,selection,preview,invoice,scope,reason}={}){
+ if(!canonicalUuid(requestId))bad();let path,body,invoiceWitness;
+ if(operation==='sale_draft'){
+  if(!businessSalePreviewSelectionAllowed(selection)||!preview||preview.canSave!==false||preview.readOnly!==true||!tradeRevision(preview.previewHash)||!tradeRevision(preview.scopeRevision)||JSON.stringify(preview.selection)!==JSON.stringify(selection)||preview.documentDate!==selection.documentDate||preview.currency!==selection.currency)bad();
+  const chosen=structuredClone(selection);chosen.items=Object.freeze(chosen.items.map(Object.freeze));path='/api/work-sales/drafts';body={...chosen,previewHash:preview.previewHash,expectedRevision:preview.scopeRevision,requestId};
+ }else{
+  const i=tradeCanonicalSaleInvoice(invoice,scope);if(requestId===i.creationRequestId)bad();
+  if(operation==='sale_finalize'&&i.status!=='draft'||operation==='sale_cancel'&&!['draft','finalized'].includes(i.status)||!['sale_finalize','sale_cancel'].includes(operation))bad();
+  invoiceWitness=Object.freeze(Object.fromEntries(['id','customerId','customerAccountId','partyEntityId','currency','creationRequestId','operationOrigin','revision','status'].map(k=>[k,i[k]])));
+  path='/api/work-sales/drafts/'+i.id+'/'+(operation==='sale_finalize'?'finalize':'cancel');body={requestId,expectedRevision:i.revision};
+  if(operation==='sale_cancel'){if(typeof reason!=='string'||reason.trim().length<5||reason.length>500)bad();body.reason=reason.trim();}
+ }
+ // Existing createTradeJournal can persist this exact path/body only after a
+ // future admitted caller. The normal BFF and UI remain mutation-closed.
+ return Object.freeze({operation,path,body:Object.freeze(body),...(invoiceWitness?{invoiceWitness}:{}),canSend:false});
+}
+export function tradeCanonicalSaleJournal(value,pending,scope){
+ if(!canonicalScope(scope)||!object(pending)||!['pending','done'].includes(pending.status)||!object(pending.body)||!canonicalUuid(pending.body.requestId)||!tradeRevision(pending.body.expectedRevision))bad();
+ const body=pending.body,match=/^\/api\/work-sales\/drafts\/([1-9]\d{0,18})\/(finalize|cancel)$/.exec(pending.path),draft=pending.path==='/api/work-sales/drafts';
+ let operation;
+ if(draft){
+  if(!keys(body,['customerId','customerAccountId','currency','documentDate','items','requestId','previewHash','expectedRevision'])||!tradeRevision(body.previewHash))bad();
+  const {requestId,previewHash,expectedRevision,...selection}=body;
+  if(!businessSalePreviewSelectionAllowed(selection)||selection.customerId!==scope.customerId||selection.customerAccountId!==scope.customerAccountId||selection.currency!==scope.currency)bad();operation='sale_draft';
+ }else{
+  if(!match||!canonicalId(match[1])||!keys(body,match[2]==='cancel'?['requestId','expectedRevision','reason']:['requestId','expectedRevision'])||match[2]==='cancel'&&(typeof body.reason!=='string'||body.reason.trim()!==body.reason||body.reason.length<5||body.reason.length>500))bad();
+  operation=match[2]==='finalize'?'sale_finalize':'sale_cancel';
+  const w=pending.invoiceWitness;if(!canonicalWitness(w)||w.id!==match[1]||w.revision!==body.expectedRevision||w.customerId!==scope.customerId||w.customerAccountId!==scope.customerAccountId||w.currency!==scope.currency||operation==='sale_finalize'&&w.status!=='draft')bad();
+ }
+ if(!keys(value,['requestId','operation','response'])||value.requestId!==body.requestId||value.operation!==operation||!keys(value.response,['requestId','invoice','replayed'])||value.response.requestId!==body.requestId||typeof value.response.replayed!=='boolean')bad();
+ const expected={...scope,...(draft?{creationRequestId:body.requestId}:{invoiceId:match[1],creationRequestId:pending.invoiceWitness.creationRequestId,partyEntityId:pending.invoiceWitness.partyEntityId})},i=tradeCanonicalSaleInvoice(value.response.invoice,expected);
+ if(i.status!==({sale_draft:'draft',sale_finalize:'finalized',sale_cancel:'cancelled'}[operation]))bad();
+ if(draft&&(i.documentDate!==body.documentDate||JSON.stringify(i.items.map(l=>({productId:l.productId,quoteId:l.quoteId,quantityExact3:l.quantityExact3})))!==JSON.stringify(body.items)))bad();
+ if(pending.status==='done'){
+  const saved=tradeCanonicalSaleInvoice(pending.result?.invoice,expected);
+  if(pending.result.requestId!==body.requestId||saved.id!==i.id||saved.creationRequestId!==i.creationRequestId||saved.partyEntityId!==i.partyEntityId||saved.revision!==i.revision||JSON.stringify(saved.items)!==JSON.stringify(i.items)||saved.grandTotalExact4!==i.grandTotalExact4)bad();
+ }
+ return i;
 }

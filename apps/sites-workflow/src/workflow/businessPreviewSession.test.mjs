@@ -72,3 +72,10 @@ test('BFF only admits exact invoice detail GET with finance permission; list and
  assert.equal(calls.length,2);
  const denied=createBusinessBrowserSessionTransport({fetchImpl:async()=>response({success:true,data:{...previewActor,permissions:previewActor.permissions.filter(p=>p!=='finance.view')},meta:{source:'jwt-auth'}})});assert.equal((await call(denied,{method:'GET',path:'/api/work-sales/invoices/51',body:undefined,headers:{authorization:'Bearer fixture-access'}})).status,403);
 });
+
+test('BFF journal lookup admits only exact UUID GET after fresh normal Bearer verification and never accepts a body or query',async()=>{
+ const uuid='00000000-0000-4000-8000-000000000001',calls=[],h=createBusinessBrowserSessionTransport({fetchImpl:async(url,o)=>{calls.push({url,o});return response(url.endsWith('/auth/me')?{success:true,data:previewActor,meta:{source:'jwt-auth'}}:{success:true,data:{requestId:uuid,operation:'sale_draft'}});}});
+ assert.equal((await call(h,{method:'GET',path:'/api/work-sales/requests/'+uuid,headers:{authorization:'Bearer fixture-access'}})).status,200);assert.equal(calls.length,2);assert(calls.every(c=>c.o.method==='GET'&&c.o.body===undefined&&c.o.headers.cookie===undefined));
+ for(const path of ['/api/work-sales/requests','/api/work-sales/requests/'+uuid+'?actorId=17','/api/work-sales/requests/invalid'])assert.equal((await call(h,{method:'GET',path,headers:{authorization:'Bearer fixture-access'}})).next,true);
+ assert.equal((await call(h,{method:'GET',path:'/api/work-sales/requests/'+uuid,body:{actorId:17},headers:{authorization:'Bearer fixture-access'}})).status,400);assert.equal(calls.length,2);
+});

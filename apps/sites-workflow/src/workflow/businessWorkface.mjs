@@ -34,8 +34,9 @@ export function businessSalePreviewAvailable(context,user){
 
 // Separate authenticated BFF dispatch; the generic read gate stays closed.
 export const isBusinessSaleReceiptActor=user=>String(user?.id)==='17'&&user.username==='unified-semih-test'&&String(user.role?.id)==='17'&&user.role.code==='unified_test_semih'&&user.isActive!==false&&user.isAdmin!==true&&user.testAdminSession!==true&&user.nativeTerminalSession!==true&&Array.isArray(user.permissions)&&['sales.view','customer.view','finance.view'].every(p=>user.permissions.includes(p));
-export function businessSaleReceiptRequestAllowed(method,path,user){return isBusinessSaleReceiptActor(user)&&method==='GET'&&typeof path==='string'&&/^\/api\/work-sales\/invoices\/[1-9]\d{0,18}$/.test(path)&&BigInt(path.slice(path.lastIndexOf('/')+1))<=9223372036854775807n;}
+const businessSaleJournalPath=path=>typeof path==='string'&&/^\/api\/work-sales\/requests\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(path);
+export function businessSaleReceiptRequestAllowed(method,path,user){return isBusinessSaleReceiptActor(user)&&method==='GET'&&(businessSaleJournalPath(path)||typeof path==='string'&&/^\/api\/work-sales\/invoices\/[1-9]\d{0,18}$/.test(path)&&BigInt(path.slice(path.lastIndexOf('/')+1))<=9223372036854775807n);}
 export function businessSaleBrowserRequestAllowed(method,path){
  if(method==='GET'&&path==='/api/work-sales/context'||method==='POST'&&['/api/work-sales/selected-context','/api/work-sales/preview'].includes(path))return true;
- return method==='GET'&&typeof path==='string'&&/^\/api\/work-sales\/invoices\/[1-9]\d{0,18}$/.test(path)&&BigInt(path.slice(path.lastIndexOf('/')+1))<=9223372036854775807n;
+ return method==='GET'&&(businessSaleJournalPath(path)||typeof path==='string'&&/^\/api\/work-sales\/invoices\/[1-9]\d{0,18}$/.test(path)&&BigInt(path.slice(path.lastIndexOf('/')+1))<=9223372036854775807n);
 }

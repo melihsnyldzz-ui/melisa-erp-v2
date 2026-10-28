@@ -18,7 +18,7 @@ if(!process.execArgv.includes('--experimental-test-module-mocks')){
   getCanonicalBusinessSaleAdmission:()=>current?.missingAdmission?null:current.profile,
   getCanonicalBusinessSaleContextProof:c=>brands.has(c)?c:null,
   readCanonicalBusinessSaleContext:async({selection})=>{current.readSelections.push(structuredClone(selection));return current.context;},
-  getCanonicalBusinessSaleCreationProofJSON:()=>JSON.stringify({profileHash:hash,actorId:'17',customerId:'155',accountId:'7',partyEntityId:'6',currency:'USD'}),
+  getCanonicalBusinessSaleCreationProofJSON:()=>JSON.stringify({profileHash:hash,actorId:'17',requestId,operation:'sale_draft',customerId:'155',accountId:'7',partyEntityId:'6',currency:'USD'}),
   runCanonicalBusinessSaleTransaction:async(input,callback)=>{
    const f=current;f.ownerInputs.push(input);const old=f.journal.get(input.requestId);
    if(old){if(old.body!==input.bodyJson||old.operation!==input.operation)throw Object.assign(Error('Same request has a different body'),{code:'TEST_REQUEST_CONFLICT'});return {...structuredClone(old.response),replayed:true};}
@@ -74,6 +74,15 @@ if(!process.execArgv.includes('--experimental-test-module-mocks')){
   for(const key of ['subtotal','grandTotal','amountTry']){const prior=f.invoice[key];f.invoice[key]=prior+0.0001;await assert.rejects(f.service.invoice('91',f.actor),{code:'WORK_UNAVAILABLE'});f.invoice[key]=prior;}
   f.headerOverride=h=>{h.customerAccountId='8';};await assert.rejects(f.service.invoice('91',f.actor));f.headerOverride=h=>{h.partyEntityId='8';};await assert.rejects(f.service.invoice('91',f.actor));
   f.headerOverride=null;const proof=f.snapshot.nativeCreationProofJSON;f.snapshot.nativeCreationProofJSON=JSON.stringify({...JSON.parse(proof),accountId:'8'});await assert.rejects(f.service.invoice('91',f.actor));f.snapshot.nativeCreationProofJSON=proof;
+ });
+ test('canonical invoice exposes only account, currency, creation journal and revision presentation witnesses across refresh',async()=>{
+  const f=fixture(),created=await create(f),witness={customerId:'155',customerAccountId:'7',partyEntityId:'6',currency:'USD',creationRequestId:requestId,operationOrigin:origin,revision};
+  const check=invoice=>{assert.deepEqual(Object.fromEntries(Object.keys(witness).map(key=>[key,invoice[key]])),witness);const json=JSON.stringify(invoice);for(const key of ['nativeCreationProofJSON','profileHash','nativePreviewHash','sourceWitnessHash','costExact4','sqlDriver','transaction'])assert.equal(json.includes('"'+key+'"'),false,key);};
+  check(created.invoice);check(await f.service.invoice('91',f.actor));check(await f.service.invoice('91',f.actor));assert.equal(f.creates,1);assert.equal(f.journal.size,1);
+  for(const patch of [{customerAccountId:'8'},{partyEntityId:'8'},{currency:'EUR'},{creationRequestId:'22222222-2222-4222-8222-222222222222'},{creationRequestId:null},{revision:'malformed'}]){f.headerOverride=h=>Object.assign(h,patch);await assert.rejects(f.service.invoice('91',f.actor));}f.headerOverride=null;
+  const originalOrigin=f.snapshot.operationOrigin;f.snapshot.operationOrigin='OTHER_ORIGIN';await assert.rejects(f.service.invoice('91',f.actor),{code:'WORK_UNAVAILABLE'});f.snapshot.operationOrigin=originalOrigin;
+  const proof=f.snapshot.nativeCreationProofJSON;for(const patch of [{profileHash:'C'.repeat(64)},{requestId:'22222222-2222-4222-8222-222222222222'},{operation:'sale_finalize'}]){f.snapshot.nativeCreationProofJSON=JSON.stringify({...JSON.parse(proof),...patch});await assert.rejects(f.service.invoice('91',f.actor),{code:'WORK_UNAVAILABLE'});}f.snapshot.nativeCreationProofJSON=proof;check(await f.service.invoice('91',f.actor));
+  const beforeJournal=fixture();beforeJournal.headerOverride=h=>{h.creationRequestId='22222222-2222-4222-8222-222222222222';};await assert.rejects(create(beforeJournal),{code:'WORK_UNAVAILABLE'});assert.equal(beforeJournal.journal.size,0);
  });
  test('canonical profile never falls through to ISO copy or legacy SQL when its adapter cannot admit the read',async()=>{
   const f=fixture();f.isolated=true;await assert.rejects(f.service.preview(f.selection,f.actor),{code:'WORK_UNAVAILABLE'});assert.equal(f.queries.length,0);assert.equal(f.ownerInputs.length,0);

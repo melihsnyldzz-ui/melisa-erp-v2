@@ -97,5 +97,5 @@ export function validateBusinessSalesNativePreview(result,selection,basket){
   total+=line4;
  }
  if(total<=0n||total>5000000n||p.subtotalExact4!==p.grandTotalExact4||BigInt(p.grandTotalExact4.replace('.',''))!==total||BigInt(p.amountTryExact4.replace('.',''))!==(total*units(rate.rateExact8)+50000000n)/100000000n||BigInt(p.amountTryExact4.replace('.',''))<=0n||BigInt(p.amountTryExact4.replace('.',''))>5000000n)fail('NATIVE_TOTAL_INVALID');
- return snapshot({documentDate:selection.documentDate,currency:p.currency,grandTotalExact4:p.grandTotalExact4,amountTryExact4:p.amountTryExact4,rateExact8:rate.rateExact8,scopeRevision:c.revision,previewHash:p.previewHash,readOnly:true,canSave:false});
+ return snapshot({selection:structuredClone(selection),documentDate:selection.documentDate,currency:p.currency,grandTotalExact4:p.grandTotalExact4,amountTryExact4:p.amountTryExact4,rateExact8:rate.rateExact8,scopeRevision:c.revision,previewHash:p.previewHash,readOnly:true,canSave:false});
 }

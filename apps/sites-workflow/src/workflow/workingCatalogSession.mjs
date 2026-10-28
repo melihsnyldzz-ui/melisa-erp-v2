@@ -3,7 +3,7 @@ import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheti
 import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor,businessSaleReceiptRequestAllowed,isBusinessSaleReceiptActor} from './businessWorkface.mjs';
 import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
 import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
-import {tradeInvoice} from './workTradeModel.mjs';
+import {tradeCanonicalSaleInvoice,tradeCanonicalSaleJournal} from './workTradeModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -108,19 +108,36 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return validateBusinessSaleReadEnvelope(payload,selection);
   },
   businessSaleInvoiceAvailable(){return !!(businessTarget&&active&&token&&isBusinessSaleReceiptActor(user));},
-  async businessSaleInvoice(selection,movementId){
-   if(!businessTarget||!active||!token||!isBusinessSaleReceiptActor(user)||selection?.kind!=='customer'||typeof movementId!=='string'||! /^[1-9]\d{0,18}$/.test(movementId))throw problem('Fiş bağlantısı doğrulanamadı.',403);
-   const query=structuredClone(selection),version=generation,identity=JSON.stringify(user);
+  async businessSaleInvoice(selection,movement){
+   if(!businessTarget||!active||!token||!isBusinessSaleReceiptActor(user)||selection?.kind!=='customer')throw problem('Fiş bağlantısı doğrulanamadı.',403);
+   const query=structuredClone(selection),version=generation,identity=JSON.stringify(user),scope={customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency};
+   partyHistoryPath(query);
    const unchanged=()=>{if(!active||!token||generation!==version||JSON.stringify(user)!==identity)throw problem('Oturum değişti.',403);};
-   // Re-read exact account history; a caller-supplied invoice ID/envelope is
-   // never enough to associate an invoice with a currency account.
-   const history=validatePartyHistoryEnvelope(await request(partyHistoryPath(query),{expire:true,keepForbiddenSession:true}),query);unchanged();
-   const rows=history.data.filter(r=>r.id===movementId&&['sales_invoice','sales_invoice_cancel'].includes(r.kind)&&r.accountCurrency===query.currency);
-   const invoiceId=rows.length===1?rows[0].invoiceId:null,path='/api/work-sales/invoices/'+invoiceId;
+   let expected=scope,invoiceId,fromHistory=false;
+   if(typeof movement==='string'&&/^[1-9]\d{0,18}$/.test(movement)){
+    const history=validatePartyHistoryEnvelope(await request(partyHistoryPath(query),{expire:true,keepForbiddenSession:true}),query);unchanged();
+    const rows=history.data.filter(r=>r.id===movement&&['sales_invoice','sales_invoice_cancel'].includes(r.kind)&&r.accountCurrency===query.currency);
+    invoiceId=rows.length===1?rows[0].invoiceId:null;fromHistory=true;
+   }else{
+    const saved=tradeCanonicalSaleInvoice(movement,scope);invoiceId=saved.id;
+    expected={...scope,invoiceId,creationRequestId:saved.creationRequestId,partyEntityId:saved.partyEntityId};
+   }
+   const path='/api/work-sales/invoices/'+invoiceId;
    if(!businessSaleReceiptRequestAllowed('GET',path,user))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
-   const invoice=tradeInvoice((await request(path,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data);unchanged();
-   if(!['finalized','cancelled'].includes(invoice.status)||invoice.id!==invoiceId||invoice.customerId!==query.partyId||invoice.currency!==query.currency||invoice.customerBalanceDisplayOnly!==true||typeof invoice.customerBalanceExact8!=='string'||! /^-?(?:0|[1-9]\d*)\.\d{8}$/.test(invoice.customerBalanceExact8))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
+   const invoice=tradeCanonicalSaleInvoice((await request(path,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data,{...expected,invoiceId});unchanged();
+   if(fromHistory&&!['finalized','cancelled'].includes(invoice.status))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
    return structuredClone(invoice);
+  },
+  async businessSaleRequest(selection,pending){
+   if(!businessTarget||!active||!token||!isBusinessSaleReceiptActor(user)||selection?.kind!=='customer')throw problem('İşlem bağlantısı doğrulanamadı.',403);
+   const query=structuredClone(selection),saved=structuredClone(pending),version=generation,identity=JSON.stringify(user),scope={customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency};partyHistoryPath(query);
+   const path='/api/work-sales/requests/'+saved?.body?.requestId;
+   if(!businessSaleReceiptRequestAllowed('GET',path,user))throw problem('İşlem kimliği doğrulanamadı.',409);
+   const unchanged=()=>{if(!active||!token||version!==generation||JSON.stringify(user)!==identity)throw problem('Oturum değişti.',403);};
+   const result=(await request(path,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data;unchanged();
+   const recorded=tradeCanonicalSaleJournal(result,saved,scope),current=tradeCanonicalSaleInvoice((await request('/api/work-sales/invoices/'+recorded.id,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data,{...scope,invoiceId:recorded.id,creationRequestId:recorded.creationRequestId,partyEntityId:recorded.partyEntityId});unchanged();
+   if(result.operation!=='sale_draft'&&(current.revision!==recorded.revision||current.status!==recorded.status)||current.documentDate!==recorded.documentDate||current.grandTotalExact4!==recorded.grandTotalExact4||current.amountTryExact4!==recorded.amountTryExact4||JSON.stringify(current.items)!==JSON.stringify(recorded.items))throw problem('Fiş bağlantısı değişti.',409);
+   return {invoice:structuredClone(current),requestId:result.requestId,operation:result.operation,replayed:result.response.replayed};
   },
   async businessSalePreview(selection){
    if(!businessTarget||!active||!token||!isBusinessSalePreviewActor(user)||!businessSalePreviewSelectionAllowed(selection))throw problem('Satış önizleme seçimi doğrulanamadı.',403);

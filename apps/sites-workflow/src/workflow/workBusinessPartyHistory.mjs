@@ -1,4 +1,4 @@
-import {tradeInvoice} from './workTradeModel.mjs';
+import {tradeCanonicalSaleInvoice} from './workTradeModel.mjs';
 import {parsePartyHistoryQuery,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
 import {moneyDisplay} from './moneyDisplay.mjs';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -48,11 +48,18 @@ export function createBusinessPartyHistory({kind,session,onChange=()=>{},locked=
   const matches=result.data.filter(r=>r.id===movementId&&receiptAvailable(r));if(matches.length!==1)return;
   const row=matches[0],query={kind,partyId:card.id,accountId,currency,page,dateFrom,dateTo},n=version;
   invoice=null;invoiceBusy=true;invoiceNote='Fiş okunuyor…';notify();
-  try{const next=tradeInvoice(await session.businessSaleInvoice(query,row.id));if(next.id!==row.invoiceId||next.customerId!==query.partyId||next.currency!==query.currency)throw Error();if(!disposed&&card&&n===version){invoice=next;invoiceNote='';}}
+  try{const next=tradeCanonicalSaleInvoice(await session.businessSaleInvoice(query,row.id),{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency});if(next.id!==row.invoiceId||next.customerId!==query.partyId||next.currency!==query.currency)throw Error();if(!disposed&&card&&n===version){invoice=next;invoiceNote='';}}
   catch{if(!disposed&&card&&n===version)invoiceNote='Fişin bu hesaba bağlantısı doğrulanamadı. Hareketleri yenileyin.';}
   finally{if(!disposed&&card&&n===version){invoiceBusy=false;notify();}}
  }
- function receiptHtml(){return `${invoiceNote?`<p role="status">${esc(invoiceNote)}</p>`:''}${invoice?`<section class="trade-receipt"><h3>Satış fişi · ${esc(invoice.documentNo)}</h3><p>${esc(invoice.documentDate)} · ${esc({draft:'Taslak',finalized:'Tamamlandı',cancelled:'İptal edildi'}[invoice.status])}</p>${invoice.items.map(i=>`<div class="trade-receipt-line"><div><b>${esc(i.stockCode)}</b><small>${esc(i.name)} · ${esc(i.quantityExact3)} ADET</small></div><strong>${esc(amount(i.lineTotalExact4,invoice.currency))}</strong></div>`).join('')}<p>Satış toplamı: <strong>${esc(amount(invoice.grandTotalExact4,invoice.currency))}</strong></p><p class="trade-note">Bu fiş yalnız görüntülenir. Satış, iptal ve tahsilat işlemleri bu bağlantıda açık değil.</p></section>`:''}`;}
+ function receiptHtml(){return `${invoiceNote?`<p role="status">${esc(invoiceNote)}</p>`:''}${invoice?businessSaleReceiptHtml(invoice)+`<button class="btn" data-bph-reopen ${locked()||invoiceBusy?'disabled':''}>Fişi yeniden oku</button>`:''}`;}
+ async function reopenInvoice(){
+  if(!allowed()||busy||invoiceBusy||!invoice||!selected()||session.businessSaleInvoiceAvailable?.()!==true)return;
+  const old=invoice,n=version,query={kind,partyId:card.id,accountId,currency,page,dateFrom,dateTo};invoice=null;invoiceBusy=true;invoiceNote='Fiş okunuyor…';notify();
+  try{const next=tradeCanonicalSaleInvoice(await session.businessSaleInvoice(query,old),{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency,invoiceId:old.id,creationRequestId:old.creationRequestId,partyEntityId:old.partyEntityId});if(!disposed&&card&&n===version){invoice=next;invoiceNote='';}}
+  catch{if(!disposed&&card&&n===version)invoiceNote='Fişin bu hesaba bağlantısı doğrulanamadı. Hareketleri yenileyin.';}
+  finally{if(!disposed&&card&&n===version){invoiceBusy=false;notify();}}
+ }
  function html(){
   if(disposed||card===null)return '';
   const a=selected(),disabled=locked(),meta=result?.meta;
@@ -72,8 +79,16 @@ export function createBusinessPartyHistory({kind,session,onChange=()=>{},locked=
   host.querySelector('[data-bph-all-dates]')?.addEventListener('click',()=>{if(!current())return;dateFrom='';dateTo='';page=1;return load();});
   host.querySelector('[data-bph-prev]')?.addEventListener('click',()=>{if(!current()||busy||!selected()||page<=1)return;page--;return load();});
   host.querySelector('[data-bph-next]')?.addEventListener('click',()=>{if(!current()||busy||!result||page*25>=result.meta.total||page>=100000)return;page++;return load();});
+  host.querySelector('[data-bph-reopen]')?.addEventListener('click',()=>{if(current())return reopenInvoice();});
   host.querySelectorAll?.('[data-bph-invoice]').forEach(b=>b.addEventListener('click',()=>{if(current())return openInvoice(b.dataset.bphInvoice);}));
   host.querySelector('[data-bph-refresh]')?.addEventListener('click',()=>{if(!current()||busy)return;return load();});
  }
  return {select,html,bind,refresh:load,dispose(){disposed=true;invalidate();binding++;card=null;}};
+}
+
+// Reused receipt presentation for account history and the existing UUID journal.
+// No lifecycle handler or commercial transport is attached to these controls.
+export function businessSaleReceiptHtml(value){
+ const i=tradeCanonicalSaleInvoice(value,{customerId:value?.customerId,customerAccountId:value?.customerAccountId,currency:value?.currency});
+ return `<section class="trade-receipt"><h3>Satış fişi · ${esc(i.documentNo)}</h3><p>${esc(i.documentDate)} · ${esc({draft:'Taslak',finalized:'Tamamlandı',cancelled:'İptal edildi'}[i.status])}</p>${i.items.map(l=>`<div class="trade-receipt-line"><div><b>${esc(l.stockCode)}</b><small>${esc(l.name)} · ${esc(l.quantityExact3)} ADET</small></div><strong>${esc(amount(l.lineTotalExact4,i.currency))}</strong></div>`).join('')}<p>Satış toplamı: <strong>${esc(amount(i.grandTotalExact4,i.currency))}</strong></p>${i.status==='draft'?'<button class="btn primary" data-business-sale-finalize disabled>Satışı tamamla</button>':''}${i.status!=='cancelled'?'<button class="btn" data-business-sale-cancel disabled>Satışı iptal et</button>':''}<p class="trade-note">Bu fiş yalnız görüntülenir. Satış, iptal ve tahsilat işlemleri bu bağlantıda açık değil.</p></section>`;
 }

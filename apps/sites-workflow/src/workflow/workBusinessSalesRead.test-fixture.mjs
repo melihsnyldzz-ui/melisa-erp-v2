@@ -18,3 +18,8 @@ export function saleNativeResult(selection){
  const preview={selection:structuredClone(selection),scopeRevision:context.revision,previewHash:'b'.repeat(64),currency:selection.currency,subtotalExact4:exact4(total),grandTotalExact4:exact4(total),amountTryExact4:exact4(total*2n),writable:true,items:[{...selection.items[0],stockCode:'0012 MARKA',name:'Sentetik ürün',unit:{label:'ADET',factorExact8:'1.00000000',sourceId:'9'},unitPriceExact8:'2.12345678',unitPriceExact4:'2.1235',lineTotalExact4:exact4(total)}],settlement:{accountId:selection.customerAccountId,documentCurrency:selection.currency,accountCurrency:selection.currency,documentRateExact8:context.rate.rateExact8,accountRateExact8:context.rate.rateExact8}};
  return {context,preview};
 }
+
+export function saleNativeInvoice({status='draft',id='51',creationRequestId='00000000-0000-4000-8000-000000000001',revision='c'.repeat(64)}={}){
+ const selection={customerId:'155',customerAccountId:'7',currency:'USD',documentDate:'2026-10-28',items:[{productId:'12',quoteId:'81',quantityExact3:'2.000'}]},p=saleNativeResult(selection).preview;
+ return {id,documentNo:'SYNTHETIC-RECEIPT',documentDate:selection.documentDate,customerId:'155',customerAccountId:'7',partyEntityId:'3',creationRequestId,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',currency:'USD',status,subtotalExact4:p.subtotalExact4,grandTotalExact4:p.grandTotalExact4,amountTryExact4:p.amountTryExact4,revision,items:p.items.map(i=>({...i,currency:'USD'})),customerBalanceExact4:'-2.1235',customerBalanceExact8:'-2.12345678',customerBalanceDisplayOnly:true,collections:{revision:'d'.repeat(64),receivedExact4:'0.0000',outstandingExact4:status==='finalized'?p.grandTotalExact4:'0.0000',items:[]}};
+}
