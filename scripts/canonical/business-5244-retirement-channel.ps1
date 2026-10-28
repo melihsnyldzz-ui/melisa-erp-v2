@@ -10,9 +10,13 @@ function Assert-Business5244RetirementChannel($Channel){$r=Get-Business5244Retir
 function Reset-Business5244RetirementConnection($Record){
  if($Record.request){$Record.request.closed=$true}
  if($Record.peer){$Record.peer.Dispose();$Record.peer=$null}
- if($Record.pipe){try{if($Record.pipe.IsConnected){$Record.pipe.Disconnect()}}catch{$Record.pipe.Dispose();$Record.pipe=$null}}
+ # A peer may close before sending its body. IsConnected can then be false
+ # while the cached server handle is already broken; reusing it makes
+ # WaitForConnectionAsync throw and used to tear down the unrelated web Job.
+ if($Record.pipe){$Record.pipe.Dispose();$Record.pipe=$null}
  $Record.phase='Accept';$Record.request=$null;$Record.length=0;$Record.nonce=$null;$Record.buffer=[byte[]]::new(192)
- if(!$Record.pipe){$Record.pipe=[Business5244RetirementPipe]::CreateServer()};$Record.task=$Record.pipe.WaitForConnectionAsync()
+ $Record.task=$null
+ try{$Record.pipe=[Business5244RetirementPipe]::CreateServer();$Record.task=$Record.pipe.WaitForConnectionAsync()}catch{if($Record.pipe){$Record.pipe.Dispose();$Record.pipe=$null};$Record.phase='Unavailable';throw 'RETIREMENT_CHANNEL_UNAVAILABLE'}
 }
 function Open-Business5244RetirementChannel {
  param([Parameter(Mandatory)]$OwnerLease)
@@ -25,6 +29,7 @@ function Receive-Business5244RetirementRequest {
  param([Parameter(Mandatory)]$Channel)
  Assert-Business5244RetirementChannel $Channel;$r=Get-Business5244RetirementRecord $Channel
  try{
+  if($r.phase -ceq 'Unavailable'){Reset-Business5244RetirementConnection $r}
   for($step=0;$step -lt 4;$step++){
    if($r.phase -cne 'Accept' -and [DateTime]::UtcNow -gt $r.deadline){throw 'RETIREMENT_MESSAGE_TIMEOUT'}
    if($r.phase -ceq 'Request'){$r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe);return $null}
@@ -51,7 +56,7 @@ function Receive-Business5244RetirementRequest {
     $r.request=@{token=$token;operation=[string]$body.operation;id=$r.nonce;hash=(Get-Business5244StartupHash ([Text.Encoding]::ASCII.GetBytes($text)));closed=$false;completed=$false};$r.phase='Request';return $token
    }
   };return $null
- }catch{Reset-Business5244RetirementConnection $r;throw 'RETIREMENT_REQUEST_NOT_CONFIRMED'}
+ }catch{if($_.Exception.Message -ceq 'RETIREMENT_CHANNEL_UNAVAILABLE'){throw};try{Reset-Business5244RetirementConnection $r}catch{throw 'RETIREMENT_CHANNEL_UNAVAILABLE'};throw 'RETIREMENT_REQUEST_NOT_CONFIRMED'}
 }
 function Assert-Business5244RetirementRequest {
  param([Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request)

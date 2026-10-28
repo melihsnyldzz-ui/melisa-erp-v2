@@ -179,7 +179,7 @@ function Start-Business5244OwnedSupervisor {
    $snapshot=Get-Business5244RetirementSnapshot $retirement
    if($snapshot.phase -ceq 'Running' -and !(Get-Business5244RetirementState $retirement).native.ChildAlive()){throw 'OWNED_WEB_CHILD_EXITED'}
    $request=$null
-   try{$request=Receive-Business5244RetirementRequest -Channel $channel}catch{if($_.Exception.Message -ceq 'RETIREMENT_REQUEST_NOT_CONFIRMED'){Start-Sleep -Milliseconds 200;continue};throw}
+   try{$request=Receive-Business5244RetirementRequest -Channel $channel}catch{if($_.Exception.Message -cin @('RETIREMENT_REQUEST_NOT_CONFIRMED','RETIREMENT_CHANNEL_UNAVAILABLE')){Start-Sleep -Milliseconds 200;continue};throw}
    if($request){
     $reply='Status'
     try{
