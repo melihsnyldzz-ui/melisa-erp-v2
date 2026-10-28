@@ -654,3 +654,39 @@ Koordinatörün ilettiği kullanıcı ekran kararları, mevcut B6 ve D2/D1/D3 s�
 **28 Ekim — Windows CI süre bütçesi dar düzeltmesi:** Exact90c3c048 PR ve push Windows job annotationları10dakikalık job timeoutunu doğruladı; son business adımına142–159sn kalmıştı. Yalnız windows-startup-test timeout-minutes10→20; aynı test dosyaları/adımlar, seri çalışma, action pinleri, permission/concurrency/offline ve secret-scan korumaları byte-eşit. Kaynak delta kontrolü PASS; hosted yeni sonucun yerine geçmez.13 yanlış pozitif için istisna/kural değişimi0; kurulu READ2b/B6 kurulum durumu, SQL/veri/rol/servis ve insanUA aynı.
 
 PR40739172216/job122995769449 ve push40739161248/job122995730843 doğrudan annotation: job exceeded maximum execution time10m. Bu düzeltme test timeoutlarını/guardlarını kaldırmaz, yalnız toplam hosted Windows iş bütçesini20dakika yapar. Eski cancelled sonuç PASS değildir; yeni exact-head sonucu ayrıca kaydedilecektir. Manuelrerun0.
+
+### 28 Ekim — doğrulanan CI ve 13 bulgu için kesin kapsamlı karar önerisi
+
+**28 Ekim — exact8a1ea1f0 hosted CI sonucu doğrulandı:** PR40743549260 ve push40743537952 Windows-startup-test SUCCESS (11dk17sn /11dk28sn), quality-build-test SUCCESS;20dk toplam bütçe önceki10dk engelini giderdi. Secret-scan aynı13 incelenmiş false-positive nedeniyle FAILURE; overallPASS yok. Exact13 fingerprint için dar karar önerisi mevcut kanıtta hazır, ONAYLANMADI/UYGULANMADI; ignore/kural/history/kurulum/SQL/veri/rol/servis değişikliği0. B6 yalnız kaynak hazırlığıdır; READ2b kurulumundan ayrı, native prova/normal satış/insanUA açık.
+
+- [PR exact-head run](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40743549260): Windows/quality SUCCESS, secret FAILURE.
+- [Push exact-head run](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40743537952): Windows/quality SUCCESS, secret FAILURE.
+- PR maskeli tarama çıktısı13 onaylanmamış bulguyu doğrular. Ayrı read-only kaynak incelemesi ve bağımsız reviewer13/13 yanlış pozitifi kanıtladı;9manifest hash,2operasyon metni,1sentetik kur referansı,1PowerShell fonksiyon adı. Değerler burada yayımlanmaz.
+
+**Seçenek A — önerilen, ayrı kesin onay gerektirir:** yalnız aşağıdaki13 tarihsel fingerprint mevcut `.gitleaksignore` dosyasına eklenebilir. Commit+dosya+kural+satır exact kapsam; yeni commit/bulguya yayılmaz. Gitleaks sürümü/checksumu, tüm geçmiş taraması, redaction, kurallar, CI required-check sonucu, path kapsamı ve mevcut ret sınırları aynı kalır. Önceki3 bulgu onayı bunlara uygulanamaz.
+
+**Seçenek B — istisnasız bekle:** korumaları ve mevcut13 bulgulu FAIL sonucunu olduğu gibi koru; bu engeli aşılmış/yeşil sayma. Mevcut yetkili bağımsız source işlerini sürdürmek kurulum izni veya tüm CI PASS değildir.
+
+**Uygulanabilir çözüm olmayan yollar:** HEAD metnini yeniden adlandırmak geçmiş bulguları silmez. Git geçmişini yeniden yazma/forcepush, yalnız HEAD tarama, kural/path allowlist, scanı kapatma veya hatayı yoksayma bu görev kapsamında uygulanmaz. Doğrulanmış gerçek secret bulunmadığından credential reset/rotation gerektiren kanıt yoktur; yeni belirsiz bulgu olursa ayrıca incelenir.
+
+**ÖNERİLEN KARAR METNİ — kullanıcı henüz onaylamadı:**
+
+> PR54 source8a1ea1f0 incelemesindeki aşağıdaki13 kesin tarihsel `generic-api-key` fingerprintinin, doğrulanmış yanlış pozitif olarak yalnız `.gitleaksignore` dosyasına eklenmesini onaylıyorum. Bu onay genel dosya/kural/gelecek bulgu istisnası, geçmiş yeniden yazma, CI koruması kapatma, kurulum/SQL/veri/rol/ticari işlem veya B6 insan kabulü yetkisi değildir. Mevcut tam geçmiş/maskeleme/sabit scanner korumaları aynı kalacak; değişiklik sonrası gerçek exact-head CI sonucu ayrıca doğrulanacaktır.
+
+```text
+af56e36ca89bca988dc7f521125b7a9263310811:apps/api/src/services/canonicalBusinessSaleModel.test.mjs:generic-api-key:24
+d303218681fe212155b6a91f8fb62b1274721842:STATUS.md:generic-api-key:1
+f0568be74d8e2d35c4adefef92b6c60c67cfb6ec:docs/evidence/erp/2026-10-08-current-party-completion/green5244-realdata-compat-prep-20261027.md:generic-api-key:364
+b990f65b63e341657495e6030e7bcf36307ac859:scripts/canonical/start-business-5244-web.ps1:generic-api-key:15
+8904f7a2f991da91d0290986896c33f10aa0f23a:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+e577646ed0f160149556e19c2bc5fd27ea9ab058:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+a38f08d74ae533db6d89a71908435255c78e0899:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+71bf21089874677bf4062c1a31de0b14aa0e8d84:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+491edafe4852625c7fdb851329bce6e6d34e5a8c:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+9177143cfc252924c015518f7bac151f51aa0a8f:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+76106c22e816175c51306dfac1e4d7dd1a45dc93:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+8a060591b38ad484db60c98f0ea61423809d2cd1:scripts/canonical/prepare-green5244-realdata-compat.mjs:generic-api-key:9
+0a22177889268a00772ea25aa0b2a9f1578e4d64:scripts/canonical/test125-bound-api-quiescence.test.mjs:generic-api-key:34
+```
+
+Bu tur yalnız karar hazırlığı/dokümantasyon: hiçbir fingerprint eklenmedi; scanner/workflow değişmedi. B6 kaynak/gerçek SQL/prova/kurulum/normal yazan ekran/insan kabulü ayrı ve tamamlanmamıştır.
