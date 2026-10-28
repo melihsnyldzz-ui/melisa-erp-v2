@@ -6,9 +6,10 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import vm from 'node:vm';
 import cp from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 const file=new URL('./prepare-business-sale-owner-bundle.mjs',import.meta.url),source=fs.readFileSync(file,'utf8'),sha=b=>crypto.createHash('sha256').update(b).digest('hex');
 function fixture(options={}){
- const temp=fs.mkdtempSync(path.join(os.tmpdir(),'b6-owner-passive-')),inputs=new Map(),blobs=new Map(),overrides=new Map(),open=new Set();let writes=0,context;
+ const tempRoot=fs.realpathSync.native(options.tempRoot??process.env.RUNNER_TEMP??os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(tempRoot,'b6-owner-passive-'))),inputs=new Map(),blobs=new Map(),overrides=new Map(),open=new Set();let writes=0,context;
  const head='f'.repeat(40),win=path.win32,base='C:\\Sirket\\ERP\\worktrees\\erp-p03-pr53-candidate-20261018';
  const value=name=>vm.runInContext(name,context);
  function output(p){for(const [logical,leaf] of [[value('CORE'),'core'],[value('ROUTER'),'router'],[value('PROOF'),'proof']])if(p===logical||p.startsWith(logical+'\\'))return path.join(temp,leaf,...win.relative(logical,p).split('\\').filter(Boolean));return null;}
@@ -46,7 +47,7 @@ function fixture(options={}){
  const coreBytes=Buffer.from(JSON.stringify({kind:'BUSINESS5244_FRESH_OWNER_BUNDLE',files:oldFiles}));inputs.set(win.join(oldCore,'owner-manifest.json'),coreBytes);overrides.set(coreBytes.toString('hex'),value('OLD_CORE_HASH'));
  const routerBytes=Buffer.from(JSON.stringify({coreRoot:oldCore,coreManifestSha256:value('OLD_CORE_HASH'),entry:'start-business-5244-readpair-router.ps1',entrySha256:value('OLD_ENTRY_HASH')}));inputs.set(win.join(oldRouter,'owner-manifest.json'),routerBytes);overrides.set(routerBytes.toString('hex'),value('OLD_ROUTER_HASH'));
  const oldEntry=Buffer.from('# synthetic frozen router entry');inputs.set(win.join(oldRouter,'start-business-5244-readpair-router.ps1'),oldEntry);overrides.set(oldEntry.toString('hex'),value('OLD_ENTRY_HASH'));
- return {temp,context,inputs,blobs,values:value,run:()=>vm.runInContext('prepareBusinessSaleOwnerBundle()',context),verify:()=>vm.runInContext('verifyBusinessSaleOwnerBundle()',context),writes:()=>writes,output,close(){assert.equal(open.size,0);const resolved=path.resolve(temp);assert(resolved.startsWith(path.resolve(os.tmpdir())+path.sep));for(const sub of ['core','router','proof']){const directory=path.join(resolved,sub);if(!fs.existsSync(directory))continue;assert(!fs.lstatSync(directory).isSymbolicLink());for(const leaf of fs.readdirSync(directory)){assert(!/[\\/]/.test(leaf));const target=path.resolve(directory,leaf);assert(target.startsWith(resolved+path.sep));assert(fs.lstatSync(target).isFile());fs.unlinkSync(target);}fs.rmdirSync(directory);}fs.rmdirSync(resolved);}};
+ return {temp,context,inputs,blobs,values:value,run:()=>vm.runInContext('prepareBusinessSaleOwnerBundle()',context),verify:()=>vm.runInContext('verifyBusinessSaleOwnerBundle()',context),writes:()=>writes,output,close(){assert.equal(open.size,0);const resolved=path.resolve(temp);assert.equal(path.dirname(resolved).toLowerCase(),tempRoot.toLowerCase());assert(path.basename(resolved).startsWith('b6-owner-passive-'));assert(!fs.lstatSync(resolved).isSymbolicLink());for(const sub of ['core','router','proof']){const directory=path.join(resolved,sub);if(!fs.existsSync(directory))continue;assert(!fs.lstatSync(directory).isSymbolicLink());for(const leaf of fs.readdirSync(directory)){assert(!/[\\/]/.test(leaf));const target=path.resolve(directory,leaf);assert(target.startsWith(resolved+path.sep));assert(fs.lstatSync(target).isFile());fs.unlinkSync(target);}fs.rmdirSync(directory);}fs.rmdirSync(resolved);}};
 }
 test('producer writes only isolated roots and pins exact13 source files with distinct committed owner/application identities',()=>{
  const f=fixture();try{const result=f.run();assert.equal(result.ownerSourceCommit,'f'.repeat(40));assert.equal(result.businessSaleSourceCommit,'ca620bac30f96034b33d4410dc43576a38a38707');assert.equal(result.coreFiles,13);assert.equal(result.beforeImages,6);assert.equal(result.installed,false);assert.equal(result.executable,false);assert.equal(result.ownerCalls,0);assert.equal(result.sqlCalls,0);
@@ -57,6 +58,7 @@ test('producer writes only isolated roots and pins exact13 source files with dis
 });
 test('generated router loads its real startup and finite-pair libraries before reading configuration', {skip:process.platform!=='win32'},()=>{
  const f=fixture();try{
+  assert.equal(path.dirname(f.temp).toLowerCase(),fs.realpathSync.native(process.env.RUNNER_TEMP??os.tmpdir()).toLowerCase());
   f.run();const core=f.output(f.values('CORE')),router=f.output(f.values('ROUTER')),proof=f.output(f.values('PROOF'));
   const entry=fs.readFileSync(path.join(router,'start-business-5244-readpair-router.ps1'),'utf8');
   // Execute the emitted import block with real library bytes in disposable
@@ -74,6 +76,19 @@ foreach($name in @('Read-ErpStartupConfig','Get-Test125ReadPairScope','Assert-Te
   const before=fs.readdirSync(core).sort(),result=cp.spawnSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000,env:{...process.env,PSModulePath:path.join(f.temp,'absent-module-root')}});
   assert.equal(result.status,0,result.stderr);assert.equal(result.stdout.trim(),'PASS');assert.deepEqual(fs.readdirSync(core).sort(),before);
  }finally{f.close();}
+});
+test('router library closure runs from a canonical physical root when RUNNER_TEMP is a junction', {skip:process.platform!=='win32'},()=>{
+ const base=fs.realpathSync.native(process.env.RUNNER_TEMP??os.tmpdir()),root=fs.realpathSync.native(fs.mkdtempSync(path.join(base,'b6-router-alias-'))),physical=path.join(root,'physical fixture root'),alias=path.join(root,'redirect');
+ try{
+  fs.mkdirSync(physical);fs.symlinkSync(physical,alias,'junction');
+  const result=cp.spawnSync(process.execPath,['--test','--test-name-pattern=^generated router loads',fileURLToPath(import.meta.url)],{encoding:'utf8',windowsHide:true,timeout:20000,env:{...process.env,NODE_TEST_CONTEXT:undefined,RUNNER_TEMP:alias}});
+  assert.equal(result.status,0,result.stderr+result.stdout);
+  assert.match(result.stdout,/generated router loads its real startup and finite-pair libraries/);
+ }finally{
+  assert.equal(path.dirname(fs.realpathSync.native(root)).toLowerCase(),base.toLowerCase());assert(path.basename(root).startsWith('b6-router-alias-'));
+  if(fs.existsSync(alias)){assert(fs.lstatSync(alias).isSymbolicLink());fs.rmdirSync(alias);}
+  if(fs.existsSync(physical)){assert(!fs.lstatSync(physical).isSymbolicLink());fs.rmdirSync(physical);}fs.rmdirSync(root);
+ }
 });
 test('dirty or missing source and unsuccessful or empty-step hosted CI reject before any output creation',()=>{
  for(const options of [{dirty:true},{missingBlob:'canonical-business-sale-maintenance.ps1'},{ciFailure:true},{jobFailure:'quality-build-test'},{emptySteps:true},{filter:true},{encoding:true}]){const f=fixture(options);try{assert.throws(f.run);assert.equal(f.writes(),0);}finally{f.close();}}
