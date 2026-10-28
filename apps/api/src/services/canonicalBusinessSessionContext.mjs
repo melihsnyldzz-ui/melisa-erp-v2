@@ -3,6 +3,100 @@ import {expandPermissions,applyRolePermissionDefaults} from './permissionCatalog
 export const BUSINESS_SESSION=Object.freeze({id:'ERP-5244-REALDATA-20261027',database:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV',login:'melisa_sirket_sales_test_20260929_01',userId:17,username:'unified-semih-test',roleId:17,roleCode:'unified_test_semih',permissionRows:36,permissionHash:'d49893294b3feffa73cb80fdf32ef81e9e4a205db98de3d4becdfe00170bc1d7',sessionPath:'C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\grants.json'});
 let registered=null;
 const environments=new WeakMap();
+const saleAdmissions=new WeakMap(),saleTransactions=new WeakMap(),issuedSaleTransactions=new WeakMap();
+const saleOperations=Object.freeze({sale_draft:'sales.create',sale_finalize:'sales.finalize',sale_cancel:'sales.cancel'});
+const saleError=()=>{throw Object.assign(new Error('Native satış işlem kanıtı doğrulanamadı.'),{code:'CANONICAL_BUSINESS_SALE_ADMISSION_REQUIRED',statusCode:503});};
+const frozen=v=>{if(v&&typeof v==='object'){for(const child of Object.values(v))frozen(child);Object.freeze(v);}return v;};
+const positiveId=v=>typeof v==='string'&&/^[1-9]\d{0,18}$/.test(v)&&BigInt(v)<=9223372036854775807n;
+const exact=(v,scale)=>typeof v==='string'&&new RegExp(`^(?:0|[1-9]\\d{0,13})\\.\\d{${scale}}$`).test(v);
+const sha=v=>typeof v==='string'&&/^[a-fA-F0-9]{64}$/.test(v);
+export const CANONICAL_BUSINESS_SALE_METADATA_SQL="SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') databaseControl,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess,@@SPID sessionId,CONVERT(varchar(30),CURRENT_TRANSACTION_ID()) transactionId,@@TRANCOUNT transactionCount,XACT_STATE() transactionState,(SELECT transaction_isolation_level FROM sys.dm_exec_sessions WHERE session_id=@@SPID) isolationLevel,APPLOCK_MODE(N'public',@canonicalSaleLock,N'Transaction') lockMode,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_canonical_business_sale_assert_v1',N'P'))),2) assertDefinitionHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_canonical_business_sale_begin_v1',N'P'))),2) beginDefinitionHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_canonical_business_sale_effects_v1',N'P'))),2) effectsDefinitionHash;";
+
+// Protected startup configuration is only an expected pin, never an issuance of
+// a native write grant. Missing admission keeps existing installations closed.
+export function configureCanonicalBusinessSaleAdmission(context,profile){
+ assertCanonicalBusinessSession(context);
+ if(profile===undefined)return null;
+ if(saleAdmissions.has(context)||!profile||Object.keys(profile).sort().join(',')!=='assertDefinitionHash,beginDefinitionHash,effectsDefinitionHash,profileHash,schemaVersion'||profile.schemaVersion!=='melisa-canonical-business-sale-admission.v1'||!sha(profile.profileHash)||!sha(profile.assertDefinitionHash)||!sha(profile.beginDefinitionHash)||!sha(profile.effectsDefinitionHash))saleError();
+ const value=Object.freeze({...profile,profileHash:profile.profileHash.toUpperCase(),assertDefinitionHash:profile.assertDefinitionHash.toUpperCase(),beginDefinitionHash:profile.beginDefinitionHash.toUpperCase(),effectsDefinitionHash:profile.effectsDefinitionHash.toUpperCase()});saleAdmissions.set(context,value);return value;
+}
+export function getCanonicalBusinessSaleTransaction(transaction,{operation,actorId,invoiceId}={}){
+ const value=saleTransactions.get(transaction);if(!value)return null;
+ assertCanonicalBusinessSession(value.context);
+ if((operation!==undefined&&operation!==value.binding.operation)||(actorId!==undefined&&String(actorId)!==value.binding.actorId)||(invoiceId!==undefined&&(invoiceId===null?null:String(invoiceId))!==value.binding.invoiceId))saleError();
+ return value.binding;
+}
+// The only issuer constructs its own transaction with the production pool and
+// driver. No caller-provided request, driver, connection or transaction is an
+// authority. This entry remains unusable until a reviewed SQL admission exists.
+export async function runCanonicalBusinessSaleTransaction(input,callback){
+ if(!input||Object.keys(input).some(k=>!['actor','requestId','operation','invoiceId','bodyJson'].includes(k)))saleError();
+ const context=assertCanonicalBusinessSession(getCanonicalBusinessSession()),profile=saleAdmissions.get(context);
+ if(!profile||typeof callback!=='function')saleError();
+ if(!Object.hasOwn(saleOperations,input.operation)||String(input.actor?.id)!=='17'||input.actor.username!==context.username||String(input.actor.role?.id)!=='17'||input.actor.role.code!==context.roleCode||input.actor.isActive===false||input.actor.isAdmin===true||input.actor.testAdminSession===true||!Array.isArray(input.actor.permissions)||JSON.stringify([...input.actor.permissions].sort())!==JSON.stringify([...context.permissions].sort())||!input.actor.permissions.includes(saleOperations[input.operation])||typeof input.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(input.requestId)||typeof input.bodyJson!=='string')saleError();
+ let body;try{body=JSON.parse(input.bodyJson);}catch{saleError();}
+ if(!body||body.actorId!=='17'||body.operation!==input.operation||body.requestId!==input.requestId||(input.operation!=='sale_draft'&&(!positiveId(input.invoiceId)||body.id!==input.invoiceId)))saleError();
+ input=Object.freeze({...input,actor:Object.freeze({...input.actor,role:Object.freeze({...input.actor.role}),permissions:Object.freeze([...input.actor.permissions])})});
+ const db=await import('../config/database.js');
+ if(!db.isCanonicalTest()||db.isIsolatedOperationCopyRuntime?.())saleError();
+ const pool=await db.getSqlPool(),sql=db.getSqlDriver(),transaction=new sql.Transaction(pool);
+ issuedSaleTransactions.set(transaction,{pool,sql,context});
+ try{
+  await transaction.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);
+  const request=()=>new sql.Request(transaction);
+  await request().input('canonicalSaleLock',sql.NVarChar(255),`melisa-canonical-business-sale:${profile.profileHash}`).query("DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@canonicalSaleLock,@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51106,'CANONICAL_BUSINESS_SALE_BUSY',1;");
+  const metadata=(await request().input('canonicalSaleLock',sql.NVarChar(255),`melisa-canonical-business-sale:${profile.profileHash}`).query(CANONICAL_BUSINESS_SALE_METADATA_SQL)).recordset;
+  if(metadata?.length!==1||metadata[0].databaseName!==BUSINESS_SESSION.database||metadata[0].serverName!==BUSINESS_SESSION.server||metadata[0].loginName!==BUSINESS_SESSION.login||metadata[0].databaseUser!==BUSINESS_SESSION.login||metadata[0].sysadmin!==0||metadata[0].databaseControl!==0||metadata[0].liveDatabaseAccess!==0||metadata[0].transactionCount!==1||metadata[0].transactionState!==1||metadata[0].isolationLevel!==4||metadata[0].lockMode!=='Exclusive'||metadata[0].assertDefinitionHash!==profile.assertDefinitionHash||metadata[0].beginDefinitionHash!==profile.beginDefinitionHash||metadata[0].effectsDefinitionHash!==profile.effectsDefinitionHash)saleError();
+  // Admission issuance is SQL-owned. Replays are handled by the existing
+  // journal adapter before this entry; this operation requires a new intent.
+  await request().input('request_id',sql.UniqueIdentifier,input.requestId).input('actor_id',sql.BigInt,'17').input('operation',sql.NVarChar(40),input.operation).input('payload_json',sql.NVarChar(sql.MAX),input.bodyJson).execute('dbo.usp_canonical_business_sale_begin_v1');
+  const result=await withCanonicalBusinessSaleTransaction({...input,transaction},binding=>callback({binding,transaction,sql}));
+  await transaction.commit();return result;
+ }catch(error){try{await transaction.rollback();}catch{}throw error;}
+ finally{saleTransactions.delete(transaction);issuedSaleTransactions.delete(transaction);}
+}
+export async function withCanonicalBusinessSaleTransaction(input,callback){
+ const {transaction,actor,requestId,operation,invoiceId=null,bodyJson}=input??{},issued=issuedSaleTransactions.get(transaction);
+ if(!issued||Object.hasOwn(input,'request')||Object.hasOwn(input,'sql')||transaction.parent!==issued.pool)saleError();
+ const {sql}=issued,request=()=>new sql.Request(transaction);
+ const context=assertCanonicalBusinessSession(getCanonicalBusinessSession()),profile=saleAdmissions.get(context);
+ if(issued.context!==context)saleError();
+ if(!profile||!transaction||typeof request!=='function'||typeof callback!=='function'||saleTransactions.has(transaction)||!Object.hasOwn(saleOperations,operation)||String(actor?.id)!=='17'||actor.username!==context.username||String(actor.role?.id)!=='17'||actor.role.code!==context.roleCode||actor.isActive===false||actor.isAdmin===true||actor.testAdminSession===true||!Array.isArray(actor.permissions)||JSON.stringify([...actor.permissions].sort())!==JSON.stringify([...context.permissions].sort())||!actor.permissions.includes(saleOperations[operation])||typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||typeof bodyJson!=='string'||(invoiceId!==null&&!positiveId(invoiceId)))saleError();
+ const bodyHash=createHash('sha256').update(bodyJson,'utf16le').digest('hex').toUpperCase();
+ let body;try{body=JSON.parse(bodyJson);}catch{saleError();}
+ if(!body||typeof body!=='object'||Array.isArray(body)||body.actorId!=='17'||body.operation!==operation||body.requestId!==requestId||(operation!=='sale_draft'&&body.id!==invoiceId))saleError();
+ const req=()=>{const r=request();if(r?.parent!==transaction)saleError();return r;};
+ const metadata=async()=>{const rows=(await req().input('canonicalSaleLock',sql.NVarChar(255),`melisa-canonical-business-sale:${profile.profileHash}`).query(CANONICAL_BUSINESS_SALE_METADATA_SQL)).recordset;if(rows?.length!==1)saleError();const m=rows[0];if(m.databaseName!==BUSINESS_SESSION.database||m.serverName!==BUSINESS_SESSION.server||m.loginName!==BUSINESS_SESSION.login||m.databaseUser!==BUSINESS_SESSION.login||m.sysadmin!==0||m.databaseControl!==0||m.liveDatabaseAccess!==0||m.transactionCount!==1||m.transactionState!==1||m.isolationLevel!==4||m.lockMode!=='Exclusive'||!Number.isSafeInteger(m.sessionId)||m.sessionId<=0||!positiveId(m.transactionId)||m.assertDefinitionHash!==profile.assertDefinitionHash||m.beginDefinitionHash!==profile.beginDefinitionHash||m.effectsDefinitionHash!==profile.effectsDefinitionHash)saleError();return m;};
+ const before=await metadata();
+ const rows=(await req().input('request_id',sql.UniqueIdentifier,requestId).input('actor_id',sql.BigInt,'17').input('operation',sql.NVarChar(40),operation).execute('dbo.usp_canonical_business_sale_assert_v1')).recordset;
+ if(rows?.length!==1||typeof rows[0].proof_json!=='string')saleError();
+ let proof;try{proof=JSON.parse(rows[0].proof_json);}catch{saleError();}
+ const binding=validateCanonicalBusinessSaleTransactionProof(proof,{profile,before,requestId,operation,invoiceId,bodyHash,body});
+ const after=await metadata();if(JSON.stringify(after)!==JSON.stringify(before))saleError();
+ saleTransactions.set(transaction,{context,binding});
+ try{
+  const value=await callback(binding);
+  await req().input('request_id',sql.UniqueIdentifier,requestId).input('actor_id',sql.BigInt,'17').input('operation',sql.NVarChar(40),operation).execute('dbo.usp_canonical_business_sale_effects_v1');
+  if(JSON.stringify(await metadata())!==JSON.stringify(before))saleError();
+  return value;
+ }finally{saleTransactions.delete(transaction);}
+}
+// Pure validation deliberately does not register a transaction or authorize the
+// invoice engine. Only the SQL-bound wrapper above can populate its WeakMap.
+export function validateCanonicalBusinessSaleTransactionProof(proof,{profile,before,requestId,operation,invoiceId,bodyHash,body}){
+ if(!proof||proof.database!==BUSINESS_SESSION.database||proof.server!==BUSINESS_SESSION.server||proof.profileHash!==profile.profileHash||proof.actorId!=='17'||proof.sessionId!==before.sessionId||proof.transactionId!==before.transactionId||proof.requestId!==requestId||proof.operation!==operation||proof.bodyHash!==bodyHash||proof.invoiceId!==invoiceId||!sha(proof.selectionHash)||!sha(proof.revision)||body.expectedRevision!==proof.revision||!['customerId','partyEntityId','accountId'].every(key=>positiveId(proof[key]))||!['TRY','USD','EUR'].includes(proof.currency)||!exact(proof.rateExact8,8)||BigInt(proof.rateExact8.replace('.',''))<=0n||(proof.currency==='TRY'&&proof.rateExact8!=='1.00000000')||!exact(proof.grandTotalExact4,4)||!exact(proof.amountTryExact4,4)||BigInt(proof.grandTotalExact4.replace('.',''))<=0n||BigInt(proof.grandTotalExact4.replace('.',''))>5000000n||BigInt(proof.amountTryExact4.replace('.',''))<=0n||BigInt(proof.amountTryExact4.replace('.',''))>5000000n||!Array.isArray(proof.products)||proof.products.length<1||proof.products.length>2)saleError();
+ if(operation==='sale_draft'&&(body.customerId!==proof.customerId||body.customerAccountId!==proof.accountId||body.currency!==proof.currency||!sha(proof.previewHash)||proof.previewHash!==body.previewHash||!Array.isArray(body.items)||body.items.length!==proof.products.length))saleError();
+ const ids=new Set();let total=0n;
+ for(const p of proof.products){
+  if(!positiveId(p.productId)||!positiveId(p.quoteId)||!positiveId(p.unitSourceId)||ids.has(p.productId)||typeof p.stockCode!=='string'||!p.stockCode||typeof p.name!=='string'||!p.name||(p.barcode!==null&&typeof p.barcode!=='string')||p.unit!=='ADET'||p.factorExact8!=='1.00000000'||!sha(p.sourceWitnessHash)||typeof p.sourceKey!=='string'||!p.sourceKey||!exact(p.quantityExact3,3)||!exact(p.unitPriceExact8,8)||!exact(p.unitPriceExact4,4)||!exact(p.lineTotalExact4,4)||!exact(p.averageCostTryExact4,4))saleError();
+  const quantity=BigInt(p.quantityExact3.replace('.','')),price8=BigInt(p.unitPriceExact8.replace('.','')),price4=BigInt(p.unitPriceExact4.replace('.','')),line=BigInt(p.lineTotalExact4.replace('.',''));
+  if(quantity<1000n||quantity>5000n||quantity%1000n!==0n||price8<=0n||price4<=0n||price4!==(price8+5000n)/10000n||line!==quantity*price4/1000n)saleError();
+  if(operation==='sale_draft'){const item=body.items[ids.size];if(item.productId!==p.productId||item.quoteId!==p.quoteId||item.quantityExact3!==p.quantityExact3)saleError();}
+  ids.add(p.productId);total+=line;
+ }
+ if(total!==BigInt(proof.grandTotalExact4.replace('.',''))||(total*BigInt(proof.rateExact8.replace('.',''))+50000000n)/100000000n!==BigInt(proof.amountTryExact4.replace('.','')))saleError();
+ return frozen(proof);
+}
 const fail=()=>{throw Object.assign(new Error('Business TEST session target rejected'),{code:'AUTH_BUSINESS_TEST_TARGET_INVALID',statusCode:503});};
 const digest=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 export function validateBusinessSessionProfile(profile){

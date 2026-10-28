@@ -5,6 +5,7 @@ import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {copyAssert,BUSINESS_COPY_DATABASE,getBusinessDailySelection,getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
 import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 import {getBusinessInboundSelection} from '../middleware/businessInboundSelection.mjs';
+import {getCanonicalBusinessSaleTransaction,getCanonicalBusinessSession} from './canonicalBusinessSessionContext.mjs';
 
 // Complete a just-created legacy native effect in the selected copy's currency
 // account. The native engine already changed the main card: never add it again.
@@ -70,6 +71,41 @@ export async function postIsolatedCopyCurrencyMovement({role,partyId,currency,mo
 // Runs inside the native sale's SERIALIZABLE transaction. Never guesses an
 // account, creates a currency account, or backfills an old commercial document.
 export async function postNativeCurrencyAccount(invoiceId,ctx,actor,{cancel=false}={}) {
+ const canonical=getCanonicalBusinessSaleTransaction(ctx?.transaction,{operation:cancel?'sale_cancel':'sale_finalize',actorId:String(actor?.id),invoiceId:String(invoiceId)});
+ if(canonical||String(actor?.id)==='17'&&getCanonicalBusinessSession()){
+  if(!canonical||!ctx?.transaction||canonical.actorId!=='17'||canonical.invoiceId!==String(invoiceId))nativeError('CANONICAL_SALE_TRANSACTION_REQUIRED','Cari hesabı için doğrulanmış native satış işlemi gerekli.',409);
+  const sql=ctx.sqlDriver??getSqlDriver(),request=()=>new sql.Request(ctx.transaction);
+  const result=await request().input('canonicalDatabase',sql.NVarChar(128),canonical.database).input('canonicalSession',sql.Int,canonical.sessionId).input('canonicalTransaction',sql.BigInt,canonical.transactionId).input('canonicalInvoice',sql.BigInt,canonical.invoiceId).input('canonicalCustomer',sql.BigInt,canonical.customerId).input('canonicalParty',sql.BigInt,canonical.partyEntityId).input('canonicalAccount',sql.BigInt,canonical.accountId).input('canonicalActor',sql.BigInt,canonical.actorId).input('canonicalCurrency',sql.NVarChar(3),canonical.currency).input('canonicalAmount',sql.Decimal(18,4),canonical.grandTotalExact4).input('canonicalAmountTry',sql.Decimal(18,4),canonical.amountTryExact4).input('canonicalRate',sql.Decimal(18,8),canonical.rateExact8).input('canonicalCancel',sql.Bit,cancel).query(`
+ IF DB_NAME()<>@canonicalDatabase OR @@SPID<>@canonicalSession OR CURRENT_TRANSACTION_ID()<>@canonicalTransaction OR XACT_STATE()<>1 OR @@TRANCOUNT<>1
+  THROW 51904,'CANONICAL_SALE_ACCOUNT_TRANSACTION',1;
+ DECLARE @effect decimal(28,8)=CONVERT(decimal(28,8),@canonicalAmount)*CASE WHEN @canonicalCancel=1 THEN -1 ELSE 1 END;
+ DECLARE @type nvarchar(40)=CASE WHEN @canonicalCancel=1 THEN N'sales_invoice_cancel' ELSE N'sales_invoice' END;
+ IF NOT EXISTS(SELECT 1 FROM dbo.sales_invoices WITH(UPDLOCK,HOLDLOCK) WHERE id=@canonicalInvoice AND customer_id=@canonicalCustomer AND document_currency=@canonicalCurrency AND account_currency=@canonicalCurrency AND grand_total=@canonicalAmount AND account_amount=@canonicalAmount AND amount_try=@canonicalAmountTry AND exchange_rate_snapshot=@canonicalRate AND account_exchange_rate_snapshot=@canonicalRate AND status=CASE WHEN @canonicalCancel=1 THEN N'cancelled' ELSE N'finalized' END
+  AND ((@canonicalCancel=0 AND party_entity_id IS NULL AND party_currency_account_id IS NULL) OR (@canonicalCancel=1 AND party_entity_id=@canonicalParty AND party_currency_account_id=@canonicalAccount)))
+  THROW 51904,'CANONICAL_SALE_ACCOUNT_INVOICE',1;
+ IF NOT EXISTS(SELECT 1 FROM dbo.party_currency_accounts a WITH(UPDLOCK,HOLDLOCK) JOIN dbo.customers c WITH(UPDLOCK,HOLDLOCK) ON c.id=a.customer_id AND c.party_entity_id=a.party_entity_id WHERE a.id=@canonicalAccount AND a.party_entity_id=@canonicalParty AND a.customer_id=@canonicalCustomer AND a.supplier_id IS NULL AND a.currency_code=@canonicalCurrency AND a.current_balance IS NOT NULL AND c.is_deleted=0)
+  THROW 51904,'CANONICAL_SALE_ACCOUNT_IDENTITY',1;
+ IF @canonicalCancel=1 AND (SELECT COUNT(*) FROM dbo.customer_movements WHERE sales_invoice_id=@canonicalInvoice AND movement_type=N'sales_invoice' AND customer_id=@canonicalCustomer AND party_entity_id=@canonicalParty AND party_currency_account_id=@canonicalAccount AND currency_code=@canonicalCurrency AND account_currency=@canonicalCurrency AND account_amount=@canonicalAmount AND balance_effect_exact=CONVERT(decimal(28,8),@canonicalAmount) AND affects_balance=1)<>1
+  THROW 51904,'CANONICAL_SALE_ACCOUNT_ORIGINAL',1;
+ IF (SELECT COUNT(*) FROM dbo.customer_movements WHERE sales_invoice_id=@canonicalInvoice AND movement_type=@type)<>1
+  THROW 51904,'CANONICAL_SALE_ACCOUNT_MOVEMENT',1;
+ UPDATE dbo.customer_movements SET party_entity_id=@canonicalParty,party_currency_account_id=@canonicalAccount,balance_effect_exact=@effect,affects_balance=1
+  WHERE sales_invoice_id=@canonicalInvoice AND movement_type=@type AND customer_id=@canonicalCustomer AND created_by=@canonicalActor AND currency_code=@canonicalCurrency AND account_currency=@canonicalCurrency AND amount=@canonicalAmount AND account_amount=@canonicalAmount AND balance_effect=@effect AND amount_try=@canonicalAmountTry AND document_exchange_rate_snapshot=@canonicalRate AND account_exchange_rate_snapshot=@canonicalRate AND party_entity_id IS NULL AND party_currency_account_id IS NULL;
+ IF @@ROWCOUNT<>1 THROW 51904,'CANONICAL_SALE_ACCOUNT_ALREADY_LINKED',1;
+ IF @canonicalCancel=0 BEGIN
+  UPDATE dbo.sales_invoices SET party_entity_id=@canonicalParty,party_currency_account_id=@canonicalAccount WHERE id=@canonicalInvoice AND party_entity_id IS NULL AND party_currency_account_id IS NULL;
+  IF @@ROWCOUNT<>1 THROW 51904,'CANONICAL_SALE_ACCOUNT_ALREADY_LINKED',1;
+ END;
+ DECLARE @before decimal(28,8)=(SELECT current_balance FROM dbo.party_currency_accounts WHERE id=@canonicalAccount);
+ UPDATE dbo.party_currency_accounts SET current_balance=current_balance+@effect WHERE id=@canonicalAccount AND party_entity_id=@canonicalParty AND customer_id=@canonicalCustomer AND currency_code=@canonicalCurrency;
+ IF @@ROWCOUNT<>1 THROW 51904,'CANONICAL_SALE_ACCOUNT_BALANCE',1;
+ SELECT CONVERT(varchar(20),@canonicalAccount) accountId,CONVERT(varchar(20),@canonicalParty) partyId,CONVERT(varchar(20),@canonicalCustomer) customerId,@canonicalCurrency currency,
+  CONVERT(varchar(60),@before) beforeBalance,CONVERT(varchar(60),@effect) effect,CONVERT(varchar(60),current_balance) afterBalance FROM dbo.party_currency_accounts WHERE id=@canonicalAccount;
+ `);
+  const posting=result.recordset?.[0];
+  if(result.recordset?.length!==1||String(posting.accountId)!==canonical.accountId||String(posting.partyId)!==canonical.partyEntityId||String(posting.customerId)!==canonical.customerId||posting.currency!==canonical.currency||posting.effect!==(cancel?'-':'')+canonical.grandTotalExact4+'0000'||!/^[-]?(?:0|[1-9]\d*)\.\d{8}$/.test(posting.beforeBalance)||!/^[-]?(?:0|[1-9]\d*)\.\d{8}$/.test(posting.afterBalance)||BigInt(posting.beforeBalance.replace('.',''))+BigInt(posting.effect.replace('.',''))!==BigInt(posting.afterBalance.replace('.','')))nativeError('CANONICAL_SALE_ACCOUNT_RESULT','Cari hesabının native etkisi doğrulanamadı.',409);
+  await writeAuditLog(request(),{action:cancel?'canonical_sale_currency_account_reversed':'canonical_sale_currency_account_posted',entityType:'sales_invoice',entityId:invoiceId,actor,beforeSnapshot:{accountId:posting.accountId,balance:posting.beforeBalance},afterSnapshot:posting});return posting;
+ }
  if(!ctx?.transaction||!ctx.nativeTerminalV1)nativeError('NATIVE_ACCOUNT_TRANSACTION_REQUIRED','Cari hesabı için satış işlemi gerekli.',503);
  const sql=getSqlDriver(),request=()=>new sql.Request(ctx.transaction);
  const result=await request().input('invoice',sql.BigInt,invoiceId).input('cancel',sql.Bit,cancel).query(`
