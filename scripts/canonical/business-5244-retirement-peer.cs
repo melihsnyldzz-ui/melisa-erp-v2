@@ -1,4 +1,4 @@
-using System;using System.IO.Pipes;using System.Runtime.InteropServices;using System.Security.AccessControl;using System.Security.Principal;using System.Security.Cryptography;using System.Text;using Microsoft.Win32.SafeHandles;
+using System;using System.IO;using System.IO.Pipes;using System.Runtime.InteropServices;using System.Security.AccessControl;using System.Security.Principal;using System.Security.Cryptography;using System.Text;using Microsoft.Win32.SafeHandles;
 // Captures only the process attached to a retained local pipe handle. No PID,
 // command or arbitrary pipe name is accepted as a peer identity input.
 public sealed class Business5244RetirementPeer:IDisposable {
@@ -29,6 +29,7 @@ public sealed class Business5244RetirementPeer:IDisposable {
  public ControlledShutdown OpenControlledShutdown(){Validate();if(!serverPeer)throw new Exception("RETIREMENT_CONTROL_SERVER_PEER_REQUIRED");return new ControlledShutdown(this);}
  public sealed class ControlledShutdown:IDisposable {
   IntPtr handle;readonly long birth;readonly string sid;readonly uint issuer;readonly int thread;bool attempted;
+  public bool CompletedStop{get;private set;}
   public uint TargetPid{get;private set;}public string TargetBirth{get{return birth.ToString(System.Globalization.CultureInfo.InvariantCulture);}}
   internal ControlledShutdown(Business5244RetirementPeer peer){
    peer.Validate();issuer=GetCurrentProcessId();thread=System.Threading.Thread.CurrentThread.ManagedThreadId;TargetPid=peer.Pid;birth=peer.birth;sid=peer.sid;
@@ -36,8 +37,41 @@ public sealed class Business5244RetirementPeer:IDisposable {
    try{Validate();peer.Validate();}catch{Dispose();throw;}
   }
   public void Validate(){long a,b,c,d;if(issuer!=GetCurrentProcessId()||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||handle==IntPtr.Zero||!GetProcessTimes(handle,out a,out b,out c,out d)||a!=birth||WaitForSingleObject(handle,0)!=258||sid!=CurrentSid||ProcessSid(handle)!=sid)throw new Exception("RETIREMENT_CONTROL_NATIVE_TARGET_CHANGED");}
-  public void Stop(){Validate();if(attempted)throw new Exception("RETIREMENT_CONTROL_STOP_REPLAY");attempted=true;if(!TerminateProcess(handle,1)||WaitForSingleObject(handle,10000)!=0)throw new Exception("RETIREMENT_CONTROL_STOP_UNCONFIRMED");}
+  public void Stop(){Validate();if(attempted)throw new Exception("RETIREMENT_CONTROL_STOP_REPLAY");attempted=true;if(!TerminateProcess(handle,1)||WaitForSingleObject(handle,10000)!=0)throw new Exception("RETIREMENT_CONTROL_STOP_UNCONFIRMED");CompletedStop=true;ValidateCompletedStop();}
+  public void ValidateCompletedStop(){long a,b,c,d;if(!attempted||!CompletedStop||issuer!=GetCurrentProcessId()||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||handle==IntPtr.Zero||!GetProcessTimes(handle,out a,out b,out c,out d)||a!=birth||WaitForSingleObject(handle,0)!=0||sid!=CurrentSid)throw new Exception("RETIREMENT_CONTROL_COMPLETED_STOP_REQUIRED");}
+  public MaintenanceMarker CreateMaintenanceMarker(byte[] bytes){Validate();if(attempted)throw new Exception("RETIREMENT_CONTROL_STOP_ALREADY_ATTEMPTED");return new MaintenanceMarker(this,bytes);}
   public void Dispose(){if(handle!=IntPtr.Zero){CloseHandle(handle);handle=IntPtr.Zero;}}
+  public sealed class MaintenanceMarker {
+   const string Path="C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\5244-retirement.pending";
+   [StructLayout(LayoutKind.Sequential)]struct Disposition{[MarshalAs(UnmanagedType.Bool)]public bool delete;}
+   [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern SafeFileHandle CreateFile(string name,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
+   [DllImport("kernel32.dll",SetLastError=true)]static extern bool SetFileInformationByHandle(SafeFileHandle file,int kind,ref Disposition info,uint size);
+   [DllImport("kernel32.dll",SetLastError=true)]static extern uint GetFileAttributesW([MarshalAs(UnmanagedType.LPWStr)]string name);
+   readonly ControlledShutdown control;readonly uint issuer;readonly int thread;readonly string hash;FileStream stream;bool deleted;
+   internal MaintenanceMarker(ControlledShutdown owner,byte[] bytes){
+    if(bytes==null||bytes.Length==0||bytes.Length>4096)throw new Exception("RETIREMENT_MAINTENANCE_MARKER_BYTES_REJECTED");
+    control=owner;issuer=GetCurrentProcessId();thread=System.Threading.Thread.CurrentThread.ManagedThreadId;hash=Hash(bytes);
+    // CREATE_NEW, no sharing and retained DELETE access: deletion never reopens
+    // or adopts a path after releasing the only owner-held file handle.
+    var h=CreateFile(Path,0xC0010000,0,IntPtr.Zero,1,0x00200080,IntPtr.Zero);
+    if(h.IsInvalid){h.Dispose();throw new Exception("RETIREMENT_MAINTENANCE_MARKER_CREATE_REJECTED");}
+    try{stream=new FileStream(h,FileAccess.ReadWrite);stream.Write(bytes,0,bytes.Length);stream.Flush(true);Validate();}
+    catch{if(stream!=null)stream.Dispose();else h.Dispose();throw;}
+   }
+   static string Hash(byte[] bytes){using(var sha=SHA256.Create()){return BitConverter.ToString(sha.ComputeHash(bytes)).Replace("-","").ToLowerInvariant();}}
+   public bool Deleted{get{return deleted;}}
+   public void Validate(){
+    if(deleted||issuer!=GetCurrentProcessId()||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||stream==null||stream.SafeFileHandle.IsClosed||!stream.CanRead||!stream.CanWrite)throw new Exception("RETIREMENT_MAINTENANCE_MARKER_NOT_OWNED");
+    stream.Position=0;byte[] bytes;using(var m=new MemoryStream()){stream.CopyTo(m);bytes=m.ToArray();}stream.Position=0;
+    if(Hash(bytes)!=hash)throw new Exception("RETIREMENT_MAINTENANCE_MARKER_CHANGED");
+   }
+   void Delete(){Validate();var d=new Disposition();d.delete=true;if(!SetFileInformationByHandle(stream.SafeFileHandle,4,ref d,(uint)Marshal.SizeOf(typeof(Disposition))))throw new Exception("RETIREMENT_MAINTENANCE_MARKER_DELETE_UNCONFIRMED");stream.Dispose();stream=null;if(GetFileAttributesW(Path)!=0xffffffff||Marshal.GetLastWin32Error()!=2)throw new Exception("RETIREMENT_MAINTENANCE_MARKER_DELETE_UNCONFIRMED");deleted=true;}
+   public void DeleteForCompletedStop(){control.ValidateCompletedStop();Delete();}
+   public void DeleteForUnattemptedStop(){control.Validate();if(control.attempted)throw new Exception("RETIREMENT_MAINTENANCE_MARKER_STOP_ATTEMPTED");Delete();}
+   // On failure the file deliberately survives controller exit. Closing this
+   // handle is not permission to remove the durable startup exclusion marker.
+   public void CloseRetained(){if(stream!=null){stream.Dispose();stream=null;}}
+  }
  }
 }
 public static class Business5244RetirementPipe {

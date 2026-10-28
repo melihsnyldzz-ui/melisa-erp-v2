@@ -1,8 +1,141 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import cp from 'node:child_process';import os from 'node:os';import path from 'node:path';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
-function run(body){const temp=fs.mkdtempSync(path.join(os.tmpdir(),'erp-readpair-install-'));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{fs.rmSync(temp,{recursive:true,force:true});}}
+function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-readpair-install-')));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-install-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 const inert=String.raw`$script:calls=[Collections.Generic.List[string]]::new();function Open-ReadPairPublication{$calls.Add('open')};function Assert-ReadPairColdTarget{$calls.Add('target')};function Stop-ReadPairColdOwner{$calls.Add('coldstop')};function Start-ReadPairPreparedOwner{$calls.Add('start')};function Assert-ReadPairPreparedOwner{$calls.Add('ready')};function Send-ReadPairSingleRetire{$calls.Add('retire')};function Wait-ReadPairFinalState{$calls.Add('readback');return 'CandidateVerified'};function Complete-ReadPairPublication($Outcome){$calls.Add($Outcome)};function Restore-ReadPairBeforeRetire([bool]$OldStopped){$calls.Add('restore:'+ $OldStopped)};function Close-ReadPairPublication{$calls.Add('close')};function Record-Phase($Phase){$calls.Add($Phase)};`;
+const activeFixture=String.raw`
+. __STARTUP__ -Library
+$nativeSource=[IO.File]::ReadAllText(__PEER__);$nativeLiteral='const string Path="C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\5244-retirement.pending";'
+if($nativeSource.Split(@($nativeLiteral),[StringSplitOptions]::None).Count-ne2){throw 'ISOLATED_PENDING_LITERAL_NOT_UNIQUE'}
+$nativeSource=$nativeSource.Replace($nativeLiteral,('const string Path=@"'+(Join-Path $PSScriptRoot 'fixture.pending')+'";'));Add-Type -TypeDefinition $nativeSource
+function Get-Business5244StartupMutexName{return ('Local\MelisaActiveEntryFixture-'+[IO.Path]::GetFileName($PSScriptRoot))}
+function Get-Business5244RetirementPendingPath{return (Join-Path $PSScriptRoot 'fixture.pending')}
+$script:ScopeName='TEST125-API-B6-ca620bac-20261028';$script:held=[Collections.Generic.List[object]]::new();$script:created=@();$script:before=@{fixture=$true};$script:oldRoot=$PSScriptRoot;$script:oldHash=('a'*64);$script:result=@{stopCalls=0};$script:foreignLaunch=$false;$script:startCalls=0;$script:skipAutomaticHold=$false
+$active=Join-Path $PSScriptRoot 'run-current-owner.ps1';$bytes=[Text.Encoding]::UTF8.GetBytes('inert-active-entry');[IO.File]::WriteAllBytes($active,$bytes);$hash=Get-Business5244StartupHash $bytes
+$entries=@(1..6|ForEach-Object{$p=Join-Path $PSScriptRoot ('legacy-'+$_+'.ps1');[IO.File]::WriteAllBytes($p,$bytes);[pscustomobject]@{path=$p;beforeSha256=$hash;afterEqualsBefore=$true}})
+$direct=@(1..3|ForEach-Object{$p=Join-Path $PSScriptRoot ('inactive-'+$_+'.ps1');[IO.File]::WriteAllBytes($p,$bytes);[pscustomobject]@{path=$p;sha256=$hash}})+@([pscustomobject]@{path=$active;sha256=$hash})
+$script:b6=[pscustomobject]@{owner=[pscustomobject]@{predecessorEntryKind='CurrentCore';core=[pscustomobject]@{root=$PSScriptRoot;manifestSha256=$oldHash};entry=[pscustomobject]@{root=$PSScriptRoot;leaf='run-current-owner.ps1';sha256=$hash;manifestSha256=$oldHash}};entryCapture=[pscustomobject]@{entries=$entries;directEntries=$direct}}
+foreach($row in @($entries)+@($direct|Where-Object{$_.path-cne$active})){Hold-B6ReadPairEntry $row.path $hash}
+$pipeName='MelisaActiveEntry-'+[guid]::NewGuid().ToString('N');$serverScript=Join-Path $PSScriptRoot 'server.ps1'
+[IO.File]::WriteAllText($serverScript,('param($Name,$Entry);$f=[IO.File]::Open($Entry,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$p=[IO.Pipes.NamedPipeServerStream]::new($Name,[IO.Pipes.PipeDirection]::InOut);[Console]::WriteLine("READY");[Console]::Out.Flush();$p.WaitForConnection();Start-Sleep -Seconds 120'))
+$si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -File "'+$serverScript+'" "'+$pipeName+'" "'+$active+'"';$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$si.RedirectStandardError=$true;$server=[Diagnostics.Process]::new();$server.StartInfo=$si;[void]$server.Start()
+$pipe=$null;$peer=$null;$extra=$null;$busy=$null
+try{
+ if($server.StandardOutput.ReadLine()-cne'READY'){throw 'ISOLATED_SERVER_NOT_READY'}
+ $pipe=[IO.Pipes.NamedPipeClientStream]::new('.',$pipeName,[IO.Pipes.PipeDirection]::InOut);$pipe.Connect(5000);$peer=[Business5244RetirementPeer]::CaptureServer($pipe);$script:control=$peer.OpenControlledShutdown();$peer.Dispose();$peer=$null;$pipe.Dispose();$pipe=$null
+ if($control.TargetPid-ne$server.Id){throw 'ISOLATED_TARGET_NOT_OWN_CREATED_SERVER'}
+ $script:status=@{ownerPid=$control.TargetPid;ownerBirth=$control.TargetBirth};$script:oldResourceRows=@(@{pid=$server.Id;birth=$control.TargetBirth})
+ function Assert-OldTarget($Status){$control.Validate();if($Status.ownerPid-ne$server.Id-or$Status.ownerBirth-cne$control.TargetBirth){throw 'ISOLATED_FOREIGN_OLD_TARGET'}}
+ function Get-CimInstance($ClassName){if($ClassName-cne'Win32_Process'){throw 'ISOLATED_FOREIGN_QUERY'};if($script:foreignLaunch){return @([pscustomobject]@{ProcessId=2147483000;CommandLine=('-File "'+$active+'"')})};return @()}
+ function Wait-ResourceExit($Rows){return $server.HasExited}
+ function Get-NetTCPConnection($LocalPort,$State){if($LocalPort-ne5244-or$State-cne'Listen'){throw 'ISOLATED_FOREIGN_PORT'};return @()}
+ function Assert-ReadPairProtection{}
+ function Record-Phase($Phase){}
+ function Start-Frozen{$script:startCalls++;throw 'UNEXPECTED_OWNER_START'}
+ __BEFORE_HOLD__
+ if(!$script:skipAutomaticHold){Hold-B6ReadPairActiveEntry}
+ __BODY__
+}finally{
+ if($extra){$extra.Dispose()};if($peer){$peer.Dispose()};if($pipe){$pipe.Dispose()}
+ $handoff=if(Get-Variable ReadPairActiveHandoff -Scope Script -ErrorAction SilentlyContinue){$script:ReadPairActiveHandoff}else{$null};if($handoff-and$handoff.marker){$handoff.marker.CloseRetained()};if($handoff-and$handoff.lease){Exit-Business5244StartupLease $handoff.lease;$handoff.lease=$null};if($busy){Exit-Business5244StartupLease $busy}
+ foreach($item in $held){$item.stream.Dispose()};if($control){$control.Dispose()};if(!$server.HasExited){$server.Kill();[void]$server.WaitForExit(5000)};$server.Dispose()
+};'PASS'
+`.replace('__STARTUP__',q(path.join(dir,'business-5244-startup-exclusion.ps1'))).replace('__PEER__',q(path.join(dir,'business-5244-retirement-peer.cs')));
+const activeRun=(body,before='',fixture=activeFixture)=>run(fixture.replace('__BEFORE_HOLD__',before).replace('__BODY__',body));
+win('active entry shares only reads until the same authenticated native stop then upgrades under an actual isolated maintenance lease',()=>{
+ assert.equal(activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;if($h.phase-cne'Shared'-or$h.item.holdMode-cne'Shared'-or$control.CompletedStop){throw 'ACTIVE_NOT_SHARED'}
+ $extra=[IO.File]::Open($active,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$extra.Dispose();$extra=$null
+ $denied=$false;try{$writer=[IO.File]::Open($active,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::Read);$writer.Dispose()}catch{$denied=$true};if(!$denied){throw 'ACTIVE_WRITABLE_PRESTOP'}
+ $denied=$false;try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};if(!$denied-or$h.lease-or$h.upgradeAttempted){throw 'ENTRY_UPGRADED_WITHOUT_NATIVE_STOP'}
+ $control.Stop();$control.ValidateCompletedStop();Complete-B6ReadPairActiveEntryHandoff;Assert-B6ReadPairEntryHandoffReady
+ if($h.phase-cne'ExclusiveVerified'-or$h.item.holdMode-cne'Exclusive'-or$h.lease){throw 'ACTIVE_UPGRADE_NOT_VERIFIED'}
+ foreach($item in $held){$denied=$false;try{$reader=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$reader.Dispose()}catch{$denied=$true};if(!$denied){throw 'ENTRY_NOT_EXCLUSIVE_AFTER_STOP'}}
+ $check=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $check
+ if($control.GetType().GetProperty('CompletedStop').GetSetMethod($false)){throw 'PUBLIC_COMPLETION_SETTER'}
+ $control.Dispose();$denied=$false;try{$control.ValidateCompletedStop()}catch{$denied=$true};if(!$denied){throw 'DISPOSED_STOP_PROOF_ACCEPTED'}
+ `),'PASS');
+});
+win('a competing reader after native stop rejects exclusive upgrade, retains the pinned shared seal and maintenance exclusion, and cannot start recovery',()=>{
+ assert.equal(activeRun(String.raw`
+ $control.Stop();$extra=[IO.File]::Open($active,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$denied=$false
+ try{Complete-B6ReadPairActiveEntryHandoff}catch{if($_.Exception.Message-cne'B6_ACTIVE_ENTRY_HANDOFF_RECOVERY_REQUIRED'){throw};$denied=$true}
+ $h=Get-B6ReadPairActiveHandoff;if(!$denied-or$h.phase-cne'FailedShared'-or$h.item.holdMode-cne'Shared'-or!$h.item.stream.CanRead-or!$h.lease){throw 'UPGRADE_FAILURE_DROPPED_SEAL_OR_GATE'}
+ Assert-Business5244StartupLease $h.lease -Kind Maintenance
+ foreach($call in @('ready','start','restore','close')){$denied=$false;try{switch($call){'ready'{Assert-B6ReadPairEntryHandoffReady}'start'{Start-ReadPairPreparedOwner}'restore'{Restore-ReadPairBeforeRetire -OldStopped $true}'close'{Close-ReadPairPublication}}}catch{$denied=$true};if(!$denied){throw ('UNCERTAIN_HANDOFF_CONTINUED_'+$call)}}
+ if($script:startCalls-ne0-or(Get-Business5244StartupHash (Read-ReadPairHeldBytes $h.item.stream))-cne$hash){throw 'UNCONFIRMED_HANDOFF_STARTED_OR_CHANGED_ENTRY'}
+ `),'PASS');
+});
+win('maintenance lease contention after the proved stop keeps the active entry shared and never retries the native stop or launcher',()=>{
+ assert.equal(activeRun(String.raw`
+ $control.Stop();$busy=Enter-Business5244StartupLease -Kind Maintenance;$denied=$false
+ try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};$h=Get-B6ReadPairActiveHandoff
+ if(!$denied-or$h.phase-cne'FailedShared'-or$h.item.holdMode-cne'Shared'-or$h.upgradeAttempted-or$script:startCalls){throw 'BUSY_GATE_UPGRADED_OR_STARTED'}
+ $denied=$false;try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};if(!$denied){throw 'FAILED_HANDOFF_RETRIED'};$control.ValidateCompletedStop()
+ `),'PASS');
+});
+win('foreign entry launch observations after stop prevent upgrade without granting any foreign kill or restart',()=>{
+ assert.equal(activeRun(String.raw`
+ $control.Stop();$script:foreignLaunch=$true;$denied=$false;try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};$h=Get-B6ReadPairActiveHandoff
+ if(!$denied-or$h.phase-cne'FailedShared'-or$h.item.holdMode-cne'Shared'-or$h.upgradeAttempted-or!$h.lease-or$script:startCalls){throw 'FOREIGN_LAUNCH_IGNORED'}
+ $actual=$control;$script:control=[pscustomobject]@{TargetPid=$actual.TargetPid;TargetBirth=$actual.TargetBirth;CompletedStop=$true};$denied=$false;try{Get-B6ReadPairActiveHandoff|Out-Null}catch{$denied=$true};$script:control=$actual;if(!$denied){throw 'SCALAR_NATIVE_PROOF_ADMITTED'}
+ `),'PASS');
+});
+win('the durable owned pending marker blocks Owner after all process-local leases and handles are released on an uncertain upgrade',()=>{
+ assert.equal(activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;$pending=Get-Business5244RetirementPendingPath
+ if(!(Test-Path -LiteralPath $pending)-or$h.marker.Deleted){throw 'DURABLE_MARKER_MISSING'}
+ $control.Stop();$extra=[IO.File]::Open($active,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+ $denied=$false;try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};if(!$denied){throw 'UPGRADE_SHOULD_HAVE_FAILED'}
+ Exit-Business5244StartupLease $h.lease;$h.lease=$null;$h.marker.CloseRetained()
+ $denied=$false;try{$lease=Enter-Business5244StartupLease -Kind Owner;Exit-Business5244StartupLease $lease}catch{if($_.Exception.Message-cne'BUSINESS_5244_RETIREMENT_RECOVERY_REQUIRED'){throw};$denied=$true}
+ if(!$denied-or!(Test-Path -LiteralPath $pending)-or$script:startCalls){throw 'PROCESS_EXIT_LOST_DURABLE_EXCLUSION'}
+ `),'PASS');
+});
+win('an existing foreign pending marker is neither adopted nor removed and prevents the native stop',()=>{
+ assert.equal(activeRun(String.raw`
+ $pending=Get-Business5244RetirementPendingPath;if([IO.File]::ReadAllText($pending)-cne'foreign-marker'-or$control.CompletedStop-or$server.HasExited-or$result.stopCalls){throw 'FOREIGN_MARKER_CHANGED_OR_STOPPED'}
+ $denied=$false;try{Stop-ReadPairColdOwner}catch{$denied=$true};if(!$denied-or$server.HasExited-or$result.stopCalls){throw 'FOREIGN_MARKER_ALLOWED_STOP'}
+ `,String.raw`
+ $script:skipAutomaticHold=$true;[IO.File]::WriteAllText((Get-Business5244RetirementPendingPath),'foreign-marker');$denied=$false
+ try{Hold-B6ReadPairActiveEntry}catch{if($_.Exception.Message-cne'B6_ACTIVE_ENTRY_FOREIGN_PENDING_MARKER'){throw};$denied=$true};if(!$denied){throw 'FOREIGN_PENDING_ADOPTED'}
+ `),'PASS');
+});
+win('corrupting the retained marker bytes rejects stop and deletion instead of treating a path or JSON record as authority',()=>{
+ assert.equal(activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;$flags=[Reflection.BindingFlags]'Instance,NonPublic';$stream=$h.marker.GetType().GetField('stream',$flags).GetValue($h.marker)
+ $stream.Position=0;$stream.WriteByte(0);$stream.Flush($true);$denied=$false
+ try{Stop-ReadPairColdOwner}catch{$denied=$true};if(!$denied-or$h.stopAttempted-or$server.HasExited-or$result.stopCalls){throw 'CORRUPT_MARKER_ALLOWED_STOP'}
+ $denied=$false;try{Cancel-B6ReadPairActiveEntryHandoff}catch{$denied=$true};if(!$denied-or$h.marker.Deleted){throw 'CORRUPT_MARKER_REMOVED'}
+ $h.marker.CloseRetained();if(!(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'CORRUPT_MARKER_NOT_DURABLE'}
+ `),'PASS');
+});
+win('failed marker flush prevents stop and leaves an untrusted pending file rather than granting a retry',()=>{
+ const fixture=activeFixture.replace('Add-Type -TypeDefinition $nativeSource',String.raw`$nativeSource=$nativeSource.Replace('stream.Flush(true);Validate();','stream.Flush(true);throw new IOException("ISOLATED_MARKER_FLUSH_FAILED");');Add-Type -TypeDefinition $nativeSource`);
+ assert.equal(activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;if($h.phase-cne'MarkerPending'-or$h.marker-or$h.stopAttempted-or$server.HasExited-or$result.stopCalls-or!(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'FLUSH_FAILURE_GRANTED_HANDOFF'}
+ $denied=$false;try{Stop-ReadPairColdOwner}catch{$denied=$true};if(!$denied-or$server.HasExited){throw 'FLUSH_FAILURE_STOPPED_OWNER'}
+ `,String.raw`
+ $script:skipAutomaticHold=$true;$denied=$false;try{Hold-B6ReadPairActiveEntry}catch{if($_.Exception.ToString()-cnotmatch'ISOLATED_MARKER_FLUSH_FAILED'){throw};$denied=$true};if(!$denied){throw 'MARKER_FLUSH_FAILURE_NOT_REACHED'}
+ `,fixture),'PASS');
+});
+win('maintenance lease exit failure retains the durable marker and cannot report an exclusive ready handoff',()=>{
+ assert.equal(activeRun(String.raw`
+ $script:originalExit=(Get-Command Exit-Business5244StartupLease).ScriptBlock;$script:failExit=$true
+ function Exit-Business5244StartupLease($Lease){if($script:failExit){$script:failExit=$false;throw 'ISOLATED_EXIT_FAILURE'};& $script:originalExit $Lease}
+ $control.Stop();$denied=$false;try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};$h=Get-B6ReadPairActiveHandoff
+ if(!$denied-or$h.phase-cne'FailedExclusive'-or!$h.lease-or$h.marker.Deleted-or!(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'EXIT_FAILURE_REMOVED_PENDING_OR_CLAIMED_READY'}
+ $denied=$false;try{Assert-B6ReadPairEntryHandoffReady}catch{$denied=$true};if(!$denied){throw 'EXIT_FAILURE_READY'}
+ `),'PASS');
+});
+win('an unattempted pre-stop abort removes only its own marker while the authenticated native owner is still alive',()=>{
+ assert.equal(activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;Cancel-B6ReadPairActiveEntryHandoff
+ if($h.phase-cne'CancelledBeforeStop'-or!$h.marker.Deleted-or(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))-or$server.HasExited-or$control.CompletedStop){throw 'PRESTOP_CANCEL_NOT_SAFE'}
+ $control.Validate();$script:b6ReadProof=$null;$script:b6SourceHandles=@();Close-ReadPairPublication
+ if($server.HasExited-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($active)))-cne$hash){throw 'PRESTOP_CANCEL_CHANGED_OWNER_OR_ENTRY'}
+ `),'PASS');
+});
 win('normal sequence admits exact target, one cold handoff and one retire before independently verified commit',()=>{assert.equal(run(inert+`$r=Invoke-ReadPairInstallSequence;if($r-cne'CandidateVerified'-or($calls-join'|')-cne'open|target|coldstop|start|ready|retire|readback|CandidateVerified|close'){throw 'ORDER'};'PASS'`),'PASS');});
 win('ACK loss never resends retire and requires readonly final readback',()=>{assert.equal(run(inert+`function Send-ReadPairSingleRetire{$calls.Add('retire');throw 'ACK_LOST'};$r=Invoke-ReadPairInstallSequence;if($r-cne'CandidateVerified'-or@($calls|Where-Object {$_-ceq'retire'}).Count-ne1-or$calls.Contains('restore:True')-or!$calls.Contains('ACK_UNCONFIRMED_READONLY_RECONCILIATION')){throw 'REPLAYED'};'PASS'`),'PASS');});
 win('native paired rollback is a distinct verified result, never a second controller API write',()=>{assert.equal(run(inert+`function Wait-ReadPairFinalState{return 'RollbackVerified'};$r=Invoke-ReadPairInstallSequence;if($r-cne'RollbackVerified'-or$calls.Contains('restore:True')-or@($calls|Where-Object {$_-ceq'retire'}).Count-ne1){throw 'ROLLBACK_REPLAYED'};'PASS'`),'PASS');});
@@ -39,7 +172,7 @@ win('real native admission validator rejects a forged JSON token before SQL or p
 
 win('B6 controller preflight issues its own native and release proof before any stop and aborts on SQL or task rejection',()=>{assert.equal(run(String.raw`$script:calls=[Collections.Generic.List[string]]::new();$script:cap=[pscustomobject]@{};$script:proof=[pscustomobject]@{};$script:reject='';function Read-ErpStartupConfig($Path){$calls.Add('config');return @{fixture='current'}};function New-ErpBusinessSaleNativeProfileAdmission($Config){$calls.Add('native');if($reject-ceq'native'){throw 'FIXTURE_TLS_REJECT'};return $cap};function Assert-ErpBusinessSaleNativeProfileAdmission($Admission,$Phase){if(![object]::ReferenceEquals($cap,$Admission)-or$Phase-cne'Prepared'){throw 'CAP_CHANGED'};$calls.Add('assert')};function New-ErpReadPairPreparedReleaseProof($Config,$ScopeName,$NativeProfileAdmission){if(![object]::ReferenceEquals($cap,$NativeProfileAdmission)-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'){throw 'PROOF_CHANGED'};$calls.Add('release');return $proof};function Get-Test125BoundMaintenancePlan($RunId,[switch]$ReadPairPreparation,$ReadPairMode,$PreparedReleaseProof){if(![object]::ReferenceEquals($proof,$PreparedReleaseProof)-or!$ReadPairPreparation-or$ReadPairMode-cne'Current'-or$RunId-cne'TEST125-API-B6-ca620bac-20261028'){throw 'TASK_PROOF_CHANGED'};$calls.Add('task');if($reject-ceq'task'){throw 'FIXTURE_TASK_REJECT'}};function Get-ReadPairExpectedHashes($ScopeName,$NativeProfileAdmission){if(![object]::ReferenceEquals($cap,$NativeProfileAdmission)-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'){throw 'PROFILE_PROOF_CHANGED'};$calls.Add('profile')};function Stop-ReadPairColdOwner{throw 'UNEXPECTED_STOP'};Initialize-B6ReadPairControllerPreflight;if(($calls-join'|')-cne'config|native|assert|release|task|profile'){throw 'PREFLIGHT_ORDER'};foreach($kind in @('native','task')){$calls.Clear();$script:reject=$kind;$caught=$false;try{Initialize-B6ReadPairControllerPreflight}catch{$caught=$true};if(!$caught-or$calls.Contains('profile')-or($kind-ceq'native'-and$calls.Contains('release'))){throw 'PREFLIGHT_CONTINUED'}};'PASS'`),'PASS');});
 
-win('B6 exact current and generated owner argv cannot be interchanged or supplied an arbitrary root or hash',()=>{assert.equal(run(String.raw`$script:b6=@{owner=@{router=@{root='C:\fixed\old';manifestSha256=('a'*64)}};routerRoot='C:\fixed\new';routerHash=('b'*64);coreRoot='C:\fixed\core';coreHash=('c'*64)};$old=Get-B6ReadPairOwnerArguments 'C:\fixed\old' ('a'*64);$new=Get-B6ReadPairOwnerArguments 'C:\fixed\new' ('b'*64);$rollback=Get-B6ReadPairOwnerArguments 'C:\fixed\core' ('c'*64);if($old-cmatch'ScopeName'-or$new-cnotmatch' -ScopeName TEST125-API-B6-ca620bac-20261028$'-or$rollback-cnotmatch'run-current-owner.ps1 -ManifestSha256 C{64}$'){throw 'ARGV_MIXED'};foreach($pair in @(@{root='C:\foreign';hash=('a'*64)},@{root='C:\fixed\new';hash=('a'*64)})){$deny=$false;try{Get-B6ReadPairOwnerArguments $pair.root $pair.hash|Out-Null}catch{$deny=$true};if(!$deny){throw 'ARGV_WIDENED'}};$full='C:\Windows\powershell.exe '+$old;$fullHash=Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($full));if($fullHash-ceq(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($old)))-or$fullHash-ceq(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($full+' ')))){throw 'FULL_CIM_ARGV_NORMALIZED'};'PASS'`),'PASS');});
+win('B6 exact current and generated owner argv cannot be interchanged or supplied an arbitrary root or hash',()=>{assert.equal(run(String.raw`$script:b6=@{owner=[pscustomobject]@{predecessorEntryKind='CurrentCore';core=@{root='C:\fixed\old';manifestSha256=('a'*64)};entry=@{root='C:\fixed\old';leaf='run-current-owner.ps1';manifestSha256=('a'*64)}};routerRoot='C:\fixed\new';routerHash=('b'*64);coreRoot='C:\fixed\core';coreHash=('c'*64)};$old=Get-B6ReadPairOwnerArguments 'C:\fixed\old' ('a'*64);$new=Get-B6ReadPairOwnerArguments 'C:\fixed\new' ('b'*64);$rollback=Get-B6ReadPairOwnerArguments 'C:\fixed\core' ('c'*64);if($old-cmatch'ScopeName'-or$old-cnotmatch'run-current-owner.ps1 -ManifestSha256 A{64}$'-or$new-cnotmatch' -ScopeName TEST125-API-B6-ca620bac-20261028$'-or$rollback-cnotmatch'run-current-owner.ps1 -ManifestSha256 C{64}$'){throw 'ARGV_MIXED'};foreach($pair in @(@{root='C:\foreign';hash=('a'*64)},@{root='C:\fixed\new';hash=('a'*64)})){$deny=$false;try{Get-B6ReadPairOwnerArguments $pair.root $pair.hash|Out-Null}catch{$deny=$true};if(!$deny){throw 'ARGV_WIDENED'}};$full='C:\Windows\powershell.exe '+$old;$fullHash=Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($full));if($fullHash-ceq(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($old)))-or$fullHash-ceq(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($full+' ')))){throw 'FULL_CIM_ARGV_NORMALIZED'};$b6.owner.predecessorEntryKind='Router';$denied=$false;try{Get-B6ReadPairOwnerArguments 'C:\fixed\old' ('a'*64)|Out-Null}catch{$denied=$true};if(!$denied){throw 'ROUTER_KIND_ACCEPTED'};'PASS'`),'PASS');});
 
 win('B6 current entry hold denies concurrent reads and writes without changing a single byte or writing on inverse',()=>{assert.equal(run(`. ${q(path.join(dir,'business-5244-startup-exclusion.ps1'))} -Library;$script:ScopeName='TEST125-API-B6-ca620bac-20261028';$script:held=[Collections.Generic.List[object]]::new();$script:created=@();$script:before=@{fixture=$true};$file=Join-Path $PSScriptRoot 'current-entry.ps1';$bytes=[Text.Encoding]::UTF8.GetBytes('fixed-current-entry');[IO.File]::WriteAllBytes($file,$bytes);$hash=Get-Business5244StartupHash $bytes;function Assert-ReadPairProtection{};function Record-Phase{};function Write-ReadPairHeldCas{throw 'UNEXPECTED_WRITE'};try{Hold-B6ReadPairEntry $file $hash;if($held.Count-ne1-or$held[0].stream.CanWrite-or$held[0].written-or$held[0].beforeHash-cne$held[0].afterHash){throw 'HOLD_CHANGED'};foreach($access in @([IO.FileAccess]::Read,[IO.FileAccess]::Write)){$denied=$false;try{$other=[IO.File]::Open($file,[IO.FileMode]::Open,$access,[IO.FileShare]::ReadWrite);$other.Dispose()}catch{$denied=$true};if(!$denied){throw 'ENTRY_NOT_EXCLUSIVE'}};Restore-ReadPairBeforeRetire -OldStopped $false;if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $held[0].stream))-cne$hash){throw 'ENTRY_MUTATED'}}finally{foreach($item in $held){$item.stream.Dispose()}};if((Get-Business5244StartupHash ([IO.File]::ReadAllBytes($file)))-cne$hash){throw 'ENTRY_MUTATED_AFTER_CLOSE'};$denied=$false;try{Hold-B6ReadPairEntry $file ('0'*64)}catch{$denied=$true};if(!$denied){throw 'STALE_ENTRY_ACCEPTED'};'PASS'`),'PASS');});
 
