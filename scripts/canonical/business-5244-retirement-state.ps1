@@ -11,7 +11,7 @@ function Register-Business5244OwnedRetirement($Lease,$Native,$Pins){
  Assert-Business5244StartupLease -Lease $Lease -Kind Owner
  if(!($Native -is [Business5244WebNative]) -or !$Native.ChildAlive()){throw 'RETIREMENT_OWNED_CHILD_REQUIRED'}
  $Native.Validate();$token=[pscustomobject]@{kind='business-5244-retirement-state'}
- $r=@{token=$token;lease=$Lease;native=$Native;pins=$Pins.Clone();process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;ownerBirth=$Native.OwnerBirth;childPid=$Native.ChildPid;childBirth=$Native.ChildBirth;phase='Running';records=$null;pending=$null;pendingHash=$null;before=$null;expected=$null;publication=$null;requestProof=$null}
+ $r=@{token=$token;lease=$Lease;native=$Native;pins=$Pins.Clone();process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;ownerBirth=$Native.OwnerBirth;childPid=$Native.ChildPid;childBirth=$Native.ChildBirth;phase='Running';records=$null;pending=$null;pendingHash=$null;before=$null;expected=$null;recordExpected=$null;publication=$null;requestProof=$null;commit=$null;lastCompletion=$null;operationId=$null}
  $script:Business5244Retirements.Add($r);return $token
 }
 function Get-Business5244RetirementSnapshot($State){
@@ -40,11 +40,12 @@ function Invoke-Business5244HeldRetirement($State,[IO.FileStream]$Records,[IO.Fi
  if($r.phase -cne 'Running'){throw 'RETIREMENT_ALREADY_REQUESTED'}
  $before=Assert-Business5244RetirementRecord $State $Records
  if(!$Pending.CanWrite -or $Pending.Length -ne 0){throw 'RETIREMENT_PENDING_NOT_FRESH'}
- $seal=[ordered]@{schema='business-5244-retirement-before.v1';ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth;beforeSha256=(Get-Business5244StartupHash $before);beforeBase64=[Convert]::ToBase64String($before)}
+ $r.operationId=[Guid]::NewGuid().ToString('N')
+ $seal=[ordered]@{schema='business-5244-retirement-before.v1';operationId=$r.operationId;ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth;beforeSha256=(Get-Business5244StartupHash $before);beforeBase64=[Convert]::ToBase64String($before)}
  $bytes=[Text.Encoding]::UTF8.GetBytes(($seal|ConvertTo-Json -Compress))
  $Pending.Write($bytes,0,$bytes.Length);$Pending.Flush($true)
  if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $Pending)) -cne (Get-Business5244StartupHash $bytes)){throw 'RETIREMENT_BEFORE_NOT_DURABLE'}
- $r.records=$Records;$r.pending=$Pending;$r.pendingHash=Get-Business5244StartupHash $bytes;$r.before=$before;$r.expected=Get-Business5244StartupHash $before;$r.phase='Retiring'
+ $r.records=$Records;$r.pending=$Pending;$r.pendingHash=Get-Business5244StartupHash $bytes;$r.before=$before;$r.expected=Get-Business5244StartupHash $before;$r.recordExpected=$r.expected;$r.commit=$null;$r.publication=$null;$r.phase='Retiring'
  try{
   if($r.requestProof){Assert-Business5244RetirementRequest -Channel $r.requestProof.channel -Request $r.requestProof.request}
   # The owner keeps the SAME mutex throughout retirement and publication.
@@ -72,31 +73,33 @@ function Invoke-Business5244OwnedRetirement($State,[Parameter(Mandatory)]$Channe
   if(!$r.records){if($pending){$pending.Dispose()};if($records){$records.Dispose()}}
  }
 }
-function Publish-Business5244RetiredRecord($State,$ReplacementNative,[ValidateSet('Candidate','Rollback')][string]$Mode='Candidate'){
+function Publish-Business5244RetiredRecord($State,$ReplacementNative,[ValidateSet('Candidate','Rollback')][string]$Mode='Candidate',$Pins=$null){
  $r=Get-Business5244RetirementState $State
- Assert-Business5244CreatedChild $ReplacementNative $r.pins
- Publish-Business5244HeldRecord $State $ReplacementNative $Mode
+ if(!$Pins){$Pins=$r.pins}
+ Assert-Business5244CreatedChild $ReplacementNative $Pins
+ Publish-Business5244HeldRecord $State $ReplacementNative $Mode $Pins
 }
-function Publish-Business5244HeldRecord($State,$ReplacementNative,[ValidateSet('Candidate','Rollback')][string]$Mode='Candidate'){
+function Publish-Business5244HeldRecord($State,$ReplacementNative,[ValidateSet('Candidate','Rollback')][string]$Mode='Candidate',$Pins=$null){
  # Held publication core; the normal entry above additionally verifies the
  # actual executable/argv/SID through the retained native child identity.
  $r=Get-Business5244RetirementState $State
+ if(!$Pins){$Pins=$r.pins}
  Assert-Business5244StartupLease -Lease $r.lease -Kind Maintenance
  if($r.phase -cnotin @('Retired','Published') -or !($ReplacementNative -is [Business5244WebNative]) -or !$ReplacementNative.ChildAlive()){throw 'RETIREMENT_PUBLICATION_NOT_ADMITTED'}
  if((Get-Business5244StartupHash $r.before) -cne $r.expected -or (Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.pending)) -cne $r.pendingHash){throw 'RETIREMENT_BEFORE_IMAGE_CHANGED'}
  $ReplacementNative.Validate()
  $before=ConvertFrom-Business5244RecordBytes $r.before
- $after=@($before|ForEach-Object {if($_.port -eq 5244){if($Mode -ceq 'Rollback'){$copy=$_.PSObject.Copy();$copy.pid=$ReplacementNative.ChildPid;$copy}else{[pscustomobject]@{port=5244;pid=$ReplacementNative.ChildPid;entry='vite-preview';sourceCommit=$r.pins.frontendSource;root=$r.pins.root;backendPort=4144;businessWorkfaceId=$r.pins.profile}}}else{$_}})
- Assert-Business5244RecordStage $before $after $ReplacementNative.ChildPid $Mode $r.pins
+ $after=@($before|ForEach-Object {if($_.port -eq 5244){if($Mode -ceq 'Rollback'){$copy=$_.PSObject.Copy();$copy.pid=$ReplacementNative.ChildPid;$copy}else{[pscustomobject]@{port=5244;pid=$ReplacementNative.ChildPid;entry='vite-preview';sourceCommit=$Pins.frontendSource;root=$Pins.root;backendPort=4144;businessWorkfaceId=$Pins.profile}}}else{$_}})
+ Assert-Business5244RecordStage $before $after $ReplacementNative.ChildPid $Mode $Pins
  $bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $after -Depth 30));$hash=Get-Business5244StartupHash $bytes
- $current=Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)
+ $priorBytes=Read-Business5244RetirementBytes $r.records;$current=Get-Business5244StartupHash $priorBytes
  if($r.publication){if(![object]::ReferenceEquals($r.publication.native,$ReplacementNative) -or $r.publication.hash -cne $hash -or $r.publication.mode -cne $Mode -or $current -cne $hash){throw 'RETIREMENT_PUBLICATION_REPLAY_CONFLICT'};return}
- if($current -cne $r.expected){throw 'RETIREMENT_RECORD_CAS_CHANGED'}
- $r.publication=@{native=$ReplacementNative;hash=$hash;mode=$Mode;confirmed=$false}
+ if($current -cne $r.recordExpected){throw 'RETIREMENT_RECORD_CAS_CHANGED'}
+ $r.publication=@{native=$ReplacementNative;hash=$hash;mode=$Mode;pins=$Pins.Clone();confirmed=$false;priorBytes=$priorBytes;priorHash=$current}
  try{
   $r.records.Position=0;$r.records.SetLength(0);$r.records.Write($bytes,0,$bytes.Length);$r.records.Flush($true)
   if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $hash){throw 'RETIREMENT_RECORD_WRITE_UNCONFIRMED'}
-  $r.publication.confirmed=$true;$r.phase='Published'
+  $r.publication.confirmed=$true;$r.recordExpected=$hash;$r.phase='Published'
  }catch{
   $failure=$_;$r.phase='Unknown'
   try{$observed=Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)}catch{throw $failure}
@@ -104,18 +107,93 @@ function Publish-Business5244HeldRecord($State,$ReplacementNative,[ValidateSet('
    # A matching cache read is not a durable ACK. Re-flush successfully before
    # reconciling a lost response; otherwise retain Unknown and the held gate.
    try{$r.records.Flush($true);if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $hash){throw 'RETIREMENT_DURABLE_RECHECK_CHANGED'}}catch{throw $failure}
-   $r.publication.confirmed=$true;$r.phase='Published';return
+   $r.publication.confirmed=$true;$r.recordExpected=$hash;$r.phase='Published';return
   }
   # The exclusive stream prevents concurrent later local writes. Restore only
   # this held publication's bytes; pending marker still blocks normal startup.
-  try{$r.records.Position=0;$r.records.SetLength(0);$r.records.Write($r.before,0,$r.before.Length);$r.records.Flush($true);if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $r.expected){throw 'RETIREMENT_RECORD_INVERSE_UNCONFIRMED'};$ReplacementNative.Dispose();$r.publication=$null;$r.phase='Retired'}catch{$r.phase='Unknown'}
+  try{$r.records.Position=0;$r.records.SetLength(0);$r.records.Write($priorBytes,0,$priorBytes.Length);$r.records.Flush($true);if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $current){throw 'RETIREMENT_RECORD_INVERSE_UNCONFIRMED'};$ReplacementNative.Dispose();$r.recordExpected=$current;$r.publication=$null;$r.phase='Retired'}catch{$r.phase='Unknown'}
+  throw $failure
+ }
+}
+function Reset-Business5244FailedCandidate($State){
+ $r=Get-Business5244RetirementState $State
+ Assert-Business5244StartupLease -Lease $r.lease -Kind Maintenance
+ if($r.phase -cnotin @('Retired','Published','Committing') -or ($r.commit -and $r.commit.phase -cnotin @('None','PendingDurable')) -or !$r.native.RetirementConfirmed){throw 'MAINTENANCE_ROLLBACK_NOT_ADMITTED'}
+ if(!$r.pending -or (Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.pending)) -cne $r.pendingHash -or (Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $r.recordExpected){throw 'MAINTENANCE_ROLLBACK_CONTROL_CHANGED'}
+ $owned=if($r.publication){$r.publication.native}elseif($r.ContainsKey('dispatch') -and $r.dispatch.candidateNative){$r.dispatch.candidateNative}else{$null}
+ if($owned){if(!($owned -is [Business5244WebNative])){throw 'MAINTENANCE_ROLLBACK_NATIVE_REQUIRED'};if(!$owned.RetirementConfirmed){$owned.Validate();$owned.Dispose()};if(!$owned.RetirementConfirmed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}}
+ $r.publication=$null;$r.commit=$null;$r.phase='Retired'
+}
+function Move-Business5244PendingArchive([string]$Source,[string]$Destination){[IO.File]::Move($Source,$Destination)}
+function Open-Business5244RetirementRecoveryMarker($State){
+ $r=Get-Business5244RetirementState $State
+ if($r.pending){return}
+ $path=$r.commit.pendingPath
+ if(Test-Path -LiteralPath $path){$r.pending=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read);return}
+ $stream=[IO.File]::Open($path,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+ try{$body=[Text.Encoding]::UTF8.GetBytes((@{schema='business-5244-commit-uncertain.v1';operationId=$r.operationId;archivePath=$r.commit.archivePath;archiveHash=$r.commit.hash}|ConvertTo-Json -Compress));$stream.Write($body,0,$body.Length);$stream.Flush($true);$r.pending=$stream;$r.pendingHash=Get-Business5244StartupHash $body}catch{$stream.Dispose();throw}
+}
+function Complete-Business5244OwnedMaintenance($State,$ReplacementNative,$Pins,[ValidateSet('Candidate','Rollback')][string]$Mode,[string]$PlanHash){
+ $r=Get-Business5244RetirementState $State
+ if($PlanHash -cnotmatch '^[a-f0-9]{64}$'){throw 'MAINTENANCE_PLAN_HASH_REQUIRED'}
+ if($r.phase -ceq 'Running' -and $r.lastCompletion){
+  $last=$r.lastCompletion
+  if($last.planHash -cne $PlanHash -or $last.mode -cne $Mode -or ![object]::ReferenceEquals($last.native,$ReplacementNative) -or !$ReplacementNative.ChildAlive() -or $ReplacementNative.ChildPid -ne $last.childPid -or $ReplacementNative.ChildBirth -cne $last.childBirth){throw 'MAINTENANCE_COMPLETION_REPLAY_CONFLICT'}
+  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $last.pins[$key] -or $Pins[$key] -cne $r.pins[$key]){throw 'MAINTENANCE_COMPLETION_REPLAY_PINS_CHANGED'}}
+  return
+ }
+ Assert-Business5244StartupLease -Lease $r.lease -Kind Maintenance
+ if($r.phase -cnotin @('Published','Committing') -or !$r.publication -or !$r.publication.confirmed -or $r.publication.mode -cne $Mode -or ![object]::ReferenceEquals($r.publication.native,$ReplacementNative)){throw 'MAINTENANCE_COMMIT_NOT_ADMITTED'}
+ foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $r.publication.pins[$key]){throw 'MAINTENANCE_COMMIT_PINS_CHANGED'}}
+ if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $r.publication.hash -or (Get-Business5244StartupHash $r.before) -cne $r.expected){throw 'MAINTENANCE_COMMIT_CONTROL_CHANGED'}
+ Assert-Business5244ReadyChild $ReplacementNative $Pins
+ if(!$r.commit){
+  if(!$r.pending -or (Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.pending)) -cne $r.pendingHash){throw 'MAINTENANCE_COMMIT_BEFORE_CHANGED'}
+  $pendingPath=[IO.Path]::GetFullPath($r.pending.Name);$archivePath=$pendingPath+'.'+$r.operationId+'.completed'
+  if([IO.Path]::GetDirectoryName($archivePath) -cne [IO.Path]::GetDirectoryName($pendingPath)){throw 'MAINTENANCE_ARCHIVE_SCOPE'}
+  $receipt=[ordered]@{schema='business-5244-commit-prepared.v1';operationId=$r.operationId;ownerPid=$PID;ownerBirth=$r.ownerBirth;planHash=$PlanHash;mode=$Mode;childPid=$ReplacementNative.ChildPid;childBirth=$ReplacementNative.ChildBirth;package=$Pins.package;manifest=$Pins.manifest;recordsHash=$r.publication.hash}
+  $prefix=[Text.Encoding]::UTF8.GetString((Read-Business5244RetirementBytes $r.pending));$bytes=[Text.Encoding]::UTF8.GetBytes($prefix+"`n"+($receipt|ConvertTo-Json -Compress)+"`n")
+  $r.commit=@{phase='None';planHash=$PlanHash;mode=$Mode;childPid=$ReplacementNative.ChildPid;childBirth=$ReplacementNative.ChildBirth;pendingPath=$pendingPath;archivePath=$archivePath;bytes=$bytes;hash=(Get-Business5244StartupHash $bytes)}
+ }
+ $commit=$r.commit
+ if($commit.planHash -cne $PlanHash -or $commit.mode -cne $Mode -or $commit.childPid -ne $ReplacementNative.ChildPid -or $commit.childBirth -cne $ReplacementNative.ChildBirth){throw 'MAINTENANCE_COMMIT_REPLAY_CONFLICT'}
+ $r.phase='Committing'
+ try{
+  if($commit.phase -ceq 'None'){
+   try{$r.pending.Position=0;$r.pending.SetLength(0);$r.pending.Write($commit.bytes,0,$commit.bytes.Length);$r.pending.Flush($true);if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.pending)) -cne $commit.hash){throw 'MAINTENANCE_COMMIT_FLUSH_UNCONFIRMED'}}catch{$commit.phase='Unknown';throw}
+   $r.pendingHash=$commit.hash;$commit.phase='PendingDurable'
+  }
+  if($commit.phase -ceq 'PendingDurable'){
+   if($r.pending){$r.pending.Dispose();$r.pending=$null}
+   try{Move-Business5244PendingArchive $commit.pendingPath $commit.archivePath}catch{
+    $moveFailure=$_
+    if((Test-Path -LiteralPath $commit.archivePath) -and !(Test-Path -LiteralPath $commit.pendingPath) -and (Get-FileHash -LiteralPath $commit.archivePath).Hash -ieq $commit.hash){$commit.phase='Archived'}
+    elseif((Test-Path -LiteralPath $commit.pendingPath) -and !(Test-Path -LiteralPath $commit.archivePath) -and (Get-FileHash -LiteralPath $commit.pendingPath).Hash -ieq $commit.hash){$r.pending=[IO.File]::Open($commit.pendingPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read);throw $moveFailure}
+    else{$commit.phase='Unknown';throw $moveFailure}
+   }
+   if($commit.phase -ceq 'PendingDurable'){$commit.phase='Archived'}
+  }
+  if($commit.phase -cne 'Archived' -or (Test-Path -LiteralPath $commit.pendingPath) -or (Get-FileHash -LiteralPath $commit.archivePath).Hash -ine $commit.hash){throw 'MAINTENANCE_ARCHIVE_UNCONFIRMED'}
+  Assert-Business5244ReadyChild $ReplacementNative $Pins
+  if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $r.records)) -cne $r.publication.hash){throw 'MAINTENANCE_FINAL_RECORD_CHANGED'}
+  $r.records.Dispose();$r.records=$null
+  $r.native=$ReplacementNative;$r.pins=$Pins.Clone();$r.childPid=$ReplacementNative.ChildPid;$r.childBirth=$ReplacementNative.ChildBirth
+  $r.lastCompletion=@{planHash=$PlanHash;mode=$Mode;native=$ReplacementNative;pins=$Pins.Clone();childPid=$r.childPid;childBirth=$r.childBirth;archivePath=$commit.archivePath;hash=$commit.hash}
+  $r.publication=$null;$r.pendingHash=$null;$r.before=$null;$r.expected=$null;$r.recordExpected=$null;$r.requestProof=$null
+  $leaseRecord=Get-Business5244StartupRecord $r.lease;$leaseRecord.kind='Owner';$r.phase='Running'
+ }catch{
+  $failure=$_
+  if($commit.phase -ceq 'PendingDurable' -and $r.pending){$r.phase='Committing'}else{$r.phase='Unknown';try{Open-Business5244RetirementRecoveryMarker $State}catch{}}
   throw $failure
  }
 }
 function Close-Business5244RetirementState($State){
  $r=Get-Business5244RetirementState $State
- if($r.publication -and $r.publication.native){$r.publication.native.Dispose()}
- if($r.records){$r.records.Dispose();$r.records=$null};if($r.pending){$r.pending.Dispose();$r.pending=$null}
+ $natives=[Collections.Generic.List[object]]::new();$failed=$false
+ $candidates=@($r.native)+@(if($r.publication){$r.publication.native})+@(if($r.ContainsKey('dispatch') -and $r.dispatch){$r.dispatch.candidateNative;$r.dispatch.rollbackNative})
+ foreach($native in $candidates){if(!$native){continue};$seen=$false;foreach($prior in $natives){if([object]::ReferenceEquals($prior,$native)){$seen=$true;break}};if(!$seen){$natives.Add($native);try{$native.Dispose()}catch{$failed=$true}}}
+ if($r.records){try{$r.records.Dispose();$r.records=$null}catch{$failed=$true}};if($r.pending){try{$r.pending.Dispose();$r.pending=$null}catch{$failed=$true}}
+ if($failed){throw 'RETIREMENT_CLEANUP_UNCONFIRMED'}
  # Pending file is deliberately retained. It is evidence and a fail-closed
  # restart marker; this source adds no automatic rollback/reset/adoption.
 }
