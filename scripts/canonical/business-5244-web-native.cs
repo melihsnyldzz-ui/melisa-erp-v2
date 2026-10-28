@@ -31,3 +31,27 @@ public sealed class Business5244WebNative:IDisposable {
  public void Stop(){if(stopped)throw new Exception("CHILD_STOP_REENTRY");if(!ChildAlive())throw new Exception("CHILD_NOT_LIVE");stopped=true;if(!TerminateProcess(child,1)||WaitForSingleObject(child,10000)!=0)throw new Exception("CHILD_STOP_NOT_CONFIRMED");}
  public void Dispose(){if(disposed)return;if(job!=IntPtr.Zero){if(!CloseHandle(job))throw new Exception("OWNED_WEB_JOB_CLOSE_UNCONFIRMED");job=IntPtr.Zero;}if(child!=IntPtr.Zero){if(WaitForSingleObject(child,10000)!=0)throw new Exception("OWNED_WEB_CHILD_EXIT_UNCONFIRMED");if(!CloseHandle(child))throw new Exception("OWNED_WEB_HANDLE_CLOSE_UNCONFIRMED");child=IntPtr.Zero;}disposed=true;}
 }
+// An immutable-package read seal, not process/adoption authority. Opening with
+// FileShare.Read forbids writes/deletion for the entire prepare/request window.
+// Validation is cheap; payload hashing happened before any peer request existed.
+public sealed class Business5244PackageSeal:IDisposable {
+ readonly int pid=System.Diagnostics.Process.GetCurrentProcess().Id;
+ readonly int thread=System.Threading.Thread.CurrentThread.ManagedThreadId;
+ readonly System.Collections.Generic.Dictionary<string,System.IO.FileStream> files=new System.Collections.Generic.Dictionary<string,System.IO.FileStream>(StringComparer.OrdinalIgnoreCase);
+ readonly System.Collections.Generic.Dictionary<string,string> hashes=new System.Collections.Generic.Dictionary<string,string>(StringComparer.OrdinalIgnoreCase);
+ bool frozen,disposed;
+ public int Count{get{return files.Count;}}
+ void Owner(){if(disposed||pid!=System.Diagnostics.Process.GetCurrentProcess().Id||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId)throw new InvalidOperationException("PACKAGE_SEAL_NOT_CURRENT");}
+ public void Add(string path,string expected){
+  Owner();if(frozen)throw new InvalidOperationException("PACKAGE_SEAL_FROZEN");path=System.IO.Path.GetFullPath(path);
+  if(files.ContainsKey(path)){if(!String.Equals(hashes[path],expected,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("PACKAGE_SEAL_HASH_CONFLICT");return;}
+  var file=new System.IO.FileStream(path,System.IO.FileMode.Open,System.IO.FileAccess.Read,System.IO.FileShare.Read);
+  try{string actual;using(var sha=System.Security.Cryptography.SHA256.Create()){actual=BitConverter.ToString(sha.ComputeHash(file)).Replace("-","").ToLowerInvariant();}
+   if(!String.Equals(actual,expected,StringComparison.OrdinalIgnoreCase))throw new InvalidOperationException("PACKAGE_SEAL_CONTENT_CHANGED");
+   file.Position=0;files.Add(path,file);hashes.Add(path,actual);
+  }catch{file.Dispose();throw;}
+ }
+ public void Freeze(){Owner();if(frozen||files.Count==0)throw new InvalidOperationException("PACKAGE_SEAL_NOT_PREPARED");frozen=true;Validate();}
+ public void Validate(){Owner();if(!frozen)throw new InvalidOperationException("PACKAGE_SEAL_NOT_PREPARED");foreach(var file in files.Values){if(!file.CanRead||file.SafeFileHandle.IsClosed||file.SafeFileHandle.IsInvalid)throw new InvalidOperationException("PACKAGE_SEAL_LOST_HANDLE");}}
+ public void Dispose(){if(disposed)return;foreach(var file in files.Values)file.Dispose();files.Clear();hashes.Clear();disposed=true;}
+}

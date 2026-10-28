@@ -42,7 +42,7 @@ function Close-Test125ApiQuiescence{param($b)}
 function Assert-Test125ReadPairCompanions{param($c);if($c.baseline.children.native.pid-ne400-or$c.baseline.children.web.pid-ne401){throw 'COMPANION'}}
 function Stop-ScheduledTask{param($TaskName,$TaskPath);if($TaskName-cne'Melisa-ERP-TEST-Canonical'-or$TaskPath-cne'\'){throw 'TASK_SCOPE'};$global:stopCalls++;$global:taskRunning=$false}
 function Start-ScheduledTask{param($TaskName,$TaskPath);$global:startCalls++;$global:taskRunning=$true;$global:supervisor++;$global:apiPid++}
-function Get-ErpProcess{param($Id);if($global:taskRunning){return [pscustomobject]@{ProcessId=$Id}};return $null}
+function Get-ErpProcess{param($Id);if($global:taskRunning){$p=[Microsoft.Management.Infrastructure.CimInstance]::new('Win32_Process','root/cimv2');$p.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create('ProcessId',[uint32]$Id,[Microsoft.Management.Infrastructure.CimType]::UInt32,[Microsoft.Management.Infrastructure.CimFlags]::None));$p.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create('CreationDate',[datetime]::Parse('2026-10-28T00:00:00.1234560Z'),[Microsoft.Management.Infrastructure.CimType]::DateTime,[Microsoft.Management.Infrastructure.CimFlags]::None));return $p};return $null}
 function Start-Sleep{param($Milliseconds);throw 'UNEXPECTED_WAIT'}
 `;
 test('issued token exact pair switches candidate and rollback through existing quiescence with temp CAS and inert task/health IO',win,()=>{
@@ -54,6 +54,7 @@ test('issued token exact pair switches candidate and rollback through existing q
  $r=Invoke-Test125ReadPairApiTransition $t Candidate;if($r.status-cne'API_COMPONENT_VERIFIED'-or$global:apiStops-ne1-or$global:stopCalls-ne1-or$global:startCalls-ne1){throw 'CANDIDATE'}
  [void](Assert-Test125ReadPairTransition $t Candidate);$r=Invoke-Test125ReadPairApiTransition $t Candidate;if($r.status-cne'ALREADY_VERIFIED'-or$global:apiStops-ne1){throw 'REPLAY'}
  $r=Invoke-Test125ReadPairApiTransition $t Rollback;if($r.status-cne'API_COMPONENT_VERIFIED'-or$global:apiStops-ne2-or$global:stopCalls-ne2-or$global:startCalls-ne2){throw 'ROLLBACK'}
+ Reject {Invoke-Test125ReadPairApiTransition $t Candidate} 'TEST125_READPAIR_CANDIDATE_ALREADY_ATTEMPTED';if($global:apiStops-ne2-or$global:stopCalls-ne2-or$global:startCalls-ne2){throw 'TOKEN_REPLAY'}
  [void](Assert-Test125ReadPairTransition $t Current);$a=Get-Content -Raw $api|ConvertFrom-Json;if($a.untouched-cne'private-fixture'-or$a.goal8SyntheticDaySeal.packageId-cne'CANONICAL-TEST125-BUSINESS5244-10cdc0ee'){throw 'PROFILE_RESTORE'};'PASS'`),'PASS');}
  finally{const resolved=fs.realpathSync(temp);assert.equal(path.dirname(resolved).toLowerCase(),fs.realpathSync(os.tmpdir()).toLowerCase());assert(path.basename(resolved).startsWith('melisa-read2b-'));assert(!fs.lstatSync(resolved).isSymbolicLink());fs.rmSync(resolved,{recursive:true});}
 });
@@ -75,7 +76,7 @@ test('partial profile CAS failure rolls back only the retained paused API; fresh
  finally{const resolved=fs.realpathSync(temp);assert.equal(path.dirname(resolved).toLowerCase(),fs.realpathSync(os.tmpdir()).toLowerCase());assert(path.basename(resolved).startsWith('melisa-read2b-'));assert(!fs.lstatSync(resolved).isSymbolicLink());fs.rmSync(resolved,{recursive:true});}
  }
 });
-test('unhealthy resumed API timeout refuses unadmitted rollback without a second stop or CAS',win,()=>{
+test('unhealthy resumed API timeout without publication evidence refuses rollback without a second stop or CAS',win,()=>{
  const temp=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-read2b-'));
  try{assert.equal(run(`$temp=${q(temp)};${fixture}
  $t=New-Test125ReadPairTransition
@@ -94,6 +95,71 @@ test('unhealthy resumed API timeout refuses unadmitted rollback without a second
  Reject {Invoke-Test125ReadPairApiTransition $t Rollback} 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'
  if($global:stopCalls-ne1-or$global:startCalls-ne1-or$global:apiStops-ne1-or$global:casCount-ne2-or(Get-FileHash $startup).Hash-cne$startupHash-or(Get-FileHash $api).Hash-cne$apiHash){throw 'SECOND_EFFECT'};'PASS'`),'PASS');}
  finally{const resolved=fs.realpathSync(temp);assert.equal(path.dirname(resolved).toLowerCase(),fs.realpathSync(os.tmpdir()).toLowerCase());assert(path.basename(resolved).startsWith('melisa-read2b-'));assert(!fs.lstatSync(resolved).isSymbolicLink());fs.rmSync(resolved,{recursive:true});}
+});
+test('direct recovery helper calls require the registered issued context before any external IO or handle access',win,()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-read2b-'));
+ try{assert.equal(run(`$temp=${q(temp)};${fixture}
+ $token=New-Test125ReadPairTransition;$context=$script:Test125ReadPairContext;$copy=$context.PSObject.Copy();$global:external=0
+ function Read-ErpStartupConfig{param($Path);$global:external++;throw 'UNEXPECTED_IO'};function Initialize-Test125ApiKernel{$global:external++;throw 'UNEXPECTED_KERNEL'};function Get-Test125ReadPairTask{$global:external++;throw 'UNEXPECTED_COM'}
+ foreach($helper in @('Get-Test125ReadPairFailedStartEvidence','Open-Test125ReadPairFailedStart','Stop-Test125ReadPairFailedApi')){
+  foreach($foreign in @($null,[pscustomobject]@{},[pscustomobject]@{token=$token},$copy)){Reject {&$helper $foreign} 'TEST125_READPAIR_NOT_ISSUED'}
+  $thread=$context.thread;$context.thread=$thread+1;Reject {&$helper $context} 'TEST125_READPAIR_NOT_ISSUED';$context.thread=$thread
+  $process=$context.pid;$context.pid=$process+1;Reject {&$helper $context} 'TEST125_READPAIR_NOT_ISSUED';$context.pid=$process
+ };if($global:external-ne0){throw 'FOREIGN_CONTEXT_IO'};'PASS'`),'PASS');}
+ finally{const resolved=fs.realpathSync(temp);assert.equal(path.dirname(resolved).toLowerCase(),fs.realpathSync(os.tmpdir()).toLowerCase());assert(path.basename(resolved).startsWith('melisa-read2b-'));assert(!fs.lstatSync(resolved).isSymbolicLink());fs.rmSync(resolved,{recursive:true});}
+});
+const recoveryFixture=String.raw`
+Add-Type -TypeDefinition @"
+using System;public sealed class OfflinePairHandle:IDisposable{public long Birth;public bool Closed;public static int Disposals=0;public void Dispose(){Closed=true;Disposals++;}}
+public static class Test125ApiKernel{public static bool Gone=false;public static int Opens=0,Stops=0;public static OfflinePairHandle Open(int p,long b){Opens++;return new OfflinePairHandle{Birth=b};}public static bool Exited(OfflinePairHandle h,long b){if(h.Closed||h.Birth!=b)throw new Exception("HANDLE");return Gone;}public static void Stop(OfflinePairHandle h,long b){if(h.Closed||h.Birth!=b||Gone)throw new Exception("HANDLE");Stops++;Gone=true;}}
+"@
+$global:case='CASE';$stamp='2026-10-28T00:00:00.1234560Z';$recordPath=Join-Path $temp 'owned-processes.json'
+$config|Add-Member RuntimeDir $temp;$config|Add-Member NodePath 'C:\fixture\node.exe';[IO.File]::WriteAllText($startup,($config|ConvertTo-Json -Depth 30))
+$originalPlan=(Get-Command Get-Test125BoundMaintenancePlan).ScriptBlock
+function Get-Test125BoundMaintenancePlan{param($RunId,[switch]$ReadPairPreparation,$ReadPairMode);if($global:startCalls-eq1-and$global:case-cne'healthy'){throw 'FIXTURE_API_NOT_HEALTHY'};$a=&$originalPlan -RunId $RunId -ReadPairPreparation:$ReadPairPreparation -ReadPairMode $ReadPairMode;$a.children.native.birth=$stamp;$a.children.web.birth=$stamp;return $a}
+$originalStart=(Get-Command Start-ScheduledTask).ScriptBlock
+function Start-ScheduledTask{param($TaskName,$TaskPath);&$originalStart $TaskName $TaskPath;$record=@{sourceCommit=$originalScope.source;supervisor=$global:supervisor;children=@{api=@{pid=$global:apiPid;createdAt=$stamp};native=@{pid=400;createdAt=$stamp};web=@{pid=401;createdAt=$stamp}}};[IO.File]::WriteAllText($recordPath,($record|ConvertTo-Json -Depth 15))}
+$originalStop=(Get-Command Stop-ScheduledTask).ScriptBlock
+function Stop-ScheduledTask{param($TaskName,$TaskPath);&$originalStop $TaskName $TaskPath;if($global:case-ceq'exited'-and$global:stopCalls-eq2){[Test125ApiKernel]::Gone=$true}}
+function Get-FileHash{param($LiteralPath,$Algorithm);if($LiteralPath-like'*start-owned-test.ps1'){return [pscustomobject]@{Hash='fixture-launcher'}};return Microsoft.PowerShell.Utility\Get-FileHash -LiteralPath $LiteralPath -Algorithm SHA256}
+function MakeRow([int]$Id,[bool]$Supervisor){
+ $row=[Microsoft.Management.Infrastructure.CimInstance]::new('Win32_Process','root/cimv2');$exe=if($Supervisor){Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'}else{'C:\fixture\node.exe'};$args=if($Supervisor){'fixture-supervisor-args'}else{'"fixture-api" "'+$api+'"'};if($global:case-ceq'argv'-and!$Supervisor){$args='foreign'}
+ foreach($f in @(@('ProcessId',[uint32]$Id,[Microsoft.Management.Infrastructure.CimType]::UInt32),@('ParentProcessId',[uint32]$(if($Supervisor){1}elseif($global:case-ceq'parent'){99999}else{$global:supervisor}),[Microsoft.Management.Infrastructure.CimType]::UInt32),@('ExecutablePath',$exe,[Microsoft.Management.Infrastructure.CimType]::String),@('CommandLine',('"'+$exe+'" '+$args),[Microsoft.Management.Infrastructure.CimType]::String),@('CreationDate',$(if($Supervisor-and$global:case-ceq'supervisor-birth'-and$script:Test125ReadPairContext.phase-ceq'FAILED'){[datetime]::Parse($stamp).AddSeconds(1)}else{[datetime]::Parse($stamp)}),[Microsoft.Management.Infrastructure.CimType]::DateTime))){$row.CimInstanceProperties.Add([Microsoft.Management.Infrastructure.CimProperty]::Create($f[0],$f[1],$f[2],[Microsoft.Management.Infrastructure.CimFlags]::None))};return $row
+}
+function Get-ErpProcess{param($ProcessId);if(!$global:taskRunning-and$ProcessId-eq$global:supervisor){return $null};if($ProcessId-eq$global:supervisor){return MakeRow $ProcessId $true};if($ProcessId-eq$global:apiPid){if([Test125ApiKernel]::Gone){return $null};return MakeRow $ProcessId $false};return $null}
+function Invoke-CimMethod{param($InputObject,$MethodName);if($MethodName-cne'GetOwnerSid'-or$InputObject-isnot[Microsoft.Management.Infrastructure.CimInstance]){throw 'NATIVE_QUERY'};if($global:case-ceq'record-drift'-and[Test125ApiKernel]::Opens-gt0){[IO.File]::AppendAllText($recordPath,' ')};return [pscustomobject]@{ReturnValue=0;Sid=$(if($global:case-ceq'foreign-owner'){'foreign'}else{$config.OwnerSid})}}
+function Get-ScheduledTask{param($TaskName,$TaskPath);if($TaskName-cne'Melisa-ERP-TEST-Canonical'-or$TaskPath-cne'\'){throw 'TASK'};return [pscustomobject]@{Fixture=$true}}
+function Assert-Test125MaintenanceTask{param($Task,$Config,$Path);if(!$Task.Fixture-or$Path-cne$startup){throw 'TASK_ACTION'};return @{Executable=(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe');Arguments='fixture-supervisor-args'}}
+function Get-ErpServiceDefinitions{param($Config);return @(@{Name='api';Port=4144;Script='fixture-api';Args=@($api)})}
+function Get-ErpServiceListeners{param($Definition,$Config);if($Definition.Port-ne4144){throw 'PORT'};if($global:case-ceq'foreign-listener'){return @([pscustomobject]@{OwningProcess=99999})};if([Test125ApiKernel]::Gone-or$global:case-ceq'no-listener'){return @()};return @([pscustomobject]@{OwningProcess=$global:apiPid})}
+function Assert-Test125ApiStoppedSupervisor{param($b);if($global:taskRunning-or![object]::ReferenceEquals($b,$script:Test125ApiBinding)-or$b.config.ApiComponent.ManifestSha256-cne$originalScope.candidate.ManifestSha256){throw 'FAILED_BINDING'}}
+function Test-Test125ApiPhysicalPause{param($b);if(!$b.stopped-or($script:Test125ReadPairContext.failedStartProof-and![Test125ApiKernel]::Gone)){throw 'NOT_STOPPED'};return $true}
+function Close-Test125ApiQuiescence{param($b);if($b.PSObject.Properties['handle']){$b.handle.Dispose();$script:Test125ApiBinding=$null}}
+$definition=(Get-Command Invoke-Test125ReadPairApiTransition).Definition;$definition=$definition.Replace('AddSeconds(300)','AddSeconds(0)');. ([scriptblock]::Create('function Invoke-Test125ReadPairApiTransition {'+$definition+'}'))
+function Start-Sleep{param($Milliseconds)}
+`;
+test('failed-start evidence functions recover only the owned candidate and retain foreign/missing-proof refusals',win,()=>{
+ for(const scenario of ['healthy','ok','no-listener','exited','exited-before-rollback','foreign-owner','parent','argv','record-drift','missing-record','record-owner','record-birth','foreign-listener','missing-anchor','com-drift','multiple-com','supervisor-birth','record-source']){
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'melisa-read2b-'));
+ try{assert.equal(run(`$temp=${q(temp)};${fixture};${recoveryFixture.replace("'CASE'",q(scenario))}
+ $t=New-Test125ReadPairTransition;$realCas=(Get-Command Write-Test125ReadPairCas).ScriptBlock;$global:casCount=0;function Write-Test125ReadPairCas{param($Path,$Expected,[byte[]]$Bytes);$global:casCount++;&$realCas $Path $Expected $Bytes}
+ if('${scenario}'-ceq'healthy'){$r=Invoke-Test125ReadPairApiTransition $t Candidate;if($r.status-cne'API_COMPONENT_VERIFIED'-or[Test125ApiKernel]::Opens-ne1-or[OfflinePairHandle]::Disposals-ne1-or$script:Test125ApiBinding-or$script:Test125ReadPairContext.failedStartProof-or$script:Test125ReadPairContext.admission.supervisor-ne$global:supervisor){throw 'HEALTHY_EARLY_CAPTURE'}}else{Reject {Invoke-Test125ReadPairApiTransition $t Candidate} 'TEST125_READPAIR_API_READY_TIMEOUT'}
+ if('${scenario}'-ceq'exited-before-rollback'){[Test125ApiKernel]::Gone=$true}
+ if('${scenario}'-ceq'missing-record'){[IO.File]::Delete($recordPath)}
+ if('${scenario}'-cin@('record-owner','record-birth')){$r=Get-Content -Raw $recordPath|ConvertFrom-Json;if('${scenario}'-ceq'record-owner'){$r.supervisor=99999}else{$r.children.api.createdAt='2026-10-28T00:00:01.1234560Z'};[IO.File]::WriteAllText($recordPath,($r|ConvertTo-Json -Depth 15))}
+ if('${scenario}'-ceq'missing-anchor'){$script:Test125ReadPairContext.resumedInstance=$null}
+ if('${scenario}'-ceq'record-source'){$r=Get-Content -Raw $recordPath|ConvertFrom-Json;$r.sourceCommit='foreign';[IO.File]::WriteAllText($recordPath,($r|ConvertTo-Json -Depth 15))}
+ if('${scenario}'-cin@('com-drift','multiple-com')){$oldTask=(Get-Command Get-Test125ReadPairTask).ScriptBlock;function Get-Test125ReadPairTask{$task=&$oldTask;$task|Add-Member ScriptMethod GetInstances {param($unused);$n=if($global:case-ceq'multiple-com'){2}else{1};$list=[pscustomobject]@{Count=$n};$list|Add-Member ScriptMethod Item {param($index);return [pscustomobject]@{InstanceGuid='foreign-guid';EnginePID=$global:supervisor}};return $list} -Force;return $task}}
+ if('${scenario}'-ceq'healthy'){[void](Assert-Test125ReadPairTransition $t Candidate);if($global:stopCalls-ne1-or$global:startCalls-ne1-or$global:casCount-ne2){throw 'HEALTHY_COUNTS'}}elseif('${scenario}'-cin@('ok','no-listener','exited','exited-before-rollback')){
+  $r=Invoke-Test125ReadPairApiTransition $t Rollback;if($r.mode-cne'Current'-or$global:stopCalls-ne2-or$global:startCalls-ne2-or$global:apiStops-ne1-or$global:casCount-ne4){throw 'ROLLBACK'}
+  $expected=if('${scenario}'-cin@('exited','exited-before-rollback')){0}else{1};if([Test125ApiKernel]::Stops-ne$expected-or[Test125ApiKernel]::Opens-ne1){throw 'EXACT_HANDLE'}
+  [void](Assert-Test125ReadPairTransition $t Current);$r=Invoke-Test125ReadPairApiTransition $t Rollback;if($r.status-cne'ALREADY_VERIFIED'-or$global:casCount-ne4-or$global:stopCalls-ne2){throw 'REPLAY'}
+ }else{
+  $startupHash=(Get-FileHash $startup).Hash;$apiHash=(Get-FileHash $api).Hash;Reject {Invoke-Test125ReadPairApiTransition $t Rollback} 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'
+  if($global:stopCalls-ne1-or$global:startCalls-ne1-or$global:casCount-ne2-or[Test125ApiKernel]::Stops-ne0-or(Get-FileHash $startup).Hash-cne$startupHash-or(Get-FileHash $api).Hash-cne$apiHash){throw 'SECOND_EFFECT'}
+ };'PASS'`),'PASS',scenario);}
+ finally{const resolved=fs.realpathSync(temp);assert.equal(path.dirname(resolved).toLowerCase(),fs.realpathSync(os.tmpdir()).toLowerCase());assert(path.basename(resolved).startsWith('melisa-read2b-'));assert(!fs.lstatSync(resolved).isSymbolicLink());fs.rmSync(resolved,{recursive:true});}
+ }
 });
 test('new source preserves only API target, existing handle stop, two-field component and single seal delta',()=>{
  const s=fs.readFileSync(file,'utf8'),p=fs.readFileSync(plan,'utf8');assert.match(s,/ReferenceEquals\(\$Transition,\$c.token\)/);assert.match(s,/Open-Test125ApiQuiescence \$c.admission \$Transition.scope/);assert.match(s,/Stop-Test125BoundApi \$c.activeBinding/);assert.match(s,/DataProtectionScope\]::CurrentUser/);assert.match(s,/FileShare\]::None/);assert.match(s,/apiNext.goal8SyntheticDaySeal.packageId=\$manifest.packageId/);assert.doesNotMatch(s,/Stop-Process|Invoke-Sqlcmd|Register-ScheduledTask|Start-Process/);assert.match(p,/ReadPairPreparation\)\{if\(\$RunId-cne\(Get-Test125ReadPairScope\).name/);

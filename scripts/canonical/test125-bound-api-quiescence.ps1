@@ -132,7 +132,7 @@ function New-Test125ReadPairTransition {
  $apiCandidate=[Text.Encoding]::UTF8.GetBytes(($apiNext|ConvertTo-Json -Depth 100))
  $nextBytes=[Text.Encoding]::UTF8.GetBytes(($next|ConvertTo-Json -Depth 100))
  $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-api-transition.v1';scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Test125ReadPairHash $apiBefore);apiProfileCandidateSha256=(Get-Test125ReadPairHash $apiCandidate);baseProfileSha256=(Get-Test125ReadPairHash $baseProfileBytes);startupBeforeSha256=(Get-Test125ReadPairHash $bytes);startupCandidateSha256=(Get-Test125ReadPairHash $nextBytes);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
- $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null}
+ $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;candidateAttempted=$false;failedStartProof=$null}
  return $token
 }
 function Assert-Test125ReadPairTransition($Transition,[ValidateSet('Current','Candidate')][string]$Mode='Current'){
@@ -183,9 +183,83 @@ function Assert-Test125ReadPairPaused($Context){
  if(@(Get-NetTCPConnection -State Listen -LocalPort 4144 -ErrorAction SilentlyContinue).Count){throw 'TEST125_READPAIR_API_NOT_EMPTY'}
  Assert-Test125ReadPairCompanions $c
 }
+function Assert-Test125ReadPairContext($Context){
+ try{$registered=Assert-Test125ReadPairIssued $Context.token;if(![object]::ReferenceEquals($Context,$registered)){throw 'TEST125_READPAIR_NOT_ISSUED'};return $registered}catch{throw 'TEST125_READPAIR_NOT_ISSUED'}
+}
+# Unhealthy is not unowned. This finite recovery read grants no authority from
+# a PID alone: it requires the COM instance observed after this invocation's
+# supported Start request and the exact candidate config and publication.
+function Get-Test125ReadPairFailedStartEvidence($Context){
+ $c=Assert-Test125ReadPairContext $Context
+ try{
+ $t=$c.token
+ if($c.mode-cne'Candidate'-or!$c.changed-or!$c.apiChanged-or!$c.resumedEngine-or!$c.resumedInstance-or!$c.resumedBirth-or$c.resumedEngine-eq$c.baseline.supervisor){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $config=Read-ErpStartupConfig $c.startupPath;[void](Assert-Test125ReadPairConfig $config Candidate)
+ foreach($entry in @(@($c.startupPath,$t.startupCandidateSha256),@($c.apiPath,$t.apiProfileCandidateSha256),@($config.ConfigPath,$t.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}
+ if((Get-FileHash -LiteralPath (Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1') -Algorithm SHA256).Hash-cne$c.baseline.launcherHash){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $task=Get-Test125ReadPairTask;$instances=$task.GetInstances(0)
+ if((Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-cne$c.baseline.taskXmlHash-or$instances.Count-ne1-or[int]$instances.Item(1).EnginePID-ne$c.resumedEngine-or[string]$instances.Item(1).InstanceGuid-cne$c.resumedInstance){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $taskAction=Assert-Test125MaintenanceTask (Get-ScheduledTask -TaskName 'Melisa-ERP-TEST-Canonical' -TaskPath '\' -ErrorAction Stop) $config $c.startupPath
+ $supervisor=Get-ErpProcess $c.resumedEngine
+ if(!$supervisor-or$supervisor-isnot[Microsoft.Management.Infrastructure.CimInstance]-or$supervisor.CimSystemProperties.ClassName-cne'Win32_Process'-or$supervisor.CreationDate.ToUniversalTime().Ticks-ne$c.resumedBirth){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $sid=Invoke-CimMethod -InputObject $supervisor -MethodName GetOwnerSid
+ $remaining=[regex]::Replace([string]$supervisor.CommandLine,('^"?'+[regex]::Escape($taskAction.Executable)+'"?\s+'),'')
+ if($sid.ReturnValue-ne0-or$sid.Sid-cne$config.OwnerSid-or!(Same-ErpPath $supervisor.ExecutablePath $taskAction.Executable)-or$remaining-cne$taskAction.Arguments){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $recordPath=Join-Path $config.RuntimeDir 'owned-processes.json'
+ for($q=$recordPath;$q;$q=[IO.Path]::GetDirectoryName($q)){if((Get-Item -LiteralPath $q -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}
+ $recordBytes=[IO.File]::ReadAllBytes($recordPath);$record=[Text.Encoding]::UTF8.GetString($recordBytes)|ConvertFrom-Json
+ if($record.sourceCommit-cne$t.source-or[int]$record.supervisor-ne$c.resumedEngine){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ foreach($name in @('native','web')){if([int]$record.children.$name.pid-ne$c.baseline.children.$name.pid-or([datetime]$record.children.$name.createdAt).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')-cne([datetime]$c.baseline.children.$name.birth).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}
+ Assert-Test125ReadPairCompanions $c
+ $definition=@(Get-ErpServiceDefinitions $config|Where-Object{$_.Name-ceq'api'})
+ if($definition.Count-ne1-or$definition[0].Port-ne4144-or[int]$record.children.api.pid-le0-or!$record.children.api.createdAt){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $api=Assert-ErpOwnedProcess $record.children.api.pid $config $definition[0] $record.children.api.createdAt
+ $listeners=@(Get-ErpServiceListeners $definition[0] $config)
+ if($api){
+  $expectedArgs=@($definition[0].Script)+$definition[0].Args|ForEach-Object{'"'+[regex]::Escape([string]$_)+'"'}
+  $exactCommand='^"?'+[regex]::Escape($config.NodePath)+'"?[ \t]+'+($expectedArgs-join'[ \t]+')+'$'
+  if($api-isnot[Microsoft.Management.Infrastructure.CimInstance]-or$api.CimSystemProperties.ClassName-cne'Win32_Process'-or$api.ParentProcessId-ne$c.resumedEngine-or$api.CommandLine-cnotmatch$exactCommand){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+  if($api.CreationDate.ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')-cne([datetime]$record.children.api.createdAt).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ')-or@($listeners|Where-Object{$_.OwningProcess-ne$api.ProcessId}).Count){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ }elseif(!$c.failedStartProof-or!$c.activeBinding-or![Test125ApiKernel]::Exited($c.activeBinding.handle,$c.activeBinding.birth)-or$listeners.Count){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $evidence=[pscustomobject][ordered]@{engine=$c.resumedEngine;instance=$c.resumedInstance;supervisorBirth=$supervisor.CreationDate.ToUniversalTime().ToString('o');recordSha256=(Get-Test125ReadPairHash $recordBytes);apiPid=[int]$record.children.api.pid;apiBirth=([datetime]$record.children.api.createdAt).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ss.ffffffZ');apiParentPid=$c.resumedEngine;apiExe=$config.NodePath;apiCommandLine=$(if($api){[string]$api.CommandLine}else{$c.failedStartProof.apiCommandLine});startupSha256=$t.startupCandidateSha256;profileSha256=$t.apiProfileCandidateSha256}
+ if((Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($recordPath)))-cne$evidence.recordSha256){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ return [pscustomobject]@{evidence=$evidence;config=$config;definition=$definition[0];api=$api;supervisor=$supervisor}
+ }catch{throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+}
+function Open-Test125ReadPairFailedStart($Context){
+ $c=Assert-Test125ReadPairContext $Context
+ if($script:Test125ApiBinding-or$c.failedStartProof){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ try{$first=Get-Test125ReadPairFailedStartEvidence $c}catch{throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ if(!$first.api){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ Initialize-Test125ApiKernel;$birth=$first.api.CreationDate.ToUniversalTime().Ticks;$handle=[Test125ApiKernel]::Open($first.api.ProcessId,$birth)
+ try{
+  $again=Get-Test125ReadPairFailedStartEvidence $c
+  if(($again.evidence|ConvertTo-Json -Depth 12 -Compress)-cne($first.evidence|ConvertTo-Json -Depth 12 -Compress)-or!$again.api-or$again.api.CreationDate-ne$first.api.CreationDate){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+  $a=$c.baseline|ConvertTo-Json -Depth 32|ConvertFrom-Json;$a.startupHash=$c.token.startupCandidateSha256.ToUpperInvariant();$a.supervisor=$c.resumedEngine;$a.supervisorBirth=$first.evidence.supervisorBirth;$a.taskInstance=$c.resumedInstance
+  $a.children.api=[pscustomobject]@{port=4144;pid=$first.api.ProcessId;birth=$first.api.CreationDate.ToUniversalTime().ToString('o');ownerVerified=$true;healthy=$false}
+  $binding=[pscustomobject]@{admission=$a;config=$first.config;definition=$first.definition;handle=$handle;birth=$birth;mutex=$null;held=$false;stopped=$false}
+  $c.admission=$a;$c.admissionJson=($a|ConvertTo-Json -Depth 32 -Compress);$c.failedStartProof=$first.evidence;$script:Test125ApiBinding=$binding;return $binding
+ }catch{$handle.Dispose();throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+}
+function Stop-Test125ReadPairFailedApi($Context){
+ $c=Assert-Test125ReadPairContext $Context;$b=$c.activeBinding
+ if(!$c.failedStartProof-or!$b-or![object]::ReferenceEquals($b,$script:Test125ApiBinding)-or!$b.held-or$b.stopped){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ Assert-Test125ApiStoppedSupervisor $b
+ $listeners=@(Get-ErpServiceListeners $b.definition $b.config)
+ if(@($listeners|Where-Object{$_.OwningProcess-ne$b.admission.children.api.pid}).Count){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ if(![Test125ApiKernel]::Exited($b.handle,$b.birth)){
+  $p=Assert-ErpOwnedProcess $b.admission.children.api.pid $b.config $b.definition $b.admission.children.api.birth
+  if(!$p-or$p.CreationDate.ToUniversalTime().Ticks-ne$b.birth-or$p.ParentProcessId-ne$c.failedStartProof.apiParentPid-or$p.ExecutablePath-ine$c.failedStartProof.apiExe-or$p.CommandLine-cne$c.failedStartProof.apiCommandLine){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+  # No API health is required for recovery; identity, fresh listener exclusion
+  # and the exact retained kernel object remain mandatory. Zero listeners is OK.
+  [Test125ApiKernel]::Stop($b.handle,$b.birth)
+ }
+ $b.stopped=$true
+}
 function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate','Rollback')][string]$Mode){
- $c=Assert-Test125ReadPairIssued $Transition;$destination=if($Mode-ceq'Candidate'){'Candidate'}else{'Current'}
+ $c=Assert-Test125ReadPairIssued $Transition;if($Mode-cnotin@('Candidate','Rollback')){throw 'TEST125_READPAIR_MODE_REJECTED'};$destination=if($Mode-ceq'Candidate'){'Candidate'}else{'Current'}
  if($c.mode-ceq$destination-and$c.phase-cin@('PREPARED','VERIFIED')){[void](Assert-Test125ReadPairTransition $Transition $destination);return [pscustomobject]@{status='ALREADY_VERIFIED';mode=$destination;secondEffect=$false;companionStops=0;sqlWrites=0}}
+ if($Mode-ceq'Candidate'){if($c.candidateAttempted){throw 'TEST125_READPAIR_CANDIDATE_ALREADY_ATTEMPTED'};$c.candidateAttempted=$true}
  if($c.phase-ceq'FAILED'-and$Mode-cne'Rollback'){throw 'TEST125_READPAIR_FAILED_REQUIRES_ROLLBACK'}
  if($c.phase-ceq'FAILED'-and$Mode-ceq'Rollback'-and!$c.taskStopped-and$c.activeBinding-and!$c.changed-and!$c.apiChanged){
   # Failure before the first supported task-stop request has no runtime change.
@@ -196,13 +270,13 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
 
  if($c.phase-cne'FAILED'){[void](Assert-Test125ReadPairTransition $Transition $c.mode)}
  try{
-  if(!$c.activeBinding){
-   if($c.phase-ceq'FAILED'){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+  if(!$c.activeBinding-or($c.failedStartProof-and!$c.taskStopped)){
+   if($c.phase-ceq'FAILED'-and!$c.activeBinding){$c.activeBinding=Open-Test125ReadPairFailedStart $c}
    # Open the exact existing API kernel object before pausing its supervisor.
-   $c.activeBinding=Open-Test125ApiQuiescence $c.admission $Transition.scope
+   if(!$c.activeBinding){$c.activeBinding=Open-Test125ApiQuiescence $c.admission $Transition.scope}
    $task=Get-Test125ReadPairTask;$instances=$task.GetInstances(0)
    $xmlHash=Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml))
-   if($xmlHash-cne$c.admission.taskXmlHash-or$instances.Count-ne1-or[string]$instances.Item(1).InstanceGuid-cne$c.admission.taskInstance-or[int]$instances.Item(1).EnginePID-ne$c.admission.supervisor){throw 'TEST125_READPAIR_TASK_CAS_CHANGED'}
+   if($xmlHash-cne$c.admission.taskXmlHash-or$instances.Count-ne1-or[string]$instances.Item(1).InstanceGuid-cne$c.admission.taskInstance-or[int]$instances.Item(1).EnginePID-ne$c.admission.supervisor){if($c.failedStartProof){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'};throw 'TEST125_READPAIR_TASK_CAS_CHANGED'}
    if(!$c.vault){
     $root='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027';$vault=Join-Path $root ('api-read2b-'+[guid]::NewGuid().ToString('N'))
     for($q=$root;$q;$q=[IO.Path]::GetDirectoryName($q)){if((Get-Item -LiteralPath $q -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST125_READPAIR_REPARSE'}}
@@ -220,16 +294,15 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
    }
    # Before-image work may take time; task/source/children must still be the
    # exact admitted generation immediately before the supported stop request.
-   $last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $c.mode
-   Assert-Test125MaintenancePin $c.admission $last
+   if($c.failedStartProof){$again=Get-Test125ReadPairFailedStartEvidence $c;if(($again.evidence|ConvertTo-Json -Depth 12 -Compress)-cne($c.failedStartProof|ConvertTo-Json -Depth 12 -Compress)){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}else{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $c.mode;Assert-Test125MaintenancePin $c.admission $last}
    $task=Get-Test125ReadPairTask;$instances=$task.GetInstances(0)
-   if((Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-cne$c.admission.taskXmlHash-or$instances.Count-ne1-or[string]$instances.Item(1).InstanceGuid-cne$c.admission.taskInstance-or[int]$instances.Item(1).EnginePID-ne$c.admission.supervisor){throw 'TEST125_READPAIR_TASK_CAS_CHANGED'}
+   if((Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes([string]$task.Xml)))-cne$c.admission.taskXmlHash-or$instances.Count-ne1-or[string]$instances.Item(1).InstanceGuid-cne$c.admission.taskInstance-or[int]$instances.Item(1).EnginePID-ne$c.admission.supervisor){if($c.failedStartProof){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'};throw 'TEST125_READPAIR_TASK_CAS_CHANGED'}
    $c.phase='PAUSING';$c.taskStopped=$true
    Stop-ScheduledTask -TaskName 'Melisa-ERP-TEST-Canonical' -TaskPath '\' -ErrorAction Stop
    $end=[DateTime]::UtcNow.AddSeconds(15)
    do{if((Get-Test125ReadPairTask).GetInstances(0).Count-eq0-and!(Get-ErpProcess $c.admission.supervisor)){break};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow-lt$end)
    Enter-Test125ApiQuiescence $c.activeBinding
-   Stop-Test125BoundApi $c.activeBinding;[void](Test-Test125ApiPhysicalPause $c.activeBinding)
+   if($c.failedStartProof){Stop-Test125ReadPairFailedApi $c}else{Stop-Test125BoundApi $c.activeBinding};[void](Test-Test125ApiPhysicalPause $c.activeBinding)
   }else{
    if(!$c.taskStopped){throw 'TEST125_READPAIR_RECOVERY_NOT_QUIESCENT'}
    if(!$c.activeBinding.held){Enter-Test125ApiQuiescence $c.activeBinding}
@@ -245,17 +318,28 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
    if($c.changed){Write-Test125ReadPairCas $c.startupPath $Transition.startupCandidateSha256 $c.beforeBytes;$c.changed=$false}
    if($c.apiChanged){Write-Test125ReadPairCas $c.apiPath $Transition.apiProfileCandidateSha256 $c.apiBefore;$c.apiChanged=$false}
   }
-  $c.mode=$destination;Close-Test125ApiQuiescence $c.activeBinding;$c.activeBinding=$null
-  $c.phase='STARTING';Start-ScheduledTask -TaskName 'Melisa-ERP-TEST-Canonical' -TaskPath '\' -ErrorAction Stop;$c.taskStopped=$false
+  $retiredSupervisor=$c.admission.supervisor
+  $c.mode=$destination;Close-Test125ApiQuiescence $c.activeBinding;$c.activeBinding=$null;$c.failedStartProof=$null
+  $c.phase='STARTING';$c.resumedEngine=$null;$c.resumedInstance=$null;$c.resumedBirth=$null;Start-ScheduledTask -TaskName 'Melisa-ERP-TEST-Canonical' -TaskPath '\' -ErrorAction Stop;$c.taskStopped=$false
   $deadline=[DateTime]::UtcNow.AddSeconds(300);$observedEngine=$null;$last=$null
   do{
    $instances=(Get-Test125ReadPairTask).GetInstances(0);if($instances.Count-gt1){throw 'TEST125_READPAIR_MULTIPLE_SUPERVISORS'}
-   if($instances.Count-eq1){$engine=[int]$instances.Item(1).EnginePID;if($null-eq$observedEngine){$observedEngine=$engine}elseif($engine-ne$observedEngine){throw 'TEST125_READPAIR_SUPERVISOR_CHANGED'}}
+   if($instances.Count-eq1){
+    $engine=[int]$instances.Item(1).EnginePID;$instance=[string]$instances.Item(1).InstanceGuid;$live=Get-ErpProcess $engine
+    if(!$live-or$live-isnot[Microsoft.Management.Infrastructure.CimInstance]-or$live.CimSystemProperties.ClassName-cne'Win32_Process'-or$live.ProcessId-ne$engine-or!$instance){throw 'TEST125_READPAIR_SUPERVISOR_CHANGED'}
+    if($null-eq$observedEngine){$observedEngine=$engine;$c.resumedEngine=$engine;$c.resumedInstance=$instance;$c.resumedBirth=$live.CreationDate.ToUniversalTime().Ticks}elseif($engine-ne$observedEngine-or$instance-cne$c.resumedInstance-or$live.CreationDate.ToUniversalTime().Ticks-ne$c.resumedBirth){throw 'TEST125_READPAIR_SUPERVISOR_CHANGED'}
+   }
+   # Capture identity/handle on first proved publication, without waiting for
+   # API health. A missing/unproved publication is not adopted or stopped.
+   if($destination-ceq'Candidate'-and$c.resumedEngine-and!$c.activeBinding){try{$c.activeBinding=Open-Test125ReadPairFailedStart $c}catch{}}
+
    Assert-Test125ReadPairCompanions $c
    try{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $destination}catch{$last=$null}
    if($last){break};Start-Sleep -Milliseconds 500
   }while([DateTime]::UtcNow-lt$deadline)
-  if(!$last-or$last.supervisor-eq$c.admission.supervisor){throw 'TEST125_READPAIR_API_READY_TIMEOUT'}
+  if(!$last-or$last.supervisor-eq$retiredSupervisor){throw 'TEST125_READPAIR_API_READY_TIMEOUT'}
+  if($c.activeBinding){Close-Test125ApiQuiescence $c.activeBinding;$c.activeBinding=$null;$c.failedStartProof=$null}
+  $c.resumedEngine=$null;$c.resumedInstance=$null;$c.resumedBirth=$null
   $c.admission=$last;$c.admissionJson=($last|ConvertTo-Json -Depth 32 -Compress);$c.phase='VERIFIED';[void](Assert-Test125ReadPairTransition $Transition $destination)
   return [pscustomobject]@{status='API_COMPONENT_VERIFIED';mode=$destination;beforeImage=$c.vault;apiPort=4144;companionStops=0;sqlWrites=0;runtimeApplied=($destination-ceq'Candidate')}
  }catch{$c.phase='FAILED';throw}

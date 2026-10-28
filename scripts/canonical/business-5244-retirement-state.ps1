@@ -276,6 +276,7 @@ function Close-Business5244RetirementState($State){
  $natives=[Collections.Generic.List[object]]::new();$failed=$false
  $candidates=@($r.native)+@(if($r.publication){$r.publication.native})+@(if($r.ContainsKey('dispatch') -and $r.dispatch){$r.dispatch.candidateNative;$r.dispatch.rollbackNative})
  foreach($native in $candidates){if(!$native){continue};$seen=$false;foreach($prior in $natives){if([object]::ReferenceEquals($prior,$native)){$seen=$true;break}};if(!$seen){$natives.Add($native);try{$native.Dispose()}catch{$failed=$true}}}
+ if($r.ContainsKey('preparedPair') -and $r.preparedPair){try{$r.preparedPair.seal.Dispose()}catch{$failed=$true}}
  if($r.records){try{$r.records.Dispose();$r.records=$null}catch{$failed=$true}};if($r.pending){try{$r.pending.Dispose();$r.pending=$null}catch{$failed=$true}}
  if($failed){throw 'RETIREMENT_CLEANUP_UNCONFIRMED'}
  # Pending file is deliberately retained. It is evidence and a fail-closed

@@ -20,6 +20,7 @@ function Get-Business5244DispatchResult($Record,$Dispatch,[bool]$Replayed){
 function Complete-Business5244DispatchResult($Record,$Dispatch,$Native,[ValidateSet('Candidate','Rollback')][string]$Mode){
  if(!(Test-Business5244DispatchCommitted $Record $Dispatch $Native $Mode)){throw 'BUSINESS_5244_COMMIT_NOT_CONFIRMED'}
  if($Dispatch.ContainsKey('apiTransition') -and $null -ne $Dispatch.apiTransition){[void](Assert-Test125ReadPairTransition -Transition $Dispatch.apiTransition -Mode $(if($Mode -ceq 'Candidate'){'Candidate'}else{'Current'}))}
+ if($Record.ContainsKey('preparedPair') -and $Record.preparedPair){$Record.preparedPair.seal.Dispose()}
  $Dispatch.result=$Mode;$Dispatch.phase='Completed';$Dispatch.stage='Completed'
 }
 function Test-Business5244DispatchUncertain($Record,$Failure){
