@@ -25,10 +25,10 @@ function dom(){
  }
  return {root,node,render(value){markup=value;nodes=new Map();},html:()=>markup};
 }
-function fixture({kind='customer',read=q=>envelope(q),isLocked=()=>false,invoiceRead=null,invoiceAvailable=false}={}){
+function fixture({kind='customer',read=q=>envelope(q),isLocked=()=>false,invoiceRead=null,invoiceAvailable=false,onOperation=null}={}){
  const d=dom(),calls=[];let selectedCard=null,ui,paints=0;
  const paint=()=>{paints++;ui.select(selectedCard);d.render(ui.html());ui.bind(d.root);};
- ui=createBusinessPartyHistory({kind,session:{partyHistory:async query=>{calls.push({...query});return read(query);},...(invoiceRead?{businessSaleInvoice:invoiceRead,businessSaleInvoiceAvailable:()=>invoiceAvailable}:{})},onChange:paint,locked:isLocked});
+ ui=createBusinessPartyHistory({kind,session:{partyHistory:async query=>{calls.push({...query});return read(query);},...(invoiceRead?{businessSaleInvoice:invoiceRead,businessSaleInvoiceAvailable:()=>invoiceAvailable}:{})},onChange:paint,locked:isLocked,onOperation});
  const select=c=>{selectedCard=c;ui.select(c);paint();};
  const emit=(selector,event,value)=>{const n=d.node(selector);assert(n,'Expected '+selector);if(value!==undefined)n.value=value;return n['on'+event]?.({target:n,preventDefault(){}});};
  return {ui,d,calls,select,emit,paint,paints:()=>paints};
@@ -93,4 +93,8 @@ test('receipt capability is explicit; supplier, old/clean transport and unrelate
 test('account switch and disposal cannot restore a late receipt or expose a failed invoice from another customer',async()=>{
  let finish;const f=fixture({read:salesHistory,invoiceAvailable:true,invoiceRead:()=>new Promise(resolve=>{finish=()=>resolve(readInvoice());})});f.select(card());await f.emit('[data-bph-account]','change','7');const pending=f.emit('[data-bph-invoice]','click');await tick();await f.emit('[data-bph-account]','change','9');finish();await pending;assert.doesNotMatch(f.d.html(),/SYNTHETIC-RECEIPT/);f.ui.dispose();
  const g=fixture({read:salesHistory,invoiceAvailable:true,invoiceRead:()=>({...readInvoice(),customerId:'156'})});g.select(card());await g.emit('[data-bph-account]','change','7');await g.emit('[data-bph-invoice]','click');assert.match(g.d.html(),/bu hesaba bağlantısı doğrulanamadı/);assert.doesNotMatch(g.d.html(),/SYNTHETIC-RECEIPT/);g.ui.dispose();
+});
+
+test('history receipt callback carries private version/identity fence across another invoice in the same account',async()=>{
+ let second=false,finish,current;const f=fixture({read:q=>envelope(q,{edit:r=>{r.kind='sales_invoice';r.invoiceId=second?'52':'51';}}),invoiceAvailable:true,invoiceRead:()=>({...readInvoice(),id:second?'52':'51'}),onOperation:(input,isCurrent)=>{assert.equal(input.invoice.id,'51');current=isCurrent;return new Promise(resolve=>{finish=()=>resolve({prepared:true,canSend:false,sent:false});});}});f.select(card());await f.emit('[data-bph-account]','change','7');await f.emit('[data-bph-invoice]','click');f.d.node('[data-business-sale-reason]').value='Sentetik iptal';const pending=f.emit('[data-business-sale-cancel]','click');await tick();assert.equal(current(),true);second=true;await f.ui.refresh();await f.emit('[data-bph-invoice]','click');assert.equal(current(),false);finish();await pending;assert.doesNotMatch(f.d.html(),/Fiş işlemi hazırlandı/);f.ui.dispose();
 });
