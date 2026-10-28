@@ -20,11 +20,11 @@ function Get-Business5244StarterBytes([byte[]]$Baseline,[string]$LauncherHash){
  if($hash -cne '5B2995C261C64726A19A1F21CE8680FB97A8516A31CF0F979E4779DBF9C6FD6A' -or $LauncherHash -cnotmatch '^[A-F0-9]{64}$'){throw 'BUSINESS_WEB_STARTER_BASE_CHANGED'}
  return Get-Business5244StarterProjection $Baseline $LauncherHash
 }
-function Assert-Business5244FreshSpawnArguments($Facts){
+function Assert-Business5244FreshSpawnArguments($Facts,$Pins=(Get-Business5244WebPins)){
  # Argument validation only, not recovery admission. The caller must retain
  # its original Start-Process object/native birth handle and prove the child
  # was born after its live publication scope. Never apply to an orphan.
- $p=Get-Business5244WebPins
+ $p=$Pins
  if(!$Facts -or $Facts.parent -ne $PID -or $Facts.exe -cne $p.node -or $Facts.sid -cne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value){throw 'BUSINESS_WEB_FRESH_CHILD_REQUIRED'}
  $entry=Join-Path $p.root 'apps\sites-workflow\node_modules\vite\bin\vite.js'
  $prefix='"'+$p.node+'" ';$suffix=' preview --host 127.0.0.1 --port 5244 --strictPort'
@@ -79,13 +79,13 @@ function Assert-Business5244ApiHealth($Health,$Pins=(Get-Business5244WebPins)){
  $p=$Pins
  if($Health.ok -ne $true -or $Health.environment -cne 'CANONICAL_TEST' -or $Health.mode -cne 'erp' -or $Health.port -ne 4144 -or $Health.databaseName -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Health.serverName -ine 'Semih\MELISADEV' -or $Health.loginName -cne 'melisa_sirket_sales_test_20260929_01' -or $Health.databaseUser -cne $Health.loginName -or $Health.sysadmin -ne 0 -or $Health.databaseControl -ne 0 -or $Health.liveDatabaseAccess -ne 0 -or $Health.sourceCommit -cne $p.baseSource -or $Health.packageId -cne $p.apiPackage -or $Health.businessWorkfaceId -cne $p.profile -or $Health.normalSessionUserId -ne 17 -or $Health.persistentNormalSession -ne $true -or $Health.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or $Health.actualT1 -ne $false -or $Health.externalOperations -ne $false -or $Health.automaticJobs -ne $false){throw 'BUSINESS_WEB_API_REJECTED'}
 }
-function Assert-Business5244RecordStage($Before,$After,[int]$ExpectedPid,[ValidateSet('Candidate','Rollback')][string]$Mode){
+function Assert-Business5244RecordStage($Before,$After,[int]$ExpectedPid,[ValidateSet('Candidate','Rollback')][string]$Mode,$Pins=(Get-Business5244WebPins)){
  if($ExpectedPid -le 0 -or @($Before).Count -ne 3 -or @($After).Count -ne 3 -or ((@($Before|ForEach-Object {$_.port}|Sort-Object) -join '|') -cne '4194|4196|5244') -or ((@($After|ForEach-Object {$_.port}|Sort-Object) -join '|') -cne '4194|4196|5244')){throw 'BUSINESS_WEB_RECORD_SCOPE'}
  $oldKept=ConvertTo-Json -InputObject @($Before|Where-Object {$_.port -ne 5244}) -Depth 30 -Compress;$newKept=ConvertTo-Json -InputObject @($After|Where-Object {$_.port -ne 5244}) -Depth 30 -Compress
  if($oldKept -cne $newKept){throw 'BUSINESS_WEB_PRESERVED_RECORD_CHANGED'}
  $old=@($Before|Where-Object {$_.port -eq 5244})[0];$row=@($After|Where-Object {$_.port -eq 5244})[0]
  if($row.pid -ne $ExpectedPid -or $row.entry -cne 'vite-preview'){throw 'BUSINESS_WEB_NEW_RECORD_IDENTITY'}
- if($Mode -ceq 'Candidate'){$p=Get-Business5244WebPins;if((@($row.PSObject.Properties.Name|Sort-Object) -join '|') -cne 'backendPort|businessWorkfaceId|entry|pid|port|root|sourceCommit' -or $row.root -cne $p.root -or $row.sourceCommit -cne $p.frontendSource -or $row.backendPort -ne 4144 -or $row.businessWorkfaceId -cne $p.profile){throw 'BUSINESS_WEB_NEW_RECORD_IDENTITY'}}
+ if($Mode -ceq 'Candidate'){$p=$Pins;if((@($row.PSObject.Properties.Name|Sort-Object) -join '|') -cne 'backendPort|businessWorkfaceId|entry|pid|port|root|sourceCommit' -or $row.root -cne $p.root -or $row.sourceCommit -cne $p.frontendSource -or $row.backendPort -ne 4144 -or $row.businessWorkfaceId -cne $p.profile){throw 'BUSINESS_WEB_NEW_RECORD_IDENTITY'}}
  else{$copy=$old.PSObject.Copy();$copy.pid=$ExpectedPid;if(($copy|ConvertTo-Json -Depth 30 -Compress) -cne ($row|ConvertTo-Json -Depth 30 -Compress)){throw 'BUSINESS_WEB_ROLLBACK_RECORD_CHANGED'}}
 }
 function Start-Business5244Web {

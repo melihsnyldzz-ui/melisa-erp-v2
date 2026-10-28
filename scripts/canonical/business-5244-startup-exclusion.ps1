@@ -9,6 +9,9 @@ function Get-Business5244StartupMutexName {
  $sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value
  return 'Global\MelisaERP5244Startup-'+$sid+'-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($runtime.ToLowerInvariant())))
 }
+function Get-Business5244RetirementPendingPath {
+ return 'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\5244-retirement.pending'
+}
 function Get-Business5244StartupRecord($Lease){
  $found=@($script:Business5244StartupLeases|Where-Object{[object]::ReferenceEquals($_.token,$Lease)})
  if($found.Count -ne 1){throw 'BUSINESS_5244_UNISSUED_LEASE'};return $found[0]
@@ -36,6 +39,7 @@ function Enter-Business5244StartupLease {
    $mutex.ReleaseMutex();throw 'BUSINESS_5244_ABANDONED_OWNER'
   }
   if(!$held){throw 'BUSINESS_5244_STARTUP_BUSY'}
+  if($Kind -ceq 'Owner' -and (Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'BUSINESS_5244_RETIREMENT_RECOVERY_REQUIRED'}
   $token=[pscustomobject]@{kind=$Kind;scope='cooperating-5244-startup';legacyExclusion=$false}
   $r=@{token=$token;kind=$Kind;mutex=$mutex;name=$name;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;birth=[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString();sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;acquiredUtc=[DateTime]::UtcNow.ToString('o');closed=$false}
   $script:Business5244StartupLeases.Add($r);Assert-Business5244StartupLease -Lease $token -Kind $Kind;return $token

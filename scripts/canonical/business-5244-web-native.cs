@@ -22,6 +22,8 @@ public sealed class Business5244WebNative:IDisposable {
  IntPtr job,child;readonly uint owner;readonly long ownerBirth;long childBirth;bool disposed,spawned,stopped;
  public string OwnerBirth{get{return ownerBirth.ToString(System.Globalization.CultureInfo.InvariantCulture);}}
  public int ChildPid{get;private set;}public string ChildBirth{get{return childBirth.ToString(System.Globalization.CultureInfo.InvariantCulture);}}
+ public bool RetirementConfirmed{get{return spawned&&disposed&&child==IntPtr.Zero&&job==IntPtr.Zero;}}
+ public static bool MatchesCimBirth(long native,long cim){return cim%10==0?native/10==cim/10:native==cim;}
  public Business5244WebNative(){owner=GetCurrentProcessId();long b,c,d;if(!GetProcessTimes(GetCurrentProcess(),out ownerBirth,out b,out c,out d))throw new Exception("OWNER_BIRTH_UNAVAILABLE");job=CreateJobObject(IntPtr.Zero,null);JOB j=new JOB();j.basic.flags=0x2000;if(job==IntPtr.Zero||!SetInformationJobObject(job,9,ref j,Marshal.SizeOf(typeof(JOB)))){Dispose();throw new Exception("NATIVE_JOB_UNAVAILABLE");}}
  public void Validate(){long a,b,c,d;if(disposed||owner!=GetCurrentProcessId()||!GetProcessTimes(GetCurrentProcess(),out a,out b,out c,out d)||a!=ownerBirth)throw new Exception("OWNER_NOT_CURRENT");}
  public bool ChildAlive(){Validate();if(child==IntPtr.Zero)return false;long a,b,c,d;if(!GetProcessTimes(child,out a,out b,out c,out d)||a!=childBirth)throw new Exception("CHILD_HANDLE_CHANGED");return WaitForSingleObject(child,0)==258;}

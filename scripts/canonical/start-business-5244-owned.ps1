@@ -3,6 +3,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
 . (Join-Path $PSScriptRoot 'start-business-5244-web.ps1') -Library
+. (Join-Path $PSScriptRoot 'business-5244-retirement-state.ps1') -Library
+. (Join-Path $PSScriptRoot 'business-5244-retirement-channel.ps1') -Library
 
 function Initialize-Business5244WebNative {
  if(!('Business5244WebNative' -as [type])){Add-Type -LiteralPath (Join-Path $PSScriptRoot 'business-5244-web-native.cs')}
@@ -10,6 +12,14 @@ function Initialize-Business5244WebNative {
 function Assert-Business5244OwnedListeners($Rows,[int]$ChildPid){
  $addresses=@('100.87.188.3','127.0.0.1','192.168.1.46');$rows=@($Rows)
  if($ChildPid -le 0 -or $rows.Count -ne 3 -or @($rows|Where-Object {$_.OwningProcess -ne $ChildPid -or $_.LocalPort -ne 5244}).Count -or ((@($rows|ForEach-Object {$_.LocalAddress}|Sort-Object) -join '|') -cne ($addresses -join '|'))){throw 'OWNED_WEB_LISTENER_MISMATCH'}
+}
+function Assert-Business5244CreatedChild($Native,$Pins){
+ if(!($Native -is [Business5244WebNative]) -or !$Native.ChildAlive()){throw 'OWNED_WEB_NATIVE_CHILD_REQUIRED'}
+ $Native.Validate();$actual=Get-CimInstance Win32_Process -Filter ('ProcessId='+$Native.ChildPid)
+ if(!$actual -or ![Business5244WebNative]::MatchesCimBirth([long]$Native.ChildBirth,$actual.CreationDate.ToUniversalTime().ToFileTimeUtc())){throw 'OWNED_WEB_CREATION_CHANGED'}
+ $owner=Invoke-CimMethod -InputObject $actual -MethodName GetOwnerSid
+ if($owner.ReturnValue -ne 0){throw 'OWNED_WEB_SID_UNAVAILABLE'}
+ Assert-Business5244FreshSpawnArguments @{parent=$actual.ParentProcessId;exe=$actual.ExecutablePath;sid=$owner.Sid;command=$actual.CommandLine} $Pins
 }
 function Assert-Business5244OwnedPackage($Pins){
  # This entry point has one fixed passive candidate. It accepts no executable,
@@ -33,7 +43,7 @@ function Start-Business5244OwnedSupervisor {
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and record publication remain separate gates.
  $lease=Enter-Business5244StartupLease -Kind Owner
- $native=$null
+ $native=$null;$retirement=$null;$channel=$null
  try{
   $pins=Get-Business5244ReadPairPins
   Assert-Business5244OwnedPackage $pins
@@ -52,6 +62,7 @@ function Start-Business5244OwnedSupervisor {
    Assert-Business5244StartupLease -Lease $lease -Kind Owner
    $native.Spawn($pins.node,('"'+$vite+'" preview --host 127.0.0.1 --port 5244 --strictPort'),$cwd)
   }finally{foreach($entry in Get-ChildItem Env:){[Environment]::SetEnvironmentVariable($entry.Name,$null,'Process')};foreach($entry in $saved.GetEnumerator()){[Environment]::SetEnvironmentVariable($entry.Key,$entry.Value,'Process')};$saved.Clear()}
+  Assert-Business5244CreatedChild $native $pins
   $ready=$false;$deadline=[DateTime]::UtcNow.AddSeconds(20)
   do{
    Assert-Business5244StartupLease -Lease $lease -Kind Owner
@@ -62,11 +73,38 @@ function Start-Business5244OwnedSupervisor {
    Start-Sleep -Milliseconds 250
   }while([DateTime]::UtcNow -lt $deadline)
   if(!$ready){throw 'OWNED_WEB_START_TIMEOUT'}
+  $retirement=Register-Business5244OwnedRetirement $lease $native $pins
+  $channel=Open-Business5244RetirementChannel -OwnerLease $lease
   # Retain the real creation handle and Job for the entire child lifetime.
   # Merely serializing this observation never grants maintenance authority.
   [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=$false}
-  while($native.ChildAlive()){Assert-Business5244StartupLease -Lease $lease -Kind Owner;Start-Sleep -Milliseconds 500}
-  throw 'OWNED_WEB_CHILD_EXITED'
- }finally{if($native){$native.Dispose()};Exit-Business5244StartupLease -Lease $lease}
+  while($true){
+   Assert-Business5244StartupLease -Lease $lease
+   $snapshot=Get-Business5244RetirementSnapshot $retirement
+   if($snapshot.phase -ceq 'Running' -and !$native.ChildAlive()){throw 'OWNED_WEB_CHILD_EXITED'}
+   $request=$null
+   try{$request=Receive-Business5244RetirementRequest -Channel $channel}catch{if($_.Exception.Message -ceq 'RETIREMENT_REQUEST_NOT_CONFIRMED'){Start-Sleep -Milliseconds 200;continue};throw}
+   if($request){
+    $reply='Status'
+    try{
+     Assert-Business5244RetirementRequest -Channel $channel -Request $request
+     if($request.operation -ceq 'retire'){Invoke-Business5244OwnedRetirement $retirement $channel $request;$reply='RetireAccepted'}
+    }catch{$reply='Rejected'}
+    $snapshot=Get-Business5244RetirementSnapshot $retirement
+    $snapshot.requestId=$request.requestId
+    # ACK loss never rolls the state back or replays a native stop. A later
+    # authenticated status request observes the retained retirement state.
+    try{Complete-Business5244RetirementRequest -Channel $channel -Request $request -Reply $reply -Snapshot $snapshot|Out-Null}catch{}
+   }
+   Start-Sleep -Milliseconds 200
+  }
+ }finally{
+  $cleanupFailed=$false
+  if($channel){try{Close-Business5244RetirementChannel -Channel $channel}catch{$cleanupFailed=$true}}
+  if($retirement){try{Close-Business5244RetirementState $retirement}catch{$cleanupFailed=$true}}
+  if($native){try{$native.Dispose()}catch{$cleanupFailed=$true}}
+  if($cleanupFailed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
+  Exit-Business5244StartupLease -Lease $lease
+ }
 }
 if(!$OwnedLibrary){Start-Business5244OwnedSupervisor}
