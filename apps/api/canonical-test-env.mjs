@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { networkPolicy } from './canonical-test-network.mjs';
 import {canonicalListenerPolicy} from './canonical-test-listeners.mjs';
-import {BUSINESS_SESSION,validateBusinessSessionProfile,configureCanonicalBusinessSession} from './src/services/canonicalBusinessSessionContext.mjs';
+import {BUSINESS_SESSION,validateBusinessSessionProfile,configureCanonicalBusinessSession,configureCanonicalBusinessSaleAdmission,configureCanonicalBusinessSaleLegacyProof} from './src/services/canonicalBusinessSessionContext.mjs';
 
 export function canonicalGoal8Policy(config,{mode,writes}){
   if(config.goal8SyntheticDayProfile!==undefined&&typeof config.goal8SyntheticDayProfile!=='boolean')throw Error('TEST_GOAL8_PROFILE_CONFIG_REJECTED');
@@ -79,5 +79,11 @@ export async function configureCanonicalTest(configPath, mode) {
     if(Number(guards.n)!==8 || permissions.some(p=>['CONTROL','ALTER','TAKE OWNERSHIP'].includes(p.permission_name)))throw Error('TEST_WRITER_GUARDS_REJECTED');
   }
   const businessSession=await configureCanonicalBusinessSession({config,identity,mode,port,writes,pool});
+  if(config.businessSaleWritesEnabled!==undefined&&typeof config.businessSaleWritesEnabled!=='boolean'||config.businessSaleWritesEnabled===true&&config.businessSaleAdmission===undefined)throw Error('CANONICAL_BUSINESS_SALE_ENABLE_REJECTED');
+  if(mode==='erp'&&config.businessSaleAdmission!==undefined){
+    if(!businessSession)throw Error('CANONICAL_BUSINESS_SALE_PROFILE_TARGET_REJECTED');
+    await configureCanonicalBusinessSaleLegacyProof({profile:config.businessSaleAdmission,identity,mode,port,pool});
+    configureCanonicalBusinessSaleAdmission(businessSession,config.businessSaleAdmission,{writesEnabled:config.businessSaleWritesEnabled===true});
+  }
   return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy,businessSession};
 }

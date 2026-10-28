@@ -1,8 +1,21 @@
 import {workActor,workActionInput,workFail,workHash,workId,workKeys,workRevision,workSalePreview,workScaled,workDate,workRequestId,workSelection,workDraftInput} from './workSalesModel.mjs';
 import {getCleanContext,CLEAN_DATABASE,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
+import {getCanonicalBusinessSaleContextProof} from './canonicalBusinessSessionContext.mjs';
 async function defaultStore(){return (await import('./workTradeStore.mjs')).workTradeStore;}
 const requireCapability=(context,key)=>{if(context.capabilities?.[key]!==true)workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);};
 const requireRevision=(actual,expected)=>{if(workRevision(actual)!==expected)workFail('WORK_STALE','Kayıt değişti. Güncel bilgiyi yükleyip yeniden deneyin.',409);};
+const canonicalSaleEnabled=async(store,actor)=>typeof store.isCanonicalBusinessSale==='function'&&await store.isCanonicalBusinessSale(actor)===true;
+function publicCanonicalSaleContext(context){
+ if(!context||getCanonicalBusinessSaleContextProof(context)!==context)workFail('WORK_CANONICAL_SALE_SCOPE','Satışın kaynak işlem kanıtı doğrulanamadı.',403);
+ const pick=(value,keys)=>Object.fromEntries(keys.filter(key=>value?.[key]!==undefined).map(key=>[key,value[key]]));
+ return {
+  meta:pick(context.meta,['schemaVersion','date','timeZone','source','operationOrigin']),revision:context.revision,
+  capabilities:pick(context.capabilities,['canCreate','canFinalize','canCancel','canCollect','canCancelCollection']),
+  supportedCurrencies:[...(context.supportedCurrencies??[])],limits:pick(context.limits,['maxItems','maxQuantityPerLine','maxInvoiceAmountExact4','maxAmountTryExact4']),
+  scope:{synthetic:false,operationOrigin:context.scope.operationOrigin,customer:pick(context.scope.customer,['id','accountId','code','name','currency','writeEligible','balanceExact4','balanceExact8','balanceDirection','balanceDisplayOnly']),accounts:[],products:context.scope.products.map(product=>({...pick(product,['id','stockCode','name','barcode','writeEligible','stockQuantityExact3']),unit:pick(product.unit,['label','factorExact8']),prices:product.prices.map(price=>pick(price,['quoteId','currency','unitPriceExact8']))}))},
+  rate:pick(context.rate,['currency','rateExact8','rateDate'])
+ };
+}
 function requireCleanDirectSaleContract(context){
  const meta=context?.meta;
  // There is no admitted clean direct-sale contract yet. A capability or claimed
@@ -17,7 +30,8 @@ function selectedReadError(error){
 }
 // Expanded parsing is only preparation. Legacy contexts retain their own narrow
 // validator; only the server-owned selected adapter can calculate this policy.
-export function workSelectedSaleInput(input,{draft=false}={}){
+export function workSelectedSaleInput(input,{draft=false,canonicalBusiness=false}={}){
+ if(canonicalBusiness)return draft?workDraftInput(input,{canonicalBusiness:true,allowBusinessCurrencies:true}):workSelection(input,{canonicalBusiness:true,allowBusinessCurrencies:true});
  workKeys(input,draft?['requestId','previewHash','expectedRevision','customerId','documentDate','currency','items']:['customerId','documentDate','currency','items']);
  if(!['TRY','USD','EUR'].includes(input.currency)||!Array.isArray(input.items)||input.items.length<1||input.items.length>200)workFail('WORK_ITEMS_INVALID','Satış kalemleri geçersiz.');
  const seen=new Set(),items=input.items.map(row=>{workKeys(row,['productId','quoteId','quantityExact3']);const productId=workId(row.productId),quoteId=workId(row.quoteId),quantity=workScaled(row.quantityExact3,3);if(seen.has(productId)||quantity<=0n||quantity%1000n!==0n)workFail('WORK_QUANTITY_INVALID','Pozitif tam ana birim miktarı gerekli.');seen.add(productId);return {productId,quoteId,quantityExact3:row.quantityExact3};});
@@ -35,10 +49,16 @@ export function createWorkSalesService({getStore=defaultStore}={}){
  return {
   async context(actor){actor=workActor(actor,'sales.view');return (await getStore()).context(actor);},
   async selectionOptions(actor){actor=workActor(actor,'sales.view');const store=await getStore();if(typeof store.selectedSaleEnabled!=='function'||!await store.selectedSaleEnabled(actor))return {enabled:false};return store.read(actor,c=>{if(!c.selectedSaleEnabled||typeof c.selectedSaleOptions!=='function')workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);return c.selectedSaleOptions();});},
-  async selectedContext(input,actor){actor=workActor(actor,'sales.create');workKeys(input,['customerId','currency','productIds']);if(!Array.isArray(input.productIds)||input.productIds.length<1||input.productIds.length>200||new Set(input.productIds).size!==input.productIds.length||!['TRY','USD','EUR'].includes(input.currency))workFail('WORK_ITEMS_INVALID','Satış seçimi geçersiz.');const selection={customerId:workId(input.customerId),currency:input.currency,productIds:input.productIds.map(workId)};try{return await (await getStore()).read(actor,c=>{requireCapability(c.context,'canCreate');if(!c.selectedSaleEnabled||typeof c.selectedSaleContext!=='function')workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);return c.selectedSaleContext(selection);});}catch(error){selectedReadError(error);}},
-  async preview(input,actor){actor=workActor(actor,'sales.create');return (await getStore()).read(actor,async c=>{requireCapability(c.context,'canCreate');const selection=c.selectedSaleEnabled===true?workSelectedSaleInput(input):workSelection(input,{allowBusinessCurrencies:true});return c.selectedSaleEnabled===true?c.selectedSalePreview(selection):workSalePreview(selection,c.context);});},
-  async createDraft(input,actor){actor=workActor(actor,'sales.create');requireCleanDirectSaleContract();const store=await getStore(),enabled=typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor),payload=enabled?workSelectedSaleInput(input,{draft:true}):workDraftInput(input,{allowBusinessCurrencies:true});return (store.mutateSelectedSale??store.mutate).call(store,actor,'sale_draft',payload,async c=>{
+  async selectedContext(input,actor){
+   actor=workActor(actor,'sales.create');const store=await getStore(),canonicalBusiness=await canonicalSaleEnabled(store,actor);let selection;
+   if(canonicalBusiness)selection=workSelectedSaleInput(input,{canonicalBusiness:true});
+   else{workKeys(input,['customerId','currency','productIds']);if(!Array.isArray(input.productIds)||input.productIds.length<1||input.productIds.length>200||new Set(input.productIds).size!==input.productIds.length||!['TRY','USD','EUR'].includes(input.currency))workFail('WORK_ITEMS_INVALID','Satış seçimi geçersiz.');selection={customerId:workId(input.customerId),currency:input.currency,productIds:input.productIds.map(workId)};}
+   try{return await store.read(actor,async c=>{requireCapability(c.context,'canCreate');if((canonicalBusiness?c.selectedSaleEnabled!==true:!c.selectedSaleEnabled)||typeof c.selectedSaleContext!=='function')workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);const selected=await c.selectedSaleContext(selection);return canonicalBusiness?publicCanonicalSaleContext(selected):selected;});}catch(error){selectedReadError(error);}
+  },
+  async preview(input,actor){actor=workActor(actor,'sales.create');const store=await getStore(),canonicalBusiness=await canonicalSaleEnabled(store,actor);return store.read(actor,async c=>{requireCapability(c.context,'canCreate');if(canonicalBusiness&&c.selectedSaleEnabled!==true)workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);const selection=c.selectedSaleEnabled===true?workSelectedSaleInput(input,{canonicalBusiness}):workSelection(input,{allowBusinessCurrencies:true});return c.selectedSaleEnabled===true?c.selectedSalePreview(selection):workSalePreview(selection,c.context);});},
+  async createDraft(input,actor){actor=workActor(actor,'sales.create');requireCleanDirectSaleContract();const store=await getStore(),canonicalBusiness=await canonicalSaleEnabled(store,actor),enabled=typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor);if(canonicalBusiness&&enabled!==true)workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);const payload=enabled?workSelectedSaleInput(input,{draft:true,canonicalBusiness}):workDraftInput(input,{allowBusinessCurrencies:true});return (store.mutateSelectedSale??store.mutate).call(store,actor,'sale_draft',payload,async c=>{
    requireCleanDirectSaleContract(c.context);requireCapability(c.context,'canCreate');requireRevision(c.context.revision,payload.expectedRevision);
+   if(canonicalBusiness&&c.selectedSaleEnabled!==true)workFail('WORK_SELECTED_SALE_UNAVAILABLE','Satış bilgileri doğrulanamadı.',503);
    const {requestId,previewHash,expectedRevision,...selection}=payload,preview=c.selectedSaleEnabled===true?await c.selectedSalePreview(selection):workSalePreview(selection,c.context);
    if(preview.previewHash!==previewHash)workFail('WORK_PREVIEW_CHANGED','Önizleme değişti. Yeniden kontrol edin.',409);
    const invoice=await c.createDraft(preview,requestId);return {invoice,requestId,replayed:false};

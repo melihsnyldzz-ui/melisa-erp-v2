@@ -11,7 +11,10 @@ export const CANONICAL_SALE_PREFIX_END='/* CANONICAL_BUSINESS_SALE_PREFIX_END */
 export const CANONICAL_SALE_REGISTRY='dbo.canonical_business_sale_original_definitions_v1';
 export const CANONICAL_SALE_PROJECTION='dbo.fn_canonical_business_sale_original_definition_v1';
 export const CANONICAL_SALE_REGISTRY_GUARD='dbo.canonical_business_sale_original_definitions_immutable_v1';
-const permitted=new Set(['work_trade_assert_ready','work_trade_get_context','work_trade_assert_effects','goal8_day_assert_scope','test_guard_sales_invoices','test_guard_sales_invoice_items','test_guard_stock_movements','test_guard_products','test_guard_customers','test_guard_customer_movements','test_guard_audit_logs','work_night_guard_work_trade_intents','work_night_guard_work_trade_requests','work_night_guard_work_sales_links']);
+export const CANONICAL_SALE_ACTIVE_READER_SHA256='2BA988306AB5FDEFFC7E0A86424313178AB2FECE185478F7692FE5876E976BE4';
+export const CANONICAL_SALE_ACTIVE_READERS=Object.freeze(['usp_assert_test_current_price_purchase_received','usp_assert_test_purchase_fx_received','usp_get_test_current_price_purchase_context','usp_get_test_product_prices','usp_get_test_purchase_fx_context','usp_get_test_purchase_fx_unit_evidence','usp_get_test_supplier_contact_context','usp_read_stock_products_product_b40b0745_1fa0_4970_b19f_1479cf75d67a','usp_read_supplier_cards','usp_read_work_catalog_product_b40b0745_1fa0_4970_b19f_1479cf75d67a','usp_set_test_product_price','usp_update_test_supplier_contact','usp_work_inbound_ready','usp_work_supplier_payment_ready']);
+export const CANONICAL_SALE_REGISTRY_GUARD_DEFINITION=`CREATE TRIGGER ${CANONICAL_SALE_REGISTRY_GUARD} ON ${CANONICAL_SALE_REGISTRY} WITH EXECUTE AS OWNER AFTER INSERT,UPDATE,DELETE AS BEGIN SET NOCOUNT ON; IF EXISTS(SELECT 1 FROM inserted) OR EXISTS(SELECT 1 FROM deleted) THROW 51917,'B6_PROJECTION_REGISTRY_IMMUTABLE',1; END;`;
+const permitted=new Set(['work_trade_assert_ready','work_trade_get_context','work_trade_assert_effects','goal8_day_assert_scope','test_guard_sales_invoices','test_guard_sales_invoice_items','test_guard_stock_movements','test_guard_products','test_guard_customers','test_guard_customer_movements','test_guard_audit_logs','work_night_guard_work_trade_intents','work_night_guard_work_trade_requests','work_night_guard_work_sales_links',...CANONICAL_SALE_ACTIVE_READERS]);
 const sha=(v,encoding='utf8')=>createHash('sha256').update(v,encoding).digest('hex').toUpperCase();
 export const canonicalBusinessSaleModuleHash=v=>sha(v,'utf16le');
 const check=(ok,code)=>{if(!ok)throw Object.assign(Error(code),{code});};
@@ -91,7 +94,7 @@ export function prepareCanonicalBusinessSaleOriginalProjection({before,closure,s
 IF (${afterConditions}) OR EXISTS(SELECT 1 FROM ${r}) THROW 51917,'B6_PROJECTION_AFTER_IMAGE_REQUIRED',1;
 INSERT ${r}(schema_name,module_name,original_definition,before_hash,after_hash,prefix_hash) VALUES
 ${entries.map(e=>`(N'dbo',${literal(e.name)},${literal(e.originalDefinition)},${literal(e.beforeHash)},${literal(e.afterHash)},${literal(e.prefixHash)})`).join(',\n')};`;
- const registryGuardDefinition=`CREATE TRIGGER ${CANONICAL_SALE_REGISTRY_GUARD} ON ${r} WITH EXECUTE AS OWNER AFTER INSERT,UPDATE,DELETE AS BEGIN SET NOCOUNT ON; IF EXISTS(SELECT 1 FROM inserted) OR EXISTS(SELECT 1 FROM deleted) THROW 51917,'B6_PROJECTION_REGISTRY_IMMUTABLE',1; END;`;
+ const registryGuardDefinition=CANONICAL_SALE_REGISTRY_GUARD_DEFINITION;
  const values=entries.map(e=>`(${literal(e.name)},${literal(e.beforeHash)},${literal(e.afterHash)},${literal(e.prefixHash)})`).join(',');
  // SQL UDFs cannot THROW. NULL is the intentional fail-closed result: legacy
  // readiness comparisons must retain their existing NULL/missing rejection.
@@ -111,9 +114,16 @@ RETURN @original; END;`;
  return Object.freeze({...result,registryGuardHash:canonicalBusinessSaleModuleHash(registryGuardDefinition),projectionHash:canonicalBusinessSaleModuleHash(projectionDefinition)});
 }
 
-export function compileCanonicalBusinessSaleOriginalProjection({beforeMetadataJSON,legacyClosureJSON,successors}={}){
+export function frozenCanonicalBusinessSaleActiveReaders(activeReaderMetadataJSON){
+ check(typeof activeReaderMetadataJSON==='string'&&sha(activeReaderMetadataJSON)===CANONICAL_SALE_ACTIVE_READER_SHA256,'B6_FROZEN_ACTIVE_READER_BYTES');
+ const all=JSON.parse(activeReaderMetadataJSON.replace(/^\uFEFF/,''));check(Array.isArray(all),'B6_ACTIVE_READER_METADATA');
+ return Object.freeze(CANONICAL_SALE_ACTIVE_READERS.map(name=>{const found=all.filter(m=>m.schemaName==='dbo'&&m.name===name);check(found.length===1&&found[0].type.trim()==='P'&&canonicalBusinessSaleModuleHash(found[0].definition)===found[0].definitionHash,'B6_ACTIVE_READER_MODULE');return Object.freeze(found[0]);}));
+}
+export function compileCanonicalBusinessSaleOriginalProjection({beforeMetadataJSON,legacyClosureJSON,successors,activeReaderMetadataJSON}={}){
  check(typeof beforeMetadataJSON==='string'&&sha(beforeMetadataJSON)===CANONICAL_SALE_BEFORE_SHA256,'B6_FROZEN_BEFORE_BYTES');
  check(typeof legacyClosureJSON==='string'&&sha(legacyClosureJSON)===CANONICAL_SALE_CLOSURE_SHA256,'B6_FROZEN_CLOSURE_BYTES');
- const result=prepareCanonicalBusinessSaleOriginalProjection({before:JSON.parse(beforeMetadataJSON.replace(/^\uFEFF/,'')),closure:JSON.parse(legacyClosureJSON.replace(/^\uFEFF/,'')),successors});
+ const before=JSON.parse(beforeMetadataJSON.replace(/^\uFEFF/,''));
+ if(activeReaderMetadataJSON!==undefined){const map=new Map(before.modulesJson.map(m=>[m.name,m]));for(const m of frozenCanonicalBusinessSaleActiveReaders(activeReaderMetadataJSON)){const old=map.get(m.name);check(!old||old.definitionHash===m.definitionHash,'B6_ACTIVE_READER_BEFORE_DRIFT');map.set(m.name,m);}before.modulesJson=[...map.values()];}
+ const result=prepareCanonicalBusinessSaleOriginalProjection({before,closure:JSON.parse(legacyClosureJSON.replace(/^\uFEFF/,'')),successors});
  return Object.freeze({...result,sourceEvidence:'FROZEN_BEFORE_SOURCE',beforeMetadataHash:CANONICAL_SALE_BEFORE_SHA256,legacyClosureHash:CANONICAL_SALE_CLOSURE_SHA256});
 }

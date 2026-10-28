@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {purchasePriceBindingHash as hash,projectPurchasePriceExact8,selectRateQuote} from './purchasePriceSelectionModel.mjs';
 import {createHash} from 'node:crypto';
 import {CURRENT_PRICE_PURCHASE_SQL_PROOF} from './testProductPriceSqlProof.mjs';
@@ -67,7 +68,7 @@ export function createTestCurrentPricePurchaseService({runtime=defaultRuntime}={
     await r.assertQuarantine([{entity:'product',nativeId:301986},{entity:'supplier',nativeId:13373}],r.quarantineContext(r.sql,tx));
     // Owner procedure verifies its companion manifest and returns exact text.
     const frozen=await c.req().input('actor_id',c.sql.BigInt,16).execute('dbo.usp_get_test_current_price_purchase_context');
-    if(frozen.recordsets?.[0]?.length!==1||Object.entries(CURRENT_PRICE_PURCHASE_SQL_PROOF).some(([key,expected])=>frozen.recordsets[0][0][key]!==expected))fail('TEST_CURRENT_PRICE_SQL_DRIFT','TEST alış okuyucusunun SQL tanımı doğrulanamadı.',503);
+    if(frozen.recordsets?.[0]?.length!==1||Object.entries({...CURRENT_PRICE_PURCHASE_SQL_PROOF,consumerGetterHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_get_test_current_price_purchase_context',CURRENT_PRICE_PURCHASE_SQL_PROOF.consumerGetterHash),consumerAssertHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_assert_test_current_price_purchase_received',CURRENT_PRICE_PURCHASE_SQL_PROOF.consumerAssertHash)}).some(([key,expected])=>frozen.recordsets[0][0][key]!==expected))fail('TEST_CURRENT_PRICE_SQL_DRIFT','TEST alış okuyucusunun SQL tanımı doğrulanamadı.',503);
     c.choices=frozen.recordsets?.[2];c.rates=frozen.recordsets?.[1];
     c.scope.unit_hash=frozen.recordsets?.[0]?.[0]?.unit_hash;
     hex64(c.scope.unit_hash,'TEST_CURRENT_PRICE_UNIT_HASH');

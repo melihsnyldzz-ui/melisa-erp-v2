@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {catalogError,parseCatalogId,catalogReadResult} from './catalogModel.mjs';
 import {CATALOG_SQL_PROOF} from './catalogSqlProof.mjs';
 import {catalogClassificationStore} from './catalogClassificationStore.mjs';
@@ -10,14 +11,14 @@ export const catalogClassificationRequestBudget=copy=>copy?.scopeKind==='VERIFIE
 export const CATALOG_READ_PROC='dbo.usp_read_work_catalog';
 export const SOURCE_VERSION_CATALOG_READ_PROC='dbo.usp_read_work_catalog_goal7';
 function sourceVersionContext(v){
- if(isBoundCatalogContext(v))return validateBoundCatalogContext(v);
+ if(isBoundCatalogContext(v)){const validated=validateBoundCatalogContext(v);return validateBoundCatalogContext({...validated,readerDefinitionHash:getCanonicalBusinessSaleDefinitionHash(validated.procedures.catalog,validated.readerDefinitionHash),stockReaderDefinitionHash:getCanonicalBusinessSaleDefinitionHash(validated.procedures.stock,validated.stockReaderDefinitionHash)});}
  if(!v||!/^GOAL7-[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(v.runId)||v.sourceAsOf!=='2026-10-07'||v.productCount!==16671||!Number.isInteger(v.priceCount)||v.priceCount<=63774||['sourceHash','planHash','bindingsHash','readerDefinitionHash'].some(k=>typeof v[k]!=='string'||!/^[a-f0-9]{64}$/i.test(v[k])))throw catalogError();
  return Object.freeze({...v});
 }
 async function defaultRuntime(){const db=await import('../config/database.js');if(!db.isCanonicalTest()&&!isIsolatedOperationCopyRuntime())throw catalogError();return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
 export function createCatalogProductReadStore({getRuntime=defaultRuntime,classificationStore=catalogClassificationStore,getCopyContext=()=>isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig():null}={}){
   let version=null,versionRequested=false;
-  const proof=()=>({...CATALOG_SQL_PROOF,...(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().catalogProof:{}),...(version?{readerDefinitionHash:version.readerDefinitionHash.toUpperCase()}:{})});
+  const proof=()=>({...CATALOG_SQL_PROOF,...(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().catalogProof:{supplierReaderHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_read_supplier_cards',CATALOG_SQL_PROOF.supplierReaderHash),c09PriceGetterHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_get_test_product_prices',CATALOG_SQL_PROOF.c09PriceGetterHash),c09PriceSetterHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_set_test_product_price',CATALOG_SQL_PROOF.c09PriceSetterHash)}),...(version?{readerDefinitionHash:version.readerDefinitionHash.toUpperCase()}:{})});
   const assertVersion=row=>{if(versionRequested&&!version)throw catalogError();if(version&&['RunId','SourceHash','PlanHash','BindingsHash'].some(k=>row['sourceVersion'+k]!==version[k[0].toLowerCase()+k.slice(1)]))throw catalogError();};
   return {configureSourceVersion(context){versionRequested=true;version=null;version=sourceVersionContext(context);},sourceVersion(){if(versionRequested&&!version)throw catalogError();return version;},async readCatalogProducts({actorId,productId=null,options,mediaBindingsJson='[]'}){
     parseCatalogId(actorId);if(productId!==null)parseCatalogId(productId);let tx;

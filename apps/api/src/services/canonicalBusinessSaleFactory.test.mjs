@@ -1,0 +1,75 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import {createHash} from 'node:crypto';
+
+// Only this disposable VM supplies the production database import and startup
+// witness. No production test issuer, SQL login or exported grant is added.
+const source=fs.readFileSync(new URL('./canonicalBusinessSessionContext.mjs',import.meta.url),'utf8')
+ .replace(/^import .*;\r?\n/gm,'').replaceAll('export ','')
+ .replaceAll("await import('../config/database.js')",'__db');
+const hash='A'.repeat(64),revision='b'.repeat(64),requestId='11111111-1111-4111-8111-111111111111';
+function fixture({replay=false,commitLoss=false,metadataDrift=false,metadataDriftAt=2,completedDrift=false,effectsFailure=false}={}){
+ const calls=[],profile={schemaVersion:'melisa-canonical-business-sale-admission.v1',profileHash:hash,assertDefinitionHash:hash,beginDefinitionHash:hash,contextDefinitionHash:hash,effectsDefinitionHash:hash,legacyProof:{readyHash:hash,contextHash:hash,effectsHash:hash}},actor={id:17,username:'unified-semih-test',role:{id:17,code:'unified_test_semih'},permissions:['sales.create','sales.finalize','sales.cancel']};
+ const body={actorId:'17',operation:'sale_draft',requestId,expectedRevision:revision,previewHash:revision,customerId:'155',customerAccountId:'7',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'1.000'}]},bodyJson=JSON.stringify(body),bodyHash=createHash('sha256').update(bodyJson,'utf16le').digest('hex').toUpperCase(),response={requestId,invoice:{id:'91'}},responseJSON=JSON.stringify(response);
+ const context={profileHash:hash,revision,nativePreviewHash:revision,scope:{customer:{id:'155',accountId:'7',partyId:'6',currency:'USD'}}};
+ const proof={database:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV',profileHash:hash,actorId:'17',sessionId:55,transactionId:'700',requestId,operation:'sale_draft',bodyHash,invoiceId:null,selectionHash:hash,revision,previewHash:revision,customerId:'155',partyEntityId:'6',accountId:'7',currency:'USD',rateExact8:'2.00000000',grandTotalExact4:'1.0000',amountTryExact4:'2.0000',context,products:[{productId:'12',quoteId:'81',unitSourceId:'9',stockCode:'0012 SYN',name:'Synthetic',barcode:'000012',unit:'ADET',factorExact8:'1.00000000',quantityExact3:'1.000',unitPriceExact8:'1.00000000',unitPriceExact4:'1.0000',lineTotalExact4:'1.0000',averageCostTryExact4:'0.5000',sourceKey:'SYN/12',sourceWitnessHash:hash}]};
+ const metadata={databaseName:proof.database,serverName:proof.server,loginName:'melisa_sirket_sales_test_20260929_01',databaseUser:'melisa_sirket_sales_test_20260929_01',sysadmin:0,databaseControl:0,liveDatabaseAccess:0,sessionId:55,transactionId:'700',transactionCount:1,transactionState:1,isolationLevel:4,lockMode:'Exclusive',assertDefinitionHash:hash,beginDefinitionHash:hash,contextDefinitionHash:hash,effectsDefinitionHash:hash};let sqlMetadataReads=0;
+ const pool={};class Transaction{constructor(p){this.parent=p;}async begin(level){assert.equal(level,4);calls.push('begin');}async commit(){calls.push('commit');if(commitLoss)throw Error('response lost');}async rollback(){calls.push('rollback');}}
+ class Request{constructor(parent){this.parent=parent;this.params={};}input(key,_type,value){this.params[key]=value;return this;}async query(sql){if(sql.includes('sp_getapplock')){calls.push('lock');return {};}if(sql.startsWith('SELECT DB_NAME()')){calls.push('metadata');sqlMetadataReads++;return {recordset:[{...metadata,...(metadataDrift&&sqlMetadataReads>=metadataDriftAt?{transactionId:'701'}:{})}]};}if(sql.startsWith('INSERT dbo.work_trade_requests')){calls.push('journal');assert.equal(this.params.payload,bodyJson);assert.equal(this.params.response,responseJSON);return {};}throw Error('Unexpected SQL');}async execute(name){if(name.endsWith('_begin_v1')){calls.push('issue');return {recordset:[replay?{replayed:true,actorId:'17',operation:'sale_draft',bodyHash,response_json:responseJSON}:{replayed:false}]};}if(name.endsWith('_assert_v1')){if(this.params.completed){calls.push('completed');return {recordset:[{completed:true,phase:'DONE',requestId,actorId:'17',operation:'sale_draft',bodyHash,responseHash:completedDrift?'0'.repeat(64):createHash('sha256').update(responseJSON,'utf16le').digest('hex').toUpperCase()}]};}calls.push('proof');return {recordset:[{proof_json:JSON.stringify(proof)}]};}if(name.endsWith('_effects_v1')){calls.push('effects');if(effectsFailure)throw Error('effects rejected');return {};}throw Error('Unexpected procedure');}}
+ const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},NVarChar:()=>({}),Char:()=>({}),MAX:-1,BigInt:{},UniqueIdentifier:{},Bit:{}};
+ const env={MELISA_CANONICAL_TEST:'true',SQL_DATABASE:proof.database,SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_USER:metadata.loginName,SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false',API_PORT:'4144',MELISA_TEST_PROTECTED_SESSION_PATH:'C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\grants.json',MELISA_BUSINESS_SESSION_SECRET:'S'.repeat(64),JWT_ACCESS_SECRET:'different'};
+ const sandbox={createHash,Buffer,structuredClone,__db:{isCanonicalTest:()=>true,isIsolatedOperationCopyRuntime:()=>false,getSqlPool:async()=>pool,getSqlDriver:()=>sql},__env:env,__profile:profile,__actor:actor};
+ vm.createContext(sandbox);vm.runInContext(source+`\nregistered=Object.freeze({username:BUSINESS_SESSION.username,roleCode:BUSINESS_SESSION.roleCode,permissions:__actor.permissions});environments.set(registered,__env);__profile.readerDefinitions=Object.fromEntries(CANONICAL_BUSINESS_SALE_READER_MODULES.map(n=>[n,__profile.profileHash]));registeredLegacySaleProof=__profile.legacyProof;registeredSaleDefinitionHashes=__profile.readerDefinitions;configureCanonicalBusinessSaleAdmission(registered,__profile,{writesEnabled:true});globalThis.api={runCanonicalBusinessSaleTransaction,getCanonicalBusinessSaleTransaction,getCanonicalBusinessSaleCreationProofJSON};`,sandbox);
+ const input={actor,requestId,operation:'sale_draft',bodyJson};return {calls,input,api:sandbox.api,response,proof};
+}
+test('native callback has a temporary SQL-bound proof; effects precede journal and DONE precedes commit',async()=>{
+ const f=fixture();let tx;const result=await f.api.runCanonicalBusinessSaleTransaction(f.input,({binding,transaction})=>{tx=transaction;f.calls.push('native');assert.equal(binding.invoiceId,null);assert.equal(f.api.getCanonicalBusinessSaleTransaction(transaction).accountId,'7');assert.equal(JSON.parse(f.api.getCanonicalBusinessSaleCreationProofJSON(transaction)).bodyHash,binding.bodyHash);return f.response;});
+ assert.equal(result,f.response);for(const[a,b]of [['native','effects'],['effects','journal'],['journal','completed'],['completed','commit']])assert(f.calls.indexOf(a)<f.calls.indexOf(b));assert.equal(f.api.getCanonicalBusinessSaleTransaction(tx),null);assert(!f.calls.includes('rollback'));
+});
+test('committed replay returns stored response without issuing native callback, effects or journal',async()=>{
+ const f=fixture({replay:true});const result=await f.api.runCanonicalBusinessSaleTransaction(f.input,()=>assert.fail('native callback must not run'));assert.equal(result.replayed,true);assert.equal(result.invoice.id,'91');assert(!f.calls.some(c=>['proof','effects','journal','completed'].includes(c)));assert.equal(f.calls.at(-1),'commit');
+});
+test('metadata drift, effect rejection and completed digest drift roll back without commit',async()=>{
+ for(const option of [{metadataDrift:true},{effectsFailure:true},{completedDrift:true}]){const f=fixture(option);await assert.rejects(f.api.runCanonicalBusinessSaleTransaction(f.input,()=>f.response));assert(f.calls.includes('rollback'));assert(!f.calls.includes('commit'));if(option.effectsFailure)assert(!f.calls.includes('journal'));}
+});
+test('lost commit response reports unconfirmed result for same UUID lookup instead of replaying native callback',async()=>{
+ const f=fixture({commitLoss:true});let native=0;await assert.rejects(f.api.runCanonicalBusinessSaleTransaction(f.input,()=>{native++;return f.response;}),{code:'CANONICAL_BUSINESS_SALE_COMMIT_UNCONFIRMED'});assert.equal(native,1);assert.equal(f.calls.filter(c=>c==='journal').length,1);
+});
+test('post-effect, post-journal and replay-final metadata drift independently prevent commit',async()=>{
+ for(const option of [{metadataDriftAt:4},{metadataDriftAt:5},{metadataDriftAt:2,replay:true}]){const f=fixture({...option,metadataDrift:true});await assert.rejects(f.api.runCanonicalBusinessSaleTransaction(f.input,()=>f.response));assert(f.calls.includes('rollback'));assert(!f.calls.includes('commit'));if(option.metadataDriftAt===5)assert(f.calls.includes('completed'));if(option.replay)assert(!f.calls.includes('proof'));}
+});
+test('a native callback failure cleans the private transaction proof and never creates a journal',async()=>{
+ const f=fixture();let tx;await assert.rejects(f.api.runCanonicalBusinessSaleTransaction(f.input,({transaction})=>{tx=transaction;assert(f.api.getCanonicalBusinessSaleTransaction(tx));throw Error('native failure');}),/native failure/);assert.equal(f.api.getCanonicalBusinessSaleTransaction(tx),null);assert(f.calls.includes('rollback'));assert(!f.calls.includes('effects'));assert(!f.calls.includes('journal'));
+});
+function startupFixture({readerDrift=false,readerDuplicate=false}={}){
+ const sandbox={createHash,Buffer,structuredClone};vm.createContext(sandbox);vm.runInContext(source+'\nglobalThis.api={configureCanonicalBusinessSaleLegacyProof,getCanonicalBusinessSaleDefinitionHash,CANONICAL_BUSINESS_SALE_READER_MODULES};',sandbox);const api=sandbox.api,names=[...api.CANONICAL_BUSINESS_SALE_READER_MODULES],profile={schemaVersion:'melisa-canonical-business-sale-admission.v1',profileHash:hash,assertDefinitionHash:hash,beginDefinitionHash:hash,contextDefinitionHash:hash,effectsDefinitionHash:hash,legacyProof:{readyHash:hash,contextHash:hash,effectsHash:hash},readerDefinitions:Object.fromEntries(names.map(n=>[n,hash]))};let queries=0;
+ const input={profile,identity:{databaseName:'MELISA_ERP_SIRKET_TEST_20260929_01',serverName:'Semih\\MELISADEV',sysadmin:0,databaseControl:0,liveDatabaseAccess:0,canInsertSales:1},mode:'erp',port:4144,pool:{request:()=>({query:async sql=>{queries++;assert.match(sql,/^SELECT /);assert.doesNotMatch(sql,/\b(?:INSERT|UPDATE|DELETE|ALTER|GRANT|EXECUTE)\b/i);if(sql.includes('FROM(VALUES'))return {recordset:names.map((name,i)=>({name:readerDuplicate&&i===1?names[0]:name,definitionHash:readerDrift&&i===0?'B'.repeat(64):hash}))};if(sql.includes('assertDefinitionHash'))return {recordset:[{assertDefinitionHash:hash,beginDefinitionHash:hash,contextDefinitionHash:hash,effectsDefinitionHash:hash}]};return {recordset:[{readyHash:hash,contextHash:hash,effectsHash:hash}]};}})}};
+ return {api,input,names,queries:()=>queries};
+}
+test('only exact fourteen current reader hashes enter the protected expected-definition map',async()=>{
+ const f=startupFixture();assert.equal(f.api.getCanonicalBusinessSaleDefinitionHash(f.names[0],'OLD'),'OLD');await f.api.configureCanonicalBusinessSaleLegacyProof(f.input);assert.equal(f.queries(),3);assert.equal(f.api.getCanonicalBusinessSaleDefinitionHash(f.names[0],'OLD'),hash);assert.equal(f.api.getCanonicalBusinessSaleDefinitionHash('dbo.unrelated','OLD'),'OLD');
+});
+test('missing, duplicate or changed reader metadata never publishes a partial expected-definition map',async()=>{
+ for(const options of [{readerDrift:true},{readerDuplicate:true},{missing:true}]){const f=startupFixture(options);if(options.missing)delete f.input.profile.readerDefinitions[f.names[0]];await assert.rejects(f.api.configureCanonicalBusinessSaleLegacyProof(f.input),{code:'CANONICAL_BUSINESS_SALE_ADMISSION_REQUIRED'});assert.equal(f.api.getCanonicalBusinessSaleDefinitionHash(f.names[0],'OLD'),'OLD');}
+});
+test('the native read-only process cannot be repurposed as the canonical sale metadata/profile host',async()=>{
+ const f=startupFixture();f.input.mode='native';f.input.port=4146;f.input.identity.canInsertSales=0;await assert.rejects(f.api.configureCanonicalBusinessSaleLegacyProof(f.input));assert.equal(f.queries(),0);
+});
+const bootstrapSource=fs.readFileSync(new URL('../../canonical-test-env.mjs',import.meta.url),'utf8');
+const bootstrapTail=bootstrapSource.slice(bootstrapSource.indexOf('  const businessSession=await configureCanonicalBusinessSession('),bootstrapSource.indexOf('  return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy,businessSession};'));
+async function bootstrapFixture(mode,{profile=true,session=true,calls=[]}={}){
+ const context={fixture:true},config={...(profile?{businessSaleAdmission:{fixture:true},businessSaleWritesEnabled:true}:{})},sandbox={config,mode,identity:{fixture:true},port:mode==='erp'?4144:4146,writes:mode==='erp',pool:{fixture:true},configureCanonicalBusinessSession:async()=>session&&mode==='erp'?context:null,configureCanonicalBusinessSaleLegacyProof:async input=>{calls.push(['metadata',input]);},configureCanonicalBusinessSaleAdmission:(...args)=>calls.push(['admission',args])};
+ vm.createContext(sandbox);const result=await vm.runInContext('(async()=>{'+bootstrapTail+'return businessSession;})()',sandbox);return {calls,result,context};
+}
+test('actual bootstrap tail ignores the shared ERP admission in native mode and publishes it only for ERP',async()=>{
+ const native=await bootstrapFixture('native');assert.equal(native.result,null);assert.equal(native.calls.length,0);const erp=await bootstrapFixture('erp');assert.equal(erp.result,erp.context);assert.deepEqual(erp.calls.map(c=>c[0]),['metadata','admission']);assert.equal(erp.calls[1][1][2].writesEnabled,true);assert.equal((await bootstrapFixture('erp',{profile:false})).calls.length,0);
+});
+test('ERP admission without its registered business session is rejected before metadata or writer publication',async()=>{
+ const calls=[];await assert.rejects(bootstrapFixture('erp',{session:false,calls}),/CANONICAL_BUSINESS_SALE_PROFILE_TARGET_REJECTED/);assert.equal(calls.length,0);
+});
+test('classification bootstrap receives the same effective actual-reader context as the configured catalog',async()=>{
+ const entry=fs.readFileSync(new URL('../../start-canonical-test.mjs',import.meta.url),'utf8'),start=entry.indexOf('await configureCatalogClassificationStore('),end=entry.indexOf(';}',start);assert(start>=0&&end>start);const statement=entry.slice(start,end),old={readerDefinitionHash:'OLD',sourceHash:'SOURCE'},effective=Object.freeze({...old,readerDefinitionHash:'ACTUAL'});let received;
+ const sandbox={config:{goal7SourceVersion:old,catalogClassificationRoot:'fixture',catalogClassificationIndexSha256:hash},identity:{},mode:'erp',port:4144,writes:true,env:{},catalogSourceVersion:()=>effective,configureCatalogClassificationStore:async value=>{received=value;}};vm.createContext(sandbox);await vm.runInContext('(async()=>{'+statement+';})()',sandbox);assert.equal(received.sourceVersion,effective);assert.equal(old.readerDefinitionHash,'OLD');assert.equal(received.sourceVersion.sourceHash,'SOURCE');
+});

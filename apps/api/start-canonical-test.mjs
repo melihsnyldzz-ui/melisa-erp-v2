@@ -2,7 +2,7 @@ import { configureCanonicalTest } from './canonical-test-env.mjs';
 import {startCanonicalListeners,canonicalInboundMiddleware,canonicalReadiness} from './canonical-test-listeners.mjs';
 const [mode, configPath] = process.argv.slice(2);
 const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession}=await configureCanonicalTest(configPath,mode);
-const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
+const {configureCatalogSourceVersion,catalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
 if(config.goal7SourceVersion)configureCatalogSourceVersion(config.goal7SourceVersion);
 if(mode==='erp'){
  const {configureCurrentFinanceContext}=await import('./src/services/currentFinanceDeltaRead.mjs');
@@ -12,7 +12,7 @@ if(mode==='erp'){
 }
 if(mode==='erp' && writes){
   const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');
-  try{await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:config.goal7SourceVersion??null});}
+  try{await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:catalogSourceVersion()??null});}
   catch{try{await pool.close();}catch{}throw new Error('Ürün kataloğu başlangıçta doğrulanamadı.');}
   const {configureCatalogMediaStore}=await import('./src/services/catalogMediaStore.mjs');
   await configureCatalogMediaStore({root:config.catalogMediaRoot,indexSha256:config.catalogMediaIndexSha256,identity,mode,port,writes});

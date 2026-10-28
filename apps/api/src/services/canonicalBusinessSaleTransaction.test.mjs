@@ -6,6 +6,7 @@ function fixture(){
  const product={productId:'12',quoteId:'81',unitSourceId:'9',stockCode:'0012 SYN',name:'Synthetic product',barcode:'000012',unit:'ADET',factorExact8:'1.00000000',quantityExact3:'2.000',unitPriceExact8:'1.23456789',unitPriceExact4:'1.2346',lineTotalExact4:'2.4692',averageCostTryExact4:'0.5000',sourceKey:'SYN-SOURCE/12',sourceWitnessHash:hash};
  const proof={database:BUSINESS_SESSION.database,server:BUSINESS_SESSION.server,profileHash:hash,actorId:'17',sessionId:55,transactionId:'700',requestId,operation:'sale_draft',bodyHash:hash,invoiceId:null,selectionHash:hash,revision:hash,previewHash:hash,customerId:'155',partyEntityId:'6',accountId:'7',currency:'USD',rateExact8:'2.00000000',grandTotalExact4:'2.4692',amountTryExact4:'4.9384',products:[product]};
  const body={expectedRevision:hash,previewHash:hash,customerId:'155',customerAccountId:'7',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'2.000'}]};
+ proof.context={profileHash:hash,revision:hash,nativePreviewHash:hash,scope:{customer:{id:'155',accountId:'7',partyId:'6',currency:'USD'}}};
  const expected={profile:{profileHash:hash},before:{sessionId:55,transactionId:'700'},requestId,operation:'sale_draft',invoiceId:null,bodyHash:hash,body};return {proof,expected};
 }
 test('native four-place price/total and selected account are preserved; a pure DTO never grants a transaction',()=>{
@@ -34,4 +35,7 @@ test('forged request/driver/transaction factories cannot register a native scope
  await assert.rejects(withCanonicalBusinessSaleTransaction({transaction,request:()=>fake,sql:{},actor:{id:17},requestId,operation:'sale_draft',bodyJson:'{}'},()=>{calls++;}),{code:'CANONICAL_BUSINESS_SALE_ADMISSION_REQUIRED'});
  await assert.rejects(runCanonicalBusinessSaleTransaction({transaction,request:()=>fake,sql:{}},()=>{calls++;}),{code:'CANONICAL_BUSINESS_SALE_ADMISSION_REQUIRED'});
  assert.equal(calls,0);assert.equal(getCanonicalBusinessSaleTransaction(transaction),null);
+});
+test('draft proof requires the same private context profile, revision, preview and selected party/account',()=>{
+ const changes=[p=>{delete p.context;},p=>{p.context.profileHash='B'.repeat(64);},p=>{p.context.revision='B'.repeat(64);},p=>{p.context.nativePreviewHash='B'.repeat(64);},p=>{p.context.scope.customer.id='156';},p=>{p.context.scope.customer.accountId='8';},p=>{p.context.scope.customer.partyId='9';},p=>{p.context.scope.customer.currency='TRY';}];for(const change of changes){const f=fixture();change(f.proof);assert.throws(()=>validateCanonicalBusinessSaleTransactionProof(f.proof,f.expected),{code:'CANONICAL_BUSINESS_SALE_ADMISSION_REQUIRED'});}
 });

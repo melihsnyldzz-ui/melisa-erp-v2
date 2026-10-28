@@ -5,7 +5,7 @@ let enabled=false,appUnderTest,ready=false;
 const noop=(_req,_res,next)=>next(),noSql=()=>assert.fail('Bootstrap fixture must not access SQL');
 mock.module('../../canonical-test-env.mjs',{namedExports:{configureCanonicalTest:async()=>({identity:{},port:4144,networkPolicy:{},release:{sourceCommit:'fixture',packageId:'fixture'},pool:{close:noSql},writes:false,env:{},config:{businessWorkface:{id:'ERP-5244-REALDATA-20261027'}},listenerPolicy:{hosts:['127.0.0.1']},businessSession:enabled?{userId:17}:null})}});
 mock.module('../../canonical-test-listeners.mjs',{namedExports:{canonicalInboundAllowed:noSql,canonicalLanHost:noSql,canonicalInboundMiddleware:()=>noop,canonicalReadiness:()=>({markReady(){ready=true;},send(){}}),startCanonicalListeners:async app=>{appUnderTest=app;return {close:async()=>{}};}}});
-mock.module('./catalogProductReadStore.mjs',{namedExports:{configureCatalogSourceVersion:noSql}});
+mock.module('./catalogProductReadStore.mjs',{namedExports:{configureCatalogSourceVersion:noSql,catalogSourceVersion:noSql}});
 mock.module('./currentFinanceDeltaRead.mjs',{namedExports:{configureCurrentFinanceContext(){}}});
 mock.module('./partyCurrencyComparisonStore.mjs',{namedExports:{configurePartyCurrencyComparisonStore:async()=>{}}});
 mock.module('./canonicalTestRoutePolicy.mjs',{namedExports:{isCanonicalTestWriteAllowed:()=>false}});
