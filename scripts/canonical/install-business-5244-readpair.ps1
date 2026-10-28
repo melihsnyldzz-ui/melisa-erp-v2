@@ -1,4 +1,4 @@
-param([switch]$Library,[switch]$Apply,[string]$SourceSha256)
+param([switch]$Library,[switch]$Apply,[switch]$AfterLoaderRecovery,[string]$SourceSha256)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 # Fixed READ2b maintenance composition. The library path defines procedures only.
@@ -11,6 +11,38 @@ function Select-ReadPairCommitArchives($Files,$Before){
 }
 function Test-ReadPairOwnerArguments([string]$Actual,[string]$Expected){
  return ($Actual -cin @($Expected,($Expected+' ')))
+}
+function Assert-ReadPairLoaderContinuation($Failed,$Recovered){
+ if($Failed.status-cne'FAILED_REVIEW_RECEIPT'-or$Failed.failure-cne'READPAIR_NEW_RESOURCES_RECOVERY_REQUIRED'-or$Failed.retireAttempts-ne0-or$Failed.stopCalls-ne1-or$Failed.startCalls-ne1-or$Recovered.status-cne'CURRENT_PAIR_FRESH_RECOVERED_VERIFIED'-or$Recovered.retireAttempts-ne0-or$Recovered.apiRestarts-ne0-or$Recovered.stopCalls-ne0-or$Recovered.startCalls-ne1-or$Recovered.protectionPreserved-ne$true-or$Recovered.apiPackage-cne'CANONICAL-TEST125-BUSINESS5244-10cdc0ee'-or$Recovered.webPackage-cne'ERP-BUSINESS-WEB-5244-5cb682d8'){throw 'READPAIR_LOADER_CONTINUATION_NOT_ADMITTED'}
+ # Shape validation only. This receipt grants no stop capability: production
+ # still requires fresh exact native peer/creator generation, hashes and CAS.
+}
+function Assert-ReadPairExactFields($Object,[string[]]$Names){
+ $keys=if($Object-is[Collections.IDictionary]){@($Object.Keys)}else{@($Object.PSObject.Properties.Name)}
+ if((($keys|Sort-Object -CaseSensitive)-join'|')-cne(($Names|Sort-Object -CaseSensitive)-join'|')){throw 'READPAIR_BASELINE_FIELDS_CHANGED'}
+}
+function Get-ReadPairProtectionSignature($Snapshot){
+ Assert-ReadPairExactFields $Snapshot @('listeners','processes','files')
+ $ls=@(@(foreach($r in $Snapshot.listeners){Assert-ReadPairExactFields $r @('LocalPort','LocalAddress','OwningProcess');'{0}|{1}|{2}'-f$r.LocalPort,$r.LocalAddress,$r.OwningProcess})|Sort-Object)
+ $ps=@(@(foreach($r in $Snapshot.processes){Assert-ReadPairExactFields $r @('pid','birth','exe');'{0}|{1}|{2}'-f$r.pid,$r.birth,$r.exe})|Sort-Object)
+ $fs=@(@(foreach($r in $Snapshot.files){Assert-ReadPairExactFields $r @('path','hash');'{0}|{1}'-f$r.path,$r.hash})|Sort-Object)
+ return ([ordered]@{listeners=$ls;processes=$ps;files=$fs}|ConvertTo-Json -Depth 6 -Compress)
+}
+function Assert-ReadPairExpectedEqual($Left,$Right){
+ foreach($o in @($Left,$Right)){Assert-ReadPairExactFields $o @('planHash','baseHash','startupPath','apiPath','basePath','Current','Candidate');foreach($mode in @('Current','Candidate')){Assert-ReadPairExactFields $o.$mode @('startup','api')}}
+ foreach($key in @('planHash','baseHash','startupPath','apiPath','basePath')){if($Left.$key-cne$Right.$key){throw 'READPAIR_EXPECTED_PLAN_DRIFT'}}
+ foreach($mode in @('Current','Candidate')){foreach($key in @('startup','api')){if($Left.$mode.$key-cne$Right.$mode.$key){throw 'READPAIR_EXPECTED_PLAN_DRIFT'}}}
+}
+function Publish-ReadPairSealedFile([string]$Path,[byte[]]$Bytes){
+ $hash=Get-Business5244StartupHash $Bytes
+ $writer=[IO.File]::Open($Path,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+ try{$writer.Write($Bytes,0,$Bytes.Length);$writer.Flush($true);if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $writer))-cne$hash){throw 'READPAIR_CREATED_FILE_FLUSH_UNCONFIRMED'}}finally{$writer.Dispose()}
+ # PowerShell script loading shares READ, not WRITE. A still-open writer,
+ # even with FileShare.Read, conflicts symmetrically with that reader.
+ # Reopen READ-ONLY and validate the exact bytes before executing anything.
+ Assert-ReadPairPath $Path
+ $reader=[IO.File]::Open($Path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+ try{if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $reader))-cne$hash){throw 'READPAIR_CREATED_FILE_CHANGED'};return $reader}catch{$reader.Dispose();throw}
 }
 function Write-ReadPairHeldCas($Stream,[string]$Expected,[byte[]]$Bytes){
  $prior=Read-ReadPairHeldBytes $Stream
@@ -109,7 +141,8 @@ function Assert-OldTarget($Status){
  Assert-Business5244OwnedListeners $rows $child.ProcessId
 }
 function Start-Frozen([string]$Root,[string]$Hash,[string]$Label){
- $stdout=Join-Path $base ('read2b-install-'+$Label+'.stdout.log');$stderr=Join-Path $base ('read2b-install-'+$Label+'.stderr.log')
+ $logPrefix=if($AfterLoaderRecovery){'read2b-install-after-loader-recovery-'}else{'read2b-install-'}
+ $stdout=Join-Path $base ($logPrefix+$Label+'.stdout.log');$stderr=Join-Path $base ($logPrefix+$Label+'.stderr.log')
  if((Test-Path $stdout) -or (Test-Path $stderr)){throw 'WEB_START_LOG_ALREADY_EXISTS'}
  $saved=@{};foreach($entry in Get-ChildItem Env:){$saved[$entry.Name]=$entry.Value}
  try{
@@ -139,7 +172,7 @@ function Protection-Snapshot {
  return [ordered]@{listeners=$listeners;processes=$processes;files=@($files|ForEach-Object {@{path=$_;hash=(Get-FileHash -LiteralPath $_).Hash}})}
 }
 function Assert-ReadPairProtection {
- if((Protection-Snapshot|ConvertTo-Json -Depth 12 -Compress)-cne($before|ConvertTo-Json -Depth 12 -Compress)){throw 'READPAIR_PROTECTION_CHANGED'}
+ if((Get-ReadPairProtectionSignature (Protection-Snapshot))-cne(Get-ReadPairProtectionSignature $before)){throw 'READPAIR_PROTECTION_CHANGED'}
 }
 function Get-ReadPairExpectedHashes {
  # Pure expected-value calculation from protected in-memory bytes. This is
@@ -177,17 +210,24 @@ function Open-ReadPairPublication {
  if(($projection.entries.target-join'|')-cne($expectedPaths-join'|')){throw 'READPAIR_ENTRY_SCOPE_CHANGED'}
  $script:before=Protection-Snapshot;$result.before=$before
  $script:expected=Get-ReadPairExpectedHashes;$result.expected=$expected
+ if($AfterLoaderRecovery){
+  if((Get-ReadPairProtectionSignature $before)-cne(Get-ReadPairProtectionSignature $failedReceipt.before)){throw 'READPAIR_LOADER_RECOVERY_BASELINE_CHANGED'}
+  Assert-ReadPairExpectedEqual $expected $failedReceipt.expected
+ }
  $gate=[IO.File]::ReadAllBytes((Join-Path $oldRoot 'business-5244-startup-exclusion.ps1'));$d4=$null
  foreach($row in $projection.entries){
   Assert-ReadPairPath $row.target
   $handle=[IO.File]::Open($row.target,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
-  $item=@{stream=$handle;path=$row.target;before=(Read-ReadPairHeldBytes $handle);beforeHash=$row.beforeSha256;afterHash=$row.afterSha256;after=$null;written=$false};$held.Add($item)
-  if((Get-Business5244StartupHash $item.before)-cne$row.beforeSha256){throw 'READPAIR_ENTRY_BASE_CHANGED'}
+  $observed=Read-ReadPairHeldBytes $handle
+  $item=@{stream=$handle;path=$row.target;before=$observed;beforeHash=$(if($AfterLoaderRecovery){$row.afterSha256}else{$row.beforeSha256});afterHash=$row.afterSha256;after=$null;written=$false};$held.Add($item)
+  if((Get-Business5244StartupHash $observed)-cne$item.beforeHash){throw 'READPAIR_ENTRY_BASE_CHANGED'}
+  $sourceBefore=if($AfterLoaderRecovery){[IO.File]::ReadAllBytes((Join-Path (Join-Path $base 'read2b-install-once') (([IO.Path]::GetFileName($row.target))+'.before')))}else{$observed}
+  if((Get-Business5244StartupHash $sourceBefore)-cne$row.beforeSha256){throw 'READPAIR_ORIGINAL_BEFORE_IMAGE_CHANGED'}
   if($row.target-ceq$expectedPaths[-1]){
-   $projected=Add-Business5244StarterWebGate -SourceBytes $item.before -ExpectedSha256 $row.beforeSha256 -GatePath $projection.gateTarget -GateSha256 $projection.gateSha256
+   $projected=Add-Business5244StarterWebGate -SourceBytes $sourceBefore -ExpectedSha256 $row.beforeSha256 -GatePath $projection.gateTarget -GateSha256 $projection.gateSha256
    $text=[Text.Encoding]::UTF8.GetString($projected);$old='55CCE81E4B242E2EE82BBDE846D2FA83491027C9FE865EDBE444378FC52AB121'
    if(!$d4-or([regex]::Matches($text,$old)).Count-ne1){throw 'READPAIR_D4_LINK_CHANGED'};$projected=[Text.Encoding]::UTF8.GetBytes($text.Replace($old,$d4.ToUpperInvariant()))
-  }else{$projected=Add-Business5244LegacyLauncherGate -SourceBytes $item.before -ExpectedSha256 $row.beforeSha256 -GatePath $projection.gateTarget -GateSha256 $projection.gateSha256;if($row.target-ceq$expectedPaths[4]){$d4=Get-Business5244StartupHash $projected}}
+  }else{$projected=Add-Business5244LegacyLauncherGate -SourceBytes $sourceBefore -ExpectedSha256 $row.beforeSha256 -GatePath $projection.gateTarget -GateSha256 $projection.gateSha256;if($row.target-ceq$expectedPaths[4]){$d4=Get-Business5244StartupHash $projected}}
   if((Get-Business5244StartupHash $projected)-cne$row.afterSha256){throw 'READPAIR_PROJECTION_HASH_CHANGED'};$item.after=$projected
   $image=Join-Path $proofDir (([IO.Path]::GetFileName($row.target))+'.before')
   $imageStream=[IO.File]::Open($image,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
@@ -197,18 +237,22 @@ function Open-ReadPairPublication {
  if($active.Count){throw 'READPAIR_LEGACY_ENTRY_ALREADY_RUNNING'}
  # All partial writes have held original bytes and an exact inverse. Before
  # truncate, mark attempted; recovery refuses any content other than our bytes.
- foreach($item in $held){$item.written=$true;Write-ReadPairHeldCas $item.stream $item.beforeHash $item.after}
+ foreach($item in $held){if($item.beforeHash-cne$item.afterHash){$item.written=$true;Write-ReadPairHeldCas $item.stream $item.beforeHash $item.after}}
  foreach($file in @(@{path=$projection.gateTarget;bytes=$gate},@{path=(Join-Path $newRoot 'owner-manifest.json');bytes=[IO.File]::ReadAllBytes((Join-Path $overlay 'owner-manifest.json'))},@{path=(Join-Path $newRoot 'start-business-5244-readpair-router.ps1');bytes=[IO.File]::ReadAllBytes((Join-Path $overlay 'start-business-5244-readpair-router.ps1'))})){
   Assert-ReadPairPath $file.path
   if(!(Test-Path -LiteralPath ([IO.Path]::GetDirectoryName($file.path)))){[void][IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($file.path))}
-  $h=[IO.File]::Open($file.path,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read);$created.Add(@{stream=$h;path=$file.path;hash=(Get-Business5244StartupHash $file.bytes)})
-  $h.Write($file.bytes,0,$file.bytes.Length);$h.Flush($true)
+  if($AfterLoaderRecovery){
+   $h=[IO.File]::Open($file.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+   if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $h))-cne(Get-Business5244StartupHash $file.bytes)){$h.Dispose();throw 'READPAIR_LOADER_AFTER_IMAGE_CHANGED'}
+  }else{$h=Publish-ReadPairSealedFile $file.path $file.bytes}
+  $created.Add(@{stream=$h;path=$file.path;hash=(Get-Business5244StartupHash $file.bytes);preexisting=[bool]$AfterLoaderRecovery})
  }
  $script:archives=@(Get-ChildItem -LiteralPath $pins.runtime -Filter '5244-retirement.pending.*.completed' -File|ForEach-Object FullName)
  Record-Phase 'ENTRIES_LOCKED_ROUTER_PUBLISHED_NOT_RETIRED'
 }
 function Assert-ReadPairColdTarget {
  $script:status=Owner-Status;Assert-OldTarget $status
+ if($AfterLoaderRecovery-and($status.ownerPid-ne$coldRecovery.newOwnerPid-or$status.ownerBirth-cne$coldRecovery.newOwnerBirth-or$status.childPid-ne$coldRecovery.childPid-or$status.childBirth-cne$coldRecovery.childBirth)){throw 'READPAIR_COLD_RECOVERY_GENERATION_CHANGED'}
  $script:oldResourceRows=@(Web-Resources $status);$script:webResources=$oldResourceRows
  $c=Connect-Business5244RetirementPeer
  try{if($c.serverPid-ne$status.ownerPid-or$c.serverBirth-cne$status.ownerBirth){throw 'READPAIR_OLD_PEER_CHANGED'};$r=Get-Business5244RetirementRecord $c -Client;$script:control=$r.peer.OpenControlledShutdown()}finally{Close-Business5244RetirementPeer $c}
@@ -232,7 +276,7 @@ function Assert-ReadPairPreparedOwner {
  if(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath)){throw 'READPAIR_PENDING_ALREADY_EXISTS'}
  $h=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 5;Assert-Business5244ApiHealth $h $pins
  $fresh=Get-ReadPairExpectedHashes
- if(($fresh|ConvertTo-Json -Depth 8 -Compress)-cne($expected|ConvertTo-Json -Depth 8 -Compress)){throw 'READPAIR_EXPECTED_PLAN_DRIFT'}
+ Assert-ReadPairExpectedEqual $fresh $expected
 }
 function Send-ReadPairSingleRetire {
  $connection=Connect-Business5244RetirementPeer
@@ -301,7 +345,7 @@ function Restore-ReadPairBeforeRetire([bool]$OldStopped){
  foreach($item in $held){$hash=Get-Business5244StartupHash (Read-ReadPairHeldBytes $item.stream);if($hash-ceq$item.afterHash){Write-ReadPairHeldCas $item.stream $item.afterHash $item.before};$item.written=$false}
  # New exact helper/router files are inert before retire; do not remove foreign
  # files, directories, packages, records or any prior evidence.
- foreach($item in $created){if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $item.stream))-cne$item.hash){throw 'READPAIR_CREATED_FILE_CHANGED'};$item.stream.Dispose();[IO.File]::Delete($item.path)}
+ foreach($item in $created){if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $item.stream))-cne$item.hash){throw 'READPAIR_CREATED_FILE_CHANGED'};$item.stream.Dispose();if(!$item.preexisting){[IO.File]::Delete($item.path)}}
  Record-Phase 'PRE_RETIRE_INVERSE_VERIFIED'
 }
 function Close-ReadPairPublication {
@@ -315,7 +359,13 @@ $oldRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-OWNER-ec316a63-20261028';$old
 $newRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-READ2B-ROUTER-ec316a63-20261028';$newHash='aef6011640248608e0049f34dfd33e37e05e8ae232c320b858b59e12af94c93a'
 $overlay=Join-Path $base 'read2b-router-overlay-4b511e5b'
 $ps='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
-$proofDir=Join-Path $base 'read2b-install-once';if(Test-Path -LiteralPath $proofDir){throw 'READPAIR_USE_EXISTING_RECEIPT_NO_RERUN'}
+$failedReceipt=$null;$coldRecovery=$null
+if($AfterLoaderRecovery){
+ $failedReceipt=Get-Content -LiteralPath (Join-Path $base 'read2b-install-once\result.json') -Raw|ConvertFrom-Json
+ $coldRecovery=Get-Content -LiteralPath (Join-Path $base 'read2b-loader-failure-current-recovery.json') -Raw|ConvertFrom-Json
+ Assert-ReadPairLoaderContinuation $failedReceipt $coldRecovery
+}
+$proofDir=Join-Path $base $(if($AfterLoaderRecovery){'read2b-install-after-loader-recovery-once'}else{'read2b-install-once'});if(Test-Path -LiteralPath $proofDir){throw 'READPAIR_USE_EXISTING_RECEIPT_NO_RERUN'}
 Assert-ReadPairPath $proofDir;[void][IO.Directory]::CreateDirectory($proofDir)
 $resultPath=Join-Path $proofDir 'result.json';$result=[ordered]@{status='PREPARING';stopCalls=0;startCalls=0;retireAttempts=0;outcome=$null;before=$null;final=$null;failure=$null}
 $held=[Collections.Generic.List[object]]::new();$created=[Collections.Generic.List[object]]::new();$control=$null;$newHost=$null;$newResourceRows=@();$oldResourceRows=@();$before=$null;$ready=$null;$status=$null;$webResources=@();$archives=@()

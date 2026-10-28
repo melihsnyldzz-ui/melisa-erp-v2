@@ -506,3 +506,20 @@ Hazır komut (bu tur **çalıştırılmadı**):
 Koordinatör kaydında kullanıcı,4144+5244 kısa kesinti/eşli güncelleme, dar config/başlatma ayarları ve eski uygulama çiftine dönüş sorusuna açıkça “onaylıyorum” dedi. İletilen kapsam mevcut83303ed7 yürütücüsünün before-image/startup2alan/private seal1alan/6entry/helper/router/gerçekwebmetadata CAS işlemidir. Hub/task/logon kalıcılığı ve reboot kapsam dışı; rol/DB/ticari/diğer servisler aynı.
 
 Taze salt okunur kontrolde API10cdc/aynıTESTDB, owner41156/child50028 ve beş web kaynağı doğrulandı. Gerçek Windows Start-Process argv sonunda tek ASCII boşluk bulundu; kurulum denemeden önce dar kabul düzeltildi. Yalnız exact argv veya exact argv+tek boşluk kabul edilir; Trim/genel whitespace/ek argüman kabulü yok. Yeni hedefli1 test PASS; kaynak SHA yukarıdaki komuta güncellendi. API bakım uygulaması bu kayıt anında henüz başlamadı. Önceki CI kalite SUCCESS/Windows sürüyor/secret-scan11 aynı tarihsel bulgu FAIL; genel CI yeşil değildir.
+
+
+### Onaylı ilk uygulama, loader hatası ve doğrulanmış Current kurtarma
+
+Onaylanan d6649e98 kaynaklı ilk çağrı bir kez yapıldı. Altı entry gate ve router dosyaları yayımlandı; eski ec owner native handle ile kapandı. Yeni36768 PowerShell, yayımlanan entry üzerinde açık RW/FileShare.Read writer varken dosyayı okumaya çalıştığı için script yüklemeden çıktı. retireAttempts0, API10cdc/PID23156, private/startup/base hashleri aynı kaldı. `newResourceRows0` guard'ı genel fallback'i kapattı; bu ret gizlenmedi/gevşetilmedi.
+
+Ayrı mevcut destekli empty-port fresh Current recovery, önceki operasyonu, eski ve failed-owner süreçlerinin yokluğunu, boş5244/pendingyokluğunu, exact core/Current API/profile/config/protection eşliğini kontrol ederek yapıldı. Original fresh creator tutuldu; authenticated peer ile owner42868/child8640 ve beş kaynak doğrulandı, web200. APIrestart/retire/SQL/rol0. Eski süreç veya PID sahiplenilmedi. Kanıt: private `read2b-install-once/result.json` ve `read2b-loader-failure-current-recovery.json`; eski kayıtlar değiştirilmedi.
+
+Dar loader düzeltmesi: CreateNew write→Flush(true)→hash readback→writer close→reparse/SHA tekrar kontrolü→ReadOnly/FileShare.Read seal. Gerçek temp Windows PowerShell okuyucusu çalıştı; seal yazmayı reddetti. Yeni sonlu continuation yalnız ilk exact pre-retire loader failure + bu verified recovery + canlı native Current generation + altı exact after-hash + özgün durable before-image + değişmemiş API/config/profile/diğer servislerle kabul edilir. Önceki receipt/loglar korunur; ikinci continuation aynı sabit once dizini nedeniyle reddedilir. Eski generic fallback/retire/reset guardları aynı.
+
+Continuation başlatma komutu (bu kayıt anında henüz çalıştırılmadı):
+
+```powershell
+& C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018\scripts\canonical\install-business-5244-readpair.ps1 -Apply -AfterLoaderRecovery -SourceSha256 ADDD235DEC64255FAC7A35716F9F6A1DE0ACDF9D6D75A65617AB3280B5795AAA
+```
+
+İlave hedefler: gerçek temp PS reader1PASS, exact continuation negatifleri1PASS, map-sırası bağımsız exact alan/baseline negatifleri1PASS; gerçek hedefte yalnız readonly continuation admission PASS. Eski geniş suite/paket taraması tekrarlanmadı. Kalıcı Hub/logon/reboot ve insan kabulü aynı ayrı açık sınırdadır.
