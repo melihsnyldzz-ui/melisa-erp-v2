@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';import {readFileSync,mkdtempSync,rmSync} from 'node:fs';import path from 'node:path';import os from 'node:os';
+import {execFileSync} from 'node:child_process';import {readFileSync,mkdtempSync,rmSync,realpathSync,lstatSync,mkdirSync,symlinkSync} from 'node:fs';import path from 'node:path';import os from 'node:os';
 const file=path.join(import.meta.dirname,'test125-bound-api-quiescence.ps1'),ps=path.join(process.env.SystemRoot||'C:\\Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const run=body=>execFileSync(ps,['-NoProfile','-NonInteractive','-Command',`. '${file.replaceAll("'","''")}'; ${body}`],{encoding:'utf8',timeout:20000}).trim();
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
@@ -110,7 +110,7 @@ function Get-Test125BoundMaintenancePlan($RunId,[switch]$ReadPairPreparation,$Re
  return [pscustomobject]@{schema='melisa-test125-bound-maintenance-preparation.v1';runId=$RunId;source=$script:scope.source;database=$script:scope.database;startupHash=(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($script:fixtureStartup))).ToUpperInvariant();launcherHash=(Get-FileHash $launcher SHA256).Hash;manifestHash='base-manifest';taskXmlHash=(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($script:taskXml)));taskInstance=('instance'+$script:generation);supervisor=$script:generation;supervisorBirth='2026-10-28T00:00:00Z';children=@{api=@{pid=101;port=4144;birth='2026-10-28T00:00:00Z'};native=@{pid=102;port=4146;birth='2026-10-28T00:00:00Z'};web=@{pid=103;port=5194;birth='2026-10-28T00:00:00Z'}}}
 }
 `;
-function runB6(body){const base=path.resolve(os.tmpdir()),temp=mkdtempSync(path.join(base,'erp-b6-bound-'));try{return run(b6Fixture.replace('__TEMP__',"'"+temp.replaceAll("'","''")+"'")+body);}finally{assert.equal(path.dirname(path.resolve(temp)),base);assert(path.basename(temp).startsWith('erp-b6-bound-'));rmSync(temp,{recursive:true,force:true});}}
+function runB6(body,{tempRoot}={}){const base=realpathSync.native(tempRoot||process.env.RUNNER_TEMP||os.tmpdir()),temp=realpathSync.native(mkdtempSync(path.join(base,'erp-b6-bound-')));try{return run(b6Fixture.replace('__TEMP__',"'"+temp.replaceAll("'","''")+"'")+body);}finally{const full=realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),base.toLowerCase());assert(path.basename(full).startsWith('erp-b6-bound-'));assert(!lstatSync(full).isSymbolicLink());rmSync(full,{recursive:true,force:true});}}
 win('B6 constructor requires the native owner-issued ready reference before any plan read and never accepts a copied admission',()=>{
  assert.equal(runB6(String.raw`
  foreach($foreign in @($null,([pscustomobject]@{}),($script:native|ConvertTo-Json|ConvertFrom-Json))){$denied=$false;try{New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $foreign|Out-Null}catch{$denied=$true};if(!$denied-or$script:planCalls-ne0-or$script:Test125ReadPairContext){throw 'B6_UNISSUED_ADMITTED'}}
@@ -266,4 +266,15 @@ win('B6 stopped-supervisor launcher is bound to the retained API generation inst
  }
  $script:nativePhase='Unknown';if((Get-Test125ReadPairBindingLauncher $ctx.activeBinding)-cne$next){throw 'READONLY_NATIVE_AUDIT_UNAVAILABLE'}
  $denied=$false;try{Set-Test125ReadPairTaskAction $token Current}catch{$denied=$true};if(!$denied-or$script:setCalls-ne1){throw 'READONLY_LAUNCHER_GRANTED_MUTATION'};'PASS'`),'PASS');
+});
+win('B6 fixture canonicalizes aliased temp roots while hash and ACL adapters still refuse every outside-root path',()=>{
+ const parent=realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),root=realpathSync.native(mkdtempSync(path.join(parent,'melisa-b6-fixture-root-')));
+ try{
+  const physical=path.join(root,'physical'),redirect=path.join(root,'redirect');mkdirSync(physical);symlinkSync(physical,redirect,'junction');assert.equal(realpathSync.native(redirect),realpathSync.native(physical));
+  assert.equal(runB6(String.raw`
+   if($fixtureRoot-clike'*\redirect\*'){throw 'FIXTURE_ROOT_NOT_CANONICAL'}
+   $token=New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $native;[void](Assert-Test125ReadPairIssued $token)
+   foreach($command in @('Get-FileHash','Get-Acl')){foreach($outside in @('C:\Windows\System32\cmd.exe',($fixtureRoot+'-sibling\file'),(Join-Path $fixtureRoot '..\outside'))){$denied=$false;try{if($command-ceq'Get-FileHash'){Get-FileHash -LiteralPath $outside -Algorithm SHA256|Out-Null}else{Get-Acl -LiteralPath $outside|Out-Null}}catch{if($_.Exception.Message-cnotin@('FIXTURE_HASH_OUTSIDE_TEMP','FIXTURE_ACL_OUTSIDE_TEMP')){throw};$denied=$true};if(!$denied){throw 'FIXTURE_OUTSIDE_ROOT_ADMITTED'}}}
+   if($script:releaseClosed){throw 'CANONICAL_ROOT_ISSUER_FAILED'};'PASS'`,{tempRoot:redirect}),'PASS');
+ }finally{const full=realpathSync.native(root);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('melisa-b6-fixture-root-'));assert(!lstatSync(full).isSymbolicLink());rmSync(full,{recursive:true,force:true});}
 });

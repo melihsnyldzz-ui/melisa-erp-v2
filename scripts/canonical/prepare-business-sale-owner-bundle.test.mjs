@@ -24,9 +24,15 @@ function fixture(options={}){
   return JSON.stringify(payload);
  }};
  context=vm.createContext({fs:fakeFs,path:win,crypto:fakeCrypto,cp:fakeCp,fileURLToPath:()=>options.frozenEntry?value('VERIFIED_PRODUCER'):win.join(base,'scripts','canonical','prepare-business-sale-owner-bundle.mjs'),pathToFileURL:p=>({href:p}),process:{platform:'win32',argv:options.frozenEntry?['node','fixed','--verify']:[],stdout:{write(){assert.fail('no import output');}},stderr:{write(){assert.fail('no import output');}}},URL,Buffer,Map,Set,__metaUrl:'file:///C:/Sirket/ERP/worktrees/erp-p03-pr53-candidate-20261018/scripts/canonical/prepare-business-sale-owner-bundle.mjs'});
- vm.runInContext(source.replace(/^import .*;$/gm,'').replaceAll('export ','').replaceAll('import.meta.url','__metaUrl'),context);
- for(const name of [...value('BUSINESS_SALE_OWNER_SOURCE_FILES'),'start-business-5244-readpair-router.ps1','install-business-5244-readpair.ps1','prepare-business-sale-owner-bundle.mjs'])blobs.set(name,fs.readFileSync(new URL('./'+name,import.meta.url)));
- for(const [name,b] of blobs)inputs.set(win.join(base,'scripts','canonical',name),b);
+ const vmSource=options.checkoutEol==='crlf'?source.replaceAll('\r\n','\n').replaceAll('\n','\r\n'):options.checkoutEol==='lf'?source.replaceAll('\r\n','\n'):source;
+ vm.runInContext(vmSource.replace(/^import .*;$/gm,'').replaceAll('export ','').replaceAll('import.meta.url','__metaUrl'),context);
+ // Git show returns committed LF text, independently of the runner checkout
+ // EOL. Keep the raw working bytes separate, just like the production checks.
+ for(const name of [...value('BUSINESS_SALE_OWNER_SOURCE_FILES'),'start-business-5244-readpair-router.ps1','install-business-5244-readpair.ps1','prepare-business-sale-owner-bundle.mjs']){
+  const raw=fs.readFileSync(new URL('./'+name,import.meta.url)),blob=Buffer.from(raw.toString('utf8').replaceAll('\r\n','\n'));
+  const working=options.checkoutEol==='crlf'?Buffer.from(blob.toString('utf8').replaceAll('\n','\r\n')):options.checkoutEol==='lf'?Buffer.from(blob):raw;
+  blobs.set(name,blob);inputs.set(win.join(base,'scripts','canonical',name),working);
+ }
  assert.equal(win.resolve(base),value('SOURCE_ROOT'));
  const inputPins=value('INPUTS'),oldCore=value('OLD_CORE'),oldRouter=value('OLD_ROUTER');
  const capture={schema:'melisa-b6-current-read2b-owner-capture.v1',readOnly:true,stopAuthorized:false,recordBeforeSha256:inputPins['current-erp-processes.before.json'],recordBeforeFile:'current-erp-processes.before.json',router:{root:oldRouter,manifestSha256:value('OLD_ROUTER_HASH'),entrySha256:value('OLD_ENTRY_HASH')},core:{root:oldCore,manifestSha256:value('OLD_CORE_HASH')},owner:{pid:49668,birth:'1001'},child:{pid:16084,birth:'1002'},nativeStatus:{nativePeerVerified:true,stopAuthorized:false,childObservationOnly:true,reply:'Status',state:{phase:'Running',ownerPid:49668,ownerBirth:'1001',childPid:16084,childBirth:'1002'}},serviceCalls:0,sqlCalls:0,retireCalls:0};
@@ -51,6 +57,16 @@ test('producer writes only isolated roots and pins exact13 source files with dis
 });
 test('dirty or missing source and unsuccessful or empty-step hosted CI reject before any output creation',()=>{
  for(const options of [{dirty:true},{missingBlob:'canonical-business-sale-maintenance.ps1'},{ciFailure:true},{jobFailure:'quality-build-test'},{emptySteps:true},{filter:true},{encoding:true}]){const f=fixture(options);try{assert.throws(f.run);assert.equal(f.writes(),0);}finally{f.close();}}
+});
+test('LF and hosted Windows CRLF checkouts preserve the same committed verifier pin and produce identical package bytes',()=>{
+ const fixtures=['lf','crlf'].map(checkoutEol=>fixture({checkoutEol}));try{
+  const results=fixtures.map(f=>f.run());assert.equal(results[0].coreManifestSha256,results[1].coreManifestSha256);assert.equal(results[0].routerManifestSha256,results[1].routerManifestSha256);assert.equal(results[0].producerSourceSha256,results[1].producerSourceSha256);
+  for(const [n,f] of fixtures.entries()){
+   const row=results[n].sourceHashes.find(r=>r.path.endsWith('/prepare-business-sale-owner-bundle.mjs')),blob=f.blobs.get('prepare-business-sale-owner-bundle.mjs'),raw=f.inputs.get(path.win32.join(f.values('SOURCE_ROOT'),'scripts','canonical','prepare-business-sale-owner-bundle.mjs'));
+   assert.equal(row.gitBlobSha256,sha(blob));assert.equal(row.workingSha256,sha(raw));assert.equal(row.transform,n?'GIT_TEXT_CRLF_TO_LF_ONLY':'IDENTICAL');assert.equal(f.verify().coreManifestSha256,results[n].coreManifestSha256);assert.equal(f.verify().writes,0);
+   assert(fs.readFileSync(f.output(f.values('VERIFIED_PRODUCER'))).equals(blob));
+  }
+ }finally{for(const f of fixtures)f.close();}
 });
 test('only literal Git text CRLF conversion is accepted; package keeps blob bytes and records both raw hashes',()=>{
  for(const kind of ['crlf','content','bom','invalidUtf8']){const f=fixture();try{const name='start-business-5244-web.ps1',blob=Buffer.from(f.blobs.get(name).toString('utf8').replaceAll('\r\n','\n'));f.blobs.set(name,blob);const raw=kind==='crlf'?Buffer.from(blob.toString('utf8').replaceAll('\n','\r\n')):kind==='content'?Buffer.concat([blob,Buffer.from('# changed')]):kind==='bom'?Buffer.concat([Buffer.from([0xef,0xbb,0xbf]),blob]):Buffer.concat([blob,Buffer.from([0xff])]);f.inputs.set(path.win32.join(f.values('SOURCE_ROOT'),'scripts','canonical',name),raw);if(kind!=='crlf'){assert.throws(f.run,/B6_OWNER_WORKING_SOURCE_CHANGED/);assert.equal(f.writes(),0);continue;}const result=f.run(),row=result.sourceHashes.find(r=>r.path.endsWith('/'+name));assert.equal(row.gitBlobSha256,sha(blob));assert.equal(row.workingSha256,sha(raw));assert.equal(row.transform,'GIT_TEXT_CRLF_TO_LF_ONLY');assert(fs.readFileSync(path.join(f.output(f.values('CORE')),name)).equals(blob));}finally{f.close();}}
