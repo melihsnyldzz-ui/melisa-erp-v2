@@ -468,3 +468,34 @@ MevcutkaynakfonksiyonlarıvepasifAPI/webpaketleri hazırdır, fakat **coldownerd
 “YalnızTEST'te4144APIbileşenini hazırREAD2bpaketine ve5244'ü eşliwebpaketine geçirmemi onaylıyor musun? İşlem; korumalıDPAPIbefore-image, startup.ApiComponentiki alanCAS, privateAPIayarında yalnızgoal8SyntheticDaySeal.packageId tekalanCAS, altıeskibaşlatıcının yalnızwebdışlaması/helper ve exactroutergirişi, gerçekwebPIDmetadataCASyayını ve kısa4144/5244kesintisini kapsar. 4146/5194/CLEAN/CRMservisleri, veritabanı/ticari veriler/roller ve diğerprivatealan/sırlar korunur. Hata halinde yalnızkanıtıtam aynıscope'ta exact10cdcAPI+5cbwebçiftine ve öncekiayar/başlatıcıbefore-image'larına dönülür; foreign/bilinmeyen süreçte zorla stop/restore yapılmaz. LIVE/Vega/T1/main veya ticari yazma yapılmaz.”
 
 Kaynak15sn/rollbackkanıtları ve mevcutpaketler yeniden üretilmedi. Bu tur yalnızyeni router3hedef ve gerçekgirişlerinpure6projectionASTkontrolü yapıldı; productionmutex/servis/HTTP/SQLstartçağrısıyok. Çalışanec/5cb/10cdc ve kullanıcının oturumu aynı. Privateartifact: read2b-entry-gate-projection-20261028.json; payload değil yalnızhash/path/sözdizimi sonucu içerir. Hamayar/secret/tutar GitHub'a alınmadı. İnsanUA/sayaçlarBEKLİYOR; genişişletmetesti veya APIkurulumu başlatılmadı.
+
+
+## 28 Ekim — READ2b tek bakım komutu: kaynak tamam, gerçek uygulama yok
+
+Mevcut `scripts/canonical/install-business-5244-readpair.ps1`, önceki private V2 cold-owner prosedürlerini kaynak içinde yeniden kullanır. Private eski sürücüyü çalıştırmaz, yeni owner/protokol/plan sistemi kurmaz. Normal çağrısı kapalıdır; `-Library` yalnız yordam tanımlar. İncelenmiş kaynak SHA ve ayrıca API bakım onayı olmadan `-Apply` çalıştırılmayacaktır.
+
+Hazır komut (bu tur **çalıştırılmadı**):
+
+```powershell
+& C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018\scripts\canonical\install-business-5244-readpair.ps1 -Apply -SourceSha256 E428BF2C93701F811ED6B53DE711AF11774814A95C87E812CDEC7541A0F27F69
+```
+
+### Sonlu etki ve geri dönüş
+
+- Exact ec owner/core ve hazır 4b511 router overlay/manifest ile mevcut10cdc+5cb çifti; yalnız hazırlanan READ2b API ve eşli2b web adayı. Yeni paket derleme/tarama bu tur yok.
+- Beş eski web entry + CLEAN starter altı dosyanın tamamı exclusive stream ile tutulur. Mevcut legacy çağrı bulunursa ret. Altı before-image CreateNew→Flush(true)→SHA geri okuma tamamlanmadan ilk entry değişmez. D4 embedded SHA aynı CAS kapsamındadır. Helper ve iki router dosyası yalnız CreateNew/hash pinleriyle yayımlanır.
+- Kimliği native peer handle, doğum, SID, exact argv ve imzalı conhost/pinli esbuild kaynak zinciriyle doğrulanan **yalnız5244** owner kapanır. Diğer servisler port/PID/doğum/dosya before/after ile korunur. Yeni owner'ın özgün creator Process nesnesi tutulur; hazırlık bitmeden retire gönderilmez.
+- Bir retire denemesi; ACK alınmasa da tekrar gönderim yok. Gerçek commit arşivi bootstrap arşivinden ayrılır. Same-owner/child native kimliği + exact planHash + before/records SHA + API config/profile/base hash + API sınır/kimlik ve web200 birlikte doğrulanır. Bu dış salt okunur sonuç owner'ın özel `Dispatch.Completed` token'ını gördüğümüz anlamına gelmez.
+- Retire öncesi hata: yalnız aynı held dosyaların before/after SHA'sı kesin ise inverse; kanıtlı kapanmış kaynaklardan fresh Current owner. Yarım/çelişkili entry, yabancı süreç veya belirsiz child varsa recovery-required, otomatik zorla geri alma yok.
+- Retire sonrası: API `startup.ApiComponent` iki alanı ve private `goal8SyntheticDaySeal.packageId` tek alanı mevcut issued core/CAS/DPAPI backup yoluyla değişir. Core'un kanıtlı rollback'i eski10cdc API +5cb webi **yeni gerçek child PID** ile döndürür. Kontrolör eski PID/DB kopyası yazmaz. Unknown durumda owner stop/config restore/entry inverse/ikinci retire0; pending ve kanıt korunur.
+- Başarılı Candidate veya doğrulanmış native rollback sonucunda güvenli entry gate/router altyapısı korunur. Bu, tüm altyapı dosyalarının hiç kurulmamış hâle geri alınması değildir. İşlem sonrasında kimlik ve kayıtlar gerçek yeni PID'ye bağlı kalır.
+
+### Dar kanıt ve açık sınır
+
+`business-5244-readpair-install.test.mjs`: **9/9 PASS, 0 skip**. Normal sıra, ACK kaybı/tek retire, native rollback sonucunun ayrı tutulması, Unknown'da mutasyon yasağı, pre-retire hata sınırı, gerçek geçici exclusive dosya CAS/inverse, default-deny, bootstrap/commit ayrımı ve partial-entry recovery ret'i. Akış testleri inert I/O kullanır; TEST/API kuruldu veya gerçek finans/SQL kanıtlandı sayılmaz. PowerShell parser hatasız. Bağımsız incelemenin iki P1'i (partial entry atlama ve bootstrap sayımı) ve durable before-image P2'si düzeltildi. Eski14/18/suites/AST-projection/payload kanıtları yeniden üretilmedi.
+
+**Bu tur gerçek etki:** çalışan5244/4144/4146/5194/CLEAN/CRM üzerinde stop/start/install/profile/config/SQL/rol/task0. Yeni source teslimi ve kurulmuş ec Current web ayrı tutulur. İnsan UA değişmedi.
+
+**Kalıcı giriş ayrı açık:** router exact committed config'ten doğrudan ReadPair boot edebilir; ancak bu komut onu bu oturum için başlatır. Altı eski entry yalnız gate alır, Hub/görev/logon otomatik olarak router'a yönlendirilmez. Windows reboot/logon sonrası yeniden açılma kanıtlanmadı; kalıcı normal giriş teslimi tamamlandı denmez. Bu kapsamda yeni scheduler/servis değişikliği yapılmadı.
+
+**Uygulamadan önce gereken ayrı kapsam onayı:** mevcut4144 API +5244 eşli web için kısa kesinti; startup2alan/private seal1alan CAS; altı giriş/helper/router ve gerçek5244 metadata CAS. DB/SQL/rol, native4146/web5194/CLEAN/CRM, diğer sırlar, Vega/LIVE/T1 ve main korunacak. Kaynak komut tek başına bu onayı oluşturmaz.

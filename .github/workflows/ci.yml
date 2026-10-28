@@ -49,7 +49,7 @@ jobs:
       - name: Clean WEB host adapter with pinned own temporary children
         run: node --test scripts/canonical/clean-web-host.test.mjs
       - name: Business 5244 cooperative exclusion and owned native lifetime
-        run: node --test --test-concurrency=1 scripts/canonical/business-5244-startup-exclusion.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/start-business-5244-web.test.mjs scripts/canonical/business-5244-retirement-channel.test.mjs scripts/canonical/business-5244-retirement-state.test.mjs scripts/canonical/business-5244-maintenance-dispatch.test.mjs scripts/canonical/business-5244-maintenance-commit.test.mjs scripts/canonical/business-5244-paired-maintenance.test.mjs scripts/canonical/test125-read2b-pair.test.mjs scripts/canonical/business-5244-readpair-router.test.mjs
+        run: node --test --test-concurrency=1 scripts/canonical/business-5244-startup-exclusion.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/start-business-5244-web.test.mjs scripts/canonical/business-5244-retirement-channel.test.mjs scripts/canonical/business-5244-retirement-state.test.mjs scripts/canonical/business-5244-maintenance-dispatch.test.mjs scripts/canonical/business-5244-maintenance-commit.test.mjs scripts/canonical/business-5244-paired-maintenance.test.mjs scripts/canonical/test125-read2b-pair.test.mjs scripts/canonical/business-5244-readpair-router.test.mjs scripts/canonical/business-5244-readpair-install.test.mjs
   quality-build-test:
     name: quality-build-test
     runs-on: ubuntu-latest
