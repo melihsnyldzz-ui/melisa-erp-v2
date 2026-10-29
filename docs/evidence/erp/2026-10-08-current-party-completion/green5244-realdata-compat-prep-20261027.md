@@ -818,3 +818,24 @@ Private sonuçlar aynı `b6-workface-build-20261029` altında: `owner-preparatio
 - Taze salt okunur capture 3608/52476 ve28girişten oluşur. İlk gerçek yazmadan önce kaynak/exact CI, gerçek peer/native kimliği, korunmuş API/profil/journal/görev izinleri ve before-image tekrar doğrulanır. Görev yalnız UPDATE/no-principal-ACE/no-registration-trigger ile bir kez güncellenir; belirsiz ACK yeni güncelleme yetkisi değildir.
 - 91 installer hedefi PASS; yeni steady native çocuk/iki coldstart/CAS/initinverse, üretici ve başlangıç hedefleri ile bağımsız source incelemesi tamamlandı. Exact hosted CI ve gerçek kurulum sonucu ayrıca kaydedilecektir. Fiziksel Windows reboot/logon ve insan kabulü yapılmadı.
 - Satış kaydetme ilk ekranda seçim/önizleme yokken kapalı kalmalıdır. Ayrı RO bulgu: kurulu API560c router'ında WEB'in kullandığı `selected-context` yok, servis metodu ve worktree route'u var. Bu tur önizleme/taslak/satış oluşturulmadı; bu paket bağlantısı B6 içinde açık tutulur.
+### 30 Ekim — TUR72 gerçek TEST sonucu
+
+Kurulum, mevcut `owner-preparation/install-once/result.json` kaydında **SteadyStartupVerified** olarak tamamlandı. Bu kayıt tek uygulamadır; TUR71 veya başarısız eski installer yeniden çalıştırılmadı.
+
+| Katman | Doğrulanan sonuç |
+|---|---|
+| Kaynak / CI | `8d914eb3`, push40955235578 + PR40955248002 tüm üç kontrol SUCCESS |
+| Kurulu başlangıç sahibi | STEADY owner manifest `f19f7e5a`, PID37032 / birth134377829984821183 |
+| Kurulu web | WEB5244 PID49856 / birth134377830412831671; WORKFACE-fe3948c5 / manifest5cebcda8 |
+| Korunan API | PID41436 / birth134377688108359820; Writer560c / uygulama kaynağıedb3c891 |
+| Devir | Önceki3608 normal debugger q ile çıktı; managedExit1, start1, forceStop0, retire0 |
+| Kalıcı seçim | Aynı canonical görevin yalnız futureAction dosya yolu yeni STEADY start-owned-test'e bağlı; mevcut çalışan instance/engine13532 ve SDDL birebir aynı |
+| Bağımsız kontrol | Gerçek native peer, CIM/argv/birth, kayıt CAS ve diğer satırlar; pending yok; 127.0.0.1 ve LAN HTTP200; her iki adreste HTML+17 JS/CSS manifest hashleri eş |
+| Veri koruması | API/profil/startup/journal dört dosyası, nativejournal d08bb2cb, bütün korunan süreç/port/dosyalar aynı; SQL/stok/cari/finans/rol yazması0, APIrestart0 |
+| Henüz kanıtlanmayan | Fiziksel Windows reboot/logon, bu devir sonrası normal GUI ve insan kabulü |
+
+Private kanıt aynı mevcut evidence alanındaki `b6-steady-startup-20261029` içindedir: immutable hazırlama/doğrulama, altı before-image/28 entry, tek kurulum kaydı, `independent-installed-readback.json` ve `http-readback.json`. Task before XML/SDDL ve eski kanıtlar korunur. Görev tanımı için Windows'un `TASK_UPDATE`, `TASK_DONT_ADD_PRINCIPAL_ACE` ve `TASK_IGNORE_REGISTRATION_TRIGGERS` yolu kullanıldı; yeni görev yaratılmadı, mevcut görev çalıştırılmadı veya durdurulmadı. [Microsoft TASK_CREATION sözleşmesi](https://learn.microsoft.com/en-us/windows/win32/api/taskschd/ne-taskschd-task_creation).
+
+Önceki c63 PR Windows timeout başarısızlığı silinmedi: aynı commit'in push'u başarılıydı; sadece izole fixture modül keşfi/diagnostic değişikliğini içeren8d'nin iki yeni exact koşusu başarılı oldu. Üretim guardları ve testin20s sınırı aynı kaldı.
+
+B6 henüz tam satış kabulü değildir. İlk seçim/önizleme öncesinde kaydetme kapalı olması beklenir. Kurulu API560c'de `selected-context` route'u olmadığı yalnız kaynak/paket karşılaştırmasıyla saptandı; bu devirde preview/draft/finalize/cancel çağrısı yapılmadı. Bu paket bağı aynı B6 içinde açık tutulur. Teknik kurulum, GUI gözlemi, gerçek personel kabulü ve LIVE onayı ayrıdır.
