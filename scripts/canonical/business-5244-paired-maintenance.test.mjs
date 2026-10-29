@@ -91,3 +91,124 @@ win('heavy preparation precedes the request; read locks preserve payload and a d
 win('an expired fresh request cannot reuse prepared payload proof to publish or stop anything',()=>{
  assert.equal(run(String.raw`try{Prepare-Business5244PairedMaintenance $state $script:apiToken;$preparedHash=Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordPath));$script:requestFresh=$false;$denied=$false;try{Invoke-Business5244PairedOwnerMaintenance $state $channel $script:request $script:apiToken|Out-Null}catch{$denied=$true};if(!$denied -or !$native.ChildAlive() -or $script:apiCalls.Count -or !$script:r.ContainsKey('currentBootstrap') -or (Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordPath))) -cne $preparedHash){throw 'STALE_REQUEST_EFFECT'}}`+cleanup),'PASS');
 });
+// The recovery fixture retains real same-process state, a real native Job/child
+// retirement, the same kernel mutex and durable temp streams. API/SQL providers
+// remain isolated here; the quiescence suite tests the actual post-CAS API handle.
+const recoveryLeaf=path.join(dir,'business-5244-writer-postcas-recovery.ps1');
+const recoveryFixture=String.raw`
+Initialize-Business5244RetirementPeer
+function Get-Business5244RetirementPipeName{return ('IsolatedRecovery-'+[Guid]::NewGuid().ToString('N'))}
+function Reset-Business5244RetirementConnection($Record){$Record.pipe=[IO.Pipes.NamedPipeServerStream]::new(('IsolatedRecovery-'+[Guid]::NewGuid().ToString('N')));$Record.phase='Accept'}
+$channel=Open-Business5244RetirementChannel $lease
+Prepare-Business5244PairedMaintenance $state $script:apiToken
+$script:scenario='ApiUnknown';try{Invoke-Business5244PairedOwnerMaintenance $state $channel $script:request $script:apiToken|Out-Null}catch{}
+if(!$script:r.native.RetirementConfirmed-or$script:r.phase-cne'Unknown'){throw 'FIXTURE_NOT_ACTUALLY_RETIRED'}
+$script:r.scopeName='TEST125-API-B6-WRITER-20261029';$script:r.requestProof=@{channel=$channel;request=$script:request};$script:r.dispatch.failureCode='TEST125_API_CONFIG_CHANGED';$script:r.dispatch.stage='ApiRollback'
+$script:apiToken|Add-Member startupCandidateSha256 ('1'*64);$script:apiToken|Add-Member apiProfileCandidateSha256 ('2'*64)
+$script:fixtureC=@{phase='FAILED';mode='Current';changed=$true;apiChanged=$true;taskStopped=$true;candidateAttempted=$true;nativeChangeAttempted=$false;nativeApplied=$false;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;failedStartProof=$null;nativeProfileAdmission=[pscustomobject]@{kind='isolated-native-reference'};taskAction=@{mode='Candidate';unknown=$false;candidateSignature=('3'*64);sddlHash=('4'*64)};tokenJson=($script:apiToken|ConvertTo-Json -Depth 12 -Compress)}
+$script:fixtureN=@{mode='WriterProfileActivation';phase='WriterPrepared';transition=$script:apiToken}
+function Assert-Test125ReadPairIssued($Transition){if(![object]::ReferenceEquals($Transition,$script:apiToken)){throw 'FIXTURE_UNISSUED_API'};return $script:fixtureC}
+function Get-ErpBusinessSaleNativeAdmissionContext($Admission){if(![object]::ReferenceEquals($Admission,$script:fixtureC.nativeProfileAdmission)){throw 'FIXTURE_UNISSUED_NATIVE'};return $script:fixtureN}
+function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'){throw 'FIXTURE_SCOPE'};if($Mode-ceq'Candidate'){return Get-Business5244ReadPairPins};return Get-Business5244WebPins}
+$keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile');$candidate=Get-Business5244ReadPairPins;$old=Get-Business5244WebPins
+$contractHash=Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($script:fixtureC.tokenJson));$identity='business-5244-read-pair.v1|'+$contractHash+'|'+(($keys|ForEach-Object{$candidate[$_]})-join'|')+'|'+(($keys|ForEach-Object{$old[$_]})-join'|')
+$script:r.dispatch.planHash=Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($identity));$script:r.dispatch.plan.hash=$script:r.dispatch.planHash;$script:r.preparedPair.planHash=$script:r.dispatch.planHash
+$script:fixtureCase=[pscustomobject]@{schema='melisa-b6-writer-postcas-fixed-case.v1';scope=$script:r.scopeName;purpose='CompleteHeldWriterCandidateAfterCas';ownerPid=$PID;ownerBirth=[Business5244RetirementPeer]::CurrentBirth;webChildPid=$native.ChildPid;webChildBirth=$native.ChildBirth;operationId=$script:r.operationId;planHash=$script:r.dispatch.planHash;recordsSha256=$script:r.recordExpected;pendingSha256=$script:r.pendingHash;beforeSha256=$script:r.expected;startupCandidateSha256=$script:apiToken.startupCandidateSha256;apiProfileCandidateSha256=$script:apiToken.apiProfileCandidateSha256;taskCandidateSignature=$script:fixtureC.taskAction.candidateSignature;taskSddlHash=$script:fixtureC.taskAction.sddlHash;expectedFailureCode='TEST125_API_CONFIG_CHANGED';readOnly=$true;executionAuthority=$false;actualT1=$false;externalOperations=$false}
+$code=[IO.File]::ReadAllText(__RECOVERY__)
+# Only fixed deployment identity/path literals are translated in this test copy.
+$code=$code.Replace('$Case.ownerPid-ne45612','$Case.ownerPid-ne$PID').Replace('$PID-ne45612','$PID-ne$Case.ownerPid').Replace("'134377648982508423'",'[Business5244RetirementPeer]::CurrentBirth').Replace("'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-v2-20261029\recovery-preparation\original-issuer-admission.jsonl'",'(Join-Path $env:TEMP ''recovery-audit.jsonl'')')
+. ([scriptblock]::Create($code))
+$script:afterChecks=0;$script:resumeCalls=0;$script:pauseClosed=$false
+function Assert-Test125ReadPairWriterPostCasPause($Transition,$Mode){$c=Assert-Test125ReadPairIssued $Transition;if($script:pauseClosed-or$Mode-cne'Candidate'){throw 'FIXTURE_PAUSE_CLOSED'};return $c}
+function Get-ErpBusinessSaleNativeInputs{return @{inert=$true}}
+function Test-ErpBusinessSaleAfter($Inputs){$script:afterChecks++;return $true}
+function Get-NetTCPConnection{param($State,$LocalPort);if($State-cne'Listen'-or$LocalPort-ne5244){throw 'FIXTURE_PORT_SCOPE'}}
+function Get-Business5244WriterPostCasRecoverySources{$s=[Business5244PackageSeal]::new();$s.Add($sealFile,$sealHash);$s.Freeze();return @{seal=$s;definitions=@{};case=$script:fixtureCase;caseHash=('5'*64);manifestHash=('6'*64)}}
+function Resume-Test125ReadPairWriterCandidateAfterCas($Transition,$Admission,$RecoveryAdmission){[void](Assert-Business5244WriterPostCasRecoveryApiResume $RecoveryAdmission $Transition $Admission);[void](Assert-Test125ReadPairIssued $Transition);if(![object]::ReferenceEquals($Admission,$script:fixtureC.nativeProfileAdmission)-or$script:resumeCalls){throw 'FIXTURE_RESUME_NOT_ISSUED'};$script:resumeCalls++;if($script:recoveryFails){throw 'FIXTURE_RESUME_UNKNOWN'};$script:apiMode='Candidate';$script:fixtureN.phase='WriterActivated';$script:fixtureC.phase='VERIFIED';$script:fixtureC.mode='Candidate'}
+$script:recoveryFails=$false;$script:apiCalls.Clear();$script:scenario='Success'
+`.replace('__RECOVERY__',q(recoveryLeaf));
+const recoveryCleanup=String.raw`finally{if($channel){Close-Business5244RetirementChannel $channel};foreach($x in $script:Business5244WriterPostCasRecoveries){if($x.audit){$x.audit.Dispose()};$x.sources.seal.Dispose()};foreach($child in $script:children){$child.Dispose()};if($script:r.records){$script:r.records.Dispose()};if($script:r.pending){$script:r.pending.Dispose()};$script:r.preparedPair.seal.Dispose();Exit-Business5244StartupLease $lease};'PASS'`;
+win('Writer fresh post-CAS admission keeps a scalar frame when read-only guards return true and commits one real new child',()=>{
+ assert.equal(run(recoveryFixture+String.raw`try{
+ $frame=Assert-Business5244WriterPostCasOriginal $state $script:apiToken $channel $script:fixtureCase
+ if($frame-isnot[hashtable]-or![object]::ReferenceEquals($frame.state,$script:r)-or$script:afterChecks-ne1){throw 'FRAME_PIPELINE_POLLUTED'}
+ $cap=New-Business5244WriterPostCasRecoveryAdmission $state $script:apiToken $channel
+ $denied=$false;try{Resume-Test125ReadPairWriterCandidateAfterCas $script:apiToken $script:fixtureC.nativeProfileAdmission $cap|Out-Null}catch{$denied=$true};if(!$denied-or$script:resumeCalls){throw 'PREPARED_CAP_DIRECT_RESUME'}
+ $result=Invoke-Business5244WriterPostCasRecovery $cap
+ if($result.mode-cne'Candidate'-or$script:r.phase-cne'Running'-or$script:resumeCalls-ne1-or$script:spawnCount-ne1-or!$script:r.native.ChildAlive()-or$script:apiCalls.Count){throw 'RECOVERY_NOT_ONE_CONTINUOUS_COMMIT'}
+ $audit=@(Get-Content -LiteralPath (Join-Path $env:TEMP 'recovery-audit.jsonl')|ForEach-Object{$_|ConvertFrom-Json});if($audit.Count-ne3-or$audit[-1].phase-cne'CANDIDATE_COMMITTED_VERIFIED'){throw 'RECOVERY_AUDIT_NOT_DURABLE'}
+ foreach($fake in @($cap,($cap|ConvertTo-Json|ConvertFrom-Json))){$denied=$false;try{Invoke-Business5244WriterPostCasRecovery $fake|Out-Null}catch{$denied=$true};if(!$denied-or$script:resumeCalls-ne1-or$script:spawnCount-ne1){throw 'RECOVERY_REPLAY'}}
+ }`+recoveryCleanup),'PASS');
+});
+win('Writer recovery rejects changed retained records, pending, plan, original refs, issuer and paused API before admission',()=>{
+ assert.equal(run(recoveryFixture+String.raw`try{
+ foreach($case in @('record','pending','plan','api-copy','state-copy','channel-copy','request-ref','issuer','live-native','pause','native-phase')){
+  $record=Read-Business5244RetirementBytes $script:r.records;$pending=Read-Business5244RetirementBytes $script:r.pending;$s=$state;$a=$script:apiToken;$h=$channel;$requestRef=$script:r.requestProof.request;$birth=$script:fixtureCase.ownerBirth;$oldNative=$script:r.native;$oldPlan=$script:r.dispatch.plan.candidate.manifest;$oldPhase=$script:fixtureN.phase
+  switch($case){'record'{$script:r.records.Position=0;$script:r.records.WriteByte(0);$script:r.records.Flush($true)}'pending'{$script:r.pending.Position=0;$script:r.pending.WriteByte(0);$script:r.pending.Flush($true)}'plan'{$script:r.dispatch.plan.candidate.manifest='0'*64}'api-copy'{$a=$a|ConvertTo-Json|ConvertFrom-Json}'state-copy'{$s=$s|ConvertTo-Json|ConvertFrom-Json}'channel-copy'{$h=$h|ConvertTo-Json|ConvertFrom-Json}'request-ref'{$script:r.requestProof.request=[pscustomobject]@{}}'issuer'{$script:fixtureCase.ownerBirth='1'}'live-native'{$script:r.native=New-TestChild}'pause'{$script:pauseClosed=$true}'native-phase'{$script:fixtureN.phase='WriterActivated'}}
+  $denied=$false;try{New-Business5244WriterPostCasRecoveryAdmission $s $a $h|Out-Null}catch{$denied=$true}
+  if(!$denied-or$script:resumeCalls-or$script:spawnCount-or$script:r.phase-cne'Unknown'-or(Test-Path (Join-Path $env:TEMP 'recovery-audit.jsonl'))){throw ('RECOVERY_FALSE_ADMISSION_'+$case)}
+  $script:r.records.Position=0;$script:r.records.Write($record,0,$record.Length);$script:r.records.SetLength($record.Length);$script:r.records.Flush($true);$script:r.pending.Position=0;$script:r.pending.Write($pending,0,$pending.Length);$script:r.pending.SetLength($pending.Length);$script:r.pending.Flush($true)
+  $script:r.requestProof.request=$requestRef;$script:fixtureCase.ownerBirth=$birth;$script:r.native=$oldNative;$script:r.dispatch.plan.candidate.manifest=$oldPlan;$script:pauseClosed=$false;$script:fixtureN.phase=$oldPhase
+ }; }`+recoveryCleanup),'PASS');
+});
+win('Writer recovery unknown after one resume retains original evidence and blocks every retry',()=>{
+ assert.equal(run(recoveryFixture+String.raw`try{
+ $cap=New-Business5244WriterPostCasRecoveryAdmission $state $script:apiToken $channel;$script:recoveryFails=$true
+ $denied=$false;try{Invoke-Business5244WriterPostCasRecovery $cap|Out-Null}catch{$denied=$true}
+ if(!$denied-or$script:r.phase-cne'Unknown'-or$script:r.dispatch.phase-cne'Blocked'-or$script:resumeCalls-ne1-or$script:spawnCount-or!$script:r.records.CanRead-or!$script:r.pending.CanRead){throw 'RECOVERY_UNKNOWN_NOT_RETAINED'}
+ foreach($action in @('invoke','new')){$denied=$false;try{if($action-ceq'invoke'){Invoke-Business5244WriterPostCasRecovery $cap|Out-Null}else{New-Business5244WriterPostCasRecoveryAdmission $state $script:apiToken $channel|Out-Null}}catch{$denied=$true};if(!$denied-or$script:resumeCalls-ne1){throw 'RECOVERY_UNKNOWN_RETRIED'}}
+ }`+recoveryCleanup),'PASS');
+});
+win('Writer recovery rejects a copied cap, closed source seal and changed audit before state or process effects',()=>{
+ assert.equal(run(recoveryFixture+String.raw`try{
+ $cap=New-Business5244WriterPostCasRecoveryAdmission $state $script:apiToken $channel
+ $denied=$false;try{Invoke-Business5244WriterPostCasRecovery ($cap|ConvertTo-Json|ConvertFrom-Json)|Out-Null}catch{$denied=$true};if(!$denied){throw 'COPIED_RECOVERY_CAP'}
+ $reg=$script:Business5244WriterPostCasRecoveries[0];$reg.audit.Position=0;$reg.audit.WriteByte(0);$reg.audit.Flush($true)
+ $denied=$false;try{Invoke-Business5244WriterPostCasRecovery $cap|Out-Null}catch{$denied=$true};if(!$denied-or$script:resumeCalls-or$script:spawnCount-or$script:r.phase-cne'Unknown'){throw 'CHANGED_AUDIT_EFFECT'}
+ }`+recoveryCleanup),'PASS');
+});
+win('Writer recovery lost source seal or changed loaded definition rejects before any continuation',()=>{
+ assert.equal(run(recoveryFixture+String.raw`try{
+ $cap=New-Business5244WriterPostCasRecoveryAdmission $state $script:apiToken $channel;$reg=$script:Business5244WriterPostCasRecoveries[0]
+ $reg.sources.definitions['Resume-Test125ReadPairWriterCandidateAfterCas']='unloaded-definition'
+ $denied=$false;try{Invoke-Business5244WriterPostCasRecovery $cap|Out-Null}catch{$denied=$true};if(!$denied-or$script:resumeCalls-or$script:r.phase-cne'Unknown'){throw 'CHANGED_DEFINITION_EFFECT'}
+ $reg.sources.definitions.Clear();$reg.sources.seal.Dispose();$denied=$false;try{Invoke-Business5244WriterPostCasRecovery $cap|Out-Null}catch{$denied=$true};if(!$denied-or$script:resumeCalls-or$script:spawnCount-or$script:r.phase-cne'Unknown'){throw 'LOST_SOURCE_SEAL_EFFECT'}
+ }`+recoveryCleanup),'PASS');
+});
+win('Writer recovery source loader seals real files and imports only three new AST definitions without replacing old guards',()=>{
+ const temp=fs.mkdtempSync(path.join(os.tmpdir(),'erp-recovery-loader-'));
+ try{
+  const core=path.join(temp,'core'),proof=path.join(temp,'proof');fs.mkdirSync(core);fs.mkdirSync(proof);
+  const producer=path.join(proof,'verified-owner-producer.mjs'),shaFile=filename=>cp.execFileSync(process.execPath,['-e',"const f=require('fs'),c=require('crypto');process.stdout.write(c.createHash('sha256').update(f.readFileSync(process.argv[1])).digest('hex'))",filename],{encoding:'utf8',windowsHide:true});
+  fs.writeFileSync(producer,`import fs from 'node:fs';import crypto from 'node:crypto';const root=${JSON.stringify(core)};if(process.argv.slice(2).join('|')!=='--verify-writer-recovery')throw Error('FIXTURE_ARG');const bytes=fs.readFileSync(root+'/owner-manifest.json'),m=JSON.parse(bytes);console.log(JSON.stringify({schema:'melisa-b6-writer-recovery-verification.v1',coreRoot:root,coreManifestSha256:crypto.createHash('sha256').update(bytes).digest('hex'),sourceCommit:m.sourceCommit,files:3,baseCoreManifestSha256:m.baseCoreManifestSha256,fixedCaseSha256:m.fixedCase.sha256,installed:false,executable:false,executionAuthority:false,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0,writes:0}));`);
+  let source=fs.readFileSync(recoveryLeaf,'utf8').replace("C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-WRITER-RECOVERY-20261029",core).replace("C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-writer-activation-v2-20261029\\recovery-preparation",proof).replace("C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe",process.execPath).replace('8553b4c4974f504566c72334da08664e6244d45a650f00ed6ba80dc2cc0f8f77',shaFile(producer)).replace('3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237',shaFile(process.execPath));
+  const leaf=path.join(core,path.basename(recoveryLeaf));fs.writeFileSync(leaf,source);
+  for(const name of ['test125-bound-api-quiescence.ps1','canonical-business-sale-maintenance.ps1'])fs.copyFileSync(path.join(dir,name),path.join(core,name));
+  const files=[path.basename(recoveryLeaf),'test125-bound-api-quiescence.ps1','canonical-business-sale-maintenance.ps1'].map(name=>({path:name,sha256:shaFile(path.join(core,name)),bytes:fs.statSync(path.join(core,name)).size}));
+  const casePath=path.join(core,'writer-postcas-fixed-case.json');fs.writeFileSync(casePath,'{}');
+  fs.writeFileSync(path.join(core,'owner-manifest.json'),JSON.stringify({kind:'BUSINESS5244_WRITER_POSTCAS_RECOVERY',scope:'TEST125-API-B6-WRITER-20261029',sourceCommit:'a'.repeat(40),sourcePolicy:'COMMITTED_GIT_BLOBS_ONLY',baseCoreRoot:'C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2',baseCoreManifestSha256:'2d1047887212c9e131a53da0f7f865a48909c90f0d6b84756c589fc8fdbbcdd2',baseRouterRoot:'C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2',baseRouterManifestSha256:'7f44b5b61e4cc8867aa25a84a2820974b632c0bdba318711e67c8ef24c7b5602',files,fixedCase:{path:path.basename(casePath),sha256:shaFile(casePath),bytes:2}}));
+  const script=String.raw`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+Add-Type -LiteralPath __NATIVE__
+function Read-ErpBusinessSalePinnedFile($Path,$Hash){$b=[IO.File]::ReadAllBytes($Path);$s=[Security.Cryptography.SHA256]::Create();try{if(([BitConverter]::ToString($s.ComputeHash($b)).Replace('-','').ToLowerInvariant())-cne$Hash){throw 'FIXTURE_BAD_HASH'}}finally{$s.Dispose()};return ,$b}
+function Assert-ErpBusinessSaleNativeQuiescence {throw 'ORIGINAL_GUARD_SENTINEL'}
+$original=(Get-Command Assert-ErpBusinessSaleNativeQuiescence).Definition
+. __LEAF__
+$sealed=Get-Business5244WriterPostCasRecoverySources
+try{
+ foreach($n in @('Assert-Test125ReadPairWriterPostCasPause','Resume-Test125ReadPairWriterCandidateAfterCas','Complete-ErpBusinessSaleWriterProfilePostCasState')){if(!(Get-Command $n -CommandType Function)){throw 'NEW_LEAF_NOT_IMPORTED'}}
+ foreach($n in @('Assert-Test125ReadPairWriterPostCasPause','Complete-ErpBusinessSaleWriterProfilePostCasState')){
+  if(!(Get-Command $n).Parameters.ContainsKey('Mode')){throw 'INLINE_PARAMETERS_LOST'}
+  $denied=$false;try{&$n $null -Mode INVALID|Out-Null}catch{if($_.Exception.GetType().FullName-cne'System.Management.Automation.ParameterBindingValidationException'){throw};$denied=$true};if(!$denied){throw 'INLINE_VALIDATESET_LOST'}
+ }
+ if(!(Get-Command Resume-Test125ReadPairWriterCandidateAfterCas).Parameters.ContainsKey('RecoveryAdmission')){throw 'OPAQUE_OUTER_PARAMETER_LOST'}
+ $denied=$false;try{Resume-Test125ReadPairWriterCandidateAfterCas $null $null $null|Out-Null}catch{if($_.Exception.Message-cne'WRITER_POSTCAS_NOT_ISSUED'){throw};$denied=$true};if(!$denied){throw 'DIRECT_RESUME_WITHOUT_OUTER_CAP'}
+ if((Get-Command Assert-ErpBusinessSaleNativeQuiescence).Definition-cne$original-or(Get-Command Invoke-ErpBusinessSaleNativeRevision -ErrorAction SilentlyContinue)){throw 'ORIGINAL_MODULE_HOTLOADED'}
+ Assert-Business5244WriterPostCasRecoverySources $sealed
+ $denied=$false;try{[IO.File]::WriteAllText(__INPUT__,'drift')}catch{$denied=$true};if(!$denied){throw 'SOURCE_NOT_HELD'}
+ $denied=$false;try{Get-Business5244WriterPostCasRecoverySources|Out-Null}catch{$denied=$true};if(!$denied){throw 'NEW_FUNCTION_COLLISION_ACCEPTED'}
+ 'PASS'
+}finally{$sealed.seal.Dispose()}
+`.replace('__NATIVE__',q(path.join(dir,'business-5244-web-native.cs'))).replace('__LEAF__',q(leaf)).replace('__INPUT__',q(path.join(core,'test125-bound-api-quiescence.ps1')));
+  const scriptPath=path.join(temp,'loader.ps1');fs.writeFileSync(scriptPath,script);assert.equal(cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',scriptPath],{encoding:'utf8',timeout:20000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim(),'PASS');
+ }finally{fs.rmSync(temp,{recursive:true,force:true})}
+});

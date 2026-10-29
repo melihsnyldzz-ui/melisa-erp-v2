@@ -508,7 +508,7 @@ function Open-B6WriterPreparedSource([string]$ReviewedSourceHash,[string]$EntryP
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
-  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer '186ba34a134a66ba12551d20e58a086e0cc2521562bcf7e4f706c5db4fb056b4'
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer '8553b4c4974f504566c72334da08664e6244d45a650f00ed6ba80dc2cc0f8f77'
   $verifiedText=& $node $producer --verify-writer
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'};$v=$verifiedText|ConvertFrom-Json
   $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2'

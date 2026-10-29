@@ -156,7 +156,16 @@ function Invoke-ErpBusinessSaleWriterProfileBoundaryCheck($Admission,[ValidateSe
 }
 function Complete-ErpBusinessSaleWriterProfileState($Admission,[ValidateSet('Candidate','Rollback')][string]$Mode){
  if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
- Invoke-ErpBusinessSaleWriterProfileBoundaryCheck $Admission -Mode $Mode;$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission
+ Complete-ErpBusinessSaleWriterProfilePostCasState $Admission -Mode $Mode
+}
+function Complete-ErpBusinessSaleWriterProfilePostCasState($Admission,[ValidateSet('Candidate','Rollback')][string]$Mode){
+ if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
+ [void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission -Phase Identity);$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission
+ if(($Mode-ceq'Candidate'-and$r.phase-cne'WriterPrepared')-or($Mode-ceq'Rollback'-and$r.phase-cnotin@('WriterPrepared','WriterActivated'))){throw 'B6_WRITER_PHASE_REJECTED'}
+ $c=Assert-Test125ReadPairWriterPostCasPause $r.transition -Mode $Mode
+ if(![object]::ReferenceEquals($c.nativeProfileAdmission,$Admission)){throw 'B6_WRITER_TRANSITION_NOT_ISSUED'}
+ [void](Get-ErpBusinessSaleOwnerSource $Admission);Test-ErpBusinessSaleAfter (Get-ErpBusinessSaleNativeInputs)
+ [void](Assert-Test125ReadPairWriterPostCasPause $r.transition -Mode $Mode)
  $expected=if($Mode-ceq'Candidate'){Get-ErpBusinessSaleHash $r.candidateBytes}else{$r.profileBeforeHash}
  [void](Read-ErpBusinessSalePinnedFile $r.profilePath $expected)
  $r.phase=if($Mode-ceq'Candidate'){'WriterActivated'}else{'WriterRestored'}

@@ -18,8 +18,8 @@ win('narrow library imports inertly and supported task actions occur only inside
  const script=file.replaceAll("'","''");assert.equal(execFileSync(ps,['-NoProfile','-NonInteractive','-Command',`
  function Get-Content {throw 'IMPORT_RUNTIME_READ'};function Get-CimInstance {throw 'IMPORT_PROCESS_READ'};function Get-ScheduledTask {throw 'IMPORT_TASK_READ'};function Stop-ScheduledTask {throw 'IMPORT_TASK_STOP'};function Start-ScheduledTask {throw 'IMPORT_TASK_START'};
  . '${script}';$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${script}',[ref]$tokens,[ref]$errors);if($errors.Count){throw 'SOURCE_PARSE'}
- $commands=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.CommandAst]-and$n.GetCommandName()-cin@('Stop-ScheduledTask','Start-ScheduledTask','New-ScheduledTaskAction','Set-ScheduledTask')},$true));if($commands.Count-ne4){throw 'SUPPORTED_ACTION_SCOPE'}
- foreach($command in $commands){$owner=$command.Parent;while($owner-and$owner-isnot[Management.Automation.Language.FunctionDefinitionAst]){$owner=$owner.Parent};$expected=if($command.GetCommandName()-cin@('New-ScheduledTaskAction','Set-ScheduledTask')){'Set-Test125ReadPairTaskAction'}else{'Invoke-Test125ReadPairApiTransition'};if(!$owner-or$owner.Name-cne$expected){throw 'TASK_ACTION_OUTSIDE_EXPLICIT_TRANSITION'}};'PASS'`],{encoding:'utf8',timeout:20000}).trim(),'PASS');
+ $commands=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.CommandAst]-and$n.GetCommandName()-cin@('Stop-ScheduledTask','Start-ScheduledTask','New-ScheduledTaskAction','Set-ScheduledTask')},$true));if($commands.Count-ne5){throw 'SUPPORTED_ACTION_SCOPE'}
+ foreach($command in $commands){$owner=$command.Parent;while($owner-and$owner-isnot[Management.Automation.Language.FunctionDefinitionAst]){$owner=$owner.Parent};$expected=if($command.GetCommandName()-cin@('New-ScheduledTaskAction','Set-ScheduledTask')){@('Set-Test125ReadPairTaskAction')}elseif($command.GetCommandName()-ceq'Start-ScheduledTask'){@('Invoke-Test125ReadPairApiTransition','Resume-Test125ReadPairWriterCandidateAfterCas')}else{@('Invoke-Test125ReadPairApiTransition')};if(!$owner-or$owner.Name-cnotin$expected){throw 'TASK_ACTION_OUTSIDE_EXPLICIT_TRANSITION'}};'PASS'`],{encoding:'utf8',timeout:20000}).trim(),'PASS');
 });
 win('import is inert; wrong target, run, source or API port rejects before process access',()=>{
  assert.equal(run(`
@@ -320,6 +320,69 @@ try{
  Close-Test125ReadPairRequestAdmission $token
  foreach($child in $children){if(!$child.HasExited){$matched=@($rows.Values|Where-Object{$_.pid-eq$child.Id});if($matched.Count-ne1-or$child.StartTime.ToUniversalTime().ToString('o')-cne$matched[0].birth){throw 'FIXTURE_CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}
 }
+`),'PASS');
+});
+win('Writer post-CAS proof uses actual changed-file pause guard and exited native handle without before-config validation',()=>{
+ assert.equal(runB6(writerFixture+String.raw`
+$realPaused=(Get-Command Assert-Test125ReadPairPaused).ScriptBlock
+`+b6PausedFixture+String.raw`
+function Assert-Test125ReadPairPaused($Context){&$realPaused $Context}
+$child=$null;$handle=$null
+try{
+ Initialize-Test125ApiKernel
+ $si=[Diagnostics.ProcessStartInfo]::new('${process.execPath.replaceAll("'","''")}','-e "setTimeout(()=>{},700)"');$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$child=[Diagnostics.Process]::Start($si);$birth=$child.StartTime.ToUniversalTime().Ticks;$handle=[Test125ApiKernel]::Open($child.Id,$birth);if(!$child.WaitForExit(10000)){throw 'FIXTURE_CHILD_TIMEOUT'}
+ $ctx.activeBinding|Add-Member handle $handle;$ctx.activeBinding|Add-Member birth $birth
+ $seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {};function Get-ErpReadPairReleaseProofContext($Proof){if(![object]::ReferenceEquals($Proof,$script:release)-or$script:releaseClosed){throw 'FIXTURE_RELEASE_NOT_ISSUED'};return @{seal=$seal}}
+ $script:nativeRecord=[pscustomobject]@{mode='WriterProfileActivation';phase='WriterPrepared';transition=$token;profilePath=$fixtureApi;candidateBytes=$script:candidateBytes;profileBeforeHash=$token.apiProfileBeforeSha256}
+ function Get-ErpBusinessSaleNativeAdmissionContext($Admission){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission Identity);return $script:nativeRecord}
+ Set-Test125ReadPairTaskAction $token Candidate
+ Write-Test125ReadPairCas $ctx.apiPath $token.apiProfileBeforeSha256 $ctx.apiCandidate;$ctx.apiChanged=$true
+ Write-Test125ReadPairCas $ctx.startupPath $token.startupBeforeSha256 $ctx.candidateBytes;$ctx.changed=$true
+ $script:oldGuardCalls=0;function Assert-ErpBusinessSaleNativeQuiescence {$script:oldGuardCalls++;throw 'TEST125_API_CONFIG_CHANGED'}
+ function Get-ErpBusinessSaleOwnerSource {return @{fixture='pinned'}};function Get-ErpBusinessSaleNativeInputs {return @{fixture='pinned'}};function Test-ErpBusinessSaleAfter {}
+ [void](Assert-Test125ReadPairWriterPostCasPause $token Candidate)
+ Complete-ErpBusinessSaleWriterProfilePostCasState $native Candidate
+ if($script:nativeRecord.phase-cne'WriterActivated'-or$script:oldGuardCalls-ne0-or$ctx.mode-cne'Current'-or!$ctx.activeBinding.held){throw 'POST_CAS_PROOF_USED_BEFORE_GUARD'}
+ foreach($case in @('task','profile','binding','seal')){
+  $oldTask=$ctx.taskAction.mode;$old=$script:releaseClosed;$oldBinding=$script:Test125ApiBinding;$bytes=[IO.File]::ReadAllBytes($fixtureApi)
+  switch($case){'task'{$ctx.taskAction.mode='Current'}'profile'{[IO.File]::WriteAllText($fixtureApi,'changed')}'binding'{$script:Test125ApiBinding=$null}'seal'{$script:releaseClosed=$true}}
+  $denied=$false;try{Assert-Test125ReadPairWriterPostCasPause $token Candidate|Out-Null}catch{$denied=$true};if(!$denied){throw ('POST_CAS_DRIFT_ADMITTED_'+$case)}
+  $ctx.taskAction.mode=$oldTask;$script:releaseClosed=$old;$script:Test125ApiBinding=$oldBinding;[IO.File]::WriteAllBytes($fixtureApi,$bytes)
+ }
+ 'PASS'
+}finally{if($handle){$handle.Dispose()};if($child){if(!$child.HasExited){if($child.StartTime.ToUniversalTime().Ticks-ne$birth){throw 'FIXTURE_CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}}
+`),'PASS');
+});
+const writerHeldCandidate=writerFixture+b6PausedFixture+String.raw`
+$seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {};function Get-ErpReadPairReleaseProofContext($Proof){if(![object]::ReferenceEquals($Proof,$script:release)-or$script:releaseClosed){throw 'FIXTURE_RELEASE_NOT_ISSUED'};return @{seal=$seal}}
+$script:nativeRecord=[pscustomobject]@{mode='WriterProfileActivation';phase='WriterPrepared';transition=$token;profilePath=$fixtureApi;candidateBytes=$script:candidateBytes;profileBeforeHash=$token.apiProfileBeforeSha256}
+function Get-ErpBusinessSaleNativeAdmissionContext($Admission){if(![object]::ReferenceEquals($Admission,$script:native)){throw 'FIXTURE_NATIVE_NOT_ISSUED'};return $script:nativeRecord}
+function Assert-ErpBusinessSaleWriterProfileAdmission($Admission,[string]$Phase='WriterPrepared'){if(![object]::ReferenceEquals($Admission,$script:native)-or($Phase-cne'Identity'-and$Phase-cne$script:nativeRecord.phase)){throw 'FIXTURE_WRITER_NOT_ISSUED'};return $true}
+function Get-ErpBusinessSaleOwnerSource {return @{fixture='pinned'}};function Get-ErpBusinessSaleNativeInputs {return @{fixture='pinned'}};function Test-ErpBusinessSaleAfter {}
+function Read-ErpBusinessSalePinnedFile($Path,$Hash){if($Path-cne$fixtureApi){throw 'FIXTURE_INPUT_OUTSIDE_TEMP'};$bytes=[IO.File]::ReadAllBytes($Path);if((Get-Test125ReadPairHash $bytes)-cne$Hash){throw 'FIXTURE_PROFILE_CAS'};return ,$bytes}
+Set-Test125ReadPairTaskAction $token Candidate
+Write-Test125ReadPairCas $ctx.apiPath $token.apiProfileBeforeSha256 $ctx.apiCandidate;$ctx.apiChanged=$true
+Write-Test125ReadPairCas $ctx.startupPath $token.startupBeforeSha256 $ctx.candidateBytes;$ctx.changed=$true
+$ctx.candidateAttempted=$true;$ctx.phase='FAILED';$script:events.Clear()
+$outerCap=[pscustomobject]@{fixture='fresh-outer-admission'}
+function Assert-Business5244WriterPostCasRecoveryApiResume($Admission,$Transition,$NativeAdmission){if(![object]::ReferenceEquals($Admission,$outerCap)-or![object]::ReferenceEquals($Transition,$token)-or![object]::ReferenceEquals($NativeAdmission,$native)){throw 'FIXTURE_OUTER_RECOVERY_NOT_ISSUED'};return $ctx}
+function Assert-ErpBusinessSaleNativeQuiescence {throw 'TEST125_API_CONFIG_CHANGED'};function Invoke-ErpBusinessSaleNativeRevision {throw 'FORBIDDEN_DDL'}
+`;
+win('Writer distinct same-context post-CAS resume completes only held Candidate and starts the existing task once',()=>{
+ assert.equal(runB6(writerHeldCandidate+String.raw`
+$out=Resume-Test125ReadPairWriterCandidateAfterCas $token $native $outerCap
+if($out.status-cne'API_COMPONENT_VERIFIED'-or$ctx.mode-cne'Candidate'-or$ctx.phase-cne'VERIFIED'-or$script:nativeRecord.phase-cne'WriterActivated'-or$ctx.nativeChangeAttempted-or@($script:events|Where-Object{$_-ceq'resume'}).Count-ne1){throw 'POST_CAS_RESUME_NOT_VERIFIED'}
+$denied=$false;try{Resume-Test125ReadPairWriterCandidateAfterCas $token $native $outerCap|Out-Null}catch{$denied=$true};if(!$denied-or@($script:events|Where-Object{$_-ceq'resume'}).Count-ne1){throw 'POST_CAS_RESUME_REPLAY'};'PASS'
+`),'PASS');
+});
+win('Writer distinct post-CAS resume refuses foreign phase, effects, partial CAS, task drift and copied refs before start',()=>{
+ assert.equal(runB6(writerHeldCandidate+String.raw`
+foreach($case in @('phase','mode','attempt','native-change','native-applied','started','partial-cas','task','native-copy','token-copy','outer-null','outer-copy')){
+ $before=@{phase=$ctx.phase;mode=$ctx.mode;candidateAttempted=$ctx.candidateAttempted;nativeChangeAttempted=$ctx.nativeChangeAttempted;nativeApplied=$ctx.nativeApplied;resumedEngine=$ctx.resumedEngine;apiChanged=$ctx.apiChanged;taskMode=$ctx.taskAction.mode};$t=$token;$n=$native;$a=$outerCap
+ switch($case){'phase'{$ctx.phase='VERIFIED'}'mode'{$ctx.mode='Candidate'}'attempt'{$ctx.candidateAttempted=$false}'native-change'{$ctx.nativeChangeAttempted=$true}'native-applied'{$ctx.nativeApplied=$true}'started'{$ctx.resumedEngine=123}'partial-cas'{$ctx.apiChanged=$false}'task'{$ctx.taskAction.mode='Current'}'native-copy'{$n=$native|ConvertTo-Json|ConvertFrom-Json}'token-copy'{$t=$token|ConvertTo-Json -Depth 20|ConvertFrom-Json}'outer-null'{$a=$null}'outer-copy'{$a=$outerCap|ConvertTo-Json|ConvertFrom-Json}}
+ $denied=$false;try{Resume-Test125ReadPairWriterCandidateAfterCas $t $n $a|Out-Null}catch{$denied=$true};if(!$denied-or@($script:events|Where-Object{$_-ceq'resume'}).Count-or$script:nativeRecord.phase-cne'WriterPrepared'){throw ('POST_CAS_FALSE_ADMISSION_'+$case)}
+ foreach($key in @('phase','mode','candidateAttempted','nativeChangeAttempted','nativeApplied','resumedEngine','apiChanged')){$ctx.$key=$before[$key]};$ctx.taskAction.mode=$before.taskMode
+};'PASS'
 `),'PASS');
 });
 win('B6 rehearsal purpose comes only from the validated native context and remains bound to token and audit',()=>{

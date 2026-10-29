@@ -12,6 +12,7 @@ $cap.schema='melisa-b6-writer-profile.v1';$cap|Add-Member NoteProperty purpose W
 $r|Add-Member NoteProperty mode WriterProfileActivation;$r|Add-Member NoteProperty ownerInputs ([pscustomobject]@{manifestSha256='owner'});$r.phase='WriterPrepared'
 $script:physical=$true;$script:after=0;$script:actual='wrong'
 function Assert-ErpBusinessSaleNativeQuiescence {if(!$script:physical){throw 'NOT_PAUSED'};return [pscustomobject]@{}}
+function Assert-Test125ReadPairWriterPostCasPause {if(!$script:physical){throw 'NOT_PAUSED'};return [pscustomobject]@{nativeProfileAdmission=$cap}}
 function Read-ErpBusinessSaleWriterOwnerSource {return [pscustomobject]@{manifestSha256='owner'}}
 function Test-ErpBusinessSaleAfter {$script:after++}
 function Read-ErpBusinessSalePinnedFile {param($Path,$Hash);if($Path-ceq'fixture-profile'-and$Hash-cne$script:actual){throw 'PROFILE_CAS'};return ,([byte[]](0))}

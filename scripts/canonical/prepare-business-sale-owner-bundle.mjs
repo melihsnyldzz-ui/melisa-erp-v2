@@ -75,6 +75,18 @@ const WRITER_INPUTS=Object.freeze({
  'current-task-capture.json':'208bad4f906d910a2dc247f2cb08db0f2e47f07421b256997a93239cc0f967e6',
  'current-entry-hold-capture.json':'95b27499bd60bba1e32c3a173e5c573e434c9b31014f796ba62a0c7442dc440a',
 });
+// A passive, same-issuer-only recovery closure. It never restarts an owner or
+// adopts serialized state; the new entry still requires the original live refs.
+const WRITER_RECOVERY_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-WRITER-RECOVERY-20261029');
+const WRITER_RECOVERY_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-v2-20261029`;
+const WRITER_RECOVERY_PROOF=path.win32.join(WRITER_RECOVERY_PRIVATE,'recovery-preparation');
+const WRITER_RECOVERY_VERIFIER=path.win32.join(WRITER_RECOVERY_PROOF,'verified-owner-producer.mjs');
+const WRITER_RECOVERY_BASE_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2');
+const WRITER_RECOVERY_BASE_CORE_HASH='2d1047887212c9e131a53da0f7f865a48909c90f0d6b84756c589fc8fdbbcdd2';
+const WRITER_RECOVERY_BASE_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2');
+const WRITER_RECOVERY_BASE_ROUTER_HASH='7f44b5b61e4cc8867aa25a84a2820974b632c0bdba318711e67c8ef24c7b5602';
+const WRITER_RECOVERY_CASE_HASH='9325bd0d6e00cb321ff1ee4e9b8aa9d67dd4bbc2bfb3c0ae8c072c26eaa0b268';
+const WRITER_RECOVERY_SOURCE_FILES=Object.freeze(['business-5244-writer-postcas-recovery.ps1','test125-bound-api-quiescence.ps1','canonical-business-sale-maintenance.ps1']);
 const CURRENT_SUPERSESSION_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029');
 const CURRENT_SUPERSESSION_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\current-only-supersession-20261029`;
 const CURRENT_SUPERSESSION_PROOF=path.win32.join(CURRENT_SUPERSESSION_PRIVATE,'owner-preparation');
@@ -165,17 +177,18 @@ function read(p){plainPath(p);return fs.readFileSync(p);}
 function pinned(p,expected){const b=read(p);if(hash(b)!==expected)fail('B6_OWNER_INPUT_CHANGED');return b;}
 function git(args,raw=false,input){return cp.execFileSync('git',args,{cwd:SOURCE_ROOT,windowsHide:true,...(raw?{}:{encoding:'utf8'}),...(input===undefined?{}:{input}),maxBuffer:8*1024*1024});}
 function gh(endpoint){return JSON.parse(cp.execFileSync('gh',['api',endpoint],{cwd:SOURCE_ROOT,windowsHide:true,encoding:'utf8',maxBuffer:4*1024*1024}));}
-function committedSources(packagedCommit=null,currentSupersession=false,initializerClean=false,rehearsal=false,candidate=false,writer=false){
+function committedSources(packagedCommit=null,currentSupersession=false,initializerClean=false,rehearsal=false,candidate=false,writer=false,writerRecovery=false){
+ if(typeof writerRecovery!=='boolean'||writerRecovery&&(currentSupersession||initializerClean||rehearsal||candidate||writer))fail('B6_OWNER_FIXED_ACTION_REQUIRED');
  if(typeof rehearsal!=='boolean'||typeof candidate!=='boolean'||typeof writer!=='boolean'||writer&&(currentSupersession||initializerClean||rehearsal||candidate)||rehearsal&&(currentSupersession||initializerClean)||candidate&&(currentSupersession||initializerClean||rehearsal))fail('B6_OWNER_FIXED_ACTION_REQUIRED');
  const ownPath=path.resolve(fileURLToPath(import.meta.url));
- const verifier=writer?WRITER_VERIFIER:candidate?CANDIDATE_VERIFIER:rehearsal?REHEARSAL_VERIFIER:initializerClean?INITIALIZER_CLEAN_VERIFIER:currentSupersession?CURRENT_SUPERSESSION_VERIFIER:VERIFIED_PRODUCER,verifyAction=writer?'--verify-writer':candidate?'--verify-candidate':rehearsal?'--verify-rehearsal':initializerClean?'--verify-initializer-clean-recovery':currentSupersession?'--verify-current-supersession':'--verify';
+ const verifier=writerRecovery?WRITER_RECOVERY_VERIFIER:writer?WRITER_VERIFIER:candidate?CANDIDATE_VERIFIER:rehearsal?REHEARSAL_VERIFIER:initializerClean?INITIALIZER_CLEAN_VERIFIER:currentSupersession?CURRENT_SUPERSESSION_VERIFIER:VERIFIED_PRODUCER,verifyAction=writerRecovery?'--verify-writer-recovery':writer?'--verify-writer':candidate?'--verify-candidate':rehearsal?'--verify-rehearsal':initializerClean?'--verify-initializer-clean-recovery':currentSupersession?'--verify-current-supersession':'--verify';
  if(process.platform!=='win32'||ownPath!==path.join(SOURCE_ROOT,'scripts','canonical','prepare-business-sale-owner-bundle.mjs')&&(ownPath!==verifier||process.argv.slice(2).join('|')!==verifyAction))fail('B6_OWNER_FIXED_SOURCE_REQUIRED');
  for(const args of [['remote','get-url','origin'],['remote','get-url','--push','origin']])if(git(args).trim()!=='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git')fail('B6_OWNER_ORIGIN_CHANGED');
  if(git(['branch','--show-current']).trim()!=='codex/erp-p03-pr53-candidate-20261018')fail('B6_OWNER_BRANCH_CHANGED');
  const repoHead=git(['rev-parse','HEAD']).trim();if(!commit(repoHead)||git(['status','--porcelain','--untracked-files=no']).trim())fail('B6_OWNER_COMMITTED_CLEAN_SOURCE_REQUIRED');
  const head=packagedCommit??repoHead;if(!commit(head))fail('B6_OWNER_SOURCE_COMMIT_REJECTED');
  if(head!==repoHead){try{git(['merge-base','--is-ancestor',head,repoHead]);}catch{fail('B6_OWNER_SOURCE_NOT_CURRENT_ANCESTOR');}}
- const names=[...BUSINESS_SALE_OWNER_SOURCE_FILES,'start-business-5244-readpair-router.ps1','install-business-5244-readpair.ps1','prepare-business-sale-owner-bundle.mjs'];
+ const names=writerRecovery?[...WRITER_RECOVERY_SOURCE_FILES,'prepare-business-sale-owner-bundle.mjs']:[...BUSINESS_SALE_OWNER_SOURCE_FILES,'start-business-5244-readpair-router.ps1','install-business-5244-readpair.ps1','prepare-business-sale-owner-bundle.mjs'];
  const files=new Map(),workingSourceHashes=[];
  for(const name of names){
   const relative='scripts/canonical/'+name;git(['ls-files','--error-unmatch','--',relative]);
@@ -191,7 +204,8 @@ function committedSources(packagedCommit=null,currentSupersession=false,initiali
   if(!commit(objectId)||git(['hash-object','--path',relative,'--stdin'],false,working).trim()!==objectId)fail('B6_OWNER_WORKING_SOURCE_CHANGED');
   files.set(name,b);workingSourceHashes.push({path:relative,gitBlobObjectId:objectId,gitBlobSha256:hash(b),workingSha256:hash(working),transform:working.equals(b)?'IDENTICAL':'GIT_TEXT_CRLF_TO_LF_ONLY'});
  }
- if(!files.get('install-business-5244-readpair.ps1').toString('utf8').includes("Hold-B6ReadPairSource $producer '"+hash(files.get('prepare-business-sale-owner-bundle.mjs'))+"'"))fail('B6_OWNER_CONTROLLER_VERIFIER_PIN_MISMATCH');
+ if(writerRecovery&&!files.get('business-5244-writer-postcas-recovery.ps1').toString('utf8').includes("$producerHash='"+hash(files.get('prepare-business-sale-owner-bundle.mjs'))+"'"))fail('B6_WRITER_RECOVERY_VERIFIER_PIN_MISMATCH');
+ if(!writerRecovery&&!files.get('install-business-5244-readpair.ps1').toString('utf8').includes("Hold-B6ReadPairSource $producer '"+hash(files.get('prepare-business-sale-owner-bundle.mjs'))+"'"))fail('B6_OWNER_CONTROLLER_VERIFIER_PIN_MISMATCH');
  return {head,repoHead,files,workingSourceHashes};
 }
 function hostedSourceChecks(head){
@@ -599,6 +613,40 @@ export function verifyBusinessSaleWriterBundle(){
  if(!read(path.join(WRITER_ROUTER,'readpair-router-library.ps1')).equals(expected.library)||!read(path.join(WRITER_ROUTER,'start-business-5244-readpair-router.ps1')).equals(expected.entry)||!read(WRITER_VERIFIER).equals(source.files.get('prepare-business-sale-owner-bundle.mjs'))||!read(path.join(WRITER_PROOF,'reviewed-installer-source.ps1')).equals(source.files.get('install-business-5244-readpair.ps1')))fail('B6_WRITER_PREPARED_SOURCE_CHANGED');
  return {schema:'melisa-b6-writer-owner-verification.v1',...writerPassiveMetadata(),ownerSourceCommit:source.head,currentRepoHead:source.repoHead,rehearsalOnly:false,maintenancePurpose:WRITER_PURPOSE,coreRoot:WRITER_CORE,coreManifestSha256:hash(expected.coreBytes),routerRoot:WRITER_ROUTER,routerManifestSha256:hash(expected.routerBytes),installerSourceSha256:receipt.installerSourceSha256,coreFiles:13,beforeImages:6,writes:0,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0};
 }
+function writerRecoveryBefore(){
+ if(!hex(WRITER_RECOVERY_CASE_HASH))fail('B6_WRITER_RECOVERY_CASE_NOT_PREPARED');
+ const fixedCaseBytes=pinned(path.join(WRITER_RECOVERY_PRIVATE,'writer-postcas-fixed-case.json'),WRITER_RECOVERY_CASE_HASH),fixedCase=json(fixedCaseBytes);
+ if(fixedCase.schema!=='melisa-b6-writer-postcas-fixed-case.v1'||fixedCase.scope!==WRITER_SCOPE||fixedCase.purpose!=='CompleteHeldWriterCandidateAfterCas'||fixedCase.readOnly!==true||fixedCase.executionAuthority!==false||fixedCase.actualT1!==false||fixedCase.externalOperations!==false||fixedCase.ownerPid!==45612||fixedCase.ownerBirth!=='134377648982508423'||fixedCase.expectedFailureCode!=='TEST125_API_CONFIG_CHANGED'||fixedCase.baseCoreManifestSha256!==WRITER_RECOVERY_BASE_CORE_HASH||fixedCase.baseRouterManifestSha256!==WRITER_RECOVERY_BASE_ROUTER_HASH)fail('B6_WRITER_RECOVERY_CASE_REJECTED');
+ const fields=['schema','scope','purpose','ownerPid','ownerBirth','webChildPid','webChildBirth','operationId','planHash','recordsSha256','pendingSha256','beforeSha256','startupCandidateSha256','apiProfileCandidateSha256','taskCandidateSignature','taskSddlHash','baseCoreManifestSha256','baseRouterManifestSha256','expectedFailureCode','readOnly','executionAuthority','actualT1','externalOperations'];
+ if(Object.keys(fixedCase).sort().join('|')!==fields.sort().join('|')||fixedCase.webChildPid!==41076||fixedCase.webChildBirth!=='134377649729628304'||typeof fixedCase.operationId!=='string'||!/^[a-f0-9]{32}$/.test(fixedCase.operationId)||['planHash','recordsSha256','pendingSha256','beforeSha256','startupCandidateSha256','apiProfileCandidateSha256','taskCandidateSignature','taskSddlHash'].some(name=>!hex(fixedCase[name])))fail('B6_WRITER_RECOVERY_CASE_REJECTED');
+ const core=json(pinned(path.join(WRITER_RECOVERY_BASE_CORE,'owner-manifest.json'),WRITER_RECOVERY_BASE_CORE_HASH)),router=json(pinned(path.join(WRITER_RECOVERY_BASE_ROUTER,'owner-manifest.json'),WRITER_RECOVERY_BASE_ROUTER_HASH)),names=[...BUSINESS_SALE_OWNER_SOURCE_FILES,'run-current-owner.ps1'].sort();
+ if(core.kind!=='BUSINESS5244_FRESH_OWNER_BUNDLE'||core.finiteScope!==WRITER_SCOPE||core.sourceCommit!=='d0b457f2ee9911dc2bf0b453723a91264ff551b6'||core.maintenancePurpose!==WRITER_PURPOSE||core.rehearsalOnly!==false||core.recordingEnabled!==false||core.actualT1!==false||core.externalOperations!==false||core.packagePair?.sha256!==WRITER_PAIR_HASH||!Array.isArray(core.files)||core.files.length!==13||core.files.map(f=>f.path).sort().join('|')!==names.join('|')||router.kind!=='BUSINESS5244_READ_PAIR_ROUTER'||router.finiteScope!==WRITER_SCOPE||router.coreRoot!==WRITER_RECOVERY_BASE_CORE||router.coreManifestSha256!==WRITER_RECOVERY_BASE_CORE_HASH||router.entrySourceCommit!==core.sourceCommit||router.maintenancePurpose!==WRITER_PURPOSE||router.actualT1!==false||router.externalOperations!==false)fail('B6_WRITER_RECOVERY_BASE_REJECTED');
+ for(const row of core.files){if(typeof row.path!=='string'||/[\\/]/.test(row.path)||!hex(row.sha256)||!Number.isSafeInteger(row.bytes)||row.bytes<1||pinned(path.join(WRITER_RECOVERY_BASE_CORE,row.path),row.sha256).length!==row.bytes)fail('B6_WRITER_RECOVERY_BASE_REJECTED');}
+ pinned(path.join(WRITER_RECOVERY_BASE_CORE,'writer-package-pair.json'),WRITER_PAIR_HASH);
+ return {fixedCaseBytes,core};
+}
+function writerRecoveryManifest(source,ci,before){return {kind:'BUSINESS5244_WRITER_POSTCAS_RECOVERY',scope:WRITER_SCOPE,sourceCommit:source.head,sourcePolicy:'COMMITTED_GIT_BLOBS_ONLY',baseCoreRoot:WRITER_RECOVERY_BASE_CORE,baseCoreManifestSha256:WRITER_RECOVERY_BASE_CORE_HASH,baseRouterRoot:WRITER_RECOVERY_BASE_ROUTER,baseRouterManifestSha256:WRITER_RECOVERY_BASE_ROUTER_HASH,fixedCase:{path:'writer-postcas-fixed-case.json',sha256:WRITER_RECOVERY_CASE_HASH,bytes:before.fixedCaseBytes.length},originalSourceFiles:before.core.files,files:WRITER_RECOVERY_SOURCE_FILES.map(name=>({path:name,sha256:hash(source.files.get(name)),bytes:source.files.get(name).length})),hostedCi:ci,actualT1:false,externalOperations:false,installed:false,executable:false,executionAuthority:false,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0,writes:0};}
+function writerRecoveryVerification(source,manifestBytes){return {schema:'melisa-b6-writer-recovery-verification.v1',coreRoot:WRITER_RECOVERY_CORE,coreManifestSha256:hash(manifestBytes),sourceCommit:source.head,files:3,baseCoreManifestSha256:WRITER_RECOVERY_BASE_CORE_HASH,fixedCaseSha256:WRITER_RECOVERY_CASE_HASH,installed:false,executable:false,executionAuthority:false,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0,writes:0};}
+export function prepareBusinessSaleWriterRecoveryBundle(){
+ if(path.resolve(fileURLToPath(import.meta.url))!==path.join(SOURCE_ROOT,'scripts','canonical','prepare-business-sale-owner-bundle.mjs'))fail('B6_OWNER_PREPARATION_SOURCE_ENTRY_REQUIRED');
+ const source=committedSources(null,false,false,false,false,false,true),ci=hostedSourceChecks(source.head),before=writerRecoveryBefore(),manifestBytes=bytes(writerRecoveryManifest(source,ci,before));
+ for(const root of [WRITER_RECOVERY_CORE,WRITER_RECOVERY_PROOF]){if(fs.existsSync(root))fail('B6_OWNER_OUTPUT_EXISTS_NO_OVERWRITE');plainPath(path.dirname(root));}
+ if(git(['rev-parse','HEAD']).trim()!==source.head||git(['status','--porcelain','--untracked-files=no']).trim())fail('B6_OWNER_SOURCE_CHANGED');
+ pinned(path.join(WRITER_RECOVERY_PRIVATE,'writer-postcas-fixed-case.json'),WRITER_RECOVERY_CASE_HASH);
+ for(const root of [WRITER_RECOVERY_CORE,WRITER_RECOVERY_PROOF])fs.mkdirSync(root);
+ for(const name of WRITER_RECOVERY_SOURCE_FILES)writeLeaf(WRITER_RECOVERY_CORE,name,source.files.get(name));
+ writeLeaf(WRITER_RECOVERY_CORE,'writer-postcas-fixed-case.json',before.fixedCaseBytes);writeLeaf(WRITER_RECOVERY_CORE,'owner-manifest.json',manifestBytes);
+ const receipt={...writerRecoveryVerification(source,manifestBytes),schema:'melisa-b6-writer-recovery-preparation.v1',sourcePolicy:'COMMITTED_GIT_BLOBS_ONLY',producerSourceSha256:hash(source.files.get('prepare-business-sale-owner-bundle.mjs')),hostedCi:ci};
+ writeLeaf(WRITER_RECOVERY_PROOF,'preparation-receipt.json',bytes(receipt));writeLeaf(WRITER_RECOVERY_PROOF,'verified-owner-producer.mjs',source.files.get('prepare-business-sale-owner-bundle.mjs'));return receipt;
+}
+export function verifyBusinessSaleWriterRecoveryBundle(){
+ const receipt=json(read(path.join(WRITER_RECOVERY_PROOF,'preparation-receipt.json'))),source=committedSources(receipt.sourceCommit,false,false,false,false,false,true),ci=hostedSourceChecks(source.head),before=writerRecoveryBefore(),manifestBytes=bytes(writerRecoveryManifest(source,ci,before)),expected=writerRecoveryVerification(source,manifestBytes);
+ const expectedReceipt={...expected,schema:'melisa-b6-writer-recovery-preparation.v1',sourcePolicy:'COMMITTED_GIT_BLOBS_ONLY',producerSourceSha256:hash(source.files.get('prepare-business-sale-owner-bundle.mjs')),hostedCi:ci};
+ if(JSON.stringify(receipt)!==JSON.stringify(expectedReceipt)||!read(path.join(WRITER_RECOVERY_CORE,'owner-manifest.json')).equals(manifestBytes)||!read(path.join(WRITER_RECOVERY_CORE,'writer-postcas-fixed-case.json')).equals(before.fixedCaseBytes)||!read(path.join(WRITER_RECOVERY_PROOF,'verified-owner-producer.mjs')).equals(source.files.get('prepare-business-sale-owner-bundle.mjs')))fail('B6_WRITER_RECOVERY_PAYLOAD_CHANGED');
+ for(const name of WRITER_RECOVERY_SOURCE_FILES)if(!read(path.join(WRITER_RECOVERY_CORE,name)).equals(source.files.get(name)))fail('B6_WRITER_RECOVERY_PAYLOAD_CHANGED');
+ return expected;
+}
+
 export function prepareBusinessSaleOwnerBundle(){
  if(path.resolve(fileURLToPath(import.meta.url))!==path.join(SOURCE_ROOT,'scripts','canonical','prepare-business-sale-owner-bundle.mjs'))fail('B6_OWNER_PREPARATION_SOURCE_ENTRY_REQUIRED');
  const source=committedSources(),ci=hostedSourceChecks(source.head),before=predecessor();
@@ -697,4 +745,4 @@ function verifyCurrentBundle(initializerClean){
  if(!read(g.verifier).equals(source.files.get('prepare-business-sale-owner-bundle.mjs'))||!read(path.join(g.proof,'reviewed-installer-source.ps1')).equals(source.files.get('install-business-5244-readpair.ps1')))fail('B6_OWNER_PREPARED_SOURCE_CHANGED');
  return {...(initializerClean?initializerPassiveValidation():{}),schema:initializerClean?'melisa-initializer-clean-recovery-passive-verification.v1':'melisa-current-supersession-passive-verification.v1',ownerSourceCommit:source.head,currentRepoHead:source.repoHead,coreRoot:g.core,coreManifestSha256:hash(actualManifest),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),coreFiles:13,installerFiles:1,beforeImages:g.count,writes:0,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0};
 }
-if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|'),actions={'--prepare':prepareBusinessSaleOwnerBundle,'--verify':verifyBusinessSaleOwnerBundle,'--prepare-current-supersession':prepareBusinessSaleCurrentSupersessionBundle,'--verify-current-supersession':verifyBusinessSaleCurrentSupersessionBundle,'--prepare-initializer-clean-recovery':prepareBusinessSaleInitializerCleanRecoveryBundle,'--verify-initializer-clean-recovery':verifyBusinessSaleInitializerCleanRecoveryBundle,'--prepare-rehearsal':prepareBusinessSaleRehearsalBundle,'--verify-rehearsal':verifyBusinessSaleRehearsalBundle,'--prepare-candidate':prepareBusinessSaleCandidateBundle,'--verify-candidate':verifyBusinessSaleCandidateBundle,'--prepare-writer':prepareBusinessSaleWriterBundle,'--verify-writer':verifyBusinessSaleWriterBundle};if(!Object.hasOwn(actions,action))fail('B6_OWNER_FIXED_ACTION_REQUIRED');try{const r=actions[action]();process.stdout.write(JSON.stringify(r)+'\n');}catch(e){process.stderr.write((/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'B6_OWNER_PREPARATION_FAILED')+'\n');process.exitCode=1;}}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|'),actions={'--prepare':prepareBusinessSaleOwnerBundle,'--verify':verifyBusinessSaleOwnerBundle,'--prepare-current-supersession':prepareBusinessSaleCurrentSupersessionBundle,'--verify-current-supersession':verifyBusinessSaleCurrentSupersessionBundle,'--prepare-initializer-clean-recovery':prepareBusinessSaleInitializerCleanRecoveryBundle,'--verify-initializer-clean-recovery':verifyBusinessSaleInitializerCleanRecoveryBundle,'--prepare-rehearsal':prepareBusinessSaleRehearsalBundle,'--verify-rehearsal':verifyBusinessSaleRehearsalBundle,'--prepare-candidate':prepareBusinessSaleCandidateBundle,'--verify-candidate':verifyBusinessSaleCandidateBundle,'--prepare-writer-recovery':prepareBusinessSaleWriterRecoveryBundle,'--verify-writer-recovery':verifyBusinessSaleWriterRecoveryBundle,'--prepare-writer':prepareBusinessSaleWriterBundle,'--verify-writer':verifyBusinessSaleWriterBundle};if(!Object.hasOwn(actions,action))fail('B6_OWNER_FIXED_ACTION_REQUIRED');try{const r=actions[action]();process.stdout.write(JSON.stringify(r)+'\n');}catch(e){process.stderr.write((/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'B6_OWNER_PREPARATION_FAILED')+'\n');process.exitCode=1;}}

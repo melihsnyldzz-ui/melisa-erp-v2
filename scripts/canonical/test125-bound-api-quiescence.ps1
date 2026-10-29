@@ -436,6 +436,23 @@ function Assert-Test125ReadPairPaused($Context){
  if(@(Get-NetTCPConnection -State Listen -LocalPort 4144 -ErrorAction SilentlyContinue).Count){throw 'TEST125_READPAIR_API_NOT_EMPTY'}
  Assert-Test125ReadPairCompanions $c
 }
+
+function Assert-Test125ReadPairWriterPostCasPause($Transition,[ValidateSet('Candidate','Rollback')][string]$Mode){
+ if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
+ $c=Assert-Test125ReadPairIssued $Transition
+ if($Transition.scope-cne'TEST125-API-B6-WRITER-20261029'-or$Transition.profileOnlyPurpose-cne'WriterProfileActivation'){throw 'B6_WRITER_POST_CAS_NOT_ISSUED'}
+ $n=Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission
+ if($n.mode-cne'WriterProfileActivation'-or![object]::ReferenceEquals($n.transition,$Transition)){throw 'B6_WRITER_POST_CAS_NOT_ISSUED'}
+ $b=$c.activeBinding;$destination=if($Mode-ceq'Candidate'){'Candidate'}else{'Current'};$candidate=$Mode-ceq'Candidate'
+ if(!$b-or![object]::ReferenceEquals($b,$script:Test125ApiBinding)-or![object]::ReferenceEquals($b.releaseProof,$c.releaseProof)-or!$c.taskStopped-or!$c.vault-or$c.changed-isnot[bool]-or$c.apiChanged-isnot[bool]-or$c.changed-ne$candidate-or$c.apiChanged-ne$candidate-or!$c.taskAction-or$c.taskAction.unknown-or$c.taskAction.mode-cne$destination){throw 'B6_WRITER_POST_CAS_NOT_PAUSED'}
+ [void](Assert-Test125ReadPairPaused $c)
+ $proof=Get-ErpReadPairReleaseProofContext $c.releaseProof;$proof.seal.Validate()
+ $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof
+ [void](Assert-Test125ReadPairConfig $config $destination -ScopeName $Transition.scope)
+ foreach($entry in @(@($c.startupPath,$(if($candidate){$Transition.startupCandidateSha256}else{$Transition.startupBeforeSha256})),@($c.apiPath,$(if($candidate){$Transition.apiProfileCandidateSha256}else{$Transition.apiProfileBeforeSha256})),@($config.ConfigPath,$Transition.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'B6_WRITER_POST_CAS_FILE_CHANGED'}}
+ return $c
+}
+
 function Assert-Test125ReadPairContext($Context){
  try{$registered=Assert-Test125ReadPairIssued $Context.token;if(![object]::ReferenceEquals($Context,$registered)){throw 'TEST125_READPAIR_NOT_ISSUED'};return $registered}catch{throw 'TEST125_READPAIR_NOT_ISSUED'}
 }
@@ -645,5 +662,46 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
   }
   if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'){$outcome|Add-Member profileOnlyPurpose 'WriterProfileActivation';$outcome|Add-Member nativePhase (Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).phase}
   return $outcome
+ }catch{$c.phase='FAILED';throw}
+}
+
+function Resume-Test125ReadPairWriterCandidateAfterCas($Transition,$NativeProfileAdmission,$RecoveryAdmission=$null){
+ $outer=Assert-Business5244WriterPostCasRecoveryApiResume $RecoveryAdmission $Transition $NativeProfileAdmission
+ $c=Assert-Test125ReadPairIssued $Transition
+ if(![object]::ReferenceEquals($outer,$c)){throw 'B6_WRITER_POST_CAS_RECOVERY_NOT_ISSUED'}
+ if($Transition.scope-cne'TEST125-API-B6-WRITER-20261029'-or![object]::ReferenceEquals($NativeProfileAdmission,$c.nativeProfileAdmission)-or$c.phase-cne'FAILED'-or$c.mode-cne'Current'-or$c.candidateAttempted-isnot[bool]-or!$c.candidateAttempted-or$c.nativeChangeAttempted-isnot[bool]-or$c.nativeChangeAttempted-or$c.nativeApplied-isnot[bool]-or$c.nativeApplied-or$c.resumedEngine-or$c.resumedInstance-or$c.resumedBirth-or$c.failedStartProof){throw 'B6_WRITER_POST_CAS_RESUME_NOT_ISSUED'}
+ $n=Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission
+ if($n.phase-cnotin@('WriterPrepared','WriterActivated')){throw 'B6_WRITER_PHASE_REJECTED'}
+ [void](Assert-Test125ReadPairWriterPostCasPause $Transition -Mode Candidate)
+ if($n.phase-ceq'WriterPrepared'){Complete-ErpBusinessSaleWriterProfilePostCasState $NativeProfileAdmission -Mode Candidate}
+ [void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeProfileAdmission -Phase WriterActivated)
+ [void](Assert-Test125ReadPairWriterPostCasPause $Transition -Mode Candidate)
+ $destination='Candidate'
+ try{
+  $retiredSupervisor=$c.admission.supervisor
+  $c.mode=$destination;Close-Test125ApiQuiescence $c.activeBinding;$c.activeBinding=$null;$c.failedStartProof=$null
+  $c.phase='STARTING';$c.resumedEngine=$null;$c.resumedInstance=$null;$c.resumedBirth=$null;Start-ScheduledTask -TaskName 'Melisa-ERP-TEST-Canonical' -TaskPath '\' -ErrorAction Stop;$c.taskStopped=$false
+  $deadline=[DateTime]::UtcNow.AddSeconds(300);$observedEngine=$null;$last=$null
+  do{
+   $instances=(Get-Test125ReadPairTask).GetInstances(0);if($instances.Count-gt1){throw 'TEST125_READPAIR_MULTIPLE_SUPERVISORS'}
+   if($instances.Count-eq1){
+    $engine=[int]$instances.Item(1).EnginePID;$instance=[string]$instances.Item(1).InstanceGuid;$live=Get-ErpProcess $engine
+    if(!$live-or$live-isnot[Microsoft.Management.Infrastructure.CimInstance]-or$live.CimSystemProperties.ClassName-cne'Win32_Process'-or$live.ProcessId-ne$engine-or!$instance){throw 'TEST125_READPAIR_SUPERVISOR_CHANGED'}
+    if($null-eq$observedEngine){$observedEngine=$engine;$c.resumedEngine=$engine;$c.resumedInstance=$instance;$c.resumedBirth=$live.CreationDate.ToUniversalTime().Ticks}elseif($engine-ne$observedEngine-or$instance-cne$c.resumedInstance-or$live.CreationDate.ToUniversalTime().Ticks-ne$c.resumedBirth){throw 'TEST125_READPAIR_SUPERVISOR_CHANGED'}
+   }
+   # Capture identity/handle on first proved publication, without waiting for
+   # API health. A missing/unproved publication is not adopted or stopped.
+   if($destination-ceq'Candidate'-and$c.resumedEngine-and!$c.activeBinding){try{$c.activeBinding=Open-Test125ReadPairFailedStart $c}catch{}}
+
+   Assert-Test125ReadPairCompanions $c
+   try{$last=Get-Test125BoundMaintenancePlan -RunId $Transition.scope -ReadPairPreparation -ReadPairMode $destination -PreparedReleaseProof $c.releaseProof}catch{$last=$null}
+   if($last){break};Start-Sleep -Milliseconds 500
+  }while([DateTime]::UtcNow-lt$deadline)
+  if(!$last-or$last.supervisor-eq$retiredSupervisor){throw 'TEST125_READPAIR_API_READY_TIMEOUT'}
+  if($c.activeBinding){Close-Test125ApiQuiescence $c.activeBinding;$c.activeBinding=$null;$c.failedStartProof=$null}
+  $c.resumedEngine=$null;$c.resumedInstance=$null;$c.resumedBirth=$null
+  $c.admission=$last;$c.admissionJson=($last|ConvertTo-Json -Depth 32 -Compress);$c.phase='VERIFIED';[void](Assert-Test125ReadPairTransition $Transition $destination)
+
+  return [pscustomobject]@{status='API_COMPONENT_VERIFIED';mode='Candidate';beforeImage=$c.vault;apiPort=4144;companionStops=0;sqlWrites=0;runtimeApplied=$true;profileOnlyPurpose='WriterProfileActivation';nativePhase='WriterActivated'}
  }catch{$c.phase='FAILED';throw}
 }
