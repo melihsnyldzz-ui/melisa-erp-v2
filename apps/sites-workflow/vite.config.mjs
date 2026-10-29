@@ -85,8 +85,15 @@ const businessPreview={
   catch(error){extra.forEach(s=>s.close());throw error;}
  },
 };
+// Business assets need their explicit target at BUILD time. A preview process
+// cannot add Vite constants to JavaScript which has already been emitted.
+export function assertBusinessBuildEnvironment(environment,mode){
+ if(mode!=='business')return;
+ if(environment.VITE_ERP_WORKFACE!==businessWorkfaceId||environment.VITE_API_BASE_URL!=='http://127.0.0.1:4144'||environment.VITE_LOCAL_PASSWORDLESS_LOGIN!=='false')throw Error('BUSINESS_BUILD_PROFILE_REQUIRED');
+}
+const businessBuild={name:'melisa-business-build-contract',config(_,{command,mode}){if(command==='build')assertBusinessBuildEnvironment(process.env,mode);}};
 export default {
-  plugins:[cleanPreview,businessPreview],
+  plugins:[businessBuild,cleanPreview,businessPreview],
   build: { rollupOptions: { input: { main: 'index.html', workflow: 'is-akisi-taslagi.html', example: 'ornek-akis.html', terminal: 'terminal.html', legacy: 'legacy-admin.html', acceptance: 'responsive-acceptance.html', trainingGuide: 'kullanim-egitimi.html' } } },
   server: { host: '0.0.0.0', allowedHosts: ['terminal.local'] },
 };
