@@ -370,7 +370,8 @@ function Assert-Test125ReadPairRequestAdmission($Transition){
  # owner/source/node/manifest/private-profile validation stay mandatory.
  $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof;[void](Assert-Test125ReadPairConfig $config Current -ScopeName $Transition.scope)
  foreach($entry in @(@($c.startupPath,$Transition.startupBeforeSha256),@($c.apiPath,$Transition.apiProfileBeforeSha256),@($config.ConfigPath,$Transition.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'TEST125_READPAIR_REQUEST_FILE_CHANGED'}}
- if((Get-FileHash -LiteralPath (Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1') -Algorithm SHA256).Hash-cne$c.baseline.launcherHash){throw 'TEST125_READPAIR_REQUEST_LAUNCHER_CHANGED'}
+ $requestLauncher=if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'){Get-Test125MaintenanceTaskLauncher $config -ScopeName $Transition.scope -Mode Current -PreparedReleaseProof $c.releaseProof}else{Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1'}
+ if((Get-FileHash -LiteralPath $requestLauncher -Algorithm SHA256).Hash-cne$c.baseline.launcherHash){throw 'TEST125_READPAIR_REQUEST_LAUNCHER_CHANGED'}
  # The supervisor's mutable ownership journal stays fresh. Compare semantic
  # identity, not a raw heartbeat hash; never defer drift until after web stop.
  $owned=Get-Content -LiteralPath (Join-Path $config.RuntimeDir 'owned-processes.json') -Raw|ConvertFrom-Json

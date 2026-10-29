@@ -417,7 +417,7 @@ function Complete-B6ReadPairActiveEntryHandoff {
   }
   $control.ValidateCompletedStop();Assert-B6ReadPairEntrySet;Assert-B6ReadPairNoForeignEntryLaunch
   if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){
-   $postExitCount=if($WriterInstall){22}elseif($CandidateInstall){20}else{18}
+   $postExitCount=if($WriterInstall){24}elseif($CandidateInstall){20}else{18}
    if($held.Count-ne$postExitCount-or!$script:ReadPairPreheldMutex-or(Get-FileHash -LiteralPath 'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json').Hash-ine$b6.owner.recordBeforeSha256){throw 'B6_MANAGED_EXIT_POST_EXIT_CAS_CHANGED'}
    $script:ReadPairExitObservation.ValidateExited();Assert-ReadPairProtection
   }
@@ -501,18 +501,18 @@ function Open-B6CandidatePreparedSource([string]$ReviewedSourceHash,[string]$Ent
 }
 function Open-B6WriterPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
  # Separate immutable generation: legacy failed packages are never rewritten.
- $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-20261029';$proof=Join-Path $private 'owner-preparation'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-v2-20261029';$proof=Join-Path $private 'owner-preparation'
  if(!$Apply-or!$WriterInstall-or$RehearsalOnly-or$ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'B6_WRITER_REVIEWED_ENTRY_REQUIRED'}
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
  if((Get-FileHash -LiteralPath $node).Hash-cne'3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'){throw 'B6_CONTROLLER_NODE_CHANGED'}
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
-  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'ad2c75a139fc900ad2526411cb4c20dd3183e54da3b00f9b2188996422da0d88'
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer '186ba34a134a66ba12551d20e58a086e0cc2521562bcf7e4f706c5db4fb056b4'
   $verifiedText=& $node $producer --verify-writer
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'};$v=$verifiedText|ConvertFrom-Json
-  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029'
-  if($v.schema-cne'melisa-b6-writer-owner-verification.v1'-or$v.rehearsalOnly-isnot[bool]-or$v.rehearsalOnly-or$v.maintenancePurpose-cne'WriterProfileActivation'-or$v.runtimeValidationComplete-ne$false-or$v.postExitExclusiveBytesRequired-ne$true-or$v.postExitExclusiveEntryCount-ne22-or$v.coreFiles-ne13-or$v.beforeImages-ne6-or$v.writes-ne0-or$v.sqlCalls-ne0-or$v.serviceCalls-ne0-or$v.ownerCalls-ne0-or$v.taskChanges-ne0-or$v.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()-or$v.coreRoot-cne$core-or$v.routerRoot-cne$router){throw 'B6_WRITER_SOURCE_NOT_VERIFIED'}
+  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2'
+  if($v.schema-cne'melisa-b6-writer-owner-verification.v1'-or$v.rehearsalOnly-isnot[bool]-or$v.rehearsalOnly-or$v.maintenancePurpose-cne'WriterProfileActivation'-or$v.runtimeValidationComplete-ne$false-or$v.postExitExclusiveBytesRequired-ne$true-or$v.postExitExclusiveEntryCount-ne24-or$v.coreFiles-ne13-or$v.beforeImages-ne6-or$v.writes-ne0-or$v.sqlCalls-ne0-or$v.serviceCalls-ne0-or$v.ownerCalls-ne0-or$v.taskChanges-ne0-or$v.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()-or$v.coreRoot-cne$core-or$v.routerRoot-cne$router){throw 'B6_WRITER_SOURCE_NOT_VERIFIED'}
   Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $v.coreManifestSha256;Hold-B6ReadPairSource (Join-Path $router 'owner-manifest.json') $v.routerManifestSha256
   $m=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json;$rm=Get-Content -LiteralPath (Join-Path $router 'owner-manifest.json') -Raw|ConvertFrom-Json
   if($m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.finiteScope-cne$ScopeName-or$m.sourceCommit-cne$v.ownerSourceCommit-or$m.rehearsalOnly-isnot[bool]-or$m.rehearsalOnly-or$m.maintenancePurpose-cne'WriterProfileActivation'-or@($m.files).Count-ne13-or$rm.kind-cne'BUSINESS5244_READ_PAIR_ROUTER'-or$rm.rehearsalOnly-isnot[bool]-or$rm.rehearsalOnly-or$rm.maintenancePurpose-cne'WriterProfileActivation'-or$rm.coreManifestSha256-cne$v.coreManifestSha256-or$rm.coreRoot-cne$core){throw 'B6_WRITER_CORE_IDENTITY_CHANGED'}
@@ -587,7 +587,7 @@ function Open-B6ReadPairPublication {
  # READ2b entries already contain the accepted global gate. Hold current
  # bytes; B6 never rewrites a legacy entry or replays its old projection.
  $capture=$b6.entryCapture
- $captureSchema=if($WriterInstall){'melisa-b6-writer-current-entry-capture.v1'}elseif($CandidateInstall){'melisa-b6-candidate-current-entry-capture.v1'}elseif($RehearsalOnly){'melisa-b6-rehearsal-current-entry-capture.v1'}else{'melisa-b6-current-entry-hold-capture.v1'};$directCount=if($WriterInstall){16}elseif($CandidateInstall){14}elseif($RehearsalOnly){12}else{8};$ownerHash=if($WriterInstall){'86b2ee054f3cc9fa794c7013a816faa3a2af5a392e10afef08a09c76f84e7161'}elseif($CandidateInstall){'3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642'}elseif($RehearsalOnly){'2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364'}else{'4eaa68d16be5260071f74ce7e41e33ce6adaa4c7097d661905968d4b5c1b9945'}
+ $captureSchema=if($WriterInstall){'melisa-b6-writer-current-entry-capture.v1'}elseif($CandidateInstall){'melisa-b6-candidate-current-entry-capture.v1'}elseif($RehearsalOnly){'melisa-b6-rehearsal-current-entry-capture.v1'}else{'melisa-b6-current-entry-hold-capture.v1'};$directCount=if($WriterInstall){18}elseif($CandidateInstall){14}elseif($RehearsalOnly){12}else{8};$ownerHash=if($WriterInstall){'50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65'}elseif($CandidateInstall){'3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642'}elseif($RehearsalOnly){'2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364'}else{'4eaa68d16be5260071f74ce7e41e33ce6adaa4c7097d661905968d4b5c1b9945'}
  if($capture.schema-cne$captureSchema-or$capture.readOnly-ne$true-or$capture.executionAuthority-ne$false-or$capture.entries.Count-ne6-or$capture.directEntries.Count-ne$directCount-or$capture.entryWrites-ne0-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.ownerCaptureSha256-cne$ownerHash-or$capture.gate.path-cne'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1'-or$capture.gate.sha256-cne'a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'){throw 'B6_ENTRY_HOLD_CAPTURE_CHANGED'}
  $paths=@('start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'|ForEach-Object {Join-Path $pins.runtime $_})+@('C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1')
  if(($capture.entries.path-join'|')-cne($paths-join'|')){throw 'B6_ENTRY_HOLD_SCOPE_CHANGED'}
@@ -597,7 +597,8 @@ function Open-B6ReadPairPublication {
   $direct=@($direct|Select-Object -First 6)+@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLCOLLATION\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029\run-current-owner.ps1')
   if($CandidateInstall-or$WriterInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3\start-business-5244-readpair-router.ps1')}
   if($WriterInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY\start-business-5244-readpair-router.ps1')}
-  $postExitCount=if($WriterInstall){22}elseif($CandidateInstall){20}else{18}
+  if($WriterInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029\start-business-5244-readpair-router.ps1')}
+  $postExitCount=if($WriterInstall){24}elseif($CandidateInstall){20}else{18}
   if($capture.runtimeValidationComplete-ne$false-or$b6.owner.entry.postExitExclusiveBytesRequired-ne$true-or$b6.owner.entry.runtimeEntryBytesVerified-ne$false-or$capture.postExitExclusiveEntryCount-ne$postExitCount){throw 'B6_ENTRY_RUNTIME_PROOF_REQUIRED'}
  }
  if(($capture.directEntries.path-join'|')-cne($direct-join'|')){throw 'B6_DIRECT_ENTRY_SCOPE_CHANGED'}

@@ -286,7 +286,37 @@ function Start-Business5244OwnedSupervisor {
   if($verifiedInitCleanup-and$initializationFailure){
    # Issue the finite process outcome only after every cleanup and lease
    # release succeeded. The original exception reference cannot be serialized.
-   $script:Business5244LastInitializationOutcome=@{exception=$initializationFailure.Exception;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;stateRecord=$r;native=$native;verified=$verifiedInitCleanup;exitCode=73}
+   $diagnosticCode=[string]$initializationFailure.FullyQualifiedErrorId
+   $diagnosticCodes=@(
+    'TEST125_READPAIR_REQUEST_LAUNCHER_CHANGED'
+    'TEST125_READPAIR_REQUEST_NOT_ISSUED'
+    'TEST125_READPAIR_REQUEST_PHASE_REJECTED'
+    'TEST125_READPAIR_REQUEST_PROCESS_CHANGED'
+    'TEST125_READPAIR_REQUEST_FILE_CHANGED'
+    'TEST125_READPAIR_REQUEST_OWNED_RECORD_CHANGED'
+    'TEST125_READPAIR_REQUEST_TASK_CHANGED'
+    'TEST125_READPAIR_REQUEST_PORT_CHANGED'
+    'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'
+    'RETIREMENT_CHANNEL_UNAVAILABLE'
+    'OWNED_WEB_LISTENER_MISMATCH'
+   )
+   if($diagnosticCode-cnotin$diagnosticCodes){$diagnosticCode='INITIALIZATION_FAILURE_CODE_UNAVAILABLE'}
+   $diagnosticLeaf=$null;$diagnosticLine=$null;$info=$initializationFailure.InvocationInfo
+   $diagnosticLeaves=@(
+    'start-business-5244-owned.ps1'
+    'start-business-5244-web.ps1'
+    'business-5244-startup-exclusion.ps1'
+    'business-5244-retirement-state.ps1'
+    'business-5244-retirement-channel.ps1'
+    'business-5244-maintenance-dispatch.ps1'
+    'test125-bound-api-quiescence.ps1'
+    'test125-bound-maintenance-plan.ps1'
+    'start-owned-test.ps1'
+    'canonical-business-sale-maintenance.ps1'
+    'run-current-owner.ps1'
+   )
+   if($info-and$info.ScriptName-and$info.ScriptLineNumber-gt0){$leaf=[IO.Path]::GetFileName([string]$info.ScriptName);if($leaf-cin$diagnosticLeaves){$diagnosticLeaf=$leaf;$diagnosticLine=[int]$info.ScriptLineNumber}}
+   $script:Business5244LastInitializationOutcome=@{exception=$initializationFailure.Exception;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;stateRecord=$r;native=$native;verified=$verifiedInitCleanup;exitCode=73;diagnostic=@{code=$diagnosticCode;sourceLeaf=$diagnosticLeaf;sourceLine=$diagnosticLine}}
   }
  }
 }
@@ -294,5 +324,12 @@ function Get-Business5244VerifiedInitializationExitCode($Exception){
  $o=if(Get-Variable Business5244LastInitializationOutcome -Scope Script -ErrorAction SilentlyContinue){$script:Business5244LastInitializationOutcome}else{$null}
  if(!$o-or!$Exception-or![object]::ReferenceEquals($Exception,$o.exception)-or$o.process-ne$PID-or$o.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$o.exitCode-ne73-or!$o.verified.verified-or!$o.native.RetirementConfirmed-or$o.stateRecord.phase-cne'InitializationRestored'-or$o.stateRecord.currentBootstrap.inverse.phase-cne'Archived'-or![object]::ReferenceEquals($o.native,$o.stateRecord.native)){return 1}
  return 73
+}
+function Get-Business5244VerifiedInitializationFailureDiagnostic($Exception){
+ if((Get-Business5244VerifiedInitializationExitCode $Exception)-ne73){return $null}
+ $d=$script:Business5244LastInitializationOutcome.diagnostic
+ # A safe observation of this original failure, never an Undo/stop grant.
+ # No exception text, stack, Data dictionary or source path crosses this API.
+ return [pscustomobject][ordered]@{code=$d.code;sourceLeaf=$d.sourceLeaf;sourceLine=$d.sourceLine}
 }
 if(!$OwnedLibrary){try{Start-Business5244OwnedSupervisor -InitialSlot $OwnerInitialSlot -PrepareReadPair:$PrepareReadPairMaintenance -ScopeName $OwnerScopeName}catch{if((Get-Business5244VerifiedInitializationExitCode $_.Exception)-eq73){exit 73};throw}}

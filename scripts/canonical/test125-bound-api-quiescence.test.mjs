@@ -290,6 +290,38 @@ $denied=$false;try{New-Test125ReadPairTransition -ScopeName $scope.name -NativeP
 if(!$denied-or!$script:releaseClosed-or$script:Test125ReadPairContext-or$script:nativeBound-or$script:events.Count-or$script:setCalls){throw 'WRITER_PREPLAN_SEAL_LEAK'};'PASS'
 `),'PASS');
 });
+win('real Writer quick admission validates the issued frozen task launcher instead of the different repo source',()=>{
+ assert.equal(runB6(writerFixture+String.raw`
+$token=New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $native;$ctx=Assert-Test125ReadPairIssued $token
+$children=[Collections.ArrayList]::new();$rows=@{};$script:launcherReads=0;$script:wrongLauncher=$false
+try{
+ foreach($role in @('supervisor','api','native','web')){$si=[Diagnostics.ProcessStartInfo]::new('${process.execPath.replaceAll("'","''")}','-e "setTimeout(()=>{},60000)"');$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$child=[Diagnostics.Process]::Start($si);[void]$children.Add($child);$rows[$role]=@{pid=$child.Id;birth=$child.StartTime.ToUniversalTime().ToString('o')}}
+ $ctx.admission.supervisor=$rows.supervisor.pid;$ctx.admission.supervisorBirth=$rows.supervisor.birth
+ foreach($role in @('api','native','web')){$ctx.admission.children.$role.pid=$rows[$role].pid;$ctx.admission.children.$role.birth=$rows[$role].birth}
+ $ctx.admissionJson=$ctx.admission|ConvertTo-Json -Depth 32 -Compress
+ $owned=[ordered]@{sourceCommit=$scope.source;supervisor=$rows.supervisor.pid;startedAt=$rows.supervisor.birth;children=@{}}
+ foreach($role in @('api','native','web')){$owned.children[$role]=@{pid=$rows[$role].pid;createdAt=$rows[$role].birth}}
+ [IO.File]::WriteAllText((Join-Path $fixtureRoot 'owned-processes.json'),($owned|ConvertTo-Json -Depth 10))
+ function Assert-Test125ReadPairTransition {param($Transition,$Mode);[void](Assert-Test125ReadPairIssued $Transition);if($Mode-cne'Current'){throw 'FIXTURE_NOT_CURRENT'};return $true}
+ function Get-Test125ReadPairTask {$o=[pscustomobject]@{Xml=$script:taskXml};$o|Add-Member ScriptMethod GetInstances {param($unused);$l=[pscustomobject]@{Count=1};$l|Add-Member ScriptMethod Item {param($index);return [pscustomobject]@{EnginePID=$rows.supervisor.pid;InstanceGuid=$ctx.admission.taskInstance}};return $l};return $o}
+ function Get-Test125MaintenanceTaskLauncher($Config,$ScopeName,$Mode,$PreparedReleaseProof){if($ScopeName-cne$token.scope-or$Mode-cne'Current'-or![object]::ReferenceEquals($PreparedReleaseProof,$ctx.releaseProof)){throw 'QUICK_UNISSUED_LAUNCHER'};$script:launcherReads++;return $(if($script:wrongLauncher){$script:nextLauncher}else{$script:currentLauncher})}
+ $repoLauncher=Join-Path $fixtureRoot 'repo-launcher.ps1';[IO.File]::WriteAllText($repoLauncher,'different-source-from-frozen-task')
+ function Get-FileHash($LiteralPath,$Algorithm){if($LiteralPath-ceq(Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1')){$LiteralPath=$repoLauncher};if(!([IO.Path]::GetFullPath($LiteralPath).StartsWith($script:fixtureRoot+'\',[StringComparison]::OrdinalIgnoreCase))){throw 'FIXTURE_HASH_OUTSIDE_TEMP'};return @{Hash=(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($LiteralPath))).ToUpperInvariant()}}
+ function Get-ErpServiceDefinitions {param($Config);return @(@{Name='api';Port=4144},@{Name='native';Port=4146},@{Name='web';Port=5194})}
+ function Get-NetTCPConnection {param($State,$LocalPort);foreach($role in @('api','native','web')){[pscustomobject]@{LocalPort=$ctx.admission.children.$role.port;OwningProcess=$rows[$role].pid;LocalAddress='127.0.0.1'}}}
+ function Assert-ErpHealth {return @{ok=$true;sqlReadOnly=$true;sysadmin=0}}
+ [void](Prepare-Test125ReadPairRequestAdmission $token)
+ if((Get-FileHash -LiteralPath (Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1')).Hash-ceq$ctx.baseline.launcherHash){throw 'FIXTURE_DID_NOT_REPRODUCE_OLD_MISMATCH'}
+ [void](Assert-Test125ReadPairRequestAdmission $token);if($script:launcherReads-ne1){throw 'QUICK_DID_NOT_USE_ISSUED_TASK'}
+ $script:wrongLauncher=$true;$denied=$false;try{Assert-Test125ReadPairRequestAdmission $token|Out-Null}catch{if($_.Exception.Message-cne'TEST125_READPAIR_REQUEST_LAUNCHER_CHANGED'){throw};$denied=$true};if(!$denied){throw 'QUICK_WRONG_TASK_ADMITTED'}
+ $script:wrongLauncher=$false;$script:releaseClosed=$true;$denied=$false;try{Assert-Test125ReadPairRequestAdmission $token|Out-Null}catch{$denied=$true};if(!$denied){throw 'QUICK_CLOSED_PROOF_ADMITTED'};$script:releaseClosed=$false
+ if($script:events.Count-or$script:setCalls-or$ctx.apiChanged-or$ctx.changed){throw 'QUICK_MUTATION'};'PASS'
+}finally{
+ Close-Test125ReadPairRequestAdmission $token
+ foreach($child in $children){if(!$child.HasExited){$matched=@($rows.Values|Where-Object{$_.pid-eq$child.Id});if($matched.Count-ne1-or$child.StartTime.ToUniversalTime().ToString('o')-cne$matched[0].birth){throw 'FIXTURE_CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}
+}
+`),'PASS');
+});
 win('B6 rehearsal purpose comes only from the validated native context and remains bound to token and audit',()=>{
  assert.equal(runB6(String.raw`
  $script:native|Add-Member rehearsalOnly $true

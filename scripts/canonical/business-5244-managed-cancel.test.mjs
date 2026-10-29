@@ -10,12 +10,12 @@ const dir=import.meta.dirname;
 const ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const q=s=>"'"+s.replaceAll("'","''")+"'";
 const hash=b=>createHash('sha256').update(b).digest('hex');
-const originalSupervisorHash='3cb2ed492d72b38d58121e3cd1182c5b891df670ceddfc38ddbbc4324366cb08';
+const originalSupervisorHash='d9f358798c5105c2c82eb5d2df154add8183d5833aed9da9521fe17cb3a4bb97';
 const sourceFiles=['start-business-5244-owned.ps1','business-5244-startup-exclusion.ps1','start-business-5244-web.ps1','business-5244-retirement-state.ps1','business-5244-retirement-channel.ps1','business-5244-maintenance-dispatch.ps1','business-5244-web-native.cs','business-5244-retirement-peer.cs'];
 
 // Reuse the existing disposable, genuine observer/lease/Job fixture. Only
 // fixed-case DATA and external network/SQL observations are adapted there.
-// The supervisor/finally itself is the exact source c2cb7d79 Git-LF byte sequence.
+// The supervisor/finally itself is the exact pinned Writer V2 Git-LF byte sequence.
 function fixtureSource(sourceRoot){
  const text=fs.readFileSync(path.join(dir,'business-5244-retirement-state.test.mjs'),'utf8');
  const begin=text.indexOf('const supersessionFixture=String.raw`');
@@ -34,7 +34,7 @@ test('managed PS5 pipeline Stop runs the original completed Current-only supervi
   const sourceRoot=path.join(temp,'source');fs.mkdirSync(sourceRoot);
   for(const name of sourceFiles){
    const bytes=Buffer.from(fs.readFileSync(path.join(dir,name),'utf8').replaceAll('\r\n','\n'));
-   if(name==='start-business-5244-owned.ps1')assert.equal(hash(bytes),originalSupervisorHash,'pinned source c2cb7d79 supervisor, no hotload or altered finally');
+   if(name==='start-business-5244-owned.ps1')assert.equal(hash(bytes),originalSupervisorHash,'pinned Writer V2 supervisor, no hotload or altered finally');
    fs.writeFileSync(path.join(sourceRoot,name),bytes,{flag:'wx'});
   }
   const body=String.raw`
@@ -123,7 +123,7 @@ try{
  Assert-Business5244StartupLease $maintenance -Kind Maintenance
  Exit-Business5244StartupLease $maintenance;$maintenance=$null
  foreach($file in [IO.Directory]::GetFiles(__SOURCE__)){$h=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None);$h.Dispose()}
- [pscustomobject]@{status='PASS';sourceCommit='c2cb7d79835a5696f20266771516be95af173dca';supervisorSha256='__SUPERVISOR_HASH__';completedCurrent=$true;normalManagedStop=$true;originalFinally=$true;sameIssuerThread=$true;preExitSameMutexHandle=$true;standardMaintenanceNonAbandoned=$true;ownedChildExited=$true;sourceHoldsReleased=$true;undoCalls=0;debuggerEvaluationCalls=0;productionTargets=0;sqlCalls=0;apiCalls=0;taskCalls=0}|ConvertTo-Json -Compress
+ [pscustomobject]@{status='PASS';sourceRevision='B6-WRITER-V2-20261029';supervisorSha256='__SUPERVISOR_HASH__';completedCurrent=$true;normalManagedStop=$true;originalFinally=$true;sameIssuerThread=$true;preExitSameMutexHandle=$true;standardMaintenanceNonAbandoned=$true;ownedChildExited=$true;sourceHoldsReleased=$true;undoCalls=0;debuggerEvaluationCalls=0;productionTargets=0;sqlCalls=0;apiCalls=0;taskCalls=0}|ConvertTo-Json -Compress
 }finally{
  if($maintenance){Exit-Business5244StartupLease $maintenance}
  if(!$async.IsCompleted){$pipeline.Stop()}

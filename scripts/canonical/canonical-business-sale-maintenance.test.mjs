@@ -77,12 +77,12 @@ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY
 function Read-ErpBusinessSalePinnedFile {param($Path,$Hash)
  if($Path-ceq($root+'\start-owned-test.ps1')){if($Hash-cne$script:hash){throw 'BAD_PIN'};return ,([byte[]]::new(26901))}
  if($Path-ceq($root+'\owner-manifest.json')){$v=[pscustomobject]@{files=@([pscustomobject]@{path='start-owned-test.ps1';sha256=$script:hash})}}
- elseif($Path.EndsWith('\current-read2b-owner-capture.json')){$v=[pscustomobject]@{schema='melisa-b6-writer-current-owner-capture.v1';readOnly=$true;stopAuthorized=$false;core=[pscustomobject]@{root=$root;manifestSha256='554e46b609961ab3a9186460d09901a050212503770a0eaab7c7cc003b37e41e';files=@([pscustomobject]@{path='start-owned-test.ps1';sha256=$(if($script:bad){'wrong'}else{$script:hash})})}}}
+ elseif($Path.EndsWith('\current-read2b-owner-capture.json')){$v=[pscustomobject]@{schema='melisa-b6-writer-current-owner-capture.v1';readOnly=$true;stopAuthorized=$false;core=[pscustomobject]@{root='different-web-owner-core';manifestSha256=('f'*64)};taskLauncher=[pscustomobject]@{path=($root+'\start-owned-test.ps1');sha256=$(if($script:bad){'wrong'}else{$script:hash});bytes=26901;coreRoot=$root;coreManifestSha256='554e46b609961ab3a9186460d09901a050212503770a0eaab7c7cc003b37e41e'}}}
  else{throw 'UNEXPECTED_SOURCE'}
  return ,([Text.Encoding]::UTF8.GetBytes(($v|ConvertTo-Json -Depth 10)))
 }
 $proof=[pscustomobject]@{id='fixture-proof'};$seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {$script:checks++}
-$ctx=[pscustomobject]@{seal=$seal;businessSaleOwnerPins=[pscustomobject]@{path='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029\start-owned-test.ps1';sha256='fixture'}}
+$ctx=[pscustomobject]@{seal=$seal;businessSaleOwnerPins=[pscustomobject]@{path='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2\start-owned-test.ps1';sha256='fixture'}}
 function Get-ErpReadPairReleaseProofContext {param($p);if(![object]::ReferenceEquals($p,$proof)){throw 'NOT_ISSUED'};return $ctx}
 $pins=Get-ErpBusinessSaleWriterTaskLauncherPins $proof Current
 if($pins.path-cne($root+'\start-owned-test.ps1')-or$script:checks-ne1){throw 'CURRENT_NOT_PINNED'}

@@ -58,7 +58,7 @@ function Assert-ErpBusinessSaleExactKeys($Value,[string[]]$Keys){
  if(!$Value-or(@($Value.PSObject.Properties.Name|Sort-Object -CaseSensitive)-join'|')-cne(@($Keys|Sort-Object -CaseSensitive)-join'|')){throw 'B6_WRITER_SOURCE_SHAPE'}
 }
 function Read-ErpBusinessSaleWriterOwnerSource {
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029';$manifestPath=Join-Path $root 'owner-manifest.json'
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_WRITER_OWNER_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
  $bytes=[IO.File]::ReadAllBytes($manifestPath);$m=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
@@ -104,11 +104,12 @@ function Get-ErpBusinessSaleWriterPairPins([ValidateSet('Current','Candidate')][
 function Read-ErpBusinessSaleWriterCurrentTaskSource {
  $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY';$manifestPath=Join-Path $root 'owner-manifest.json'
  $manifestHash='554e46b609961ab3a9186460d09901a050212503770a0eaab7c7cc003b37e41e';$launcherHash='1728c4d5dcc7eab597640550d068f84140a37d2820620a0a24bcdd3f8e39a917'
- $capturePath='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-20261029\current-read2b-owner-capture.json';$captureHash='86b2ee054f3cc9fa794c7013a816faa3a2af5a392e10afef08a09c76f84e7161'
+ $capturePath='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-v2-20261029\current-read2b-owner-capture.json';$captureHash='50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65'
  $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $capturePath $captureHash))|ConvertFrom-Json
  $m=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $manifestPath $manifestHash))|ConvertFrom-Json
- $rows=@($capture.core.files|Where-Object path -ceq 'start-owned-test.ps1');$manifestRows=@($m.files|Where-Object path -ceq 'start-owned-test.ps1')
- if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.core.root-cne$root-or$capture.core.manifestSha256-cne$manifestHash-or$rows.Count-ne1-or$manifestRows.Count-ne1-or$rows[0].sha256-cne$launcherHash-or$manifestRows[0].sha256-cne$launcherHash){throw 'B6_WRITER_CURRENT_TASK_CAPTURE_CHANGED'}
+ Assert-ErpBusinessSaleExactKeys $capture.taskLauncher @('path','sha256','bytes','coreRoot','coreManifestSha256')
+ $manifestRows=@($m.files|Where-Object path -ceq 'start-owned-test.ps1')
+ if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.taskLauncher.coreRoot-cne$root-or$capture.taskLauncher.coreManifestSha256-cne$manifestHash-or$capture.taskLauncher.path-cne(Join-Path $root 'start-owned-test.ps1')-or$capture.taskLauncher.sha256-cne$launcherHash-or$capture.taskLauncher.bytes-ne26901-or$manifestRows.Count-ne1-or$manifestRows[0].sha256-cne$launcherHash){throw 'B6_WRITER_CURRENT_TASK_CAPTURE_CHANGED'}
  $path=Join-Path $root 'start-owned-test.ps1';$bytes=Read-ErpBusinessSalePinnedFile $path $launcherHash
  if($bytes.Length-ne26901){throw 'B6_WRITER_CURRENT_TASK_CAPTURE_CHANGED'}
  return [pscustomobject]@{path=$path;sha256=$launcherHash;coreManifestSha256=$manifestHash;manifestPath=$manifestPath;capturePath=$capturePath;captureSha256=$captureHash}
@@ -116,7 +117,7 @@ function Read-ErpBusinessSaleWriterCurrentTaskSource {
 function Get-ErpBusinessSaleWriterTaskLauncherPins($PreparedReleaseProof,[ValidateSet('Current','Candidate')][string]$Mode='Candidate'){
  if($Mode-cnotin@('Current','Candidate')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
  $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;$proof.seal.Validate()
- if(!$proof.businessSaleOwnerPins-or$proof.businessSaleOwnerPins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029\start-owned-test.ps1'){throw 'B6_WRITER_TASK_PROOF_REQUIRED'}
+ if(!$proof.businessSaleOwnerPins-or$proof.businessSaleOwnerPins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2\start-owned-test.ps1'){throw 'B6_WRITER_TASK_PROOF_REQUIRED'}
  if($Mode-ceq'Candidate'){$pins=$proof.businessSaleOwnerPins;[void](Read-ErpBusinessSalePinnedFile $pins.path $pins.sha256);return ($pins|ConvertTo-Json -Compress|ConvertFrom-Json)}
  $p=Read-ErpBusinessSaleWriterCurrentTaskSource
  return [pscustomobject]@{path=$p.path;sha256=$p.sha256;coreManifestSha256=$p.coreManifestSha256}

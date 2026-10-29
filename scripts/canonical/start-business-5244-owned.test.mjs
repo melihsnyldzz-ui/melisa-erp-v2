@@ -43,6 +43,28 @@ function Get-InitFixtureFailureDiagnostic($Failure){
  return ('inner='+$code+';source='+$where+';nativeClosed='+$retired+';restored='+$restored+';pending='+(Test-Path -LiteralPath $script:initPending)+';phase='+$phase)
 }
 `;
+win('verified init diagnostic exposes only the original uppercase code and allowlisted source location after genuine full cleanup',()=>{
+ assert.equal(run(`${load}${initRecoveryFixture}
+ function Open-Business5244RetirementChannel($OwnerLease){Assert-Business5244OwnedListeners @() 1;throw 'UNREACHABLE'}
+ $failure=$null;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current|Out-Null}catch{$failure=$_}
+ if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73){throw 'DIAGNOSTIC_NO_GENUINE_EXIT'}
+ $d=Get-Business5244VerifiedInitializationFailureDiagnostic $failure.Exception
+ if(($d.PSObject.Properties.Name-join'|')-cne'code|sourceLeaf|sourceLine'-or$d.code-cne'OWNED_WEB_LISTENER_MISMATCH'-or$d.sourceLeaf-cne'start-business-5244-owned.ps1'-or$d.sourceLine-isnot[int]-or$d.sourceLine-le0){throw 'DIAGNOSTIC_ORIGINAL_CODE_OR_LOCATION_LOST'}
+ $encoded=$d|ConvertTo-Json -Compress;if($encoded-match'Exception|Message|StackTrace|Data|C:|fixture-sid|secret'){throw 'DIAGNOSTIC_RAW_DATA_LEAK'}
+ foreach($copy in @($null,([Exception]::new('OWNED_WEB_LISTENER_MISMATCH')),($failure.Exception|ConvertTo-Json -Depth 3|ConvertFrom-Json))){if($null-ne(Get-Business5244VerifiedInitializationFailureDiagnostic $copy)){throw 'DIAGNOSTIC_FORGED_EXCEPTION'}}
+ $d.code='MUTATED';if((Get-Business5244VerifiedInitializationFailureDiagnostic $failure.Exception).code-cne'OWNED_WEB_LISTENER_MISMATCH'){throw 'DIAGNOSTIC_RETURN_MUTATES_PRIVATE_OUTCOME'}
+ $o=$script:Business5244LastInitializationOutcome;$o.thread++;if($null-ne(Get-Business5244VerifiedInitializationFailureDiagnostic $failure.Exception)){throw 'DIAGNOSTIC_FOREIGN_THREAD'};$o.thread--
+ if(!$script:initNative.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($script:initRecords)))-cne$script:initHash-or(Test-Path -LiteralPath $script:initPending)){throw 'DIAGNOSTIC_WEAKENED_CLEANUP'};'PASS'`),'PASS');
+});
+win('verified init diagnostic never emits unstructured text, unknown uppercase or token-shaped hex and never invents a location',()=>{
+ assert.equal(run(`${load}${initRecoveryFixture}
+ function Open-Business5244RetirementChannel($OwnerLease){throw $script:diagnosticFailure}
+ foreach($text in @('fixture secret must never be emitted','UNRECOGNIZED_UPPERCASE_VALUE',('A'*64))){
+  $script:diagnosticFailure=$text;$failure=$null;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current|Out-Null}catch{$failure=$_}
+  $d=Get-Business5244VerifiedInitializationFailureDiagnostic $failure.Exception
+  if(!$d-or$d.code-cne'INITIALIZATION_FAILURE_CODE_UNAVAILABLE'-or$null-ne$d.sourceLeaf-or$null-ne$d.sourceLine-or($d|ConvertTo-Json -Compress).Contains($text)){throw 'DIAGNOSTIC_RAW_FAILURE_EXPOSED'}
+ };'PASS'`),'PASS');
+});
 win('fixture uses trusted Windows builtins even with an unavailable module search path',()=>{
  assert.equal(run(`${load} foreach($row in @(@('Join-Path','Microsoft.PowerShell.Management'),@('Get-FileHash','Microsoft.PowerShell.Utility'),@('Get-Acl','Microsoft.PowerShell.Security'))){$command=Get-Command $row[0] -Module $row[1] -ErrorAction Stop;$expected=[IO.Path]::Combine($PSHOME,'Modules',$row[1],($row[1]+'.psd1'));if(!$command.Module.Path.Equals($expected,[StringComparison]::OrdinalIgnoreCase)){throw 'UNTRUSTED_FIXTURE_MODULE'}};'PASS'`,{isolatedModulePath:true}),'PASS');
 });
