@@ -169,3 +169,7 @@ ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/business-5244-readpai
 ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:65
 ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.mjs:generic-api-key:288
 ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:204
+
+# Exact false positive: the existing Current API release-manifest SHA256 in a
+# synthetic capture fixture, not an API credential. Full-history scan retained.
+7184e3aefa19d9e6c6aa8059e7290a65bc84708e:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:88
