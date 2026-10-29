@@ -5,7 +5,7 @@ const q=s=>"'"+s.replaceAll("'","''")+"'";
 const isolatedStartup=String.raw`function Get-Business5244StartupMutexName{return ('Local\MelisaRetirementFixture-'+[IO.Path]::GetFileName($env:TEMP))};function Get-Business5244RetirementPendingPath{return (Join-Path $env:TEMP 'fixture.retirement.pending')};`;
 const setup=`$ErrorActionPreference='Stop';. ${q(path.join(dir,'business-5244-startup-exclusion.ps1'))} -Library;. ${q(path.join(dir,'start-business-5244-web.ps1'))} -Library;. ${q(path.join(dir,'business-5244-retirement-state.ps1'))} -Library;${isolatedStartup}Add-Type -LiteralPath ${q(path.join(dir,'business-5244-web-native.cs'))};$lease=Enter-Business5244StartupLease -Kind Owner;$pins=Get-Business5244ReadPairPins;$script=Join-Path $env:TEMP 'sleep.ps1';[IO.File]::WriteAllText($script,'Start-Sleep -Seconds 300');function New-TestChild{$n=[Business5244WebNative]::new();$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$script+'"'),$env:TEMP);return $n};$native=New-TestChild;$state=Register-Business5244OwnedRetirement $lease $native $pins;$rows=@([pscustomobject]@{port=4194;pid=111;entry='keep-api';root='preserved-api'},[pscustomobject]@{port=4196;pid=112;entry='keep-native';root='preserved-native'},[pscustomobject]@{port=5244;pid=$native.ChildPid;entry='vite-preview';sourceCommit=$pins.frontendSource;root=$pins.root;backendPort=4144;businessWorkfaceId=$pins.profile});$before=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 20));$recordPath=Join-Path $env:TEMP 'records.json';$pendingPath=Join-Path $env:TEMP 'retirement.pending';$records=$null;$pending=$null;$replacement=$null;`;
 const cleanup=`finally{Close-Business5244RetirementState $state;if($replacement){$replacement.Dispose()};if($records){$records.Dispose()};if($pending){$pending.Dispose()};$native.Dispose();Exit-Business5244StartupLease -Lease $lease};'PASS'`;
-function run(body){const temp=fs.mkdtempSync(path.join(os.tmpdir(),'erp-5244-retirement-state-'));try{const file=path.join(temp,'run.ps1');fs.writeFileSync(file,body);return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:20000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();}finally{fs.rmSync(temp,{recursive:true,force:true});}}
+function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-5244-retirement-state-')));try{const file=path.join(temp,'run.ps1');fs.writeFileSync(file,body);return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:20000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-5244-retirement-state-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 const streams=`[IO.File]::WriteAllBytes($recordPath,$before);$records=[IO.File]::Open($recordPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$pending=[IO.File]::Open($pendingPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read);`;
 const b6Setup=setup.replace('$lease=Enter-Business5244StartupLease',"function Get-Business5244StartupMutexName{return ('Local\\MelisaB6Bootstrap-'+[IO.Path]::GetFileName($env:TEMP))};$lease=Enter-Business5244StartupLease").replace('Register-Business5244OwnedRetirement $lease $native $pins;','Register-Business5244OwnedRetirement $lease $native $pins -ScopeName \'TEST125-API-B6-ca620bac-20261028\';')+String.raw`
@@ -133,4 +133,189 @@ win('B6 initialization inverse can finalize its own already-exited child using t
  $result=Undo-Business5244HeldCurrentBootstrap $state $records $pending
  if(!$result.verified-or!$native.RetirementConfirmed-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $records))-cne$beforeHash-or(Get-Business5244RetirementState $state).phase-cne'InitializationRestored'){throw 'INIT_OWN_EXIT_NOT_RECOVERED'}
  }`+cleanup),'PASS');
+});
+
+const supersessionFixture=String.raw`
+$ErrorActionPreference='Stop';. '__OWNED__' -Library;Add-Type -LiteralPath '__PEER__';Initialize-Business5244WebNative
+$script:mutexName='Local\MelisaSupersessionFixture-'+[IO.Path]::GetFileName($env:TEMP);function Get-Business5244StartupMutexName{return $script:mutexName};function Get-Business5244RetirementPendingPath{return (Join-Path $env:TEMP 'supersession.pending')}
+$pipeName='MelisaSupersession-'+[guid]::NewGuid().ToString('N');$serverFile=Join-Path $env:TEMP 'old-owner.ps1'
+[IO.File]::WriteAllText($serverFile,'param($Name,$MutexName);$m=[Threading.Mutex]::new($false,$MutexName);$held=$m.WaitOne(0);if(!$held){throw "ISOLATED_OLD_GATE_BUSY"};$p=[IO.Pipes.NamedPipeServerStream]::new($Name,[IO.Pipes.PipeDirection]::InOut);try{[Console]::WriteLine("READY");[Console]::Out.Flush();$p.WaitForConnection();$reader=[IO.StreamReader]::new($p);$command=$reader.ReadLine();if($command-ceq"RELEASE"){$m.ReleaseMutex();$held=$false;[Console]::WriteLine("RELEASED");[Console]::Out.Flush();$command=$reader.ReadLine()};if($command-ceq"ABANDON"){[Environment]::Exit(23)};if($command-cne"EXIT"){throw "ISOLATED_BAD_EXIT_REQUEST"}}finally{$p.Dispose();if($held){$m.ReleaseMutex()};$m.Dispose()}')
+$si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -File "'+$serverFile+'" "'+$pipeName+'" "'+$script:mutexName+'"';$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$server=[Diagnostics.Process]::new();$server.StartInfo=$si;[void]$server.Start()
+$client=$null;$observer=$null;$peer=$null;$writer=$null;$token=$null;$script:failBoundary=$false;$script:failStart=$false;$script:boundaryCalls=0;$script:inputCalls=0;$script:createdNatives=[Collections.Generic.List[object]]::new()
+try{
+ if($server.StandardOutput.ReadLine()-cne'READY'){throw 'ISOLATED_OLD_OWNER_NOT_READY'}
+ $client=[IO.Pipes.NamedPipeClientStream]::new('.',$pipeName,[IO.Pipes.PipeDirection]::InOut);$client.Connect(5000);$peer=[Business5244RetirementPeer]::CaptureServer($client);$observer=$peer.OpenExitObservation();$peer.Dispose();$peer=$null
+ $writer=[IO.StreamWriter]::new($client,[Text.Encoding]::UTF8,1024,$true)
+ $pins=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Current
+ $rows=@([pscustomobject]@{port=4194;pid=111;entry='preserve-api';root='preserve-api'},[pscustomobject]@{port=4196;pid=112;entry='preserve-native';root='preserve-native'},[pscustomobject]@{port=5244;pid=$server.Id;entry='vite-preview';sourceCommit=$pins.frontendSource;root=$pins.root;backendPort=4144;businessWorkfaceId=$pins.profile})
+ $before=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 8));$beforeHash=Get-Business5244StartupHash $before;$recordsPath=Join-Path $env:TEMP 'supersession-records.json';[IO.File]::WriteAllBytes($recordsPath,$before)
+ $oldPending=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-retirement-before.v1';operationId=('a'*32);ownerPid=$observer.TargetPid;ownerBirth=$observer.TargetBirth;childPid=$server.Id;childBirth=$observer.TargetBirth;beforeSha256=$beforeHash;beforeBase64=[Convert]::ToBase64String($before)}|ConvertTo-Json -Compress));$pendingPath=Get-Business5244RetirementPendingPath;[IO.File]::WriteAllBytes($pendingPath,$oldPending)
+ $entries=@(1..16|ForEach-Object{$path=Join-Path $env:TEMP ('entry-'+$_+'.ps1');[IO.File]::WriteAllText($path,('inert-entry-'+$_));[pscustomobject]@{path=$path;hash=(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($path)))}});$gate=Join-Path $env:TEMP 'startup-gate.ps1';[IO.File]::WriteAllText($gate,'inert-gate')
+ $script:fixedInputs=[pscustomobject][ordered]@{schema='business-5244-current-supersession-inputs.v1';caseId='CURRENT-ONLY-5244-SUPERSESSION-20261029';scopeName='TEST125-API-B6-ca620bac-20261028';ownerPid=$observer.TargetPid;ownerBirth=$observer.TargetBirth;recordsPath=$recordsPath;recordsHash=$beforeHash;pendingPath=$pendingPath;pendingHash=(Get-Business5244StartupHash $oldPending);originalBeforeHash=$beforeHash;beforeBytes=$before;pendingBeforeBytes=$oldPending;pins=$pins.Clone();entrySeals=$entries;gateSeal=[pscustomobject]@{path=$gate;hash=(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($gate)))}}
+ function Get-Business5244CurrentSupersessionFixedInputs{$script:inputCalls++;return $script:fixedInputs}
+ function Assert-Business5244CurrentSupersessionBoundary($Inputs){$script:boundaryCalls++;if($script:failBoundary){throw 'ISOLATED_BOUNDARY_REJECTED'};if(![object]::ReferenceEquals($Inputs,$script:fixedInputs)-or!$server.HasExited){throw 'ISOLATED_FOREIGN_BOUNDARY'}}
+ function Get-CimInstance($ClassName){if($ClassName-cne'Win32_Process'){throw 'ISOLATED_FOREIGN_CIM'};return @()}
+ function Get-NetTCPConnection($LocalPort,$State){if($LocalPort-ne5244-or$State-cne'Listen'){throw 'ISOLATED_FOREIGN_PORT'};return @()}
+ function Assert-Business5244CreatedChild($Native,$Pins){$Native.Validate();if(!$Native.ChildAlive()){throw 'ISOLATED_CREATED_CHILD_DEAD'}}
+ function Assert-Business5244ReadyChild($Native,$Pins){Assert-Business5244CreatedChild $Native $Pins}
+ function New-Business5244PinnedChild($Pins,$Lease){Assert-Business5244StartupLease $Lease -Kind Maintenance;if($script:failStart){throw 'ISOLATED_CURRENT_START_FAILED'};$n=[Business5244WebNative]::new();$script:createdNatives.Add($n);$lr=Get-Business5244StartupRecord $Lease;if(!$lr.ContainsKey('ownedNatives')){$lr.ownedNatives=[Collections.Generic.List[object]]::new()};$lr.ownedNatives.Add($n);$sleep=Join-Path $env:TEMP 'new-current-child.ps1';[IO.File]::WriteAllText($sleep,'Start-Sleep -Seconds 300');$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$sleep+'"'),$env:TEMP);return $n}
+ function Exit-FixtureOldOwner{if(!$server.HasExited){if(!@($script:Business5244CurrentSupersessionObservations|Where-Object{[object]::ReferenceEquals($_.observer,$observer)-and!$_.closed}).Count){Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null};$writer.WriteLine('EXIT');$writer.Flush();if(!$server.WaitForExit(5000)){throw 'ISOLATED_COOPERATIVE_EXIT_FAILED'}};$observer.ValidateExited()}
+ __BODY__
+}finally{
+ foreach($n in $script:createdNatives){$n.Dispose()}
+ foreach($c in $script:Business5244CurrentSupersessions){if($c.records){$c.records.Dispose()};if($c.pending){$c.pending.Dispose()};foreach($r in $c.seals){$r.stream.Dispose()};foreach($r in $c.copies){$r.stream.Dispose()};$lr=Get-Business5244StartupRecord $c.lease;if(!$lr.closed){Exit-Business5244StartupLease $c.lease}}
+ if(!$server.HasExited-and$writer){$writer.WriteLine('EXIT');$writer.Flush();[void]$server.WaitForExit(5000)}
+ if($observer){Close-Business5244CurrentSupersessionObservation $observer};if($writer){$writer.Dispose()};if($client){$client.Dispose()};if($peer){$peer.Dispose()};if($observer){$observer.Dispose()};$server.Dispose()
+};'PASS'
+`.replace('__OWNED__',path.join(dir,'start-business-5244-owned.ps1').replaceAll("'","''")).replace('__PEER__',path.join(dir,'business-5244-retirement-peer.cs').replaceAll("'","''"));
+const superRun=body=>run(supersessionFixture.replace('__BODY__',body));
+win('Current-only supersession needs the real native exit and creates a fresh same-lease Current owner without completing the original retirement',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$c=Get-Business5244CurrentSupersessionContext $token
+ Assert-Business5244StartupLease $c.lease -Kind Maintenance;if($c.phase-cne'Prepared'-or!(Test-Path -LiteralPath $pendingPath)-or$c.seals.Count-ne17){throw 'SUPERSESSION_NOT_HELD_OR_DURABLE'}
+ foreach($entry in $entries){$denied=$false;try{$f=[IO.File]::Open($entry.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$f.Dispose()}catch{$denied=$true};if(!$denied){throw 'SUPERSESSION_ENTRY_NOT_EXCLUSIVE'}}
+ $frame=Initialize-Business5244CurrentSupersessionOwner $token;if(![object]::ReferenceEquals($frame.lease,$c.lease)-or!$frame.native.ChildAlive()-or$frame.native.ChildPid-eq$server.Id-or(Get-Business5244RetirementState $frame.state).phase-cne'Running'){throw 'SUPERSESSION_ADOPTED_OLD_STATE_OR_PID'}
+ $result=Complete-Business5244CurrentSupersessionOwner $token
+ if($result.classification-cne'SUPERSEDED_NOT_ORIGINAL_COMMIT'-or$result.originalRetireCompleted-or(Test-Path -LiteralPath $pendingPath)-or$c.phase-cne'Completed'){throw 'SUPERSESSION_FAKED_ORIGINAL_COMMIT'}
+ $after=ConvertFrom-Business5244RecordBytes ([IO.File]::ReadAllBytes($recordsPath));if($after[0].pid-ne111-or$after[1].pid-ne112-or$after[2].pid-ne$frame.native.ChildPid){throw 'SUPERSESSION_CHANGED_OTHER_SERVICES'}
+ $original=[IO.File]::ReadAllBytes(($pendingPath+'.'+$c.operationId+'.superseded-original'));if((Get-Business5244StartupHash $original)-cne$fixedInputs.pendingHash-or@([IO.Directory]::GetFiles($env:TEMP,'*.completed')).Count){throw 'SUPERSESSION_LOST_OR_RELABELED_ORIGINAL_PENDING'}
+ Assert-Business5244StartupLease $c.lease -Kind Owner
+ `),'PASS');
+});
+win('Current-only supersession rejects a still live native owner or a copied observer before source input reads or writes',()=>{
+ assert.equal(superRun(String.raw`
+ foreach($arg in @($observer,([pscustomobject]@{TargetPid=$observer.TargetPid;TargetBirth=$observer.TargetBirth}))){$denied=$false;try{New-Business5244CurrentSupersessionAdmission $arg|Out-Null}catch{$denied=$true};if(!$denied){throw 'SUPERSESSION_NONEXIT_ADMITTED'}}
+ if($script:inputCalls-or$script:boundaryCalls-or$server.HasExited-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne$fixedInputs.pendingHash){throw 'SUPERSESSION_PRE_EXIT_EFFECT'}
+ `),'PASS');
+});
+for(const drift of ['records','pending','entry','boundary'])win(`Current-only supersession ${drift} drift preserves original pending and refuses creation`,()=>{
+ assert.equal(superRun(`Exit-FixtureOldOwner;$drift='${drift}';`+String.raw`
+ switch($drift){records{[IO.File]::AppendAllText($recordsPath,' ')}pending{[IO.File]::AppendAllText($pendingPath,' ')}entry{[IO.File]::AppendAllText($entries[3].path,'changed')}boundary{$script:failBoundary=$true}}
+ $beforePending=[IO.File]::ReadAllBytes($pendingPath);$beforeRecord=[IO.File]::ReadAllBytes($recordsPath);$denied=$false;try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$denied=$true}
+ if(!$denied-or$createdNatives.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne(Get-Business5244StartupHash $beforePending)-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne(Get-Business5244StartupHash $beforeRecord)){throw 'SUPERSESSION_DRIFT_WRITES'}
+ $m=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $m
+ `),'PASS');
+});
+for(const failure of ['start','channel'])win(`Current-only supersession ${failure} initialization failure closes only its child and leaves startup blocked without old commit`,()=>{
+ assert.equal(superRun(`Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$failure='${failure}';`+String.raw`
+ $c=Get-Business5244CurrentSupersessionContext $token
+ if($failure-ceq'start'){$script:failStart=$true;$denied=$false;try{Initialize-Business5244CurrentSupersessionOwner $token|Out-Null}catch{$denied=$true};if(!$denied){throw 'EXPECTED_START_FAILURE_MISSING'}}else{$frame=Initialize-Business5244CurrentSupersessionOwner $token}
+ $result=Undo-Business5244CurrentSupersessionOwner $token
+ if(!$result.ownInitializationUndone-or!$result.startupBlocked-or$result.originalRetireCompleted-or!(Test-Path -LiteralPath $pendingPath)-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash){throw 'SUPERSESSION_INIT_FAILURE_FAKED_RECOVERY'}
+ foreach($n in $createdNatives){if(!$n.RetirementConfirmed){throw 'SUPERSESSION_OWN_CHILD_LEFT_RUNNING'}}
+ $denied=$false;try{$o=Enter-Business5244StartupLease -Kind Owner;Exit-Business5244StartupLease $o}catch{if($_.Exception.Message-cne'BUSINESS_5244_RETIREMENT_RECOVERY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'SUPERSESSION_INIT_FAILURE_UNBLOCKED_START'}
+ `),'PASS');
+});
+win('Current-only supersession lost archive ACK reconciles only its own marker and leaves the original pending bytes immutable',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$frame=Initialize-Business5244CurrentSupersessionOwner $token;$c=Get-Business5244CurrentSupersessionContext $token
+ function Move-Business5244PendingArchive($Source,$Destination){[IO.File]::Move($Source,$Destination);throw 'ISOLATED_ARCHIVE_ACK_LOST'}
+ $result=Complete-Business5244CurrentSupersessionOwner $token
+ if($result.classification-cne'SUPERSEDED_NOT_ORIGINAL_COMMIT'-or$c.phase-cne'Completed'-or(Test-Path -LiteralPath $pendingPath)-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes(($pendingPath+'.'+$c.operationId+'.superseded-original'))))-cne$fixedInputs.pendingHash){throw 'SUPERSESSION_ARCHIVE_ACK_NOT_RECONCILED'}
+ `),'PASS');
+});
+
+win('Current-only supersession cloned admission and foreign issuer thread cannot obtain a fresh-state frame',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$c=Get-Business5244CurrentSupersessionContext $token;$copy=$token|ConvertTo-Json|ConvertFrom-Json
+ $denied=$false;try{Initialize-Business5244CurrentSupersessionOwner $copy|Out-Null}catch{$denied=$true};if(!$denied){throw 'SUPERSESSION_CLONED_ADMISSION_GRANTED'}
+ $c.thread++;$denied=$false;try{Initialize-Business5244CurrentSupersessionOwner $token|Out-Null}catch{$denied=$true};$c.thread--;if(!$denied-or$createdNatives.Count-or$c.phase-cne'Prepared'){throw 'SUPERSESSION_FOREIGN_THREAD_GRANTED'}
+ `),'PASS');
+});
+win('Current-only supersession retains its marker and refuses both publication and undo on unknown held record bytes',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$c=Get-Business5244CurrentSupersessionContext $token;$c.records.Position=0;$c.records.WriteByte(0);$c.records.Flush($true)
+ $observed=Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.records)
+ foreach($call in @('initialize','undo')){$denied=$false;try{if($call-ceq'initialize'){Initialize-Business5244CurrentSupersessionOwner $token|Out-Null}else{Undo-Business5244CurrentSupersessionOwner $token|Out-Null}}catch{$denied=$true};if(!$denied){throw 'SUPERSESSION_UNKNOWN_CAS_WAS_OVERWRITTEN'}}
+ if($createdNatives.Count-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.records))-cne$observed-or!(Test-Path -LiteralPath $pendingPath)){throw 'SUPERSESSION_UNKNOWN_CAS_EFFECT'}
+ `),'PASS');
+});
+win('Current-only supersession marker flush failure never writes the record or creates a child and preserves a blocking marker',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$body=(Get-Command New-Business5244CurrentSupersessionAdmission).Definition;$needle='$pending.Flush($true);$c.pendingExpected';if($body.Split(@($needle),[StringSplitOptions]::None).Count-ne2){throw 'ISOLATED_FLUSH_SEAM_NOT_UNIQUE'}
+ $body=$body.Replace($needle,"throw 'ISOLATED_SUPERSESSION_MARKER_FLUSH';"+'$c.pendingExpected');. ([scriptblock]::Create('function New-Business5244CurrentSupersessionAdmission {'+$body+'}'))
+ $caught='';try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message}
+ $c=$script:Business5244CurrentSupersessions[0]
+ if($caught-cne'ISOLATED_SUPERSESSION_MARKER_FLUSH'-or$c.phase-cne'Unknown'-or$createdNatives.Count-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.records))-cne$beforeHash-or!(Test-Path -LiteralPath $pendingPath)){throw 'SUPERSESSION_FLUSH_FAILURE_ADVANCED'}
+ `),'PASS');
+});
+win('Current-only supersession ambiguous archive bytes recreate only a missing owned marker and cannot authorize undo',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$frame=Initialize-Business5244CurrentSupersessionOwner $token;$c=Get-Business5244CurrentSupersessionContext $token
+ function Move-Business5244PendingArchive($Source,$Destination){[IO.File]::Move($Source,$Destination);[IO.File]::WriteAllText($Destination,'unrecognized-archive')}
+ $denied=$false;try{Complete-Business5244CurrentSupersessionOwner $token|Out-Null}catch{$denied=$true}
+ if(!$denied-or$c.phase-cne'Unknown'-or!$c.pending-or!(Test-Path -LiteralPath $pendingPath)-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.pending))-cne$c.pendingExpected){throw 'SUPERSESSION_AMBIGUOUS_MOVE_UNBLOCKED_START'}
+ $denied=$false;try{Undo-Business5244CurrentSupersessionOwner $token|Out-Null}catch{$denied=$true};if(!$denied){throw 'SUPERSESSION_UNKNOWN_MOVE_UNDONE'}
+ `),'PASS');
+});
+win('Current-only supersession does not reinterpret an abandoned standard startup mutex as recovery authority',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner
+ Add-Type -TypeDefinition 'using System.Threading;public static class SupersessionAbandonedFixture{public static void Leave(string name){var t=new Thread(()=>{var m=new Mutex(false,name);m.WaitOne();});t.Start();t.Join();}}'
+ $heldName=[Threading.Mutex]::new($false,$script:mutexName);try{[SupersessionAbandonedFixture]::Leave($script:mutexName);$caught='';try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message};if($caught-cne'BUSINESS_5244_ABANDONED_OWNER'-or$createdNatives.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne$fixedInputs.pendingHash-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash){throw 'SUPERSESSION_ABANDONMENT_BYPASSED'}}finally{$heldName.Dispose()}
+ `),'PASS');
+});
+
+win('Current-only full supervisor uses the same fresh native frame, opens its channel before commit, and remains status-only',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$c=Get-Business5244CurrentSupersessionContext $token
+ $script:received=0;$script:replies=[Collections.Generic.List[string]]::new();$script:channelClosed=0
+ function Open-Business5244RetirementChannel($OwnerLease){Assert-Business5244StartupLease $OwnerLease -Kind Owner;if($c.phase-cne'RecordPublished'){throw 'CHANNEL_AFTER_UNCONFIRMED_BOOTSTRAP'};return [pscustomobject]@{fixtureChannel=$true}}
+ function Receive-Business5244RetirementRequest($Channel){$script:received++;if($script:received-eq3){throw 'ISOLATED_SUPERVISOR_LOOP_END'};return [pscustomobject]@{operation=$(if($script:received-eq1){'status'}else{'retire'});requestId=('b'*32)}}
+ function Assert-Business5244RetirementRequest($Channel,$Request){}
+ function Complete-Business5244RetirementRequest($Channel,$Request,$Reply,$Snapshot){if($c.phase-cne'Completed'-or$Snapshot.phase-cne'Running'){throw 'REPLIED_BEFORE_NEW_CURRENT_READY'};$script:replies.Add($Reply)}
+ function Close-Business5244RetirementChannel($Channel){$script:channelClosed++}
+ function Invoke-Business5244OwnerMaintenance{throw 'CURRENT_ONLY_RETIRED_AGAIN'}
+ $caught='';try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028' -CurrentSupersession $token|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'ISOLATED_SUPERVISOR_LOOP_END'-or($script:replies-join'|')-cne'Status|Rejected'-or$c.phase-cne'Completed'-or!$c.native.RetirementConfirmed-or$script:channelClosed-ne1){throw ('SUPERVISOR_INTEGRATION_FAILED_'+$caught)}
+ $leaseRecord=Get-Business5244StartupRecord $c.lease;if(!$leaseRecord.closed-or(Test-Path -LiteralPath $pendingPath)-or@(Get-ChildItem -LiteralPath $env:TEMP -Filter '*.completed').Count){throw 'SUPERVISOR_ADOPTED_OLD_COMPLETION'}
+ `),'PASS');
+});
+win('Current-only supervisor channel initialization failure uses only its own bounded undo and keeps startup blocked',()=>{
+ assert.equal(superRun(String.raw`
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$c=Get-Business5244CurrentSupersessionContext $token
+ function Open-Business5244RetirementChannel($OwnerLease){throw 'ISOLATED_CURRENT_CHANNEL_FAILURE'}
+ $caught='';try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028' -CurrentSupersession $token|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'ISOLATED_CURRENT_CHANNEL_FAILURE'-or!$c.closed-or$c.phase-cne'InitFailedCleanPendingRecovery'-or!(Test-Path -LiteralPath $pendingPath)-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash){throw ('SUPERVISOR_CHANNEL_UNDO_FAILED_'+$caught)}
+ foreach($n in $createdNatives){if(!$n.RetirementConfirmed){throw 'SUPERVISOR_UNDO_LEFT_OWN_CHILD'}}
+ $denied=$false;try{$again=Enter-Business5244StartupLease -Kind Owner}catch{$denied=$true};if(!$denied){Exit-Business5244StartupLease $again;throw 'SUPERVISOR_UNDO_UNBLOCKED_START'}
+ `),'PASS');
+});
+win('Current-only supervisor refuses copied admission and incompatible slot/scope without creating a child or taking a second lease',()=>{
+ assert.equal(superRun(String.raw`
+ $fake=[pscustomobject]@{kind='business-5244-current-supersession'}
+ foreach($slot in @('Current','ReadPair')){$denied=$false;try{Start-Business5244OwnedSupervisor -InitialSlot $slot -ScopeName 'TEST125-API-B6-ca620bac-20261028' -CurrentSupersession $fake|Out-Null}catch{$denied=$true};if(!$denied-or$createdNatives.Count-or$script:Business5244CurrentSupersessions.Count){throw 'FORGED_SUPERVISOR_ADMISSION_GRANTED'}}
+ `),'PASS');
+});
+win('pre-exit observation retains the actual old mutex generation so an unclean old process exit is rejected as abandoned before any write',()=>{
+ assert.equal(superRun(String.raw`
+ Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null;$o=Get-Business5244CurrentSupersessionObservation $observer
+ if($o.mutex.SafeWaitHandle.IsClosed-or$o.name-cne$script:mutexName){throw 'PREEXIT_OLD_KERNEL_HANDLE_NOT_RETAINED'}
+ $writer.WriteLine('ABANDON');$writer.Flush();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne23){throw 'ISOLATED_UNCLEAN_EXIT_NOT_PROVED'};$observer.ValidateExited()
+ $caught='';try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'BUSINESS_5244_ABANDONED_OWNER'-or$o.mutex.SafeWaitHandle.IsClosed-or$createdNatives.Count-or$script:Business5244CurrentSupersessions.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne$fixedInputs.pendingHash){throw 'OLD_ABANDONMENT_HIDDEN_BY_NEW_MUTEX'}
+ `),'PASS');
+});
+win('a native owner exit without a prior live mutex observation cannot mint supersession admission',()=>{
+ assert.equal(superRun(String.raw`
+ $writer.WriteLine('EXIT');$writer.Flush();if(!$server.WaitForExit(5000)){throw 'ISOLATED_OLD_EXIT_NOT_PROVED'};$observer.ValidateExited();$caught=''
+ try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_REQUIRED'-or$inputCalls-or$createdNatives.Count-or$script:Business5244CurrentSupersessions.Count){throw 'POSTEXIT_NEW_MUTEX_WAS_ADOPTED'}
+ `),'PASS');
+});
+win('a live but unheld old mutex is balanced and rejected instead of being treated as a contention witness',()=>{
+ assert.equal(superRun(String.raw`
+ $writer.WriteLine('RELEASE');$writer.Flush();if($server.StandardOutput.ReadLine()-cne'RELEASED'-or$observer.Observe()){throw 'ISOLATED_LIVE_RELEASE_NOT_PROVED'}
+ $caught='';try{Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'CURRENT_SUPERSESSION_OBSERVATION_NOT_HELD'-or$script:Business5244CurrentSupersessionObservations.Count){throw 'UNHELD_OLD_MUTEX_ADMITTED'}
+ $check=[Threading.Mutex]::OpenExisting($script:mutexName);try{if(!$check.WaitOne(0)){throw 'UNEXPECTED_BALANCED_OBSERVATION_OWNERSHIP_LEAK'};$check.ReleaseMutex()}finally{$check.Dispose()}
+ `),'PASS');
+});
+win('closing the pre-exit observation disposes only its own handle and cannot release the live old owner mutex',()=>{
+ assert.equal(superRun(String.raw`
+ Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null;$o=Get-Business5244CurrentSupersessionObservation $observer;Close-Business5244CurrentSupersessionObservation $observer
+ $check=[Threading.Mutex]::OpenExisting($script:mutexName);try{if($check.WaitOne(0)){$check.ReleaseMutex();throw 'OBSERVATION_CLOSE_RELEASED_OLD_OWNER'}}finally{$check.Dispose()}
+ if(!$o.closed-or!$o.mutex.SafeWaitHandle.IsClosed-or$observer.Observe()){throw 'OBSERVATION_CLOSE_CHANGED_NATIVE_OWNER'}
+ $writer.WriteLine('EXIT');$writer.Flush();[void]$server.WaitForExit(5000);$caught='';try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message};if($caught-cne'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_REQUIRED'){throw 'CLOSED_OBSERVATION_STILL_GRANTED'}
+ `),'PASS');
 });

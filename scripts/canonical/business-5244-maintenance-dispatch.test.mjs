@@ -172,12 +172,13 @@ $body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Jo
 try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current -PrepareReadPair|Out-Null}catch{$code=[string]$_.Exception.Message;$Shared['safeFailure']=if($code-cmatch'^[A-Z][A-Z0-9_]{1,100}$'){$code}else{$_.Exception.GetType().Name};throw}finally{$Shared['innerReturned']=$true}
 __INNER_END__
 [void]$pipeline.AddScript($inner).AddArgument($shared).AddArgument($env:TEMP).AddArgument('__SOURCE_ROOT__').AddArgument(__FAIL_API__)
-$async=$pipeline.BeginInvoke();$maintenance=$null
+$async=$pipeline.BeginInvoke();$maintenance=$null;$oldMutexHandle=$null
 try{
  $deadline=[datetime]::UtcNow.AddSeconds(12);do{if($shared.ContainsKey('loopEntered')-and$shared['loopEntered']){break};if($async.IsCompleted){$ids=@($pipeline.Streams.Error|ForEach-Object{$_.FullyQualifiedErrorId});throw ('ISOLATED_MANAGED_OWNER_EARLY_EXIT '+$shared['safeFailure']+' '+($ids-join'|'))};Start-Sleep -Milliseconds 20}while([datetime]::UtcNow-lt$deadline)
  if(!$shared['loopEntered']){throw 'ISOLATED_MANAGED_OWNER_NOT_READY'}
  $denied=$false;try{$foreign=[IO.File]::Open($shared['recordPath'],[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$foreign.Dispose()}catch{$denied=$true};if(!$denied){throw 'ISOLATED_UNKNOWN_RECORD_NOT_HELD'}
  if($shared['child'].HasExited){throw 'ISOLATED_ROLLBACK_CHILD_NOT_ALIVE_BEFORE_STOP'}
+ $oldMutexHandle=[Threading.Mutex]::OpenExisting($shared['mutexName']);$acquired=$oldMutexHandle.WaitOne(0);if($acquired){$oldMutexHandle.ReleaseMutex();throw 'ISOLATED_OLD_MUTEX_NOT_HELD_BEFORE_STOP'}
  # Cooperative pipeline stop, not process termination or a production attach.
  $pipeline.Stop();try{[void]$pipeline.EndInvoke($async)}catch{if($_.Exception.GetType().Name-cnotin@('MethodInvocationException','PipelineStoppedException')){throw}}
  if(!$async.IsCompleted-or!$shared['innerReturned']-or!$shared['stateClosed']-or!$shared['child'].WaitForExit(1500)-or!(Test-Path -LiteralPath $shared['pendingPath'])){throw 'MANAGED_STOP_RESOURCE_CLEANUP_UNPROVEN'}
@@ -185,7 +186,7 @@ try{
  . '__STARTUP__' -Library
  function Get-Business5244StartupMutexName{return $shared['mutexName']};function Get-Business5244RetirementPendingPath{return $shared['pendingPath']}
  __VERIFY__
-}finally{if($maintenance){Exit-Business5244StartupLease $maintenance};if(!$async.IsCompleted){$pipeline.Stop()};$pipeline.Dispose();$rs.Dispose();if($shared.ContainsKey('child')){$shared['child'].Dispose()}}
+}finally{if($maintenance){Exit-Business5244StartupLease $maintenance};if(!$async.IsCompleted){$pipeline.Stop()};$pipeline.Dispose();$rs.Dispose();if($oldMutexHandle){$oldMutexHandle.Dispose()};if($shared.ContainsKey('child')){$shared['child'].Dispose()}}
 'PASS'
 `.replace('__INNER_END__',"'@").replace('__SOURCE_ROOT__',dir.replaceAll("'","''")).replace('__STARTUP__',path.join(dir,'business-5244-startup-exclusion.ps1').replaceAll("'","''"));
 win('cooperative PowerShell pipeline Stop executes the original Unknown-owner finally, closes owned children and handles, and releases a non-abandoned mutex while retaining pending',()=>{

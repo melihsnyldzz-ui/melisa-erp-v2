@@ -13,6 +13,22 @@ const ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLC
 const PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\sql-collation-recovered-20261029`;
 const PROOF=path.win32.join(PRIVATE,'owner-preparation');
 const VERIFIED_PRODUCER=path.win32.join(PROOF,'verified-owner-producer.mjs');
+const CURRENT_SUPERSESSION_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029');
+const CURRENT_SUPERSESSION_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\current-only-supersession-20261029`;
+const CURRENT_SUPERSESSION_PROOF=path.win32.join(CURRENT_SUPERSESSION_PRIVATE,'owner-preparation');
+const CURRENT_SUPERSESSION_VERIFIER=path.win32.join(CURRENT_SUPERSESSION_PROOF,'verified-owner-producer.mjs');
+const CURRENT_SUPERSESSION_INPUTS=Object.freeze({
+ 'oldpending.before.bin':'7c42681742b6c858cda7eff730a955adeb4c2975ca8692bf95d94ca68af3fcab',
+ 'oldrecord.before.json':'3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74',
+ 'supersession-fixed-case.json':'8965df723ec4bdbbd12360129d54aab47484d67ad76d8c42f4ec7c7b67c6caf8',
+ 'current-entry-hold-capture.json':'311b3facefe4aa9c0e0629a1fe5ca2e87d11e04f2562a3a237a51be54c116a55',
+ 'protected-boundary.json':'a0edcc36f31103db37ae90ec3727ecd1f450eeb8bac1714c442b678cbfd45a3e',
+});
+const SQLCOLLATION_CORE_HASH='e06fc655f1473a4fe998383f2d86e992e6761bf177393edc5379975c506ba2a0';
+const SQLCOLLATION_ROUTER_HASH='2d5a2a5b2e680f3b6a7dd83d2b97704c55867bb7ee734850f05caeb9b1faa2ee';
+const SQLCOLLATION_CURRENT_HASH='a622e726385ed2564709814400d2f5125fd8b62eee7290515905c07c02c310fd';
+const SQLCOLLATION_ROUTER_ENTRY_HASH='1f197ebfe70280cdfd04e560c1bb2aa1445f801533a5abfbeee6a4e7c5514197';
+const SQLCOLLATION_SOURCE='1700581e6d1986772ddebc903019848b2847d473';
 const OLD_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE');
 const OLD_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE');
 const OLD_CORE_HASH='e9afdf730956822d1f1a94352c83bf0aeb4d5d891ea09aae07143e2fe17ad879';
@@ -68,9 +84,10 @@ function read(p){plainPath(p);return fs.readFileSync(p);}
 function pinned(p,expected){const b=read(p);if(hash(b)!==expected)fail('B6_OWNER_INPUT_CHANGED');return b;}
 function git(args,raw=false,input){return cp.execFileSync('git',args,{cwd:SOURCE_ROOT,windowsHide:true,...(raw?{}:{encoding:'utf8'}),...(input===undefined?{}:{input}),maxBuffer:8*1024*1024});}
 function gh(endpoint){return JSON.parse(cp.execFileSync('gh',['api',endpoint],{cwd:SOURCE_ROOT,windowsHide:true,encoding:'utf8',maxBuffer:4*1024*1024}));}
-function committedSources(packagedCommit=null){
+function committedSources(packagedCommit=null,currentSupersession=false){
  const ownPath=path.resolve(fileURLToPath(import.meta.url));
- if(process.platform!=='win32'||ownPath!==path.join(SOURCE_ROOT,'scripts','canonical','prepare-business-sale-owner-bundle.mjs')&&(ownPath!==VERIFIED_PRODUCER||process.argv.slice(2).join('|')!=='--verify'))fail('B6_OWNER_FIXED_SOURCE_REQUIRED');
+ const verifier=currentSupersession?CURRENT_SUPERSESSION_VERIFIER:VERIFIED_PRODUCER,verifyAction=currentSupersession?'--verify-current-supersession':'--verify';
+ if(process.platform!=='win32'||ownPath!==path.join(SOURCE_ROOT,'scripts','canonical','prepare-business-sale-owner-bundle.mjs')&&(ownPath!==verifier||process.argv.slice(2).join('|')!==verifyAction))fail('B6_OWNER_FIXED_SOURCE_REQUIRED');
  for(const args of [['remote','get-url','origin'],['remote','get-url','--push','origin']])if(git(args).trim()!=='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git')fail('B6_OWNER_ORIGIN_CHANGED');
  if(git(['branch','--show-current']).trim()!=='codex/erp-p03-pr53-candidate-20261018')fail('B6_OWNER_BRANCH_CHANGED');
  const repoHead=git(['rev-parse','HEAD']).trim();if(!commit(repoHead)||git(['status','--porcelain','--untracked-files=no']).trim())fail('B6_OWNER_COMMITTED_CLEAN_SOURCE_REQUIRED');
@@ -132,6 +149,51 @@ function predecessor(){
  return {inputs,capture};
 }
 function predecessorIdentity(){return {captureSha256:INPUTS['current-read2b-owner-capture.json'],recordBeforeSha256:INPUTS['current-erp-processes.before.json'],predecessorEntryKind:'ReadPairRouter',entry:{root:OLD_ROUTER,leaf:'start-business-5244-readpair-router.ps1',sha256:OLD_ROUTER_ENTRY_HASH,manifestSha256:OLD_ROUTER_HASH},routerRoot:OLD_ROUTER,routerManifestSha256:OLD_ROUTER_HASH,routerEntrySha256:OLD_ROUTER_ENTRY_HASH,coreRoot:OLD_CORE,coreManifestSha256:OLD_CORE_HASH};}
+function currentSupersessionHistories(){
+ const generations=[
+  {root:HISTORY_CORE,sha:HISTORY_CORE_HASH,router:HISTORY_ROUTER,routerSha:HISTORY_ROUTER_HASH,entrySha:HISTORY_ROUTER_ENTRY_HASH,currentSha:HISTORY_CURRENT_ENTRY_HASH,legacy:true},
+  {root:RECOVERY_CORE,sha:RECOVERY_CORE_HASH,source:RECOVERY_SOURCE,router:RECOVERY_ROUTER,routerSha:RECOVERY_ROUTER_HASH,entrySha:RECOVERY_ROUTER_ENTRY_HASH,currentSha:RECOVERY_ENTRY_HASH},
+  {root:PRIOR_CORE,sha:PRIOR_CORE_HASH,source:PRIOR_SOURCE,router:PRIOR_ROUTER,routerSha:PRIOR_ROUTER_HASH,entrySha:PRIOR_ROUTER_ENTRY_HASH,currentSha:PRIOR_ENTRY_HASH},
+  {root:OLD_CORE,sha:OLD_CORE_HASH,source:OLD_SOURCE,router:OLD_ROUTER,routerSha:OLD_ROUTER_HASH,entrySha:OLD_ROUTER_ENTRY_HASH,currentSha:OLD_ENTRY_HASH},
+  {root:CORE,sha:SQLCOLLATION_CORE_HASH,source:SQLCOLLATION_SOURCE,router:ROUTER,routerSha:SQLCOLLATION_ROUTER_HASH,entrySha:SQLCOLLATION_ROUTER_ENTRY_HASH,currentSha:SQLCOLLATION_CURRENT_HASH},
+ ];
+ const directEntries=[];
+ for(const g of generations){
+  const names=[...BUSINESS_SALE_OWNER_SOURCE_FILES.filter(n=>!g.legacy||n!=='canonical-business-sale-maintenance.ps1'),'run-current-owner.ps1'].sort(),core=json(pinned(path.join(g.root,'owner-manifest.json'),g.sha));
+  if(core.kind!=='BUSINESS5244_FRESH_OWNER_BUNDLE'||!Array.isArray(core.files)||core.files.map(f=>f.path).sort().join('|')!==names.join('|')||g.source&&(core.finiteScope!==SCOPE||core.sourceCommit!==g.source||core.actualT1!==false||core.externalOperations!==false))fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
+  for(const f of core.files){if(typeof f.path!=='string'||/[\\/]/.test(f.path)||!hex(f.sha256)||!Number.isSafeInteger(f.bytes)||f.bytes<1||pinned(path.join(g.root,f.path),f.sha256).length!==f.bytes)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');}
+  if(core.files.find(f=>f.path==='run-current-owner.ps1').sha256!==g.currentSha)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
+  const router=json(pinned(path.join(g.router,'owner-manifest.json'),g.routerSha));
+  if(router.coreRoot!==g.root||router.coreManifestSha256!==g.sha||router.entry!=='start-business-5244-readpair-router.ps1'||router.entrySha256!==g.entrySha)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
+  pinned(path.join(g.router,router.entry),g.entrySha);
+  directEntries.push({path:path.join(g.router,router.entry),sha256:g.entrySha},{path:path.join(g.root,'run-current-owner.ps1'),sha256:g.currentSha});
+ }
+ return directEntries;
+}
+function currentSupersessionCase(){
+ if(Object.values(CURRENT_SUPERSESSION_INPUTS).some(v=>!hex(v)))fail('B6_CURRENT_SUPERSESSION_CASE_NOT_PREPARED');
+ const inputs=new Map(Object.entries(CURRENT_SUPERSESSION_INPUTS).map(([name,sha])=>[name,pinned(path.join(CURRENT_SUPERSESSION_PRIVATE,name),sha)]));
+ const capture=json(inputs.get('supersession-fixed-case.json')),pending=json(inputs.get('oldpending.before.bin')),record=inputs.get('oldrecord.before.json'),entries=json(inputs.get('current-entry-hold-capture.json')),boundary=json(inputs.get('protected-boundary.json'));
+ if(capture.schema!=='melisa-5244-current-supersession-case.v1'||capture.readOnly!==true||capture.executionAuthority!==false||capture.serviceCalls!==0||capture.sqlWrites!==0||capture.stopCalls!==0||capture.recordWrites!==0)fail('B6_CURRENT_SUPERSESSION_CASE_REJECTED');
+ if(capture.target?.pid!==48212||capture.target.birth!=='134377121934062288'||capture.target.exe!==String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`||capture.target.entryPath!==path.join(ROUTER,'start-business-5244-readpair-router.ps1')||capture.target.argvSha256!=='182a8015aecc2575e4d3088231bc4b2295f4f5087ec0741d3878fd1d43f6336f'||typeof capture.target.sid!=='string'||!/^S-1-5-21-\d+-\d+-\d+-\d+$/.test(capture.target.sid))fail('B6_CURRENT_SUPERSESSION_TARGET_REJECTED');
+ const active=capture.active;
+ if(active?.coreRoot!==CORE||active.coreManifestSha256!==SQLCOLLATION_CORE_HASH||active.routerRoot!==ROUTER||active.routerManifestSha256!==SQLCOLLATION_ROUTER_HASH||active.routerEntrySha256!==SQLCOLLATION_ROUTER_ENTRY_HASH||active.coreEntrySha256!==SQLCOLLATION_CURRENT_HASH||active.coreSource!==SQLCOLLATION_SOURCE)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
+ const directEntries=currentSupersessionHistories(),core=json(pinned(path.join(CORE,'owner-manifest.json'),SQLCOLLATION_CORE_HASH));
+ if(JSON.stringify(active.coreFiles)!==JSON.stringify(core.files))fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
+ const pendingHash=CURRENT_SUPERSESSION_INPUTS['oldpending.before.bin'],recordHash=CURRENT_SUPERSESSION_INPUTS['oldrecord.before.json'];
+ if(pending.schema!=='business-5244-retirement-before.v1'||pending.operationId!=='0cfa751c63644554a4faccd1f1e8d7c6'||pending.ownerPid!==capture.target.pid||pending.ownerBirth!==capture.target.birth||pending.childPid!==47092||pending.childBirth!=='134377122629606295'||pending.beforeSha256!==recordHash||typeof pending.beforeBase64!=='string'||!Buffer.from(pending.beforeBase64,'base64').equals(record)||Buffer.from(pending.beforeBase64,'base64').toString('base64')!==pending.beforeBase64)fail('B6_CURRENT_SUPERSESSION_PENDING_REJECTED');
+ if(capture.pending?.path!==String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\5244-retirement.pending`||capture.pending.sha256!==pendingHash||capture.pending.bytes!==inputs.get('oldpending.before.bin').length||capture.pending.operationId!==pending.operationId||capture.pending.beforeRecordSha256!==recordHash||capture.record?.path!==String.raw`C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json`||capture.record.sha256!==recordHash||capture.record.bytes!==record.length||capture.record.actualRecordRead!==false)fail('B6_CURRENT_SUPERSESSION_PENDING_REJECTED');
+ const rows=json(record),web=Array.isArray(rows)?rows.filter(r=>r.port===5244):[];
+ if(web.length!==1||web[0].pid!==pending.childPid||web[0].root!==String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-2b744f5b-API-READ`||web[0].sourceCommit!=='2b744f5b9ebda05b1355602126b1a8e5f114be83')fail('B6_CURRENT_SUPERSESSION_PENDING_REJECTED');
+ if(capture.current?.apiPackage!=='CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'||capture.current.apiManifest!=='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'||capture.current.webManifest!=='91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd'||capture.current.database!=='MELISA_ERP_SIRKET_TEST_20260929_01'||capture.current.server!=='Semih\\MELISADEV')fail('B6_CURRENT_SUPERSESSION_CURRENT_REJECTED');
+ const protectedPaths=[String.raw`C:\Sirket\ERP\runtime\canonical-test\startup-config.json`,String.raw`C:\Sirket\ERP\config\TEST-20260929-01\runtime-private.json`,String.raw`C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json`];
+ if(!Array.isArray(capture.protectedFiles)||capture.protectedFiles.length!==3||capture.protectedFiles.some((f,n)=>f.path!==protectedPaths[n]||!hex(f.sha256))||!Array.isArray(capture.protectedProcesses)||capture.protectedProcesses.length!==4||capture.protectedProcesses.map(p=>p.LocalPort).sort((a,b)=>a-b).join('|')!=='4144|4146|5194|5234'||capture.protectedProcesses.some(p=>!Number.isSafeInteger(p.OwningProcess)||p.OwningProcess<=0))fail('B6_CURRENT_SUPERSESSION_PROTECTION_REJECTED');
+ if(boundary.schema!=='melisa-5244-current-supersession-boundary.v1'||boundary.readOnly!==true||boundary.executionAuthority!==false||boundary.caseSha256!==CURRENT_SUPERSESSION_INPUTS['supersession-fixed-case.json']||boundary.writes!==0||boundary.serviceCalls!==0||boundary.sqlCalls!==0||boundary.task?.name!=='Melisa-ERP-TEST-Canonical'||boundary.task.path!=='\\'||boundary.task.xmlSha256!=='e959af0b36ea9d2bd0fabdd6371174c4bd406258e64dc904e38833f79820d99a'||boundary.task.sddlSha256!=='cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4'||!Array.isArray(boundary.processes)||boundary.processes.length!==4||boundary.processes.some((p,n)=>p.pid!==capture.protectedProcesses[n].OwningProcess||typeof p.birth!=='string'||!/^\d{18}$/.test(p.birth)||!Number.isSafeInteger(p.parent)||p.parent<=0||![String.raw`C:\Sirket\ERP\tools\node-v24.19.0\node.exe`,String.raw`C:\Program Files\nodejs\node.exe`].includes(p.exe)||!hex(p.argvSha256)))fail('B6_CURRENT_SUPERSESSION_BOUNDARY_REJECTED');
+ const runtime=String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027`,legacy=['start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'].map(n=>path.join(runtime,n)).concat(String.raw`C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1`);
+ if(capture.entryCaptureSha256!==CURRENT_SUPERSESSION_INPUTS['current-entry-hold-capture.json']||entries.schema!=='melisa-b6-current-entry-hold-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.ownerCaptureSha256!==null||entries.entries?.length!==6||entries.directEntries?.length!==10||entries.entries.some((e,n)=>e.path!==legacy[n]||e.afterEqualsBefore!==true||!hex(e.beforeSha256))||entries.directEntries.some((e,n)=>e.path!==directEntries[n].path||e.sha256!==directEntries[n].sha256)||entries.gate?.path!==path.join(runtime,'business-5244-startup-exclusion-ec316a63.ps1')||entries.gate.sha256!=='a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0)fail('B6_CURRENT_SUPERSESSION_ENTRY_REJECTED');
+ for(const e of entries.entries)pinned(e.path,e.beforeSha256);pinned(entries.gate.path,entries.gate.sha256);
+ return {inputs,capture};
+}
 function trustedModuleImports(){return String.raw`
 if($PSVersionTable.PSEdition-cne'Desktop'){throw 'B6_NATIVE_WINDOWS_POWERSHELL_REQUIRED'}
 foreach($builtinName in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security','CimCmdlets','NetTCPIP','ScheduledTasks')){
@@ -199,4 +261,53 @@ export function verifyBusinessSaleOwnerBundle(){
  if(routerManifest.kind!=='BUSINESS5244_READ_PAIR_ROUTER'||routerManifest.finiteScope!==SCOPE||routerManifest.entrySourceCommit!==source.head||routerManifest.coreRoot!==CORE||routerManifest.coreManifestSha256!==hash(coreBytes)||routerManifest.routerLibrarySha256!==hash(library)||routerManifest.entrySha256!==hash(entry)||!read(path.join(ROUTER,'readpair-router-library.ps1')).equals(library)||!read(path.join(ROUTER,'start-business-5244-readpair-router.ps1')).equals(entry)||!read(path.join(PROOF,'reviewed-installer-source.ps1')).equals(source.files.get('install-business-5244-readpair.ps1')))fail('B6_OWNER_PREPARED_ROUTER_CHANGED');
  return {schema:'melisa-b6-passive-owner-verification.v1',ownerSourceCommit:source.head,currentRepoHead:source.repoHead,sourceHashes:source.workingSourceHashes,coreManifestSha256:hash(coreBytes),routerManifestSha256:hash(routerBytes),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),coreFiles:13,beforeImages:before.inputs.size,writes:0,sqlCalls:0,serviceCalls:0,ownerCalls:0};
 }
-if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|');if(!['--prepare','--verify'].includes(action))fail('B6_OWNER_FIXED_ACTION_REQUIRED');try{const r=action==='--prepare'?prepareBusinessSaleOwnerBundle():verifyBusinessSaleOwnerBundle();process.stdout.write(JSON.stringify(r)+'\n');}catch(e){process.stderr.write((/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'B6_OWNER_PREPARATION_FAILED')+'\n');process.exitCode=1;}}
+function renderCurrentSupersession(head,installerHash){
+ if(!commit(head)||!hex(installerHash))fail('B6_CURRENT_SUPERSESSION_RENDER_PIN_REJECTED');
+ const names=[...BUSINESS_SALE_OWNER_SOURCE_FILES,'run-current-owner.ps1','install-business-5244-readpair.ps1'].sort();
+ return Buffer.from(`param([Parameter(Mandatory)][ValidatePattern('^[a-fA-F0-9]{64}$')][string]$ManifestSha256,[Parameter(Mandatory)][ValidateSet(${ps(SCOPE)})][string]$ScopeName)
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+$core=${ps(CURRENT_SUPERSESSION_CORE)};$sourceCommit=${ps(head)}
+if($PSScriptRoot-cne$core-or$ScopeName-cne${ps(SCOPE)}){throw 'B6_CURRENT_SUPERSESSION_ROOT_CHANGED'}
+${holdHelpers()}try{
+Hold-B6 (Join-Path $core 'owner-manifest.json') $ManifestSha256
+$m=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json
+if($m.kind-cne'CURRENT_ONLY_SUPERSESSION_BUNDLE'-or$m.finiteScope-cne${ps(SCOPE)}-or$m.sourceCommit-cne$sourceCommit-or$m.actualT1-ne$false-or$m.externalOperations-ne$false-or$m.initialSlot-cne'Current'-or$m.apiManifestSha256-cne'8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'-or$m.appManifestSha256-cne'91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd'){throw 'B6_CURRENT_SUPERSESSION_IDENTITY_CHANGED'}
+$names=@(${names.map(ps).join(',')})
+if(@($m.files).Count-ne14-or((@($m.files.path|Sort-Object)-join'|')-cne($names-join'|'))){throw 'B6_CURRENT_SUPERSESSION_CLOSURE_CHANGED'}
+foreach($file in $m.files){if($file.path-match'[\\/]'-or$file.sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'B6_CURRENT_SUPERSESSION_LEAF_REJECTED'};Hold-B6 (Join-Path $core $file.path) $file.sha256}
+${Object.entries(CURRENT_SUPERSESSION_INPUTS).map(([name,sha])=>'Hold-B6 (Join-Path $core '+ps(name)+') '+ps(String(sha))).join('\n')}
+Hold-B6 (Join-Path $core 'install-business-5244-readpair.ps1') ${ps(installerHash)}
+& (Join-Path $core 'install-business-5244-readpair.ps1') -CurrentOnlySupersession -SourceSha256 ${ps(installerHash)} -ScopeName ${ps(SCOPE)}
+}finally{foreach($stream in $held){$stream.Dispose()}}
+`);
+}
+function currentSupersessionPayload(source,ci,before){
+ const installer=source.files.get('install-business-5244-readpair.ps1'),files=new Map(BUSINESS_SALE_OWNER_SOURCE_FILES.map(n=>[n,source.files.get(n)]));
+ files.set('run-current-owner.ps1',renderCurrentSupersession(source.head,hash(installer)));files.set('install-business-5244-readpair.ps1',installer);
+ const manifest={kind:'CURRENT_ONLY_SUPERSESSION_BUNDLE',finiteScope:SCOPE,sourceCommit:source.head,businessSaleSourceCommit:APP_SOURCE,sourcePolicy:'COMMITTED_GIT_BLOBS_ONLY',initialSlot:'Current',apiPackageId:'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213',apiManifestSha256:'8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090',appPackageId:'ERP-BUSINESS-WEB-5244-2b744f5b-API-READ',appManifestSha256:'91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd',apiPort:4144,nativePort:4146,webPort:5244,database:'MELISA_ERP_SIRKET_TEST_20260929_01',actualT1:false,externalOperations:false,installed:false,recordingEnabled:false,caseSha256:CURRENT_SUPERSESSION_INPUTS['supersession-fixed-case.json'],beforeImages:Object.entries(CURRENT_SUPERSESSION_INPUTS).map(([name,sha256])=>({path:name,sha256,bytes:before.inputs.get(name).length})),hostedCi:ci,files:[...files].map(([name,b])=>({path:name,sha256:hash(b),bytes:b.length})).sort((a,b)=>a.path.localeCompare(b.path))};
+ return {files,manifest};
+}
+export function prepareBusinessSaleCurrentSupersessionBundle(){
+ if(path.resolve(fileURLToPath(import.meta.url))!==path.join(SOURCE_ROOT,'scripts','canonical','prepare-business-sale-owner-bundle.mjs'))fail('B6_OWNER_PREPARATION_SOURCE_ENTRY_REQUIRED');
+ const source=committedSources(null,true),ci=hostedSourceChecks(source.head),before=currentSupersessionCase(),payload=currentSupersessionPayload(source,ci,before),manifestBytes=bytes(payload.manifest);
+ for(const dir of [CURRENT_SUPERSESSION_CORE,CURRENT_SUPERSESSION_PROOF]){if(fs.existsSync(dir))fail('B6_OWNER_OUTPUT_EXISTS_NO_OVERWRITE');plainPath(path.dirname(dir));}
+ if(git(['rev-parse','HEAD']).trim()!==source.head||git(['status','--porcelain','--untracked-files=no']).trim())fail('B6_OWNER_SOURCE_CHANGED');
+ for(const [name,sha] of Object.entries(CURRENT_SUPERSESSION_INPUTS))pinned(path.join(CURRENT_SUPERSESSION_PRIVATE,name),sha);
+ for(const dir of [CURRENT_SUPERSESSION_CORE,CURRENT_SUPERSESSION_PROOF])fs.mkdirSync(dir);
+ for(const [name,b] of payload.files)writeLeaf(CURRENT_SUPERSESSION_CORE,name,b);for(const [name,b] of before.inputs)writeLeaf(CURRENT_SUPERSESSION_CORE,name,b);writeLeaf(CURRENT_SUPERSESSION_CORE,'owner-manifest.json',manifestBytes);
+ const result={schema:'melisa-current-supersession-passive-preparation.v1',ownerSourceCommit:source.head,businessSaleSourceCommit:APP_SOURCE,coreRoot:CURRENT_SUPERSESSION_CORE,coreManifestSha256:hash(manifestBytes),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),producerSourceSha256:hash(source.files.get('prepare-business-sale-owner-bundle.mjs')),sourceHashes:source.workingSourceHashes,coreFiles:13,installerFiles:1,beforeImages:before.inputs.size,installed:false,recordingEnabled:false,executable:false,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0,hostedCi:ci};
+ writeLeaf(CURRENT_SUPERSESSION_PROOF,'preparation-receipt.json',bytes(result));writeLeaf(CURRENT_SUPERSESSION_PROOF,'reviewed-installer-source.ps1',source.files.get('install-business-5244-readpair.ps1'));writeLeaf(CURRENT_SUPERSESSION_PROOF,'verified-owner-producer.mjs',source.files.get('prepare-business-sale-owner-bundle.mjs'));return result;
+}
+export function verifyBusinessSaleCurrentSupersessionBundle(){
+ const receipt=json(read(path.join(CURRENT_SUPERSESSION_PROOF,'preparation-receipt.json'))),source=committedSources(receipt.ownerSourceCommit,true),ci=hostedSourceChecks(source.head),before=currentSupersessionCase();
+ const actualManifest=read(path.join(CURRENT_SUPERSESSION_CORE,'owner-manifest.json')),manifest=json(actualManifest);
+ if(!Array.isArray(manifest.hostedCi)||manifest.hostedCi.length!==2||manifest.hostedCi.some((r,n)=>r.event!==ci[n].event||r.head!==source.head||r.conclusion!=='success'||!Number.isSafeInteger(r.runId)||r.runId<1||JSON.stringify(r.jobs)!==JSON.stringify(REQUIRED_JOBS)))fail('B6_CURRENT_SUPERSESSION_CI_CHANGED');
+ const expected=currentSupersessionPayload(source,manifest.hostedCi,before);
+ if(receipt.schema!=='melisa-current-supersession-passive-preparation.v1'||receipt.ownerSourceCommit!==source.head||receipt.businessSaleSourceCommit!==APP_SOURCE||receipt.coreRoot!==CURRENT_SUPERSESSION_CORE||receipt.coreManifestSha256!==hash(actualManifest)||receipt.installerSourceSha256!==hash(source.files.get('install-business-5244-readpair.ps1'))||receipt.producerSourceSha256!==hash(source.files.get('prepare-business-sale-owner-bundle.mjs'))||receipt.coreFiles!==13||receipt.installerFiles!==1||receipt.beforeImages!==5||receipt.installed!==false||receipt.recordingEnabled!==false||receipt.executable!==false||!actualManifest.equals(bytes(expected.manifest)))fail('B6_CURRENT_SUPERSESSION_PREPARED_CHANGED');
+ for(const [name,b] of expected.files)if(!read(path.join(CURRENT_SUPERSESSION_CORE,name)).equals(b))fail('B6_OWNER_PREPARED_SOURCE_CHANGED');
+ for(const [name,b] of before.inputs)if(!read(path.join(CURRENT_SUPERSESSION_CORE,name)).equals(b))fail('B6_OWNER_PREPARED_BEFORE_IMAGE_CHANGED');
+ if(!read(CURRENT_SUPERSESSION_VERIFIER).equals(source.files.get('prepare-business-sale-owner-bundle.mjs'))||!read(path.join(CURRENT_SUPERSESSION_PROOF,'reviewed-installer-source.ps1')).equals(source.files.get('install-business-5244-readpair.ps1')))fail('B6_OWNER_PREPARED_SOURCE_CHANGED');
+ return {schema:'melisa-current-supersession-passive-verification.v1',ownerSourceCommit:source.head,currentRepoHead:source.repoHead,coreRoot:CURRENT_SUPERSESSION_CORE,coreManifestSha256:hash(actualManifest),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),coreFiles:13,installerFiles:1,beforeImages:5,writes:0,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0};
+}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|'),actions={'--prepare':prepareBusinessSaleOwnerBundle,'--verify':verifyBusinessSaleOwnerBundle,'--prepare-current-supersession':prepareBusinessSaleCurrentSupersessionBundle,'--verify-current-supersession':verifyBusinessSaleCurrentSupersessionBundle};if(!Object.hasOwn(actions,action))fail('B6_OWNER_FIXED_ACTION_REQUIRED');try{const r=actions[action]();process.stdout.write(JSON.stringify(r)+'\n');}catch(e){process.stderr.write((/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'B6_OWNER_PREPARATION_FAILED')+'\n');process.exitCode=1;}}

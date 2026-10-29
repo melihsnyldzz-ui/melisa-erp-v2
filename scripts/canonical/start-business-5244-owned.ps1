@@ -184,19 +184,30 @@ function Close-Business5244PinnedChildren($Lease){
  if($failed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
 }
 function Start-Business5244OwnedSupervisor {
- param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'OWNED_WEB_SCOPE_REJECTED'}
  if($PrepareReadPair -and $InitialSlot -ine 'Current'){throw 'OWNED_WEB_PAIR_REQUIRES_CURRENT_START'}
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and initial publication remain separate gates.
- $lease=Enter-Business5244StartupLease -Kind Owner
+ if($null-ne$CurrentSupersession-and($InitialSlot-cne'Current'-or$PrepareReadPair-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028')){throw 'CURRENT_SUPERSESSION_SUPERVISOR_SCOPE_REJECTED'}
+ $lease=if($null-ne$CurrentSupersession){(Get-Business5244CurrentSupersessionContext $CurrentSupersession).lease}else{Enter-Business5244StartupLease -Kind Owner}
  $native=$null;$retirement=$null;$channel=$null;$apiTransition=$null;$initializationFailure=$null;$verifiedInitCleanup=$null;$initRecoveryBlocked=$false
+ $supersessionUndo=$false;$supersessionBlocked=$false
  $script:Business5244LastInitializationOutcome=$null
  try{
   $pins=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $(if($InitialSlot -ieq 'Current'){'Current'}else{'Candidate'})
-  $native=New-Business5244PinnedChild $pins $lease
-  $retirement=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName $ScopeName
-  if($PrepareReadPair){
+  if($null-ne$CurrentSupersession){
+   $frame=Initialize-Business5244CurrentSupersessionOwner $CurrentSupersession
+   if(![object]::ReferenceEquals($frame.lease,$lease)){throw 'CURRENT_SUPERSESSION_LEASE_TRANSFER_REJECTED'}
+   $native=$frame.native;$retirement=$frame.state
+  }else{
+   $native=New-Business5244PinnedChild $pins $lease
+   $retirement=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName $ScopeName
+  }
+  if($null-ne$CurrentSupersession){
+   # The fresh initializer owns its own actual child and metadata CAS; it
+   # neither replays the old request nor imports the old owner's state.
+  }elseif($PrepareReadPair){
    . (Join-Path $PSScriptRoot 'test125-bound-api-quiescence.ps1')
    if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleNativeProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}else{$apiTransition=New-Test125ReadPairTransition}
    (Get-Business5244RetirementState $retirement).initializationApiTransition=$apiTransition
@@ -208,11 +219,13 @@ function Start-Business5244OwnedSupervisor {
    Publish-Business5244CurrentRecord $retirement|Out-Null
   }
   $channel=Open-Business5244RetirementChannel -OwnerLease $lease
+  if($null-ne$CurrentSupersession){Complete-Business5244CurrentSupersessionOwner $CurrentSupersession|Out-Null}
   (Get-Business5244RetirementState $retirement).initializing=$false
   # Retain the real creation handle and Job for the entire child lifetime.
   # Merely serializing this observation never grants maintenance authority.
   $startupRecord=Get-Business5244RetirementState $retirement
   $recordPublished=$ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$startupRecord.ContainsKey('currentBootstrap')-and$startupRecord.currentBootstrap-and$startupRecord.currentBootstrap.phase-ceq'Archived'
+  if($null-ne$CurrentSupersession){$recordPublished=$startupRecord.ContainsKey('currentSupersession')-and[object]::ReferenceEquals($startupRecord.currentSupersession,(Get-Business5244CurrentSupersessionContext $CurrentSupersession))-and$startupRecord.currentSupersession.phase-ceq'Completed'}
   [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=[bool]$recordPublished}
   while($true){
    Assert-Business5244StartupLease -Lease $lease
@@ -224,6 +237,7 @@ function Start-Business5244OwnedSupervisor {
     $reply='Status'
     try{
      Assert-Business5244RetirementRequest -Channel $channel -Request $request
+     if($null-ne$CurrentSupersession-and$request.operation-cne'status'){throw 'CURRENT_SUPERSESSION_CURRENT_ONLY_OWNER'}
      if($request.operation -ceq 'retire'){
       if($null -ne $apiTransition){Invoke-Business5244PairedOwnerMaintenance $retirement $channel $request $apiTransition|Out-Null}else{Invoke-Business5244OwnerMaintenance $retirement $channel $request|Out-Null}
       $reply='RetireAccepted'
@@ -243,7 +257,16 @@ function Start-Business5244OwnedSupervisor {
   }
  }catch{
   $initializationFailure=$_
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$InitialSlot-ieq'Current'-and$retirement){
+  if($null-ne$CurrentSupersession){
+   $context=Get-Business5244CurrentSupersessionContext $CurrentSupersession
+   if($context.phase-cne'Completed'){
+    try{
+     if($channel){Close-Business5244RetirementChannel $channel;$channel=$null}
+     Undo-Business5244CurrentSupersessionOwner $CurrentSupersession|Out-Null
+     $supersessionUndo=$true;$retirement=$null;$native=$null
+    }catch{$supersessionBlocked=$true;throw 'CURRENT_SUPERSESSION_INITIALIZATION_RECOVERY_UNCONFIRMED'}
+   }
+  }elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$InitialSlot-ieq'Current'-and$retirement){
    $r=Get-Business5244RetirementState $retirement
    if($r.initializing-and$r.ContainsKey('currentBootstrap')-and$r.currentBootstrap){
     try{$verifiedInitCleanup=Undo-Business5244CurrentBootstrap $retirement}catch{$initRecoveryBlocked=$true;throw 'OWNED_WEB_INITIALIZATION_RECOVERY_UNCONFIRMED'}
@@ -251,14 +274,15 @@ function Start-Business5244OwnedSupervisor {
   }
   throw
  }finally{
+  if($supersessionBlocked){throw 'CURRENT_SUPERSESSION_RETAINED_CONTEXT_RECOVERY_REQUIRED'}
   $cleanupFailed=$initRecoveryBlocked
   if($channel){try{Close-Business5244RetirementChannel -Channel $channel}catch{$cleanupFailed=$true}}
   if($retirement){try{Close-Business5244RetirementState $retirement}catch{$cleanupFailed=$true}}
   if($native){try{$native.Dispose()}catch{$cleanupFailed=$true}}
-  try{Close-Business5244PinnedChildren $lease}catch{$cleanupFailed=$true}
+  if(!$supersessionUndo){try{Close-Business5244PinnedChildren $lease}catch{$cleanupFailed=$true}}
   if($apiTransition){try{Close-Test125ReadPairRequestAdmission $apiTransition;$apiContext=Assert-Test125ReadPairIssued $apiTransition;Close-ErpReadPairReleaseProof $apiContext.releaseProof}catch{$cleanupFailed=$true}}
   if($cleanupFailed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
-  Exit-Business5244StartupLease -Lease $lease
+  if(!$supersessionUndo){Exit-Business5244StartupLease -Lease $lease}
   if($verifiedInitCleanup-and$initializationFailure){
    # Issue the finite process outcome only after every cleanup and lease
    # release succeeded. The original exception reference cannot be serialized.

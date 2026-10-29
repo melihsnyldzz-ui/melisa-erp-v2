@@ -388,4 +388,176 @@ function Close-Business5244RetirementState($State){
  # Pending file is deliberately retained. It is evidence and a fail-closed
  # restart marker; this source adds no automatic rollback/reset/adoption.
 }
+# A new Current-only initialization may supersede a separately exited owner.
+# It never imports that owner's retirement state or completes its old request.
+if(!(Get-Variable Business5244CurrentSupersessions -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244CurrentSupersessions=[Collections.Generic.List[object]]::new()}
+if(!(Get-Variable Business5244CurrentSupersessionObservations -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244CurrentSupersessionObservations=[Collections.Generic.List[object]]::new()}
+function Prepare-Business5244CurrentSupersessionObservation($ExitObservation){
+ if(!($ExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'CURRENT_SUPERSESSION_NATIVE_EXIT_REQUIRED'}
+ if($ExitObservation.Observe()){throw 'CURRENT_SUPERSESSION_OBSERVATION_REQUIRES_LIVE_OWNER'}
+ $i=Get-Business5244CurrentSupersessionFixedInputs;$name=Get-Business5244StartupMutexName
+ if($i.schema-cne'business-5244-current-supersession-inputs.v1'-or$i.caseId-cne'CURRENT-ONLY-5244-SUPERSESSION-20261029'-or$i.scopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$ExitObservation.TargetPid-ne$i.ownerPid-or$ExitObservation.TargetBirth-cne$i.ownerBirth-or@($script:Business5244CurrentSupersessionObservations|Where-Object{!$_.closed-and$_.name-ceq$name}).Count){throw 'CURRENT_SUPERSESSION_OBSERVATION_FIXED_CASE_CHANGED'}
+ # OpenExisting cannot recreate the named object after its last old handle is
+ # closed. Retain this handle from the live, contended generation until all
+ # later standard Maintenance acquisition and owner cleanup have completed.
+ $rights=[Security.AccessControl.MutexRights]::Synchronize-bor[Security.AccessControl.MutexRights]::Modify
+ $mutex=[Threading.Mutex]::OpenExisting($name,$rights)
+ try{
+  try{$acquired=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();throw 'CURRENT_SUPERSESSION_OBSERVATION_ABANDONED'}
+  if($acquired){$mutex.ReleaseMutex();throw 'CURRENT_SUPERSESSION_OBSERVATION_NOT_HELD'}
+  if($ExitObservation.Observe()){throw 'CURRENT_SUPERSESSION_OBSERVATION_OWNER_EXITED_DURING_CAPTURE'}
+  $token=[pscustomobject]@{kind='business-5244-current-supersession-observation'}
+  $record=@{token=$token;observer=$ExitObservation;mutex=$mutex;name=$name;caseId=$i.caseId;scopeName=$i.scopeName;ownerPid=$i.ownerPid;ownerBirth=$i.ownerBirth;pid=$PID;birth=[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString();thread=[Threading.Thread]::CurrentThread.ManagedThreadId;sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;closed=$false}
+  $script:Business5244CurrentSupersessionObservations.Add($record);return $token
+ }catch{$mutex.Dispose();throw}
+}
+function Get-Business5244CurrentSupersessionObservation($ExitObservation){
+ $rows=@($script:Business5244CurrentSupersessionObservations|Where-Object{[object]::ReferenceEquals($_.observer,$ExitObservation)-and!$_.closed})
+ if($rows.Count-ne1){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_REQUIRED'};$o=$rows[0]
+ if(!($ExitObservation-is[Business5244RetirementPeer+ExitObservation])-or$o.pid-ne$PID-or$o.birth-cne[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString()-or$o.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$o.sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$o.name-cne(Get-Business5244StartupMutexName)-or!($o.mutex-is[Threading.Mutex])-or$o.mutex.SafeWaitHandle.IsClosed-or$o.mutex.SafeWaitHandle.IsInvalid-or$o.ownerPid-ne$ExitObservation.TargetPid-or$o.ownerBirth-cne$ExitObservation.TargetBirth){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_CHANGED'}
+ return $o
+}
+function Close-Business5244CurrentSupersessionObservation($ExitObservation){
+ if($null-eq$ExitObservation){return}
+ if(!($ExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'CURRENT_SUPERSESSION_NATIVE_EXIT_REQUIRED'}
+ $rows=@($script:Business5244CurrentSupersessionObservations|Where-Object{[object]::ReferenceEquals($_.observer,$ExitObservation)})
+ if(!$rows.Count){[void]$ExitObservation.Observe();return}
+ if($rows.Count-ne1){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_REQUIRED'};$o=$rows[0]
+ if($o.pid-ne$PID-or$o.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$o.sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$o.birth-cne[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString()){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_CHANGED'}
+ if(!$o.closed){$o.mutex.Dispose();$o.closed=$true}
+}
+function Get-Business5244CurrentSupersessionContext($Admission){
+ $rows=@($script:Business5244CurrentSupersessions|Where-Object{[object]::ReferenceEquals($_.token,$Admission)})
+ if($rows.Count-ne1){throw 'CURRENT_SUPERSESSION_NOT_ISSUED'};$c=$rows[0]
+ if($c.closed-or$c.pid-ne$PID-or$c.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$c.sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$c.birth-cne[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString()-or($c.inputs|ConvertTo-Json -Depth 32 -Compress)-cne$c.inputJson-or!($c.observer-is[Business5244RetirementPeer+ExitObservation])){throw 'CURRENT_SUPERSESSION_CONTEXT_CHANGED'}
+ $observation=Get-Business5244CurrentSupersessionObservation $c.observer;if(![object]::ReferenceEquals($observation,$c.observation)){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_CHANGED'}
+ $c.observer.ValidateExited();Assert-Business5244StartupLease $c.lease
+ return $c
+}
+function Assert-Business5244CurrentSupersessionHeld($Admission){
+ $c=Get-Business5244CurrentSupersessionContext $Admission
+ foreach($row in $c.seals){if(!($row.stream-is[IO.FileStream])-or!$row.stream.CanRead-or$row.stream.CanWrite-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $row.stream))-cne$row.hash){throw 'CURRENT_SUPERSESSION_ENTRY_SEAL_CHANGED'}}
+ if(!($c.records-is[IO.FileStream])-or!($c.pending-is[IO.FileStream])-or!$c.records.CanWrite-or!$c.pending.CanWrite-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.records))-cne$c.recordExpected-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.pending))-cne$c.pendingExpected){throw 'CURRENT_SUPERSESSION_HELD_CAS_CHANGED'}
+ return $c
+}
+function New-Business5244CurrentSupersessionAdmission($ExitObservation){
+ if(!($ExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'CURRENT_SUPERSESSION_NATIVE_EXIT_REQUIRED'}
+ $observation=Get-Business5244CurrentSupersessionObservation $ExitObservation;$ExitObservation.ValidateExited();$i=Get-Business5244CurrentSupersessionFixedInputs
+ if($observation.caseId-cne$i.caseId-or$observation.scopeName-cne$i.scopeName-or$observation.ownerPid-ne$i.ownerPid-or$observation.ownerBirth-cne$i.ownerBirth){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_CHANGED'}
+ if($i.schema-cne'business-5244-current-supersession-inputs.v1'-or$i.caseId-cne'CURRENT-ONLY-5244-SUPERSESSION-20261029'-or$i.scopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$ExitObservation.TargetPid-ne$i.ownerPid-or$ExitObservation.TargetBirth-cne$i.ownerBirth-or$i.recordsHash-cnotmatch'^[a-f0-9]{64}$'-or$i.pendingHash-cnotmatch'^[a-f0-9]{64}$'-or$i.originalBeforeHash-cne$i.recordsHash-or(Get-Business5244StartupHash $i.beforeBytes)-cne$i.recordsHash-or(Get-Business5244StartupHash $i.pendingBeforeBytes)-cne$i.pendingHash-or$i.entrySeals.Count-ne16){throw 'CURRENT_SUPERSESSION_FIXED_INPUT_CHANGED'}
+ $fixed=Get-Business5244FinitePairPins -ScopeName $i.scopeName -Mode Current
+ foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($i.pins[$key]-cne$fixed[$key]){throw 'CURRENT_SUPERSESSION_NOT_FIXED_CURRENT'}}
+ $beforePending=[Text.UTF8Encoding]::new($false,$true).GetString($i.pendingBeforeBytes)|ConvertFrom-Json
+ if($beforePending.schema-cne'business-5244-retirement-before.v1'-or$beforePending.ownerPid-ne$i.ownerPid-or[string]$beforePending.ownerBirth-cne$i.ownerBirth-or$beforePending.operationId-cnotmatch'^[a-f0-9]{32}$'-or$beforePending.beforeSha256-cne$i.recordsHash-or(Get-Business5244StartupHash ([Convert]::FromBase64String($beforePending.beforeBase64)))-cne$i.recordsHash){throw 'CURRENT_SUPERSESSION_ORIGINAL_PENDING_REJECTED'}
+ $lease=Enter-Business5244StartupLease -Kind Maintenance;$c=$null;$records=$null;$pending=$null;$seals=[Collections.Generic.List[object]]::new()
+ try{
+  $ExitObservation.ValidateExited();Assert-Business5244CurrentSupersessionBoundary $i
+  $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+  foreach($row in @($i.entrySeals)+@($i.gateSeal)){
+   if(!$row.path-or$row.hash-cnotmatch'^[a-f0-9]{64}$'-or!$seen.Add($row.path)){throw 'CURRENT_SUPERSESSION_ENTRY_SET_REJECTED'}
+   for($p=$row.path;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'CURRENT_SUPERSESSION_REPARSE_POINT'}}
+   $stream=[IO.File]::Open($row.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,$(if($row.path-ceq$i.gateSeal.path){[IO.FileShare]::Read}else{[IO.FileShare]::None}))
+   $seals.Add(@{stream=$stream;path=$row.path;hash=$row.hash})
+   if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $stream))-cne$row.hash){throw 'CURRENT_SUPERSESSION_ENTRY_CHANGED'}
+  }
+  $paths=@($i.entrySeals|ForEach-Object{$_.path})
+  if(@(Get-CimInstance Win32_Process|Where-Object{$command=$_.CommandLine;$_.ProcessId-ne$PID-and$command-and@($paths|Where-Object{$command.IndexOf($_,[StringComparison]::OrdinalIgnoreCase)-ge0}).Count}).Count-or@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'CURRENT_SUPERSESSION_FOREIGN_LAUNCH_OR_LISTENER'}
+  foreach($path in @($i.recordsPath,$i.pendingPath)){for($p=$path;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'CURRENT_SUPERSESSION_REPARSE_POINT'}}}
+  $records=[IO.File]::Open($i.recordsPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$pending=[IO.File]::Open($i.pendingPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $records))-cne$i.recordsHash-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $pending))-cne$i.pendingHash){throw 'CURRENT_SUPERSESSION_ORIGINAL_CAS_CHANGED'}
+  $id=[guid]::NewGuid().ToString('N');$token=[pscustomobject]@{kind='business-5244-current-supersession'}
+  $c=@{token=$token;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;birth=[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString();inputs=$i;inputJson=($i|ConvertTo-Json -Depth 32 -Compress);observer=$ExitObservation;observation=$observation;lease=$lease;records=$records;pending=$pending;seals=$seals;copies=[Collections.Generic.List[object]]::new();before=([byte[]]$i.beforeBytes.Clone());oldPending=([byte[]]$i.pendingBeforeBytes.Clone());recordExpected=$i.recordsHash;pendingExpected=$i.pendingHash;operationId=$id;markerAttempted=$false;native=$null;state=$null;phase='Preparing';closed=$false;after=$null;receiptHash=$null}
+  $script:Business5244CurrentSupersessions.Add($c)
+  foreach($row in @(@{suffix='superseded-original';bytes=$c.oldPending},@{suffix='superseded-record.before';bytes=$c.before})){
+   $path=$i.pendingPath+'.'+$id+'.'+$row.suffix;$writer=[IO.File]::Open($path,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+   try{$writer.Write($row.bytes,0,$row.bytes.Length);$writer.Flush($true);if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $writer))-cne(Get-Business5244StartupHash $row.bytes)){throw 'CURRENT_SUPERSESSION_BEFORE_COPY_UNCONFIRMED'}}finally{$writer.Dispose()}
+   $reader=[IO.File]::Open($path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+   if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $reader))-cne(Get-Business5244StartupHash $row.bytes)){$reader.Dispose();throw 'CURRENT_SUPERSESSION_BEFORE_COPY_CHANGED'}
+   $c.copies.Add(@{path=$path;stream=$reader;hash=(Get-Business5244StartupHash $row.bytes)})
+  }
+  $marker=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-current-supersession.pending.v1';classification='SUPERSESSION_NOT_ORIGINAL_COMMIT';operationId=$id;originalOperationId=$beforePending.operationId;originalPendingSha256=$i.pendingHash;originalRecordsSha256=$i.recordsHash;ownerPid=$PID;ownerBirth=[Business5244RetirementPeer]::CurrentBirth}|ConvertTo-Json -Compress))
+  [void](Assert-Business5244CurrentSupersessionHeld $token);$c.markerBytes=$marker;$c.markerAttempted=$true;$pending.Position=0;$pending.SetLength($marker.Length);$pending.Write($marker,0,$marker.Length);$pending.Flush($true);$c.pendingExpected=Get-Business5244StartupHash $marker
+  [void](Assert-Business5244CurrentSupersessionHeld $token);$c.phase='Prepared';return $token
+ }catch{
+  if($c-and$c.markerAttempted){$c.phase='Unknown';throw}
+  foreach($row in $seals){$row.stream.Dispose()};if($records){$records.Dispose()};if($pending){$pending.Dispose()};if($c){foreach($row in $c.copies){$row.stream.Dispose()};$c.closed=$true};Exit-Business5244StartupLease $lease;throw
+ }
+}
+function Initialize-Business5244CurrentSupersessionOwner($Admission){
+ $c=Assert-Business5244CurrentSupersessionHeld $Admission
+ if($c.phase-cne'Prepared'-or$c.native-or$c.state){throw 'CURRENT_SUPERSESSION_INITIALIZATION_ALREADY_ATTEMPTED'}
+ Assert-Business5244StartupLease $c.lease -Kind Maintenance;Assert-Business5244CurrentSupersessionBoundary $c.inputs;$c.phase='Creating'
+ try{
+  $c.native=New-Business5244PinnedChild -Pins $c.inputs.pins -Lease $c.lease
+  Assert-Business5244CreatedChild $c.native $c.inputs.pins;Assert-Business5244ReadyChild $c.native $c.inputs.pins
+  [void](Assert-Business5244CurrentSupersessionHeld $Admission);Assert-Business5244CurrentSupersessionBoundary $c.inputs
+  # This promotion remains on the same held native mutex and issuing thread.
+  (Get-Business5244StartupRecord $c.lease).kind='Owner'
+  $c.state=Register-Business5244OwnedRetirement $c.lease $c.native $c.inputs.pins -ScopeName $c.inputs.scopeName
+  $r=Get-Business5244RetirementState $c.state;$r.currentSupersession=$c
+  $rows=ConvertFrom-Business5244RecordBytes $c.before
+  $after=@($rows|ForEach-Object{if($_.port-eq5244){[pscustomobject]@{port=5244;pid=$c.native.ChildPid;entry='vite-preview';sourceCommit=$c.inputs.pins.frontendSource;root=$c.inputs.pins.root;backendPort=4144;businessWorkfaceId=$c.inputs.pins.profile}}else{$_}})
+  Assert-Business5244RecordStage $rows $after $c.native.ChildPid Candidate $c.inputs.pins
+  $bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $after -Depth 30));$c.after=$bytes;$c.phase='WritingRecord'
+  [void](Assert-Business5244CurrentSupersessionHeld $Admission);$c.records.Position=0;$c.records.SetLength($bytes.Length);$c.records.Write($bytes,0,$bytes.Length);$c.records.Flush($true);$c.recordExpected=Get-Business5244StartupHash $bytes
+  [void](Assert-Business5244CurrentSupersessionHeld $Admission);$c.phase='RecordPublished'
+  return [pscustomobject]@{lease=$c.lease;native=$c.native;state=$c.state}
+ }catch{if($c.phase-ceq'WritingRecord'){$c.phase='Unknown'}else{$c.phase='InitializationFailed'};throw}
+}
+function Complete-Business5244CurrentSupersessionOwner($Admission){
+ $c=Assert-Business5244CurrentSupersessionHeld $Admission
+ if($c.phase-cne'RecordPublished'-or!$c.native-or!$c.state){throw 'CURRENT_SUPERSESSION_COMPLETION_NOT_ADMITTED'}
+ $r=Get-Business5244RetirementState $c.state
+ if(![object]::ReferenceEquals($r.currentSupersession,$c)-or![object]::ReferenceEquals($r.native,$c.native)-or$r.phase-cne'Running'-or!$r.initializing){throw 'CURRENT_SUPERSESSION_FRESH_STATE_CHANGED'}
+ Assert-Business5244StartupLease $c.lease -Kind Owner;Assert-Business5244CreatedChild $c.native $c.inputs.pins;Assert-Business5244ReadyChild $c.native $c.inputs.pins;Assert-Business5244CurrentSupersessionBoundary $c.inputs
+ foreach($copy in $c.copies){if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $copy.stream))-cne$copy.hash){throw 'CURRENT_SUPERSESSION_ORIGINAL_COPY_CHANGED'}}
+ $receipt=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-current-supersession.v1';classification='SUPERSEDED_NOT_ORIGINAL_COMMIT';caseId=$c.inputs.caseId;operationId=$c.operationId;oldOwnerPid=$c.inputs.ownerPid;oldOwnerBirth=$c.inputs.ownerBirth;oldPendingSha256=$c.inputs.pendingHash;beforeRecordsSha256=$c.inputs.recordsHash;afterRecordsSha256=$c.recordExpected;ownerPid=$PID;ownerBirth=$c.native.OwnerBirth;childPid=$c.native.ChildPid;childBirth=$c.native.ChildBirth;package=$c.inputs.pins.package;manifest=$c.inputs.pins.manifest;commercialWrites=0}|ConvertTo-Json -Compress))
+ $receiptPath=$c.inputs.pendingPath+'.'+$c.operationId+'.superseded.receipt.json';$writer=[IO.File]::Open($receiptPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+ try{$writer.Write($receipt,0,$receipt.Length);$writer.Flush($true);if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $writer))-cne(Get-Business5244StartupHash $receipt)){throw 'CURRENT_SUPERSESSION_RECEIPT_UNCONFIRMED'}}finally{$writer.Dispose()}
+ $c.receiptHash=Get-Business5244StartupHash $receipt
+ $receiptSeal=[IO.File]::Open($receiptPath,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+ if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $receiptSeal))-cne$c.receiptHash){$receiptSeal.Dispose();throw 'CURRENT_SUPERSESSION_RECEIPT_CHANGED'}
+ $c.copies.Add(@{path=$receiptPath;stream=$receiptSeal;hash=$c.receiptHash});$c.phase='ReceiptDurable';$archive=$c.inputs.pendingPath+'.'+$c.operationId+'.superseded-marker'
+ try{
+  [void](Assert-Business5244CurrentSupersessionHeld $Admission);$c.pending.Dispose();$c.pending=$null
+  try{Move-Business5244PendingArchive $c.inputs.pendingPath $archive}catch{
+   if((Test-Path -LiteralPath $archive)-and!(Test-Path -LiteralPath $c.inputs.pendingPath)-and(Get-FileHash -LiteralPath $archive).Hash-ieq$c.pendingExpected){}
+   elseif((Test-Path -LiteralPath $c.inputs.pendingPath)-and!(Test-Path -LiteralPath $archive)-and(Get-FileHash -LiteralPath $c.inputs.pendingPath).Hash-ieq$c.pendingExpected){$c.pending=[IO.File]::Open($c.inputs.pendingPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$c.phase='RecordPublished';throw}
+   else{$c.phase='Unknown';throw}
+  }
+  if((Test-Path -LiteralPath $c.inputs.pendingPath)-or(Get-FileHash -LiteralPath $archive).Hash-ine$c.pendingExpected){throw 'CURRENT_SUPERSESSION_ARCHIVE_UNCONFIRMED'}
+  $c.records.Dispose();$c.records=$null;foreach($row in $c.seals){$row.stream.Dispose()};foreach($row in $c.copies){$row.stream.Dispose()};$c.phase='Completed'
+  return [pscustomobject]@{classification='SUPERSEDED_NOT_ORIGINAL_COMMIT';childPid=$c.native.ChildPid;childBirth=$c.native.ChildBirth;recordHash=$c.recordExpected;originalRetireCompleted=$false}
+ }catch{
+  if($c.phase-cne'RecordPublished'){
+   $c.phase='Unknown'
+   # An unconfirmed move/close must not leave normal startup unblocked.
+   # Recreate only a missing marker from this admission's retained bytes;
+   # never replace an existing or foreign path and never assert old commit.
+   if(!$c.pending-and!(Test-Path -LiteralPath $c.inputs.pendingPath)){
+    try{$c.pending=[IO.File]::Open($c.inputs.pendingPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$c.pending.Write($c.markerBytes,0,$c.markerBytes.Length);$c.pending.Flush($true)}catch{}
+   }
+  }
+  throw
+ }
+}
+function Undo-Business5244CurrentSupersessionOwner($Admission){
+ $c=Get-Business5244CurrentSupersessionContext $Admission
+ if($c.phase-cnotin@('Prepared','Creating','InitializationFailed','RecordPublished')){throw 'CURRENT_SUPERSESSION_UNDO_NOT_ADMITTED'}
+ $observed=Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.records)
+ $afterHash=if($c.after){Get-Business5244StartupHash $c.after}else{$null}
+ if($observed-cne$c.inputs.recordsHash-and$observed-cne$afterHash){throw 'CURRENT_SUPERSESSION_UNDO_CAS_CHANGED'}
+ if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.pending))-cne$c.pendingExpected){throw 'CURRENT_SUPERSESSION_UNDO_PENDING_CHANGED'}
+ $lr=Get-Business5244StartupRecord $c.lease
+ if($lr.ContainsKey('ownedNatives')){foreach($n in $lr.ownedNatives){if(!($n-is[Business5244WebNative])-or$n.OwnerBirth-cne[Business5244RetirementPeer]::CurrentBirth){throw 'CURRENT_SUPERSESSION_UNDO_NATIVE_CHANGED'};$n.Dispose();if(!$n.RetirementConfirmed){throw 'CURRENT_SUPERSESSION_UNDO_CHILD_UNCONFIRMED'}}}
+ if(@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'CURRENT_SUPERSESSION_UNDO_PORT_NOT_EMPTY'}
+ # A historical dead PID may reappear only behind the retained blocking marker;
+ # this is an init before-image, never a runnable old-owner restoration or ACK.
+ $c.records.Position=0;$c.records.SetLength($c.before.Length);$c.records.Write($c.before,0,$c.before.Length);$c.records.Flush($true)
+ if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $c.records))-cne$c.inputs.recordsHash){throw 'CURRENT_SUPERSESSION_UNDO_WRITE_UNCONFIRMED'}
+ $c.recordExpected=$c.inputs.recordsHash;$c.phase='InitFailedCleanPendingRecovery'
+ $c.records.Dispose();$c.records=$null;$c.pending.Dispose();$c.pending=$null;foreach($row in $c.seals){$row.stream.Dispose()};foreach($row in $c.copies){$row.stream.Dispose()}
+ Exit-Business5244StartupLease $c.lease;$c.closed=$true
+ return [pscustomobject]@{ownInitializationUndone=$true;startupBlocked=$true;originalRetireCompleted=$false}
+}
 if(!$RetirementStateLibrary){throw 'RETIREMENT_STATE_LIBRARY_ONLY'}
