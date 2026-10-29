@@ -19,6 +19,19 @@ function Test-Business5244WriterWebOnlyGeneration {
  # A source location selects this single immutable generation, never a CLI flag.
  return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
 }
+function Test-Business5244SteadyGeneration {
+ return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+}
+function Get-Business5244SteadyPins {
+ if(!(Test-Business5244SteadyGeneration)){throw 'BUSINESS_STEADY_GENERATION_REQUIRED'}
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+ $path=Join-Path $root 'owner-manifest.json'
+ for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'BUSINESS_STEADY_REPARSE_POINT'}}
+ $m=Get-Content -LiteralPath $path -Raw|ConvertFrom-Json
+ if($m.kind-isnot[string]-or$m.finiteScope-isnot[string]-or$m.maintenancePurpose-isnot[string]-or$m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$m.maintenancePurpose-cne'WebOnlySteadyStartup'-or$m.rehearsalOnly-isnot[bool]-or$m.rehearsalOnly-or$m.recordingEnabled-isnot[bool]-or$m.recordingEnabled-or$m.apiTransitionEnabled-isnot[bool]-or$m.apiTransitionEnabled-or$m.readPairMaintenanceEnabled-isnot[bool]-or$m.readPairMaintenanceEnabled-or$m.actualT1-isnot[bool]-or$m.actualT1-or$m.externalOperations-isnot[bool]-or$m.externalOperations){throw 'BUSINESS_STEADY_OWNER_CHANGED'}
+ $backendDigest='560c735fcaffa6692f55543840f8106679'+'b43b871e3c19f1990bdd17d46f9946'
+ return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';package='ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';manifest='5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6';frontendSource='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a';apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';apiManifest=$backendDigest;baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+}
 function Get-Business5244WriterWebOnlyPins {
  param([ValidateSet('Current','Candidate')][string]$Mode='Current')
  if($Mode-cnotin@('Current','Candidate')-or!(Test-Business5244WriterWebOnlyGeneration)){throw 'BUSINESS_WEB_ONLY_GENERATION_REQUIRED'}
@@ -46,6 +59,7 @@ function Get-Business5244WriterWebOnlyPins {
 function Get-Business5244FinitePairPins {
  param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',[ValidateSet('Current','Candidate')][string]$Mode='Current')
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or$Mode-cnotin@('Current','Candidate')){throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'}
+ if(Test-Business5244SteadyGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Current'){throw 'BUSINESS_STEADY_CURRENT_ONLY'};return Get-Business5244SteadyPins}
  if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
   if(Test-Business5244WriterWebOnlyGeneration){return (Get-Business5244WriterWebOnlyPins -Mode $Mode).Clone()}
   # Only the fixed new owner's sealed pair data supplies Writer package hashes.

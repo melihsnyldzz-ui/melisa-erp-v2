@@ -197,6 +197,31 @@ function Get-ErpServiceListeners($Definition,$Config) {
  if(@($listeners | Select-Object -ExpandProperty OwningProcess -Unique).Count -gt 1){throw 'TEST_STARTUP_FOREIGN_PORT_OWNER'}
  return $listeners
 }
+function Test-ErpSteadyWebStartupGeneration {
+ return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+}
+function Start-ErpSteadyWebStartup {
+ if(!(Test-ErpSteadyWebStartupGeneration)){throw 'TEST_STEADY_GENERATION_REQUIRED'}
+ if(Get-Variable ErpSteadyWebStartupAttempt -Scope Script -ErrorAction SilentlyContinue){return $script:ErpSteadyWebStartupAttempt}
+ $result=@{state='unknown';attempted=$false;owner=$null};$script:ErpSteadyWebStartupAttempt=$result
+ # A listener is an observation, never permission to adopt or stop its owner.
+ if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-eq5244}).Count){$result.state='already-present-not-adopted';return $result}
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029';$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
+ try{
+  foreach($file in @($manifestPath,$entry)){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST_STEADY_REPARSE_POINT'}};$holds.Add([IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read))}
+  $manifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
+  if($manifest.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$manifest.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$manifest.maintenancePurpose-cne'WebOnlySteadyStartup'-or$manifest.apiTransitionEnabled-ne$false-or$manifest.readPairMaintenanceEnabled-ne$false-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.recordingEnabled-ne$false-or@($manifest.files).Count-ne13){throw 'TEST_STEADY_OWNER_MANIFEST_CHANGED'}
+  $rows=@($manifest.files|Where-Object{$_.path-ceq'run-current-owner.ps1'});$self=@($manifest.files|Where-Object{$_.path-ceq'start-owned-test.ps1'})
+  if($rows.Count-ne1-or$self.Count-ne1-or$rows[0].sha256-cnotmatch'\A[a-f0-9]{64}\z'-or$self[0].sha256-cnotmatch'\A[a-f0-9]{64}\z'-or(Get-FileHash -LiteralPath $entry).Hash-ine$rows[0].sha256-or(Get-FileHash -LiteralPath $PSCommandPath).Hash-ine$self[0].sha256){throw 'TEST_STEADY_OWNER_SOURCE_CHANGED'}
+  $manifestHash=(Get-FileHash -LiteralPath $manifestPath).Hash
+  if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-eq5244}).Count){throw 'TEST_STEADY_WEB_PORT_CHANGED'}
+  $result.attempted=$true
+  $ps=Join-Path $PSHOME 'powershell.exe'
+  $result.owner=Start-Process -FilePath $ps -ArgumentList @('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-File',$entry,'-ManifestSha256',$manifestHash) -WorkingDirectory $root -WindowStyle Hidden -PassThru
+  [void]$result.owner.Handle;$result.state='started-unverified';return $result
+ }finally{foreach($h in $holds){$h.Dispose()}}
+}
+
 function Invoke-ErpOwnedSession($Config,[switch]$SinglePass) {
  $mutex=New-Object Threading.Mutex($false,(Get-ErpMutexName $Config.RepoRoot $Config.OwnerSid));$held=$false
  try{
@@ -250,6 +275,9 @@ function Invoke-ErpOwnedSession($Config,[switch]$SinglePass) {
    Write-ErpState $recordPath @{sourceCommit=$Config.SourceCommit;supervisor=$PID;startedAt=$startedAt;children=$records}
    $projection=@{};foreach($name in $states.Keys){$s=$states[$name];$projection[$name]=@{port=$s.port;pid=$s.pid;state=$s.state;restartCount=$s.restartCount;lastCode=$s.lastCode;nextRestartAt=if($s.nextRestartAt){$s.nextRestartAt.ToUniversalTime().ToString('o')}else{$null}}}
    $ready=@($states.Values | Where-Object {$_.state -ne 'ready'}).Count -eq 0
+   if($ready-and(Test-ErpSteadyWebStartupGeneration)){
+    try{$steady=Start-ErpSteadyWebStartup;Write-ErpState (Join-Path $Config.LogDir 'steady-web-startup.json') @{state=$steady.state;attempted=$steady.attempted;verified=$false;observation='NOT_A_RUNTIME_ACCEPTANCE'}}catch{Write-ErpState (Join-Path $Config.LogDir 'steady-web-startup.json') @{state='unknown';code=(Get-ErpSafeCode $_.Exception);verified=$false}}
+   }
    $task=Get-ScheduledTask -TaskName $Config.TaskName -TaskPath '\' -ErrorAction SilentlyContinue
    Write-ErpState (Join-Path $Config.RuntimeDir 'health-status.json') @{version=1;environment='CANONICAL_TEST';observedAt=(Get-Date).ToUniversalTime().ToString('o');sourceCommit=$Config.SourceCommit;packageId=$manifest.packageId;startup=@{taskName=$Config.TaskName;configured=([bool]$task);supervisorPid=$PID;state=if($ready){'running'}else{'degraded'}};database=@{expectedName=$Config.ExpectedDatabase;identityVerified=($states.api.state -eq 'ready' -and $states.native.state -eq 'ready');reachable=$null};services=$projection}
    if($SinglePass){return}

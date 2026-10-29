@@ -11,7 +11,8 @@ function Register-Business5244OwnedRetirement($Lease,$Native,$Pins,[ValidateSet(
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'RETIREMENT_SCOPE_REJECTED'}
  Assert-Business5244StartupLease -Lease $Lease -Kind Owner
  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
-  $exact=$false;foreach($mode in @('Current','Candidate')){$fixed=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;if(!@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile').Where({$Pins[$_]-cne$fixed[$_]}).Count){$exact=$true}}
+  $modes=if(Test-Business5244SteadyGeneration){@('Current')}else{@('Current','Candidate')}
+  $exact=$false;foreach($mode in $modes){$fixed=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;if(!@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile').Where({$Pins[$_]-cne$fixed[$_]}).Count){$exact=$true}}
   if(!$exact){throw 'RETIREMENT_FINITE_B6_PINS_REQUIRED'}
  }
  if(!($Native -is [Business5244WebNative]) -or !$Native.ChildAlive()){throw 'RETIREMENT_OWNED_CHILD_REQUIRED'}
@@ -171,8 +172,21 @@ function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='',[ValidateSe
  }
  return @{hash='24bb8c6553b039981761dd188584c7787798fa1a3be972082e7439f34fd5e560';pid=2000;root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-d4f52345';source='d875dc6e59d70230b8c931f718bac30438778ec1'}
 }
+function Get-Business5244SteadyBootstrapBefore($State,[byte[]]$Bytes){
+ # Only fresh, held record bytes are presentation metadata. They cannot adopt
+ # or stop a process, issue a maintenance request or replace the native child.
+ $r=Get-Business5244RetirementState $State
+ if(!(Test-Business5244SteadyGeneration)-or$r.scopeName-cne'TEST125-API-B6-WRITER-20261029'-or!$r.initializing-or$r.phase-cne'Running'-or$r.initializationApiTransition-or$r.requestProof-or$r.operationId-or$r.commit-or$r.publication-or$r.records-or$r.pending){throw 'CURRENT_STEADY_BOOTSTRAP_NOT_ADMITTED'}
+ $fixed=Get-Business5244FinitePairPins -ScopeName $r.scopeName -Mode Current
+ $rows=ConvertFrom-Business5244RecordBytes $Bytes;$old=@($rows|Where-Object port -eq 5244)
+ if($old.Count-ne1-or(@($old[0].PSObject.Properties.Name|Sort-Object)-join'|')-cne'backendPort|businessWorkfaceId|entry|pid|port|root|sourceCommit'-or$old[0].pid-isnot[int]-or$old[0].pid-le0-or$old[0].port-isnot[int]-or$old[0].port-ne5244-or$old[0].backendPort-isnot[int]-or$old[0].backendPort-ne4144-or$old[0].root-isnot[string]-or$old[0].root-cne$fixed.root-or$old[0].sourceCommit-isnot[string]-or$old[0].sourceCommit-cne$fixed.frontendSource-or$old[0].entry-isnot[string]-or$old[0].entry-cne'vite-preview'-or$old[0].businessWorkfaceId-isnot[string]-or$old[0].businessWorkfaceId-cne$fixed.profile){throw 'CURRENT_STEADY_RECORD_REJECTED'}
+ Assert-Business5244RecordStage $rows $rows $old[0].pid Candidate $fixed
+ return @{hash=(Get-Business5244StartupHash $Bytes);pid=$old[0].pid;root=$fixed.root;source=$fixed.frontendSource}
+}
 function Assert-Business5244CurrentBootstrapBefore($State,[IO.FileStream]$Records){
- $r=Get-Business5244RetirementState $State;$fixed=Get-Business5244FinitePairPins -ScopeName $r.scopeName -Mode Current;$stale=Get-Business5244CurrentBootstrapPins (Get-Business5244StartupHash (Read-Business5244RetirementBytes $Records)) -ScopeName $r.scopeName
+ $r=Get-Business5244RetirementState $State;$fixed=Get-Business5244FinitePairPins -ScopeName $r.scopeName -Mode Current
+ $before=Read-Business5244RetirementBytes $Records
+ $stale=if(Test-Business5244SteadyGeneration){Get-Business5244SteadyBootstrapBefore $State $before}else{Get-Business5244CurrentBootstrapPins (Get-Business5244StartupHash $before) -ScopeName $r.scopeName}
  Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
  if($r.phase -cne 'Running' -or $r.records -or $r.pending -or !$Records.CanRead -or !$Records.CanWrite -or $r.childPid -ne $r.native.ChildPid -or $r.childBirth -cne $r.native.ChildBirth){throw 'CURRENT_BOOTSTRAP_NOT_ADMITTED'}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($r.pins[$key] -cne $fixed[$key]){throw 'CURRENT_BOOTSTRAP_NOT_FIXED_CURRENT'}}
@@ -196,7 +210,7 @@ function Publish-Business5244HeldCurrentRecord($State,[IO.FileStream]$Records,[I
   Assert-Business5244RecordStage $rows $rows $r.childPid Candidate $fixed
   return [pscustomobject]@{published=$true;replayed=$true;childPid=$r.childPid;recordHash=$beforeHash}
  }
- $stale=Get-Business5244CurrentBootstrapPins $beforeHash -ScopeName $r.scopeName
+ $stale=if(Test-Business5244SteadyGeneration){Get-Business5244SteadyBootstrapBefore $State $before}else{Get-Business5244CurrentBootstrapPins $beforeHash -ScopeName $r.scopeName}
  if($beforeHash -cne $stale.hash){throw 'CURRENT_BOOTSTRAP_BASE_CHANGED'}
  $old=@($rows|Where-Object {$_.port -eq 5244})
  if($old.Count -ne 1 -or $old[0].pid -ne $stale.pid -or $old[0].root -cne $stale.root -or $old[0].sourceCommit -cne $stale.source -or $old[0].entry -cne 'vite-preview' -or $old[0].backendPort -ne 4144 -or $old[0].businessWorkfaceId -cne $fixed.profile){throw 'CURRENT_BOOTSTRAP_STALE_IDENTITY_CHANGED'}
@@ -211,6 +225,7 @@ function Publish-Business5244HeldCurrentRecord($State,[IO.FileStream]$Records,[I
  # Keep both exclusive record ownership and durable evidence through publication.
  # An uncertain write never restores the stale PID or stops any process.
  $r.records=$Records;$r.pending=$Pending;$r.currentBootstrap=@{phase='Preparing';childPid=$r.childPid;childBirth=$r.childBirth;afterHash=$hash;archive=$archive;archiveHash=(Get-Business5244StartupHash $seal);beforeBytes=$before.Clone();beforeHash=$beforeHash;native=$r.native;ownerPid=$PID;ownerBirth=$r.ownerBirth;inverse=$null}
+ if(Test-Business5244SteadyGeneration){$r.currentBootstrap.steadyBefore=$stale.Clone()}
  try{
   $Pending.Write($seal,0,$seal.Length);$Pending.Flush($true)
   if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $Pending)) -cne (Get-Business5244StartupHash $seal)){throw 'CURRENT_BOOTSTRAP_BEFORE_NOT_DURABLE'}
@@ -258,6 +273,7 @@ function Assert-Business5244BootstrapInitialization($State){
  if($r.scopeName-cnotin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or!$r.initializing-or$r.phase-cne'Running'-or$r.requestProof-or$r.operationId-or$r.commit-or$r.publication-or$r.lastCompletion-or($r.ContainsKey('dispatch')-and$r.dispatch)-or$r.records-or$r.pending){throw 'CURRENT_BOOTSTRAP_INIT_INVERSE_NOT_ADMITTED'}
  $b=if($r.ContainsKey('currentBootstrap')){$r.currentBootstrap}else{$null}
  if(!$b-or$b.phase-cne'Archived'-or$b.inverse-or![object]::ReferenceEquals($b.native,$r.native)-or$b.ownerPid-ne$PID-or$b.ownerBirth-cne$r.ownerBirth-or$b.childPid-ne$r.childPid-or$b.childBirth-cne$r.childBirth-or(Get-Business5244StartupHash $b.beforeBytes)-cne$b.beforeHash){throw 'CURRENT_BOOTSTRAP_INIT_INVERSE_NOT_ADMITTED'}
+ if(Test-Business5244SteadyGeneration){$verified=Get-Business5244SteadyBootstrapBefore $State $b.beforeBytes;if(!$b.ContainsKey('steadyBefore')-or$b.steadyBefore.hash-cne$verified.hash-or$b.steadyBefore.pid-ne$verified.pid-or$b.steadyBefore.root-cne$verified.root-or$b.steadyBefore.source-cne$verified.source){throw 'CURRENT_STEADY_INVERSE_BEFORE_CHANGED'}}
  if($r.ContainsKey('preparedPair')-and$r.preparedPair){
   if((Test-Business5244WriterWebOnlyGeneration)-and$r.scopeName-ceq'TEST125-API-B6-WRITER-20261029'-and$null-eq$r.initializationApiTransition-and$null-eq$r.preparedPair.apiTransition){
    Assert-Business5244PreparedPair $State $null $r.preparedPair.planHash
@@ -287,7 +303,7 @@ function Undo-Business5244HeldCurrentBootstrap($State,[IO.FileStream]$Records,[I
  if((Get-Business5244StartupHash $actual)-cne$b.afterHash-or(Get-FileHash -LiteralPath $b.archive -Algorithm SHA256).Hash-ine$b.archiveHash){throw 'CURRENT_BOOTSTRAP_INIT_CAS_CHANGED'}
  $beforeRows=ConvertFrom-Business5244RecordBytes $b.beforeBytes;$afterRows=ConvertFrom-Business5244RecordBytes $actual
  Assert-Business5244RecordStage $beforeRows $afterRows $r.childPid Candidate $r.pins
- $stale=Get-Business5244CurrentBootstrapPins $b.beforeHash -ScopeName $r.scopeName
+ $stale=if(Test-Business5244SteadyGeneration){$verified=Get-Business5244SteadyBootstrapBefore $State $b.beforeBytes;if(!$b.ContainsKey('steadyBefore')-or$b.steadyBefore.hash-cne$verified.hash-or$b.steadyBefore.pid-ne$verified.pid-or$b.steadyBefore.root-cne$verified.root-or$b.steadyBefore.source-cne$verified.source){throw 'CURRENT_STEADY_INVERSE_BEFORE_CHANGED'};$verified}else{Get-Business5244CurrentBootstrapPins $b.beforeHash -ScopeName $r.scopeName}
  if($stale.hash-cne$b.beforeHash){throw 'CURRENT_BOOTSTRAP_INIT_BEFORE_CHANGED'}
  $archive=$Pending.Name+'.'+[Guid]::NewGuid().ToString('N')+'.init-undone.completed'
  $seal=[Text.Encoding]::UTF8.GetBytes((@{schema='business-5244-bootstrap-init-inverse.v1';ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth;bootstrapArchiveHash=$b.archiveHash;ownedAfterHash=$b.afterHash;restoredBeforeHash=$b.beforeHash}|ConvertTo-Json -Compress))
@@ -329,6 +345,7 @@ function Invoke-Business5244HeldRetirement($State,[IO.FileStream]$Records,[IO.Fi
  # Core accepts already-held streams; the normal entry below fixes their real
  # paths. No serialized PID, ACK or caller flag can mint this registered state.
  $r=Get-Business5244RetirementState $State
+ if(Test-Business5244SteadyGeneration){throw 'RETIREMENT_STEADY_CURRENT_ONLY'}
  if($r.phase -cne 'Running'){throw 'RETIREMENT_ALREADY_REQUESTED'}
  $before=Assert-Business5244RetirementRecord $State $Records
  if(!$Pending.CanWrite -or $Pending.Length -ne 0){throw 'RETIREMENT_PENDING_NOT_FRESH'}
@@ -349,6 +366,7 @@ function Invoke-Business5244HeldRetirement($State,[IO.FileStream]$Records,[IO.Fi
 }
 function Invoke-Business5244OwnedRetirement($State,[Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request){
  $r=Get-Business5244RetirementState $State
+ if(Test-Business5244SteadyGeneration){throw 'RETIREMENT_STEADY_CURRENT_ONLY'}
  Assert-Business5244RetirementRequest -Channel $Channel -Request $Request
  if($Request.operation -isnot [string] -or $Request.operation -cne 'retire'){throw 'RETIREMENT_REQUEST_NOT_RETIRE'}
  if($r.phase -ceq 'Retired'){return}

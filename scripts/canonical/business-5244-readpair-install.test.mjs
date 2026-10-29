@@ -12,6 +12,95 @@ win('unknown installer error identifiers are hashed and never carry arbitrary ex
  assert.equal(run(String.raw`$marker='deneme-'+('ab'*16);$record=$null;try{throw $marker}catch{$record=$_};$site=Get-ReadPairInstallFailureSite $record;$json=$site|ConvertTo-Json -Compress;if($site.errorId-or$site.errorIdSha256-cnotmatch'^[a-f0-9]{64}$'-or$json.Contains($marker)-or$json.Contains('Message')-or(Get-ReadPairInstallFailureSite ([pscustomobject]@{Message=$marker}))){throw 'INSTALL_FAILURE_LEAKED_VALUE'};'PASS'`),'PASS');
 });
 const inert=String.raw`$script:calls=[Collections.Generic.List[string]]::new();function Open-ReadPairPublication{$calls.Add('open')};function Assert-ReadPairColdTarget{$calls.Add('target')};function Stop-ReadPairColdOwner{$calls.Add('coldstop')};function Start-ReadPairPreparedOwner{$calls.Add('start')};function Assert-ReadPairPreparedOwner{$calls.Add('ready')};function Send-ReadPairSingleRetire{$calls.Add('retire')};function Wait-ReadPairFinalState{$calls.Add('readback');return 'CandidateVerified'};function Complete-ReadPairPublication($Outcome){$calls.Add($Outcome)};function Restore-ReadPairBeforeRetire([bool]$OldStopped){$calls.Add('restore:'+ $OldStopped)};function Close-ReadPairPublication{$calls.Add('close')};function Record-Phase($Phase){$calls.Add($Phase)};`;
+win('SteadyStartupInstall uses the shared sequence with task publication and never sends a retire or reads a trade outcome',()=>{
+ assert.equal(run(inert+String.raw`
+ $script:SteadyStartupInstall=$true;$script:WebOnlyRefreshInstall=$true
+ function Complete-B6SteadyTaskPublication{$calls.Add('taskpublish')}
+ function Send-ReadPairSingleRetire{throw 'STEADY_RETIRE_FORBIDDEN'}
+ function Wait-ReadPairFinalState{throw 'STEADY_TRADE_READBACK_FORBIDDEN'}
+ $outcome=Invoke-ReadPairInstallSequence
+ if($outcome-cne'SteadyStartupVerified'-or($calls-join'|')-cne'open|target|coldstop|start|ready|taskpublish|SteadyStartupVerified|close'){throw 'STEADY_SEQUENCE_CHANGED'};'PASS'`),'PASS');
+});
+win('SteadyStartupInstall task publication failure enters existing healthy-owner recovery once and never retires or retries publication',()=>{
+ assert.equal(run(inert+String.raw`
+ $script:SteadyStartupInstall=$true;$script:WebOnlyRefreshInstall=$true;$script:publishes=0
+ function Get-B6ReadPairActiveHandoff{return @{stopAttempted=$true}}
+ function Complete-B6SteadyTaskPublication{$script:publishes++;$calls.Add('taskpublish');throw 'STEADY_TASK_PUBLICATION_UNCONFIRMED'}
+ function Send-ReadPairSingleRetire{throw 'STEADY_RETIRE_FORBIDDEN'}
+ function Wait-ReadPairFinalState{throw 'STEADY_TRADE_READBACK_FORBIDDEN'}
+ $denied=$false;try{Invoke-ReadPairInstallSequence|Out-Null}catch{if($_.Exception.Message-cne'STEADY_TASK_PUBLICATION_UNCONFIRMED'){throw};$denied=$true}
+ if(!$denied-or$publishes-ne1-or($calls-join'|')-cne'open|target|coldstop|start|ready|taskpublish|restore:True|close'){throw 'STEADY_TASK_FAILURE_RETRIED_OR_RETIRED'};'PASS'`),'PASS');
+});
+win('SteadyStartupInstall Library has inert defaults and only the finite Writer action admits its web-only handoff',()=>{
+ assert.equal(run(". "+q(path.join(dir,'install-business-5244-readpair.ps1'))+" -Library -SteadyStartupInstall -ScopeName TEST125-API-B6-WRITER-20261029;if(!$SteadyStartupInstall-or!$WebOnlyRefreshInstall){throw 'STEADY_HANDOFF_MODE_MISSING'};'PASS'"),'PASS');
+ for(const extra of [['-WebOnlyRefreshInstall'],['-WriterInstall'],['-CandidateInstall'],['-RehearsalOnly'],['-CurrentOnlySupersession'],['-InitializerCleanRecovery'],['-AfterLoaderRecovery'],['-ScopeName','TEST125-API-B6-ca620bac-20261028']]){
+  const r=cp.spawnSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',path.join(dir,'install-business-5244-readpair.ps1'),'-Library','-SteadyStartupInstall',...(extra[0]==='-ScopeName'?[]:['-ScopeName','TEST125-API-B6-WRITER-20261029']),...extra],{encoding:'utf8',windowsHide:true,timeout:10000});assert.notEqual(r.status,0);assert.match(r.stderr,/FIXED_ACTION_REQUIRED/);
+ }
+});
+const steadyTaskFixture=String.raw`
+$script:SteadyStartupInstall=$true;$script:WebOnlyRefreshInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:result=@{}
+$oldLauncher='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2\start-owned-test.ps1';$newLauncher='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\start-owned-test.ps1'
+$oldArgs='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$oldLauncher+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
+$script:beforeXml='<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task" version="1.3"><RegistrationInfo><Description>synthetic unchanged</Description></RegistrationInfo><Triggers><LogonTrigger><Enabled>true</Enabled></LogonTrigger></Triggers><Principals><Principal id="Author"><UserId>S-1-5-21-1-2-3-1001</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><StartWhenAvailable>false</StartWhenAvailable><ExecutionTimeLimit>PT0S</ExecutionTimeLimit></Settings><Actions Context="Author"><Exec><Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($oldArgs)+'</Arguments><WorkingDirectory>C:\Sirket\ERP\melisa-erp-v2</WorkingDirectory></Exec></Actions></Task>'
+$script:taskXml=$beforeXml;$script:taskSddl='D:P(A;;FA;;;SY)(A;;FA;;;S-1-5-21-1-2-3-1001)';$script:logon=3;$script:runLevel=0;$script:registrations=[Collections.Generic.List[int]]::new();$script:scenario='success';$script:readyChecks=0;$script:boundaryChecks=0;$script:apiMutators=0
+$script:b6=[pscustomobject]@{maintenancePurpose='WebOnlySteadyStartup';taskCapture=[pscustomobject]@{xmlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($beforeXml)))}}
+function Get-Test125ReadPairTask{$task=[pscustomobject]@{Xml=$script:taskXml;Definition=[pscustomobject]@{Principal=[pscustomobject]@{LogonType=$script:logon;RunLevel=$script:runLevel;UserId='S-1-5-21-1-2-3-1001'}}};$task|Add-Member ScriptMethod GetSecurityDescriptor {param($flags);if($flags-ne7){throw 'OTHER_SECURITY_QUERY'};return $script:taskSddl};return $task}
+function Assert-B6WebOnlyApiBoundary{$script:boundaryChecks++;Assert-B6SteadyTaskXml $script:taskXml;if($script:taskSddl-cne'D:P(A;;FA;;;SY)(A;;FA;;;S-1-5-21-1-2-3-1001)'){throw 'TASK_SDDL_CHANGED'}}
+function Assert-ReadPairPreparedOwner{$script:readyChecks++}
+function New-Object {param($ComObject);if($ComObject-cne'Schedule.Service'){throw 'OTHER_COM_OBJECT'};$service=[pscustomobject]@{};$service|Add-Member ScriptMethod Connect {};$service|Add-Member ScriptMethod GetFolder {param($path);if($path-cne'\'){throw 'OTHER_TASK_FOLDER'};$folder=[pscustomobject]@{};$folder|Add-Member ScriptMethod RegisterTask {param($name,$xml,$flags,$user,$password,$logon,$sddl);if($name-cne'Melisa-ERP-TEST-Canonical'-or$user-cne'S-1-5-21-1-2-3-1001'-or$null-ne$password-or$logon-ne3-or$null-ne$sddl-or$flags-cnotin@(1,52)){throw 'OTHER_TASK_PUBLICATION'};$script:registrations.Add([int]$flags);if($flags-eq52){if($script:scenario-ceq'not-applied'){throw 'ISOLATED_NO_WRITE'};if($script:scenario-ceq'unknown'){$script:taskXml='<Task>unknown</Task>';throw 'ISOLATED_UNKNOWN'};$script:taskXml=$xml;if($script:scenario-ceq'lost-ack'){throw 'ISOLATED_ACK_LOST'}};return $null};return $folder};return $service}
+function Start-ScheduledTask{$script:apiMutators++;throw 'TASK_START_FORBIDDEN'};function Stop-ScheduledTask{$script:apiMutators++;throw 'TASK_STOP_FORBIDDEN'};function New-Test125ReadPairTransition{$script:apiMutators++;throw 'API_TRANSITION_FORBIDDEN'};function Invoke-ErpBusinessSaleNativeRevision{$script:apiMutators++;throw 'SQL_FORBIDDEN'}
+`;
+win('SteadyStartupInstall pure task XML changes only the exact frozen launcher and preserves principal triggers settings and working directory',()=>{
+ assert.equal(run(steadyTaskFixture+String.raw`
+ $copy=$beforeXml;$after=New-B6SteadyTaskXml $beforeXml
+ if($beforeXml-cne$copy-or$after.Contains($oldLauncher)-or!$after.Contains($newLauncher)){throw 'STEADY_TASK_PROJECTION_CHANGED_SOURCE'}
+ $reversed=$after.Replace($newLauncher,$oldLauncher);if((Get-B6SteadyTaskXmlCanonical $reversed)-cne(Get-B6SteadyTaskXmlCanonical $beforeXml)){throw 'STEADY_TASK_CHANGED_UNRELATED_XML'}
+ foreach($case in @('command','extra-arg','foreign-launcher','multiple-actions')){
+  $xml=$beforeXml;switch($case){command{$xml=$xml.Replace('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','C:\foreign\powershell.exe')}'extra-arg'{$xml=$xml.Replace('</Arguments>',' -Extra</Arguments>')}'foreign-launcher'{$xml=$xml.Replace($oldLauncher,'C:\foreign\start-owned-test.ps1')}'multiple-actions'{$xml=$xml.Replace('</Actions>','<Exec><Command>other</Command></Exec></Actions>')}}
+  $denied=$false;try{New-B6SteadyTaskXml $xml|Out-Null}catch{if($_.Exception.Message-cne'B6_STEADY_TASK_ACTION_CHANGED'){throw};$denied=$true};if(!$denied){throw ('STEADY_TASK_PROJECTION_ACCEPTED_'+$case)}
+ };if($registrations.Count-or$apiMutators){throw 'PURE_XML_MUTATED_TASK'};'PASS'`),'PASS');
+});
+win('SteadyStartupInstall task publisher uses validate-only then one update with no registration trigger principal ACE or API restart',()=>{
+ assert.equal(run(steadyTaskFixture+String.raw`
+ Initialize-B6SteadyTaskPublication
+ if(($registrations-join',')-cne'1'-or$taskXml-cne$beforeXml-or$script:SteadyTaskPublication.registerCalls-ne0){throw 'TASK_PREPARATION_WROTE_ACTION'}
+ $script:scenario='lost-ack';Complete-B6SteadyTaskPublication
+ if(($registrations-join',')-cne'1,52'-or$script:SteadyTaskPublication.phase-cne'Verified'-or$result.taskChanges-ne1-or$result.taskRegistrationCalls-ne1-or!$result.taskRunningInstanceUnchanged-or!$result.taskPermissionUnchanged-or$result.physicalRebootTested-or$apiMutators){throw 'STEADY_TASK_PUBLICATION_NOT_EXACT'}
+ $denied=$false;try{Complete-B6SteadyTaskPublication}catch{if($_.Exception.Message-cne'B6_STEADY_TASK_NO_REPLAY'){throw};$denied=$true};if(!$denied-or($registrations-join',')-cne'1,52'){throw 'STEADY_TASK_UPDATE_REPLAY'};'PASS'`),'PASS');
+});
+win('SteadyStartupInstall task publication rejects changed before-image or permissions and never retries unapplied or unknown updates',()=>{
+ assert.equal(run(steadyTaskFixture+String.raw`
+ foreach($case in @('before','sddl','not-applied','unknown')){
+  Remove-Variable SteadyTaskPublication -Scope Script -ErrorAction SilentlyContinue;$script:taskXml=$beforeXml;$script:taskSddl='D:P(A;;FA;;;SY)(A;;FA;;;S-1-5-21-1-2-3-1001)';$script:registrations.Clear();$script:scenario='success';Initialize-B6SteadyTaskPublication
+  switch($case){before{$script:taskXml=$beforeXml.Replace('synthetic unchanged','drift')}sddl{$script:taskSddl='drift'}default{$script:scenario=$case}}
+  $denied=$false;try{Complete-B6SteadyTaskPublication}catch{$denied=$true};if(!$denied-or$apiMutators-or($case-cin@('before','sddl')-and($registrations-join',')-cne'1')){throw ('STEADY_TASK_FALSE_PUBLICATION_'+$case)}
+  if($case-cin@('not-applied','unknown')){$count=$registrations.Count;$denied=$false;try{Complete-B6SteadyTaskPublication}catch{$denied=$true};if(!$denied-or$registrations.Count-ne$count){throw 'STEADY_TASK_UNKNOWN_RETRY'}}
+ };'PASS'`),'PASS');
+});
+win('SteadyStartupInstall actual prepared-owner guard proves fresh record and HTTP200 before task publication; either drift blocks the task',()=>{
+ assert.equal(run(String.raw`
+ $realPrepared=(Get-Command Assert-ReadPairPreparedOwner).ScriptBlock
+ `+inert+String.raw`
+ $script:SteadyStartupInstall=$true;$script:WebOnlyRefreshInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:result=@{retireAttempts=0;final=$null};$script:kind='success'
+ $script:newHost=[pscustomobject]@{Id=31001};$script:ready=@{ownerBirth='fixture-owner-birth';childPid=31002;childBirth='fixture-child-birth'};$script:status=[pscustomobject]@{ownerPid=31001;ownerBirth='fixture-owner-birth';childPid=31002;childBirth='fixture-child-birth'};$script:pins=@{apiPackage='unchanged-writer-api';package='steady-workface-web'};$script:expected=@{planHash=('a'*64)}
+ function Owner-Status{return $script:status};function Assert-ReadPairProtection{$calls.Add('protection')};function Get-Business5244RetirementPendingPath{return (Join-Path $PSScriptRoot 'absent.pending')}
+ function Invoke-RestMethod($Uri,$TimeoutSec){if($Uri-cne'http://127.0.0.1:4144/test-health'){throw 'UNEXPECTED_HTTP'};$calls.Add('api-health');return [pscustomobject]@{packageId=$pins.apiPackage}}
+ function Assert-Business5244ApiHealth($Health,$Pins){if($Health.packageId-cne$Pins.apiPackage){throw 'WRONG_API_PAIR'}}
+ function Assert-B6WebOnlyApiBoundary{$calls.Add('boundary')};function Get-B6WebOnlyExpectedProjection{return @{planHash=('a'*64)}}
+ function Assert-B6ReadPairCurrentRecoveryRecord($Status,[switch]$Router){if(!$Router-or![object]::ReferenceEquals($Status,$script:status)){throw 'FOREIGN_RECORD_READ'};$calls.Add('record');if($script:kind-ceq'record-drift'){throw 'ISOLATED_CURRENT_RECORD_CHANGED'}}
+ function Invoke-WebRequest($Uri,$Method,[switch]$UseBasicParsing,$TimeoutSec){if($Uri-cne'http://127.0.0.1:5244/ornek-akis.html'-or$Method-cne'Head'-or!$UseBasicParsing){throw 'UNEXPECTED_WEB_READ'};$calls.Add('web-http');return [pscustomobject]@{StatusCode=$(if($script:kind-ceq'http-failure'){503}else{200})}}
+ function Assert-ReadPairPreparedOwner{&$realPrepared}
+ function Complete-B6SteadyTaskPublication{if(!$result.final-or$result.final.webHttp-ne200-or!$result.final.recordRowsPreserved){throw 'TASK_BEFORE_FRESH_RECORD_AND_HTTP'};$calls.Add('taskpublish')}
+ function Get-B6ReadPairActiveHandoff{return @{stopAttempted=$true}}
+ function Send-ReadPairSingleRetire{throw 'STEADY_RETIRE_FORBIDDEN'};function Wait-ReadPairFinalState{throw 'STEADY_TRADE_READBACK_FORBIDDEN'}
+ foreach($kind in @('success','record-drift','http-failure')){
+  $calls.Clear();$result.final=$null;$denied=$false;try{Invoke-ReadPairInstallSequence|Out-Null}catch{$denied=$true}
+  if($kind-ceq'success'){
+   if($denied-or($calls-join'|')-cne'open|target|coldstop|start|protection|api-health|boundary|record|web-http|taskpublish|SteadyStartupVerified|close'-or$result.final.mode-cne'Steady'-or$result.final.ownerPid-ne31001-or$result.final.childPid-ne31002-or$result.final.apiPackage-cne$pins.apiPackage-or$result.final.webPackage-cne$pins.package-or$result.final.observation-cne'READONLY_FRESH_STEADY_STATE_NOT_PRIVATE_TOKEN'){throw 'FRESH_STEADY_PROOF_NOT_BOUND'}
+  }elseif(!$denied-or$null-ne$result.final-or$calls.Contains('taskpublish')-or!$calls.Contains('restore:True')-or($kind-ceq'record-drift'-and$calls.Contains('web-http'))){throw ('INVALID_STEADY_PROOF_PUBLISHED_TASK_'+$kind)}
+  if($result.retireAttempts-ne0){throw 'STEADY_PROOF_SENT_RETIRE'}
+ };'PASS'`),'PASS');
+});
 const activeFixture=String.raw`
 . __STARTUP__ -Library
 $nativeSource=[IO.File]::ReadAllText(__PEER__);$nativeLiteral='const string Path="C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\5244-retirement.pending";'
@@ -739,4 +828,42 @@ win('WebOnlyRefreshInstall publication preserves all twenty-six historic leaves 
  if($heldPaths.Count-ne25-or$b6.entryCapture.directEntries.Count-ne20-or$heldPaths.Contains((Join-Path $router 'start-business-5244-readpair-router.ps1'))-or$heldPaths.Contains((Join-Path $core 'run-current-owner.ps1'))-or$phases.Count-ne1-or$apiMutators){throw 'WEBONLY_ENTRY_SCOPE_CHANGED'}
  $argsText=Get-B6ReadPairOwnerArguments $router ('b'*64);if(!$argsText.EndsWith(' -ScopeName TEST125-API-B6-WRITER-20261029')){throw 'WRITER_PREDECESSOR_SCOPE_CHANGED'}
  $heldPaths.Clear();$phases.Clear();$swap=$b6.entryCapture.directEntries[18];$b6.entryCapture.directEntries[18]=$b6.entryCapture.directEntries[19];$b6.entryCapture.directEntries[19]=$swap;$denied=$false;try{Open-B6ReadPairPublication}catch{if($_.Exception.Message-cne'B6_DIRECT_ENTRY_SCOPE_CHANGED'){throw};$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count-or$apiMutators){throw 'WEBONLY_WRONG_ORDER_ACCEPTED'};'PASS'`),'PASS');
+});
+win('SteadyStartupInstall production publication binds owner62d3 and twenty-eight leaves with real disposable exclusive file handles',()=>{
+ const fixture=writerPublicationFixture.replace('$script:WriterInstall=$true;',"$script:WriterInstall=$false;$script:WebOnlyRefreshInstall=$true;$script:SteadyStartupInstall=$true;").replace('50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65','62d3882ceef3caf71a263ad51e036453eee2d59dbe871b8ccd2a03f3ad9756f8').replace('postExitExclusiveEntryCount=24','postExitExclusiveEntryCount=28');
+ assert.equal(run(". "+q(path.join(dir,'business-5244-startup-exclusion.ps1'))+" -Library;"+String.raw`$realEntryHold=(Get-Command Hold-B6ReadPairEntry).ScriptBlock;`+fixture+noApiMutators+String.raw`
+ $b6|Add-Member maintenancePurpose 'WebOnlySteadyStartup';function Get-B6WebOnlyExpectedProjection{return @{planHash=('f'*64)}}
+ $router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029';$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
+ $b6.owner.predecessorEntryKind='ReadPairRouter';$b6.owner.entry=[pscustomobject]@{root=$router;leaf='start-business-5244-readpair-router.ps1';manifestSha256=('b'*64);sha256=('c'*64);postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false};$b6.owner|Add-Member router ([pscustomobject]@{root=$router;manifestSha256=('b'*64);entrySha256=('c'*64)});$b6.owner|Add-Member core ([pscustomobject]@{root=$core;manifestSha256=('d'*64);files=@([pscustomobject]@{path='run-current-owner.ps1';sha256=('e'*64);bytes=15})})
+ foreach($name in @(
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3'
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3'
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY'
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY'
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029'
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2'
+ 'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2'
+ 'ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029'
+ )){$leaf=if($name.Contains('ROUTER')){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'};$b6.entryCapture.directEntries+=@([pscustomobject]@{path=('C:\Sirket\ERP\releases\'+$name+'\'+$leaf);sha256=('a'*64)})}
+ $bytes=[Text.Encoding]::UTF8.GetBytes('synthetic unchanged entry bytes');$hash=Get-Business5244StartupHash $bytes;$script:fileMap=@{};$script:held=[Collections.Generic.List[object]]::new();$script:gateStreams=[Collections.Generic.List[IO.FileStream]]::new();$index=0
+ foreach($row in @($b6.entryCapture.entries)+@($b6.entryCapture.directEntries)){$index++;$path=Join-Path $PSScriptRoot ('entry-'+$index+'.ps1');[IO.File]::WriteAllBytes($path,$bytes);$fileMap[$row.path]=$path;if($row.PSObject.Properties['beforeSha256']){$row.beforeSha256=$hash}else{$row.sha256=$hash}}
+ $b6.owner.entry.sha256=$hash;$b6.owner.router.entrySha256=$hash;$b6.owner.core.files[0].sha256=$hash
+ $gate=Join-Path $PSScriptRoot 'inert-gate.ps1';[IO.File]::WriteAllBytes($gate,$bytes)
+ # Translate only the fixed approved logical leaves to disposable physical
+ # files. The actual production hold opens the real exclusive OS handles.
+ function Hold-B6ReadPairEntry($Path,$Hash){if(!$fileMap.ContainsKey($Path)){throw 'UNMAPPED_ENTRY'};$heldPaths.Add($Path);&$realEntryHold $fileMap[$Path] $Hash}
+ function Hold-B6ReadPairSource($Path,$Hash){if($Path-cne$b6.entryCapture.gate.path-or$Hash-cne$b6.entryCapture.gate.sha256){throw 'OTHER_GATE'};$gateStreams.Add([IO.File]::Open($gate,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read));$heldPaths.Add($Path)}
+ try{
+  Open-B6ReadPairPublication
+  if($held.Count-ne26-or$heldPaths.Count-ne27-or$gateStreams.Count-ne1-or$b6.entryCapture.directEntries.Count-ne22-or$apiMutators){throw 'STEADY_28_ENTRY_CLOSURE_CHANGED'}
+  foreach($item in $held){if($item.stream.CanWrite-or(Get-Business5244StartupHash (Read-ReadPairHeldBytes $item.stream))-cne$hash){throw 'STEADY_ENTRY_BYTES_CHANGED'};$denied=$false;try{$other=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$other.Dispose()}catch{$denied=$true};if(!$denied){throw 'STEADY_ENTRY_NOT_EXCLUSIVE'}}
+ }finally{foreach($item in $held){$item.stream.Dispose()};foreach($stream in $gateStreams){$stream.Dispose()}}
+ $held.Clear();$gateStreams.Clear();$heldPaths.Clear();$phases.Clear();$saved=$b6.entryCapture|ConvertTo-Json -Depth 20
+ foreach($case in @('old-owner','direct-count','direct-order','old-exclusive-count','runtime-claim')){
+  $b6.entryCapture=$saved|ConvertFrom-Json
+  switch($case){'old-owner'{$b6.entryCapture.ownerCaptureSha256='e480d77c835f3c2170589b9fbafec6da78dd2a19624d486d8822ad7b930d3a09'}'direct-count'{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 21)}'direct-order'{$swap=$b6.entryCapture.directEntries[20];$b6.entryCapture.directEntries[20]=$b6.entryCapture.directEntries[21];$b6.entryCapture.directEntries[21]=$swap}'old-exclusive-count'{$b6.entryCapture.postExitExclusiveEntryCount=26}'runtime-claim'{$b6.entryCapture.runtimeValidationComplete=$true}}
+  $denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$held.Count-or$gateStreams.Count-or$heldPaths.Count-or$phases.Count-or$apiMutators){throw ('STEADY_CAPTURE_FALSE_ADMISSION_'+$case)}
+ };foreach($path in $fileMap.Values){if((Get-Business5244StartupHash ([IO.File]::ReadAllBytes($path)))-cne$hash){throw 'STEADY_TEST_ENTRY_MUTATION'}};'PASS'`),'PASS');
 });

@@ -27,7 +27,7 @@ function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
  $webOnly=Test-Business5244WriterWebOnlyGeneration
- $exact=if($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+ $exact=if(Test-Business5244SteadyGeneration){Get-Business5244SteadyPins}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
  if((Get-FileHash -LiteralPath $Pins.node).Hash -ine $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -ine $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
@@ -206,9 +206,15 @@ function Get-Business5244WebOnlyEntryMode {
  if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\run-current-owner.ps1'){return 'CurrentRecovery'}
  throw 'OWNED_WEB_ONLY_FIXED_ENTRY_REQUIRED'
 }
+function Assert-Business5244SteadyEntry {
+ $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
+ if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\run-current-owner.ps1'){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}
+}
 function Start-Business5244OwnedSupervisor {
  param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'OWNED_WEB_SCOPE_REJECTED'}
+ $steady=Test-Business5244SteadyGeneration
+ if($steady){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$PrepareReadPair-or$null-ne$CurrentSupersession){throw 'OWNED_STEADY_CURRENT_ONLY'};Assert-Business5244SteadyEntry}
  if($PrepareReadPair -and $InitialSlot -ine 'Current'){throw 'OWNED_WEB_PAIR_REQUIRES_CURRENT_START'}
  if((Test-Business5244WriterWebOnlyGeneration)-and($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$PrepareReadPair)){throw 'OWNED_WEB_ONLY_API_PREPARATION_FORBIDDEN'}
  $webOnlyEntryMode=if(Test-Business5244WriterWebOnlyGeneration){Get-Business5244WebOnlyEntryMode}else{$null}
@@ -240,7 +246,7 @@ function Start-Business5244OwnedSupervisor {
   }elseif($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$InitialSlot-ieq'Current'){
    # The finite recovery wrapper publishes only its own fresh Current child.
    # It does not issue an API transition or change any component/profile.
-   . (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library
+   if(!$steady){. (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library}
    Publish-Business5244CurrentRecord $retirement|Out-Null
    if($webOnlyEntryMode-ceq'Maintenance'){Prepare-Business5244PairedMaintenance $retirement $null}
   }
@@ -263,6 +269,7 @@ function Start-Business5244OwnedSupervisor {
     $reply='Status'
     try{
      Assert-Business5244RetirementRequest -Channel $channel -Request $request
+     if($steady-and$request.operation-cne'status'){throw 'OWNED_STEADY_CURRENT_ONLY'}
      if($null-ne$CurrentSupersession-and$request.operation-cne'status'){throw 'CURRENT_SUPERSESSION_CURRENT_ONLY_OWNER'}
      if($request.operation -ceq 'retire'){
       if($null -ne $apiTransition){Invoke-Business5244PairedOwnerMaintenance $retirement $channel $request $apiTransition|Out-Null}else{Invoke-Business5244OwnerMaintenance $retirement $channel $request|Out-Null}

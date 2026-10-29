@@ -394,3 +394,81 @@ win('Web-only entry predicate observes real PS5 File host arguments for the two 
  }
  'PASS'`),'PASS');
 });
+const steadyFixture=webOnlyPreparedFixture+String.raw`
+function Test-Business5244WriterWebOnlyGeneration{return $false}
+function Test-Business5244SteadyGeneration{return $true}
+function Assert-Business5244SteadyEntry{}
+function Get-Business5244SteadyPins{return $fixtureNext.Clone()}
+function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Current'){throw 'BUSINESS_STEADY_CURRENT_ONLY'};return Get-Business5244SteadyPins}
+$pins=Get-Business5244SteadyPins;$rows[2].root=$pins.root;$rows[2].sourceCommit=$pins.frontendSource
+$script:initBefore=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 20));[IO.File]::WriteAllBytes($script:initRecords,$script:initBefore);$script:initHash=Get-Business5244StartupHash $script:initBefore
+$script:oldRecordedPid=16084;$script:oldChildPresent=$false
+function Get-CimInstance($ClassName,$Filter){if($ClassName-cne'Win32_Process'-or$Filter-cne('ProcessId='+$script:oldRecordedPid)){throw 'STEADY_FOREIGN_PID_READ'};if($script:oldChildPresent){return @{ProcessId=$script:oldRecordedPid}};return $null}
+function New-Business5244PinnedChild($Pins,$Lease){$script:ownedLease=$Lease;Assert-Business5244OwnedPackage $Pins;Initialize-Business5244WebNative;$n=[Business5244WebNative]::new();$file=Join-Path $env:TEMP 'steady-child.ps1';[IO.File]::WriteAllText($file,'Start-Sleep -Seconds 60');$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$file+'"'),$env:TEMP);$script:initNative=$n;return $n}
+`;
+win('steady Current publishes only its fresh owned child and rebinds the next exact stale 5ce record without any maintenance or API capability',()=>{
+ assert.equal(run(load+steadyFixture+String.raw`
+ $script:replies=[Collections.Generic.List[string]]::new();$script:requests=0
+ function Open-Business5244RetirementChannel($OwnerLease){Assert-Business5244StartupLease $OwnerLease -Kind Owner;return [pscustomobject]@{fixture='status-only'}}
+ function Receive-Business5244RetirementRequest($Channel){$script:requests++;if($requests-gt3){throw 'STEADY_FIXTURE_FINISHED'};return [pscustomobject]@{operation=@('status','retire','recover')[$requests-1];requestId=([guid]::NewGuid().ToString())}}
+ function Assert-Business5244RetirementRequest($Channel,$Request){if($Channel.fixture-cne'status-only'-or$Request.operation-cnotin@('status','retire','recover')){throw 'FIXTURE_REQUEST_CHANGED'}}
+ function Complete-Business5244RetirementRequest($Channel,$Request,$Reply,$Snapshot){$script:replies.Add($Reply);if($Snapshot.phase-cne'Running'){throw 'STEADY_LEFT_RUNNING'}}
+ function Close-Business5244RetirementChannel($Channel){}
+ $kept=ConvertTo-Json -InputObject @($rows|Where-Object port -ne 5244) -Depth 20 -Compress;$lastPid=16084
+ foreach($attempt in 1..2){
+  $script:requests=0;$failure=$null;try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-WRITER-20261029'|Out-Null}catch{$failure=$_}
+  if(!$failure-or$failure.Exception.Message-cne'STEADY_FIXTURE_FINISHED'-or!$initNative.RetirementConfirmed-or$apiMutators-or(Test-Path $initPending)){throw 'STEADY_START_OR_CLEANUP_FAILED'}
+  $saved=ConvertFrom-Business5244RecordBytes ([IO.File]::ReadAllBytes($initRecords));$row=@($saved|Where-Object port -eq 5244)[0]
+  if($row.pid-ne$initNative.ChildPid-or$row.pid-eq$lastPid-or$row.root-cne$pins.root-or$row.sourceCommit-cne$pins.frontendSource-or(ConvertTo-Json -InputObject @($saved|Where-Object port -ne 5244) -Depth 20 -Compress)-cne$kept){throw 'STEADY_RECORD_REBIND_OR_PRESERVATION_FAILED'}
+  $lastPid=$row.pid;$script:oldRecordedPid=$row.pid
+ }
+ if(($replies-join'|')-cne'Status|Rejected|Rejected|Status|Rejected|Rejected'-or$payloadVerifications-ne2){throw 'STEADY_REQUEST_OR_PACKAGE_GUARD_MISSING'}
+ $l=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $l;'PASS'`),'PASS');
+});
+win('steady prechannel failure uses the genuine archived bootstrap inverse and restores exact before bytes before issuing 73',()=>{
+ assert.equal(run(load+steadyFixture+String.raw`
+ $failure=$null;try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-WRITER-20261029'|Out-Null}catch{$failure=$_}
+ if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73-or!$initNative.RetirementConfirmed-or$apiMutators-or(Test-Path $initPending)-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($initRecords)))-cne$initHash){throw ('STEADY_INVERSE_FAILED;'+(Get-InitFixtureFailureDiagnostic $failure))}
+ $l=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $l;'PASS'`),'PASS');
+});
+win('steady rejects occupied predecessors, mismatched records, foreign generations and preparation before any record or API effect',()=>{
+ assert.equal(run(load+steadyFixture+String.raw`
+ foreach($mode in @('live','wrong-root','wrong-source','string-pid','extra-field','pending')){
+  $script:oldChildPresent=($mode-ceq'live');$savedRows=$rows|ConvertTo-Json -Depth 20|ConvertFrom-Json
+  switch($mode){wrong-root{$savedRows[2].root='C:\foreign'}wrong-source{$savedRows[2].sourceCommit='a'*40}string-pid{$savedRows[2].pid='16084'}extra-field{$savedRows[2]|Add-Member injected $true}pending{[IO.File]::WriteAllText($initPending,'foreign pending')}}
+  $image=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $savedRows -Depth 20));[IO.File]::WriteAllBytes($initRecords,$image);$failure=$null
+  try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-WRITER-20261029'|Out-Null}catch{$failure=$_}
+  if(!$failure-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($initRecords)))-cne(Get-Business5244StartupHash $image)-or$apiMutators){throw 'STEADY_UNSAFE_BASE_ACCEPTED'}
+  if($mode-ceq'pending'){if([IO.File]::ReadAllText($initPending)-cne'foreign pending'){throw 'STEADY_FOREIGN_PENDING_CHANGED'};[IO.File]::Delete($initPending)}
+ }
+ function Enter-Business5244StartupLease{throw 'STEADY_BAD_MODE_REACHED_LEASE'}
+ foreach($mode in @('candidate','prepare','scope','supersession')){$failure=$null;try{switch($mode){candidate{Start-Business5244OwnedSupervisor -InitialSlot ReadPair -ScopeName 'TEST125-API-B6-WRITER-20261029'}prepare{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-WRITER-20261029' -PrepareReadPair}scope{Start-Business5244OwnedSupervisor -InitialSlot Current}supersession{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-WRITER-20261029' -CurrentSupersession ([pscustomobject]@{})}}}catch{$failure=$_};if(!$failure-or$failure.Exception.Message-cne'OWNED_STEADY_CURRENT_ONLY'){throw 'STEADY_MODE_NOT_CLOSED'}};'PASS'`),'PASS');
+});
+win('steady host invocation accepts only its single fixed File entry and rejects alternate modes before the lease',()=>{
+ assert.equal(run(load+String.raw`
+ $definition=(Get-Command Assert-Business5244SteadyEntry).Definition.Replace('[Environment]::GetCommandLineArgs()','$script:entryArguments')
+ . ([scriptblock]::Create('function Assert-Business5244SteadyEntry {'+$definition+'}'))
+ $entry='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\run-current-owner.ps1'
+ $script:entryArguments=@('powershell.exe','-NoProfile','-NonInteractive','-File',$entry);Assert-Business5244SteadyEntry
+ foreach($arguments in @(@('powershell.exe','-File',$entry,'-File',$entry),@('powershell.exe','-file',$entry),@('powershell.exe','-Command',$entry),@('powershell.exe','-File',$entry,'-EncodedCommand','AA=='),@('powershell.exe','-File',($entry+'x')),@('powershell.exe'))){$script:entryArguments=$arguments;$denied=$false;try{Assert-Business5244SteadyEntry}catch{if($_.Exception.Message-cne'OWNED_STEADY_FIXED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'STEADY_NONFILE_ADMISSION'}}
+ $actual=(Get-Command Assert-Business5244SteadyEntry).Definition.Replace('$script:entryArguments','[Environment]::GetCommandLineArgs()');$fixtureEntry=Join-Path $env:TEMP 'run-current-owner.ps1';$actual=$actual.Replace($entry,$fixtureEntry)
+ [IO.File]::WriteAllText($fixtureEntry,('function Assert-Business5244SteadyEntry {'+$actual+'};Assert-Business5244SteadyEntry;"PASS"'))
+ $si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -File "'+$fixtureEntry+'"';$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$si.RedirectStandardError=$true
+ $child=[Diagnostics.Process]::Start($si);try{$answer=$child.StandardOutput.ReadToEnd().Trim();$errors=$child.StandardError.ReadToEnd();if(!$child.WaitForExit(5000)-or$child.ExitCode-ne0-or$errors-or$answer-cne'PASS'){throw 'STEADY_ACTUAL_OS_FILE_REJECTED'}}finally{$child.Dispose()};'PASS'`),'PASS');
+});
+win('steady held publisher requires its genuine state and direct retirement cannot create a pending record or stop its owned child',()=>{
+ assert.equal(run(load+steadyFixture+String.raw`
+ $lease=Enter-Business5244StartupLease -Kind Owner;$native=New-Business5244PinnedChild $pins $lease;$state=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName 'TEST125-API-B6-WRITER-20261029';$records=$null
+ try{
+  foreach($fake in @($null,([pscustomobject]@{kind='business-5244-retirement-state'}),($state|ConvertTo-Json|ConvertFrom-Json))){$denied=$false;try{Get-Business5244SteadyBootstrapBefore $fake $initBefore|Out-Null}catch{if($_.Exception.Message-cne'RETIREMENT_STATE_UNISSUED'){throw};$denied=$true};if(!$denied){throw 'STEADY_SERIALIZED_STATE_ADMITTED'}}
+  $records=[IO.File]::Open($initRecords,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
+  $denied=$false;try{Invoke-Business5244HeldRetirement $state $records $null}catch{if($_.Exception.Message-cne'RETIREMENT_STEADY_CURRENT_ONLY'){throw};$denied=$true}
+  if(!$denied-or!$native.ChildAlive()-or(Test-Path $initPending)-or$apiMutators-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $records))-cne$initHash){throw 'STEADY_DIRECT_RETIRE_EFFECT'}
+  $records.Dispose();$records=$null;Publish-Business5244CurrentRecord $state|Out-Null
+  $r=Get-Business5244RetirementState $state;$r.currentBootstrap.steadyBefore.pid++
+  $denied=$false;try{Undo-Business5244CurrentBootstrap $state|Out-Null}catch{if($_.Exception.Message-cne'CURRENT_STEADY_INVERSE_BEFORE_CHANGED'){throw};$denied=$true}
+  if(!$denied-or!$native.ChildAlive()-or(Test-Path $initPending)-or$apiMutators){throw 'STEADY_FOREIGN_INVERSE_EFFECT'}
+  $r.currentBootstrap.steadyBefore.pid--;Undo-Business5244CurrentBootstrap $state|Out-Null
+  if(!$native.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($initRecords)))-cne$initHash){throw 'STEADY_GENUINE_INVERSE_FAILED'}
+ }finally{if($records){$records.Dispose()};Close-Business5244RetirementState $state;$native.Dispose();Exit-Business5244StartupLease $lease};'PASS'`),'PASS');
+});
