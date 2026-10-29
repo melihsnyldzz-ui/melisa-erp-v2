@@ -121,6 +121,10 @@ function Get-Test125ReadPairBindingLauncher($Binding){
   $registered=$script:Test125ReadPairContext
   $c=Get-Test125ReadPairNativeAuditContext $registered.token $registered.nativeProfileAdmission
   if(![object]::ReferenceEquals($Binding,$script:Test125ApiBinding)-or![object]::ReferenceEquals($Binding,$c.activeBinding)-or![object]::ReferenceEquals($Binding.releaseProof,$c.releaseProof)){throw 'B6_TASK_BOUND_LAUNCHER_NOT_OWNED'}
+  if($c.token.scope-ceq'TEST125-API-B6-WRITER-20261029'-and$c.token.profileOnlyPurpose-ceq'PackageRefresh'){
+   $proof=Get-ErpReadPairReleaseProofContext $c.releaseProof;$proof.seal.Validate();$source=$proof.packageRefreshTaskSource
+   return $(if($Binding.admission.supervisor-eq$source.runningSupervisor.pid){$source.runningSupervisor.launcher.path}else{$proof.businessSaleOwnerPins.path})
+  }
   $mode=if($config.ApiComponent.ReleaseRoot-ceq$c.token.candidate.ReleaseRoot){'Candidate'}elseif($config.ApiComponent.ReleaseRoot-ceq$c.token.current.ReleaseRoot){'Current'}else{throw 'B6_TASK_BOUND_LAUNCHER_NOT_OWNED'}
   [void](Assert-Test125ReadPairConfig $config $mode -ScopeName $c.token.scope)
   return (Get-Test125MaintenanceTaskLauncher $config -ScopeName $c.token.scope -Mode $mode -PreparedReleaseProof $c.releaseProof)
@@ -133,7 +137,7 @@ function Assert-Test125ReadPairIssued($Transition){
  [void](Get-ErpReadPairReleaseProofContext $c.releaseProof)
  if($c.token.scope-ceq'TEST125-API-B6-WRITER-20261029'){
   [void](Assert-ErpBusinessSaleWriterProfileAdmission $c.nativeProfileAdmission -Phase Identity)
-  if($Transition.schema-cne'melisa-test125-b6-writer-api-transition.v1'-or$Transition.PSObject.Properties['rehearsalOnly']-or$Transition.profileOnlyPurpose-cne'WriterProfileActivation'-or@($Transition.PSObject.Properties.Name)[-1]-cne'profileOnlyPurpose'){throw 'TEST125_READPAIR_WRITER_PURPOSE_CHANGED'}
+  if($Transition.schema-cne$(if((Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).mode-ceq'PackageRefresh'){'melisa-test125-b6-package-refresh-api-transition.v1'}else{'melisa-test125-b6-writer-api-transition.v1'})-or$Transition.PSObject.Properties['rehearsalOnly']-or$Transition.profileOnlyPurpose-cne(Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).mode-or@($Transition.PSObject.Properties.Name)[-1]-cne'profileOnlyPurpose'){throw 'TEST125_READPAIR_WRITER_PURPOSE_CHANGED'}
  }
  if($c.token.scope-ceq'TEST125-API-B6-ca620bac-20261028'){
   [void](Assert-ErpBusinessSaleNativeProfileAdmission $c.nativeProfileAdmission -Phase Identity)
@@ -153,7 +157,7 @@ function Get-Test125ReadPairNativeAuditContext($Transition,$NativeAdmission){
  if(![object]::ReferenceEquals($native.transition,$Transition)){throw 'TEST125_READPAIR_AUDIT_NOT_ISSUED'}
  if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'){
   [void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeAdmission -Phase Identity)
-  if($Transition.schema-cne'melisa-test125-b6-writer-api-transition.v1'-or$Transition.PSObject.Properties['rehearsalOnly']-or$Transition.profileOnlyPurpose-cne'WriterProfileActivation'){throw 'TEST125_READPAIR_WRITER_PURPOSE_CHANGED'}
+  if($Transition.schema-cne$(if((Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).mode-ceq'PackageRefresh'){'melisa-test125-b6-package-refresh-api-transition.v1'}else{'melisa-test125-b6-writer-api-transition.v1'})-or$Transition.PSObject.Properties['rehearsalOnly']-or$Transition.profileOnlyPurpose-cne(Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).mode){throw 'TEST125_READPAIR_WRITER_PURPOSE_CHANGED'}
  }elseif($c.rehearsalOnly-isnot[bool]-or$Transition.rehearsalOnly-isnot[bool]-or$native.rehearsalOnly-isnot[bool]-or$c.rehearsalOnly-ne$Transition.rehearsalOnly-or$c.rehearsalOnly-ne$native.rehearsalOnly){throw 'TEST125_READPAIR_NATIVE_PURPOSE_CHANGED'}
  return $c
 }
@@ -175,7 +179,9 @@ function New-Test125ReadPairTaskActionPlan($Config,$Before,$ReleaseProof,[string
  $exe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
  if(!$command-or!$working-or!(Same-ErpPath $command.InnerText $exe)-or!(Same-ErpPath $working.InnerText $Config.RepoRoot)){throw 'B6_TASK_ACTION_BASELINE_REJECTED'}
  $argsNodes[0].InnerText=$newArgs;$candidateXml=$doc.OuterXml
- return [pscustomobject]@{beforeXml=$xml;beforeHash=$Before.taskXmlHash;beforeSignature=$beforeSignature;candidateSignature=(Get-Test125TaskXmlSignature $candidateXml);sddl=$sddl;sddlHash=(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($sddl)));candidateLauncher=$candidateLauncher;candidateLauncherHash=$pins.sha256.ToUpperInvariant();coreManifestHash=$pins.coreManifestSha256;exe=[string]$command.InnerText;workingDirectory=[string]$working.InnerText;currentArguments=$oldArgs;candidateArguments=$newArgs;mode='Current';observedXmlHash=$Before.taskXmlHash;candidateAttempted=$false;currentAttempted=$false;beforeDurable=$false;unknown=$false}
+ $plan=[pscustomobject]@{beforeXml=$xml;beforeHash=$Before.taskXmlHash;beforeSignature=$beforeSignature;candidateSignature=(Get-Test125TaskXmlSignature $candidateXml);sddl=$sddl;sddlHash=(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($sddl)));candidateLauncher=$candidateLauncher;candidateLauncherHash=$pins.sha256.ToUpperInvariant();coreManifestHash=$pins.coreManifestSha256;exe=[string]$command.InnerText;workingDirectory=[string]$working.InnerText;currentArguments=$oldArgs;candidateArguments=$newArgs;mode='Current';observedXmlHash=$Before.taskXmlHash;candidateAttempted=$false;currentAttempted=$false;beforeDurable=$false;unknown=$false}
+ if(Test-ErpBusinessSalePackageRefreshGeneration){$proof=Get-ErpReadPairReleaseProofContext $ReleaseProof;if(!$proof.PSObject.Properties['packageRefreshTaskSource']){throw 'B6_PACKAGE_REFRESH_TASK_PROOF_REQUIRED'};$plan|Add-Member maintenanceInstalled $false;$proof|Add-Member packageRefreshTaskState $plan}
+ return $plan
 }
 function Write-Test125ReadPairTaskBeforeImage($Context){
  $c=Assert-Test125ReadPairContext $Context;$p=$c.taskAction
@@ -209,13 +215,15 @@ function Set-Test125ReadPairTaskAction($Transition,[ValidateSet('Current','Candi
  [void](Get-Test125MaintenanceTaskLauncher $c.config -ScopeName $Transition.scope -Mode Candidate -PreparedReleaseProof $c.releaseProof)
  $task=Get-Test125ReadPairTask;$raw=[string]$task.Xml;$sig=Get-Test125TaskXmlSignature $raw;$sddl=[string]$task.GetSecurityDescriptor(7)
  if($task.GetInstances(0).Count-ne0-or(Get-ErpProcess $b.admission.supervisor)-or$sddl-cne$p.sddl-or(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($raw)))-cne$p.observedXmlHash){throw 'B6_TASK_ACTION_CAS_CHANGED'}
- $sourceSig=if($p.mode-ceq'Current'){$p.beforeSignature}else{$p.candidateSignature};$desiredSig=if($Mode-ceq'Current'){$p.beforeSignature}else{$p.candidateSignature}
+ $refresh=$Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'-and$Transition.profileOnlyPurpose-ceq'PackageRefresh'
+ $sourceSig=if($refresh-and$p.maintenanceInstalled){$p.candidateSignature}elseif($p.mode-ceq'Current'){$p.beforeSignature}else{$p.candidateSignature};$desiredSig=if($refresh){$p.candidateSignature}elseif($Mode-ceq'Current'){$p.beforeSignature}else{$p.candidateSignature}
  if($sig-cne$sourceSig){throw 'B6_TASK_ACTION_CAS_CHANGED'}
  Write-Test125ReadPairTaskBeforeImage $c
- if($p.mode-ceq$Mode){return}
+ if($refresh-and$sourceSig-ceq$desiredSig){$p.mode=$Mode;return}
+ if(!$refresh-and$p.mode-ceq$Mode){return}
  $attemptKey=if($Mode-ceq'Candidate'){'candidateAttempted'}else{'currentAttempted'}
  if($p.$attemptKey){throw 'B6_TASK_ACTION_ALREADY_ATTEMPTED'}
- $argsText=if($Mode-ceq'Candidate'){$p.candidateArguments}else{$p.currentArguments}
+ $argsText=if($refresh-or$Mode-ceq'Candidate'){$p.candidateArguments}else{$p.currentArguments}
  $action=New-ScheduledTaskAction -Execute $p.exe -Argument $argsText -WorkingDirectory $p.workingDirectory
  # DPAPI persistence must not leave a stale task observation at the write.
  Assert-Test125ApiStoppedSupervisor $b;[void](Test-Test125ApiPhysicalPause $b);Assert-Test125ReadPairCompanions $c
@@ -229,6 +237,7 @@ function Set-Test125ReadPairTaskAction($Transition,[ValidateSet('Current','Candi
   $after=Get-Test125ReadPairTask;$afterRaw=[string]$after.Xml;$afterSig=Get-Test125TaskXmlSignature $afterRaw
   if([string]$after.GetSecurityDescriptor(7)-cne$p.sddl-or$after.GetInstances(0).Count-ne0){throw 'B6_TASK_ACTION_OUTCOME_UNKNOWN'}
   if($afterSig-ceq$desiredSig){
+   if($refresh){$p.maintenanceInstalled=$true}
    $p.mode=$Mode;$p.observedXmlHash=Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($afterRaw))
    $a=$c.admission|ConvertTo-Json -Depth 32|ConvertFrom-Json;$a.taskXmlHash=$p.observedXmlHash;$c.admission=$a;$b.admission=$a;$c.admissionJson=($a|ConvertTo-Json -Depth 32 -Compress)
    return
@@ -245,6 +254,7 @@ function New-Test125ReadPairTransition([string]$ScopeName='TEST125-API-READ2b-20
  if($script:Test125ReadPairContext-or$script:Test125ApiBinding){throw 'TEST125_READPAIR_ALREADY_ISSUED'}
  $scope=Get-Test125ReadPairScope -Name $ScopeName
  $rehearsalOnly=$false
+ $packageRefresh=$scope.name-ceq'TEST125-API-B6-WRITER-20261029'-and(Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission).mode-ceq'PackageRefresh'
  if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){[void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeProfileAdmission -Phase WriterPrepared)}
  elseif($scope.name-ceq'TEST125-API-B6-ca620bac-20261028'){
   [void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)
@@ -264,7 +274,7 @@ function New-Test125ReadPairTransition([string]$ScopeName='TEST125-API-READ2b-20
  $candidate=Get-ErpApiComponentConfig $next;$manifest=Assert-ErpRelease $candidate
  $apiPath=$scope.current.ConfigPath;$apiBefore=[IO.File]::ReadAllBytes($apiPath);$api=[Text.Encoding]::UTF8.GetString($apiBefore)|ConvertFrom-Json
  if($scope.name-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
-  $expectedOldSeal=if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'}else{'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'}
+  $expectedOldSeal=if($packageRefresh){'CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'}elseif($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'}else{'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'}
   if($api.goal8SyntheticDaySeal.packageId-cne$expectedOldSeal){throw 'TEST125_READPAIR_OLD_SEAL_CHANGED'}
   [byte[]]$apiCandidate=Get-ErpBusinessSaleCandidateProfileBytes $NativeProfileAdmission
   if(!$apiCandidate-or!$apiCandidate.Length){throw 'TEST125_B6_CANDIDATE_PROFILE_REQUIRED'}
@@ -282,9 +292,9 @@ function New-Test125ReadPairTransition([string]$ScopeName='TEST125-API-READ2b-20
  $releaseProof=$writerReleaseProof
  $releaseProof=if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){$writerReleaseProof}elseif($scope.name-ceq'TEST125-API-B6-ca620bac-20261028'){New-ErpReadPairPreparedReleaseProof $config -ScopeName $scope.name -NativeProfileAdmission $NativeProfileAdmission}else{New-ErpReadPairPreparedReleaseProof $config};$releasePins=Get-ErpReadPairReleaseProofPins $releaseProof
  $taskAction=if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){New-Test125ReadPairTaskActionPlan $config $before $releaseProof -ScopeName $scope.name}elseif($scope.name-ceq'TEST125-API-B6-ca620bac-20261028'){New-Test125ReadPairTaskActionPlan $config $before $releaseProof}else{$null}
- $token=[pscustomobject][ordered]@{schema=$(if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){'melisa-test125-b6-writer-api-transition.v1'}elseif($scope.name-ceq'TEST125-API-B6-ca620bac-20261028'){'melisa-test125-b6-api-transition.v1'}else{'melisa-test125-read2b-api-transition.v1'});packageProof=$releasePins;scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Test125ReadPairHash $apiBefore);apiProfileCandidateSha256=(Get-Test125ReadPairHash $apiCandidate);baseProfileSha256=(Get-Test125ReadPairHash $baseProfileBytes);startupBeforeSha256=(Get-Test125ReadPairHash $bytes);startupCandidateSha256=(Get-Test125ReadPairHash $nextBytes);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
+ $token=[pscustomobject][ordered]@{schema=$(if($packageRefresh){'melisa-test125-b6-package-refresh-api-transition.v1'}elseif($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){'melisa-test125-b6-writer-api-transition.v1'}elseif($scope.name-ceq'TEST125-API-B6-ca620bac-20261028'){'melisa-test125-b6-api-transition.v1'}else{'melisa-test125-read2b-api-transition.v1'});packageProof=$releasePins;scope=$scope.name;source=$scope.source;database=$scope.database;current=$scope.current;candidate=$scope.candidate;apiProfileBeforeSha256=(Get-Test125ReadPairHash $apiBefore);apiProfileCandidateSha256=(Get-Test125ReadPairHash $apiCandidate);baseProfileSha256=(Get-Test125ReadPairHash $baseProfileBytes);startupBeforeSha256=(Get-Test125ReadPairHash $bytes);startupCandidateSha256=(Get-Test125ReadPairHash $nextBytes);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
  if($scope.name-ceq'TEST125-API-B6-ca620bac-20261028'){$token|Add-Member rehearsalOnly ([bool]$rehearsalOnly)}
- if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){$token|Add-Member profileOnlyPurpose 'WriterProfileActivation'}
+ if($scope.name-ceq'TEST125-API-B6-WRITER-20261029'){$token|Add-Member profileOnlyPurpose $(if($packageRefresh){'PackageRefresh'}else{'WriterProfileActivation'})}
  $script:Test125ReadPairContext=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Depth 12 -Compress);releaseProof=$releaseProof;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;mode='Current';phase='PREPARED';admission=$before;admissionJson=($before|ConvertTo-Json -Depth 32 -Compress);baseline=$before;config=$config;startupPath=$path;beforeBytes=$bytes;candidateBytes=$nextBytes;apiPath=$apiPath;apiBefore=$apiBefore;apiCandidate=$apiCandidate;apiChanged=$false;activeBinding=$null;taskStopped=$false;manifest=$manifest;changed=$false;vault=$null;resumedEngine=$null;resumedInstance=$null;resumedBirth=$null;candidateAttempted=$false;failedStartProof=$null;requestAdmission=$null;nativeProfileAdmission=$NativeProfileAdmission;nativeChangeAttempted=$false;nativeApplied=$false}
  $script:Test125ReadPairContext|Add-Member taskAction $taskAction
  $script:Test125ReadPairContext|Add-Member rehearsalOnly ([bool]$rehearsalOnly)
@@ -319,7 +329,7 @@ function Assert-Test125ReadPairTransition($Transition,[ValidateSet('Current','Ca
  foreach($name in @('native','web')){if(($fresh.children.$name|ConvertTo-Json -Depth 8 -Compress)-cne($c.baseline.children.$name|ConvertTo-Json -Depth 8 -Compress)){throw 'TEST125_READPAIR_COMPANION_CHANGED'}}
  $stableKeys=if($c.taskAction){@('source','database','manifestHash')}else{@('source','database','launcherHash','manifestHash','taskXmlHash')}
  foreach($key in $stableKeys){if($fresh.$key-cne$c.baseline.$key){throw 'TEST125_READPAIR_BOUNDARY_CHANGED'}}
- if($c.taskAction){$expectedLauncherHash=if($Mode-ceq'Candidate'){$c.taskAction.candidateLauncherHash}else{$c.baseline.launcherHash};if($c.taskAction.unknown-or$c.taskAction.mode-cne$Mode-or$fresh.launcherHash-cne$expectedLauncherHash-or$fresh.taskXmlHash-cne$c.taskAction.observedXmlHash){throw 'B6_TASK_ACTION_BOUNDARY_CHANGED'}}
+ if($c.taskAction){$expectedLauncherHash=if(($c.token.scope-ceq'TEST125-API-B6-WRITER-20261029'-and$c.token.profileOnlyPurpose-ceq'PackageRefresh'-and$c.taskAction.maintenanceInstalled)-or$Mode-ceq'Candidate'){$c.taskAction.candidateLauncherHash}else{$c.baseline.launcherHash};if($c.taskAction.unknown-or$c.taskAction.mode-cne$Mode-or$fresh.launcherHash-cne$expectedLauncherHash-or$fresh.taskXmlHash-cne$c.taskAction.observedXmlHash){throw 'B6_TASK_ACTION_BOUNDARY_CHANGED'}}
  if($c.taskAction-and[string](Get-Test125ReadPairTask).GetSecurityDescriptor(7)-cne$c.taskAction.sddl){throw 'B6_TASK_ACTION_BOUNDARY_CHANGED'}
  Assert-Test125MaintenancePin $c.admission $fresh
  return $true
@@ -371,6 +381,7 @@ function Assert-Test125ReadPairRequestAdmission($Transition){
  $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof;[void](Assert-Test125ReadPairConfig $config Current -ScopeName $Transition.scope)
  foreach($entry in @(@($c.startupPath,$Transition.startupBeforeSha256),@($c.apiPath,$Transition.apiProfileBeforeSha256),@($config.ConfigPath,$Transition.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'TEST125_READPAIR_REQUEST_FILE_CHANGED'}}
  $requestLauncher=if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'){Get-Test125MaintenanceTaskLauncher $config -ScopeName $Transition.scope -Mode Current -PreparedReleaseProof $c.releaseProof}else{Join-Path $config.RepoRoot 'scripts\canonical\start-owned-test.ps1'}
+ if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'-and$Transition.profileOnlyPurpose-ceq'PackageRefresh'){$proof=Get-ErpReadPairReleaseProofContext $c.releaseProof;$proof.seal.Validate();$requestLauncher=$proof.packageRefreshTaskSource.runningSupervisor.launcher.path}
  if((Get-FileHash -LiteralPath $requestLauncher -Algorithm SHA256).Hash-cne$c.baseline.launcherHash){throw 'TEST125_READPAIR_REQUEST_LAUNCHER_CHANGED'}
  # The supervisor's mutable ownership journal stays fresh. Compare semantic
  # identity, not a raw heartbeat hash; never defer drift until after web stop.
@@ -440,11 +451,11 @@ function Assert-Test125ReadPairPaused($Context){
 function Assert-Test125ReadPairWriterPostCasPause($Transition,[ValidateSet('Candidate','Rollback')][string]$Mode){
  if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
  $c=Assert-Test125ReadPairIssued $Transition
- if($Transition.scope-cne'TEST125-API-B6-WRITER-20261029'-or$Transition.profileOnlyPurpose-cne'WriterProfileActivation'){throw 'B6_WRITER_POST_CAS_NOT_ISSUED'}
+ if($Transition.scope-cne'TEST125-API-B6-WRITER-20261029'-or$Transition.profileOnlyPurpose-cnotin@('WriterProfileActivation','PackageRefresh')){throw 'B6_WRITER_POST_CAS_NOT_ISSUED'}
  $n=Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission
- if($n.mode-cne'WriterProfileActivation'-or![object]::ReferenceEquals($n.transition,$Transition)){throw 'B6_WRITER_POST_CAS_NOT_ISSUED'}
+ if($n.mode-cne$Transition.profileOnlyPurpose-or![object]::ReferenceEquals($n.transition,$Transition)){throw 'B6_WRITER_POST_CAS_NOT_ISSUED'}
  $b=$c.activeBinding;$destination=if($Mode-ceq'Candidate'){'Candidate'}else{'Current'};$candidate=$Mode-ceq'Candidate'
- if(!$b-or![object]::ReferenceEquals($b,$script:Test125ApiBinding)-or![object]::ReferenceEquals($b.releaseProof,$c.releaseProof)-or!$c.taskStopped-or!$c.vault-or$c.changed-isnot[bool]-or$c.apiChanged-isnot[bool]-or$c.changed-ne$candidate-or$c.apiChanged-ne$candidate-or!$c.taskAction-or$c.taskAction.unknown-or$c.taskAction.mode-cne$destination){throw 'B6_WRITER_POST_CAS_NOT_PAUSED'}
+ if(!$b-or![object]::ReferenceEquals($b,$script:Test125ApiBinding)-or![object]::ReferenceEquals($b.releaseProof,$c.releaseProof)-or!$c.taskStopped-or!$c.vault-or$c.changed-isnot[bool]-or$c.apiChanged-isnot[bool]-or$c.changed-ne$candidate-or$c.apiChanged-ne$($candidate-and$n.mode-cne'PackageRefresh')-or!$c.taskAction-or$c.taskAction.unknown-or$c.taskAction.mode-cne$destination){throw 'B6_WRITER_POST_CAS_NOT_PAUSED'}
  [void](Assert-Test125ReadPairPaused $c)
  $proof=Get-ErpReadPairReleaseProofContext $c.releaseProof;$proof.seal.Validate()
  $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof
@@ -463,7 +474,8 @@ function Get-Test125ReadPairFailedStartEvidence($Context){
  $c=Assert-Test125ReadPairContext $Context
  try{
  $t=$c.token
- if($c.mode-cne'Candidate'-or!$c.changed-or!$c.apiChanged-or!$c.resumedEngine-or!$c.resumedInstance-or!$c.resumedBirth-or$c.resumedEngine-eq$c.baseline.supervisor){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
+ $packageRefresh=$t.scope-ceq'TEST125-API-B6-WRITER-20261029'-and$t.profileOnlyPurpose-ceq'PackageRefresh'
+ if($c.mode-cne'Candidate'-or!$c.changed-or(!$packageRefresh-and!$c.apiChanged)-or($packageRefresh-and$c.apiChanged)-or!$c.resumedEngine-or!$c.resumedInstance-or!$c.resumedBirth-or$c.resumedEngine-eq$c.baseline.supervisor){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}
  $config=Read-ErpStartupConfig $c.startupPath -PreparedReleaseProof $c.releaseProof;[void](Assert-Test125ReadPairConfig $config Candidate -ScopeName $t.scope)
  foreach($entry in @(@($c.startupPath,$t.startupCandidateSha256),@($c.apiPath,$t.apiProfileCandidateSha256),@($config.ConfigPath,$t.baseProfileSha256))){if((Get-FileHash -LiteralPath $entry[0] -Algorithm SHA256).Hash.ToLowerInvariant()-cne$entry[1]){throw 'TEST125_READPAIR_UNADMITTED_RECOVERY_REQUIRES_OWNER'}}
  $launcher=Get-Test125MaintenanceTaskLauncher $config -ScopeName $t.scope -Mode Candidate -PreparedReleaseProof $c.releaseProof
@@ -619,7 +631,7 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
   }
   if($c.taskAction-and!($rehearsalOnly-and!$c.nativeChangeAttempted)){Set-Test125ReadPairTaskAction $Transition -Mode $destination}
   if($destination-ceq'Candidate'){
-   Write-Test125ReadPairCas $c.apiPath $Transition.apiProfileBeforeSha256 $c.apiCandidate;$c.apiChanged=$true
+   if($Transition.scope-cne'TEST125-API-B6-WRITER-20261029'-or$Transition.profileOnlyPurpose-cne'PackageRefresh'){Write-Test125ReadPairCas $c.apiPath $Transition.apiProfileBeforeSha256 $c.apiCandidate;$c.apiChanged=$true}
    Write-Test125ReadPairCas $c.startupPath $Transition.startupBeforeSha256 $c.candidateBytes;$c.changed=$true
   }else{
    if($c.changed){Write-Test125ReadPairCas $c.startupPath $Transition.startupCandidateSha256 $c.beforeBytes;$c.changed=$false}
@@ -660,7 +672,7 @@ function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate
    $outcome|Add-Member nativePhase $(if($rehearsalOnly-and!$c.nativeChangeAttempted){'Prepared'}elseif($c.nativeApplied){'Applied'}else{'Restored'})
    if($Mode-ceq'RehearseOnly'){$outcome.status='REHEARSAL_VERIFIED_CURRENT_RESTORED'}
   }
-  if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'){$outcome|Add-Member profileOnlyPurpose 'WriterProfileActivation';$outcome|Add-Member nativePhase (Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).phase}
+  if($Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'){$outcome|Add-Member profileOnlyPurpose $Transition.profileOnlyPurpose;$outcome|Add-Member nativePhase (Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).phase}
   return $outcome
  }catch{$c.phase='FAILED';throw}
 }

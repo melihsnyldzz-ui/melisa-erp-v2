@@ -103,6 +103,27 @@ $r=[pscustomobject]@{token=$cap;tokenJson=($cap|ConvertTo-Json -Compress);closed
 [void]$script:ErpBusinessSaleAdmissions.Add($r)
 function Reject([scriptblock]$f){$failed=$false;try{&$f|Out-Null}catch{$failed=$true};if(!$failed){throw 'EXPECTED_REJECTION'}}
 `;
+test('PackageRefresh factory issues only an unchanged enabled profile after a fresh After read and cannot enter native DDL',win,()=>{
+ const root=fs.realpathSync.native(fs.mkdtempSync(path.join(fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),'b6-package-profile-')));
+ try{assert.equal(run(String.raw`
+ $profilePath=__PROFILE__;$script:afterReads=0;$script:ddlCalls=0;$descriptor=[pscustomobject]@{profileHash='fixture';readerDefinitions=[pscustomobject]@{reader='same'}}
+ $profile=[pscustomobject]@{goal8SyntheticDaySeal=[pscustomobject]@{packageId='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'};businessSaleAdmission=$descriptor;businessSaleWritesEnabled=$true;privateSentinel='fixture-only'}
+ [IO.File]::WriteAllText($profilePath,($profile|ConvertTo-Json -Depth 20));$original=[IO.File]::ReadAllBytes($profilePath)
+ $config=[pscustomobject]@{OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}
+ $owner=[pscustomobject]@{manifestSha256='fixed-owner';maintenancePurpose='PreviewLinkPackageRefresh';packagePair=[pscustomobject]@{current=[pscustomobject]@{api=[pscustomobject]@{configPath=$profilePath;packageId=$profile.goal8SyntheticDaySeal.packageId}}}}
+ function Test-ErpBusinessSalePackageRefreshGeneration{return $true};function Read-ErpStartupConfig{return $config};function Read-ErpBusinessSalePackageRefreshOwnerSource{return $owner};function Assert-Test125ReadPairConfig{return $true}
+ function Get-ErpBusinessSaleNativeInputs{return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';descriptor=$descriptor}}
+ function Test-ErpBusinessSaleAfter{$script:afterReads++}
+ function Read-ErpBusinessSalePinnedFile($Path,$Hash){if($Path-ceq$profilePath){$b=[IO.File]::ReadAllBytes($Path);if((Get-ErpBusinessSaleHash $b)-cne$Hash){throw 'FIXTURE_PROFILE_HASH_CHANGED'};return ,$b};if($Hash-cnotin@('35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe','050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024')){throw 'FIXTURE_FOREIGN_FILE_READ'};return ,([byte[]](0))}
+ $cap=New-ErpBusinessSalePackageRefreshAdmission $config;$record=Get-ErpBusinessSaleNativeAdmissionContext $cap
+ if($cap.schema-cne'melisa-b6-package-refresh.v1'-or$cap.purpose-cne'PackageRefresh'-or$record.mode-cne'PackageRefresh'-or$record.phase-cne'WriterPrepared'-or$afterReads-ne1-or(Get-ErpBusinessSaleHash (Get-ErpBusinessSaleCandidateProfileBytes $cap))-cne(Get-ErpBusinessSaleHash $original)){throw 'PACKAGE_REFRESH_MINT_OR_BYTE_CONTRACT'}
+ foreach($copy in @(($cap|ConvertTo-Json|ConvertFrom-Json),([pscustomobject]@{schema='melisa-b6-package-refresh.v1';purpose='PackageRefresh'}))){$denied=$false;try{Assert-ErpBusinessSaleWriterProfileAdmission $copy|Out-Null}catch{$denied=$true};if(!$denied){throw 'PACKAGE_REFRESH_SHAPE_GRANTED'}}
+ foreach($direction in @('Rehearse','Apply','Inverse')){$denied=$false;try{Invoke-ErpBusinessSaleNativeRevision $cap $direction|Out-Null}catch{if($_.Exception.Message-cne'B6_WRITER_NATIVE_DDL_FORBIDDEN'){throw};$denied=$true};if(!$denied){throw 'PACKAGE_REFRESH_DDL_ENABLED'}}
+ foreach($field in @('pid','thread','owner')){$old=$record.$field;$record.$field=if($old-is[string]){'foreign'}else{0};$denied=$false;try{Assert-ErpBusinessSaleWriterProfileAdmission $cap|Out-Null}catch{$denied=$true};$record.$field=$old;if(!$denied){throw 'PACKAGE_REFRESH_FOREIGN_ISSUER'}}
+ $profile.businessSaleWritesEnabled=$false;[IO.File]::WriteAllText($profilePath,($profile|ConvertTo-Json -Depth 20));$denied=$false;try{New-ErpBusinessSalePackageRefreshAdmission $config|Out-Null}catch{if($_.Exception.Message-cne'B6_PACKAGE_REFRESH_PROFILE_CHANGED'){throw};$denied=$true};if(!$denied){throw 'PACKAGE_REFRESH_ACTIVATED_PASSIVE_PROFILE'}
+ [IO.File]::WriteAllBytes($profilePath,$original);function Test-ErpBusinessSalePackageRefreshGeneration{return $false};$denied=$false;try{New-ErpBusinessSalePackageRefreshAdmission $config|Out-Null}catch{$denied=$true};if(!$denied-or(Get-ErpBusinessSaleHash ([IO.File]::ReadAllBytes($profilePath)))-cne(Get-ErpBusinessSaleHash $original)){throw 'PACKAGE_REFRESH_WRONG_GENERATION_OR_WRITE'};'PASS'
+ `.replace('__PROFILE__',q(path.join(root,'profile.json')))),'PASS');}finally{fs.rmSync(root,{recursive:true,force:true});}
+});
 const nativeFixture=fixture+String.raw`
 $script:pinnedFixtureArtifact=$r.inputs.artifact|ConvertTo-Json -Depth 32|ConvertFrom-Json
 $script:trace=[Collections.ArrayList]::new();$script:fail='';$script:commits=0;$script:rollbacks=0;$script:opens=0

@@ -143,7 +143,7 @@ const activeRun=(body,before='',fixture=activeFixture)=>run(fixture.replace('__B
 win('RehearsalOnly stop dispatch and managed body contain no force-stop path in their selected AST branch',()=>{
  assert.equal(run(String.raw`
  $tokens=$null;$errors=$null;$source=(Get-Command Stop-ReadPairColdOwner).Definition;$ast=[Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'STOP_SOURCE_PARSE'}
- $branch=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.IfStatementAst]-and$n.Clauses.Count-eq1-and$n.Clauses[0].Item1.Extent.Text-ceq'$RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall'},$true));if($branch.Count-ne1){throw 'MANAGED_STOP_BRANCH_MISSING'}
+ $branch=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.IfStatementAst]-and$n.Clauses.Count-eq1-and$n.Clauses[0].Item1.Extent.Text-ceq'$RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall-or$PreviewLinkInstall'},$true));if($branch.Count-ne1){throw 'MANAGED_STOP_BRANCH_MISSING'}
  $managed=@($branch[0].Clauses[0].Item2.FindAll({param($n);$n-is[Management.Automation.Language.CommandAst]-and$n.GetCommandName()-ceq'Invoke-B6ReadPairManagedOwnerExit'},$true));if($managed.Count-ne1){throw 'MANAGED_STOP_NOT_DISPATCHED'}
  $force=@($branch[0].Clauses[0].Item2.FindAll({param($n);$n-is[Management.Automation.Language.InvokeMemberExpressionAst]-and$n.Member.Value-cin@('Stop','Kill','TerminateProcess')},$true));if($force.Count){throw 'FORCE_STOP_IN_REHEARSAL_BRANCH'}
  $body=(Get-Command Invoke-B6ReadPairManagedOwnerExit).Definition
@@ -866,4 +866,157 @@ win('SteadyStartupInstall production publication binds owner62d3 and twenty-eigh
   switch($case){'old-owner'{$b6.entryCapture.ownerCaptureSha256='e480d77c835f3c2170589b9fbafec6da78dd2a19624d486d8822ad7b930d3a09'}'direct-count'{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 21)}'direct-order'{$swap=$b6.entryCapture.directEntries[20];$b6.entryCapture.directEntries[20]=$b6.entryCapture.directEntries[21];$b6.entryCapture.directEntries[21]=$swap}'old-exclusive-count'{$b6.entryCapture.postExitExclusiveEntryCount=26}'runtime-claim'{$b6.entryCapture.runtimeValidationComplete=$true}}
   $denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$held.Count-or$gateStreams.Count-or$heldPaths.Count-or$phases.Count-or$apiMutators){throw ('STEADY_CAPTURE_FALSE_ADMISSION_'+$case)}
  };foreach($path in $fileMap.Values){if((Get-Business5244StartupHash ([IO.File]::ReadAllBytes($path)))-cne$hash){throw 'STEADY_TEST_ENTRY_MUTATION'}};'PASS'`),'PASS');
+});
+
+win('PreviewLinkInstall is independent, Writer-scoped and rejects combined modes before reading or preparing a bundle',()=>{
+ assert.equal(run('. '+q(path.join(dir,'install-business-5244-readpair.ps1'))+" -Library -PreviewLinkInstall -ScopeName TEST125-API-B6-WRITER-20261029;if(!$PreviewLinkInstall-or$WriterInstall-or$WebOnlyRefreshInstall-or$SteadyStartupInstall){throw 'PREVIEW_ALIAS'};'PASS'"),'PASS');
+ for(const extra of ['-WriterInstall','-CandidateInstall','-RehearsalOnly','-WebOnlyRefreshInstall','-SteadyStartupInstall','-AfterLoaderRecovery','-CurrentOnlySupersession','-InitializerCleanRecovery']){
+  const r=cp.spawnSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',path.join(dir,'install-business-5244-readpair.ps1'),'-Library','-PreviewLinkInstall','-ScopeName','TEST125-API-B6-WRITER-20261029',extra],{encoding:'utf8',windowsHide:true,timeout:10000});assert.notEqual(r.status,0);assert.match(r.stderr,/B6_PREVIEW_LINK_FIXED_ACTION_REQUIRED/);
+ }
+ assert.equal(run(String.raw`$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$n=0;function Get-FileHash{$script:n++;throw 'SIDE_EFFECT'};$denied=$false;try{Open-B6PreviewLinkPreparedSource ('a'*64) 'C:\foreign.ps1'|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied-or$n){throw 'PREVIEW_UNSEALED_SOURCE_ACCEPTED'};'PASS'`),'PASS');
+});
+win('PreviewLinkInstall once-only sequence publishes future startup only after Candidate or Rollback readback; publication failure never retires twice',()=>{
+ assert.equal(run(inert+String.raw`
+ $script:PreviewLinkInstall=$true;function Get-B6ReadPairActiveHandoff{return @{stopAttempted=$true}};function Complete-B6PreviewLinkTaskPublication($Outcome){$calls.Add('future:'+ $Outcome);if($script:failPublish){throw 'B6_PREVIEW_LINK_TASK_UPDATE_UNCONFIRMED'}}
+ foreach($outcome in @('CandidateVerified','RollbackVerified')){$calls.Clear();$script:outcome=$outcome;$script:failPublish=$false;function Wait-ReadPairFinalState{$calls.Add('readback');return $script:outcome};$actual=Invoke-ReadPairInstallSequence;if($actual-cne$outcome-or($calls-join'|')-cne('open|target|coldstop|start|ready|retire|readback|future:'+$outcome+'|'+$outcome+'|close')){throw 'PREVIEW_SEQUENCE_CHANGED'}}
+ $calls.Clear();$script:failPublish=$true;$denied=$false;try{Invoke-ReadPairInstallSequence|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_TASK_UPDATE_UNCONFIRMED'){throw};$denied=$true};if(!$denied-or($calls-join'|')-cne'open|target|coldstop|start|ready|retire|readback|future:RollbackVerified|OWNER_RECOVERY_REQUIRED_NO_SECOND_RETIRE|close'){throw 'PREVIEW_PUBLICATION_REPLAY_OR_RESTORE'};'PASS'`),'PASS');
+});
+win('PreviewLinkInstall purpose comes from its native admission; false to true Writer activation and native DDL factories remain unused',()=>{
+ assert.equal(run(String.raw`
+ $script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:events=[Collections.Generic.List[string]]::new();$script:cap=[pscustomobject]@{opaque='test'}
+ function Read-ErpStartupConfig{return @{fixture='startup'}};function New-ErpBusinessSalePackageRefreshAdmission($Config){$events.Add('refresh');return $cap};function New-ErpBusinessSaleWriterProfileAdmission{throw 'WRITER_ACTIVATION_FORBIDDEN'};function New-ErpBusinessSaleNativeProfileAdmission{throw 'SQL_ADMISSION_FORBIDDEN'}
+ function Get-ErpBusinessSaleNativeAdmissionContext($Admission){if(![object]::ReferenceEquals($Admission,$cap)){throw 'CAP_CHANGED'};return [pscustomobject]@{mode=$script:purpose;ownerInputs=[pscustomobject]@{maintenancePurpose='PreviewLinkPackageRefresh'}}}
+ function Assert-ErpBusinessSaleWriterProfileAdmission($Admission,$Phase){if(![object]::ReferenceEquals($Admission,$cap)-or$Phase-cne'WriterPrepared'){throw 'REFRESH_PHASE_CHANGED'}}
+ function New-ErpReadPairPreparedReleaseProof($Config,$ScopeName,$NativeProfileAdmission){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or![object]::ReferenceEquals($NativeProfileAdmission,$cap)){throw 'REFRESH_PROOF_CHANGED'};$events.Add('proof');return [pscustomobject]@{opaque='proof'}}
+ function Get-Test125BoundMaintenancePlan{$events.Add('api-before')};function Get-ReadPairExpectedHashes{$events.Add('expected')};function Initialize-B6PreviewLinkTaskPublication{$events.Add('future-before')}
+ $script:purpose='PackageRefresh';Initialize-B6ReadPairControllerPreflight;if(($events-join'|')-cne'refresh|proof|api-before|expected|future-before'){throw 'REFRESH_PREFLIGHT_ORDER'}
+ $events.Clear();$script:purpose='WriterProfileActivation';$denied=$false;try{Initialize-B6ReadPairControllerPreflight}catch{if($_.Exception.Message-cne'B6_PACKAGE_REFRESH_PURPOSE_REQUIRED'){throw};$denied=$true};if(!$denied-or($events-join'|')-cne'refresh'){throw 'WRITER_PURPOSE_WIDENED'};'PASS'`),'PASS');
+});
+const previewTaskFixture=steadyTaskFixture.replace("$script:SteadyStartupInstall=$true;$script:WebOnlyRefreshInstall=$true;","$script:SteadyStartupInstall=$false;$script:WebOnlyRefreshInstall=$false;$script:PreviewLinkInstall=$true;").replaceAll('ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2','ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029');
+win('PreviewLinkInstall finite task projection preserves all XML except old steady to silent LINK to final selected launcher',()=>{
+ assert.equal(run(previewTaskFixture+String.raw`
+ $old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\start-owned-test.ps1';$silent='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1';$candidate='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030\start-owned-test.ps1'
+ $first=New-B6PreviewLinkTaskXml $beforeXml Silent;$success=New-B6PreviewLinkTaskXml $first Candidate;$rollback=New-B6PreviewLinkTaskXml $first Rollback
+ if(!$first.Contains($silent)-or!$success.Contains($candidate)-or(Get-B6SteadyTaskXmlCanonical $rollback)-cne(Get-B6SteadyTaskXmlCanonical $beforeXml)-or(Get-B6SteadyTaskXmlCanonical $success.Replace($candidate,$old))-cne(Get-B6SteadyTaskXmlCanonical $beforeXml)-or$registrations.Count-or$apiMutators){throw 'PREVIEW_TASK_XML_SCOPE'}
+ foreach($case in @('extra','command','wrong-old','multiple','wrong-stage')){$xml=$beforeXml;switch($case){extra{$xml=$xml.Replace('</Arguments>',' -Other</Arguments>')}command{$xml=$xml.Replace('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','C:\foreign.exe')}'wrong-old'{$xml=$xml.Replace($old,$candidate)}multiple{$xml=$xml.Replace('</Actions>','<Exec><Command>x</Command></Exec></Actions>')}};$denied=$false;try{New-B6PreviewLinkTaskXml $xml $(if($case-ceq'wrong-stage'){'Candidate'}else{'Silent'})|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_TASK_ACTION_CHANGED'){throw};$denied=$true};if(!$denied){throw 'UNBOUNDED_TASK_PROJECTION'}};'PASS'`),'PASS');
+});
+win('PreviewLinkInstall protection projection permits only declared API4144 generation changes and preserves every unrelated process file and socket',()=>{
+ assert.equal(run(String.raw`
+ $before=[pscustomobject]@{listeners=@(@{LocalPort=4144;LocalAddress='127.0.0.1';OwningProcess=41},@{LocalPort=4144;LocalAddress='192.0.2.1';OwningProcess=41},@{LocalPort=4146;LocalAddress='127.0.0.1';OwningProcess=42});processes=@(@{pid=41;birth='api-old';exe='node'},@{pid=42;birth='native';exe='node'},@{pid=99;birth='unrelated';exe='unrelated'});files=@(@{path='protected';hash=('a'*64)})};$signature=Get-ReadPairProtectionSignature (Get-B6PreviewLinkProtectionProjection $before)
+ $after=$before|ConvertTo-Json -Depth 10|ConvertFrom-Json;foreach($row in $after.listeners){if($row.LocalPort-eq4144){$row.OwningProcess=43}};$after.processes[0].pid=43;$after.processes[0].birth='api-new';if((Get-ReadPairProtectionSignature (Get-B6PreviewLinkProtectionProjection $after))-cne$signature){throw 'API_RESTART_REJECTED'}
+ foreach($case in @('companion','unrelated','file','extra-socket','extra-process')){$next=$after|ConvertTo-Json -Depth 10|ConvertFrom-Json;switch($case){companion{$next.processes[1].birth='changed'}unrelated{$next.processes[2].birth='changed'}file{$next.files[0].hash=('b'*64)}'extra-socket'{$next.listeners+=@([pscustomobject]@{LocalPort=5234;LocalAddress='127.0.0.1';OwningProcess=77})}'extra-process'{$next.processes+=@([pscustomobject]@{pid=77;birth='extra';exe='extra'})}};if((Get-ReadPairProtectionSignature (Get-B6PreviewLinkProtectionProjection $next))-ceq$signature){throw ('PROTECTED_COMPANION_DROPPED_'+$case)}};'PASS'`),'PASS');
+});
+const previewPublicationFixture=previewTaskFixture+String.raw`
+Add-Type 'using System;public sealed class PreviewQueryHandle:IDisposable {public bool Closed;public void Dispose(){Closed=true;}}public static class Test125ApiKernel {public static PreviewQueryHandle QueryOnlyOpen(int pid,long birth){if(pid<1||birth<1)throw new Exception("QUERY_INPUT");return new PreviewQueryHandle();}public static void ValidateReadOnly(PreviewQueryHandle h,long birth){if(h==null||h.Closed)throw new Exception("CLOSED_NATIVE_QUERY");}}'
+$script:b6=[pscustomobject]@{maintenancePurpose='PreviewLinkPackageRefresh';taskCapture=[pscustomobject]@{xmlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($beforeXml)));sddlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($script:taskSddl)))}}
+$script:b6ReadProof=[pscustomobject]@{opaque='release'};$script:b6NativeAdmission=[pscustomobject]@{opaque='native'};$script:held=@();$script:ready=[pscustomobject]@{ownerBirth='owner-birth'};$script:newHost=[pscustomobject]@{Id=300};$script:pins=@{};$script:result=@{final=@{mode='Candidate';childPid=301;childBirth='child-birth'}};$script:planReads=0;$script:boundaryReads=0
+$script:expected=@{startupPath='C:\fixture\startup.json';apiPath='C:\fixture\api.json';basePath='C:\fixture\base.json';baseHash=('a'*64);Current=@{startup=('b'*64);api=('c'*64)};Candidate=@{startup=('d'*64);api=('c'*64)}}
+$script:fixtureMode='Candidate';$script:fixtureBirth=[datetime]'2026-10-30T00:00:00Z';$script:fixtureExe='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';$script:fixtureArgv='"'+$fixtureExe+'" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
+function Get-ErpReadPairReleaseProofContext($Proof){if(![object]::ReferenceEquals($Proof,$b6ReadProof)){throw 'FORGED_RELEASE_PROOF'};$seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {};return @{seal=$seal}}
+function Assert-ErpBusinessSaleWriterProfileAdmission($Admission,$Phase){if(![object]::ReferenceEquals($Admission,$b6NativeAdmission)-or$Phase-cne'WriterPrepared'){throw 'FORGED_NATIVE_ADMISSION'};return $true}
+function Get-ErpBusinessSaleNativeAdmissionContext($Admission){if(![object]::ReferenceEquals($Admission,$b6NativeAdmission)){throw 'FORGED_NATIVE_ADMISSION'};return @{mode='PackageRefresh';pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;phase='WriterPrepared';transition=$null}}
+function Read-ErpStartupConfig($Path,$PreparedReleaseProof){return @{fixture='startup'}};function Assert-Test125ReadPairConfig{return $true}
+function Get-FileHash($LiteralPath){$hash=if($LiteralPath-ceq$expected.startupPath){$expected[$script:fixtureMode].startup}elseif($LiteralPath-ceq$expected.apiPath){$expected[$script:fixtureMode].api}elseif($LiteralPath-ceq$expected.basePath){$expected.baseHash}else{throw 'FOREIGN_PROFILE_READ'};if($script:scenario-ceq'file-change'){$hash='f'*64};return @{Hash=$hash}}
+function Owner-Status{return @{phase='Running';ownerPid=300;ownerBirth='owner-birth';childPid=301;childBirth='child-birth'}};function Assert-OldTarget($Status){if($Status.ownerPid-ne300){throw 'WRONG_WEB_OWNER'}}
+function Invoke-RestMethod{return @{ok=$true}};function Assert-Business5244ApiHealth{$script:boundaryReads++};function Invoke-WebRequest{return @{StatusCode=200}};function Assert-ReadPairProtection{}
+function Get-Test125BoundMaintenancePlan{throw 'OLD_CONTROLLER_PREFLIGHT_PLAN_AT_FINAL_FORBIDDEN'}
+function Get-Test125PackageRefreshPostTransitionPlan($Mode,$PreparedReleaseProof){if($Mode-cne$fixtureMode-or![object]::ReferenceEquals($PreparedReleaseProof,$b6ReadProof)){throw 'WRONG_FINAL_OBSERVATION'};$script:planReads++;return @{status=$(if($script:scenario-ceq'observation-kind'){'PREPARED_NOT_REHEARSED'}else{'POST_TRANSITION_READONLY_NOT_ADMISSION'});readOnly=$true;executionAuthority=$false;supervisor=10000;supervisorBirth=$fixtureBirth.ToUniversalTime().ToString('o');taskInstance='silent-engine-instance';children=@{api=@{pid=10001;birth=$fixtureBirth.ToUniversalTime().ToString('o')}}}}
+function Get-ErpProcess($ProcessId){if($ProcessId-eq10000){$birth=$fixtureBirth;if($script:scenario-ceq'engine-change'-and$registrations.Count){$birth=$birth.AddSeconds(1)};return [pscustomobject]@{ProcessId=10000;ParentProcessId=1;CreationDate=$birth;ExecutablePath=$fixtureExe;CommandLine=$fixtureArgv}};if($ProcessId-eq10001){return [pscustomobject]@{ProcessId=10001;ParentProcessId=10000;CreationDate=$fixtureBirth;ExecutablePath='C:\Program Files\nodejs\node.exe';CommandLine='"C:\Program Files\nodejs\node.exe" fixed-api-entry'}};throw 'FOREIGN_PROCESS_READ'}
+function Invoke-CimMethod($InputObject,$MethodName){if($MethodName-cne'GetOwnerSid'){throw 'FOREIGN_NATIVE_METHOD'};return @{ReturnValue=0;Sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}}
+function Initialize-Test125ApiKernel{}
+function Get-NetTCPConnection($State,$LocalPort){if($State-cne'Listen'-or$LocalPort-ne4144){throw 'FOREIGN_PORT_READ'};$rows=@([pscustomobject]@{LocalPort=4144;LocalAddress='127.0.0.1';OwningProcess=10001},[pscustomobject]@{LocalPort=4144;LocalAddress='192.0.2.1';OwningProcess=10001});if($script:scenario-ceq'listener-change'-and$registrations.Count){$rows+=@([pscustomobject]@{LocalPort=4144;LocalAddress='192.0.2.2';OwningProcess=999})};return $rows}
+$script:taskReads=0;function Get-Test125ReadPairTask{$script:taskReads++;$task=[pscustomobject]@{Xml=$script:taskXml;Definition=[pscustomobject]@{Principal=[pscustomobject]@{LogonType=3;RunLevel=0;UserId=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}}};$task|Add-Member ScriptMethod GetSecurityDescriptor {param($flags);if($flags-ne7){throw 'OTHER_SECURITY_QUERY'};return $script:taskSddl};$task|Add-Member ScriptMethod GetInstances {param($flags);if($flags-ne0){throw 'OTHER_INSTANCE_QUERY'};$instances=[pscustomobject]@{Count=1};$instances|Add-Member ScriptMethod Item {param($index);if($index-ne1){throw 'OTHER_INSTANCE_INDEX'};return @{EnginePID=$(if($script:scenario-ceq'cas-engine-change'-and$script:taskReads-ge3){999}else{10000});InstanceGuid='silent-engine-instance'}};return $instances};return $task}
+function New-Object {param($ComObject);if($ComObject-cne'Schedule.Service'){throw 'OTHER_COM_OBJECT'};$service=[pscustomobject]@{};$service|Add-Member ScriptMethod Connect {};$service|Add-Member ScriptMethod GetFolder {param($path);if($path-cne'\'){throw 'OTHER_TASK_FOLDER'};$folder=[pscustomobject]@{};$folder|Add-Member ScriptMethod RegisterTask {param($name,$xml,$flags,$user,$password,$logon,$sddl);if($name-cne'Melisa-ERP-TEST-Canonical'-or$flags-ne52-or$user-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$null-ne$password-or$logon-ne3-or$null-ne$sddl){throw 'OTHER_PUBLICATION'};$script:registrations.Add([int]$flags);if($script:scenario-ceq'not-applied'){throw 'ISOLATED_NOT_APPLIED'};if($script:scenario-ceq'unknown'){$script:taskXml='<Task>unknown</Task>';throw 'ISOLATED_UNKNOWN'};$script:taskXml=$xml;if($script:scenario-ceq'lost-ack'){throw 'ISOLATED_ACK_LOST'}};return $folder};return $service}
+`;
+win('PreviewLinkInstall actual future publisher uses one UPDATE52 after genuine final plan and retains running API engine on Candidate and Rollback with lost ACK',()=>{
+ assert.equal(run(previewPublicationFixture+String.raw`
+ foreach($mode in @('Candidate','Current')){
+  Remove-Variable PreviewLinkTaskPublication -Scope Script -ErrorAction SilentlyContinue;$script:taskXml=$beforeXml;$script:fixtureMode=$mode;$script:scenario='success';$script:registrations.Clear();$script:planReads=0
+  Initialize-B6PreviewLinkTaskPublication;$script:taskXml=$script:PreviewLinkTaskPublication.silentXml;$result.final.mode=if($mode-ceq'Candidate'){'Candidate'}else{'Rollback'};$script:scenario='lost-ack'
+  Complete-B6PreviewLinkTaskPublication $(if($mode-ceq'Candidate'){'CandidateVerified'}else{'RollbackVerified'})
+  $target=if($mode-ceq'Candidate'){'ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'}else{'ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'}
+  if($script:PreviewLinkTaskPublication.phase-cne'Verified'-or($registrations-join',')-cne'52'-or$planReads-ne1-or!$taskXml.Contains($target)-or!$result.futureTaskActionVerified-or$result.futureTaskActionMode-cne$mode-or$result.physicalRebootTested-or$apiMutators){throw 'PREVIEW_FUTURE_PUBLICATION_CHANGED'}
+  $denied=$false;try{Complete-B6PreviewLinkTaskPublication CandidateVerified}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_TASK_NO_REPLAY'){throw};$denied=$true};if(!$denied-or$registrations.Count-ne1){throw 'PREVIEW_FUTURE_PUBLICATION_REPLAY'}
+ };'PASS'`),'PASS');
+});
+win('PreviewLinkInstall future publisher rejects task proof SDDL profile engine and listener drift without retrying an unknown task update',()=>{
+ assert.equal(run(previewPublicationFixture+String.raw`
+ $baselineSddl=$taskSddl
+ foreach($case in @('before','sddl','file-change','wrong-proof','not-applied','unknown','engine-change','listener-change','cas-engine-change','observation-kind')){
+  Remove-Variable PreviewLinkTaskPublication -Scope Script -ErrorAction SilentlyContinue;$script:taskXml=$beforeXml;$script:taskSddl=$baselineSddl;$script:fixtureMode='Candidate';$script:scenario='success';$script:taskReads=0;$registrations.Clear();Initialize-B6PreviewLinkTaskPublication;$script:taskXml=$script:PreviewLinkTaskPublication.silentXml;$result.final.mode='Candidate';$script:scenario=$case
+  switch($case){before{$script:taskXml=$taskXml.Replace('synthetic unchanged','drift')}sddl{$script:taskSddl='drift'}'wrong-proof'{$script:PreviewLinkTaskPublication.proof=[pscustomobject]@{opaque='copy'}}}
+  $denied=$false;try{Complete-B6PreviewLinkTaskPublication CandidateVerified}catch{$denied=$true};if(!$denied-or$apiMutators-or($case-cin@('before','sddl','file-change','wrong-proof','cas-engine-change','observation-kind')-and$registrations.Count)){throw ('PREVIEW_FALSE_TASK_PUBLICATION_'+$case)}
+  if($case-cin@('not-applied','unknown','engine-change','listener-change')){$count=$registrations.Count;$denied=$false;try{Complete-B6PreviewLinkTaskPublication CandidateVerified}catch{$denied=$true};if(!$denied-or$registrations.Count-ne$count){throw 'PREVIEW_UNKNOWN_TASK_REPLAY'}}
+ };'PASS'`),'PASS');
+});
+win('PreviewLinkInstall managed exit retains one genuine peer generation and non-abandoned mutex across twenty-nine exclusive leaves without force stop',()=>{
+ const fixture=managedFixture.replace('@(1..11|ForEach-Object','@(1..22|ForEach-Object');
+ const answer=activeRun(String.raw`
+ function Read-B6ReadPairManagedExitSignal{$server.StandardInput.Close();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne0){throw 'ISOLATED_CURRENT_EXIT_FAILED'};return 'MANAGED_EXIT_OBSERVED'}
+ Invoke-B6ReadPairManagedOwnerExit;Complete-B6ReadPairActiveEntryHandoff
+ $h=Get-B6ReadPairActiveHandoff;if(!$control.CompletedStop-or!$server.HasExited-or$h.phase-cne'ExclusiveVerified'-or!$h.marker.Deleted-or$held.Count-ne29-or@($held|Where-Object{$_.holdMode-cne'Exclusive'}).Count-or$result.stopCalls-ne0-or$result.managedExitRequests-ne1){throw 'PREVIEW_MANAGED_EXIT_BROKEN'}
+ `,String.raw`$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:RehearsalOnly=$false;$script:PreviewLinkInstall=$true;$b6.rehearsalOnly=$false;$b6|Add-Member maintenancePurpose 'PreviewLinkPackageRefresh'`,fixture);
+ assert.match(answer,/"phase":"B6_MANAGED_EXIT_READY"/);assert.match(answer,/PASS$/);
+});
+win('PreviewLinkInstall publication preserves twenty-three historic direct entries and only one active old steady core with exact current capture schema',()=>{
+ const fixture=writerPublicationFixture.replace('$script:WriterInstall=$true;',"$script:WriterInstall=$false;$script:PreviewLinkInstall=$true;").replace('50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65','124e207b8ab0f8f6a5b3b8227c7183c17b69f2f2725b2837b2dc1bc81410c74b').replace('postExitExclusiveEntryCount=24','postExitExclusiveEntryCount=29');
+ assert.equal(run(fixture+String.raw`
+ $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029';$b6.owner.predecessorEntryKind='CurrentCore';$b6.owner.entry=[pscustomobject]@{root=$core;leaf='run-current-owner.ps1';manifestSha256=('d'*64);sha256=('e'*64);postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false};$b6.owner|Add-Member core ([pscustomobject]@{root=$core;manifestSha256=('d'*64)})
+ foreach($name in @(
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3'
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3'
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY'
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY'
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029'
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2'
+ 'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2'
+ 'ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029'
+ 'ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+ )){$leaf=if($name.Contains('ROUTER')){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'};$b6.entryCapture.directEntries+=@([pscustomobject]@{path=('C:\Sirket\ERP\releases\'+$name+'\'+$leaf);sha256=$(if($name-ceq'ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'){'e'*64}else{'a'*64})})}
+ Open-B6ReadPairPublication;if($heldPaths.Count-ne29-or$heldPaths.Contains((Join-Path $core 'run-current-owner.ps1'))-or$b6.entryCapture.directEntries.Count-ne23-or$phases.Count-ne1){throw 'PREVIEW_HISTORIC_SCOPE_CHANGED'}
+ $active=@(Get-B6ReadPairActiveEntry);if($active.Count-ne1-or$active[0].path-cne(Join-Path $core 'run-current-owner.ps1')){throw 'PREVIEW_CURRENT_ENTRY_KIND_CHANGED'}
+ $snapshot=$b6.entryCapture|ConvertTo-Json -Depth 20;foreach($case in @('owner','count','order','runtime','exclusive')){$heldPaths.Clear();$phases.Clear();$b6.entryCapture=$snapshot|ConvertFrom-Json;switch($case){owner{$b6.entryCapture.ownerCaptureSha256='62d3882ceef3caf71a263ad51e036453eee2d59dbe871b8ccd2a03f3ad9756f8'}count{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 22)}order{$swap=$b6.entryCapture.directEntries[21];$b6.entryCapture.directEntries[21]=$b6.entryCapture.directEntries[22];$b6.entryCapture.directEntries[22]=$swap}runtime{$b6.entryCapture.runtimeValidationComplete=$true}exclusive{$b6.entryCapture.postExitExclusiveEntryCount=28}};$denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count){throw ('PREVIEW_CAPTURE_WIDENED_'+$case)}};'PASS'`),'PASS');
+});
+win('PreviewLinkInstall final boundary retains the actual controller factory admission Prepared while an independent owner factory reaches Activated or Restored',()=>{
+ const helper=q(path.join(dir,'canonical-business-sale-maintenance.ps1'));
+ const nativeSetup=String.raw`
+$profilePath=Join-Path $PSScriptRoot ([IO.Path]::GetFileNameWithoutExtension($PSCommandPath)+'-profile.json');$script:afterReads=0
+$descriptor=[pscustomobject]@{profileHash='offline-fixture';readerDefinitions=[pscustomobject]@{reader='same'}}
+$profile=[pscustomobject]@{goal8SyntheticDaySeal=[pscustomobject]@{packageId='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'};businessSaleAdmission=$descriptor;businessSaleWritesEnabled=$true}
+[IO.File]::WriteAllText($profilePath,($profile|ConvertTo-Json -Depth 20));$config=[pscustomobject]@{OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}
+$owner=[pscustomobject]@{manifestSha256='fixed-owner';maintenancePurpose='PreviewLinkPackageRefresh';packagePair=[pscustomobject]@{current=[pscustomobject]@{api=[pscustomobject]@{configPath=$profilePath;packageId=$profile.goal8SyntheticDaySeal.packageId}}}}
+function Test-ErpBusinessSalePackageRefreshGeneration{return $true};function Read-ErpStartupConfig{return $config};function Read-ErpBusinessSalePackageRefreshOwnerSource{return $owner};function Read-ErpBusinessSaleWriterOwnerSource{return $owner};function Assert-Test125ReadPairConfig{return $true}
+function Get-ErpBusinessSaleNativeInputs{return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';descriptor=$descriptor}}
+function Test-ErpBusinessSaleAfter{$script:afterReads++}
+function Read-ErpBusinessSalePinnedFile($Path,$Hash){if($Path-ceq$profilePath){$b=[IO.File]::ReadAllBytes($Path);if((Get-ErpBusinessSaleHash $b)-cne$Hash){throw 'FIXTURE_PROFILE_CHANGED'};return ,$b};if($Hash-cnotin@('35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe','050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024')){throw 'FOREIGN_NATIVE_READ'};return ,([byte[]](0))}
+function Open-ErpBusinessSaleSqlConnection{throw 'REAL_SQL_FORBIDDEN'}
+`;
+ const child=`$ErrorActionPreference='Stop';. ${helper};`+nativeSetup+String.raw`
+$cap=New-ErpBusinessSalePackageRefreshAdmission $config;$record=Get-ErpBusinessSaleNativeAdmissionContext $cap
+$t=[pscustomobject]@{scope='TEST125-API-B6-WRITER-20261029';profileOnlyPurpose='PackageRefresh';apiProfileBeforeSha256=$record.profileBeforeHash;apiProfileCandidateSha256=(Get-ErpBusinessSaleHash $record.candidateBytes)}
+$c=[pscustomobject]@{nativeProfileAdmission=$cap;apiPath=$profilePath}
+function Assert-Test125ReadPairIssued($Transition){if(![object]::ReferenceEquals($Transition,$t)){throw 'NOT_ISSUED_TRANSITION'};return $c}
+function Assert-Test125ReadPairWriterPostCasPause($Transition,$Mode){if(![object]::ReferenceEquals($Transition,$t)-or$Mode-cnotin@('Candidate','Rollback')){throw 'NOT_PAUSED_FIXTURE'};return $c}
+Bind-ErpBusinessSaleWriterProfile $cap $t
+Complete-ErpBusinessSaleWriterProfilePostCasState $cap Candidate;$candidate=$record.phase
+Complete-ErpBusinessSaleWriterProfilePostCasState $cap Rollback
+if($candidate-cne'WriterActivated'-or$record.phase-cne'WriterRestored'){throw 'OWNER_PHASE_NOT_ACTUAL'}
+# Observation only: no token or registry leaves this independent test process.
+[ordered]@{pid=$PID;candidate=$candidate;rollback=$record.phase;afterReads=$afterReads}|ConvertTo-Json -Compress
+`;
+ assert.equal(run(previewPublicationFixture+`. ${helper};`+nativeSetup+String.raw`
+$script:b6NativeAdmission=New-ErpBusinessSalePackageRefreshAdmission $config;$controller=Get-ErpBusinessSaleNativeAdmissionContext $b6NativeAdmission
+Initialize-B6PreviewLinkTaskPublication
+$childPath=Join-Path $PSScriptRoot 'independent-owner.ps1';[IO.File]::WriteAllText($childPath,__CHILD__)
+$observed=& (Join-Path $PSHOME 'powershell.exe') -NoProfile -NonInteractive -File $childPath
+if($LASTEXITCODE-ne0){throw 'INDEPENDENT_OWNER_FIXTURE_FAILED'};$observed=$observed|ConvertFrom-Json
+if($observed.pid-eq$PID-or$observed.candidate-cne'WriterActivated'-or$observed.rollback-cne'WriterRestored'-or$observed.afterReads-ne3-or$controller.phase-cne'WriterPrepared'-or$null-ne$controller.transition){throw 'CONTROLLER_AND_OWNER_ISSUERS_MIXED'}
+function Get-ReadPairExpectedHashes{throw 'PREFLIGHT_PROJECTION_AT_FINAL_FORBIDDEN'}
+foreach($mode in @('Candidate','Current')){$script:fixtureMode=$mode;$result.final.mode=if($mode-ceq'Candidate'){'Candidate'}else{'Rollback'};Assert-B6PreviewLinkFinalBoundary $mode}
+foreach($phase in @('WriterActivated','WriterRestored')){$controller.phase=$phase;$denied=$false;try{Assert-B6PreviewLinkFinalBoundary Candidate}catch{if($_.Exception.Message-cne'B6_WRITER_ADMISSION_REJECTED'){throw};$denied=$true};if(!$denied){throw 'OWNER_POST_PHASE_ADOPTED'}};$controller.phase='WriterPrepared'
+$controller.transition=[pscustomobject]@{notTransferred='owner'};$denied=$false;try{Assert-B6PreviewLinkFinalBoundary Candidate}catch{if($_.Exception.Message-cne'B6_PACKAGE_REFRESH_CONTROLLER_ADMISSION_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'BOUND_OWNER_TOKEN_ADOPTED'};$controller.transition=$null
+$copy=$b6NativeAdmission|ConvertTo-Json|ConvertFrom-Json;$denied=$false;try{Get-ErpBusinessSaleNativeAdmissionContext $copy|Out-Null}catch{if($_.Exception.Message-cne'B6_NATIVE_ADMISSION_NOT_ISSUED'){throw};$denied=$true};if(!$denied-or$registrations.Count-or$apiMutators-or$afterReads-ne1){throw 'SERIALIZED_ISSUER_OR_FINAL_EFFECT'};'PASS'
+`.replace('__CHILD__',q(child))),'PASS');
 });

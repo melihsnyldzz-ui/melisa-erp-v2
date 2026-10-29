@@ -20,15 +20,20 @@ function Test-Business5244WriterWebOnlyGeneration {
  return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
 }
 function Test-Business5244SteadyGeneration {
- return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030')
+}
+function Test-Business5244PackageRefreshGeneration {
+ return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030'
 }
 function Get-Business5244SteadyPins {
  if(!(Test-Business5244SteadyGeneration)){throw 'BUSINESS_STEADY_GENERATION_REQUIRED'}
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+ $preview=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'
+ $root=if($preview){'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'}
  $path=Join-Path $root 'owner-manifest.json'
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'BUSINESS_STEADY_REPARSE_POINT'}}
  $m=Get-Content -LiteralPath $path -Raw|ConvertFrom-Json
  if($m.kind-isnot[string]-or$m.finiteScope-isnot[string]-or$m.maintenancePurpose-isnot[string]-or$m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$m.maintenancePurpose-cne'WebOnlySteadyStartup'-or$m.rehearsalOnly-isnot[bool]-or$m.rehearsalOnly-or$m.recordingEnabled-isnot[bool]-or$m.recordingEnabled-or$m.apiTransitionEnabled-isnot[bool]-or$m.apiTransitionEnabled-or$m.readPairMaintenanceEnabled-isnot[bool]-or$m.readPairMaintenanceEnabled-or$m.actualT1-isnot[bool]-or$m.actualT1-or$m.externalOperations-isnot[bool]-or$m.externalOperations){throw 'BUSINESS_STEADY_OWNER_CHANGED'}
+ if($preview){if($m.packagePair.path-cne'preview-package-pair.json'-or$m.packagePair.sha256-cne'7cf2b950e878cbe591040d28e930a9abc6380ec61f13dcd5bd5834d27739c94a'-or(Get-FileHash -LiteralPath (Join-Path $root $m.packagePair.path)).Hash-ine$m.packagePair.sha256){throw 'BUSINESS_STEADY_PAIR_CHANGED'};return (Get-ErpBusinessSaleWriterPairPins -Mode Candidate).Clone()}
  $backendDigest='560c735fcaffa6692f55543840f8106679'+'b43b871e3c19f1990bdd17d46f9946'
  return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';package='ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';manifest='5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6';frontendSource='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a';apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';apiManifest=$backendDigest;baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
 }
@@ -61,6 +66,7 @@ function Get-Business5244FinitePairPins {
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or$Mode-cnotin@('Current','Candidate')){throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'}
  if(Test-Business5244SteadyGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Current'){throw 'BUSINESS_STEADY_CURRENT_ONLY'};return Get-Business5244SteadyPins}
  if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  if(Test-Business5244PackageRefreshGeneration){return (Get-ErpBusinessSaleWriterPairPins -Mode $Mode).Clone()}
   if(Test-Business5244WriterWebOnlyGeneration){return (Get-Business5244WriterWebOnlyPins -Mode $Mode).Clone()}
   # Only the fixed new owner's sealed pair data supplies Writer package hashes.
   # This getter issues metadata, never a profile activation capability.
@@ -141,7 +147,7 @@ if(!$ApiOnly -and !$MainApiOnly){
 function Assert-Business5244WebManifest($Manifest,$Pins=(Get-Business5244WebPins)){
  $p=$Pins
  if($Manifest.kind -cne 'ERP_BUSINESS_WORKFACE_WEB_CANDIDATE' -or $Manifest.packageId -cne $p.package -or $Manifest.database -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Manifest.sourceCommit -cne $p.frontendSource -or $Manifest.businessWorkfaceId -cne $p.profile -or $Manifest.backendPackageId -cne $p.apiPackage -or $Manifest.backendManifestSha256 -cne $p.apiManifest -or $Manifest.actualT1 -ne $false -or $Manifest.externalOperations -ne $false -or $Manifest.businessSessionSignerDomain -cne 'dedicated-business-key-v1'){throw 'BUSINESS_WEB_MANIFEST_REJECTED'}
- if($p.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){
+  if($p.package-cin@('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030')){
   if($Manifest.webHostSourceCommit-cne'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'-or$Manifest.backendSourceCommit-cne'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d'-or$Manifest.businessSaleCandidate.kind-cne'ADMITTED_B6_WRITER_UI'-or$Manifest.businessSaleCandidate.sourceCommit-cne'1033566d594ad7c02b8469e5c9598541333cd500'-or$Manifest.businessSaleCandidate.recordingEnabled-isnot[bool]-or!$Manifest.businessSaleCandidate.recordingEnabled){throw 'BUSINESS_WEB_ONLY_MANIFEST_CHANGED'}
  }
 }

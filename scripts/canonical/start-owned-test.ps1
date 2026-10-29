@@ -59,7 +59,7 @@ function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-R
   foreach($configShape in @($oldApi,$newApi)){$projectedShapes+=,($configShape|ConvertTo-Json -Depth 100 -Compress)}
   $shapes=@($baseShapes)+@($projectedShapes)
   foreach($package in $all){$m=Assert-ErpRelease $package -RetainedSeal $seal;$manifests[$package.ReleaseRoot]=[IO.File]::ReadAllText((Join-Path $package.ReleaseRoot 'release-manifest.json'))}
-  $businessSaleOwnerPins=$null
+  $businessSaleOwnerPins=$null;$packageRefreshTaskSource=$null
   if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    $ownerSource=Get-ErpBusinessSaleOwnerSource $NativeProfileAdmission
    $seal.Add($ownerSource.manifestPath,$ownerSource.manifestSha256)
@@ -68,13 +68,19 @@ function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-R
     $seal.Add($ownerSource.packagePairPath,$ownerSource.packagePairSha256)
     $currentTask=Read-ErpBusinessSaleWriterCurrentTaskSource
     $seal.Add($currentTask.path,$currentTask.sha256);$seal.Add($currentTask.manifestPath,$currentTask.coreManifestSha256);$seal.Add($currentTask.capturePath,$currentTask.captureSha256)
+    if((Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission).mode-ceq'PackageRefresh'){
+     $packageRefreshTaskSource=$currentTask;$running=$currentTask.runningSupervisor.launcher
+     $seal.Add($running.path,$running.sha256);$seal.Add((Join-Path $running.coreRoot 'owner-manifest.json'),$running.coreManifestSha256)
+    }
    }
    $businessSaleOwnerPins=[pscustomobject]@{path=$ownerSource.launcher;sha256=$ownerSource.launcherSha256;coreManifestSha256=$ownerSource.manifestSha256}
   }
   $seal.Freeze();$seal.Validate()
   $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-immutable-release-proof.v1';id=[guid]::NewGuid().ToString('N')}
   $pins=[pscustomobject][ordered]@{policy=$seal.PolicyVersion;baseRoot=$actual.ReleaseRoot;baseManifest=$actual.ManifestSha256;currentApiRoot=$oldApi.ReleaseRoot;currentApiManifest=$oldApi.ManifestSha256;candidateApiRoot=$newApi.ReleaseRoot;candidateApiManifest=$newApi.ManifestSha256;node=$actual.NodePath;nodeSha256=$actual.NodeSha256;source=$actual.SourceCommit;database=$actual.ExpectedDatabase}
-  [void]$script:ErpReadPairReleaseProofs.Add([pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=$actual.OwnerSid;seal=$seal;shapes=$shapes;baseShapes=$baseShapes;projectedShapes=$projectedShapes;configs=[Collections.ArrayList]::new();manifests=$manifests;pins=$pins;businessSaleOwnerPins=$businessSaleOwnerPins;closed=$false})
+  $record=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=$actual.OwnerSid;seal=$seal;shapes=$shapes;baseShapes=$baseShapes;projectedShapes=$projectedShapes;configs=[Collections.ArrayList]::new();manifests=$manifests;pins=$pins;businessSaleOwnerPins=$businessSaleOwnerPins;closed=$false}
+  if($packageRefreshTaskSource){$record|Add-Member packageRefreshTaskSource $packageRefreshTaskSource;$record|Add-Member packageRefreshAdmission $NativeProfileAdmission}
+  [void]$script:ErpReadPairReleaseProofs.Add($record)
   return $token
  }catch{$seal.Dispose();throw}
 }
@@ -198,7 +204,7 @@ function Get-ErpServiceListeners($Definition,$Config) {
  return $listeners
 }
 function Test-ErpSteadyWebStartupGeneration {
- return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030')
 }
 function Start-ErpSteadyWebStartup {
  if(!(Test-ErpSteadyWebStartupGeneration)){throw 'TEST_STEADY_GENERATION_REQUIRED'}
@@ -206,7 +212,7 @@ function Start-ErpSteadyWebStartup {
  $result=@{state='unknown';attempted=$false;owner=$null};$script:ErpSteadyWebStartupAttempt=$result
  # A listener is an observation, never permission to adopt or stop its owner.
  if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-eq5244}).Count){$result.state='already-present-not-adopted';return $result}
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029';$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
+ $root=if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'){'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'};$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   foreach($file in @($manifestPath,$entry)){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST_STEADY_REPARSE_POINT'}};$holds.Add([IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read))}
   $manifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
