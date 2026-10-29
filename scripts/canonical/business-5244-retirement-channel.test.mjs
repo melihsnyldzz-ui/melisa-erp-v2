@@ -13,6 +13,34 @@ async function isolatedAdmission(f){
  return `function Initialize-Business5244RetirementPeer{if(!('Business5244RetirementPeer' -as [type])){Add-Type -LiteralPath ${q(cs)}}};function Get-Business5244StartupMutexName{return ('Global\\MelisaERP5244Startup-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+'-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes(${q(runtime)}.ToLowerInvariant()))))};function Get-Business5244RetirementPendingPath{return ${q(path.join(f.directory,'admission.pending'))}};`;
 }
 const acceptAdmission=String.raw`$request=$null;$end=[DateTime]::UtcNow.AddSeconds(12);while(!$request-and[DateTime]::UtcNow-lt$end){$request=Receive-Business5244RetirementRequest $channel;Start-Sleep -Milliseconds 5};if(!$request){throw 'NO_DISPOSABLE_REQUEST'};$r=Get-Business5244RetirementRecord $channel;$q=$r.request;`;
+test('native exit observation keeps only its own query/sync handle across a cooperative disposable server exit',win,async t=>{
+ const f=await fixture(t),pipeName='erp-exit-observer-'+path.basename(f.directory);
+ const server=await child(f,`Initialize-Business5244RetirementPeer;$pipe=[IO.Pipes.NamedPipeServerStream]::new('${pipeName}',[IO.Pipes.PipeDirection]::InOut);$peer=$null
+try{[Console]::WriteLine('READY');[Console]::Out.Flush();$pipe.WaitForConnection();$peer=[Business5244RetirementPeer]::CaptureClient($pipe);$denied=$false;try{$peer.OpenExitObservation()|Out-Null}catch{if($_.Exception.InnerException.Message-cne'RETIREMENT_EXIT_SERVER_PEER_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'CLIENT_ROLE_OBSERVER'};[Console]::WriteLine('CLIENT_REJECTED');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null}finally{if($peer){$peer.Dispose()};$pipe.Dispose()}`,'exit-observer-server');
+ assert.equal(await server.line(),'READY');
+ const client=await child(f,`Initialize-Business5244RetirementPeer
+Add-Type -TypeDefinition @'
+using System;using System.Reflection;using System.Threading;
+public static class ExitObserverThreadProbe {public static string Check(object observer,string method){string answer=null;Thread thread=new Thread(()=>{try{observer.GetType().GetMethod(method).Invoke(observer,null);answer="ACCEPTED";}catch(TargetInvocationException e){answer=e.InnerException.Message;}});thread.Start();thread.Join();return answer;}}
+'@
+$pipe=[IO.Pipes.NamedPipeClientStream]::new('.','${pipeName}',[IO.Pipes.PipeDirection]::InOut);$pipe.Connect(5000);$peer=[Business5244RetirementPeer]::CaptureServer($pipe);$observer=$null
+try{
+if($peer.Pid-ne${server.pid}){throw 'NOT_OUR_DISPOSABLE_SERVER'};if([ExitObserverThreadProbe]::Check($peer,'OpenExitObservation')-cne'RETIREMENT_EXIT_OBSERVER_CHANGED'){throw 'FOREIGN_THREAD_ISSUANCE'};$observer=$peer.OpenExitObservation();$birth=$observer.TargetBirth
+if($observer.Observe()){throw 'LIVE_EXIT_OBSERVED'};$denied=$false;try{$observer.ValidateExited()}catch{if($_.Exception.InnerException.Message-cne'RETIREMENT_EXIT_NOT_OBSERVED'){throw};$denied=$true};if(!$denied){throw 'LIVE_ASSERTION_ACCEPTED'}
+if([ExitObserverThreadProbe]::Check($observer,'Observe')-cne'RETIREMENT_EXIT_OBSERVER_CHANGED'){throw 'FOREIGN_THREAD_OBSERVER'}
+$copy=$observer|ConvertTo-Json|ConvertFrom-Json;$denied=$false;try{$copy.ValidateExited()}catch{$denied=$true};if(!$denied-or$copy-is[Business5244RetirementPeer+ExitObservation]){throw 'JSON_OBSERVER_AUTHORITY'}
+$methods=@($observer.GetType().GetMethods([Reflection.BindingFlags]'Public,Instance,DeclaredOnly')|ForEach-Object Name|Sort-Object -Unique);if(@(Compare-Object $methods @('Dispose','Observe','ValidateExited','get_TargetBirth','get_TargetPid')).Count-or$observer.GetType().GetConstructors().Length){throw 'OBSERVER_EFFECT_API'}
+$discard=$peer.OpenExitObservation();$discard.Dispose();$denied=$false;try{$discard.Observe()}catch{if($_.Exception.InnerException.Message-cne'RETIREMENT_EXIT_OBSERVER_CHANGED'){throw};$denied=$true};if(!$denied){throw 'DISPOSED_OBSERVER'}
+$peer.Dispose();$pipe.Dispose();$denied=$false;try{$peer.OpenExitObservation()|Out-Null}catch{$denied=$true};if(!$denied-or$observer.Observe()){throw 'DISPOSED_PEER_REISSUED'}
+[Console]::WriteLine('OBSERVING');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null
+if(!$observer.Observe()-or$observer.TargetPid-ne${server.pid}-or$observer.TargetBirth-cne$birth){throw 'RETAINED_HANDLE_EXIT_IDENTITY'};$observer.ValidateExited();$observer.ValidateExited()
+if([ExitObserverThreadProbe]::Check($observer,'Observe')-cne'RETIREMENT_EXIT_OBSERVER_CHANGED'){throw 'EXITED_FOREIGN_THREAD_OBSERVER'}
+$observer.Dispose();$denied=$false;try{$observer.ValidateExited()}catch{if($_.Exception.InnerException.Message-cne'RETIREMENT_EXIT_OBSERVER_CHANGED'){throw};$denied=$true};if(!$denied){throw 'DISPOSED_EXIT_ASSERTION'};'PASS'
+}finally{if($observer){$observer.Dispose()};$peer.Dispose();$pipe.Dispose()}`,'exit-observer-client');
+ assert.equal(await server.line(),'CLIENT_REJECTED');assert.equal(await client.line(),'OBSERVING');
+ server.stdin.end();const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);
+ client.stdin.end();const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);assert.match(cr.stdout,/PASS/);
+});
 test('separate admission accepts a valid body after input deadline while preserving exact peer/reference guards',win,async t=>{
  const f=await fixture(t),isolate=await isolatedAdmission(f);
  const server=await child(f,isolate+serverStart+acceptAdmission+String.raw`

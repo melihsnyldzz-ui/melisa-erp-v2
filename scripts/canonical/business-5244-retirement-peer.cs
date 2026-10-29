@@ -12,17 +12,43 @@ public sealed class Business5244RetirementPeer:IDisposable {
  [DllImport("kernel32.dll")]static extern IntPtr GetCurrentProcess();
  [DllImport("kernel32.dll")]static extern uint GetCurrentProcessId();
  [DllImport("advapi32.dll",SetLastError=true)]static extern bool OpenProcessToken(IntPtr process,uint access,out IntPtr token);
- IntPtr process;readonly long birth;readonly string sid;readonly bool serverPeer;bool closed;
+ IntPtr process;readonly long birth;readonly string sid;readonly bool serverPeer;readonly uint captureIssuer;readonly string captureIssuerBirth;readonly int captureThread;bool closed;
  public uint Pid{get;private set;}public string Birth{get{return birth.ToString(System.Globalization.CultureInfo.InvariantCulture);}}public string Sid{get{return sid;}}
  public static string CurrentSid{get{using(var id=WindowsIdentity.GetCurrent()){return id.User.Value;}}}
  public static uint CurrentPid{get{return GetCurrentProcessId();}}
  public static string CurrentBirth{get{long a,b,c,d;if(!GetProcessTimes(GetCurrentProcess(),out a,out b,out c,out d))throw new Exception("RETIREMENT_OWNER_BIRTH_UNAVAILABLE");return a.ToString(System.Globalization.CultureInfo.InvariantCulture);}}
  static string ProcessSid(IntPtr handle){IntPtr token;if(!OpenProcessToken(handle,8,out token))throw new Exception("RETIREMENT_PEER_TOKEN_UNAVAILABLE");try{using(var id=new WindowsIdentity(token)){return id.User.Value;}}finally{CloseHandle(token);}}
- Business5244RetirementPeer(uint pid,bool isServer){serverPeer=isServer;Pid=pid;process=OpenProcess(0x00101000,false,pid);try{long b,c,d;if(process==IntPtr.Zero||!GetProcessTimes(process,out birth,out b,out c,out d)||WaitForSingleObject(process,0)!=258)throw new Exception("RETIREMENT_PEER_NOT_LIVE");sid=ProcessSid(process);if(sid!=CurrentSid)throw new Exception("RETIREMENT_PEER_SID_MISMATCH");}catch{Dispose();throw;}}
+ Business5244RetirementPeer(uint pid,bool isServer){serverPeer=isServer;captureIssuer=GetCurrentProcessId();captureIssuerBirth=CurrentBirth;captureThread=System.Threading.Thread.CurrentThread.ManagedThreadId;Pid=pid;process=OpenProcess(0x00101000,false,pid);try{long b,c,d;if(process==IntPtr.Zero||!GetProcessTimes(process,out birth,out b,out c,out d)||WaitForSingleObject(process,0)!=258)throw new Exception("RETIREMENT_PEER_NOT_LIVE");sid=ProcessSid(process);if(sid!=CurrentSid)throw new Exception("RETIREMENT_PEER_SID_MISMATCH");}catch{Dispose();throw;}}
  public static Business5244RetirementPeer CaptureClient(NamedPipeServerStream pipe){uint pid;if(!GetNamedPipeClientProcessId(pipe.SafePipeHandle,out pid)||pid==0)throw new Exception("RETIREMENT_PIPE_CLIENT_ID_UNAVAILABLE");return new Business5244RetirementPeer(pid,false);}
  public static Business5244RetirementPeer CaptureServer(NamedPipeClientStream pipe){uint pid;if(!GetNamedPipeServerProcessId(pipe.SafePipeHandle,out pid)||pid==0)throw new Exception("RETIREMENT_PIPE_SERVER_ID_UNAVAILABLE");return new Business5244RetirementPeer(pid,true);}
  public void Validate(){long a,b,c,d;if(closed||process==IntPtr.Zero||!GetProcessTimes(process,out a,out b,out c,out d)||a!=birth||WaitForSingleObject(process,0)!=258||sid!=CurrentSid||ProcessSid(process)!=sid)throw new Exception("RETIREMENT_NATIVE_PEER_CHANGED");}
  public void Dispose(){if(closed)return;closed=true;if(process!=IntPtr.Zero){CloseHandle(process);process=IntPtr.Zero;}}
+ // Observation is separate from controlled shutdown: no terminate right,
+ // mutable owner state, lease or successful-retirement assertion is issued.
+ public ExitObservation OpenExitObservation(){Validate();if(!serverPeer)throw new Exception("RETIREMENT_EXIT_SERVER_PEER_REQUIRED");if(captureIssuer!=GetCurrentProcessId()||captureIssuerBirth!=CurrentBirth||captureThread!=System.Threading.Thread.CurrentThread.ManagedThreadId)throw new Exception("RETIREMENT_EXIT_OBSERVER_CHANGED");return new ExitObservation(this);}
+ public sealed class ExitObservation:IDisposable {
+  IntPtr handle;readonly long birth,issuerBirth;readonly string sid;readonly uint issuer;readonly int thread;bool disposed;
+  public uint TargetPid{get;private set;}public string TargetBirth{get{return birth.ToString(System.Globalization.CultureInfo.InvariantCulture);}}
+  internal ExitObservation(Business5244RetirementPeer peer){
+   peer.Validate();if(!peer.serverPeer)throw new Exception("RETIREMENT_EXIT_SERVER_PEER_REQUIRED");if(peer.captureIssuer!=GetCurrentProcessId()||peer.captureIssuerBirth!=CurrentBirth||peer.captureThread!=System.Threading.Thread.CurrentThread.ManagedThreadId)throw new Exception("RETIREMENT_EXIT_OBSERVER_CHANGED");
+   issuer=GetCurrentProcessId();issuerBirth=long.Parse(CurrentBirth,System.Globalization.CultureInfo.InvariantCulture);thread=System.Threading.Thread.CurrentThread.ManagedThreadId;TargetPid=peer.Pid;birth=peer.birth;sid=peer.sid;
+   handle=OpenProcess(0x00101000,false,TargetPid);
+   try{if(Observe())throw new Exception("RETIREMENT_EXIT_TARGET_NOT_LIVE");peer.Validate();}catch{Dispose();throw;}
+  }
+  public bool Observe(){
+   long a,b,c,d;
+   if(disposed||issuer!=GetCurrentProcessId()||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||CurrentBirth!=issuerBirth.ToString(System.Globalization.CultureInfo.InvariantCulture)||sid!=CurrentSid||handle==IntPtr.Zero||!GetProcessTimes(handle,out a,out b,out c,out d)||a!=birth)throw new Exception("RETIREMENT_EXIT_OBSERVER_CHANGED");
+   uint state=WaitForSingleObject(handle,0);
+   if(state!=0&&state!=258)throw new Exception("RETIREMENT_EXIT_WAIT_UNCONFIRMED");
+   // The SID was authenticated while the process was live. After exit its
+   // token need not remain queryable; the same retained kernel handle/birth
+   // is the identity, never a PID lookup or a serialized observation.
+   if(state==258&&ProcessSid(handle)!=sid)throw new Exception("RETIREMENT_EXIT_OBSERVER_CHANGED");
+   return state==0;
+  }
+  public void ValidateExited(){if(!Observe())throw new Exception("RETIREMENT_EXIT_NOT_OBSERVED");}
+  public void Dispose(){if(disposed)return;disposed=true;if(handle!=IntPtr.Zero){CloseHandle(handle);handle=IntPtr.Zero;}}
+ }
  // One explicitly authorized maintenance action can bind terminate rights to
  // the already authenticated native pipe peer. No PID/name command input and
  // no change to the normal status/retire protocol or its permissions.

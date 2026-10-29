@@ -26,7 +26,7 @@ function Complete-Business5244OwnedMaintenance{param($State,$ReplacementNative,$
 const helpers={__GATE__:'business-5244-startup-exclusion.ps1',__WEB__:'start-business-5244-web.ps1',__STATE__:'business-5244-retirement-state.ps1',__DISPATCH__:'business-5244-maintenance-dispatch.ps1',__NATIVE__:'business-5244-web-native.cs'};
 let source=setup;for(const [token,name]of Object.entries(helpers))source=source.replaceAll(token,path.join(dir,name).replaceAll("'","''"));
 const cleanup=String.raw`finally{foreach($n in @($native,$script:r.native,$script:r.dispatch.candidateNative,$script:r.dispatch.rollbackNative)){if($n){$n.Dispose()}};if($script:r.records){$script:r.records.Dispose()};if($script:r.pending){$script:r.pending.Dispose()};$script:records.Dispose();$script:pending.Dispose();Exit-Business5244StartupLease -Lease $lease};'PASS'`;
-function run(body,{recovery=false}={}){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-5244-dispatch-')));try{const file=path.join(temp,'run.ps1');fs.writeFileSync(file,(recovery?source.replace('Register-Business5244OwnedRetirement $lease $native $pins;','Register-Business5244OwnedRetirement $lease $native $pins -ScopeName TEST125-API-B6-ca620bac-20261028;'):source)+body);return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:25000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-5244-dispatch-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
+function run(body,{recovery=false,bare=false}={}){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-5244-dispatch-')));try{const file=path.join(temp,'run.ps1');fs.writeFileSync(file,(bare?"$ErrorActionPreference='Stop';":recovery?source.replace('Register-Business5244OwnedRetirement $lease $native $pins;','Register-Business5244OwnedRetirement $lease $native $pins -ScopeName TEST125-API-B6-ca620bac-20261028;'):source)+body);return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:25000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-5244-dispatch-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 win('fixed plan completes once and repeated authenticated request does not stop, spawn or publish twice',()=>{
  assert.equal(run(String.raw`try{$result=Invoke-Business5244OwnerMaintenance -State $state -Channel $channel -Request $script:request;if($result.mode -cne 'Candidate' -or $result.replayed -or $script:r.phase -cne 'Running' -or !$script:r.native.ChildAlive()){throw 'CANDIDATE_NOT_RESUMED'};$saved=$script:counts.Clone();$again=Invoke-Business5244OwnerMaintenance -State $state -Channel $channel -Request $script:request;foreach($key in $saved.Keys){if($script:counts[$key] -ne $saved[$key]){throw 'REPLAY_EFFECT'}};if(!$again.replayed -or $again.childPid -ne $result.childPid -or $again.childBirth -cne $result.childBirth){throw 'REPLAY_IDENTITY'};Assert-Business5244StartupLease -Lease $lease -Kind Owner}`+cleanup),'PASS');
@@ -129,4 +129,78 @@ win('same-owner recover completes the retained real PendingDurable rollback comm
  $result=Resume-Business5244BlockedRollback $state $channel $script:request $script:apiToken
  if($result.mode-cne'Rollback'-or$counts.publish-ne$saved.publish-or$counts.spawn-ne$saved.spawn-or$counts.complete-ne($saved.complete+1)-or$r.commit.phase-cne'Archived'-or$r.records-or$r.pending-or![object]::ReferenceEquals($r.native,$child)-or$apiCalls.Count-ne2-or$nativeWriterCalls){throw 'PENDING_DURABLE_REPLAYED_PUBLICATION_OR_NATIVE'}
  `),'PASS');
+});
+
+const managedStopFixture=String.raw`
+$shared=[Collections.Concurrent.ConcurrentDictionary[string,object]]::new();$rs=[runspacefactory]::CreateRunspace();$rs.Open();$pipeline=[powershell]::Create();$pipeline.Runspace=$rs
+$inner=@'
+param($Shared,$TempRoot,$SourceRoot,$FailApiCleanup)
+$ErrorActionPreference='Stop';. (Join-Path $SourceRoot 'start-business-5244-owned.ps1') -Library
+function Get-Business5244StartupMutexName{return ('Local\MelisaManagedStop-'+[IO.Path]::GetFileName($TempRoot))}
+function Get-Business5244RetirementPendingPath{return (Join-Path $TempRoot 'managed.pending')}
+$script:Shared=$Shared;$script:TempRoot=$TempRoot;$script:FailApiCleanup=$FailApiCleanup;$script:fixtureApi=[pscustomobject]@{fixture='same-current-api'};$script:fixtureNativeCap=[pscustomobject]@{fixture='same-native-restored'};$script:fixtureProof=[pscustomobject]@{fixture='same-owner-proof'}
+$Shared['mutexName']=Get-Business5244StartupMutexName;$Shared['pendingPath']=Get-Business5244RetirementPendingPath;$Shared['recordPath']=Join-Path $TempRoot 'managed-records.json';$Shared['leaseReleased']=$false;$Shared['stateClosed']=$false;$Shared['apiClosed']=$false;$Shared['loopEntered']=$false
+function New-FixtureManagedChild($Lease){Initialize-Business5244WebNative;$n=[Business5244WebNative]::new();$lr=Get-Business5244StartupRecord $Lease;if(!$lr.ContainsKey('ownedNatives')){$lr.ownedNatives=[Collections.Generic.List[object]]::new()};$lr.ownedNatives.Add($n);$path=Join-Path $TempRoot 'managed-sleep.ps1';[IO.File]::WriteAllText($path,'Start-Sleep -Seconds 300');$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$path+'"'),$TempRoot);return $n}
+function New-Business5244PinnedChild($Pins,$Lease){return New-FixtureManagedChild $Lease}
+function Read-ErpStartupConfig($Path){return @{fixture='not-private-config'}}
+function New-ErpBusinessSaleNativeProfileAdmission($Config){return $script:fixtureNativeCap}
+function New-Test125ReadPairTransition($ScopeName,$NativeProfileAdmission){if(![object]::ReferenceEquals($NativeProfileAdmission,$script:fixtureNativeCap)){throw 'ISOLATED_NATIVE_REFERENCE'};return $script:fixtureApi}
+function Prepare-Business5244PairedMaintenance($State,$ApiTransition){if(![object]::ReferenceEquals($ApiTransition,$script:fixtureApi)){throw 'ISOLATED_API_REFERENCE'}}
+function Open-Business5244RetirementChannel($OwnerLease){return [pscustomobject]@{fixture='own-disposable-channel'}}
+function Close-Business5244RetirementChannel($Channel){if($Channel.fixture-cne'own-disposable-channel'){throw 'ISOLATED_FOREIGN_CHANNEL'};$Shared['channelClosed']=$true}
+function Close-Test125ReadPairRequestAdmission($Transition){if(![object]::ReferenceEquals($Transition,$script:fixtureApi)){throw 'ISOLATED_API_REFERENCE'};if($script:FailApiCleanup){throw 'ISOLATED_API_CLEANUP_REJECTED'};$Shared['requestAdmissionClosed']=$true}
+function Assert-Test125ReadPairIssued($Transition){if(![object]::ReferenceEquals($Transition,$script:fixtureApi)){throw 'ISOLATED_API_REFERENCE'};return @{mode='Current';phase='VERIFIED';releaseProof=$script:fixtureProof}}
+function Close-ErpReadPairReleaseProof($Proof){if(![object]::ReferenceEquals($Proof,$script:fixtureProof)){throw 'ISOLATED_PROOF_REFERENCE'};$Shared['apiClosed']=$true}
+$realClose=(Get-Command Close-Business5244RetirementState).Definition;. ([scriptblock]::Create('function Invoke-FixtureRealStateClose {'+$realClose+'}'))
+function Close-Business5244RetirementState($State){Invoke-FixtureRealStateClose $State;$r=Get-Business5244RetirementState $State;if($r.records-or$r.pending){throw 'ISOLATED_STATE_HANDLES_OPEN'};$Shared['stateClosed']=$true}
+$realExit=(Get-Command Exit-Business5244StartupLease).Definition;. ([scriptblock]::Create('function Invoke-FixtureRealLeaseExit {'+$realExit+'}'))
+function Exit-Business5244StartupLease($Lease){Invoke-FixtureRealLeaseExit $Lease;$Shared['leaseReleased']=$true}
+function Receive-Business5244RetirementRequest($Channel){
+ if(!$Shared['loopEntered']){
+  if($script:Business5244Retirements.Count-ne1){throw 'ISOLATED_STATE_NOT_UNIQUE'};$r=$script:Business5244Retirements[0];$state=$r.token
+  $rows=@([pscustomobject]@{port=4194;pid=111;entry='preserve-api';root='preserve-api'},[pscustomobject]@{port=4196;pid=112;entry='preserve-native';root='preserve-native'},[pscustomobject]@{port=5244;pid=$r.childPid;entry='vite-preview';sourceCommit=$r.pins.frontendSource;root=$r.pins.root;backendPort=4144;businessWorkfaceId=$r.pins.profile});[IO.File]::WriteAllText($Shared['recordPath'],(ConvertTo-Json -InputObject $rows -Depth 8))
+  $records=[IO.File]::Open($Shared['recordPath'],[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$pending=[IO.File]::Open($Shared['pendingPath'],[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+  Invoke-Business5244HeldRetirement $state $records $pending
+  $rollback=New-FixtureManagedChild $r.lease;$child=[Diagnostics.Process]::GetProcessById($rollback.ChildPid);[void]$child.Handle;$Shared['child']=$child;$Shared['childBirth']=$rollback.ChildBirth
+  $r.dispatch=@{candidateNative=$null;rollbackNative=$rollback};$r.phase='Unknown';$Shared['loopEntered']=$true
+ }
+ return $null
+}
+# Only the external API-provider import is replaced. The production supervisor
+# and finally, native Job children, held streams and lease execute unchanged.
+$body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisor {'+$body+'}'))
+try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current -PrepareReadPair|Out-Null}catch{$code=[string]$_.Exception.Message;$Shared['safeFailure']=if($code-cmatch'^[A-Z][A-Z0-9_]{1,100}$'){$code}else{$_.Exception.GetType().Name};throw}finally{$Shared['innerReturned']=$true}
+__INNER_END__
+[void]$pipeline.AddScript($inner).AddArgument($shared).AddArgument($env:TEMP).AddArgument('__SOURCE_ROOT__').AddArgument(__FAIL_API__)
+$async=$pipeline.BeginInvoke();$maintenance=$null
+try{
+ $deadline=[datetime]::UtcNow.AddSeconds(12);do{if($shared.ContainsKey('loopEntered')-and$shared['loopEntered']){break};if($async.IsCompleted){$ids=@($pipeline.Streams.Error|ForEach-Object{$_.FullyQualifiedErrorId});throw ('ISOLATED_MANAGED_OWNER_EARLY_EXIT '+$shared['safeFailure']+' '+($ids-join'|'))};Start-Sleep -Milliseconds 20}while([datetime]::UtcNow-lt$deadline)
+ if(!$shared['loopEntered']){throw 'ISOLATED_MANAGED_OWNER_NOT_READY'}
+ $denied=$false;try{$foreign=[IO.File]::Open($shared['recordPath'],[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$foreign.Dispose()}catch{$denied=$true};if(!$denied){throw 'ISOLATED_UNKNOWN_RECORD_NOT_HELD'}
+ if($shared['child'].HasExited){throw 'ISOLATED_ROLLBACK_CHILD_NOT_ALIVE_BEFORE_STOP'}
+ # Cooperative pipeline stop, not process termination or a production attach.
+ $pipeline.Stop();try{[void]$pipeline.EndInvoke($async)}catch{if($_.Exception.GetType().Name-cnotin@('MethodInvocationException','PipelineStoppedException')){throw}}
+ if(!$async.IsCompleted-or!$shared['innerReturned']-or!$shared['stateClosed']-or!$shared['child'].WaitForExit(1500)-or!(Test-Path -LiteralPath $shared['pendingPath'])){throw 'MANAGED_STOP_RESOURCE_CLEANUP_UNPROVEN'}
+ $reader=[IO.File]::Open($shared['recordPath'],[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$reader.Dispose()
+ . '__STARTUP__' -Library
+ function Get-Business5244StartupMutexName{return $shared['mutexName']};function Get-Business5244RetirementPendingPath{return $shared['pendingPath']}
+ __VERIFY__
+}finally{if($maintenance){Exit-Business5244StartupLease $maintenance};if(!$async.IsCompleted){$pipeline.Stop()};$pipeline.Dispose();$rs.Dispose();if($shared.ContainsKey('child')){$shared['child'].Dispose()}}
+'PASS'
+`.replace('__INNER_END__',"'@").replace('__SOURCE_ROOT__',dir.replaceAll("'","''")).replace('__STARTUP__',path.join(dir,'business-5244-startup-exclusion.ps1').replaceAll("'","''"));
+win('cooperative PowerShell pipeline Stop executes the original Unknown-owner finally, closes owned children and handles, and releases a non-abandoned mutex while retaining pending',()=>{
+ const body=managedStopFixture.replace('__FAIL_API__','$false').replace('__VERIFY__',String.raw`
+ if(!$shared['leaseReleased']-or!$shared['apiClosed']-or!$shared['channelClosed']){throw 'MANAGED_STOP_CLEANUP_OR_RELEASE_INCOMPLETE'}
+ $maintenance=Enter-Business5244StartupLease -Kind Maintenance;Assert-Business5244StartupLease $maintenance -Kind Maintenance;Exit-Business5244StartupLease $maintenance;$maintenance=$null
+ $denied=$false;try{$owner=Enter-Business5244StartupLease -Kind Owner;Exit-Business5244StartupLease $owner}catch{if($_.Exception.Message-cne'BUSINESS_5244_RETIREMENT_RECOVERY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'MANAGED_STOP_PENDING_DID_NOT_BLOCK_START'}
+ `);
+ assert.equal(run(body,{bare:true}),'PASS');
+});
+win('cooperative pipeline Stop cannot claim a released clean owner when API admission cleanup fails; the durable pending remains',()=>{
+ const body=managedStopFixture.replace('__FAIL_API__','$true').replace('__VERIFY__',String.raw`
+ if($shared['leaseReleased']-or$shared['apiClosed']){throw 'FAILED_API_CLEANUP_RELEASED_LEASE'}
+ $denied=$false;try{$maintenance=Enter-Business5244StartupLease -Kind Maintenance}catch{if($_.Exception.Message-cnotin@('BUSINESS_5244_STARTUP_BUSY','BUSINESS_5244_ABANDONED_OWNER')){throw};$denied=$true}
+ if(!$denied){throw 'FAILED_API_CLEANUP_CLAIMED_SAFE_MAINTENANCE'}
+ `);
+ assert.equal(run(body,{bare:true}),'PASS');
 });
