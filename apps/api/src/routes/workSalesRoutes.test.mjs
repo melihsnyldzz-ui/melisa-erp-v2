@@ -86,7 +86,7 @@ const previewLinkedRoot='C:/Sirket/ERP/releases/CANONICAL-TEST125-BUSINESS5244-B
 const json=value=>JSON.parse(JSON.stringify(value));
 async function previewPackageFixture(useFrozenBase=true){
  const present=async value=>access(value).then(()=>true,()=>false),basePresent=useFrozenBase&&await present(path.join(previewBaseRoot,'apps/api/src/routes/workSalesRoutes.mjs'));
- const sandbox=vm.createContext({console:{log(){},error(){}},process:Object.freeze({argv:Object.freeze(['node','offline-route-fixture']),env:Object.freeze({})}),URL,TextEncoder,TextDecoder,structuredClone}),modules=new Map(),brands=new WeakSet(),boundaries=[],loaded=new Set();
+ const sandbox=vm.createContext({console:{log(){},error(){}},process:Object.freeze({argv:Object.freeze(['node','offline-route-fixture']),env:Object.freeze({})}),URL,TextEncoder,TextDecoder,structuredClone}),modules=new Map(),pendingModules=new Map(),brands=new WeakSet(),boundaries=[],loaded=new Set();
  const synthetic=(key,exports)=>new vm.SyntheticModule(Object.keys(exports),function(){for(const [name,value]of Object.entries(exports))this.setExport(name,value);},{identifier:key,context:sandbox});
  const routers=[];
  const Router=()=>{const rows=[],uses=[],r={rows,uses,use(fn){uses.push(fn);}};for(const method of ['get','post'])r[method]=(route,...handlers)=>rows.push({method:method.toUpperCase(),route,handlers});routers.push(r);return r;};
@@ -98,7 +98,13 @@ async function previewPackageFixture(useFrozenBase=true){
   ['apps/api/src/services/canonicalBusinessSessionContext.mjs',{getCanonicalBusinessSaleContextProof:value=>brands.has(value)?value:null}],
   ['apps/api/src/config/database.js',{isIsolatedOperationCopyRuntime:()=>false,getIsolatedOperationCopyConfig:failBoundary,getSqlPool:failBoundary,getSqlDriver:failBoundary}]
  ]);
- async function getModule(key){
+ function getModule(key){
+  // Native ESM has one module record per URL, including while IO is pending.
+  // Cache the promise before another concurrent linker request can read it.
+  if(!pendingModules.has(key))pendingModules.set(key,loadModule(key));
+  return pendingModules.get(key);
+ }
+ async function loadModule(key){
   if(modules.has(key))return modules.get(key);
   let module;if(replacements.has(key))module=synthetic(key,replacements.get(key));
   else if(key.startsWith('node:'))module=synthetic(key,await import(key));
@@ -109,7 +115,11 @@ async function previewPackageFixture(useFrozenBase=true){
   }modules.set(key,module);return module;
  }
  async function resolve(specifier,parent){return getModule(specifier.startsWith('.')?path.posix.normalize(path.posix.join(path.posix.dirname(parent.identifier),specifier)):specifier);}
- const route=await getModule('apps/api/src/routes/workSalesRoutes.mjs');await route.link(resolve);await route.evaluate();
+ // Force concurrent first requests: a cache populated only after readFile
+ // would manufacture two ESM records and alter cyclic initialization order.
+ const [route,concurrentRoute]=await Promise.all([getModule('apps/api/src/routes/workSalesRoutes.mjs'),getModule('apps/api/src/routes/workSalesRoutes.mjs')]);
+ assert.equal(route,concurrentRoute,'One URL must retain one module even while source IO is pending');
+ await route.link(resolve);await route.evaluate();
  const service=modules.get('apps/api/src/services/workSalesService.mjs').namespace,model=modules.get('apps/api/src/services/workSalesModel.mjs').namespace;
  const selection={customerId:'155',customerAccountId:'7',documentDate:'2026-10-28',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'2.000'}]};
  const context={meta:{schemaVersion:'melisa-work-trade.v1',date:selection.documentDate,source:'canonical-business-test',operationOrigin:'CANONICAL_TEST_BUSINESS_SALE'},revision:'a'.repeat(64),nativePreviewHash:'b'.repeat(64),profileHash:'c'.repeat(64),capabilities:{canCreate:true,canFinalize:true,canCancel:true,canCollect:false,canCancelCollection:false},supportedCurrencies:['TRY','USD','EUR'],limits:{maxItems:2,maxQuantityPerLine:5,maxInvoiceAmountExact4:'500.0000',maxAmountTryExact4:'500.0000'},scope:{synthetic:false,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',customer:{id:'155',accountId:'7',partyId:'6',currency:'USD',sourceKey:'FIXTURE/CUSTOMER/155',writeEligible:true,balanceExact8:'0.00000000'},products:[{id:'12',stockCode:'0012 SYN',name:'Fixture product',barcode:'000012',sourceKey:'FIXTURE/PRODUCT/12',sourceWitnessHash:'d'.repeat(64),synthetic:false,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',writeEligible:true,stockQuantityExact3:'9.000',unit:{label:'ADET',factorExact8:'1.00000000',sourceId:'9'},costExact4:'0.5000',prices:[{quoteId:'81',currency:'USD',unitPriceExact8:'1.23456789'}]}]},rate:{currency:'USD',rateExact8:'2.00000000',rateDate:'2026-10-27',sourceKey:'FIXTURE/RATE'},nativeExpected:{items:[{productId:'12',quoteId:'81',quantityExact3:'2.000',unitPriceExact4:'1.2346',lineTotalExact4:'2.4692'}],grandTotalExact4:'2.4692',amountTryExact4:'4.9384'}};
@@ -125,7 +135,7 @@ async function previewPackageFixture(useFrozenBase=true){
  return {basePresent,loaded,boundaries,brands,context,selection,calls,adapter,authenticated,request,setCanonical:value=>{canonical=value;},model,present};
 }
 
-test('preview-link package: hybrid imports and normal context/selected-context/preview stay isolated and public',async()=>{
+test('preview-link package: hybrid imports and normal context/selected-context/preview stay isolated and public',async t=>{
  for(const f of [await previewPackageFixture(),await previewPackageFixture(false)]){
  const base=await f.request('GET','/work-sales/context');assert.equal(base.data.revision,'0'.repeat(64));
  const selected=await f.request('POST','/work-sales/selected-context',f.selection),preview=await f.request('POST','/work-sales/preview',f.selection);
@@ -134,6 +144,7 @@ test('preview-link package: hybrid imports and normal context/selected-context/p
  assert.equal(businessSaleNativeOperationPreviewAllowed({context:selected.data,preview:preview.data},f.selection),true);
  assert.throws(()=>f.model.workSalePreview(f.selection,selected.data),{code:'WORK_CANONICAL_SALE_SCOPE'});assert.deepEqual(f.boundaries,[]);
  for(const leaf of previewOverlayFiles)assert(f.loaded.has(leaf),leaf);
+ t.diagnostic(`${f.basePresent?'frozen API560c plus three overlays':'full source-only fallback'}: concurrent URL identity retained; actual route/service/model evaluated, native/auth/socket/SQL unavailable`);
  }
 });
 test('preview-link package: permissions, profile/brand, account and fresh quote failures never fall back or mutate',async()=>{
