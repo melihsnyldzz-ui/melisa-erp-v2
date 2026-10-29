@@ -79,6 +79,28 @@ function Open-ErpBusinessSaleSqlConnection {
   return $connection
  }catch{$connection.Dispose();throw 'B6_NATIVE_CONNECTION_UNAVAILABLE'}
 }
+function Get-ErpBusinessSaleSqlFailure($Failure,$Batch,[string]$BatchPhase,[int]$BatchIndex){
+ # Diagnostic data only. Never retain Message, SQL text, values or connection
+ # details. PowerShell may wrap the provider exception more than once.
+ $e=if($Failure-is[Management.Automation.ErrorRecord]){$Failure.Exception}else{$Failure}
+ for($depth=0;$e-and$depth-lt8;$depth++){
+  if($e-is[Data.SqlClient.SqlException]){
+   $errors=@();foreach($item in $e.Errors){
+    if($errors.Count-ge8){break}
+    $procedure=[string]$item.Procedure;$procedureHash=$null
+    if($procedure-and$procedure-cnotmatch'^(?:dbo\.)?usp_b6_[A-Za-z0-9_]{1,110}$'){$procedureHash=Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($procedure));$procedure=$null}
+    $errors+=@([ordered]@{number=[int]$item.Number;procedure=$procedure;procedureHash=$procedureHash;lineNumber=[int]$item.LineNumber})
+   }
+   $id=$null;$hash=$null
+   if($Batch-and$Batch.PSObject.Properties['id']-and[string]$Batch.id-cmatch'^[A-Za-z0-9_.-]{1,160}$'){$id=[string]$Batch.id}
+   if($Batch-and$Batch.PSObject.Properties['sourceHash']-and[string]$Batch.sourceHash-cmatch'^[A-Fa-f0-9]{64}$'){$hash=[string]$Batch.sourceHash}
+   if($BatchPhase-cnotin@('Lock','Apply','Inverse')){$BatchPhase='Other'}
+   return [ordered]@{schema='B6_SQL_FAILURE_V1';batchPhase=$BatchPhase;batchIndex=$BatchIndex;batchId=$id;batchSourceHash=$hash;commandPrefixLines=1;errors=$errors}
+  }
+  $e=$e.InnerException
+ }
+ return $null
+}
 function Invoke-ErpBusinessSaleSqlBatch($Connection,$Transaction,[string]$Sql){
  # Each command has its own T-SQL variable scope. The frozen combined-script
  # wrapper declares this compiler scratch variable once; per-batch execution
@@ -157,7 +179,7 @@ function Test-ErpBusinessSaleVerifiedBackup($Record,$Connection){
  $stream=Open-ErpBusinessSaleVerifiedBackupStream $backup.path $backup.sha256
  try{$command=$Connection.CreateCommand();try{$command.CommandTimeout=300;$command.CommandText='RESTORE VERIFYONLY FROM DISK=@path WITH CHECKSUM;';[void]$command.Parameters.Add('@path',[Data.SqlDbType]::NVarChar,260);$command.Parameters['@path'].Value=$backup.path;[void]$command.ExecuteNonQuery()}finally{$command.Dispose()}}finally{$stream.Dispose()}
 }
-function Write-ErpBusinessSaleNativeEvent($Record,[string]$Event){
+function Write-ErpBusinessSaleNativeEvent($Record,[string]$Event,$SqlFailure=$null){
  if($Record.phase-ceq'Unknown'){
   # Audit-only path: authentic retained objects and physical pause are still
   # required, but Unknown may be recorded without issuing execution authority.
@@ -175,6 +197,7 @@ function Write-ErpBusinessSaleNativeEvent($Record,[string]$Event){
   $old=[IO.MemoryStream]::new();try{$stream.CopyTo($old);$previous=$old.ToArray()}finally{$old.Dispose()}
   if($null-ne$Record.journalHash-and(Get-ErpBusinessSaleHash $previous)-cne$Record.journalHash){throw 'B6_NATIVE_JOURNAL_CAS'}
   $row=[ordered]@{event=$Event;phase=$Record.phase;at=[datetime]::UtcNow.ToString('o');sourceHash=$Record.inputHash;profileBefore=$Record.profileBeforeHash;backup=$Record.backup;commercialWrites=0}
+  if($SqlFailure-and$Event-cin@('APPLY_FAILED_NO_REPLAY','INVERSE_FAILED_NO_REPLAY','REHEARSE_FAILED_NO_REPLAY')){$row.sqlFailure=$SqlFailure}
   $bytes=[Text.Encoding]::UTF8.GetBytes((($row|ConvertTo-Json -Depth 8 -Compress)+"`n"));$stream.Position=$stream.Length;$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true)
   $stream.Position=0;$all=[IO.MemoryStream]::new();try{$stream.CopyTo($all);$Record.journalHash=Get-ErpBusinessSaleHash $all.ToArray()}finally{$all.Dispose()}
  }finally{$stream.Dispose()}
@@ -189,7 +212,7 @@ function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse'
  if($Direction-ceq'Inverse'-and$r.phase-ceq'Prepared'){Test-ErpBusinessSaleBefore $nativeInputs;$r.phase='Restored';return}
  if($Direction-ceq'Inverse'-and$r.phase-cne'Applied'){throw 'B6_NATIVE_PHASE_REJECTED'}
  Write-ErpBusinessSaleNativeEvent $r ($Direction.ToUpperInvariant()+'_INTENT')
- $connection=$null;$tx=$null;$commitAttempted=$false
+ $connection=$null;$tx=$null;$commitAttempted=$false;$activeBatch=$null;$batchPhase='Other';$batchIndex=-1
  try{
   $connection=Open-ErpBusinessSaleSqlConnection
   if($Direction-ceq'Rehearse'){
@@ -204,22 +227,29 @@ function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse'
    [void](Assert-ErpBusinessSaleNativeQuiescence $r)
   }
   $tx=$connection.BeginTransaction([Data.IsolationLevel]::Serializable)
+  $batchPhase='Lock'
   Invoke-ErpBusinessSaleSqlBatch $connection $tx "DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'melisa-b6-finite-revision-F05B6318',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51917,'B6_NATIVE_LOCK_REQUIRED',1;"
   $batches=if($Direction-ceq'Inverse'){$nativeInputs.artifact.inverseBatches}else{$nativeInputs.artifact.applyBatches}
-  foreach($batch in $batches){Invoke-ErpBusinessSaleSqlBatch $connection $tx $batch.sql}
+  $batchPhase=if($Direction-ceq'Inverse'){'Inverse'}else{'Apply'};$batchIndex=-1
+  foreach($batch in $batches){$batchIndex++;$activeBatch=$batch;Invoke-ErpBusinessSaleSqlBatch $connection $tx $batch.sql}
   if($Direction-ceq'Rehearse'){
-   foreach($batch in $nativeInputs.artifact.inverseBatches){Invoke-ErpBusinessSaleSqlBatch $connection $tx $batch.sql}
+   $batchPhase='Inverse';$batchIndex=-1;$activeBatch=$null
+   foreach($batch in $nativeInputs.artifact.inverseBatches){$batchIndex++;$activeBatch=$batch;Invoke-ErpBusinessSaleSqlBatch $connection $tx $batch.sql}
+   $batchPhase='Other';$batchIndex=-1;$activeBatch=$null
    $tx.Rollback();$tx=$null;Test-ErpBusinessSaleBefore $nativeInputs;$r.rehearsed=$true
   }else{
+   $batchPhase='Other';$batchIndex=-1;$activeBatch=$null
    [void](Assert-ErpBusinessSaleNativeQuiescence $r);$commitAttempted=$true;$tx.Commit();$tx=$null
    if($Direction-ceq'Inverse'){Test-ErpBusinessSaleBefore $nativeInputs;$r.phase='Restored'}else{Test-ErpBusinessSaleAfter $nativeInputs;$r.phase='Applied'}
   }
   [void]$r.events.Add([pscustomobject]@{direction=$Direction;phase=$r.phase;at=[datetime]::UtcNow.ToString('o');commercialWrites=0})
   Write-ErpBusinessSaleNativeEvent $r ($Direction.ToUpperInvariant()+'_VERIFIED')
  }catch{
+  $originalFailure=$_;$sqlFailure=$null
+  try{$sqlFailure=Get-ErpBusinessSaleSqlFailure $originalFailure $activeBatch $batchPhase $batchIndex}catch{}
   if($tx){try{$tx.Rollback()}catch{$r.phase='Unknown'}}
   if($commitAttempted){$r.phase='Unknown'}
-  try{Write-ErpBusinessSaleNativeEvent $r ($Direction.ToUpperInvariant()+'_FAILED_NO_REPLAY')}catch{}
-  throw
+  try{Write-ErpBusinessSaleNativeEvent $r ($Direction.ToUpperInvariant()+'_FAILED_NO_REPLAY') $sqlFailure}catch{}
+  throw $originalFailure
  }finally{if($tx){$tx.Dispose()};if($connection){$connection.Dispose()}}
 }

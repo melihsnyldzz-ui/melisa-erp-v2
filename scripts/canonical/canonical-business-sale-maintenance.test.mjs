@@ -35,10 +35,81 @@ function Test-ErpBusinessSaleVerifiedBackup {param($Record,$Connection);[void]$s
 function Test-ErpBusinessSaleBefore {param($Inputs);[void]$script:trace.Add('before-readback')}
 function Test-ErpBusinessSaleAfter {param($Inputs);[void]$script:trace.Add('after-readback');if($script:fail-ceq'after-readback'){throw 'AFTER_CHANGED'}}
 `;
+// Reflection is confined to the offline fixture: no SQL connection, target or
+// production exception constructor is changed. Exercise a real SqlException.
+const sqlExceptionFixture=String.raw`
+Add-Type -ReferencedAssemblies System.Data -TypeDefinition @'
+using System;
+using System.Data.SqlClient;
+using System.Reflection;
+public static class B6SqlErrorFixture {
+ public static SqlException Create(string procedure) {
+  var flags=BindingFlags.NonPublic|BindingFlags.Instance;
+  var collection=(SqlErrorCollection)Activator.CreateInstance(typeof(SqlErrorCollection),true);
+  ConstructorInfo ctor=null;
+  foreach(var c in typeof(SqlError).GetConstructors(flags)) if(c.GetParameters().Length==8) ctor=c;
+  var error=(SqlError)ctor.Invoke(new object[]{8711,(byte)1,(byte)16,"PRIVATE_SERVER","PRIVATE_SQL_AND_AMOUNT",procedure,118,null});
+  typeof(SqlErrorCollection).GetMethod("Add",flags).Invoke(collection,new object[]{error});
+  var factory=typeof(SqlException).GetMethod("CreateException",BindingFlags.NonPublic|BindingFlags.Static,null,new Type[]{typeof(SqlErrorCollection),typeof(string)},null);
+  return (SqlException)factory.Invoke(null,new object[]{collection,"fixture"});
+ }
+}
+'@
+`;
+
+test('nested real provider error reaches the actual rehearsal journal with batch identity, rollback and no sensitive text',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-error-')));
+ try{assert.equal(run(String.raw`
+$realBatch=(Get-Item Function:Invoke-ErpBusinessSaleSqlBatch).ScriptBlock;$realJournal=(Get-Item Function:Write-ErpBusinessSaleNativeEvent).ScriptBlock
+`+nativeFixture+sqlExceptionFixture+`$script:vault=${q(temp)};`+String.raw`
+Set-Item Function:Invoke-ErpBusinessSaleSqlBatch $realBatch;Set-Item Function:Write-ErpBusinessSaleNativeEvent $realJournal
+foreach($b in $script:pinnedFixtureArtifact.applyBatches){$b|Add-Member NoteProperty id 'synthetic-command';$b|Add-Member NoteProperty sourceHash ('A'*64)}
+function Assert-ErpBusinessSaleNativeQuiescence {param($Record);[pscustomobject]@{vault=$script:vault}}
+function Open-ErpBusinessSaleSqlConnection {
+ $tx=[pscustomobject]@{};$tx|Add-Member ScriptMethod Rollback {$script:rollbacks++};$tx|Add-Member ScriptMethod Commit {$script:commits++};$tx|Add-Member ScriptMethod Dispose {}
+ $c=[pscustomobject]@{tx=$tx};$c|Add-Member ScriptMethod BeginTransaction {param($isolation);$this.tx};$c|Add-Member ScriptMethod Dispose {}
+ $c|Add-Member ScriptMethod CreateCommand {
+  $cmd=[pscustomobject]@{CommandTimeout=0;Transaction=$null;CommandText=''}
+  $cmd|Add-Member ScriptMethod ExecuteNonQuery {
+   if(!$this.CommandText.StartsWith("SET XACT_ABORT ON; DECLARE @b6_ddl nvarchar(max);")){throw 'PREFIX_CHANGED'}
+   if($this.CommandText.EndsWith('apply-after')){throw [InvalidOperationException]::new('PRIVATE_WRAPPER',[B6SqlErrorFixture]::Create('dbo.usp_b6_reader_fixture_v1'))};return 0
+  };$cmd|Add-Member ScriptMethod Dispose {};return $cmd
+ };return $c
+}
+$caught=$null;try{Invoke-ErpBusinessSaleNativeRevision $cap Rehearse}catch{$caught=$_}
+if(!$caught-or!(Get-ErpBusinessSaleSqlFailure $caught $null Other -1)){throw 'ORIGINAL_PROVIDER_ERROR_LOST'}
+if($script:rollbacks-ne1-or$script:commits-ne0-or$r.rehearsed-or$r.phase-cne'Prepared'){throw 'FAILED_REHEARSAL_MUTATED'}
+$raw=[IO.File]::ReadAllText((Join-Path $script:vault 'native-b6-journal.jsonl'))
+if($raw-cmatch'PRIVATE_|apply-after|SET XACT_ABORT|CommandText'){throw 'SENSITIVE_ERROR_LOGGED'}
+$last=($raw.Trim()-split"\n")[-1]|ConvertFrom-Json;$d=$last.sqlFailure
+if($last.event-cne'REHEARSE_FAILED_NO_REPLAY'-or$d.batchPhase-cne'Apply'-or$d.batchIndex-ne1-or$d.batchId-cne'synthetic-command'-or$d.batchSourceHash-cne('A'*64)-or$d.errors[0].number-ne8711-or$d.errors[0].lineNumber-ne118-or$d.errors[0].procedure-cne'dbo.usp_b6_reader_fixture_v1'-or$d.commandPrefixLines-ne1){throw 'SQL_LOCATION_LOST'}
+$unsafe=Get-ErpBusinessSaleSqlFailure ([Exception]::new('PRIVATE_WRAPPER',[B6SqlErrorFixture]::Create('PRIVATE_PROCEDURE'))) $null Inverse 3
+if($null-ne$unsafe.errors[0].procedure-or$unsafe.errors[0].procedureHash.Length-ne64){throw 'UNTRUSTED_PROCEDURE_EXPOSED'}
+if($null-ne(Get-ErpBusinessSaleSqlFailure ([Exception]::new('PRIVATE_NON_SQL')) $null Other -1)){throw 'NON_SQL_MISCLASSIFIED'}
+'PASS'
+`),'PASS');}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-error-'));fs.rmSync(temp,{recursive:true});}
+});
 test('library import creates no SQL connection or process/service action',win,()=>{
  assert.equal(run(`function Open-ErpBusinessSaleSqlConnection {throw 'SQL_FORBIDDEN'};if($script:ErpBusinessSaleAdmissions.Count-ne0){throw 'IMPORT_ISSUED_AUTHORITY'};'PASS'`),'PASS');
  const text=fs.readFileSync(path.join(dir,'canonical-business-sale-maintenance.ps1'),'utf8');
  assert(!/EncodedCommand|Invoke-Expression|Stop-Process|Start-Process|Invoke-RestMethod|Set-MpPreference/i.test(text));
+});
+test('inverse batch errors keep their own index and diagnostic failures never replace the original failure',win,()=>{
+ assert.equal(run(nativeFixture+sqlExceptionFixture+String.raw`
+foreach($b in $script:pinnedFixtureArtifact.inverseBatches){$b|Add-Member NoteProperty id 'synthetic-inverse';$b|Add-Member NoteProperty sourceHash ('B'*64)}
+$script:lastSqlFailure=$null
+function Write-ErpBusinessSaleNativeEvent {param($Record,$Event,$SqlFailure);if($Event-ceq'REHEARSE_FAILED_NO_REPLAY'){$script:lastSqlFailure=$SqlFailure}}
+function Invoke-ErpBusinessSaleSqlBatch {param($Connection,$Transaction,$Sql);if($Sql-ceq'inverse-history-cas'){throw [InvalidOperationException]::new('PRIVATE_WRAPPER',[B6SqlErrorFixture]::Create('dbo.usp_b6_inverse_fixture'))}}
+$caught=$null;try{Invoke-ErpBusinessSaleNativeRevision $cap Rehearse}catch{$caught=$_}
+if(!$caught-or$script:lastSqlFailure.batchPhase-cne'Inverse'-or$script:lastSqlFailure.batchIndex-ne0-or$script:lastSqlFailure.batchId-cne'synthetic-inverse'-or$script:rollbacks-ne1-or$script:commits-ne0){throw 'INVERSE_BATCH_LOCATION_LOST'}
+$r.backup=$null
+function Get-ErpBusinessSaleSqlFailure {throw 'DIAGNOSTIC_FAILURE'}
+function Write-ErpBusinessSaleNativeEvent {param($Record,$Event,$SqlFailure);if($Event-ceq'REHEARSE_FAILED_NO_REPLAY'){throw 'JOURNAL_FAILURE'}}
+$caught=$null;try{Invoke-ErpBusinessSaleNativeRevision $cap Rehearse}catch{$caught=$_}
+$e=$caught.Exception;$found=$false;for($i=0;$e-and$i-lt8;$i++){if($e-is[Data.SqlClient.SqlException]){$found=$true;break};$e=$e.InnerException}
+if(!$found-or$script:rollbacks-ne2-or$script:commits-ne0){throw 'DIAGNOSTIC_MASKED_PROVIDER_ERROR'}
+'PASS'
+`),'PASS');
 });
 test('real SqlClient builder accepts the fixed keywords without connecting or relaxing TLS',win,()=>{
  assert.equal(run(String.raw`$s=New-ErpBusinessSaleSqlConnectionString;$b=[Data.SqlClient.SqlConnectionStringBuilder]::new($s);if($b.DataSource-cne'Semih\MELISADEV'-or$b.InitialCatalog-cne'MELISA_ERP_SIRKET_TEST_20260929_01'-or!$b.IntegratedSecurity-or!$b.Encrypt-or$b.TrustServerCertificate-or$b.Pooling-or$b.ConnectTimeout-ne5-or$b.ApplicationName-cne'Melisa-B6-Finite-Maintenance'){throw 'FIXED_SQL_CONNECTION_CHANGED'};$c=[Data.SqlClient.SqlConnection]::new($s);try{if($c.State-ne[Data.ConnectionState]::Closed){throw 'UNEXPECTED_CONNECTION'}}finally{$c.Dispose()};'PASS'`),'PASS');
