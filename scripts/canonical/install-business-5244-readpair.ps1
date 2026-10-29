@@ -23,11 +23,17 @@ function Assert-ReadPairExactFields($Object,[string[]]$Names){
  $keys=if($Object-is[Collections.IDictionary]){@($Object.Keys)}else{@($Object.PSObject.Properties.Name)}
  if((($keys|Sort-Object -CaseSensitive)-join'|')-cne(($Names|Sort-Object -CaseSensitive)-join'|')){throw 'READPAIR_BASELINE_FIELDS_CHANGED'}
 }
+function Get-ReadPairSha256Value($Hash){
+ if($Hash-isnot[string]-or$Hash.Length-ne64-or$Hash-cnotmatch'\A[a-fA-F0-9]{64}\z'){throw 'READPAIR_BASELINE_HASH_REJECTED'}
+ $bytes=New-Object byte[] 32
+ for($i=0;$i-lt32;$i++){$bytes[$i]=[Convert]::ToByte($Hash.Substring($i*2,2),16)}
+ return ,$bytes
+}
 function Get-ReadPairProtectionSignature($Snapshot){
  Assert-ReadPairExactFields $Snapshot @('listeners','processes','files')
  $ls=@(@(foreach($r in $Snapshot.listeners){Assert-ReadPairExactFields $r @('LocalPort','LocalAddress','OwningProcess');'{0}|{1}|{2}'-f$r.LocalPort,$r.LocalAddress,$r.OwningProcess})|Sort-Object)
  $ps=@(@(foreach($r in $Snapshot.processes){Assert-ReadPairExactFields $r @('pid','birth','exe');'{0}|{1}|{2}'-f$r.pid,$r.birth,$r.exe})|Sort-Object)
- $fs=@(@(foreach($r in $Snapshot.files){Assert-ReadPairExactFields $r @('path','hash');'{0}|{1}'-f$r.path,$r.hash})|Sort-Object)
+ $fs=@(@(foreach($r in $Snapshot.files){Assert-ReadPairExactFields $r @('path','hash');$value=Get-ReadPairSha256Value $r.hash;'{0}|{1}'-f$r.path,([BitConverter]::ToString($value).Replace('-','').ToLowerInvariant())})|Sort-Object)
  return ([ordered]@{listeners=$ls;processes=$ps;files=$fs}|ConvertTo-Json -Depth 6 -Compress)
 }
 function Assert-ReadPairExpectedEqual($Left,$Right){
@@ -238,6 +244,12 @@ function Get-ReadPairExpectedProjection {
  $startupAfter=[Text.Encoding]::UTF8.GetBytes(($nextConfig|ConvertTo-Json -Depth 100))
  $releasePins=Get-ReadPairExpectedReleasePins $config $pairScope
  $shape=[pscustomobject][ordered]@{schema=$schema;packageProof=$releasePins;scope=$pairScope.name;source=$pairScope.source;database=$pairScope.database;current=$pairScope.current;candidate=$pairScope.candidate;apiProfileBeforeSha256=(Get-Business5244StartupHash $ApiBytes);apiProfileCandidateSha256=(Get-Business5244StartupHash $apiAfter);baseProfileSha256=$BaseProfileSha256;startupBeforeSha256=(Get-Business5244StartupHash $StartupBytes);startupCandidateSha256=(Get-Business5244StartupHash $startupAfter);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
+ if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($native.rehearsalOnly-isnot[bool]){throw 'B6_NATIVE_PURPOSE_REJECTED'}
+  # Match the actual transition's final, issuer-bound purpose member. Omitting
+  # it would predict a different plan even for otherwise identical profiles.
+  $shape|Add-Member rehearsalOnly $native.rehearsalOnly
+ }
  $contractHash=Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes(($shape|ConvertTo-Json -Depth 12 -Compress)))
  $keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')
  # The frozen READ2b core predates the additive finite selector. Preserve its
@@ -426,17 +438,17 @@ function Cancel-B6ReadPairActiveEntryHandoff {
 }
 function Open-B6RehearsalPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
  # Separate immutable generation: legacy failed packages are never rewritten.
- $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029';$proof=Join-Path $private 'owner-preparation-v2'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029';$proof=Join-Path $private 'owner-preparation-v3'
  if(!$Apply-or!$RehearsalOnly-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'B6_REHEARSAL_REVIEWED_ENTRY_REQUIRED'}
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
  if((Get-FileHash -LiteralPath $node).Hash-cne'3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'){throw 'B6_CONTROLLER_NODE_CHANGED'}
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
-  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'd770ccf58e9008d83fcbc0e16e5745357a70fad1e1fda99ade0e72383eb0d597'
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'fbb9be06c8249aab128ca6b19983c19122bf7f7fefcdb5ff2de04f02e238cbe9'
   $verifiedText=& $node $producer --verify-rehearsal
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'};$v=$verifiedText|ConvertFrom-Json
-  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V2';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V2'
+  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3'
   if($v.schema-cne'melisa-b6-rehearsal-owner-verification.v1'-or$v.rehearsalOnly-isnot[bool]-or!$v.rehearsalOnly-or$v.runtimeValidationComplete-ne$false-or$v.postExitExclusiveBytesRequired-ne$true-or$v.postExitExclusiveEntryCount-ne18-or$v.coreFiles-ne13-or$v.beforeImages-ne6-or$v.writes-ne0-or$v.sqlCalls-ne0-or$v.serviceCalls-ne0-or$v.ownerCalls-ne0-or$v.taskChanges-ne0-or$v.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()-or$v.coreRoot-cne$core-or$v.routerRoot-cne$router){throw 'B6_REHEARSAL_SOURCE_NOT_VERIFIED'}
   Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $v.coreManifestSha256;Hold-B6ReadPairSource (Join-Path $router 'owner-manifest.json') $v.routerManifestSha256
   $m=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json;$rm=Get-Content -LiteralPath (Join-Path $router 'owner-manifest.json') -Raw|ConvertFrom-Json
@@ -469,7 +481,7 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   # Its literal pin has no self-cycle: the producer reads installer Git bytes
   # only at preparation time; it embeds no installer/content hash in its source.
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  Hold-B6ReadPairSource $producer 'd770ccf58e9008d83fcbc0e16e5745357a70fad1e1fda99ade0e72383eb0d597'
+  Hold-B6ReadPairSource $producer 'fbb9be06c8249aab128ca6b19983c19122bf7f7fefcdb5ff2de04f02e238cbe9'
   $verifiedText=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'}
   $verified=$verifiedText|ConvertFrom-Json
@@ -869,7 +881,7 @@ function Open-Business5244CurrentSupersessionSource([string]$ReviewedSourceHash,
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
  $producer=Join-Path $proof 'verified-owner-producer.mjs'
- Hold-B6ReadPairSource $producer 'd770ccf58e9008d83fcbc0e16e5745357a70fad1e1fda99ade0e72383eb0d597'
+ Hold-B6ReadPairSource $producer 'fbb9be06c8249aab128ca6b19983c19122bf7f7fefcdb5ff2de04f02e238cbe9'
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe'
  if((Get-FileHash -LiteralPath $node).Hash-ine'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'){throw 'CURRENT_SUPERSESSION_NODE_CHANGED'}
  $action=if($InitializerCleanRecovery){'--verify-initializer-clean-recovery'}else{'--verify-current-supersession'}

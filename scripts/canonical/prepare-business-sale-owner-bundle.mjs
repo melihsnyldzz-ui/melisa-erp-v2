@@ -15,10 +15,10 @@ const PROOF=path.win32.join(PRIVATE,'owner-preparation');
 const VERIFIED_PRODUCER=path.win32.join(PROOF,'verified-owner-producer.mjs');
 // A distinct, finite producer generation. The historical SQLCOLLATION roots
 // above remain literal history inputs, never aliases for these new outputs.
-const REHEARSAL_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V2');
-const REHEARSAL_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V2');
+const REHEARSAL_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3');
+const REHEARSAL_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3');
 const REHEARSAL_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029`;
-const REHEARSAL_PROOF=path.win32.join(REHEARSAL_PRIVATE,'owner-preparation-v2');
+const REHEARSAL_PROOF=path.win32.join(REHEARSAL_PRIVATE,'owner-preparation-v3');
 const REHEARSAL_VERIFIER=path.win32.join(REHEARSAL_PROOF,'verified-owner-producer.mjs');
 // Missing preparation data is a closed source blocker, not a caller option.
 // Exact fresh capture hashes are filled only from the owner's read-only case.

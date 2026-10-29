@@ -367,9 +367,9 @@ test('Rehearsal verification rejects purpose, runtime-proof or payload changes a
 });
 
 
-test('Rehearsal V2 uses exact captured entry fields without inventing a top-level post-exit flag',()=>{
+test('Rehearsal V3 uses exact captured entry fields without inventing a top-level post-exit flag',()=>{
  const f=fixture({rehearsal:true});try{
-  assert(f.values('REHEARSAL_CORE').endsWith('-PERMHASH-V2'));assert(f.values('REHEARSAL_ROUTER').endsWith('-PERMHASH-V2'));assert(f.values('REHEARSAL_PROOF').endsWith('owner-preparation-v2'));
+  assert(f.values('REHEARSAL_CORE').endsWith('-PERMHASH-V3'));assert(f.values('REHEARSAL_ROUTER').endsWith('-PERMHASH-V3'));assert(f.values('REHEARSAL_PROOF').endsWith('owner-preparation-v3'));
   const priv=f.values('REHEARSAL_PRIVATE'),leaf='current-entry-hold-capture.json',capture=JSON.parse(f.inputs.get(path.win32.join(priv,leaf)));
   assert.deepEqual(Object.keys(capture).sort(),['schema','observedAt','readOnly','executionAuthority','ownerCaptureSha256','gate','entries','directEntries','entryWrites','serviceCalls','sqlCalls','postExitExclusiveEntryCount','runtimeValidationComplete'].sort());
   assert.equal(Object.hasOwn(capture,'postExitExclusiveBytesRequired'),false);assert.equal(f.values('rehearsalPredecessor().capture.entry.postExitExclusiveBytesRequired'),true);assert.equal(f.writes(),0);
