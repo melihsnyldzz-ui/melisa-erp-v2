@@ -227,6 +227,10 @@ function Start-Business5244OwnedSupervisor {
      if($request.operation -ceq 'retire'){
       if($null -ne $apiTransition){Invoke-Business5244PairedOwnerMaintenance $retirement $channel $request $apiTransition|Out-Null}else{Invoke-Business5244OwnerMaintenance $retirement $channel $request|Out-Null}
       $reply='RetireAccepted'
+     }elseif($request.operation -ceq 'recover'){
+      if($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$null-eq$apiTransition){throw 'BUSINESS_5244_RECOVERY_SCOPE_REQUIRED'}
+      Resume-Business5244BlockedRollback -State $retirement -Channel $channel -Request $request -ApiTransition $apiTransition|Out-Null
+      $reply='RecoveryAccepted'
      }
     }catch{$reply='Rejected'}
     $snapshot=Get-Business5244RetirementSnapshot $retirement
