@@ -255,8 +255,13 @@ function Get-ReadPairExpectedReleasePins($Config,$Scope){
 }
 function Get-ReadPairControllerHash([byte[]]$Bytes){$sha=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($sha.ComputeHash($Bytes)).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}}
 function Get-B6ReadPairOwnerArguments([string]$Root,[string]$Hash){
- if($b6.owner.predecessorEntryKind-cne'CurrentCore'-or$b6.owner.entry.leaf-cne'run-current-owner.ps1'-or$b6.owner.entry.root-cne$b6.owner.core.root-or$b6.owner.entry.manifestSha256-cne$b6.owner.core.manifestSha256){throw 'B6_CURRENT_ENTRY_KIND_REJECTED'}
- if($Root-ceq$b6.owner.entry.root-and$Hash-ceq$b6.owner.entry.manifestSha256){$leaf='run-current-owner.ps1';$suffix=''}
+ $kind=$b6.owner.predecessorEntryKind
+ if($kind-ceq'CurrentCore'){
+  if($b6.owner.entry.leaf-cne'run-current-owner.ps1'-or$b6.owner.entry.root-cne$b6.owner.core.root-or$b6.owner.entry.manifestSha256-cne$b6.owner.core.manifestSha256){throw 'B6_CURRENT_ENTRY_KIND_REJECTED'}
+ }elseif($kind-ceq'ReadPairRouter'){
+  if($b6.owner.entry.leaf-cne'start-business-5244-readpair-router.ps1'-or$b6.owner.entry.root-cne$b6.owner.router.root-or$b6.owner.entry.manifestSha256-cne$b6.owner.router.manifestSha256){throw 'B6_CURRENT_ENTRY_KIND_REJECTED'}
+ }else{throw 'B6_CURRENT_ENTRY_KIND_REJECTED'}
+ if($Root-ceq$b6.owner.entry.root-and$Hash-ceq$b6.owner.entry.manifestSha256){$leaf=$b6.owner.entry.leaf;$suffix=if($kind-ceq'ReadPairRouter'){' -ScopeName TEST125-API-B6-ca620bac-20261028'}else{''}}
  elseif($Root-ceq$b6.routerRoot-and$Hash-ceq$b6.routerHash){$leaf='start-business-5244-readpair-router.ps1';$suffix=' -ScopeName TEST125-API-B6-ca620bac-20261028'}
  elseif($Root-ceq$b6.coreRoot-and$Hash-ceq$b6.coreHash){$leaf='run-current-owner.ps1';$suffix=''}
  else{throw 'B6_OWNER_ARGV_SCOPE_REJECTED'}
@@ -279,23 +284,34 @@ function Hold-B6ReadPairEntry([string]$Path,[string]$Hash){
 function Get-B6ReadPairActiveEntry {
  if($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'){return $null}
  if(!$b6.owner.PSObject.Properties['predecessorEntryKind']){return $null}
- $entry=$b6.owner.entry
- if($b6.owner.predecessorEntryKind-cne'CurrentCore'-or$entry.root-cne$b6.owner.core.root-or$entry.leaf-cne'run-current-owner.ps1'-or$entry.sha256-cnotmatch'^[a-f0-9]{64}$'-or$entry.manifestSha256-ine$b6.owner.core.manifestSha256){throw 'B6_ACTIVE_ENTRY_DESCRIPTOR_REJECTED'}
- $path=Join-Path $entry.root $entry.leaf;$rows=@($b6.entryCapture.directEntries|Where-Object{$_.path-ceq$path})
- if($rows.Count-ne1-or$rows[0].sha256-cne$entry.sha256){throw 'B6_ACTIVE_ENTRY_CAPTURE_CHANGED'}
- return @{path=$path;hash=$entry.sha256}
+ $entry=$b6.owner.entry;$kind=$b6.owner.predecessorEntryKind
+ if($entry.sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'B6_ACTIVE_ENTRY_DESCRIPTOR_REJECTED'}
+ if($kind-ceq'CurrentCore'){
+  if($entry.root-cne$b6.owner.core.root-or$entry.leaf-cne'run-current-owner.ps1'-or$entry.manifestSha256-ine$b6.owner.core.manifestSha256){throw 'B6_ACTIVE_ENTRY_DESCRIPTOR_REJECTED'}
+  $expected=@(@{path=(Join-Path $entry.root 'run-current-owner.ps1');hash=$entry.sha256})
+ }elseif($kind-ceq'ReadPairRouter'){
+  if($entry.root-cne$b6.owner.router.root-or$entry.root-ceq$b6.owner.core.root-or$entry.leaf-cne'start-business-5244-readpair-router.ps1'-or$entry.manifestSha256-ine$b6.owner.router.manifestSha256-or$entry.sha256-cne$b6.owner.router.entrySha256){throw 'B6_ACTIVE_ENTRY_DESCRIPTOR_REJECTED'}
+  $coreRows=@($b6.owner.core.files|Where-Object{$_.path-ceq'run-current-owner.ps1'})
+  if($coreRows.Count-ne1-or$coreRows[0].sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'B6_ACTIVE_CORE_ENTRY_REJECTED'}
+  $expected=@(@{path=(Join-Path $entry.root 'start-business-5244-readpair-router.ps1');hash=$entry.sha256},@{path=(Join-Path $b6.owner.core.root 'run-current-owner.ps1');hash=$coreRows[0].sha256})
+ }else{throw 'B6_ACTIVE_ENTRY_DESCRIPTOR_REJECTED'}
+ foreach($item in $expected){$rows=@($b6.entryCapture.directEntries|Where-Object{$_.path-ceq$item.path});if($rows.Count-ne1-or$rows[0].sha256-cne$item.hash){throw 'B6_ACTIVE_ENTRY_CAPTURE_CHANGED'}}
+ return $expected
 }
 function Get-B6ReadPairActiveHandoff {
  $h=if(Get-Variable ReadPairActiveHandoff -Scope Script -ErrorAction SilentlyContinue){$script:ReadPairActiveHandoff}else{$null}
  if(!$h){return $null}
- if($h.process-ne$PID-or$h.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or!($control-is[Business5244RetirementPeer+ControlledShutdown])-or![object]::ReferenceEquals($h.control,$control)-or$control.TargetPid-ne$h.ownerPid-or$control.TargetBirth-cne$h.ownerBirth-or!@($held|Where-Object{[object]::ReferenceEquals($_,$h.item)}).Count){throw 'B6_ACTIVE_ENTRY_HANDOFF_NOT_OWNED'}
+ if($h.process-ne$PID-or$h.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or!($control-is[Business5244RetirementPeer+ControlledShutdown])-or![object]::ReferenceEquals($h.control,$control)-or$control.TargetPid-ne$h.ownerPid-or$control.TargetBirth-cne$h.ownerBirth){throw 'B6_ACTIVE_ENTRY_HANDOFF_NOT_OWNED'}
+ $entries=@(Get-B6ReadPairActiveEntry)
+ if(@($h.items).Count-ne$entries.Count-or![object]::ReferenceEquals($h.item,$h.items[0])){throw 'B6_ACTIVE_ENTRY_HANDOFF_NOT_OWNED'}
+ foreach($entry in $entries){$items=@($h.items|Where-Object{$_.path-ceq$entry.path});if($items.Count-ne1-or$items[0].beforeHash-cne$entry.hash-or@($held|Where-Object{[object]::ReferenceEquals($_,$items[0])}).Count-ne1){throw 'B6_ACTIVE_ENTRY_HANDOFF_NOT_OWNED'}}
  return $h
 }
 function Assert-B6ReadPairEntrySet([switch]$AllowActiveShared){
  $h=Get-B6ReadPairActiveHandoff;$all=@($b6.entryCapture.entries)+@($b6.entryCapture.directEntries)
  if(!$h-or$held.Count-ne$all.Count){throw 'B6_ENTRY_SET_NOT_EXCLUSIVELY_HELD'}
  foreach($row in $all){$items=@($held|Where-Object{$_.path-ceq$row.path});if($items.Count-ne1){throw 'B6_ENTRY_SET_NOT_EXCLUSIVELY_HELD'};$item=$items[0];$hash=if($row.PSObject.Properties['beforeSha256']){$row.beforeSha256}else{$row.sha256}
-  $shared=$AllowActiveShared-and[object]::ReferenceEquals($item,$h.item)-and$item.holdMode-ceq'Shared'
+  $shared=$AllowActiveShared-and@($h.items|Where-Object{[object]::ReferenceEquals($_,$item)}).Count-eq1-and$item.holdMode-ceq'Shared'
   if((!$shared-and$item.holdMode-cne'Exclusive')-or!($item.stream-is[IO.FileStream])-or!$item.stream.CanRead-or$item.stream.CanWrite-or$item.stream.SafeFileHandle.IsClosed-or$item.beforeHash-cne$hash-or$item.afterHash-cne$hash-or(Get-Business5244StartupHash (Read-ReadPairHeldBytes $item.stream))-cne$hash){throw 'B6_ENTRY_SET_NOT_EXCLUSIVELY_HELD'}
  }
 }
@@ -305,23 +321,29 @@ function Assert-B6ReadPairNoForeignEntryLaunch {
  if($foreign.Count){throw 'B6_FOREIGN_ENTRY_LAUNCH_DETECTED'}
 }
 function Hold-B6ReadPairActiveEntry {
- $entry=Get-B6ReadPairActiveEntry;if(!$entry){return}
+ $entries=@(Get-B6ReadPairActiveEntry|Where-Object{$null-ne$_});if(!$entries.Count){return}
  if(Get-B6ReadPairActiveHandoff){throw 'B6_ACTIVE_ENTRY_ALREADY_HELD'}
  if(!($control-is[Business5244RetirementPeer+ControlledShutdown])-or!$control.GetType().GetMethod('ValidateCompletedStop')-or!$control.GetType().GetProperty('CompletedStop')){throw 'B6_CONTROL_GENERATION_RESTART_REQUIRED'}
  $control.Validate();Assert-OldTarget $status
  if($oldRoot-cne$b6.owner.entry.root-or$oldHash-ine$b6.owner.entry.manifestSha256){throw 'B6_ACTIVE_ENTRY_PRESTOP_GENERATION_CHANGED'}
- if($control.TargetPid-ne$status.ownerPid-or$control.TargetBirth-cne$status.ownerBirth-or@($held|Where-Object{$_.path-ceq$entry.path}).Count){throw 'B6_ACTIVE_ENTRY_OWNER_CHANGED'}
- Assert-ReadPairPath $entry.path;$stream=[IO.File]::Open($entry.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
- try{$bytes=Read-ReadPairHeldBytes $stream;if((Get-Business5244StartupHash $bytes)-cne$entry.hash){throw 'B6_ACTIVE_ENTRY_BEFORE_CHANGED'}
-  $item=@{stream=$stream;path=$entry.path;before=$bytes;beforeHash=$entry.hash;afterHash=$entry.hash;after=$bytes;written=$false;holdMode='Shared'};$held.Add($item)
-  $script:ReadPairActiveHandoff=@{process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;control=$control;ownerPid=$control.TargetPid;ownerBirth=$control.TargetBirth;item=$item;phase='MarkerPending';lease=$null;marker=$null;stopAttempted=$false;upgradeAttempted=$false}
+ if($control.TargetPid-ne$status.ownerPid-or$control.TargetBirth-cne$status.ownerBirth){throw 'B6_ACTIVE_ENTRY_OWNER_CHANGED'}
+ $items=[Collections.Generic.List[object]]::new()
+ try{
+  foreach($entry in $entries){
+   if(@($held|Where-Object{$_.path-ceq$entry.path}).Count){throw 'B6_ACTIVE_ENTRY_OWNER_CHANGED'}
+   Assert-ReadPairPath $entry.path;$stream=[IO.File]::Open($entry.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)
+   try{$bytes=Read-ReadPairHeldBytes $stream;if((Get-Business5244StartupHash $bytes)-cne$entry.hash){throw 'B6_ACTIVE_ENTRY_BEFORE_CHANGED'}
+    $item=@{stream=$stream;path=$entry.path;before=$bytes;beforeHash=$entry.hash;afterHash=$entry.hash;after=$bytes;written=$false;holdMode='Shared'};$held.Add($item);$items.Add($item)
+   }catch{$stream.Dispose();throw}
+  }
+  $script:ReadPairActiveHandoff=@{process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;control=$control;ownerPid=$control.TargetPid;ownerBirth=$control.TargetBirth;item=$items[0];items=$items;phase='MarkerPending';lease=$null;marker=$null;stopAttempted=$false;upgradeAttempted=$false}
   Assert-B6ReadPairEntrySet -AllowActiveShared
   $pending=Get-Business5244RetirementPendingPath;Assert-ReadPairPath $pending
   if(Test-Path -LiteralPath $pending){throw 'B6_ACTIVE_ENTRY_FOREIGN_PENDING_MARKER'}
-  $bytes=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-cold-handoff.pending.v1';controllerPid=$PID;controllerBirth=[Business5244RetirementPeer]::CurrentBirth;ownerPid=$control.TargetPid;ownerBirth=$control.TargetBirth;entrySha256=$entry.hash;operationId=[guid]::NewGuid().ToString('N')}|ConvertTo-Json -Compress))
+  $bytes=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-cold-handoff.pending.v1';controllerPid=$PID;controllerBirth=[Business5244RetirementPeer]::CurrentBirth;ownerPid=$control.TargetPid;ownerBirth=$control.TargetBirth;entries=@($entries|ForEach-Object{@{path=$_.path;sha256=$_.hash}});operationId=[guid]::NewGuid().ToString('N')}|ConvertTo-Json -Depth 5 -Compress))
   $script:ReadPairActiveHandoff.marker=$control.CreateMaintenanceMarker($bytes)
   $script:ReadPairActiveHandoff.marker.Validate();$script:ReadPairActiveHandoff.phase='Shared'
- }catch{if(!(Get-Variable ReadPairActiveHandoff -Scope Script -ErrorAction SilentlyContinue)){$stream.Dispose()};throw}
+ }catch{if(!(Get-Variable ReadPairActiveHandoff -Scope Script -ErrorAction SilentlyContinue)){foreach($item in $items){$item.stream.Dispose();[void]$held.Remove($item)}};throw}
 }
 function Complete-B6ReadPairActiveEntryHandoff {
  $h=Get-B6ReadPairActiveHandoff;if(!$h){if(Get-B6ReadPairActiveEntry){throw 'B6_ACTIVE_ENTRY_HANDOFF_MISSING'};return}
@@ -331,18 +353,22 @@ function Complete-B6ReadPairActiveEntryHandoff {
  try{
   $h.lease=Enter-Business5244StartupLease -Kind Maintenance
   $control.ValidateCompletedStop();$h.marker.Validate();Assert-Business5244StartupLease $h.lease -Kind Maintenance;Assert-B6ReadPairNoForeignEntryLaunch
-  $h.upgradeAttempted=$true;$h.item.stream.Dispose();$h.item.holdMode='ClosedForUpgrade'
-  Assert-ReadPairPath $h.item.path;$exclusive=[IO.File]::Open($h.item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
-  $h.item.stream=$exclusive;$h.item.holdMode='Exclusive'
-  if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $exclusive))-cne$h.item.beforeHash){throw 'B6_ACTIVE_ENTRY_UPGRADE_CAS_CHANGED'}
+  $h.upgradeAttempted=$true
+  foreach($item in $h.items){
+   $control.ValidateCompletedStop();$h.marker.Validate();Assert-Business5244StartupLease $h.lease -Kind Maintenance
+   $item.stream.Dispose();$item.holdMode='ClosedForUpgrade'
+   Assert-ReadPairPath $item.path;$exclusive=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+   $item.stream=$exclusive;$item.holdMode='Exclusive'
+   if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $exclusive))-cne$item.beforeHash){throw 'B6_ACTIVE_ENTRY_UPGRADE_CAS_CHANGED'}
+  }
   $control.ValidateCompletedStop();Assert-B6ReadPairEntrySet;Assert-B6ReadPairNoForeignEntryLaunch
   if(!(Wait-ResourceExit $oldResourceRows)-or@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'B6_ACTIVE_ENTRY_RESOURCES_CHANGED'}
   $h.marker.Validate();Exit-Business5244StartupLease $h.lease;$h.lease=$null
   $h.marker.DeleteForCompletedStop();$h.phase='ExclusiveVerified'
  }catch{
-  $h.phase=if($h.item.holdMode-ceq'Exclusive'){'FailedExclusive'}else{'FailedShared'}
-  if($h.item.holdMode-ceq'ClosedForUpgrade'){
-   try{$reader=[IO.File]::Open($h.item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $reader))-cne$h.item.beforeHash){$reader.Dispose();throw 'B6_ACTIVE_ENTRY_SHARED_CAS_CHANGED'};$h.item.stream=$reader;$h.item.holdMode='Shared'}catch{$h.phase='Unknown';$h.item.holdMode='Unconfirmed'}
+  $h.phase=if(@($h.items|Where-Object{$_.holdMode-cne'Exclusive'}).Count){'FailedShared'}else{'FailedExclusive'}
+  foreach($item in @($h.items|Where-Object{$_.holdMode-ceq'ClosedForUpgrade'})){
+   try{$reader=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $reader))-cne$item.beforeHash){$reader.Dispose();throw 'B6_ACTIVE_ENTRY_SHARED_CAS_CHANGED'};$item.stream=$reader;$item.holdMode='Shared'}catch{$h.phase='Unknown';$item.holdMode='Unconfirmed'}
   }
   throw 'B6_ACTIVE_ENTRY_HANDOFF_RECOVERY_REQUIRED'
  }
@@ -359,7 +385,7 @@ function Cancel-B6ReadPairActiveEntryHandoff {
  $h.marker.DeleteForUnattemptedStop();$h.phase='CancelledBeforeStop'
 }
 function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
- $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\hash-case-recovered-20261029';$proof=Join-Path $private 'owner-preparation';$receiptPath=Join-Path $proof 'preparation-receipt.json'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\sql-collation-recovered-20261029';$proof=Join-Path $private 'owner-preparation';$receiptPath=Join-Path $proof 'preparation-receipt.json'
  if(![IO.File]::Exists($receiptPath)){throw 'B6_OWNER_BUNDLE_NOT_PREPARED'}
  if(!$Apply){throw 'READPAIR_REVIEWED_SOURCE_AND_SEPARATE_API_APPROVAL_REQUIRED'}
  if($EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')){throw 'B6_FROZEN_CONTROLLER_ENTRY_REQUIRED'}
@@ -375,12 +401,12 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   # Its literal pin has no self-cycle: the producer reads installer Git bytes
   # only at preparation time; it embeds no installer/content hash in its source.
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  Hold-B6ReadPairSource $producer 'e1d131f5232413c96ef5eebef90dc92de908db3ee32f374862b5ca91cb4b1570'
+  Hold-B6ReadPairSource $producer 'c2b5f3a4f0192b373cc430abb5207aa57710f8c1fe296051f46fef974b4a618b'
   $verifiedText=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'}
   $verified=$verifiedText|ConvertFrom-Json
   if($verified.schema-cne'melisa-b6-passive-owner-verification.v1'-or$verified.coreFiles-ne13-or$verified.beforeImages-ne6-or$verified.writes-ne0-or$verified.sqlCalls-ne0-or$verified.serviceCalls-ne0-or$verified.ownerCalls-ne0-or$verified.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()){throw 'B6_CONTROLLER_SOURCE_NOT_VERIFIED'}
-  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE'
+  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLCOLLATION'
   Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $verified.coreManifestSha256
   Hold-B6ReadPairSource (Join-Path $router 'owner-manifest.json') $verified.routerManifestSha256
   $manifest=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json;$routerManifest=Get-Content -LiteralPath (Join-Path $router 'owner-manifest.json') -Raw|ConvertFrom-Json
@@ -390,7 +416,7 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   Hold-B6ReadPairSource (Join-Path $router 'start-business-5244-readpair-router.ps1') $routerManifest.entrySha256
   Hold-B6ReadPairSource (Join-Path $router 'readpair-router-library.ps1') $routerManifest.routerLibrarySha256
   $owner=Get-Content -LiteralPath (Join-Path $core 'current-read2b-owner-capture.json') -Raw|ConvertFrom-Json;$entryCapture=Get-Content -LiteralPath (Join-Path $core 'current-entry-hold-capture.json') -Raw|ConvertFrom-Json
-  if($owner.predecessorEntryKind-cne'CurrentCore'-or$owner.entry.root-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029'-or$owner.entry.leaf-cne'run-current-owner.ps1'-or$owner.entry.manifestSha256-cne'a38e5c00be6d460dc87b4c5d8128dec10f01c8cc4d2d3c76a425fa6d36286deb'-or$owner.entry.sha256-cne'9c473098133f2a7c2b0720c74778d41878064641b201846699f6a53cb4649d8d'-or$owner.recordBeforeSha256-cne'3f44578ab526c6deecef4edb87aaded019d285d076b5683c12a0bff6cb85fce6'){throw 'B6_RECOVERED_CURRENT_ENTRY_CHANGED'}
+  if($owner.predecessorEntryKind-cne'ReadPairRouter'-or$owner.entry.root-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE'-or$owner.entry.leaf-cne'start-business-5244-readpair-router.ps1'-or$owner.entry.manifestSha256-cne'ef941287977c2913a8c4ca43cfa002e19f006d6239b9059a5c734cd0db6174e2'-or$owner.entry.sha256-cne'e160fd137828a98f6b4faf814243159276a2707667885f4e321d2ed39abbf238'-or$owner.recordBeforeSha256-cne'20dc7ae37497b88ce7f38039d76481b4f1e0f4e07c503737ec193e85c4be5f1f'){throw 'B6_RECOVERED_CURRENT_ENTRY_CHANGED'}
   $self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID);$ps='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
   $argsText=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape($self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
   $expected='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$EntryPath+' -Apply -SourceSha256 '+$ReviewedSourceHash.ToUpperInvariant()+' -ScopeName TEST125-API-B6-ca620bac-20261028'
@@ -414,17 +440,17 @@ function Open-B6ReadPairPublication {
  # READ2b entries already contain the accepted global gate. Hold current
  # bytes; B6 never rewrites a legacy entry or replays its old projection.
  $capture=$b6.entryCapture
- if($capture.schema-cne'melisa-b6-current-entry-hold-capture.v1'-or$capture.readOnly-ne$true-or$capture.executionAuthority-ne$false-or$capture.entries.Count-ne6-or$capture.directEntries.Count-ne6-or$capture.entryWrites-ne0-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.ownerCaptureSha256-cne'c548ec9fd223e081da1d0da01d9c55685efe6bded88eaf6969f2957ab5181e1c'-or$capture.gate.path-cne'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1'-or$capture.gate.sha256-cne'a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'){throw 'B6_ENTRY_HOLD_CAPTURE_CHANGED'}
+ if($capture.schema-cne'melisa-b6-current-entry-hold-capture.v1'-or$capture.readOnly-ne$true-or$capture.executionAuthority-ne$false-or$capture.entries.Count-ne6-or$capture.directEntries.Count-ne8-or$capture.entryWrites-ne0-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.ownerCaptureSha256-cne'4eaa68d16be5260071f74ce7e41e33ce6adaa4c7097d661905968d4b5c1b9945'-or$capture.gate.path-cne'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1'-or$capture.gate.sha256-cne'a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'){throw 'B6_ENTRY_HOLD_CAPTURE_CHANGED'}
  $paths=@('start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'|ForEach-Object {Join-Path $pins.runtime $_})+@('C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1')
  if(($capture.entries.path-join'|')-cne($paths-join'|')){throw 'B6_ENTRY_HOLD_SCOPE_CHANGED'}
- $direct=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-READ2B-ROUTER-b9416929-20261028\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-OWNER-b9416929-20261028\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261028\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261028\run-current-owner.ps1',(Join-Path $b6.owner.router.root 'start-business-5244-readpair-router.ps1'),(Join-Path $b6.owner.entry.root 'run-current-owner.ps1'))
+ $direct=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-READ2B-ROUTER-b9416929-20261028\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-OWNER-b9416929-20261028\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261028\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261028\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029\run-current-owner.ps1',(Join-Path $b6.owner.router.root 'start-business-5244-readpair-router.ps1'),(Join-Path $b6.owner.core.root 'run-current-owner.ps1'))
  if(($capture.directEntries.path-join'|')-cne($direct-join'|')){throw 'B6_DIRECT_ENTRY_SCOPE_CHANGED'}
  $script:before=Protection-Snapshot;$result.before=$before
  $script:expected=Get-ReadPairExpectedHashes -ScopeName $ScopeName -NativeProfileAdmission $b6NativeAdmission;$result.expected=$expected
  foreach($row in @($capture.entries)+@($capture.directEntries)){
   $hash=if($row.PSObject.Properties['beforeSha256']){if($row.afterEqualsBefore-ne$true){throw 'B6_ENTRY_AFTER_CHANGED'};$row.beforeSha256}else{$row.sha256}
-  $active=Get-B6ReadPairActiveEntry
-  if($row.path-ceq$active.path){if($hash-cne$active.hash){throw 'B6_ACTIVE_ENTRY_CAPTURE_CHANGED'}}else{Hold-B6ReadPairEntry $row.path $hash}
+  $active=@(Get-B6ReadPairActiveEntry|Where-Object{$_.path-ceq$row.path})
+  if($active.Count){if($active.Count-ne1-or$hash-cne$active[0].hash){throw 'B6_ACTIVE_ENTRY_CAPTURE_CHANGED'}}else{Hold-B6ReadPairEntry $row.path $hash}
  }
  Hold-B6ReadPairSource $capture.gate.path $capture.gate.sha256
  $active=@(Get-CimInstance Win32_Process|Where-Object {$command=$_.CommandLine;$_.ProcessId-ne$b6.owner.owner.pid-and$command-and@(@($paths)+@($direct)|Where-Object {$command.IndexOf($_,[StringComparison]::OrdinalIgnoreCase)-ge0}).Count})

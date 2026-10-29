@@ -81,3 +81,31 @@ test('initial movement NULL defaults and native stock default are frozen, includ
 test('raw frozen byte pins cannot be substituted with synthetic metadata or alternate encoding',()=>{
  const f=fixture();for(const args of [{},{beforeMetadataJSON:JSON.stringify(f.before),addonMetadataJSON:JSON.stringify(f.addon),profileHash:f.profileHash}])assert.throws(()=>compileCanonicalBusinessSaleEffects(args),{code:'B6_EFFECTS_FROZEN_BEFORE'});
 });
+
+
+test('row metadata names and OPENJSON keys use the same explicit binary collation without weakening the exact envelope',()=>{
+ const sql=prepareCanonicalBusinessSaleEffects(fixture()).guardDefinition;
+ const envelope=sql.slice(sql.indexOf('IF EXISTS(SELECT 1 FROM @i WHERE row_key IS NULL)'),sql.indexOf("THROW 51917,'B6_EVENT_ROWS',1;")+"THROW 51917,'B6_EVENT_ROWS',1;".length);
+ assert.match(envelope,/OPENJSON\(r\.row_json\)j WHERE NOT EXISTS\(SELECT 1 FROM sys\.columns c WHERE c\.object_id=OBJECT_ID\(N'dbo\.'\+@table\) AND c\.name COLLATE Latin1_General_100_BIN2=j\.\[key\] COLLATE Latin1_General_100_BIN2\)/);
+ assert.doesNotMatch(sql,/(?:\bname|\.name)\s*=\s*j\.\[key\]|j\.\[key\]\s*=\s*(?:\bname|\w+\.name)/);
+ assert.doesNotMatch(envelope,/DATABASE_DEFAULT|Turkish_CI_AS|LOWER\(|UPPER\(/i);
+ assert.match(envelope,/COUNT\(\*\) FROM OPENJSON\(r\.row_json\)\)<>\(SELECT COUNT\(\*\) FROM sys\.columns/);
+ assert.match(envelope,/COUNT\(DISTINCT \[key\]\) FROM OPENJSON\(r\.row_json\)\)<>\(SELECT COUNT\(\*\)/);
+ assert.match(envelope,/COUNT\(DISTINCT row_key\) FROM @i\)<>@ic/);assert.match(envelope,/row_key IS NULL/);
+ assert.match(sql,/expected\.column_name COLLATE Latin1_General_100_BIN2,expected\.type_name COLLATE Latin1_General_100_BIN2/);
+ assert.match(sql,/EXCEPT SELECT c\.name COLLATE Latin1_General_100_BIN2,t\.name COLLATE Latin1_General_100_BIN2/);
+ assert.match(sql,/SELECT \[key\],\[value\] COLLATE Latin1_General_100_BIN2,\[type\] FROM OPENJSON/);
+});
+
+test('compiler keeps case-distinct column names and key lookups exact and rejects a case-substituted required native key',()=>{
+ const f=fixture(),id=f.before.columnsJson.find(c=>c.tableName==='products'&&c.columnName==='id');
+ for(const columnName of ['I','i'])f.before.columnsJson.push({...id,columnName,is_identity:false});
+ const sql=prepareCanonicalBusinessSaleEffects(f).guardDefinition;
+ assert(sql.includes("(N'products',N'I',N'bigint'"));assert(sql.includes("(N'products',N'i',N'bigint'"));
+ assert(sql.includes("j.[key]=N'after_json'"));assert(!sql.includes("j.[key]=N'AFTER_JSON'"));
+ assert(sql.includes('c.name COLLATE Latin1_General_100_BIN2=j.[key] COLLATE Latin1_General_100_BIN2'));
+ const wrong=fixture();wrong.before.columnsJson.find(c=>c.tableName==='products'&&c.columnName==='id').columnName='ID';
+ assert.throws(()=>prepareCanonicalBusinessSaleEffects(wrong),{code:'B6_EFFECTS_REQUIRED_TABLE'});
+ const conflict=fixture();conflict.addon.columnsJson.push({...id,typeName:'nvarchar'});
+ assert.throws(()=>prepareCanonicalBusinessSaleEffects(conflict),{code:'B6_EFFECTS_DUPLICATE_COLUMN'});
+});

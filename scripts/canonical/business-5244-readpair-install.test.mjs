@@ -136,6 +136,53 @@ win('an unattempted pre-stop abort removes only its own marker while the authent
  if($server.HasExited-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($active)))-cne$hash){throw 'PRESTOP_CANCEL_CHANGED_OWNER_OR_ENTRY'}
  `),'PASS');
 });
+
+const routerFixture=activeFixture
+ .replace("$entries=@(1..6", "$routerRoot=Join-Path $PSScriptRoot 'router';[void][IO.Directory]::CreateDirectory($routerRoot);$routerActive=Join-Path $routerRoot 'start-business-5244-readpair-router.ps1';[IO.File]::WriteAllText($routerActive,'inert-router-entry');$routerEntryHash=Get-Business5244StartupHash ([IO.File]::ReadAllBytes($routerActive));$coreManifest=$oldHash;$script:oldRoot=$routerRoot;$script:oldHash=('b'*64)\n$entries=@(1..6")
+ .replace("foreach($row in @($entries)+@($direct|Where-Object{$_.path-cne$active})){Hold-B6ReadPairEntry $row.path $hash}",String.raw`$direct+=,[pscustomobject]@{path=$routerActive;sha256=$routerEntryHash};$b6.owner.predecessorEntryKind='ReadPairRouter';$b6.owner.core.manifestSha256=$coreManifest;$b6.owner.core|Add-Member files @([pscustomobject]@{path='run-current-owner.ps1';sha256=$hash});$b6.owner|Add-Member router ([pscustomobject]@{root=$routerRoot;manifestSha256=$oldHash;entrySha256=$routerEntryHash});$b6.owner.entry=[pscustomobject]@{root=$routerRoot;leaf='start-business-5244-readpair-router.ps1';sha256=$routerEntryHash;manifestSha256=$oldHash};$b6.entryCapture.directEntries=$direct
+foreach($row in @($entries)+@($direct|Where-Object{$_.path-cnotin@($active,$routerActive)})){Hold-B6ReadPairEntry $row.path $hash}`)
+ .replace('param($Name,$Entry);$f=', 'param($Name,$Entry,$Router);$routerHold=[IO.File]::Open($Router,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$f=')
+ .replace("+$active+'\"';$si.UseShellExecute", "+$active+'\" \"'+$routerActive+'\"';$si.UseShellExecute");
+win('a typed ReadPairRouter holds exactly router plus core current read shares then upgrades both only after the same native stop',()=>{
+ assert.equal(activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;$descriptors=@(Get-B6ReadPairActiveEntry)
+ if($h.items.Count-ne2-or$descriptors.Count-ne2-or$h.items[0].path-cne$routerActive-or$h.items[1].path-cne$active-or$held.Count-ne11){throw 'TYPED_ROUTER_SET_NOT_EXACT_TWO'}
+ foreach($item in $h.items){if($item.holdMode-cne'Shared'){throw 'ROUTER_ACTIVE_NOT_SHARED'};$extra=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$extra.Dispose();$extra=$null;$denied=$false;try{$w=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::ReadWrite);$w.Dispose()}catch{$denied=$true};if(!$denied){throw 'ROUTER_ACTIVE_WRITABLE'}}
+ Stop-ReadPairColdOwner;Assert-B6ReadPairEntryHandoffReady
+ if($result.stopCalls-ne1-or$h.phase-cne'ExclusiveVerified'-or$h.lease-or!$h.marker.Deleted-or(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'ROUTER_DUAL_UPGRADE_UNCONFIRMED'}
+ foreach($item in $held){if($item.holdMode-cne'Exclusive'){throw 'ROUTER_ENTRY_NOT_EXCLUSIVE'};$denied=$false;try{$r=[IO.File]::Open($item.path,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$r.Dispose()}catch{$denied=$true};if(!$denied){throw 'ROUTER_EXCLUSIVE_SHARE_LOST'}}
+ `,'',routerFixture),'PASS');
+});
+win('a second active-entry upgrade conflict preserves the first exclusive handle, second shared seal and durable pending marker',()=>{
+ assert.equal(activeRun(String.raw`
+ $control.Stop();$extra=[IO.File]::Open($active,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$denied=$false;try{Complete-B6ReadPairActiveEntryHandoff}catch{$denied=$true};$h=Get-B6ReadPairActiveHandoff
+ if(!$denied-or$h.phase-cne'FailedShared'-or$h.items[0].holdMode-cne'Exclusive'-or$h.items[1].holdMode-cne'Shared'-or!$h.lease-or$h.marker.Deleted){throw 'PARTIAL_DUAL_UPGRADE_LOST_EXCLUSION'}
+ foreach($item in $h.items){if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $item.stream))-cne$item.beforeHash){throw 'PARTIAL_DUAL_ENTRY_BYTES_CHANGED'}}
+ foreach($call in @('ready','start','restore','close')){$denied=$false;try{switch($call){ready{Assert-B6ReadPairEntryHandoffReady}start{Start-ReadPairPreparedOwner}restore{Restore-ReadPairBeforeRetire -OldStopped $true}close{Close-ReadPairPublication}}}catch{$denied=$true};if(!$denied){throw 'PARTIAL_DUAL_HANDOFF_CONTINUED'}}
+ Exit-Business5244StartupLease $h.lease;$h.lease=$null;$h.marker.CloseRetained();$denied=$false;try{$l=Enter-Business5244StartupLease -Kind Owner;Exit-Business5244StartupLease $l}catch{if($_.Exception.Message-cne'BUSINESS_5244_RETIREMENT_RECOVERY_REQUIRED'){throw};$denied=$true};if(!$denied-or$script:startCalls){throw 'PARTIAL_DUAL_DURABILITY_LOST'}
+ `,'',routerFixture),'PASS');
+});
+win('typed router descriptors reject missing duplicate foreign and mismatched core entries before any native stop or marker creation',()=>{
+ assert.equal(activeRun(String.raw`
+ if($control.CompletedStop-or$server.HasExited-or$result.stopCalls-or(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'INVALID_ROUTER_DESCRIPTOR_EFFECT'}
+ `,String.raw`
+ $script:skipAutomaticHold=$true;$originalFiles=$b6.owner.core.files;$originalEntry=$b6.owner.entry.PSObject.Copy();$originalDirect=$b6.entryCapture.directEntries
+ foreach($kind in @('coreHash','missingCore','duplicateCore','foreignRouter','wrongCaseKind','directCoreHash','duplicateDirectCore')){
+  $b6.owner.core.files=$originalFiles;$b6.owner.entry=$originalEntry.PSObject.Copy();$b6.owner.predecessorEntryKind='ReadPairRouter';$b6.entryCapture.directEntries=@($originalDirect|ForEach-Object{$_.PSObject.Copy()})
+  switch($kind){coreHash{$b6.owner.core.files=@([pscustomobject]@{path='run-current-owner.ps1';sha256=('f'*64)})}missingCore{$b6.owner.core.files=@()}duplicateCore{$b6.owner.core.files=@($originalFiles)+@($originalFiles)}foreignRouter{$b6.owner.entry.root=Join-Path $PSScriptRoot 'foreign'}wrongCaseKind{$b6.owner.predecessorEntryKind='readpairrouter'}directCoreHash{($b6.entryCapture.directEntries|Where-Object{$_.path-ceq$active}).sha256=('f'*64)}duplicateDirectCore{$b6.entryCapture.directEntries+=@($b6.entryCapture.directEntries|Where-Object{$_.path-ceq$active})}}
+  $denied=$false;try{Get-B6ReadPairActiveEntry|Out-Null}catch{$denied=$true};if(!$denied){throw ('INVALID_ROUTER_DESCRIPTOR_ADMITTED_'+$kind)}
+ }
+ $b6.owner.core.files=$originalFiles;$b6.owner.entry=$originalEntry;$b6.owner.predecessorEntryKind='ReadPairRouter';$b6.entryCapture.directEntries=$originalDirect
+ `,routerFixture),'PASS');
+});
+win('typed ReadPairRouter argv retains its exact old router scope while Current recovery remains a separate fixed core entry',()=>{
+ assert.equal(run(String.raw`
+ $script:b6=@{owner=[pscustomobject]@{predecessorEntryKind='ReadPairRouter';core=@{root='C:\fixed\old-core';manifestSha256=('a'*64)};router=@{root='C:\fixed\old-router';manifestSha256=('b'*64)};entry=@{root='C:\fixed\old-router';leaf='start-business-5244-readpair-router.ps1';manifestSha256=('b'*64)}};routerRoot='C:\fixed\new-router';routerHash=('c'*64);coreRoot='C:\fixed\new-core';coreHash=('d'*64)}
+ $old=Get-B6ReadPairOwnerArguments 'C:\fixed\old-router' ('b'*64);$current=Get-B6ReadPairOwnerArguments 'C:\fixed\new-core' ('d'*64)
+ if($old-cnotmatch'start-business-5244-readpair-router.ps1 -ManifestSha256 B{64} -ScopeName TEST125-API-B6-ca620bac-20261028$'-or$current-cnotmatch'run-current-owner.ps1 -ManifestSha256 D{64}$'-or$current-cmatch'ScopeName'){throw 'TYPED_ROUTER_ARGV_CHANGED'}
+ foreach($kind in @('leaf','root','hash','kind')){$entry=$b6.owner.entry.PSObject.Copy();$k=$b6.owner.predecessorEntryKind;switch($kind){leaf{$b6.owner.entry.leaf='run-current-owner.ps1'}root{$b6.owner.entry.root='C:\foreign'}hash{$b6.owner.entry.manifestSha256=('e'*64)}kind{$b6.owner.predecessorEntryKind='Router'}};$denied=$false;try{Get-B6ReadPairOwnerArguments 'C:\fixed\old-router' ('b'*64)|Out-Null}catch{$denied=$true};$b6.owner.entry=$entry;$b6.owner.predecessorEntryKind=$k;if(!$denied){throw 'TYPED_ROUTER_ARGV_WIDENED'}};'PASS'
+ `),'PASS');
+});
 win('normal sequence admits exact target, one cold handoff and one retire before independently verified commit',()=>{assert.equal(run(inert+`$r=Invoke-ReadPairInstallSequence;if($r-cne'CandidateVerified'-or($calls-join'|')-cne'open|target|coldstop|start|ready|retire|readback|CandidateVerified|close'){throw 'ORDER'};'PASS'`),'PASS');});
 win('ACK loss never resends retire and requires readonly final readback',()=>{assert.equal(run(inert+`function Send-ReadPairSingleRetire{$calls.Add('retire');throw 'ACK_LOST'};$r=Invoke-ReadPairInstallSequence;if($r-cne'CandidateVerified'-or@($calls|Where-Object {$_-ceq'retire'}).Count-ne1-or$calls.Contains('restore:True')-or!$calls.Contains('ACK_UNCONFIRMED_READONLY_RECONCILIATION')){throw 'REPLAYED'};'PASS'`),'PASS');});
 win('native paired rollback is a distinct verified result, never a second controller API write',()=>{assert.equal(run(inert+`function Wait-ReadPairFinalState{return 'RollbackVerified'};$r=Invoke-ReadPairInstallSequence;if($r-cne'RollbackVerified'-or$calls.Contains('restore:True')-or@($calls|Where-Object {$_-ceq'retire'}).Count-ne1){throw 'ROLLBACK_REPLAYED'};'PASS'`),'PASS');});
@@ -217,3 +264,14 @@ $process=[Diagnostics.Process]::Start($info);[void]$process.Handle;$wrong=$null;
   elseif(!$denied-or$calls.Contains('start')){throw 'UNVERIFIED_RECOVERY_STARTED'}
  }
 }finally{$process.Dispose();if($wrong){$wrong.Dispose()}};'PASS'`),'PASS');});
+
+win('legacy READ2b real active-entry hold treats the explicit null descriptor as no work and never reads a B6 control or marker',()=>{
+ assert.equal(run(String.raw`
+ $script:ScopeName='TEST125-API-READ2b-20261028-41d3c213';$script:touched=0
+ $script:control=[pscustomobject]@{};$control|Add-Member ScriptMethod Validate {$script:touched++;throw 'UNEXPECTED_LEGACY_CONTROL'}
+ function Get-B6ReadPairActiveHandoff{$script:touched++;throw 'UNEXPECTED_LEGACY_HANDOFF'}
+ function Get-Business5244RetirementPendingPath{$script:touched++;throw 'UNEXPECTED_LEGACY_PENDING'}
+ $raw=@(Get-B6ReadPairActiveEntry);if($raw.Count-ne1-or$null-ne$raw[0]){throw 'EXPLICIT_NULL_CANARY_NOT_EXERCISED'}
+ Hold-B6ReadPairActiveEntry;if($script:touched){throw 'LEGACY_NULL_ENTERED_B6_PATH'};'PASS'
+ `),'PASS');
+});

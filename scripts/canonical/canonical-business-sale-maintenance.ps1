@@ -8,11 +8,11 @@ function Read-ErpBusinessSalePinnedFile([string]$Path,[string]$Hash){
  $bytes=[IO.File]::ReadAllBytes($Path);if((Get-ErpBusinessSaleHash $bytes)-cne$Hash){throw 'B6_NATIVE_INPUT_CHANGED'};return ,$bytes
 }
 function Get-ErpBusinessSaleNativeInputs {
- $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private'
- $artifactBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-artifact-20261028.json') '4c66f2e48beda43e6ab420d053b3ddaf24410f96bc6ff56242ba7821e188128b'
+ $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-collation-source-20261029'
+ $artifactBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-artifact-20261028.json') '07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0'
  $descriptorBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json') 'ed70836fbe3a8fe99c6f64d5ea0b7325084a57d5f2aa1b616998e5e5793921b1'
  $a=[Text.Encoding]::UTF8.GetString($artifactBytes)|ConvertFrom-Json;$d=[Text.Encoding]::UTF8.GetString($descriptorBytes)|ConvertFrom-Json
- if($a.revisionHash-cne'9F232D0D83754017B37E23E16D67DAD71AE3A53ABAEFBBDA867DB5C46D90F6AF'-or$a.profileHash-cne'9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9'-or$a.installable-ne$false-or$a.executeAllowed-ne$false-or$a.nativeCompiled-ne$false-or@($a.changedModules).Count-ne25-or@($a.newModules).Count-ne31-or@($d.readerDefinitions.PSObject.Properties).Count-ne14-or($a.appDescriptor|ConvertTo-Json -Depth 32 -Compress)-cne($d|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_NATIVE_SOURCE_SCOPE'}
+ if($a.revisionHash-cne'F05B63189AFC7A5BAF6E5686631CC3B793ECF73F94C472DB32747138EBAFC7C8'-or$a.profileHash-cne'9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9'-or$a.installable-ne$false-or$a.executeAllowed-ne$false-or$a.nativeCompiled-ne$false-or@($a.changedModules).Count-ne25-or@($a.newModules).Count-ne31-or@($d.readerDefinitions.PSObject.Properties).Count-ne14-or($a.appDescriptor|ConvertTo-Json -Depth 32 -Compress)-cne($d|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_NATIVE_SOURCE_SCOPE'}
  foreach($batch in @($a.applyBatches)+@($a.inverseBatches)){if(!$batch.sql-or(Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($batch.sql))).ToUpperInvariant()-cne$batch.sourceHash){throw 'B6_NATIVE_BATCH_HASH'}}
  return [pscustomobject]@{artifact=$a;descriptor=$d;artifactHash=(Get-ErpBusinessSaleHash $artifactBytes)}
 }
@@ -24,7 +24,7 @@ function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
  return $copy
 }
 function Read-ErpBusinessSaleOwnerSource {
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE';$manifestPath=Join-Path $root 'owner-manifest.json'
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_OWNER_SOURCE_BUNDLE_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
  $bytes=[IO.File]::ReadAllBytes($manifestPath);$manifest=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
@@ -42,7 +42,7 @@ function Get-ErpBusinessSaleTaskLauncherPins($PreparedReleaseProof){
  $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof
  if(!$proof.PSObject.Properties['businessSaleOwnerPins']-or!$proof.businessSaleOwnerPins){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
  $proof.seal.Validate();$pins=$proof.businessSaleOwnerPins
- if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
+ if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
  return ($pins|ConvertTo-Json -Compress|ConvertFrom-Json)
 }
 function Get-ErpBusinessSaleNativeAdmissionContext($Admission){
@@ -51,8 +51,8 @@ function Get-ErpBusinessSaleNativeAdmissionContext($Admission){
  # Revalidate the immutable bytes without repeatedly parsing the 11 MB SQL
  # snapshot on the time-bounded request path. SQL execution separately loads
  # fresh pinned inputs rather than using a mutable retained object as SQL.
- if($record.inputHash-cne'4c66f2e48beda43e6ab420d053b3ddaf24410f96bc6ff56242ba7821e188128b'){throw 'B6_NATIVE_INPUT_CHANGED'}
- $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private'
+ if($record.inputHash-cne'07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0'){throw 'B6_NATIVE_INPUT_CHANGED'}
+ $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-collation-source-20261029'
  [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-artifact-20261028.json') $record.inputHash)
  [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json') 'ed70836fbe3a8fe99c6f64d5ea0b7325084a57d5f2aa1b616998e5e5793921b1')
  return $record
@@ -204,7 +204,7 @@ function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse'
    [void](Assert-ErpBusinessSaleNativeQuiescence $r)
   }
   $tx=$connection.BeginTransaction([Data.IsolationLevel]::Serializable)
-  Invoke-ErpBusinessSaleSqlBatch $connection $tx "DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'melisa-b6-finite-revision-9F232D0D',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51917,'B6_NATIVE_LOCK_REQUIRED',1;"
+  Invoke-ErpBusinessSaleSqlBatch $connection $tx "DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'melisa-b6-finite-revision-F05B6318',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51917,'B6_NATIVE_LOCK_REQUIRED',1;"
   $batches=if($Direction-ceq'Inverse'){$nativeInputs.artifact.inverseBatches}else{$nativeInputs.artifact.applyBatches}
   foreach($batch in $batches){Invoke-ErpBusinessSaleSqlBatch $connection $tx $batch.sql}
   if($Direction-ceq'Rehearse'){
