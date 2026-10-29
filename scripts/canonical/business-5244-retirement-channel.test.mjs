@@ -41,6 +41,60 @@ $observer.Dispose();$denied=$false;try{$observer.ValidateExited()}catch{if($_.Ex
  server.stdin.end();const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);
  client.stdin.end();const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);assert.match(cr.stdout,/PASS/);
 });
+test('managed completion observes a cooperative disposable exit and reuses only its retained marker proof',win,async t=>{
+ const f=await fixture(t);
+ const server=await child(f,String.raw`Initialize-Business5244RetirementPeer;$pipe=[Business5244RetirementPipe]::CreateServer()
+try{[Console]::WriteLine('READY');[Console]::Out.Flush();$pipe.WaitForConnection();[Console]::ReadLine()|Out-Null}finally{$pipe.Dispose();[Console]::WriteLine('FINALLY');[Console]::Out.Flush()}`,'managed-exit-server');
+ assert.equal(await server.line(),'READY');
+ const client=await child(f,`Initialize-Business5244RetirementPeer
+Add-Type -TypeDefinition @'
+using System;using System.Reflection;using System.Threading;
+public static class ManagedExitThreadProbe {public static string Check(object control,object observation){string answer=null;var thread=new Thread(()=>{try{control.GetType().GetMethod("CompleteManagedExit").Invoke(control,new object[]{observation});answer="ACCEPTED";}catch(TargetInvocationException e){answer=e.InnerException.Message;}});thread.Start();thread.Join();return answer;}}
+'@
+$pipe=[Business5244RetirementPipe]::Connect();$peer=[Business5244RetirementPeer]::CaptureServer($pipe);$control=$null;$observer=$null;$marker=$null
+try{
+ if($peer.Pid-ne${server.pid}){throw 'NOT_OUR_DISPOSABLE_SERVER'}
+ $control=$peer.OpenControlledShutdown();$observer=$peer.OpenExitObservation();$discard=$peer.OpenControlledShutdown();$discard.Dispose();$disposedObserver=$peer.OpenExitObservation();$disposedObserver.Dispose()
+ $birth=$control.TargetBirth;$directory=${q(path.join(f.directory,'admission-runtime'))};[void][IO.Directory]::CreateDirectory($directory)
+ $marker=$control.CreateMaintenanceMarker([Text.Encoding]::UTF8.GetBytes('isolated-managed-exit-fixture'));$marker.Validate()
+ $denied=$false;try{$control.CompleteManagedExit($observer)}catch{$denied=$true};if(!$denied-or$control.CompletedStop){throw 'LIVE_OWNER_COMPLETED'}
+ $denied=$false;try{$marker.DeleteForCompletedStop()}catch{$denied=$true};if(!$denied-or$marker.Deleted){throw 'LIVE_MARKER_DELETED'}
+ if([ManagedExitThreadProbe]::Check($control,$observer)-ceq'ACCEPTED'-or$control.CompletedStop){throw 'LIVE_FOREIGN_THREAD_COMPLETED'}
+ $peer.Dispose();$pipe.Dispose();[Console]::WriteLine('OBSERVING');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null
+ $observer.ValidateExited()
+ foreach($invalid in @($null,$disposedObserver,($observer|ConvertTo-Json|ConvertFrom-Json))){$denied=$false;try{$control.CompleteManagedExit($invalid)}catch{$denied=$true};if(!$denied-or$control.CompletedStop){throw 'INVALID_OBSERVATION_COMPLETED'}}
+ $denied=$false;try{$discard.CompleteManagedExit($observer)}catch{$denied=$true};if(!$denied-or$discard.CompletedStop){throw 'DISPOSED_CONTROL_COMPLETED'}
+ if([ManagedExitThreadProbe]::Check($control,$observer)-ceq'ACCEPTED'-or$control.CompletedStop){throw 'EXITED_FOREIGN_THREAD_COMPLETED'}
+ $copy=$control|ConvertTo-Json|ConvertFrom-Json;$copy.CompletedStop=$true;$denied=$false;try{$copy.ValidateCompletedStop()}catch{$denied=$true};if(!$denied-or$control.CompletedStop){throw 'SERIALIZED_COMPLETION_AUTHORITY'}
+ $denied=$false;try{$marker.DeleteForCompletedStop()}catch{$denied=$true};if(!$denied-or$marker.Deleted){throw 'OBSERVATION_ALONE_DELETED_MARKER'}
+ $control.CompleteManagedExit($observer);$control.ValidateCompletedStop();$control.ValidateCompletedStop()
+ if(!$control.CompletedStop-or$control.TargetPid-ne${server.pid}-or$control.TargetBirth-cne$birth){throw 'MANAGED_COMPLETION_IDENTITY'}
+ $denied=$false;try{$control.CompleteManagedExit($observer)}catch{if($_.Exception.InnerException.Message-cne'RETIREMENT_CONTROL_STOP_REPLAY'){throw};$denied=$true};if(!$denied){throw 'MANAGED_COMPLETION_REPLAY'}
+ $marker.DeleteForCompletedStop();if(!$marker.Deleted){throw 'MANAGED_MARKER_NOT_DELETED'}
+ $control.Dispose();$denied=$false;try{$control.ValidateCompletedStop()}catch{$denied=$true};if(!$denied){throw 'DISPOSED_COMPLETION_VALIDATED'};'PASS'
+}finally{if($marker){$marker.CloseRetained()};if($observer){$observer.Dispose()};if($control){$control.Dispose()};$peer.Dispose();$pipe.Dispose()}`,'managed-exit-client');
+ assert.equal(await client.line(),'OBSERVING');server.stdin.end();const sr=await server.finished;assert.equal(sr.code,0,sr.stderr);assert.match(sr.stdout,/FINALLY/);
+ client.stdin.end();const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);assert.match(cr.stdout,/PASS/);
+});
+
+test('managed completion cannot exchange genuine observations across two disposable server generations',win,async t=>{
+ const f=await fixture(t),serverBody=String.raw`Initialize-Business5244RetirementPeer;$pipe=[Business5244RetirementPipe]::CreateServer();try{[Console]::WriteLine('READY');[Console]::Out.Flush();$pipe.WaitForConnection();$pipe.WriteByte(1);$pipe.Flush();[Console]::ReadLine()|Out-Null}finally{$pipe.Dispose()}`;
+ const first=await child(f,serverBody,'managed-generation-first');assert.equal(await first.line(),'READY');
+ const client=await child(f,`Initialize-Business5244RetirementPeer;$firstControl=$null;$firstObserver=$null;$nextControl=$null;$nextObserver=$null
+try{
+ $p=[Business5244RetirementPipe]::Connect();if($p.ReadByte()-ne1){throw 'FIRST_PIPE_NOT_CONNECTED'};$peer=[Business5244RetirementPeer]::CaptureServer($p);if($peer.Pid-ne${first.pid}){throw 'NOT_OUR_DISPOSABLE_FIRST'};$firstControl=$peer.OpenControlledShutdown();$firstObserver=$peer.OpenExitObservation();$peer.Dispose();$p.Dispose()
+ [Console]::WriteLine('FIRST_BOUND');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null;$firstObserver.ValidateExited()
+ [Console]::WriteLine('NEXT_READY');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null
+ $p=[Business5244RetirementPipe]::Connect();if($p.ReadByte()-ne1){throw 'NEXT_PIPE_NOT_CONNECTED'};$peer=[Business5244RetirementPeer]::CaptureServer($p);$nextControl=$peer.OpenControlledShutdown();$nextObserver=$peer.OpenExitObservation();$peer.Dispose();$p.Dispose()
+ if($nextControl.TargetPid-eq$firstControl.TargetPid-and$nextControl.TargetBirth-ceq$firstControl.TargetBirth){throw 'SAME_GENERATION_FIXTURE'}
+ [Console]::WriteLine('NEXT_BOUND');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null;$nextObserver.ValidateExited()
+ foreach($pair in @(@($firstControl,$nextObserver),@($nextControl,$firstObserver))){$denied=$false;try{$pair[0].CompleteManagedExit($pair[1])}catch{if($_.Exception.InnerException.Message-cne'RETIREMENT_CONTROL_MANAGED_TARGET_MISMATCH'){throw};$denied=$true};if(!$denied-or$pair[0].CompletedStop){throw 'FOREIGN_GENERATION_COMPLETED'}}
+ $firstControl.CompleteManagedExit($firstObserver);$nextControl.CompleteManagedExit($nextObserver);$firstControl.ValidateCompletedStop();$nextControl.ValidateCompletedStop();'PASS'
+}finally{foreach($item in @($firstObserver,$nextObserver,$firstControl,$nextControl)){if($item){$item.Dispose()}}}`,'managed-generation-client');
+ assert.equal(await client.line(),'FIRST_BOUND');first.stdin.end();const fr=await first.finished;assert.equal(fr.code,0,fr.stderr);client.stdin.write('first-exited\n');assert.equal(await client.line(),'NEXT_READY');
+ const next=await child(f,serverBody,'managed-generation-next');assert.equal(await next.line(),'READY');client.stdin.write('next-ready\n');assert.equal(await client.line(),'NEXT_BOUND');next.stdin.end();const nr=await next.finished;assert.equal(nr.code,0,nr.stderr);client.stdin.end();const cr=await client.finished;assert.equal(cr.code,0,cr.stderr);assert.match(cr.stdout,/PASS/);
+});
+
 test('separate admission accepts a valid body after input deadline while preserving exact peer/reference guards',win,async t=>{
  const f=await fixture(t),isolate=await isolatedAdmission(f);
  const server=await child(f,isolate+serverStart+acceptAdmission+String.raw`

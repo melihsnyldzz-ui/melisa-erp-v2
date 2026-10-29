@@ -10,7 +10,7 @@ function Get-Test125MaintenanceTaskLauncher($Config,[string]$ScopeName='TEST125-
  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$Mode-ceq'Candidate'){
   if($null-eq$PreparedReleaseProof){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
   $pins=Get-ErpBusinessSaleTaskLauncherPins $PreparedReleaseProof
-  if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION\start-owned-test.ps1'-or$pins.sha256-cnotmatch'^[a-fA-F0-9]{64}$'-or$pins.coreManifestSha256-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
+  if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH\start-owned-test.ps1'-or$pins.sha256-cnotmatch'^[a-fA-F0-9]{64}$'-or$pins.coreManifestSha256-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
   if((Get-FileHash -LiteralPath $pins.path -Algorithm SHA256).Hash-ine$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
   return $pins.path
  }

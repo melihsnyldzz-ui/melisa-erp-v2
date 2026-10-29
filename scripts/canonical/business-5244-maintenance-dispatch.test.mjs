@@ -81,6 +81,34 @@ function Set-PublishedRollbackFixture{
  if(!$script:r.dispatch.rollbackFailureWitness){throw 'RECOVERY_PUBLISHED_PROOF_MISSING'}
 }
 `;
+win('sealed rehearsal-only transition publishes Current without Candidate and an authenticated replay has no effect',()=>{
+ assert.equal(recoverRun(String.raw`try{
+ $script:apiToken|Add-Member rehearsalOnly $true;$script:apiContext|Add-Member rehearsalOnly $true
+ function Invoke-Test125ReadPairApiTransition($Transition,$Mode){[void](Assert-Test125ReadPairIssued $Transition);$script:apiCalls.Add($Mode);if($Mode-cne'RehearseOnly'){throw 'ISOLATED_APPLY_OR_ROLLBACK_UNEXPECTED'}}
+ $result=Invoke-Business5244OwnerMaintenance $state $channel $script:request $script:apiToken
+ if($result.mode-cne'Rollback'-or$script:apiCalls.Count-ne1-or$script:apiCalls[0]-cne'RehearseOnly'-or$script:counts.reset-ne0-or$script:counts.spawn-ne1-or$script:r.dispatch.candidateNative-or!$script:r.native.ChildAlive()){throw 'REHEARSAL_NOT_CURRENT_ONLY'}
+ $saved=$script:counts.Clone();$again=Invoke-Business5244OwnerMaintenance $state $channel $script:request $script:apiToken
+ if(!$again.replayed-or$script:apiCalls.Count-ne1){throw 'REHEARSAL_REQUEST_REPLAYED'};foreach($key in $saved.Keys){if($script:counts[$key]-ne$saved[$key]){throw 'REHEARSAL_REPLAY_EFFECT'}}
+ `),'PASS');
+});
+win('failed rehearsal-only transition uses the existing Current rollback without Candidate or a second rehearsal',()=>{
+ assert.equal(recoverRun(String.raw`try{
+ $script:apiToken|Add-Member rehearsalOnly $true;$script:apiContext|Add-Member rehearsalOnly $true
+ function Invoke-Test125ReadPairApiTransition($Transition,$Mode){[void](Assert-Test125ReadPairIssued $Transition);$script:apiCalls.Add($Mode);if($Mode-ceq'RehearseOnly'){throw 'ISOLATED_NATIVE_REHEARSE_FAILURE'};if($Mode-cne'Rollback'){throw 'ISOLATED_APPLY_UNEXPECTED'}}
+ $result=Invoke-Business5244OwnerMaintenance $state $channel $script:request $script:apiToken
+ if($result.mode-cne'Rollback'-or($script:apiCalls-join'|')-cne'RehearseOnly|Rollback'-or$script:counts.reset-ne1-or$script:nativeWriterCalls-or$script:beforeReads-ne0-or!$script:r.native.ChildAlive()){throw ('FAILED_REHEARSAL_REPLAYED_NATIVE:'+($script:apiCalls-join'|')+':reset='+$script:counts.reset+':writes='+$script:nativeWriterCalls+':before='+$script:beforeReads)}
+ `),'PASS');
+});
+win('rehearsal Current commit acknowledgment loss reads back the same archive without a second rollback or rehearsal',()=>{
+ assert.equal(recoverRun(String.raw`try{
+ $script:apiToken|Add-Member rehearsalOnly $true;$script:apiContext|Add-Member rehearsalOnly $true
+ function Invoke-Test125ReadPairApiTransition($Transition,$Mode){[void](Assert-Test125ReadPairIssued $Transition);$script:apiCalls.Add($Mode);if($Mode-cne'RehearseOnly'){throw 'ISOLATED_SECOND_NATIVE_ATTEMPT'}}
+ $script:completeOriginal=(Get-Command Complete-Business5244OwnedMaintenance).ScriptBlock
+ function Complete-Business5244OwnedMaintenance{param($State,$ReplacementNative,$Pins,$Mode,$PlanHash);& $script:completeOriginal $State $ReplacementNative $Pins $Mode $PlanHash;throw 'ISOLATED_CURRENT_COMMIT_ACK_LOSS'}
+ $result=Invoke-Business5244OwnerMaintenance $state $channel $script:request $script:apiToken
+ if($result.mode-cne'Rollback'-or!$result.replayed-or$script:apiCalls.Count-ne1-or$script:counts.spawn-ne1-or$script:counts.reset-ne0-or$script:counts.complete-ne1-or$script:r.phase-cne'Running'){throw 'CURRENT_ACK_LOSS_REPLAYED_EFFECT'}
+ `),'PASS');
+});
 // Keep cleanup scoped to the actual native creation objects and disposable
 // Local mutex/held streams above. It never queries or stops installed PIDs.
 function recoverRun(body){return run(recoverySetup+body+'}'+cleanup.replace('finally{','finally{$script:recoverySeal.Dispose();foreach($owned in (Get-Business5244StartupRecord $lease).ownedNatives){$owned.Dispose()};'),{recovery:true});}

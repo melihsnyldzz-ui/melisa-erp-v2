@@ -91,7 +91,22 @@ function Invoke-Business5244OwnerMaintenance {
   $r=Get-Business5244RetirementState $State
   Assert-Business5244StartupLease -Lease $r.lease -Kind Maintenance
   if($r.phase -cne 'Retired' -or !$r.native.RetirementConfirmed){throw 'BUSINESS_5244_DISPATCH_RETIREMENT_UNCONFIRMED'}
-  if($null -ne $ApiTransition){$d.stage='ApiCandidate';Invoke-Test125ReadPairApiTransition -Transition $ApiTransition -Mode Candidate|Out-Null;[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Candidate)}
+  if($null -ne $ApiTransition){
+   if($ApiTransition.PSObject.Properties['rehearsalOnly']-and$ApiTransition.rehearsalOnly){
+    $apiContext=Assert-Test125ReadPairIssued $ApiTransition
+    if($apiContext.rehearsalOnly-isnot[bool]-or!$apiContext.rehearsalOnly){throw 'B6_REHEARSAL_ONLY_PURPOSE_REQUIRED'}
+    # Use the same proved retirement, exclusive lease and Current rollback
+    # publication. The finite native capability forbids Apply independently.
+    $d.stage='ApiRehearsal';Invoke-Test125ReadPairApiTransition -Transition $ApiTransition -Mode RehearseOnly|Out-Null
+    [void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)
+    $d.stage='RollbackStarting';$d.rollbackNative=New-Business5244PinnedChild -Pins $d.plan.rollback -Lease $r.lease
+    $d.stage='RollbackPublishing';Publish-Business5244RetiredRecord -State $State -ReplacementNative $d.rollbackNative -Mode Rollback -Pins $d.plan.rollback
+    $d.stage='RollbackCommitting';Complete-Business5244OwnedMaintenance -State $State -ReplacementNative $d.rollbackNative -Pins $d.plan.rollback -Mode Rollback -PlanHash $d.planHash
+    $r=Get-Business5244RetirementState $State;Complete-Business5244DispatchResult $r $d $d.rollbackNative Rollback
+    return Get-Business5244DispatchResult $r $d $false
+   }
+   $d.stage='ApiCandidate';Invoke-Test125ReadPairApiTransition -Transition $ApiTransition -Mode Candidate|Out-Null;[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Candidate)
+  }
   $d.stage='CandidateStarting'
   $d.candidateNative=New-Business5244PinnedChild -Pins $d.plan.candidate -Lease $r.lease
   $d.stage='CandidatePublishing'
@@ -115,6 +130,10 @@ function Invoke-Business5244OwnerMaintenance {
   # same bound child/plan/result can reconcile it; no write or stop is replayed.
   if($d.stage -ceq 'CandidateCommitting' -and (Test-Business5244DispatchCommitted $r $d $d.candidateNative Candidate)){
    Complete-Business5244DispatchResult $r $d $d.candidateNative Candidate
+   return Get-Business5244DispatchResult $r $d $true
+  }
+  if($d.stage -ceq 'RollbackCommitting' -and (Test-Business5244DispatchCommitted $r $d $d.rollbackNative Rollback)){
+   Complete-Business5244DispatchResult $r $d $d.rollbackNative Rollback
    return Get-Business5244DispatchResult $r $d $true
   }
   if((Test-Business5244DispatchUncertain $r $failure) -or $r.phase -cnotin @('Retired','Published','Committing')){$r.phase='Unknown';$d.phase='Blocked';throw 'BUSINESS_5244_MAINTENANCE_RECOVERY_REQUIRED'}

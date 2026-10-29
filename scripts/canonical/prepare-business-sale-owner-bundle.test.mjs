@@ -12,7 +12,7 @@ function fixture(options={}){
  const tempRoot=fs.realpathSync.native(options.tempRoot??process.env.RUNNER_TEMP??os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(tempRoot,'b6-owner-passive-'))),inputs=new Map(),blobs=new Map(),overrides=new Map(),open=new Set();let writes=0,context;
  const head='f'.repeat(40),win=path.win32,base='C:\\Sirket\\ERP\\worktrees\\erp-p03-pr53-candidate-20261018';
  const value=name=>vm.runInContext(name,context);
- function output(p){for(const [logical,leaf] of [[value('CORE'),'core'],[value('ROUTER'),'router'],[value('PROOF'),'proof'],[value('CURRENT_SUPERSESSION_CORE'),'current-core'],[value('CURRENT_SUPERSESSION_PROOF'),'current-proof'],[value('INITIALIZER_CLEAN_CORE'),'initializer-core'],[value('INITIALIZER_CLEAN_PROOF'),'initializer-proof']])if(p===logical||p.startsWith(logical+'\\'))return path.join(temp,leaf,...win.relative(logical,p).split('\\').filter(Boolean));return null;}
+ function output(p){for(const [logical,leaf] of [[value('CORE'),'core'],[value('ROUTER'),'router'],[value('PROOF'),'proof'],[value('CURRENT_SUPERSESSION_CORE'),'current-core'],[value('CURRENT_SUPERSESSION_PROOF'),'current-proof'],[value('INITIALIZER_CLEAN_CORE'),'initializer-core'],[value('INITIALIZER_CLEAN_PROOF'),'initializer-proof'],[value('REHEARSAL_CORE'),'rehearsal-core'],[value('REHEARSAL_ROUTER'),'rehearsal-router'],[value('REHEARSAL_PROOF'),'rehearsal-proof']])if(p===logical||p.startsWith(logical+'\\'))return path.join(temp,leaf,...win.relative(logical,p).split('\\').filter(Boolean));return null;}
  const attemptedReads=[];
  const fakeFs={lstatSync(p){if(options.reparse===p)return {isSymbolicLink:()=>true};const out=output(String(p));if(out&&fs.existsSync(out))return fs.lstatSync(out);return {isSymbolicLink:()=>false};},readFileSync(p){p=String(p);attemptedReads.push(p);if(options.lockedPaths?.has(p))throw Object.assign(Error('EBUSY'),{code:'EBUSY'});if(inputs.has(p))return Buffer.from(inputs.get(p));const out=output(p);if(out)return fs.readFileSync(out);if(p.startsWith(base+'\\scripts\\canonical\\'))return Buffer.from(blobs.get(win.basename(p))??Buffer.from('missing'));throw Error('UNEXPECTED_READ');},existsSync(p){const out=output(String(p));return out?fs.existsSync(out):inputs.has(String(p));},mkdirSync(p){const out=output(String(p));assert(out,'only temporary output roots');writes++;return fs.mkdirSync(out);},openSync(p,flag){assert.equal(flag,'wx');const out=output(String(p));assert(out,'only temporary output roots');writes++;const fd=fs.openSync(out,flag);open.add(fd);return fd;},writeFileSync(fd,b){assert(open.has(fd));return fs.writeFileSync(fd,b);},fsyncSync(fd){assert(open.has(fd));fs.fsyncSync(fd);},closeSync(fd){assert(open.delete(fd));fs.closeSync(fd);}};
  const fakeCrypto={createHash(){const collected=[];return {update(b){collected.push(Buffer.from(b));return this;},digest(type){assert.equal(type,'hex');const b=Buffer.concat(collected);return overrides.get(b.toString('hex'))??sha(b);}};}};
@@ -25,7 +25,7 @@ function fixture(options={}){
   else payload={jobs:['windows-startup-test','quality-build-test','secret-scan'].map(name=>({name,status:'completed',conclusion:options.jobFailure===name?'failure':'success',steps:options.emptySteps?[]:[{conclusion:'success'}]}))};
   return JSON.stringify(payload);
  }};
- context=vm.createContext({fs:fakeFs,path:win,crypto:fakeCrypto,cp:fakeCp,fileURLToPath:()=>options.frozenEntry?value(options.initializerClean?'INITIALIZER_CLEAN_VERIFIER':options.currentSupersession?'CURRENT_SUPERSESSION_VERIFIER':'VERIFIED_PRODUCER'):win.join(base,'scripts','canonical','prepare-business-sale-owner-bundle.mjs'),pathToFileURL:p=>({href:p}),process:{platform:'win32',argv:options.frozenEntry?['node','fixed',options.initializerClean?'--verify-initializer-clean-recovery':options.currentSupersession?'--verify-current-supersession':'--verify']:[],stdout:{write(){assert.fail('no import output');}},stderr:{write(){assert.fail('no import output');}}},URL,Buffer,Map,Set,__metaUrl:'file:///C:/Sirket/ERP/worktrees/erp-p03-pr53-candidate-20261018/scripts/canonical/prepare-business-sale-owner-bundle.mjs'});
+ context=vm.createContext({fs:fakeFs,path:win,crypto:fakeCrypto,cp:fakeCp,fileURLToPath:()=>options.frozenEntry?value(options.rehearsal?'REHEARSAL_VERIFIER':options.initializerClean?'INITIALIZER_CLEAN_VERIFIER':options.currentSupersession?'CURRENT_SUPERSESSION_VERIFIER':'VERIFIED_PRODUCER'):win.join(base,'scripts','canonical','prepare-business-sale-owner-bundle.mjs'),pathToFileURL:p=>({href:p}),process:{platform:'win32',argv:options.frozenEntry?['node','fixed',options.rehearsal?'--verify-rehearsal':options.initializerClean?'--verify-initializer-clean-recovery':options.currentSupersession?'--verify-current-supersession':'--verify']:[],stdout:{write(){assert.fail('no import output');}},stderr:{write(){assert.fail('no import output');}}},URL,Buffer,Map,Set,__metaUrl:'file:///C:/Sirket/ERP/worktrees/erp-p03-pr53-candidate-20261018/scripts/canonical/prepare-business-sale-owner-bundle.mjs'});
  const vmSource=options.checkoutEol==='crlf'?source.replaceAll('\r\n','\n').replaceAll('\n','\r\n'):options.checkoutEol==='lf'?source.replaceAll('\r\n','\n'):source;
  vm.runInContext(vmSource.replace(/^import .*;$/gm,'').replaceAll('export ','').replaceAll('import.meta.url','__metaUrl'),context);
  // Git show returns committed LF text, independently of the runner checkout
@@ -55,7 +55,7 @@ function fixture(options={}){
  mutatePinnedJson(win.join(value('PRIVATE'),'current-read2b-owner-capture.json'),inputPins['current-read2b-owner-capture.json'],c=>{c.core.sourceCommit=value('OLD_SOURCE');c.core.files=JSON.parse(inputs.get(win.join(oldCore,'owner-manifest.json'))).files;});
  // The new mode has a separate passive fixed case, not a Running old-owner
  // admission. All bytes below stay in this VM and its disposable outputs.
- if(options.currentSupersession||options.initializerClean){
+ if(options.currentSupersession||options.initializerClean||options.rehearsal){
  const sqlCore=value('CORE'),sqlRouter=value('ROUTER'),supPins=value('CURRENT_SUPERSESSION_INPUTS'),supPrivate=value('CURRENT_SUPERSESSION_PRIVATE');
  const sqlFiles=[...value('BUSINESS_SALE_OWNER_SOURCE_FILES'),'run-current-owner.ps1'].map(name=>{const b=Buffer.from('# synthetic sql-collation '+name),sha256=name==='run-current-owner.ps1'?value('SQLCOLLATION_CURRENT_HASH'):sha(b);inputs.set(win.join(sqlCore,name),b);overrides.set(b.toString('hex'),sha256);return {path:name,sha256,bytes:b.length};});
  const sqlManifest=Buffer.from(JSON.stringify({kind:'BUSINESS5244_FRESH_OWNER_BUNDLE',finiteScope:value('SCOPE'),sourceCommit:value('SQLCOLLATION_SOURCE'),actualT1:false,externalOperations:false,files:sqlFiles}));inputs.set(win.join(sqlCore,'owner-manifest.json'),sqlManifest);overrides.set(sqlManifest.toString('hex'),value('SQLCOLLATION_CORE_HASH'));
@@ -67,7 +67,7 @@ function fixture(options={}){
  const boundary={schema:'melisa-5244-current-supersession-boundary.v1',readOnly:true,executionAuthority:false,caseSha256:supPins['supersession-fixed-case.json'],processes:fixedCase.protectedProcesses.map(p=>({pid:p.OwningProcess,birth:'134377128007700884',exe:String.raw`C:\Program Files\nodejs\node.exe`,parent:1000,argvSha256:'a'.repeat(64)})),task:{name:'Melisa-ERP-TEST-Canonical',path:'\\',xmlSha256:'e959af0b36ea9d2bd0fabdd6371174c4bd406258e64dc904e38833f79820d99a',sddlSha256:'cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4'},writes:0,serviceCalls:0,sqlCalls:0};
  for(const [name,b] of [['oldpending.before.bin',pending],['oldrecord.before.json',record],['supersession-fixed-case.json',Buffer.from(JSON.stringify(fixedCase))],['current-entry-hold-capture.json',Buffer.from(JSON.stringify(supEntries))],['protected-boundary.json',Buffer.from(JSON.stringify(boundary))]]){inputs.set(win.join(supPrivate,name),b);overrides.set(b.toString('hex'),supPins[name]);}
  }
- if(options.initializerClean){
+ if(options.initializerClean||options.rehearsal){
  const priv=value('INITIALIZER_CLEAN_PRIVATE'),pins=value('INITIALIZER_CLEAN_INPUTS'),oldPriv=value('CURRENT_SUPERSESSION_PRIVATE'),oldPins=value('CURRENT_SUPERSESSION_INPUTS'),originalRoot=value('CURRENT_SUPERSESSION_CORE');
  const readOld=name=>JSON.parse(inputs.get(win.join(oldPriv,name))),c=readOld('supersession-fixed-case.json'),entries=readOld('current-entry-hold-capture.json'),boundary=readOld('protected-boundary.json');
  const originalFiles=[...value('BUSINESS_SALE_OWNER_SOURCE_FILES'),'run-current-owner.ps1','install-business-5244-readpair.ps1'].sort().map(name=>{const b=Buffer.from('# synthetic original initializer '+name),sha256=name==='run-current-owner.ps1'?value('INITIALIZER_ORIGINAL_ENTRY_HASH'):sha(b);inputs.set(win.join(originalRoot,name),b);overrides.set(b.toString('hex'),sha256);return {path:name,sha256,bytes:b.length};});
@@ -78,8 +78,20 @@ function fixture(options={}){
  const newEntries={...entries,directEntries:[...entries.directEntries,{path:target.entryPath,sha256:value('INITIALIZER_ORIGINAL_ENTRY_HASH')}]},newBoundary={...boundary,schema:'melisa-5244-current-initializer-clean-boundary.v1',caseSha256:pins['initializer-fixed-case.json']};
  for(const [name,b] of [['initializer-fixed-case.json',Buffer.from(JSON.stringify(capture))],['initializer.pending.before.json',Buffer.from(JSON.stringify(pending))],['records.before.json',inputs.get(win.join(oldPriv,'oldrecord.before.json'))],['entry-hold-capture.json',Buffer.from(JSON.stringify(newEntries))],['protected-boundary.json',Buffer.from(JSON.stringify(newBoundary))],['original-retirement.before.bin',inputs.get(win.join(oldPriv,'oldpending.before.bin'))]]){inputs.set(win.join(priv,name),b);overrides.set(b.toString('hex'),pins[name]);}
  }
+ if(options.rehearsal){
+  const priv=value('REHEARSAL_PRIVATE'),pins=value('REHEARSAL_INPUTS'),core=value('INITIALIZER_CLEAN_CORE');
+  const coreHash='6440b313e11bf61a4efaf11c1067630f08632169e6fbbf7c866d0b63e22da2f0',entryHash='ebc933faf015aadc32be74f7abeaef66252ef3bc72dc52ebac265ced9ed577e5';
+  const files=[...value('BUSINESS_SALE_OWNER_SOURCE_FILES'),'run-current-owner.ps1','install-business-5244-readpair.ps1'].sort().map(name=>{const b=Buffer.from('# synthetic current initializer '+name),sha256=name==='run-current-owner.ps1'?entryHash:sha(b);inputs.set(win.join(core,name),b);overrides.set(b.toString('hex'),sha256);return {path:name,sha256,bytes:b.length};});
+  const currentManifest=Buffer.from(JSON.stringify({kind:'CURRENT_INITIALIZER_CLEAN_BUNDLE',finiteScope:value('SCOPE'),sourceCommit:'1e6ff9f0fa4467cb532c26182b1334558b13bfaa',initialSlot:'Current',actualT1:false,externalOperations:false,installed:false,recordingEnabled:false,files}));inputs.set(win.join(core,'owner-manifest.json'),currentManifest);overrides.set(currentManifest.toString('hex'),coreHash);
+  const webRecord={port:5244,pid:44612,entry:'vite-preview',sourceCommit:'2b744f5b9ebda05b1355602126b1a8e5f114be83',root:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-2b744f5b-API-READ`,backendPort:4144,businessWorkfaceId:'ERP-5244-REALDATA-20261027'};
+  const exe=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
+  const capture={schema:'melisa-b6-current-read2b-owner-capture.v1',predecessorEntryKind:'CurrentInitializerClean',entry:{sha256:entryHash,postExitExclusiveBytesRequired:true,leaf:'run-current-owner.ps1',root:core,manifestSha256:coreHash,runtimeEntryBytesVerified:false},readOnly:true,stopAuthorized:false,recordPath:String.raw`C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json`,recordBeforeFile:'current-erp-processes.before.json',recordBeforeSha256:pins['current-erp-processes.before.json'],webRecord,owner:{pid:31212,birth:'134377334934998450',exe,argv:'"'+exe+'" -NoProfile -NonInteractive -WindowStyle Hidden -File '+win.join(core,'run-current-owner.ps1')+' -ManifestSha256 '+coreHash.toUpperCase()+' -ScopeName '+value('SCOPE')},child:{pid:44612,parent:31212,birth:'134377336265107097'},nativeStatus:{reply:'Status',state:{phase:'Running',ownerPid:31212,ownerBirth:'134377334934998450',childPid:44612,childBirth:'134377336265107097'},childObservationOnly:true,nativePeerVerified:true,stopAuthorized:false},installedApiManifest:'8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090',installedWebManifest:'91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd',serviceCalls:0,sqlCalls:0,retireCalls:0};
+  const prior=JSON.parse(inputs.get(win.join(value('INITIALIZER_CLEAN_PRIVATE'),'entry-hold-capture.json'))),entries={...prior,schema:'melisa-b6-rehearsal-current-entry-capture.v1',ownerCaptureSha256:pins['current-read2b-owner-capture.json'],directEntries:[...prior.directEntries,{path:win.join(core,'run-current-owner.ps1'),sha256:entryHash}],postExitExclusiveEntryCount:18,runtimeValidationComplete:false};
+  const task={schema:'melisa-b6-task-capture.v1',readOnly:true,taskPath:'\\Melisa-ERP-TEST-Canonical',instanceCount:1,enginePid:46232,xmlSha256:pins['current-task.before.xml'],sddlSha256:pins['current-task.before.sddl'],writes:0};
+  for(const [name,b]of [['current-read2b-owner-capture.json',Buffer.from(JSON.stringify(capture))],['current-erp-processes.before.json',Buffer.from(JSON.stringify([webRecord]))],['current-entry-hold-capture.json',Buffer.from(JSON.stringify(entries))],['current-task-capture.json',Buffer.from(JSON.stringify(task))],['current-task.before.xml',Buffer.from('<inert-fixture/>')],['current-task.before.sddl',Buffer.from('INERT_SDDL')]]){inputs.set(win.join(priv,name),b);overrides.set(b.toString('hex'),pins[name]);}
+ }
  function mutatePinnedJson(p,pin,update){const object=JSON.parse(inputs.get(p));update(object);const b=Buffer.from(JSON.stringify(object));inputs.set(p,b);overrides.set(b.toString('hex'),pin);}
- return {temp,context,inputs,blobs,attemptedReads,mutatePinnedJson,values:value,run:()=>vm.runInContext('prepareBusinessSaleOwnerBundle()',context),verify:()=>vm.runInContext('verifyBusinessSaleOwnerBundle()',context),runCurrent:()=>vm.runInContext('prepareBusinessSaleCurrentSupersessionBundle()',context),verifyCurrent:()=>vm.runInContext('verifyBusinessSaleCurrentSupersessionBundle()',context),runInitializer:()=>vm.runInContext('prepareBusinessSaleInitializerCleanRecoveryBundle()',context),verifyInitializer:()=>vm.runInContext('verifyBusinessSaleInitializerCleanRecoveryBundle()',context),writes:()=>writes,output,close(){assert.equal(open.size,0);const resolved=path.resolve(temp);assert.equal(path.dirname(resolved).toLowerCase(),tempRoot.toLowerCase());assert(path.basename(resolved).startsWith('b6-owner-passive-'));assert(!fs.lstatSync(resolved).isSymbolicLink());for(const sub of ['core','router','proof','current-core','current-proof','initializer-core','initializer-proof']){const directory=path.join(resolved,sub);if(!fs.existsSync(directory))continue;assert(!fs.lstatSync(directory).isSymbolicLink());for(const leaf of fs.readdirSync(directory)){assert(!/[\\/]/.test(leaf));const target=path.resolve(directory,leaf);assert(target.startsWith(resolved+path.sep));assert(fs.lstatSync(target).isFile());fs.unlinkSync(target);}fs.rmdirSync(directory);}fs.rmdirSync(resolved);}};
+ return {temp,context,inputs,blobs,attemptedReads,mutatePinnedJson,values:value,run:()=>vm.runInContext('prepareBusinessSaleOwnerBundle()',context),verify:()=>vm.runInContext('verifyBusinessSaleOwnerBundle()',context),runCurrent:()=>vm.runInContext('prepareBusinessSaleCurrentSupersessionBundle()',context),verifyCurrent:()=>vm.runInContext('verifyBusinessSaleCurrentSupersessionBundle()',context),runInitializer:()=>vm.runInContext('prepareBusinessSaleInitializerCleanRecoveryBundle()',context),verifyInitializer:()=>vm.runInContext('verifyBusinessSaleInitializerCleanRecoveryBundle()',context),runRehearsal:()=>vm.runInContext('prepareBusinessSaleRehearsalBundle()',context),verifyRehearsal:()=>vm.runInContext('verifyBusinessSaleRehearsalBundle()',context),writes:()=>writes,output,close(){assert.equal(open.size,0);const resolved=path.resolve(temp);assert.equal(path.dirname(resolved).toLowerCase(),tempRoot.toLowerCase());assert(path.basename(resolved).startsWith('b6-owner-passive-'));assert(!fs.lstatSync(resolved).isSymbolicLink());for(const sub of ['core','router','proof','current-core','current-proof','initializer-core','initializer-proof','rehearsal-core','rehearsal-router','rehearsal-proof']){const directory=path.join(resolved,sub);if(!fs.existsSync(directory))continue;assert(!fs.lstatSync(directory).isSymbolicLink());for(const leaf of fs.readdirSync(directory)){assert(!/[\\/]/.test(leaf));const target=path.resolve(directory,leaf);assert(target.startsWith(resolved+path.sep));assert(fs.lstatSync(target).isFile());fs.unlinkSync(target);}fs.rmdirSync(directory);}fs.rmdirSync(resolved);}};
 }
 test('producer writes only isolated roots and pins exact13 source files with distinct committed owner/application identities',()=>{
  const f=fixture();try{const result=f.run();assert.equal(result.ownerSourceCommit,'f'.repeat(40));assert.equal(result.businessSaleSourceCommit,'ca620bac30f96034b33d4410dc43576a38a38707');assert.equal(result.coreFiles,13);assert.equal(result.beforeImages,6);assert.equal(result.installed,false);assert.equal(result.executable,false);assert.equal(result.ownerCalls,0);assert.equal(result.sqlCalls,0);
@@ -284,4 +296,72 @@ test('Initializer passive packaging defers exactly sixteen owned entries while C
   options.lockedPaths.add(p);assert.throws(f.runInitializer,/EBUSY/);assert.equal(f.writes(),0);
  }finally{f.close();}}
  const f2=fixture({initializerClean:true});try{for(const text of ["currentSupersessionCase('true')","currentSupersessionHistories({deferOwnedEntries:true})"])assert.throws(()=>f2.values(text),/FIXED_ACTION/);}finally{f2.close();}
+});
+
+test('Rehearsal generation preserves historical render bytes and keeps its Current fallback separate from PrepareCurrent',()=>{
+ const f=fixture({rehearsal:true});try{
+  assert.equal(sha(f.values("renderCurrent('f'.repeat(40))")),'ed6aca18956aaf74bd79ae2567e4eee175558619ea463c94afbdca5e65601b24');
+  assert.equal(sha(f.values("renderRouter('f'.repeat(40),'a'.repeat(64),'b'.repeat(64))")),'f647fa3635220b0564c815a970743cab947892604ccc869e595aa76f027b90a6');
+  const current=f.values("renderCurrent('f'.repeat(40),'Rehearsal').toString()"),router=f.values("renderRouter('f'.repeat(40),'a'.repeat(64),'b'.repeat(64),'Rehearsal').toString()");
+  assert(current.includes(f.values('REHEARSAL_CORE')));assert(router.includes(f.values('REHEARSAL_ROUTER')));
+  assert.match(current,/rehearsalOnly-isnot\[bool\]/);assert.match(current,/postExitExclusiveEntryCount-ne18/);
+  assert.match(current,/Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName/);assert(!current.includes('-PrepareReadPair'));
+  assert.match(router,/if\(\$mode-cne'PrepareCurrent'\)/);assert.match(router,/-InitialSlot Current -PrepareReadPair/);assert(!router.includes('-InitialSlot ReadPair'));
+  for(const value of [null,true,'rehearsal',{core:'foreign'}]){f.context.invalidGeneration=value;assert.throws(()=>f.values("ownerGeneration(invalidGeneration)"),/FIXED_GENERATION/);}
+  assert.equal(f.writes(),0);
+ }finally{f.close();}
+});
+
+test('Rehearsal predecessor is the exact Current initializer and leaves eighteen entry-byte checks to the real post-exit gate',()=>{
+ const options={rehearsal:true,lockedPaths:new Set()},f=fixture(options);try{
+  const priv=f.values('REHEARSAL_PRIVATE'),capture=JSON.parse(f.inputs.get(path.win32.join(priv,'current-entry-hold-capture.json'))),paths=[...capture.entries.map(e=>e.path),...capture.directEntries.map(e=>e.path)];
+  assert.equal(paths.length,18);assert.equal(new Set(paths).size,18);for(const p of paths)options.lockedPaths.add(p);
+  const result=f.values('rehearsalPredecessor()');assert.equal(result.inputs.size,6);assert.equal(result.capture.owner.pid,31212);assert.equal(result.capture.child.pid,44612);assert.equal(result.capture.entry.runtimeEntryBytesVerified,false);assert.equal(result.capture.entry.postExitExclusiveBytesRequired,true);
+  assert.equal(f.attemptedReads.some(p=>options.lockedPaths.has(p)),false);assert(f.attemptedReads.includes(capture.gate.path));assert.equal(f.writes(),0);
+ }finally{f.close();}
+});
+
+test('Rehearsal constructor rejects wrong identity, purpose, task, current pair and entry scope without output writes',()=>{
+ for(const kind of ['owner','birth','child','argv','kind','native','pair','runtimeClaim','missingPostExit','entryCount','entryHash','task','currentSource']){
+  const f=fixture({rehearsal:true});try{
+   const names=f.values('REHEARSAL_INPUTS'),priv=f.values('REHEARSAL_PRIVATE'),leaf=kind.startsWith('entry')?'current-entry-hold-capture.json':kind==='task'?'current-task-capture.json':'current-read2b-owner-capture.json';
+   if(kind==='currentSource')f.inputs.set(path.win32.join(f.values('INITIALIZER_CLEAN_CORE'),'business-5244-retirement-peer.cs'),Buffer.from('changed'));
+   else f.mutatePinnedJson(path.win32.join(priv,leaf),names[leaf],c=>{switch(kind){case'owner':c.owner.pid++;break;case'birth':c.owner.birth='old';break;case'child':c.child.pid++;break;case'argv':c.owner.argv+=' -PrepareReadPair';break;case'kind':c.predecessorEntryKind='ReadPairRouter';break;case'native':c.nativeStatus.stopAuthorized=true;break;case'pair':c.installedApiManifest='0'.repeat(64);break;case'runtimeClaim':c.entry.runtimeEntryBytesVerified=true;break;case'missingPostExit':c.entry.postExitExclusiveBytesRequired=false;break;case'entryCount':c.directEntries.pop();break;case'entryHash':c.directEntries[11].sha256='0'.repeat(64);break;case'task':c.enginePid++;break;}});
+   assert.throws(()=>f.values('rehearsalPredecessor()'));assert.equal(f.writes(),0);
+  }finally{f.close();}
+ }
+});
+
+test('Rehearsal package pins thirteen committed modules, purpose metadata and fresh six before-images without replacing old outputs',()=>{
+ const f=fixture({rehearsal:true});try{
+  const result=f.runRehearsal(),before=f.writes(),core=f.output(f.values('REHEARSAL_CORE')),router=f.output(f.values('REHEARSAL_ROUTER')),m=JSON.parse(fs.readFileSync(path.join(core,'owner-manifest.json'))),r=JSON.parse(fs.readFileSync(path.join(router,'owner-manifest.json')));
+  for(const object of [result,m,r]){assert.equal(object.rehearsalOnly,true);assert.equal(object.runtimeValidationComplete,false);assert.equal(object.postExitExclusiveEntryCount,18);assert.equal(object.postExitExclusiveBytesRequired,true);}
+  assert.equal(result.executable,false);assert.equal(result.executionAuthority,false);assert.equal(result.beforeImages,6);assert.equal(m.files.length,13);assert.equal(m.beforeImages.length,6);assert.equal(m.predecessor.predecessorEntryKind,'CurrentInitializerClean');assert.equal(m.installed,false);assert.equal(m.recordingEnabled,false);
+  for(const row of m.files){const b=fs.readFileSync(path.join(core,row.path));assert.equal(sha(b),row.sha256);assert.equal(b.length,row.bytes);}
+  assert.equal(f.verifyRehearsal().coreManifestSha256,result.coreManifestSha256);assert.equal(f.writes(),before);assert.throws(f.runRehearsal,/OUTPUT_EXISTS/);assert.equal(f.writes(),before);
+  for(const root of ['CORE','ROUTER','CURRENT_SUPERSESSION_CORE','INITIALIZER_CLEAN_CORE'])assert(!fs.existsSync(f.output(f.values(root))));
+ }finally{f.close();}
+});
+
+test('Rehearsal preparation remains closed for missing source, dirty Git and failed exact hosted CI',()=>{
+ for(const options of [{dirty:true},{ciFailure:true},{jobFailure:'secret-scan'},{missingBlob:'canonical-business-sale-maintenance.ps1'}]){
+  const f=fixture({rehearsal:true,...options});try{assert.throws(f.runRehearsal);assert.equal(f.writes(),0);}finally{f.close();}
+ }
+});
+
+test('Rehearsal verification rejects purpose, runtime-proof or payload changes and the frozen entry cannot prepare',()=>{
+ for(const kind of ['purpose','runtimeClaim','entryCount','corePayload','routerPayload','receipt','receiptCounters','frozenVerify','frozenPrepare','wrongAction']){
+  const options={rehearsal:true},f=fixture(options);try{
+   f.runRehearsal();const before=f.writes(),core=f.output(f.values('REHEARSAL_CORE')),router=f.output(f.values('REHEARSAL_ROUTER')),proof=f.output(f.values('REHEARSAL_PROOF'));
+   if(['purpose','runtimeClaim','entryCount'].includes(kind)){const p=path.join(core,'owner-manifest.json'),m=JSON.parse(fs.readFileSync(p));if(kind==='purpose')m.rehearsalOnly=false;else if(kind==='runtimeClaim')m.runtimeValidationComplete=true;else m.postExitExclusiveEntryCount=17;fs.writeFileSync(p,JSON.stringify(m));}
+   else if(kind==='corePayload')fs.writeFileSync(path.join(core,'canonical-business-sale-maintenance.ps1'),'changed');
+   else if(kind==='routerPayload')fs.writeFileSync(path.join(router,'start-business-5244-readpair-router.ps1'),'changed');
+   else if(kind==='receipt'||kind==='receiptCounters'){const p=path.join(proof,'preparation-receipt.json'),m=JSON.parse(fs.readFileSync(p));if(kind==='receipt')m.executionAuthority=true;else m.sqlCalls=1;fs.writeFileSync(p,JSON.stringify(m));}
+   else{options.frozenEntry=true;f.values("process.argv=['node','fixed','"+(kind==='wrongAction'?'--verify':'--verify-rehearsal')+"']");}
+   if(kind==='frozenVerify'){assert.equal(f.verifyRehearsal().writes,0);assert.throws(f.runRehearsal,/SOURCE_ENTRY/);}
+   else if(kind==='frozenPrepare')assert.throws(f.runRehearsal,/SOURCE_ENTRY/);
+   else assert.throws(f.verifyRehearsal);
+   assert.equal(f.writes(),before);
+  }finally{f.close();}
+ }
 });

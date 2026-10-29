@@ -54,16 +54,28 @@ public sealed class Business5244RetirementPeer:IDisposable {
  // no change to the normal status/retire protocol or its permissions.
  public ControlledShutdown OpenControlledShutdown(){Validate();if(!serverPeer)throw new Exception("RETIREMENT_CONTROL_SERVER_PEER_REQUIRED");return new ControlledShutdown(this);}
  public sealed class ControlledShutdown:IDisposable {
-  IntPtr handle;readonly long birth;readonly string sid;readonly uint issuer;readonly int thread;bool attempted;
+  IntPtr handle;readonly long birth;readonly string sid,issuerBirth;readonly uint issuer;readonly int thread;bool attempted;
   public bool CompletedStop{get;private set;}
   public uint TargetPid{get;private set;}public string TargetBirth{get{return birth.ToString(System.Globalization.CultureInfo.InvariantCulture);}}
   internal ControlledShutdown(Business5244RetirementPeer peer){
-   peer.Validate();issuer=GetCurrentProcessId();thread=System.Threading.Thread.CurrentThread.ManagedThreadId;TargetPid=peer.Pid;birth=peer.birth;sid=peer.sid;
+   peer.Validate();issuer=GetCurrentProcessId();issuerBirth=CurrentBirth;thread=System.Threading.Thread.CurrentThread.ManagedThreadId;TargetPid=peer.Pid;birth=peer.birth;sid=peer.sid;
    handle=OpenProcess(0x00101001,false,TargetPid);
    try{Validate();peer.Validate();}catch{Dispose();throw;}
   }
   public void Validate(){long a,b,c,d;if(issuer!=GetCurrentProcessId()||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||handle==IntPtr.Zero||!GetProcessTimes(handle,out a,out b,out c,out d)||a!=birth||WaitForSingleObject(handle,0)!=258||sid!=CurrentSid||ProcessSid(handle)!=sid)throw new Exception("RETIREMENT_CONTROL_NATIVE_TARGET_CHANGED");}
   public void Stop(){Validate();if(attempted)throw new Exception("RETIREMENT_CONTROL_STOP_REPLAY");attempted=true;if(!TerminateProcess(handle,1)||WaitForSingleObject(handle,10000)!=0)throw new Exception("RETIREMENT_CONTROL_STOP_UNCONFIRMED");CompletedStop=true;ValidateCompletedStop();}
+  // Observe a supported cooperative exit through two independently retained
+  // native handles. This method never requests termination or accepts a PID,
+  // serialized observation or caller-supplied completion flag.
+  public void CompleteManagedExit(ExitObservation observation){
+   long a,b,c,d;
+   if(attempted)throw new Exception("RETIREMENT_CONTROL_STOP_REPLAY");
+   if(issuer!=GetCurrentProcessId()||issuerBirth!=CurrentBirth||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||sid!=CurrentSid||handle==IntPtr.Zero||!GetProcessTimes(handle,out a,out b,out c,out d)||a!=birth||WaitForSingleObject(handle,0)!=0)throw new Exception("RETIREMENT_CONTROL_MANAGED_EXIT_UNCONFIRMED");
+   if(observation==null)throw new Exception("RETIREMENT_CONTROL_MANAGED_OBSERVATION_REQUIRED");
+   observation.ValidateExited();
+   if(observation.TargetPid!=TargetPid||observation.TargetBirth!=TargetBirth)throw new Exception("RETIREMENT_CONTROL_MANAGED_TARGET_MISMATCH");
+   attempted=true;CompletedStop=true;ValidateCompletedStop();
+  }
   public void ValidateCompletedStop(){long a,b,c,d;if(!attempted||!CompletedStop||issuer!=GetCurrentProcessId()||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||handle==IntPtr.Zero||!GetProcessTimes(handle,out a,out b,out c,out d)||a!=birth||WaitForSingleObject(handle,0)!=0||sid!=CurrentSid)throw new Exception("RETIREMENT_CONTROL_COMPLETED_STOP_REQUIRED");}
   public MaintenanceMarker CreateMaintenanceMarker(byte[] bytes){Validate();if(attempted)throw new Exception("RETIREMENT_CONTROL_STOP_ALREADY_ATTEMPTED");return new MaintenanceMarker(this,bytes);}
   public void Dispose(){if(handle!=IntPtr.Zero){CloseHandle(handle);handle=IntPtr.Zero;}}

@@ -7,10 +7,10 @@ import {execFileSync} from 'node:child_process';
 const dir=import.meta.dirname,ps=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'",win={skip:process.platform!=='win32'};
 function run(body){return execFileSync(ps,['-NoProfile','-NonInteractive','-Command','$s=[Console]::In.ReadToEnd();&([scriptblock]::Create($s))'],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;foreach($m in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules/'+$m+'/'+$m+'.psd1'))};. ${q(path.join(dir,'canonical-business-sale-maintenance.ps1'))};${body}`,encoding:'utf8',timeout:30000,windowsHide:true}).trim();}
 const fixture=String.raw`
-function Read-ErpBusinessSalePinnedFile {param($Path,$Hash);if($Hash-cnotin@('07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0','ed70836fbe3a8fe99c6f64d5ea0b7325084a57d5f2aa1b616998e5e5793921b1')){throw 'FIXTURE_INPUT_PIN'};return ,([byte[]](0))}
-function Get-ErpBusinessSaleNativeInputs {if(Get-Variable pinnedFixtureArtifact -Scope Script -ErrorAction SilentlyContinue){return [pscustomobject]@{artifactHash='07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0';artifact=($script:pinnedFixtureArtifact|ConvertTo-Json -Depth 32|ConvertFrom-Json)}};return [pscustomobject]@{artifactHash='07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0'}}
-$cap=[pscustomobject]@{schema='fixture-cap';id='fixture'}
-$r=[pscustomobject]@{token=$cap;tokenJson=($cap|ConvertTo-Json -Compress);closed=$false;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;inputHash='07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0';phase='Prepared';candidateBytes=[byte[]](1,2,3);profilePath='fixture-profile';profileBeforeHash='fixture-before';transition=$null;rehearsed=$false;backup=$null;backupSignature=$null;journalHash=$null;events=[Collections.ArrayList]::new();inputs=[pscustomobject]@{artifact=[pscustomobject]@{applyBatches=@([pscustomobject]@{sql='apply-before'},[pscustomobject]@{sql='apply-after'});inverseBatches=@([pscustomobject]@{sql='inverse-history-cas'},[pscustomobject]@{sql='inverse-before'})}}}
+function Read-ErpBusinessSalePinnedFile {param($Path,$Hash);if($Hash-cnotin@('35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe','050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024')){throw 'FIXTURE_INPUT_PIN'};return ,([byte[]](0))}
+function Get-ErpBusinessSaleNativeInputs {if(Get-Variable pinnedFixtureArtifact -Scope Script -ErrorAction SilentlyContinue){return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';artifact=($script:pinnedFixtureArtifact|ConvertTo-Json -Depth 32|ConvertFrom-Json)}};return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'}}
+$cap=[pscustomobject]@{schema='fixture-cap';id='fixture';rehearsalOnly=$false}
+$r=[pscustomobject]@{token=$cap;tokenJson=($cap|ConvertTo-Json -Compress);closed=$false;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;inputHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';phase='Prepared';rehearsalOnly=$false;rehearsalAttempted=$false;rehearsalFailed=$false;candidateBytes=[byte[]](1,2,3);profilePath='fixture-profile';profileBeforeHash='fixture-before';transition=$null;rehearsed=$false;backup=$null;backupSignature=$null;journalHash=$null;events=[Collections.ArrayList]::new();inputs=[pscustomobject]@{artifact=[pscustomobject]@{applyBatches=@([pscustomobject]@{sql='apply-before'},[pscustomobject]@{sql='apply-after'});inverseBatches=@([pscustomobject]@{sql='inverse-history-cas'},[pscustomobject]@{sql='inverse-before'})}}}
 [void]$script:ErpBusinessSaleAdmissions.Add($r)
 function Reject([scriptblock]$f){$failed=$false;try{&$f|Out-Null}catch{$failed=$true};if(!$failed){throw 'EXPECTED_REJECTION'}}
 `;
@@ -35,6 +35,109 @@ function Test-ErpBusinessSaleVerifiedBackup {param($Record,$Connection);[void]$s
 function Test-ErpBusinessSaleBefore {param($Inputs);[void]$script:trace.Add('before-readback')}
 function Test-ErpBusinessSaleAfter {param($Inputs);[void]$script:trace.Add('after-readback');if($script:fail-ceq'after-readback'){throw 'AFTER_CHANGED'}}
 `;
+
+test('new frozen permission artifact pins reject old revision, scope drift and descriptor mismatch',win,()=>{
+ assert.equal(run(String.raw`
+$script:descriptor=[pscustomobject]@{readerDefinitions=[pscustomobject]@{}}
+1..14|ForEach-Object{$script:descriptor.readerDefinitions|Add-Member NoteProperty ('reader'+$_) ('A'*64)}
+$sql='offline-fixture-no-executor';$hash=(Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($sql))).ToUpperInvariant()
+$script:artifact=[pscustomobject]@{revisionHash='DEBAFECB1915AEC135E58107F64EE4243D7B93E3C091799EB8E4F29500C477DE';profileHash='9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9';installable=$false;executeAllowed=$false;nativeCompiled=$false;changedModules=@(1..25);newModules=@(1..31);appDescriptor=$script:descriptor;applyBatches=@([pscustomobject]@{sql=$sql;sourceHash=$hash});inverseBatches=@()}
+function Read-ErpBusinessSalePinnedFile {
+ param($Path,$Hash)
+ $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-permission-snapshot-source-20261029'
+ if($Path-ceq(Join-Path $root 'b6-native-complete-source-artifact-20261028.json')-and$Hash-ceq'35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'){return ,([Text.Encoding]::UTF8.GetBytes(($script:artifact|ConvertTo-Json -Depth 32)))}
+ if($Path-ceq(Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json')-and$Hash-ceq'050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024'){return ,([Text.Encoding]::UTF8.GetBytes(($script:descriptor|ConvertTo-Json -Depth 32)))}
+ throw 'WRONG_FROZEN_INPUT_PIN'
+}
+[void](Get-ErpBusinessSaleNativeInputs)
+$saved=$script:artifact|ConvertTo-Json -Depth 32
+foreach($case in @('old','profile','installable','executeAllowed','nativeCompiled','changed','new','readers','descriptor','batch')){
+ $script:artifact=$saved|ConvertFrom-Json
+ switch($case){old{$script:artifact.revisionHash='F05B63189AFC7A5BAF6E5686631CC3B793ECF73F94C472DB32747138EBAFC7C8'}profile{$script:artifact.profileHash='A'*64}installable{$script:artifact.installable=$true}executeAllowed{$script:artifact.executeAllowed=$true}nativeCompiled{$script:artifact.nativeCompiled=$true}changed{$script:artifact.changedModules=@(1..24)}new{$script:artifact.newModules=@(1..30)}readers{$script:descriptor.readerDefinitions.PSObject.Properties.Remove('reader14')}descriptor{$script:artifact.appDescriptor|Add-Member changed $true}batch{$script:artifact.applyBatches[0].sql='changed'}}
+ $failed=$false;try{[void](Get-ErpBusinessSaleNativeInputs)}catch{$failed=$true};if(!$failed){throw ('INPUT_SCOPE_ACCEPTED_'+$case)}
+ if($case-ceq'readers'){$script:descriptor.readerDefinitions|Add-Member reader14 ('A'*64)}
+}
+'PASS'
+`),'PASS');
+});
+
+test('rehearsal-only purpose denies apply and repeats, then leaves a verified Restored phase without commit',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+$cap.rehearsalOnly=$true;$r.tokenJson=$cap|ConvertTo-Json -Compress;$r.rehearsalOnly=$true
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};Reject {Invoke-ErpBusinessSaleNativeRevision $cap Inverse}
+foreach($alias in @('apply','APPLY','rehearse','REHEARSE','inverse','INVERSE')){Reject {Invoke-ErpBusinessSaleNativeRevision $cap $alias}}
+if($script:opens-ne0-or$script:trace.Count-ne0){throw 'EARLY_REHEARSAL_EFFECT'}
+Invoke-ErpBusinessSaleNativeRevision $cap Rehearse
+if(!$r.rehearsed-or!$r.rehearsalAttempted-or$r.rehearsalFailed-or$r.phase-cne'Restored'-or$script:commits-ne0-or$script:rollbacks-ne1-or!$script:trace.Contains('before-readback')){throw 'REHEARSAL_NOT_RESTORED'}
+$count=$script:trace.Count;$opens=$script:opens
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};Reject {Invoke-ErpBusinessSaleNativeRevision $cap Rehearse};Invoke-ErpBusinessSaleNativeRevision $cap Inverse
+if($script:trace.Count-ne$count-or$script:opens-ne$opens-or$script:commits-ne0){throw 'REHEARSAL_EFFECT_REPLAYED'}
+'PASS'
+`),'PASS');
+});
+
+test('failed finite rehearsal permits only fresh before-state verification, never inverse batches or retry',win,()=>{
+ for(const failure of ['backup','apply-after'])assert.equal(run(nativeFixture+`$script:fail=${q(failure)};`+String.raw`
+$cap.rehearsalOnly=$true;$r.tokenJson=$cap|ConvertTo-Json -Compress;$r.rehearsalOnly=$true
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Rehearse}
+if(!$r.rehearsalAttempted-or!$r.rehearsalFailed-or$r.rehearsed-or$r.phase-cne'Prepared'-or$script:commits-ne0){throw 'FAILED_REHEARSAL_ACCEPTED'}
+$count=$script:trace.Count;$opens=$script:opens
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Rehearse};Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply}
+if($script:trace.Count-ne$count-or$script:opens-ne$opens){throw 'FAILED_REHEARSAL_RETRIED'}
+Invoke-ErpBusinessSaleNativeRevision $cap Inverse
+if($r.phase-cne'Restored'-or$script:trace.Count-ne($count+1)-or$script:trace[$count]-cne'before-readback'-or$script:commits-ne0-or$script:trace.Contains('inverse-history-cas')){throw 'REHEARSAL_INVERSE_EXECUTED'}
+'PASS'
+`),'PASS');
+ assert.equal(run(nativeFixture+String.raw`
+$cap.rehearsalOnly=$true;$r.tokenJson=$cap|ConvertTo-Json -Compress;$r.rehearsalOnly=$true;$r.rehearsalAttempted=$true;$r.rehearsalFailed=$true
+function Test-ErpBusinessSaleBefore {throw 'BEFORE_CHANGED'}
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Inverse};if($r.phase-cne'Prepared'-or$script:opens-ne0-or$script:commits-ne0){throw 'FAILED_BEFORE_ACCEPTED'}
+$r.phase='Applied';Reject {Invoke-ErpBusinessSaleNativeRevision $cap Inverse}
+if($script:opens-ne0-or$script:commits-ne0){throw 'FORGED_APPLIED_REHEARSAL_INVERSED'};'PASS'
+`),'PASS');
+});
+
+test('purpose is bound to the original token and cannot be changed through JSON or private-record drift',win,()=>{
+ assert.equal(run(fixture+String.raw`
+[void](Get-ErpBusinessSaleNativeAdmissionContext $cap)
+$cap.rehearsalOnly=$true;Reject {Get-ErpBusinessSaleNativeAdmissionContext $cap};$cap.rehearsalOnly=$false
+$r.rehearsalOnly=$true;Reject {Get-ErpBusinessSaleNativeAdmissionContext $cap};$r.rehearsalOnly=$false
+$r.rehearsalOnly='false';Reject {Get-ErpBusinessSaleNativeAdmissionContext $cap};$r.rehearsalOnly=$false
+Reject {Get-ErpBusinessSaleNativeAdmissionContext ($cap|ConvertTo-Json|ConvertFrom-Json)}
+[void](Get-ErpBusinessSaleNativeAdmissionContext $cap);'PASS'
+`),'PASS');
+});
+
+test('actual factory issues immutable purpose with default mutation flow preserved using only a disposable profile',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-purpose-'))),file=path.join(temp,'profile.json');
+ const profile={goal8SyntheticDaySeal:{packageId:'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'}};
+ fs.writeFileSync(file,JSON.stringify(profile));const before=fs.readFileSync(file);
+ try{assert.equal(run(fixture+`$fixtureProfile=${q(file)};`+String.raw`
+# Only the fixed profile location is redirected in this disposable test copy;
+# the real factory, issuer registry, token shape and purpose checks run intact.
+$factory=(Get-Item Function:New-ErpBusinessSaleNativeProfileAdmission).ScriptBlock.ToString().Replace('C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json',$fixtureProfile.Replace("'","''"))
+Set-Item Function:New-ErpBusinessSaleNativeProfileAdmission ([scriptblock]::Create($factory))
+$script:factoryBefore=0
+$config=[pscustomobject]@{OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;ApiComponent=[pscustomobject]@{ManifestSha256='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'}}
+function Read-ErpStartupConfig {param($Path);return $config}
+function Read-ErpBusinessSaleOwnerSource {[pscustomobject]@{source='offline-factory-fixture'}}
+function Get-ErpBusinessSaleNativeInputs {[pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';descriptor=[pscustomobject]@{schema='offline-descriptor'}}}
+function Test-ErpBusinessSaleBefore {param($Inputs);$script:factoryBefore++}
+function Open-ErpBusinessSaleSqlConnection {throw 'SQL_FORBIDDEN'}
+$normal=New-ErpBusinessSaleNativeProfileAdmission $config
+$only=New-ErpBusinessSaleNativeProfileAdmission $config -RehearsalOnly
+if($normal.rehearsalOnly-isnot[bool]-or$normal.rehearsalOnly-or$only.rehearsalOnly-isnot[bool]-or!$only.rehearsalOnly-or$script:factoryBefore-ne2){throw 'FACTORY_PURPOSE_NOT_ISSUED'}
+foreach($token in @($normal,$only)){
+ $context=Get-ErpBusinessSaleNativeAdmissionContext $token
+ if($context.rehearsalOnly-ne$token.rehearsalOnly-or$context.rehearsalAttempted-or$context.rehearsalFailed-or$context.rehearsed-or$context.phase-cne'Prepared'){throw 'FACTORY_CONTEXT_PURPOSE_LOST'}
+ Reject {Get-ErpBusinessSaleNativeAdmissionContext ($token|ConvertTo-Json|ConvertFrom-Json)}
+}
+function Read-ErpBusinessSaleOwnerSource {[pscustomobject]@{source='offline-sealed-owner';rehearsalOnly=$true}}
+$sealed=New-ErpBusinessSaleNativeProfileAdmission $config
+if(!$sealed.rehearsalOnly-or!(Get-ErpBusinessSaleNativeAdmissionContext $sealed).rehearsalOnly){throw 'SEALED_SOURCE_PURPOSE_LOST'}
+$only.rehearsalOnly=$false;Reject {Get-ErpBusinessSaleNativeAdmissionContext $only};'PASS'
+`),'PASS');assert.deepEqual(fs.readFileSync(file),before);}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-purpose-'));fs.rmSync(temp,{recursive:true});}
+});
 // Reflection is confined to the offline fixture: no SQL connection, target or
 // production exception constructor is changed. Exercise a real SqlException.
 const sqlExceptionFixture=String.raw`
@@ -262,8 +365,8 @@ if(($base|ConvertTo-Json -Depth 32 -Compress)-cne$before-or$api.businessSaleWrit
 test('real Unknown audit guard recursion persists the failure while normal execution remains rejected',win,()=>{
  const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-unknown-')));
  try{assert.equal(run(`. ${q(path.join(dir,'test125-bound-api-quiescence.ps1'))};`+fixture+`$vault=${q(temp)};`+String.raw`
-$t=[pscustomobject]@{scope='TEST125-API-B6-ca620bac-20261028';fixture='transition'};$proof=[pscustomobject]@{fixture='retained-proof'};$binding=[pscustomobject]@{held=$true;stopped=$true}
-$script:Test125ApiBinding=$binding;$script:Test125ReadPairContext=[pscustomobject]@{token=$t;tokenJson=($t|ConvertTo-Json -Depth 12 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;releaseProof=$proof;nativeProfileAdmission=$cap;activeBinding=$binding;taskStopped=$true;vault=$vault}
+$t=[pscustomobject]@{scope='TEST125-API-B6-ca620bac-20261028';fixture='transition';rehearsalOnly=$false};$proof=[pscustomobject]@{fixture='retained-proof'};$binding=[pscustomobject]@{held=$true;stopped=$true}
+$script:Test125ApiBinding=$binding;$script:Test125ReadPairContext=[pscustomobject]@{token=$t;tokenJson=($t|ConvertTo-Json -Depth 12 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;releaseProof=$proof;nativeProfileAdmission=$cap;rehearsalOnly=$false;activeBinding=$binding;taskStopped=$true;vault=$vault}
 $r.transition=$t;$r.phase='Unknown'
 function Get-ErpReadPairReleaseProofContext {param($Proof);if(![object]::ReferenceEquals($Proof,$script:Test125ReadPairContext.releaseProof)){throw 'PROOF_NOT_ISSUED'};return [pscustomobject]@{fixture='retained'}}
 function Assert-Test125ApiStoppedSupervisor {param($Binding)};function Test-Test125ApiPhysicalPause {param($Binding);return $true};function Assert-Test125ReadPairCompanions {param($Context)}

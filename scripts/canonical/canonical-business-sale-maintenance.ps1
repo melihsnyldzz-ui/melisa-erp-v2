@@ -8,11 +8,11 @@ function Read-ErpBusinessSalePinnedFile([string]$Path,[string]$Hash){
  $bytes=[IO.File]::ReadAllBytes($Path);if((Get-ErpBusinessSaleHash $bytes)-cne$Hash){throw 'B6_NATIVE_INPUT_CHANGED'};return ,$bytes
 }
 function Get-ErpBusinessSaleNativeInputs {
- $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-collation-source-20261029'
- $artifactBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-artifact-20261028.json') '07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0'
- $descriptorBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json') 'ed70836fbe3a8fe99c6f64d5ea0b7325084a57d5f2aa1b616998e5e5793921b1'
+ $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-permission-snapshot-source-20261029'
+ $artifactBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-artifact-20261028.json') '35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'
+ $descriptorBytes=Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json') '050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024'
  $a=[Text.Encoding]::UTF8.GetString($artifactBytes)|ConvertFrom-Json;$d=[Text.Encoding]::UTF8.GetString($descriptorBytes)|ConvertFrom-Json
- if($a.revisionHash-cne'F05B63189AFC7A5BAF6E5686631CC3B793ECF73F94C472DB32747138EBAFC7C8'-or$a.profileHash-cne'9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9'-or$a.installable-ne$false-or$a.executeAllowed-ne$false-or$a.nativeCompiled-ne$false-or@($a.changedModules).Count-ne25-or@($a.newModules).Count-ne31-or@($d.readerDefinitions.PSObject.Properties).Count-ne14-or($a.appDescriptor|ConvertTo-Json -Depth 32 -Compress)-cne($d|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_NATIVE_SOURCE_SCOPE'}
+ if($a.revisionHash-cne'DEBAFECB1915AEC135E58107F64EE4243D7B93E3C091799EB8E4F29500C477DE'-or$a.profileHash-cne'9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9'-or$a.installable-ne$false-or$a.executeAllowed-ne$false-or$a.nativeCompiled-ne$false-or@($a.changedModules).Count-ne25-or@($a.newModules).Count-ne31-or@($d.readerDefinitions.PSObject.Properties).Count-ne14-or($a.appDescriptor|ConvertTo-Json -Depth 32 -Compress)-cne($d|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_NATIVE_SOURCE_SCOPE'}
  foreach($batch in @($a.applyBatches)+@($a.inverseBatches)){if(!$batch.sql-or(Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($batch.sql))).ToUpperInvariant()-cne$batch.sourceHash){throw 'B6_NATIVE_BATCH_HASH'}}
  return [pscustomobject]@{artifact=$a;descriptor=$d;artifactHash=(Get-ErpBusinessSaleHash $artifactBytes)}
 }
@@ -24,14 +24,15 @@ function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
  return $copy
 }
 function Read-ErpBusinessSaleOwnerSource {
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION';$manifestPath=Join-Path $root 'owner-manifest.json'
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_OWNER_SOURCE_BUNDLE_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
  $bytes=[IO.File]::ReadAllBytes($manifestPath);$manifest=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
  $leaves=@('business-5244-startup-exclusion.ps1','start-business-5244-web.ps1','business-5244-web-native.cs','business-5244-retirement-channel.ps1','business-5244-retirement-peer.cs','business-5244-retirement-state.ps1','business-5244-maintenance-dispatch.ps1','start-business-5244-owned.ps1','test125-bound-api-quiescence.ps1','test125-bound-maintenance-plan.ps1','start-owned-test.ps1','canonical-business-sale-maintenance.ps1','run-current-owner.ps1')
  if($manifest.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$manifest.finiteScope-cne'TEST125-API-B6-ca620bac-20261028'-or$manifest.sourceCommit-cnotmatch'^[a-f0-9]{40}$'-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.apiPackageId-cne'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'-or$manifest.appPackageId-cne'ERP-BUSINESS-WEB-5244-2b744f5b-API-READ'-or(@($manifest.files.path|Sort-Object -CaseSensitive)-join'|')-cne(@($leaves|Sort-Object -CaseSensitive)-join'|')){throw 'B6_OWNER_SOURCE_SCOPE'}
  foreach($f in $manifest.files){[void](Read-ErpBusinessSalePinnedFile (Join-Path $root $f.path) $f.sha256)}
- return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$manifest.files;sourceCommit=$manifest.sourceCommit;launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($manifest.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256)}
+ if(!$manifest.PSObject.Properties['rehearsalOnly']-or$manifest.rehearsalOnly-isnot[bool]-or!$manifest.rehearsalOnly){throw 'B6_OWNER_REHEARSAL_ONLY_REQUIRED'}
+ return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$manifest.files;sourceCommit=$manifest.sourceCommit;rehearsalOnly=$true;launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($manifest.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256)}
 }
 function Get-ErpBusinessSaleOwnerSource($Admission){
  $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;$fresh=Read-ErpBusinessSaleOwnerSource
@@ -42,19 +43,20 @@ function Get-ErpBusinessSaleTaskLauncherPins($PreparedReleaseProof){
  $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof
  if(!$proof.PSObject.Properties['businessSaleOwnerPins']-or!$proof.businessSaleOwnerPins){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
  $proof.seal.Validate();$pins=$proof.businessSaleOwnerPins
- if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
+ if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
  return ($pins|ConvertTo-Json -Compress|ConvertFrom-Json)
 }
 function Get-ErpBusinessSaleNativeAdmissionContext($Admission){
  $record=$null;foreach($r in $script:ErpBusinessSaleAdmissions){if([object]::ReferenceEquals($r.token,$Admission)){$record=$r;break}}
  if(!$record-or$record.closed-or$record.pid-ne$PID-or$record.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$record.owner-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or($Admission|ConvertTo-Json -Compress)-cne$record.tokenJson){throw 'B6_NATIVE_ADMISSION_NOT_ISSUED'}
+ if($record.rehearsalOnly-isnot[bool]-or$Admission.rehearsalOnly-isnot[bool]-or$record.rehearsalOnly-ne$Admission.rehearsalOnly){throw 'B6_NATIVE_PURPOSE_CHANGED'}
  # Revalidate the immutable bytes without repeatedly parsing the 11 MB SQL
  # snapshot on the time-bounded request path. SQL execution separately loads
  # fresh pinned inputs rather than using a mutable retained object as SQL.
- if($record.inputHash-cne'07d62a7af89f80be60c194ca0fa15ff39823a0f44e77eb6d74f137245ea70fc0'){throw 'B6_NATIVE_INPUT_CHANGED'}
- $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-collation-source-20261029'
+ if($record.inputHash-cne'35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'){throw 'B6_NATIVE_INPUT_CHANGED'}
+ $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-permission-snapshot-source-20261029'
  [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-artifact-20261028.json') $record.inputHash)
- [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json') 'ed70836fbe3a8fe99c6f64d5ea0b7325084a57d5f2aa1b616998e5e5793921b1')
+ [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'b6-native-complete-source-app-descriptor-20261028.json') '050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024')
  return $record
 }
 function Assert-ErpBusinessSaleNativeProfileAdmission($Admission,[ValidateSet('Identity','Prepared','Applied','Restored')][string]$Phase='Prepared'){
@@ -117,11 +119,18 @@ function Test-ErpBusinessSaleAfter($Inputs){
  try{$tx=$connection.BeginTransaction([Data.IsolationLevel]::Serializable);$batches=@($Inputs.artifact.applyBatches);Invoke-ErpBusinessSaleSqlBatch $connection $tx $batches[$batches.Count-1].sql;$tx.Rollback();$tx=$null}
  finally{if($tx){try{$tx.Rollback()}catch{};$tx.Dispose()};$connection.Dispose()}
 }
-function New-ErpBusinessSaleNativeProfileAdmission($Config){
+function New-ErpBusinessSaleNativeProfileAdmission($Config,[switch]$RehearsalOnly){
  if($PSVersionTable.PSEdition-cne'Desktop'){throw 'B6_NATIVE_WINDOWS_POWERSHELL_REQUIRED'}
  $actual=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
  if(($actual|ConvertTo-Json -Depth 100 -Compress)-cne($Config|ConvertTo-Json -Depth 100 -Compress)-or$actual.ApiComponent.ManifestSha256-cne'8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'){throw 'B6_NATIVE_STARTUP_CHANGED'}
  $ownerInputs=Read-ErpBusinessSaleOwnerSource
+ # The verified finite owner bundle can narrow, never widen, a caller's mode.
+ # The normal existing supervisor call therefore cannot issue Apply authority
+ # when launched from the PERMHASH rehearsal-only bundle.
+ if($ownerInputs.PSObject.Properties['rehearsalOnly']){
+  if($ownerInputs.rehearsalOnly-isnot[bool]){throw 'B6_OWNER_REHEARSAL_ONLY_REQUIRED'}
+  if($ownerInputs.rehearsalOnly){$RehearsalOnly=[switch]$true}
+ }
  $inputs=Get-ErpBusinessSaleNativeInputs;Test-ErpBusinessSaleBefore $inputs
  $path='C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'
  for($p=$path;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_NATIVE_PROFILE_REPARSE'}}
@@ -131,8 +140,8 @@ function New-ErpBusinessSaleNativeProfileAdmission($Config){
  $profile|Add-Member -NotePropertyName businessSaleAdmission -NotePropertyValue $inputs.descriptor
  $profile|Add-Member -NotePropertyName businessSaleWritesEnabled -NotePropertyValue $false
  $candidate=[Text.Encoding]::UTF8.GetBytes(($profile|ConvertTo-Json -Depth 100))
- $token=[pscustomobject][ordered]@{schema='melisa-b6-finite-native-profile.v1';id=[guid]::NewGuid().ToString('N')}
- $record=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);owner=$actual.OwnerSid;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;inputHash=$inputs.artifactHash;inputs=$inputs;ownerInputs=$ownerInputs;phase='Prepared';profilePath=$path;profileBeforeHash=(Get-ErpBusinessSaleHash $before);candidateBytes=$candidate;transition=$null;rehearsed=$false;backup=$null;backupSignature=$null;closed=$false;journalHash=$null;events=[Collections.ArrayList]::new()}
+ $token=[pscustomobject][ordered]@{schema='melisa-b6-finite-native-profile.v1';id=[guid]::NewGuid().ToString('N');rehearsalOnly=[bool]$RehearsalOnly}
+ $record=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);owner=$actual.OwnerSid;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;inputHash=$inputs.artifactHash;inputs=$inputs;ownerInputs=$ownerInputs;phase='Prepared';profilePath=$path;profileBeforeHash=(Get-ErpBusinessSaleHash $before);candidateBytes=$candidate;transition=$null;rehearsalOnly=[bool]$RehearsalOnly;rehearsalAttempted=$false;rehearsalFailed=$false;rehearsed=$false;backup=$null;backupSignature=$null;closed=$false;journalHash=$null;events=[Collections.ArrayList]::new()}
  [void]$script:ErpBusinessSaleAdmissions.Add($record);return $token
 }
 function Get-ErpBusinessSaleCandidateProfileBytes($Admission){$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;if($r.phase-cnotin@('Prepared','Applied')){throw 'B6_NATIVE_PHASE_REJECTED'};return ,([byte[]]$r.candidateBytes.Clone())}
@@ -206,11 +215,23 @@ function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse'
  $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;[void](Assert-ErpBusinessSaleNativeQuiescence $r)
  $nativeInputs=Get-ErpBusinessSaleNativeInputs
  if($nativeInputs.artifactHash-cne$r.inputHash){throw 'B6_NATIVE_INPUT_CHANGED'}
+ # ValidateSet is case-insensitive in Windows PowerShell. The finite purpose
+ # admits only these exact branches, so a differently cased alias cannot fall
+ # through into the shared commit path.
+ if($r.rehearsalOnly-and$Direction-cnotin@('Rehearse','Inverse')){throw 'B6_NATIVE_REHEARSAL_ONLY'}
+ if($r.rehearsalOnly-and$Direction-ceq'Rehearse'-and$r.rehearsalAttempted){throw 'B6_NATIVE_REHEARSAL_ALREADY_ATTEMPTED'}
  if($Direction-ceq'Apply'-and($r.phase-cne'Prepared'-or!$r.rehearsed)){throw 'B6_NATIVE_REHEARSAL_REQUIRED'}
  if($Direction-ceq'Rehearse'-and$r.phase-cne'Prepared'){throw 'B6_NATIVE_PHASE_REJECTED'}
  if($Direction-ceq'Inverse'-and$r.phase-ceq'Restored'){return}
- if($Direction-ceq'Inverse'-and$r.phase-ceq'Prepared'){Test-ErpBusinessSaleBefore $nativeInputs;$r.phase='Restored';return}
+ if($Direction-ceq'Inverse'-and$r.phase-ceq'Prepared'){
+  if($r.rehearsalOnly-and(!$r.rehearsalAttempted-or!$r.rehearsalFailed-or$r.rehearsed)){throw 'B6_NATIVE_REHEARSAL_FAILURE_REQUIRED'}
+  Test-ErpBusinessSaleBefore $nativeInputs;$r.phase='Restored';return
+ }
  if($Direction-ceq'Inverse'-and$r.phase-cne'Applied'){throw 'B6_NATIVE_PHASE_REJECTED'}
+ if($r.rehearsalOnly-and$Direction-ceq'Inverse'){throw 'B6_NATIVE_REHEARSAL_ONLY'}
+ # Consume a finite rehearsal before any intent/backup work. Even an early
+ # failure permits only fresh before-state verification, never a second run.
+ if($r.rehearsalOnly-and$Direction-ceq'Rehearse'){$r.rehearsalAttempted=$true;$r.rehearsalFailed=$true}
  Write-ErpBusinessSaleNativeEvent $r ($Direction.ToUpperInvariant()+'_INTENT')
  $connection=$null;$tx=$null;$commitAttempted=$false;$activeBatch=$null;$batchPhase='Other';$batchIndex=-1
  try{
@@ -228,6 +249,8 @@ function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse'
   }
   $tx=$connection.BeginTransaction([Data.IsolationLevel]::Serializable)
   $batchPhase='Lock'
+  # Preserve this shared resource across revisions: old and new owners must
+  # serialize on the same lock even though the frozen artifact hash changes.
   Invoke-ErpBusinessSaleSqlBatch $connection $tx "DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=N'melisa-b6-finite-revision-F05B6318',@LockMode=N'Exclusive',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51917,'B6_NATIVE_LOCK_REQUIRED',1;"
   $batches=if($Direction-ceq'Inverse'){$nativeInputs.artifact.inverseBatches}else{$nativeInputs.artifact.applyBatches}
   $batchPhase=if($Direction-ceq'Inverse'){'Inverse'}else{'Apply'};$batchIndex=-1
@@ -237,6 +260,7 @@ function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse'
    foreach($batch in $nativeInputs.artifact.inverseBatches){$batchIndex++;$activeBatch=$batch;Invoke-ErpBusinessSaleSqlBatch $connection $tx $batch.sql}
    $batchPhase='Other';$batchIndex=-1;$activeBatch=$null
    $tx.Rollback();$tx=$null;Test-ErpBusinessSaleBefore $nativeInputs;$r.rehearsed=$true
+   if($r.rehearsalOnly){$r.rehearsalFailed=$false;$r.phase='Restored'}
   }else{
    $batchPhase='Other';$batchIndex=-1;$activeBatch=$null
    [void](Assert-ErpBusinessSaleNativeQuiescence $r);$commitAttempted=$true;$tx.Commit();$tx=$null
