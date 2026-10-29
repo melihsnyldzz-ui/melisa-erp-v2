@@ -188,12 +188,28 @@ win('Writer recovery source loader seals real files and imports only three new A
   const casePath=path.join(core,'writer-postcas-fixed-case.json');fs.writeFileSync(casePath,'{}');
   fs.writeFileSync(path.join(core,'owner-manifest.json'),JSON.stringify({kind:'BUSINESS5244_WRITER_POSTCAS_RECOVERY',scope:'TEST125-API-B6-WRITER-20261029',sourceCommit:'a'.repeat(40),sourcePolicy:'COMMITTED_GIT_BLOBS_ONLY',baseCoreRoot:'C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2',baseCoreManifestSha256:'2d1047887212c9e131a53da0f7f865a48909c90f0d6b84756c589fc8fdbbcdd2',baseRouterRoot:'C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2',baseRouterManifestSha256:'7f44b5b61e4cc8867aa25a84a2820974b632c0bdba318711e67c8ef24c7b5602',files,fixedCase:{path:path.basename(casePath),sha256:shaFile(casePath),bytes:2}}));
   const script=String.raw`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+$fixtureClock=[Diagnostics.Stopwatch]::StartNew()
+function Write-LoaderFixturePhase([string]$Phase){[Console]::Error.WriteLine(('RECOVERY_LOADER_FIXTURE '+$Phase+' '+$fixtureClock.ElapsedMilliseconds))}
+Write-LoaderFixturePhase 'BUILTINS_BEGIN'
+foreach($name in @('Microsoft.PowerShell.Utility','Microsoft.PowerShell.Management')){
+ $manifest=[IO.Path]::Combine($PSHOME,'Modules',$name,($name+'.psd1'))
+ Microsoft.PowerShell.Core\Import-Module -Name $manifest -Scope Local -ErrorAction Stop
+ $module=Get-Module -Name $name
+ if(!$module-or$module.Path-cne$manifest){throw 'FIXTURE_BUILTIN_MODULE_CHANGED'}
+}
+# Only the issued functions and those trusted builtins belong to this fixture.
+# Missing-function assertions must not search unrelated runner modules.
+$PSModuleAutoLoadingPreference='None'
+Write-LoaderFixturePhase 'ADD_TYPE_BEGIN'
 Add-Type -LiteralPath __NATIVE__
+Write-LoaderFixturePhase 'ADD_TYPE_END'
 function Read-ErpBusinessSalePinnedFile($Path,$Hash){$b=[IO.File]::ReadAllBytes($Path);$s=[Security.Cryptography.SHA256]::Create();try{if(([BitConverter]::ToString($s.ComputeHash($b)).Replace('-','').ToLowerInvariant())-cne$Hash){throw 'FIXTURE_BAD_HASH'}}finally{$s.Dispose()};return ,$b}
 function Assert-ErpBusinessSaleNativeQuiescence {throw 'ORIGINAL_GUARD_SENTINEL'}
 $original=(Get-Command Assert-ErpBusinessSaleNativeQuiescence).Definition
 . __LEAF__
+Write-LoaderFixturePhase 'SEALED_LOADER_BEGIN'
 $sealed=Get-Business5244WriterPostCasRecoverySources
+Write-LoaderFixturePhase 'SEALED_LOADER_END'
 try{
  foreach($n in @('Assert-Test125ReadPairWriterPostCasPause','Resume-Test125ReadPairWriterCandidateAfterCas','Complete-ErpBusinessSaleWriterProfilePostCasState')){if(!(Get-Command $n -CommandType Function)){throw 'NEW_LEAF_NOT_IMPORTED'}}
  foreach($n in @('Assert-Test125ReadPairWriterPostCasPause','Complete-ErpBusinessSaleWriterProfilePostCasState')){
@@ -206,8 +222,9 @@ try{
  Assert-Business5244WriterPostCasRecoverySources $sealed
  $denied=$false;try{[IO.File]::WriteAllText(__INPUT__,'drift')}catch{$denied=$true};if(!$denied){throw 'SOURCE_NOT_HELD'}
  $denied=$false;try{Get-Business5244WriterPostCasRecoverySources|Out-Null}catch{$denied=$true};if(!$denied){throw 'NEW_FUNCTION_COLLISION_ACCEPTED'}
+ Write-LoaderFixturePhase 'ASSERTIONS_COMPLETE'
  'PASS'
-}finally{$sealed.seal.Dispose()}
+}finally{$sealed.seal.Dispose();Write-LoaderFixturePhase 'SEAL_CLOSED'}
 `.replace('__NATIVE__',q(path.join(dir,'business-5244-web-native.cs'))).replace('__LEAF__',q(leaf)).replace('__INPUT__',q(path.join(core,'test125-bound-api-quiescence.ps1')));
   const scriptPath=path.join(temp,'loader.ps1');fs.writeFileSync(scriptPath,script);assert.equal(cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',scriptPath],{encoding:'utf8',timeout:20000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim(),'PASS');
  }finally{fs.rmSync(temp,{recursive:true,force:true})}
