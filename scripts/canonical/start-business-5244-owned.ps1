@@ -29,7 +29,7 @@ function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  $exact=if($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
- if((Get-FileHash -LiteralPath $Pins.node).Hash -cne $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -cne $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
+ if((Get-FileHash -LiteralPath $Pins.node).Hash -ine $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -ine $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
  if($null -ne $Seal){if(!($Seal -is [Business5244PackageSeal])){throw 'OWNED_WEB_PACKAGE_SEAL_REQUIRED'};$Seal.Add($Pins.node,$Pins.nodeHash);$Seal.Add((Join-Path $Pins.root 'release-manifest.json'),$Pins.manifest)}
  $manifest=Get-Content -LiteralPath (Join-Path $Pins.root 'release-manifest.json') -Raw|ConvertFrom-Json
  Assert-Business5244WebManifest $manifest $Pins
@@ -110,7 +110,7 @@ function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  else{[void](Assert-Test125ReadPairRequestAdmission -Transition $ApiTransition)}
  Assert-Business5244ApiHealth $health $Plan.rollback
  if($null -eq $ApiTransition -and ($Plan.rollback.root -cne $Plan.candidate.root -or $Plan.rollback.manifest -cne $Plan.candidate.manifest)){Assert-Business5244OwnedPackage $Plan.rollback}
- if((Get-FileHash -LiteralPath (Join-Path $Plan.rollback.root 'release-manifest.json')).Hash -cne $Plan.rollback.manifest){throw 'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'}
+ if((Get-FileHash -LiteralPath (Join-Path $Plan.rollback.root 'release-manifest.json')).Hash -ine $Plan.rollback.manifest){throw 'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'}
  if($r.phase -ceq 'Running'){
   if($null -eq $ApiTransition){Assert-Business5244CreatedChild $r.native $r.pins;Assert-Business5244ReadyChild $r.native $r.pins}
   else{

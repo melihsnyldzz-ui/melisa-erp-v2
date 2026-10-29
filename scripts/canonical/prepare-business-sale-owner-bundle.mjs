@@ -8,19 +8,26 @@ const SCOPE='TEST125-API-B6-ca620bac-20261028';
 const APP_SOURCE='ca620bac30f96034b33d4410dc43576a38a38707';
 const SOURCE_ROOT=String.raw`C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018`;
 const RELEASES=String.raw`C:\Sirket\ERP\releases`;
-const CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029');
-const ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029');
-const PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\recovered-owner-20261029`;
+const CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE');
+const ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE');
+const PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\hash-case-recovered-20261029`;
 const PROOF=path.win32.join(PRIVATE,'owner-preparation');
 const VERIFIED_PRODUCER=path.win32.join(PROOF,'verified-owner-producer.mjs');
-const OLD_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261028');
-const OLD_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261028');
-const OLD_CORE_HASH='f6c48a1626d281699e14d783b641fcc95ccf9a9de5ad286332b8a1d9e18da235';
-const OLD_ROUTER_HASH='7a06577497d6814b1306fb3d2c2755fde88c2e115f621994563f0b2ae6647e9b';
-const OLD_ENTRY_HASH='b9e9f0661c3349e8a1b56b17460bffbc776fa7990115cba1c04602a3367641cb';
-const OLD_ROUTER_ENTRY_HASH='9490f1b32a76ec21dcc14b1be50b193d96c081e7ed5d84dfa210265cf164957a';
-const OLD_SOURCE='9941db2cd35afa6e9a26852b70cbb1ef77515e01';
-const OLD_ARGV_HASH='dab94af5ec18d7d4deef73dd7255ef12e005dbad1661a68287293430ef521f3f';
+const OLD_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029');
+const OLD_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029');
+const OLD_CORE_HASH='a38e5c00be6d460dc87b4c5d8128dec10f01c8cc4d2d3c76a425fa6d36286deb';
+const OLD_ROUTER_HASH='90fd861b738e07d241ab27980d4ca50dcab7d667bebf4b2d591c0922b4a6006c';
+const OLD_ENTRY_HASH='9c473098133f2a7c2b0720c74778d41878064641b201846699f6a53cb4649d8d';
+const OLD_ROUTER_ENTRY_HASH='7b98143028e0337f4716840bdc9aa774823a95ac53dea5b18619b59dbcba1b21';
+const OLD_SOURCE='971416ba0d38031a3469f2ee497d722f856a343c';
+const OLD_ARGV_HASH='587fa3c32fe39ced88c39856b95810b2eb9c9f965ef3546a1589f7e97fde4c4c';
+const RECOVERY_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261028');
+const RECOVERY_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261028');
+const RECOVERY_CORE_HASH='f6c48a1626d281699e14d783b641fcc95ccf9a9de5ad286332b8a1d9e18da235';
+const RECOVERY_ROUTER_HASH='7a06577497d6814b1306fb3d2c2755fde88c2e115f621994563f0b2ae6647e9b';
+const RECOVERY_ENTRY_HASH='b9e9f0661c3349e8a1b56b17460bffbc776fa7990115cba1c04602a3367641cb';
+const RECOVERY_ROUTER_ENTRY_HASH='9490f1b32a76ec21dcc14b1be50b193d96c081e7ed5d84dfa210265cf164957a';
+const RECOVERY_SOURCE='9941db2cd35afa6e9a26852b70cbb1ef77515e01';
 const HISTORY_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-OWNER-b9416929-20261028');
 const HISTORY_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-READ2B-ROUTER-b9416929-20261028');
 const HISTORY_CORE_HASH='5f9e1c11fa3157b378ad2fb679ce380275adc72cac083b539503efc060e21502';
@@ -28,12 +35,12 @@ const HISTORY_ROUTER_HASH='e450a61b240063ec8555d015375b3564a5626341b692cc5d160d8
 const HISTORY_ROUTER_ENTRY_HASH='f4af241b6634cc7878f95858203a0d22e54862a20878106e7b3bd60811184b12';
 const HISTORY_CURRENT_ENTRY_HASH='48067f305fd6488778ac321a04baf9a1d83077355801eff160f894db6564b9b6';
 const INPUTS=Object.freeze({
- 'current-read2b-owner-capture.json':'9e5f95931caf67bfe3cfa100a755b0b2324a77caf244bfa99da90b9f1d621605',
- 'current-erp-processes.before.json':'ea23776035feadb3f206eeed1dae016eb80de0a325fc3978ac9d534a73f251e2',
+ 'current-read2b-owner-capture.json':'c548ec9fd223e081da1d0da01d9c55685efe6bded88eaf6969f2957ab5181e1c',
+ 'current-erp-processes.before.json':'3f44578ab526c6deecef4edb87aaded019d285d076b5683c12a0bff6cb85fce6',
  'current-task.before.xml':'e959af0b36ea9d2bd0fabdd6371174c4bd406258e64dc904e38833f79820d99a',
  'current-task.before.sddl':'cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4',
- 'current-task-capture.json':'4d337449ef20e65b143e9e6ab3e1fcbe59d72a95b9b495a3a2d691a0b8f8943c',
- 'current-entry-hold-capture.json':'2af7664e4259f739dbf00f46653853f82c2eb3554d6b79d1776acff3dbcf5cc7',
+ 'current-task-capture.json':'85945b37a54476c8a2c240cf0bfa07a338fb80580f0a6767b4ba65d296bd61aa',
+ 'current-entry-hold-capture.json':'611100b4bf62fc85713633d7b7527602785043ff42a0bcb286d3442bd7fddaa7',
 });
 export const BUSINESS_SALE_OWNER_SOURCE_FILES=Object.freeze([
  'business-5244-startup-exclusion.ps1','start-business-5244-web.ps1','business-5244-web-native.cs',
@@ -97,20 +104,20 @@ function hostedSourceChecks(head){
 function predecessor(){
  const inputs=new Map(Object.entries(INPUTS).map(([name,sha])=>[name,pinned(path.join(PRIVATE,name),sha)])),capture=json(inputs.get('current-read2b-owner-capture.json')),task=json(inputs.get('current-task-capture.json')),entries=json(inputs.get('current-entry-hold-capture.json'));
  if(capture.schema!=='melisa-b6-current-read2b-owner-capture.v1'||capture.predecessorEntryKind!=='CurrentCore'||capture.readOnly!==true||capture.stopAuthorized!==false||capture.recordBeforeSha256!==INPUTS['current-erp-processes.before.json']||capture.recordBeforeFile!=='current-erp-processes.before.json'||capture.entry?.root!==OLD_CORE||capture.entry.leaf!=='run-current-owner.ps1'||capture.entry.sha256!==OLD_ENTRY_HASH||capture.entry.manifestSha256!==OLD_CORE_HASH||capture.router?.root!==OLD_ROUTER||capture.router.manifestSha256!==OLD_ROUTER_HASH||capture.router.entrySha256!==OLD_ROUTER_ENTRY_HASH||capture.core?.root!==OLD_CORE||capture.core.manifestSha256!==OLD_CORE_HASH)fail('B6_OWNER_PREDECESSOR_CAPTURE_REJECTED');
- if(capture.owner?.pid!==9512||String(capture.owner.birth)!=='134377040921549383'||capture.owner.exe!==String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`||capture.owner.entry!==path.join(OLD_CORE,'run-current-owner.ps1')||capture.owner.argvSha256!==OLD_ARGV_HASH||capture.child?.pid!==35268||String(capture.child.birth)!=='134377042376772453'||capture.child.parent!==9512||capture.nativeStatus?.nativePeerVerified!==true||capture.nativeStatus.stopAuthorized!==false||capture.nativeStatus.childObservationOnly!==true||capture.nativeStatus.reply!=='Status'||capture.nativeStatus.state?.phase!=='Running'||capture.nativeStatus.state.ownerPid!==capture.owner.pid||String(capture.nativeStatus.state.ownerBirth)!==String(capture.owner.birth)||capture.nativeStatus.state.childPid!==capture.child.pid||String(capture.nativeStatus.state.childBirth)!==String(capture.child.birth)||capture.serviceCalls!==0||capture.sqlCalls!==0||capture.retireCalls!==0)fail('B6_OWNER_PREDECESSOR_CAPTURE_REJECTED');
+ if(capture.owner?.pid!==21152||String(capture.owner.birth)!=='134377072658459741'||capture.owner.exe!==String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`||capture.owner.entry!==path.join(OLD_CORE,'run-current-owner.ps1')||capture.owner.argvSha256!==OLD_ARGV_HASH||capture.child?.pid!==33616||String(capture.child.birth)!=='134377073095387987'||capture.child.parent!==21152||capture.nativeStatus?.nativePeerVerified!==true||capture.nativeStatus.stopAuthorized!==false||capture.nativeStatus.childObservationOnly!==true||capture.nativeStatus.reply!=='Status'||capture.nativeStatus.state?.phase!=='Running'||capture.nativeStatus.state.ownerPid!==capture.owner.pid||String(capture.nativeStatus.state.ownerBirth)!==String(capture.owner.birth)||capture.nativeStatus.state.childPid!==capture.child.pid||String(capture.nativeStatus.state.childBirth)!==String(capture.child.birth)||capture.serviceCalls!==0||capture.sqlCalls!==0||capture.retireCalls!==0)fail('B6_OWNER_PREDECESSOR_CAPTURE_REJECTED');
  if(task.schema!=='melisa-b6-current-task-capture.v1'||task.readOnly!==true||task.stopCalls!==0||task.taskChanges!==0)fail('B6_OWNER_TASK_CAPTURE_REJECTED');
  const legacyRuntime=String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027`,entryPaths=['start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'].map(name=>path.join(legacyRuntime,name)).concat(String.raw`C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1`);
- const directEntries=[{path:path.join(HISTORY_ROUTER,'start-business-5244-readpair-router.ps1'),sha256:HISTORY_ROUTER_ENTRY_HASH},{path:path.join(HISTORY_CORE,'run-current-owner.ps1'),sha256:HISTORY_CURRENT_ENTRY_HASH},{path:path.join(OLD_ROUTER,'start-business-5244-readpair-router.ps1'),sha256:OLD_ROUTER_ENTRY_HASH},{path:path.join(OLD_CORE,'run-current-owner.ps1'),sha256:OLD_ENTRY_HASH}];
- if(entries.schema!=='melisa-b6-current-entry-hold-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.ownerCaptureSha256!==INPUTS['current-read2b-owner-capture.json']||entries.entries?.length!==6||entries.directEntries?.length!==4||entries.entries.some((e,n)=>e.path!==entryPaths[n]||e.afterEqualsBefore!==true||!hex(e.beforeSha256))||entries.directEntries.some((e,n)=>e.path!==directEntries[n].path||e.sha256!==directEntries[n].sha256)||entries.gate?.path!==path.join(legacyRuntime,'business-5244-startup-exclusion-ec316a63.ps1')||entries.gate.sha256!=='a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0)fail('B6_OWNER_ENTRY_CAPTURE_REJECTED');
- // The recovered 13-file Current core is the active predecessor. Keep the
- // original b941 12-file closure and its router as immutable history too.
- for(const generation of [{root:HISTORY_CORE,sha:HISTORY_CORE_HASH,names:[...BUSINESS_SALE_OWNER_SOURCE_FILES.filter(n=>n!=='canonical-business-sale-maintenance.ps1'),'run-current-owner.ps1']},{root:OLD_CORE,sha:OLD_CORE_HASH,names:[...BUSINESS_SALE_OWNER_SOURCE_FILES,'run-current-owner.ps1']}]){
+ const directEntries=[{path:path.join(HISTORY_ROUTER,'start-business-5244-readpair-router.ps1'),sha256:HISTORY_ROUTER_ENTRY_HASH},{path:path.join(HISTORY_CORE,'run-current-owner.ps1'),sha256:HISTORY_CURRENT_ENTRY_HASH},{path:path.join(RECOVERY_ROUTER,'start-business-5244-readpair-router.ps1'),sha256:RECOVERY_ROUTER_ENTRY_HASH},{path:path.join(RECOVERY_CORE,'run-current-owner.ps1'),sha256:RECOVERY_ENTRY_HASH},{path:path.join(OLD_ROUTER,'start-business-5244-readpair-router.ps1'),sha256:OLD_ROUTER_ENTRY_HASH},{path:path.join(OLD_CORE,'run-current-owner.ps1'),sha256:OLD_ENTRY_HASH}];
+ if(entries.schema!=='melisa-b6-current-entry-hold-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.ownerCaptureSha256!==INPUTS['current-read2b-owner-capture.json']||entries.entries?.length!==6||entries.directEntries?.length!==6||entries.entries.some((e,n)=>e.path!==entryPaths[n]||e.afterEqualsBefore!==true||!hex(e.beforeSha256))||entries.directEntries.some((e,n)=>e.path!==directEntries[n].path||e.sha256!==directEntries[n].sha256)||entries.gate?.path!==path.join(legacyRuntime,'business-5244-startup-exclusion-ec316a63.ps1')||entries.gate.sha256!=='a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0)fail('B6_OWNER_ENTRY_CAPTURE_REJECTED');
+ // The active 13-file Current core and BOTH prior generations are sealed.
+ // None of the 12/13/13 historical payloads or entry files is rewritten.
+ for(const generation of [{root:HISTORY_CORE,sha:HISTORY_CORE_HASH,names:[...BUSINESS_SALE_OWNER_SOURCE_FILES.filter(n=>n!=='canonical-business-sale-maintenance.ps1'),'run-current-owner.ps1']},{root:RECOVERY_CORE,sha:RECOVERY_CORE_HASH,source:RECOVERY_SOURCE,names:[...BUSINESS_SALE_OWNER_SOURCE_FILES,'run-current-owner.ps1']},{root:OLD_CORE,sha:OLD_CORE_HASH,source:OLD_SOURCE,names:[...BUSINESS_SALE_OWNER_SOURCE_FILES,'run-current-owner.ps1']}]){
   const core=json(pinned(path.join(generation.root,'owner-manifest.json'),generation.sha));
   if(core.kind!=='BUSINESS5244_FRESH_OWNER_BUNDLE'||!Array.isArray(core.files)||core.files.map(f=>f.path).sort().join('|')!==generation.names.sort().join('|'))fail('B6_OWNER_OLD_CORE_REJECTED');
-  if(generation.root===OLD_CORE&&(core.finiteScope!==SCOPE||core.sourceCommit!==OLD_SOURCE||core.actualT1!==false||core.externalOperations!==false))fail('B6_OWNER_OLD_CORE_REJECTED');
+  if(generation.source&&(core.finiteScope!==SCOPE||core.sourceCommit!==generation.source||core.actualT1!==false||core.externalOperations!==false))fail('B6_OWNER_OLD_CORE_REJECTED');
   for(const f of core.files){if(typeof f.path!=='string'||/[\\/]/.test(f.path)||!hex(f.sha256))fail('B6_OWNER_OLD_CORE_REJECTED');const b=pinned(path.join(generation.root,f.path),f.sha256);if(b.length!==f.bytes)fail('B6_OWNER_OLD_CORE_REJECTED');}
  }
- for(const generation of [{root:HISTORY_ROUTER,sha:HISTORY_ROUTER_HASH,core:HISTORY_CORE,coreSha:HISTORY_CORE_HASH,entrySha:HISTORY_ROUTER_ENTRY_HASH},{root:OLD_ROUTER,sha:OLD_ROUTER_HASH,core:OLD_CORE,coreSha:OLD_CORE_HASH,entrySha:OLD_ROUTER_ENTRY_HASH}]){
+ for(const generation of [{root:HISTORY_ROUTER,sha:HISTORY_ROUTER_HASH,core:HISTORY_CORE,coreSha:HISTORY_CORE_HASH,entrySha:HISTORY_ROUTER_ENTRY_HASH},{root:RECOVERY_ROUTER,sha:RECOVERY_ROUTER_HASH,core:RECOVERY_CORE,coreSha:RECOVERY_CORE_HASH,entrySha:RECOVERY_ROUTER_ENTRY_HASH},{root:OLD_ROUTER,sha:OLD_ROUTER_HASH,core:OLD_CORE,coreSha:OLD_CORE_HASH,entrySha:OLD_ROUTER_ENTRY_HASH}]){
   const router=json(pinned(path.join(generation.root,'owner-manifest.json'),generation.sha));if(router.coreRoot!==generation.core||router.coreManifestSha256!==generation.coreSha||router.entry!=='start-business-5244-readpair-router.ps1'||router.entrySha256!==generation.entrySha)fail('B6_OWNER_OLD_ROUTER_REJECTED');pinned(path.join(generation.root,router.entry),generation.entrySha);
  }
  for(const entry of directEntries)pinned(entry.path,entry.sha256);

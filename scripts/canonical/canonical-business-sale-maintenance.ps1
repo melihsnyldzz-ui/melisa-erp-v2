@@ -24,7 +24,7 @@ function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
  return $copy
 }
 function Read-ErpBusinessSaleOwnerSource {
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029';$manifestPath=Join-Path $root 'owner-manifest.json'
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_OWNER_SOURCE_BUNDLE_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
  $bytes=[IO.File]::ReadAllBytes($manifestPath);$manifest=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
@@ -42,7 +42,7 @@ function Get-ErpBusinessSaleTaskLauncherPins($PreparedReleaseProof){
  $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof
  if(!$proof.PSObject.Properties['businessSaleOwnerPins']-or!$proof.businessSaleOwnerPins){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
  $proof.seal.Validate();$pins=$proof.businessSaleOwnerPins
- if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
+ if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
  return ($pins|ConvertTo-Json -Compress|ConvertFrom-Json)
 }
 function Get-ErpBusinessSaleNativeAdmissionContext($Admission){

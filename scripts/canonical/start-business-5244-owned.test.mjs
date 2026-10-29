@@ -165,3 +165,56 @@ win('B6 supervisor prepares the genuine native/profile reference before opening 
  $body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisor {'+$body+'}'))
  $denied=$false;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current -PrepareReadPair|Out-Null}catch{if($_.Exception.Message-cne'ISOLATED_AFTER_PREPARED'){throw};$denied=$true};try{if(!$denied-or($script:events-join'|')-cne'native|api|prepared|channel'-or!$script:childProcess.WaitForExit(1000)){throw 'B6_STARTUP_ORDER_OR_CLEANUP'}}finally{$script:childProcess.Dispose()};'PASS'`),'PASS');
 });
+
+const packageHashFixture=String.raw`
+Initialize-Business5244WebNative
+$script:fixturePins=(Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).Clone()
+$fixturePins.root=Join-Path $env:TEMP 'owned-package';[void][IO.Directory]::CreateDirectory($fixturePins.root)
+$fixturePins.node=Join-Path $fixturePins.root 'inert-node.bin';$payload=Join-Path $fixturePins.root 'payload.bin';$manifestPath=Join-Path $fixturePins.root 'release-manifest.json'
+[IO.File]::WriteAllText($fixturePins.node,'inert-never-executed-node');[IO.File]::WriteAllText($payload,'unchanged-payload')
+$fixturePins.nodeHash=(Get-FileHash -LiteralPath $fixturePins.node).Hash.ToLowerInvariant()
+$manifest=[ordered]@{kind='ERP_BUSINESS_WORKFACE_WEB_CANDIDATE';packageId=$fixturePins.package;database='MELISA_ERP_SIRKET_TEST_20260929_01';sourceCommit=$fixturePins.frontendSource;businessWorkfaceId=$fixturePins.profile;backendPackageId=$fixturePins.apiPackage;backendManifestSha256=$fixturePins.apiManifest;actualT1=$false;externalOperations=$false;businessSessionSignerDomain='dedicated-business-key-v1';files=@(@{path='payload.bin';sha256=(Get-FileHash -LiteralPath $payload).Hash.ToLowerInvariant()})}
+[IO.File]::WriteAllText($manifestPath,($manifest|ConvertTo-Json -Depth 8));$fixturePins.manifest=(Get-FileHash -LiteralPath $manifestPath).Hash.ToLowerInvariant()
+$script:originalPins=$fixturePins.Clone();$nodeBefore=[IO.File]::ReadAllBytes($fixturePins.node);$payloadBefore=[IO.File]::ReadAllBytes($payload);$manifestBefore=[IO.File]::ReadAllBytes($manifestPath)
+function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$Mode-cne'Candidate'){throw 'ISOLATED_FIXED_PAIR_ONLY'};return $script:fixturePins.Clone()}
+function Change-DigestDigit([string]$Hash){return $(if($Hash[0]-ceq'0'){'1'}else{'0'})+$Hash.Substring(1)}
+`;
+win('real package file hashes accept either hexadecimal case while exact tuples, content drift and native seal sharing remain enforced',()=>{
+ assert.equal(run(load+packageHashFixture+String.raw`
+ foreach($case in @('lower','upper')){
+  $fixturePins.nodeHash=if($case-ceq'upper'){$originalPins.nodeHash.ToUpperInvariant()}else{$originalPins.nodeHash};$fixturePins.manifest=if($case-ceq'upper'){$originalPins.manifest.ToUpperInvariant()}else{$originalPins.manifest}
+  if((Get-FileHash -LiteralPath $manifestPath).Hash-cne$originalPins.manifest.ToUpperInvariant()){throw 'ACTUAL_CMDLET_NOT_UPPERCASE'}
+  Assert-Business5244OwnedPackage $fixturePins
+  $seal=[Business5244PackageSeal]::new();try{Assert-Business5244OwnedPackage $fixturePins $seal;$seal.Freeze();$seal.Validate()
+   foreach($file in @($fixturePins.node,$manifestPath,$payload)){$denied=$false;try{$f=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Write,[IO.FileShare]::ReadWrite);$f.Dispose()}catch{$denied=$true};if(!$denied){throw 'NATIVE_SEAL_LOST_WRITE_EXCLUSION'}}
+  }finally{$seal.Dispose()}
+ }
+ foreach($kind in @('manifestDigit','nodeDigit','manifestBytes','nodeBytes','payloadBytes','tuple')){
+  $script:fixturePins=$originalPins.Clone();[IO.File]::WriteAllBytes($fixturePins.node,$nodeBefore);[IO.File]::WriteAllBytes($payload,$payloadBefore);[IO.File]::WriteAllBytes($manifestPath,$manifestBefore);$pins=$fixturePins.Clone()
+  switch($kind){manifestDigit{$fixturePins.manifest=Change-DigestDigit $fixturePins.manifest;$pins=$fixturePins.Clone()}nodeDigit{$fixturePins.nodeHash=Change-DigestDigit $fixturePins.nodeHash;$pins=$fixturePins.Clone()}manifestBytes{[IO.File]::AppendAllText($manifestPath,' ')}nodeBytes{[IO.File]::AppendAllText($fixturePins.node,'changed')}payloadBytes{[IO.File]::AppendAllText($payload,'changed')}tuple{$pins.profile+='-foreign'}}
+  $caught='';try{Assert-Business5244OwnedPackage $pins}catch{$caught=$_.Exception.Message}
+  $expected=if($kind-ceq'tuple'){'OWNED_WEB_PIN_CHANGED'}elseif($kind-ceq'payloadBytes'){'OWNED_WEB_CONTENT_CHANGED'}else{'OWNED_WEB_PACKAGE_CHANGED'}
+  if($caught-cne$expected){throw ('REAL_PACKAGE_DRIFT_NOT_REJECTED_'+$kind+'_'+$caught)}
+ }
+ 'PASS'`),'PASS');
+});
+win('readonly paired rollback manifest verification accepts the same digest case and rejects a single changed digest before child checks',()=>{
+ assert.equal(run(load+packageHashFixture+String.raw`
+ $script:fixtureNativeChecks=0;$script:fixtureNative=[pscustomobject]@{ChildPid=777;ChildBirth='1234';RetirementConfirmed=$false}
+ $fixtureNative|Add-Member ScriptMethod Validate {$script:fixtureNativeChecks++};$fixtureNative|Add-Member ScriptMethod ChildAlive {return $true}
+ $script:fixtureState=@{phase='Running';scopeName='TEST125-API-B6-ca620bac-20261028';pins=$fixturePins;native=$fixtureNative;childPid=777;childBirth='1234'};$script:fixtureTransition=[pscustomobject]@{fixture='read-only'}
+ $script:fixturePlan=@{hash=('a'*64);candidate=$fixturePins;rollback=$fixturePins}
+ function Get-Business5244RetirementState($State){if(![object]::ReferenceEquals($State,$script:fixtureState)){throw 'ISOLATED_STATE_CHANGED'};return $State}
+ function Get-Business5244MaintenancePlan($State,$ApiTransition){return $script:fixturePlan}
+ function Assert-Business5244PreparedPair($State,$ApiTransition,$PlanHash){if(![object]::ReferenceEquals($ApiTransition,$script:fixtureTransition)-or$PlanHash-cne$script:fixturePlan.hash){throw 'ISOLATED_PREPARED_REFERENCE_CHANGED'}}
+ function Invoke-RestMethod($Uri,$TimeoutSec){if($Uri-cne'http://127.0.0.1:4144/test-health'){throw 'ISOLATED_NETWORK_FORBIDDEN'};return @{fixture='not-network'}}
+ function Assert-Business5244ApiHealth($Health,$Pins){}
+ function Assert-Test125ReadPairRequestAdmission($Transition){if(![object]::ReferenceEquals($Transition,$script:fixtureTransition)){throw 'ISOLATED_TRANSITION_CHANGED'}}
+ function Get-NetTCPConnection($State){if($State-cne'Listen'){throw 'ISOLATED_LISTEN_ONLY'};return @('100.87.188.3','127.0.0.1','192.168.1.46')|ForEach-Object{[pscustomobject]@{LocalPort=5244;LocalAddress=$_;OwningProcess=777}}}
+ foreach($case in @('lower','upper','changed')){
+  $fixturePins.manifest=if($case-ceq'upper'){$originalPins.manifest.ToUpperInvariant()}elseif($case-ceq'changed'){Change-DigestDigit $originalPins.manifest}else{$originalPins.manifest};$before=$fixtureNativeChecks;$caught=''
+  try{Assert-Business5244MaintenancePlan $fixturePlan $fixtureState $fixtureTransition}catch{$caught=$_.Exception.Message}
+  if($case-ceq'changed'){if($caught-cne'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'-or$fixtureNativeChecks-ne$before){throw 'ROLLBACK_DIGEST_DRIFT_ALLOWED'}}elseif($caught-or$fixtureNativeChecks-le$before){throw ('ROLLBACK_SAME_DIGEST_CASE_REJECTED_'+$caught)}
+ }
+ 'PASS'`),'PASS');
+});
