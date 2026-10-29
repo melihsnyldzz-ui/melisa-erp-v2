@@ -451,7 +451,7 @@ function New-Business5244CurrentSupersessionAdmission($ExitObservation){
  if($beforePending.schema-cne'business-5244-retirement-before.v1'-or$beforePending.ownerPid-ne$i.ownerPid-or[string]$beforePending.ownerBirth-cne$i.ownerBirth-or$beforePending.operationId-cnotmatch'^[a-f0-9]{32}$'-or$beforePending.beforeSha256-cne$i.recordsHash-or(Get-Business5244StartupHash ([Convert]::FromBase64String($beforePending.beforeBase64)))-cne$i.recordsHash){throw 'CURRENT_SUPERSESSION_ORIGINAL_PENDING_REJECTED'}
  $lease=Enter-Business5244StartupLease -Kind Maintenance;$c=$null;$records=$null;$pending=$null;$seals=[Collections.Generic.List[object]]::new()
  try{
-  $ExitObservation.ValidateExited();Assert-Business5244CurrentSupersessionBoundary $i
+  $ExitObservation.ValidateExited();[void](Assert-Business5244CurrentSupersessionBoundary $i)
   $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
   foreach($row in @($i.entrySeals)+@($i.gateSeal)){
    if(!$row.path-or$row.hash-cnotmatch'^[a-f0-9]{64}$'-or!$seen.Add($row.path)){throw 'CURRENT_SUPERSESSION_ENTRY_SET_REJECTED'}
@@ -486,11 +486,11 @@ function New-Business5244CurrentSupersessionAdmission($ExitObservation){
 function Initialize-Business5244CurrentSupersessionOwner($Admission){
  $c=Assert-Business5244CurrentSupersessionHeld $Admission
  if($c.phase-cne'Prepared'-or$c.native-or$c.state){throw 'CURRENT_SUPERSESSION_INITIALIZATION_ALREADY_ATTEMPTED'}
- Assert-Business5244StartupLease $c.lease -Kind Maintenance;Assert-Business5244CurrentSupersessionBoundary $c.inputs;$c.phase='Creating'
+ Assert-Business5244StartupLease $c.lease -Kind Maintenance;[void](Assert-Business5244CurrentSupersessionBoundary $c.inputs);$c.phase='Creating'
  try{
   $c.native=New-Business5244PinnedChild -Pins $c.inputs.pins -Lease $c.lease
   Assert-Business5244CreatedChild $c.native $c.inputs.pins;Assert-Business5244ReadyChild $c.native $c.inputs.pins
-  [void](Assert-Business5244CurrentSupersessionHeld $Admission);Assert-Business5244CurrentSupersessionBoundary $c.inputs
+  [void](Assert-Business5244CurrentSupersessionHeld $Admission);[void](Assert-Business5244CurrentSupersessionBoundary $c.inputs)
   # This promotion remains on the same held native mutex and issuing thread.
   (Get-Business5244StartupRecord $c.lease).kind='Owner'
   $c.state=Register-Business5244OwnedRetirement $c.lease $c.native $c.inputs.pins -ScopeName $c.inputs.scopeName
@@ -509,7 +509,7 @@ function Complete-Business5244CurrentSupersessionOwner($Admission){
  if($c.phase-cne'RecordPublished'-or!$c.native-or!$c.state){throw 'CURRENT_SUPERSESSION_COMPLETION_NOT_ADMITTED'}
  $r=Get-Business5244RetirementState $c.state
  if(![object]::ReferenceEquals($r.currentSupersession,$c)-or![object]::ReferenceEquals($r.native,$c.native)-or$r.phase-cne'Running'-or!$r.initializing){throw 'CURRENT_SUPERSESSION_FRESH_STATE_CHANGED'}
- Assert-Business5244StartupLease $c.lease -Kind Owner;Assert-Business5244CreatedChild $c.native $c.inputs.pins;Assert-Business5244ReadyChild $c.native $c.inputs.pins;Assert-Business5244CurrentSupersessionBoundary $c.inputs
+ Assert-Business5244StartupLease $c.lease -Kind Owner;Assert-Business5244CreatedChild $c.native $c.inputs.pins;Assert-Business5244ReadyChild $c.native $c.inputs.pins;[void](Assert-Business5244CurrentSupersessionBoundary $c.inputs)
  foreach($copy in $c.copies){if((Get-Business5244StartupHash (Read-Business5244RetirementBytes $copy.stream))-cne$copy.hash){throw 'CURRENT_SUPERSESSION_ORIGINAL_COPY_CHANGED'}}
  $receipt=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-current-supersession.v1';classification='SUPERSEDED_NOT_ORIGINAL_COMMIT';caseId=$c.inputs.caseId;operationId=$c.operationId;oldOwnerPid=$c.inputs.ownerPid;oldOwnerBirth=$c.inputs.ownerBirth;oldPendingSha256=$c.inputs.pendingHash;beforeRecordsSha256=$c.inputs.recordsHash;afterRecordsSha256=$c.recordExpected;ownerPid=$PID;ownerBirth=$c.native.OwnerBirth;childPid=$c.native.ChildPid;childBirth=$c.native.ChildBirth;package=$c.inputs.pins.package;manifest=$c.inputs.pins.manifest;commercialWrites=0}|ConvertTo-Json -Compress))
  $receiptPath=$c.inputs.pendingPath+'.'+$c.operationId+'.superseded.receipt.json';$writer=[IO.File]::Open($receiptPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)

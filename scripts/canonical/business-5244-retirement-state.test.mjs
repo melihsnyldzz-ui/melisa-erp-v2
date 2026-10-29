@@ -319,3 +319,16 @@ win('closing the pre-exit observation disposes only its own handle and cannot re
  $writer.WriteLine('EXIT');$writer.Flush();[void]$server.WaitForExit(5000);$caught='';try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message};if($caught-cne'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_REQUIRED'){throw 'CLOSED_OBSERVATION_STILL_GRANTED'}
  `),'PASS');
 });
+
+win('Current-only boundary assertions returning true cannot leak into the scalar native admission, frame or completion result',()=>{
+ assert.equal(superRun(String.raw`
+ $body=(Get-Command Assert-Business5244CurrentSupersessionBoundary).Definition
+ . ([scriptblock]::Create('function Assert-Business5244CurrentSupersessionBoundary {'+$body+';return $true}'))
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer
+ if($token-is[array]-or@($token).Count-ne1-or$token.kind-cne'business-5244-current-supersession'){throw 'BOUNDARY_OUTPUT_LEAKED_INTO_ADMISSION'}
+ $c=Get-Business5244CurrentSupersessionContext $token;$frame=Initialize-Business5244CurrentSupersessionOwner $token
+ if($frame-is[array]-or@($frame).Count-ne1-or![object]::ReferenceEquals($frame.lease,$c.lease)-or![object]::ReferenceEquals($frame.native,$c.native)-or![object]::ReferenceEquals($frame.state,$c.state)){throw 'BOUNDARY_OUTPUT_LEAKED_INTO_FRAME'}
+ $result=Complete-Business5244CurrentSupersessionOwner $token
+ if($result-is[array]-or@($result).Count-ne1-or$result.classification-cne'SUPERSEDED_NOT_ORIGINAL_COMMIT'-or$script:boundaryCalls-ne4-or$c.phase-cne'Completed'){throw 'BOUNDARY_OUTPUT_LEAKED_INTO_COMPLETION'}
+ `),'PASS');
+});
