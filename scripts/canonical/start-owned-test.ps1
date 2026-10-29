@@ -42,8 +42,8 @@ function Get-ErpReadPairReleaseProofContext($Proof){
  if(!$found-or$found.closed-or$found.pid-ne$PID-or$found.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-cne$found.owner-or($Proof|ConvertTo-Json -Compress)-cne$found.tokenJson){throw 'TEST125_RELEASE_PROOF_NOT_ISSUED'}
  return $found
 }
-function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null){
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){[void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)}elseif($null-ne$NativeProfileAdmission){throw 'B6_NATIVE_SCOPE_REJECTED'}
+function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null){
+ if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){[void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeProfileAdmission -Phase WriterPrepared)}elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){[void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)}elseif($null-ne$NativeProfileAdmission){throw 'B6_NATIVE_SCOPE_REJECTED'}
  if(!('Business5244PackageSeal' -as[type])){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
  $seal=[Business5244PackageSeal]::new()
  try{
@@ -60,10 +60,15 @@ function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-R
   $shapes=@($baseShapes)+@($projectedShapes)
   foreach($package in $all){$m=Assert-ErpRelease $package -RetainedSeal $seal;$manifests[$package.ReleaseRoot]=[IO.File]::ReadAllText((Join-Path $package.ReleaseRoot 'release-manifest.json'))}
   $businessSaleOwnerPins=$null
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    $ownerSource=Get-ErpBusinessSaleOwnerSource $NativeProfileAdmission
    $seal.Add($ownerSource.manifestPath,$ownerSource.manifestSha256)
    foreach($file in $ownerSource.files){$seal.Add((Join-Path $ownerSource.root $file.path),$file.sha256)}
+   if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+    $seal.Add($ownerSource.packagePairPath,$ownerSource.packagePairSha256)
+    $currentTask=Read-ErpBusinessSaleWriterCurrentTaskSource
+    $seal.Add($currentTask.path,$currentTask.sha256);$seal.Add($currentTask.manifestPath,$currentTask.coreManifestSha256);$seal.Add($currentTask.capturePath,$currentTask.captureSha256)
+   }
    $businessSaleOwnerPins=[pscustomobject]@{path=$ownerSource.launcher;sha256=$ownerSource.launcherSha256;coreManifestSha256=$ownerSource.manifestSha256}
   }
   $seal.Freeze();$seal.Validate()

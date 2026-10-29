@@ -1,4 +1,4 @@
-param([Alias('Library')][switch]$OwnedLibrary,[ValidateSet('Current','ReadPair')][string]$OwnerInitialSlot='ReadPair',[switch]$PrepareReadPairMaintenance,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$OwnerScopeName='TEST125-API-READ2b-20261028-41d3c213')
+param([Alias('Library')][switch]$OwnedLibrary,[ValidateSet('Current','ReadPair')][string]$OwnerInitialSlot='ReadPair',[switch]$PrepareReadPairMaintenance,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$OwnerScopeName='TEST125-API-READ2b-20261028-41d3c213')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
@@ -26,7 +26,7 @@ function Assert-Business5244CreatedChild($Native,$Pins){
 function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
- $exact=if($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+ $exact=if($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
  if((Get-FileHash -LiteralPath $Pins.node).Hash -ine $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -ine $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
@@ -184,8 +184,8 @@ function Close-Business5244PinnedChildren($Lease){
  if($failed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
 }
 function Start-Business5244OwnedSupervisor {
- param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
- if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'OWNED_WEB_SCOPE_REJECTED'}
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'OWNED_WEB_SCOPE_REJECTED'}
  if($PrepareReadPair -and $InitialSlot -ine 'Current'){throw 'OWNED_WEB_PAIR_REQUIRES_CURRENT_START'}
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and initial publication remain separate gates.
@@ -209,10 +209,10 @@ function Start-Business5244OwnedSupervisor {
    # neither replays the old request nor imports the old owner's state.
   }elseif($PrepareReadPair){
    . (Join-Path $PSScriptRoot 'test125-bound-api-quiescence.ps1')
-   if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleNativeProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}else{$apiTransition=New-Test125ReadPairTransition}
+   if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleWriterProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleNativeProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}else{$apiTransition=New-Test125ReadPairTransition}
    (Get-Business5244RetirementState $retirement).initializationApiTransition=$apiTransition
    Prepare-Business5244PairedMaintenance $retirement $apiTransition
-  }elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$InitialSlot-ieq'Current'){
+  }elseif($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$InitialSlot-ieq'Current'){
    # The finite recovery wrapper publishes only its own fresh Current child.
    # It does not issue an API transition or change any component/profile.
    . (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library
@@ -224,7 +224,7 @@ function Start-Business5244OwnedSupervisor {
   # Retain the real creation handle and Job for the entire child lifetime.
   # Merely serializing this observation never grants maintenance authority.
   $startupRecord=Get-Business5244RetirementState $retirement
-  $recordPublished=$ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$startupRecord.ContainsKey('currentBootstrap')-and$startupRecord.currentBootstrap-and$startupRecord.currentBootstrap.phase-ceq'Archived'
+  $recordPublished=$ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$startupRecord.ContainsKey('currentBootstrap')-and$startupRecord.currentBootstrap-and$startupRecord.currentBootstrap.phase-ceq'Archived'
   if($null-ne$CurrentSupersession){$recordPublished=$startupRecord.ContainsKey('currentSupersession')-and[object]::ReferenceEquals($startupRecord.currentSupersession,(Get-Business5244CurrentSupersessionContext $CurrentSupersession))-and$startupRecord.currentSupersession.phase-ceq'Completed'}
   [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=[bool]$recordPublished}
   while($true){
@@ -266,7 +266,7 @@ function Start-Business5244OwnedSupervisor {
      $supersessionUndo=$true;$retirement=$null;$native=$null
     }catch{$supersessionBlocked=$true;throw 'CURRENT_SUPERSESSION_INITIALIZATION_RECOVERY_UNCONFIRMED'}
    }
-  }elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$InitialSlot-ieq'Current'-and$retirement){
+  }elseif($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$InitialSlot-ieq'Current'-and$retirement){
    $r=Get-Business5244RetirementState $retirement
    if($r.initializing-and$r.ContainsKey('currentBootstrap')-and$r.currentBootstrap){
     try{$verifiedInitCleanup=Undo-Business5244CurrentBootstrap $retirement}catch{$initRecoveryBlocked=$true;throw 'OWNED_WEB_INITIALIZATION_RECOVERY_UNCONFIRMED'}

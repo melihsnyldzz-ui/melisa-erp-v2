@@ -166,6 +166,25 @@ win('B6 supervisor prepares the genuine native/profile reference before opening 
  $denied=$false;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current -PrepareReadPair|Out-Null}catch{if($_.Exception.Message-cne'ISOLATED_AFTER_PREPARED'){throw};$denied=$true};try{if(!$denied-or($script:events-join'|')-cne'native|api|prepared|channel'-or!$script:childProcess.WaitForExit(1000)){throw 'B6_STARTUP_ORDER_OR_CLEANUP'}}finally{$script:childProcess.Dispose()};'PASS'`),'PASS');
 });
 
+win('Writer supervisor binds only its fresh profile-activation factory and restores Applied-B6 as Current without native DDL',()=>{
+ assert.equal(run(`${load}
+ function Get-Business5244StartupMutexName{return ('Local\\MelisaWriterStartup-'+[IO.Path]::GetFileName($env:TEMP))}
+ $script:writerCurrent=(Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).Clone();$script:writerCandidate=$script:writerCurrent.Clone();$script:writerCandidate.package='ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$script:writerCandidate.root='C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$script:writerCandidate.manifest='a'*64;$script:writerCandidate.apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';$script:writerCandidate.apiManifest='b'*64
+ function Get-ErpBusinessSaleWriterPairPins($Mode){if($Mode-ceq'Current'){return $script:writerCurrent};return $script:writerCandidate}
+ Initialize-Business5244WebNative;$script:native=[Business5244WebNative]::new();$script:config=[pscustomobject]@{fixture='startup'};$script:cap=[pscustomobject]@{fixture='fresh-writer-owner'};$script:api=[pscustomobject]@{fixture='issued-transition'};$script:events=[Collections.Generic.List[string]]::new();$sleep=Join-Path $env:TEMP 'writer-source-sleep.ps1';[IO.File]::WriteAllText($sleep,'Start-Sleep -Seconds 60')
+ function New-Business5244PinnedChild($Pins,$Lease){if($Pins.package-cne'ERP-BUSINESS-WEB-5244-B6-ca620bac-PASSIVE-20261028'-or$Pins.apiManifest-cne'85ff1157f4d1ed69582d4a08dead319518d1c79c4ea74ea0f2a0606037a1289d'){throw 'WRITER_WRONG_CURRENT'};$script:native.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$sleep+'"'),$env:TEMP);$script:childProcess=[Diagnostics.Process]::GetProcessById($script:native.ChildPid);[void]$script:childProcess.Handle;return $script:native}
+ function Read-ErpStartupConfig($Path){if($Path-cne'C:\\Sirket\\ERP\\runtime\\canonical-test\\startup-config.json'){throw 'WRITER_STARTUP_CHANGED'};return $script:config}
+ function New-ErpBusinessSaleNativeProfileAdmission{throw 'WRITER_MUST_NOT_REPLAY_NATIVE_REVISION'}
+ function Invoke-ErpBusinessSaleNativeRevision{throw 'WRITER_MUST_NOT_RUN_DDL'}
+ function New-ErpBusinessSaleWriterProfileAdmission($Config){if(![object]::ReferenceEquals($Config,$script:config)){throw 'WRITER_WRONG_CONFIG'};$script:events.Add('writer');return $script:cap}
+ function New-Test125ReadPairTransition($ScopeName,$NativeProfileAdmission){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or![object]::ReferenceEquals($NativeProfileAdmission,$script:cap)){throw 'WRITER_CAP_NOT_RETAINED'};$script:events.Add('api');return $script:api}
+ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){if((Get-Business5244RetirementState $State).scopeName-cne'TEST125-API-B6-WRITER-20261029'-or![object]::ReferenceEquals($ApiTransition,$script:api)){throw 'WRITER_PAIR_CHANGED'};$script:events.Add('prepared')}
+ function Open-Business5244RetirementChannel($OwnerLease){$script:events.Add('channel');throw 'ISOLATED_WRITER_PREPARED'}
+ function Close-Test125ReadPairRequestAdmission($Transition){};function Assert-Test125ReadPairIssued($Transition){if(![object]::ReferenceEquals($Transition,$script:api)){throw 'WRITER_UNISSUED_CLEANUP'};return @{releaseProof=$script:api}};function Close-ErpReadPairReleaseProof($Proof){}
+ $body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisor {'+$body+'}'))
+ $denied=$false;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-WRITER-20261029' -InitialSlot Current -PrepareReadPair|Out-Null}catch{if($_.Exception.Message-cne'ISOLATED_WRITER_PREPARED'){throw};$denied=$true};try{if(!$denied-or($script:events-join'|')-cne'writer|api|prepared|channel'-or!$script:childProcess.WaitForExit(1000)){throw 'WRITER_STARTUP_ORDER_OR_CLEANUP'}}finally{$script:childProcess.Dispose()};'PASS'`),'PASS');
+});
+
 const packageHashFixture=String.raw`
 Initialize-Business5244WebNative
 $script:fixturePins=(Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).Clone()

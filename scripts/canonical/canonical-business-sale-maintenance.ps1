@@ -53,8 +53,116 @@ function Read-ErpBusinessSaleOwnerSource {
  foreach($f in $manifest.files){[void](Read-ErpBusinessSalePinnedFile (Join-Path $root $f.path) $f.sha256)}
  return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$manifest.files;sourceCommit=$manifest.sourceCommit;rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply';launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($manifest.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256)}
 }
+
+function Assert-ErpBusinessSaleExactKeys($Value,[string[]]$Keys){
+ if(!$Value-or(@($Value.PSObject.Properties.Name|Sort-Object -CaseSensitive)-join'|')-cne(@($Keys|Sort-Object -CaseSensitive)-join'|')){throw 'B6_WRITER_SOURCE_SHAPE'}
+}
+function Read-ErpBusinessSaleWriterOwnerSource {
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029';$manifestPath=Join-Path $root 'owner-manifest.json'
+ if(![IO.File]::Exists($manifestPath)){throw 'B6_WRITER_OWNER_NOT_PREPARED'}
+ for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
+ $bytes=[IO.File]::ReadAllBytes($manifestPath);$m=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
+ $leaves=@(
+  'business-5244-startup-exclusion.ps1'
+  'start-business-5244-web.ps1'
+  'business-5244-web-native.cs'
+  'business-5244-retirement-channel.ps1'
+  'business-5244-retirement-peer.cs'
+  'business-5244-retirement-state.ps1'
+  'business-5244-maintenance-dispatch.ps1'
+  'start-business-5244-owned.ps1'
+  'test125-bound-api-quiescence.ps1'
+  'test125-bound-maintenance-plan.ps1'
+  'start-owned-test.ps1'
+  'canonical-business-sale-maintenance.ps1'
+  'run-current-owner.ps1'
+ )
+ if($m.apiPackageId-cne'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'-or$m.appPackageId-cne'ERP-BUSINESS-WEB-5244-B6-ca620bac-PASSIVE-20261028'-or$m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$m.sourceCommit-isnot[string]-or$m.sourceCommit-cnotmatch'\A[a-f0-9]{40}\z'-or$m.actualT1-isnot[bool]-or$m.actualT1-or$m.externalOperations-isnot[bool]-or$m.externalOperations-or$m.rehearsalOnly-isnot[bool]-or$m.rehearsalOnly-or$m.maintenancePurpose-cne'WriterProfileActivation'-or$m.recordingEnabled-isnot[bool]-or$m.recordingEnabled-or(@($m.files.path|Sort-Object -CaseSensitive)-join'|')-cne(@($leaves|Sort-Object -CaseSensitive)-join'|')){throw 'B6_WRITER_OWNER_SCOPE'}
+ foreach($f in $m.files){[void](Read-ErpBusinessSalePinnedFile (Join-Path $root $f.path) $f.sha256)}
+ Assert-ErpBusinessSaleExactKeys $m.packagePair @('path','sha256','bytes')
+ if($m.packagePair.path-cne'writer-package-pair.json'-or$m.packagePair.sha256-isnot[string]-or$m.packagePair.sha256-cnotmatch'\A[a-f0-9]{64}\z'-or$m.packagePair.bytes-le0-or$m.packagePair.bytes-gt65536){throw 'B6_WRITER_PAIR_PIN'}
+ $pairPath=Join-Path $root $m.packagePair.path;$pairBytes=Read-ErpBusinessSalePinnedFile $pairPath $m.packagePair.sha256
+ if($pairBytes.Length-ne$m.packagePair.bytes){throw 'B6_WRITER_PAIR_PIN'}
+ $pair=[Text.Encoding]::UTF8.GetString($pairBytes)|ConvertFrom-Json
+ Assert-ErpBusinessSaleExactKeys $pair @('schema','scope','purpose','current','candidate')
+ if($pair.schema-cne'melisa-b6-writer-package-pair.v1'-or$pair.scope-cne'TEST125-API-B6-WRITER-20261029'-or$pair.purpose-cne'WriterProfileActivation'){throw 'B6_WRITER_PAIR_SCOPE'}
+ foreach($mode in @('current','candidate')){
+  $v=$pair.$mode;Assert-ErpBusinessSaleExactKeys $v @('api','web');Assert-ErpBusinessSaleExactKeys $v.api @('root','packageId','manifestSha256','sourceCommit','configPath');Assert-ErpBusinessSaleExactKeys $v.web @('root','packageId','manifestSha256','frontendSourceCommit','backendPackageId','backendManifestSha256')
+  $apiId=if($mode-ceq'current'){'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'}else{'CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'}
+  $webId=if($mode-ceq'current'){'ERP-BUSINESS-WEB-5244-B6-ca620bac-PASSIVE-20261028'}else{'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'}
+  if($v.api.packageId-cne$apiId-or$v.api.root-cne('C:\Sirket\ERP\releases\'+$apiId)-or$v.api.sourceCommit-cne'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d'-or$v.api.configPath-cne'C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'-or$v.web.packageId-cne$webId-or$v.web.root-cne('C:\Sirket\ERP\releases\'+$webId)-or$v.web.backendPackageId-cne$apiId-or$v.web.backendManifestSha256-cne$v.api.manifestSha256-or$v.web.frontendSourceCommit-isnot[string]-or$v.web.frontendSourceCommit-cnotmatch'\A[a-f0-9]{40}\z'){throw 'B6_WRITER_PAIR_TARGET'}
+  foreach($component in @($v.api,$v.web)){if($component.manifestSha256-isnot[string]-or$component.manifestSha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'B6_WRITER_PAIR_PIN'};[void](Read-ErpBusinessSalePinnedFile (Join-Path $component.root 'release-manifest.json') $component.manifestSha256)}
+  if($mode-ceq'current'-and($v.api.manifestSha256-cne'85ff1157f4d1ed69582d4a08dead319518d1c79c4ea74ea0f2a0606037a1289d'-or$v.web.manifestSha256-cne'3881c27d0dd5ae126ead89d72a5ae28614386b040183eec3f1486c73f5bd0877')){throw 'B6_WRITER_CURRENT_PAIR_CHANGED'}
+ }
+ return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$m.files;sourceCommit=$m.sourceCommit;rehearsalOnly=$false;maintenancePurpose='WriterProfileActivation';launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($m.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256);packagePair=$pair;packagePairPath=$pairPath;packagePairSha256=$m.packagePair.sha256}
+}
+function Get-ErpBusinessSaleWriterPairPins([ValidateSet('Current','Candidate')][string]$Mode='Current'){
+ if($Mode-cnotin@('Current','Candidate')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
+ $o=Read-ErpBusinessSaleWriterOwnerSource;$v=if($Mode-ceq'Current'){$o.packagePair.current}else{$o.packagePair.candidate}
+ return @{root=$v.web.root;package=$v.web.packageId;manifest=$v.web.manifestSha256;frontendSource=$v.web.frontendSourceCommit;apiPackage=$v.api.packageId;apiManifest=$v.api.manifestSha256;baseSource=$v.api.sourceCommit;node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+}
+function Read-ErpBusinessSaleWriterCurrentTaskSource {
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY';$manifestPath=Join-Path $root 'owner-manifest.json'
+ $manifestHash='554e46b609961ab3a9186460d09901a050212503770a0eaab7c7cc003b37e41e';$launcherHash='1728c4d5dcc7eab597640550d068f84140a37d2820620a0a24bcdd3f8e39a917'
+ $capturePath='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-20261029\current-read2b-owner-capture.json';$captureHash='86b2ee054f3cc9fa794c7013a816faa3a2af5a392e10afef08a09c76f84e7161'
+ $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $capturePath $captureHash))|ConvertFrom-Json
+ $m=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $manifestPath $manifestHash))|ConvertFrom-Json
+ $rows=@($capture.core.files|Where-Object path -ceq 'start-owned-test.ps1');$manifestRows=@($m.files|Where-Object path -ceq 'start-owned-test.ps1')
+ if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.core.root-cne$root-or$capture.core.manifestSha256-cne$manifestHash-or$rows.Count-ne1-or$manifestRows.Count-ne1-or$rows[0].sha256-cne$launcherHash-or$manifestRows[0].sha256-cne$launcherHash){throw 'B6_WRITER_CURRENT_TASK_CAPTURE_CHANGED'}
+ $path=Join-Path $root 'start-owned-test.ps1';$bytes=Read-ErpBusinessSalePinnedFile $path $launcherHash
+ if($bytes.Length-ne26901){throw 'B6_WRITER_CURRENT_TASK_CAPTURE_CHANGED'}
+ return [pscustomobject]@{path=$path;sha256=$launcherHash;coreManifestSha256=$manifestHash;manifestPath=$manifestPath;capturePath=$capturePath;captureSha256=$captureHash}
+}
+function Get-ErpBusinessSaleWriterTaskLauncherPins($PreparedReleaseProof,[ValidateSet('Current','Candidate')][string]$Mode='Candidate'){
+ if($Mode-cnotin@('Current','Candidate')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
+ $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;$proof.seal.Validate()
+ if(!$proof.businessSaleOwnerPins-or$proof.businessSaleOwnerPins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029\start-owned-test.ps1'){throw 'B6_WRITER_TASK_PROOF_REQUIRED'}
+ if($Mode-ceq'Candidate'){$pins=$proof.businessSaleOwnerPins;[void](Read-ErpBusinessSalePinnedFile $pins.path $pins.sha256);return ($pins|ConvertTo-Json -Compress|ConvertFrom-Json)}
+ $p=Read-ErpBusinessSaleWriterCurrentTaskSource
+ return [pscustomobject]@{path=$p.path;sha256=$p.sha256;coreManifestSha256=$p.coreManifestSha256}
+}
+function Assert-ErpBusinessSaleWriterProfileAdmission($Admission,[ValidateSet('Identity','WriterPrepared','WriterActivated','WriterRestored')][string]$Phase='WriterPrepared'){
+ $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission
+ if(!$r.PSObject.Properties['mode']-or$r.mode-cne'WriterProfileActivation'-or$Admission.schema-cne'melisa-b6-writer-profile.v1'-or$Admission.purpose-cne'WriterProfileActivation'-or$r.rehearsalOnly-or$r.phase-cnotin@('WriterPrepared','WriterActivated','WriterRestored')-or($Phase-cne'Identity'-and$r.phase-cne$Phase)){throw 'B6_WRITER_ADMISSION_REJECTED'}
+ return $true
+}
+function New-ErpBusinessSaleWriterProfileAdmission($Config){
+ if($PSVersionTable.PSEdition-cne'Desktop'){throw 'B6_NATIVE_WINDOWS_POWERSHELL_REQUIRED'}
+ $actual=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$o=Read-ErpBusinessSaleWriterOwnerSource
+ if(($actual|ConvertTo-Json -Depth 100 -Compress)-cne($Config|ConvertTo-Json -Depth 100 -Compress)){throw 'B6_WRITER_STARTUP_CHANGED'}
+ [void](Assert-Test125ReadPairConfig $actual Current -ScopeName 'TEST125-API-B6-WRITER-20261029')
+ $inputs=Get-ErpBusinessSaleNativeInputs;Test-ErpBusinessSaleAfter $inputs
+ $path=$o.packagePair.current.api.configPath
+ for($p=$path;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_NATIVE_PROFILE_REPARSE'}}
+ $before=[IO.File]::ReadAllBytes($path);$profile=[Text.Encoding]::UTF8.GetString($before)|ConvertFrom-Json
+ if($profile.goal8SyntheticDaySeal.packageId-cne$o.packagePair.current.api.packageId-or$profile.businessSaleWritesEnabled-isnot[bool]-or$profile.businessSaleWritesEnabled-or($profile.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress)-cne($inputs.descriptor|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_WRITER_PROFILE_CHANGED'}
+ $profile.goal8SyntheticDaySeal.packageId=$o.packagePair.candidate.api.packageId;$profile.businessSaleWritesEnabled=$true
+ $candidate=[Text.Encoding]::UTF8.GetBytes(($profile|ConvertTo-Json -Depth 100))
+ $token=[pscustomobject][ordered]@{schema='melisa-b6-writer-profile.v1';id=[guid]::NewGuid().ToString('N');rehearsalOnly=$false;purpose='WriterProfileActivation'}
+ $record=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);owner=$actual.OwnerSid;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;inputHash=$inputs.artifactHash;ownerInputs=$o;mode='WriterProfileActivation';phase='WriterPrepared';profilePath=$path;profileBeforeHash=(Get-ErpBusinessSaleHash $before);candidateBytes=$candidate;transition=$null;rehearsalOnly=$false;closed=$false}
+ [void]$script:ErpBusinessSaleAdmissions.Add($record);return $token
+}
+function Bind-ErpBusinessSaleWriterProfile($Admission,$Transition){
+ [void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission);$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;$c=Assert-Test125ReadPairIssued $Transition
+ if($r.transition-or$Transition.scope-cne'TEST125-API-B6-WRITER-20261029'-or$Transition.profileOnlyPurpose-cne'WriterProfileActivation'-or![object]::ReferenceEquals($c.nativeProfileAdmission,$Admission)-or$c.apiPath-cne$r.profilePath-or$Transition.apiProfileBeforeSha256-cne$r.profileBeforeHash-or$Transition.apiProfileCandidateSha256-cne(Get-ErpBusinessSaleHash $r.candidateBytes)){throw 'B6_WRITER_TRANSITION_NOT_ISSUED'}
+ $r.transition=$Transition
+}
+function Invoke-ErpBusinessSaleWriterProfileBoundaryCheck($Admission,[ValidateSet('Candidate','Rollback')][string]$Mode){
+ if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
+ [void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission -Phase Identity);$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission
+ if(($Mode-ceq'Candidate'-and$r.phase-cne'WriterPrepared')-or($Mode-ceq'Rollback'-and$r.phase-cnotin@('WriterPrepared','WriterActivated'))){throw 'B6_WRITER_PHASE_REJECTED'}
+ [void](Assert-ErpBusinessSaleNativeQuiescence $r);[void](Get-ErpBusinessSaleOwnerSource $Admission);Test-ErpBusinessSaleAfter (Get-ErpBusinessSaleNativeInputs)
+}
+function Complete-ErpBusinessSaleWriterProfileState($Admission,[ValidateSet('Candidate','Rollback')][string]$Mode){
+ if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
+ Invoke-ErpBusinessSaleWriterProfileBoundaryCheck $Admission -Mode $Mode;$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission
+ $expected=if($Mode-ceq'Candidate'){Get-ErpBusinessSaleHash $r.candidateBytes}else{$r.profileBeforeHash}
+ [void](Read-ErpBusinessSalePinnedFile $r.profilePath $expected)
+ $r.phase=if($Mode-ceq'Candidate'){'WriterActivated'}else{'WriterRestored'}
+}
+
 function Get-ErpBusinessSaleOwnerSource($Admission){
- $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;$fresh=Read-ErpBusinessSaleOwnerSource
+ $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;$fresh=if($r.PSObject.Properties['mode']-and$r.mode-ceq'WriterProfileActivation'){Read-ErpBusinessSaleWriterOwnerSource}else{Read-ErpBusinessSaleOwnerSource}
  if($fresh.manifestSha256-cne$r.ownerInputs.manifestSha256){throw 'B6_OWNER_SOURCE_CHANGED'}
  return $fresh
 }
@@ -80,6 +188,7 @@ function Get-ErpBusinessSaleNativeAdmissionContext($Admission){
 }
 function Assert-ErpBusinessSaleNativeProfileAdmission($Admission,[ValidateSet('Identity','Prepared','Applied','Restored')][string]$Phase='Prepared'){
  $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission
+ if($r.PSObject.Properties['mode']-and$r.mode-ceq'WriterProfileActivation'){throw 'B6_WRITER_NATIVE_DDL_FORBIDDEN'}
  if($Phase-cne'Identity'-and$r.phase-cne$Phase){throw 'B6_NATIVE_PHASE_REJECTED'}
  if($r.phase-ceq'Unknown'){throw 'B6_NATIVE_OUTCOME_UNKNOWN'}
  return $true
@@ -164,7 +273,7 @@ function New-ErpBusinessSaleNativeProfileAdmission($Config,[switch]$RehearsalOnl
  $record=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);owner=$actual.OwnerSid;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;inputHash=$inputs.artifactHash;inputs=$inputs;ownerInputs=$ownerInputs;phase='Prepared';profilePath=$path;profileBeforeHash=(Get-ErpBusinessSaleHash $before);candidateBytes=$candidate;transition=$null;rehearsalOnly=[bool]$RehearsalOnly;rehearsalAttempted=$false;rehearsalFailed=$false;rehearsed=$false;backup=$null;backupSignature=$null;closed=$false;journalHash=$null;events=[Collections.ArrayList]::new()}
  [void]$script:ErpBusinessSaleAdmissions.Add($record);return $token
 }
-function Get-ErpBusinessSaleCandidateProfileBytes($Admission){$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;if($r.phase-cnotin@('Prepared','Applied')){throw 'B6_NATIVE_PHASE_REJECTED'};return ,([byte[]]$r.candidateBytes.Clone())}
+function Get-ErpBusinessSaleCandidateProfileBytes($Admission){$r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;if($r.PSObject.Properties['mode']-and$r.mode-ceq'WriterProfileActivation'){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission -Phase Identity);if($r.phase-cnotin@('WriterPrepared','WriterActivated')){throw 'B6_WRITER_PHASE_REJECTED'};return ,([byte[]]$r.candidateBytes.Clone())};if($r.phase-cnotin@('Prepared','Applied')){throw 'B6_NATIVE_PHASE_REJECTED'};return ,([byte[]]$r.candidateBytes.Clone())}
 function Bind-ErpBusinessSaleNativeProfileTransition($Admission,$Transition){
  $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;$context=Assert-Test125ReadPairIssued $Transition
  if($r.transition-or$Transition.scope-cne'TEST125-API-B6-ca620bac-20261028'-or![object]::ReferenceEquals($context.nativeProfileAdmission,$Admission)-or$context.apiPath-cne$r.profilePath-or$Transition.apiProfileBeforeSha256-cne$r.profileBeforeHash-or$Transition.apiProfileCandidateSha256-cne(Get-ErpBusinessSaleHash $r.candidateBytes)){throw 'B6_NATIVE_TRANSITION_NOT_ISSUED'}
@@ -232,6 +341,7 @@ function Write-ErpBusinessSaleNativeEvent($Record,[string]$Event,$SqlFailure=$nu
  }finally{$stream.Dispose()}
 }
 function Invoke-ErpBusinessSaleNativeRevision($Admission,[ValidateSet('Rehearse','Apply','Inverse')][string]$Direction){
+ $writerCheck=Get-ErpBusinessSaleNativeAdmissionContext $Admission;if($writerCheck.PSObject.Properties['mode']-and$writerCheck.mode-ceq'WriterProfileActivation'){throw 'B6_WRITER_NATIVE_DDL_FORBIDDEN'}
  $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;[void](Assert-ErpBusinessSaleNativeQuiescence $r)
  $nativeInputs=Get-ErpBusinessSaleNativeInputs
  if($nativeInputs.artifactHash-cne$r.inputHash){throw 'B6_NATIVE_INPUT_CHANGED'}

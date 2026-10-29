@@ -1,9 +1,11 @@
-param([switch]$Library,[switch]$Apply,[switch]$AfterLoaderRecovery,[switch]$CurrentOnlySupersession,[switch]$InitializerCleanRecovery,[switch]$RehearsalOnly,[switch]$CandidateInstall,[string]$SourceSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
+param([switch]$Library,[switch]$Apply,[switch]$AfterLoaderRecovery,[switch]$CurrentOnlySupersession,[switch]$InitializerCleanRecovery,[switch]$RehearsalOnly,[switch]$CandidateInstall,[switch]$WriterInstall,[string]$SourceSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'READPAIR_INSTALL_SCOPE_REJECTED'}
+if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'READPAIR_INSTALL_SCOPE_REJECTED'}
 if($RehearsalOnly-and($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$AfterLoaderRecovery-or$CurrentOnlySupersession-or$InitializerCleanRecovery)){throw 'B6_REHEARSAL_FIXED_ACTION_REQUIRED'}
 if($CandidateInstall-and($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$AfterLoaderRecovery-or$CurrentOnlySupersession-or$InitializerCleanRecovery-or$RehearsalOnly)){throw 'B6_CANDIDATE_FIXED_ACTION_REQUIRED'}
+if($WriterInstall-and($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$AfterLoaderRecovery-or$CurrentOnlySupersession-or$InitializerCleanRecovery-or$RehearsalOnly-or$CandidateInstall)){throw 'B6_WRITER_FIXED_ACTION_REQUIRED'}
+if(!$Library-and$ScopeName-ceq'TEST125-API-B6-WRITER-20261029'-and!$WriterInstall){throw 'B6_WRITER_FIXED_ACTION_REQUIRED'}
 # Fixed READ2b maintenance composition. The library path defines procedures only.
 # It neither grants API approval nor executes the retained private prototype.
 function Read-ReadPairHeldBytes($Stream){
@@ -85,7 +87,7 @@ function Invoke-ReadPairInstallSequence {
  }catch{
   if(!$issued){
    $actualStopped=$stopped
-   if($RehearsalOnly-or$CandidateInstall){$h=Get-B6ReadPairActiveHandoff;if($h-and!$h.stopAttempted){$actualStopped=$false}}
+   if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){$h=Get-B6ReadPairActiveHandoff;if($h-and!$h.stopAttempted){$actualStopped=$false}}
    Restore-ReadPairBeforeRetire -OldStopped $actualStopped
   }
   # Never stop/replay/restore a possibly active paired API transition.
@@ -144,9 +146,9 @@ function Assert-OldTarget($Status){
  if(!$p -or !$child -or !(Same-ErpPath $p.ExecutablePath $ps) -or $child.ParentProcessId -ne $p.ProcessId -or !(Same-ErpPath $child.ExecutablePath $pins.node) -or (Child-Sid $p) -cne [Business5244RetirementPeer]::CurrentSid -or (Child-Sid $child) -cne [Business5244RetirementPeer]::CurrentSid){throw 'WEB_OWNER_TARGET_CHANGED'}
  if(![Business5244WebNative]::MatchesCimBirth([long]$Status.ownerBirth,$p.CreationDate.ToUniversalTime().ToFileTimeUtc()) -or ![Business5244WebNative]::MatchesCimBirth([long]$Status.childBirth,$child.CreationDate.ToUniversalTime().ToFileTimeUtc())){throw 'WEB_OWNER_BIRTH_CHANGED'}
  $argsText=[regex]::Replace([string]$p.CommandLine,('^"?'+[regex]::Escape($p.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
   $expected=Get-B6ReadPairOwnerArguments $oldRoot $oldHash
-  if(($RehearsalOnly-or$CandidateInstall)-and$oldRoot-ceq$b6.owner.entry.root){
+  if(($RehearsalOnly-or$CandidateInstall-or$WriterInstall)-and$oldRoot-ceq$b6.owner.entry.root){
    if($Status.ownerPid-ne$b6.owner.owner.pid-or$Status.ownerBirth-cne$b6.owner.owner.birth-or$Status.childPid-ne$b6.owner.child.pid-or$Status.childBirth-cne$b6.owner.child.birth-or!(Test-ReadPairOwnerArguments ([string]$p.CommandLine) ([string]$b6.owner.owner.argv))){throw 'B6_CURRENT_OWNER_CAPTURE_CHANGED'}
   }elseif($oldRoot-ceq$b6.owner.entry.root){
    if($Status.ownerPid-ne$b6.owner.owner.pid-or$Status.ownerBirth-cne$b6.owner.owner.birth-or$Status.childPid-ne$b6.owner.child.pid-or$Status.childBirth-cne$b6.owner.child.birth-or(Child-Sid $p)-cne$b6.owner.owner.sid-or(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes([string]$p.CommandLine)))-cne$b6.owner.owner.argvSha256){throw 'B6_CURRENT_OWNER_CAPTURE_CHANGED'}
@@ -168,7 +170,7 @@ function Assert-OldTarget($Status){
  Assert-Business5244OwnedListeners $rows $child.ProcessId
 }
 function Start-Frozen([string]$Root,[string]$Hash,[string]$Label){
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$script:b6InitializationExitProcess=$null}
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){$script:b6InitializationExitProcess=$null}
  $logPrefix=if($AfterLoaderRecovery){'read2b-install-after-loader-recovery-'}else{'read2b-install-'}
  $stdout=Join-Path $base ($logPrefix+$Label+'.stdout.log');$stderr=Join-Path $base ($logPrefix+$Label+'.stderr.log')
  if((Test-Path $stdout) -or (Test-Path $stderr)){throw 'WEB_START_LOG_ALREADY_EXISTS'}
@@ -177,12 +179,12 @@ function Start-Frozen([string]$Root,[string]$Hash,[string]$Label){
   foreach($name in @($saved.Keys)){[Environment]::SetEnvironmentVariable($name,$null,'Process')}
   foreach($name in @('SystemRoot','WINDIR','ComSpec','PATHEXT','PATH','TEMP','TMP','USERPROFILE','APPDATA','LOCALAPPDATA')){if($saved.ContainsKey($name)){[Environment]::SetEnvironmentVariable($name,$saved[$name],'Process')}}
   $argv=@('-NoProfile','-NonInteractive','-WindowStyle','Hidden','-File',(Join-Path $Root $(if($Label -ceq 'candidate'){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'})),'-ManifestSha256',$Hash.ToUpperInvariant())
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    [void](Get-B6ReadPairOwnerArguments $Root $Hash)
    if($Label-ceq'candidate'){$argv+=@('-ScopeName',$ScopeName)}
   }
   $script:newHost=Microsoft.PowerShell.Management\Start-Process -FilePath $ps -ArgumentList $argv -WindowStyle Hidden -WorkingDirectory $Root -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    # Retain the real kernel process handle from this exact source-bound spawn.
    # Later ExitCode readback must not reopen/adopt a recycled numeric PID.
    if(!($script:newHost-is[Diagnostics.Process])-or$script:newHost.Handle-eq[IntPtr]::Zero){throw 'B6_OWNER_KERNEL_HANDLE_REQUIRED'}
@@ -192,7 +194,7 @@ function Start-Frozen([string]$Root,[string]$Hash,[string]$Label){
  $deadline=[DateTime]::UtcNow.AddSeconds(900)
  do{
   if($script:newHost.HasExited){
-   if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$Label-ceq'candidate'-and$Root-ceq$b6.routerRoot-and$Hash-ceq$b6.routerHash-and$script:newHost.ExitCode-eq73){
+   if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$Label-ceq'candidate'-and$Root-ceq$b6.routerRoot-and$Hash-ceq$b6.routerHash-and$script:newHost.ExitCode-eq73){
     $script:b6InitializationExitProcess=$script:newHost
     throw 'B6_NEW_OWNER_INITIALIZATION_CLEANUP_VERIFIED'
    }
@@ -219,20 +221,20 @@ function Assert-ReadPairProtection {
  if((Get-ReadPairProtectionSignature (Protection-Snapshot))-cne(Get-ReadPairProtectionSignature $before)){throw 'READPAIR_PROTECTION_CHANGED'}
 }
 function Get-ReadPairExpectedProjection {
- param([byte[]]$StartupBytes,[byte[]]$ApiBytes,[string]$BaseProfileSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null)
+ param([byte[]]$StartupBytes,[byte[]]$ApiBytes,[string]$BaseProfileSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null)
  # Pure hash projection only. Supplied bytes are never written or authority.
  $pairScope=if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){Get-Test125ReadPairScope}else{Get-Test125ReadPairScope -Name $ScopeName};$path='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
  $config=[Text.Encoding]::UTF8.GetString($StartupBytes)|ConvertFrom-Json
  if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){[void](Assert-Test125ReadPairConfig $config Current)}else{[void](Assert-Test125ReadPairConfig $config Current -ScopeName $ScopeName)}
  if($BaseProfileSha256-cnotmatch'^[a-f0-9]{64}$'){throw 'READPAIR_EXPECTED_BASE_HASH_CHANGED'}
  $nextApi=[Text.Encoding]::UTF8.GetString($ApiBytes)|ConvertFrom-Json
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
-  [void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
+  if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){[void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeProfileAdmission -Phase WriterPrepared)}else{[void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)}
   $native=Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission
   if($native.profileBeforeHash-cne(Get-Business5244StartupHash $ApiBytes)){throw 'B6_NATIVE_PROFILE_BEFORE_CHANGED'}
   [byte[]]$apiAfter=Get-ErpBusinessSaleCandidateProfileBytes $NativeProfileAdmission
   if(!$apiAfter-or!$apiAfter.Length){throw 'READPAIR_B6_CANDIDATE_PROFILE_REQUIRED'}
-  $schema='melisa-test125-b6-api-transition.v1'
+  $schema=if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){'melisa-test125-b6-writer-api-transition.v1'}else{'melisa-test125-b6-api-transition.v1'}
  }else{
   if($null-ne$NativeProfileAdmission){throw 'READPAIR_NATIVE_SCOPE_REJECTED'}
   if($nextApi.goal8SyntheticDaySeal.packageId-cne'CANONICAL-TEST125-BUSINESS5244-10cdc0ee'){throw 'READPAIR_OLD_PROFILE_SEAL_CHANGED'}
@@ -245,7 +247,10 @@ function Get-ReadPairExpectedProjection {
  $startupAfter=[Text.Encoding]::UTF8.GetBytes(($nextConfig|ConvertTo-Json -Depth 100))
  $releasePins=Get-ReadPairExpectedReleasePins $config $pairScope
  $shape=[pscustomobject][ordered]@{schema=$schema;packageProof=$releasePins;scope=$pairScope.name;source=$pairScope.source;database=$pairScope.database;current=$pairScope.current;candidate=$pairScope.candidate;apiProfileBeforeSha256=(Get-Business5244StartupHash $ApiBytes);apiProfileCandidateSha256=(Get-Business5244StartupHash $apiAfter);baseProfileSha256=$BaseProfileSha256;startupBeforeSha256=(Get-Business5244StartupHash $StartupBytes);startupCandidateSha256=(Get-Business5244StartupHash $startupAfter);apiPort=4144;preservedPorts=@(4146,5194);runtimeApplied=$false}
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+ if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  if($native.mode-cne'WriterProfileActivation'){throw 'B6_WRITER_PROFILE_PURPOSE_REJECTED'}
+  $shape|Add-Member profileOnlyPurpose 'WriterProfileActivation'
+ }elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
   if($native.rehearsalOnly-isnot[bool]){throw 'B6_NATIVE_PURPOSE_REJECTED'}
   # Match the actual transition's final, issuer-bound purpose member. Omitting
   # it would predict a different plan even for otherwise identical profiles.
@@ -260,9 +265,9 @@ function Get-ReadPairExpectedProjection {
  return @{planHash=(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($identity)));baseHash=$BaseProfileSha256;startupPath=$path;apiPath=$pairScope.current.ConfigPath;basePath=$config.ConfigPath;Current=@{startup=$shape.startupBeforeSha256;api=$shape.apiProfileBeforeSha256};Candidate=@{startup=$shape.startupCandidateSha256;api=$shape.apiProfileCandidateSha256}}
 }
 function Get-ReadPairExpectedHashes {
- param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null)
+ param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$NativeProfileAdmission=$null)
  $pairScope=if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){Get-Test125ReadPairScope}else{Get-Test125ReadPairScope -Name $ScopeName};$path='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){[void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)}elseif($null-ne$NativeProfileAdmission){throw 'READPAIR_NATIVE_SCOPE_REJECTED'}
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){[void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeProfileAdmission -Phase WriterPrepared)}else{[void](Assert-ErpBusinessSaleNativeProfileAdmission $NativeProfileAdmission -Phase Prepared)}}elseif($null-ne$NativeProfileAdmission){throw 'READPAIR_NATIVE_SCOPE_REJECTED'}
  $startup=[IO.File]::ReadAllBytes($path);$config=[Text.Encoding]::UTF8.GetString($startup)|ConvertFrom-Json
  if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){[void](Assert-Test125ReadPairConfig $config Current)}else{[void](Assert-Test125ReadPairConfig $config Current -ScopeName $ScopeName)}
  $api=[IO.File]::ReadAllBytes($pairScope.current.ConfigPath);$baseHash=Get-Business5244StartupHash ([IO.File]::ReadAllBytes($config.ConfigPath))
@@ -308,7 +313,7 @@ function Get-B6ReadPairOwnerArguments([string]$Root,[string]$Hash){
   if($b6.owner.entry.leaf-cne'start-business-5244-readpair-router.ps1'-or$b6.owner.entry.root-cne$b6.owner.router.root-or$b6.owner.entry.manifestSha256-cne$b6.owner.router.manifestSha256){throw 'B6_CURRENT_ENTRY_KIND_REJECTED'}
  }else{throw 'B6_CURRENT_ENTRY_KIND_REJECTED'}
  if($Root-ceq$b6.owner.entry.root-and$Hash-ceq$b6.owner.entry.manifestSha256){$leaf=$b6.owner.entry.leaf;$suffix=if($kind-cin@('ReadPairRouter','CurrentInitializerClean')){' -ScopeName TEST125-API-B6-ca620bac-20261028'}else{''}}
- elseif($Root-ceq$b6.routerRoot-and$Hash-ceq$b6.routerHash){$leaf='start-business-5244-readpair-router.ps1';$suffix=' -ScopeName TEST125-API-B6-ca620bac-20261028'}
+ elseif($Root-ceq$b6.routerRoot-and$Hash-ceq$b6.routerHash){$leaf='start-business-5244-readpair-router.ps1';$suffix=' -ScopeName '+$(if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){'TEST125-API-B6-WRITER-20261029'}else{'TEST125-API-B6-ca620bac-20261028'})}
  elseif($Root-ceq$b6.coreRoot-and$Hash-ceq$b6.coreHash){$leaf='run-current-owner.ps1';$suffix=''}
  else{throw 'B6_OWNER_ARGV_SCOPE_REJECTED'}
  return '-NoProfile -NonInteractive -WindowStyle Hidden -File '+$Root+'\'+$leaf+' -ManifestSha256 '+$Hash.ToUpperInvariant()+$suffix
@@ -328,7 +333,7 @@ function Hold-B6ReadPairEntry([string]$Path,[string]$Hash){
  }catch{$stream.Dispose();throw}
 }
 function Get-B6ReadPairActiveEntry {
- if($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'){return $null}
+ if($ScopeName-cnotin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){return $null}
  if(!$b6.owner.PSObject.Properties['predecessorEntryKind']){return $null}
  $entry=$b6.owner.entry;$kind=$b6.owner.predecessorEntryKind
  if($entry.sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'B6_ACTIVE_ENTRY_DESCRIPTOR_REJECTED'}
@@ -411,8 +416,8 @@ function Complete-B6ReadPairActiveEntryHandoff {
    if((Get-Business5244StartupHash (Read-ReadPairHeldBytes $exclusive))-cne$item.beforeHash){throw 'B6_ACTIVE_ENTRY_UPGRADE_CAS_CHANGED'}
   }
   $control.ValidateCompletedStop();Assert-B6ReadPairEntrySet;Assert-B6ReadPairNoForeignEntryLaunch
-  if($RehearsalOnly-or$CandidateInstall){
-   $postExitCount=if($CandidateInstall){20}else{18}
+  if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){
+   $postExitCount=if($WriterInstall){22}elseif($CandidateInstall){20}else{18}
    if($held.Count-ne$postExitCount-or!$script:ReadPairPreheldMutex-or(Get-FileHash -LiteralPath 'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json').Hash-ine$b6.owner.recordBeforeSha256){throw 'B6_MANAGED_EXIT_POST_EXIT_CAS_CHANGED'}
    $script:ReadPairExitObservation.ValidateExited();Assert-ReadPairProtection
   }
@@ -494,6 +499,35 @@ function Open-B6CandidatePreparedSource([string]$ReviewedSourceHash,[string]$Ent
   return [pscustomobject]@{coreRoot=$core;coreHash=$v.coreManifestSha256;routerRoot=$router;routerHash=$v.routerManifestSha256;sourceCommit=$v.ownerSourceCommit;private=$private;proof=$proof;owner=$owner;entryCapture=$entries;rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply'}
  }catch{foreach($stream in $script:b6SourceHandles){$stream.Dispose()};throw}
 }
+function Open-B6WriterPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
+ # Separate immutable generation: legacy failed packages are never rewritten.
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-20261029';$proof=Join-Path $private 'owner-preparation'
+ if(!$Apply-or!$WriterInstall-or$RehearsalOnly-or$ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'B6_WRITER_REVIEWED_ENTRY_REQUIRED'}
+ $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
+ if((Get-FileHash -LiteralPath $node).Hash-cne'3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'){throw 'B6_CONTROLLER_NODE_CHANGED'}
+ $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
+ try{
+  Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'ad2c75a139fc900ad2526411cb4c20dd3183e54da3b00f9b2188996422da0d88'
+  $verifiedText=& $node $producer --verify-writer
+  if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'};$v=$verifiedText|ConvertFrom-Json
+  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029'
+  if($v.schema-cne'melisa-b6-writer-owner-verification.v1'-or$v.rehearsalOnly-isnot[bool]-or$v.rehearsalOnly-or$v.maintenancePurpose-cne'WriterProfileActivation'-or$v.runtimeValidationComplete-ne$false-or$v.postExitExclusiveBytesRequired-ne$true-or$v.postExitExclusiveEntryCount-ne22-or$v.coreFiles-ne13-or$v.beforeImages-ne6-or$v.writes-ne0-or$v.sqlCalls-ne0-or$v.serviceCalls-ne0-or$v.ownerCalls-ne0-or$v.taskChanges-ne0-or$v.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()-or$v.coreRoot-cne$core-or$v.routerRoot-cne$router){throw 'B6_WRITER_SOURCE_NOT_VERIFIED'}
+  Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $v.coreManifestSha256;Hold-B6ReadPairSource (Join-Path $router 'owner-manifest.json') $v.routerManifestSha256
+  $m=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json;$rm=Get-Content -LiteralPath (Join-Path $router 'owner-manifest.json') -Raw|ConvertFrom-Json
+  if($m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.finiteScope-cne$ScopeName-or$m.sourceCommit-cne$v.ownerSourceCommit-or$m.rehearsalOnly-isnot[bool]-or$m.rehearsalOnly-or$m.maintenancePurpose-cne'WriterProfileActivation'-or@($m.files).Count-ne13-or$rm.kind-cne'BUSINESS5244_READ_PAIR_ROUTER'-or$rm.rehearsalOnly-isnot[bool]-or$rm.rehearsalOnly-or$rm.maintenancePurpose-cne'WriterProfileActivation'-or$rm.coreManifestSha256-cne$v.coreManifestSha256-or$rm.coreRoot-cne$core){throw 'B6_WRITER_CORE_IDENTITY_CHANGED'}
+  if($m.packagePair.path-cne'writer-package-pair.json'-or$m.packagePair.sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'B6_WRITER_PACKAGE_PAIR_CHANGED'};Hold-B6ReadPairSource (Join-Path $core 'writer-package-pair.json') $m.packagePair.sha256
+  foreach($file in @($m.files)+@($m.beforeImages)){if($file.path-match'[\\/]'){throw 'B6_CONTROLLER_LEAF_CHANGED'};Hold-B6ReadPairSource (Join-Path $core $file.path) $file.sha256}
+  Hold-B6ReadPairSource (Join-Path $router 'start-business-5244-readpair-router.ps1') $rm.entrySha256;Hold-B6ReadPairSource (Join-Path $router 'readpair-router-library.ps1') $rm.routerLibrarySha256
+  $owner=Get-Content -LiteralPath (Join-Path $core 'current-read2b-owner-capture.json') -Raw|ConvertFrom-Json;$entries=Get-Content -LiteralPath (Join-Path $core 'current-entry-hold-capture.json') -Raw|ConvertFrom-Json
+  $self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID);$ps='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+  $argsText=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape($self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
+  $expected='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$EntryPath+' -Apply -WriterInstall -SourceSha256 '+$ReviewedSourceHash.ToUpperInvariant()+' -ScopeName TEST125-API-B6-WRITER-20261029'
+  $sid=Invoke-CimMethod -InputObject $self -MethodName GetOwnerSid
+  if($self.ExecutablePath-ine$ps-or$sid.ReturnValue-ne0-or$sid.Sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or!(Test-ReadPairOwnerArguments $argsText $expected)){throw 'B6_CONTROLLER_NATIVE_CALLER_CHANGED'}
+  return [pscustomobject]@{coreRoot=$core;coreHash=$v.coreManifestSha256;routerRoot=$router;routerHash=$v.routerManifestSha256;sourceCommit=$v.ownerSourceCommit;private=$private;proof=$proof;owner=$owner;entryCapture=$entries;rehearsalOnly=$false;maintenancePurpose='WriterProfileActivation'}
+ }catch{foreach($stream in $script:b6SourceHandles){$stream.Dispose()};throw}
+}
 function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
  $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\sql-collation-recovered-20261029';$proof=Join-Path $private 'owner-preparation';$receiptPath=Join-Path $proof 'preparation-receipt.json'
  if(![IO.File]::Exists($receiptPath)){throw 'B6_OWNER_BUNDLE_NOT_PREPARED'}
@@ -539,33 +573,36 @@ function Initialize-B6ReadPairControllerPreflight {
  # Constructor and immutable release proof are native issued in THIS process.
  # They are never serialized/transferred to the replacement owner. Its own
  # independent admission is still required before it publishes a nonce.
+ $activeScope=if($WriterInstall){'TEST125-API-B6-WRITER-20261029'}else{'TEST125-API-B6-ca620bac-20261028'}
  $config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
- $script:b6NativeAdmission=New-ErpBusinessSaleNativeProfileAdmission $config
+ $script:b6NativeAdmission=if($WriterInstall){New-ErpBusinessSaleWriterProfileAdmission $config}else{New-ErpBusinessSaleNativeProfileAdmission $config}
+ if($WriterInstall){$purpose=Get-ErpBusinessSaleNativeAdmissionContext $script:b6NativeAdmission;if($purpose.mode-cne'WriterProfileActivation'-or$purpose.ownerInputs.maintenancePurpose-cne'WriterProfileActivation'){throw 'B6_WRITER_PROFILE_PURPOSE_REQUIRED'}}
  if($CandidateInstall){$purpose=Get-ErpBusinessSaleNativeAdmissionContext $script:b6NativeAdmission;if($purpose.rehearsalOnly-isnot[bool]-or$purpose.rehearsalOnly-or$purpose.ownerInputs.maintenancePurpose-cne'CandidateMetadataApply'){throw 'B6_CANDIDATE_NATIVE_PURPOSE_REQUIRED'}}
- [void](Assert-ErpBusinessSaleNativeProfileAdmission $script:b6NativeAdmission -Phase Prepared)
- $script:b6ReadProof=New-ErpReadPairPreparedReleaseProof $config -ScopeName 'TEST125-API-B6-ca620bac-20261028' -NativeProfileAdmission $script:b6NativeAdmission
- [void](Get-Test125BoundMaintenancePlan -RunId 'TEST125-API-B6-ca620bac-20261028' -ReadPairPreparation -ReadPairMode Current -PreparedReleaseProof $script:b6ReadProof)
- [void](Get-ReadPairExpectedHashes -ScopeName 'TEST125-API-B6-ca620bac-20261028' -NativeProfileAdmission $script:b6NativeAdmission)
+ if($WriterInstall){[void](Assert-ErpBusinessSaleWriterProfileAdmission $script:b6NativeAdmission -Phase WriterPrepared)}else{[void](Assert-ErpBusinessSaleNativeProfileAdmission $script:b6NativeAdmission -Phase Prepared)}
+ $script:b6ReadProof=New-ErpReadPairPreparedReleaseProof $config -ScopeName $activeScope -NativeProfileAdmission $script:b6NativeAdmission
+ [void](Get-Test125BoundMaintenancePlan -RunId $activeScope -ReadPairPreparation -ReadPairMode Current -PreparedReleaseProof $script:b6ReadProof)
+ [void](Get-ReadPairExpectedHashes -ScopeName $activeScope -NativeProfileAdmission $script:b6NativeAdmission)
 }
 function Open-B6ReadPairPublication {
  # READ2b entries already contain the accepted global gate. Hold current
  # bytes; B6 never rewrites a legacy entry or replays its old projection.
  $capture=$b6.entryCapture
- $captureSchema=if($CandidateInstall){'melisa-b6-candidate-current-entry-capture.v1'}elseif($RehearsalOnly){'melisa-b6-rehearsal-current-entry-capture.v1'}else{'melisa-b6-current-entry-hold-capture.v1'};$directCount=if($CandidateInstall){14}elseif($RehearsalOnly){12}else{8};$ownerHash=if($CandidateInstall){'3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642'}elseif($RehearsalOnly){'2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364'}else{'4eaa68d16be5260071f74ce7e41e33ce6adaa4c7097d661905968d4b5c1b9945'}
+ $captureSchema=if($WriterInstall){'melisa-b6-writer-current-entry-capture.v1'}elseif($CandidateInstall){'melisa-b6-candidate-current-entry-capture.v1'}elseif($RehearsalOnly){'melisa-b6-rehearsal-current-entry-capture.v1'}else{'melisa-b6-current-entry-hold-capture.v1'};$directCount=if($WriterInstall){16}elseif($CandidateInstall){14}elseif($RehearsalOnly){12}else{8};$ownerHash=if($WriterInstall){'86b2ee054f3cc9fa794c7013a816faa3a2af5a392e10afef08a09c76f84e7161'}elseif($CandidateInstall){'3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642'}elseif($RehearsalOnly){'2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364'}else{'4eaa68d16be5260071f74ce7e41e33ce6adaa4c7097d661905968d4b5c1b9945'}
  if($capture.schema-cne$captureSchema-or$capture.readOnly-ne$true-or$capture.executionAuthority-ne$false-or$capture.entries.Count-ne6-or$capture.directEntries.Count-ne$directCount-or$capture.entryWrites-ne0-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.ownerCaptureSha256-cne$ownerHash-or$capture.gate.path-cne'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1'-or$capture.gate.sha256-cne'a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'){throw 'B6_ENTRY_HOLD_CAPTURE_CHANGED'}
  $paths=@('start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'|ForEach-Object {Join-Path $pins.runtime $_})+@('C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1')
  if(($capture.entries.path-join'|')-cne($paths-join'|')){throw 'B6_ENTRY_HOLD_SCOPE_CHANGED'}
  $direct=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-READ2B-ROUTER-b9416929-20261028\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-OWNER-b9416929-20261028\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261028\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261028\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029\run-current-owner.ps1')
- if(!$RehearsalOnly-and!$CandidateInstall){$direct+=@((Join-Path $b6.owner.router.root 'start-business-5244-readpair-router.ps1'),(Join-Path $b6.owner.core.root 'run-current-owner.ps1'))}
- if($RehearsalOnly-or$CandidateInstall){
+ if(!$RehearsalOnly-and!$CandidateInstall-and!$WriterInstall){$direct+=@((Join-Path $b6.owner.router.root 'start-business-5244-readpair-router.ps1'),(Join-Path $b6.owner.core.root 'run-current-owner.ps1'))}
+ if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){
   $direct=@($direct|Select-Object -First 6)+@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLCOLLATION\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029\run-current-owner.ps1')
-  if($CandidateInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3\start-business-5244-readpair-router.ps1')}
-  $postExitCount=if($CandidateInstall){20}else{18}
+  if($CandidateInstall-or$WriterInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3\start-business-5244-readpair-router.ps1')}
+  if($WriterInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY\start-business-5244-readpair-router.ps1')}
+  $postExitCount=if($WriterInstall){22}elseif($CandidateInstall){20}else{18}
   if($capture.runtimeValidationComplete-ne$false-or$b6.owner.entry.postExitExclusiveBytesRequired-ne$true-or$b6.owner.entry.runtimeEntryBytesVerified-ne$false-or$capture.postExitExclusiveEntryCount-ne$postExitCount){throw 'B6_ENTRY_RUNTIME_PROOF_REQUIRED'}
  }
  if(($capture.directEntries.path-join'|')-cne($direct-join'|')){throw 'B6_DIRECT_ENTRY_SCOPE_CHANGED'}
  $script:before=Protection-Snapshot;$result.before=$before
- if(($RehearsalOnly-or$CandidateInstall)-and(Get-ReadPairProtectionSignature $before)-cne(Get-ReadPairProtectionSignature $b6.owner.protectedSnapshot)){throw 'B6_REHEARSAL_PROTECTION_DRIFT'}
+ if(($RehearsalOnly-or$CandidateInstall-or$WriterInstall)-and(Get-ReadPairProtectionSignature $before)-cne(Get-ReadPairProtectionSignature $b6.owner.protectedSnapshot)){throw 'B6_REHEARSAL_PROTECTION_DRIFT'}
  $script:expected=Get-ReadPairExpectedHashes -ScopeName $ScopeName -NativeProfileAdmission $b6NativeAdmission;$result.expected=$expected
  foreach($row in @($capture.entries)+@($capture.directEntries)){
   $hash=if($row.PSObject.Properties['beforeSha256']){if($row.afterEqualsBefore-ne$true){throw 'B6_ENTRY_AFTER_CHANGED'};$row.beforeSha256}else{$row.sha256}
@@ -579,7 +616,7 @@ function Open-B6ReadPairPublication {
  Record-Phase 'B6_CURRENT_ENTRIES_HELD_UNCHANGED_NOT_RETIRED'
 }
 function Open-ReadPairPublication {
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){Open-B6ReadPairPublication;return}
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){Open-B6ReadPairPublication;return}
  # First pin every source, then lock ALL six legacy entry files. While held,
  # Windows cannot read/start a legacy entry during the cold-owner mutex gap.
  # A pre-existing invocation is separately rejected after all locks are held.
@@ -637,11 +674,11 @@ function Open-ReadPairPublication {
 }
 function Assert-ReadPairColdTarget {
  $script:status=Owner-Status;Assert-OldTarget $status
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and(Get-FileHash -LiteralPath 'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json').Hash-ine$b6.owner.recordBeforeSha256){throw 'B6_CURRENT_RECORD_CHANGED_BEFORE_STOP'}
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and(Get-FileHash -LiteralPath 'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json').Hash-ine$b6.owner.recordBeforeSha256){throw 'B6_CURRENT_RECORD_CHANGED_BEFORE_STOP'}
  if($AfterLoaderRecovery-and($status.ownerPid-ne$coldRecovery.newOwnerPid-or$status.ownerBirth-cne$coldRecovery.newOwnerBirth-or$status.childPid-ne$coldRecovery.childPid-or$status.childBirth-cne$coldRecovery.childBirth)){throw 'READPAIR_COLD_RECOVERY_GENERATION_CHANGED'}
  $script:oldResourceRows=@(Web-Resources $status);$script:webResources=$oldResourceRows
  $c=Connect-Business5244RetirementPeer
- try{if($c.serverPid-ne$status.ownerPid-or$c.serverBirth-cne$status.ownerBirth){throw 'READPAIR_OLD_PEER_CHANGED'};$r=Get-Business5244RetirementRecord $c -Client;$script:control=$r.peer.OpenControlledShutdown();if($RehearsalOnly-or$CandidateInstall){$script:ReadPairExitObservation=$r.peer.OpenExitObservation()}}finally{Close-Business5244RetirementPeer $c}
+ try{if($c.serverPid-ne$status.ownerPid-or$c.serverBirth-cne$status.ownerBirth){throw 'READPAIR_OLD_PEER_CHANGED'};$r=Get-Business5244RetirementRecord $c -Client;$script:control=$r.peer.OpenControlledShutdown();if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){$script:ReadPairExitObservation=$r.peer.OpenExitObservation()}}finally{Close-Business5244RetirementPeer $c}
  Assert-OldTarget $status
  if((Web-Resources $status|ConvertTo-Json -Depth 5 -Compress)-cne($oldResourceRows|ConvertTo-Json -Depth 5 -Compress)){throw 'READPAIR_OLD_RESOURCES_CHANGED'}
  Assert-ReadPairProtection;$control.Validate()
@@ -652,7 +689,7 @@ function Invoke-B6ReadPairManagedOwnerExit {
  # The console signal is NOT authority. It only ends a wait after the normal
  # Microsoft debugger quit. Two retained native handles then prove the exit;
  # the SAME pre-existing mutex must pass standard non-abandoned acquisition.
- if((!$RehearsalOnly-and!$CandidateInstall)-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or($RehearsalOnly-and!$b6.rehearsalOnly)-or($CandidateInstall-and($b6.rehearsalOnly-isnot[bool]-or$b6.rehearsalOnly-or$b6.maintenancePurpose-cne'CandidateMetadataApply'))-or!($script:ReadPairExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'B6_MANAGED_EXIT_ADMISSION_REQUIRED'}
+ if((!$RehearsalOnly-and!$CandidateInstall-and!$WriterInstall)-or$ScopeName-cnotin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or($RehearsalOnly-and!$b6.rehearsalOnly)-or($CandidateInstall-and($b6.rehearsalOnly-isnot[bool]-or$b6.rehearsalOnly-or$b6.maintenancePurpose-cne'CandidateMetadataApply'))-or($WriterInstall-and($b6.rehearsalOnly-isnot[bool]-or$b6.rehearsalOnly-or$b6.maintenancePurpose-cne'WriterProfileActivation'))-or!($script:ReadPairExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'B6_MANAGED_EXIT_ADMISSION_REQUIRED'}
  $control.Validate();Assert-OldTarget $status
  if($script:ReadPairExitObservation.TargetPid-ne$control.TargetPid-or$script:ReadPairExitObservation.TargetBirth-cne$control.TargetBirth-or$script:ReadPairExitObservation.Observe()){throw 'B6_MANAGED_EXIT_GENERATION_CHANGED'}
  $handoff=Get-B6ReadPairActiveHandoff
@@ -674,8 +711,8 @@ function Invoke-B6ReadPairManagedOwnerExit {
  $result.managedExitRequests=1
 }
 function Stop-ReadPairColdOwner {
- if(Get-B6ReadPairActiveEntry){$handoff=Get-B6ReadPairActiveHandoff;if(!$handoff-or$handoff.phase-cne'Shared'){throw 'B6_ACTIVE_ENTRY_HANDOFF_MISSING'};$control.Validate();$handoff.marker.Validate();Assert-B6ReadPairEntrySet -AllowActiveShared;if(!$RehearsalOnly-and!$CandidateInstall){$handoff.stopAttempted=$true}}
- if($RehearsalOnly-or$CandidateInstall){Invoke-B6ReadPairManagedOwnerExit}else{$control.Stop();$result.stopCalls++}
+ if(Get-B6ReadPairActiveEntry){$handoff=Get-B6ReadPairActiveHandoff;if(!$handoff-or$handoff.phase-cne'Shared'){throw 'B6_ACTIVE_ENTRY_HANDOFF_MISSING'};$control.Validate();$handoff.marker.Validate();Assert-B6ReadPairEntrySet -AllowActiveShared;if(!$RehearsalOnly-and!$CandidateInstall-and!$WriterInstall){$handoff.stopAttempted=$true}}
+ if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){Invoke-B6ReadPairManagedOwnerExit}else{$control.Stop();$result.stopCalls++}
  if(!(Wait-ResourceExit $oldResourceRows)-or@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'READPAIR_OLD_RESOURCES_NOT_EXITED'}
  Complete-B6ReadPairActiveEntryHandoff
  Record-Phase 'COLD_OWNER_EXITED'
@@ -691,7 +728,7 @@ function Assert-ReadPairPreparedOwner {
  Assert-ReadPairProtection
  if(Test-Path -LiteralPath (Get-Business5244RetirementPendingPath)){throw 'READPAIR_PENDING_ALREADY_EXISTS'}
  $h=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 5;Assert-Business5244ApiHealth $h $pins
- $fresh=if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){Get-ReadPairExpectedHashes -ScopeName $ScopeName -NativeProfileAdmission $b6NativeAdmission}else{Get-ReadPairExpectedHashes}
+ $fresh=if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){Get-ReadPairExpectedHashes -ScopeName $ScopeName -NativeProfileAdmission $b6NativeAdmission}else{Get-ReadPairExpectedHashes}
  Assert-ReadPairExpectedEqual $fresh $expected
 }
 function Send-ReadPairSingleRetire {
@@ -715,16 +752,16 @@ function Wait-ReadPairFinalState {
     $a=$lines[0]|ConvertFrom-Json;$c=$lines[1]|ConvertFrom-Json
     if($a.schema-cne'business-5244-retirement-before.v1'-or$c.schema-cne'business-5244-commit-prepared.v1'-or$c.operationId-cnotmatch'^[a-f0-9]{32}$'-or$a.operationId-cne$c.operationId-or$files[0].Name-cne('5244-retirement.pending.'+$c.operationId+'.completed')-or$c.ownerPid-ne$s.ownerPid-or$c.ownerBirth-cne$s.ownerBirth-or$a.ownerPid-ne$s.ownerPid-or$a.ownerBirth-cne$s.ownerBirth-or$a.childPid-ne$ready.childPid-or$a.childBirth-cne$ready.childBirth-or$c.childPid-ne$s.childPid-or$c.childBirth-cne$s.childBirth-or$c.mode-cnotin@('Candidate','Rollback')){throw 'READPAIR_ARCHIVE_IDENTITY'}
     $old=[Convert]::FromBase64String($a.beforeBase64);if((Get-Business5244StartupHash $old)-cne$a.beforeSha256){throw 'READPAIR_ARCHIVE_BEFORE_HASH'}
-    $chosen=if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $(if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'})}elseif($c.mode-ceq'Candidate'){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+    $chosen=if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $(if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'})}elseif($c.mode-ceq'Candidate'){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
     if($c.package-cne$chosen.package-or$c.manifest-cne$chosen.manifest-or$c.planHash-cne$expected.planHash){throw 'READPAIR_ARCHIVE_PAIR_CHANGED'}
     $record=[IO.File]::ReadAllBytes('C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json')
     if((Get-Business5244StartupHash $record)-cne$c.recordsHash){throw 'READPAIR_RECORD_HASH_CHANGED'}
     Assert-Business5244RecordStage (ConvertFrom-Business5244RecordBytes $old) (ConvertFrom-Business5244RecordBytes $record) $s.childPid $c.mode $chosen
-    if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json' -PreparedReleaseProof $b6ReadProof;[void](Assert-Test125ReadPairConfig $config $(if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'}) -ScopeName $ScopeName)}else{$config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';[void](Assert-Test125ReadPairConfig $config $(if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'}))}
+    if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){$config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json' -PreparedReleaseProof $b6ReadProof;[void](Assert-Test125ReadPairConfig $config $(if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'}) -ScopeName $ScopeName)}else{$config=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';[void](Assert-Test125ReadPairConfig $config $(if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'}))}
     $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 5;Assert-Business5244ApiHealth $health $chosen
     $mode=if($c.mode-ceq'Candidate'){'Candidate'}else{'Current'}
     if((Get-FileHash -LiteralPath $expected.startupPath).Hash-ine$expected[$mode].startup-or(Get-FileHash -LiteralPath $expected.apiPath).Hash-ine$expected[$mode].api-or(Get-FileHash -LiteralPath $expected.basePath).Hash-ine$expected.baseHash){throw 'READPAIR_FINAL_PROFILE_OR_CONFIG_CHANGED'}
-    $apiProof=if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){Get-Test125BoundMaintenancePlan -RunId $ScopeName -ReadPairPreparation -ReadPairMode $mode -PreparedReleaseProof $b6ReadProof}else{Get-Test125BoundMaintenancePlan -RunId (Get-Test125ReadPairScope).name -ReadPairPreparation -ReadPairMode $mode}
+    $apiProof=if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){Get-Test125BoundMaintenancePlan -RunId $ScopeName -ReadPairPreparation -ReadPairMode $mode -PreparedReleaseProof $b6ReadProof}else{Get-Test125BoundMaintenancePlan -RunId (Get-Test125ReadPairScope).name -ReadPairPreparation -ReadPairMode $mode}
     if($apiProof.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01'){throw 'READPAIR_FINAL_API_DATABASE_CHANGED'}
     # This is independent final-state readback, never a reconstructed owner
     # token or a claim that its private Dispatch.Completed state was observed.
@@ -774,12 +811,12 @@ function Restore-ReadPairBeforeRetire([bool]$OldStopped){
  if($OldStopped){Assert-B6ReadPairEntryHandoffReady}
  if($OldStopped){
   $verifiedInitializationExit=$false
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    $verifiedInitializationExit=$newHost-is[Diagnostics.Process]-and[object]::ReferenceEquals($newHost,$script:b6InitializationExitProcess)-and$newHost.HasExited-and$newHost.ExitCode-eq73
   }
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$newHost-and!$newHost.HasExited){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$newHost-and!$newHost.HasExited){
    Assert-B6ReadPairRecoveryOwner
-   if($RehearsalOnly-or$CandidateInstall){
+   if($RehearsalOnly-or$CandidateInstall-or$WriterInstall){
     # A prepared, healthy Current owner already published its own bootstrap.
     # Preserve it rather than killing it or externally rewriting its record.
     $s=Owner-Status
@@ -797,7 +834,7 @@ function Restore-ReadPairBeforeRetire([bool]$OldStopped){
   if($newHost-and!$newHost.HasExited){$newHost.Kill();[void]$newHost.WaitForExit(15000)}
   if($newHost-and(!$newResourceRows.Count-or!(Wait-ResourceExit $newResourceRows))-and!$verifiedInitializationExit){throw 'READPAIR_NEW_RESOURCES_RECOVERY_REQUIRED'}
   if(!(Wait-ResourceExit $oldResourceRows)-or@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'READPAIR_RECOVERY_PORT_NOT_EMPTY'}
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    # A published bootstrap is not raw before-image authority. Until the
    # native-owned bootstrap inverse is proved, leave uncertain metadata alone.
    if((Get-FileHash -LiteralPath 'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json').Hash-ine$b6.owner.recordBeforeSha256){throw 'B6_PRE_RETIRE_BOOTSTRAP_RECOVERY_REQUIRED'}
@@ -806,7 +843,7 @@ function Restore-ReadPairBeforeRetire([bool]$OldStopped){
   }else{$script:ready=Start-Frozen $oldRoot $oldHash 'rollback'}
   $s=Owner-Status
   if($s.ownerPid-ne$newHost.Id-or$s.ownerBirth-cne$ready.ownerBirth-or$s.childPid-ne$ready.childPid-or$s.childBirth-cne$ready.childBirth){throw 'READPAIR_COLD_ROLLBACK_NOT_CONFIRMED'}
-  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
    Assert-B6ReadPairCurrentRecoveryRecord $s
   }
  }
@@ -825,7 +862,7 @@ function Close-ReadPairPublication {
  if($active-and$active.phase-cnotin@('ExclusiveVerified','CancelledBeforeStop')){throw 'B6_ACTIVE_ENTRY_HANDOFF_GATES_RETAINED'}
  foreach($item in $held){$item.stream.Dispose()};foreach($item in $created){$item.stream.Dispose()};if($control){$control.Dispose()}
  foreach($name in @('ReadPairExitObservation','ReadPairPreheldMutex')){if(Get-Variable $name -Scope Script -ErrorAction SilentlyContinue){$resource=Get-Variable $name -Scope Script -ValueOnly;if($resource){$resource.Dispose();Set-Variable $name -Scope Script -Value $null}}}
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
   if($b6ReadProof){Close-ErpReadPairReleaseProof $b6ReadProof;$script:b6ReadProof=$null}
   foreach($stream in $script:b6SourceHandles){$stream.Dispose()}
  }
@@ -995,18 +1032,18 @@ if($CurrentOnlySupersession-or$InitializerCleanRecovery){
  Invoke-Business5244CurrentOnlySupersession
  return
 }
-if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
  if($PSVersionTable.PSEdition-cne'Desktop'){throw 'READPAIR_WINDOWS_POWERSHELL_REQUIRED'}
  foreach($builtinName in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security','CimCmdlets','NetTCPIP','ScheduledTasks')){
   $builtinManifest=[IO.Path]::Combine($PSHOME,'Modules',$builtinName,($builtinName+'.psd1'))
   Microsoft.PowerShell.Core\Import-Module -Name $builtinManifest -Scope Local -ErrorAction Stop
  }
  $b6ReadProof=$null;$b6NativeAdmission=$null;$b6InitializationExitProcess=$null;$b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
- $b6=if($CandidateInstall){Open-B6CandidatePreparedSource $SourceSha256 $PSCommandPath}elseif($RehearsalOnly){Open-B6RehearsalPreparedSource $SourceSha256 $PSCommandPath}else{Open-B6ReadPairPreparedSource $SourceSha256 $PSCommandPath}
+ $b6=if($WriterInstall){Open-B6WriterPreparedSource $SourceSha256 $PSCommandPath}elseif($CandidateInstall){Open-B6CandidatePreparedSource $SourceSha256 $PSCommandPath}elseif($RehearsalOnly){Open-B6RehearsalPreparedSource $SourceSha256 $PSCommandPath}else{Open-B6ReadPairPreparedSource $SourceSha256 $PSCommandPath}
  try{
   # All executable bytes came from the committed, hosted-CI verified bundle
   # and remain held against replacement while the existing sequence runs.
-  . (Join-Path $b6.coreRoot 'start-business-5244-owned.ps1') -Library -OwnerScopeName 'TEST125-API-B6-ca620bac-20261028'
+  . (Join-Path $b6.coreRoot 'start-business-5244-owned.ps1') -Library -OwnerScopeName $ScopeName
   . (Join-Path $b6.coreRoot 'start-owned-test.ps1') -Library
   . (Join-Path $b6.coreRoot 'test125-bound-api-quiescence.ps1')
   Initialize-Business5244WebNative;Initialize-Business5244RetirementPeer

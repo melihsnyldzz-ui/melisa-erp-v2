@@ -16,8 +16,13 @@ function Get-Business5244ReadPairPins {
  return $p
 }
 function Get-Business5244FinitePairPins {
- param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',[ValidateSet('Current','Candidate')][string]$Mode='Current')
- if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')-or$Mode-cnotin@('Current','Candidate')){throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'}
+ param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',[ValidateSet('Current','Candidate')][string]$Mode='Current')
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or$Mode-cnotin@('Current','Candidate')){throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'}
+ if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  # Only the fixed new owner's sealed pair data supplies Writer package hashes.
+  # This getter issues metadata, never a profile activation capability.
+  return (Get-ErpBusinessSaleWriterPairPins -Mode $Mode).Clone()
+ }
  if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){if($Mode-ceq'Current'){return Get-Business5244WebPins};if($Mode-ceq'Candidate'){return Get-Business5244ReadPairPins}}
  elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
   $pins=Get-Business5244ReadPairPins

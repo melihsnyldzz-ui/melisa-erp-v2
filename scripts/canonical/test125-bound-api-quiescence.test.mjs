@@ -218,6 +218,78 @@ function Start-ScheduledTask($TaskName,$TaskPath){if($TaskName-cne'Melisa-ERP-TE
 function Open-Test125ApiQuiescence($Admission,$ExpectedRunId){$script:Test125ApiBinding=[pscustomobject]@{held=$true;stopped=$true;admission=$Admission;config=(Read-ErpStartupConfig $script:fixtureStartup);releaseProof=$script:release};return $script:Test125ApiBinding}
 $script:failNative=$false
 `;
+const writerFixture=String.raw`
+$script:scope=[pscustomobject]@{name='TEST125-API-B6-WRITER-20261029';source=$scope.source;database=$scope.database;current=$scope.candidate;candidate=[pscustomobject]@{ReleaseRoot='C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';SourceCommit=$scope.source;ManifestSha256=('c'*64);ConfigPath=$fixtureApi}}
+function Get-Test125ReadPairScope {param($Name);if($Name-cne$script:scope.name){throw 'FIXTURE_SCOPE'};return $script:scope}
+$config.ApiComponent=$scope.current;$profile.goal8SyntheticDaySeal.packageId=[IO.Path]::GetFileName($scope.current.ReleaseRoot);$profile|Add-Member businessSaleAdmission ([pscustomobject]@{profileHash=('a'*64)});$profile|Add-Member businessSaleWritesEnabled $false
+[IO.File]::WriteAllText($fixtureApi,($profile|ConvertTo-Json -Depth 20));[IO.File]::WriteAllText($fixtureStartup,($config|ConvertTo-Json -Depth 20));$script:fixtureProfileBeforeHash=Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi))
+$candidate=$profile|ConvertTo-Json -Depth 20|ConvertFrom-Json;$candidate.goal8SyntheticDaySeal.packageId=[IO.Path]::GetFileName($scope.candidate.ReleaseRoot);$candidate.businessSaleWritesEnabled=$true;$script:candidateBytes=[Text.Encoding]::UTF8.GetBytes(($candidate|ConvertTo-Json -Depth 20));$script:nativePhase='WriterPrepared'
+function Assert-ErpBusinessSaleWriterProfileAdmission($Admission,[string]$Phase='WriterPrepared'){if(![object]::ReferenceEquals($Admission,$script:native)-or!$script:nativeReady-or($Phase-cne'Identity'-and$Phase-cne$script:nativePhase)-or$script:nativePhase-cnotin@('WriterPrepared','WriterActivated','WriterRestored')){throw 'FIXTURE_WRITER_NOT_ISSUED'};return $true}
+function Get-ErpBusinessSaleNativeAdmissionContext($Admission){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission Identity);return @{mode='WriterProfileActivation';transition=$script:nativeBound;phase=$script:nativePhase;profileBeforeHash=$script:fixtureProfileBeforeHash}}
+function Get-ErpBusinessSaleCandidateProfileBytes($Admission){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission);return ,$script:candidateBytes}
+function New-ErpReadPairPreparedReleaseProof($Config,$ScopeName,$NativeProfileAdmission){if($ScopeName-cne$script:scope.name){throw 'FIXTURE_RELEASE_SCOPE'};[void](Assert-ErpBusinessSaleWriterProfileAdmission $NativeProfileAdmission);return $script:release}
+function Bind-ErpBusinessSaleWriterProfile($Admission,$Transition){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission);$c=Assert-Test125ReadPairIssued $Transition;if(![object]::ReferenceEquals($c.nativeProfileAdmission,$Admission)-or$script:nativeBound){throw 'FIXTURE_WRITER_BIND'};$script:nativeBound=$Transition}
+$script:currentTask='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY\start-owned-test.ps1';$script:candidateTask='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029\start-owned-test.ps1'
+function Get-ErpBusinessSaleWriterTaskLauncherPins($Proof,$Mode){[void](Get-ErpReadPairReleaseProofContext $Proof);return @{path=$script:candidateTask;sha256=(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($script:nextLauncher)));coreManifestSha256=('b'*64)}}
+function Get-Test125MaintenanceTaskLauncher($Config,$ScopeName,$Mode,$PreparedReleaseProof){if($ScopeName-cne$script:scope.name){throw 'FIXTURE_SCOPE'};[void](Get-ErpReadPairReleaseProofContext $PreparedReleaseProof);return $(if($Mode-ceq'Candidate'){$script:candidateTask}else{$script:currentTask})}
+$script:taskXml=$script:taskXml.Replace('C:\Sirket\ERP\melisa-erp-v2\scripts\canonical\start-owned-test.ps1',$script:currentTask)
+function Get-FileHash($LiteralPath,$Algorithm){if($LiteralPath-ceq$script:currentTask){$LiteralPath=$script:currentLauncher}elseif($LiteralPath-ceq$script:candidateTask){$LiteralPath=$script:nextLauncher};if(!([IO.Path]::GetFullPath($LiteralPath).StartsWith($script:fixtureRoot+'\',[StringComparison]::OrdinalIgnoreCase))){throw 'FIXTURE_HASH_OUTSIDE_TEMP'};return @{Hash=(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($LiteralPath))).ToUpperInvariant()}}
+`;
+win('Writer constructor emits the exact profile-only token last field and rejects copied or changed admissions',()=>{
+ assert.equal(runB6(writerFixture+String.raw`
+$before=[IO.File]::ReadAllBytes($fixtureApi);$token=New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $native;$ctx=Assert-Test125ReadPairIssued $token
+[void](Assert-Test125ApiAdmission $ctx.admission $token.scope)
+$denied=$false;try{Assert-Test125ApiAdmission ($ctx.admission|ConvertTo-Json -Depth 32|ConvertFrom-Json) $token.scope}catch{$denied=$true};if(!$denied){throw 'WRITER_API_ADMISSION_COPY_ACCEPTED'}
+if($token.schema-cne'melisa-test125-b6-writer-api-transition.v1'-or$token.PSObject.Properties['rehearsalOnly']-or$token.profileOnlyPurpose-cne'WriterProfileActivation'-or@($token.PSObject.Properties.Name)[-1]-cne'profileOnlyPurpose'-or![object]::ReferenceEquals($script:nativeBound,$token)){throw 'WRITER_TOKEN_SHAPE'}
+if((Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi)))-cne(Get-Test125ReadPairHash $before)-or$script:events.Count-or$script:setCalls){throw 'WRITER_CONSTRUCTOR_EFFECT'}
+foreach($variant in @('copied','purpose','extra')){$copy=$token|ConvertTo-Json -Depth 20|ConvertFrom-Json;if($variant-ceq'purpose'){$token.profileOnlyPurpose='CandidateMetadataApply'}elseif($variant-ceq'extra'){$token|Add-Member rehearsalOnly $false};$denied=$false;try{Assert-Test125ReadPairIssued $(if($variant-ceq'copied'){$copy}else{$token})|Out-Null}catch{$denied=$true};if(!$denied){throw 'WRITER_TOKEN_EDIT_ACCEPTED'};if($variant-ceq'purpose'){$token.profileOnlyPurpose='WriterProfileActivation'};if($variant-ceq'extra'){$token.PSObject.Properties.Remove('rehearsalOnly')}}
+'PASS'
+`),'PASS');
+});
+win('Writer profile activation and rollback use existing CAS and task flow with no native DDL direction',()=>{
+ assert.equal(runB6(writerFixture+b6PausedFixture+String.raw`
+function Invoke-ErpBusinessSaleNativeRevision {throw 'WRITER_DDL_CALLED'}
+function Invoke-ErpBusinessSaleWriterProfileBoundaryCheck($Admission,$Mode){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission Identity);Assert-Test125ReadPairPaused $ctx;$script:events.Add('writer-check-'+$Mode)}
+function Complete-ErpBusinessSaleWriterProfileState($Admission,$Mode){Assert-Test125ReadPairPaused $ctx;$expected=if($Mode-ceq'Candidate'){$token.apiProfileCandidateSha256}else{$token.apiProfileBeforeSha256};if((Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi)))-cne$expected){throw 'WRITER_COMPLETE_BEFORE_CAS'};$script:events.Add('writer-complete-'+$Mode);$script:nativePhase=if($Mode-ceq'Candidate'){'WriterActivated'}else{'WriterRestored'}}
+$out=Invoke-Test125ReadPairApiTransition $token Candidate
+if($ctx.mode-cne'Candidate'-or$script:nativePhase-cne'WriterActivated'-or$ctx.nativeChangeAttempted-or$script:setCalls-ne1-or$out.sqlWrites-ne0){throw 'WRITER_ACTIVATION_FAILED'}
+$again=Invoke-Test125ReadPairApiTransition $token Candidate;if($again.secondEffect-or$script:setCalls-ne1){throw 'WRITER_REPLAY_EFFECT'}
+$ctx.activeBinding=Open-Test125ApiQuiescence $ctx.admission $token.scope;$ctx.taskStopped=$true
+$back=Invoke-Test125ReadPairApiTransition $token Rollback
+if($ctx.mode-cne'Current'-or$script:nativePhase-cne'WriterRestored'-or$ctx.nativeChangeAttempted-or$script:setCalls-ne2-or$back.sqlWrites-ne0){throw 'WRITER_ROLLBACK_FAILED'}
+if(@($script:events|Where-Object{$_-like'native-*'}).Count){throw 'WRITER_DDL_EFFECT'}
+'PASS'
+`),'PASS');
+});
+win('Writer readonly boundary failure cannot change task or either profile and RehearseOnly is rejected',()=>{
+ assert.equal(runB6(writerFixture+b6PausedFixture+String.raw`
+function Invoke-ErpBusinessSaleNativeRevision {throw 'WRITER_DDL_CALLED'}
+function Invoke-ErpBusinessSaleWriterProfileBoundaryCheck {throw 'WRITER_AFTER_DRIFT'}
+function Complete-ErpBusinessSaleWriterProfileState {throw 'UNEXPECTED_WRITER_COMPLETE'}
+foreach($mode in @('RehearseOnly','Candidate')){$denied=$false;try{Invoke-Test125ReadPairApiTransition $token $mode|Out-Null}catch{$denied=$true};if(!$denied-or$ctx.nativeChangeAttempted-or$script:setCalls-or$ctx.apiChanged-or$ctx.changed){throw 'WRITER_FAILED_BOUNDARY_EFFECT'}}
+if($script:nativePhase-cne'WriterPrepared'){throw 'WRITER_FALSE_ACTIVATION'};'PASS'
+`),'PASS');
+});
+win('actual Writer constructor, immutable transition contract and existing owner plan match the pure installer projection',()=>{
+ assert.equal(runB6(writerFixture+String.raw`
+function Get-ErpBusinessSaleWriterPairPins($Mode){$p=Get-Business5244WebPins;$p.apiPackage=[IO.Path]::GetFileName($script:scope.current.ReleaseRoot);$p.apiManifest=$script:scope.current.ManifestSha256;return $p}
+`+coupledSetup+String.raw`
+$startup=[IO.File]::ReadAllBytes($fixtureStartup);$api=[IO.File]::ReadAllBytes($fixtureApi);$baseHash=Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureBase))
+$token=New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $native
+$contract=Get-Test125ReadPairTransitionContract $token;$plan=Get-Business5244MaintenancePlan $script:ownerState $token
+$expected=Get-ReadPairExpectedProjection -StartupBytes $startup -ApiBytes $api -BaseProfileSha256 $baseHash -ScopeName $scope.name -NativeProfileAdmission $native
+if($plan.hash-cne$expected.planHash-or$contract.contractSha256-cne(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes(($token|ConvertTo-Json -Depth 12 -Compress))))){throw 'WRITER_COUPLED_CONTRACT_DRIFT'}
+if($expected.Current.api-cne$token.apiProfileBeforeSha256-or$expected.Candidate.api-cne$token.apiProfileCandidateSha256-or$expected.Candidate.startup-cne$token.startupCandidateSha256-or$script:events.Count-or$script:setCalls){throw 'WRITER_COUPLED_PROJECTION_EFFECT'}
+'PASS'
+`,{prefix:coupledPrefix}),'PASS');
+});
+win('Writer initial task-plan rejection closes its early release seal without publication or mutation',()=>{
+ assert.equal(runB6(writerFixture+String.raw`
+function Get-Test125BoundMaintenancePlan {throw 'FIXTURE_CURRENT_TASK_CHANGED'}
+$denied=$false;try{New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $native|Out-Null}catch{if($_.Exception.Message-cne'FIXTURE_CURRENT_TASK_CHANGED'){throw};$denied=$true}
+if(!$denied-or!$script:releaseClosed-or$script:Test125ReadPairContext-or$script:nativeBound-or$script:events.Count-or$script:setCalls){throw 'WRITER_PREPLAN_SEAL_LEAK'};'PASS'
+`),'PASS');
+});
 win('B6 rehearsal purpose comes only from the validated native context and remains bound to token and audit',()=>{
  assert.equal(runB6(String.raw`
  $script:native|Add-Member rehearsalOnly $true

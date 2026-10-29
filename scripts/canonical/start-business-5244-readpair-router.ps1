@@ -1,12 +1,12 @@
-param([switch]$Library,[string]$ManifestSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
+param([switch]$Library,[string]$ManifestSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
-function Get-Business5244ReadPairRouterMode($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213'){
- if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
+if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
+function Get-Business5244ReadPairRouterMode($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213'){
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
  if(!$Config -or !$Config.PSObject.Properties['ApiComponent']){throw 'READPAIR_ROUTER_CONFIG_REQUIRED'}
  $pairScope=if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){Get-Test125ReadPairScope}else{Get-Test125ReadPairScope -Name $ScopeName}
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
   foreach($mode in @('Current','Candidate')){$pins=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;$part=if($mode-ceq'Current'){$pairScope.current}else{$pairScope.candidate};if($pins.apiManifest-cne$part.ManifestSha256-or$pins.baseSource-cne$pairScope.source){throw 'READPAIR_ROUTER_FINITE_PAIR_CHANGED'}}
  }
  if($Config.ApiComponent.ReleaseRoot -ceq $pairScope.current.ReleaseRoot){if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){[void](Assert-Test125ReadPairConfig $Config Current)}else{[void](Assert-Test125ReadPairConfig $Config Current -ScopeName $ScopeName)};return 'PrepareCurrent'}
@@ -14,6 +14,7 @@ function Get-Business5244ReadPairRouterMode($Config,[ValidateSet('TEST125-API-RE
  return 'SteadyReadPair'
 }
 if($Library){return}
+if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){throw 'B6_WRITER_OWNER_BUNDLE_NOT_PREPARED'}
 # The new core/router/current-entry generation has not been produced or admitted.
 # Reject B6 before reading any private/runtime file or starting an owner.
 if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){throw 'B6_OWNER_BUNDLE_NOT_PREPARED'}

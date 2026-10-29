@@ -7,6 +7,11 @@ $test125OutputPath=$OutputPath
 
 # Preparation only. This file deliberately has no stop/start/apply mode.
 function Get-Test125MaintenanceTaskLauncher($Config,[string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',[ValidateSet('Current','Candidate')][string]$Mode='Current',$PreparedReleaseProof=$null){
+ if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  if(!$PreparedReleaseProof){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
+  $pins=Get-ErpBusinessSaleWriterTaskLauncherPins $PreparedReleaseProof -Mode $Mode
+  return $pins.path
+ }
  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'-and$Mode-ceq'Candidate'){
   if($null-eq$PreparedReleaseProof){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
   $pins=Get-ErpBusinessSaleTaskLauncherPins $PreparedReleaseProof
@@ -47,6 +52,12 @@ function Assert-Test125MaintenancePin($Before,$After) {
 
 # Finite READ2b preparation; selecting a historical PRODUCT run cannot issue it.
 function Get-Test125ReadPairScope([string]$Name='TEST125-API-READ2b-20261028-41d3c213') {
+ if($Name-ceq'TEST125-API-B6-WRITER-20261029'){
+  $o=Read-ErpBusinessSaleWriterOwnerSource
+  $scope=[pscustomobject][ordered]@{name=$Name;source='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';database='MELISA_ERP_SIRKET_TEST_20260929_01';current=$null;candidate=$null}
+  foreach($mode in @('current','candidate')){$v=$o.packagePair.$mode.api;$scope.$mode=[pscustomobject][ordered]@{ReleaseRoot=$v.root;SourceCommit=$v.sourceCommit;ManifestSha256=$v.manifestSha256;ConfigPath=$v.configPath}}
+  return $scope
+ }
  if($Name-ceq'TEST125-API-B6-ca620bac-20261028'){
   return [pscustomobject][ordered]@{
    name=$Name;source='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';database='MELISA_ERP_SIRKET_TEST_20260929_01'
@@ -78,9 +89,9 @@ function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-4
  if($ReadPairPreparation){[void](Assert-Test125ReadPairConfig $config $ReadPairMode -ScopeName $RunId)}
  if(!(Same-ErpPath $config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2') -or $config.SourceCommit -cne 'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $config.ExpectedDatabase -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $config.TaskName -cne 'Melisa-ERP-TEST-Canonical'){throw 'TEST125_EXACT_TARGET_REJECTED'}
  $task=Get-ScheduledTask -TaskName $config.TaskName -TaskPath '\' -ErrorAction Stop
- $action=if($ReadPairPreparation-and$RunId-ceq'TEST125-API-B6-ca620bac-20261028'){Assert-Test125MaintenanceTask $task $config $startup -ScopeName $RunId -Mode $ReadPairMode -PreparedReleaseProof $PreparedReleaseProof}else{Assert-Test125MaintenanceTask $task $config $startup}
+ $action=if($ReadPairPreparation-and$RunId-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){Assert-Test125MaintenanceTask $task $config $startup -ScopeName $RunId -Mode $ReadPairMode -PreparedReleaseProof $PreparedReleaseProof}else{Assert-Test125MaintenanceTask $task $config $startup}
  foreach($command in @('Stop-ScheduledTask','Start-ScheduledTask')){if(!(Get-Command $command -Module ScheduledTasks -ErrorAction SilentlyContinue)){throw 'TEST125_SUPPORTED_TASK_COMMAND_MISSING'}}
- if($ReadPairPreparation-and$RunId-ceq'TEST125-API-B6-ca620bac-20261028'){foreach($command in @('New-ScheduledTaskAction','Set-ScheduledTask')){if(!(Get-Command $command -Module ScheduledTasks -ErrorAction SilentlyContinue)){throw 'B6_SUPPORTED_TASK_ACTION_COMMAND_MISSING'}}}
+ if($ReadPairPreparation-and$RunId-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){foreach($command in @('New-ScheduledTaskAction','Set-ScheduledTask')){if(!(Get-Command $command -Module ScheduledTasks -ErrorAction SilentlyContinue)){throw 'B6_SUPPORTED_TASK_ACTION_COMMAND_MISSING'}}}
  $owned=Get-Content -Raw -LiteralPath (Join-Path $config.RuntimeDir 'owned-processes.json') | ConvertFrom-Json
  if($owned.sourceCommit -cne $config.SourceCommit){throw 'TEST125_OWNED_SOURCE_CHANGED'}
  $scheduler=New-Object -ComObject Schedule.Service

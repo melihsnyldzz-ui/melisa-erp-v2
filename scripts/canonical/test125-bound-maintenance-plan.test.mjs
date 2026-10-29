@@ -7,6 +7,19 @@ const file=path.join(import.meta.dirname,'test125-bound-maintenance-plan.ps1');
 const ps=path.join(process.env.SystemRoot||'C:\\Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const run=body=>execFileSync(ps,['-NoProfile','-NonInteractive','-Command',`. '${file.replaceAll("'","''")}' -Library; ${body}`],{encoding:'utf8'}).trim();
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
+win('Writer scope uses sealed pair data and both frozen task launcher modes require the genuine release proof',()=>{
+ assert.equal(run(String.raw`
+$script:reads=0;$script:pair=[pscustomobject]@{current=[pscustomobject]@{api=[pscustomobject]@{root='old';sourceCommit='source';manifestSha256='old-pin';configPath='profile'}};candidate=[pscustomobject]@{api=[pscustomobject]@{root='new';sourceCommit='source';manifestSha256='new-pin';configPath='profile'}}}
+function Read-ErpBusinessSaleWriterOwnerSource {$script:reads++;return [pscustomobject]@{packagePair=$script:pair}}
+$scope=Get-Test125ReadPairScope 'TEST125-API-B6-WRITER-20261029';if($scope.current.ReleaseRoot-cne'old'-or$scope.candidate.ManifestSha256-cne'new-pin'-or$script:reads-ne1){throw 'WRITER_SCOPE_NOT_SEALED'}
+$proof=[pscustomobject]@{id='fixture-only'};$script:modes=@()
+function Get-ErpBusinessSaleWriterTaskLauncherPins {param($PreparedReleaseProof,$Mode);if(![object]::ReferenceEquals($PreparedReleaseProof,$proof)){throw 'NOT_ISSUED'};$script:modes+=,$Mode;return [pscustomobject]@{path=('fixed-'+$Mode)}}
+foreach($mode in @('Current','Candidate')){if((Get-Test125MaintenanceTaskLauncher ([pscustomobject]@{}) -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode $mode -PreparedReleaseProof $proof)-cne('fixed-'+$mode)){throw 'TASK_MODE_MISMATCH'}}
+try{Get-Test125MaintenanceTaskLauncher ([pscustomobject]@{}) -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current;throw 'MISSING_REJECTION'}catch{if($_.Exception.Message-ceq'MISSING_REJECTION'){throw}}
+if(($script:modes-join'|')-cne'Current|Candidate'){throw 'TASK_PROOF_BYPASS'}
+'PASS'
+`),'PASS');
+});
 test('preparation contains no task/process mutation, runtime publication or database writer',()=>{
  const source=readFileSync(file,'utf8');
  assert.doesNotMatch(source,/^\s*(?:Stop-Process|Stop-ScheduledTask|Start-ScheduledTask|Register-ScheduledTask|Unregister-ScheduledTask|Write-ErpState|Invoke-Sqlcmd)\b/m);

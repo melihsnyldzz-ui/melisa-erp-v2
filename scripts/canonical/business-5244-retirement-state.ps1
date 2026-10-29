@@ -7,10 +7,10 @@ function Get-Business5244RetirementState($State){
  Assert-Business5244StartupLease -Lease $r.lease
  return $r
 }
-function Register-Business5244OwnedRetirement($Lease,$Native,$Pins,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213'){
- if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'RETIREMENT_SCOPE_REJECTED'}
+function Register-Business5244OwnedRetirement($Lease,$Native,$Pins,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213'){
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'RETIREMENT_SCOPE_REJECTED'}
  Assert-Business5244StartupLease -Lease $Lease -Kind Owner
- if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
   $exact=$false;foreach($mode in @('Current','Candidate')){$fixed=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;if(!@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile').Where({$Pins[$_]-cne$fixed[$_]}).Count){$exact=$true}}
   if(!$exact){throw 'RETIREMENT_FINITE_B6_PINS_REQUIRED'}
  }
@@ -38,7 +38,33 @@ function Assert-Business5244RetirementRecord($State,[IO.FileStream]$Records){
  Assert-Business5244RecordStage $rows $rows $r.childPid Candidate $r.pins
  return ,$before
 }
-function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='',[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213') {
+function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='',[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213') {
+ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'CURRENT_BOOTSTRAP_SCOPE_REJECTED'}
+ if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  # This immutable observation identifies the Applied-B6 metadata predecessor;
+  # it grants no stop, process adoption, profile change or native SQL replay.
+  if($BeforeHash-cne'b07100ff411f917c2eaf09e0b14b8844666242badfc4d1556a8e6b3253afadf0'){throw 'CURRENT_BOOTSTRAP_WRITER_BEFORE_CHANGED'}
+  $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-writer-activation-20261029'
+  $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $root 'current-read2b-owner-capture.json') '86b2ee054f3cc9fa794c7013a816faa3a2af5a392e10afef08a09c76f84e7161'))|ConvertFrom-Json
+  $entries=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $root 'current-entry-hold-capture.json') '4891f1e095cd0cfaef9221e56a16af29c2b234a9909009db47e00c533c9b957c'))|ConvertFrom-Json
+  $task=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $root 'current-task-capture.json') '208bad4f906d910a2dc247f2cb08db0f2e47f07421b256997a93239cc0f967e6'))|ConvertFrom-Json
+  [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'current-task.before.xml') '46fadd9b79c291a8f1aa3299ef5fdb7d8a2f8f26968acf5a92c8f462b77831ec')
+  [void](Read-ErpBusinessSalePinnedFile (Join-Path $root 'current-task.before.sddl') 'cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4')
+  $image=Read-ErpBusinessSalePinnedFile (Join-Path $root 'current-erp-processes.before.json') $BeforeHash
+  $fixed=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode Current
+  if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.predecessorEntryKind-cne'ReadPairRouter'-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.recordBeforeSha256-cne$BeforeHash-or$capture.owner.pid-ne45104-or$capture.owner.birth-cne'134377531591976073'-or$capture.child.pid-ne33576-or$capture.child.birth-cne'134377540528369398'-or$capture.child.parent-ne45104-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.retireCalls-ne0){throw 'CURRENT_BOOTSTRAP_WRITER_CAPTURE_CHANGED'}
+  if((Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($capture.owner.argv)))-cne'57515c57fd7cf81404d098cb265e5914a6f6d8e983c72abfcf7d11c91310e6e4'-or(Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($capture.child.argv)))-cne'81655f3d196151ed6f0f123afa1aa7b9126d5257f012d8fdd9846b555d0851e1'){throw 'CURRENT_BOOTSTRAP_WRITER_ARGV_CHANGED'}
+  if($entries.schema-cne'melisa-b6-writer-current-entry-capture.v1'-or$entries.readOnly-isnot[bool]-or!$entries.readOnly-or$entries.executionAuthority-isnot[bool]-or$entries.executionAuthority-or$entries.ownerCaptureSha256-cne'86b2ee054f3cc9fa794c7013a816faa3a2af5a392e10afef08a09c76f84e7161'-or@($entries.entries).Count-ne6-or@($entries.directEntries).Count-ne16-or$entries.postExitExclusiveEntryCount-ne22-or$entries.runtimeValidationComplete-isnot[bool]-or$entries.runtimeValidationComplete-or$entries.entryWrites-ne0-or$entries.serviceCalls-ne0-or$entries.sqlCalls-ne0){throw 'CURRENT_BOOTSTRAP_WRITER_ENTRY_CAPTURE_CHANGED'}
+  if($task.schema-cne'melisa-b6-task-capture.v1'-or$task.readOnly-isnot[bool]-or!$task.readOnly-or$task.xmlSha256-cne'46fadd9b79c291a8f1aa3299ef5fdb7d8a2f8f26968acf5a92c8f462b77831ec'-or$task.sddlSha256-cne'cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4'-or$task.writes-ne0){throw 'CURRENT_BOOTSTRAP_WRITER_TASK_CAPTURE_CHANGED'}
+  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY'
+  $cm=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $core 'owner-manifest.json') '554e46b609961ab3a9186460d09901a050212503770a0eaab7c7cc003b37e41e'))|ConvertFrom-Json
+  $rm=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $router 'owner-manifest.json') 'ee0ba9bbe46d65b0357c7a75d21a2f004eea68c5f5e76f7a4e70c0012cdb135a'))|ConvertFrom-Json
+  if($cm.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$cm.finiteScope-cne'TEST125-API-B6-ca620bac-20261028'-or$cm.sourceCommit-cne'9f9a45bb36d52daa5ee202520e93c84e544d01ac'-or$cm.rehearsalOnly-isnot[bool]-or$cm.rehearsalOnly-or$cm.maintenancePurpose-cne'CandidateMetadataApply'-or$cm.recordingEnabled-isnot[bool]-or$cm.recordingEnabled-or@($cm.files).Count-ne13-or$rm.kind-cne'BUSINESS5244_READ_PAIR_ROUTER'-or$rm.finiteScope-cne$cm.finiteScope-or$rm.entrySourceCommit-cne$cm.sourceCommit-or$rm.rehearsalOnly-isnot[bool]-or$rm.rehearsalOnly-or$rm.maintenancePurpose-cne'CandidateMetadataApply'-or$rm.coreRoot-cne$core-or$rm.coreManifestSha256-cne$capture.core.manifestSha256-or$capture.core.manifestSha256-cne'554e46b609961ab3a9186460d09901a050212503770a0eaab7c7cc003b37e41e'-or$capture.core.root-cne$core-or$capture.router.root-cne$router-or$capture.router.manifestSha256-cne'ee0ba9bbe46d65b0357c7a75d21a2f004eea68c5f5e76f7a4e70c0012cdb135a'-or$capture.entry.root-cne$router-or$capture.entry.leaf-cne'start-business-5244-readpair-router.ps1'-or$capture.entry.manifestSha256-cne$capture.router.manifestSha256-or$capture.entry.sha256-cne$rm.entrySha256-or$capture.entry.sha256-cne'6a6dc3f649de4c912a57a7c940def7c4594ae3df8b014079f6a198340994ac8c'-or$capture.entry.runtimeEntryBytesVerified-isnot[bool]-or$capture.entry.runtimeEntryBytesVerified-or$capture.entry.postExitExclusiveBytesRequired-isnot[bool]-or!$capture.entry.postExitExclusiveBytesRequired){throw 'CURRENT_BOOTSTRAP_WRITER_SOURCE_CHANGED'}
+  $rows=ConvertFrom-Business5244RecordBytes $image;$old=@($rows|Where-Object port -eq 5244);$w=$capture.webRecord;$n=$capture.nativeStatus
+  if($old.Count-ne1-or(@($old[0].PSObject.Properties.Name|Sort-Object)-join'|')-cne'backendPort|businessWorkfaceId|entry|pid|port|root|sourceCommit'-or$w.pid-ne33576-or$w.port-ne5244-or$w.root-cne$fixed.root-or$w.sourceCommit-cne$fixed.frontendSource-or$w.entry-cne'vite-preview'-or$w.backendPort-ne4144-or$w.businessWorkfaceId-cne$fixed.profile-or$capture.child.exe-cne$fixed.node-or$capture.owner.exe-ine(Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')-or$capture.installedApiManifest-cne$fixed.apiManifest-or$capture.installedWebManifest-cne$fixed.manifest-or$n.reply-cne'Status'-or$n.nativePeerVerified-isnot[bool]-or!$n.nativePeerVerified-or$n.stopAuthorized-isnot[bool]-or$n.stopAuthorized-or$n.childObservationOnly-isnot[bool]-or!$n.childObservationOnly-or$n.state.phase-cne'Running'-or$n.state.ownerPid-ne45104-or$n.state.ownerBirth-cne$capture.owner.birth-or$n.state.childPid-ne33576-or$n.state.childBirth-cne$capture.child.birth){throw 'CURRENT_BOOTSTRAP_WRITER_IDENTITY_CHANGED'}
+  foreach($key in @('pid','root','sourceCommit','entry','port','backendPort','businessWorkfaceId')){if($old[0].$key-cne$w.$key){throw 'CURRENT_BOOTSTRAP_WRITER_BEFORE_IMAGE_CHANGED'}}
+  return @{hash=$BeforeHash;pid=33576;birth='134377540528369398';ownerPid=45104;ownerBirth='134377531591976073';root=$fixed.root;source=$fixed.frontendSource}
+ }
  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
   if($BeforeHash-ceq'3e9a6a8f96185677a654a9b2bd7e890ab838773c424dcc35b1532b928f9f11b8'){
    # Read-only evidence of the completed V3 Current return. This finite CAS
@@ -194,7 +220,7 @@ function Publish-Business5244CurrentRecord($State){
 function Assert-Business5244BootstrapInitialization($State){
  $r=Get-Business5244RetirementState $State
  Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
- if($r.scopeName-cne'TEST125-API-B6-ca620bac-20261028'-or!$r.initializing-or$r.phase-cne'Running'-or$r.requestProof-or$r.operationId-or$r.commit-or$r.publication-or$r.lastCompletion-or($r.ContainsKey('dispatch')-and$r.dispatch)-or$r.records-or$r.pending){throw 'CURRENT_BOOTSTRAP_INIT_INVERSE_NOT_ADMITTED'}
+ if($r.scopeName-cnotin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or!$r.initializing-or$r.phase-cne'Running'-or$r.requestProof-or$r.operationId-or$r.commit-or$r.publication-or$r.lastCompletion-or($r.ContainsKey('dispatch')-and$r.dispatch)-or$r.records-or$r.pending){throw 'CURRENT_BOOTSTRAP_INIT_INVERSE_NOT_ADMITTED'}
  $b=if($r.ContainsKey('currentBootstrap')){$r.currentBootstrap}else{$null}
  if(!$b-or$b.phase-cne'Archived'-or$b.inverse-or![object]::ReferenceEquals($b.native,$r.native)-or$b.ownerPid-ne$PID-or$b.ownerBirth-cne$r.ownerBirth-or$b.childPid-ne$r.childPid-or$b.childBirth-cne$r.childBirth-or(Get-Business5244StartupHash $b.beforeBytes)-cne$b.beforeHash){throw 'CURRENT_BOOTSTRAP_INIT_INVERSE_NOT_ADMITTED'}
  if($r.ContainsKey('preparedPair')-and$r.preparedPair-and(!$r.initializationApiTransition-or![object]::ReferenceEquals($r.preparedPair.apiTransition,$r.initializationApiTransition))){throw 'CURRENT_BOOTSTRAP_INIT_API_REFERENCE_CHANGED'}

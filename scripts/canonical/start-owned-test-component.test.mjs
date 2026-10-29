@@ -1,8 +1,17 @@
 import test from 'node:test';import assert from 'node:assert/strict';import cp from 'node:child_process';import path from 'node:path';
+import {readFileSync} from 'node:fs';
 const script=path.join(import.meta.dirname,'start-owned-test.ps1'),ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const q=s=>"'"+s.replaceAll("'","''")+"'";
 const run=body=>{const env={...process.env};delete env.PSModulePath;return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-Command',`. ${q(script)} -Library; ${body}`],{encoding:'utf8',env}).trim();};
 const win=(n,fn)=>test(n,{skip:process.platform!=='win32'},fn);
+test('Writer release proof seals the pair and current task witness before freezing without extending native admission phases',()=>{
+ const source=readFileSync(script,'utf8');
+ assert.match(source,/if\(\$ScopeName-cin@\('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029'\)\)\{[\s\S]*?\$ownerSource=Get-ErpBusinessSaleOwnerSource/);
+ const pair=source.indexOf('$seal.Add($ownerSource.packagePairPath,$ownerSource.packagePairSha256)');
+ const capture=source.indexOf('$seal.Add($currentTask.capturePath,$currentTask.captureSha256)');
+ assert.ok(pair>0&&capture>pair&&source.indexOf('$seal.Freeze()',capture)>capture);
+ assert.match(source,/Assert-ErpBusinessSaleWriterProfileAdmission \$NativeProfileAdmission -Phase WriterPrepared/);
+});
 const config=`$cfg=[pscustomobject]@{RepoRoot='C:\\fixture\\repo';ReleaseRoot='C:\\fixture\\original';RuntimeDir='C:\\fixture\\runtime';ConfigPath='C:\\fixture\\private.json';SourceCommit=('a'*40);ManifestSha256=('b'*64);ExpectedDatabase='MELISA_ERP_SIRKET_TEST_20260929_01';ApiComponent=[pscustomobject]@{ReleaseRoot='C:\\Sirket\\ERP\\releases\\component-fixture';SourceCommit=('a'*40);ManifestSha256=('c'*64);ConfigPath='C:\\Sirket\\ERP\\config\\TEST-20260929-01\\business-5244-private.json'}};`;
 win('component routing changes only API definition; old native and web script and args stay byte-equivalent',()=>{
  assert.equal(run(`${config}$defs=@(Get-ErpServiceDefinitions $cfg);if($defs.Count -ne 3){throw 'count'};foreach($d in $defs){if($d.Name -eq 'api'){if($d.Port -ne 4144 -or $d.Script -cne 'C:\\Sirket\\ERP\\releases\\component-fixture\\apps\\api\\start-canonical-test.mjs'){throw 'api'}}elseif(!$d.Script.StartsWith('C:\\fixture\\original\\apps\\api\\')){throw 'companion changed'}};if($cfg.ReleaseRoot -cne 'C:\\fixture\\original'){throw 'mutated input'};'PASS'`),'PASS');
