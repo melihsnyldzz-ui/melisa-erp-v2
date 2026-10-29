@@ -392,11 +392,18 @@ function Close-Business5244RetirementState($State){
 # It never imports that owner's retirement state or completes its old request.
 if(!(Get-Variable Business5244CurrentSupersessions -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244CurrentSupersessions=[Collections.Generic.List[object]]::new()}
 if(!(Get-Variable Business5244CurrentSupersessionObservations -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244CurrentSupersessionObservations=[Collections.Generic.List[object]]::new()}
+function Assert-Business5244CurrentSupersessionFixedCase($Inputs){
+ if($Inputs.schema-cne'business-5244-current-supersession-inputs.v1'-or$Inputs.scopeName-cne'TEST125-API-B6-ca620bac-20261028'){throw 'CURRENT_SUPERSESSION_FIXED_CASE_REJECTED'}
+ if($Inputs.caseId-ceq'CURRENT-ONLY-5244-SUPERSESSION-20261029'-and$Inputs.ownerPid-eq48212-and$Inputs.ownerBirth-ceq'134377121934062288'-and$Inputs.entrySeals.Count-eq16){return}
+ if($Inputs.caseId-ceq'CURRENT-ONLY-5244-INIT-CLEAN-20261029'-and$Inputs.ownerPid-eq42920-and$Inputs.ownerBirth-ceq'134377286908585811'-and$Inputs.entrySeals.Count-eq17-and$Inputs.recordsHash-ceq'3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74'-and$Inputs.originalBeforeHash-ceq$Inputs.recordsHash){return}
+ throw 'CURRENT_SUPERSESSION_FIXED_CASE_REJECTED'
+}
 function Prepare-Business5244CurrentSupersessionObservation($ExitObservation){
  if(!($ExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'CURRENT_SUPERSESSION_NATIVE_EXIT_REQUIRED'}
  if($ExitObservation.Observe()){throw 'CURRENT_SUPERSESSION_OBSERVATION_REQUIRES_LIVE_OWNER'}
  $i=Get-Business5244CurrentSupersessionFixedInputs;$name=Get-Business5244StartupMutexName
- if($i.schema-cne'business-5244-current-supersession-inputs.v1'-or$i.caseId-cne'CURRENT-ONLY-5244-SUPERSESSION-20261029'-or$i.scopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$ExitObservation.TargetPid-ne$i.ownerPid-or$ExitObservation.TargetBirth-cne$i.ownerBirth-or@($script:Business5244CurrentSupersessionObservations|Where-Object{!$_.closed-and$_.name-ceq$name}).Count){throw 'CURRENT_SUPERSESSION_OBSERVATION_FIXED_CASE_CHANGED'}
+ Assert-Business5244CurrentSupersessionFixedCase $i
+ if($ExitObservation.TargetPid-ne$i.ownerPid-or$ExitObservation.TargetBirth-cne$i.ownerBirth-or@($script:Business5244CurrentSupersessionObservations|Where-Object{!$_.closed-and$_.name-ceq$name}).Count){throw 'CURRENT_SUPERSESSION_OBSERVATION_FIXED_CASE_CHANGED'}
  # OpenExisting cannot recreate the named object after its last old handle is
  # closed. Retain this handle from the live, contended generation until all
  # later standard Maintenance acquisition and owner cleanup have completed.
@@ -443,12 +450,17 @@ function Assert-Business5244CurrentSupersessionHeld($Admission){
 function New-Business5244CurrentSupersessionAdmission($ExitObservation){
  if(!($ExitObservation-is[Business5244RetirementPeer+ExitObservation])){throw 'CURRENT_SUPERSESSION_NATIVE_EXIT_REQUIRED'}
  $observation=Get-Business5244CurrentSupersessionObservation $ExitObservation;$ExitObservation.ValidateExited();$i=Get-Business5244CurrentSupersessionFixedInputs
+ Assert-Business5244CurrentSupersessionFixedCase $i
  if($observation.caseId-cne$i.caseId-or$observation.scopeName-cne$i.scopeName-or$observation.ownerPid-ne$i.ownerPid-or$observation.ownerBirth-cne$i.ownerBirth){throw 'CURRENT_SUPERSESSION_PREEXIT_OBSERVATION_CHANGED'}
- if($i.schema-cne'business-5244-current-supersession-inputs.v1'-or$i.caseId-cne'CURRENT-ONLY-5244-SUPERSESSION-20261029'-or$i.scopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$ExitObservation.TargetPid-ne$i.ownerPid-or$ExitObservation.TargetBirth-cne$i.ownerBirth-or$i.recordsHash-cnotmatch'^[a-f0-9]{64}$'-or$i.pendingHash-cnotmatch'^[a-f0-9]{64}$'-or$i.originalBeforeHash-cne$i.recordsHash-or(Get-Business5244StartupHash $i.beforeBytes)-cne$i.recordsHash-or(Get-Business5244StartupHash $i.pendingBeforeBytes)-cne$i.pendingHash-or$i.entrySeals.Count-ne16){throw 'CURRENT_SUPERSESSION_FIXED_INPUT_CHANGED'}
+ if($ExitObservation.TargetPid-ne$i.ownerPid-or$ExitObservation.TargetBirth-cne$i.ownerBirth-or$i.recordsHash-cnotmatch'^[a-f0-9]{64}$'-or$i.pendingHash-cnotmatch'^[a-f0-9]{64}$'-or$i.originalBeforeHash-cne$i.recordsHash-or(Get-Business5244StartupHash $i.beforeBytes)-cne$i.recordsHash-or(Get-Business5244StartupHash $i.pendingBeforeBytes)-cne$i.pendingHash){throw 'CURRENT_SUPERSESSION_FIXED_INPUT_CHANGED'}
  $fixed=Get-Business5244FinitePairPins -ScopeName $i.scopeName -Mode Current
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($i.pins[$key]-cne$fixed[$key]){throw 'CURRENT_SUPERSESSION_NOT_FIXED_CURRENT'}}
  $beforePending=[Text.UTF8Encoding]::new($false,$true).GetString($i.pendingBeforeBytes)|ConvertFrom-Json
- if($beforePending.schema-cne'business-5244-retirement-before.v1'-or$beforePending.ownerPid-ne$i.ownerPid-or[string]$beforePending.ownerBirth-cne$i.ownerBirth-or$beforePending.operationId-cnotmatch'^[a-f0-9]{32}$'-or$beforePending.beforeSha256-cne$i.recordsHash-or(Get-Business5244StartupHash ([Convert]::FromBase64String($beforePending.beforeBase64)))-cne$i.recordsHash){throw 'CURRENT_SUPERSESSION_ORIGINAL_PENDING_REJECTED'}
+ if($i.caseId-ceq'CURRENT-ONLY-5244-SUPERSESSION-20261029'){
+  if($beforePending.schema-cne'business-5244-retirement-before.v1'-or$beforePending.ownerPid-ne$i.ownerPid-or[string]$beforePending.ownerBirth-cne$i.ownerBirth-or$beforePending.operationId-cnotmatch'^[a-f0-9]{32}$'-or$beforePending.beforeSha256-cne$i.recordsHash-or(Get-Business5244StartupHash ([Convert]::FromBase64String($beforePending.beforeBase64)))-cne$i.recordsHash){throw 'CURRENT_SUPERSESSION_ORIGINAL_PENDING_REJECTED'}
+ }else{
+  if($beforePending.schema-cne'business-5244-current-supersession.pending.v1'-or$beforePending.classification-cne'SUPERSESSION_NOT_ORIGINAL_COMMIT'-or$beforePending.operationId-cne'5197b99f29984394b07059bea9cc4823'-or$beforePending.originalOperationId-cne'0cfa751c63644554a4faccd1f1e8d7c6'-or$beforePending.originalPendingSha256-cne'7c42681742b6c858cda7eff730a955adeb4c2975ca8692bf95d94ca68af3fcab'-or$beforePending.originalRecordsSha256-cne'3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74'-or$beforePending.originalRecordsSha256-cne$i.recordsHash-or$beforePending.ownerPid-ne42920-or[string]$beforePending.ownerBirth-cne'134377286908585811'-or$beforePending.ownerPid-ne$i.ownerPid-or[string]$beforePending.ownerBirth-cne$i.ownerBirth){throw 'CURRENT_SUPERSESSION_INIT_CLEAN_PENDING_REJECTED'}
+ }
  $lease=Enter-Business5244StartupLease -Kind Maintenance;$c=$null;$records=$null;$pending=$null;$seals=[Collections.Generic.List[object]]::new()
  try{
   $ExitObservation.ValidateExited();[void](Assert-Business5244CurrentSupersessionBoundary $i)

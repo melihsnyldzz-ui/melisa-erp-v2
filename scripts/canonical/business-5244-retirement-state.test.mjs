@@ -153,6 +153,13 @@ try{
  $entries=@(1..16|ForEach-Object{$path=Join-Path $env:TEMP ('entry-'+$_+'.ps1');[IO.File]::WriteAllText($path,('inert-entry-'+$_));[pscustomobject]@{path=$path;hash=(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($path)))}});$gate=Join-Path $env:TEMP 'startup-gate.ps1';[IO.File]::WriteAllText($gate,'inert-gate')
  $script:fixedInputs=[pscustomobject][ordered]@{schema='business-5244-current-supersession-inputs.v1';caseId='CURRENT-ONLY-5244-SUPERSESSION-20261029';scopeName='TEST125-API-B6-ca620bac-20261028';ownerPid=$observer.TargetPid;ownerBirth=$observer.TargetBirth;recordsPath=$recordsPath;recordsHash=$beforeHash;pendingPath=$pendingPath;pendingHash=(Get-Business5244StartupHash $oldPending);originalBeforeHash=$beforeHash;beforeBytes=$before;pendingBeforeBytes=$oldPending;pins=$pins.Clone();entrySeals=$entries;gateSeal=[pscustomobject]@{path=$gate;hash=(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($gate)))}}
  function Get-Business5244CurrentSupersessionFixedInputs{$script:inputCalls++;return $script:fixedInputs}
+ # Only the two fixed PID/birth tuples and the immutable record hash are
+ # projected into this disposable test copy. Native observer identity, live
+ # mutex generation, lease issuance, marker checks and held CAS stay real.
+ $caseAssert=(Get-Command Assert-Business5244CurrentSupersessionFixedCase).Definition.Replace('$Inputs.ownerPid-eq48212',('$Inputs.ownerPid-eq'+$observer.TargetPid)).Replace('$Inputs.ownerPid-eq42920',('$Inputs.ownerPid-eq'+$observer.TargetPid)).Replace('134377121934062288',$observer.TargetBirth).Replace('134377286908585811',$observer.TargetBirth).Replace('3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74',$beforeHash)
+ . ([scriptblock]::Create('function Assert-Business5244CurrentSupersessionFixedCase {'+$caseAssert+'}'))
+ $caseAdmission=(Get-Command New-Business5244CurrentSupersessionAdmission).Definition.Replace('$beforePending.ownerPid-ne42920',('$beforePending.ownerPid-ne'+$observer.TargetPid)).Replace('134377286908585811',$observer.TargetBirth).Replace('3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74',$beforeHash)
+ . ([scriptblock]::Create('function New-Business5244CurrentSupersessionAdmission {'+$caseAdmission+'}'))
  function Assert-Business5244CurrentSupersessionBoundary($Inputs){$script:boundaryCalls++;if($script:failBoundary){throw 'ISOLATED_BOUNDARY_REJECTED'};if(![object]::ReferenceEquals($Inputs,$script:fixedInputs)-or!$server.HasExited){throw 'ISOLATED_FOREIGN_BOUNDARY'}}
  function Get-CimInstance($ClassName){if($ClassName-cne'Win32_Process'){throw 'ISOLATED_FOREIGN_CIM'};return @()}
  function Get-NetTCPConnection($LocalPort,$State){if($LocalPort-ne5244-or$State-cne'Listen'){throw 'ISOLATED_FOREIGN_PORT'};return @()}
@@ -169,6 +176,8 @@ try{
 };'PASS'
 `.replace('__OWNED__',path.join(dir,'start-business-5244-owned.ps1').replaceAll("'","''")).replace('__PEER__',path.join(dir,'business-5244-retirement-peer.cs').replaceAll("'","''"));
 const superRun=body=>run(supersessionFixture.replace('__BODY__',body));
+const initCleanFixture=supersessionFixture.replace('1..16|ForEach-Object','1..17|ForEach-Object').replace("caseId='CURRENT-ONLY-5244-SUPERSESSION-20261029'","caseId='CURRENT-ONLY-5244-INIT-CLEAN-20261029'").replace(/\$oldPending=\[Text.Encoding\]::UTF8.GetBytes\(.*?;(?=\$pendingPath=)/,String.raw`$oldPending=[Text.Encoding]::UTF8.GetBytes(([ordered]@{schema='business-5244-current-supersession.pending.v1';classification='SUPERSESSION_NOT_ORIGINAL_COMMIT';operationId='5197b99f29984394b07059bea9cc4823';originalOperationId='0cfa751c63644554a4faccd1f1e8d7c6';originalPendingSha256='7c42681742b6c858cda7eff730a955adeb4c2975ca8692bf95d94ca68af3fcab';originalRecordsSha256=$beforeHash;ownerPid=$observer.TargetPid;ownerBirth=$observer.TargetBirth}|ConvertTo-Json -Compress));`);
+const initCleanRun=body=>run(initCleanFixture.replace('__BODY__',body));
 win('Current-only supersession needs the real native exit and creates a fresh same-lease Current owner without completing the original retirement',()=>{
  assert.equal(superRun(String.raw`
  Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer;$c=Get-Business5244CurrentSupersessionContext $token
@@ -330,5 +339,56 @@ win('Current-only boundary assertions returning true cannot leak into the scalar
  if($frame-is[array]-or@($frame).Count-ne1-or![object]::ReferenceEquals($frame.lease,$c.lease)-or![object]::ReferenceEquals($frame.native,$c.native)-or![object]::ReferenceEquals($frame.state,$c.state)){throw 'BOUNDARY_OUTPUT_LEAKED_INTO_FRAME'}
  $result=Complete-Business5244CurrentSupersessionOwner $token
  if($result-is[array]-or@($result).Count-ne1-or$result.classification-cne'SUPERSEDED_NOT_ORIGINAL_COMMIT'-or$script:boundaryCalls-ne4-or$c.phase-cne'Completed'){throw 'BOUNDARY_OUTPUT_LEAKED_INTO_COMPLETION'}
+ `),'PASS');
+});
+win('INIT-CLEAN fixed predecessor marker creates only a scalar fresh Current owner under the same native lease',()=>{
+ assert.equal(initCleanRun(String.raw`
+ if(@(Assert-Business5244CurrentSupersessionFixedCase $fixedInputs).Count){throw 'FIXED_CASE_ASSERTION_OUTPUT'}
+ Exit-FixtureOldOwner;$token=New-Business5244CurrentSupersessionAdmission $observer
+ if($token-is[array]-or@($token).Count-ne1){throw 'INIT_CLEAN_ADMISSION_NOT_SCALAR'}
+ $c=Get-Business5244CurrentSupersessionContext $token;Assert-Business5244StartupLease $c.lease -Kind Maintenance
+ if($c.seals.Count-ne18-or$c.phase-cne'Prepared'){throw 'INIT_CLEAN_EXACT_ENTRY_SET_NOT_HELD'}
+ $frame=Initialize-Business5244CurrentSupersessionOwner $token
+ if($frame-is[array]-or@($frame).Count-ne1-or![object]::ReferenceEquals($frame.lease,$c.lease)-or$frame.native.ChildPid-eq$server.Id-or!$frame.native.ChildAlive()){throw 'INIT_CLEAN_ADOPTED_PREDECESSOR'}
+ $result=Complete-Business5244CurrentSupersessionOwner $token
+ if($result-is[array]-or@($result).Count-ne1-or$result.classification-cne'SUPERSEDED_NOT_ORIGINAL_COMMIT'-or$result.originalRetireCompleted-or$c.phase-cne'Completed'-or(Test-Path -LiteralPath $pendingPath)){throw 'INIT_CLEAN_FALSE_COMPLETION'}
+ $preserved=[IO.File]::ReadAllBytes(($pendingPath+'.'+$c.operationId+'.superseded-original'))
+ if((Get-Business5244StartupHash $preserved)-cne$fixedInputs.pendingHash-or@([IO.Directory]::GetFiles($env:TEMP,'*.completed')).Count){throw 'INIT_CLEAN_LOST_OWN_MARKER_OR_GRANTED_OLD_COMMIT'}
+ $rowsAfter=ConvertFrom-Business5244RecordBytes ([IO.File]::ReadAllBytes($recordsPath));if($rowsAfter[0].pid-ne111-or$rowsAfter[1].pid-ne112-or$rowsAfter[2].pid-ne$frame.native.ChildPid){throw 'INIT_CLEAN_CHANGED_OTHER_RECORDS'}
+ Assert-Business5244StartupLease $c.lease -Kind Owner
+ `),'PASS');
+});
+win('INIT-CLEAN rejects every wrong marker anchor or issuer even when fixture byte hashes match',()=>{
+ for(const field of ['schema','classification','operationId','originalOperationId','originalPendingSha256','originalRecordsSha256','ownerPid','ownerBirth']){
+  assert.equal(initCleanRun(`Exit-FixtureOldOwner;$field='${field}';`+String.raw`
+ $marker=[Text.Encoding]::UTF8.GetString($oldPending)|ConvertFrom-Json
+ if($field-ceq'ownerPid'){$marker.ownerPid++}else{$marker.$field='wrong-fixed-anchor'}
+ $script:fixedInputs.pendingBeforeBytes=[Text.Encoding]::UTF8.GetBytes(($marker|ConvertTo-Json -Compress));$script:fixedInputs.pendingHash=Get-Business5244StartupHash $script:fixedInputs.pendingBeforeBytes
+ [IO.File]::WriteAllBytes($pendingPath,$script:fixedInputs.pendingBeforeBytes);$caught=''
+ try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'CURRENT_SUPERSESSION_INIT_CLEAN_PENDING_REJECTED'-or$createdNatives.Count-or$script:Business5244CurrentSupersessions.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne$fixedInputs.pendingHash){throw ('INIT_CLEAN_MARKER_ACCEPTED_'+$field+'_'+$caught)}
+ `),'PASS');
+ }
+});
+win('INIT-CLEAN observation admits only its fixed case tuple and never accepts a copied native observer',()=>{
+ assert.equal(initCleanRun(String.raw`
+ $original=$script:fixedInputs
+ foreach($drift in @('case','pid','birth','entryCount','record')){
+  $script:fixedInputs=$original.PSObject.Copy()
+  switch($drift){case{$script:fixedInputs.caseId='current-only-5244-init-clean-20261029'}pid{$script:fixedInputs.ownerPid++}birth{$script:fixedInputs.ownerBirth='old'}entryCount{$script:fixedInputs.entrySeals=@($entries|Select-Object -First 16)}record{$script:fixedInputs.recordsHash='0'*64;$script:fixedInputs.originalBeforeHash=$script:fixedInputs.recordsHash}}
+  $caught='';try{Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null}catch{$caught=$_.Exception.Message}
+  if($caught-cne'CURRENT_SUPERSESSION_FIXED_CASE_REJECTED'-or$script:Business5244CurrentSupersessionObservations.Count){throw ('INIT_CLEAN_TUPLE_ACCEPTED_'+$drift+'_'+$caught)}
+ }
+ $script:fixedInputs=$original;$fake=[pscustomobject]@{TargetPid=$observer.TargetPid;TargetBirth=$observer.TargetBirth};$caught=''
+ try{Prepare-Business5244CurrentSupersessionObservation $fake|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'CURRENT_SUPERSESSION_NATIVE_EXIT_REQUIRED'-or$observer.Observe()-or$createdNatives.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash){throw 'INIT_CLEAN_COPIED_OBSERVER_GRANTED'}
+ `),'PASS');
+});
+win('INIT-CLEAN preserves the pre-exit mutex generation and rejects real abandoned ownership before any CAS or fresh child',()=>{
+ assert.equal(initCleanRun(String.raw`
+ Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null;$o=Get-Business5244CurrentSupersessionObservation $observer
+ $writer.WriteLine('ABANDON');$writer.Flush();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne23){throw 'INIT_CLEAN_ABANDONMENT_NOT_REAL'};$observer.ValidateExited();$caught=''
+ try{New-Business5244CurrentSupersessionAdmission $observer|Out-Null}catch{$caught=$_.Exception.Message}
+ if($caught-cne'BUSINESS_5244_ABANDONED_OWNER'-or$o.mutex.SafeWaitHandle.IsClosed-or$createdNatives.Count-or$script:Business5244CurrentSupersessions.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne$fixedInputs.pendingHash){throw ('INIT_CLEAN_ABANDONED_BYPASS_'+$caught)}
  `),'PASS');
 });

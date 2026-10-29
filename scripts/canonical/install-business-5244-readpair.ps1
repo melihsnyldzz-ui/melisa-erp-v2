@@ -1,4 +1,4 @@
-param([switch]$Library,[switch]$Apply,[switch]$AfterLoaderRecovery,[switch]$CurrentOnlySupersession,[string]$SourceSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
+param([switch]$Library,[switch]$Apply,[switch]$AfterLoaderRecovery,[switch]$CurrentOnlySupersession,[switch]$InitializerCleanRecovery,[string]$SourceSha256,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')){throw 'READPAIR_INSTALL_SCOPE_REJECTED'}
@@ -401,7 +401,7 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   # Its literal pin has no self-cycle: the producer reads installer Git bytes
   # only at preparation time; it embeds no installer/content hash in its source.
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  Hold-B6ReadPairSource $producer 'da2694ce34efba211566e3f7d88e7caed5b64945c4438816fe870f499c095c8b'
+  Hold-B6ReadPairSource $producer 'b131aa1680718a4c218e4253898f57f7d0832f6ab452819491a4f6a087e90ab2'
   $verifiedText=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'}
   $verified=$verifiedText|ConvertFrom-Json
@@ -675,6 +675,7 @@ function Close-ReadPairPublication {
 function Read-Business5244CurrentSupersessionCaseFile([string]$Leaf,[string]$Sha256){
  $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\current-only-supersession-20261029'
  $allowed=@('supersession-fixed-case.json','protected-boundary.json','oldpending.before.bin','oldrecord.before.json','current-entry-hold-capture.json')
+ if($InitializerCleanRecovery){$root=Join-Path $root 'initializer-clean-20261029';$allowed=@('initializer-fixed-case.json','initializer.pending.before.json','records.before.json','entry-hold-capture.json','protected-boundary.json','original-retirement.before.bin')}
  if($Leaf-cnotin$allowed-or$Sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'CURRENT_SUPERSESSION_CASE_INPUT_REJECTED'}
  $path=Join-Path $root $Leaf
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'CURRENT_SUPERSESSION_INPUT_REPARSE'}}
@@ -686,6 +687,7 @@ function Get-Business5244CurrentSupersessionFixedInputs {
  # Frozen observations are DATA only. The state factory additionally requires
  # a genuine retained native exit observer, a fresh non-abandoned OS lease,
  # exclusive live-file CAS and independent Current API / SQL Before checks.
+ if($InitializerCleanRecovery){return Get-Business5244InitializerCleanFixedInputs}
  $caseBytes=Read-Business5244CurrentSupersessionCaseFile 'supersession-fixed-case.json' '8965df723ec4bdbbd12360129d54aab47484d67ad76d8c42f4ec7c7b67c6caf8'
  $boundaryBytes=Read-Business5244CurrentSupersessionCaseFile 'protected-boundary.json' 'a0edcc36f31103db37ae90ec3727ecd1f450eeb8bac1714c442b678cbfd45a3e'
  $before=Read-Business5244CurrentSupersessionCaseFile 'oldrecord.before.json' '3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74'
@@ -698,6 +700,28 @@ function Get-Business5244CurrentSupersessionFixedInputs {
  if($pins.apiManifest-ine$c.current.apiManifest-or$pins.manifest-ine$c.current.webManifest-or$c.current.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01'-or$c.current.server-cne'Semih\MELISADEV'){throw 'CURRENT_SUPERSESSION_CURRENT_TARGET_CHANGED'}
  $entries=@(foreach($row in $e.entries){[pscustomobject]@{path=$row.path;hash=$row.beforeSha256}})+@(foreach($row in $e.directEntries){[pscustomobject]@{path=$row.path;hash=$row.sha256}})
  return [pscustomobject]@{schema='business-5244-current-supersession-inputs.v1';caseId='CURRENT-ONLY-5244-SUPERSESSION-20261029';scopeName='TEST125-API-B6-ca620bac-20261028';ownerPid=48212;ownerBirth='134377121934062288';recordsPath=$c.record.path;recordsHash=$c.record.sha256;originalBeforeHash=$c.record.sha256;pendingPath=$c.pending.path;pendingHash=$c.pending.sha256;archiveRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\current-only-supersession-20261029\bootstrap-evidence';beforeBytes=$before;pendingBeforeBytes=$pendingBefore;pins=$pins;currentPins=$pins;entries=$entries;entrySeals=$entries;gateSeal=([pscustomobject]@{path=$e.gate.path;hash=$e.gate.sha256});case=$c;boundary=$b}
+}
+function Get-Business5244InitializerCleanFixedInputs {
+ # This is expected immutable DATA, not an Undo ACK or a new owner grant.
+ # The native observer, original mutex generation, post-exit live CAS and
+ # Current boundary must all pass independently before any file mutation.
+ $caseBytes=Read-Business5244CurrentSupersessionCaseFile 'initializer-fixed-case.json' '854d7b2e37e04eacf2c586dc195d50712255dd454e43918a2c4f7153451f3ce3'
+ $boundaryBytes=Read-Business5244CurrentSupersessionCaseFile 'protected-boundary.json' 'c737aedba3efd5e270f48a38cc84afd3e5080fe2b59c7c72e4c7245a940d15ff'
+ $before=Read-Business5244CurrentSupersessionCaseFile 'records.before.json' '3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74'
+ $pendingBefore=Read-Business5244CurrentSupersessionCaseFile 'initializer.pending.before.json' '5891a78ce6f5811cc443ce6fa0b1f894c53f12d63b426955e8aa008ac7bf23b4'
+ $entryBytes=Read-Business5244CurrentSupersessionCaseFile 'entry-hold-capture.json' '7b93d26f5b927088921d577d6c4bee6856dc15efb5aac47aaf59aef6cb8bb854'
+ $original=Read-Business5244CurrentSupersessionCaseFile 'original-retirement.before.bin' '7c42681742b6c858cda7eff730a955adeb4c2975ca8692bf95d94ca68af3fcab'
+ $c=[Text.Encoding]::UTF8.GetString($caseBytes)|ConvertFrom-Json;$b=[Text.Encoding]::UTF8.GetString($boundaryBytes)|ConvertFrom-Json;$e=[Text.Encoding]::UTF8.GetString($entryBytes)|ConvertFrom-Json
+ if($c.schema-cne'melisa-5244-current-initializer-clean-case.v1'-or$c.readOnly-ne$true-or$c.executionAuthority-ne$false-or$c.target.pid-ne42920-or$c.target.birth-cne'134377286908585811'-or$c.target.sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$c.pending.path-cne(Get-Business5244RetirementPendingPath)-or$c.pending.sha256-cne'5891a78ce6f5811cc443ce6fa0b1f894c53f12d63b426955e8aa008ac7bf23b4'-or$c.pending.bytes-ne449-or$c.pending.expectedReconstructedBytesOnly-ne$true-or$c.pending.actualReadAfterUndoRequired-ne$true-or$c.record.path-cne'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json'-or$c.record.sha256-cne'3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74'-or$c.record.actualRecordRead-ne$false-or$c.nativeObservationRequired-ne$true-or$c.preExitSameMutexRequired-ne$true-or$c.stopCalls-ne0-or$c.recordWrites-ne0-or$c.sqlWrites-ne0-or$c.serviceCalls-ne0){throw 'CURRENT_INIT_CLEAN_CASE_SCOPE_CHANGED'}
+ if($b.schema-cne'melisa-5244-current-initializer-clean-boundary.v1'-or$b.readOnly-ne$true-or$b.executionAuthority-ne$false-or$b.caseSha256-cne'854d7b2e37e04eacf2c586dc195d50712255dd454e43918a2c4f7153451f3ce3'-or$b.writes-ne0-or$b.sqlCalls-ne0-or$b.serviceCalls-ne0-or$c.entryCaptureSha256-cne'7b93d26f5b927088921d577d6c4bee6856dc15efb5aac47aaf59aef6cb8bb854'-or$e.entries.Count-ne6-or$e.directEntries.Count-ne11-or$e.executionAuthority-ne$false-or$e.entryWrites-ne0){throw 'CURRENT_INIT_CLEAN_BOUNDARY_SCOPE_CHANGED'}
+ if($c.active.coreRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029'-or$c.active.coreManifestSha256-cne'727499c2f42fb8d542d408fa38a764541cd1ba2f7341586f14a46976e3c2b985'-or$c.active.coreEntrySha256-cne'712bf4cf5777346c17c018f7cec89291da4b59e8ce47171234e66edfa3cacbf2'-or$c.active.coreSource-cne'a16e14ac80d2d88304209fe7c5fc4e252ab02a43'-or$c.active.coreFiles.Count-ne14){throw 'CURRENT_INIT_CLEAN_PREDECESSOR_CHANGED'}
+ foreach($copy in @(@{path=$c.original.pendingCopyPath;hash='7c42681742b6c858cda7eff730a955adeb4c2975ca8692bf95d94ca68af3fcab'},@{path=$c.original.recordCopyPath;hash='3cd6768cdc129dbbfee8a6c30b829b746a2ca4fbe4df31302948a48658a86c74'})){[void](Read-ErpBusinessSalePinnedFile $copy.path $copy.hash)}
+ $p=[Text.Encoding]::UTF8.GetString($original)|ConvertFrom-Json
+ if($p.operationId-cne'0cfa751c63644554a4faccd1f1e8d7c6'-or$p.ownerPid-ne48212-or$p.ownerBirth-cne'134377121934062288'-or$p.beforeSha256-cne$c.record.sha256-or(Get-Business5244StartupHash ([Convert]::FromBase64String($p.beforeBase64)))-cne$c.record.sha256){throw 'CURRENT_INIT_CLEAN_ORIGINAL_CHAIN_CHANGED'}
+ $pins=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Current
+ if($pins.apiManifest-ine$c.current.apiManifest-or$pins.manifest-ine$c.current.webManifest-or$c.current.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01'-or$c.current.server-cne'Semih\MELISADEV'){throw 'CURRENT_SUPERSESSION_CURRENT_TARGET_CHANGED'}
+ $entries=@(foreach($row in $e.entries){[pscustomobject]@{path=$row.path;hash=$row.beforeSha256}})+@(foreach($row in $e.directEntries){[pscustomobject]@{path=$row.path;hash=$row.sha256}})
+ return [pscustomobject]@{schema='business-5244-current-supersession-inputs.v1';caseId='CURRENT-ONLY-5244-INIT-CLEAN-20261029';scopeName='TEST125-API-B6-ca620bac-20261028';ownerPid=42920;ownerBirth='134377286908585811';recordsPath=$c.record.path;recordsHash=$c.record.sha256;originalBeforeHash=$c.record.sha256;pendingPath=$c.pending.path;pendingHash=$c.pending.sha256;beforeBytes=$before;pendingBeforeBytes=$pendingBefore;pins=$pins;currentPins=$pins;entries=$entries;entrySeals=$entries;gateSeal=([pscustomobject]@{path=$e.gate.path;hash=$e.gate.sha256});case=$c;boundary=$b}
 }
 function Assert-Business5244CurrentSupersessionBoundary($Inputs,[switch]$AllowLiveOriginalOwner){
  $fixed=Get-Business5244CurrentSupersessionFixedInputs
@@ -714,7 +738,7 @@ function Assert-Business5244CurrentSupersessionBoundary($Inputs,[switch]$AllowLi
  }
  $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object {$_.LocalPort-in@(4144,4146,5194,5234)}|Select-Object LocalPort,OwningProcess -Unique)
  if(($listeners|Sort-Object LocalPort,OwningProcess|ConvertTo-Json -Compress)-cne($fixed.case.protectedProcesses|Sort-Object LocalPort,OwningProcess|ConvertTo-Json -Compress)){throw 'CURRENT_SUPERSESSION_PROTECTED_LISTENER_CHANGED'}
- $old=Get-CimInstance Win32_Process -Filter 'ProcessId=48212'
+ $old=Get-CimInstance Win32_Process -Filter ('ProcessId='+$fixed.ownerPid)
  if(!$AllowLiveOriginalOwner-and$old-and[Business5244WebNative]::MatchesCimBirth([long]$fixed.ownerBirth,$old.CreationDate.ToUniversalTime().ToFileTimeUtc())){throw 'CURRENT_SUPERSESSION_OLD_OWNER_STILL_LIVE'}
  $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 5
  Assert-Business5244ApiHealth $health $fixed.pins
@@ -724,23 +748,27 @@ function Assert-Business5244CurrentSupersessionBoundary($Inputs,[switch]$AllowLi
  return $true
 }
 function Open-Business5244CurrentSupersessionSource([string]$ReviewedSourceHash,[string]$EntryPath){
- if(!$CurrentOnlySupersession-or$Apply-or$AfterLoaderRecovery-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$PSVersionTable.PSEdition-cne'Desktop'){throw 'CURRENT_SUPERSESSION_FIXED_ENTRY_REQUIRED'}
+ if(([bool]$CurrentOnlySupersession-eq[bool]$InitializerCleanRecovery)-or$Apply-or$AfterLoaderRecovery-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$PSVersionTable.PSEdition-cne'Desktop'){throw 'CURRENT_SUPERSESSION_FIXED_ENTRY_REQUIRED'}
  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029'
  $proof='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\current-only-supersession-20261029\owner-preparation'
+ if($InitializerCleanRecovery){$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029';$proof='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-passive-pair-ca620bac-20261028\current-only-supersession-20261029\initializer-clean-20261029\owner-preparation'}
  if($EntryPath-cne(Join-Path $core 'install-business-5244-readpair.ps1')-or$ReviewedSourceHash-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'CURRENT_SUPERSESSION_FROZEN_ENTRY_REQUIRED'}
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
  $producer=Join-Path $proof 'verified-owner-producer.mjs'
- Hold-B6ReadPairSource $producer 'da2694ce34efba211566e3f7d88e7caed5b64945c4438816fe870f499c095c8b'
+ Hold-B6ReadPairSource $producer 'b131aa1680718a4c218e4253898f57f7d0832f6ab452819491a4f6a087e90ab2'
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe'
  if((Get-FileHash -LiteralPath $node).Hash-ine'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'){throw 'CURRENT_SUPERSESSION_NODE_CHANGED'}
- $text=& $node $producer --verify-current-supersession
+ $action=if($InitializerCleanRecovery){'--verify-initializer-clean-recovery'}else{'--verify-current-supersession'}
+ $text=& $node $producer $action
  if($LASTEXITCODE-ne0){throw 'CURRENT_SUPERSESSION_SOURCE_VERIFICATION_FAILED'}
  $verified=$text|ConvertFrom-Json
- if($verified.schema-cne'melisa-current-supersession-passive-verification.v1'-or$verified.coreRoot-cne$core-or$verified.coreFiles-ne13-or$verified.installerFiles-ne1-or$verified.beforeImages-ne5-or$verified.writes-ne0-or$verified.sqlCalls-ne0-or$verified.serviceCalls-ne0-or$verified.ownerCalls-ne0-or$verified.taskChanges-ne0-or$verified.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()){throw 'CURRENT_SUPERSESSION_SOURCE_NOT_VERIFIED'}
+ $beforeCount=if($InitializerCleanRecovery){6}else{5};$verificationSchema=if($InitializerCleanRecovery){'melisa-initializer-clean-recovery-passive-verification.v1'}else{'melisa-current-supersession-passive-verification.v1'}
+ if($verified.schema-cne$verificationSchema-or$verified.coreRoot-cne$core-or$verified.coreFiles-ne13-or$verified.installerFiles-ne1-or$verified.beforeImages-ne$beforeCount-or$verified.writes-ne0-or$verified.sqlCalls-ne0-or$verified.serviceCalls-ne0-or$verified.ownerCalls-ne0-or$verified.taskChanges-ne0-or$verified.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()){throw 'CURRENT_SUPERSESSION_SOURCE_NOT_VERIFIED'}
  Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $verified.coreManifestSha256
  $manifest=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json
- if($manifest.kind-cne'CURRENT_ONLY_SUPERSESSION_BUNDLE'-or$manifest.finiteScope-cne$ScopeName-or$manifest.sourceCommit-cne$verified.ownerSourceCommit-or$manifest.initialSlot-cne'Current'-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.files.Count-ne14-or$manifest.beforeImages.Count-ne5){throw 'CURRENT_SUPERSESSION_CORE_CHANGED'}
+ $manifestKind=if($InitializerCleanRecovery){'CURRENT_INITIALIZER_CLEAN_BUNDLE'}else{'CURRENT_ONLY_SUPERSESSION_BUNDLE'}
+ if($manifest.kind-cne$manifestKind-or$manifest.finiteScope-cne$ScopeName-or$manifest.sourceCommit-cne$verified.ownerSourceCommit-or$manifest.initialSlot-cne'Current'-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.files.Count-ne14-or$manifest.beforeImages.Count-ne$beforeCount){throw 'CURRENT_SUPERSESSION_CORE_CHANGED'}
  foreach($file in @($manifest.files)+@($manifest.beforeImages)){if($file.path-match'[\\/]'-or$file.sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'CURRENT_SUPERSESSION_SOURCE_LEAF_REJECTED'};Hold-B6ReadPairSource (Join-Path $core $file.path) $file.sha256}
  $self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID)
  $actual=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape($self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
@@ -754,21 +782,28 @@ function Invoke-Business5244CurrentOnlySupersession {
  . (Join-Path $source.core 'start-owned-test.ps1') -Library
  Initialize-Business5244WebNative;Initialize-Business5244RetirementPeer
  $inputs=Get-Business5244CurrentSupersessionFixedInputs
- $target=Get-CimInstance Win32_Process -Filter 'ProcessId=48212'
+ $target=Get-CimInstance Win32_Process -Filter ('ProcessId='+$inputs.ownerPid)
  if(!$target-or$target.ExecutablePath-ine$inputs.case.target.exe-or(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($target.CommandLine)))-cne$inputs.case.target.argvSha256){throw 'CURRENT_SUPERSESSION_LIVE_PREDECESSOR_CHANGED'}
- foreach($root in @($inputs.case.active.coreRoot,$inputs.case.active.routerRoot)){
+ $oldRoots=if($InitializerCleanRecovery){@($inputs.case.active.coreRoot)}else{@($inputs.case.active.coreRoot,$inputs.case.active.routerRoot)}
+ foreach($root in $oldRoots){
   $expected=if($root-ceq$inputs.case.active.coreRoot){$inputs.case.active.coreManifestSha256}else{$inputs.case.active.routerManifestSha256}
   Hold-B6ReadPairSource (Join-Path $root 'owner-manifest.json') $expected
  }
  $observer=$null;$admission=$null;$packageSeal=$null
  try{
-  $peer=Connect-Business5244RetirementPeer
-  try{
-   $nativePeer=Get-Business5244RetirementRecord $peer -Client
-   $observer=$nativePeer.peer.OpenExitObservation()
-   $status=Send-Business5244RetirementRequest $peer status
-  }finally{Close-Business5244RetirementPeer $peer}
-  if($observer.TargetPid-ne$inputs.ownerPid-or$observer.TargetBirth-cne$inputs.ownerBirth-or$status.reply-cne'Status'-or$status.state.phase-cne'Unknown'-or$status.state.ownerPid-ne$observer.TargetPid-or$status.state.ownerBirth-cne$observer.TargetBirth-or!$status.nativePeerVerified-or$status.stopAuthorized){throw 'CURRENT_SUPERSESSION_UNKNOWN_NATIVE_PEER_REQUIRED'}
+  if($InitializerCleanRecovery){
+   # One observation-only server created by the original, guarded maintenance
+   # context. It accepts no JSON/control operation and grants no retirement.
+   # CaptureServer authenticates the actual connected kernel pipe peer.
+   $pipe=[IO.Pipes.NamedPipeClientStream]::new('.',(Get-Business5244RetirementPipeName),[IO.Pipes.PipeDirection]::InOut)
+   $nativePeer=$null
+   try{$pipe.Connect(10000);$nativePeer=[Business5244RetirementPeer]::CaptureServer($pipe);$nativePeer.Validate();$observer=$nativePeer.OpenExitObservation()}finally{if($nativePeer){$nativePeer.Dispose()};$pipe.Dispose()}
+   if($observer.TargetPid-ne42920-or$observer.TargetBirth-cne'134377286908585811'){throw 'CURRENT_INIT_CLEAN_ACTUAL_PIPE_PEER_REQUIRED'}
+  }else{
+   $peer=Connect-Business5244RetirementPeer
+   try{$nativePeer=Get-Business5244RetirementRecord $peer -Client;$observer=$nativePeer.peer.OpenExitObservation();$status=Send-Business5244RetirementRequest $peer status}finally{Close-Business5244RetirementPeer $peer}
+   if($observer.TargetPid-ne$inputs.ownerPid-or$observer.TargetBirth-cne$inputs.ownerBirth-or$status.reply-cne'Status'-or$status.state.phase-cne'Unknown'-or$status.state.ownerPid-ne$observer.TargetPid-or$status.state.ownerBirth-cne$observer.TargetBirth-or!$status.nativePeerVerified-or$status.stopAuthorized){throw 'CURRENT_SUPERSESSION_UNKNOWN_NATIVE_PEER_REQUIRED'}
+  }
   Prepare-Business5244CurrentSupersessionObservation $observer|Out-Null
   $packageSeal=[Business5244PackageSeal]::new()
   Assert-Business5244OwnedPackage $inputs.pins $packageSeal;$packageSeal.Freeze();$packageSeal.Validate()
@@ -795,7 +830,7 @@ function Invoke-Business5244CurrentOnlySupersession {
  }finally{if($packageSeal){$packageSeal.Dispose()};if($observer){Close-Business5244CurrentSupersessionObservation $observer;$observer.Dispose()}}
 }
 if($Library){return}
-if($CurrentOnlySupersession){
+if($CurrentOnlySupersession-or$InitializerCleanRecovery){
  foreach($builtinName in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security','CimCmdlets','NetTCPIP','ScheduledTasks')){Microsoft.PowerShell.Core\Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules',$builtinName,($builtinName+'.psd1'))) -Scope Local -ErrorAction Stop}
  Invoke-Business5244CurrentOnlySupersession
  return
