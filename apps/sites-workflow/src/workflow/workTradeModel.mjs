@@ -89,7 +89,7 @@ export function tradeCanonicalSaleRequest({operation,requestId,selection,preview
   if(operation==='sale_cancel'){if(typeof reason!=='string'||reason.trim().length<5||reason.length>500)bad();body.reason=reason.trim();}
  }
  // Existing createTradeJournal can persist this exact path/body only after a
- // future admitted caller. The normal BFF and UI remain mutation-closed.
+ // separately issued session capability. This pure value never grants POST.
  return Object.freeze({operation,path,body:Object.freeze(body),...(invoiceWitness?{invoiceWitness}:{}),canSend:false});
 }
 export function tradeCanonicalSaleJournal(value,pending,scope){

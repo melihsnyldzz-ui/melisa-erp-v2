@@ -1,4 +1,4 @@
-import {businessSaleBrowserRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSaleReceiptRequestAllowed} from './src/workflow/businessWorkface.mjs';
+import {businessSaleBrowserRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSaleReceiptRequestAllowed,businessSaleOperationKind,businessSaleOperationInputAllowed,businessSaleOperationRequestAllowed} from './src/workflow/businessWorkface.mjs';
 // Same-origin HttpOnly transport for the existing normal ERP refresh store.
 // No password/session journal, JWT signer or SQL connection.
 // The explicitly approved login label semih resolves only to existing actor 17.
@@ -22,15 +22,18 @@ export function createBusinessBrowserSessionTransport({fetchImpl=globalThis.fetc
     if(req.headers['x-melisa-session-transport']!==undefined||typeof authorization!=='string'||!/^Bearer [A-Za-z0-9._~-]{1,8192}$/.test(authorization)){json(res,401,{success:false,error:{code:'AUTH_TOKEN_REQUIRED'}});return;}
     let size=0;const chunks=[];for await(const chunk of req){size+=chunk.length;if(size>8192){json(res,413,{success:false,error:{code:'BUSINESS_PREVIEW_BODY_LIMIT'}});return;}chunks.push(chunk);}
     const raw=Buffer.concat(chunks).toString('utf8');let body;
-    if(req.method==='POST'){try{body=JSON.parse(raw);}catch{}if(!businessSalePreviewSelectionAllowed(body)){json(res,400,{success:false,error:{code:'BUSINESS_PREVIEW_INPUT'}});return;}}
+    const operation=businessSaleOperationKind(path);
+    if(req.method==='POST'){try{body=JSON.parse(raw);}catch{}if(!(operation?businessSaleOperationInputAllowed(path,body):businessSalePreviewSelectionAllowed(body))){json(res,400,{success:false,error:{code:'BUSINESS_PREVIEW_INPUT'}});return;}}
     else if(raw.length){json(res,400,{success:false,error:{code:'BUSINESS_PREVIEW_INPUT'}});return;}
     const headers={Authorization:authorization,'Content-Type':'application/json','Cache-Control':'no-store'};
     const options={redirect:'error',cache:'no-store',headers,signal:AbortSignal.timeout(15000)};
     const auth=await fetchImpl('http://127.0.0.1:4144/api/auth/me',{...options,method:'GET'});
     const authText=await auth.text();if(authText.length>131072)throw Error('AUTH_RESPONSE_LIMIT');const identity=JSON.parse(authText);
     if(!auth.ok||identity?.success!==true||identity.meta?.source!=='jwt-auth'){json(res,401,{success:false,error:{code:'AUTH_SESSION_INVALID'}});return;}
-    if(!(businessSalePreviewRequestAllowed(req.method,path,identity.data)||businessSaleReceiptRequestAllowed(req.method,path,identity.data))){json(res,403,{success:false,error:{code:'BUSINESS_PREVIEW_FORBIDDEN'}});return;}
-    const response=await fetchImpl('http://127.0.0.1:4144'+path,{...options,signal:AbortSignal.timeout(15000),method:req.method,...(body===undefined?{}:{body:JSON.stringify(body)})});
+    if(!(businessSalePreviewRequestAllowed(req.method,path,identity.data)||businessSaleReceiptRequestAllowed(req.method,path,identity.data)||businessSaleOperationRequestAllowed(req.method,path,identity.data))){json(res,403,{success:false,error:{code:'BUSINESS_PREVIEW_FORBIDDEN'}});return;}
+    // A timed-out UUID mutation is never retried here; its existing read-only
+    // journal route resolves an unknown result. Profile/native checks stay API-owned.
+    const response=await fetchImpl('http://127.0.0.1:4144'+path,{...options,signal:AbortSignal.timeout(operation?60000:15000),method:req.method,...(body===undefined?{}:{body:JSON.stringify(body)})});
     const text=await response.text();if(text.length>131072)throw Error('BUSINESS_RESPONSE_LIMIT');const payload=JSON.parse(text);
     json(res,response.status,payload);return;
    }catch{json(res,503,{success:false,error:{code:'BUSINESS_PREVIEW_UNAVAILABLE'}});return;}

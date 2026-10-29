@@ -121,7 +121,7 @@ function Read-ErpStartupConfig($Path,$PreparedReleaseProof=$null) {
  return $c
 }
 function Assert-ErpApiPrivateProfile($Base,$Api,$Manifest){
- if($Manifest.packageId-ceq'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'-and(!$Api.PSObject.Properties['businessSaleAdmission']-or!$Api.PSObject.Properties['businessSaleWritesEnabled'])){throw 'B6_PROFILE_DESCRIPTOR_REQUIRED'}
+ if($Manifest.packageId-cin@('CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028','CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029')-and(!$Api.PSObject.Properties['businessSaleAdmission']-or!$Api.PSObject.Properties['businessSaleWritesEnabled'])){throw 'B6_PROFILE_DESCRIPTOR_REQUIRED'}
  if($Api.PSObject.Properties['businessSaleAdmission']-or$Api.PSObject.Properties['businessSaleWritesEnabled']){$Api=Assert-ErpBusinessSaleProfileDelta $Base $Api $Manifest}
  $comparison=$Api.PSObject.Copy();$comparison.PSObject.Properties.Remove('businessWorkface');$comparison.PSObject.Properties.Remove('businessSessionAccessSecret')
  $comparison.goal8SyntheticDaySeal=$Base.goal8SyntheticDaySeal

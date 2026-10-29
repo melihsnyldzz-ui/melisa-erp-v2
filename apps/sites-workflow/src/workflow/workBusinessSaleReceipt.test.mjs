@@ -28,7 +28,7 @@ test('receipt read rechecks exact customer account movement and binds native inv
  const result=await f.session.businessSaleInvoice(selection,'101');assert.equal(result.id,'51');assert.equal(result.customerBalanceExact8,'-2.12345678');assert.equal(result.customerAccountId,'7');
  assert.deepEqual(f.calls.map(c=>c.path),['/api/business-party-history/customer/155/7','/api/work-sales/invoices/51']);assert(f.calls.every(c=>c.method==='GET'));
  for(const path of ['/api/work-sales/invoices','/api/work-sales/invoices/51'])await assert.rejects(f.session.work(path),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
- for(const path of ['/api/work-sales/drafts','/api/work-sales/drafts/51/finalize','/api/work-sales/drafts/51/cancel','/api/work-collections']){assert.equal(businessSaleBrowserRequestAllowed('POST',path),false);assert.equal(businessWorkfaceRequestAllowed('POST',path),false);}
+ for(const path of ['/api/work-sales/drafts','/api/work-sales/drafts/51/finalize','/api/work-sales/drafts/51/cancel','/api/work-collections']){assert.equal(businessSaleBrowserRequestAllowed('POST',path),path.startsWith('/api/work-sales/drafts'));assert.equal(businessWorkfaceRequestAllowed('POST',path),false);}
  f.session.dispose();assert.equal(f.session.businessSaleInvoiceAvailable(),false);
 });
 test('same-currency account swap, non-sales movement, absent invoice and invented document number cannot authorize receipt fetch',async()=>{

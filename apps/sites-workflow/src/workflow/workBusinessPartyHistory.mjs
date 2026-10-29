@@ -52,7 +52,8 @@ export function createBusinessPartyHistory({kind,session,onChange=()=>{},locked=
   catch{if(!disposed&&card&&n===version)invoiceNote='Fişin bu hesaba bağlantısı doğrulanamadı. Hareketleri yenileyin.';}
   finally{if(!disposed&&card&&n===version){invoiceBusy=false;notify();}}
  }
- function receiptHtml(){return `${invoiceNote?`<p role="status">${esc(invoiceNote)}</p>`:''}${invoice?businessSaleReceiptHtml(invoice)+`<button class="btn" data-bph-reopen ${locked()||invoiceBusy?'disabled':''}>Fişi yeniden oku</button>`:''}`;}
+ const operationAvailable=op=>typeof onOperation==='function'&&session.businessSaleOperationAvailable?.(op)===true;
+ function receiptHtml(){return `${invoiceNote?`<p role="status">${esc(invoiceNote)}</p>`:''}${invoice?businessSaleReceiptHtml(invoice,{operationAvailable:op=>!locked()&&!invoiceBusy&&operationAvailable(op)})+`<button class="btn" data-bph-reopen ${locked()||invoiceBusy?'disabled':''}>Fişi yeniden oku</button>`:''}`;}
  async function reopenInvoice(){
   if(!allowed()||busy||invoiceBusy||!invoice||!selected()||session.businessSaleInvoiceAvailable?.()!==true)return;
   const old=invoice,n=version,query={kind,partyId:card.id,accountId,currency,page,dateFrom,dateTo};invoice=null;invoiceBusy=true;invoiceNote='Fiş okunuyor…';notify();
@@ -65,7 +66,8 @@ export function createBusinessPartyHistory({kind,session,onChange=()=>{},locked=
   if(operation==='sale_cancel'&&(typeof reason!=='string'||reason.trim().length<5||reason.length>500))return;
   const a=selected(),scope={customerId:card.id,customerAccountId:a.accountId,currency:a.currency},query={kind,partyId:card.id,accountId:a.accountId,currency:a.currency,page,dateFrom,dateTo},n=version;
   const shown=tradeCanonicalSaleInvoice(invoice,scope);invoiceBusy=true;invoiceNote='Fiş işlemi kontrol ediliyor…';notify();
-  try{const result=await onOperation({operation,invoice:shown,scope,query,...(reason===undefined?{}:{reason})},()=>!disposed&&card!==null&&n===version&&invoice===shown);if(!disposed&&card&&n===version)invoiceNote=result?.prepared===true&&result.canSend===false&&result.sent===false?'Fiş işlemi hazırlandı. Bu bağlantıda kayıt gönderme henüz açık değil.':'Fiş işlemi gönderilmedi. Bilgileri yeniden kontrol edin.';}
+  try{const result=await onOperation({operation,invoice:shown,scope,query,...(reason===undefined?{}:{reason})},()=>!disposed&&card!==null&&n===version&&invoice===shown);if(!disposed&&card&&n===version){if(result?.sent===true&&result.invoice){invoice=tradeCanonicalSaleInvoice(result.invoice,scope);invoiceNote='Kaydedildi. Hesap hareketlerini yenileyin.';}else invoiceNote=result?.unknown?'İşlem sonucu belirsiz. Yeni işlem göndermeden son kaydı kontrol edin.':result?.prepared===true&&result.canSend===false&&result.sent===false?'Fiş işlemi hazırlandı. Bu bağlantıda kayıt gönderme henüz açık değil.':'Fiş işlemi gönderilmedi. Bilgileri yeniden kontrol edin.';}}
+
   catch{if(!disposed&&card&&n===version)invoiceNote='Fiş işlemi doğrulanamadı. Fişi ve son işlemi yeniden kontrol edin.';}
   finally{if(!disposed&&card&&n===version){invoiceBusy=false;notify();}}
  }
@@ -97,8 +99,10 @@ export function createBusinessPartyHistory({kind,session,onChange=()=>{},locked=
 }
 
 // Reused receipt presentation for account history and the existing UUID journal.
-// No lifecycle handler or commercial transport is attached to these controls.
-export function businessSaleReceiptHtml(value){
+// The default stays read-only. Session availability affects presentation only;
+// the parent callback and opaque session capability separately gate effects.
+export function businessSaleReceiptHtml(value,{operationAvailable=()=>false}={}){
  const i=tradeCanonicalSaleInvoice(value,{customerId:value?.customerId,customerAccountId:value?.customerAccountId,currency:value?.currency});
- return `<section class="trade-receipt"><h3>Satış fişi · ${esc(i.documentNo)}</h3><p>${esc(i.documentDate)} · ${esc({draft:'Taslak',finalized:'Tamamlandı',cancelled:'İptal edildi'}[i.status])}</p>${i.items.map(l=>`<div class="trade-receipt-line"><div><b>${esc(l.stockCode)}</b><small>${esc(l.name)} · ${esc(l.quantityExact3)} ADET</small></div><strong>${esc(amount(l.lineTotalExact4,i.currency))}</strong></div>`).join('')}<p>Satış toplamı: <strong>${esc(amount(i.grandTotalExact4,i.currency))}</strong></p>${i.status==='draft'?'<button class="btn primary" data-business-sale-finalize disabled>Satışı tamamla</button>':''}${i.status!=='cancelled'?'<label>İptal gerekçesi<input data-business-sale-reason minlength="5" maxlength="500" disabled></label><button class="btn" data-business-sale-cancel disabled>Satışı iptal et</button>':''}<p class="trade-note">Bu fiş yalnız görüntülenir. Satış, iptal ve tahsilat işlemleri bu bağlantıda açık değil.</p></section>`;
+ const finalize=operationAvailable('sale_finalize')===true,cancel=operationAvailable('sale_cancel')===true;
+ return `<section class="trade-receipt"><h3>Satış fişi · ${esc(i.documentNo)}</h3><p>${esc(i.documentDate)} · ${esc({draft:'Taslak',finalized:'Tamamlandı',cancelled:'İptal edildi'}[i.status])}</p>${i.items.map(l=>`<div class="trade-receipt-line"><div><b>${esc(l.stockCode)}</b><small>${esc(l.name)} · ${esc(l.quantityExact3)} ADET</small></div><strong>${esc(amount(l.lineTotalExact4,i.currency))}</strong></div>`).join('')}<p>Satış toplamı: <strong>${esc(amount(i.grandTotalExact4,i.currency))}</strong></p>${i.status==='draft'?`<button class="btn primary" data-business-sale-finalize ${finalize?'':'disabled'}>Satışı tamamla</button>`:''}${i.status!=='cancelled'?`<label>İptal gerekçesi<input data-business-sale-reason minlength="5" maxlength="500" ${cancel?'':'disabled'}></label><button class="btn" data-business-sale-cancel ${cancel?'':'disabled'}>Satışı iptal et</button>`:''}<p class="trade-note">${finalize||cancel?'Güncel fiş ve hesap yeniden doğrulanır. Tahsilat bu ekranda açık değil.':"Bu fiş yalnız görüntülenir. Satış, iptal ve tahsilat işlemleri bu bağlantıda açık değil."}</p></section>`;
 }

@@ -449,3 +449,28 @@ if($row.phase-cne'Unknown'-or$row.event-cne'APPLY_FAILED_NO_REPLAY'){throw 'UNKN
 Reject {Write-ErpBusinessSaleNativeEvent $r 'APPLY_VERIFIED'};Reject {Assert-Test125ReadPairIssued $t};'PASS'
 `),'PASS');}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-unknown-'));fs.rmSync(temp,{recursive:true});}
 });
+
+test('separate Writer startup contract accepts only its exact descriptor and preserves passive rejection, roles, secrets and base profile',win,()=>{
+ assert.equal(run(`. ${q(path.join(dir,'start-owned-test.ps1'))} -Library;`+String.raw`
+$script:d=[pscustomobject]@{schemaVersion='fixture';readerDefinitions=[pscustomobject]@{reader='fixture-native-definition'}}
+function Get-ErpBusinessSaleNativeInputs {[pscustomobject]@{descriptor=$script:d}}
+$base=[pscustomobject]@{database='fixture';jwtAccessSecret='fixture-access';goal8SyntheticDaySeal=[pscustomobject]@{packageId='base';sourceCommit='fixture-source';dayId='fixture-day';definitionHash='fixture-definition'}}
+$before=$base|ConvertTo-Json -Depth 32 -Compress;$api=$base|ConvertTo-Json -Depth 32|ConvertFrom-Json
+$api.goal8SyntheticDaySeal.packageId='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'
+$api|Add-Member businessWorkface ([pscustomobject]@{id='ERP-5244-REALDATA-20261027';userId=17;actualT1=$false;externalOperations=$false});$api|Add-Member businessSessionAccessSecret 'fixture-business'
+$api|Add-Member businessSaleAdmission ($script:d|ConvertTo-Json -Depth 32|ConvertFrom-Json);$api|Add-Member businessSaleWritesEnabled $true
+$m=[pscustomobject]@{packageId=$api.goal8SyntheticDaySeal.packageId;sourceCommit='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';businessSaleSourceCommit=('a'*40);businessWorkfaceReadOnly=$true;businessSaleCandidate=[pscustomobject]@{kind='ADMITTED_B6_WRITER';recordingEnabled=$true};businessSaleWriterActivation=[pscustomobject]@{kind='NORMAL_SEMIH_B6_WRITER';purpose='WriterProfileActivation';sourceCommit=('a'*40);basePackageId='CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028';baseManifestSha256='85ff1157f4d1ed69582d4a08dead319518d1c79c4ea74ea0f2a0606037a1289d';artifactSha256='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';descriptorSha256='050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024';revisionHash='DEBAFECB1915AEC135E58107F64EE4243D7B93E3C091799EB8E4F29500C477DE';actorId=17;roleId=17}}
+Assert-ErpApiPrivateProfile $base $api $m
+foreach($case in @('old-package','source','sourceLF','old-kind','generic-write','recording','flag','flag-string','descriptor','actor','role','purpose','base','artifact','extra-contract','secret','seal','extra-profile','missing-admission','actor-profile','t1','external')){
+ $bad=$api|ConvertTo-Json -Depth 32|ConvertFrom-Json;$manifest=$m|ConvertTo-Json -Depth 32|ConvertFrom-Json
+ switch($case){'old-package'{$manifest.packageId='CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'}source{$manifest.businessSaleWriterActivation.sourceCommit='b'*40}sourceLF{$manifest.businessSaleSourceCommit+=([char]10);$manifest.businessSaleWriterActivation.sourceCommit=$manifest.businessSaleSourceCommit}'old-kind'{$manifest.businessSaleCandidate.kind='PASSIVE_CLOSED_B6_UI'}'generic-write'{$manifest.businessWorkfaceReadOnly=$false}recording{$manifest.businessSaleCandidate.recordingEnabled=$false}flag{$bad.businessSaleWritesEnabled=$false}'flag-string'{$bad.businessSaleWritesEnabled='true'}descriptor{$bad.businessSaleAdmission.readerDefinitions.reader='changed'}actor{$manifest.businessSaleWriterActivation.actorId=18}role{$manifest.businessSaleWriterActivation.roleId='17'}purpose{$manifest.businessSaleWriterActivation.purpose='CandidateMetadataApply'}base{$manifest.businessSaleWriterActivation.baseManifestSha256='b'*64}artifact{$manifest.businessSaleWriterActivation.artifactSha256='c'*64}'extra-contract'{$manifest.businessSaleWriterActivation|Add-Member unsafe $true}secret{$bad.jwtAccessSecret='changed'}seal{$bad.goal8SyntheticDaySeal.definitionHash='changed'}'extra-profile'{$bad|Add-Member unsafe $true}'missing-admission'{$bad.PSObject.Properties.Remove('businessSaleAdmission')}'actor-profile'{$bad.businessWorkface.userId=18}t1{$bad.businessWorkface.actualT1=$true}external{$bad.businessWorkface.externalOperations=$true}}
+ $caught=$false;try{Assert-ErpApiPrivateProfile $base $bad $manifest}catch{$caught=$true};if(!$caught){throw ('WRITER_DELTA_ACCEPTED_'+$case)}
+}
+foreach($field in @('kind','purpose','sourceCommit','basePackageId','baseManifestSha256','artifactSha256','descriptorSha256','revisionHash')){
+ $manifest=$m|ConvertTo-Json -Depth 32|ConvertFrom-Json;$v=$manifest.businessSaleWriterActivation.$field;$manifest.businessSaleWriterActivation.$field=@($v,$v)
+ $caught=$false;try{Assert-ErpApiPrivateProfile $base $api $manifest}catch{$caught=$true};if(!$caught){throw ('WRITER_ARRAY_ACCEPTED_'+$field)}
+}
+foreach($field in @('packageId','sourceCommit')){$manifest=$m|ConvertTo-Json -Depth 32|ConvertFrom-Json;$v=$manifest.$field;$manifest.$field=@($v,$v);$caught=$false;try{Assert-ErpApiPrivateProfile $base $api $manifest}catch{$caught=$true};if(!$caught){throw ('WRITER_MANIFEST_ARRAY_ACCEPTED_'+$field)}}
+if(($base|ConvertTo-Json -Depth 32 -Compress)-cne$before){throw 'WRITER_MUTATED_BASE'};'PASS'
+`),'PASS');
+});

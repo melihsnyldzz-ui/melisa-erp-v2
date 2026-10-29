@@ -65,12 +65,41 @@ test('BFF rejects claimed actor, non-normal upstream identity, missing permissio
  assert.equal((await call(h,{path:'/api/work-sales/preview',body:{...selection,actorId:'17'},headers:{authorization:'Bearer fixture-access'}})).status,400);
  assert.equal((await call(h,{path:'/api/work-sales/preview',body:selection,headers:{authorization:'Bearer fixture-access','x-melisa-session-transport':'native'}})).status,401);
 });
-test('BFF only admits exact invoice detail GET with finance permission; list and every commercial operation stay outside dispatch',async()=>{
+test('BFF exact invoice detail GET requires finance permission; lists and unrelated operations stay outside dispatch',async()=>{
  const calls=[],h=createBusinessBrowserSessionTransport({fetchImpl:async(url,o)=>{calls.push({url,o});return response(url.endsWith('/auth/me')?{success:true,data:previewActor,meta:{source:'jwt-auth'}}:{success:true,data:{id:'51'}});}});
  const r=await call(h,{method:'GET',path:'/api/work-sales/invoices/51',body:undefined,headers:{authorization:'Bearer fixture-access'}});assert.equal(r.status,200);assert.equal(calls.length,2);
- for(const [method,path] of [['GET','/api/work-sales/invoices'],['GET','/api/work-sales/invoices/51?accountId=7'],['POST','/api/work-sales/drafts'],['POST','/api/work-sales/drafts/51/finalize'],['POST','/api/work-sales/drafts/51/cancel'],['POST','/api/work-collections']])assert.equal((await call(h,{method,path})).next,true);
+ for(const [method,path] of [['GET','/api/work-sales/invoices'],['GET','/api/work-sales/invoices/51?accountId=7'],['POST','/api/work-sales/drafts/51/collect'],['POST','/api/work-collections']])assert.equal((await call(h,{method,path})).next,true);
  assert.equal(calls.length,2);
  const denied=createBusinessBrowserSessionTransport({fetchImpl:async()=>response({success:true,data:{...previewActor,permissions:previewActor.permissions.filter(p=>p!=='finance.view')},meta:{source:'jwt-auth'}})});assert.equal((await call(denied,{method:'GET',path:'/api/work-sales/invoices/51',body:undefined,headers:{authorization:'Bearer fixture-access'}})).status,403);
+});
+
+test('BFF finite draft/finalize/cancel POST uses fresh upstream normal identity and exact operation permission, never a cookie or client authority flag',async()=>{
+ const uuid='00000000-0000-4000-8000-000000000001',revision='a'.repeat(64),normal={...previewActor,permissions:[...previewActor.permissions,'sales.finalize','sales.cancel']};
+ const cases=[['/api/work-sales/drafts',{...selection,requestId:uuid,expectedRevision:revision,previewHash:'b'.repeat(64)},'sales.create'],['/api/work-sales/drafts/51/finalize',{requestId:uuid,expectedRevision:revision},'sales.finalize'],['/api/work-sales/drafts/51/cancel',{requestId:uuid,expectedRevision:revision,reason:'Sentetik iptal'},'sales.cancel']];
+ for(const [path,body,permission] of cases){
+  const calls=[],h=createBusinessBrowserSessionTransport({fetchImpl:async(url,o)=>{calls.push({url,o});return response(url.endsWith('/auth/me')?{success:true,data:normal,meta:{source:'jwt-auth'}}:{success:true,data:{requestId:uuid}});}});
+  const out=await call(h,{path,body,headers:{authorization:'Bearer fixture-access'}});assert.equal(out.status,200);assert.equal(calls.length,2);assert.equal(calls[0].url,'http://127.0.0.1:4144/api/auth/me');assert.equal(calls[0].o.method,'GET');assert.equal(calls[1].url,'http://127.0.0.1:4144'+path);assert.equal(calls[1].o.method,'POST');assert.deepEqual(JSON.parse(calls[1].o.body),body);assert(calls.every(c=>c.o.cache==='no-store'&&c.o.redirect==='error'&&c.o.headers.cookie===undefined&&c.o.headers.Authorization==='Bearer fixture-access'));assert.equal(out.headers['Set-Cookie'],undefined);
+  assert.equal((await call(h,{path,body})).status,401);assert.equal(calls.length,2);
+  assert.equal((await call(h,{path,body:{...body,verified:true},headers:{authorization:'Bearer fixture-access'}})).status,400);assert.equal(calls.length,2);
+  const deniedCalls=[],denied=createBusinessBrowserSessionTransport({fetchImpl:async url=>{deniedCalls.push(url);return response({success:true,data:{...normal,permissions:normal.permissions.filter(p=>p!==permission)},meta:{source:'jwt-auth'}});}});
+  assert.equal((await call(denied,{path,body,headers:{authorization:'Bearer fixture-access'}})).status,403);assert.equal(deniedCalls.length,1);
+ }
+});
+
+test('BFF lost mutation ACK is one upstream POST with no automatic replay and malformed lifecycle DTO cannot reach API',async()=>{
+ const normal={...previewActor,permissions:[...previewActor.permissions,'sales.finalize','sales.cancel']},uuid='00000000-0000-4000-8000-000000000001',body={requestId:uuid,expectedRevision:'a'.repeat(64)},calls=[];
+ const h=createBusinessBrowserSessionTransport({fetchImpl:async(url,o)=>{calls.push({url,o});if(url.endsWith('/auth/me'))return response({success:true,data:normal,meta:{source:'jwt-auth'}});throw Error('fixture lost ACK');}});
+ assert.equal((await call(h,{path:'/api/work-sales/drafts/51/finalize',body,headers:{authorization:'Bearer fixture-access'}})).status,503);assert.equal(calls.length,2);assert.equal(calls.filter(c=>c.o.method==='POST').length,1);
+ for(const bad of [{...body,reason:'extra'},{...body,requestId:'invalid'},{...body,expectedRevision:'invalid'}])assert.equal((await call(h,{path:'/api/work-sales/drafts/51/finalize',body:bad,headers:{authorization:'Bearer fixture-access'}})).status,400);
+ for(const reason of ['bad',' trailing ', 'x'.repeat(501)])assert.equal((await call(h,{path:'/api/work-sales/drafts/51/cancel',body:{...body,reason},headers:{authorization:'Bearer fixture-access'}})).status,400);assert.equal(calls.length,2);
+});
+
+test('new operation BFF boundary rejects LF/CRLF scalar or path suffixes with zero upstream forwarding',async()=>{
+ const h=createBusinessBrowserSessionTransport({fetchImpl:()=>assert.fail('Malformed operation must not reach upstream')}),headers={authorization:'Bearer fixture-access'},draft={...selection,requestId:'00000000-0000-4000-8000-000000000001',expectedRevision:'a'.repeat(64),previewHash:'b'.repeat(64)};
+ for(const tail of ['\n','\r\n']){
+  for(const change of [b=>b.customerId+=tail,b=>b.customerAccountId+=tail,b=>b.requestId+=tail,b=>b.previewHash+=tail,b=>b.expectedRevision+=tail,b=>b.items[0].productId+=tail,b=>b.items[0].quoteId+=tail,b=>b.items[0].quantityExact3+=tail]){const body=structuredClone(draft);change(body);assert.equal((await call(h,{path:'/api/work-sales/drafts',body,headers})).status,400);}
+  for(const action of ['finalize','cancel']){const path='/api/work-sales/drafts/51/'+action,body={requestId:draft.requestId,expectedRevision:draft.expectedRevision,...(action==='cancel'?{reason:'Sentetik iptal'}:{})};assert.equal((await call(h,{path:path+tail,body,headers})).next,true);for(const key of ['requestId','expectedRevision'])assert.equal((await call(h,{path,body:{...body,[key]:body[key]+tail},headers})).status,400);}
+ }
 });
 
 test('BFF journal lookup admits only exact UUID GET after fresh normal Bearer verification and never accepts a body or query',async()=>{
