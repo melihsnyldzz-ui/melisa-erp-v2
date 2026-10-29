@@ -13,6 +13,15 @@ test('typed native hash framing uses UTF16 bytes, explicit NULL, empty and trail
  assert.match(hashes.product,/DATALENGTH/);assert.doesNotMatch(hashes.product,/current_stock_qty/);assert.doesNotMatch(hashes.account,/current_balance/);
  assert.match(hashes.quote,/decimal\(28,8\)/);assert.match(hashes.product,/decimal\(18,4\)/);rejects(()=>encode([undefined]),'B6_OWNER_TYPED_VALUE');
 });
+test('generated permission snapshot avoids the RTM ordered-aggregate wrapper failure without changing its hash contract',()=>{
+ const ready=module(compile(fixture()),'ready');
+ assert.match(ready,/HASHBYTES\('SHA2_256',ISNULL\(STRING_AGG\(CONVERT\(nvarchar\(max\),/);
+ assert.doesNotMatch(ready,/COALESCE\(STRING_AGG/);
+ assert.match(ready,/WITHIN GROUP\(ORDER BY p\.permission_key COLLATE Latin1_General_100_BIN2\),N''\)\),2\) FROM dbo\.permissions p WHERE p\.role_id=17/);
+ for(const field of ['permission_key','can_view','can_create','can_update','can_delete','can_approve'])assert(ready.includes('DATALENGTH(CONVERT(nvarchar(max),p.'+field+'))'));
+ assert(ready.includes("(SELECT COUNT(*) FROM dbo.permissions WHERE role_id=17)<>36"));
+ assert(ready.includes("B6_OWNER_PERMISSIONS"));assert(ready.includes("B6_OWNER_TARGET"));
+});
 test('owner compiler emits sealed-table/procedure SQL and exact prepared permissions, not an installer or replacement journal',()=>{
  const r=compile(fixture());assert.equal(r.installable,false);assert.equal(r.status,'COHERENT_MIGRATION_REQUIRED');
  assert.equal(r.tables.length,6);assert.equal(r.modules.length,10);assert.equal(r.requiresEffectsCompiler,true);assert.equal(r.requiresImmutableSuccessorProjection,true);

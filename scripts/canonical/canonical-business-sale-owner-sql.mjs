@@ -51,7 +51,10 @@ function validate(profile,before,readerClosure){
 }
 const fail=code=>`THROW 51917,'B6_OWNER_${code}',1;`;
 const proc=(name,args,body)=>`CREATE PROCEDURE ${name} ${args} WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON; SET XACT_ABORT ON; ${body}\nEND;`;
-function permissionHashSQL(){return `(SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',COALESCE(STRING_AGG(CONVERT(nvarchar(max),${['p.permission_key','p.can_view','p.can_create','p.can_update','p.can_delete','p.can_approve'].map(field).join('+')}),N'') WITHIN GROUP(ORDER BY p.permission_key COLLATE Latin1_General_100_BIN2),N'')),2) FROM dbo.permissions p WHERE p.role_id=17)`;}
+// The exact COALESCE/ordered-STRING_AGG expression reproduces SQL8711 on
+// SQL2022 RTM. Both arguments here are explicitly nvarchar(max)/Unicode;
+// ISNULL retains the same empty/default bytes without that aggregate wrapper.
+function permissionHashSQL(){return `(SELECT CONVERT(varchar(64),HASHBYTES('SHA2_256',ISNULL(STRING_AGG(CONVERT(nvarchar(max),${['p.permission_key','p.can_view','p.can_create','p.can_update','p.can_delete','p.can_approve'].map(field).join('+')}),N'') WITHIN GROUP(ORDER BY p.permission_key COLLATE Latin1_General_100_BIN2),N'')),2) FROM dbo.permissions p WHERE p.role_id=17)`;}
 const identity=`IF DB_NAME() COLLATE Latin1_General_100_BIN2<>${lit(O.database)} OR CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) COLLATE Latin1_General_100_BIN2<>${lit(O.server)} OR ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2<>${lit(O.login)} OR IS_SRVROLEMEMBER(N'sysadmin',ORIGINAL_LOGIN())<>0 OR ISNULL(@actor_id,-1)<>17 ${fail('IDENTITY')}
 IF @@TRANCOUNT<>1 OR XACT_STATE()<>1 OR CURRENT_TRANSACTION_ID() IS NULL OR NOT EXISTS(SELECT 1 FROM sys.dm_exec_sessions WHERE session_id=@@SPID AND transaction_isolation_level=4) ${fail('TRANSACTION')}`;
 

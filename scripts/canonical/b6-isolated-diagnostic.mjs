@@ -50,6 +50,7 @@ export function diagnosticCommand({id,sql,phase,index}){
  const variable='@diag_'+phase+'_'+index,hex=Buffer.from(command,'utf16le').toString('hex');
  let transport=`DECLARE ${variable} nvarchar(max)=N'';\n`;
  for(let at=0;at<hex.length;at+=4000)transport+=`SET ${variable}+=CONVERT(nvarchar(max),0x${hex.slice(at,at+4000)});\n`;
+ transport+=`IF CONVERT(char(64),HASHBYTES('SHA2_256',${variable}),2)<>${literal(sha(Buffer.from(command,'utf16le')))} THROW 51917,'B6_DIAG_PAYLOAD_CHANGED',1;\n`;
  return transport+`BEGIN TRY EXEC sys.sp_executesql ${variable}; SELECT ${literal(JSON.stringify({phase,index,id,sha256:sha(sql),ok:true}))}; END TRY BEGIN CATCH SELECT (SELECT ${literal(phase)} AS phase,${index} AS [index],${literal(id)} AS id,${literal(sha(sql))} AS sha256,CAST(0 AS bit) AS ok,ERROR_NUMBER() AS number,ERROR_PROCEDURE() AS [procedure],ERROR_LINE() AS line FOR JSON PATH,WITHOUT_ARRAY_WRAPPER); END CATCH;\n`;
 }
 export function buildB6IsolatedDiagnostic({artifact,before,auxiliary,readers=[],sourceTables=[],dependencyMetadata={columnsJson:[]},databaseName='B6_DIAG_SYNTH_20261029'}){

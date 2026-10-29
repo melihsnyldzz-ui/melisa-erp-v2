@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
 import {capturedTableDDL,diagnosticCommand,buildB6IsolatedDiagnostic} from './b6-isolated-diagnostic.mjs';
 import {B6_ISOLATED_SCHEMA_REVISION,B6_ISOLATED_RELATIONS,B6_ISOLATED_BATCH_IDS,extractB6IsolatedSourceTables,buildB6IsolatedSchemaMap} from './b6-isolated-schema-map.mjs';
 test('schema-only capture preserves types, identity and indexes without fabricating rows',()=>{
@@ -18,6 +19,9 @@ test('diagnostic command preserves exact payload and reports raw SQL location wi
  const sql="SELECT N'example';";const text=diagnosticCommand({phase:'ApplyCompile',index:7,id:'create-dbo.usp_b6_fixture',sql});
  const decode=t=>Buffer.from([...t.matchAll(/CONVERT\(nvarchar\(max\),0x([a-f0-9]+)\)/g)].map(m=>m[1]).join(''),'hex').toString('utf16le');
  assert.equal(decode(text),"SET XACT_ABORT ON; DECLARE @b6_ddl nvarchar(max);\nSELECT N'example';");
+ const expected=createHash('sha256').update(decode(text),'utf16le').digest('hex').toUpperCase();
+ assert(text.includes("HASHBYTES('SHA2_256',@diag_ApplyCompile_7),2)<>N'"+expected+"'"));
+ assert(text.includes("'B6_DIAG_PAYLOAD_CHANGED'"));
  assert(text.includes('ERROR_NUMBER()'));assert(text.includes('ERROR_PROCEDURE()'));assert(text.includes('ERROR_LINE()'));assert(!text.includes('ERROR_MESSAGE'));
  assert.throws(()=>diagnosticCommand({phase:'ApplyCompile',index:7,id:'injected\nSQL',sql}),/BATCH_ID/);
  assert.throws(()=>diagnosticCommand({phase:'ApplyCompile',index:'0;DROP',id:'fixture',sql}),/BATCH_INDEX/);
