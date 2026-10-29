@@ -165,3 +165,7 @@ a38f08d74ae533db6d89a71908435255c78e0899:scripts/canonical/start-business-5244-w
 0a22177889268a00772ea25aa0b2a9f1578e4d64:scripts/canonical/test125-bound-api-quiescence.test.mjs:generic-api-key:34
 c3004917e96da22b4410f2dafff3f635a7d435f9:scripts/canonical/canonical-business-sale-maintenance.ps1:generic-api-key:31
 c3004917e96da22b4410f2dafff3f635a7d435f9:scripts/canonical/prepare-business-sale-owner-bundle.mjs:generic-api-key:32
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/business-5244-readpair-install.test.mjs:generic-api-key:281
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:65
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.mjs:generic-api-key:288
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:204
