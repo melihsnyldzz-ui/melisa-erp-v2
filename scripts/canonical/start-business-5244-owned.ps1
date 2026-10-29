@@ -26,7 +26,8 @@ function Assert-Business5244CreatedChild($Native,$Pins){
 function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
- $exact=if($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+ $webOnly=Test-Business5244WriterWebOnlyGeneration
+ $exact=if($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
  if((Get-FileHash -LiteralPath $Pins.node).Hash -ine $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -ine $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
@@ -57,9 +58,11 @@ function Get-Business5244MaintenancePlan($State,$ApiTransition=$null){
 }
 function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
  $r=Get-Business5244RetirementState $State
+ $webOnly=$null-eq$ApiTransition-and(Test-Business5244WriterWebOnlyGeneration)-and$r.scopeName-ceq'TEST125-API-B6-WRITER-20261029'
+ if($null-eq$ApiTransition-and!$webOnly){throw 'OWNED_WEB_PAIR_API_TRANSITION_REQUIRED'}
  Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
  if($r.phase -cne 'Running' -or $r.ContainsKey('preparedPair')){throw 'OWNED_WEB_PAIR_PREPARATION_NOT_ADMITTED'}
- [void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)
+ if(!$webOnly){[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)}
  if($r.scopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
   if($r.initializationApiTransition-and![object]::ReferenceEquals($r.initializationApiTransition,$ApiTransition)){throw 'OWNED_WEB_INIT_API_REFERENCE_CHANGED'}
   $r.initializationApiTransition=$ApiTransition
@@ -72,12 +75,13 @@ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
   Assert-Business5244OwnedPackage $plan.rollback $seal
   Assert-Business5244OwnedPackage $plan.candidate $seal
   $seal.Freeze();Assert-Business5244ReadyChild $r.native $r.pins
-  [void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)
-  Prepare-Test125ReadPairRequestAdmission $ApiTransition
+  if(!$webOnly){[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)}
+  if(!$webOnly){Prepare-Test125ReadPairRequestAdmission $ApiTransition}
   # Metadata rebind and its durable archive finish before opening any nonce.
   # This remains an exact stale-record CAS, never process adoption.
   Publish-Business5244CurrentRecord -State $State|Out-Null
   $r.preparedPair=@{apiTransition=$ApiTransition;planHash=$plan.hash;seal=$seal;ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth}
+  if($webOnly){$r.preparedPair.stateToken=$State;$r.preparedPair.native=$r.native;$r.preparedPair.lease=$r.lease;$r.preparedPair.kind='WebOnlyFrontendRefresh'}
   # Exercise the full read-only admission path while no request exists.
   # Keep margin below the independent 15-second client ACK wait; the server
   # admission ceiling does not authorize a disconnected peer.
@@ -87,29 +91,39 @@ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
   try{[void](Assert-Business5244RetirementRecord $State $recordStream);[void](Assert-Business5244RetirementRecord $State $recordStream)}finally{$recordStream.Dispose()}
   $clock.Stop();$r.preparedPair.preflightMilliseconds=$clock.ElapsedMilliseconds
   if($clock.ElapsedMilliseconds -ge 10000){throw 'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'}
- }catch{$seal.Dispose();throw}
+ }catch{
+  # A retained null-API seal remains usable by the authenticated initializer
+  # inverse. CloseState disposes it only after that inverse/cleanup finishes.
+  $retained=$webOnly-and$r.ContainsKey('preparedPair')-and$r.preparedPair-and[object]::ReferenceEquals($r.preparedPair.seal,$seal)
+  if(!$retained){$seal.Dispose()};throw
+ }
 }
 function Assert-Business5244PreparedPair($State,$ApiTransition,[string]$PlanHash){
  $r=Get-Business5244RetirementState $State
  if(!$r.ContainsKey('preparedPair') -or !$r.preparedPair){throw 'OWNED_WEB_PAIR_NOT_PREPARED'}
  $p=$r.preparedPair
+ if($null-eq$ApiTransition){
+  if(!(Test-Business5244WriterWebOnlyGeneration)-or$r.scopeName-cne'TEST125-API-B6-WRITER-20261029'-or$p.kind-cne'WebOnlyFrontendRefresh'-or![object]::ReferenceEquals($p.stateToken,$State)-or![object]::ReferenceEquals($p.native,$r.native)-or![object]::ReferenceEquals($p.lease,$r.lease)){throw 'OWNED_WEB_PREPARED_WEB_ONLY_REFERENCE_CHANGED'}
+  Assert-Business5244StartupLease $r.lease;$r.native.Validate()
+ }
  if(![object]::ReferenceEquals($p.apiTransition,$ApiTransition) -or $p.planHash -cne $PlanHash -or $p.ownerPid -ne $PID -or $p.ownerBirth -cne $r.ownerBirth -or $p.childPid -ne $r.childPid -or $p.childBirth -cne $r.childBirth -or !($p.seal -is [Business5244PackageSeal])){throw 'OWNED_WEB_PREPARED_PAIR_CHANGED'}
  $p.seal.Validate()
 }
 function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  $r=Get-Business5244RetirementState $State
+ $webOnly=$null-eq$ApiTransition-and(Test-Business5244WriterWebOnlyGeneration)-and$r.scopeName-ceq'TEST125-API-B6-WRITER-20261029'
  if($r.phase -cnotin @('Running','Retired') -or $Plan.hash -cne (Get-Business5244MaintenancePlan $State $ApiTransition).hash){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
  $fixedCandidate=Get-Business5244FinitePairPins -ScopeName $(if($r.ContainsKey('scopeName')){$r.scopeName}else{'TEST125-API-READ2b-20261028-41d3c213'}) -Mode Candidate
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.candidate[$key] -cne $fixedCandidate[$key]){throw 'OWNED_WEB_CANDIDATE_PINS_CHANGED'}}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.rollback[$key] -cne $r.pins[$key]){throw 'OWNED_WEB_ROLLBACK_PINS_CHANGED'}}
- if($null -eq $ApiTransition){Assert-Business5244OwnedPackage $Plan.candidate}else{Assert-Business5244PreparedPair $State $ApiTransition $Plan.hash}
+ if($null -eq $ApiTransition-and!$webOnly){Assert-Business5244OwnedPackage $Plan.candidate}else{Assert-Business5244PreparedPair $State $ApiTransition $Plan.hash}
  # API upgrades are outside this web-only dispatcher. Both the candidate and
  # rollback must work against the SAME current API before the old child stops.
  $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 3
  if($null -eq $ApiTransition){Assert-Business5244ApiHealth $health $Plan.candidate}
  else{[void](Assert-Test125ReadPairRequestAdmission -Transition $ApiTransition)}
  Assert-Business5244ApiHealth $health $Plan.rollback
- if($null -eq $ApiTransition -and ($Plan.rollback.root -cne $Plan.candidate.root -or $Plan.rollback.manifest -cne $Plan.candidate.manifest)){Assert-Business5244OwnedPackage $Plan.rollback}
+ if(!$webOnly-and$null -eq $ApiTransition -and ($Plan.rollback.root -cne $Plan.candidate.root -or $Plan.rollback.manifest -cne $Plan.candidate.manifest)){Assert-Business5244OwnedPackage $Plan.rollback}
  if((Get-FileHash -LiteralPath (Join-Path $Plan.rollback.root 'release-manifest.json')).Hash -ine $Plan.rollback.manifest){throw 'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'}
  if($r.phase -ceq 'Running'){
   if($null -eq $ApiTransition){Assert-Business5244CreatedChild $r.native $r.pins;Assert-Business5244ReadyChild $r.native $r.pins}
@@ -183,10 +197,21 @@ function Close-Business5244PinnedChildren($Lease){
  if($r.ContainsKey('ownedNatives')){foreach($native in $r.ownedNatives){try{$native.Dispose()}catch{$failed=$true}}}
  if($failed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
 }
+function Get-Business5244WebOnlyEntryMode {
+ # Read the real host invocation; no caller-supplied mode or package is accepted.
+ $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ceq'-File'){$i}})
+ if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count){throw 'OWNED_WEB_ONLY_FIXED_ENTRY_REQUIRED'}
+ $entry=$argv[$indices[0]+1]
+ if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029\start-business-5244-readpair-router.ps1'){return 'Maintenance'}
+ if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\run-current-owner.ps1'){return 'CurrentRecovery'}
+ throw 'OWNED_WEB_ONLY_FIXED_ENTRY_REQUIRED'
+}
 function Start-Business5244OwnedSupervisor {
  param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'OWNED_WEB_SCOPE_REJECTED'}
  if($PrepareReadPair -and $InitialSlot -ine 'Current'){throw 'OWNED_WEB_PAIR_REQUIRES_CURRENT_START'}
+ if((Test-Business5244WriterWebOnlyGeneration)-and($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$PrepareReadPair)){throw 'OWNED_WEB_ONLY_API_PREPARATION_FORBIDDEN'}
+ $webOnlyEntryMode=if(Test-Business5244WriterWebOnlyGeneration){Get-Business5244WebOnlyEntryMode}else{$null}
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and initial publication remain separate gates.
  if($null-ne$CurrentSupersession-and($InitialSlot-cne'Current'-or$PrepareReadPair-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028')){throw 'CURRENT_SUPERSESSION_SUPERVISOR_SCOPE_REJECTED'}
@@ -217,6 +242,7 @@ function Start-Business5244OwnedSupervisor {
    # It does not issue an API transition or change any component/profile.
    . (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library
    Publish-Business5244CurrentRecord $retirement|Out-Null
+   if($webOnlyEntryMode-ceq'Maintenance'){Prepare-Business5244PairedMaintenance $retirement $null}
   }
   $channel=Open-Business5244RetirementChannel -OwnerLease $lease
   if($null-ne$CurrentSupersession){Complete-Business5244CurrentSupersessionOwner $CurrentSupersession|Out-Null}

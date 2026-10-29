@@ -576,3 +576,27 @@ win('Writer V2 bootstrap accepts only its typed CurrentCore predecessor and inde
  `.replace('__WEB__',q(path.join(dir,'start-business-5244-web.ps1'))).replace('__STATE__',q(path.join(dir,'business-5244-retirement-state.ps1'))).replace('__PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1')));
  assert.equal(run(body),'PASS');
 });
+
+
+win('Web-only bootstrap binds the corrected router capture and current Writer record without granting stop or accepting the stale CurrentCore label',()=>{
+ const body=`$ErrorActionPreference='Stop';. ${q(path.join(dir,'start-business-5244-web.ps1'))} -Library;. ${q(path.join(dir,'business-5244-retirement-state.ps1'))} -Library;`+String.raw`
+ function Test-Business5244WriterWebOnlyGeneration{return $true}
+ $fixed=(Get-Business5244WebPins).Clone();$fixed.root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$fixed.frontendSource='1033566d594ad7c02b8469e5c9598541333cd500';$fixed.package='ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$fixed.manifest='121020af80ef660c4b9a0872f31dd4c3306bff81346f66797a6806bf6b1a4189';$fixed.apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';$fixed.apiManifest=('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946')
+ function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Current'){throw 'FIXTURE_FOREIGN_PIN_READ'};return $fixed.Clone()}
+ $beforeHash='fe5a222107e2a056d649a26f1dfa86d576f6a3d29fe413731c995c7b295183db';$oldCore='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2';$oldRouter='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2';$coreHash='2d1047887212c9e131a53da0f7f865a48909c90f0d6b84756c589fc8fdbbcdd2';$routerHash='7f44b5b61e4cc8867aa25a84a2820974b632c0bdba318711e67c8ef24c7b5602';$entryHash='2b0c4e83bb8c7f9a3c5f00d1ef90aa66a34a7e2a4eaf207832e9705913c03ecb'
+ $row=[pscustomobject]@{port=5244;pid=52420;entry='vite-preview';sourceCommit=$fixed.frontendSource;root=$fixed.root;backendPort=4144;businessWorkfaceId=$fixed.profile}
+ $capture=[pscustomobject]@{schema='melisa-b6-writer-current-owner-capture.v1';predecessorEntryKind='ReadPairRouter';readOnly=$true;stopAuthorized=$false;recordPath='C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json';recordBeforeFile='current-erp-processes.before.json';recordBeforeSha256=$beforeHash;owner=@{pid=45612;birth='134377648982508423'};child=@{pid=52420;parent=45612;birth='134377689444377841';exe=$fixed.node};serviceCalls=0;sqlCalls=0;retireCalls=0;core=@{root=$oldCore;manifestSha256=$coreHash;sourceCommit='d0b457f2ee9911dc2bf0b453723a91264ff551b6'};router=@{root=$oldRouter;manifestSha256=$routerHash};entry=@{root=$oldRouter;leaf='start-business-5244-readpair-router.ps1';manifestSha256=$routerHash;sha256=$entryHash;runtimeEntryBytesVerified=$false;postExitExclusiveBytesRequired=$true};webRecord=$row;installedApiManifest=$fixed.apiManifest;installedWebManifest=$fixed.manifest;nativeStatus=@{reply='Status';nativePeerVerified=$true;stopAuthorized=$false;childObservationOnly=$true;state=@{phase='Running';ownerPid=45612;ownerBirth='134377648982508423';childPid=52420;childBirth='134377689444377841'}}}
+ $cm=@{kind='BUSINESS5244_FRESH_OWNER_BUNDLE';finiteScope='TEST125-API-B6-WRITER-20261029';sourceCommit=$capture.core.sourceCommit;maintenancePurpose='WriterProfileActivation'};$rm=@{kind='BUSINESS5244_READ_PAIR_ROUTER';coreRoot=$oldCore;coreManifestSha256=$coreHash;entrySha256=$entryHash}
+ function Read-ErpBusinessSalePinnedFile($Path,$Hash){
+  $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-workface-build-20261029\current-capture-corrected'
+  if($Path-ceq(Join-Path $root 'current-read2b-owner-capture.json')-and$Hash-ceq'e480d77c835f3c2170589b9fbafec6da78dd2a19624d486d8822ad7b930d3a09'){$o=$capture}
+  elseif($Path-ceq(Join-Path $root 'current-erp-processes.before.json')-and$Hash-ceq$beforeHash){return ,([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject @($row) -Depth 10)))}
+  elseif($Path-ceq(Join-Path $oldCore 'owner-manifest.json')-and$Hash-ceq$coreHash){$o=$cm}
+  elseif($Path-ceq(Join-Path $oldRouter 'owner-manifest.json')-and$Hash-ceq$routerHash){$o=$rm}
+  else{throw 'FIXTURE_FOREIGN_PINNED_READ'};return ,([Text.Encoding]::UTF8.GetBytes(($o|ConvertTo-Json -Depth 20)))
+ }
+ $v=Get-Business5244CurrentBootstrapPins $beforeHash -ScopeName 'TEST125-API-B6-WRITER-20261029';if($v.pid-ne52420-or$v.ownerPid-ne45612-or$v.birth-cne'134377689444377841'-or$v.root-cne$fixed.root){throw 'WEB_ONLY_BOOTSTRAP_MIXED'}
+ foreach($kind in @('before','kind','api','source')){$saved=$capture|ConvertTo-Json -Depth 20;$hash=$beforeHash;switch($kind){before{$hash='0'*64}kind{$capture.predecessorEntryKind='CurrentCore'}api{$capture.installedApiManifest='0'*64}source{$capture.entry.root=$oldCore}};$denied=$false;try{Get-Business5244CurrentBootstrapPins $hash -ScopeName 'TEST125-API-B6-WRITER-20261029'|Out-Null}catch{$denied=$true};if(!$denied){throw 'WEB_ONLY_BOOTSTRAP_DRIFT_ACCEPTED'};$capture=$saved|ConvertFrom-Json}
+ 'PASS'`;
+ assert.equal(run(body),'PASS');
+});

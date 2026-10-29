@@ -31,7 +31,7 @@ $si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powers
 $pipe=$null;$peer=$null;$extra=$null;$busy=$null
 try{
  if($server.StandardOutput.ReadLine()-cne'READY'){throw 'ISOLATED_SERVER_NOT_READY'}
- $pipe=[IO.Pipes.NamedPipeClientStream]::new('.',$pipeName,[IO.Pipes.PipeDirection]::InOut);$pipe.Connect(5000);$peer=[Business5244RetirementPeer]::CaptureServer($pipe);$script:control=$peer.OpenControlledShutdown();$peer.Dispose();$peer=$null;$pipe.Dispose();$pipe=$null
+ $pipe=[IO.Pipes.NamedPipeClientStream]::new('.',$pipeName,[IO.Pipes.PipeDirection]::InOut);$pipe.Connect(5000);$peer=[Business5244RetirementPeer]::CaptureServer($pipe);$script:control=$peer.OpenControlledShutdown();$peer.Dispose();$peer=$null
  if($control.TargetPid-ne$server.Id){throw 'ISOLATED_TARGET_NOT_OWN_CREATED_SERVER'}
  $script:status=@{ownerPid=$control.TargetPid;ownerBirth=$control.TargetBirth};$script:oldResourceRows=@(@{pid=$server.Id;birth=$control.TargetBirth})
  function Assert-OldTarget($Status){$control.Validate();if($Status.ownerPid-ne$server.Id-or$Status.ownerBirth-cne$control.TargetBirth){throw 'ISOLATED_FOREIGN_OLD_TARGET'}}
@@ -54,24 +54,39 @@ const activeRun=(body,before='',fixture=activeFixture)=>run(fixture.replace('__B
 win('RehearsalOnly stop dispatch and managed body contain no force-stop path in their selected AST branch',()=>{
  assert.equal(run(String.raw`
  $tokens=$null;$errors=$null;$source=(Get-Command Stop-ReadPairColdOwner).Definition;$ast=[Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'STOP_SOURCE_PARSE'}
- $branch=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.IfStatementAst]-and$n.Clauses.Count-eq1-and$n.Clauses[0].Item1.Extent.Text-ceq'$RehearsalOnly-or$CandidateInstall-or$WriterInstall'},$true));if($branch.Count-ne1){throw 'MANAGED_STOP_BRANCH_MISSING'}
+ $branch=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.IfStatementAst]-and$n.Clauses.Count-eq1-and$n.Clauses[0].Item1.Extent.Text-ceq'$RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall'},$true));if($branch.Count-ne1){throw 'MANAGED_STOP_BRANCH_MISSING'}
  $managed=@($branch[0].Clauses[0].Item2.FindAll({param($n);$n-is[Management.Automation.Language.CommandAst]-and$n.GetCommandName()-ceq'Invoke-B6ReadPairManagedOwnerExit'},$true));if($managed.Count-ne1){throw 'MANAGED_STOP_NOT_DISPATCHED'}
  $force=@($branch[0].Clauses[0].Item2.FindAll({param($n);$n-is[Management.Automation.Language.InvokeMemberExpressionAst]-and$n.Member.Value-cin@('Stop','Kill','TerminateProcess')},$true));if($force.Count){throw 'FORCE_STOP_IN_REHEARSAL_BRANCH'}
  $body=(Get-Command Invoke-B6ReadPairManagedOwnerExit).Definition
  if($body-cmatch'\.Stop\(|\.Kill\(|TerminateProcess|Invoke-Expression'-or$body.IndexOf('[Threading.Mutex]::OpenExisting')-gt$body.IndexOf('Read-B6ReadPairManagedExitSignal')-or$body.IndexOf('.ValidateExited()')-gt$body.IndexOf('.CompleteManagedExit(')){throw 'MANAGED_NATIVE_ORDER_CHANGED'}
  'PASS'`),'PASS');
 });
-const managedServer=String.raw`param($Name,$Entry,$Mutex);$m=[Threading.Mutex]::new($false,$Mutex);$owned=$false;$f=$null;$p=$null;try{$owned=$m.WaitOne(0);if(!$owned){throw 'ISOLATED_OWNER_MUTEX_BUSY'};$f=[IO.File]::Open($Entry,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$p=[IO.Pipes.NamedPipeServerStream]::new($Name,[IO.Pipes.PipeDirection]::InOut);[Console]::WriteLine("READY");[Console]::Out.Flush();$p.WaitForConnection();[Console]::ReadLine()|Out-Null}finally{if($p){$p.Dispose()};if($f){$f.Dispose()};if($owned){$m.ReleaseMutex()};$m.Dispose()}`;
+const managedServer=String.raw`param($Name,$Entry,$Mutex);$ErrorActionPreference='Stop';$m=[Threading.Mutex]::new($false,$Mutex);$owned=$false;$f=$null;$p=$null;try{$owned=$m.WaitOne(0);if(!$owned){throw 'ISOLATED_OWNER_MUTEX_BUSY'};$f=[IO.File]::Open($Entry,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$p=[IO.Pipes.NamedPipeServerStream]::new($Name,[IO.Pipes.PipeDirection]::InOut);[Console]::WriteLine("READY");[Console]::Out.Flush();$p.WaitForConnection();[Console]::WriteLine('CONNECTED');[Console]::Out.Flush();[Console]::ReadLine()|Out-Null}finally{if($p){$p.Dispose()};if($f){$f.Dispose()};if($owned){$m.ReleaseMutex()};$m.Dispose()}`;
+const connectedAck="if($server.StandardOutput.ReadLine()-cne'CONNECTED'){throw 'ISOLATED_SERVER_NOT_CONNECTED'};";
 const managedFixture=activeFixture
  .replace('@(1..3|ForEach-Object','@(1..11|ForEach-Object')
  .replace("param($Name,$Entry);$f=[IO.File]::Open($Entry,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$p=[IO.Pipes.NamedPipeServerStream]::new($Name,[IO.Pipes.PipeDirection]::InOut);[Console]::WriteLine(\"READY\");[Console]::Out.Flush();$p.WaitForConnection();Start-Sleep -Seconds 120",managedServer.replaceAll("'","''"))
  .replace("$si.UseShellExecute=$false;","$si.Arguments+=' \"'+(Get-Business5244StartupMutexName)+'\"';$si.UseShellExecute=$false;")
  .replace('$si.RedirectStandardError=$true;','$si.RedirectStandardError=$true;$si.RedirectStandardInput=$true;')
  .replace('$script:control=$peer.OpenControlledShutdown();','$script:control=$peer.OpenControlledShutdown();$script:ReadPairExitObservation=$peer.OpenExitObservation();')
+ .replace("if($control.TargetPid-ne$server.Id)",connectedAck+"if($control.TargetPid-ne$server.Id)")
  .replace(' __BEFORE_HOLD__',` $script:RehearsalOnly=$true;$b6|Add-Member rehearsalOnly $true;$b6.owner|Add-Member recordBeforeSha256 '81862843a2595587771a8779b23a965b3139cbd8145680af52e4a663c7d2cc17'
  function Get-FileHash($LiteralPath){if($LiteralPath-ceq'C:\\Sirket\\ERP\\clean\\20261022\\runtime\\erp-processes.json'){return @{Hash=$b6.owner.recordBeforeSha256}};throw 'ISOLATED_FOREIGN_FILE_HASH'}
  __BEFORE_HOLD__`)
  .replace('if(!$server.HasExited){$server.Kill();[void]$server.WaitForExit(5000)};',"if(!$server.HasExited){$server.StandardInput.Close();if(!$server.WaitForExit(5000)){throw 'ISOLATED_COOPERATIVE_CLEANUP_FAILED'}};if(Get-Variable ReadPairExitObservation -Scope Script -ErrorAction SilentlyContinue){if($script:ReadPairExitObservation-is[IDisposable]){$script:ReadPairExitObservation.Dispose()}};if(Get-Variable ReadPairPreheldMutex -Scope Script -ErrorAction SilentlyContinue){if($script:ReadPairPreheldMutex){$script:ReadPairPreheldMutex.Dispose()}};");
+win('disposable managed server exposes the broken-pipe race when its client closes before barrier-delayed WaitForConnection',()=>{
+ // Reproduce the original fixture lifetime, not a production stop: the old
+ // client closed before the server had acknowledged WaitForConnection.
+ const delayed=managedFixture.replace(connectedAck,'').replace("$ErrorActionPreference=''Stop'';",'').replace('$peer.Dispose();$peer=$null', '$peer.Dispose();$peer=$null;$pipe.Dispose();$pipe=$null').replace('$p.WaitForConnection();',"while(![IO.File]::Exists($Entry+''.allowwait'')){[Threading.Thread]::Sleep(10)};$p.WaitForConnection();").replace('if(!$server.HasExited){$server.StandardInput.Close();',"if(!$server.HasExited){[IO.File]::WriteAllText(($active+'.allowwait'),'ready');$server.StandardInput.Close();");
+ assert.equal(activeRun(String.raw`
+ $denied=$false;try{$control.Validate()}catch{$denied=$true};if(!$denied-or!$server.HasExited){throw 'DISPOSABLE_PIPE_RACE_NOT_OBSERVED'};('PASS exit='+$server.ExitCode)
+ `,String.raw`
+ $script:skipAutomaticHold=$true
+ [IO.File]::WriteAllText(($active+'.allowwait'),'ready')
+ if(!$server.WaitForExit(5000)){throw 'DISPOSABLE_PIPE_RACE_SERVER_STILL_LIVE'}
+ $errorText=$server.StandardError.ReadToEnd();if($errorText-notmatch'(?i)(?:pipe.*broken|IOException|WaitForConnection)'){throw 'DISPOSABLE_PIPE_RACE_NOT_IO_FAILURE'}
+ `,delayed).startsWith('PASS exit=0'),true);
+});
 win('RehearsalOnly managed exit uses a genuine observer and the same contended mutex before normal finally and exclusive handoff',()=>{
  const answer=activeRun(String.raw`
  function Read-B6ReadPairManagedExitSignal{$server.StandardInput.Close();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne0){throw 'ISOLATED_MANAGED_EXIT_FAILED'};return 'MANAGED_EXIT_OBSERVED'}
@@ -606,4 +621,122 @@ win('WriterInstall managed exit retains the same mutex and twenty-four exclusive
  $h=Get-B6ReadPairActiveHandoff;if(!$control.CompletedStop-or!$server.HasExited-or$h.phase-cne'ExclusiveVerified'-or!$h.marker.Deleted-or$held.Count-ne24-or$result.stopCalls-ne0-or$result.managedExitRequests-ne1){throw 'WRITER_MANAGED_EXIT_BROKEN'}
  `,String.raw`$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:RehearsalOnly=$false;$script:CandidateInstall=$false;$script:WriterInstall=$true;$b6.rehearsalOnly=$false;$b6|Add-Member maintenancePurpose 'WriterProfileActivation'`,fixture);
  assert.match(answer,/"phase":"B6_MANAGED_EXIT_READY"/);assert.match(answer,/PASS$/);
+});
+win('WebOnlyRefreshInstall is an exact independent finite action and rejects every combined or other-scope flag',()=>{
+ assert.equal(run(". "+q(path.join(dir,'install-business-5244-readpair.ps1'))+" -Library -WebOnlyRefreshInstall -ScopeName TEST125-API-B6-WRITER-20261029;'PASS'"),'PASS');
+ for(const args of [['-WriterInstall'],['-CandidateInstall'],['-RehearsalOnly'],['-CurrentOnlySupersession'],['-InitializerCleanRecovery'],['-AfterLoaderRecovery'],['-ScopeName','TEST125-API-B6-ca620bac-20261028']]){
+  const base=['-NoProfile','-NonInteractive','-File',path.join(dir,'install-business-5244-readpair.ps1'),'-Library','-WebOnlyRefreshInstall',...(args[0]==='-ScopeName'?[]:['-ScopeName','TEST125-API-B6-WRITER-20261029']),...args];const r=cp.spawnSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),base,{encoding:'utf8',windowsHide:true,timeout:10000});assert.notEqual(r.status,0);assert.match(r.stderr,/FIXED_ACTION_REQUIRED/);
+ }
+});
+const noApiMutators=String.raw`
+$script:apiMutators=0
+function New-ErpBusinessSaleWriterProfileAdmission{$script:apiMutators++;throw 'FORBIDDEN_WRITER_FACTORY'}
+function New-ErpBusinessSaleNativeProfileAdmission{$script:apiMutators++;throw 'FORBIDDEN_NATIVE_FACTORY'}
+function New-ErpReadPairPreparedReleaseProof{$script:apiMutators++;throw 'FORBIDDEN_API_RELEASE'}
+function New-Test125ReadPairApiTransition{$script:apiMutators++;throw 'FORBIDDEN_API_TRANSITION'}
+function New-Test125ReadPairTransition{$script:apiMutators++;throw 'FORBIDDEN_API_TRANSITION'}
+function Invoke-Test125ReadPairApiTransition{$script:apiMutators++;throw 'FORBIDDEN_API_TRANSITION'}
+function Write-Test125ReadPairCas{$script:apiMutators++;throw 'FORBIDDEN_PROFILE_WRITE'}
+function New-Test125ReadPairTaskActionPlan{$script:apiMutators++;throw 'FORBIDDEN_TASK_PLAN'}
+function Set-Test125ReadPairTaskAction{$script:apiMutators++;throw 'FORBIDDEN_TASK_WRITE'}
+function Get-ReadPairExpectedHashes{$script:apiMutators++;throw 'FORBIDDEN_API_PROJECTION'}
+function Get-Test125BoundMaintenancePlan{$script:apiMutators++;throw 'FORBIDDEN_API_PLAN'}
+function Invoke-ErpBusinessSaleNativeRevision{$script:apiMutators++;throw 'FORBIDDEN_SQL'}
+function Set-ScheduledTask{$script:apiMutators++;throw 'FORBIDDEN_TASK_WRITE'}
+function Start-ScheduledTask{$script:apiMutators++;throw 'FORBIDDEN_API_RESTART'}
+function Stop-ScheduledTask{$script:apiMutators++;throw 'FORBIDDEN_API_STOP'}
+`;
+win('WebOnlyRefreshInstall plan binds existing web-only identity and refuses any API pair delta without an API admission',()=>{
+ assert.equal(run(noApiMutators+String.raw`
+ $script:WebOnlyRefreshInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:b6=[pscustomobject]@{maintenancePurpose='WebOnlyFrontendRefresh'}
+ $script:current=@{package='current';manifest=('a'*64);apiPackage='fixed-api';apiManifest=('b'*64);baseSource=('c'*40);node='fixed-node';nodeHash=('d'*64);profile='fixed-profile';runtime='fixed-runtime'};$script:next=$current.Clone();$next.package='candidate';$next.manifest='e'*64
+ function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'){throw 'SCOPE_CHANGED'};if($Mode-ceq'Current'){return $script:current.Clone()};return $script:next.Clone()}
+ $expected=Get-B6WebOnlyExpectedProjection;$identity=@($next.package,$next.manifest,$next.apiPackage,$next.apiManifest,$next.nodeHash,$next.profile)-join'|';if($expected.planHash-cne(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($identity)))){throw 'WEBONLY_PLAN_DIFFERS_FROM_EXISTING_OWNER'}
+ foreach($key in @('apiPackage','apiManifest','baseSource','node','nodeHash','profile','runtime')){$old=$next[$key];$next[$key]='changed';$denied=$false;try{Get-B6WebOnlyExpectedProjection|Out-Null}catch{$denied=$true};$next[$key]=$old;if(!$denied){throw 'API_PAIR_DELTA_ADMITTED'}}
+ if($apiMutators){throw 'API_MUTATOR_CALLED'};'PASS'`),'PASS');
+});
+win('WebOnlyRefreshInstall invokes the shared once-only sequence and never creates an API transition or replays lost ACK',()=>{
+ assert.equal(run(inert+noApiMutators+String.raw`
+ $script:WebOnlyRefreshInstall=$true;function Send-ReadPairSingleRetire{$calls.Add('retire');throw 'ISOLATED_ACK_LOST'}
+ $result=Invoke-ReadPairInstallSequence
+ if($result-cne'CandidateVerified'-or($calls-join'|')-cne'open|target|coldstop|start|ready|retire|ACK_UNCONFIRMED_READONLY_RECONCILIATION|readback|CandidateVerified|close'-or$apiMutators){throw 'WEBONLY_ORDER_OR_API_EFFECT'};'PASS'`),'PASS');
+});
+win('WebOnlyRefreshInstall healthy pre-retire Current recovery retains its own host without an API plan restart or profile write',()=>{
+ assert.equal(run(noApiMutators+String.raw`
+ $script:WebOnlyRefreshInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:before=@{inert=$true};$script:held=@();$script:created=@();$script:newResourceRows=@();$script:b6InitializationExitProcess=$null;$script:pins=@{apiPackage='unchanged'};$script:checks=[Collections.Generic.List[string]]::new()
+ $si=[Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'powershell.exe'),'-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 60"');$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$script:newHost=[Diagnostics.Process]::Start($si);$birth=$newHost.StartTime.ToUniversalTime().Ticks
+ function Assert-B6ReadPairEntryHandoffReady{$checks.Add('entries')};function Assert-B6ReadPairRecoveryOwner{$checks.Add('own-ref')};function Owner-Status{return @{ownerPid=$newHost.Id}}
+ function Assert-B6ReadPairCurrentRecoveryRecord($Status,[switch]$Router){if(!$Router-or$Status.ownerPid-ne$newHost.Id){throw 'FOREIGN_CURRENT'};$checks.Add('record')}
+ function Assert-B6WebOnlyApiBoundary{$checks.Add('api-unchanged')};function Invoke-RestMethod{return @{ok=$true}};function Assert-Business5244ApiHealth{$checks.Add('health')};function Assert-ReadPairProtection{$checks.Add('protection')};function Record-Phase($Phase){$checks.Add($Phase)}
+ try{Restore-ReadPairBeforeRetire -OldStopped $true;if($newHost.HasExited-or$apiMutators-or($checks-join'|')-cne'entries|own-ref|record|api-unchanged|health|protection|PRE_RETIRE_HEALTHY_CURRENT_RETAINED'){throw 'WEBONLY_CURRENT_NOT_RETAINED'}}finally{if(!$newHost.HasExited){if($newHost.StartTime.ToUniversalTime().Ticks-ne$birth){throw 'OWN_CHILD_CHANGED'};$newHost.Kill();$newHost.WaitForExit()};$newHost.Dispose()};'PASS'`),'PASS');
+});
+const webOnlyBoundaryFixture=String.raw`
+Set-StrictMode -Version Latest
+foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Microsoft.PowerShell.Core\Import-Module -Name ([IO.Path]::Combine($PSHOME,'Modules',$name,($name+'.psd1'))) -Scope Local -ErrorAction Stop}
+. __STARTUP__ -Library
+Add-Type -LiteralPath __PEER__
+$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(__QUIESCENCE__,[ref]$tokens,[ref]$errors)
+$kernel=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Initialize-Test125ApiKernel'},$false));if($kernel.Count-ne1){throw 'KERNEL_SOURCE_MISSING'};. ([scriptblock]::Create($kernel[0].Extent.Text));Initialize-Test125ApiKernel
+$si=[Diagnostics.ProcessStartInfo]::new((Join-Path $PSHOME 'powershell.exe'),'-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 60"');$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$child=[Diagnostics.Process]::Start($si);$fileBirth=$child.StartTime.ToUniversalTime().ToFileTimeUtc().ToString();$ticks=$child.StartTime.ToUniversalTime().Ticks
+$script:WebOnlyApiHandle=$null;try{
+$script:WebOnlyApiHandle=$null;$script:WebOnlyRefreshInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:taskXml='<Task>immutable</Task>';$script:sddl='fixed-task-security';$script:instance='fixed-instance';$script:engine=$PID
+$files=@(1..4|ForEach-Object{$p=Join-Path $PSScriptRoot ('keep-'+$_+'.json');[IO.File]::WriteAllText($p,'unchanged-'+$_);[pscustomobject]@{path=$p;sha256=(Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant()}})
+$taskCapture=[pscustomobject]@{schema='melisa-b6-task-capture.v1';readOnly=$true;taskPath='\Melisa-ERP-TEST-Canonical';instanceCount=1;enginePid=$PID;instanceGuid=$instance;xmlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($taskXml)));sddlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($sddl)));writes=0}
+$boundary=[pscustomobject]@{schema='melisa-b6-webonly-api-before.v1';readOnly=$true;executionAuthority=$false;apiPid=$child.Id;apiBirth=$fileBirth;apiParent=$PID;apiManifestSha256=('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946');taskCaptureSha256='075bb030c4fd26a82bf349e95cfcda17d425d8b7ebc08d43fde3d86e75e38fdf';taskWrites=0;apiRestarts=0;sqlWrites=0;files=$files;health=[pscustomobject]@{ok=$true;mode='erp';packageId='fixed-api';port=4144;sysadmin=0}}
+$script:b6=[pscustomobject]@{maintenancePurpose='WebOnlyFrontendRefresh';apiBoundary=$boundary;taskCapture=$taskCapture;owner=[pscustomobject]@{protectedSnapshot=[pscustomobject]@{listeners=@(foreach($address in @('127.0.0.1','192.168.1.46')){[pscustomobject]@{LocalPort=4144;LocalAddress=$address;OwningProcess=$child.Id}});processes=@([pscustomobject]@{pid=$child.Id;exe=(Join-Path $PSHOME 'powershell.exe')})}}}
+# Only the fixed target identity is translated in this copy. QueryOnlyOpen and
+# ValidateReadOnly still exercise real retained process handles, never a fake.
+$definition=(Get-Command Assert-B6WebOnlyApiBoundary).Definition.Replace('$b.apiPid-ne41436',('$b.apiPid-ne'+$child.Id)).Replace("'134377688108359820'",("'"+$fileBirth+"'")).Replace('$b.apiParent-ne13532',('$b.apiParent-ne'+$PID));. ([scriptblock]::Create('function Assert-B6WebOnlyApiBoundary {'+$definition+'}'))
+$script:apiCim=[pscustomobject]@{ProcessId=$child.Id;ParentProcessId=$PID;ExecutablePath=(Join-Path $PSHOME 'powershell.exe');CreationDate=$child.StartTime};$script:portPid=$child.Id;$script:listenerMissing=$false;$script:listenerExtra=$false;$script:apiOtherPort=$false;$script:taskCount=1;$script:health=$boundary.health|ConvertTo-Json|ConvertFrom-Json
+function Get-CimInstance($ClassName,$Filter){if($ClassName-cne'Win32_Process'-or$Filter-cne('ProcessId='+$child.Id)){throw 'QUERY_OUTSIDE_OWN_CHILD'};return $script:apiCim}
+function Child-Sid($Proc){return [Business5244RetirementPeer]::CurrentSid}
+function Get-NetTCPConnection($State){if($State-cne'Listen'){throw 'OTHER_QUERY'};$addresses=@('127.0.0.1','192.168.1.46');if($script:listenerMissing){$addresses=@('127.0.0.1')};if($script:listenerExtra){$addresses+=@('::1')};foreach($address in $addresses){[pscustomobject]@{LocalPort=4144;LocalAddress=$address;OwningProcess=$script:portPid}};if($script:apiOtherPort){[pscustomobject]@{LocalPort=9999;LocalAddress='127.0.0.1';OwningProcess=$script:portPid}}}
+function Get-Test125ReadPairTask{$t=[pscustomobject]@{Xml=$script:taskXml};$t|Add-Member ScriptMethod GetSecurityDescriptor {param($flags);return $script:sddl};$t|Add-Member ScriptMethod GetInstances {param($flags);$o=[pscustomobject]@{Count=$script:taskCount};$o|Add-Member ScriptMethod Item {param($n);return [pscustomobject]@{EnginePID=$script:engine;InstanceGuid=$script:instance}};return $o};return $t}
+function Invoke-RestMethod($Uri,$TimeoutSec){if($Uri-cne'http://127.0.0.1:4144/test-health'){throw 'OTHER_HTTP'};return $script:health}
+$script:WebOnlyApiHandle=[Test125ApiKernel]::QueryOnlyOpen($child.Id,$ticks)
+__BODY__
+}finally{if($script:WebOnlyApiHandle){$script:WebOnlyApiHandle.Dispose()};if(!$child.HasExited){if($child.StartTime.ToUniversalTime().Ticks-ne$ticks){throw 'OWN_CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()};'PASS'
+`.replace('__STARTUP__',q(path.join(dir,'business-5244-startup-exclusion.ps1'))).replace('__PEER__',q(path.join(dir,'business-5244-retirement-peer.cs'))).replace('__QUIESCENCE__',q(path.join(dir,'test125-bound-api-quiescence.ps1')));
+win('WebOnlyRefreshInstall actual query-only API handle accepts unchanged process files task and health; every drift blocks',()=>{
+ assert.equal(run(noApiMutators+webOnlyBoundaryFixture.replace('__BODY__',String.raw`
+ Assert-B6WebOnlyApiBoundary
+ foreach($case in @('birth','exe','parent','listener','listener-missing','listener-extra','api-other-port','file','task-xml','task-sddl','task-engine','task-instance','task-count','health')){
+  $saved=@{birth=$apiCim.CreationDate;exe=$apiCim.ExecutablePath;parent=$apiCim.ParentProcessId;port=$portPid;xml=$taskXml;sddl=$sddl;engine=$engine;instance=$instance;count=$taskCount;mode=$health.mode};$bytes=[IO.File]::ReadAllBytes($files[0].path)
+  switch($case){'birth'{$apiCim.CreationDate=$apiCim.CreationDate.AddSeconds(1)}'exe'{$apiCim.ExecutablePath='other.exe'}'parent'{$apiCim.ParentProcessId++}'listener'{$script:portPid++}'listener-missing'{$script:listenerMissing=$true}'listener-extra'{$script:listenerExtra=$true}'api-other-port'{$script:apiOtherPort=$true}'file'{[IO.File]::WriteAllText($files[0].path,'changed')}'task-xml'{$script:taskXml+='x'}'task-sddl'{$script:sddl+='x'}'task-engine'{$script:engine++}'task-instance'{$script:instance+='x'}'task-count'{$script:taskCount=0}'health'{$script:health.mode='other'}}
+  $denied=$false;try{Assert-B6WebOnlyApiBoundary}catch{$denied=$true};if(!$denied-or$apiMutators-or$child.HasExited){throw ('WEBONLY_BOUNDARY_ACCEPTED_'+$case)}
+  $apiCim.CreationDate=$saved.birth;$apiCim.ExecutablePath=$saved.exe;$apiCim.ParentProcessId=$saved.parent;$script:portPid=$saved.port;$script:listenerMissing=$false;$script:listenerExtra=$false;$script:apiOtherPort=$false;$script:taskXml=$saved.xml;$script:sddl=$saved.sddl;$script:engine=$saved.engine;$script:instance=$saved.instance;$script:taskCount=$saved.count;$script:health.mode=$saved.mode;[IO.File]::WriteAllBytes($files[0].path,$bytes)
+ }
+ $script:WebOnlyApiHandle.Dispose();$denied=$false;try{Assert-B6WebOnlyApiBoundary}catch{$denied=$true};if(!$denied-or$apiMutators){throw 'CLOSED_API_HANDLE_ACCEPTED'}
+ `)),'PASS');
+});
+win('WebOnlyRefreshInstall real preflight dispatch retains a query-only handle and package seal without API constructors',()=>{
+ assert.equal(run(noApiMutators+webOnlyBoundaryFixture.replace('__BODY__',String.raw`
+ Add-Type -LiteralPath __WEB_NATIVE__
+ $script:WebOnlyApiHandle.Dispose();Remove-Variable WebOnlyApiHandle -Scope Script
+ $script:payloadChecks=0;$script:pair=@{package='old-web';manifest=('a'*64);apiPackage='same-api';apiManifest=('b'*64);baseSource=('c'*40);node='same-node';nodeHash=('d'*64);profile='same-profile';runtime='same-runtime'}
+ function Get-Business5244FinitePairPins($ScopeName,$Mode){$p=$script:pair.Clone();if($Mode-ceq'Candidate'){$p.package='next-web';$p.manifest='e'*64};return $p}
+ function Assert-Business5244OwnedPackage($Pins,$Seal){$script:payloadChecks++;$Seal.Add($files[0].path,$files[0].sha256)}
+ try{Initialize-B6ReadPairControllerPreflight;if($apiMutators-or$payloadChecks-ne2-or!$script:WebOnlyApiHandle.QueryOnly){throw 'WEBONLY_PREFLIGHT_USED_API_ADMISSION'};$script:WebOnlyPackageSeal.Validate();[Test125ApiKernel]::ValidateReadOnly($script:WebOnlyApiHandle,$ticks)}finally{if(Get-Variable WebOnlyPackageSeal -Scope Script -ErrorAction SilentlyContinue){$script:WebOnlyPackageSeal.Dispose()}}
+ `.replace('__WEB_NATIVE__',q(path.join(dir,'business-5244-web-native.cs'))))),'PASS');
+});
+win('WebOnlyRefreshInstall normal managed exit proves same mutex and twenty-six unchanged leaves without API mutation',()=>{
+ const fixture=managedFixture.replace('@(1..11|ForEach-Object','@(1..19|ForEach-Object');
+ const answer=activeRun(noApiMutators+String.raw`
+ function Read-B6ReadPairManagedExitSignal{$server.StandardInput.Close();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne0){throw 'ISOLATED_WEBONLY_EXIT_FAILED'};return 'MANAGED_EXIT_OBSERVED'}
+ Invoke-B6ReadPairManagedOwnerExit;Complete-B6ReadPairActiveEntryHandoff
+ $h=Get-B6ReadPairActiveHandoff;if(!$control.CompletedStop-or$h.phase-cne'ExclusiveVerified'-or!$h.marker.Deleted-or$held.Count-ne26-or$result.stopCalls-ne0-or$result.managedExitRequests-ne1-or$apiMutators){throw 'WEBONLY_MANAGED_EXIT_BROKEN'}
+ `,String.raw`$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:RehearsalOnly=$false;$script:WebOnlyRefreshInstall=$true;$b6.rehearsalOnly=$false;$b6|Add-Member maintenancePurpose 'WebOnlyFrontendRefresh'`,fixture);
+ assert.match(answer,/"phase":"B6_MANAGED_EXIT_READY"/);assert.match(answer,/PASS$/);
+});
+win('WebOnlyRefreshInstall publication preserves all twenty-six historic leaves and exact active Writer router/core order',()=>{
+ const fixture=writerPublicationFixture.replace('$script:WriterInstall=$true;',"$script:WriterInstall=$false;$script:WebOnlyRefreshInstall=$true;").replace('50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65','e480d77c835f3c2170589b9fbafec6da78dd2a19624d486d8822ad7b930d3a09').replace('postExitExclusiveEntryCount=24','postExitExclusiveEntryCount=26');
+ assert.equal(run(fixture+noApiMutators+String.raw`
+ $b6|Add-Member maintenancePurpose 'WebOnlyFrontendRefresh';function Get-B6WebOnlyExpectedProjection{return @{planHash=('f'*64)}}
+ $router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2';$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2'
+ $b6.owner.predecessorEntryKind='ReadPairRouter';$b6.owner.entry=[pscustomobject]@{root=$router;leaf='start-business-5244-readpair-router.ps1';manifestSha256=('b'*64);sha256=('c'*64);postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false};$b6.owner|Add-Member router ([pscustomobject]@{root=$router;manifestSha256=('b'*64);entrySha256=('c'*64)});$b6.owner|Add-Member core ([pscustomobject]@{root=$core;manifestSha256=('d'*64);files=@([pscustomobject]@{path='run-current-owner.ps1';sha256=('e'*64);bytes=15})})
+ foreach($name in @('ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3','ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3','ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY','ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY','ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029','ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029','ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2','ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2')){$leaf=if($name.Contains('ROUTER')){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'};$b6.entryCapture.directEntries+=@([pscustomobject]@{path=('C:\Sirket\ERP\releases\'+$name+'\'+$leaf);sha256=$(if($name.EndsWith('-V2')){if($name.Contains('ROUTER')){'c'*64}else{'e'*64}}else{'a'*64})})}
+ Open-B6ReadPairPublication
+ if($heldPaths.Count-ne25-or$b6.entryCapture.directEntries.Count-ne20-or$heldPaths.Contains((Join-Path $router 'start-business-5244-readpair-router.ps1'))-or$heldPaths.Contains((Join-Path $core 'run-current-owner.ps1'))-or$phases.Count-ne1-or$apiMutators){throw 'WEBONLY_ENTRY_SCOPE_CHANGED'}
+ $argsText=Get-B6ReadPairOwnerArguments $router ('b'*64);if(!$argsText.EndsWith(' -ScopeName TEST125-API-B6-WRITER-20261029')){throw 'WRITER_PREDECESSOR_SCOPE_CHANGED'}
+ $heldPaths.Clear();$phases.Clear();$swap=$b6.entryCapture.directEntries[18];$b6.entryCapture.directEntries[18]=$b6.entryCapture.directEntries[19];$b6.entryCapture.directEntries[19]=$swap;$denied=$false;try{Open-B6ReadPairPublication}catch{if($_.Exception.Message-cne'B6_DIRECT_ENTRY_SCOPE_CHANGED'){throw};$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count-or$apiMutators){throw 'WEBONLY_WRONG_ORDER_ACCEPTED'};'PASS'`),'PASS');
 });

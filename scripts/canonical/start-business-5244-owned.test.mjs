@@ -259,3 +259,136 @@ win('readonly paired rollback manifest verification accepts the same digest case
  }
  'PASS'`),'PASS');
 });
+
+
+win('finite Web-only null-API dispatcher switches or rolls back only WEB with real owned Jobs and no API task profile or SQL mutator',()=>{
+ const text=fs.readFileSync(path.join(dir,'business-5244-maintenance-dispatch.test.mjs'),'utf8'),start=text.indexOf('const setup=String.raw`')+'const setup=String.raw`'.length,end=text.indexOf('\n`;\nconst helpers=',start);assert(start>0&&end>start);
+ let setup=text.slice(start,end).replace(/^function Get-Business5244MaintenancePlan.*$/m,'').replace(/^function Assert-Business5244MaintenancePlan.*$/m,'');
+ for(const [token,name]of Object.entries({__GATE__:'business-5244-startup-exclusion.ps1',__WEB__:'start-business-5244-web.ps1',__STATE__:'business-5244-retirement-state.ps1',__DISPATCH__:'business-5244-maintenance-dispatch.ps1',__NATIVE__:'business-5244-web-native.cs'}))setup=setup.replaceAll(token,path.join(dir,name).replaceAll("'","''"));
+ const projection=String.raw`
+ $script:apiMutators=0;$script:currentPins=(Get-Business5244WebPins).Clone();$currentPins.root='C:\fixture\current-writer';$currentPins.package='ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$currentPins.manifest='121020af80ef660c4b9a0872f31dd4c3306bff81346f66797a6806bf6b1a4189';$currentPins.frontendSource='1033566d594ad7c02b8469e5c9598541333cd500';$currentPins.apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';$currentPins.apiManifest=('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946');$script:nextPins=$currentPins.Clone();$nextPins.root='C:\fixture\new-workface';$nextPins.package='ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';$nextPins.manifest='5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6';$nextPins.frontendSource='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'
+ function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'){throw 'FIXTURE_WEB_ONLY_SCOPE'};if($Mode-ceq'Current'){return $currentPins.Clone()};if($Mode-ceq'Candidate'){return $nextPins.Clone()};throw 'FIXTURE_MODE'}
+ function Get-Business5244ReadPairPins{return $currentPins.Clone()}
+ function Assert-Business5244OwnedPackage($Pins){$expected=if($Pins.package-ceq$nextPins.package){$nextPins}else{$currentPins};foreach($key in $expected.Keys){if($Pins[$key]-cne$expected[$key]){throw 'FIXTURE_PACKAGE_OBSERVATION_DRIFT'}}}
+ function Assert-Business5244ReadyChild($Native,$Pins){$Native.Validate();if(!$Native.ChildAlive()){throw 'FIXTURE_CHILD_DEAD'}}
+ function Invoke-RestMethod($Uri,$TimeoutSec){if($Uri-cne'http://127.0.0.1:4144/test-health'){throw 'FIXTURE_FOREIGN_API_READ'};return @{ok=$true;environment='CANONICAL_TEST';mode='erp';port=4144;databaseName='MELISA_ERP_SIRKET_TEST_20260929_01';serverName='Semih\MELISADEV';loginName='melisa_sirket_sales_test_20260929_01';databaseUser='melisa_sirket_sales_test_20260929_01';sysadmin=0;databaseControl=0;liveDatabaseAccess=0;sourceCommit=$currentPins.baseSource;packageId=$currentPins.apiPackage;businessWorkfaceId=$currentPins.profile;normalSessionUserId=17;persistentNormalSession=$true;businessSessionSignerDomain='dedicated-business-key-v1';actualT1=$false;externalOperations=$false;automaticJobs=$false}}
+ function Get-FileHash($LiteralPath){if($LiteralPath-ceq(Join-Path $currentPins.root 'release-manifest.json')){return @{Hash=$currentPins.manifest}};if([IO.Path]::GetFullPath($LiteralPath).StartsWith($env:TEMP+'\',[StringComparison]::OrdinalIgnoreCase)){return Microsoft.PowerShell.Utility\Get-FileHash $LiteralPath};throw 'FIXTURE_HASH_OUTSIDE_SCOPE'}
+ foreach($name in @('New-Test125ReadPairTransition','Invoke-Test125ReadPairApiTransition','New-ErpBusinessSaleWriterProfileAdmission','Invoke-ErpBusinessSaleNativeRevision','Set-ScheduledTask','Start-ScheduledTask','Stop-ScheduledTask','Write-Test125ReadPairCas','Invoke-Sqlcmd')){Set-Item ('function:'+ $name) { $script:apiMutators++;throw 'WEB_ONLY_MUTATOR_CALLED' }}
+ `;
+ setup=setup.replace('$lease=Enter-Business5244StartupLease',projection+'\n$lease=Enter-Business5244StartupLease').replace('Register-Business5244OwnedRetirement $lease $native $pins;','Register-Business5244OwnedRetirement $lease $native $pins -ScopeName TEST125-API-B6-WRITER-20261029;');
+ for(const scenario of ['Success','StartFail']){
+  const body=load+'\n'+setup+`\n$script:scenario='${scenario}';try{`+String.raw`
+   $result=Invoke-Business5244OwnerMaintenance $state $channel $script:request
+   $mode=if($script:scenario-ceq'Success'){'Candidate'}else{'Rollback'}
+   if($result.mode-cne$mode-or$apiMutators-or$r.dispatch.apiTransition-or!$r.native.ChildAlive()-or$counts.retire-ne1){throw 'WEB_ONLY_NULL_API_EFFECT'}
+   $saved=$counts.Clone();$again=Invoke-Business5244OwnerMaintenance $state $channel $script:request;if(!$again.replayed-or$apiMutators){throw 'WEB_ONLY_REPLAY_MUTATED'};foreach($key in $saved.Keys){if($counts[$key]-ne$saved[$key]){throw 'WEB_ONLY_REPLAY_EXTRA_EFFECT'}}
+  }finally{foreach($n in @($native,$r.native,$r.dispatch.candidateNative,$r.dispatch.rollbackNative)){if($n){$n.Dispose()}};if($r.records){$r.records.Dispose()};if($r.pending){$r.pending.Dispose()};$records.Dispose();$pending.Dispose();Exit-Business5244StartupLease $lease};'PASS'`;
+  assert.match(run(body),/PASS$/);
+ }
+});
+
+win('Web-only supervisor rejects API preparation, another scope and direct Candidate startup before acquiring any lease',()=>{
+ assert.equal(run(load+String.raw`function Test-Business5244WriterWebOnlyGeneration{return $true};$script:touches=0;function Enter-Business5244StartupLease{$script:touches++;throw 'UNEXPECTED_OWNER_LEASE'};foreach($kind in @('prepare','scope','candidate')){$denied=$false;try{if($kind-ceq'prepare'){Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-WRITER-20261029' -PrepareReadPair}elseif($kind-ceq'scope'){Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName 'TEST125-API-B6-ca620bac-20261028'}else{Start-Business5244OwnedSupervisor -InitialSlot ReadPair -ScopeName 'TEST125-API-B6-WRITER-20261029'}}catch{if($_.Exception.Message-cne'OWNED_WEB_ONLY_API_PREPARATION_FORBIDDEN'){throw};$denied=$true};if(!$denied-or$touches){throw 'WEB_ONLY_CAPABILITY_OR_LEASE_CREATED'}};'PASS'`),'PASS');
+});
+
+
+const webOnlyPreparedFixture=initRecoveryFixture.replaceAll('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029').replace("$pins=Get-Business5244FinitePairPins -ScopeName",String.raw`
+function Test-Business5244WriterWebOnlyGeneration{return $true}
+function Get-Business5244WebOnlyEntryMode{return 'Maintenance'}
+$script:apiMutators=0;$script:payloadVerifications=0
+foreach($name in @('New-Test125ReadPairTransition','Prepare-Test125ReadPairRequestAdmission','Assert-Test125ReadPairTransition','Invoke-Test125ReadPairApiTransition','New-ErpBusinessSaleWriterProfileAdmission','Invoke-ErpBusinessSaleNativeRevision','Set-ScheduledTask','Start-ScheduledTask','Stop-ScheduledTask','Write-Test125ReadPairCas','Invoke-Sqlcmd')){Set-Item ('function:'+ $name) {$script:apiMutators++;throw 'WEB_ONLY_API_MUTATOR_OR_ADMISSION_CALLED'}}
+$script:fixtureCurrent=(Get-Business5244WebPins).Clone();$fixtureCurrent.root=Join-Path $env:TEMP 'current-payload';$fixtureCurrent.package='ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$fixtureCurrent.frontendSource='1033566d594ad7c02b8469e5c9598541333cd500';$fixtureCurrent.apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';$fixtureCurrent.apiManifest=('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946');$fixtureCurrent.node=Join-Path $PSHOME 'powershell.exe';$fixtureCurrent.nodeHash=(Get-FileHash $fixtureCurrent.node).Hash
+$script:fixtureNext=$fixtureCurrent.Clone();$fixtureNext.root=Join-Path $env:TEMP 'candidate-payload';$fixtureNext.package='ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';$fixtureNext.frontendSource='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'
+foreach($p in @($fixtureCurrent,$fixtureNext)){
+ [void][IO.Directory]::CreateDirectory($p.root);[IO.File]::WriteAllText((Join-Path $p.root 'payload.js'),'own temporary package '+$p.package)
+ $m=@{kind='ERP_BUSINESS_WORKFACE_WEB_CANDIDATE';packageId=$p.package;database='MELISA_ERP_SIRKET_TEST_20260929_01';sourceCommit=$p.frontendSource;businessWorkfaceId=$p.profile;backendPackageId=$p.apiPackage;backendManifestSha256=$p.apiManifest;actualT1=$false;externalOperations=$false;businessSessionSignerDomain='dedicated-business-key-v1';webHostSourceCommit=$p.frontendSource;backendSourceCommit=$p.baseSource;businessSaleCandidate=@{kind='ADMITTED_B6_WRITER_UI';sourceCommit='1033566d594ad7c02b8469e5c9598541333cd500';recordingEnabled=$true};files=@(@{path='payload.js';sha256=(Get-FileHash (Join-Path $p.root 'payload.js')).Hash})}
+ [IO.File]::WriteAllText((Join-Path $p.root 'release-manifest.json'),($m|ConvertTo-Json -Depth 12));$p.manifest=(Get-FileHash (Join-Path $p.root 'release-manifest.json')).Hash.ToLowerInvariant()
+}
+function Get-Business5244WriterWebOnlyPins($Mode){if($Mode-ceq'Current'){return $fixtureCurrent.Clone()};if($Mode-ceq'Candidate'){return $fixtureNext.Clone()};throw 'FIXTURE_WEB_ONLY_MODE'}
+function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'){throw 'FIXTURE_WEB_ONLY_SCOPE'};return Get-Business5244WriterWebOnlyPins $Mode}
+function Invoke-RestMethod($Uri,$TimeoutSec){if($Uri-cne'http://127.0.0.1:4144/test-health'){throw 'FIXTURE_FOREIGN_HEALTH'};return @{ok=$true;environment='CANONICAL_TEST';mode='erp';port=4144;databaseName='MELISA_ERP_SIRKET_TEST_20260929_01';serverName='Semih\MELISADEV';loginName='melisa_sirket_sales_test_20260929_01';databaseUser='melisa_sirket_sales_test_20260929_01';sysadmin=0;databaseControl=0;liveDatabaseAccess=0;sourceCommit=$fixtureCurrent.baseSource;packageId=$fixtureCurrent.apiPackage;businessWorkfaceId=$fixtureCurrent.profile;normalSessionUserId=17;persistentNormalSession=$true;businessSessionSignerDomain='dedicated-business-key-v1';actualT1=$false;externalOperations=$false;automaticJobs=$false}}
+$originalOwnedPackage=[scriptblock]::Create((Get-Command Assert-Business5244OwnedPackage).Definition)
+function Assert-Business5244OwnedPackage($Pins,$Seal=$null){$script:payloadVerifications++; & $originalOwnedPackage $Pins $Seal}
+$pins=Get-Business5244FinitePairPins -ScopeName`)+String.raw`
+$preparedBody=(Get-Command Prepare-Business5244PairedMaintenance).Definition.Replace('C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json',$script:initRecords)
+. ([scriptblock]::Create('function Prepare-Business5244PairedMaintenance {'+$preparedBody+'}'))
+`;
+win('Web-only preparation seals both payloads before nonce and the request only validates exact State native lease and plan bound handles',()=>{
+ assert.equal(run(load+webOnlyPreparedFixture+String.raw`
+ $lease=Enter-Business5244StartupLease -Kind Owner;$native=New-Business5244PinnedChild $pins $lease;$state=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName 'TEST125-API-B6-WRITER-20261029';$other=$null;$otherNative=$null
+ try{
+  Publish-Business5244CurrentRecord $state|Out-Null
+  $emitted=@(Prepare-Business5244PairedMaintenance $state $null);if($emitted.Count){throw 'PREPARED_NULL_API_PIPELINE_OUTPUT'}
+  $r=Get-Business5244RetirementState $state;$p=$r.preparedPair;$plan=Get-Business5244MaintenancePlan $state
+  if($payloadVerifications-ne2-or$apiMutators-or$p.apiTransition-or$p.preflightMilliseconds-ge10000-or![object]::ReferenceEquals($p.stateToken,$state)-or![object]::ReferenceEquals($p.native,$native)-or![object]::ReferenceEquals($p.lease,$lease)){throw 'WEB_ONLY_PREPARATION_NOT_EXACT'}
+  $denied=$false;try{[IO.File]::WriteAllText((Join-Path $fixtureNext.root 'payload.js'),'drift')}catch{$denied=$true};if(!$denied){throw 'PREPARED_PAYLOAD_NOT_HELD'}
+  function Assert-Business5244OwnedPackage{$script:payloadVerifications++;throw 'REQUEST_FULL_PAYLOAD_SCAN'}
+  Assert-Business5244MaintenancePlan $plan $state $null;if($payloadVerifications-ne2-or$apiMutators){throw 'REQUEST_REHASH_OR_API_ADMISSION'}
+  foreach($kind in @('missing','plan','native','state','lease','api','generation','closed')){
+   $badHash=$p.planHash;$inputApi=$null
+   switch($kind){missing{$r.preparedPair=$null}plan{$badHash='0'*64}native{$otherNative=New-Business5244PinnedChild $pins $lease;$r.native=$otherNative}state{$other=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName 'TEST125-API-B6-WRITER-20261029';$otherRecord=Get-Business5244RetirementState $other;$otherRecord.preparedPair=$p}lease{$p.lease=[pscustomobject]@{fake='lease'}}api{$inputApi=[pscustomobject]@{fake='api'}}generation{function Test-Business5244WriterWebOnlyGeneration{return $false}}closed{$p.seal.Dispose()}}
+   $denied=$false;try{Assert-Business5244PreparedPair $(if($kind-ceq'state'){$other}else{$state}) $inputApi $badHash}catch{$denied=$true}
+   if(!$denied-or$apiMutators){throw 'PREPARED_FOREIGN_OR_CLOSED_ACCEPTED'};$r.preparedPair=$p;$r.native=$native;$p.lease=$lease;function Test-Business5244WriterWebOnlyGeneration{return $true}
+   if($otherNative){$otherNative.Dispose();$otherNative=$null}
+  }
+ }finally{Close-Business5244RetirementState $state;if($other){Close-Business5244RetirementState $other};$native.Dispose();Exit-Business5244StartupLease $lease};'PASS'
+ `),'PASS');
+});
+for(const failure of ['channel','budget'])win(`Web-only ${failure} failure after bootstrap uses the retained authentic seal for own inverse and verified exit73`,()=>{
+ assert.equal(run(load+webOnlyPreparedFixture+`$failureMode='${failure}';`+String.raw`
+ if($failureMode-ceq'budget'){$recordAssert=[scriptblock]::Create((Get-Command Assert-Business5244RetirementRecord).Definition);function Assert-Business5244RetirementRecord($State,$Records){$b=& $recordAssert $State $Records;Start-Sleep -Milliseconds 5100;return ,$b}}
+ $preheld=[Threading.Mutex]::new($false,(Get-Business5244StartupMutexName))
+ $failure=$null;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-WRITER-20261029' -InitialSlot Current|Out-Null}catch{$failure=$_}
+ if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73){throw ('WEB_ONLY_NO_VERIFIED_INVERSE '+(Get-InitFixtureFailureDiagnostic $failure))}
+ $r=$script:Business5244Retirements[$script:Business5244Retirements.Count-1]
+ if($apiMutators-or!$initNative.RetirementConfirmed-or!(Get-Business5244StartupRecord $ownedLease).closed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($initRecords)))-cne$initHash-or(Test-Path $initPending)-or!$r.currentBootstrap.inverse-or$r.currentBootstrap.inverse.phase-cne'Archived'){throw 'WEB_ONLY_INIT_INVERSE_INCOMPLETE'}
+ $r.preparedPair.seal.Dispose();$rows=ConvertFrom-Business5244RecordBytes ([IO.File]::ReadAllBytes($initRecords));if(@($rows|Where-Object{$_.port-eq5244-and$_.pid-eq$initNative.ChildPid}).Count){throw 'WEB_ONLY_LEFT_DEAD_CREATED_CHILD_RECORD'}
+ $reacquired=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $reacquired
+ # The fallback Current wrapper must work even when Candidate is unreadable.
+ [IO.File]::Delete((Join-Path $fixtureNext.root 'payload.js'));$verifiedReads=$payloadVerifications
+ function Get-Business5244WebOnlyEntryMode{return 'CurrentRecovery'}
+ $script:recoveryChannel=[pscustomobject]@{fixture='current-only'};$script:retireRequest=[pscustomobject]@{operation='retire';requestId='own-no-preparation'};$script:receiveCount=0;$script:recoveryReady=$false;$script:rejectedWithoutStop=$false
+ function Open-Business5244RetirementChannel($OwnerLease){Assert-Business5244StartupLease $OwnerLease -Kind Owner;return $script:recoveryChannel}
+ function Close-Business5244RetirementChannel($Channel){if(![object]::ReferenceEquals($Channel,$script:recoveryChannel)){throw 'FOREIGN_RECOVERY_CHANNEL'}}
+ function Assert-Business5244RetirementRequest($Channel,$Request){if(![object]::ReferenceEquals($Channel,$script:recoveryChannel)-or![object]::ReferenceEquals($Request,$script:retireRequest)){throw 'FOREIGN_RECOVERY_REQUEST'}}
+ function Complete-Business5244RetirementRequest($Channel,$Request,$Reply,$Snapshot){if($Reply-cne'Rejected'-or$Snapshot.phase-cne'Running'){throw 'UNPREPARED_RECOVERY_RETIRED'};$script:rejectedWithoutStop=$true}
+ function Receive-Business5244RetirementRequest($Channel){
+  $r=$script:Business5244Retirements[$script:Business5244Retirements.Count-1]
+  if(!$r.native.ChildAlive()-or$r.phase-cne'Running'-or$r.initializing-or$r.ContainsKey('preparedPair')-or$apiMutators-or$payloadVerifications-ne$verifiedReads){throw 'RECOVERY_CURRENT_NOT_INDEPENDENT'}
+  $allRows=ConvertFrom-Business5244RecordBytes ([IO.File]::ReadAllBytes($initRecords));$row=@($allRows|Where-Object{$_.port-eq5244})
+  if($row.Count-ne1-or$row[0].pid-ne$r.native.ChildPid-or$row[0].root-cne$fixtureCurrent.root){throw 'RECOVERY_CURRENT_RECORD_NOT_LIVE'}
+  Assert-Business5244StartupLease $r.lease -Kind Owner;$script:recoveryReady=$true
+  $script:receiveCount++;if($receiveCount-eq1){return $script:retireRequest};if(!$rejectedWithoutStop-or$r.dispatch.phase-cne'PreflightFailed'-or$r.dispatch.candidateNative-or$r.dispatch.rollbackNative){throw 'RECOVERY_CURRENT_ACCEPTED_UNPREPARED_RETIRE'};throw 'ISOLATED_CURRENT_RECOVERY_OBSERVED'
+ }
+ $observed=$null;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-WRITER-20261029' -InitialSlot Current|Out-Null}catch{$observed=$_}
+ if(!$observed-or$observed.Exception.Message-cne'ISOLATED_CURRENT_RECOVERY_OBSERVED'-or!$recoveryReady-or!$rejectedWithoutStop-or$apiMutators-or$payloadVerifications-ne$verifiedReads){throw ('WEB_ONLY_CURRENT_RESTART_FAILED '+(Get-InitFixtureFailureDiagnostic $observed))}
+ $reacquired=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $reacquired;$preheld.Dispose()
+ 'PASS'
+ `,{timeout:35000}),'PASS');
+});
+
+win('Web-only host entry selection admits only the one exact router or Current wrapper and rejects command duplicate and direct helper modes',()=>{
+ assert.equal(run(load+String.raw`
+ $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('[Environment]::GetCommandLineArgs()','$script:entryArguments')
+ . ([scriptblock]::Create('function Get-Business5244WebOnlyEntryMode {'+$definition+'}'))
+ $router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029\start-business-5244-readpair-router.ps1';$current='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\run-current-owner.ps1'
+ foreach($kind in @('router','current','unknown','duplicate','command','helper','lowerFile')){
+  $script:entryArguments=@('powershell.exe','-NoProfile','-NonInteractive','-File',$(if($kind-ceq'current'){$current}else{$router}),'-ManifestSha256',('a'*64))
+  switch($kind){unknown{$entryArguments[4]='C:\foreign.ps1'}duplicate{$entryArguments+=@('-File',$current)}command{$entryArguments+=@('-Command','ignored')}helper{$entryArguments[4]='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\start-business-5244-owned.ps1'}lowerFile{$entryArguments[3]='-file'}}
+  $denied=$false;$answer=$null;try{$answer=Get-Business5244WebOnlyEntryMode}catch{if($_.Exception.Message-cne'OWNED_WEB_ONLY_FIXED_ENTRY_REQUIRED'){throw};$denied=$true}
+  if($kind-ceq'router'){if($denied-or$answer-cne'Maintenance'){throw 'ROUTER_ENTRY_LOST'}}elseif($kind-ceq'current'){if($denied-or$answer-cne'CurrentRecovery'){throw 'CURRENT_ENTRY_LOST'}}elseif(!$denied){throw 'UNKNOWN_WEB_ONLY_HOST_ACCEPTED'}
+ }
+ 'PASS'`),'PASS');
+});
+
+win('Web-only entry predicate observes real PS5 File host arguments for the two disposable wrapper paths',()=>{
+ assert.equal(run(load+String.raw`
+ $router=Join-Path $env:TEMP 'router-entry.ps1';$current=Join-Path $env:TEMP 'current-entry.ps1'
+ $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029\start-business-5244-readpair-router.ps1',$router).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\run-current-owner.ps1',$current)
+ foreach($entry in @($router,$current)){[IO.File]::WriteAllText($entry,('function Get-Business5244WebOnlyEntryMode {'+$definition+'};Get-Business5244WebOnlyEntryMode'))}
+ foreach($entry in @($router,$current)){
+  $si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -WindowStyle Hidden -File "'+$entry+'" -ManifestSha256 '+('a'*64)+$(if($entry-ceq$router){' -ScopeName TEST125-API-B6-WRITER-20261029'}else{''});$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$si.RedirectStandardError=$true
+  $child=[Diagnostics.Process]::Start($si);try{$answer=$child.StandardOutput.ReadToEnd().Trim();$errorText=$child.StandardError.ReadToEnd();if(!$child.WaitForExit(5000)-or$child.ExitCode-ne0-or$errorText-or$answer-cne$(if($entry-ceq$router){'Maintenance'}else{'CurrentRecovery'})){throw 'ACTUAL_WRAPPER_ARGV_REJECTED'}}finally{$child.Dispose()}
+ }
+ 'PASS'`),'PASS');
+});
