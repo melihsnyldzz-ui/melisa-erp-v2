@@ -168,7 +168,8 @@ function predecessor(){
  return {inputs,capture};
 }
 function predecessorIdentity(){return {captureSha256:INPUTS['current-read2b-owner-capture.json'],recordBeforeSha256:INPUTS['current-erp-processes.before.json'],predecessorEntryKind:'ReadPairRouter',entry:{root:OLD_ROUTER,leaf:'start-business-5244-readpair-router.ps1',sha256:OLD_ROUTER_ENTRY_HASH,manifestSha256:OLD_ROUTER_HASH},routerRoot:OLD_ROUTER,routerManifestSha256:OLD_ROUTER_HASH,routerEntrySha256:OLD_ROUTER_ENTRY_HASH,coreRoot:OLD_CORE,coreManifestSha256:OLD_CORE_HASH};}
-function currentSupersessionHistories(){
+function currentSupersessionHistories(deferOwnedEntries=false){
+ if(typeof deferOwnedEntries!=='boolean')fail('B6_OWNER_FIXED_ACTION_REQUIRED');
  const generations=[
   {root:HISTORY_CORE,sha:HISTORY_CORE_HASH,router:HISTORY_ROUTER,routerSha:HISTORY_ROUTER_HASH,entrySha:HISTORY_ROUTER_ENTRY_HASH,currentSha:HISTORY_CURRENT_ENTRY_HASH,legacy:true},
   {root:RECOVERY_CORE,sha:RECOVERY_CORE_HASH,source:RECOVERY_SOURCE,router:RECOVERY_ROUTER,routerSha:RECOVERY_ROUTER_HASH,entrySha:RECOVERY_ROUTER_ENTRY_HASH,currentSha:RECOVERY_ENTRY_HASH},
@@ -180,16 +181,17 @@ function currentSupersessionHistories(){
  for(const g of generations){
   const names=[...BUSINESS_SALE_OWNER_SOURCE_FILES.filter(n=>!g.legacy||n!=='canonical-business-sale-maintenance.ps1'),'run-current-owner.ps1'].sort(),core=json(pinned(path.join(g.root,'owner-manifest.json'),g.sha));
   if(core.kind!=='BUSINESS5244_FRESH_OWNER_BUNDLE'||!Array.isArray(core.files)||core.files.map(f=>f.path).sort().join('|')!==names.join('|')||g.source&&(core.finiteScope!==SCOPE||core.sourceCommit!==g.source||core.actualT1!==false||core.externalOperations!==false))fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
-  for(const f of core.files){if(typeof f.path!=='string'||/[\\/]/.test(f.path)||!hex(f.sha256)||!Number.isSafeInteger(f.bytes)||f.bytes<1||pinned(path.join(g.root,f.path),f.sha256).length!==f.bytes)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');}
+  for(const f of core.files){if(typeof f.path!=='string'||/[\\/]/.test(f.path)||!hex(f.sha256)||!Number.isSafeInteger(f.bytes)||f.bytes<1||(!deferOwnedEntries||f.path!=='run-current-owner.ps1')&&pinned(path.join(g.root,f.path),f.sha256).length!==f.bytes)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');}
   if(core.files.find(f=>f.path==='run-current-owner.ps1').sha256!==g.currentSha)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
   const router=json(pinned(path.join(g.router,'owner-manifest.json'),g.routerSha));
   if(router.coreRoot!==g.root||router.coreManifestSha256!==g.sha||router.entry!=='start-business-5244-readpair-router.ps1'||router.entrySha256!==g.entrySha)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
-  pinned(path.join(g.router,router.entry),g.entrySha);
+  if(!deferOwnedEntries)pinned(path.join(g.router,router.entry),g.entrySha);
   directEntries.push({path:path.join(g.router,router.entry),sha256:g.entrySha},{path:path.join(g.root,'run-current-owner.ps1'),sha256:g.currentSha});
  }
  return directEntries;
 }
-function currentSupersessionCase(){
+function currentSupersessionCase(deferOwnedEntries=false){
+ if(typeof deferOwnedEntries!=='boolean')fail('B6_OWNER_FIXED_ACTION_REQUIRED');
  if(Object.values(CURRENT_SUPERSESSION_INPUTS).some(v=>!hex(v)))fail('B6_CURRENT_SUPERSESSION_CASE_NOT_PREPARED');
  const inputs=new Map(Object.entries(CURRENT_SUPERSESSION_INPUTS).map(([name,sha])=>[name,pinned(path.join(CURRENT_SUPERSESSION_PRIVATE,name),sha)]));
  const capture=json(inputs.get('supersession-fixed-case.json')),pending=json(inputs.get('oldpending.before.bin')),record=inputs.get('oldrecord.before.json'),entries=json(inputs.get('current-entry-hold-capture.json')),boundary=json(inputs.get('protected-boundary.json'));
@@ -197,7 +199,7 @@ function currentSupersessionCase(){
  if(capture.target?.pid!==48212||capture.target.birth!=='134377121934062288'||capture.target.exe!==String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`||capture.target.entryPath!==path.join(ROUTER,'start-business-5244-readpair-router.ps1')||capture.target.argvSha256!=='182a8015aecc2575e4d3088231bc4b2295f4f5087ec0741d3878fd1d43f6336f'||typeof capture.target.sid!=='string'||!/^S-1-5-21-\d+-\d+-\d+-\d+$/.test(capture.target.sid))fail('B6_CURRENT_SUPERSESSION_TARGET_REJECTED');
  const active=capture.active;
  if(active?.coreRoot!==CORE||active.coreManifestSha256!==SQLCOLLATION_CORE_HASH||active.routerRoot!==ROUTER||active.routerManifestSha256!==SQLCOLLATION_ROUTER_HASH||active.routerEntrySha256!==SQLCOLLATION_ROUTER_ENTRY_HASH||active.coreEntrySha256!==SQLCOLLATION_CURRENT_HASH||active.coreSource!==SQLCOLLATION_SOURCE)fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
- const directEntries=currentSupersessionHistories(),core=json(pinned(path.join(CORE,'owner-manifest.json'),SQLCOLLATION_CORE_HASH));
+ const directEntries=currentSupersessionHistories(deferOwnedEntries),core=json(pinned(path.join(CORE,'owner-manifest.json'),SQLCOLLATION_CORE_HASH));
  if(JSON.stringify(active.coreFiles)!==JSON.stringify(core.files))fail('B6_CURRENT_SUPERSESSION_HISTORY_CHANGED');
  const pendingHash=CURRENT_SUPERSESSION_INPUTS['oldpending.before.bin'],recordHash=CURRENT_SUPERSESSION_INPUTS['oldrecord.before.json'];
  if(pending.schema!=='business-5244-retirement-before.v1'||pending.operationId!=='0cfa751c63644554a4faccd1f1e8d7c6'||pending.ownerPid!==capture.target.pid||pending.ownerBirth!==capture.target.birth||pending.childPid!==47092||pending.childBirth!=='134377122629606295'||pending.beforeSha256!==recordHash||typeof pending.beforeBase64!=='string'||!Buffer.from(pending.beforeBase64,'base64').equals(record)||Buffer.from(pending.beforeBase64,'base64').toString('base64')!==pending.beforeBase64)fail('B6_CURRENT_SUPERSESSION_PENDING_REJECTED');
@@ -210,13 +212,17 @@ function currentSupersessionCase(){
  if(boundary.schema!=='melisa-5244-current-supersession-boundary.v1'||boundary.readOnly!==true||boundary.executionAuthority!==false||boundary.caseSha256!==CURRENT_SUPERSESSION_INPUTS['supersession-fixed-case.json']||boundary.writes!==0||boundary.serviceCalls!==0||boundary.sqlCalls!==0||boundary.task?.name!=='Melisa-ERP-TEST-Canonical'||boundary.task.path!=='\\'||boundary.task.xmlSha256!=='e959af0b36ea9d2bd0fabdd6371174c4bd406258e64dc904e38833f79820d99a'||boundary.task.sddlSha256!=='cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4'||!Array.isArray(boundary.processes)||boundary.processes.length!==4||boundary.processes.some((p,n)=>p.pid!==capture.protectedProcesses[n].OwningProcess||typeof p.birth!=='string'||!/^\d{18}$/.test(p.birth)||!Number.isSafeInteger(p.parent)||p.parent<=0||![String.raw`C:\Sirket\ERP\tools\node-v24.19.0\node.exe`,String.raw`C:\Program Files\nodejs\node.exe`].includes(p.exe)||!hex(p.argvSha256)))fail('B6_CURRENT_SUPERSESSION_BOUNDARY_REJECTED');
  const runtime=String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027`,legacy=['start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'].map(n=>path.join(runtime,n)).concat(String.raw`C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1`);
  if(capture.entryCaptureSha256!==CURRENT_SUPERSESSION_INPUTS['current-entry-hold-capture.json']||entries.schema!=='melisa-b6-current-entry-hold-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.ownerCaptureSha256!==null||entries.entries?.length!==6||entries.directEntries?.length!==10||entries.entries.some((e,n)=>e.path!==legacy[n]||e.afterEqualsBefore!==true||!hex(e.beforeSha256))||entries.directEntries.some((e,n)=>e.path!==directEntries[n].path||e.sha256!==directEntries[n].sha256)||entries.gate?.path!==path.join(runtime,'business-5244-startup-exclusion-ec316a63.ps1')||entries.gate.sha256!=='a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0)fail('B6_CURRENT_SUPERSESSION_ENTRY_REJECTED');
- for(const e of entries.entries)pinned(e.path,e.beforeSha256);pinned(entries.gate.path,entries.gate.sha256);
+ if(!deferOwnedEntries)for(const e of entries.entries)pinned(e.path,e.beforeSha256);pinned(entries.gate.path,entries.gate.sha256);
  return {inputs,capture};
 }
+// A passive preparation may defer only the existing five core entry leaves,
+// five router entry leaves and six legacy launchers held by the initializer.
+// It never substitutes their bytes or converts captured hashes into admission.
+function initializerPassiveValidation(){return {runtimeValidationComplete:false,originalContextAssertHeldRequired:true,postExitExclusiveEntryCount:17,deferredEntryCount:16};}
 // These immutable captures describe a single failed initializer. They never
 // establish live pending-file access, native exit, mutex ownership or Undo.
 function initializerCleanCase(){
- const previous=currentSupersessionCase(),g=currentBundleGeneration(true),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ const previous=currentSupersessionCase(true),g=currentBundleGeneration(true),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
  const inputs=new Map(Object.entries(g.inputs).map(([name,sha])=>[name,pinned(path.join(g.privateRoot,name),sha)]));
  const capture=json(inputs.get(g.caseLeaf)),pending=json(inputs.get('initializer.pending.before.json')),record=inputs.get('records.before.json'),entries=json(inputs.get('entry-hold-capture.json')),boundary=json(inputs.get('protected-boundary.json'));
  if(capture.schema!=='melisa-5244-current-initializer-clean-case.v1'||capture.readOnly!==true||capture.executionAuthority!==false||capture.nativeObservationRequired!==true||capture.preExitSameMutexRequired!==true||capture.serviceCalls!==0||capture.sqlWrites!==0||capture.stopCalls!==0||capture.recordWrites!==0)fail('B6_INITIALIZER_CLEAN_CASE_REJECTED');
@@ -233,7 +239,7 @@ function initializerCleanCase(){
  const oldEntries=json(previous.inputs.get('current-entry-hold-capture.json')),oldBoundary=json(previous.inputs.get('protected-boundary.json'));
  if(capture.entryCaptureSha256!==g.inputs['entry-hold-capture.json']||entries.schema!==oldEntries.schema||entries.readOnly!==true||entries.executionAuthority!==false||entries.ownerCaptureSha256!==null||!same(entries.entries,oldEntries.entries)||!same(entries.gate,oldEntries.gate)||entries.directEntries?.length!==11||!same(entries.directEntries.slice(0,10),oldEntries.directEntries)||!same(entries.directEntries[10],{path:target.entryPath,sha256:INITIALIZER_ORIGINAL_ENTRY_HASH})||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0)fail('B6_INITIALIZER_CLEAN_ENTRY_REJECTED');
  if(boundary.schema!=='melisa-5244-current-initializer-clean-boundary.v1'||boundary.readOnly!==true||boundary.executionAuthority!==false||boundary.caseSha256!==g.inputs[g.caseLeaf]||!same(boundary.task,oldBoundary.task)||!same(boundary.processes,oldBoundary.processes)||!same(capture.protectedFiles,previous.capture.protectedFiles)||!same(capture.protectedProcesses,previous.capture.protectedProcesses)||boundary.writes!==0||boundary.serviceCalls!==0||boundary.sqlCalls!==0)fail('B6_INITIALIZER_CLEAN_BOUNDARY_REJECTED');
- return {inputs,capture,privateLegacyInputs:previous.inputs};
+ return {inputs,capture,privateLegacyInputs:previous.inputs,...initializerPassiveValidation()};
 }
 function trustedModuleImports(){return String.raw`
 if($PSVersionTable.PSEdition-cne'Desktop'){throw 'B6_NATIVE_WINDOWS_POWERSHELL_REQUIRED'}
@@ -334,6 +340,7 @@ function selectedCurrentPayload(source,ci,before,initializerClean){
  if(!initializerClean)return currentSupersessionPayload(source,ci,before);
  const g=currentBundleGeneration(true),payload=currentSupersessionPayload(source,ci,{inputs:before.privateLegacyInputs});
  payload.files.set('run-current-owner.ps1',renderCurrentSupersession(source.head,hash(source.files.get('install-business-5244-readpair.ps1')),true));
+ Object.assign(payload.manifest,initializerPassiveValidation());
  payload.manifest.kind=g.kind;
  payload.manifest.caseSha256=g.inputs[g.caseLeaf];
  payload.manifest.beforeImages=Object.entries(g.inputs).map(([name,sha256])=>({path:name,sha256,bytes:before.inputs.get(name).length}));
@@ -351,7 +358,7 @@ function prepareCurrentBundle(initializerClean){
  for(const [name,sha] of Object.entries(g.inputs))pinned(path.join(g.privateRoot,name),sha);
  for(const dir of [g.core,g.proof])fs.mkdirSync(dir);
  for(const [name,b] of payload.files)writeLeaf(g.core,name,b);for(const [name,b] of before.inputs)writeLeaf(g.core,name,b);writeLeaf(g.core,'owner-manifest.json',manifestBytes);
- const result={schema:initializerClean?'melisa-initializer-clean-recovery-passive-preparation.v1':'melisa-current-supersession-passive-preparation.v1',ownerSourceCommit:source.head,businessSaleSourceCommit:APP_SOURCE,coreRoot:g.core,coreManifestSha256:hash(manifestBytes),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),producerSourceSha256:hash(source.files.get('prepare-business-sale-owner-bundle.mjs')),sourceHashes:source.workingSourceHashes,coreFiles:13,installerFiles:1,beforeImages:before.inputs.size,installed:false,recordingEnabled:false,executable:false,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0,hostedCi:ci};
+ const result={...(initializerClean?initializerPassiveValidation():{}),schema:initializerClean?'melisa-initializer-clean-recovery-passive-preparation.v1':'melisa-current-supersession-passive-preparation.v1',ownerSourceCommit:source.head,businessSaleSourceCommit:APP_SOURCE,coreRoot:g.core,coreManifestSha256:hash(manifestBytes),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),producerSourceSha256:hash(source.files.get('prepare-business-sale-owner-bundle.mjs')),sourceHashes:source.workingSourceHashes,coreFiles:13,installerFiles:1,beforeImages:before.inputs.size,installed:false,recordingEnabled:false,executable:false,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0,hostedCi:ci};
  writeLeaf(g.proof,'preparation-receipt.json',bytes(result));writeLeaf(g.proof,'reviewed-installer-source.ps1',source.files.get('install-business-5244-readpair.ps1'));writeLeaf(g.proof,'verified-owner-producer.mjs',source.files.get('prepare-business-sale-owner-bundle.mjs'));return result;
 }
 export function verifyBusinessSaleCurrentSupersessionBundle(){return verifyCurrentBundle(false);}
@@ -362,10 +369,10 @@ function verifyCurrentBundle(initializerClean){
  const actualManifest=read(path.join(g.core,'owner-manifest.json')),manifest=json(actualManifest);
  if(!Array.isArray(manifest.hostedCi)||manifest.hostedCi.length!==2||manifest.hostedCi.some((r,n)=>r.event!==ci[n].event||r.head!==source.head||r.conclusion!=='success'||!Number.isSafeInteger(r.runId)||r.runId<1||JSON.stringify(r.jobs)!==JSON.stringify(REQUIRED_JOBS)))fail('B6_CURRENT_SUPERSESSION_CI_CHANGED');
  const expected=selectedCurrentPayload(source,manifest.hostedCi,before,initializerClean);
- if(receipt.schema!==(initializerClean?'melisa-initializer-clean-recovery-passive-preparation.v1':'melisa-current-supersession-passive-preparation.v1')||receipt.ownerSourceCommit!==source.head||receipt.businessSaleSourceCommit!==APP_SOURCE||receipt.coreRoot!==g.core||receipt.coreManifestSha256!==hash(actualManifest)||receipt.installerSourceSha256!==hash(source.files.get('install-business-5244-readpair.ps1'))||receipt.producerSourceSha256!==hash(source.files.get('prepare-business-sale-owner-bundle.mjs'))||receipt.coreFiles!==13||receipt.installerFiles!==1||receipt.beforeImages!==g.count||receipt.installed!==false||receipt.recordingEnabled!==false||receipt.executable!==false||!actualManifest.equals(bytes(expected.manifest)))fail('B6_CURRENT_SUPERSESSION_PREPARED_CHANGED');
+ if(receipt.schema!==(initializerClean?'melisa-initializer-clean-recovery-passive-preparation.v1':'melisa-current-supersession-passive-preparation.v1')||receipt.ownerSourceCommit!==source.head||receipt.businessSaleSourceCommit!==APP_SOURCE||receipt.coreRoot!==g.core||receipt.coreManifestSha256!==hash(actualManifest)||receipt.installerSourceSha256!==hash(source.files.get('install-business-5244-readpair.ps1'))||receipt.producerSourceSha256!==hash(source.files.get('prepare-business-sale-owner-bundle.mjs'))||receipt.coreFiles!==13||receipt.installerFiles!==1||receipt.beforeImages!==g.count||initializerClean&&Object.entries(initializerPassiveValidation()).some(([key,value])=>receipt[key]!==value)||receipt.installed!==false||receipt.recordingEnabled!==false||receipt.executable!==false||!actualManifest.equals(bytes(expected.manifest)))fail('B6_CURRENT_SUPERSESSION_PREPARED_CHANGED');
  for(const [name,b] of expected.files)if(!read(path.join(g.core,name)).equals(b))fail('B6_OWNER_PREPARED_SOURCE_CHANGED');
  for(const [name,b] of before.inputs)if(!read(path.join(g.core,name)).equals(b))fail('B6_OWNER_PREPARED_BEFORE_IMAGE_CHANGED');
  if(!read(g.verifier).equals(source.files.get('prepare-business-sale-owner-bundle.mjs'))||!read(path.join(g.proof,'reviewed-installer-source.ps1')).equals(source.files.get('install-business-5244-readpair.ps1')))fail('B6_OWNER_PREPARED_SOURCE_CHANGED');
- return {schema:initializerClean?'melisa-initializer-clean-recovery-passive-verification.v1':'melisa-current-supersession-passive-verification.v1',ownerSourceCommit:source.head,currentRepoHead:source.repoHead,coreRoot:g.core,coreManifestSha256:hash(actualManifest),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),coreFiles:13,installerFiles:1,beforeImages:g.count,writes:0,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0};
+ return {...(initializerClean?initializerPassiveValidation():{}),schema:initializerClean?'melisa-initializer-clean-recovery-passive-verification.v1':'melisa-current-supersession-passive-verification.v1',ownerSourceCommit:source.head,currentRepoHead:source.repoHead,coreRoot:g.core,coreManifestSha256:hash(actualManifest),installerSourceSha256:hash(source.files.get('install-business-5244-readpair.ps1')),coreFiles:13,installerFiles:1,beforeImages:g.count,writes:0,sqlCalls:0,serviceCalls:0,ownerCalls:0,taskChanges:0};
 }
 if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|'),actions={'--prepare':prepareBusinessSaleOwnerBundle,'--verify':verifyBusinessSaleOwnerBundle,'--prepare-current-supersession':prepareBusinessSaleCurrentSupersessionBundle,'--verify-current-supersession':verifyBusinessSaleCurrentSupersessionBundle,'--prepare-initializer-clean-recovery':prepareBusinessSaleInitializerCleanRecoveryBundle,'--verify-initializer-clean-recovery':verifyBusinessSaleInitializerCleanRecoveryBundle};if(!Object.hasOwn(actions,action))fail('B6_OWNER_FIXED_ACTION_REQUIRED');try{const r=actions[action]();process.stdout.write(JSON.stringify(r)+'\n');}catch(e){process.stderr.write((/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'B6_OWNER_PREPARATION_FAILED')+'\n');process.exitCode=1;}}

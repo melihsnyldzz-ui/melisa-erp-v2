@@ -401,7 +401,7 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   # Its literal pin has no self-cycle: the producer reads installer Git bytes
   # only at preparation time; it embeds no installer/content hash in its source.
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  Hold-B6ReadPairSource $producer 'b131aa1680718a4c218e4253898f57f7d0832f6ab452819491a4f6a087e90ab2'
+  Hold-B6ReadPairSource $producer '372f6a942eb13f90225b404fec17c9b474707a377356ae6f3cc13ffde66ad3e3'
   $verifiedText=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'}
   $verified=$verifiedText|ConvertFrom-Json
@@ -756,7 +756,7 @@ function Open-Business5244CurrentSupersessionSource([string]$ReviewedSourceHash,
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
  $producer=Join-Path $proof 'verified-owner-producer.mjs'
- Hold-B6ReadPairSource $producer 'b131aa1680718a4c218e4253898f57f7d0832f6ab452819491a4f6a087e90ab2'
+ Hold-B6ReadPairSource $producer '372f6a942eb13f90225b404fec17c9b474707a377356ae6f3cc13ffde66ad3e3'
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe'
  if((Get-FileHash -LiteralPath $node).Hash-ine'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'){throw 'CURRENT_SUPERSESSION_NODE_CHANGED'}
  $action=if($InitializerCleanRecovery){'--verify-initializer-clean-recovery'}else{'--verify-current-supersession'}
@@ -765,10 +765,12 @@ function Open-Business5244CurrentSupersessionSource([string]$ReviewedSourceHash,
  $verified=$text|ConvertFrom-Json
  $beforeCount=if($InitializerCleanRecovery){6}else{5};$verificationSchema=if($InitializerCleanRecovery){'melisa-initializer-clean-recovery-passive-verification.v1'}else{'melisa-current-supersession-passive-verification.v1'}
  if($verified.schema-cne$verificationSchema-or$verified.coreRoot-cne$core-or$verified.coreFiles-ne13-or$verified.installerFiles-ne1-or$verified.beforeImages-ne$beforeCount-or$verified.writes-ne0-or$verified.sqlCalls-ne0-or$verified.serviceCalls-ne0-or$verified.ownerCalls-ne0-or$verified.taskChanges-ne0-or$verified.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()){throw 'CURRENT_SUPERSESSION_SOURCE_NOT_VERIFIED'}
+ if($InitializerCleanRecovery-and($verified.runtimeValidationComplete-ne$false-or$verified.originalContextAssertHeldRequired-ne$true-or$verified.postExitExclusiveEntryCount-ne17-or$verified.deferredEntryCount-ne16)){throw 'CURRENT_INIT_CLEAN_RUNTIME_VALIDATION_STILL_REQUIRED'}
  Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $verified.coreManifestSha256
  $manifest=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json
  $manifestKind=if($InitializerCleanRecovery){'CURRENT_INITIALIZER_CLEAN_BUNDLE'}else{'CURRENT_ONLY_SUPERSESSION_BUNDLE'}
  if($manifest.kind-cne$manifestKind-or$manifest.finiteScope-cne$ScopeName-or$manifest.sourceCommit-cne$verified.ownerSourceCommit-or$manifest.initialSlot-cne'Current'-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.files.Count-ne14-or$manifest.beforeImages.Count-ne$beforeCount){throw 'CURRENT_SUPERSESSION_CORE_CHANGED'}
+ if($InitializerCleanRecovery-and($manifest.runtimeValidationComplete-ne$false-or$manifest.originalContextAssertHeldRequired-ne$true-or$manifest.postExitExclusiveEntryCount-ne17-or$manifest.deferredEntryCount-ne16)){throw 'CURRENT_INIT_CLEAN_PASSIVE_METADATA_NOT_RUNTIME_PROOF'}
  foreach($file in @($manifest.files)+@($manifest.beforeImages)){if($file.path-match'[\\/]'-or$file.sha256-cnotmatch'^[a-f0-9]{64}$'){throw 'CURRENT_SUPERSESSION_SOURCE_LEAF_REJECTED'};Hold-B6ReadPairSource (Join-Path $core $file.path) $file.sha256}
  $self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID)
  $actual=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape($self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
