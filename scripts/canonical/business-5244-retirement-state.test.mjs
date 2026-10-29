@@ -439,3 +439,34 @@ win('INIT-CLEAN preserves the pre-exit mutex generation and rejects real abandon
  if($caught-cne'BUSINESS_5244_ABANDONED_OWNER'-or$o.mutex.SafeWaitHandle.IsClosed-or$createdNatives.Count-or$script:Business5244CurrentSupersessions.Count-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($recordsPath)))-cne$beforeHash-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($pendingPath)))-cne$fixedInputs.pendingHash){throw ('INIT_CLEAN_ABANDONED_BYPASS_'+$caught)}
  `),'PASS');
 });
+
+win('V3 Current predecessor binds its own pinned capture and rejects generation or manifest-purpose drift',()=>{
+ const body=setup+String.raw`
+ . __NATIVE_PROFILE__
+ $fixed=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Current
+ $caseDir=Join-Path $env:TEMP 'candidate-capture';[void][IO.Directory]::CreateDirectory($caseDir)
+ $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3'
+ $rows[2].pid=46984;$rows[2].root=$fixed.root;$rows[2].sourceCommit=$fixed.frontendSource
+ $image=[Text.Encoding]::UTF8.GetBytes(($rows|ConvertTo-Json -Depth 10));$imageHash=Get-Business5244StartupHash $image
+ [IO.File]::WriteAllBytes((Join-Path $caseDir 'current-erp-processes.before.json'),$image)
+ $cm=@{kind='BUSINESS5244_FRESH_OWNER_BUNDLE';rehearsalOnly=$true;sourceCommit='f18f7bbec0d95ac10e3be91bd5f7137819f16514'}
+ $rm=@{kind='BUSINESS5244_READ_PAIR_ROUTER';rehearsalOnly=$true;coreRoot=$core;coreManifestSha256=('a'*64);entrySha256=('b'*64)}
+ $c=[pscustomobject]@{schema='melisa-b6-current-read2b-owner-capture.v1';predecessorEntryKind='ReadPairRouter';readOnly=$true;stopAuthorized=$false;recordBeforeSha256=$imageHash;owner=@{pid=38992;birth='134377492746263010'};child=@{pid=46984;birth='134377502264500436';parent=38992;exe=$fixed.node};serviceCalls=0;sqlCalls=0;retireCalls=0;entry=@{root=$router;manifestSha256=('c'*64);sha256=('b'*64);runtimeEntryBytesVerified=$false;postExitExclusiveBytesRequired=$true};router=@{root=$router;manifestSha256=('c'*64)};core=@{root=$core;manifestSha256=('a'*64)};webRecord=$rows[2];installedApiManifest=$fixed.apiManifest;installedWebManifest=$fixed.manifest;nativeStatus=@{reply='Status';nativePeerVerified=$true;state=@{phase='Running';ownerPid=38992;childPid=46984}}}
+ $capturePath=Join-Path $caseDir 'current-read2b-owner-capture.json';$cmPath=Join-Path $caseDir 'core-manifest.json';$rmPath=Join-Path $caseDir 'router-manifest.json'
+ function Save-CandidateFixture{
+  [IO.File]::WriteAllText($capturePath,($c|ConvertTo-Json -Depth 20),[Text.UTF8Encoding]::new($false));[IO.File]::WriteAllText($cmPath,($cm|ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false));[IO.File]::WriteAllText($rmPath,($rm|ConvertTo-Json -Depth 10),[Text.UTF8Encoding]::new($false))
+  $d=$originalDefinition.Replace('3e9a6a8f96185677a654a9b2bd7e890ab838773c424dcc35b1532b928f9f11b8',$imageHash).Replace('C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-candidate-apply-debafecb-20261029\current-read2b-owner-capture.json',$capturePath).Replace('3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642',(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($capturePath))))
+
+  # Replace only fixture input paths and hash pins. All production validators run.
+  $d=$d.Replace("(Join-Path "+[char]36+"core 'owner-manifest.json')",'$cmPath').Replace("(Join-Path "+[char]36+"router 'owner-manifest.json')",'$rmPath').Replace('cfc30ab5e3ef7774c92eb2085d66adabc1d0359d7343e63f8eb727ab7d40383f',(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($cmPath)))).Replace('a275fdbe5fc009feeb10f59c71cd915734303c91c2b4c31f2afad255c5de2f58',(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($rmPath))))
+  Set-Item Function:script:Get-Business5244CurrentBootstrapPins ([scriptblock]::Create($d))
+ }
+ $originalDefinition=(Get-Command Get-Business5244CurrentBootstrapPins).Definition
+ try{
+  Save-CandidateFixture;$r=Get-Business5244CurrentBootstrapPins $imageHash -ScopeName 'TEST125-API-B6-ca620bac-20261028';if($r.pid-ne46984-or$r.ownerPid-ne38992-or$r.hash-cne$imageHash){throw 'V3_FIXED_PREDECESSOR_REJECTED'}
+  $c.owner.pid=38993;Save-CandidateFixture;$caught='';try{Get-Business5244CurrentBootstrapPins $imageHash -ScopeName 'TEST125-API-B6-ca620bac-20261028'|Out-Null}catch{$caught=$_.Exception.Message};if($caught-cne'CURRENT_BOOTSTRAP_B6_V3_CAPTURE_CHANGED'){throw 'V3_FOREIGN_GENERATION_ACCEPTED'}
+  $c.owner.pid=38992;$rm.rehearsalOnly=$false;Save-CandidateFixture;$caught='';try{Get-Business5244CurrentBootstrapPins $imageHash -ScopeName 'TEST125-API-B6-ca620bac-20261028'|Out-Null}catch{$caught=$_.Exception.Message};if($caught-cne'CURRENT_BOOTSTRAP_B6_V3_SOURCE_CHANGED'){throw 'V3_PURPOSE_DRIFT_ACCEPTED'}
+ }__CLEANUP__
+ `.replace('__NATIVE_PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1'))).replace('__CLEANUP__',cleanup);
+ assert.equal(run(body),'PASS');
+});

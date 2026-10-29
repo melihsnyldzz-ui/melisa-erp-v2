@@ -24,15 +24,17 @@ function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
  return $copy
 }
 function Read-ErpBusinessSaleOwnerSource {
- $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3';$manifestPath=Join-Path $root 'owner-manifest.json'
+ $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_OWNER_SOURCE_BUNDLE_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
  $bytes=[IO.File]::ReadAllBytes($manifestPath);$manifest=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
  $leaves=@('business-5244-startup-exclusion.ps1','start-business-5244-web.ps1','business-5244-web-native.cs','business-5244-retirement-channel.ps1','business-5244-retirement-peer.cs','business-5244-retirement-state.ps1','business-5244-maintenance-dispatch.ps1','start-business-5244-owned.ps1','test125-bound-api-quiescence.ps1','test125-bound-maintenance-plan.ps1','start-owned-test.ps1','canonical-business-sale-maintenance.ps1','run-current-owner.ps1')
  if($manifest.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$manifest.finiteScope-cne'TEST125-API-B6-ca620bac-20261028'-or$manifest.sourceCommit-cnotmatch'^[a-f0-9]{40}$'-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.apiPackageId-cne'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'-or$manifest.appPackageId-cne'ERP-BUSINESS-WEB-5244-2b744f5b-API-READ'-or(@($manifest.files.path|Sort-Object -CaseSensitive)-join'|')-cne(@($leaves|Sort-Object -CaseSensitive)-join'|')){throw 'B6_OWNER_SOURCE_SCOPE'}
+ # This is a separate immutable Candidate generation, never a mutable mode
+ # change to the previous rehearsal-only core or its retained native token.
+ if(!$manifest.PSObject.Properties['rehearsalOnly']-or$manifest.rehearsalOnly-isnot[bool]-or$manifest.rehearsalOnly-or!$manifest.PSObject.Properties['maintenancePurpose']-or$manifest.maintenancePurpose-isnot[string]-or$manifest.maintenancePurpose-cne'CandidateMetadataApply'-or$manifest.recordingEnabled-isnot[bool]-or$manifest.recordingEnabled){throw 'B6_OWNER_CANDIDATE_PURPOSE_REQUIRED'}
  foreach($f in $manifest.files){[void](Read-ErpBusinessSalePinnedFile (Join-Path $root $f.path) $f.sha256)}
- if(!$manifest.PSObject.Properties['rehearsalOnly']-or$manifest.rehearsalOnly-isnot[bool]-or!$manifest.rehearsalOnly){throw 'B6_OWNER_REHEARSAL_ONLY_REQUIRED'}
- return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$manifest.files;sourceCommit=$manifest.sourceCommit;rehearsalOnly=$true;launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($manifest.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256)}
+ return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$manifest.files;sourceCommit=$manifest.sourceCommit;rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply';launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($manifest.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256)}
 }
 function Get-ErpBusinessSaleOwnerSource($Admission){
  $r=Get-ErpBusinessSaleNativeAdmissionContext $Admission;$fresh=Read-ErpBusinessSaleOwnerSource
@@ -43,7 +45,7 @@ function Get-ErpBusinessSaleTaskLauncherPins($PreparedReleaseProof){
  $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof
  if(!$proof.PSObject.Properties['businessSaleOwnerPins']-or!$proof.businessSaleOwnerPins){throw 'B6_TASK_FROZEN_LAUNCHER_PROOF_REQUIRED'}
  $proof.seal.Validate();$pins=$proof.businessSaleOwnerPins
- if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
+ if($pins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY\start-owned-test.ps1'-or(Get-FileHash -LiteralPath $pins.path).Hash.ToLowerInvariant()-cne$pins.sha256){throw 'B6_TASK_FROZEN_LAUNCHER_CHANGED'}
  return ($pins|ConvertTo-Json -Compress|ConvertFrom-Json)
 }
 function Get-ErpBusinessSaleNativeAdmissionContext($Admission){
@@ -126,7 +128,8 @@ function New-ErpBusinessSaleNativeProfileAdmission($Config,[switch]$RehearsalOnl
  $ownerInputs=Read-ErpBusinessSaleOwnerSource
  # The verified finite owner bundle can narrow, never widen, a caller's mode.
  # The normal existing supervisor call therefore cannot issue Apply authority
- # when launched from the PERMHASH rehearsal-only bundle.
+ # when launched from a source-sealed rehearsal-only bundle. The new fixed
+ # Candidate reader proves its own false purpose before this factory runs.
  if($ownerInputs.PSObject.Properties['rehearsalOnly']){
   if($ownerInputs.rehearsalOnly-isnot[bool]){throw 'B6_OWNER_REHEARSAL_ONLY_REQUIRED'}
   if($ownerInputs.rehearsalOnly){$RehearsalOnly=[switch]$true}

@@ -40,6 +40,23 @@ function Assert-Business5244RetirementRecord($State,[IO.FileStream]$Records){
 }
 function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='',[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213') {
  if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
+  if($BeforeHash-ceq'3e9a6a8f96185677a654a9b2bd7e890ab838773c424dcc35b1532b928f9f11b8'){
+   # Read-only evidence of the completed V3 Current return. This finite CAS
+   # predecessor does not grant stop authority or reuse its restored admission.
+   $path='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-candidate-apply-debafecb-20261029\current-read2b-owner-capture.json'
+   $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $path '3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642'))|ConvertFrom-Json
+   $fixed=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode Current
+   if($capture.schema-cne'melisa-b6-current-read2b-owner-capture.v1'-or$capture.predecessorEntryKind-cne'ReadPairRouter'-or$capture.readOnly-ne$true-or$capture.stopAuthorized-ne$false-or$capture.recordBeforeSha256-cne$BeforeHash-or$capture.owner.pid-ne38992-or$capture.owner.birth-cne'134377492746263010'-or$capture.child.pid-ne46984-or$capture.child.birth-cne'134377502264500436'-or$capture.child.parent-ne38992-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.retireCalls-ne0){throw 'CURRENT_BOOTSTRAP_B6_V3_CAPTURE_CHANGED'}
+   $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3'
+   $cm=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $core 'owner-manifest.json') 'cfc30ab5e3ef7774c92eb2085d66adabc1d0359d7343e63f8eb727ab7d40383f'))|ConvertFrom-Json
+   $rm=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $router 'owner-manifest.json') 'a275fdbe5fc009feeb10f59c71cd915734303c91c2b4c31f2afad255c5de2f58'))|ConvertFrom-Json
+   if($cm.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$cm.rehearsalOnly-ne$true-or$cm.sourceCommit-cne'f18f7bbec0d95ac10e3be91bd5f7137819f16514'-or$rm.kind-cne'BUSINESS5244_READ_PAIR_ROUTER'-or$rm.rehearsalOnly-ne$true-or$rm.coreRoot-cne$core-or$rm.coreManifestSha256-cne$capture.core.manifestSha256-or$capture.entry.root-cne$router-or$capture.router.root-cne$router-or$capture.core.root-cne$core-or$capture.entry.manifestSha256-cne$capture.router.manifestSha256-or$capture.entry.sha256-cne$rm.entrySha256-or$capture.entry.runtimeEntryBytesVerified-ne$false-or$capture.entry.postExitExclusiveBytesRequired-ne$true){throw 'CURRENT_BOOTSTRAP_B6_V3_SOURCE_CHANGED'}
+   $image=Read-ErpBusinessSalePinnedFile (Join-Path ([IO.Path]::GetDirectoryName($path)) 'current-erp-processes.before.json') $BeforeHash
+   $rows=ConvertFrom-Business5244RecordBytes $image;$old=@($rows|Where-Object port -eq 5244);$w=$capture.webRecord;$n=$capture.nativeStatus
+   if($old.Count-ne1-or$w.pid-ne46984-or$w.root-cne$fixed.root-or$w.sourceCommit-cne$fixed.frontendSource-or$w.entry-cne'vite-preview'-or$w.backendPort-ne4144-or$w.businessWorkfaceId-cne$fixed.profile-or$capture.child.exe-cne$fixed.node-or$capture.installedApiManifest-ine$fixed.apiManifest-or$capture.installedWebManifest-ine$fixed.manifest-or$n.reply-cne'Status'-or$n.nativePeerVerified-ne$true-or$n.state.phase-cne'Running'-or$n.state.ownerPid-ne38992-or$n.state.childPid-ne46984){throw 'CURRENT_BOOTSTRAP_B6_V3_IDENTITY_CHANGED'}
+   foreach($key in @('pid','root','sourceCommit','entry','port','backendPort','businessWorkfaceId')){if($old[0].$key-cne$w.$key){throw 'CURRENT_BOOTSTRAP_B6_V3_BEFORE_IMAGE_CHANGED'}}
+   return @{hash=$BeforeHash;pid=46984;birth='134377502264500436';ownerPid=38992;ownerBirth='134377492746263010';root=$fixed.root;source=$fixed.frontendSource}
+  }
   if($BeforeHash-ceq'81862843a2595587771a8779b23a965b3139cbd8145680af52e4a663c7d2cc17'){
    # A second finite predecessor, selected only by the actual held before-image.
    # Its captured status/argv/protection data is metadata, never stop authority.

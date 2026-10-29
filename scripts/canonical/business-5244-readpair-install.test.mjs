@@ -54,7 +54,7 @@ const activeRun=(body,before='',fixture=activeFixture)=>run(fixture.replace('__B
 win('RehearsalOnly stop dispatch and managed body contain no force-stop path in their selected AST branch',()=>{
  assert.equal(run(String.raw`
  $tokens=$null;$errors=$null;$source=(Get-Command Stop-ReadPairColdOwner).Definition;$ast=[Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'STOP_SOURCE_PARSE'}
- $branch=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.IfStatementAst]-and$n.Clauses.Count-eq1-and$n.Clauses[0].Item1.Extent.Text-ceq'$RehearsalOnly'},$true));if($branch.Count-ne1){throw 'MANAGED_STOP_BRANCH_MISSING'}
+ $branch=@($ast.FindAll({param($n);$n-is[Management.Automation.Language.IfStatementAst]-and$n.Clauses.Count-eq1-and$n.Clauses[0].Item1.Extent.Text-ceq'$RehearsalOnly-or$CandidateInstall'},$true));if($branch.Count-ne1){throw 'MANAGED_STOP_BRANCH_MISSING'}
  $managed=@($branch[0].Clauses[0].Item2.FindAll({param($n);$n-is[Management.Automation.Language.CommandAst]-and$n.GetCommandName()-ceq'Invoke-B6ReadPairManagedOwnerExit'},$true));if($managed.Count-ne1){throw 'MANAGED_STOP_NOT_DISPATCHED'}
  $force=@($branch[0].Clauses[0].Item2.FindAll({param($n);$n-is[Management.Automation.Language.InvokeMemberExpressionAst]-and$n.Member.Value-cin@('Stop','Kill','TerminateProcess')},$true));if($force.Count){throw 'FORCE_STOP_IN_REHEARSAL_BRANCH'}
  $body=(Get-Command Invoke-B6ReadPairManagedOwnerExit).Definition
@@ -498,4 +498,82 @@ win('Current-only source constructor rejects non-current flags and wrong entry b
 });
 win('INIT-CLEAN constructor rejects combined recovery modes, old roots and widened scope before any source or process action',()=>{
  assert.equal(run(String.raw`$script:effects=0;function Hold-B6ReadPairSource{$script:effects++;throw 'UNEXPECTED_FIXED_SOURCE_READ'};foreach($mode in @('combined','apply','old-root','wrong-scope')){$script:InitializerCleanRecovery=$true;$script:CurrentOnlySupersession=$mode-ceq'combined';$script:Apply=$mode-ceq'apply';$script:AfterLoaderRecovery=$false;$script:ScopeName=if($mode-ceq'wrong-scope'){'TEST125-API-READ2b-20261028-41d3c213'}else{'TEST125-API-B6-ca620bac-20261028'};$entry=if($mode-ceq'old-root'){'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029\install-business-5244-readpair.ps1'}else{'C:\not-the-fixed-root\install-business-5244-readpair.ps1'};$denied=$false;try{Open-Business5244CurrentSupersessionSource ('a'*64) $entry|Out-Null}catch{$denied=$true};if(!$denied-or$script:effects){throw 'INIT_CLEAN_ENTRY_WIDENED'}};'PASS'`),'PASS');
+});
+
+win('CandidateInstall fixed CLI excludes legacy scope and every other recovery or rehearsal action',()=>{
+ for(const args of [[],['-ScopeName','TEST125-API-B6-ca620bac-20261028','-RehearsalOnly'],['-ScopeName','TEST125-API-B6-ca620bac-20261028','-CurrentOnlySupersession'],['-ScopeName','TEST125-API-B6-ca620bac-20261028','-InitializerCleanRecovery'],['-ScopeName','TEST125-API-B6-ca620bac-20261028','-AfterLoaderRecovery']]){
+  const x=cp.spawnSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',path.join(dir,'install-business-5244-readpair.ps1'),'-Library','-CandidateInstall',...args],{encoding:'utf8',windowsHide:true,timeout:10000});assert.notEqual(x.status,0);assert.match(x.stderr,/B6_CANDIDATE_FIXED_ACTION_REQUIRED/);
+ }
+});
+win('CandidateInstall constructor rejects missing purpose, wrong scope, alias entry or absent immutable proof before protected work',()=>{
+ assert.equal(run(String.raw`
+ $script:Apply=$true;$script:CandidateInstall=$true;$script:RehearsalOnly=$false;$script:ScopeName='TEST125-API-B6-ca620bac-20261028';$script:actions=0
+ function Assert-ReadPairPath{$script:actions++;throw 'UNEXPECTED_READ'};function Hold-B6ReadPairSource{$script:actions++;throw 'UNEXPECTED_HOLD'}
+ $fixed='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-candidate-apply-debafecb-20261029\owner-preparation\reviewed-installer-source.ps1'
+ foreach($case in @('no-apply','no-purpose','rehearsal','scope','old-root','hash')){
+  $script:Apply=$case-cne'no-apply';$script:CandidateInstall=$case-cne'no-purpose';$script:RehearsalOnly=$case-ceq'rehearsal';$script:ScopeName=if($case-ceq'scope'){'TEST125-API-READ2b-20261028-41d3c213'}else{'TEST125-API-B6-ca620bac-20261028'};$entry=if($case-ceq'old-root'){$fixed.Replace('b6-candidate-apply-debafecb','b6-native-rehearsal-debafecb')}else{$fixed};$hash=if($case-ceq'hash'){'invalid'}else{'a'*64}
+  $denied=$false;try{Open-B6CandidatePreparedSource $hash $entry|Out-Null}catch{if($_.Exception.Message-cne'B6_CANDIDATE_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied-or$script:actions){throw 'CANDIDATE_CONSTRUCTOR_BYPASS'}
+ };'PASS'`),'PASS');
+});
+const candidatePublicationFixture=rehearsalPublicationFixture
+ .replace('$script:RehearsalOnly=$true;',"$script:RehearsalOnly=$false;$script:CandidateInstall=$true;")
+ .replaceAll('melisa-b6-rehearsal-current-entry-capture.v1','melisa-b6-candidate-current-entry-capture.v1')
+ .replaceAll('2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364','3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642')
+ .replace('postExitExclusiveEntryCount=18','postExitExclusiveEntryCount=20');
+win('CandidateInstall publication binds twenty exact entries and both captured V3 active leaves without inventing capture fields',()=>{
+ assert.equal(run(candidatePublicationFixture+String.raw`
+ $router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3';$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3'
+ $b6.owner.predecessorEntryKind='ReadPairRouter';$b6.owner.entry=[pscustomobject]@{root=$router;leaf='start-business-5244-readpair-router.ps1';manifestSha256=('b'*64);sha256=('c'*64);postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false}
+ $b6.owner|Add-Member router ([pscustomobject]@{root=$router;manifestSha256=('b'*64);entrySha256=('c'*64)});$b6.owner|Add-Member core ([pscustomobject]@{root=$core;manifestSha256=('d'*64);files=@([pscustomobject]@{path='run-current-owner.ps1';sha256=('e'*64);bytes=15})})
+ # Native captures can serialize these two fields in either property order.
+ $b6.entryCapture.directEntries+=@([pscustomobject]@{sha256=('e'*64);path=(Join-Path $core 'run-current-owner.ps1')},[pscustomobject]@{sha256=('c'*64);path=(Join-Path $router 'start-business-5244-readpair-router.ps1')})
+ Open-B6ReadPairPublication
+ if($heldPaths.Count-ne19-or$heldPaths.Contains((Join-Path $router 'start-business-5244-readpair-router.ps1'))-or$heldPaths.Contains((Join-Path $core 'run-current-owner.ps1'))-or$b6.entryCapture.directEntries.Count-ne14-or$b6.entryCapture.postExitExclusiveEntryCount-ne20-or$phases.Count-ne1){throw 'CANDIDATE_ENTRY_SCOPE'}
+ $active=@(Get-B6ReadPairActiveEntry);if($active.Count-ne2-or$b6.entryCapture.directEntries[12].path-cne(Join-Path $core 'run-current-owner.ps1')-or$b6.entryCapture.directEntries[13].path-cne(Join-Path $router 'start-business-5244-readpair-router.ps1')){throw 'CANDIDATE_CAPTURED_ENTRY_ORDER_CHANGED'}
+ $heldPaths.Clear();$phases.Clear();$swap=$b6.entryCapture.directEntries[12];$b6.entryCapture.directEntries[12]=$b6.entryCapture.directEntries[13];$b6.entryCapture.directEntries[13]=$swap;$denied=$false;try{Open-B6ReadPairPublication}catch{if($_.Exception.Message-cne'B6_DIRECT_ENTRY_SCOPE_CHANGED'){throw};$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count){throw 'CANDIDATE_INVENTED_ROUTER_FIRST_ACCEPTED'};'PASS'`),'PASS');
+});
+win('CandidateInstall native purpose is read from the issued admission before release proof and cannot be widened from a caller flag',()=>{
+ assert.equal(run(String.raw`
+ $script:CandidateInstall=$true;$script:events=[Collections.Generic.List[string]]::new();$script:cap=[pscustomobject]@{fixture='opaque'}
+ function Read-ErpStartupConfig{[pscustomobject]@{fixture='config'}};function New-ErpBusinessSaleNativeProfileAdmission{$events.Add('native');return $cap}
+ function Get-ErpBusinessSaleNativeAdmissionContext($Admission){if(![object]::ReferenceEquals($Admission,$cap)){throw 'WRONG_CAP'};return $script:purpose}
+ function Assert-ErpBusinessSaleNativeProfileAdmission{};function New-ErpReadPairPreparedReleaseProof{$events.Add('release');return [pscustomobject]@{fixture='proof'}};function Get-Test125BoundMaintenancePlan{};function Get-ReadPairExpectedHashes{}
+ foreach($case in @('true','string','wrong-purpose','good')){
+  $events.Clear();$script:purpose=[pscustomobject]@{rehearsalOnly=$false;ownerInputs=[pscustomobject]@{maintenancePurpose='CandidateMetadataApply'}};switch($case){true{$purpose.rehearsalOnly=$true}string{$purpose.rehearsalOnly='false'}'wrong-purpose'{$purpose.ownerInputs.maintenancePurpose='RehearsalOnly'}}
+  $denied=$false;try{Initialize-B6ReadPairControllerPreflight}catch{if($_.Exception.Message-cne'B6_CANDIDATE_NATIVE_PURPOSE_REQUIRED'){throw};$denied=$true}
+  if($case-ceq'good'){if($denied-or($events-join'|')-cne'native|release'){throw 'CANDIDATE_ISSUED_PURPOSE_LOST'}}elseif(!$denied-or$events.Contains('release')){throw 'CALLER_WIDENED_NATIVE'}
+ };'PASS'`),'PASS');
+});
+
+win('CandidateInstall managed exit retains a genuine peer and mutex through twenty exclusive entry gates without force stop',()=>{
+ const fixture=managedFixture.replace('@(1..11|ForEach-Object','@(1..13|ForEach-Object');
+ const answer=activeRun(String.raw`
+ function Read-B6ReadPairManagedExitSignal{$server.StandardInput.Close();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne0){throw 'ISOLATED_CURRENT_EXIT_FAILED'};return 'MANAGED_EXIT_OBSERVED'}
+ Invoke-B6ReadPairManagedOwnerExit;Complete-B6ReadPairActiveEntryHandoff
+ $h=Get-B6ReadPairActiveHandoff;if(!$control.CompletedStop-or!$server.HasExited-or$h.phase-cne'ExclusiveVerified'-or!$h.marker.Deleted-or$held.Count-ne20-or@($held|Where-Object{$_.holdMode-cne'Exclusive'}).Count-or$result.stopCalls-ne0-or$result.managedExitRequests-ne1){throw 'CANDIDATE_MANAGED_EXIT_BROKEN'}
+ `,String.raw`$script:RehearsalOnly=$false;$script:CandidateInstall=$true;$b6.rehearsalOnly=$false;$b6|Add-Member maintenancePurpose 'CandidateMetadataApply'`,fixture);
+ assert.match(answer,/"phase":"B6_MANAGED_EXIT_READY"/);assert.match(answer,/PASS$/);
+});
+win('CandidateInstall real source constructor validates issued metadata and exact caller while external file and verifier providers stay isolated',()=>{
+ assert.equal(run(String.raw`
+ $script:Apply=$true;$script:CandidateInstall=$true;$script:RehearsalOnly=$false;$script:ScopeName='TEST125-API-B6-ca620bac-20261028'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-candidate-apply-debafecb-20261029';$proof=Join-Path $private 'owner-preparation';$entry=Join-Path $proof 'reviewed-installer-source.ps1';$installerHash='a'*64;$script:holds=[Collections.Generic.List[string]]::new()
+ $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY'
+ $script:verified=[pscustomobject]@{schema='melisa-b6-candidate-owner-verification.v1';rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply';runtimeValidationComplete=$false;postExitExclusiveBytesRequired=$true;postExitExclusiveEntryCount=20;coreFiles=13;beforeImages=6;writes=0;sqlCalls=0;serviceCalls=0;ownerCalls=0;taskChanges=0;installerSourceSha256=$installerHash;coreRoot=$core;routerRoot=$router;coreManifestSha256=('b'*64);routerManifestSha256=('c'*64);ownerSourceCommit=('d'*40)}
+ $script:manifest=[pscustomobject]@{kind='BUSINESS5244_FRESH_OWNER_BUNDLE';finiteScope=$ScopeName;sourceCommit=$verified.ownerSourceCommit;rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply';files=@(1..13|ForEach-Object{[pscustomobject]@{path=('source'+$_+'.ps1');sha256=('e'*64)}});beforeImages=@('current-read2b-owner-capture.json','current-erp-processes.before.json','current-entry-hold-capture.json','current-task-capture.json','current-task.before.xml','current-task.before.sddl'|ForEach-Object{[pscustomobject]@{path=$_;sha256=('f'*64)}})}
+ $script:routerManifest=[pscustomobject]@{kind='BUSINESS5244_READ_PAIR_ROUTER';rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply';coreManifestSha256=$verified.coreManifestSha256;coreRoot=$core;entrySha256=('a'*64);routerLibrarySha256=('b'*64)}
+ # This is an external process boundary replacement, not a helper-only claim:
+ # the actual constructor body, manifest checks, pin routing and native caller
+ # comparisons execute. Native package sealing/CI remain verifier responsibilities.
+ $definition=(Get-Command Open-B6CandidatePreparedSource).Definition.Replace('& $node $producer --verify-candidate','Invoke-FixtureCandidateVerifier $producer');Set-Item Function:Open-B6CandidatePreparedSource ([scriptblock]::Create($definition))
+ function Invoke-FixtureCandidateVerifier($Producer){if($Producer-cne(Join-Path $proof 'verified-owner-producer.mjs')){throw 'VERIFIER_PATH_CHANGED'};$global:LASTEXITCODE=0;return ($verified|ConvertTo-Json -Depth 12 -Compress)}
+ function Assert-ReadPairPath($Path){if($Path-cne'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'){throw 'UNEXPECTED_SOURCE_PATH'}}
+ function Get-FileHash{[pscustomobject]@{Hash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'}}
+ function Hold-B6ReadPairSource($Path,$Hash){if($Hash-cnotmatch'^[a-f0-9]{64}$'){throw 'INVALID_SOURCE_PIN'};$holds.Add($Path)}
+ function Get-Content($LiteralPath,[switch]$Raw){if(!$Raw){throw 'WRONG_READ_MODE'};switch($LiteralPath){(Join-Path $core 'owner-manifest.json'){return ($manifest|ConvertTo-Json -Depth 12 -Compress)}(Join-Path $router 'owner-manifest.json'){return ($routerManifest|ConvertTo-Json -Depth 12 -Compress)}(Join-Path $core 'current-read2b-owner-capture.json'){return '{"predecessorEntryKind":"ReadPairRouter"}'}(Join-Path $core 'current-entry-hold-capture.json'){return '{"schema":"melisa-b6-candidate-current-entry-capture.v1"}'}default{throw 'UNEXPECTED_PROTECTED_READ'}}}
+ $ps='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';$script:command='"'+$ps+'" -NoProfile -NonInteractive -WindowStyle Hidden -File '+$entry+' -Apply -CandidateInstall -SourceSha256 '+$installerHash.ToUpperInvariant()+' -ScopeName '+$ScopeName
+ function Get-CimInstance($ClassName,$Filter){if($ClassName-cne'Win32_Process'-or$Filter-cne('ProcessId='+$PID)){throw 'FOREIGN_PROCESS_READ'};[pscustomobject]@{CommandLine=$script:command;ExecutablePath=$ps}}
+ function Invoke-CimMethod{[pscustomobject]@{ReturnValue=0;Sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}}
+ $result=Open-B6CandidatePreparedSource $installerHash $entry;if($result.rehearsalOnly-isnot[bool]-or$result.rehearsalOnly-or$result.maintenancePurpose-cne'CandidateMetadataApply'-or$result.coreRoot-cne$core-or$result.proof-cne$proof-or$holds.Count-ne25){throw 'CANDIDATE_SOURCE_CONSTRUCTOR_NOT_COMPLETE'}
+ foreach($case in @('purpose','bool','entrycount','caller-extra')){$holds.Clear();$verified.maintenancePurpose='CandidateMetadataApply';$verified.rehearsalOnly=$false;$verified.postExitExclusiveEntryCount=20;switch($case){purpose{$verified.maintenancePurpose='RehearsalOnly'}bool{$verified.rehearsalOnly='false'}entrycount{$verified.postExitExclusiveEntryCount=18}'caller-extra'{$script:command+=' -Other'}};$denied=$false;try{Open-B6CandidatePreparedSource $installerHash $entry|Out-Null}catch{$denied=$true};if(!$denied){throw 'CANDIDATE_SOURCE_ACCEPTED_DRIFT'}};'PASS'`),'PASS');
 });

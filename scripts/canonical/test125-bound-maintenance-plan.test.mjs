@@ -62,15 +62,15 @@ win('B6 Current and Candidate config checks are exact and cannot exchange scopes
 });
 win('B6 task launcher resolution requires the genuine sealed fixed core and preserves the original principal and arguments',()=>{
  assert.equal(run(`${fixture}
- $proof=[pscustomobject]@{opaque='test-only'};$fixed='C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\\start-owned-test.ps1';$script:pinPath=$fixed;$script:fileHash=('a'*64)
+ $proof=[pscustomobject]@{opaque='test-only'};$fixed='C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY\\start-owned-test.ps1';$script:pinPath=$fixed;$script:fileHash=('a'*64)
  function Get-ErpBusinessSaleTaskLauncherPins($Token){if(![object]::ReferenceEquals($Token,$proof)){throw 'FAKE_RELEASE_PROOF'};return @{path=$script:pinPath;sha256=('a'*64);coreManifestSha256=('b'*64)}}
  function Get-FileHash($LiteralPath,$Algorithm){if($LiteralPath-cne$fixed-or$Algorithm-cne'SHA256'){throw 'UNPINNED_HASH_READ'};return @{Hash=$script:fileHash}}
  Assert-Test125MaintenanceTask $task $cfg 'C:\\fixture\\startup.json' -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Current|Out-Null
  $task.Actions[0].Arguments=$argsText.Replace('C:\\fixture\\repo\\scripts\\canonical\\start-owned-test.ps1',$fixed)
  Assert-Test125MaintenanceTask $task $cfg 'C:\\fixture\\startup.json' -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate -PreparedReleaseProof $proof|Out-Null
- foreach($case in @('missing','copy','path','hash','owner','arguments')){
+ foreach($case in @('missing','copy','path','old-rehearsal','hash','owner','arguments')){
   $arg=$proof;$oldArgs=$task.Actions[0].Arguments
-  switch($case){'missing'{$arg=$null}'copy'{$arg=$proof|ConvertTo-Json|ConvertFrom-Json}'path'{$script:pinPath='C:\\foreign.ps1'}'hash'{$script:fileHash=('c'*64)}'owner'{$task.Principal.UserId='S-1-foreign'}'arguments'{$task.Actions[0].Arguments+=' -Once'}}
+  switch($case){'missing'{$arg=$null}'copy'{$arg=$proof|ConvertTo-Json|ConvertFrom-Json}'path'{$script:pinPath='C:\\foreign.ps1'}'old-rehearsal'{$script:pinPath='C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\\start-owned-test.ps1'}'hash'{$script:fileHash=('c'*64)}'owner'{$task.Principal.UserId='S-1-foreign'}'arguments'{$task.Actions[0].Arguments+=' -Once'}}
   $rejected=$false;try{Assert-Test125MaintenanceTask $task $cfg 'C:\\fixture\\startup.json' -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate -PreparedReleaseProof $arg|Out-Null}catch{$rejected=$true};if(!$rejected){throw ('B6_TASK_LAUNCHER_DRIFT_'+$case)}
   $script:pinPath=$fixed;$script:fileHash=('a'*64);$task.Principal.UserId='S-1-fixture';$task.Actions[0].Arguments=$oldArgs
  };'PASS'`),'PASS');

@@ -108,6 +108,57 @@ Reject {Get-ErpBusinessSaleNativeAdmissionContext ($cap|ConvertTo-Json|ConvertFr
 `),'PASS');
 });
 
+test('Candidate owner source seals exact false purpose and thirteen files without accepting rehearsal or recording metadata',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-candidate-source-')));
+ try{assert.equal(run(`$fixtureRoot=${q(temp)};`+String.raw`
+$root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY'
+$reader=(Get-Item Function:Read-ErpBusinessSaleOwnerSource).ScriptBlock.ToString().Replace($root,$fixtureRoot.Replace("'","''"));Set-Item Function:Read-ErpBusinessSaleOwnerSource ([scriptblock]::Create($reader))
+$names=@('business-5244-startup-exclusion.ps1'
+'start-business-5244-web.ps1'
+'business-5244-web-native.cs'
+'business-5244-retirement-channel.ps1'
+'business-5244-retirement-peer.cs'
+'business-5244-retirement-state.ps1'
+'business-5244-maintenance-dispatch.ps1'
+'start-business-5244-owned.ps1'
+'test125-bound-api-quiescence.ps1'
+'test125-bound-maintenance-plan.ps1'
+'start-owned-test.ps1'
+'canonical-business-sale-maintenance.ps1'
+'run-current-owner.ps1')
+$files=@(foreach($name in $names){$bytes=[Text.Encoding]::UTF8.GetBytes(('# isolated-source '+$name));[IO.File]::WriteAllBytes((Join-Path $fixtureRoot $name),$bytes);[pscustomobject]@{path=$name;sha256=(Get-ErpBusinessSaleHash $bytes)}})
+$manifest=[pscustomobject]@{kind='BUSINESS5244_FRESH_OWNER_BUNDLE';finiteScope='TEST125-API-B6-ca620bac-20261028';sourceCommit=('a'*40);actualT1=$false;externalOperations=$false;apiPackageId='CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213';appPackageId='ERP-BUSINESS-WEB-5244-2b744f5b-API-READ';rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply';recordingEnabled=$false;files=$files}
+$path=Join-Path $fixtureRoot 'owner-manifest.json';$saved=$manifest|ConvertTo-Json -Depth 12
+[IO.File]::WriteAllText($path,$saved);$pins=Read-ErpBusinessSaleOwnerSource
+if($pins.root-cne$fixtureRoot-or$pins.rehearsalOnly-isnot[bool]-or$pins.rehearsalOnly-or$pins.maintenancePurpose-cne'CandidateMetadataApply'-or$pins.files.Count-ne13-or$pins.launcher-cne(Join-Path $fixtureRoot 'start-owned-test.ps1')){throw 'CANDIDATE_SOURCE_NOT_SEALED'}
+foreach($case in @('rehearsal','string-flag','missing-flag','purpose','purpose-case','missing-purpose','recording','scope','extra-leaf','missing-leaf','hash')){
+ $m=$saved|ConvertFrom-Json
+ switch($case){rehearsal{$m.rehearsalOnly=$true}'string-flag'{$m.rehearsalOnly='false'}'missing-flag'{$m.PSObject.Properties.Remove('rehearsalOnly')}purpose{$m.maintenancePurpose='RehearseOnly'}'purpose-case'{$m.maintenancePurpose='candidatemetadataapply'}'missing-purpose'{$m.PSObject.Properties.Remove('maintenancePurpose')}recording{$m.recordingEnabled=$true}scope{$m.finiteScope='TEST125-API-READ2b-20261028-41d3c213'}'extra-leaf'{$m.files+=@([pscustomobject]@{path='extra.ps1';sha256=('b'*64)})}'missing-leaf'{$m.files=@($m.files|Select-Object -First 12)}hash{$m.files[0].sha256=('b'*64)}}
+ [IO.File]::WriteAllText($path,($m|ConvertTo-Json -Depth 12));$denied=$false;try{Read-ErpBusinessSaleOwnerSource|Out-Null}catch{$denied=$true};if(!$denied){throw ('CANDIDATE_SOURCE_SCOPE_ACCEPTED_'+$case)}
+}
+[IO.File]::WriteAllText($path,$saved);[IO.File]::AppendAllText((Join-Path $fixtureRoot $names[0]),'drift');$denied=$false;try{Read-ErpBusinessSaleOwnerSource|Out-Null}catch{$denied=$true};if(!$denied){throw 'SOURCE_BYTE_DRIFT_ACCEPTED'}
+if($script:ErpBusinessSaleAdmissions.Count){throw 'SOURCE_READER_ISSUED_ADMISSION'};'PASS'
+`),'PASS');}finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('melisa-b6-candidate-source-'));fs.rmSync(temp,{recursive:true});}
+});
+
+test('Candidate task launcher pins require the same live release seal and refuse the previous rehearsal core',win,()=>{
+ assert.equal(run(String.raw`
+$script:proof=[pscustomobject]@{fixture='issued-release'};$script:sealLive=$true;$script:sealCalls=0;$script:hashCalls=0
+$seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {$script:sealCalls++;if(!$script:sealLive){throw 'SEAL_CLOSED'}}
+$fixed='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY\start-owned-test.ps1'
+$script:context=[pscustomobject]@{seal=$seal;businessSaleOwnerPins=[pscustomobject]@{path=$fixed;sha256=('a'*64);coreManifestSha256=('b'*64)}}
+function Get-ErpReadPairReleaseProofContext($Token){if(![object]::ReferenceEquals($Token,$script:proof)){throw 'UNISSUED_RELEASE'};return $script:context}
+function Get-FileHash($LiteralPath){if($LiteralPath-cne$fixed){throw 'WRONG_LAUNCHER_HASH_READ'};$script:hashCalls++;return @{Hash=('A'*64)}}
+$pins=Get-ErpBusinessSaleTaskLauncherPins $proof
+if($pins.path-cne$fixed-or$script:sealCalls-ne1-or$script:hashCalls-ne1){throw 'CANDIDATE_LAUNCHER_NOT_BOUND'}
+foreach($case in @('copy','rehearsal-root','hash','closed')){
+ $token=$proof;$context.businessSaleOwnerPins.path=$fixed;$context.businessSaleOwnerPins.sha256=('a'*64);$script:sealLive=$true
+ switch($case){copy{$token=$proof|ConvertTo-Json|ConvertFrom-Json}'rehearsal-root'{$context.businessSaleOwnerPins.path='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3\start-owned-test.ps1'}hash{$context.businessSaleOwnerPins.sha256=('b'*64)}closed{$script:sealLive=$false}}
+ $denied=$false;try{Get-ErpBusinessSaleTaskLauncherPins $token|Out-Null}catch{$denied=$true};if(!$denied){throw ('CANDIDATE_LAUNCHER_SCOPE_ACCEPTED_'+$case)}
+};'PASS'
+`),'PASS');
+});
+
 test('actual factory issues immutable purpose with default mutation flow preserved using only a disposable profile',win,()=>{
  const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-purpose-'))),file=path.join(temp,'profile.json');
  const profile={goal8SyntheticDaySeal:{packageId:'CANONICAL-TEST125-BUSINESS5244-READ-2b744f5b-20261028-41d3c213'}};
@@ -120,7 +171,7 @@ Set-Item Function:New-ErpBusinessSaleNativeProfileAdmission ([scriptblock]::Crea
 $script:factoryBefore=0
 $config=[pscustomobject]@{OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;ApiComponent=[pscustomobject]@{ManifestSha256='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'}}
 function Read-ErpStartupConfig {param($Path);return $config}
-function Read-ErpBusinessSaleOwnerSource {[pscustomobject]@{source='offline-factory-fixture'}}
+function Read-ErpBusinessSaleOwnerSource {[pscustomobject]@{source='offline-factory-fixture';rehearsalOnly=$false;maintenancePurpose='CandidateMetadataApply'}}
 function Get-ErpBusinessSaleNativeInputs {[pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';descriptor=[pscustomobject]@{schema='offline-descriptor'}}}
 function Test-ErpBusinessSaleBefore {param($Inputs);$script:factoryBefore++}
 function Open-ErpBusinessSaleSqlConnection {throw 'SQL_FORBIDDEN'}
@@ -129,7 +180,7 @@ $only=New-ErpBusinessSaleNativeProfileAdmission $config -RehearsalOnly
 if($normal.rehearsalOnly-isnot[bool]-or$normal.rehearsalOnly-or$only.rehearsalOnly-isnot[bool]-or!$only.rehearsalOnly-or$script:factoryBefore-ne2){throw 'FACTORY_PURPOSE_NOT_ISSUED'}
 foreach($token in @($normal,$only)){
  $context=Get-ErpBusinessSaleNativeAdmissionContext $token
- if($context.rehearsalOnly-ne$token.rehearsalOnly-or$context.rehearsalAttempted-or$context.rehearsalFailed-or$context.rehearsed-or$context.phase-cne'Prepared'){throw 'FACTORY_CONTEXT_PURPOSE_LOST'}
+ if($context.rehearsalOnly-ne$token.rehearsalOnly-or$context.rehearsalAttempted-or$context.rehearsalFailed-or$context.rehearsed-or$context.phase-cne'Prepared'-or$context.backup-or$context.backupSignature-or$context.transition){throw 'FACTORY_CONTEXT_PURPOSE_LOST'}
  Reject {Get-ErpBusinessSaleNativeAdmissionContext ($token|ConvertTo-Json|ConvertFrom-Json)}
 }
 function Read-ErpBusinessSaleOwnerSource {[pscustomobject]@{source='offline-sealed-owner';rehearsalOnly=$true}}
@@ -279,6 +330,27 @@ if($r.phase-cne'Applied'-or$script:commits-ne1-or$script:trace.IndexOf('backup')
 Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};if($script:commits-ne1){throw 'SECOND_EFFECT'}
 Invoke-ErpBusinessSaleNativeRevision $cap Inverse;if($r.phase-cne'Restored'-or$script:commits-ne2){throw 'INVERSE_FAILED'}
 Invoke-ErpBusinessSaleNativeRevision $cap Inverse;if($script:commits-ne2){throw 'SECOND_INVERSE'};'PASS'
+`),'PASS');
+});
+
+test('Candidate apply cannot reuse a restored rehearsal-only admission or a break in continuous quiescence',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+$cap.rehearsalOnly=$true;$r.tokenJson=$cap|ConvertTo-Json -Compress;$r.rehearsalOnly=$true
+Invoke-ErpBusinessSaleNativeRevision $cap Rehearse
+if($r.phase-cne'Restored'-or!$r.rehearsed-or!$r.backup){throw 'REHEARSAL_FIXTURE_NOT_COMPLETE'}
+$opens=$script:opens;$trace=$script:trace.Count
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply}
+$copy=$cap|ConvertTo-Json|ConvertFrom-Json;$copy.rehearsalOnly=$false;Reject {Invoke-ErpBusinessSaleNativeRevision $copy Apply}
+$cap.rehearsalOnly=$false;Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply};$cap.rehearsalOnly=$true
+if($script:opens-ne$opens-or$script:trace.Count-ne$trace-or$script:commits-ne0){throw 'OLD_REHEARSAL_ADMISSION_REUSED'};'PASS'
+`),'PASS');
+ assert.equal(run(nativeFixture+String.raw`
+Invoke-ErpBusinessSaleNativeRevision $cap Rehearse
+if($r.phase-cne'Prepared'-or!$r.rehearsed){throw 'CANDIDATE_REHEARSAL_NOT_PREPARED'}
+$opens=$script:opens;$trace=$script:trace.Count;$backup=$r.backup
+function Assert-ErpBusinessSaleNativeQuiescence {throw 'CONTINUOUS_QUIESCENCE_LOST'}
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Apply}
+if($script:opens-ne$opens-or$script:trace.Count-ne$trace-or$script:commits-ne0-or![object]::ReferenceEquals($backup,$r.backup)){throw 'LOST_PAUSE_APPLIED_OR_REBACKED_UP'};'PASS'
 `),'PASS');
 });
 test('failed compile or unverified backup prevents commit and does not produce Applied',win,()=>{
