@@ -261,6 +261,30 @@ function Get-ReadPairExpectedReleasePins($Config,$Scope){
  return [pscustomobject][ordered]@{policy='test125-package-file-identity.v2';baseRoot=$Config.ReleaseRoot;baseManifest=$Config.ManifestSha256;currentApiRoot=$Scope.current.ReleaseRoot;currentApiManifest=$Scope.current.ManifestSha256;candidateApiRoot=$Scope.candidate.ReleaseRoot;candidateApiManifest=$Scope.candidate.ManifestSha256;node=$Config.NodePath;nodeSha256=$Config.NodeSha256;source=$Config.SourceCommit;database=$Config.ExpectedDatabase}
 }
 function Get-ReadPairControllerHash([byte[]]$Bytes){$sha=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($sha.ComputeHash($Bytes)).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}}
+function Get-ReadPairInstallFailureSite($Failure){
+ # Location only: never Message, source text, target object, stack or argv.
+ if($Failure-isnot[Management.Automation.ErrorRecord]){return $null}
+ if(!$Failure.InvocationInfo){return [ordered]@{diagnosticUnavailable=$true}}
+ $knownLeaves=@(
+  'reviewed-installer-source.ps1'
+  'install-business-5244-readpair.ps1'
+  'business-5244-startup-exclusion.ps1'
+  'start-business-5244-web.ps1'
+  'business-5244-retirement-channel.ps1'
+  'business-5244-retirement-state.ps1'
+  'business-5244-maintenance-dispatch.ps1'
+  'start-business-5244-owned.ps1'
+  'test125-bound-api-quiescence.ps1'
+  'test125-bound-maintenance-plan.ps1'
+  'start-owned-test.ps1'
+  'canonical-business-sale-maintenance.ps1'
+  'run-current-owner.ps1'
+ )
+ $leaf=[IO.Path]::GetFileName([string]$Failure.InvocationInfo.ScriptName);$id=[string]$Failure.FullyQualifiedErrorId;$type=$Failure.Exception.GetType().FullName
+ $safeId=if($id-cin@('PropertyNotFoundStrict','VariableIsUndefined','MethodNotFound','ParameterArgumentValidationError','ParameterBindingValidationException')){$id}else{$null}
+ $safeType=if($type-cin@('System.Management.Automation.RuntimeException','System.Management.Automation.PropertyNotFoundException','System.Management.Automation.MethodInvocationException','System.Management.Automation.ParameterBindingValidationException','System.ArgumentException','System.InvalidOperationException','System.IO.IOException','System.UnauthorizedAccessException','System.Data.SqlClient.SqlException')){$type}else{$null}
+ return [ordered]@{scriptLeaf=$(if($leaf-cin$knownLeaves){$leaf}else{$null});scriptLineNumber=[int]$Failure.InvocationInfo.ScriptLineNumber;errorId=$safeId;errorIdSha256=$(if($id-and!$safeId){Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($id))}else{$null});exceptionType=$safeType;exceptionTypeSha256=$(if(!$safeType){Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($type))}else{$null})}
+}
 function Get-B6ReadPairOwnerArguments([string]$Root,[string]$Hash){
  $kind=$b6.owner.predecessorEntryKind
  if($kind-ceq'CurrentInitializerClean'){
@@ -402,17 +426,17 @@ function Cancel-B6ReadPairActiveEntryHandoff {
 }
 function Open-B6RehearsalPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
  # Separate immutable generation: legacy failed packages are never rewritten.
- $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029';$proof=Join-Path $private 'owner-preparation'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029';$proof=Join-Path $private 'owner-preparation-v2'
  if(!$Apply-or!$RehearsalOnly-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'^[a-fA-F0-9]{64}$'){throw 'B6_REHEARSAL_REVIEWED_ENTRY_REQUIRED'}
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
  if((Get-FileHash -LiteralPath $node).Hash-cne'3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'){throw 'B6_CONTROLLER_NODE_CHANGED'}
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
-  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'e0e03a809edd95ae9bdeb628db762a2074fe0afb0a0c4d0c701ec68e3f701d85'
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'd770ccf58e9008d83fcbc0e16e5745357a70fad1e1fda99ade0e72383eb0d597'
   $verifiedText=& $node $producer --verify-rehearsal
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'};$v=$verifiedText|ConvertFrom-Json
-  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH'
+  $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V2';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V2'
   if($v.schema-cne'melisa-b6-rehearsal-owner-verification.v1'-or$v.rehearsalOnly-isnot[bool]-or!$v.rehearsalOnly-or$v.runtimeValidationComplete-ne$false-or$v.postExitExclusiveBytesRequired-ne$true-or$v.postExitExclusiveEntryCount-ne18-or$v.coreFiles-ne13-or$v.beforeImages-ne6-or$v.writes-ne0-or$v.sqlCalls-ne0-or$v.serviceCalls-ne0-or$v.ownerCalls-ne0-or$v.taskChanges-ne0-or$v.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()-or$v.coreRoot-cne$core-or$v.routerRoot-cne$router){throw 'B6_REHEARSAL_SOURCE_NOT_VERIFIED'}
   Hold-B6ReadPairSource (Join-Path $core 'owner-manifest.json') $v.coreManifestSha256;Hold-B6ReadPairSource (Join-Path $router 'owner-manifest.json') $v.routerManifestSha256
   $m=Get-Content -LiteralPath (Join-Path $core 'owner-manifest.json') -Raw|ConvertFrom-Json;$rm=Get-Content -LiteralPath (Join-Path $router 'owner-manifest.json') -Raw|ConvertFrom-Json
@@ -445,7 +469,7 @@ function Open-B6ReadPairPreparedSource([string]$ReviewedSourceHash,[string]$Entr
   # Its literal pin has no self-cycle: the producer reads installer Git bytes
   # only at preparation time; it embeds no installer/content hash in its source.
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  Hold-B6ReadPairSource $producer 'e0e03a809edd95ae9bdeb628db762a2074fe0afb0a0c4d0c701ec68e3f701d85'
+  Hold-B6ReadPairSource $producer 'd770ccf58e9008d83fcbc0e16e5745357a70fad1e1fda99ade0e72383eb0d597'
   $verifiedText=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'}
   $verified=$verifiedText|ConvertFrom-Json
@@ -492,7 +516,7 @@ function Open-B6ReadPairPublication {
  if(!$RehearsalOnly){$direct+=@((Join-Path $b6.owner.router.root 'start-business-5244-readpair-router.ps1'),(Join-Path $b6.owner.core.root 'run-current-owner.ps1'))}
  if($RehearsalOnly){
   $direct=@($direct|Select-Object -First 6)+@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLCOLLATION\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029\run-current-owner.ps1')
-  if($capture.runtimeValidationComplete-ne$false-or$capture.postExitExclusiveBytesRequired-ne$true-or$capture.postExitExclusiveEntryCount-ne18){throw 'B6_ENTRY_RUNTIME_PROOF_REQUIRED'}
+  if($capture.runtimeValidationComplete-ne$false-or$b6.owner.entry.postExitExclusiveBytesRequired-ne$true-or$b6.owner.entry.runtimeEntryBytesVerified-ne$false-or$capture.postExitExclusiveEntryCount-ne18){throw 'B6_ENTRY_RUNTIME_PROOF_REQUIRED'}
  }
  if(($capture.directEntries.path-join'|')-cne($direct-join'|')){throw 'B6_DIRECT_ENTRY_SCOPE_CHANGED'}
  $script:before=Protection-Snapshot;$result.before=$before
@@ -845,7 +869,7 @@ function Open-Business5244CurrentSupersessionSource([string]$ReviewedSourceHash,
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
  $producer=Join-Path $proof 'verified-owner-producer.mjs'
- Hold-B6ReadPairSource $producer 'e0e03a809edd95ae9bdeb628db762a2074fe0afb0a0c4d0c701ec68e3f701d85'
+ Hold-B6ReadPairSource $producer 'd770ccf58e9008d83fcbc0e16e5745357a70fad1e1fda99ade0e72383eb0d597'
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe'
  if((Get-FileHash -LiteralPath $node).Hash-ine'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'){throw 'CURRENT_SUPERSESSION_NODE_CHANGED'}
  $action=if($InitializerCleanRecovery){'--verify-initializer-clean-recovery'}else{'--verify-current-supersession'}
@@ -952,7 +976,7 @@ if($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){
   $resultPath=Join-Path $proofDir 'result.json';$result=[ordered]@{status='PREPARING';scope=$ScopeName;sourceCommit=$b6.sourceCommit;stopCalls=0;startCalls=0;retireAttempts=0;outcome=$null;before=$null;final=$null;failure=$null}
   $held=[Collections.Generic.List[object]]::new();$created=[Collections.Generic.List[object]]::new();$control=$null;$newHost=$null;$newResourceRows=@();$oldResourceRows=@();$before=$null;$ready=$null;$status=$null;$webResources=@();$archives=@()
   function Record-Phase([string]$Phase){$result.status=$Phase;[IO.File]::WriteAllText($resultPath,($result|ConvertTo-Json -Depth 16));[Console]::WriteLine((@{phase=$Phase;utc=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json -Compress));[Console]::Out.Flush()}
-  try{Invoke-ReadPairInstallSequence}catch{$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}
+  try{Invoke-ReadPairInstallSequence}catch{$result.failureSite=Get-ReadPairInstallFailureSite $_;$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}
  }finally{
   if($b6ReadProof){Close-ErpReadPairReleaseProof $b6ReadProof;$b6ReadProof=$null}
   foreach($stream in $b6SourceHandles){$stream.Dispose()}
@@ -986,4 +1010,4 @@ Check-Bundle $oldRoot $oldHash 'ec316a63b535544e53a566370b1614a1721f940c'
 Initialize-Business5244WebNative;Initialize-Business5244RetirementPeer;$pins=Get-Business5244WebPins
 $generation=[Business5244PackageSeal]::new()
 try{if(!$generation.GetType().GetProperty('PolicyVersion')-or$generation.PolicyVersion-cne'test125-package-file-identity.v2'){throw 'READPAIR_PREPARED_API_CORE_GENERATION_REQUIRED'}}finally{$generation.Dispose()}
-try{Invoke-ReadPairInstallSequence}catch{$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}
+try{Invoke-ReadPairInstallSequence}catch{$result.failureSite=Get-ReadPairInstallFailureSite $_;$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}

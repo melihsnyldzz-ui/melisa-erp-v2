@@ -86,7 +86,7 @@ function fixture(options={}){
   const webRecord={port:5244,pid:44612,entry:'vite-preview',sourceCommit:'2b744f5b9ebda05b1355602126b1a8e5f114be83',root:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-2b744f5b-API-READ`,backendPort:4144,businessWorkfaceId:'ERP-5244-REALDATA-20261027'};
   const exe=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`;
   const capture={schema:'melisa-b6-current-read2b-owner-capture.v1',predecessorEntryKind:'CurrentInitializerClean',entry:{sha256:entryHash,postExitExclusiveBytesRequired:true,leaf:'run-current-owner.ps1',root:core,manifestSha256:coreHash,runtimeEntryBytesVerified:false},readOnly:true,stopAuthorized:false,recordPath:String.raw`C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json`,recordBeforeFile:'current-erp-processes.before.json',recordBeforeSha256:pins['current-erp-processes.before.json'],webRecord,owner:{pid:31212,birth:'134377334934998450',exe,argv:'"'+exe+'" -NoProfile -NonInteractive -WindowStyle Hidden -File '+win.join(core,'run-current-owner.ps1')+' -ManifestSha256 '+coreHash.toUpperCase()+' -ScopeName '+value('SCOPE')},child:{pid:44612,parent:31212,birth:'134377336265107097'},nativeStatus:{reply:'Status',state:{phase:'Running',ownerPid:31212,ownerBirth:'134377334934998450',childPid:44612,childBirth:'134377336265107097'},childObservationOnly:true,nativePeerVerified:true,stopAuthorized:false},installedApiManifest:'8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090',installedWebManifest:'91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd',serviceCalls:0,sqlCalls:0,retireCalls:0};
-  const prior=JSON.parse(inputs.get(win.join(value('INITIALIZER_CLEAN_PRIVATE'),'entry-hold-capture.json'))),entries={...prior,schema:'melisa-b6-rehearsal-current-entry-capture.v1',ownerCaptureSha256:pins['current-read2b-owner-capture.json'],directEntries:[...prior.directEntries,{path:win.join(core,'run-current-owner.ps1'),sha256:entryHash}],postExitExclusiveEntryCount:18,runtimeValidationComplete:false};
+  const prior=JSON.parse(inputs.get(win.join(value('INITIALIZER_CLEAN_PRIVATE'),'entry-hold-capture.json'))),entries={...prior,schema:'melisa-b6-rehearsal-current-entry-capture.v1',observedAt:'2026-10-29T02:58:01.7051987Z',ownerCaptureSha256:pins['current-read2b-owner-capture.json'],directEntries:[...prior.directEntries,{path:win.join(core,'run-current-owner.ps1'),sha256:entryHash}],postExitExclusiveEntryCount:18,runtimeValidationComplete:false};
   const task={schema:'melisa-b6-task-capture.v1',readOnly:true,taskPath:'\\Melisa-ERP-TEST-Canonical',instanceCount:1,enginePid:46232,xmlSha256:pins['current-task.before.xml'],sddlSha256:pins['current-task.before.sddl'],writes:0};
   for(const [name,b]of [['current-read2b-owner-capture.json',Buffer.from(JSON.stringify(capture))],['current-erp-processes.before.json',Buffer.from(JSON.stringify([webRecord]))],['current-entry-hold-capture.json',Buffer.from(JSON.stringify(entries))],['current-task-capture.json',Buffer.from(JSON.stringify(task))],['current-task.before.xml',Buffer.from('<inert-fixture/>')],['current-task.before.sddl',Buffer.from('INERT_SDDL')]]){inputs.set(win.join(priv,name),b);overrides.set(b.toString('hex'),pins[name]);}
  }
@@ -362,6 +362,22 @@ test('Rehearsal verification rejects purpose, runtime-proof or payload changes a
    else if(kind==='frozenPrepare')assert.throws(f.runRehearsal,/SOURCE_ENTRY/);
    else assert.throws(f.verifyRehearsal);
    assert.equal(f.writes(),before);
+  }finally{f.close();}
+ }
+});
+
+
+test('Rehearsal V2 uses exact captured entry fields without inventing a top-level post-exit flag',()=>{
+ const f=fixture({rehearsal:true});try{
+  assert(f.values('REHEARSAL_CORE').endsWith('-PERMHASH-V2'));assert(f.values('REHEARSAL_ROUTER').endsWith('-PERMHASH-V2'));assert(f.values('REHEARSAL_PROOF').endsWith('owner-preparation-v2'));
+  const priv=f.values('REHEARSAL_PRIVATE'),leaf='current-entry-hold-capture.json',capture=JSON.parse(f.inputs.get(path.win32.join(priv,leaf)));
+  assert.deepEqual(Object.keys(capture).sort(),['schema','observedAt','readOnly','executionAuthority','ownerCaptureSha256','gate','entries','directEntries','entryWrites','serviceCalls','sqlCalls','postExitExclusiveEntryCount','runtimeValidationComplete'].sort());
+  assert.equal(Object.hasOwn(capture,'postExitExclusiveBytesRequired'),false);assert.equal(f.values('rehearsalPredecessor().capture.entry.postExitExclusiveBytesRequired'),true);assert.equal(f.writes(),0);
+ }finally{f.close();}
+ for(const kind of ['extraFlag','missingField','wrongDate','entryExtra','entryMissing']){
+  const f=fixture({rehearsal:true});try{const priv=f.values('REHEARSAL_PRIVATE'),leaf=kind.startsWith('entry')?'current-read2b-owner-capture.json':'current-entry-hold-capture.json',pin=f.values('REHEARSAL_INPUTS')[leaf];
+   f.mutatePinnedJson(path.win32.join(priv,leaf),pin,c=>{if(kind==='extraFlag')c.postExitExclusiveBytesRequired=true;else if(kind==='missingField')delete c.observedAt;else if(kind==='wrongDate')c.observedAt='2026-10-29T03:00:00Z';else if(kind==='entryExtra')c.entry.extra=true;else delete c.entry.postExitExclusiveBytesRequired;});
+   assert.throws(()=>f.values('rehearsalPredecessor()'),/REHEARSAL_(ENTRY_CAPTURE|PREDECESSOR)_REJECTED/);assert.equal(f.writes(),0);
   }finally{f.close();}
  }
 });

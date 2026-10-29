@@ -62,7 +62,7 @@ win('B6 Current and Candidate config checks are exact and cannot exchange scopes
 });
 win('B6 task launcher resolution requires the genuine sealed fixed core and preserves the original principal and arguments',()=>{
  assert.equal(run(`${fixture}
- $proof=[pscustomobject]@{opaque='test-only'};$fixed='C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH\\start-owned-test.ps1';$script:pinPath=$fixed;$script:fileHash=('a'*64)
+ $proof=[pscustomobject]@{opaque='test-only'};$fixed='C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V2\\start-owned-test.ps1';$script:pinPath=$fixed;$script:fileHash=('a'*64)
  function Get-ErpBusinessSaleTaskLauncherPins($Token){if(![object]::ReferenceEquals($Token,$proof)){throw 'FAKE_RELEASE_PROOF'};return @{path=$script:pinPath;sha256=('a'*64);coreManifestSha256=('b'*64)}}
  function Get-FileHash($LiteralPath,$Algorithm){if($LiteralPath-cne$fixed-or$Algorithm-cne'SHA256'){throw 'UNPINNED_HASH_READ'};return @{Hash=$script:fileHash}}
  Assert-Test125MaintenanceTask $task $cfg 'C:\\fixture\\startup.json' -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Current|Out-Null

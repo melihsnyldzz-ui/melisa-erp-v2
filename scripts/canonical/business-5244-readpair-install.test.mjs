@@ -2,6 +2,12 @@ import test from 'node:test';import assert from 'node:assert/strict';import fs f
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-readpair-install-')));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-install-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
+win('installer failure site retains the real strict property error and line without source text or target values',()=>{
+ assert.equal(run(String.raw`Set-StrictMode -Version Latest;$record=$null;try{$item=[pscustomobject]@{present=1};$item.missingFixtureField}catch{$record=$_};$site=Get-ReadPairInstallFailureSite $record;$json=$site|ConvertTo-Json -Compress;if($site.errorId-cne'PropertyNotFoundStrict'-or$site.scriptLineNumber-le0-or$site.exceptionType-cne'System.Management.Automation.PropertyNotFoundException'-or$json.Contains('missingFixtureField')-or$json.Contains('present')-or$json.Contains('Message')-or$json.Contains('TargetObject')){throw 'INSTALL_FAILURE_LOCATION_LOST'};'PASS'`),'PASS');
+});
+win('unknown installer error identifiers are hashed and never carry arbitrary exception messages into the receipt',()=>{
+ assert.equal(run(String.raw`$marker='deneme-'+('ab'*16);$record=$null;try{throw $marker}catch{$record=$_};$site=Get-ReadPairInstallFailureSite $record;$json=$site|ConvertTo-Json -Compress;if($site.errorId-or$site.errorIdSha256-cnotmatch'^[a-f0-9]{64}$'-or$json.Contains($marker)-or$json.Contains('Message')-or(Get-ReadPairInstallFailureSite ([pscustomobject]@{Message=$marker}))){throw 'INSTALL_FAILURE_LEAKED_VALUE'};'PASS'`),'PASS');
+});
 const inert=String.raw`$script:calls=[Collections.Generic.List[string]]::new();function Open-ReadPairPublication{$calls.Add('open')};function Assert-ReadPairColdTarget{$calls.Add('target')};function Stop-ReadPairColdOwner{$calls.Add('coldstop')};function Start-ReadPairPreparedOwner{$calls.Add('start')};function Assert-ReadPairPreparedOwner{$calls.Add('ready')};function Send-ReadPairSingleRetire{$calls.Add('retire')};function Wait-ReadPairFinalState{$calls.Add('readback');return 'CandidateVerified'};function Complete-ReadPairPublication($Outcome){$calls.Add($Outcome)};function Restore-ReadPairBeforeRetire([bool]$OldStopped){$calls.Add('restore:'+ $OldStopped)};function Close-ReadPairPublication{$calls.Add('close')};function Record-Phase($Phase){$calls.Add($Phase)};`;
 const activeFixture=String.raw`
 . __STARTUP__ -Library
@@ -291,28 +297,28 @@ win('RehearsalOnly CLI rejects wrong scope and combined recovery modes before im
 win('RehearsalOnly source constructor rejects wrong purpose, scope, entry and hash before native or protected reads',()=>{
  assert.equal(run(String.raw`
  $script:actions=0;function Assert-ReadPairPath{$script:actions++;throw 'UNEXPECTED_FILE'};function Hold-B6ReadPairSource{$script:actions++;throw 'UNEXPECTED_SOURCE'};function Get-CimInstance{$script:actions++;throw 'UNEXPECTED_PROCESS'}
- $fixed='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029\owner-preparation\reviewed-installer-source.ps1'
- foreach($mode in @('no-apply','no-purpose','scope','entry','hash')){
-  $script:Apply=$mode-cne'no-apply';$script:RehearsalOnly=$mode-cne'no-purpose';$script:ScopeName=if($mode-ceq'scope'){'TEST125-API-READ2b-20261028-41d3c213'}else{'TEST125-API-B6-ca620bac-20261028'};$path=if($mode-ceq'entry'){'C:\wrong\reviewed-installer-source.ps1'}else{$fixed};$hash=if($mode-ceq'hash'){'not-a-hash'}else{'a'*64}
+ $fixed='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029\owner-preparation-v2\reviewed-installer-source.ps1'
+ foreach($mode in @('no-apply','no-purpose','scope','entry','old-proof','hash')){
+  $script:Apply=$mode-cne'no-apply';$script:RehearsalOnly=$mode-cne'no-purpose';$script:ScopeName=if($mode-ceq'scope'){'TEST125-API-READ2b-20261028-41d3c213'}else{'TEST125-API-B6-ca620bac-20261028'};$path=if($mode-ceq'entry'){'C:\wrong\reviewed-installer-source.ps1'}elseif($mode-ceq'old-proof'){$fixed.Replace('owner-preparation-v2','owner-preparation')}else{$fixed};$hash=if($mode-ceq'hash'){'not-a-hash'}else{'a'*64}
   $caught='';try{Open-B6RehearsalPreparedSource $hash $path|Out-Null}catch{$caught=$_.Exception.Message};if($caught-cne'B6_REHEARSAL_REVIEWED_ENTRY_REQUIRED'-or$script:actions){throw ('REHEARSAL_SOURCE_GUARD_'+$mode)}
  };'PASS'`),'PASS');
 });
-win('RehearsalOnly missing isolated owner bundle cannot reach verifier execution, native admission or stop',()=>{
+win('RehearsalOnly V2 scoped constructor reaches only the fixed absent bundle hold before verifier, native admission or stop',()=>{
  assert.equal(run(String.raw`
  $script:Apply=$true;$script:RehearsalOnly=$true;$script:ScopeName='TEST125-API-B6-ca620bac-20261028';$script:holds=0;$script:effects=0
  $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029';$isolated=Join-Path $PSScriptRoot 'absent-bundle'
  $definition=(Get-Command Open-B6RehearsalPreparedSource).Definition.Replace($private,$isolated);Set-Item Function:Open-B6RehearsalPreparedSource ([scriptblock]::Create($definition))
  function Assert-ReadPairPath($Path){if($Path-cne'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'){throw 'UNEXPECTED_PATH'}}
  function Get-FileHash{[pscustomobject]@{Hash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'}}
- function Hold-B6ReadPairSource($Path,$Hash){$script:holds++;if(Test-Path -LiteralPath $Path){throw 'UNEXPECTED_BUNDLE_PRESENT'};throw 'ISOLATED_BUNDLE_ABSENT'}
+ function Hold-B6ReadPairSource($Path,$Hash){$script:holds++;if($Path-cne(Join-Path $isolated 'owner-preparation-v2\reviewed-installer-source.ps1')-or$Hash-cne('a'*64)){throw 'V2_SCOPED_SOURCE_HOLD_WIDENED'};if(Test-Path -LiteralPath $Path){throw 'UNEXPECTED_BUNDLE_PRESENT'};throw 'ISOLATED_BUNDLE_ABSENT'}
  function New-ErpBusinessSaleNativeProfileAdmission{$script:effects++;throw 'UNEXPECTED_ADMISSION'};function Stop-ReadPairColdOwner{$script:effects++;throw 'UNEXPECTED_STOP'}
- $caught='';try{Open-B6RehearsalPreparedSource ('a'*64) (Join-Path $isolated 'owner-preparation\reviewed-installer-source.ps1')|Out-Null}catch{$caught=$_.Exception.Message}
+ $caught='';try{Open-B6RehearsalPreparedSource ('a'*64) (Join-Path $isolated 'owner-preparation-v2\reviewed-installer-source.ps1')|Out-Null}catch{$caught=$_.Exception.Message}
  if($caught-cne'ISOLATED_BUNDLE_ABSENT'-or$script:holds-ne1-or$script:effects-ne0-or(Test-Path -LiteralPath $isolated)){throw 'ABSENT_REHEARSAL_BUNDLE_EXECUTED'};'PASS'`),'PASS');
 });
 const initializerEntryFixture=String.raw`
 $script:RehearsalOnly=$true;$script:ScopeName='TEST125-API-B6-ca620bac-20261028'
-$entry=[pscustomobject]@{root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029';leaf='run-current-owner.ps1';manifestSha256='6440b313e11bf61a4efaf11c1067630f08632169e6fbbf7c866d0b63e22da2f0';sha256='ebc933faf015aadc32be74f7abeaef66252ef3bc72dc52ebac265ced9ed577e5'}
-$script:b6=[pscustomobject]@{owner=[pscustomobject]@{predecessorEntryKind='CurrentInitializerClean';entry=$entry;owner=[pscustomobject]@{pid=31212}};coreRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH';coreHash=('a'*64);routerRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH';routerHash=('b'*64);entryCapture=[pscustomobject]@{directEntries=@([pscustomobject]@{path=(Join-Path $entry.root $entry.leaf);sha256=$entry.sha256})}}
+$entry=[pscustomobject]@{root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029';leaf='run-current-owner.ps1';manifestSha256='6440b313e11bf61a4efaf11c1067630f08632169e6fbbf7c866d0b63e22da2f0';sha256='ebc933faf015aadc32be74f7abeaef66252ef3bc72dc52ebac265ced9ed577e5';postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false}
+$script:b6=[pscustomobject]@{owner=[pscustomobject]@{predecessorEntryKind='CurrentInitializerClean';entry=$entry;owner=[pscustomobject]@{pid=31212}};coreRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V2';coreHash=('a'*64);routerRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V2';routerHash=('b'*64);entryCapture=[pscustomobject]@{directEntries=@([pscustomobject]@{path=(Join-Path $entry.root $entry.leaf);sha256=$entry.sha256})}}
 `;
 win('CurrentInitializerClean argv and active-entry mapping bind exact captured root, manifest, leaf and B6 scope',()=>{
  assert.equal(run(initializerEntryFixture+String.raw`
@@ -332,7 +338,7 @@ $script:pins=@{runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'};$scr
 $legacy=@('start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'|ForEach-Object{Join-Path $pins.runtime $_})+@('C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1')
 $roots=@('ERP-BUSINESS-5244-READ2B-ROUTER-b9416929-20261028','ERP-BUSINESS-5244-OWNER-b9416929-20261028','ERP-BUSINESS-5244-B6-ROUTER-20261028','ERP-BUSINESS-5244-B6-OWNER-20261028','ERP-BUSINESS-5244-B6-ROUTER-20261029','ERP-BUSINESS-5244-B6-OWNER-20261029','ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE','ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE','ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLCOLLATION','ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION','ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029','ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029')
 $direct=@(foreach($root in $roots){$leaf=if($root.Contains('ROUTER')){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'};$path=Join-Path ('C:\Sirket\ERP\releases\'+$root) $leaf;[pscustomobject]@{path=$path;sha256=$(if($root-ceq'ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029'){$entry.sha256}else{'a'*64})}})
-$b6.entryCapture=[pscustomobject]@{schema='melisa-b6-rehearsal-current-entry-capture.v1';readOnly=$true;executionAuthority=$false;entries=@($legacy|ForEach-Object{[pscustomobject]@{path=$_;beforeSha256=('a'*64);afterEqualsBefore=$true}});directEntries=$direct;entryWrites=0;serviceCalls=0;sqlCalls=0;ownerCaptureSha256='2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364';gate=[pscustomobject]@{path='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1';sha256='a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'};runtimeValidationComplete=$false;postExitExclusiveBytesRequired=$true;postExitExclusiveEntryCount=18}
+$b6.entryCapture=[pscustomobject]@{schema='melisa-b6-rehearsal-current-entry-capture.v1';observedAt='2026-10-29T00:00:00.0000000Z';readOnly=$true;executionAuthority=$false;entries=@($legacy|ForEach-Object{[pscustomobject]@{path=$_;beforeSha256=('a'*64);afterEqualsBefore=$true}});directEntries=$direct;entryWrites=0;serviceCalls=0;sqlCalls=0;ownerCaptureSha256='2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364';gate=[pscustomobject]@{path='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1';sha256='a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'};postExitExclusiveEntryCount=18;runtimeValidationComplete=$false}
 $protected=[pscustomobject]@{listeners=@();processes=@();files=@([pscustomobject]@{path='fixture-protected';hash=('a'*64)})};$b6.owner|Add-Member protectedSnapshot $protected;$script:observed=$protected|ConvertTo-Json -Depth 20|ConvertFrom-Json
 function Protection-Snapshot{return $script:observed}
 function Get-ReadPairExpectedHashes($ScopeName,$NativeProfileAdmission){if($ScopeName-cne'TEST125-API-B6-ca620bac-20261028'-or![object]::ReferenceEquals($NativeProfileAdmission,$script:b6NativeAdmission)){throw 'PUBLICATION_NATIVE_REFERENCE_CHANGED'};return @{fixture='expected-only'}}
@@ -342,18 +348,20 @@ function Get-CimInstance($ClassName){if($ClassName-cne'Win32_Process'){throw 'UN
 function Get-ChildItem($LiteralPath,$Filter,[switch]$File){if($LiteralPath-cne$pins.runtime-or$Filter-cne'5244-retirement.pending.*.completed'-or!$File){throw 'UNEXPECTED_ARCHIVE_QUERY'};return @()}
 function Record-Phase($Phase){$script:phases.Add($Phase)}
 `;
-win('RehearsalOnly publication retains the finite six legacy and twelve direct entry metadata without rewriting or granting runtime proof',()=>{
+win('RehearsalOnly publication accepts the real v1 capture shape without an invented top-level post-exit flag',()=>{
  assert.equal(run(rehearsalPublicationFixture+String.raw`
+ $expectedFields=@('schema','observedAt','readOnly','executionAuthority','ownerCaptureSha256','gate','entries','directEntries','entryWrites','serviceCalls','sqlCalls','postExitExclusiveEntryCount','runtimeValidationComplete')
+ if((@($b6.entryCapture.PSObject.Properties.Name|Sort-Object)-join'|')-cne(@($expectedFields|Sort-Object)-join'|')-or$b6.entryCapture.PSObject.Properties['postExitExclusiveBytesRequired']-or!$b6.owner.entry.postExitExclusiveBytesRequired-or$b6.owner.entry.runtimeEntryBytesVerified){throw 'NONEXISTENT_CAPTURE_FIELD_PADDED'}
  Open-B6ReadPairPublication
  if($script:heldPaths.Count-ne18-or$script:heldPaths.Contains((Join-Path $entry.root $entry.leaf))-or$script:phases.Count-ne1-or$script:phases[0]-cne'B6_CURRENT_ENTRIES_HELD_UNCHANGED_NOT_RETIRED'-or$b6.entryCapture.runtimeValidationComplete-or$b6.entryCapture.executionAuthority){throw 'PUBLICATION_SCOPE_OR_AUTHORITY_CHANGED'}
  foreach($path in $legacy){if(!$script:heldPaths.Contains($path)){throw 'LEGACY_ENTRY_OMITTED'}};'PASS'`),'PASS');
 });
 win('RehearsalOnly publication rejects finite scope, protection and proof-claim drift before holding entry bytes',()=>{
  assert.equal(run(rehearsalPublicationFixture+String.raw`
- $saved=$b6.entryCapture|ConvertTo-Json -Depth 20
- foreach($case in @('direct-count','direct-order','owner-capture','metadata-write','runtime-claim','postexit','gate','protection')){
-  $b6.entryCapture=$saved|ConvertFrom-Json;$script:observed=$protected|ConvertTo-Json -Depth 20|ConvertFrom-Json
-  switch($case){'direct-count'{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 11)}'direct-order'{$row=$b6.entryCapture.directEntries[0];$b6.entryCapture.directEntries[0]=$b6.entryCapture.directEntries[1];$b6.entryCapture.directEntries[1]=$row}'owner-capture'{$b6.entryCapture.ownerCaptureSha256=('a'*64)}'metadata-write'{$b6.entryCapture.entryWrites=1}'runtime-claim'{$b6.entryCapture.runtimeValidationComplete=$true}postexit{$b6.entryCapture.postExitExclusiveBytesRequired=$false}gate{$b6.entryCapture.gate.sha256=('a'*64)}protection{$script:observed.files[0].hash=('b'*64)}}
+ $saved=$b6.entryCapture|ConvertTo-Json -Depth 20;$savedEntry=$b6.owner.entry|ConvertTo-Json -Compress
+ foreach($case in @('direct-count','direct-order','owner-capture','metadata-write','runtime-claim','postexit','entry-runtime-claim','missing-entry-postexit','missing-entry-runtime','gate','protection')){
+  $b6.entryCapture=$saved|ConvertFrom-Json;$b6.owner.entry=$savedEntry|ConvertFrom-Json;$entry=$b6.owner.entry;$script:observed=$protected|ConvertTo-Json -Depth 20|ConvertFrom-Json
+  switch($case){'direct-count'{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 11)}'direct-order'{$row=$b6.entryCapture.directEntries[0];$b6.entryCapture.directEntries[0]=$b6.entryCapture.directEntries[1];$b6.entryCapture.directEntries[1]=$row}'owner-capture'{$b6.entryCapture.ownerCaptureSha256=('a'*64)}'metadata-write'{$b6.entryCapture.entryWrites=1}'runtime-claim'{$b6.entryCapture.runtimeValidationComplete=$true}postexit{$b6.owner.entry.postExitExclusiveBytesRequired=$false}'entry-runtime-claim'{$b6.owner.entry.runtimeEntryBytesVerified=$true}'missing-entry-postexit'{$b6.owner.entry.PSObject.Properties.Remove('postExitExclusiveBytesRequired')}'missing-entry-runtime'{$b6.owner.entry.PSObject.Properties.Remove('runtimeEntryBytesVerified')}gate{$b6.entryCapture.gate.sha256=('a'*64)}protection{$script:observed.files[0].hash=('b'*64)}}
   $denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$script:heldPaths.Count-or$script:phases.Count){throw ('PUBLICATION_METADATA_ACCEPTED_'+$case)}
  };'PASS'`),'PASS');
 });

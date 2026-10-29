@@ -15,10 +15,10 @@ const PROOF=path.win32.join(PRIVATE,'owner-preparation');
 const VERIFIED_PRODUCER=path.win32.join(PROOF,'verified-owner-producer.mjs');
 // A distinct, finite producer generation. The historical SQLCOLLATION roots
 // above remain literal history inputs, never aliases for these new outputs.
-const REHEARSAL_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH');
-const REHEARSAL_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH');
+const REHEARSAL_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V2');
+const REHEARSAL_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V2');
 const REHEARSAL_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-native-rehearsal-debafecb-20261029`;
-const REHEARSAL_PROOF=path.win32.join(REHEARSAL_PRIVATE,'owner-preparation');
+const REHEARSAL_PROOF=path.win32.join(REHEARSAL_PRIVATE,'owner-preparation-v2');
 const REHEARSAL_VERIFIER=path.win32.join(REHEARSAL_PROOF,'verified-owner-producer.mjs');
 // Missing preparation data is a closed source blocker, not a caller option.
 // Exact fresh capture hashes are filled only from the owner's read-only case.
@@ -325,6 +325,8 @@ function rehearsalPredecessor(){
  const coreRoot=INITIALIZER_CLEAN_CORE,manifestHash='6440b313e11bf61a4efaf11c1067630f08632169e6fbbf7c866d0b63e22da2f0',source='1e6ff9f0fa4467cb532c26182b1334558b13bfaa',entryHash='ebc933faf015aadc32be74f7abeaef66252ef3bc72dc52ebac265ced9ed577e5';
  const exe=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,ownerArgv='"'+exe+'" -NoProfile -NonInteractive -WindowStyle Hidden -File '+path.join(coreRoot,'run-current-owner.ps1')+' -ManifestSha256 '+manifestHash.toUpperCase()+' -ScopeName '+SCOPE;
  if(capture.schema!=='melisa-b6-current-read2b-owner-capture.v1'||capture.predecessorEntryKind!=='CurrentInitializerClean'||capture.readOnly!==true||capture.stopAuthorized!==false||capture.recordPath!==String.raw`C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json`||capture.recordBeforeSha256!==REHEARSAL_INPUTS['current-erp-processes.before.json']||capture.recordBeforeFile!=='current-erp-processes.before.json'||capture.entry?.root!==coreRoot||capture.entry.leaf!=='run-current-owner.ps1'||capture.entry.sha256!==entryHash||capture.entry.manifestSha256!==manifestHash||capture.entry.runtimeEntryBytesVerified!==false||capture.entry.postExitExclusiveBytesRequired!==true||capture.owner?.pid!==31212||capture.owner.birth!=='134377334934998450'||capture.owner.exe!==exe||capture.owner.argv!==ownerArgv||capture.child?.pid!==44612||capture.child.birth!=='134377336265107097'||capture.child.parent!==31212)fail('B6_REHEARSAL_PREDECESSOR_REJECTED');
+ const entryKeys=['sha256','postExitExclusiveBytesRequired','leaf','root','manifestSha256','runtimeEntryBytesVerified'];
+ if(Object.keys(capture.entry).sort().join('|')!==entryKeys.sort().join('|'))fail('B6_REHEARSAL_PREDECESSOR_REJECTED');
  const status=capture.nativeStatus;
  if(status?.nativePeerVerified!==true||status.stopAuthorized!==false||status.childObservationOnly!==true||status.reply!=='Status'||status.state?.phase!=='Running'||status.state.ownerPid!==capture.owner.pid||String(status.state.ownerBirth)!==capture.owner.birth||status.state.childPid!==capture.child.pid||String(status.state.childBirth)!==capture.child.birth||capture.serviceCalls!==0||capture.sqlCalls!==0||capture.retireCalls!==0)fail('B6_REHEARSAL_PREDECESSOR_REJECTED');
  if(capture.installedApiManifest!=='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'||capture.installedWebManifest!=='91ee8b23c37a46ec89f8060967bc7a0106f68f2de9a4a1f4199941cce5a9e0fd')fail('B6_REHEARSAL_CURRENT_PAIR_REJECTED');
@@ -337,6 +339,8 @@ function rehearsalPredecessor(){
  if(task.schema!=='melisa-b6-task-capture.v1'||task.readOnly!==true||task.taskPath!=='\\Melisa-ERP-TEST-Canonical'||task.instanceCount!==1||task.enginePid!==46232||task.xmlSha256!==REHEARSAL_INPUTS['current-task.before.xml']||task.sddlSha256!==REHEARSAL_INPUTS['current-task.before.sddl']||task.writes!==0)fail('B6_REHEARSAL_TASK_CAPTURE_REJECTED');
  const prior=json(pinned(path.join(INITIALIZER_CLEAN_PRIVATE,'entry-hold-capture.json'),INITIALIZER_CLEAN_INPUTS['entry-hold-capture.json']));
  const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+ const entryCaptureKeys=['schema','observedAt','readOnly','executionAuthority','ownerCaptureSha256','gate','entries','directEntries','entryWrites','serviceCalls','sqlCalls','postExitExclusiveEntryCount','runtimeValidationComplete'];
+ if(Object.keys(entries).sort().join('|')!==entryCaptureKeys.sort().join('|')||typeof entries.observedAt!=='string'||entries.observedAt!=='2026-10-29T02:58:01.7051987Z')fail('B6_REHEARSAL_ENTRY_CAPTURE_REJECTED');
  if(entries.schema!=='melisa-b6-rehearsal-current-entry-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.ownerCaptureSha256!==REHEARSAL_INPUTS['current-read2b-owner-capture.json']||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0||entries.runtimeValidationComplete!==false||entries.postExitExclusiveEntryCount!==18||entries.entries?.length!==6||entries.directEntries?.length!==12||!same(entries.entries,prior.entries)||!same(entries.directEntries.slice(0,11),prior.directEntries)||!same(entries.directEntries[11],{path:path.join(coreRoot,'run-current-owner.ps1'),sha256:entryHash})||!same(entries.gate,prior.gate))fail('B6_REHEARSAL_ENTRY_CAPTURE_REJECTED');
  // Only metadata is available for these eighteen held entry leaves. Their
  // exact bytes remain a mandatory post-exit exclusive-runtime check.
