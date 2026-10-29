@@ -262,8 +262,10 @@ win('readonly paired rollback manifest verification accepts the same digest case
 
 
 win('finite Web-only null-API dispatcher switches or rolls back only WEB with real owned Jobs and no API task profile or SQL mutator',()=>{
- const text=fs.readFileSync(path.join(dir,'business-5244-maintenance-dispatch.test.mjs'),'utf8'),start=text.indexOf('const setup=String.raw`')+'const setup=String.raw`'.length,end=text.indexOf('\n`;\nconst helpers=',start);assert(start>0&&end>start);
- let setup=text.slice(start,end).replace(/^function Get-Business5244MaintenancePlan.*$/m,'').replace(/^function Assert-Business5244MaintenancePlan.*$/m,'');
+ const original=fs.readFileSync(path.join(dir,'business-5244-maintenance-dispatch.test.mjs'),'utf8').replaceAll('\r\n','\n');
+ const blocks=[original,original.replaceAll('\n','\r\n')].map(raw=>{const text=raw.replaceAll('\r\n','\n'),start=text.indexOf('const setup=String.raw`')+'const setup=String.raw`'.length,end=text.indexOf('\n`;\nconst helpers=',start);assert(start>0&&end>start);return text.slice(start,end);});
+ assert.equal(blocks[0],blocks[1],'Git LF and Windows checkout CRLF extract the same real dispatcher fixture');
+ let setup=blocks[0].replace(/^function Get-Business5244MaintenancePlan.*$/m,'').replace(/^function Assert-Business5244MaintenancePlan.*$/m,'');
  for(const [token,name]of Object.entries({__GATE__:'business-5244-startup-exclusion.ps1',__WEB__:'start-business-5244-web.ps1',__STATE__:'business-5244-retirement-state.ps1',__DISPATCH__:'business-5244-maintenance-dispatch.ps1',__NATIVE__:'business-5244-web-native.cs'}))setup=setup.replaceAll(token,path.join(dir,name).replaceAll("'","''"));
  const projection=String.raw`
  $script:apiMutators=0;$script:currentPins=(Get-Business5244WebPins).Clone();$currentPins.root='C:\fixture\current-writer';$currentPins.package='ERP-BUSINESS-WEB-5244-B6-WRITER-20261029';$currentPins.manifest='121020af80ef660c4b9a0872f31dd4c3306bff81346f66797a6806bf6b1a4189';$currentPins.frontendSource='1033566d594ad7c02b8469e5c9598541333cd500';$currentPins.apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';$currentPins.apiManifest=('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946');$script:nextPins=$currentPins.Clone();$nextPins.root='C:\fixture\new-workface';$nextPins.package='ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029';$nextPins.manifest='5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6';$nextPins.frontendSource='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'
