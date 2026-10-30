@@ -74,6 +74,66 @@ function diagnosticFixture(options={}){
  for(const [name,h]of Object.entries(g.inputs))put(w.join(g.privateRoot,name),values[name],h);
  return f;
 }
+test('Diagnostic updates preserve the frozen historical rehearsal controller and namespace',()=>{
+ const text=fs.readFileSync(new URL('./install-business-5244-readpair.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ const start=text.indexOf('function Open-B6RehearsalPreparedSource('),end=text.indexOf('\nfunction ',start+1);assert(start>=0&&end>start);
+ // Canonical body of the accepted bfa2f51a source, independent of the current producer.
+ assert.equal(sha(Buffer.from(text.slice(start,end))),'2879e4f21432dcd711c4d9b8e3af517f52ad32d4e55855495a04ccfb67ed500f');
+ assert(source.includes("const REHEARSAL_PROOF=path.win32.join(REHEARSAL_PRIVATE,'owner-preparation-v3');"));
+});
+
+test('Diagnostic real publication scope preserves the accepted41 direct plus6 legacy entries before any runtime IO',()=>{
+ if(process.platform!=='win32')return;
+ // Independent accepted entry ledger: these are public historical source roots,
+ // never the private SID/argv/Task XML capture or a runtime authority fixture.
+ const roots=[
+ 'ERP-BUSINESS-5244-READ2B-ROUTER-b9416929-20261028','ERP-BUSINESS-5244-OWNER-b9416929-20261028',
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261028','ERP-BUSINESS-5244-B6-OWNER-20261028',
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029','ERP-BUSINESS-5244-B6-OWNER-20261029',
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-HASHCASE','ERP-BUSINESS-5244-B6-OWNER-20261029-HASHCASE',
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-SQLCOLLATION','ERP-BUSINESS-5244-B6-OWNER-20261029-SQLCOLLATION',
+ 'ERP-BUSINESS-5244-CURRENT-SUPERSESSION-20261029','ERP-BUSINESS-5244-CURRENT-INIT-CLEAN-20261029',
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3','ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3',
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY','ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY',
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029','ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029',
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2','ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2',
+ 'ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029','ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029','ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029',
+ 'ERP-BUSINESS-5244-B6-PREVIEW-LINK-ROUTER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030',
+ 'ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030',
+ 'ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-ROUTER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-STEADY-OWNER-20261030',
+ 'ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-ROUTER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030',
+ 'ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030','ERP-BUSINESS-5244-B6-ARRAY-REPAIR-OWNER-20261030','ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030',
+ 'ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-ROUTER-20261030','ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030','ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'];
+ assert.equal(roots.length,41);
+ const runtime=String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027`,legacy=['start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'].map(n=>path.win32.join(runtime,n));legacy.push(String.raw`C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1`);
+ const capture={schema:'melisa-b6-writer-current-entry-capture.v1',readOnly:true,executionAuthority:false,runtimeValidationComplete:false,entryWrites:0,serviceCalls:0,sqlCalls:0,ownerCaptureSha256:'abdb4f7d69556b1aef58867da3c35054b86f5c6ab82f29e2ee54781f8bf3aa9c',postExitExclusiveEntryCount:47,gate:{path:path.win32.join(runtime,'business-5244-startup-exclusion-ec316a63.ps1'),sha256:'a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'},entries:legacy.map(p=>({path:p})),directEntries:roots.map(n=>({path:path.win32.join(String.raw`C:\Sirket\ERP\releases`,n,n.includes('-ROUTER-')?'start-business-5244-readpair-router.ps1':'run-current-owner.ps1')}))};
+ const installer=fs.readFileSync(new URL('./install-business-5244-readpair.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n');
+ const names=['Open-B6ReadPairPublication','Test-B6PreviewLinkDiagnosticCase','Test-B6ReadContextRepairCase','Test-B6PreviewLinkNativeContextCase','Test-B6PreviewLinkPreviewReadCase'];
+ const bodies=names.map(n=>{const hit=new RegExp('function '+n+'(?:\\s|\\()').exec(installer);assert(hit);const end=installer.indexOf('\nfunction ',hit.index+1);return installer.slice(hit.index,end<0?undefined:end);}).join('\n');
+ const ps=String.raw`
+Set-StrictMode -Version Latest;$ErrorActionPreference='Stop'
+Import-Module ([IO.Path]::Combine($PSHOME,'Modules','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Utility.psd1')) -ErrorAction Stop
+$saved=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__CAPTURE__'))
+$PreviewLinkInstall=$true;$ReadContextRepairInstall=$false;$RehearsalOnly=$false;$CandidateInstall=$false;$WriterInstall=$false;$WebOnlyRefreshInstall=$false;$SteadyStartupInstall=$false
+$pins=[pscustomobject]@{runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'};$result=[ordered]@{}
+$b6=[pscustomobject]@{fixedCaseId='Diagnostic';entryCapture=($saved|ConvertFrom-Json);owner=[pscustomobject]@{entry=[pscustomobject]@{postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false}}}
+function Protection-Snapshot{$script:runtimeIO++;throw 'FIXTURE_EXACT_SCOPE_VERIFIED'}
+__FUNCTIONS__
+$script:runtimeIO=0;$ok=$false;try{Open-B6ReadPairPublication}catch{if($_.Exception.Message-cne'FIXTURE_EXACT_SCOPE_VERIFIED'){throw};$ok=$true};if(!$ok-or$script:runtimeIO-ne1){throw 'FULL_SCOPE_NOT_REACHED'}
+foreach($bad in @('missing','extra','order','old-array-root','legacy','owner','authority','runtime-proof')){
+ $b6.entryCapture=$saved|ConvertFrom-Json;$script:runtimeIO=0
+ switch($bad){'missing'{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 40)};'extra'{$b6.entryCapture.directEntries+=@([pscustomobject]@{path='foreign'})};'order'{$v=$b6.entryCapture.directEntries[35];$b6.entryCapture.directEntries[35]=$b6.entryCapture.directEntries[36];$b6.entryCapture.directEntries[36]=$v};'old-array-root'{$b6.entryCapture.directEntries[35].path+='x'};'legacy'{$b6.entryCapture.entries[0].path+='x'};'owner'{$b6.entryCapture.ownerCaptureSha256='0'*64};'authority'{$b6.entryCapture.executionAuthority=$true};'runtime-proof'{$b6.entryCapture.runtimeValidationComplete=$true}}
+ $denied=$false;try{Open-B6ReadPairPublication}catch{if($_.Exception.Message-cnotin@('B6_ENTRY_HOLD_CAPTURE_CHANGED','B6_ENTRY_HOLD_SCOPE_CHANGED','B6_ENTRY_RUNTIME_PROOF_REQUIRED','B6_DIRECT_ENTRY_SCOPE_CHANGED')){throw};$denied=$true};if(!$denied-or$script:runtimeIO-ne0){throw 'BAD_SCOPE_REACHED_RUNTIME'}
+}
+$b6.entryCapture=$saved|ConvertFrom-Json;$script:runtimeIO=0
+$old=(Get-Command Open-B6ReadPairPublication).Definition.Replace("if((Test-B6ReadContextRepairCase)-or(Test-B6PreviewLinkDiagnosticCase)){"+'$direct'+"+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030","if(Test-B6ReadContextRepairCase){"+'$direct'+"+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030")
+. ([scriptblock]::Create('function Open-B6ReadPairPublication {'+$old+'}'))
+$denied=$false;try{Open-B6ReadPairPublication}catch{if($_.Exception.Message-cne'B6_DIRECT_ENTRY_SCOPE_CHANGED'){throw};$denied=$true};if(!$denied-or$script:runtimeIO-ne0){throw 'OLD_CHAIN_OMISSION_NOT_REPRODUCED'}
+'PASS'
+`.replace('__CAPTURE__',()=>Buffer.from(JSON.stringify(capture)).toString('base64')).replace('__FUNCTIONS__',()=>bodies);
+ assert.equal(cp.execFileSync(path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-Command','& ([scriptblock]::Create([Console]::In.ReadToEnd()))'],{input:ps,encoding:'utf8',windowsHide:true,timeout:60000}).trim(),'PASS');
+});
+
 test('Diagnostic reviewed installer entry accepts only the repaired predecessor and rejects historical fallback before maintenance',()=>{
  if(process.platform!=='win32')return;
  const f=diagnosticFixture();try{
@@ -118,7 +178,7 @@ foreach($bad in @('kind','router','routerHash','entry','core','coreHash','owner'
  $denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash $script:fixture.entry|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_PREDECESSOR_CHANGED'){throw};$denied=$true};if(!$denied){throw 'PREDECESSOR_DRIFT_ACCEPTED'}
 }
 $script:fixture.files.PSObject.Properties[$capturePath].Value=$saved
-$denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash ($script:fixture.entry.Replace('owner-preparation-v3','owner-preparation'))|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'OLD_GENERATION_REPLAY_ACCEPTED'}
+$denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash ($script:fixture.entry.Replace('owner-preparation-v4','owner-preparation'))|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'OLD_GENERATION_REPLAY_ACCEPTED'}
 'PASS'
 `.replace('__DATA__',()=>Buffer.from(fixtureText).toString('base64')).replace('__HELPER__',()=>helper).replace('__FUNCTION__',()=>body).replace('__CORE__',()=>g.core).replace('__PROOF__',()=>g.proof);
   const run=text=>cp.execFileSync(path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-Command','& ([scriptblock]::Create([Console]::In.ReadToEnd()))'],{input:text,encoding:'utf8',windowsHide:true,timeout:60000}).trim();
