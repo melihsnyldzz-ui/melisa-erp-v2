@@ -20,14 +20,14 @@ function Test-Business5244WriterWebOnlyGeneration {
  return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
 }
 function Test-Business5244SteadyGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030')
 }
 function Test-Business5244PackageRefreshGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030')
 }
 function Get-Business5244SteadyPins {
  if(!(Test-Business5244SteadyGeneration)){throw 'BUSINESS_STEADY_GENERATION_REQUIRED'}
- $preview=$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030');$case=if($preview){Get-ErpBusinessSalePackageRefreshFixedCase}else{$null}
+ $preview=$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030');$case=if($preview){Get-ErpBusinessSalePackageRefreshFixedCase}else{$null}
  $root=if($preview){$case.steadyRoot}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'}
  $path=Join-Path $root 'owner-manifest.json'
  for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'BUSINESS_STEADY_REPARSE_POINT'}}
@@ -147,7 +147,7 @@ if(!$ApiOnly -and !$MainApiOnly){
 function Assert-Business5244WebManifest($Manifest,$Pins=(Get-Business5244WebPins)){
  $p=$Pins
  if($Manifest.kind -cne 'ERP_BUSINESS_WORKFACE_WEB_CANDIDATE' -or $Manifest.packageId -cne $p.package -or $Manifest.database -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $Manifest.sourceCommit -cne $p.frontendSource -or $Manifest.businessWorkfaceId -cne $p.profile -or $Manifest.backendPackageId -cne $p.apiPackage -or $Manifest.backendManifestSha256 -cne $p.apiManifest -or $Manifest.actualT1 -ne $false -or $Manifest.externalOperations -ne $false -or $Manifest.businessSessionSignerDomain -cne 'dedicated-business-key-v1'){throw 'BUSINESS_WEB_MANIFEST_REJECTED'}
-  if($p.package-cin@('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030','ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030')){
+  if($p.package-cin@('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030','ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030','ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-20261030')){
   if($Manifest.webHostSourceCommit-cne'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'-or$Manifest.backendSourceCommit-cne'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d'-or$Manifest.businessSaleCandidate.kind-cne'ADMITTED_B6_WRITER_UI'-or$Manifest.businessSaleCandidate.sourceCommit-cne'1033566d594ad7c02b8469e5c9598541333cd500'-or$Manifest.businessSaleCandidate.recordingEnabled-isnot[bool]-or!$Manifest.businessSaleCandidate.recordingEnabled){throw 'BUSINESS_WEB_ONLY_MANIFEST_CHANGED'}
  }
 }

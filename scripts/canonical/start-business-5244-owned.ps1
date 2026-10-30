@@ -208,7 +208,7 @@ function Get-Business5244WebOnlyEntryMode {
 }
 function Assert-Business5244SteadyEntry {
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
- if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne$(if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030')){Join-Path (Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot 'run-current-owner.ps1'}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\run-current-owner.ps1'})){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}
+ if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne$(if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030')){Join-Path (Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot 'run-current-owner.ps1'}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\run-current-owner.ps1'})){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}
 }
 function Assert-Business5244PackageRefreshEntry([bool]$Preparing){
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})

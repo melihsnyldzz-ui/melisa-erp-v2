@@ -1104,3 +1104,93 @@ win('NativeContext corrective publication preserves the exact twenty-six capture
   $denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count){throw ('NATIVE_CAPTURE_FALSE_ADMISSION_'+$kind)}
  };'PASS'`),'PASS');
 });
+
+const previewReadCaseFixture=String.raw`
+$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
+$nativeRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030';$nativeRouter='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-ROUTER-20261030';$nativeSteady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030'
+$script:fixedCase=[pscustomobject]@{id='PreviewRead';root=$nativeRoot;routerRoot=$nativeRouter;steadyRoot=$nativeSteady;pairHash='30cec0ba88d32b9de61606ded7dc01ffe0932993dd7132a8583c8f07723b0fb6';captureHash='5dfdcd97f2db79304ef9d2ecb0941a9c218652ebd1ed51129b27346f02dedd13';recordHash='62cbcf16f66e1092d5dc3a5c680a68c73f326b6cc99f26148163c55ca8d19928';ownerPid=25428;ownerBirth='134377968521534410';childPid=7916;childBirth='134377976553184634';predecessorKind='ReadPairRouter';runningRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';runningPid=48088;futureRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030'}
+$script:fixedCase|Add-Member overlaySource 'ed706d37c8a78ad41f314f76029b24dd0e38bc80'
+$script:caseReads=0;function Get-ErpBusinessSalePackageRefreshFixedCase{if($args.Count){throw 'UNEXPECTED_CASE_ARGUMENTS'};$script:caseReads++;return $script:fixedCase}
+$script:b6=[pscustomobject]@{fixedCaseId='PreviewRead';coreRoot=$nativeRoot;routerRoot=$nativeRouter;steadyRoot=$nativeSteady;maintenancePurpose='PreviewLinkPackageRefresh';owner=[pscustomobject]@{predecessorEntryKind='ReadPairRouter';owner=[pscustomobject]@{pid=25428;birth='134377968521534410'};child=[pscustomobject]@{pid=7916;birth='134377976553184634'};recordBeforeSha256=$fixedCase.recordHash}}
+`;
+win('PreviewRead corrective generation consumes only the parameterless fixed case and rejects stale case or capture data without effects',()=>{
+ assert.equal(run(previewReadCaseFixture+String.raw`
+ Initialize-B6PreviewLinkFixedCase;if($caseReads-ne1-or!$b6.contextCase-or$b6.contextCase.id-cne'PreviewRead'){throw 'NATIVE_CASE_NOT_BOUND'}
+ $snapshot=$fixedCase|ConvertTo-Json -Depth 10;foreach($kind in @('id','root','pair','capture','owner','running','future','birth')){
+  $script:fixedCase=$snapshot|ConvertFrom-Json;switch($kind){id{$fixedCase.id='PreviewLink'}root{$fixedCase.root+='-OTHER'}pair{$fixedCase.pairHash=('0'*64)}capture{$fixedCase.captureHash=('0'*64)}owner{$fixedCase.ownerPid=37032}running{$fixedCase.runningPid=13532}future{$fixedCase.futureRoot='C:\foreign'}birth{$b6.owner.child.birth='other'}}
+  $denied=$false;try{Initialize-B6PreviewLinkFixedCase}catch{$denied=$true};if(!$denied){throw ('NATIVE_CASE_MIXED_'+$kind)};$b6.owner.child.birth='134377976553184634'
+ };$b6.fixedCaseId='nativecontext';$denied=$false;try{Test-B6PreviewLinkNativeContextCase|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_CASE_REJECTED'){throw};$denied=$true};if(!$denied){throw 'NATIVE_CASE_FELL_BACK_TO_LEGACY'};'PASS'`),'PASS');
+});
+win('PreviewRead corrective task projection and final publisher preserve Candidate and Rollback paths without using the old LINK launcher',()=>{
+ assert.equal(run(previewPublicationFixture+previewReadCaseFixture+String.raw`
+ $script:beforeXml=$beforeXml.Replace('ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030');$script:fixtureArgv=$fixtureArgv.Replace('ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030')
+ Initialize-B6PreviewLinkFixedCase;$b6|Add-Member taskCapture ([pscustomobject]@{xmlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($beforeXml)));sddlSha256=(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($script:taskSddl)))})
+ foreach($mode in @('Candidate','Current')){
+  Remove-Variable PreviewLinkTaskPublication -Scope Script -ErrorAction SilentlyContinue;$script:taskXml=$beforeXml;$script:fixtureMode=$mode;$script:scenario='success';$registrations.Clear();Initialize-B6PreviewLinkTaskPublication;$script:taskXml=$script:PreviewLinkTaskPublication.silentXml
+  if(!$taskXml.Contains('ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030')){throw 'NATIVE_CONTEXT_SILENT_TASK_MISSING'}
+  $result.final.mode=if($mode-ceq'Candidate'){'Candidate'}else{'Rollback'};Complete-B6PreviewLinkTaskPublication $(if($mode-ceq'Candidate'){'CandidateVerified'}else{'RollbackVerified'})
+  $root=if($mode-ceq'Candidate'){$nativeSteady}else{$fixedCase.futureRoot};if(!$taskXml.Contains($root)-or($registrations-join',')-cne'52'-or$apiMutators){throw 'NATIVE_CONTEXT_FINAL_TASK_CHANGED'}
+ };'PASS'`),'PASS');
+});
+win('PreviewRead corrective active router argv retains Writer scope and the exact router plus current-core pair',()=>{
+ assert.equal(run(previewReadCaseFixture+String.raw`
+ $current='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030';$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030'
+ $b6.owner|Add-Member entry ([pscustomobject]@{root=$current;leaf='start-business-5244-readpair-router.ps1';manifestSha256=('a'*64);sha256=('b'*64)})
+ $b6.owner|Add-Member router ([pscustomobject]@{root=$current;manifestSha256=('a'*64);entrySha256=('b'*64)})
+ $b6.owner|Add-Member core ([pscustomobject]@{root=$core;manifestSha256=('c'*64);files=@([pscustomobject]@{path='run-current-owner.ps1';sha256=('d'*64)})})
+ $b6|Add-Member entryCapture ([pscustomobject]@{directEntries=@([pscustomobject]@{path=(Join-Path $current 'start-business-5244-readpair-router.ps1');sha256=('b'*64)},[pscustomobject]@{path=(Join-Path $core 'run-current-owner.ps1');sha256=('d'*64)})})
+ $argv=Get-B6ReadPairOwnerArguments $current ('a'*64);if(!$argv.EndsWith(' -ScopeName TEST125-API-B6-WRITER-20261029')-or$argv.Contains('ca620bac')){throw 'NATIVE_CONTEXT_ROUTER_SCOPE_LOST'};$active=@(Get-B6ReadPairActiveEntry);if($active.Count-ne2-or$active[0].path-cne(Join-Path $current 'start-business-5244-readpair-router.ps1')-or$active[1].path-cne(Join-Path $core 'run-current-owner.ps1')){throw 'NATIVE_CONTEXT_ACTIVE_PAIR_CHANGED'};'PASS'`),'PASS');
+});
+win('PreviewRead corrective managed exit keeps both live router leaves and the same non-abandoned mutex through thirty-five exclusive gates',()=>{
+ const fixture=managedFixture
+  .replace('@(1..11|ForEach-Object','@(1..27|ForEach-Object')
+  .replace("$entries=@(1..6", "$routerRoot=Join-Path $PSScriptRoot 'router';[void][IO.Directory]::CreateDirectory($routerRoot);$routerActive=Join-Path $routerRoot 'start-business-5244-readpair-router.ps1';[IO.File]::WriteAllText($routerActive,'inert-router-entry');$routerEntryHash=Get-Business5244StartupHash ([IO.File]::ReadAllBytes($routerActive));$coreManifest=$oldHash;$script:oldRoot=$routerRoot;$script:oldHash=('b'*64)\n$entries=@(1..6")
+  .replace("foreach($row in @($entries)+@($direct|Where-Object{$_.path-cne$active})){Hold-B6ReadPairEntry $row.path $hash}",String.raw`$direct+=,[pscustomobject]@{path=$routerActive;sha256=$routerEntryHash};$b6.owner.predecessorEntryKind='ReadPairRouter';$b6.owner.core.manifestSha256=$coreManifest;$b6.owner.core|Add-Member files @([pscustomobject]@{path='run-current-owner.ps1';sha256=$hash});$b6.owner|Add-Member router ([pscustomobject]@{root=$routerRoot;manifestSha256=$oldHash;entrySha256=$routerEntryHash});$b6.owner.entry=[pscustomobject]@{root=$routerRoot;leaf='start-business-5244-readpair-router.ps1';sha256=$routerEntryHash;manifestSha256=$oldHash};$b6.entryCapture.directEntries=$direct
+foreach($row in @($entries)+@($direct|Where-Object{$_.path-cnotin@($active,$routerActive)})){Hold-B6ReadPairEntry $row.path $hash}`)
+  .replace('param($Name,$Entry,$Mutex);','param($Name,$Entry,$Mutex,$Router);')
+  .replace('$owned=$false;$f=$null;', '$owned=$false;$routerHold=$null;$f=$null;')
+  .replace("$f=[IO.File]::Open($Entry", "$routerHold=[IO.File]::Open($Router,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$f=[IO.File]::Open($Entry")
+  .replace('if($f){$f.Dispose()};if($owned)', 'if($f){$f.Dispose()};if($routerHold){$routerHold.Dispose()};if($owned)')
+  .replace('$si.UseShellExecute=$false;', '$si.Arguments+=\' "\'+$routerActive+\'"\';$si.UseShellExecute=$false;');
+ const answer=activeRun(String.raw`
+ $h=Get-B6ReadPairActiveHandoff;if($h.items.Count-ne2-or$h.items[0].path-cne$routerActive-or$h.items[1].path-cne$active){throw 'NATIVE_ROUTER_LIVE_PAIR_CHANGED'}
+ function Read-B6ReadPairManagedExitSignal{$server.StandardInput.Close();if(!$server.WaitForExit(5000)-or$server.ExitCode-ne0){throw 'ISOLATED_NATIVE_CONTEXT_EXIT_FAILED'};return 'MANAGED_EXIT_OBSERVED'}
+ Invoke-B6ReadPairManagedOwnerExit;Complete-B6ReadPairActiveEntryHandoff
+ if(!$control.CompletedStop-or!$server.HasExited-or$h.phase-cne'ExclusiveVerified'-or!$h.marker.Deleted-or$held.Count-ne35-or@($held|Where-Object{$_.holdMode-cne'Exclusive'}).Count-or$result.stopCalls-ne0-or$result.managedExitRequests-ne1){throw 'NATIVE_CONTEXT_MANAGED_EXIT_BROKEN'}
+ `,String.raw`$script:ScopeName='TEST125-API-B6-WRITER-20261029';$script:RehearsalOnly=$false;$script:PreviewLinkInstall=$true;$b6.rehearsalOnly=$false;$b6|Add-Member fixedCaseId 'PreviewRead';$b6|Add-Member maintenancePurpose 'PreviewLinkPackageRefresh'`,fixture);
+ assert.match(answer,/"phase":"B6_MANAGED_EXIT_READY"/);assert.match(answer,/PASS$/);
+});
+win('PreviewRead corrective publication preserves the exact twenty-nine captured direct entries and rejects stale order count or runtime claims before holds',()=>{
+ const fixture=writerPublicationFixture.replace('$script:WriterInstall=$true;',"$script:WriterInstall=$false;$script:PreviewLinkInstall=$true;")
+  .replace('50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65','5dfdcd97f2db79304ef9d2ecb0941a9c218652ebd1ed51129b27346f02dedd13')
+  .replace('postExitExclusiveEntryCount=24','postExitExclusiveEntryCount=35');
+ assert.equal(run(fixture+String.raw`
+ $b6|Add-Member fixedCaseId 'PreviewRead';$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030'
+ $b6.owner.predecessorEntryKind='ReadPairRouter';$b6.owner.entry=[pscustomobject]@{root=$router;leaf='start-business-5244-readpair-router.ps1';manifestSha256=('b'*64);sha256=('c'*64);postExitExclusiveBytesRequired=$true;runtimeEntryBytesVerified=$false};$b6.owner|Add-Member router ([pscustomobject]@{root=$router;manifestSha256=('b'*64);entrySha256=('c'*64)});$b6.owner|Add-Member core ([pscustomobject]@{root=$core;manifestSha256=('d'*64);files=@([pscustomobject]@{path='run-current-owner.ps1';sha256=('e'*64)})})
+ foreach($name in @(
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-PERMHASH-V3'
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-PERMHASH-V3'
+ 'ERP-BUSINESS-5244-B6-OWNER-20261029-DEBAFECB-APPLY'
+ 'ERP-BUSINESS-5244-B6-ROUTER-20261029-DEBAFECB-APPLY'
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029'
+ 'ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2'
+ 'ERP-BUSINESS-5244-B6-WRITER-ROUTER-20261029-V2'
+ 'ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029'
+ 'ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'
+ 'ERP-BUSINESS-5244-B6-PREVIEW-LINK-ROUTER-20261030'
+ 'ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030'
+ 'ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'
+
+ 'ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030'
+ 'ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030'
+ 'ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030'
+ )){$leaf=if($name.Contains('ROUTER')){'start-business-5244-readpair-router.ps1'}else{'run-current-owner.ps1'};$path='C:\Sirket\ERP\releases\'+$name+'\'+$leaf;$hash=if($path-ceq(Join-Path $router 'start-business-5244-readpair-router.ps1')){'c'*64}elseif($path-ceq(Join-Path $core 'run-current-owner.ps1')){'e'*64}else{'a'*64};$b6.entryCapture.directEntries+=@([pscustomobject]@{path=$path;sha256=$hash})}
+ Open-B6ReadPairPublication;if($heldPaths.Count-ne34-or$b6.entryCapture.directEntries.Count-ne29-or$phases.Count-ne1-or$heldPaths.Contains((Join-Path $core 'run-current-owner.ps1'))-or$heldPaths.Contains((Join-Path $router 'start-business-5244-readpair-router.ps1'))){throw 'NATIVE_CAPTURE_SCOPE_CHANGED'}
+ $active=@(Get-B6ReadPairActiveEntry);if($active.Count-ne2-or$active[0].path-cne(Join-Path $router 'start-business-5244-readpair-router.ps1')-or$active[1].path-cne(Join-Path $core 'run-current-owner.ps1')){throw 'NATIVE_CAPTURE_ACTIVE_PAIR_CHANGED'}
+ $snapshot=$b6.entryCapture|ConvertTo-Json -Depth 20;foreach($kind in @('owner','count','order','runtime','exclusive')){
+  $heldPaths.Clear();$phases.Clear();$b6.entryCapture=$snapshot|ConvertFrom-Json;switch($kind){owner{$b6.entryCapture.ownerCaptureSha256='124e207b8ab0f8f6a5b3b8227c7183c17b69f2f2725b2837b2dc1bc81410c74b'}count{$b6.entryCapture.directEntries=@($b6.entryCapture.directEntries|Select-Object -First 28)}order{$swap=$b6.entryCapture.directEntries[26];$b6.entryCapture.directEntries[26]=$b6.entryCapture.directEntries[27];$b6.entryCapture.directEntries[27]=$swap}runtime{$b6.entryCapture.runtimeValidationComplete=$true}exclusive{$b6.entryCapture.postExitExclusiveEntryCount=29}}
+  $denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count){throw ('NATIVE_CAPTURE_FALSE_ADMISSION_'+$kind)}
+ };'PASS'`),'PASS');
+});

@@ -25,7 +25,7 @@ $getPins=(Get-Command Get-Business5244CurrentBootstrapPins).Definition.Replace('
 . ([scriptblock]::Create('function Get-Business5244CurrentBootstrapPins {'+$getPins+'}'))
 `.replace('__NATIVE_PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1')));
 
-for(const corrected of [false,true])win((corrected?'NativeContext':'PackageRefresh')+' fixed bootstrap uses held before-image CAS and genuine native initialization inverse while denying changed captures',()=>{
+for(const variant of ['PackageRefresh','NativeContext','PreviewRead'])win(variant+' fixed bootstrap uses held before-image CAS and genuine native initialization inverse while denying changed captures',()=>{
  let body=setup+String.raw`
  try{
  . __NATIVE_PROFILE__
@@ -61,7 +61,8 @@ for(const corrected of [false,true])win((corrected?'NativeContext':'PackageRefre
  }finally{Close-Business5244RetirementState $refreshState}
  }
  `.replace('__NATIVE_PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1')))+cleanup;
- if(corrected)body=body.replaceAll('37032','7768').replaceAll('49856','47996').replaceAll("predecessorEntryKind='CurrentCore'","predecessorEntryKind='ReadPairRouter'").replaceAll("predecessorKind='CurrentCore'","predecessorKind='ReadPairRouter'").replaceAll('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030').replaceAll('5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6','c3c7af16091f11f07acb704d2785a1d103392411510167bdf4befc7f0845765c').replaceAll("('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946')","('082786d92ea204ec4a448231a8a1b555'+'ea8f7aaaabe1f34413b11ddd99247f5f')");
+ if(variant==='NativeContext')body=body.replaceAll('37032','7768').replaceAll('49856','47996').replaceAll("predecessorEntryKind='CurrentCore'","predecessorEntryKind='ReadPairRouter'").replaceAll("predecessorKind='CurrentCore'","predecessorKind='ReadPairRouter'").replaceAll('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030').replaceAll('5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6','c3c7af16091f11f07acb704d2785a1d103392411510167bdf4befc7f0845765c').replaceAll("('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946')","('082786d92ea204ec4a448231a8a1b555'+'ea8f7aaaabe1f34413b11ddd99247f5f')");
+ if(variant==='PreviewRead')body=body.replaceAll('37032','25428').replaceAll('49856','7916').replaceAll("predecessorEntryKind='CurrentCore'","predecessorEntryKind='ReadPairRouter'").replaceAll("predecessorKind='CurrentCore'","predecessorKind='ReadPairRouter'").replaceAll('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030').replaceAll('5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6','48377ca6ef8c4384a0501312c2f90b3d52e001043042def06414e0e043a58a1b').replaceAll("('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946')","('bd84de1ebb905ec4893cdc70d9750b9e'+'79870697c4a5b16a1b5104735663d45d')");
  assert.equal(run(body),'PASS');
 });
 win('Writer retirement registers only the genuine owned child and exact Applied-B6 or Writer pair, never READ2b or a copied issuer',()=>{

@@ -58,7 +58,7 @@ function Assert-ErpBusinessSaleExactKeys($Value,[string[]]$Keys){
  if(!$Value-or(@($Value.PSObject.Properties.Name|Sort-Object -CaseSensitive)-join'|')-cne(@($Keys|Sort-Object -CaseSensitive)-join'|')){throw 'B6_WRITER_SOURCE_SHAPE'}
 }
 function Test-ErpBusinessSalePackageRefreshGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030')
 }
 function Get-ErpBusinessSalePackageRefreshFixedCase {
  # Closed immutable source locations select data pins, never caller input or
@@ -122,6 +122,37 @@ function Get-ErpBusinessSalePackageRefreshFixedCase {
   foreach($key in @('pairHash','candidateComponentDigest','candidateWebHash')){if($case.$key-isnot[string]-or$case.$key-cnotmatch'\A[a-f0-9]{64}\z'){throw 'B6_CONTEXT_PACKAGE_NOT_PREPARED'}}
   return $case
  }
+ if($PSScriptRoot-cin@(($base+'ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030'),($base+'ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030'))){
+  $case=[pscustomobject]@{
+   id='PreviewRead'
+   root=($base+'ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030')
+   routerRoot=($base+'ERP-BUSINESS-5244-B6-PREVIEW-READ-ROUTER-20261030')
+   steadyRoot=($base+'ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030')
+   pairHash='30cec0ba88d32b9de61606ded7dc01ffe0932993dd7132a8583c8f07723b0fb6'
+   currentApiRoot=($base+'CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-CONTEXT-20261030')
+   currentWebId='ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030'
+   currentComponentDigest='bd84de1ebb905ec4893cdc70d9750b9e79870697c4a5b16a1b5104735663d45d'
+   currentWebHash='48377ca6ef8c4384a0501312c2f90b3d52e001043042def06414e0e043a58a1b'
+   candidateApiRoot=($base+'CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-20261030')
+   candidateWebId='ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-20261030'
+   candidateComponentDigest='fb495a2fd2cd524b7c1d90c52d31458d7a2fcaa387f3ea76e24382feecaa5719'
+   candidateWebHash='b6c88aafba70c4739015f16bd8a255c4eb4673fcca7b3c12081bf440dbf9b90e'
+   overlaySource='ed706d37c8a78ad41f314f76029b24dd0e38bc80'
+   captureHash='5dfdcd97f2db79304ef9d2ecb0941a9c218652ebd1ed51129b27346f02dedd13'
+   recordHash='62cbcf16f66e1092d5dc3a5c680a68c73f326b6cc99f26148163c55ca8d19928'
+   ownerPid=25428
+   ownerBirth='134377968521534410'
+   childPid=7916
+   childBirth='134377976553184634'
+   predecessorKind='ReadPairRouter'
+   runningRoot=($base+'ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030')
+   runningPid=48088
+   futureRoot=($base+'ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030')
+  }
+  foreach($key in @('pairHash','candidateComponentDigest','candidateWebHash','captureHash','recordHash')){if($case.$key-isnot[string]-or$case.$key-cnotmatch'\A[a-f0-9]{64}\z'){throw 'B6_PREVIEW_READ_PACKAGE_NOT_PREPARED'}}
+  if($case.overlaySource-isnot[string]-or$case.overlaySource-cnotmatch'\A[a-f0-9]{40}\z'){throw 'B6_PREVIEW_READ_PACKAGE_NOT_PREPARED'}
+  return $case
+ }
  throw 'B6_PACKAGE_REFRESH_GENERATION_REQUIRED'
 }
 function Read-ErpBusinessSalePackageRefreshOwnerSource {
@@ -177,6 +208,20 @@ function Read-ErpBusinessSalePackageRefreshOwnerSource {
     if($file.path-isnot[string]-or$file.path-cne'apps/api/src/services/workTradeStore.mjs'-or$file.sha256-isnot[string]-or$file.sha256-cnotmatch'\A[a-f0-9]{64}\z'-or$file.beforeSha256-isnot[string]-or$file.beforeSha256-cnotmatch'\A[a-f0-9]{64}\z'-or$file.bytes-isnot[int]-or$file.bytes-le0-or$saved.Count-ne1-or$before.Count-ne1-or$file.beforeSha256-cne$before[0].sha256-or$file.sha256-cne$saved[0].sha256-or$file.bytes-ne$saved[0].bytes-or(Read-ErpBusinessSalePinnedFile (Join-Path $v.api.root $file.path) $file.sha256).Length-ne$file.bytes){throw 'B6_NATIVE_CONTEXT_OVERLAY_CHANGED'}
     foreach($key in @('apiOverlaySourceCommit','apiOverlayFiles','previewLinkPackageRefresh')){if(($apiManifest.$key|ConvertTo-Json -Depth 16 -Compress)-cne($currentApiManifest.$key|ConvertTo-Json -Depth 16 -Compress)){throw 'B6_NATIVE_CONTEXT_HISTORY_CHANGED'}}
    }
+   if($case.id-ceq'PreviewRead'){
+    $patch=$apiManifest.previewReadPackageRefresh;Assert-ErpBusinessSaleExactKeys $patch @('kind','sourceCommit','baseManifestSha256','installed','sqlExecuted','profileChanged')
+    if($apiManifest.previewReadOverlaySourceCommit-isnot[string]-or$apiManifest.previewReadOverlaySourceCommit-cne$case.overlaySource-or$patch.kind-isnot[string]-or$patch.kind-cne'PREVIEW_READ_PACKAGE_REFRESH'-or$patch.sourceCommit-isnot[string]-or$patch.sourceCommit-cne$case.overlaySource-or$patch.baseManifestSha256-isnot[string]-or$patch.baseManifestSha256-cne$case.currentComponentDigest-or$patch.installed-isnot[bool]-or$patch.installed-or$patch.sqlExecuted-isnot[bool]-or$patch.sqlExecuted-or$patch.profileChanged-isnot[bool]-or$patch.profileChanged-or@($apiManifest.previewReadOverlayFiles).Count-ne4){throw 'B6_PREVIEW_READ_OVERLAY_CHANGED'}
+    $replacedPaths=@('apps/api/start-canonical-test.mjs','apps/api/src/services/canonicalBusinessSessionContext.mjs','apps/api/src/services/canonicalBusinessSaleRuntime.mjs')
+    $paths=$replacedPaths+@('apps/api/src/services/canonicalBusinessSaleReadPolicy.mjs')
+    if((@($apiManifest.previewReadOverlayFiles.path|Sort-Object -CaseSensitive)-join'|')-cne(@($paths|Sort-Object -CaseSensitive)-join'|')){throw 'B6_PREVIEW_READ_OVERLAY_CHANGED'}
+    foreach($file in $apiManifest.previewReadOverlayFiles){
+     Assert-ErpBusinessSaleExactKeys $file @('path','sha256','bytes','beforeSha256')
+     $saved=@($apiManifest.files|Where-Object path -ceq $file.path);$before=@($currentApiManifest.files|Where-Object path -ceq $file.path)
+     $beforeValid=if($file.path-cin$replacedPaths){($before.Count-eq1)-and($file.beforeSha256-is[string])-and($file.beforeSha256-cmatch'\A[a-f0-9]{64}\z')-and($file.beforeSha256-ceq$before[0].sha256)}else{($before.Count-eq0)-and($null-eq$file.beforeSha256)}
+     if($file.path-isnot[string]-or$file.path-cnotin$paths-or$file.sha256-isnot[string]-or$file.sha256-cnotmatch'\A[a-f0-9]{64}\z'-or$file.bytes-isnot[int]-or$file.bytes-le0-or!$beforeValid-or$saved.Count-ne1-or$file.sha256-cne$saved[0].sha256-or$file.bytes-ne$saved[0].bytes-or(Read-ErpBusinessSalePinnedFile (Join-Path $v.api.root $file.path) $file.sha256).Length-ne$file.bytes){throw 'B6_PREVIEW_READ_OVERLAY_CHANGED'}
+    }
+    foreach($key in @('apiOverlaySourceCommit','apiOverlayFiles','previewLinkPackageRefresh','nativeContextOverlaySourceCommit','nativeContextOverlayFiles','nativeContextPackageRefresh')){if(($apiManifest.$key|ConvertTo-Json -Depth 16 -Compress)-cne($currentApiManifest.$key|ConvertTo-Json -Depth 16 -Compress)){throw 'B6_PREVIEW_READ_HISTORY_CHANGED'}}
+   }
   }
  }
  return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$m.files;sourceCommit=$m.sourceCommit;rehearsalOnly=$false;maintenancePurpose='PreviewLinkPackageRefresh';launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($m.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256);packagePair=$pair;packagePairPath=$pairPath;packagePairSha256=$m.packagePair.sha256}
@@ -195,7 +240,7 @@ function New-ErpBusinessSalePackageRefreshAdmission($Config){
  [void]$script:ErpBusinessSaleAdmissions.Add($record);return $token
 }
 function Read-ErpBusinessSaleWriterOwnerSource {
- if((Test-ErpBusinessSalePackageRefreshGeneration)-or$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030')){return Read-ErpBusinessSalePackageRefreshOwnerSource}
+ if((Test-ErpBusinessSalePackageRefreshGeneration)-or$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030')){return Read-ErpBusinessSalePackageRefreshOwnerSource}
  $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_WRITER_OWNER_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
@@ -276,7 +321,7 @@ function Read-ErpBusinessSalePackageRefreshTaskSource {
 function Get-ErpBusinessSaleWriterTaskLauncherPins($PreparedReleaseProof,[ValidateSet('Current','Candidate')][string]$Mode='Candidate'){
  if($Mode-cnotin@('Current','Candidate')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
  $proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;$proof.seal.Validate()
- if($proof.businessSaleOwnerPins-and$proof.businessSaleOwnerPins.path-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030\start-owned-test.ps1')){
+ if($proof.businessSaleOwnerPins-and$proof.businessSaleOwnerPins.path-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030\start-owned-test.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030\start-owned-test.ps1')){
   $case=Get-ErpBusinessSalePackageRefreshFixedCase;if($proof.businessSaleOwnerPins.path-cne(Join-Path $case.root 'start-owned-test.ps1')){throw 'B6_PACKAGE_REFRESH_TASK_PROOF_REQUIRED'}
   if(!($proof.PSObject.Properties['packageRefreshTaskSource'])-or!$proof.packageRefreshTaskSource){throw 'B6_PACKAGE_REFRESH_TASK_PROOF_REQUIRED'}
   if($Mode-ceq'Candidate'-or($proof.PSObject.Properties['packageRefreshTaskState']-and$proof.packageRefreshTaskState-and$proof.packageRefreshTaskState.maintenanceInstalled)){$p=$proof.businessSaleOwnerPins}else{$p=$proof.packageRefreshTaskSource}

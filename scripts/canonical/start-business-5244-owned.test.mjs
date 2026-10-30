@@ -24,7 +24,7 @@ win('PackageRefresh entry binds preparation to only its fixed router and keeps C
  assert.equal(run(load+String.raw`
  function Get-ErpBusinessSalePackageRefreshFixedCase{return $script:entryCase}
  $body=(Get-Command Assert-Business5244PackageRefreshEntry).Definition.Replace('[Environment]::GetCommandLineArgs()','$script:hostArguments');. ([scriptblock]::Create('function Assert-Business5244PackageRefreshEntry {'+$body+'}'))
- foreach($name in @('LINK','CONTEXT')){
+ foreach($name in @('LINK','CONTEXT','READ')){
  $script:entryCase=@{root=('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-'+$name+'-OWNER-20261030');routerRoot=('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-'+$name+'-ROUTER-20261030')}
  $router=Join-Path $script:entryCase.routerRoot 'start-business-5244-readpair-router.ps1';$current=Join-Path $script:entryCase.root 'run-current-owner.ps1'
  foreach($prepare in @($false,$true)){$script:hostArguments=@('powershell.exe','-NoProfile','-File',$(if($prepare){$router}else{$current}));Assert-Business5244PackageRefreshEntry $prepare;$script:hostArguments[3]=if($prepare){$current}else{$router};$denied=$false;try{Assert-Business5244PackageRefreshEntry $prepare}catch{$denied=$true};if(!$denied){throw 'PACKAGE_ENTRY_ROLE_CONFUSED'}}

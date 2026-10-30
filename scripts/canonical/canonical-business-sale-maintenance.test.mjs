@@ -6,14 +6,15 @@ import os from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 
-test('NativeContext PackageRefresh case selection is closed to two immutable generations and steady metadata grants no admission',()=>{
+test('PackageRefresh case selection is closed to three immutable generations and steady metadata grants no admission',()=>{
  if(process.platform!=='win32')return;
  assert.equal(run(String.raw`
   foreach($name in @('Get-ErpBusinessSalePackageRefreshFixedCase','Test-ErpBusinessSalePackageRefreshGeneration')){$body=(Get-Command $name).Definition.Replace('$PSScriptRoot','$script:caseSourceRoot');. ([scriptblock]::Create('function '+$name+' {'+$body+'}'))}
   function Read-ErpStartupConfig{throw 'CASE_METADATA_GRANTED_ADMISSION'}
   foreach($row in @(
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030';id='PreviewLink';pid=13532;kind='CurrentCore'},
-   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030';id='NativeContext';pid=42864;kind='ReadPairRouter'})){
+   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030';id='NativeContext';pid=42864;kind='ReadPairRouter'},
+   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-STEADY-OWNER-20261030';id='PreviewRead';pid=48088;kind='ReadPairRouter'})){
    $script:caseSourceRoot=$row.owner;$case=Get-ErpBusinessSalePackageRefreshFixedCase
    if($case.id-cne$row.id-or$case.root-cne$row.owner-or$case.steadyRoot-cne$row.steady-or$case.runningPid-ne$row.pid-or$case.predecessorKind-cne$row.kind-or!(Test-ErpBusinessSalePackageRefreshGeneration)){throw 'CLOSED_CASE_MISMATCH'}
    $case.root='mutated';if((Get-ErpBusinessSalePackageRefreshFixedCase).root-cne$row.owner){throw 'CASE_PIN_ALIAS'}
@@ -25,19 +26,26 @@ test('NativeContext PackageRefresh case selection is closed to two immutable gen
  `),'PASS');
 });
 
-test('NativeContext PackageRefresh reader preserves the three-path history and admits only the pinned one-file correction',()=>{
+for(const readPolicy of [false,true])test((readPolicy?'PreviewRead':'NativeContext')+' PackageRefresh reader preserves its history and admits only the pinned correction paths',()=>{
  if(process.platform!=='win32')return;
  const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),'native-context-reader-'))),digest=b=>createHash('sha256').update(b).digest('hex');
  const write=(p,b)=>{fs.mkdirSync(path.dirname(p),{recursive:true});fs.writeFileSync(p,b);return {sha256:digest(b),bytes:Buffer.byteLength(b)}};
  try{
-  const owner=path.join(temp,'owner'),current=path.join(temp,'current-api'),candidate=path.join(temp,'candidate-api'),currentWeb='ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030',candidateWeb='ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030',store='apps/api/src/services/workTradeStore.mjs';
+  const owner=path.join(temp,'owner'),current=path.join(temp,'current-api'),candidate=path.join(temp,'candidate-api'),currentWeb=readPolicy?'ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030':'ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030',candidateWeb=readPolicy?'ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-20261030':'ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030',store='apps/api/src/services/workTradeStore.mjs';
   const paths=['apps/api/src/routes/workSalesRoutes.mjs','apps/api/src/services/businessSelectedSalePreviewStore.mjs','apps/api/src/services/businessSelectedSalePreview.mjs'];
   const oldRows=paths.map(p=>({path:p,...write(path.join(current,p),'unchanged:'+p),beforeSha256:null}));oldRows.forEach(row=>write(path.join(candidate,row.path),'unchanged:'+row.path));
   const oldStore={path:store,...write(path.join(current,store),'old-store')},newStore={path:store,...write(path.join(candidate,store),'corrected-store')};
   const history={kind:'PREVIEW_LINK_PACKAGE_REFRESH',sourceCommit:'d4a7ec26edc22cb7cd707dc2fe4fdb209adf9d5c',baseManifestSha256:'560c735fcaffa6692f55543840f8106679b43b871e3c19f1990bdd17d46f9946',installed:false,sqlExecuted:false,profileChanged:false};
-  const before={files:[...oldRows,oldStore],apiOverlaySourceCommit:history.sourceCommit,apiOverlayFiles:oldRows,previewLinkPackageRefresh:history};
-  const beforePin=write(path.join(current,'release-manifest.json'),JSON.stringify(before));
-  const after={...before,files:[...oldRows,newStore],nativeContextOverlaySourceCommit:'a'.repeat(40),nativeContextOverlayFiles:[{...newStore,beforeSha256:oldStore.sha256}],nativeContextPackageRefresh:{kind:'NATIVE_CONTEXT_PACKAGE_REFRESH',sourceCommit:'a'.repeat(40),baseManifestSha256:beforePin.sha256,installed:false,sqlExecuted:false,profileChanged:false}};
+  let before={files:[...oldRows,oldStore],apiOverlaySourceCommit:history.sourceCommit,apiOverlayFiles:oldRows,previewLinkPackageRefresh:history};
+  let beforePin=write(path.join(current,'release-manifest.json'),JSON.stringify(before));
+  let after={...before,files:[...oldRows,newStore],nativeContextOverlaySourceCommit:'a'.repeat(40),nativeContextOverlayFiles:[{...newStore,beforeSha256:oldStore.sha256}],nativeContextPackageRefresh:{kind:'NATIVE_CONTEXT_PACKAGE_REFRESH',sourceCommit:'a'.repeat(40),baseManifestSha256:beforePin.sha256,installed:false,sqlExecuted:false,profileChanged:false}};
+  const bootstrap='apps/api/start-canonical-test.mjs',policy='apps/api/src/services/canonicalBusinessSaleReadPolicy.mjs';
+  if(readPolicy){
+   write(path.join(current,store),'corrected-store');before=structuredClone(after);
+   const replaced=[bootstrap,'apps/api/src/services/canonicalBusinessSessionContext.mjs','apps/api/src/services/canonicalBusinessSaleRuntime.mjs'],beforeRows=replaced.map(p=>({path:p,...write(path.join(current,p),'old:'+p)}));before.files.push(...beforeRows);beforePin=write(path.join(current,'release-manifest.json'),JSON.stringify(before));
+   const replacements=replaced.map(p=>({path:p,...write(path.join(candidate,p),'corrected:'+p)})),added={path:policy,...write(path.join(candidate,policy),'closed-read-policy')};
+   after=structuredClone(before);after.files=after.files.map(r=>replacements.find(v=>v.path===r.path)??r);after.files.push(added);after.previewReadOverlaySourceCommit='a'.repeat(40);after.previewReadOverlayFiles=[...replacements.map(r=>({...r,beforeSha256:beforeRows.find(v=>v.path===r.path).sha256})),{...added,beforeSha256:null}];after.previewReadPackageRefresh={kind:'PREVIEW_READ_PACKAGE_REFRESH',sourceCommit:'a'.repeat(40),baseManifestSha256:beforePin.sha256,installed:false,sqlExecuted:false,profileChanged:false};
+  }
   const apiId='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029',source='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d',configPath='C:\\Sirket\\ERP\\config\\TEST-20260929-01\\business-5244-private.json';
   const pair={schema:'melisa-b6-preview-package-pair.v1',scope:'TEST125-API-B6-WRITER-20261029',purpose:'PreviewLinkPackageRefresh'};
   for(const [mode,root,id,componentHash] of [['current',current,currentWeb,beforePin.sha256],['candidate',candidate,candidateWeb,'']]){const webRoot=path.join(temp,id),web=write(path.join(webRoot,'release-manifest.json'),'fixture-web-'+mode);pair[mode]={api:{root,packageId:apiId,manifestSha256:componentHash,sourceCommit:source,configPath},web:{root:webRoot,packageId:id,manifestSha256:web.sha256,frontendSourceCommit:'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a',backendPackageId:apiId,backendManifestSha256:componentHash}};}
@@ -57,7 +65,7 @@ test('NativeContext PackageRefresh reader preserves the three-path history and a
    'run-current-owner.ps1'
   ];
   const manifest={kind:'BUSINESS5244_FRESH_OWNER_BUNDLE',finiteScope:pair.scope,maintenancePurpose:pair.purpose,sourceCommit:'b'.repeat(40),rehearsalOnly:false,recordingEnabled:false,actualT1:false,externalOperations:false,files:leaves.map(p=>({path:p,...write(path.join(owner,p),'inert:'+p)}))};
-  const fixed={id:'NativeContext',root:owner,pairHash:'',currentApiRoot:current,currentWebId:currentWeb,currentComponentDigest:beforePin.sha256,currentWebHash:pair.current.web.manifestSha256,candidateApiRoot:candidate,candidateWebId:candidateWeb,candidateComponentDigest:'',candidateWebHash:pair.candidate.web.manifestSha256,overlaySource:'a'.repeat(40)};
+  const fixed={id:readPolicy?'PreviewRead':'NativeContext',root:owner,pairHash:'',currentApiRoot:current,currentWebId:currentWeb,currentComponentDigest:beforePin.sha256,currentWebHash:pair.current.web.manifestSha256,candidateApiRoot:candidate,candidateWebId:candidateWeb,candidateComponentDigest:'',candidateWebHash:pair.candidate.web.manifestSha256,overlaySource:'a'.repeat(40)};
   const seed=()=>{const p=write(path.join(candidate,'release-manifest.json'),JSON.stringify(after));fixed.candidateComponentDigest=p.sha256;pair.candidate.api.manifestSha256=p.sha256;pair.candidate.web.backendManifestSha256=p.sha256;const b=JSON.stringify(pair);fixed.pairHash=digest(b);manifest.packagePair={path:'preview-package-pair.json',...write(path.join(owner,'preview-package-pair.json'),b)};write(path.join(owner,'owner-manifest.json'),JSON.stringify(manifest));write(path.join(temp,'fixture-case.json'),JSON.stringify(fixed));};
   const observe=()=>run(String.raw`
    $script:fixtureCase=[Text.Encoding]::UTF8.GetString([IO.File]::ReadAllBytes('__CASE__'))|ConvertFrom-Json
@@ -70,18 +78,19 @@ test('NativeContext PackageRefresh reader preserves the three-path history and a
    try{$o=Read-ErpBusinessSalePackageRefreshOwnerSource;if($o.packagePair.current.api.packageId-cne$o.packagePair.candidate.api.packageId){throw 'IDENTITY_CHANGED'};'PASS'}catch{[string]$_.Exception.Message}
   `.replace('__CASE__',path.join(temp,'fixture-case.json').replaceAll("'","''")).replace('__PREFIX__',(temp+'\\').replaceAll("'","''")));
   seed();assert.equal(observe(),'PASS');
-  for(const key of ['nativeContextOverlaySourceCommit','nativeContextOverlayFiles','nativeContextPackageRefresh','apiOverlayFiles']){
-   const saved=structuredClone(after[key]);if(key==='nativeContextOverlaySourceCommit')after[key]='c'.repeat(40);else if(key==='nativeContextOverlayFiles')after[key][0].beforeSha256='0'.repeat(64);else if(key==='nativeContextPackageRefresh')after[key].sourceCommit=[fixed.overlaySource,fixed.overlaySource];else after[key][0].bytes++;
+  for(const key of readPolicy?['previewReadOverlaySourceCommit','previewReadOverlayFiles','previewReadPackageRefresh','nativeContextOverlayFiles','apiOverlayFiles']:['nativeContextOverlaySourceCommit','nativeContextOverlayFiles','nativeContextPackageRefresh','apiOverlayFiles']){
+   const saved=structuredClone(after[key]);if(key.endsWith('SourceCommit'))after[key]='c'.repeat(40);else if(key=== (readPolicy?'previewReadOverlayFiles':'nativeContextOverlayFiles'))after[key][0].beforeSha256='0'.repeat(64);else if(key.endsWith('PackageRefresh'))after[key].sourceCommit=[fixed.overlaySource,fixed.overlaySource];else after[key][0].bytes++;
    seed();assert.notEqual(observe(),'PASS',key);after[key]=saved;
   }
-  seed();fs.appendFileSync(path.join(candidate,store),'drift');assert.notEqual(observe(),'PASS');
+  if(readPolicy){after.previewReadOverlayFiles[3].beforeSha256='f'.repeat(64);seed();assert.notEqual(observe(),'PASS','new policy must have a null before-image');after.previewReadOverlayFiles[3].beforeSha256=null;after.previewReadOverlayFiles.push({...after.previewReadOverlayFiles[0]});seed();assert.notEqual(observe(),'PASS','extra overlay');after.previewReadOverlayFiles.pop();for(const i of [1,2]){const old=after.previewReadOverlayFiles[i].beforeSha256;after.previewReadOverlayFiles[i].beforeSha256=null;seed();assert.notEqual(observe(),'PASS','known replacement requires its own before-image');after.previewReadOverlayFiles[i].beforeSha256=old;}}
+  seed();fs.appendFileSync(path.join(candidate,readPolicy?bootstrap:store),'drift');assert.notEqual(observe(),'PASS');
  }finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 
-test('NativeContext PackageRefresh task source keeps the running silent launcher separate from the future steady launcher',()=>{
+for(const variant of ['NativeContext','PreviewRead'])test(variant+' PackageRefresh task source keeps the running silent launcher separate from the future steady launcher',()=>{
  if(process.platform!=='win32')return;
  const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),'context-task-source-')));
- try{assert.equal(run(String.raw`
+ try{let body=String.raw`
   $root='__TEMP__';$script:runningRoot=Join-Path $root 'running';$script:futureRoot=Join-Path $root 'future';$script:ownerRoot=Join-Path $root 'owner'
   foreach($p in @($runningRoot,$futureRoot,$ownerRoot)){[void][IO.Directory]::CreateDirectory($p)}
   $launchers=@();foreach($p in @($runningRoot,$futureRoot)){$path=Join-Path $p 'start-owned-test.ps1';$b=[Text.Encoding]::UTF8.GetBytes('# inert '+$p);[IO.File]::WriteAllBytes($path,$b);$f=@{path='start-owned-test.ps1';sha256=(Get-ErpBusinessSaleHash $b);bytes=$b.Length};$m=[Text.Encoding]::UTF8.GetBytes((@{files=@($f)}|ConvertTo-Json -Depth 6));[IO.File]::WriteAllBytes((Join-Path $p 'owner-manifest.json'),$m);$launchers+=@{path=$path;sha256=$f.sha256;bytes=$f.bytes;coreRoot=$p;coreManifestSha256=(Get-ErpBusinessSaleHash $m)}}
@@ -97,7 +106,7 @@ test('NativeContext PackageRefresh task source keeps the running silent launcher
    Save-FixtureTaskCapture $copy;$bad=$false;try{Read-ErpBusinessSalePackageRefreshTaskSource|Out-Null}catch{$bad=$true};if(!$bad){throw 'TASK_SOURCE_DRIFT_ACCEPTED'}
   }
   Save-FixtureTaskCapture $original;[IO.File]::AppendAllText($launchers[0].path,'drift');$bad=$false;try{Read-ErpBusinessSalePackageRefreshTaskSource|Out-Null}catch{$bad=$true};if(!$bad){throw 'RUNNING_SOURCE_DRIFT_ACCEPTED'};'PASS'
- `.replace('__TEMP__',temp.replaceAll("'","''"))),'PASS');}finally{fs.rmSync(temp,{recursive:true,force:true});}
+ `.replace('__TEMP__',temp.replaceAll("'","''"));if(variant==='PreviewRead')body=body.replaceAll('42864','48088');assert.equal(run(body),'PASS');}finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 
 test('Writer admission stays separate from native DDL and requires real profile CAS under pause',()=>{
