@@ -36,7 +36,7 @@ test('PackageRefresh case selection is closed to four immutable generations and 
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030';id='PreviewLink';pid=13532;kind='CurrentCore'},
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030';id='NativeContext';pid=42864;kind='ReadPairRouter'},
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030';id='PreviewRead';pid=48088;kind='CurrentCore'},
-   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030';id='Diagnostic';pid=27732;kind='ReadPairRouter'})){
+   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V2-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V2-STEADY-OWNER-20261030';id='Diagnostic';pid=27732;kind='ReadPairRouter'})){
    $script:caseSourceRoot=$row.owner;$case=Get-ErpBusinessSalePackageRefreshFixedCase
    if($case.id-cne$row.id-or$case.root-cne$row.owner-or$case.steadyRoot-cne$row.steady-or$case.runningPid-ne$row.pid-or$case.predecessorKind-cne$row.kind-or!(Test-ErpBusinessSalePackageRefreshGeneration)){throw 'CLOSED_CASE_MISMATCH'}
    $case.root='mutated';if((Get-ErpBusinessSalePackageRefreshFixedCase).root-cne$row.owner){throw 'CASE_PIN_ALIAS'}

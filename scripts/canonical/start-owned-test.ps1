@@ -206,7 +206,7 @@ function Get-ErpServiceListeners($Definition,$Config) {
  return $listeners
 }
 function Test-ErpSteadyWebStartupGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V2-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030')
 }
 function Start-ErpSteadyWebStartup {
  if(!(Test-ErpSteadyWebStartupGeneration)){throw 'TEST_STEADY_GENERATION_REQUIRED'}
@@ -215,7 +215,7 @@ function Start-ErpSteadyWebStartup {
  # A listener is an observation, never permission to adopt or stop its owner.
  if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-eq5244}).Count){$result.state='already-present-not-adopted';return $result}
  $repair=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'
- $root=if($repair){(Get-ErpBusinessSaleReadContextRepairFixedCase).steadyRoot}elseif($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030')){(Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'};$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
+ $root=if($repair){(Get-ErpBusinessSaleReadContextRepairFixedCase).steadyRoot}elseif($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V2-STEADY-OWNER-20261030')){(Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'};$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   foreach($file in @($manifestPath,$entry)){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST_STEADY_REPARSE_POINT'}};$holds.Add([IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read))}
   $manifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json

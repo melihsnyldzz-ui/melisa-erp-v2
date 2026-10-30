@@ -74,6 +74,60 @@ function diagnosticFixture(options={}){
  for(const [name,h]of Object.entries(g.inputs))put(w.join(g.privateRoot,name),values[name],h);
  return f;
 }
+test('Diagnostic reviewed installer entry accepts only the repaired predecessor and rejects historical fallback before maintenance',()=>{
+ if(process.platform!=='win32')return;
+ const f=diagnosticFixture();try{
+  f.values('prepareBusinessSaleDiagnosticBundle()');
+  const verifier=f.values('verifyBusinessSaleDiagnosticBundle()'),g=f.values('diagnosticGeneration()');
+  const files={};for(const root of [g.core,g.router,g.steady])for(const leaf of fs.readdirSync(f.output(root)))files[path.win32.join(root,leaf)]=fs.readFileSync(path.join(f.output(root),leaf),'utf8');
+  const installer=fs.readFileSync(new URL('./install-business-5244-readpair.ps1',import.meta.url),'utf8');
+  const start=installer.indexOf('function Open-B6PreviewLinkPreparedSource('),end=installer.indexOf('\nfunction ',start+1),original=installer.slice(start,end);
+  const invoke="$verifiedText=if($diagnostic){& $node $producer --verify-diagnostic}elseif($previewRead){& $node $producer --verify-preview-read}elseif($nativeContext){& $node $producer --verify-native-context}else{& $node $producer --verify-preview-link}";
+  assert(original.includes(invoke));
+  // Only external file/process/committed-verifier adapters are fixtures. The whole
+  // real installer function, including path/mode/metadata/predecessor/caller guards,
+  // executes under Windows PowerShell5; no service, SQL, task or lock is available.
+  const body=original.replace(invoke,'$verifiedText=$script:fixture.verifier;$global:LASTEXITCODE=0');
+  const helperStart=installer.indexOf('function Test-ReadPairOwnerArguments('),helperEnd=installer.indexOf('\nfunction ',helperStart+1);
+  assert(helperStart>=0);const helper=installer.slice(helperStart,helperEnd);
+  const fixtureText=JSON.stringify({files,verifier:JSON.stringify(verifier),entry:path.win32.join(g.proof,'reviewed-installer-source.ps1'),sourceHash:verifier.installerSourceSha256.toUpperCase()});
+  const ps=String.raw`
+Set-StrictMode -Version Latest;$ErrorActionPreference='Stop'
+Import-Module Microsoft.PowerShell.Utility
+$script:fixture=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('__DATA__'))|ConvertFrom-Json
+function Assert-ReadPairPath{param($Path)}
+function Hold-B6ReadPairSource{param($Path,$Hash);$script:holds++}
+function Get-FileHash{param($LiteralPath);if($LiteralPath-cne'C:\Sirket\ERP\tools\node-v24.19.0\node.exe'){throw 'UNEXPECTED_HASH_IO'};[pscustomobject]@{Hash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'}}
+function Get-Content{param($LiteralPath,[switch]$Raw);$p=$script:fixture.files.PSObject.Properties[$LiteralPath];if(!$p){throw 'UNEXPECTED_FILE_IO'};return $p.Value}
+function Get-CimInstance{param($ClassName,$Filter);if($ClassName-cne'Win32_Process'-or$Filter-cne('ProcessId='+$PID)){throw 'UNEXPECTED_PROCESS_IO'};[pscustomobject]@{ExecutablePath='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';CommandLine=('"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" '+$script:expectedArgs)}}
+function Invoke-CimMethod{param($InputObject,$MethodName);if($MethodName-cne'GetOwnerSid'){throw 'UNEXPECTED_CIM_IO'};[pscustomobject]@{ReturnValue=0;Sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value}}
+function Set-ScheduledTask{throw 'MAINTENANCE_REACHED'};function Stop-Process{throw 'MAINTENANCE_REACHED'};function Start-Process{throw 'MAINTENANCE_REACHED'}
+__HELPER__
+__FUNCTION__
+$Apply=$true;$PreviewLinkInstall=$true;$ScopeName='TEST125-API-B6-WRITER-20261029';$script:holds=0
+$script:expectedArgs='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$script:fixture.entry+' -Apply -PreviewLinkInstall -SourceSha256 '+$script:fixture.sourceHash+' -ScopeName '+$ScopeName
+$r=Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash $script:fixture.entry
+if($r.fixedCaseId-cne'Diagnostic'-or$r.coreRoot-cne'__CORE__'-or$r.proof-cne'__PROOF__'-or$r.owner.owner.pid-ne14096-or$script:holds-lt30){throw 'DIAGNOSTIC_ENTRY_NOT_REACHED'}
+$capturePath=Join-Path $r.coreRoot 'current-read2b-owner-capture.json';$saved=$script:fixture.files.PSObject.Properties[$capturePath].Value
+foreach($bad in @('kind','router','routerHash','entry','core','coreHash','owner','birth','child','childBirth','parent','api','apiParent','supervisor','supervisorBirth')){
+ $v=$saved|ConvertFrom-Json
+ switch($bad){'kind'{$v.predecessorEntryKind='CurrentCore'};'router'{$v.router.root+='x'};'routerHash'{$v.router.manifestSha256='0'*64};'entry'{$v.entry.root+='x'};'core'{$v.core.root+='x'};'coreHash'{$v.core.manifestSha256='0'*64};'owner'{$v.owner.pid=37032};'birth'{$v.owner.birth='134378268382795620'};'child'{$v.child.pid=49856};'childBirth'{$v.child.birth='134378280224964390'};'parent'{$v.child.parent++};'api'{$v.apiBoundary.pid++};'apiParent'{$v.apiBoundary.parent++};'supervisor'{$v.apiSupervisor.pid++};'supervisorBirth'{$v.apiSupervisor.birth='134378277839267160'}}
+ $script:fixture.files.PSObject.Properties[$capturePath].Value=$v|ConvertTo-Json -Depth 100
+ $denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash $script:fixture.entry|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_PREDECESSOR_CHANGED'){throw};$denied=$true};if(!$denied){throw 'PREDECESSOR_DRIFT_ACCEPTED'}
+}
+$script:fixture.files.PSObject.Properties[$capturePath].Value=$saved
+$denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash ($script:fixture.entry.Replace('owner-preparation-v2','owner-preparation'))|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'OLD_GENERATION_REPLAY_ACCEPTED'}
+'PASS'
+`.replace('__DATA__',()=>Buffer.from(fixtureText).toString('base64')).replace('__HELPER__',()=>helper).replace('__FUNCTION__',()=>body).replace('__CORE__',()=>g.core).replace('__PROOF__',()=>g.proof);
+  const run=text=>cp.execFileSync(path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-Command','& ([scriptblock]::Create([Console]::In.ReadToEnd()))'],{input:text,encoding:'utf8',windowsHide:true,timeout:60000}).trim();
+  assert.equal(run(ps),'PASS');
+  const branchStart=body.indexOf('  if($diagnostic){\n   # Diagnostic refreshes'),branchEnd=body.indexOf("}elseif($previewRead){if($owner.predecessorEntryKind-cne'CurrentCore'",branchStart);
+  assert(branchStart>=0&&branchEnd>branchStart);
+  const broken=body.slice(0,branchStart)+"  if($previewRead){if($owner.predecessorEntryKind-cne'CurrentCore'"+body.slice(branchEnd+"}elseif($previewRead){if($owner.predecessorEntryKind-cne'CurrentCore'".length);
+  assert.throws(()=>run(ps.replace(body,()=>broken)),e=>String(e.stderr).includes('B6_PREVIEW_LINK_PREDECESSOR_CHANGED'));
+ }finally{f.close();}
+});
+
 test('Diagnostic fixed generation prepares and verifies core/router/steady with six private inputs, deferred47 entries and no authority',()=>{
  const f=diagnosticFixture();try{
   const before=f.values('diagnosticBefore()');assert.equal(before.entryCount,47);
