@@ -52,7 +52,13 @@ const bytes=v=>Buffer.from(JSON.stringify(v,null,2)+'\n');
 const fail=c=>{throw Error(c);};
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const commit=v=>typeof v==='string'&&/^[a-f0-9]{40}$/.test(v);
-const same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+// JSON object member order is not identity. Retain every key/value/type and
+// array position while comparing captures emitted by PowerShell and Node.
+export function equalArrayRepairMetadata(a,b){
+ const canonical=v=>Array.isArray(v)?v.map(canonical):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canonical(v[k])])):v;
+ return JSON.stringify(canonical(a))===JSON.stringify(canonical(b));
+}
+const same=equalArrayRepairMetadata;
 const ps=v=>"'"+v.replaceAll("'","''")+"'";
 function plain(p){for(let at=p;at;){if(fs.lstatSync(at).isSymbolicLink())fail('ARRAY_OWNER_REPARSE');const next=path.dirname(at);if(next===at)break;at=next;}}
 function read(p){plain(p);return fs.readFileSync(p);}
@@ -86,7 +92,7 @@ export function validateArrayRepairPacket(p){
  for(const m of p.proposedModules)if(!m.applyDefinition.startsWith('ALTER PROCEDURE '+m.name+' ')||!m.inverseDefinition.startsWith('ALTER PROCEDURE '+m.name+' ')||sha(Buffer.from(m.applyDefinition,'utf16le')).toUpperCase()!==m.proposedApplyAlterTextSha256||sha(Buffer.from(m.inverseDefinition,'utf16le')).toUpperCase()!==m.proposedInverseAlterTextSha256||m.nativeStoredHeaderValidationPending!==true||m.options.signatureCount!==0)fail('ARRAY_OWNER_PACKET_DEFINITION');
  return p;
 }
-function before(){
+export function readArrayRepairInputs(){
  const inputs=new Map(Object.entries(ARRAY_REPAIR_INPUTS).map(([n,h])=>[n,pin(path.win32.join(PRIVATE,n),h)]));
  const capture=json(inputs.get('current-read2b-owner-capture.json')),entries=json(inputs.get('current-entry-hold-capture.json')),task=json(inputs.get('current-task-capture.json'));
  if(capture.schema!=='melisa-b6-writer-current-owner-capture.v1'||capture.predecessorEntryKind!=='ReadPairRouter'||capture.readOnly!==true||capture.stopAuthorized!==false||capture.owner?.pid!==18572||capture.owner.birth!=='134378104151292349'||capture.child?.pid!==33788||capture.child.birth!=='134378112314707445'||capture.child.parent!==18572||capture.entry?.root!==OLD_ROUTER||capture.entry.manifestSha256!==OLD_HASHES.router||capture.core?.root!==OLD_CORE||capture.core.manifestSha256!==OLD_HASHES.core||capture.core.sourceCommit!=='8d13ba54c2b9a46486e249480ef8903f88a78870'||capture.nativeStatus?.nativePeerVerified!==true||capture.nativeStatus.state?.phase!=='Running'||capture.nativeStatus.state.ownerPid!==18572||capture.nativeStatus.state.childPid!==33788||capture.serviceCalls!==0||capture.sqlCalls!==0||capture.retireCalls!==0||capture.recordBeforeSha256!==ARRAY_REPAIR_INPUTS['current-erp-processes.before.json'])fail('ARRAY_OWNER_CAPTURE');
@@ -161,7 +167,7 @@ function verification(source,p){return {schema:'melisa-b6-read-context-repair-ow
 function write(root,leaf,b){if(/[\\/]/.test(leaf))fail('ARRAY_OWNER_WRITE_LEAF');fs.writeFileSync(path.win32.join(root,leaf),b,{flag:'wx'});}
 export function prepareArrayRepairOwner(){
  if(path.resolve(fileURLToPath(import.meta.url))!==path.win32.join(SOURCE,'scripts','canonical','prepare-business-sale-array-repair-owner.mjs'))fail('ARRAY_OWNER_PREPARE_ENTRY');
- const source=sourceFiles(),ci=hosted(source.head),b=before(),p=payload(source,ci,b);
+ const source=sourceFiles(),ci=hosted(source.head),b=readArrayRepairInputs(),p=payload(source,ci,b);
  for(const root of [...Object.values(ARRAY_REPAIR_ROOTS),PROOF]){if(fs.existsSync(root))fail('ARRAY_OWNER_OUTPUT_EXISTS');plain(path.dirname(root));}
  if(git(['rev-parse','HEAD']).trim()!==source.head||git(['status','--porcelain','--untracked-files=no']).trim())fail('ARRAY_OWNER_SOURCE_CHANGED');
  for(const root of [...Object.values(ARRAY_REPAIR_ROOTS),PROOF])fs.mkdirSync(root);
@@ -169,5 +175,5 @@ export function prepareArrayRepairOwner(){
  write(ARRAY_REPAIR_ROOTS.router,'owner-manifest.json',p.routerBytes);write(ARRAY_REPAIR_ROOTS.router,'readpair-router-library.ps1',p.library);write(ARRAY_REPAIR_ROOTS.router,'start-business-5244-readpair-router.ps1',p.entry);
  const result={...verification(source,p),schema:'melisa-b6-read-context-repair-owner-preparation.v1',hostedCi:ci};write(PROOF,'preparation-receipt.json',bytes(result));write(PROOF,'reviewed-installer-source.ps1',source.files.get('install-business-5244-readpair.ps1'));write(PROOF,'verified-array-repair-producer.mjs',source.files.get('prepare-business-sale-array-repair-owner.mjs'));return result;
 }
-export function verifyArrayRepairOwner(){const receipt=json(read(path.win32.join(PROOF,'preparation-receipt.json'))),source=sourceFiles(receipt.ownerSourceCommit),ci=hosted(source.head),b=before(),p=payload(source,receipt.hostedCi,b),v=verification(source,p);if(!same(receipt,{...v,schema:'melisa-b6-read-context-repair-owner-preparation.v1',hostedCi:receipt.hostedCi})||receipt.hostedCi?.length!==2||receipt.hostedCi.some((r,i)=>r.event!==ci[i].event||r.head!==source.head||r.conclusion!=='success'||!same(r.jobs,REQUIRED)))fail('ARRAY_OWNER_RECEIPT_CHANGED');for(const[root,files,m]of[[ARRAY_REPAIR_ROOTS.core,p.files,p.coreBytes],[ARRAY_REPAIR_ROOTS.steady,p.steadyFiles,p.steadyBytes]]){pin(path.win32.join(root,'owner-manifest.json'),sha(m));for(const[n,v]of files)pin(path.win32.join(root,n),sha(v));for(const[n,v]of b.inputs)pin(path.win32.join(root,n),sha(v));pin(path.win32.join(root,PACKET),PACKET_HASH);}for(const[leaf,v]of[['owner-manifest.json',p.routerBytes],['readpair-router-library.ps1',p.library],['start-business-5244-readpair-router.ps1',p.entry]])pin(path.win32.join(ARRAY_REPAIR_ROOTS.router,leaf),sha(v));for(const[leaf,v]of[['reviewed-installer-source.ps1',source.files.get('install-business-5244-readpair.ps1')],['verified-array-repair-producer.mjs',source.files.get('prepare-business-sale-array-repair-owner.mjs')]])pin(path.win32.join(PROOF,leaf),sha(v));return {...v,currentRepoHead:source.repoHead};}
+export function verifyArrayRepairOwner(){const receipt=json(read(path.win32.join(PROOF,'preparation-receipt.json'))),source=sourceFiles(receipt.ownerSourceCommit),ci=hosted(source.head),b=readArrayRepairInputs(),p=payload(source,receipt.hostedCi,b),v=verification(source,p);if(!same(receipt,{...v,schema:'melisa-b6-read-context-repair-owner-preparation.v1',hostedCi:receipt.hostedCi})||receipt.hostedCi?.length!==2||receipt.hostedCi.some((r,i)=>r.event!==ci[i].event||r.head!==source.head||r.conclusion!=='success'||!same(r.jobs,REQUIRED)))fail('ARRAY_OWNER_RECEIPT_CHANGED');for(const[root,files,m]of[[ARRAY_REPAIR_ROOTS.core,p.files,p.coreBytes],[ARRAY_REPAIR_ROOTS.steady,p.steadyFiles,p.steadyBytes]]){pin(path.win32.join(root,'owner-manifest.json'),sha(m));for(const[n,v]of files)pin(path.win32.join(root,n),sha(v));for(const[n,v]of b.inputs)pin(path.win32.join(root,n),sha(v));pin(path.win32.join(root,PACKET),PACKET_HASH);}for(const[leaf,v]of[['owner-manifest.json',p.routerBytes],['readpair-router-library.ps1',p.library],['start-business-5244-readpair-router.ps1',p.entry]])pin(path.win32.join(ARRAY_REPAIR_ROOTS.router,leaf),sha(v));for(const[leaf,v]of[['reviewed-installer-source.ps1',source.files.get('install-business-5244-readpair.ps1')],['verified-array-repair-producer.mjs',source.files.get('prepare-business-sale-array-repair-owner.mjs')]])pin(path.win32.join(PROOF,leaf),sha(v));return {...v,currentRepoHead:source.repoHead};}
 if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){try{const args=process.argv.slice(2);if(args.length!==1||!['--prepare','--verify'].includes(args[0]))fail('ARRAY_OWNER_FIXED_ACTION');console.log(JSON.stringify(args[0]==='--prepare'?prepareArrayRepairOwner():verifyArrayRepairOwner()));}catch(e){console.error(/^[A-Z][A-Z0-9_]+$/.test(e.message)?e.message:'ARRAY_OWNER_PREPARATION_FAILED');process.exitCode=1;}}

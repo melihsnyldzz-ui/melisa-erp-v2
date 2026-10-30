@@ -5,9 +5,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import cp from 'node:child_process';
-import {ARRAY_REPAIR_SOURCE_FILES,ARRAY_REPAIR_INPUTS,ARRAY_REPAIR_SCOPE,ARRAY_REPAIR_PURPOSE,ARRAY_REPAIR_ROOTS,validateArrayRepairPacket,renderArrayRepairCurrent,renderRouter} from './prepare-business-sale-array-repair-owner.mjs';
+import {ARRAY_REPAIR_SOURCE_FILES,ARRAY_REPAIR_INPUTS,ARRAY_REPAIR_SCOPE,ARRAY_REPAIR_PURPOSE,ARRAY_REPAIR_ROOTS,validateArrayRepairPacket,renderArrayRepairCurrent,renderRouter,equalArrayRepairMetadata} from './prepare-business-sale-array-repair-owner.mjs';
 import {BUSINESS_SALE_OWNER_SOURCE_FILES} from './prepare-business-sale-owner-bundle.mjs';
 const sha=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
+test('PowerShell capture key order is irrelevant but every field type value and array position remains exact',()=>{
+ const a={path:'C:\\fixed\\entry.ps1',sha256:'a'.repeat(64),bytes:10,flags:{readOnly:true,ids:[1,2]}};
+ const b={flags:{ids:[1,2],readOnly:true},bytes:10,sha256:'a'.repeat(64),path:'C:\\fixed\\entry.ps1'};
+ assert(equalArrayRepairMetadata(a,b));
+ for(const mutate of [v=>v.path+='x',v=>v.sha256='b'.repeat(64),v=>v.bytes='10',v=>v.flags.readOnly='true',v=>v.flags.ids.reverse(),v=>v.extra=false,v=>delete v.flags]){const v=structuredClone(b);mutate(v);assert(!equalArrayRepairMetadata(a,v));}
+});
 function packet(){return {schema:'melisa-b6-array-repair-review-packet.v1',status:'REVIEW_ONLY_NO_EXECUTOR',installable:false,executeAllowed:false,executionAuthority:false,scope:ARRAY_REPAIR_SCOPE,databaseId:18,database:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV',proposedModules:['begin','context','resolve'].map(n=>{const name='dbo.usp_canonical_business_sale_'+n+'_v1',applyDefinition='ALTER PROCEDURE '+name+' AS SELECT 2;',inverseDefinition='ALTER PROCEDURE '+name+' AS SELECT 1;';return {name,applyDefinition,inverseDefinition,proposedApplyAlterTextSha256:sha(applyDefinition),proposedInverseAlterTextSha256:sha(inverseDefinition),nativeStoredHeaderValidationPending:true,options:{signatureCount:0}};}),profileMetadataDelta:[{field:'businessSaleAdmission.contextDefinitionHash'},{field:'businessSaleAdmission.beginDefinitionHash'}],nativeStoredHeaderValidationPending:true,permissionChanges:0,rolesChanged:0,stockWrites:0,financeWrites:0,journalWrites:0,sourceOrLiveWrites:0,newTables:0,legacy25ModulesUnchanged:true,nativeModuleSet31Unchanged:true};}
 test('array repair is an exact three-module two-field review input and never execution authority',()=>{
  const p=packet(),before=JSON.stringify(p);assert.equal(validateArrayRepairPacket(p),p);assert.equal(JSON.stringify(p),before);

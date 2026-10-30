@@ -593,7 +593,7 @@ function Open-B6ReadContextRepairPreparedSource([string]$ReviewedSourceHash,[str
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
   $producer=Join-Path $proof 'verified-array-repair-producer.mjs'
-  Hold-B6ReadPairSource $producer 'e4e33683637d45128731fb701f599e8d59682ed0a28b7c87afe69ded5ac5bc56'
+  Hold-B6ReadPairSource $producer '5bd6eafddfb9df3f1977c273d61b41c4592f921d48aec60c6159d7d595af8f8e'
   $text=& $node $producer --verify
   if($LASTEXITCODE-ne0){throw 'B6_READ_REPAIR_SOURCE_VERIFICATION_FAILED'};$v=$text|ConvertFrom-Json
   $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-OWNER-20261030';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030'
