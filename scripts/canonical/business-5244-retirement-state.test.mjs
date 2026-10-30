@@ -25,8 +25,8 @@ $getPins=(Get-Command Get-Business5244CurrentBootstrapPins).Definition.Replace('
 . ([scriptblock]::Create('function Get-Business5244CurrentBootstrapPins {'+$getPins+'}'))
 `.replace('__NATIVE_PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1')));
 
-win('PackageRefresh fixed bootstrap uses held before-image CAS and genuine native initialization inverse while denying changed captures',()=>{
- assert.equal(run(setup+String.raw`
+for(const corrected of [false,true])win((corrected?'NativeContext':'PackageRefresh')+' fixed bootstrap uses held before-image CAS and genuine native initialization inverse while denying changed captures',()=>{
+ let body=setup+String.raw`
  try{
  . __NATIVE_PROFILE__
  function Test-Business5244PackageRefreshGeneration{return $true}
@@ -38,10 +38,20 @@ win('PackageRefresh fixed bootstrap uses held before-image CAS and genuine nativ
  $captureRoot=Join-Path $env:TEMP 'refresh-before';[void][IO.Directory]::CreateDirectory($captureRoot);[IO.File]::WriteAllBytes((Join-Path $captureRoot 'current-erp-processes.before.json'),$before)
  $capture=@{schema='melisa-b6-writer-current-owner-capture.v1';predecessorEntryKind='CurrentCore';readOnly=$true;stopAuthorized=$false;owner=@{pid=37032;birth='134377779664390871'};child=@{pid=49856;birth='134377781387027619'};recordBeforeSha256=$beforeHash;installedApiManifest=$fixed.apiManifest;installedWebManifest=$fixed.manifest;serviceCalls=0;sqlCalls=0;retireCalls=0};$captureBytes=[Text.Encoding]::UTF8.GetBytes(($capture|ConvertTo-Json -Depth 12));$captureHash=Get-Business5244StartupHash $captureBytes;$capturePath=Join-Path $captureRoot 'current-read2b-owner-capture.json';[IO.File]::WriteAllBytes($capturePath,$captureBytes)
  function Read-ErpBusinessSalePackageRefreshOwnerSource{return @{root=$captureRoot}}
- $body=(Get-Command Get-Business5244PackageRefreshBootstrapPins).Definition.Replace('124e207b8ab0f8f6a5b3b8227c7183c17b69f2f2725b2837b2dc1bc81410c74b',$captureHash).Replace('d2f0d645165d4ded0433953a131f4bd6b0dee0145bc7aead8d323cd7c64cd10a',$beforeHash);. ([scriptblock]::Create('function Get-Business5244PackageRefreshBootstrapPins {'+$body+'}'))
+ $script:expectedOwnerBirth=$null;$script:expectedChildBirth=$null
+ function Get-ErpBusinessSalePackageRefreshFixedCase{return @{recordHash=$beforeHash;captureHash=$captureHash;ownerPid=37032;ownerBirth=$script:expectedOwnerBirth;childPid=49856;childBirth=$script:expectedChildBirth;predecessorKind='CurrentCore'}}
  $refreshState=Register-Business5244OwnedRetirement $lease $native $fixed -ScopeName 'TEST125-API-B6-WRITER-20261029'
  try{
   $stale=Get-Business5244CurrentBootstrapPins $beforeHash -ScopeName 'TEST125-API-B6-WRITER-20261029';if($stale.pid-ne49856-or$stale.ownerPid-ne37032){throw 'PACKAGE_REFRESH_NOT_FIXED_PREDECESSOR'}
+  foreach($birthMode in @('absent','matching')){
+   $script:expectedOwnerBirth=if($birthMode-ceq'matching'){'134377779664390871'}else{$null};$script:expectedChildBirth=if($birthMode-ceq'matching'){'134377781387027619'}else{$null}
+   foreach($field in @('schema','ownerPid','childPid')){
+    $copy=$capture|ConvertTo-Json -Depth 12|ConvertFrom-Json;switch($field){schema{$copy.schema='wrong-schema'}ownerPid{$copy.owner.pid++}childPid{$copy.child.pid++}}
+    $altered=[Text.Encoding]::UTF8.GetBytes(($copy|ConvertTo-Json -Depth 12));$captureHash=Get-Business5244StartupHash $altered;[IO.File]::WriteAllBytes($capturePath,$altered)
+    $denied=$false;try{Get-Business5244CurrentBootstrapPins $beforeHash -ScopeName 'TEST125-API-B6-WRITER-20261029'|Out-Null}catch{$denied=$true};if(!$denied){throw 'PACKAGE_REFRESH_BIRTH_CLEARED_IDENTITY_REJECTION'}
+   }
+  }
+  $captureHash=Get-Business5244StartupHash $captureBytes;[IO.File]::WriteAllBytes($capturePath,$captureBytes)
   [IO.File]::AppendAllText($capturePath,' ');$denied=$false;try{Get-Business5244CurrentBootstrapPins $beforeHash -ScopeName 'TEST125-API-B6-WRITER-20261029'|Out-Null}catch{$denied=$true};[IO.File]::WriteAllBytes($capturePath,$captureBytes);if(!$denied){throw 'PACKAGE_REFRESH_CHANGED_CAPTURE_ACCEPTED'}
   [IO.File]::WriteAllBytes($recordPath,$before);$records=[IO.File]::Open($recordPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$pending=[IO.File]::Open($pendingPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
   Assert-Business5244CurrentBootstrapBefore $refreshState $records;Publish-Business5244HeldCurrentRecord $refreshState $records $pending|Out-Null
@@ -50,7 +60,9 @@ win('PackageRefresh fixed bootstrap uses held before-image CAS and genuine nativ
   if(!$native.RetirementConfirmed-or(Test-Path $pendingPath)-or(Get-Business5244StartupHash (Read-Business5244RetirementBytes $records))-cne$beforeHash){throw 'PACKAGE_REFRESH_NATIVE_INVERSE_FAILED'}
  }finally{Close-Business5244RetirementState $refreshState}
  }
- `.replace('__NATIVE_PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1')))+cleanup),'PASS');
+ `.replace('__NATIVE_PROFILE__',q(path.join(dir,'canonical-business-sale-maintenance.ps1')))+cleanup;
+ if(corrected)body=body.replaceAll('37032','7768').replaceAll('49856','47996').replaceAll("predecessorEntryKind='CurrentCore'","predecessorEntryKind='ReadPairRouter'").replaceAll("predecessorKind='CurrentCore'","predecessorKind='ReadPairRouter'").replaceAll('ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029','ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030').replaceAll('5cebcda8e9937a4db7135bdd18e48fc1585e0d5b1854f63711fe546886ec4bf6','c3c7af16091f11f07acb704d2785a1d103392411510167bdf4befc7f0845765c').replaceAll("('560c735fcaffa6692f55543840f81066'+'79b43b871e3c19f1990bdd17d46f9946')","('082786d92ea204ec4a448231a8a1b555'+'ea8f7aaaabe1f34413b11ddd99247f5f')");
+ assert.equal(run(body),'PASS');
 });
 win('Writer retirement registers only the genuine owned child and exact Applied-B6 or Writer pair, never READ2b or a copied issuer',()=>{
  const body=setup+String.raw`

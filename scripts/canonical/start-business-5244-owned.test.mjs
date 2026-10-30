@@ -22,10 +22,14 @@ const isolatedStartup=String.raw`function Get-Business5244StartupMutexName{retur
 const load=`. ${quote(path.join(dir,'start-business-5244-owned.ps1'))} -Library;${isolatedStartup}`;
 win('PackageRefresh entry binds preparation to only its fixed router and keeps Current recovery separate before any lease',()=>{
  assert.equal(run(load+String.raw`
+ function Get-ErpBusinessSalePackageRefreshFixedCase{return $script:entryCase}
  $body=(Get-Command Assert-Business5244PackageRefreshEntry).Definition.Replace('[Environment]::GetCommandLineArgs()','$script:hostArguments');. ([scriptblock]::Create('function Assert-Business5244PackageRefreshEntry {'+$body+'}'))
- $router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-ROUTER-20261030\start-business-5244-readpair-router.ps1';$current='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\run-current-owner.ps1'
+ foreach($name in @('LINK','CONTEXT')){
+ $script:entryCase=@{root=('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-'+$name+'-OWNER-20261030');routerRoot=('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-'+$name+'-ROUTER-20261030')}
+ $router=Join-Path $script:entryCase.routerRoot 'start-business-5244-readpair-router.ps1';$current=Join-Path $script:entryCase.root 'run-current-owner.ps1'
  foreach($prepare in @($false,$true)){$script:hostArguments=@('powershell.exe','-NoProfile','-File',$(if($prepare){$router}else{$current}));Assert-Business5244PackageRefreshEntry $prepare;$script:hostArguments[3]=if($prepare){$current}else{$router};$denied=$false;try{Assert-Business5244PackageRefreshEntry $prepare}catch{$denied=$true};if(!$denied){throw 'PACKAGE_ENTRY_ROLE_CONFUSED'}}
  foreach($args in @(@('powershell.exe','-Command',$router),@('powershell.exe','-File',$router,'-File',$router),@('powershell.exe','-File',$router,'-EncodedCommand','AA=='),@('powershell.exe','-file',$router),@('powershell.exe','-File',($router+'x')))){$script:hostArguments=$args;$denied=$false;try{Assert-Business5244PackageRefreshEntry $true}catch{$denied=$true};if(!$denied){throw 'PACKAGE_HOST_NOT_CLOSED'}}
+ }
  function Test-Business5244PackageRefreshGeneration{return $true};function Enter-Business5244StartupLease{throw 'UNEXPECTED_PACKAGE_LEASE'}
  foreach($scope in @('TEST125-API-B6-ca620bac-20261028','TEST125-API-READ2b-20261028-41d3c213')){$denied=$false;try{Start-Business5244OwnedSupervisor -InitialSlot Current -ScopeName $scope}catch{if($_.Exception.Message-cne'OWNED_PACKAGE_REFRESH_SCOPE_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'PACKAGE_OTHER_SCOPE_ADMITTED'}};'PASS'`),'PASS');
 });

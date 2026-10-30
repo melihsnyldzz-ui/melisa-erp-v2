@@ -16,6 +16,7 @@ const refreshRunningFixture=String.raw`
  $exe=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe';$oldPath=Join-Path $temp 'running.ps1';$futurePath=Join-Path $temp 'future.ps1';$maintenancePath=Join-Path $temp 'maintenance.ps1';$created=[datetime]'2026-10-29T10:00:00Z';$currentPid=13532
  function Hash-Temp($p){$h=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($h.ComputeHash([IO.File]::ReadAllBytes($p))).Replace('-','')}finally{$h.Dispose()}}
  $running=[pscustomobject]@{pid=13532;birth=([long]$created.ToFileTimeUtc()+8).ToString();cimBirth=$created.ToFileTimeUtc().ToString();launcher=[pscustomobject]@{path=$oldPath};ownedRecordPath=$ownedPath;ownedRecordSha256='';ownedRecordSourceCommit=$source;ownedRecordStartedAt='2026-10-29T10:00:01Z';argv=('"'+$exe+'" -NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$oldPath+'" -StartupConfigPath "'+$startup+'"')}
+ function Get-ErpBusinessSalePackageRefreshFixedCase{return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030'}}
  $proof=[pscustomobject]@{opaque='local-fixture'};$seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {}; $proofContext=[pscustomobject]@{seal=$seal;packageRefreshTaskSource=[pscustomobject]@{runningSupervisor=$running};packageRefreshTaskState=[pscustomobject]@{maintenanceInstalled=$false}}
  $owned=[pscustomobject]@{sourceCommit=$source;supervisor=13532;startedAt=$running.ownedRecordStartedAt;children=[pscustomobject]@{api=[pscustomobject]@{pid=101;createdAt='2026-10-29T10:00:02Z'};native=[pscustomobject]@{pid=102;createdAt='2026-10-29T10:00:02Z'};web=[pscustomobject]@{pid=103;createdAt='2026-10-29T10:00:02Z'}}};[IO.File]::WriteAllText($ownedPath,($owned|ConvertTo-Json -Depth 12));$running.ownedRecordSha256=(Hash-Temp $ownedPath).ToLowerInvariant()
  function Test-ErpBusinessSalePackageRefreshGeneration{return $true};function Get-ErpReadPairReleaseProofContext($p){if(![object]::ReferenceEquals($p,$proof)){throw 'UNISSUED_PROOF'};return $proofContext};function Read-ErpStartupConfig{return $config};function Get-Test125ReadPairScope{return [pscustomobject]@{source=$source;database=$config.ExpectedDatabase;name=$scope;current=$current;candidate=$candidate}}
@@ -30,11 +31,11 @@ const refreshRunningFixture=String.raw`
  $task=[pscustomobject]@{TaskName=$config.TaskName;TaskPath='\';State='Running';Settings=[pscustomobject]@{Enabled=$true;AllowHardTerminate=$true;MultipleInstances='IgnoreNew'};Principal=[pscustomobject]@{UserId=$sid;LogonType='Interactive';RunLevel='Limited'};Actions=@([pscustomobject]@{Execute=$exe;Arguments=('-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$futurePath+'" -StartupConfigPath "'+$startup+'"');WorkingDirectory=$config.RepoRoot})}
  $supervisor=[pscustomobject]@{ProcessId=$currentPid;ExecutablePath=$exe;CommandLine=$running.argv;CreationDate=$created}
 `;
-function runRefreshPlan(body,prefix=''){
+function runRefreshPlan(body,prefix='',variant='PreviewLink'){
  const temp=realpathSync.native(mkdtempSync(path.join(realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),'b6-refresh-running-'))),q=s=>"'"+s.replaceAll("'","''")+"'";
- try{for(const name of ['owned.json','startup.json','running.ps1','future.ps1','maintenance.ps1'])writeFileSync(path.join(temp,name),name);return run((prefix+refreshRunningFixture+body).replace('__TEMP__',q(temp)));}finally{rmSync(temp,{recursive:true,force:true});}
+ try{for(const name of ['owned.json','startup.json','running.ps1','future.ps1','maintenance.ps1'])writeFileSync(path.join(temp,name),name);let script=(prefix+refreshRunningFixture+body).replace('__TEMP__',q(temp));if(variant==='NativeContext')script=script.replaceAll('13532','42864').replaceAll('ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030');return run(script);}finally{rmSync(temp,{recursive:true,force:true});}
 }
-win('PackageRefresh post-transition observation uses its separate Prepared controller proof for both API modes and only the fresh silent LINK engine',()=>{
+for(const variant of ['PreviewLink','NativeContext'])win(variant+' PackageRefresh post-transition observation uses its separate Prepared controller proof for both API modes and only the fresh silent maintenance engine',()=>{
  const quiescence=path.join(import.meta.dirname,'test125-bound-api-quiescence.ps1').replaceAll("'","''");
  assert.equal(runRefreshPlan(String.raw`
  $fixtureChildren=[Collections.Generic.List[object]]::new();$node=(Get-Command node.exe).Source
@@ -88,7 +89,7 @@ win('PackageRefresh post-transition observation uses its separate Prepared contr
   }
   if($script:afterReads-lt2){throw 'FRESH_AFTER_NOT_READ'};'PASS'
  }finally{foreach($p in $fixtureChildren){if(!$p.HasExited){$p.Kill();$p.WaitForExit()};$p.Dispose()}}
- `,`. '${quiescence}'; `),'PASS');
+ `,`. '${quiescence}'; `,variant),'PASS');
 });
 win('PackageRefresh actual maintenance plan distinguishes the captured running V2 supervisor from its future steady task and later silent maintenance launcher',()=>{
  assert.equal(runRefreshPlan(String.raw`

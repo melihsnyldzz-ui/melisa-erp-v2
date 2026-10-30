@@ -29,6 +29,13 @@ winTest('health requires exact environment source package and TEST DB; raw error
 winTest('steady startup is inert outside the fixed generation and never adopts an existing 5244 listener',()=>{
  assert.equal(run("function Get-NetTCPConnection {throw 'UNEXPECTED_PROBE'};if(Test-ErpSteadyWebStartupGeneration){throw 'SOURCE_ACTIVATED'};try{Start-ErpSteadyWebStartup;throw 'EXPECTED_RET'}catch{if($_.Exception.Message-cne'TEST_STEADY_GENERATION_REQUIRED'){throw}};function Test-ErpSteadyWebStartupGeneration{return $true};function Get-NetTCPConnection {[pscustomobject]@{LocalPort=5244;OwningProcess=999}};function Start-Process {throw 'ADOPTION_START'};$a=Start-ErpSteadyWebStartup;$b=Start-ErpSteadyWebStartup;if($a.state-cne'already-present-not-adopted'-or$a.attempted-or![object]::ReferenceEquals($a,$b)){throw 'ADOPTION'};'PASS'"),'PASS');
 });
+winTest('NativeContext PackageRefresh keeps maintenance API launchers inert and only its fixed steady sibling enables future startup',()=>{
+ assert.equal(run(String.raw`
+ $body=(Get-Command Test-ErpSteadyWebStartupGeneration).Definition.Replace('$PSScriptRoot','$script:connectorSourceRoot');. ([scriptblock]::Create('function Test-ErpSteadyWebStartupGeneration {'+$body+'}'))
+ foreach($name in @('LINK','CONTEXT')){$script:connectorSourceRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-'+$name+'-OWNER-20261030';if(Test-ErpSteadyWebStartupGeneration){throw 'MAINTENANCE_CONNECTOR_ACTIVATED'}}
+ foreach($root in @('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030')){$script:connectorSourceRoot=$root;if(!(Test-ErpSteadyWebStartupGeneration)){throw 'STEADY_CONNECTOR_MISSING'};$script:connectorSourceRoot=$root.ToLowerInvariant();if(Test-ErpSteadyWebStartupGeneration){throw 'UNPINNED_CONNECTOR_ALIAS'}};'PASS'
+ `),'PASS');
+});
 winTest('steady connector is ready-only, one-shot and does not expand canonical service definitions',()=>{
  const source=execFileSync(process.execPath,['-e',"process.stdout.write(require('fs').readFileSync(process.argv[1],'utf8'))",path.join(import.meta.dirname,'start-owned-test.ps1')],{encoding:'utf8'});
  assert.match(source,/if\(\$ready-and\(Test-ErpSteadyWebStartupGeneration\)\)/);

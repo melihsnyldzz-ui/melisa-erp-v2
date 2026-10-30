@@ -59,13 +59,15 @@ function Get-Business5244WriterWebOnlyBootstrapPins([string]$BeforeHash){
  return @{hash=$recordHash;pid=[int]$capture.child.pid;birth=$capture.child.birth;ownerPid=[int]$capture.owner.pid;ownerBirth=$capture.owner.birth;root=$fixed.root;source=$fixed.frontendSource}
 }
 function Get-Business5244PackageRefreshBootstrapPins([string]$BeforeHash){
- if(!(Test-Business5244PackageRefreshGeneration)-or$BeforeHash-cne'd2f0d645165d4ded0433953a131f4bd6b0dee0145bc7aead8d323cd7c64cd10a'){throw 'CURRENT_BOOTSTRAP_PACKAGE_REFRESH_BEFORE_CHANGED'}
+ if(!(Test-Business5244PackageRefreshGeneration)){throw 'CURRENT_BOOTSTRAP_PACKAGE_REFRESH_BEFORE_CHANGED'}
+ $case=Get-ErpBusinessSalePackageRefreshFixedCase
+ if($BeforeHash-cne$case.recordHash){throw 'CURRENT_BOOTSTRAP_PACKAGE_REFRESH_BEFORE_CHANGED'}
  $o=Read-ErpBusinessSalePackageRefreshOwnerSource
- $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $o.root 'current-read2b-owner-capture.json') '124e207b8ab0f8f6a5b3b8227c7183c17b69f2f2725b2837b2dc1bc81410c74b'))|ConvertFrom-Json
+ $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $o.root 'current-read2b-owner-capture.json') $case.captureHash))|ConvertFrom-Json
  $image=Read-ErpBusinessSalePinnedFile (Join-Path $o.root 'current-erp-processes.before.json') $BeforeHash
  $rows=ConvertFrom-Business5244RecordBytes $image;$fixed=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current
  $old=@($rows|Where-Object port -eq 5244)
- if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.predecessorEntryKind-cne'CurrentCore'-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.owner.pid-ne37032-or$capture.child.pid-ne49856-or$capture.recordBeforeSha256-cne$BeforeHash-or$capture.installedApiManifest-cne$fixed.apiManifest-or$capture.installedWebManifest-cne$fixed.manifest-or$old.Count-ne1-or$old[0].pid-ne$capture.child.pid-or$old[0].root-cne$fixed.root-or$old[0].sourceCommit-cne$fixed.frontendSource-or$old[0].backendPort-ne4144-or$old[0].businessWorkfaceId-cne$fixed.profile-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.retireCalls-ne0){throw 'CURRENT_BOOTSTRAP_PACKAGE_REFRESH_CAPTURE_CHANGED'}
+ if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.predecessorEntryKind-cne$case.predecessorKind-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.owner.pid-ne$case.ownerPid-or$capture.child.pid-ne$case.childPid-or($case.ownerBirth-and($capture.owner.birth-cne$case.ownerBirth))-or($case.childBirth-and($capture.child.birth-cne$case.childBirth))-or$capture.recordBeforeSha256-cne$BeforeHash-or$capture.installedApiManifest-cne$fixed.apiManifest-or$capture.installedWebManifest-cne$fixed.manifest-or$old.Count-ne1-or$old[0].pid-ne$capture.child.pid-or$old[0].root-cne$fixed.root-or$old[0].sourceCommit-cne$fixed.frontendSource-or$old[0].backendPort-ne4144-or$old[0].businessWorkfaceId-cne$fixed.profile-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.retireCalls-ne0){throw 'CURRENT_BOOTSTRAP_PACKAGE_REFRESH_CAPTURE_CHANGED'}
  Assert-Business5244RecordStage $rows $rows $old[0].pid Candidate $fixed
  return @{hash=$BeforeHash;pid=[int]$capture.child.pid;birth=[string]$capture.child.birth;ownerPid=[int]$capture.owner.pid;ownerBirth=[string]$capture.owner.birth;root=$fixed.root;source=$fixed.frontendSource}
 }

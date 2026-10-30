@@ -3,9 +3,9 @@ import test from 'node:test';import assert from 'node:assert/strict';import cp f
 const ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),file=path.join(import.meta.dirname,'start-business-5244-web.ps1');
 function run(body){const env={...process.env};delete env.PSModulePath;return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-Command',`. '${file.replaceAll("'","''")}' -Library;${body}`],{env,windowsHide:true,encoding:'utf8'}).trim();}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
-win('PackageRefresh delegates its exact finite pair while the preview steady sibling selects only Candidate as logical Current',()=>{
+for(const corrected of [false,true])win((corrected?'NativeContext':'PackageRefresh')+' delegates its exact finite pair while the preview steady sibling selects only Candidate as logical Current',()=>{
  const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),'melisa-preview-steady-'))),q=s=>s.replaceAll("'","''");
- try{assert.equal(run(String.raw`
+ try{let body=String.raw`
  function Test-Business5244PackageRefreshGeneration{return $true};$script:reads=[Collections.Generic.List[string]]::new();$script:pins=(Get-Business5244WebPins).Clone();$pins.manifest='c'*64;$pins.package='ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030';$pins.apiManifest='d'*64
  function Get-ErpBusinessSaleWriterPairPins($Mode){$reads.Add($Mode);return $pins}
  foreach($mode in @('Current','Candidate')){$p=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode $mode;$p.manifest='mutated';if($pins.manifest-ceq'mutated'){throw 'PACKAGE_PIN_ALIAS_MUTATED'}};if(($reads-join'|')-cne'Current|Candidate'){throw 'PACKAGE_PAIR_NOT_DELEGATED'}
@@ -13,11 +13,12 @@ win('PackageRefresh delegates its exact finite pair while the preview steady sib
  $pair=[Text.Encoding]::UTF8.GetBytes('isolated-pair');$pairPath=Join-Path '__ROOT__' 'preview-package-pair.json';[IO.File]::WriteAllBytes($pairPath,$pair);$h=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($h.ComputeHash($pair)).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}
  $manifest=@{kind='BUSINESS5244_FRESH_OWNER_BUNDLE';finiteScope='TEST125-API-B6-WRITER-20261029';maintenancePurpose='WebOnlySteadyStartup';rehearsalOnly=$false;recordingEnabled=$false;apiTransitionEnabled=$false;readPairMaintenanceEnabled=$false;actualT1=$false;externalOperations=$false;packagePair=@{path='preview-package-pair.json';sha256=$hash}}
  [IO.File]::WriteAllText((Join-Path '__ROOT__' 'owner-manifest.json'),($manifest|ConvertTo-Json -Depth 5))
- $body=(Get-Command Get-Business5244SteadyPins).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','__ROOT__').Replace('$preview=$PSScriptRoot-ceq''__ROOT__''','$preview=$true').Replace('7cf2b950e878cbe591040d28e930a9abc6380ec61f13dcd5bd5834d27739c94a',$hash)
+ function Get-ErpBusinessSalePackageRefreshFixedCase{return @{steadyRoot='__ROOT__';pairHash=$hash}}
+ $body=(Get-Command Get-Business5244SteadyPins).Definition.Replace('$PSScriptRoot','''C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030''')
  . ([scriptblock]::Create('function Get-Business5244SteadyPins {'+$body+'}'))
  $reads.Clear();$p=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current;if($p.package-cne$pins.package-or($reads-join'|')-cne'Candidate'){throw 'PREVIEW_STEADY_NOT_CANDIDATE_PAIR'}
  $denied=$false;try{Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate|Out-Null}catch{$denied=$true};if(!$denied){throw 'PREVIEW_STEADY_RETIRE_PAIR_OPEN'}
- [IO.File]::AppendAllText($pairPath,'drift');$denied=$false;try{Get-Business5244SteadyPins|Out-Null}catch{$denied=$true};if(!$denied){throw 'PREVIEW_STEADY_CHANGED_PAIR_ACCEPTED'};'PASS'`.replaceAll('__ROOT__',q(temp))),'PASS');}finally{fs.rmSync(temp,{recursive:true,force:true});}
+ [IO.File]::AppendAllText($pairPath,'drift');$denied=$false;try{Get-Business5244SteadyPins|Out-Null}catch{$denied=$true};if(!$denied){throw 'PREVIEW_STEADY_CHANGED_PAIR_ACCEPTED'};'PASS'`.replaceAll('__ROOT__',q(temp));if(corrected)body=body.replaceAll('ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030').replaceAll('ERP-BUSINESS-WEB-5244-B6-PREVIEW-LINK-20261030','ERP-BUSINESS-WEB-5244-B6-PREVIEW-CONTEXT-20261030');assert.equal(run(body),'PASS');}finally{fs.rmSync(temp,{recursive:true,force:true});}
 });
 win('steady generation has exactly one fixed logical Current and strictly denies altered owner metadata and Candidate pins',()=>{
  const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),'melisa-steady-pins-')));

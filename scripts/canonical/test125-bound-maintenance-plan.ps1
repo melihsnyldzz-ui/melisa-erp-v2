@@ -83,7 +83,8 @@ function Assert-Test125ReadPairConfig($Config,[ValidateSet('Current','Candidate'
 
 function Assert-Test125PackageRefreshObservationProof($Proof){
  $p=Get-ErpReadPairReleaseProofContext $Proof;$p.seal.Validate()
- if(!$p.PSObject.Properties['packageRefreshAdmission']-or!$p.PSObject.Properties['packageRefreshTaskSource']-or!$p.businessSaleOwnerPins-or$p.businessSaleOwnerPins.path-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1'){throw 'B6_PACKAGE_REFRESH_OBSERVATION_NOT_ISSUED'}
+ $case=Get-ErpBusinessSalePackageRefreshFixedCase
+ if(!$p.PSObject.Properties['packageRefreshAdmission']-or!$p.PSObject.Properties['packageRefreshTaskSource']-or!$p.businessSaleOwnerPins-or$p.businessSaleOwnerPins.path-cne(Join-Path $case.root 'start-owned-test.ps1')){throw 'B6_PACKAGE_REFRESH_OBSERVATION_NOT_ISSUED'}
  [void](Assert-ErpBusinessSaleWriterProfileAdmission $p.packageRefreshAdmission -Phase WriterPrepared);$n=Get-ErpBusinessSaleNativeAdmissionContext $p.packageRefreshAdmission
  if($n.mode-cne'PackageRefresh'-or$n.transition-or$n.ownerInputs.maintenancePurpose-cne'PreviewLinkPackageRefresh'){throw 'B6_PACKAGE_REFRESH_OBSERVATION_NOT_ISSUED'}
  [void](Read-ErpBusinessSalePinnedFile $n.profilePath $n.profileBeforeHash)
