@@ -247,9 +247,9 @@ $body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Jo
 try{Write-FixturePhase 'INNER_SUPERVISOR_ENTER';Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current -PrepareReadPair|Out-Null;Write-FixturePhase 'INNER_SUPERVISOR_RETURNED'}catch{$code=[string]$_.Exception.Message;$Shared['safeFailure']=if($code-cmatch'^[A-Z][A-Z0-9_]{1,100}$'){$code}else{$_.Exception.GetType().Name};throw}finally{Write-FixturePhase 'INNER_FINALLY_ENTER';$Shared['innerReturned']=$true}
 __INNER_END__
 Write-FixturePhase 'ADD_SCRIPT_ENTER';[void]$pipeline.AddScript($inner).AddArgument($shared).AddArgument($env:TEMP).AddArgument('__SOURCE_ROOT__').AddArgument(__FAIL_API__);Write-FixturePhase 'ADD_SCRIPT_RETURNED';
-Write-FixturePhase 'BEGIN_INVOKE_ENTER';$async=$pipeline.BeginInvoke();Write-FixturePhase 'BEGIN_INVOKE_RETURNED';$maintenance=$null;$oldMutexHandle=$null
+Write-FixturePhase 'BEGIN_INVOKE_ENTER';$async=$pipeline.BeginInvoke();$maintenance=$null;$oldMutexHandle=$null
 try{
- $deadline=[datetime]::UtcNow.AddSeconds(12);do{if($shared.ContainsKey('loopEntered')-and$shared['loopEntered']){break};if($async.IsCompleted){$ids=@($pipeline.Streams.Error|ForEach-Object{$_.FullyQualifiedErrorId});throw ('ISOLATED_MANAGED_OWNER_EARLY_EXIT '+$shared['safeFailure']+' '+($ids-join'|'))};Start-Sleep -Milliseconds 20}while([datetime]::UtcNow-lt$deadline)
+ $deadline=[datetime]::UtcNow.AddSeconds(12);Write-FixturePhase 'BEGIN_INVOKE_RETURNED';do{if($shared.ContainsKey('loopEntered')-and$shared['loopEntered']){break};if($async.IsCompleted){$ids=@($pipeline.Streams.Error|ForEach-Object{$_.FullyQualifiedErrorId});throw ('ISOLATED_MANAGED_OWNER_EARLY_EXIT '+$shared['safeFailure']+' '+($ids-join'|'))};Start-Sleep -Milliseconds 20}while([datetime]::UtcNow-lt$deadline)
  if(!$shared['loopEntered']){throw 'ISOLATED_MANAGED_OWNER_NOT_READY'};Write-FixturePhase 'OWNER_READY_OBSERVED'
  $denied=$false;try{$foreign=[IO.File]::Open($shared['recordPath'],[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::ReadWrite);$foreign.Dispose()}catch{$denied=$true};if(!$denied){throw 'ISOLATED_UNKNOWN_RECORD_NOT_HELD'}
  if($shared['child'].HasExited){throw 'ISOLATED_ROLLBACK_CHILD_NOT_ALIVE_BEFORE_STOP'}
