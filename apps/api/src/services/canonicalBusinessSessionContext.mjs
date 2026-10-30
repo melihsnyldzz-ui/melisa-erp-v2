@@ -75,6 +75,31 @@ export function getCanonicalBusinessSaleTransaction(transaction,{operation,actor
 export function getCanonicalBusinessSaleCreationProofJSON(transaction){
  const value=saleTransactions.get(transaction);if(!value||value.binding.operation!=='sale_draft')saleError();assertCanonicalBusinessSession(value.context);return value.rawProofJSON;
 }
+// Pure projection of an existing SQL-issued account/product witness. This
+// function never brands a context or creates transaction authority. Account
+// sourceKey belongs to the selected customer ACCOUNT, not the customer row.
+export function projectCanonicalBusinessSaleContext(value,proof,{profile,before,selection,operation}){
+ const origin='CANONICAL_TEST_BUSINESS_SALE';
+ if(!['preview','sale_draft'].includes(operation)||!proof||proof.database!==BUSINESS_SESSION.database||proof.server!==BUSINESS_SESSION.server||proof.profileHash!==profile?.profileHash||proof.actorId!=='17'||!Number.isSafeInteger(proof.sessionId)||proof.sessionId<=0||!positiveId(proof.transactionId)||proof.sessionId!==before?.sessionId||proof.transactionId!==before?.transactionId||proof.operation!==operation||proof.write!==(operation==='sale_draft')||!sha(proof.selectionHash)||!sha(proof.revision)||!sha(proof.previewHash)||!positiveId(proof.customerId)||!positiveId(proof.accountId)||!positiveId(proof.partyEntityId)||typeof proof.accountSourceKey!=='string'||!proof.accountSourceKey||!sha(proof.accountSourceWitnessHash))saleError();
+ if(operation==='sale_draft'&&(typeof proof.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(proof.requestId)||!sha(proof.bodyHash)||proof.invoiceId!==null))saleError();
+ if(operation==='preview'&&(proof.requestId!==null||proof.bodyHash!==null||proof.invoiceId!==null||proof.selectionHash!==proof.revision))saleError();
+ if(!selection||proof.customerId!==selection.customerId||proof.accountId!==selection.customerAccountId||proof.currency!==selection.currency||!Array.isArray(selection.items)||selection.items.length<1||selection.items.length>2||!value||value.profileHash!==proof.profileHash||value.revision!==proof.revision||value.nativePreviewHash!==proof.previewHash||value.meta?.schemaVersion!=='melisa-work-trade.v1'||value.meta.source!=='canonical-business-test'||value.meta.operationOrigin!==origin||value.meta.date!==selection.documentDate||value.scope?.synthetic!==false||value.scope.operationOrigin!==origin||!Array.isArray(value.scope.products)||value.scope.products.length!==selection.items.length||!Array.isArray(proof.products)||proof.products.length!==selection.items.length)saleError();
+ const customer=value.scope.customer;
+ if(customer?.id!==proof.customerId||customer.accountId!==proof.accountId||customer.partyId!==proof.partyEntityId||customer.currency!==proof.currency||customer.synthetic!==false||customer.operationOrigin!==origin||customer.writeEligible!==true||customer.sourceKey!==undefined&&customer.sourceKey!==proof.accountSourceKey||!exact(proof.rateExact8,8)||!['TRY','USD','EUR'].includes(proof.currency)||BigInt(proof.rateExact8.replace('.',''))<=0n||value.rate?.currency!==proof.currency||value.rate.rateExact8!==proof.rateExact8||proof.currency==='TRY'&&proof.rateExact8!=='1.00000000')saleError();
+ if(!value.nativeExpected||!Array.isArray(value.nativeExpected.items)||value.nativeExpected.items.length!==selection.items.length||!exact(proof.grandTotalExact4,4)||!exact(proof.amountTryExact4,4)||value.nativeExpected.grandTotalExact4!==proof.grandTotalExact4||value.nativeExpected.amountTryExact4!==proof.amountTryExact4)saleError();
+ const ids=new Set();let total=0n;
+ for(let i=0;i<selection.items.length;i++){
+  const item=selection.items[i],p=proof.products[i],native=value.scope.products[i];
+  if(!p||!native||!positiveId(p.productId)||!positiveId(p.quoteId)||!positiveId(p.unitSourceId)||ids.has(p.productId)||item.productId!==p.productId||item.quoteId!==p.quoteId||item.quantityExact3!==p.quantityExact3||native.id!==p.productId||native.synthetic!==false||native.operationOrigin!==origin||native.writeEligible!==true||typeof p.sourceKey!=='string'||!p.sourceKey||!sha(p.sourceWitnessHash)||native.sourceKey!==undefined&&native.sourceKey!==p.sourceKey||native.sourceWitnessHash!==undefined&&native.sourceWitnessHash!==p.sourceWitnessHash||typeof p.stockCode!=='string'||!p.stockCode||typeof p.name!=='string'||!p.name||(p.barcode!==null&&typeof p.barcode!=='string')||native.stockCode!==p.stockCode||native.name!==p.name||native.barcode!==p.barcode||p.unit!=='ADET'||p.factorExact8!=='1.00000000'||native.unit?.label!==p.unit||native.unit.factorExact8!==p.factorExact8||native.unit.sourceId!==p.unitSourceId||!exact(p.averageCostTryExact4,4)||native.costExact4!==p.averageCostTryExact4||!exact(native.stockQuantityExact3,3)||!Array.isArray(native.prices)||native.prices.length!==1||native.prices[0].quoteId!==p.quoteId||native.prices[0].currency!==proof.currency||native.prices[0].unitPriceExact8!==p.unitPriceExact8||!exact(p.quantityExact3,3)||! /^[1-5]\.000$/.test(p.quantityExact3)||!exact(p.unitPriceExact8,8)||!exact(p.unitPriceExact4,4)||!exact(p.lineTotalExact4,4))saleError();
+  const quantity=BigInt(p.quantityExact3.replace('.','')),price8=BigInt(p.unitPriceExact8.replace('.','')),price4=BigInt(p.unitPriceExact4.replace('.','')),line=BigInt(p.lineTotalExact4.replace('.',''));
+  if(price8<=0n||price4!==(price8+5000n)/10000n||line!==quantity*price4/1000n||BigInt(native.stockQuantityExact3.replace('.',''))<quantity||!value.nativeExpected.items[i]||Object.keys(value.nativeExpected.items[i]).sort().join(',')!=='lineTotalExact4,productId,quantityExact3,quoteId,unitPriceExact4'||['productId','quoteId','quantityExact3','unitPriceExact4','lineTotalExact4'].some(k=>value.nativeExpected.items[i][k]!==p[k]))saleError();
+  ids.add(p.productId);total+=line;
+ }
+ if(total<=0n||total>5000000n||BigInt(proof.grandTotalExact4.replace('.',''))!==total||(total*BigInt(proof.rateExact8.replace('.',''))+50000000n)/100000000n!==BigInt(proof.amountTryExact4.replace('.',''))||BigInt(proof.amountTryExact4.replace('.',''))<=0n||BigInt(proof.amountTryExact4.replace('.',''))>5000000n)saleError();
+ const projected=structuredClone(value);projected.scope.customer.sourceKey=proof.accountSourceKey;
+ for(let i=0;i<projected.scope.products.length;i++){projected.scope.products[i].sourceKey=proof.products[i].sourceKey;projected.scope.products[i].sourceWitnessHash=proof.products[i].sourceWitnessHash;}
+ return frozen(projected);
+}
 // Pure validation deliberately does not register a transaction or authorize the
 // invoice engine. Only the SQL-bound wrapper above can populate its WeakMap.
 export function validateCanonicalBusinessSaleTransactionProof(proof,{profile,before,requestId,operation,invoiceId,bodyHash,body}){
@@ -90,7 +115,7 @@ export function validateCanonicalBusinessSaleTransactionProof(proof,{profile,bef
   ids.add(p.productId);total+=line;
  }
  if(total!==BigInt(proof.grandTotalExact4.replace('.',''))||(total*BigInt(proof.rateExact8.replace('.',''))+50000000n)/100000000n!==BigInt(proof.amountTryExact4.replace('.','')))saleError();
- return frozen(proof);
+ return operation==='sale_draft'?frozen({...proof,context:projectCanonicalBusinessSaleContext(proof.context,proof,{profile,before,selection:body,operation})}):frozen(proof);
 }
 const fail=()=>{throw Object.assign(new Error('Business TEST session target rejected'),{code:'AUTH_BUSINESS_TEST_TARGET_INVALID',statusCode:503});};
 const digest=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');

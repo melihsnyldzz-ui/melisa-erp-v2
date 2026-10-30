@@ -22,6 +22,7 @@ if(mode==='erp' && writes){
   catch{try{await pool.close();}catch{}throw new Error('Ürün kataloğu başlangıçta doğrulanamadı.');}
 }
 const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
+const {isCanonicalBusinessSaleReadAllowed}=await import('./src/services/canonicalBusinessSaleReadPolicy.mjs');
 const {default:express}=await import('express');
 const {default:cors}=await import('cors');
 const {securityHeaders,corsOptions,apiRateLimit}=await import('./src/middleware/security.js');
@@ -46,7 +47,7 @@ if(mode==='erp' && writes){
 }
 app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'TEST_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})&&!isCanonicalBusinessSaleReadAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
   next();
 });
 if(mode==='erp'){
