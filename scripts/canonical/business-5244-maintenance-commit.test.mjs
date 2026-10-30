@@ -2,35 +2,54 @@ import test from 'node:test';import assert from 'node:assert/strict';import cp f
 const dir=import.meta.dirname,ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');const q=s=>"'"+s.replaceAll("'","''")+"'";
 const fixtureHarness='commit';
 
-// Only fixed phase names and monotonic durations leave this disposable fixture.
-const fixturePhases=new Set(['SCRIPT_ENTER','LIBRARY_ENTER','LIBRARY_RETURNED','NATIVE_INIT_ENTER','NATIVE_INIT_RETURNED','LEASE_ENTER','LEASE_ACQUIRED','SPAWN_ENTER','SPAWN_RETURNED','SETUP_RETURNED','BODY_ENTER','BODY_RETURNED','CLEANUP_ENTER','LEASE_EXIT_ENTER','LEASE_EXITED','CLEANUP_EXIT','PASS_ISSUED','SCRIPT_END']);
+
+// Fixture-only durable observations. No module preloading or alternate loader.
+const fixturePhases=new Set(['SCRIPT_ENTER','LIBRARY_ENTER','LIBRARY_RETURNED','GATE_LIBRARY_ENTER','GATE_LIBRARY_RETURNED','WEB_LIBRARY_ENTER','WEB_LIBRARY_RETURNED','STATE_LIBRARY_ENTER','STATE_LIBRARY_RETURNED','DISPATCH_LIBRARY_ENTER','DISPATCH_LIBRARY_RETURNED','NATIVE_INIT_ENTER','NATIVE_INIT_RETURNED','LEASE_ENTER','LEASE_ACQUIRED','SPAWN_ENTER','SPAWN_RETURNED','SETUP_RETURNED','BODY_ENTER','BODY_RETURNED','CLEANUP_ENTER','LEASE_EXIT_ENTER','LEASE_EXITED','CLEANUP_EXIT','PASS_ISSUED','SCRIPT_END','RUNSPACE_CREATE_ENTER','RUNSPACE_CREATED','RUNSPACE_OPEN_ENTER','RUNSPACE_OPEN_RETURNED','PIPELINE_CREATE_ENTER','PIPELINE_CREATED','ADD_SCRIPT_ENTER','ADD_SCRIPT_RETURNED','BEGIN_INVOKE_ENTER','BEGIN_INVOKE_RETURNED','INNER_SCRIPT_ENTER','INNER_LIBRARY_ENTER','INNER_LIBRARY_RETURNED','INNER_SUPERVISOR_ENTER','INNER_SUPERVISOR_RETURNED','INNER_FINALLY_ENTER','PIPELINE_STOP_ENTER','PIPELINE_STOP_RETURNED','END_INVOKE_ENTER','END_INVOKE_RETURNED','OWNER_READY_OBSERVED']);
+const fixturePhaseWriter="function Write-FixturePhase([string]$Phase){if($Phase-cnotin@(__PHASE_NAMES__)){throw 'FIXTURE_PHASE_NAME'};$script:fixtureSequence++;$seq=$script:fixtureSequence;$time=$script:fixturePhaseClock.ElapsedMilliseconds;$stream=$null;try{$bytes=[Text.Encoding]::ASCII.GetBytes(($seq.ToString()+'|'+$Phase+'|'+$time.ToString()+[Environment]::NewLine));$stream=[IO.File]::Open($script:fixturePhasePath,[IO.FileMode]::Append,[IO.FileAccess]::Write,[IO.FileShare]::Read);$stream.Write($bytes,0,$bytes.Length);$stream.Flush($true);$stream.Dispose();$stream=$null;[Console]::WriteLine(('FIXTURE_FLUSH_ACK|'+$script:fixtureTraceLabel+'|'+$seq+'|'+$Phase+'|'+$time))}catch{try{[Console]::WriteLine(('FIXTURE_TRACE_IO_FAILED|'+$script:fixtureTraceLabel+'|'+$seq))}catch{}}finally{if($stream){try{$stream.Dispose()}catch{}}}}".replace('__PHASE_NAMES__',[...fixturePhases].map(q).join(','));
 function phaseScript(script,tracePath){
  const lastFinally=script.lastIndexOf('finally{'),lastPass=script.lastIndexOf("'PASS'");
  assert(lastFinally>0&&script[lastFinally-1]==='}'&&lastPass>lastFinally,'FIXTURE_PHASE_BOUNDARIES');
  script=script.slice(0,lastFinally-1)+";Write-FixturePhase 'BODY_RETURNED'}finally{Write-FixturePhase 'CLEANUP_ENTER';"+script.slice(lastFinally+'finally{'.length);
  const pass=script.lastIndexOf("'PASS'");
  script=script.slice(0,pass)+"Write-FixturePhase 'CLEANUP_EXIT';Write-FixturePhase 'PASS_ISSUED';'PASS';Write-FixturePhase 'SCRIPT_END'"+script.slice(pass+6);
- const names=[...fixturePhases].map(q).join(',');
- return "$script:fixturePhaseClock=[Diagnostics.Stopwatch]::StartNew();$script:fixturePhasePath="+q(tracePath)+";function Write-FixturePhase([string]$Phase){if($Phase-cnotin@("+names+")){throw 'FIXTURE_PHASE_NAME'};try{[IO.File]::AppendAllText($script:fixturePhasePath,($Phase+'|'+$script:fixturePhaseClock.ElapsedMilliseconds+[Environment]::NewLine),[Text.Encoding]::ASCII)}catch{}};Write-FixturePhase 'SCRIPT_ENTER';"+script;
+ return "$script:fixturePhaseClock=[Diagnostics.Stopwatch]::StartNew();$script:fixturePhasePath="+q(tracePath)+";$script:fixtureSequence=0;$script:fixtureTraceLabel='MAIN';"+fixturePhaseWriter+";Write-FixturePhase 'SCRIPT_ENTER';"+script;
 }
-function reportPhases(tracePath,started,outcome,error){
- let phases=[],trace='valid';
- try{
-  if(fs.statSync(tracePath).size>65536)throw Error();
-  const lines=fs.readFileSync(tracePath,'ascii').trimEnd().split(/\r?\n/);let previous=-1;
-  phases=lines.map(line=>{const match=/^([A-Z_]+)\|([0-9]+)$/.exec(line);if(!match||!fixturePhases.has(match[1]))throw Error();const elapsedMs=Number(match[2]);if(!Number.isSafeInteger(elapsedMs)||elapsedMs<previous)throw Error();previous=elapsedMs;return {phase:match[1],elapsedMs};});
- }catch{trace=fs.existsSync(tracePath)?'invalid':'missing';phases=[];}
+function phaseOutput(raw){
+ const acks=[],ioFailures=[];let output='';
+ for(const line of String(raw??'').match(/[^\n]*\n|[^\n]+$/g)??[]){
+  const text=line.replace(/\r?\n$/,'');let m=/^FIXTURE_FLUSH_ACK\|(MAIN|INNER)\|([1-9]\d*)\|([A-Z_]+)\|(\d+)$/.exec(text);
+  if(m&&fixturePhases.has(m[3])&&Number.isSafeInteger(Number(m[2]))&&Number.isSafeInteger(Number(m[4]))){acks.push({stream:m[1],sequence:Number(m[2]),phase:m[3],elapsedMs:Number(m[4])});continue;}
+  m=/^FIXTURE_TRACE_IO_FAILED\|(MAIN|INNER)\|([1-9]\d*)$/.exec(text);
+  if(m&&Number.isSafeInteger(Number(m[2]))){ioFailures.push({stream:m[1],sequence:Number(m[2])});continue;}
+  output+=line;
+ }
+ return {acks,ioFailures,output};
+}
+function reportPhases(tracePath,started,outcome,error,raw,expectsInner=false){
+ const observed=phaseOutput(raw??error?.stdout),streams=[];
+ for(const label of (expectsInner?['MAIN','INNER']:['MAIN'])){
+  const file=tracePath+(label==='INNER'?'.inner':'');let phases=[],state='UNKNOWN',reason='MISSING_TRACE';
+  try{
+   if(fs.statSync(file).size>65536)throw Error();const text=fs.readFileSync(file,'ascii');if(!text.endsWith('\n'))throw Error();
+   let previous=-1;const lines=text.trimEnd().split(/\r?\n/);
+   phases=lines.map((line,index)=>{const m=/^([1-9]\d*)\|([A-Z_]+)\|(\d+)$/.exec(line);if(!m||!fixturePhases.has(m[2]))throw Error();const sequence=Number(m[1]),elapsedMs=Number(m[3]);if(sequence!==index+1||!Number.isSafeInteger(elapsedMs)||elapsedMs<previous)throw Error();previous=elapsedMs;return {stream:label,sequence,phase:m[2],elapsedMs};});
+   const acks=observed.acks.filter(a=>a.stream===label),failures=observed.ioFailures.filter(a=>a.stream===label);
+   if(failures.length){reason='TRACE_IO_FAILURE';}
+   else if(JSON.stringify(acks)!==JSON.stringify(phases)){reason='FLUSH_ACK_MISMATCH';}
+   else{state=phases.at(-1)?.phase==='SCRIPT_END'?'COMPLETE':'CONFIRMED_PREFIX';reason=state==='COMPLETE'?'END_ACKED':'TAIL_AFTER_LAST_ACK_UNKNOWN';}
+  }catch{reason=fs.existsSync(file)?'INVALID_OR_GAPPED_TRACE':'MISSING_TRACE';}
+  streams.push({stream:label,state,reason,phases});
+ }
  const code=['ETIMEDOUT','ENOENT','EACCES','ENOBUFS'].includes(error?.code)?error.code:error?'EXEC_FAILURE':null;
  const signal=['SIGTERM','SIGKILL','SIGINT'].includes(error?.signal)?error.signal:null;
  const status=Number.isInteger(error?.status)?error.status:error?null:0;
- const diagnostic={harness:fixtureHarness,outcome,nodeElapsedMs:Number((process.hrtime.bigint()-started)/1000000n),code,status,signal,trace,phases};
- console.error('ISOLATED_HARNESS_PHASES '+JSON.stringify(diagnostic));
- return diagnostic;
+ const diagnostic={harness:fixtureHarness,outcome,nodeElapsedMs:Number((process.hrtime.bigint()-started)/1000000n),code,status,signal,traceIoFailures:observed.ioFailures,streams};
+ console.error('ISOLATED_HARNESS_SUBPHASES '+JSON.stringify(diagnostic));return diagnostic;
 }
 const setup=`$ErrorActionPreference='Stop';Write-FixturePhase 'LIBRARY_ENTER';. ${q(path.join(dir,'start-business-5244-owned.ps1'))} -Library;Write-FixturePhase 'LIBRARY_RETURNED';Write-FixturePhase 'NATIVE_INIT_ENTER';Initialize-Business5244WebNative;Write-FixturePhase 'NATIVE_INIT_RETURNED';Write-FixturePhase 'LEASE_ENTER';$lease=Enter-Business5244StartupLease -Kind Owner;Write-FixturePhase 'LEASE_ACQUIRED';$pins=Get-Business5244ReadPairPins;$script=Join-Path $env:TEMP 'sleep.ps1';[IO.File]::WriteAllText($script,'Start-Sleep -Seconds 300');function New-TestChild{Write-FixturePhase 'SPAWN_ENTER';$n=[Business5244WebNative]::new();$n.Spawn((Join-Path $PSHOME 'powershell.exe'),('-NoProfile -NonInteractive -File "'+$script+'"'),$env:TEMP);Write-FixturePhase 'SPAWN_RETURNED';return $n};function Assert-Business5244ReadyChild($Native,$Pins){$Native.Validate();if(!$Native.ChildAlive()){throw 'ISOLATED_CHILD_NOT_LIVE'}};$native=New-TestChild;$state=Register-Business5244OwnedRetirement $lease $native $pins;$rows=@([pscustomobject]@{port=4194;pid=111;entry='keep-api'},[pscustomobject]@{port=4196;pid=112;entry='keep-native'},[pscustomobject]@{port=5244;pid=$native.ChildPid;entry='vite-preview';sourceCommit=$pins.frontendSource;root=$pins.root;backendPort=4144;businessWorkfaceId=$pins.profile});$before=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $rows -Depth 20));$recordPath=Join-Path $env:TEMP 'records.json';$pendingPath=Join-Path $env:TEMP 'pending';[IO.File]::WriteAllBytes($recordPath,$before);$records=[IO.File]::Open($recordPath,[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None);$pending=[IO.File]::Open($pendingPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read);$replacement=$null;$rollback=$null;$planHash='a'*64;Write-FixturePhase 'SETUP_RETURNED';Write-FixturePhase 'BODY_ENTER';`;
 const begin=`Invoke-Business5244HeldRetirement $state $records $pending;$replacement=New-TestChild;Publish-Business5244HeldRecord $state $replacement Candidate $pins;`;
 const cleanup=`finally{Close-Business5244RetirementState $state;if($replacement){$replacement.Dispose()};if($rollback){$rollback.Dispose()};$records.Dispose();$pending.Dispose();$native.Dispose();Write-FixturePhase 'LEASE_EXIT_ENTER';Exit-Business5244StartupLease -Lease $lease;Write-FixturePhase 'LEASE_EXITED'};'PASS'`;
-function run(body){const temp=fs.mkdtempSync(path.join(os.tmpdir(),'erp-5244-maintenance-commit-')),tracePath=path.join(temp,'phases.log'),started=process.hrtime.bigint();try{const file=path.join(temp,'run.ps1');fs.writeFileSync(file,phaseScript(body,tracePath));let output;try{output=cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:25000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}});}catch(error){const diagnostic=reportPhases(tracePath,started,'failed',error);const failure=new Error('ISOLATED_HARNESS_FAILED '+JSON.stringify(diagnostic));failure.code=diagnostic.code;failure.status=diagnostic.status;failure.signal=diagnostic.signal;throw failure;}reportPhases(tracePath,started,'returned');return output.trim();}finally{console.error('ISOLATED_HARNESS_NODE_PHASE '+JSON.stringify({harness:fixtureHarness,phase:'CLEANUP_ENTER',elapsedMs:Number((process.hrtime.bigint()-started)/1000000n)}));fs.rmSync(temp,{recursive:true,force:true});console.error('ISOLATED_HARNESS_NODE_PHASE '+JSON.stringify({harness:fixtureHarness,phase:'CLEANUP_EXIT',elapsedMs:Number((process.hrtime.bigint()-started)/1000000n)}));}}
+function run(body){const temp=fs.mkdtempSync(path.join(os.tmpdir(),'erp-5244-maintenance-commit-')),tracePath=path.join(temp,'phases.log'),started=process.hrtime.bigint();try{const file=path.join(temp,'run.ps1');fs.writeFileSync(file,phaseScript(body,tracePath));let output;try{output=cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:25000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}});}catch(error){const diagnostic=reportPhases(tracePath,started,'failed',error);const failure=new Error('ISOLATED_HARNESS_FAILED '+JSON.stringify(diagnostic));failure.code=diagnostic.code;failure.status=diagnostic.status;failure.signal=diagnostic.signal;throw failure;}reportPhases(tracePath,started,'returned',null,output);return phaseOutput(output).output.trim();}finally{console.error('ISOLATED_HARNESS_NODE_PHASE '+JSON.stringify({harness:fixtureHarness,phase:'CLEANUP_ENTER',elapsedMs:Number((process.hrtime.bigint()-started)/1000000n)}));fs.rmSync(temp,{recursive:true,force:true});console.error('ISOLATED_HARNESS_NODE_PHASE '+JSON.stringify({harness:fixtureHarness,phase:'CLEANUP_EXIT',elapsedMs:Number((process.hrtime.bigint()-started)/1000000n)}));}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 win('commit archives the durable before-image and resumes the same mutex with the new child once',()=>{
  assert.equal(run(setup+`try{${begin}Complete-Business5244OwnedMaintenance $state $replacement $pins Candidate $planHash;$r=Get-Business5244RetirementState $state;if($r.phase -cne 'Running' -or ![object]::ReferenceEquals($r.native,$replacement) -or $r.commit.phase -cne 'Archived' -or (Test-Path -LiteralPath $pendingPath) -or !(Test-Path -LiteralPath $r.commit.archivePath)){throw 'COMMIT_NOT_ARCHIVED'};Assert-Business5244StartupLease -Lease $lease -Kind Owner;$receipt=[IO.File]::ReadAllText($r.commit.archivePath);if(!$receipt.Contains('beforeBase64') -or !$receipt.Contains($replacement.ChildBirth)){throw 'BEFORE_IMAGE_LOST'};Complete-Business5244OwnedMaintenance $state $replacement $pins Candidate $planHash;$badPins=$pins.Clone();$badPins.root='C:\\ISOLATED-WRONG-PINS';$denied=$false;try{Complete-Business5244OwnedMaintenance $state $replacement $badPins Candidate $planHash}catch{if($_.Exception.Message -ceq 'MAINTENANCE_COMPLETION_REPLAY_PINS_CHANGED'){$denied=$true}else{throw}};if(!$denied){throw 'CHANGED_PINS_REPLAY_ACCEPTED'};$after=Get-Content -LiteralPath $recordPath -Raw|ConvertFrom-Json;if($after[0].pid -ne 111 -or $after[1].pid -ne 112 -or $after[2].pid -ne $replacement.ChildPid){throw 'COMMITTED_RECORD_MISMATCH'}}`+cleanup),'PASS');
