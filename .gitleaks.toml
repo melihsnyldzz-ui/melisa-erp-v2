@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact approved public manifest digest in fixed B6 producer"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-preview-link-package\.mjs\z''']
+regexes = ['''\A\Qafdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c\E\z''']

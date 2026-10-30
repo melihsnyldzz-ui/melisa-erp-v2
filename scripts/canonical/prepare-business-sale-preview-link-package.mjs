@@ -37,6 +37,25 @@ export const PREVIEW_READ_PACKAGE=Object.freeze({
  baseWebHash:'48377ca6ef8c4384a0501312c2f90b3d52e001043042def06414e0e043a58a1b',
  paths:Object.freeze(['apps/api/start-canonical-test.mjs','apps/api/src/services/canonicalBusinessSaleReadPolicy.mjs','apps/api/src/services/canonicalBusinessSessionContext.mjs','apps/api/src/services/canonicalBusinessSaleRuntime.mjs'])
 });
+export const DIAGNOSTIC_PACKAGE=Object.freeze({
+ ...P,sourceCommit:'7c6fa85447d52c9566870495e4d8ffe197940a65',baseApi:PREVIEW_READ_PACKAGE.api,baseWeb:PREVIEW_READ_PACKAGE.web,
+ api:String.raw`C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-DIAGNOSTIC-20261030`,
+ web:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-DIAGNOSTIC-20261030`,
+ proof:String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-approved-sale-20261030\diagnostic-package`,
+ baseApiHash:'afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c',
+ baseWebHash:'853025ef7df10eec9a4feff026b767c6c323e5e5259c7bcbc2f7f19186743855',
+ paths:Object.freeze(['apps/api/src/middleware/errorHandler.js']),
+ beforeSha256:'e91394797ad18828972e3308c166cda19ecc01fc414a3a471285c7627afa1ad0',
+ afterSha256:'401affcf7b1368c6a79b100807f23b7efb7943f671aaa2f79afe29aae6294f9f'
+});
+export const DIAGNOSTIC_DEPENDENCIES=Object.freeze([
+ ['apps/api/src/config/env.js','73b46f8bbca9ec73b743a8251437cc64fec5a6b2b61d271b3bdcfdec8f9a616e'],
+ ['apps/api/src/utils/logger.js','2be88791928477f7e0cfedd3ebb6b1dc6ec048cc81f9642e3fcc8b43fb89f673'],
+ ['apps/api/src/services/operationQuarantineError.mjs','9cafd49ffa2cf041acbf7b37e70c84ec35c86c0d97029aaba21b95586254b793'],
+ ['apps/api/src/config/isolatedOperationCopyRuntime.mjs','1a289471e16644cb1631c6f6c2a999a1ad310e02fa7424ba85841ead4180a540'],
+ ['apps/api/src/services/selectedSaleSqlDiagnostic.mjs','7ed9ca475fc24344cb74035472f65d8e77a55cbfb5c7b5bbd11a753e93c488e2'],
+ ['apps/api/src/services/canonicalBusinessSessionContext.mjs','07116af0662cc9d243ee37c3dd75f271e0392897676281777b9f909dba58473f']
+].map(([path,sha256])=>Object.freeze({path,sha256})));
 const check=(v,c)=>{if(!v)fail(c);},json=b=>JSON.parse(b.toString('utf8')),bytes=v=>Buffer.from(JSON.stringify(v,null,2)+'\n');
 function plain(file){for(let p=path.resolve(file);p;p=path.dirname(p)){const s=fs.lstatSync(p);check(!s.isSymbolicLink(),'REPARSE');if(path.dirname(p)===p)break;}}
 function read(file){plain(file);const a=fs.lstatSync(file);check(a.isFile()&&a.nlink===1,'REGULAR_FILE');const b=fs.readFileSync(file),z=fs.lstatSync(file);check(a.size===b.length&&a.ino===z.ino&&a.mtimeMs===z.mtimeMs,'READ_CHANGED');return b;}
@@ -86,6 +105,23 @@ export function compilePreviewReadManifests(api,web,overlays){
  const apiBytes=bytes(a),w={...structuredClone(web),packageId:path.win32.basename(C.web),backendRoot:C.api,backendManifestSha256:hash(apiBytes),installed:false,previewReadPackageRefresh:{...provenance,baseManifestSha256:C.baseWebHash,frontendPayloadUnchanged:true}};
  const webBytes=bytes(w),apiPin={root:C.api,packageId:a.packageId,manifestSha256:hash(apiBytes),sourceCommit:a.sourceCommit,configPath:String.raw`C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json`},webPin={root:C.web,packageId:w.packageId,manifestSha256:hash(webBytes),frontendSourceCommit:w.sourceCommit,backendPackageId:a.packageId,backendManifestSha256:hash(apiBytes)};
  const pair={schema:'melisa-b6-preview-package-pair.v1',scope:'TEST125-API-B6-WRITER-20261029',purpose:'PreviewLinkPackageRefresh',current:{api:{...apiPin,root:C.baseApi,manifestSha256:C.baseApiHash},web:{...webPin,root:C.baseWeb,packageId:web.packageId,manifestSha256:C.baseWebHash,backendManifestSha256:C.baseApiHash}},candidate:{api:apiPin,web:webPin}};
+ return {api:a,web:w,apiBytes,webBytes,pairBytes:bytes(pair),overlayFiles};
+}
+export function compileDiagnosticManifests(api,web,overlays){
+ const D=DIAGNOSTIC_PACKAGE,leaf=D.paths[0];
+ check(api.packageId===path.win32.basename(P.baseApi)&&api.sourceCommit===FROZEN_BASE_SOURCE&&api.database===FROZEN_TEST_DATABASE&&api.actualT1===false&&api.externalOperations===false&&api.businessSaleCandidate?.kind==='ADMITTED_B6_WRITER'&&api.businessSaleCandidate.recordingEnabled===true,'DIAGNOSTIC_API_IDENTITY');
+ check(api.previewReadOverlaySourceCommit===PREVIEW_READ_PACKAGE.sourceCommit&&api.nativeContextOverlaySourceCommit===NATIVE_CONTEXT_PACKAGE.sourceCommit&&api.apiOverlaySourceCommit===P.sourceCommit&&!Object.hasOwn(api,'diagnosticPackageRefresh'),'DIAGNOSTIC_BASE_PROVENANCE');
+ check(web.packageId===path.win32.basename(D.baseWeb)&&web.sourceCommit==='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'&&web.backendRoot===D.baseApi&&web.backendPackageId===api.packageId&&web.backendManifestSha256===D.baseApiHash&&web.actualT1===false&&web.externalOperations===false,'DIAGNOSTIC_WEB_IDENTITY');
+ const before=new Map(validRows(api.files).map(r=>[r.path,{...r}]));validRows(web.files);
+ check(overlays instanceof Map&&overlays.size===1&&Buffer.isBuffer(overlays.get(leaf))&&before.get(leaf)?.sha256===D.beforeSha256&&hash(overlays.get(leaf))===D.afterSha256,'DIAGNOSTIC_EXACT_BLOB');
+ check(DIAGNOSTIC_DEPENDENCIES.every(r=>before.get(r.path)?.sha256===r.sha256),'DIAGNOSTIC_DEPENDENCY');
+ const b=overlays.get(leaf),row=before.get(leaf),overlayFiles=[{path:leaf,sha256:D.afterSha256,bytes:b.length,beforeSha256:D.beforeSha256}];
+ before.set(leaf,{...row,sha256:D.afterSha256,...(row.bytes===undefined?{}:{bytes:b.length})});
+ const provenance={kind:'B6_SQL_NUMERIC_DIAGNOSTIC_PACKAGE_REFRESH',sourceCommit:D.sourceCommit,baseManifestSha256:D.baseApiHash,installed:false,executionAuthority:false,admissionIssued:false,sqlExecuted:false,profileChanged:false};
+ const a={...structuredClone(api),installed:false,files:[...before.values()].sort((a,b)=>a.path.localeCompare(b.path)),diagnosticOverlaySourceCommit:D.sourceCommit,diagnosticOverlayFiles:overlayFiles,diagnosticPackageRefresh:{...provenance,dependencies:DIAGNOSTIC_DEPENDENCIES.map(r=>({...r}))}};
+ const apiBytes=bytes(a),w={...structuredClone(web),packageId:path.win32.basename(D.web),backendRoot:D.api,backendManifestSha256:hash(apiBytes),installed:false,diagnosticPackageRefresh:{...provenance,baseManifestSha256:D.baseWebHash,frontendPayloadUnchanged:true}};
+ const webBytes=bytes(w),apiPin={root:D.api,packageId:a.packageId,manifestSha256:hash(apiBytes),sourceCommit:a.sourceCommit,configPath:String.raw`C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json`},webPin={root:D.web,packageId:w.packageId,manifestSha256:hash(webBytes),frontendSourceCommit:w.sourceCommit,backendPackageId:a.packageId,backendManifestSha256:hash(apiBytes)};
+ const pair={schema:'melisa-b6-preview-package-pair.v1',scope:'TEST125-API-B6-WRITER-20261029',purpose:'PreviewLinkPackageRefresh',current:{api:{...apiPin,root:D.baseApi,manifestSha256:D.baseApiHash},web:{...webPin,root:D.baseWeb,packageId:web.packageId,manifestSha256:D.baseWebHash,backendManifestSha256:D.baseApiHash}},candidate:{api:apiPin,web:webPin}};
  return {api:a,web:w,apiBytes,webBytes,pairBytes:bytes(pair),overlayFiles};
 }
 function git(args,raw=false){return cp.execFileSync('git',args,{cwd:P.sourceRoot,encoding:raw?undefined:'utf8',windowsHide:true,maxBuffer:8*1024*1024});}
@@ -142,17 +178,18 @@ function copyPayload(from,to,rows,overlays=new Map()){
 export function prepareBusinessSalePreviewLinkPackages(){return prepareFixedPackages(P,false);}
 export function prepareBusinessSaleNativeContextPackages(){return prepareFixedPackages(NATIVE_CONTEXT_PACKAGE,true);}
 export function prepareBusinessSalePreviewReadPackages(){return prepareFixedPackages(PREVIEW_READ_PACKAGE,false,true);}
-function prepareFixedPackages(policy,context,previewRead=false){
- check(typeof context==='boolean'&&typeof previewRead==='boolean'&&!(context&&previewRead),'FIXED_ACTION');
+export function prepareBusinessSaleDiagnosticPackages(){return prepareFixedPackages(DIAGNOSTIC_PACKAGE,false,false,true);}
+function prepareFixedPackages(policy,context,previewRead=false,diagnostic=false){
+ check(typeof context==='boolean'&&typeof previewRead==='boolean'&&typeof diagnostic==='boolean'&&[context,previewRead,diagnostic].filter(Boolean).length<=1,'FIXED_ACTION');
  check(process.platform==='win32'&&path.resolve(fileURLToPath(import.meta.url))===path.join(policy.sourceRoot,'scripts','canonical','prepare-business-sale-preview-link-package.mjs'),'FIXED_SOURCE');
  const apiBytes=read(path.join(policy.baseApi,'release-manifest.json')),webBytes=read(path.join(policy.baseWeb,'release-manifest.json'));check(hash(apiBytes)===policy.baseApiHash&&hash(webBytes)===policy.baseWebHash,'BASE_MANIFEST_CHANGED');
  const a=json(apiBytes),w=json(webBytes),overlays=exactSource(policy),ci=exactCI(policy);for(const out of [policy.api,policy.web]){check(!fs.existsSync(out),'OUTPUT_EXISTS');plain(path.dirname(out));}plain(policy.proof);check(!fs.existsSync(path.join(policy.proof,'preview-package-pair.json'))&&!fs.existsSync(path.join(policy.proof,'package-preparation.json')),'OUTPUT_EXISTS');
- checkPayload(policy.baseApi,a);checkPayload(policy.baseWeb,w);const closure=staticRelativeClosure(policy.baseApi,overlays,policy,frozenParser(policy,w)),compiled=previewRead?compilePreviewReadManifests(a,w,overlays):context?compileNativeContextManifests(a,w,overlays):compilePreviewLinkManifests(a,w,overlays);
+ checkPayload(policy.baseApi,a);checkPayload(policy.baseWeb,w);const closure=staticRelativeClosure(policy.baseApi,overlays,policy,frozenParser(policy,w)),compiled=diagnostic?compileDiagnosticManifests(a,w,overlays):previewRead?compilePreviewReadManifests(a,w,overlays):context?compileNativeContextManifests(a,w,overlays):compilePreviewLinkManifests(a,w,overlays);
  check(shaUnchanged(a,compiled.api,compiled.overlayFiles)&&JSON.stringify(w.files)===JSON.stringify(compiled.web.files),'PAYLOAD_SCOPE');
  // All source, manifests, CI and payload inputs have passed before creation.
  copyPayload(policy.baseApi,policy.api,compiled.api.files,overlays);write(path.join(policy.api,'release-manifest.json'),compiled.apiBytes);copyPayload(policy.baseWeb,policy.web,compiled.web.files);write(path.join(policy.web,'release-manifest.json'),compiled.webBytes);
  check(hash(read(path.join(policy.api,'release-manifest.json')))===hash(compiled.apiBytes)&&hash(read(path.join(policy.web,'release-manifest.json')))===hash(compiled.webBytes),'MANIFEST_READBACK');
- write(path.join(policy.proof,'preview-package-pair.json'),compiled.pairBytes);const result={schema:previewRead?'melisa-b6-preview-read-package-preparation.v1':context?'melisa-b6-native-context-package-preparation.v1':'melisa-b6-preview-link-package-preparation.v1',sourceCommit:policy.sourceCommit,apiRoot:policy.api,webRoot:policy.web,apiManifestSha256:hash(compiled.apiBytes),webManifestSha256:hash(compiled.webBytes),pairSha256:hash(compiled.pairBytes),apiFiles:compiled.api.files.length,webFiles:compiled.web.files.length,overlayFiles:compiled.overlayFiles,staticRelativeClosure:closure,hostedCi:ci,installed:false,sqlCalls:0,profileChanges:0,taskChanges:0,serviceCalls:0,sourceEvaluated:0};write(path.join(policy.proof,'package-preparation.json'),bytes(result));return result;
+ write(path.join(policy.proof,'preview-package-pair.json'),compiled.pairBytes);const result={schema:diagnostic?'melisa-b6-diagnostic-package-preparation.v1':previewRead?'melisa-b6-preview-read-package-preparation.v1':context?'melisa-b6-native-context-package-preparation.v1':'melisa-b6-preview-link-package-preparation.v1',sourceCommit:policy.sourceCommit,apiRoot:policy.api,webRoot:policy.web,apiManifestSha256:hash(compiled.apiBytes),webManifestSha256:hash(compiled.webBytes),pairSha256:hash(compiled.pairBytes),apiFiles:compiled.api.files.length,webFiles:compiled.web.files.length,overlayFiles:compiled.overlayFiles,staticRelativeClosure:closure,hostedCi:ci,installed:false,...(diagnostic?{executionAuthority:false,admissionIssued:false,ownerGenerationPrepared:false}:{}),sqlCalls:0,profileChanges:0,taskChanges:0,serviceCalls:0,sourceEvaluated:0};write(path.join(policy.proof,'package-preparation.json'),bytes(result));return result;
 }
 function shaUnchanged(before,after,overlays){const allowed=new Set(overlays.map(r=>r.path)),a=new Map(after.files.map(r=>[r.path,r.sha256]));return before.files.every(r=>allowed.has(r.path)||a.get(r.path)===r.sha256)&&after.files.every(r=>allowed.has(r.path)||before.files.some(v=>v.path===r.path));}
-if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|'),actions={'--prepare-preview-read':prepareBusinessSalePreviewReadPackages,'--prepare':prepareBusinessSalePreviewLinkPackages,'--prepare-native-context':prepareBusinessSaleNativeContextPackages};check(Object.hasOwn(actions,action),'FIXED_ACTION');try{process.stdout.write(JSON.stringify(actions[action]())+'\n');}catch(e){process.stderr.write((/^PREVIEW_LINK_[A-Z0-9_]+$/.test(e.message)?e.message:'PREVIEW_LINK_PREPARATION_FAILED')+'\n');process.exitCode=1;}}
+if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){const action=process.argv.slice(2).join('|'),actions={'--prepare-diagnostic':prepareBusinessSaleDiagnosticPackages,'--prepare-preview-read':prepareBusinessSalePreviewReadPackages,'--prepare':prepareBusinessSalePreviewLinkPackages,'--prepare-native-context':prepareBusinessSaleNativeContextPackages};check(Object.hasOwn(actions,action),'FIXED_ACTION');try{process.stdout.write(JSON.stringify(actions[action]())+'\n');}catch(e){process.stderr.write((/^PREVIEW_LINK_[A-Z0-9_]+$/.test(e.message)?e.message:'PREVIEW_LINK_PREPARATION_FAILED')+'\n');process.exitCode=1;}}

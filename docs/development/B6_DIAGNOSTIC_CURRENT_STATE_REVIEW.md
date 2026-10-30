@@ -44,3 +44,41 @@ wrong/reordered/missing tuples, options, failed receipts, profile claims, corrup
 CAS, duplicate/missing literals and descriptor widening: PASS, zero skips.
 Independent source review: GO, no open P1/P2. Pinned private artifacts passed the
 same helper. New helper CI is separate from application CI and installation.
+
+## Diagnostic API/WEB producer — 30 October source implementation
+
+The existing fixed producer now has `--prepare-diagnostic`: exact7c6fa854
+errorHandler blob, AFDB/8530 base manifests and six fixed dependency hashes. It
+uses the existing committed-source, exact application CI, frozen parser, full
+payload hashing, CreateNew copying and readback mechanisms. Only one API payload
+file changes; all previous provenance/profile markers and WEB payload remain.
+The WEB backend manifest link follows the new API manifest. No profile is read.
+The passive receipt has installed/executionAuthority/admissionIssued and
+ownerGenerationPrepared=false. This is actual package-producer support, not a
+runtime installer or a complete diagnostic owner generation.
+
+**Single remaining generation blocker:** the six typed current before-images
+required by `nativeContextBefore` in prepare-business-sale-owner-bundle.mjs and
+`Read-ErpBusinessSalePackageRefreshTaskSource` in canonical-business-sale-maintenance.ps1
+are not available for the current repaired owner/API. The current four-process
+boolean observation is valid passive metadata, but has no complete owner/native
+peer/record/task/entry chain. Historical ARRAY-REPAIR before-images refer to the
+previous owner/API. Replaying or reconstructing them as a current capture would
+violate the fixed contract. This task forbids a fresh runtime capture. Therefore
+no owner/core/router/steady manifests or executable generation are emitted;
+PackageRefresh admission and old After/descriptor pins remain unchanged.
+
+Independent review confirmed this boundary. The source tests also cover the new
+exact blob, extra/missing overlay, stale provenance/backend identities, dependency
+drift, unsafe/duplicate paths and repeated derivative rejection.
+
+## Approved scanner exception
+
+The user approved exactly rule+path+manifest-value conjunction in .gitleaks.toml.
+Default rules are extended, not replaced; .gitleaksignore and workflow are unchanged.
+Eight real Gitleaks8.30.1 disposable Git fixtures passed, including other values,
+other paths, path prefix/suffix, longer value, a second secret on the same line
+and an unrelated default provider rule. These offline canaries are unusable and
+contact no provider. An initial directory-mode fixture returned absolute paths
+and therefore correctly did not match; tests now use the actual Git scan mode.
+The exception was not widened. No runtime or installation authority was added.
