@@ -80,7 +80,9 @@ test('Diagnostic reviewed installer entry accepts only the repaired predecessor 
   f.values('prepareBusinessSaleDiagnosticBundle()');
   const verifier=f.values('verifyBusinessSaleDiagnosticBundle()'),g=f.values('diagnosticGeneration()');
   const files={};for(const root of [g.core,g.router,g.steady])for(const leaf of fs.readdirSync(f.output(root)))files[path.win32.join(root,leaf)]=fs.readFileSync(path.join(f.output(root),leaf),'utf8');
-  const installer=fs.readFileSync(new URL('./install-business-5244-readpair.ps1',import.meta.url),'utf8');
+  // Git's Windows checkout can use CRLF. Canonicalize only this source-text
+  // fixture, never the prepared manifest/file bytes or runtime identity checks.
+  const installer=fs.readFileSync(new URL('./install-business-5244-readpair.ps1',import.meta.url),'utf8').replaceAll('\r\n','\n');
   const start=installer.indexOf('function Open-B6PreviewLinkPreparedSource('),end=installer.indexOf('\nfunction ',start+1),original=installer.slice(start,end);
   const invoke="$verifiedText=if($diagnostic){& $node $producer --verify-diagnostic}elseif($previewRead){& $node $producer --verify-preview-read}elseif($nativeContext){& $node $producer --verify-native-context}else{& $node $producer --verify-preview-link}";
   assert(original.includes(invoke));
