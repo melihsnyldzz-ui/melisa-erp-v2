@@ -583,7 +583,7 @@ test('Candidate prepare and verify pin thirteen source files, six captures and p
  const f=fixture({candidate:true});try{
   const result=f.runCandidate(),before=f.writes(),core=f.output(f.values('CANDIDATE_CORE')),router=f.output(f.values('CANDIDATE_ROUTER')),m=JSON.parse(fs.readFileSync(path.join(core,'owner-manifest.json'))),r=JSON.parse(fs.readFileSync(path.join(router,'owner-manifest.json')));
   for(const o of [result,m,r]){assert.equal(o.rehearsalOnly,false);assert.equal(o.maintenancePurpose,'CandidateMetadataApply');assert.equal(o.runtimeValidationComplete,false);assert.equal(o.postExitExclusiveEntryCount,20);assert.equal(o.postExitExclusiveBytesRequired,true);}
-  assert.equal(result.executable,false);assert.equal(result.executionAuthority,false);assert.equal(m.files.length,13);assert.equal(m.beforeImages.length,6);assert.equal(m.predecessor.predecessorEntryKind,'CurrentCore');assert.equal(m.recordingEnabled,false);
+  assert.equal(result.executable,false);assert.equal(result.executionAuthority,false);assert.equal(m.files.length,13);assert.equal(m.beforeImages.length,6);assert.equal(m.predecessor.predecessorEntryKind,'ReadPairRouter');assert.equal(m.recordingEnabled,false);
   assert.equal(f.verifyCandidate().coreManifestSha256,result.coreManifestSha256);assert.equal(f.writes(),before);assert.throws(f.runCandidate,/OUTPUT_EXISTS/);assert.equal(f.writes(),before);
   for(const name of ['CORE','ROUTER','REHEARSAL_CORE','REHEARSAL_ROUTER','INITIALIZER_CLEAN_CORE'])assert(!fs.existsSync(f.output(f.values(name))));
  }finally{f.close();}
