@@ -33,7 +33,7 @@ winTest('NativeContext PackageRefresh keeps maintenance API launchers inert and 
  assert.equal(run(String.raw`
  $body=(Get-Command Test-ErpSteadyWebStartupGeneration).Definition.Replace('$PSScriptRoot','$script:connectorSourceRoot');. ([scriptblock]::Create('function Test-ErpSteadyWebStartupGeneration {'+$body+'}'))
  foreach($name in @('LINK','CONTEXT','READ')){$script:connectorSourceRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-'+$name+'-OWNER-20261030';if(Test-ErpSteadyWebStartupGeneration){throw 'MAINTENANCE_CONNECTOR_ACTIVATED'}}
- foreach($root in @('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-STEADY-OWNER-20261030')){$script:connectorSourceRoot=$root;if(!(Test-ErpSteadyWebStartupGeneration)){throw 'STEADY_CONNECTOR_MISSING'};$script:connectorSourceRoot=$root.ToLowerInvariant();if(Test-ErpSteadyWebStartupGeneration){throw 'UNPINNED_CONNECTOR_ALIAS'}};'PASS'
+ foreach($root in @('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')){$script:connectorSourceRoot=$root;if(!(Test-ErpSteadyWebStartupGeneration)){throw 'STEADY_CONNECTOR_MISSING'};$script:connectorSourceRoot=$root.ToLowerInvariant();if(Test-ErpSteadyWebStartupGeneration){throw 'UNPINNED_CONNECTOR_ALIAS'}};'PASS'
  `),'PASS');
 });
 winTest('steady connector is ready-only, one-shot and does not expand canonical service definitions',()=>{
