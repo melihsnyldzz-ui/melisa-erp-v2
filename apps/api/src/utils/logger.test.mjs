@@ -259,6 +259,7 @@ async function loadMiddleware(name) {
   source = source.replace("'../services/operationQuarantineError.mjs'", JSON.stringify(new URL('../services/operationQuarantineError.mjs', import.meta.url).href));
   source = source.replace("'../config/isolatedOperationCopyRuntime.mjs'", JSON.stringify(new URL('../config/isolatedOperationCopyRuntime.mjs', import.meta.url).href));
   source = source.replace("'../services/selectedSaleSqlDiagnostic.mjs'", JSON.stringify(new URL('../services/selectedSaleSqlDiagnostic.mjs', import.meta.url).href));
+  source = source.replace("'../services/canonicalBusinessSessionContext.mjs'", JSON.stringify(new URL('../services/canonicalBusinessSessionContext.mjs', import.meta.url).href));
   return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 }
 
