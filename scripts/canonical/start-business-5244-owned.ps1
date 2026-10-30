@@ -208,7 +208,7 @@ function Get-Business5244WebOnlyEntryMode {
 }
 function Assert-Business5244SteadyEntry {
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
- if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030'){
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'){
   $entry=Join-Path (Get-ErpBusinessSaleReadContextRepairFixedCase).steadyRoot 'run-current-owner.ps1'
   if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne$entry){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}
   return
@@ -225,7 +225,7 @@ function Assert-Business5244ReadContextRepairEntry([bool]$Preparing,[string]$Ini
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
  if(!(Test-Business5244ReadContextRepairGeneration)-or$indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$InitialSlot-cnotin@('Current','ReadPair')-or($Preparing-and$InitialSlot-cne'Current')){throw 'OWNED_READ_REPAIR_FIXED_ENTRY_REQUIRED'}
  $case=Get-ErpBusinessSaleReadContextRepairFixedCase
- $router=Join-Path 'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030' 'start-business-5244-readpair-router.ps1'
+ $router=Join-Path 'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-ROUTER-20261030' 'start-business-5244-readpair-router.ps1'
  $current=Join-Path $case.root 'run-current-owner.ps1';$entry=$argv[$indices[0]+1]
  if(($Preparing-and$entry-cne$router)-or(!$Preparing-and$entry-cne$router-and($entry-cne$current-or$InitialSlot-cne'Current'))){throw 'OWNED_READ_REPAIR_FIXED_ENTRY_REQUIRED'}
 }

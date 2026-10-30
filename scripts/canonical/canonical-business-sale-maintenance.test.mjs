@@ -342,22 +342,26 @@ foreach($kind in @('apply-text','create-hash','object','signature','authority','
 test('ReadContextRepair SQL metadata guard rejects ALTER header, options, object identity and signatures without normalizing hashes',win,()=>{
  assert.equal(run(nativeFixture+String.raw`
 Add-Type -AssemblyName System.Data
-$script:rowIndex=0;$script:drift='';$script:metadataDDL=0
+$script:rowIndex=0;$script:drift='';$script:metadataDDL=0;$script:machine='Semih';$script:instance='MELISADEV'
 $packet=[pscustomobject]@{proposedModules=@(foreach($n in 0..2){[pscustomobject]@{name=('dbo.fixed'+$n);objectId=100+$n;compiledBeforeCreateSha256=([string][char](65+$n))*64;compiledAfterCreateSha256=([string][char](68+$n))*64}})}
 $script:pinnedFixtureArtifact.applyBatches[-1].sql=($packet.proposedModules.compiledBeforeCreateSha256-join'|')
 $c=[pscustomobject]@{};$c|Add-Member ScriptMethod CreateCommand {
  $native=[Data.SqlClient.SqlCommand]::new();$cmd=[pscustomobject]@{Transaction=$null;CommandTimeout=0;CommandText='';Parameters=$native.Parameters;native=$native}
  $cmd|Add-Member ScriptMethod ExecuteReader {
-  $m=$packet.proposedModules[$script:rowIndex%3];$script:rowIndex++
+   if(!$this.CommandText.Contains("CONVERT(nvarchar(128),SERVERPROPERTY('MachineName')) COLLATE Latin1_General_100_BIN2=N'Semih'")-or!$this.CommandText.Contains("CONVERT(nvarchar(128),SERVERPROPERTY('InstanceName')) COLLATE Latin1_General_100_BIN2=N'MELISADEV'")-or!$this.CommandText.Contains("DB_ID()=18 AND DB_NAME()=N'MELISA_ERP_SIRKET_TEST_20260929_01'")){throw 'SQL_IDENTITY_PREDICATE_WEAKENED'}
+   $m=$packet.proposedModules[$script:rowIndex%3];$script:rowIndex++
   $t=[Data.DataTable]::new();foreach($pair in @(@('id',[int]),@('hash',[string]),@('ansi',[bool]),@('quoted',[bool]),@('owner',[int]),@('schema',[bool]),@('native',[bool]),@('signatures',[int]))){[void]$t.Columns.Add($pair[0],$pair[1])}
   $values=@($m.objectId,$m.compiledAfterCreateSha256,$true,$true,-2,$false,$false,0)
   switch($script:drift){header{$values[1]=('E'*64)}object{$values[0]++}ansi{$values[2]=$false}quoted{$values[3]=$false}owner{$values[4]=-1}schema{$values[5]=$true}native{$values[6]=$true}signature{$values[7]=1}}
-  [void]$t.Rows.Add($values);return ,$t.CreateDataReader()
+   if([string]::Equals($script:machine,'Semih',[StringComparison]::Ordinal)-and[string]::Equals($script:instance,'MELISADEV',[StringComparison]::Ordinal)){[void]$t.Rows.Add($values)};return ,$t.CreateDataReader()
  };$cmd|Add-Member ScriptMethod Dispose {$this.native.Dispose()};return $cmd
 }
 Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate
 if($script:trace[-1]-cne($packet.proposedModules.compiledAfterCreateSha256-join'|')){throw 'AFTER_SNAPSHOT_PREDICATES_NOT_PRESERVED'}
-foreach($bad in @('header','object','ansi','quoted','owner','schema','native','signature')){$script:drift=$bad;$denied=$false;try{Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate}catch{$denied=$true};if(!$denied){throw ('METADATA_DRIFT_ACCEPTED_'+$bad)}};'PASS'
+foreach($bad in @('header','object','ansi','quoted','owner','schema','native','signature')){$script:drift=$bad;$denied=$false;try{Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate}catch{$denied=$true};if(!$denied){throw ('METADATA_DRIFT_ACCEPTED_'+$bad)}}
+$script:drift='';foreach($bad in @('SEMIH','semih','SemihX','')){$script:machine=$bad;$denied=$false;try{Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate}catch{if($_.Exception.Message-cne'B6_READ_REPAIR_STORED_HEADER_OPTIONS_CHANGED'){throw};$denied=$true};if(!$denied){throw 'MACHINE_IDENTITY_DRIFT_ACCEPTED'}}
+$script:machine='Semih';foreach($bad in @('melisadev','MELISADEVX','')){$script:instance=$bad;$denied=$false;try{Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate}catch{if($_.Exception.Message-cne'B6_READ_REPAIR_STORED_HEADER_OPTIONS_CHANGED'){throw};$denied=$true};if(!$denied){throw 'INSTANCE_IDENTITY_DRIFT_ACCEPTED'}}
+$script:instance='MELISADEV';Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate;'PASS'
 `),'PASS');
 });
 test('ReadContextRepair real issuer retains a two-hash-only profile delta and rejects copies, foreign issuer and non-maintenance roots',win,()=>{
@@ -388,13 +392,15 @@ if((Get-ErpBusinessSaleHash ([IO.File]::ReadAllBytes($profilePath)))-cne(Get-Erp
 });
 test('ReadContextRepair source generation rejects unknown, case aliases, routers and steady admission before IO',win,()=>{
  assert.equal(run(String.raw`
-$body=(Get-Command Test-ErpBusinessSaleReadContextRepairGeneration).Definition.Replace('$PSScriptRoot','$script:sourceRoot');. ([scriptblock]::Create('function Test-ErpBusinessSaleReadContextRepairGeneration {'+$body+'}'))
-$owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-OWNER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030'
+foreach($name in @('Test-ErpBusinessSaleReadContextRepairGeneration','Get-ErpBusinessSaleReadContextRepairFixedCase')){$body=(Get-Command $name).Definition.Replace('$PSScriptRoot','$script:sourceRoot');. ([scriptblock]::Create('function '+$name+' {'+$body+'}'))}
+$owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'
 function Read-ErpBusinessSaleReadContextRepairOwnerSource{throw 'UNEXPECTED_GENERATION_IO'}
-foreach($bad in @($steady,$owner.ToLowerInvariant(),($owner+'x'),$owner.Replace('-OWNER-','-ROUTER-'),'C:\fixture\foreign')){
+foreach($bad in @($steady,$owner.ToLowerInvariant(),($owner+'x'),$owner.Replace('-OWNER-','-ROUTER-'),$owner.Replace('-V2-','-'),$steady.Replace('-V2-','-'),'C:\fixture\foreign')){
  $script:sourceRoot=$bad;$denied=$false;try{New-ErpBusinessSaleReadContextRepairAdmission ([pscustomobject]@{})|Out-Null}catch{if($_.Exception.Message-cne'B6_READ_REPAIR_GENERATION_REJECTED'){throw};$denied=$true};if(!$denied){throw 'GENERATION_GRANTED'}
 }
-$script:sourceRoot=$owner;if(!(Test-ErpBusinessSaleReadContextRepairGeneration)){throw 'MAINTENANCE_REJECTED'};$script:sourceRoot=$steady;if((Test-ErpBusinessSaleReadContextRepairGeneration)-or!(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady)){throw 'STEADY_SCOPE_CHANGED'};'PASS'
+$script:sourceRoot=$owner;if(!(Test-ErpBusinessSaleReadContextRepairGeneration)){throw 'MAINTENANCE_REJECTED'};$case=Get-ErpBusinessSaleReadContextRepairFixedCase
+if($case.root-cne$owner-or$case.steadyRoot-cne$steady-or$case.privateRoot-cne'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-preview-link-20261030\native-context-fix\array-repair-v2-20261030'-or$case.postExitExclusiveEntryCount-ne44-or$case.directEntryCount-ne38-or$case.entriesHash-cne'bb4740315a864d813f6004e245d4ab381a49abc3ab5569fa130e291bfaa8eec7'){throw 'V2_FIXED_CASE_CHANGED'}
+$script:sourceRoot=$steady;if((Test-ErpBusinessSaleReadContextRepairGeneration)-or!(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady)){throw 'STEADY_SCOPE_CHANGED'};'PASS'
 `),'PASS');
 });
 
