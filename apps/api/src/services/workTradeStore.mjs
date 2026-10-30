@@ -17,10 +17,12 @@ export const workPayloadJson=(actor,operation,payload)=>JSON.stringify(stable({.
 const nativeId=value=>{workId(String(value));if(BigInt(value)>BigInt(Number.MAX_SAFE_INTEGER))throw workError();return Number(value);};
 const nativeNumber=(value,places)=>{workScaled(value,places);const n=Number(value);if(!Number.isFinite(n)||n.toFixed(places)!==value)throw workError();return n;};
 const signedExact=(value,places)=>{if(typeof value!=='string'||!new RegExp(`^-?(?:0|[1-9]\\d{0,13})\\.\\d{${places}}$`).test(value))throw workError();return value;};
-async function defaultRuntime(){
+async function defaultRuntime(actor){
  const db=await import('../config/database.js');if(db.isIsolatedOperationCopyRuntime?.())return {isolatedCopy:true};if(!db.isCanonicalTest())throw workError();
  const [invoice,finance,audit,test,period,proof]=await Promise.all([import('./invoiceDraftService.js'),import('./financeService.js'),import('./auditService.js'),import('./testSalesScope.mjs'),import('./periodLockService.js'),import('./workTradeSqlProof.mjs')]);
- const goal8DayProfile=goal8DayEnabled();
+ // The registered native B6 actor uses its own startup/SQL admission. Legacy
+ // actors retain the original Goal8 seal checks, including fail-closed errors.
+ const goal8DayProfile=isCanonicalBusinessSaleAvailable(actor)?false:goal8DayEnabled();
  return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),invoice,finance,audit,period,withMutation:test.withTestSalesMutation,goal8DayProfile,proof:getCanonicalBusinessSaleLegacyProof()??(goal8SqlProfileInstalled()?(await import('./goal8DaySqlProof.mjs')).GOAL8_DAY_SQL_PROOF.trade:proof.WORK_TRADE_SQL_PROOF)};
 }
 function capabilities(actor,raw){
@@ -118,7 +120,7 @@ WHERE v.id=@id AND v.created_by=17 AND JSON_VALUE(l.preview_json,'$.canonicalBus
  }
  async function transaction(actor,write,operation,payload,fn,readPermission='sales.view',historicalSale=false){
   if(isCanonicalBusinessSaleAvailable(actor)){
-   const r=await getRuntime();if(r.isolatedCopy)throw workError();
+   const r=await getRuntime(actor);if(r.isolatedCopy)throw workError();
    if(!write)return canonicalSession(actor,r,fn);
    if(!['sale_draft','sale_finalize','sale_cancel'].includes(operation))workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);
    const admission=getCanonicalBusinessSaleAdmission(actor),bodyJson=workPayloadJson(actor,operation,{...payload,canonicalBusinessSaleProfileHash:admission.profileHash,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',testProfile:'B6-CANONICAL-BUSINESS-SALE-V1'});
