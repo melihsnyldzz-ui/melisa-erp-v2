@@ -1,3 +1,7 @@
+## 30 Ekim10:05UTC — B6 / ERP-UA07 normal satış önizlemesi ajan tarafından doğrulandı
+
+Onaylı dar TEST SQL bakımından sonra mevcut Semih oturumu normal5244 tam yenilemede korundu. Gerçek müşteri, ayrı USD hesabı, ürün, stok, barkod ve satış fiyatıyla yalnız kayıtsız önizleme: context/selected-context/preview üçü200; ekranda kayıt oluşturulmadığı görüldü. Satış/taslak/finalize/iptal yapılmadı, yalnız ajan sepeti temizlendi. Bağımsız SQL/API/profil/korunan servis geriokuması geçti. Bu özgün ERP-UA07 veya başka insan kabulünü PASS yapmaz; kişi/tarih/işletme sonucu BEKLİYOR, reboot DENENMEDİ. Mevcut B6 bütün yazma akışı kapsamı bu dar onayla tamamlanmış sayılmaz. [STATUS](STATUS.md), [aynı ortak rapor](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54#issuecomment-6448803704).
+
 ## 25 Ekim01:41 — B5 altı hesap için yeni bağlam da reddedildi; sıfır oluşturma doğrulandı
 
 Altı sentetik kullanıcı/personel çifti oluşturulmadı; bu kimliklerde normal giriş veya insan kabulü yapılmış sayılmadı. Mevcut Müdür/personel ve muhasebe ajan kanıtları korundu. E2 ve özgün insan kabulleri BEKLİYOR. [STATUS](STATUS.md).
