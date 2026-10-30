@@ -56,6 +56,18 @@ test('owner context uses exact native provenance, holds, date-bound FX, account 
  for(const name of ['source_record_key','migration_run_id','source_payload_hash'])assert(sql.includes(name));
  assert.match(sql,/nativeExpected/);assert.match(sql,/nativePreviewHash/);assert.match(sql,/CAST\(0 AS bit\) write/);assert.doesNotMatch(module(compile(fixture()),'context'),/INSERT|UPDATE|DELETE/);
 });
+
+test('selected items require exactly one native JSON array and retain the one-or-two row limit',()=>{
+ const resolve=module(compile(fixture()),'resolve');
+ const guard="IF (SELECT COUNT(*) FROM OPENJSON(@selection_json) WHERE [key] COLLATE Latin1_General_100_BIN2=N'items' AND [type]=4)<>1 OR (SELECT COUNT(*) FROM OPENJSON(@selection_json,'$.items')) NOT BETWEEN 1 AND 2 THROW 51917,'B6_OWNER_ITEM_COUNT',1;";
+ assert(resolve.includes(guard));assert.doesNotMatch(resolve,/NOT LIKE N'\[%\]'/);
+ assert(resolve.indexOf(guard)>resolve.indexOf('B6_OWNER_SELECTION_TYPES'));
+ assert(resolve.indexOf(guard)<resolve.indexOf('B6_OWNER_ITEM_KEYS'));
+ assert(resolve.indexOf(guard)<resolve.indexOf('INSERT @items'));
+ for(const retained of ['B6_OWNER_IDENTITY','B6_OWNER_TRANSACTION','B6_OWNER_ACCOUNT_SOURCE','B6_OWNER_RATE_SOURCE','B6_OWNER_PRODUCT_SOURCE','B6_OWNER_HOLD','B6_OWNER_TOTAL_LIMIT','B6_OWNER_ITEM_VALUES'])assert(resolve.includes(retained)||module(compile(fixture()),'ready').includes(retained));
+ // SQL execution of empty/scalar/object/missing/three-item negatives and the
+ // valid one/two arrays belongs to the separate restricted SELECT canary.
+});
 test('assert is intermediate same-session/transaction authority, not final effect acceptance',()=>{
  const a=module(compile(fixture()),'assert');assert.match(a,/APPLOCK_MODE/);assert.match(a,/transaction_id=CURRENT_TRANSACTION_ID\(\)/);assert.match(a,/request_id=@request_id AND actor_id=@actor_id AND operation=@operation/);
  assert.match(a,/JSON_VALUE\(@proof,'\$\.invoiceId'\)/);assert.match(a,/JSON_VALUE\(@proof,'\$\.bodyHash'\)/);assert.match(a,/SELECT @proof proof_json/);assert.doesNotMatch(a,/UPDATE|INSERT|DELETE|SET phase|EXEC dbo\.usp_canonical_business_sale_effects/);
