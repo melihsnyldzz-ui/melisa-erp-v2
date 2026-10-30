@@ -118,7 +118,7 @@ foreach($bad in @('kind','router','routerHash','entry','core','coreHash','owner'
  $denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash $script:fixture.entry|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_PREDECESSOR_CHANGED'){throw};$denied=$true};if(!$denied){throw 'PREDECESSOR_DRIFT_ACCEPTED'}
 }
 $script:fixture.files.PSObject.Properties[$capturePath].Value=$saved
-$denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash ($script:fixture.entry.Replace('owner-preparation-v2','owner-preparation'))|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'OLD_GENERATION_REPLAY_ACCEPTED'}
+$denied=$false;try{Open-B6PreviewLinkPreparedSource $script:fixture.sourceHash ($script:fixture.entry.Replace('owner-preparation-v3','owner-preparation'))|Out-Null}catch{if($_.Exception.Message-cne'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'OLD_GENERATION_REPLAY_ACCEPTED'}
 'PASS'
 `.replace('__DATA__',()=>Buffer.from(fixtureText).toString('base64')).replace('__HELPER__',()=>helper).replace('__FUNCTION__',()=>body).replace('__CORE__',()=>g.core).replace('__PROOF__',()=>g.proof);
   const run=text=>cp.execFileSync(path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-Command','& ([scriptblock]::Create([Console]::In.ReadToEnd()))'],{input:text,encoding:'utf8',windowsHide:true,timeout:60000}).trim();
