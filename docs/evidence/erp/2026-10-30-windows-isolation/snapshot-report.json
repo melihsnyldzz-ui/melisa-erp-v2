@@ -1,0 +1,18 @@
+{
+  "sourceSnapshot": "35d3eeb267e4292fd0aca3aece1dbaf9e1a7b34a",
+  "status": "SNAPSHOT_MATCH_ONLY",
+  "workflowApplied": false,
+  "windowsExecutionVerified": false,
+  "ownershipCleared": false,
+  "steps": {
+    "windows-startup-core": 12,
+    "windows-b6-profile": 1,
+    "windows-business-5244": 1
+  },
+  "canonicalFilesPinned": 524,
+  "remaining": [
+    "active owner handoff",
+    "fresh source audit after owner changes",
+    "clean Windows shard execution and result comparison"
+  ]
+}
