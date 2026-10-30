@@ -30,9 +30,9 @@ export const NATIVE_CONTEXT_PACKAGE=Object.freeze({
 });
 export const PREVIEW_READ_PACKAGE=Object.freeze({
  ...P,sourceCommit:'ed706d37c8a78ad41f314f76029b24dd0e38bc80',baseApi:NATIVE_CONTEXT_PACKAGE.api,baseWeb:NATIVE_CONTEXT_PACKAGE.web,
- api:String.raw`C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-20261030`,
- web:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-20261030`,
- proof:path.win32.join(NATIVE_CONTEXT_PACKAGE.proof,'context-read-policy'),
+ api:String.raw`C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-VERIFIED-20261030`,
+ web:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030`,
+ proof:path.win32.join(NATIVE_CONTEXT_PACKAGE.proof,'context-read-policy','closure-verified'),
  baseApiHash:['bd84de1ebb905ec4','893cdc70d9750b9e','79870697c4a5b16a','1b5104735663d45d'].join(''),
  baseWebHash:'48377ca6ef8c4384a0501312c2f90b3d52e001043042def06414e0e043a58a1b',
  paths:Object.freeze(['apps/api/start-canonical-test.mjs','apps/api/src/services/canonicalBusinessSaleReadPolicy.mjs','apps/api/src/services/canonicalBusinessSessionContext.mjs','apps/api/src/services/canonicalBusinessSaleRuntime.mjs'])
@@ -77,9 +77,12 @@ export function compilePreviewReadManifests(api,web,overlays){
  check(web.packageId===path.win32.basename(N.web)&&web.sourceCommit==='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'&&web.backendRoot===N.api&&web.backendPackageId===api.packageId&&web.backendManifestSha256===C.baseApiHash&&web.actualT1===false&&web.externalOperations===false,'WEB_IDENTITY');
  const before=new Map(validRows(api.files).map(r=>[r.path,{...r}]));validRows(web.files);check(overlays instanceof Map&&overlays.size===4&&C.paths.every(p=>Buffer.isBuffer(overlays.get(p)))&&!before.has(C.paths[1])&&C.paths.filter(p=>p!==C.paths[1]).every(p=>before.has(p)),'EXACT_OVERLAYS');
  const overlayFiles=C.paths.map(p=>({path:p,sha256:hash(overlays.get(p)),bytes:overlays.get(p).length,beforeSha256:before.get(p)?.sha256??null}));
+ const closure=api.businessNormalSessionClosure,closurePaths=[C.paths[0],C.paths[2]];
+ check(closure?.version===1&&Array.isArray(closure.files)&&new Set(closure.files.map(r=>r.path)).size===closure.files.length&&closure.files.every(r=>before.get(r.path)?.sha256===r.sha256)&&closurePaths.every(p=>closure.files.some(r=>r.path===p)),'READ_SESSION_CLOSURE');
  for(const r of overlayFiles){check(r.sha256!==r.beforeSha256,'READ_UNCHANGED_OVERLAY');before.set(r.path,{...(before.get(r.path)??{}),path:r.path,sha256:r.sha256,bytes:r.bytes});}
  const provenance={kind:'PREVIEW_READ_PACKAGE_REFRESH',sourceCommit:C.sourceCommit,baseManifestSha256:C.baseApiHash,installed:false,sqlExecuted:false,profileChanged:false};
  const a={...structuredClone(api),installed:false,files:[...before.values()].sort((a,b)=>a.path.localeCompare(b.path)),previewReadOverlaySourceCommit:C.sourceCommit,previewReadOverlayFiles:overlayFiles,previewReadPackageRefresh:provenance};
+ a.businessNormalSessionClosure.files=a.businessNormalSessionClosure.files.map(r=>closurePaths.includes(r.path)?{...r,sha256:before.get(r.path).sha256}:r);
  const apiBytes=bytes(a),w={...structuredClone(web),packageId:path.win32.basename(C.web),backendRoot:C.api,backendManifestSha256:hash(apiBytes),installed:false,previewReadPackageRefresh:{...provenance,baseManifestSha256:C.baseWebHash,frontendPayloadUnchanged:true}};
  const webBytes=bytes(w),apiPin={root:C.api,packageId:a.packageId,manifestSha256:hash(apiBytes),sourceCommit:a.sourceCommit,configPath:String.raw`C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json`},webPin={root:C.web,packageId:w.packageId,manifestSha256:hash(webBytes),frontendSourceCommit:w.sourceCommit,backendPackageId:a.packageId,backendManifestSha256:hash(apiBytes)};
  const pair={schema:'melisa-b6-preview-package-pair.v1',scope:'TEST125-API-B6-WRITER-20261029',purpose:'PreviewLinkPackageRefresh',current:{api:{...apiPin,root:C.baseApi,manifestSha256:C.baseApiHash},web:{...webPin,root:C.baseWeb,packageId:web.packageId,manifestSha256:C.baseWebHash,backendManifestSha256:C.baseApiHash}},candidate:{api:apiPin,web:webPin}};
