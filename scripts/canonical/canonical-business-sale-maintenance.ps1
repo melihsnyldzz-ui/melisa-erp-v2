@@ -17,6 +17,7 @@ function Get-ErpBusinessSaleNativeInputs {
  return [pscustomobject]@{artifact=$a;descriptor=$d;artifactHash=(Get-ErpBusinessSaleHash $artifactBytes)}
 }
 function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
+ if(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady){return Assert-ErpBusinessSaleDiagnosticProfileDelta $Base $Api $Manifest}
  if(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady){return Assert-ErpBusinessSaleReadContextRepairProfileDelta $Base $Api $Manifest}
  if($Manifest.packageId-ceq'CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'){return Assert-ErpBusinessSaleWriterProfileDelta $Base $Api $Manifest}
  if($Manifest.packageId-cne'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'-or$Manifest.sourceCommit-cne'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d'-or$Manifest.businessSaleSourceCommit-cne'ca620bac30f96034b33d4410dc43576a38a38707'-or$Manifest.businessSaleCandidate.recordingEnabled-ne$false-or$Api.businessSaleWritesEnabled-isnot[bool]-or$Api.businessSaleWritesEnabled){throw 'B6_PROFILE_TARGET_REJECTED'}
@@ -36,7 +37,7 @@ function Assert-ErpBusinessSaleWriterProfileDelta($Base,$Api,$Manifest){
  foreach($key in $keys|Where-Object{$_-cnotin@('actorId','roleId')}){if(!$p-or!$p.PSObject.Properties[$key]-or$p.$key-isnot[string]){throw 'B6_WRITER_ACTIVATION_CONTRACT_REJECTED'}}
  if(!$p-or((@($p.PSObject.Properties.Name|Sort-Object)-join'|')-cne(@($keys|Sort-Object)-join'|'))-or$p.kind-cne'NORMAL_SEMIH_B6_WRITER'-or$p.purpose-cne'WriterProfileActivation'-or$p.sourceCommit-cne$Manifest.businessSaleSourceCommit-or$p.basePackageId-cne'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'-or$p.baseManifestSha256-cne'85ff1157f4d1ed69582d4a08dead319518d1c79c4ea74ea0f2a0606037a1289d'-or$p.artifactSha256-cne'35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'-or$p.descriptorSha256-cne'050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024'-or$p.revisionHash-cne'DEBAFECB1915AEC135E58107F64EE4243D7B93E3C091799EB8E4F29500C477DE'-or$p.actorId-isnot[int]-or$p.actorId-ne17-or$p.roleId-isnot[int]-or$p.roleId-ne17){throw 'B6_WRITER_ACTIVATION_CONTRACT_REJECTED'}
  if($Api.businessWorkface.id-isnot[string]-or$Api.businessWorkface.id-cne'ERP-5244-REALDATA-20261027'-or$Api.businessWorkface.userId-isnot[int]-or$Api.businessWorkface.userId-ne17-or$Api.businessWorkface.actualT1-isnot[bool]-or$Api.businessWorkface.actualT1-or$Api.businessWorkface.externalOperations-isnot[bool]-or$Api.businessWorkface.externalOperations){throw 'B6_WRITER_WORKFACE_REJECTED'}
- $inputs=if(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady){[pscustomobject]@{descriptor=(Read-ErpBusinessSaleReadContextRepairOriginalDescriptor)}}else{Get-ErpBusinessSaleNativeInputs}
+ $inputs=if((Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady)-or(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady)){[pscustomobject]@{descriptor=(Read-ErpBusinessSaleReadContextRepairOriginalDescriptor)}}else{Get-ErpBusinessSaleNativeInputs}
  if(($Api.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress)-cne($inputs.descriptor|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_PROFILE_DESCRIPTOR_REJECTED'}
  $copy=$Api.PSObject.Copy();$copy.PSObject.Properties.Remove('businessSaleAdmission');$copy.PSObject.Properties.Remove('businessSaleWritesEnabled')
  return $copy
@@ -59,13 +60,53 @@ function Assert-ErpBusinessSaleExactKeys($Value,[string[]]$Keys){
  if(!$Value-or(@($Value.PSObject.Properties.Name|Sort-Object -CaseSensitive)-join'|')-cne(@($Keys|Sort-Object -CaseSensitive)-join'|')){throw 'B6_WRITER_SOURCE_SHAPE'}
 }
 function Test-ErpBusinessSalePackageRefreshGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030')
 }
+
+function Test-ErpBusinessSaleDiagnosticGeneration([switch]$IncludeSteady){
+ return ($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-OWNER-20261030'-or($IncludeSteady-and$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030'))
+}
+function Get-ErpBusinessSaleDiagnosticInputs {
+ if($args.Count-or!(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady)){throw 'B6_DIAGNOSTIC_GENERATION_REQUIRED'}
+ $inputs=Get-ErpBusinessSaleNativeInputs;$packet=Read-ErpBusinessSaleReadContextRepairPacket;$hashes=@('A4E52071F8413A83315E84D661804FA0E5F5AA6A1AA7DAF880230553D4F20C5F','648A9B07A54ADB6DA97DB8168F9A8B9C2D95AA1809326AEAC259A442042D33EB','C91F43028BFA9E3AB944816709B2A2350767340C3447AECBAABAA524E7CA18FA')
+ $batches=@($inputs.artifact.applyBatches);$batch=$batches[$batches.Count-1];$sql=$batch.sql
+ for($i=0;$i-lt3;$i++){$m=$packet.proposedModules[$i];if($m.compiledAfterCreateSha256-cne$hashes[$i]-or[regex]::Matches($sql,[regex]::Escape($m.compiledBeforeCreateSha256)).Count-ne1-or$sql.Contains($m.compiledAfterCreateSha256)){throw 'B6_DIAGNOSTIC_CURRENT_TUPLE_CHANGED'};$sql=$sql.Replace($m.compiledBeforeCreateSha256,$m.compiledAfterCreateSha256)}
+ if((Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($sql))).ToUpperInvariant()-cne'B1C172B7427CF39E78F22BBF4B245B7260E4467492EFA2B04609B8EAFCD14D03'){throw 'B6_DIAGNOSTIC_FULL_AFTER_CHANGED'}
+ $batch.sql=$sql;$batch.sourceHash=(Get-ErpBusinessSaleHash ([Text.Encoding]::UTF8.GetBytes($sql))).ToUpperInvariant();$inputs.descriptor=Get-ErpBusinessSaleReadContextRepairDescriptor Candidate
+ return $inputs
+}
+function Assert-ErpBusinessSaleDiagnosticProfileDelta($Base,$Api,$Manifest){
+ if(!(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady)){throw 'B6_DIAGNOSTIC_GENERATION_REQUIRED'}
+ $case=Get-ErpBusinessSalePackageRefreshFixedCase;$path='C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json';$actual=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $path $case.profileHash))|ConvertFrom-Json
+ if(($Api|ConvertTo-Json -Depth 100 -Compress)-cne($actual|ConvertTo-Json -Depth 100 -Compress)-or($Api.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress)-cne((Get-ErpBusinessSaleReadContextRepairDescriptor Candidate)|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_DIAGNOSTIC_PROFILE_CHANGED'}
+ $copy=$Api|ConvertTo-Json -Depth 100|ConvertFrom-Json;$copy.businessSaleAdmission=Read-ErpBusinessSaleReadContextRepairOriginalDescriptor
+ return Assert-ErpBusinessSaleWriterProfileDelta $Base $copy $Manifest
+}
+function Assert-ErpBusinessSaleDiagnosticOverlay($Before,$After,$CurrentWeb,$CandidateWeb){
+ $leaf='apps/api/src/middleware/errorHandler.js';$p=$After.diagnosticPackageRefresh;$rows=@($After.diagnosticOverlayFiles)
+ Assert-ErpBusinessSaleExactKeys $p @('kind','sourceCommit','baseManifestSha256','installed','executionAuthority','admissionIssued','sqlExecuted','profileChanged','dependencies')
+ if($After.diagnosticOverlaySourceCommit-cne'7c6fa85447d52c9566870495e4d8ffe197940a65'-or$p.sourceCommit-cne$After.diagnosticOverlaySourceCommit-or$p.kind-cne'B6_SQL_NUMERIC_DIAGNOSTIC_PACKAGE_REFRESH'-or$p.baseManifestSha256-cne'afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c'-or$p.installed-isnot[bool]-or$p.installed-or$p.executionAuthority-isnot[bool]-or$p.executionAuthority-or$p.admissionIssued-isnot[bool]-or$p.admissionIssued-or$p.sqlExecuted-isnot[bool]-or$p.sqlExecuted-or$p.profileChanged-isnot[bool]-or$p.profileChanged-or$rows.Count-ne1-or@($p.dependencies).Count-ne6){throw 'B6_DIAGNOSTIC_OVERLAY_CHANGED'}
+ $f=$rows[0];Assert-ErpBusinessSaleExactKeys $f @('path','sha256','bytes','beforeSha256')
+ if($f.path-cne$leaf-or$f.sha256-cne'401affcf7b1368c6a79b100807f23b7efb7943f671aaa2f79afe29aae6294f9f'-or$f.beforeSha256-cne'e91394797ad18828972e3308c166cda19ecc01fc414a3a471285c7627afa1ad0'-or$f.bytes-ne3106){throw 'B6_DIAGNOSTIC_OVERLAY_CHANGED'}
+ $oldRows=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal);$newRows=[Collections.Generic.Dictionary[string,object]]::new([StringComparer]::Ordinal)
+ foreach($row in $Before.files){if($oldRows.ContainsKey($row.path)){throw 'B6_DIAGNOSTIC_PAYLOAD_WIDENED'};$oldRows.Add($row.path,$row)}
+ foreach($row in $After.files){if($newRows.ContainsKey($row.path)){throw 'B6_DIAGNOSTIC_PAYLOAD_WIDENED'};$newRows.Add($row.path,$row)}
+ foreach($r in $Before.files){if(!$newRows.ContainsKey($r.path)-or($r.path-cne$leaf-and($r|ConvertTo-Json -Compress)-cne($newRows[$r.path]|ConvertTo-Json -Compress))){throw 'B6_DIAGNOSTIC_PAYLOAD_WIDENED'}}
+ if(@($Before.files).Count-ne@($After.files).Count){throw 'B6_DIAGNOSTIC_PAYLOAD_WIDENED'}
+ foreach($d in $p.dependencies){if(!$oldRows.ContainsKey($d.path)-or!$newRows.ContainsKey($d.path)-or$oldRows[$d.path].sha256-cne$d.sha256-or$newRows[$d.path].sha256-cne$d.sha256){throw 'B6_DIAGNOSTIC_DEPENDENCY_CHANGED'}}
+ $copy=$After|ConvertTo-Json -Depth 100|ConvertFrom-Json;foreach($key in @('diagnosticOverlaySourceCommit','diagnosticOverlayFiles','diagnosticPackageRefresh')){$copy.PSObject.Properties.Remove($key)};$copy.files=$Before.files;$copy.installed=$Before.installed
+ $web=$CandidateWeb|ConvertTo-Json -Depth 100|ConvertFrom-Json;$web.PSObject.Properties.Remove('diagnosticPackageRefresh');foreach($key in @('packageId','backendRoot','backendManifestSha256','installed')){$web.$key=$CurrentWeb.$key}
+ if(($copy|ConvertTo-Json -Depth 100 -Compress)-cne($Before|ConvertTo-Json -Depth 100 -Compress)-or($web|ConvertTo-Json -Depth 100 -Compress)-cne($CurrentWeb|ConvertTo-Json -Depth 100 -Compress)){throw 'B6_DIAGNOSTIC_METADATA_WIDENED'}
+}
+
 function Get-ErpBusinessSalePackageRefreshFixedCase {
  # Closed immutable source locations select data pins, never caller input or
  # execution authority. Each steady sibling can only read its own pair.
  if($args.Count){throw 'B6_PACKAGE_REFRESH_CASE_ARGUMENTS_REJECTED'}
  $base='C:\Sirket\ERP\releases\'
+ if(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady){
+  return [pscustomobject]@{id='Diagnostic';root=($base+'ERP-BUSINESS-5244-B6-DIAGNOSTIC-OWNER-20261030');routerRoot=($base+'ERP-BUSINESS-5244-B6-DIAGNOSTIC-ROUTER-20261030');steadyRoot=($base+'ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030');pairHash='8fbfe40c8789a688cb3f951bedea247815ce637b7cf60302dc386b7236e54220';currentApiRoot=($base+'CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-VERIFIED-20261030');currentWebId='ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030';currentComponentDigest='afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c';currentWebHash='853025ef7df10eec9a4feff026b767c6c323e5e5259c7bcbc2f7f19186743855';candidateApiRoot=($base+'CANONICAL-TEST125-BUSINESS5244-B6-DIAGNOSTIC-20261030');candidateWebId='ERP-BUSINESS-WEB-5244-B6-DIAGNOSTIC-20261030';candidateComponentDigest='dbaf87f8522436d45ddde93acf490639ce45eb2cc915c46eb967a8629e7164fb';candidateWebHash='7867d87868bd6e69eba3efcf0eba66129a08470cd024f084bce04f9aaeaa3022';captureHash='abdb4f7d69556b1aef58867da3c35054b86f5c6ab82f29e2ee54781f8bf3aa9c';recordHash='088726fb889bd99cdd83d2ac35865f852f592a2465e2d95a5d2e427c9ca32b9e';ownerPid=14096;ownerBirth='134378268382795624';childPid=6876;childBirth='134378280224964399';predecessorKind='ReadPairRouter';runningRoot=($base+'ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030');runningPid=27732;runningBirth='134378277839267163';futureRoot=($base+'ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030');overlaySource='7c6fa85447d52c9566870495e4d8ffe197940a65';profileHash='74d72c0c2ce685f126ae941249c69a1168bf90e7dbbf45269639e19ef466c7c3'}
+ }
  if($PSScriptRoot-cin@(($base+'ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030'),($base+'ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'))){
   return [pscustomobject]@{
    id='PreviewLink'
@@ -207,6 +248,11 @@ function Read-ErpBusinessSalePackageRefreshOwnerSource {
    $overlay=$apiManifest.previewLinkPackageRefresh;$paths=@('apps/api/src/routes/workSalesRoutes.mjs','apps/api/src/services/businessSelectedSalePreviewStore.mjs','apps/api/src/services/businessSelectedSalePreview.mjs')
    if($apiManifest.apiOverlaySourceCommit-isnot[string]-or$apiManifest.apiOverlaySourceCommit-cne'd4a7ec26edc22cb7cd707dc2fe4fdb209adf9d5c'-or$overlay.kind-cne'PREVIEW_LINK_PACKAGE_REFRESH'-or$overlay.sourceCommit-cne$apiManifest.apiOverlaySourceCommit-or$overlay.baseManifestSha256-cne'560c735fcaffa6692f55543840f8106679b43b871e3c19f1990bdd17d46f9946'-or$overlay.installed-isnot[bool]-or$overlay.installed-or$overlay.sqlExecuted-isnot[bool]-or$overlay.sqlExecuted-or$overlay.profileChanged-isnot[bool]-or$overlay.profileChanged-or(@($apiManifest.apiOverlayFiles.path|Sort-Object -CaseSensitive)-join'|')-cne(@($paths|Sort-Object -CaseSensitive)-join'|')){throw 'B6_PACKAGE_REFRESH_OVERLAY_CHANGED'}
     foreach($file in $apiManifest.apiOverlayFiles){$saved=@(if($candidateFileIndex.ContainsKey($file.path)){$candidateFileIndex[$file.path]});if($saved.Count-ne1-or$saved[0].sha256-cne$file.sha256-or(Read-ErpBusinessSalePinnedFile (Join-Path $v.api.root $file.path) $file.sha256).Length-ne$file.bytes){throw 'B6_PACKAGE_REFRESH_OVERLAY_CHANGED'}}
+   if($case.id-ceq'Diagnostic'){
+    $currentWeb=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $pair.current.web.root 'release-manifest.json') $pair.current.web.manifestSha256))|ConvertFrom-Json
+    $candidateWeb=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $pair.candidate.web.root 'release-manifest.json') $pair.candidate.web.manifestSha256))|ConvertFrom-Json
+    Assert-ErpBusinessSaleDiagnosticOverlay $currentApiManifest $apiManifest $currentWeb $candidateWeb
+   }
    if($case.id-ceq'NativeContext'){
     $patch=$apiManifest.nativeContextPackageRefresh;Assert-ErpBusinessSaleExactKeys $patch @('kind','sourceCommit','baseManifestSha256','installed','sqlExecuted','profileChanged')
     if($apiManifest.nativeContextOverlaySourceCommit-isnot[string]-or$apiManifest.nativeContextOverlaySourceCommit-cne$case.overlaySource-or$patch.kind-isnot[string]-or$patch.kind-cne'NATIVE_CONTEXT_PACKAGE_REFRESH'-or$patch.sourceCommit-isnot[string]-or$patch.sourceCommit-cne$case.overlaySource-or$patch.baseManifestSha256-isnot[string]-or$patch.baseManifestSha256-cne$case.currentComponentDigest-or$patch.installed-isnot[bool]-or$patch.installed-or$patch.sqlExecuted-isnot[bool]-or$patch.sqlExecuted-or$patch.profileChanged-isnot[bool]-or$patch.profileChanged-or@($apiManifest.nativeContextOverlayFiles).Count-ne1){throw 'B6_NATIVE_CONTEXT_OVERLAY_CHANGED'}
@@ -248,7 +294,7 @@ function New-ErpBusinessSalePackageRefreshAdmission($Config){
  $actual=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$o=Read-ErpBusinessSalePackageRefreshOwnerSource
  if(($actual|ConvertTo-Json -Depth 100 -Compress)-cne($Config|ConvertTo-Json -Depth 100 -Compress)){throw 'B6_PACKAGE_REFRESH_STARTUP_CHANGED'}
  [void](Assert-Test125ReadPairConfig $actual Current -ScopeName 'TEST125-API-B6-WRITER-20261029')
- $inputs=Get-ErpBusinessSaleNativeInputs;[void](Test-ErpBusinessSaleAfter $inputs)
+ $inputs=if(Test-ErpBusinessSaleDiagnosticGeneration){[pscustomobject]@{descriptor=(Get-ErpBusinessSaleReadContextRepairDescriptor Candidate);artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'}}else{Get-ErpBusinessSaleNativeInputs};[void](Test-ErpBusinessSaleAfter $inputs)
  $path=$o.packagePair.current.api.configPath;$before=[IO.File]::ReadAllBytes($path);$profile=[Text.Encoding]::UTF8.GetString($before)|ConvertFrom-Json
  if($profile.goal8SyntheticDaySeal.packageId-cne$o.packagePair.current.api.packageId-or$profile.businessSaleWritesEnabled-isnot[bool]-or!$profile.businessSaleWritesEnabled-or($profile.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress)-cne($inputs.descriptor|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_PACKAGE_REFRESH_PROFILE_CHANGED'}
  [void](Read-ErpBusinessSalePinnedFile $path (Get-ErpBusinessSaleHash $before))
@@ -258,7 +304,7 @@ function New-ErpBusinessSalePackageRefreshAdmission($Config){
 }
 function Read-ErpBusinessSaleWriterOwnerSource {
  if(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady){return Read-ErpBusinessSaleReadContextRepairOwnerSource}
- if((Test-ErpBusinessSalePackageRefreshGeneration)-or$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')){return Read-ErpBusinessSalePackageRefreshOwnerSource}
+ if((Test-ErpBusinessSalePackageRefreshGeneration)-or(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady)-or$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')){return Read-ErpBusinessSalePackageRefreshOwnerSource}
  $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WRITER-OWNER-20261029-V2';$manifestPath=Join-Path $root 'owner-manifest.json'
  if(![IO.File]::Exists($manifestPath)){throw 'B6_WRITER_OWNER_NOT_PREPARED'}
  for($p=$manifestPath;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'B6_OWNER_SOURCE_REPARSE'}}
@@ -362,7 +408,7 @@ function Get-ErpBusinessSaleReadContextRepairFixedCase {
 }
 function Read-ErpBusinessSaleReadContextRepairPacket {
  # This immutable review packet supplies SQL bytes, never execution authority.
- $case=Get-ErpBusinessSaleReadContextRepairFixedCase
+ $case=if(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady){[pscustomobject]@{root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030';packetHash='78d6e2c98354e90fadb98fb0d667b5a46c03bce889d798bd265f7010fc450411'}}else{Get-ErpBusinessSaleReadContextRepairFixedCase}
  $packet=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $case.root 'array-repair-review-packet-v2.json') $case.packetHash))|ConvertFrom-Json
  if($packet.schema-cne'melisa-b6-array-repair-review-packet.v1'-or$packet.status-cne'REVIEW_ONLY_NO_EXECUTOR'-or$packet.executionAuthority-isnot[bool]-or$packet.executionAuthority-or$packet.installable-isnot[bool]-or$packet.installable-or$packet.executeAllowed-isnot[bool]-or$packet.executeAllowed-or$packet.scope-cne'TEST125-API-B6-WRITER-20261029'-or$packet.databaseId-ne18-or$packet.server-cne'Semih\MELISADEV'-or$packet.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01'-or$packet.legacy25ModulesUnchanged-ne$true-or$packet.nativeModuleSet31Unchanged-ne$true-or@($packet.proposedModules).Count-ne3){throw 'B6_READ_REPAIR_PACKET_CHANGED'}
  $expected=@('dbo.usp_canonical_business_sale_resolve_v1','dbo.usp_canonical_business_sale_context_v1','dbo.usp_canonical_business_sale_begin_v1')
@@ -648,6 +694,7 @@ function Test-ErpBusinessSaleBefore($Inputs){
  finally{if($tx){try{$tx.Rollback()}catch{};$tx.Dispose()};$connection.Dispose()}
 }
 function Test-ErpBusinessSaleAfter($Inputs){
+ if(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady){Test-ErpBusinessSaleReadContextRepairTuple Candidate;return}
  $connection=Open-ErpBusinessSaleSqlConnection;$tx=$null
  try{$tx=$connection.BeginTransaction([Data.IsolationLevel]::Serializable);$batches=@($Inputs.artifact.applyBatches);Invoke-ErpBusinessSaleSqlBatch $connection $tx $batches[$batches.Count-1].sql;$tx.Rollback();$tx=$null}
  finally{if($tx){try{$tx.Rollback()}catch{};$tx.Dispose()};$connection.Dispose()}
@@ -761,8 +808,8 @@ function Assert-ErpBusinessSaleReadContextRepairSqlState($Connection,$Transactio
  # Preserve every existing full After-state constraint. The only textual
  # substitutions are the three exact approved module hashes in that SELECT
  # snapshot; no target, profile, row, role or permission predicate is removed.
- $inputs=Get-ErpBusinessSaleNativeInputs;$sql=$inputs.artifact.applyBatches[-1].sql
- if($Mode-ceq'Candidate'){foreach($m in $Packet.proposedModules){if(!$sql.Contains($m.compiledBeforeCreateSha256)){throw 'B6_READ_REPAIR_SNAPSHOT_PIN_MISSING'};$sql=$sql.Replace($m.compiledBeforeCreateSha256,$m.compiledAfterCreateSha256)}}
+ $diagnostic=Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady;if($diagnostic-and$Mode-cne'Candidate'){throw 'B6_DIAGNOSTIC_CANDIDATE_STATE_REQUIRED'};$inputs=if($diagnostic){Get-ErpBusinessSaleDiagnosticInputs}else{Get-ErpBusinessSaleNativeInputs};$sql=$inputs.artifact.applyBatches[-1].sql
+ if($Mode-ceq'Candidate'-and!$diagnostic){foreach($m in $Packet.proposedModules){if(!$sql.Contains($m.compiledBeforeCreateSha256)){throw 'B6_READ_REPAIR_SNAPSHOT_PIN_MISSING'};$sql=$sql.Replace($m.compiledBeforeCreateSha256,$m.compiledAfterCreateSha256)}}
  Invoke-ErpBusinessSaleSqlBatch $Connection $Transaction $sql
 }
 function Test-ErpBusinessSaleReadContextRepairTuple([ValidateSet('Current','Candidate')][string]$Mode='Current'){

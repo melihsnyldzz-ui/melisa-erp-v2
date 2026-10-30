@@ -6,15 +6,37 @@ import os from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 
-test('PackageRefresh case selection is closed to three immutable generations and steady metadata grants no admission',()=>{
+test('Diagnostic overlay preserves profile/history/payload and cannot mint genuine authority',()=>{
  if(process.platform!=='win32')return;
  assert.equal(run(String.raw`
-  foreach($name in @('Get-ErpBusinessSalePackageRefreshFixedCase','Test-ErpBusinessSalePackageRefreshGeneration')){$body=(Get-Command $name).Definition.Replace('$PSScriptRoot','$script:caseSourceRoot');. ([scriptblock]::Create('function '+$name+' {'+$body+'}'))}
+  $source='7c6fa85447d52c9566870495e4d8ffe197940a65';$leaf='apps/api/src/middleware/errorHandler.js'
+  $before=[pscustomobject]@{installed=$false;history='unchanged';files=@([pscustomobject]@{path=$leaf;sha256='e91394797ad18828972e3308c166cda19ecc01fc414a3a471285c7627afa1ad0';bytes=2000})}
+  $deps=@();foreach($n in 1..6){$d=[pscustomobject]@{path=('dep'+$n+'.mjs');sha256=('a'*64)};$deps+= $d;$before.files+= $d}
+  $after=$before|ConvertTo-Json -Depth 20|ConvertFrom-Json;$after.files[0].sha256='401affcf7b1368c6a79b100807f23b7efb7943f671aaa2f79afe29aae6294f9f';$after.files[0].bytes=3106
+  $after|Add-Member diagnosticOverlaySourceCommit $source
+  $after|Add-Member diagnosticOverlayFiles @([pscustomobject]@{path=$leaf;sha256=$after.files[0].sha256;bytes=3106;beforeSha256=$before.files[0].sha256})
+  $after|Add-Member diagnosticPackageRefresh ([pscustomobject]@{kind='B6_SQL_NUMERIC_DIAGNOSTIC_PACKAGE_REFRESH';sourceCommit=$source;baseManifestSha256='afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c';installed=$false;executionAuthority=$false;admissionIssued=$false;sqlExecuted=$false;profileChanged=$false;dependencies=$deps})
+  $oldWeb=[pscustomobject]@{packageId='old';backendRoot='old';backendManifestSha256='old';installed=$false;files=@('same')}
+  $newWeb=$oldWeb|ConvertTo-Json|ConvertFrom-Json;$newWeb.packageId='new';$newWeb.backendRoot='new';$newWeb.backendManifestSha256='new';$newWeb|Add-Member diagnosticPackageRefresh ([pscustomobject]@{})
+  Assert-ErpBusinessSaleDiagnosticOverlay $before $after $oldWeb $newWeb
+  foreach($kind in @('file','history','dependency','authority','profile','extra')){
+   $bad=$after|ConvertTo-Json -Depth 40|ConvertFrom-Json
+   if($kind-ceq'file'){$bad.files[1].sha256='b'*64};if($kind-ceq'history'){$bad.history='changed'};if($kind-ceq'dependency'){$bad.diagnosticPackageRefresh.dependencies[0].path='missing'};if($kind-ceq'authority'){$bad.diagnosticPackageRefresh.executionAuthority=$true};if($kind-ceq'profile'){$bad.diagnosticPackageRefresh.profileChanged=$true};if($kind-ceq'extra'){$bad.files+= [pscustomobject]@{path='extra';sha256='c'*64}}
+   $denied=$false;try{Assert-ErpBusinessSaleDiagnosticOverlay $before $bad $oldWeb $newWeb}catch{$denied=$true};if(!$denied){throw 'DIAGNOSTIC_OVERLAY_WIDENED'}
+  }
+  $denied=$false;try{Get-ErpBusinessSaleNativeAdmissionContext ([pscustomobject]@{schema='melisa-b6-package-refresh.v1';purpose='PackageRefresh';rehearsalOnly=$false})|Out-Null}catch{if($_.Exception.Message-cne'B6_NATIVE_ADMISSION_NOT_ISSUED'){throw};$denied=$true};if(!$denied){throw 'PASSIVE_JSON_GRANTED_AUTHORITY'};'PASS'
+ `),'PASS');
+});
+test('PackageRefresh case selection is closed to four immutable generations and steady metadata grants no admission',()=>{
+ if(process.platform!=='win32')return;
+ assert.equal(run(String.raw`
+  foreach($name in @('Get-ErpBusinessSalePackageRefreshFixedCase','Test-ErpBusinessSalePackageRefreshGeneration','Test-ErpBusinessSaleDiagnosticGeneration')){$body=(Get-Command $name).Definition.Replace('$PSScriptRoot','$script:caseSourceRoot');. ([scriptblock]::Create('function '+$name+' {'+$body+'}'))}
   function Read-ErpStartupConfig{throw 'CASE_METADATA_GRANTED_ADMISSION'}
   foreach($row in @(
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030';id='PreviewLink';pid=13532;kind='CurrentCore'},
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030';id='NativeContext';pid=42864;kind='ReadPairRouter'},
-   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030';id='PreviewRead';pid=48088;kind='CurrentCore'})){
+   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030';id='PreviewRead';pid=48088;kind='CurrentCore'},
+   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030';id='Diagnostic';pid=27732;kind='ReadPairRouter'})){
    $script:caseSourceRoot=$row.owner;$case=Get-ErpBusinessSalePackageRefreshFixedCase
    if($case.id-cne$row.id-or$case.root-cne$row.owner-or$case.steadyRoot-cne$row.steady-or$case.runningPid-ne$row.pid-or$case.predecessorKind-cne$row.kind-or!(Test-ErpBusinessSalePackageRefreshGeneration)){throw 'CLOSED_CASE_MISMATCH'}
    $case.root='mutated';if((Get-ErpBusinessSalePackageRefreshFixedCase).root-cne$row.owner){throw 'CASE_PIN_ALIAS'}
@@ -852,6 +874,15 @@ function Get-ErpBusinessSaleNativeInputs{throw 'PROFILE_PARSER_LOADED_FULL_ARTIF
 function Test-ErpBusinessSaleReadContextRepairTuple{throw 'PROFILE_PARSER_EXECUTED_SQL'}
 $api.businessSaleAdmission=Get-ErpBusinessSaleReadContextRepairDescriptor Candidate
 [void](Assert-ErpBusinessSaleProfileDelta $base $api $m)
-$api.businessSaleAdmission.contextDefinitionHash='X'*64;$denied=$false;try{Assert-ErpBusinessSaleProfileDelta $base $api $m|Out-Null}catch{$denied=$true};if(!$denied){throw 'REPAIR_PROFILE_MIXED_ACCEPTED'};'PASS'
+$api.businessSaleAdmission.contextDefinitionHash='X'*64;$denied=$false;try{Assert-ErpBusinessSaleProfileDelta $base $api $m|Out-Null}catch{$denied=$true};if(!$denied){throw 'REPAIR_PROFILE_MIXED_ACCEPTED'}
+# Diagnostic startup also stays small; the full snapshot remains a factory/paused/final check.
+function Test-ErpBusinessSaleReadContextRepairGeneration{return $false}
+function Test-ErpBusinessSaleDiagnosticGeneration{return $true}
+$api.businessSaleAdmission=Get-ErpBusinessSaleReadContextRepairDescriptor Candidate
+$script:diagnosticRaw=[Text.Encoding]::UTF8.GetBytes(($api|ConvertTo-Json -Depth 100))
+function Get-ErpBusinessSalePackageRefreshFixedCase{return @{profileHash=(Get-ErpBusinessSaleHash $script:diagnosticRaw)}}
+function Read-ErpBusinessSalePinnedFile($Path,$Hash){if($Path-cne'C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'-or$Hash-cne(Get-ErpBusinessSaleHash $script:diagnosticRaw)){throw 'DIAGNOSTIC_PROFILE_RAW_HASH'};return ,$script:diagnosticRaw}
+[void](Assert-ErpBusinessSaleProfileDelta $base $api $m)
+$api.businessSaleAdmission.beginDefinitionHash='X'*64;$denied=$false;try{Assert-ErpBusinessSaleProfileDelta $base $api $m|Out-Null}catch{$denied=$true};if(!$denied){throw 'DIAGNOSTIC_PROFILE_MIXED_ACCEPTED'};'PASS'
 `),'PASS');
 });

@@ -454,7 +454,7 @@ function Complete-B6ReadPairActiveEntryHandoff {
   }
   $control.ValidateCompletedStop();Assert-B6ReadPairEntrySet;Assert-B6ReadPairNoForeignEntryLaunch
   if($RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall-or$PreviewLinkInstall){
-   $postExitCount=if(Test-B6ReadContextRepairCase){44}elseif(Test-B6PreviewLinkPreviewReadCase){38}elseif(Test-B6PreviewLinkNativeContextCase){32}elseif($PreviewLinkInstall){29}elseif($SteadyStartupInstall){28}elseif($WebOnlyRefreshInstall){26}elseif($WriterInstall){24}elseif($CandidateInstall){20}else{18}
+   $postExitCount=if(Test-B6PreviewLinkDiagnosticCase){47}elseif(Test-B6ReadContextRepairCase){44}elseif(Test-B6PreviewLinkPreviewReadCase){38}elseif(Test-B6PreviewLinkNativeContextCase){32}elseif($PreviewLinkInstall){29}elseif($SteadyStartupInstall){28}elseif($WebOnlyRefreshInstall){26}elseif($WriterInstall){24}elseif($CandidateInstall){20}else{18}
    if($held.Count-ne$postExitCount-or!$script:ReadPairPreheldMutex-or(Get-FileHash -LiteralPath 'C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json').Hash-ine$b6.owner.recordBeforeSha256){throw 'B6_MANAGED_EXIT_POST_EXIT_CAS_CHANGED'}
    $script:ReadPairExitObservation.ValidateExited();Assert-ReadPairProtection
   }
@@ -538,11 +538,13 @@ function Open-B6CandidatePreparedSource([string]$ReviewedSourceHash,[string]$Ent
 }
 function Open-B6PreviewLinkPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
  $basePrivate='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-preview-link-20261030'
+ $diagnosticPrivate='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-approved-sale-20261030\diagnostic-generation-20261030'
+ $diagnostic=$EntryPath-ceq(Join-Path $diagnosticPrivate 'owner-preparation\reviewed-installer-source.ps1')
  $previewRead=$EntryPath-ceq(Join-Path $basePrivate 'native-context-fix\preview-read-indexed-current\owner-preparation\reviewed-installer-source.ps1')
  $nativeContext=$EntryPath-ceq(Join-Path $basePrivate 'native-context-fix\owner-preparation\reviewed-installer-source.ps1')
- $private=if($previewRead){Join-Path $basePrivate 'native-context-fix\preview-read-indexed-current'}elseif($nativeContext){Join-Path $basePrivate 'native-context-fix'}else{$basePrivate};$proof=Join-Path $private 'owner-preparation'
+ $private=if($diagnostic){$diagnosticPrivate}elseif($previewRead){Join-Path $basePrivate 'native-context-fix\preview-read-indexed-current'}elseif($nativeContext){Join-Path $basePrivate 'native-context-fix'}else{$basePrivate};$proof=Join-Path $private 'owner-preparation'
  if(!$Apply-or!$PreviewLinkInstall-or$ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'\A[a-fA-F0-9]{64}\z'){throw 'B6_PREVIEW_LINK_REVIEWED_ENTRY_REQUIRED'}
- $producerHash=if($previewRead){'d56ac42fb63d5c628eb62f9009e29c66b861b966ef3334b8c7e77a07d7523d52'}elseif($nativeContext){'a5ec0ddf1b945c6a42ba6f41b59e1b541fa1b1847d3ee42dd28a4ab8193b1fb6'}else{'b7d5dc1c8e77cba16e064df1eaa60c97daf62eb9c423a7622c0f6bd54fd11ab8'}
+ $producerHash=if($diagnostic){'aed1bf72f31064bc88cd2b2fb1d327b24a11bbf8de9f24da4bea77eed32bd402'}elseif($previewRead){'d56ac42fb63d5c628eb62f9009e29c66b861b966ef3334b8c7e77a07d7523d52'}elseif($nativeContext){'a5ec0ddf1b945c6a42ba6f41b59e1b541fa1b1847d3ee42dd28a4ab8193b1fb6'}else{'b7d5dc1c8e77cba16e064df1eaa60c97daf62eb9c423a7622c0f6bd54fd11ab8'}
  if($previewRead-and($producerHash-isnot[string]-or$producerHash-cnotmatch'\A[a-f0-9]{64}\z')){throw 'B6_PREVIEW_READ_NOT_PREPARED'}
  if($nativeContext-and($producerHash-isnot[string]-or$producerHash-cnotmatch'\A[a-f0-9]{64}\z')){throw 'B6_NATIVE_CONTEXT_NOT_PREPARED'}
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
@@ -551,14 +553,15 @@ function Open-B6PreviewLinkPreparedSource([string]$ReviewedSourceHash,[string]$E
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
   $producer=Join-Path $proof 'verified-owner-producer.mjs'
-  if($previewRead){Hold-B6ReadPairSource $producer 'd56ac42fb63d5c628eb62f9009e29c66b861b966ef3334b8c7e77a07d7523d52'}elseif($nativeContext){Hold-B6ReadPairSource $producer 'a5ec0ddf1b945c6a42ba6f41b59e1b541fa1b1847d3ee42dd28a4ab8193b1fb6'}else{Hold-B6ReadPairSource $producer 'b7d5dc1c8e77cba16e064df1eaa60c97daf62eb9c423a7622c0f6bd54fd11ab8'}
-  $verifiedText=if($previewRead){& $node $producer --verify-preview-read}elseif($nativeContext){& $node $producer --verify-native-context}else{& $node $producer --verify-preview-link}
+  if($diagnostic){Hold-B6ReadPairSource $producer 'aed1bf72f31064bc88cd2b2fb1d327b24a11bbf8de9f24da4bea77eed32bd402'}elseif($previewRead){Hold-B6ReadPairSource $producer 'd56ac42fb63d5c628eb62f9009e29c66b861b966ef3334b8c7e77a07d7523d52'}elseif($nativeContext){Hold-B6ReadPairSource $producer 'a5ec0ddf1b945c6a42ba6f41b59e1b541fa1b1847d3ee42dd28a4ab8193b1fb6'}else{Hold-B6ReadPairSource $producer 'b7d5dc1c8e77cba16e064df1eaa60c97daf62eb9c423a7622c0f6bd54fd11ab8'}
+  $verifiedText=if($diagnostic){& $node $producer --verify-diagnostic}elseif($previewRead){& $node $producer --verify-preview-read}elseif($nativeContext){& $node $producer --verify-native-context}else{& $node $producer --verify-preview-link}
   if($LASTEXITCODE-ne0){throw 'B6_OWNER_SOURCE_VERIFICATION_FAILED'};$v=$verifiedText|ConvertFrom-Json
   $core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-ROUTER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030'
   $pairHash='7cf2b950e878cbe591040d28e930a9abc6380ec61f13dcd5bd5834d27739c94a'
   $schema='melisa-b6-preview-link-owner-verification.v1';$postExitCount=29
   if($nativeContext){$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030';$pairHash='9c35bf28823b280aa49ee1849b6af44f19a7739e98e84269ab32017a368f056c';$schema='melisa-b6-native-context-owner-verification.v1';$postExitCount=32}
   if($previewRead){$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-ROUTER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030';$pairHash='37400e17acb11f8cccceb600304dda7fedb3ce76543ada07198695edaa964cd3';$schema='melisa-b6-preview-read-owner-verification.v1';$postExitCount=38;if($pairHash-isnot[string]-or$pairHash-cnotmatch'\A[a-f0-9]{64}\z'){throw 'B6_PREVIEW_READ_NOT_PREPARED'}}
+  if($diagnostic){$core='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-OWNER-20261030';$router='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-ROUTER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-STEADY-OWNER-20261030';$pairHash='8fbfe40c8789a688cb3f951bedea247815ce637b7cf60302dc386b7236e54220';$schema='melisa-b6-diagnostic-owner-verification.v1';$postExitCount=47;if($v.admissionIssued-isnot[bool]-or$v.admissionIssued){throw 'B6_DIAGNOSTIC_PASSIVE_AUTHORITY_REQUIRED'}}
   if($v.schema-cne$schema-or$v.scope-cne$ScopeName-or$v.maintenancePurpose-cne'PreviewLinkPackageRefresh'-or$v.coreRoot-cne$core-or$v.routerRoot-cne$router-or$v.steadyRoot-cne$steady-or$v.coreFiles-ne13-or$v.steadyFiles-ne13-or$v.beforeImages-ne6-or$v.packagePairSha256-cne$pairHash-or$v.runtimeValidationComplete-isnot[bool]-or$v.runtimeValidationComplete-or$v.postExitExclusiveBytesRequired-isnot[bool]-or!$v.postExitExclusiveBytesRequired-or$v.postExitExclusiveEntryCount-ne$postExitCount-or$v.installed-isnot[bool]-or$v.installed-or$v.recordingEnabled-isnot[bool]-or$v.recordingEnabled-or$v.executable-isnot[bool]-or$v.executable-or$v.executionAuthority-isnot[bool]-or$v.executionAuthority-or$v.installerSourceSha256-cne$ReviewedSourceHash.ToLowerInvariant()-or$v.writes-ne0-or$v.sqlCalls-ne0-or$v.serviceCalls-ne0-or$v.ownerCalls-ne0-or$v.taskChanges-ne0){throw 'B6_PREVIEW_LINK_SOURCE_NOT_VERIFIED'}
   foreach($h in @($v.coreManifestSha256,$v.routerManifestSha256,$v.steadyManifestSha256)){if($h-isnot[string]-or$h-cnotmatch'\A[a-f0-9]{64}\z'){throw 'B6_PREVIEW_LINK_MANIFEST_HASH_REQUIRED'}}
   if($v.ownerSourceCommit-isnot[string]-or$v.ownerSourceCommit-cnotmatch'\A[a-f0-9]{40}\z'){throw 'B6_PREVIEW_LINK_SOURCE_NOT_VERIFIED'}
@@ -581,7 +584,7 @@ function Open-B6PreviewLinkPreparedSource([string]$ReviewedSourceHash,[string]$E
   $expected='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$EntryPath+' -Apply -PreviewLinkInstall -SourceSha256 '+$ReviewedSourceHash.ToUpperInvariant()+' -ScopeName TEST125-API-B6-WRITER-20261029'
   $sid=Invoke-CimMethod -InputObject $self -MethodName GetOwnerSid
   if($self.ExecutablePath-ine$ps-or$sid.ReturnValue-ne0-or$sid.Sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or!(Test-ReadPairOwnerArguments $argsText $expected)){throw 'B6_CONTROLLER_NATIVE_CALLER_CHANGED'}
-  return [pscustomobject]@{fixedCaseId=$(if($previewRead){'PreviewRead'}elseif($nativeContext){'NativeContext'}else{'PreviewLink'});coreRoot=$core;coreHash=$v.coreManifestSha256;routerRoot=$router;routerHash=$v.routerManifestSha256;steadyRoot=$steady;steadyHash=$v.steadyManifestSha256;sourceCommit=$v.ownerSourceCommit;private=$private;proof=$proof;owner=$owner;entryCapture=$entries;taskCapture=$taskCapture;rehearsalOnly=$false;maintenancePurpose='PreviewLinkPackageRefresh'}
+  return [pscustomobject]@{fixedCaseId=$(if($diagnostic){'Diagnostic'}elseif($previewRead){'PreviewRead'}elseif($nativeContext){'NativeContext'}else{'PreviewLink'});coreRoot=$core;coreHash=$v.coreManifestSha256;routerRoot=$router;routerHash=$v.routerManifestSha256;steadyRoot=$steady;steadyHash=$v.steadyManifestSha256;sourceCommit=$v.ownerSourceCommit;private=$private;proof=$proof;owner=$owner;entryCapture=$entries;taskCapture=$taskCapture;rehearsalOnly=$false;maintenancePurpose='PreviewLinkPackageRefresh'}
  }catch{foreach($stream in $script:b6SourceHandles){$stream.Dispose()};throw}
 }
 function Open-B6ReadContextRepairPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
@@ -854,19 +857,29 @@ function Test-B6ReadContextRepairCase {
  $flag=Get-Variable ReadContextRepairInstall -ErrorAction SilentlyContinue
  return [bool]($flag-and$flag.Value-and(Get-Variable b6 -ErrorAction SilentlyContinue)-and$b6.PSObject.Properties['fixedCaseId']-and$b6.fixedCaseId-ceq'ReadContextRepair')
 }
+function Test-B6PreviewLinkDiagnosticCase {
+ return ($PreviewLinkInstall-and(Get-Variable b6 -ErrorAction SilentlyContinue)-and$b6.PSObject.Properties['fixedCaseId']-and$b6.fixedCaseId-ceq'Diagnostic')
+}
 function Test-B6PreviewLinkNativeContextCase {
  if(!$PreviewLinkInstall){return $false}
  if(!(Get-Variable b6 -ErrorAction SilentlyContinue)){return $false}
  if(!$b6.PSObject.Properties['fixedCaseId']){return $false}
- if($b6.fixedCaseId-cnotin@('PreviewLink','NativeContext','PreviewRead','ReadContextRepair')){throw 'B6_PREVIEW_LINK_CASE_REJECTED'}
+ if($b6.fixedCaseId-cnotin@('PreviewLink','NativeContext','PreviewRead','ReadContextRepair','Diagnostic')){throw 'B6_PREVIEW_LINK_CASE_REJECTED'}
  if($b6.fixedCaseId-ceq'ReadContextRepair'){return Test-B6ReadContextRepairCase}
- return $b6.fixedCaseId-cin@('NativeContext','PreviewRead')
+ return $b6.fixedCaseId-cin@('NativeContext','PreviewRead','Diagnostic')
 }
 function Test-B6PreviewLinkPreviewReadCase {
  return (Test-B6PreviewLinkNativeContextCase)-and$b6.fixedCaseId-ceq'PreviewRead'
 }
 function Initialize-B6PreviewLinkFixedCase {
  if(!(Test-B6PreviewLinkNativeContextCase)){return}
+ if(Test-B6PreviewLinkDiagnosticCase){
+  $case=Get-ErpBusinessSalePackageRefreshFixedCase
+  if($case.id-cne'Diagnostic'-or$case.pairHash-cne'8fbfe40c8789a688cb3f951bedea247815ce637b7cf60302dc386b7236e54220'-or$case.captureHash-cne'abdb4f7d69556b1aef58867da3c35054b86f5c6ab82f29e2ee54781f8bf3aa9c'-or$case.recordHash-cne'088726fb889bd99cdd83d2ac35865f852f592a2465e2d95a5d2e427c9ca32b9e'-or$case.ownerPid-ne14096-or$case.ownerBirth-cne'134378268382795624'-or$case.childPid-ne6876-or$case.childBirth-cne'134378280224964399'-or$case.runningPid-ne27732-or$case.runningBirth-cne'134378277839267163'-or$case.predecessorKind-cne'ReadPairRouter'-or$case.root-cne$b6.coreRoot-or$case.routerRoot-cne$b6.routerRoot-or$case.steadyRoot-cne$b6.steadyRoot-or$case.overlaySource-cne'7c6fa85447d52c9566870495e4d8ffe197940a65'){throw 'B6_DIAGNOSTIC_CASE_CHANGED'}
+  if($b6.owner.owner.pid-ne$case.ownerPid-or$b6.owner.owner.birth-cne$case.ownerBirth-or$b6.owner.child.pid-ne$case.childPid-or$b6.owner.child.birth-cne$case.childBirth-or$b6.owner.recordBeforeSha256-cne$case.recordHash){throw 'B6_DIAGNOSTIC_CAPTURE_CHANGED'}
+  $b6|Add-Member -NotePropertyName contextCase -NotePropertyValue $case
+  return
+ }
  if(Test-B6ReadContextRepairCase){
   $case=Get-ErpBusinessSaleReadContextRepairFixedCase
   if($case.id-cne'ReadContextRepair'-or$case.captureHash-cne'6f6a7f567629a05310e3260ab72a7adff2d2fa33eadca8cc6d4c6b07fb95f211'-or$case.recordsHash-cne'fc69404723c6a387411ee2e8bd2f7dce910e7618beb41e1b58651d79bb162caf'-or$case.postExitExclusiveEntryCount-ne44-or$case.runningPid-ne50348-or$case.runningBirth-cne'134378110068801561'-or$case.root-cne$b6.coreRoot-or$case.steadyRoot-cne$b6.steadyRoot){throw 'B6_READ_REPAIR_CASE_CHANGED'}
@@ -1022,6 +1035,7 @@ function Open-B6ReadPairPublication {
  $captureSchema=if($WriterInstall-or$WebOnlyRefreshInstall-or$PreviewLinkInstall){'melisa-b6-writer-current-entry-capture.v1'}elseif($CandidateInstall){'melisa-b6-candidate-current-entry-capture.v1'}elseif($RehearsalOnly){'melisa-b6-rehearsal-current-entry-capture.v1'}else{'melisa-b6-current-entry-hold-capture.v1'};$directCount=if($PreviewLinkInstall){23}elseif($SteadyStartupInstall){22}elseif($WebOnlyRefreshInstall){20}elseif($WriterInstall){18}elseif($CandidateInstall){14}elseif($RehearsalOnly){12}else{8};$ownerHash=if($PreviewLinkInstall){'124e207b8ab0f8f6a5b3b8227c7183c17b69f2f2725b2837b2dc1bc81410c74b'}elseif($SteadyStartupInstall){'62d3882ceef3caf71a263ad51e036453eee2d59dbe871b8ccd2a03f3ad9756f8'}elseif($WebOnlyRefreshInstall){'e480d77c835f3c2170589b9fbafec6da78dd2a19624d486d8822ad7b930d3a09'}elseif($WriterInstall){'50b9a4f72cb0a9a59e3528be7c1ddf17c4505d6a0da98732de355ffa56dace65'}elseif($CandidateInstall){'3f7d2484310246df0b01d8b1692d16fdfc70b75a4545c0344bcb941118110642'}elseif($RehearsalOnly){'2f066cc82af4fe23337a3469091aad40d6d065a66af72f60db34f2e16152c364'}else{'4eaa68d16be5260071f74ce7e41e33ce6adaa4c7097d661905968d4b5c1b9945'}
  if(Test-B6PreviewLinkNativeContextCase){$directCount=26;$ownerHash='a77fce94f29a0f818ccad98d9ddd9f77d81327816cc67e82f8393280d3c90d7b'}
  if(Test-B6PreviewLinkPreviewReadCase){$directCount=32;$ownerHash='4a699552f86bb6e637ddcfa4b653c4ce64633797cfb1474213d4e8780254d88b'}
+ if(Test-B6PreviewLinkDiagnosticCase){$directCount=41;$ownerHash='abdb4f7d69556b1aef58867da3c35054b86f5c6ab82f29e2ee54781f8bf3aa9c'}
  if(Test-B6ReadContextRepairCase){$directCount=38;$ownerHash='6f6a7f567629a05310e3260ab72a7adff2d2fa33eadca8cc6d4c6b07fb95f211'}
  if($capture.schema-cne$captureSchema-or$capture.readOnly-ne$true-or$capture.executionAuthority-ne$false-or$capture.entries.Count-ne6-or$capture.directEntries.Count-ne$directCount-or$capture.entryWrites-ne0-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.ownerCaptureSha256-cne$ownerHash-or$capture.gate.path-cne'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\business-5244-startup-exclusion-ec316a63.ps1'-or$capture.gate.sha256-cne'a8df8cd3d159b99d1fad4643c986d3ae2244f2976171f4448535a9e822f22a12'){throw 'B6_ENTRY_HOLD_CAPTURE_CHANGED'}
  $paths=@('start-business-5244-web.ps1','start-business-5244-web-5cb682d8.ps1','start-business-5244-web-66a9c3bc.ps1','start-business-5244-web-bf3d65c7.ps1','start-business-5244-web-d4f52345.ps1'|ForEach-Object {Join-Path $pins.runtime $_})+@('C:\Sirket\ERP\clean\20261022\runtime\start-erp.ps1')
@@ -1037,10 +1051,11 @@ function Open-B6ReadPairPublication {
   if($SteadyStartupInstall-or$PreviewLinkInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029\start-business-5244-readpair-router.ps1')}
   if($PreviewLinkInstall){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\run-current-owner.ps1')}
   if(Test-B6PreviewLinkNativeContextCase){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030\run-current-owner.ps1')}
-  if((Test-B6PreviewLinkPreviewReadCase)-or(Test-B6ReadContextRepairCase)){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030\run-current-owner.ps1');$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-STEADY-OWNER-20261030\run-current-owner.ps1')}
- if(Test-B6ReadContextRepairCase){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030\run-current-owner.ps1')}
+  if((Test-B6PreviewLinkPreviewReadCase)-or(Test-B6ReadContextRepairCase)-or(Test-B6PreviewLinkDiagnosticCase)){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030\run-current-owner.ps1');$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-VERIFIED-STEADY-OWNER-20261030\run-current-owner.ps1')}
+ if((Test-B6ReadContextRepairCase)-or(Test-B6PreviewLinkDiagnosticCase)){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030\run-current-owner.ps1')}
  if(Test-B6ReadContextRepairCase){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030\run-current-owner.ps1')}
- $postExitCount=if(Test-B6ReadContextRepairCase){44}elseif(Test-B6PreviewLinkPreviewReadCase){38}elseif(Test-B6PreviewLinkNativeContextCase){32}elseif($PreviewLinkInstall){29}elseif($SteadyStartupInstall){28}elseif($WebOnlyRefreshInstall){26}elseif($WriterInstall){24}elseif($CandidateInstall){20}else{18}
+ if(Test-B6PreviewLinkDiagnosticCase){$direct+=@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-ROUTER-20261030\start-business-5244-readpair-router.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030\run-current-owner.ps1','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\run-current-owner.ps1')}
+ $postExitCount=if(Test-B6PreviewLinkDiagnosticCase){47}elseif(Test-B6ReadContextRepairCase){44}elseif(Test-B6PreviewLinkPreviewReadCase){38}elseif(Test-B6PreviewLinkNativeContextCase){32}elseif($PreviewLinkInstall){29}elseif($SteadyStartupInstall){28}elseif($WebOnlyRefreshInstall){26}elseif($WriterInstall){24}elseif($CandidateInstall){20}else{18}
   if($capture.runtimeValidationComplete-ne$false-or$b6.owner.entry.postExitExclusiveBytesRequired-ne$true-or$b6.owner.entry.runtimeEntryBytesVerified-ne$false-or$capture.postExitExclusiveEntryCount-ne$postExitCount){throw 'B6_ENTRY_RUNTIME_PROOF_REQUIRED'}
  }
  if(($capture.directEntries.path-join'|')-cne($direct-join'|')){throw 'B6_DIRECT_ENTRY_SCOPE_CHANGED'}

@@ -82,3 +82,40 @@ and an unrelated default provider rule. These offline canaries are unusable and
 contact no provider. An initial directory-mode fixture returned absolute paths
 and therefore correctly did not match; tests now use the actual Git scan mode.
 The exception was not widened. No runtime or installation authority was added.
+
+## Integrated Diagnostic owner generation
+
+The current source adds a fourth closed Diagnostic case to the existing owner
+producer, installer and startup libraries. Six fresh typed before-images now exist
+in the approved private diagnostic-generation-20261030 case. Ordinary SID/argv
+and Task XML/SDDL stay local; free-form task content was scanned before writing.
+Protected profiles remain hash-only inputs, never copied into these snapshots.
+The retired partial two-file capture is historical and is not replayed.
+
+Diagnostic core/router/steady roots are fixed ERP-BUSINESS-5244-B6-DIAGNOSTIC-
+OWNER/ROUTER/STEADY-OWNER-20261030 under releases. The existing passive API/WEB
+pair is reused. The immutable owner data binds all six captures, current repaired
+core/router/steady, actual native owner/web birth identities, separate running API
+launcher and future task launcher, and all47 old-entry pins. Native/exclusive/CAS
+checks remain deferred to the existing genuine runtime maintenance chain.
+
+The profile parser checks only the small pinned descriptor/two deltas and exact
+raw profile hash. The full original snapshot is preserved with exactly three
+approved hash substitutions to B1C; fresh module/options and full state checks
+remain at factory, paused boundary and final observation. PackageRefresh still
+cannot execute native DDL or modify profile bytes/roles/trade data.
+
+Relevant tests cover full passive construction/verification, wrong owner/native
+birth, API/backend/manifest/closure drift, entry ordering, task hashes, changed
+payload/history, unsuccessful CI and JSON-without-genuine-authority rejection.
+The final source SHA, exact CI and actual emitted manifest hashes are recorded in
+the existing PR54 report. Source support is not installation or human acceptance.
+
+A future real TEST maintenance package must separately authorize temporary
+maintenance marker/entry locks, controlled old owner/API-WEB stop/start, startup
+component reference, scheduled-task future launcher and operation-record
+publication. It installs only the diagnostic errorHandler derivative and manifest
+links; WEB payload remains unchanged. Rollback selects the existing AFDB/8530
+Current pair with byte-identical profile; uncertain results remain Unknown/no-retry.
+Expected interruption is the controlled ERP API/WEB transition, not SQL/Vega/CRM.
+No real maintenance or sale retry is performed by the passive generation task.
