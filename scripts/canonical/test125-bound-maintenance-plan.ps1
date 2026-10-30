@@ -90,7 +90,14 @@ function Assert-Test125PackageRefreshObservationProof($Proof){
  [void](Read-ErpBusinessSalePinnedFile $n.profilePath $n.profileBeforeHash)
  return $p
 }
-function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7',[switch]$ReadPairPreparation,[ValidateSet('Current','Candidate')][string]$ReadPairMode='Current',$PreparedReleaseProof=$null,[switch]$PackageRefreshPostTransitionObservation) {
+function Assert-Test125ReadContextRepairObservationProof($Proof,[ValidateSet('Current','Candidate')][string]$Mode){
+ $p=Get-ErpReadPairReleaseProofContext $Proof;$p.seal.Validate();$case=Get-ErpBusinessSaleReadContextRepairFixedCase
+ if(!$p.PSObject.Properties['readContextRepairAdmission']-or!$p.PSObject.Properties['packageRefreshTaskSource']-or!$p.businessSaleOwnerPins-or$p.businessSaleOwnerPins.path-cne(Join-Path $case.root 'start-owned-test.ps1')){throw 'B6_READ_REPAIR_OBSERVATION_NOT_ISSUED'}
+ [void](Assert-ErpBusinessSaleReadContextRepairObservation $p.readContextRepairAdmission $Mode)
+ return $p
+}
+function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7',[switch]$ReadPairPreparation,[ValidateSet('Current','Candidate')][string]$ReadPairMode='Current',$PreparedReleaseProof=$null,[switch]$PackageRefreshPostTransitionObservation,[switch]$ReadContextRepairPostTransitionObservation) {
+ if($ReadContextRepairPostTransitionObservation){if($PackageRefreshPostTransitionObservation-or!$ReadPairPreparation-or$RunId-cne'TEST125-API-B6-WRITER-20261029'){throw 'B6_READ_REPAIR_OBSERVATION_NOT_ISSUED'};[void](Assert-Test125ReadContextRepairObservationProof $PreparedReleaseProof $ReadPairMode)}
  if($PackageRefreshPostTransitionObservation){if(!$ReadPairPreparation-or$RunId-cne'TEST125-API-B6-WRITER-20261029'){throw 'B6_PACKAGE_REFRESH_OBSERVATION_NOT_ISSUED'};[void](Assert-Test125PackageRefreshObservationProof $PreparedReleaseProof)}
  if($ReadPairPreparation){try{[void](Get-Test125ReadPairScope -Name $RunId)}catch{throw 'TEST125_RUN_SCOPE_REJECTED'}}elseif($RunId -cnotin @('PRODUCT-48099bf7-757f-451a-885c-68125da8c9e7','PRODUCT-b1e30e7c-1349-47b0-b9e8-cad0ae164cc8','PRODUCT-b40b0745-1fa0-4970-b19f-1479cf75d67a')){throw 'TEST125_RUN_SCOPE_REJECTED'}
  if($null-ne$PreparedReleaseProof-and!$ReadPairPreparation){throw 'TEST125_RELEASE_PROOF_SCOPE_REJECTED'}
@@ -99,7 +106,7 @@ function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-4
  if($ReadPairPreparation){[void](Assert-Test125ReadPairConfig $config $ReadPairMode -ScopeName $RunId)}
  if(!(Same-ErpPath $config.RepoRoot 'C:\Sirket\ERP\melisa-erp-v2') -or $config.SourceCommit -cne 'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $config.ExpectedDatabase -cne 'MELISA_ERP_SIRKET_TEST_20260929_01' -or $config.TaskName -cne 'Melisa-ERP-TEST-Canonical'){throw 'TEST125_EXACT_TARGET_REJECTED'}
  $task=Get-ScheduledTask -TaskName $config.TaskName -TaskPath '\' -ErrorAction Stop
- $taskMode=if($PackageRefreshPostTransitionObservation){'Candidate'}else{$ReadPairMode}
+ $taskMode=if($PackageRefreshPostTransitionObservation-or$ReadContextRepairPostTransitionObservation){'Candidate'}else{$ReadPairMode}
  $action=if($ReadPairPreparation-and$RunId-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){Assert-Test125MaintenanceTask $task $config $startup -ScopeName $RunId -Mode $taskMode -PreparedReleaseProof $PreparedReleaseProof}else{Assert-Test125MaintenanceTask $task $config $startup}
  foreach($command in @('Stop-ScheduledTask','Start-ScheduledTask')){if(!(Get-Command $command -Module ScheduledTasks -ErrorAction SilentlyContinue)){throw 'TEST125_SUPPORTED_TASK_COMMAND_MISSING'}}
  if($ReadPairPreparation-and$RunId-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){foreach($command in @('New-ScheduledTaskAction','Set-ScheduledTask')){if(!(Get-Command $command -Module ScheduledTasks -ErrorAction SilentlyContinue)){throw 'B6_SUPPORTED_TASK_ACTION_COMMAND_MISSING'}}}
@@ -116,11 +123,11 @@ function Get-Test125BoundMaintenancePlan([string]$RunId='PRODUCT-48099bf7-757f-4
  $owner=Invoke-CimMethod -InputObject $supervisor -MethodName GetOwnerSid
  $remaining=[regex]::Replace([string]$supervisor.CommandLine,('^"?'+[regex]::Escape($action.Executable)+'"?\s+'),'')
  $runningArguments=$action.Arguments;$runningLauncher=$action.Launcher
- if($PreparedReleaseProof-and(Test-ErpBusinessSalePackageRefreshGeneration)){
+ if($PreparedReleaseProof-and((Test-ErpBusinessSalePackageRefreshGeneration)-or(Test-ErpBusinessSaleReadContextRepairGeneration))){
   $release=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;$release.seal.Validate()
   if($release.PSObject.Properties['packageRefreshTaskSource']){
    $source=$release.packageRefreshTaskSource;$old=$source.runningSupervisor;$installed=$release.PSObject.Properties['packageRefreshTaskState']-and$release.packageRefreshTaskState.maintenanceInstalled
-   if($PackageRefreshPostTransitionObservation){if($supervisor.ProcessId-eq$old.pid-or(Get-ErpProcess $old.pid)){throw 'B6_PACKAGE_REFRESH_OLD_SUPERVISOR_PRESENT'}}elseif(!$installed){
+   if($PackageRefreshPostTransitionObservation-or$ReadContextRepairPostTransitionObservation){if($supervisor.ProcessId-eq$old.pid-or(Get-ErpProcess $old.pid)){throw 'B6_PACKAGE_REFRESH_OLD_SUPERVISOR_PRESENT'}}elseif(!$installed){
     if($supervisor.ProcessId-ne$old.pid-or$supervisor.CreationDate.ToUniversalTime().ToFileTimeUtc().ToString()-cne$old.cimBirth-or$old.birth.Substring(0,17)-cne$old.cimBirth.Substring(0,17)-or[string]$supervisor.CommandLine-cne$old.argv-or$owned.sourceCommit-cne$old.ownedRecordSourceCommit-or$owned.startedAt-cne$old.ownedRecordStartedAt-or(Get-FileHash -LiteralPath $old.ownedRecordPath -Algorithm SHA256).Hash-ine$old.ownedRecordSha256){throw 'B6_PACKAGE_REFRESH_RUNNING_SUPERVISOR_CHANGED'}
     $runningLauncher=$old.launcher.path;$runningArguments='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$runningLauncher+'" -StartupConfigPath "'+$startup+'"'
    }elseif($supervisor.ProcessId-eq$old.pid){throw 'B6_PACKAGE_REFRESH_OLD_SUPERVISOR_PRESENT'}
@@ -182,6 +189,37 @@ function Get-Test125PackageRefreshPostTransitionPlan([ValidateSet('Candidate','C
   foreach($h in $holds){[Test125ApiKernel]::ValidateReadOnly($h.handle,$h.birth)}
   [void](Assert-Test125PackageRefreshObservationProof $PreparedReleaseProof)
   $plan.supportedTaskStopStart=$false;$plan.status='POST_TRANSITION_READONLY_NOT_ADMISSION';$plan.schema='melisa-test125-package-refresh-readonly-observation.v1';$plan.readOnly=$true;$plan.executionAuthority=$false
+  return $plan
+ }finally{foreach($h in $holds){$h.handle.Dispose()}}
+}
+function Get-Test125ReadContextRepairPostTransitionPlan([ValidateSet('Candidate','Current')][string]$Mode,[Parameter(Mandatory)]$PreparedReleaseProof){
+ if($Mode-cnotin@('Candidate','Current')){throw 'B6_READ_REPAIR_OBSERVATION_NOT_ISSUED'}
+ $proof=Assert-Test125ReadContextRepairObservationProof $PreparedReleaseProof $Mode;$holds=[Collections.Generic.List[object]]::new()
+ try{
+  # The controller's own admission stays Prepared and unbound. No owner-local
+  # task state or activation phase is imported to make this read succeed.
+  [void](Assert-ErpBusinessSaleReadContextRepairObservation $proof.readContextRepairAdmission $Mode)
+  $plan=Get-Test125BoundMaintenancePlan -RunId 'TEST125-API-B6-WRITER-20261029' -ReadPairPreparation -ReadPairMode $Mode -PreparedReleaseProof $PreparedReleaseProof -ReadContextRepairPostTransitionObservation
+  Initialize-Test125ApiKernel
+  foreach($role in @('supervisor','api','native','web')){
+   $r=if($role-ceq'supervisor'){@{pid=$plan.supervisor;birth=$plan.supervisorBirth}}else{$plan.children.$role}
+   $birth=([datetime]$r.birth).ToUniversalTime().Ticks;$handle=[Test125ApiKernel]::QueryOnlyOpen([int]$r.pid,$birth);$holds.Add(@{handle=$handle;birth=$birth})
+  }
+  $o=Read-ErpBusinessSaleReadContextRepairOwnerSource;$m=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile $o.manifestPath $o.manifestSha256))|ConvertFrom-Json
+  $xmlPin=@($m.beforeImages|Where-Object path -ceq 'current-task.before.xml');$sddlPin=@($m.beforeImages|Where-Object path -ceq 'current-task.before.sddl')
+  if($xmlPin.Count-ne1-or$sddlPin.Count-ne1){throw 'B6_READ_REPAIR_OBSERVATION_TASK_CHANGED'}
+  $xml=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $o.root $xmlPin[0].path) $xmlPin[0].sha256));$sddl=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $o.root $sddlPin[0].path) $sddlPin[0].sha256))
+  $doc=[Xml.XmlDocument]::new();$doc.XmlResolver=$null;$doc.LoadXml($xml);$ns=[Xml.XmlNamespaceManager]::new($doc.NameTable);$ns.AddNamespace('t','http://schemas.microsoft.com/windows/2004/02/mit/task');$args=@($doc.SelectNodes('/t:Task/t:Actions/t:Exec/t:Arguments',$ns))
+  $future=$proof.packageRefreshTaskSource.path;$old='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$future+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
+  if($args.Count-ne1-or$args[0].InnerText-cne$old){throw 'B6_READ_REPAIR_OBSERVATION_TASK_CHANGED'}
+  $args[0].InnerText=$old.Replace($future,$proof.businessSaleOwnerPins.path);$expected=Get-Test125TaskXmlSignature $doc.OuterXml
+  $service=New-Object -ComObject Schedule.Service;$service.Connect();$registered=$service.GetFolder('\').GetTask('Melisa-ERP-TEST-Canonical')
+  if((Get-Test125TaskXmlSignature ([string]$registered.Xml))-cne$expected-or[string]$registered.GetSecurityDescriptor(7)-cne$sddl){throw 'B6_READ_REPAIR_OBSERVATION_TASK_CHANGED'}
+  $again=Get-Test125BoundMaintenancePlan -RunId 'TEST125-API-B6-WRITER-20261029' -ReadPairPreparation -ReadPairMode $Mode -PreparedReleaseProof $PreparedReleaseProof -ReadContextRepairPostTransitionObservation
+  Assert-Test125MaintenancePin $plan $again
+  foreach($h in $holds){[Test125ApiKernel]::ValidateReadOnly($h.handle,$h.birth)}
+  [void](Assert-Test125ReadContextRepairObservationProof $PreparedReleaseProof $Mode)
+  $plan.supportedTaskStopStart=$false;$plan.status='POST_TRANSITION_READONLY_NOT_ADMISSION';$plan.schema='melisa-test125-read-context-repair-readonly-observation.v1';$plan.readOnly=$true;$plan.executionAuthority=$false
   return $plan
  }finally{foreach($h in $holds){$h.handle.Dispose()}}
 }

@@ -1,5 +1,11 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import cp from 'node:child_process';import os from 'node:os';import path from 'node:path';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
+const repairCaseFixture=String.raw`
+$script:ReadContextRepairInstall=$true;$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
+$root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-OWNER-20261030';$router=$root.Replace('-OWNER-','-ROUTER-');$steady=$root.Replace('-OWNER-','-STEADY-OWNER-');$old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030'
+function Get-ErpBusinessSaleReadContextRepairFixedCase{[pscustomobject]@{id='ReadContextRepair';root=$root;steadyRoot=$steady;futureRoot=$old;captureHash='6f6a7f567629a05310e3260ab72a7adff2d2fa33eadca8cc6d4c6b07fb95f211';recordsHash='fc69404723c6a387411ee2e8bd2f7dce910e7618beb41e1b58651d79bb162caf';postExitExclusiveEntryCount=41;runningPid=50348;runningBirth='134378110068801561'}}
+$b6=[pscustomobject]@{fixedCaseId='ReadContextRepair';coreRoot=$root;routerRoot=$router;steadyRoot=$steady;maintenancePurpose='ReadContextRepair';owner=[pscustomobject]@{predecessorEntryKind='ReadPairRouter';owner=[pscustomobject]@{pid=18572;birth='134378104151292349'};child=[pscustomobject]@{pid=33788;birth='134378112314707445'};recordBeforeSha256='fc69404723c6a387411ee2e8bd2f7dce910e7618beb41e1b58651d79bb162caf'}}
+`;
 function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-readpair-install-')));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-install-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 win('SHA256 value decoder rejects terminal LF CRLF and prefix LF instead of silently dropping non-hex bytes',()=>{
@@ -10,6 +16,26 @@ win('installer failure site retains the real strict property error and line with
 });
 win('unknown installer error identifiers are hashed and never carry arbitrary exception messages into the receipt',()=>{
  assert.equal(run(String.raw`$marker='deneme-'+('ab'*16);$record=$null;try{throw $marker}catch{$record=$_};$site=Get-ReadPairInstallFailureSite $record;$json=$site|ConvertTo-Json -Compress;if($site.errorId-or$site.errorIdSha256-cnotmatch'^[a-f0-9]{64}$'-or$json.Contains($marker)-or$json.Contains('Message')-or(Get-ReadPairInstallFailureSite ([pscustomobject]@{Message=$marker}))){throw 'INSTALL_FAILURE_LEAKED_VALUE'};'PASS'`),'PASS');
+});
+win('ReadContextRepair exact case retains the old indexed future launcher and only projects silent/candidate/rollback task paths',()=>{
+ assert.equal(run(repairCaseFixture+String.raw`
+Initialize-B6PreviewLinkFixedCase
+if(!(Test-B6ReadContextRepairCase)-or!(Test-B6PreviewLinkNativeContextCase)-or(Test-B6PreviewLinkPreviewReadCase)-or$b6.contextCase.ownerPid-ne18572){throw 'REPAIR_CASE_NOT_BOUND'}
+$argsText='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+(Join-Path $old 'start-owned-test.ps1')+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
+$xml='<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task"><Principals><Principal id="Author"><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Actions><Exec><Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($argsText)+'</Arguments></Exec></Actions></Task>'
+$silent=New-B6PreviewLinkTaskXml $xml Silent;$candidate=New-B6PreviewLinkTaskXml $silent Candidate;$rollback=New-B6PreviewLinkTaskXml $silent Rollback
+if(!$silent.Contains((Join-Path $root 'start-owned-test.ps1'))-or!$candidate.Contains((Join-Path $steady 'start-owned-test.ps1'))-or(Get-B6SteadyTaskXmlCanonical $rollback)-cne(Get-B6SteadyTaskXmlCanonical $xml)-or!$candidate.Contains('<RunLevel>LeastPrivilege</RunLevel>')){throw 'REPAIR_TASK_PROJECTION_CHANGED'}
+$denied=$false;try{New-B6PreviewLinkTaskXml $candidate Silent|Out-Null}catch{$denied=$true};if(!$denied){throw 'REPAIR_STALE_TASK_ACCEPTED'}
+$script:ReadContextRepairInstall=$false;if(Test-B6ReadContextRepairCase){throw 'REPAIR_FLAG_NOT_REQUIRED'};'PASS'
+`),'PASS');
+});
+win('ReadContextRepair dispatcher uses a separate readonly observation and never the package-refresh observer',()=>{
+ assert.equal(run(repairCaseFixture+String.raw`
+$script:b6ReadProof=[pscustomobject]@{fixture='opaque'};$script:reads=0
+function Get-Test125ReadContextRepairPostTransitionPlan($Mode,$PreparedReleaseProof){if($Mode-cne'Candidate'-or![object]::ReferenceEquals($PreparedReleaseProof,$script:b6ReadProof)){throw 'REPAIR_PROOF_NOT_RETAINED'};$script:reads++;return @{readOnly=$true;executionAuthority=$false}}
+function Get-Test125PackageRefreshPostTransitionPlan{throw 'REPAIR_USED_PACKAGE_OBSERVER'}
+$result=Get-B6ProfilePostTransitionPlan Candidate;if($script:reads-ne1-or!$result.readOnly-or$result.executionAuthority){throw 'REPAIR_OBSERVER_GRANTED_AUTHORITY'};'PASS'
+`),'PASS');
 });
 const inert=String.raw`$script:calls=[Collections.Generic.List[string]]::new();function Open-ReadPairPublication{$calls.Add('open')};function Assert-ReadPairColdTarget{$calls.Add('target')};function Stop-ReadPairColdOwner{$calls.Add('coldstop')};function Start-ReadPairPreparedOwner{$calls.Add('start')};function Assert-ReadPairPreparedOwner{$calls.Add('ready')};function Send-ReadPairSingleRetire{$calls.Add('retire')};function Wait-ReadPairFinalState{$calls.Add('readback');return 'CandidateVerified'};function Complete-ReadPairPublication($Outcome){$calls.Add($Outcome)};function Restore-ReadPairBeforeRetire([bool]$OldStopped){$calls.Add('restore:'+ $OldStopped)};function Close-ReadPairPublication{$calls.Add('close')};function Record-Phase($Phase){$calls.Add($Phase)};`;
 win('SteadyStartupInstall uses the shared sequence with task publication and never sends a retire or reads a trade outcome',()=>{

@@ -5,6 +5,13 @@ if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca6
 function Get-Business5244ReadPairRouterMode($Config,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213'){
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'READPAIR_ROUTER_SCOPE_REJECTED'}
  if(!$Config -or !$Config.PSObject.Properties['ApiComponent']){throw 'READPAIR_ROUTER_CONFIG_REQUIRED'}
+ if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'-and(Get-Command Test-ErpBusinessSaleReadContextRepairGeneration -ErrorAction SilentlyContinue)-and(Test-ErpBusinessSaleReadContextRepairGeneration)){
+  [void](Assert-Test125ReadPairConfig $Config Current -ScopeName $ScopeName)
+  $repairMode=Get-ErpBusinessSaleReadContextRepairInstalledMode $Config
+  if($repairMode-ceq'Current'){return 'PrepareCurrent'}
+  if($repairMode-ceq'Candidate'){return 'SteadyReadPair'}
+  throw 'READPAIR_ROUTER_REPAIR_TUPLE_REJECTED'
+ }
  $pairScope=if($ScopeName-ceq'TEST125-API-READ2b-20261028-41d3c213'){Get-Test125ReadPairScope}else{Get-Test125ReadPairScope -Name $ScopeName}
  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
   foreach($mode in @('Current','Candidate')){$pins=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;$part=if($mode-ceq'Current'){$pairScope.current}else{$pairScope.candidate};if($pins.apiManifest-cne$part.ManifestSha256-or$pins.baseSource-cne$pairScope.source){throw 'READPAIR_ROUTER_FINITE_PAIR_CHANGED'}}

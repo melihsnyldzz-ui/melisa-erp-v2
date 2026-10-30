@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: '24'
       - name: B6 finite native profile and rollback with isolated source fixtures
-        run: node --test --test-concurrency=1 scripts/canonical/canonical-business-sale-maintenance.test.mjs scripts/canonical/prepare-business-sale-owner-bundle.test.mjs scripts/canonical/test125-bound-api-quiescence.test.mjs scripts/canonical/test125-bound-maintenance-plan.test.mjs scripts/canonical/start-owned-test-component.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/test125-read2b-pair.test.mjs
+        run: node --test --test-concurrency=1 scripts/canonical/canonical-business-sale-maintenance.test.mjs scripts/canonical/prepare-business-sale-owner-bundle.test.mjs scripts/canonical/prepare-business-sale-array-repair-owner.test.mjs scripts/canonical/test125-bound-api-quiescence.test.mjs scripts/canonical/test125-bound-maintenance-plan.test.mjs scripts/canonical/start-owned-test-component.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/test125-read2b-pair.test.mjs
       - name: Windows owner and single-instance startup boundaries
         run: node --test scripts/canonical/start-owned-test.test.mjs
       - name: Native Windows carton ACL module discovery

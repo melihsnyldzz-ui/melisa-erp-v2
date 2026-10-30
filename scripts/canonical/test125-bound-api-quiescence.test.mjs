@@ -251,6 +251,51 @@ function Get-Test125BoundMaintenancePlan($RunId,[switch]$ReadPairPreparation,$Re
  return [pscustomobject]@{schema='melisa-test125-bound-maintenance-preparation.v1';runId=$RunId;source=$scope.source;database=$scope.database;startupHash=(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureStartup))).ToUpperInvariant();launcherHash=(Get-FileHash $launcher SHA256).Hash;manifestHash='base-manifest';taskXmlHash=(Get-Test125ReadPairHash ([Text.Encoding]::UTF8.GetBytes($script:taskXml)));taskInstance=('instance'+$script:generation);supervisor=$script:generation;supervisorBirth='2026-10-28T00:00:00Z';children=@{api=@{pid=101;port=4144;birth='2026-10-28T00:00:00Z'};native=@{pid=102;port=4146;birth='2026-10-28T00:00:00Z'};web=@{pid=103;port=5194;birth='2026-10-28T00:00:00Z'}}}
 }
 `;
+const readRepairFixture=packageRefreshFixture+String.raw`
+function Test-ErpBusinessSalePackageRefreshGeneration{return $false};function Test-ErpBusinessSaleReadContextRepairGeneration{return $true}
+$scope.candidate=$scope.current.PSObject.Copy();$config.ApiComponent=$scope.current
+$profile.businessSaleAdmission|Add-Member contextDefinitionHash ('1'*64);$profile.businessSaleAdmission|Add-Member beginDefinitionHash ('2'*64)
+[IO.File]::WriteAllText($fixtureApi,($profile|ConvertTo-Json -Depth 20));[IO.File]::WriteAllText($fixtureStartup,($config|ConvertTo-Json -Depth 20));$script:fixtureProfileBeforeHash=Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi))
+$candidate=$profile|ConvertTo-Json -Depth 20|ConvertFrom-Json;$candidate.businessSaleAdmission.contextDefinitionHash=('3'*64);$candidate.businessSaleAdmission.beginDefinitionHash=('4'*64);$script:candidateBytes=[Text.Encoding]::UTF8.GetBytes(($candidate|ConvertTo-Json -Depth 20));$script:repairNativePhase='Prepared'
+function Get-ErpBusinessSaleNativeAdmissionContext($Admission){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission Identity);return @{mode='ReadContextRepair';transition=$script:nativeBound;phase=$script:nativePhase;nativePhase=$script:repairNativePhase;profileBeforeHash=$script:fixtureProfileBeforeHash}}
+function Bind-ErpBusinessSaleReadContextRepair($Admission,$Transition){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission);$c=Assert-Test125ReadPairIssued $Transition;if(![object]::ReferenceEquals($c.nativeProfileAdmission,$Admission)-or$script:nativeBound-or$Transition.startupBeforeSha256-cne$Transition.startupCandidateSha256){throw 'FIXTURE_REPAIR_BIND'};$script:nativeBound=$Transition}
+function Assert-ErpBusinessSaleReadContextRepairQuiescence($Admission){[void](Assert-ErpBusinessSaleWriterProfileAdmission $Admission Identity);$c=Assert-Test125ReadPairIssued $script:nativeBound;Assert-Test125ReadPairPaused $c;if($c.changed-or$c.token.startupBeforeSha256-cne$c.token.startupCandidateSha256){throw 'FIXTURE_REPAIR_STARTUP_CHANGED'};return $c}
+function Invoke-ErpBusinessSaleReadContextRepair($Admission,$Direction){[void](Assert-ErpBusinessSaleReadContextRepairQuiescence $Admission);$script:events.Add('repair-'+$Direction);if($script:failNative){throw 'FIXTURE_REPAIR_NOT_READY'};$script:repairNativePhase=if($Direction-ceq'Rehearse'){'Rehearsed'}elseif($Direction-ceq'Apply'){'Applied'}else{'Restored'}}
+function Invoke-ErpBusinessSaleWriterProfileBoundaryCheck {throw 'REPAIR_ENTERED_WRITER_BOUNDARY'}
+function Complete-ErpBusinessSaleReadContextRepairProfileState($Admission,$Mode){$c=Assert-ErpBusinessSaleReadContextRepairQuiescence $Admission;$candidate=$Mode-ceq'Candidate';if($c.apiChanged-ne$candidate-or$script:repairNativePhase-cne$(if($candidate){'Applied'}else{'Restored'})){throw 'FIXTURE_REPAIR_COMPLETION_CHANGED'};$script:nativePhase=if($candidate){'WriterActivated'}else{'WriterRestored'}}
+`;
+win('ReadContextRepair constructor keeps identical startup and payloads while binding a distinct issued native purpose',()=>{
+ assert.equal(runB6(readRepairFixture+String.raw`
+ $before=[IO.File]::ReadAllBytes($fixtureStartup);$apiBefore=[IO.File]::ReadAllBytes($fixtureApi)
+ $token=New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $native;$ctx=Assert-Test125ReadPairIssued $token
+ if($token.schema-cne'melisa-test125-b6-read-context-repair-api-transition.v1'-or$token.profileOnlyPurpose-cne'ReadContextRepair'-or$token.startupBeforeSha256-cne$token.startupCandidateSha256-or$token.apiProfileBeforeSha256-ceq$token.apiProfileCandidateSha256-or$ctx.changed-or$ctx.apiChanged-or$ctx.nativeChangeAttempted-or$script:setCalls){throw 'REPAIR_CONSTRUCTOR_DELTA'}
+ foreach($copy in @(($token|ConvertTo-Json -Depth 20|ConvertFrom-Json),([pscustomobject]@{scope=$token.scope;profileOnlyPurpose='ReadContextRepair'}))){$denied=$false;try{Assert-Test125ReadPairIssued $copy|Out-Null}catch{$denied=$true};if(!$denied){throw 'REPAIR_JSON_GRANTED'}}
+ if((Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureStartup)))-cne(Get-Test125ReadPairHash $before)-or(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi)))-cne(Get-Test125ReadPairHash $apiBefore)){throw 'REPAIR_CONSTRUCTOR_WROTE'};'PASS'
+ `),'PASS');
+});
+win('ReadContextRepair Candidate and rollback use only two-field profile CAS and the same silent task with zero startup/full-revision calls',()=>{
+ assert.equal(runB6(readRepairFixture+b6PausedFixture+String.raw`
+ function Invoke-ErpBusinessSaleNativeRevision{throw 'REPAIR_FULL_REVISION_FORBIDDEN'}
+ $before=[IO.File]::ReadAllBytes($fixtureStartup);$apiBefore=[IO.File]::ReadAllBytes($fixtureApi);$script:profileCas=0;$script:startupCas=0
+ $cas=(Get-Command Write-Test125ReadPairCas).ScriptBlock
+ function Write-Test125ReadPairCas($Path,$Expected,$Bytes){if($Path-ceq$fixtureStartup){$script:startupCas++}elseif($Path-ceq$fixtureApi){$script:profileCas++}else{throw 'FOREIGN_REPAIR_CAS'};&$cas $Path $Expected $Bytes}
+ $out=Invoke-Test125ReadPairApiTransition $token Candidate
+ if($ctx.mode-cne'Candidate'-or$ctx.changed-or!$ctx.apiChanged-or$script:profileCas-ne1-or$script:startupCas-ne0-or$out.PSObject.Properties['sqlWrites']-or$out.nativePhase-cne'Applied'-or$out.startupWrites-ne0-or$out.commercialWrites-ne0-or!$out.nativeMetadataApplied){throw 'REPAIR_CANDIDATE_CONTRACT'}
+ $ctx.activeBinding=Open-Test125ApiQuiescence $ctx.admission $token.scope;$ctx.taskStopped=$true
+ $out=Invoke-Test125ReadPairApiTransition $token Rollback
+ if($ctx.mode-cne'Current'-or$ctx.changed-or$ctx.apiChanged-or$script:profileCas-ne2-or$script:startupCas-ne0-or$out.nativePhase-cne'Restored'-or$out.nativeMetadataApplied-or$script:setCalls-ne1-or($script:events|Where-Object{$_-clike'repair-*'})-join'|'-cne'repair-Rehearse|repair-Apply|repair-Inverse'){throw 'REPAIR_ROLLBACK_CONTRACT'}
+ if((Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureStartup)))-cne(Get-Test125ReadPairHash $before)-or(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi)))-cne(Get-Test125ReadPairHash $apiBefore)){throw 'REPAIR_ROLLBACK_BYTES'};'PASS'
+ `),'PASS');
+});
+win('ReadContextRepair native refusal cannot publish profile, restart API or replay Candidate',()=>{
+ assert.equal(runB6(readRepairFixture+b6PausedFixture+String.raw`
+ $script:failNative=$true;$before=Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureStartup));$apiBefore=Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi));$denied=$false
+ try{Invoke-Test125ReadPairApiTransition $token Candidate|Out-Null}catch{if($_.Exception.Message-cne'FIXTURE_REPAIR_NOT_READY'){throw};$denied=$true}
+ if(!$denied-or$ctx.phase-cne'FAILED'-or$ctx.changed-or$ctx.apiChanged-or$script:setCalls-or$script:events.Contains('resume')-or$script:events.Contains('repair-Apply')){throw 'UNREADY_REPAIR_EFFECT'}
+ $count=$script:events.Count;$denied=$false;try{Invoke-Test125ReadPairApiTransition $token Candidate|Out-Null}catch{$denied=$true};if(!$denied-or$script:events.Count-ne$count){throw 'REPAIR_CANDIDATE_REPLAY'}
+ if((Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureStartup)))-cne$before-or(Get-Test125ReadPairHash ([IO.File]::ReadAllBytes($fixtureApi)))-cne$apiBefore){throw 'UNREADY_REPAIR_CAS'};'PASS'
+ `),'PASS');
+});
 win('PackageRefresh constructor binds a distinct genuine purpose and exactly unchanged profile bytes',()=>{
  assert.equal(runB6(packageRefreshFixture+String.raw`
  $original=[IO.File]::ReadAllBytes($fixtureApi);$token=New-Test125ReadPairTransition -ScopeName $scope.name -NativeProfileAdmission $script:native;$ctx=Assert-Test125ReadPairIssued $token
@@ -408,6 +453,8 @@ win('Writer post-CAS proof uses actual changed-file pause guard and exited nativ
 $realPaused=(Get-Command Assert-Test125ReadPairPaused).ScriptBlock
 `+b6PausedFixture+String.raw`
 function Assert-Test125ReadPairPaused($Context){&$realPaused $Context}
+$script:fixtureListener=$false
+function Get-NetTCPConnection($State,$LocalPort,$ErrorAction){if($State-cne'Listen'-or$LocalPort-ne4144){throw 'FIXTURE_TCP_SCOPE'};if($script:fixtureListener){return [pscustomobject]@{OwningProcess=1;LocalPort=4144}};return @()}
 $child=$null;$handle=$null
 try{
  Initialize-Test125ApiKernel
@@ -424,11 +471,11 @@ try{
  [void](Assert-Test125ReadPairWriterPostCasPause $token Candidate)
  Complete-ErpBusinessSaleWriterProfilePostCasState $native Candidate
  if($script:nativeRecord.phase-cne'WriterActivated'-or$script:oldGuardCalls-ne0-or$ctx.mode-cne'Current'-or!$ctx.activeBinding.held){throw 'POST_CAS_PROOF_USED_BEFORE_GUARD'}
- foreach($case in @('task','profile','binding','seal')){
+ foreach($case in @('task','profile','binding','seal','listener')){
   $oldTask=$ctx.taskAction.mode;$old=$script:releaseClosed;$oldBinding=$script:Test125ApiBinding;$bytes=[IO.File]::ReadAllBytes($fixtureApi)
-  switch($case){'task'{$ctx.taskAction.mode='Current'}'profile'{[IO.File]::WriteAllText($fixtureApi,'changed')}'binding'{$script:Test125ApiBinding=$null}'seal'{$script:releaseClosed=$true}}
+  switch($case){'task'{$ctx.taskAction.mode='Current'}'profile'{[IO.File]::WriteAllText($fixtureApi,'changed')}'binding'{$script:Test125ApiBinding=$null}'seal'{$script:releaseClosed=$true}'listener'{$script:fixtureListener=$true}}
   $denied=$false;try{Assert-Test125ReadPairWriterPostCasPause $token Candidate|Out-Null}catch{$denied=$true};if(!$denied){throw ('POST_CAS_DRIFT_ADMITTED_'+$case)}
-  $ctx.taskAction.mode=$oldTask;$script:releaseClosed=$old;$script:Test125ApiBinding=$oldBinding;[IO.File]::WriteAllBytes($fixtureApi,$bytes)
+  $ctx.taskAction.mode=$oldTask;$script:releaseClosed=$old;$script:Test125ApiBinding=$oldBinding;$script:fixtureListener=$false;[IO.File]::WriteAllBytes($fixtureApi,$bytes)
  }
  'PASS'
 }finally{if($handle){$handle.Dispose()};if($child){if(!$child.HasExited){if($child.StartTime.ToUniversalTime().Ticks-ne$birth){throw 'FIXTURE_CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}}

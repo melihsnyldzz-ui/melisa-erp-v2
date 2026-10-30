@@ -27,7 +27,7 @@ function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
  $webOnly=Test-Business5244WriterWebOnlyGeneration
- $exact=if(Test-Business5244SteadyGeneration){Get-Business5244SteadyPins}elseif(Test-Business5244PackageRefreshGeneration){$case=Get-ErpBusinessSalePackageRefreshFixedCase;if($Pins.package-ceq$case.candidateWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package-ceq$case.currentWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}else{throw 'OWNED_WEB_PIN_CHANGED'}}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+ $exact=if(Test-Business5244ReadContextRepairGeneration){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}elseif(Test-Business5244SteadyGeneration){Get-Business5244SteadyPins}elseif(Test-Business5244PackageRefreshGeneration){$case=Get-ErpBusinessSalePackageRefreshFixedCase;if($Pins.package-ceq$case.candidateWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package-ceq$case.currentWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}else{throw 'OWNED_WEB_PIN_CHANGED'}}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
  if((Get-FileHash -LiteralPath $Pins.node).Hash -ine $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -ine $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
@@ -208,6 +208,11 @@ function Get-Business5244WebOnlyEntryMode {
 }
 function Assert-Business5244SteadyEntry {
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030'){
+  $entry=Join-Path (Get-ErpBusinessSaleReadContextRepairFixedCase).steadyRoot 'run-current-owner.ps1'
+  if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne$entry){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}
+  return
+ }
  if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne$(if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')){Join-Path (Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot 'run-current-owner.ps1'}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029\run-current-owner.ps1'})){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}
 }
 function Assert-Business5244PackageRefreshEntry([bool]$Preparing){
@@ -216,9 +221,18 @@ function Assert-Business5244PackageRefreshEntry([bool]$Preparing){
  $case=Get-ErpBusinessSalePackageRefreshFixedCase;$expected=if($Preparing){Join-Path $case.routerRoot 'start-business-5244-readpair-router.ps1'}else{Join-Path $case.root 'run-current-owner.ps1'}
  if($argv[$indices[0]+1]-cne$expected){throw 'OWNED_PACKAGE_REFRESH_FIXED_ENTRY_REQUIRED'}
 }
+function Assert-Business5244ReadContextRepairEntry([bool]$Preparing,[string]$InitialSlot){
+ $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
+ if(!(Test-Business5244ReadContextRepairGeneration)-or$indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$InitialSlot-cnotin@('Current','ReadPair')-or($Preparing-and$InitialSlot-cne'Current')){throw 'OWNED_READ_REPAIR_FIXED_ENTRY_REQUIRED'}
+ $case=Get-ErpBusinessSaleReadContextRepairFixedCase
+ $router=Join-Path 'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-ROUTER-20261030' 'start-business-5244-readpair-router.ps1'
+ $current=Join-Path $case.root 'run-current-owner.ps1';$entry=$argv[$indices[0]+1]
+ if(($Preparing-and$entry-cne$router)-or(!$Preparing-and$entry-cne$router-and($entry-cne$current-or$InitialSlot-cne'Current'))){throw 'OWNED_READ_REPAIR_FIXED_ENTRY_REQUIRED'}
+}
 function Start-Business5244OwnedSupervisor {
  param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'OWNED_WEB_SCOPE_REJECTED'}
+ if(Test-Business5244ReadContextRepairGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$null-ne$CurrentSupersession){throw 'OWNED_READ_REPAIR_SCOPE_REQUIRED'};Assert-Business5244ReadContextRepairEntry ([bool]$PrepareReadPair) $InitialSlot}
  if(Test-Business5244PackageRefreshGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$null-ne$CurrentSupersession){throw 'OWNED_PACKAGE_REFRESH_SCOPE_REQUIRED'};Assert-Business5244PackageRefreshEntry ([bool]$PrepareReadPair)}
  $steady=Test-Business5244SteadyGeneration
  if($steady){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$PrepareReadPair-or$null-ne$CurrentSupersession){throw 'OWNED_STEADY_CURRENT_ONLY'};Assert-Business5244SteadyEntry}

@@ -257,6 +257,147 @@ function Test-ErpBusinessSaleBefore {param($Inputs);[void]$script:trace.Add('bef
 function Test-ErpBusinessSaleAfter {param($Inputs);[void]$script:trace.Add('after-readback');if($script:fail-ceq'after-readback'){throw 'AFTER_CHANGED'}}
 `;
 
+const repairFixture=nativeFixture+String.raw`
+$cap.schema='melisa-b6-read-context-repair.v1';$cap|Add-Member purpose 'ReadContextRepair';$r.tokenJson=$cap|ConvertTo-Json -Compress
+$r|Add-Member mode 'ReadContextRepair';$r.phase='WriterPrepared';$r|Add-Member nativePhase 'Prepared';$r|Add-Member applyAttempted $false;$r|Add-Member inverseAttempted $false
+function Read-ErpBusinessSaleReadContextRepairVerifiedBackup($Connection){return New-ErpBusinessSaleVerifiedBackup $Connection}
+function Test-ErpBusinessSaleReadContextRepairVerifiedBackup($Record,$Connection){Test-ErpBusinessSaleVerifiedBackup $Record $Connection}
+$script:repairTuple='Current';$script:repairDDL=0;$script:repairFail='';$script:repairPaused=$true
+$names=@('dbo.usp_canonical_business_sale_resolve_v1','dbo.usp_canonical_business_sale_context_v1','dbo.usp_canonical_business_sale_begin_v1')
+$script:repairPacket=[pscustomobject]@{proposedModules=@(foreach($name in $names){[pscustomobject]@{name=$name;applyDefinition=('ALTER PROCEDURE '+$name+' AS SELECT 1');inverseDefinition=('ALTER PROCEDURE '+$name+' AS SELECT 0');proposedApplyAlterTextSha256=('A'*64);proposedInverseAlterTextSha256=('B'*64)}})}
+function Read-ErpBusinessSaleReadContextRepairPacket{return ($script:repairPacket|ConvertTo-Json -Depth 16|ConvertFrom-Json)}
+function Assert-ErpBusinessSaleReadContextRepairQuiescence($Admission){[void](Assert-ErpBusinessSaleReadContextRepairAdmission $Admission -Phase Identity);if(!$script:repairPaused){throw 'FIXTURE_NOT_PAUSED'};return [pscustomobject]@{apiChanged=$false}}
+function Test-ErpBusinessSaleReadContextRepairTuple($Mode){if($script:repairTuple-cne$Mode-or$script:repairFail-ceq'after-readback'){throw 'FIXTURE_TUPLE_CHANGED'};[void]$script:trace.Add('tuple:'+ $Mode)}
+function Assert-ErpBusinessSaleReadContextRepairSqlState($Connection,$Transaction,$Packet,$Mode){if($script:repairTuple-cne$Mode){throw 'FIXTURE_SQL_STATE_CHANGED'};if($script:repairFail-ceq'header'-and$Mode-ceq'Candidate'){throw 'B6_READ_REPAIR_STORED_HEADER_OPTIONS_CHANGED'}}
+function Open-ErpBusinessSaleSqlConnection {
+ $script:opens++;$tx=[pscustomobject]@{before=$script:repairTuple}
+ $tx|Add-Member ScriptMethod Commit {$script:commits++;if($script:repairFail-ceq'commit'){throw 'LOST_COMMIT_ACK'}}
+ $tx|Add-Member ScriptMethod Rollback {$script:rollbacks++;$script:repairTuple=$this.before;if($script:repairFail-ceq'rollback'){throw 'ROLLBACK_UNCONFIRMED'}}
+ $tx|Add-Member ScriptMethod Dispose {}
+ $connection=[pscustomobject]@{tx=$tx};$connection|Add-Member ScriptMethod BeginTransaction {param($isolation);return $this.tx};$connection|Add-Member ScriptMethod Dispose {}
+ $connection|Add-Member ScriptMethod CreateCommand {
+  $cmd=[pscustomobject]@{Transaction=$null;CommandTimeout=0;CommandText=''}
+  $cmd|Add-Member ScriptMethod ExecuteNonQuery {
+   if($this.CommandText-ceq'SET ANSI_NULLS ON; SET QUOTED_IDENTIFIER ON;'){return 0}
+   if(!$this.CommandText.StartsWith('ALTER PROCEDURE dbo.usp_canonical_business_sale_')){throw 'NON_REPAIR_SQL'}
+   $script:repairDDL++;[void]$script:trace.Add($this.CommandText)
+   if($script:repairDDL%3-eq0){$script:repairTuple=if($this.CommandText.EndsWith('SELECT 1')){'Candidate'}else{'Current'}}
+   return 0
+  };$cmd|Add-Member ScriptMethod Dispose {};return $cmd
+ };return $connection
+}
+`;
+
+test('ReadContextRepair uses three ALTERs per phase, one rehearsal rollback and the existing lock without full revision replay',win,()=>{
+ assert.equal(run(repairFixture+String.raw`
+Reject {Invoke-ErpBusinessSaleNativeRevision $cap Rehearse};Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Apply};Reject {Invoke-ErpBusinessSaleReadContextRepair $cap rehearse}
+Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse
+if($r.nativePhase-cne'Rehearsed'-or!$r.rehearsed-or$script:repairDDL-ne3-or$script:rollbacks-ne1-or$script:commits-ne0-or$script:repairTuple-cne'Current'){throw 'REPAIR_REHEARSAL_CONTRACT'}
+Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse}
+Invoke-ErpBusinessSaleReadContextRepair $cap Apply
+if($r.nativePhase-cne'Applied'-or$script:repairDDL-ne6-or$script:commits-ne1-or$script:repairTuple-cne'Candidate'){throw 'REPAIR_APPLY_CONTRACT'}
+Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Apply}
+$r.phase='WriterActivated';Invoke-ErpBusinessSaleReadContextRepair $cap Inverse
+if($r.nativePhase-cne'Restored'-or$script:repairDDL-ne9-or$script:commits-ne2-or$script:repairTuple-cne'Current'){throw 'REPAIR_INVERSE_CONTRACT'}
+$count=$script:repairDDL;Invoke-ErpBusinessSaleReadContextRepair $cap Inverse;if($script:repairDDL-ne$count){throw 'REPAIR_INVERSE_REPLAYED'}
+if(@($script:trace|Where-Object{$_-clike'*melisa-b6-finite-revision-F05B6318*'}).Count-ne3-or$script:trace.Contains('apply-before')-or$script:trace.Contains('inverse-history-cas')){throw 'WRONG_REPAIR_ENGINE_OR_LOCK'};'PASS'
+`),'PASS');
+});
+test('ReadContextRepair failed stored-header rehearsal rolls back and permits only verified no-DDL Current recovery',win,()=>{
+ assert.equal(run(repairFixture+String.raw`
+$script:repairFail='header';Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse}
+if($script:repairTuple-cne'Current'-or$script:rollbacks-ne1-or$script:commits-ne0-or$r.rehearsed-or$r.nativePhase-cne'Prepared'){throw 'HEADER_FAILURE_NOT_ROLLED_BACK'}
+$count=$script:repairDDL;Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse};Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Apply}
+Invoke-ErpBusinessSaleReadContextRepair $cap Inverse
+if($r.nativePhase-cne'Restored'-or$script:repairDDL-ne$count-or$script:commits-ne0){throw 'FAILED_REHEARSAL_REPLAYED_DDL'};'PASS'
+`),'PASS');
+});
+test('ReadContextRepair issuer, phase, pause and commit uncertainty reject without a second effect',win,()=>{
+ for(const failure of ['foreign','pause','native-unknown','commit'])assert.equal(run(repairFixture+`$failure=${q(failure)};`+String.raw`
+if($failure-ceq'foreign'){$token=$cap|ConvertTo-Json|ConvertFrom-Json;Reject {Invoke-ErpBusinessSaleReadContextRepair $token Rehearse}}
+elseif($failure-ceq'pause'){$script:repairPaused=$false;Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse}}
+elseif($failure-ceq'native-unknown'){$r.nativePhase='Unknown';Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse}}
+else{Invoke-ErpBusinessSaleReadContextRepair $cap Rehearse;$script:repairFail='commit';Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Apply};if($r.phase-cne'Unknown'-or$r.nativePhase-cne'Unknown'){throw 'UNKNOWN_COMMIT_NOT_CLOSED'};$count=$script:repairDDL;Reject {Invoke-ErpBusinessSaleReadContextRepair $cap Inverse};if($script:repairDDL-ne$count){throw 'UNKNOWN_INVERSED'}}
+if($failure-cne'commit'-and($script:opens-ne0-or$script:repairDDL-ne0-or$script:commits-ne0)){throw 'NEGATIVE_REPAIR_HAD_EFFECT'};'PASS'
+`),'PASS');
+});
+test('ReadContextRepair packet reader verifies real UTF16 CREATE and ALTER bytes and remains data only',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-array-packet-')));
+ try{assert.equal(run(`$temp=${q(temp)};`+String.raw`
+function Get-ErpBusinessSaleReadContextRepairFixedCase{return [pscustomobject]@{root=$temp;packetHash=$script:packetHash}}
+$names=@('dbo.usp_canonical_business_sale_resolve_v1','dbo.usp_canonical_business_sale_context_v1','dbo.usp_canonical_business_sale_begin_v1');$ids=@(560825160,576825217,592825274)
+$p=[pscustomobject]@{schema='melisa-b6-array-repair-review-packet.v1';status='REVIEW_ONLY_NO_EXECUTOR';executionAuthority=$false;installable=$false;executeAllowed=$false;scope='TEST125-API-B6-WRITER-20261029';databaseId=18;server='Semih\MELISADEV';database='MELISA_ERP_SIRKET_TEST_20260929_01';legacy25ModulesUnchanged=$true;nativeModuleSet31Unchanged=$true;proposedModules=@(for($i=0;$i-lt3;$i++){
+ $apply='ALTER PROCEDURE '+$names[$i]+' AS SELECT 1';$inverse='ALTER PROCEDURE '+$names[$i]+' AS SELECT 0'
+ [pscustomobject]@{name=$names[$i];objectId=$ids[$i];applyDefinition=$apply;inverseDefinition=$inverse;proposedApplyAlterTextSha256=(Get-ErpBusinessSaleHash ([Text.Encoding]::Unicode.GetBytes($apply))).ToUpperInvariant();proposedInverseAlterTextSha256=(Get-ErpBusinessSaleHash ([Text.Encoding]::Unicode.GetBytes($inverse))).ToUpperInvariant();compiledAfterCreateSha256=(Get-ErpBusinessSaleHash ([Text.Encoding]::Unicode.GetBytes(('CREATE '+$apply.Substring(6))))).ToUpperInvariant();compiledBeforeCreateSha256=(Get-ErpBusinessSaleHash ([Text.Encoding]::Unicode.GetBytes(('CREATE '+$inverse.Substring(6))))).ToUpperInvariant();options=[pscustomobject]@{ansiNulls=$true;quotedIdentifier=$true;executeAs=-2;schemaBound=$false;nativeCompilation=$false;signatureCount=0}}
+ });profileMetadataDelta=@([pscustomobject]@{field='businessSaleAdmission.contextDefinitionHash'},[pscustomobject]@{field='businessSaleAdmission.beginDefinitionHash'})}
+function SavePacket{$b=[Text.Encoding]::UTF8.GetBytes(($p|ConvertTo-Json -Depth 16));$script:packetHash=Get-ErpBusinessSaleHash $b;[IO.File]::WriteAllBytes((Join-Path $temp 'array-repair-review-packet-v2.json'),$b)}
+SavePacket;$read=Read-ErpBusinessSaleReadContextRepairPacket;if(@($read.proposedModules).Count-ne3-or$script:ErpBusinessSaleAdmissions.Count){throw 'PACKET_GRANTED_CAPABILITY'}
+foreach($kind in @('apply-text','create-hash','object','signature','authority','module-count')){
+ $original=$p|ConvertTo-Json -Depth 16
+ switch($kind){'apply-text'{$p.proposedModules[0].applyDefinition+=' -- drift'}'create-hash'{$p.proposedModules[0].compiledAfterCreateSha256=('F'*64)}object{$p.proposedModules[0].objectId++}signature{$p.proposedModules[0].options.signatureCount=1}authority{$p.executionAuthority=$true}'module-count'{$p.proposedModules=@($p.proposedModules[0])}}
+ SavePacket;$denied=$false;try{Read-ErpBusinessSaleReadContextRepairPacket|Out-Null}catch{$denied=$true};if(!$denied){throw ('BAD_PACKET_ACCEPTED_'+$kind)};$p=$original|ConvertFrom-Json
+};if($script:ErpBusinessSaleAdmissions.Count){throw 'NEGATIVE_PACKET_ISSUED'};'PASS'
+`),'PASS');}finally{fs.rmSync(temp,{recursive:true});}
+});
+test('ReadContextRepair SQL metadata guard rejects ALTER header, options, object identity and signatures without normalizing hashes',win,()=>{
+ assert.equal(run(nativeFixture+String.raw`
+Add-Type -AssemblyName System.Data
+$script:rowIndex=0;$script:drift='';$script:metadataDDL=0
+$packet=[pscustomobject]@{proposedModules=@(foreach($n in 0..2){[pscustomobject]@{name=('dbo.fixed'+$n);objectId=100+$n;compiledBeforeCreateSha256=([string][char](65+$n))*64;compiledAfterCreateSha256=([string][char](68+$n))*64}})}
+$script:pinnedFixtureArtifact.applyBatches[-1].sql=($packet.proposedModules.compiledBeforeCreateSha256-join'|')
+$c=[pscustomobject]@{};$c|Add-Member ScriptMethod CreateCommand {
+ $native=[Data.SqlClient.SqlCommand]::new();$cmd=[pscustomobject]@{Transaction=$null;CommandTimeout=0;CommandText='';Parameters=$native.Parameters;native=$native}
+ $cmd|Add-Member ScriptMethod ExecuteReader {
+  $m=$packet.proposedModules[$script:rowIndex%3];$script:rowIndex++
+  $t=[Data.DataTable]::new();foreach($pair in @(@('id',[int]),@('hash',[string]),@('ansi',[bool]),@('quoted',[bool]),@('owner',[int]),@('schema',[bool]),@('native',[bool]),@('signatures',[int]))){[void]$t.Columns.Add($pair[0],$pair[1])}
+  $values=@($m.objectId,$m.compiledAfterCreateSha256,$true,$true,-2,$false,$false,0)
+  switch($script:drift){header{$values[1]=('E'*64)}object{$values[0]++}ansi{$values[2]=$false}quoted{$values[3]=$false}owner{$values[4]=-1}schema{$values[5]=$true}native{$values[6]=$true}signature{$values[7]=1}}
+  [void]$t.Rows.Add($values);return ,$t.CreateDataReader()
+ };$cmd|Add-Member ScriptMethod Dispose {$this.native.Dispose()};return $cmd
+}
+Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate
+if($script:trace[-1]-cne($packet.proposedModules.compiledAfterCreateSha256-join'|')){throw 'AFTER_SNAPSHOT_PREDICATES_NOT_PRESERVED'}
+foreach($bad in @('header','object','ansi','quoted','owner','schema','native','signature')){$script:drift=$bad;$denied=$false;try{Assert-ErpBusinessSaleReadContextRepairSqlState $c $null $packet Candidate}catch{$denied=$true};if(!$denied){throw ('METADATA_DRIFT_ACCEPTED_'+$bad)}};'PASS'
+`),'PASS');
+});
+test('ReadContextRepair real issuer retains a two-hash-only profile delta and rejects copies, foreign issuer and non-maintenance roots',win,()=>{
+ const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'melisa-b6-array-issuer-'))),profile=path.join(temp,'profile.json');
+ const input={businessSaleAdmission:{profileHash:'A'.repeat(64),contextDefinitionHash:'B'.repeat(64),beginDefinitionHash:'C'.repeat(64),readerDefinitions:{fixed:'D'.repeat(64)}},businessSaleWritesEnabled:true,goal8SyntheticDaySeal:{packageId:'CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'},fixturePrivateValue:'UNCHANGED_FIXTURE_VALUE'};fs.writeFileSync(profile,JSON.stringify(input));
+ try{assert.equal(run(fixture+`$profilePath=${q(profile)};`+String.raw`
+$script:factoryConfig=[pscustomobject]@{OwnerSid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value};$script:factoryOld=[IO.File]::ReadAllBytes($profilePath);$script:factoryDescriptor=([Text.Encoding]::UTF8.GetString($script:factoryOld)|ConvertFrom-Json).businessSaleAdmission
+function Test-ErpBusinessSaleReadContextRepairGeneration{return $script:factoryGeneration};$script:factoryGeneration=$true
+function Read-ErpBusinessSaleReadContextRepairOwnerSource{return [pscustomobject]@{manifestSha256=('1'*64);packagePair=[pscustomobject]@{current=[pscustomobject]@{api=[pscustomobject]@{configPath=$profilePath}}}}}
+function Read-ErpStartupConfig{return $script:factoryConfig};function Assert-Test125ReadPairConfig{return $true}
+function Get-ErpBusinessSaleNativeInputs{return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';descriptor=$script:factoryDescriptor}}
+function Read-ErpBusinessSaleReadContextRepairOriginalDescriptor{return ($script:factoryDescriptor|ConvertTo-Json -Depth 32|ConvertFrom-Json)}
+function Read-ErpBusinessSaleReadContextRepairPacket{return [pscustomobject]@{profileMetadataDelta=@([pscustomobject]@{field='businessSaleAdmission.contextDefinitionHash';before=('B'*64);after=('E'*64)},[pscustomobject]@{field='businessSaleAdmission.beginDefinitionHash';before=('C'*64);after=('F'*64)})}}
+function Test-ErpBusinessSaleReadContextRepairTuple($Mode){if($Mode-cne'Current'){throw 'FACTORY_WRONG_NATIVE_TUPLE'}}
+function Read-ErpBusinessSalePinnedFile($Path,$Hash){if($Path-ceq$profilePath){$b=[IO.File]::ReadAllBytes($Path);if((Get-ErpBusinessSaleHash $b)-cne$Hash){throw 'FIXTURE_PROFILE_CHANGED'};return ,$b};if($Hash-cnotin@('35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe','050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024')){throw 'FOREIGN_FIXTURE_READ'};return ,([byte[]](0))}
+$issued=New-ErpBusinessSaleReadContextRepairAdmission $factoryConfig;$record=Get-ErpBusinessSaleNativeAdmissionContext $issued
+if($issued.purpose-cne'ReadContextRepair'-or$record.phase-cne'WriterPrepared'-or$record.nativePhase-cne'Prepared'-or$record.transition-or$record.rehearsalAttempted-or$record.backup){throw 'ISSUER_PHASE_CHANGED'}
+$bytes=Get-ErpBusinessSaleCandidateProfileBytes $issued;$next=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json
+if($next.businessSaleAdmission.contextDefinitionHash-cne('E'*64)-or$next.businessSaleAdmission.beginDefinitionHash-cne('F'*64)){throw 'REPAIR_DESCRIPTOR_NOT_CHANGED'}
+$next.businessSaleAdmission.contextDefinitionHash=('B'*64);$next.businessSaleAdmission.beginDefinitionHash=('C'*64)
+if(($next|ConvertTo-Json -Depth 32 -Compress)-cne(([Text.Encoding]::UTF8.GetString($factoryOld)|ConvertFrom-Json)|ConvertTo-Json -Depth 32 -Compress)){throw 'REPAIR_PROFILE_WIDENED'}
+$bytes[0]=0;if((Get-ErpBusinessSaleCandidateProfileBytes $issued)[0]-eq0){throw 'CANDIDATE_BYTES_ALIASED'}
+Reject {Assert-ErpBusinessSaleReadContextRepairAdmission ($issued|ConvertTo-Json|ConvertFrom-Json)}
+foreach($field in @('pid','thread','owner')){$old=$record.$field;$record.$field=if($old-is[string]){'foreign'}else{0};Reject {Assert-ErpBusinessSaleReadContextRepairAdmission $issued};$record.$field=$old}
+$script:factoryGeneration=$false;Reject {New-ErpBusinessSaleReadContextRepairAdmission $factoryConfig}
+if((Get-ErpBusinessSaleHash ([IO.File]::ReadAllBytes($profilePath)))-cne(Get-ErpBusinessSaleHash $factoryOld)){throw 'ISSUER_WROTE_PROFILE'};'PASS'
+`),'PASS');}finally{fs.rmSync(temp,{recursive:true});}
+});
+test('ReadContextRepair source generation rejects unknown, case aliases, routers and steady admission before IO',win,()=>{
+ assert.equal(run(String.raw`
+$body=(Get-Command Test-ErpBusinessSaleReadContextRepairGeneration).Definition.Replace('$PSScriptRoot','$script:sourceRoot');. ([scriptblock]::Create('function Test-ErpBusinessSaleReadContextRepairGeneration {'+$body+'}'))
+$owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-OWNER-20261030';$steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030'
+function Read-ErpBusinessSaleReadContextRepairOwnerSource{throw 'UNEXPECTED_GENERATION_IO'}
+foreach($bad in @($steady,$owner.ToLowerInvariant(),($owner+'x'),$owner.Replace('-OWNER-','-ROUTER-'),'C:\fixture\foreign')){
+ $script:sourceRoot=$bad;$denied=$false;try{New-ErpBusinessSaleReadContextRepairAdmission ([pscustomobject]@{})|Out-Null}catch{if($_.Exception.Message-cne'B6_READ_REPAIR_GENERATION_REJECTED'){throw};$denied=$true};if(!$denied){throw 'GENERATION_GRANTED'}
+}
+$script:sourceRoot=$owner;if(!(Test-ErpBusinessSaleReadContextRepairGeneration)){throw 'MAINTENANCE_REJECTED'};$script:sourceRoot=$steady;if((Test-ErpBusinessSaleReadContextRepairGeneration)-or!(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady)){throw 'STEADY_SCOPE_CHANGED'};'PASS'
+`),'PASS');
+});
+
 test('new frozen permission artifact pins reject old revision, scope drift and descriptor mismatch',win,()=>{
  assert.equal(run(String.raw`
 $script:descriptor=[pscustomobject]@{readerDefinitions=[pscustomobject]@{}}
@@ -692,6 +833,19 @@ foreach($field in @('kind','purpose','sourceCommit','basePackageId','baseManifes
  $caught=$false;try{Assert-ErpApiPrivateProfile $base $api $manifest}catch{$caught=$true};if(!$caught){throw ('WRITER_ARRAY_ACCEPTED_'+$field)}
 }
 foreach($field in @('packageId','sourceCommit')){$manifest=$m|ConvertTo-Json -Depth 32|ConvertFrom-Json;$v=$manifest.$field;$manifest.$field=@($v,$v);$caught=$false;try{Assert-ErpApiPrivateProfile $base $api $manifest}catch{$caught=$true};if(!$caught){throw ('WRITER_MANIFEST_ARRAY_ACCEPTED_'+$field)}}
-if(($base|ConvertTo-Json -Depth 32 -Compress)-cne$before){throw 'WRITER_MUTATED_BASE'};'PASS'
+if(($base|ConvertTo-Json -Depth 32 -Compress)-cne$before){throw 'WRITER_MUTATED_BASE'}
+# New profile parsing must preserve original Writer restrictions without
+# loading the full migration artifact or invoking native SQL in quick admission.
+$script:d|Add-Member contextDefinitionHash ('B'*64);$script:d|Add-Member beginDefinitionHash ('C'*64)
+function Test-ErpBusinessSaleReadContextRepairGeneration{return $true}
+function Read-ErpBusinessSaleReadContextRepairOwnerSource{return @{packagePair=@{current=@{api=@{packageId='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'}}}}}
+function Get-ErpBusinessSaleReadContextRepairFixedCase{return @{steadyRoot='C:\fixture\steady'}}
+function Read-ErpBusinessSaleReadContextRepairOriginalDescriptor{return ($script:d|ConvertTo-Json -Depth 32|ConvertFrom-Json)}
+function Get-ErpBusinessSaleReadContextRepairDescriptor($Mode){$v=Read-ErpBusinessSaleReadContextRepairOriginalDescriptor;if($Mode-ceq'Candidate'){$v.contextDefinitionHash='E'*64;$v.beginDefinitionHash='F'*64};return $v}
+function Get-ErpBusinessSaleNativeInputs{throw 'PROFILE_PARSER_LOADED_FULL_ARTIFACT'}
+function Test-ErpBusinessSaleReadContextRepairTuple{throw 'PROFILE_PARSER_EXECUTED_SQL'}
+$api.businessSaleAdmission=Get-ErpBusinessSaleReadContextRepairDescriptor Candidate
+[void](Assert-ErpBusinessSaleProfileDelta $base $api $m)
+$api.businessSaleAdmission.contextDefinitionHash='X'*64;$denied=$false;try{Assert-ErpBusinessSaleProfileDelta $base $api $m|Out-Null}catch{$denied=$true};if(!$denied){throw 'REPAIR_PROFILE_MIXED_ACCEPTED'};'PASS'
 `),'PASS');
 });

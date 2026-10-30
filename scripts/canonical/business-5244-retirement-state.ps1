@@ -71,9 +71,23 @@ function Get-Business5244PackageRefreshBootstrapPins([string]$BeforeHash){
  Assert-Business5244RecordStage $rows $rows $old[0].pid Candidate $fixed
  return @{hash=$BeforeHash;pid=[int]$capture.child.pid;birth=[string]$capture.child.birth;ownerPid=[int]$capture.owner.pid;ownerBirth=[string]$capture.owner.birth;root=$fixed.root;source=$fixed.frontendSource}
 }
+function Get-Business5244ReadContextRepairBootstrapPins([string]$BeforeHash){
+ if(!(Test-Business5244ReadContextRepairGeneration)){throw 'CURRENT_BOOTSTRAP_READ_REPAIR_BEFORE_CHANGED'}
+ $case=Get-ErpBusinessSaleReadContextRepairFixedCase
+ if($BeforeHash-cne$case.recordsHash){throw 'CURRENT_BOOTSTRAP_READ_REPAIR_BEFORE_CHANGED'}
+ $o=Read-ErpBusinessSaleReadContextRepairOwnerSource
+ $capture=[Text.Encoding]::UTF8.GetString((Read-ErpBusinessSalePinnedFile (Join-Path $o.root 'current-read2b-owner-capture.json') $case.captureHash))|ConvertFrom-Json
+ $image=Read-ErpBusinessSalePinnedFile (Join-Path $o.root 'current-erp-processes.before.json') $BeforeHash
+ $rows=ConvertFrom-Business5244RecordBytes $image;$fixed=Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current
+ $old=@($rows|Where-Object port -eq 5244)
+ if($capture.schema-cne'melisa-b6-writer-current-owner-capture.v1'-or$capture.predecessorEntryKind-cne'ReadPairRouter'-or$capture.readOnly-isnot[bool]-or!$capture.readOnly-or$capture.stopAuthorized-isnot[bool]-or$capture.stopAuthorized-or$capture.owner.pid-ne18572-or$capture.child.pid-ne33788-or('134378104151292349'-and($capture.owner.birth-cne'134378104151292349'))-or('134378112314707445'-and($capture.child.birth-cne'134378112314707445'))-or$capture.recordBeforeSha256-cne$BeforeHash-or$capture.installedApiManifest-cne$fixed.apiManifest-or$capture.installedWebManifest-cne$fixed.manifest-or$old.Count-ne1-or$old[0].pid-ne$capture.child.pid-or$old[0].root-cne$fixed.root-or$old[0].sourceCommit-cne$fixed.frontendSource-or$old[0].backendPort-ne4144-or$old[0].businessWorkfaceId-cne$fixed.profile-or$capture.serviceCalls-ne0-or$capture.sqlCalls-ne0-or$capture.retireCalls-ne0){throw 'CURRENT_BOOTSTRAP_READ_REPAIR_CAPTURE_CHANGED'}
+ Assert-Business5244RecordStage $rows $rows $old[0].pid Candidate $fixed
+ return @{hash=$BeforeHash;pid=[int]$capture.child.pid;birth=[string]$capture.child.birth;ownerPid=[int]$capture.owner.pid;ownerBirth=[string]$capture.owner.birth;root=$fixed.root;source=$fixed.frontendSource}
+}
 function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='',[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213') {
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'CURRENT_BOOTSTRAP_SCOPE_REJECTED'}
  if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  if(Test-Business5244ReadContextRepairGeneration){return Get-Business5244ReadContextRepairBootstrapPins $BeforeHash}
   if(Test-Business5244PackageRefreshGeneration){return Get-Business5244PackageRefreshBootstrapPins $BeforeHash}
   if(Test-Business5244WriterWebOnlyGeneration){return Get-Business5244WriterWebOnlyBootstrapPins $BeforeHash}
   # This immutable observation identifies the Applied-B6 metadata predecessor;

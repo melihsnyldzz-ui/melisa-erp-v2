@@ -54,7 +54,9 @@ function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-R
   if($actual.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778'-or$actual.ManifestSha256-cne'0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64'-or$actual.SourceCommit-cne$scope.source-or$actual.ExpectedDatabase-cne$scope.database){throw 'TEST125_RELEASE_PROOF_SCOPE'}
   $next=$actual|ConvertTo-Json -Depth 100|ConvertFrom-Json;$next.ApiComponent.ReleaseRoot=$scope.candidate.ReleaseRoot;$next.ApiComponent.ManifestSha256=$scope.candidate.ManifestSha256
   $oldApi=Get-ErpApiComponentConfig $actual;$newApi=Get-ErpApiComponentConfig $next
-  $all=@($actual,$oldApi,$newApi);$manifests=@{};$shapes=@();$baseShapes=@();$projectedShapes=@()
+  $readRepair=$ScopeName-ceq'TEST125-API-B6-WRITER-20261029'-and(Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission).mode-ceq'ReadContextRepair'
+  if($readRepair-and($oldApi|ConvertTo-Json -Depth 100 -Compress)-cne($newApi|ConvertTo-Json -Depth 100 -Compress)){throw 'B6_READ_REPAIR_PACKAGE_DELTA_FORBIDDEN'}
+  $all=if($readRepair){@($actual,$oldApi)}else{@($actual,$oldApi,$newApi)};$manifests=@{};$shapes=@();$baseShapes=@();$projectedShapes=@()
   foreach($configShape in @($actual,$next)){$baseShapes+=,($configShape|ConvertTo-Json -Depth 100 -Compress)}
   foreach($configShape in @($oldApi,$newApi)){$projectedShapes+=,($configShape|ConvertTo-Json -Depth 100 -Compress)}
   $shapes=@($baseShapes)+@($projectedShapes)
@@ -65,10 +67,10 @@ function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-R
    $seal.Add($ownerSource.manifestPath,$ownerSource.manifestSha256)
    foreach($file in $ownerSource.files){$seal.Add((Join-Path $ownerSource.root $file.path),$file.sha256)}
    if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
-    $seal.Add($ownerSource.packagePairPath,$ownerSource.packagePairSha256)
+    if($readRepair){if(@($ownerSource.dataFiles).Count-ne7){throw 'B6_READ_REPAIR_SEALED_INPUTS_REQUIRED'};foreach($dataFile in $ownerSource.dataFiles){$seal.Add($dataFile.path,$dataFile.sha256)}}else{$seal.Add($ownerSource.packagePairPath,$ownerSource.packagePairSha256)}
     $currentTask=Read-ErpBusinessSaleWriterCurrentTaskSource
     $seal.Add($currentTask.path,$currentTask.sha256);$seal.Add($currentTask.manifestPath,$currentTask.coreManifestSha256);$seal.Add($currentTask.capturePath,$currentTask.captureSha256)
-    if((Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission).mode-ceq'PackageRefresh'){
+    if((Get-ErpBusinessSaleNativeAdmissionContext $NativeProfileAdmission).mode-cin@('PackageRefresh','ReadContextRepair')){
      $packageRefreshTaskSource=$currentTask;$running=$currentTask.runningSupervisor.launcher
      $seal.Add($running.path,$running.sha256);$seal.Add((Join-Path $running.coreRoot 'owner-manifest.json'),$running.coreManifestSha256)
     }
@@ -79,7 +81,7 @@ function New-ErpReadPairPreparedReleaseProof($Config,[ValidateSet('TEST125-API-R
   $token=[pscustomobject][ordered]@{schema='melisa-test125-read2b-immutable-release-proof.v1';id=[guid]::NewGuid().ToString('N')}
   $pins=[pscustomobject][ordered]@{policy=$seal.PolicyVersion;baseRoot=$actual.ReleaseRoot;baseManifest=$actual.ManifestSha256;currentApiRoot=$oldApi.ReleaseRoot;currentApiManifest=$oldApi.ManifestSha256;candidateApiRoot=$newApi.ReleaseRoot;candidateApiManifest=$newApi.ManifestSha256;node=$actual.NodePath;nodeSha256=$actual.NodeSha256;source=$actual.SourceCommit;database=$actual.ExpectedDatabase}
   $record=[pscustomobject]@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;owner=$actual.OwnerSid;seal=$seal;shapes=$shapes;baseShapes=$baseShapes;projectedShapes=$projectedShapes;configs=[Collections.ArrayList]::new();manifests=$manifests;pins=$pins;businessSaleOwnerPins=$businessSaleOwnerPins;closed=$false}
-  if($packageRefreshTaskSource){$record|Add-Member packageRefreshTaskSource $packageRefreshTaskSource;$record|Add-Member packageRefreshAdmission $NativeProfileAdmission}
+  if($packageRefreshTaskSource){$record|Add-Member packageRefreshTaskSource $packageRefreshTaskSource;if($readRepair){$record|Add-Member readContextRepairInputs $true;$record|Add-Member readContextRepairAdmission $NativeProfileAdmission}else{$record|Add-Member packageRefreshAdmission $NativeProfileAdmission}}
   [void]$script:ErpReadPairReleaseProofs.Add($record)
   return $token
  }catch{$seal.Dispose();throw}
@@ -204,7 +206,7 @@ function Get-ErpServiceListeners($Definition,$Config) {
  return $listeners
 }
 function Test-ErpSteadyWebStartupGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030')
 }
 function Start-ErpSteadyWebStartup {
  if(!(Test-ErpSteadyWebStartupGeneration)){throw 'TEST_STEADY_GENERATION_REQUIRED'}
@@ -212,11 +214,12 @@ function Start-ErpSteadyWebStartup {
  $result=@{state='unknown';attempted=$false;owner=$null};$script:ErpSteadyWebStartupAttempt=$result
  # A listener is an observation, never permission to adopt or stop its owner.
  if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort-eq5244}).Count){$result.state='already-present-not-adopted';return $result}
- $root=if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')){(Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'};$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
+ $repair=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-STEADY-OWNER-20261030'
+ $root=if($repair){(Get-ErpBusinessSaleReadContextRepairFixedCase).steadyRoot}elseif($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030')){(Get-ErpBusinessSalePackageRefreshFixedCase).steadyRoot}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029'};$manifestPath=Join-Path $root 'owner-manifest.json';$entry=Join-Path $root 'run-current-owner.ps1';$holds=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   foreach($file in @($manifestPath,$entry)){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'TEST_STEADY_REPARSE_POINT'}};$holds.Add([IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read))}
   $manifest=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
-  if($manifest.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$manifest.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$manifest.maintenancePurpose-cne'WebOnlySteadyStartup'-or$manifest.apiTransitionEnabled-ne$false-or$manifest.readPairMaintenanceEnabled-ne$false-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.recordingEnabled-ne$false-or@($manifest.files).Count-ne13){throw 'TEST_STEADY_OWNER_MANIFEST_CHANGED'}
+  if($manifest.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$manifest.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$manifest.maintenancePurpose-cne$(if($repair){'ReadContextRepair'}else{'WebOnlySteadyStartup'})-or$manifest.apiTransitionEnabled-ne$false-or$manifest.readPairMaintenanceEnabled-ne$false-or$manifest.actualT1-ne$false-or$manifest.externalOperations-ne$false-or$manifest.recordingEnabled-ne$false-or@($manifest.files).Count-ne13){throw 'TEST_STEADY_OWNER_MANIFEST_CHANGED'}
   $rows=@($manifest.files|Where-Object{$_.path-ceq'run-current-owner.ps1'});$self=@($manifest.files|Where-Object{$_.path-ceq'start-owned-test.ps1'})
   if($rows.Count-ne1-or$self.Count-ne1-or$rows[0].sha256-cnotmatch'\A[a-f0-9]{64}\z'-or$self[0].sha256-cnotmatch'\A[a-f0-9]{64}\z'-or(Get-FileHash -LiteralPath $entry).Hash-ine$rows[0].sha256-or(Get-FileHash -LiteralPath $PSCommandPath).Hash-ine$self[0].sha256){throw 'TEST_STEADY_OWNER_SOURCE_CHANGED'}
   $manifestHash=(Get-FileHash -LiteralPath $manifestPath).Hash
