@@ -8,6 +8,7 @@
 - Taban: `06ce7a54458f56527a9bb80dbdbd9c28f0ca2d19`, PR54'ün incelenen güncel kaynağı.
 - İzole dal: `codex/d2-supplier-source-20261030`; mevcut eski `work` checkout'u ve yerel ERP sahibinin çalışma ağacı korunur.
 - Test kaynak commit'i: `401b40e6261cd616c8477a08c62506da6263588c`. İzleyen belge commit'i test veya üretim davranışını değiştirmez.
+- Teslim: [taslak PR65](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/65), hedef mevcut PR54 dalı; [güncel tam head CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/65/checks). Main hedeflenmez. PR oluşturulurken yerel owner'ın tabanı `9558b6660dfcf42190d7a8bfcfd1c1f76d7adb32` olmuştu; GitHub birleştirilebilirlik kontrolü çakışmasız. Owner'ın yeni kaynakları bu test dalına otomatik birleştirilmedi.
 - Yerel ERP sahibinin etkin işi B6'nın üç prosedür/iki descriptor hash alanı için dar SQL bakım bağlantısıdır. Bu teslim o kodu, kurulumu, onayı veya kanıtı devralmaz.
 - Değişen kaynak dosyası yalnız yeni `apps/sites-workflow/src/workflow/workSuppliersHistory.test.mjs`; ayrıca bu kanıt ve ayrı dalın STATUS notu. Üretim kaynakları, SQL, API, auth, config, bağımlılık veya workflow değişikliği yoktur.
 - Kaynak öncesi kontrolde yeni test yolu tabanda yoktu; ayrı D2 teslim PR'si bulunmadı. Etkin yerel konuşmada görülen çalışma bakım/owner/installer hattındaydı. Görünmeyen kuyruk için sahiplik iddiası yapılmaz; bu yeni dosya ortak kaynaklara yazmaz.
