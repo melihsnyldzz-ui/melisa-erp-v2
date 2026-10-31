@@ -114,3 +114,87 @@ and provider number/state/class/line from the original draft. The subpath runner
 is a bounded discriminator, not a demonstrated root cause or full-sale PASS.
 Actual SQL execution and a newly provisioned disposable environment require
 separate explicit approval; neither happened here.
+
+## Subsequent authorized isolated execution and confirmed defect
+
+The coordinator subsequently relayed the user's explicit technical delegation
+to perform the synthetic experiment. The earlier preparation-only boundary is
+historical; no new-environment-only approval gate was retained. The existing
+owned `melisa-b6-8711-20261029` container was matched to its original saved full
+ID, `network=none`, zero published ports and the official existing SQL image.
+The TCP runner target15439 was not opened. Existing credentials stayed inside
+the container; no password/login/role was created or changed. Container-local
+TLS was configured with certificate verification and encryption; client trust
+was limited to that process's own certificate file. No `-C` bypass, Windows
+trust-store change or real SQL service restart occurred.
+
+The actual transport was Microsoft's installed SQLCMD/ODBC18 inside that
+network-isolated container, not the application's Node mssql driver. This
+distinction matters for full-flow claims. A uniquely named empty disposable DB
+was created there; only synthetic fixtures were used. The reviewed SQL adapter
+held manifest/input read handles, checked the copied SQL hash, pinned the full
+container identity and failed closed on nonzero exit. Source review also closed
+the multi-batch error-handling dependency with `:ON ERROR EXIT` and exact second
+batch DB/server checks. No shared ERP/CRM SQL write or sale POST occurred.
+
+Real SQL results:
+
+| Probe | Observed result | Cleanup |
+|---|---|---|
+| Two valid selected items | Two inserted fixture rows | Outer transaction rolled back; schema/table count0 |
+| Invalid decimal quantity | 8114, state5, class16, selected-items stage | Same verified rollback |
+| Unknown synthetic product | FK547, state0, class16, selected-items stage | Same verified rollback |
+| Original competing ISSUED header conditions | Draft and draft-cancel both raise51917/B6_EVENT_TRANSFORM | No durable rows |
+| Fixed full generated header rules: valid draft/cancel | DRAFT_OPEN / DRAFT_CANCELLED | Verified rollback |
+| Fixed full rules: wrong draft kind, wrong cancel kind, finalize in ISSUED | Each still rejects51917 | Verified rollback |
+
+**Confirmed defect:** captured guard lines34 and44 independently enter the same
+`sales_invoices/ISSUED` condition. The insert block requires deleted-count0 and
+sets only `@next`; phase staysISSUED. The cancel block then enters and requires
+deleted-count1. Conversely a legitimate cancel fails the insert block first.
+This is a concrete blocking SQL logic defect; the old HTTP error lacked numeric
+metadata, so it is not claimed as the uniquely correlated historical error.
+
+The source compiler now adds `@operation=sale_draft` and `@operation=sale_cancel`
+to those two outer selectors. All inner predicates, counts, freshness, identity,
+permission, transaction and registry checks stay unchanged. After removing just
+these two selectors, the complete generated definition equals the captured
+installed definition byte-for-byte. CREATE-form corrected guard hash:
+`313C6549B137E242D471E3511F5E07E1105061F83F5E645AE75CE059B64B13E5`.
+The five-case real SQL regression used both complete generated rule bodies,
+including their original row predicates; it was not merely a string test.
+Sixteen targeted compiler tests passed under the unchanged offline guard and
+independent source review found no remaining P1/P2.
+
+**Transaction-count candidate was not proved.** An initial observation INSERT
+itself perturbed the measured count; that fixture was rejected. SQLCMD's default
+256-character truncation and a fixture-quoting error were also corrected without
+touching shared TEST. Measurements taken before observation DML, followed by
+the literal original guard/ready IF context predicates, saw count1 inside the
+called procedure at trigger depth1 and nested depth2, with the same transaction
+ID and no original context rejection. The documented general trigger increment
+does not justify changing this unproved caller-specific predicate; `@@TRANCOUNT`
+remains unchanged. See [Microsoft's transaction interoperability description](https://learn.microsoft.com/en-us/sql/t-sql/language-elements/rollback-transaction-transact-sql#interoperability).
+
+## Exact remaining activation boundary
+
+The installed shared TEST was only read: current guard and scope hash are both
+`9E8BC946A0FF0E90F22FD248927B7855679E7E196131D7D30247E2B674AC2DBE`;
+the scope immutable trigger remains enabled. API admission pins do not contain
+the guard hash; their existing four procedure pins are unchanged. A new API/web
+package or restart is not currently part of the planned correction.
+
+Private apply/inverse plans cover exactly one guard ALTER and one scope-row
+guard-hash update. They require verified fresh backup, exact DB18/server,
+existing exclusive transaction application lock, current definition/options/
+object/owner pins, scope CAS, preservation of five other procedures, and a
+temporary immutable-trigger state change restored inside the same transaction.
+ANSI_NULLS/QUOTED_IDENTIFIER/execute-as/object ID are preserved. Error means full
+rollback; the inverse is separately pinned. These plans were **not applied**.
+
+Current instructions explicitly preserve installed5244/shared SQL. Applying this
+specific guarded shared-TEST maintenance, including its temporary protection
+state change, requires a separate explicit activation decision. The old approval
+for one narrowly scoped sale is retained and not enlarged. Full normal sale,
+receipt, stock/customer effects, replay/cancellation and human acceptance remain
+open until the installed result is actually tested.

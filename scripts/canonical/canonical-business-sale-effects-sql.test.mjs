@@ -4,6 +4,19 @@ import {prepareCanonicalBusinessSaleEffects,compileCanonicalBusinessSaleEffects,
 import {canonicalBusinessSaleModuleHash,CANONICAL_SALE_PREFIX_BEGIN,CANONICAL_SALE_PREFIX_END} from './canonical-business-sale-admission-sql.mjs';
 
 const oldTriggers={sales_invoices:'test_guard_sales_invoices',sales_invoice_items:'test_guard_sales_invoice_items',products:'test_guard_products',stock_movements:'test_guard_stock_movements',customers:'test_guard_customers',customer_movements:'test_guard_customer_movements',audit_logs:'test_guard_audit_logs',work_sales_links:'work_night_guard_work_sales_links',work_trade_requests:'work_night_guard_work_trade_requests'};
+test('ISSUED header branches select exactly one operation before incompatible row-count checks',()=>{
+ const out=prepareCanonicalBusinessSaleEffects({...fixture(),profileHash:'A'.repeat(64)}),sql=out.guardDefinition;
+ const heads=[...sql.matchAll(/IF @table=N'sales_invoices' AND @phase IN\(N'ISSUED'\)([^\n]*) BEGIN/g)].map(x=>x[1]);
+ assert.deepEqual(heads,[" AND @operation=N'sale_draft'"," AND @operation=N'sale_cancel'"]);
+ for(const operation of ['sale_draft','sale_cancel','sale_finalize','unknown']){
+  const eligible=heads.filter(head=>head===` AND @operation=N'${operation}'`);
+  assert.equal(eligible.length,['sale_draft','sale_cancel'].includes(operation)?1:0);
+ }
+ assert.match(sql,/IF @next IS NULL/);
+ // The trigger-count hypothesis was not proved; leave authority unchanged.
+ assert.match(sql,/OR @@TRANCOUNT<>1 OR XACT_STATE\(\)<>1/);
+ assert.match(sql,/IF @ic<>1 OR @dc<>0/);assert.match(sql,/IF @ic<>1 OR @dc<>1/);
+});
 function fixture(){
  const before={identityJson:{databaseName:'MELISA_ERP_SIRKET_TEST_20260929_01',serverName:'Semih\\MELISADEV'},columnsJson:[],modulesJson:[]},addon={columnsJson:[],modulesJson:[]};
  for(const table of [...CANONICAL_SALE_EFFECTS_CONTRACT.tables,...CANONICAL_SALE_EFFECTS_CONTRACT.frozenTables]){
