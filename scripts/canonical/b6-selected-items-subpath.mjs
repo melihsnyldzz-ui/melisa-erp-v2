@@ -78,7 +78,7 @@ export async function execute({target,scenario,approvedExecution,username,passwo
    stage='schema';await request().query(schemaSQL);
    stage='synthetic-seed';await request().query(seedSQL);
    stage='selected-items';await request().input('invoiceId',sql.BigInt,'900010').input('selectedItemsJSON',sql.NVarChar(sql.MAX),JSON.stringify(p.items)).query(selectedItemsSQL().sql);
-   stage='read-result';const rows=(await request().query('SELECT COUNT(*) rowCount FROM b6_subpath_fixture.items;')).recordset;
+   stage='read-result';const rows=(await request().query('SELECT COUNT(*) AS [rowCount] FROM b6_subpath_fixture.items;')).recordset;
    insertedCount=rows?.[0]?.rowCount;if(insertedCount!==2)reject('B6_SUBPATH_ROW_COUNT');
   }catch(error){failure=numericFailure(error,stage);if(!Number.isInteger(failure.number))throw error;}
   finally{await tx.rollback();tx=null;}

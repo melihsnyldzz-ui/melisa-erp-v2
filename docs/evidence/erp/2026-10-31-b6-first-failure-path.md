@@ -198,3 +198,51 @@ state change, requires a separate explicit activation decision. The old approval
 for one narrowly scoped sale is retained and not enlarged. Full normal sale,
 receipt, stock/customer effects, replay/cancellation and human acceptance remain
 open until the installed result is actually tested.
+
+## Directly approved native activation — verified
+
+The user subsequently explicitly approved exactly the guard procedure, its
+single bound hash row, and the temporary transactional immutable-trigger
+maintenance. The prepared apply/inverse received independent source review.
+The actual module options were read and pinned: object624825388,
+ANSI_NULLS/QUOTED_IDENTIFIER1, EXECUTE AS OWNER. Those values are checked both
+before and after; no role/permission change is part of the plan.
+
+Fresh native TEST COPY_ONLY/CHECKSUM backup and RESTORE VERIFYONLY passed. This
+is not a performed restore rehearsal. The backup receipt and held backup stream
+were SHA-verified. Before-images were flushed to durable storage before the
+single-attempt marker. A PS5 UTC/local DateTime subtraction problem stopped the
+initial invocation before before-image/marker/SQL; DateTimeOffset arithmetic
+fixed the calculation while preserving both freshness limits. No new backup
+or SQL write was repeated because of that precheck failure.
+
+At `2026-10-31T14:00:04Z`, one native maintenance SQL call completed. Independent
+SQL readback verified corrected guard hash313C..., matching single scope hash,
+original immutable definition and enabled state, original guard object/options/
+owner, and the other six captured module records. Eight protected stock/balance/
+role hashes and ten history table counts are identical. Runtime/config/manifest
+files, API/native/WEB PIDs and health identity also remain identical. No API/web
+package installation, restart, password/role, stock/customer/cash movement,
+invoice, sale POST, LIVE/Vega/CRM/T1 change occurred.
+
+Normal5244 was read again through the preserved Semih session. Catalogue refresh
+returned16992 products/50 rows; empty sales reload returned402 customers. The
+existing two-line cart was preserved, its product/account reading revalidated,
+and native sale preview succeeded with the save-draft control enabled. **No
+save-draft click was made.** The previous failed request's normal receipt read
+still reports unconfirmed; it is not treated as a new sale or an authorization
+to retry blindly. Receipt/stock/customer-effect/replay/cancel and human acceptance
+therefore remain open.
+
+Only the owned network-none SQL test container was gracefully returned to its
+previous stopped state. Its evidence, volume and empty disposable DB were not
+deleted. The standalone TCP subpath runner's count alias was quoted as
+`[rowCount]` after SQL Server's reserved-word behavior was observed in the
+readback query. Its eight offline target-refusal/rollback tests passed again;
+its alternate TCP SQL branch was not claimed as executed.
+
+The guard's applied source is15062d66. Its first push CI41207364873 passed all
+three jobs; PR41207369007 was still running its unrelated Windows job at this
+recording. The earlier af5029d0 PR Windows cancellation was never called PASS
+and was not rerun. Final source/report delivery and CI are recorded separately
+in the same PR comment; no further install loop is started.
