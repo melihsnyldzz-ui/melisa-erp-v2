@@ -15,11 +15,39 @@ function Get-Business5244ReadPairPins {
  $p.apiManifest='8b39a46f27ce8c6e0b8e41a34e29bee2aab0b4575129da5503c0602c4c9c8090'
  return $p
 }
+# Finite pending-recovery generation. Metadata never issues native authority.
+function Test-Business5244PendingWebGeneration {
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031')
+}
+function Get-Business5244PendingWebCase {
+ if(!(Test-Business5244PendingWebGeneration)){throw 'PENDING_WEB_GENERATION_REQUIRED'}
+ $manifestPath=Join-Path $PSScriptRoot 'owner-manifest.json'
+ foreach($part in @($manifestPath,(Join-Path $PSScriptRoot 'pending-web-case.json'),'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031\before.json')){for($at=$part;$at;$at=[IO.Path]::GetDirectoryName($at)){if((Get-Item -LiteralPath $at -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'PENDING_WEB_REPARSE'}}}
+ $m=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
+ if($m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$m.actualT1-ne$false-or$m.externalOperations-ne$false-or$m.executionAuthority-ne$false-or$m.admissionIssued-ne$false-or$m.runtimeValidationComplete-ne$false-or$m.pendingWebCase.path-cne'pending-web-case.json'-or$m.pendingWebCase.sha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'PENDING_WEB_MANIFEST_CHANGED'}
+ if((Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'pending-web-case.json')).Hash-ine$m.pendingWebCase.sha256-or(Get-FileHash -LiteralPath 'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031\before.json').Hash-ine'25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc'){throw 'PENDING_WEB_CASE_CHANGED'}
+ foreach($key in @('actualT1','externalOperations','executionAuthority','admissionIssued','runtimeValidationComplete')){if($m.$key-isnot[bool]-or$m.$key){throw 'PENDING_WEB_MANIFEST_FLAG_TYPE'}}
+ $c=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'pending-web-case.json') -Raw|ConvertFrom-Json
+ $b=Get-Content -LiteralPath 'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031\before.json' -Raw|ConvertFrom-Json
+ foreach($key in @('installed','executionAuthority','admissionIssued','activePointerPublished','runtimeValidationComplete')){if($c.$key-isnot[bool]-or$c.$key){throw 'PENDING_WEB_CASE_FLAG_TYPE'}}
+ if($c.schema-cne'melisa-b6-pending-web-generation-case.v1'-or$c.purpose-cne'WebOnlyFrontendRefresh'-or$c.scope-cne$m.finiteScope-or$c.beforeSha256-cne'25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc'-or$c.profileSha256-cne'74d72c0c2ce685f126ae941249c69a1168bf90e7dbbf45269639e19ef466c7c3'-or$c.apiManifestSha256-cne'afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c'-or$c.currentWebManifestSha256-cne'853025ef7df10eec9a4feff026b767c6c323e5e5259c7bcbc2f7f19186743855'-or$c.candidateWebManifestSha256-cne'f5f87a6ec42e2e1273d40e2ce030e3c19d836bb96b0d56a0dc289d27a2911afc'-or$c.nodeSha256-cne'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'-or$c.entryCount-ne56-or$c.installed-ne$false-or$c.executionAuthority-ne$false-or$c.admissionIssued-ne$false-or$c.activePointerPublished-ne$false){throw 'PENDING_WEB_FIXED_CASE_CHANGED'}
+ if($b.nativePeerVerified-ne$false-or$b.leaseIssued-ne$false-or$b.runtimeValidationComplete-ne$false-or$b.owner.pid-ne33080-or$b.owner.birth-cne'134379216568450540'-or$b.child.pid-ne7052-or$b.child.parent-ne33080-or$b.child.birth-cne'134379217109250880'-or$b.recordSha256-cne'4582474922eb94954f5fcf039777b58be53190fc3d3b10ffb292861148447564'-or@($b.entries).Count-ne56){throw 'PENDING_WEB_BEFORE_CHANGED'}
+ return @{case=$c;before=$b;manifest=$m}
+}
+function Get-Business5244PendingWebPins {
+ param([ValidateSet('Current','Candidate')][string]$Mode='Current')
+ $validated=Get-Business5244PendingWebCase
+ $steady=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031'
+ if($steady){$Mode='Candidate'}
+ $id=if($Mode-ceq'Current'){'ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030'}else{'ERP-BUSINESS-WEB-5244-B6-PENDING-5457e450-PASSIVE-20261031'}
+ return @{root=('C:\Sirket\ERP\releases\'+$id);package=$id;manifest=$(if($Mode-ceq'Current'){$validated.case.currentWebManifestSha256}else{$validated.case.candidateWebManifestSha256});frontendSource=$(if($Mode-ceq'Current'){'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'}else{'5457e450ad153894c2f81112f08217a16c70330a'});apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';apiManifest=$validated.case.apiManifestSha256;baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash=$validated.case.nodeSha256.ToUpperInvariant();profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+}
 function Test-Business5244WriterWebOnlyGeneration {
  # A source location selects this single immutable generation, never a CLI flag.
- return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'
+ return ($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'-or$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031')
 }
 function Test-Business5244SteadyGeneration {
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031'){return $true}
  return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030')
 }
 function Test-Business5244ReadContextRepairGeneration {
@@ -29,6 +57,7 @@ function Test-Business5244PackageRefreshGeneration {
  return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-OWNER-20261030')
 }
 function Get-Business5244SteadyPins {
+ if(Test-Business5244PendingWebGeneration){return Get-Business5244PendingWebPins -Mode Candidate}
  if(!(Test-Business5244SteadyGeneration)){throw 'BUSINESS_STEADY_GENERATION_REQUIRED'}
  if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'){
   $repair=Read-ErpBusinessSaleReadContextRepairOwnerSource;$m=Get-Content -LiteralPath $repair.manifestPath -Raw|ConvertFrom-Json
@@ -48,6 +77,7 @@ function Get-Business5244SteadyPins {
 function Get-Business5244WriterWebOnlyPins {
  param([ValidateSet('Current','Candidate')][string]$Mode='Current')
  if($Mode-cnotin@('Current','Candidate')-or!(Test-Business5244WriterWebOnlyGeneration)){throw 'BUSINESS_WEB_ONLY_GENERATION_REQUIRED'}
+ if(Test-Business5244PendingWebGeneration){return Get-Business5244PendingWebPins -Mode $Mode}
  $root='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029';$pairHash='f1672081cc695941cd3691cde503a0bb27c1ab58537362fb6907a5cd5dc0d4e4'
  if($pairHash-cnotmatch'\A[a-f0-9]{64}\z'){throw 'BUSINESS_WEB_ONLY_PAIR_NOT_PREPARED'}
  foreach($path in @($root,(Join-Path $root 'owner-manifest.json'),(Join-Path $root 'writer-webonly-package-pair.json'))){for($part=$path;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'BUSINESS_WEB_ONLY_REPARSE_POINT'}}}

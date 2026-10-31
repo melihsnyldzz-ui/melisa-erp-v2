@@ -1217,3 +1217,34 @@ win('PreviewRead corrective publication preserves the exact thirty-two captured 
   $denied=$false;try{Open-B6ReadPairPublication}catch{$denied=$true};if(!$denied-or$heldPaths.Count-or$phases.Count){throw ('NATIVE_CAPTURE_FALSE_ADMISSION_'+$kind)}
  };'PASS'`),'PASS');
 });
+win('Pending WEB task projection changes only the future launcher and rejects extra actions arguments or target drift',()=>{
+ assert.equal(run(String.raw`
+$old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031\start-owned-test.ps1'
+$args='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$old+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
+$xml='<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task" version="1.2"><Principals><Principal id="Author"><UserId>fixture-user</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><Enabled>true</Enabled></Settings><Actions Context="Author"><Exec><Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($args)+'</Arguments></Exec></Actions></Task>'
+$after=New-B6PendingWebTaskXml $xml
+if((Get-B6SteadyTaskXmlCanonical $after.Replace($new,$old))-cne(Get-B6SteadyTaskXmlCanonical $xml)-or!$after.Contains($new)-or$after.Contains($old)){throw 'TASK_PROJECTION_WIDENED'}
+foreach($bad in @($xml.Replace('startup-config.json','other-config.json'),$xml.Replace('</Arguments>',' -Command extra</Arguments>'),$xml.Replace('</Actions>','<Exec><Command>other</Command></Exec></Actions>'))){$denied=$false;try{New-B6PendingWebTaskXml $bad|Out-Null}catch{$denied=$true};if(!$denied){throw 'TASK_DRIFT_ACCEPTED'}}
+'PASS'`),'PASS');
+});
+win('Pending WEB source entry and task publication reject missing authority replay or passive JSON without touching task or process',()=>{
+ assert.equal(run(String.raw`
+$script:danger=0;function Get-CimInstance{$script:danger++;throw 'UNEXPECTED_PROCESS_READ'};function New-Object{$script:danger++;throw 'UNEXPECTED_COM_OBJECT'}
+$denied=$false;try{Open-B6PendingWebPreparedSource ('a'*64) 'C:\fixture\wrong.ps1'|Out-Null}catch{if($_.Exception.Message-cne'PENDING_WEB_REVIEWED_ENTRY_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'MISSING_AUTHORITY_ACCEPTED'}
+$script:Apply=$true;$script:PendingWebInstall=$true;$script:PublishPendingStartup=$true;$b6=[pscustomobject]@{pendingWeb=$true}
+$script:PendingWebTaskPublication=@{phase='Attempted';process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;registerCalls=1}
+$denied=$false;try{Complete-B6PendingWebTaskPublication CandidateVerified}catch{if($_.Exception.Message-cne'PENDING_WEB_TASK_NO_REPLAY'){throw};$denied=$true};if(!$denied){throw 'TASK_REPLAY_ACCEPTED'}
+$script:PendingWebTaskPublication=@{phase='Prepared';process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;registerCalls=0}
+function Assert-B6ReadPairEntryHandoffReady {throw 'FIXTURE_NATIVE_HANDLE_REQUIRED'}
+$denied=$false;try{Complete-B6PendingWebTaskPublication CandidateVerified}catch{if($_.Exception.Message-cne'FIXTURE_NATIVE_HANDLE_REQUIRED'){throw};$denied=$true};if(!$denied-or$script:danger-ne0){throw 'PASSIVE_JSON_ACQUIRED_AUTHORITY'}
+'PASS'`),'PASS');
+});
+win('Pending WEB rollback leaves the original task untouched after native handoff guards',()=>{
+ assert.equal(run(String.raw`
+$script:Apply=$true;$script:PendingWebInstall=$true;$script:PublishPendingStartup=$true;$b6=[pscustomobject]@{pendingWeb=$true};$script:calls=0;$script:danger=0
+$script:PendingWebTaskPublication=@{phase='Prepared';process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;registerCalls=0}
+function Assert-B6ReadPairEntryHandoffReady {$script:calls++};function Assert-B6PendingWebApiBoundary {$script:calls++};function Get-Test125ReadPairTask {$script:danger++;throw 'UNEXPECTED_TASK_ACCESS'};function New-Object {$script:danger++;throw 'UNEXPECTED_COM_ACCESS'}
+Complete-B6PendingWebTaskPublication RollbackVerified
+if($script:calls-ne2-or$script:danger-ne0-or$script:PendingWebTaskPublication.phase-cne'RollbackUnchanged'-or$script:PendingWebTaskPublication.registerCalls-ne0){throw 'ROLLBACK_CHANGED_TASK'}
+'PASS'`),'PASS');
+});

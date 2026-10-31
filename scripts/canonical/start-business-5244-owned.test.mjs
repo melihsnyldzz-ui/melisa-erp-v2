@@ -612,3 +612,15 @@ win('steady held publisher requires its genuine state and direct retirement cann
   if(!$native.RetirementConfirmed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($initRecords)))-cne$initHash){throw 'STEADY_GENUINE_INVERSE_FAILED'}
  }finally{if($records){$records.Dispose()};Close-Business5244RetirementState $state;$native.Dispose();Exit-Business5244StartupLease $lease};'PASS'`),'PASS');
 });
+win('Pending WEB entry predicate is self-contained and accepts only exact disposable File wrapper paths',()=>{
+ assert.equal(run(load+String.raw`
+ $root=Join-Path $env:TEMP 'pending-web-entry-fixture';[void][IO.Directory]::CreateDirectory($root)
+ $router=Join-Path $root 'router-entry.ps1';$current=Join-Path $root 'current-entry.ps1'
+ $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-20261031\start-business-5244-readpair-router.ps1',$router).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031\run-current-owner.ps1',$current).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031',$root)
+ foreach($entry in @($router,$current)){[IO.File]::WriteAllText($entry,('function Get-Business5244WebOnlyEntryMode {'+$definition+'};Get-Business5244WebOnlyEntryMode'))}
+ foreach($entry in @($router,$current)){
+  $si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -WindowStyle Hidden -File "'+$entry+'" -ManifestSha256 '+('a'*64);$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$si.RedirectStandardError=$true
+  $child=[Diagnostics.Process]::Start($si);try{$answer=$child.StandardOutput.ReadToEnd().Trim();$errorText=$child.StandardError.ReadToEnd();if(!$child.WaitForExit(5000)-or$child.ExitCode-ne0-or$errorText-or$answer-cne$(if($entry-ceq$router){'Maintenance'}else{'CurrentRecovery'})){throw 'PENDING_ACTUAL_WRAPPER_ARGV_REJECTED'}}finally{$child.Dispose()}
+ }
+ 'PASS'`),'PASS');
+});

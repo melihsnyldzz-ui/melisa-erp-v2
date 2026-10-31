@@ -25,3 +25,34 @@ win('component health is checked against its own manifest and dedicated normal-s
 win('API profile permits only the package projection and business fields without changing the original native seal',()=>{
  assert.equal(run(`$base=[pscustomobject]@{database='TEST';jwtAccessSecret='fixture-only';goal8SyntheticDaySeal=[pscustomobject]@{sourceCommit='source';dayId='day';definitionHash='definition';packageId='original'}};$before=$base|ConvertTo-Json -Depth 10 -Compress;$api=$base|ConvertTo-Json -Depth 10|ConvertFrom-Json;$api.goal8SyntheticDaySeal.packageId='api-only';$api|Add-Member -NotePropertyName businessWorkface -NotePropertyValue ([pscustomobject]@{id='fixture'});$api|Add-Member -NotePropertyName businessSessionAccessSecret -NotePropertyValue 'fixture-separate';$manifest=[pscustomobject]@{packageId='api-only'};Assert-ErpApiPrivateProfile $base $api $manifest;if($api.goal8SyntheticDaySeal.packageId -cne 'api-only' -or ($base|ConvertTo-Json -Depth 10 -Compress) -cne $before){throw 'MUTATED_INPUT'};foreach($field in @('database','jwtAccessSecret','dayId','definitionHash','packageId')){$bad=$api|ConvertTo-Json -Depth 10|ConvertFrom-Json;if($field -in @('database','jwtAccessSecret')){$bad.$field='changed'}else{$bad.goal8SyntheticDaySeal.$field='changed'};$rejected=$false;try{Assert-ErpApiPrivateProfile $base $bad $manifest}catch{$rejected=$true};if(!$rejected){throw 'UNSAFE_PROFILE_ACCEPTED'}};'PASS'`),'PASS');
 });
+win('Pending WEB steady root is exact and the real three-service readiness gate invokes startup only after all three are ready',()=>{
+ const body=String.raw`
+$tokens=$null;$parseErrors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(`+q(script)+String.raw`,[ref]$tokens,[ref]$parseErrors)
+$fn=$ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Test-ErpSteadyWebStartupGeneration'},$true)
+if($fn.Count-ne1){throw 'PENDING_STEADY_PREDICATE_MISSING'}
+. ([scriptblock]::Create($fn[0].Extent.Text.Replace('$PSScriptRoot','$fixtureSteadyRoot')))
+$expected='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031'
+foreach($candidate in @($expected,($expected+'-other'),$expected.ToLowerInvariant())){$fixtureSteadyRoot=$candidate;if((Test-ErpSteadyWebStartupGeneration)-ne($candidate-ceq$expected)){throw 'PENDING_STEADY_ALIAS_ACCEPTED'}}
+$fixtureSteadyRoot=$expected;$script:startCalls=0;$script:stateWrites=0;$script:notReady=$false
+function Get-ErpMutexName{'isolated-fixture-no-kernel-mutex'}
+function New-Object {param($TypeName,$ArgumentList);if($TypeName-cne'Threading.Mutex'){throw 'UNEXPECTED_OBJECT'};$m=[pscustomobject]@{};$m|Add-Member ScriptMethod WaitOne {$true};$m|Add-Member ScriptMethod ReleaseMutex {};$m|Add-Member ScriptMethod Dispose {};return $m}
+function New-Item {param($ItemType,[switch]$Force,$Path)}
+function Assert-ErpRelease {param($Config);@{packageId='isolated-fixture'}}
+function Get-ErpServiceDefinitions {param($Config);@(@{Name='api';Port=4144},@{Name='native';Port=4146},@{Name='web';Port=5194})}
+function Test-Path {param($LiteralPath);$false}
+function Get-ErpServiceListeners {param($Definition,$Config);[pscustomobject]@{OwningProcess=$Definition.Port}}
+function Assert-ErpOwnedProcess {param($ProcessId,$Config,$Definition,$CreatedAt);[pscustomobject]@{ProcessId=$ProcessId;CreationDate=[DateTime]::UtcNow}}
+function Assert-ErpHealth {param($Config,$Definition);if($script:notReady-and$Definition.Name-ceq'native'){throw 'fixture-not-ready'}}
+function Start-ErpSteadyWebStartup {$script:startCalls++;@{state='fixture-start-dispatched';attempted=$true}}
+function Start-Process {throw 'UNEXPECTED_REAL_START'}
+function Stop-Process {throw 'UNEXPECTED_REAL_STOP'}
+function Write-ErpState {param($Path,$Value);$script:stateWrites++}
+function Get-ScheduledTask {param($TaskName,$TaskPath,$ErrorAction);$null}
+$cfg=[pscustomobject]@{RepoRoot='C:\isolated-fixture';OwnerSid='fixture-identity';RuntimeDir='C:\isolated-fixture\runtime';LogDir='C:\isolated-fixture\logs';SourceCommit=('f'*40);TaskName='fixture';ExpectedDatabase='fixture'}
+Invoke-ErpOwnedSession $cfg -SinglePass
+if($script:startCalls-ne1-or$script:stateWrites-lt3){throw 'THREE_READY_DID_NOT_DISPATCH_PENDING_STEADY'}
+$script:notReady=$true;Invoke-ErpOwnedSession $cfg -SinglePass
+if($script:startCalls-ne1){throw 'INCOMPLETE_SERVICES_STARTED_PENDING_WEB'}
+'PASS'`;
+ assert.equal(run(body),'PASS');
+});

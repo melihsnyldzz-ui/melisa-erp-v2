@@ -40,6 +40,13 @@ function Assert-Business5244RetirementRecord($State,[IO.FileStream]$Records){
  return ,$before
 }
 function Get-Business5244WriterWebOnlyBootstrapPins([string]$BeforeHash){
+ if(Test-Business5244PendingWebGeneration){
+  $v=Get-Business5244PendingWebCase;$b=$v.before;$fixed=Get-Business5244PendingWebPins -Mode Current
+  if($BeforeHash-cne$b.recordSha256-or$b.readOnly-isnot[bool]-or!$b.readOnly-or$b.executionAuthority-isnot[bool]-or$b.executionAuthority-or$b.nativePeerVerified-isnot[bool]-or$b.nativePeerVerified-or$b.runtimeValidationComplete-isnot[bool]-or$b.runtimeValidationComplete){throw 'CURRENT_PENDING_WEB_BEFORE_CHANGED'}
+  # This observation grants no control. The existing bootstrap still requires
+  # its genuine created-child object, Owner lease, exclusive CAS and old exit.
+  return @{hash=$b.recordSha256;pid=[int]$b.child.pid;birth=$b.child.birth;ownerPid=[int]$b.owner.pid;ownerBirth=$b.owner.birth;root=$fixed.root;source=$fixed.frontendSource}
+ }
  if(!(Test-Business5244WriterWebOnlyGeneration)){throw 'CURRENT_BOOTSTRAP_WEB_ONLY_GENERATION_REQUIRED'}
  $root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-workface-build-20261029\current-capture-corrected'
  $captureHash='e480d77c835f3c2170589b9fbafec6da78dd2a19624d486d8822ad7b930d3a09';$recordHash='fe5a222107e2a056d649a26f1dfa86d576f6a3d29fe413731c995c7b295183db'
