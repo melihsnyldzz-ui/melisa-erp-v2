@@ -13,8 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  windows-startup-test:
-    name: windows-startup-test
+  windows-startup-core:
+    name: windows-startup-core
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -24,8 +24,6 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: B6 finite native profile and rollback with isolated source fixtures
-        run: node --test --test-concurrency=1 scripts/canonical/canonical-business-sale-maintenance.test.mjs scripts/canonical/prepare-business-sale-owner-bundle.test.mjs scripts/canonical/prepare-business-sale-array-repair-owner.test.mjs scripts/canonical/test125-bound-api-quiescence.test.mjs scripts/canonical/test125-bound-maintenance-plan.test.mjs scripts/canonical/start-owned-test-component.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/test125-read2b-pair.test.mjs
       - name: Windows owner and single-instance startup boundaries
         run: node --test scripts/canonical/start-owned-test.test.mjs
       - name: Native Windows carton ACL module discovery
@@ -50,8 +48,56 @@ jobs:
         run: node --test scripts/canonical/clean-web-owner.test.mjs
       - name: Clean WEB host adapter with pinned own temporary children
         run: node --test scripts/canonical/clean-web-host.test.mjs
+
+  windows-b6-profile:
+    name: windows-b6-profile
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: B6 finite native profile and rollback with isolated source fixtures
+        run: node --test --test-concurrency=1 scripts/canonical/canonical-business-sale-maintenance.test.mjs scripts/canonical/prepare-business-sale-owner-bundle.test.mjs scripts/canonical/prepare-business-sale-array-repair-owner.test.mjs scripts/canonical/test125-bound-api-quiescence.test.mjs scripts/canonical/test125-bound-maintenance-plan.test.mjs scripts/canonical/start-owned-test-component.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/test125-read2b-pair.test.mjs
+
+  windows-business-5244:
+    name: windows-business-5244
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
       - name: Business 5244 cooperative exclusion and owned native lifetime
         run: node --test --test-concurrency=1 scripts/canonical/business-5244-startup-exclusion.test.mjs scripts/canonical/start-business-5244-web.test.mjs scripts/canonical/business-5244-retirement-channel.test.mjs scripts/canonical/business-5244-retirement-state.test.mjs scripts/canonical/business-5244-maintenance-dispatch.test.mjs scripts/canonical/business-5244-maintenance-commit.test.mjs scripts/canonical/business-5244-paired-maintenance.test.mjs scripts/canonical/business-5244-readpair-router.test.mjs scripts/canonical/business-5244-readpair-install.test.mjs scripts/canonical/business-5244-managed-cancel.test.mjs scripts/canonical/test125-read2b-prepared-api.test.mjs scripts/canonical/business-5244-readpair-admission.test.mjs
+
+  # Keep the required check name and reject every unsuccessful shard result.
+  windows-startup-test:
+    name: windows-startup-test
+    needs: [windows-startup-core, windows-b6-profile, windows-business-5244]
+    if: ${{ always() }}
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - name: Require every Windows test group to succeed
+        shell: pwsh
+        env:
+          CORE_RESULT: ${{ needs.windows-startup-core.result }}
+          B6_RESULT: ${{ needs.windows-b6-profile.result }}
+          BUSINESS_RESULT: ${{ needs.windows-business-5244.result }}
+        run: |
+          foreach ($result in @($env:CORE_RESULT, $env:B6_RESULT, $env:BUSINESS_RESULT)) {
+            if ($result -cne 'success') {
+              throw 'WINDOWS_TEST_GROUP_NOT_SUCCESS'
+            }
+          }
+
   quality-build-test:
     name: quality-build-test
     runs-on: ubuntu-latest
