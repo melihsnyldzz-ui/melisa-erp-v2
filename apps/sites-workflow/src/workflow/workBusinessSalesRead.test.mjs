@@ -99,3 +99,12 @@ test('another tab replacing, deleting or invalidating the retained journal preve
   d.ui.mount();await settle();await choose(d);const pending=d.node('[data-bsr-last-request]').onclick();await tick();state=changed==='replace'?{...ownedPending(),status:'done',body:{requestId:'00000000-0000-4000-8000-000000000002'},invoiceWitness:{id:'52'},result:{requestId:'00000000-0000-4000-8000-000000000002'}}:changed==='missing'?null:'invalid';finish();await pending;assert.equal(reads,2);assert.match(d.root.innerHTML,/Son işlem doğrulanamadı/);assert.doesNotMatch(d.root.innerHTML,/SYNTHETIC-RECEIPT|Son kaydın fişi doğrulandı/);d.ui.dispose();
  }
 });
+
+test('receipt UI distinguishes only exact not-found status/code without retry, success or journal mutation',async()=>{
+ for(const [status,code,classified] of [[404,'WORK_REQUEST_NOT_FOUND',true],[404,'OTHER_NOT_FOUND',false],[404,undefined,false],[401,'WORK_REQUEST_NOT_FOUND',false],[403,'WORK_REQUEST_NOT_FOUND',false],[500,'WORK_REQUEST_NOT_FOUND',false],[undefined,undefined,false]]){
+  const journal=readonlyJournal(),bytes=JSON.stringify(journal.read()),calls=[],d=fixture({businessSaleRequest:async(q,p)=>{calls.push({q,p});throw Object.assign(new Error('read failed'),{status,code});}},journalActor(),journal);d.ui.mount();await settle();await choose(d);await d.node('[data-bsr-last-request]').onclick();
+  assert.equal(calls.length,1);assert.equal(JSON.stringify(journal.read()),bytes);assert.equal(calls[0].p.body.requestId,ownedPending().body.requestId);assert.equal(calls[0].q.accountId,'7');assert.equal(journal.reads,3);
+  if(classified){assert.match(d.root.innerHTML,/Bu isteğe bağlı kayıt bulunamadı/);assert.match(d.root.innerHTML,/Önceki deneme geçmişi korunuyor; yeniden kayıt gönderilmedi/);assert.doesNotMatch(d.root.innerHTML,/Son işlem doğrulanamadı/);}else{assert.match(d.root.innerHTML,/Son işlem doğrulanamadı/);assert.doesNotMatch(d.root.innerHTML,/Bu isteğe bağlı kayıt bulunamadı/);}
+  assert.doesNotMatch(d.root.innerHTML,/Son kaydın fişi doğrulandı|SYNTHETIC-RECEIPT/);for(const selector of ['[data-bsr-native-save]','[data-business-sale-finalize]','[data-business-sale-cancel]'])assert.equal(d.node(selector).onclick,undefined);d.ui.dispose();
+ }
+});

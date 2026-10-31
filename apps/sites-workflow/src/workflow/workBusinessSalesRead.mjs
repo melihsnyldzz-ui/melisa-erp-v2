@@ -46,7 +46,7 @@ export function createBusinessSalesRead({root,session,user,navigate=()=>{},journ
   const a=account(),query={kind:'customer',partyId:String(card.id),accountId:a.accountId,currency:a.currency,page:1,dateFrom:'',dateTo:''},n=++versions.receipt;
   lastInvoice=null;receiptBusy=true;lastReceiptNote='Son işlem okunuyor…';paint();
   try{const pending=journal.read();if(!pending)throw Error();const retained=JSON.stringify(pending);const result=await session.businessSaleRequest(query,pending);if(!alive('receipt',n))return;if(JSON.stringify(journal.read())!==retained)throw Error();if(result.requestId!==pending.body?.requestId||!['sale_draft','sale_finalize','sale_cancel'].includes(result.operation))throw Error();const shown=tradeCanonicalSaleInvoice(result.invoice,{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency});if(pending.status==='pending'&&typeof onJournalResolved==='function')onJournalResolved({pending,result,scope:{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency}});if(!alive('receipt',n))return;lastInvoice=shown;lastReceiptNote='Son kaydın fişi doğrulandı.';}
-  catch{if(alive('receipt',n))lastReceiptNote='Son işlem doğrulanamadı. Yeni kayıt göndermeden önce işlemin durumunu kontrol edin.';}
+  catch(error){if(alive('receipt',n))lastReceiptNote=error?.status===404&&error?.code==='WORK_REQUEST_NOT_FOUND'?'Bu isteğe bağlı kayıt bulunamadı. Önceki deneme geçmişi korunuyor; yeniden kayıt gönderilmedi.':'Son işlem doğrulanamadı. Yeni kayıt göndermeden önce işlemin durumunu kontrol edin.';}
   finally{if(alive('receipt',n)){receiptBusy=false;paint();}}
  }
  async function dispatchOperation(input,currentReceipt=null){

@@ -11,17 +11,19 @@ function history(input,change=()=>{}){
  const q=parsePartyHistoryQuery({...input,page:String(input.page)}),row={id:'101',kind:'sales_invoice',documentDate:'2026-01-02',documentAmountExact:'2.0000',documentCurrencyRaw:q.currency,accountAmountExact:'2.0000',accountCurrency:q.currency,balanceEffectExact:'2.00000000',legacyBalanceEffectExact:'2.0000',affectsBalance:true,invoiceId:'51',invoiceNumber:'DISPLAY-ONLY',returnId:null};change(row);
  return {success:true,...partyHistoryResult({account:{id:q.accountId,partyId:q.partyId,oppositePartyId:null,partyEntityId:'3',currency:q.currency},total:'1',unassignedCount:'0',conflictCount:'0',rows:[row]},q,{readAt:'2026-10-28T00:00:00.000Z'})};
 }
-function fixture({user=actor(),historyRead=q=>history(q),invoiceRead=()=>invoice(),requestRead=null,business=true}={}){
+function fixture({user=actor(),historyRead=q=>history(q),invoiceRead=()=>invoice(),requestRead=null,requestReply=null,invoiceReply=null,business=true}={}){
  const calls=[],values=new Map([[workingCatalogTokenKey,'fixture-access']]);
  const session=createWorkingCatalogSession({location:{protocol:'http:',hostname:'127.0.0.1',port:business?'5244':'5234',origin:business?'http://127.0.0.1:5244':'http://127.0.0.1:5234'},apiBase:'http://127.0.0.1:4144',businessProfile:businessWorkfaceId,storage:{getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)},protectedDevice:null,fetchImpl:async(url,o)=>{
   const u=new URL(url),reply=data=>({ok:true,status:200,json:async()=>({success:true,data})});
   if(u.pathname==='/api/auth/session-confirm')return reply({confirmed:true,user,expiresAt:Date.now()+900000});
   calls.push({path:u.pathname,method:o.method,query:u.search});assert.equal(o.headers.Authorization,'Bearer fixture-access');
   if(u.pathname.startsWith('/api/business-party-history/')){const parts=u.pathname.split('/');return {ok:true,status:200,json:async()=>historyRead({kind:parts[3],partyId:parts[4],accountId:parts[5],...Object.fromEntries(u.searchParams)})};}
+  if(u.pathname.startsWith('/api/work-sales/requests/')&&requestReply)return requestReply();
+  if(u.pathname==='/api/work-sales/invoices/51'&&invoiceReply)return invoiceReply();
   if(u.pathname.startsWith('/api/work-sales/requests/')&&requestRead)return reply(await requestRead(u.pathname.slice(u.pathname.lastIndexOf('/')+1)));
   if(u.pathname==='/api/work-sales/invoices/51')return reply(await invoiceRead());
   assert.fail('Unexpected commercial endpoint');
- }});return {session,calls};
+ }});return {session,calls,values};
 }
 test('receipt read rechecks exact customer account movement and binds native invoice ID/customer/currency without opening list or writes',async()=>{
  const f=fixture();await f.session.start();assert.equal(f.session.businessSaleInvoiceAvailable(),true);
@@ -72,4 +74,20 @@ test('post-action fresh invoice revision/account/creation drift or missing journ
 });
 test('saved draft witness reopens directly by exact public account/party/creation binding without manufacturing a movement',async()=>{
  const draft={...invoice(),status:'draft',collections:{...invoice().collections,outstandingExact4:'0.0000'}},f=fixture({invoiceRead:()=>draft});await f.session.start();assert.equal((await f.session.businessSaleInvoice(selection,draft)).status,'draft');assert.deepEqual(f.calls.map(c=>c.path),['/api/work-sales/invoices/51']);await assert.rejects(f.session.businessSaleInvoice({...selection,accountId:'9'},draft));assert.equal(f.calls.length,1);f.session.dispose();
+});
+
+const httpFailure=(status,code)=>({ok:false,status,json:async()=>({success:false,error:{code}})});
+test('only exact receipt request GET 404 with trusted not-found code is classified; all other errors preserve session semantics and journal',async()=>{
+ for(const [status,code,classified] of [[404,'WORK_REQUEST_NOT_FOUND',true],[404,'OTHER_NOT_FOUND',false],[404,undefined,false],[401,'WORK_REQUEST_NOT_FOUND',false],[403,'WORK_REQUEST_NOT_FOUND',false],[500,'WORK_REQUEST_NOT_FOUND',false]]){
+  const f=fixture({requestReply:()=>httpFailure(status,code)});await f.session.start();const pending=action(),bytes=JSON.stringify(pending);
+  await assert.rejects(f.session.businessSaleRequest(selection,pending),e=>{assert.equal(e.status,status);assert.equal(e.code,classified?'WORK_REQUEST_NOT_FOUND':undefined);return true;});
+  assert.deepEqual(f.calls.map(c=>[c.method,c.path]),[['GET','/api/work-sales/requests/'+actionId]]);assert.equal(JSON.stringify(pending),bytes);assert.equal(f.values.has(workingCatalogTokenKey),status!==401);f.session.dispose();
+ }
+ const f=fixture({requestReply:()=>{throw new TypeError('offline');}});await f.session.start();const pending=action(),bytes=JSON.stringify(pending);
+ await assert.rejects(f.session.businessSaleRequest(selection,pending),e=>{assert.equal(e.code,undefined);return true;});assert.deepEqual(f.calls.map(c=>[c.method,c.path]),[['GET','/api/work-sales/requests/'+actionId]]);assert.equal(JSON.stringify(pending),bytes);assert.equal(f.values.has(workingCatalogTokenKey),true);f.session.dispose();
+});
+test('same 404 code on invoice GET or another endpoint never becomes receipt-request not-found',async()=>{
+ const f=fixture({requestRead:requestResult,invoiceReply:()=>httpFailure(404,'WORK_REQUEST_NOT_FOUND')});await f.session.start();const pending=action(),bytes=JSON.stringify(pending);
+ await assert.rejects(f.session.businessSaleRequest(selection,pending),e=>{assert.equal(e.status,404);assert.equal(e.code,undefined);return true;});assert.deepEqual(f.calls.map(c=>[c.method,c.path]),[['GET','/api/work-sales/requests/'+actionId],['GET','/api/work-sales/invoices/51']]);assert.equal(JSON.stringify(pending),bytes);f.session.dispose();
+ const g=fixture({invoiceReply:()=>httpFailure(404,'WORK_REQUEST_NOT_FOUND')});await g.session.start();await assert.rejects(g.session.businessSaleInvoice(selection,invoice()),e=>{assert.equal(e.code,undefined);return true;});assert(g.calls.every(c=>c.method==='GET'));g.session.dispose();
 });
