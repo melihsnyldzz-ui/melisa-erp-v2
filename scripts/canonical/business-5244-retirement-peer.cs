@@ -53,6 +53,82 @@ public sealed class Business5244RetirementPeer:IDisposable {
  // the already authenticated native pipe peer. No PID/name command input and
  // no change to the normal status/retire protocol or its permissions.
  public ControlledShutdown OpenControlledShutdown(){Validate();if(!serverPeer)throw new Exception("RETIREMENT_CONTROL_SERVER_PEER_REQUIRED");return new ControlledShutdown(this);}
+ // New, separate capability. It cannot stop, adopt or restart an owner. It
+ // archives one pinned failed handoff marker, keeping its new file identity
+ // held throughout. This is NOT the lost creator's MaintenanceMarker token.
+ public RetainedHandoffRecovery OpenRetainedHandoffRecovery(){Validate();if(!serverPeer||captureIssuer!=GetCurrentProcessId()||captureIssuerBirth!=CurrentBirth||captureThread!=System.Threading.Thread.CurrentThread.ManagedThreadId)throw new Exception("RETAINED_RECOVERY_NATIVE_PEER_REQUIRED");return new RetainedHandoffRecovery(this);}
+ public sealed class RetainedHandoffRecovery:IDisposable {
+  const string MarkerPath="C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\5244-retirement.pending";
+  const string FrozenRoot="C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-retained-handoff-recovery-20261101";
+  const string ArchiveDirectory=FrozenRoot+"\\recovery-once";
+  const string FailurePath="C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-pending-web-generation-birth-v2-20261101\\owner-preparation\\install-once\\result.json";
+  const string MarkerHash="3a036109935e733fa2e6f3cf229677b067ff0ecfdab7f98794fe9b065c718745",FailureHash="a983c262bf21bb6fb8b0ce95eb386799b622846bb3c3dc1ded78fb0d1ea97dbf";
+  const uint OwnerPid=33080,ChildPid=7052,ControllerPid=53132;
+  const long OwnerBirth=134379216568450543,ChildBirth=134379217109250887;
+  [StructLayout(LayoutKind.Sequential)]struct Info {public uint attributes;public System.Runtime.InteropServices.ComTypes.FILETIME creation,access,write;public uint volume,sizeHigh,sizeLow,links,indexHigh,indexLow;}
+  [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern SafeFileHandle CreateFile(string p,uint access,uint share,IntPtr security,uint creation,uint flags,IntPtr template);
+  [DllImport("kernel32.dll",SetLastError=true)]static extern bool GetFileInformationByHandle(SafeFileHandle h,out Info i);
+  [DllImport("kernel32.dll",SetLastError=true)]static extern bool SetFileInformationByHandle(SafeFileHandle h,int kind,IntPtr b,uint size);
+  [DllImport("kernel32.dll",CharSet=CharSet.Unicode,SetLastError=true)]static extern uint GetFinalPathNameByHandle(SafeFileHandle h,StringBuilder b,uint size,uint flags);
+  readonly Business5244RetirementPeer peer;readonly uint issuer;readonly string issuerBirth,sid;readonly int thread;readonly System.Collections.Generic.List<SafeFileHandle> directories=new System.Collections.Generic.List<SafeFileHandle>();
+  IntPtr owner,child;SafeFileHandle targetDirectory;FileStream marker;Info markerInfo;bool attempted,archived,disposed;
+  public bool Archived{get{return archived;}}public bool Attempted{get{return attempted;}}public int NativeRenameCalls{get;private set;}public int NativeRenameError{get;private set;}
+  public string ArchivePath{get{return ArchiveDirectory+"\\5244-retirement.pending.archived";}}
+  public string ObservationFileIdentity{get{return markerInfo.volume+":"+markerInfo.indexHigh+":"+markerInfo.indexLow;}}
+  static string Digest(byte[] b){using(var h=SHA256.Create()){return BitConverter.ToString(h.ComputeHash(b)).Replace("-","").ToLowerInvariant();}}
+  static bool Same(Info a,Info b){return a.volume==b.volume&&a.indexHigh==b.indexHigh&&a.indexLow==b.indexLow&&a.creation.dwHighDateTime==b.creation.dwHighDateTime&&a.creation.dwLowDateTime==b.creation.dwLowDateTime;}
+  static string FinalPath(SafeFileHandle h){var b=new StringBuilder(4096);uint n=GetFinalPathNameByHandle(h,b,4096,1);if(n==0||n>=4096)throw new Exception("RETAINED_RECOVERY_VOLUME_UNAVAILABLE");string s=b.ToString();if(!s.StartsWith("\\\\?\\Volume{",StringComparison.OrdinalIgnoreCase)||s.IndexOf('}')<0)throw new Exception("RETAINED_RECOVERY_LOCAL_VOLUME_REQUIRED");return s;}
+  static string Volume(SafeFileHandle h){string s=FinalPath(h);return s.Substring(0,s.IndexOf('}')+1);}
+  static string Json(string s){return "\""+s.Replace("\\","\\\\").Replace("\"","\\\"")+"\"";}
+  SafeFileHandle HoldDirectoryChain(string p){
+   string root=System.IO.Path.GetPathRoot(p),at=root;SafeFileHandle last=null;
+   foreach(string part in ("\\"+p.Substring(root.Length)).Split('\\')){if(part.Length>0)at=System.IO.Path.Combine(at,part);else if(last!=null)continue;
+    var h=CreateFile(at,0x80,1,IntPtr.Zero,3,0x02200000,IntPtr.Zero);Info i;
+    if(h.IsInvalid||!GetFileInformationByHandle(h,out i)||(i.attributes&0x410)!=0x10){h.Dispose();throw new Exception("RETAINED_RECOVERY_DIRECTORY_REJECTED");}directories.Add(h);last=h;
+   }return last;
+  }
+  void ControllerAbsent(){IntPtr h=OpenProcess(0x00101000,false,ControllerPid);if(h!=IntPtr.Zero){CloseHandle(h);throw new Exception("RETAINED_RECOVERY_CONTROLLER_PRESENT");}if(Marshal.GetLastWin32Error()!=87)throw new Exception("RETAINED_RECOVERY_CONTROLLER_UNKNOWN");}
+  internal RetainedHandoffRecovery(Business5244RetirementPeer authenticated){
+   peer=authenticated;issuer=GetCurrentProcessId();issuerBirth=CurrentBirth;sid=CurrentSid;thread=System.Threading.Thread.CurrentThread.ManagedThreadId;
+   try{
+    peer.Validate();if(!peer.serverPeer||peer.Pid!=OwnerPid||peer.birth!=OwnerBirth||peer.sid!=sid)throw new Exception("RETAINED_RECOVERY_WRONG_OWNER");ControllerAbsent();
+    owner=OpenProcess(0x00101000,false,OwnerPid);child=OpenProcess(0x00101000,false,ChildPid);if(owner==IntPtr.Zero||child==IntPtr.Zero)throw new Exception("RETAINED_RECOVERY_CHILD_UNAVAILABLE");
+    HoldDirectoryChain(System.IO.Path.GetDirectoryName(MarkerPath));targetDirectory=HoldDirectoryChain(ArchiveDirectory);
+    var h=CreateFile(MarkerPath,0x80010000,0,IntPtr.Zero,3,0x00200080,IntPtr.Zero);
+    if(h.IsInvalid){h.Dispose();throw new Exception("RETAINED_RECOVERY_MARKER_EXCLUSIVE_REQUIRED");}
+    marker=new FileStream(h,FileAccess.Read);if(!GetFileInformationByHandle(h,out markerInfo)||(markerInfo.attributes&0x410)!=0||markerInfo.links!=1||markerInfo.sizeHigh!=0||markerInfo.sizeLow==0||markerInfo.sizeLow>4096)throw new Exception("RETAINED_RECOVERY_MARKER_REJECTED");
+    if(!String.Equals(Volume(h),Volume(targetDirectory),StringComparison.OrdinalIgnoreCase))throw new Exception("RETAINED_RECOVERY_CROSS_VOLUME");
+    if(File.Exists(ArchivePath)||File.Exists(ArchiveDirectory+"\\attempt.json"))throw new Exception("RETAINED_RECOVERY_USE_EXISTING_RECEIPT");Validate();
+   }catch{Dispose();throw;}
+  }
+  public void Validate(){
+   if(disposed||issuer!=GetCurrentProcessId()||issuerBirth!=CurrentBirth||thread!=System.Threading.Thread.CurrentThread.ManagedThreadId||sid!=CurrentSid||marker==null||marker.SafeFileHandle.IsClosed)throw new Exception("RETAINED_RECOVERY_FOREIGN_CAPABILITY");
+   // Like ExitObservation, this capability retains its own query-only handles
+   // after the authenticated transport is closed by the final status exchange.
+   ControllerAbsent();long a,b,c,d;if(owner==IntPtr.Zero||!GetProcessTimes(owner,out a,out b,out c,out d)||a!=OwnerBirth||WaitForSingleObject(owner,0)!=258||ProcessSid(owner)!=sid)throw new Exception("RETAINED_RECOVERY_OWNER_CHANGED");
+   if(child==IntPtr.Zero||!GetProcessTimes(child,out a,out b,out c,out d)||a!=ChildBirth||WaitForSingleObject(child,0)!=258||ProcessSid(child)!=sid)throw new Exception("RETAINED_RECOVERY_CHILD_CHANGED");
+   Info i;if(!GetFileInformationByHandle(marker.SafeFileHandle,out i)||!Same(i,markerInfo))throw new Exception("RETAINED_RECOVERY_FILE_ID_CHANGED");
+   marker.Position=0;byte[] bytes;using(var m=new MemoryStream()){marker.CopyTo(m);bytes=m.ToArray();}marker.Position=0;
+   if(Digest(bytes)!=MarkerHash||Digest(File.ReadAllBytes(FailurePath))!=FailureHash)throw new Exception("RETAINED_RECOVERY_EVIDENCE_CHANGED");
+  }
+  public void Archive(){
+   if(attempted)throw new Exception("RETAINED_RECOVERY_NO_RETRY");Validate();
+   string nativeHash=Digest(File.ReadAllBytes(FrozenRoot+"\\business-5244-retirement-peer.cs")),entryHash=Digest(File.ReadAllBytes(FrozenRoot+"\\recover-business-5244-retained-handoff.ps1"));
+   string archiveNativePath=FinalPath(targetDirectory)+"\\5244-retirement.pending.archived";
+   string intent="{\"schema\":\"business-5244-retained-recovery-attempt.v1\",\"markerPath\":"+Json(MarkerPath)+",\"archivePath\":"+Json(archiveNativePath)+",\"markerSha256\":\""+MarkerHash+"\",\"failureSha256\":\""+FailureHash+"\",\"nativeSourceSha256\":\""+nativeHash+"\",\"entrySourceSha256\":\""+entryHash+"\",\"observedFileIdentity\":\""+ObservationFileIdentity+"\",\"issuerPid\":"+issuer+",\"issuerBirth\":\""+issuerBirth+"\"}";
+   using(var f=new FileStream(ArchiveDirectory+"\\attempt.json",FileMode.CreateNew,FileAccess.Write,FileShare.Read)){byte[] b=Encoding.UTF8.GetBytes(intent);f.Write(b,0,b.Length);f.Flush(true);}
+   attempted=true;Validate();byte[] name=Encoding.Unicode.GetBytes(archiveNativePath);int pointerOffset=IntPtr.Size==8?8:4,lengthOffset=pointerOffset+IntPtr.Size,nameOffset=lengthOffset+4;IntPtr buffer=Marshal.AllocHGlobal(nameOffset+name.Length+2);
+   try{for(int n=0;n<nameOffset+name.Length+2;n++)Marshal.WriteByte(buffer,n,0);Marshal.WriteInt32(buffer,lengthOffset,name.Length);Marshal.Copy(name,0,IntPtr.Add(buffer,nameOffset),name.Length);
+    // FileRenameInfo, ReplaceIfExists=false. The same exclusive source handle
+    // and non-replaceable directory chain bind the native-volume absolute
+    // target. RootDirectory=NULL is the Win32 supported common form; the
+    // source handle is never closed/reopened and no path-move is performed.
+    NativeRenameCalls++;if(!SetFileInformationByHandle(marker.SafeFileHandle,3,buffer,(uint)(nameOffset+name.Length+2))){NativeRenameError=Marshal.GetLastWin32Error();throw new Exception("RETAINED_RECOVERY_ARCHIVE_UNCONFIRMED");}
+    archived=true;Validate();
+   }finally{Marshal.FreeHGlobal(buffer);}
+  }
+  public void Dispose(){if(disposed)return;disposed=true;if(marker!=null){marker.Dispose();marker=null;}if(owner!=IntPtr.Zero){CloseHandle(owner);owner=IntPtr.Zero;}if(child!=IntPtr.Zero){CloseHandle(child);child=IntPtr.Zero;}foreach(var h in directories)h.Dispose();directories.Clear();}
+ }
  public sealed class ControlledShutdown:IDisposable {
   IntPtr handle;readonly long birth;readonly string sid,issuerBirth;readonly uint issuer;readonly int thread;bool attempted;
   public bool CompletedStop{get;private set;}

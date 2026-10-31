@@ -1,4 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import cp from 'node:child_process';import os from 'node:os';import path from 'node:path';
+import crypto from 'node:crypto';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 const repairCaseFixture=String.raw`
 $script:ReadContextRepairInstall=$true;$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
@@ -8,6 +9,126 @@ $b6=[pscustomobject]@{fixedCaseId='ReadContextRepair';coreRoot=$root;routerRoot=
 `;
 function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-readpair-install-')));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-install-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
+const recoveryLoad=`. ${q(path.join(dir,'recover-business-5244-retained-handoff.ps1'))} -Library;`;
+const retainedNativeFixture=String.raw`
+foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))) -Scope Local}
+$root=Split-Path $PSCommandPath;$once=Join-Path $root 'recovery-once';[void][IO.Directory]::CreateDirectory($once)
+$marker=Join-Path $root '5244-retirement.pending';$failed=Join-Path $root 'failed.json';[IO.File]::WriteAllText($marker,'fixture-marker');[IO.File]::WriteAllText($failed,'fixture-failure')
+function FixtureHash($p){return (Get-FileHash -LiteralPath $p).Hash.ToLowerInvariant()};function CsLiteral($p){return '"'+$p.Replace('\','\\').Replace('"','\"')+'"'}
+$mh=FixtureHash $marker;$fh=FixtureHash $failed;$birth=(Get-Process -Id $PID).StartTime.ToFileTimeUtc();$expectedOwner=$PID;$expectedChildBirth=$birth;$controller=2147483647
+if($scenario-ceq'wrong-owner'){$expectedOwner++};if($scenario-ceq'wrong-child'){$expectedChildBirth++};if($scenario-ceq'controller-live'){$controller=$PID}
+$source=[IO.File]::ReadAllText($nativeFile)
+$source=[regex]::Replace($source,'(?m)^  const string MarkerPath=.*$',('  const string MarkerPath='+(CsLiteral $marker)+';'))
+$source=[regex]::Replace($source,'(?m)^  const string FrozenRoot=.*$',('  const string FrozenRoot='+(CsLiteral $root)+';'))
+$source=[regex]::Replace($source,'(?m)^  const string FailurePath=.*$',('  const string FailurePath='+(CsLiteral $failed)+';'))
+$source=[regex]::Replace($source,'(?m)^  const string MarkerHash=.*$',('  const string MarkerHash="'+$mh+'",FailureHash="'+$fh+'";'))
+$source=[regex]::Replace($source,'(?m)^  const uint OwnerPid=.*$',('  const uint OwnerPid='+$expectedOwner+',ChildPid='+$PID+',ControllerPid='+$controller+';'))
+$source=[regex]::Replace($source,'(?m)^  const long OwnerBirth=.*$',('  const long OwnerBirth='+$birth+',ChildBirth='+$expectedChildBirth+';'))
+[IO.File]::WriteAllText((Join-Path $root 'business-5244-retirement-peer.cs'),$source);[IO.File]::WriteAllText((Join-Path $root 'recover-business-5244-retained-handoff.ps1'),'fixture-entry')
+Add-Type -TypeDefinition ($source+@'
+public static class RetainedFixtureThread { public static string Validate(object x){return System.Threading.Tasks.Task.Run(()=>{try{x.GetType().GetMethod("Validate").Invoke(x,null);return "ALLOWED";}catch(System.Reflection.TargetInvocationException e){return e.InnerException.Message;}}).GetAwaiter().GetResult();} }
+'@)
+$name='retained-recovery-fixture-'+[guid]::NewGuid().ToString('N');$server=[IO.Pipes.NamedPipeServerStream]::new($name,[IO.Pipes.PipeDirection]::InOut,1,[IO.Pipes.PipeTransmissionMode]::Byte,[IO.Pipes.PipeOptions]::Asynchronous)
+$wait=$server.WaitForConnectionAsync();$client=[IO.Pipes.NamedPipeClientStream]::new('.',$name,[IO.Pipes.PipeDirection]::InOut,[IO.Pipes.PipeOptions]::Asynchronous);$client.Connect(5000);[void]$wait.GetAwaiter().GetResult()
+$peer=if($scenario-ceq'foreign-peer'){[Business5244RetirementPeer]::CaptureClient($server)}else{[Business5244RetirementPeer]::CaptureServer($client)};$cap=$null;$archive=Join-Path $once '5244-retirement.pending.archived'
+try{
+ if($scenario-ceq'existing-target'){[IO.File]::WriteAllText($archive,'foreign-target')}
+ if($scenario-ceq'existing-intent'){[IO.File]::WriteAllText((Join-Path $once 'attempt.json'),'prior-attempt')}
+ if($scenario-ceq'marker-drift'){[IO.File]::WriteAllText($marker,'changed-marker')}
+ if($scenario-ceq'failure-drift'){[IO.File]::WriteAllText($failed,'changed-failure')}
+ if($scenario-ceq'marker-hardlink'){$target=Join-Path $root 'alias';[IO.File]::Move($marker,$target);New-Item -ItemType HardLink -Path $marker -Target $target|Out-Null}
+ if($scenario-ceq'target-reparse'){[IO.Directory]::Delete($once);$target=Join-Path $root 'other';[void][IO.Directory]::CreateDirectory($target);New-Item -ItemType Junction -Path $once -Target $target|Out-Null}
+ $factoryDenied=$false;try{$cap=$peer.OpenRetainedHandoffRecovery()}catch{if($_.Exception.Message-notmatch'RETAINED_RECOVERY_'){throw};$factoryDenied=$true}
+ if($scenario-cin@('wrong-owner','wrong-child','controller-live','foreign-peer','existing-target','existing-intent','marker-drift','failure-drift','marker-hardlink','target-reparse')){
+  if(!$factoryDenied-or!(Test-Path -LiteralPath $marker)){throw 'FALSE_FACTORY_ADMISSION'}
+ }else{
+  if($factoryDenied){throw 'VALID_FACTORY_REJECTED'}
+  if($scenario-ceq'double-writer'){$denied=$false;try{$other=$peer.OpenRetainedHandoffRecovery();$other.Dispose()}catch{$denied=$true};if(!$denied){throw 'SECOND_WRITER_ACCEPTED'}}
+  if($scenario-ceq'held-file-swap'){foreach($action in @('write','move')){$denied=$false;try{if($action-ceq'write'){[IO.File]::WriteAllText($marker,'changed')}else{[IO.File]::Move($marker,(Join-Path $root 'swapped'))}}catch{$denied=$true};if(!$denied){throw 'EXCLUSIVE_FILE_GUARD_LOST'}}}
+  if($scenario-ceq'foreign-thread'){if([RetainedFixtureThread]::Validate($cap)-cne'RETAINED_RECOVERY_FOREIGN_CAPABILITY'-or$cap.NativeRenameCalls-ne0){throw 'FOREIGN_THREAD_ACCEPTED'}}elseif($scenario-ceq'file-id-drift'){$field=$cap.GetType().GetField('markerInfo',[Reflection.BindingFlags]'NonPublic,Instance');$info=$field.GetValue($cap);$f=$info.GetType().GetField('indexLow');$f.SetValue($info,([uint32]$f.GetValue($info)+1));$field.SetValue($cap,$info);$denied=$false;try{$cap.Validate()}catch{$denied=$true};if(!$denied-or$cap.NativeRenameCalls-ne0){throw 'FILE_ID_DRIFT_ACCEPTED'}}else{
+   if($scenario-ceq'target-race'){[IO.File]::WriteAllText($archive,'foreign-target')}
+   $renameDenied=$false;try{$cap.Archive()}catch{if($_.Exception.Message-notmatch'RETAINED_RECOVERY_ARCHIVE_UNCONFIRMED'){throw};$renameDenied=$true}
+   if($scenario-ceq'target-race'){if(!$renameDenied-or[IO.File]::ReadAllText($archive)-cne'foreign-target'-or!(Test-Path $marker)){throw 'TARGET_OVERWRITTEN'}}else{if($renameDenied-or!$cap.Archived-or!(Test-Path (Join-Path $once 'attempt.json'))){throw ('ARCHIVE_NOT_CONFIRMED_'+$cap.NativeRenameError)}}
+   $denied=$false;try{$cap.Archive()}catch{if($_.Exception.Message-notmatch'RETAINED_RECOVERY_NO_RETRY'){throw};$denied=$true};if(!$denied-or$cap.NativeRenameCalls-ne1){throw 'ARCHIVE_REPLAYED'}
+   $cap.Dispose();$cap=$null
+   if($scenario-cne'target-race'){if((Test-Path $marker)-or(FixtureHash $archive)-cne$mh){throw 'ARCHIVE_READBACK_FAILED'};if($scenario-ceq'lost-ack'){$denied=$false;try{$again=$peer.OpenRetainedHandoffRecovery();$again.Dispose()}catch{$denied=$true};if(!$denied){throw 'LOST_ACK_REPLAY_ACCEPTED'}}}
+  }
+ }
+ 'PASS'
+}finally{if($cap){$cap.Dispose()};$peer.Dispose();$client.Dispose();$server.Dispose()}
+`;
+for(const scenario of ['valid','wrong-owner','wrong-child','controller-live','foreign-peer','existing-target','existing-intent','marker-drift','failure-drift','marker-hardlink','target-reparse','double-writer','held-file-swap','file-id-drift','target-race','lost-ack','foreign-thread'])win('Retained recovery native temp-file case '+scenario,()=>{
+ assert.equal(run(`$scenario=${q(scenario)};$nativeFile=${q(path.join(dir,'business-5244-retirement-peer.cs'))};`+retainedNativeFixture),'PASS');
+});
+test('Retained recovery native source is pinned and exposes no caller target stop delete or retry action',()=>{
+ const native=fs.readFileSync(path.join(dir,'business-5244-retirement-peer.cs'),'utf8').replaceAll('\r\n','\n'),script=fs.readFileSync(path.join(dir,'recover-business-5244-retained-handoff.ps1'),'utf8');
+ const block=native.slice(native.indexOf('public sealed class RetainedHandoffRecovery'),native.indexOf('public sealed class ControlledShutdown'));
+ const pin=script.match(/expectedPeerSourceSha256='([a-f0-9]{64})'/);assert(pin);assert.equal(pin[1],crypto.createHash('sha256').update(native).digest('hex'));
+ assert.doesNotMatch(block,/TerminateProcess\(|OpenControlledShutdown\(|File\.Move\(|File\.Delete\(/);
+ assert.match(block,/public void Archive\(\)/);assert.match(block,/GetFinalPathNameByHandle/);assert.match(block,/SetFileInformationByHandle/);assert.match(block,/FileMode\.CreateNew/);assert.match(block,/Flush\(true\)/);
+ assert.match(script,/68220abd0606d09fc2273e06674facf4d3450516b9050045ca2d0903b178502b/);assert.match(script,/originalCreatorIdentityRecovered=\$false/);
+ assert.equal((script.match(/\$capability\.Archive\(\)/g)||[]).length,1);assert.doesNotMatch(script,/Operation (retire|recover)|Remove-Item|Stop-Process|Set-ExecutionPolicy|Register-ScheduledTask/);
+});
+win('Retained recovery evidence rejects changed failure controller owner operation effects and entry before any archive',()=>{
+ assert.equal(run(recoveryLoad+String.raw`
+$c=Get-B6RetainedRecoveryCase;$f=[pscustomobject]@{status='FAILED_REVIEW_RECEIPT';failure='B6_ACTIVE_ENTRY_HANDOFF_GATES_RETAINED';outcome=$null;scope='TEST125-API-B6-WRITER-20261029';stopCalls=0;startCalls=0;retireAttempts=0;taskChanges=0;apiRestarts=0;profileWrites=0;sqlWrites=0}
+$e=[pscustomobject]@{path=(Join-Path $c.peerRoot 'run-current-owner.ps1');sha256=('a'*64)};$b=[pscustomobject]@{entries=@($e)};$m=[pscustomobject]@{schema='business-5244-cold-handoff.pending.v1';controllerPid=$c.controllerPid;controllerBirth=$c.controllerBirth;ownerPid=$c.ownerPid;ownerBirth=$c.ownerBirth;operationId=('b'*32);entries=@($e)}
+Assert-B6RetainedRecoveryEvidence $f $m $b
+$fj=$f|ConvertTo-Json -Depth 6;$mj=$m|ConvertTo-Json -Depth 6
+foreach($kind in @('failure','controller','controller-birth','owner','owner-birth','operation','entry','stopCalls','startCalls','retireAttempts','taskChanges','apiRestarts','profileWrites','sqlWrites')){$f=$fj|ConvertFrom-Json;$m=$mj|ConvertFrom-Json;switch($kind){failure{$f.failure='OTHER'}controller{$m.controllerPid++}controller-birth{$m.controllerBirth='other'}owner{$m.ownerPid++}owner-birth{$m.ownerBirth='other'}operation{$m.operationId='missing'}entry{$m.entries[0].sha256='c'*64}default{$f.$kind=1}};$denied=$false;try{Assert-B6RetainedRecoveryEvidence $f $m $b}catch{$denied=$true};if(!$denied){throw ('FALSE_RECOVERY_EVIDENCE_'+$kind)}};'PASS'`),'PASS');
+});
+win('Retained recovery orders protection and genuine status before its only archive and never retries uncertainty',()=>{
+ assert.equal(run(recoveryLoad+String.raw`
+$c=Get-B6RetainedRecoveryCase;$script:cap=$null
+foreach($kind in @('valid','initial-protection','late-protection','unknown-status','owner-status','child-status','native-handle','rename-failure')){
+ $script:kind=$kind;$script:trace=[Collections.Generic.List[string]]::new();$script:checks=0;$script:validates=0;$script:archives=0;$script:closed=0;$script:B6RecoveryNativeRenameCalls=0
+ $script:cap=[pscustomobject]@{ObservationFileIdentity='new-observation-only';Archived=$false;NativeRenameCalls=0}
+ $cap|Add-Member ScriptMethod Validate {$script:trace.Add('validate');$script:validates++;if($script:kind-ceq'native-handle'-and$script:validates-eq3){throw 'FIXTURE_NATIVE_HANDLE_CHANGED'}}
+ $cap|Add-Member ScriptMethod Archive {$script:trace.Add('archive');$script:archives++;$this.NativeRenameCalls++;if($script:kind-ceq'rename-failure'){throw 'RETAINED_RECOVERY_ARCHIVE_UNCONFIRMED'};$this.Archived=$true}
+ $cap|Add-Member ScriptMethod Dispose {$script:trace.Add('dispose')}
+ $peer=[pscustomobject]@{};$peer|Add-Member ScriptMethod OpenRetainedHandoffRecovery {$script:trace.Add('factory');return $script:cap}
+ function Assert-B6RetainedRecoveryProtection{$script:trace.Add('protection');$script:checks++;if(($script:kind-ceq'initial-protection'-and$checks-eq1)-or($script:kind-ceq'late-protection'-and$checks-eq2)){throw 'FIXTURE_PROTECTION_DRIFT'}}
+ function Connect-Business5244RetirementPeer{$script:trace.Add('connect');return @{fixture='connection'}}
+ function Get-Business5244RetirementRecord{return @{peer=$peer}}
+ function Send-Business5244RetirementRequest {$script:trace.Add('status');$state=@{phase='Running';ownerPid=$c.ownerPid;ownerBirth=$c.ownerBirth;childPid=$c.childPid;childBirth=$c.childBirth};switch($script:kind){unknown-status{$state.phase='Unknown'}owner-status{$state.ownerBirth='other'}child-status{$state.childPid++}};return @{nativePeerVerified=$true;reply='Status';state=$state}}
+ function Close-Business5244RetirementPeer{$script:trace.Add('close');$script:closed++}
+ $denied=$false;try{$proof=Invoke-B6RetainedRecoverySequence}catch{$denied=$true}
+ if($kind-ceq'valid'){if($denied-or!$proof.archived-or$proof.originalCreatorIdentityRecovered-or($trace-join'|')-cne'protection|connect|factory|validate|protection|validate|status|validate|archive|dispose|close'){throw 'RECOVERY_SEQUENCE_CHANGED'}}elseif(!$denied){throw ('FALSE_RECOVERY_SEQUENCE_'+$kind)}
+ $expected=if($kind-cin@('valid','rename-failure')){1}else{0};if($archives-ne$expected-or$B6RecoveryNativeRenameCalls-ne$expected){throw 'RECOVERY_RETRIED_OR_WRONG_EFFECT'}
+}
+'PASS'`),'PASS');
+});
+win('Retained recovery pins held bytes before use and rejects changed before-images without accepting a path hash alone',()=>{
+ assert.equal(run(recoveryLoad+String.raw`
+foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))) -Scope Local}
+$script:B6RecoveryHolds=[Collections.Generic.List[IO.FileStream]]::new();$p=Join-Path (Split-Path $PSCommandPath) 'before.json';[IO.File]::WriteAllText($p,'exact-before');$pin=(Get-FileHash -LiteralPath $p).Hash
+$bytes=Hold-B6RetainedRecoveryInput $p $pin
+if([Text.Encoding]::UTF8.GetString($bytes)-cne'exact-before'-or$B6RecoveryHolds.Count-ne1){throw 'HELD_BYTES_NOT_USED'}
+$denied=$false;try{[IO.File]::WriteAllText($p,'changed')}catch{$denied=$true};if(!$denied){throw 'PINNED_BEFORE_WRITABLE'}
+$B6RecoveryHolds[0].Dispose();$B6RecoveryHolds.Clear();[IO.File]::WriteAllText($p,'changed');$denied=$false;try{Hold-B6RetainedRecoveryInput $p $pin|Out-Null}catch{if($_.Exception.Message-cne'RETAINED_RECOVERY_HELD_INPUT_CHANGED'){throw};$denied=$true};if(!$denied-or$B6RecoveryHolds.Count){throw 'HASH_TO_HOLD_RACE_ACCEPTED'};'PASS'`),'PASS');
+});
+win('Retained recovery protection rejects added listeners and changed task record parent argv or health',()=>{
+ assert.equal(run(recoveryLoad+String.raw`
+$c=Get-B6RetainedRecoveryCase;$when=[datetime]'2026-10-31T20:00:00Z'
+$script:B6RecoveryInputs=@{failure=@{before=@{files=@(@{path='fixture-profile';hash='p'});processes=@(@{pid=31124;exe='fixture-api';birth=$when.ToString('o')});listeners=@(@{LocalPort=4144;LocalAddress='127.0.0.1';OwningProcess=31124})}};before=@{entries=@(@{path='fixture-entry';sha256='e'});recordPath='fixture-record';recordSha256='r'};owner=@{owner=@{exe='fixture-ps';argv='fixture-owner'};child=@{exe='fixture-node'}};taskXml='frozen-task';taskSddl='frozen-sddl';taskCapture=@{instanceCount=1;enginePid=27732;instanceGuid='fixture-instance'}}
+$script:protected=[pscustomobject]@{ProcessId=31124;ExecutablePath='fixture-api';CreationDate=$when}
+$script:owner=[pscustomobject]@{ProcessId=33080;ExecutablePath='fixture-ps';CommandLine='fixture-owner'}
+$script:child=[pscustomobject]@{ProcessId=7052;ParentProcessId=33080;ExecutablePath='fixture-node';CommandLine='"fixture-node" "C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030\apps\sites-workflow\node_modules\vite\bin\vite.js" preview --host 127.0.0.1 --port 5244 --strictPort'}
+$script:baseListeners=@(@{LocalPort=4144;LocalAddress='127.0.0.1';OwningProcess=31124})+@('127.0.0.1','192.168.1.46','100.87.188.3'|ForEach-Object {@{LocalPort=5244;LocalAddress=$_;OwningProcess=7052}})
+$task=[pscustomobject]@{Xml='frozen-task'};$task|Add-Member ScriptMethod GetSecurityDescriptor {param($flags);return 'frozen-sddl'}
+$script:instance=[pscustomobject]@{EnginePID=27732;InstanceGuid='fixture-instance'};$script:instances=[pscustomobject]@{Count=1};$instances|Add-Member ScriptMethod Item {param($number);return $script:instance};$task|Add-Member ScriptMethod GetInstances {param($flags);return $script:instances}
+$folder=[pscustomobject]@{};$folder|Add-Member ScriptMethod GetTask {param($name);return $task};$svc=[pscustomobject]@{};$svc|Add-Member ScriptMethod Connect {};$svc|Add-Member ScriptMethod GetFolder {param($name);return $folder}
+function New-Object{param($ComObject);if($ComObject-cne'Schedule.Service'){throw 'UNEXPECTED_COM'};return $svc}
+function Get-B6RetainedRecoveryHash($Path){switch($Path){fixture-profile{if($script:kind-ceq'profile'){return 'changed'};return 'p'}fixture-entry{return 'e'}fixture-record{if($script:kind-ceq'record'){return 'changed'};return 'r'}default{throw 'UNEXPECTED_PATH'}}}
+function Get-CimInstance($ClassName,$Filter){switch($Filter){'ProcessId=31124'{return $script:protected}'ProcessId=33080'{return $script:owner}'ProcessId=7052'{return $script:child}default{throw 'UNEXPECTED_PROCESS'}}}
+function Get-NetTCPConnection{return $script:listeners};function Invoke-WebRequest{return @{StatusCode=$(if($script:kind-ceq'health'){503}else{200})}}
+$ownerArgv=$owner.CommandLine;$childArgv=$child.CommandLine
+foreach($kind in @('valid','profile','record','extra-port','extra-owned-port','extra-web','task','extra-instance','engine','instance-guid','parent','owner-argv','child-argv','health')){
+ $script:kind=$kind;$script:listeners=@($script:baseListeners);$task.Xml='frozen-task';$script:instances.Count=1;$script:instance.EnginePID=27732;$script:instance.InstanceGuid='fixture-instance';$child.ParentProcessId=33080;$owner.CommandLine=$ownerArgv;$child.CommandLine=$childArgv
+ switch($kind){extra-port{$script:listeners+=@{LocalPort=4144;LocalAddress='192.0.2.1';OwningProcess=999}}extra-owned-port{$script:listeners+=@{LocalPort=5555;LocalAddress='127.0.0.1';OwningProcess=31124}}extra-web{$script:listeners+=@{LocalPort=5244;LocalAddress='192.0.2.1';OwningProcess=999}}task{$task.Xml='changed'}extra-instance{$script:instances.Count=2}engine{$script:instance.EnginePID++}instance-guid{$script:instance.InstanceGuid='other'}parent{$child.ParentProcessId++}owner-argv{$owner.CommandLine+=' extra'}child-argv{$child.CommandLine+=' extra'}}
+ $denied=$false;try{Assert-B6RetainedRecoveryProtection}catch{$denied=$true};if(($kind-ceq'valid'-and$denied)-or($kind-cne'valid'-and!$denied)){throw ('PROTECTION_FALSE_RESULT_'+$kind)}
+};'PASS'`),'PASS');
+});
 // Pure kernel doubles: no process, handle, pipe, task, lease or TEST access.
 const pendingBirthFixture=String.raw`
 Add-Type -TypeDefinition @'
