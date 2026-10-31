@@ -616,7 +616,7 @@ win('Pending WEB entry predicate is self-contained and accepts only exact dispos
  assert.equal(run(load+String.raw`
  $root=Join-Path $env:TEMP 'pending-web-entry-fixture';[void][IO.Directory]::CreateDirectory($root)
  $router=Join-Path $root 'router-entry.ps1';$current=Join-Path $root 'current-entry.ps1'
- $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-20261031\start-business-5244-readpair-router.ps1',$router).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031\run-current-owner.ps1',$current).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031',$root)
+ $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-BIRTH-V2-20261101\start-business-5244-readpair-router.ps1',$router).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101\run-current-owner.ps1',$current).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101',$root)
  foreach($entry in @($router,$current)){[IO.File]::WriteAllText($entry,('function Get-Business5244WebOnlyEntryMode {'+$definition+'};Get-Business5244WebOnlyEntryMode'))}
  foreach($entry in @($router,$current)){
   $si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -WindowStyle Hidden -File "'+$entry+'" -ManifestSha256 '+('a'*64);$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$si.RedirectStandardError=$true

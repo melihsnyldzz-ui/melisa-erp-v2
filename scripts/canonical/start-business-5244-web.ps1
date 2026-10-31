@@ -17,7 +17,7 @@ function Get-Business5244ReadPairPins {
 }
 # Finite pending-recovery generation. Metadata never issues native authority.
 function Test-Business5244PendingWebGeneration {
- return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031')
+ return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101')
 }
 function Get-Business5244PendingWebCase {
  if(!(Test-Business5244PendingWebGeneration)){throw 'PENDING_WEB_GENERATION_REQUIRED'}
@@ -37,17 +37,17 @@ function Get-Business5244PendingWebCase {
 function Get-Business5244PendingWebPins {
  param([ValidateSet('Current','Candidate')][string]$Mode='Current')
  $validated=Get-Business5244PendingWebCase
- $steady=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031'
+ $steady=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101'
  if($steady){$Mode='Candidate'}
  $id=if($Mode-ceq'Current'){'ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030'}else{'ERP-BUSINESS-WEB-5244-B6-PENDING-5457e450-PASSIVE-20261031'}
  return @{root=('C:\Sirket\ERP\releases\'+$id);package=$id;manifest=$(if($Mode-ceq'Current'){$validated.case.currentWebManifestSha256}else{$validated.case.candidateWebManifestSha256});frontendSource=$(if($Mode-ceq'Current'){'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'}else{'5457e450ad153894c2f81112f08217a16c70330a'});apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';apiManifest=$validated.case.apiManifestSha256;baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash=$validated.case.nodeSha256.ToUpperInvariant();profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
 }
 function Test-Business5244WriterWebOnlyGeneration {
  # A source location selects this single immutable generation, never a CLI flag.
- return ($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'-or$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031')
+ return ($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029'-or$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101')
 }
 function Test-Business5244SteadyGeneration {
- if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031'){return $true}
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101'){return $true}
  return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030')
 }
 function Test-Business5244ReadContextRepairGeneration {

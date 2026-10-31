@@ -160,6 +160,25 @@ function Owner-Status {
  if(!$status.nativePeerVerified -or $status.reply -cne 'Status' -or $status.state.phase -cne 'Running'){throw 'WEB_OWNER_NOT_RUNNING'}
  return $status.state
 }
+function Assert-B6PendingWebBirthProvenance($Status,$Capture){
+ # Only this pinned passive observation was captured through CIM. Project the
+ # native value to CIM's microsecond representation, never the reverse. This
+ # comparison grants no authority and never substitutes for exact kernel birth.
+ if(!$PendingWebInstall-or$ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Capture.birthProvenance-cne'CIM_FILETIME_MICROSECOND'){throw 'PENDING_WEB_BIRTH_PROVENANCE_REQUIRED'}
+ $handles=[Collections.Generic.List[object]]::new()
+ try{
+  foreach($role in @('owner','child')){
+   $row=$Capture.$role;$nativeText=[string]$Status.($role+'Birth');$observedText=[string]$row.birth
+   if($Status.($role+'Pid')-ne$row.pid-or$nativeText-cnotmatch'\A[1-9][0-9]{0,17}\z'-or$observedText-cnotmatch'\A[1-9][0-9]{0,17}\z'){throw 'PENDING_WEB_BIRTH_IDENTITY_CHANGED'}
+   $native=[long]$nativeText;$observed=[long]$observedText
+   if($observed%10-ne0-or($native-($native%10))-ne$observed){throw 'PENDING_WEB_CIM_BIRTH_CHANGED'}
+   $exactTicks=[DateTime]::FromFileTimeUtc($native).Ticks
+   $handle=[Test125ApiKernel]::QueryOnlyOpen([int]$row.pid,$exactTicks);$handles.Add($handle)
+   if($handle.Birth-ne$exactTicks){throw 'PENDING_WEB_NATIVE_BIRTH_CHANGED'}
+   [Test125ApiKernel]::ValidateReadOnly($handle,$exactTicks)
+  }
+ }finally{foreach($handle in $handles){$handle.Dispose()}}
+}
 function Assert-OldTarget($Status){
  $p=Get-CimInstance Win32_Process -Filter ('ProcessId='+$Status.ownerPid);$child=Get-CimInstance Win32_Process -Filter ('ProcessId='+$Status.childPid)
  if(!$p -or !$child -or !(Same-ErpPath $p.ExecutablePath $ps) -or $child.ParentProcessId -ne $p.ProcessId -or !(Same-ErpPath $child.ExecutablePath $pins.node) -or (Child-Sid $p) -cne [Business5244RetirementPeer]::CurrentSid -or (Child-Sid $child) -cne [Business5244RetirementPeer]::CurrentSid){throw 'WEB_OWNER_TARGET_CHANGED'}
@@ -168,7 +187,9 @@ function Assert-OldTarget($Status){
  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
   $expected=Get-B6ReadPairOwnerArguments $oldRoot $oldHash
   if(($RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall-or$PreviewLinkInstall)-and$oldRoot-ceq$b6.owner.entry.root){
-   if($Status.ownerPid-ne$b6.owner.owner.pid-or$Status.ownerBirth-cne$b6.owner.owner.birth-or$Status.childPid-ne$b6.owner.child.pid-or$Status.childBirth-cne$b6.owner.child.birth-or!(Test-ReadPairOwnerArguments ([string]$p.CommandLine) ([string]$b6.owner.owner.argv))){throw 'B6_CURRENT_OWNER_CAPTURE_CHANGED'}
+   $birthsMatch=$Status.ownerBirth-ceq$b6.owner.owner.birth-and$Status.childBirth-ceq$b6.owner.child.birth
+   if($PendingWebInstall){Assert-B6PendingWebBirthProvenance $Status $b6.owner;$birthsMatch=$true}
+   if($Status.ownerPid-ne$b6.owner.owner.pid-or!$birthsMatch-or$Status.childPid-ne$b6.owner.child.pid-or!(Test-ReadPairOwnerArguments ([string]$p.CommandLine) ([string]$b6.owner.owner.argv))){throw 'B6_CURRENT_OWNER_CAPTURE_CHANGED'}
   }elseif($oldRoot-ceq$b6.owner.entry.root){
    if($Status.ownerPid-ne$b6.owner.owner.pid-or$Status.ownerBirth-cne$b6.owner.owner.birth-or$Status.childPid-ne$b6.owner.child.pid-or$Status.childBirth-cne$b6.owner.child.birth-or(Child-Sid $p)-cne$b6.owner.owner.sid-or(Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes([string]$p.CommandLine)))-cne$b6.owner.owner.argvSha256){throw 'B6_CURRENT_OWNER_CAPTURE_CHANGED'}
   }
@@ -700,23 +721,23 @@ function Open-B6SteadyPreparedSource([string]$ReviewedSourceHash,[string]$EntryP
 }
 # This finite entry is prepared passively; it is never called by its producer.
 function Open-B6PendingWebPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
- $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031';$proof=Join-Path $private 'owner-preparation'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-birth-v2-20261101';$proof=Join-Path $private 'owner-preparation'
  if(!$Apply-or!$PendingWebInstall-or!$PublishPendingStartup-or!$WebOnlyRefreshInstall-or$ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'\A[a-fA-F0-9]{64}\z'){throw 'PENDING_WEB_REVIEWED_ENTRY_REQUIRED'}
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
  if((Get-FileHash -LiteralPath $node).Hash-cne'3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'){throw 'PENDING_WEB_NODE_CHANGED'}
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
-  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'b93bbf4d1ead91fdf69ab15e5c62a4ae8fdf8d266ac20bdd2942693e8d75a06e'
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer '47e0d0c8a5dd229c777b357187500910f425d82d7b437f40c0eaadd655f20a41'
   $text=& $node $producer --verify-pending-web-generation
   if($LASTEXITCODE-ne0){throw 'PENDING_WEB_PREPARED_SOURCE_REJECTED'};$v=($text-join[Environment]::NewLine)|ConvertFrom-Json
-  if($v.schema-cne'melisa-b6-pending-web-generation-verification.v1'-or$v.installed-isnot[bool]-or$v.installed-or$v.executionAuthority-isnot[bool]-or$v.executionAuthority-or$v.admissionIssued-isnot[bool]-or$v.admissionIssued-or$v.runtimeValidationComplete-isnot[bool]-or$v.runtimeValidationComplete-or$v.postExitExclusiveEntryCount-ne56-or$v.coreRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-20261031'-or$v.routerRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-20261031'-or$v.installerSourceSha256-ine$ReviewedSourceHash){throw 'PENDING_WEB_VERIFICATION_CHANGED'}
+  if($v.schema-cne'melisa-b6-pending-web-generation-verification.v1'-or$v.installed-isnot[bool]-or$v.installed-or$v.executionAuthority-isnot[bool]-or$v.executionAuthority-or$v.admissionIssued-isnot[bool]-or$v.admissionIssued-or$v.runtimeValidationComplete-isnot[bool]-or$v.runtimeValidationComplete-or$v.postExitExclusiveEntryCount-ne56-or$v.coreRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101'-or$v.routerRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-BIRTH-V2-20261101'-or$v.installerSourceSha256-ine$ReviewedSourceHash){throw 'PENDING_WEB_VERIFICATION_CHANGED'}
   foreach($root in @($v.coreRoot,$v.steadyRoot)){$m=Get-Content -LiteralPath (Join-Path $root 'owner-manifest.json') -Raw|ConvertFrom-Json;Hold-B6ReadPairSource (Join-Path $root 'owner-manifest.json') $(if($root-ceq$v.coreRoot){$v.coreManifestSha256}else{$v.steadyManifestSha256});foreach($f in @($m.files)+@($m.dataFiles)){Hold-B6ReadPairSource (Join-Path $root $f.path) $f.sha256}}
   $r=Get-Content -LiteralPath (Join-Path $v.routerRoot 'owner-manifest.json') -Raw|ConvertFrom-Json
   Hold-B6ReadPairSource (Join-Path $v.routerRoot 'owner-manifest.json') $v.routerManifestSha256;Hold-B6ReadPairSource (Join-Path $v.routerRoot $r.entry) $r.entrySha256;Hold-B6ReadPairSource (Join-Path $v.routerRoot 'readpair-router-library.ps1') $r.routerLibrarySha256
   $m=Get-Content -LiteralPath (Join-Path $v.coreRoot 'owner-manifest.json') -Raw|ConvertFrom-Json
   foreach($f in $m.privateBeforeImages){if([IO.Path]::GetDirectoryName($f.path)-cne$proof){throw 'PENDING_WEB_PRIVATE_BEFORE_SCOPE'};Hold-B6ReadPairSource $f.path $f.sha256}
-  Hold-B6ReadPairSource (Join-Path $private 'before.json') '25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc'
+  Hold-B6ReadPairSource 'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031\before.json' '25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc'
   $owner=Get-Content -LiteralPath (Join-Path $proof 'current-read2b-owner-capture.json') -Raw|ConvertFrom-Json;$entries=Get-Content -LiteralPath (Join-Path $proof 'current-entry-hold-capture.json') -Raw|ConvertFrom-Json;$boundary=Get-Content -LiteralPath (Join-Path $proof 'webonly-api-before.json') -Raw|ConvertFrom-Json;$task=Get-Content -LiteralPath (Join-Path $proof 'current-task-capture.json') -Raw|ConvertFrom-Json
   $self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID);$sid=Invoke-CimMethod -InputObject $self -MethodName GetOwnerSid
   $remaining=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape([string]$self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
@@ -758,7 +779,7 @@ function Assert-B6PendingWebApiBoundary {
 function New-B6PendingWebTaskXml([string]$BeforeXml){
  $doc=[Xml.XmlDocument]::new();$doc.XmlResolver=$null;$doc.PreserveWhitespace=$true;$doc.LoadXml($BeforeXml);$ns=[Xml.XmlNamespaceManager]::new($doc.NameTable);$ns.AddNamespace('t','http://schemas.microsoft.com/windows/2004/02/mit/task')
  $actions=@($doc.SelectNodes('/t:Task/t:Actions/*',$ns));$command=$doc.SelectSingleNode('/t:Task/t:Actions/t:Exec/t:Command',$ns);$arguments=$doc.SelectSingleNode('/t:Task/t:Actions/t:Exec/t:Arguments',$ns)
- $old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031\start-owned-test.ps1'
+ $old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101\start-owned-test.ps1'
  $expected='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$old+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
  if($actions.Count-ne1-or!$command-or!$arguments-or$command.InnerText-ine'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'-or$arguments.InnerText-cne$expected){throw 'PENDING_WEB_TASK_ACTION_CHANGED'}
  $arguments.InnerText=$expected.Replace($old,$new);return $doc.OuterXml

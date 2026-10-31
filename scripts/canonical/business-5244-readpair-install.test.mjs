@@ -8,6 +8,64 @@ $b6=[pscustomobject]@{fixedCaseId='ReadContextRepair';coreRoot=$root;routerRoot=
 `;
 function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-readpair-install-')));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-install-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
+// Pure kernel doubles: no process, handle, pipe, task, lease or TEST access.
+const pendingBirthFixture=String.raw`
+Add-Type -TypeDefinition @'
+using System;using System.Collections.Generic;
+public sealed class FixtureBirthHandle:IDisposable { public long Birth; public bool QueryOnly=true;public void Dispose(){Test125ApiKernel.Disposed++;} }
+public static class Test125ApiKernel {
+ public static Dictionary<int,long> Births=new Dictionary<int,long>(); public static int Opened,Disposed; public static bool DenyValidation;
+ public static FixtureBirthHandle QueryOnlyOpen(int pid,long expected){Opened++;if(!Births.ContainsKey(pid))throw new Exception("FIXTURE_PID_REUSE");return new FixtureBirthHandle{Birth=Births[pid]};}
+ public static void ValidateReadOnly(FixtureBirthHandle h,long expected){if(DenyValidation||!h.QueryOnly||h.Birth!=expected)throw new Exception("FIXTURE_NATIVE_HANDLE_CHANGED");}
+}
+'@
+$script:PendingWebInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
+$capture=[pscustomobject]@{birthProvenance='CIM_FILETIME_MICROSECOND';owner=[pscustomobject]@{pid=33080;birth='134379216568450540'};child=[pscustomobject]@{pid=7052;birth='134379217109250880'}}
+$native=[pscustomobject]@{ownerPid=33080;ownerBirth='134379216568450543';childPid=7052;childBirth='134379217109250887'}
+[Test125ApiKernel]::Births[33080]=[DateTime]::FromFileTimeUtc([long]$native.ownerBirth).Ticks
+[Test125ApiKernel]::Births[7052]=[DateTime]::FromFileTimeUtc([long]$native.childBirth).Ticks
+`;
+win('Pending birth provenance projects only explicit CIM observations and retains exact native handle birth',()=>{
+ assert.equal(run(pendingBirthFixture+String.raw`
+$original=$native|ConvertTo-Json -Compress
+Assert-B6PendingWebBirthProvenance $native $capture
+if(($native|ConvertTo-Json -Compress)-cne$original-or[Test125ApiKernel]::Opened-ne2-or[Test125ApiKernel]::Disposed-ne2){throw 'NATIVE_IDENTITY_NOT_RETAINED'};'PASS'`),'PASS');
+});
+win('Pending birth provenance rejects missing provenance PID reuse changed bucket and same-bucket native handle changes',()=>{
+ assert.equal(run(pendingBirthFixture+String.raw`
+$captureJson=$capture|ConvertTo-Json -Depth 5;$nativeJson=$native|ConvertTo-Json -Compress
+foreach($kind in @('provenance','native-claim','owner-pid','child-pid','owner-bucket','child-bucket','non-cim','malformed','overflow','same-owner-bucket','same-child-bucket','handle-denied','foreign-scope','missing-action')){
+ $capture=$captureJson|ConvertFrom-Json;$native=$nativeJson|ConvertFrom-Json;$script:PendingWebInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029';[Test125ApiKernel]::DenyValidation=$false
+ [Test125ApiKernel]::Births[33080]=[DateTime]::FromFileTimeUtc([long]$native.ownerBirth).Ticks;[Test125ApiKernel]::Births[7052]=[DateTime]::FromFileTimeUtc([long]$native.childBirth).Ticks
+ switch($kind){provenance{$capture.birthProvenance=''}native-claim{$capture.birthProvenance='NATIVE_FILETIME'}owner-pid{$native.ownerPid++}child-pid{$native.childPid++}owner-bucket{$native.ownerBirth='134379216568450553'}child-bucket{$native.childBirth='134379217109250897'}non-cim{$capture.owner.birth='134379216568450543'}malformed{$native.ownerBirth='134379216568450543x'}overflow{$native.ownerBirth='999999999999999999999999'}same-owner-bucket{[Test125ApiKernel]::Births[33080]++}same-child-bucket{[Test125ApiKernel]::Births[7052]++}handle-denied{[Test125ApiKernel]::DenyValidation=$true}foreign-scope{$script:ScopeName='TEST125-API-B6-ca620bac-20261028'}missing-action{$script:PendingWebInstall=$false}}
+ $denied=$false;try{Assert-B6PendingWebBirthProvenance $native $capture}catch{$denied=$true};if(!$denied){throw ('FALSE_NATIVE_ADMISSION_'+$kind)}
+}
+if([Test125ApiKernel]::Opened-ne[Test125ApiKernel]::Disposed){throw 'QUERY_HANDLE_LEAK'};'PASS'`),'PASS');
+});
+win('Assert-OldTarget keeps parent argv listener and historical exact-birth checks around Pending provenance',()=>{
+ assert.equal(run(pendingBirthFixture+String.raw`
+Add-Type -TypeDefinition @'
+public static class Business5244WebNative{public static bool MatchesCimBirth(long n,long c){return c%10==0?n/10==c/10:n==c;}}
+public static class Business5244RetirementPeer{public static string CurrentSid="fixture";}
+'@
+$script:WebOnlyRefreshInstall=$true;$script:ps='fixture-ps.exe';$script:oldRoot='C:\fixture\old';$script:oldHash='a'*64;$script:pins=@{node='C:\fixture\node.exe';root='C:\fixture\web'};$script:targetChecks=0
+$expectedArgs='-NoProfile -NonInteractive -WindowStyle Hidden -File C:\fixture\old\run-current-owner.ps1 -ManifestSha256 '+('A'*64)
+$ownerProcess=[pscustomobject]@{ProcessId=33080;ExecutablePath=$ps;CommandLine=('"'+$ps+'" '+$expectedArgs);CreationDate=[DateTime]::FromFileTimeUtc([long]$capture.owner.birth)}
+$childProcess=[pscustomobject]@{ProcessId=7052;ParentProcessId=33080;ExecutablePath=$pins.node;CommandLine=('"'+$pins.node+'" "'+(Join-Path $pins.root 'apps\sites-workflow\node_modules\vite\bin\vite.js')+'" preview --host 127.0.0.1 --port 5244 --strictPort');CreationDate=[DateTime]::FromFileTimeUtc([long]$capture.child.birth)}
+$capture.owner|Add-Member argv $ownerProcess.CommandLine;$script:b6=@{owner=@{owner=$capture.owner;child=$capture.child;entry=@{root=$oldRoot};birthProvenance=$capture.birthProvenance}}
+function Get-CimInstance($ClassName,$Filter){if($Filter-ceq'ProcessId=33080'){return $ownerProcess};if($Filter-ceq'ProcessId=7052'){return $childProcess};throw 'WRONG_PID_QUERY'}
+function Same-ErpPath($a,$b){return $a-ceq$b};function Child-Sid($p){return 'fixture'};function Get-B6ReadPairOwnerArguments{return $expectedArgs};function Get-NetTCPConnection{return @()};function Assert-Business5244OwnedListeners{$script:targetChecks++}
+Assert-OldTarget $native;if($targetChecks-ne1){throw 'PENDING_TARGET_NOT_FULLY_CHECKED'}
+$ownerCommand=$ownerProcess.CommandLine;$childCommand=$childProcess.CommandLine
+foreach($kind in @('parent','owner-argv','child-argv','same-bucket-handle')){
+ $childProcess.ParentProcessId=33080;$ownerProcess.CommandLine=$ownerCommand;$childProcess.CommandLine=$childCommand;[Test125ApiKernel]::Births[33080]=[DateTime]::FromFileTimeUtc([long]$native.ownerBirth).Ticks
+ switch($kind){parent{$childProcess.ParentProcessId++}owner-argv{$ownerProcess.CommandLine+=' -Command extra'}child-argv{$childProcess.CommandLine+=' extra'}same-bucket-handle{[Test125ApiKernel]::Births[33080]++}}
+ $denied=$false;try{Assert-OldTarget $native}catch{$denied=$true};if(!$denied-or$targetChecks-ne1){throw ('TARGET_GUARD_REMOVED_'+$kind)}
+}
+$childProcess.ParentProcessId=33080;$ownerProcess.CommandLine=$ownerCommand;$childProcess.CommandLine=$childCommand;$script:PendingWebInstall=$false
+$b6.owner.owner.birth=$native.ownerBirth;$b6.owner.child.birth=$native.childBirth;Assert-OldTarget $native
+$b6.owner.owner.birth='134379216568450540';$denied=$false;try{Assert-OldTarget $native}catch{if($_.Exception.Message-cne'B6_CURRENT_OWNER_CAPTURE_CHANGED'){throw};$denied=$true};if(!$denied-or$targetChecks-ne2){throw 'HISTORICAL_NATIVE_EXACTNESS_LOST'};'PASS'`),'PASS');
+});
 win('SHA256 value decoder rejects terminal LF CRLF and prefix LF instead of silently dropping non-hex bytes',()=>{
  assert.equal(run(String.raw`$valid='ab'*32;$a=Get-ReadPairSha256Value $valid;$b=Get-ReadPairSha256Value $valid.ToUpperInvariant();if($a.Length-ne32-or[BitConverter]::ToString($a)-cne[BitConverter]::ToString($b)){throw 'HASH_VALUE_CHANGED'};$lf=[string][char]10;$cr=[string][char]13;foreach($bad in @(($valid+$lf),($valid+$cr+$lf),($lf+$valid))){$denied=$false;try{Get-ReadPairSha256Value $bad|Out-Null}catch{if($_.Exception.Message-cne'READPAIR_BASELINE_HASH_REJECTED'){throw};$denied=$true};if(!$denied){throw 'HASH_SUFFIX_ACCEPTED'}};'PASS'`),'PASS');
 });
@@ -1219,7 +1277,7 @@ win('PreviewRead corrective publication preserves the exact thirty-two captured 
 });
 win('Pending WEB task projection changes only the future launcher and rejects extra actions arguments or target drift',()=>{
  assert.equal(run(String.raw`
-$old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031\start-owned-test.ps1'
+$old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101\start-owned-test.ps1'
 $args='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$old+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
 $xml='<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task" version="1.2"><Principals><Principal id="Author"><UserId>fixture-user</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><Enabled>true</Enabled></Settings><Actions Context="Author"><Exec><Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($args)+'</Arguments></Exec></Actions></Task>'
 $after=New-B6PendingWebTaskXml $xml

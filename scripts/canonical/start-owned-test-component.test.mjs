@@ -31,7 +31,7 @@ $tokens=$null;$parseErrors=$null;$ast=[Management.Automation.Language.Parser]::P
 $fn=$ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Test-ErpSteadyWebStartupGeneration'},$true)
 if($fn.Count-ne1){throw 'PENDING_STEADY_PREDICATE_MISSING'}
 . ([scriptblock]::Create($fn[0].Extent.Text.Replace('$PSScriptRoot','$fixtureSteadyRoot')))
-$expected='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-20261031'
+$expected='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101'
 foreach($candidate in @($expected,($expected+'-other'),$expected.ToLowerInvariant())){$fixtureSteadyRoot=$candidate;if((Test-ErpSteadyWebStartupGeneration)-ne($candidate-ceq$expected)){throw 'PENDING_STEADY_ALIAS_ACCEPTED'}}
 $fixtureSteadyRoot=$expected;$script:startCalls=0;$script:stateWrites=0;$script:notReady=$false
 function Get-ErpMutexName{'isolated-fixture-no-kernel-mutex'}
