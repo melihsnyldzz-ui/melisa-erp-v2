@@ -897,23 +897,36 @@ const PREVIEW_READ_CURRENT=Object.freeze({source:'1980deb8320bf9b774ea2305285ca7
  apiSource:['4075ad53829ff25f','c470ecbdd05562ee','eb557e97'].join(''),
  apiCoreHash:['f217a986cfd4a414','73db61bd144c32ec','55f0daaa3063f849','2986470e7a1cfa01'].join(''),
  apiSteadyHash:['1bc52aadd91b07e2','8b6f325305ab60da','6ff3ff343bdaacba','964cc765397603eb'].join('')});
-const DIAGNOSTIC_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-OWNER-20261030');
-const DIAGNOSTIC_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-ROUTER-20261030');
-const DIAGNOSTIC_STEADY=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-STEADY-OWNER-20261030');
-const DIAGNOSTIC_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-approved-sale-20261030\diagnostic-generation-20261030\recovery-generation-20261031`;
+const DIAGNOSTIC_CORE=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-OWNER-20261030');
+const DIAGNOSTIC_ROUTER=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-ROUTER-20261030');
+const DIAGNOSTIC_STEADY=path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-STEADY-OWNER-20261030');
+const DIAGNOSTIC_PRIVATE=String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-approved-sale-20261030\diagnostic-generation-20261030\timing-generation-20261031`;
 const DIAGNOSTIC_PACKAGE_PROOF=path.win32.join(path.win32.dirname(path.win32.dirname(DIAGNOSTIC_PRIVATE)),'diagnostic-package');
-const DIAGNOSTIC_PROOF=path.win32.join(DIAGNOSTIC_PRIVATE,'owner-preparation-v5');
+const DIAGNOSTIC_PROOF=path.win32.join(DIAGNOSTIC_PRIVATE,'owner-preparation-v6');
 const DIAGNOSTIC_VERIFIER=path.win32.join(DIAGNOSTIC_PROOF,'verified-owner-producer.mjs');
 const DIAGNOSTIC_DIGESTS=Object.freeze({component:'dbaf87f8522436d45ddde93acf490639ce45eb2cc915c46eb967a8629e7164fb',web:'7867d87868bd6e69eba3efcf0eba66129a08470cd024f084bce04f9aaeaa3022',pair:'8fbfe40c8789a688cb3f951bedea247815ce637b7cf60302dc386b7236e54220'});
 const DIAGNOSTIC_INPUTS=Object.freeze({
- 'current-read2b-owner-capture.json':'d9fb48dcc985b09c2781bee29a426a4a88ea5e83bd1e24d75bbd1b4045689f61',
- 'current-erp-processes.before.json':'2ddeab76b88394b849092e90f6a46bd943e0023ce53b173f605b7346695f1733',
- 'current-task.before.xml':'4c747a088c387cd714ce9d645831280ffbba59f4f29ce93a8e7e93fa9f7af0da',
- 'current-task.before.sddl':'cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4',
- 'current-task-capture.json':'37764436f4134900c5a7970a1f4c30b24cec688f0c8405e0fae6e8c17ad2e7ac',
- 'current-entry-hold-capture.json':'e3ad0edca719027eea88586685e5cea59142c4bbdf376f101d565deb73348b2d'
+  "current-read2b-owner-capture.json": "4365524eb3cd32623372cc83d009c3cf4ef3299200026780e0e5f6d275dd6fdb",
+  "current-erp-processes.before.json": "41d8b56f9ecf46b65e1b2e6ca0881658d37b6407b739aa609ba73cdf01d13c7d",
+  "current-task.before.xml": "4c747a088c387cd714ce9d645831280ffbba59f4f29ce93a8e7e93fa9f7af0da",
+  "current-task.before.sddl": "cc862b7ac8c18bf4211e9fb5821b6a5ba4611698a3466547ce98a0b54da31ac4",
+  "current-task-capture.json": "37764436f4134900c5a7970a1f4c30b24cec688f0c8405e0fae6e8c17ad2e7ac",
+  "current-entry-hold-capture.json": "af15817fbd54440bb2dc1d0ecf3e6ad25c5c7d899d17e118b367cae9d4767ef3"
 });
-const DIAGNOSTIC_CURRENT=Object.freeze({root:path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V4-OWNER-20261030'),router:path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V4-ROUTER-20261030'),steady:path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-DIAGNOSTIC-V4-STEADY-OWNER-20261030'),source:'ac5f811ca82f02eaa85fd8982234ca18d222c7c8',coreHash:'1d49d0cee2c8787018350a580a985bccfc3951c50a5bcaecd2ce22d7361228c5',routerHash:'fdd711c0878f39ce6b385071ca7d6dd6a638836f8674e727327bf5bb1d9667f3',steadyHash:'35dd469a28f1878a138df50e3bbff7eb4aa953cffcb7d3e84fa85d6de0c5919e',apiRoot:path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030'),apiSteady:path.win32.join(RELEASES,'ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'),apiSource:'35d3eeb267e4292fd0aca3aece1dbaf9e1a7b34a',apiCoreHash:'d43f5cc715ac06ecc1da3df7a709375d0da913dd73e175dc63112ab21b4409d1',apiSteadyHash:'6adda25daf5af69b72062475d6c937b7fb903e4199291189c68f9b6229b49869'});
+const DIAGNOSTIC_CURRENT=Object.freeze({
+ root:"C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-OWNER-20261030",
+ router:"C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-ROUTER-20261030",
+ steady:"C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-STEADY-OWNER-20261030",
+ source:"36bfca2fd47ca6d0cb09b6aad7d5e2e841f8aae3",
+ coreHash:"2ac1ca7370b93306e29be593f36a3ac19edc9723f4b762ffaa7de66eaca02e96",
+ routerHash:"f79d4cd3aeb4d8106acf719e696ddd05429489435b92b4f95039cbaf90bbdd3e",
+ steadyHash:"2694a5d6a8f6626e77b20b8fa170e17c3a0d30b6a88a84f746efc852732578fb",
+ apiRoot:"C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-OWNER-20261030",
+ apiSteady:"C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030",
+ apiSource:"35d3eeb267e4292fd0aca3aece1dbaf9e1a7b34a",
+ apiCoreHash:"d43f5cc715ac06ecc1da3df7a709375d0da913dd73e175dc63112ab21b4409d1",
+ apiSteadyHash:"6adda25daf5af69b72062475d6c937b7fb903e4199291189c68f9b6229b49869"
+});
 function diagnosticGeneration(){return {core:DIAGNOSTIC_CORE,router:DIAGNOSTIC_ROUTER,steady:DIAGNOSTIC_STEADY,privateRoot:DIAGNOSTIC_PRIVATE,proof:DIAGNOSTIC_PROOF,inputs:DIAGNOSTIC_INPUTS,pairHash:DIAGNOSTIC_DIGESTS.pair,apiHash:DIAGNOSTIC_DIGESTS.component,webHash:DIAGNOSTIC_DIGESTS.web,generation:'Diagnostic',label:'diagnostic'};}
 function diagnosticPair(){
  const pairBytes=pinned(path.join(DIAGNOSTIC_PACKAGE_PROOF,'preview-package-pair.json'),DIAGNOSTIC_DIGESTS.pair),pair=json(pairBytes),manifests={};
@@ -938,19 +951,19 @@ function diagnosticPair(){
 function diagnosticBefore(){
  const k=DIAGNOSTIC_CURRENT,inputs=new Map(Object.entries(DIAGNOSTIC_INPUTS).map(([n,h])=>[n,pinned(path.join(DIAGNOSTIC_PRIVATE,n),h)])),capture=json(inputs.get('current-read2b-owner-capture.json')),entries=json(inputs.get('current-entry-hold-capture.json')),task=json(inputs.get('current-task-capture.json'));
  const cm=json(pinned(path.join(k.root,'owner-manifest.json'),k.coreHash)),rm=json(pinned(path.join(k.router,'owner-manifest.json'),k.routerHash)),sm=json(pinned(path.join(k.steady,'owner-manifest.json'),k.steadyHash)),am=json(pinned(path.join(k.apiRoot,'owner-manifest.json'),k.apiCoreHash)),as=json(pinned(path.join(k.apiSteady,'owner-manifest.json'),k.apiSteadyHash));
- if(capture.schema!=='melisa-b6-writer-current-owner-capture.v1'||capture.readOnly!==true||capture.stopAuthorized!==false||capture.predecessorEntryKind!=='CurrentCore'||capture.router!==null||capture.owner?.pid!==45012||capture.owner.birth!=='134378798935365178'||capture.child?.pid!==41764||capture.child.birth!=='134378799548095245'||capture.child.parent!==45012||capture.apiSupervisor?.pid!==27732||capture.apiSupervisor.birth!=='134378277839267163'||capture.apiBoundary?.pid!==31124||capture.apiBoundary.parent!==27732||capture.installedApiManifest!==PREVIEW_READ_API_HASH||capture.installedWebManifest!==PREVIEW_READ_WEB_HASH||capture.recordBeforeSha256!==DIAGNOSTIC_INPUTS['current-erp-processes.before.json']||capture.serviceCalls!==0||capture.sqlCalls!==0||capture.retireCalls!==0)fail('B6_DIAGNOSTIC_CURRENT_CHANGED');
- const status=capture.nativeStatus;if(status?.reply!=='Status'||status.nativePeerVerified!==true||status.stopAuthorized!==false||status.state?.phase!=='Running'||status.state.ownerPid!==45012||String(status.state.ownerBirth)!==capture.owner.birth||status.state.childPid!==41764||String(status.state.childBirth)!==capture.child.birth)fail('B6_DIAGNOSTIC_NATIVE_OBSERVATION_CHANGED');
+ if(capture.schema!=='melisa-b6-writer-current-owner-capture.v1'||capture.readOnly!==true||capture.stopAuthorized!==false||capture.predecessorEntryKind!=='CurrentCore'||capture.router!==null||capture.owner?.pid!==7596||capture.owner.birth!=='134379114597872756'||capture.child?.pid!==23848||capture.child.birth!=='134379115170618592'||capture.child.parent!==7596||capture.apiSupervisor?.pid!==27732||capture.apiSupervisor.birth!=='134378277839267163'||capture.apiBoundary?.pid!==31124||capture.apiBoundary.parent!==27732||capture.installedApiManifest!==PREVIEW_READ_API_HASH||capture.installedWebManifest!==PREVIEW_READ_WEB_HASH||capture.recordBeforeSha256!==DIAGNOSTIC_INPUTS['current-erp-processes.before.json']||capture.serviceCalls!==0||capture.sqlCalls!==0||capture.retireCalls!==0)fail('B6_DIAGNOSTIC_CURRENT_CHANGED');
+ const status=capture.nativeStatus;if(status?.reply!=='Status'||status.nativePeerVerified!==true||status.stopAuthorized!==false||status.state?.phase!=='Running'||status.state.ownerPid!==7596||String(status.state.ownerBirth)!==capture.owner.birth||status.state.childPid!==23848||String(status.state.childBirth)!==capture.child.birth)fail('B6_DIAGNOSTIC_NATIVE_OBSERVATION_CHANGED');
  for(const [m,root,source,purpose]of [[cm,k.root,k.source,'PreviewLinkPackageRefresh'],[sm,k.steady,k.source,'WebOnlySteadyStartup'],[am,k.apiRoot,k.apiSource,'ReadContextRepair'],[as,k.apiSteady,k.apiSource,'ReadContextRepair']]){if(m.kind!=='BUSINESS5244_FRESH_OWNER_BUNDLE'||m.finiteScope!==WRITER_SCOPE||m.sourceCommit!==source||m.maintenancePurpose!==purpose||m.files?.map(f=>f.path).sort().join('|')!==[...BUSINESS_SALE_OWNER_SOURCE_FILES,'run-current-owner.ps1'].sort().join('|'))fail('B6_DIAGNOSTIC_CURRENT_SOURCE_CHANGED');for(const f of m.files)pinned(path.join(root,f.path),f.sha256);}
  const ce=cm.files.find(f=>f.path==='run-current-owner.ps1');
  if(rm.coreRoot!==k.root||rm.coreManifestSha256!==k.coreHash||capture.core.root!==k.root||capture.core.manifestSha256!==k.coreHash||capture.core.sourceCommit!==k.source||JSON.stringify(capture.core.files)!==JSON.stringify(cm.files)||capture.entry.root!==k.root||capture.entry.leaf!=='run-current-owner.ps1'||capture.entry.manifestSha256!==k.coreHash||capture.entry.sha256!==ce.sha256||capture.entry.runtimeEntryBytesVerified!==false||capture.entry.postExitExclusiveBytesRequired!==true)fail('B6_DIAGNOSTIC_PREDECESSOR_CHANGED');
  const exe=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,expectedOwner='"'+exe+'" -NoProfile -NonInteractive -WindowStyle Hidden -File '+path.join(k.root,'run-current-owner.ps1')+' -ManifestSha256 '+k.coreHash.toUpperCase();
  if(capture.owner.exe!==exe||![expectedOwner,expectedOwner+' '].includes(capture.owner.argv)||capture.apiSupervisor.launcher.coreRoot!==k.apiRoot||capture.apiSupervisor.launcher.coreManifestSha256!==k.apiCoreHash||capture.futureTaskLauncher.coreRoot!==k.apiSteady||capture.futureTaskLauncher.coreManifestSha256!==k.apiSteadyHash||!/^S-1-5-21-[\d-]+$/.test(capture.apiSupervisor.sid))fail('B6_DIAGNOSTIC_LAUNCHER_CHANGED');
  for(const [l,m,root]of [[capture.apiSupervisor.launcher,am,k.apiRoot],[capture.futureTaskLauncher,as,k.apiSteady]]){const f=m.files.find(f=>f.path==='start-owned-test.ps1');if(l.path!==path.join(root,f.path)||l.sha256!==f.sha256||l.bytes!==f.bytes)fail('B6_DIAGNOSTIC_LAUNCHER_CHANGED');}
- const priorRoot=path.win32.dirname(DIAGNOSTIC_PRIVATE),prior=json(pinned(path.join(priorRoot,'current-entry-hold-capture.json'),'182026dde18fcb7d0fdda0a1e0b34b0890271b24b427c64e9c90243b3fe5f133'));
+ const priorRoot=path.win32.join(path.win32.dirname(DIAGNOSTIC_PRIVATE),'recovery-generation-20261031'),prior=json(pinned(path.join(priorRoot,'current-entry-hold-capture.json'),'e3ad0edca719027eea88586685e5cea59142c4bbdf376f101d565deb73348b2d'));
  const tails=[[k.router,'start-business-5244-readpair-router.ps1',rm.entrySha256],[k.root,'run-current-owner.ps1',ce.sha256],[k.steady,'run-current-owner.ps1',sm.files.find(f=>f.path==='run-current-owner.ps1').sha256]];
- if(entries.schema!=='melisa-b6-writer-current-entry-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.runtimeValidationComplete!==false||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0||entries.ownerCaptureSha256!==DIAGNOSTIC_INPUTS['current-read2b-owner-capture.json']||entries.postExitExclusiveEntryCount!==50||entries.entries?.length!==6||entries.directEntries?.length!==44||JSON.stringify(entries.entries)!==JSON.stringify(prior.entries)||JSON.stringify(entries.gate)!==JSON.stringify(prior.gate)||JSON.stringify(entries.directEntries.slice(0,41))!==JSON.stringify(prior.directEntries)||tails.some(([root,leaf,h],i)=>entries.directEntries[i+41]?.path!==path.join(root,leaf)||entries.directEntries[i+41]?.sha256!==h))fail('B6_DIAGNOSTIC_ENTRY_CHAIN_CHANGED');
+ if(entries.schema!=='melisa-b6-writer-current-entry-capture.v1'||entries.readOnly!==true||entries.executionAuthority!==false||entries.runtimeValidationComplete!==false||entries.entryWrites!==0||entries.serviceCalls!==0||entries.sqlCalls!==0||entries.ownerCaptureSha256!==DIAGNOSTIC_INPUTS['current-read2b-owner-capture.json']||entries.postExitExclusiveEntryCount!==53||entries.entries?.length!==6||entries.directEntries?.length!==47||JSON.stringify(entries.entries)!==JSON.stringify(prior.entries)||JSON.stringify(entries.gate)!==JSON.stringify(prior.gate)||JSON.stringify(entries.directEntries.slice(0,44))!==JSON.stringify(prior.directEntries)||tails.some(([root,leaf,h],i)=>entries.directEntries[i+44]?.path!==path.join(root,leaf)||entries.directEntries[i+44]?.sha256!==h))fail('B6_DIAGNOSTIC_ENTRY_CHAIN_CHANGED');
  if(task.schema!=='melisa-b6-task-capture.v1'||task.readOnly!==true||task.instanceCount!==1||task.enginePid!==27732||task.xmlSha256!==DIAGNOSTIC_INPUTS['current-task.before.xml']||task.sddlSha256!==DIAGNOSTIC_INPUTS['current-task.before.sddl']||task.writes!==0)fail('B6_DIAGNOSTIC_TASK_CHANGED');
- return {inputs,capture,entryCount:50};
+ return {inputs,capture,entryCount:53};
 }
 function previewGeneration(nativeContext=false,previewRead=false,diagnostic=false){
  if(typeof diagnostic!=='boolean'||diagnostic&&(nativeContext||previewRead))fail('B6_OWNER_FIXED_ACTION_REQUIRED');

@@ -31,7 +31,7 @@ test('Diagnostic real task getter keeps Current-before, Candidate and Current-in
  if(process.platform!=='win32')return;
  assert.equal(run(String.raw`
   foreach($name in @('Get-ErpBusinessSalePackageRefreshFixedCase','Test-ErpBusinessSaleDiagnosticGeneration','Test-ErpBusinessSalePackageRefreshGeneration','Test-ErpBusinessSaleReadContextRepairGeneration')){$body=(Get-Command $name).Definition.Replace('$PSScriptRoot','$script:caseSourceRoot');. ([scriptblock]::Create('function '+$name+' {'+$body+'}'))}
-  $script:caseSourceRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-OWNER-20261030'
+  $script:caseSourceRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-OWNER-20261030'
   $case=Get-ErpBusinessSalePackageRefreshFixedCase;$script:token=[pscustomobject]@{fixture='same-ref-only'};$script:reads=0;$script:seals=0
   $seal=[pscustomobject]@{};$seal|Add-Member ScriptMethod Validate {$script:seals++}
   $candidate=[pscustomobject]@{path=(Join-Path $case.root 'start-owned-test.ps1');sha256=('a'*64);coreManifestSha256=('b'*64)}
@@ -46,13 +46,13 @@ test('Diagnostic real task getter keeps Current-before, Candidate and Current-in
   $script:p.packageRefreshTaskState.maintenanceInstalled=$false
   foreach($bad in @('old-diagnostic','foreign-case','wrong-future-pin','missing-source','unissued-proof','mode')){
    $savedPath=$candidate.path;$savedHash=$current.sha256;$savedSource=$script:p.packageRefreshTaskSource
-   switch($bad){'old-diagnostic'{$candidate.path=$candidate.path.Replace('DIAGNOSTIC-V5','DIAGNOSTIC-V2')};'foreign-case'{$candidate.path='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1'};'wrong-future-pin'{$current.sha256='e'*64};'missing-source'{$script:p.packageRefreshTaskSource=$null}}
+   switch($bad){'old-diagnostic'{$candidate.path=$candidate.path.Replace('DIAGNOSTIC-V6','DIAGNOSTIC-V2')};'foreign-case'{$candidate.path='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030\start-owned-test.ps1'};'wrong-future-pin'{$current.sha256='e'*64};'missing-source'{$script:p.packageRefreshTaskSource=$null}}
    $denied=$false;try{if($bad-ceq'unissued-proof'){Get-ErpBusinessSaleWriterTaskLauncherPins ($script:token|ConvertTo-Json|ConvertFrom-Json) -Mode Candidate|Out-Null}elseif($bad-ceq'mode'){Get-ErpBusinessSaleWriterTaskLauncherPins $script:token -Mode 'Other'|Out-Null}else{Get-ErpBusinessSaleWriterTaskLauncherPins $script:token -Mode Current|Out-Null}}catch{$denied=$true};if(!$denied){throw 'INVALID_TASK_PROOF_ACCEPTED'}
    $candidate.path=$savedPath;$current.sha256=$savedHash;$script:p.packageRefreshTaskSource=$savedSource
   }
   if($script:seals-lt3-or$script:reads-lt3){throw 'TASK_PIN_VALIDATION_SKIPPED'}
   # Removing the exact Diagnostic arm reproduces the actual preflight failure.
-  $old=(Get-Command Get-ErpBusinessSaleWriterTaskLauncherPins).Definition.Replace(",'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-OWNER-20261030\start-owned-test.ps1'",'')
+  $old=(Get-Command Get-ErpBusinessSaleWriterTaskLauncherPins).Definition.Replace(",'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-OWNER-20261030\start-owned-test.ps1'",'')
   . ([scriptblock]::Create('function Get-ErpBusinessSaleWriterTaskLauncherPins {'+$old+'}'))
   $denied=$false;try{Get-ErpBusinessSaleWriterTaskLauncherPins $script:token -Mode Candidate|Out-Null}catch{if($_.Exception.Message-cne'B6_WRITER_TASK_PROOF_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'OLD_TASK_FALLBACK_NOT_REPRODUCED'}
   'PASS'
@@ -68,7 +68,7 @@ test('PackageRefresh case selection is closed to four immutable generations and 
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-LINK-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030';id='PreviewLink';pid=13532;kind='CurrentCore'},
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030';id='NativeContext';pid=42864;kind='ReadPairRouter'},
    @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030';id='PreviewRead';pid=48088;kind='CurrentCore'},
-   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V5-STEADY-OWNER-20261030';id='Diagnostic';pid=27732;kind='CurrentCore'})){
+   @{owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-OWNER-20261030';steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-STEADY-OWNER-20261030';id='Diagnostic';pid=27732;kind='CurrentCore'})){
    $script:caseSourceRoot=$row.owner;$case=Get-ErpBusinessSalePackageRefreshFixedCase
    if($case.id-cne$row.id-or$case.root-cne$row.owner-or$case.steadyRoot-cne$row.steady-or$case.runningPid-ne$row.pid-or$case.predecessorKind-cne$row.kind-or!(Test-ErpBusinessSalePackageRefreshGeneration)){throw 'CLOSED_CASE_MISMATCH'}
    $case.root='mutated';if((Get-ErpBusinessSalePackageRefreshFixedCase).root-cne$row.owner){throw 'CASE_PIN_ALIAS'}
