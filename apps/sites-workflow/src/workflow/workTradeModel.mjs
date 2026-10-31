@@ -1,4 +1,4 @@
-import {businessSalePreviewSelectionAllowed} from './businessWorkface.mjs';
+import {businessSalePreviewSelectionAllowed,businessSaleOperationInputAllowed,businessSaleOperationKind} from './businessWorkface.mjs';
 export {moneyDisplay} from './moneyDisplay.mjs';
 import {operationCopyFromMeta,operationCopyEntity,operationCopyQuote,operationCopyDailySelection} from './isolatedOperationCopyModel.mjs';
 import {GOAL8_DAY_SQL_PROFILE_META} from '../../../api/src/services/goal8DaySqlProof.mjs';
@@ -91,6 +91,17 @@ export function tradeCanonicalSaleRequest({operation,requestId,selection,preview
  // Existing createTradeJournal can persist this exact path/body only after a
  // separately issued session capability. This pure value never grants POST.
  return Object.freeze({operation,path,body:Object.freeze(body),...(invoiceWitness?{invoiceWitness}:{}),canSend:false});
+}
+// Recovery consumes only the complete retained request. Never rebuild missing
+// fields from today's basket, normalize its body, or generate another UUID.
+export function tradeCanonicalPendingSalePlan(pending,scope){
+ if(!canonicalScope(scope)||!object(pending)||pending.version!==1||pending.status!=='pending')bad();
+ const operation=businessSaleOperationKind(pending.path),draft=operation==='sale_draft';
+ if(!operation||!keys(pending,draft?['version','status','path','body']:['version','status','path','body','invoiceWitness'])||!businessSaleOperationInputAllowed(pending.path,pending.body))bad();
+ const body=pending.body,w=pending.invoiceWitness;
+ if(draft){if(body.customerId!==scope.customerId||body.customerAccountId!==scope.customerAccountId||body.currency!==scope.currency)bad();}
+ else if(!canonicalWitness(w)||w.id!==pending.path.split('/')[4]||w.customerId!==scope.customerId||w.customerAccountId!==scope.customerAccountId||w.currency!==scope.currency||w.revision!==body.expectedRevision||body.requestId===w.creationRequestId||operation==='sale_finalize'&&w.status!=='draft')bad();
+ return Object.freeze({operation,path:pending.path,body:structuredClone(body),...(draft?{}:{invoiceWitness:structuredClone(w)}),canSend:false});
 }
 export function tradeCanonicalSaleJournal(value,pending,scope){
  if(!canonicalScope(scope)||!object(pending)||!['pending','done'].includes(pending.status)||!object(pending.body)||!canonicalUuid(pending.body.requestId)||!tradeRevision(pending.body.expectedRevision))bad();

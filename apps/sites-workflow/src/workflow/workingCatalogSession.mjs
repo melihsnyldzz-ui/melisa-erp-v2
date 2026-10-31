@@ -3,7 +3,7 @@ import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheti
 import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor,businessSaleReceiptRequestAllowed,isBusinessSaleReceiptActor,businessSaleOperationAvailable,businessSaleOperationKind,businessSaleOperationInputAllowed,businessSaleOperationWitnessAllowed,businessSaleOperationRequestAllowed,businessSaleNativeOperationPreviewAllowed} from './businessWorkface.mjs';
 import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
 import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
-import {tradeCanonicalSaleInvoice,tradeCanonicalSaleJournal} from './workTradeModel.mjs';
+import {tradeCanonicalSaleInvoice,tradeCanonicalSaleJournal,tradeCanonicalPendingSalePlan} from './workTradeModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -97,14 +97,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   if(renewing)return renewing;const expected=user&&{id:user.id,username:user.username},version=generation,old=refreshToken;
   renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
- return {
-  businessSaleOperationAvailable(operation){
-   const c=saleAvailability;return !!(businessBrowser&&active&&token&&expiresAt>Date.now()&&c&&c.generation===generation&&c.token===token&&c.identity===saleIdentity()&&businessSaleOperationAvailable(c.base,user,operation));
-  },
-  async businessSalePrepareOperation(plan){
+ async function prepareSaleOperation(plan,recoveryPending=null){
    if(!businessBrowser||!active||!token||!isBusinessSalePreviewActor(user)||!isBusinessSaleReceiptActor(user)||salePreparing||saleSending)throw saleFailure();
    const chosen=structuredClone(plan),keys=Object.keys(chosen??{}).sort().join(',');
-   if(!chosen||chosen.canSend!==false||chosen.operation!==businessSaleOperationKind(chosen.path)||!businessSaleOperationInputAllowed(chosen.path,chosen.body)||!businessSaleOperationRequestAllowed('POST',chosen.path,user)||keys!==(chosen.operation==='sale_draft'?'body,canSend,operation,path':'body,canSend,invoiceWitness,operation,path')||sentSaleRequests.has(chosen.body.requestId))throw saleFailure();
+   if(!chosen||chosen.canSend!==false||chosen.operation!==businessSaleOperationKind(chosen.path)||!businessSaleOperationInputAllowed(chosen.path,chosen.body)||!businessSaleOperationRequestAllowed('POST',chosen.path,user)||keys!==(chosen.operation==='sale_draft'?'body,canSend,operation,path':'body,canSend,invoiceWitness,operation,path')||!recoveryPending&&sentSaleRequests.has(chosen.body.requestId))throw saleFailure();
    if(chosen.operation!=='sale_draft'&&!businessSaleOperationWitnessAllowed(chosen.invoiceWitness))throw saleFailure();
    salePreparing=true;const epoch=++saleEpoch;
    try{
@@ -113,32 +109,54 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
     if(refreshToken&&expiresAt<=Date.now()+60000)await renew();
     const version=generation,identity=saleIdentity();
     const unchanged=()=>{if(!active||!token||version!==generation||identity!==saleIdentity()||epoch!==saleEpoch)throw saleFailure();};unchanged();
+    if(recoveryPending){
+     // A missing journal result is only a precondition, never authority to send.
+     // All existing fresh context, role, selection, hashes and native admission
+     // checks below remain mandatory for the byte-identical retained body.
+     let absent=false;
+     try{await request('/api/work-sales/requests/'+chosen.body.requestId,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true});}
+     catch(error){if(error?.status===404&&error?.code==='WORK_REQUEST_NOT_FOUND')absent=true;else throw error;}
+     unchanged();if(!absent)throw saleFailure();
+    }
     const options={expire:true,keepForbiddenSession:true,businessSalePreview:true},base=(await request('/api/work-sales/context',options)).data;unchanged();rememberSaleContext(base);
     if(!businessSaleOperationAvailable(base,user,chosen.operation))throw saleFailure();
-    let scope;
+    let scope,display;
     if(chosen.operation==='sale_draft'){
      const {requestId,expectedRevision,previewHash,...selection}=chosen.body;
      const context=(await request('/api/work-sales/selected-context',{...options,method:'POST',body:selection})).data;unchanged();
      const preview=(await request('/api/work-sales/preview',{...options,method:'POST',body:selection})).data;unchanged();
      if(!businessSaleNativeOperationPreviewAllowed({context,preview},selection)||context.revision!==expectedRevision||preview.previewHash!==previewHash)throw saleFailure();
      scope={customerId:selection.customerId,customerAccountId:selection.customerAccountId,currency:selection.currency};
+     display={currency:selection.currency,documentDate:selection.documentDate,totalExact4:preview.grandTotalExact4,items:preview.items.map(i=>({stockCode:i.stockCode,quantityExact3:i.quantityExact3}))};
     }else{
      const w=chosen.invoiceWitness,id=chosen.path.split('/')[4];
      scope={customerId:w?.customerId,customerAccountId:w?.customerAccountId,currency:w?.currency};
      const invoice=tradeCanonicalSaleInvoice((await request('/api/work-sales/invoices/'+id,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data,{...scope,invoiceId:id,creationRequestId:w?.creationRequestId,partyEntityId:w?.partyEntityId});unchanged();
      if(Object.keys(w??{}).sort().join(',')!=='creationRequestId,currency,customerAccountId,customerId,id,operationOrigin,partyEntityId,revision,status'||Object.keys(w).some(k=>w[k]!==invoice[k])||invoice.revision!==chosen.body.expectedRevision||chosen.body.requestId===invoice.creationRequestId||chosen.operation==='sale_finalize'&&invoice.status!=='draft'||chosen.operation==='sale_cancel'&&!['draft','finalized'].includes(invoice.status))throw saleFailure();
+     display={currency:invoice.currency,documentDate:invoice.documentDate,totalExact4:invoice.grandTotalExact4,items:invoice.items.map(i=>({stockCode:i.stockCode,quantityExact3:i.quantityExact3}))};
     }
-    const cap=Object.freeze({});saleAdmissions.set(cap,{plan:chosen,planJson:JSON.stringify(chosen),scope,base:structuredClone(base),generation,token,identity:saleIdentity(),epoch,used:false,sending:false});return cap;
+    const cap=Object.freeze({});saleAdmissions.set(cap,{plan:chosen,planJson:JSON.stringify(chosen),scope,base:structuredClone(base),generation,token,identity:saleIdentity(),epoch,used:false,sending:false,recovery:!!recoveryPending,pendingJson:recoveryPending?JSON.stringify(recoveryPending):null,display});return cap;
    }finally{salePreparing=false;}
+ }
+ return {
+  businessSaleOperationAvailable(operation){
+   const c=saleAvailability;return !!(businessBrowser&&active&&token&&expiresAt>Date.now()&&c&&c.generation===generation&&c.token===token&&c.identity===saleIdentity()&&businessSaleOperationAvailable(c.base,user,operation));
+  },
+  async businessSalePrepareOperation(plan){return prepareSaleOperation(plan);},
+  async businessSalePreparePendingRecovery(pending,scope){
+   const saved=structuredClone(pending),plan=tradeCanonicalPendingSalePlan(saved,scope),capability=await prepareSaleOperation(plan,saved);
+   return {plan,capability,display:structuredClone(saleAdmissions.get(capability).display)};
   },
   businessSaleOperationCurrent(cap,plan){return saleCurrent(cap,plan);},
   async businessSaleSendOperation(cap,pending){
    const c=saleAdmissions.get(cap);
-   if(!c||!saleCurrent(cap,c.plan)||c.sending||saleSending||sentSaleRequests.has(c.plan.body.requestId))throw saleFailure();
+   if(!c||!saleCurrent(cap,c.plan)||c.sending||saleSending||!c.recovery&&sentSaleRequests.has(c.plan.body.requestId))throw saleFailure();
    const saved=structuredClone(pending),keys=Object.keys(saved??{}).sort().join(',');
    if(!saved||saved.version!==1||saved.status!=='pending'||keys!==(c.plan.operation==='sale_draft'?'body,path,status,version':'body,invoiceWitness,path,status,version')||saved.path!==c.plan.path||JSON.stringify(saved.body)!==JSON.stringify(c.plan.body)||JSON.stringify(saved.invoiceWitness)!==JSON.stringify(c.plan.invoiceWitness))throw saleFailure();
-   // Consume the UUID before the only POST. Unknown outcomes retain the caller's
-   // journal and can only be checked through businessSaleRequest (GET).
+   if(c.recovery&&JSON.stringify(saved)!==c.pendingJson)throw saleFailure();
+   // Consume this admission before its only POST. A later explicit recovery
+   // must obtain a new, fully checked capability for the same retained UUID.
+   // Never delete its sent marker or retry a consumed capability automatically.
    c.sending=true;saleSending=true;sentSaleRequests.add(saved.body.requestId);
    try{
     const result=(await request(saved.path,{method:'POST',body:saved.body,expire:true,keepForbiddenSession:true,workMutation:true,businessSaleOperation:cap})).data;

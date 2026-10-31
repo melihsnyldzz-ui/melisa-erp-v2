@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createTradeJournal,tradeCanonicalSaleRequest,tradeCanonicalSaleJournal,tradeCanonicalSaleInvoice,tradeUuid} from './workTradeModel.mjs';
+import {createTradeJournal,tradeCanonicalSaleRequest,tradeCanonicalSaleJournal,tradeCanonicalSaleInvoice,tradeCanonicalPendingSalePlan,tradeUuid} from './workTradeModel.mjs';
 import {saleNativeInvoice,saleReadProduct,saleReadSelection,saleNativeResult} from './workBusinessSalesRead.test-fixture.mjs';
 import {emptyBusinessSalesBasket,addBusinessSalesBasketLine,businessSalesNativeSelection,validateBusinessSalesNativePreview} from './workBusinessSalesBasketModel.mjs';
 const ids=[1,2,3].map(n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0'));
@@ -37,4 +37,15 @@ test('missing old action witness or substituted UUID/operation/body/invoice/part
 test('existing journal key/version/body and legacy records are unchanged; reads do not migrate or normalize optional witness',()=>{
  const store=storage(),journal=createTradeJournal({storage:store,key:'legacy-key'}),legacy={version:1,status:'pending',path:'/api/work-sales/drafts',body:{requestId:ids[0],legacy:'preserved'}};store.values.set('legacy-key',JSON.stringify(legacy));const before=store.values.get('legacy-key');assert.deepEqual(journal.read(),legacy);assert.equal(store.values.get('legacy-key'),before);assert.equal(store.writes,0);
  const p=tradeCanonicalSaleRequest({operation:'sale_finalize',requestId:ids[1],invoice:receipt(),scope});journal.begin(p.path,p.body,{invoiceWitness:p.invoiceWitness});const bytes=store.values.get('legacy-key'),writes=store.writes;journal.read();journal.read();assert.equal(store.values.get('legacy-key'),bytes);assert.equal(store.writes,writes);
+});
+
+test('pending recovery retains original draft and lifecycle bodies and witnesses byte-for-byte without normalization or UUID generation',()=>{
+ const d=tradeCanonicalSaleRequest({operation:'sale_draft',requestId:ids[0],...draft()}),f=tradeCanonicalSaleRequest({operation:'sale_finalize',requestId:ids[1],invoice:receipt(),scope}),c=tradeCanonicalSaleRequest({operation:'sale_cancel',requestId:ids[2],invoice:receipt('finalized'),scope,reason:'Sentetik iptal'});
+ for(const plan of [d,f,c]){const p={version:1,status:'pending',path:plan.path,body:structuredClone(plan.body),...(plan.invoiceWitness?{invoiceWitness:structuredClone(plan.invoiceWitness)}:{})},bytes=JSON.stringify(p),next=tradeCanonicalPendingSalePlan(p,scope);assert.equal(next.canSend,false);assert.equal(next.path,p.path);assert.equal(JSON.stringify(next.body),JSON.stringify(p.body));assert.equal(JSON.stringify(next.invoiceWitness),JSON.stringify(p.invoiceWitness));assert.equal(JSON.stringify(p),bytes);}
+});
+test('missing original fields, foreign scope, injected authority, changed lifecycle witness and completed journal never produce a recovery plan',()=>{
+ const plan=tradeCanonicalSaleRequest({operation:'sale_draft',requestId:ids[0],...draft()}),p={version:1,status:'pending',path:plan.path,body:plan.body};
+ for(const change of [x=>delete x.body.previewHash,x=>delete x.body.expectedRevision,x=>delete x.body.items[0].quoteId,x=>x.body.items=[],x=>x.body.requestId='bad',x=>x.body.customerAccountId='8',x=>x.body.currency='EUR',x=>x.status='done',x=>x.version=2,x=>x.path='/api/work-collections',x=>x.body.actorId='17',x=>x.writeAuthorized=true]){const changed=structuredClone(p);change(changed);const bytes=JSON.stringify(changed);assert.throws(()=>tradeCanonicalPendingSalePlan(changed,scope));assert.equal(JSON.stringify(changed),bytes);}
+ const f=tradeCanonicalSaleRequest({operation:'sale_finalize',requestId:ids[1],invoice:receipt(),scope}),fp={version:1,status:'pending',path:f.path,body:f.body,invoiceWitness:f.invoiceWitness};
+ for(const change of [x=>delete x.invoiceWitness,x=>x.invoiceWitness.id='52',x=>x.invoiceWitness.customerId='156',x=>x.invoiceWitness.status='finalized',x=>x.body.expectedRevision='f'.repeat(64),x=>x.body.requestId=x.invoiceWitness.creationRequestId]){const changed=structuredClone(fp);change(changed);assert.throws(()=>tradeCanonicalPendingSalePlan(changed,scope));}
 });

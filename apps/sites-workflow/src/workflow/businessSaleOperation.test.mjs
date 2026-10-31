@@ -14,7 +14,7 @@ function plan(operation='sale_draft',invoice=saleNativeInvoice()){
  const result=saleNativeResult(selection),preview={...result.preview,scopeRevision:result.context.revision,documentDate:selection.documentDate,readOnly:true,canSave:false};
  return tradeCanonicalSaleRequest({operation,requestId:ids[operation==='sale_draft'?0:operation==='sale_finalize'?1:2],selection,preview,invoice,scope,reason:'Sentetik iptal'});
 }
-function fixture({user=actor(),base=saleNativeBase(),selected=s=>saleNativeResult(s),invoice=saleNativeInvoice(),mutation=null}={}){
+function fixture({user=actor(),base=saleNativeBase(),selected=s=>saleNativeResult(s),invoice=saleNativeInvoice(),mutation=null,requestReply=null}={}){
  const values=new Map([[workingCatalogTokenKey,'fixture-access']]),calls=[];let writes=0,record=null,current=invoice,access='fixture-access';
  const storage={getItem:k=>values.get(k)??null,setItem(k,v){writes++;values.set(k,v);},removeItem:k=>values.delete(k)};
  const reply=data=>({ok:true,status:200,json:async()=>({success:true,data})});
@@ -22,13 +22,13 @@ function fixture({user=actor(),base=saleNativeBase(),selected=s=>saleNativeResul
   const path=new URL(url).pathname,body=o.body?JSON.parse(o.body):undefined;
   assert.equal(o.credentials,'same-origin');assert.equal(o.redirect,'error');assert.equal(o.headers.Authorization,'Bearer '+access);
   if(path==='/api/auth/session-confirm')return reply({confirmed:true,user,expiresAt:Date.now()+900000});
-  calls.push({path,method:o.method,body,signal:o.signal});
+  calls.push({path,method:o.method,body,wireBody:o.body,signal:o.signal});
   if(path==='/api/auth/refresh'){assert.deepEqual(body,{});access='fixture-renewed';return reply({browserSession:true,user,accessToken:access,expiresAt:Date.now()+900000});}
   if(path==='/api/work-sales/context')return reply(structuredClone(base));
   if(path==='/api/work-sales/selected-context')return reply((await selected(body)).context);
   if(path==='/api/work-sales/preview')return reply((await selected(body)).preview);
   if(path==='/api/work-sales/invoices/51')return reply(current);
-  if(path.startsWith('/api/work-sales/requests/'))return reply(record);
+  if(path.startsWith('/api/work-sales/requests/'))return requestReply?requestReply(record,reply):reply(record);
   if(o.method==='POST'){
    const operation=path.endsWith('/finalize')?'sale_finalize':path.endsWith('/cancel')?'sale_cancel':'sale_draft';
    current=saleNativeInvoice({status:{sale_draft:'draft',sale_finalize:'finalized',sale_cancel:'cancelled'}[operation],revision:{sale_draft:'c',sale_finalize:'e',sale_cancel:'f'}[operation].repeat(64)});
@@ -38,7 +38,7 @@ function fixture({user=actor(),base=saleNativeBase(),selected=s=>saleNativeResul
   assert.fail('Unexpected endpoint '+path);
  }});
  const journal=createTradeJournal({storage,key:'existing-sale-key'});
- return {session,calls,values,journal,get writes(){return writes;},setCurrent(value){current=value;},pending:p=>journal.begin(p.path,p.body,p.invoiceWitness?{invoiceWitness:p.invoiceWitness}:undefined)};
+ return {session,calls,values,journal,get writes(){return writes;},setCurrent(value){current=value;},setRecord(value){record=value;},pending:p=>journal.begin(p.path,p.body,p.invoiceWitness?{invoiceWitness:p.invoiceWitness}:undefined)};
 }
 
 test('normal session obtains an opaque one-use draft admission only after fresh native selection and preview',async()=>{
@@ -178,4 +178,34 @@ test('operation scalars and paths reject terminal LF/CRLF before admission, nati
 test('new native operation preview boundary rejects terminal line endings in amounts, rates, hashes, units and quantities',()=>{
  const changes=[r=>r.context.revision+='TAIL',r=>r.preview.previewHash+='TAIL',r=>r.preview.subtotalExact4+='TAIL',r=>r.preview.grandTotalExact4+='TAIL',r=>r.preview.amountTryExact4+='TAIL',r=>r.context.rate.rateExact8+='TAIL',r=>r.context.scope.products[0].stockQuantityExact3+='TAIL',r=>r.context.scope.products[0].prices[0].unitPriceExact8+='TAIL',r=>r.preview.items[0].unitPriceExact4+='TAIL',r=>r.preview.items[0].lineTotalExact4+='TAIL',r=>r.preview.items[0].unit.sourceId+='TAIL',r=>r.preview.items[0].quantityExact3+='TAIL'];
  for(const tail of ['\n','\r\n'])for(const change of changes){const r=saleNativeResult(selection);change(r);const replace=v=>JSON.parse(JSON.stringify(v).replaceAll('TAIL',JSON.stringify(tail).slice(1,-1)));assert.equal(businessSaleNativeOperationPreviewAllowed(replace(r),selection),false);}
+});
+
+const requestAbsent=()=>({ok:false,status:404,json:async()=>({success:false,error:{code:'WORK_REQUEST_NOT_FOUND'}})});
+test('explicit pending recovery rechecks exact GET plus fresh native admission then sends identical consumed UUID/body once',async()=>{
+ const f=fixture({requestReply:(record,reply)=>record?reply(record):requestAbsent(),mutation:()=>{throw Error('lost ACK');}});await f.session.start();const original=plan(),first=await f.session.businessSalePrepareOperation(original),pending=f.pending(original),bytes=f.values.get('existing-sale-key');
+ await assert.rejects(f.session.businessSaleSendOperation(first,pending));f.setRecord(null);await assert.rejects(f.session.businessSalePrepareOperation(original));const start=f.calls.length,writes=f.writes;
+ const ready=await f.session.businessSalePreparePendingRecovery(pending,scope);
+ assert.deepEqual(f.calls.slice(start).map(c=>[c.method,c.path]),[['GET','/api/work-sales/requests/'+ids[0]],['GET','/api/work-sales/context'],['POST','/api/work-sales/selected-context'],['POST','/api/work-sales/preview']]);assert.equal(f.calls.filter(c=>c.path==='/api/work-sales/drafts').length,1);assert.equal(f.values.get('existing-sale-key'),bytes);assert.equal(f.writes,writes);assert.equal(JSON.stringify(ready.plan.body),JSON.stringify(pending.body));assert.equal(ready.display.totalExact4,'4.2470');
+ await assert.rejects(f.session.businessSaleSendOperation(ready.capability,{...pending,body:{...pending.body,requestId:ids[2]}}));
+ await assert.rejects(f.session.businessSaleSendOperation(ready.capability,pending));await assert.rejects(f.session.businessSaleSendOperation(ready.capability,pending));assert.equal(f.calls.filter(c=>c.path==='/api/work-sales/drafts').length,2);assert(f.calls.filter(c=>c.path==='/api/work-sales/drafts').every(c=>c.wireBody===JSON.stringify(pending.body)));assert.equal(f.values.get('existing-sale-key'),bytes);assert.equal(f.writes,writes);f.session.dispose();
+});
+test('missing receipt alone never authorizes recovery: other status/code, existing result, network and changed native revision/price reject without trade POST',async()=>{
+ const replies=[()=>({ok:false,status:404,json:async()=>({success:false,error:{code:'OTHER_NOT_FOUND'}})}),()=>({ok:false,status:401,json:async()=>({success:false,error:{code:'WORK_REQUEST_NOT_FOUND'}})}),()=>({ok:false,status:403,json:async()=>({success:false,error:{code:'WORK_REQUEST_NOT_FOUND'}})}),()=>({ok:false,status:500,json:async()=>({success:false,error:{code:'WORK_REQUEST_NOT_FOUND'}})}),(_record,reply)=>reply({requestId:ids[0]}),()=>{throw Error('network');}];
+ for(const requestReply of replies){const f=fixture({requestReply});await f.session.start();const p=f.pending(plan()),bytes=f.values.get('existing-sale-key');await assert.rejects(f.session.businessSalePreparePendingRecovery(p,scope));assert.equal(f.calls.length,1);assert.equal(f.calls[0].method,'GET');assert.equal(f.values.get('existing-sale-key'),bytes);f.session.dispose();}
+ for(const selected of [s=>{const x=saleNativeResult(s);x.context.revision='f'.repeat(64);x.preview.scopeRevision=x.context.revision;return x;},s=>{const x=saleNativeResult(s);x.preview.previewHash='f'.repeat(64);return x;}]){const f=fixture({requestReply:requestAbsent,selected});await f.session.start();const p=f.pending(plan()),bytes=f.values.get('existing-sale-key');await assert.rejects(f.session.businessSalePreparePendingRecovery(p,scope));assert.equal(f.calls.some(c=>c.path==='/api/work-sales/drafts'),false);assert.equal(f.values.get('existing-sale-key'),bytes);f.session.dispose();}
+});
+test('recovery rejects missing original body/authority before network and fences concurrent prepares, duplicate sends, identity disposal and pending substitution',async()=>{
+ const f=fixture({requestReply:requestAbsent});await f.session.start();const p=f.pending(plan()),bytes=f.values.get('existing-sale-key');
+ for(const bad of [{...p,body:{requestId:p.body.requestId}},{...p,status:'done'},{...p,path:'/api/work-sales/drafts/51/cancel'},{...p,actorId:'17'}])await assert.rejects(f.session.businessSalePreparePendingRecovery(bad,scope));assert.equal(f.calls.length,0);
+ const preparation=f.session.businessSalePreparePendingRecovery(p,scope);await assert.rejects(f.session.businessSalePreparePendingRecovery(p,scope));const ready=await preparation;
+ await assert.rejects(f.session.businessSaleSendOperation(ready.capability,{...p,body:{...p.body,previewHash:'f'.repeat(64)}}));assert.equal(f.calls.some(c=>c.path==='/api/work-sales/drafts'),false);
+ f.session.dispose();await assert.rejects(f.session.businessSaleSendOperation(ready.capability,p));assert.equal(f.values.get('existing-sale-key'),bytes);
+ for(const user of [{...actor(),role:{id:17,code:'wrong'}},{...actor(),permissions:actor().permissions.filter(p=>p!=='sales.create')}]){const g=fixture({user,requestReply:requestAbsent});try{await g.session.start();}catch{}await assert.rejects(g.session.businessSalePreparePendingRecovery(p,scope));assert.equal(g.calls.length,0);g.session.dispose();}
+});
+test('lifecycle recovery reuses original witness/reason and successful GET reconciliation never becomes resend authority',async()=>{
+ for(const operation of ['sale_finalize','sale_cancel']){const f=fixture({requestReply:requestAbsent});await f.session.start();const original=plan(operation),p=f.pending(original),bytes=f.values.get('existing-sale-key'),ready=await f.session.businessSalePreparePendingRecovery(p,scope);assert.equal(JSON.stringify(ready.plan.body),JSON.stringify(p.body));assert.equal(JSON.stringify(ready.plan.invoiceWitness),JSON.stringify(p.invoiceWitness));assert.equal(f.values.get('existing-sale-key'),bytes);const result=await f.session.businessSaleSendOperation(ready.capability,p);assert.equal(result.requestId,p.body.requestId);await assert.rejects(f.session.businessSaleSendOperation(ready.capability,p));assert.equal(f.calls.filter(c=>c.path===original.path).length,1);assert.equal(f.values.get('existing-sale-key'),bytes);f.session.dispose();}
+});
+
+test('in-flight explicit recovery prevents a second send or concurrent admission and preserves the pending journal on lost ACK',async()=>{
+ let rejectSend;const f=fixture({requestReply:requestAbsent,mutation:()=>new Promise((_,reject)=>{rejectSend=reject;})});await f.session.start();const p=f.pending(plan()),bytes=f.values.get('existing-sale-key'),ready=await f.session.businessSalePreparePendingRecovery(p,scope),sending=f.session.businessSaleSendOperation(ready.capability,p),rejected=assert.rejects(sending);await new Promise(r=>setImmediate(r));await assert.rejects(f.session.businessSaleSendOperation(ready.capability,p));await assert.rejects(f.session.businessSalePreparePendingRecovery(p,scope));assert.equal(f.calls.filter(c=>c.path===p.path).length,1);rejectSend(Error('lost ACK'));await rejected;assert.equal(f.values.get('existing-sale-key'),bytes);await assert.rejects(f.session.businessSaleSendOperation(ready.capability,p));assert.equal(f.calls.filter(c=>c.path===p.path).length,1);f.session.dispose();
 });
