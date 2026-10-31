@@ -11512,6 +11512,7 @@ button:active:not(:disabled) {
 .auth-admin-modern-screen {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: max-content;
   gap: 10px !important;
   align-content: start;
   overflow: auto;

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import {canManageCleanRecord,availablePersonnelRoles} from './personnelManagementModel.mjs';
 import {
   createAuthAdminUser,
   fetchAuthAdminOverview,
@@ -139,12 +140,15 @@ export function AuthAdminScreen({ permissions = [] }) {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [createForm, setCreateForm] = useState({ username: '', displayName: '', password: '', roleId: '' });
   const [newPassword, setNewPassword] = useState('');
-  const canManageUsers = permissions.includes('settings.manage');
+  const canManageUsers = permissions.includes('settings.manage')&&canManageCleanRecord(data.cleanPersonnel,'user',null);
+  const availableRoles=availablePersonnelRoles(data);
 
   const selectedUser = useMemo(
     () => data.users.find((user) => user.id === selectedUserId) || data.users[0] || null,
     [data.users, selectedUserId],
   );
+
+  const canEditUser=canManageUsers&&canManageCleanRecord(data.cleanPersonnel,'user',selectedUser?.id);
 
   const visiblePermissions = useMemo(() => (
     selectedRoleCode
@@ -203,7 +207,7 @@ export function AuthAdminScreen({ permissions = [] }) {
       setSelectedRoleCode((current) => current || nextData.roles[0]?.code || '');
       setCreateForm((current) => ({
         ...current,
-        roleId: current.roleId || String(nextData.roles.find((role) => role.code === 'terminal_user')?.id || nextData.roles[0]?.id || ''),
+        roleId: current.roleId || String(availablePersonnelRoles(nextData).find(role=>role.code==='terminal_user')?.id || availablePersonnelRoles(nextData)[0]?.id || ''),
       }));
     } catch (error) {
       setData({ users: [], roles: [], permissions: [], auditLogs: [] });
@@ -223,7 +227,7 @@ export function AuthAdminScreen({ permissions = [] }) {
       return;
     }
 
-    if (!canManageUsers) {
+    if (!canEditUser) {
       setErrorMessage('Kullanıcı yetkisini güncellemek için sistem ayarlarını yönetme yetkisi gerekir.');
       return;
     }
@@ -281,6 +285,7 @@ export function AuthAdminScreen({ permissions = [] }) {
   }
 
   async function resetSelectedUserPassword() {
+    if(!canEditUser){setErrorMessage('Bu mevcut hesap bu adımda değiştirilemez.');return;}
     if (!selectedUser || !newPassword) {
       setErrorMessage('Kullanıcıyı seçin ve en az 8 karakterli yeni şifreyi yazın.');
       return;
@@ -395,11 +400,13 @@ export function AuthAdminScreen({ permissions = [] }) {
         <article className={canManageUsers ? 'dashboard-kpi good' : 'dashboard-kpi warn'}><span>Kullanıcı yönetimi</span><strong>{canManageUsers ? 'Açık' : 'Kilitli'}</strong><small>Sistem ayarlarını yönetme yetkisi gerekli</small></article>
       </section>
 
+      {data.cleanPersonnel&&!data.cleanPersonnel.ready&&<p role="status">Kişisel hesap yönetimi henüz kurulmadı. Mevcut hesaplar korunuyor.</p>}
+      {selectedUser&&data.cleanPersonnel&&!canEditUser&&<p role="status">Bu mevcut hesap korunuyor. Yeni kişi için Yeni Kullanıcı ile ayrı hesap oluşturun.</p>}
       {showCreateUser && (
         <section className="erp-panel">
           <div className="panel-title">
             <strong>Yeni ERP Kullanıcısı</strong>
-            <span>Terminal için önerilen rol: Terminal Kullanıcısı</span>
+            <span>{data.cleanPersonnel?'Kişisel hesap için yalnız izin verilen görev rollerini seçin.':'Terminal için önerilen rol: Terminal Kullanıcısı'}</span>
           </div>
           <div className="filter-grid auth-admin-user-form">
             <label>Kullanıcı adı<input autoComplete="off" value={createForm.username} onChange={(event) => setCreateForm((current) => ({ ...current, username: event.target.value }))} /></label>
@@ -408,7 +415,7 @@ export function AuthAdminScreen({ permissions = [] }) {
             <label>
               Rol
               <select value={createForm.roleId} onChange={(event) => setCreateForm((current) => ({ ...current, roleId: event.target.value }))}>
-                {data.roles.filter((role) => role.isActive).map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
+                {availableRoles.map((role) => <option key={role.id} value={role.id}>{role.name}</option>)}
               </select>
             </label>
             <button type="button" className="primary-button" onClick={createUser} disabled={isSaving || !canManageUsers}>{isSaving ? 'Kaydediliyor' : 'Kullanıcıyı Oluştur'}</button>
@@ -481,8 +488,8 @@ export function AuthAdminScreen({ permissions = [] }) {
               </label>
               <label>
                 Rol
-                <select value={selectedUser.roleId} onChange={(event) => updateSelectedUser('roleId', Number(event.target.value))}>
-                  {data.roles.filter((role) => role.isActive).map((role) => (
+                <select value={selectedUser.roleId} disabled={!canEditUser} onChange={(event) => updateSelectedUser('roleId', Number(event.target.value))}>
+                  {data.roles.filter(role=>role.id===selectedUser.roleId||availableRoles.some(available=>available.id===role.id)).map((role) => (
                     <option key={role.id} value={role.id}>{role.name}</option>
                   ))}
                 </select>
@@ -498,11 +505,11 @@ export function AuthAdminScreen({ permissions = [] }) {
                 Yeni şifre
                 <input type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} placeholder="En az 8 karakter" />
               </label>
-              <button type="button" onClick={resetSelectedUserPassword} disabled={isSaving || !canManageUsers || !newPassword}>
+              <button type="button" onClick={resetSelectedUserPassword} disabled={isSaving || !canEditUser || !newPassword}>
                 Şifreyi Değiştir
               </button>
               {!canManageUsers && <div className="list-state">Bu ekranda izleme açıktır; kullanıcı rolünü veya aktiflik durumunu değiştirmek için sistem ayarlarını yönetme yetkisi gerekir.</div>}
-              <button type="button" className="primary-button" onClick={saveUserAccess} disabled={isSaving || !canManageUsers}>
+              <button type="button" className="primary-button" onClick={saveUserAccess} disabled={isSaving || !canEditUser}>
                 {isSaving ? 'Kaydediliyor' : 'Kullanıcı Yetkisini Kaydet'}
               </button>
             </div>

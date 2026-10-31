@@ -1,8 +1,9 @@
 import {createIsolatedOperationCopyStore} from './isolatedOperationCopyStore.mjs';
 import {assertIsolatedCopyContext} from './isolatedOperationCopyContext.mjs';
-import {reportError} from './workReportsModel.mjs';
+import {reportCapabilities,reportError} from './workReportsModel.mjs';
 import {catalogClassificationStore} from './catalogClassificationStore.mjs';
-async function runtime(){const db=await import('../config/database.js');if(db.isIsolatedOperationCopyRuntime())return{pool:await db.getSqlPool(),sql:db.getSqlDriver(),copyContext:assertIsolatedCopyContext(db.getIsolatedOperationCopyConfig())};if(!db.isCanonicalTest())throw reportError(503);return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
+import {getCleanContext,assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL,CLEAN_ENVIRONMENT_ID,CLEAN_DATABASE} from './cleanSyntheticContext.mjs';
+async function runtime(){const db=await import('../config/database.js');if(getCleanContext())return{pool:await db.getSqlPool(),sql:db.getSqlDriver(),cleanContext:assertRegisteredCleanContext(),port:Number(process.env.API_PORT)};if(db.isIsolatedOperationCopyRuntime())return{pool:await db.getSqlPool(),sql:db.getSqlDriver(),copyContext:assertIsolatedCopyContext(db.getIsolatedOperationCopyConfig())};if(!db.isCanonicalTest())throw reportError(503);return {pool:await db.getSqlPool(),sql:db.getSqlDriver()};}
 const money=v=>`CONVERT(varchar(64),CAST(${v} AS decimal(38,4)))`;
 const baseColumns=(id,date,ref,party,code,brand,type,qty,unit,currency,amount,debit,credit,status)=>`${id} id,CONVERT(char(10),${date},23) [date],${ref} reference,${party} party,${code} stockCode,${brand} brand,${type} [type],CAST(${qty} AS decimal(38,4)) quantity,${unit} unit,${currency} currency,CAST(${amount} AS decimal(38,4)) amount,CAST(${debit} AS decimal(38,4)) debit,CAST(${credit} AS decimal(38,4)) credit,${status} status`;
 export function reportSourceSql(f){
@@ -14,7 +15,7 @@ export function reportSourceSql(f){
  const currency=only?'m.currency_code':'COALESCE(m.account_currency,m.currency_code)';
  return `SELECT ${baseColumns('CONVERT(varchar(20),m.id)','m.document_date',"COALESCE(m.source_document_no,m.movement_type)",'p.name','NULL','NULL','NULL','NULL','NULL',currency,only?`CASE WHEN m.movement_type=N'${type}_cancel' THEN -m.amount ELSE m.amount END`:'m.balance_effect',only?'NULL':'CASE WHEN m.balance_effect>0 THEN m.balance_effect ELSE 0 END',only?'NULL':'CASE WHEN m.balance_effect<0 THEN -m.balance_effect ELSE 0 END','m.movement_type')} FROM dbo.${party}_movements m LEFT JOIN dbo.${customer?'customers':'suppliers'} p ON p.id=m.${party}_id WHERE m.document_date>=@from AND m.document_date<=@to AND ${currency} IN(N'TRY',N'USD',N'EUR') AND(@currency IS NULL OR ${currency}=@currency) AND ISNULL(m.affects_balance,1)=1 AND m.migration_run_id IS NULL AND m.source_record_key IS NULL AND m.cutover_source_key IS NULL ${only?`AND m.movement_type IN(N'${type}',N'${type}_cancel')`:''}`;
 }
-export function reportBatchSql(f,{sourceSql=reportSourceSql(f),scale=4}={}){
+export function reportBatchSql(f,{sourceSql=reportSourceSql(f),scale=4,costSourceSql=null}={}){
  const exactMoney=v=>`CONVERT(varchar(64),CAST(${v} AS decimal(38,${scale})))`;
  const group=f.groupBy==='brand'?'brand':f.groupBy==='type'?'[type]':'stockCode';
  const select=f.groupBy==='none'?'SELECT * INTO #ReportRows FROM #ReportBase;':`SELECT N'group:'+COALESCE(${group},N'?')+N':'+currency id,CAST(NULL AS char(10)) [date],CAST(NULL AS nvarchar(250)) reference,CAST(NULL AS nvarchar(500)) party,${f.groupBy==='product'?'stockCode':'CAST(NULL AS nvarchar(250))'} stockCode,${f.groupBy==='brand'?'brand':'CAST(NULL AS nvarchar(250))'} brand,${f.groupBy==='type'?'[type]':'CAST(NULL AS nvarchar(250))'} [type],SUM(quantity) quantity,N'ADET' unit,currency,CASE WHEN COUNT_BIG(*)=COUNT(amount) THEN SUM(amount) END amount,CAST(NULL AS decimal(38,4)) debit,CAST(NULL AS decimal(38,4)) credit,N'finalized' status INTO #ReportRows FROM #ReportBase GROUP BY ${group},currency;`;
@@ -24,10 +25,11 @@ export function reportBatchSql(f,{sourceSql=reportSourceSql(f),scale=4}={}){
  SELECT id,[date],reference,party,stockCode,brand,[type],${exactMoney('quantity')} quantity,unit,currency,${exactMoney('amount')} amount,${exactMoney('debit')} debit,${exactMoney('credit')} credit,status FROM #ReportRows ORDER BY [date] DESC,id OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;
  SELECT COUNT_BIG(*) total FROM #ReportRows;
  SELECT currency,CASE WHEN COUNT_BIG(*)=COUNT(amount) THEN ${exactMoney('SUM(amount)')} END amount,CASE WHEN COUNT_BIG(*)=COUNT(debit) THEN ${exactMoney('SUM(debit)')} END debit,CASE WHEN COUNT_BIG(*)=COUNT(credit) THEN ${exactMoney('SUM(credit)')} END credit,COUNT_BIG(*) recordCount FROM #ReportRows GROUP BY currency;
- SELECT COUNT(CASE WHEN i.average_cost_try_snapshot IS NOT NULL THEN 1 END) knownLineCount,COUNT(CASE WHEN i.average_cost_try_snapshot IS NULL THEN 1 END) unknownLineCount FROM dbo.sales_invoices h JOIN dbo.sales_invoice_items i ON i.sales_invoice_id=h.id LEFT JOIN #ReportClass c ON c.productId=i.product_id WHERE ${f.kind==='sales'?'1=1':'1=0'} AND h.status=N'finalized' AND h.is_migrated=0 AND h.document_date>=@from AND h.document_date<=@to AND(@currency IS NULL OR h.document_currency=@currency) AND(@brand IS NULL OR c.brand COLLATE Latin1_General_100_BIN2=@brand COLLATE Latin1_General_100_BIN2) AND(@type IS NULL OR c.productType COLLATE Latin1_General_100_BIN2=@type COLLATE Latin1_General_100_BIN2); DROP TABLE #ReportRows,#ReportBase,#ReportClass;`;
+ ${costSourceSql??`SELECT COUNT(CASE WHEN i.average_cost_try_snapshot IS NOT NULL THEN 1 END) knownLineCount,COUNT(CASE WHEN i.average_cost_try_snapshot IS NULL THEN 1 END) unknownLineCount FROM dbo.sales_invoices h JOIN dbo.sales_invoice_items i ON i.sales_invoice_id=h.id LEFT JOIN #ReportClass c ON c.productId=i.product_id WHERE ${f.kind==='sales'?'1=1':'1=0'} AND h.status=N'finalized' AND h.is_migrated=0 AND h.document_date>=@from AND h.document_date<=@to AND(@currency IS NULL OR h.document_currency=@currency) AND(@brand IS NULL OR c.brand COLLATE Latin1_General_100_BIN2=@brand COLLATE Latin1_General_100_BIN2) AND(@type IS NULL OR c.productType COLLATE Latin1_General_100_BIN2=@type COLLATE Latin1_General_100_BIN2)`}; DROP TABLE #ReportRows,#ReportBase,#ReportClass;`;
 }
-export function createWorkReportsReadStore({getRuntime=runtime,classification=catalogClassificationStore}={}){return {async scopeMeta(){const r=await getRuntime();return r.copyContext?{operationOrigin:r.copyContext.operationOrigin,copyId:r.copyContext.copyId,sealHash:r.copyContext.sealHash,date:r.copyContext.date,sourceScope:'Bu çalışma kopyasında oluşturulan günlük işlemler'}:null;},async read(f,{exporting=false,actor=null}={}){
+export function createWorkReportsReadStore({getRuntime=runtime,classification=catalogClassificationStore}={}){return {async scopeMeta(actor){const r=await getRuntime();if(Object.hasOwn(r,'cleanContext'))return(await cleanReportScope(r,actor)).meta;return r.copyContext?{operationOrigin:r.copyContext.operationOrigin,copyId:r.copyContext.copyId,sealHash:r.copyContext.sealHash,date:r.copyContext.date,sourceScope:'Bu çalışma kopyasında oluşturulan günlük işlemler'}:null;},async read(f,{exporting=false,actor=null}={}){
  const runtimeValue=await getRuntime();
+ if(Object.hasOwn(runtimeValue,'cleanContext'))return readCleanReport(runtimeValue,f,{exporting,actor});
  if(runtimeValue.copyContext)return readCopyReport(runtimeValue,f,{exporting,actor,classification});
  const {pool,sql}=runtimeValue;const identity=(await pool.request().query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live")).recordset?.[0];
  if(identity?.db!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity.server!=='Semih\\MELISADEV'||identity.sysadmin!==0||identity.control!==0||identity.live!==0)throw reportError(503,'REPORT_IDENTITY_INVALID');
@@ -37,6 +39,51 @@ export function createWorkReportsReadStore({getRuntime=runtime,classification=ca
  return {rows:sets[0],total,currencyTotals:f.kind==='stock-movements'?[]:sets[2].map(t=>({...t,recordCount:Number(t.recordCount)})),costCoverage:sets[3]?.[0]};
  }};}
 export const workReportsReadStore=createWorkReportsReadStore();
+
+// Clean has native ledgers, not legacy migration columns. It is selected only
+// through the registered clean identity, never a database-name fallback.
+const CLEAN_REPORT_SCOPE='Yalnız ayrı örnek kurulumdaki kayıtlı günlük işlemler';
+export function cleanReportSourceSql(f){
+ const filter="h.document_date>=@from AND h.document_date<=@to AND h.document_currency IN(N'TRY',N'USD',N'EUR') AND(@currency IS NULL OR h.document_currency=@currency) AND h.status=N'finalized'";
+ if(f.kind==='sales'&&(f.groupBy!=='none'||f.brand||f.type))return `SELECT ${baseColumns("N'sale-line:'+CONVERT(varchar(20),i.id)",'h.document_date','h.document_no','p.name','i.stock_code_snapshot','c.brand','c.productType','i.quantity',"N'ADET'",'h.document_currency','i.line_total','NULL','NULL','h.status')} FROM dbo.sales_invoices h JOIN dbo.sales_invoice_items i ON i.sales_invoice_id=h.id LEFT JOIN dbo.customers p ON p.id=h.customer_id LEFT JOIN #ReportClass c ON c.productId=i.product_id WHERE ${filter} AND(@brand IS NULL OR c.brand COLLATE Latin1_General_100_BIN2=@brand COLLATE Latin1_General_100_BIN2) AND(@type IS NULL OR c.productType COLLATE Latin1_General_100_BIN2=@type COLLATE Latin1_General_100_BIN2)`;
+ if(f.kind==='sales'||f.kind==='purchases'){const sale=f.kind==='sales';return `SELECT ${baseColumns('CONVERT(varchar(20),h.id)','h.document_date','h.document_no','p.name','NULL','NULL','NULL','NULL','NULL','h.document_currency','h.grand_total','NULL','NULL','h.status')} FROM dbo.${sale?'sales':'purchase'}_invoices h LEFT JOIN dbo.${sale?'customers':'suppliers'} p ON p.id=h.${sale?'customer':'supplier'}_id WHERE ${filter}`;}
+ if(f.kind==='stock-movements')return `SELECT ${baseColumns('CONVERT(varchar(20),m.id)','m.document_date',"CONCAT(m.source_type,N' #',m.source_id)",'NULL','p.stock_code','c.brand','c.productType','m.quantity_net','p.unit','m.currency_code','NULL','NULL','NULL','m.movement_type')} FROM dbo.stock_movements m JOIN dbo.products p ON p.id=m.product_id LEFT JOIN #ReportClass c ON c.productId=m.product_id WHERE m.document_date>=@from AND m.document_date<=@to AND(@currency IS NULL OR m.currency_code=@currency)`;
+ const customer=['collections','customer-movements'].includes(f.kind),party=customer?'customer':'supplier',type=customer?'collection':'payment',only=['collections','supplier-payments'].includes(f.kind);
+ const currency=only?'m.currency_code':'COALESCE(m.account_currency,m.currency_code)';
+ return `SELECT ${baseColumns('CONVERT(varchar(20),m.id)','m.document_date','COALESCE(h.document_no,m.movement_type)','p.name','NULL','NULL','NULL','NULL','NULL',currency,only?`CASE WHEN m.movement_type=N'${type}_cancel' THEN -m.amount ELSE m.amount END`:'m.balance_effect',only?'NULL':'CASE WHEN m.balance_effect>0 THEN m.balance_effect ELSE 0 END',only?'NULL':'CASE WHEN m.balance_effect<0 THEN -m.balance_effect ELSE 0 END','m.movement_type')} FROM dbo.${party}_movements m LEFT JOIN dbo.${customer?'customers':'suppliers'} p ON p.id=m.${party}_id LEFT JOIN dbo.${customer?'sales':'purchase'}_invoices h ON h.id=m.${customer?'sales':'purchase'}_invoice_id WHERE m.document_date>=@from AND m.document_date<=@to AND ${currency} IN(N'TRY',N'USD',N'EUR') AND(@currency IS NULL OR ${currency}=@currency) ${only?`AND m.movement_type IN(N'${type}',N'${type}_cancel')`:''}`;
+}
+export function cleanReportCostSourceSql(f){
+ // Keep NULL unknown; a later product-card cost must not fill the sale snapshot.
+ return `SELECT COUNT(CASE WHEN i.average_cost_try_snapshot IS NOT NULL THEN 1 END) knownLineCount,COUNT(CASE WHEN i.average_cost_try_snapshot IS NULL THEN 1 END) unknownLineCount FROM dbo.sales_invoices h JOIN dbo.sales_invoice_items i ON i.sales_invoice_id=h.id LEFT JOIN #ReportClass c ON c.productId=i.product_id WHERE ${f.kind==='sales'?'1=1':'1=0'} AND h.status=N'finalized' AND h.document_date>=@from AND h.document_date<=@to AND(@currency IS NULL OR h.document_currency=@currency) AND(@brand IS NULL OR c.brand COLLATE Latin1_General_100_BIN2=@brand COLLATE Latin1_General_100_BIN2) AND(@type IS NULL OR c.productType COLLATE Latin1_General_100_BIN2=@type COLLATE Latin1_General_100_BIN2)`;
+}
+async function cleanReportScope(r,actor){
+ const c=r.cleanContext;
+ if(r.port!==4194||c?.environment!=='CLEAN_SYNTHETIC_TEST'||c.environmentId!==CLEAN_ENVIRONMENT_ID||c.database!==CLEAN_DATABASE||c.synthetic!==true||c.actualT1!==false||c.externalOperations!==false)throw reportError(503,'REPORT_IDENTITY_INVALID');
+ if(!actor||actor.isAdmin===true||actor.testAdminSession===true||!Array.isArray(actor.permissions)||!/^[1-9]\d*$/.test(String(actor.id))||!Number.isSafeInteger(Number(actor.id)))throw reportError(403);
+ assertCleanIdentity((await r.pool.request().query(CLEAN_IDENTITY_SQL)).recordset?.[0]);
+ const sets=(await r.pool.request().input('actor',r.sql.BigInt,Number(actor.id)).query("SELECT u.id,r.code FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id WHERE u.id=@actor AND u.is_active=1 AND r.is_active=1;SELECT p.permission_key FROM dbo.permissions p JOIN dbo.users u ON u.role_id=p.role_id WHERE u.id=@actor AND u.is_active=1 AND(p.can_view=1 OR p.can_create=1 OR p.can_approve=1);SELECT CONVERT(varchar(20),id) productId,brand,category productType,unit FROM dbo.products WHERE is_deleted=0 ORDER BY id;")).recordsets;
+ const user=sets?.[0]?.[0];
+ if(sets?.[0]?.length!==1||String(user.id)!==String(actor.id)||!user.code?.startsWith('clean_test_')||!Array.isArray(sets[1])||!Array.isArray(sets[2]))throw reportError(403);
+ const current={...actor,role:{code:user.code},permissions:sets[1].map(p=>p.permission_key).filter(p=>actor.permissions.includes(p))},capabilities=reportCapabilities(current);
+ if(!capabilities.canViewReports)throw reportError(403);
+ const products=sets[2];
+ if(products.length>10000||products.some(p=>!/^[1-9]\d*$/.test(p.productId)||p.unit!=='ADET'||[p.brand,p.productType].some(v=>v!==null&&(typeof v!=='string'||v.length>200))))throw reportError(503,'REPORT_VALUE_INVALID');
+ const distinct=key=>[...new Set(products.map(p=>p[key]).filter(v=>typeof v==='string'&&v!==''))];
+ const meta={environment:c.environment,environmentId:c.environmentId,database:c.database,synthetic:true,actualT1:false,externalOperations:false,readOnly:true};
+ return {capabilities,products,meta:{meta,capabilities,sourceScope:CLEAN_REPORT_SCOPE,classification:{brands:distinct('brand'),productTypes:distinct('productType')}}};
+}
+async function readCleanReport(r,f,{exporting,actor}){
+ const scope=await cleanReportScope(r,actor);
+ if(!scope.capabilities.kinds.includes(f.kind))throw reportError(403);
+ const q=r.sql,request=r.pool.request().input('from',q.Date,f.from).input('to',q.Date,f.to).input('currency',q.NVarChar(8),f.currency).input('brand',q.NVarChar(250),f.brand).input('type',q.NVarChar(250),f.type).input('offset',q.Int,exporting?0:f.offset).input('limit',q.Int,exporting?10001:f.limit).input('classification',q.NVarChar(q.MAX),JSON.stringify(scope.products.map(({productId,brand,productType})=>({productId,brand,productType}))));
+ const sets=(await request.query(reportBatchSql(f,{sourceSql:cleanReportSourceSql(f),costSourceSql:cleanReportCostSourceSql(f)}))).recordsets;
+ if(!Array.isArray(sets)||sets.length!==4)throw reportError(503);
+ const total=Number(sets[1]?.[0]?.total);
+ if(!Number.isSafeInteger(total)||total<0)throw reportError(503);
+ if(exporting&&total>10000)throw reportError(413,'REPORT_EXPORT_LIMIT');
+ if(!sets[3]?.[0]||['knownLineCount','unknownLineCount'].some(k=>!Number.isSafeInteger(sets[3][0][k])||sets[3][0][k]<0))throw reportError(503,'REPORT_VALUE_INVALID');
+ return {rows:sets[0],total,currencyTotals:f.kind==='stock-movements'?[]:sets[2].map(t=>({...t,recordCount:Number(t.recordCount)})),costCoverage:sets[3]?.[0],capabilities:scope.capabilities,cleanMeta:scope.meta.meta,scopeLabel:CLEAN_REPORT_SCOPE};
+}
 
 export function isolatedCopyReportSourceSql(f){
  let sql=reportSourceSql(f).replaceAll('m.balance_effect','COALESCE(m.balance_effect_exact,m.balance_effect)').replaceAll('AS decimal(38,4)','AS decimal(38,8)');

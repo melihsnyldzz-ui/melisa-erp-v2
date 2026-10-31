@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {stockProductError,parseStockProductId,stockProductDto,stockReadTimestamp} from './stockProductModel.mjs';
 import {STOCK_PRODUCT_SQL_PROOF} from './stockProductSqlProof.mjs';
 import {catalogSourceVersion} from './catalogProductReadStore.mjs';
@@ -18,7 +19,7 @@ export function createStockProductReadStore({getRuntime=defaultRuntime,getSource
       const records=(await req.execute(isBoundCatalogContext(version)?version.procedures.stock:version?'dbo.usp_read_stock_products_goal7':STOCK_PRODUCT_READ_PROC)).recordset;
       if(!Array.isArray(records)||records.length!==1)throw stockProductError();
       const row=records[0];
-      const proof={...STOCK_PRODUCT_SQL_PROOF,...(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().stockProof:{}),...(version?{readerDefinitionHash:version.stockReaderDefinitionHash.toUpperCase()}:{})};
+      const proof={...STOCK_PRODUCT_SQL_PROOF,...(isIsolatedOperationCopyRuntime()?getIsolatedOperationCopyConfig().stockProof:{supplierReaderHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_read_supplier_cards',STOCK_PRODUCT_SQL_PROOF.supplierReaderHash),c09PriceGetterHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_get_test_product_prices',STOCK_PRODUCT_SQL_PROOF.c09PriceGetterHash),c09PriceSetterHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_set_test_product_price',STOCK_PRODUCT_SQL_PROOF.c09PriceSetterHash)}),...(version?{readerDefinitionHash:version.stockReaderDefinitionHash.toUpperCase()}:{})};
       if(version&&['RunId','SourceHash','PlanHash','BindingsHash'].some(k=>row['sourceVersion'+k]!==version[k[0].toLowerCase()+k.slice(1)]))throw stockProductError();
       if(row.actorId!==actorId||row.canView!==true||typeof row.canViewFinance!=='boolean'||typeof row.rowsJson!=='string'||Object.entries(proof).some(([key,value])=>row[key]!==value))throw stockProductError();
       if(row.acceptedCount!==(version?.productCount??16622)||row.syntheticCount!==3||row.quarantinedCount!==54)throw stockProductError();

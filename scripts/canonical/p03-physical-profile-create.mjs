@@ -3,18 +3,26 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {pathToFileURL,fileURLToPath} from 'node:url';
+import {crm06StaffSuccessorProfile,CRM06_STAFF_CURRENT_CRM_PACKAGE,CRM06_STAFF_CURRENT_ERP_PACKAGE,CRM06_STAFF_ERP_PR53_CI_PACKAGE,CRM06_STAFF_INTEGRATED_CRM_PACKAGE,CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME} from './crm06-staff-refresh-successor.mjs';
 
 const OWNER='S-1-5-21-2170750028-1005938530-2568122015-1001';
 const DB='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 const SHELL='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+const PS_MODULES='C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\Modules';
+const PS_ENV={...process.env,PSModulePath:PS_MODULES};
+const PS_BOOTSTRAP="$ProgressPreference='SilentlyContinue';$env:PSModulePath=Join-Path $PSHOME 'Modules';foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules\\'+$module+'\\'+$module+'.psd1')) -ErrorAction Stop}\n";
 const OLD='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json';
 const OLD_SHA='be8ee1864339d487506558335f382d9369a2c51b51703ccb4501afd48e4bcb96';
+const STOPPER_ORIGINAL='C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1';
+const STOPPER_SHA='79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d';
 const COLLECTOR='C:\\Sirket\\ERP\\reports\\p03-owner-inspect-20261017.mjs';
 const COLLECTOR_SHA='bb7469010862e9704ce23ca168a591b866e0b646ec548115ea3f2b15c300064c';
 const NEW='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json';
 const TASKS=['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web'];
 const ROLES=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
-const ROOT='C:\\Users\\Xaser\\AppData\\Local';
+const ROOT='C:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018';
+const CURRENT_B007_SUPERVISOR=Object.freeze({packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-da5b39491994',sourceCommit:'da5b394919941f73b9d7098f146fffd362c2a955',manifestSha256:'b7b4fd27f8658e2e43cf699fcebdaf5a58209ebed07391cd4185490aa0dae0bf'});
+const samePackage=(value,pin)=>['packageRoot','sourceCommit','manifestSha256'].every(key=>value?.[key]===pin[key]);
 const hash=x=>crypto.createHash('sha256').update(x).digest('hex');
 const need=(x,code)=>{if(!x)throw Error('P03_PROFILE_CREATE_'+code);};
 const win=x=>path.win32.normalize(x);
@@ -22,6 +30,32 @@ const encode=x=>Buffer.from(JSON.stringify(x,null,2)+'\n');
 const xml=x=>String(x).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const quote=x=>/[\s"]/u.test(x)?'"'+x.replaceAll('"','\\"')+'"':x;
 const command=xs=>xs.map(quote).join(' ');
+// Public service/SQL metadata proves a protected instance is unchanged. It is
+// deliberately not an owner/executable observation and can never authorize stop.
+export function validateP03ProtectedSqlService(value){
+ const exact=(x,keys)=>x&&typeof x==='object'&&!Array.isArray(x)&&Object.keys(x).sort().join('|')===[...keys].sort().join('|');
+ need(exact(value,['kind','name','pid','creationTime','service','sql'])&&value.kind==='ProtectedSqlService'&&value.name==='sqlservr.exe'&&Number.isSafeInteger(value.pid)&&value.pid>0&&Number.isFinite(Date.parse(value.creationTime)),'SQL_PROTECTED_SCHEMA');
+ need(exact(value.service,['name','processId','state','startName','pathName'])&&value.service.name==='MSSQL$MELISADEV'&&value.service.processId===value.pid&&value.service.state==='Running'&&typeof value.service.startName==='string'&&value.service.startName.length>0&&typeof value.service.pathName==='string'&&value.service.pathName.length>0,'SQL_PROTECTED_SERVICE');
+ need(exact(value.sql,['serverName','databaseName','processId'])&&value.sql.serverName==='Semih\\MELISADEV'&&value.sql.databaseName==='master'&&value.sql.processId===value.pid,'SQL_PROTECTED_IDENTITY');
+ return value;
+}
+export const P03_SQL_SERVICE_CAPTURE_PS=String.raw`
+function Get-P03ProtectedSqlService($process){
+ $service=@(Get-CimInstance Win32_Service -Filter 'Name=''MSSQL$MELISADEV''' -ErrorAction Stop)
+ if($service.Count -ne 1 -or $service[0].State -cne 'Running' -or [int]$service[0].ProcessId -ne [int]$process.ProcessId -or $process.Name -cne 'sqlservr.exe' -or -not $service[0].StartName -or -not $service[0].PathName){throw 'P03_PROTECTED_SQL_SERVICE'}
+ $connection=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=master;Integrated Security=True;Connect Timeout=5;Application Name=MelisaP03SqlProtectionCaptureReadOnly')
+ try{
+  $connection.Open();$command=$connection.CreateCommand();$command.CommandTimeout=5;$command.CommandText="SELECT CAST(SERVERPROPERTY('ProcessID') AS int),CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)),DB_NAME()"
+  $reader=$command.ExecuteReader()
+  try{
+   if(-not $reader.Read() -or $reader.GetInt32(0) -ne [int]$process.ProcessId -or $reader.GetString(1) -cne 'Semih\MELISADEV' -or $reader.GetString(2) -cne 'master'){throw 'P03_PROTECTED_SQL_IDENTITY'}
+   $sql=[ordered]@{serverName=$reader.GetString(1);databaseName=$reader.GetString(2);processId=$reader.GetInt32(0)}
+   if($reader.Read()){throw 'P03_PROTECTED_SQL_COUNT'}
+  }finally{$reader.Dispose();$command.Dispose()}
+ }finally{$connection.Dispose()}
+ return [ordered]@{kind='ProtectedSqlService';name='sqlservr.exe';pid=[int]$process.ProcessId;creationTime=$process.CreationDate.ToUniversalTime().ToString('o');service=[ordered]@{name=[string]$service[0].Name;processId=[int]$service[0].ProcessId;state=[string]$service[0].State;startName=[string]$service[0].StartName;pathName=[string]$service[0].PathName};sql=$sql}
+}
+`;
 function pin(ref){
  need(ref&&/^[a-f0-9]{64}$/.test(ref.sha256),'PIN_FORMAT');
  const stat=fs.lstatSync(ref.path);need(stat.isFile()&&!stat.isSymbolicLink()&&stat.nlink===1&&fs.realpathSync.native(ref.path).toLowerCase()===path.resolve(ref.path).toLowerCase(),'PIN_FILE');
@@ -47,16 +81,28 @@ export function deriveP03CandidateRules(settings,ref){
  }
  return rows;
 }
-export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId,now=Date.now(),shellSha256}){
+export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId,now=Date.now(),shellSha256,generation}){
+ need(generation===undefined||generation==='pr54-reads-20261019'||generation==='pr54-b264-20261020'||generation==='pr54-b264-sup20d-20261020'||generation==='pr54-current-b007-20261020','GENERATION');
+ const current=generation==='pr54-current-b007-20261020',sup20d=generation==='pr54-b264-sup20d-20261020',b264=generation==='pr54-b264-20261020'||sup20d,reads=generation==='pr54-reads-20261019'||b264||current,oldPath=reads?NEW:OLD,oldSha=reads?'ad3f93b3ecc5d7bf8b542661c6e70c43e650f5b3614e9c76739faa2eb609b071':OLD_SHA,newPath=current?crm06StaffSuccessorProfile(CRM06_STAFF_CURRENT_CRM_PACKAGE.sourceCommit,'erp-crm-current-20261020').nextPaths.settings:b264?'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json':reads?'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json':NEW;
  need(/^[a-f0-9]{32}$/.test(runId),'RUN');scope(oldSettings);scope(newSettings);
- need(oldObservation.schemaVersion==='melisa-p03-owner-observation.v2'&&oldObservation.ownerSid===OWNER&&oldObservation.database===DB&&oldObservation.actualT1===false&&oldObservation.oldConfig.sha256===OLD_SHA&&oldObservation.copyId===newSettings.copyId&&oldSettings.copyId===newSettings.copyId,'OLD_SCOPE');
+ if(reads){need(!['7b0821959737f1da0427b17a7dfd4685','639e2da815e1e7ac0f1c0d04d7f7bdc3',...(b264||current?['b264594b6f93d560d807c8decc4e6699']:[])].includes(runId),'CONSUMED_RUN');need(oldObservation.oldConfig.path===oldPath&&oldSettings.components.erpApiNative.sourceCommit===CRM06_STAFF_ERP_PR53_CI_PACKAGE.sourceCommit&&oldSettings.components.erpApiNative.manifestSha256==='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7'&&oldSettings.components.crm.sourceCommit==='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'&&oldSettings.supervisor.sourceCommit==='13bdf75a032ae8f694354a2e57b6ed382aec2f17','CURRENT_PINS');}
+
+ need(oldObservation.schemaVersion==='melisa-p03-owner-observation.v2'&&oldObservation.ownerSid===OWNER&&oldObservation.database===DB&&oldObservation.actualT1===false&&oldObservation.oldConfig.sha256===oldSha&&oldObservation.copyId===newSettings.copyId&&oldSettings.copyId===newSettings.copyId,'OLD_SCOPE');
  const erp=newSettings.components.erpApiNative,crm=newSettings.components.crm,sup=newSettings.supervisor;
- need(erp.sourceCommit==='e59e07abf7ae2567cdc2adb93811fe29e0032fe5'&&erp.manifestSha256==='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7','ERP_EXACT');
- need(crm.sourceCommit==='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'&&crm.manifestSha256==='e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83','CRM_EXACT');
- need(sup.sourceCommit==='13bdf75a032ae8f694354a2e57b6ed382aec2f17'&&sup.manifestSha256==='195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624','SUPERVISOR_EXACT');
- need(newSettingsRef.path===NEW&&/^[a-f0-9]{64}$/.test(newSettingsRef.sha256)&&/^[a-f0-9]{64}$/.test(shellSha256),'REFS');
+ need(current?samePackage(erp,CRM06_STAFF_CURRENT_ERP_PACKAGE):reads?erp.sourceCommit==='01ef3e3aa3bd6b8cc4f05191e1ccdf58fb76c7f2'&&erp.manifestSha256==='8754f9cb11449ad1f784f16ce0425a129725847c1aa0b5397d5611c3fcc4edcf'&&erp.packageRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CANDIDATE-TEST-20261019-01ef3e3a':erp.sourceCommit==='e59e07abf7ae2567cdc2adb93811fe29e0032fe5'&&erp.manifestSha256==='2b8115a7ad44854d48626717930857aff26a97ffd37e9dbbc4310ab675b869c7','ERP_EXACT');
+ need(current?samePackage(crm,CRM06_STAFF_CURRENT_CRM_PACKAGE):crm.sourceCommit==='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'&&crm.manifestSha256==='e276feb306e84c7af1a042184c2007f19b14191780d9a265edc9196f5766fc83','CRM_EXACT');
+ need(current?samePackage(sup,CURRENT_B007_SUPERVISOR):sup20d?sup.sourceCommit==='20d7e5b696969d502014ba359b950496dc530410'&&sup.manifestSha256==='0959b1b84faafe2e297e537d470d6b6d443e6fac2fe30d3f2518f5b6036d1418'&&sup.packageRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261020-20d7e5b69696':reads?/^[a-f0-9]{40}$/.test(sup.sourceCommit??'')&&sup.sourceCommit!==oldSettings.supervisor.sourceCommit&&/^[a-f0-9]{64}$/.test(sup.manifestSha256??'')&&sup.packageRoot==='C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261019-'+sup.sourceCommit.slice(0,12):sup.sourceCommit==='13bdf75a032ae8f694354a2e57b6ed382aec2f17'&&sup.manifestSha256==='195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624','SUPERVISOR_EXACT');
+ if(b264&&!sup20d)need(sup.sourceCommit==='eb5b37a555cbf18e1fcaa491820707c73b354e12'&&sup.manifestSha256==='1a9d7a0ba6d0ed0fa60e9044122fb895e58e725d84f194ceea255a00aece39b0','B264_SUPERVISOR_EXACT');
+ if(sup20d)need(newSettingsRef.sha256==='f893faf4a1113fab3fdcdfce181e219f1bee480be4b6ab4142a738e47c094c95','B264_SUP20D_SETTINGS_EXACT');
+ need(newSettingsRef.path===newPath&&/^[a-f0-9]{64}$/.test(newSettingsRef.sha256)&&/^[a-f0-9]{64}$/.test(shellSha256),'REFS');
+ if(current){
+  need([oldSettings,newSettings].every(s=>Object.keys(s.components).sort().join('|')==='crm|erpApiNative|hub|nativeOrder'&&s.copyId==='e16b70f0-4057-428b-9abc-6bbcaf35fe82'&&s.node.path===CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME.path&&s.node.sha256===CRM06_STAFF_ERP_CANDIDATE_NODE_RUNTIME.sha256),'CURRENT_BINDINGS');
+  need(samePackage(oldSettings.components.erpApiNative,CRM06_STAFF_ERP_PR53_CI_PACKAGE)&&samePackage(oldSettings.components.hub,CRM06_STAFF_ERP_PR53_CI_PACKAGE)&&samePackage(oldSettings.components.crm,CRM06_STAFF_INTEGRATED_CRM_PACKAGE)&&samePackage(oldSettings.supervisor,{packageRoot:'C:\\Sirket\\ERP\\releases\\CANONICAL-CRM06-SUPERVISOR-TEST-20261018-13bdf75a032a',sourceCommit:'13bdf75a032ae8f694354a2e57b6ed382aec2f17',manifestSha256:'195249d89202e4a86f3abe9c71f6ff7ee89dad0315184e0b657995a8c0cca624'}),'CURRENT_OLD_EXACT');
+  need(samePackage(oldSettings.components.nativeOrder,{packageRoot:'C:\\Sirket\\ERP\\releases\\CRM-ORDER-DRAFT-TEST-20261013-7a41f64',sourceCommit:'7a41f6492273dd1ec0bcb086f820be5575372be8',manifestSha256:'6cb0d29fbc541844a4fe95fc288c743ba3be8cdb617b32a4ca9ed986e9557f16'})&&JSON.stringify(newSettings.components.nativeOrder)===JSON.stringify(oldSettings.components.nativeOrder)&&samePackage(newSettings.components.hub,CRM06_STAFF_CURRENT_ERP_PACKAGE)&&JSON.stringify(erp.config)===JSON.stringify(oldSettings.components.erpApiNative.config)&&JSON.stringify(newSettings.privateSources.operationConfig)===JSON.stringify(oldSettings.privateSources.operationConfig),'CURRENT_RETAINED_BINDINGS');
+ }
  need(now-Date.parse(oldObservation.observedAt)>=0&&now-Date.parse(oldObservation.observedAt)<60000&&now-Date.parse(extras.observedAt)>=0&&now-Date.parse(extras.observedAt)<60000,'STALE');
  need(extras.tasks.length===2&&extras.oldWatchers.length===2&&extras.protectedProcesses.length>0&&extras.protectedProcesses.some(x=>x.name==='sqlservr.exe'),'EXTRAS');
+ for(const row of extras.protectedProcesses)if(Object.hasOwn(row,'kind'))validateP03ProtectedSqlService(row);
  need(TASKS.every(name=>extras.tasks.some(x=>x.name===name&&x.xml===oldObservation.tasks.find(y=>y.name===name)?.xml)),'TASK_DRIFT');
  need(oldObservation.identities&&Object.keys(oldObservation.identities).sort().join('|')===[...ROLES].sort().join('|'),'OLD_IDENTITY_ROLES');
  const oldIdentities=structuredClone(oldObservation.identities),pids=new Set();
@@ -73,7 +119,7 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
   }
   row.bindings??=[];
  }
- const plan={targets:ROLES,oldSettingsSha256:OLD_SHA,newSettingsSha256:newSettingsRef.sha256};plan.digest=hash(Buffer.from(JSON.stringify(plan)));
+ const plan={targets:ROLES,oldSettingsSha256:oldSha,newSettingsSha256:newSettingsRef.sha256};plan.digest=hash(Buffer.from(JSON.stringify(plan)));
  const before={...oldObservation,schemaVersion:'melisa-p03-owner-observation.v3',runId,newConfig:newSettingsRef,plan,profile:{erpSource:erp.sourceCommit,erpManifest:erp.manifestSha256,crmSource:crm.sourceCommit,crmManifest:crm.manifestSha256,supervisorSource:sup.sourceCommit,supervisorManifest:sup.manifestSha256}};
  before.identities=oldIdentities;
  const beforeBytes=encode(before),beforeRef={path:path.win32.join(ROOT,'MelisaERP-P03-before-'+runId+'.json'),sha256:hash(beforeBytes)};
@@ -90,11 +136,18 @@ export function buildP03PhysicalProfile({oldObservation,extras,oldSettings,newSe
   const root=win(c.packageRoot),row={root,sourceCommit:c.sourceCommit,manifestPath:path.win32.join(root,'release-manifest.json'),manifestSha256:c.manifestSha256};
   if(packages.has(root.toLowerCase()))need(JSON.stringify(packages.get(root.toLowerCase()))===JSON.stringify(row),'PACKAGE_CONFLICT');packages.set(root.toLowerCase(),row);
  }
- const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:OWNER,database:DB,beforeImage:beforeRef,oldSettings:{path:OLD,sha256:OLD_SHA},newSettings:newSettingsRef,packages:[...packages.values()],stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'},tasks,candidateRules,oldWatchers:extras.oldWatchers,protectedProcesses:extras.protectedProcesses,businessDigest,journalDirectory:path.win32.join(ROOT,'MelisaERP-P03-recovery-'+runId),shell:{path:SHELL,sha256:shellSha256},health:[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:oldSettings.components.erpApiNative.sourceCommit}))};
+ // Executable package pins must remain the exact old/new settings union.
+ // Historical packages stay in the immutable predecessor profile, not in
+ // this engine envelope (the frozen rollback engine rejects extra packages).
+ const profile={schemaVersion:'melisa-p03-physical-profile.v1',ownerSid:OWNER,database:DB,beforeImage:beforeRef,oldSettings:{path:oldPath,sha256:oldSha},newSettings:newSettingsRef,packages:[...packages.values()],stopper:{path:'C:\\Sirket\\CRM\\runtime\\CRM06-TEST-ACTORS-20261014\\stop-exact-observed-process.ps1',sha256:'79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d'},tasks,candidateRules,oldWatchers:extras.oldWatchers,protectedProcesses:extras.protectedProcesses,businessDigest,journalDirectory:path.win32.join(ROOT,'MelisaERP-P03-recovery-'+runId),shell:{path:SHELL,sha256:shellSha256},health:[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:oldSettings.components.erpApiNative.sourceCommit}))};
+ // Execute only a new protected copy; the original runtime code and its
+ // inherited ACL remain untouched. Its payload is independently pinned below.
+ profile.stopper={path:path.win32.join(ROOT,'MelisaERP-P03-stopper-'+runId+'.ps1'),sha256:STOPPER_SHA};
+ profile.candidateHealth=[4184,4186].map(port=>({url:`http://127.0.0.1:${port}/test-health`,databasePath:'databaseName',sourcePath:'sourceCommit',expectedSource:newSettings.components.erpApiNative.sourceCommit}));
  const profileBytes=encode(profile);
  return {runId,before:{bytesBase64:beforeBytes.toString('base64'),sha256:beforeRef.sha256},profile:{bytesBase64:profileBytes.toString('base64'),sha256:hash(profileBytes)},summary:{runId,beforeImage:beforeRef,profile:{path:path.win32.join(ROOT,'MelisaERP-P03-profile-'+runId+'.json'),sha256:hash(profileBytes)},journalDirectory:profile.journalDirectory,candidateSources:{erp:erp.sourceCommit,crm:crm.sourceCommit,supervisor:sup.sourceCommit},runtimeMutation:false}};
 }
-function ps(code){return execFileSync(SHELL,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(code,'utf16le').toString('base64')],{windowsHide:true,timeout:60000,maxBuffer:4*1024*1024,encoding:'utf8'}).trim();}
+function ps(code){return execFileSync(SHELL,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(PS_BOOTSTRAP+P03_SQL_SERVICE_CAPTURE_PS+'\n'+code,'utf16le').toString('base64')],{env:PS_ENV,windowsHide:true,timeout:60000,maxBuffer:4*1024*1024,encoding:'utf8'}).trim();}
 async function main(){
  const args=process.argv.slice(2);if(args.length===1&&args[0]==='--help'){process.stdout.write('Default DryRun: --new-settings-path PATH --new-settings-sha256 SHA --business-digest-path PATH --business-digest-sha256 SHA [--mode DryRun|Create]\n');return;}
  need(args.length===8||args.length===10,'ARGUMENTS');const flags=new Map();for(let i=0;i<args.length;i+=2){need(['--new-settings-path','--new-settings-sha256','--business-digest-path','--business-digest-sha256','--mode'].includes(args[i])&&!flags.has(args[i]),'FLAG');flags.set(args[i],args[i+1]);}
@@ -104,12 +157,13 @@ async function main(){
  const businessDigest={path:win(flags.get('--business-digest-path')),sha256:flags.get('--business-digest-sha256')};pin(businessDigest);
  pin({path:COLLECTOR,sha256:COLLECTOR_SHA});const {captureP03OwnerObservation}=await import(pathToFileURL(COLLECTOR).href);
  const first=await captureP03OwnerObservation();
- const extras=JSON.parse(ps(`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$s=New-Object -ComObject Schedule.Service;$s.Connect();$folder=$s.GetFolder('\\');$runs=$s.GetRunningTasks(1);$tasks=@();$watch=@();foreach($name in $names){$t=$folder.GetTask($name);if([int]$t.State -ne 4){throw 'TASK_NOT_RUNNING'};$tasks+=,[ordered]@{name=$name;xml=[string]$t.Xml};$found=@();for($i=1;$i -le $runs.Count;$i++){$r=$runs.Item($i);if($r.Name -ceq $name){$found+=,$r}};if($found.Count -ne 1){throw 'TASK_INSTANCE'};$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$found[0].EnginePID);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'WATCHER_OWNER'};$watch+=,[ordered]@{role=$(if($name -ceq $names[0]){'terminalWatcher'}else{'hubWatcher'});pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};$ids=@(Get-NetTCPConnection -State Listen|Where-Object LocalPort -in 4144,4146,5194|ForEach-Object OwningProcess);$ids+=@(Get-CimInstance Win32_Process -Filter "Name='sqlservr.exe'"|ForEach-Object ProcessId);$protected=@();foreach($id in @($ids|Sort-Object -Unique)){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$id);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'PROTECTED_OWNER'};$protected+=,[ordered]@{name=$p.Name;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};[ordered]@{observedAt=[DateTime]::UtcNow.ToString('o');tasks=$tasks;oldWatchers=$watch;protectedProcesses=$protected}|ConvertTo-Json -Depth 12 -Compress`));
+ const extras=JSON.parse(ps(`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;$names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web');$s=New-Object -ComObject Schedule.Service;$s.Connect();$folder=$s.GetFolder('\\');$runs=$s.GetRunningTasks(1);$tasks=@();$watch=@();foreach($name in $names){$t=$folder.GetTask($name);if([int]$t.State -ne 4){throw 'TASK_NOT_RUNNING'};$tasks+=,[ordered]@{name=$name;xml=[string]$t.Xml};$found=@();for($i=1;$i -le $runs.Count;$i++){$r=$runs.Item($i);if($r.Name -ceq $name){$found+=,$r}};if($found.Count -ne 1){throw 'TASK_INSTANCE'};$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$found[0].EnginePID);$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'WATCHER_OWNER'};$watch+=,[ordered]@{role=$(if($name -ceq $names[0]){'terminalWatcher'}else{'hubWatcher'});pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};$ids=@(Get-NetTCPConnection -State Listen|Where-Object LocalPort -in 4144,4146,5194|ForEach-Object OwningProcess);$ids+=@(Get-CimInstance Win32_Process -Filter "Name='sqlservr.exe'"|ForEach-Object ProcessId);$protected=@();foreach($id in @($ids|Sort-Object -Unique)){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$id);if($p.Name -ceq 'sqlservr.exe'){$protected+=,(Get-P03ProtectedSqlService $p);continue};$o=Invoke-CimMethod $p -MethodName GetOwnerSid;if($o.ReturnValue -ne 0){throw 'PROTECTED_OWNER'};$protected+=,[ordered]@{name=$p.Name;pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$p.ExecutablePath;ownerSid=$o.Sid;commandLine=$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=@()}};[ordered]@{observedAt=[DateTime]::UtcNow.ToString('o');tasks=$tasks;oldWatchers=$watch;protectedProcesses=$protected}|ConvertTo-Json -Depth 12 -Compress`));
  const last=await captureP03OwnerObservation();need(JSON.stringify(first.identities)===JSON.stringify(last.identities)&&JSON.stringify(first.tasks)===JSON.stringify(last.tasks),'OBSERVATION_DRIFT');
  const request=buildP03PhysicalProfile({oldObservation:last,extras,oldSettings,newSettings,newSettingsRef,businessDigest,runId:crypto.randomBytes(16).toString('hex'),shellSha256:hash(fs.readFileSync(SHELL))});
+ request.stopper={sha256:STOPPER_SHA,bytesBase64:pin({path:STOPPER_ORIGINAL,sha256:STOPPER_SHA}).toString('base64')};
  if(mode==='DryRun'){process.stdout.write(JSON.stringify({status:'DRY_RUN_ONLY',...request.summary,created:false},null,2)+'\n');return;}
  const writer=fileURLToPath(new URL('./p03-physical-profile-create.ps1',import.meta.url));
- const result=execFileSync(SHELL,['-NoProfile','-NonInteractive','-File',writer],{windowsHide:true,input:JSON.stringify(request),timeout:30000,maxBuffer:1024*1024,encoding:'utf8'});
+ const result=execFileSync(SHELL,['-NoProfile','-NonInteractive','-File',writer],{env:PS_ENV,windowsHide:true,input:JSON.stringify(request),timeout:30000,maxBuffer:1024*1024,encoding:'utf8'});
  process.stdout.write(result);
 }
 if(process.argv[1]&&pathToFileURL(path.resolve(process.argv[1])).href===import.meta.url){main().catch(error=>{process.stderr.write(/^P03_PROFILE_CREATE_[A-Z_]+$/.test(error?.message)?error.message+'\n':'P03_PROFILE_CREATE_REJECTED\n');process.exitCode=1;});}

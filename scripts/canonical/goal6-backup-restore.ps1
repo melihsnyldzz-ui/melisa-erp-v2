@@ -1,5 +1,6 @@
-param([ValidateSet('Preflight','Rehearse','Proof','Negatives')][string]$Mode='Preflight',[switch]$ReuseCompletedSourceProof)
+param([ValidateSet('Preflight','Rehearse','Proof','Negatives')][string]$Mode='Preflight',[switch]$ReuseCompletedSourceProof,[ValidateSet('Goal6','Clean20261022')][string]$Profile='Goal6')
 $ErrorActionPreference='Stop'
+if($Profile -ceq 'Clean20261022' -and ($Mode -cne 'Preflight' -or $ReuseCompletedSourceProof)){throw 'CLEAN_RESTORE_PREFLIGHT_ONLY'}
 # Explicit Goal6 authorization: COPY_ONLY active TEST; restore ONLY a new isolated DB.
 # These literals deliberately cannot be overridden from command-line arguments.
 $sourceDb='MELISA_ERP_SIRKET_TEST_20260929_01'
@@ -11,6 +12,13 @@ $backupFile=Join-Path $backupRoot 'GOAL6_TEST_20261006_01.bak'
 $dataFile=Join-Path $restoreRoot ($restoreDb+'.mdf')
 $logFile=Join-Path $restoreRoot ($restoreDb+'_log.ldf')
 $evidenceRoot='C:\Sirket\ERP\evidence\ERP-GOAL6-20261006'
+if($Profile -ceq 'Clean20261022'){
+ $sourceDb='MELISA_ERP_CLEAN_TEST_20261022'
+ $restoreDb='MELISA_ERP_CLEAN_RESTORE_TEST_20261024_01'
+ $backupFile='C:\Sirket\ERP\backups\CLEAN-20261022-before-B7-20261024.bak'
+ $restoreRoot='C:\Sirket\ERP\data\CLEAN-RESTORE-20261024-01'
+ $evidenceRoot='C:\Sirket\ERP\clean\20261022\runtime\semih-access-20261023'
+}
 New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
 function Open-VerifiedConnection([string]$db){
  if($db -cnotin @('master',$sourceDb,$restoreDb)){throw 'GOAL6_WRONG_DATABASE'}
@@ -33,6 +41,43 @@ function Assert-NewRestore($cn){
 }
 function Assert-BackupHeader($header){
  if($header.Count -ne 1 -or $header[0].DatabaseName -cne $sourceDb -or -not $header[0].IsCopyOnly -or -not $header[0].HasBackupChecksums -or $header[0].IsDamaged -or $header[0].BackupType -ne 1){throw 'GOAL6_BACKUP_HEADER_INVALID'}
+}
+function Assert-CleanBackupCandidate($header,$files,[bool]$targetExists,[bool]$directoryExists,[long]$availableBytes){
+ if($Profile -cne 'Clean20261022' -or $Mode -cne 'Preflight' -or $sourceDb -cne 'MELISA_ERP_CLEAN_TEST_20261022' -or $restoreDb -cne 'MELISA_ERP_CLEAN_RESTORE_TEST_20261024_01' -or $server -cne 'Semih\MELISADEV' -or $backupFile -cne 'C:\Sirket\ERP\backups\CLEAN-20261022-before-B7-20261024.bak' -or $restoreRoot -cne 'C:\Sirket\ERP\data\CLEAN-RESTORE-20261024-01'){throw 'CLEAN_RESTORE_PROFILE_INVALID'}
+ Assert-BackupHeader $header
+ $h=$header[0]
+ if($h.ServerName -ine $server -or $h.Position -ne 1 -or !$h.BackupSetGUID -or !$h.BackupStartDate -or !$h.BackupFinishDate -or [datetime]$h.BackupFinishDate -lt [datetime]$h.BackupStartDate){throw 'CLEAN_RESTORE_HEADER_IDENTITY_INVALID'}
+ if($targetExists -or $directoryExists){throw 'CLEAN_RESTORE_TARGET_EXISTS'}
+ if(@($files).Count -eq 0 -or @($files|Where-Object {$_.Type -cnotin @('D','L') -or ![bool]$_.IsPresent -or [decimal]$_.Size -le 0 -or [decimal]$_.Size -ne [decimal]::Truncate([decimal]$_.Size) -or [decimal]$_.Size -gt [long]::MaxValue -or [decimal]$_.FileId -le 0 -or [decimal]$_.FileId -gt [int]::MaxValue -or [decimal]$_.FileId -ne [decimal]::Truncate([decimal]$_.FileId) -or [string]::IsNullOrWhiteSpace($_.LogicalName)}).Count -gt 0){throw 'CLEAN_RESTORE_FILELIST_INVALID'}
+ if(@($files|Where-Object Type -ceq 'D').Count -eq 0 -or @($files|Where-Object Type -ceq 'L').Count -eq 0 -or @($files|Group-Object LogicalName|Where-Object Count -gt 1).Count -or @($files|Group-Object FileId|Where-Object Count -gt 1).Count){throw 'CLEAN_RESTORE_FILELIST_INVALID'}
+ [decimal]$required=1GB
+ $moves=@();foreach($file in $files){
+  $required+=[decimal]$file.Size
+  $extension=if($file.Type -ceq 'L'){'.ldf'}elseif($file.FileId -eq 1){'.mdf'}else{'.ndf'}
+  $path=Join-Path $restoreRoot ($restoreDb+'_'+$file.FileId+$extension)
+  if([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($path)) -cne $restoreRoot){throw 'CLEAN_RESTORE_PATH_INVALID'}
+  $moves+=@{logicalName=[string]$file.LogicalName;fileId=[int]$file.FileId;type=[string]$file.Type;sizeBytes=[long]$file.Size;proposedPath=$path}
+ }
+ if($required -gt [long]::MaxValue -or $availableBytes -lt $required){throw 'CLEAN_RESTORE_INSUFFICIENT_CAPACITY'}
+ return @{schemaVersion='melisa-goal6.clean-preflight.v1';server=$server;sourceDatabase=$sourceDb;proposedRestoreDatabase=$restoreDb;backupFile=$backupFile;backupSetGuid=[string]$h.BackupSetGUID;sqlBackupStart=$h.BackupStartDate;sqlBackupFinish=$h.BackupFinishDate;requiredBytes=[long]$required;availableBytes=$availableBytes;moves=$moves;copyOnly=$true;checksum=$true;restoreExecuted=$false;sourceBackupCreated=$false;targetCreated=$false;applicationConnectionChanged=$false;humanAcceptance='PENDING';coverage='Existing backup header/file-list and proposed empty target only; not restored data or current application recovery proof'}
+}
+function CleanPreflight($cn){
+ $source=Open-VerifiedConnection $sourceDb
+ try{
+  $identity=@(Rows $source "SELECT environment_id,synthetic,actual_t1,external_operations FROM dbo.clean_test_environment WHERE id=1")
+  if($identity.Count -ne 1 -or [string]$identity[0].environment_id -ine 'e662fd94-d797-4b3b-938a-d143ad758b67' -or !$identity[0].synthetic -or $identity[0].actual_t1 -or $identity[0].external_operations){throw 'CLEAN_RESTORE_SOURCE_IDENTITY_INVALID'}
+ }finally{$source.Close()}
+ if(!(Test-Path -LiteralPath $backupFile -PathType Leaf)){throw 'CLEAN_RESTORE_BACKUP_MISSING'}
+ $beforeHash=(Get-FileHash -LiteralPath $backupFile -Algorithm SHA256).Hash
+ $header=@(Rows $cn "RESTORE HEADERONLY FROM DISK=N'$backupFile'")
+ $files=@(Rows $cn "RESTORE FILELISTONLY FROM DISK=N'$backupFile'")
+ $existing=@(Rows $cn "SELECT name FROM sys.databases WHERE name=N'$restoreDb'")
+ $result=Assert-CleanBackupCandidate $header $files ($existing.Count -ne 0) (Test-Path -LiteralPath $restoreRoot) ([long](Get-PSDrive -Name C).Free)
+ $afterHash=(Get-FileHash -LiteralPath $backupFile -Algorithm SHA256).Hash
+ if($beforeHash -cne $afterHash){throw 'CLEAN_RESTORE_BACKUP_CHANGED'}
+ $result.backupSha256=$afterHash;$result.observedAt=[DateTime]::UtcNow.ToString('o')
+ $result.synthetic=$true;$result.actualT1=$false;$result.externalOperations=$false
+ return $result
 }
 function Snapshot([string]$db){
  $cn=Open-VerifiedConnection $db
@@ -63,6 +108,7 @@ function Preflight($cn){
 }
 $master=Open-VerifiedConnection 'master'
 try {
+ if($Profile -ceq 'Clean20261022'){Save 'c6-clean-backup-preflight.json' (CleanPreflight $master);Write-Output 'CLEAN_PREFLIGHT_READY_NO_RESTORE';exit}
  if($Mode -eq 'Preflight'){Save 'backup-preflight.json' (Preflight $master);Write-Output 'PREFLIGHT_READY';exit}
  if($Mode -eq 'Rehearse'){
   $pre=Preflight $master;Save 'backup-preflight.json' $pre

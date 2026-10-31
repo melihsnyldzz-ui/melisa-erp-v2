@@ -11,6 +11,16 @@ const rights=['goods.view','goods.approve','sales.view','sales.cancel','purchase
 const counts={salesCount:'0',salesCancelledCount:'0',goodsPendingCount:'0',salesReturnCount:'0',purchaseReturnCount:'0',returnCancelledCount:'0',countPendingCount:'0',approvalPendingCount:'0'};
 const raw=(capabilities=homeCapabilities(rights,rights))=>({capabilities,counts:{...counts},salesTotals:[],collections:[],payments:[],reversals:[],tasks:[]});
 const meta={date:'2026-10-05',readAt:'2026-10-04T22:00:00.000Z'};
+
+test('clean HOME uses current day, actual permissions and three bounded reads without legacy SQL',async()=>{
+ const {CLEAN_HOME_SUMMARY_SQL}=await import('./homeSummaryReadStoreFactory.mjs');
+ const calls=[],ctx={environmentId:'e662fd94-d797-4b3b-938a-d143ad758b67',synthetic:true,actualT1:false,externalOperations:false};
+ const identity={databaseName:'MELISA_ERP_CLEAN_TEST_20261022',serverName:'Semih\\MELISADEV',loginName:'melisa_clean_test_app_20261022',databaseUser:'melisa_clean_test_app_20261022',sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:ctx.environmentId};
+ const sql={BigInt:'bigint',Date:'date',Bit:'bit'},pool={request(){const inputs={};return {input(k,t,v){inputs[k]=v;return this;},async query(q){calls.push({q,inputs});if(q.startsWith('SELECT DB_NAME()'))return{recordset:[identity]};if(q.includes('FROM dbo.users'))return{recordset:rights.map(permission_key=>({id:10018,code:'clean_test_administrator',permission_key}))};assert.equal(q,CLEAN_HOME_SUMMARY_SQL);return {recordsets:[[counts],[],[],[],[],[]]};}};}};
+ const service=createHomeSummaryService({store:createHomeSummaryReadStore({getRuntime:async()=>({pool,sql,cleanContext:ctx,port:4194})}),clock:()=>new Date('2026-10-23T06:00:00Z')});
+ const dto=await service.summary({id:10018,permissions:rights});assert.equal(dto.meta.date,'2026-10-23');assert.equal(dto.navigationReady.goods,true);assert.equal(dto.sections.refunds.salesCount,null);assert.equal(dto.sections.finance.cash.status,'unavailable');assert.equal(calls.length,3);assert.equal(calls[2].inputs.date,'2026-10-23');
+ identity.liveDatabaseAccess=1;await assert.rejects(service.summary({id:10018,permissions:rights}));assert.equal(calls.length,4);
+});
 test('Istanbul date crosses UTC midnight; actor id stays exact and service binds current date',async()=>{
  assert.equal(homeDate(new Date(meta.readAt)),meta.date);let call;
  const svc=createHomeSummaryService({clock:()=>new Date(meta.readAt),store:{read:async v=>{call=v;return raw();}}});

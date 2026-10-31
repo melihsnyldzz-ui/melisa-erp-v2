@@ -25,7 +25,9 @@ export function productTimestampReaderRevision3(sql,kind){
  check(!revised.includes(inheritedTimestamp)&&revised.split(canonicalTimestamp).length-1===1,'PRODUCT_TIMESTAMP_REVISION_INCOMPLETE');
  return revised;
 }
-export function buildProductCompletionReaders({context,baselineContext}){
+export function buildProductCompletionReaders({context,baselineContext,contentRevision=context.readerRevision}){
+ check(contentRevision===undefined||[2,3].includes(contentRevision),'PRODUCT_READER_CONTENT_REVISION');
+ check(context.readerRevision===undefined||contentRevision>=context.readerRevision,'PRODUCT_READER_CONTENT_DOWNGRADE');
  validateSourceCatalogContext(baselineContext);
  const old=buildSourceVersionReaders(baselineContext),suffix=context.runId.replaceAll('-','_').toLowerCase()+([2,3].includes(context.readerRevision)?'_r'+context.readerRevision:'');
  const procedures={catalog:`dbo.usp_read_work_catalog_${suffix}`,stock:`dbo.usp_read_stock_products_${suffix}`,detail:`dbo.usp_get_source_version_prices_${suffix}`,list:`dbo.usp_list_source_version_products_${suffix}`};
@@ -60,13 +62,13 @@ export function buildProductCompletionReaders({context,baselineContext}){
    check(sql.includes(' AS BEGIN SET NOCOUNT ON;')&&!sql.includes('WITH EXECUTE AS OWNER'),'PRODUCT_PRICE_EXECUTION_TEMPLATE');
    sql=sql.replace(' AS BEGIN SET NOCOUNT ON;',' WITH EXECUTE AS OWNER AS BEGIN SET NOCOUNT ON;');
   }
-  if([2,3].includes(context.readerRevision)&&(kind==='catalog'||kind==='stock'))sql=productPayloadReaderRevision2(sql,kind);
-  if(context.readerRevision===3&&(kind==='catalog'||kind==='stock'))sql=productTimestampReaderRevision3(sql,kind);
+  if([2,3].includes(contentRevision)&&(kind==='catalog'||kind==='stock'))sql=productPayloadReaderRevision2(sql,kind);
+  if(contentRevision===3&&(kind==='catalog'||kind==='stock'))sql=productTimestampReaderRevision3(sql,kind);
   check(sql.startsWith('CREATE PROCEDURE '+procedures[kind])&&sql.includes('MELISA_ERP_SIRKET_TEST_20260929_01')&&sql.includes('product_count=16622 AND price_count=63774'),'PRODUCT_READER_HISTORICAL_PIN');
   check(sql.includes('product_count='+context.productCount+' AND price_count='+context.priceCount)&&sql.includes('r.run_id=b.lineage_run_id')&&sql.includes('r.run_id=v.lineage_run_id'),'PRODUCT_READER_SEALED_LINEAGE');
   readers[kind]={procedure:procedures[kind],sql,definitionHash:sourceVersionSqlHash(sql),storedDefinition:sql};
  }
- const result=validateCurrentProductCatalogContext({...context,procedures,...Object.fromEntries(Object.entries(hashKeys).map(([kind,key])=>[key,readers[kind].definitionHash]))});
+ const result=validateCurrentProductCatalogContext({...context,...(contentRevision!==context.readerRevision?{readerContentRevision:contentRevision}:{}),procedures,...Object.fromEntries(Object.entries(hashKeys).map(([kind,key])=>[key,readers[kind].definitionHash]))});
  return {context:result,readers};
 }
 export function buildProductCompletionClassification({context,version,holds}){

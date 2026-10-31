@@ -1,7 +1,38 @@
 import {homeCapabilities,businessInboundHomeCapabilities,businessDailyHomeCapabilities,homeError} from './homeSummaryModel.mjs';
 import {assertIsolatedCopyContext,getBusinessDailySelection,getBusinessDailyScopeHash} from './isolatedOperationCopyContext.mjs';
 import {createIsolatedOperationCopyStore} from './isolatedOperationCopyStoreFactory.mjs';
+import {CLEAN_IDENTITY_SQL,CLEAN_ENVIRONMENT_ID,assertCleanIdentity} from './cleanSyntheticContext.mjs';
 const moneyQuery=(source,where)=>`SELECT currency_code currency,CONVERT(varchar(20),COUNT(amount)) knownCount,CONVERT(varchar(20),COUNT_BIG(*)-COUNT(amount)) unknownCount,CASE WHEN COUNT_BIG(*)=COUNT(amount) THEN CONVERT(varchar(64),CAST(SUM(amount) AS decimal(38,4))) ELSE NULL END amountExact4 FROM ${source} WHERE document_date=@date AND (${where}) GROUP BY currency_code;`;
+export const CLEAN_HOME_SUMMARY_SQL=`
+SELECT
+ (SELECT COUNT(*) FROM dbo.sales_invoices WHERE @sales=1 AND status=N'finalized' AND document_date=@date) salesCount,
+ (SELECT COUNT(*) FROM dbo.sales_invoices WHERE @sales=1 AND status=N'cancelled' AND document_date=@date) salesCancelledCount,
+ (SELECT COUNT(*) FROM dbo.test_goods_batches WHERE @goods=1 AND state=N'pending') goodsPendingCount,
+ 0 salesReturnCount,
+ (SELECT COUNT(*) FROM dbo.invoice_returns WHERE @purchase=1 AND status=N'finalized' AND document_date=@date) purchaseReturnCount,
+ (SELECT COUNT(*) FROM dbo.invoice_returns WHERE @purchase=1 AND status=N'cancelled' AND document_date=@date) returnCancelledCount,
+ (SELECT COUNT(*) FROM dbo.test_daily_drafts WHERE @count=1 AND flow=N'count' AND state=N'pending') countPendingCount,
+ (SELECT COUNT(*) FROM dbo.test_goods_batches WHERE @approve_goods=1 AND state=N'pending')+(SELECT COUNT(*) FROM dbo.test_daily_drafts WHERE state=N'pending' AND((@count=1 AND flow=N'count')OR(@purchase_return=1 AND flow=N'purchase'))) approvalPendingCount;
+SELECT document_currency currency,CONVERT(varchar(20),COUNT(grand_total)) knownCount,CONVERT(varchar(20),COUNT_BIG(*)-COUNT(grand_total)) unknownCount,CONVERT(varchar(64),CAST(SUM(grand_total) AS decimal(38,4))) amountExact4 FROM dbo.sales_invoices WHERE @sales=1 AND status=N'finalized' AND document_date=@date GROUP BY document_currency;
+${moneyQuery('dbo.customer_movements',"@finance=1 AND movement_type=N'collection'")}
+${moneyQuery('dbo.supplier_movements',"@finance=1 AND movement_type=N'payment'")}
+SELECT CAST(NULL AS nvarchar(3)) currency,CAST(NULL AS varchar(20)) knownCount,CAST(NULL AS varchar(20)) unknownCount,CAST(NULL AS varchar(64)) amountExact4 WHERE 1=0;
+SELECT TOP(5) id,kind,state,[date] FROM(
+ SELECT N'goods-batch:'+CONVERT(varchar(20),id) id,N'goods' kind,state,CAST(NULL AS varchar(10)) [date] FROM dbo.test_goods_batches WHERE @goods=1 AND state=N'pending'
+ UNION ALL SELECT N'daily:'+CONVERT(varchar(20),id),CASE WHEN flow=N'count' THEN N'count' ELSE N'return-purchase' END,state,CONVERT(varchar(10),TRY_CONVERT(date,JSON_VALUE(payload_json,'$.date')),23) FROM dbo.test_daily_drafts WHERE state=N'pending' AND((@count=1 AND flow=N'count')OR(@purchase_return=1 AND flow=N'purchase'))
+) tasks ORDER BY id;`;
+async function readCleanHome(runtime,{actorId,sessionPermissions,date}){
+ const {pool,sql,cleanContext:c}=runtime;
+ if(runtime.port!==4194||c.environmentId!==CLEAN_ENVIRONMENT_ID||c.synthetic!==true||c.actualT1!==false||c.externalOperations!==false)throw homeError();
+ assertCleanIdentity((await pool.request().query(CLEAN_IDENTITY_SQL)).recordset?.[0]);
+ const rows=(await pool.request().input('actor',sql.BigInt,Number(actorId)).query('SELECT u.id,r.code,p.permission_key FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id LEFT JOIN dbo.permissions p ON p.role_id=r.id AND p.can_view=1 WHERE u.id=@actor AND u.is_active=1 AND r.is_active=1')).recordset;
+ if(!rows?.length||rows.some(r=>String(r.id)!==String(actorId)||!r.code.startsWith('clean_test_')))throw homeError(403);
+ const capabilities=homeCapabilities(rows.map(r=>r.permission_key),sessionPermissions);capabilities.salesReturn=false;
+ const req=pool.request().input('date',sql.Date,date);for(const [k,n] of Object.entries({sales:'sales',goods:'goods',purchase:'purchase',finance:'finance',count:'count',approveGoods:'approve_goods',purchaseReturn:'purchase_return'}))req.input(n,sql.Bit,capabilities[k]);
+ const s=(await req.query(CLEAN_HOME_SUMMARY_SQL)).recordsets;
+ if(s?.length!==6||s[0]?.length!==1)throw homeError();
+ return {capabilities,counts:s[0][0],salesTotals:s[1],collections:s[2],payments:s[3],reversals:s[4],tasks:s[5],cleanMeta:{environmentId:CLEAN_ENVIRONMENT_ID}};
+}
 export const HOME_SUMMARY_SQL=`
 DECLARE @HomeSales TABLE(currency nvarchar(32),finalizedCount bigint,cancelledCount bigint,knownCount bigint,unknownCount bigint,amount decimal(38,4));
 INSERT @HomeSales
@@ -31,7 +62,7 @@ SELECT TOP(5) id,kind,state,[date] FROM (
 `;
 export function createHomeSummaryReadStore({getRuntime,getDailySelection=getBusinessDailySelection,getDailyScopeHash=getBusinessDailyScopeHash}={}){if(typeof getRuntime!=='function')throw homeError();
 return {async read({actorId,sessionPermissions,date}){
- let tx;try{const runtime=await getRuntime();if(runtime.copyContext)return await readCopyHome(runtime,{actorId,sessionPermissions,date},getDailySelection,getDailyScopeHash);const {pool,sql}=runtime;tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.READ_COMMITTED);
+ let tx;try{const runtime=await getRuntime();if(runtime.cleanContext)return await readCleanHome(runtime,{actorId,sessionPermissions,date});if(runtime.copyContext)return await readCopyHome(runtime,{actorId,sessionPermissions,date},getDailySelection,getDailyScopeHash);const {pool,sql}=runtime;tx=new sql.Transaction(pool);await tx.begin(sql.ISOLATION_LEVEL.READ_COMMITTED);
   const identity=(await new sql.Request(tx).query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live")).recordset?.[0];
   if(identity?.db!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity.server!=='Semih\\MELISADEV'||!['melisa_sirket_test_20260929_01','melisa_sirket_sales_test_20260929_01'].includes(identity.login)||identity.databaseUser!==identity.login||identity.sysadmin!==0||identity.control!==0||identity.live!==0)throw homeError();
   const roles=(await new sql.Request(tx).input('actor',sql.BigInt,actorId).query('SELECT CONVERT(varchar(20),u.id) actorId,p.permission_key permissionKey,p.can_view canView FROM dbo.users u LEFT JOIN dbo.permissions p ON p.role_id=u.role_id WHERE u.id=@actor AND u.is_active=1;')).recordset;

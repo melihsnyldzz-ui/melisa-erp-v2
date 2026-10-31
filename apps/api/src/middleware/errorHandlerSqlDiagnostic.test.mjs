@@ -1,8 +1,50 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
 process.env.NODE_ENV='production';
 const {errorHandler,isolatedSqlNumericDiagnostics}=await import('./errorHandler.js');
 const native=()=>Object.assign(new Error('PRIVATE_SQL_MESSAGE_CANARY'),{code:'EREQUEST',number:51904,state:1,class:16,lineNumber:30,query:'PRIVATE_QUERY_CANARY',parameters:{password:'PRIVATE_PASSWORD_CANARY'},procName:'PRIVATE_PROCEDURE_CANARY',originalError:{code:51904,sqlstate:'42000',severity:16,message:'PRIVATE_ORIGINAL_CANARY',lineNumber:30}});
+
+// The disposable VM supplies only a protected-runtime predicate and logger.
+// No application runtime, credential, SQL connection or actor grant is created.
+function canonicalDiagnosticFixture(available=true){
+ const logs=[],predicateActors=[];
+ const source=fs.readFileSync(new URL('./errorHandler.js',import.meta.url),'utf8').replace(/^import[^\n]*\n/gm,'').replaceAll('export ','');
+ const context=vm.createContext({env:{nodeEnv:'production'},logger:{error:(_message,value)=>logs.push(value)},requestLogPath:req=>req.originalUrl,normalizeOperationQuarantineError:e=>e,isIsolatedOperationCopyRuntime:()=>false,selectedSaleSqlDiagnostics:()=>({}),isCanonicalBusinessSaleAvailable:actor=>{predicateActors.push(actor);if(available instanceof Error)throw available;return available;}});
+ vm.runInContext(source+'\nthis.api={errorHandler,canonicalBusinessSqlNumericDiagnostics};',context);
+ return {api:context.api,logs,predicateActors};
+}
+const canonicalRequest=path=>({method:'POST',originalUrl:path,user:{id:17},requestId:'11111111-2222-4333-8444-555555555555'});
+
+test('B6 diagnostics require protected runtime and only exact sale mutation routes',()=>{
+ for(const path of ['/api/work-sales/drafts','/api/work-sales/drafts/42/finalize','/api/work-sales/drafts/42/cancel']){
+  const fixture=canonicalDiagnosticFixture();const req=canonicalRequest(path);
+  assert.deepEqual({...fixture.api.canonicalBusinessSqlNumericDiagnostics(native(),req)},{sqlNumber:51904,sqlState:1,sqlClass:16,sqlLineNumber:30});assert.deepEqual(fixture.predicateActors,[req.user]);
+ }
+ for(const available of [false,new Error('PRIVATE_RUNTIME_CANARY')])assert.deepEqual({...canonicalDiagnosticFixture(available).api.canonicalBusinessSqlNumericDiagnostics(native(),canonicalRequest('/api/work-sales/drafts'))},{});
+ for(const path of ['/api/work-sales/preview','/api/work-sales/selected-context','/api/work-sales/drafts?debug=1','/api/work-sales/drafts/0/finalize','/api/work-sales/drafts/42/finalize/','/api/work-collections','/api/auth/login','/api/work-sales/requests/42']){
+  const fixture=canonicalDiagnosticFixture();assert.deepEqual({...fixture.api.canonicalBusinessSqlNumericDiagnostics(native(),canonicalRequest(path))},{});assert.equal(fixture.predicateActors.length,0);
+ }
+ for(const method of ['GET','HEAD','PUT','DELETE'])assert.deepEqual({...canonicalDiagnosticFixture().api.canonicalBusinessSqlNumericDiagnostics(native(),{...canonicalRequest('/api/work-sales/drafts'),method})},{});
+});
+
+test('B6 diagnostic fields stay bounded and never include SQL text, body or procedure',()=>{
+ const {api}=canonicalDiagnosticFixture(),req=canonicalRequest('/api/work-sales/drafts');
+ for(const [field,values] of Object.entries({number:[0,-1,2147483648,'51904',1.1,NaN],state:[-1,256,'1',1.1],class:[-1,26,'16',16.5],lineNumber:[-1,1000001,'30',30.5]}))for(const value of values){const e=native();e[field]=value;const key={number:'sqlNumber',state:'sqlState',class:'sqlClass',lineNumber:'sqlLineNumber'}[field];assert.equal(Object.hasOwn(api.canonicalBusinessSqlNumericDiagnostics(e,req),key),false);}
+ const flat=native();delete flat.number;delete flat.state;delete flat.class;delete flat.lineNumber;flat.originalError={info:{number:50000,state:255,class:25,lineNumber:1000000,message:'PRIVATE_INFO_CANARY'}};
+ assert.deepEqual({...api.canonicalBusinessSqlNumericDiagnostics(flat,req)},{sqlNumber:50000,sqlState:255,sqlClass:25,sqlLineNumber:1000000});
+ for(const code of ['ETIMEOUT','EABORT',undefined])assert.deepEqual({...api.canonicalBusinessSqlNumericDiagnostics({...native(),code},req)},{});
+});
+
+test('B6 SQL failure retains original HTTP error while server log gets numeric fields only',()=>{
+ const {api,logs}=canonicalDiagnosticFixture(),error=native(),req={...canonicalRequest('/api/work-sales/drafts'),body:{password:'PRIVATE_BODY_CANARY'}};let payload;
+ api.errorHandler(error,req,{headersSent:false,status(value){assert.equal(value,500);return this;},json(value){payload=value;return value;}},()=>assert.fail());
+ assert.equal(logs.length,1);assert.deepEqual(Object.keys(logs[0]).sort(),['category','code','method','path','requestId','sqlClass','sqlLineNumber','sqlNumber','sqlState','statusCode'].sort());
+ assert.equal(payload.error.code,'EREQUEST');assert.equal(payload.error.message,'Unexpected server error');assert.equal(Object.keys(payload.meta).join(','),'requestId');assert.equal(error.code,'EREQUEST');
+ for(const text of [JSON.stringify(logs),JSON.stringify(payload)])for(const canary of ['PRIVATE_SQL','PRIVATE_QUERY','PRIVATE_PASSWORD','PRIVATE_PROCEDURE','PRIVATE_ORIGINAL','PRIVATE_BODY','sqlCall'])assert.equal(text.includes(canary),false);
+ for(const key of ['sqlNumber','sqlState','sqlClass','sqlLineNumber'])assert.equal(Object.hasOwn(payload.error,key),false);
+});
 
 test('default unregistered runtime emits no SQL numeric diagnostic',()=>{assert.deepEqual(isolatedSqlNumericDiagnostics(native()),{});});
 test('verified DB02 error logging retains only bounded SQL numbers; API and secrets remain unchanged',async()=>{

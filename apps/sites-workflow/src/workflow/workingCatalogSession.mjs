@@ -1,4 +1,9 @@
 import {createBusinessSupplierSelection} from './businessSupplierSelection.mjs';
+import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheticCatalogModel.mjs';
+import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor,businessSaleReceiptRequestAllowed,isBusinessSaleReceiptActor,businessSaleOperationAvailable,businessSaleOperationKind,businessSaleOperationInputAllowed,businessSaleOperationWitnessAllowed,businessSaleOperationRequestAllowed,businessSaleNativeOperationPreviewAllowed} from './businessWorkface.mjs';
+import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
+import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
+import {tradeCanonicalSaleInvoice,tradeCanonicalSaleJournal} from './workTradeModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -28,35 +33,57 @@ function validUser(user){
  if(!user||!Number.isSafeInteger(user.id)||user.id<1||!Array.isArray(user.permissions)||user.permissions.some(p=>typeof p!=='string'))throw problem('Oturum bilgileri doğrulanamadı.');
  return user;
 }
-export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return user?.role?.code==='admin'?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
-export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,protectedDevice=createProtectedDeviceSession()}={}){
+export function workingCatalogUserLabel(user){if((globalThis.window?.location??globalThis.location)?.port==='5234'&&((String(user?.id)==='15'&&user?.role?.code==='isolated_test_sales')||(String(user?.id)==='16'&&user?.role?.code==='isolated_test_ilker')))return String(user.id)==='15'?'TEST Personel (15)':'TEST İlker rolü (16)';return ['admin','clean_test_administrator'].includes(user?.role?.code)?'Yönetici':typeof user?.displayName==='string'?user.displayName.replace(/TEST|DEMO|DEBUG/gi,'').trim()||'Kullanıcı':'Kullanıcı';}
+export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=globalThis.fetch,onExpired=()=>{},timeoutMs=15000,copyProfile=globalThis.window?.__MELISA_OPERATION_COPY__,homeBootstrap=globalThis.window?.__MELISA_TERMINAL_WORKTEST_HOME__,selectedSourceCollections=false,protectedDevice=createProtectedDeviceSession(),businessProfile=import.meta.env?.VITE_ERP_WORKFACE}={}){
+ const businessTarget=isBusinessWorkfaceTarget({location,apiBase,profile:businessProfile}),businessBrowser=businessTarget&&!protectedDevice;
+ const isCleanCatalogLocation=loc=>!businessTarget&&isOriginalCleanLocation(loc);
  const homeReadOrigin=worktestHomeOrigin(location,homeBootstrap,copyProfile);
  const cartonReadTarget=cartonReadOrigin(location,copyProfile);
- const resolvedApiBase=resolveTestApiBase({location,apiBase});
+ const resolvedApiBase=resolveTestApiBase({location,apiBase,businessProfile});
+ const cleanCartonTarget=isCleanCatalogLocation(location)&&resolvedApiBase!==null&&apiBase==='http://127.0.0.1:4194';
  let active=true,token=null,user=null,generation=0,switching=false,deviceToken=null,refreshToken=null,expiresAt=0,renewing=null;const controllers=new Set();
- const target=()=>isTestSessionTarget({location,apiBase});
+ const saleAdmissions=new WeakMap(),sentSaleRequests=new Set();let saleEpoch=0,salePreparing=false,saleSending=false,saleAvailability=null;
+ const saleIdentity=()=>JSON.stringify(user),saleFailure=()=>problem('Satış bilgileri değişti. Güncel kaydı kontrol edin.',409);
+ const saleCurrent=(cap,plan)=>{try{const c=saleAdmissions.get(cap);return !!(c&&!c.used&&active&&businessBrowser&&token&&expiresAt>Date.now()+60000&&c.generation===generation&&c.token===token&&c.identity===saleIdentity()&&c.epoch===saleEpoch&&c.planJson===JSON.stringify(plan)&&businessSaleOperationAvailable(c.base,user,c.plan.operation));}catch{return false;}};
+ const rememberSaleContext=base=>{saleAvailability={base:structuredClone(base),generation,token,identity:saleIdentity()};};
+ const target=()=>isTestSessionTarget({location,apiBase,businessProfile});
  const stored=key=>{if(protectedDevice&&key===workingCatalogTokenKey)return deviceToken;try{return storage?.getItem(key);}catch{return null;}};
  const save=(key,value)=>{if(protectedDevice&&key===workingCatalogTokenKey){deviceToken=value;try{storage?.removeItem(key);}catch{}return;}try{value===null?storage?.removeItem(key):storage?.setItem(key,value);}catch{throw problem('Oturum saklanamadı.');}};
  const clear=({force=false}={})=>{const previous=token;generation++;controllers.forEach(c=>c.abort());token=null;user=null;refreshToken=null;expiresAt=0;if(protectedDevice){deviceToken=null;void protectedDevice.clear().catch(()=>{});}try{if(force||previous!==null&&stored(workingCatalogTokenKey)===previous)storage?.removeItem(workingCatalogTokenKey);}catch{}};
- async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,headers={}}={}){
+ async function request(path,{method='GET',body,expire=false,workErrors=false,workMutation=false,keepForbiddenSession=false,inboundErrors=false,paymentErrors=false,cleanSaleErrors=false,startupAuth=false,cartonOrigin=false,homeOrigin=false,businessSalePreview=false,businessSaleReceipt=false,businessSaleOperation=null,headers={}}={}){
   if(!active)throw problem('İstek iptal edildi.');if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
-  if(protectedDevice&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
+  if(businessTarget&&!businessWorkfaceRequestAllowed(method,path)&&!(businessSalePreview&&businessSalePreviewRequestAllowed(method,path,user))&&!(businessSaleReceipt&&businessSaleReceiptRequestAllowed(method,path,user))&&!(businessSaleOperation&&saleCurrent(businessSaleOperation,saleAdmissions.get(businessSaleOperation)?.plan)&&businessSaleOperationRequestAllowed(method,path,user)))throw Object.assign(problem('Bu bağlantıda yalnız ürün ve cari okuma kullanılabilir.',403),{code:'BUSINESS_WORKFACE_SCOPE_UNAVAILABLE'});
+  if((protectedDevice||businessBrowser)&&!startupAuth&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
+  if(businessSaleOperation){const c=saleAdmissions.get(businessSaleOperation);if(!c||!c.sending||!saleCurrent(businessSaleOperation,c.plan)||path!==c.plan.path||JSON.stringify(body)!==JSON.stringify(c.plan.body))throw saleFailure();}
   // A committed commercial write can outlive the normal 15s read deadline.
   // Keep its existing UUID journal pending on timeout; never retry automatically.
   // Carton GETs include cold native source checks; a longer budget adds no retry or API speed gain.
-  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:timeoutMs;
+  // The verified shared-copy invoice reader can take 17–20s while preserving
+  // its native integrity checks. Budget that exact GET, without retrying it or
+  // changing login, catalog, other reads, or the commercial write deadline.
+  const historicalInvoiceRead=!!cartonReadTarget&&method==='GET'&&copyProfile?.scopeKind==='VERIFIED_BUSINESS_TEST'&&/^\/api\/work-sales\/invoices(?:\/[1-9]\d*|\?[^#]+)?$/.test(path);
+  // Exact clean reads retain every native integrity/actor check. Accounting
+  // cash and invoice-list reads measured 16.6s and 27.7s, beyond the default
+  // 15s. Reuse the existing bounded read classes; no retry or speedup is claimed.
+  const cleanReadTarget=method==='GET'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
+  const cleanContextRead=cleanReadTarget&&['/api/work-sales/context','/api/work-receiving/context','/api/finance/cash-register?businessDate=2026-10-22','/api/work-supplier-payments/context'].includes(path);
+  const cleanCollectionContextRead=cleanReadTarget&&/^\/api\/work-collections\/context\?invoiceId=[1-9]\d*$/.test(path);
+  const cleanInvoiceListRead=cleanReadTarget&&path==='/api/work-sales/invoices';
+  const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead||cleanInvoiceListRead||cleanCollectionContextRead?45000:cleanContextRead?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{
-   const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:'omit',redirect:'error',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
+   const response=await fetchImpl((homeOrigin?homeReadOrigin:cartonOrigin?location.origin:resolvedApiBase)+path,{method,credentials:businessBrowser?'same-origin':'omit',redirect:'error',headers:{'Content-Type':'application/json',...(businessTarget&&protectedDevice?{'X-Melisa-Session-Transport':'native'}:{}),...(token?{Authorization:`Bearer ${token}`}:{}) ,...headers},body:body===undefined?undefined:JSON.stringify(body),signal:controller.signal});
    if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
    const payload=await response.json();if(!active||controller.signal.aborted||version!==generation||requestToken!==token)throw problem('İstek iptal edildi.');
-   if(!response.ok||payload?.success!==true){if(!startupAuth&&(response.status===401||response.status===403&&!keepForbiddenSession)){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;throw error;}
+   if(cleanSaleErrors&&response.status===409&&payload?.error?.code==='CLEAN_SALE_CHANGED')throw Object.assign(problem('Bilgiler değişti. Güncel kaydı kontrol edin.',409),{code:'CLEAN_SALE_CHANGED'});
+   if(!response.ok||payload?.success!==true){if(!startupAuth&&response.status===401){clear();if(expire&&active)onExpired();}const error=problem(response.status===401?(path==='/api/auth/login'?'Kullanıcı adı veya şifre doğrulanamadı.':'Oturumunuz sona erdi. Yeniden giriş yapın.'):response.status===403?'Bu kayıtları görüntüleme yetkiniz yok.':'ERP bağlantısı şu anda okunamıyor.',response.status);if(workErrors&&response.status===409&&payload?.error?.code==='WORK_COLLECTIONS_ACTIVE')error.code='WORK_COLLECTIONS_ACTIVE';if(inboundErrors&&response.status===409&&['INBOUND_STALE','INBOUND_NEEDS_REVIEW','INBOUND_REQUEST_CONFLICT','INBOUND_STATE','INBOUND_PRODUCT'].includes(payload?.error?.code))error.code=payload.error.code;if(paymentErrors&&['WORK_PAYMENT_INPUT','WORK_PAYMENT_AMOUNT','WORK_PAYMENT_SCOPE','WORK_PAYMENT_DEBT','WORK_PAYMENT_FUNDS','WORK_PAYMENT_RATE','WORK_PAYMENT_STALE','WORK_PAYMENT_PREVIEW','WORK_PAYMENT_REQUEST_CONFLICT','WORK_PAYMENT_ALREADY_CANCELLED','WORK_PAYMENT_LIMIT','WORK_PAYMENT_NOT_FOUND','WORK_PAYMENT_FORBIDDEN','WORK_PAYMENT_UNAVAILABLE'].includes(payload?.error?.code))error.code=payload.error.code;if(businessSaleReceipt&&method==='GET'&&/^\/api\/work-sales\/requests\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(path)&&response.status===404&&payload?.error?.code==='WORK_REQUEST_NOT_FOUND')error.code='WORK_REQUEST_NOT_FOUND';throw error;}
    return payload;
   }catch(error){if(error?.status)throw error;throw problem();}finally{clearTimeout(timer);controllers.delete(controller);}
  }
  async function accept(payload){
   const data=payload?.data;if(typeof data?.accessToken!=='string'||!data.accessToken.length)throw problem('Oturum doğrulanamadı.');
   const next=validUser(data.user);if(!active)throw problem('İstek iptal edildi.');const version=generation,nextExpiry=data.expiresAt;
+  if(businessBrowser){if(data.browserSession!==true||data.refreshToken!==undefined||next.id!==17||next.username!=='unified-semih-test'||next.role?.id!==17||next.role.code!=='unified_test_semih'||!Number.isSafeInteger(nextExpiry)||nextExpiry<=Date.now())throw problem('Kalıcı oturum doğrulanamadı.',401);refreshToken='http-only-cookie';expiresAt=nextExpiry;}
   if(protectedDevice){
    let vaultCommitted=false;
    try{if(typeof data.refreshToken!=='string'||!data.refreshToken||typeof next.username!=='string'||next.testAdminSession||!Number.isSafeInteger(nextExpiry)||nextExpiry<=Date.now())throw problem('Kalıcı personel oturumu hazırlanamadı.');await protectedDevice.put({accessToken:data.accessToken,refreshToken:data.refreshToken,userId:String(next.id),username:next.username,expiresAt:nextExpiry});vaultCommitted=true;if(!active||version!==generation)throw problem('İstek iptal edildi.');}
@@ -68,10 +95,148 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
  }
  async function renew(){
   if(renewing)return renewing;const expected=user&&{id:user.id,username:user.username},version=generation,old=refreshToken;
-  renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
+  renewing=(async()=>{try{const p=await request('/api/auth/refresh',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});const next=validUser(p.data?.user);if(!active||version!==generation||!expected||next.id!==expected.id||next.username!==expected.username)throw problem('Oturum kimliği değişti.',401);await accept(p);return user;}catch(e){if(active&&version===generation&&[401,403].includes(e?.status)){clear();onExpired();}throw e;}finally{renewing=null;}})();return renewing;
  }
  return {
+  businessSaleOperationAvailable(operation){
+   const c=saleAvailability;return !!(businessBrowser&&active&&token&&expiresAt>Date.now()&&c&&c.generation===generation&&c.token===token&&c.identity===saleIdentity()&&businessSaleOperationAvailable(c.base,user,operation));
+  },
+  async businessSalePrepareOperation(plan){
+   if(!businessBrowser||!active||!token||!isBusinessSalePreviewActor(user)||!isBusinessSaleReceiptActor(user)||salePreparing||saleSending)throw saleFailure();
+   const chosen=structuredClone(plan),keys=Object.keys(chosen??{}).sort().join(',');
+   if(!chosen||chosen.canSend!==false||chosen.operation!==businessSaleOperationKind(chosen.path)||!businessSaleOperationInputAllowed(chosen.path,chosen.body)||!businessSaleOperationRequestAllowed('POST',chosen.path,user)||keys!==(chosen.operation==='sale_draft'?'body,canSend,operation,path':'body,canSend,invoiceWitness,operation,path')||sentSaleRequests.has(chosen.body.requestId))throw saleFailure();
+   if(chosen.operation!=='sale_draft'&&!businessSaleOperationWitnessAllowed(chosen.invoiceWitness))throw saleFailure();
+   salePreparing=true;const epoch=++saleEpoch;
+   try{
+    // Renew through the existing authenticated family before issuing a cap.
+    // Near-expiry caps also fail current() before the UI can journal a POST.
+    if(refreshToken&&expiresAt<=Date.now()+60000)await renew();
+    const version=generation,identity=saleIdentity();
+    const unchanged=()=>{if(!active||!token||version!==generation||identity!==saleIdentity()||epoch!==saleEpoch)throw saleFailure();};unchanged();
+    const options={expire:true,keepForbiddenSession:true,businessSalePreview:true},base=(await request('/api/work-sales/context',options)).data;unchanged();rememberSaleContext(base);
+    if(!businessSaleOperationAvailable(base,user,chosen.operation))throw saleFailure();
+    let scope;
+    if(chosen.operation==='sale_draft'){
+     const {requestId,expectedRevision,previewHash,...selection}=chosen.body;
+     const context=(await request('/api/work-sales/selected-context',{...options,method:'POST',body:selection})).data;unchanged();
+     const preview=(await request('/api/work-sales/preview',{...options,method:'POST',body:selection})).data;unchanged();
+     if(!businessSaleNativeOperationPreviewAllowed({context,preview},selection)||context.revision!==expectedRevision||preview.previewHash!==previewHash)throw saleFailure();
+     scope={customerId:selection.customerId,customerAccountId:selection.customerAccountId,currency:selection.currency};
+    }else{
+     const w=chosen.invoiceWitness,id=chosen.path.split('/')[4];
+     scope={customerId:w?.customerId,customerAccountId:w?.customerAccountId,currency:w?.currency};
+     const invoice=tradeCanonicalSaleInvoice((await request('/api/work-sales/invoices/'+id,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data,{...scope,invoiceId:id,creationRequestId:w?.creationRequestId,partyEntityId:w?.partyEntityId});unchanged();
+     if(Object.keys(w??{}).sort().join(',')!=='creationRequestId,currency,customerAccountId,customerId,id,operationOrigin,partyEntityId,revision,status'||Object.keys(w).some(k=>w[k]!==invoice[k])||invoice.revision!==chosen.body.expectedRevision||chosen.body.requestId===invoice.creationRequestId||chosen.operation==='sale_finalize'&&invoice.status!=='draft'||chosen.operation==='sale_cancel'&&!['draft','finalized'].includes(invoice.status))throw saleFailure();
+    }
+    const cap=Object.freeze({});saleAdmissions.set(cap,{plan:chosen,planJson:JSON.stringify(chosen),scope,base:structuredClone(base),generation,token,identity:saleIdentity(),epoch,used:false,sending:false});return cap;
+   }finally{salePreparing=false;}
+  },
+  businessSaleOperationCurrent(cap,plan){return saleCurrent(cap,plan);},
+  async businessSaleSendOperation(cap,pending){
+   const c=saleAdmissions.get(cap);
+   if(!c||!saleCurrent(cap,c.plan)||c.sending||saleSending||sentSaleRequests.has(c.plan.body.requestId))throw saleFailure();
+   const saved=structuredClone(pending),keys=Object.keys(saved??{}).sort().join(',');
+   if(!saved||saved.version!==1||saved.status!=='pending'||keys!==(c.plan.operation==='sale_draft'?'body,path,status,version':'body,invoiceWitness,path,status,version')||saved.path!==c.plan.path||JSON.stringify(saved.body)!==JSON.stringify(c.plan.body)||JSON.stringify(saved.invoiceWitness)!==JSON.stringify(c.plan.invoiceWitness))throw saleFailure();
+   // Consume the UUID before the only POST. Unknown outcomes retain the caller's
+   // journal and can only be checked through businessSaleRequest (GET).
+   c.sending=true;saleSending=true;sentSaleRequests.add(saved.body.requestId);
+   try{
+    const result=(await request(saved.path,{method:'POST',body:saved.body,expire:true,keepForbiddenSession:true,workMutation:true,businessSaleOperation:cap})).data;
+    if(!saleCurrent(cap,c.plan))throw saleFailure();
+    tradeCanonicalSaleJournal({requestId:saved.body.requestId,operation:c.plan.operation,response:result},saved,c.scope);
+    return structuredClone(result);
+   }finally{c.used=true;c.sending=false;saleSending=false;}
+  },
+  partyHistoryAvailable(kind){
+   const required=kind==='supplier'?['finance.view','supplier.view','purchase.view']:kind==='customer'?['finance.view','customer.view','sales.view']:null;
+   return !!(required&&businessTarget&&active&&token&&user&&String(user.id)==='17'&&String(user.role?.id)==='17'&&required.every(p=>user.permissions.includes(p)));
+  },
+  async partyHistory(selection){
+   const required=selection?.kind==='supplier'?['finance.view','supplier.view','purchase.view']:['finance.view','customer.view','sales.view'];
+   if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!required.every(p=>user.permissions.includes(p)))throw problem('Hesap geçmişi bağlantısı kullanılamıyor.',403);
+   const payload=await request(partyHistoryPath(selection),{expire:true,keepForbiddenSession:true});return validatePartyHistoryEnvelope(payload,selection);
+  },
+  async businessSaleSelection(selection){
+   if(!businessTarget||!active||!token||!user||String(user.id)!=='17'||!['sales.view','customer.view','product.view'].every(p=>user.permissions.includes(p)))throw problem('Satış seçimi bağlantısı kullanılamıyor.',403);
+   saleEpoch++;
+   const path=businessSaleReadPath(selection),payload=await request(path,{expire:true,keepForbiddenSession:true});
+   return validateBusinessSaleReadEnvelope(payload,selection);
+  },
+  businessSaleInvoiceAvailable(){return !!(businessTarget&&active&&token&&isBusinessSaleReceiptActor(user));},
+  async businessSaleInvoice(selection,movement){
+   if(!businessTarget||!active||!token||!isBusinessSaleReceiptActor(user)||selection?.kind!=='customer')throw problem('Fiş bağlantısı doğrulanamadı.',403);
+   const query=structuredClone(selection),version=generation,identity=JSON.stringify(user),scope={customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency};
+   partyHistoryPath(query);
+   const unchanged=()=>{if(!active||!token||generation!==version||JSON.stringify(user)!==identity)throw problem('Oturum değişti.',403);};
+   saleEpoch++;
+   if(isBusinessSalePreviewActor(user)){
+    // Availability failure closes actions, while an existing authorized receipt
+    // remains readable. No capability is inferred from the invoice itself.
+    try{rememberSaleContext((await request('/api/work-sales/context',{expire:true,keepForbiddenSession:true,businessSalePreview:true})).data);}catch{saleAvailability=null;}unchanged();
+   }
+   let expected=scope,invoiceId,fromHistory=false;
+   if(typeof movement==='string'&&/^[1-9]\d{0,18}$/.test(movement)){
+    const history=validatePartyHistoryEnvelope(await request(partyHistoryPath(query),{expire:true,keepForbiddenSession:true}),query);unchanged();
+    const rows=history.data.filter(r=>r.id===movement&&['sales_invoice','sales_invoice_cancel'].includes(r.kind)&&r.accountCurrency===query.currency);
+    invoiceId=rows.length===1?rows[0].invoiceId:null;fromHistory=true;
+   }else{
+    const saved=tradeCanonicalSaleInvoice(movement,scope);invoiceId=saved.id;
+    expected={...scope,invoiceId,creationRequestId:saved.creationRequestId,partyEntityId:saved.partyEntityId};
+   }
+   const path='/api/work-sales/invoices/'+invoiceId;
+   if(!businessSaleReceiptRequestAllowed('GET',path,user))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
+   const invoice=tradeCanonicalSaleInvoice((await request(path,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data,{...expected,invoiceId});unchanged();
+   if(fromHistory&&!['finalized','cancelled'].includes(invoice.status))throw problem('Fiş hesap bağlantısı doğrulanamadı.',409);
+   return structuredClone(invoice);
+  },
+  async businessSaleRequest(selection,pending){
+   if(!businessTarget||!active||!token||!isBusinessSaleReceiptActor(user)||selection?.kind!=='customer')throw problem('İşlem bağlantısı doğrulanamadı.',403);
+   saleEpoch++;
+   const query=structuredClone(selection),saved=structuredClone(pending),version=generation,identity=JSON.stringify(user),scope={customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency};partyHistoryPath(query);
+   const path='/api/work-sales/requests/'+saved?.body?.requestId;
+   if(!businessSaleReceiptRequestAllowed('GET',path,user))throw problem('İşlem kimliği doğrulanamadı.',409);
+   const unchanged=()=>{if(!active||!token||version!==generation||JSON.stringify(user)!==identity)throw problem('Oturum değişti.',403);};
+   const result=(await request(path,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data;unchanged();
+   const recorded=tradeCanonicalSaleJournal(result,saved,scope),current=tradeCanonicalSaleInvoice((await request('/api/work-sales/invoices/'+recorded.id,{expire:true,keepForbiddenSession:true,businessSaleReceipt:true})).data,{...scope,invoiceId:recorded.id,creationRequestId:recorded.creationRequestId,partyEntityId:recorded.partyEntityId});unchanged();
+   if(result.operation!=='sale_draft'&&(current.revision!==recorded.revision||current.status!==recorded.status)||current.documentDate!==recorded.documentDate||current.grandTotalExact4!==recorded.grandTotalExact4||current.amountTryExact4!==recorded.amountTryExact4||JSON.stringify(current.items)!==JSON.stringify(recorded.items))throw problem('Fiş bağlantısı değişti.',409);
+   return {invoice:structuredClone(current),requestId:result.requestId,operation:result.operation,replayed:result.response.replayed,journalResponse:structuredClone(result.response)};
+  },
+  async businessSalePreview(selection){
+   if(!businessTarget||!active||!token||!isBusinessSalePreviewActor(user)||!businessSalePreviewSelectionAllowed(selection))throw problem('Satış önizleme seçimi doğrulanamadı.',403);
+   saleEpoch++;const selected=structuredClone(selection),version=generation,identity=JSON.stringify([user.id,user.username,user.role,[...user.permissions].sort()]);
+   const unchanged=()=>{if(!active||version!==generation||!token||!isBusinessSalePreviewActor(user)||JSON.stringify([user.id,user.username,user.role,[...user.permissions].sort()])!==identity)throw problem('ERP oturumu değişti.',401);};
+   const options={expire:true,keepForbiddenSession:true,businessSalePreview:true};
+   const base=(await request('/api/work-sales/context',options)).data;unchanged();
+   rememberSaleContext(base);
+   if(!businessSalePreviewAvailable(base,user))throw problem('Satış önizleme bağlantısı henüz hazır değil.',503);
+   const context=(await request('/api/work-sales/selected-context',{...options,method:'POST',body:selected})).data;unchanged();
+   if(context?.meta?.schemaVersion!=='melisa-work-trade.v1'||context.meta.source!=='canonical-business-test'||context.meta.operationOrigin!=='CANONICAL_TEST_BUSINESS_SALE'||context.meta.date!==selected.documentDate||! /^[a-f0-9]{64}$/.test(context.revision??'')||context.capabilities?.canCreate!==true||context.capabilities.canCollect!==false||context.capabilities.canCancelCollection!==false||context.scope?.synthetic!==false||context.scope.customer?.id!==selected.customerId||context.scope.customer.accountId!==selected.customerAccountId||context.scope.customer.currency!==selected.currency)throw problem('Satış önizleme kapsamı değişti.',503);
+   const preview=(await request('/api/work-sales/preview',{...options,method:'POST',body:selected})).data;unchanged();
+   return {context,preview};
+  },
+  async prepareCrm(){
+   if(!protectedDevice||!isCleanCatalogLocation(location)||!active||!token||!user)throw problem('ERP oturumu doğrulanamadı.',401);
+   const version=generation,expected={id:user.id,username:user.username};
+   const payload=await request('/api/auth/me',{expire:true});
+   if(!active||generation!==version||payload.data?.id!==expected.id||payload.data?.username!==expected.username)throw problem('ERP oturumu değişti.',401);
+  },
   async start(){
+   if(businessBrowser){
+    if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');
+    // Screen changes/reloads keep the existing access + HttpOnly refresh pair.
+    // Confirm it against the normal server instead of rotating on every page.
+    const cached=stored(workingCatalogTokenKey);
+    if(cached){
+     token=cached;
+     try{
+      const p=await request('/api/auth/session-confirm',{method:'POST',body:{},startupAuth:true}),data=p.data,next=validUser(data?.user);
+      if(data.confirmed!==true||next.id!==17||next.username!=='unified-semih-test'||next.role?.id!==17||next.role.code!=='unified_test_semih'||next.isAdmin===true||next.testAdminSession===true||!Number.isSafeInteger(data.expiresAt)||data.expiresAt<=Date.now())throw problem('Oturum doğrulanamadı.',401);
+      user=next;refreshToken='http-only-cookie';expiresAt=data.expiresAt;
+      if(expiresAt>Date.now()+60000)return user;
+     }catch(e){if(![401,403].includes(e?.status))throw e;clear({force:true});}
+    }
+    try{return await accept(await request('/api/auth/refresh',{method:'POST',body:{},startupAuth:true}));}catch(e){if([401,403].includes(e?.status)){clear({force:true});return null;}throw e;}
+   }
    if(protectedDevice){
     if(!target())throw problem('Bu çalışma bağlantısı kullanılamıyor.');try{storage?.removeItem(workingCatalogTokenKey);}catch{}
     const version=generation,saved=await protectedDevice.get();if(!active||version!==generation)throw problem('İstek iptal edildi.');if(!saved)return null;
@@ -84,8 +249,8 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(!shouldAutoOpenTestAdmin({location,apiBase,mode:stored(testSessionModeKey)}))return null;
    return accept(await request('/api/auth/test-admin',{method:'POST',body:{}}));
   },
-  async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);const old=refreshToken;if(old)await request('/api/auth/logout',{method:'POST',body:{refreshToken:old},startupAuth:true});save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password}}));},
-  async logout(){const old=refreshToken;try{if(old)await request('/api/auth/logout',{method:'POST',body:{refreshToken:old},startupAuth:true});}finally{clear({force:true});if(protectedDevice)await protectedDevice.clear();}},
+  async login({username,password}){if(typeof username!=='string'||typeof password!=='string'||!username.trim()||!password)throw problem('Kullanıcı adı ve şifre gerekli.',400);const old=refreshToken;if(old)await request('/api/auth/logout',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});save(testSessionModeKey,'manual');clear({force:true});return accept(await request('/api/auth/login',{method:'POST',body:{username,password},startupAuth:true}));},
+  async logout(){const old=refreshToken;try{if(old)await request('/api/auth/logout',{method:'POST',body:businessBrowser?{}:{refreshToken:old},startupAuth:true});}finally{clear({force:true});if(protectedDevice)await protectedDevice.clear();}},
   async selectCopyActor(actorId){
    if(protectedDevice)throw problem('Kullanıcı değiştirmek için mevcut oturumu kapatın.',403);
    const profile=validateOperationCopyBootstrap(copyProfile,location),selected=profile.actors.find(a=>a.id===actorId);
@@ -113,6 +278,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(args.length||path!=='/api/work-system/summary'||!token||!user)throw problem('Sistem durumu okunamıyor.');
    return (await request(path,{expire:true,keepForbiddenSession:true})).data;
   },
+  async orders(id=null){
+   if(!active||!token||!user||!user.permissions.includes('sales.view')||!isCleanCatalogLocation(location)||resolvedApiBase!==resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})||id!==null&&(!Number.isSafeInteger(id)||id<1))throw problem('Sipariş bağlantısı kullanılamıyor.');
+   return request('/api/sales-orders'+(id===null?'?limit=50&status=draft':'/'+id),{expire:true,keepForbiddenSession:true});
+  },
+  async orderSale(id,{operation=null,body,...extra}={}){
+   if(Object.keys(extra).length||!active||!token||!user||!user.permissions.includes('sales.view')||!isCleanCatalogLocation(location)||resolvedApiBase!==resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})||!Number.isSafeInteger(id)||id<1||!(operation===null&&body===undefined||['convert','finalize'].includes(operation)&&body&&typeof body==='object'&&!Array.isArray(body)&&user.permissions.includes(operation==='convert'?'sales.create':'sales.finalize')))throw problem('Sipariş satış bağlantısı kullanılamıyor.',403);
+   return request('/api/sales-orders/'+id+'/'+(operation===null?'sale':operation==='convert'?'convert-to-sales-draft':'finalize-linked-sale'),{method:operation===null?'GET':'POST',body,expire:true,keepForbiddenSession:true,workMutation:operation!==null,cleanSaleErrors:true});
+  },
   async api(path,{envelope=false,...extra}={}){
    const priceRoute=typeof path==='string'&&/^\/api\/products\/[1-9]\d{0,18}\/current-prices$/.test(path);
    if(priceRoute){
@@ -130,26 +303,56 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/(?:customer-cards\?[^#]*|customers\/[1-9]\d*\/card)$/.test(path)||!token||!user)throw problem('Müşteri kartları okunamıyor.');
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;
   },
+  async customerContactRecovery(id,requestId){
+   if(typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim kaydını kontrol etme yetkiniz yok.',403);
+   return (await request('/api/customers/'+id+'/contact/requests/'+requestId,{method:'GET',expire:true,keepForbiddenSession:true})).data;
+  },
   async customerContact(id,{method='GET',body,...extra}={}){
    if(Object.keys(extra).length||typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
    return (await request('/api/customers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
   },
+  async supplierContactRecovery(id,requestId){
+   if(typeof id!=='string'||! /^[1-4]$/.test(id)||typeof requestId!=='string'||! /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||!token||!user||!['supplier.view','supplier.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim kaydını kontrol etme yetkiniz yok.',403);
+   return (await request('/api/suppliers/'+id+'/contact/requests/'+requestId,{method:'GET',expire:true,keepForbiddenSession:true})).data;
+  },
+  async supplierContact(id,{method='GET',body,...extra}={}){
+   if(Object.keys(extra).length||typeof id!=='string'||! /^[1-4]$/.test(id)||!['GET','POST'].includes(method)||method==='GET'&&body!==undefined||!token||!user||!['supplier.view','supplier.edit'].every(p=>user.permissions.includes(p)))throw problem('İletişim bilgilerini düzenleme yetkiniz yok.',403);
+   return (await request('/api/suppliers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async work(path,{method='GET',body,...extra}={}){
+   if(typeof path==='string'&&path.startsWith('/api/work-collections/selected-source')){
+    const read=/^\/api\/work-collections\/selected-source\/context\?invoiceId=[1-9]\d*$/;
+    const write=/^\/api\/work-collections\/selected-source(?:\/preview|\/[1-9]\d*\/cancel)?$/;
+    const cancel=/^\/api\/work-collections\/selected-source\/[1-9]\d*\/cancel$/;
+    const allowed=selectedSourceCollections===true&&!!token&&!!user&&!!cartonReadTarget&&resolvedApiBase===`http://${location.hostname}:4184`&&user.id===16&&user.role?.code==='isolated_test_ilker'&&['finance.view','customer.view','finance.collection'].every(p=>user.permissions.includes(p))&&(!cancel.test(path)||user.permissions.includes('finance.collection.cancel'));
+    if(Object.keys(extra).length||!allowed||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Tahsilat bağlantısı kullanılamıyor.',403);
+    return (await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+   }
    const read=/^\/api\/(?:work-sales\/(?:context|selection-options|invoices(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-collections\/context\?invoiceId=[1-9]\d*)$/;
    const write=/^\/api\/(?:work-sales\/(?:selected-context|preview|drafts|drafts\/[1-9]\d*\/(?:finalize|cancel))|work-collections(?:\/preview|\/[1-9]\d*\/cancel)?)$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&(read.test(path)||invoiceListReadPath(path))&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('İşlem bağlantısı kullanılamıyor.');
    return (await request(path,{method,body,expire:true,workMutation:method==='POST',workErrors:method==='POST'&&/^\/api\/work-sales\/drafts\/[1-9]\d*\/cancel$/.test(path)})).data;
   },
+  async cash(path,{method='GET',body,...extra}={}){
+   const read=/^\/api\/finance\/cash-register\?businessDate=2026-10-22$/;
+   const write=/^\/api\/finance\/cash-register\/(?:open|close|transfers|expenses)$/;
+   const clean=isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
+   if(Object.keys(extra).length||!clean||!active||!token||!user||!user.permissions.includes('finance.view')||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Günlük kasa bağlantısı kullanılamıyor.',403);
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
+  },
   async cartons(path,{method='GET',body,...extra}={}){
    const route=/^\/api\/terminal-cartons\/receipts(?:\/[1-9]\d{0,18})?$/;
-   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!cartonReadTarget||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
-   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:true})).data;
+   if(Object.keys(extra).length||typeof path!=='string'||!route.test(path)||!token||!user||!(cartonReadTarget||cleanCartonTarget)||!user.permissions.includes('sales.view')||!(method==='GET'&&body===undefined||method==='POST'&&/\/receipts\/[1-9]\d{0,18}$/.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Koli bağlantısı kullanılamıyor.');
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,cartonOrigin:!!cartonReadTarget})).data;
   },
   async inbound(path,{method='GET',body,...extra}={}){
    const read=/^\/api\/(?:test-daily\/(?:count|purchase)|work-receiving\/(?:context|home|count-drafts(?:\/[1-9]\d*)?|requests\/[a-f0-9-]{36})|work-purchases\/(?:context|drafts\/[1-9]\d*|fx\/(?:context|drafts\/[1-9]\d*))|work-suppliers\/(?:context|history))$/;
    const write=/^\/api\/(?:test-daily\/(?:count\/(?:draft|approve|reject|cancel)|purchase\/(?:draft|approve|reject|cancel))|work-receiving\/(?:count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?|receipts\/[1-9]\d*\/(?:approve|reject))|work-purchases\/(?:preview|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?|fx\/(?:preview|receipts(?:\/[1-9]\d*\/(?:approve|reject))?|drafts(?:\/[1-9]\d*\/(?:finalize|cancel))?)))$/;
    if(Object.keys(extra).length||typeof path!=='string'||!token||!user||!(method==='GET'&&read.test(path)&&body===undefined||method==='POST'&&write.test(path)&&body&&typeof body==='object'&&!Array.isArray(body)))throw problem('Mal kabulü bağlantısı kullanılamıyor.');
-   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true,headers:createBusinessSupplierSelection({storage,userId:user.id,profile:copyProfile,location})?.headers()??{}})).data;
+   // These finite clean count writes retain the existing UUID journal and write
+   // budget; a read deadline must not hide their already committed response.
+   const cleanCountMutation=method==='POST'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'})&&/^\/api\/work-receiving\/count-drafts(?:\/[1-9]\d*\/(?:update|submit|cancel))?$/.test(path);
+   return (await request(path,{method,body,expire:true,keepForbiddenSession:true,inboundErrors:true,workMutation:cleanCountMutation,headers:createBusinessSupplierSelection({storage,userId:user.id,profile:copyProfile,location})?.headers()??{}})).data;
   },
   businessSupplierSelection(){
    if(!active||!token||!user)throw problem('Tedarikçi seçimi için oturum gerekli.');
@@ -167,14 +370,14 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   },
   async media(path,{signal,...extra}={}){
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/catalog\/products\/[1-9]\d*\/photo\?variant=(?:preview|thumbnail)$/.test(path)||!token||!user||!active||!target()||signal?.aborted)throw problem('Ürün fotoğrafı açılamıyor.');
-   if(protectedDevice&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
+   if((protectedDevice||businessBrowser)&&refreshToken&&expiresAt<=Date.now()+60000)await renew();
    if(signal?.aborted||!active||!token||!user)throw problem('Ürün fotoğrafı açılamıyor.');
    const controller=new AbortController(),version=generation,requestToken=token,abort=()=>controller.abort();controllers.add(controller);signal?.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,timeoutMs);
    const current=()=>active&&!controller.signal.aborted&&version===generation&&requestToken===token;
    try{
     const response=await fetchImpl(resolvedApiBase+path,{method:'GET',credentials:'omit',redirect:'error',headers:{Accept:'image/jpeg, image/png, image/webp',Authorization:`Bearer ${requestToken}`},signal:controller.signal});
     if(!current())throw problem('İstek iptal edildi.');
-    if(!response.ok){if(response.status===401||response.status===403){clear();if(active)onExpired();}throw problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Ürün fotoğrafını görüntüleme yetkiniz yok.':'Ürün fotoğrafı şu anda açılamıyor.',response.status);}
+    if(!response.ok){if(response.status===401||response.status===403&&!businessBrowser){clear();if(active)onExpired();}throw problem(response.status===401?'Oturumunuz sona erdi. Yeniden giriş yapın.':response.status===403?'Ürün fotoğrafını görüntüleme yetkiniz yok.':'Ürün fotoğrafı şu anda açılamıyor.',response.status);}
     const type=response.headers?.get('Content-Type')?.split(';')[0].trim().toLowerCase();
     if(!['image/jpeg','image/png','image/webp'].includes(type))throw problem('Ürün fotoğrafı açılamıyor.');
     const blob=await response.blob();if(!current())throw problem('İstek iptal edildi.');

@@ -7,7 +7,9 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 export function accountExact(value,options={}){return valid(value)?moneyDisplay(value,options):'Bilinmiyor';}
 export function accountPresentation(account,{role,blocked=false}={}){
  const unknown={currency:typeof account?.currency==='string'?account.currency:'Döviz bilinmiyor',known:false,amount:'Bilinmiyor',direction:null,label:'Bilinmiyor',opening:'Bilinmiyor',delta:'Bilinmiyor',sourceDelta:null};
- if(!['customer','supplier'].includes(role)||blocked!==false||account?.reconciled!==true||account.confidence!=='source-matched'||typeof account.currency!=='string'||!valid(account.balanceExact))return unknown;
+ const nativeId=account?.[role==='customer'?'nativeCustomerId':'nativeSupplierId'];
+ const nativeVerified=account?.confidence==='verified-native'&&account.sourceStatus==='synthetic'&&/^[1-9]\d{0,18}$/.test(String(nativeId))&&BigInt(nativeId)<=9223372036854775807n&&['TRY','USD','EUR'].includes(account.currency)&&valid(account.balanceExact)&&valid(account.localDeltaExact)&&units(account.balanceExact)===units(account.localDeltaExact);
+ if(!['customer','supplier'].includes(role)||blocked!==false||account?.reconciled!==true||!(account.confidence==='source-matched'||nativeVerified)||typeof account.currency!=='string'||!valid(account.balanceExact))return unknown;
  const n=units(account.balanceExact),direction=n===0n?'ZERO':(n>0n)===(role==='customer')?'B':'A';
  if(account.debitCreditDirection!==undefined&&account.debitCreditDirection!==direction)return unknown;
  if(account.amountExact!==undefined&&(!valid(account.amountExact)||units(account.amountExact)!==(n<0n?-n:n)))return unknown;
@@ -15,12 +17,12 @@ export function accountPresentation(account,{role,blocked=false}={}){
  const sourceDelta=account.sourceDeltaExact===undefined?'0.00000000':account.sourceDeltaExact;
  const finalSourceDelta=account.finalSourceDeltaExact===undefined?'0.00000000':account.finalSourceDeltaExact;
  const sourceUpdates=valid(sourceDelta)&&valid(finalSourceDelta)?units(sourceDelta)+units(finalSourceDelta):null;
- const effectsProven=valid(account.localDeltaExact)&&valid(account.sourceOpeningBalanceExact)&&sourceUpdates!==null&&units(account.sourceOpeningBalanceExact)+units(account.localDeltaExact)+sourceUpdates===n;
+ const effectsProven=nativeVerified||valid(account.localDeltaExact)&&valid(account.sourceOpeningBalanceExact)&&sourceUpdates!==null&&units(account.sourceOpeningBalanceExact)+units(account.localDeltaExact)+sourceUpdates===n;
  return {...unknown,known:true,amount:accountExact(account.balanceExact,{absolute:true}),direction,label,opening:valid(account.sourceOpeningBalanceExact)?accountExact(account.sourceOpeningBalanceExact,{absolute:true})+' · '+(units(account.sourceOpeningBalanceExact)===0n?'0':(units(account.sourceOpeningBalanceExact)>0n)===(role==='customer')?'B':'A'):'Bilinmiyor',delta:effectsProven?accountExact(account.localDeltaExact):'Bilinmiyor',sourceDelta:effectsProven&&sourceUpdates!==0n?accountExact(exactUnits(sourceUpdates)):null};
 }
 export function currencyAccountsHtml(accounts,{role,blocked=false,detail=false}={}){
  if(!Array.isArray(accounts)||!accounts.length)return '<p>Döviz bakiyesi bilinmiyor.</p>';
- return accounts.map(a=>{const p=accountPresentation(a,{role,blocked});return '<div class="currency-account"><b>'+esc(p.currency)+': '+esc(p.amount)+(p.known?' '+esc(p.currency)+' · '+(p.direction==='ZERO'?'0':p.direction):'')+'</b><small>'+esc(p.label)+'</small>'+(detail?'<small>Kaynak açılış · 30.09.2026: '+esc(p.opening)+' '+esc(p.currency)+'</small><small>Kayıtlı yerel hareket etkisi: '+esc(p.delta)+' '+esc(p.currency)+'</small>'+(p.sourceDelta===null?'':'<small>Kaynak bakiye güncellemesi: '+esc(p.sourceDelta)+' '+esc(p.currency)+'</small>')+'<small>Güncel ERP döviz bakiyesi: '+esc(p.amount)+(p.known?' '+esc(p.currency)+' · '+(p.direction==='ZERO'?'0':p.direction):'')+'</small>':'')+'</div>';}).join('');
+ return accounts.map(a=>{const p=accountPresentation(a,{role,blocked});return '<div class="currency-account"><b>'+esc(p.currency)+': '+esc(p.amount)+(p.known?' '+esc(p.currency)+' · '+(p.direction==='ZERO'?'0':p.direction):'')+'</b><small>'+esc(p.label)+'</small>'+(detail?(a.sourceStatus==='synthetic'?'<small>Örnek hesap · kayıtlı hareketlerle kontrol edildi.</small>':'<small>Kaynak açılış · 30.09.2026: '+esc(p.opening)+' '+esc(p.currency)+'</small>')+'<small>Kayıtlı yerel hareket etkisi: '+esc(p.delta)+' '+esc(p.currency)+'</small>'+(p.sourceDelta===null?'':'<small>Kaynak bakiye güncellemesi: '+esc(p.sourceDelta)+' '+esc(p.currency)+'</small>')+'<small>Güncel ERP döviz bakiyesi: '+esc(p.amount)+(p.known?' '+esc(p.currency)+' · '+(p.direction==='ZERO'?'0':p.direction):'')+'</small>':'')+'</div>';}).join('');
 }
 
 export function validateSourceComparison(value,{role}={}){

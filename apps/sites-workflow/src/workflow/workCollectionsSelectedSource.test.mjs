@@ -1,0 +1,97 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {selectedSourceCollectionFixture,selectedSourceCollector,selectedSourceRequestId} from '../../../api/src/services/businessSelectedSaleCollectionPreparation.test-fixture.mjs';
+import {createTradeJournal} from './workTradeModel.mjs';
+async function controller(){let source=await readFile(new URL('./workCollections.js',import.meta.url),'utf8');source=source.replace("import './workSales.css';",'');for(const file of ['workOpenAccountPresentation.mjs','isolatedOperationCopyModel.mjs','workCopyPresentation.mjs','workTradeModel.mjs','workFinanceMovements.mjs'])source=source.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));}
+function dom(){const nodes=new Map(),node=k=>{if(!nodes.has(k))nodes.set(k,{isConnected:true,innerHTML:'',dataset:{},addEventListener(event,fn){this['on'+event]=fn;},querySelector:node,querySelectorAll:()=>[],setAttribute(name,v){this[name]=v;},remove(){}});return nodes.get(k);};const root={isConnected:true,innerHTML:'',querySelector:node,querySelectorAll(selector){const key=selector.slice(1,-1),field=key.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return [...root.innerHTML.matchAll(new RegExp(key+'="([^"]+)"','g'))].map(m=>{const n=node(selector+m[1]);n.dataset[field]=m[1];return n;});}};return {root,node};}
+const storage=()=>{const map=new Map();return {map,getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('selected SOURCE uncertain committed payment survives replay denial and reload until exact confirmation',async()=>{
+ const priorWindow=globalThis.window,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';let stage='lost';
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ try{
+  const {createWorkCollections}=await controller(),make=()=>createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(130),session:{work:async(path,options)=>{
+   if(path===base&&stage==='denied')throw {status:403};
+   const r=await bridge.work(path,options);if(path===base&&stage==='lost'){stage='denied';throw Error('response lost');}return r;
+  }}});
+  let ui=make();ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'}),original=journal.read().body;
+  d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'pending');assert.equal(ui.requestClose(),false);
+  ui.dispose();ui=make();ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'pending');assert.deepEqual(journal.read().body,original);
+  stage='confirmed';d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'done');assert.equal(f.state().records.length,1);assert.equal(f.state().customerDebt,190000n);assert.equal(ui.requestClose(),true);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;}
+});
+
+test('selected SOURCE fresh definitive stale rejection still permits a new preview',async()=>{
+ const priorWindow=globalThis.window,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ try{
+  const {createWorkCollections}=await controller(),ui=createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(140),session:{work:async(path,options)=>{if(path===base)throw {status:409};return bridge.work(path,options);}}});
+  ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});assert.equal(journal.read().status,'done');assert.equal(journal.read().result.status,409);assert.equal(f.state().records.length,0);assert.equal(ui.requestClose(),true);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;}
+});
+
+test('selected SOURCE cancellation verifies original amount even when both response copies agree',async()=>{
+ const priorWindow=globalThis.window,priorFormData=globalThis.FormData,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';let corrupt=true,next=110;
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ globalThis.FormData=class{get(){return 'Synthetic cancellation reason';}};
+ try{
+  const {createWorkCollections}=await controller(),ui=createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(next++),session:{work:async(path,options)=>{
+   const r=await bridge.work(path,options);
+   if(path===base+'/2000/cancel'&&corrupt){corrupt=false;const reply=structuredClone(r);reply.collection.amountExact4='6.0000';reply.invoice.collections.items.find(c=>c.id==='2000').amountExact4='6.0000';return reply;}
+   return r;
+  }}});
+  ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  d.node('[data-collection-cancel]2000').onclick();d.node('form').onsubmit({preventDefault(){},target:{}});await tick();
+  const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});
+  assert.equal(journal.read().status,'pending');assert.equal(ui.requestClose(),false);
+  d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'done');
+  const cancellations=bridge.calls.filter(c=>c.path===base+'/2000/cancel');assert.equal(cancellations.length,2);assert.deepEqual(cancellations[0].options.body,cancellations[1].options.body);
+  assert.equal(f.state().customerDebt,240000n);assert.equal(f.state().records.length,1);assert.match(d.root.innerHTML,/5,00 TRY/);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;globalThis.FormData=priorFormData;}
+});
+
+test('selected SOURCE mismatched successful collection response remains pending until exact replay verifies it',async()=>{
+ const previous=globalThis.window,base='/api/work-collections/selected-source';
+ try{
+  const {createWorkCollections}=await controller();
+  for(const patch of [{amountExact4:'6.0000'},{documentDate:'2026-10-10'},{status:'cancelled'},{id:'2999'}]){
+   const f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage();let first=true;
+   globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+   const ui=createWorkCollections({root:d.root,user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(90),session:{work:async(path,options)=>{
+    const response=await bridge.work(path,options);
+    if(path===base&&first){first=false;return {...response,collection:{...response.collection,...patch}};}
+    return response;
+   }}});
+   ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+   const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});
+   assert.equal(journal.read().status,'pending',JSON.stringify(patch));assert.equal(ui.requestClose(),false);
+   d.node('[data-collection-retry]').onclick();await tick();assert.equal(journal.read().status,'done');assert.equal(f.state().records.length,1);
+   const writes=bridge.calls.filter(c=>c.path===base);assert.equal(writes.length,2);assert.deepEqual(writes[0].options.body,writes[1].options.body);ui.dispose();
+  }
+ }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
+});
+function bindFixture(f){const calls=[],actor=selectedSourceCollector(),base='/api/work-collections/selected-source';return {calls,work:async(path,options)=>{calls.push({path,options});if(path===base+'/context?invoiceId=1000')return f.service.context({invoiceId:'1000'},actor);if(path===base+'/preview')return f.service.preview(options.body,actor);if(path===base)return f.service.collect(options.body,actor);if(/^\/api\/work-collections\/selected-source\/\d+\/cancel$/.test(path))return f.service.cancel(path.split('/').at(-2),options.body,actor);throw Error(path);}};}
+test('selected SOURCE requires explicit valid invoice handoff and does not fall back to generic list',async()=>{const {createWorkCollections}=await controller();for(const selectedSource of [{invoiceId:'bad'},{invoiceId:null}]){const d=dom(),calls=[];const ui=createWorkCollections({root:d.root,session:{work:async(...args)=>calls.push(args)},user:{id:'16'},storage:storage(),selectedSource});ui.mount();await tick();assert.equal(calls.length,0);assert.doesNotMatch(d.root.innerHTML,/data-collection-invoices/);assert.doesNotMatch(d.root.innerHTML,/data-collection-save/);ui.dispose();}});
+test('selected SOURCE partial/full collection uses isolated path and journal, with refresh and no generic list',async()=>{const previous=globalThis.window,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};try{const {createWorkCollections}=await controller(),base='/api/work-collections/selected-source',ui=createWorkCollections({root:d.root,user:{id:'16'},session:{work:bridge.work},storage:store,selectedSource:{invoiceId:'1000'},uuid:(()=>{let n=11;return ()=>selectedSourceRequestId(n++);})()});ui.mount();await tick();assert.match(d.root.innerHTML,/NIGHT-/);assert.doesNotMatch(d.root.innerHTML,/data-collection-invoices|finance-ledger/);assert.deepEqual(bridge.calls.map(x=>x.path),[base+'/context?invoiceId=1000']);d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();assert.match(d.root.innerHTML,/data-collection-save/);d.node('[data-collection-save]').onclick();await tick();assert.equal(bridge.calls.filter(x=>x.path===base).length,1);assert.equal(f.state().customerDebt,190000n);assert.match(d.root.innerHTML,/Kalan: 19,00 TRY/);assert.equal(store.getItem('melisa-work-selected-invoice:16'),null);ui.refresh();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-full]').onclick();d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();assert.equal(f.state().customerDebt,0n);assert.match(d.root.innerHTML,/Kalan: 0,00 TRY/);assert.match((await f.service.context({invoiceId:'1000'},selectedSourceCollector())).invoice.collections.items[0].revision,/^[a-f0-9]{64}$/);assert.doesNotMatch(d.root.innerHTML,/data-collection-cancel=\"2000\" disabled/);assert.equal(bridge.calls.filter(c=>c.path.includes('/cancel')).length,0);ui.dispose();}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}});
+test('selected SOURCE denied context and foreign invoice cannot expose posting controls',async()=>{const previous=globalThis.window,f=selectedSourceCollectionFixture();globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};try{const {createWorkCollections}=await controller();for(const response of ['denied','foreign','capability','currency']){const d=dom(),calls=[],ui=createWorkCollections({root:d.root,session:{work:async path=>{calls.push(path);if(response==='denied')throw {status:403};const c=await f.service.context({invoiceId:'1000'},selectedSourceCollector());if(response==='foreign')c.invoice.id='1001';if(response==='capability')c.capabilities.canCollect=false;if(response==='currency')c.invoice.currency='USD';return c;}},user:{id:'16'},storage:storage(),selectedSource:{invoiceId:'1000'}});ui.mount();await tick();assert.equal(calls.length,1);assert.doesNotMatch(d.root.innerHTML,/data-collection-save|data-collection-preview-result|data-collection-invoices/);ui.dispose();}}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}});
+test('selected SOURCE refreshed receipt cancels through its own route with native-shaped revision',async()=>{
+ const priorWindow=globalThis.window,priorFormData=globalThis.FormData,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),base='/api/work-collections/selected-source';
+ globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};
+ globalThis.FormData=class{get(){return 'Synthetic cancellation reason';}};
+ try{
+  const {createWorkCollections}=await controller();let next=70;
+  const ui=createWorkCollections({root:d.root,session:{work:bridge.work},user:{id:'16'},storage:storage(),selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(next++)});
+  ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();
+  ui.refresh();await tick();assert.doesNotMatch(d.root.innerHTML,/data-collection-cancel="2000" disabled/);
+  d.node('[data-collection-cancel]2000').onclick();d.node('form').onsubmit({preventDefault(){},target:{}});await tick();
+  assert.equal(bridge.calls.filter(c=>c.path===base+'/2000/cancel').length,1);assert.equal(f.state().customerDebt,240000n);
+  ui.refresh();await tick();assert.match(d.root.innerHTML,/İptal edildi/);ui.dispose();
+ }finally{if(priorWindow===undefined)delete globalThis.window;else globalThis.window=priorWindow;if(priorFormData===undefined)delete globalThis.FormData;else globalThis.FormData=priorFormData;}
+});
+test('selected SOURCE unknown result retains same request and replay never posts twice',async()=>{const previous=globalThis.window,f=selectedSourceCollectionFixture(),bridge=bindFixture(f),d=dom(),store=storage(),base='/api/work-collections/selected-source';globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};let first=true;try{const {createWorkCollections}=await controller(),ui=createWorkCollections({root:d.root,session:{work:async(path,o)=>{const result=await bridge.work(path,o);if(path===base&&first){first=false;throw Error('unknown result');}return result;}},user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'},uuid:()=>selectedSourceRequestId(30)});ui.mount();await tick();d.node('[data-collection-account]').onchange({target:{value:'20043'}});d.node('[data-collection-amount]').onchange({target:{value:'5'}});d.node('[data-collection-preview]').onclick();await tick();d.node('[data-collection-save]').onclick();await tick();assert.equal(ui.requestClose(),false);const journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});assert.equal(journal.read().status,'pending');d.node('[data-collection-retry]').onclick();await tick();const writes=bridge.calls.filter(c=>c.path===base);assert.equal(writes.length,2);assert.deepEqual(writes[0].options.body,writes[1].options.body);assert.equal(f.state().records.length,1);assert.equal(journal.read().status,'done');assert.equal(ui.requestClose(),true);ui.dispose();}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}});
+test('stored foreign invoice or path remains pending and cannot be replayed by selected SOURCE UI',async()=>{const previous=globalThis.window,f=selectedSourceCollectionFixture(),base='/api/work-collections/selected-source';globalThis.window={location:{protocol:'http:',hostname:'127.0.0.1',port:'5234'},__MELISA_OPERATION_COPY__:f.copy};try{const {createWorkCollections}=await controller();for(const entry of [{path:base,body:{invoiceId:'1001',accountId:'20043',amountExact4:'1.0000',documentDate:f.copy.date,previewHash:'a'.repeat(64),expectedRevision:'a'.repeat(64)}},{path:'/api/work-collections',body:{invoiceId:'1000',accountId:'20043',amountExact4:'1.0000',documentDate:f.copy.date,previewHash:'a'.repeat(64),expectedRevision:'a'.repeat(64)}},{path:base+'/9999/cancel',body:{expectedRevision:'a'.repeat(64),documentDate:f.copy.date,reason:'Synthetic cancellation'}}]){const d=dom(),store=storage(),calls=[],journal=createTradeJournal({storage:store,key:'melisa-work-collection-selected-source-v1:local:16:1000'});journal.begin(entry.path,{...entry.body,requestId:selectedSourceRequestId(60)});const ui=createWorkCollections({root:d.root,session:{work:async(path,o)=>{calls.push({path,o});if(path===base+'/context?invoiceId=1000')return f.service.context({invoiceId:'1000'},selectedSourceCollector());throw Error('unexpected POST');}},user:{id:'16'},storage:store,selectedSource:{invoiceId:'1000'}});ui.mount();await tick();assert.equal(ui.requestClose(),false);d.node('[data-collection-retry]').onclick();await tick();assert.equal(calls.filter(c=>c.o?.method==='POST').length,0);assert.equal(journal.read().status,'pending');ui.dispose();}}finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}});
+

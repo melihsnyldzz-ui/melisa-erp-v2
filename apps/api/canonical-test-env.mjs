@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { networkPolicy } from './canonical-test-network.mjs';
 import {canonicalListenerPolicy} from './canonical-test-listeners.mjs';
+import {BUSINESS_SESSION,validateBusinessSessionProfile,configureCanonicalBusinessSession,configureCanonicalBusinessSaleAdmission,configureCanonicalBusinessSaleLegacyProof} from './src/services/canonicalBusinessSessionContext.mjs';
 
 export function canonicalGoal8Policy(config,{mode,writes}){
   if(config.goal8SyntheticDayProfile!==undefined&&typeof config.goal8SyntheticDayProfile!=='boolean')throw Error('TEST_GOAL8_PROFILE_CONFIG_REJECTED');
@@ -19,6 +20,7 @@ export function canonicalGoal8Policy(config,{mode,writes}){
 export async function configureCanonicalTest(configPath, mode) {
   if (!path.isAbsolute(configPath || '') || !['erp','native'].includes(mode)) throw Error('TEST_ARGUMENT_REJECTED');
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  if(config.businessWorkface!==undefined)validateBusinessSessionProfile(config.businessWorkface);
   const expectedDatabase = 'MELISA_ERP_SIRKET_TEST_20260929_01';
   const readLogin = 'melisa_sirket_test_20260929_01';
   const writes = mode === 'erp' && config.salesEnabled === true;
@@ -28,6 +30,10 @@ export async function configureCanonicalTest(configPath, mode) {
   const release=JSON.parse(fs.readFileSync(path.resolve('../../release-manifest.json'),'utf8'));
   const goal8Seal=config.goal8SyntheticDaySeal;
   if(goal8SqlInstalled&&(!goal8Seal||! /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(goal8Seal.dayId??'')||! /^[A-F0-9]{64}$/.test(goal8Seal.definitionHash??'')||goal8Seal.sourceCommit!==release.sourceCommit||goal8Seal.packageId!==release.packageId))throw Error('TEST_GOAL8_PROFILE_SEAL_REJECTED');
+  if(mode==='erp'&&config.businessWorkface){
+    const {verifyBusinessApiClosure}=await import('../../scripts/canonical/business-workface-api-closure.mjs');
+    await verifyBusinessApiClosure(release,file=>fs.promises.readFile(path.resolve('../../',file)));
+  }
   const expectedLogin = writes ? 'melisa_sirket_sales_test_20260929_01' : readLogin;
   if (config.database !== expectedDatabase || config.sqlUser !== readLogin || (writes && config.salesSqlUser !== expectedLogin) || config.server !== '127.0.0.1' || config.sqlPort !== 1433 || config.host !== '127.0.0.1' || config.erpPort !== 4144 || config.nativePort !== 4146 || config.webPort !== 5194) throw Error('TEST_CONFIG_IDENTITY_REJECTED');
   const listenerPolicy=canonicalListenerPolicy(config,{mode,writes});
@@ -56,6 +62,10 @@ export async function configureCanonicalTest(configPath, mode) {
     TERMINAL_CATALOG_CACHE_DIR:path.resolve('.canonical-runtime/catalog'), PILOT_CATALOG_DIR:path.resolve('.canonical-runtime/pilot'),
     CORS_ORIGINS:listenerPolicy.corsOrigins.join(','),
   });
+  if(mode==='erp'&&config.businessWorkface){
+    if(! /^[A-Za-z0-9_-]{64,128}$/.test(config.businessSessionAccessSecret??'')||config.businessSessionAccessSecret===config.jwtAccessSecret)throw Error('AUTH_BUSINESS_TEST_TARGET_INVALID');
+    process.env.MELISA_TEST_PROTECTED_SESSION_PATH=BUSINESS_SESSION.sessionPath;process.env.MELISA_BUSINESS_SESSION_SECRET=config.businessSessionAccessSecret;
+  }
   for (const file of ['.env','.env.local']) if(fs.existsSync(path.resolve(file))) throw Error('TEST_DOTENV_REJECTED');
   const { env } = await import('./src/config/env.js');
   if(env.sql.database!==expectedDatabase || env.sql.readOnly!==!writes || env.sql.trustedConnection || env.vega.enabled || env.whatsapp.enabled || env.nakliyat.enabled || env.receiptPrinting.enabled || env.port!==port) throw Error('TEST_ENVIRONMENT_REJECTED');
@@ -68,5 +78,14 @@ export async function configureCanonicalTest(configPath, mode) {
     const guards=(await pool.request().query("SELECT COUNT(*) n FROM sys.triggers WHERE name IN(N'test_guard_products',N'test_guard_stock_movements',N'test_guard_sales_invoices',N'test_guard_customer_movements',N'test_guard_purchase_invoices',N'test_guard_supplier_movements',N'test_guard_finance_accounts',N'test_guard_finance_movements') AND is_disabled=0")).recordset[0];
     if(Number(guards.n)!==8 || permissions.some(p=>['CONTROL','ALTER','TAKE OWNERSHIP'].includes(p.permission_name)))throw Error('TEST_WRITER_GUARDS_REJECTED');
   }
-  return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy};
+  const businessSession=await configureCanonicalBusinessSession({config,identity,mode,port,writes,pool});
+  if(config.businessSaleWritesEnabled!==undefined&&typeof config.businessSaleWritesEnabled!=='boolean'||config.businessSaleWritesEnabled===true&&config.businessSaleAdmission===undefined)throw Error('CANONICAL_BUSINESS_SALE_ENABLE_REJECTED');
+  if(mode==='erp'&&config.businessSaleAdmission!==undefined){
+    if(!businessSession)throw Error('CANONICAL_BUSINESS_SALE_PROFILE_TARGET_REJECTED');
+    await configureCanonicalBusinessSaleLegacyProof({profile:config.businessSaleAdmission,identity,mode,port,pool});
+    const saleRuntimeBootstrap=configureCanonicalBusinessSaleAdmission(businessSession,config.businessSaleAdmission,{writesEnabled:config.businessSaleWritesEnabled===true});
+    const {configureCanonicalBusinessSaleRuntime}=await import('./src/services/canonicalBusinessSaleRuntime.mjs');
+    configureCanonicalBusinessSaleRuntime(saleRuntimeBootstrap);
+  }
+  return {config,env,pool,identity,port,networkPolicy,release,writes,listenerPolicy,businessSession};
 }

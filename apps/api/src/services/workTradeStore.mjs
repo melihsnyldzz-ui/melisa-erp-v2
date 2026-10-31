@@ -1,6 +1,6 @@
 import {getBusinessProductPriceSaleDTO,transferBusinessProductPriceSaleDTO,clearBusinessProductPriceSaleDTO} from './businessProductPriceSaleScope.mjs';
 import {createHash} from 'node:crypto';
-import {workDate,workError,workFail,workHash,workId,workRevision,workScaled,workExact,workBusinessCurrencyRate} from './workSalesModel.mjs';
+import {workDate,workError,workFail,workHash,workId,workRequestId,workRevision,workScaled,workExact,workBusinessCurrencyRate,workSalePreview} from './workSalesModel.mjs';
 import {BUSINESS_COPY_DATABASE,isolatedCopyOperationDTOContext,bindIsolatedCopyOperationDTO} from './isolatedOperationCopyContext.mjs';
 import {withWorkNightScope} from './workNightScope.mjs';
 import {assertGoal8Profile,goal8DayEnabled,goal8DayPayload,goal8SqlProfileInstalled,GOAL8_DAY_PROFILE} from './goal8DayProfile.mjs';
@@ -9,17 +9,21 @@ import {deriveBusinessSelectedSaleJournal} from './businessSelectedSaleJournal.m
 import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 import {workSelectedSaleInput,workSalesListFilter} from './workSalesService.mjs';
 import {selectedSaleDiagnosticProbe} from './selectedSaleSqlDiagnostic.mjs';
+import {getCanonicalBusinessSession,getCanonicalBusinessSaleLegacyProof,getCanonicalBusinessSaleAdmission,getCanonicalBusinessSaleCreationProofJSON,isCanonicalBusinessSaleAvailable,readCanonicalBusinessSaleContext,runCanonicalBusinessSaleTransaction} from './canonicalBusinessSessionContext.mjs';
+import {canonicalBusinessSaleInvoiceRevisionSQL} from './workTradeSqlProof.mjs';
 const DB='MELISA_ERP_SIRKET_TEST_20260929_01',SERVER='Semih\\MELISADEV';
 const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
 export const workPayloadJson=(actor,operation,payload)=>JSON.stringify(stable({...payload,operation,actorId:actor.id}));
 const nativeId=value=>{workId(String(value));if(BigInt(value)>BigInt(Number.MAX_SAFE_INTEGER))throw workError();return Number(value);};
 const nativeNumber=(value,places)=>{workScaled(value,places);const n=Number(value);if(!Number.isFinite(n)||n.toFixed(places)!==value)throw workError();return n;};
 const signedExact=(value,places)=>{if(typeof value!=='string'||!new RegExp(`^-?(?:0|[1-9]\\d{0,13})\\.\\d{${places}}$`).test(value))throw workError();return value;};
-async function defaultRuntime(){
+async function defaultRuntime(actor){
  const db=await import('../config/database.js');if(db.isIsolatedOperationCopyRuntime?.())return {isolatedCopy:true};if(!db.isCanonicalTest())throw workError();
  const [invoice,finance,audit,test,period,proof]=await Promise.all([import('./invoiceDraftService.js'),import('./financeService.js'),import('./auditService.js'),import('./testSalesScope.mjs'),import('./periodLockService.js'),import('./workTradeSqlProof.mjs')]);
- const goal8DayProfile=goal8DayEnabled();
- return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),invoice,finance,audit,period,withMutation:test.withTestSalesMutation,goal8DayProfile,proof:goal8SqlProfileInstalled()?(await import('./goal8DaySqlProof.mjs')).GOAL8_DAY_SQL_PROOF.trade:proof.WORK_TRADE_SQL_PROOF};
+ // The registered native B6 actor uses its own startup/SQL admission. Legacy
+ // actors retain the original Goal8 seal checks, including fail-closed errors.
+ const goal8DayProfile=isCanonicalBusinessSaleAvailable(actor)?false:goal8DayEnabled();
+ return {pool:await db.getSqlPool(),sql:db.getSqlDriver(),invoice,finance,audit,period,withMutation:test.withTestSalesMutation,goal8DayProfile,proof:getCanonicalBusinessSaleLegacyProof()??(goal8SqlProfileInstalled()?(await import('./goal8DaySqlProof.mjs')).GOAL8_DAY_SQL_PROOF.trade:proof.WORK_TRADE_SQL_PROOF)};
 }
 function capabilities(actor,raw){
  if(!Array.isArray(raw.permissions))throw workError();const has=key=>actor.permissions.includes(key)&&raw.permissions.includes(key);
@@ -49,7 +53,80 @@ export function workContextDto(raw,actor,goal8Profile=false){
  }catch{throw workError();}
 }
 export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
+ function canonicalBase(actor){return {meta:{schemaVersion:'melisa-work-trade.v1',source:'canonical-business-test',operationOrigin:'CANONICAL_TEST_BUSINESS_SALE'},revision:'0'.repeat(64),capabilities:{canCreate:getCanonicalBusinessSaleAdmission(actor)?.writesEnabled===true&&actor.permissions.includes('sales.create'),canFinalize:getCanonicalBusinessSaleAdmission(actor)?.writesEnabled===true&&actor.permissions.includes('sales.finalize'),canCancel:getCanonicalBusinessSaleAdmission(actor)?.writesEnabled===true&&actor.permissions.includes('sales.cancel'),canCollect:false,canCancelCollection:false},scope:{synthetic:false,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',customer:null,products:[],accounts:[]},supportedCurrencies:['TRY','USD','EUR'],limits:{maxItems:2,maxQuantityPerLine:5,maxInvoiceAmountExact4:'500.0000',maxAmountTryExact4:'500.0000'}};}
+ async function canonicalSession(actor,r,fn,{tx=null,sql=r.sql,binding=null,bodyJson=null}={}){
+  const admission=getCanonicalBusinessSaleAdmission(actor);if(!admission)workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);
+  const context=binding?.operation==='sale_draft'?binding.context:canonicalBase(actor),c={context,selectedSaleEnabled:true};
+  const read=async callback=>{
+   if(tx)return callback(tx,sql);
+   const transaction=new r.sql.Transaction(r.pool);await transaction.begin(r.sql.ISOLATION_LEVEL.SERIALIZABLE);
+   try{const request=new r.sql.Request(transaction),identity=(await request.query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live;")).recordset?.[0];if(identity?.db!==DB||identity.server!==SERVER||identity.login!=='melisa_sirket_sales_test_20260929_01'||identity.databaseUser!==identity.login||identity.sysadmin!==0||identity.control!==0||identity.live!==0)throw workError();const value=await callback(transaction,r.sql);await transaction.commit();return value;}catch(error){try{await transaction.rollback();}catch{}throw error;}
+  };
+  c.selectedSaleContext=async selection=>binding?.operation==='sale_draft'?context:readCanonicalBusinessSaleContext({actor,selection});
+  c.selectedSalePreview=async selection=>workSalePreview(selection,await c.selectedSaleContext(selection));
+  c.selectedSaleOptions=async()=>({enabled:true,requiresExplicitCustomerAccount:true,supportedCurrencies:['TRY','USD','EUR'],readOnly:true});
+  c.invoice=async id=>read(async(transaction,q)=>{
+   id=workId(id);const currentDraft=binding?.operation==='sale_draft'?binding.requestId:null;
+   const query=new q.Request(transaction).input('id',q.BigInt,id).input('profile',q.Char(64),admission.profileHash).input('draftRequest',q.UniqueIdentifier,currentDraft).input('draftPayload',q.NVarChar(q.MAX),currentDraft?bodyJson:null);
+   const header=(await query.query(`DECLARE @creation nvarchar(max);SELECT @creation=COALESCE(j.payload_json,@draftPayload) FROM dbo.work_sales_links l LEFT JOIN dbo.work_trade_requests j ON j.request_id=l.request_id AND j.actor_id=17 AND j.operation=N'sale_draft' WHERE l.invoice_id=@id AND l.actor_id=17;
+SELECT CONVERT(varchar(20),v.id) id,CONVERT(varchar(20),v.customer_id) customerId,CONVERT(varchar(20),v.party_currency_account_id) customerAccountId,CONVERT(varchar(20),v.party_entity_id) partyEntityId,CONVERT(char(10),v.document_date,23) documentDate,v.document_currency currency,l.preview_json,LOWER(CONVERT(varchar(36),l.request_id)) creationRequestId,j.response_json,
+CONVERT(varchar(64),CONVERT(decimal(28,8),a.current_balance)) customerBalanceExact8,CONVERT(varchar(64),CONVERT(decimal(28,4),a.current_balance)) customerBalanceExact4,${canonicalBusinessSaleInvoiceRevisionSQL({profileHash:admission.profileHash})} revision,
+(SELECT COUNT_BIG(*) FROM dbo.customer_movements m WHERE m.sales_invoice_id=v.id AND m.movement_type NOT IN(N'sales_invoice',N'sales_invoice_cancel')) unsupportedMovements
+FROM dbo.sales_invoices v WITH(UPDLOCK,HOLDLOCK) JOIN dbo.work_sales_links l ON l.invoice_id=v.id AND l.actor_id=17
+LEFT JOIN dbo.work_trade_requests j ON j.request_id=l.request_id AND j.actor_id=17 AND j.operation=N'sale_draft'
+JOIN dbo.party_currency_accounts a ON a.id=v.party_currency_account_id AND a.party_entity_id=v.party_entity_id AND a.id=TRY_CONVERT(bigint,JSON_VALUE(l.preview_json,'$.selection.customerAccountId')) AND a.customer_id=v.customer_id AND a.supplier_id IS NULL AND a.currency_code=v.document_currency
+WHERE v.id=@id AND v.created_by=17 AND JSON_VALUE(l.preview_json,'$.canonicalBusinessSaleProfileHash')=@profile AND JSON_VALUE(l.preview_json,'$.testProfile')=N'B6-CANONICAL-BUSINESS-SALE-V1' AND (j.request_id IS NOT NULL OR l.request_id=@draftRequest);`)).recordset;
+   if(header?.length!==1)workFail('WORK_INVOICE_NOT_FOUND','Satış fişi bulunamadı.',404);const h=header[0];
+   if(Number(h.unsupportedMovements)!==0)workFail('WORK_COLLECTIONS_ACTIVE','Bu fişin bağlı finans hareketi ayrıca kontrol edilmeli.',409);
+   const preview=JSON.parse(h.preview_json);if(!Array.isArray(preview.items)||preview.operationOrigin!=='CANONICAL_TEST_BUSINESS_SALE'||preview.selection?.customerId!==h.customerId||preview.selection.customerAccountId!==h.customerAccountId||preview.settlement?.accountId!==h.customerAccountId||preview.selection.currency!==h.currency||!h.partyEntityId||!h.customerBalanceExact8||!h.customerBalanceExact4||typeof h.creationRequestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(h.creationRequestId))throw workError();
+   const creation=JSON.parse(preview.nativeCreationProofJSON);if(creation.profileHash!==admission.profileHash||creation.actorId!=='17'||creation.operation!=='sale_draft'||creation.requestId!==h.creationRequestId||currentDraft&&currentDraft!==h.creationRequestId||creation.customerId!==h.customerId||creation.accountId!==h.customerAccountId||creation.partyEntityId!==h.partyEntityId||creation.currency!==h.currency)throw workError();
+   if(!currentDraft){const saved=JSON.parse(h.response_json);if(String(saved.invoice?.id)!==id||saved.requestId!==h.creationRequestId)throw workError();}
+   const invoice=await r.invoice.getSalesDraft(nativeId(id),{pool:transaction.parent,transaction,sqlDriver:q});
+   if(String(invoice.customerId)!==h.customerId||invoice.documentCurrency!==h.currency||invoice.items.length!==preview.items.length)throw workError();
+   const items=invoice.items.map((row,index)=>{const original=preview.items[index];if(String(row.productId)!==original.productId||Number(row.quantity).toFixed(3)!==original.quantityExact3||Number(row.unitPrice).toFixed(4)!==original.unitPriceExact4||Number(row.lineTotal).toFixed(4)!==original.lineTotalExact4||row.stockCode!==original.stockCode||row.productName!==original.name||row.currency!==h.currency)throw workError();return {...original,currency:h.currency};});
+   const status=String(invoice.status).toLowerCase();if(!['draft','finalized','cancelled'].includes(status))throw workError();const total=Number(invoice.grandTotal).toFixed(4);
+   if(Number(invoice.subtotal).toFixed(4)!==preview.subtotalExact4||total!==preview.grandTotalExact4||Number(invoice.amountTry).toFixed(4)!==preview.amountTryExact4)throw workError();
+   // Presentation witnesses only; every mutation still re-proves its native
+   // account/journal/revision binding inside the protected transaction.
+   return {id,documentNo:invoice.documentNo,documentDate:h.documentDate,customerId:h.customerId,customerAccountId:workId(h.customerAccountId),partyEntityId:workId(h.partyEntityId),creationRequestId:workRequestId(h.creationRequestId),operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',customerName:invoice.customerName,currency:h.currency,status,subtotalExact4:Number(invoice.subtotal).toFixed(4),grandTotalExact4:total,amountTryExact4:Number(invoice.amountTry).toFixed(4),items,revision:workRevision(h.revision),customerBalanceExact4:h.customerBalanceExact4,customerBalanceExact8:h.customerBalanceExact8,customerBalanceDisplayOnly:true,collections:{receivedExact4:'0.0000',outstandingExact4:status==='finalized'?total:'0.0000',items:[],revision:workHash({id,status,total,collections:[]})}};
+  });
+  c.list=async options=>read(async(transaction,q)=>{
+   const filter=workSalesListFilter(options),request=new q.Request(transaction).input('profile',q.Char(64),admission.profileHash).input('customer',q.BigInt,filter.customerId??null).input('currency',q.NVarChar(3),filter.currency??null).input('offset',q.Int,(options.page-1)*options.limit).input('limit',q.Int,options.limit);
+   const predicate="l.actor_id=17 AND v.created_by=17 AND JSON_VALUE(l.preview_json,'$.canonicalBusinessSaleProfileHash')=@profile AND (@customer IS NULL OR (v.customer_id=@customer AND v.document_currency=@currency))";
+   const sets=(await request.query(`SELECT COUNT_BIG(*) total FROM dbo.work_sales_links l JOIN dbo.sales_invoices v ON v.id=l.invoice_id JOIN dbo.work_trade_requests j ON j.request_id=l.request_id AND j.actor_id=17 AND j.operation=N'sale_draft' WHERE ${predicate};SELECT CONVERT(varchar(20),v.id) id FROM dbo.work_sales_links l JOIN dbo.sales_invoices v ON v.id=l.invoice_id JOIN dbo.work_trade_requests j ON j.request_id=l.request_id AND j.actor_id=17 AND j.operation=N'sale_draft' WHERE ${predicate} ORDER BY v.id DESC OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`)).recordsets;
+   // The invoice reader owns independent read transactions outside a mutation.
+   return {data:sets[1],meta:{total:Number(sets[0][0].total),page:options.page,limit:options.limit}};
+  });
+  const idsOnlyList=c.list;c.list=async options=>{const result=await idsOnlyList(options),data=[];for(const row of result.data)data.push(await c.invoice(row.id));return {...result,data};};
+  c.request=async id=>read(async(transaction,q)=>{const rows=(await new q.Request(transaction).input('id',q.UniqueIdentifier,id).input('profile',q.Char(64),admission.profileHash).query("SELECT operation,response_json FROM dbo.work_trade_requests WHERE request_id=@id AND actor_id=17 AND JSON_VALUE(payload_json,'$.canonicalBusinessSaleProfileHash')=@profile;")).recordset;if(rows?.length!==1)workFail('WORK_REQUEST_NOT_FOUND','İşlem kaydı bulunamadı.',404);return {requestId:id,operation:rows[0].operation,response:JSON.parse(rows[0].response_json)};});
+  if(binding){
+   const ctx={pool:tx.parent,transaction:tx,sqlDriver:sql};
+   c.createDraft=async(preview,requestId)=>{
+    const created=await r.invoice.createSalesDraft({documentNo:'NIGHT-'+requestId.replaceAll('-','').slice(0,24),documentDate:preview.selection.documentDate,customerId:nativeId(preview.selection.customerId),customerCurrency:binding.currency,documentCurrency:binding.currency,exchangeRate:nativeNumber(binding.rateExact8,8),accountExchangeRate:nativeNumber(binding.rateExact8,8),description:'Satış işlemi',items:preview.items.map(item=>{const proof=binding.products.find(p=>p.productId===item.productId);return {productId:nativeId(item.productId),stockCode:item.stockCode,productName:item.name,barcode:proof.barcode,quantity:nativeNumber(item.quantityExact3,3),unitPrice:nativeNumber(item.unitPriceExact4,4),currency:binding.currency,averageCostTry:nativeNumber(proof.averageCostTryExact4,4)};})},actor,ctx);
+    const id=String(created.id);nativeId(id);const snapshot={...preview,canonicalBusinessSaleProfileHash:admission.profileHash,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',testProfile:'B6-CANONICAL-BUSINESS-SALE-V1',nativeCreationProofJSON:getCanonicalBusinessSaleCreationProofJSON(tx)};
+    await new sql.Request(tx).input('id',sql.BigInt,id).input('request',sql.UniqueIdentifier,requestId).input('actor',sql.BigInt,'17').input('preview',sql.NVarChar(sql.MAX),JSON.stringify(snapshot)).query('INSERT dbo.work_sales_links(invoice_id,request_id,actor_id,preview_json)VALUES(@id,@request,@actor,@preview);');return c.invoice(id);
+   };
+   c.finalize=async id=>{await r.invoice.finalizeSalesInvoice(nativeId(id),actor,ctx);return c.invoice(id);};
+   c.cancel=async(id,reason)=>{
+    const invoice=await c.invoice(id);
+    if(invoice.status==='draft'){
+     await new sql.Request(tx).input('id',sql.BigInt,id).input('actor',sql.BigInt,'17').input('reason',sql.NVarChar(500),reason).query("UPDATE dbo.sales_invoices SET status=N'cancelled',cancelled_at=SYSUTCDATETIME(),cancel_reason=@reason,updated_by=@actor,updated_at=SYSUTCDATETIME() WHERE id=@id AND status=N'draft';IF @@ROWCOUNT<>1 THROW 51100,'WORK_STALE',1;");
+     await r.audit.writeAuditLog(new sql.Request(tx),{actor,action:'work_sales_draft_cancelled',entityType:'sales_invoice',entityId:nativeId(id),afterSnapshot:{reason}});
+    }else await r.invoice.cancelSalesInvoice(nativeId(id),{reason},actor,ctx);
+    return c.invoice(id);
+   };
+  }
+  return fn(c);
+ }
  async function transaction(actor,write,operation,payload,fn,readPermission='sales.view',historicalSale=false){
+  if(isCanonicalBusinessSaleAvailable(actor)){
+   const r=await getRuntime(actor);if(r.isolatedCopy)throw workError();
+   if(!write)return canonicalSession(actor,r,fn);
+   if(!['sale_draft','sale_finalize','sale_cancel'].includes(operation))workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);
+   const admission=getCanonicalBusinessSaleAdmission(actor),bodyJson=workPayloadJson(actor,operation,{...payload,canonicalBusinessSaleProfileHash:admission.profileHash,operationOrigin:'CANONICAL_TEST_BUSINESS_SALE',testProfile:'B6-CANONICAL-BUSINESS-SALE-V1'});
+   return r.withMutation(()=>runCanonicalBusinessSaleTransaction({actor,requestId:payload.requestId,operation,invoiceId:operation==='sale_draft'?null:payload.id,bodyJson},({binding,transaction:tx,sql})=>canonicalSession(actor,r,fn,{tx,sql,binding,bodyJson})));
+  }
+  if(getCanonicalBusinessSession()&&String(actor?.id)==='17')workFail('WORK_UNAVAILABLE','Satış bağlantısı henüz hazır değil.',503);
   const r=await getRuntime();if(r.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return write?store.mutate(actor,operation,payload,fn):(historicalSale?store.readHistoricalSale??store.read:store.read).call(store,actor,fn,readPermission);}const goal8Profile=goal8DayEnabled(r),run=async()=>{
    const tx=new r.sql.Transaction(r.pool);await tx.begin(r.sql.ISOLATION_LEVEL.SERIALIZABLE);const req=()=>new r.sql.Request(tx),q=r.sql;
    try{
@@ -138,7 +215,7 @@ export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
   };
   return write?r.withMutation(run):run();
  }
- return {context:actor=>transaction(actor,false,null,null,c=>c.context),read:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission),readHistoricalSale:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission,true),mutate:(actor,operation,payload,fn)=>transaction(actor,true,operation,payload,fn),selectedSaleEnabled:async actor=>{const runtime=await getRuntime();if(!runtime.isolatedCopy)return false;const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor);},mutateSelectedSale:async(actor,operation,payload,fn)=>{const runtime=await getRuntime();if(runtime.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return store.mutateSelectedSale(actor,operation,payload,fn);}return transaction(actor,true,operation,payload,fn);}};
+ return {isCanonicalBusinessSale:async actor=>isCanonicalBusinessSaleAvailable(actor),context:actor=>transaction(actor,false,null,null,c=>c.context),read:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission),readHistoricalSale:(actor,fn,permission)=>transaction(actor,false,null,null,fn,permission,true),mutate:(actor,operation,payload,fn)=>transaction(actor,true,operation,payload,fn),selectedSaleEnabled:async actor=>{if(isCanonicalBusinessSaleAvailable(actor))return true;const runtime=await getRuntime();if(!runtime.isolatedCopy)return false;const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return typeof store.selectedSaleEnabled==='function'&&await store.selectedSaleEnabled(actor);},mutateSelectedSale:async(actor,operation,payload,fn)=>{if(isCanonicalBusinessSaleAvailable(actor))return transaction(actor,true,operation,payload,fn);const runtime=await getRuntime();if(runtime.isolatedCopy){const store=await (await import('./isolatedOperationCopyStore.mjs')).getIsolatedOperationCopyWorkStore('trade');return store.mutateSelectedSale(actor,operation,payload,fn);}return transaction(actor,true,operation,payload,fn);}};
 }
 export const workTradeStore=createWorkTradeStore();
 
@@ -239,7 +316,7 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
      value.collections.revision=workHash({invoiceId:h.id,status:h.status,total:h.grandTotalExact4,collections});if(selectedInvoice){const {selectedSaleInvoiceRevisionSQL}=await import('../../../../scripts/canonical/shared-business-selected-sale-revision-sql.mjs');const rows=(await req().input('invoice_id',q.BigInt,id).input('copy_id',q.UniqueIdentifier,copyContext.copyId).input('actor_id',q.BigInt,actor.id).query(selectedSaleInvoiceRevisionSQL)).recordset;if(rows?.length!==1)throw workError();value.revision=workRevision(rows[0].invoiceRevision);}else value.revision=workHash(value);if(selectedInvoice)value.capabilities={canCollect:false,canCancelCollection:false};return value;
     }
     c.invoice=invoice;c.collection=collection;
-    if(write===false&&business)c.readSelectedSaleCollectionInvoice=async original=>{
+    if(business)c.readSelectedSaleCollectionInvoice=async original=>{
      // This separate internal read never borrows creator15's permissions or
      // changes the ordinary invoice reader's actor-owned journal boundary.
      const verified=deriveBusinessSelectedSaleJournal(copyContext,{id:'15'},original?.record,{priceHistory:original?.priceHistory??null}),h=original.record.invoice,s=verified.selection;
@@ -301,3 +378,4 @@ export async function buildIsolatedCopyTradeDomain({runtime:r,copyContext,contex
 
  return c;
 }
+

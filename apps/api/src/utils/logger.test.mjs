@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {logger, requestLogPath} from './logger.js';
 
+test('terminal handoff diagnostic admits only the reviewed code and redacts credentials and suffixes',()=>{
+ const code='TERMINAL_HANDOFF_INVALID';
+ const result=capture(()=>logger.error('API error normalized',{code,refreshToken:'fixture-private-refresh',peerKey:'fixture-private-peer',deviceBinding:'fixture-private-device'}));
+ assert.equal(result[0].payload.code,code);assert.doesNotMatch(JSON.stringify(result),/fixture-private/);
+ for(const value of [code+'_PRIVATE',code.toLowerCase(),'TERMINAL_HANDOFF_UNKNOWN'])assert.equal(capture(()=>logger.error('API error normalized',{code:value}))[0].payload.code,redacted);
+});
+
 const requestId = '11111111-2222-4333-8444-555555555555';
 const marker = 'harmless-canary-unique-head-and-tail';
 const redacted = '[REDACTED]';
@@ -252,6 +259,7 @@ async function loadMiddleware(name) {
   source = source.replace("'../services/operationQuarantineError.mjs'", JSON.stringify(new URL('../services/operationQuarantineError.mjs', import.meta.url).href));
   source = source.replace("'../config/isolatedOperationCopyRuntime.mjs'", JSON.stringify(new URL('../config/isolatedOperationCopyRuntime.mjs', import.meta.url).href));
   source = source.replace("'../services/selectedSaleSqlDiagnostic.mjs'", JSON.stringify(new URL('../services/selectedSaleSqlDiagnostic.mjs', import.meta.url).href));
+  source = source.replace("'../services/canonicalBusinessSessionContext.mjs'", JSON.stringify(new URL('../services/canonicalBusinessSessionContext.mjs', import.meta.url).href));
   return import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 }
 
@@ -279,4 +287,42 @@ test('request and normalized-error middleware serialize safe routes while retain
   assert.equal(headers['Retry-After'], '17');
   assert.equal(response.error.message, 'fixture public message');
   assert.equal(response.meta.retryAfterSeconds, 17);
+});
+
+test('native selected collection keeps its exact scope code without opening a prefix vocabulary',()=>{
+ const code='SELECTED_COLLECTION_NATIVE_SCOPE';
+ assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'SELECTED_COLLECTION_NATIVE','SELECTED_COLLECTION_NATIVE_SQL','SELECTED_COLLECTION_ARBITRARY_SCOPE']){
+  const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+  assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+ }
+});
+
+test('clean collection preparation keeps only four reviewed static codes; private suffixes remain redacted',()=>{
+ for(const code of ['CLEAN_COLLECTION_PREPARATION_REQUIRED','CLEAN_COLLECTION_SOURCE_CHANGED','CLEAN_COLLECTION_FORBIDDEN','CLEAN_COLLECTION_READ_ONLY']){
+  assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+  for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'CLEAN_COLLECTION_'+marker]){
+   const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+   assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+  }
+ }
+});
+
+test('clean network rejection keeps only its reviewed static code',()=>{
+ const code='CLEAN_TEST_ORIGIN_REJECTED';
+ assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'CLEAN_TEST_ORIGIN_'+marker]){
+  const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+  assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+ }
+});
+
+test('clean settings keeps its exact identity and permission codes without private suffixes',()=>{
+ for(const code of ['SYSTEM_IDENTITY_INVALID','SYSTEM_PERMISSION_DENIED']){
+  assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+  for(const unknown of [code+'_PRIVATE',code+'_'+marker,code.toLowerCase(),'SYSTEM_'+marker]){
+   const lines=capture(()=>logger.error('API error normalized',{code:unknown}));
+   assert.equal(lines[0].payload.code,redacted);noCanary(lines);
+  }
+ }
 });

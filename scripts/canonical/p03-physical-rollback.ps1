@@ -1,5 +1,6 @@
 param(
- [ValidateSet('PreflightOld','StopNew','RollbackOld')][string]$Mode='PreflightOld',
+ [ValidateSet('Shared','Rehearsal')][string]$Environment='Shared',
+ [ValidateSet('PreflightOld','PreflightNew','StopNew','RollbackOld')][string]$Mode='PreflightOld',
  [Parameter(Mandatory=$true)][string]$ProfilePath,
  [Parameter(Mandatory=$true)][ValidatePattern('^[a-f0-9]{64}$')][string]$ProfileSha256,
  [Parameter(Mandatory=$true)][string]$BeforeImagePath,
@@ -12,10 +13,19 @@ param(
 # RollbackOld is admitted only by the caller-pinned complete recovery journal.
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+$invokedAtUtc=[DateTime]::UtcNow
 $owner='S-1-5-21-2170750028-1005938530-2568122015-1001'
 $database='MELISA_ERP_CRM_SHARED_TEST_20261009_02'
 $names=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')
 $ports=@(4184,4186,5234,62700,62701,62702,62703,62704)
+$isRehearsal=$Environment -ceq 'Rehearsal'
+$rehearsalBase='C:\Sirket\ERP\rehearsal\P03-RECOVERY-20261018'
+$runRoot=$null
+if($isRehearsal){
+ $database='MELISA_ERP_P03_RESTORE_TEST_20261018_01'
+ $names=@('Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub')
+ $ports=@(4284,4286,5334,62710,62711,62712,62713,62714)
+}
 function Need($condition,[string]$code){if(-not $condition){throw ('P03_PHYSICAL_'+$code)}}
 function Hash([byte[]]$bytes){[BitConverter]::ToString(([Security.Cryptography.SHA256]::Create()).ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}
 function NoReparse([string]$path){for($part=[IO.Path]::GetFullPath($path);$part;$part=[IO.Path]::GetDirectoryName($part)){$item=Get-Item -LiteralPath $part -Force;Need (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) 'REPARSE'}}
@@ -36,30 +46,142 @@ function XmlHash([string]$xml){Hash ([Text.UTF8Encoding]::new($false).GetBytes($
 function Metadata([string]$xml){Need ($xml -match '<Actions\b[^>]*>[\s\S]*?</Actions>') 'TASK_XML';[regex]::Replace($xml,'<Actions\b[^>]*>[\s\S]*?</Actions>','<Actions/>')}
 function Identity($actual,$expected){
  if(-not $actual){return $false}
- $sid=Invoke-CimMethod -InputObject $actual -MethodName GetOwnerSid -ErrorAction Stop
+ try{$sid=Invoke-CimMethod -InputObject $actual -MethodName GetOwnerSid -ErrorAction Stop}catch{
+  if((Get-Variable tasksStopRequested -Scope Script -ErrorAction SilentlyContinue) -and $script:tasksStopRequested -and (Get-Variable admittedExitPins -Scope Script -ErrorAction SilentlyContinue) -and $script:admittedExitPins.ContainsKey([int]$expected.pid)){
+   $pin=$script:admittedExitPins[[int]$expected.pid]
+   $sameExpected=($pin|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)
+   $sameSnapshot=[int]$actual.ProcessId -eq [int]$pin.pid -and [int]$actual.ParentProcessId -eq [int]$pin.parentPid -and $actual.ExecutablePath -ieq $pin.nodePath -and $actual.CommandLine -ceq $pin.commandLine -and $actual.CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($pin.creationTime).ToUniversalTime().Ticks
+   if($sameExpected -and $sameSnapshot){$fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+[int]$pin.pid) -ErrorAction Stop);if($fresh.Count -eq 0){throw 'P03_PHYSICAL_KNOWN_EXIT_RECAPTURE'}}
+  }
+  throw
+ }
  return $sid.ReturnValue -eq 0 -and $sid.Sid -ceq $expected.ownerSid -and [int]$actual.ProcessId -eq [int]$expected.pid -and [int]$actual.ParentProcessId -eq [int]$expected.parentPid -and $actual.ExecutablePath -ieq $expected.nodePath -and $actual.CommandLine -ceq $expected.commandLine -and $actual.CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks
 }
 function Inventory{
  $all=@(Get-CimInstance Win32_Process -ErrorAction Stop)
- $listeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort -in $ports})
+ $allListeners=@(Get-NetTCPConnection -State Listen -ErrorAction Stop)
+ $listeners=@($allListeners|Where-Object{$_.LocalPort -in $ports})
  $running=$schedule.GetRunningTasks(1);$instances=@()
  for($i=1;$i -le $running.Count;$i++){$r=$running.Item($i);if($r.Name -cin $names){$instances+=,$r}}
- return [pscustomobject]@{all=$all;listeners=$listeners;instances=$instances}
+ return [pscustomobject]@{all=$all;allListeners=$allListeners;listeners=$listeners;instances=$instances}
 }
-function ProtectedProcesses($inventory){foreach($p in $profile.protectedProcesses){Need (Identity ($inventory.all|Where-Object{$_.ProcessId -eq $p.pid}) $p) 'PROTECTED_PROCESS_CHANGED'}}
+function SqlServiceProtection($pinned,$inventory){
+ Need ((@($pinned.PSObject.Properties.Name|Sort-Object)-join '|') -ceq 'creationTime|kind|name|pid|service|sql' -and $pinned.kind -ceq 'ProtectedSqlService' -and $pinned.name -ceq 'sqlservr.exe' -and [int]$pinned.pid -gt 0) 'SQL_PROTECTION_SCHEMA'
+ Need ($pinned.service.name -ceq 'MSSQL$MELISADEV' -and $pinned.service.state -ceq 'Running' -and $pinned.service.processId -eq $pinned.pid -and $pinned.sql.serverName -ceq 'Semih\MELISADEV' -and $pinned.sql.databaseName -ceq 'master' -and $pinned.sql.processId -eq $pinned.pid) 'SQL_PROTECTION_SCOPE'
+ $process=@($inventory.all|Where-Object{$_.ProcessId -eq $pinned.pid})
+ Need ($process.Count -eq 1 -and $process[0].Name -ceq 'sqlservr.exe' -and $process[0].CreationDate.ToUniversalTime().Ticks -eq [DateTime]::Parse($pinned.creationTime).ToUniversalTime().Ticks) 'SQL_PROCESS_CHANGED'
+ $service=@(Get-CimInstance Win32_Service -Filter 'Name=''MSSQL$MELISADEV''' -ErrorAction Stop)
+ Need ($service.Count -eq 1 -and $service[0].Name -ceq $pinned.service.name -and $service[0].State -ceq 'Running' -and [int]$service[0].ProcessId -eq $pinned.pid -and $service[0].StartName -ceq $pinned.service.startName -and $service[0].PathName -ceq $pinned.service.pathName) 'SQL_SERVICE_CHANGED'
+ $connection=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=master;Integrated Security=True;Connect Timeout=5;Application Name=MelisaP03SqlProtectionReadOnly')
+ try{
+  $connection.Open();$cmd=$connection.CreateCommand();$cmd.CommandTimeout=5;$cmd.CommandText="SELECT CAST(SERVERPROPERTY('ProcessID') AS int),CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)),DB_NAME()"
+  $reader=$cmd.ExecuteReader()
+  try{Need ($reader.Read() -and $reader.GetInt32(0) -eq $pinned.pid -and $reader.GetString(1) -ceq 'Semih\MELISADEV' -and $reader.GetString(2) -ceq 'master') 'SQL_MASTER_IDENTITY_CHANGED';Need (-not $reader.Read()) 'SQL_MASTER_IDENTITY_COUNT'}finally{$reader.Dispose();$cmd.Dispose()}
+ }finally{$connection.Dispose()}
+}
+function ProtectedProcesses($inventory){
+ foreach($p in $profile.protectedProcesses){
+  if($p.PSObject.Properties.Name -ccontains 'kind'){
+   Need ($p.kind -ceq 'ProtectedSqlService') 'PROTECTED_KIND';SqlServiceProtection $p $inventory
+  }else{Need (Identity ($inventory.all|Where-Object{$_.ProcessId -eq $p.pid}) $p) 'PROTECTED_PROCESS_CHANGED'}
+ }
+ if($isRehearsal){
+  $sharedPorts=@(4184,4186,5234,62700,62701,62702,62703,62704);$allProtectedPorts=$sharedPorts+@(4144,4146,5194)
+  $current=@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object{$_.LocalPort -in $allProtectedPorts}|ForEach-Object{[pscustomobject]@{port=[int]$_.LocalPort;address=[string]$_.LocalAddress;pid=[int]$_.OwningProcess}}|Sort-Object port,address,pid)
+  $expected=@($profile.protectedBindings|ForEach-Object{[pscustomobject]@{port=[int]$_.port;address=[string]$_.address;pid=[int]$_.pid}}|Sort-Object port,address,pid)
+  Need (($current|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)) 'SHARED_BINDINGS_CHANGED'
+  foreach($port in $sharedPorts){Need (@($expected|Where-Object{$_.port -eq $port}).Count -gt 0) 'SHARED_BINDING_BASELINE_INCOMPLETE'}
+  foreach($binding in $expected){Need ($binding.port -in $allProtectedPorts -and @($profile.protectedProcesses|Where-Object{$_.pid -eq $binding.pid}).Count -eq 1) 'SHARED_BINDING_OWNER_PIN'}
+  Need (@($profile.protectedProcesses|Where-Object{$_.name -ceq 'sqlservr.exe'}).Count -ge 1) 'SQL_PROTECTED_BASELINE'
+  $sharedNames=@('Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web')
+  Need (@($profile.protectedTasks).Count -eq 2 -and (@($profile.protectedTasks|ForEach-Object{$_.name}|Sort-Object)-join '|') -ceq (($sharedNames|Sort-Object)-join '|')) 'SHARED_TASK_BASELINE'
+  $runs=$schedule.GetRunningTasks(1)
+  foreach($pinned in $profile.protectedTasks){
+   $task=$folder.GetTask($pinned.name);Need ([int]$task.State -eq 4 -and $pinned.state -eq 4 -and (XmlHash ([string]$task.Xml)) -ceq $pinned.xmlSha256) 'SHARED_TASK_CHANGED'
+   $matches=@();for($i=1;$i -le $runs.Count;$i++){$r=$runs.Item($i);if($r.Name -ceq $pinned.name){$matches+=,$r}}
+   Need ($matches.Count -eq 1 -and [string]$matches[0].InstanceGuid -ceq $pinned.instanceGuid -and [int]$matches[0].EnginePID -eq $pinned.enginePid -and @($profile.protectedProcesses|Where-Object{$_.pid -eq $pinned.enginePid}).Count -eq 1) 'SHARED_COM_INSTANCE_CHANGED'
+  }
+ }
+}
+function RehearsalRolePorts([string]$role){
+ switch -CaseSensitive ($role){'erpNative'{4286};'erpApi'{4284};'crmNativeOrder'{62714};'crmCatalog'{62712};'crmOrders'{62713};'crmServer'{62710;62711};'hub'{5334};'coreSupervisor'{};'terminalWatcher'{};'hubWatcher'{};default{throw 'P03_PHYSICAL_REHEARSAL_PORT_ROLE'}}
+}
+function RehearsalBindings([string]$role,$process,$inventory){
+ if(-not $isRehearsal){return}
+ $expectedPorts=@(RehearsalRolePorts $role)
+ Need (@($process.bindings).Count -eq $expectedPorts.Count) 'REHEARSAL_DECLARED_BINDING_COUNT'
+ foreach($binding in $process.bindings){Need ($binding.address -ceq '127.0.0.1' -and $binding.port -in $expectedPorts) 'REHEARSAL_DECLARED_BINDING'}
+ $actual=@($inventory.allListeners|Where-Object{$_.OwningProcess -eq $process.pid})
+ Need ($actual.Count -eq $expectedPorts.Count) 'REHEARSAL_ACTUAL_BINDING_COUNT'
+ foreach($port in $expectedPorts){Need (@($actual|Where-Object{$_.LocalPort -eq $port -and $_.LocalAddress -ceq '127.0.0.1'}).Count -eq 1) 'REHEARSAL_ACTUAL_BINDING'}
+}
+function PackageManifestSource($manifest,$pkg){
+ $isCrm=(-not $isRehearsal -and ($pkg.root -ceq $oldSettings.components.crm.packageRoot -or $pkg.root -ceq $newSettings.components.crm.packageRoot))
+ if($isCrm){
+  Need ($manifest.PSObject.Properties.Name -ccontains 'schemaVersion' -and $manifest.schemaVersion -eq 1 -and $manifest.kind -ceq 'melisa-crm-test-package' -and $manifest.environment -ceq 'TEST' -and $manifest.source.repository -ceq 'https://github.com/melihsnyldzz-ui/melisa-crm.git' -and $manifest.source.commit -cmatch '\A[a-f0-9]{40}\z' -and -not ($manifest.PSObject.Properties.Name -ccontains 'sourceCommit')) 'CRM_MANIFEST_SCHEMA'
+  return [string]$manifest.source.commit
+ }
+ Need ($manifest.PSObject.Properties.Name -ccontains 'sourceCommit') 'MANIFEST_SOURCE_SCHEMA'
+ return [string]$manifest.sourceCommit
+}
+function RehearsalTaskAction([string]$xml,[string]$generation,[string]$name){
+ if(-not $isRehearsal){return}
+ try{
+ Need ($xml -notmatch '<!DOCTYPE|<!ENTITY') 'REHEARSAL_XML_ENTITY'
+ try{[xml]$doc=$xml}catch{throw 'P03_PHYSICAL_REHEARSAL_TASK_XML'}
+ function XmlValue([string]$xpath,[string]$default,[bool]$required=$false){
+  $nodes=$doc.SelectNodes($xpath);Need ($nodes.Count -le 1 -and (-not $required -or $nodes.Count -eq 1)) 'REHEARSAL_TASK_XML_SHAPE'
+  if($nodes.Count -eq 0){return $default};return [string]$nodes[0].InnerText
+ }
+ $principal="/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']"
+ $settings="/*[local-name()='Task']/*[local-name()='Settings']"
+ $exec="/*[local-name()='Task']/*[local-name()='Actions']/*[local-name()='Exec']"
+ $component=if($generation -ceq 'old'){$oldSettings.supervisor}else{$newSettings.supervisor};$ref=if($generation -ceq 'old'){$profile.oldSettings}else{$profile.newSettings}
+ $leaf=if($name -ceq $names[0]){'p03-rehearsal-watch-core.ps1'}else{'p03-rehearsal-watch-hub.ps1'}
+ $expected=@('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $component.packageRoot $leaf),'-StartupConfigPath',$ref.path,'-StartupConfigSha256',$ref.sha256)
+ Need ($name -cin $names -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Actions']/*").Count -eq 1 -and (XmlValue ($principal+"/*[local-name()='UserId']") '' $true) -ceq $owner -and (XmlValue ($exec+"/*[local-name()='Command']") '' $true) -ceq $expected[0] -and (XmlValue ($exec+"/*[local-name()='WorkingDirectory']") '' $true) -ceq $component.packageRoot) 'REHEARSAL_TASK_ACTION'
+ Need ($doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Principals']/*[local-name()='Principal']").Count -eq 1 -and (XmlValue ($principal+"/*[local-name()='LogonType']") '' $true) -ceq 'InteractiveToken' -and ((XmlValue ($principal+"/*[local-name()='RunLevel']") 'LeastPrivilege') -ceq 'LeastPrivilege') -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Triggers']/*").Count -eq 0 -and $doc.SelectNodes("/*[local-name()='Task']/*[local-name()='Settings']/*[local-name()='RestartOnFailure']").Count -eq 0 -and (XmlValue ($settings+"/*[local-name()='MultipleInstancesPolicy']") 'IgnoreNew') -ceq 'IgnoreNew' -and (XmlValue ($settings+"/*[local-name()='Enabled']") 'true') -ceq 'true') 'REHEARSAL_TASK_PRINCIPAL_SETTINGS'
+ Need (((Tokens ('"'+(XmlValue ($exec+"/*[local-name()='Command']") '' $true)+'" '+(XmlValue ($exec+"/*[local-name()='Arguments']") '' $true)))|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)) 'REHEARSAL_TASK_ARGV'
+ Need ($profile.shell.path -ceq $expected[0]) 'REHEARSAL_TASK_SHELL';NoReparse $profile.shell.path;Need ((Get-FileHash -LiteralPath $profile.shell.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $profile.shell.sha256) 'REHEARSAL_TASK_SHELL_HASH'
+ }catch{if($_.Exception.Message -cmatch '^P03_PHYSICAL_'){throw};throw 'P03_PHYSICAL_REHEARSAL_TASK_XML_SHAPE'}
+}
+function VerifyRehearsalClone{
+ if(-not $isRehearsal){return}
+ $originalProof='C:\Sirket\ERP\backups\P03-20261018-121000\isolated-restore-v4\restore-rehearsal-verified.json'
+ $originalSha='e820511b06f64c21b0fe9c0a1338af355f0e440bdfe0459136cdb14cfe2f5353'
+ Need ($profile.cloneProof.path -ceq (Join-Path $runRoot 'clone-proof.json') -and $profile.cloneProof.sha256 -ceq $originalSha) 'CLONE_PROOF_PATH'
+ # This immutable backup evidence has a SQL-service ACE. It is an artifact,
+ # not a private profile. Verify its fixed bytes without changing its ACL.
+ NoReparse $originalProof
+ $proofStream=[IO.File]::Open($originalProof,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None)
+ try{Need ($proofStream.Length -gt 100 -and $proofStream.Length -le 65536) 'CLONE_PROOF_SIZE';$memory=[IO.MemoryStream]::new();$proofStream.CopyTo($memory);Need ((Hash $memory.ToArray()) -ceq $originalSha) 'CLONE_ORIGINAL_HASH'}finally{$proofStream.Dispose()}
+ $proof=Json (ReadPinned $profile.cloneProof.path $profile.cloneProof.sha256)
+ Need ($proof.restored -ceq $true -and $proof.readOnly -ceq $true -and $proof.dbccCheckdbPassed -ceq $true -and $proof.cloneDatabase -ceq $database -and $proof.sourceDatabase -ceq 'MELISA_ERP_CRM_SHARED_TEST_20261009_02') 'CLONE_RESTORE_PROOF'
+ $connection=[Data.SqlClient.SqlConnection]::new('Server=Semih\MELISADEV;Database=MELISA_ERP_P03_RESTORE_TEST_20261018_01;Integrated Security=True;Connect Timeout=5;Application Name=MelisaP03RecoveryRehearsalReadOnly')
+ try{
+  $connection.Open();$cmd=$connection.CreateCommand();$cmd.CommandTimeout=5
+  $cmd.CommandText="SELECT CAST(SERVERPROPERTY('ServerName') AS nvarchar(128)),DB_NAME(),is_read_only,state_desc FROM sys.databases WHERE database_id=DB_ID()"
+  $reader=$cmd.ExecuteReader()
+  try{Need ($reader.Read() -and $reader.GetString(0) -ceq 'Semih\MELISADEV' -and $reader.GetString(1) -ceq $database -and $reader.GetBoolean(2) -ceq $true -and $reader.GetString(3) -ceq 'ONLINE') 'CLONE_PHYSICAL_IDENTITY';Need (-not $reader.Read()) 'CLONE_IDENTITY_COUNT'}finally{$reader.Dispose();$cmd.Dispose()}
+ }finally{$connection.Dispose()}
+}
 function AssertTasks([int]$state){
- foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq $state -and (XmlHash ([string]$task.Xml)) -ceq $entry.oldXmlSha256) 'OLD_TASK_DRIFT'}
+ foreach($entry in $profile.tasks){$task=$folder.GetTask($entry.name);Need ([int]$task.State -eq $state -and (XmlHash ([string]$task.Xml)) -ceq $entry.oldXmlSha256) 'OLD_TASK_DRIFT';RehearsalTaskAction ([string]$task.Xml) 'old' $entry.name}
 }
 function AssertEmpty($inventory){
  Need ($inventory.instances.Count -eq 0 -and $inventory.listeners.Count -eq 0) 'NOT_EMPTY'
  $roots=@($profile.packages|ForEach-Object{[string]$_.root})
  foreach($p in $inventory.all){
   foreach($root in $roots){Need ([string]$p.CommandLine -notlike ('*'+$root+'*')) 'PACKAGE_PROCESS_STILL_RUNNING'}
-  Need ([string]$p.CommandLine -notmatch '(?i)watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1') 'WATCHER_STILL_RUNNING'
+  Need (-not (IsWatcherCommand ([string]$p.CommandLine))) 'WATCHER_STILL_RUNNING'
  }
  ProtectedProcesses $inventory
 }
 function Field($value,[string]$path){foreach($part in $path.Split('.')){$value=$value.$part};return $value}
+function IsWatcherCommand([string]$value){
+ if($isRehearsal){return $value -match '(?i)p03-rehearsal-watch-(?:core|hub)\.ps1'}
+ return $value -match '(?i)watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1'
+}
 function Tokens([string]$commandLine){
  Need ($commandLine -cnotmatch '[\r\n\x00]') 'ARGV_CONTROL'
  if(-not ('P03NativeArgv' -as [type])){Add-Type -TypeDefinition @'
@@ -73,6 +195,23 @@ public static class P03NativeArgv {
  try{$tokens=@();for($i=0;$i -lt $count;$i++){$tokens+=[Runtime.InteropServices.Marshal]::PtrToStringUni([Runtime.InteropServices.Marshal]::ReadIntPtr($ptr,$i*[IntPtr]::Size))};return ,$tokens}finally{[void][P03NativeArgv]::LocalFree($ptr)}
 }
 function VerifyRule($rule){
+ if($isRehearsal){
+  $map=@{erpNative='erpApiNative';erpApi='erpApiNative';crmNativeOrder='nativeOrder';crmCatalog='crm';crmOrders='crm';crmServer='crm';hub='hub'}
+  if($map.ContainsKey($rule.role)){$component=$newSettings.components.($map[$rule.role]);$config=$component.config}else{$component=$newSettings.supervisor;$config=$component.config}
+  if($rule.role -cin @('terminalWatcher','hubWatcher')){
+   $config=$profile.newSettings;$leaf=if($rule.role -ceq 'terminalWatcher'){'p03-rehearsal-watch-core.ps1'}else{'p03-rehearsal-watch-hub.ps1'}
+   $taskName=if($rule.role -ceq 'terminalWatcher'){$names[0]}else{$names[1]};Need ($rule.taskName -ceq $taskName) 'RULE_TASK_NAME'
+   $expected=@('C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe','-NoProfile','-NonInteractive','-WindowStyle','Hidden','-ExecutionPolicy','RemoteSigned','-File',(Join-Path $component.packageRoot $leaf),'-StartupConfigPath',$config.path,'-StartupConfigSha256',$config.sha256)
+   $exe=$profile.shell;Need ($exe.path -ceq $expected[0]) 'RULE_SHELL_PATH'
+  }else{
+   Need ($rule.role -cin @('hub','coreSupervisor','erpNative','erpApi','crmNativeOrder','crmCatalog','crmOrders','crmServer')) 'RULE_ROLE'
+   $expected=@($newSettings.node.path,'--no-maglev',(Join-Path $component.packageRoot 'p03-rehearsal-fixture.mjs'),'--role',$rule.role,'--config',$config.path,'--generation','new');$exe=$newSettings.node
+  }
+  Need ($rule.packageRoot -ceq $component.packageRoot -and $rule.sourceCommit -ceq $component.sourceCommit -and $rule.config.path -ceq $config.path -and $rule.config.sha256 -ceq $config.sha256 -and $rule.nodePath -ceq $expected[0]) 'RULE_SOURCE_BINDING'
+  Need (((Tokens $rule.commandLine)|ConvertTo-Json -Compress) -ceq ($expected|ConvertTo-Json -Compress)) 'RULE_ARGV_SOURCE'
+  NoReparse $exe.path;Need ((Get-FileHash -LiteralPath $exe.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $exe.sha256) 'RULE_EXECUTABLE_HASH'
+  return
+ }
  $map=@{
   erpNative=@('erpApiNative','apps\api\start-shared-test-copy.mjs','native');erpApi=@('erpApiNative','apps\api\start-shared-test-copy.mjs','erp');crmNativeOrder=@('nativeOrder','apps\api\start-crm-order-test.mjs','--shared-current-test');crmCatalog=@('crm','deploy\test-erp-catalog.mjs','');crmOrders=@('crm','deploy\test-erp-orders.mjs','');crmServer=@('crm','deploy\test-server.mjs','')
  }
@@ -104,12 +243,20 @@ function VerifyRule($rule){
  }else{$exe=$newSettings.node}
  NoReparse $exe.path;Need ((Get-FileHash -LiteralPath $exe.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $exe.sha256) 'RULE_EXECUTABLE_HASH'
 }
-function Append([string]$event,$extra=$null){
+function FailureDiagnostic($failure){
+ $known=@('System.Management.Automation.PropertyNotFoundException','System.Management.Automation.RuntimeException','System.Management.Automation.MethodInvocationException','System.Management.Automation.ParameterBindingException','System.InvalidOperationException','System.UnauthorizedAccessException','System.IO.IOException','Microsoft.Management.Infrastructure.CimException')
+ $type=$failure.Exception.GetType().FullName;if($type -cnotin $known){$type='OtherException'}
+ $line=[int]$failure.InvocationInfo.ScriptLineNumber;if($line -lt 1 -or $line -gt 10000){$line=0}
+ $code=if($failure.Exception.Message -cmatch '\AP03_PHYSICAL_[A-Z0-9_]{1,80}\z'){$failure.Exception.Message}else{'P03_PHYSICAL_UNCLASSIFIED'}
+ return [ordered]@{exceptionType=$type;sourceLine=$line;code=$code}
+}
+function Append([string]$event,$extra=$null,$failure=$null){
  $events=@(Get-ChildItem -LiteralPath $profile.journalDirectory -File|Where-Object{$_.Name -cmatch '\Aevent-[0-9]{4}\.json\z'})
  Need ($events.Count -eq $script:sequence) 'EVENT_CAS_COUNT'
  if($script:sequence -gt 0){[void](ReadPinned (Join-Path $profile.journalDirectory ('event-'+($script:sequence-1).ToString('0000')+'.json')) $script:previous)}else{Need ($script:previous -ceq $BeforeImageSha256) 'EVENT_INITIAL_TAIL'}
  $record=[ordered]@{sequence=$script:sequence;previousSha256=$script:previous;profileSha256=$ProfileSha256;beforeSha256=$BeforeImageSha256;event=$event;observedAt=[DateTime]::UtcNow.ToString('o')}
  if($null -ne $extra){$record['pid']=[int]$extra}
+ if($null -ne $failure){$record['failure']=FailureDiagnostic $failure}
  $bytes=[Text.UTF8Encoding]::new($false).GetBytes(($record|ConvertTo-Json -Compress));$target=Join-Path $profile.journalDirectory ('event-'+$script:sequence.ToString('0000')+'.json')
  $security=[Security.AccessControl.FileSecurity]::new();$security.SetOwner([Security.Principal.SecurityIdentifier]::new($owner));$security.SetAccessRuleProtection($true,$false)
  foreach($sid in @($owner,'S-1-5-18')){[void]$security.AddAccessRule([Security.AccessControl.FileSystemAccessRule]::new([Security.Principal.SecurityIdentifier]::new($sid),[Security.AccessControl.FileSystemRights]::FullControl,[Security.AccessControl.AccessControlType]::Allow))}
@@ -121,6 +268,7 @@ function TaskPhase([string]$kind){
  foreach($entry in $profile.tasks){
   $task=$folder.GetTask($entry.name);$sha=if($kind -ceq 'new'){$entry.newXmlSha256}else{$entry.oldXmlSha256}
   Need ((XmlHash ([string]$task.Xml)) -ceq $sha -and (Metadata ([string]$task.Xml)) -ceq (Metadata $entry.oldXml)) 'RECOVERY_TASK_XML'
+  RehearsalTaskAction ([string]$task.Xml) $kind $entry.name
  }
 }
 function HubLineage($evidence,$expected,$inventory){
@@ -165,7 +313,51 @@ function SupervisorParent($evidence,$expected,$inventory){
   Need ($receipt.pid -eq $child.pid -and $receipt.parentPid -eq $expected.pid -and [DateTime]::Parse($receipt.parentCreationTime).ToUniversalTime().Ticks -eq [DateTime]::Parse($expected.creationTime).ToUniversalTime().Ticks) 'SUPERVISOR_SHARED_PARENT_RECEIPT'
  }
 }
+function ConsoleAuxiliaries($inventory,$selected){
+ if(-not (Get-Variable consolePins -Scope Script -ErrorAction SilentlyContinue)){$script:consolePins=@{}}
+ $allowed=@();$binary='C:\Windows\System32\conhost.exe'
+ foreach($p in $inventory.all){
+  $parents=@($selected|Where-Object{$_.pid -eq $p.ParentProcessId})
+  $known=$script:consolePins.ContainsKey([int]$p.ProcessId)
+  if(-not $known -and ($parents.Count -ne 1 -or $p.Name -ine 'conhost.exe')){continue}
+  Need ($parents.Count -eq 1 -or ($known -and $script:tasksStopRequested)) 'CONSOLE_PARENT'
+  if($known){Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_CHANGED'}else{
+   Need (-not $script:tasksStopRequested) 'CONSOLE_NEW_AFTER_STOP'
+   $parent=$parents[0];$actualParent=@($inventory.all|Where-Object{$_.ProcessId -eq $parent.pid})
+   Need ($actualParent.Count -eq 1 -and (Identity $actualParent[0] $parent)) 'CONSOLE_PARENT_IDENTITY'
+   Need ($p.ExecutablePath -ieq $binary -and $p.CommandLine -ieq '\??\C:\WINDOWS\system32\conhost.exe 0x4' -and $p.CreationDate.ToUniversalTime() -ge [DateTime]::Parse($parent.creationTime).ToUniversalTime()) 'CONSOLE_SOURCE'
+   NoReparse $binary;Need ((Get-FileHash -LiteralPath $binary -Algorithm SHA256).Hash.ToLowerInvariant() -ceq 'c86146188b78e484f32cc29e2331689659943b47689a85570342044f499938ac') 'CONSOLE_BINARY'
+   $signature=Get-AuthenticodeSignature -LiteralPath $binary;Need ($signature.Status -eq 'Valid' -and $signature.SignerCertificate.Subject -ceq 'CN=Microsoft Windows, O=Microsoft Corporation, L=Redmond, S=Washington, C=US') 'CONSOLE_SIGNATURE'
+   $pin=[pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;nodePath=$binary;ownerSid=$parent.ownerSid;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o')}
+   Need (Identity $p $pin) 'CONSOLE_OWNER';$script:consolePins[[int]$p.ProcessId]=$pin
+  }
+  Need (@($inventory.allListeners|Where-Object{$_.OwningProcess -eq $p.ProcessId}).Count -eq 0) 'CONSOLE_LISTENER'
+  $allowed+=,[int]$p.ProcessId
+ }
+ return $allowed
+}
+function WaitConsoleAbsence{
+ $until=[DateTime]::UtcNow.AddSeconds(15)
+ do{$current=Inventory;foreach($p in $current.all){Need (-not ($p.ParentProcessId -in $script:capturedCandidatePids -or $script:consolePins.ContainsKey([int]$p.ParentProcessId)) -or $script:consolePins.ContainsKey([int]$p.ProcessId)) 'CONSOLE_UNKNOWN_DESCENDANT'};$live=@($current.all|Where-Object{$script:consolePins.ContainsKey([int]$_.ProcessId)});foreach($p in $live){try{Need (Identity $p $script:consolePins[[int]$p.ProcessId]) 'CONSOLE_PID_REUSED'}catch{if($_.Exception.Message -cne 'P03_PHYSICAL_KNOWN_EXIT_RECAPTURE'){throw}}};if($live.Count -eq 0){return};Start-Sleep -Milliseconds 250}while([DateTime]::UtcNow -lt $until)
+ Need $false 'CONSOLE_NOT_ABSENT'
+}
+function CandidateParentSnapshot($snapshot,[int]$parentPid){
+ if(@($snapshot).Count -ne 1){return @($snapshot)}
+ try{$sid=Invoke-CimMethod -InputObject $snapshot[0] -MethodName GetOwnerSid -ErrorAction Stop;return [pscustomobject]@{process=$snapshot[0];sid=$sid}}catch{
+  if(-not $script:tasksStopRequested -or -not $script:parentPins.ContainsKey($parentPid)){throw}
+  Need ($snapshot[0].CreationDate.ToUniversalTime().Ticks -eq $script:parentPins[$parentPid].Ticks) 'CANDIDATE_PARENT_REUSED'
+  $fresh=@(Get-CimInstance Win32_Process -Filter ('ProcessId='+$parentPid) -ErrorAction Stop)
+  Need ($fresh.Count -eq 0) 'CANDIDATE_PARENT_EXIT_RACE_UNPROVEN'
+  return @()
+ }
+}
 function CandidateInventory($evidence){
+ for($recapture=0;$recapture -lt 3;$recapture++){
+  try{return CandidateInventoryCore $evidence}catch{if($_.Exception.Message -cne 'P03_PHYSICAL_KNOWN_EXIT_RECAPTURE'){throw};if($recapture -eq 2){throw 'P03_PHYSICAL_EXIT_RECAPTURE_EXHAUSTED'}}
+ }
+}
+function CandidateInventoryCore($evidence){
+ $script:capturedCandidatePids=@($evidence.processes|ForEach-Object{[int]$_.pid})
  $inventory=Inventory;ProtectedProcesses $inventory
  Need (@($profile.oldWatchers).Count -eq 2) 'OLD_WATCHER_PINS'
  $oldPids=@($before.identities.PSObject.Properties|ForEach-Object{[int]$_.Value.pid})+@($profile.oldWatchers|ForEach-Object{[int]$_.pid})
@@ -173,6 +365,8 @@ function CandidateInventory($evidence){
  Need (@($evidence.processes|ForEach-Object{$_.role}|Sort-Object -Unique).Count -eq @($evidence.processes).Count -and @($evidence.processes|ForEach-Object{$_.pid}|Sort-Object -Unique).Count -eq @($evidence.processes).Count) 'CANDIDATE_DUPLICATE'
  $selected=@();$rules=@($profile.candidateRules);$seen=@()
  foreach($expected in @($evidence.processes)){
+  Need ($expected.PSObject.Properties.Name -cnotcontains 'kind') 'CANDIDATE_PROTECTED_KIND'
+  Need ([int]$expected.pid -notin @($profile.protectedProcesses|ForEach-Object{[int]$_.pid})) 'CANDIDATE_PROTECTED_PID'
   Need ($expected.ownerSid -ceq $owner -and [int]$expected.pid -gt 0 -and [int]$expected.pid -notin $oldPids -and $expected.role -cnotin $seen) 'CANDIDATE_OLD_OR_DUPLICATE'
   $rule=@($rules|Where-Object{$_.role -ceq $expected.role});Need ($rule.Count -eq 1) 'CANDIDATE_ROLE'
   VerifyRule $rule[0]
@@ -182,19 +376,25 @@ function CandidateInventory($evidence){
   $actual=@($inventory.all|Where-Object{$_.ProcessId -eq $expected.pid})
   if($actual.Count -eq 0){continue}
   Need ($actual.Count -eq 1 -and (Identity $actual[0] $expected)) 'CANDIDATE_IDENTITY'
+  RehearsalBindings $expected.role $expected $inventory
   $parent=@($inventory.all|Where-Object{$_.ProcessId -eq $expected.parentPid})
-  $hubParentBirth=if($expected.role -ceq 'hub'){HubLineage $evidence $expected $inventory}else{$null}
+  $hubParentBirth=if($expected.role -ceq 'hub' -and -not $isRehearsal){HubLineage $evidence $expected $inventory}else{$null}
   if($parent.Count -eq 1){
-   $parentSid=Invoke-CimMethod -InputObject $parent[0] -MethodName GetOwnerSid -ErrorAction Stop
+   $parentProof=@(CandidateParentSnapshot $parent ([int]$expected.parentPid))
+   if($parentProof.Count -eq 0){$parent=@()}else{$parent=@($parentProof[0].process);$parentSid=$parentProof[0].sid}
+  }
+  if($parent.Count -eq 1){
    if($expected.role -cin @('terminalWatcher','hubWatcher')){
     $service=@(Get-CimInstance Win32_Service -Filter "Name='Schedule'" -ErrorAction Stop)
-    Need ($service.Count -eq 1 -and $service[0].State -ceq 'Running' -and $service[0].StartName -ceq 'LocalSystem' -and [int]$service[0].ProcessId -eq [int]$expected.parentPid -and $parent[0].ExecutablePath -ieq 'C:\Windows\System32\svchost.exe' -and (($parentSid.ReturnValue -eq 0 -and $parentSid.Sid -ceq 'S-1-5-18') -or ($parentSid.ReturnValue -eq 2 -and -not $parentSid.Sid))) 'CANDIDATE_SCHEDULE_PARENT'
+    $pathAvailable=$parent[0].ExecutablePath -ieq 'C:\Windows\System32\svchost.exe' -and $parent[0].CommandLine -ieq 'C:\Windows\system32\svchost.exe -k netsvcs -p'
+    $pathUnavailable=[string]::IsNullOrEmpty($parent[0].ExecutablePath) -and [string]::IsNullOrEmpty($parent[0].CommandLine)
+    Need ($service.Count -eq 1 -and $service[0].State -ceq 'Running' -and $service[0].StartName -ceq 'LocalSystem' -and $service[0].PathName -ieq 'C:\Windows\system32\svchost.exe -k netsvcs -p' -and [int]$service[0].ProcessId -eq [int]$expected.parentPid -and $parent[0].Name -ieq 'svchost.exe' -and ($pathAvailable -or $pathUnavailable) -and (($parentSid.ReturnValue -eq 0 -and $parentSid.Sid -ceq 'S-1-5-18') -or ($parentSid.ReturnValue -eq 2 -and -not $parentSid.Sid))) 'CANDIDATE_SCHEDULE_PARENT'
    }else{Need ($parentSid.ReturnValue -eq 0 -and $parentSid.Sid -ceq $owner) 'CANDIDATE_PARENT_OWNER'}
    Need ($parent[0].CreationDate.ToUniversalTime() -le $actual[0].CreationDate.ToUniversalTime()) 'CANDIDATE_PARENT_BIRTH'
    $parentBirth=$parent[0].CreationDate.ToUniversalTime()
    if($script:parentPins.ContainsKey([int]$expected.parentPid)){Need ($script:parentPins[[int]$expected.parentPid].Ticks -eq $parentBirth.Ticks) 'CANDIDATE_PARENT_REUSED'}else{$script:parentPins[[int]$expected.parentPid]=$parentBirth}
   }else{
-   if($expected.role -ceq 'hub' -and $null -ne $hubParentBirth){$parentBirth=$hubParentBirth;$script:parentPins[[int]$expected.parentPid]=$parentBirth}else{
+   if($expected.role -ceq 'hub' -and -not $isRehearsal -and $null -ne $hubParentBirth){$parentBirth=$hubParentBirth;$script:parentPins[[int]$expected.parentPid]=$parentBirth}else{
     Need ($parent.Count -eq 0 -and $script:tasksStopRequested -and $script:parentPins.ContainsKey([int]$expected.parentPid)) 'CANDIDATE_PARENT_UNPROVEN'
     $parentBirth=$script:parentPins[[int]$expected.parentPid]
    }
@@ -205,7 +405,7 @@ function CandidateInventory($evidence){
    if($instances.Count -eq 1){
     if($script:watcherPins.ContainsKey([int]$expected.pid)){Need ($script:watcherPins[[int]$expected.pid] -ceq [string]$instances[0].InstanceGuid) 'CANDIDATE_COM_GUID_DRIFT'}else{$script:watcherPins[[int]$expected.pid]=[string]$instances[0].InstanceGuid}
    }
-  }elseif($expected.role -ceq 'hub'){
+  }elseif($expected.role -ceq 'hub' -and -not $isRehearsal){
    Need ($parentBirth.Ticks -eq $hubParentBirth.Ticks) 'HUB_PARENT_BIRTH'
   }elseif($expected.role -ceq 'coreSupervisor'){
    Need ($null -eq $rule[0].receipt) 'SUPERVISOR_NO_SYNTHETIC_RECEIPT'
@@ -223,19 +423,27 @@ function CandidateInventory($evidence){
   $selected+=,$expected;$seen+=$expected.role
  }
  foreach($listener in $inventory.listeners){Need (@($selected|Where-Object{$_.pid -eq $listener.OwningProcess -and @($_.bindings|Where-Object{$_.port -eq $listener.LocalPort -and $_.address -ceq $listener.LocalAddress}).Count -eq 1}).Count -eq 1) 'FOREIGN_LISTENER'}
+ $auxiliaryPids=@(ConsoleAuxiliaries $inventory $selected)
  $relevantPids=[Collections.Generic.HashSet[int]]::new()
+ foreach($captured in @($evidence.processes)){[void]$relevantPids.Add([int]$captured.pid)}
+ foreach($capturedPid in @($script:consolePins.Keys)){[void]$relevantPids.Add([int]$capturedPid)}
  foreach($p in $inventory.all){
-  $relevant=$p.ProcessId -in $oldPids -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or [string]$p.CommandLine -match '(?i)watch-terminal-completion-logon\.ps1|watch-hub-after-erp\.ps1'
+  $relevant=$p.ProcessId -in $oldPids -or $p.ProcessId -in @($inventory.instances|ForEach-Object{$_.EnginePID}) -or (IsWatcherCommand ([string]$p.CommandLine))
   foreach($pkg in $profile.packages){if(([string]$p.CommandLine).IndexOf($pkg.root,[StringComparison]::OrdinalIgnoreCase) -ge 0){$relevant=$true}}
   if($relevant){[void]$relevantPids.Add([int]$p.ProcessId)}
  }
  do{$added=$false;foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ParentProcessId) -and $relevantPids.Add([int]$p.ProcessId)){$added=$true}}}while($added)
- foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ProcessId)){Need (@($selected|Where-Object{$_.pid -eq $p.ProcessId}).Count -eq 1) 'FOREIGN_PROCESS'}}
+ foreach($p in $inventory.all){if($relevantPids.Contains([int]$p.ProcessId)){Need (@($selected|Where-Object{$_.pid -eq $p.ProcessId}).Count -eq 1 -or $p.ProcessId -in $auxiliaryPids) 'FOREIGN_PROCESS'}}
+ if(-not $script:tasksStopRequested){
+  $script:admittedExitPins=@{};foreach($pin in $selected){$script:admittedExitPins[[int]$pin.pid]=$pin};foreach($pin in $script:consolePins.Values){$script:admittedExitPins[[int]$pin.pid]=$pin}
+ }
  return [pscustomobject]@{inventory=$inventory;selected=$selected}
 }
-function Health($expectedOwners){
- foreach($item in $profile.health){
-  Need ($item.url -cmatch '\Ahttp://127\.0\.0\.1:(4184|4186|5234|62700|62701|62702|62703|62704)/') 'HEALTH_URL'
+function Health($expectedOwners,[ValidateSet('old','new')][string]$generation='old'){
+ $healthRows=if($generation -ceq 'new'){$profile.candidateHealth}else{$profile.health}
+ foreach($item in $healthRows){
+  $urlPattern=if($isRehearsal){'\Ahttp://127\.0\.0\.1:(4284|4286|5334|62710|62711|62712|62713|62714)/test-health\z'}else{'\Ahttp://127\.0\.0\.1:(4184|4186|5234|62700|62701|62702|62703|62704)/'}
+  Need ($item.url -cmatch $urlPattern) 'HEALTH_URL'
   $uri=[uri]$item.url
   $expected=@($expectedOwners|Where-Object{@($_.bindings|Where-Object{$_.port -eq $uri.Port -and $_.address -cin @('127.0.0.1','0.0.0.0')}).Count -eq 1})
   Need ($expected.Count -eq 1) 'HEALTH_EXPECTED_OWNER'
@@ -249,7 +457,38 @@ function Health($expectedOwners){
   $after=@($post.listeners|Where-Object{$_.LocalPort -eq $uri.Port -and $_.LocalAddress -cin @('127.0.0.1','0.0.0.0')})
   Need ($after.Count -eq 1 -and $after[0].OwningProcess -eq $expected[0].pid -and $after[0].LocalAddress -ceq $bound[0].LocalAddress) 'HEALTH_PORT_AFTER'
   Need ((Field $value $item.databasePath) -ceq $database -and (Field $value $item.sourcePath) -ceq $item.expectedSource) 'HEALTH_IDENTITY'
+  if($generation -ceq 'new' -or $isRehearsal){
+   $settings=if($generation -ceq 'new'){$newSettings}else{$oldSettings}
+   $component=if($uri.Port -in @(4184,4186,4284,4286)){$settings.components.erpApiNative}elseif($uri.Port -in @(5234,5334)){$settings.components.hub}elseif($uri.Port -in @(62704,62714)){$settings.components.nativeOrder}else{$settings.components.crm}
+  }
+  if($generation -ceq 'new'){Need ($item.expectedSource -ceq $component.sourceCommit -and $value.copyId -ceq $before.copyId -and $value.actualT1 -ceq $false) 'NEW_HEALTH_SOURCE'}
+  if($isRehearsal){Need ($value.environment -ceq 'P03_REHEARSAL' -and $value.generation -ceq $generation -and $value.copyId -ceq 'P03-RECOVERY-REHEARSAL-20261018' -and $value.actualT1 -ceq $false -and $item.expectedSource -ceq $component.sourceCommit) 'REHEARSAL_HEALTH_GENERATION'}
  }
+}
+function AdmitCandidate{
+ if($isRehearsal){Need ([IO.Path]::GetFullPath($CandidatePath) -ceq (Join-Path $runRoot 'candidate.json')) 'CANDIDATE_PATH'}else{Need ([IO.Path]::GetFullPath($CandidatePath) -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-candidate-[a-f0-9]{32}\.json\z') 'CANDIDATE_PATH'}
+ $value=Json (ReadPinned $CandidatePath $CandidateSha256)
+ Need ($value.schemaVersion -ceq 'melisa-p03-physical-candidate.v1' -and $value.profileSha256 -ceq $ProfileSha256 -and $value.beforeSha256 -ceq $BeforeImageSha256 -and @($value.processes).Count -le 10) 'CANDIDATE_SCOPE'
+ if($isRehearsal){Need ($value.environment -ceq 'P03_REHEARSAL') 'CANDIDATE_ENVIRONMENT'}
+ # Admission freshness is evaluated at invocation entry, before the expensive
+ # immutable package inventory. Every later use requires fresh physical identity.
+ $age=($invokedAtUtc-[DateTime]::Parse($value.observedAt).ToUniversalTime()).TotalSeconds;Need ($age -ge 0 -and $age -lt 60) 'CANDIDATE_STALE'
+ return $value
+}
+function NewFullOwner($evidence){
+ TaskPhase 'new';$seen=CandidateInventory $evidence
+ $expectedBindings=if($isRehearsal){8}else{9}
+ Need ($seen.selected.Count -eq 10 -and $seen.inventory.instances.Count -eq 2 -and $seen.inventory.listeners.Count -eq $expectedBindings) 'NEW_OWNER_INCOMPLETE'
+ $rolePorts=@{erpNative=@(4186);erpApi=@(4184);crmNativeOrder=@(62704);crmCatalog=@(62702);crmOrders=@(62703);crmServer=@(62700,62701);hub=@(5234);coreSupervisor=@();terminalWatcher=@();hubWatcher=@()}
+ foreach($row in $seen.selected){
+  if($isRehearsal){RehearsalBindings $row.role $row $seen.inventory;continue}
+  $addresses=@(if($row.role -ceq 'hub'){@('127.0.0.1','192.168.1.46')}else{@('127.0.0.1')});$expectedPorts=@($rolePorts[$row.role]);$actual=@($seen.inventory.allListeners|Where-Object{$_.OwningProcess -eq $row.pid})
+  Need ($actual.Count -eq $expectedPorts.Count*$addresses.Count -and @($row.bindings).Count -eq $actual.Count) 'NEW_ROLE_BINDING_COUNT'
+  foreach($port in $expectedPorts){foreach($address in $addresses){Need (@($actual|Where-Object{$_.LocalPort -eq $port -and $_.LocalAddress -ceq $address}).Count -eq 1) 'NEW_ROLE_BINDING'}}
+ }
+ Health $seen.selected 'new'
+ $stable=[ordered]@{processes=@($seen.selected|Sort-Object pid);instances=@($seen.inventory.instances|ForEach-Object{[ordered]@{name=[string]$_.Name;pid=[int]$_.EnginePID;guid=[string]$_.InstanceGuid}}|Sort-Object name)}
+ return (Hash ([Text.UTF8Encoding]::new($false).GetBytes(($stable|ConvertTo-Json -Depth 12 -Compress))))
 }
 function StartedOwner([datetime]$started){
  $inventory=Inventory;ProtectedProcesses $inventory
@@ -263,6 +502,7 @@ function StartedOwner([datetime]$started){
   Need ($sid.ReturnValue -eq 0 -and $sid.Sid -ceq $owner -and $p.CreationDate.ToUniversalTime() -ge $started -and [int]$p.ProcessId -ne [int]$expected.pid) 'STARTED_ROLE_IDENTITY'
   $newByOld[[int]$expected.pid]=$p
   $owners+=,[pscustomobject]@{pid=[int]$p.ProcessId;parentPid=[int]$p.ParentProcessId;ownerSid=$owner;nodePath=[string]$p.ExecutablePath;commandLine=[string]$p.CommandLine;creationTime=$p.CreationDate.ToUniversalTime().ToString('o');bindings=$expected.bindings}
+  RehearsalBindings $entry.Name $owners[-1] $inventory
   foreach($binding in @($expected.bindings)){
    Need (@($inventory.listeners|Where-Object{$_.LocalPort -eq $binding.port -and $_.LocalAddress -ceq $binding.address -and $_.OwningProcess -eq $p.ProcessId}).Count -eq 1) 'STARTED_PORT_IDENTITY'
   }
@@ -283,17 +523,43 @@ function StartedOwner([datetime]$started){
  return (Hash ([Text.UTF8Encoding]::new($false).GetBytes(($stable|ConvertTo-Json -Compress -Depth 10))))
 }
 Need ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value -ceq $owner) 'OWNER'
-Need ([IO.Path]::GetFullPath($ProfilePath) -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-profile-[a-f0-9]{32}\.json\z') 'PROFILE_PATH'
-Need ([IO.Path]::GetFullPath($BeforeImagePath) -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z') 'BEFORE_PATH'
+if($isRehearsal){
+ Need ([IO.Path]::GetFullPath($ProfilePath) -cmatch '\AC:\\Sirket\\ERP\\rehearsal\\P03-RECOVERY-20261018\\run-[a-f0-9]{32}\\profile\.json\z') 'PROFILE_PATH'
+ $runRoot=[IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($ProfilePath))
+ Need ([IO.Path]::GetFullPath($BeforeImagePath) -ceq (Join-Path $runRoot 'before.json')) 'BEFORE_PATH'
+}else{
+ Need ([IO.Path]::GetFullPath($ProfilePath) -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-profile-[a-f0-9]{32}\.json\z') 'PROFILE_PATH'
+ Need ([IO.Path]::GetFullPath($BeforeImagePath) -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-before-[a-f0-9]{32}\.json\z') 'BEFORE_PATH'
+}
 $profile=Json (ReadPinned $ProfilePath $ProfileSha256)
 $before=Json (ReadPinned $BeforeImagePath $BeforeImageSha256)
 Need ($profile.schemaVersion -ceq 'melisa-p03-physical-profile.v1' -and $profile.ownerSid -ceq $owner -and $profile.database -ceq $database -and $before.schemaVersion -ceq 'melisa-p03-owner-observation.v3' -and $before.ownerSid -ceq $owner -and $before.database -ceq $database -and $before.actualT1 -ceq $false) 'PROFILE_SCOPE'
+if($isRehearsal){
+ Need ($profile.environment -ceq 'P03_REHEARSAL' -and $before.environment -ceq 'P03_REHEARSAL' -and $before.copyId -ceq 'P03-RECOVERY-REHEARSAL-20261018' -and $profile.oldSettings.path -ceq (Join-Path $runRoot 'settings-old.json') -and $profile.newSettings.path -ceq (Join-Path $runRoot 'settings-new.json')) 'REHEARSAL_SCOPE'
+}else{
+ Need (($profile.PSObject.Properties.Name -cnotcontains 'environment' -or $profile.environment -ceq 'SHARED_DB02') -and ($before.PSObject.Properties.Name -cnotcontains 'environment' -or $before.environment -ceq 'SHARED_DB02')) 'SHARED_SCOPE'
+}
 Need ($profile.beforeImage.path -ceq $BeforeImagePath -and $profile.beforeImage.sha256 -ceq $BeforeImageSha256 -and $profile.oldSettings.sha256 -ceq $before.oldConfig.sha256 -and $profile.newSettings.sha256 -ceq $before.newConfig.sha256) 'BEFORE_REF'
-Need (@($profile.tasks).Count -eq 2 -and @($profile.packages).Count -ge 3 -and @($profile.health).Count -ge 2 -and @($profile.protectedProcesses).Count -ge 1) 'PROFILE_COUNT'
+$admittedCandidate=if($Mode -cin @('StopNew','PreflightNew')){AdmitCandidate}else{$null}
+$packageMinimum=if($isRehearsal){2}else{3}
+Need (@($profile.tasks).Count -eq 2 -and @($profile.packages).Count -ge $packageMinimum -and @($profile.health).Count -ge 2 -and @($profile.protectedProcesses).Count -ge 1) 'PROFILE_COUNT'
 Need ((@($profile.tasks|ForEach-Object{$_.name}|Sort-Object)-join '|') -ceq (($names|Sort-Object)-join '|')) 'TASK_NAMES'
 $oldSettings=Json (ReadPinned $profile.oldSettings.path $profile.oldSettings.sha256)
 $newSettings=Json (ReadPinned $profile.newSettings.path $profile.newSettings.sha256)
 foreach($settings in @($oldSettings,$newSettings)){Need ($settings.ownerSid -ceq $owner -and $settings.actualT1 -ceq $false -and $settings.database -ceq $database -and $settings.copyId -ceq $before.copyId) 'SETTINGS_SCOPE'}
+if($isRehearsal){
+ foreach($generation in @('old','new')){
+  $settings=if($generation -ceq 'old'){$oldSettings}else{$newSettings}
+  Need ($settings.environment -ceq 'P03_REHEARSAL' -and $settings.generation -ceq $generation -and $settings.runtimeDirectory -ceq $runRoot -and $settings.node.path -ceq 'C:\Sirket\ERP\tools\node-v24.19.0\node.exe') 'REHEARSAL_SETTINGS'
+  NoReparse $settings.node.path;Need ((Get-FileHash -LiteralPath $settings.node.path -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $settings.node.sha256) 'REHEARSAL_NODE_HASH'
+  foreach($component in @($settings.components.PSObject.Properties|ForEach-Object{$_.Value})+@($settings.supervisor)){
+   Need ($component.packageRoot -ceq (Join-Path $runRoot ('packages\'+$generation)) -and $component.sourceCommit -cmatch '\A[a-f0-9]{40}\z' -and $component.config.path -ceq (Join-Path $component.packageRoot 'fixture-config.json')) 'REHEARSAL_COMPONENT_ROOT'
+   $config=Json (ReadPinned $component.config.path $component.config.sha256)
+   Need ($config.environment -ceq 'P03_REHEARSAL' -and $config.runRoot -ceq $runRoot -and $config.generation -ceq $generation -and $config.database -ceq $database -and $config.copyId -ceq $before.copyId -and $config.sourceCommit -ceq $component.sourceCommit -and $config.packageRoot -ceq $component.packageRoot -and $config.nodePath -ceq $settings.node.path -and $config.partial -ceq ($generation -ceq 'new')) 'REHEARSAL_CONFIG_SCOPE'
+  }
+ }
+ VerifyRehearsalClone
+}
 Need ($newSettings.components.erpApiNative.sourceCommit -ceq $before.profile.erpSource -and $newSettings.components.erpApiNative.manifestSha256 -ceq $before.profile.erpManifest -and $newSettings.components.crm.sourceCommit -ceq $before.profile.crmSource -and $newSettings.components.crm.manifestSha256 -ceq $before.profile.crmManifest -and $newSettings.supervisor.sourceCommit -ceq $before.profile.supervisorSource -and $newSettings.supervisor.manifestSha256 -ceq $before.profile.supervisorManifest) 'NEW_PROFILE_PINS'
 Need ([IO.Path]::GetFullPath($oldSettings.supervisor.packageRoot) -ceq [IO.Path]::GetFullPath($before.oldSupervisor.root) -and $oldSettings.supervisor.manifestSha256 -ceq $before.oldSupervisor.manifest) 'OLD_SUPERVISOR_PINS'
 $expectedPackages=@{}
@@ -309,14 +575,14 @@ foreach($entry in $profile.tasks){
  Need ((XmlHash $entry.oldXml) -ceq $entry.oldXmlSha256 -and $entry.oldXml -ceq ($before.tasks|Where-Object{$_.name -ceq $entry.name}).xml) 'BEFORE_TASK_XML'
 }
 foreach($pkg in $profile.packages){
- Need ([IO.Path]::GetFullPath($pkg.root) -cmatch '\AC:\\Sirket\\(?:ERP|CRM)\\releases\\[^\r\n]+\z') 'PACKAGE_ROOT'
+ if($isRehearsal){Need ([IO.Path]::GetFullPath($pkg.root) -cin @((Join-Path $runRoot 'packages\old'),(Join-Path $runRoot 'packages\new'))) 'PACKAGE_ROOT'}else{Need ([IO.Path]::GetFullPath($pkg.root) -cmatch '\AC:\\Sirket\\(?:ERP|CRM)\\releases\\[^\r\n]+\z') 'PACKAGE_ROOT'}
  $pkgRoot=[IO.Path]::GetFullPath($pkg.root)
  Need ($expectedPackages.ContainsKey($pkgRoot) -and $pkgRoot -cnotin $seenPackages -and $pkg.sourceCommit -ceq $expectedPackages[$pkgRoot].sourceCommit -and $pkg.manifestSha256 -ceq $expectedPackages[$pkgRoot].manifestSha256) 'SETTINGS_PACKAGE_BINDING'
  $seenPackages+=$pkgRoot
  NoReparse $pkg.manifestPath
  Need ([IO.Path]::GetFullPath($pkg.manifestPath) -ceq (Join-Path $pkg.root 'release-manifest.json')) 'MANIFEST_PATH'
  $manifestBytes=[IO.File]::ReadAllBytes($pkg.manifestPath);Need ((Hash $manifestBytes) -ceq $pkg.manifestSha256) 'MANIFEST_HASH';$manifest=Json $manifestBytes
- Need ($manifest.sourceCommit -ceq $pkg.sourceCommit) 'MANIFEST_SOURCE'
+ Need ((PackageManifestSource $manifest $pkg) -ceq $pkg.sourceCommit) 'MANIFEST_SOURCE'
  Need (@($manifest.files).Count -gt 0) 'MANIFEST_EMPTY'
  foreach($file in $manifest.files){
   $filePath=[IO.Path]::GetFullPath((Join-Path $pkg.root $file.path));Need ($filePath.StartsWith($pkg.root+'\',[StringComparison]::OrdinalIgnoreCase)) 'PACKAGE_ESCAPE';NoReparse $filePath
@@ -324,36 +590,52 @@ foreach($pkg in $profile.packages){
  }
 }
 [void](ReadPinned $profile.businessDigest.path $profile.businessDigest.sha256)
+$expectedStopper=if($isRehearsal){Join-Path $runRoot 'stop-exact-observed-process.ps1'}else{Join-Path ([IO.Path]::GetDirectoryName($BeforeImagePath)) ([IO.Path]::GetFileName($BeforeImagePath).Replace('MelisaERP-P03-before-','MelisaERP-P03-stopper-').Replace('.json','.ps1'))}
+Need ($profile.stopper.path -ceq $expectedStopper -and $profile.stopper.sha256 -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'STOPPER_PIN'
+[void](ReadPinned $profile.stopper.path $profile.stopper.sha256)
 $schedule=New-Object -ComObject Schedule.Service;$schedule.Connect();$folder=$schedule.GetFolder('\')
 if($Mode -ceq 'PreflightOld'){
  $inventory=Inventory;ProtectedProcesses $inventory;AssertTasks 4
  foreach($p in $before.identities.PSObject.Properties){Need (Identity ($inventory.all|Where-Object{$_.ProcessId -eq $p.Value.pid}) $p.Value) 'OLD_PROCESS_DRIFT'}
  Need ($inventory.instances.Count -eq 2) 'OLD_TASK_INSTANCES';Health @($before.identities.PSObject.Properties|ForEach-Object{$_.Value})
- [ordered]@{status='OLD_PHYSICAL_PREFLIGHT';profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;applyAvailable=$false;mutationExecuted=$false}|ConvertTo-Json
+ [ordered]@{status='OLD_PHYSICAL_PREFLIGHT';environment=$Environment;profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;applyAvailable=$false;mutationExecuted=$false}|ConvertTo-Json
+ return
+}
+if($Mode -ceq 'PreflightNew'){
+ $script:parentPins=@{};$script:watcherPins=@{};$script:tasksStopRequested=$false
+ Need (@($profile.candidateRules).Count -eq 10 -and @($profile.candidateHealth).Count -ge 2) 'NEW_READBACK_PROFILE'
+ [void](ReadPinned $CandidatePath $CandidateSha256)
+ $stableSince=$null;$stableDigest=$null;$deadline=[DateTime]::UtcNow.AddMinutes(5);$ready=$false
+ while([DateTime]::UtcNow -lt $deadline){
+  $digest=NewFullOwner $admittedCandidate
+  if($null -eq $stableSince -or $stableDigest -cne $digest){$stableSince=[DateTime]::UtcNow;$stableDigest=$digest}
+  if(([DateTime]::UtcNow-$stableSince).TotalSeconds -ge 30 -and [DateTime]::UtcNow -lt $deadline){$ready=$true;break}
+  Start-Sleep -Milliseconds 500
+ }
+ Need $ready 'NEW_OWNER_STABILITY_TIMEOUT';[void](ReadPinned $CandidatePath $CandidateSha256);ProtectedProcesses (Inventory);VerifyRehearsalClone
+ [ordered]@{status='NEW_PHYSICAL_PREFLIGHT';environment=$Environment;profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;candidateSha256=$CandidateSha256;identityDigest=$stableDigest;stableSeconds=30;applyAvailable=$false;mutationExecuted=$false}|ConvertTo-Json
  return
 }
 if($Mode -ceq 'StopNew'){
  $script:parentPins=@{};$script:watcherPins=@{};$script:tasksStopRequested=$false
- Need ([IO.Path]::GetFullPath($CandidatePath) -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-candidate-[a-f0-9]{32}\.json\z') 'CANDIDATE_PATH'
- $evidence=Json (ReadPinned $CandidatePath $CandidateSha256)
- Need ($evidence.schemaVersion -ceq 'melisa-p03-physical-candidate.v1' -and $evidence.profileSha256 -ceq $ProfileSha256 -and $evidence.beforeSha256 -ceq $BeforeImageSha256 -and @($evidence.processes).Count -le 10) 'CANDIDATE_SCOPE'
- $age=([DateTime]::UtcNow-[DateTime]::Parse($evidence.observedAt).ToUniversalTime()).TotalSeconds;Need ($age -ge 0 -and $age -lt 60) 'CANDIDATE_STALE'
+ $evidence=$admittedCandidate;[void](ReadPinned $CandidatePath $CandidateSha256)
  Need (@($profile.candidateRules).Count -eq 10 -and @($profile.candidateRules.role|Sort-Object -Unique).Count -eq 10) 'CANDIDATE_RULES'
  Need ((@($profile.candidateRules.role|Sort-Object)-join '|') -ceq ((@('hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','terminalWatcher','hubWatcher','coreSupervisor')|Sort-Object)-join '|')) 'CANDIDATE_ROLE_SET'
- Need ($profile.stopper.path -ceq 'C:\Sirket\CRM\runtime\CRM06-TEST-ACTORS-20261014\stop-exact-observed-process.ps1' -and $profile.stopper.sha256 -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'STOPPER_PIN'
+ Need ($profile.stopper.path -ceq $expectedStopper -and $profile.stopper.sha256 -ceq '79a3f760d17cf805845042f544f8a42110a41f6dde754858661803d5523d292d') 'STOPPER_PIN'
  [void](ReadPinned $profile.stopper.path $profile.stopper.sha256)
- Need ($profile.journalDirectory -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'
+ if($isRehearsal){Need ($profile.journalDirectory -ceq (Join-Path $runRoot 'recovery')) 'JOURNAL_PATH'}else{Need ($profile.journalDirectory -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'}
  Protected $profile.journalDirectory
  # Admission completes before creating any durable intent or stopping a task.
  TaskPhase 'new';$admitted=CandidateInventory $evidence
  $comPins=@()
  foreach($instance in $admitted.inventory.instances){$comPins+=,[pscustomobject]@{name=[string]$instance.Name;guid=[string]$instance.InstanceGuid;pid=[int]$instance.EnginePID}}
  $lock=[IO.File]::Open((Join-Path $profile.journalDirectory 'recovery.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+ $recoveryAttempted=$false
  try{
   Need (@(Get-ChildItem -LiteralPath $profile.journalDirectory -Force|Where-Object{$_.Name -cne 'recovery.lock'}).Count -eq 0) 'RECOVERY_JOURNAL_NOT_EMPTY'
   $script:sequence=0;$script:previous=$BeforeImageSha256
   [void](ReadPinned $CandidatePath $CandidateSha256);TaskPhase 'new';[void](CandidateInventory $evidence)
-  Append 'RECOVERY_INTENT'
+  $recoveryAttempted=$true;Append 'RECOVERY_INTENT'
   $script:tasksStopRequested=$true
   foreach($pin in $comPins){
    TaskPhase 'new';$now=CandidateInventory $evidence
@@ -379,6 +661,7 @@ if($Mode -ceq 'StopNew'){
    $after=Inventory;Need (@($after.all|Where-Object{$_.ProcessId -eq $row[0].pid}).Count -eq 0) 'EXACT_STOP_NOT_ABSENT';ProtectedProcesses $after
    Append 'RECOVERY_EXACT_STOPPED' $row[0].pid
   }
+  WaitConsoleAbsence
   AssertEmpty (Inventory);TaskPhase 'new'
   Append 'RECOVERY_OLD_ACTION_RESTORE_INTENT'
   foreach($entry in $profile.tasks){
@@ -391,14 +674,19 @@ if($Mode -ceq 'StopNew'){
    Need ((XmlHash ([string]$folder.GetTask($entry.name).Xml)) -ceq $entry.oldXmlSha256) 'ACTION_RESTORE_READBACK'
   }
   AssertEmpty (Inventory);AssertTasks 3
+  VerifyRehearsalClone
   Append 'RECOVERY_COMPLETE'
-  [ordered]@{status='RECOVERED_OLD_ACTIONS';profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;journalTailSha256=$script:previous;oldTasksStarted=$false}|ConvertTo-Json
+  [ordered]@{status='RECOVERED_OLD_ACTIONS';environment=$Environment;profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;journalTailSha256=$script:previous;oldTasksStarted=$false}|ConvertTo-Json
+ }catch{
+  $originalFailure=$_
+  if($recoveryAttempted){try{Append 'RECOVERY_FAILED' $null $originalFailure;Append 'QUARANTINED'}catch{}}
+  throw
  }finally{$lock.Dispose()}
  return
 }
 # Journal is a local protected directory; every record is raw-byte hash linked.
 Need ($RecoveryTailSha256 -cmatch '\A[a-f0-9]{64}\z') 'RECOVERY_TAIL'
-Need ($profile.journalDirectory -cmatch '\AC:\\Users\\Xaser\\AppData\\Local\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'
+if($isRehearsal){Need ($profile.journalDirectory -ceq (Join-Path $runRoot 'recovery')) 'JOURNAL_PATH'}else{Need ($profile.journalDirectory -cmatch '\AC:\\Sirket\\ERP\\runtime\\P03-OWNER-20261018\\MelisaERP-P03-recovery-[a-f0-9]{32}\z') 'JOURNAL_PATH'}
 Protected $profile.journalDirectory
 $journalLock=[IO.File]::Open((Join-Path $profile.journalDirectory 'rollback.lock'),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
 $rollbackAttempted=$false
@@ -439,9 +727,11 @@ try{
  }
  Need $ready 'ROLLBACK_READBACK_FAILED'
  ProtectedProcesses (Inventory)
+ VerifyRehearsalClone
  Append 'RESTORED_READY'
- [ordered]@{status='RESTORED_READY';profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;journalTailSha256=$script:previous;restoreExecuted=$false}|ConvertTo-Json
+ [ordered]@{status='RESTORED_READY';environment=$Environment;profileSha256=$ProfileSha256;beforeImageSha256=$BeforeImageSha256;journalTailSha256=$script:previous;stableSeconds=30;restoreExecuted=$false}|ConvertTo-Json
 }catch{
- if($rollbackAttempted){try{Append 'ROLLBACK_FAILED';Append 'QUARANTINED'}catch{}}
+ $originalFailure=$_
+ if($rollbackAttempted){try{Append 'ROLLBACK_FAILED' $null $originalFailure;Append 'QUARANTINED'}catch{}}
  throw
 }finally{$journalLock.Dispose()}

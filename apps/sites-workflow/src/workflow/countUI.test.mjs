@@ -4,6 +4,12 @@ import {createCountUI} from './countUI.js';
 import {testDaily} from './testDaily.js';
 
 const state=()=>({products:[['A-01','Ürün','ADET',3,60]],goods:[],supplierReturns:[],counts:[{id:'39-1',batchId:'39',code:'A-01',system:3,physical:4,difference:1,reason:'Raf yeniden sayıldı',state:'pending',countedBy:'Satış ekibi'}],audit:[],countSessions:[]});
+test('review-only count role cannot start, repeat or resume a local draft while saved review stays accessible',()=>{
+ const data=state();data.countSessions=[{id:'local-1',state:'draft',lines:[],revision:1}];const before=structuredClone(data);let writes=0,forms=0;
+ const ui=createCountUI({getState:()=>data,receipts:()=>[],actor:()=> 'Stok sorumlusu',allowed:()=>true,canDraft:()=>false,change:()=>writes++,form:()=>forms++,esc:String,btn:(label,action,id,disabled)=>`<button data-action="${action}" ${disabled?'disabled':''}>${label}</button>`,header:(_a,_b,_c,button)=>button,panel:(_t,b)=>b,table:(_h,rows)=>rows.join(''),td:(...v)=>v.join(' '),note:()=>''});
+ const html=ui.page();for(const action of ['new-count','repeat-count','resume-count'])assert.match(html,new RegExp(`data-action="${action}" disabled`));assert.match(html,/data-action="review-count" >/);
+ ui.start();ui.start('39');ui.open('local-1');assert.equal(writes,0);assert.equal(forms,0);assert.deepEqual(data,before);
+});
 function reviewFixture({allowed=true,onApprove=()=>{},data=state(),normalScreen=false}={}){
  let body,callback;const submit={},footer={insertAdjacentHTML(){}},modal={classList:{add(){}},querySelector:q=>q==='[type=submit]'?submit:footer};
  const oldDocument=globalThis.document;globalThis.document={getElementById:()=>modal};
@@ -52,7 +58,7 @@ test('normal count transport persists the entered approver reason in the exact r
   form.onsubmit({preventDefault(){},target:form});await new Promise(resolve=>setImmediate(resolve));
   assert.equal(calls.length,1);assert.equal(calls[0].path,'/api/test-daily/count/approve');assert.equal(calls[0].body.id,39);assert.equal(calls[0].body.reason,'Yetkili stok farkını doğruladı');
   const pending=JSON.parse(store.get('melisa-daily-count-16'));assert.deepEqual(pending.body,calls[0].body);
-  data.drafts[0]={...data.drafts[0],state:'approved',decided_by:16,reason:'Yetkili stok farkını doğruladı'};data.countProducts[0].stockQuantity=4;
+  data.drafts[0]={...data.drafts[0],state:'approved',decided_by:16,decided_by_name:'İlker',reason:'Yetkili stok farkını doğruladı'};data.countProducts[0].stockQuantity=4;
   testDaily(options).bind();button.onclick();assert.match(modal.innerHTML,/Onay: İlker/);assert.match(modal.innerHTML,/Onay gerekçesi: Yetkili stok farkını doğruladı/);assert.doesNotMatch(modal.innerHTML,/name="reason"/);assert.equal(submit.disabled,true);
  }finally{for(const [key,value] of Object.entries(savedGlobals))if(value===undefined)delete globalThis[key];else globalThis[key]=value}
 });

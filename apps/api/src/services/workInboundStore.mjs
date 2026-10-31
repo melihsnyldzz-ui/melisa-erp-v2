@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {createHash} from 'node:crypto';
 import {WORK_INBOUND_SQL_PROOF} from './workInboundSqlProof.mjs';
 import {goal8SqlProfileInstalled} from './goal8DayProfile.mjs';
@@ -54,7 +55,7 @@ export function createWorkInboundStore({getRuntime=defaultRuntime,proof=WORK_INB
   const q=ctx.sql,req=()=>new q.Request(ctx.tx),identity=(await req().query("SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,SUSER_SNAME() login,IS_SRVROLEMEMBER('sysadmin') admin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') control,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') live")).recordset?.[0];
   if(identity?.db!=='MELISA_ERP_SIRKET_TEST_20260929_01'||identity.server!=='Semih\\MELISADEV'||identity.login!=='melisa_sirket_sales_test_20260929_01'||identity.admin!==0||identity.control!==0||identity.live!==0)throw inboundError();
   const currentProof=goal8SqlProfileInstalled()?(await import('./goal8DaySqlProof.mjs')).GOAL8_DAY_SQL_PROOF.inbound:proof;
-  const ready=(await req().execute('dbo.usp_work_inbound_ready')).recordset?.[0];if(!currentProof||ready?.readyHash!==currentProof.readyHash)throw inboundError();
+  const ready=(await req().execute('dbo.usp_work_inbound_ready')).recordset?.[0];if(!currentProof||ready?.readyHash!==getCanonicalBusinessSaleDefinitionHash('dbo.usp_work_inbound_ready',currentProof.readyHash))throw inboundError();
   const user=(await req().input('actor',q.BigInt,actor.id).query("SELECT u.id,r.code FROM dbo.users u JOIN dbo.roles r ON r.id=u.role_id WHERE u.id=@actor AND u.is_active=1; SELECT p.permission_key FROM dbo.permissions p JOIN dbo.users u ON u.role_id=p.role_id WHERE u.id=@actor AND u.is_active=1 AND p.can_view=1;")).recordsets;
   if(user?.[0]?.length!==1||!((String(actor.id)==='15'&&user[0][0].code==='isolated_test_sales')||(String(actor.id)==='16'&&user[0][0].code==='isolated_test_ilker')))reject('INBOUND_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);
   const actual={permissions:user[1].map(p=>p.permission_key)},products=(await req().query("SELECT CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name,CONVERT(varchar(40),CAST(p.current_stock_qty AS decimal(18,3))) stockQuantityExact3,CONVERT(varchar(40),CAST(s.unit_cost AS decimal(18,8))) purchasePriceExact8,CASE WHEN (SELECT COUNT(*) FROM dbo.product_barcodes b WHERE b.product_id=p.id AND b.is_active=1 AND b.is_primary=1)=1 THEN (SELECT TOP(1) b.barcode FROM dbo.product_barcodes b WHERE b.product_id=p.id AND b.is_active=1 AND b.is_primary=1) ELSE NULL END barcode FROM dbo.test_purchase_batch_scope s JOIN dbo.products p ON p.id=s.product_id ORDER BY p.id")).recordset;

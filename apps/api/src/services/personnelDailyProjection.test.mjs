@@ -14,6 +14,11 @@ test('personnel count DTO retains scan, quantities, UUID context and removes cos
 test('finance-authorized office DTO and unrelated flows retain their established contract',()=>{
  const data=fixture();assert.equal(projectPersonnelDailyContext('count',{permissions:['stock.adjust','finance.view']},data),data);assert.equal(projectPersonnelDailyContext('purchase',{permissions:['finance.view']},data),data);assert.equal(projectPersonnelDailyContext('sales',{permissions:['sales.view']},data),data);
 });
+test('personnel projection retains joined creator and decision names without exposing user credentials',()=>{
+ const data=fixture();Object.assign(data.drafts[0],{created_by_name:'Örnek sayım personeli',decided_by:22,decided_by_name:'Örnek stok sorumlusu',password_hash:'private'});
+ const out=projectPersonnelDailyContext('count',{permissions:['product.view']},data);
+ assert.equal(out.drafts[0].created_by_name,'Örnek sayım personeli');assert.equal(out.drafts[0].decided_by_name,'Örnek stok sorumlusu');assert.doesNotMatch(JSON.stringify(out),/password_hash|private|costExact/);
+});
 const purchaseFixture=()=>({
  scope:{flow:'purchase',product_id:1,stock_code:'0007',product_name:'Source product',unit:'ADET',current_stock_qty:4,average_cost_try:60,source_id:11,source_kind:'purchase',supplier_id:2,settings_json:'private'},
  drafts:[{id:31,flow:'purchase',kind:'invoice-return',state:'pending',created_by:15,payload_json:JSON.stringify({requestId:'fixture-uuid',kind:'purchase',sourceInvoiceId:11,reason:'Physical return',documentDate:'2026-10-06',items:[{productId:1,sourceItemId:21,quantity:1,unitCostTry:60}]}),plan_json:JSON.stringify({sourceDocumentNo:'PURCHASE-11',documentCurrency:'TRY',partyName:'Supplier',amount:60,accountAmount:60,amountTry:60,exchangeRate:1,cashEffect:0,items:[{productId:1,sourceItemId:21,stockCode:'0007',quantity:1,stockBefore:4,stockAfter:3,unitCostTry:60,averageCostBefore:60,averageCostAfter:60}]}),result_json:JSON.stringify({id:401,stockAfter:3,balanceEffect:60,supplierEffect:60,account:{id:5,balance:300},reversal:{id:402,reversal_stock_movement_id:501,amount:60}})}],
@@ -45,4 +50,9 @@ test('mutation and UUID replay DTO projection removes monetary plan but retains 
 test('nested count line and fingerprint fields cannot smuggle costs in a personnel GET',()=>{
  const data=fixture();data.drafts[0].payload_json=JSON.stringify({physical:3,lines:[{productId:1,stockCode:'0007',physical:3,system:4,unitCostTry:60}],fingerprint:[{id:101,quantity_net:4,source_type:'purchase',source_id:11,amount_try:60}],unknownScans:[{value:'0000000',quantity:1,status:'needs_review',cost:60}]});
  const out=projectPersonnelDailyContext('count',{permissions:[]},data),p=JSON.parse(out.drafts[0].payload_json);assert.equal(p.lines[0].stockCode,'0007');assert.equal(p.fingerprint[0].id,101);assert.equal(p.unknownScans[0].value,'0000000');assert.doesNotMatch(JSON.stringify(out),/unitCost|amount_try|"cost"/);
+});
+
+test('reviewer without finance visibility retains count inverse identifiers in decision and replay while nested costs stay private',()=>{
+ const actor={id:22,permissions:['product.view','stock.adjust']},native={id:8,result:{id:8,lines:[{productId:1,stockBefore:23,stockAfter:24,difference:1,movementCreated:true,movementId:11,unitCostTry:60,amountTry:60}],unit_cost_try:60}};
+ for(const replayed of [false,true]){const result=projectPersonnelDailyResponse('count',actor,{...native,replayed});assert.equal(result.result.lines[0].difference,1);assert.equal(result.result.lines[0].movementId,11);assert.equal(result.replayed,replayed);assert.doesNotMatch(JSON.stringify(result),/unitCost|unit_cost|amountTry/);}
 });

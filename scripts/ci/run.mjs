@@ -36,8 +36,9 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', ...['shared-business-selected-collection-revision-sql','shared-business-selected-collection-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', ...[
-    'p03-candidate-core-proof', 'p03-candidate-task-proof', 'p03-candidate-outer-proof', 'p03-partial-candidate-proof',
+    'p03-pr53-package-inventory', 'p03-pr53-ci-owner-cli', 'p03-pr53-owner-cli', 'p03-package-date', 'p03-candidate-core-proof', 'p03-candidate-task-proof', 'p03-candidate-outer-proof', 'p03-partial-candidate-proof',
     'p03-integrated-owner-transition', 'p03-owner-os-callbacks', 'p03-owner-recovery',
     'p03-recovery-journal', 'p03-recovery-journal-reader', 'p03-recovery-event-cas'
   ].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
@@ -54,6 +55,20 @@ if (mode === 'quality') {
   run(['--test', path.join(root, 'scripts/canonical/crm06-stop-child-diagnostic.test.mjs')]);
   run(['--test', ...['shared-business-product-price-revision-sql','shared-business-product-price-bootstrap','shared-business-product-price-sale-sql','shared-business-product-price-sale-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/public-terminal-artifact.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-order-sale.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-store-day-sql.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-store-day-cohort.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-management.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-work.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-ready-expression.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-username.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-inbound-owner.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-packing.test.mjs'), path.join(root, 'apps/api/src/services/cleanPersonnelPacking.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/canonical/clean-personnel-packing-upgrade.test.mjs')]);
+  run(['--test', path.join(root, 'apps/api/src/services/cleanTerminalCartonService.test.mjs'), path.join(root, 'apps/sites-workflow/src/workflow/cleanCartonSession.test.mjs')]);
+  run(['--experimental-test-module-mocks','--test',path.join(root,'apps/api/src/services/personnelPackingService.test.mjs')]);
+  run(['--experimental-test-module-mocks','--test','--test-name-pattern=packing task row-version',path.join(root,'apps/api/src/services/authCleanPersonalSession.test.mjs')]);
+  run(['--test', path.join(root, 'apps/api/src/services/cleanStoreDayScope.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-persistent-web-support.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/terminal-completion-logon.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-terminal-completion-private.test.mjs'), path.join(root, 'scripts/canonical/terminal-worktest-package.test.mjs')]);
@@ -102,3 +117,4 @@ if (mode === 'quality') {
 } else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build|windows-process-probe');
 
 }
+

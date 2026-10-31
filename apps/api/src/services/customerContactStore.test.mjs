@@ -24,9 +24,10 @@ async function harness({earned=true}={}){
   }
   async execute(name){
    assert([contract.CUSTOMER_CONTACT_CONTEXT,contract.CUSTOMER_CONTACT_UPDATE].includes(name));assert.equal(this.values.copy_id,f.copy.copyId);assert.equal(this.values.customer_id,'100');assert.equal(this.values.actor_id,'17');events.push(name);
+   if(this.values.request_id!==undefined)state.recoveryRequestId=this.values.request_id;
    let context=structuredClone(f.context);
    if(name===contract.CUSTOMER_CONTACT_UPDATE){if(state.ownerError)throw state.ownerError;const body=JSON.parse(this.values.payload_json);assert.equal(body.customerId,'100');context.contact={phone:body.phone,city:body.city,country:body.country};context.revision=state.replayed?body.expectedRevision:'D'.repeat(64);}
-   const row={context_json:JSON.stringify(context),actor_json:JSON.stringify(f.nativeActor),replayed:name===contract.CUSTOMER_CONTACT_UPDATE&&state.replayed,sessionId:91,transactionId:'9007199254740993',readerDefinitionHash:'A'.repeat(64)};
+   const row={context_json:JSON.stringify(context),actor_json:JSON.stringify(f.nativeActor),replayed:(name===contract.CUSTOMER_CONTACT_UPDATE||this.values.request_id!==undefined)&&state.replayed,sessionId:91,transactionId:'9007199254740993',readerDefinitionHash:'A'.repeat(64)};
    state.rowMutate(name,row);return {recordsets:[[row]]};
   }
  };
@@ -95,3 +96,6 @@ test('six-column owner response rejects duplicate result rows, extra result sets
  const h=await harness(),row={context_json:'{}',actor_json:'{}',replayed:false,sessionId:91,transactionId:'92',readerDefinitionHash:'A'.repeat(64)};assert.equal(h.api.customerContactProcedureRow({recordsets:[[row]]}),row);
  for(const recordsets of [[],[[row,row]],[[row],[{extra:'x'}]],[[{...row,extra:true}]],[[{...row,context_json:undefined}],[row]]])assert.throws(()=>h.api.customerContactProcedureRow({recordsets}),{code:'CUSTOMER_CONTACT_UNAVAILABLE'});
 });
+
+
+test('recovery invokes existing pinned context reader with UUID, shared lock and no update',async()=>{const h=await harness();h.state.replayed=true;const result=await run(h,false,session=>session.recover(h.body.requestId));assert.equal(result.replayed,true);assert.equal(h.state.recoveryRequestId,h.body.requestId);assert(h.events.includes('shared'));assert(!h.events.includes('exclusive'));assert(!h.events.includes(contract.CUSTOMER_CONTACT_UPDATE));assert(h.events.includes('commit'));const bad=await harness();await assert.rejects(run(bad,false,session=>session.recover('invalid')));failed(bad);});

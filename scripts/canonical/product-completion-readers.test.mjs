@@ -6,6 +6,21 @@ import {stockReadTimestamp} from '../../apps/api/src/services/stockProductModel.
 const h='a'.repeat(64),goal7='GOAL7-a6090360-2739-41e6-8b98-cedecb78bf0d',run='PRODUCT-f89c11a7-108b-4ae7-b781-26eb066459d5';
 const baselineContext={runId:goal7,sourceHash:h,planHash:'b'.repeat(64),bindingsHash:'c'.repeat(64),sourceAsOf:'2026-10-07',productCount:16671,priceCount:64015};
 const context={schemaVersion:'melisa-product-completion-catalog-context.v1',runId:run,sourceHash:'d'.repeat(64),planHash:'e'.repeat(64),bindingsHash:'f'.repeat(64),sourceAsOf:'2026-10-08',productCount:16725,priceCount:64111,snapshotHash:h,actualT1:false,evidenceKind:'DATED_TEST_PRODUCT_SCOPE',ancestry:[{runId:'VEGA-OPENING-TEST-20261004-06',sourceAsOf:'2026-09-30'},{runId:goal7,sourceAsOf:'2026-10-07'},{runId:run,sourceAsOf:'2026-10-08'}]};
+
+test('new dated writer retains its sealed procedure identities while publishing reviewed r3 SQL content',()=>{
+ const original=buildProductCompletionReaders({context,baselineContext});
+ const content=buildProductCompletionReaders({context,baselineContext,contentRevision:3});
+ const named=buildProductCompletionReaders({context:{...context,readerRevision:3},baselineContext});
+ assert.deepEqual(content.context.procedures,original.context.procedures);
+ for(const [key,value]of Object.entries(context))assert.deepEqual(content.context[key],value);
+ assert.equal(content.context.readerContentRevision,3);
+ for(const kind of ['catalog','stock','detail','list']){
+  assert.equal(content.readers[kind].sql,named.readers[kind].sql.replaceAll(named.readers[kind].procedure,content.readers[kind].procedure));
+  assert.equal(content.readers[kind].definitionHash,sourceVersionSqlHash(content.readers[kind].sql));
+ }
+ assert.throws(()=>buildProductCompletionReaders({context,baselineContext,contentRevision:1}),/CONTENT_REVISION/);
+ assert.throws(()=>buildProductCompletionReaders({context:{...context,readerRevision:3},baselineContext,contentRevision:2}),/CONTENT_DOWNGRADE/);
+});
 test('four additive TEST readers preserve old pins and exact three-stage lineage at a colliding count',()=>{
  const built=buildProductCompletionReaders({context,baselineContext});
  for(const kind of ['catalog','stock','detail','list']){

@@ -1,0 +1,156 @@
+## 0948 — İki yeni bağımlılık bulgusunun dar düzeltmesi
+
+Bağımsız0940 incelemenin iki P1 bulgusu korunur; eski recovery/JSON bulguları yeniden açılmadı. Eski paket lock dosyası her paketin kendi sabit manifestindeki tekil ham SHA ile doğrulanır;349 envanteri yalnız modüllerin doğrulanmasında donor sözleşmesi olarak kalır. Kaynak dosya veya lock dönüştürülmez. Eksik/çift/yanlış own lock pini reddedilir; birleşik pakette own pin ile dependency lock pini de aynı olmalıdır.
+
+Pinli Node built-in createRequire.resolve.paths yalnız çözümleme yollarını hesaplar; paket/uygulama çalıştırmaz. Her payload dizini ve üç dependency kökünün varsayılan CJS ara/üst/global yolları birlikte korunur. Envanteri donmuş üç kökün dışındaki lookup yolları **yok** olmalıdır; mevcut ya da sonradan eklenen yol/reparse reddedilir. Özel NODE_PATH/NODE_OPTIONS desteklenmez; hiçbiri temizlenmez/değiştirilmez. HOME/USERPROFILE/HOMEDRIVE/HOMEPATH/APPDATA/LOCALAPPDATA süreç değerlerinin yalnız hash'i tutulur, sınırda değişim reddedilir. Bu muhafazakâr sabit profilin dışında meşru global modüller varsa kurulum kapalı kalır; onları silme veya taramayı gevşetme yetkisi yoktur.
+
+İki yeni regresyon eski201 kaynağında0PASS/2FAIL/skip0: geçerli eski own-lock byte reddi, ara src/services/node_modules kabulü. Kaynak düzeltmesinde iki yeni vaka, gerçek dependency/freeze regresyonu ve kapalı Apply kontrolleri5PASS/skip0; gerçek CRLF örneği ve uyarlanmış RAM orchestration ayrıca2PASS/skip0 (6ayrı vaka). Gerçek geçici shadow yolu Node resolve tarafından seçildi; throw içeren modül çalıştırılmadı. Başlangıçta ve sonradan shadow retleri, ara/üst yollar, inventory içi nested ekleme ve lookup stamp değişimi kapsandı. Ham RED/GREEN özel ignored kanıtta; sandbox policy reddi kusur RED'i sayılmadı. Yeni bağımsız review/CI ayrı bekler. Üretim handoff kapısı değişmedi; ortak runtime/SQL/HTTP/hesap/kurulum bu **kaynak** adımında0.
+
+### Ayrı B5 erişim ve normal ekran sonucu
+
+İnsan tarafından ayrıca onaylanan mevcut sentetik10021 için tek pasifleştirme+tek özgün etkinlik geri dönüşü gerçek normal API'de tamamlandı. Pasifte giriş/access/refresh401; geri etkinleştirmeden sonra eski oturum yine401, yeni giriş200. Kendi test oturumları kapatıldı. Diğer hesap/rol/izin/personel/seal,53 katkı sözleşmesi ve korunan dosyalar eş; hedef updated_at/by/row_version ile beklenen auth/audit ekleri tam byte geri yükleme diye sunulmaz. İnsan kabulü bekler.
+
+Mevcut normal personel9+1 okuma/reload kanıtı korunur. Kullanıcı yönetimi1280×720 CSS-RO ölçümünde user/role grid90px karşısında içerik336/416px, audit90/559px: yükseklik sıkışması doğrulandı. CSS/zoom/viewport değişikliği0; tam görsel/form kabulü açık. Özel görüntü/envanter yayımlanmadı.
+
+# B5 sabit clean API + web geçiş kaynağı — 25 Ekim 2026
+
+## 0907 inceleme düzeltmesi — bağımsız tekrar inceleme bekliyor
+
+Kaynak commit'i c6b78291db0956dfe14c3934d2c1c2607c1dadce. İlk exact CI:
+quality ve secret-scan4 SUCCESS; Windows2 FAIL yalnız yeni dependency fixture'ın
+RUNNER~1 kısa TEMP yolu/gerçek FileInfo yolu eşliği nedeniyle. Sonraki dar
+düzeltme yalnız fixture kökünü ve Node yolunu fs.realpathSync.native ile
+kanonikleştirir; üretim path/reparse guard'ı değişmez. Değişen tek test yerelde
+1 PASS/skip0; ilk38 hedefli sonuç korunur, final CI ayrıca doğrulanır.
+
+`CRM-B5-CLEAN-TRANSITION-SOURCE-REVIEW-20261025-0852`,
+CRM turn `01a17243-55e9-77d2-82c8-5885ff84a03e`, exact6875903d için
+**NO-GO / 2 P1 + 1 P2** verdi. Aşağıdaki0808 teslimi tarihsel kalır;
+31 PASS, bu kusurların olmadığı kanıtı değildir. Yeni görev
+`ERP-B5-TRANSITION-REVIEW-FIX-OFFLINE-20261025-0907` yalnız kaynak/offline'dır.
+
+**Korunan RED:** incelemecinin RAM sonuçlarında ilk stop sonrası koruma
+değişince1 uygunsuz stop+2 yazı; ilk yazı sonrası lease kaybında1 uygunsuz
+yazı; gerçek template okuyucusunda B5_RECORD_ROW_REQUIRED. Yeni dar recovery/
+template regresyonları düzeltme öncesi4 FAIL/1 PASS/skip0 verdi; zaten mevcut
+CAS'ın yakaladığı kontrol değişimi pozitif karşı örnek olarak saklandı. Doğru
+fixture hazırlığıyla exact687 kaynağı ayrıca API bağımlılığı değişimini
+`DEPENDENCY_CASE_ACCEPTED_api-changed` ile kabul etti:1 FAIL/skip0. İlk fixture
+Node SHA harf biçimi ve PS5 dizi hazırlığı hataları ayrıca saklandı; bunlar
+bağımlılık kusurunun RED kanıtı sayılmadı. Ham günlükler ignored yerel
+`.tmp/b5-review-0907` alanındadır; genel depoya taşınmadı.
+
+**Gerçek kaynak düzeltmeleri:**
+
+- Her recovery stop'u ve her iki kontrol dosyası yazısı öncesinde yeni tek-use
+  sınır bileti lease/koruma/port/kontrol/korunan süreç/native kimliğini yeniden
+  doğrular. Doğrulanmış çıkış, sonraki kontrol öncesi beklenen child durumundan
+  çıkarılır; her başarılı dosya yazısından sonra beklenen hash güncellenir.
+  Stop ve yazma fixture yapraklarındaki fazladan lease kontrolleri kaldırıldı.
+- Manifestteki ayrı API/sites/web-admin bağımlılık envanterleri gerçek dosya
+  yollarından sayım+SHA256+package-lock ile doğrulanır ve aynı lease altında
+  açık tutamaçlarla dondurulur. Digest, mevcut Node localeCompare/JSON/UTF8
+  algoritmasını aynen kullanır. Sonraki sınırlar eklenen/silinen modül yolunu
+  da reddeder. Yeni kurulum/indirme/dependency sürümü yok. Eski b9/b89
+  manifestlerinde liste bulunmadığı için yalnız pinli349'un b9 donor bağıyla
+  doğrulanmış mevcut envanteri kullanılır; eski dosyalar ve lock aynı değilse
+  geri dönüş kapalı kalır. Bu tur gerçek eski paket envanteri tekrar taranmadı.
+- Template58/74/76 ve son yayını açık satır enumerasyonu/JSON array kullanır.
+  Fixture, düzeltilmiş template'in gerçek append/yayın ifadelerini RAM dosya
+  yapraklarıyla yürütür. Byte-eş korunacak eski rollback başlatıcısının aynı
+  PS5 kusuru için yalnız çağrı scope'unda native ConvertFrom-Json çıktısını
+  satır satır veren dar uyumluluk kullanılır; orijinal eski ifadelerle ayrıca
+  sınandı. Koşulsuz OFFLINE/handoff engelleri aynıdır. Template yeni SHA pini
+  27B6A2FD4C82349BF81A13FB580169653001A099B5F9B860BA6715E06A09486A.
+
+**38/38 hedefli test PASS / skip0**,36,104 saniye. Yedi ek regresyon, dört
+recovery drift'i, gerçek yeni/eski JSON ifadeleri ve gerçek geçici bağımlılık
+dosyalarında değişmiş/eksik/fazla/uygunsuz app/reparse/lock reddi, Unicode
+inventory digest'i, API/Vite yazma engeli ve sonradan modül ekleme reddini kapsar.
+Bu sonuç ikinci bağımsız review GO değildir; koordinatörün mevcut inceleme
+sırasında değerlendirilir. Gerçek TEST kurulumu/geri dönüşü veya insan kabulü yok.
+
+**Ayrı doğrudan insan yanıtı:** call_fe0b5ef06e244432becfbde72479d400 için
+“Yalnız bu üç kesin bulguya izin ver” cevabıyla yalnız6875903d'nin üç mevcut
+commit/path/rule/line fingerprint'i .gitleaksignore'a eklendi. Önceki ret ve
+2 secret-scan FAIL tarihçesi korundu; tarayıcı veya genel kural değişmedi,
+yeni bulguya otomatik izin yok. Bu, kaynak düzeltme görevinin verdiği varsayılan
+izin değildir. Son exact head CI PR54 üzerinde ayrıca raporlanır.
+
+Handoff/CWD/sürekli writer dışlama/publication-retirement üreticisi hâlâ yok;
+üretim -Apply ilk adımdan kapalıdır. Ortak TEST/HTTP/SQL/GUI/servis/config/
+hesap/rol/finans/stok yazması0; eski uygulama349, paket9614 ve kurulu b9/b89
+değişmedi. Altı sentetik hesap için ayrıca iletilen özgül kullanıcı onayı ayrı
+sıraya alındı; bu kaynak turunda uygulanmadı.17/74 ve insan E2 aynı.
+
+---
+
+Görev: `ERP-B5-CLEAN-TRANSITION-ADAPTER-SOURCE-20261025-0808`.
+**SOURCE_PARTIAL / NOT_EXECUTED / INDEPENDENT_REVIEW_PENDING**.
+
+Bu teslim uygulama paketini veya çalışan TEST'i değiştirmedi. Yeni executor
+yalnız API4194 + web5244 ve exact `349fae354e2a90852cd0594ada485105bf091e43`
+uygulama paketine sabittir; manifest
+`9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059`.
+Hedef clean DB ve environment kimliği sabittir; synthetic=true, actualT1=false,
+externalOperations=false. Yeni DB, görev, watcher veya genel kurulum motoru yok.
+
+## Uygulama kapısı hâlâ kapalı
+
+`Get-B5WriterHandoff` üretimde ilk adımdan
+`B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING` ile durur. Yeni mutex, boş port,
+JSON onayı veya boş intent tablosu, eski yazarı durdurmuş sayılmaz. Eksik bileşen:
+eski clean sahibi/gözetmeniyle işbirliği yapan, eski göreli komutun çalışma
+dizinini doğrulayan ve geçiş/geri dönüş boyunca bütün yazarları dışlayıp son
+yayın/retirement onayını veren desteklenen devir üreticisi. Bu kaynak o üreticiyi
+uydurmaz; çağıran boolean'ı veya receipt'iyle kapı açılamaz.
+
+Bu nedenle `-Apply` dahi ortak mutex, dosya, HTTP, SQL veya süreç işleminden
+önce durur. Kurulum ve gerçek geri dönüş izni/kanıtı oluşmadı. Bağımsız kaynak
+incelemesini mevcut koordinatör ayrıca devredecek; pasif artifact'in önceki GO
+sonucu yeni executor için GO sayılmaz.
+
+## Yeni kaynak ve hedefli kanıt
+
+- Gerçek geçiş sırası ve kısmi geri dönüş kodu; eski b9 API + kabul edilmiş b89
+  **B5FINANCEPROFILE** çifti sabit. Eski legacy DB/port doğrulayıcısı değişmedi.
+- İleride desteklenen üretici bağlandığında tutulacak aynı-owner mutex,
+  işlem/thread ve nesne kimliğine bağlı lease, tek kullanımlık ve süreli sınır
+  bileti; her eylemde taze kimlik/koruma/port/intent kontrolü.
+- Exact Node/manifest/payload doğrulaması, traversal/reparse reddi, salt okunur
+  açık dosya tutamaçları; özel before-image ve kilitli karşılaştırmalı dosya
+  yazması. Yazma elektrik kesilmesine karşı atomik rename garantisi değildir.
+- PID yerine doğum zamanı doğrulanan retained kernel handle ile sonlandırma;
+  kısmi spawn ve çıkış sonrası kayıp stop yanıtı kaydı. Yabancı/yeniden doğmuş
+  süreç, değişmiş koruma veya kayıp lease halinde kurtarma da durur.
+- Başlatıcı mevcut `-ApiWebOnly` / geri dönüş `-MainApiOnly` yolunu kullanır.
+  Yeni child yalnız exact executable/argv/dizin/owner/parent ile yakalanır.
+  Normal API kimliği ve loopback web dosyasının byte eşliği geri okunur.
+
+**31/31 yeni hedefli kontrol başarılı**, Windows PowerShell 5 + Node24,
+18,356 saniye; atlanan0. Üretim kapısının ilk adımdan kapanması, sahte sahiplik,
+yanlış hedef/tip/hash/path, stale ticket, JSON dizi okuması, kısmi stop/spawn,
+bozuk served byte, yabancı süreç ve koruma değişimi kapsandı. C# derlendi;
+gerçek süreç handle'ı açılmadı veya sonlandırılmadı. Pozitif/geri dönüş akışı
+RAM'deki OS/HTTP/SQL/devir yapraklarıyla gerçek orchestration üzerinde koştu.
+Bir dosya CAS/freeze denemesi yalnız benzersiz geçici fixture dosyasındadır.
+
+Bu testler gerçek kurulum, rollback, normal GUI, cihaz veya insan kabulü değildir.
+Eski 87/83 uygulama testleri, build/paket ve kapanmış kaynak CI tekrar edilmedi.
+Yeni Windows CI adımı yalnız bu izole kaynak testlerini çalıştırır.
+
+## Korunan sınırlar
+
+Ortak HTTP/SQL/GUI/login, servis/restart, config/store, hesap/rol/atama,
+finans/stok ve ortak runtime yazması0. Son kayıtlı APIb9/webb89/native035/CRM476
+bu tur taze sağlık diye sunulmadı; uygulama349 pasif kalır. TEST125/DB02,
+Vega/LIVE/T1/main, yedekler ve eski journal'lar değişmedi. İnsan E2 ve özgün
+17/74 sayacı aynı. Altı personel,10021 ve özel envanter izinleri genişlemedi.
+
+Son gelen özel Müdür hesap yanıtı mevcut eski soru/hedefle eşleşiyor:
+`b5-angela-20261024` daha önce normal formdan oluşturulmuştu. İkinci hesap,
+parola yenileme veya tekrar atama yapılmadı; bu yanıt altı personelin onayı değil.
+
+Makine kanıtı: [mevcut B5 kaydı](2026-10-24-b5-normal-access.json),
+`cleanPairTransitionSource0808`. Teslim commit'i PR54 head kaydında;
+operatör kaynağı commit'i uygulama349 veya kurulu paket source'u değildir.

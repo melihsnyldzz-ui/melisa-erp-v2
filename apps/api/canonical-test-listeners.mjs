@@ -1,9 +1,11 @@
+import {validateBusinessSessionProfile} from './src/services/canonicalBusinessSessionContext.mjs';
 export const canonicalLanHost='192.168.1.46';
 export function canonicalListenerPolicy(config,{mode,writes}={}){
  if(!['erp','native','web'].includes(mode)||typeof writes!=='boolean')throw Error('TEST_LISTENER_SCOPE_REJECTED');
  if(config.lanHost!==undefined&&config.lanHost!==canonicalLanHost)throw Error('TEST_LAN_HOST_REJECTED');
  const enabled=config.lanHost===canonicalLanHost&&mode!=='native'&&writes;
- return Object.freeze({hosts:Object.freeze(enabled?['127.0.0.1',canonicalLanHost]:['127.0.0.1']),lanEnabled:enabled,corsOrigins:Object.freeze(['http://127.0.0.1:5194','http://localhost:5194',...(enabled?[`http://${canonicalLanHost}:5194`]:[])])});
+ const business=mode==='erp'&&config.businessWorkface!==undefined?validateBusinessSessionProfile(config.businessWorkface):null;
+ return Object.freeze({hosts:Object.freeze(enabled?['127.0.0.1',canonicalLanHost]:['127.0.0.1']),lanEnabled:enabled,corsOrigins:Object.freeze(['http://127.0.0.1:5194','http://localhost:5194',...(enabled?[`http://${canonicalLanHost}:5194`]:[]),...(business?['http://127.0.0.1:5244','http://localhost:5244','http://100.87.188.3:5244',...(enabled?[`http://${canonicalLanHost}:5244`]:[])]:[])])});
 }
 // Explicit interfaces only: never wildcard-bind another adapter or IPv6.
 // Readiness is reported only after all configured listeners have opened.

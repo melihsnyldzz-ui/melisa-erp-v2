@@ -1,8 +1,10 @@
 import {assertIsolatedCopyContext,bindIsolatedCopyOperationDTO,BUSINESS_COPY_DATABASE,isolatedCopyOperationDTOContext} from './isolatedOperationCopyContext.mjs';
 import {loadBusinessSelectedSaleJournal} from './workTradeStore.mjs';
 import {createWorkCollectionService} from './workCollectionService.mjs';
-import {workId,workScaled} from './workSalesModel.mjs';
-import {withSelectedSaleCollectionReadBridge} from './isolatedOperationCopyStoreFactory.mjs';
+import {workId,workScaled,workFail} from './workSalesModel.mjs';
+import {withSelectedSaleCollectionReadBridge,withSelectedCollectionNativeBridge,isIsolatedSelectedCollectionNativeStore} from './isolatedOperationCopyStoreFactory.mjs';
+
+import {getBusinessSelectedCollectionWriteScope} from './businessSelectedCollectionWriteScope.mjs';
 
 // Deliberately unregistered preparation adapter. There is no default store,
 // connection, route, native intent or authority to enable the DB02 writer.
@@ -65,26 +67,35 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
  // No new finance or idempotence algorithm: the existing service validates
  // money, dates, revisions, preview hashes and invokes the supplied existing
  // collection methods. The isolated transaction's journal owns UUID replay.
- const getStore=async()=>({
+ const checkAmount=amountExact4=>{
+  if(workScaled(amountExact4,4)>5000000n)workFail('WORK_OPERATION_LIMIT','Kaynak satış tahsilatı işlem başına 500 TRY sınırını aşamaz.',409);
+ };
+ const getStore=async previewAmount=>({
   read:(actor,fn)=>withContext(actor,async c=>{
    const a=await authority(c,actor,false);
+   if(previewAmount!==undefined)checkAmount(previewAmount);
    const context=bindIsolatedCopyOperationDTO(a.copy,{...c.context,capabilities:{...c.context.capabilities,canCollect:true,canCancelCollection:a.canCancel}});
    return fn({...c,context,invoice:async id=>(await prepareBusinessSelectedSaleCollection(c,actor,id)).invoice(id)});
-  }),
+  },{write:false}),
   mutate:(actor,operation,payload,fn)=>withContext(actor,async c=>{
    requireValue(['collection_create','collection_cancel'].includes(operation));
    const cancelling=operation==='collection_cancel';
    // Authorize BEFORE reading an original movement or replay journal.
    await authority(c,actor,cancelling);
+   if(!cancelling)checkAmount(payload.amountExact4);
    const prior=cancelling?await c.collection(payload.id):null;
    const id=cancelling?prior.invoiceId:payload.invoiceId;
    const prepared=await prepareBusinessSelectedSaleCollection(c,actor,id,{cancelling});
    if(cancelling)requireValue(prior.currency===prepared.proof.currency&&prior.accountId===prepared.proof.accountId);
    requireValue(typeof c.journal==='function','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
-   return c.journal(operation,payload,()=>fn({...c,context:prepared.context,invoice:prepared.invoice}));
-  }),
+   const execute=()=>fn({...c,context:prepared.context,invoice:prepared.invoice});
+   return typeof c.selectedCollectionJournal==='function'?c.selectedCollectionJournal(operation,payload,prepared.proof,execute):c.journal(operation,payload,execute);
+  },{write:true,operation,payload}),
  });
- const service=Object.freeze(createWorkCollectionService({getStore}));
+ const base=createWorkCollectionService({getStore});
+ // A per-call store closure binds only this preview amount; concurrent requests
+ // cannot exchange policy inputs. Mutation checks its validated payload below.
+ const service=Object.freeze({...base,preview:(input,actor)=>createWorkCollectionService({getStore:()=>getStore(input.amountExact4)}).preview(input,actor)});
  preparedServices.add(service);
  return service;
 }
@@ -115,3 +126,36 @@ export function createBusinessSelectedSaleCollectionReadPreparation({getStore}={
   cancel:async()=>fail('ISOLATED_COPY_READ_ONLY',403),
  });
 }
+
+
+// Explicit opt-in source adapter: no default runtime, route or installed grant.
+// Only the native factory can mint a transaction-local bridge. Its owner begin
+// and effects are selected by that bridge; the synthetic preparation factory
+// cannot substitute an arbitrary SQL request or collection writer.
+export function createBusinessSelectedSaleCollectionNativePreparation({getStore}={}){
+ requireValue(typeof getStore==='function','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
+ return createBusinessSelectedSaleCollectionPreparation({withContext:async(actor,fn,{write=false}={})=>{
+  const store=await getStore();requireValue(isIsolatedSelectedCollectionNativeStore(store),'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
+  return store.withSelectedCollectionNative(actor,write,bridge=>withSelectedCollectionNativeBridge(bridge,async native=>{
+   const domain=native.domain;
+   requireValue(domain&&typeof domain.readSelectedSaleCollectionInvoice==='function');
+   const readPriceHistory=typeof native.readPriceHistory==='function'?native.readPriceHistory:()=>fail('WORK_SELECTED_SALE_PRICING_HISTORY_REQUIRED');
+   const c={copyContext:native.copyContext,context:native.context,transaction:native.transaction,sql:native.sql,request:native.request,readPriceHistory};
+   c.invoice=async id=>domain.readSelectedSaleCollectionInvoice(await loadBusinessSelectedSaleJournal({copy:native.copyContext,actor:{id:'15'},request:native.request,sql:native.sql,id,readPriceHistory}));
+   c.collection=id=>domain.collection(id);
+   const active=(operation,invoiceId,accountId)=>{
+    const s=getBusinessSelectedCollectionWriteScope(native.copyContext,native.transaction);
+    requireValue(s&&s.operation===operation&&s.collectorId==='16'&&s.creatorId==='15'&&s.invoiceId===invoiceId&&s.accountId===accountId,'SELECTED_COLLECTION_NATIVE_SCOPE');return s;
+   };
+   c.collect=(preview,requestId)=>{const s=active('collection_create',preview.selection.invoiceId,preview.selection.accountId);requireValue(s.requestId===requestId,'SELECTED_COLLECTION_NATIVE_SCOPE');return domain.collect(preview,requestId);};
+   c.cancelCollection=async(id,input)=>{const prior=await domain.collection(id),s=active('collection_cancel',prior.invoiceId,prior.accountId);requireValue(s.requestId===input.requestId,'SELECTED_COLLECTION_NATIVE_SCOPE');return domain.cancelCollection(id,input);};
+   c.selectedCollectionJournal=(operation,payload,proof,execute)=>{
+    const keys=['invoiceId','creatorId','collectorId','customerId','customerAccountId','accountId','currency','creationRequestId','policyHash','sourceSelectionHash'];
+    return native.journal(operation,payload,Object.fromEntries(keys.map(k=>[k,proof[k]])),execute);
+   };
+   c.journal=()=>fail('SELECTED_COLLECTION_NATIVE_SCOPE');
+   return fn(c);
+  }));
+ }});
+}
+

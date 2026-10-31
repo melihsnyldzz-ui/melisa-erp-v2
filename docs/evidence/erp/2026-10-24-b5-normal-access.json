@@ -1,0 +1,4936 @@
+{
+  "schemaVersion": "melisa-clean-b5-delivery-evidence.v1",
+  "observedAt": "2026-10-24T15:50:13.055Z",
+  "scope": "Historical B5 evidence retained; currentRuntime and personalPackingAgentUsage identify current installed application and latest normal usage",
+  "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+  "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
+  "pullRequest": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/54",
+  "commonReport": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/pull/23#issuecomment-6337512025",
+  "runtime": {
+    "database": "MELISA_ERP_CLEAN_TEST_20261022",
+    "files": 3442,
+    "actualT1": false,
+    "synthetic": true,
+    "externalOperations": false,
+    "package": "CLEAN-ERP-20261022-64f273df4e1a",
+    "erpApiSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "manifestSha256": "B944424DC380DBB051F70DC25213125C3098915F009D867F65EE23D45298EEDB",
+    "erpFrontendSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+    "installedAt": "2026-10-24T14:30:31.5345699+03:00",
+    "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+    "crmApplicationSource": "acb2a3a0ce917d68221372e5f21bb788e90475aa",
+    "releaseDirectory": "CLEAN-ERP-20261024-64f273df4e1a-B5CONTEXT",
+    "observationScope": "Historical normal-access baseline; currentRuntime below supersedes its application package"
+  },
+  "ci": {
+    "source": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "requiredJobs": 6,
+    "runs": [
+      "40089724047",
+      "40089721286"
+    ],
+    "conclusion": "success"
+  },
+  "targetedTests": {
+    "overlappingScopesNotSummed": true,
+    "transport": 56,
+    "personalSessionAndPolicy": 20
+  },
+  "normalApiProof": {
+    "normalLoginMs": 253,
+    "cases": 17,
+    "catalogMs": 22,
+    "oldRefreshRejected": true,
+    "source": "86369147dcd106cb3b1040e16d4ead2822f9246d",
+    "reuseBasis": "No apps/api diff between 86369147 and 64f273df",
+    "roleDenials": [
+      "management",
+      "finance"
+    ],
+    "receivingContextMs": 19774,
+    "sameFamilyRefresh": true,
+    "status": "PASS",
+    "ownLogout": true,
+    "salesContextMs": 19246
+  },
+  "normalBrowser": {
+    "longWaitReload": "LOGIN_FORM_OBSERVED_NORMAL_RELOGIN_COMPLETED",
+    "nativeKeystore": "NOT_TESTED",
+    "longSessionRetention": "NOT_PROVEN",
+    "receivingRead": "VERIFIED",
+    "humanAcceptance": "PENDING",
+    "salesRead": "VERIFIED",
+    "credentialFormLogin": "VERIFIED",
+    "newSalesCountsOrApprovals": 0,
+    "observedSource": "64f273df4e1a7ce96cc375c102afba7dddf5c3fe",
+    "physicalAndroid": "NOT_TESTED",
+    "samePersonShortReload": "VERIFIED"
+  },
+  "preservation": {
+    "commercialWritesInThisSubDelivery": 0,
+    "otherBusinessScopesUnchangedAfterAccountCreation": 52,
+    "originalTest125Untouched": true,
+    "existingScopesUnchangedAfterFinalGui": 53,
+    "newSyntheticEmployeeLinks": 1,
+    "realEmployeesCreated": 0,
+    "newSyntheticUsers": 1,
+    "originalUserRows": 11,
+    "oldNormalFamiliesPreservedInApiProof": true,
+    "otherListenersPreservedOnFinalInstall": 18,
+    "oldRolesPreserved": true,
+    "originalUserRowsUnchanged": true
+  },
+  "unresolved": [
+    "Current username metadata adds measured normal-read cost: sales 6970/4867ms and receiving 5396/5005ms; previous C1 performance is historical",
+    "Account-create masking repaired; password reset/update catches remain outside this repair",
+    "Long desktop session retention unresolved; physical Android/Keystore acceptance belongs separately to E1/E2",
+    "Recorded nine-person account and task/CRM/carton mapping not completed",
+    "Separate E2 human acceptance remains pending"
+  ],
+  "fullB5Acceptance": "PENDING",
+  "finishCountsUnchanged": {
+    "headings": 17,
+    "erp": 49,
+    "crm": 25,
+    "leaves": 74
+  },
+  "privateEvidence": "Existing owner runtime evidence folder; no private images, secrets or commercial rows published",
+  "readinessPerformanceImprovement": {
+    "nativeMetadataSource": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
+    "installedAt": "2026-10-24T15:30:27.4439728+03:00",
+    "applicationPackageUnchanged": true,
+    "nativeHttpSourceUnchanged": true,
+    "crmSourceUnchanged": true,
+    "restart": false,
+    "listenerCount": 37,
+    "artifact": {
+      "root": "C:/Sirket/ERP/releases/CLEAN-READY-EXPRESSION-20261024-c1a15d4e3da1",
+      "source": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
+      "manifestSha256": "F772E1ABB41B8E15DB3129487AFF503C713EBC4D2683798FC8F6536F8843D9DB",
+      "files": 4,
+      "sqlSha256": "92422D782892EA18FBC2BAC4C05B94DF04178F96386869E1A32A47091497FEB8"
+    },
+    "changedReadyModules": 10,
+    "hashFallbackExpressions": 2259,
+    "cache": false,
+    "controlsSkipped": 0,
+    "databaseOptionsChanged": false,
+    "targetedTests": {
+      "passed": 9,
+      "failed": 0
+    },
+    "nativeProbes": [
+      "positive rollback",
+      "guard self-hash rejection rollback",
+      "encrypted non-guard contact NULL-definition rejection rollback"
+    ],
+    "hashEquivalence": {
+      "cases": 18,
+      "mismatches": 0,
+      "overlengthBytesPreserved": 130
+    },
+    "beforeNormalReadsMs": {
+      "sales": 19246,
+      "receiving": 19774
+    },
+    "afterNormalReadsMs": {
+      "sales": [
+        4652,
+        2873
+      ],
+      "receiving": [
+        2738,
+        2601
+      ]
+    },
+    "measurementKind": "Normal API response time, not browser click timing",
+    "normalGui": {
+      "login": true,
+      "sales": true,
+      "salesFullReload": true,
+      "receiving": true,
+      "receivingRefresh": true,
+      "existingReceiptWarningPreserved": true,
+      "longSession": "Expired; existing protected TEST credential used for normal re-login",
+      "physicalAndroid": "NOT_TESTED",
+      "humanAcceptance": "PENDING"
+    },
+    "preserved": {
+      "protected53": true,
+      "oldSealsRolesAndPersonalRows": true,
+      "runtimeFiles": true,
+      "nodeListeners": true
+    },
+    "replay": {
+      "status": "NO_SECOND_EFFECT",
+      "elapsedMs": 199,
+      "metadataAndSealRowsByteEqual": true
+    },
+    "ci": {
+      "source": "c1a15d4e3da1a42428210c5802ba0bc48cdad1e7",
+      "prRun": 40093597880,
+      "pushRun": 40093594680,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS",
+      "priorFalsePositive": "Single public source-commit fingerprint; exact historical allowlist only"
+    },
+    "failedPreparationsPreserved": [
+      "SQLCMD forward-slash path: SQL not started; installation-v1 FAILED",
+      "Readback splatting typo: zero HTTP requests; readback-v1 FAILED",
+      "Local all-ref secret scan: MSYS textconv failure; not PASS"
+    ],
+    "postCommitInverseRestore": "NOT_TESTED; exact before definitions retained, no automatic restore/reset",
+    "commercialWrites": 0,
+    "fullB5": "PENDING",
+    "remaining": [
+      "2.6-4.7 second read cost",
+      "Account-create masking repaired in accountRollbackRepair; other flows outside scope",
+      "Long desktop session and native Keystore",
+      "Nine real-person identities and assignments",
+      "Separate E1/E2/Windows physical-device and human acceptance"
+    ],
+    "observationScope": "Historical C1 baseline before the username layer; current measurements are in usernameContractRepair"
+  },
+  "currentRuntime": {
+    "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+    "packageId": "CLEAN-ERP-20261022-b9dd984876c8",
+    "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL",
+    "files": 3459,
+    "manifestDigest": "DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E",
+    "frontendSourceCommit": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+    "nativeHttpSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+    "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+    "inboundOwnerIdentitySchemaSource": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
+    "changedPorts": [
+      4194
+    ],
+    "preservedCapturedListeners": 36,
+    "installedAt": "2026-10-24T22:54:43.4769299+03:00",
+    "protectedSessionFilesPreservedAtInstallation": true,
+    "actualNewRoleIds": [],
+    "nativeMetadataInstalledAt": "2026-10-24T18:18:31.877Z",
+    "nativePackingMetadataManifestDigest": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
+    "nativePackingFieldDefault": false,
+    "previousApplicationSource": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
+    "serverLogicBaselineCommit": "b9dd984876c808482017365556538078601187b8",
+    "crmObservation": "ERP remains b9; current CRM diagnostic installation below supersedes historical 1ab installation, not original receipts",
+    "crmSourceCommit": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+    "sameSourceRelationRestart": {
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "at": "2026-10-24T23:56:11.6429619+03:00",
+      "changedPorts": [
+        4194
+      ],
+      "oldPid": 20676,
+      "newPid": 45284,
+      "codeChanged": false,
+      "newApplicationPackage": false
+    },
+    "frontendOnlyInstallation": {
+      "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE",
+      "threeSqlScopesSame": true,
+      "apiSource": "b9dd984876c808482017365556538078601187b8",
+      "protectedFilesSame": true,
+      "persistentStarterPinned": true,
+      "servedEntrySha": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "files": 3459,
+      "newWebPid": 9856,
+      "servedBundleSha": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080",
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "businessWrites": 0,
+      "buildApiBasePinnedAfterGuard": true,
+      "preservedListeners": 34,
+      "installedAt": "2026-10-25T01:17:55.4899640+03:00",
+      "manifestSha": "DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72",
+      "metadataDdl": 0,
+      "oldWebPid": 22784,
+      "status": "INSTALLED_FRONTEND_ONLY",
+      "sqlDml": 0,
+      "changedPorts": [
+        5244
+      ],
+      "accountWrites": 0,
+      "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e"
+    }
+  },
+  "accountRollbackRepair": {
+    "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
+    "targetedTests": {
+      "passed": 17,
+      "failed": 0,
+      "firstRegressionRun": {
+        "passed": 4,
+        "failed": 3
+      }
+    },
+    "changedProductionScope": "createAuthAdminUser catch only",
+    "nativeEvidence": {
+      "layer": "Instrumented backend normal create wrapper/catch with real SQL transaction/THROW; not normal API/GUI creation",
+      "injectedNumber": 51979,
+      "notActualGuardDenial": true,
+      "cases": [
+        {
+          "mode": "real SQL XACT_ABORT ON",
+          "status": "PASS",
+          "primaryCode": "EREQUEST",
+          "primarySqlNumber": 51979,
+          "returnedCode": "EREQUEST",
+          "cleanupCode": "EABORT",
+          "primaryObjectPreserved": true,
+          "cleanupFailurePreserved": true,
+          "nativeRollbackObserved": true,
+          "cleanupSucceeded": false,
+          "commitAttempts": 0,
+          "admissionBoundaryCalls": 1
+        },
+        {
+          "mode": "real SQL active transaction / XACT_ABORT OFF",
+          "status": "PASS",
+          "primaryCode": "EREQUEST",
+          "primarySqlNumber": 51979,
+          "returnedCode": "EREQUEST",
+          "cleanupCode": null,
+          "primaryObjectPreserved": true,
+          "cleanupFailurePreserved": true,
+          "nativeRollbackObserved": true,
+          "cleanupSucceeded": true,
+          "commitAttempts": 0,
+          "admissionBoundaryCalls": 1
+        }
+      ],
+      "normalNativeAdmissionExecuted": false,
+      "intentsCreated": 0,
+      "coreInsertExecuted": false,
+      "commitAttempts": 0
+    },
+    "normalInstalledCreationFault": "NOT_TESTED; no new or duplicate account request",
+    "normalGui": {
+      "existingUserId": 10021,
+      "employeeId": 1,
+      "normalFormLogin": true,
+      "receivingRead": true,
+      "shortFullReload": true,
+      "receipt3WarningPreserved": true,
+      "longSession": "NOT_ACCEPTED; re-login required",
+      "screenshotPrivate": true
+    },
+    "preservation": {
+      "protected53": true,
+      "personalRows": true,
+      "nativeMetadata": true,
+      "frontendArtifact": true,
+      "existingSessionJournals": true,
+      "crm": true
+    },
+    "ci": {
+      "sourceCommit": "83e8d7cfd19f158e06aba9a5c3200e102c39bc58",
+      "prRun": 40095809460,
+      "pushRun": 40095805969,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS"
+    },
+    "failuresPreserved": [
+      "Native fault v1 expected raw 51972 but existing binder normalized it; production contract unchanged",
+      "API installation v1 double absolute root; candidate never started; 64f recovered; initial web-guard diagnosis retracted",
+      "Initial six HTTP fixture cases denied localhost by sandbox; separate permitted fixture run passed"
+    ],
+    "newAccounts": 0,
+    "commercialWrites": 0,
+    "humanAcceptance": "PENDING",
+    "fullB5": "PENDING",
+    "separateAcceptance": [
+      "E1 physical Android/Keystore",
+      "E2 human acceptance",
+      "Windows reboot/logon"
+    ],
+    "nextSeparateTechnicalItem": "Historical next item completed in usernameContractRepair; current next item is B5 readiness read cost"
+  },
+  "usernameContractRepair": {
+    "sourceCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "installedAt": "2026-10-24T16:57:00.8688618+03:00",
+    "artifact": {
+      "root": "C:/Sirket/ERP/releases/CLEAN-PERSONNEL-USERNAME-20261024-8ee6d7341b54",
+      "source": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+      "manifestSha256": "7BD4A54EB7220ED24128C76DE6CBFEA751F47084CF4A039541E0A63BB492BACA",
+      "files": 4,
+      "sqlSha256": "ABDB51BB197B98D8E62821B8451CEF03F16C6E8E1F6DA13B65E22A2F7A78C713"
+    },
+    "allowedContract": "3-80 ASCII letters/digits/dot/dash/underscore; only LIKE hyphen placement changed",
+    "sqlComparison": {
+      "newMismatch": 0,
+      "cases": 153,
+      "observedAt": "2026-10-24T16:25:49.0557844+03:00",
+      "oldMismatch": 6,
+      "writes": 0,
+      "newUnexpectedAccept": 0,
+      "collation": "Latin1_General_100_BIN2",
+      "excluded": [
+        "NCHAR(0)"
+      ],
+      "allUnicodeClaim": false
+    },
+    "sourceTests": {
+      "passed": 8,
+      "failed": 0
+    },
+    "newLayerNativeProbes": [
+      "Positive transactional install/ready/rollback",
+      "Modified personnel guard rejected 51978 then rollback",
+      "Encrypted NULL-definition personnel guard rejected 51978 then rollback"
+    ],
+    "normalManagement": {
+      "status": "PASS",
+      "userId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "renamed": true,
+      "originalNameRestored": true,
+      "oldFamilyMeAndRefreshDeniedAfterBothUpdates": true,
+      "expectedOwnAuditIds": [
+        147,
+        148
+      ],
+      "ownRowVersionAndUpdateMetadataChanged": true,
+      "newAccounts": 0,
+      "commercialWrites": 0
+    },
+    "normalBrowser": {
+      "status": "NORMAL_ALIAS_AND_ORIGINAL_LOGIN_VERIFIED",
+      "userId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "temporaryUsername": "b5-erp_20261024",
+      "originalUsername": "b5erp20261024",
+      "aliasNormalFormLogin": true,
+      "aliasReceivingRead": true,
+      "restoredAliasSessionReturnedToLogin": true,
+      "originalNormalFormLogin": true,
+      "originalFullReload": true,
+      "existingReceipt": 3,
+      "existingCountLinkWarningPreserved": true,
+      "newAccount": 0,
+      "newDraftOrTrade": 0,
+      "selectorWaitTimeoutObserved": true,
+      "actualStateAfterWait": "Receiving content visibly loaded",
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-24T14:13:08.011Z"
+    },
+    "preservation": {
+      "otherElevenUsersStableFields": true,
+      "ownImmutableFields": true,
+      "rolesPermissionsEmployeeMembership": true,
+      "priorAuditRows": true,
+      "oldManifestRows": true,
+      "protected53ContributionDigests": true
+    },
+    "replay": {
+      "status": "NO_SECOND_EFFECT",
+      "elapsedMs": 6473,
+      "metadataUsersAuditFlagsAndManifestRowsEqual": true,
+      "protected53Equal": true
+    },
+    "performance": {
+      "measurementKind": "Normal API response times on installed username layer; not GUI click timing",
+      "salesMs": [
+        6970,
+        4867
+      ],
+      "receivingMs": [
+        5396,
+        5005
+      ],
+      "regressionAgainstHistoricalC1": true,
+      "resolved": false
+    },
+    "processOutcome": {
+      "normalProofReceipt": "PASS; restored=true; cleanupFailed=false",
+      "shellExit": 1,
+      "reason": "Fixture left stdin open after final receipt; only completed helper interrupted with Ctrl+C; not shell exit0",
+      "realApplicationProcessesStopped": false
+    },
+    "failedPreparationsPreserved": [
+      "Initial negative probe preparation SQL parse error from JavaScript replacement-dollar expansion; zero business effect, callback V2 passed",
+      "One browser locator timeout; actual receiving content and separate controlled reload subsequently observed"
+    ],
+    "runtimeRestarted": false,
+    "allNodeListenersPreserved": true,
+    "ci": {
+      "sourceCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+      "prRun": 40099628596,
+      "pushRun": 40099625215,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS"
+    },
+    "postCommitRestore": "NOT_TESTED; exact before-image retained, no automatic reset/restore",
+    "humanAcceptance": "PENDING",
+    "fullB5": "PENDING",
+    "nextTechnicalItem": "Historical next item investigated; operational read cost remains open, own count technical sub-delivery recorded below",
+    "recordCheck": {
+      "acceptedTestsRepeated": false,
+      "wholeClosureGranted": false,
+      "crmPreflightBlocked": 2,
+      "erpPreflightBlocked": 3,
+      "status": "CHECK_REQUIRED"
+    }
+  },
+  "countWorkflowDelivery": {
+    "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "scope": "Existing synthetic person own inbound count only; full B5 and human acceptance remain pending",
+    "schemaRepair": {
+      "sourceCommit": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
+      "artifact": {
+        "root": "C:/Sirket/ERP/releases/CLEAN-PERSONNEL-INBOUND-OWNER-20261024-794bd3d15ca7",
+        "sourceCommit": "794bd3d15ca7ef6736ddfa0a079853e1ba341617",
+        "manifestSha256": "156CA7D1165C29E9D98AD5332B5E89083550C8B8E3C7E23D7F5FDC6D643C0B01",
+        "sqlSha256": "6694D08DAB3B9830CDEB43DA9CFD349EC31998631B5BFAE17E141CFBACB6146D",
+        "files": 4
+      },
+      "installedAt": "2026-10-24T18:08:38.4399304+03:00",
+      "authorization": "Existing native live membership/active user-employee-role, actor and transaction predicates unchanged; FKs enforce existing user identity only",
+      "moduleOrRoleOrPermissionChanges": 0,
+      "sourceTests": {
+        "passed": 13,
+        "failed": 0
+      },
+      "nativeProofs": [
+        "Positive fullready/DDL rollback",
+        "Unknown-owner actual FK547/rollback",
+        "Existing finance actor20/actualrole25 native51961/rollback"
+      ],
+      "replay": {
+        "status": "NO_SECOND_EFFECT",
+        "elapsedMs": 6173,
+        "current53AndOwnRecordDigestsEqual": true
+      },
+      "postCommitInverse": "No automatic restore/reset; old sample CHECK cannot be restored over newer personal-owner rows"
+    },
+    "transportRepair": {
+      "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+      "cleanTargetOnly": true,
+      "countPostOperations": [
+        "create",
+        "update",
+        "submit",
+        "cancel"
+      ],
+      "existingWriteBudgetMs": 60000,
+      "defaultReadBudgetMsUnchanged": 15000,
+      "automaticRetries": 0,
+      "uuidBodyJournalUnchanged": true,
+      "newRegressionBefore": {
+        "passed": 1,
+        "failed": 2
+      },
+      "targetedModuleAfter": {
+        "passed": 59,
+        "failed": 0
+      },
+      "unrelatedPurchaseApprovalFinanceAndLegacyBudgetsUnchanged": true,
+      "speedImprovementClaim": false
+    },
+    "normalBrowser": {
+      "status": "OWN_COUNT_SUBMITTED_AND_RELOADED",
+      "applicationSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+      "userId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "countId": 10006,
+      "receiptId": 4,
+      "productId": 1,
+      "stockCode": "0007 MELISA",
+      "barcode": "0000000000007",
+      "physicalQuantity": "2.000",
+      "countState": "submitted",
+      "receiptState": "pending",
+      "normalFormLogin": true,
+      "savedDraftPreservedAcrossInstaller": true,
+      "existingCreateUuidRecoveredByNormalReplay": true,
+      "submitFirstRequestDelivered": true,
+      "fullReloadRetainedOwnIdAndLink": true,
+      "approvalAndRejectDisabled": true,
+      "newAccounts": 0,
+      "stockApprovals": 0,
+      "financialActions": 0,
+      "physicalDevice": "NOT_TESTED",
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-24T15:37:22.908Z"
+    },
+    "independentSql": {
+      "countId": 10006,
+      "creatorId": 10021,
+      "username": "b5erp20261024",
+      "roleId": 30,
+      "employeeId": 1,
+      "countState": "submitted",
+      "version": 2,
+      "receiptId": 4,
+      "receiptCreatorId": 10021,
+      "receiptState": "pending",
+      "decidedBy": null,
+      "decidedAt": null,
+      "productId": "1",
+      "barcode": "0000000000007",
+      "stockCode": "0007 MELISA",
+      "physicalQuantityExact3": "2.000",
+      "ownCountRows": 1,
+      "ownCreateRequests": 1,
+      "ownSubmitRequests": 1,
+      "ownReceiptRows": 1,
+      "receiptLineRows": 1,
+      "purchaseLinks": 0,
+      "activeDayIntents": 0,
+      "requests": [
+        {
+          "operation": "count_create",
+          "actorId": 10021,
+          "countId": 10006,
+          "responseCountId": "10006",
+          "responseState": "draft"
+        },
+        {
+          "operation": "count_submit",
+          "actorId": 10021,
+          "countId": 10006,
+          "responseCountId": "10006",
+          "responseState": "submitted",
+          "responseReceiptId": "4"
+        }
+      ]
+    },
+    "preservation": {
+      "oldRecordsModulesManifestsRolesPermissionsProductsAndStockEqual": true,
+      "fullFinanceMovementDigestsEqual": true,
+      "expectedChangedScopes": [
+        "dbo.test_goods_batch_lines",
+        "dbo.test_goods_batches",
+        "dbo.work_inbound_counts",
+        "dbo.work_inbound_requests"
+      ],
+      "unchangedOtherScopes": 49,
+      "actualNewAccounts": 0,
+      "actualNewRoles": 0,
+      "actualNewPermissions": 0,
+      "stockApprovals": 0,
+      "purchaseInvoices": 0,
+      "financialActions": 0,
+      "identityReseedOrReset": false
+    },
+    "ci": {
+      "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+      "prRun": 40106637446,
+      "pushRun": 40106632253,
+      "requiredJobs": 6,
+      "conclusion": "SUCCESS"
+    },
+    "humanAcceptance": "PENDING",
+    "fullB5": "PENDING",
+    "remaining": [
+      "Recorded real-person identities/roles/assignments",
+      "Native operational read cost",
+      "Long session/native Keystore",
+      "E1/E2/Windows and human acceptance"
+    ],
+    "failedPreparationsPreserved": [
+      "Diagnostic v1 legacy actorCheck stopped before SQL; v2 actual clean config identified547",
+      "DDL probe v1 SQL102 stopped before mutations; corrected794 passed",
+      "Wrong-role v1 assumed role20; actual role25 read then v2 native rejection passed",
+      "Transport red fixture initially lacked abort listener; test-only process interrupted; v2 red and final59PASS retained"
+    ]
+  },
+  "readinessReadCostDiagnosis": {
+    "sourceMetadataCommit": "8ee6d7341b54009ac93bf39ac23a90298d2049f6",
+    "status": "OPEN_NOT_OPTIMIZED",
+    "fullReadyCalls": {
+      "usernameReady": 384,
+      "c1Ready": 192
+    },
+    "measuredMainReadyMs": [
+      5538,
+      6646
+    ],
+    "usernameGuardAggregateCpuMs": 1026,
+    "readOnlyJoinShape100ValidationsMs": {
+      "before": 479,
+      "after": 385
+    },
+    "candidateAggregationInstalled": false,
+    "guardsSkipped": 0,
+    "databaseSettingsChanged": 0,
+    "cacheIntroduced": false,
+    "lastNormalSalesMs": [
+      6970,
+      4867
+    ],
+    "lastNormalReceivingMs": [
+      5396,
+      5005
+    ],
+    "rebenchmarkedAfterTransportPackage": false
+  },
+  "ownActivityLifecycle": {
+    "commercialActions": 0,
+    "employeeId": 1,
+    "credentialDecoded": false,
+    "sourceCommit": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "receiptState": "pending",
+    "userId": 10021,
+    "originalActiveState": true,
+    "status": "NOT_EXECUTED_AUTO_REVIEW_BLOCKED",
+    "rolesChanged": 0,
+    "activityWrites": 0,
+    "countId": 10006,
+    "countState": "submitted",
+    "processCreated": false,
+    "currentActiveStateReadBack": true,
+    "receiptId": 4,
+    "observedAt": "2026-10-24T19:02:31.5318194+03:00",
+    "roleId": 30,
+    "reason": "Automatic approval review did not find specific human approval for temporary account suspension/reactivation",
+    "passwordsChanged": 0,
+    "humanAcceptance": "PENDING",
+    "approvalRequested": true,
+    "preparedHelperReview": {
+      "originalActiveStateRequired": true,
+      "restoreOnlyAfterDisableAttempt": true,
+      "responseLossRestorationPreserved": true,
+      "unexpectedOwnSessionCounterPreserved": true,
+      "syntaxChecked": true,
+      "executed": false
+    }
+  },
+  "personalAccountReadiness": {
+    "observedAt": "2026-10-24T16:16:16.068Z",
+    "scope": "Existing nine-person B5/C01-C02 preparation, read-only only",
+    "privateInventoryPublished": false,
+    "recordedRequestedUsernameCount": 3,
+    "rolesCompared": [
+      30,
+      31,
+      32
+    ],
+    "roleSourceDifferences": 0,
+    "installedSourceFilesByteEqual": 4,
+    "realPersonBindingsVerified": false,
+    "identityGuesses": 0,
+    "newUsernamesInvented": 0,
+    "packingSeparatelyConfigurable": false,
+    "clean5244CartonClientSupported": false,
+    "existingPackingExceptionPermissionUnchanged": true,
+    "crmFullInventoryFreshLogin": false,
+    "crmHistoricalBaselineClearlySeparated": true,
+    "mutations": {
+      "applicationLogins": 0,
+      "accountWrites": 0,
+      "roleWrites": 0,
+      "employeeWrites": 0,
+      "metadataWrites": 0,
+      "commercialWrites": 0,
+      "serviceRestarts": 0
+    },
+    "humanAcceptance": "PENDING",
+    "newFinishLeaves": 0,
+    "coordinatorTransfer": {
+      "status": "NOT_SENT_AUTO_REVIEW_BLOCKED",
+      "requestedScope": "Secret-free technical summary only",
+      "directHumanTargetApproval": "PENDING",
+      "alternativeTransferAttempted": false
+    }
+  },
+  "personalPackingPreparation": {
+    "status": "SOURCE_PARTIAL_NATIVE_UPGRADE_REQUIRED",
+    "sourceCommit": "747840db065972963b3a1c1f9cc426e030af8df9",
+    "firstSourceCommit": "48d7bb4225bb3532031a58b575be76306c2d0584",
+    "featureBranch": "codex/erp-p03-pr53-candidate-20261018",
+    "field": "canTerminalPacking / employees.can_terminal_packing",
+    "defaultEnabled": false,
+    "newRoles": 0,
+    "newAccounts": 0,
+    "personalAssignmentsApplied": 0,
+    "sourceBehavior": {
+      "existingNormalEmployeeManagement": true,
+      "strictBooleanOnly": true,
+      "omittedTaskPreserved": true,
+      "financeRoleExcluded": true,
+      "managerRequiresExplicitPersonalTask": true,
+      "actorNameOrIdGrants": false,
+      "freshNativeMembershipRequired": true,
+      "clientPackingFlagGrants": false,
+      "eachCartonCallReprovesTask": true,
+      "employeeRowVersionRevokesOldFamily": true,
+      "existingPackingExceptionUnchanged": true,
+      "legacy5234AndVegaPathsUnchanged": true,
+      "clean5244ClientStillClosed": true
+    },
+    "localVerification": {
+      "initialNewChecksRed": 8,
+      "changedBoundaryChecksPassed": 36,
+      "diagnosticVocabularyCheckPassed": 1,
+      "nativeSqlExecuted": false,
+      "normalGuiExecuted": false,
+      "manualOldSessionSuiteRepeated": false,
+      "acceptedNativeSqlProofsRepeated": false,
+      "count10006Replayed": false,
+      "ownActive10021Run": false,
+      "syntaxPassed": true,
+      "sourceSecretScanPassed": true
+    },
+    "nativePreparation": {
+      "compiler": "Existing buildCleanPersonnelWorkSql explicit packingTask selector, same existing work layer",
+      "defaultDefinitionsSha256": "e2cdb2f4df59590e9c55d2de4c2c4b834d1564e166aef08c3bd6d3b718f4225b",
+      "defaultSqlSha256": "47358f1cfccf9bb482bf7600c993d2c567cf1f1df1dde0d06c9b4f9b6835bfb5",
+      "acceptedDefaultBytesUnchanged": true,
+      "existingImmutableLayerUpgradePrepared": false,
+      "existingLayerRefusal": "PACKING_FRESH_WORK_LAYER_REQUIRED",
+      "freshLayerSqlCompiledOnly": true,
+      "newReadinessLayerAdded": false,
+      "cacheOrTimeoutChanges": false,
+      "followOnInPlaceUpgradeSourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44"
+    },
+    "passivePackage": {
+      "package": "CLEAN-ERP-20261022-747840db0659",
+      "files": 3451,
+      "manifestSha256": "25A7EBFF4B69FAB3A923BBBCF5879EBAAAE0742003008D78FCC1F5FE4AD62D33",
+      "frontendSourceCommit": "48d7bb4225bb3532031a58b575be76306c2d0584",
+      "sitesOfflineBuildSeconds": 9.06,
+      "frontendReusedAfterLoggerOnlyChange": true,
+      "webAdminBuiltLocally": false,
+      "webAdminLocalFailure": "Missing Vite in reused package; no second attempt",
+      "bothFrontendsExactCiBuildSucceeded": true,
+      "installed": false,
+      "installationAllowed": false
+    },
+    "ci": {
+      "sourceCommit": "747840db065972963b3a1c1f9cc426e030af8df9",
+      "observedAt": "2026-10-24T17:03:40.4522159Z",
+      "complete": true,
+      "jobs": [
+        {
+          "id": 120931103145,
+          "status": "completed",
+          "runId": 40113860839,
+          "name": "quality-build-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 120931103151,
+          "status": "completed",
+          "runId": 40113860839,
+          "name": "secret-scan",
+          "conclusion": "success"
+        },
+        {
+          "id": 120931103246,
+          "status": "completed",
+          "runId": 40113860839,
+          "name": "windows-startup-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 120930962009,
+          "status": "completed",
+          "runId": 40113857579,
+          "name": "secret-scan",
+          "conclusion": "success"
+        },
+        {
+          "id": 120930962137,
+          "status": "completed",
+          "runId": 40113857579,
+          "name": "windows-startup-test",
+          "conclusion": "success"
+        },
+        {
+          "id": 120930962182,
+          "status": "completed",
+          "runId": 40113857579,
+          "name": "quality-build-test",
+          "conclusion": "success"
+        }
+      ],
+      "runs": [
+        {
+          "id": 40113860839,
+          "status": "completed",
+          "conclusion": "success",
+          "event": "pull_request",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40113860839"
+        },
+        {
+          "id": 40113857579,
+          "status": "completed",
+          "conclusion": "success",
+          "event": "push",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40113857579"
+        }
+      ]
+    },
+    "currentInstalledSourceUnchanged": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "currentInstalledFiles": 3446,
+    "sharedRuntimeWrites": 0,
+    "sqlDataOrMetadataWrites": 0,
+    "realApplicationLogins": 0,
+    "accountActivityChanges": 0,
+    "newCommercialActions": 0,
+    "concreteRemaining": [
+      "Current immutable work/username layer needs reviewed in-place field/guard compatibility; fresh-layer compiler deliberately refuses installed target",
+      "Same-transaction fresh packing authorization and existing carton storage must be wired to exact clean5244/4194 only after native upgrade is proved",
+      "Independent source review, installed normal GUI and human/device acceptance remain pending"
+    ],
+    "review": {
+      "localSourceReview": true,
+      "independentReview": "NO_BLOCKING_FINDINGS_AT_747_SOURCE_PARTIAL_BOUNDARY_ONLY",
+      "coordinatorMessageSent": false
+    },
+    "humanAcceptance": "PENDING",
+    "newFinishLeaves": 0,
+    "observedAt": "2026-10-24T17:03:41.217Z",
+    "observationScope": "Historical 747 source preparation; current native installation and assigned normal usage supersede its pending fields"
+  },
+  "personalPackingNativeUpgrade": {
+    "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+    "status": "NATIVE_INSTALLED_NORMAL_USAGE_PENDING",
+    "usageOutcome": "Existing B5 outcome2: an explicitly assigned person packs under their own normal account; NOT yet usable in installed TEST",
+    "fieldDefault": false,
+    "predecessorContract": {
+      "layers": [
+        "C1 ready expression",
+        "8ee6d734 username",
+        "794bd3d1 creator FKs"
+      ],
+      "wrongOrUnreadableDefinitionDeniedInGeneratedSql": true,
+      "ansiQuotedExecutionFlagsProvedInGeneratedSql": true,
+      "actualDboObjectOrSchemaOwnerProvedInGeneratedSql": true,
+      "triggerParentAndEnabledStateProvedInGeneratedSql": true,
+      "trustedNoActionCreatorFksRequired": true,
+      "acceptedDefaultGeneratorBytesUnchanged": true
+    },
+    "preservationContract": {
+      "oldImmutableRowsNotUpdated": true,
+      "oldImmutableTriggersNotAltered": true,
+      "employeesOld16FieldsAndRowVersionDigestBeforeAfter": true,
+      "rolesPermissionsAndThreeOldSealDigestsBeforeAfter": true,
+      "noAutomaticTaskAssignment": true,
+      "noUserOrRoleRecreation": true,
+      "idleWriterProofBeforeReplayAndFirstApply": true,
+      "replayPreservesLaterTaskAssignments": true,
+      "transactionRollbackProbeCompiled": true,
+      "postCommitAutomaticInverse": false,
+      "cacheOrTimeoutOrAggregatorAdded": false
+    },
+    "sourceTests": {
+      "firstPass": 1,
+      "initialMissingBehaviorFailures": 5,
+      "baseSourceChecksPassed": 8,
+      "newPostDdlBoundaryCheckRed": 1,
+      "newPostDdlBoundaryCheckPassed": 1,
+      "finalSourceCaseCount": 9,
+      "oldCasesReusedAfterUnchangedModuleDefinitions": true,
+      "verificationLayer": "Offline source compiler only; no SQL execution",
+      "acceptedOldRuntimeProofsRepeated": false
+    },
+    "ci": {
+      "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "runId": 40117378160,
+          "name": "quality-build-test",
+          "status": "completed",
+          "id": 120941345518
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117378160,
+          "name": "windows-startup-test",
+          "status": "completed",
+          "id": 120941345779
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117378160,
+          "name": "secret-scan",
+          "status": "completed",
+          "id": 120941345794
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117374276,
+          "name": "windows-startup-test",
+          "status": "completed",
+          "id": 120941332893
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117374276,
+          "name": "secret-scan",
+          "status": "completed",
+          "id": 120941333041
+        },
+        {
+          "conclusion": "success",
+          "runId": 40117374276,
+          "name": "quality-build-test",
+          "status": "completed",
+          "id": 120941333093
+        }
+      ],
+      "complete": true,
+      "runs": [
+        {
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40117378160",
+          "conclusion": "success",
+          "event": "pull_request",
+          "status": "completed",
+          "id": 40117378160
+        },
+        {
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40117374276",
+          "conclusion": "success",
+          "event": "push",
+          "status": "completed",
+          "id": 40117374276
+        }
+      ],
+      "observedAt": "2026-10-24T17:50:13.286392Z"
+    },
+    "currentInstalledSource": "55c2fc22e81f166aa3ca104c98da9ac9cec2b01c",
+    "applicationSourceUnchangedFrom": "747840db065972963b3a1c1f9cc426e030af8df9",
+    "applicationBuildRepeated": false,
+    "cleanRouteClientOpened": false,
+    "b5ClosureScope": [
+      "Nine recorded people: individual TEST account/employee/approved task bindings",
+      "Representative normal-screen persistent result per distinct duty branch, including packing",
+      "Wrong role, protected/inactive account and permission-change boundaries",
+      "Personal ERP-CRM binding, CRM normal GUI-create and independent manager"
+    ],
+    "accepted10021LoginAndCountReopened": false,
+    "newB5RequirementsAdded": false,
+    "independentReview": {
+      "prior747SourcePartial": "Existing coordinator read-only review: no blocking findings at that partial boundary; no native/runtime acceptance",
+      "nativeDb5Review": "One reported batch-compilation finding; other reviewed 35/15/2 owner/hash/flags/FK scope retained",
+      "postDdlFindingFixedInSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "actualSqlAcceptance": false
+    },
+    "nextSingleTechnicalAction": "Native installation accepted; normal clean carton route now delivered in personalPackingNormalConnection",
+    "humanAcceptance": "PENDING",
+    "b5Completed": false,
+    "finishCountsUnchanged": true,
+    "observedAt": "2026-10-24T17:50:16.311Z",
+    "nativeExecution": {
+      "status": "INSTALLED",
+      "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "artifact": {
+        "root": "C:/Sirket/ERP/releases/CLEAN-PERSONNEL-PACKING-UPGRADE-20261024-6c564a5b913c-INSTALL",
+        "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "manifestSha256": "7B71427BE1C4B70D2B49D700E01754FF901477169C6ACB8BE8CDC4906C703DE8",
+        "sqlSha256": "E7CE664F0F2AD52E3FA0A07C03D30A26C3056B0AE500FA5A537E4EE266126277",
+        "status": "ADMITTED_NOT_EXECUTED",
+        "payloadFiles": 3,
+        "totalFiles": 4
+      },
+      "changedExistingModules": 15,
+      "newModules": 2,
+      "canTerminalPackingAssignedRows": 0,
+      "independentReadback": true,
+      "oldEmployee16FieldsAndRowVersionsEqual": true,
+      "all53DataScopesEqual": true,
+      "oldSealsUsersRolesMembersCountsReceiptsAndAuditsEqual": true,
+      "unrelatedNativeMetadataEqual": true,
+      "onlyFourExpectedAppPermissionsAdded": true,
+      "runtimeFilesEqual": true,
+      "listenersPreserved": true,
+      "runtimeRestarted": false,
+      "commercialWrites": 0,
+      "accountOrAssignmentWrites": 0,
+      "normalPackingRouteActivated": false,
+      "guiAcceptance": "NOT_EXECUTED",
+      "humanAcceptance": "PENDING",
+      "sqlElapsedMs": 21191,
+      "observedAt": "2026-10-24T18:18:31.877Z",
+      "rollbackProofs": [
+        {
+          "status": "PASS",
+          "elapsedMs": 20815,
+          "expectedResult": "PERSONNEL_PACKING_UPGRADE_PROBE_ROLLED_BACK",
+          "metadataEqual": true,
+          "oldEmployeesRowVersionsUsersRolesSealsCountsAndAuditsEqual": true,
+          "all53DataScopesEqual": true
+        },
+        {
+          "status": "PASS",
+          "elapsedMs": 21303,
+          "expectedResult": "PACKING_BAD_DEFINITION_REJECTED_AND_ROLLED_BACK",
+          "metadataEqual": true,
+          "oldEmployeesRowVersionsUsersRolesSealsCountsAndAuditsEqual": true,
+          "all53DataScopesEqual": true
+        },
+        {
+          "status": "PASS",
+          "elapsedMs": 20917,
+          "expectedResult": "PACKING_UNREADABLE_DEFINITION_REJECTED_AND_ROLLED_BACK",
+          "metadataEqual": true,
+          "oldEmployeesRowVersionsUsersRolesSealsCountsAndAuditsEqual": true,
+          "all53DataScopesEqual": true
+        }
+      ],
+      "replay": {
+        "runtimeRestarted": false,
+        "metadataEqual": true,
+        "all53DataScopesEqual": true,
+        "observedAt": "2026-10-24T21:19:16.8323764+03:00",
+        "elapsedMs": 14108,
+        "status": "PASS",
+        "protectedOldEmployeeUsersRolesSealsCountReceiptEqual": true,
+        "sourceCommit": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "secondEffect": false,
+        "sqlExit": 0
+      },
+      "freshCopyOnlyBackupChecksumAndVerifyOnly": true,
+      "restorePerformed": false,
+      "actualPrecursorModules": 35,
+      "privateEvidencePrefix": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-packing-native"
+    },
+    "historicalSourcePhase": {
+      "stage": "2026-10-24T20:49+03:00 SOURCE_ONLY_NOT_EXECUTED",
+      "sourceScopeOnly": true,
+      "expectedPrecursorModules": 35,
+      "plannedChangedModules": 15,
+      "plannedAddedModules": 2,
+      "actualModulesChanged": 0,
+      "sharedRuntimeWrites": 0,
+      "sqlMetadataOrDataWrites": 0,
+      "realApplicationLogins": 0,
+      "accountOrRoleChanges": 0,
+      "newCommercialActions": 0
+    },
+    "historicalSourcePackage": {
+      "payloadFiles": 4,
+      "totalFiles": 5,
+      "manifestSha256": "7A3BB0606FE901F6616BF0666B4678184D5BC30685D28CB2A76A417D3E376A35",
+      "applySqlSha256": "e7ce664f0f2ad52e3fa0a07c03d30a26c3056b0ae500fa5a537e4ee266126277",
+      "probeSqlSha256": "14073e60d7111f3136e3e36340edc6b216175c3ca81a14a9d74bbcf5322217d4",
+      "installationAllowed": false,
+      "sqlExecuted": false,
+      "actualPrecursorRead": false,
+      "beforeImagesCaptured": false
+    }
+  },
+  "personalPackingNormalConnection": {
+    "status": "INSTALLED_NORMAL_ROUTE_VERIFIED_ASSIGNMENT_OUTCOME_PENDING",
+    "sourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+    "installation": {
+      "status": "INSTALLED",
+      "source": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "package": "CLEAN-ERP-20261022-dd8ef4144482",
+      "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-dd8ef4144482-B5PACKING",
+      "files": 3458,
+      "manifestSha": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+      "changedPorts": [
+        4194,
+        5244
+      ],
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "preservedListeners": 33,
+      "crmStatus": 200,
+      "existingContributionScopesUnchanged": 53,
+      "newRoleIds": [],
+      "existingRoleIdsPreserved": [
+        30,
+        31,
+        32
+      ],
+      "nativeMetadataSourceUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "nativeSqlExecuted": false,
+      "protectedSessionStatePreserved": true,
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "installedAt": "2026-10-24T21:54:01.42309+03:00"
+    },
+    "ci": [
+      {
+        "name": "quality-build-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122177664/job/120955921844"
+      },
+      {
+        "name": "windows-startup-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122177664/job/120955921795"
+      },
+      {
+        "name": "secret-scan",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122177664/job/120955921729"
+      },
+      {
+        "name": "secret-scan",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122172883/job/120955907671"
+      },
+      {
+        "name": "quality-build-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122172883/job/120955907569"
+      },
+      {
+        "name": "windows-startup-test",
+        "status": "completed",
+        "conclusion": "success",
+        "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40122172883/job/120955907455"
+      }
+    ],
+    "normalBrowser": {
+      "status": "NORMAL_ROUTE_CONNECTED_UNASSIGNED_TASK_DENIED",
+      "sourceCommit": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "normalUrl": "http://127.0.0.1:5244/terminal.html?worktest=1#packing",
+      "actorId": 10021,
+      "employeeId": 1,
+      "roleId": 30,
+      "taskFlagConfirmedFalse": true,
+      "normalLoginViaExistingOwnDpapiDelivery": true,
+      "initialSessionRestore": "Returned to login; cause not diagnosed or guessed",
+      "normalLoginCount": 1,
+      "passwordOrAccountChanged": false,
+      "secretOutput": false,
+      "reloadRestoredSamePersonWithoutSecondLogin": true,
+      "visibleResult": "Bu kayıtları görüntüleme yetkiniz yok.",
+      "existingCount10006SubmittedAndReceipt4PendingPreserved": true,
+      "cartonDirectoryFileCount": 0,
+      "packingBusinessActionExecuted": false,
+      "assignedPackerNormalOutcome": "NOT_EXECUTED",
+      "humanAcceptance": "PENDING",
+      "screenshot": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-clean-carton-normal-denied-reload.png",
+      "screenshotSha256": "67be5a852fd9e6ddbee342731601b55d4c12834c9a420c4cebe0fe5a77eadce2",
+      "observedAt": "2026-10-24T19:00:02.23Z"
+    },
+    "targetedControlsPassed": 16,
+    "legacyClientControlsPassed": 3,
+    "sourceScope": "Existing native actor/task proof and carton journal; own finalized invoices only; no price/finance DTO",
+    "transactionScope": "Fresh user/employee/role/task proof, source HOLDLOCK read and existing carton journal operation enclosed in one native transaction",
+    "noCacheOrTimeoutIncrease": true,
+    "nativeInstallationRepeated": false,
+    "accountOrRoleOrTaskWrites": 0,
+    "commercialWrites": 0,
+    "assignedPackerNormalUsage": "AGENT_VERIFIED_SYNTHETIC_PROXY_SEE_personalPackingAgentUsage",
+    "humanAcceptance": "PENDING",
+    "nextSingleTechnicalAction": "Remaining original B5 personal account/task/CRM bindings and independent normal usage; accepted carton proof not repeated",
+    "b5Completed": false,
+    "preparedPackageSnapshot": {
+      "source": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "root": "C:/Sirket/ERP/releases/CLEAN-ERP-20261024-dd8ef4144482-B5PACKING",
+      "files": 3458,
+      "manifestSha": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+      "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "builds": [
+        {
+          "app": "sites-workflow",
+          "status": "PASS",
+          "elapsedMs": 11693
+        },
+        {
+          "app": "web-admin",
+          "status": "PASS",
+          "elapsedMs": 6669
+        }
+      ],
+      "nativeSourceUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "nativeMetadataSource": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "nativeSqlExecuted": false,
+      "lockedDependenciesUnchanged": true,
+      "installed": false,
+      "sharedWrites": 0
+    },
+    "observationScope": "Historical dd8 route installation and unassigned actor denial; assigned proxy outcome recorded separately below"
+  },
+  "personalPackingAgentUsage": {
+    "cartons": 2,
+    "preservation": {
+      "own-fixture": true,
+      "all-current-contributions": true,
+      "personnel": true
+    },
+    "journalRequests": 1,
+    "actorId": 10022,
+    "packingAdditionalStockOrCustomerEffect": 0,
+    "humanAcceptance": "PENDING",
+    "manualBarcode": "0000000000007",
+    "wholeDatabaseClaimed": false,
+    "normalBrowserFullReloadSameIdentity": true,
+    "screenshot": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-packing-reloaded.png",
+    "label": "Ajan doğruladı",
+    "invoiceId": 10010,
+    "scope": "53 existing contribution contracts (some historic filters retained), complete own invoice/items/sale journal/link/customer-stock effects, all personnel/user/role/member/old seals/count-receipt-audit contracts",
+    "allocationPerCartonExact3": "1.000",
+    "journalSha256": "E58E1783346190AA2187F49C7E1C9278C351475BD1B9FEB38A1E11E8130A5198",
+    "b5Completed": false,
+    "syntheticDutyProxy": true,
+    "statusAfterReload": "READY",
+    "fixturePreparation": "One authorized synthetic finalized sale via normal API before pre-save baselines; NOT GUI sale acceptance",
+    "longSessionRenewal": "NOT_PROVEN",
+    "observedAt": "2026-10-24T23:05:24.8784457+03:00",
+    "requiredExact3": "2.000",
+    "normalSaveClicks": 1,
+    "roleId": 30,
+    "physicalDevice": "NOT_TESTED",
+    "normalGuiLoginCount": 2,
+    "itemId": 40010,
+    "realTurgayIdentityClaimed": false,
+    "journalDocuments": 1,
+    "employeeId": 2,
+    "screenshotSha256": "D8562DB1DB5F517B5FCB1F96CA4D158C8AC317D11650865F273EE50E1B70834D",
+    "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+    "journalUnchangedAfterReload": true,
+    "status": "AGENT_VERIFIED_NORMAL_PERSONAL_PACKING",
+    "supportReaderFix": {
+      "sourceCommit": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
+      "problem": "OBJECT_DEFINITION hidden from existing minimum SQL login; native packing_ready already succeeds",
+      "change": "Use existing native ready proof without metadata visibility grant",
+      "newFocusedCase": "1 RED to 1 GREEN",
+      "installation": {
+        "status": "INSTALLED",
+        "source": "d8e74e0f5b0b20d9c87138e0ee7b5411f039ef1e",
+        "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+        "package": "CLEAN-ERP-20261022-d8e74e0f5b0b",
+        "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-d8e74e0f5b0b-B5PACKINGACCESS",
+        "files": 3458,
+        "manifestSha": "217C8418FE9D9C221427757A4106853B702962076B590275CD42F9CA220204ED",
+        "changedPorts": [
+          4194
+        ],
+        "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+        "preservedListeners": 36,
+        "crmStatus": 200,
+        "existingContributionScopesUnchanged": 53,
+        "newRoleIds": [],
+        "existingRoleIdsPreserved": [
+          30,
+          31,
+          32
+        ],
+        "nativeMetadataSourceUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "nativeSqlExecuted": false,
+        "protectedSessionStatePreserved": true,
+        "database": "MELISA_ERP_CLEAN_TEST_20261022",
+        "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+        "synthetic": true,
+        "actualT1": false,
+        "installedAt": "2026-10-24T22:25:17.8915182+03:00"
+      },
+      "ci": [
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124600544/job/120963225319"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124600544/job/120963225293"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124600544/job/120963225071"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124595970/job/120963210445"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124595970/job/120963210279"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40124595970/job/120963210099"
+        }
+      ]
+    },
+    "windowsAclFix": {
+      "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+      "problem": "Windows PowerShell 5.1 Get-Acl autoload inherited incompatible PowerShell 7 module path under Node child",
+      "change": "Explicit import of current Windows host PSHOME Microsoft.PowerShell.Security module; same owner/no-reparse/ACL validation",
+      "encodedCommand": false,
+      "executionPolicyBypass": false,
+      "endpointSecurityChanged": false,
+      "newWindowsBehaviorCase": "1 RED to 1 GREEN; Windows CI step added",
+      "installation": {
+        "status": "INSTALLED",
+        "source": "b9dd984876c808482017365556538078601187b8",
+        "frontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+        "package": "CLEAN-ERP-20261022-b9dd984876c8",
+        "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-20261024-b9dd984876c8-B5PACKINGACL",
+        "files": 3459,
+        "manifestSha": "DD253CB291E643A6E9D8F120E8662057621182B3D112CC4FB418572C2D87203E",
+        "changedPorts": [
+          4194
+        ],
+        "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+        "preservedListeners": 36,
+        "crmStatus": 200,
+        "existingContributionScopesUnchanged": 53,
+        "newRoleIds": [],
+        "existingRoleIdsPreserved": [
+          30,
+          31,
+          32
+        ],
+        "nativeMetadataSourceUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+        "nativeSqlExecuted": false,
+        "protectedSessionStatePreserved": true,
+        "database": "MELISA_ERP_CLEAN_TEST_20261022",
+        "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+        "synthetic": true,
+        "actualT1": false,
+        "installedAt": "2026-10-24T22:54:43.4769299+03:00"
+      },
+      "ci": [
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126761014/job/120969749725"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126761014/job/120969749642"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126761014/job/120969749514"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126757580/job/120969739414"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126757580/job/120969739355"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "html_url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40126757580/job/120969739119"
+        }
+      ]
+    },
+    "frontendRebuilt": false,
+    "frontendReusedByteIdentical": true,
+    "nativeSqlInstallationRepeated": false,
+    "old10021ActivityMutations": 0,
+    "newSyntheticAccounts": 1,
+    "newSyntheticEmployees": 1,
+    "newSyntheticSaleFixtures": 1,
+    "actualRealPeopleIdentityBindingsCompleted": 0,
+    "nextSingleTechnicalAction": "Remaining original B5 personal account/task/CRM bindings and independent normal usage; accepted carton proof not repeated"
+  },
+  "personalCrmNormalUsage": {
+    "status": "INSTALLED_NORMAL_PERSON_AND_INDEPENDENT_MANAGER_READ_VERIFIED_LINK_PENDING_APPROVAL",
+    "observedAt": "2026-10-24T23:26:34.574868+03:00",
+    "package": {
+      "source": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261024-1ab47029d54c-B5PERSONAL-NODE24",
+      "files": 803,
+      "manifestSha": "4EBF63D14C65A6F1C0B5BDA8F50F26D2EA52FB42033E84EDBAD8D1CA70B1BE57",
+      "node": {
+        "version": "v24.19.0",
+        "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "path": "C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe"
+      },
+      "mainPath": "/assets/index-CkcbNSPr.js",
+      "mainSha": "6ad0d9795c79807b66c82995ba6cc4ab75f376ffa388fe0ee8ca3fb47396c817",
+      "buildMs": 31006,
+      "profile": "clean-synthetic-20261022",
+      "offlineBuild": true,
+      "existingLockAndDependenciesReused": true,
+      "passiveManifestUnchanged": true,
+      "ci": "REUSE coordinator-verified exact 1ab47029 seven SUCCESS; source unchanged",
+      "installed": false
+    },
+    "installation": {
+      "status": "INSTALLED",
+      "source": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "frontendSource": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "backendSource": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261024-1ab47029d54c-B5PERSONAL-NODE24",
+      "manifestSha": "4EBF63D14C65A6F1C0B5BDA8F50F26D2EA52FB42033E84EDBAD8D1CA70B1BE57",
+      "files": 803,
+      "changedPorts": [
+        62800,
+        62801,
+        62802,
+        62803
+      ],
+      "preservedListeners": 16,
+      "erpSource": "b9dd984876c808482017365556538078601187b8",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "dataSummariesUnchanged": 53,
+      "installedAt": "2026-10-24T23:15:43.5925023+03:00"
+    },
+    "readback": {
+      "personRole": "personel",
+      "baselineFourAndOldClosedPreserved": true,
+      "observedAt": "2026-10-24T23:20:32.0446698+03:00",
+      "managerPresent": true,
+      "mutations": "Own protected delivery metadata only; no CRM store edit",
+      "inventoryAccounts": 7,
+      "personId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+      "revision": 5,
+      "managerId": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f",
+      "source": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "personAgent": 1002
+    },
+    "normalGui": {
+      "personFullReloadSameIdentity": true,
+      "managerInventoryAccounts": 7,
+      "commercialWrites": 0,
+      "personManagementInventoryAbsent": true,
+      "managerFullReloadSameIdentity": true,
+      "managerRole": "mudur",
+      "managerThreeSyntheticConversations": true,
+      "personUnassignedInboxCount": 0,
+      "realMessagesSent": 0,
+      "createSubmittedFromNormalForm": 2,
+      "managerNotPatron": true,
+      "personRole": "personel"
+    },
+    "completedPackingReopened": false,
+    "personErpIdentity": {
+      "roleId": 30,
+      "employeeId": 2,
+      "userId": 10022
+    },
+    "erpPersonalRelationsPublished": 0,
+    "erpOrNativeRestart": 0,
+    "managerAccountSpecificUserApproval": true,
+    "pendingApproval": [
+      "Assign only synthetic conversation156 to person-agent1002",
+      "Create separate synthetic ERP role31 manager and own employee",
+      "Publish two exact personal ERP-CRM relations in protected existing config",
+      "One same-source4194 API restart required to load static relations"
+    ],
+    "humanAcceptance": "PENDING",
+    "b5Completed": false,
+    "sourceTestsAndCiRepeated": false,
+    "privateRosterTransferred": false,
+    "preservation": {
+      "oldPackingJournalProtected": true,
+      "normalGuiAuthJournalExpectedToChange": true,
+      "erpRelationConfigUnchanged": true,
+      "observedAt": "2026-10-24T23:27:11.1282417+03:00",
+      "erpApiRestarted": false,
+      "status": "CRM_INSTALL_AND_TWO_NORMAL_GUI_CREATES_ERP_DATA_PRESERVED",
+      "sqlScopes": {
+        "all-current-contributions": true,
+        "personnel": true,
+        "own-fixture": true
+      },
+      "protectedSessionFilesPreservedAtInstall": true,
+      "managedCrmStoreExpectedTwoNewAccounts": true,
+      "wholeDatabaseClaimed": false
+    },
+    "managerAccountSpecificApproval": "Direct human reply: Bu belirli sentetik TEST Müdür hesabını oluşturmayı onaylıyorum",
+    "assignmentAutoReviewRejected": true,
+    "assignmentPerformed": false,
+    "combinedRemainingApproval": "PENDING",
+    "normalPersonReadBoundary": {
+      "status": "NEW_PERSONAL_ROLE_READ_BOUNDARY_VERIFIED_BEFORE_ASSIGNMENT",
+      "cases": [
+        {
+          "path": "/auth/login",
+          "status": 200
+        },
+        {
+          "path": "/crm/inbox",
+          "status": 200
+        },
+        {
+          "path": "/crm/users",
+          "status": 403
+        },
+        {
+          "path": "/crm/conversations/55",
+          "status": 403
+        },
+        {
+          "path": "/crm/conversations/156",
+          "status": 403
+        }
+      ],
+      "helperLogout": "NOT_CONFIRMED; helper combined Authorization and refresh body; no source guard change or workaround"
+    },
+    "screenshots": [
+      {
+        "privateLocalPath": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-personal-crm-manager-normal.png"
+      },
+      {
+        "privateLocalPath": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-personal-crm-manager-identity.png"
+      },
+      {
+        "privateLocalPath": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-personal-crm-person-identity.png"
+      }
+    ],
+    "personCrmIdentity": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+    "managerCrmIdentity": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f",
+    "observationScope": "Historical normal create/read phase; contextual continuation below supersedes its four-operation pending state, not the separate six-account or older approvals"
+  },
+  "standardStaffSixPreparation": {
+    "existingUsers": 13,
+    "workaroundAttempted": false,
+    "newEmployees": 0,
+    "protectedFilesSame": true,
+    "accountPasswordDeliveriesCreated": 0,
+    "missingBoth": 6,
+    "newUsers": 0,
+    "crmWrites": 0,
+    "identityConflicts": 0,
+    "approval": "Separate direct six-person limited TEST question pending",
+    "processStarted": false,
+    "metadataDdl": 0,
+    "observedAt": "2026-10-24T23:38:28.5343929+03:00",
+    "restart": 0,
+    "preflightPlanned": 6,
+    "tradeWrites": 0,
+    "humanAcceptance": "PENDING",
+    "status": "AUTO_REVIEW_REJECTED_BEFORE_PROCESS_START",
+    "beforeImagesReady": true,
+    "exactExistingPairs": 0,
+    "previousFourOperationApproval": "Still pending and not executed",
+    "existingEmployees": 2,
+    "plannedScope": {
+      "existingRoleId": 30,
+      "canTerminalSaleForAll": true,
+      "inboundAndCountFromExistingRole": true,
+      "packingEnabledRepresentatives": 1,
+      "packingDisabledRepresentatives": 5,
+      "priceEdit": false,
+      "maxDiscountPercent": 0,
+      "newManagerRoles": 0,
+      "crmAccountsOrAssignments": 0
+    },
+    "preflight": "Normal supported administrator reads; all active/passive records considered; no fuzzy real-person matching",
+    "protectedScope": "53 existing contribution contracts with original users pinned to <=10022; original employees <=2 and members <=10022; full roles/permissions/seals and own invoice effects; expected new audit entries excluded; not whole DB",
+    "privateRosterOrSecretsPublished": false,
+    "applicationCodeChanged": false,
+    "newCiOrAcceptedFlowRetests": false,
+    "normalGuiNewAccounts": "NOT_CREATED",
+    "b5Completed": false
+  },
+  "personalCrmLinkContinuation": {
+    "authority": {
+      "userMessageId": "01a16fa6-85b2-7452-8ee2-7d82f2e4f2d8",
+      "actualUserText": "Devam ettir ve nerde olduğumuzu söyle",
+      "context": "Immediately after four disclosed operations",
+      "moreSpecificApprovalWordingInvented": false,
+      "sixAccountApproval": false
+    },
+    "managerApplication": {
+      "realPersonIdentityClaimed": false,
+      "synthetic": true,
+      "status": "SEPARATE_SYNTHETIC_ERP_MANAGER_PAIR_READY",
+      "sourceCommit": "b9dd984876c808482017365556538078601187b8",
+      "userCreated": true,
+      "oldAccountsRolesSealsCountsUnchanged": true,
+      "observedAt": "2026-10-24T23:50:20.3131702+03:00",
+      "authority": "Contextual direct human continuation, message01a16fa6-85b2-7452-8ee2-7d82f2e4f2d8",
+      "calls": [
+        {
+          "elapsedMs": 268,
+          "path": "/api/auth/login",
+          "success": true,
+          "method": "POST"
+        },
+        {
+          "elapsedMs": 768,
+          "path": "/api/auth-admin/overview",
+          "success": true,
+          "method": "GET"
+        },
+        {
+          "elapsedMs": 218,
+          "path": "/api/personnel/overview",
+          "success": true,
+          "method": "GET"
+        },
+        {
+          "elapsedMs": 13528,
+          "path": "/api/auth-admin/users",
+          "success": true,
+          "method": "POST"
+        },
+        {
+          "elapsedMs": 11224,
+          "path": "/api/personnel/employees",
+          "success": true,
+          "method": "POST"
+        },
+        {
+          "elapsedMs": 11,
+          "path": "/api/auth/logout",
+          "success": true,
+          "method": "POST"
+        }
+      ],
+      "userId": 10023,
+      "setupLogoutConfirmed": true,
+      "existingRolesChanged": 0,
+      "employeeCreated": true,
+      "employeeId": 3,
+      "currentStage": "normal own manager employee link",
+      "roleId": 31,
+      "sixOtherAccountsCreated": 0
+    },
+    "relationApplication": {
+      "protectedFilesSame": true,
+      "restartCount": 1,
+      "status": "PERSONAL_RELATIONS_PUBLISHED_SAME_SOURCE_API_RESTARTED",
+      "allThreeDataScopesSame": true,
+      "newPid": 45284,
+      "peerKeyChanged": false,
+      "preservedListeners": 36,
+      "ciRepeated": false,
+      "sqlDml": 0,
+      "totalRelations": 3,
+      "package": "CLEAN-ERP-20261022-b9dd984876c8",
+      "frontendUnchanged": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "existingRelationPreserved": 1,
+      "changedPorts": [
+        4194
+      ],
+      "codeChanged": false,
+      "oldPid": 20676,
+      "nativeMetadataUnchanged": "6c564a5b913cdae6c4a88f8f4b94dadd0a124c44",
+      "observedAt": "2026-10-24T23:56:11.6429619+03:00",
+      "sixOtherAccountsCreated": 0,
+      "newRelations": 2,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "crmUnchanged": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "metadataDdl": 0,
+      "nativeHttpUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9"
+    },
+    "normalGui": {
+      "assignedAgent": 1002,
+      "personAndManagerFullReloadSameIdentity": true,
+      "screenshots": [
+        {
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-crm-assigned-detail.png",
+          "sha256": "DCE80736E5327C0334631D61EEE119D27716BAD5E8535B4F40F925610BC386D4"
+        },
+        {
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-crm-assigned-reloaded.png",
+          "sha256": "860D726AD72F642442ED8D8084A4F4CFC9E53813B180B6C4E851F6CA00591E5B"
+        },
+        {
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-personal-erp-manager-settings.png",
+          "sha256": "37274BC4D087308B15BA5FD38A49B6EFC79299B2F680AACE4EBDB5F2956DE380"
+        }
+      ],
+      "realMessages": 0,
+      "normalGuiCrossRealmSso": "NOT_PROVEN; current E1 server transition403 under source investigation",
+      "businessWrites": 0,
+      "personVisibleConversationsAfterReload": 1,
+      "conversation": 156,
+      "status": "NORMAL_PERSONAL_ASSIGNMENT_AND_ERP_MANAGER_GUI_VERIFIED",
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-25T00:09:23.8108722+03:00",
+      "normalPersonCrmId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+      "normalManagerThreeConversationsAfterReload": true,
+      "normalAssignmentSubmitCount": 1,
+      "normalManagerCrmRole": "mudur",
+      "personOnlyOwn156": true,
+      "normalErpManager": {
+        "userId": 10023,
+        "greenSettingsAndRoleRead": true,
+        "fullReloadSameIdentity": true,
+        "normalFormLogin": true,
+        "employeeId": 3,
+        "roleId": 31
+      }
+    },
+    "firstServerProof": {
+      "failure": "Unexpected response at crm/auth/terminal-handoff: 403",
+      "allOwnLinkedFamiliesRevoked": false,
+      "businessWrites": 0,
+      "credentialsOutput": false,
+      "cases": [
+        {
+          "path": "/api/auth/login",
+          "status": 200,
+          "role": "personel",
+          "realm": "erp",
+          "elapsedMs": 305
+        },
+        {
+          "path": "/api/auth/session-confirm",
+          "status": 200,
+          "role": "personel",
+          "realm": "erp",
+          "elapsedMs": 23
+        },
+        {
+          "path": "/api/auth/terminal-handoff/prepare",
+          "status": 200,
+          "role": "personel",
+          "realm": "erp",
+          "elapsedMs": 74
+        },
+        {
+          "path": "/auth/terminal-handoff",
+          "status": 403,
+          "role": "personel",
+          "realm": "crm",
+          "elapsedMs": 95
+        }
+      ],
+      "normalGuiCrossRealmSso": "NOT_CLAIMED; direct normal personal GUI and native server link proof recorded separately",
+      "caseCount": 4,
+      "observedAt": "2026-10-24T23:59:38.3865315+03:00",
+      "actors": [
+        {
+          "agent": 1002,
+          "normalGui": "Own normal login/read/assignment/reload observed separately; native WebView not tested",
+          "status": "STARTED",
+          "erpUserId": 10022,
+          "employeeId": 2,
+          "crmUserId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+          "role": "personel",
+          "serverTechnicalProofOnly": true
+        }
+      ],
+      "crmSource": "1ab47029d54cc6aa341b29328de29ea690e6d4f1",
+      "oldNormalFamiliesPreserved": true,
+      "ownNewLinkedFamilies": 1,
+      "nativeKeystore": "NOT_TESTED",
+      "physicalAndroid": "NOT_TESTED",
+      "stage": "fresh paired handoff: personel",
+      "humanAcceptance": "PENDING",
+      "status": "NOT_CONFIRMED_INSPECT_BEFORE_RETRY",
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "assignmentWrites": 0,
+      "accountOrRoleWrites": 0,
+      "cleanupFailed": false
+    },
+    "readOnlyDiagnostic": {
+      "realMessageOrBusinessWrite": 0,
+      "ownProvisionalFamilies": 1,
+      "firstAttemptCases": 4,
+      "normalPersonGuiAssigned156AndReloadVerified": true,
+      "sameFailedRequestRetried": false,
+      "originalProofExpectedTwoRolesAndIsNotMarkedPassed": true,
+      "sourceOwner": "Existing CRM owner source-only investigation",
+      "crmStatus": 403,
+      "firstThreeStatuses": [
+        200,
+        200,
+        200
+      ],
+      "allAttemptedOwnProvisionalFamiliesRevoked": true,
+      "humanAcceptance": "PENDING",
+      "observedAt": "2026-10-25T00:05:13.2569098+03:00",
+      "status": "FIRST_PERSONAL_HANDOFF_403_PROVISIONAL_GRANT_SAFELY_REVOKED",
+      "crmCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+      "elapsedMs": 95,
+      "secondRoleAttempted": false
+    },
+    "preservation": {
+      "status": "NORMAL_ASSIGNMENT_RELOAD_ERP_MANAGER_AND_LINK_ATTEMPT_DATA_PRESERVED",
+      "fullExistingAndNewManagerUserEmployeeRowsPreserved": true,
+      "sessionJournalsExpectedOwnAuthChanges": true,
+      "sixOtherAccountsCreated": 0,
+      "allRolesPermissionsSealsCountsPreserved": true,
+      "crmAccountsAndSingleAssignmentStoreUnchangedAfterRestart": true,
+      "ownInvoiceAndCartonsPreserved": true,
+      "wholeDatabaseClaimed": false,
+      "dataScopes": {
+        "native": true,
+        "all-current-contributions": true,
+        "own-fixture": true
+      },
+      "observedAt": "2026-10-25T00:07:16.7766598+03:00",
+      "businessWrites": 0
+    },
+    "sourceInvestigation": {
+      "owner": "Existing CRM source owner only",
+      "status": "BOUNDED_DIAGNOSTICS_DELIVERED; HISTORICAL403_NOT_REPRODUCED_ROOT_UNKNOWN",
+      "privateRosterOrKeysShared": false,
+      "sameFailedRequestRepeated": false
+    },
+    "humanAcceptance": "PENDING",
+    "b5Completed": false
+  },
+  "personalCrmLinkDiagnosticDelivery": {
+    "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+    "package": {
+      "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "tree": "ae2d9116e4ae3743e716a4b57bbbb3d4106e3379",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261025-47646b6bfc4f-B5DIAGNOSTIC-NODE24",
+      "files": 804,
+      "manifestSha": "F641155657DB255000D48E8B7D5614DD38198B0B320F8C66094D9FDC71838C51",
+      "node": {
+        "version": "v24.19.0",
+        "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+        "path": "C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe"
+      },
+      "mainPath": "/assets/index-CkcbNSPr.js",
+      "mainSha": "6ad0d9795c79807b66c82995ba6cc4ab75f376ffa388fe0ee8ca3fb47396c817",
+      "profile": "clean-synthetic-20261022",
+      "ownerPassiveFilesVerified": 2299,
+      "ownerBuildReused": true,
+      "existingLockAndDependenciesReused": true,
+      "diagnosticOnly": true,
+      "rootCause": "NOT_PROVEN",
+      "installed": false
+    },
+    "installation": {
+      "status": "INSTALLED",
+      "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "frontendSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "backendSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "root": "C:/Sirket/ERP/releases/CLEAN-CRM-20261025-47646b6bfc4f-B5DIAGNOSTIC-NODE24",
+      "manifestSha": "F641155657DB255000D48E8B7D5614DD38198B0B320F8C66094D9FDC71838C51",
+      "files": 804,
+      "changedPorts": [
+        62800,
+        62801,
+        62802,
+        62803
+      ],
+      "preservedListeners": 16,
+      "erpSource": "b9dd984876c808482017365556538078601187b8",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "dataSummariesUnchanged": 53,
+      "installedAt": "2026-10-25T00:27:08.6428233+03:00"
+    },
+    "ci": {
+      "source": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "checks": [
+        {
+          "name": "windows-startup-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880100/job/120991167230"
+        },
+        {
+          "name": "secret-scan",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880100/job/120991167210"
+        },
+        {
+          "name": "quality-build-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880100/job/120991167106"
+        },
+        {
+          "name": "ai-sales-offline",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133880098/job/120991166911"
+        },
+        {
+          "name": "quality-build-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133875053/job/120991151922"
+        },
+        {
+          "name": "secret-scan",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133875053/job/120991151850"
+        },
+        {
+          "name": "windows-startup-test",
+          "conclusion": "success",
+          "url": "https://github.com/melihsnyldzz-ui/melisa-crm/actions/runs/40133875053/job/120991151663"
+        }
+      ]
+    },
+    "newServerProof": {
+      "status": "TWO_NEW_PERSONAL_BINDINGS_SERVER_VERIFIED",
+      "humanAcceptance": "PENDING",
+      "nativeKeystore": "NOT_TESTED",
+      "normalGuiCrossRealmSso": "NOT_CLAIMED; direct normal personal GUI and native server link proof recorded separately",
+      "credentialsOutput": false,
+      "failure": null,
+      "accountOrRoleWrites": 0,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "cases": [
+        {
+          "elapsedMs": 298,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/login",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 26,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/session-confirm",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 52,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/terminal-handoff/prepare",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 321,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/terminal-handoff",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 43,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 59,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/inbox",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 50,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/conversations/156",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 61,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 403,
+          "path": "/crm/conversations/55",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 42,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 403,
+          "path": "/crm/users",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 19,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/terminal-handoff",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 76,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/refresh",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 54,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 10,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/logout",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 38,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/me",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 17,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/logout",
+          "role": "personel"
+        },
+        {
+          "elapsedMs": 226,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/login",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 16,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/session-confirm",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 40,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/terminal-handoff/prepare",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 71,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/terminal-handoff",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 39,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 46,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/inbox",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 50,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/crm/users",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 6,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/terminal-handoff",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 80,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/refresh",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 43,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/me",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 9,
+          "realm": "erp",
+          "errorCode": null,
+          "status": 200,
+          "path": "/api/auth/logout",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 27,
+          "realm": "crm",
+          "errorCode": "CRM_TERMINAL_IDENTITY_REQUIRED",
+          "status": 403,
+          "path": "/auth/me",
+          "role": "mudur"
+        },
+        {
+          "elapsedMs": 19,
+          "realm": "crm",
+          "errorCode": null,
+          "status": 200,
+          "path": "/auth/logout",
+          "role": "mudur"
+        }
+      ],
+      "cleanupFailed": false,
+      "businessWrites": 0,
+      "observedAt": "2026-10-25T00:27:37.5390321+03:00",
+      "ownNewLinkedFamilies": 2,
+      "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "stage": "fresh paired handoff: mudur",
+      "assignmentWrites": 0,
+      "oldNormalFamiliesPreserved": true,
+      "physicalAndroid": "NOT_TESTED",
+      "changedDiagnosticSource": true,
+      "allOwnLinkedFamiliesRevoked": true,
+      "actors": [
+        {
+          "agent": 1002,
+          "onlyAssigned156": true,
+          "visibleConversations": 1,
+          "erpUserId": 10022,
+          "bindingRevisionMatched": true,
+          "erpOwnLogoutClosesLinkedAccess": true,
+          "role": "personel",
+          "oneUseReplayDenied": true,
+          "status": "NEW_PERSONAL_BINDING_SERVER_VERIFIED",
+          "serverTechnicalProofOnly": true,
+          "crmUserId": "clean-managed-d5c8828c-4fe3-4771-8e6d-0afeeccfb6a2",
+          "employeeId": 2,
+          "linkedRefreshSameIdentity": true,
+          "freshIdentityFieldCount": 11,
+          "normalGui": "Own normal login/read/assignment/reload observed separately; native WebView not tested"
+        },
+        {
+          "normalGui": "Own normal login/read/assignment/reload observed separately; native WebView not tested",
+          "erpOwnLogoutClosesLinkedAccess": true,
+          "accountsRead": 7,
+          "visibleConversations": 3,
+          "crmUserId": "clean-managed-87dd7929-1109-444a-b563-c49e295f6a8f",
+          "freshIdentityFieldCount": 11,
+          "assignmentRevision": 6,
+          "status": "NEW_PERSONAL_BINDING_SERVER_VERIFIED",
+          "erpUserId": 10023,
+          "linkedRefreshSameIdentity": true,
+          "agent": 1003,
+          "role": "mudur",
+          "bindingRevisionMatched": true,
+          "oneUseReplayDenied": true,
+          "employeeId": 3,
+          "serverTechnicalProofOnly": true,
+          "accountMetadataPreserved": true
+        }
+      ],
+      "caseCount": 28,
+      "previousFailurePreserved": true
+    },
+    "preservation": {
+      "dataScopes": {
+        "own-fixture": true,
+        "all-current-contributions": true,
+        "native": true
+      },
+      "status": "NEW_DIAGNOSTIC_INSTALL_AND_TWO_PERSONAL_LINKS_PRESERVED",
+      "oldFailurePreserved": true,
+      "rootCauseOfHistorical403": "UNKNOWN; not reproduced on changed diagnostic source",
+      "businessWrites": 0,
+      "assignmentWrites": 0,
+      "accountWrites": 0,
+      "oldPackingAndManagedAssignmentUnchanged": true,
+      "observedAt": "2026-10-25T00:28:16.8035328+03:00",
+      "currentUsersEmployeesRolesPreserved": true,
+      "oldNormalFamiliesPreserved": true,
+      "humanAcceptance": "PENDING",
+      "twoOwnTemporaryFamiliesRevoked": true
+    },
+    "normalGuiAfterChangedInstallation": {
+      "observedAt": "2026-10-25T00:28:40+03:00",
+      "personOwnAssigned156": true,
+      "independentManagerThreeConversationsAndOwnRole": true,
+      "bothExistingSessionsFullReloadWithoutLogin": true,
+      "screenshots": [
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-diagnostic-crm-manager-reload.png",
+          "sha256": "dcc64eca68ef6e93c5e797e26b5d6e9b7e7a6d1972df0c64930203af7efc0c45"
+        },
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-diagnostic-crm-person-assigned.png",
+          "sha256": "50ec0102dc308d867dd2bd032cf00e3c6fdd19cb43ee8c585270d226b6566d4c"
+        }
+      ],
+      "normalGuiCrossRealm": "NOT_CLAIMED"
+    },
+    "historicalFailure": "Preserved unchanged; not reproduced, root UNKNOWN",
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
+  },
+  "personalAccountingDuty": {
+    "preflight": {
+      "restart": 0,
+      "plannedUsername": "b5ilker20261025",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "tradeWrites": 0,
+      "crmWrites": 0,
+      "observedAt": "2026-10-25T00:36:55.7285590+03:00",
+      "employeeCount": 3,
+      "exactEmployeeMatches": 0,
+      "plannedCrmLink": false,
+      "calls": [
+        {
+          "success": true,
+          "path": "/api/auth/login",
+          "method": "POST"
+        },
+        {
+          "success": true,
+          "path": "/api/auth-admin/overview",
+          "method": "GET"
+        },
+        {
+          "success": true,
+          "path": "/api/personnel/overview",
+          "method": "GET"
+        },
+        {
+          "success": true,
+          "path": "/api/auth/logout",
+          "method": "POST"
+        }
+      ],
+      "status": "READ_ONLY_READY_MISSING_BOTH",
+      "usersCount": 14,
+      "realPersonIdentityClaimed": false,
+      "allowedPersonnelRoleIds": [
+        20,
+        23,
+        25,
+        26,
+        30,
+        31,
+        32
+      ],
+      "plannedPacking": false,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "plannedEmployeeCode": "B5ILKER25",
+      "role": {
+        "id": 32,
+        "code": "clean_test_personnel_finance",
+        "name": "Muhasebe — tahsilat, ödeme ve kasa",
+        "description": "Kayıtlı kişisel personel; yalnız mevcut temiz TEST iş kapsamı",
+        "isSystemRole": false,
+        "isActive": true,
+        "userCount": 0
+      },
+      "ownSetupLogoutConfirmed": true,
+      "exactUserMatches": 0,
+      "roleId": 32,
+      "plannedPriceEdit": false,
+      "plannedSale": false,
+      "synthetic": true,
+      "accountWrites": 0
+    },
+    "applicationOriginalPreserved": {
+      "calls": [
+        {
+          "path": "/api/auth/login",
+          "elapsedMs": 252,
+          "method": "POST",
+          "success": true
+        },
+        {
+          "path": "/api/auth-admin/overview",
+          "elapsedMs": 669,
+          "method": "GET",
+          "success": true
+        },
+        {
+          "path": "/api/personnel/overview",
+          "elapsedMs": 222,
+          "method": "GET",
+          "success": true
+        },
+        {
+          "path": "/api/auth-admin/users",
+          "elapsedMs": 13172,
+          "method": "POST",
+          "success": true
+        },
+        {
+          "path": "/api/personnel/employees",
+          "elapsedMs": 11001,
+          "method": "POST",
+          "success": true
+        },
+        {
+          "path": "/api/auth/logout",
+          "elapsedMs": 10,
+          "method": "POST",
+          "success": true
+        }
+      ],
+      "status": "NOT_CONFIRMED_INSPECT_BEFORE_RETRY",
+      "userId": 10024,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "stage": "normal own accounting employee link",
+      "crmWrites": 0,
+      "roleId": 32,
+      "tradeWrites": 0,
+      "ownSetupLogoutConfirmed": true,
+      "employeeCreated": true,
+      "employeeId": 4,
+      "synthetic": true,
+      "otherSixAccountsCreated": 0,
+      "restart": 0,
+      "observedAt": "2026-10-25T00:39:11.3252505+03:00",
+      "realPersonIdentityClaimed": false,
+      "userCreated": true,
+      "existingRoleOrPermissionChanges": 0
+    },
+    "reconciliation": {
+      "usersBefore": 14,
+      "usersAfter": 15,
+      "normalGui": "NOT_YET_TESTED",
+      "exactNewUserId": 10024,
+      "humanAcceptance": "PENDING",
+      "otherContributionScopesSame": 52,
+      "crmRelationAbsent": true,
+      "runtimeProtectedFilesSame": true,
+      "originalApplicationReceiptPreserved": true,
+      "status": "EXPECTED_NEW_USER_ONLY_RECONCILED_EXACT_ACCOUNTING_PAIR_READY",
+      "roleId": 32,
+      "employeesAfter": 4,
+      "observedAt": "2026-10-25T00:40:33.4749867+03:00",
+      "initialAccountCreationReplayed": false,
+      "initialGuardIssue": "All-user snapshot included newly approved user; old14 users separately byte-identical",
+      "ownFixtureSame": true,
+      "newMutation": 0,
+      "tradeWrites": 0,
+      "old14UsersThreeEmployeesAndAllRolesPermissionsMembersPreserved": true,
+      "exactEmployeeId": 4,
+      "otherContributionLinesSame": 158
+    },
+    "boundaries": {
+      "status": "ACCOUNTING_READ_ROLE_NARROW_BOUNDARIES_VERIFIED",
+      "userId": 10024,
+      "crmPrepareDeniedNoRelation": true,
+      "saleCreateAndFinalizePermissionsAbsent": true,
+      "crmContact": 0,
+      "observedAt": "2026-10-25T00:50:55.9714283+03:00",
+      "businessWrites": 0,
+      "existingNormalGuiSessionPreserved": true,
+      "roleId": 32,
+      "cartonReadDenied": true,
+      "financeReadAndExistingFinancePermissionsPreserved": true,
+      "accountWrites": 0,
+      "employeeId": 4,
+      "calls": [
+        {
+          "path": "/api/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/auth-admin/overview",
+          "status": 403
+        },
+        {
+          "path": "/api/terminal-cartons/receipts",
+          "status": 403
+        },
+        {
+          "path": "/api/auth/terminal-handoff/prepare",
+          "status": 403
+        }
+      ],
+      "ownLogoutConfirmed": true,
+      "managementDenied": true
+    },
+    "cashApiRead": {
+      "restart": 0,
+      "ownLogout": true,
+      "observedAt": "2026-10-25T00:43:55.2393614+03:00",
+      "accountWrites": 0,
+      "businessWrites": 0,
+      "calls": [
+        {
+          "status": 200,
+          "elapsedMs": 24,
+          "path": "/api/auth/me",
+          "code": null
+        },
+        {
+          "status": 200,
+          "elapsedMs": 16612,
+          "path": "/api/finance/cash-register?businessDate=2026-10-22&drawerId=1",
+          "code": null
+        }
+      ]
+    },
+    "normalGui": {
+      "observedAt": "2026-10-24T21:53:57.056Z",
+      "normalPasswordFormLogin": true,
+      "fullReloadSameIdentity": true,
+      "normalSettingsForbidden": true,
+      "normalSalesReadOnlyNoCreateOrFinalize": true,
+      "normalCash": "API_ERROR; not passed",
+      "normalCollections": "Read failed; not passed",
+      "normalCashApiIndependentRead": {
+        "status": 200,
+        "elapsedMs": 16612
+      },
+      "existingGeneralReadDeadlineMs": 15000,
+      "firstGuiRequestNetworkTrace": "NOT_CAPTURED; deadline mismatch is a measured explanatory lead, not an instrumented root cause",
+      "newTimeoutCacheOrMetadata": false,
+      "financialRecordsCreated": 0,
+      "humanAcceptance": "PENDING",
+      "screenshots": [
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-accounting-cash-before.png",
+          "sha256": "1299a9e627064d6ab7558ba0aa28404e2dfc14b7ec374aadd6f729d2600a82e3"
+        },
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-accounting-settings-reloaded.png",
+          "sha256": "55668ea208ad3e52081d1d42bec403bad543878198262b62dbe98589ba7d4dff"
+        },
+        {
+          "path": "C:/Sirket/ERP/clean/20261022/runtime/semih-access-20261023/b5-accounting-sales-read-only.png",
+          "sha256": "8a414b4b239c7f689f2d4f3b5db93159bddb50df320ebdc95d49e6eedb6f3057"
+        }
+      ]
+    },
+    "preservation": {
+      "privateRuntimeFilesSame": true,
+      "businessWrites": 0,
+      "scopesSame": {
+        "all-current-contributions": true,
+        "own-fixture": true,
+        "old-rows": true
+      },
+      "full53CurrentContributionScopesSameAfterCreate": true,
+      "existing14UsersThreeEmployeesRolesPermissionsMembersSame": true,
+      "otherSixAccountsCreated": 0,
+      "status": "ACCOUNTING_GUI_AND_BOUNDARY_READS_PRESERVED",
+      "ownNewUser10024Employee4Role32Same": true,
+      "humanAcceptance": "PENDING",
+      "restart": 0,
+      "observedAt": "2026-10-25T00:52:34.4483529+03:00"
+    },
+    "currentStatus": "CORE_FINANCE_READS_AGENT_VERIFIED; optional multi-party movement panel unsupported",
+    "next": "Six synthetic user/employee pairs blocked pending specific direct approval; no general-context retry",
+    "roleOrPermissionWidening": false,
+    "otherSixAccountsCreated": 0,
+    "fullB5Completed": false,
+    "humanAcceptance": "PENDING"
+  },
+  "personalAccountingFinanceReadDelivery": {
+    "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+    "review": {
+      "backendSpeedupClaimed": false,
+      "review": "GO",
+      "observedAt": "2026-10-25T01:03:34.3457124+03:00",
+      "owner": "Existing CRM source owner read-only",
+      "p2": 0,
+      "testPass": 102,
+      "files": {
+        "apps/sites-workflow/src/workflow/workingCatalogSession.test.mjs": "61C57C69CE5C184FF36A4B2233E38F241606022A26FE2E3C7EF45B6CAF38B677",
+        "apps/sites-workflow/src/workflow/workingCatalogSession.mjs": "7EE4ADA64A2DF0F82FC59904E431DE5B4DB49A71874869AF0A34A437FCC9427E"
+      },
+      "p1": 0
+    },
+    "ci": {
+      "requiredChecks": [
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000292111,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136924812/job/121000292111"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000291978,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136924812/job/121000291978"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000291796,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136924812/job/121000291796"
+        },
+        {
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000283021,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136921474/job/121000283021"
+        },
+        {
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000283015,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136921474/job/121000283015"
+        },
+        {
+          "name": "secret-scan",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 121000282877,
+          "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/40136921474/job/121000282877"
+        }
+      ],
+      "observedAt": "2026-10-25T01:10:07.1175746+03:00",
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be"
+    },
+    "package": {
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "root": "C:/Sirket/ERP/releases/CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE",
+      "kind": "ERP_FRONTEND_ONLY",
+      "files": 3459,
+      "manifestSha": "DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72",
+      "previousFrontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+      "previousManifestSha": "1C0E6076334BED2F38EBB907A6E548E8CD84AF196DF2BBB6F366D849CAEC9BF4",
+      "backendUnchanged": "b9dd984876c808482017365556538078601187b8",
+      "nativeUnchanged": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "crmUnchanged": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+      "buildMs": 11374,
+      "offlineBuild": true,
+      "buildApiBasePinnedAfterGuard": true,
+      "frontendBuildApiBase": "http://127.0.0.1:4194",
+      "pageEntryBundle": {
+        "path": "apps/sites-workflow/dist/assets/example-DF84lNur.js",
+        "sha256": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b"
+      },
+      "rejectedProfilePackagePreserved": true,
+      "lockedDependenciesReused": true,
+      "changedTransportBundle": {
+        "path": "apps/sites-workflow/dist/assets/workingCatalogSession-DzdLhyvV.js",
+        "sha256": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080"
+      },
+      "backendSpeedupClaimed": false,
+      "installed": false
+    },
+    "installation": {
+      "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEPROFILE",
+      "threeSqlScopesSame": true,
+      "apiSource": "b9dd984876c808482017365556538078601187b8",
+      "protectedFilesSame": true,
+      "persistentStarterPinned": true,
+      "servedEntrySha": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "files": 3459,
+      "newWebPid": 9856,
+      "servedBundleSha": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080",
+      "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "businessWrites": 0,
+      "buildApiBasePinnedAfterGuard": true,
+      "preservedListeners": 34,
+      "installedAt": "2026-10-25T01:17:55.4899640+03:00",
+      "manifestSha": "DED6325D0C9BC55316199A7E21463135E42FC0AE5B08FB4D00FA26EB7AA58A72",
+      "metadataDdl": 0,
+      "oldWebPid": 22784,
+      "status": "INSTALLED_FRONTEND_ONLY",
+      "sqlDml": 0,
+      "changedPorts": [
+        5244
+      ],
+      "accountWrites": 0,
+      "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e"
+    },
+    "firstProfileRejected": {
+      "installation": {
+        "root": "C:\\Sirket\\ERP\\releases\\CLEAN-ERP-WEB-20261025-b89cc651dc26-B5FINANCEREAD",
+        "apiSource": "b9dd984876c808482017365556538078601187b8",
+        "accountWrites": 0,
+        "newWebPid": 16904,
+        "oldWebPid": 50580,
+        "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+        "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+        "status": "INSTALLED_FRONTEND_ONLY",
+        "sqlDml": 0,
+        "servedBundleSha": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080",
+        "threeSqlScopesSame": true,
+        "protectedFilesSame": true,
+        "preservedListeners": 34,
+        "installedAt": "2026-10-25T01:10:24.6545434+03:00",
+        "metadataDdl": 0,
+        "files": 3459,
+        "crmSource": "47646b6bfc4f2630e5e48e103b39a48f359f7e0e",
+        "businessWrites": 0,
+        "changedPorts": [
+          5244
+        ],
+        "manifestSha": "165D77CD60560716065785CF06132DDB473776AAC83894713B9CF0A0ED244E95",
+        "persistentStarterPinned": true
+      },
+      "recovery": {
+        "recoveredPid": 22784,
+        "apiSource": "b9dd984876c808482017365556538078601187b8",
+        "status": "PREVIOUS_WEB_RESTORED_PROFILE_CANDIDATE_REJECTED",
+        "rejectedFrontendSource": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+        "rejectedPid": 16904,
+        "persistentOldStarterRestored": true,
+        "accountWrites": 0,
+        "observedAt": "2026-10-25T01:14:55.8894642+03:00",
+        "businessWrites": 0,
+        "oldArtifactReadback": true,
+        "preservedListeners": 34,
+        "recoveredFrontendSource": "dd8ef4144482fee0def6a4643f44fd2147ec654e",
+        "sqlRestore": 0
+      },
+      "diagnosis": {
+        "firstProfileAccepted": false,
+        "oldWebRecoveryVerified": true,
+        "ciReusedSameSource": true,
+        "fixedBuildApiBase": "http://127.0.0.1:4194",
+        "source": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+        "firstBadPackagePreserved": true,
+        "profileReassertedAfterGuard": true,
+        "guardClearsVitePrefix": true,
+        "offlineGuardPreserved": true
+      },
+      "normalGuiAccepted": false
+    },
+    "normalGui": {
+      "roleId": 32,
+      "noRecordsDroppedOrGuessed": true,
+      "selectedExistingInvoiceId": 1,
+      "userId": 10024,
+      "normalPasswordFormUsed": true,
+      "employeeId": 4,
+      "noAmountOrAccountEntered": true,
+      "optionalMovementPanel": "NOT_PASSED: current projection requires one customer/TRY; actual approved rows have four customers/three currencies",
+      "oldCollectionHistoryRows": 1,
+      "observedAt": "2026-10-25T01:31:49.4057809+03:00",
+      "collectionListRows": 4,
+      "humanAcceptance": "PENDING",
+      "cashExistingHistoryVisible": true,
+      "cashReadAndReload": true,
+      "screenshots": [
+        {
+          "sha256": "D95E924D4CA7713EE827CF271DBFEF6456D9F7556F6818EFF2FB6EC5225486CA",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-cash.png"
+        },
+        {
+          "sha256": "D95E924D4CA7713EE827CF271DBFEF6456D9F7556F6818EFF2FB6EC5225486CA",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-cash-reloaded.png"
+        },
+        {
+          "sha256": "FFE616BCF5D55C8F8D7DC7035635EC19C228C0A1B63211543BEDD554ADF2B503",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-collections-list.png"
+        },
+        {
+          "sha256": "5569EDCA72BEC31909654956941FDBF6F0613017194FE3047D21511CFB3DE7D0",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-collection-detail.png"
+        },
+        {
+          "sha256": "440913BE4706E8DA6E30FE9AA070FA4A06A0062F9D831604094D125A0E634824",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-collections-reloaded.png"
+        },
+        {
+          "sha256": "780193B87592A2CF2A9603858D807631F7442D3F2A27F5A7AD4993336D2CDF4A",
+          "path": "C:\\Sirket\\ERP\\clean\\20261022\\runtime\\semih-access-20261023\\b5-finance-read-profile-ledger-scope-blocked.png"
+        }
+      ],
+      "financialActionClicks": 0,
+      "collectionsListDetailAndReload": true,
+      "longExpiryOrAndroid": "NOT_TESTED",
+      "cashCurrenciesSeparate": true
+    },
+    "preservation": {
+      "status": "NORMAL_FINANCE_READS_NATIVE_AND_COMMERCIAL_EFFECTS_UNCHANGED",
+      "accountWrites": 0,
+      "full53ContributionScopesSame": true,
+      "ownReceiptAndCartonsSame": true,
+      "oldErpApiAndNativeAndCrmNotRestarted": true,
+      "humanAcceptance": "PENDING",
+      "normalOwnLoginJournalEffectsSeparate": true,
+      "threeScopesSame": {
+        "native": true,
+        "own-fixture": true,
+        "all-current-contributions": true
+      },
+      "businessWrites": 0,
+      "observedAt": "2026-10-25T01:31:50.3783476+03:00",
+      "all15UsersFourEmployeesRolesPermissionsSealsCountsAuditSame": true
+    },
+    "optionalMovementPanel": {
+      "accepted": false,
+      "reason": "Single-customer TRY projection rejects actual four-customer/three-currency input; no labels or account links guessed",
+      "api": {
+        "ownLogout": true,
+        "businessWrites": 0,
+        "observedAt": "2026-10-25T01:28:14.4947909+03:00",
+        "sequentialDiagnostic": true,
+        "calls": [
+          {
+            "code": null,
+            "path": "/api/work-sales/context",
+            "status": 200,
+            "elapsedMs": 28594
+          },
+          {
+            "code": null,
+            "path": "/api/work-supplier-payments/context",
+            "status": 200,
+            "elapsedMs": 25622
+          }
+        ],
+        "restart": 0,
+        "accountWrites": 0
+      },
+      "model": {
+        "accepted": false,
+        "reason": "Tahsilat kaynağı doğrulanamadı.",
+        "sourceShape": {
+          "salesOk": true,
+          "paymentsOk": true,
+          "customerCount": 1,
+          "invoiceCount": 4,
+          "invoiceCustomerIds": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "salesCustomerId": "1",
+          "salesAccountCurrencies": [
+            "TRY"
+          ],
+          "invoiceCurrencies": [
+            "TRY",
+            "TRY",
+            "USD",
+            "EUR"
+          ],
+          "invoiceFieldNames": [
+            "id",
+            "documentNo",
+            "documentDate",
+            "status",
+            "customerId",
+            "currency",
+            "subtotalExact4",
+            "grandTotalExact4",
+            "amountTryExact4",
+            "customerBalanceExact4",
+            "items",
+            "collections",
+            "revision"
+          ],
+          "accountCount": 4
+        }
+      },
+      "sourceContractInvestigation": {
+        "status": "BLOCKED_NORMAL_READ_DTO_MISSING_REVERSAL_EVIDENCE",
+        "observedAt": "2026-10-24T23:06:24.420Z",
+        "api": {
+          "businessWrites": 0,
+          "calls": [
+            {
+              "code": null,
+              "path": "/api/work-collections/context?invoiceId=2",
+              "elapsedMs": 31618,
+              "status": 200
+            },
+            {
+              "code": null,
+              "path": "/api/work-collections/context?invoiceId=3",
+              "elapsedMs": 25741,
+              "status": 200
+            }
+          ],
+          "restart": 0,
+          "ownLogout": true,
+          "observedAt": "2026-10-25T02:05:29.1102722+03:00",
+          "accountWrites": 0,
+          "scope": "Only two existing inputs needed by optional movement panel"
+        },
+        "source": {
+          "path": "apps/api/src/services/cleanStoreDayStore.mjs",
+          "sha256": "48ddba92b8fc8d69135052bff47ef7d7f604c7e964235a5514f1ee5514026757",
+          "installedApiCommit": "b9dd984876c808482017365556538078601187b8",
+          "normalCleanReaderChecksCancellationExistence": true,
+          "normalCleanReaderExposesReversalFields": false,
+          "historicalGenericReaderIsNotCurrentCleanAdapter": true
+        },
+        "cases": [
+          {
+            "invoiceId": "2",
+            "customerMatchesInvoice": true,
+            "customerId": "2",
+            "currency": "TRY",
+            "customerCodeAndNamePresent": true,
+            "accounts": [
+              {
+                "id": "2",
+                "currency": "TRY",
+                "namePresent": true
+              }
+            ],
+            "cancelledCount": 2,
+            "missingFields": [
+              "reversalId",
+              "reversalAccountId",
+              "reversalAmountExact4",
+              "reversalCurrency",
+              "reversalDocumentDate",
+              "reversalCreatedAt"
+            ],
+            "allCancelledSourcesIncomplete": true,
+            "currentModelFailureAfterExactCustomerAndAccountSelection": "Tahsilat ters kaydı doğrulanamadı."
+          },
+          {
+            "invoiceId": "3",
+            "customerMatchesInvoice": true,
+            "customerId": "3",
+            "currency": "USD",
+            "customerCodeAndNamePresent": true,
+            "accounts": [
+              {
+                "id": "3",
+                "currency": "USD",
+                "namePresent": true
+              }
+            ],
+            "cancelledCount": 1,
+            "missingFields": [
+              "reversalId",
+              "reversalAccountId",
+              "reversalAmountExact4",
+              "reversalCurrency",
+              "reversalDocumentDate",
+              "reversalCreatedAt"
+            ],
+            "allCancelledSourcesIncomplete": true,
+            "currentModelFailureAfterExactCustomerAndAccountSelection": "Tahsilat hesabı doğrulanamadı."
+          }
+        ],
+        "missingReversalFields": [
+          "reversalId",
+          "reversalAccountId",
+          "reversalAmountExact4",
+          "reversalCurrency",
+          "reversalDocumentDate",
+          "reversalCreatedAt"
+        ],
+        "exactPartyAndAccountMetadataExistsInInvoiceContext": true,
+        "clientOnlyFixSufficient": false,
+        "sqlDataAbsenceClaimed": false,
+        "backendReaderChangeApplied": false,
+        "rowsDiscarded": 0,
+        "guessedBindings": 0,
+        "timeoutWidening": 0,
+        "accountWrites": 0,
+        "businessWrites": 0,
+        "restart": 0,
+        "applicationCodeChanged": false,
+        "newPackage": false,
+        "humanAcceptance": "PENDING"
+      }
+    },
+    "backendSpeedupClaimed": false,
+    "normalSourceDurationsMs": {
+      "cash": 16612,
+      "invoiceList": 27730
+    },
+    "firstElapsed236msNotUsed": true,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false,
+    "offlineReversalReader": {
+      "taskId": "ERP-B5-REVERSAL-READ-OFFLINE-20261024-2327",
+      "baseCommit": "f0e8f86b18c4486921aba3c3dd93b9d37f1b809f",
+      "sourceFiles": {
+        "apps/api/src/services/cleanStoreDayStore.mjs": "22CF15BCE581DDDA65ED8B3CA331D9F85C00BC083F4E6C566404C9EC5349EBEA",
+        "apps/api/src/services/cleanStoreDayStore.test.mjs": "562EB1AB6B5B54D57C46BC09A73C877462BCEB5208A3366987CA0F4E7E273195"
+      },
+      "scope": "Only the current clean B4 collection reader and its offline tests",
+      "regression": {
+        "beforeFixFailingCurrencyCases": [
+          "TRY",
+          "USD",
+          "EUR"
+        ],
+        "missingField": "reversalId",
+        "actualBefore": "undefined"
+      },
+      "targetedTests": {
+        "pass": 87,
+        "fail": 0,
+        "guard": "scripts/ci/offline-guard.cjs",
+        "files": [
+          "apps/api/src/services/cleanStoreDayStore.test.mjs",
+          "apps/api/src/services/cleanStoreDayReady.test.mjs",
+          "apps/api/src/services/cleanStoreDayScope.test.mjs",
+          "apps/api/src/services/workSalesService.test.mjs"
+        ],
+        "fixture": "Injected Request/Transaction from the existing clean readiness fixture with finite B4 synthetic native-row projections; no SQL engine or connection"
+      },
+      "review": {
+        "verdict": "GO",
+        "p1": 0,
+        "p2": 0,
+        "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+        "scope": "Independent read-only source review and narrow date-proof follow-up; no tests or runtime operations by reviewer",
+        "files": {
+          "apps/api/src/services/cleanStoreDayStore.mjs": "22CF15BCE581DDDA65ED8B3CA331D9F85C00BC083F4E6C566404C9EC5349EBEA",
+          "apps/api/src/services/cleanStoreDayStore.test.mjs": "562EB1AB6B5B54D57C46BC09A73C877462BCEB5208A3366987CA0F4E7E273195"
+        },
+        "previousNoGoPreserved": true,
+        "originalAndReversalDocumentDatesPinnedToProfile": true,
+        "actualCreatedAtDayNotForced": true,
+        "installationOrHumanAcceptance": false
+      },
+      "initialReview": {
+        "verdict": "NO-GO",
+        "p1": 0,
+        "p2": 1,
+        "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+        "finding": "Matching valid but foreign document dates were not pinned to the finite profile.date",
+        "sourceSha256": "A065FF4C565900780CB2B8B2294879B197529F15BAE8183BF3BC215C5F130578",
+        "testSha256": "ED1A9BEC457242F40AF2AD34B93AB542249C01BD346D174C07140C534C35A57A",
+        "remediation": "Two meaningful date rejection regressions first failed; source pins original and reversal document dates, preserves actual creation timestamp"
+      },
+      "reviewRemediationRegressions": {
+        "wrongMatchingDocumentDayFailuresBeforeFix": 2,
+        "createdAtNotPinned": true
+      },
+      "fieldsAdded": [
+        "reversalId",
+        "reversalAccountId",
+        "reversalAmountExact4",
+        "reversalCurrency",
+        "reversalDocumentDate",
+        "reversalCreatedAt"
+      ],
+      "rejects": [
+        "duplicate or orphan links",
+        "wrong invoice, customer or original collection",
+        "wrong account, amount, currency or direction",
+        "missing or inconsistent source and finance dates"
+      ],
+      "activeDtoAndRevisionUnchanged": true,
+      "exactFourDecimalAmountsPreserved": true,
+      "privateProofColumnsRemoved": true,
+      "originalGuardsAndWritersUnchanged": true,
+      "ci": {
+        "evidence": "Matching final delivery commit checks on existing PR54 and existing common GitHub report",
+        "localTestsAreNotCI": true
+      },
+      "delivery": {
+        "applicationSourcePrepared": true,
+        "sqlExecuted": false,
+        "nativeDatabaseTested": false,
+        "passivePackageCreated": false,
+        "installed": false,
+        "restarted": false,
+        "guiTested": false,
+        "humanAcceptance": "PENDING",
+        "multiCustomerClientChanged": false,
+        "accountsOrRolesChanged": false,
+        "fullB5Closed": false,
+        "countersUnchanged": true
+      }
+    },
+    "offlineMultiCustomerPanel": {
+      "taskId": "ERP-B5-MULTICUSTOMER-PANEL-OFFLINE-20261024-2352",
+      "baseCommit": "7a2ad1b65ad2d2506b87bec2bf93a427e7fa987a",
+      "sourceFiles": {
+        "apps/sites-workflow/src/workflow/workCollections.js": "BF3B02180B04C74D8EF55A1758352CE2EFF17F6C56547925DAA77F4CFC265BCF",
+        "apps/sites-workflow/src/workflow/workFinanceMovements.mjs": "1FC0F58FF1C6873C6FBC1F2B9FDE3A4CC2F82EE20358C854838EC1E63C6EB1F2",
+        "apps/sites-workflow/src/workflow/workFinanceMovements.test.mjs": "2AA62647132628B76F50F51869DA5F439B8A53975A0F7B5E54345BEC8652101F",
+        "apps/sites-workflow/src/workflow/workCollectionsCache.test.mjs": "EB5FB30927C30D1E6C5783E46088397F73D46E85E90765785C0B1ECBBB69234B"
+      },
+      "review": {
+        "verdict": "GO",
+        "p1": 0,
+        "p2": 0,
+        "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+        "files": {
+          "apps/sites-workflow/src/workflow/workCollections.js": "BF3B02180B04C74D8EF55A1758352CE2EFF17F6C56547925DAA77F4CFC265BCF",
+          "apps/sites-workflow/src/workflow/workFinanceMovements.mjs": "1FC0F58FF1C6873C6FBC1F2B9FDE3A4CC2F82EE20358C854838EC1E63C6EB1F2",
+          "apps/sites-workflow/src/workflow/workFinanceMovements.test.mjs": "2AA62647132628B76F50F51869DA5F439B8A53975A0F7B5E54345BEC8652101F",
+          "apps/sites-workflow/src/workflow/workCollectionsCache.test.mjs": "EB5FB30927C30D1E6C5783E46088397F73D46E85E90765785C0B1ECBBB69234B"
+        },
+        "normalApiContextContractCrossCheckedInSource": true,
+        "testsRerunByReviewer": false,
+        "controllerBuilderStubIsNotNativeOrGuiAcceptance": true,
+        "runtimeOrDataChanged": false
+      },
+      "regression": {
+        "beforeFix": "Four-customer exact-context positive failed with Tahsilat kaynağı doğrulanamadı",
+        "afterFixPass": 83,
+        "afterFixFail": 0,
+        "reader87TestsNotRepeated": true
+      },
+      "tests": {
+        "files": [
+          "workFinanceMovements.test.mjs",
+          "workCollectionsCache.test.mjs",
+          "workCollectionsSelectedSource.test.mjs"
+        ],
+        "offlineGuard": "scripts/ci/offline-guard.cjs",
+        "controller": "Synthetic session and builder stub prove request, all-or-nothing rendering and generation/dispose orchestration",
+        "model": "Real buildWorkFinanceMovements with normal clean four-customer/three-currency synthetic DTOs proves exact math and source links",
+        "notNativeOrGuiIntegration": true
+      },
+      "behavior": {
+        "existingPerInvoiceContextGetOnly": true,
+        "allContextsRequired": true,
+        "partialPageTotalsRejected": true,
+        "firstCustomerOrAccountFallback": false,
+        "unknownNamesGuessed": false,
+        "duplicateOriginalAndReversalRejected": true,
+        "invoiceContextSnapshotAndRevisionsMatch": true,
+        "sourceCurrencyTotalsSeparateExact4": true,
+        "allOrNothingOutput": true,
+        "legacyAndSelectedCopyUnchanged": true,
+        "generationAndDisposePreserved": true,
+        "newEndpoint": false,
+        "newCache": false,
+        "newTimeout": false,
+        "automaticRetry": false
+      },
+      "delivery": {
+        "sourceOnly": true,
+        "realDbOrHttpOrGuiCalls": false,
+        "apiOrNativeChanged": false,
+        "installedApiRemainsPreviousB9": true,
+        "passivePackageCreated": false,
+        "testInstallation": false,
+        "roleOrAccountChanges": false,
+        "fullB5Closed": false,
+        "humanAcceptance": "PENDING",
+        "originalCountersUnchanged": true
+      },
+      "ci": {
+        "evidence": "Matching final delivery commit checks on PR54 and existing common report",
+        "localTestsAreNotCI": true
+      }
+    }
+  },
+  "sixPersonalContextReview": {
+    "directNewContext": {
+      "messageId": "01a16fe7-f715-7861-aafd-8e925d7bd88e",
+      "actualUserText": "Sen hepsini kordine et ve çalıştır",
+      "notAutomaticSpecificApproval": true
+    },
+    "preflight": {
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "observedAt": "2026-10-25T01:39:45.5899335+03:00",
+      "phase": "Preflight",
+      "synthetic": true,
+      "mutationAttempted": false,
+      "stage": "inspect exact independent synthetic identity: ahmet",
+      "calls": [
+        {
+          "method": "POST",
+          "success": true,
+          "path": "/api/auth/login",
+          "elapsedMs": 274
+        },
+        {
+          "method": "GET",
+          "success": true,
+          "path": "/api/auth-admin/overview",
+          "elapsedMs": 680
+        },
+        {
+          "method": "GET",
+          "success": true,
+          "path": "/api/personnel/overview",
+          "elapsedMs": 200
+        }
+      ],
+      "status": "READ_ONLY_READY",
+      "tradeWrites": 0,
+      "rows": [
+        {
+          "plannedRole": 30,
+          "key": "mehmet",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": true
+        },
+        {
+          "plannedRole": 30,
+          "key": "rustem",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "ismail",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "yaman",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "veronica",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        },
+        {
+          "plannedRole": 30,
+          "key": "ahmet",
+          "plannedSale": true,
+          "status": "MISSING_BOTH",
+          "plannedPacking": false
+        }
+      ],
+      "metadataDdl": 0,
+      "roleId": 30,
+      "crmWrites": 0,
+      "restart": 0,
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "realPersonIdentityClaimed": false,
+      "ownSetupLogoutConfirmed": true
+    },
+    "rejection": {
+      "crmWrites": 0,
+      "missingBoth": 6,
+      "reviewReason": "General continuation is not explicit approval for six persistent synthetic user/employee pairs and DPAPI credentials",
+      "protectedFilesSame": true,
+      "newUsers": 0,
+      "priorRejectionPreserved": true,
+      "restart": 0,
+      "status": "AUTO_REVIEW_REJECTED_BEFORE_PROCESS_START",
+      "metadataDdl": 0,
+      "tradeWrites": 0,
+      "accountPasswordDeliveriesCreated": 0,
+      "processStarted": false,
+      "newContextActualUserText": "Sen hepsini kordine et ve çalıştır",
+      "newEmployees": 0,
+      "humanAcceptance": "PENDING",
+      "newContextMessageId": "01a16fe7-f715-7861-aafd-8e925d7bd88e",
+      "observedAt": "2026-10-25T01:40:58.3967765+03:00",
+      "protectedScopesSame": {
+        "old-accounts": true,
+        "own-fixture": true,
+        "existing-contributions": true
+      },
+      "workaroundAttempted": false
+    },
+    "readback": {
+      "roleId": 30,
+      "synthetic": true,
+      "tradeWrites": 0,
+      "calls": [
+        {
+          "success": true,
+          "method": "POST",
+          "path": "/api/auth/login",
+          "elapsedMs": 249
+        },
+        {
+          "success": true,
+          "method": "GET",
+          "path": "/api/auth-admin/overview",
+          "elapsedMs": 716
+        },
+        {
+          "success": true,
+          "method": "GET",
+          "path": "/api/personnel/overview",
+          "elapsedMs": 189
+        }
+      ],
+      "phase": "Readback",
+      "restart": 0,
+      "metadataDdl": 0,
+      "observedAt": "2026-10-25T01:40:48.6199402+03:00",
+      "realPersonIdentityClaimed": false,
+      "source": "b9dd984876c808482017365556538078601187b8",
+      "crmWrites": 0,
+      "status": "MISSING_PAIRS_NOT_WRITTEN",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "rows": [
+        {
+          "plannedSale": true,
+          "plannedPacking": true,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "mehmet"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "rustem"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "ismail"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "yaman"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "veronica"
+        },
+        {
+          "plannedSale": true,
+          "plannedPacking": false,
+          "plannedRole": 30,
+          "status": "MISSING_BOTH",
+          "key": "ahmet"
+        }
+      ],
+      "stage": "inspect exact independent synthetic identity: ahmet",
+      "mutationAttempted": false,
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "ownSetupLogoutConfirmed": true
+    },
+    "preservation": {
+      "phase": "After",
+      "oldOwnInvoiceEffectsComplete": true,
+      "oldUsersIdCeiling": 10024,
+      "auditRowScope": "Not included: normal account creation appends expected audit entries",
+      "oldMemberUserCeiling": 10024,
+      "fullRolesPermissionsAndOldSeals": true,
+      "contributionContracts": 53,
+      "observedAt": "2026-10-25T01:40:49.1675202+03:00",
+      "oldEmployeeIdCeiling": 4,
+      "comparisons": {
+        "old-accounts": true,
+        "own-fixture": true,
+        "existing-contributions": true
+      },
+      "wholeDatabaseClaimed": false,
+      "status": "EXISTING_DATA_AND_ROLES_PRESERVED"
+    },
+    "oldRejectionPreserved": true,
+    "otherRouteAttempted": false,
+    "accountCreationPendingSpecificHumanApproval": true,
+    "scope": {
+      "roleId": 30,
+      "packingOnly": "Mehmet synthetic duty",
+      "priceEdit": false,
+      "maxDiscount": 0,
+      "realIdentityClaimed": false,
+      "crmMappingCreated": false
+    },
+    "humanAcceptance": "PENDING"
+  },
+  "c5FirstScheduledRead": {
+    "checksum": true,
+    "firstCombinedCommandExit": 1,
+    "newBackupOrRestore": false,
+    "fullSystemRecoveryProven": false,
+    "shaEvidence": "Existing successful backup-result.json; no new binary hash or SQL VERIFYONLY",
+    "sha256": "FD9096307DCB058813E7A8732A4665C4CD9809CBA257403A88EAE8978795C891",
+    "manualTrigger": false,
+    "crmFilesCovered": false,
+    "server": "Semih\\MELISADEV",
+    "taskOrRuntimeChanges": false,
+    "verifyOnlyPassed": true,
+    "taskId": "C5-FIRST-SCHEDULED-READ-20261025-0300",
+    "backupSetGuid": "b8b6ee89-1886-4fbd-be27-065343c02d25",
+    "lastTaskResult": 0,
+    "completedAtTR": "2026-10-25T03:00:02.7658792+03:00",
+    "lastRunTimeTR": "2026-10-25T03:00:00+03:00",
+    "startedAtTR": "2026-10-25T03:00:02.2149990+03:00",
+    "directory": "CLEAN-20261022-C5-20261025T000001357Z-512ec2b3bf8f478ca37e1851c8a821d2",
+    "nextRunTimeTR": "2026-10-26T03:00:00+03:00",
+    "sqlRevalidation": false,
+    "sizeBytes": 100458496,
+    "timeZone": "Europe/Istanbul",
+    "copyOnly": true,
+    "backupShaRecomputed": false,
+    "humanAcceptance": "PENDING",
+    "sizeMatchesExistingFile": true,
+    "status": "SCHEDULED_TASK_RESULT_AND_MATCHING_BACKUP_RECEIPT_VERIFIED",
+    "isolatedSupportedTaskInfoReadExit": 0,
+    "sourceDatabase": "MELISA_ERP_CLEAN_TEST_20261022",
+    "taskFullName": "\\Melisa-Clean-20261022-NightlyBackup",
+    "receiptIsoStringsPreservedBeforeParsing": true
+  },
+  "offlineCombinedPackage": {
+    "task": "ERP-B5-COMBINED-PACKAGE-OFFLINE-20261025-0021",
+    "observedAt": "2026-10-25T00:41:38.641Z",
+    "source": "349fae354e2a90852cd0594ada485105bf091e43",
+    "tree": "1240b0752cab2c99daf1bf2f2ca4eaa9093ec187",
+    "root": "C:/Sirket/ERP/releases/CLEAN-ERP-20261025-349fae354e2a-B5COMBINED-OFFLINE",
+    "files": 3459,
+    "sourceFiles": 3402,
+    "sourceGitlinks": [
+      {
+        "path": "tmp/melisa-os-reference",
+        "commit": "c0f2def25aa0ffac88d46d1d3e6638a542521397",
+        "materialized": false
+      }
+    ],
+    "manifestSha256": "9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059",
+    "payloadInventorySha256": "dcf4864a2a338a0306064947c8a789939997eca72ba35f475563425220cfa7d1",
+    "sourceArchiveSha256": "68ee8fca1cf144b0436c506e83a2abe23f77a85cc663330325c63186ab1b4157",
+    "node": {
+      "path": "C:/Sirket/ERP/tools/node-v24.19.0/node.exe",
+      "version": "v24.19.0",
+      "sha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237"
+    },
+    "builds": [
+      {
+        "app": "sites-workflow",
+        "status": "PASS",
+        "elapsedMs": 8496,
+        "offlineGuard": true,
+        "envDiscovery": false,
+        "apiBasePinnedAfterGuard": true
+      },
+      {
+        "app": "web-admin",
+        "status": "PASS",
+        "elapsedMs": 6680,
+        "offlineGuard": true,
+        "envDiscovery": false,
+        "apiBasePinnedAfterGuard": true
+      }
+    ],
+    "dependencies": [
+      {
+        "app": "api",
+        "files": 10339,
+        "inventorySha256": "1077f0d4cee80339148269fbaaf330965da5a2ca7e1107bfd0401499db33c675",
+        "lockSha256": "40899a8259f11e455881065f5744ee532b65491a2fbb78b71d06b3a991039cd6"
+      },
+      {
+        "app": "sites-workflow",
+        "files": 6637,
+        "inventorySha256": "9c59bbb6a80c639295e915c62ead972f94b613e11484ef846c929ba91567fb92",
+        "lockSha256": "13694e04632e9916477113dc65bc9577ed7c88e1198f4f4a76061d960e85c2d6"
+      },
+      {
+        "app": "web-admin",
+        "files": 6496,
+        "inventorySha256": "34443bff92d7a3ab0d4c40a644872c855c748bb06e25202f6192c59d2ffbf8b6",
+        "lockSha256": "fa9b004f140d80ff665c00733ae435015d4ded357f436ee2886b9c4b8a0b602a"
+      }
+    ],
+    "sourceProofs": [
+      {
+        "path": "apps/api/src/services/cleanStoreDayStore.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "equalsBackendCommit": "7a2ad1b65ad2d2506b87bec2bf93a427e7fa987a",
+        "gitBlob": "0f1078cf2ba0b61728c6846c86cc56ef1d66e4ef",
+        "sha256": "22cf15bce581ddda65ed8b3ca331d9f85c00bc083f4e6c566404c9ec5349ebea",
+        "byteEqual": true
+      },
+      {
+        "path": "apps/api/src/services/cleanStoreDayStore.test.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "equalsBackendCommit": "7a2ad1b65ad2d2506b87bec2bf93a427e7fa987a",
+        "gitBlob": "9c17453549eeb91171e3fba7d2ab302d9a933edf",
+        "sha256": "562eb1ab6b5b54d57c46bc09a73c877462bceb5208a3366987ca0f4e7e273195",
+        "byteEqual": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workCollections.js",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "0edf9e4230de0aed13ff288844174d93c0bb9546",
+        "sha256": "51d6a2dd0ad40c074c5bf002beab479f068a2072e1c7c6d8f3fec9910660bc48",
+        "canonicalGitBytes": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workFinanceMovements.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "5695d1d1067c0cb36c1beee8de6f6f5cc52daee2",
+        "sha256": "4f846cefc30f4ace967160ab106288680859f4590e4469ba808e07ab1d292bdc",
+        "canonicalGitBytes": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workFinanceMovements.test.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "c99fd4d127e7d3dbaf6d8c7074066d80f802f2eb",
+        "sha256": "b3949198d718e30bf92ae0d38b723f0dabfa0eec94c0b8d0173084e88d9a50d2",
+        "canonicalGitBytes": true
+      },
+      {
+        "path": "apps/sites-workflow/src/workflow/workCollectionsCache.test.mjs",
+        "sourceCommit": "349fae354e2a90852cd0594ada485105bf091e43",
+        "gitBlob": "d5772d9640b3226aa660bd25549d38c7da7e09b8",
+        "sha256": "c6cb609df638e1ef85e6f5fbc83d76bfa33aa4e83e41752dad3555b88196489d",
+        "canonicalGitBytes": true
+      }
+    ],
+    "canonicalSourceCorrection": {
+      "proof": "C:\\Sirket\\ERP\\worktrees\\erp-p03-pr53-candidate-20261018\\.tmp\\b5-combined-offline/canonical-source-repair.json",
+      "strictVerifierUnchanged": true,
+      "firstRejectionPreserved": true
+    },
+    "pageEntry": {
+      "path": "apps/sites-workflow/dist/assets/example-BZkW2Crf.js",
+      "sha256": "3bb71e9bc43a33a90ea9ab3285fdda07db66184ecdc6d414460a17f7220ae15a"
+    },
+    "transport": {
+      "path": "apps/sites-workflow/dist/assets/workingCatalogSession-DzdLhyvV.js",
+      "sha256": "32869021e0af9f7a5b169b92c1c3b85f430b8091760c1cc93bc82f5109264080"
+    },
+    "profile": {
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "externalOperations": false,
+      "apiBase": "http://127.0.0.1:4194"
+    },
+    "verification": "PASSIVE_MANIFEST_ALL_FILES_AND_GIT_BLOBS_READ_BACK",
+    "installed": false,
+    "sqlConnected": false,
+    "httpRequests": 0,
+    "runtimeWrites": 0,
+    "crmChanged": false,
+    "humanAcceptance": "PENDING",
+    "ci": {
+      "applicationSource": "349fae354e2a90852cd0594ada485105bf091e43",
+      "requiredChecks": 6,
+      "conclusion": "success",
+      "runs": [
+        "40145559350",
+        "40145562878"
+      ],
+      "reusedExistingExactSourceResult": true,
+      "rerun": false
+    },
+    "preservation": {
+      "newAccounts": 0,
+      "rolesChanged": false,
+      "configChanged": false,
+      "servicesChanged": false,
+      "runtimeChanged": false,
+      "sqlExecuted": false,
+      "oldPackagesPreserved": true,
+      "originalCanonicalDirtyFilePreserved": true,
+      "priorC5EvidenceUnchanged": true,
+      "originalCountersUnchanged": true
+    },
+    "deliveryCommitIsDocumentationOnly": true,
+    "runtimeInstallation": "NOT_PERFORMED",
+    "normalGui": "NOT_TESTED",
+    "archiveByteCorrection": {
+      "cause": "Windows archive working-tree conversion: core.autocrlf plus native EOL",
+      "supportedCommand": "git -c core.autocrlf=false -c core.eol=lf archive",
+      "correctedEolFiles": 2386,
+      "explicitLfProbeByteEqual": true,
+      "firstRejectedArchivePreserved": true,
+      "strictBlobVerifierUnchanged": true,
+      "persistentGitConfigChanged": false,
+      "gitlinksNotMaterialized": [
+        {
+          "path": "tmp/melisa-os-reference",
+          "commit": "c0f2def25aa0ffac88d46d1d3e6638a542521397",
+          "materialized": false
+        }
+      ]
+    }
+  },
+  "userResume0738": {
+    "task": "ERP-B5-USER-RESUME-20261025-0738",
+    "observedAt": "2026-10-25T10:42:32.9438491+03:00",
+    "directHumanMessage": {
+      "thread": "01a15d42-a70f-7510-9fce-73ce1cb433e9",
+      "id": "01a171fb-57ff-78c1-9308-628fbb1a2b12",
+      "text": "başlat diğer ajanlarıda o zaman",
+      "precedingScope": "Six named missing personal synthetic TEST accounts, reviewed financial package safe deployment and remaining B5 checks",
+      "notAutomaticSpecificApproval": true
+    },
+    "sourceApplication": "349fae354e2a90852cd0594ada485105bf091e43",
+    "installed": {
+      "api": "b9dd984876c808482017365556538078601187b8",
+      "web": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "native": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "externalOperations": false,
+      "originalAccess": 0,
+      "liveAccess": 0
+    },
+    "freshRead": {
+      "apiObservedUtc": "2026-10-25T07:38:47.7505097Z",
+      "nativeAndWebObservedUtc": "2026-10-25T07:42:05.6867686Z",
+      "acceptedWebEntry": "assets/example-DF84lNur.js",
+      "servedSha256": "3351fc6d4e40bcf011112d84afbc0b8ce95ad9aed3fd205a09f427c877876c4b",
+      "servedBytesEqualAccepted": true
+    },
+    "sixAccounts": {
+      "preflightMissing": 6,
+      "preflightConflicts": 0,
+      "applyReview": "REJECTED_BEFORE_PROCESS_CREATION",
+      "reason": "New start-other-agents context did not specifically reauthorize previously rejected permanent six-account creation",
+      "created": 0,
+      "newEmployeeLinks": 0,
+      "newCredentialDeliveries": 0,
+      "applyReceiptExists": false,
+      "readbackMissing": 6,
+      "ownSetupLogoutConfirmed": true,
+      "existingQuestionPreserved": true,
+      "newQuestionCreated": false,
+      "otherRouteTried": false
+    },
+    "protection": {
+      "before": "2026-10-25T10:39:59.8791045+03:00",
+      "after": "2026-10-25T10:41:59.9534721+03:00",
+      "oldAccounts": true,
+      "existingContributionContracts": 53,
+      "existingContributionsUnchanged": true,
+      "ownFixtureUnchanged": true,
+      "rolesPermissionsOldSealsUnchanged": true,
+      "wholeDatabaseClaimed": false,
+      "normalAuthAuditExcluded": true
+    },
+    "processObservation": {
+      "utc": "2026-10-25T07:42:32.9438491Z",
+      "allRelevantOsOwnersMatchCurrent": true,
+      "pids": {
+        "api4194": 45284,
+        "web5244": 9856,
+        "native4196": 16224,
+        "crm62800And62801": 44612,
+        "crm62802": 34084,
+        "crm62803": 34424
+      },
+      "exclusiveRuntimeClaimHeld": false
+    },
+    "technicalBoundary": {
+      "source": "scripts/canonical/start-owned-test.ps1",
+      "scopeLine": 49,
+      "portsLine": 56,
+      "supportedDatabase": "MELISA_ERP_SIRKET_TEST_20260929_01",
+      "supportedPorts": [
+        4144,
+        4146,
+        5194
+      ],
+      "cleanProfileNotSupported": true,
+      "existingMutexPrimitiveIsNotCleanAdmissionProof": true,
+      "legacyGuardNotWidened": true,
+      "newGeneralAdmissionEngineCreated": false,
+      "offline0102BlockRetained": true
+    },
+    "artifactIndependentReview": "IN_PROGRESS_IN_EXISTING_CRM_THREAD_ASSIGNED_BY_COORDINATOR",
+    "installation": false,
+    "restart": false,
+    "financialOrStockWrite": false,
+    "rolesChanged": false,
+    "existingAcceptancesRepeated": false,
+    "prior87And83TestsOrBuildOrPackageRepeated": false,
+    "normalNewPanelGui": "NOT_TESTED",
+    "humanAcceptance": "PENDING"
+  },
+  "cleanPairTransitionSource0808": {
+    "taskId": "ERP-B5-CLEAN-TRANSITION-ADAPTER-SOURCE-20261025-0808",
+    "observedAt": "2026-10-25T08:42:49.625Z",
+    "status": "SOURCE_PARTIAL_NOT_EXECUTED",
+    "applicationSource": "349fae354e2a90852cd0594ada485105bf091e43",
+    "applicationManifestSha256": "9614E9CF5747908D44FB5CEF181BA3D840820878FDBE6CF522BF0176E5C50059",
+    "targetPorts": [
+      4194,
+      5244
+    ],
+    "legacyStartupChanged": false,
+    "localTests": {
+      "engine": "Windows PowerShell 5 and Node24",
+      "passed": 31,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 18356.4583,
+      "realOrchestrationWithMemoryLeaves": true,
+      "temporaryFileCasFixture": true,
+      "liveKernelHandleCalls": false,
+      "sharedSqlHttpGuiOrAccountCalls": 0
+    },
+    "productionGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "missingComponent": "Pinned cooperating clean-owner handoff, authenticated old CWD provenance, continuous writer exclusion and final publication/retirement acknowledgment",
+    "exclusiveSharedOwnershipProved": false,
+    "installation": false,
+    "realRollback": false,
+    "normalGui": false,
+    "independentSourceReview": "PENDING_COORDINATOR_ASSIGNMENT",
+    "sharedRuntimeWrites": 0,
+    "financialOrStockWrites": 0,
+    "accountRoleOrAssignmentWrites": 0,
+    "oldApplicationTestsOrBuildRepeated": false,
+    "acceptedArtifactReviewReused": true,
+    "humanAcceptance": "PENDING",
+    "originalCountersUnchanged": true,
+    "duplicateManagerApprovalCreatesSecondAccount": false,
+    "report": "2026-10-25-b5-clean-pair-source.md",
+    "files": [
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.ps1",
+        "windowsWorkingBytesSha256": "1121a04c3d92d77c95a73ea5e4bcdef9180bda1153cb8f41306c5a88d1de4e5e"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.fixture.ps1",
+        "windowsWorkingBytesSha256": "a6fbcf0d12af5bc53e5cd08bd741d49a8844cd681eebc3e37f9b55b2dc5ff6f2"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.test.mjs",
+        "windowsWorkingBytesSha256": "95016d84b325203e94dea22fdce56abdd2e3196d29ae219df449a0972f5809fc"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-start.template.ps1",
+        "windowsWorkingBytesSha256": "1e61a9a54beb262f53abba936c0c302acf846f87ad310e7cd0f4e7ea183c9076"
+      }
+    ]
+  },
+  "cleanPairTransitionReviewFix0907": {
+    "taskId": "ERP-B5-TRANSITION-REVIEW-FIX-OFFLINE-20261025-0907",
+    "observedAt": "2026-10-25T09:23:59.437Z",
+    "baselineSource": "6875903de1f30c9b915d0643b6e15ddb49c76d68",
+    "review": {
+      "taskId": "CRM-B5-CLEAN-TRANSITION-SOURCE-REVIEW-20261025-0852",
+      "turnId": "01a17243-55e9-77d2-82c8-5885ff84a03e",
+      "result": "NO_GO",
+      "P1": 2,
+      "P2": 1,
+      "prior31PassNotSafetyProof": true
+    },
+    "red": {
+      "reviewerUnsafeStopsAfterProtectionChange": 1,
+      "reviewerUnsafeWritesAfterProtectionChange": 2,
+      "reviewerUnsafeWritesAfterLeaseLoss": 1,
+      "reviewerTemplateError": "B5_RECORD_ROW_REQUIRED",
+      "newRecoveryTemplate": {
+        "failed": 4,
+        "passed": 1,
+        "skipped": 0
+      },
+      "exact687Dependency": {
+        "failed": 1,
+        "passed": 0,
+        "skipped": 0,
+        "error": "DEPENDENCY_CASE_ACCEPTED_api-changed"
+      },
+      "firstFixturePreparationFailuresPreservedButNotCountedAsDefectEvidence": true
+    },
+    "fixes": {
+      "freshRecoveryTicketBeforeEveryStopAndControlWrite": true,
+      "confirmedChildExitUpdatesExpectedState": true,
+      "eachWrittenControlHashUpdatedImmediately": true,
+      "saferThanProductionFakeLeaseGuardsRemoved": true,
+      "realModuleInventoriesAndLocksReadAndFrozen": true,
+      "existingLocaleCompareJsonUtf8DigestPreserved": true,
+      "lateModulePathsRejectedAtActionBoundaries": true,
+      "oldPackagesMustMatchPinned349DonorInventory": true,
+      "newDependencyInstall": false,
+      "actualTemplateRecordExpressionsUsedInRamFixture": true,
+      "templateRowsExplicitlyEnumerated": true,
+      "oldRollbackNativeJsonParsingFlattenedOnlyInInvocationScope": true,
+      "oldStarterBeforeImageUnchanged": true,
+      "templateSha256": "27B6A2FD4C82349BF81A13FB580169653001A099B5F9B860BA6715E06A09486A"
+    },
+    "localTests": {
+      "passed": 38,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 36103.8564,
+      "newRegressionCases": 7,
+      "layer": "Windows PowerShell5 RAM and unique temporary dependency files; no shared runtime",
+      "dependencyNegatives": [
+        "api-changed",
+        "vite-changed",
+        "missing",
+        "extra",
+        "lock-changed",
+        "missing-inventory",
+        "unsafe-app",
+        "duplicate-app",
+        "reparse",
+        "late-module",
+        "frozen-file-write"
+      ],
+      "unicodeInventorySorting": true
+    },
+    "securityException": {
+      "directHumanReply": "Yalnız bu üç kesin bulguya izin ver",
+      "questionId": "call_fe0b5ef06e244432becfbde72479d400",
+      "historicalCommit": "6875903de1f30c9b915d0643b6e15ddb49c76d68",
+      "exactFingerprintCount": 3,
+      "priorRejectionAndTwoFailedScansPreserved": true,
+      "noRuleOrFileWideExclusion": true,
+      "noNewFindingAutomaticallyAllowed": true
+    },
+    "independentRereview": "PENDING_EXISTING_COORDINATOR",
+    "productionGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "installed": false,
+    "sharedSqlHttpGuiProcessOrConfigurationWrites": 0,
+    "accountRoleAssignmentOrTradeWrites": 0,
+    "applicationSourceUnchanged": "349fae354e2a90852cd0594ada485105bf091e43",
+    "passivePackageUnchanged": true,
+    "oldApplicationTestsBuildAndInventoryReviewRepeated": false,
+    "humanAcceptance": "PENDING",
+    "originalCountersUnchanged": true,
+    "sixSpecificSyntheticAccountsApprovalQueuedSeparatelyNotApplied": true,
+    "files": [
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.ps1",
+        "windowsWorkingBytesSha256": "43e1300b24ac6c2a1961bc7f72b433e4f8bcc5c54203fdf754fa82661b1af322"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.fixture.ps1",
+        "windowsWorkingBytesSha256": "c64f7d4779e8025e7722e5724499d3706a1f41d609c1547597e27a01fbae35a2"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-transition.test.mjs",
+        "windowsWorkingBytesSha256": "3cdc90ad6983e000d141a4904db5216f2c838473e824ba62993c290ea474eecd"
+      },
+      {
+        "path": "scripts/canonical/clean-b5-pair-start.template.ps1",
+        "windowsWorkingBytesSha256": "27b6a2fd4c82349bf81a13fb580169653001a099b5f9b860ba6715e06a09486a"
+      }
+    ]
+  },
+  "sixSpecificApprovalApplied0927": {
+    "observedAt": "2026-10-25T09:37:02.877Z",
+    "directHumanMessage": "01a17258-fbe6-7053-9171-fad80a9e06cc",
+    "questionId": "call_b6bb57a97b664fcdb815411b57c75f6e",
+    "exactUserReply": "Bu altı sentetik TEST hesabını ve görev bağını oluşturmayı onaylıyorum.",
+    "target": {
+      "apiSource": "b9dd984876c808482017365556538078601187b8",
+      "nativeSource": "035fcc08d8f56cdd0cbc437a290285328fce1ec9",
+      "database": "MELISA_ERP_CLEAN_TEST_20261022",
+      "environmentId": "e662fd94-d797-4b3b-938a-d143ad758b67",
+      "synthetic": true,
+      "actualT1": false,
+      "externalOperations": false,
+      "oldAndLiveAccess": 0,
+      "freshIdentityObserved": "2026-10-25T12:27:27+03:00"
+    },
+    "preflight": {
+      "missingPairs": 6,
+      "conflicts": 0,
+      "ownLogout": true
+    },
+    "application": {
+      "normalExistingManagementEndpoints": true,
+      "userCreates": 6,
+      "employeeCreates": 6,
+      "createdPairs": 6,
+      "conflicts": 0,
+      "requestRetry": 0,
+      "ownLogout": true
+    },
+    "readback": {
+      "normalGetExistingPairs": 6,
+      "newCreates": 0,
+      "missing": 0,
+      "conflicts": 0,
+      "ownLogout": true,
+      "independentNativeSqlRows": 6,
+      "nativeMemberships": 6,
+      "packingEnabledWithinSix": 1,
+      "priceEditingEnabled": 0,
+      "initialSqlcmdArgumentFailurePreserved": true
+    },
+    "rows": [
+      {
+        "duty": "mehmet",
+        "userId": 10025,
+        "employeeId": 5,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": true,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "rustem",
+        "userId": 10026,
+        "employeeId": 6,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "ismail",
+        "userId": 10027,
+        "employeeId": 7,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "yaman",
+        "userId": 10028,
+        "employeeId": 8,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "veronica",
+        "userId": 10029,
+        "employeeId": 9,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      },
+      {
+        "duty": "ahmet",
+        "userId": 10030,
+        "employeeId": 10,
+        "roleId": 30,
+        "active": true,
+        "canTerminalSale": true,
+        "canTerminalPacking": false,
+        "canChangeSalePrice": false,
+        "maxSaleDiscountPercent": 0
+      }
+    ],
+    "preservation": {
+      "oldAccounts": true,
+      "allRolesPermissionsOldSeals": true,
+      "oldEmployeesAllColumns": true,
+      "contributionContracts": 53,
+      "allExistingContributionDigests": true,
+      "oldOwnInvoiceEffects": true,
+      "protectedConfigAndCrmFiles": true,
+      "wholeDatabaseClaimed": false,
+      "expectedNewAccountAndAuditRowsExcluded": true
+    },
+    "credentials": {
+      "newPasswordsGenerated": true,
+      "ownerProtectedDpapiOnly": true,
+      "secretsTransferred": false,
+      "realOrSharedPasswordsChanged": false
+    },
+    "boundaries": {
+      "crmAccountOrAssignmentWrites": 0,
+      "financialOrStockWrites": 0,
+      "metadataDdl": 0,
+      "restartOrInstallation": 0,
+      "realPersonIdentityClaimed": false,
+      "own10021Probe": false,
+      "privateRosterTransfer": false,
+      "liveVegaT1Main": false,
+      "normalGui": false,
+      "physicalDevice": false,
+      "humanAcceptance": "PENDING",
+      "fullB5Closed": false,
+      "originalCountersUnchanged": true
+    },
+    "report": "2026-10-25-b5-six-approved-accounts.md"
+  },
+  "cleanPairTransitionCiFixtureRepair": {
+    "sourceCommit": "c6b78291db0956dfe14c3934d2c1c2607c1dadce",
+    "qualityAndSecretSuccess": 4,
+    "windowsFailures": 2,
+    "failedStep": "Fixed clean B5 pair transition with isolated source fixtures",
+    "failure": "FIXTURE_PATH_ESCAPE: RUNNER~1 TEMP alias differs from FileInfo path",
+    "repair": "Only fixture root and Node path canonicalization using fs.realpathSync.native",
+    "productionCodeChangedAfterC6": false,
+    "changedTest": {
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "durationMs": 9475.208
+    },
+    "full38PriorResultPreserved": true,
+    "newTestWorkingSha256": "3e9e754e4251f5fb1fadc8db787f8d928c54e0a99fcb58f030f921743bef4e18",
+    "finalHeadCi": "PENDING_NEW_COMMIT"
+  },
+  "b5NormalPersonnelRead0941": {
+    "taskId": "ERP-B5-REMAINING-ACCEPTANCE-CLOSE-20261025-0941",
+    "observedAt": "2026-10-25T09:56:16.198Z",
+    "normalManagementUrl": "http://192.168.1.46:5244/legacy-admin.html?screen=personnel-definitions",
+    "existingSemihSessionRenewedWithoutSecretTransfer": true,
+    "personnel": {
+      "records": 10,
+      "fixedPersonalDutyRecords": 9,
+      "oldGeneralSyntheticCardPreserved": 1,
+      "newSixSeen": true,
+      "topAndLowerListsVisuallyObserved": true,
+      "fullReloadSameSessionAndRecords": true,
+      "selectedCardAfterReloadReopened": true,
+      "mehmetPackingChecked": true,
+      "rustemPackingUnchecked": true,
+      "selectionPersisted": false
+    },
+    "users": {
+      "visibleDomRowsMatchSix": true,
+      "activeCount": 21,
+      "roles": 17,
+      "fullReloadRowsPersist": true,
+      "newUserFormOpenedEmpty": true,
+      "positiveCreateFormSubmit": false,
+      "renderingAt1280x720": "PARTIAL: multiple panels clip/overlap, DOM rows are not full visual usability proof"
+    },
+    "mutations": {
+      "newUserOrEmployee": 0,
+      "save": 0,
+      "roleOrTask": 0,
+      "passwordOrActive": 0,
+      "trade": 0,
+      "serviceOrInstall": 0
+    },
+    "publicScreenshotsUploaded": false,
+    "privateScreenshots": [
+      {
+        "name": "personnel-mehmet-before-reload.jpg",
+        "bytes": 108088,
+        "sha256": "9adaa19394a8083fe65ab620974a497b230982aa9e5581dcb494b6e95b867dfc"
+      },
+      {
+        "name": "personnel-mehmet-after-reload.jpg",
+        "bytes": 98200,
+        "sha256": "d90df455bdd5e17595745635894ba945868030e1c8e2cb18fb3b2f8939c28d87"
+      },
+      {
+        "name": "new-user-form-not-submitted.jpg",
+        "bytes": 91970,
+        "sha256": "b61c3fc2c9807b3123e7d67870389e612fdba2e4a89481266a31842b4e635487"
+      },
+      {
+        "name": "users-after-reload.jpg",
+        "bytes": 95363,
+        "sha256": "b3d80152aaafa4a3ded2215a2c8876d4d1882295e6dc160a2f0c2aae6c0bc0db"
+      },
+      {
+        "name": "personnel-fixed-nine-lower-list.jpg",
+        "bytes": 101931,
+        "sha256": "6debaad12e99e1869ca927570fb14d1804c06c66642b447095b45414c5df8f0f"
+      },
+      {
+        "name": "personnel-rustem-packing-off.jpg",
+        "bytes": 95729,
+        "sha256": "d819adce286d037dad05501d3bbbc19fb9f8b80205b5c9a9e9cc9b7b201c6db3"
+      }
+    ],
+    "normalGuiRead": true,
+    "normalGuiCreateSubmit": false,
+    "ownRepresentativeApiLogin": {
+      "userId": 10025,
+      "roleId": 30,
+      "login": true,
+      "managementGet403": true,
+      "ownLogout": true,
+      "gui": false
+    },
+    "sourceDeliveryCi": {
+      "commit": "201eb32f111f432d6d8d465a1067e15a3be363a6",
+      "jobsSuccess": 6,
+      "failed": 0,
+      "pushRun": 40181419662,
+      "prRun": 40181422082
+    },
+    "technicalFixedOutcomes": [
+      {
+        "outcome": 1,
+        "state": "TECHNICAL_BINDINGS_AND_PERSONNEL_GUI_READ_VERIFIED",
+        "humanAcceptance": "PENDING"
+      },
+      {
+        "outcome": 2,
+        "state": "PARTIAL",
+        "remaining": "Extra finance panel and user-management clipping; GUI final create submit not attempted"
+      },
+      {
+        "outcome": 3,
+        "state": "PARTIAL",
+        "remaining": "Specific10021 passive/old-session approval received; rehearsal queued, not run"
+      },
+      {
+        "outcome": 4,
+        "state": "PRIOR_CRM_TECHNICAL_ACCEPTANCE_REUSED",
+        "newCrmActions": 0
+      }
+    ],
+    "newDependencySourceReview": "NO_GO_TWO_P1_QUEUED",
+    "originalCountersUnchanged": true
+  },
+  "b5ApprovedInactivity1012": {
+    "status": "TECHNICAL_INACTIVITY_RESTORE_AND_OLD_SESSION_REJECTION_VERIFIED",
+    "phase": "Apply",
+    "userId": 10021,
+    "employeeId": 1,
+    "roleId": 30,
+    "authorityUserMessage": "01a17279-4e92-7733-b9c0-1667f9576392",
+    "authorityText": "Evet yap abi, gerekiyorsa yapın yani",
+    "originalActive": true,
+    "deactivated": true,
+    "inactiveAccessDenied": true,
+    "inactiveLoginDenied": true,
+    "inactiveRefreshDenied": true,
+    "originalActiveRestored": true,
+    "oldAccessStillDenied": true,
+    "oldRefreshStillDenied": true,
+    "activeLoginRestored": true,
+    "protectedScopesEqual": true,
+    "ownSessionsClosed": true,
+    "activityRequests": 1,
+    "restoreRequests": 1,
+    "accountCreate": 0,
+    "rolePasswordTaskChanges": 0,
+    "tradeWrites": 0,
+    "serviceInstallRestart": 0,
+    "humanAcceptance": "PENDING",
+    "failure": null,
+    "observedAt": "2026-10-25T13:12:28.6534467+03:00",
+    "calls": [
+      {
+        "path": "/api/auth/login",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/personnel/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/login",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/session-confirm",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/users/10021",
+        "expected": 200,
+        "method": "PATCH",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/me",
+        "expected": 401,
+        "method": "GET",
+        "code": "AUTH_USER_INACTIVE",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/login",
+        "expected": 401,
+        "method": "POST",
+        "code": "AUTH_INVALID_CREDENTIALS",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/refresh",
+        "expected": 401,
+        "method": "POST",
+        "code": "AUTH_USER_INACTIVE",
+        "status": 401
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/users/10021",
+        "expected": 200,
+        "method": "PATCH",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth-admin/overview",
+        "expected": 200,
+        "method": "GET",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/me",
+        "expected": 401,
+        "method": "GET",
+        "code": "AUTH_REFRESH_INVALID",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/refresh",
+        "expected": 401,
+        "method": "POST",
+        "code": "AUTH_REFRESH_INVALID",
+        "status": 401
+      },
+      {
+        "path": "/api/auth/login",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/logout",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/logout",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      },
+      {
+        "path": "/api/auth/logout",
+        "expected": 200,
+        "method": "POST",
+        "code": null,
+        "status": 200
+      }
+    ],
+    "proofScope": "Normal API; native SQL before/after hashes for 53 contribution definitions, all other users/roles/permissions/employees/seals and own stable user fields; expected target updated_at/by/row_version and auth/audit changes excluded",
+    "normalGui": false,
+    "installedApplicationUnchanged": true,
+    "privateEvidence": ".tmp/b5-inactive-approved-20261025/",
+    "privateRawInventoryPublished": false
+  },
+  "b5LayoutMeasure1006": {
+    "observedAt": "2026-10-25T10:13:05.121Z",
+    "viewport": {
+      "dpr": 1,
+      "height": 720,
+      "width": 1280
+    },
+    "media1280": true,
+    "root": {
+      "className": "work-area auth-admin-screen auth-admin-modern-screen",
+      "clientHeight": 588,
+      "display": "grid",
+      "flex": "0 1 auto",
+      "gridAutoRows": "auto",
+      "gridTemplateColumns": "1018px",
+      "gridTemplateRows": "54px 147.875px 43.5469px 90.1875px 90.2031px 92.1875px",
+      "minHeight": "0px",
+      "overflowX": "auto",
+      "overflowY": "auto",
+      "position": "static",
+      "rect": {
+        "bottom": 692,
+        "height": 588,
+        "width": 1048,
+        "x": 232,
+        "y": 104
+      },
+      "scrollHeight": 802
+    },
+    "panels": [
+      {
+        "className": "dashboard-toolbar auth-admin-toolbar",
+        "clientHeight": 52,
+        "display": "flex",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "52px",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 168,
+          "height": 54,
+          "width": 1018,
+          "x": 242,
+          "y": 114
+        },
+        "scrollHeight": 52
+      },
+      {
+        "className": "dashboard-kpi-grid auth-admin-kpis",
+        "clientHeight": 148,
+        "display": "grid",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "505px 505px",
+        "gridTemplateRows": "69.9375px 69.9375px",
+        "minHeight": "auto",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 325.875,
+          "height": 147.875,
+          "width": 1018,
+          "x": 242,
+          "y": 178
+        },
+        "scrollHeight": 148
+      },
+      {
+        "className": "",
+        "clientHeight": 18,
+        "display": "block",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "auto",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 366.421875,
+          "height": 17.546875,
+          "width": 1018,
+          "x": 242,
+          "y": 348.875
+        },
+        "scrollHeight": 18
+      },
+      {
+        "className": "erp-panel critical-locks-panel",
+        "clientHeight": 0,
+        "display": "none",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "0px",
+        "overflowX": "hidden",
+        "overflowY": "hidden",
+        "position": "static",
+        "rect": {
+          "bottom": 0,
+          "height": 0,
+          "width": 0,
+          "x": 0,
+          "y": 0
+        },
+        "scrollHeight": 0
+      },
+      {
+        "className": "split-grid auth-admin-split-grid auth-admin-user-grid",
+        "clientHeight": 90,
+        "display": "grid",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "1018px",
+        "gridTemplateRows": "40.0938px 40.0938px",
+        "minHeight": "0px",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 479.609375,
+          "height": 90.1875,
+          "width": 1018,
+          "x": 242,
+          "y": 389.421875
+        },
+        "scrollHeight": 336
+      },
+      {
+        "className": "split-grid auth-admin-split-grid auth-admin-role-grid",
+        "clientHeight": 90,
+        "display": "grid",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "1018px",
+        "gridTemplateRows": "40.0938px 40.1094px",
+        "minHeight": "0px",
+        "overflowX": "visible",
+        "overflowY": "visible",
+        "position": "static",
+        "rect": {
+          "bottom": 579.8125,
+          "height": 90.203125,
+          "width": 1018,
+          "x": 242,
+          "y": 489.609375
+        },
+        "scrollHeight": 416
+      },
+      {
+        "className": "erp-panel auth-admin-audit-panel",
+        "clientHeight": 90,
+        "display": "block",
+        "flex": "0 1 auto",
+        "gridAutoRows": "auto",
+        "gridTemplateColumns": "none",
+        "gridTemplateRows": "none",
+        "minHeight": "0px",
+        "overflowX": "hidden",
+        "overflowY": "hidden",
+        "position": "static",
+        "rect": {
+          "bottom": 682,
+          "height": 92.1875,
+          "width": 1018,
+          "x": 242,
+          "y": 589.8125
+        },
+        "scrollHeight": 559
+      }
+    ],
+    "reads": "CSS geometry only; no text, input values, session or store",
+    "cssOrViewportChanges": 0,
+    "hypothesis": "CONFIRMED_HEIGHT_COMPRESSION; exact CSS repair not applied/tested",
+    "humanAcceptance": "PENDING"
+  },
+  "cleanPairDependencyReviewFix0948": {
+    "kind": "SOURCE_OFFLINE_ONLY",
+    "priorReview": "NO_GO_TWO_P1",
+    "reviewerTurn": "01a1726c-cdb4-7d80-9fc5-fec9b60a8ae7",
+    "oldRecoveryAndJsonFindingsNotReopened": true,
+    "rawLocks": "Each immutable own manifest files row; no byte normalization",
+    "modules": "349 inventory still required separately for each app; default Node createRequire lookup paths computed for all pinned payload directories and dependency roots; unsealed intermediate/ancestor/global paths must be absent at baseline and every action boundary",
+    "environment": "NODE_PATH/NODE_OPTIONS rejected, path-related process environment stamped, no settings changed",
+    "newRed": {
+      "tests": 2,
+      "pass": 0,
+      "fail": 2,
+      "skip": 0,
+      "log": ".tmp/b5-review-0948/new-red-unsandboxed.log",
+      "defects": [
+        "B5_DEPENDENCY_LOCK_CHANGED on valid own raw lock",
+        "SHADOW_PATH_ACCEPTED_apps/api/src/services/node_modules"
+      ]
+    },
+    "targetedGreen": {
+      "firstSet": 5,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 14952.4577,
+      "lastChangedRawAndFixture": 2,
+      "lastDurationMs": 1808.6346,
+      "totalDistinctCases": 6,
+      "logs": [
+        ".tmp/b5-review-0948/final-targeted.log",
+        ".tmp/b5-review-0948/final-raw-and-fixture.log"
+      ]
+    },
+    "newIndependentReview": {
+      "result": "GO_TWO_P1_CLOSED",
+      "p1": 0,
+      "p2": 0,
+      "source": "d62d36ac12c43e254aedd3adfc9564c44bd47c1d",
+      "reviewerThread": "01a10348-7049-7fe1-bd0d-1c1218a5e670",
+      "reviewerTurn": "01a17293-071c-7580-bf7a-0f5c8bcbe284",
+      "scope": "Only the two new dependency fixes; no runtime/install/GUI GO; test-only hidden-parent adapter is a later delta"
+    },
+    "newHeadCi": {
+      "source": "d62d36ac12c43e254aedd3adfc9564c44bd47c1d",
+      "quality": 2,
+      "secretScan": 2,
+      "windowsFailures": 2,
+      "runs": [
+        40184204701,
+        40184207830
+      ],
+      "failedB5Step": {
+        "pass": 39,
+        "fail": 1,
+        "skip": 0,
+        "cause": "New shadow fixture under hidden runner AppData: Test-Path true but unforced PS5 Get-Item cannot read that parent"
+      },
+      "failedLog": ".tmp/b5-review-0948/windows-failure.log",
+      "historicalFailurePreserved": true
+    },
+    "applyGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "runtimeOperations": 0,
+    "buildOrPackage": 0
+  },
+  "b5AuthAdminHeightSource1023": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "changedFile": "apps/sites-workflow/src/styles/erp-modern.css",
+    "change": "One AuthAdmin-local grid-auto-rows: max-content declaration; columns, table scroll, overflow, other screens unchanged",
+    "basis": "Existing b5LayoutMeasure1006; not measured again",
+    "offlineFixture": "Synthetic static AuthAdmin-like hierarchy, source CSS before/after; no application JS/API/forms/accounts/external resources",
+    "renderAttempt": "BLOCKED_BEFORE_OPEN",
+    "browserPolicy": "file protocol not allowed; only http/https. No alternate protocol/surface/server/CDP workaround attempted",
+    "offlineRenderPassed": false,
+    "installedGuiAfterFix": "NOT_TESTED",
+    "newLocalMirrorTests": 0,
+    "newBuildOrPackage": 0,
+    "sharedRuntimeChanges": 0,
+    "existingThreeDependencyReviewSourcesUnchanged": true,
+    "ci": "Automatic exact head checks separate; no manual rerun"
+  },
+  "b5FixedFourResults1023": [
+    {
+      "outcome": 1,
+      "state": "TECHNICAL_CLOSED",
+      "result": "Nine synthetic duty user-employee bindings verified; source does not claim real-person identities",
+      "evidence": [
+        "sixSpecificApprovalApplied0927",
+        "personalPackingAgentUsage",
+        "personalCrmLinkContinuation.managerApplication",
+        "personalAccountingDuty.reconciliation",
+        "b5NormalPersonnelRead0941"
+      ],
+      "remaining": "No new account replay required; real-person handover/human acceptance remains separate"
+    },
+    {
+      "outcome": 2,
+      "state": "PARTIAL_NORMAL_MANAGEMENT_GUI",
+      "result": "Personal packing, own count/receiving and main accounting read/reload evidence reused; normal personnel nine+one list and task read/reload verified",
+      "evidence": [
+        "personalPackingAgentUsage",
+        "personalAccountingFinanceReadDelivery.normalGui",
+        "b5NormalPersonnelRead0941",
+        "b5LayoutMeasure1006"
+      ],
+      "remaining": "User Management clipped; single-rule source fix not installed/visually verified, normal ERP create-form final submit not claimed. No seventh synthetic account created for repetition"
+    },
+    {
+      "outcome": 3,
+      "state": "TECHNICAL_BOUNDARIES_VERIFIED_SCOPE_LIMITED",
+      "result": "Normal person management/finance403; specifically approved temporary inactive access/login/refresh401, restore true, old sessions still401 and new login200. Protected-account and role/assignment boundaries retain existing source/native contracts",
+      "evidence": [
+        "normalApiProof",
+        "b5ApprovedInactivity1012",
+        "sixSpecificApprovalApplied0927"
+      ],
+      "remaining": "No new role/password/task change or protected real/example-account mutation performed. Existing protected-record source/model tests are not represented as a new installed GUI change acceptance"
+    },
+    {
+      "outcome": 4,
+      "state": "TECHNICAL_CLOSED",
+      "result": "Personal ERP-CRM two server bindings, normal personal/independent Manager CRM GUI and two normal CRM form creations/reloads reused; assigned and wrong-person scope proved",
+      "evidence": [
+        "personalCrmNormalUsage.normalGui",
+        "personalCrmLinkDiagnosticDelivery.newServerProof",
+        "personalCrmLinkDiagnosticDelivery.normalGuiAfterChangedInstallation"
+      ],
+      "remaining": "No repeated CRM creation/assignment; cross-realm Android/browser SSO and real-human E1/E2 remain their existing separate acceptance scope"
+    }
+  ],
+  "b5TechnicalClosure1023": {
+    "state": "NOT_CLOSED",
+    "reason": "Normal ERP User Management visual/form usage remains partial; CSS source is not installed proof",
+    "extraFinancePanel": "Separate open installation/read-only UI work, not a new account-mapping prerequisite",
+    "fullHumanAcceptance": "PENDING",
+    "originalFinishCountersUnchanged": true
+  },
+  "b5HiddenParentFixtureRepair": {
+    "productionSourceUnchangedFromReviewedD62": true,
+    "delta": "Test-only Get-Item metadata adapter uses -Force, retains actual reparse attributes and exact temporary root; own fixture root is deliberately Hidden to exercise the condition deterministically",
+    "targetedTest": {
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 5002.784,
+      "log": ".tmp/b5-review-0948/fixture-actual-hidden-green.log"
+    },
+    "newExactHeadCi": "PENDING_AUTOMATIC_CHECKS",
+    "manualRerun": 0,
+    "fullLocalSuiteRepeated": 0,
+    "sharedRuntimeOperations": 0
+  },
+  "b5Source65CiCompletion": {
+    "source": "65bfe6f01d1963a4866820e34d89387457fa1b1a",
+    "result": "SIX_REQUIRED_CHECKS_SUCCESS",
+    "runs": [
+      40184854158,
+      40184856697
+    ],
+    "windows": 2,
+    "quality": 2,
+    "secretScan": 2,
+    "manualRerun": 0
+  },
+  "b5CssAndFixtureReview1034": {
+    "source": "65bfe6f01d1963a4866820e34d89387457fa1b1a",
+    "reviewerTurn": "01a172a2-cfee-7ce1-899c-df75f5279f2a",
+    "result": "GO",
+    "p1": 0,
+    "p2": 0,
+    "testsRepeated": 0,
+    "installOrGuiGo": false,
+    "outcome3": "TECHNICAL_CLOSED: after restore old access/refresh401 occurred before logout; new login200; common b9 fingerprint includes user/role/permission/password and user-role-personnel rowversions"
+  },
+  "b5WebBaselineCssPassive1032": {
+    "status": "PASSIVE_WEB_ONLY_BUILT_AND_READ_BACK",
+    "root": "C:/Sirket/ERP/releases/CLEAN-ERP-WEB-20261025-b89cc651-B6AUTHHEIGHT-WEBONLY",
+    "baselineCommit": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+    "patchCommit": "b6de5305ba46478997ea77beaa41fdb1bb2b3af0",
+    "compositeIdentityExplicit": true,
+    "onlyChangedSource": "apps/sites-workflow/src/styles/erp-modern.css",
+    "sourceFiles": 645,
+    "payloadFiles": 698,
+    "distFiles": 53,
+    "dependencyFiles": 6637,
+    "dependencyInventorySha256": "9c59bbb6a80c639295e915c62ead972f94b613e11484ef846c929ba91567fb92",
+    "manifestSha256": "61328e6bced8de827c00a4672329b5fae3e417ff04007e3b60549085b5a3bab2",
+    "nodeVersion": "v24.19.0",
+    "nodeHash": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+    "buildMs": 8627,
+    "offlineGuard": true,
+    "envDiscovery": false,
+    "apiBase": "http://127.0.0.1:4194",
+    "buildOnlySource": {
+      "path": "apps/api/src/services/goal8DaySqlProof.mjs",
+      "sourceCommit": "b89cc651dc26b40eb9a30a0382d52336c3d1f5be",
+      "gitBlob": "b31552ec2e50580a24599333cab915485c8fbd4b",
+      "sha256": "a31d970fded902f6baeb667747e842b5c1c8c896496893cd0db37787deec0c50",
+      "payloadIncluded": false
+    },
+    "noApiOrOperatorPayload": true,
+    "rollbackManifestPreserved": true,
+    "lockProvenance": [
+      {
+        "path": "apps/sites-workflow/package.json",
+        "donorRawSha256": "e1beacf2ce8b88b6127ec3bbc10b2be021a9a68287f0ca902bfd5b8e5fc75cd0",
+        "newGitRawSha256": "bfa44affa9732e0d3591fe5c8faf642093ce562ef1bed04a2bd346ebd04c1e8c",
+        "filesConverted": 0
+      },
+      {
+        "path": "apps/sites-workflow/package-lock.json",
+        "donorRawSha256": "7b6623d7688cc80f4134d66d9cafe99a16958947dbf90a4ff5441ac13e6a9a9f",
+        "newGitRawSha256": "13694e04632e9916477113dc65bc9577ed7c88e1198f4f4a76061d960e85c2d6",
+        "filesConverted": 0
+      }
+    ],
+    "firstArchiveRejectionPreserved": true,
+    "firstBuildFailurePreserved": true,
+    "canonicalArchiveFlags": "git -c core.autocrlf=false -c core.eol=lf archive; process-local only",
+    "persistentGitConfigChanged": false,
+    "installed": false,
+    "sharedTestActions": 0,
+    "normalGuiAfterFix": false,
+    "oldFilePreviewPolicyNotCircumvented": true,
+    "observedAt": "2026-10-25T10:47:21.545Z",
+    "passiveManifestNotInstallApproval": true,
+    "currentInstalledTargetNotProbedInThisSourceTask": true,
+    "installCondition": "Supported exclusive old-web owner handoff with CWD binding, continuous writer exclusion and final publication/retirement acknowledgement; existing B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING/0102 gates remain closed",
+    "noNewOwnerInstallerOrWatchdog": true
+  },
+  "b5FixedFourResults1032": [
+    {
+      "outcome": 1,
+      "state": "TECHNICAL_CLOSED",
+      "evidence": "Nine synthetic account-employee-duty bindings; six exact API/native readbacks and prior three bindings; 0941 personnel nine+one/reload",
+      "remaining": "None in this technical binding scope; no repeated create"
+    },
+    {
+      "outcome": 2,
+      "state": "PARTIAL_NORMAL_MANAGEMENT_GUI",
+      "evidence": "Personal packing/count/main accounting accepts reused; personnel read/reload verified;1006 User Management height compression measured; b89+singleCSS passive build/readback now complete",
+      "remaining": "After supported authorized installation: existing User Management1280x720 panel height, page/table scroll and reload. No new account or create-submit needed"
+    },
+    {
+      "outcome": 3,
+      "state": "TECHNICAL_CLOSED",
+      "evidence": "Prior wrong-role/protected/native boundaries plus specifically approved10021 inactivity/restore and old-session rejection before logout; independent1034 review agrees common fingerprint/rowversion coverage",
+      "remaining": "No repeated role/password/task changes per person; separate field-change GUI and human acceptance were not claimed"
+    },
+    {
+      "outcome": 4,
+      "state": "TECHNICAL_CLOSED",
+      "evidence": "Existing personal ERP-CRM two server links, normal CRM personal/independent Manager GUI/create/reload accepted evidence reused",
+      "remaining": "No new CRM account, assignment or message; E1/E2 Android/human acceptance separate"
+    }
+  ],
+  "b5TechnicalClosure1032": {
+    "state": "NOT_CLOSED",
+    "onlyTechnicalUsageGap": "Existing normal User Management layout/scroll/reload after supported CSS installation",
+    "newAccountCreateRequired": false,
+    "createSubmitRepetitionRequired": false,
+    "extraFinancePanelIsB5Prerequisite": false,
+    "androidOrHumanAddedAsNewB5Gate": false,
+    "originalFinishCountersUnchanged": true
+  },
+  "cleanWebOwnerSource1056": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "kind": "IN_PROCESS_COOPERATIVE_BIRTH_OWNER_AND_CONSUMER",
+    "files": [
+      {
+        "path": "scripts/canonical/clean-web-owner.cs",
+        "sha256": "21b851374e0ae6cc0557ce5dafc5ed3fb88be616a724f50416c78d4b3c9b4a5f"
+      },
+      {
+        "path": "scripts/canonical/clean-web-owner.ps1",
+        "sha256": "fe8a3fa8a4f11ef924ae60e9809a6a863a131b3dbdce6cede3a5b7edf4f47f6e"
+      },
+      {
+        "path": "scripts/canonical/clean-web-owner.test.mjs",
+        "sha256": "6bf59a51c1d8877523d7b38e5935a3450833b31290f9f1085dde3623731c1668"
+      }
+    ],
+    "newLocalTests": {
+      "tests": 13,
+      "pass": 13,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 29446.6613,
+      "log": ".tmp/b5-web-owner-1056/final13.log",
+      "realOwnNodeChildren": true,
+      "retainedKernelBirthImageAndOsArgv": true,
+      "launchCwdWitness": true,
+      "realSemaphoreAndFileShareExclusion": true,
+      "realCandidateStartupFailureAndExit": true,
+      "expiredLeaseKeptExclusive": true,
+      "lostPublicationAndFinalAckResponses": true,
+      "ackReplayNoSecondEffect": true,
+      "onlyOwnFixtureCleanup": true,
+      "productionTcpHttpBranchExecuted": false,
+      "changedLiveWitnessRefusedNextStop": true
+    },
+    "sourceBehavior": [
+      "No process adoption/PID reopen or PID kill",
+      "Current generation and exact active lease object reference required",
+      "Birth snapshot freeze before CreateProcess; fresh guarded stop/start/publish/rollback/ACK",
+      "Real cooperating writer semaphore held through final acknowledged flush",
+      "Typed internal host binding, fixed candidate/rollback/composite identity",
+      "OS environment allowlist and existing non-secret web environment; no parent SQL/AI secret propagation",
+      "Fixed production5244 listener-owner/immutable HTML readiness code, not executed here",
+      "Default installed handoff remains closed before file/process/compile"
+    ],
+    "runtimeIntegration": "NOT_BOUND: existing accepted starter does not issue live producer binding; no public production issuer supplied",
+    "independentSourceReview": "PENDING",
+    "ci": "NEW_EXACT_HEAD_PENDING_AUTOMATIC_CHECKS",
+    "newGeneralInstallerOrService": false,
+    "manualOldSuitesRepeated": 0,
+    "sharedTestActions": {
+      "helper": 0,
+      "http": 0,
+      "cim": 0,
+      "sql": 0,
+      "gui": 0,
+      "config": 0,
+      "lock": 0,
+      "beforeImage": 0,
+      "restart": 0,
+      "install": 0,
+      "account": 0,
+      "trade": 0
+    },
+    "credentialsOrPrivateStoreRead": 0,
+    "installedOwnerProven": false,
+    "installation": false,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
+  },
+  "b5PassiveWebReview1055": {
+    "manifestSha256": "61328e6bced8de827c00a4672329b5fae3e417ff04007e3b60549085b5a3bab2",
+    "reviewerTurn": "01a172b6-31f1-7563-a813-697e853e3145",
+    "review": "GO",
+    "p1": 0,
+    "p2": 0,
+    "rawGitFilesIndividuallyEqual": 645,
+    "dependencyFilesEqual": 6637,
+    "physicalFilesExpectedAndActual": 7336,
+    "extraFiles": 0,
+    "apiPayloadFiles": 0,
+    "sourceInventoryAggregateReproduced": false,
+    "aggregateSerializationLimitationPreserved": true,
+    "reviewBasis": "Individual raw Git blob and payload SHA equality plus immutable manifest SHA, not unreproduced aggregate",
+    "newBuildTestOrRuntimeOperations": 0
+  },
+  "rollbackRetryP1Fix1644": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "baseCommit": "56d8ed222d816f554b6a030ab8507ff216a591e5",
+    "completedReviewTurn": "01a173b4-3cb8-7272-89eb-152ade5512f8",
+    "baseReview": "SOURCE_NO_GO_ONE_P1",
+    "finding": "Rollback publication failure after birth allowed a retry to create a second live child",
+    "fix": "Retained rollback child and RollbackStarted phase before publication; retry reuses exact child",
+    "sourceWorkingTreeSha256": {
+      "scripts/canonical/clean-web-owner.cs": "eed72630e925db167b0468aee52b51abe88b11da51297880f95c3f4a1c46606d",
+      "scripts/canonical/clean-web-owner.test.mjs": "61b2f8ab5b7c48b9a40cc05414365c17ecc0e7904acd78375ffcaad76698a571"
+    },
+    "red": {
+      "tests": 1,
+      "pass": 0,
+      "fail": 1,
+      "durationMs": 3734.0777,
+      "failure": "SECOND_ROLLBACK_CHILD_AFTER_FAILED_PUBLICATION",
+      "log": ".tmp/b5-rollback-retry-1644/red.log"
+    },
+    "green": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 12217.9847,
+      "log": ".tmp/b5-rollback-retry-1644/green.log",
+      "sameRollbackPidAfterRetry": true,
+      "rollbackBirthsIncludingInitialBaseline": 2,
+      "firstRollbackChildHeartbeatAdvanced": true,
+      "writerHeldUntilFinalAck": true,
+      "secondRetryChild": false
+    },
+    "publicWrapperUnchanged": true,
+    "installedGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "sharedTargetConnections": 0,
+    "sharedRuntimeMutations": 0,
+    "newBuildOrPackage": 0,
+    "oldFullSuitesRepeated": 0,
+    "manualCiReruns": 0,
+    "deltaReview": "PENDING_INDEPENDENT_REVIEW",
+    "ci": "NEW_EXACT_HEAD_PENDING_AUTOMATIC_CHECKS",
+    "installedOwnerProven": false,
+    "installation": false,
+    "guiAfterFix": false,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
+  },
+  "webHostAdapterSource1704": {
+    "scope": "SOURCE_OFFLINE_ONLY",
+    "baseCommit": "ef3135524cffcb72caf9e6f5c64ba6510f8c24ac",
+    "baseDeltaReviewReportedByCoordinator": {
+      "turn": "01a173fc-c19e-7302-8dad-d61b116f2b5d",
+      "result": "NARROW_SOURCE_GO_ROLLBACK_P1_CLOSED",
+      "reviewRepeated": false
+    },
+    "sourceWorkingTreeSha256": {
+      "scripts/canonical/clean-web-owner.cs": "edd7e1b967e9675b32781ec6a15beddea41b51b965860ced3978a57d3b81b67a",
+      "scripts/canonical/clean-web-host.ps1": "572ccca57d4f64657ae7286776f95e5c04c437007e9e3ffcf88b39217e152470",
+      "scripts/canonical/clean-web-host.test.mjs": "66fc0187f969ce833aa5b7aea87b42f92d816fabc624ba032b5302383c876ea0"
+    },
+    "host": "VerifiedCleanWebHost.Start with assembly-internal CooperativeBirthBinding",
+    "runtimeIssuerImplemented": false,
+    "legacyRetirementAndContinuousWriterExclusionRequired": true,
+    "fullPreservedDataLocalSyntheticWitnessRequired": true,
+    "processIdentityOnlyNotAcceptedAsFullScopeProof": true,
+    "fixturePinsAreNotProductionAuthority": true,
+    "productionStartExecuted": false,
+    "fixedProductionPinTcpHttpBranchesExecuted": false,
+    "newTests": {
+      "tests": 5,
+      "pass": 5,
+      "fail": 0,
+      "skip": 0,
+      "durationMs": 11336.4466,
+      "log": ".tmp/b5-web-host-adapter-1704/final.log",
+      "realOwnChildBirthAndLifetime": true,
+      "sameOwnerGateThroughFinalAck": true,
+      "retainedFixturePinsBeforeBirth": true,
+      "wrongPackageAndPayloadPinsRejectedBeforeBirth": true,
+      "realCandidateExitRollbackAckAndNoReplayBirth": true,
+      "fullFixtureWitnessDriftRefusedBeforeStop": true,
+      "actualApplyClosedBeforeCompilation": true
+    },
+    "wrapperApplyRegression": {
+      "redFail": 1,
+      "reason": "APPLY_ENTRY_DID_NOT_CLOSE_BEFORE_COMPILE",
+      "cause": "Dot-sourced library parameters shadowed the new wrapper mode",
+      "fix": "Preserve requested Apply and Library mode before source load",
+      "log": ".tmp/b5-web-host-adapter-1704/apply-entry-red.log"
+    },
+    "existingWrapperPairTemplateUnchanged": true,
+    "installedGate": "B5_SUPPORTED_CLEAN_WRITER_HANDOFF_MISSING",
+    "sharedTargetConnections": 0,
+    "sharedRuntimeMutations": 0,
+    "privateStoreEnvCredentialInventorySqlReads": 0,
+    "newBuildOrPackage": 0,
+    "oldFullSuitesRepeated": 0,
+    "manualCiReruns": 0,
+    "newDaemonServiceWatcherTaskAutostart": false,
+    "deltaReview": "PENDING_INDEPENDENT_REVIEW",
+    "ci": "NEW_EXACT_HEAD_PENDING_AUTOMATIC_CHECKS",
+    "installation": false,
+    "guiAfterFix": false,
+    "humanAcceptance": "PENDING",
+    "fullB5Completed": false
+  }
+}

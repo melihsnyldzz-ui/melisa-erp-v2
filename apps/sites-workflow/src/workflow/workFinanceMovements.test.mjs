@@ -52,3 +52,71 @@ test('copy finance rejects mismatched copy seal, foreign entities, legacy record
  try{for(const change of [v=>delete v.paymentContext.meta,v=>v.paymentContext.meta.sealHash='d'.repeat(64),v=>v.paymentContext.suppliers[0].id='999',v=>v.paymentContext.accounts[0].id='999',v=>v.paymentContext.payments[0].ownership='legacy',v=>v.paymentContext.payments[0].amountExact4=null,v=>v.invoices[0].customerId='999',v=>v.invoices[0].documentDate='2026-10-09',v=>v.invoices[0].collections.items[0].accountId='999',v=>v.invoices[0].collections.items[0].documentDate='2026-10-09',v=>v.salesContext.scope.customer.synthetic=true]){const changed=structuredClone(value);change(changed);assert.throws(()=>buildWorkFinanceMovements(changed));}globalThis.window.location.port='5194';assert.throws(()=>buildWorkFinanceMovements(value));}
  finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
+
+function cleanPanelInputs(){
+ const revision='b'.repeat(64),day='2026-10-22',environmentId='e662fd94-d797-4b3b-938a-d143ad758b67',cc=['TRY','TRY','USD','EUR'];
+ const accounts=cc.map((currency,n)=>({id:String(n+1),code:'K-'+(n+1),name:currency+' hesap '+(n+1),currency,type:n===2?'bank':'cash',synthetic:true,openingVerified:true,openingBalanceExact4:'0.0000',balanceExact4:'500.0000'}));
+ const received=['50.0000','5.1250','2.0001','3.2500'],outstanding=['50.0000','94.8750','97.9999','96.7500'];
+ const collectionContexts=cc.map((currency,n)=>{
+  const id=String(n+1),customer={id,code:'M-'+id,name:'Yapay müşteri '+id,currency,synthetic:true,writeEligible:true,balanceExact4:outstanding[n],revision};
+  const collection=(offset,amount,status)=>({id:String(100+n*10+offset),invoiceId:id,accountId:id,amountExact4:amount,currency,documentDate:day,status,revision});
+  const active=collection(1,received[n],'active'),cancelled={...collection(2,'1.0000','cancelled'),reversalId:String(103+n*10),reversalAccountId:id,reversalAmountExact4:'1.0000',reversalCurrency:currency,reversalDocumentDate:day,reversalCreatedAt:'2026-10-25 01:00:00'};
+  const invoice={id,documentNo:'YAPAY-'+id,documentDate:day,status:'finalized',customerId:id,currency,revision,subtotalExact4:'100.0000',grandTotalExact4:'100.0000',amountTryExact4:'100.0000',customerBalanceExact4:outstanding[n],items:[{productId:'301',stockCode:'0007',name:'Yapay ürün',quantityExact3:'1.000',unitPriceExact8:'100.00000000',unitPriceExact4:'100.0000',lineTotalExact4:'100.0000',currency}],collections:{revision,receivedExact4:received[n],outstandingExact4:outstanding[n],items:[active,cancelled]}};
+  return {invoice,customer,accounts:[structuredClone(accounts[n])],capabilities:{canCollect:true,canCancelCollection:false},revision};
+ });
+ const invoices=collectionContexts.map(c=>structuredClone(c.invoice));
+ const salesContext={meta:{schemaVersion:'melisa-work-trade.v1',source:'native-test',date:day,timeZone:'Europe/Istanbul',environment:'CLEAN_SYNTHETIC_TEST',environmentId,synthetic:true,actualT1:false,externalOperations:false,cleanSaleReadOnly:true},revision,scope:{synthetic:true,customer:structuredClone(collectionContexts[0].customer),accounts:[structuredClone(accounts[0])],products:[]},capabilities:{canCreate:false,canFinalize:false,canCancel:false,canCollect:true,canCancelCollection:false},supportedCurrencies:['TRY'],limits:{maxItems:0,maxQuantityPerLine:0,maxInvoiceAmountExact4:'0.0000'}};
+ const suppliers=cc.map((currency,n)=>({id:String(n+1),code:'T-'+(n+1),name:'Yapay tedarikçi '+(n+1),currency,synthetic:true,writeEligible:true,balanceExact4:'200.0000',debtKind:'invoice',invoices:[{id:String(n+4),number:'AL-'+(n+4),status:'finalized',documentDate:day,documentCurrency:currency,accountCurrency:currency,documentAmountExact4:'200.0000',accountAmountExact4:'200.0000',paidExact4:'0.0000',returnedExact4:'0.0000',remainingExact4:'200.0000',receiptId:n===0?'3':null,receiptKind:n===0?'work-clean-store-day-receipt':null}]}));
+ const p={id:'900',supplierId:'3',accountId:'3',invoiceId:'6',invoiceNumber:'AL-6',receiptId:null,receiptKind:null,ownership:'work',canCancel:false,kind:'payment',direction:'out',currency:'USD',accountCurrency:'USD',amountExact4:'2.0000',accountAmountExact4:'2.0000',amountTryExact4:'80.0000',documentRateExact8:'40.00000000',accountRateExact8:'40.00000000',documentDate:day,description:'Yapay ödeme',number:'OD-900',originalId:null,reversedById:'901'};
+ const paymentContext={meta:{schemaVersion:'melisa-work-supplier-payment.v1',source:'native-test',date:day,timeZone:'Europe/Istanbul',environmentId,financeCase:'B4-TRY-20261023',financeFxCases:['B4-USD-20261023','B4-EUR-20261023']},revision,capabilities:{canView:true,canPay:true,canCancel:false},suppliers,accounts,rates:[{id:'1',currency:'USD',rateToTryExact8:'40.00000000',date:day,source:'explicit-synthetic-B4-input',caseId:'B4-USD-20261023'},{id:'2',currency:'EUR',rateToTryExact8:'45.00000000',date:day,source:'explicit-synthetic-B4-input',caseId:'B4-EUR-20261023'}],payments:[p,{...p,id:'901',kind:'payment_cancel',direction:'in',originalId:'900',reversedById:null},{...p,id:'902',supplierId:'4',accountId:'4',invoiceId:'7',invoiceNumber:'AL-7',currency:'EUR',accountCurrency:'EUR',amountExact4:'1.0000',accountAmountExact4:'1.0000',amountTryExact4:'45.0000',documentRateExact8:'45.00000000',accountRateExact8:'45.00000000',reversedById:null}],limits:{maxAmountExact4:'500.0000',maxPayments:30}};
+ return {salesContext,invoices,paymentContext,collectionContexts};
+}
+
+test('clean panel resolves four exact invoice contexts and keeps three exact currency totals',()=>{
+ const input=cleanPanelInputs(),before=JSON.stringify(input);
+ // Neither the first context nor its first account is the requested source.
+ input.collectionContexts.reverse();input.collectionContexts.find(c=>c.invoice.id==='2').accounts.unshift(structuredClone(input.paymentContext.accounts[0]));
+ const result=buildWorkFinanceMovements(input);
+ assert.equal(result.rows.length,15);assert.deepEqual([...new Set(result.rows.filter(r=>r.partyType==='customer').map(r=>r.partyName))].sort(),['1','2','3','4'].map(n=>'Yapay müşteri '+n));
+ assert.deepEqual(result.summary.map(({currency,netExact4})=>({currency,netExact4})),[{currency:'TRY',netExact4:'55.1250'},{currency:'USD',netExact4:'2.0001'},{currency:'EUR',netExact4:'2.2500'}]);
+ assert.equal(result.rows.find(r=>r.id==='collection-111').accountId,'2');assert.equal(result.bankAccounts[0].currency,'USD');
+ const stable=JSON.stringify(input);buildWorkFinanceMovements(input);assert.equal(JSON.stringify(input),stable);assert.notEqual(stable,before);
+});
+
+const both=(v,n,change)=>{change(v.invoices[n]);v.collectionContexts[n].invoice=structuredClone(v.invoices[n]);};
+for(const [name,change]of [
+ ['missing context',v=>v.collectionContexts.pop()],
+ ['duplicate context',v=>v.collectionContexts[1]=structuredClone(v.collectionContexts[0])],
+ ['duplicate invoice',v=>v.invoices[1]=structuredClone(v.invoices[0])],
+ ['foreign customer',v=>v.collectionContexts[1].customer.id='999'],
+ ['unknown customer name',v=>v.collectionContexts[1].customer.name=''],
+ ['foreign customer currency',v=>v.collectionContexts[1].customer.currency='USD'],
+ ['unverified customer',v=>v.collectionContexts[1].customer.synthetic=false],
+ ['missing accounts',v=>v.collectionContexts[1].accounts=[]],
+ ['duplicate account',v=>v.collectionContexts[1].accounts.push(structuredClone(v.collectionContexts[1].accounts[0]))],
+ ['unknown account name',v=>v.collectionContexts[1].accounts[0].name=''],
+ ['conflicting account metadata',v=>v.collectionContexts[1].accounts[0].type='bank'],
+ ['stale invoice revision',v=>v.collectionContexts[1].invoice.revision='c'.repeat(64)],
+ ['different history snapshot',v=>v.collectionContexts[1].invoice.collections.items.pop()],
+ ['wrong collection currency',v=>both(v,1,i=>i.collections.items[0].currency='USD')],
+ ['wrong collection account',v=>both(v,1,i=>i.collections.items[0].accountId='1')],
+ ['duplicate collection identity',v=>both(v,1,i=>i.collections.items[0].id=v.invoices[0].collections.items[0].id)],
+ ['missing reversal evidence',v=>both(v,1,i=>delete i.collections.items[1].reversalId)],
+ ['wrong reversal amount',v=>both(v,1,i=>i.collections.items[1].reversalAmountExact4='1.0001')],
+ ['reused reversal identity',v=>both(v,1,i=>i.collections.items[1].reversalId=v.invoices[0].collections.items[1].reversalId)],
+ ['reversal is another original',v=>both(v,1,i=>i.collections.items[1].reversalId=v.invoices[0].collections.items[0].id)],
+ ['active reversal contradiction',v=>both(v,1,i=>i.collections.items[0].reversalId='999')],
+ ['wrong finite document day',v=>both(v,1,i=>i.collections.items[1].reversalDocumentDate='2026-10-21')],
+ ['invalid reversal timestamp',v=>both(v,1,i=>i.collections.items[1].reversalCreatedAt='2026-02-30 01:00:00')],
+ ['wrong received sum',v=>both(v,1,i=>i.collections.receivedExact4='5.1251')],
+ ['wrong outstanding sum',v=>both(v,1,i=>i.collections.outstandingExact4='94.8751')],
+ ['missing supplier reversal',v=>v.paymentContext.payments.splice(1,1)],
+ ['wrong supplier reversal link',v=>v.paymentContext.payments[1].originalId='999'],
+ ['duplicate supplier movement',v=>v.paymentContext.payments.push(structuredClone(v.paymentContext.payments[0]))],
+ ['foreign payment context',v=>v.paymentContext.meta.environmentId='other'],
+ ['foreign context meta',v=>v.collectionContexts[0].meta={environmentId:'other'}],
+ ['false clean marker',v=>v.salesContext.meta.actualT1=true],
+ ['changed write admission',v=>v.salesContext.capabilities.canCreate=true],
+])test('clean panel rejects all totals for '+name,()=>{const v=cleanPanelInputs();change(v);assert.throws(()=>buildWorkFinanceMovements(v));});
+
+test('legacy and selected-copy calls cannot opt into clean contexts',()=>{const v=inputs();assert.throws(()=>buildWorkFinanceMovements({...v,collectionContexts:[]}));});

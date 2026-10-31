@@ -14,8 +14,9 @@ export function terminalCrmViewportHeight({visualHeight,innerHeight,headerHeight
  return Math.max(1,Math.floor(viewport-header));
 }
 export function terminalCrmUrl(location){
- const pairedPorts={'5194':'62400','5224':'62600','5234':'62700'};
+ const pairedPorts={'5194':'62400','5224':'62600','5234':'62700','5244':'62800'};
  if(location?.protocol!=='http:'||!Object.hasOwn(pairedPorts,location?.port??'')||!['127.0.0.1','localhost','192.168.1.46'].includes(location.hostname))throw Error('Müşteri bağlantısı kullanılamıyor.');
+ if(location.port==='5244'&&location.origin!==`http://${location.hostname}:5244`)throw Error('Müşteri bağlantısı kullanılamıyor.');
  const origin=`http://${location.hostname}:${pairedPorts[location.port]}`;
  return {origin,url:`${origin}/?${new URLSearchParams({terminal:'1',erpOrigin:location.origin})}`};
 }

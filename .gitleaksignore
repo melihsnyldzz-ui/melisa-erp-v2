@@ -1,3 +1,11 @@
+# Independently reviewed 2026-10-21: exact SHA256 pins of recorded erpApi recovery stop intent/result.
+# Both independently matched protected local artifact bytes; no credential or broad rule/path exclusion.
+21af6a5fad6a9fe6ae3aae64e7c5323f9643c7ff:scripts/canonical/p03-pr54-shared-owner-io.mjs:generic-api-key:905
+21af6a5fad6a9fe6ae3aae64e7c5323f9643c7ff:scripts/canonical/p03-pr54-shared-owner-io.mjs:generic-api-key:906
+
+# Independently reviewed 2026-10-18: three public Git commit IDs and release-manifest SHA256 pins, no credential.
+28c29bb5b56bc9275285a99f4cae8dc53dbbd4e0:scripts/canonical/p03-pr54-receipt-acl.ps1:generic-api-key:161
+
 # Exact false positives independently reviewed on 2026-10-03; no broad exclusions.
 # Independently reviewed 2026-10-11 against historical source and HEAD 1a14a33.
 # Synthetic provenance/source identifiers and a public scope identifier, not credentials.
@@ -98,3 +106,70 @@ fbb6831038495124c55a48325cba7ec1c43dec2f:apps/sites-workflow/src/workflow/workin
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-plan.test.mjs:generic-api-key:9
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:20
 90d0a331ed16cc5003f8a1b1d451882fad9761be:scripts/migration/product-completion-test-application.test.mjs:generic-api-key:8
+
+# Independently reviewed 2026-10-18 by root and review_hub: synthetic fixture
+# product301/customer501/supplier601 VEGA provenance paths, never credentials.
+# Exact historical commit/path/rule/line only; no file or rule exclusion.
+90b0bc03dd1b377a18d188b6fbd1feaae86a42e3:apps/sites-workflow/src/workflow/selectedSourceCollectionHandoff.test.mjs:generic-api-key:10
+
+# Reviewed 2026-10-18: three public release commit IDs and manifest SHA pins; no credential.
+69e99264020d9a0fb24641a52ae12fcf8aca4a2d:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:73
+
+# Independently reviewed 2026-10-19 by root and c09_review: public release
+# commit/manifest pins and synthetic fixture constants; no credentials.
+# Exact historical commit/path/rule/line only; no rule or path suppression.
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-observer-cim-order.test.mjs:generic-api-key:253
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
+cfbf7c67a754370e4b5a9b9f41b2cd6d79190e96:scripts/canonical/p03-pr54-new-owner-observe.ps1:generic-api-key:374
+
+# Independently reviewed 2026-10-20 by root and b264_inspection_review:
+# consumed 639/7b/B264 run IDs plus public release commit/manifest pins only.
+# Exact historical fingerprint; no path/rule exclusion or scanner change.
+745e940d43b730af9bd07f48fd7e32e421cd0900:scripts/canonical/p03-physical-profile-create.mjs:generic-api-key:85
+
+# Independently reviewed 2026-10-20 by root and b264_inspection_review:
+# public ERP release commit ID01ef3e in a synthetic sourceCommit assignment, not a credential.
+# Exact pushed historical fingerprint only; no file/rule/commit-wide suppression.
+b2b131035754a3148ce83ab095d9c0de13a8141a:scripts/canonical/p03-old-reuse-failure-record.test.mjs:generic-api-key:72
+
+# Reviewed 2026-10-24 by ERP owner and existing coordinator: public installed
+# ERP source commit 64f273df, not an API key. Exact historical fingerprint only.
+9e7b7169b3d3593feb86194105a7e1bf84a3d10e:docs/evidence/erp/2026-10-24-b5-normal-access.json:generic-api-key:16
+
+# Exact three public commit/manifest pins approved by the human on 2026-10-25,
+# reply to call_fe0b5ef06e244432becfbde72479d400. No file/rule-wide exclusion.
+6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-transition.ps1:generic-api-key:11
+6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-start.template.ps1:generic-api-key:6
+6875903de1f30c9b915d0643b6e15ddb49c76d68:scripts/canonical/clean-b5-pair-start.template.ps1:generic-api-key:9
+# Two literal synthetic Vega fixture paths in the published 5a01d96d test commit.
+# Neither is a credential; current fixtures now assemble the explicit path segments.
+# Exact historical findings only; no file-wide or rule-wide suppression.
+5a01d96d56e67a68475f8fedb434f76576562e7d:scripts/migration/product-catalog-lineage.test.mjs:generic-api-key:23
+5a01d96d56e67a68475f8fedb434f76576562e7d:scripts/migration/current-vega-product-slice.test.mjs:generic-api-key:27
+
+# User approved 2026-10-28: exactly 13 independently verified historical false positives.
+# Nine release-manifest SHA256 pins, two operational status texts, one synthetic FX source, one PS function symbol.
+# Exact commit/file/rule/line only; no path/rule/global or future finding exclusion.
+af56e36ca89bca988dc7f521125b7a9263310811:apps/api/src/services/canonicalBusinessSaleModel.test.mjs:generic-api-key:24
+d303218681fe212155b6a91f8fb62b1274721842:STATUS.md:generic-api-key:1
+f0568be74d8e2d35c4adefef92b6c60c67cfb6ec:docs/evidence/erp/2026-10-08-current-party-completion/green5244-realdata-compat-prep-20261027.md:generic-api-key:364
+b990f65b63e341657495e6030e7bcf36307ac859:scripts/canonical/start-business-5244-web.ps1:generic-api-key:15
+8904f7a2f991da91d0290986896c33f10aa0f23a:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+e577646ed0f160149556e19c2bc5fd27ea9ab058:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+a38f08d74ae533db6d89a71908435255c78e0899:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+71bf21089874677bf4062c1a31de0b14aa0e8d84:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+491edafe4852625c7fdb851329bce6e6d34e5a8c:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+9177143cfc252924c015518f7bac151f51aa0a8f:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+76106c22e816175c51306dfac1e4d7dd1a45dc93:scripts/canonical/start-business-5244-web.ps1:generic-api-key:5
+8a060591b38ad484db60c98f0ea61423809d2cd1:scripts/canonical/prepare-green5244-realdata-compat.mjs:generic-api-key:9
+0a22177889268a00772ea25aa0b2a9f1578e4d64:scripts/canonical/test125-bound-api-quiescence.test.mjs:generic-api-key:34
+c3004917e96da22b4410f2dafff3f635a7d435f9:scripts/canonical/canonical-business-sale-maintenance.ps1:generic-api-key:31
+c3004917e96da22b4410f2dafff3f635a7d435f9:scripts/canonical/prepare-business-sale-owner-bundle.mjs:generic-api-key:32
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/business-5244-readpair-install.test.mjs:generic-api-key:281
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:65
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.mjs:generic-api-key:288
+ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:204
+
+# Exact false positive: the existing Current API release-manifest SHA256 in a
+# synthetic capture fixture, not an API credential. Full-history scan retained.
+7184e3aefa19d9e6c6aa8059e7290a65bc84708e:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:88

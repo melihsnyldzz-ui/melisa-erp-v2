@@ -16,6 +16,9 @@ test('authorization and strict selection validation happen before any store quer
  let called=false;const service=createWorkSalesService({getStore:async()=>{called=true;throw nativeError();}});
  await assert.rejects(service.selectedContext(input,{id:'16',permissions:['sales.view']}),{code:'WORK_FORBIDDEN',statusCode:403});assert.equal(called,false);
  await assert.rejects(service.selectedContext({...input,productIds:['10','10']},actor),{code:'WORK_ITEMS_INVALID'});assert.equal(called,false);
+ for(const invalid of [{...input,customerId:'0'},{...input,productIds:['0']},{...input,extra:true},{customerId:'155',customerAccountId:'7',documentDate:'2026-10-28',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'6.000'}]},{customerId:'155',documentDate:'2026-10-28',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'1.000'}]}]){
+  await assert.rejects(service.selectedContext(invalid,actor));assert.equal(called,false);
+ }
 });
 test('mapping is restricted to selected-context and leaves normal preview errors intact',async()=>{
  const error=nativeError();await assert.rejects(serviceFor(error).preview({customerId:'20',documentDate:'2026-10-09',currency:'TRY',items:[{productId:'10',quoteId:'100',quantityExact3:'1.000'}]},actor),e=>e===error);

@@ -4,6 +4,7 @@ import {isDailyWebCustomerScope,assertDailyWebCustomer} from './dailyWebPolicy.m
 import {hasNativeCustomerAccess} from './nativeCustomerRoutes.mjs';
 import {isWorkNightProduct} from './workNightScope.mjs';
 import {isIsolatedCopyCustomer,isIsolatedCopyProduct} from './isolatedOperationCopyScope.mjs';
+import {getCanonicalBusinessSaleTransaction} from './canonicalBusinessSessionContext.mjs';
 
 export const pilotCashCodes = Object.freeze({'1-PEŞİN $':'USD','3-PEŞİN €':'EUR','2-PEŞİN TL':'TRY'});
 export const pilotCashOnly = () => process.env.MELISA_PILOT_RUNTIME === 'true';
@@ -30,6 +31,7 @@ export async function assertPilotCashCustomer(request,customerId,documentCurrenc
 
 export async function assertPilotSaleProducts(requestFactory,items,{consume=false,previousItems=[],allowNegativeStock=false}={}){
  if(!pilotCashOnly())return;
+ if(!Array.isArray(items)||items.length===0)reject('PILOT_LINE_INVALID','Satış için en az bir geçerli ürün gereklidir.');
  const sql=getSqlDriver(),quantities=new Map(),previous=new Map();
  for(const item of previousItems)previous.set(Number(item.productId),(previous.get(Number(item.productId))||0)+Number(item.quantity));
  for(const item of items){
@@ -37,11 +39,13 @@ export async function assertPilotSaleProducts(requestFactory,items,{consume=fals
   quantities.set(Number(item.productId),(quantities.get(Number(item.productId))||0)+Number(item.quantity));
  }
  for(const [productId,quantity] of [...quantities].sort((a,b)=>a[0]-b[0])){
-  const request=requestFactory(),night=isWorkNightProduct(productId,request.parent)||isIsolatedCopyProduct(productId,request.parent);
+  const request=requestFactory(),canonical=getCanonicalBusinessSaleTransaction(request.parent),canonicalProduct=canonical?.products.find(p=>p.productId===String(productId));
+  if(canonical&&(items.length!==canonical.products.length||quantities.size!==items.length||!canonicalProduct||Number(canonicalProduct.quantityExact3)!==quantity||items.filter(i=>Number(i.productId)===productId).some(i=>Number(i.unitPrice).toFixed(4)!==canonicalProduct.unitPriceExact4)))reject('PILOT_PRODUCT_OUT_OF_SCOPE','Ürün native satış işlem kapsamıyla eşleşmiyor.');
+  const night=!!canonicalProduct||isWorkNightProduct(productId,request.parent)||isIsolatedCopyProduct(productId,request.parent);
   const p=(await request.input('pilotProductId',sql.BigInt,productId).query(`SELECT p.current_stock_qty,p.unit FROM dbo.products p WITH(UPDLOCK,HOLDLOCK)
    WHERE p.id=@pilotProductId AND p.is_active=1 AND p.is_deleted=0 AND ${night?'p.id=@pilotProductId':pilotProductScopeSql('p.id')}`)).recordset[0];
   if(!p||p.unit!=='ADET')reject('PILOT_PRODUCT_OUT_OF_SCOPE','Ürün doğrulanmış pilot satış kapsamında değil.');
   if(night&&(p.current_stock_qty==null||!Number.isFinite(Number(p.current_stock_qty))))reject('PILOT_STOCK_UNKNOWN','Doğrulanmış stok miktarı gerekli.');
-  if(consume&&!allowNegativeStock&&Number(p.current_stock_qty)+(previous.get(productId)||0)<quantity)reject('PILOT_STOCK_INSUFFICIENT','Melisa stoğu yetersiz; satış kesinleştirilmedi.');
+  if(consume&&(canonical||!allowNegativeStock)&&Number(p.current_stock_qty)+(canonical?0:(previous.get(productId)||0))<quantity)reject('PILOT_STOCK_INSUFFICIENT','Melisa stoğu yetersiz; satış kesinleştirilmedi.');
  }
 }

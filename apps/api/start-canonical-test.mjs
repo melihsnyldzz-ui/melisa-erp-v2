@@ -1,8 +1,8 @@
 import { configureCanonicalTest } from './canonical-test-env.mjs';
 import {startCanonicalListeners,canonicalInboundMiddleware,canonicalReadiness} from './canonical-test-listeners.mjs';
 const [mode, configPath] = process.argv.slice(2);
-const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy}=await configureCanonicalTest(configPath,mode);
-const {configureCatalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
+const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession}=await configureCanonicalTest(configPath,mode);
+const {configureCatalogSourceVersion,catalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
 if(config.goal7SourceVersion)configureCatalogSourceVersion(config.goal7SourceVersion);
 if(mode==='erp'){
  const {configureCurrentFinanceContext}=await import('./src/services/currentFinanceDeltaRead.mjs');
@@ -12,7 +12,7 @@ if(mode==='erp'){
 }
 if(mode==='erp' && writes){
   const {configureCatalogClassificationStore}=await import('./src/services/catalogClassificationStore.mjs');
-  try{await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:config.goal7SourceVersion??null});}
+  try{await configureCatalogClassificationStore({root:config.catalogClassificationRoot,indexSha256:config.catalogClassificationIndexSha256,identity,mode,port,writes,env,sourceVersion:catalogSourceVersion()??null});}
   catch{try{await pool.close();}catch{}throw new Error('Ürün kataloğu başlangıçta doğrulanamadı.');}
   const {configureCatalogMediaStore}=await import('./src/services/catalogMediaStore.mjs');
   await configureCatalogMediaStore({root:config.catalogMediaRoot,indexSha256:config.catalogMediaIndexSha256,identity,mode,port,writes});
@@ -22,6 +22,7 @@ if(mode==='erp' && writes){
   catch{try{await pool.close();}catch{}throw new Error('Ürün kataloğu başlangıçta doğrulanamadı.');}
 }
 const {isCanonicalTestWriteAllowed}=await import('./src/services/canonicalTestRoutePolicy.mjs');
+const {isCanonicalBusinessSaleReadAllowed}=await import('./src/services/canonicalBusinessSaleReadPolicy.mjs');
 const {default:express}=await import('express');
 const {default:cors}=await import('cors');
 const {securityHeaders,corsOptions,apiRateLimit}=await import('./src/middleware/security.js');
@@ -31,7 +32,7 @@ const app=express();app.disable('x-powered-by');
 app.use(canonicalInboundMiddleware({port,policy:listenerPolicy}));
 app.use(securityHeaders(),cors(corsOptions()),requestContext,apiRateLimit(),express.json({limit:'2mb'}));
 app.use((_req,res,next)=>{res.set('X-Melisa-Environment','CANONICAL-TEST');res.set('Cache-Control','no-store');next();});
-const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId};
+const health={ok:true,environment:'CANONICAL_TEST',mode,port,listenerHosts:listenerPolicy.hosts,...identity,sqlReadOnly:!writes,writes,writeScope:writes?'Existing named TEST records; guarded API and SQL triggers':'none',externalOperations:false,automaticJobs:false,networkPolicy,sourceCommit:release.sourceCommit,packageId:release.packageId,...(businessSession?{businessWorkfaceId:config.businessWorkface.id,normalSessionUserId:businessSession.userId,persistentNormalSession:true,businessSessionSignerDomain:'dedicated-business-key-v1',actualT1:false}: {})};
 const readiness=canonicalReadiness();
 app.get('/test-health',(_req,res)=>readiness.send(res,health));
 app.get('/production-switch-health',(_req,res)=>readiness.send(res,health));
@@ -46,10 +47,16 @@ if(mode==='erp' && writes){
 }
 app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'TEST_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})&&!isCanonicalBusinessSaleReadAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
   next();
 });
 if(mode==='erp'){
+  if(businessSession){
+    const {canonicalBusinessSaleReadRoutes}=await import('./src/routes/canonicalBusinessSaleReadRoutes.mjs');
+    app.use('/api',canonicalBusinessSaleReadRoutes);
+    const {canonicalBusinessPartyHistoryRoutes}=await import('./src/routes/canonicalBusinessPartyHistoryRoutes.mjs');
+    app.use('/api',canonicalBusinessPartyHistoryRoutes);
+  }
   const {configureWorkSystem}=await import('./src/services/workSystemService.mjs');
   configureWorkSystem({identity,release});
   const {workSystemRoutes}=await import('./src/routes/workSystemRoutes.mjs');

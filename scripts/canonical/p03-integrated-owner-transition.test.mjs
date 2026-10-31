@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {runP03OwnerTransition,p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
+import {runP03OwnerTransition,runP03HeldCoreOwnerTransition,p03TransitionDigest} from './p03-integrated-owner-transition.mjs';
 
 const targets=['hub','crmServer','crmOrders','crmCatalog','crmNativeOrder','erpApi','erpNative','coreSupervisor'];
 function fixture(changes={}){
@@ -57,4 +57,42 @@ test('readback failure after start never auto-restores or restarts',async()=>{
  const f=fixture({readback:async()=>false});
  await assert.rejects(runP03OwnerTransition(f.callbacks),error=>error.code==='P03_OWNER_TRANSITION_STOPPED'&&error.phase==='READBACK'&&error.startAttempted===true&&error.actionRestore==='NOT_ATTEMPTED');
  assert.equal(f.calls.includes('startTasks'),true);assert.equal(f.calls.includes('restoreOldActions'),false);assert.equal(f.events.at(-1).event,'FAILED');
+});
+
+function heldFixture(){const f=fixture();f.callbacks.heldCoreCut=async()=>{
+ assert.deepEqual(f.events.slice(0,2).map(x=>[x.event,x.target]),[['TASK_STOP_INTENT',undefined],['EXACT_STOP_INTENT','coreSupervisor']]);
+ f.calls.push('heldCoreCut');return {coreStopResult:'COM_STOP_NATURAL_EXIT',heldCoreExited:true,comStopped:true,cutWitness:{path:'synthetic/cut',sha256:'a'.repeat(64)},drainWitness:{path:'synthetic/drain',sha256:'b'.repeat(64)}};
+};return f;}
+test('held rehearsal explicitly selects only the two isolated task names; default Shared remains exact',async()=>{
+ for(const [environment,names] of [['Rehearsal',['Melisa-P03-Rehearsal-Core','Melisa-P03-Rehearsal-Hub']],['Shared',['Melisa-Terminal-Completion-Logon','Melisa-Hub-TEST-Web']]]){
+  const f=heldFixture();f.callbacks.environment=environment;
+  assert.equal((await runP03HeldCoreOwnerTransition(f.callbacks)).status,'COMPLETE');
+  assert.deepEqual(f.calls.filter(x=>x.startsWith('set:')),names.map(name=>'set:'+name+':new'));
+  assert.deepEqual(f.events.filter(x=>x.event==='ACTION_INTENT').map(x=>x.target),names);
+ }
+ for(const environment of [null,'shared','Physical','',{},['Rehearsal']]){
+  const f=heldFixture();f.callbacks.environment=environment;
+  await assert.rejects(runP03HeldCoreOwnerTransition(f.callbacks),/P03_OWNER_TRANSITION_REJECTED/);
+  assert.deepEqual(f.calls,[]);assert.deepEqual(f.events,[]);
+ }
+});
+test('held-core handoff persists the real core intent before COM-cut callback and drains only seven remaining roles',async()=>{
+ const f=heldFixture();assert.deepEqual(await runP03HeldCoreOwnerTransition(f.callbacks),{status:'COMPLETE',stopped:8,started:true});
+ assert(!f.calls.includes('stopTasks'));assert(!f.calls.includes('stop:coreSupervisor'));
+ assert.deepEqual(f.calls.filter(x=>x.startsWith('stop:')),targets.slice(0,7).map(x=>'stop:'+x));
+ assert(f.events.findIndex(x=>x.event==='EXACT_STOPPED'&&x.target==='coreSupervisor')<f.events.findIndex(x=>x.event==='TASKS_STOPPED'));
+ assert(f.events.every((e,n)=>e.sequence===n&&/^[a-f0-9]{64}$/.test(e.stopOrderDigest)));
+});
+test('failed held-core intent persistence never enters the COM-cut callback',async()=>{
+ const f=heldFixture(),persist=f.callbacks.persist;f.callbacks.persist=async row=>row.event==='EXACT_STOP_INTENT'?{created:false,sequence:row.sequence}:persist(row);
+ await assert.rejects(runP03HeldCoreOwnerTransition(f.callbacks));assert(!f.calls.includes('heldCoreCut'));assert(!f.calls.includes('startTasks'));assert(!f.calls.some(x=>x.startsWith('set:')));
+});
+test('held-core receipt drift refuses all remaining stops and actions',async()=>{
+ for(const change of [x=>x.heldCoreExited=false,x=>x.comStopped=false,x=>x.coreStopResult='ALREADY_GONE',x=>x.cutWitness.sha256='invalid',x=>x.drainWitness=x.cutWitness,x=>x.extra=true]){
+  const f=heldFixture(),cut=f.callbacks.heldCoreCut;f.callbacks.heldCoreCut=async()=>{const r=await cut();change(r);return r;};
+  await assert.rejects(runP03HeldCoreOwnerTransition(f.callbacks),e=>e.phase==='HELD_CORE_CUT'&&e.startAttempted===false);assert(!f.calls.some(x=>x.startsWith('stop:')||x.startsWith('set:')));assert(!f.calls.includes('startTasks'));
+ }
+});
+test('held-core startup failure never restores actions over potentially running new processes',async()=>{
+ const f=heldFixture();f.callbacks.readback=async()=>false;await assert.rejects(runP03HeldCoreOwnerTransition(f.callbacks),e=>e.phase==='READBACK'&&e.startAttempted===true&&e.actionRestore==='NOT_ATTEMPTED');assert(!f.calls.includes('restoreOldActions'));assert.equal(f.events.at(-1).event,'FAILED');
 });

@@ -6,9 +6,13 @@ import { createVegaProductStorage } from '../services/vegaProductStorage.js';
 import { normalizePage, verifyDetail, quantity, currency, priceRows } from '../modules/vega/vegaReadModel.js';
 import { dayRange, istanbulDay, operationPage, readiness, readPaths, documentCard, documentSummary, completionSteps } from './liveDataModel.js';
 import './liveData.css';
+import './officeLayout.css';
+import './officeAccessibility.js';
 import dailySnapshot from './dailySnapshot.json';
 import accountSnapshot from './accountSnapshot.json';
 import {createWorkCatalog} from './workCatalog.js';
+import {createCleanNativeOrders} from './cleanNativeOrders.js';
+import {isCleanCatalogLocation} from './cleanSyntheticCatalogModel.mjs';
 import {createWorkHome} from './workHome.js';
 import {validateWorkHome} from './workHomeModel.mjs';
 import {createWorkSales} from './workSales.js';
@@ -24,6 +28,7 @@ import {createWorkReports} from './workReports.js';
 import {createWorkSystemSettings} from './workSystemSettings.js';
 import {resolveTestApiBase,testSessionModeKey} from './testAdminSession.mjs';
 import {createWorkingCatalogSession,workingCatalogUserLabel} from './workingCatalogSession.mjs';
+import {selectedSourceCopy,readSelectedSourceHandoff} from './selectedSourceCollectionHandoff.mjs';
 import {mountCopyActorSelector,verifiedCopyPage} from './workCopyActorSelector.mjs';
 const savedAccounts=accountSnapshot.rows.map(r=>({sourceId:String(r.IND),accountCode:r.FIRMAKODU,name:r.FIRMAADI,currency:r.PARABIRIMI,groupCode:r.KOD1,readAt:r.readAt}));
 const savedAccountNames=Object.fromEntries(savedAccounts.map(r=>[r.sourceId,r.name]));
@@ -101,17 +106,19 @@ export function nativeApprovalSummary(data){
  const links=[['goods','Mal kabulü','goods'],['count','Sayım','count'],['returns','İadeler','returns']].filter(([, ,k])=>c[k]===true&&n[k]===true).map(([screen,label])=>({screen,label}));
  return {pendingCount:s.status==='available'?s.pendingCount:null,status:s.status,links};
 }
-function createNativeApprovals({root,session,navigate}){
+function createNativeApprovals({root,session,navigate,user}){
+ if(isCleanCatalogLocation(window.location))return createCleanNativeOrders({root,session,user,storage:storage('localStorage')});
  let active=false,generation=0;
  async function refresh(){const token=++generation;root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="status">Bekleyen işler açılıyor…</p></section>';try{
   const view=nativeApprovalSummary(validateWorkHome(await session.home()));if(!active||!root.isConnected||token!==generation)return;
   const text=view.pendingCount===null?(view.status==='forbidden'?'Onayları görüntüleme yetkiniz yok.':'Bekleyen işler şu anda okunamıyor.'):`${view.pendingCount.toLocaleString('tr-TR')} kayıt kontrol bekliyor.`;
-  root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Onaylar</h1><p class="sub">Bekleyen kayıtları kaynak bölümünde inceleyin.</p></div><button class="btn" data-approval-refresh>Yenile</button></div><section class="card panel" style="padding:20px"><p role="status">${esc(text)}</p><p>Bu özet, yetkiniz kapsamındaki mal kabulü, sayım ve iade kayıtlarını kapsar. İndirim kararları ve birleşik karar geçmişi bu özete dahil değildir.</p><div class="actions">${view.links.map(l=>`<button class="btn" data-approval-source="${l.screen}">${l.label}</button>`).join('')}</div><p class="sub">Kayıt ayrıntısını ve karar yetkisini ilgili bölümden kontrol edin.</p></section>`;
+  root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>Onaylar</h1><p class="sub">Bekleyen kayıtları kaynak bölümünde inceleyin.</p></div><button class="btn" data-approval-refresh>Yenile</button></div><section class="card panel" style="padding:20px"><p role="status">${esc(text)}</p><p>Bu özet, yetkiniz kapsamındaki mal kabulü, sayım ve iade kayıtlarını kapsar. İndirim kararları ve birleşik karar geçmişi bu özete dahil değildir.</p><div class="office-approval-links">${view.links.map(l=>`<article class="office-approval-source"><h2>${l.label}</h2><p>${l.screen==='goods'?'Personelin gönderdiği teslimatları inceleyin.':l.screen==='count'?'Fiziksel adetleri ve fark nedenlerini inceleyin.':'Kaynak belgeyi, iade miktarını ve nedenini inceleyin.'}</p><button class="btn" data-approval-source="${l.screen}">${l.label}</button></article>`).join('')}</div><p class="sub">Kayıt ayrıntısını ve karar yetkisini ilgili bölümden kontrol edin.</p></section>`;
   root.querySelector('[data-approval-refresh]').onclick=refresh;root.querySelectorAll('[data-approval-source]').forEach(b=>b.onclick=()=>navigate(b.dataset.approvalSource));
  }catch{if(active&&root.isConnected&&token===generation){root.innerHTML='<section class="card panel" style="padding:20px"><h1>Onaylar</h1><p role="alert">Bekleyen işler şu anda okunamıyor. Yenileyerek tekrar deneyin.</p><button class="btn" data-approval-refresh>Yenile</button></section>';root.querySelector('[data-approval-refresh]').onclick=refresh;}}}
  return {mount(){active=true;refresh();},dispose(){active=false;generation++;}};
 }
 function mount(){
+ document.body.classList.add('office-layout');
  disposeCopyActors();dispose();disposeReadOnlyNavigation();paintToolbar();const page=workflow.screen();const root=document.getElementById('view');
  let catalogUI=null;
  const clearReadOnlyNavigation=installReadOnlyNavigation({host:window,root,page,isCurrent:()=>workflow.screen()===page,beforeNavigate:()=>page!=='stock'||catalogUI?.requestClose?.()!==false});disposeReadOnlyNavigation=clearReadOnlyNavigation;
@@ -138,22 +145,23 @@ function mount(){
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Bilgiler açılıyor…</p></section>';
   session.start().then(showManagement).catch(error=>{if(alive())showLogin(error.message);});return;
  }
- if(['sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments'].includes(page)||countWorkspace||page==='returns'){
+ if(['sales','receipts','customers','collections','cash','goods','purchases','suppliers','supplier-payments'].includes(page)||countWorkspace||page==='returns'){
   document.getElementById('role')?.closest('.rolebox')?.setAttribute('hidden','');
   document.querySelectorAll('#nav .badge,#nav .nav-complete').forEach(x=>x.hidden=true);
   const side=document.querySelector('aside .sidefoot');if(side)side.textContent='Melisa ERP';
   const avatar=document.getElementById('avatar');if(avatar)avatar.textContent='—';
   const label=document.createElement('span');label.id='working-catalog-user';label.textContent='Oturum açılıyor…';document.querySelector('.top-right')?.append(label);
-  let active=true,tradeUI=null,session;const alive=()=>active&&root.isConnected&&workflow.screen()===page;
-  const heading={sales:'Satış',receipts:'Satış fişleri',customers:'Müşteriler',collections:'Tahsilat',goods:'Mal Kabul',purchases:'Alış / Fatura',suppliers:'Tedarikçiler','supplier-payments':'Tedarikçi Ödeme',count:'Sayım & düzeltme',returns:'Tedarikçiye iade'}[page];
+  let active=true,tradeUI=null,session,cashLoadGeneration=0;const alive=()=>active&&root.isConnected&&workflow.screen()===page;
+  const heading={sales:'Satış',receipts:'Satış fişleri',customers:'Müşteriler',collections:'Tahsilat',cash:'Günlük kasa',goods:'Mal Kabul',purchases:'Alış / Fatura',suppliers:'Tedarikçiler','supplier-payments':'Tedarikçi Ödeme',count:'Sayım & düzeltme',returns:'Tedarikçiye iade'}[page];
   function showLogin(message=''){
-   if(!alive())return;tradeUI?.dispose();tradeUI=null;label.textContent='Oturum gerekli';if(avatar)avatar.textContent='—';
+   if(!alive())return;cashLoadGeneration++;tradeUI?.dispose();tradeUI=null;label.textContent='Oturum gerekli';if(avatar)avatar.textContent='—';
    root.innerHTML=`<div class="heading"><div><div class="eyebrow">MELİSA ERP</div><h1>${heading}</h1></div></div><section class="card panel" style="padding:20px"><h2>ERP hesabıyla giriş</h2><p role="alert">${esc(message)}</p><form id="working-trade-login"><label>Kullanıcı adı<input class="search" name="username" autocomplete="username" required></label><label>Şifre<input class="search" name="password" type="password" autocomplete="current-password" required></label><button class="btn primary" type="submit">Giriş yap</button></form></section>`;
    root.querySelector('#working-trade-login').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget;form.querySelector('button').disabled=true;const fields=new FormData(form),credentials={username:fields.get('username'),password:fields.get('password')};form.elements.password.value='';try{showTrade(await session.login(credentials));}catch(error){if(alive())showLogin(error.message);}finally{credentials.password='';}};
   }
-  function showTrade(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);const args={root,session,user:current,navigate:id=>workflow.go(id),storage:storage('localStorage'),apiBase:resolveTestApiBase({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL})};tradeUI=page==='supplier-payments'?createWorkSupplierPayments(args):page==='goods'?createWorkReceiving(args):page==='purchases'?createWorkPurchases(args):page==='suppliers'?createWorkSuppliers(args):page==='collections'?createWorkCollections(args):page==='customers'?createWorkCustomers(args):page==='count'?createWorkCount(args):page==='returns'?createWorkSupplierReturns(args):createWorkSales({...args,receiptOnly:page==='receipts'});window.MelisaWorkingBeforeNavigate=()=>tradeUI?.requestClose?.()!==false;tradeUI.mount();}
+  const copy=selectedSourceCopy({profile:window.__MELISA_OPERATION_COPY__,location:window.location,apiBase:resolveTestApiBase({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL})});
+  function showTrade(current){if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);const args={root,session,user:current,navigate:id=>workflow.go(id),storage:storage('localStorage'),apiBase:resolveTestApiBase({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL})};const selectedSource=copy&&current.id===16?readSelectedSourceHandoff({storage:args.storage,copy,user:current})??{}:undefined;if(page==='cash'){const token=++cashLoadGeneration;root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">Günlük kasa açılıyor…</p></section>';import('./workCash.jsx').then(({createWorkCash})=>{if(!alive()||token!==cashLoadGeneration)return;tradeUI=createWorkCash(args);window.MelisaWorkingBeforeNavigate=()=>tradeUI?.requestClose?.()!==false;tradeUI.mount();}).catch(()=>{if(alive()&&token===cashLoadGeneration)root.innerHTML='<section class="card panel" style="padding:20px"><h1>Günlük kasa</h1><p role="status">Kasa ekranı şu anda açılamıyor. Sayfayı yenileyin.</p></section>';});return;}tradeUI=page==='supplier-payments'?createWorkSupplierPayments(args):page==='goods'?createWorkReceiving(args):page==='purchases'?createWorkPurchases(args):page==='suppliers'?createWorkSuppliers(args):page==='collections'?createWorkCollections({...args,selectedSource}):page==='customers'?createWorkCustomers(args):page==='count'?createWorkCount(args):page==='returns'?createWorkSupplierReturns(args):createWorkSales({...args,receiptOnly:page==='receipts'});window.MelisaWorkingBeforeNavigate=()=>tradeUI?.requestClose?.()!==false;tradeUI.mount();}
   if((page==='count'||page==='returns')&&!verifiedCopyPage())storage('sessionStorage')?.setItem(testSessionModeKey,'manual');
-  session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
+  session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),selectedSourceCollections:!!copy,onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;tradeUI?.dispose();session.dispose();window.MelisaWorkingBeforeNavigate=null;};
   root.innerHTML='<section class="card panel" style="padding:20px"><p role="status">İşlem bilgileri açılıyor…</p></section>';
   session.start().then(showTrade).catch(error=>{if(alive())showLogin(error.message);});return;
@@ -172,7 +180,7 @@ function mount(){
   }
   function showHome(current){
    if(!alive())return;if(!current){showLogin();return;}showCopyActors(session,current);label.textContent=workingCatalogUserLabel(current);if(avatar)avatar.textContent=label.textContent.slice(0,1);
-   homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
+   homeUI?.dispose();homeUI=page==='approvals'?createNativeApprovals({root,session,user:current,navigate:id=>workflow.go(id)}):createWorkHome({root,session,user:current,navigate:id=>workflow.go(id),openLink:href=>window.location.assign(href)});homeUI.mount();
   }
   session=createWorkingCatalogSession({location:window.location,apiBase:import.meta.env.VITE_API_BASE_URL,storage:storage('sessionStorage'),onExpired:()=>showLogin('Oturumunuz sona erdi. Yeniden giriş yapın.')});
   dispose=()=>{active=false;clearReadOnlyNavigation();homeUI?.dispose();session.dispose();};
@@ -258,7 +266,11 @@ function mount(){
  const returns=root.querySelector('#live-return-kind');if(returns)returns.onchange=e=>{kind=e.target.value;reset()};
  paint();load();
 }
-document.addEventListener('workflow-render',mount);
+// The later demo module performs the initial render. Start auth only after
+// all deferred modules finish, so it cannot abort a successful cookie rotation.
+let workflowBootReady=document.readyState==='complete';
+document.addEventListener('workflow-render',()=>{if(workflowBootReady)mount();});
 window.addEventListener('storage',e=>{if(['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','count','returns'].includes(workflow.screen()))return;if(['melisaVegaProductsAccessToken','melisaVegaProductsRefreshToken'].includes(e.key)){user=null;dispose();workflow.render();restore()}});
 async function restore(){if(!client.hasSession()||authBusy)return;authBusy=true;paintToolbar();try{const r=await client.get('/api/auth/me');if(!Array.isArray(r.data?.permissions))throw new Error('ERP yetkileri eksik.');user=r.data}catch{user=null}finally{authBusy=false;workflow.render()}}
-mount();if(mode==='live'&&!['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','count','returns','reports','settings'].includes(workflow.screen()))restore();
+function bootWorkingScreen(){workflowBootReady=true;mount();if(mode==='live'&&!['stock','home','sales','receipts','customers','collections','goods','purchases','suppliers','supplier-payments','count','returns','reports','settings'].includes(workflow.screen()))restore();}
+if(workflowBootReady)bootWorkingScreen();else document.addEventListener('DOMContentLoaded',bootWorkingScreen,{once:true});

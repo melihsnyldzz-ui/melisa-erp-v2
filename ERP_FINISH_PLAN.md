@@ -1,3 +1,384 @@
+**30 Ekim — Mevcut B6 / TUR73:** Yeni geliştirilmiş satış motoru yok; eksik API selected-context yolunun mevcut kaynak ve2bağımlılıkla paketlenmesi, aynı WEB'in doğru backendmanifestine bağlanması hazırlanıyor. API082786d9/WEBc3c7af16 henüz pasif; SQL/profile/rol/ticari işlem değişmedi. Gerçek kurulum, normal önizleme ve insan kabulü kanıtları ayrı beklenecek; özgün sayaç/IDler aynı.
+**30 Ekim — Mevcut B6 teknik başlangıç bağı:** STEADYf19f/8d914eb3 gerçek TESTte; WEB5ce/fe, API560c/edb ve veriler korunarak mevcut görev futureAction bağı+bağımsız geriokuma tamamlandı. Bu B6 satış/human PASS değildir: selected-context kurulu API bağlantısı ve normal işlem kabulü açık. Sayaçlar/özgün kabul IDleri değişmedi; başka ana iş açılmadı.
+**28 Ekim — Kapalı satış bağlayıcısı ve bağımsız fiş modu kaynakta hazır:** Mevcut UI callback’leri `prepareCanonicalOperation → typed plan → begin/send` akışına bağlandı. Değişmez `canSend=false` sonucu hem bağlayıcıda hem `begin/send` kapılarında günlük yazımı ve POST öncesinde durdurulur; kullanıcı veya olay verisi yetki veremez. Bağımsız `receiptOnly` ekranı normal hesabın müşteri/döviz hesabı, mevcut journal ve doğrulanmış fiş/geçmiş görünümünü kullanır; ürün yüklemez, genel fiş listesi açmaz. 82 hedef test PASS, 0 skip; bağımsız inceleme GO. Aynı hesapta fiş değişimi, hesap/tarih/journal değişimi, eşzamanlı hazırlık ve dispose sonuçları geçersiz kılar; kapalı işlem mevcut sepeti veya ekranı yıkmaz. Çevrimdışı derleme 6,74 sn, 52 dosya; 11 CSS dosyası önceki kaynak derlemesine byte-eşit. Bunlar kapalı kaynak bağlantısıdır: kayıt/finalize/iptal düğmeleri ve gerçek gönderim hâlâ kapalı, native satış veya insan kabulü değildir. Kurulu 5244, SQL, roller, ticari veriler ve CRM değişmedi. Ayrı kontrollü TEST SQL/izin/kurulum/prova kararı ve doğrulama sonrası kayıt aktivasyonu sınırı korunur.
+
+**28 Ekim — B6 hesap-doğrulamalı taslak/fiş/journal zinciri SOURCE hazır, yazma kapalı:** Canonicalfişe nativeJOIN+oluşturmajournal doğrulamasından4publicsunumalanı(customerAccountId/partyEntityId/creationRequestId/operationOrigin) eklendi; requestUUID/operation gerçekSQLüreticisinden bağlanır, özelproof/hash sızmaz ve legacyDTO aynı. Mevcuttradejournal key/version/body korunarak opsiyonelcompactinvoiceWitness ve typed draft/finalize/cancel canSend=false planları hazırlandı. NormalUI explicitSonİşlem GETrequestsUUID→sahip olunanpending/op/UUID→freshfiş/account/party/currency/creationUUID+güncelresponseRevision bağını okur; eskieksikwitness UNKNOWN, otoadopt/retry/begin/done/clear0. Source76hedefPASS; P2sonrasıilgili21UI,3APIve40etkilenenlegacyfişcontroller hedefiPASS/0skip. Başkasekmegünlüğüdeğiştirme/silme/readerror P2si fullrecordsnapshot tekrarokumasıyla kapandı; independentreviewGO. Finalofflinebuild6.53s/52dosya/11CSSbyteeş. Activewriterhandler/standalone receiptOnly bağlantısı tamamlanmış değil; mutationtransport/buttonskapalı. Kurulu5244/SQL/rol/ticari/CRM/nativeprova/gerçekGUI/insanUA0. AyrıSQL/izin/kurulum/prova kararı mevcutprivateöneride bekler, buSOURCEteslimi yetki değildir.
+
+**28 Ekim — B6 normal hesabın BFFönizleme ve harekettenfiş READ bağı SOURCE tamam:**6production+4test dosyası;64/64hedefPASS/0skip, bağımsızreviewGO/P1P2yok. BFF mevcutBearer ile heristekte sabit4144/auth/me jwt-auth+normal17/rol/izin doğrular; cookiePath=/api/auth aynı, yeniissuer/cache/tokenaktarımı yok. Host/origin önce; yalnız3preview ve darfişdetayı, genericlist/yazma kapalı. Fiş seçiliaccountun freshsales/cancel hareketindeki nativeinvoiceId→aynıcustomer/currency detayıyla bağlanır; draft/unlinked/samecurrency-otheraccount/stale/dispose ret. Supplier/clean/nativelegacy değişmez. Offlineguard aynı6.43s/52dosya build;11CSS önceki kaynakbuildiyle byteeş. Kurulum/SQL/gerçekHTTP/ekran/nativeetki/insanUA0. Sonraki SOURCEbağ nativefiş/journal kanıtıyla draft→finalize→cancel UI bağını tamamlamak; canSave/final/cancel/collect açılmadı. AyrıSQL/izin/API+webdevir/prova onayı hâlâ gerekir; READ2bkuruluaynı.
+
+**28 Ekim — B6 normal ekran native önizleme SOURCE/MOCK bağı hazır:** Mevcut4frontenddosyasında normal17 oturumu, exacthesap/tarih/quote/adet ve freshcontext→preview DTO doğrulaması tamamlandı;3hedef testdosyasıyla47/47PASS/0skip, bağımsızsource reviewGO. canSave=false; draft/finalize/cancel transport kapalı. Kendi kaynak ağacına standart npmci offline/ignore-scripts76kilitlidependency kuruldu; guard değişmeden Vite7.52s/52dosya derlendi.11CSSin9u byte-eş,2statikCSS yalnızCRLF/LF farklı (normalize içerik11/11eş); ilk katıbyte-CSSassertret kaydı korundu, runtime adayı/kurulumGO değildir. ViteBFF:82 eski genelgate üçpreviewyolunu reddetmeye devam eder; bu teslim gerçek normalekran/nativeSQL doğrulaması değildir. Sıradaki somutSOURCEbağ mevcut normal17 BFFpreviewadmission, sonra mevcutfiş/journal/draft/finalize/cancel bağıdır; SQL/izin/4144+5244kurulum ve nativeprova ayrıonaysız yapılmaz. READ2b/SQL/veri/rol/CRM/servis/CUA0.
+
+**28 Ekim — B6 kontrollü uygulama hazırlığı / kurulum yok:** Exact0981b4a7 PR+push güvenlik/kalite/Windows SUCCESS doğrulandı. Mevcut private alanda0981source kapsülü1867dosya,8zorunluAPI dosyası ve4SQL/profileartefacthash bağımsız doğrulandı;4API/webdependencyJSON aynı. Gitblob/Windowsarchive satırsonu farkı ayrıhashlerle kaydedildi; eski runtime dosyası kayıt hashinin90c kaynak ayrımından önce kaldığı görünür, önceki kanıt değiştirilmedi. Bu bir runnablepaket/kurulum değildir: installable=false/executeAllowed=false. Normal5244 yalnızreadsepetfallback kullandığı için B6API tekbaşına satışkaydetmeyi açmaz; mevcutnormalekranın darcanonical freshcontext/preview SOURCE bağlantısı ilerletiliyor, draft/finalize/cancel transport kapalı. ExactTEST SQL25mevcut/31yeni modül/7tablo1indeks/30izin, yalnız4144+5244geçişi ve2draft/1finalize/1saleinverse/1draftcancel için ayrı private karar taslağı hazır, ONAYBEKLİYOR. KuruluREAD2b/SQL/ticari/rol/diğerservis/CUA0; insanUAaynı.
+
+**28 Ekim — kullanıcı onaylı exact13 tarama istisnası uygulandı:** Koordinatörün özgün kullanıcı onayı saltokunur doğrulandı; yalnız incelenmiş13 tarihsel commit/dosya/kural/satır `.gitleaksignore` girdisi eklendi, eski içerik aynı ve bağımsızreviewGO. Sabit8.30.1/checksum doğrulandı. Dalın3301c480 tümataları taraması0bulgu/exit0; aynı yerel depodaki tümref taraması iki ayrı ajancheckpoint geçmişinde54 ekbulgu/exit1 verdi, bunların0ıHEADatalarında. Bu54 incelenmedi/istisna yapılmadı; tümref sonucu yeşil değildir. CIscanner/rule/workflow/maskeleme/history aynı; gerçek hosted yenihead sonucu ayrıca kaydedilir. KuruluREAD2b/SQL/veri/rol/servis/CRM değişimi0; B6kurulum/normal satış/insanUA açık.
+
+**28 Ekim — exact8a1ea1f0 hosted CI sonucu doğrulandı:** PR40743549260 ve push40743537952 Windows-startup-test SUCCESS (11dk17sn /11dk28sn), quality-build-test SUCCESS;20dk toplam bütçe önceki10dk engelini giderdi. Secret-scan aynı13 incelenmiş false-positive nedeniyle FAILURE; overallPASS yok. Exact13 fingerprint için dar karar önerisi mevcut kanıtta hazır, ONAYLANMADI/UYGULANMADI; ignore/kural/history/kurulum/SQL/veri/rol/servis değişikliği0. B6 yalnız kaynak hazırlığıdır; READ2b kurulumundan ayrı, native prova/normal satış/insanUA açık.
+
+**28 Ekim — güncel bitiş sırası ve 5244 bağlantı ayrımı:** READ2b kurulumuyla normal gerçek ürün/cari okuması ve ayrı yeni sekmelerde satış müşteri/hesap/ürün/fiyat seçimi ile müşteri hareket geçmişi teknik olarak doğrulandı; mevcut sekmelerdeki bağlı-değil bulguları ayrı açık kayıttır. B6'nın native satış kaynak/SQL artefacti review ve offline test aşamasında hazırdır; gerçek SQL/prova, paket kurulumu, normal yazan ekran ve insan kabulü tamamlanmadı. B6 AÇIK; özgün yaprak/kabul sayaçları değişmez. Gerçek B6 kapanınca sıradaki TEK iş D2 tedarikçi kartı ve ödeme/hareket geçmişi 5244 bağlantısıdır. Bununla birlikte mevcut planın mal kabul→alış faturası, satış fişleri, tahsilat, ödeme, kasa, sayım, iade ve onay işlem sayfalarındaki eksik normal bağlantılar mevcut özgün iş/kabul ID'leri altında tamamlanacak; yeni tree/Goal yok. Bağımlılığı hazır yetkili adıma rutin devam beklenmeden geçilir. Sonra kayıtlı D1 aktif stok kapsamı ve D3 miktar/ayrı TRY-USD-EUR bakiye karşılaştırması izlenir. Vega/LIVE/T1/ticari/rol ve gerçek SQL/kurulum onay sınırları korunur; ekran düzenleme yetkisi bu sınırları genişletmez.
+
+**28 Ekim ERP09 geçici sepet SOURCE/İZOLE altadımı:** 2b744f5b; exact hesap/fiyat, tam adet, ürünbazı stok, ürün toplamı ve drift kontrolü;62hedefPASS/reviewGO/offlinebuild. Kalıcısepet, fatura, satış yazması, kurulum, normalGUI ve insanUA henüz yok. Sonraki mevcut bağımlılık destekli ownerrecovery+pairedAPI/frontend+normalekran; özgün sayaçlar aynı.
+
+**28 Ekim ERP09 readUI altadımı:** c0c31b03 normalSatışcontrollerı kaynak/izoleolarak readadapterinebağlandı;44hedef ve sentetikChromeakışı var. Kurulum/normalgerçekGUI/genişlikler/yazanakış/insanUA açık, özgün sayaçlar değişmez. Sonraki zorunlubileşen mevcutlifecyclekurtarmasıdır; restoreertelendi.
+
+**28 Ekim ERP09 teknik altadım:** ba9261c4 normal17 gerçek satışseçimi readadapteri kaynak/izole19hedef ve offlinefrontendbuild ile hazır; kurulum/normalSatışcontrollerı/writer/GUI/insan kabulü kapanmadı, özgün sayaçlar değişmez. Ayrıntı STATUS ve mevcut PR54ortakrapordadır.
+
+**27 Ekim — ERP-DEC-080: onaylı negatif stok kapsamı TEST'e uygulandı.**
+
+PRODUCT-b40b0745 commit edildi, yayımlandı ve aynı paket sağlıklı döndü. 10 yeni aktif kartın 8'i negatif, 2'si pozitiftir; önceki sorudaki “10 negatif yeni kart” sayısı kayıt bazında düzeltildi. 193 mevcut stok farkı (191 negatif ve 2 exact KALAN=0), yeni kartlarla birlikte 203 stok etkisi; ayrıca 30 yeni satış fiyatı, 10 barkod ve 10 alias: toplam 456 native etki. 229 grubun 203'ü değişti; 26 grupta köken engeli nedeniyle ticari yazma yapılmadı.
+
+Kaynak 27 Ekim 17:37:24–25 TR: iki tam okuma, 229 kararlı kart, 0 drift. Atomik final T1 değildir. Bağımsız SQL'de 456 afterHash ve 203 stok kapanışı eşleşti; 73 tablo koruması eş, 21 guard geri kurulu. Ayrı süreç/pool tekrarında REPLAY_NOOP ve 0 ikinci etki. Yeni post-b1 COPY_ONLY/CHECKSUM/VERIFY/SHA yedek doğrulandı; restore/reset/silme yok.
+
+Yayımlanmış 16.938 ürün ve 64.981 fiyat var. Tarihli aktif kaynak kapsamı 12.071; kullanılabilir yayımlanmış aktif kart 12.042. 29 kart (22 karantina, 2 legacy, 5 barkod çatışması) ve ayrıca 139 stok alanı köken kanıtı bekliyor. Tüm mağaza veya fiziksel sayım tamamlandı denmez.
+
+Normal API, yeşil ekran, yeni/eski kart ve yenileme sonrası barkod doğrulandı; insan kabulü PASS yapılmadı. Sıcak iki tur: ilk50 734–837 ms, sonraki50 568–589 ms, kod584–596 ms, barkod347–357 ms, kart157–160 ms. Paket edb3c891+0a221778 / manifest0927 aynı; policy/owner source c0556b64. TEST5194/API4144/native4146; CLEAN5244/CRM, cari/finans, LL, hold, roller, maliyet, medya, Vega/LIVE korunur.
+
+Private kanıt: active-negative-delivery-report.md, active-negative-independent-postcommit-proof.json, active-negative-normal-api-proof.json, active-negative-remaining-exceptions.json; ekranlar negative-new-card.png / negative-existing-card.png / negative-refreshed-barcode-card.png. Ham ticari veriler GitHub'a alınmadı. Uygulama source c0556b64 CI: kalite ve Windows başlangıç SUCCESS, secret-scan FAIL; yeşil değildir. Son teslim commit'inin CI'si ayrıca izlenir.
+
+**27 Ekim — ERP-DEC-079 gerçek aktif stok devamı:** Aynı TEST125te5yeni aktif kart (kaynak exact0 KALAN/hareketsiz),824kaynak stok farkı,31yeni+140güncel fiyat,16barkod COMMITTED; replay0/bağımsızSQL/API/normalGUI doğrulandı. Önceki187vebütüncari/maliyet/medya/rol/karantina/LLkorunur; pasif yeni kart/temizlik/finans/T1yok.16928yayın/64951fiyat; datedaktif12071içinde12032kullanılabilir,39eskiistisna ve miktar alanı bekleyenleri STATUS açıkça ayırır. Hareket ve KALAN dayanakları ayrı; fiziksel sayım/finaldelta/insanPASS değildir. Özgün yaprak ve sayaçlar değişmez. [Kanıt](docs/evidence/erp/2026-10-08-product-completion/README.md#27-ekim--erp-dec-079-aktif-stok-devamı-gerçekten-teste-uygulandı).
+
+**27 Ekim — ERP03/A01–B02 / kısmi gerçek-veri devamı:** Üç mevcut native kart kaynakla ve normal gerçek TEST ekranıyla eşleştirildi; aynı veriye ikinci açılış uygulanmadı. İkinci tarihli batch için normal API/yeşil ekran lineage devamı ve güncel connector adaptörü kaynakta hazır. Kurulum/ortak işletme profili ve geniş aktarım açık; eski yıllar menüsü/personel/insan kabulü yapılmadı. Mevcut özgün yapraklar ve sayaçlar değişmez. [Kanıt](docs/evidence/erp/2026-10-08-product-completion/README.md#27-ekim--güncel-kaynak-dilimi-ve-ikinci-tarihli-katalog-zinciri).
+
+## 25 Ekim02:07 — B5 ek hareket panelinin eksik normal kaynak alanları kesinleşti
+
+**İstemci düzeltmesini engelleyen somut eksik:** fiş2’deki iki ve fiş3’teki bir iptal edilmiş tahsilatın hiçbirinde reversalId, reversalAccountId, reversalAmountExact4, reversalCurrency, reversalDocumentDate, reversalCreatedAt dönmüyor. Kurulu APIb9 cleanStoreDayStore/attachCleanFinanceRehearsal okuyucusu yalnız ters bağlantı var mı diye EXISTS ile cancelled durumunu üretiyor; ters kaydı ve finans satırını döndürmüyor. Başka tarihsel workTradeStore okuyucusunda bu alanların bulunması, onu güncel clean hedefte kullanma kanıtı veya yetkisi değildir. SQL’de ters kayıt yok denmedi; normal yetkili DTO’da kanıt eksik.
+
+**Gereken dar teknik bileşen:** güncel clean normal okuyucunun her fiş için doğrulanmış müşteri/hesap/döviz bağı ile exact ters-kayıt kimliği, hesap, tutar, döviz ve tarihini mevcut DTO’da sağlaması. Bundan önce yalnız istemciyle paneli başarılı göstermek güvenli değil. Bu incelemenin istemci/projeksiyon sınırı aşılmadı; panel henüz düzeltilmiş veya normal ekranda kabul edilmiş sayılmadı. Altı hesap için insan yanıtı bekler; oluşturma veya aynı onay sorusu tekrarlanmadı.
+
+Mevcut B5 ana okuma ajan kanıtı korunur; ek panel ve insan kabulü açık.
+
+[Makine kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
+## 25 Ekim01:41 — B5 altı hesap için yeni bağlam da reddedildi; sıfır oluşturma doğrulandı
+
+**Otomatik onay incelemesi reddetti:** genel devam ifadesi, altı kalıcı TEST kullanıcı/personel çifti ve korumalı giriş kaydı oluşturmak için yeterli açık özel onay sayılmadı. CreateProcess öncesi ret; uygulama süreci başlamadı. Başka araç/rota, SQL yazması veya dolaylı yürütme denenmedi. Salt okunur normal geri okuma altı kimliğin de hâlâ eksik olduğunu doğruladı: yeni kullanıcı0, personel0, DPAPI teslim dosyası0, ticari/CRM yazısı0, restart0. Eski hesaplar/roller, 53 katkı, fiş/koli ve korumalı dosyalar önce–sonra byte-eş. Yalnız kendi normal yönetim giriş/çıkış journal etkisi ayrı.
+
+**Gereken tek karar:** Mehmet, Rüstem, İsmail, Yaman, Veronica ve Ahmet görevleri için yalnız clean TEST’te altı ayrı kişisel SENTETİK hesabın mevcut rol30 ile açılmasına açık, özgül onay. Yalnız Mehmet için koli yetkisi; hepsinde fiyat değiştirme kapalı ve iskonto0. Gerçek çalışan kimliği veya CRM ataması iddia edilmiyor. Mevcut Müdür hesabı onayı bu altılıya genişletilmedi. Aynı genel mesajla tekrar deneme ve yeni aynı soru üretimi yok; bu özgül onay olmadan oluşturma bekler.10021 pasif kontrolü ve özel envanter aktarımı ayrı bekler.
+
+Ana Kasa/Tahsilat okuma teslimi b89 / B5FINANCEPROFILE ve belge7529ac3d korundu; ek hareket özeti hâlâ açık. Kabul edilmiş sayım/koli/CRM kanıtları yeniden çalıştırılmadı. Yeni uygulama kodu, paket, kurulum veya CI yok. İnsan E2/özgün UA ve 49/25/17/74 sayaçları aynı.
+
+## 25 Ekim01:30 — B5 ana Kasa/Tahsilat okuması doğrulandı; ek hareket özeti açık
+
+**Ajan normal tarayıcıda doğruladı:** sentetik muhasebe hesabı 10024 / personel 4 / mevcut rol 32 ile normal giriş yapıldı. Kasa durumu, ayrı TRY/USD/EUR hesapları ve eski hareketler görüldü; tam yenilemede aynı kimlik ve sonuç korundu. Tahsilat listesinde dört mevcut fiş, seçilen fiş 1 ve eski tahsilat geçmişi görüldü; tam yenilemede seçim ve geçmiş korundu. Tutar veya hesap girilmedi; önizleme, kaydetme, iptal ve onay yapılmadı. Bu yalnız ana finans okuma yollarının ajan kontrolüdür; insan kabulü değildir.
+
+**Açık kalan ek panel — PASS değil:** Tahsilattaki “Kasa ve banka hareketleri” özeti tek müşteri/TRY hesabı bekliyor; gerçek izinli liste dört müşteri ve TRY/USD/EUR içeriyor. Bağımsız sales-context ve payment-context GET yanıtları 200 (28,594 / 25,622 saniye), aynı yanıtlarla mevcut model deterministik “Tahsilat kaynağı doğrulanamadı” reddi veriyor. DTO diğer müşteri adları ve hesap bağlarını taşımıyor. Üç fiş sessizce atılmadı, kimlik veya hesap tahmin edilmedi, dövizler birleştirilmedi. Yeni genel aggregator/native değişikliği yapılmadı. Ana Kasa ve Tahsilat listesi/ayrıntısı/geçmişi çalışıyor; bu ek özet henüz hazır değil.
+
+**Koruma:** son GUI sonrası üç SQL kapsamı byte-eş: 53 katkı sözleşmesi, mevcut 15 kullanıcı/4 personel/roller/izinler/mühürler/sayım/audit ve kendi fiş/koli etkileri. Korumalı giriş kayıtları, relation, CRM store ve koli dosyaları aynı; kendi normal girişinin auth-journal etkisi ayrı. Bu finans okuma düzeltmesinde yeni hesap, finans, stok, fiş veya CRM kaydı yok. TEST125, DB02, karantinalar ve önceki kabuller korundu. B5 bütünü tamamlanmadı; E2/özgün insan kabulleri ve 49/25/17/74 sayaçları değişmedi.
+
+**Sıradaki tek iş:** mevcut altı standart sentetik ERP hesabı için gerçek yeni insan mesajını aynı normal araç incelemesine sun. Bu otomatik özel onay değildir. Ret olursa yalnız salt okunur etki kontrolü; başka rota veya aynı soru tekrarı yok. 10021 pasif kontrolü ve özel envanter aktarımı ayrı bekler.
+
+[Teknik ayrıntı](STATUS.md).
+
+## 25 Ekim00:52 — B5 ayrı sentetik muhasebe hesabı bağlı; normal finans okuması kısmi
+
+AynıB5muhasebe dalında ayrı sentetik10024–personel4–mevcutrol32 hazır; normalform/giriş/yönetimret/fullreload ve salesreadonly ajan tarafından doğrulandı. Koli/CRMprepare403, finansal işlem0.
+
+**Normal finans ekranı hazır değil:** Günlük Kasa API_ERROR, Tahsilat fiş okuması hata gösterdi. Bir bağımsız aynı muhasebe normal APIcashGET200/16.612ms; normal okuyucunun mevcut sınırı15.000ms. Bu ölçülmüş süre uyuşmazlığı açıklayıcı bulgudur; ilkGUIisteğinin networktracei alınmadığından kesin ilkret nedeni ilan edilmedi. Kasa normalGUI PASS değil. Genel/dar yeni timeout,cache,aggregator,SQLmetadata,guard kaldırma veya kurulum/restart yapılmadı. Mevcut kalın bütünlük zinciri korunur; ilgili yeni finance rolü normal okuma sorunu aynıB5te açık kalır.
+
+GenelB5veinsanE2açık; yeni yaprak/kabul ID/yeşil sayaç artışı yok. [STATUS](STATUS.md).
+
+## 25 Ekim00:29 — B5 kişisel iki sunucu bağı doğrulandı; yeni CRM teşhis paketi kurulu
+
+AynıB5kişisel dalı:iki serverbağı/28çağrı+yenipaket sonrasıiki normalCRMreload **Ajan doğruladı**.
+
+**Tarihi403:** yeni tanı kaynağındaki bu tek provada tekrarlanmadı. Kaynak değişikliği guard/fix değil tanıdır; kök neden UNKNOWN kalır. Önceki başarısız kanıt korunur; onu PASSa çevirmedik, aynı değişmeyen1abüstünde retry/ek hata üretimi yapmadık. İnsanE2/özgünUA hâlâ BEKLİYOR; sayaçlar49/25/17/74aynı. Onay mesajı mevcut sentetik Müdür hesabının tekrarıdır; ikinci hesap oluşturulmadı ve ayrı altı standart ERP hesabı/10021pasif/özel envanter aktarımı retlerini çözmez. Bu kapsamdaB5tamam iddiası yok.
+
+Kapsam/49ERP-25CRM/özgünUA ve altıhesap/önceki özelret ayrımı korunur; yeni teknik/insan kapanış şartı eklenmedi. [STATUS](STATUS.md).
+
+## 25 Ekim00:12 — B5 kişisel normal atama ve iki ilişki yayımlandı; E1 ilk403 kaynakta inceleniyor
+
+Aynı B5'in kişisel normal atama ve bağımsız yönetici dalında ajan sonucu: normal156→1002tek atama/Personeltek görüşme/Müdür3görüşme/tamreload; ayrıERP10023/employee3/rol31normalgiriş. İki exactrelation mevcutkaynakta kurulu, yalnızaynıb9API1restart.
+
+**Somut yeni E1 hatası:** yeni Personel kendi ERPlogin305ms/sessionconfirm23ms/prepare74ms200 sonrasında CRMhandoff95ms403/CRM_TERMINAL_IDENTITY_REQUIRED aldı. Bir provisional linked grant oluşup uygulama catch yoluyla revoked=true oldu; eski normal aileler korundu, sır çıkışı yok. Özgün başarısız proof iki rol bekleyip yalnız ilkinde durduğundan allOwnRevoked=false içerir; bu FAIL kaydı değiştirilmedi. Ayrı ROdiagnostic gerçek tek denenmiş provisional grantin iptalini doğruladı. İç peer verifyHTTPstatus/linkExpiresAt eşliği/değişen identity alan adı mevcut kayıtta yok: UNKNOWN; yeni istekle tahmin yürütülmedi. Aynı başarısız istek tekrarlanmadı, Müdürlinked dalı denenmedi. Mevcut CRM sahibi yalnız izole kaynak/gerçek managed-store+peer senaryosunda kök-neden/dar regresyonu inceliyor; ikinci ortak uygulayıcı yok, private envanter/anahtar/DPAPI verilmedi. Normal ayrı ERP/CRM GUI kullanımı, server E1 bağı ve Android/Keystore kabulü ayrı; SSO çalışıyor/PASS denmedi.
+
+**Kalan:** E1 yeni kişisel geçiş403 kök-neden/dar kaynak düzeltmesi ve yalnız değişen adayın gerçek TEST geri okuması. Ayrı altı standart ERP hesabı sorusu hâlâ yanıt bekliyor; oluşturma yeniden denenmedi. Önceki altı-kayıt ret makbuzundaki13kullanıcı/2personel tarihi korunur; daha sonra yalnız onay bağlamındaki tek ERP yönetici eklendi.10021/Sayım10006/Kabul4,10022/fiş10010/iki koli, Semih/CRMtemel4/kapalı1001 korunur. B5 teknik açık; insan UX ayrıE2,49/25/17/74veözgün UA sayaçları aynı. Yeni ajan/Goal/tree/gerçekmüşteri/finans/LIVE/Vega/T1/main yok.
+
+## 24 Ekim23:38 — B5 altı standart kişisel TEST bağı önkontrolü hazır; oluşturma komutu özel onay nedeniyle çalışmadı
+
+Bekleyen TEST156ataması/ERP31yönetici/iki kişisel ERP–CRM bağı/4194restartı zincirinden bağımsız olarak aynı B5(1) içindeki altı standart personel görevi ele alındı. Normal mevcut Semih yönetimi üzerinden active/passive kullanıcı ve personel envanteri okundu: altı ayrılmış sentetik kullanıcı adı/personel kodunda çakışma0, kesin mevcut çift0, iki tarafı da eksik6. Yeni gerçek kişi kimliği veya mevcut hesap sahipliği tahmin edilmedi. Mevcut rol30; satış/mal kabul/sayım, yalnız bir temsilcide ek kolileme, diğer beşinde kapalı; fiyat değiştirme kapalı/iskonto0 planlandı. Turgay görev temsilcisi10022/personel2 ve eski10021 değiştirilmedi; aynı satış/sayım/koli işlemi tekrarlanmadı.
+
+**Yeni somut engel:** Normal yönetim API'siyle altı ayrı sentetik hesap/personel oluşturma komutu CreateProcess öncesi otomatik incelemece, bu altı kimlik/görev için özel doğrudan onay eksikliği gerekçesiyle reddedildi. ProcessStarted=false; sonrasında yalnız salt okunur SQL yeni kullanıcı0/personel0, toplam eski kullanıcı13/personel2 ve korumalı dosyalar byte-aynı sonucunu doğruladı. Parola teslim dosyası0; uygulama API çağrısı/SQL DML/metadata/restart/CRM/ticari yazı0. Ret başka komut/GUI/hesap/ajanla aşılmadı. Altı kapsamı tek soruda açıkça adlandıran ayrı doğrudan kullanıcı yanıtı bekliyor; önceki dört işlemlik onay sorusu ve10021pasif/özel envanter aktarımı soruları ayrı kalır. Mevcut genel yetki veya koordinatör devri bu ret için onay yerine kullanılmadı.
+
+Özgün B5 dört sonuç,49ERP/25CRM/17başlık/74yaprak aynı. Önkontrol/önce görüntüsü kullanılabilir hesap teslimi değildir; bekleyen yanıt olmadan bu altı bağ veya reddedilmiş CRM/ERP yönetici zinciri uygulanmaz. [Kanıt](STATUS.md).
+
+## 24 Ekim23:27 — B5 kişisel CRM Personel ve bağımsız Müdür normal okuması kurulu; atama/ERP bağı onay bekliyor
+
+Mevcut B5 üçüncü/dördüncü kullanım sonucunda iki kişisel sentetik CRM form kaydı, ayrı Personel ve gerçek mudur rolünde normal giriş/tamreload/okuma kanıtlandı. Atanmış görüşme ve exact ERP–CRM kişisel bağ henüz yok; kapandı sayılmaz.803dosyalık yeni Node24.19 CRM kurulu, ERP ve native aynı.
+
+**Somut kalan/onay:** İlk yeni Müdür hesabı gönderimi otomatik incelemece özel hesap/rol onayı eksik diye reddedildi; hiçbir yan yol denenmedi. Kullanıcının açık özel yanıtı geldikten sonra aynı normal form bir kez başarıyla gönderildi. Sonraki TEST156→Personel1002 ataması ayrı kalıcı işlem olarak reddedildi ve uygulanmadı. Gereken dört işlem tek doğrudan soruda toplandı: yalnız156ataması; ayrı sentetik ERP31yönetici/personel kartı; iki exact ERP–CRM kişisel bağ; mevcut ilişki kaynağı yalnız process.env başlangıcında okunduğundan aynı b9 sürümü4194için tek dar restart. Bu birleşik yanıt henüz yok: yeniERPhesap0/ilişkiyayını0/ERPrestart0. Atama API veya başka hesapla tekrarlanmadı. Normal linked-CRM/atanmış Personel/bağlı çıkış henüz kanıtlanmış değil. B5 teknik kapsamı bu somut halkalar nedeniyle açık; insan UX ayrı E2 aşamasında BEKLİYOR, yeni teknik kapanış şartı yapılmadı. Önceki10021pasif testi/özel envanter mesajı onayları aynı;49/25/17/74 ve özgün UA sayaçları değişmedi. Yeni ajan/Goal/tracker/LIVE/Vega/T1/main yok.
+
+[Kanıt](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+
+## 24 Ekim 23:05 — B5 kişisel iki koli normal kullanımını ajan doğruladı; insan kabulü bekliyor
+
+Kişisel sentetik görev temsilcisi10022/personel2/rol30, kendi normal terminal oturumunda kendi fişi10010 üzerindeki sıfırlı barkodu0000000000007 elle girerek iki koliye1+1ADET yerleştirdi. Tek Kaydet sonrası tam sayfa yenilendi; aynı kişi ikinci girişsiz geri geldi, aynı fiş yeniden açıldığında gereken2.000/toplanan2.000/kalan0.000 ve READY iki koli korundu. Journal1belge/1istek; reload öncesi/sonrası SHA256 birebir aynı. **Ajan doğruladı**; gerçek Turgay kimliği veya insan UX kabulü değildir.
+
+Native görev/rol ve UUID/CAS korumalarıyla tek kayıt; packing kaynaklı ek stok/cari etkisi0. API b9dd9848 gerçek kurulu, web dd8ef414 korunmuş;6exactCI SUCCESS. Bu, B5'in mevcut ikinci kullanım sonucundaki bir görev temsilcisinin ajan kanıtıdır; yeni yaprak/kabul kapısı değildir.
+
+**Kalan aynı B5 kapsamı:** kayıtlı9gerçek kişinin kesin hesap–personel–onaylı görev/CRM bağları, diğer farklı görev dallarının kalıcı normal sonuçları, yanlış rol/korunan-pasif hesap/yetki değişimi ve bağımsız Müdür/CRM GUI-create. Sentetik görev temsilcisi gerçek kişi eşlemesi yerine geçmez. Önceki10021 pasif testi ve özel envanteri koordinatöre gönderme için bekleyen iki doğrudan onay başka araçla aşılmadı.49ERP/25CRM/17başlık/74yaprak ve özgün UA sonuçları/sayaçlar aynı; E2 insan kabulü BEKLİYOR.15dakika sonrası oturum yenileme, Android/Keystore/uygulama kapat-aç/fiziksel okuyucu bu prova ile kanıtlanmış değildir. Yeni Goal/ajan/tracker veya LIVE/Vega/T1/main/gerçek ticari kapsam yok.
+
+[Kanıt ve sıradaki mevcut iş](STATUS.md).
+
+## 24 Ekim 21:54 — B5 kişisel toplama normal bağlantısı TEST'te kurulu; atanmış kişiyle sonuç henüz yok
+
+**Çalışan teslim:** kaynak dd8ef414/PR54, CLEAN-ERP-20261022-dd8ef4144482;3458dosya/manifest1C0E6076. Aynı clean5244→4194 normal koli route/client bağı kuruldu. Sunucu her list/detail/save isteğinde mevcut native user–employee–role/member ve açık canTerminalPacking görevini transaction içinde yeniden kanıtlar; istemci alanı, sales.view veya packing.exception tek başına yeterli değildir. Mevcut journal, UUID/replay/CAS ve kaynak birim/barkod/karantina kontrolü kullanılır; yeni motor/cache/timeout yok. Yalnız kişinin kendi clean_direct_sale_links içindeki finalized fişleri; başka personelin fişleri açılmaz. Fiyat/cari/finans bilgileri koli DTO'suna taşınmaz. Eski5234/Vega yolu aynı, clean pending journal ayrı çevre anahtarında.
+
+**Normal ekran kanıtı:** mevcut10021 personel sekmesi yeni kaynakla açıldı. İlk reload giriş ekranına döndü; nedeni tahmin edilmedi. Aynı ayrılmış TEST hesabının mevcut DPAPI teslimi yalnız normal forma bellekte aktarıldı; parola/hesap/rol/etkinlik/görev değişikliği veya çıktı yok. Ardından #packing açıldı ve görevi kapalı kişinin fişlere erişimi reddedildi: “Bu kayıtları görüntüleme yetkiniz yok.” Tam reload sonrası aynı kişi ve aynı ret, ikinci girişsiz korundu. SQL alanı0, eski Sayım10006submitted/version2→Kabul4pending korunmuş, yeni owner-only koli dizininde0dosya. Yeni koli/alış/satış/stok/finans işlemi yapılmadı. Görüntü özel kanıt alanında b5-clean-carton-normal-denied-reload.png; atanmış kişiyle normal kalıcı kolileme **DENENMEDİ**, insan kabulü BEKLİYOR.
+
+**Derleme/CI:** değişen bağ ve gerçek geçici dosya journal/replay/revocation dahil16hedefli kontrol ile eski5234istemcisinin3ilgili kontrolü geçti. İlk dosya provalarının sandbox rename EPERM sonucu korunur; aynı kapsam yalnız kendi geçici dosyalarında izinli çalıştırıldı, test azaltılmadı. Önceki747SOURCE adayındaki eksik web-admin bağımlılığı yeni adayın değişmeyen kilidine göre resmi npm registry'den lifecycle scriptleri kapalı tamamlandı. Offline gerçek sites11.693ms ve web-admin6.669ms build'i PASS. Exactdd8 PR40122177664/push40122172883 altı zorunlu CI SUCCESS. Eski native/kaynak/giriş/sayım kabul seti tekrar açılmadı.
+
+**Kurulum koruması:** mevcut tek-owner uygulama akışıyla yalnız4194/5244 değişti.33diğer Node dinleyicisi, nativeHTTP035fcc08, native metadata6c/8ee/794, CRM acb2a3a0, oturum/credential teslim dosyaları,53katkı kapsamı ve ayrıca eski16personel alanı/row_version/kullanıcı/rol/üyelik/mühür/modül/sayım-journal önce–sonra aynı. SQL metadata kurulumu/replay/yeni yedek0; önceki doğrulanmış yedek korundu. Yeni boş koli alanı yalnız süreç sahibine açık; hiçbir kullanıcıya görev atanmadı. GUI için sonraki normal login/refresh, kurulum anındaki koruma makbuzundan ayrı kaydedilir. Eski source-only JSON sayaçları aşağıda tarihsel kaynak aşamasına açıkça taşındı; nativeExecution INSTALLED kaydı korunur. Önceki manuel yedek C5 zamanlı çalışma veya restore PASS değildir.
+
+**Sıradaki tek iş:** kayıtlı kişisel TEST hesap–personel–onaylı görev bağları adımında yetkili temsilciyle normal kalıcı kolileme sonucu. Bu dar route teslimi B5 kapanışı değildir; aynı4kullanım sonucu,49/25/17/74ve özgün insan kabulleri korunur. Önceki iki insan onayı ayrı bekler; ret başka araçla aşılmadı. LIVE/Vega/T1/main ve gerçek ticari kapsam yok.
+
+## 24 Ekim 21:19 — B5 kişisel toplama native güncellemesi TEST'e kuruldu; normal kullanım bağlantısı sırada
+
+**İlerleyen kullanım sonucu:** B5'in mevcut ikinci sonucundaki kişisel kolileme için gereken native alan artık aynı temiz TEST'te kurulu. Kaynak6c564a5b,15mevcut modül uyumu/2yeni mühür ve employees.can_terminal_packing NOT NULL/default0. Hiç kimseye görev verilmedi; clean5244 route/client kapalı olduğundan normal kolileme henüz çalışır teslim değildir. Yeni B5 şartı veya insan PASS yok.
+
+**Gerçek SQL kanıtı:** C1/8ee/794 öncülündeki35gerçek modül hash/NULL/ANSI/quoted/EXECUTE AS/dbo owner/trigger/FK durumu kaynakla karşılaştırıldı. Yeni94.232.576bayt COPY_ONLY/CHECKSUM yedek alındı ve VERIFYONLY geçti; restore yapılmadı. Eski16personel alanı/row_version, kullanıcılar/roller/izinler/üyelikler/eski3mühür, sayım–kabul–journal ve güncel53veri kapsamı before-image ile kaydedildi. Pozitif kurulum+rollback20.815ms; değiştirilmiş tanım51980reddi+rollback21.303ms; NULL/okunamayan tanım51980reddi+rollback20.917ms. Üçü sonrası metadata ve bütün korunan veriler birebir aynı. Yeni genel motor/cache/timeout veya eski kabul tekrarı yok.
+
+**Ayrı gerçek kurulum:** SOURCE-FINAL7A3BB060 pasif kaydı değiştirilmedi. Üç prova sonrası ayrı INSTALL paketi3payload/manifestle4dosya,7B71427B; apply SHA256E7CE664F. Kalıcı metadata uygulaması21.191ms, bağımsız native/hash/flags/schema/izin geri okuması doğru. Yalnız yeni manifest için3DML DENY ve yeni readonly ready için1EXEC GRANT var; başka izin/rol değişikliği yok. Eski16alan ve satır sürümleri,53veri kapsamı, eski mühürler, hesap/görev bağları, önceki sayım10006→kabul4pending ve journal aynı; yeni alan bütün mevcut personelde0. Aynı paket replay14.108ms: ALREADY_INSTALLED; metadata/veri/atama ikinci etkisi0.
+
+**Korunan çalışanlar:** API/web55c2fc22 (3446dosya/1B0AB236), nativeHTTP035fcc08, CRM acb2a3a0 aynı. Runtime/config/korumalı dosyalar ve yakalanan37Node dinleyicisi aynı; restart0, yeni login/PATCH/hesap/atama/ticari işlem0. Kurulumun kendi before-commit rollback'i kanıtlandı; commit sonrası otomatik inverse/restore yapılmadı. Sonraki görevleri kaybeden otomatik geri dönüş kullanılmaz. Eski source-only kayıtlar tarihsel olarak korunur. Yerel gözlem sorgularının collation/JSON alias, sonuç okuyucusunun Türkçe harf ve SQL char-padding düzeltmeleri uygulama hatası değildir; başarılı native retler sırf okuyucu nedeniyle tekrarlanmadı.
+
+**Teslim ve sonraki tek işlem:** exact6c altı zorunlu CI SUCCESS kaydı yeniden kullanılmaktadır; değişmeyen kaynak CI'si/build'i tekrar koşturulmadı. Bu teslim yalnız kurulum/kanıt dokümanıdır. Sıradaki mevcut iş, kişisel toplama için clean5244→4194 normal route/client bağlantısını mevcut atama/rol kanıtıyla tamamlamak; henüz açılmadı. B5 aynı4kullanım sonucuyla açık;49/25/17/74sayaçlar ve özgün insan kabulleri aynı. İki önceki otomatik inceleme reddi ayrı bekliyor; farklı araç/mesajla aşılmadı. LIVE/Vega/T1/main yok.
+
+## 24 Ekim 20:49 — B5 kişisel toplama için yerinde native kaynak hazır; kullanım sonucu henüz açık değil
+
+**Hangi kullanım sonucuna yaklaşıldı:** B5'in ikinci sonucunda, toplama görevi verilmiş kişinin kendi hesabıyla kolileme yapabilmesi için eksik yerinde native güncelleme kaynağı hazırlandı. Kaynak6c564a5b/PR54, kurulu55c2fc22 aynı; ekran/route açılmadı ve çalışan özellik gibi sunulmadı. Uygulama/API/frontend kaynakları747'den değişmedi, yerel build veya kabul edilmiş normal10021 giriş/sayım provasına dönülmedi.747'nin önceki kısmi kaynak/pasif sınırı mevcut koordinatörce salt okunur incelendi; yeni native kaynakta bildirilen tek batch-derleme bulgusu aşağıdaki dar kaynak düzeltmesiyle ele alındı. Gerçek SQL kabulü verilmedi.
+
+**Dar native parça:** Aynı mevcut SQL derleyicisinde packingUpgrade açık seçimi, mevcut35modülün exact C1/8ee öncülünü ve794trusted/NO ACTION creatorFK bağlarını ister.15mevcut modülde yalnız personel binder/guard/actor alan uyumu ile eski ready hash-projection sınırı değişir;2yeni öğe sonlu packing immutable/ready mühürüdür. Eski work/C1/username mühür satırları ve immutable trigger'ları yeniden yazılmaz; fresh-work kurulumuna dönülmez. Yanlış/NULL-definition, nesne tipi, ANSI/quoted/EXECUTE AS ve gerçek dbo nesne/şema sahipliği, kapalı veya yanlış parent trigger ilk DDL'den önce reddedilir. Yeni bit alanı NOT NULL/default0; otomatik görev ataması yok. Eski16personel alanı/row_version, rol/izin ve3eski mühür digest'i önce–sonra aynı olmalıdır; aktif işlem varken ilk uygulama veya replay başlamaz. Replay sonradan verilmiş görevi sıfırlamaz. Mevcut isim/rol/korunmuş kayıt ve normal row_version iptal zinciri korunur; cache/timeout/topolojik aggregator eklenmedi.
+
+**Kaynak kanıtı:** İlk1mevcut varsayılan eşliği PASS/5eksik davranış FAIL, ardından8izole derleyici kontrolü PASS. İncelemede yeni sütunun statik son okumasının ALTER'dan önce batch derlemesine girebileceği bulundu; bu bir ortak SQL gözlemi değildir.6c yalnız son default-kapalı okumayı DDL sonrası aynı transaction içindeki EXEC(N'...') batch'ine taşıdı; eski alan digest karşılaştırmaları/THROW/rollback ve17modül tanımı byte-aynı kaldı. Tek yeni hedefli regresyon1FAIL→1PASS; eski kabul seti yeniden koşturulmadı. Derleme ayrımının kaynağı [Microsoft batch açıklaması](https://learn.microsoft.com/en-us/sql/relational-databases/system-stored-procedures/sp-executesql-transact-sql?view=sql-server-ver17#remarks). Exact6c PR40117378160/push40117374276 altı zorunlu CI SUCCESS;9source vakası CI kapsamındadır. Bunlar gerçek SQL pozitif/negatif/replay/rollback sonucu değildir.3891/db5 kaynak ve pasif makbuzları tarihsel olarak korunur.
+
+**Pasif dosyalar:** CLEAN-PERSONNEL-PACKING-UPGRADE-20261024-6c564a5b913c-SOURCE-FINAL,4payload/manifestle5dosya, manifest7A3BB060. apply.sql ve probe-rollback.sql yalnız üretildi ve dosyaları geri okundu; kurulum izni false/DO-NOT-INSTALL. Actual öncül okunmadı, before-image alınmadı, SQL çalıştırılmadı. KuruluERP/CRM, hesap/rol/atama, veri/finans, servis ve runtime yazısı0;10021 pasif testi veya reddedilmiş mesaj başka yoldan yapılmadı.
+
+**B5 kapanış kapsamı aynı dört kullanım sonucudur:** kayıtlı9kişinin kişisel hesap/personel/onaylı görev bağları; farklı görev dalı için gerekli temsilciyle normal ekranda kalıcı işlem sonucu (kolileme dahil); yanlış rol/korunan-pasif hesap/yetki değişimi sınırları; kişisel ERP–CRM bağı/CRM normalGUI-create/bağımsız Müdür. Aynı ortak davranış9kişi için tekrar üretilmez, kişi bazında bağ doğrulanır. Kaynak/test/CI sayısı bu sonuçların veya insan kabulünün yerine geçmez; yeni B5 şartı/ajan/tree yok.49/25/17/74sayaç ve özgün kabuller aynı.
+
+**Somut kalan ve sonraki tek işlem:** bu exact native kaynağı mevcut TEST'in kontrollü rollback-provasına almak; actual öncül/geri dönüş/tek-etki doğrulanmadan kurulum veya clean koli bağlantısı açılmayacak. Bu kaynak-only turda prova başlatılmadı; yeni özellik veya ayrı review/belge işi kapanış şartı yapılmadı. LIVE/Vega/T1/main ve gerçek ticari kapsam değişmedi.
+
+## 24 Ekim 20:01 — B5 kişisel toplama kaynağı ve pasif aday hazır; mevcut kurulum için kısmi
+
+**Kaynak747840db / PR54; kurulu kaynak55c2fc22 aynı.** Aynı normal personel modelinde canTerminalPacking tek açık kişisel alanı varsayılan kapalı hazırlandı. Gerçek component fixture'ında yalnız native destek bildirildiğinde kutu görünür; satıştan bağımsızdır ve muhasebeye verilemez. API yalnız gerçek boolean kabul eder, alan gönderilmezse eski değeri korur; destek yoksa transaction başlamadan reddeder. Mevcut native aktif user–employee–role/member kanıtı canTerminalPacking=true dönmeden koli kaynağı/deposuna erişim yok; satış izni veya client flag yeterli değildir. Her çağrıda kanıt yeniden alınır; aynı employee row-version düzeni görev iptalinde eski normal oturum ailesini kapatır. Kişi adı/10021'e özel hak yok; rol/izin satırı/kişisel atama yazılmadı, Semih ve packing.exception sınırı korunur.
+
+**Somut sınır:** Mevcut work/username immutable katmanı onuncu alan sözleşmesini mühürlü tutuyor. Yeni genel motor/guard katmanı kurmadan, aynı mevcut work SQL derleyicisine açık packingTask kaynak varyantı eklendi; eski varsayılan tanımlar ve SQL SHA256 değerleri birebir korundu. Varyant yalnız henüz kurulmamış work katmanının kaynak hazırlığıdır: kurulu katmanı PACKING_FRESH_WORK_LAYER_REQUIRED ile DDL'den önce reddeder. Current clean'e yerinde native alan/guard uyarlaması henüz hazırlanmış veya kanıtlanmış değildir; SQL dosyası çalıştırılmadı. Bu nedenle clean5244→4194 koli client/route bağlantısı açılmadı. Daha eski5234/copy/Vega yoluna dönülmedi; uygulama çalışıyor/kullanıcı PASS sayılmadı.
+
+**Kanıt:** İlk8 yeni sınır kontrolü RED, sonra değişen davranışa yönelik36 yerel kontrol ve1 kapalı tanı kodu kontrolü PASS. Bunlar saf derleyici, in-memory SQL/auth ve gerçek JSX handler fixture'larıdır; gerçek DB/normal GUI/10021 erişim denemesi değildir. Kabul edilmiş17 normal oturum/native SQL/count10006 provaları manuel tekrarlanmadı. İlk48d kaynağının CI'si yeni3 sabit hata kodu sözlüğe alınmadığından başarısızdı;747 yalnız bu sonlu kod kaydını düzeltir, unknown/free-text redaksiyonu aynı. Test kapsamını azaltma girişimi otomatik incelemece reddedildi; güvenli alternatif olarak bütün açık test çağrıları korundu, hiçbir test kaldırılmadı. Exact747 PR40113860839/push40113857579 altı zorunlu CI SUCCESS; iki frontend build'i CI'de geçti. Bağımsız kaynak incelemesi hâlâ BEKLİYOR, yapılmış gösterilmedi.
+
+**Pasif aday:** CLEAN-ERP-20261024-747840db0659-B5PACKING-SOURCE,3.451 dosya/manifest25A7EBFF. Sites9,06s offline derlendi;747 sadece logger değiştiğinden frontend48d byte-aynı yeniden kullanıldı. Ayrı web-admin yerel Vite bağımlılığı olmadığından ilk yerel build başarısızdı, tekrar denenmedi; yerel artifact için build PASS yazılmadı. Manifest/DO-NOT-INSTALL installationAllowed=false, SOURCE_PARTIAL_NATIVE_UPGRADE_REQUIRED; tüm paket dosyaları geri okundu. Bu bir kurulum veya mevcut mühürlü hedefe uygulanabilir native paket değildir.
+
+Bu tur gerçek app login/PATCH/ortak runtime/SQL veri-metadata/rol/hesap/servis/restart/kurulum/ticari işlem0.10021 pasif/aktif testi ve koordinatöre özet aktarımı için mevcut iki doğrudan insan sorusu yanıtlanmadan uygulanmadı. Private personel envanteri yayımlanmadı; B5 geneli/özgün kullanıcı kabulleri ve49ERP/25CRM/17başlık/74yaprak aynı. Sıradaki tek teknik halka mevcut immutable katmanın yerinde uyum kapsamını bağımsız incelemeyle netleştirmektir; yeni motor/plan/ajan veya LIVE yetkisi yok.
+
+## 24 Ekim 19:17 — B5 kişisel hesap hazırlığı salt okunur tamamlandı; uygulama yok
+
+Mevcut dokuz kişilik görev kapsamı CRM-DEC-025 ile eşlendi; özel hesap/personel/temsilci envanteri yalnız private kanıt alanında tutuldu, GitHub'a taşınmadı. Kurulu55c2fc22/E662/synthetic/T1false kimliği okundu; roller30/31/32'nin bütün izin satırları kaynak tanımıyla aynı, ilgili dört kurulu dosya kaynakla byte-eş. Gerçek kişilerin normal hesap→personel→temsilci→atanmış müşteri bağları hâlâ kanıtlanmış değil. Kayıtlı üç kullanıcı adı adayı korundu; diğer kişilere ad/ID veya örnek hesap sahipliği uydurulmadı. CRM'nin kapalı sentetik yönetim kaydı salt okunur ayrıldı; eski dört hesap envanteri tarihsel kanıt olarak tutuldu, yeni tam CRM oturumu açılmış gibi sunulmadı.
+
+Somut teknik eksik: mevcut normal personel alanları satış/fiyat/iskonto içindir; onaylı toplama-kolileme görevini diğer satış personelinden ayrı temsil edemez. Rol28'in mevcut terminal.packing.exception izni yalnız fark istisnasıdır, günlük kişisel toplama görevi değildir. Kurulu cartonReadOrigin eski5234/copyID ile sınırlıdır, clean5244 için kapalıdır. Bu tur yeni izin, rol, hesap, adapter veya kurulum eklenmedi; clean kolileme çalışıyor/PASS sayılmadı. Bu eksik mevcut B5/C01–C02 kaydındadır, yeni plan/yaprak değildir.
+
+Hazır pasif/aktif prova yardımcısında iki kaynak güvenliği düzeltildi: özgün etkinlik doğrulanmadan geri açma yok; disable isteği denenmeden restore yok, fakat yanıt kaybında restore olanağı korunur. Beklenmeyen oturum sayacı temizlemeden önce ayrı tutulur. Yalnız syntax kontrolü geçti; yardımcının API/GUI çalıştırması yok.10021 için mevcut tek doğrudan insan onayı sorusu bekliyor. Ayrıntılı iç envanteri koordinatöre gönderme ayrıca otomatik incelemece reddedildi; aktarım yapılmadı, sırsız özet için tek hedef onayı soruldu ve başka araçla dolanılmadı.
+
+Uygulama girişi/credential decode/PATCH/SQL veri veya metadata yazısı/rol değişimi/restart0. Önceki kişisel sayım10006→bekleyen kabul4 ve kurulu55 paketi korunur; yeni ticari işlem, insan PASS veya sayaç artışı yok. Uygulama kaynağı değişmediği için kabul edilmiş altı CI yeniden çalıştırılmadı.49 ERP/25 CRM/17 başlık/74 yaprak aynı; özel matrisin özel kalması, kullanıcı/cihaz/uzun oturum kabullerinin BEKLİYOR olması sürer.
+
+## 24 Ekim 19:00 — B5 ek oturum kabulü çalıştırılmadı; spesifik onay bekliyor
+
+Tamamlanan kişisel sayım teslimi33215b84 ve çalışan55c2fc22/3.446dosya/1B0 paketi korunur; kodun altı CI sonucu geçerli, yeni build/kurulum yok. Sıradaki yalnız10021 hesabını geçici pasif→özgün aktif yaparak eski kendi oturumunun geri gelmediğini doğrulama komutu **CreateProcess başlamadan otomatik onay incelemesince reddedildi**: bu spesifik erişim değişikliği için doğrudan kullanıcı onayı bulunamadı. Hazır teknik prova çalıştırılmadı; credential decode/API login/PATCH/etkinlik/audit değişikliği0. Başka araç/ajan üzerinden yürütülmedi. Yalnız bu hesap ve bu sınır için tek açık kullanıcı onayı soruldu; cevap gelmeden uygulanmaz.
+
+Son salt okunur SQL19:00:10021 etkin/rol30/personel1; Sayım10006 submitted→Kabul4pending/deciderNULL; activeintent0. Sayım/tek etki/finans koruma kabulü geri açılmadı; pasif hesap testi PASS değildir. B5 geneli, gerçek9kişi/atama, uzun oturum, E1/E2/Windows ve insan kabulleri açık;49/25/17/74 aynı. Bu engel, bitmiş sayımın veya kurulu paketin başarısızlığı değildir.
+
+## 24 Ekim 18:50 — B5 kendi sayımı teknik tamam; genel kabul kısmi
+
+Aynı10021/personel1/rol30 normal yeşil ekranda Sayım10006→İlker kontrolü/Kabul4pending, tek submit ve tamreload ile kendi kimliğinde kalıcı. SQLcount1/createjournal1/submitjournal1/receipt1/satır1; stok/finans/fatura/onay0. Eski sample-only creator CHECK→trusted users FK; native üyelik/rol/aktör/TX guard'ları aynı. İlk547 sonra SQL'de commit varken15s clientabort ayrı çözüldü; aynıUUID recovery ikinciCREATE üretmedi. Yalnız exactclean countPOST mevcut60s write bütçesinde; globaltimeout/retry/yetki değişmedi. Source55c2fc22/3446/1B0 paketi18:29kurulu, exact6CI;13metadata/59transport test ve üç yeniSQLproba geçti. Beklenen4 iş kapsamı değişti, eski/veri/stok/3fullfinance özetleri korundu; metadata replay ikinci etki0. Native8ee/ownerFK794/CRMacb2 korunur. Hız5–7s, gerçek9kişi/atama/uzun oturum/cihaz/insan ve49/25/17/74 aynı. Sıradaki mevcut B5 aynı10021 pasif/özgün aktif/oturum iptali kanıtı; diğer hesap/rol/parola veya sayım onayı değişmez. [STATUS](STATUS.md).
+
+## 24 Ekim 17:18 — Mevcut B5 kullanıcı adı teknik alt parçası kurulu; sayaç aynı
+
+Native8ee metadata gerçek TEST'te; API83e/web64f/nativeHTTP035/CRM aynı, restart/ticari işlem0.8 kaynak testi,153 gerçekSQL örneği0 yeni uyuşmazlık,3 yeni rollback/ret ve6exactCI geçti. Aynı kişi10021'in normal geçici tire/alt çizgili adla form girişi ve özgün ada dönüşü/oturum iptali/yenileme görüldü. Eski kullanıcı sabit alanları/rol/izin/53 katkı aynı, yalnız iki own audit/güncelleme beklenir. Replay6473ms ikinci etki0. Güncel satış4,9–7,0s/mal kabul5,0–5,4s önceki C1'den yavaştır; B5 okuma maliyeti teknik açık kalır. İnsan/gerçek9kişi/uzun oturum/E1/E2/Windows kabulü verilmedi;49 ERP/25 CRM/17 başlık/74 yaprak ve özgün UA'lar aynı. [STATUS](STATUS.md).
+
+## 24 Ekim 16:16 — B5 hesap hata/rollback alt parçası teslim edildi; sayaç aynı
+
+Normal create catch ilk hatayı ve cleanup hatasını ayrı korur;17 hedefli test/2 kontrollü gerçekSQL backendfault kanıtı/6exactCI. API83e8 gerçek kurulu, frontend64f/C1metadata/CRM aynı. Normal mevcut kişi okuması/kısa yenileme/53koruma geçti; yeni hesap veya ticari işlem0. Bu, normalAPI/GUI create-fault veya insan kabulü değildir. B5 teknik username tire/alt çizgi sözleşmesi ayrı açık, gerçek kişi/atama kısmi; E1/E2/Windows kabulü ayrıca BEKLİYOR.49 ERP/25 CRM/17 başlık/74 yaprak aynı. [STATUS](STATUS.md).
+
+## 24 Ekim 15:38 — Mevcut B5 teknik alt teslimi; bitiş sayacı aynı
+
+Native metadata c1a15d4e kuruldu; aynı personelin satış/mal kabul normal API okuması19–20s'den2,6–4,7s'ye indi. Aynı yeşil ekranlarda normal giriş, satış tam yenileme ve mal kabul yenileme doğrulandı. Kaynak9 test/3 gerçek rollback-ret probası/exact6CI;53 iş özeti, eski roller/mühürler,37 dinleyici ve API/web64f/native035/CRMacb2 aynı. Restart/ticari işlem0; tekrar199ms/ikinci etki0. Hız hâlâ bir saniye altı değil. Uzun oturum sona erdi ve normal yeniden giriş gerekti; bunu kalıcı oturum kabulü sayma. B5 teknik kişi/atama ve native karakter/ilk-hata açık; fiziksel cihaz ve insan kabulü ayrı E1/E2/Windows kapsamındadır. Yeni yaprak/Goal/PASS yok;49 ERP/25 CRM/17 başlık/74 yaprak korunur. [STATUS](STATUS.md).
+
+## 24 Ekim 14:38 — B5 normal personel teknik alt kanıtı kurulu; genel kabul kısmi
+
+ERP API/web64f, 3.442 dosyalı B944 paketi14:30'da kuruldu; exact PR/push altı CI kontrolü başarılı. Yalnız yeni sentetik kullanıcı10021/personel1 bir kez oluşturuldu; eski11 kullanıcı ve diğer52 kapsam korundu. NormalAPI17 kontrolü ve gerçek tarayıcıda giriş/kısa yenileme/satış/mal kabul okuması geçti. Son53 SQL özeti aynı; yeni ticari işlem yok. Native19–20s gecikme, kullanıcı adı karakter uyumsuzluğu, ilk hatayı örten EABORT, uzun masaüstü oturumu ve gerçek kişi/Android/insan kabulü açık. B5 ve özgünUA kapanmadı;49/25/17/74 aynı. Sıradaki teknik iş, güvenliği koruyarak native bağlam okumalarını hızlandırmaktır. [STATUS](STATUS.md), [teslim kanıtı](docs/evidence/erp/2026-10-24-b5-normal-access.json).
+### Önceki durum — tarihsel
+## 24 Ekim11:38 — E1 kurulum ve normal ekran alt kanıtı; sayaçlar aynı
+
+Kurulu ERPf4/CRM59ca kaynak/manifest/53korunanSQL geriokuması, gerçekLANnormalhandoff/refresh/negatif/çıkıştekrarı ve normaltarayıcı ERPpersonelhome/CRMatanmışgörüşme/tamreload kanıtlandı. Natived114 exactCIikiçalışmada3/3SUCCESS, imzalıE408APKpasifteslim; cihaz0/gerçekKeystore/nativeGUI/insanBEKLİYOR. E1özgünkapanışı veya gerçek9kişi bağı tamam sayılmaz;49/25/17/74 korunur. [STATUS](STATUS.md). HazırB5source sonrakiizinliteknikhalka.
+
+### Önceki E1 kaynak kanıtı — tarihsel
+## 24 Ekim — mevcut E1 native kaynak/APK teknik alt kanıtı
+
+18JVM+43webPASS, gerçek offlineworktestAPK/lint/v2imza/debugfalse hazır. İlkboşCRMget/aynıkişirotation/ownclosure/pendingbarrier/generation kaynakta bağlı; [STATUS](STATUS.md). Kurulum/nativeGUI/gerçekKeystore/cihaz/insan henüz yok, ADB0/AVD0. Son kaynakCI/CRMtimeoutpin ve tekownerkurulum sıradaki; B5 ayrıowner'da.49/25/17/74 ve özgünUA aynı.
+
+## 24 Ekim — mevcut E1 sağlayıcı kaynak alt kanıtı, bitiş sayısı değişmedi
+
+ERP mevcut normal aile/hashstore üzerinde tek kullanımlık30s/PKCE/explicitrelation peer adapter ve18offlineguard test hazır. [Sözleşme](docs/erp-v2/terminal-handoff-contract.md), [STATUS](STATUS.md). Kaynak henüz kurulu değil; native/CRM ortak E2E/cihaz/insan açık. B5 kimlik boşlukları tahminle kapatılmadı,49/25/17/74 aynı.
+
+Son kaynak8df23309 exactCI40075059772/40075056364 her3jobSUCCESS;1170APIpass/13platformskip/fail0. Bu kaynak kanıtıdır, kurulum veya insan PASS değildir.
+
+## 24 Ekim10:14 — C5 düzenli SQL yedeği görev alt kapsamı kurulu, genel kabul kısmi
+
+Source74e exactCI/inceleme ve sabit korumalı bakım runner'ı sonrası günlük03:00 görevi Windows'tan geri okundu.25Ekim03:00 ilk zamanlı başarılı çalışma/backup-result makbuzu henüz yok; C5genel🟡 kalır. Bu SQLdışıCRM/NAS/oturumkapalı/restore veya insan kabulü değildir. Uygulama/veri/rol/yedekler ve49/25/17/74 aynı. [STATUS](STATUS.md).
+
+### Önceki E1 CRM alt teslimi — korundu
+
+## 24 Ekim09:46 — E1 CRM normal oturum alt kapsamı gerçek TEST'te hazır
+
+CRM09a kurulu:16normal APIkontrolü ve normal personel ekranı/atanmış konuşma/reload/çıkış/reload kapalı geçti;53SQL ve ERP8aa/native035 korundu. ERP→CRM aynı kişi eşlemesi, koli, fizikselAndroid/yenidenaçılış ve insan kabulü hâlâ açık; tekil CRMnormal oturum sonucu bu şartları kapatmaz. YeniUA/PASS/sayaç yok;49/25/17/74 aynı. [STATUS](STATUS.md).
+
+### Önceki ERP E1 alt teslimi — korundu
+
+## 24 Ekim — E1 normal sunucu oturumu teknik alt kapsamı TEST'te doğrulandı
+
+ERP8aa web/API kurulu;13gerçek normal-auth kontrolü, Semih normalgiriş/ürün tamreload ve53SQLkoruma özeti geçti. Bu Android yenidenaçılış/ERP-CRM aynı kişi/koli/insan kabulü değildir. PasifAPK kurulmadı, E1 tam kapsamı ve B5 gerçek9kişi bağı açık.49ERP/25CRM ve17/74 özgün sayaç aynı. A5gerçekrehber/C6önkontrol/Dsafmodel önceki alt kanıtları korunur. [STATUS](STATUS.md).
+
+### Önceki D1/D2 kaynak teslimi — korundu
+
+## 24 Ekim — D1/D2 kaynak modeli alt kapsamı; gerçek geçmiş ayrı
+
+Mevcut arşiv core'un legacy belge/satır dönüşümü ve açık manifest kapsamı7hedef testle hazır.2020+ dönemi source metadata ile ele alınabilir; API/service/UI varsayılanı2026 olarak korunur. Gerçek arşiv metadata/kolon/ilişki ve yükleyici makbuzu yok; veri aktarılmadı, D tam kapsamı kapanmadı. E1/C6/A5 alt teslimleri ve B5 kimlik boşluğu ayrı, insan/özgün49/25/17/74 aynı. [STATUS](STATUS.md).
+
+### Önceki E1 teslimi — korundu
+
+## 24 Ekim — E1 bağlantı kaynak alt kapsamı hazır; kurulum/insan ayrı
+
+Terminalin clean5244/62800 sabit kaynak profili ve korumalı realm ayrımı31web/15Kotlin testle doğrulandı; eski profil ve roller değişmedi. Bu web/APK kurulumu veya çalışır dört görev kabulü değildir; clean normal refresh/kişi devri, koli bağlantısı ve fiziksel kullanım henüz kanıtlı değil. E1/özgün terminal kabulleri bekler;17/74,49/25 aynı. C6 metadata önkontrolü ve A5 bakım sonucu ayrı korunur. [STATUS](STATUS.md).
+
+### Önceki C6 teslimi — korundu
+
+## 24 Ekim — C6 önkontrol alt kapsamı teknik tamam; restore kabulü açık
+
+Mevcut Goal6 operator yolunun sabit clean Preflight profili source/test ve gerçek SQL yedek metadata okumasıyla doğrulandı. Bu sonuç restore veya geri açılmış veri değildir; C6 tam kapsamı ve özgün UA bekliyor. Yeni hedef/backup/restore/reboot yapılmadı. A5 rehber teslimi ve B5 kimlik/insan boşluğu korunur;17/74 ve49/25 sayıları aynı. [STATUS](STATUS.md).
+
+### Önceki A5 teslimi — korundu
+
+## 24 Ekim — A5 rehber teknik bakımı; insan kabulü ayrı
+
+Mevcut kurulum giriş rehberi hazır taslakla güncellendi ve sürümlü kopyayla byte-eş doğrulandı. A5 doküman bakımı tamam; A2/A3 başka-cihaz ve C3/C5/C6 kabulü bu sonuçtan yeşile dönmez. B5 gerçek9kişi kimlik/atama uygulaması makbuzu eksik; envanter teknik sonucu ayrı tamam. C6 sonraki dar önkontrolü ve C5 hedef/saklama boşluğu STATUS'ta; restore/veri aktarımı/reboot yapılmadı. Özgün17/74,49ERP/25CRM ve insan sayaçları aynı. [Rehber](docs/erp-v2/clean-test-entry-guide.md).
+
+### Önceki teslim — korundu
+
+## 24 Ekim — B5 envanter teknik sonucu; genel kabul değişmedi
+
+CRM a32 sabit profil gerçekten kuruldu; normal Ayarlar girişinden tam yapılandırılmış hesap envanteri, yenile ve tamreload geçti. Kurulum/GUI sonrası53 koruma özeti aynı. Bu yalnız dört mevcut örnek hesabın salt okunur teknik sonucudur; gerçek kişi–ERP/CRM hesabı–temsilci–müşteri atama zinciri kanıtlanmış değildir. B5 genel kapsamı ve insan kabulü 🟡; B6/B7 teknik teslimleri korunur. Yeni yaprak/UA/plan/sayaç yok;17/74 ve49ERP/25CRM aynı. Ayrıntı [STATUS](STATUS.md).
+
+### Önceki teslim — tarihsel
+
+## 24 Ekim — B7 iletişim teknik tamam; kalan B5 normal envanter girişi
+
+B7 normal müşteri/tedarikçi iletişim kaydı, anında maskeli özet ve tamreload/reopen;4kalıcı UUID/replay/recovery/farklıbody409 ve22iştablosu ikinci etkisiz kanıtlandı. API04a83e53/UI0993a123/3407dosya kurulu; exact kaynak CI40042560683 üç gerekli job SUCCESS. B6 tek örnek satış ve B1–B4 sonuçları korunur. Genel gerçek kart/kişi/personel/insan kabulü ve17/74,49/25sayaçları aynı. Soğuk ilk read11,1sn hızlı ilan edilmez; ilk GUI hata/sıcak yenileme sonucu STATUS'ta ayrı kayıtlı.
+
+B5c1saltokunur CRM envanteri kurulu:4aktif/1temsilcisiz/0çakışma/1yapay atama; manager200/personel403/anonim401. Mevcut Ayarlar'dan panel girişinin eksikliği gerçek GUI'de görüldü; CRM dar düzeltmesi aynı işte sürüyor. Gerçek kişi–hesap–temsilci ataması uydurulmaz; insanPENDING. [STATUS](STATUS.md) / [mevcut tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki teslimler — tarihsel
+
+## 24 Ekim — B6 yalnız örnek TEST satış kapsamında teknik tamam
+
+B6, yalnız mevcut clean20261022 / E662 / synthetic=true / actualT1=false / external=false hedefinde teknik olarak tamamlandı. Semih10018 mevcut rol28 ve36 izniyle normal yeşil ekranda Örnek Mağaza'yı seçti; 0000000000007 barkodu doğru 0007 MELISA ürününü ekledi. **2 ADET ×125,50 TRY =251,00 TRY** taslak10009 / DS-fc0b68bf-b788-4f00-9759-0 olarak kaydedildi ve aynı belge normal ekrandan tamamlandı. Taslak stok/cari etkisi oluşturmadı. Finalize sonrası stok23→21, müşteri1 TRY borcu0→251; native stok hareketi1/net−2 ve müşteri hareketi1/+251, actor10018. Tahsilat yapılmadı, kasa değişmedi.
+
+Native tek stok/cari etkisi, normal reload/fiş ve iki committed exact UUID/body replay doğrulandı; farklı body409,18 iş tablosu ikinci etkisiz. APIb40a0788 kurulu/exact CI3/3SUCCESS. Fiyat/barkod/maliyet/kasa/tedarikçi/roller ve B5 geçmişi korunur. **İnsan kabulü BEKLİYOR**; özgün17/74 ve49ERP/25CRM sayaçları aynı. Tek ürün/2ADET/TRY örneği çok SKU veya bütün rollerin kabulüne genellenmez; B7 başlatılmadı. Ayrıntı [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki teslim — tarihsel
+## 24 Ekim — B5 Semih teknik tamam; B6 kalan bağlantı sırada
+
+Normal Semih kendi aktörüyle tahsilat/ödeme ve gerekçeli geri alma, tamreload ve bağımsızSQL sonuçları doğrulandı. Son finansal tıklamaları kullanıcı yaptı; bu geniş personel kabulü değildir. APIa930/SQLmetadataa1b kurulu, web982/nativeprocess035/CRMaynı;32hedef test ve exact kaynak CI SUCCESS. Korunan işverisi/roller ile53kapsamın izinli üç farkı STATUS'ta açıklandı. B5'in bilinen yönetici eksiği🟢; gerçek kişi–görev ve insan kabulü🟡. Özgün17başlık/74yaprak,49ERP/25CRM ve insan kabul sayaçları aynı.
+
+Mevcut B6 kaynak/offline koruması79ed7a9a/d9376957 korunur; sıradaki teknik kapsam gerçek native doğrudan satış/sepet/journal/tek stok-cari etkisi, ardından B7. Yeni finish tree/TEST/ajan/helper yok. Ayrıntı [STATUS](STATUS.md), [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
+## 23 Ekim — B5 bilinen ERP rol alt kontrolleri 🟢; gerçek görev/insan kabulü 🟡
+
+KuruluAPI/web98226c7f/3397dosya,exactCI40002707905gerekli3jobSUCCESS.7normalörnekrol/49APIokuma/6yetkisizişlem403;15işveri/roltablosuaynı. NormalGUI'de sorumlu22'ye yanlış açılan yeni/tekrar/devam sayım kontrolleri mevcutcanDraftile kapatıldı; personel21başlatmaenabled/sorumlu22disabled, mevcut10incelemesi açık, reloadaynı.26hedeftestPASS; yeni yetki/ticarikayıt0.53veri+5eközetve7native/CRMlistenerkorundu; B4🟢örnektekniksonuç/kapanmışkasakorunur. GenelB5gerçekkişi–göreveslemesiveinsankabulüiçin🟡; özgün17/74ve49/25sayaçlarıaynı. Bu turB6/B7başlatılmadı. [STATUS](STATUS.md),[tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
+## 23 Ekim — B4 açık yapay TEST teknik akışı 🟢; sıradaki B5
+
+TRY kanıtları korundu. USD/EUR kısmi/tam tahsilat ve ödeme, ayrı yetkili gerekçeli ters kayıt, normal yenileme,12kalıcıFXisteğinin ikinci etkisiz replay/409 ve üçdöviz günlük kasa4kapanışı gerçek normalGUI/SQL/API ile tamamlandı. Çekmece10TRY/1USD/2EUR; ana1021TRY/1028USD/1029EUR ayrı. Kurulu APIeeff5381/frontendfe5ead32,exactCI39998879755gerekli3jobSUCCESS. Stok23/maliyet60/eskiTRYkayıtları,CRM/native/yedi listener korunur. Bu yalnız açık yapay örnek kapsamının teknik tamamlanmasıdır; insan/fiziksel kabul, gerçek kişi/kasa/banka girdileri ve özgün49/25sayaçları aynı. B5'in bilinen ERP rol/işlem kontrolleri sırada; yeniB6/B7yok. Ayrıntı ve ilk hatalar [STATUS](STATUS.md) / [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+### Önceki kayıtlar — tarihsel
+## 23 Ekim — B4 öncelikli; TRY ve günlük kasa alt sonuçları tamamlandı, tam B4 açık
+
+Günlük kasanın mevcut motoru/sonlu şeması kuruldu. Normal muhasebe20üçdövizi ayrıaçtı;EURana kasayateslimveUSDgider,kayıtlıüçistektereplay/çatışki,tamreloadkanıtlandı. Dar yeşilyerleşimcc574cb7kurulu,CI3/3; üçresponsiveölçümdeyataytaşma0. Kontrol23yalnızokuyor;eskiroller/veriler/native/CRMkorunur. Bu emülasyon/ajan teknikkanıtıdır,insan/cihazPASSdeğildir. TamB4🟡; kalanUSD/EURcaribağıveardındannormalGUIkasakapanışı. Yeniyaprak/sayaçyok; ayrıntıSTATUSveaynıkanıtbelgesinde.
+
+ERP-DEC-073: B4 kısmi/tam tahsilat/ödeme ve gerekçeli iptal, ardından kayıtlı TRY/USD/EUR ile ana kasa/günlük kasa ayrımı tamamlanmadan yeni B6/B7işi açılmaz. Önceki B6 kaynak/belge ve kurulu B5 korunur. Normal örnek muhasebe ekranında251−100=151müşteri ve200−80=120tedarikçi, yenileme ve kalan tutarla tam kapanış/kasa51gerçekleşti. Kurulu01a1d9f6normalekranda80ödeme ve100tahsilatı gerekçeli iptal etti; müşteri100/tedarikçi80/kasa31tamreloadveSQLileeş. AltıkalıcıistekteAPIreplayikinci etki0; farklıgövde409. TRYaltkapsamıtekniktamam; tümB4🟡,döviz/anakasa–çekmece açık. Yeni yaprak veya insanPASS/sayaçartışı yok. Kalan döviz/kasa teknik işidir, yeniden para birimi kararı beklenmez. Güncel [STATUS](STATUS.md) ve mevcut tek kanıt esas alınır.
+
+## 23 Ekim — B5 kaynakça kapalı atama teknik ekran halkası kuruldu
+
+Aynı mevcut B5 kapsamında CRMfrontend e1ce12b7/cleanprofil kuruldu; backendbc8 ve ERP7b/native035 korundu. Normal örnekPersonel atanmış55+reload/katalog, örnekPatron genel okuma/atama menüsü kapalı, diğerPersonel0görüşme doğrulandı. Örnek hesabın adı ornek-mudur, gerçek rolü **Patron**; gerçekmudur/kişi–rol ve insan kabulü açık kalır.58veri/rol+37dinleyicikorundu, SQLyazma/restart0. B4kaynakregresyonu14test/6CIgeçti; kısmiödeme/iptal uygulaması ve B6/B7açık. Yeni yaprak veya sayaç değişikliği yok:17başlık/74yaprak, özgün49ERP/25CRMve insan kabulleri korunur. Kanıt ve bileşen kaynakları [STATUS](STATUS.md) içindedir.
+
+### Önceki teslimin tarihsel kaydı
+
+## 23 Ekim — B3 teknik ekran hatası kapandı
+
+Sayım10'un gerçek sahibi Örnek sayım personeli normal Semih ekranında, SQL/API ve reload ile doğrulandı. Kurulu API/web7b3d9b8b; native035/CRMbc8 ve veriler korunur. B4 kısmi/döviz/finansal iptal, B5 görevler, B6 sepet ve B7 iletişim açık. Bu düzeltme özgün49ERP/25CRM yaprak sayaçlarını veya insan kabulünü değiştirmez. Güncel STATUS ve tek clean kanıtı esas alınır. Aşağıdaki tarihlendirilmiş eski kaynak/etiket-açık notları tarihseldir.
+
+## 23 Ekim — Tek esas TEST ve ağ bağlantısı
+
+ERP-DEC-071: aynı clean20261022 kurulumuna ERP035fcc08/CRMbc8 kuruldu; yalnızweb5244/62800 LAN+Tailscale, içservislerloopback. Normalpersonel giriş/katalog/fotoğraf/fiyat/yenileme sunucu tarayıcısında doğrulandı.21eski listener,firewall ve53veri kapsamı aynı; yeni ticari işlem0. KaynakERP6/6CI,CRM7/7CI başarılı. Eski kurulumlar envanterde korunur. **İkinci fiziksel cihaz ve insan kabulü bekliyor**; özgün49/25sayaçları değişmez. Sonraki iş başka yetkili cihazdan normal giriş/katalog kabulü; yeni göç veya tamamlanmış motor tekrarı yok. [Güncel STATUS](STATUS.md) ve [tek kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--esas-test-ağ-teslimi).
+
+### Önceki teslimlerin tarihsel kaydı
+
+## 23 Ekim — Aynı mağaza günü2.6 ve2.7 teknik kanıtı tamamlandı
+
+Kullanıcının ayar değişikliği sonrası yetkilendirdiği desteklenen yeniden deneme geçti. KuruluERP759bbc62/CRMc8 aynı temiz yapay TEST'tedir.2.6normal personel-sorumlu sayım/iade/onay/gerekçeli inverse/yenileme/replay ve bağımsızSQL tamamlandı;2.7yedi normal rapor/API/SQL/CSV aynı22Ekim belgeleriyle eşleşti. Eski veriler/servisler korunur; yeni gerçek işlem yok.5.1.cmd zaten-açık yolunda exit0/23listeneraynı; gerçek Windows reboot/logon DENENMEDİ. Küçük sayım “Sayan” sabit etiketi açık. İnsan/personel/cihaz kabulü BEKLİYOR, özgün49ERP/25CRM ve74yaprak sayaçları artırılmadı. [Güncel STATUS](STATUS.md), [tek kanıt/ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#23-ekim--yeniden-deneme-sonucu-gerçek-kurulum-ve-ekranlar). Sonraki mevcut kapsam son personel/cihaz/açılış kabulüdür; bitmiş teknik motorları yeniden kurma veya migrate etme.
+
+### Aşağıdaki BEKLEMEDE/KISMİ kayıtları önceki tarihsel durumdur
+
+## 23 Ekim — Aynı mağaza günü2.7 KISMİ; 2.6 BEKLEMEDE
+
+**Güncel kaynak alt teslimi:** Toplu Raporlar okuyucusunun clean hedef bağı mevcut iki kaynak dosyasında hazır;39hedefli backend/UI+3ilgili copy kontrolü geçti. Yanlış DB/port/rol retleri, gerçek distinct sınıflandırma, döviz/tarih/NULL maliyet ve eski yollar korundu. SQLapp kullanıcısının gerekli12SELECTyetkisi yeterli; SQLyazması0. Henüz kurulu/normalrapor/insanPASS değil; koordinatör incelemesi+exactCI ayrı. Tek kalan kurulum kabulü aynı clean hedefte son aday ve22Ekim normal rapor geri okuması; otomatik kurulum/ret tekrarı yok.
+
+Kullanıcı kararıyla kurulum engelindeki2.6 atlandı; kapanış/PASS verilmedi. 2.7'de mevcut 22 Ekim işlemlerinin stok23ADET/müşteri0TRY/tedarikçi0TRY/kasa256,50TRY değerleri bağımsız SQL ve normal stok/tahsilat/ödeme/kasa hareketleri ekranlarında eşleşti. Yeni işlem oluşturulmadı; 60TRY sentetik maliyet/+1380TRY değerleme nakit/kâr değildir. Toplu Raporlar okuyucusunun clean kapsam bağlantısı eksik; bu ekran ve 2.6 sonrası tam gün sonu açık. Sonraki tek teknik eksik aynı rapor bağlantısıdır; kurulum reddi tekrar edilmez. İnsan kabulü ve özgün49/25 sayıları aynı. [STATUS](STATUS.md), [tek makbuz ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md#iş27--23-ekim-salt-okunur-gün-sonu-karşılaştırması).
+
+## 22 Ekim — Aynı mağaza günü2.5 teknik teslimi; özgün kabuller bekliyor
+
+Mevcut B06/C08/ERP09 kapsamında gerçek tahsilat/tedarikçi ödeme/kasa bağlantısı ERP791b82a/CRMc8 temiz yapay TEST'te normal ekran, native SQL/API, rol ve tekrar güvenliğiyle doğrulandı. Müşteri/tedarikçi0, kasa256,50TRY, stok23; eski satış/alış/geçmiş aynı. Sentetik ajan provasıdır; insanPASS veya49/25yaprak artışı değildir. Özgün2.6sayım/iade/iptal ve2.7günsonu devam eder. [STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+## 22 Ekim — Aynı mağaza günü iş2.2/2.3 teknik teslimi
+
+ERP5aa4cb3e/CRMc8 temiz yapay hedefte normal depo sayımı→sorumlu kabulü→native alış/tedarikçi borcu tamamlandı. Stok21→23 yalnız kabulde; alış120TRYborç, ikinci stok0. Eski CRMorder3/sale1 tekrar oluşturulmadan korunup güncel kaynaktan okundu. Native rollback/rol/replay/SQL/API/normalGUI ve exactuygulamaCI geçti; insan/P03/cihaz/Windowsreboot kapanışı değildir. Özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡/0🔴,74yaprak aynıdır. Güncel alt adımlar2.1eşleme/2.2mal kabul/2.3alış/2.4öncekisatışkanıtı teknik tamam;2.5tahsilat-ödeme-kasa sıradaki,2.6sayım-iade-iptal ve2.7günsonu açık. Yeni plan/tree yok. [Güncel STATUS](STATUS.md), [kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+## 22 Ekim — ERP09 / CRM06-E02 siparişten satışa teknik devam
+
+ERP-DEC-070'in dar temiz TEST bağlantısı ERP3db0830/CRMc8d0e28'de teknik olarak teslim edildi: normal personel taslak→ayrı sorumlu onayı→tek native satış/3adet stok çıkışı/376,50TRY müşteri borcu→CRM salt okunur FINALIZED sonucu. Native motor sonrası hata/rollback, replay/rol retleri, bağımsız SQL/API ve gerçek GUI doğrulandı. Native4196 draft sözleşmesi/immutable3receipt ve eski veriler korunur;49ERP/25CRM sayaçları ve özgün insan kabulleri aynı. Bu tek bağlantı bütün ERP09/CRM06 veya mağaza günü kapanışı değildir. Kanıtlı teslim koordinatöre verilir; sonraki işlem ayrı mevcut sıradadır. Gerçek sonuç [STATUS](STATUS.md) içindedir; launcher5.1 bu adımın ön koşulu değildir ve önceki ret aşılmadı.
+
+## 22 Ekim — Temiz ortak TEST normal GUI teknik alt kanıtı
+
+ERP-DEC-068/069: ERP970cfc2/CRM1dd07d1 gerçekten kuruldu; normal iki rol/giriş, CRM katalog/orijinal fotoğraf/müşteri/adet/fiyat→native SQL taslak→ERP Onaylar ve iki browser kesintisi doğrulandı. Her UUID tek kayıt; yenileme/yanıt kaybında ikinci etki0. Eski kurulum/veriler korundu.5.1 mevcut .cmd actual çalıştırma çağrısı genel araç politikası reddiyle BLOCKED;5.2 eski deneme klasörü bağımlılığı yok. Gerçek personel/cihaz/Windows reboot kabulü bekler. Özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡/0🔴 değişmez; teknik kanıt üst kapanış değildir. [Son kurulum ve ekranlar](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+
+## 20 Ekim — P03 yalnız minimum hata kaydı kaynak alt teslimi
+
+Aynı görevin dar onayıyla aynı actualguardinput private hata kanıtına bağlandı; journal dışı exactroot, strictACL/CreateNew/hashreadback; özgün ret yeniden fırlatılır, işlem sırası/güvenlik kapıları değişmedi. Yeni source1b1919ba / eski frozen-runtime99b ayrı; runtimepin/config değişmedi. Son28hedef PASS/0skip ve ROreviewGO/açıkP1/P2=0; 4e3d4a6b exactPR39435425428/push39435414291 completed SUCCESS; belge HEAD CI ayrı. Gerçek prova/kurulum/READY veya insan kabulü değildir. P03/özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 aynı. [Kanıt](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#20-ekim--yalnız-minimum-hata-kaydı-kaynak-hazırlığı).
+
+## 20 Ekim — P03 OLD PID ret tanısı kaynak/offline alt teslimi
+
+Frozen99b guard/predicate sırası değişmedi; ayrı AST sidecar gerçek guard'ı yalnız supplied snapshot üzerinde çalıştırıp fiziksel helper öncesi durur.15yeni hedef test PASS/0skip; bağımsız RO son review GO/açıkP1/P2=0, e70481f5 exactPR39426814988/push39426808223 completed SUCCESS; belge HEAD CI ayrı. Beklenen/gözlenen PID+birth/rol, ret guard, sıra, eksik/belirsiz veri sınırlı çıktıda; tarihsel bcd4 kimliği UNKNOWN, rollback READY veya kurulum değildir. P03 açık, özgün49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmedi; gerçek GUI/cihaz/insan kabulü bekler. [Kanıt](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#20-ekim--frozen-old-pid-guard-kaynakoffline-tanısı).
+
+## 19 Ekim — P03 B264 kapalı admission ve readonly tarihsel okuma alt teslimi
+
+d57b2d71 exactPR/push CI SUCCESS,16yeni+62etkilenen kontrol PASS/bağımsız kaynak GO. Gerçek46pin/26outer/8recovery tarihsel okuyucu doğrulandı; yeni saf tuple/öneri kuralları Apply/claimwriter'a bağlı değil. Native actual229f digest parity, yalnız ikiCOMsatırının exactsırası düzeltilerek sağlandı; kimlik/kanıt kontrolleri korunur. Sharedbootstrap/B264V2drainer/gerçekcurrentadmission/claim/kurulum/GUI/insan PASS yok. Eski44sn/Light/CSV kabulü tekrar edilmedi; eskiFAILED/journal/locks/consumedclaim korunur. P03 üst kapanışı ve49ERP9🟢/39🟡/1🔴,25CRM12🟢/13🟡 aynı. [Kanıt ve sonraki kapı](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#b264-kapalı-kabul-kuralları-ve-gerçek-tarihsel-okuyucu).
+
+## 19 Ekim — P03 B264 sürümlü eski-kimlik gözlem alt kanıtı
+
+b75cc5e5 exactPR/push CI SUCCESS;16hedef test/bağımsız kaynak GO. Mevcut eski ortak TEST gerçek DryRun sonrası4tamframe/44,428sn aynı kimlikte gözlendi;11listener/ikiRunninggörev/health/HTTPbytes aynı. Sadece iki protected CreateNew kanıt; engineFAILED/QUARANTINED/journal/lock/claim korunur. Yeni aday kurulumu, fullShared geçiş/rollback veya normalGUI/insan PASS değildir. Aynı P03 içinde B264→yeni tuple kapalı admission/tekilclaim ve guardedShared kapısı açık;49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmez. [Gerçek kapsam](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md#mevcut-b264-için-ayrı-salt-okunur-gözlem).
+
+## 19 Ekim — P03 / ERP-DEC-066 hafif gerçek Hub başlangıç ve geri dönüş alt kanıtı
+
+AyrıSQL'siz5354'te e59→01ef→e59 gerçek Express/Hub old/new/old,17HTTPkontrol/faz ve ownedcleanup doğrulandı. Başlatıcı1433c96b exact PR/push CI SUCCESS; bağımsız source/proof GO. Ortak listener/görev/health/HTTP içerikleri önce–sonra aynı; ilk başarısız HOST_DENIED ve eski b264engineFAILED/journal/claim korunur. Yeni büyük DB/kopya/sharedkurulum yok. Bu, full Shared bootstrap/guardedrollback veya GUI/normalpersonel/insan kabulü değildir; mevcut P03 üst kapanışı,49ERP9🟢/39🟡/1🔴 ve25CRM12🟢/13🟡 değişmez. [Gerçek kapsam ve sonraki P03 kapısı](docs/evidence/erp/2026-10-19-light-hub-rehearsal.md).
+
+## 18 Ekim — B01/B03–B06 ve bağlı iş akışları: v75 sunum portu
+
+İş sırası ve mal kabul/alış, ayrı cari bakiye–fiş kalan, tahsilat ve iade/onay hiyerarşisi güncel PR52 tabanındaki native/API controller'lara taşındı.264hedefli offline test+build+bağımsız inceleme GO; yeni browser/mobile önizleme ortam hatası nedeniyle NOT_RUN. Gönderen adı/saat, ortak belge aktarımı, native iki satırdan genel kapsam, kurulum ve insan kabulleri açık. [Kaynak/kanıt](docs/evidence/erp/2026-10-18-office-layout-v75.md). Bu bir kaynak alt adımıdır;49/9🟢/39🟡/1🔴 ve aşağıdaki özgün kabul/plan satırları değişmez.
+
+## 18 Ekim 2026 — ERP09/C05 seçili tahsilat ekranı ve incelenmiş aday kaynak birleşimi
+
+PR45 (`2910efb3f5fbdd4bcf3fcf3802cd78863175273b`) kaynak/test akışı PR47 (`51aa9ba22a3aa1c0ddac18a788e382b368773904`) üzerine yeni feature adayında alındı. Tek kod çakışması workingCatalogSession içinde uzlaştırıldı; C06 customerContactRecovery tam korunur. Diğer 10 kaynak/test dosyası PR45 ile aynıdır. 93/93 hedefli offline kontrol PASS, 0 FAIL/0 SKIP; Node24.19.0, sentetik domain ve DOM doubles. Bağımsız kök incelemesi ve ayrı müşteri kurtarma/aktör devri kontrolü PASS. Exact yeni head CI sonucu PR Checks üzerinden ayrıca doğrulanır.
+
+Bu yalnız kaynak bütünleştirmesidir. Backend varsayılan kapalı, native TRY/500 ve seçili müşteri/hesap sınırları aynı; genel müşteri/döviz tahsilatı tamamlanmadı. SQL/servis/kurulum/gerçek GUI/cihaz/insan kabulü veya main merge yok. Özgün49ERP/25CRM ve renk sayıları aynı. Vega migrasyonu en sonda. [Kanıt](docs/evidence/erp/2026-10-18-collection-ui-integration.md).
+
 ## CRM06 tek ortak kapanış; ERP06 kaynak korunuyor — 14 Ekim 2026
 
 18 Ekim — P03 kısmi başlangıç aday kimliği saf kaynak `7d2d05f`, 9 test, bağımsız koşullu GO ve exact push/PR CI SUCCESS; yabancı/önceki PID ve Hub/COM/port sapmaları reddedilir, `stopPermitted:false`. Gerçek filtresiz OS gözlemi, kısmi kurtarma ve kurulum yok; P03 🟡/özgün49/9🟢/39🟡/1🔴 aynı. [Kanıt](docs/evidence/erp/2026-10-16-joint-test-candidate/README.md).
@@ -99,6 +480,7 @@ C11🟡:15/16 için mevcut izin/ret/redaction makbuzları modüllere bağlandı;
 B01🟡: kayıtlı9Ekim günlük akış ve son okuma ayrı, yetkili Raporlar bağlantısı ve readonly kısa yollar normal ekranda teknik hazır. Kayıt bağlantısı bilinmeyen görev kapalı; kasa/vade/borç sayısı uydurulmaz. Genel görev kapsamı/OPS01 hız ve UA05/17/32 bekliyor. [Ana Sayfa kapsam kanıtı](docs/evidence/erp/2026-10-13-home-daily-scope/README.md).49/9/39/1 aynı; eski provasız dar teslim.
 
 ## ERP16 / B08 — dar Ayarlar görünümü hazır, insan kabulü bekliyor — 13 Ekim 2026
+23 Ekim clean TEST güncellemesi: mevcut Ayarlar okuyucusu API4af2 ile bağlandı; normal semih/Yenile/reload ve dört bağlantı teknik doğrulandı. Native/web035 ve CRMbc8 korundu. ERP-UA20/32 bekliyor; B08🟡 ve özgün49/25sayaçları değişmez. Kaynak/kurulum ve insan kabulü ayrıntısı güncel STATUS ve mevcut tek kanıt belgesindedir.
 
 B08🟡: son paket/kullanıcı/rol/bağlantı, tarihli prova ve Yenile normal ekranda teknik hazır. Güncel yedek kapsamı ve gerçek reboot bilinmiyor; UA20/32 bekliyor. [Ayarlar okuma kanıtı](docs/evidence/erp/2026-10-13-settings-read/README.md).49/9/39/1 aynı; eski kabul edilmiş prova tekrar edilmedi.
 
@@ -374,7 +756,7 @@ Ana hedef: gerçek SQL verisini kullanan, günlük mal kabul → alış → sat�
 | C03 | Dövizli alış fiyatı operasyonu | 🟡 | Önceki typed kaynak/exact8→native4/EUR ve iki tarihli kur kabulü korunur. TEST58 normal currentUSD1.34567890/version7→1.3457USD,4Ekim USD40/TRY1→53.8280TRY. Kabul38 stok31→32;25092 borç60→113.828→60 ters,stok32 aynı. EURnull/TRYpurchasequote yok;3current/7version/önceki25090 aynıdır. ERP-UA11 genel ticari/personel kabulü açık. [Sabah kanıtı](docs/evidence/erp/2026-10-06-inbound/README.md).  13Ekim f2f922a: exact fatura/kabul ve native kayıtlı kur GET-only görünümü;61test/HighGO/Chrome/API/native,0ticariyazma. [Kanıt](docs/evidence/erp/2026-10-13-purchase-receipt/README.md); genel kapsam/insan kabulü açık. |
 | C04 | Gerçek satış ekranı kabulü | 🟡 | Önceki kabul korunur; normal53 iki ürünlü satış/taslak/finalize/fiş/stock/debt ve UUID tekrar güvenliği teknik hazır. Yalnız ayrılmış sentetik kapsam; ERP-UA07 insan ve genel ticari kabulü açık.  Aşama4 kopya gerçek-kaynak müşteriye iki ürünlü satış/borç/tahsilat native kapanış kanıtlı; genel insan kabulü açık. [Aşama4](docs/evidence/erp/2026-10-09-stage4/README.md). |
 | C05 | Açık hesap | 🟡 | Normal53 tahsilatsız satış150TRY borç oluşturur, kasa0;50kısmi sonrası100kalan, tam sonrası0 ve ters kayıtlar kalıcı doğrulandı. 13Ekim çalışan a771afe: seçili native müşteri+döviz/25fiş geçmişi/Yenile, açık-kısmi-iptal etiketi ve kayıtsızvade görünümü;126kontrol/GO, gerçekreadonly Chrome/API/SQL aynı, yeni ticariyazma0. 17Ekim51aae11 tahsilat başarısı/yenileme hatası ve UUID kurtarma ekran kaynağı52offline/GO/build hazır; kurulum/GUI kabulü değil. [Dar kanıt](docs/evidence/erp/2026-10-13-open-account/README.md). Genel ticari limit/vade/personel kabulü ve seçili kaynak tahsilat yazıcısı açık.  Aşama4 gerçek-kaynak kopya hesapta borç/tahsilat ayrı exact8; orijinal cari aktarımı korunur. [Aşama4](docs/evidence/erp/2026-10-09-stage4/README.md). |
-| C06 | Gerçek müşteri kartı | 🟡 | Normal salt okunur kart/18 gerçek API denemesi ve arama/sayfa/boş/karantina/üç genişlik kabulü hazır. customer.view sınırı ve bilinmeyen hesaplar korunur. 17Ekim56fb2e6 cold-start R1/son-proof kayıt sırası/saf paket bağı kaynağı,46+27offline kontrol ve bağımsız review hazır; native read-only compatibility/kurulum/normal kaydet→yenile ve personel kabulü açık, gerçek ticari kart yazması yok. [Kaynak kanıtı](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md). [Kabul](docs/erp-v2/canonical-20261004/customer-card-acceptance.md). |
+| C06 | Gerçek müşteri kartı | 🟡 | Normal salt okunur kart/18 gerçek API denemesi ve arama/sayfa/boş/karantina/üç genişlik kabulü hazır. customer.view sınırı ve bilinmeyen hesaplar korunur. 17Ekim56fb2e6 cold-start R1/son-proof kayıt sırası/saf paket bağı kaynağı,46+27offline kontrol ve bağımsız review hazır; native read-only compatibility/kurulum/normal kaydet→yenile ve personel kabulü açık, gerçek ticari kart yazması yok. 18Ekim kaynak: metadata-only bekleyen UUID ve yetkili committed journal GET kurtarma hazır; native kurulumu/normal GUI/insan açık. [Kaynak kanıtı](docs/evidence/erp/2026-10-14-customer-contact-contract/README.md). [Kabul](docs/erp-v2/canonical-20261004/customer-card-acceptance.md). |
 | C07 | Gerçek tedarikçi kartı | 🟡 | Önceki530nativekart/90hold,13373deneme iletişim/izin kapsamı korunur. TEST58 normal13370 kabul#3→25091→+140TRY/−140TRY fiziksel/fatura zinciri ve TEST62 ödeme tedarikçisi #39→`TDAY-FINOPS-20261006`→300TRY borç→ödeme/ters kayıt geçmişi ayrı gösterilir; iki sentetik taraf birleştirilmez, eski bağı bilinmiyor açık. İlker16 mevcut view/edit, personel15 finans erişimi kapalı. ERP-UA12/13 insan kabulü ve gerçek kart düzenleme açık. [Goal3 kanıtı](docs/evidence/erp/2026-10-06-finops/README.md). |
 | C08 | Kasa/banka günlük akışı | 🟡 | Ödeme100+200TRY ve iki ters kayıtta borç300→0→300/kasa1000→700→1000/stok5 değişmez; TEST71 normal hareket ekranı/ayrı döviz ve mevcut aktör16 kanıtlı. Gerçek kasa açılışı/banka entegrasyonu/kapanış ve ERP-UA14 bekler. [Goal3 teknik kanıtı](docs/evidence/erp/2026-10-06-finops/README.md).  Aşama4 kopya ödeme/ters/yeni ödeme ve eski normal ödeme geçmişi düzeldi; kasa açılışı UNKNOWN/banka açık. [Aşama4](docs/evidence/erp/2026-10-09-stage4/README.md).  13Ekim f2f922a mevcut günlük readonly görünüm/API/native bağlantısı17GET/9set ile doğrulandı; yeni işlem0. [Kanıt](docs/evidence/erp/2026-10-13-finance-daily-read/README.md); gerçek açılış/banka/genelFX/insan kabulü açık. |
 | C09 | Fiyat yazma/düzenleme | 🟡 | Ayrılmış301986 native exact8 fiyat create/edit, onaylı TEST16 özel izin, immutable version/CAS/fullpayload replay; normal fiyat→kabul37→native25090→borç→iptal, eski belge fiyatı korunur. Genel ticari kartlar/terminal fiyat tüketimi/personel kabulü açık. [Kabul](docs/erp-v2/canonical-20261005/product-price-acceptance.md). DB02 c3a84d0 alış referansı teknik hazır; genel fiyat yazma copy-specific revision/owner EXEC/tüketim bağımlılığıyla açık. [13Ekim kanıtı](docs/evidence/erp/2026-10-13-price-reference/README.md). |
@@ -549,3 +931,7 @@ Son teslim: tek kanonik kaynak; tek anlaşılır TEST/LIVE eşlemesi; korunan es
 ### CRM06/R02 — exact94f SOURCE/OFFLINE profil alt teslimi
 
 15 Ekim — **DOT-ERP-CRM06-R02-94F-PROFILE-r1 teknik SOURCE/OFFLINE teslimi:** exactCRM94f2a75322a3daa695d38010a6f2c8ef23f6c17b için ERP sonlu successor/journal/Hub profili hazırlandı. Kaynak **f450ff488671911877249b84f65bed28df79070f**, aynıSHA PR/push CI SUCCESS;7 yeni hedef PASS/0skip ve bağımsız kaynak/paket incelemesi GO. Yeni10.profil/8.kaynak,19 yalnız politika referansı=eski18+exactyeni; gerçek physical-walker çalıştırılmadı. Yeni94f manifest16cb075a8734d56afd1f364999ab8f0707255be5c4a042a9c197ccf397eea556/index19624f5d0189c5750089b4c50779809f3a381e323ae59541daa5ee4c3efdf3a5 ayrıca sabitlendi. İnaktif SUPERVISOR_ONLY paketi C:/Sirket/ERP/releases/CANONICAL-CRM06-SUPERVISOR-TEST-20261015-f450ff488671, manifest40c88297b94468555bc78b50a7b05ad2d576e7c94ac747aab91428ce48f55656;264 exact Git export dosyası geri karşılaştırıldı. **Aktif helper/settings/config/journal/credential/görev/servis/DB02/SQL/restart/kurulum yazısı0.** CRM94f paketi yeniden oluşturulmadı;2291payload/185Gitblob bağı salt okunur doğrulandı. [Kaynak/inaktif paket kanıtı](docs/evidence/erp/2026-10-15-isolated-test/README.md#crm06r02--94f-exact-profile-sourceoffline-delivery). Önceki kurulu894/cac/ERP7a kaydı tarihlidir, bu tur fresh runtime kanıtı değildir. NormalGUI/telefon/reboot/insan kabulü ve sayaçlar aynı; yeni aktivasyon ayrı ERP-owner devri ister. Bu tek kaynak görevi sonunda DUR; sonraki işi yalnız Dot tek devir kaydından seçer.
+## 22 Ekim — Mevcut mağaza günü2.6 native kanıtı; kurulum engeli
+
+Sayım/alış iadesi/inverse mevcut motorlarla gerçek cleanSQL'de teknik olarak doğrulandı; native hata rollback/UUID/rol ve maliyet görünürlüğü korundu. Ek maliyet sütun izni geri alındı; aynı değere no-op UPDATE kaldırıldı.53koruma(tek etiketli yapaycostgirdisi ayrık)/16eski listener korunur. Kurulu app791/CRMc8çalışır. Yeni appkurulum hazırlığı otomatik güvenlik incelemesinde reddedildi; normal2.6GUI ve2.7 günsonu tamamlanmadı. EskiDB02observe-only DeployControl temizhedefe uygun değil, ret dolanılmadı. Özgün49/25/74sayaçları ve insan kabulleri aynı. [STATUS](STATUS.md).
+**27 Ekim03:08TR — Güncel aktif ürün kapsamı:** F0102 stok STATUS=1, silinmemiş/iptal edilmemiş 12.066 tekil kart, 242 sayfada 02:48–03:07TR arasında okundu; atomik T1 değildir. Miktar/tarih filtresi yok; aktif sıfır stok dahil. AKTIF alanı bu kaynakta bütün satırlarda false olduğundan seçici değildir. Exact kaynak kimliğiyle mevcut native TEST125 ana kart karşılaştırması: 11.845 ana bilgi eş, 26 ana bilgi farkı, 195 eksik hedef, çoğul hedef kimliği0. Bu sayı barkod/birim/fiyat/depo-stok mutabakatı veya uygulama sayısı değildir. Özel kayıt bazlı kanıt repo dışındadır; kaynak/hedef veri yazması0. Üç ürün yalnız doğrulama dilimidir; hedef tüm aktif stok kartlarıdır. Cari kapsamı ayrı: aktif/pasif bütün müşteriler F0102, tedarikçiler muhasebe F0103; ad benzerliğinden birleştirme/temizlik yok, TRY/USD/EUR ve mevcut iki LL dışlama kararı korunur. Yeni normal okuyucu zinciri ve adaptör için56 hedefli test geçti; kurulum ve işletme kimliği/native/CRM bağı henüz tamamlanmadı, insan PASS yok.
