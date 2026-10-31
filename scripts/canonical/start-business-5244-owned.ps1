@@ -63,7 +63,32 @@ function Get-Business5244MaintenancePlan($State,$ApiTransition=$null){
  }
  return @{candidate=$candidate;rollback=$r.pins.Clone();hash=(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($identity)))}
 }
-function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
+# Observation only: fixed labels, monotonic durations, no exception text.
+# A broken diagnostic sink must not replace rejection or prevent cleanup.
+function New-Business5244StageTiming {
+ return @{stage='entry';phase='preparation';started=[Diagnostics.Stopwatch]::GetTimestamp();finished=$null}
+}
+function Write-Business5244StageTiming($Timing,[ValidateSet('ok','rejected','budget-exceeded')][string]$Result='ok',[switch]$Terminal,$Failure=$null){
+ if(!$Timing){return}
+ try{
+  $errorType='none'
+  if($Failure){$errorType=$Failure.Exception.GetType().FullName;if($errorType-cnotin@('System.Management.Automation.RuntimeException','System.IO.IOException','System.UnauthorizedAccessException','System.InvalidOperationException')){$errorType='other'}}
+  $end=if($null-ne$Timing.finished){$Timing.finished}else{[Diagnostics.Stopwatch]::GetTimestamp()}
+  $ms=[Math]::Max(0,[Math]::Round(1000.0*($end-$Timing.started)/[Diagnostics.Stopwatch]::Frequency,3))
+  $event=[ordered]@{kind='business-5244-startup-stage';phase=$Timing.phase;stage=$Timing.stage;milliseconds=$ms;result=$Result;terminal=[bool]$Terminal;errorType=$errorType}
+  [Console]::Error.WriteLine(($event|ConvertTo-Json -Compress -Depth 3))
+ }catch{}
+}
+function Set-Business5244StageTiming($Timing,[ValidateSet('entry','source-validation','seal-validation','native-tcp','api-admission','retirement-record','http-health','rollback-validation','channel-open','ready','supervision')][string]$Stage,[ValidateSet('preparation','admission','supervisor')][string]$Phase='preparation'){
+ if(!$Timing){return}
+ Write-Business5244StageTiming $Timing
+ $Timing.stage=$Stage;$Timing.phase=$Phase;$Timing.started=[Diagnostics.Stopwatch]::GetTimestamp();$Timing.finished=$null
+}
+function Prepare-Business5244PairedMaintenance($State,$ApiTransition,$Timing=$null){
+ $ownTiming=$null-eq$Timing;if($ownTiming){$Timing=New-Business5244StageTiming}
+ $timingResult='ok';$timingFailure=$null
+ try{
+ Set-Business5244StageTiming $Timing source-validation
  $r=Get-Business5244RetirementState $State
  $webOnly=$null-eq$ApiTransition-and(Test-Business5244WriterWebOnlyGeneration)-and$r.scopeName-ceq'TEST125-API-B6-WRITER-20261029'
  if($null-eq$ApiTransition-and!$webOnly){throw 'OWNED_WEB_PAIR_API_TRANSITION_REQUIRED'}
@@ -79,13 +104,17 @@ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
  try{
   # Full payload verification and immutable read locks precede opening the
   # request channel. No nonce/deadline exists yet; no stop/write happens here.
+  Set-Business5244StageTiming $Timing seal-validation
   Assert-Business5244OwnedPackage $plan.rollback $seal
   Assert-Business5244OwnedPackage $plan.candidate $seal
-  $seal.Freeze();Assert-Business5244ReadyChild $r.native $r.pins
+  $seal.Freeze();Set-Business5244StageTiming $Timing native-tcp
+  Assert-Business5244ReadyChild $r.native $r.pins
   if(!$webOnly){[void](Assert-Test125ReadPairTransition -Transition $ApiTransition -Mode Current)}
+  Set-Business5244StageTiming $Timing api-admission
   if(!$webOnly){Prepare-Test125ReadPairRequestAdmission $ApiTransition}
   # Metadata rebind and its durable archive finish before opening any nonce.
   # This remains an exact stale-record CAS, never process adoption.
+  Set-Business5244StageTiming $Timing retirement-record
   Publish-Business5244CurrentRecord -State $State|Out-Null
   $r.preparedPair=@{apiTransition=$ApiTransition;planHash=$plan.hash;seal=$seal;ownerPid=$PID;ownerBirth=$r.ownerBirth;childPid=$r.childPid;childBirth=$r.childBirth}
   if($webOnly){$r.preparedPair.stateToken=$State;$r.preparedPair.native=$r.native;$r.preparedPair.lease=$r.lease;$r.preparedPair.kind='WebOnlyFrontendRefresh'}
@@ -93,17 +122,27 @@ function Prepare-Business5244PairedMaintenance($State,$ApiTransition){
   # Keep margin below the independent 15-second client ACK wait; the server
   # admission ceiling does not authorize a disconnected peer.
   $clock=[Diagnostics.Stopwatch]::StartNew()
-  Assert-Business5244MaintenancePlan -Plan $plan -State $State -ApiTransition $ApiTransition
+  Set-Business5244StageTiming $Timing source-validation admission
+  Assert-Business5244MaintenancePlan -Plan $plan -State $State -ApiTransition $ApiTransition -Timing $Timing
+  Set-Business5244StageTiming $Timing retirement-record admission
   $recordStream=[IO.File]::Open('C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json',[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
   try{[void](Assert-Business5244RetirementRecord $State $recordStream);[void](Assert-Business5244RetirementRecord $State $recordStream)}finally{$recordStream.Dispose()}
   $clock.Stop();$r.preparedPair.preflightMilliseconds=$clock.ElapsedMilliseconds
   if($clock.ElapsedMilliseconds -ge 10000){throw 'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'}
  }catch{
+  $Timing.finished=[Diagnostics.Stopwatch]::GetTimestamp()
   # A retained null-API seal remains usable by the authenticated initializer
   # inverse. CloseState disposes it only after that inverse/cleanup finishes.
   $retained=$webOnly-and$r.ContainsKey('preparedPair')-and$r.preparedPair-and[object]::ReferenceEquals($r.preparedPair.seal,$seal)
   if(!$retained){$seal.Dispose()};throw
  }
+ }catch{
+  if($null-eq$Timing.finished){$Timing.finished=[Diagnostics.Stopwatch]::GetTimestamp()}
+  $timingFailure=$_;$timingResult='rejected'
+  if($_.FullyQualifiedErrorId-ceq'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'){$timingResult='budget-exceeded'}
+  if(!$ownTiming){Write-Business5244StageTiming $Timing $timingResult -Failure $timingFailure}
+  throw
+ }finally{if($ownTiming){Write-Business5244StageTiming $Timing $timingResult -Terminal -Failure $timingFailure}}
 }
 function Assert-Business5244PreparedPair($State,$ApiTransition,[string]$PlanHash){
  $r=Get-Business5244RetirementState $State
@@ -116,7 +155,7 @@ function Assert-Business5244PreparedPair($State,$ApiTransition,[string]$PlanHash
  if(![object]::ReferenceEquals($p.apiTransition,$ApiTransition) -or $p.planHash -cne $PlanHash -or $p.ownerPid -ne $PID -or $p.ownerBirth -cne $r.ownerBirth -or $p.childPid -ne $r.childPid -or $p.childBirth -cne $r.childBirth -or !($p.seal -is [Business5244PackageSeal])){throw 'OWNED_WEB_PREPARED_PAIR_CHANGED'}
  $p.seal.Validate()
 }
-function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
+function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null,$Timing=$null){
  $r=Get-Business5244RetirementState $State
  $webOnly=$null-eq$ApiTransition-and(Test-Business5244WriterWebOnlyGeneration)-and$r.scopeName-ceq'TEST125-API-B6-WRITER-20261029'
  if($r.phase -cnotin @('Running','Retired')){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
@@ -128,15 +167,20 @@ function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  $fixedCandidate=$fixedPlan.candidate
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.candidate[$key] -cne $fixedCandidate[$key]){throw 'OWNED_WEB_CANDIDATE_PINS_CHANGED'}}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.rollback[$key] -cne $r.pins[$key]){throw 'OWNED_WEB_ROLLBACK_PINS_CHANGED'}}
+ Set-Business5244StageTiming $Timing seal-validation admission
  if($null -eq $ApiTransition-and!$webOnly){Assert-Business5244OwnedPackage $Plan.candidate}else{Assert-Business5244PreparedPair $State $ApiTransition $Plan.hash}
  # API upgrades are outside this web-only dispatcher. Both the candidate and
  # rollback must work against the SAME current API before the old child stops.
+ Set-Business5244StageTiming $Timing http-health admission
  $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 3
+ Set-Business5244StageTiming $Timing api-admission admission
  if($null -eq $ApiTransition){Assert-Business5244ApiHealth $health $Plan.candidate}
  else{[void](Assert-Test125ReadPairRequestAdmission -Transition $ApiTransition)}
+ Set-Business5244StageTiming $Timing rollback-validation admission
  Assert-Business5244ApiHealth $health $Plan.rollback
  if(!$webOnly-and$null -eq $ApiTransition -and ($Plan.rollback.root -cne $Plan.candidate.root -or $Plan.rollback.manifest -cne $Plan.candidate.manifest)){Assert-Business5244OwnedPackage $Plan.rollback}
  if((Get-FileHash -LiteralPath (Join-Path $Plan.rollback.root 'release-manifest.json')).Hash -ine $Plan.rollback.manifest){throw 'OWNED_WEB_ROLLBACK_MANIFEST_CHANGED'}
+ Set-Business5244StageTiming $Timing native-tcp admission
  if($r.phase -ceq 'Running'){
   if($null -eq $ApiTransition){Assert-Business5244CreatedChild $r.native $r.pins;Assert-Business5244ReadyChild $r.native $r.pins}
   else{
@@ -241,8 +285,8 @@ function Assert-Business5244ReadContextRepairEntry([bool]$Preparing,[string]$Ini
  $current=Join-Path $case.root 'run-current-owner.ps1';$entry=$argv[$indices[0]+1]
  if(($Preparing-and$entry-cne$router)-or(!$Preparing-and$entry-cne$router-and($entry-cne$current-or$InitialSlot-cne'Current'))){throw 'OWNED_READ_REPAIR_FIXED_ENTRY_REQUIRED'}
 }
-function Start-Business5244OwnedSupervisor {
- param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
+function Start-Business5244OwnedSupervisorCore {
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null,$Timing=$null)
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'OWNED_WEB_SCOPE_REJECTED'}
  if(Test-Business5244ReadContextRepairGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$null-ne$CurrentSupersession){throw 'OWNED_READ_REPAIR_SCOPE_REQUIRED'};Assert-Business5244ReadContextRepairEntry ([bool]$PrepareReadPair) $InitialSlot}
  if(Test-Business5244PackageRefreshGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$null-ne$CurrentSupersession){throw 'OWNED_PACKAGE_REFRESH_SCOPE_REQUIRED'};Assert-Business5244PackageRefreshEntry ([bool]$PrepareReadPair)}
@@ -259,12 +303,14 @@ function Start-Business5244OwnedSupervisor {
  $supersessionUndo=$false;$supersessionBlocked=$false
  $script:Business5244LastInitializationOutcome=$null
  try{
+  Set-Business5244StageTiming $Timing source-validation
   $pins=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $(if($InitialSlot -ieq 'Current'){'Current'}else{'Candidate'})
   if($null-ne$CurrentSupersession){
    $frame=Initialize-Business5244CurrentSupersessionOwner $CurrentSupersession
    if(![object]::ReferenceEquals($frame.lease,$lease)){throw 'CURRENT_SUPERSESSION_LEASE_TRANSFER_REJECTED'}
    $native=$frame.native;$retirement=$frame.state
   }else{
+   Set-Business5244StageTiming $Timing native-tcp
    $native=New-Business5244PinnedChild $pins $lease
    $retirement=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName $ScopeName
   }
@@ -272,17 +318,20 @@ function Start-Business5244OwnedSupervisor {
    # The fresh initializer owns its own actual child and metadata CAS; it
    # neither replays the old request nor imports the old owner's state.
   }elseif($PrepareReadPair){
+   Set-Business5244StageTiming $Timing api-admission
    . (Join-Path $PSScriptRoot 'test125-bound-api-quiescence.ps1')
    if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleWriterProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}elseif($ScopeName-ceq'TEST125-API-B6-ca620bac-20261028'){$startup=Read-ErpStartupConfig 'C:\Sirket\ERP\runtime\canonical-test\startup-config.json';$nativeProfileAdmission=New-ErpBusinessSaleNativeProfileAdmission $startup;$apiTransition=New-Test125ReadPairTransition -ScopeName $ScopeName -NativeProfileAdmission $nativeProfileAdmission}else{$apiTransition=New-Test125ReadPairTransition}
    (Get-Business5244RetirementState $retirement).initializationApiTransition=$apiTransition
-   Prepare-Business5244PairedMaintenance $retirement $apiTransition
+   Prepare-Business5244PairedMaintenance $retirement $apiTransition $Timing
   }elseif($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$InitialSlot-ieq'Current'){
+   Set-Business5244StageTiming $Timing retirement-record
    # The finite recovery wrapper publishes only its own fresh Current child.
    # It does not issue an API transition or change any component/profile.
    if(!$steady){. (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library}
    Publish-Business5244CurrentRecord $retirement|Out-Null
-   if($webOnlyEntryMode-ceq'Maintenance'){Prepare-Business5244PairedMaintenance $retirement $null}
+   if($webOnlyEntryMode-ceq'Maintenance'){Prepare-Business5244PairedMaintenance $retirement $null $Timing}
   }
+  Set-Business5244StageTiming $Timing channel-open supervisor
   $channel=Open-Business5244RetirementChannel -OwnerLease $lease
   if($null-ne$CurrentSupersession){Complete-Business5244CurrentSupersessionOwner $CurrentSupersession|Out-Null}
   (Get-Business5244RetirementState $retirement).initializing=$false
@@ -291,7 +340,9 @@ function Start-Business5244OwnedSupervisor {
   $startupRecord=Get-Business5244RetirementState $retirement
   $recordPublished=$ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-and$startupRecord.ContainsKey('currentBootstrap')-and$startupRecord.currentBootstrap-and$startupRecord.currentBootstrap.phase-ceq'Archived'
   if($null-ne$CurrentSupersession){$recordPublished=$startupRecord.ContainsKey('currentSupersession')-and[object]::ReferenceEquals($startupRecord.currentSupersession,(Get-Business5244CurrentSupersessionContext $CurrentSupersession))-and$startupRecord.currentSupersession.phase-ceq'Completed'}
+  Set-Business5244StageTiming $Timing ready supervisor
   [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=[bool]$recordPublished}
+  Set-Business5244StageTiming $Timing supervision supervisor
   while($true){
    Assert-Business5244StartupLease -Lease $lease
    $snapshot=Get-Business5244RetirementSnapshot $retirement
@@ -385,6 +436,13 @@ function Start-Business5244OwnedSupervisor {
    $script:Business5244LastInitializationOutcome=@{exception=$initializationFailure.Exception;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;stateRecord=$r;native=$native;verified=$verifiedInitCleanup;exitCode=73;diagnostic=@{code=$diagnosticCode;sourceLeaf=$diagnosticLeaf;sourceLine=$diagnosticLine}}
   }
  }
+}
+function Start-Business5244OwnedSupervisor {
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null)
+ $timing=New-Business5244StageTiming;$result='ok';$failure=$null
+ try{Start-Business5244OwnedSupervisorCore -InitialSlot $InitialSlot -PrepareReadPair:$PrepareReadPair -ScopeName $ScopeName -CurrentSupersession $CurrentSupersession -Timing $timing}
+ catch{$failure=$_;if($null-eq$timing.finished){$timing.finished=[Diagnostics.Stopwatch]::GetTimestamp()};$result='rejected';if($_.FullyQualifiedErrorId-ceq'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'){$result='budget-exceeded'};throw}
+ finally{Write-Business5244StageTiming $timing $result -Terminal -Failure $failure}
 }
 function Get-Business5244VerifiedInitializationExitCode($Exception){
  $o=if(Get-Variable Business5244LastInitializationOutcome -Scope Script -ErrorAction SilentlyContinue){$script:Business5244LastInitializationOutcome}else{$null}

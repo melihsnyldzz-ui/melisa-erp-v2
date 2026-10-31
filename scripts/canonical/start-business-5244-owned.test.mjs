@@ -20,6 +20,50 @@ const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 // or reading its recovery marker. Nested legacy imports need this adapter too.
 const isolatedStartup=String.raw`function Get-Business5244StartupMutexName{return ('Local\MelisaOwnedFixture-'+[IO.Path]::GetFileName($env:TEMP))};function Get-Business5244RetirementPendingPath{return (Join-Path $env:TEMP 'fixture.retirement.pending')};`;
 const load=`. ${quote(path.join(dir,'start-business-5244-owned.ps1'))} -Library;${isolatedStartup}`;
+win('startup stage timing is bounded secret-free stderr and preserves success output original exception and broken-sink behavior',()=>{
+ const output=run(load+String.raw`
+ $sink=[IO.StringWriter]::new();$stderr=[Console]::Error;[Console]::SetError($sink)
+ $script:expected=[InvalidOperationException]::new('SECRET-SENTINEL customer token argv SID')
+ function Start-Business5244OwnedSupervisorCore($InitialSlot,$PrepareReadPair,$ScopeName,$CurrentSupersession,$Timing){
+  Set-Business5244StageTiming $Timing source-validation
+  Set-Business5244StageTiming $Timing http-health admission
+  if($InitialSlot-ceq'Current'){throw $script:expected};'UNCHANGED-OUTPUT'
+ }
+ try{
+  $success=@(Start-Business5244OwnedSupervisor)
+  if($success.Count-ne1-or$success[0]-cne'UNCHANGED-OUTPUT'){throw 'PIPELINE_CHANGED'}
+  $caught=$null;try{Start-Business5244OwnedSupervisor -InitialSlot Current}catch{$caught=$_}
+  if(!$caught-or![object]::ReferenceEquals($caught.Exception,$script:expected)){throw 'EXCEPTION_REPLACED'}
+  $events=@($sink.ToString().Trim().Split([char]10)|ForEach-Object {$_|ConvertFrom-Json})
+  if(@($events|Where-Object terminal).Count-ne2-or$events[-1].stage-cne'http-health'-or$events[-1].phase-cne'admission'-or$events[-1].result-cne'rejected'){throw 'TERMINAL_LOST'}
+  foreach($e in $events){if($e.milliseconds-lt0-or($e.PSObject.Properties.Name-join',')-cne'kind,phase,stage,milliseconds,result,terminal,errorType'){throw 'UNBOUNDED_SCHEMA'}}
+  if($sink.ToString()-match'SECRET-SENTINEL|customer|token|argv|SID'){throw 'SECRET_EXPORTED'}
+  $closed=[IO.StringWriter]::new();$closed.Dispose();[Console]::SetError($closed)
+  $caught=$null;try{Start-Business5244OwnedSupervisor -InitialSlot Current}catch{$caught=$_}
+  if(!$caught-or![object]::ReferenceEquals($caught.Exception,$script:expected)){throw 'SINK_MASKED_ORIGINAL'}
+  Write-Business5244StageTiming (New-Business5244StageTiming) -Terminal
+ }finally{[Console]::SetError($stderr)}
+ 'PASS'
+ `);assert.equal(output,'PASS');
+});
+win('startup preparation early rejection reports last source stage without calling guards twice',()=>{
+ assert.equal(run(load+String.raw`
+ $sink=[IO.StringWriter]::new();$stderr=[Console]::Error;[Console]::SetError($sink);$script:reads=0
+ function Get-Business5244RetirementState($State){$script:reads++;throw 'SECRET-SENTINEL'}
+ try{
+  $caught=$null;try{Prepare-Business5244PairedMaintenance $null $null}catch{$caught=$_}
+  if(!$caught-or$caught.Exception.Message-cne'SECRET-SENTINEL'-or$script:reads-ne1){throw 'EARLY_FAILURE_CHANGED'}
+  $events=@($sink.ToString().Trim().Split([char]10)|ForEach-Object {$_|ConvertFrom-Json})
+  if($events[-1].stage-cne'source-validation'-or!$events[-1].terminal-or$events[-1].result-cne'rejected'-or$sink.ToString()-match'SECRET-SENTINEL'){throw 'EARLY_TERMINAL_UNSAFE'}
+ }finally{[Console]::SetError($stderr)};'PASS'
+ `),'PASS');
+});
+test('startup timing keeps original 10s budget before full admission and both retirement assertions',()=>{
+ const source=fs.readFileSync(path.join(dir,'start-business-5244-owned.ps1'),'utf8');
+ assert.match(source,/\$clock=\[Diagnostics.Stopwatch\]::StartNew\(\)\s+Set-Business5244StageTiming \$Timing source-validation admission\s+Assert-Business5244MaintenancePlan/);
+ assert.match(source,/\$clock\.ElapsedMilliseconds -ge 10000/);
+ assert.match(source,/Assert-Business5244RetirementRecord \$State \$recordStream\);\[void\]\(Assert-Business5244RetirementRecord \$State \$recordStream/);
+});
 win('maintenance admission reads fresh finite pins once per call and retains every hash pin and phase rejection',()=>{
  assert.equal(run(load+String.raw`
  $script:reads=0;$script:checks=0
@@ -261,7 +305,7 @@ win('B6 supervisor prepares the genuine native/profile reference before opening 
  function Close-Test125ReadPairRequestAdmission($Transition){};function Assert-Test125ReadPairIssued($Transition){if(![object]::ReferenceEquals($Transition,$script:api)){throw 'B6_UNISSUED_CLEANUP'};return @{releaseProof=$script:api}};function Close-ErpReadPairReleaseProof($Proof){}
  # Only the external API-provider import is replaced; its issuer, IO and SQL
  # have separate native-context tests. The supervisor and real Job child run.
- $body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisor {'+$body+'}'))
+ $body=(Get-Command Start-Business5244OwnedSupervisorCore).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisorCore {'+$body+'}'))
  $denied=$false;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-ca620bac-20261028' -InitialSlot Current -PrepareReadPair|Out-Null}catch{if($_.Exception.Message-cne'ISOLATED_AFTER_PREPARED'){throw};$denied=$true};try{if(!$denied-or($script:events-join'|')-cne'native|api|prepared|channel'-or!$script:childProcess.WaitForExit(1000)){throw 'B6_STARTUP_ORDER_OR_CLEANUP'}}finally{$script:childProcess.Dispose()};'PASS'`),'PASS');
 });
 
@@ -280,7 +324,7 @@ win('Writer supervisor binds only its fresh profile-activation factory and resto
  function Prepare-Business5244PairedMaintenance($State,$ApiTransition){if((Get-Business5244RetirementState $State).scopeName-cne'TEST125-API-B6-WRITER-20261029'-or![object]::ReferenceEquals($ApiTransition,$script:api)){throw 'WRITER_PAIR_CHANGED'};$script:events.Add('prepared')}
  function Open-Business5244RetirementChannel($OwnerLease){$script:events.Add('channel');throw 'ISOLATED_WRITER_PREPARED'}
  function Close-Test125ReadPairRequestAdmission($Transition){};function Assert-Test125ReadPairIssued($Transition){if(![object]::ReferenceEquals($Transition,$script:api)){throw 'WRITER_UNISSUED_CLEANUP'};return @{releaseProof=$script:api}};function Close-ErpReadPairReleaseProof($Proof){}
- $body=(Get-Command Start-Business5244OwnedSupervisor).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisor {'+$body+'}'))
+ $body=(Get-Command Start-Business5244OwnedSupervisorCore).Definition.Replace((". (Join-Path "+[char]36+"PSScriptRoot 'test125-bound-api-quiescence.ps1')"),'[void]0');. ([scriptblock]::Create('function Start-Business5244OwnedSupervisorCore {'+$body+'}'))
  $denied=$false;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-WRITER-20261029' -InitialSlot Current -PrepareReadPair|Out-Null}catch{if($_.Exception.Message-cne'ISOLATED_WRITER_PREPARED'){throw};$denied=$true};try{if(!$denied-or($script:events-join'|')-cne'writer|api|prepared|channel'-or!$script:childProcess.WaitForExit(1000)){throw 'WRITER_STARTUP_ORDER_OR_CLEANUP'}}finally{$script:childProcess.Dispose()};'PASS'`),'PASS');
 });
 
@@ -413,11 +457,30 @@ win('Web-only preparation seals both payloads before nonce and the request only 
  }finally{Close-Business5244RetirementState $state;if($other){Close-Business5244RetirementState $other};$native.Dispose();Exit-Business5244StartupLease $lease};'PASS'
  `),'PASS');
 });
+win('startup full preparation timing separates prebudget stages from fresh admission without extra payload reads',()=>{
+ assert.equal(run(load+webOnlyPreparedFixture+String.raw`
+ $sink=[IO.StringWriter]::new();$stderr=[Console]::Error;[Console]::SetError($sink)
+ $lease=Enter-Business5244StartupLease -Kind Owner;$native=New-Business5244PinnedChild $pins $lease;$state=Register-Business5244OwnedRetirement $lease $native $pins -ScopeName 'TEST125-API-B6-WRITER-20261029'
+ try{
+  Publish-Business5244CurrentRecord $state|Out-Null
+  $output=@(Prepare-Business5244PairedMaintenance $state $null)
+  $events=@($sink.ToString().Trim().Split([char]10)|ForEach-Object {$_|ConvertFrom-Json})
+  $names=($events|ForEach-Object {$_.phase+':'+$_.stage})-join','
+  if($names-cne'preparation:entry,preparation:source-validation,preparation:seal-validation,preparation:native-tcp,preparation:api-admission,preparation:retirement-record,admission:source-validation,admission:seal-validation,admission:http-health,admission:api-admission,admission:rollback-validation,admission:native-tcp,admission:retirement-record'){throw 'TIMING_ORDER_CHANGED'}
+  if($output.Count-or$payloadVerifications-ne2-or$apiMutators-or!$events[-1].terminal-or$events[-1].result-cne'ok'){throw 'TIMING_CHANGED_BEHAVIOR'}
+ }finally{[Console]::SetError($stderr);Close-Business5244RetirementState $state;$native.Dispose();Exit-Business5244StartupLease $lease};'PASS'
+ `),'PASS');
+});
 for(const failure of ['channel','budget'])win(`Web-only ${failure} failure after bootstrap uses the retained authentic seal for own inverse and verified exit73`,()=>{
  assert.equal(run(load+webOnlyPreparedFixture+`$failureMode='${failure}';`+String.raw`
  if($failureMode-ceq'budget'){$recordAssert=[scriptblock]::Create((Get-Command Assert-Business5244RetirementRecord).Definition);function Assert-Business5244RetirementRecord($State,$Records){$b=& $recordAssert $State $Records;Start-Sleep -Milliseconds 5100;return ,$b}}
  $preheld=[Threading.Mutex]::new($false,(Get-Business5244StartupMutexName))
+ $timingSink=[IO.StringWriter]::new();$originalStderr=[Console]::Error;[Console]::SetError($timingSink)
  $failure=$null;try{Start-Business5244OwnedSupervisor -ScopeName 'TEST125-API-B6-WRITER-20261029' -InitialSlot Current|Out-Null}catch{$failure=$_}
+ [Console]::SetError($originalStderr)
+ $timingEvents=@($timingSink.ToString().Trim().Split([char]10)|ForEach-Object {$_|ConvertFrom-Json});$terminal=$timingEvents[-1]
+ $expectedStage=if($failureMode-ceq'budget'){'retirement-record'}else{'channel-open'};$expectedResult=if($failureMode-ceq'budget'){'budget-exceeded'}else{'rejected'}
+ if(!$terminal.terminal-or$terminal.stage-cne$expectedStage-or$terminal.result-cne$expectedResult-or@($timingEvents|Where-Object terminal).Count-ne1){throw 'FAILURE_TERMINAL_STAGE_LOST'}
  if(!$failure-or(Get-Business5244VerifiedInitializationExitCode $failure.Exception)-ne73){throw ('WEB_ONLY_NO_VERIFIED_INVERSE '+(Get-InitFixtureFailureDiagnostic $failure))}
  $r=$script:Business5244Retirements[$script:Business5244Retirements.Count-1]
  if($apiMutators-or!$initNative.RetirementConfirmed-or!(Get-Business5244StartupRecord $ownedLease).closed-or(Get-Business5244StartupHash ([IO.File]::ReadAllBytes($initRecords)))-cne$initHash-or(Test-Path $initPending)-or!$r.currentBootstrap.inverse-or$r.currentBootstrap.inverse.phase-cne'Archived'){throw 'WEB_ONLY_INIT_INVERSE_INCOMPLETE'}
