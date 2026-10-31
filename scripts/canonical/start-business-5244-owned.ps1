@@ -44,10 +44,17 @@ function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  }
 }
 function Get-Business5244MaintenancePlan($State,$ApiTransition=$null){
- $r=Get-Business5244RetirementState $State;$scopeName=if($r.ContainsKey('scopeName')){$r.scopeName}else{'TEST125-API-READ2b-20261028-41d3c213'};$candidate=Get-Business5244FinitePairPins -ScopeName $scopeName -Mode Candidate
+ $r=Get-Business5244RetirementState $State;$scopeName=if($r.ContainsKey('scopeName')){$r.scopeName}else{'TEST125-API-READ2b-20261028-41d3c213'}
+ # PackageRefresh's full reader validates BOTH sides of one immutable pair.
+ # Reuse only that invocation's result; do not run it again for Current.
+ $pairSource=$null
+ if($scopeName-ceq'TEST125-API-B6-WRITER-20261029'-and(Test-Business5244PackageRefreshGeneration)){
+  $pairSource=Read-ErpBusinessSaleWriterOwnerSource
+  $candidate=ConvertTo-ErpBusinessSaleWriterPairPins $pairSource.packagePair.candidate
+ }else{$candidate=Get-Business5244FinitePairPins -ScopeName $scopeName -Mode Candidate}
  $identity=@($candidate.package,$candidate.manifest,$candidate.apiPackage,$candidate.apiManifest,$candidate.nodeHash,$candidate.profile) -join '|'
  if($null -ne $ApiTransition){
-  $old=Get-Business5244FinitePairPins -ScopeName $scopeName -Mode Current
+  $old=if($null-ne$pairSource){ConvertTo-ErpBusinessSaleWriterPairPins $pairSource.packagePair.current}else{Get-Business5244FinitePairPins -ScopeName $scopeName -Mode Current}
   $keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')
   foreach($key in $keys){if($r.pins[$key] -cne $old[$key]){throw 'OWNED_WEB_PAIRED_BASE_CHANGED'}}
   $contract=Get-Test125ReadPairTransitionContract -Transition $ApiTransition

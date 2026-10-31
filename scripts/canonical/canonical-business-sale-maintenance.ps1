@@ -343,10 +343,15 @@ function Read-ErpBusinessSaleWriterOwnerSource {
  }
  return [pscustomobject]@{root=$root;manifestPath=$manifestPath;manifestSha256=(Get-ErpBusinessSaleHash $bytes);files=$m.files;sourceCommit=$m.sourceCommit;rehearsalOnly=$false;maintenancePurpose='WriterProfileActivation';launcher=(Join-Path $root 'start-owned-test.ps1');launcherSha256=(@($m.files|Where-Object path -ceq 'start-owned-test.ps1')[0].sha256);packagePair=$pair;packagePairPath=$pairPath;packagePairSha256=$m.packagePair.sha256}
 }
+function ConvertTo-ErpBusinessSaleWriterPairPins($v){
+ # Pure metadata projection. Only the existing full owner reader validates it;
+ # this projection grants no admission, ownership or activation capability.
+ return @{root=$v.web.root;package=$v.web.packageId;manifest=$v.web.manifestSha256;frontendSource=$v.web.frontendSourceCommit;apiPackage=$v.api.packageId;apiManifest=$v.api.manifestSha256;baseSource=$v.api.sourceCommit;node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+}
 function Get-ErpBusinessSaleWriterPairPins([ValidateSet('Current','Candidate')][string]$Mode='Current'){
  if($Mode-cnotin@('Current','Candidate')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
  $o=Read-ErpBusinessSaleWriterOwnerSource;$v=if($Mode-ceq'Current'){$o.packagePair.current}else{$o.packagePair.candidate}
- return @{root=$v.web.root;package=$v.web.packageId;manifest=$v.web.manifestSha256;frontendSource=$v.web.frontendSourceCommit;apiPackage=$v.api.packageId;apiManifest=$v.api.manifestSha256;baseSource=$v.api.sourceCommit;node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+ return ConvertTo-ErpBusinessSaleWriterPairPins $v
 }
 function Read-ErpBusinessSaleWriterCurrentTaskSource {
  if(Test-ErpBusinessSaleReadContextRepairGeneration){return Read-ErpBusinessSaleReadContextRepairTaskSource}

@@ -58,6 +58,32 @@ win('maintenance admission reads fresh finite pins once per call and retains eve
  'PASS'
  `),'PASS');
 });
+win('PackageRefresh paired plan projects both sides from one fresh full owner validation and keeps contract and Current identity guards',()=>{
+ assert.equal(run(load+`. ${quote(path.join(dir,'canonical-business-sale-maintenance.ps1'))};`+String.raw`
+ $script:sourceReads=0;$script:contractScope='TEST125-API-B6-WRITER-20261029';$script:failSource=$false
+ function Test-Business5244PackageRefreshGeneration{return $true}
+ function Get-Business5244FinitePairPins{throw 'FIXTURE_DUPLICATE_FINITE_READER'}
+ $script:owner=[pscustomobject]@{packagePair=[pscustomobject]@{}}
+ foreach($mode in @('current','candidate')){$v=[pscustomobject]@{api=[pscustomobject]@{packageId=($mode+'-api');manifestSha256=($mode+'-api-hash');sourceCommit='base'};web=[pscustomobject]@{root=($mode+'-web-root');packageId=($mode+'-web');manifestSha256=($mode+'-web-hash');frontendSourceCommit='frontend'}};$owner.packagePair|Add-Member NoteProperty $mode $v}
+ function Read-ErpBusinessSaleWriterOwnerSource{$script:sourceReads++;if($script:failSource){throw 'FIXTURE_FULL_OWNER_REJECTED'};return $script:owner}
+ $script:r=@{scopeName='TEST125-API-B6-WRITER-20261029';pins=(ConvertTo-ErpBusinessSaleWriterPairPins $owner.packagePair.current)}
+ function Get-Business5244RetirementState($State){return $script:r}
+ $api=[pscustomobject]@{fixture='issued contract'}
+ function Get-Test125ReadPairTransitionContract($Transition){if(![object]::ReferenceEquals($Transition,$script:api)){throw 'FIXTURE_UNISSUED_CONTRACT'};return @{scope=$script:contractScope;contractSha256=('a'*64);mode='Current';phase='PREPARED'}}
+ $state=[pscustomobject]@{fixture='state'};$plan=Get-Business5244MaintenancePlan $state $api
+ if($sourceReads-ne1-or$plan.candidate.package-cne'candidate-web'-or$plan.rollback.package-cne'current-web'){throw 'FIXTURE_PAIR_SNAPSHOT_NOT_EXACT'}
+ $plan.candidate.root='caller-change';$again=Get-Business5244MaintenancePlan $state $api
+ if($sourceReads-ne2-or$again.candidate.root-cne'candidate-web-root'-or$owner.packagePair.candidate.web.root-cne'candidate-web-root'){throw 'FIXTURE_CACHE_OR_SOURCE_MUTATION'}
+ foreach($kind in @('current-pin','contract-scope','contract-copy','source-invalid')){
+  $arg=$api;$r.pins=ConvertTo-ErpBusinessSaleWriterPairPins $owner.packagePair.current;$contractScope='TEST125-API-B6-WRITER-20261029';$failSource=$false
+  switch($kind){current-pin{$r.pins.manifest='foreign'}contract-scope{$contractScope='foreign'}contract-copy{$arg=$api.PSObject.Copy()}source-invalid{$failSource=$true}}
+  $before=$sourceReads;$failure=$null;try{Get-Business5244MaintenancePlan $state $arg|Out-Null}catch{$failure=$_.Exception.Message}
+  $expected=switch($kind){current-pin{'OWNED_WEB_PAIRED_BASE_CHANGED'}contract-scope{'OWNED_WEB_API_CONTRACT_CHANGED'}contract-copy{'FIXTURE_UNISSUED_CONTRACT'}source-invalid{'FIXTURE_FULL_OWNER_REJECTED'}}
+  if($failure-cne$expected-or$sourceReads-ne($before+1)){throw 'FIXTURE_PAIR_GUARD_BYPASSED'}
+ }
+ 'PASS'
+ `),'PASS');
+});
 win('PackageRefresh entry binds preparation to only its fixed router and keeps Current recovery separate before any lease',()=>{
  assert.equal(run(load+String.raw`
  function Get-ErpBusinessSalePackageRefreshFixedCase{return $script:entryCase}
