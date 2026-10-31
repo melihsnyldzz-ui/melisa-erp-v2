@@ -112,8 +112,13 @@ function Assert-Business5244PreparedPair($State,$ApiTransition,[string]$PlanHash
 function Assert-Business5244MaintenancePlan($Plan,$State,$ApiTransition=$null){
  $r=Get-Business5244RetirementState $State
  $webOnly=$null-eq$ApiTransition-and(Test-Business5244WriterWebOnlyGeneration)-and$r.scopeName-ceq'TEST125-API-B6-WRITER-20261029'
- if($r.phase -cnotin @('Running','Retired') -or $Plan.hash -cne (Get-Business5244MaintenancePlan $State $ApiTransition).hash){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
- $fixedCandidate=Get-Business5244FinitePairPins -ScopeName $(if($r.ContainsKey('scopeName')){$r.scopeName}else{'TEST125-API-READ2b-20261028-41d3c213'}) -Mode Candidate
+ if($r.phase -cnotin @('Running','Retired')){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
+ # One fresh full source validation supplies both the expected hash and pins.
+ # Do not re-read the same immutable manifests twice within this admission.
+ # Nothing is cached across calls; all remaining lease/seal/health checks stay fresh.
+ $fixedPlan=Get-Business5244MaintenancePlan $State $ApiTransition
+ if($Plan.hash -cne $fixedPlan.hash){throw 'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'}
+ $fixedCandidate=$fixedPlan.candidate
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.candidate[$key] -cne $fixedCandidate[$key]){throw 'OWNED_WEB_CANDIDATE_PINS_CHANGED'}}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Plan.rollback[$key] -cne $r.pins[$key]){throw 'OWNED_WEB_ROLLBACK_PINS_CHANGED'}}
  if($null -eq $ApiTransition-and!$webOnly){Assert-Business5244OwnedPackage $Plan.candidate}else{Assert-Business5244PreparedPair $State $ApiTransition $Plan.hash}

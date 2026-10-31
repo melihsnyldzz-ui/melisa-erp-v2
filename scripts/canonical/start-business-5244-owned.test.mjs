@@ -20,6 +20,44 @@ const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
 // or reading its recovery marker. Nested legacy imports need this adapter too.
 const isolatedStartup=String.raw`function Get-Business5244StartupMutexName{return ('Local\MelisaOwnedFixture-'+[IO.Path]::GetFileName($env:TEMP))};function Get-Business5244RetirementPendingPath{return (Join-Path $env:TEMP 'fixture.retirement.pending')};`;
 const load=`. ${quote(path.join(dir,'start-business-5244-owned.ps1'))} -Library;${isolatedStartup}`;
+win('maintenance admission reads fresh finite pins once per call and retains every hash pin and phase rejection',()=>{
+ assert.equal(run(load+String.raw`
+ $script:reads=0;$script:checks=0
+ $keys=@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')
+ $script:fixed=@{};foreach($key in $keys){$fixed[$key]='fixture-'+$key};$fixed.root=$env:TEMP
+ $script:r=@{phase='Running';scopeName='TEST125-API-B6-WRITER-20261029';pins=$fixed.Clone();native=[pscustomobject]@{}}
+ function Get-Business5244RetirementState($State){return $script:r}
+ function Test-Business5244WriterWebOnlyGeneration{return $true}
+ function Get-Business5244FinitePairPins($ScopeName,$Mode){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Candidate'){throw 'FIXTURE_WRONG_PIN_SCOPE'};$script:reads++;return $script:fixed.Clone()}
+ function Assert-Business5244PreparedPair{$script:checks++}
+ function Invoke-RestMethod($Uri,$TimeoutSec){if($Uri-cne'http://127.0.0.1:4144/test-health'-or$TimeoutSec-ne3){throw 'FIXTURE_FOREIGN_HEALTH'};return @{fixture='health'}}
+ function Assert-Business5244ApiHealth{$script:checks++}
+ function Get-FileHash($LiteralPath){return @{Hash=$script:r.pins.manifest}}
+ function Assert-Business5244CreatedChild{$script:checks++}
+ function Assert-Business5244ReadyChild{$script:checks++}
+ $state=[pscustomobject]@{fixture='state'}
+ $plan=Get-Business5244MaintenancePlan $state
+ $script:reads=0;Assert-Business5244MaintenancePlan $plan $state
+ if($reads-ne1-or$checks-ne5){throw 'FIXTURE_FRESH_SOURCE_OR_GUARDS_MISSING'}
+ Assert-Business5244MaintenancePlan $plan $state
+ if($reads-ne2-or$checks-ne10){throw 'FIXTURE_CROSS_CALL_CACHE_OR_GUARD_SKIP'}
+ foreach($side in @('candidate','rollback')){foreach($key in $keys){
+  $copy=@{hash=$plan.hash;candidate=$plan.candidate.Clone();rollback=$plan.rollback.Clone()};$copy[$side][$key]='foreign'
+  $before=$reads;$failure=$null;try{Assert-Business5244MaintenancePlan $copy $state}catch{$failure=$_.Exception.Message}
+  $expected=if($side-ceq'candidate'){'OWNED_WEB_CANDIDATE_PINS_CHANGED'}else{'OWNED_WEB_ROLLBACK_PINS_CHANGED'}
+  if($failure-cne$expected-or$reads-ne($before+1)){throw 'FIXTURE_FOREIGN_PIN_ACCEPTED'}
+ }}
+ $bad=@{hash='foreign';candidate=$plan.candidate;rollback=$plan.rollback};$failure=$null
+ try{Assert-Business5244MaintenancePlan $bad $state}catch{$failure=$_.Exception.Message}
+ if($failure-cne'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'){throw 'FIXTURE_FOREIGN_HASH_ACCEPTED'}
+ # A changed source is re-read on the next call, not hidden by a cached plan.
+ $fixed.package='changed-source';$failure=$null;try{Assert-Business5244MaintenancePlan $plan $state}catch{$failure=$_.Exception.Message}
+ if($failure-cne'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'){throw 'FIXTURE_STALE_SOURCE_ACCEPTED'}
+ $r.phase='Closed';$before=$reads;$failure=$null;try{Assert-Business5244MaintenancePlan $plan $state}catch{$failure=$_.Exception.Message}
+ if($failure-cne'OWNED_WEB_MAINTENANCE_PLAN_CHANGED'-or$reads-ne$before){throw 'FIXTURE_PHASE_GUARD_MOVED'}
+ 'PASS'
+ `),'PASS');
+});
 win('PackageRefresh entry binds preparation to only its fixed router and keeps Current recovery separate before any lease',()=>{
  assert.equal(run(load+String.raw`
  function Get-ErpBusinessSalePackageRefreshFixedCase{return $script:entryCase}
