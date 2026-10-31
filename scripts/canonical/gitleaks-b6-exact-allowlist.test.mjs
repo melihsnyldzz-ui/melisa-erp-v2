@@ -25,6 +25,25 @@ const fixtures = [
   { name: 'another default rule remains active in the approved file', file: target, body: `baseApiHash:'${digest}'\nconst providerToken='${fakeProviderToken}';`, rule: 'github-pat' },
 ];
 
+// Direct user approval on 31 October: these are a verified Git object and two
+// frozen owner manifests, scoped to this producer and this scanner rule only.
+const ownerTarget = 'scripts/canonical/prepare-business-sale-owner-bundle.mjs';
+const ownerDigests = [
+  '35d3eeb267e4292fd0aca3aece1dbaf9e1a7b34a',
+  'd43f5cc715ac06ecc1da3df7a709375d0da913dd73e175dc63112ab21b4409d1',
+  '6adda25daf5af69b72062475d6c937b7fb903e4199291189c68f9b6229b49869',
+];
+for (const [index, value] of ownerDigests.entries()) {
+  for (const f of fixtures.slice(0, 8)) {
+    fixtures.push({
+      ...f,
+      name: `owner metadata ${index + 1}: ${f.name}`,
+      file: f.file.replace(target, ownerTarget),
+      body: f.body.replaceAll(digest, value),
+    });
+  }
+}
+
 for (const f of fixtures) test(f.name, () => {
   const parent = fs.realpathSync(os.tmpdir());
   const root = fs.mkdtempSync(path.join(parent, 'melisa-gitleaks-exact-'));

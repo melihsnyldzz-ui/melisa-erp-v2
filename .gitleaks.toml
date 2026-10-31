@@ -8,3 +8,27 @@ condition = "AND"
 regexTarget = "secret"
 paths = ['''\Ascripts/canonical/prepare-business-sale-preview-link-package\.mjs\z''']
 regexes = ['''\A\Qafdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c\E\z''']
+
+[[allowlists]]
+description = "Exact public B6 owner metadata digest approved 2026-10-31"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
+regexes = ['''\A\Q35d3eeb267e4292fd0aca3aece1dbaf9e1a7b34a\E\z''']
+
+[[allowlists]]
+description = "Exact public B6 owner metadata digest approved 2026-10-31"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
+regexes = ['''\A\Qd43f5cc715ac06ecc1da3df7a709375d0da913dd73e175dc63112ab21b4409d1\E\z''']
+
+[[allowlists]]
+description = "Exact public B6 owner metadata digest approved 2026-10-31"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
+regexes = ['''\A\Q6adda25daf5af69b72062475d6c937b7fb903e4199291189c68f9b6229b49869\E\z''']
