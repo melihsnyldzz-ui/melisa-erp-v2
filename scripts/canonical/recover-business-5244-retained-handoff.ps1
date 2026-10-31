@@ -48,6 +48,10 @@ function Assert-B6RetainedRecoveryProtection {
  $web=@($ls|Where-Object {$_.LocalPort-eq5244-or$_.OwningProcess-in@($c.ownerPid,$c.childPid)})
  if($web.Count-ne3-or@($web|Where-Object {$_.LocalPort-ne5244-or$_.OwningProcess-ne$c.childPid}).Count-or((@($web.LocalAddress|Sort-Object)-join'|')-cne'100.87.188.3|127.0.0.1|192.168.1.46')){throw 'RETAINED_RECOVERY_WEB_LISTENER_CHANGED'}
  $before=$script:B6RecoveryInputs.before
+ # These are part of the pinned source baseline, distinct from the CRM and
+ # canonical-entry protection snapshot above. Observe the live journal hash;
+ # do not deny its legitimate writes by holding a restrictive read handle.
+ foreach($f in $before.files){if((Get-B6RetainedRecoveryHash $f.path)-cne$f.sha256){throw 'RETAINED_RECOVERY_BASELINE_FILE_CHANGED'}}
  foreach($entry in $before.entries){if((Get-B6RetainedRecoveryHash $entry.path)-cne$entry.sha256){throw 'RETAINED_RECOVERY_ENTRY_CHANGED'}}
  if((Get-B6RetainedRecoveryHash $before.recordPath)-cne$before.recordSha256){throw 'RETAINED_RECOVERY_RECORD_CHANGED'}
  $svc=New-Object -ComObject 'Schedule.Service';$svc.Connect();$task=$svc.GetFolder('\').GetTask('Melisa-ERP-TEST-Canonical')
