@@ -8,6 +8,7 @@ import './prepare-business-5244-cold-current-recovery.test.mjs';
 import './business-5244-cold-current-recovery-native.test.mjs';
 import './business-5244-cold-current-adapter.test.mjs';
 import './recover-business-5244-current-web.test.mjs';
+import './business-5244-cooperative-exit.test.mjs';
 import {PENDING_WEB_RECOVERY_LINEAGE} from './prepare-business-sale-owner-bundle.mjs';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 const repairCaseFixture=String.raw`

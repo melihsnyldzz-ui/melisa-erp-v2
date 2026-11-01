@@ -288,7 +288,7 @@ function Assert-Business5244ReadContextRepairEntry([bool]$Preparing,[string]$Ini
  if(($Preparing-and$entry-cne$router)-or(!$Preparing-and$entry-cne$router-and($entry-cne$current-or$InitialSlot-cne'Current'))){throw 'OWNED_READ_REPAIR_FIXED_ENTRY_REQUIRED'}
 }
 function Start-Business5244OwnedSupervisorCore {
- param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null,$Timing=$null,$ColdCurrentRecovery=$null)
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null,$Timing=$null,$ColdCurrentRecovery=$null,$CooperativeExitPlan=$null)
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'OWNED_WEB_SCOPE_REJECTED'}
  if(Test-Business5244ReadContextRepairGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$null-ne$CurrentSupersession){throw 'OWNED_READ_REPAIR_SCOPE_REQUIRED'};Assert-Business5244ReadContextRepairEntry ([bool]$PrepareReadPair) $InitialSlot}
  if(Test-Business5244PackageRefreshGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$null-ne$CurrentSupersession){throw 'OWNED_PACKAGE_REFRESH_SCOPE_REQUIRED'};Assert-Business5244PackageRefreshEntry ([bool]$PrepareReadPair)}
@@ -306,9 +306,10 @@ function Start-Business5244OwnedSupervisorCore {
  # A fresh empty-port start only. DEC084 first maintenance, restart exclusion
  # of unmodified legacy entries, and initial publication remain separate gates.
  if($null-ne$CurrentSupersession-and($InitialSlot-cne'Current'-or$PrepareReadPair-or$ScopeName-cne'TEST125-API-B6-ca620bac-20261028')){throw 'CURRENT_SUPERSESSION_SUPERVISOR_SCOPE_REJECTED'}
+ if($null-ne$CooperativeExitPlan-and($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$InitialSlot-cne'Current'-or$PrepareReadPair-or$null-ne$CurrentSupersession)){throw 'COOPERATIVE_EXIT_FUTURE_CURRENT_ONLY'}
  $lease=if($cold){Enter-Business5244StartupLease -Kind Owner -ColdCurrentRecovery $ColdCurrentRecovery}elseif($null-ne$CurrentSupersession){(Get-Business5244CurrentSupersessionContext $CurrentSupersession).lease}else{Enter-Business5244StartupLease -Kind Owner}
  $native=$null;$retirement=$null;$channel=$null;$apiTransition=$null;$initializationFailure=$null;$verifiedInitCleanup=$null;$initRecoveryBlocked=$false
- $supersessionUndo=$false;$supersessionBlocked=$false
+ $supersessionUndo=$false;$supersessionBlocked=$false;$cooperativeExit=$null;$cooperativeExitAccepted=$false
  $script:Business5244LastInitializationOutcome=$null
  try{
   Set-Business5244StageTiming $Timing source-validation
@@ -357,6 +358,10 @@ function Start-Business5244OwnedSupervisorCore {
    $ColdCurrentRecovery.ReleaseSafetyHoldsAfterCurrentReady($leaseRecord.coldOwnerWitness,[int]$native.ChildPid,[string]$native.ChildBirth)
    Assert-Business5244StartupLease -Lease $lease -Kind Owner
   }
+  if($null-ne$CooperativeExitPlan){
+   . (Join-Path $PSScriptRoot 'business-5244-cooperative-exit.ps1') -Library
+   $cooperativeExit=New-Business5244CooperativeExit -Lease $lease -Native $native -Plan $CooperativeExitPlan -ColdCurrentRecovery $ColdCurrentRecovery
+  }
   Set-Business5244StageTiming $Timing ready supervisor
   [pscustomobject]@{kind='business-5244-owned-start';ownerPid=$PID;ownerBirth=$native.OwnerBirth;childPid=$native.ChildPid;childBirth=$native.ChildBirth;package=$pins.package;networkReady=$true;installedRecordPublished=[bool]$recordPublished}
   Set-Business5244StageTiming $Timing supervision supervisor
@@ -370,6 +375,14 @@ function Start-Business5244OwnedSupervisorCore {
     $reply='Status'
     try{
      Assert-Business5244RetirementRequest -Channel $channel -Request $request
+     if($null-ne$cooperativeExit-and$request.operation-cnotin@('status','exit')){throw 'COOPERATIVE_EXIT_CURRENT_ONLY'}
+     if($request.operation-ceq'exit'){
+      if($null-eq$cooperativeExit){throw 'COOPERATIVE_EXIT_NOT_ENABLED'}
+      $cooperativeExitAccepted=Request-Business5244CooperativeExit $cooperativeExit $channel $request
+      # An ACK is not cleanup proof. The durable intent is authoritative until
+      # normal finally returns; missing ACK never authorizes another request.
+      break
+     }
      if($steady-and$request.operation-cne'status'){throw 'OWNED_STEADY_CURRENT_ONLY'}
      if($cold-and$request.operation-cne'status'){throw 'COLD_CURRENT_STATUS_ONLY'}
      if($null-ne$CurrentSupersession-and$request.operation-cne'status'){throw 'CURRENT_SUPERSESSION_CURRENT_ONLY_OWNER'}
@@ -417,7 +430,11 @@ function Start-Business5244OwnedSupervisorCore {
   if(!$supersessionUndo){try{Close-Business5244PinnedChildren $lease}catch{$cleanupFailed=$true}}
   if($apiTransition){try{Close-Test125ReadPairRequestAdmission $apiTransition;$apiContext=Assert-Test125ReadPairIssued $apiTransition;Close-ErpReadPairReleaseProof $apiContext.releaseProof}catch{$cleanupFailed=$true}}
   if($cleanupFailed){throw 'OWNED_WEB_CLEANUP_UNCONFIRMED'}
-  if(!$supersessionUndo){Exit-Business5244StartupLease -Lease $lease}
+  if(!$supersessionUndo){if($cooperativeExitAccepted){Exit-Business5244CooperativeOwnerLease $cooperativeExit}else{Exit-Business5244StartupLease -Lease $lease}}
+  if(!$cooperativeExitAccepted-and$null-ne$cooperativeExit){Close-Business5244UncompletedCooperativeExit $cooperativeExit}
+  # The genuine token reaches only the future outer launcher after normal
+  # finally succeeds. That launcher must finish Cold/source-hold cleanup before
+  # Complete-Business5244CooperativeExitCleanup; no CLEAN receipt is issued here.
   if($verifiedInitCleanup-and$initializationFailure){
    # Issue the finite process outcome only after every cleanup and lease
    # release succeeded. The original exception reference cannot be serialized.
@@ -454,11 +471,12 @@ function Start-Business5244OwnedSupervisorCore {
    $script:Business5244LastInitializationOutcome=@{exception=$initializationFailure.Exception;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;stateRecord=$r;native=$native;verified=$verifiedInitCleanup;exitCode=73;diagnostic=@{code=$diagnosticCode;sourceLeaf=$diagnosticLeaf;sourceLine=$diagnosticLine}}
   }
  }
+ if($cooperativeExitAccepted){return $cooperativeExit}
 }
 function Start-Business5244OwnedSupervisor {
- param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null,$ColdCurrentRecovery=$null)
+ param([ValidateSet('Current','ReadPair')][string]$InitialSlot='ReadPair',[switch]$PrepareReadPair,[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',$CurrentSupersession=$null,$ColdCurrentRecovery=$null,$CooperativeExitPlan=$null)
  $timing=New-Business5244StageTiming;$result='ok';$failure=$null
- try{if($null-ne$ColdCurrentRecovery){Start-Business5244OwnedSupervisorCore -InitialSlot $InitialSlot -PrepareReadPair:$PrepareReadPair -ScopeName $ScopeName -CurrentSupersession $CurrentSupersession -Timing $timing -ColdCurrentRecovery $ColdCurrentRecovery}else{Start-Business5244OwnedSupervisorCore -InitialSlot $InitialSlot -PrepareReadPair:$PrepareReadPair -ScopeName $ScopeName -CurrentSupersession $CurrentSupersession -Timing $timing}}
+ try{if($null-ne$CooperativeExitPlan){Start-Business5244OwnedSupervisorCore -InitialSlot $InitialSlot -PrepareReadPair:$PrepareReadPair -ScopeName $ScopeName -CurrentSupersession $CurrentSupersession -Timing $timing -ColdCurrentRecovery $ColdCurrentRecovery -CooperativeExitPlan $CooperativeExitPlan}elseif($null-ne$ColdCurrentRecovery){Start-Business5244OwnedSupervisorCore -InitialSlot $InitialSlot -PrepareReadPair:$PrepareReadPair -ScopeName $ScopeName -CurrentSupersession $CurrentSupersession -Timing $timing -ColdCurrentRecovery $ColdCurrentRecovery}else{Start-Business5244OwnedSupervisorCore -InitialSlot $InitialSlot -PrepareReadPair:$PrepareReadPair -ScopeName $ScopeName -CurrentSupersession $CurrentSupersession -Timing $timing}}
  catch{$failure=$_;if($null-eq$timing.finished){$timing.finished=[Diagnostics.Stopwatch]::GetTimestamp()};$result='rejected';if($_.FullyQualifiedErrorId-ceq'OWNED_WEB_PAIR_PREFLIGHT_BUDGET_EXCEEDED'){$result='budget-exceeded'};throw}
  finally{Write-Business5244StageTiming $timing $result -Terminal -Failure $failure}
 }
