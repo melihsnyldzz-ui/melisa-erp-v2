@@ -31,7 +31,7 @@ async function execute(kind){
   const core=path.join(temp,'core'),priv=path.join(temp,'private'),failed=path.join(temp,'failed'),runtime=path.join(temp,'runtime'),beforePath=path.join(temp,'before.json'),proof=path.join(priv,'owner-preparation'),ledger=path.join(priv,'recovery-once'),web=path.join(temp,'web'),node=process.execPath;
   for(const p of[core,priv,failed,runtime,proof,web,path.join(failed,'owner-preparation','install-once'),path.join(web,'apps','sites-workflow','node_modules','vite','bin')])fs.mkdirSync(p,{recursive:true});
   const fixtureWorker=path.join(web,'apps','sites-workflow','node_modules','vite','bin','vite.js');
-  fs.writeFileSync(fixtureWorker,`const net=require('net');for(const ip of['127.0.0.1','127.0.0.2','127.0.0.3'])net.createServer().listen(${port},ip);process.stdin.resume();`);
+  fs.writeFileSync(fixtureWorker,`const net=require('net');const servers=['127.0.0.1','127.0.0.2','127.0.0.3'].map(ip=>net.createServer().listen(${port},ip));process.stdin.on('end',()=>{for(const server of servers)server.close();});process.stdin.resume();`);
   const webBytes=json({fixture:true});fs.writeFileSync(path.join(web,'release-manifest.json'),webBytes);
   const entries=Array.from({length:56},(_,i)=>{const p=path.join(temp,'entries','entry-'+i+'.ps1');fs.mkdirSync(path.dirname(p),{recursive:true});const b=Buffer.from('own-inert-entry-'+i);fs.writeFileSync(p,b);return {path:p,sha256:hash(b)};});
   const beforeBytes=json({entries:kind==='count'?entries.slice(1):entries});fs.writeFileSync(beforePath,beforeBytes);
@@ -60,7 +60,7 @@ try{
  [IO.File]::WriteAllText(__ENTRY0__,'released-after-current-ready');$c.Dispose();if(!$c.NormalExitCleanupComplete){throw 'COLD_CLEANUP_PROOF_MISSING'};$w.ValidateActive()
  if([ColdFixtureProbe]::Free($gateName)){throw 'OWNER_GATE_GAP'}
  $testRetain=[Threading.Mutex]::OpenExisting($gateName);try{$normal.Dispose();$w.Close();if(![ColdFixtureProbe]::Free($gateName)){throw 'WITNESS_NOT_RELEASED'}}finally{$testRetain.Dispose()}
-}finally{$child.StandardInput.Close();if(!$child.WaitForExit(5000)){$child.Kill();$child.WaitForExit()};$child.Dispose()}
+}finally{$child.StandardInput.Close();if(!$child.WaitForExit(5000)){throw 'COLD_FIXTURE_NORMAL_CHILD_EXIT_UNCONFIRMED'};if($child.ExitCode-ne0){throw 'COLD_FIXTURE_NORMAL_CHILD_EXIT_FAILED'};$child.Dispose()}
 'PASS'
 `;
   const collisionStart=positive.indexOf(' $ready=$false;for'),collisionEnd=positive.indexOf('}finally{$child.StandardInput.Close()');
