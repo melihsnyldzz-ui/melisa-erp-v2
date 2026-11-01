@@ -40,7 +40,7 @@ function Write-B6RetainedRecoveryNew([string]$Path,$Value){
 }
 function Assert-B6RetainedRecoveryProtection {
  $c=Get-B6RetainedRecoveryCase;$failure=$script:B6RecoveryInputs.failure
- foreach($f in $failure.before.files){if((Get-B6RetainedRecoveryHash $f.path)-cne$f.hash){throw 'RETAINED_RECOVERY_PROTECTED_FILE_CHANGED'}}
+ foreach($f in $failure.before.files){if((Get-B6RetainedRecoveryHash $f.path)-ine$f.hash){throw 'RETAINED_RECOVERY_PROTECTED_FILE_CHANGED'}}
  foreach($p in $failure.before.processes){$actual=Get-CimInstance Win32_Process -Filter ('ProcessId='+$p.pid);$savedBirth=([datetime]$p.birth).ToUniversalTime().ToFileTimeUtc();if(!$actual-or$actual.ExecutablePath-cne$p.exe-or$actual.CreationDate.ToUniversalTime().ToFileTimeUtc()-ne$savedBirth){throw 'RETAINED_RECOVERY_PROTECTED_PROCESS_CHANGED'}}
  $ls=@(Get-NetTCPConnection -State Listen);$ports=@($failure.before.listeners.LocalPort);$pids=@($failure.before.processes.pid)
  $scope=@($ls|Where-Object {$_.LocalPort-in$ports-or$_.OwningProcess-in$pids});$expected=@($failure.before.listeners|ForEach-Object {'{0}|{1}|{2}'-f$_.LocalPort,$_.LocalAddress,$_.OwningProcess}|Sort-Object);$actual=@($scope|ForEach-Object {'{0}|{1}|{2}'-f$_.LocalPort,$_.LocalAddress,$_.OwningProcess}|Sort-Object)
@@ -51,9 +51,9 @@ function Assert-B6RetainedRecoveryProtection {
  # These are part of the pinned source baseline, distinct from the CRM and
  # canonical-entry protection snapshot above. Observe the live journal hash;
  # do not deny its legitimate writes by holding a restrictive read handle.
- foreach($f in $before.files){if((Get-B6RetainedRecoveryHash $f.path)-cne$f.sha256){throw 'RETAINED_RECOVERY_BASELINE_FILE_CHANGED'}}
- foreach($entry in $before.entries){if((Get-B6RetainedRecoveryHash $entry.path)-cne$entry.sha256){throw 'RETAINED_RECOVERY_ENTRY_CHANGED'}}
- if((Get-B6RetainedRecoveryHash $before.recordPath)-cne$before.recordSha256){throw 'RETAINED_RECOVERY_RECORD_CHANGED'}
+ foreach($f in $before.files){if((Get-B6RetainedRecoveryHash $f.path)-ine$f.sha256){throw 'RETAINED_RECOVERY_BASELINE_FILE_CHANGED'}}
+ foreach($entry in $before.entries){if((Get-B6RetainedRecoveryHash $entry.path)-ine$entry.sha256){throw 'RETAINED_RECOVERY_ENTRY_CHANGED'}}
+ if((Get-B6RetainedRecoveryHash $before.recordPath)-ine$before.recordSha256){throw 'RETAINED_RECOVERY_RECORD_CHANGED'}
  $svc=New-Object -ComObject 'Schedule.Service';$svc.Connect();$task=$svc.GetFolder('\').GetTask('Melisa-ERP-TEST-Canonical')
  if([string]$task.Xml-cne$script:B6RecoveryInputs.taskXml-or[string]$task.GetSecurityDescriptor(7)-cne$script:B6RecoveryInputs.taskSddl){throw 'RETAINED_RECOVERY_TASK_CHANGED'}
  $instances=$task.GetInstances(0);$capturedTask=$script:B6RecoveryInputs.taskCapture
