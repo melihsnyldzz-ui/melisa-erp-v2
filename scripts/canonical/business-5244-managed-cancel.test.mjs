@@ -11,13 +11,15 @@ const ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerSh
 const q=s=>"'"+s.replaceAll("'","''")+"'";
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const originalSupervisorHash='d9f358798c5105c2c82eb5d2df154add8183d5833aed9da9521fe17cb3a4bb97';
-const originalFinallyHash='278511e460a1051b7c01a5cee3dde0749bc6cfb5ce8057271914e399e7387a2f';
+const legacyFinallyHash='278511e460a1051b7c01a5cee3dde0749bc6cfb5ce8057271914e399e7387a2f';
+const expectedFinallyHash='e58273ee753ad2b92ba7e7ddea8ba137dcd6bea3fcfe4f72f6671c809d3dffc9';
 const sourceFiles=['start-business-5244-owned.ps1','business-5244-startup-exclusion.ps1','start-business-5244-web.ps1','business-5244-retirement-state.ps1','business-5244-retirement-channel.ps1','business-5244-maintenance-dispatch.ps1','business-5244-web-native.cs','business-5244-retirement-peer.cs'];
 
 // Reuse the existing disposable, genuine observer/lease/Job fixture. Only
 // fixed-case DATA and external network/SQL observations are adapted there.
-// The finally block remains exact Writer V2 Git-LF bytes. The source envelope
-// may contain the separately tested finite Web-only pin/guard additions.
+// Pin the revised source finally EXACTLY, including the opt-in exit branch.
+// Legacy Writer V2 hashes are history, not proof of the installed cf8 process.
+// These two fixtures exercise only the unchanged null/false default path.
 function fixtureSource(sourceRoot){
  const text=fs.readFileSync(path.join(dir,'business-5244-retirement-state.test.mjs'),'utf8');
  const begin=text.indexOf('const supersessionFixture=String.raw`');
@@ -29,7 +31,7 @@ function fixtureSource(sourceRoot){
   .replace('__PEER__',path.join(sourceRoot,'business-5244-retirement-peer.cs').replaceAll("'","''"));
 }
 
-test('managed PS5 pipeline Stop runs the original completed Current-only supervisor finally and releases the preheld same mutex', {skip:process.platform!=='win32',timeout:45000},()=>{
+test('managed PS5 pipeline Stop runs the pinned current-source default finally and releases the preheld same mutex', {skip:process.platform!=='win32',timeout:45000},()=>{
  const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir());
  const temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'b6-managed-current-')));
  try{
@@ -131,7 +133,7 @@ try{
  Assert-Business5244StartupLease $maintenance -Kind Maintenance
  Exit-Business5244StartupLease $maintenance;$maintenance=$null
  foreach($file in [IO.Directory]::GetFiles(__SOURCE__)){$h=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::None);$h.Dispose()}
- [pscustomobject]@{status='PASS';sourceRevision='B6-WRITER-V2-20261029';historicalSupervisorSha256='__SUPERVISOR_HASH__';finallySha256='__FINALLY_HASH__';completedCurrent=$true;normalManagedStop=$true;originalFinally=$true;sameIssuerThread=$true;preExitSameMutexHandle=$true;standardMaintenanceNonAbandoned=$true;ownedChildExited=$true;sourceHoldsReleased=$true;undoCalls=0;debuggerEvaluationCalls=0;productionTargets=0;sqlCalls=0;apiCalls=0;taskCalls=0}|ConvertTo-Json -Compress
+ [pscustomobject]@{status='PASS';sourceRevision='B6-COOPERATIVE-EXIT-SOURCE-20261101-1906';historicalSupervisorSha256='__SUPERVISOR_HASH__';legacyFinallySha256='__LEGACY_FINALLY_HASH__';finallySha256='__FINALLY_HASH__';completedCurrent=$true;normalManagedStop=$true;pinnedSourceFinally=$true;sameIssuerThread=$true;preExitSameMutexHandle=$true;standardMaintenanceNonAbandoned=$true;ownedChildExited=$true;sourceHoldsReleased=$true;undoCalls=0;debuggerEvaluationCalls=0;productionTargets=0;sqlCalls=0;apiCalls=0;taskCalls=0}|ConvertTo-Json -Compress
 }finally{
  if($maintenance){Exit-Business5244StartupLease $maintenance}
  if(!$async.IsCompleted){$pipeline.Stop()}
@@ -139,7 +141,7 @@ try{
  if($preheld){$preheld.Dispose()}
  if($shared.ContainsKey('child')){$shared['child'].Dispose()}
 }
-`.replace('__WORKER__',worker).replaceAll('__SOURCE__',q(sourceRoot)).replace('__STARTUP__',q(path.join(sourceRoot,'business-5244-startup-exclusion.ps1'))).replaceAll('__SUPERVISOR_HASH__',originalSupervisorHash).replaceAll('__FINALLY_HASH__',originalFinallyHash);
+`.replace('__WORKER__',worker).replaceAll('__SOURCE__',q(sourceRoot)).replace('__STARTUP__',q(path.join(sourceRoot,'business-5244-startup-exclusion.ps1'))).replaceAll('__SUPERVISOR_HASH__',originalSupervisorHash).replaceAll('__LEGACY_FINALLY_HASH__',legacyFinallyHash).replaceAll('__FINALLY_HASH__',expectedFinallyHash);
   const file=path.join(temp,'managed-current.ps1');fs.writeFileSync(file,main,{flag:'wx'});
   const output=cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',timeout:35000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();
   const result=JSON.parse(output);assert.equal(result.status,'PASS');assert.equal(result.standardMaintenanceNonAbandoned,true);assert.equal(result.sameIssuerThread,true);assert.equal(result.ownedChildExited,true);assert.equal(result.productionTargets,0);
@@ -151,7 +153,7 @@ try{
 });
 
 
-test('Completed Candidate managed Stop runs the pinned original finally with an issued API token and same preheld non-abandoned mutex', {skip:process.platform!=='win32',timeout:45000},()=>{
+test('Completed Candidate managed Stop runs the pinned current-source default finally with an issued API token and same preheld non-abandoned mutex', {skip:process.platform!=='win32',timeout:45000},()=>{
  const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'b6-managed-candidate-')));
  try{
   const text=fs.readFileSync(path.join(dir,'test125-bound-api-quiescence.test.mjs'),'utf8'),raw=name=>{const marker='const '+name+'=String.raw`',a=text.indexOf(marker)+marker.length,b=text.indexOf('\n`;',a);assert(a>=marker.length&&b>a);return text.slice(a,b);};
@@ -188,7 +190,7 @@ try{
  $cleanup=$finals[0].Finally.Extent.Text;$sha=[Security.Cryptography.SHA256]::Create();try{$hash=[BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($cleanup.Replace(([string][char]13+[char]10),([string][char]10))))).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()};if($hash-cne'__FINALLY_HASH__'){throw 'ORIGINAL_CANDIDATE_FINALLY_CHANGED'}
  $script:fixtureLease=$lease;$script:fixtureState=$state;$script:fixtureNative=$webNative;$script:fixtureApiToken=$token;$script:channelToken=[pscustomobject]@{fixture='own-status-channel'}
  function Close-Business5244RetirementChannel($Channel){if(![object]::ReferenceEquals($Channel,$script:channelToken)){throw 'FIXTURE_FOREIGN_CHANNEL'};Assert-Business5244StartupLease $script:fixtureLease -Kind Owner;$Shared['channelClosed']=$true}
- $body='param($Shared);$lease=$script:fixtureLease;$native=$script:fixtureNative;$retirement=$script:fixtureState;$apiTransition=$script:fixtureApiToken;$channel=$script:channelToken;$supersessionBlocked=$false;$initRecoveryBlocked=$false;$supersessionUndo=$false;$verifiedInitCleanup=$null;$initializationFailure=$null;try{$Shared[''issuerThread'']=[Threading.Thread]::CurrentThread.ManagedThreadId;$Shared[''mutexName'']=Get-Business5244StartupMutexName;$Shared[''ready'']=$true;while($true){Start-Sleep -Milliseconds 25}}finally'+$cleanup
+ $body='param($Shared);$lease=$script:fixtureLease;$native=$script:fixtureNative;$retirement=$script:fixtureState;$apiTransition=$script:fixtureApiToken;$channel=$script:channelToken;$supersessionBlocked=$false;$initRecoveryBlocked=$false;$supersessionUndo=$false;$cooperativeExit=$null;$cooperativeExitAccepted=$false;$verifiedInitCleanup=$null;$initializationFailure=$null;try{$Shared[''issuerThread'']=[Threading.Thread]::CurrentThread.ManagedThreadId;$Shared[''mutexName'']=Get-Business5244StartupMutexName;$Shared[''ready'']=$true;while($true){Start-Sleep -Milliseconds 25}}finally'+$cleanup
  . ([scriptblock]::Create('function Invoke-IsolatedCompletedCandidate {'+$body+'}'));Invoke-IsolatedCompletedCandidate $Shared
 }finally{
  $Shared['finallyThread']=[Threading.Thread]::CurrentThread.ManagedThreadId
@@ -198,7 +200,7 @@ try{
  foreach($child in $children){if(!$child.HasExited){$matched=@($rows.Values|Where-Object{$_.pid-eq$child.Id});if($matched.Count-ne1-or$child.StartTime.ToUniversalTime().ToString('o')-cne$matched[0].birth){throw 'FIXTURE_CHILD_CHANGED'};$child.Kill();$child.WaitForExit()};$child.Dispose()}
  if($webNative){$webNative.Dispose()};if($lease-and!(Get-Business5244StartupRecord $lease).closed){Exit-Business5244StartupLease $lease}
 }
-`.replaceAll('__OWNED__',path.join(dir,'start-business-5244-owned.ps1').replaceAll("'","''")).replaceAll('__QUIESCENCE__',path.join(dir,'test125-bound-api-quiescence.ps1').replaceAll("'","''")).replace('__FIXTURE__',fixture).replaceAll('__NODE__',process.execPath.replaceAll("'","''")).replaceAll('__FINALLY_HASH__',originalFinallyHash);
+`.replaceAll('__OWNED__',path.join(dir,'start-business-5244-owned.ps1').replaceAll("'","''")).replaceAll('__QUIESCENCE__',path.join(dir,'test125-bound-api-quiescence.ps1').replaceAll("'","''")).replace('__FIXTURE__',fixture).replaceAll('__NODE__',process.execPath.replaceAll("'","''")).replaceAll('__FINALLY_HASH__',expectedFinallyHash);
   assert(!worker.includes("'@"));
   const main=String.raw`$ErrorActionPreference='Stop';$shared=[Collections.Concurrent.ConcurrentDictionary[string,object]]::new();$rs=[runspacefactory]::CreateRunspace();$rs.Open();$p=[powershell]::Create();$p.Runspace=$rs
 $worker=@'
@@ -215,7 +217,7 @@ try{
  $maintenance=Enter-Business5244StartupLease -Kind Maintenance;Exit-Business5244StartupLease $maintenance;$maintenance=$null
  [pscustomobject]@{status='PASS';finallySha256='__FINALLY_HASH__';sameIssuerThread=$true;preheldSameMutexNonAbandoned=$true;ownedWebChildExited=$true;originalApiTokenClosed=$true;requestQueryHandlesClosed=$true;fixtureApiChildrenPreserved=$true;modeledCompletedCandidate=$true;productionAuthority=$false;mutatorCalls=0;productionTargets=0}|ConvertTo-Json -Compress
 }finally{if($maintenance){Exit-Business5244StartupLease $maintenance};if(!$async.IsCompleted){$p.Stop()};$p.Dispose();$rs.Dispose();if($preheld){$preheld.Dispose()};if($shared.ContainsKey('child')){$shared['child'].Dispose()}}
-`.replace('__WORKER__',worker).replace('__PS_END__',String.fromCharCode(39)+'@').replace('__GATE__',path.join(dir,'business-5244-startup-exclusion.ps1').replaceAll("'","''")).replace('__FINALLY_HASH__',originalFinallyHash);
+`.replace('__WORKER__',worker).replace('__PS_END__',String.fromCharCode(39)+'@').replace('__GATE__',path.join(dir,'business-5244-startup-exclusion.ps1').replaceAll("'","''")).replace('__FINALLY_HASH__',expectedFinallyHash);
   const driver=path.join(temp,'candidate.ps1');fs.writeFileSync(driver,main,{flag:'wx'});const output=cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',driver],{encoding:'utf8',timeout:40000,windowsHide:true,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:temp,TMP:temp}}).trim();const result=JSON.parse(output);assert.equal(result.status,'PASS');assert.equal(result.preheldSameMutexNonAbandoned,true);assert.equal(result.mutatorCalls,0);assert.equal(result.productionAuthority,false);
  }finally{assert.equal(path.dirname(fs.realpathSync.native(temp)).toLowerCase(),parent.toLowerCase());assert(path.basename(temp).startsWith('b6-managed-candidate-'));fs.rmSync(temp,{recursive:true});}
 });
