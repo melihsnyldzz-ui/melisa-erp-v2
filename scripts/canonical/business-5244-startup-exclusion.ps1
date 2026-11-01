@@ -12,6 +12,11 @@ function Get-Business5244StartupMutexName {
 function Get-Business5244RetirementPendingPath {
  return 'C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\5244-retirement.pending'
 }
+function Assert-Business5244ColdCurrentContext($Context){
+ $type='Business5244ColdCurrentRecovery'-as[type]
+ if($PSScriptRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-CURRENT-WEB-COLD-RECOVERY-OWNER-20261101'-or!$type-or$null-eq$Context-or$Context.GetType()-ne$type){throw 'BUSINESS_5244_COLD_NATIVE_CONTEXT_REQUIRED'}
+ $Context.ValidateArchived()
+}
 function Get-Business5244StartupRecord($Lease){
  $found=@($script:Business5244StartupLeases|Where-Object{[object]::ReferenceEquals($_.token,$Lease)})
  if($found.Count -ne 1){throw 'BUSINESS_5244_UNISSUED_LEASE'};return $found[0]
@@ -22,16 +27,24 @@ function Assert-Business5244StartupLease {
  if($r.closed -or $r.process -ne $PID -or $r.thread -ne [Threading.Thread]::CurrentThread.ManagedThreadId -or $r.sid -cne [Security.Principal.WindowsIdentity]::GetCurrent().User.Value -or $r.birth -cne [Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString()){throw 'BUSINESS_5244_LEASE_LIFETIME_CHANGED'}
  if($PSBoundParameters.ContainsKey('Kind') -and $r.kind -cne $Kind){throw 'BUSINESS_5244_LEASE_KIND_CHANGED'}
  if(!($r.mutex -is [Threading.Mutex]) -or $r.name -cne (Get-Business5244StartupMutexName)){throw 'BUSINESS_5244_MUTEX_CHANGED'}
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-CURRENT-WEB-COLD-RECOVERY-OWNER-20261101'-and!$r.ContainsKey('coldOwnerWitness')){throw 'BUSINESS_5244_COLD_OWNER_WITNESS_REQUIRED'}
+ if($r.ContainsKey('coldOwnerWitness')){
+  $type='Business5244ColdCurrentRecovery+OwnerLeaseWitness'-as[type]
+  if($PSScriptRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-CURRENT-WEB-COLD-RECOVERY-OWNER-20261101'-or$r.kind-cne'Owner'-or!$type-or$r.coldOwnerWitness.GetType()-ne$type){throw 'BUSINESS_5244_COLD_OWNER_WITNESS_REQUIRED'}
+  $r.coldOwnerWitness.ValidateActive()
+ }
  # The mutex stays held by the registered thread. This balanced recursive wait
  # checks the live OS object; no serialized held/owner flag is accepted.
  try{if(!$r.mutex.WaitOne(0)){throw 'BUSINESS_5244_LEASE_LOST'};$r.mutex.ReleaseMutex()}catch{throw 'BUSINESS_5244_LEASE_LOST'}
 }
 function Enter-Business5244StartupLease {
- param([ValidateSet('Owner','Maintenance')][string]$Kind='Owner')
+ param([ValidateSet('Owner','Maintenance')][string]$Kind='Owner',$ColdCurrentRecovery=$null)
+ $cold=$PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-CURRENT-WEB-COLD-RECOVERY-OWNER-20261101'
+ if($null-ne$ColdCurrentRecovery){if(!$cold-or$Kind-cne'Owner'){throw 'BUSINESS_5244_COLD_OWNER_ONLY'};Assert-Business5244ColdCurrentContext $ColdCurrentRecovery}elseif($cold){throw 'BUSINESS_5244_COLD_NATIVE_CONTEXT_REQUIRED'}
  $name=Get-Business5244StartupMutexName
  # Windows mutexes are recursive; a second same-thread lease must still fail.
  if(@($script:Business5244StartupLeases|Where-Object{!$_.closed -and $_.name -ceq $name}).Count){throw 'BUSINESS_5244_STARTUP_BUSY'}
- $mutex=[Threading.Mutex]::new($false,$name);$held=$false
+ $mutex=[Threading.Mutex]::new($false,$name);$held=$false;$coldWitness=$null
  try{
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{
    # WaitOne grants ownership while throwing. Release only that acquisition;
@@ -42,8 +55,15 @@ function Enter-Business5244StartupLease {
   if($Kind -ceq 'Owner' -and (Test-Path -LiteralPath (Get-Business5244RetirementPendingPath))){throw 'BUSINESS_5244_RETIREMENT_RECOVERY_REQUIRED'}
   $token=[pscustomobject]@{kind=$Kind;scope='cooperating-5244-startup';legacyExclusion=$false}
   $r=@{token=$token;kind=$Kind;mutex=$mutex;name=$name;process=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;birth=[Diagnostics.Process]::GetCurrentProcess().StartTime.ToUniversalTime().Ticks.ToString();sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;acquiredUtc=[DateTime]::UtcNow.ToString('o');closed=$false}
+  if($cold){
+   $coldWitness=$ColdCurrentRecovery.IssueOwnerLeaseWitness($mutex)
+   $witnessType='Business5244ColdCurrentRecovery+OwnerLeaseWitness'-as[type]
+   if(!$witnessType-or$null-eq$coldWitness-or$coldWitness.GetType()-ne$witnessType){throw 'BUSINESS_5244_COLD_OWNER_WITNESS_REQUIRED'}
+   $coldWitness.ValidateActive();$mutex.ReleaseMutex();$held=$false
+   $r.coldOwnerWitness=$coldWitness
+  }
   $script:Business5244StartupLeases.Add($r);Assert-Business5244StartupLease -Lease $token -Kind $Kind;return $token
- }catch{if($held){$mutex.ReleaseMutex()};$mutex.Dispose();throw}
+ }catch{if($coldWitness){$coldWitness.Close()};if($held){$mutex.ReleaseMutex()};$mutex.Dispose();throw}
 }
 function Exit-Business5244StartupLease {
  param([Parameter(Mandatory)]$Lease)
@@ -51,7 +71,7 @@ function Exit-Business5244StartupLease {
  if($r.process -ne $PID -or $r.thread -ne [Threading.Thread]::CurrentThread.ManagedThreadId){throw 'BUSINESS_5244_LEASE_EXIT_FOREIGN_THREAD'}
  if($r.closed){return}
  Assert-Business5244StartupLease -Lease $Lease
- $r.closed=$true;try{$r.mutex.ReleaseMutex()}finally{$r.mutex.Dispose()}
+ $r.closed=$true;try{if($r.ContainsKey('coldOwnerWitness')){$r.coldOwnerWitness.Close()}else{$r.mutex.ReleaseMutex()}}finally{$r.mutex.Dispose()}
 }
 
 function Get-Business5244GateProjectionInput {

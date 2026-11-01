@@ -2,6 +2,47 @@ param([switch]$Library)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'business-5244-startup-exclusion.ps1') -Library
+# One explicit cold recovery generation: presentation pins never issue authority.
+function Test-Business5244ColdCurrentGeneration {
+ return $PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-CURRENT-WEB-COLD-RECOVERY-OWNER-20261101'
+}
+function Get-Business5244ColdCurrentRecoveryFixedCase {
+ if(!(Test-Business5244ColdCurrentGeneration)){throw 'COLD_CURRENT_GENERATION_REQUIRED'}
+ $manifestPath=Join-Path $PSScriptRoot 'owner-manifest.json';$casePath=Join-Path $PSScriptRoot 'cold-current-case.json'
+ $beforePath='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031\before.json'
+ foreach($file in @($manifestPath,$casePath,$beforePath)){for($part=$file;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part -Force).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'COLD_CURRENT_REPARSE'}}}
+ $m=Get-Content -LiteralPath $manifestPath -Raw|ConvertFrom-Json
+ if($m.kind-cne'BUSINESS5244_FRESH_OWNER_BUNDLE'-or$m.schema-cne'melisa-b6-cold-current-owner.v1'-or$m.coldRecoveryCaseId-cne'ERP-B6-CURRENT-WEB-RECOVERY-SOURCE-20261101-1258'-or$m.root-cne$PSScriptRoot-or$m.finiteScope-cne'TEST125-API-B6-WRITER-20261029'-or$m.maintenancePurpose-cne'ColdCurrentWebRecovery'-or$m.coldCurrentCase.path-cne'cold-current-case.json'-or$m.coldCurrentCase.sha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'COLD_CURRENT_MANIFEST_CHANGED'}
+ foreach($key in @('apiTransitionEnabled','readPairMaintenanceEnabled','actualT1','externalOperations','installed','applied','executionAuthority','admissionIssued','runtimeValidationComplete')){if($m.$key-isnot[bool]-or$m.$key){throw 'COLD_CURRENT_MANIFEST_FLAGS'}}
+ if((Get-FileHash -LiteralPath $casePath).Hash-ine$m.coldCurrentCase.sha256-or(Get-FileHash -LiteralPath $beforePath).Hash-ine'25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc'){throw 'COLD_CURRENT_CASE_CHANGED'}
+ $c=Get-Content -LiteralPath $casePath -Raw|ConvertFrom-Json
+ $readOnlyManifestDigest='afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c'
+ $fixed=@{
+  schema='melisa-b6-cold-current-case.v1';id='ERP-B6-CURRENT-WEB-RECOVERY-SOURCE-20261101-1258';root=$PSScriptRoot;scope='TEST125-API-B6-WRITER-20261029';purpose='ColdCurrentWebRecovery'
+  sourceRoot='C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018'
+  predecessorRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-post-recovery-20261101'
+  markerPath='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\5244-retirement.pending'
+  privateRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-current-web-cold-recovery-20261101'
+  beforeRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031'
+  failureSha256='a0f90c26b22522ead52d8bbbaa5b3ebf834f389375ac4da3ed24b254240e6342';markerSha256='769d25b8bce8212e0895e47adce2b5f8bb32d830120f1ebd1608a00b8e8c9aff'
+  readbackSha256='63f02560b45f7b221c13bec39806e9cfbf217e8a3f195a24eb6824e30532274f';summarySha256='2d2fde1c8114208925e5dfd6e1923f61ad1826d6a07eb142046d24285f12f794'
+  beforeSha256='25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc';recordSha256='4582474922eb94954f5fcf039777b58be53190fc3d3b10ffb292861148447564'
+  webRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030';webSha256='853025ef7df10eec9a4feff026b767c6c323e5e5259c7bcbc2f7f19186743855'
+  apiRoot='C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-VERIFIED-20261030';apiSha256=$readOnlyManifestDigest
+  node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeSha256='3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'
+  originalRequestId='d3d54eed-5de6-46ed-8881-1d3f004c37d8';historicalFirstInstallError='UNKNOWN';newPrimaryError='B6_MANAGED_EXIT_SIGNAL_TIMEOUT'
+ }
+ foreach($key in $fixed.Keys){if($c.$key-isnot[string]-or$c.$key-cne$fixed[$key]){throw 'COLD_CURRENT_FIXED_CASE_CHANGED'}}
+ foreach($key in @('actualT1','externalOperations','installed','applied','executionAuthority','admissionIssued','runtimeValidationComplete','candidateInstallation','archiveOnlyClearing')){if($c.$key-isnot[bool]-or$c.$key){throw 'COLD_CURRENT_CASE_FLAGS'}}
+ if($c.currentOnly-isnot[bool]-or!$c.currentOnly-or$m.recoverySources.root-cne(Join-Path $c.privateRoot 'owner-preparation')-or$m.recoverySources.sha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'COLD_CURRENT_CASE_SCOPE'}
+ $before=Get-Content -LiteralPath $beforePath -Raw|ConvertFrom-Json
+ if($before.recordSha256-cne$c.recordSha256-or$before.owner.pid-ne33080-or$before.child.pid-ne7052-or@($before.entries).Count-ne56){throw 'COLD_CURRENT_BEFORE_CHANGED'}
+ return @{case=$c;before=$before;manifest=$m}
+}
+function Get-Business5244ColdCurrentPins {
+ $v=Get-Business5244ColdCurrentRecoveryFixedCase;$c=$v.case
+ return @{root=$c.webRoot;package='ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030';manifest=$c.webSha256;frontendSource='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a';apiPackage='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029';apiManifest=$c.apiSha256;baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';node=$c.node;nodeHash=$c.nodeSha256.ToUpperInvariant();profile='ERP-5244-REALDATA-20261027';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
+}
 function Get-Business5244WebPins {
  return @{root='C:\Sirket\ERP\releases\ERP-BUSINESS-WEB-5244-5cb682d8';manifest='BFB85A12333772BD40467F6258984CE08277F643DC544FF85B3D7BA39E86A617';package='ERP-BUSINESS-WEB-5244-5cb682d8';apiPackage='CANONICAL-TEST125-BUSINESS5244-10cdc0ee';apiManifest='3e498c4fe89853e295c3ef0a66f88abcbd640b22750c6a54d4348b309b5c2f33';baseSource='edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d';frontendSource='5cb682d8523552745b81422b1c2f0273cc8feb03';profile='ERP-5244-REALDATA-20261027';node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';nodeHash='3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027'}
 }
@@ -102,6 +143,7 @@ function Get-Business5244WriterWebOnlyPins {
 function Get-Business5244FinitePairPins {
  param([ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213',[ValidateSet('Current','Candidate')][string]$Mode='Current')
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')-or$Mode-cnotin@('Current','Candidate')){throw 'BUSINESS_WEB_FINITE_PAIR_SCOPE_REJECTED'}
+ if(Test-Business5244ColdCurrentGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Current'){throw 'COLD_CURRENT_ONLY'};return Get-Business5244ColdCurrentPins}
  if(Test-Business5244SteadyGeneration){if($ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$Mode-cne'Current'){throw 'BUSINESS_STEADY_CURRENT_ONLY'};return Get-Business5244SteadyPins}
  if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
   if(Test-Business5244PackageRefreshGeneration){return (Get-ErpBusinessSaleWriterPairPins -Mode $Mode).Clone()}

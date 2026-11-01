@@ -4,6 +4,10 @@ import './prepare-business-5244-retained-recovery.test.mjs';
 import './recover-business-5244-preclaim.test.mjs';
 import './business-5244-readpair-error-chain.test.mjs';
 import './business-5244-managed-exit-signal.test.mjs';
+import './prepare-business-5244-cold-current-recovery.test.mjs';
+import './business-5244-cold-current-recovery-native.test.mjs';
+import './business-5244-cold-current-adapter.test.mjs';
+import './recover-business-5244-current-web.test.mjs';
 import {PENDING_WEB_RECOVERY_LINEAGE} from './prepare-business-sale-owner-bundle.mjs';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 const repairCaseFixture=String.raw`

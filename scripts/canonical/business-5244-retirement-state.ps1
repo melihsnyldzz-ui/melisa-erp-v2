@@ -11,7 +11,7 @@ function Register-Business5244OwnedRetirement($Lease,$Native,$Pins,[ValidateSet(
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'RETIREMENT_SCOPE_REJECTED'}
  Assert-Business5244StartupLease -Lease $Lease -Kind Owner
  if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){
-  $modes=if(Test-Business5244SteadyGeneration){@('Current')}else{@('Current','Candidate')}
+  $modes=if((Test-Business5244ColdCurrentGeneration)-or(Test-Business5244SteadyGeneration)){@('Current')}else{@('Current','Candidate')}
   $exact=$false;foreach($mode in $modes){$fixed=Get-Business5244FinitePairPins -ScopeName $ScopeName -Mode $mode;if(!@('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile').Where({$Pins[$_]-cne$fixed[$_]}).Count){$exact=$true}}
   if(!$exact){throw 'RETIREMENT_FINITE_B6_PINS_REQUIRED'}
  }
@@ -94,6 +94,15 @@ function Get-Business5244ReadContextRepairBootstrapPins([string]$BeforeHash){
 function Get-Business5244CurrentBootstrapPins([string]$BeforeHash='',[ValidateSet('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')][string]$ScopeName='TEST125-API-READ2b-20261028-41d3c213') {
  if($ScopeName-cnotin@('TEST125-API-READ2b-20261028-41d3c213','TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-20261029')){throw 'CURRENT_BOOTSTRAP_SCOPE_REJECTED'}
  if($ScopeName-ceq'TEST125-API-B6-WRITER-20261029'){
+  if(Test-Business5244ColdCurrentGeneration){
+   $v=Get-Business5244ColdCurrentRecoveryFixedCase;$c=$v.case;$old=$v.before
+   if($BeforeHash-cne$c.recordSha256){throw 'COLD_CURRENT_BOOTSTRAP_BEFORE_CHANGED'}
+   $image=Read-ErpBusinessSalePinnedFile (Join-Path $c.privateRoot 'owner-preparation\current-erp-processes.before.json') $c.recordSha256
+   if((Get-Business5244StartupHash $image)-cne$BeforeHash){throw 'COLD_CURRENT_BOOTSTRAP_IMAGE_CHANGED'}
+   $rows=ConvertFrom-Business5244RecordBytes $image;$web=@($rows|Where-Object port -eq 5244)
+   if($web.Count-ne1-or$web[0].pid-ne7052-or$web[0].root-cne$c.webRoot-or$web[0].sourceCommit-cne'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'-or$web[0].backendPort-ne4144-or$web[0].entry-cne'vite-preview'){throw 'COLD_CURRENT_BOOTSTRAP_RECORD_CHANGED'}
+   return @{hash=$BeforeHash;pid=7052;birth=[string]$old.child.birth;ownerPid=33080;ownerBirth=[string]$old.owner.birth;root=$c.webRoot;source='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'}
+  }
   if(Test-Business5244ReadContextRepairGeneration){return Get-Business5244ReadContextRepairBootstrapPins $BeforeHash}
   if(Test-Business5244PackageRefreshGeneration){return Get-Business5244PackageRefreshBootstrapPins $BeforeHash}
   if(Test-Business5244WriterWebOnlyGeneration){return Get-Business5244WriterWebOnlyBootstrapPins $BeforeHash}

@@ -296,6 +296,7 @@ function Invoke-ErpOwnedSession($Config,[switch]$SinglePass) {
  }finally{if($held){$mutex.ReleaseMutex()};$mutex.Dispose()}
 }
 if(!$Library){
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-CURRENT-WEB-COLD-RECOVERY-OWNER-20261101'){throw 'COLD_CURRENT_FIXED_NATIVE_ENTRY_REQUIRED'}
  $validated=$null
  try{$validated=Read-ErpStartupConfig $StartupConfigPath;Invoke-ErpOwnedSession $validated -SinglePass:$Once}
  catch{
