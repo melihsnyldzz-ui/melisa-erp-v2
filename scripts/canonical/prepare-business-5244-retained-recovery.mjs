@@ -20,7 +20,8 @@ export function validateRun(bundle,expected){
   const conclusion=expected.conclusion==='cancelled'&&j.name==='windows-startup-test'?'cancelled':'success';
   need(Number.isSafeInteger(j.id)&&j.id>0&&j.run_id===r.id&&j.run_attempt===r.run_attempt&&j.head_sha===r.head_sha&&j.status==='completed'&&j.conclusion===conclusion&&date(j.started_at)&&date(j.completed_at)&&Date.parse(j.completed_at)>=Date.parse(j.started_at)&&Array.isArray(j.steps)&&j.steps.length>0,'RECOVERY_CI_JOB');
   const c=checks.find(c=>c.id===j.id);need(c&&c.name===j.name&&c.head_sha===r.head_sha&&c.status==='completed'&&c.conclusion===conclusion&&c.check_suite?.id===r.check_suite_id&&c.app?.id===15368&&c.app.slug==='github-actions'&&c.details_url===`https://github.com/${REPO}/actions/runs/${r.id}/job/${j.id}`,'RECOVERY_CI_CHECK');
-  need(j.check_run_url===`https://api.github.com/repos/${REPO}/check-runs/${j.id}`&&new Set(j.steps.map(s=>s.number)).size===j.steps.length&&j.steps.every(s=>Number.isSafeInteger(s.number)&&s.number>0&&typeof s.name==='string'&&s.name.length>0&&s.status==='completed'&&['success','skipped'].includes(s.conclusion)&&date(s.started_at)&&date(s.completed_at)&&Date.parse(s.completed_at)>=Date.parse(s.started_at)),'RECOVERY_CI_STEPS');
+  const allowedSteps=conclusion==='cancelled'?['success','skipped','cancelled']:['success','skipped'];
+  need(j.check_run_url===`https://api.github.com/repos/${REPO}/check-runs/${j.id}`&&new Set(j.steps.map(s=>s.number)).size===j.steps.length&&j.steps.every(s=>Number.isSafeInteger(s.number)&&s.number>0&&typeof s.name==='string'&&s.name.length>0&&s.status==='completed'&&allowedSteps.includes(s.conclusion)&&date(s.started_at)&&date(s.completed_at)&&Date.parse(s.completed_at)>=Date.parse(s.started_at)),'RECOVERY_CI_STEPS');
   return{id:j.id,name:j.name,startedAt:j.started_at,completedAt:j.completed_at,conclusion:j.conclusion,steps:j.steps.map(s=>({number:s.number,name:s.name,status:s.status,conclusion:s.conclusion,startedAt:s.started_at,completedAt:s.completed_at})).sort((a,b)=>a.number-b.number)};
  }).sort((a,b)=>a.name.localeCompare(b.name));
  need(new Set(rows.map(j=>j.id)).size===3,'RECOVERY_CI_DUPLICATE_JOB');
@@ -32,10 +33,21 @@ export function validateHistory(before,after,pr){
  for(const n of JOBS.filter(n=>n!=='windows-startup-test')){const {id:oldId,...oldJob}=a.jobs.find(j=>j.name===n),{id:newId,...newJob}=b.jobs.find(j=>j.name===n);need(equal(oldJob,newJob),'RECOVERY_CI_CARRIED_EXECUTION_CHANGED');}
  return{firstCancelled:a,controlledRetry:b,pullRequest:p};
 }
+export function validateSourceCi(bundle,source){
+ const r=bundle.run;need([1,2].includes(r?.run_attempt)&&['push','pull_request'].includes(r.event),'RECOVERY_CI_SOURCE_ATTEMPT');
+ const final=validateRun(bundle,{id:r.id,source,event:r.event,attempt:r.run_attempt,conclusion:'success'});
+ if(r.run_attempt===1){need(!Object.hasOwn(bundle,'priorCancelled'),'RECOVERY_CI_UNEXPECTED_PREVIOUS_ATTEMPT');return final;}
+ const prior=bundle.priorCancelled;need(prior&&Array.isArray(prior.timeoutAnnotations)&&prior.timeoutAnnotations.some(a=>a.annotation_level==='failure'&&a.message==='The job has exceeded the maximum execution time of 20m0s'),'RECOVERY_CI_TIMEOUT_ANNOTATION');
+ const first=validateRun(prior,{id:r.id,source,event:r.event,attempt:1,conclusion:'cancelled'});
+ const before=first.jobs.find(j=>j.name==='windows-startup-test'),after=final.jobs.find(j=>j.name==='windows-startup-test');
+ need(before.id!==after.id&&Date.parse(after.startedAt)>=Date.parse(before.completedAt),'RECOVERY_CI_WINDOWS_RETRY_IDENTITY');
+ for(const n of JOBS.filter(n=>n!=='windows-startup-test')){const {id:a,...old}=first.jobs.find(j=>j.name===n),{id:b,...current}=final.jobs.find(j=>j.name===n);need(equal(old,current),'RECOVERY_CI_CARRIED_EXECUTION_CHANGED');}
+ return{...final,priorCancelled:first,timeoutAnnotation:'The job has exceeded the maximum execution time of 20m0s'};
+}
 export function validateProvenance(proof,source){
  need(proof?.schema==='melisa-b6-retained-ci-provenance.v2'&&hex(source)&&source!==OLD&&proof.sourceCommit===source&&equal(proof.binding,BINDING)&&proof.executionAuthority===false&&proof.installed===false&&proof.applied===false&&proof.admissionIssued===false&&proof.runtimeValidationComplete===false,'RECOVERY_CI_BINDING');
  need(Array.isArray(proof.sourceCi)&&proof.sourceCi.length===2&&proof.sourceCi[0].run.event==='push'&&proof.sourceCi[1].run.event==='pull_request','RECOVERY_CI_EVENTS');
- const sourceCi=proof.sourceCi.map(b=>validateRun(b,{id:b.run.id,source,event:b.run.event,attempt:1,conclusion:'success'}));
+ const sourceCi=proof.sourceCi.map(b=>validateSourceCi(b,source));
  need(sourceCi[0].id!==sourceCi[1].id,'RECOVERY_CI_REPLAYED_RUN');
  const history=validateHistory(proof.history.firstCancelled,proof.history.controlledRetry,proof.history.pullRequest);
  return{schema:proof.schema,sourceCommit:source,binding:BINDING,sourceCi,history,executionAuthority:false,installed:false,applied:false,admissionIssued:false,runtimeValidationComplete:false};
@@ -44,12 +56,12 @@ function plain(p){for(let x=p;x;){need(!fs.lstatSync(x).isSymbolicLink(),'RECOVE
 function read(p){plain(p);return fs.readFileSync(p);}function pinned(p,h){need(typeof h==='string'&&/^[a-fA-F0-9]{64}$/.test(h),'RECOVERY_CI_HASH_FORMAT');const b=read(p);need(hash(b)===h.toLowerCase(),'RECOVERY_CI_DEPENDENCY_CHANGED');return b;}
 function exec(file,args){const env={...process.env};for(const n of Object.keys(env))if(/^(NODE_OPTIONS|NODE_PATH|NODE_EXTRA_CA_CERTS|NODE_TLS_REJECT_UNAUTHORIZED|GH_HOST|GH_CONFIG_DIR|GIT_DIR|GIT_WORK_TREE|GIT_CONFIG.*)$/i.test(n))delete env[n];return cp.execFileSync(file,args,{cwd:SOURCE,env,windowsHide:true,timeout:30000,maxBuffer:8*1024*1024});}
 function git(args){return exec(String.raw`C:\Program Files\Git\cmd\git.exe`,args);}function gh(endpoint){need(endpoint.startsWith(`repos/${REPO}/`),'RECOVERY_CI_API_SCOPE');return JSON.parse(exec(GH,['api','--hostname','github.com',endpoint]));}
-function collect(id,attempt){const run=gh(`repos/${REPO}/actions/runs/${id}/attempts/${attempt}`),jobs=gh(`repos/${REPO}/actions/runs/${id}/attempts/${attempt}/jobs?per_page=100`);need(Array.isArray(jobs.jobs)&&jobs.jobs.length===3,'RECOVERY_CI_CHECKSET');const checks=jobs.jobs.map(j=>{need(Number.isSafeInteger(j.id)&&j.id>0,'RECOVERY_CI_JOB');return gh(`repos/${REPO}/check-runs/${j.id}`);});return{run,jobs,checks};}
+function collect(id,attempt){need(Number.isSafeInteger(id)&&id>0&&[1,2].includes(attempt),'RECOVERY_CI_RUN_IDENTITY');const run=gh(`repos/${REPO}/actions/runs/${id}/attempts/${attempt}`),jobs=gh(`repos/${REPO}/actions/runs/${id}/attempts/${attempt}/jobs?per_page=100`);need(Array.isArray(jobs.jobs)&&jobs.jobs.length===3,'RECOVERY_CI_CHECKSET');const checks=jobs.jobs.map(j=>{need(Number.isSafeInteger(j.id)&&j.id>0,'RECOVERY_CI_JOB');return gh(`repos/${REPO}/check-runs/${j.id}`);});return{run,jobs,checks};}
 function collectProof(source){
  const r=gh(`repos/${REPO}`);repo(r);const w=gh(`repos/${REPO}/actions/workflows/ci.yml`);need(w.id===WORKFLOW&&w.path==='.github/workflows/ci.yml'&&w.state==='active','RECOVERY_CI_WORKFLOW');
  const pr=gh(`repos/${REPO}/pulls/54`);repo(pr.head?.repo);need(pr.number===54&&pr.state==='open'&&pr.head.ref===BRANCH&&pr.head.sha===source,'RECOVERY_CI_PR');
  const all=gh(`repos/${REPO}/actions/runs?head_sha=${source}&per_page=100`).workflow_runs;need(Array.isArray(all),'RECOVERY_CI_RUNS');
- const sourceCi=['push','pull_request'].map(event=>{const found=all.filter(r=>r.head_sha===source&&r.event===event&&r.workflow_id===WORKFLOW&&r.path==='.github/workflows/ci.yml');need(found.length===1&&found[0].run_attempt===1,'RECOVERY_CI_UNIQUE_FIRST_ATTEMPT');return collect(found[0].id,1);});
+ const sourceCi=['push','pull_request'].map(event=>{const found=all.filter(r=>r.head_sha===source&&r.event===event&&r.workflow_id===WORKFLOW&&r.path==='.github/workflows/ci.yml');need(found.length===1&&[1,2].includes(found[0].run_attempt),'RECOVERY_CI_UNIQUE_ALLOWED_ATTEMPT');const result=collect(found[0].id,found[0].run_attempt);if(found[0].run_attempt===2){result.priorCancelled=collect(found[0].id,1);const windows=result.priorCancelled.jobs.jobs.find(j=>j.name==='windows-startup-test');need(windows,'RECOVERY_CI_CHECKSET');result.priorCancelled.timeoutAnnotations=gh(`repos/${REPO}/check-runs/${windows.id}/annotations?per_page=100`);}return result;});
  const raw={schema:'melisa-b6-retained-ci-provenance.v2',sourceCommit:source,binding:BINDING,sourceCi,history:{firstCancelled:collect(41255956111,1),controlledRetry:collect(41255956111,2),pullRequest:collect(41255959077,1)},executionAuthority:false,installed:false,applied:false,admissionIssued:false,runtimeValidationComplete:false};
  return{raw,normalized:validateProvenance(raw,source)};
 }
