@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import cp from 'node:child_process';import os from 'node:os';import path from 'node:path';
 import crypto from 'node:crypto';
+import './prepare-business-5244-retained-recovery.test.mjs';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 const repairCaseFixture=String.raw`
 $script:ReadContextRepairInstall=$true;$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
@@ -20,6 +21,7 @@ if($scenario-ceq'wrong-owner'){$expectedOwner++};if($scenario-ceq'wrong-child'){
 $source=[IO.File]::ReadAllText($nativeFile)
 $source=[regex]::Replace($source,'(?m)^  const string MarkerPath=.*$',('  const string MarkerPath='+(CsLiteral $marker)+';'))
 $source=[regex]::Replace($source,'(?m)^  const string FrozenRoot=.*$',('  const string FrozenRoot='+(CsLiteral $root)+';'))
+$source=[regex]::Replace($source,'(?m)^  const string RecoveryRoot=.*$',('  const string RecoveryRoot='+(CsLiteral $root)+';'))
 $source=[regex]::Replace($source,'(?m)^  const string FailurePath=.*$',('  const string FailurePath='+(CsLiteral $failed)+';'))
 $source=[regex]::Replace($source,'(?m)^  const string MarkerHash=.*$',('  const string MarkerHash="'+$mh+'",FailureHash="'+$fh+'";'))
 $source=[regex]::Replace($source,'(?m)^  const uint OwnerPid=.*$',('  const uint OwnerPid='+$expectedOwner+',ChildPid='+$PID+',ControllerPid='+$controller+';'))
@@ -68,6 +70,21 @@ test('Retained recovery native source is pinned and exposes no caller target sto
  assert.match(block,/public void Archive\(\)/);assert.match(block,/GetFinalPathNameByHandle/);assert.match(block,/SetFileInformationByHandle/);assert.match(block,/FileMode\.CreateNew/);assert.match(block,/Flush\(true\)/);
  assert.match(script,/68220abd0606d09fc2273e06674facf4d3450516b9050045ca2d0903b178502b/);assert.match(script,/originalCreatorIdentityRecovered=\$false/);
  assert.equal((script.match(/\$capability\.Archive\(\)/g)||[]).length,1);assert.doesNotMatch(script,/Operation (retire|recover)|Remove-Item|Stop-Process|Set-ExecutionPolicy|Register-ScheduledTask/);
+});
+win('Retained recovery consumes live exact CI provenance before any native authority and rejects local overrides',()=>{
+ assert.equal(run(recoveryLoad+String.raw`
+$case=Get-B6RetainedRecoveryCase;$entryHash='a'*64;$producerPin=[regex]::Match([IO.File]::ReadAllText('SOURCE_ENTRY'),'expectedCiProducerSha256=''([a-f0-9]{64})''').Groups[1].Value
+function Hold-B6RetainedRecoveryInput($Path,$Hash){if($Hash-cnotmatch'\A[a-f0-9]{64}\z'){throw 'FIXTURE_INVALID_PIN'};return ,([byte[]]@())}
+function Invoke-B6RetainedRecoveryCiProcess($Producer){if($Producer-cne(Join-Path $case.sourceRoot 'prepare-business-5244-retained-recovery.mjs')){throw 'FIXTURE_WRONG_PRODUCER'};if($script:kind-ceq'network'){throw 'FIXTURE_NETWORK_UNAVAILABLE'};return ($script:answer|ConvertTo-Json -Depth 8)}
+$template=@{schema='melisa-b6-retained-recovery-source.v2';generation='ERP-B6-RECOVERY-CI-PROVENANCE-20261101-0103';sourceCommit=('b'*40);binding=@{sourceRoot=$case.sourceRoot;recoveryRoot=$case.root};provenance=@{path='ci-provenance.json';sha256=('c'*64)}}
+foreach($kind in @('valid','local-bool','old-generation','wrong-path','network','fake-response','wrong-source','wrong-root','wrong-manifest','wrong-entry','wrong-producer','authority','installed','admission','runtime')){
+ $script:kind=$kind;$m=$template|ConvertTo-Json -Depth 8|ConvertFrom-Json
+ switch($kind){local-bool{$m.schema='melisa-b6-retained-recovery-source.v1';$m|Add-Member NoteProperty ciSuccess $true}old-generation{$m.generation='old'}wrong-path{$m.provenance.path='../other'}}
+ $bytes=[Text.Encoding]::UTF8.GetBytes(($m|ConvertTo-Json -Depth 8));$sha=[Security.Cryptography.SHA256]::Create();try{$digest=[BitConverter]::ToString($sha.ComputeHash($bytes)).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
+ $script:answer=@{schema='melisa-b6-retained-recovery-ci-verification.v2';generation=$m.generation;liveGithubVerified=$true;sourceCommit=$m.sourceCommit;sourceRoot=$case.sourceRoot;recoveryRoot=$case.root;manifestSha256=$digest;entrySha256=$entryHash;producerSha256=$producerPin;executionAuthority=$false;installed=$false;applied=$false;admissionIssued=$false;runtimeValidationComplete=$false}
+ switch($kind){fake-response{$answer.liveGithubVerified=$false}wrong-source{$answer.sourceCommit='other'}wrong-root{$answer.recoveryRoot='other'}wrong-manifest{$answer.manifestSha256='0'*64}wrong-entry{$answer.entrySha256='0'*64}wrong-producer{$answer.producerSha256='0'*64}authority{$answer.executionAuthority=$true}installed{$answer.installed=$true}admission{$answer.admissionIssued=$true}runtime{$answer.runtimeValidationComplete=$true}}
+ $denied=$false;try{Assert-B6RetainedRecoveryCiProvenance $bytes $entryHash|Out-Null}catch{$denied=$true};if(($kind-ceq'valid'-and$denied)-or($kind-cne'valid'-and!$denied)){throw ('CI_CONSUMER_FALSE_RESULT_'+$kind)}
+};'PASS'`.replace('SOURCE_ENTRY',path.join(dir,'recover-business-5244-retained-handoff.ps1').replaceAll("'","''"))),'PASS');
 });
 win('Retained recovery evidence rejects changed failure controller owner operation effects and entry before any archive',()=>{
  assert.equal(run(recoveryLoad+String.raw`
