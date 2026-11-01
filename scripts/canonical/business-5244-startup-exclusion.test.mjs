@@ -1,4 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {mkdtemp,writeFile,rm,readFile} from 'node:fs/promises';import {spawn} from 'node:child_process';import {createInterface} from 'node:readline';import path from 'node:path';import os from 'node:os';
+import './business-5244-pty-fixture.test.mjs';
 const modulePath=path.join(import.meta.dirname,'business-5244-startup-exclusion.ps1'),q=s=>`'${s.replaceAll("'","''")}'`,win={skip:process.platform!=='win32',timeout:20000};
 const alive=pid=>{try{process.kill(pid,0);return true;}catch(e){if(e.code==='ESRCH')return false;throw e;}};
 async function fixture(t){const directory=await mkdtemp(path.join(os.tmpdir(),'erp-5244-exclusion-test-')),children=[];t.after(async()=>{for(const p of children){if(alive(p.pid)){p.kill();await p.exit;} }await rm(directory,{recursive:true,force:true,maxRetries:5,retryDelay:100});});return {directory,children};}
