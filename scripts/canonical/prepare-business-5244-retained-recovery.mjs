@@ -55,7 +55,12 @@ export function validateProvenance(proof,source){
 function plain(p){for(let x=p;x;){need(!fs.lstatSync(x).isSymbolicLink(),'RECOVERY_CI_REPARSE');const n=path.dirname(x);if(n===x)break;x=n;}}
 function read(p){plain(p);return fs.readFileSync(p);}function pinned(p,h){need(typeof h==='string'&&/^[a-fA-F0-9]{64}$/.test(h),'RECOVERY_CI_HASH_FORMAT');const b=read(p);need(hash(b)===h.toLowerCase(),'RECOVERY_CI_DEPENDENCY_CHANGED');return b;}
 function exec(file,args){const env={...process.env};for(const n of Object.keys(env))if(/^(NODE_OPTIONS|NODE_PATH|NODE_EXTRA_CA_CERTS|NODE_TLS_REJECT_UNAUTHORIZED|GH_HOST|GH_CONFIG_DIR|GIT_DIR|GIT_WORK_TREE|GIT_CONFIG.*)$/i.test(n))delete env[n];return cp.execFileSync(file,args,{cwd:SOURCE,env,windowsHide:true,timeout:30000,maxBuffer:8*1024*1024});}
-function git(args){return exec(String.raw`C:\Program Files\Git\cmd\git.exe`,args);}function gh(endpoint){need(endpoint.startsWith(`repos/${REPO}/`),'RECOVERY_CI_API_SCOPE');return JSON.parse(exec(GH,['api','--hostname','github.com',endpoint]));}
+export function validateApiEndpoint(endpoint){
+ const base=`repos/${REPO}`;need(typeof endpoint==='string','RECOVERY_CI_API_SCOPE');
+ const tail=endpoint===base?'':endpoint.startsWith(base+'/')?endpoint.slice(base.length):null;
+ need(tail!==null&&(/^(?:|\/actions\/workflows\/ci\.yml|\/pulls\/54|\/actions\/runs\?head_sha=[a-f0-9]{40}&per_page=100|\/actions\/runs\/[1-9][0-9]*\/attempts\/[12](?:\/jobs\?per_page=100)?|\/check-runs\/[1-9][0-9]*(?:\/annotations\?per_page=100)?)$/.test(tail)),'RECOVERY_CI_API_SCOPE');return endpoint;
+}
+function git(args){return exec(String.raw`C:\Program Files\Git\cmd\git.exe`,args);}function gh(endpoint){validateApiEndpoint(endpoint);return JSON.parse(exec(GH,['api','--hostname','github.com',endpoint]));}
 function collect(id,attempt){need(Number.isSafeInteger(id)&&id>0&&[1,2].includes(attempt),'RECOVERY_CI_RUN_IDENTITY');const run=gh(`repos/${REPO}/actions/runs/${id}/attempts/${attempt}`),jobs=gh(`repos/${REPO}/actions/runs/${id}/attempts/${attempt}/jobs?per_page=100`);need(Array.isArray(jobs.jobs)&&jobs.jobs.length===3,'RECOVERY_CI_CHECKSET');const checks=jobs.jobs.map(j=>{need(Number.isSafeInteger(j.id)&&j.id>0,'RECOVERY_CI_JOB');return gh(`repos/${REPO}/check-runs/${j.id}`);});return{run,jobs,checks};}
 function collectProof(source){
  const r=gh(`repos/${REPO}`);repo(r);const w=gh(`repos/${REPO}/actions/workflows/ci.yml`);need(w.id===WORKFLOW&&w.path==='.github/workflows/ci.yml'&&w.state==='active','RECOVERY_CI_WORKFLOW');
@@ -65,6 +70,9 @@ function collectProof(source){
  const raw={schema:'melisa-b6-retained-ci-provenance.v2',sourceCommit:source,binding:BINDING,sourceCi,history:{firstCancelled:collect(41255956111,1),controlledRetry:collect(41255956111,2),pullRequest:collect(41255959077,1)},executionAuthority:false,installed:false,applied:false,admissionIssued:false,runtimeValidationComplete:false};
  return{raw,normalized:validateProvenance(raw,source)};
 }
+// Read-only integration boundary: never writes an artifact or issues authority.
+// The fixed CLI still requires its committed source and successful own CI.
+export function readCiProvenance(source){need(hex(source)&&source!==OLD,'RECOVERY_CI_SOURCE');return collectProof(source).normalized;}
 export function validateManifest(m,source,files,provenanceSha256,dependencies){
  const expected={schema:'melisa-b6-retained-recovery-source.v2',generation:GENERATION,sourceCommit:source,binding:BINDING,files,provenance:{path:'ci-provenance.json',sha256:provenanceSha256},predecessor:{sourceCommit:OLD,files:OLD_PINS},dependencies,executionAuthority:false,installed:false,applied:false,admissionIssued:false,runtimeValidationComplete:false};need(equal(m,expected),'RECOVERY_CI_MANIFEST_CHANGED');return expected;
 }
@@ -90,7 +98,7 @@ export function writeNewArtifact(root,files){
  for(const [n,b]of files){need(path.basename(n)===n,'RECOVERY_CI_OUTPUT_LEAF');const f=path.join(root,n),h=fs.openSync(f,'wx');try{fs.writeFileSync(h,b);fs.fsyncSync(h);}finally{fs.closeSync(h);}need(read(f).equals(b),'RECOVERY_CI_OUTPUT_READBACK');}
 }
 export function main(action){
- need(['--prepare','--verify'].includes(action),'RECOVERY_CI_FIXED_ACTION');const {source,blobs}=ioContext(action),dependencies=closure(),live=collectProof(source),files=blobs.map(f=>({name:f.name,sha256:hash(f.bytes),bytes:f.bytes.length})),proofBytes=Buffer.from(JSON.stringify(live.normalized,null,2)+'\n');
+ need(['--prepare','--verify'].includes(action),'RECOVERY_CI_FIXED_ACTION');const {source,blobs}=ioContext(action),dependencies=closure(),live=readCiProvenance(source),files=blobs.map(f=>({name:f.name,sha256:hash(f.bytes),bytes:f.bytes.length})),proofBytes=Buffer.from(JSON.stringify(live,null,2)+'\n');
  const manifest=validateManifest({schema:'melisa-b6-retained-recovery-source.v2',generation:GENERATION,sourceCommit:source,binding:BINDING,files,provenance:{path:'ci-provenance.json',sha256:hash(proofBytes)},predecessor:{sourceCommit:OLD,files:OLD_PINS},dependencies,executionAuthority:false,installed:false,applied:false,admissionIssued:false,runtimeValidationComplete:false},source,files,hash(proofBytes),dependencies),manifestBytes=Buffer.from(JSON.stringify(manifest,null,2)+'\n');
  const receipt={schema:'melisa-b6-retained-recovery-ci-receipt.v2',generation:GENERATION,sourceCommit:source,sourceRoot:ROOT,recoveryRoot:BASE,manifestSha256:hash(manifestBytes),provenanceSha256:hash(proofBytes),entrySha256:files[0].sha256,peerSha256:files[1].sha256,producerSha256:files[2].sha256,externalReferences:93,executionAuthority:false,installed:false,applied:false,admissionIssued:false,runtimeValidationComplete:false,claimCreated:false,attemptCreated:false,applicationCommandExecuted:false},receiptBytes=Buffer.from(JSON.stringify(receipt,null,2)+'\n');
  const outputs=[...blobs.map(f=>[f.name,f.bytes]),['ci-provenance.json',proofBytes],['source-manifest.json',manifestBytes],['passive-preparation-receipt.json',receiptBytes]];

@@ -50,7 +50,7 @@ function Invoke-B6RetainedRecoveryCiProcess([string]$Producer){
 function Assert-B6RetainedRecoveryCiProvenance([byte[]]$ManifestBytes,[string]$EntryHash){
  $case=Get-B6RetainedRecoveryCase;$manifest=[Text.Encoding]::UTF8.GetString($ManifestBytes)|ConvertFrom-Json
  if($manifest.schema-cne'melisa-b6-retained-recovery-source.v2'-or$manifest.generation-cne'ERP-B6-RECOVERY-CI-PROVENANCE-20261101-0103'-or$manifest.sourceCommit-cnotmatch'\A[a-f0-9]{40}\z'-or$manifest.binding.sourceRoot-cne$case.sourceRoot-or$manifest.binding.recoveryRoot-cne$case.root){throw 'RETAINED_RECOVERY_CI_MANIFEST'}
- $expectedCiProducerSha256='eca0b8f331a31671efcf887493d554033a963291a24e9936b88f7bb7aaca8f28'
+ $expectedCiProducerSha256='9879601a405d8807daf4a518daaf3f0c4c3bd2e8acc2d96f73b047631382e424'
  $producer=Join-Path $case.sourceRoot 'prepare-business-5244-retained-recovery.mjs'
  [void](Hold-B6RetainedRecoveryInput $producer $expectedCiProducerSha256)
  if($manifest.provenance.path-cne'ci-provenance.json'){throw 'RETAINED_RECOVERY_CI_PROOF_PATH'}

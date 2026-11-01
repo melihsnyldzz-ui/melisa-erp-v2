@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';
-import {BINDING,PREDECESSOR_FILES,validateRun,validateHistory,validateSourceCi,validateProvenance,validateManifest,writeNewArtifact} from './prepare-business-5244-retained-recovery.mjs';
+import {BINDING,PREDECESSOR_FILES,validateRun,validateHistory,validateSourceCi,validateProvenance,validateManifest,validateApiEndpoint,writeNewArtifact} from './prepare-business-5244-retained-recovery.mjs';
 const source='a'.repeat(40),old='df57c83d78038eec5281bee3e16502b898f73ce4',names=['quality-build-test','secret-scan','windows-startup-test'],copy=x=>structuredClone(x),repo={id:1354084247,full_name:'melihsnyldzz-ui/melisa-erp-v2'};
 function bundle(id,sha=source,event='push',attempt=1,cancelled=false){
  const run={id,head_sha:sha,event,run_attempt:attempt,workflow_id:374179065,path:'.github/workflows/ci.yml',status:'completed',conclusion:cancelled?'cancelled':'success',check_suite_id:7,repository:copy(repo),head_repository:copy(repo)};
@@ -8,6 +8,8 @@ function bundle(id,sha=source,event='push',attempt=1,cancelled=false){
  return{run,jobs:{total_count:3,jobs},checks:jobs.map(j=>({id:j.id,name:j.name,head_sha:sha,status:'completed',conclusion:j.conclusion,check_suite:{id:7},app:{id:15368,slug:'github-actions'},details_url:`https://github.com/${repo.full_name}/actions/runs/${id}/job/${j.id}`}))};
 }
 const expected={id:100,source,event:'push',attempt:1,conclusion:'success'};
+test('Recovery API scope accepts the exact repo root and every required read route',()=>{const base='repos/'+repo.full_name;for(const tail of ['', '/actions/workflows/ci.yml','/pulls/54',`/actions/runs?head_sha=${source}&per_page=100`,'/actions/runs/100/attempts/1','/actions/runs/100/attempts/2/jobs?per_page=100','/check-runs/123','/check-runs/123/annotations?per_page=100'])assert.equal(validateApiEndpoint(base+tail),base+tail);});
+test('Recovery API scope rejects foreign prefix traversal mutation routes and malformed parameters',()=>{const base='repos/'+repo.full_name;for(const s of ['repos/other/repo',base+'-other',base+'/',base+'/../other',base+'/%2e%2e/other','https://api.github.com/'+base,base+'/pulls/55',base+'/actions/runs/100/rerun-failed-jobs',base+'/actions/runs/100/attempts/3',base+'/actions/runs/0/attempts/1',base+'/actions/runs?head_sha='+source+'\n&per_page=100',base+'/check-runs/1/annotations?per_page=100\n'])assert.throws(()=>validateApiEndpoint(s));});
 test('Recovery CI validates exact successful server run and check identities',()=>{assert.equal(validateRun(bundle(100),expected).jobs.length,3);});
 test('Recovery CI rejects malformed source and nonpositive run identity',()=>{assert.throws(()=>validateRun(bundle(0),{...expected,id:0}));assert.throws(()=>validateRun(bundle(100,source+'\n'),{...expected,source:source+'\n'}));});
 test('Recovery successful final CI never accepts a cancelled step',()=>{const b=bundle(100);b.jobs.jobs[2].steps[0].conclusion='cancelled';assert.throws(()=>validateRun(b,expected));});
