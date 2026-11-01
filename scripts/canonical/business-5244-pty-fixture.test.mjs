@@ -6,6 +6,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import cp from 'node:child_process';
 import './business-5244-pty-evidence.test.mjs';
+import './business-5244-pty-cleanup.test.mjs';
 const dir=import.meta.dirname;
 const q=value=>"'"+value.replaceAll("'","''")+"'";
 const ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');

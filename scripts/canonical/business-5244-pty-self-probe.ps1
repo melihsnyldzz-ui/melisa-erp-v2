@@ -1,0 +1,23 @@
+# Read-only scalar probe; invoke with & in the original disposable client session.
+$p1656Self=$null;$p1656Sha=$null
+try{
+ $p1656Self=[Diagnostics.Process]::GetCurrentProcess()
+ $p1656Sha=[Security.Cryptography.SHA256]::Create()
+ $p1656Culture=[Globalization.CultureInfo]::InvariantCulture
+ $p1656Birth=$p1656Self.StartTime.ToUniversalTime().ToFileTimeUtc().ToString($p1656Culture)
+ $p1656Runspace=[Management.Automation.Runspaces.Runspace]::DefaultRunspace.Id.ToString($p1656Culture)
+ $p1656Exe=([string]$p1656Self.MainModule.FileName).ToLowerInvariant()
+ $p1656CurrentPath=[string](Get-Location).Path
+ $p1656ExeHash=[BitConverter]::ToString($p1656Sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($p1656Exe))).Replace('-','').ToLowerInvariant()
+ $p1656PathHash=[BitConverter]::ToString($p1656Sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($p1656CurrentPath))).Replace('-','').ToLowerInvariant()
+ [Console]::WriteLine('P1656_PID='+$p1656Self.Id.ToString($p1656Culture))
+ [Console]::WriteLine('P1656_BIRTH='+$p1656Birth)
+ [Console]::WriteLine('P1656_RUNSPACE='+$p1656Runspace)
+ [Console]::WriteLine('P1656_EXE='+$p1656ExeHash)
+ [Console]::WriteLine('P1656_PWD='+$p1656PathHash)
+ [Console]::WriteLine('P1656_END')
+ [Console]::Out.Flush()
+}finally{
+ if($p1656Sha){$p1656Sha.Dispose()}
+ if($p1656Self){$p1656Self.Dispose()}
+}
