@@ -1,4 +1,15 @@
 using System;using System.Text;using System.Runtime.InteropServices;
+// A console line only wakes the managed-exit controller. Native retained
+// process observations remain the authority. A timed-out reader is never reused.
+public static class Business5244ManagedExitSignal {
+ static int attempted;
+ public static string Read(){
+  if(System.Threading.Interlocked.Exchange(ref attempted,1)!=0)throw new Exception("B6_MANAGED_EXIT_SIGNAL_ALREADY_READ");
+  var read=System.Threading.Tasks.Task.Run(()=>Console.ReadLine());
+  if(!read.Wait(60000))throw new Exception("B6_MANAGED_EXIT_SIGNAL_TIMEOUT");
+  return read.GetAwaiter().GetResult();
+ }
+}
 public sealed class Business5244WebNative:IDisposable {
  [StructLayout(LayoutKind.Sequential,CharSet=CharSet.Unicode)] struct SI{public int cb;public string r,desktop,title;public int x,y,xs,ys,xc,yc,fill,flags;public short show,r2;public IntPtr reserved,input,output,error;}
  [StructLayout(LayoutKind.Sequential)] struct SIX{public SI si;public IntPtr attributes;}

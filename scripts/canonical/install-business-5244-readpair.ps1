@@ -83,7 +83,7 @@ function Invoke-ReadPairInstallSequence {
  # Finite operation, not a scriptblock/callback or arbitrary-target executor.
  # After a retire exchange is attempted it is NEVER resent, including after
  # timeout. Only fresh, independently checked state may settle the outcome.
- $stopped=$false;$issued=$false
+ $stopped=$false;$issued=$false;$primaryFailure=$null;$restoreFailure=$null;$cleanupFailure=$null;$outcome=$null
  try{
   Open-ReadPairPublication
   Assert-ReadPairColdTarget
@@ -93,26 +93,34 @@ function Invoke-ReadPairInstallSequence {
   if($SteadyStartupInstall){
    Complete-B6SteadyTaskPublication
    Complete-ReadPairPublication 'SteadyStartupVerified'
-   return 'SteadyStartupVerified'
+   $outcome='SteadyStartupVerified'
+  }else{
+   $issued=$true
+   try{Send-ReadPairSingleRetire}catch{Record-Phase 'ACK_UNCONFIRMED_READONLY_RECONCILIATION'}
+   $outcome=Wait-ReadPairFinalState
+   if($outcome -cnotin @('CandidateVerified','RollbackVerified')){throw 'READPAIR_FINAL_STATE_UNKNOWN'}
+   if($PreviewLinkInstall){Complete-B6PreviewLinkTaskPublication $outcome}
+   if((Get-Variable PendingWebInstall -ValueOnly -ErrorAction SilentlyContinue)-eq$true){Complete-B6PendingWebTaskPublication $outcome}
+   Complete-ReadPairPublication $outcome
   }
-  $issued=$true
-  try{Send-ReadPairSingleRetire}catch{Record-Phase 'ACK_UNCONFIRMED_READONLY_RECONCILIATION'}
-  $outcome=Wait-ReadPairFinalState
-  if($outcome -cnotin @('CandidateVerified','RollbackVerified')){throw 'READPAIR_FINAL_STATE_UNKNOWN'}
-  if($PreviewLinkInstall){Complete-B6PreviewLinkTaskPublication $outcome}
-  if((Get-Variable PendingWebInstall -ValueOnly -ErrorAction SilentlyContinue)-eq$true){Complete-B6PendingWebTaskPublication $outcome}
-  Complete-ReadPairPublication $outcome
-  return $outcome
  }catch{
-  if(!$issued){
-   $actualStopped=$stopped
-   if($RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall-or$PreviewLinkInstall){$h=Get-B6ReadPairActiveHandoff;if($h-and!$h.stopAttempted){$actualStopped=$false}}
-   Restore-ReadPairBeforeRetire -OldStopped $actualStopped
-  }
-  # Never stop/replay/restore a possibly active paired API transition.
-  else{Record-Phase 'OWNER_RECOVERY_REQUIRED_NO_SECOND_RETIRE'}
+  $primaryFailure=$_
+  try{
+   if(!$issued){
+    $actualStopped=$stopped
+    if($RehearsalOnly-or$CandidateInstall-or$WriterInstall-or$WebOnlyRefreshInstall-or$PreviewLinkInstall){$h=Get-B6ReadPairActiveHandoff;if($h-and!$h.stopAttempted){$actualStopped=$false}}
+    Restore-ReadPairBeforeRetire -OldStopped $actualStopped
+   }
+   # Never stop/replay/restore a possibly active paired API transition.
+   else{Record-Phase 'OWNER_RECOVERY_REQUIRED_NO_SECOND_RETIRE'}
+  }catch{$restoreFailure=$_}
   throw
- }finally{Close-ReadPairPublication}
+ }finally{
+  try{Close-ReadPairPublication}catch{$cleanupFailure=$_}
+  Set-ReadPairInstallFailureDiagnostics (Get-Variable result -ValueOnly -ErrorAction SilentlyContinue) $primaryFailure $restoreFailure $cleanupFailure
+  if($cleanupFailure-and!$primaryFailure){throw $cleanupFailure}
+ }
+ return $outcome
 }
 function Check-Bundle([string]$Root,[string]$Hash,[string]$Source){
  for($part=$Root;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNER_BUNDLE_REPARSE_POINT'}}
@@ -361,6 +369,45 @@ function Get-ReadPairInstallFailureSite($Failure){
  $safeId=if($id-cin@('PropertyNotFoundStrict','VariableIsUndefined','MethodNotFound','ParameterArgumentValidationError','ParameterBindingValidationException')){$id}else{$null}
  $safeType=if($type-cin@('System.Management.Automation.RuntimeException','System.Management.Automation.PropertyNotFoundException','System.Management.Automation.MethodInvocationException','System.Management.Automation.ParameterBindingValidationException','System.ArgumentException','System.InvalidOperationException','System.IO.IOException','System.UnauthorizedAccessException','System.Data.SqlClient.SqlException')){$type}else{$null}
  return [ordered]@{scriptLeaf=$(if($leaf-cin$knownLeaves){$leaf}else{$null});scriptLineNumber=[int]$Failure.InvocationInfo.ScriptLineNumber;errorId=$safeId;errorIdSha256=$(if($id-and!$safeId){Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($id))}else{$null});exceptionType=$safeType;exceptionTypeSha256=$(if(!$safeType){Get-ReadPairControllerHash ([Text.Encoding]::UTF8.GetBytes($type))}else{$null})}
+}
+function Set-ReadPairInstallFailureDiagnostics($Result,$Primary,$Restore,$Cleanup){
+ # Fixed categories and location metadata only; never serialize exception text.
+ if($null-eq$Result){return}
+ foreach($entry in @(@('primaryFailure',$Primary,'READPAIR_PRIMARY_FAILURE'),@('restoreFailure',$Restore,'READPAIR_RESTORE_FAILURE'),@('cleanupFailure',$Cleanup,'READPAIR_CLEANUP_FAILURE'))){
+  $Result[$entry[0]]=if($null-ne$entry[1]){[ordered]@{code=$entry[2];site=(Get-ReadPairInstallFailureSite $entry[1])}}else{$null}
+ }
+}
+function Write-ReadPairInstallFailureReceipt($Failure){
+ $result.failureSite=Get-ReadPairInstallFailureSite $Failure
+ $result.failure=if($Failure.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$Failure.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'}
+ try{Record-Phase 'FAILED_REVIEW_RECEIPT'}catch{$result.failureReceiptWriteFailure=[ordered]@{code='READPAIR_FAILURE_RECEIPT_WRITE_FAILED';site=(Get-ReadPairInstallFailureSite $_)}}
+}
+function Close-B6ReadPairSourceResources($Primary){
+ # Only the fixed source/proof resources owned by this controller are closed.
+ # Continue after each disposal failure; retain at most sixteen safe locations.
+ $first=$null;$failureCount=0;$diagnostics=[Collections.Generic.List[object]]::new()
+ if($WebOnlyRefreshInstall){
+  foreach($name in @('WebOnlyApiHandle','WebOnlyPackageSeal')){
+   if(Get-Variable $name -Scope Script -ErrorAction SilentlyContinue){
+    $resource=Get-Variable $name -Scope Script -ValueOnly
+    if($resource){try{$resource.Dispose()}catch{if(!$first){$first=$_};$failureCount++;if($diagnostics.Count-lt16){$diagnostics.Add([ordered]@{resource=$name;index=0;site=(Get-ReadPairInstallFailureSite $_)})}}}
+   }
+  }
+ }
+ if($b6ReadProof){try{Close-ErpReadPairReleaseProof $b6ReadProof}catch{if(!$first){$first=$_};$failureCount++;if($diagnostics.Count-lt16){$diagnostics.Add([ordered]@{resource='ReleaseProof';index=0;site=(Get-ReadPairInstallFailureSite $_)})}}}
+ $index=0
+ foreach($stream in $b6SourceHandles){
+  try{$stream.Dispose()}catch{if(!$first){$first=$_};$failureCount++;if($diagnostics.Count-lt16){$diagnostics.Add([ordered]@{resource='SourceHandle';index=$index;site=(Get-ReadPairInstallFailureSite $_)})}}
+  $index++
+ }
+ if($first){
+  # No receipt/Record-Phase exists until the original install-once boundary.
+  if($null-ne$result-and$resultPath){
+   $result.sourceCleanupFailure=[ordered]@{code='READPAIR_SOURCE_CLEANUP_FAILED';failureCount=$failureCount;diagnostics=@($diagnostics.ToArray())}
+   if($Primary){Write-ReadPairInstallFailureReceipt $Primary}else{Write-ReadPairInstallFailureReceipt $first}
+  }
+  if(!$Primary){throw $first}
+ }
 }
 function Get-B6ReadPairOwnerArguments([string]$Root,[string]$Hash){
  if($SteadyStartupInstall-and$Root-ceq$b6.coreRoot){return ('-NoProfile -NonInteractive -WindowStyle Hidden -File '+$Root+'\run-current-owner.ps1 -ManifestSha256 '+$Hash.ToUpperInvariant())}
@@ -720,18 +767,33 @@ function Open-B6SteadyPreparedSource([string]$ReviewedSourceHash,[string]$EntryP
  }catch{foreach($stream in $script:b6SourceHandles){$stream.Dispose()};throw}
 }
 # This finite entry is prepared passively; it is never called by its producer.
+function Assert-B6PendingPostRecoveryLineage($Lineage){
+ if(!$Lineage){throw 'PENDING_WEB_POST_RECOVERY_LINEAGE_CHANGED'}
+ foreach($name in @('schema','failureSha256','recoverySha256','claimSha256','attemptSha256','archiveSha256','recoverySource','firstInstallError')){if($Lineage.$name-isnot[string]){throw 'PENDING_WEB_POST_RECOVERY_LINEAGE_CHANGED'}}
+ if(!$Lineage-or$Lineage.schema-cne'melisa-b6-post-recovery-lineage.v1'-or$Lineage.failureSha256-cne'a983c262bf21bb6fb8b0ce95eb386799b622846bb3c3dc1ded78fb0d1ea97dbf'-or$Lineage.recoverySha256-cne'9da2b784a39db2209a068e8aa92f6905270ceb15618d54628cab989a3c721c60'-or$Lineage.claimSha256-cne'2b6d0e74b8c487f0cf6af35e34d8ba935d190674fc2d4f93f038db3ec1dd820f'-or$Lineage.attemptSha256-cne'eea6c67d3c0e65fd2b43f5e2e8441c71e9a16f04e60163bd7cb331079b1126d1'-or$Lineage.archiveSha256-cne'3a036109935e733fa2e6f3cf229677b067ff0ecfdab7f98794fe9b065c718745'-or$Lineage.recoverySource-cne'680d181b67b4a6171cf111393fe8eae334986c10'-or$Lineage.firstInstallError-cne'UNKNOWN'){throw 'PENDING_WEB_POST_RECOVERY_LINEAGE_CHANGED'}
+ foreach($name in @('archiveOnly','oldNamespacesConsumed')){if($Lineage.$name-isnot[bool]-or!$Lineage.$name){throw 'PENDING_WEB_POST_RECOVERY_LINEAGE_CHANGED'}}
+ foreach($name in @('installationRollbackComplete','executionAuthority','admissionIssued')){if($Lineage.$name-isnot[bool]-or$Lineage.$name){throw 'PENDING_WEB_POST_RECOVERY_LINEAGE_CHANGED'}}
+}
 function Open-B6PendingWebPreparedSource([string]$ReviewedSourceHash,[string]$EntryPath){
- $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-birth-v2-20261101';$proof=Join-Path $private 'owner-preparation'
+ $private='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-post-recovery-20261101';$proof=Join-Path $private 'owner-preparation'
  if(!$Apply-or!$PendingWebInstall-or!$PublishPendingStartup-or!$WebOnlyRefreshInstall-or$ScopeName-cne'TEST125-API-B6-WRITER-20261029'-or$PSVersionTable.PSEdition-cne'Desktop'-or$EntryPath-cne(Join-Path $proof 'reviewed-installer-source.ps1')-or$ReviewedSourceHash-cnotmatch'\A[a-fA-F0-9]{64}\z'){throw 'PENDING_WEB_REVIEWED_ENTRY_REQUIRED'}
  $node='C:\Sirket\ERP\tools\node-v24.19.0\node.exe';Assert-ReadPairPath $node
  if((Get-FileHash -LiteralPath $node).Hash-cne'3602F2BB1A10F2CBAB4C36886218A33C1AB3DB87290E73B033C46C77147D0237'){throw 'PENDING_WEB_NODE_CHANGED'}
  $script:b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
  try{
   Hold-B6ReadPairSource $EntryPath $ReviewedSourceHash
-  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer '47e0d0c8a5dd229c777b357187500910f425d82d7b437f40c0eaadd655f20a41'
+  $producer=Join-Path $proof 'verified-owner-producer.mjs';Hold-B6ReadPairSource $producer 'c1f5b2b3a3c00c27bf038480c5753d4d12504ecc7fcb72506b858793d4a1eda8'
   $text=& $node $producer --verify-pending-web-generation
   if($LASTEXITCODE-ne0){throw 'PENDING_WEB_PREPARED_SOURCE_REJECTED'};$v=($text-join[Environment]::NewLine)|ConvertFrom-Json
-  if($v.schema-cne'melisa-b6-pending-web-generation-verification.v1'-or$v.installed-isnot[bool]-or$v.installed-or$v.executionAuthority-isnot[bool]-or$v.executionAuthority-or$v.admissionIssued-isnot[bool]-or$v.admissionIssued-or$v.runtimeValidationComplete-isnot[bool]-or$v.runtimeValidationComplete-or$v.postExitExclusiveEntryCount-ne56-or$v.coreRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101'-or$v.routerRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-BIRTH-V2-20261101'-or$v.installerSourceSha256-ine$ReviewedSourceHash){throw 'PENDING_WEB_VERIFICATION_CHANGED'}
+  if($v.schema-cne'melisa-b6-pending-web-generation-verification.v1'-or$v.installed-isnot[bool]-or$v.installed-or$v.applied-isnot[bool]-or$v.applied-or$v.executionAuthority-isnot[bool]-or$v.executionAuthority-or$v.admissionIssued-isnot[bool]-or$v.admissionIssued-or$v.runtimeValidationComplete-isnot[bool]-or$v.runtimeValidationComplete-or$v.postExitExclusiveEntryCount-ne56-or$v.coreRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-POST-RECOVERY-20261101'-or$v.routerRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-POST-RECOVERY-20261101'-or$v.steadyRoot-cne'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101'-or$v.installerSourceSha256-ine$ReviewedSourceHash){throw 'PENDING_WEB_VERIFICATION_CHANGED'}
+  Assert-B6PendingPostRecoveryLineage $v.lineage
+  if(Test-Path -LiteralPath (Join-Path $proof 'install-once')){throw 'READPAIR_USE_EXISTING_RECEIPT_NO_RERUN'}
+  $recovery='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-retained-handoff-recovery-20261101'
+  Hold-B6ReadPairSource 'C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-birth-v2-20261101\owner-preparation\install-once\result.json' $v.lineage.failureSha256
+  Hold-B6ReadPairSource (Join-Path $recovery 'recovery-once\result.json') $v.lineage.recoverySha256
+  Hold-B6ReadPairSource (Join-Path $recovery 'recovery-claim.json') $v.lineage.claimSha256
+  Hold-B6ReadPairSource (Join-Path $recovery 'recovery-once\attempt.json') $v.lineage.attemptSha256
+  Hold-B6ReadPairSource (Join-Path $recovery 'recovery-once\5244-retirement.pending.archived') $v.lineage.archiveSha256
   foreach($root in @($v.coreRoot,$v.steadyRoot)){$m=Get-Content -LiteralPath (Join-Path $root 'owner-manifest.json') -Raw|ConvertFrom-Json;Hold-B6ReadPairSource (Join-Path $root 'owner-manifest.json') $(if($root-ceq$v.coreRoot){$v.coreManifestSha256}else{$v.steadyManifestSha256});foreach($f in @($m.files)+@($m.dataFiles)){Hold-B6ReadPairSource (Join-Path $root $f.path) $f.sha256}}
   $r=Get-Content -LiteralPath (Join-Path $v.routerRoot 'owner-manifest.json') -Raw|ConvertFrom-Json
   Hold-B6ReadPairSource (Join-Path $v.routerRoot 'owner-manifest.json') $v.routerManifestSha256;Hold-B6ReadPairSource (Join-Path $v.routerRoot $r.entry) $r.entrySha256;Hold-B6ReadPairSource (Join-Path $v.routerRoot 'readpair-router-library.ps1') $r.routerLibrarySha256
@@ -779,7 +841,7 @@ function Assert-B6PendingWebApiBoundary {
 function New-B6PendingWebTaskXml([string]$BeforeXml){
  $doc=[Xml.XmlDocument]::new();$doc.XmlResolver=$null;$doc.PreserveWhitespace=$true;$doc.LoadXml($BeforeXml);$ns=[Xml.XmlNamespaceManager]::new($doc.NameTable);$ns.AddNamespace('t','http://schemas.microsoft.com/windows/2004/02/mit/task')
  $actions=@($doc.SelectNodes('/t:Task/t:Actions/*',$ns));$command=$doc.SelectSingleNode('/t:Task/t:Actions/t:Exec/t:Command',$ns);$arguments=$doc.SelectSingleNode('/t:Task/t:Actions/t:Exec/t:Arguments',$ns)
- $old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101\start-owned-test.ps1'
+ $old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101\start-owned-test.ps1'
  $expected='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$old+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
  if($actions.Count-ne1-or!$command-or!$arguments-or$command.InnerText-ine'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'-or$arguments.InnerText-cne$expected){throw 'PENDING_WEB_TASK_ACTION_CHANGED'}
  $arguments.InnerText=$expected.Replace($old,$new);return $doc.OuterXml
@@ -1272,7 +1334,7 @@ function Assert-ReadPairColdTarget {
  Assert-ReadPairProtection;$control.Validate()
  Hold-B6ReadPairActiveEntry
 }
-function Read-B6ReadPairManagedExitSignal {return [Console]::ReadLine()}
+function Read-B6ReadPairManagedExitSignal {return [Business5244ManagedExitSignal]::Read()}
 function Invoke-B6ReadPairManagedOwnerExit {
  # The console signal is NOT authority. It only ends a wait after the normal
  # Microsoft debugger quit. Two retained native handles then prove the exit;
@@ -1641,7 +1703,7 @@ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-202
   $builtinManifest=[IO.Path]::Combine($PSHOME,'Modules',$builtinName,($builtinName+'.psd1'))
   Microsoft.PowerShell.Core\Import-Module -Name $builtinManifest -Scope Local -ErrorAction Stop
  }
- $b6ReadProof=$null;$b6NativeAdmission=$null;$b6InitializationExitProcess=$null;$b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new()
+ $b6ReadProof=$null;$b6NativeAdmission=$null;$b6InitializationExitProcess=$null;$b6SourceHandles=[Collections.Generic.List[IO.FileStream]]::new();$b6SourcePrimaryFailure=$null;$result=$null;$resultPath=$null
  $b6=if((Get-Variable PendingWebInstall -ValueOnly -ErrorAction SilentlyContinue)-eq$true){Open-B6PendingWebPreparedSource $SourceSha256 $PSCommandPath}elseif($ReadContextRepairInstall){Open-B6ReadContextRepairPreparedSource $SourceSha256 $PSCommandPath}elseif($PreviewLinkInstall){Open-B6PreviewLinkPreparedSource $SourceSha256 $PSCommandPath}elseif($SteadyStartupInstall){Open-B6SteadyPreparedSource $SourceSha256 $PSCommandPath}elseif($WebOnlyRefreshInstall){Open-B6WebOnlyPreparedSource $SourceSha256 $PSCommandPath}elseif($WriterInstall){Open-B6WriterPreparedSource $SourceSha256 $PSCommandPath}elseif($CandidateInstall){Open-B6CandidatePreparedSource $SourceSha256 $PSCommandPath}elseif($RehearsalOnly){Open-B6RehearsalPreparedSource $SourceSha256 $PSCommandPath}else{Open-B6ReadPairPreparedSource $SourceSha256 $PSCommandPath}
  try{
   # All executable bytes came from the committed, hosted-CI verified bundle
@@ -1662,11 +1724,9 @@ if($ScopeName-cin@('TEST125-API-B6-ca620bac-20261028','TEST125-API-B6-WRITER-202
   if($WebOnlyRefreshInstall){$result.maintenancePurpose=$b6.maintenancePurpose;$result.apiRestarts=0;$result.taskChanges=0;$result.profileWrites=0;$result.sqlWrites=0}
   $held=[Collections.Generic.List[object]]::new();$created=[Collections.Generic.List[object]]::new();$control=$null;$newHost=$null;$newResourceRows=@();$oldResourceRows=@();$before=$null;$ready=$null;$status=$null;$webResources=@();$archives=@()
   function Record-Phase([string]$Phase){$result.status=$Phase;[IO.File]::WriteAllText($resultPath,($result|ConvertTo-Json -Depth 16));[Console]::WriteLine((@{phase=$Phase;utc=[DateTime]::UtcNow.ToString('o')}|ConvertTo-Json -Compress));[Console]::Out.Flush()}
-  try{Invoke-ReadPairInstallSequence}catch{$result.failureSite=Get-ReadPairInstallFailureSite $_;$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}
- }finally{
-  if($WebOnlyRefreshInstall){foreach($name in @('WebOnlyApiHandle','WebOnlyPackageSeal')){if(Get-Variable $name -Scope Script -ErrorAction SilentlyContinue){$resource=Get-Variable $name -Scope Script -ValueOnly;if($resource){$resource.Dispose()}}}}
-  if($b6ReadProof){Close-ErpReadPairReleaseProof $b6ReadProof;$b6ReadProof=$null}
-  foreach($stream in $b6SourceHandles){$stream.Dispose()}
+  try{Invoke-ReadPairInstallSequence}catch{$primaryInstallFailure=$_;Write-ReadPairInstallFailureReceipt $primaryInstallFailure;throw}
+ }catch{$b6SourcePrimaryFailure=$_;throw}finally{
+  Close-B6ReadPairSourceResources $b6SourcePrimaryFailure
  }
  return
 }
@@ -1697,4 +1757,4 @@ Check-Bundle $oldRoot $oldHash 'ec316a63b535544e53a566370b1614a1721f940c'
 Initialize-Business5244WebNative;Initialize-Business5244RetirementPeer;$pins=Get-Business5244WebPins
 $generation=[Business5244PackageSeal]::new()
 try{if(!$generation.GetType().GetProperty('PolicyVersion')-or$generation.PolicyVersion-cne'test125-package-file-identity.v2'){throw 'READPAIR_PREPARED_API_CORE_GENERATION_REQUIRED'}}finally{$generation.Dispose()}
-try{Invoke-ReadPairInstallSequence}catch{$result.failureSite=Get-ReadPairInstallFailureSite $_;$result.failure=if($_.Exception.Message-cmatch'^[A-Z][A-Z0-9_]+$'){$_.Exception.Message}else{'READPAIR_UNCLASSIFIED_FAILURE'};Record-Phase 'FAILED_REVIEW_RECEIPT';throw $result.failure}
+try{Invoke-ReadPairInstallSequence}catch{$primaryInstallFailure=$_;Write-ReadPairInstallFailureReceipt $primaryInstallFailure;throw}

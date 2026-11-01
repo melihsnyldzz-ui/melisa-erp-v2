@@ -979,6 +979,16 @@ test('PreviewRead indexed CurrentCore keeps historical source and API launchers 
  }finally{f.close();}}
 });
 
+function pendingLineageFixture(f){
+ const g=f.values('PL'),records={
+ failure:{status:'FAILED_REVIEW_RECEIPT',sourceCommit:'f18204143740ac11224ec48e97ae4fdb3fcc5793',maintenancePurpose:'WebOnlyFrontendRefresh',failure:'B6_ACTIVE_ENTRY_HANDOFF_GATES_RETAINED',outcome:null,scope:'TEST125-API-B6-WRITER-20261029',stopCalls:0,startCalls:0,retireAttempts:0,taskChanges:0,apiRestarts:0,profileWrites:0,sqlWrites:0},
+ recovery:{schema:'melisa-b6-retained-recovery-result.v1',sourceCommit:g.recoverySource,status:'MARKER_ARCHIVED_OLD_PAIR_PRESERVED',failure:null,recoverySequenceAttempts:1,nativeRenameCalls:1,startupMarkerAbsent:true,installationRollbackComplete:false,firstInstallError:'UNKNOWN',installationCalls:0,sqlWrites:0,stopCalls:0,taskChanges:0,proof:{archived:true,originalCreatorIdentityRecovered:false,newObservationFileIdentity:'4004021667:786432:3333851'}},
+ claim:{schema:'melisa-b6-retained-recovery-claim.v1',failure:g.failureSha256,marker:g.archiveSha256,source:g.recoverySource,writes:'EXACT_MARKER_ARCHIVE_ONLY',pid:44996},
+ attempt:{schema:'business-5244-retained-recovery-attempt.v1',markerPath:String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\5244-retirement.pending`,archivePath:String.raw`\\?\Volume{2974b0b1-5897-4a35-8c0b-ce4379b2e39f}\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-retained-handoff-recovery-20261101\recovery-once\5244-retirement.pending.archived`,markerSha256:g.archiveSha256,failureSha256:g.failureSha256,nativeSourceSha256:g.nativeSha256,entrySourceSha256:g.entrySha256,observedFileIdentity:'4004021667:786432:3333851',issuerPid:44996,issuerBirth:'134380034806492614'}
+ };const raw=Object.fromEntries(Object.entries(records).map(([k,v])=>[k,Buffer.from(JSON.stringify(v))]));raw.archive=Buffer.from('isolated-archived-marker');
+ const pin=(k,b)=>f.addPinned('C:\\isolated-fixture\\lineage-'+k,b,g[k+'Sha256']);for(const[k,b]of Object.entries(raw))pin(k,b);
+ return{records,raw,pin};
+}
 function pendingGenerationFixture(){
  const f=fixture(),g=f.values('PG'),leafs=[...f.values('BUSINESS_SALE_OWNER_SOURCE_FILES'),'run-current-owner.ps1'];
  const old={kind:'BUSINESS5244_FRESH_OWNER_BUNDLE',sourceCommit:'a9bdf9ddb71fa78276711424aa12d08088f5e38e',finiteScope:'TEST125-API-B6-WRITER-20261029',maintenancePurpose:'PreviewLinkPackageRefresh',files:leafs.map((path,n)=>({path,sha256:sha(Buffer.from('old-fixture-'+n)),bytes:n+1}))};
@@ -987,22 +997,39 @@ function pendingGenerationFixture(){
  b.entries.push({path:path.win32.join(g.oldCore,'run-current-owner.ps1'),sha256:old.files.find(x=>x.path==='run-current-owner.ps1').sha256});
  const beforeBytes=Buffer.from(JSON.stringify(b)),recordBytes=Buffer.from(JSON.stringify([{pid:7052,port:5244,root:g.currentRoot,sourceCommit:'fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a',backendPort:4144,businessWorkfaceId:'ERP-5244-REALDATA-20261027'}])),taskXml=Buffer.from('<Task><Actions><Exec><Arguments>C:\\Sirket\\ERP\\releases\\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\\start-owned-test.ps1</Arguments></Exec></Actions></Task>'),taskSddl=Buffer.from('isolated-task-sddl'),oldCore=Buffer.from(JSON.stringify(old));
  for(const[n,bytes,pin]of[['before',beforeBytes,g.beforeHash],['record',recordBytes,g.recordHash],['taskXml',taskXml,b.task.xmlSha256],['taskSddl',taskSddl,b.task.sddlSha256],['oldCore',oldCore,g.oldCoreHash]])f.addPinned('C:\\isolated-fixture\\'+n,bytes,pin);
- const input={before:b,beforeBytes,recordBytes,taskXml,taskSddl,oldCore};f.context.__pendingInput=input;f.context.__pendingSource={head:'f'.repeat(40),files:f.blobs};f.context.__pendingCi=[{event:'push',head:'f'.repeat(40),conclusion:'success',runId:1,jobs:['windows-startup-test','quality-build-test','secret-scan']},{event:'pull_request',head:'f'.repeat(40),conclusion:'success',runId:2,jobs:['windows-startup-test','quality-build-test','secret-scan']}];
+ const input={before:b,beforeBytes,recordBytes,taskXml,taskSddl,oldCore,lineage:pendingLineageFixture(f).raw};f.context.__pendingInput=input;f.context.__pendingSource={head:'f'.repeat(40),files:f.blobs};f.context.__pendingCi=[{event:'push',head:'f'.repeat(40),conclusion:'success',runId:1,jobs:['windows-startup-test','quality-build-test','secret-scan']},{event:'pull_request',head:'f'.repeat(40),conclusion:'success',runId:2,jobs:['windows-startup-test','quality-build-test','secret-scan']}];
  return {...f,g,b,input,compile:()=>f.values('compilePendingWebGeneration(__pendingSource,__pendingCi,__pendingInput)')};
 }
+test('Post-recovery lineage requires both exact receipts, consumed claim, archive and strict zero-effect types',()=>{
+ const mutations=[
+  ['failure','sourceCommit','0'.repeat(40)],['failure','maintenancePurpose','other'],['failure','stopCalls','0'],
+  ['recovery','schema','other'],['recovery','sourceCommit','0'.repeat(40)],['recovery','status','SUCCESS'],['recovery','failure','hidden'],['recovery','recoverySequenceAttempts',2],['recovery','nativeRenameCalls',0],['recovery','startupMarkerAbsent','true'],['recovery','installationRollbackComplete',true],['recovery','firstInstallError','guessed'],
+  ...['installationCalls','sqlWrites','stopCalls','taskChanges'].flatMap(k=>[['recovery',k,1],['recovery',k,'0']]),
+  ['recovery','proof.archived',false],['recovery','proof.originalCreatorIdentityRecovered',true],['recovery','proof.newObservationFileIdentity','foreign'],
+  ['claim','schema','other'],['claim','failure','0'.repeat(64)],['claim','marker','0'.repeat(64)],['claim','source','0'.repeat(40)],['claim','writes','RESET'],['claim','pid',44997],['claim','pid','44996'],
+  ...['schema','markerPath','archivePath','markerSha256','failureSha256','nativeSourceSha256','entrySourceSha256','observedFileIdentity','issuerBirth'].map(k=>['attempt',k,'foreign']),['attempt','issuerPid',44997],['attempt','issuerPid','44996']
+ ];
+ for(const change of [null,...mutations]){const f=fixture();try{const x=pendingLineageFixture(f);f.context.__lineage=x.raw;
+  // Each isolated fixture first proves its positive path before one mutation.
+  const valid=f.values('validatePendingWebRecoveryLineage(__lineage)');assert.equal(valid.archiveOnly,true);assert.equal(valid.oldNamespacesConsumed,true);assert.equal(valid.executionAuthority,false);assert.equal(valid.firstInstallError,'UNKNOWN');
+  if(change){const[k,key,value]=change,parts=key.split('.');let target=x.records[k];for(const n of parts.slice(0,-1))target=target[n];target[parts.at(-1)]=value;x.raw[k]=Buffer.from(JSON.stringify(x.records[k]));x.pin(k,x.raw[k]);assert.throws(()=>f.values('validatePendingWebRecoveryLineage(__lineage)'),{message:/^PENDING_GENERATION_(PREDECESSOR_FAILURE_CHANGED|RECOVERY_(RESULT|CLAIM|ATTEMPT)_CHANGED)$/});}
+  assert.equal(f.writes(),0);
+ }finally{f.close();}}
+ for(const k of['failure','recovery','claim','attempt','archive']){const f=fixture();try{const x=pendingLineageFixture(f);f.context.__lineage=x.raw;assert.equal(f.values('validatePendingWebRecoveryLineage(__lineage).archiveOnly'),true);x.raw[k]=Buffer.from('different unpinned bytes');assert.throws(()=>f.values('validatePendingWebRecoveryLineage(__lineage)'),{message:'PENDING_GENERATION_RECOVERY_LINEAGE_PIN'});assert.equal(f.writes(),0);}finally{f.close();}}
+});
 test('Pending WEB generation emits complete separate core router steady and private before-images without execution authority',()=>{
  const f=pendingGenerationFixture();try{const p=f.compile(),core=JSON.parse(p.core.manifestBytes),steady=JSON.parse(p.steady.manifestBytes),router=JSON.parse(p.routerBytes),c=JSON.parse(p.caseBytes);
- for(const m of[core,steady,router,c])for(const k of['installed','executionAuthority','admissionIssued','runtimeValidationComplete','activePointerPublished'])assert.equal(m[k],false);
+ for(const m of[core,steady,router,c])for(const k of['installed','applied','executionAuthority','admissionIssued','runtimeValidationComplete','activePointerPublished'])assert.equal(m[k],false);
  for(const m of[core,steady]){assert.equal(m.files.length,13);assert.equal(m.dataFiles.length,2);assert.equal(m.privateBeforeImages.length,8);assert.equal(m.postExitExclusiveEntryCount,56);assert.equal(m.apiTransitionEnabled,false);assert.deepEqual(m.dataFiles.map(x=>x.path).sort(),['pending-web-case.json','writer-webonly-package-pair.json']);assert(m.privateBeforeImages.every(x=>x.path.startsWith(f.g.privateRoot+'\\owner-preparation\\')));}
  assert.equal(core.readPairMaintenanceEnabled,true);assert.equal(steady.readPairMaintenanceEnabled,false);assert.equal(router.coreManifestSha256,sha(p.core.manifestBytes));assert.equal(router.entrySha256,sha(p.routerEntry));assert.equal(c.apiManifestSha256,f.g.apiHash);assert.equal(c.currentWebManifestSha256,f.g.currentHash);assert.equal(c.candidateWebManifestSha256,f.g.candidateHash);assert.equal(p.capture.nativePeerVerified,false);assert.equal(p.capture.predecessorEntryKind,'CurrentCore');assert.equal(p.capture.birthProvenance,'CIM_FILETIME_MICROSECOND');assert.equal(p.entryCapture.directEntries.length,50);assert.equal(f.writes(),0);
- assert.match(f.g.core,/BIRTH-V2-20261101$/);assert.match(f.g.privateRoot,/birth-v2-20261101$/);assert.notEqual(f.g.beforeRoot,f.g.privateRoot);
+ assert.match(f.g.core,/POST-RECOVERY-20261101$/);assert.match(f.g.privateRoot,/post-recovery-20261101$/);assert.notEqual(f.g.beforeRoot,f.g.privateRoot);
  for(const body of[p.core.files.get('run-current-owner.ps1'),p.steady.files.get('run-current-owner.ps1'),p.routerEntry]){assert.doesNotMatch(body.toString(),/-PrepareReadPair|New-ErpBusinessSale|New-Test125ReadPair/);assert.match(body.toString(),/Start-Business5244OwnedSupervisor -InitialSlot Current/);}
  }finally{f.close();}
 });
 test('Pending birth continuation requires the exact old zero-effect failure and never rewrites its receipt',()=>{
  for(const kind of['valid','hash','status','failure','outcome','scope','stopCalls','startCalls','retireAttempts','taskChanges','apiRestarts','profileWrites','sqlWrites']){
   const f=fixture();try{
-   const r={status:'FAILED_REVIEW_RECEIPT',failure:'B6_CURRENT_OWNER_CAPTURE_CHANGED',outcome:null,scope:'TEST125-API-B6-WRITER-20261029',stopCalls:0,startCalls:0,retireAttempts:0,taskChanges:0,apiRestarts:0,profileWrites:0,sqlWrites:0};
+   const r={status:'FAILED_REVIEW_RECEIPT',sourceCommit:'f18204143740ac11224ec48e97ae4fdb3fcc5793',maintenancePurpose:'WebOnlyFrontendRefresh',failure:'B6_ACTIVE_ENTRY_HANDOFF_GATES_RETAINED',outcome:null,scope:'TEST125-API-B6-WRITER-20261029',stopCalls:0,startCalls:0,retireAttempts:0,taskChanges:0,apiRestarts:0,profileWrites:0,sqlWrites:0};
    if(kind==='status')r.status='SUCCESS';else if(kind==='failure')r.failure='OTHER_FAILURE';else if(kind==='outcome')r.outcome='CandidateVerified';else if(kind==='scope')r.scope='other';else if(!['valid','hash'].includes(kind))r[kind]=1;
    const b=Buffer.from(JSON.stringify(r));f.addPinned('C:\\fixture\\failed-result.json',b,f.values('PENDING_WEB_PREDECESSOR_FAILURE_SHA256'));f.context.__failure=kind==='hash'?Buffer.from('changed'):b;
    if(kind==='valid')assert.equal(f.values('validatePendingWebPredecessorFailure(__failure)'),true);else assert.throws(()=>f.values('validatePendingWebPredecessorFailure(__failure)'),/PENDING_GENERATION_PREDECESSOR_FAILURE/);
@@ -1019,4 +1046,21 @@ test('Pending WEB generation input bytes and source closure cannot be substitute
 });
 test('Pending WEB generation raw argv task XML and SDDL remain private and never enter public release payloads',()=>{
  const f=pendingGenerationFixture();try{const p=f.compile(),out=f.values('pendingWebGenerationOutput(compilePendingWebGeneration(__pendingSource,__pendingCi,__pendingInput),__pendingSource)');for(const[file,b]of out){if(file.startsWith(f.g.privateRoot+'\\'))continue;assert(!b.includes(Buffer.from(f.b.owner.argv)));assert(!b.includes(f.input.taskXml));assert(!b.includes(f.input.taskSddl));}assert.equal(out.size,46);assert.equal(f.writes(),0);}finally{f.close();}
+});
+test('Pending generated thirteen-leaf closure uses actual PS5 ordinal bijection under Turkish and English cultures',{skip:process.platform!=='win32'},()=>{
+ const f=pendingGenerationFixture();try{
+  const rendered=f.values("pendingGenerationCoreCheck('f'.repeat(40))"),closure=rendered.slice(rendered.indexOf('$names='),rendered.indexOf('foreach($f in @($m.files)+'));
+  assert(closure.includes('[StringComparer]::Ordinal'));assert(!closure.includes('Sort-Object'));
+  const names=[...f.values('BUSINESS_SALE_OWNER_SOURCE_FILES'),'run-current-owner.ps1'],q=s=>"'"+s.replaceAll("'","''")+"'";
+  const script=`$ErrorActionPreference='Stop';$valid=${q(JSON.stringify(names))}|ConvertFrom-Json;$check=[scriptblock]::Create(${q(closure)})
+foreach($culture in @('tr-TR','en-US')){[Threading.Thread]::CurrentThread.CurrentCulture=[Globalization.CultureInfo]::GetCultureInfo($culture)
+ foreach($kind in @('valid','missing','extra','duplicate','case','relative','wrongType')){
+  $m=[pscustomobject]@{files=@($valid|ForEach-Object{[pscustomobject]@{path=$_}})};& $check
+  if($kind-ceq'missing'){$m.files=@($m.files|Select-Object -Skip 1)}elseif($kind-ceq'extra'){$m.files+=@([pscustomobject]@{path='foreign.ps1'})}elseif($kind-ceq'duplicate'){$m.files[1].path=$m.files[0].path}elseif($kind-ceq'case'){$m.files[0].path=$m.files[0].path.ToUpperInvariant()}elseif($kind-ceq'relative'){$m.files[0].path='../'+$m.files[0].path}elseif($kind-ceq'wrongType'){$m.files[0].path=7}
+  $failure=$null;try{& $check}catch{$failure=$_.Exception.Message}
+  if($kind-ceq'valid'){if($failure){throw $failure}}elseif($failure-cne'PENDING_GENERATION_CLOSURE_CHANGED'){throw 'PENDING_CLOSURE_NEGATIVE_NOT_EXACT'}
+ }
+};'PASS'`;
+  assert.equal(cp.execFileSync(path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-Command',script],{encoding:'utf8',windowsHide:true,timeout:20000}).trim(),'PASS');
+ }finally{f.close();}
 });

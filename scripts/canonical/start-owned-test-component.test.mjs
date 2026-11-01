@@ -31,8 +31,8 @@ $tokens=$null;$parseErrors=$null;$ast=[Management.Automation.Language.Parser]::P
 $fn=$ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Test-ErpSteadyWebStartupGeneration'},$true)
 if($fn.Count-ne1){throw 'PENDING_STEADY_PREDICATE_MISSING'}
 . ([scriptblock]::Create($fn[0].Extent.Text.Replace('$PSScriptRoot','$fixtureSteadyRoot')))
-$expected='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101'
-foreach($candidate in @($expected,($expected+'-other'),$expected.ToLowerInvariant())){$fixtureSteadyRoot=$candidate;if((Test-ErpSteadyWebStartupGeneration)-ne($candidate-ceq$expected)){throw 'PENDING_STEADY_ALIAS_ACCEPTED'}}
+$expected='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101'
+foreach($candidate in @($expected,($expected+'-other'),$expected.ToLowerInvariant(),$expected.Replace('OWNER-POST-RECOVERY-20261101','OWNER-BIRTH-V2-20261101'))){$fixtureSteadyRoot=$candidate;if((Test-ErpSteadyWebStartupGeneration)-ne($candidate-ceq$expected)){throw 'PENDING_STEADY_ALIAS_ACCEPTED'}}
 $fixtureSteadyRoot=$expected;$script:startCalls=0;$script:stateWrites=0;$script:notReady=$false
 function Get-ErpMutexName{'isolated-fixture-no-kernel-mutex'}
 function New-Object {param($TypeName,$ArgumentList);if($TypeName-cne'Threading.Mutex'){throw 'UNEXPECTED_OBJECT'};$m=[pscustomobject]@{};$m|Add-Member ScriptMethod WaitOne {$true};$m|Add-Member ScriptMethod ReleaseMutex {};$m|Add-Member ScriptMethod Dispose {};return $m}

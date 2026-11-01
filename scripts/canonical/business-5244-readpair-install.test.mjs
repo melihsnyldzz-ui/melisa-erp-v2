@@ -2,6 +2,9 @@ import test from 'node:test';import assert from 'node:assert/strict';import fs f
 import crypto from 'node:crypto';
 import './prepare-business-5244-retained-recovery.test.mjs';
 import './recover-business-5244-preclaim.test.mjs';
+import './business-5244-readpair-error-chain.test.mjs';
+import './business-5244-managed-exit-signal.test.mjs';
+import {PENDING_WEB_RECOVERY_LINEAGE} from './prepare-business-sale-owner-bundle.mjs';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 const repairCaseFixture=String.raw`
 $script:ReadContextRepairInstall=$true;$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
@@ -11,6 +14,18 @@ $b6=[pscustomobject]@{fixedCaseId='ReadContextRepair';coreRoot=$root;routerRoot=
 `;
 function run(body){const parent=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(parent,'erp-readpair-install-')));try{const file=path.join(temp,'delta.ps1');fs.writeFileSync(file,`$ErrorActionPreference='Stop';. ${q(path.join(dir,'install-business-5244-readpair.ps1'))} -Library;${body}`);return cp.execFileSync(path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe'),['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout:20000}).trim();}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),parent.toLowerCase());assert(path.basename(full).startsWith('erp-readpair-install-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true,force:true});}}
 const win=(name,fn)=>test(name,{skip:process.platform!=='win32'},fn);
+win('pending consumer validates exact immutable recovery lineage with strict string and boolean types',()=>{
+ const p=PENDING_WEB_RECOVERY_LINEAGE,l={schema:'melisa-b6-post-recovery-lineage.v1',failureSha256:p.failureSha256,recoverySha256:p.recoverySha256,claimSha256:p.claimSha256,attemptSha256:p.attemptSha256,archiveSha256:p.archiveSha256,recoverySource:p.recoverySource,archiveOnly:true,oldNamespacesConsumed:true,firstInstallError:'UNKNOWN',installationRollbackComplete:false,executionAuthority:false,admissionIssued:false};
+ assert.equal(run(`$json=${q(JSON.stringify(l))};$valid=$json|ConvertFrom-Json;Assert-B6PendingPostRecoveryLineage $valid
+foreach($field in @('schema','failureSha256','recoverySha256','claimSha256','attemptSha256','archiveSha256','recoverySource','firstInstallError','archiveOnly','oldNamespacesConsumed','installationRollbackComplete','executionAuthority','admissionIssued')){
+ foreach($value in @('foreign',0,$null)){
+  Assert-B6PendingPostRecoveryLineage ($json|ConvertFrom-Json)
+  $wrong=$json|ConvertFrom-Json;$wrong.$field=$value;$denied=$false
+  try{Assert-B6PendingPostRecoveryLineage $wrong}catch{if($_.Exception.Message-cne'PENDING_WEB_POST_RECOVERY_LINEAGE_CHANGED'){throw};$denied=$true}
+  if(!$denied){throw 'POST_RECOVERY_LINEAGE_ACCEPTED_MUTATION'}
+ }
+};'PASS'`),'PASS');
+});
 const recoveryLoad=`. ${q(path.join(dir,'recover-business-5244-retained-handoff.ps1'))} -Library;`;
 const retainedNativeFixture=String.raw`
 foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))) -Scope Local}
@@ -1416,7 +1431,7 @@ win('PreviewRead corrective publication preserves the exact thirty-two captured 
 });
 win('Pending WEB task projection changes only the future launcher and rejects extra actions arguments or target drift',()=>{
  assert.equal(run(String.raw`
-$old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101\start-owned-test.ps1'
+$old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030\start-owned-test.ps1';$new='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101\start-owned-test.ps1'
 $args='-NoProfile -NonInteractive -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "'+$old+'" -StartupConfigPath "C:\Sirket\ERP\runtime\canonical-test\startup-config.json"'
 $xml='<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task" version="1.2"><Principals><Principal id="Author"><UserId>fixture-user</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><Enabled>true</Enabled></Settings><Actions Context="Author"><Exec><Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command><Arguments>'+[Security.SecurityElement]::Escape($args)+'</Arguments></Exec></Actions></Task>'
 $after=New-B6PendingWebTaskXml $xml

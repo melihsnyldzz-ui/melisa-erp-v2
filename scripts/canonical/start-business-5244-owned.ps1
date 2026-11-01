@@ -258,14 +258,14 @@ function Get-Business5244WebOnlyEntryMode {
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ceq'-File'){$i}})
  if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count){throw 'OWNED_WEB_ONLY_FIXED_ENTRY_REQUIRED'}
  $entry=$argv[$indices[0]+1]
- if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101'){if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-BIRTH-V2-20261101\start-business-5244-readpair-router.ps1'){return 'Maintenance'};if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101\run-current-owner.ps1'){return 'CurrentRecovery'};throw 'OWNED_PENDING_WEB_FIXED_ENTRY_REQUIRED'}
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-POST-RECOVERY-20261101'){if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-POST-RECOVERY-20261101\start-business-5244-readpair-router.ps1'){return 'Maintenance'};if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-POST-RECOVERY-20261101\run-current-owner.ps1'){return 'CurrentRecovery'};throw 'OWNED_PENDING_WEB_FIXED_ENTRY_REQUIRED'}
  if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-ROUTER-20261029\start-business-5244-readpair-router.ps1'){return 'Maintenance'}
  if($entry-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-WEBONLY-OWNER-20261029\run-current-owner.ps1'){return 'CurrentRecovery'}
  throw 'OWNED_WEB_ONLY_FIXED_ENTRY_REQUIRED'
 }
 function Assert-Business5244SteadyEntry {
  $argv=[Environment]::GetCommandLineArgs();$indices=@(for($i=0;$i-lt$argv.Length;$i++){if($argv[$i]-ieq'-File'){$i}})
- if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-BIRTH-V2-20261101'){if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne(Join-Path $PSScriptRoot 'run-current-owner.ps1')){throw 'OWNED_PENDING_STEADY_FIXED_ENTRY_REQUIRED'};return}
+ if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101'){if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne(Join-Path $PSScriptRoot 'run-current-owner.ps1')){throw 'OWNED_PENDING_STEADY_FIXED_ENTRY_REQUIRED'};return}
  if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030'){
   $entry=Join-Path (Get-ErpBusinessSaleReadContextRepairFixedCase).steadyRoot 'run-current-owner.ps1'
   if($indices.Count-ne1-or$indices[0]+1-ge$argv.Length-or$argv[$indices[0]]-cne'-File'-or@($argv|Where-Object{$_-cin@('-Command','-EncodedCommand','-CommandWithArgs','-c','-enc')}).Count-or$argv[$indices[0]+1]-cne$entry){throw 'OWNED_STEADY_FIXED_ENTRY_REQUIRED'}

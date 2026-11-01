@@ -616,11 +616,25 @@ win('Pending WEB entry predicate is self-contained and accepts only exact dispos
  assert.equal(run(load+String.raw`
  $root=Join-Path $env:TEMP 'pending-web-entry-fixture';[void][IO.Directory]::CreateDirectory($root)
  $router=Join-Path $root 'router-entry.ps1';$current=Join-Path $root 'current-entry.ps1'
- $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-BIRTH-V2-20261101\start-business-5244-readpair-router.ps1',$router).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101\run-current-owner.ps1',$current).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101',$root)
+ $definition=(Get-Command Get-Business5244WebOnlyEntryMode).Definition.Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-POST-RECOVERY-20261101\start-business-5244-readpair-router.ps1',$router).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-POST-RECOVERY-20261101\run-current-owner.ps1',$current).Replace('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-POST-RECOVERY-20261101',$root)
  foreach($entry in @($router,$current)){[IO.File]::WriteAllText($entry,('function Get-Business5244WebOnlyEntryMode {'+$definition+'};Get-Business5244WebOnlyEntryMode'))}
  foreach($entry in @($router,$current)){
   $si=[Diagnostics.ProcessStartInfo]::new();$si.FileName=Join-Path $PSHOME 'powershell.exe';$si.Arguments='-NoProfile -NonInteractive -WindowStyle Hidden -File "'+$entry+'" -ManifestSha256 '+('a'*64);$si.UseShellExecute=$false;$si.CreateNoWindow=$true;$si.RedirectStandardOutput=$true;$si.RedirectStandardError=$true
   $child=[Diagnostics.Process]::Start($si);try{$answer=$child.StandardOutput.ReadToEnd().Trim();$errorText=$child.StandardError.ReadToEnd();if(!$child.WaitForExit(5000)-or$child.ExitCode-ne0-or$errorText-or$answer-cne$(if($entry-ceq$router){'Maintenance'}else{'CurrentRecovery'})){throw 'PENDING_ACTUAL_WRAPPER_ARGV_REJECTED'}}finally{$child.Dispose()}
  }
  'PASS'`),'PASS');
+});
+win('post-recovery pending roots remain three literal generations and reject prior roots and aliases',()=>{
+ const web=path.join(dir,'start-business-5244-web.ps1');
+ assert.equal(run(String.raw`
+ $tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile(`+quote(web)+String.raw`,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'WEB_PARSE'}
+ foreach($name in @('Test-Business5244PendingWebGeneration','Test-Business5244WriterWebOnlyGeneration','Test-Business5244SteadyGeneration')){
+  $defs=@($ast.FindAll({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq$name},$true));if($defs.Count-ne1){throw 'PENDING_ROOT_PREDICATE'};. ([scriptblock]::Create($defs[0].Extent.Text.Replace('$PSScriptRoot','$fixturePendingRoot')))
+ }
+ $owner='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-POST-RECOVERY-20261101'
+ $steady='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101'
+ foreach($row in @(@($owner,$true,$true,$false),@($steady,$true,$false,$true))){$fixturePendingRoot=$row[0];if((Test-Business5244PendingWebGeneration)-ne$row[1]-or(Test-Business5244WriterWebOnlyGeneration)-ne$row[2]-or(Test-Business5244SteadyGeneration)-ne$row[3]){throw 'PENDING_ROOT_ROUTING'}}
+ foreach($candidate in @($owner.Replace('POST-RECOVERY','BIRTH-V2'),$steady.Replace('POST-RECOVERY','BIRTH-V2'),($owner+'-other'),($steady+'\nested'),$owner.ToLowerInvariant(),'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-ROUTER-POST-RECOVERY-20261101')){
+  $fixturePendingRoot=$candidate;if((Test-Business5244PendingWebGeneration)-or(Test-Business5244WriterWebOnlyGeneration)-or(Test-Business5244SteadyGeneration)){throw 'PENDING_FOREIGN_ROOT_ACCEPTED'}
+ };'PASS'`),'PASS');
 });
