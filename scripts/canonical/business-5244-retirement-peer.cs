@@ -59,7 +59,7 @@ public sealed class Business5244RetirementPeer:IDisposable {
  public RetainedHandoffRecovery OpenRetainedHandoffRecovery(){Validate();if(!serverPeer||captureIssuer!=GetCurrentProcessId()||captureIssuerBirth!=CurrentBirth||captureThread!=System.Threading.Thread.CurrentThread.ManagedThreadId)throw new Exception("RETAINED_RECOVERY_NATIVE_PEER_REQUIRED");return new RetainedHandoffRecovery(this);}
  public sealed class RetainedHandoffRecovery:IDisposable {
   const string MarkerPath="C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\5244-retirement.pending";
-  const string FrozenRoot="C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-retained-handoff-recovery-ci-v2-20261101";
+  const string FrozenRoot="C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-retained-handoff-recovery-ci-v2-ps51-20261101";
   const string RecoveryRoot="C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-retained-handoff-recovery-20261101";
   const string ArchiveDirectory=RecoveryRoot+"\\recovery-once";
   const string FailurePath="C:\\Sirket\\ERP\\evidence\\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\\private\\b6-pending-web-generation-birth-v2-20261101\\owner-preparation\\install-once\\result.json";

@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import cp from 'node:child_process';import os from 'node:os';import path from 'node:path';
 import crypto from 'node:crypto';
 import './prepare-business-5244-retained-recovery.test.mjs';
+import './recover-business-5244-preclaim.test.mjs';
 const dir=import.meta.dirname,q=s=>"'"+s.replaceAll("'","''")+"'";
 const repairCaseFixture=String.raw`
 $script:ReadContextRepairInstall=$true;$script:PreviewLinkInstall=$true;$script:ScopeName='TEST125-API-B6-WRITER-20261029'
@@ -76,7 +77,7 @@ win('Retained recovery consumes live exact CI provenance before any native autho
 $case=Get-B6RetainedRecoveryCase;$entryHash='a'*64;$producerPin=[regex]::Match([IO.File]::ReadAllText('SOURCE_ENTRY'),'expectedCiProducerSha256=''([a-f0-9]{64})''').Groups[1].Value
 function Hold-B6RetainedRecoveryInput($Path,$Hash){if($Hash-cnotmatch'\A[a-f0-9]{64}\z'){throw 'FIXTURE_INVALID_PIN'};return ,([byte[]]@())}
 function Invoke-B6RetainedRecoveryCiProcess($Producer){if($Producer-cne(Join-Path $case.sourceRoot 'prepare-business-5244-retained-recovery.mjs')){throw 'FIXTURE_WRONG_PRODUCER'};if($script:kind-ceq'network'){throw 'FIXTURE_NETWORK_UNAVAILABLE'};return ($script:answer|ConvertTo-Json -Depth 8)}
-$template=@{schema='melisa-b6-retained-recovery-source.v2';generation='ERP-B6-RECOVERY-CI-PROVENANCE-20261101-0103';sourceCommit=('b'*40);binding=@{sourceRoot=$case.sourceRoot;recoveryRoot=$case.root};provenance=@{path='ci-provenance.json';sha256=('c'*64)}}
+$template=@{schema='melisa-b6-retained-recovery-source.v2';generation='ERP-B6-RECOVERY-PS51-PREFLIGHT-20261101-0839';sourceCommit=('b'*40);binding=@{sourceRoot=$case.sourceRoot;recoveryRoot=$case.root};provenance=@{path='ci-provenance.json';sha256=('c'*64)}}
 foreach($kind in @('valid','local-bool','old-generation','wrong-path','network','fake-response','wrong-source','wrong-root','wrong-manifest','wrong-entry','wrong-producer','authority','installed','admission','runtime')){
  $script:kind=$kind;$m=$template|ConvertTo-Json -Depth 8|ConvertFrom-Json
  switch($kind){local-bool{$m.schema='melisa-b6-retained-recovery-source.v1';$m|Add-Member NoteProperty ciSuccess $true}old-generation{$m.generation='old'}wrong-path{$m.provenance.path='../other'}}
@@ -107,7 +108,7 @@ foreach($kind in @('valid','initial-protection','late-protection','unknown-statu
  function Assert-B6RetainedRecoveryProtection{$script:trace.Add('protection');$script:checks++;if(($script:kind-ceq'initial-protection'-and$checks-eq1)-or($script:kind-ceq'late-protection'-and$checks-eq2)){throw 'FIXTURE_PROTECTION_DRIFT'}}
  function Connect-Business5244RetirementPeer{$script:trace.Add('connect');return @{fixture='connection'}}
  function Get-Business5244RetirementRecord{return @{peer=$peer}}
- function Send-Business5244RetirementRequest {$script:trace.Add('status');$state=@{phase='Running';ownerPid=$c.ownerPid;ownerBirth=$c.ownerBirth;childPid=$c.childPid;childBirth=$c.childBirth};switch($script:kind){unknown-status{$state.phase='Unknown'}owner-status{$state.ownerBirth='other'}child-status{$state.childPid++}};return @{nativePeerVerified=$true;reply='Status';state=$state}}
+ function Send-Business5244RetirementRequest {$script:trace.Add('status');$state=@{phase='Running';ownerPid=$c.ownerPid;ownerBirth=$c.ownerBirth;childPid=$c.childPid;childBirth=$c.childBirth};switch($script:kind){unknown-status{$state.phase='Unknown'}owner-status{$state.ownerBirth='other'}child-status{$state.childPid++}};return @{nativePeerVerified=$true;stopAuthorized=$false;childObservationOnly=$true;reply='Status';state=$state}}
  function Close-Business5244RetirementPeer{$script:trace.Add('close');$script:closed++}
  $denied=$false;try{$proof=Invoke-B6RetainedRecoverySequence}catch{$denied=$true}
  if($kind-ceq'valid'){if($denied-or!$proof.archived-or$proof.originalCreatorIdentityRecovered-or($trace-join'|')-cne'protection|connect|factory|validate|protection|validate|status|validate|archive|dispose|close'){throw 'RECOVERY_SEQUENCE_CHANGED'}}elseif(!$denied){throw ('FALSE_RECOVERY_SEQUENCE_'+$kind)}

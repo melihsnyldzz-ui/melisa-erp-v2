@@ -6,13 +6,15 @@ $ErrorActionPreference='Stop'
 function Get-B6RetainedRecoveryCase {
  return @{
   root='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-retained-handoff-recovery-20261101'
-  sourceRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-retained-handoff-recovery-ci-v2-20261101'
+  sourceRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-retained-handoff-recovery-ci-v2-ps51-20261101'
   beforeRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-birth-v2-20261101\owner-preparation'
   marker='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027\5244-retirement.pending'
   markerHash='3a036109935e733fa2e6f3cf229677b067ff0ecfdab7f98794fe9b065c718745'
   failureHash='a983c262bf21bb6fb8b0ce95eb386799b622846bb3c3dc1ded78fb0d1ea97dbf'
   before='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-pending-web-generation-20261031\before.json'
   beforeHash='25127ef33de5323af9e7ed6888b2699c5276836fff8d471fdad4c34d43b2dcdc'
+  beforeManifest='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101\owner-manifest.json'
+  beforeManifestHash='68220abd0606d09fc2273e06674facf4d3450516b9050045ca2d0903b178502b'
   peerRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-OWNER-20261030'
   peerManifestHash='253995a17a754cec962746da44f44142a477603437ca478911c07cd5ae33dd09'
   ownerPid=33080;ownerBirth='134379216568450543';childPid=7052;childBirth='134379217109250887';controllerPid=53132;controllerBirth='134379606963542382'
@@ -49,13 +51,14 @@ function Invoke-B6RetainedRecoveryCiProcess([string]$Producer){
 }
 function Assert-B6RetainedRecoveryCiProvenance([byte[]]$ManifestBytes,[string]$EntryHash){
  $case=Get-B6RetainedRecoveryCase;$manifest=[Text.Encoding]::UTF8.GetString($ManifestBytes)|ConvertFrom-Json
- if($manifest.schema-cne'melisa-b6-retained-recovery-source.v2'-or$manifest.generation-cne'ERP-B6-RECOVERY-CI-PROVENANCE-20261101-0103'-or$manifest.sourceCommit-cnotmatch'\A[a-f0-9]{40}\z'-or$manifest.binding.sourceRoot-cne$case.sourceRoot-or$manifest.binding.recoveryRoot-cne$case.root){throw 'RETAINED_RECOVERY_CI_MANIFEST'}
- $expectedCiProducerSha256='9879601a405d8807daf4a518daaf3f0c4c3bd2e8acc2d96f73b047631382e424'
+ if($manifest.schema-cne'melisa-b6-retained-recovery-source.v2'-or$manifest.generation-cne'ERP-B6-RECOVERY-PS51-PREFLIGHT-20261101-0839'-or$manifest.sourceCommit-cnotmatch'\A[a-f0-9]{40}\z'-or$manifest.binding.sourceRoot-cne$case.sourceRoot-or$manifest.binding.recoveryRoot-cne$case.root){throw 'RETAINED_RECOVERY_CI_MANIFEST'}
+ $expectedCiProducerSha256='afd1d0c04893630a7624f733823fece93d14991678a314e19858263561368020'
  $producer=Join-Path $case.sourceRoot 'prepare-business-5244-retained-recovery.mjs'
  [void](Hold-B6RetainedRecoveryInput $producer $expectedCiProducerSha256)
  if($manifest.provenance.path-cne'ci-provenance.json'){throw 'RETAINED_RECOVERY_CI_PROOF_PATH'}
  [void](Hold-B6RetainedRecoveryInput (Join-Path $case.sourceRoot 'ci-provenance.json') $manifest.provenance.sha256)
  $verified=Invoke-B6RetainedRecoveryCiProcess $producer|ConvertFrom-Json
+ foreach($name in @('liveGithubVerified','executionAuthority','installed','applied','admissionIssued','runtimeValidationComplete')){if($verified.$name-isnot[bool]){throw 'RETAINED_RECOVERY_LIVE_CI_BINDING'}}
  $sha=[Security.Cryptography.SHA256]::Create();try{$manifestHash=[BitConverter]::ToString($sha.ComputeHash($ManifestBytes)).Replace('-','').ToLowerInvariant()}finally{$sha.Dispose()}
  if($verified.schema-cne'melisa-b6-retained-recovery-ci-verification.v2'-or$verified.generation-cne$manifest.generation-or$verified.liveGithubVerified-ne$true-or$verified.sourceCommit-cne$manifest.sourceCommit-or$verified.sourceRoot-cne$case.sourceRoot-or$verified.recoveryRoot-cne$case.root-or$verified.manifestSha256-cne$manifestHash-or$verified.entrySha256-ine$EntryHash-or$verified.producerSha256-cne$expectedCiProducerSha256-or$verified.executionAuthority-ne$false-or$verified.installed-ne$false-or$verified.applied-ne$false-or$verified.admissionIssued-ne$false-or$verified.runtimeValidationComplete-ne$false){throw 'RETAINED_RECOVERY_LIVE_CI_BINDING'}
  return $manifest
@@ -87,6 +90,89 @@ function Assert-B6RetainedRecoveryProtection {
  if([string]$child.CommandLine-cne$childArgv){throw 'RETAINED_RECOVERY_CHILD_ARGV_CHANGED'}
  foreach($url in @('http://127.0.0.1:5244/ornek-akis.html','http://127.0.0.1:4144/api/health')){if((Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 15).StatusCode-ne200){throw 'RETAINED_RECOVERY_HEALTH_FAILED'}}
 }
+function Assert-B6RetainedRecoveryBeforeImages($Frozen){
+ $c=Get-B6RetainedRecoveryCase
+ $expected=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+ foreach($name in @('current-entry-hold-capture.json','current-erp-processes.before.json','current-read2b-owner-capture.json','current-task-capture.json','current-task.before.sddl','current-task.before.xml','pending-web-before.json','webonly-api-before.json')){[void]$expected.Add($name)}
+ $seen=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+ if($Frozen.privateBeforeImages-isnot[Array]-or@($Frozen.privateBeforeImages).Count-ne8){throw 'RETAINED_RECOVERY_BEFORE_CLOSURE'}
+ # A strict ordinal bijection; culture, input order and PowerShell sorting do not participate.
+ foreach($f in $Frozen.privateBeforeImages){
+  if($f.path-isnot[string]-or$f.sha256-isnot[string]-or$f.sha256-cnotmatch'\A[a-fA-F0-9]{64}\z'){throw 'RETAINED_RECOVERY_BEFORE_SHAPE'}
+  $name=[IO.Path]::GetFileName($f.path)
+  if(!$expected.Contains($name)-or!$seen.Add($name)){throw 'RETAINED_RECOVERY_BEFORE_CLOSURE'}
+  if(![string]::Equals($f.path,[IO.Path]::Combine($c.beforeRoot,$name),[StringComparison]::Ordinal)){throw 'RETAINED_RECOVERY_BEFORE_SCOPE'}
+ }
+ if(!$expected.SetEquals($seen)){throw 'RETAINED_RECOVERY_BEFORE_CLOSURE'}
+ foreach($f in $Frozen.privateBeforeImages){
+  $b=Hold-B6RetainedRecoveryInput $f.path $f.sha256
+  switch -CaseSensitive ([IO.Path]::GetFileName($f.path)){
+   'current-read2b-owner-capture.json'{$script:B6RecoveryInputs.owner=[Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}
+   'current-task-capture.json'{$script:B6RecoveryInputs.taskCapture=[Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}
+   'current-task.before.xml'{$script:B6RecoveryInputs.taskXml=[Text.Encoding]::UTF8.GetString($b)}
+   'current-task.before.sddl'{$script:B6RecoveryInputs.taskSddl=[Text.Encoding]::UTF8.GetString($b)}
+  }
+ }
+}
+function Assert-B6RetainedRecoveryCaller {
+ $case=Get-B6RetainedRecoveryCase
+ if($PSVersionTable.PSEdition-cne'Desktop'-or$PSCommandPath-cne(Join-Path $case.sourceRoot 'recover-business-5244-retained-handoff.ps1')-or$SourceSha256-cnotmatch'\A[a-fA-F0-9]{64}\z'-or(Get-B6RetainedRecoveryHash $PSCommandPath)-ine$SourceSha256){throw 'RETAINED_RECOVERY_FROZEN_ENTRY_REQUIRED'}
+ $self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID);$selfSid=Invoke-CimMethod -InputObject $self -MethodName GetOwnerSid
+ $argv=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape([string]$self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
+ $expectedArgs='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$PSCommandPath+' -Apply -SourceSha256 '+$SourceSha256.ToUpperInvariant()
+ if($self.ExecutablePath-ine'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'-or$selfSid.ReturnValue-ne0-or$selfSid.Sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$argv-cnotin@($expectedArgs,($expectedArgs+' '))){throw 'RETAINED_RECOVERY_NATIVE_CALLER_CHANGED'}
+}
+function Initialize-B6RetainedRecoveryNative([byte[]]$Bytes){
+ [void](Add-Type -TypeDefinition ([Text.Encoding]::UTF8.GetString($Bytes)))
+ . (Join-Path (Get-B6RetainedRecoveryCase).peerRoot 'business-5244-retirement-channel.ps1') -Library
+}
+function Get-B6RetainedRecoveryOwnerMutex {return [Threading.Mutex]::OpenExisting((Get-Business5244StartupMutexName))}
+function Open-B6RetainedRecoveryOwnerWitness {
+ $witness=Get-B6RetainedRecoveryOwnerMutex
+ try{
+  try{$free=$witness.WaitOne(0)}catch [Threading.AbandonedMutexException]{$witness.ReleaseMutex();throw 'RETAINED_RECOVERY_ABANDONED_OWNER'}
+  if($free){$witness.ReleaseMutex();throw 'RETAINED_RECOVERY_OWNER_MUTEX_NOT_HELD'}
+  return $witness
+ }catch{$witness.Dispose();throw}
+}
+function Open-B6RetainedRecoveryPreclaim {
+ $case=Get-B6RetainedRecoveryCase;$preclaimWitness=$null;$heldBefore=$script:B6RecoveryHolds.Count
+ try{
+  [void](Assert-B6RetainedRecoveryCaller)
+  Assert-B6RetainedRecoveryPlainPath $PSCommandPath
+  [void](Hold-B6RetainedRecoveryInput $PSCommandPath $SourceSha256)
+  $manifestBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.sourceRoot 'source-manifest.json') (Get-B6RetainedRecoveryHash (Join-Path $case.sourceRoot 'source-manifest.json'))
+  $manifest=Assert-B6RetainedRecoveryCiProvenance $manifestBytes $SourceSha256
+  $expectedPeerSourceSha256='479137fc30b2bf317d9c7348108c43c9deed4979b1fba20ad1ad5afff5fe23d5'
+  $nativeBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.sourceRoot 'business-5244-retirement-peer.cs') $expectedPeerSourceSha256
+  $failureBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.beforeRoot 'install-once\result.json') $case.failureHash;$script:B6RecoveryInputs.failure=[Text.Encoding]::UTF8.GetString($failureBytes)|ConvertFrom-Json
+  $beforeBytes=Hold-B6RetainedRecoveryInput $case.before $case.beforeHash;$script:B6RecoveryInputs.before=[Text.Encoding]::UTF8.GetString($beforeBytes)|ConvertFrom-Json
+  $frozenBytes=Hold-B6RetainedRecoveryInput $case.beforeManifest $case.beforeManifestHash
+  [void](Assert-B6RetainedRecoveryBeforeImages ([Text.Encoding]::UTF8.GetString($frozenBytes)|ConvertFrom-Json))
+  Assert-B6RetainedRecoveryPlainPath $case.marker;if((Get-B6RetainedRecoveryHash $case.marker)-cne$case.markerHash){throw 'RETAINED_RECOVERY_MARKER_HASH'}
+  $marker=Get-Content -LiteralPath $case.marker -Raw|ConvertFrom-Json
+  [void](Assert-B6RetainedRecoveryEvidence $script:B6RecoveryInputs.failure $marker $script:B6RecoveryInputs.before)
+  $coreBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.peerRoot 'owner-manifest.json') $case.peerManifestHash;$core=[Text.Encoding]::UTF8.GetString($coreBytes)|ConvertFrom-Json
+  foreach($f in $core.files){[void](Hold-B6RetainedRecoveryInput (Join-Path $case.peerRoot $f.path) $f.sha256)}
+  # Both fixed functions are dot-sourced by the script entry so the pinned
+  # transport definitions survive preclaim and remain available to Sequence.
+  . Initialize-B6RetainedRecoveryNative $nativeBytes
+  [void](Assert-B6RetainedRecoveryProtection)
+  $preclaimWitness=Open-B6RetainedRecoveryOwnerWitness
+  if((Test-Path -LiteralPath (Join-Path $case.root 'recovery-once'))-or(Test-Path -LiteralPath (Join-Path $case.root 'recovery-claim.json'))){throw 'RETAINED_RECOVERY_USE_EXISTING_RECEIPT'}
+  return [pscustomobject]@{manifest=$manifest;mutex=$preclaimWitness}
+ }catch{
+  if($preclaimWitness){$preclaimWitness.Dispose()}
+  # The caller only receives ownership on success. Release this invocation's
+  # streams on failure, including failures before a scalar frame is returned.
+  for($n=$script:B6RecoveryHolds.Count-1;$n-ge$heldBefore;$n--){$script:B6RecoveryHolds[$n].Dispose();$script:B6RecoveryHolds.RemoveAt($n)}
+  throw
+ }
+}
+function Assert-B6RetainedRecoveryStatus($Status){
+ $c=Get-B6RetainedRecoveryCase
+ if($Status.nativePeerVerified-isnot[bool]-or$Status.nativePeerVerified-ne$true-or$Status.stopAuthorized-isnot[bool]-or$Status.stopAuthorized-ne$false-or$Status.childObservationOnly-isnot[bool]-or$Status.childObservationOnly-ne$true-or$Status.reply-cne'Status'-or$Status.state.phase-cne'Running'-or$Status.state.ownerPid-ne$c.ownerPid-or$Status.state.ownerBirth-cne$c.ownerBirth-or$Status.state.childPid-ne$c.childPid-or$Status.state.childBirth-cne$c.childBirth){throw 'RETAINED_RECOVERY_GENUINE_STATUS_REQUIRED'}
+}
 function Invoke-B6RetainedRecoverySequence {
  # All operations are fixed, not a callback or caller-defined target executor.
  Assert-B6RetainedRecoveryProtection
@@ -98,7 +184,7 @@ function Invoke-B6RetainedRecoverySequence {
   $capability.Validate();$identity=$capability.ObservationFileIdentity
   Assert-B6RetainedRecoveryProtection;$capability.Validate()
   $status=Send-Business5244RetirementRequest -Connection $connection -Operation status
-  if(!$status.nativePeerVerified-or$status.reply-cne'Status'-or$status.state.phase-cne'Running'-or$status.state.ownerPid-ne$c.ownerPid-or$status.state.ownerBirth-cne$c.ownerBirth-or$status.state.childPid-ne$c.childPid-or$status.state.childBirth-cne$c.childBirth){throw 'RETAINED_RECOVERY_GENUINE_STATUS_REQUIRED'}
+  [void](Assert-B6RetainedRecoveryStatus $status)
   $capability.Validate()
   # Archive writes its durable attempt BEFORE its only native rename. Its
   # uncertainty never causes another Archive call or an installer invocation.
@@ -109,40 +195,14 @@ function Invoke-B6RetainedRecoverySequence {
 }
 if($Library){return}
 if(!$Apply){throw 'RETAINED_RECOVERY_SEPARATE_ARCHIVE_APPROVAL_REQUIRED'}
+if($PSVersionTable.PSEdition-cne'Desktop'){throw 'RETAINED_RECOVERY_FROZEN_ENTRY_REQUIRED'}
 foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security','CimCmdlets','NetTCPIP')){Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))) -Scope Local -ErrorAction Stop}
 $case=Get-B6RetainedRecoveryCase
-if($PSVersionTable.PSEdition-cne'Desktop'-or$PSCommandPath-cne(Join-Path $case.sourceRoot 'recover-business-5244-retained-handoff.ps1')-or$SourceSha256-cnotmatch'\A[a-fA-F0-9]{64}\z'-or(Get-B6RetainedRecoveryHash $PSCommandPath)-ine$SourceSha256){throw 'RETAINED_RECOVERY_FROZEN_ENTRY_REQUIRED'}
-$self=Get-CimInstance Win32_Process -Filter ('ProcessId='+$PID);$selfSid=Invoke-CimMethod -InputObject $self -MethodName GetOwnerSid
-$argv=[regex]::Replace([string]$self.CommandLine,('^"?'+[regex]::Escape([string]$self.ExecutablePath)+'"?\s+'),'',[Text.RegularExpressions.RegexOptions]::IgnoreCase)
-$expectedArgs='-NoProfile -NonInteractive -WindowStyle Hidden -File '+$PSCommandPath+' -Apply -SourceSha256 '+$SourceSha256.ToUpperInvariant()
-if($self.ExecutablePath-ine'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'-or$selfSid.ReturnValue-ne0-or$selfSid.Sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or$argv-cnotin@($expectedArgs,($expectedArgs+' '))){throw 'RETAINED_RECOVERY_NATIVE_CALLER_CHANGED'}
 # Runtime application is deliberately separate from the source/offline task.
 # No shared TEST action has happened merely by loading this library.
 $script:B6RecoveryHolds=[Collections.Generic.List[IO.FileStream]]::new();$script:B6RecoveryInputs=@{};$script:B6RecoveryNativeRenameCalls=0;$mutex=$null;$result=$null;$once=Join-Path $case.root 'recovery-once'
 try{
- Assert-B6RetainedRecoveryPlainPath $PSCommandPath
- [void](Hold-B6RetainedRecoveryInput $PSCommandPath $SourceSha256)
- $manifestBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.sourceRoot 'source-manifest.json') (Get-B6RetainedRecoveryHash (Join-Path $case.sourceRoot 'source-manifest.json'))
- $manifest=Assert-B6RetainedRecoveryCiProvenance $manifestBytes $SourceSha256
- $expectedPeerSourceSha256='a733f488c408dd969eb377dc44b329662e88860c30a3b8b1ee79afda28506dd2'
- $nativeBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.sourceRoot 'business-5244-retirement-peer.cs') $expectedPeerSourceSha256
- $failureBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.beforeRoot 'install-once\result.json') $case.failureHash;$script:B6RecoveryInputs.failure=[Text.Encoding]::UTF8.GetString($failureBytes)|ConvertFrom-Json
- $beforeBytes=Hold-B6RetainedRecoveryInput $case.before $case.beforeHash;$script:B6RecoveryInputs.before=[Text.Encoding]::UTF8.GetString($beforeBytes)|ConvertFrom-Json
- $frozen=Hold-B6RetainedRecoveryInput 'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-OWNER-BIRTH-V2-20261101\owner-manifest.json' '68220abd0606d09fc2273e06674facf4d3450516b9050045ca2d0903b178502b';$frozen=[Text.Encoding]::UTF8.GetString($frozen)|ConvertFrom-Json
- $names=@('current-entry-hold-capture.json','current-erp-processes.before.json','current-read2b-owner-capture.json','current-task-capture.json','current-task.before.sddl','current-task.before.xml','pending-web-before.json','webonly-api-before.json')
- $actualNames=@($frozen.privateBeforeImages.path|ForEach-Object {[IO.Path]::GetFileName($_)}|Sort-Object)
- if(@($frozen.privateBeforeImages).Count-ne8-or($actualNames-join'|')-cne($names-join'|')){throw 'RETAINED_RECOVERY_BEFORE_CLOSURE'}
- foreach($f in $frozen.privateBeforeImages){if([IO.Path]::GetDirectoryName($f.path)-cne$case.beforeRoot){throw 'RETAINED_RECOVERY_BEFORE_SCOPE'};$b=Hold-B6RetainedRecoveryInput $f.path $f.sha256;switch([IO.Path]::GetFileName($f.path)){'current-read2b-owner-capture.json'{$script:B6RecoveryInputs.owner=[Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}'current-task-capture.json'{$script:B6RecoveryInputs.taskCapture=[Text.Encoding]::UTF8.GetString($b)|ConvertFrom-Json}'current-task.before.xml'{$script:B6RecoveryInputs.taskXml=[Text.Encoding]::UTF8.GetString($b)}'current-task.before.sddl'{$script:B6RecoveryInputs.taskSddl=[Text.Encoding]::UTF8.GetString($b)}}}
- Assert-B6RetainedRecoveryPlainPath $case.marker;if((Get-B6RetainedRecoveryHash $case.marker)-cne$case.markerHash){throw 'RETAINED_RECOVERY_MARKER_HASH'};$marker=Get-Content -LiteralPath $case.marker -Raw|ConvertFrom-Json
- Assert-B6RetainedRecoveryEvidence $script:B6RecoveryInputs.failure $marker $script:B6RecoveryInputs.before
- $coreBytes=Hold-B6RetainedRecoveryInput (Join-Path $case.peerRoot 'owner-manifest.json') $case.peerManifestHash;$core=[Text.Encoding]::UTF8.GetString($coreBytes)|ConvertFrom-Json
- foreach($f in $core.files){[void](Hold-B6RetainedRecoveryInput (Join-Path $case.peerRoot $f.path) $f.sha256)}
- Add-Type -TypeDefinition ([Text.Encoding]::UTF8.GetString($nativeBytes))
- . (Join-Path $case.peerRoot 'business-5244-retirement-channel.ps1') -Library
- Assert-B6RetainedRecoveryProtection
- $mutex=[Threading.Mutex]::OpenExisting((Get-Business5244StartupMutexName));try{$free=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();throw 'RETAINED_RECOVERY_ABANDONED_OWNER'}
- if($free){$mutex.ReleaseMutex();throw 'RETAINED_RECOVERY_OWNER_MUTEX_NOT_HELD'}
- if(Test-Path -LiteralPath $once){throw 'RETAINED_RECOVERY_USE_EXISTING_RECEIPT'}
+ $preflight=. Open-B6RetainedRecoveryPreclaim;$manifest=$preflight.manifest;$mutex=$preflight.mutex
  Write-B6RetainedRecoveryNew (Join-Path $case.root 'recovery-claim.json') @{schema='melisa-b6-retained-recovery-claim.v1';source=$manifest.sourceCommit;failure=$case.failureHash;marker=$case.markerHash;pid=$PID;writes='EXACT_MARKER_ARCHIVE_ONLY'}
  [void][IO.Directory]::CreateDirectory($once)
  $result=@{schema='melisa-b6-retained-recovery-result.v1';status='PREPARING';sourceCommit=$manifest.sourceCommit;recoverySequenceAttempts=0;nativeRenameCalls=0;installationCalls=0;sqlWrites=0;stopCalls=0;taskChanges=0;firstInstallError='UNKNOWN';failure=$null}
