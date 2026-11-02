@@ -114,6 +114,7 @@ for(const drift of ['none','engine','instance','count','lost-reply','read-only']
  $psFile=[IO.Path]::Combine($PSHOME,'powershell.exe');$psHash=(Get-FileHash -LiteralPath $psFile).Hash.ToLowerInvariant();$self=[Business5244PostbootExecutable]::CaptureCurrent([Environment]::GetCommandLineArgs()[0],$psFile,$psHash)
  $seal=[Business5244PackageSeal]::new();$inputFile=Join-Path $PSScriptRoot 'input.txt';$seal.Add($inputFile,((Get-FileHash -LiteralPath $inputFile).Hash.ToLowerInvariant()));$seal.Freeze()
  $profileToken=[pscustomobject]@{fixture='MODEL_PROFILE_DISPOSAL_ONLY'};function Close-Business5244PostbootProfileScope($t){if(![object]::ReferenceEquals($t,$profileToken)){throw 'MODEL_PROFILE_TOKEN_CHANGED'}}
+ function Get-Business5244PostbootProfileScope {return @{role='TaskPublication';token=$profileToken}}
  $token=[pscustomobject]@{fixture='MODEL_NOT_REAL_TASK_ADMISSION'};$before=Get-Business5244PostbootTaskSnapshot $script:task
  $r=@{token=$token;purpose=$(if($script:mode-ceq'read-only'){'Preflight'}else{'TaskPublication'});profileScope=$profileToken;manifest=@{sourceCommit=('a'*40)};before=$before;proposal='<Task><Actions><Exec><Arguments>new</Arguments></Exec></Actions></Task>';self=$self;seals=@($seal);actors=@{handles=@()};used=$false;closed=$false;registrationCalls=0};$script:Business5244PostbootPublications.Add($r)
  try{
@@ -457,6 +458,13 @@ for(const slot of ['Finite','Old','Candidate'])for(const role of (slot==='Finite
   $denied=$false;try{Assert-ErpApiPrivateProfile $base $api $app}catch{if($_.Exception.Message-cne'POSTBOOT_PROFILE_SCOPE_REQUIRED'){throw};$denied=$true};if(!$denied){throw 'UNISSUED_PROFILE_ACCEPTED'}
   $token=Open-Business5244PostbootProfileScope $m $hash $role $source $protected $exe
   Assert-ErpApiPrivateProfile $base $api $app
+  if($role-cin@('Preflight','TaskPublication')){
+   # Real held profile scope: mutate publication metadata or substitute its
+   # scope reference. Neither may reach task/attempt IO, even in this fixture.
+   $pubToken=[pscustomobject]@{fixture='NO_TASK_IO'};$fake=@{token=$pubToken;purpose='TaskPublication';profileScope=$(if($role-ceq'Preflight'){$token}else{[pscustomobject]@{kind='postboot-profile-read-only'}});self=$exe;closed=$false};$script:Business5244PostbootPublications.Add($fake)
+   $denied=$false;try{Invoke-Business5244PostbootTaskPublication $pubToken|Out-Null}catch{if($_.Exception.Message-cne'POSTBOOT_READ_ONLY_PUBLICATION_CONTEXT'){throw};$denied=$true};$fake.closed=$true
+   if(!$denied-or(Test-Path (Join-Path $m.privateRoot 'task-publication-attempt.json'))){throw 'MUTATED_READONLY_CAPABILITY_REACHED_TASK_IO'}
+  }
   foreach($bad in @('descriptor','writes','actor','secret','manifest-source')){
    $a=$api|ConvertTo-Json -Depth 100|ConvertFrom-Json;$b=$base|ConvertTo-Json -Depth 100|ConvertFrom-Json;$p=$app|ConvertTo-Json -Depth 100|ConvertFrom-Json
    switch($bad){descriptor{$a.businessSaleAdmission.readerDefinitions.reader1='changed'}writes{$a.businessSaleWritesEnabled=$false}actor{$a.businessWorkface.userId=18}secret{$b.jwtAccessSecret='changed'}manifest-source{$p.businessSaleSourceCommit='b'*40}}

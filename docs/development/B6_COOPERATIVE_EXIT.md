@@ -203,7 +203,10 @@ The existing fixed capture entry has mutually exclusive Capture,
 ReadOnlyPreflight and PublishTask actions. PublishTask has its own exact
 TaskPublication role and is the sole fixed consumer of the existing one-call
 Arguments publisher. A Preflight token is rejected before attempt creation or
-registration. This source contract does not authorize running PublishTask;
+registration. The mutator also requires the actual active TaskPublication
+scope and the identical issued scope reference; changing a record's purpose
+or substituting a scope reference cannot turn a read-only token into a writer.
+This source contract does not authorize running PublishTask;
 the present delivery executes only read-only preflight, never task publication,
 Run, restart, an owner command, SQL, config or a commercial operation.
 
