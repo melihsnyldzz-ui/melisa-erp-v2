@@ -1,3 +1,7 @@
+## ERP-DEC-086 teknik eki — 3 Kasım /2148 sabit readonly metadata
+
+Mevcut normalERP hedefi ve kaynak/offline yetkisiyle, aynı admittedAPIpool için sabit master/nativecustomer metadata SELECTgirişi hazırlanır; bu yeni veri/izin/kurulum kararı değildir. Metadata gözlemi writeadmissionüretmez; objectlevelVD1olmayan görünürlük UNKNOWN/PARTIAL, gizliIDyoklukkanıtıdeğil. Currentconnector yalnızkimlik/paket sunar, poolentryyoksa gerçekSQL0kalır; dışCLI/credential/alternatifbağlantıylaaşılmaz. [Sabit readonly metadata sözleşmesi](docs/evidence/erp/2026-11-02-customer-master/readonly-metadata.md).
+
 ## ERP-DEC-086 eki — 2 Kasım /2034 normal ERP hedefi
 
 Kullanıcı20:17UTC “demo veri tabanı derken ? demo lafın gelişi bağla işte normal erp ye” ve20:18UTC “erp ve crm konusunda deneyelsel davranabiliriz problem değil” açıklamalarıyla ayrıdemoDBistemediğini netleştirdi. Mevcut normalERP5244/API4144/native4146 veSemih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01 esas; DB02factoryuyumu kullanıcıhedefi değildir. AynıC06/B03 source/offline+sentetikGUI/featureteslimi yetkilidir; gerçekSQL/DDL/kurulum/credential/rol/güvenlik/OS/Vega/LIVE/CRM/mesaj/paid yetkisi çıkarılmaz. Localmaster projection kaynak/customer/party/account/döviz/bakiyeyi değiştirmez; exactnormaladmissioncopytaklidi değildir. [Normal hedef sözleşmesi ve native gereksinimler](docs/evidence/erp/2026-11-02-customer-master/normal-persistence.md).

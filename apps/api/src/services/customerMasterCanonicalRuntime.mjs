@@ -1,6 +1,7 @@
 // Explicit bootstrap seam only. No config/credential reads, SQL at import,
 // registration of a shared copy, or automatic activation of the real writer.
 import {createHash} from 'node:crypto';
+import os from 'node:os';
 import {CUSTOMER_CARD_PROC,CUSTOMER_CARD_PROC_HASH,assembleCustomerCardRaw} from './customerCardReadStore.mjs';
 import {catalogSourceVersion} from './catalogProductReadStore.mjs';
 import {finalPartyContext,readFinalPartyProof,attachFinalPartyProof} from './finalPartyDeltaRead.mjs';
@@ -30,7 +31,14 @@ export async function createCanonicalCustomerMasterRuntime({database,startup,get
  // DTO must not replace the approved later customer-account deltas.
  check(currentFinanceContext(getCurrentFinanceContext()));finalPartyContext(getFinalContext());
  const runtime=Object.freeze({pool:await database.getSqlPool(),sql:database.getSqlDriver()});check(runtime.pool&&runtime.sql);
- runtimes.set(runtime,{getFinalContext,getCurrentFinanceContext});return runtime;
+ runtimes.set(runtime,{getFinalContext,getCurrentFinanceContext,issuer:Object.freeze({process,pid:process.pid,execPath:process.execPath,hostname:os.hostname(),node:process.versions.node})});return runtime;
+}
+// Continuity of this already admitted in-process runtime, not a replacement
+// for the launcher's binary/signature/owner admission. No OS/config/SQL calls.
+export function canonicalCustomerMasterMetadataRuntime(runtime){
+ const record=runtimes.get(runtime),issuer=record?.issuer;
+ if(!issuer||issuer.process!==process||issuer.pid!==process.pid||issuer.execPath!==process.execPath||issuer.hostname!==os.hostname()||issuer.node!==process.versions.node)return null;
+ return Object.freeze({pool:runtime.pool,sql:runtime.sql,target:CUSTOMER_MASTER_NORMAL_TARGET,login:CUSTOMER_MASTER_NORMAL_LOGIN});
 }
 export function canonicalCustomerMasterBoundary(runtime){
  const registered=runtimes.get(runtime);if(!registered)return null;

@@ -1,3 +1,7 @@
+## 3 Kasım — mevcut C06/B03 /2148; insan kabulü BEKLİYOR
+
+Readonlymetadata modülünün204offlinehedefi ve kaynakreview normalmüşteriGUI/nativeSQL/gerçekpersonelkabulüdeğildir. MetadataSQL0, kuruluAPIyeeklenmedi/defaultmaster503aynı; gerçekşema-izin sonucuUNKNOWN. ÖzgünUAIDler/49+25sayaç/eskikabuller korunur. [Sabit readonly metadata sözleşmesi](docs/evidence/erp/2026-11-02-customer-master/readonly-metadata.md).
+
 ## 2 Kasım — mevcut C06/B03 /2034; insan kabulü BEKLİYOR
 
 Ajan normalmüşteri controller'ını canonicalv3scope ve sentetikSQLdriver ile kullandı: kaydet/refresh/yeniadlaara/000155-Toptan/contactaç-iptal/boşad/duplicate/ACKloss/reloadGET/viewer.3POSTdenemesi2revizyon; GETikinciPOST-etki0. İkioriginalkart+TRY/USD/EUR exactbakiyeleri aynı; bu nativeSQL/kurulu5244/personel/fizikselcihaz/Librarytasarımkabulüdeğildir. ÖzgünUAID/49-25sayaç veeskikabuller korunur. [Normal hedef sözleşmesi ve native gereksinimler](docs/evidence/erp/2026-11-02-customer-master/normal-persistence.md).
