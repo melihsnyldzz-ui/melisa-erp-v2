@@ -33,6 +33,23 @@ PowerShell binary SHA private maintenance settings'e bağlıdır. Normal, **enco
 
 Gerçek private settings dosyası üretilmez. Gelecekteki şema `releaseDigest`, Node/PowerShell binary SHA'ları, private IIS origin, mevcut izinli Tail peers ve **ayrı bakım onayına** bağlı maintenance kimliği/runtimeStartAuthorized içerir. Kaynak repo/paket bu izni kendisine vermez. Gateway doğrudan dosya girişi yalnız bu bağlar ve mevcut business network/interface koşullarıyla dinleyici açabilir; bu tur `--serve` çalıştırılmaz.
 
+## Onaylı geri dönüş politikası ve bakım sırası — 2 Kasım
+
+Kullanıcı gerektiğinde ikinci kontrollü normal Windows yeniden başlatmasını geri dönüş **tasarımına** kabul etti. Bu seçim1312'deki politika sorusunu kapatır; kurulum veya gerçek restart izni değildir. Aşağıdaki sıra henüz çalıştırılabilir bir installer ya da doğrulanmış cold-entry teslimi değildir. Eksik canonical-only/profile ve tam legacy startup bağları kaynakta tamamlanmadan bakım GO verilmez.
+
+1. **ERP sahibi / hazırlık:** Source, DB, profile, roller, Node ve task XML/Arguments/SDDL sabitlenir. Sadece Arguments değişimi ve exact inverse'i hazırlanır; başka task alanı değişirse durulur.
+2. **ERP sahibi / hazırlık:** Canonical-only entry'nin aynı4144/4146/5194 kapsamını koruduğu ve eski5244 hook'unu çalıştırmadığı kaynak/offline olarak doğrulanır. Eski root'a retarget veya SQL-admission listesi genişletmesi kullanılmaz.
+3. **ERP sahibi / hazırlık:** Gerçek gateway kimliği, IIS/static binding ve ikinci boot'ta gateway autostart/reclaim'i engelleyen exact service/task bağı kesinleşir. UNKNOWN veya desteklenmeyen erişimde kurulu sistem korunur.
+4. **ERP sahibi + kullanıcı / bakım kararı:** Before-image, değişecek nesneler, veri koruması ve inverse listesi tamamlanınca gerçek kesinti/kurulum için ayrı somut onay alınır. Bu belge execution authority üretmez.
+5. **Kullanıcı / ilk normal yeniden başlatma:** Onaylı bakımda normal Windows restart ve gerekiyorsa Windows girişi yapılır. Otomatik reboot, süreç öldürme veya canlıcf8 owner'a yeni komut gönderme yoktur.
+6. **ERP sahibi / açılış sonrası:** Yeni boot/epoch, task-entry/source, süreç birth'leri, DB/profile/roller, üç servisin sağlığı, tek yazıcı ve5244 boşluğu doğrulanır. Eski receipt/once veya yalnız boş port sahiplik yetkisi sayılmaz; uyuşmazlıkta UNKNOWN ile durulur.
+7. **ERP sahibi / yeni gateway:** Yalnız fresh admission ve doğru service/task bağıyla gateway başlatılabilir. Normal5244 ekranı, katalog, oturum/yenileme ve mevcut journal salt okunur kontrol edilir. İnsan kabulü ayrıca bekler.
+8. **ERP sahibi / hata kararı:** UI sorunu ile gateway/lifecycle sorunu ayrılır. Aynı gateway'deki ROLLBACK pair, gateway bozuksa tam geri dönüş değildir. Kayıp yanıt veya belirsizlikte ikinci start/claim yapılmaz.
+9. **ERP sahibi + kullanıcı / tam geri dönüş:** Onaylı exact inverse ile gateway'in sonraki boot'ta yeniden başlaması önlenir; gerekirse ikinci normal Windows restart/login uygulanır. İlk açılıştan farklı ikinci epoch ve yeni, tüketilmemiş legacy lineage gerekir. Eski consumed kurtarma veya sadece eski Arguments'ı geri yazmak yeterli değildir.
+10. **ERP sahibi / legacy geri okuma:** Gateway'den bağımsız Vite8530 entry/assets/Node/API AFDB/profile/session bağları ve tek5244 owner doğrulanır; normal yeşil ekran açılır. SQL restore/reset veya journal temizliği yapılmaz. Gerçek boot, kurulum ve GUI kanıtı yoksa tamamlandı denmez.
+
+Restart şirket SQL'ini, Vega bağlantılarını, ERP/CRM'yi ve diğer Windows uygulamalarını geçici kesebilir. Tasarım kararı bu sistemlerde yazma veya bugün kesinti başlatma yetkisi vermez. Süre ve oturumun kesintisiz kalacağı garanti edilmez.
+
 ## Ayrı yetkili bakımda kesinleşmesi gerekenler
 
 1. IIS Static Content özelliğinin mevcut durumu, seçilecek loopback site/port ve sürümlü physical path. Firewall/ağ açma bu kaynak turunda yok.

@@ -1,3 +1,11 @@
+## 2 Kasım 2026 — ERP-DEC-085 ek: gerektiğinde ikinci normal Windows bakım açılışı
+
+Kullanıcı, gateway arızasında eski Vite8530'a tam dönüş için gerekirse ikinci kontrollü normal Windows yeniden başlatmasının **geri dönüş tasarımına** alınmasını açıkça seçti. Bu karar1312 raporundaki işletme politikası sorusunu kapatır; aynı soru tekrar sorulmaz. Gerçek kurulum, görev/hizmet/kimlik/izin/ayar değişikliği veya bugün yeniden başlatma yetkisi değildir. Her gerçek bakımın somut değişiklik ve kesinti kapsamı ayrıca onaylanır.
+
+Mevcut B6 hazırlığı yeni boot/epoch ve kullanılmamış işlem zinciriyle canonical API4144/native4146/web5194 başlangıcını, eski5244 hazır hook'unun dışlanmasını ve gateway'den bağımsız tam8530 geri dönüşünü birlikte ele alır. Task executable, principal, trigger, settings, RunLevel ve SDDL korunarak yalnız Arguments için exact projection/inverse hazırlanır. Eski OWNER yoluna yönlendirme, genel skip/env seçeneği veya SQL-admission listesi genişletmesi kullanılmaz.
+
+İkinci açılıştan önce gateway'in yeniden başlamasını engelleyen desteklenen service/task bağı kesinleşmelidir. Aynı gateway'deki UI ROLLBACK pair tam Vite8530 kurtarması sayılmaz. Eski tüketilmiş recovery/once/archive kanıtları tekrar kullanılmaz; belirsiz veya kayıp yanıtlı işlem kendiliğinden tekrarlanmaz. Kurulu ERP/CRM, SQL, veri, roller, oturum ve özgün satış journal'ı korunur. Kaynak/offline/model kanıtı gerçek boot, kurulum, normal ekran veya insan kabulü yerine geçmez. Mevcut49ERP+25CRM ve UA durumları aynı kalır. İşletim sırası mevcut [B6 yayın sözleşmesindedir](docs/development/B6_SIMPLE_WEB_DEPLOY.md).
+
 ## 1 Kasım 2026 — ERP-DEC-085 ek: yalnız Windows CI iş bütçesi 30 dakika
 
 Kullanıcı 07:35UTC'de önceki iki soruyu ayırarak açıkça “Kontrol suresini uzat” dedi; mevcut koordinatör kaydındaki ERP-B6-WINDOWS-CI-30MIN-20261101-0735 devri yalnız PR54'ün mevcut feature dalına uygulanır. Windows CI job timeout-minutes değeri 20'den 30'a çıkarılır. Başarılı aynı ağaçtaki PR koşusu 1.198 saniyede biterken iki push koşusu 1.204–1.205 saniyede iptal olmuştur; son Business grubunun 430,74–439,10 saniyelik kapsamı ve güvenlik kontrolleri korunur. Fixture derleme önbelleğinin ölçülebilir kazancı olmadığı için o aday uygulanmaz.
