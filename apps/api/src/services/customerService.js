@@ -249,6 +249,10 @@ function validateCustomerPayload(payload, { requirePhone }) {
     throw makeServiceError('CUSTOMER_VALIDATION_FAILED', 'customerType is invalid');
   }
 
+  if (customer.customerCode.length > 50 || customer.customerName.length > 250) {
+    throw makeServiceError('CUSTOMER_VALIDATION_FAILED', 'Customer code or name exceeds the source field length');
+  }
+
   return customer;
 }
 
@@ -278,7 +282,7 @@ async function getCustomerSnapshot(request, id) {
 
 async function assertCustomerDuplicates(request, customer, currentCustomerId = null) {
   const duplicate = await request
-    .input('duplicateCustomerCode', sql.NVarChar(80), customer.customerCode)
+    .input('duplicateCustomerCode', sql.NVarChar(50), customer.customerCode)
     .input('duplicateCustomerId', sql.BigInt, currentCustomerId || 0)
     .query(`
       SELECT TOP (1) id
@@ -496,13 +500,13 @@ export async function createCustomer(payload, actor = null) {
     await assertCustomerDuplicates(new sqlDriver.Request(transaction), customer);
 
     const insertResult = await new sqlDriver.Request(transaction)
-      .input('customerCode', sql.NVarChar(80), customer.customerCode)
+      .input('customerCode', sql.NVarChar(50), customer.customerCode)
       .input('customerName', sql.NVarChar(250), customer.customerName)
       .input('phone', sql.NVarChar(40), customer.phone)
       .input('city', sql.NVarChar(120), customer.city || null)
       .input('country', sql.NVarChar(120), customer.country || null)
       .input('currency', sql.NVarChar(3), customer.currency)
-      .input('customerType', sql.NVarChar(40), customer.customerType)
+      .input('customerType', sql.NVarChar(30), customer.customerType)
       .query(`
         INSERT INTO dbo.customers (
           customer_code,
@@ -589,13 +593,13 @@ export async function updateCustomer(customerId, payload, actor = null) {
 
     await new sqlDriver.Request(transaction)
       .input('id', sql.BigInt, id)
-      .input('customerCode', sql.NVarChar(80), customer.customerCode)
+      .input('customerCode', sql.NVarChar(50), customer.customerCode)
       .input('customerName', sql.NVarChar(250), customer.customerName)
       .input('phone', sql.NVarChar(40), customer.phone || null)
       .input('city', sql.NVarChar(120), customer.city || null)
       .input('country', sql.NVarChar(120), customer.country || null)
       .input('currency', sql.NVarChar(3), customer.currency)
-      .input('customerType', sql.NVarChar(40), customer.customerType)
+      .input('customerType', sql.NVarChar(30), customer.customerType)
       .query(`
         UPDATE dbo.customers
         SET

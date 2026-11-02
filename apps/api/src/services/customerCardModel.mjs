@@ -1,5 +1,6 @@
 import {currencyAccountBalanceFields} from './currencyAccountBalanceModel.mjs';
 import {maskPhone} from './queryHelpers.js';
+import {applyCustomerMasterProjection} from './customerMasterProjection.mjs';
 
 export const customerCardError = (code = 'CUSTOMER_CARD_DATA_INVALID', message = 'Müşteri kartı eşleşmesi doğrulanamadı.', statusCode = 503) => Object.assign(new Error(message), {code, statusCode});
 const invalidQuery = () => customerCardError('CUSTOMER_CARD_QUERY_INVALID', 'Geçerli arama ve sayfalama bilgisi gerekli.', 400);
@@ -102,5 +103,5 @@ export function customerCardDto(raw, {detail = false} = {}) {
       sourceAsOf: accepted ? '2026-09-30' : null, freshLive: false}, accounts, accountCount: accounts.length,
     hasUnknownAccounts: !accounts.length || accounts.some(row => row.balanceExact === null || row.currency === null)};
   if (detail) Object.assign(dto, {fields: {phoneMasked: maskPhone(customer.phone), city: text(customer.city), country: text(customer.country), note: text(customer.note)}});
-  return dto;
+  return applyCustomerMasterProjection(raw,dto);
 }

@@ -22,6 +22,7 @@ export function cardSourceLabel(status){return ({synthetic:'Örnek müşteri','a
 export function validateCustomerCard(row,{detail=false}={}){
  if(!row||!(/^[1-9]\d*$/.test(String(row.id)))||typeof row.customerCode!=='string'||!nullableText(row.customerName)||typeof row.isPassive!=='boolean'||![true,false,null].includes(row.quarantine?.blocked)||!Array.isArray(row.quarantine?.reasons)||row.quarantine.reasons.some(r=>typeof r!=='string'||!r)||!sourceStates.has(row.source?.status)||!nullableText(row.source?.sourceAsOf)||row.source?.freshLive!==false||!Array.isArray(row.accounts)||row.accountCount!==row.accounts.length||typeof row.hasUnknownAccounts!=='boolean')invalid();
  const seen=new Set();
+ if(row.masterIdentity!==undefined){const v=row.masterIdentity;if(!v||Object.keys(v).sort().join()!=='customerCode,customerId,customerName,schemaVersion'||v.schemaVersion!=='melisa-customer-master-identity.v1'||v.customerId!==String(row.id)||typeof v.customerCode!=='string'||!v.customerCode||v.customerCode.length>50||typeof v.customerName!=='string'||!v.customerName||v.customerName.length>250)invalid();}
  for(const a of row.accounts){
   if(!a||!(a.accountId===null||typeof a.accountId==='string'&&/^[1-9]\d*$/.test(a.accountId))||!nullableText(a.currency)||!confidenceStates.has(a.confidence)||!nullableText(a.sourceStatus)||!nullableText(a.sourceAsOf)||![true,false,null].includes(a.reconciled))invalid();
   for(const key of ['balanceExact','nativeBalanceExact','sourceOpeningBalanceExact'])if(a[key]!==null&&(typeof a[key]!=='string'||!decimal.test(a[key])))invalid();

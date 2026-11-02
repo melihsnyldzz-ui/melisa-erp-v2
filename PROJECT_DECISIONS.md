@@ -1,3 +1,7 @@
+## ERP-DEC-086 teknik eki — 2 Kasım /1820 müşteri kimliği
+
+Mevcut C06/B03 üç alan düzenlemesinde immutable source/party/currency-account kimlikleri ve native kod/ad/tür korunur; kullanıcı alanları aynı DB için önerilen ayrı local-master metadata revizyonunda tutulur. Bu bir yeni ticari DB veya guard gevşetmesi değildir. Source/offline factory + kendi sentetik app yetkili; gerçek SQL/kurulum/rol/credential onayı çıkarılmaz. Kullanıcının18:58UTC yerel demo çerçevesi yalnız kendi-temp süreçleri aç/kapat yetkisini teyit eder; diğer gerçek sistemlere uygulanmaz. [Kimlik sözleşmesi ve sınırlar](docs/evidence/erp/2026-11-02-customer-master/identity-contract.md).
+
 ## ERP-DEC-086 eki — 2 Kasım /1636 müşteri kartı uygulama kapsamı
 
 Kullanıcının “Hadi müşteri kartı” ve seçilmiş tasarım için “Uygula” kararı mevcut C06/B03 kapsamında yürütülür. Kod/ad/tür mevcut sözleşmeden; telefon/şehir/ülke, ayrı döviz hesapları ve bakiye korumaları korunur. Seçilmiş exact Library görsellerinin pikselleri erişilmeden görsel sadakat iddiası yoktur. Kaynak ve kendi-temp sentetik store/normal form kanıtı gerçek SQL/native/kurulum veya insan kabulü değildir; bu tur onların yetkisini genişletmez. [Kanıt ve sınır](docs/evidence/erp/2026-11-02-customer-master/README.md).

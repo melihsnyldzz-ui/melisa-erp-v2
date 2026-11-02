@@ -30,14 +30,14 @@ function cardReadError(res, error) {
 
 export async function getCustomerCards(req, res) {
   try {
-    const {data, meta} = await customerCardService.list(req.query);
+    const {data, meta} = await customerCardService.list(req.query, req.user);
     return ok(res, data, meta);
   } catch (error) { return cardReadError(res, error); }
 }
 
 export async function getCustomerCard(req, res) {
   try {
-    const {data, meta} = await customerCardService.detail(req.params.id);
+    const {data, meta} = await customerCardService.detail(req.params.id, req.user);
     return ok(res, data, meta);
   } catch (error) { return cardReadError(res, error); }
 }

@@ -5,7 +5,10 @@ const limits={phone:40,city:100,country:100};
 const fail=()=>{throw Error('İletişim bilgileri doğrulanamadı.');};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function customerContactContext(value,card,kind='customer'){
- if(!['customer','supplier'].includes(kind)||!value||value.schemaVersion!==`melisa-${kind}-contact-context.v1`||value[kind+'Id']!==String(card?.id)||value[kind+'Code']!==card[kind+'Code']||value[kind+'Name']!==card[kind+'Name']||typeof value.revision!=='string'||!/^[A-F0-9]{64}$/.test(value.revision)||!value.contact||Object.keys(value.contact).sort().join()!==fields.toSorted().join())fail();
+ const identity=kind==='customer'&&card?.masterIdentity;
+ if(identity&&(Object.keys(identity).sort().join()!=='customerCode,customerId,customerName,schemaVersion'||identity.schemaVersion!=='melisa-customer-master-identity.v1'||identity.customerId!==String(card.id)||typeof identity.customerCode!=='string'||!identity.customerCode||identity.customerCode.length>50||typeof identity.customerName!=='string'||!identity.customerName||identity.customerName.length>250))fail();
+ const source=identity||card;
+ if(!['customer','supplier'].includes(kind)||!value||value.schemaVersion!==`melisa-${kind}-contact-context.v1`||value[kind+'Id']!==String(card?.id)||value[kind+'Code']!==source[kind+'Code']||value[kind+'Name']!==source[kind+'Name']||typeof value.revision!=='string'||!/^[A-F0-9]{64}$/.test(value.revision)||!value.contact||Object.keys(value.contact).sort().join()!==fields.toSorted().join())fail();
  for(const key of fields){const v=value.contact[key];if(v!==null&&(typeof v!=='string'||v.length>limits[key]||/[\u0000-\u001f\u007f-\u009f]/.test(v)))fail();}
  if(value.contact.phone?.includes('*'))fail();
  return value;

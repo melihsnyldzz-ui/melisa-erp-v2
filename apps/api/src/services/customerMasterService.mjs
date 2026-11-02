@@ -16,7 +16,7 @@ export function createCustomerMasterService({getStore=unavailable}={}){
    const result=operation==='update'?await session.update(input):await session.recover(input);
    if(typeof result?.replayed!=='boolean')throw customerMasterError();
    const context=validate(result.context);
-   if(context.copyId!==current.copyId||context.sealHash!==current.sealHash||context.currency!==current.currency)throw customerMasterError();
+   if(context.copyId!==current.copyId||context.sealHash!==current.sealHash||context.currency!==current.currency||context.schemaVersion!==current.schemaVersion||JSON.stringify(context.original)!==JSON.stringify(current.original))throw customerMasterError();
    return operation==='update'?{context,replayed:result.replayed}:{context,committed:result.replayed};
   });
  };

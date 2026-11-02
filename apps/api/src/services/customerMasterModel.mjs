@@ -19,13 +19,14 @@ export function parseCustomerMaster(id,body){
  const descriptors=Object.getOwnPropertyDescriptors(body),own=Reflect.ownKeys(body);
  if(own.length!==keys.length||own.some(key=>!keys.includes(key))||keys.some(key=>!descriptors[key]?.enumerable||!Object.hasOwn(descriptors[key],'value')))throw invalid();
  const fields=Object.fromEntries(keys.map(key=>[key,descriptors[key].value]));
- if(!uuid(fields.requestId)||!hash(fields.expectedRevision)||!text(fields.customerCode,80)||!text(fields.customerName,250)||!CUSTOMER_MASTER_TYPES.includes(fields.customerType))throw invalid();
+ if(!uuid(fields.requestId)||!hash(fields.expectedRevision)||!text(fields.customerCode,50)||!text(fields.customerName,250)||!CUSTOMER_MASTER_TYPES.includes(fields.customerType))throw invalid();
  const value={customerId,...fields},payloadJson=JSON.stringify(value);
  return Object.freeze({...value,payloadJson,payloadHash:createHash('sha256').update(payloadJson,'utf16le').digest('hex').toUpperCase()});
 }
 
 export function validateCustomerMasterContext(value,{customerId,actorId}={}){
  const keys=['schemaVersion','copyId','sealHash','actorId','customerId','customerCode','customerName','customerType','currency','revision'];
- if(!value||Object.keys(value).sort().join()!==keys.sort().join()||value.schemaVersion!=='melisa-customer-master-context.v1'||!uuid(value.copyId)||!hash(value.sealHash)||value.actorId!==actorId||value.customerId!==customerId||!text(value.customerCode,80)||!text(value.customerName,250)||!CUSTOMER_MASTER_TYPES.includes(value.customerType)||!['TRY','USD','EUR'].includes(value.currency)||!hash(value.revision))throw customerMasterError();
+ if(value?.schemaVersion==='melisa-customer-master-context.v2'){keys.push('original');if(Object.keys(value.original??{}).sort().join()!=='customerCode,customerName'||!text(value.original.customerCode,50)||!text(value.original.customerName,250))throw customerMasterError();}
+ if(!value||Object.keys(value).sort().join()!==keys.sort().join()||!['melisa-customer-master-context.v1','melisa-customer-master-context.v2'].includes(value.schemaVersion)||!uuid(value.copyId)||!hash(value.sealHash)||value.actorId!==actorId||value.customerId!==customerId||!text(value.customerCode,50)||!text(value.customerName,250)||!CUSTOMER_MASTER_TYPES.includes(value.customerType)||!['TRY','USD','EUR'].includes(value.currency)||!hash(value.revision))throw customerMasterError();
  return Object.freeze({...value});
 }

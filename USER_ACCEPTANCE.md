@@ -1,3 +1,7 @@
+## 2 Kasım — mevcut C06/B03 /1820; insan kabulü BEKLİYOR
+
+Ajan normal müşteri controller'ı üzerinden kendi sentetik SQL-driver modeliyle kaydet/refresh/yeni adla ara/contact aç-iptal/boşad/mükerrerkod/lostACK/reloadGET/viewer akışını gördü.3POST denemesi2masterrevizyon, GET ikinci etki0; TRY/USD/EUR exactbakiyeler kaynaktestinde aynı. Bu gerçekSQL/kurulum/personel/Librarytasarım kabulü değildir. ÖzgünUAID ve eski sonuçlar korunur; sayaç artışı0. [Kimlik sözleşmesi ve sınırlar](docs/evidence/erp/2026-11-02-customer-master/identity-contract.md).
+
 ## 2 Kasım — mevcut C06/B03 /1636; insan kabulü BEKLİYOR
 
 Ajan normal üretim createWorkCustomers formunu yalnız kendi-temp sentetik service/store ile kaydet→reload→geri oku, boş ad/mükerrer kod reddi, lost-ACK→reload→explicit GET recovery ve salt okunur rol ile kontrol etti. Kod000155 ve Toptan türü korundu; GET recovery ikinci kayıt üretmedi. Bu gerçek native/kurulu TEST veya insan PASS değildir. Seçilmiş tasarımın Library pikselleri erişilemedi; yeni görsel düzen henüz doğrulanmadı. Yerel iletişim editörü ve mevcut insan sonuçları aynı kalır. Hazır native writer/kurulum ve tasarım uygulamasından sonra yetkili personel kod/ad/türü düzenleyip yenilemeli, ayrı hesaplar ve yetkisiz rolü incelemelidir. Özgün UA ID/kişi/tarih/sonuçları değişmez. [Kanıt ve sınır](docs/evidence/erp/2026-11-02-customer-master/README.md).
