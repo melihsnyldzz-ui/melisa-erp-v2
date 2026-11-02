@@ -1,3 +1,7 @@
+## 2 Kasım — mevcut C06/B03 /1636; insan kabulü BEKLİYOR
+
+Ajan normal üretim createWorkCustomers formunu yalnız kendi-temp sentetik service/store ile kaydet→reload→geri oku, boş ad/mükerrer kod reddi, lost-ACK→reload→explicit GET recovery ve salt okunur rol ile kontrol etti. Kod000155 ve Toptan türü korundu; GET recovery ikinci kayıt üretmedi. Bu gerçek native/kurulu TEST veya insan PASS değildir. Seçilmiş tasarımın Library pikselleri erişilemedi; yeni görsel düzen henüz doğrulanmadı. Yerel iletişim editörü ve mevcut insan sonuçları aynı kalır. Hazır native writer/kurulum ve tasarım uygulamasından sonra yetkili personel kod/ad/türü düzenleyip yenilemeli, ayrı hesaplar ve yetkisiz rolü incelemelidir. Özgün UA ID/kişi/tarih/sonuçları değişmez. [Kanıt ve sınır](docs/evidence/erp/2026-11-02-customer-master/README.md).
+
 ## 2 Kasım — ERP-UA07/10/15/18/19/20 /1455 ajan ekran incelemesi; insan kabulü BEKLİYOR
 
 Kendi-temp sentetik adapter+gerçek üretimcontrollerlarıyla satış sepeti/MalKabul taslağı/katalog/cari/alış/tahsilat/iade/sayım/rapor/ayar okuma yüzleri incelendi. Raporun ilk bağlantı hatası sonrası Yenile ve kişisel adlı personelin sayım taslağı düzeltilip aynı ekranda tekrarlandı. Ödeme unsupported origin BLOCKED, kasa/onaylar/terminal/nativeSQL işlemleri denenmiş sayılmaz. Kaynak/test/fixture GUI insan kabulü yerine geçmez; hiçbir özgün UA PASS yapılmadı. [Kanıt ve kalan sınırlar](docs/evidence/erp/2026-11-02-functional-audit/README.md).

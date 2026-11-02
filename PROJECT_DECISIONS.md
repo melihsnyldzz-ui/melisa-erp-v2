@@ -1,3 +1,7 @@
+## ERP-DEC-086 eki — 2 Kasım /1636 müşteri kartı uygulama kapsamı
+
+Kullanıcının “Hadi müşteri kartı” ve seçilmiş tasarım için “Uygula” kararı mevcut C06/B03 kapsamında yürütülür. Kod/ad/tür mevcut sözleşmeden; telefon/şehir/ülke, ayrı döviz hesapları ve bakiye korumaları korunur. Seçilmiş exact Library görsellerinin pikselleri erişilmeden görsel sadakat iddiası yoktur. Kaynak ve kendi-temp sentetik store/normal form kanıtı gerçek SQL/native/kurulum veya insan kabulü değildir; bu tur onların yetkisini genişletmez. [Kanıt ve sınır](docs/evidence/erp/2026-11-02-customer-master/README.md).
+
 ## ERP-DEC-086 eki — 2 Kasım /1455 geniş işlev ve GUI incelemesi
 
 Doğrudan kullanıcı isteğiyle mevcut49/17kapsamda üretim controllerları kendi-temp sentetik session/okuyucu/store adapterlarıyla incelenir; genel demo normalGUI sayılmaz. Kanıtlı dar kusur, hedefli test, bağımsız okuma incelemesi ve mevcutPR54 kaynak teslimi aynıyetkidedir. Test actor etiketi gerçek kişi/rol ataması değildir; kişiselad ile localdraft rolü ayrı tutulur, mevcutnative auth/role/canDraft/onay/replay sınırı değişmez. Eski1344rollback/owner/reboot görevi yeniden açılmaz. GerçekSQL/sharedruntime/OS/CRM/Vega/LIVE/credential/güvenlik değişimi veya insanPASS yok. [Bu tur kanıtı](docs/evidence/erp/2026-11-02-functional-audit/README.md).

@@ -45,11 +45,12 @@ test('actual contact controller exposes only finite codes/statuses and never raw
 });
 test('actual router requires normal auth and both existing permissions for contact; POST adds quarantine before its narrow handler',async()=>{
  const routes=[],auth=()=>{},handlerNames=['getCustomer','getCustomerCard','getCustomerCards','getCustomerContact','getCustomerContactRequest','postCustomerContact','getCustomers','getVegaCustomers','patchCustomerPassive','postCashCustomersEnsure','postCustomer','putCustomer'];
- const handlers=Object.fromEntries(handlerNames.map(name=>[name,()=>{}]));
+ const handlers=Object.fromEntries(handlerNames.map(name=>[name,()=>{}])),master={context(){},update(){},recover(){}};
  const permission=code=>Object.freeze({permission:code}),quarantine=kind=>Object.freeze({quarantine:kind});
  const router=Object.fromEntries(['get','post','put','patch'].map(method=>[method,(path,...middleware)=>routes.push({method,path,middleware})]));
  await load('../routes/customerRoutes.js',{
   '../services/operationQuarantineGate.mjs':{operationQuarantineGate:quarantine},express:{Router:()=>router},
+  '../controllers/customerMasterController.mjs':{customerMasterController:master},
   '../controllers/customerController.js':handlers,
   '../middleware/authMiddleware.js':{requireAuth:auth,requirePermission:permission,requireAnyPermission:permission},
  });
@@ -60,6 +61,11 @@ test('actual router requires normal auth and both existing permissions for conta
  assert.equal(post.middleware.length,5);assert.deepEqual(post.middleware[3],quarantine('customer'));assert.equal(post.middleware.at(-1),handlers.postCustomerContact);
  const recovery=routes.find(route=>route.path==='/customers/:id/contact/requests/:requestId');assert.equal(recovery.method,'get');assert.deepEqual(recovery.middleware,[auth,permission('customer.view'),permission('customer.edit'),handlers.getCustomerContactRequest]);
  assert(routes.findIndex(route=>route.path==='/customers/:id/contact')<routes.findIndex(route=>route.path==='/customers/:id'));
+ const masters=routes.filter(route=>route.path.startsWith('/customers/:id/master'));assert.equal(masters.length,3);
+ for(const route of masters)assert.deepEqual(route.middleware.slice(0,3),[auth,permission('customer.view'),permission('customer.edit')]);
+ assert.equal(masters.find(r=>r.path.endsWith(':requestId')).middleware.at(-1),master.recover);
+ assert.deepEqual(masters.find(r=>r.method==='post').middleware.slice(3),[quarantine('customer'),master.update]);
+ assert.equal(masters.find(r=>r.method==='get'&&r.path.endsWith('/master')).middleware.at(-1),master.context);
 });
 
 
