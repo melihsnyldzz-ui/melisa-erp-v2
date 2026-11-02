@@ -1,3 +1,11 @@
+## ERP-DEC-086 — 2 Kasım 2026 — ERP işlevlerini Vega'dan bağımsız tamamla
+
+Kullanıcı14:17:54UTC ve14:19:49UTC doğrudan kararlarıyla, yeni ERP'nin şu an işletmede kullanılmadığını; günlük işletimin Vega'da sürdüğünü ve önceliğin mevcut ERP'yi işlevsel olarak bitirmek olduğunu netleştirdi. Bu karar durdurulmuş1344kurulum/rollback işini yeniden başlatmaz. Eski TEST sürekliliği ve tam8530geri dönüşü bağımsız kaynak geliştirmenin kabul koşulu değildir; önceki2Kasım rollback politikası bu yeni önceliğe engel olarak uygulanmaz. Geçiş ve gerçek kullanım kabulü daha sonra ayrıca yapılır.
+
+Mevcut49ERP kapsamı, roller, satış/finans/stok/idempotency kuralları ve kabul ID'leri korunur. Hazır modüller yeniden kullanılır; sırf bu tercih nedeniyle ERP baştan yazılmaz. İlk küçük işlevsel teslim ERP09/B6 satış sepetini aynı kullanıcı/cihazda saklama ve yeniden açılışta güncel müşteri-hesap/ürün/stok/fiyat okuyucularıyla doğrulamadır. Yerel saklanan hazırlık satış veya stok ayırma değildir, sunucu yazma yetkisi üretmez. Source/hata düzeltme/hedefli test/bağımsız inceleme/feature commit-push/mevcut PR54 teslimi ve sentetik kendi-temp uygulama doğrulaması yetkilidir; eski ortak TEST'e kurulum bu işin parçası değildir.
+
+Kullanıcının eski deneme verilerine ihtiyaç duymadığını söylemesi toplu veya geri alınamaz silme yetkisi sayılmaz. Mevcut dosya/paket/veri/WIP/journal/consumed kanıtları korunur. Vega/LIVE/gerçekSQL/CRM verisi, gerçek müşteri mesajı, ücretli servis, main merge, credential/ACL/firewall/güvenlik/OS-task-service ayarı, kalıcı ortak TEST kurulumu, restart veya gerçek T1 yoktur. Desteklenen izole geliştirme yolu varsa kullanılır; gerçek SQL veya insan/cihaz kabulü model testinden çıkarılmaz. Mevcut ana ajan tek yazıcıdır; yeni ana ajan/Goal/tablo/otomasyon kurulmaz, duraklatılmış otomasyon açılmaz.
+
 ## 2 Kasım 2026 — ERP-DEC-085 ek: gerektiğinde ikinci normal Windows bakım açılışı
 
 Kullanıcı, gateway arızasında eski Vite8530'a tam dönüş için gerekirse ikinci kontrollü normal Windows yeniden başlatmasının **geri dönüş tasarımına** alınmasını açıkça seçti. Bu karar1312 raporundaki işletme politikası sorusunu kapatır; aynı soru tekrar sorulmaz. Gerçek kurulum, görev/hizmet/kimlik/izin/ayar değişikliği veya bugün yeniden başlatma yetkisi değildir. Her gerçek bakımın somut değişiklik ve kesinti kapsamı ayrıca onaylanır.

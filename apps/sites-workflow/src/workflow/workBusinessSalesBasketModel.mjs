@@ -63,6 +63,12 @@ function entries(basket){
  return input;
 }
 export function emptyBusinessSalesBasket(){return build([]);}
+// A device draft contains selection only. No customer identity text, balance,
+// stock proof, capability or native operation body is persisted.
+export function businessSalesBasketPreparation(basket,documentDate=null){
+ entries(basket);if(!basket.lines.length||basket.lines.length>100)fail('PREPARATION_EMPTY');
+ return snapshot({scope:{...basket.scope},documentDate:documentDate||null,items:basket.lines.map(l=>({selection:{...l.selection},quantity:l.quantity,unitPriceExact8:l.unitPriceExact8}))});
+}
 export function addBusinessSalesBasketLine(basket,envelope,quantityString){return build([...entries(basket),{envelope,quantity:quantityString}]);}
 export function setBusinessSalesBasketQuantity(basket,lineKey,quantityString){
  const input=entries(basket),index=basket.lines.findIndex(line=>line.key===lineKey);if(index<0)fail('LINE_NOT_FOUND');quantity(quantityString);
