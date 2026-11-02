@@ -30,12 +30,14 @@ win('import is inert; wrong target, run, source or API port rejects before proce
 });
 win('real isolated process handle rejects wrong birth, stops only retained object, and cannot target next child',()=>{
  const node=process.execPath.replaceAll("'","''");
- assert.equal(run(`Initialize-Test125ApiKernel;
+ assert.equal(run(`$fixtureClock=[Diagnostics.Stopwatch]::StartNew();Initialize-Test125ApiKernel;$initializerMs=$fixtureClock.ElapsedMilliseconds;
  $child=Start-Process -FilePath '${node}' -ArgumentList @('-e','"setTimeout(()=>{},15000)"') -WindowStyle Hidden -PassThru;
  $handle=$null;$other=$null;
  try{
-  $p=Get-CimInstance Win32_Process -Filter ('ProcessId='+$child.Id);$birth=$p.CreationDate.ToUniversalTime().Ticks;
-  $rejected=$false;try{$bad=[Test125ApiKernel]::Open($child.Id,$birth-10000000);$bad.Dispose()}catch{$rejected=$true};if(!$rejected -or $child.HasExited){throw 'WRONG_BIRTH_DID_NOT_REJECT'};
+  $childStartUtc=$child.StartTime.ToUniversalTime();$cimStartMs=$fixtureClock.ElapsedMilliseconds;$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+$child.Id);$birth=$p.CreationDate.ToUniversalTime().Ticks;$cimMs=$fixtureClock.ElapsedMilliseconds-$cimStartMs;
+  $nativeStartMs=$fixtureClock.ElapsedMilliseconds;$rejected=$false;try{$bad=[Test125ApiKernel]::Open($child.Id,$birth-10000000);$bad.Dispose()}catch{$rejected=$true};$childExited=[bool]$child.HasExited;
+  [Console]::Error.WriteLine(('TEST125_BIRTH_FIXTURE wrongBirthRejected={0};childExited={1};initializerMs={2};cimMs={3};nativeMs={4};childAgeMs={5}' -f $rejected,$childExited,$initializerMs,$cimMs,($fixtureClock.ElapsedMilliseconds-$nativeStartMs),[Math]::Round(([DateTime]::UtcNow-$childStartUtc).TotalMilliseconds)));
+  if(!$rejected -or $childExited){throw 'WRONG_BIRTH_DID_NOT_REJECT'};
   $handle=[Test125ApiKernel]::Open($child.Id,$birth);
   $rejected=$false;try{[Test125ApiKernel]::Stop($handle,$birth-10000000)}catch{$rejected=$true};if(!$rejected -or $child.HasExited){throw 'WRONG_STOP_BIRTH'};
   [Test125ApiKernel]::Stop($handle,$birth);if(![Test125ApiKernel]::Exited($handle,$birth)){throw 'NOT_EXITED'};
