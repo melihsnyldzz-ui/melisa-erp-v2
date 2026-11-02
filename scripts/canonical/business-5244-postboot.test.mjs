@@ -15,12 +15,123 @@ function run(body,{cwd=root(),timeout=20000,bootstrapPrelude=''}={}){
  return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:cwd,TMP:cwd,PSModulePath:path.join(cwd,'unused-module-search')}}).trim();
 }
 const xml='<Task><Triggers><LogonTrigger/></Triggers><Principals><Principal><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy></Settings><Actions><Exec><Command>powershell.exe</Command><Arguments>old</Arguments></Exec></Actions></Task>';
+test('native argv0 identity accepts case-only real Windows file; wrong image/hash/birth/owner and exact-tail changes reject',()=>{
+ if(process.platform!=='win32')return;
+ const temp=root();const body=String.raw`
+ Add-Type -LiteralPath __NATIVE__ -ReferencedAssemblies @('System.Management')
+ . __MODULE__ -Library
+ $expected='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';$hash=(Get-FileHash -LiteralPath $expected).Hash.ToLowerInvariant();$sid=[Security.Principal.WindowsIdentity]::GetCurrent().User.Value;$birth=[Business5244PostbootEpoch]::CurrentBirth
+ $held=[Business5244PostbootExecutable]::CaptureCurrent($expected.ToUpperInvariant(),$expected,$hash)
+ try{$held.Validate()}finally{$held.Dispose()}
+ $matcher=[Business5244PostbootExecutable].GetMethod('BirthMatches',([Reflection.BindingFlags]::Static-bor[Reflection.BindingFlags]::NonPublic))
+ if($matcher.Invoke($null,[object[]]@([long]1234501,[long]1234500,$false))-or!$matcher.Invoke($null,[object[]]@([long]1234501,[long]1234500,$true))){throw 'NATIVE_BIRTH_ROUNDED_WITHOUT_CIM_PROVENANCE'}
+ $projected=([long]$birth-[long]$birth%10).ToString();$cim=[Business5244PostbootExecutable]::CaptureCimProcess($PID,$projected,$sid,$expected,$expected,$hash);try{$cim.Validate()}finally{$cim.Dispose()}
+ $copy=Join-Path $PSScriptRoot 'same-bytes.exe';[IO.File]::Copy($expected,$copy)
+ $rejects=0
+ foreach($bad in @('hash','birth','owner','other-file','other-path','missing-pid')){
+  $id=$PID;$b=$birth;$owner=$sid;$actual=$expected;$wanted=$expected;$digest=$hash
+  switch($bad){hash{$digest='0'*64}birth{$b=([long]$birth+1000).ToString()}owner{$owner='S-1-0-0'}other-file{$actual=$copy;$wanted=$copy}other-path{$actual=$copy}missing-pid{$id=2147483000}}
+  try{$x=[Business5244PostbootExecutable]::CaptureProcess($id,$b,$owner,$actual,$wanted,$digest);$x.Dispose();throw 'UNEXPECTED_IDENTITY_ACCEPTED'}catch{if($_.Exception.Message-ceq'UNEXPECTED_IDENTITY_ACCEPTED'){throw};$rejects++}
+ }
+ $a=@($expected.ToUpperInvariant(),'-File','C:\fixed\postboot-task.ps1','-ManifestSha256',('f'*64));$e=@($expected,'-File','C:\fixed\postboot-task.ps1','-ManifestSha256',('f'*64));Assert-Business5244PostbootArgumentTail $a $e
+ foreach($bad in @('entry-case','entry-file','manifest','extra','missing','flag-case')){
+  $a=@($e);switch($bad){entry-case{$a[2]='C:\fixed\POSTBOOT-TASK.ps1'}entry-file{$a[2]='C:\fixed\owner.ps1'}manifest{$a[4]='e'*64}extra{$a+=@('-Other')}missing{$a=$a[0..3]}flag-case{$a[1]='-file'}}
+  $rejected=$false;try{Assert-Business5244PostbootArgumentTail $a $e}catch{if($_.Exception.Message-cne'POSTBOOT_EXACT_ENTRY_REQUIRED'){throw};$rejected=$true};if(!$rejected){throw 'NON_EXE_CASE_WAS_RELAXED'}
+ }
+ if($rejects-ne6){throw 'NEGATIVE_IDENTITY_COUNT'};'PASS'
+ `.replace('__NATIVE__',q(path.join(dir,'business-5244-postboot-native.cs'))).replace('__MODULE__',q(path.join(dir,'business-5244-postboot.ps1')));
+ assert.equal(run(body,{cwd:temp,timeout:20000}),'PASS');
+});
+test('publication actor validation permits recorded adopted native/web parents but rejects a foreign current API parent',()=>{
+ if(process.platform!=='win32')return;
+ const temp=root();fs.writeFileSync(path.join(temp,'owned-processes.json'),JSON.stringify({supervisor:42,sourceCommit:'model-source',children:{api:{pid:500,createdAt:'model'},native:{pid:500,createdAt:'model'},web:{pid:500,createdAt:'model'}}}));
+ const body=String.raw`
+ . __MODULE__ -Library
+ function Get-Business5244PostbootCase {return @{config='MODEL_ONLY_CONFIG'}}
+ function Read-ErpStartupConfig {return @{RuntimeDir=$PSScriptRoot}}
+ function Get-ErpServiceDefinitions {return @{Name=$script:definition;Port=4144}}
+ function Assert-ErpOwnedProcess {return [pscustomobject]@{ProcessId=500;ParentProcessId=41}}
+ function Get-NetTCPConnection {throw 'MODEL_ADOPTED_PARENT_REACHED_LISTENER_CHECK'}
+ foreach($name in @('api','native','web')){$script:definition=$name;$caught=$null;try{Open-Business5244PostbootPublicationActors @{base=@{sourceCommit='model-source'}} @{enginePid=42}|Out-Null}catch{$caught=$_.Exception.Message}
+  $expected=if($name-ceq'api'){'POSTBOOT_PUBLICATION_API_PARENT_CHANGED'}else{'MODEL_ADOPTED_PARENT_REACHED_LISTENER_CHECK'};if($caught-cne$expected){throw 'ACTOR_PARENT_ROLE_NOT_PRESERVED'}
+ };'PASS'
+ `.replace('__MODULE__',q(path.join(dir,'business-5244-postboot.ps1')));
+ assert.equal(run(body,{cwd:temp}),'PASS');
+});
+test('nineteen-file source seal rejects missing/changed/duplicate closure and holds genuine source files against writing',()=>{
+ if(process.platform!=='win32')return;
+ const temp=root(),bundle=path.join(temp,'bundle');fs.mkdirSync(bundle);
+ const files=POSTBOOT_FILES.map(name=>{const b=fs.readFileSync(path.join(dir,name));fs.writeFileSync(path.join(bundle,name),b);return {path:name,sha256:sha(b),bytes:b.length};});
+ const m={root:bundle,files};const raw=Buffer.from(JSON.stringify(m));fs.writeFileSync(path.join(bundle,'postboot-manifest.json'),raw);
+ const body=String.raw`
+ Add-Type -LiteralPath __WEB__
+ . __MODULE__ -Library
+ $root=__ROOT__;$raw=[IO.File]::ReadAllBytes((Join-Path $root 'postboot-manifest.json'));$m=[Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json;$hash=Get-Business5244PostbootHash $raw
+ $file=Join-Path $root $m.files[0].path;$original=[IO.File]::ReadAllBytes($file)
+ [IO.File]::AppendAllText($file,'changed');$rejected=$false;try{$s=Open-Business5244PostbootSourceClosure $m $hash $root;$s.Dispose()}catch{$rejected=$true};if(!$rejected){throw 'CHANGED_SOURCE_ACCEPTED'};[IO.File]::WriteAllBytes($file,$original)
+ [IO.File]::Move($file,($file+'.kept'));$rejected=$false;try{$s=Open-Business5244PostbootSourceClosure $m $hash $root;$s.Dispose()}catch{$rejected=$true};if(!$rejected){throw 'MISSING_SOURCE_ACCEPTED'};[IO.File]::Move(($file+'.kept'),$file)
+ $duplicate=$m.files[18].path;$m.files[18].path=$m.files[0].path;$rejected=$false;try{$s=Open-Business5244PostbootSourceClosure $m $hash $root;$s.Dispose()}catch{$rejected=$true};if(!$rejected){throw 'DUPLICATE_SOURCE_ACCEPTED'};$m.files[18].path=$duplicate
+ $held=Open-Business5244PostbootSourceClosure $m $hash $root
+ try{$denied=$false;try{$f=[IO.File]::OpenWrite($file);$f.Dispose()}catch{$denied=$true};if(!$denied){throw 'SOURCE_WAS_NOT_RETAINED'};$held.Validate()}finally{$held.Dispose()};'PASS'
+ `.replace('__WEB__',q(path.join(dir,'business-5244-web-native.cs'))).replace('__MODULE__',q(path.join(dir,'business-5244-postboot.ps1'))).replace('__ROOT__',q(bundle));
+ assert.equal(run(body,{cwd:temp,timeout:20000}),'PASS');
+});
+test('task snapshot uses one enumeration; instance/engine/XML/SDDL/principal changes fail before a registration decision',()=>{
+ if(process.platform!=='win32')return;
+ const body=String.raw`
+ . __MODULE__ -Library
+ $script:calls=0;$script:itemCalls=0;$script:count=1;$script:engine=42;$script:guid='original-instance'
+ $t=[pscustomobject]@{Enabled=$true;State=4;Definition=[pscustomobject]@{Principal=[pscustomobject]@{LogonType=3;UserId='fixture-owner'}};Xml='<Task/>'}
+ $t|Add-Member ScriptMethod GetSecurityDescriptor {param($flags);return 'fixture-sddl'}
+ $t|Add-Member ScriptMethod GetInstances {param($flags);$script:calls++;$r=[pscustomobject]@{Count=$script:count};$r|Add-Member ScriptMethod Item {param($index);$script:itemCalls++;return [pscustomobject]@{EnginePID=$script:engine;InstanceGuid=$script:guid}};return $r}
+ $before=Get-Business5244PostbootTaskSnapshot $t;if($script:calls-ne1-or$script:itemCalls-ne1){throw 'SNAPSHOT_WAS_NOT_SINGLE'}
+ foreach($bad in @('count','engine','guid','xml','sddl','principal')){
+  $script:count=1;$script:engine=42;$script:guid='original-instance';$t.Xml='<Task/>';$t.Definition.Principal.UserId='fixture-owner'
+  switch($bad){count{$script:count=2}engine{$script:engine=43}guid{$script:guid='new-instance'}xml{$t.Xml='<Changed/>'}sddl{}principal{$t.Definition.Principal.UserId='other-owner'}}
+  $rejected=$false;try{$fresh=Get-Business5244PostbootTaskSnapshot $t;if($bad-ceq'sddl'){$fresh.sddl='other-sddl'};Assert-Business5244PostbootTaskSnapshot $before $fresh}catch{$rejected=$true};if(!$rejected){throw 'TASK_DRIFT_ACCEPTED'}
+ };'PASS'
+ `.replace('__MODULE__',q(path.join(dir,'business-5244-postboot.ps1')));
+ assert.equal(run(body),'PASS');
+});
+for(const drift of ['none','engine','instance','count','lost-reply'])test(`production publication call in isolated own-file MODEL: ${drift}; no real task registration`,()=>{
+ if(process.platform!=='win32')return;
+ const temp=root();fs.writeFileSync(path.join(temp,'input.txt'),'immutable own fixture');
+ const body=String.raw`
+ Add-Type -LiteralPath __WEB__
+ Add-Type -LiteralPath __NATIVE__ -ReferencedAssemblies @('System.Management')
+ . __MODULE__ -Library
+ $script:mode=__MODE__;$script:registerCalls=0;$script:snapshotEnumerations=0;$script:engine=42;$script:guid='same-instance';$script:count=1
+ $script:task=[pscustomobject]@{Enabled=$true;State=4;Definition=[pscustomobject]@{Principal=[pscustomobject]@{LogonType=3;UserId='MODEL_ONLY_OWNER'}};Xml='<Task><Actions><Exec><Arguments>old</Arguments></Exec></Actions></Task>'}
+ $script:task|Add-Member ScriptMethod GetSecurityDescriptor {param($flags);return 'MODEL_ONLY_SDDL'}
+ $script:task|Add-Member ScriptMethod GetInstances {param($flags);$script:snapshotEnumerations++;$r=[pscustomobject]@{Count=$script:count};$r|Add-Member ScriptMethod Item {param($index);return [pscustomobject]@{EnginePID=$script:engine;InstanceGuid=$script:guid}};return $r}
+ $folder=[pscustomobject]@{}
+ $folder|Add-Member ScriptMethod GetTask {param($name);switch($script:mode){engine{$script:engine=43}instance{$script:guid='changed-instance'}count{$script:count=2}};return $script:task}
+ $folder|Add-Member ScriptMethod RegisterTask {param($name,$xml,$flags,$user,$password,$logon,$sddl);if($name-cne'Melisa-ERP-TEST-Canonical'-or$flags-ne52-or$user-cne'MODEL_ONLY_OWNER'-or$null-ne$password-or$logon-ne3-or$null-ne$sddl){throw 'REGISTRATION_SCOPE_EXPANDED'};$script:registerCalls++;$script:task.Xml=$xml;if($script:mode-ceq'lost-reply'){throw 'MODEL_REPLY_LOST'};return $null}
+ function Get-Business5244PostbootScheduledTask {return $script:task}
+ $script:folder=$folder;function Get-Business5244PostbootTaskFolder {return $script:folder}
+ function Get-Business5244PostbootCase {return @{privateRoot=$PSScriptRoot}}
+ function Assert-Business5244PostbootPublicationProtection($Record){$Record.self.Validate();foreach($s in $Record.seals){$s.Validate()}}
+ $psFile=[IO.Path]::Combine($PSHOME,'powershell.exe');$psHash=(Get-FileHash -LiteralPath $psFile).Hash.ToLowerInvariant();$self=[Business5244PostbootExecutable]::CaptureCurrent([Environment]::GetCommandLineArgs()[0],$psFile,$psHash)
+ $seal=[Business5244PackageSeal]::new();$inputFile=Join-Path $PSScriptRoot 'input.txt';$seal.Add($inputFile,((Get-FileHash -LiteralPath $inputFile).Hash.ToLowerInvariant()));$seal.Freeze()
+ $token=[pscustomobject]@{fixture='MODEL_NOT_REAL_TASK_ADMISSION'};$before=Get-Business5244PostbootTaskSnapshot $script:task
+ $r=@{token=$token;manifest=@{sourceCommit=('a'*40)};before=$before;proposal='<Task><Actions><Exec><Arguments>new</Arguments></Exec></Actions></Task>';self=$self;seals=@($seal);actors=@{handles=@()};used=$false;closed=$false;registrationCalls=0};$script:Business5244PostbootPublications.Add($r)
+ try{
+  $caught=$null;$answer=$null;try{$answer=Invoke-Business5244PostbootTaskPublication $token}catch{$caught=$_.Exception.Message}
+  if($script:mode-cin@('engine','instance','count')){if(!$caught-or$script:registerCalls-ne0-or$r.registrationCalls-ne0){throw 'DRIFT_REACHED_REGISTRATION'}}
+  elseif($script:mode-ceq'lost-reply'){if(!$caught-or$script:registerCalls-ne1-or$script:task.Xml-cne$r.proposal){throw 'UNKNOWN_MODEL_EFFECT_NOT_PRESERVED'}}
+  else{if($caught-or$answer.taskChanges-ne1-or$script:registerCalls-ne1-or$script:snapshotEnumerations-ne4){throw 'MODEL_SUCCESS_COUNT_CHANGED'}}
+  $rejected=$false;try{Invoke-Business5244PostbootTaskPublication $token|Out-Null}catch{if($_.Exception.Message-cne'POSTBOOT_PUBLICATION_NO_REPLAY'){throw};$rejected=$true};if(!$rejected-or$script:registerCalls-gt1){throw 'UNKNOWN_OR_COMPLETED_PUBLICATION_REPLAYED'}
+  if(!(Test-Path -LiteralPath (Join-Path $PSScriptRoot 'task-publication-attempt.json'))){throw 'ATTEMPT_NOT_RETAINED'};'PASS'
+ }finally{Close-Business5244PostbootPublication $token}
+ `.replace('__WEB__',q(path.join(dir,'business-5244-web-native.cs'))).replace('__NATIVE__',q(path.join(dir,'business-5244-postboot-native.cs'))).replace('__MODULE__',q(path.join(dir,'business-5244-postboot.ps1'))).replace('__MODE__',q(drift));
+ assert.equal(run(body,{cwd:temp,timeout:20000}),'PASS');
+});
 test('trusted builtin bootstrap needs neither an ambient Join-Path command nor module search directory',()=>{
  if(process.platform!=='win32')return;
  const body="foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){$module=Get-Module -Name $n;if(!$module-or$module.Path-cne[IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))){throw 'UNTRUSTED_BUILTIN'}};'PASS'";
  assert.equal(run(body,{bootstrapPrelude:"function global:Join-Path {throw 'IMPLICIT_BOOTSTRAP_DEPENDENCY'}"}),'PASS');
 });
-function capture(){return {schema:'melisa-b6-postboot-capture.v1',beforeBootFileTime:'134380000000000000',capturedFileTime:'134380360000000000',taskXml:xml,taskSddl:'MODEL_ONLY_NO_ACTUAL_TASK',taskChanges:0,sqlCalls:0,processActions:0,base:structuredClone(POSTBOOT.base),protected:Array.from({length:5},(_,i)=>({path:`C:\\Sirket\\ERP\\fixture${i}.json`,sha256:sha(`fixture${i}`)})),health:{ok:true,environment:'CANONICAL_TEST',mode:'erp',port:4144,databaseName:'MELISA_ERP_SIRKET_TEST_20260929_01',serverName:'Semih\\MELISADEV',sourceCommit:POSTBOOT.api.sourceCommit,packageId:POSTBOOT.api.packageId,actualT1:false,externalOperations:false,automaticJobs:false,sysadmin:0,databaseControl:0,liveDatabaseAccess:0}};}
+function capture(){return {schema:'melisa-b6-postboot-capture.v1',beforeBootFileTime:'134380000000000000',capturedFileTime:'134380360000000000',taskXml:xml,taskSddl:'MODEL_ONLY_NO_ACTUAL_TASK',windowsPowerShell:{path:POSTBOOT.ps,sha256:sha('model-windows-powershell')},taskChanges:0,sqlCalls:0,processActions:0,base:structuredClone(POSTBOOT.base),protected:Array.from({length:5},(_,i)=>({path:`C:\\Sirket\\ERP\\fixture${i}.json`,sha256:sha(`fixture${i}`)})),health:{ok:true,environment:'CANONICAL_TEST',mode:'erp',port:4144,databaseName:'MELISA_ERP_SIRKET_TEST_20260929_01',serverName:'Semih\\MELISADEV',sourceCommit:POSTBOOT.api.sourceCommit,packageId:POSTBOOT.api.packageId,actualT1:false,externalOperations:false,automaticJobs:false,sysadmin:0,databaseControl:0,liveDatabaseAccess:0}};}
 test('postboot task proposal changes only Arguments; principals/triggers/settings are byte-preserved',()=>{
  const h=sha('manifest');const projected=projectPostbootTask(xml,h);
  assert.equal(projected.replace(/<Arguments>[\s\S]*?<\/Arguments>/,'<Arguments>old</Arguments>'),xml);
@@ -77,7 +188,7 @@ test('isolated native boot MODEL: genuine own-child sequence, same retained mute
  if(process.platform!=='win32')return;
  const temp=root(),privateRoot=path.join(temp,'proof'),runtime=path.join(temp,'runtime');fs.mkdirSync(privateRoot);fs.mkdirSync(runtime);
  const original=fs.readFileSync(path.join(dir,'business-5244-postboot-native.cs'),'utf8');
- let source=original.replace(String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-recovery-20261101-2230`,privateRoot).replace(String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027`,runtime);
+ let source=original.replace(String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-entry-fix-20261102-0742`,privateRoot).replace(String.raw`C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027`,runtime);
  const start=source.indexOf('    public static string BootFileTime() {'),end=source.indexOf('    public Business5244PostbootEpoch(',start);
  assert.ok(start>0&&end>start);const modeledBoot=(BigInt(Date.now()-3600000)*10000n+116444736000000000n).toString();
  source=source.slice(0,start)+`    public static string BootFileTime() { return "${modeledBoot}"; }\n`+source.slice(end);
@@ -154,12 +265,13 @@ function runtimeModel(extra){
   if($Pins.package-ceq'candidate'-and$script:failCandidate){$script:failCandidate=$false;$n.Dispose();throw 'FIXTURE_CANDIDATE_START_FAILED'}
   return $n
  }
+ $psFile=[IO.Path]::Combine($PSHOME,'powershell.exe');$psHash=(Get-FileHash -LiteralPath $psFile).Hash.ToLowerInvariant();$exe=[Business5244PostbootExecutable]::CaptureCurrent([Environment]::GetCommandLineArgs()[0],$psFile,$psHash)
  $token=[pscustomobject]@{fixture='MODEL_NOT_PRODUCTION_ADMISSION'}
  $epoch=[Business5244PostbootEpoch]::new([DateTime]::UtcNow.AddHours(-3).ToFileTimeUtc().ToString(),[DateTime]::UtcNow.AddHours(-2).ToFileTimeUtc().ToString())
  $ownFile=Join-Path $PSScriptRoot 'own-child.js';$ownHash=(Get-FileHash -LiteralPath $ownFile).Hash.ToLowerInvariant()
  $s=[Business5244PackageSeal]::new();$s.Add($ownFile,$ownHash);$s.Freeze();$p=[Business5244PackageSeal]::new();$p.Add($ownFile,$ownHash);$p.Freeze()
- $m=@{phase='FINITE';planSha256=('e'*64);sourceCommit=('c'*40);steady=@{Old=@{root=(Join-Path $PSScriptRoot 'steady-old');manifestSha256=('5'*64)};Candidate=@{root=(Join-Path $PSScriptRoot 'steady-candidate');manifestSha256=('6'*64)}};oldWeb=@{root=(Join-Path $PSScriptRoot 'old');packageId='old';manifestSha256=('1'*64);sourceCommit=('a'*40)};candidateWeb=@{root=(Join-Path $PSScriptRoot 'candidate');packageId='candidate';manifestSha256=('2'*64);sourceCommit=('b'*40)};api=@{packageId='model-api';manifestSha256=('3'*64);sourceCommit=('c'*40)};node=@{path=NODE;sha256=('4'*64)};originalRequestId='d3d54eed-5de6-46ed-8881-1d3f004c37d8';originalPath='/api/work-sales/drafts';originalBodySha256='9a9fa1be7ffe3158f1c05f433fe07e2a9f4c2333005ca1243489d403673a76ed'}
- $r=@{token=$token;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;closed=$false;epoch=$epoch;sourceSeal=$s;seal=$p;manifest=$m;manifestHash=('f'*64);role='Owner';lease=$null;native=$null;slot='Old';metadataHash=$null;metadataSlot='Old';metadataUnknown=$false;transitionRecordStream=$null;pending=$null}
+ $m=@{windowsPowerShell=@{path=$psFile;sha256=$psHash};phase='FINITE';planSha256=('e'*64);sourceCommit=('c'*40);steady=@{Old=@{root=(Join-Path $PSScriptRoot 'steady-old');manifestSha256=('5'*64)};Candidate=@{root=(Join-Path $PSScriptRoot 'steady-candidate');manifestSha256=('6'*64)}};oldWeb=@{root=(Join-Path $PSScriptRoot 'old');packageId='old';manifestSha256=('1'*64);sourceCommit=('a'*40)};candidateWeb=@{root=(Join-Path $PSScriptRoot 'candidate');packageId='candidate';manifestSha256=('2'*64);sourceCommit=('b'*40)};api=@{packageId='model-api';manifestSha256=('3'*64);sourceCommit=('c'*40)};node=@{path=NODE;sha256=('4'*64)};originalRequestId='d3d54eed-5de6-46ed-8881-1d3f004c37d8';originalPath='/api/work-sales/drafts';originalBodySha256='9a9fa1be7ffe3158f1c05f433fe07e2a9f4c2333005ca1243489d403673a76ed'}
+ $r=@{token=$token;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;closed=$false;epoch=$epoch;sourceSeal=$s;protectedSeal=$s;executable=$exe;seal=$p;manifest=$m;manifestHash=('f'*64);role='Owner';lease=$null;native=$null;slot='Old';metadataHash=$null;metadataSlot='Old';metadataUnknown=$false;transitionRecordStream=$null;pending=$null}
  $script:Business5244PostbootContexts.Add($r);$script:Business5244PostbootOwner=$token;$script:fixtureToken=$token
  $other='{"port":4196,"keep":"EXACT OTHER BYTES"}'
  $row=@{pid=2147483000;root=$m.oldWeb.root;sourceCommit=$m.oldWeb.sourceCommit;port=5244;backendPort=4144;entry='vite-preview';businessWorkfaceId='ERP-5244-REALDATA-20261027'}|ConvertTo-Json -Compress
@@ -173,7 +285,7 @@ const initialize=String.raw`
  $r.native=New-Business5244PinnedChild (Get-Business5244PostbootPins Old) $r.lease -PostbootContext $token;Publish-Business5244PostbootChild $token old
 `;
 const cleanup=String.raw`
- foreach($n in $script:children){$n.Dispose()};if($r.lease){Exit-Business5244StartupLease $r.lease};$epoch.Dispose();if($r.pending){$r.pending.Dispose()};$s.Dispose();$p.Dispose()
+ foreach($n in $script:children){$n.Dispose()};if($r.lease){Exit-Business5244StartupLease $r.lease};$epoch.Dispose();if($r.pending){$r.pending.Dispose()};$exe.Dispose();$s.Dispose();$p.Dispose()
 `;
 for(const failCandidate of [false,true])test(`production successor + metadata functions in isolated native MODEL: ${failCandidate?'candidate cleanup admits rollback':'promotion and explicit rollback'}`,()=>{
  if(process.platform!=='win32')return;
@@ -293,8 +405,8 @@ test('new completion operation is restricted to the finite root; caller-built co
  $rejected=$false;try{Get-Business5244PostbootContext ([pscustomobject]@{kind='postboot-finite-source-bound'})}catch{if($_.Exception.Message-cne'POSTBOOT_UNISSUED_CONTEXT'){throw};$rejected=$true};if(!$rejected){throw 'COPIED_CONTEXT_ACCEPTED'}
  . CHANNEL -Library
  $body=(Get-Command Get-Business5244RetirementOperations).Definition.Replace('$PSScriptRoot','$script:fixtureRoot');. ([scriptblock]::Create('function Get-Business5244RetirementOperations {'+$body+'}'))
- foreach($root in @('legacy','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')){$script:fixtureRoot=$root;if('complete'-cin(Get-Business5244RetirementOperations)){throw 'COMPLETION_LEAKED_TO_DEFAULT'}}
- $script:fixtureRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101';if('complete'-cnotin(Get-Business5244RetirementOperations)){throw 'FINITE_COMPLETION_MISSING'};'PASS'
+ foreach($root in @('legacy','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-0742-20261102')){$script:fixtureRoot=$root;if('complete'-cin(Get-Business5244RetirementOperations)){throw 'COMPLETION_LEAKED_TO_DEFAULT'}}
+ $script:fixtureRoot='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102';if('complete'-cnotin(Get-Business5244RetirementOperations)){throw 'FINITE_COMPLETION_MISSING'};'PASS'
  `.replace('MODULE',q(path.join(dir,'business-5244-postboot.ps1'))).replace('CHANNEL',q(path.join(dir,'business-5244-retirement-channel.ps1')));
  assert.equal(run(body),'PASS');
 });

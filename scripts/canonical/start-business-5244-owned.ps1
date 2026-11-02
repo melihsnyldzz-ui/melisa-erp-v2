@@ -26,7 +26,7 @@ function Assert-Business5244CreatedChild($Native,$Pins){
 function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
- if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')){
+ if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-0742-20261102')){
   $exact=Assert-Business5244PostbootPackage $Pins
   if($null-ne$Seal){throw 'POSTBOOT_SEPARATE_PAYLOAD_SEAL_REQUIRED'}
   return Assert-Business5244PostbootPayload $exact
@@ -211,7 +211,7 @@ function Assert-Business5244ReadyChild($Native,$Pins){
  Assert-Business5244OwnedListeners $rows $Native.ChildPid
 }
 function New-Business5244PinnedChild($Pins,$Lease,$PostbootContext=$null){
- $postboot=$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')
+ $postboot=$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-0742-20261102')
  if($null-ne$PostbootContext-and!$postboot){throw 'POSTBOOT_FOREIGN_GENERATION'}
  if($postboot-and$null-eq$PostbootContext){throw 'POSTBOOT_CONTEXT_REQUIRED'}
  Assert-Business5244StartupLease -Lease $Lease

@@ -10,11 +10,64 @@ using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using Microsoft.Win32.SafeHandles;
 
+// Query/read-only identity. Case-only command spelling is accepted only when
+// all three held files (argv0, expected path, actual process image) are the
+// same canonical Windows file, with the pinned digest and native actor birth/SID.
+public sealed class Business5244PostbootExecutable : IDisposable {
+    [StructLayout(LayoutKind.Sequential)] struct Info { public uint attrs,c0,c1,a0,a1,w0,w1,volume,hi,lo,links,idHi,idLo; }
+    [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();
+    [DllImport("kernel32.dll")] static extern uint GetCurrentProcessId();
+    [DllImport("kernel32.dll")] static extern bool GetProcessTimes(IntPtr h,out long b,out long e,out long k,out long u);
+    [DllImport("kernel32.dll",SetLastError=true)] static extern IntPtr OpenProcess(uint access,bool inherit,int pid);
+    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll")] static extern uint WaitForSingleObject(IntPtr h,uint ms);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode)] static extern bool QueryFullProcessImageName(IntPtr h,uint flags,StringBuilder p,ref uint size);
+    [DllImport("advapi32.dll",SetLastError=true)] static extern bool OpenProcessToken(IntPtr h,uint access,out IntPtr token);
+    [DllImport("kernel32.dll")] static extern bool GetFileInformationByHandle(SafeFileHandle h,out Info i);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode)] static extern uint GetFinalPathNameByHandle(SafeFileHandle h,StringBuilder p,uint size,uint flags);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode)] static extern SafeFileHandle CreateFile(string p,uint a,uint share,IntPtr sec,uint creation,uint flags,IntPtr template);
+    sealed class FilePin { public FileStream Stream;public Info Identity;public string Path; }
+    sealed class DirectoryPin { public SafeFileHandle Handle;public Info Identity;public string Path; }
+    readonly int issuer=(int)GetCurrentProcessId(),thread=Thread.CurrentThread.ManagedThreadId;
+    readonly long issuerBirth=Birth(GetCurrentProcess());readonly string issuerSid=WindowsIdentity.GetCurrent().User.Value;
+    readonly List<FilePin> files=new List<FilePin>();readonly Dictionary<string,DirectoryPin> dirs=new Dictionary<string,DirectoryPin>(StringComparer.OrdinalIgnoreCase);
+    IntPtr process;long actorBirth;string actorSid;bool disposed;
+    static Exception Fail(string s){return new InvalidOperationException("POSTBOOT_EXECUTABLE_"+s);}
+    static long Birth(IntPtr p){long b,e,k,u;if(p==IntPtr.Zero||!GetProcessTimes(p,out b,out e,out k,out u))throw Fail("BIRTH_UNAVAILABLE");return b;}
+    static string Sid(IntPtr p){IntPtr t;if(!OpenProcessToken(p,8,out t))throw Fail("OWNER_UNAVAILABLE");try{using(var i=new WindowsIdentity(t))return i.User.Value;}finally{CloseHandle(t);}}
+    static string Final(SafeFileHandle h){var b=new StringBuilder(32768);uint n=GetFinalPathNameByHandle(h,b,(uint)b.Capacity,0);if(n==0||n>=b.Capacity)throw Fail("PATH_UNAVAILABLE");string p=b.ToString();return p.StartsWith(@"\\?\",StringComparison.Ordinal)?p.Substring(4):p;}
+    static bool Same(Info a,Info b){return a.volume==b.volume&&a.idHi==b.idHi&&a.idLo==b.idLo;}
+    void PinDirectory(string p){if(String.IsNullOrEmpty(p)||dirs.ContainsKey(p))return;PinDirectory(Path.GetDirectoryName(p));var h=CreateFile(p,0x80,3,IntPtr.Zero,3,0x02200000,IntPtr.Zero);try{Info i;if(h.IsInvalid||!GetFileInformationByHandle(h,out i)||(i.attrs&0x410)!=0x10||!String.Equals(Final(h).TrimEnd('\\'),p.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))throw Fail("DIRECTORY_CHANGED");dirs.Add(p,new DirectoryPin{Handle=h,Identity=i,Path=p});}catch{h.Dispose();throw;}}
+    FilePin PinFile(string p){p=Path.GetFullPath(p);PinDirectory(Path.GetDirectoryName(p));var f=new FileStream(p,FileMode.Open,FileAccess.Read,FileShare.Read);try{Info i;if(!GetFileInformationByHandle(f.SafeFileHandle,out i)||(i.attrs&0x410)!=0||!String.Equals(Final(f.SafeFileHandle),p,StringComparison.OrdinalIgnoreCase))throw Fail("FILE_IDENTITY_CHANGED");var pin=new FilePin{Stream=f,Identity=i,Path=p};files.Add(pin);return pin;}catch{f.Dispose();throw;}}
+    public static Business5244PostbootExecutable CaptureCurrent(string invoked,string expected,string digest){return CaptureProcess((int)GetCurrentProcessId(),Birth(GetCurrentProcess()).ToString(),WindowsIdentity.GetCurrent().User.Value,invoked,expected,digest);}
+    static bool BirthMatches(long actual,long wanted,bool cim){return cim?wanted%10==0&&actual/10==wanted/10:actual==wanted;}
+    public static Business5244PostbootExecutable CaptureProcess(int pid,string birth,string sid,string invoked,string expected,string digest){return Capture(pid,birth,sid,invoked,expected,digest,false);}
+    public static Business5244PostbootExecutable CaptureCimProcess(int pid,string birth,string sid,string invoked,string expected,string digest){return Capture(pid,birth,sid,invoked,expected,digest,true);}
+    static Business5244PostbootExecutable Capture(int pid,string birth,string sid,string invoked,string expected,string digest,bool cim){
+        var r=new Business5244PostbootExecutable();try{
+            long wanted;if(pid<=0||!Int64.TryParse(birth,out wanted)||String.IsNullOrEmpty(sid)||String.IsNullOrEmpty(invoked)||!String.Equals(invoked,expected,StringComparison.OrdinalIgnoreCase)||!String.Equals(Path.GetFullPath(expected),expected,StringComparison.Ordinal)||!System.Text.RegularExpressions.Regex.IsMatch(digest??"",@"\A[a-f0-9]{64}\z"))throw Fail("ARGUMENT_REJECTED");
+            r.process=OpenProcess(0x00101000,false,pid);r.actorBirth=Birth(r.process);r.actorSid=Sid(r.process);
+            if(WaitForSingleObject(r.process,0)!=258||!BirthMatches(r.actorBirth,wanted,cim)||!String.Equals(r.actorSid,sid,StringComparison.Ordinal))throw Fail("ACTOR_CHANGED");
+            var image=new StringBuilder(32768);uint size=(uint)image.Capacity;if(!QueryFullProcessImageName(r.process,0,image,ref size)||!String.Equals(image.ToString(),expected,StringComparison.OrdinalIgnoreCase))throw Fail("PROCESS_IMAGE_CHANGED");
+            var a=r.PinFile(invoked);var b=r.PinFile(expected);var c=r.PinFile(image.ToString());
+            if(!Same(a.Identity,b.Identity)||!Same(a.Identity,c.Identity))throw Fail("FILE_MISMATCH");
+            string hash;using(var h=SHA256.Create())hash=BitConverter.ToString(h.ComputeHash(b.Stream)).Replace("-","").ToLowerInvariant();b.Stream.Position=0;if(hash!=digest)throw Fail("HASH_CHANGED");r.Validate();return r;
+        }catch{r.Dispose();throw;}
+    }
+    public void Validate(){
+        if(disposed||issuer!=(int)GetCurrentProcessId()||thread!=Thread.CurrentThread.ManagedThreadId||issuerBirth!=Birth(GetCurrentProcess())||issuerSid!=WindowsIdentity.GetCurrent().User.Value)throw Fail("ISSUER_CHANGED");
+        if(process==IntPtr.Zero||WaitForSingleObject(process,0)!=258||Birth(process)!=actorBirth||Sid(process)!=actorSid)throw Fail("ACTOR_CHANGED");
+        foreach(var p in files){Info i;if(p.Stream.SafeFileHandle.IsClosed||!GetFileInformationByHandle(p.Stream.SafeFileHandle,out i)||!Same(i,p.Identity)||(i.attrs&0x410)!=0||!String.Equals(Final(p.Stream.SafeFileHandle),p.Path,StringComparison.OrdinalIgnoreCase))throw Fail("FILE_IDENTITY_CHANGED");}
+        foreach(var p in dirs.Values){Info i;if(p.Handle.IsClosed||!GetFileInformationByHandle(p.Handle,out i)||!Same(i,p.Identity)||(i.attrs&0x410)!=0x10||!String.Equals(Final(p.Handle).TrimEnd('\\'),p.Path.TrimEnd('\\'),StringComparison.OrdinalIgnoreCase))throw Fail("DIRECTORY_CHANGED");}
+    }
+    public void Dispose(){if(disposed)return;foreach(var p in files)p.Stream.Dispose();foreach(var p in dirs.Values)p.Handle.Dispose();if(process!=IntPtr.Zero){CloseHandle(process);process=IntPtr.Zero;}disposed=true;}
+}
+
 // A new boot is a precondition, never evidence of normal cleanup. This class
 // cannot stop/start a process or change SQL/tasks. Only its OWN newly created
 // barrier can become a retained completion witness after explicit finalization.
 public sealed class Business5244PostbootEpoch : IDisposable {
-    const string PrivateRoot = @"C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-recovery-20261101-2230";
+    const string PrivateRoot = @"C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-entry-fix-20261102-0742";
     const string Runtime = @"C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027";
     const string RecordDirectory = @"C:\Sirket\ERP\clean\20261022\runtime";
     [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();

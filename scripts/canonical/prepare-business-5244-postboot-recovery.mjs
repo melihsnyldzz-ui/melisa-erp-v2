@@ -5,10 +5,10 @@ import cp from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 
 export const POSTBOOT=Object.freeze({
- id:'ERP-B6-POSTBOOT-RECOVERY-PREP-20261101-2230',
+ id:'ERP-B6-POSTBOOT-ENTRY-FIX-20261102-0742',
  source:String.raw`C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018`,
- root:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101`,
- privateRoot:String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-recovery-20261101-2230`,
+ root:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102`,
+ privateRoot:String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-entry-fix-20261102-0742`,
  taskName:'Melisa-ERP-TEST-Canonical',
  taskBeforeSha256:'4c747a088c387cd714ce9d645831280ffbba59f4f29ce93a8e7e93fa9f7af0da',
  ps:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
@@ -32,7 +32,7 @@ export const POSTBOOT_FILES=Object.freeze([
  'prepare-business-5244-postboot-recovery.mjs',
  'test125-bound-api-quiescence.ps1'
 ]);
-export const POSTBOOT_STEADY=Object.freeze({Old:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101`,Candidate:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101`});
+export const POSTBOOT_STEADY=Object.freeze({Old:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-0742-20261102`,Candidate:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-0742-20261102`});
 const GIT=String.raw`C:\Program Files\Git\cmd\git.exe`,GH=String.raw`C:\Program Files\GitHub CLI\gh.exe`;
 const passive=Object.freeze({installed:false,applied:false,executionAuthority:false,runtimeGo:false,actualT1:false,externalOperations:false});
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
@@ -47,6 +47,7 @@ export function validatePostbootCapture(c){
  need(c.taskChanges===0&&c.sqlCalls===0&&c.processActions===0,'POSTBOOT_CAPTURE_EFFECT_REJECTED');
  need(Array.isArray(c.protected)&&c.protected.length>=5&&new Set(c.protected.map(f=>f.path.toLowerCase())).size===c.protected.length,'POSTBOOT_CAPTURE_PROTECTED_REJECTED');
  for(const f of c.protected)need(Object.keys(f).sort().join(',')==='path,sha256'&&typeof f.path==='string'&&f.path.startsWith('C:\\Sirket\\ERP\\')&&path.win32.normalize(f.path)===f.path&&!f.path.includes('/')&&/^[a-f0-9]{64}$/.test(f.sha256),'POSTBOOT_CAPTURE_PROTECTED_REJECTED');
+ need(c.windowsPowerShell?.path===POSTBOOT.ps&&/^[a-f0-9]{64}$/.test(c.windowsPowerShell.sha256),'POSTBOOT_CAPTURE_EXECUTABLE_REJECTED');
  const h=c.health;
  need(c.base&&c.base.root===POSTBOOT.base.root&&c.base.manifestSha256===POSTBOOT.base.manifestSha256&&c.base.sourceCommit===POSTBOOT.base.sourceCommit,'POSTBOOT_CAPTURE_BASE_CHANGED');
  need(h&&h.ok===true&&h.environment==='CANONICAL_TEST'&&h.port===4144&&h.mode==='erp'&&h.databaseName==='MELISA_ERP_SIRKET_TEST_20260929_01'&&h.serverName.toLowerCase()==='semih\\melisadev'&&h.sourceCommit===POSTBOOT.api.sourceCommit&&h.packageId===POSTBOOT.api.packageId&&h.actualT1===false&&h.externalOperations===false&&h.automaticJobs===false&&h.sysadmin===0&&h.databaseControl===0&&h.liveDatabaseAccess===0,'POSTBOOT_CAPTURE_API_REJECTED');
@@ -67,7 +68,7 @@ export function compilePostbootGeneration({source,files,capture,ci}){
  need(Array.isArray(ci)&&ci.length===2&&['push','pull_request'].every(event=>ci.filter(r=>r.event===event&&r.head===source&&r.conclusion==='success'&&r.jobs?.length===3&&['quality-build-test','secret-scan','windows-startup-test'].every(name=>r.jobs.filter(j=>j.name===name&&j.conclusion==='success').length===1)).length===1),'POSTBOOT_EXACT_CI_REQUIRED');
  const rows=POSTBOOT_FILES.map(name=>({path:name,sha256:hash(files.get(name)),bytes:files.get(name).length}));
  const taskXml=Buffer.from(capture.taskXml),taskSddl=Buffer.from(capture.taskSddl);
- const common={schema:'melisa-b6-postboot-generation.v1',id:POSTBOOT.id,privateRoot:POSTBOOT.privateRoot,sourceCommit:source,files:rows,protected:[...capture.protected,{path:path.win32.join(POSTBOOT.privateRoot,'task-before.xml'),sha256:hash(taskXml)},{path:path.win32.join(POSTBOOT.privateRoot,'task-before.sddl'),sha256:hash(taskSddl)}],taskSddlSha256:hash(taskSddl),beforeBootFileTime:capture.beforeBootFileTime,capturedFileTime:capture.capturedFileTime,health:capture.health,node:POSTBOOT.node,oldWeb:POSTBOOT.oldWeb,candidateWeb:POSTBOOT.candidateWeb,api:POSTBOOT.api,base:POSTBOOT.base,origin:'http://192.168.1.46:5244',originalRequestId:POSTBOOT.originalRequestId,originalPath:POSTBOOT.originalPath,originalBodySha256:POSTBOOT.originalBodySha256,...passive};
+ const common={schema:'melisa-b6-postboot-generation.v1',id:POSTBOOT.id,privateRoot:POSTBOOT.privateRoot,sourceCommit:source,files:rows,protected:[...capture.protected,{path:path.win32.join(POSTBOOT.privateRoot,'task-before.xml'),sha256:hash(taskXml)},{path:path.win32.join(POSTBOOT.privateRoot,'task-before.sddl'),sha256:hash(taskSddl)}],taskSddlSha256:hash(taskSddl),beforeBootFileTime:capture.beforeBootFileTime,capturedFileTime:capture.capturedFileTime,health:capture.health,windowsPowerShell:capture.windowsPowerShell,node:POSTBOOT.node,oldWeb:POSTBOOT.oldWeb,candidateWeb:POSTBOOT.candidateWeb,api:POSTBOOT.api,base:POSTBOOT.base,origin:'http://192.168.1.46:5244',originalRequestId:POSTBOOT.originalRequestId,originalPath:POSTBOOT.originalPath,originalBodySha256:POSTBOOT.originalBodySha256,...passive};
  const planSha256=hash(bytes(common)),steady={},steadyFiles={};
  for(const slot of ['Old','Candidate']){const raw=bytes({...common,root:POSTBOOT_STEADY[slot],phase:'STEADY',initialSlot:slot,planSha256});steady[slot]={root:POSTBOOT_STEADY[slot],manifestSha256:hash(raw)};steadyFiles[slot]=new Map([...files,['postboot-manifest.json',raw]]);}
  const manifest=bytes({...common,root:POSTBOOT.root,phase:'FINITE',initialSlot:'Old',planSha256,steady});
@@ -87,7 +88,7 @@ function writeNew(dir,files){need(!fs.existsSync(dir),'POSTBOOT_OUTPUT_EXISTS');
 function verifyFiles(dir,files){plain(dir);const names=fs.readdirSync(dir).sort();need(JSON.stringify(names)===JSON.stringify([...files.keys()].sort()),'POSTBOOT_OUTPUT_CLOSURE_CHANGED');for(const [leaf,b]of files){const p=path.join(dir,leaf);plain(p);need(fs.statSync(p).isFile()&&fs.statSync(p).nlink===1&&fs.readFileSync(p).equals(b),'POSTBOOT_OUTPUT_CHANGED');}}
 function verifyBindings(){for(const p of [POSTBOOT.oldWeb,POSTBOOT.candidateWeb,POSTBOOT.api,POSTBOOT.base]){const f=path.join(p.root,'release-manifest.json');plain(f);need(hash(fs.readFileSync(f))===p.manifestSha256,'POSTBOOT_PACKAGE_MANIFEST_CHANGED');}plain(POSTBOOT.node.path);need(hash(fs.readFileSync(POSTBOOT.node.path))===POSTBOOT.node.sha256,'POSTBOOT_NODE_CHANGED');}
 export function main(args){
- need(process.platform==='win32'&&args.length===1&&['--prepare','--verify'].includes(args[0]),'POSTBOOT_FIXED_ACTION');
+ need(process.platform==='win32'&&args.length===1&&['--prepare','--verify','--read-only-preflight'].includes(args[0]),'POSTBOOT_FIXED_ACTION');
  need(git(['remote','get-url','origin']).toString().trim()==='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git'&&git(['remote','get-url','--push','origin']).toString().trim()==='https://github.com/melihsnyldzz-ui/melisa-erp-v2.git','POSTBOOT_REPO_IDENTITY_CHANGED');
  verifyBindings();let capture,source;
  if(args[0]==='--prepare'){
@@ -104,6 +105,10 @@ export function main(args){
  const recorded=JSON.parse(fs.readFileSync(path.join(POSTBOOT.privateRoot,'preparation-receipt.json')));source=recorded.sourceCommit;capture=JSON.parse(fs.readFileSync(path.join(POSTBOOT.privateRoot,'capture.json')));
  const ci=JSON.parse(fs.readFileSync(path.join(POSTBOOT.privateRoot,'ci-provenance.json')));liveCi(source);const compiled=compilePostbootGeneration({source,files:sourceFiles(source),capture,ci});verifyFiles(POSTBOOT.root,compiled.root);verifyFiles(POSTBOOT.privateRoot,compiled.proof);
  for(const slot of ['Old','Candidate'])verifyFiles(POSTBOOT_STEADY[slot],compiled.steadyFiles[slot]);
+ if(args[0]==='--read-only-preflight'){
+  const result=JSON.parse(cli(POSTBOOT.ps,['-NoProfile','-NonInteractive','-File',path.join(POSTBOOT.root,'capture-business-5244-postboot.ps1'),'-ReadOnlyPreflight','-ManifestSha256',compiled.manifestHash]).toString('utf8').replace(/^\uFEFF/,''));
+  need(result.schema==='melisa-b6-postboot-read-only-preflight.v1'&&result.sourceCommit===source&&result.executableIdentityVerified===true&&result.argumentTailExact===true&&result.frozenSourceClosures===3&&result.sourceFilesPerClosure===19&&['taskWrites','registrationCalls','claims','pendingWrites'].every(k=>result[k]===0)&&result.runtimeGo===false&&result.postbootObserved===false,'POSTBOOT_READ_ONLY_PREFLIGHT_REJECTED');return result;
+ }
  return {schema:'melisa-b6-postboot-verified.v1',sourceCommit:source,manifestSha256:compiled.manifestHash,steady:compiled.steady,taskProposalApplied:false,postbootObserved:false,...passive};
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(path.resolve(process.argv[1])).href){try{process.stdout.write(JSON.stringify(main(process.argv.slice(2)))+'\n');}catch(e){process.stderr.write((/^POSTBOOT_[A-Z0-9_]+$/.test(e.message)?e.message:'POSTBOOT_PREPARATION_FAILED')+'\n');process.exitCode=1;}}

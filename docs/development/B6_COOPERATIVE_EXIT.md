@@ -125,3 +125,54 @@ inputs. They do not prove an actual reboot/logon, installed GUI, personnel
 acceptance, or runtime GO. A real later full Windows restart may interrupt the
 shared SQL/Vega/CRM environment and needs separate explicit maintenance scope;
 no such action is performed by this source delivery.
+
+## 0742 executable identity and pre-restart publication guards
+
+The 0706 task update was NOT attempted. Its read-only observations found that
+the actual scheduled PowerShell command spells the same Windows file with
+different letter case. The 511/2230 full-argv ordinal check would reject it.
+Those artifacts, failed preparation records and the original task are retained.
+
+0742 uses separate immutable roots and fresh manifests. Only argv[0] receives
+Windows file semantics: the command spelling, pinned expected path and actual
+process image must have the same native canonical path, volume/FileID and
+SHA256. File/directory handles are retained without write/delete sharing. The
+native process query handle binds its birth and owner SID. A same-content copy,
+another path, wrong digest, owner or process identity is rejected. Windows
+component hardlinks do not authorize an alternate command path. The remaining
+argv entries retain exact ordinal comparison, including script path case.
+
+Native current/peer births are compared exactly. CIM microsecond projection is
+available only through the explicitly named CIM observation method; native
+birth provenance is never inferred from its last digit. Epoch, once, genuine
+Owner mutex, pipe peer, 15-second input and 60-second admission guards remain.
+
+The pre-restart factory pins all19 source files plus each of the three actual
+manifests, as well as protected profiles, Windows PowerShell, both independently
+pinned Node binaries and the existing application manifests. Missing, changed,
+duplicate or replaced source files fail before a publication context is issued.
+Recorded adopted native/5194 children require exact existing process-record,
+birth, owner, executable, script and config binding; the current API must ALSO
+remain a direct child of the scheduled supervisor. No dead parent is adopted
+as a current identity or used as a process-control target.
+
+The future publication function has one supported RegisterTask call with flags
+52, unchanged user/logon type and no credential or security-descriptor update.
+After durable CreateNew before-images/attempt evidence, a SINGLE new instances
+collection and its SINGLE instance object provide Count, EnginePID and GUID
+for the final CAS immediately before registration. Source/protection and native
+actor holds remain live. Changed XML/SDDL/instance/engine/principal refuses the
+call. A lost reply consumes the same attempt; there is no automatic retry,
+new identity, rollback, task Run or reboot in this helper.
+
+`--read-only-preflight` verifies the new frozen closure and invokes only the
+read-only factory/protection/close path against the existing task and actors.
+It never calls the publication function, creates a claim/attempt/pending marker,
+starts the task, acquires an Owner mutex or writes runtime/config/SQL data.
+Its proof is real current-task compatibility, not task registration, actual
+postboot, normal GUI, personnel acceptance or permission to restart.
+
+The native identity operations follow Microsoft's documented
+[file identity comparison](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle)
+and [process image query](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamea)
+semantics. Only query/synchronize and token-query access are requested.

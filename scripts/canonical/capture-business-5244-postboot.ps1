@@ -1,8 +1,17 @@
-param([switch]$Capture)
+param([switch]$Capture,[switch]$ReadOnlyPreflight,[string]$ManifestSha256)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if(!$Capture){throw 'POSTBOOT_CAPTURE_ONLY_REQUIRED'}
+if(!$Capture-and!$ReadOnlyPreflight){throw 'POSTBOOT_CAPTURE_ONLY_REQUIRED'}
 foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','CimCmdlets')){Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,($name+'.psd1'))) -Scope Local -ErrorAction Stop}
+if($ReadOnlyPreflight){
+ Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules','NetTCPIP','NetTCPIP.psd1')) -Scope Local -ErrorAction Stop
+ . (Join-Path $PSScriptRoot 'business-5244-postboot.ps1') -Library
+ . (Join-Path $PSScriptRoot 'start-owned-test.ps1') -Library
+ $token=New-Business5244PostbootPublication $ManifestSha256
+ try{$r=Get-Business5244PostbootPublication $token;Assert-Business5244PostbootPublicationProtection $r
+  [pscustomobject]@{schema='melisa-b6-postboot-read-only-preflight.v1';sourceCommit=$r.manifest.sourceCommit;executableIdentityVerified=$true;argumentTailExact=$true;frozenSourceClosures=3;sourceFilesPerClosure=19;actualTaskReadOnly=$true;canonicalAndWebNodesVerified=$true;adoptedActorsRecorded=$true;taskWrites=0;registrationCalls=0;claims=0;pendingWrites=0;runtimeGo=$false;postbootObserved=$false;humanAcceptance='BEKLIYOR'}|ConvertTo-Json -Compress
+ }finally{Close-Business5244PostbootPublication $token};return
+}
 # Called only by the pinned passive producer. Raw task XML/SDDL stays in its
 # private output, never in the producer's stdout or a committed source file.
 $os=@(Get-CimInstance Win32_OperatingSystem -Property LastBootUpTime);if($os.Count-ne1){throw 'POSTBOOT_CAPTURE_BOOT_UNAVAILABLE'}
@@ -18,4 +27,4 @@ foreach($f in $sale.files){if((Get-FileHash -LiteralPath $f.file).Hash-ine$f.sha
  $attempt=Get-Content -LiteralPath (Join-Path (Split-Path $sale.files[0].file) 'attempt-result.json') -Raw|ConvertFrom-Json
  if($attempt.attempt.requestId-cne$sale.requestId-or$attempt.attempt.operation-cne'sale_draft'){throw 'POSTBOOT_CAPTURE_ORIGINAL_OPERATION_CHANGED'}
 $protected=@(foreach($p in @($paths|Sort-Object -Unique)){[pscustomobject]@{path=$p;sha256=(Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()}})
-[pscustomobject]@{schema='melisa-b6-postboot-capture.v1';beforeBootFileTime=$os[0].LastBootUpTime.ToUniversalTime().ToFileTimeUtc().ToString();capturedFileTime=[DateTime]::UtcNow.ToFileTimeUtc().ToString();taskXml=[string]$task.Xml;taskSddl=[string]$task.GetSecurityDescriptor(7);protected=$protected;health=$health;base=@{root=$config.ReleaseRoot;manifestSha256=$config.ManifestSha256.ToLowerInvariant();sourceCommit=$config.SourceCommit};taskChanges=0;sqlCalls=0;processActions=0}|ConvertTo-Json -Depth 12 -Compress
+[pscustomobject]@{schema='melisa-b6-postboot-capture.v1';beforeBootFileTime=$os[0].LastBootUpTime.ToUniversalTime().ToFileTimeUtc().ToString();capturedFileTime=[DateTime]::UtcNow.ToFileTimeUtc().ToString();windowsPowerShell=@{path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe';sha256=(Get-FileHash -LiteralPath ([IO.Path]::Combine($PSHOME,'powershell.exe'))).Hash.ToLowerInvariant()};taskXml=[string]$task.Xml;taskSddl=[string]$task.GetSecurityDescriptor(7);protected=$protected;health=$health;base=@{root=$config.ReleaseRoot;manifestSha256=$config.ManifestSha256.ToLowerInvariant();sourceCommit=$config.SourceCommit};taskChanges=0;sqlCalls=0;processActions=0}|ConvertTo-Json -Depth 12 -Compress
