@@ -14,4 +14,4 @@ try{
  # The unchanged canonical service loop owns only its original three services.
  # Its existing ready hook starts the new finite WEB owner exactly once.
  Invoke-ErpOwnedSession $config
-}finally{$r.epoch.Dispose();$r.executable.Dispose();$r.sourceSeal.Dispose();$r.protectedSeal.Dispose();$r.seal.Dispose();$r.closed=$true}
+}finally{Close-Business5244PostbootProfileScope $r.profileScope;$r.epoch.Dispose();$r.executable.Dispose();$r.sourceSeal.Dispose();$r.protectedSeal.Dispose();$r.seal.Dispose();$r.closed=$true}

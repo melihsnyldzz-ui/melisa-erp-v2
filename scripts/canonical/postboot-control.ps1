@@ -20,4 +20,4 @@ try{
  # One explicit action, one send. Lost reply remains UNKNOWN, never retried.
  $result=Send-Business5244RetirementRequest $connection $operation
  [pscustomobject]@{action=$Action;reply=$result.reply;state=$result.state;deliveryIsNotCompletion=$true;normalGuiVerified=$false;humanAcceptance='BEKLIYOR';runtimeGo=$false}|ConvertTo-Json -Depth 5 -Compress
-}finally{if($connection){Close-Business5244RetirementPeer $connection};if($serverExecutable){$serverExecutable.Dispose()};$r.epoch.Dispose();$r.executable.Dispose();$r.sourceSeal.Dispose();$r.protectedSeal.Dispose();$r.seal.Dispose();$r.closed=$true}
+}finally{if($connection){Close-Business5244RetirementPeer $connection};if($serverExecutable){$serverExecutable.Dispose()};Close-Business5244PostbootProfileScope $r.profileScope;$r.epoch.Dispose();$r.executable.Dispose();$r.sourceSeal.Dispose();$r.protectedSeal.Dispose();$r.seal.Dispose();$r.closed=$true}

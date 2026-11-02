@@ -17,6 +17,7 @@ function Get-ErpBusinessSaleNativeInputs {
  return [pscustomobject]@{artifact=$a;descriptor=$d;artifactHash=(Get-ErpBusinessSaleHash $artifactBytes)}
 }
 function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
+ if((Get-Command Test-Business5244PostbootProfileGeneration -CommandType Function -ErrorAction SilentlyContinue)-and(Test-Business5244PostbootProfileGeneration)){return Assert-Business5244PostbootProfileDelta $Base $Api $Manifest}
  if(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady){return Assert-ErpBusinessSaleDiagnosticProfileDelta $Base $Api $Manifest}
  if(Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady){return Assert-ErpBusinessSaleReadContextRepairProfileDelta $Base $Api $Manifest}
  if($Manifest.packageId-ceq'CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'){return Assert-ErpBusinessSaleWriterProfileDelta $Base $Api $Manifest}

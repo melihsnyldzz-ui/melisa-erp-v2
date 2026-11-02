@@ -67,7 +67,7 @@ public sealed class Business5244PostbootExecutable : IDisposable {
 // cannot stop/start a process or change SQL/tasks. Only its OWN newly created
 // barrier can become a retained completion witness after explicit finalization.
 public sealed class Business5244PostbootEpoch : IDisposable {
-    const string PrivateRoot = @"C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-entry-fix-20261102-0742";
+    const string PrivateRoot = @"C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-profile-integration-20261102-0742";
     const string Runtime = @"C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027";
     const string RecordDirectory = @"C:\Sirket\ERP\clean\20261022\runtime";
     [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();

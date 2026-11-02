@@ -5,7 +5,7 @@ param([Alias('Library')][switch]$RetirementLibrary)
 if(!(Get-Variable Business5244RetirementChannels -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244RetirementChannels=[Collections.Generic.List[object]]::new();$script:Business5244RetirementClients=[Collections.Generic.List[object]]::new()}
 function Initialize-Business5244RetirementPeer {if(!('Business5244RetirementPeer' -as [type])){Add-Type -LiteralPath (Join-Path $PSScriptRoot 'business-5244-retirement-peer.cs')}}
 function Get-Business5244RetirementPipeName {Initialize-Business5244RetirementPeer;$expected='MelisaERP5244Retirement-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes((Get-Business5244StartupMutexName))));if($expected -cne [Business5244RetirementPipe]::Name){throw 'RETIREMENT_PIPE_GATE_BINDING_CHANGED'};return $expected}
-function Get-Business5244RetirementOperations {if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102'){return @('status','retire','recover','exit','complete')};return @('status','retire','recover','exit')}
+function Get-Business5244RetirementOperations {if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102'){return @('status','retire','recover','exit','complete')};return @('status','retire','recover','exit')}
 function Get-Business5244RetirementRecord($Token,[switch]$Client){$items=if($Client){$script:Business5244RetirementClients}else{$script:Business5244RetirementChannels};$found=@($items|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($found.Count -ne 1){throw 'RETIREMENT_UNISSUED_REFERENCE'};$r=$found[0];if($r.pid -ne $PID -or $r.thread -ne [Threading.Thread]::CurrentThread.ManagedThreadId -or $r.birth -cne [Business5244RetirementPeer]::CurrentBirth){throw 'RETIREMENT_FOREIGN_PROCESS_OR_THREAD'};return $r}
 function Assert-Business5244RetirementChannel($Channel){$r=Get-Business5244RetirementRecord $Channel;if($r.closed){throw 'RETIREMENT_CHANNEL_CLOSED'};Assert-Business5244StartupLease -Lease $r.lease}
 function Reset-Business5244RetirementConnection($Record){
@@ -49,7 +49,7 @@ function Receive-Business5244RetirementRequest {
     if($line -ne $text.Length-1){throw 'RETIREMENT_SECOND_BODY_REJECTED'}
     # Canonical fixed request framing also rejects duplicate JSON keys, escaped
     # commands, extra properties and alternate bodies rather than normalizing.
-    if($text -cnotmatch '^\{"operation":"(?:status|retire|recover|exit)","requestId":"[a-f0-9]{32}"\}\n$'-and!($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102'-and$text-cmatch'^\{"operation":"complete","requestId":"[a-f0-9]{32}"\}\n$')){throw 'RETIREMENT_UNKNOWN_BODY'}
+    if($text -cnotmatch '^\{"operation":"(?:status|retire|recover|exit)","requestId":"[a-f0-9]{32}"\}\n$'-and!($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102'-and$text-cmatch'^\{"operation":"complete","requestId":"[a-f0-9]{32}"\}\n$')){throw 'RETIREMENT_UNKNOWN_BODY'}
     try{$body=$text.Substring(0,$line)|ConvertFrom-Json -ErrorAction Stop}catch{throw 'RETIREMENT_UNKNOWN_BODY'}
     if(!$body -or ($body.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'operation,requestId' -or $body.operation -isnot [string] -or $body.operation -cnotin (Get-Business5244RetirementOperations) -or $body.requestId -isnot [string] -or $body.requestId -cne $r.nonce){throw 'RETIREMENT_UNKNOWN_OR_REPLAY_BODY'}
     $r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe)

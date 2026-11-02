@@ -7,8 +7,8 @@ import {pathToFileURL} from 'node:url';
 export const POSTBOOT=Object.freeze({
  id:'ERP-B6-POSTBOOT-ENTRY-FIX-20261102-0742',
  source:String.raw`C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018`,
- root:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102`,
- privateRoot:String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-entry-fix-20261102-0742`,
+ root:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102`,
+ privateRoot:String.raw`C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-profile-integration-20261102-0742`,
  taskName:'Melisa-ERP-TEST-Canonical',
  taskBeforeSha256:'4c747a088c387cd714ce9d645831280ffbba59f4f29ce93a8e7e93fa9f7af0da',
  ps:String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,
@@ -19,6 +19,7 @@ export const POSTBOOT=Object.freeze({
  api:{root:String.raw`C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-VERIFIED-20261030`,manifestSha256:'afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c',packageId:'CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029',sourceCommit:'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d'},
  originalRequestId:'d3d54eed-5de6-46ed-8881-1d3f004c37d8',originalPath:'/api/work-sales/drafts',originalBodySha256:'9a9fa1be7ffe3158f1c05f433fe07e2a9f4c2333005ca1243489d403673a76ed'
 });
+export const POSTBOOT_PROFILE=Object.freeze({schema:'melisa-b6-postboot-profile-read.v1',purpose:'ReadOnlyStartupProfile',profilePath:String.raw`C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json`,profileSha256:'74d72c0c2ce685f126ae941249c69a1168bf90e7dbbf45269639e19ef466c7c3',descriptorSha256:'a9a29cfc729694bb54188f240c1a840c0e1f71c1d117ff35e3005e123941f934'});
 export const POSTBOOT_FILES=Object.freeze([
  'business-5244-postboot.ps1','business-5244-postboot-native.cs',
  'postboot-task.ps1','postboot-owner.ps1','postboot-control.ps1',
@@ -32,7 +33,7 @@ export const POSTBOOT_FILES=Object.freeze([
  'prepare-business-5244-postboot-recovery.mjs',
  'test125-bound-api-quiescence.ps1'
 ]);
-export const POSTBOOT_STEADY=Object.freeze({Old:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-0742-20261102`,Candidate:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-0742-20261102`});
+export const POSTBOOT_STEADY=Object.freeze({Old:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-PROFILE-0742-20261102`,Candidate:String.raw`C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-PROFILE-0742-20261102`});
 const GIT=String.raw`C:\Program Files\Git\cmd\git.exe`,GH=String.raw`C:\Program Files\GitHub CLI\gh.exe`;
 const passive=Object.freeze({installed:false,applied:false,executionAuthority:false,runtimeGo:false,actualT1:false,externalOperations:false});
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex');
@@ -48,6 +49,7 @@ export function validatePostbootCapture(c){
  need(Array.isArray(c.protected)&&c.protected.length>=5&&new Set(c.protected.map(f=>f.path.toLowerCase())).size===c.protected.length,'POSTBOOT_CAPTURE_PROTECTED_REJECTED');
  for(const f of c.protected)need(Object.keys(f).sort().join(',')==='path,sha256'&&typeof f.path==='string'&&f.path.startsWith('C:\\Sirket\\ERP\\')&&path.win32.normalize(f.path)===f.path&&!f.path.includes('/')&&/^[a-f0-9]{64}$/.test(f.sha256),'POSTBOOT_CAPTURE_PROTECTED_REJECTED');
  need(c.windowsPowerShell?.path===POSTBOOT.ps&&/^[a-f0-9]{64}$/.test(c.windowsPowerShell.sha256),'POSTBOOT_CAPTURE_EXECUTABLE_REJECTED');
+ need(JSON.stringify(c.profileCompatibility)===JSON.stringify(POSTBOOT_PROFILE)&&c.protected.filter(f=>f.path===POSTBOOT_PROFILE.profilePath&&f.sha256===POSTBOOT_PROFILE.profileSha256).length===1,'POSTBOOT_CAPTURE_PROFILE_CHANGED');
  const h=c.health;
  need(c.base&&c.base.root===POSTBOOT.base.root&&c.base.manifestSha256===POSTBOOT.base.manifestSha256&&c.base.sourceCommit===POSTBOOT.base.sourceCommit,'POSTBOOT_CAPTURE_BASE_CHANGED');
  need(h&&h.ok===true&&h.environment==='CANONICAL_TEST'&&h.port===4144&&h.mode==='erp'&&h.databaseName==='MELISA_ERP_SIRKET_TEST_20260929_01'&&h.serverName.toLowerCase()==='semih\\melisadev'&&h.sourceCommit===POSTBOOT.api.sourceCommit&&h.packageId===POSTBOOT.api.packageId&&h.actualT1===false&&h.externalOperations===false&&h.automaticJobs===false&&h.sysadmin===0&&h.databaseControl===0&&h.liveDatabaseAccess===0,'POSTBOOT_CAPTURE_API_REJECTED');
@@ -69,6 +71,7 @@ export function compilePostbootGeneration({source,files,capture,ci}){
  const rows=POSTBOOT_FILES.map(name=>({path:name,sha256:hash(files.get(name)),bytes:files.get(name).length}));
  const taskXml=Buffer.from(capture.taskXml),taskSddl=Buffer.from(capture.taskSddl);
  const common={schema:'melisa-b6-postboot-generation.v1',id:POSTBOOT.id,privateRoot:POSTBOOT.privateRoot,sourceCommit:source,files:rows,protected:[...capture.protected,{path:path.win32.join(POSTBOOT.privateRoot,'task-before.xml'),sha256:hash(taskXml)},{path:path.win32.join(POSTBOOT.privateRoot,'task-before.sddl'),sha256:hash(taskSddl)}],taskSddlSha256:hash(taskSddl),beforeBootFileTime:capture.beforeBootFileTime,capturedFileTime:capture.capturedFileTime,health:capture.health,windowsPowerShell:capture.windowsPowerShell,node:POSTBOOT.node,oldWeb:POSTBOOT.oldWeb,candidateWeb:POSTBOOT.candidateWeb,api:POSTBOOT.api,base:POSTBOOT.base,origin:'http://192.168.1.46:5244',originalRequestId:POSTBOOT.originalRequestId,originalPath:POSTBOOT.originalPath,originalBodySha256:POSTBOOT.originalBodySha256,...passive};
+ common.profileCompatibility={...capture.profileCompatibility,sourceCommit:source};
  const planSha256=hash(bytes(common)),steady={},steadyFiles={};
  for(const slot of ['Old','Candidate']){const raw=bytes({...common,root:POSTBOOT_STEADY[slot],phase:'STEADY',initialSlot:slot,planSha256});steady[slot]={root:POSTBOOT_STEADY[slot],manifestSha256:hash(raw)};steadyFiles[slot]=new Map([...files,['postboot-manifest.json',raw]]);}
  const manifest=bytes({...common,root:POSTBOOT.root,phase:'FINITE',initialSlot:'Old',planSha256,steady});

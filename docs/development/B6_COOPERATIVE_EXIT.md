@@ -176,3 +176,40 @@ The native identity operations follow Microsoft's documented
 [file identity comparison](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfileinformationbyhandle)
 and [process image query](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-queryfullprocessimagenamea)
 semantics. Only query/synchronize and token-query access are requested.
+
+### 0742 profile integration continuation (2 November)
+
+The first immutable ENTRY0742 bundles remain unchanged. Their real read-only
+preflight rejected `B6_PROFILE_DESCRIPTOR_REJECTED`: the old Writer parser
+selected its original descriptor under the new generation. New PROFILE0742
+bundles carry a closed `ReadOnlyStartupProfile` contract: the entire approved
+descriptor, private profile digest, generation source commit, exact root and
+role are bound to the retained source/protected/executable handles.
+
+The production `Assert-ErpApiPrivateProfile` chain dispatches to this separate
+read-only scope. It first matches the whole installed profile and descriptor,
+then uses a temporary original-descriptor copy to run every existing Writer
+manifest/actor/profile restriction. Inputs are never modified. Neither old
+Diagnostic nor ReadContextRepair maintenance predicate gains a root, and the
+read-only token is never registered as native or SQL admission.
+
+The same scope is held by Publication and by finite/STEADY Task, Owner and
+Control contexts. Context validation rechecks exact argv/role and source seals;
+Promote, Rollback and Finalize retain those same profile and two-Node pins.
+Existing epoch, Owner lease, once, GUI witness, record CAS and deadline guards
+are unchanged.
+
+The existing fixed capture entry has mutually exclusive Capture,
+ReadOnlyPreflight and PublishTask actions. PublishTask has its own exact
+TaskPublication role and is the sole fixed consumer of the existing one-call
+Arguments publisher. A Preflight token is rejected before attempt creation or
+registration. This source contract does not authorize running PublishTask;
+the present delivery executes only read-only preflight, never task publication,
+Run, restart, an owner command, SQL, config or a commercial operation.
+
+Targeted fixtures execute the actual production profile validator chain and
+native held-file/executable scopes for all finite/STEADY roles, with only
+synthetic file paths and input digests remapped. They do not model a completed
+postboot, Windows logon, physical device or human acceptance. A separate real
+read-only task/profile compatibility result is required after exact CI and
+immutable package verification; old failed bundles are not reused or edited.

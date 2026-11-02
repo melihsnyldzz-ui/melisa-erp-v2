@@ -4,10 +4,11 @@ $ErrorActionPreference='Stop'
 # This is a finite future generation, not an exit path for the installed cf8.
 if(!(Get-Variable Business5244PostbootContexts -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244PostbootContexts=[Collections.Generic.List[object]]::new()}
 if(!(Get-Variable Business5244PostbootPublications -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244PostbootPublications=[Collections.Generic.List[object]]::new()}
+if(!(Get-Variable Business5244PostbootProfileScopes -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244PostbootProfileScopes=[Collections.Generic.List[object]]::new()}
 function Get-Business5244PostbootCase {
- $roots=@{Old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-0742-20261102';Candidate='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-0742-20261102'}
+ $roots=@{Old='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-PROFILE-0742-20261102';Candidate='C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-PROFILE-0742-20261102'}
  $slot=if($PSScriptRoot-ceq$roots.Candidate){'Candidate'}else{'Old'};$steady=$PSScriptRoot-cin@($roots.Old,$roots.Candidate)
- return @{root=$(if($steady){$roots[$slot]}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-ENTRY-0742-20261102'});steady=$steady;slot=$slot;steadyRoots=$roots;privateRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-entry-fix-20261102-0742';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027';config='C:\Sirket\ERP\runtime\canonical-test\startup-config.json';records='C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json';ps='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'}
+ return @{root=$(if($steady){$roots[$slot]}else{'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102'});steady=$steady;slot=$slot;steadyRoots=$roots;privateRoot='C:\Sirket\ERP\evidence\ERP-GREEN-5244-REALDATA-COMPAT-PREP-20261027\private\b6-postboot-profile-integration-20261102-0742';runtime='C:\Sirket\ERP\runtime\UNIFIED-5244-SEMIH-20261027';config='C:\Sirket\ERP\runtime\canonical-test\startup-config.json';records='C:\Sirket\ERP\clean\20261022\runtime\erp-processes.json';ps='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'}
 }
 function Assert-Business5244PostbootPath([string]$Path){for($p=$Path;$p;$p=[IO.Path]::GetDirectoryName($p)){if((Get-Item -LiteralPath $p -Force -ErrorAction Stop).Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'POSTBOOT_REPARSE_REJECTED'}}}
 function Get-Business5244PostbootHash([byte[]]$Bytes){$h=[Security.Cryptography.SHA256]::Create();try{return [BitConverter]::ToString($h.ComputeHash($Bytes)).Replace('-','').ToLowerInvariant()}finally{$h.Dispose()}}
@@ -27,8 +28,61 @@ function Assert-Business5244PostbootManifest($m){
  $c=Get-Business5244PostbootCase
  if($m.phase-cne$(if($c.steady){'STEADY'}else{'FINITE'})-or$m.initialSlot-cne$c.slot-or$m.planSha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'POSTBOOT_PHASE_REJECTED'}
  if(!$c.steady){foreach($slot in @('Old','Candidate')){if($m.steady.$slot.root-cne$c.steadyRoots[$slot]-or$m.steady.$slot.manifestSha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'POSTBOOT_STEADY_BINDING_REJECTED'}}}
+ Assert-Business5244PostbootProfileContract $m
 }
-function Get-Business5244PostbootContext($Token){$rows=@($script:Business5244PostbootContexts|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($rows.Count-ne1){throw 'POSTBOOT_UNISSUED_CONTEXT'};$r=$rows[0];if($r.pid-ne$PID-or$r.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$r.closed){throw 'POSTBOOT_CONTEXT_CHANGED'};$r.epoch.Validate();$r.sourceSeal.Validate();$r.protectedSeal.Validate();$r.executable.Validate();return $r}
+function Test-Business5244PostbootProfileGeneration {return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-PROFILE-0742-20261102')}
+function Assert-Business5244PostbootProfileContract($Manifest){
+ $p=$Manifest.profileCompatibility
+ if($Manifest.id-cne'ERP-B6-POSTBOOT-ENTRY-FIX-20261102-0742'-or$p.schema-cne'melisa-b6-postboot-profile-read.v1'-or$p.purpose-cne'ReadOnlyStartupProfile'-or$p.sourceCommit-cne$Manifest.sourceCommit-or$p.profilePath-cne'C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'-or$p.profileSha256-cne'74d72c0c2ce685f126ae941249c69a1168bf90e7dbbf45269639e19ef466c7c3'-or$p.descriptorSha256-cne'a9a29cfc729694bb54188f240c1a840c0e1f71c1d117ff35e3005e123941f934'){throw 'POSTBOOT_PROFILE_CONTRACT_REJECTED'}
+ if((($p.PSObject.Properties.Name|Sort-Object)-join'|')-cne'descriptorSha256|profilePath|profileSha256|purpose|schema|sourceCommit'-or@($Manifest.protected|Where-Object{$_.path-ceq$p.profilePath-and$_.sha256-ceq$p.profileSha256}).Count-ne1){throw 'POSTBOOT_PROFILE_CONTRACT_REJECTED'}
+}
+function Assert-Business5244PostbootProfileRole($Manifest,[string]$ManifestHash,[ValidateSet('Preflight','TaskPublication','Task','Owner','Control')][string]$Role,[string[]]$Actual){
+ $c=Get-Business5244PostbootCase
+ if($Role-cin@('Preflight','TaskPublication')){
+  if($c.steady){throw 'POSTBOOT_PROFILE_ROLE_REJECTED'}
+  $flag=if($Role-ceq'TaskPublication'){'-PublishTask'}else{'-ReadOnlyPreflight'}
+  $expected=@($c.ps,'-NoProfile','-NonInteractive','-File',(Join-Path $c.root 'capture-business-5244-postboot.ps1'),$flag,'-ManifestSha256',$ManifestHash)
+ }else{
+  $leaf=@{Task='postboot-task.ps1';Owner='postboot-owner.ps1';Control='postboot-control.ps1'}[$Role]
+  $expected=@($c.ps,'-NoProfile','-NonInteractive','-WindowStyle','Hidden','-File',(Join-Path $c.root $leaf),'-ManifestSha256',$ManifestHash)
+  if($Role-ceq'Control'){$expected+=@('-Action',$script:PostbootControlAction)}
+ }
+ Assert-Business5244PostbootArgumentTail $Actual $expected
+}
+function Open-Business5244PostbootProfileScope($Manifest,[string]$ManifestHash,[ValidateSet('Preflight','TaskPublication','Task','Owner','Control')][string]$Role,$SourceSeal,$ProtectedSeal,$Executable){
+ if(!(Test-Business5244PostbootProfileGeneration)-or@($script:Business5244PostbootProfileScopes|Where-Object{!$_.closed}).Count){throw 'POSTBOOT_PROFILE_SCOPE_REJECTED'}
+ Assert-Business5244PostbootManifest $Manifest;$c=Get-Business5244PostbootCase
+ if($Manifest.root-cne$c.root-or$Manifest.privateRoot-cne$c.privateRoot-or$ManifestHash-cnotmatch'\A[a-f0-9]{64}\z'-or(Get-FileHash -LiteralPath (Join-Path $c.root 'postboot-manifest.json')).Hash-ine$ManifestHash){throw 'POSTBOOT_PROFILE_MANIFEST_REJECTED'}
+ if($SourceSeal-isnot[Business5244PackageSeal]-or$ProtectedSeal-isnot[Business5244PackageSeal]-or$Executable-isnot[Business5244PostbootExecutable]-or$SourceSeal.Count-ne20){throw 'POSTBOOT_PROFILE_HELD_SOURCE_REQUIRED'}
+ $SourceSeal.Validate();$ProtectedSeal.Validate();$Executable.Validate()
+ Assert-Business5244PostbootProfileRole $Manifest $ManifestHash $Role ([Environment]::GetCommandLineArgs())
+ $raw=[IO.File]::ReadAllBytes($Manifest.profileCompatibility.profilePath)
+ if((Get-Business5244PostbootHash $raw)-cne$Manifest.profileCompatibility.profileSha256){throw 'POSTBOOT_PROFILE_BYTES_CHANGED'}
+ $api=[Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json
+ if((Get-Business5244PostbootHash ([Text.Encoding]::UTF8.GetBytes(($api.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress))))-cne$Manifest.profileCompatibility.descriptorSha256){throw 'POSTBOOT_PROFILE_DESCRIPTOR_CHANGED'}
+ $token=[pscustomobject]@{kind='postboot-profile-read-only'}
+ $r=@{token=$token;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;role=$Role;manifestHash=$ManifestHash;manifest=$Manifest;manifestJson=($Manifest|ConvertTo-Json -Depth 100 -Compress);sourceSeal=$SourceSeal;protectedSeal=$ProtectedSeal;executable=$Executable;apiJson=($api|ConvertTo-Json -Depth 100 -Compress);closed=$false}
+ $script:Business5244PostbootProfileScopes.Add($r);return $token
+}
+function Get-Business5244PostbootProfileScope {
+ $rows=@($script:Business5244PostbootProfileScopes|Where-Object{!$_.closed})
+ if($rows.Count-ne1-or$rows[0].pid-ne$PID-or$rows[0].thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or!(Test-Business5244PostbootProfileGeneration)){throw 'POSTBOOT_PROFILE_SCOPE_REQUIRED'}
+ $r=$rows[0];$r.sourceSeal.Validate();$r.protectedSeal.Validate();$r.executable.Validate();Assert-Business5244PostbootProfileRole $r.manifest $r.manifestHash $r.role ([Environment]::GetCommandLineArgs())
+ if(($r.manifest|ConvertTo-Json -Depth 100 -Compress)-cne$r.manifestJson){throw 'POSTBOOT_PROFILE_CONTEXT_CHANGED'}
+ return $r
+}
+function Close-Business5244PostbootProfileScope($Token){$rows=@($script:Business5244PostbootProfileScopes|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($rows.Count-ne1-or$rows[0].pid-ne$PID-or$rows[0].thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId){throw 'POSTBOOT_PROFILE_SCOPE_REQUIRED'};$rows[0].closed=$true}
+function Assert-Business5244PostbootProfileDelta($Base,$Api,$Manifest){
+ $r=Get-Business5244PostbootProfileScope
+ if(($Api|ConvertTo-Json -Depth 100 -Compress)-cne$r.apiJson-or(Get-Business5244PostbootHash ([Text.Encoding]::UTF8.GetBytes(($Api.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress))))-cne$r.manifest.profileCompatibility.descriptorSha256){throw 'POSTBOOT_PROFILE_DESCRIPTOR_CHANGED'}
+ if((Get-FileHash -LiteralPath (Join-Path $r.manifest.api.root 'release-manifest.json')).Hash-ine$r.manifest.api.manifestSha256-or($Manifest|ConvertTo-Json -Depth 100 -Compress)-cne((Get-Content -LiteralPath (Join-Path $r.manifest.api.root 'release-manifest.json') -Raw|ConvertFrom-Json)|ConvertTo-Json -Depth 100 -Compress)){throw 'POSTBOOT_PROFILE_API_MANIFEST_CHANGED'}
+ # Reuse every original writer-profile restriction on a temporary original
+ # descriptor, after matching the WHOLE installed profile and descriptor above.
+ # This issues no native/SQL admission and never joins either maintenance list.
+ $copy=$Api|ConvertTo-Json -Depth 100|ConvertFrom-Json;$copy.businessSaleAdmission=Read-ErpBusinessSaleReadContextRepairOriginalDescriptor
+ return Assert-ErpBusinessSaleWriterProfileDelta $Base $copy $Manifest
+}
+function Get-Business5244PostbootContext($Token){$rows=@($script:Business5244PostbootContexts|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($rows.Count-ne1){throw 'POSTBOOT_UNISSUED_CONTEXT'};$r=$rows[0];if($r.pid-ne$PID-or$r.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$r.closed){throw 'POSTBOOT_CONTEXT_CHANGED'};$r.epoch.Validate();$r.sourceSeal.Validate();$r.protectedSeal.Validate();$r.executable.Validate();if(Test-Business5244PostbootProfileGeneration){[void](Get-Business5244PostbootProfileScope)};return $r}
 function Assert-Business5244PostbootArgumentTail([string[]]$Actual,[string[]]$Expected){
  if($Actual.Length-ne$Expected.Length-or$Actual.Length-lt2-or($Actual[1..($Actual.Length-1)]|ConvertTo-Json -Compress)-cne($Expected[1..($Expected.Length-1)]|ConvertTo-Json -Compress)){throw 'POSTBOOT_EXACT_ENTRY_REQUIRED'}
 }
@@ -97,12 +151,12 @@ function Assert-Business5244PostbootPublicationProtection($Record){
  if((($health.PSObject.Properties.Name|Sort-Object)-join'|')-cne(($Record.manifest.health.PSObject.Properties.Name|Sort-Object)-join'|')){throw 'POSTBOOT_PUBLICATION_HEALTH_CHANGED'}
  foreach($p in $Record.manifest.health.PSObject.Properties){if(($health.($p.Name)|ConvertTo-Json -Compress)-cne($p.Value|ConvertTo-Json -Compress)){throw 'POSTBOOT_PUBLICATION_HEALTH_CHANGED'}}
 }
-function New-Business5244PostbootPublication([string]$ManifestSha256){
+function New-Business5244PostbootPublication([string]$ManifestSha256,[ValidateSet('Preflight','TaskPublication')][string]$Purpose='Preflight'){
  $c=Get-Business5244PostbootCase;if($PSScriptRoot-cne$c.root-or$c.steady-or$ManifestSha256-cnotmatch'\A[a-f0-9]{64}\z'){throw 'POSTBOOT_PUBLICATION_FIXED_SOURCE_REQUIRED'}
  $path=Join-Path $c.root 'postboot-manifest.json';if((Get-FileHash -LiteralPath $path).Hash-ine$ManifestSha256){throw 'POSTBOOT_MANIFEST_CHANGED'};$m=Get-Content -LiteralPath $path -Raw|ConvertFrom-Json;Assert-Business5244PostbootManifest $m
  if($m.id-cne'ERP-B6-POSTBOOT-ENTRY-FIX-20261102-0742'-or$m.privateRoot-cne$c.privateRoot-or$m.origin-cne'http://192.168.1.46:5244'-or$m.originalRequestId-cne'd3d54eed-5de6-46ed-8881-1d3f004c37d8'-or$m.originalPath-cne'/api/work-sales/drafts'-or$m.originalBodySha256-cne'9a9fa1be7ffe3158f1c05f433fe07e2a9f4c2333005ca1243489d403673a76ed'){throw 'POSTBOOT_PUBLICATION_CASE_CHANGED'}
  foreach($key in @('installed','applied','executionAuthority','runtimeGo','actualT1','externalOperations')){if($m.$key-isnot[bool]-or$m.$key){throw 'POSTBOOT_ARTIFACT_FLAGS_REJECTED'}}
- $seals=[Collections.Generic.List[object]]::new();$self=$null;$actors=$null
+ $seals=[Collections.Generic.List[object]]::new();$self=$null;$actors=$null;$profileScope=$null
  try{
   # Bootstrap only previously hashed native source bytes. No runtime epoch,
   # mutex, pending marker or ownership claim is opened by this read-only factory.
@@ -116,22 +170,24 @@ function New-Business5244PostbootPublication([string]$ManifestSha256){
   if($rp.manifestSha256-cne$ManifestSha256-or$rp.sourceCommit-cne$m.sourceCommit){throw 'POSTBOOT_PUBLICATION_RECEIPT_CHANGED'}
   $proposalPath=Join-Path $c.privateRoot 'task-proposed-NOT-APPLIED.xml';$protected.Add($proposalPath,$rp.taskProposalSha256);$protected.Add($receiptPath,((Get-FileHash -LiteralPath $receiptPath).Hash.ToLowerInvariant()))
   foreach($app in @($m.oldWeb,$m.candidateWeb,$m.api,$m.base)){$protected.Add((Join-Path $app.root 'release-manifest.json'),$app.manifestSha256)}
-  $cfg=Read-ErpStartupConfig $c.config;$protected.Add($cfg.NodePath,$cfg.NodeSha256);$protected.Add($m.node.path,$m.node.sha256);$protected.Add($m.windowsPowerShell.path,$m.windowsPowerShell.sha256);$protected.Freeze()
+  $seed=Get-Content -LiteralPath $c.config -Raw|ConvertFrom-Json;$protected.Add($seed.NodePath,$seed.NodeSha256);$protected.Add($m.node.path,$m.node.sha256);$protected.Add($m.windowsPowerShell.path,$m.windowsPowerShell.sha256);$protected.Freeze()
   $self=[Business5244PostbootExecutable]::CaptureCurrent([Environment]::GetCommandLineArgs()[0],$c.ps,$m.windowsPowerShell.sha256)
+  $profileScope=Open-Business5244PostbootProfileScope $m $ManifestSha256 $Purpose $seals[0] $protected $self
+  $cfg=Read-ErpStartupConfig $c.config
   $before=Get-Business5244PostbootTaskSnapshot (Get-Business5244PostbootScheduledTask)
   if($before.xml-cne[IO.File]::ReadAllText((Join-Path $c.privateRoot 'task-before.xml'))-or$before.sddl-cne[IO.File]::ReadAllText((Join-Path $c.privateRoot 'task-before.sddl'))){throw 'POSTBOOT_PUBLICATION_BEFORE_CHANGED'}
   $proposal=[IO.File]::ReadAllText($proposalPath);$projection=[xml]$before.xml;$projection.Task.Actions.Exec.Arguments=([xml]$proposal).Task.Actions.Exec.Arguments
   if($projection.OuterXml-cne([xml]$proposal).OuterXml){throw 'POSTBOOT_PUBLICATION_ARGUMENTS_ONLY_REQUIRED'}
   $actors=Open-Business5244PostbootPublicationActors $m $before;$token=[pscustomobject]@{kind='postboot-publication'}
-  $r=@{token=$token;manifest=$m;before=$before;proposal=$proposal;self=$self;seals=$seals;actors=$actors;used=$false;closed=$false;registrationCalls=0}
+  $r=@{token=$token;purpose=$Purpose;manifest=$m;before=$before;proposal=$proposal;self=$self;seals=$seals;actors=$actors;profileScope=$profileScope;used=$false;closed=$false;registrationCalls=0}
   Assert-Business5244PostbootPublicationProtection $r
   if(!(Get-Variable Business5244PostbootPublications -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244PostbootPublications=[Collections.Generic.List[object]]::new()};$script:Business5244PostbootPublications.Add($r);return $token
- }catch{if($actors){foreach($h in $actors.handles){$h.Dispose()}};if($self){$self.Dispose()};foreach($s in $seals){$s.Dispose()};throw}
+ }catch{if($profileScope){Close-Business5244PostbootProfileScope $profileScope};if($actors){foreach($h in $actors.handles){$h.Dispose()}};if($self){$self.Dispose()};foreach($s in $seals){$s.Dispose()};throw}
 }
-function Get-Business5244PostbootPublication($Token){$rs=@($script:Business5244PostbootPublications|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($rs.Count-ne1-or$rs[0].closed){throw 'POSTBOOT_PUBLICATION_UNISSUED'};$rs[0].self.Validate();return $rs[0]}
-function Close-Business5244PostbootPublication($Token){$r=Get-Business5244PostbootPublication $Token;foreach($h in $r.actors.handles){$h.Dispose()};foreach($s in $r.seals){$s.Dispose()};$r.self.Dispose();$r.closed=$true}
+function Get-Business5244PostbootPublication($Token){$rs=@($script:Business5244PostbootPublications|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($rs.Count-ne1-or$rs[0].closed){throw 'POSTBOOT_PUBLICATION_UNISSUED'};$rs[0].self.Validate();if(Test-Business5244PostbootProfileGeneration){[void](Get-Business5244PostbootProfileScope)};return $rs[0]}
+function Close-Business5244PostbootPublication($Token){$r=Get-Business5244PostbootPublication $Token;Close-Business5244PostbootProfileScope $r.profileScope;foreach($h in $r.actors.handles){$h.Dispose()};foreach($s in $r.seals){$s.Dispose()};$r.self.Dispose();$r.closed=$true}
 function Invoke-Business5244PostbootTaskPublication($Token){
- $r=Get-Business5244PostbootPublication $Token;if($r.used){throw 'POSTBOOT_PUBLICATION_NO_REPLAY'};Assert-Business5244PostbootPublicationProtection $r
+ $r=Get-Business5244PostbootPublication $Token;if($r.purpose-cne'TaskPublication'){throw 'POSTBOOT_READ_ONLY_PUBLICATION_CONTEXT'};if($r.used){throw 'POSTBOOT_PUBLICATION_NO_REPLAY'};Assert-Business5244PostbootPublicationProtection $r
  $initial=Get-Business5244PostbootTaskSnapshot (Get-Business5244PostbootScheduledTask);Assert-Business5244PostbootTaskSnapshot $r.before $initial
  $r.used=$true;$root=(Get-Business5244PostbootCase).privateRoot
  foreach($f in @(@('task-publication-before.xml',$r.before.xml),@('task-publication-before.sddl',$r.before.sddl),@('task-publication-attempt.json',(@{source=$r.manifest.sourceCommit;taskBeforeSha256=(Get-Business5244PostbootHash ([Text.Encoding]::UTF8.GetBytes($r.before.xml)));maximumCalls=1;replayAllowed=$false}|ConvertTo-Json -Compress)))){$stream=[IO.File]::Open((Join-Path $root $f[0]),[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read);try{$b=[Text.Encoding]::UTF8.GetBytes($f[1]);$stream.Write($b,0,$b.Length);$stream.Flush($true)}finally{$stream.Dispose()}}
@@ -186,7 +242,7 @@ function New-Business5244PostbootContext([ValidateSet('Task','Owner','Control')]
  foreach($leaf in @('business-5244-web-native.cs','business-5244-postboot-native.cs')){$row=@($m.files|Where-Object path -CEQ $leaf);if($row.Count-ne1-or(Get-FileHash -LiteralPath (Join-Path $c.root $leaf)).Hash-ine$row[0].sha256){throw 'POSTBOOT_NATIVE_SOURCE_CHANGED'}}
  if('Business5244PostbootEpoch'-as[type]-or'Business5244WebNative'-as[type]){throw 'POSTBOOT_NATIVE_TYPE_PRELOADED'}
  Add-Type -LiteralPath (Join-Path $c.root 'business-5244-web-native.cs')
- $seal=[Business5244PackageSeal]::new();$sourceSeal=Open-Business5244PostbootSourceClosure $m $ManifestSha256 $c.root;$protectedSeal=[Business5244PackageSeal]::new();$epoch=$null;$executable=$null
+ $seal=[Business5244PackageSeal]::new();$sourceSeal=Open-Business5244PostbootSourceClosure $m $ManifestSha256 $c.root;$protectedSeal=[Business5244PackageSeal]::new();$epoch=$null;$executable=$null;$profileScope=$null
  try{
   foreach($f in $m.protected){$protectedSeal.Add($f.path,$f.sha256)}
   if($c.steady){foreach($f in Get-Business5244PostbootFinalProof $m $ManifestSha256){$protectedSeal.Add($f.path,$f.sha256)}}
@@ -194,6 +250,7 @@ function New-Business5244PostbootContext([ValidateSet('Task','Owner','Control')]
    $mp=Join-Path $p.root 'release-manifest.json';$protectedSeal.Add($mp,$p.manifestSha256);$pm=Get-Content -LiteralPath $mp -Raw|ConvertFrom-Json
    foreach($f in $pm.files){$path=[IO.Path]::GetFullPath((Join-Path $p.root $f.path));if(!$path.StartsWith($p.root+'\',[StringComparison]::OrdinalIgnoreCase)){throw 'POSTBOOT_PAYLOAD_SCOPE_REJECTED'};$seal.Add($path,$f.sha256)}
   }
+  $seed=Get-Content -LiteralPath $c.config -Raw|ConvertFrom-Json;$protectedSeal.Add($seed.NodePath,$seed.NodeSha256)
   $protectedSeal.Add($m.node.path,$m.node.sha256);$protectedSeal.Add($m.windowsPowerShell.path,$m.windowsPowerShell.sha256);$protectedSeal.Freeze();$protectedSeal.Validate();$sourceSeal.Validate();$seal.Freeze();$seal.Validate()
   Add-Type -LiteralPath (Join-Path $c.root 'business-5244-postboot-native.cs') -ReferencedAssemblies @('System.Management')
   $executable=[Business5244PostbootExecutable]::CaptureCurrent($argv[0],$c.ps,$m.windowsPowerShell.sha256)
@@ -201,9 +258,10 @@ function New-Business5244PostbootContext([ValidateSet('Task','Owner','Control')]
   $allowSteadyAction=$Role-ceq'Control'-and$script:PostbootControlAction-cin@('Finalize','Status')
   $hostPid=Assert-Business5244PostbootTask $m $ManifestSha256 $Role -AllowSteadyAction:$allowSteadyAction
   if($Role-cne'Task'){$epoch.BindTaskHost($hostPid)}
-  $token=[pscustomobject]@{kind='postboot-finite-source-bound'};$r=@{token=$token;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;role=$Role;manifest=$m;manifestHash=$ManifestSha256;seal=$seal;sourceSeal=$sourceSeal;protectedSeal=$protectedSeal;executable=$executable;epoch=$epoch;closed=$false;lease=$null;native=$null;slot=$c.slot;metadataHash=$null;metadataSlot=$c.slot;metadataUnknown=$false;transitionRecordStream=$null;pending=$null;hostPid=$hostPid;allowSteadyAction=$allowSteadyAction}
+  $profileScope=Open-Business5244PostbootProfileScope $m $ManifestSha256 $Role $sourceSeal $protectedSeal $executable
+  $token=[pscustomobject]@{kind='postboot-finite-source-bound'};$r=@{token=$token;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;role=$Role;manifest=$m;manifestHash=$ManifestSha256;seal=$seal;sourceSeal=$sourceSeal;protectedSeal=$protectedSeal;executable=$executable;profileScope=$profileScope;epoch=$epoch;closed=$false;lease=$null;native=$null;slot=$c.slot;metadataHash=$null;metadataSlot=$c.slot;metadataUnknown=$false;transitionRecordStream=$null;pending=$null;hostPid=$hostPid;allowSteadyAction=$allowSteadyAction}
   $script:Business5244PostbootContexts.Add($r);return $token
- }catch{if($epoch){$epoch.Dispose()};if($executable){$executable.Dispose()};$seal.Dispose();$sourceSeal.Dispose();$protectedSeal.Dispose();throw}
+ }catch{if($profileScope){Close-Business5244PostbootProfileScope $profileScope};if($epoch){$epoch.Dispose()};if($executable){$executable.Dispose()};$seal.Dispose();$sourceSeal.Dispose();$protectedSeal.Dispose();throw}
 }
 function Get-Business5244PostbootPins([ValidateSet('Old','Candidate')][string]$Slot){
  $r=Get-Business5244PostbootContext $script:Business5244PostbootOwner;$m=$r.manifest;$w=if($Slot-ceq'Old'){$m.oldWeb}else{$m.candidateWeb}
@@ -383,7 +441,7 @@ function Start-Business5244PostbootOwner([string]$ManifestSha256){
    Start-Sleep -Milliseconds 100
   }
  }finally{
-  if($channel){Close-Business5244RetirementChannel $channel};if($r.native){$r.native.Dispose()};if($r.lease){Exit-Business5244StartupLease $r.lease};$r.epoch.Dispose();if($r.pending){$r.pending.Dispose()};$r.executable.Dispose();$r.seal.Dispose();$r.sourceSeal.Dispose();$r.protectedSeal.Dispose();$r.closed=$true
+  if($channel){Close-Business5244RetirementChannel $channel};if($r.native){$r.native.Dispose()};if($r.lease){Exit-Business5244StartupLease $r.lease};if($r.ContainsKey('profileScope')){Close-Business5244PostbootProfileScope $r.profileScope};$r.epoch.Dispose();if($r.pending){$r.pending.Dispose()};$r.executable.Dispose();$r.seal.Dispose();$r.sourceSeal.Dispose();$r.protectedSeal.Dispose();$r.closed=$true
  }
 }
 function Start-Business5244PostbootWeb {
