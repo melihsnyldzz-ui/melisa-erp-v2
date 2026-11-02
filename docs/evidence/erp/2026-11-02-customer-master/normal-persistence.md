@@ -37,7 +37,8 @@ Gerçek kullanım öncesi actual metadata ile frozen karşılaştırma, gerekiyo
 
 ## Doğrulama
 
--190hedef test PASS/0skip, offline guard açık. Yeni10canonical test normal reader/final/currentfinancesi, exact scope, üç ayrı bakiye, yanlışDB/login/yetki/port/context, schema/guard/source/finance drift, CAS/UUIDbody/actor/card mismatch, originalcode reservation, teklik, rollback, ACKloss ve GETrecovery, normalUIv3pending/contact/viewer senaryolarını kapsar.
+-191hedef test PASS/0skip, offline guard açık. Yeni11canonical test normal reader/final/currentfinancesi, exact scope, üç ayrı bakiye, yanlışDB/login/yetki/port/context, schema/guard/source/finance drift, CAS/UUIDbody/actor/card mismatch, originalcode reservation, teklik, rollback, ACKloss ve GETrecovery, normalUIv3pending/contact/viewer senaryolarını kapsar.
+- Normal projection list/detail gerçek SQLpermission metadata'sında customer.view satırına; master context/update/recover customer.update satırına bağlanır. Anahtar yalnız server-owned projectionRead dalından seçilir. Yeni test, update satırı hiç bulunmayan ayrıview-onlyDBrolünü ve sahteclienteditclaim reddini modeller; rol/izin verilmedi. İlk f14CI bu son düzeltme yerine sayılmaz.
 - Driver double SQL Server değildir. SQL applock/collation/DDL/permission/native transaction davranışına gerçek motor PASS verilmez. Bağımsız review UUID36karakter scope kesilmesi P2'sini buldu; iki exact dönüşüm düzeltildi ve SQL metni regresyonuyla kapandı. Son readonly SOURCE GO; yeni somutP1/P2 yok.
 - Guardlı Sites build geçti:12,29sVite/13,408stoplam. Kalite ve exactfeature CI sonuçları mevcut PR54/STATUS'ta ayrıca kaydedilir; eski3379CI bu kaynak yerine sayılmaz.
 - Normal `createWorkCustomers` + üretimcontroller/service/typedadapter ve yalnız sentetikdriver GUI: kaydet,refresh,yeniadlaara,000155/Toptan,contactaç-iptal,boşadret,mükerrerkodret,ACKloss,reload+explicitGETrecovery,viewer.

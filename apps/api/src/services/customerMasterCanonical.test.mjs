@@ -66,6 +66,14 @@ test('normal contact summary preserves local name and exact currency accounts; v
  const c={schemaVersion:'melisa-customer-contact-context.v1',customerId:'100',customerCode:'OFFLINE-100',customerName:'Örnek Müşteri',revision:'D'.repeat(64),contact:{phone:'009000000',city:'Ankara',country:'Türkiye'}};customerContactContext(c,card);const next=contactCardFromContext(customerMasterCard(card,v.context),c);assert.equal(next.customerName,card.customerName);assert.deepEqual(next.accounts,card.accounts);
  const viewer={...actor,permissions:['customer.view']};await f.cards.detail('100',viewer);await assert.rejects(f.service.context('100',viewer),{code:'AUTH_PERMISSION_DENIED'});await assert.rejects(f.service.context('100',{...actor,role:{...actor.role,id:99}}));
 });
+test('actual view-only DB role without any customer.update row reads projection but a claimed edit permission cannot write',async()=>{
+ const f=fixture();await f.service.update('100',await body(f),actor);const before=f.snapshot();
+ f.modes.viewOnlyRole=true;f.modes.dbRole={id:3,code:'viewer'};const viewer={id:17,role:{id:3,code:'viewer'},permissions:['customer.view']};
+ assert.equal((await f.cards.detail('100',viewer)).data.customerCode,'000100');assert.equal((await f.cards.list({},viewer)).data[0].customerCode,'000100');
+ await assert.rejects(f.service.context('100',viewer),{code:'AUTH_PERMISSION_DENIED'});
+ await assert.rejects(f.service.context('100',{...viewer,permissions:['customer.view','customer.edit']}),{code:'CUSTOMER_MASTER_FORBIDDEN'});assert.deepEqual(f.snapshot(),before);
+ assert.match(NORMAL_MASTER_FRAME_SQL,/p.permission_key=@permission_key/);
+});
 test('normal SQL requires source collation and actual scope/PK/FK/index shapes without weakening shared-copy SQL',()=>{
  assert.throws(()=>canonicalCustomerMasterDDL());assert.throws(()=>canonicalCustomerMasterDDL('Latin1; DROP TABLE dbo.customers;'));
  const ddl=canonicalCustomerMasterDDL('Turkish_CI_AS');assert.match(ddl,/customer_code nvarchar\(50\) COLLATE Turkish_CI_AS/);assert.match(ddl,/scope_key nvarchar\(128\) COLLATE Latin1_General_100_BIN2/);assert.doesNotMatch(ddl,/stage4_copy_manifest|copy_id|copyId/);assert.match(CUSTOMER_MASTER_DDL,/FOREIGN KEY\(copy_id\) REFERENCES dbo.stage4_copy_manifest/);
