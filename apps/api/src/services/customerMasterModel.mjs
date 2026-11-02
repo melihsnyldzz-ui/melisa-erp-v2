@@ -25,8 +25,11 @@ export function parseCustomerMaster(id,body){
 }
 
 export function validateCustomerMasterContext(value,{customerId,actorId}={}){
- const keys=['schemaVersion','copyId','sealHash','actorId','customerId','customerCode','customerName','customerType','currency','revision'];
- if(value?.schemaVersion==='melisa-customer-master-context.v2'){keys.push('original');if(Object.keys(value.original??{}).sort().join()!=='customerCode,customerName'||!text(value.original.customerCode,50)||!text(value.original.customerName,250))throw customerMasterError();}
- if(!value||Object.keys(value).sort().join()!==keys.sort().join()||!['melisa-customer-master-context.v1','melisa-customer-master-context.v2'].includes(value.schemaVersion)||!uuid(value.copyId)||!hash(value.sealHash)||value.actorId!==actorId||value.customerId!==customerId||!text(value.customerCode,50)||!text(value.customerName,250)||!CUSTOMER_MASTER_TYPES.includes(value.customerType)||!['TRY','USD','EUR'].includes(value.currency)||!hash(value.revision))throw customerMasterError();
+ const normal=value?.schemaVersion==='melisa-customer-master-context.v3';
+ const keys=['schemaVersion',...(normal?['target','scopeKey','admissionHash']:['copyId','sealHash']),'actorId','customerId','customerCode','customerName','customerType','currency','revision'];
+ if(normal||value?.schemaVersion==='melisa-customer-master-context.v2'){keys.push('original');if(Object.keys(value.original??{}).sort().join()!=='customerCode,customerName'||!text(value.original.customerCode,50)||!text(value.original.customerName,250))throw customerMasterError();}
+ const scopeValid=normal?Object.keys(value.target??{}).sort().join()==='database,server'&&value.target.server==='Semih\\MELISADEV'&&value.target.database==='MELISA_ERP_SIRKET_TEST_20260929_01'&&value.scopeKey==='canonical-customer-master:Semih\\MELISADEV:MELISA_ERP_SIRKET_TEST_20260929_01'&&hash(value.admissionHash):uuid(value?.copyId)&&hash(value?.sealHash);
+ if(!value||Object.keys(value).sort().join()!==keys.sort().join()||!['melisa-customer-master-context.v1','melisa-customer-master-context.v2','melisa-customer-master-context.v3'].includes(value.schemaVersion)||!scopeValid||value.actorId!==actorId||value.customerId!==customerId||!text(value.customerCode,50)||!text(value.customerName,250)||!CUSTOMER_MASTER_TYPES.includes(value.customerType)||!['TRY','USD','EUR'].includes(value.currency)||!hash(value.revision))throw customerMasterError();
  return Object.freeze({...value});
 }
+export const customerMasterScopeIdentity=value=>JSON.stringify(value?.schemaVersion==='melisa-customer-master-context.v3'?[value.schemaVersion,value.target?.server,value.target?.database,value.scopeKey,value.admissionHash]:[value?.schemaVersion,value?.copyId,value?.sealHash]);

@@ -1,4 +1,4 @@
-import {assertCustomerMasterActor,customerMasterId,customerMasterRequestId,parseCustomerMaster,validateCustomerMasterContext,customerMasterError} from './customerMasterModel.mjs';
+import {assertCustomerMasterActor,customerMasterId,customerMasterRequestId,parseCustomerMaster,validateCustomerMasterContext,customerMasterError,customerMasterScopeIdentity} from './customerMasterModel.mjs';
 
 // Native contact-only procedures do not authorize master edits. Until an exact
 // master writer is registered, the real API fails closed. An injected isolated
@@ -16,7 +16,7 @@ export function createCustomerMasterService({getStore=unavailable}={}){
    const result=operation==='update'?await session.update(input):await session.recover(input);
    if(typeof result?.replayed!=='boolean')throw customerMasterError();
    const context=validate(result.context);
-   if(context.copyId!==current.copyId||context.sealHash!==current.sealHash||context.currency!==current.currency||context.schemaVersion!==current.schemaVersion||JSON.stringify(context.original)!==JSON.stringify(current.original))throw customerMasterError();
+   if(customerMasterScopeIdentity(context)!==customerMasterScopeIdentity(current)||context.currency!==current.currency||JSON.stringify(context.original)!==JSON.stringify(current.original))throw customerMasterError();
    return operation==='update'?{context,replayed:result.replayed}:{context,committed:result.replayed};
   });
  };

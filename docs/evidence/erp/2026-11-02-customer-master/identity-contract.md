@@ -84,6 +84,8 @@ kurulum kaydı, otomatik DDL, GRANT veya runtime binding içermez.
 
 ## Gerçek DB bağlantısı için somut eksikler
 
+2Kasım2034normalhedef kaynak devamı: [Normal ERP persistence dalı ve koşullu native gereksinimler](normal-persistence.md). Aşağıdaki1820shared-copy notları tarihsel scope'udur; kullanıcı normalERPhedefini DB02olarak seçmedi.2034dalı ayrı exact canonical admission/v3scope kullanır; bu kaynak normalSQL'e kurulmuş veya service503açılmış değildir.
+
 Varsayılan `customerMasterService` hâlâ **503** döner. Yeni store fabrikası ve
 projection seam'i runtime'a bağlanmadı. Yeni kurulu sürüm iddiası yoktur.
 

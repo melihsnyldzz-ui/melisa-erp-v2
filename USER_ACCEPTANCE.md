@@ -1,3 +1,7 @@
+## 2 Kasım — mevcut C06/B03 /2034; insan kabulü BEKLİYOR
+
+Ajan normalmüşteri controller'ını canonicalv3scope ve sentetikSQLdriver ile kullandı: kaydet/refresh/yeniadlaara/000155-Toptan/contactaç-iptal/boşad/duplicate/ACKloss/reloadGET/viewer.3POSTdenemesi2revizyon; GETikinciPOST-etki0. İkioriginalkart+TRY/USD/EUR exactbakiyeleri aynı; bu nativeSQL/kurulu5244/personel/fizikselcihaz/Librarytasarımkabulüdeğildir. ÖzgünUAID/49-25sayaç veeskikabuller korunur. [Normal hedef sözleşmesi ve native gereksinimler](docs/evidence/erp/2026-11-02-customer-master/normal-persistence.md).
+
 ## 2 Kasım — mevcut C06/B03 /1820; insan kabulü BEKLİYOR
 
 Ajan normal müşteri controller'ı üzerinden kendi sentetik SQL-driver modeliyle kaydet/refresh/yeni adla ara/contact aç-iptal/boşad/mükerrerkod/lostACK/reloadGET/viewer akışını gördü.3POST denemesi2masterrevizyon, GET ikinci etki0; TRY/USD/EUR exactbakiyeler kaynaktestinde aynı. Bu gerçekSQL/kurulum/personel/Librarytasarım kabulü değildir. ÖzgünUAID ve eski sonuçlar korunur; sayaç artışı0. [Kimlik sözleşmesi ve sınırlar](docs/evidence/erp/2026-11-02-customer-master/identity-contract.md).

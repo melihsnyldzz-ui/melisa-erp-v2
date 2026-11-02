@@ -10,13 +10,14 @@ export function customerMasterIdentity(raw,scope,baseType){
  const c=raw?.customer;check(c&&c.id===scope.customerId&&CUSTOMER_MASTER_TYPES.includes(baseType)&&text(c.customerCode,50)&&text(c.customerName,250)&&typeof c.partyEntityId==='string'&&typeof c.sourceRecordKey==='string');
  check(/^[1-9]\d*$/.test(c.partyEntityId)&&/^VEGA2026\/F0102TBLCARI\/[1-9]\d*$/.test(c.sourceRecordKey));
  check(Array.isArray(raw.nativeAccounts)&&raw.nativeAccounts.length>0&&raw.nativeAccounts.every(a=>/^[1-9]\d*$/.test(a.id)&&a.customerId===c.id&&a.nativeOwnerCustomerId===c.id&&a.partyEntityId===c.partyEntityId&&['TRY','USD','EUR'].includes(a.currency)&&text(a.sourceAccountKey,250)));
- const identity={copyId:scope.copyId,sealHash:scope.sealHash,customerId:c.id,partyEntityId:c.partyEntityId,sourceRecordKey:c.sourceRecordKey,customerCode:c.customerCode,customerName:c.customerName,customerType:baseType,currency:c.currency,accounts:raw.nativeAccounts.map(a=>({accountId:a.id,currency:a.currency,partyEntityId:a.partyEntityId,sourceAccountKey:a.sourceAccountKey})).sort((a,b)=>BigInt(a.accountId)<BigInt(b.accountId)?-1:1)};
+ const identity={...(scope.scopeKey?{target:scope.target,scopeKey:scope.scopeKey,admissionHash:scope.admissionHash}:{copyId:scope.copyId,sealHash:scope.sealHash}),customerId:c.id,partyEntityId:c.partyEntityId,sourceRecordKey:c.sourceRecordKey,customerCode:c.customerCode,customerName:c.customerName,customerType:baseType,currency:c.currency,accounts:raw.nativeAccounts.map(a=>({accountId:a.id,currency:a.currency,partyEntityId:a.partyEntityId,sourceAccountKey:a.sourceAccountKey})).sort((a,b)=>BigInt(a.accountId)<BigInt(b.accountId)?-1:1)};
  check(new Set(identity.accounts.map(a=>a.accountId)).size===identity.accounts.length&&new Set(identity.accounts.map(a=>a.currency)).size===identity.accounts.length);
  return {identity,identityHash:hash(identity)};
 }
 export function customerMasterRevision(sourceRevision,localVersion,identityHash){check(/^[A-F0-9]{64}$/.test(sourceRevision)&&Number.isSafeInteger(localVersion)&&localVersion>=0&&/^[A-F0-9]{64}$/.test(identityHash));return createHash('sha256').update(`${sourceRevision}|${localVersion}|${identityHash}`,'utf16le').digest('hex').toUpperCase();}
 export function validateMasterProjection(row,scope,identityHash){
- check(row&&Object.keys(row).sort().join()==='copyId,customerCode,customerId,customerName,customerType,identityHash,version'&&row.copyId===scope.copyId&&row.customerId===scope.customerId&&row.identityHash===identityHash&&text(row.customerCode,50)&&text(row.customerName,250)&&CUSTOMER_MASTER_TYPES.includes(row.customerType)&&Number.isSafeInteger(row.version)&&row.version>=1);return Object.freeze({...row});
+ const field=scope.scopeKey?'scopeKey':'copyId',keys=[field,'customerCode','customerId','customerName','customerType','identityHash','version'].sort().join();
+ check(row&&Object.keys(row).sort().join()===keys&&row[field]===scope[field]&&row.customerId===scope.customerId&&row.identityHash===identityHash&&text(row.customerCode,50)&&text(row.customerName,250)&&CUSTOMER_MASTER_TYPES.includes(row.customerType)&&Number.isSafeInteger(row.version)&&row.version>=1);return Object.freeze({...row});
 }
 // Server-only read receipt. A JSON verified:true flag or cloned object is never
 // a receipt. The SQL adapter binds it only after a coherent, validated read.

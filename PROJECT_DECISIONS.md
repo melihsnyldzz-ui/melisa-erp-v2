@@ -1,3 +1,7 @@
+## ERP-DEC-086 eki — 2 Kasım /2034 normal ERP hedefi
+
+Kullanıcı20:17UTC “demo veri tabanı derken ? demo lafın gelişi bağla işte normal erp ye” ve20:18UTC “erp ve crm konusunda deneyelsel davranabiliriz problem değil” açıklamalarıyla ayrıdemoDBistemediğini netleştirdi. Mevcut normalERP5244/API4144/native4146 veSemih\MELISADEV/MELISA_ERP_SIRKET_TEST_20260929_01 esas; DB02factoryuyumu kullanıcıhedefi değildir. AynıC06/B03 source/offline+sentetikGUI/featureteslimi yetkilidir; gerçekSQL/DDL/kurulum/credential/rol/güvenlik/OS/Vega/LIVE/CRM/mesaj/paid yetkisi çıkarılmaz. Localmaster projection kaynak/customer/party/account/döviz/bakiyeyi değiştirmez; exactnormaladmissioncopytaklidi değildir. [Normal hedef sözleşmesi ve native gereksinimler](docs/evidence/erp/2026-11-02-customer-master/normal-persistence.md).
+
 ## ERP-DEC-086 teknik eki — 2 Kasım /1820 müşteri kimliği
 
 Mevcut C06/B03 üç alan düzenlemesinde immutable source/party/currency-account kimlikleri ve native kod/ad/tür korunur; kullanıcı alanları aynı DB için önerilen ayrı local-master metadata revizyonunda tutulur. Bu bir yeni ticari DB veya guard gevşetmesi değildir. Source/offline factory + kendi sentetik app yetkili; gerçek SQL/kurulum/rol/credential onayı çıkarılmaz. Kullanıcının18:58UTC yerel demo çerçevesi yalnız kendi-temp süreçleri aç/kapat yetkisini teyit eder; diğer gerçek sistemlere uygulanmaz. [Kimlik sözleşmesi ve sınırlar](docs/evidence/erp/2026-11-02-customer-master/identity-contract.md).
