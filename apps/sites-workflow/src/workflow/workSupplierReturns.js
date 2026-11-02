@@ -5,7 +5,7 @@ import {tradeUuid} from './workTradeModel.mjs';
 import {createSupplierReturnJournal} from './supplierReturnJournal.mjs';
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=(v,c)=>Number.isFinite(Number(v))?`${Number(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(c)}`:'Bilinmiyor';
+const money=(v,c)=>(typeof v==='number'||typeof v==='string'&&v.trim()!=='')&&Number.isFinite(Number(v))?`${Number(v).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(c)}`:'Bilinmiyor';
 const day=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul'}).format(new Date());
 const parse=v=>{try{return typeof v==='string'?JSON.parse(v):v||{};}catch{return {};}};
 const states={pending:'İnceleme bekliyor',approved:'İade tamamlandı',rejected:'İade reddedildi',cancelled:'Ters kayıtla geri alındı'};

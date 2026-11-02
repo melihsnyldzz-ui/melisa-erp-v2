@@ -1,3 +1,9 @@
+## ERP-DEC-086 teknik eki — 3 Kasım /2254 ERP önceliği ve bağımsız geliştirme
+
+Kullanıcı önceERPbitirme ve farklıişlerde4–5ekgeliştirmesohbetine açıkizinverdi; mevcutanaERP tekortakruntime/SQL/entegrasyonsahibi kalır. Önceikiidlelocalajanreuse, sonragerçekbağımsızpayment/collectioniçiniki görünürnativeERPchild/kendiimmutablebaseworktree kullanıldı; yenianaowner/Goal/tree/otomasyonyok. C06normalmetadataGETsourcebağı, ayrı C01/C03/B06/C08kusurları mevcut49kapsamındadır. İzinler/normalappgeliştirme güvenlikretini aşma, nativefiniteadmissionüretme, sourcepingeveşetme/OS-task-service/credential/LIVE-Vega yetkisi değildir. C05limit müşteridövizkapsamı ve engelmiuyarımı işletmeanlamı kararsız; hamrisk_limitlekuraluydurulmadı. [2254 kaynak, paralel işler ve gerçek runtime sınırı](docs/evidence/erp/2026-11-02-customer-master/route-runtime.md).
+
+**2254 son bağımsız kaynak eki:** C10iade tutarındaUNKNOWN≠0 ve sayımınbozuk/çelişkiliresponsekapanışkoruması da eklendi;716hedefPASS/build ve9sourceGO, childcountP2 main109regresyonlakapandı. C10/insanUA durumlarıdeğişmedi, nativeSQL/kurulum0.
+
 ## ERP-DEC-086 teknik eki — 3 Kasım /2148 sabit readonly metadata
 
 Mevcut normalERP hedefi ve kaynak/offline yetkisiyle, aynı admittedAPIpool için sabit master/nativecustomer metadata SELECTgirişi hazırlanır; bu yeni veri/izin/kurulum kararı değildir. Metadata gözlemi writeadmissionüretmez; objectlevelVD1olmayan görünürlük UNKNOWN/PARTIAL, gizliIDyoklukkanıtıdeğil. Currentconnector yalnızkimlik/paket sunar, poolentryyoksa gerçekSQL0kalır; dışCLI/credential/alternatifbağlantıylaaşılmaz. [Sabit readonly metadata sözleşmesi](docs/evidence/erp/2026-11-02-customer-master/readonly-metadata.md).

@@ -2,6 +2,7 @@ import { configureCanonicalTest } from './canonical-test-env.mjs';
 import {startCanonicalListeners,canonicalInboundMiddleware,canonicalReadiness} from './canonical-test-listeners.mjs';
 const [mode, configPath] = process.argv.slice(2);
 const {identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession}=await configureCanonicalTest(configPath,mode);
+const canonicalStartup={identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession};
 const {configureCatalogSourceVersion,catalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');
 if(config.goal7SourceVersion)configureCatalogSourceVersion(config.goal7SourceVersion);
 if(mode==='erp'){
@@ -38,6 +39,13 @@ app.get('/test-health',(_req,res)=>readiness.send(res,health));
 app.get('/production-switch-health',(_req,res)=>readiness.send(res,health));
 app.get('/terminal-release-health',(_req,res)=>readiness.send(res,{...health,automaticSubmit:false,dailyWebEnabled:true,invoiceExportEnabled:false}));
 app.get('/native-terminal-health',(_req,res)=>readiness.send(res,{...health,writeEnabled:false,automaticSubmit:false}));
+if(mode==='erp'&&writes&&businessSession){
+ const database=await import('./src/config/database.js');
+ const {prepareCanonicalCustomerMasterMetadata}=await import('./src/services/customerMasterMetadataBootstrap.mjs');
+ const {createCustomerMasterMetadataRoutes}=await import('./src/routes/customerMasterMetadataRoutes.mjs');
+ const reader=await prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database});
+ app.use('/api',createCustomerMasterMetadataRoutes({reader}));
+}
 if(mode==='erp' && writes){
   const {canonicalTestAdminContext}=await import('./src/services/canonicalTestAdminSession.mjs');
   const {createCanonicalTestAdminRoutes}=await import('./src/routes/canonicalTestAdminRoutes.mjs');
