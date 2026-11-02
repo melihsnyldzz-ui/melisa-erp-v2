@@ -1,3 +1,7 @@
+## 2 Kasım — ERP-UA07/10/15/18/19/20 /1455 ajan ekran incelemesi; insan kabulü BEKLİYOR
+
+Kendi-temp sentetik adapter+gerçek üretimcontrollerlarıyla satış sepeti/MalKabul taslağı/katalog/cari/alış/tahsilat/iade/sayım/rapor/ayar okuma yüzleri incelendi. Raporun ilk bağlantı hatası sonrası Yenile ve kişisel adlı personelin sayım taslağı düzeltilip aynı ekranda tekrarlandı. Ödeme unsupported origin BLOCKED, kasa/onaylar/terminal/nativeSQL işlemleri denenmiş sayılmaz. Kaynak/test/fixture GUI insan kabulü yerine geçmez; hiçbir özgün UA PASS yapılmadı. [Kanıt ve kalan sınırlar](docs/evidence/erp/2026-11-02-functional-audit/README.md).
+
 ## 2 Kasım — ERP-UA07 / ERP09-B6 sepet saklama teknik dilimi; insan kabulü BEKLİYOR
 
 Normal createWorkSales/createBusinessSalesRead içinde yalnız sentetik temp adapter ile iki ürün/2+1adet/USD sepet sakla→tarayıcıreload→güncelverilerle aç ajan tarafından görüldü; değişmiş fiyat reddedildi.100hedefPASS teknik kanıttır, insanPASS değildir. Bu cihazda sakla/aç/kaldır yeni kontrollerdir; yerel hazırlık ticari taslak veya stok ayırma sayılmaz. Saklama için gerçekWebLocks sunan güvenlibağlam gerekir; HTTPSolmayanLAN henüz destekli sayılmaz. Kullanıcı kontrolünde sepeti sakla, yeniden aç, miktar/döviz/fiyatı incele ve değişen verinin kabul edilmediğini doğrula. Gerçek native satış/finans ve geniş personel kabulü ayrıca bekler. [Kanıt](docs/evidence/erp/2026-11-02-sales-basket/README.md).

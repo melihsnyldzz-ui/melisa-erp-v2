@@ -1,3 +1,7 @@
+## ERP-DEC-086 eki — 2 Kasım /1455 geniş işlev ve GUI incelemesi
+
+Doğrudan kullanıcı isteğiyle mevcut49/17kapsamda üretim controllerları kendi-temp sentetik session/okuyucu/store adapterlarıyla incelenir; genel demo normalGUI sayılmaz. Kanıtlı dar kusur, hedefli test, bağımsız okuma incelemesi ve mevcutPR54 kaynak teslimi aynıyetkidedir. Test actor etiketi gerçek kişi/rol ataması değildir; kişiselad ile localdraft rolü ayrı tutulur, mevcutnative auth/role/canDraft/onay/replay sınırı değişmez. Eski1344rollback/owner/reboot görevi yeniden açılmaz. GerçekSQL/sharedruntime/OS/CRM/Vega/LIVE/credential/güvenlik değişimi veya insanPASS yok. [Bu tur kanıtı](docs/evidence/erp/2026-11-02-functional-audit/README.md).
+
 ## ERP-DEC-086 — 2 Kasım 2026 — ERP işlevlerini Vega'dan bağımsız tamamla
 
 Kullanıcı14:17:54UTC ve14:19:49UTC doğrudan kararlarıyla, yeni ERP'nin şu an işletmede kullanılmadığını; günlük işletimin Vega'da sürdüğünü ve önceliğin mevcut ERP'yi işlevsel olarak bitirmek olduğunu netleştirdi. Bu karar durdurulmuş1344kurulum/rollback işini yeniden başlatmaz. Eski TEST sürekliliği ve tam8530geri dönüşü bağımsız kaynak geliştirmenin kabul koşulu değildir; önceki2Kasım rollback politikası bu yeni önceliğe engel olarak uygulanmaz. Geçiş ve gerçek kullanım kabulü daha sonra ayrıca yapılır.

@@ -10,6 +10,34 @@ const page=()=>({filters:{...filters(),from:'2026-10-06',to:'2026-10-06',currenc
 async function controller(){const source=(await readFile(new URL('./workReports.js',import.meta.url),'utf8')).replace("import './workReports.css';",'').replace("'./workReportsModel.mjs'",JSON.stringify(new URL('./workReportsModel.mjs',import.meta.url).href));return (await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))).createWorkReports;}
 function root(){const nodes=new Map();return {isConnected:true,innerHTML:'',querySelector(key){if(!nodes.has(key))nodes.set(key,{querySelector:()=>({})});return nodes.get(key);},querySelectorAll(){return [];}};}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('refresh after initial context failure reloads report choices before reading a page',async()=>{
+ const create=await controller(),r=root(),calls=[];let offline=true;
+ const ui=create({root:r,session:{reports:async path=>{calls.push(path);if(offline)throw {status:503};return path.endsWith('/context')?context():page();}}});
+ ui.mount();await tick();assert.match(r.innerHTML,/Rapor bağlantısı şu anda kurulamıyor/);
+ offline=false;await r.querySelector('[data-report-refresh]').onclick();await tick();
+ assert.deepEqual(calls.map(p=>p.includes('/context')?'context':'page'),['context','context','page']);
+ assert.match(r.innerHTML,/CONCEPT/);assert.match(r.innerHTML,/TAKIM/);assert.match(r.innerHTML,/Seçilen dönemde ve filtrelerde kayıt bulunamadı/);ui.dispose();
+});
+
+test('refresh keeps context-denied reports closed and coalesces an in-flight context retry',async()=>{
+ const create=await controller(),r=root(),calls=[];let finish;
+ const denied={...context(),capabilities:{canViewReports:false,canViewCost:false}};
+ const ui=create({root:r,session:{reports:path=>{calls.push(path);if(!path.endsWith('/context'))assert.fail('Denied context must never read a report page');return calls.length===1?Promise.resolve(denied):new Promise(resolve=>{finish=()=>resolve(denied);});}}});
+ ui.mount();await tick();assert.match(r.innerHTML,/Raporları görüntüleme yetkiniz yok/);
+ const retry=r.querySelector('[data-report-refresh]').onclick();const second=r.querySelector('[data-report-refresh]').onclick();
+ assert.equal(calls.length,2);finish();await Promise.all([retry,second]);assert.match(r.innerHTML,/Raporları görüntüleme yetkiniz yok/);assert.ok(calls.every(p=>p.endsWith('/context')));ui.dispose();
+});
+
+test('report-kind handlers cannot read a page before an allowed context exists',async()=>{
+ const create=await controller();
+ for(const unavailable of ['denied','offline']){
+  const r=root(),button={dataset:{reportKind:'sales'}},calls=[];r.querySelectorAll=selector=>selector==='[data-report-kind]'?[button]:[];
+  const ui=create({root:r,session:{reports:async path=>{calls.push(path);if(!path.endsWith('/context'))assert.fail('A page needs an allowed context');if(unavailable==='offline')throw {status:503};return {...context(),capabilities:{canViewReports:false,canViewCost:false}};}}});
+  ui.mount();await tick();assert.match(r.innerHTML,/data-report-kind="sales" disabled/);await button.onclick();await r.querySelector('[data-report-refresh]').onclick();await tick();
+  assert.equal(calls.length,2);assert.ok(calls.every(path=>path.endsWith('/context')));ui.dispose();
+ }
+});
 test('period inputs preserve Turkey server half-open range and reject empty, inverse, impossible custom dates',()=>{const f=filters();assert.equal(new URLSearchParams(reportQuery(f)).get('limit'),'50');assert.equal(reportDate('2026-02-30'),false);assert.equal(reportDate('2026-10-06'),true);for(const [from,to] of [['',''],['2026-10-07','2026-10-06'],['2026-02-30','2026-03-01']])assert.throws(()=>reportQuery({...f,period:'custom',from,to}));const q=new URLSearchParams(reportQuery({...f,period:'custom',from:'2026-10-01',to:'2026-10-06',brand:'BABY AURA'}));assert.equal(q.get('brand'),'BABY AURA');assert.equal(q.get('to'),'2026-10-06');assert.equal(validateReportPage(page()).scope.fromUtc,'2026-10-05T21:00:00.000Z');});
 test('exact values preserve NULL, leading zeros in product code and separate currencies without float rounding',()=>{assert.equal(reportAmount(null),'Bilinmiyor');assert.equal(reportAmount('0.0000'),'0');assert.equal(reportAmount('9007199254740993.1234'),'9.007.199.254.740.993,1234');assert.throws(()=>reportAmount(1));const p=page();p.rows=[{id:'1',date:'2026-10-06',stockCode:'0161 MOLLY',currency:'USD',amount:'9.6600',quantity:'1.0000'}];p.pagination.total=1;p.currencyTotals=[{currency:'TRY',amount:'100.0000',debit:null,credit:null,recordCount:1},{currency:'USD',amount:'9.6600',debit:null,credit:null,recordCount:1}];assert.equal(validateReportPage(p).rows[0].stockCode,'0161 MOLLY');assert.equal(p.currencyTotals.length,2);});
 test('personnel cannot accept a cost-bearing response; authorized coverage has no fabricated profit',()=>{const p=page();p.costCoverage={knownLineCount:1,unknownLineCount:10552,profitAvailable:false,reason:'Kanıtlanmayan maliyet kâra çevrilmez.'};assert.throws(()=>validateReportPage(p));assert.equal(validateReportPage(p,{canViewCost:true}).costCoverage.profitAvailable,false);p.costCoverage.profitAvailable=true;assert.throws(()=>validateReportPage(p,{canViewCost:true}));});
