@@ -21,7 +21,9 @@ export function assertCanonicalCustomerMasterIdentity(i){
 // connection-string factory and never selects a different login or database.
 export async function createCanonicalCustomerMasterRuntime({database,startup,getFinalContext=catalogSourceVersion,getCurrentFinanceContext=configuredCurrentFinanceContext}={}){
  const {identity,env,mode,port,writes}=startup??{};
- check(database?.isCanonicalTest?.()===true&&!database.isIsolatedOperationCopyRuntime?.()&&!registeredSharedPartyContext()&&mode==='erp'&&port===4144&&writes===true&&env?.port===4144&&env.sql?.readOnly===false&&env.sql?.trustedConnection===false&&env.sql.database===CUSTOMER_MASTER_NORMAL_TARGET.database&&env.sql.server===CUSTOMER_MASTER_NORMAL_TARGET.server&&env.sql.user===CUSTOMER_MASTER_NORMAL_LOGIN);
+ // Match configureCanonicalTest's fixed transport, then independently pin the
+ // SQL-reported instance name below. Endpoint and SERVERPROPERTY are distinct.
+ check(database?.isCanonicalTest?.()===true&&!database.isIsolatedOperationCopyRuntime?.()&&!registeredSharedPartyContext()&&mode==='erp'&&port===4144&&writes===true&&env?.port===4144&&env.sql?.readOnly===false&&env.sql?.trustedConnection===false&&env.sql.database===CUSTOMER_MASTER_NORMAL_TARGET.database&&env.sql.server==='127.0.0.1'&&env.sql.port===1433&&env.sql.user===CUSTOMER_MASTER_NORMAL_LOGIN);
  assertCanonicalCustomerMasterIdentity({db:identity?.databaseName,server:identity?.serverName,login:identity?.loginName,databaseUser:identity?.databaseUser,sysadmin:identity?.sysadmin,control:identity?.databaseControl,live:identity?.liveDatabaseAccess});
  check(typeof getFinalContext==='function'&&typeof getCurrentFinanceContext==='function');
  // Current-finance proof is mandatory on this normal target: an opening-only
