@@ -2,7 +2,7 @@ param([switch]$Capture)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if(!$Capture){throw 'POSTBOOT_CAPTURE_ONLY_REQUIRED'}
-foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','CimCmdlets')){Microsoft.PowerShell.Core\Import-Module (Join-Path $PSHOME ('Modules\'+$name+'\'+$name+'.psd1')) -Scope Local -ErrorAction Stop}
+foreach($name in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','CimCmdlets')){Microsoft.PowerShell.Core\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$name,($name+'.psd1'))) -Scope Local -ErrorAction Stop}
 # Called only by the pinned passive producer. Raw task XML/SDDL stays in its
 # private output, never in the producer's stdout or a committed source file.
 $os=@(Get-CimInstance Win32_OperatingSystem -Property LastBootUpTime);if($os.Count-ne1){throw 'POSTBOOT_CAPTURE_BOOT_UNAVAILABLE'}

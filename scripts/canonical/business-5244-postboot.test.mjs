@@ -10,11 +10,16 @@ import {POSTBOOT,POSTBOOT_FILES,compilePostbootGeneration,projectPostbootTask,va
 const dir=import.meta.dirname,ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex'),q=s=>"'"+s.replaceAll("'","''")+"'";
 function root(){return fs.mkdtempSync(path.join(process.env.RUNNER_TEMP||os.tmpdir(),'melisa-postboot-source-'));}
-function run(body,{cwd=root(),timeout=20000}={}){
- const file=path.join(cwd,'test.ps1');fs.writeFileSync(file,"$ErrorActionPreference='Stop'\nforeach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){Microsoft.PowerShell.Core\\Import-Module (Join-Path $PSHOME ('Modules\\'+$n+'\\'+$n+'.psd1')) -Scope Local -ErrorAction Stop}\n"+body);
- return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:cwd,TMP:cwd}}).trim();
+function run(body,{cwd=root(),timeout=20000,bootstrapPrelude=''}={}){
+ const file=path.join(cwd,'test.ps1');fs.writeFileSync(file,"$ErrorActionPreference='Stop'\n"+bootstrapPrelude+"\n[Console]::Error.WriteLine('POSTBOOT_HARNESS_STARTED')\nforeach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){Microsoft.PowerShell.Core\\Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))) -Scope Local -ErrorAction Stop}\n[Console]::Error.WriteLine('POSTBOOT_TRUSTED_BUILTINS_LOADED')\n"+body);
+ return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-File',file],{encoding:'utf8',windowsHide:true,timeout,env:{SystemRoot:process.env.SystemRoot,WINDIR:process.env.SystemRoot,PATH:path.join(process.env.SystemRoot??'C:/Windows','System32'),TEMP:cwd,TMP:cwd,PSModulePath:path.join(cwd,'unused-module-search')}}).trim();
 }
 const xml='<Task><Triggers><LogonTrigger/></Triggers><Principals><Principal><RunLevel>LeastPrivilege</RunLevel></Principal></Principals><Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy></Settings><Actions><Exec><Command>powershell.exe</Command><Arguments>old</Arguments></Exec></Actions></Task>';
+test('trusted builtin bootstrap needs neither an ambient Join-Path command nor module search directory',()=>{
+ if(process.platform!=='win32')return;
+ const body="foreach($n in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){$module=Get-Module -Name $n;if(!$module-or$module.Path-cne[IO.Path]::Combine($PSHOME,'Modules',$n,($n+'.psd1'))){throw 'UNTRUSTED_BUILTIN'}};'PASS'";
+ assert.equal(run(body,{bootstrapPrelude:"function global:Join-Path {throw 'IMPLICIT_BOOTSTRAP_DEPENDENCY'}"}),'PASS');
+});
 function capture(){return {schema:'melisa-b6-postboot-capture.v1',beforeBootFileTime:'134380000000000000',capturedFileTime:'134380360000000000',taskXml:xml,taskSddl:'MODEL_ONLY_NO_ACTUAL_TASK',taskChanges:0,sqlCalls:0,processActions:0,base:structuredClone(POSTBOOT.base),protected:Array.from({length:5},(_,i)=>({path:`C:\\Sirket\\ERP\\fixture${i}.json`,sha256:sha(`fixture${i}`)})),health:{ok:true,environment:'CANONICAL_TEST',mode:'erp',port:4144,databaseName:'MELISA_ERP_SIRKET_TEST_20260929_01',serverName:'Semih\\MELISADEV',sourceCommit:POSTBOOT.api.sourceCommit,packageId:POSTBOOT.api.packageId,actualT1:false,externalOperations:false,automaticJobs:false,sysadmin:0,databaseControl:0,liveDatabaseAccess:0}};}
 test('postboot task proposal changes only Arguments; principals/triggers/settings are byte-preserved',()=>{
  const h=sha('manifest');const projected=projectPostbootTask(xml,h);
@@ -57,9 +62,13 @@ test('isolated compiler model preserves all source bytes and emits no authority;
 test('PS5 source parses and native epoch compiles; real same-boot admission is rejected',()=>{
  if(process.platform!=='win32')return;
  const files=POSTBOOT_FILES.filter(n=>n.endsWith('.ps1')).map(n=>q(path.join(dir,n))).join(',');
- const body=`foreach($p in @(${files})){$tokens=$null;$errors=$null;[void][Management.Automation.Language.Parser]::ParseFile($p,[ref]$tokens,[ref]$errors);if($errors.Count){throw ($errors|Out-String)}}
+ const body=`$timer=[Diagnostics.Stopwatch]::StartNew();[Console]::Error.WriteLine('POSTBOOT_PARSE_START')
+ foreach($p in @(${files})){$tokens=$null;$errors=$null;[void][Management.Automation.Language.Parser]::ParseFile($p,[ref]$tokens,[ref]$errors);if($errors.Count){throw ($errors|Out-String)}}
+ [Console]::Error.WriteLine('POSTBOOT_PARSE_DONE_MS='+$timer.ElapsedMilliseconds)
  Add-Type -LiteralPath ${q(path.join(dir,'business-5244-postboot-native.cs'))} -ReferencedAssemblies @('System.Management')
+ [Console]::Error.WriteLine('POSTBOOT_COMPILE_DONE_MS='+$timer.ElapsedMilliseconds)
  $same=[Business5244PostbootEpoch]::BootFileTime();$rejected=$false
+ [Console]::Error.WriteLine('POSTBOOT_OS_BOOT_READ_MS='+$timer.ElapsedMilliseconds)
  try{[void][Business5244PostbootEpoch]::new($same,[DateTime]::UtcNow.ToFileTimeUtc().ToString())}catch{if($_.Exception.ToString()-notmatch'POSTBOOT_NEW_BOOT_REQUIRED'){throw};$rejected=$true}
  if(!$rejected){throw 'SAME_BOOT_ACCEPTED'};'PASS'`;
  assert.equal(run(body,{timeout:20000}),'PASS');
