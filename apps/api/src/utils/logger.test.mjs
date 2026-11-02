@@ -139,6 +139,12 @@ test('contact native diagnostics retain only the six closed codes and redact pri
  for(const code of ['CUSTOMER_CONTACT_PRIVATE_SOURCE','CUSTOMER_CONTACT_FORBIDDEN_SECRET','CUSTOMER_CONTACT_UNAVAILABLE_'+marker])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
 });
 
+test('customer master diagnostics retain only five reviewed static codes, never customer text or private suffixes',()=>{
+ const codes=['CUSTOMER_MASTER_UNAVAILABLE','CUSTOMER_MASTER_FORBIDDEN','CUSTOMER_MASTER_STALE','CUSTOMER_MASTER_REQUEST_CONFLICT','CUSTOMER_MASTER_CODE_CONFLICT'];
+ for(const code of codes)assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const code of [...codes.map(code=>code+'_PRIVATE_CUSTOMER'),'CUSTOMER_MASTER_NEW','Özel müşteri adı'])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
+});
+
 test('startup warnings retain distinct static diagnostic codes without accepting new text', () => {
   const warnings = [
     ['JWT_ACCESS_SECRET is missing or shorter than 32 characters', 'JWT_ACCESS_SECRET_WEAK'],

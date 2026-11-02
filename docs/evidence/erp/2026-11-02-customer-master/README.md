@@ -16,6 +16,8 @@ Normal `createWorkCustomers` kartına müşteri kodu, adı ve türü düzenleme 
 
 126 hedefli offline test PASS, 0 skip; guardlı Sites build 8,22 saniye PASS. Bağımsız kaynak incelemesi GO; bulunan mükerrer kod kilitlenmesi düzeltildi ve regresyonla kanıtlandı. Son router kontrolü ve exact head CI ayrıca STATUS/PR54 kaydına bağlanır.
 
+İlk kaynak 07edd2e4'ün PR CI41489530344 API testinde yeni statik hata kodunun logger sözlüğünde kayıtlı olmaması nedeniyle FAIL oldu; başarılı sayılmadı veya yeniden çalıştırılmadı. Beş sonlu CUSTOMER_MASTER kodu mevcut kapalı tanı sözlüğüne eklendi; özel müşteri metni, yeni kod ve private suffix hâlâ redacted. Test/guard/workflow/timeout/secret-scan istisnası değiştirilmedi. Düzeltmenin yeni exact CI sonucu ayrı doğrulanır.
+
 Kendi geçici localhost uygulamasında gerçek üretim `createWorkCustomers` + kaynak service + açıkça sentetik bellek store kullanıldı. Normal formda boş ad reddi, 000155 kodu/Toptan türü, kaydet, reload/readback, mükerrer kod reddi ve formun düzeltilebilmesi görüldü. İkinci sentetik kaydın ACK'i kaybettirildi; reload sonrası kullanıcı eylemiyle GET recovery, 3 gönderim/2 kesin kayıt sayısını değiştirmedi. Salt okunur rolde düzenleme düğmeleri yoktu. 390/1024/1440 CSS iframe genişliklerinde alan/düğme görüntüleri alındı; fiziksel cihaz veya sayısal taşma ölçümü değildir.
 
 Sentetik hesap tutarları storage before/after karşılaştırmasında değişmedi. GUI fixture'ın eksik hesap doğrulama DTO'su nedeniyle mevcut sunum TRY/USD için **Bilinmiyor** gösterdi; bu tur görünür sayısal bakiye mutabakatı iddia edilmez. Cari/finans sözleşmesi veya bilinmeyen tutar koruması değiştirilmedi.
