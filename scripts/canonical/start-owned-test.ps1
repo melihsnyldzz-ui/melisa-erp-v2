@@ -206,10 +206,12 @@ function Get-ErpServiceListeners($Definition,$Config) {
  return $listeners
 }
 function Test-ErpSteadyWebStartupGeneration {
+ if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')){return $true}
  if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PENDING-WEB-STEADY-OWNER-POST-RECOVERY-20261101'){return $true}
  return $PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-STEADY-OWNER-20261029','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-CONTEXT-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-PREVIEW-READ-INDEXED-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-DIAGNOSTIC-V6-STEADY-OWNER-20261030','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-ARRAY-REPAIR-V2-STEADY-OWNER-20261030')
 }
 function Start-ErpSteadyWebStartup {
+ if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')){return Start-Business5244PostbootWeb}
  if(!(Test-ErpSteadyWebStartupGeneration)){throw 'TEST_STEADY_GENERATION_REQUIRED'}
  if(Get-Variable ErpSteadyWebStartupAttempt -Scope Script -ErrorAction SilentlyContinue){return $script:ErpSteadyWebStartupAttempt}
  $result=@{state='unknown';attempted=$false;owner=$null};$script:ErpSteadyWebStartupAttempt=$result
@@ -233,6 +235,7 @@ function Start-ErpSteadyWebStartup {
 }
 
 function Invoke-ErpOwnedSession($Config,[switch]$SinglePass) {
+ if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')){Assert-Business5244PostbootServiceAdmission $Config}
  $mutex=New-Object Threading.Mutex($false,(Get-ErpMutexName $Config.RepoRoot $Config.OwnerSid));$held=$false
  try{
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException] {$held=$true}

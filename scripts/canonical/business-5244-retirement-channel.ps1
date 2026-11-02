@@ -5,6 +5,7 @@ param([Alias('Library')][switch]$RetirementLibrary)
 if(!(Get-Variable Business5244RetirementChannels -Scope Script -ErrorAction SilentlyContinue)){$script:Business5244RetirementChannels=[Collections.Generic.List[object]]::new();$script:Business5244RetirementClients=[Collections.Generic.List[object]]::new()}
 function Initialize-Business5244RetirementPeer {if(!('Business5244RetirementPeer' -as [type])){Add-Type -LiteralPath (Join-Path $PSScriptRoot 'business-5244-retirement-peer.cs')}}
 function Get-Business5244RetirementPipeName {Initialize-Business5244RetirementPeer;$expected='MelisaERP5244Retirement-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes((Get-Business5244StartupMutexName))));if($expected -cne [Business5244RetirementPipe]::Name){throw 'RETIREMENT_PIPE_GATE_BINDING_CHANGED'};return $expected}
+function Get-Business5244RetirementOperations {if($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101'){return @('status','retire','recover','exit','complete')};return @('status','retire','recover','exit')}
 function Get-Business5244RetirementRecord($Token,[switch]$Client){$items=if($Client){$script:Business5244RetirementClients}else{$script:Business5244RetirementChannels};$found=@($items|Where-Object{[object]::ReferenceEquals($_.token,$Token)});if($found.Count -ne 1){throw 'RETIREMENT_UNISSUED_REFERENCE'};$r=$found[0];if($r.pid -ne $PID -or $r.thread -ne [Threading.Thread]::CurrentThread.ManagedThreadId -or $r.birth -cne [Business5244RetirementPeer]::CurrentBirth){throw 'RETIREMENT_FOREIGN_PROCESS_OR_THREAD'};return $r}
 function Assert-Business5244RetirementChannel($Channel){$r=Get-Business5244RetirementRecord $Channel;if($r.closed){throw 'RETIREMENT_CHANNEL_CLOSED'};Assert-Business5244StartupLease -Lease $r.lease}
 function Reset-Business5244RetirementConnection($Record){
@@ -48,9 +49,9 @@ function Receive-Business5244RetirementRequest {
     if($line -ne $text.Length-1){throw 'RETIREMENT_SECOND_BODY_REJECTED'}
     # Canonical fixed request framing also rejects duplicate JSON keys, escaped
     # commands, extra properties and alternate bodies rather than normalizing.
-    if($text -cnotmatch '^\{"operation":"(?:status|retire|recover|exit)","requestId":"[a-f0-9]{32}"\}\n$'){throw 'RETIREMENT_UNKNOWN_BODY'}
+    if($text -cnotmatch '^\{"operation":"(?:status|retire|recover|exit)","requestId":"[a-f0-9]{32}"\}\n$'-and!($PSScriptRoot-ceq'C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101'-and$text-cmatch'^\{"operation":"complete","requestId":"[a-f0-9]{32}"\}\n$')){throw 'RETIREMENT_UNKNOWN_BODY'}
     try{$body=$text.Substring(0,$line)|ConvertFrom-Json -ErrorAction Stop}catch{throw 'RETIREMENT_UNKNOWN_BODY'}
-    if(!$body -or ($body.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'operation,requestId' -or $body.operation -isnot [string] -or $body.operation -cnotin @('status','retire','recover','exit') -or $body.requestId -isnot [string] -or $body.requestId -cne $r.nonce){throw 'RETIREMENT_UNKNOWN_OR_REPLAY_BODY'}
+    if(!$body -or ($body.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'operation,requestId' -or $body.operation -isnot [string] -or $body.operation -cnotin (Get-Business5244RetirementOperations) -or $body.requestId -isnot [string] -or $body.requestId -cne $r.nonce){throw 'RETIREMENT_UNKNOWN_OR_REPLAY_BODY'}
     $r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe)
     # The input/nonce has its original 15-second bound. Only after the exact
     # body AND retained native peer pass do we issue a separate, server-only
@@ -72,7 +73,7 @@ function Get-Business5244RetirementRequestAdmission {
  # expiry outcome. This observation grants no stop/reset/publication right.
  $r.peer.Validate();[Business5244RetirementPipe]::AssertNoExtraBytes($r.pipe)
  $canonical=[Text.Encoding]::ASCII.GetBytes(('{"operation":"'+$q.operation+'","requestId":"'+$q.id+'"}')+"`n")
- if($q.operation -cnotin @('status','retire','recover','exit') -or $q.id -cnotmatch '^[a-f0-9]{32}$' -or $q.hash -cne (Get-Business5244StartupHash $canonical)){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
+ if($q.operation -cnotin (Get-Business5244RetirementOperations) -or $q.id -cnotmatch '^[a-f0-9]{32}$' -or $q.hash -cne (Get-Business5244StartupHash $canonical)){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
  if($q.acceptedUtc -isnot [DateTime] -or $q.admissionDeadlineUtc -isnot [DateTime] -or $q.admissionDeadlineUtc -ne $q.acceptedUtc.AddSeconds(60) -or $q.acceptedTicks -isnot [long] -or $q.hash -cnotmatch '^[a-f0-9]{64}$'){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
  $elapsed=[Diagnostics.Stopwatch]::GetTimestamp()-$q.acceptedTicks
  if($elapsed -lt 0){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}
@@ -84,7 +85,7 @@ function Assert-Business5244RetirementRequest {
  if($admission.expired){throw 'RETIREMENT_ADMISSION_EXPIRED'}
 }
 function Complete-Business5244RetirementRequest {
- param([Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request,[Parameter(Mandatory)][ValidateSet('Status','RetireAccepted','RecoveryAccepted','ExitAccepted','Rejected')][string]$Reply,[Parameter(Mandatory)]$Snapshot)
+ param([Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request,[Parameter(Mandatory)][ValidateSet('Status','RetireAccepted','RecoveryAccepted','ExitAccepted','CompletionAccepted','Rejected')][string]$Reply,[Parameter(Mandatory)]$Snapshot)
  $admission=Get-Business5244RetirementRequestAdmission -Channel $Channel -Request $Request;$r=Get-Business5244RetirementRecord $Channel
  # Never send a late ACK as if it renewed authority. Retire is not replayed;
  # close this exchange and leave the controller to read-only reconciliation.
@@ -92,7 +93,7 @@ function Complete-Business5244RetirementRequest {
  $snapshotKeys=if($Snapshot -is [Collections.IDictionary]){@($Snapshot.Keys)}else{@($Snapshot.PSObject.Properties.Name)}
  if((($snapshotKeys|Sort-Object) -join ',') -cne 'childBirth,childPid,ownerBirth,ownerPid,phase,requestId' -or $Snapshot.phase -isnot [string] -or $Snapshot.phase -cnotin @('Running','Retiring','Retired','Rejected','Unknown') -or ($Snapshot.ownerPid -isnot [int] -and $Snapshot.ownerPid -isnot [long]) -or $Snapshot.ownerPid -ne $PID -or $Snapshot.ownerBirth -isnot [string] -or $Snapshot.ownerBirth -cne $r.birth -or $Snapshot.requestId -isnot [string] -or $Snapshot.requestId -cne $r.request.id){throw 'RETIREMENT_SNAPSHOT_INVALID'}
  if(($null -eq $Snapshot.childPid) -ne ($null -eq $Snapshot.childBirth) -or $null -ne $Snapshot.childPid -and (($Snapshot.childPid -isnot [int] -and $Snapshot.childPid -isnot [long]) -or $Snapshot.childPid -le 0 -or $Snapshot.childBirth -isnot [string] -or $Snapshot.childBirth -cnotmatch '^[1-9][0-9]{0,18}$')){throw 'RETIREMENT_CHILD_OBSERVATION_INVALID'}
- if($Reply-cne'Rejected'-and$Reply-cne(@{status='Status';retire='RetireAccepted';recover='RecoveryAccepted';exit='ExitAccepted'}[$Request.operation])){throw 'RETIREMENT_REPLY_OPERATION_MISMATCH'}
+ if($Reply-cne'Rejected'-and$Reply-cne(@{status='Status';retire='RetireAccepted';recover='RecoveryAccepted';exit='ExitAccepted';complete='CompletionAccepted'}[$Request.operation])){throw 'RETIREMENT_REPLY_OPERATION_MISMATCH'}
  $copy=[ordered]@{phase=[string]$Snapshot.phase;ownerPid=$PID;ownerBirth=$r.birth;childPid=$Snapshot.childPid;childBirth=$Snapshot.childBirth;requestId=$r.request.id}
  $r.wire=[Text.Encoding]::ASCII.GetBytes((@{protocol='business-5244-retirement.v1';reply=$Reply;requestId=$r.request.id;state=$copy}|ConvertTo-Json -Depth 4 -Compress)+"`n");if($r.wire.Length -gt 512){throw 'RETIREMENT_REPLY_TOO_LARGE'}
  $r.request.completed=$true;$r.phase='Reply';$r.deadline=[DateTime]::UtcNow.AddSeconds(15)
@@ -112,7 +113,8 @@ function Read-Business5244RetirementLine($Pipe,[int]$Limit){
  while($length -lt $Limit){$remaining=[int][Math]::Max(0,($deadline-[DateTime]::UtcNow).TotalMilliseconds);$task=$Pipe.ReadAsync($buffer,$length,$Limit-$length);if(!$task.Wait($remaining)){throw 'RETIREMENT_REPLY_TIMEOUT'};$n=$task.GetAwaiter().GetResult();if($n -le 0){throw 'RETIREMENT_REPLY_CLOSED'};$length+=$n;for($i=0;$i -lt $length;$i++){if($buffer[$i] -gt 127){throw 'RETIREMENT_REPLY_UNKNOWN'}};$text=[Text.Encoding]::ASCII.GetString($buffer,0,$length);$line=$text.IndexOf("`n");if($line -ge 0){if($line -ne $length-1){throw 'RETIREMENT_REPLY_EXTRA_BODY'};return ($text.Substring(0,$line)|ConvertFrom-Json -ErrorAction Stop)}};throw 'RETIREMENT_REPLY_TOO_LARGE'
 }
 function Send-Business5244RetirementRequest {
- param([Parameter(Mandatory)]$Connection,[Parameter(Mandatory)][ValidateSet('status','retire','recover','exit')][string]$Operation)
+ param([Parameter(Mandatory)]$Connection,[Parameter(Mandatory)][ValidateSet('status','retire','recover','exit','complete')][string]$Operation)
+ if($Operation-cnotin(Get-Business5244RetirementOperations)){throw 'RETIREMENT_OPERATION_NOT_SUPPORTED'}
  $r=Get-Business5244RetirementRecord $Connection -Client
  if($r.closed -or $r.used -or (($Connection.PSObject.Properties.Name|Sort-Object) -join ',') -cne 'serverBirth,serverPid,serverSid' -or $Connection.serverPid -isnot [uint32] -or $Connection.serverBirth -isnot [string] -or $Connection.serverSid -isnot [string] -or $Connection.serverPid -ne $r.peer.Pid -or $Connection.serverBirth -cne $r.peer.Birth -or $Connection.serverSid -cne $r.peer.Sid){throw 'RETIREMENT_CLIENT_REFERENCE_CHANGED'};$r.used=$true
  try{
@@ -120,7 +122,7 @@ function Send-Business5244RetirementRequest {
   if(($hello.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'protocol,requestId' -or $hello.protocol -cne 'business-5244-retirement.v1' -or $hello.requestId -isnot [string] -or $hello.requestId -cnotmatch '^[a-f0-9]{32}$'){throw 'RETIREMENT_HELLO_INVALID'}
   $r.peer.Validate();$wire=[Text.Encoding]::ASCII.GetBytes(('{"operation":"'+$Operation+'","requestId":"'+$hello.requestId+'"}')+"`n");$task=$r.pipe.WriteAsync($wire,0,$wire.Length);if(!$task.Wait(5000)){throw 'RETIREMENT_REQUEST_TIMEOUT'};[void]$task.GetAwaiter().GetResult()
   $ack=Read-Business5244RetirementLine $r.pipe 512;$r.peer.Validate()
-  if(($ack.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'protocol,reply,requestId,state' -or $ack.protocol -cne 'business-5244-retirement.v1' -or $ack.requestId -cne $hello.requestId -or $ack.reply -cnotin @('Status','RetireAccepted','RecoveryAccepted','ExitAccepted','Rejected') -or $ack.reply -cne 'Rejected' -and $ack.reply -cne (@{status='Status';retire='RetireAccepted';recover='RecoveryAccepted';exit='ExitAccepted'}[$Operation])){throw 'RETIREMENT_ACK_INVALID'}
+  if(($ack.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'protocol,reply,requestId,state' -or $ack.protocol -cne 'business-5244-retirement.v1' -or $ack.requestId -cne $hello.requestId -or $ack.reply -cnotin @('Status','RetireAccepted','RecoveryAccepted','ExitAccepted','CompletionAccepted','Rejected') -or $ack.reply -cne 'Rejected' -and $ack.reply -cne (@{status='Status';retire='RetireAccepted';recover='RecoveryAccepted';exit='ExitAccepted';complete='CompletionAccepted'}[$Operation])){throw 'RETIREMENT_ACK_INVALID'}
   $s=$ack.state;if(($s.PSObject.Properties.Name|Sort-Object) -join ',' -cne 'childBirth,childPid,ownerBirth,ownerPid,phase,requestId' -or $s.phase -cnotin @('Running','Retiring','Retired','Rejected','Unknown') -or $s.ownerPid -ne $r.peer.Pid -or $s.ownerBirth -cne $r.peer.Birth -or $s.requestId -cne $hello.requestId){throw 'RETIREMENT_ACK_PEER_MISMATCH'}
   if(($null -eq $s.childPid) -ne ($null -eq $s.childBirth) -or $null -ne $s.childPid -and (($s.childPid -isnot [int] -and $s.childPid -isnot [long]) -or $s.childPid -le 0 -or $s.childBirth -isnot [string] -or $s.childBirth -cnotmatch '^[1-9][0-9]{0,18}$')){throw 'RETIREMENT_ACK_CHILD_OBSERVATION_INVALID'}
   return [pscustomobject]@{reply=$ack.reply;state=$s;nativePeerVerified=$true;stopAuthorized=$false;childObservationOnly=$true}

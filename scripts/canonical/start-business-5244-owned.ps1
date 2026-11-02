@@ -26,6 +26,11 @@ function Assert-Business5244CreatedChild($Native,$Pins){
 function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
+ if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')){
+  $exact=Assert-Business5244PostbootPackage $Pins
+  if($null-ne$Seal){throw 'POSTBOOT_SEPARATE_PAYLOAD_SEAL_REQUIRED'}
+  return Assert-Business5244PostbootPayload $exact
+ }
  $webOnly=Test-Business5244WriterWebOnlyGeneration
  $exact=if(Test-Business5244ColdCurrentGeneration){Get-Business5244ColdCurrentPins}elseif(Test-Business5244ReadContextRepairGeneration){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}elseif(Test-Business5244SteadyGeneration){Get-Business5244SteadyPins}elseif(Test-Business5244PackageRefreshGeneration){$case=Get-ErpBusinessSalePackageRefreshFixedCase;if($Pins.package-ceq$case.candidateWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package-ceq$case.currentWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}else{throw 'OWNED_WEB_PIN_CHANGED'}}elseif($webOnly-and(Test-Business5244PendingWebGeneration)){if($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-PENDING-5457e450-PASSIVE-20261031'){Get-Business5244PendingWebPins -Mode Candidate}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030'){Get-Business5244PendingWebPins -Mode Current}else{throw 'OWNED_PENDING_WEB_PIN_CHANGED'}}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
@@ -205,7 +210,10 @@ function Assert-Business5244ReadyChild($Native,$Pins){
  $rows=@($all|Where-Object {$_.OwningProcess -eq $Native.ChildPid -or $_.LocalPort -eq 5244})
  Assert-Business5244OwnedListeners $rows $Native.ChildPid
 }
-function New-Business5244PinnedChild($Pins,$Lease){
+function New-Business5244PinnedChild($Pins,$Lease,$PostbootContext=$null){
+ $postboot=$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-2230-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-20261101','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-20261101')
+ if($null-ne$PostbootContext-and!$postboot){throw 'POSTBOOT_FOREIGN_GENERATION'}
+ if($postboot-and$null-eq$PostbootContext){throw 'POSTBOOT_CONTEXT_REQUIRED'}
  Assert-Business5244StartupLease -Lease $Lease
  $native=$null
  try{
@@ -216,6 +224,7 @@ function New-Business5244PinnedChild($Pins,$Lease){
   if(@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'OWNED_WEB_PORT_OCCUPIED_NO_ADOPTION'}
   Initialize-Business5244WebNative
   $native=[Business5244WebNative]::new()
+  if($null-ne$PostbootContext){Register-Business5244PostbootNative $PostbootContext $native}
   $leaseRecord=Get-Business5244StartupRecord $Lease
   if(!$leaseRecord.ContainsKey('ownedNatives')){$leaseRecord.ownedNatives=[Collections.Generic.List[object]]::new()}
   $leaseRecord.ownedNatives.Add($native)
@@ -228,6 +237,7 @@ function New-Business5244PinnedChild($Pins,$Lease){
    $cwd=Join-Path $pins.root 'apps\sites-workflow';$vite=Join-Path $cwd 'node_modules\vite\bin\vite.js'
    Assert-Business5244StartupLease -Lease $Lease
    $native.Spawn($pins.node,('"'+$vite+'" preview --host 127.0.0.1 --port 5244 --strictPort'),$cwd)
+   if($null-ne$PostbootContext){Register-Business5244PostbootNative $PostbootContext $native -Created}
   }finally{foreach($entry in Get-ChildItem Env:){[Environment]::SetEnvironmentVariable($entry.Name,$null,'Process')};foreach($entry in $saved.GetEnumerator()){[Environment]::SetEnvironmentVariable($entry.Key,$entry.Value,'Process')};$saved.Clear()}
   Assert-Business5244CreatedChild $native $pins
   $ready=$false;$deadline=[DateTime]::UtcNow.AddSeconds(20)

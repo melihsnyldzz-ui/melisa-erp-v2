@@ -4,6 +4,7 @@ import cp from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import './business-5244-postboot.test.mjs';
 const dir=import.meta.dirname,ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const quote=s=>"'"+s.replaceAll("'","''")+"'";
 function run(body,{tempRoot,timeout=20000,isolatedModulePath=false}={}){
