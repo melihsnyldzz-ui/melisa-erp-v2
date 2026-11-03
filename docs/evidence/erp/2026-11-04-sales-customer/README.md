@@ -16,7 +16,7 @@ Kaynaklar mevcut feature dalı ve PR54'tedir. Hedefli offline testler ve bağım
 
 Bu kaynak diliminde SQL, servis, görev, config, rol, parola, stok/cari/kasa veya ticari kayıt yazması yapılmadı. Mevcut kurulu ERP/CRM ve kullanıcı WIP'i korundu. Önceki normal-session metadata gözleminde müşteri nesnesi PARTIAL, üç yerel metadata nesnesi UNKNOWN idi; nesneler yok sayılmaz ve writer bu gözlemle etkinleştirilemez.
 
-Normal ekran kontrolü için yerel tarayıcı kullanımı son araç gözleminde Work ayarlarında kapalıydı. Kullanıcıya bunu açması için tek istek iletildi; açıldığı doğrulanmadan GUI sonucu üretilmez. İnsan kabulü BEKLİYOR.
+Normal ekran kontrolü için yerel tarayıcı kullanımı önce Work ayarlarında kapalı gözlendi. Daha sonra mevcut Chrome bağlantısı açıldı ve 5244 normal Satış ekranı Semih oturumuyla gerçekten açıldı: müşteri listesi okundu; ekran satış kaydetmenin henüz açık olmadığını gösterdi. Bu gözlem kurulu önceki uygulamaya aittir; yeni fce4d7aa adayının kurulum veya satış kabulü değildir. İnsan kabulü BEKLİYOR.
 
 ## Sonraki mevcut adım
 

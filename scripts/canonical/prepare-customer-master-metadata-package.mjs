@@ -56,3 +56,50 @@ export function prepareCustomerMasterMetadataPackage(){
  fs.mkdirSync(root);for(const r of manifest.files){const file=path.join(root,...r.path.split('/'));fs.mkdirSync(path.dirname(file),{recursive:true});write(file,overlays.get(r.path)??readBase(r.path));}write(path.join(root,'release-manifest.json'),encode(manifest));verifyCustomerMetadataPayload(root,manifest);write(path.join(root,'customer-master-metadata-preparation.json'),encode({schemaVersion:'melisa-c06-metadata-package-preparation.v1',sourceCommit:head,root,manifestSha256:sha(encode(manifest)),ci,verifiedFiles:manifest.files.length,relativeSourceFiles:closure.sourceFiles,clientSourceFiles:client.sourceFiles,installed:false,applied:false,executionAuthority:false,masterWriterEnabled:false,actualT1:false,externalOperations:false}));return {root,sourceCommit:head,manifestSha256:sha(encode(manifest)),files:manifest.files.length,installed:false};
 }
 if(import.meta.url.startsWith('file:')&&process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){if(process.argv.length!==3||process.argv[2]!=='--prepare')fail('CLI');console.log(JSON.stringify(prepareCustomerMasterMetadataPackage()));}
+
+// C06 successor is a passive, exact-source overlay over the already accepted
+// metadata pair. It does not alter the historical compiler or authorize SQL,
+// config, startup, package creation or installation. The caller supplies only
+// reviewed Git blobs and an independently bound source pin.
+export const C06_SUCCESSOR_API_FILES=Object.freeze([
+ 'apps/api/canonical-test-env.mjs',CUSTOMER_METADATA_ENTRY,
+ 'apps/api/src/services/canonicalTestRoutePolicy.mjs',
+ 'apps/api/src/services/workTradeStore.mjs',
+ 'apps/api/src/services/customerMasterMetadataBootstrap.mjs',
+ 'apps/api/src/services/customerMasterCanonicalSql.mjs',
+ 'apps/api/src/services/customerMasterCanonicalRuntime.mjs',
+ 'apps/api/src/services/customerMasterMetadataSql.mjs',
+ 'apps/api/src/services/customerMasterSqlStore.mjs',
+ 'apps/api/src/routes/customerMasterCanonicalRoutes.mjs',
+ 'apps/api/src/controllers/customerMasterController.mjs'
+]);
+const C06_ADDITIONS=new Set(['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs']);
+export function customerMasterSuccessorEntryDelta(before,after){
+ let projected=lf(before);const steps=[
+  ["if(mode==='erp'&&writes&&businessSession){", "let customerMasterWriterRoutes=null;\nif(mode==='erp'&&writes&&businessSession){"],
+  ["const {prepareCanonicalCustomerMasterMetadata}=await import('./src/services/customerMasterMetadataBootstrap.mjs');", "const {prepareCanonicalCustomerMasterMetadata,prepareCanonicalCustomerMasterWriter}=await import('./src/services/customerMasterMetadataBootstrap.mjs');"],
+  [" app.use('/api',createCustomerMasterMetadataRoutes({reader}));", " app.use('/api',createCustomerMasterMetadataRoutes({reader}));\n if(config.customerMasterWritesEnabled===true)customerMasterWriterRoutes=await prepareCanonicalCustomerMasterWriter({startup:{...canonicalStartup,mode},database});"],
+  ["isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})", "isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession,customerMasterWriterReady:!!customerMasterWriterRoutes})"],
+  ["if(mode==='erp'){\n  if(businessSession){", "if(mode==='erp'){\n  if(customerMasterWriterRoutes)app.use('/api',customerMasterWriterRoutes);\n  if(businessSession){"]
+ ];
+ for(const [old,value] of steps){check(projected.split(old).length===2,'C06_ENTRY_DELTA');projected=projected.replace(old,value);}
+ check(projected===lf(after),'C06_ENTRY_UNRELATED_DELTA');return true;
+}
+export function buildCustomerMasterSuccessorApiManifest({baseBytes,baseDigest,sourceCommit,sourcePin,producerCommit,overlays,previousBytes}){
+ check(Buffer.isBuffer(baseBytes)&&sha(baseBytes)===baseDigest&&/^[a-f0-9]{64}$/.test(baseDigest??''),'C06_BASE_DIGEST');
+ check(/^[a-f0-9]{40}$/.test(sourcePin??'')&&sourceCommit===sourcePin&&/^[a-f0-9]{40}$/.test(producerCommit??''),'C06_SOURCE_PIN');
+ const base=json(baseBytes);check(base?.database==='MELISA_ERP_SIRKET_TEST_20260929_01'&&base.actualT1===false&&base.externalOperations===false&&base.currentBusinessPair?.masterWriterEnabled===false&&base.customerMasterMetadataOverlay?.masterWriterEnabled===false&&!Object.hasOwn(base,'customerMasterSuccessor'),'C06_BASE_IDENTITY');
+ const rows=new Map(customerMetadataRows(base.files).map(r=>[r.path,structuredClone(r)]));
+ check(overlays instanceof Map&&overlays.size===C06_SUCCESSOR_API_FILES.length&&C06_SUCCESSOR_API_FILES.every(p=>Buffer.isBuffer(overlays.get(p))&&overlays.get(p).length>0),'C06_EXACT_OVERLAYS');
+ check(previousBytes instanceof Map&&previousBytes.size===C06_SUCCESSOR_API_FILES.length-C06_ADDITIONS.size,'C06_BEFORE_COVERAGE');
+ const files=[];for(const p of C06_SUCCESSOR_API_FILES){const old=rows.get(p),bytes=overlays.get(p),before=previousBytes.get(p);
+  if(C06_ADDITIONS.has(p))check(!old&&!previousBytes.has(p),'C06_NEW_FILE_EXISTS');
+  else check(old&&Buffer.isBuffer(before)&&sha(before)===old.sha256&&(old.bytes===undefined||old.bytes===before.length),'C06_BEFORE_HASH');
+  if(p===CUSTOMER_METADATA_ENTRY)customerMasterSuccessorEntryDelta(before,bytes);
+  const row={...(old??{}),path:p,sha256:sha(bytes),bytes:bytes.length};rows.set(p,row);files.push({path:p,beforeSha256:old?.sha256??null,sha256:row.sha256,bytes:row.bytes});
+ }
+ const oldClosure=base.businessNormalSessionClosure;check(oldClosure?.version===1&&customerMetadataRows(oldClosure.files).length===14&&oldClosure.files.every(r=>r.sha256===base.files.find(f=>f.path===r.path)?.sha256),'C06_BASE_NORMAL_CLOSURE');
+ for(const p of ['apps/api/canonical-test-env.mjs',CUSTOMER_METADATA_ENTRY,'apps/api/src/services/canonicalTestRoutePolicy.mjs'])check(oldClosure.files.filter(r=>r.path===p).length===1,'C06_NORMAL_CLOSURE');
+ const result=structuredClone(base);result.files=[...rows.values()].sort((a,b)=>a.path.localeCompare(b.path));result.businessNormalSessionClosure.files=oldClosure.files.map(r=>({...r,sha256:rows.get(r.path).sha256}));
+ result.customerMasterSuccessor={schemaVersion:'melisa-c06-source-overlay.v1',sourceCommit,producerCommit,baseManifestSha256:baseDigest,files,metadataStatus:'UNKNOWN_UNTIL_NORMAL_POOL_READ',writerAdmission:'DISABLED_UNTIL_VERIFIED_CONFIG_AND_RUNTIME',installed:false,executionAuthority:false,actualT1:false,externalOperations:false};return result;
+}

@@ -27,3 +27,40 @@ test('real disk entry keeps the same blob identity when esbuild prefixes its ent
  const root=path.resolve(import.meta.dirname,'../..'),entry='scripts/canonical/prepare-customer-master-metadata-package.mjs',tool=path.join(root,'apps/sites-workflow/node_modules/esbuild/lib/main.js'),guard=path.join(root,'scripts/ci/offline-guard.cjs');assert.equal(fs.existsSync(path.join(root,entry)),true);
  const result=cp.execFileSync(process.execPath,['--require',guard,'-e',customerMetadataBuildProgram()],{cwd:root,input:JSON.stringify({tool,entry,sources:[[entry,'globalThis.fixture=37;throw Error("FIXTURE_SOURCE_NOT_EXECUTED");']]}),encoding:'utf8',windowsHide:true,timeout:15000,stdio:['pipe','pipe','pipe']});assert.match(result,/fixture = 37/);assert.match(result,/FIXTURE_SOURCE_NOT_EXECUTED/);
 });
+
+const c06OldEntry=Buffer.from(`before\nif(mode==='erp'&&writes&&businessSession){
+ const {prepareCanonicalCustomerMasterMetadata}=await import('./src/services/customerMasterMetadataBootstrap.mjs');
+ app.use('/api',createCustomerMasterMetadataRoutes({reader}));
+}
+if(!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))throw Error('fixture');
+if(mode==='erp'){
+  if(businessSession){
+  }
+}
+`);
+const c06NewEntry=Buffer.from(`before\nlet customerMasterWriterRoutes=null;
+if(mode==='erp'&&writes&&businessSession){
+ const {prepareCanonicalCustomerMasterMetadata,prepareCanonicalCustomerMasterWriter}=await import('./src/services/customerMasterMetadataBootstrap.mjs');
+ app.use('/api',createCustomerMasterMetadataRoutes({reader}));
+ if(config.customerMasterWritesEnabled===true)customerMasterWriterRoutes=await prepareCanonicalCustomerMasterWriter({startup:{...canonicalStartup,mode},database});
+}
+if(!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession,customerMasterWriterReady:!!customerMasterWriterRoutes}))throw Error('fixture');
+if(mode==='erp'){
+  if(customerMasterWriterRoutes)app.use('/api',customerMasterWriterRoutes);
+  if(businessSession){
+  }
+}
+`);
+async function c06Fixture(){
+ const m=await import('./prepare-customer-master-metadata-package.mjs'),sha=b=>crypto.createHash('sha256').update(b).digest('hex'),isNew=p=>p.includes('/routes/customerMasterCanonicalRoutes.mjs')||p.includes('/controllers/customerMasterController.mjs'),oldPaths=m.C06_SUCCESSOR_API_FILES.filter(p=>!isNew(p));
+ const previousBytes=new Map(oldPaths.map(p=>[p,p===m.CUSTOMER_METADATA_ENTRY?c06OldEntry:Buffer.from('OLD '+p)])),overlays=new Map(m.C06_SUCCESSOR_API_FILES.map(p=>[p,p===m.CUSTOMER_METADATA_ENTRY?c06NewEntry:Buffer.from('NEW '+p)]));
+ const normal=['apps/api/canonical-test-env.mjs',m.CUSTOMER_METADATA_ENTRY,'apps/api/src/services/canonicalTestRoutePolicy.mjs',...Array.from({length:11},(_,i)=>'apps/api/fixture-normal-'+i+'.mjs')];for(const p of normal)if(!previousBytes.has(p))previousBytes.set(p,Buffer.from('OLD '+p));
+ const files=[...previousBytes].map(([path,b])=>({path,sha256:sha(b),bytes:b.length})),base={database:'MELISA_ERP_SIRKET_TEST_20260929_01',actualT1:false,externalOperations:false,files,currentBusinessPair:{masterWriterEnabled:false},customerMasterMetadataOverlay:{masterWriterEnabled:false},businessNormalSessionClosure:{version:1,files:normal.map(p=>({path:p,sha256:files.find(r=>r.path===p).sha256}))}},baseBytes=Buffer.from(JSON.stringify(base)),baseDigest=sha(baseBytes);for(const p of normal)if(!oldPaths.includes(p))previousBytes.delete(p);
+ return {m,base,baseBytes,baseDigest,sourceCommit:'1'.repeat(40),sourcePin:'1'.repeat(40),producerCommit:'2'.repeat(40),overlays,previousBytes,sha};
+}
+test('C06 successor binds exact startup delta, before images, session closure and passive writer status',async()=>{
+ const f=await c06Fixture(),old=Buffer.from(f.baseBytes),result=f.m.buildCustomerMasterSuccessorApiManifest(f);assert(f.baseBytes.equals(old));assert.equal(result.customerMasterSuccessor.files.length,11);for(const p of ['apps/api/src/services/customerMasterSqlStore.mjs','apps/api/src/services/customerMasterCanonicalRuntime.mjs']){assert.equal(result.customerMasterSuccessor.files.find(x=>x.path===p).beforeSha256,f.sha(f.previousBytes.get(p)));assert.equal(result.customerMasterSuccessor.files.find(x=>x.path===p).sha256,f.sha(f.overlays.get(p)));}assert.equal(result.customerMasterSuccessor.writerAdmission,'DISABLED_UNTIL_VERIFIED_CONFIG_AND_RUNTIME');assert.equal(result.customerMasterSuccessor.executionAuthority,false);assert.equal(result.currentBusinessPair.masterWriterEnabled,false);assert.equal(result.businessNormalSessionClosure.files.length,14);for(const p of ['apps/api/canonical-test-env.mjs',f.m.CUSTOMER_METADATA_ENTRY,'apps/api/src/services/canonicalTestRoutePolicy.mjs'])assert.equal(result.businessNormalSessionClosure.files.find(x=>x.path===p).sha256,f.sha(f.overlays.get(p)));
+});
+test('C06 successor rejects startup drift, wrong pins, missing before-image and out-of-scope overlays',async()=>{
+ for(const kind of ['base','source','entry','old','missing','missing-store','missing-runtime','extra','existing-new','live']){const f=await c06Fixture();if(kind==='base')f.baseDigest='a'.repeat(64);if(kind==='source')f.sourcePin='2'.repeat(40);if(kind==='entry')f.overlays.set(f.m.CUSTOMER_METADATA_ENTRY,Buffer.from(c06NewEntry+'\nextra'));if(kind==='old')f.previousBytes.set('apps/api/canonical-test-env.mjs',Buffer.from('corrupt'));if(kind==='missing')f.overlays.delete('apps/api/src/routes/customerMasterCanonicalRoutes.mjs');if(kind==='missing-store')f.overlays.delete('apps/api/src/services/customerMasterSqlStore.mjs');if(kind==='missing-runtime')f.overlays.delete('apps/api/src/services/customerMasterCanonicalRuntime.mjs');if(kind==='extra')f.overlays.set('apps/api/rogue.mjs',Buffer.from('x'));if(kind==='existing-new'){f.base.files.push({path:'apps/api/src/routes/customerMasterCanonicalRoutes.mjs',sha256:'a'.repeat(64)});f.baseBytes=Buffer.from(JSON.stringify(f.base));f.baseDigest=f.sha(f.baseBytes);}if(kind==='live'){f.base.actualT1=true;f.baseBytes=Buffer.from(JSON.stringify(f.base));f.baseDigest=f.sha(f.baseBytes);}assert.throws(()=>f.m.buildCustomerMasterSuccessorApiManifest(f),undefined,kind);}
+});
