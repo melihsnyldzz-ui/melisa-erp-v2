@@ -15,7 +15,16 @@ export function configureWorkSystem(context){
  if(context?.identity?.databaseName!=='MELISA_ERP_SIRKET_TEST_20260929_01'||context.identity.serverName!=='Semih\\MELISADEV'||typeof context.release?.sourceCommit!=='string'||typeof context.release?.packageId!=='string')throw reportError(503);
  releaseContext={...context.release};
 }
-const stamp=v=>typeof v==='string'&&Number.isFinite(Date.parse(v))?v:null;
+function stamp(v){
+ if(typeof v!=='string'||!Number.isFinite(Date.parse(v)))return null;
+ // Check the written ISO calendar before timezone conversion. Date.parse can
+ // normalize impossible days, while a valid offset may legitimately shift UTC.
+ const date=/^([+-]\d{6}|\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
+ if(!date)return v;
+ const year=Number(date[1]),month=Number(date[2]),day=Number(date[3]),leap=year%4===0&&(year%100!==0||year%400===0);
+ const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+ return month>=1&&month<=12&&day>=1&&day<=days[month-1]?v:null;
+}
 async function readStatus(file){try{const stat=await fs.lstat(file);if(!stat.isFile()||stat.isSymbolicLink()||stat.size>256000)return null;return JSON.parse(await fs.readFile(file,'utf8'));}catch{return null;}}
 async function probe(url,check){try{const response=url==='http://127.0.0.1:62401/health'?await (await import('../../canonical-test-network.mjs')).readCanonicalCrmHealth():await fetch(url,{signal:AbortSignal.timeout(1500),redirect:'error',headers:{Accept:'application/json'}});const body=await response.json();return response.ok&&check(body);}catch{return false;}}
 async function probeDatabase(){try{const db=await import('../config/database.js');if(!db.isCanonicalTest())return false;const row=(await (await db.getSqlPool()).request().query("SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName")).recordset?.[0];return row?.databaseName==='MELISA_ERP_SIRKET_TEST_20260929_01'&&row.serverName==='Semih\\MELISADEV';}catch{return false;}}
