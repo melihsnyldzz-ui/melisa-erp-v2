@@ -6,12 +6,26 @@ function run(code){return execFileSync(ps,['-NoProfile','-NonInteractive','-Comm
 function withTemp(fn){const tempRoot=fs.realpathSync.native(process.env.RUNNER_TEMP||os.tmpdir()),temp=fs.realpathSync.native(fs.mkdtempSync(path.join(tempRoot,'melisa-prepared-api-')));try{return fn(temp);}finally{const full=fs.realpathSync.native(temp);assert.equal(path.dirname(full).toLowerCase(),tempRoot.toLowerCase());assert(path.basename(full).startsWith('melisa-prepared-api-'));assert(!fs.lstatSync(full).isSymbolicLink());fs.rmSync(full,{recursive:true});}}
 const loadSeal=`$native=[IO.File]::ReadAllText(${q(path.join(dir,'business-5244-web-native.cs'))});$offset=$native.IndexOf('public sealed class Business5244PackageSeal:');if($offset-lt0){throw 'NATIVE_CLASS'};Add-Type -TypeDefinition ('using System;using System.Text;using System.Runtime.InteropServices;'+$native.Substring($offset));`;
 test('standalone defaults retain full payload verification and all paired indirect readers carry the same proof',()=>{
- assert.match(startup,/function Read-ErpStartupConfig\(\$Path,\$PreparedReleaseProof=\$null\)/);assert.match(startup,/function Assert-ErpRelease\(\$Config,\$PreparedReleaseProof=\$null,\$RetainedSeal=\$null\)/);
+ assert.match(startup,/function Read-ErpStartupConfig\(\$Path,\$PreparedReleaseProof=\$null,\$NormalPairBinding=\$null\)/);assert.match(startup,/function Assert-ErpRelease\(\$Config,\$PreparedReleaseProof=\$null,\$RetainedSeal=\$null\)/);
+ assert.match(startup,/\$normal=Get-ErpCurrentPairBinding \$NormalPairBinding;if\(\$null-ne\$PreparedReleaseProof-or\$Path-cne\$normal.plan.startupConfig\)\{throw 'CURRENT_PAIR_PROFILE_MIXED_SCOPE'\}/);
  assert.match(startup,/elseif\(\(Get-FileHash -LiteralPath \$target -Algorithm SHA256\).Hash -ne \$file.sha256\)/);assert.match(startup,/ReferenceEquals\(\$configRef,\$Config\)/);assert.match(startup,/Read-ErpStartupConfig 'C:\\Sirket\\ERP\\runtime\\canonical-test\\startup-config.json'/);
  assert.match(plan,/Read-ErpStartupConfig \$startup -PreparedReleaseProof \$PreparedReleaseProof/);
  const tail=api.slice(api.indexOf('function Assert-Test125ReadPairTransition'));
  for(const line of tail.split(/\r?\n/).filter(l=>/Read-ErpStartupConfig|Get-Test125BoundMaintenancePlan/.test(l)))assert.match(line,/-PreparedReleaseProof \$c.releaseProof/,line);
  assert.match(api,/Assert-ErpRelease \$c -PreparedReleaseProof \$releaseProof/);assert.match(api,/packageProof=\$releasePins/);assert.match(api,/releaseProof=\$c.releaseProof/);
+});
+test('normal pair binding cannot replace paired proof or read private inputs before its own registration and scope guard',win,()=>{
+ assert.equal(run(`. ${q(path.join(dir,'start-owned-test.ps1'))} -Library;. ${q(path.join(dir,'current-business-pair-startup.ps1'))};`+String.raw`
+$script:reads=0;function Get-Content{$script:reads++;throw 'UNEXPECTED_PRIVATE_READ'};function Get-FileHash{$script:reads++;throw 'UNEXPECTED_HASH_READ'}
+function Reject([scriptblock]$f,[string]$Code){try{&$f|Out-Null}catch{if($_.Exception.Message-cne$Code){throw};return};throw 'EXPECTED_REJECTION'}
+$path='C:\Sirket\ERP\runtime\canonical-test\startup-config.json'
+Reject {Read-ErpStartupConfig $path -NormalPairBinding ([pscustomobject]@{caseId='caller-created'})} 'CURRENT_PAIR_BINDING_REQUIRED'
+$token=[pscustomobject]@{fixture='registered-configuration-only'};$config=[pscustomobject]@{fixture='no-private-data'};$plan=[pscustomobject]@{startupConfig=$path}
+$script:ErpCurrentPairBindings.Add(@{token=$token;tokenText=($token|ConvertTo-Json -Compress);config=$config;configText=($config|ConvertTo-Json -Depth 100 -Compress);plan=$plan;planText=($plan|ConvertTo-Json -Depth 100 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;closed=$false})
+Reject {Read-ErpStartupConfig $path -PreparedReleaseProof ([pscustomobject]@{fixture='other-proof'}) -NormalPairBinding $token} 'CURRENT_PAIR_PROFILE_MIXED_SCOPE'
+Reject {Read-ErpStartupConfig ($path+'.other') -NormalPairBinding $token} 'CURRENT_PAIR_PROFILE_MIXED_SCOPE'
+if($script:reads-ne0){throw 'PRIVATE_INPUT_READ_BEFORE_GUARD'};'PASS'
+`),'PASS');
 });
 test('standalone full release validation works without loading the paired native class',win,()=>withTemp(temp=>{
  assert.equal(run(`. ${q(path.join(dir,'start-owned-test.ps1'))} -Library;$temp=${q(temp)};`+String.raw`
