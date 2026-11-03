@@ -59,7 +59,11 @@ function New-ErpCurrentPairProjection {
 function Assert-ErpCurrentPairProjection($Plan,[string]$ConfigText,[string]$TaskText,[string]$Sddl,[string]$Root,[string]$SourceHash) {
  if($Plan.schema-cne'melisa-current-pair-startup-plan.v1'-or$Plan.state-cne'NOT_APPLIED'-or$Plan.installed-isnot[bool]-or$Plan.installed-or$Plan.executionAuthority-isnot[bool]-or$Plan.executionAuthority-or$Plan.bundleRoot-cne$Root-or$Plan.sourceManifestHash-cne$SourceHash){throw 'CURRENT_PAIR_PLAN_SCOPE'}
  $expected=New-ErpCurrentPairProjection -BeforeConfig $Plan.beforeConfig -BeforeTask $Plan.beforeTask -BeforeSddl $Plan.beforeSddl -ExpectedConfigHash $Plan.beforeConfigHash -ExpectedTaskHash $Plan.beforeTaskHash -BundleRoot $Root -SourceManifestHash $SourceHash -PlanPath (Join-Path $Root 'startup-plan.json')
- if(($Plan|ConvertTo-Json -Depth 100 -Compress)-cne($expected|ConvertTo-Json -Depth 100 -Compress)-or$ConfigText-cne$Plan.afterConfig-or$TaskText-cne$Plan.afterTask-or$Sddl-cne$Plan.beforeSddl){throw 'CURRENT_PAIR_PROJECTION_CHANGED'}
+ # XmlReader normalizes the projected XML to LF; Task Scheduler exports CRLF.
+ # Only this export spelling differs. Before-image hashes, configuration,
+ # security descriptor, XML content, casing and other whitespace stay exact.
+ $exportedTask=$TaskText.Replace("`r`n","`n")
+ if(($Plan|ConvertTo-Json -Depth 100 -Compress)-cne($expected|ConvertTo-Json -Depth 100 -Compress)-or$ConfigText-cne$Plan.afterConfig-or$exportedTask-cne$Plan.afterTask-or$Sddl-cne$Plan.beforeSddl){throw 'CURRENT_PAIR_PROJECTION_CHANGED'}
 }
 function Get-ErpCurrentPairWebPins {
  $i=Get-ErpCurrentPairIdentity

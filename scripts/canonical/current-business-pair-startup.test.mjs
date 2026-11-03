@@ -57,6 +57,22 @@ if($upper.afterTask-notlike'*<Command>C:\WINDOWS\System32\WindowsPowerShell\v1.0
 $upperNode=$before|ConvertFrom-Json;$upperNode.NodeSha256=$upperNode.NodeSha256.ToUpperInvariant();$before=$upperNode|ConvertTo-Json -Depth 100 -Compress;$upper=NewPlan
 if(($upper.afterConfig|ConvertFrom-Json).NodeSha256-cne$upperNode.NodeSha256){throw 'LEGACY_NODE_PIN_REWRITTEN'}
 `);
+win('Task Scheduler CRLF export matches LF projection without relaxing content, before hashes, config or SDDL',String.raw`
+$lf=[string][char]10;$cr=[string][char]13;$crlf=$cr+$lf
+$xml=$xml.Replace('><',('>'+$crlf+'<'))
+$plan=NewPlan
+if(!$plan.afterTask.Contains($lf)-or$plan.afterTask.Contains($cr)){throw 'XML_READER_MUST_NORMALIZE_EOL'}
+$exported=$plan.afterTask.Replace($lf,$crlf)
+Assert-ErpCurrentPairProjection $plan $plan.afterConfig $exported $sddl $root $sourceHash
+Assert-ErpCurrentPairProjection $plan $plan.afterConfig $plan.afterTask $sddl $root $sourceHash
+Reject {Assert-ErpCurrentPairProjection $plan $plan.afterConfig $exported.Replace('<Enabled>true</Enabled>','<Enabled>false</Enabled>') $sddl $root $sourceHash} 'CURRENT_PAIR_PROJECTION_CHANGED'
+Reject {Assert-ErpCurrentPairProjection $plan $plan.afterConfig $exported.Replace('powershell.exe','PowerShell.exe') $sddl $root $sourceHash} 'CURRENT_PAIR_PROJECTION_CHANGED'
+Reject {Assert-ErpCurrentPairProjection $plan $plan.afterConfig ($exported+' ') $sddl $root $sourceHash} 'CURRENT_PAIR_PROJECTION_CHANGED'
+Reject {Assert-ErpCurrentPairProjection $plan $plan.afterConfig $exported.Replace($crlf,$cr) $sddl $root $sourceHash} 'CURRENT_PAIR_PROJECTION_CHANGED'
+Reject {Assert-ErpCurrentPairProjection $plan ($plan.afterConfig+$crlf) $exported $sddl $root $sourceHash} 'CURRENT_PAIR_PROJECTION_CHANGED'
+Reject {Assert-ErpCurrentPairProjection $plan $plan.afterConfig $exported ($sddl+$crlf) $root $sourceHash} 'CURRENT_PAIR_PROJECTION_CHANGED'
+Reject {New-ErpCurrentPairProjection $before $xml $sddl (Get-ErpCurrentPairTextHash $before) (Get-ErpCurrentPairTextHash $xml.Replace($crlf,$lf)) $root $sourceHash (Join-Path $root 'startup-plan.json')} 'CURRENT_PAIR_BEFORE_CAS'
+`);
 win('projection rejects stale CAS, wrong DB/legacy source/node/profile/base/candidate/task executable/extra task actions',String.raw`
 $saved=$before
 foreach($field in @('ExpectedDatabase','SourceCommit','NodePath','NodeSha256','ReleaseRoot','TaskName')){$bad=$saved|ConvertFrom-Json;$bad.$field='WRONG';$before=$bad|ConvertTo-Json -Depth 100 -Compress;Reject {NewPlan} 'CURRENT_PAIR_BASE_SCOPE'}
