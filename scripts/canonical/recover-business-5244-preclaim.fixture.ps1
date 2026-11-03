@@ -2,6 +2,10 @@ param([Parameter(Mandatory=$true)][ValidateSet('tr-TR','en-US')][string]$Culture
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if($PSVersionTable.PSEdition-cne'Desktop'-or$PSVersionTable.PSVersion.Major-ne5){throw 'FIXTURE_PS51_REQUIRED'}
+# The mock model reserves these three process identities. A real fixture host
+# with one of those PIDs cannot represent a distinct caller. Reject admission
+# before importing, compiling, copying files or executing any contract case.
+if($PID-in@(31124,33080,7052)){[Console]::Error.WriteLine('FIXTURE_CALLER_PID_COLLISION');[Console]::Error.Flush();exit 86}
 foreach($module in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility')){Import-Module ([IO.Path]::Combine($PSHOME,'Modules',$module,($module+'.psd1'))) -Scope Local -ErrorAction Stop}
 [Threading.Thread]::CurrentThread.CurrentCulture=[Globalization.CultureInfo]::GetCultureInfo($Culture)
 [Threading.Thread]::CurrentThread.CurrentUICulture=[Globalization.CultureInfo]::GetCultureInfo($Culture)
