@@ -22,7 +22,7 @@ test('same-origin adapter keeps exact host, physical interface and forwarded-hea
 test('actual business middleware keeps host/origin and generic write guards while finite sale routes await genuine authenticated BFF dispatch',{timeout:5000},async()=>{
  const {readFile}=await import('node:fs/promises'),{runInNewContext}=await import('node:vm');
  const {Readable}=await import('node:stream'),{createBusinessBrowserSessionTransport}=await import('../../business-preview-session.mjs');
- const {businessSaleBrowserRequestAllowed,businessWorkfaceRequestAllowed}=await import('./businessWorkface.mjs');
+ const {businessSaleBrowserRequestAllowed,businessCustomerMasterBrowserRequestAllowed,businessWorkfaceRequestAllowed}=await import('./businessWorkface.mjs');
  const source=await readFile(new URL('../../vite.config.mjs',import.meta.url),'utf8'),start=source.indexOf('server.middlewares.use((req,res,next)=>',source.indexOf('const businessPreview=')),end=source.indexOf(');\n  const extra=',start);
  const actor={id:17,username:'unified-semih-test',role:{id:17,code:'unified_test_semih'},isActive:true,isAdmin:false,testAdminSession:false,nativeTerminalSession:false,permissions:['sales.view','sales.create','sales.finalize','sales.cancel','customer.view','product.view','finance.view']},upstream=[];
  let identity=actor;
@@ -30,7 +30,7 @@ test('actual business middleware keeps host/origin and generic write guards whil
   upstream.push({url,options});const auth=url==='http://127.0.0.1:4144/api/auth/me';
   return {ok:auth,status:auth?200:409,text:async()=>JSON.stringify(auth?{success:true,data:identity,meta:{source:'jwt-auth'}}:{success:false,error:{code:'WORK_STALE'}})};
  }});
- assert(start>0&&end>start);const handler=runInNewContext(source.slice(start+'server.middlewares.use('.length,end),{cleanPreviewRequestAllowed,businessWorkfaceRequestAllowed,businessSaleBrowserRequestAllowed,peers:[],sessionTransport:(req,res,next)=>{req.dispatched=true;return transport(req,res,next);}});
+ assert(start>0&&end>start);const handler=runInNewContext(source.slice(start+'server.middlewares.use('.length,end),{cleanPreviewRequestAllowed,businessWorkfaceRequestAllowed,businessCustomerMasterBrowserRequestAllowed,businessSaleBrowserRequestAllowed,peers:[],sessionTransport:(req,res,next)=>{req.dispatched=true;return transport(req,res,next);}});
  const base={method:'POST',url:'/api/work-sales/preview',socket:{localAddress:'127.0.0.1',remoteAddress:'127.0.0.1'},headers:{host:'127.0.0.1:5244',origin:'http://127.0.0.1:5244','sec-fetch-site':'same-origin'}};
  async function call({body,...patch}={}){
   const req=Object.assign(Readable.from(body===undefined?[]:[Buffer.from(JSON.stringify(body))]),base,patch),out={status:null,next:false};

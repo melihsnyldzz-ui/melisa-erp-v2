@@ -17,6 +17,25 @@ export function businessWorkfaceRequestAllowed(method,path){
  return /^\/api\/(?:auth\/me|catalog\/products(?:\/[1-9]\d*(?:\/photo)?)?|customer-cards|supplier-cards|(?:customers|suppliers)\/[1-9]\d*\/card|products\/[1-9]\d*\/purchase-reference|home\/summary|work-system\/summary|work-reports(?:\/(?:context|export))?)$/.test(pathname);
 }
 
+// Exact business-session transport only. The API and its transaction frame
+// still own permission, actor, source, quarantine, revision and replay checks.
+export const isBusinessCustomerMasterActor=user=>user?.id===17&&user.username==='unified-semih-test'&&user.role?.id===17&&user.role.code==='unified_test_semih'&&user.isActive!==false&&user.isAdmin!==true&&user.testAdminSession!==true&&user.nativeTerminalSession!==true&&Array.isArray(user.permissions)&&user.permissions.every(p=>typeof p==='string')&&['customer.view','customer.edit'].every(p=>user.permissions.includes(p));
+const masterId=v=>typeof v==='string'&&/^[1-9]\d{0,18}$/.test(v)&&BigInt(v)<=9223372036854775807n&&BigInt(v).toString()===v;
+const masterUuid=v=>typeof v==='string'&&v.length===36&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
+export function businessCustomerMasterBrowserRequestAllowed(method,path){
+ if(typeof path!=='string')return false;
+ const match=/^\/api\/customers\/([1-9]\d{0,18})\/master(?:\/requests\/([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}))?$/.exec(path);
+ return !!(match&&match[0]===path&&masterId(match[1])&&(match[2]?method==='GET'&&masterUuid(match[2]):method==='GET'||method==='POST'));
+}
+export const businessCustomerMasterRequestAllowed=(method,path,user)=>businessCustomerMasterBrowserRequestAllowed(method,path)&&isBusinessCustomerMasterActor(user);
+export function businessCustomerMasterInputAllowed(body){
+ if(!body||![Object.prototype,null].includes(Object.getPrototypeOf(body)))return false;
+ const keys=['requestId','expectedRevision','customerCode','customerName','customerType'],descriptors=Object.getOwnPropertyDescriptors(body),own=Reflect.ownKeys(body);
+ if(own.length!==keys.length||own.some(k=>!keys.includes(k))||keys.some(k=>!descriptors[k]?.enumerable||!Object.hasOwn(descriptors[k],'value')))return false;
+ const text=(v,max)=>typeof v==='string'&&v.length>0&&v===v.trim()&&v.length<=max&&!/[\u0000-\u001f\u007f-\u009f]/.test(v);
+ return masterUuid(body.requestId)&&typeof body.expectedRevision==='string'&&body.expectedRevision.length===64&&/^[A-F0-9]{64}$/.test(body.expectedRevision)&&text(body.customerCode,50)&&text(body.customerName,250)&&['customer','wholesale','retail','mixed'].includes(body.customerType);
+}
+
 // This is only the authenticated, read-only native preview seam. It never
 // admits a draft, finalize, cancel, collection or a client-selected actor.
 export const isBusinessSalePreviewActor=user=>String(user?.id)==='17'&&user.username==='unified-semih-test'&&String(user.role?.id)==='17'&&user.role.code==='unified_test_semih'&&user.isActive!==false&&user.isAdmin!==true&&user.testAdminSession!==true&&user.nativeTerminalSession!==true&&Array.isArray(user.permissions)&&['sales.view','sales.create','customer.view','product.view'].every(p=>user.permissions.includes(p));

@@ -6,7 +6,7 @@ import {promisify} from 'node:util';
 import {fileURLToPath} from 'node:url';
 import {createBusinessBrowserSessionTransport} from './business-preview-session.mjs';
 import {cleanPreviewRequestAllowed,businessPreviewNetwork,validateBusinessPreviewHealth} from './business-preview-boundary.mjs';
-import {businessWorkfaceId,businessWorkfaceRequestAllowed,businessSaleBrowserRequestAllowed} from './src/workflow/businessWorkface.mjs';
+import {businessWorkfaceId,businessWorkfaceRequestAllowed,businessCustomerMasterBrowserRequestAllowed,businessSaleBrowserRequestAllowed} from './src/workflow/businessWorkface.mjs';
 import {validateWebRelease,loadWebRelease,validateWebSettings,publicAssetPath,webSha256,webAssetLimit} from './business-web-release.mjs';
 
 const mime={html:'text/html; charset=utf-8',js:'text/javascript; charset=utf-8',mjs:'text/javascript; charset=utf-8',css:'text/css; charset=utf-8',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',ico:'image/x-icon',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf'};
@@ -87,7 +87,7 @@ export function createSimpleWebGateway({release,settings,verifyBackend,fetchImpl
  async function handler(req,res){
   try{
    if(!cleanPreviewRequestAllowed(req,settings.tailPeers)||!extraHeadersAllowed(req)||!['GET','HEAD'].includes(req.method)&&!req.url.startsWith('/api/')){json(res,403,'BUSINESS_UI_ORIGIN_REQUIRED');return;}
-   if(req.url.startsWith('/api/')&&!businessWorkfaceRequestAllowed(req.method,req.url)&&!businessSaleBrowserRequestAllowed(req.method,req.url)){json(res,403,'BUSINESS_UI_READ_ONLY');return;}
+   if(req.url.startsWith('/api/')&&!businessWorkfaceRequestAllowed(req.method,req.url)&&!businessCustomerMasterBrowserRequestAllowed(req.method,req.url)&&!businessSaleBrowserRequestAllowed(req.method,req.url)){json(res,403,'BUSINESS_UI_READ_ONLY');return;}
    if(!ready){json(res,503,'WEB_RELEASE_NOT_READY');return;}
    if(req.url.startsWith('/api/')){
     await verifyBackend();

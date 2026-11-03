@@ -55,3 +55,12 @@ test('unsupported invocation never starts a listener',async()=>{await assert.rej
 test('probe invocation executes verified held bytes and never reopens the script pathname for execution',()=>{
  assert.match(backendProofBootstrap,/ComputeHash\(\$sourceBytes\)/);assert.match(backendProofBootstrap,/\[scriptblock\]::Create\(\[Text.Encoding\]::UTF8.GetString\(\$sourceBytes\)\)/);assert.doesNotMatch(backendProofBootstrap,/&\s*\$Proof/);
 });
+
+ test('customer master uses the actual packaged gateway, fresh normal session, finite paths and one POST on lost ACK',async()=>{
+ const actor={id:17,username:'unified-semih-test',role:{id:17,code:'unified_test_semih'},isActive:true,isAdmin:false,testAdminSession:false,nativeTerminalSession:false,permissions:['customer.view','customer.edit']},uuid='11111111-1111-4111-8111-111111111111',body={requestId:uuid,expectedRevision:'A'.repeat(64),customerCode:'00155',customerName:'Fixture',customerType:'wholesale'};let writes=0;
+ const s=await setup({api:async(url,o)=>{if(url.endsWith('/auth/me'))return response({success:true,data:actor,meta:{source:'jwt-auth'}});if(o.method==='POST'){writes++;throw Error('synthetic lost ACK');}return response({success:true,data:{fixture:true}});}});
+ const headers={origin:'http://192.168.1.46:5244',authorization:'Bearer fixture'},url='/api/customers/155/master';
+ assert.equal((await call(s.gateway,{url,headers})).status,200);assert.equal((await call(s.gateway,{url:url+'/requests/'+uuid,headers})).status,200);assert.equal((await call(s.gateway,{url,method:'POST',body,headers})).status,503);assert.equal(writes,1);
+ for(const bad of [url+'?x=1',url+'/requests/'+uuid.replace('-4111-','-1111-'),'/api/customers/01/master'])assert.equal((await call(s.gateway,{url:bad,headers})).status,403);
+ actor.nativeTerminalSession=true;assert.equal((await call(s.gateway,{url,method:'POST',body,headers})).status,403);assert.equal(writes,1);
+});
