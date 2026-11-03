@@ -7,7 +7,7 @@ const bad=()=>{throw Error('İşlem bilgileri doğrulanamadı. Yenileyerek tekra
 export const tradeId=v=>typeof v==='string'&&/^[1-9]\d*$/.test(v);
 export const tradeRevision=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 export const tradeExact=(v,scale)=>typeof v==='string'&&new RegExp('^-?(?:0|[1-9]\\d{0,33})\\.\\d{'+scale+'}$').test(v);
-export const tradeDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v));
+export const tradeDate=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
 export function tradeAmount(v){if(v===null)return 'Bilinmiyor';if(typeof v!=='string'||!/^\-?(?:0|[1-9]\d{0,33})\.\d{3,8}$/.test(v))bad();const [whole,f]=v.split('.'),tail=f.replace(/0+$/,'');return whole.replace(/\B(?=(\d{3})+(?!\d))/g,'.')+(tail?','+tail:'');}
 export function tradeInput(v,scale){if(typeof v!=='string')bad();const raw=v.trim().replace(',','.');if(!new RegExp('^(?:0|[1-9]\\d{0,15})(?:\\.\\d{1,'+scale+'})?$').test(raw))bad();const [w,f='']=raw.split('.');return w+'.'+f.padEnd(scale,'0');}
 const object=v=>v&&typeof v==='object'&&!Array.isArray(v);
