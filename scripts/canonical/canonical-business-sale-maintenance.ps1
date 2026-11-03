@@ -27,7 +27,7 @@ function Assert-ErpBusinessSaleProfileDelta($Base,$Api,$Manifest){
  $copy=$Api.PSObject.Copy();$copy.PSObject.Properties.Remove('businessSaleAdmission');$copy.PSObject.Properties.Remove('businessSaleWritesEnabled')
  return $copy
 }
-function Assert-ErpBusinessSaleWriterProfileDelta($Base,$Api,$Manifest){
+function Assert-ErpBusinessSaleWriterProfileFields($Api,$Manifest){
  # A different immutable release contract, not an option on the installed
  # passive package. This validates startup data only: it neither activates a
  # package nor issues native/HTTP authority. The normal API bootstrap must
@@ -38,6 +38,9 @@ function Assert-ErpBusinessSaleWriterProfileDelta($Base,$Api,$Manifest){
  foreach($key in $keys|Where-Object{$_-cnotin@('actorId','roleId')}){if(!$p-or!$p.PSObject.Properties[$key]-or$p.$key-isnot[string]){throw 'B6_WRITER_ACTIVATION_CONTRACT_REJECTED'}}
  if(!$p-or((@($p.PSObject.Properties.Name|Sort-Object)-join'|')-cne(@($keys|Sort-Object)-join'|'))-or$p.kind-cne'NORMAL_SEMIH_B6_WRITER'-or$p.purpose-cne'WriterProfileActivation'-or$p.sourceCommit-cne$Manifest.businessSaleSourceCommit-or$p.basePackageId-cne'CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028'-or$p.baseManifestSha256-cne'85ff1157f4d1ed69582d4a08dead319518d1c79c4ea74ea0f2a0606037a1289d'-or$p.artifactSha256-cne'35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'-or$p.descriptorSha256-cne'050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024'-or$p.revisionHash-cne'DEBAFECB1915AEC135E58107F64EE4243D7B93E3C091799EB8E4F29500C477DE'-or$p.actorId-isnot[int]-or$p.actorId-ne17-or$p.roleId-isnot[int]-or$p.roleId-ne17){throw 'B6_WRITER_ACTIVATION_CONTRACT_REJECTED'}
  if($Api.businessWorkface.id-isnot[string]-or$Api.businessWorkface.id-cne'ERP-5244-REALDATA-20261027'-or$Api.businessWorkface.userId-isnot[int]-or$Api.businessWorkface.userId-ne17-or$Api.businessWorkface.actualT1-isnot[bool]-or$Api.businessWorkface.actualT1-or$Api.businessWorkface.externalOperations-isnot[bool]-or$Api.businessWorkface.externalOperations){throw 'B6_WRITER_WORKFACE_REJECTED'}
+}
+function Assert-ErpBusinessSaleWriterProfileDelta($Base,$Api,$Manifest){
+ Assert-ErpBusinessSaleWriterProfileFields $Api $Manifest
  $inputs=if((Test-ErpBusinessSaleReadContextRepairGeneration -IncludeSteady)-or(Test-ErpBusinessSaleDiagnosticGeneration -IncludeSteady)){[pscustomobject]@{descriptor=(Read-ErpBusinessSaleReadContextRepairOriginalDescriptor)}}else{Get-ErpBusinessSaleNativeInputs}
  if(($Api.businessSaleAdmission|ConvertTo-Json -Depth 32 -Compress)-cne($inputs.descriptor|ConvertTo-Json -Depth 32 -Compress)){throw 'B6_PROFILE_DESCRIPTOR_REJECTED'}
  $copy=$Api.PSObject.Copy();$copy.PSObject.Properties.Remove('businessSaleAdmission');$copy.PSObject.Properties.Remove('businessSaleWritesEnabled')
