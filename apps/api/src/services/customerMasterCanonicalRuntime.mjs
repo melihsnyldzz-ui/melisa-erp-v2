@@ -46,7 +46,7 @@ export function canonicalCustomerMasterBoundary(runtime){
  const final=structuredClone(registered.getFinalContext()??null),current=structuredClone(registered.getCurrentFinanceContext());
  finalPartyContext(final);check(currentFinanceContext(current));
  const fingerprint=JSON.stringify([final,current]);
- return Object.freeze({scopeKey:CUSTOMER_MASTER_NORMAL_SCOPE,admissionHash:CUSTOMER_MASTER_NORMAL_ADMISSION,target:CUSTOMER_MASTER_NORMAL_TARGET,recipe:{name:CUSTOMER_CARD_PROC,afterHash:CUSTOMER_CARD_PROC_HASH},
+ return Object.freeze({scopeKey:CUSTOMER_MASTER_NORMAL_SCOPE,admissionHash:CUSTOMER_MASTER_NORMAL_ADMISSION,target:CUSTOMER_MASTER_NORMAL_TARGET,requiresFinalReader:!!finalPartyContext(final),recipe:{name:CUSTOMER_CARD_PROC,afterHash:CUSTOMER_CARD_PROC_HASH},
   assertCurrent(){check(fingerprint===JSON.stringify([registered.getFinalContext()??null,registered.getCurrentFinanceContext()]));},
   async assemble(rows,{sql,tx}){
    const ids=rows.flatMap(r=>r.nativeAccounts.map(a=>a.id));

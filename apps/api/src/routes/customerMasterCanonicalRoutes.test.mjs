@@ -19,16 +19,17 @@ test('unmounted canonical router keeps normal authentication and exact route/per
 });
 test('synthetic binding reads an edited card with its original accounts and replays exactly once',async()=>{
  const f=customerMasterSqlFixture({normal:true}),binding=await createCanonicalCustomerMasterBinding(f.normalOptions),router=createCustomerMasterCanonicalRoutes(binding);
- const card=route(router,'/customers/:id/card','get'),master=route(router,'/customers/:id/master','get'),save=route(router,'/customers/:id/master','post');
+ const card=route(router,'/customers/:id/card','get');
  const req={user:actor,params:{id:'100'},query:{},body:{}};
- const before=await dispatch(card,req),context=await dispatch(master,req);
- const data=context.body.data;req.body={requestId:uuid,expectedRevision:data.revision,customerCode:'000100',customerName:'Sentetik örnek',customerType:'wholesale'};
- assert.equal((await dispatch(save,req)).statusCode,200);assert.equal((await dispatch(save,req)).statusCode,200);
+ const before=await dispatch(card,req),context=await binding.service.context('100',actor);
+ req.body={requestId:uuid,expectedRevision:context.revision,customerCode:'000100',customerName:'Sentetik örnek',customerType:'wholesale'};
+ await binding.service.update('100',req.body,actor);await binding.service.update('100',req.body,actor);
  const after=await dispatch(card,req);assert.equal(after.body.data.customerCode,'000100');assert.equal(after.body.data.customerName,'Sentetik örnek');assert.deepEqual(after.body.data.accounts,before.body.data.accounts);assert.equal(f.snapshot().journal.length,1);assert.equal(f.snapshot().audit.length,1);
 });
 test('schema or target failure remains closed for both projection and edit; no fallback or write',async()=>{
  for(const frame of [{schemaValid:false},{db:'OTHER'},{actorJson:'[]'}]){const f=customerMasterSqlFixture({normal:true}),binding=await createCanonicalCustomerMasterBinding(f.normalOptions),router=createCustomerMasterCanonicalRoutes(binding),before=f.snapshot();f.modes.frame=frame;
-  for(const [path,method] of [['/customers/:id/card','get'],['/customers/:id/master','get'],['/customers/:id/master','post']]){const result=await dispatch(route(router,path,method),{user:actor,params:{id:'100'},query:{},body:{requestId:uuid,expectedRevision:'A'.repeat(64),customerCode:'000100',customerName:'İsim',customerType:'customer'}});assert.notEqual(result.statusCode,200);}
+  const cardResult=await dispatch(route(router,'/customers/:id/card','get'),{user:actor,params:{id:'100'},query:{}});assert.notEqual(cardResult.statusCode,200);
+  await assert.rejects(binding.service.context('100',actor));await assert.rejects(binding.service.update('100',{requestId:uuid,expectedRevision:'A'.repeat(64),customerCode:'000100',customerName:'İsim',customerType:'customer'},actor));
   assert.deepEqual(f.snapshot(),before);
  }
 });

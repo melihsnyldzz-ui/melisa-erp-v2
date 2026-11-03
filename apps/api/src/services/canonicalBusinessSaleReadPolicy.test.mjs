@@ -30,7 +30,7 @@ const gate=starter.slice(gateStart,gateEnd+4);
 function createFixture({readPolicy=isCanonicalBusinessSaleReadAllowed,writes=true,mode='erp',businessSession={registered:true},error=null}={}){
  const app=express(),calls=[];app.disable('x-powered-by');
  const source=gate.replace(/^app\.use\(/,'').replace(/\);$/,'');
- const middleware=vm.runInNewContext('('+source+')',{isCanonicalTestWriteAllowed,isCanonicalBusinessSaleReadAllowed:readPolicy,writes,mode,businessSession});
+ const middleware=vm.runInNewContext('('+source+')',{isCanonicalTestWriteAllowed,isCanonicalBusinessSaleReadAllowed:readPolicy,writes,mode,businessSession,customerMasterWriterRoutes:null});
  app.use(middleware);
  const service={selectedContext:async(input,current)=>{calls.push({input,current});if(error)throw error;return {meta:{source:'canonical-business-test',readOnly:true},revision:'a'.repeat(64),scope:{customer:{id:'155',accountId:'7',currency:'USD'}},writable:false};}};
  for(const name of ['context','preview','createDraft','finalize','cancel','list','invoice','request','selectionOptions'])service[name]=forbidden;
@@ -47,6 +47,17 @@ function createFixture({readPolicy=isCanonicalBusinessSaleReadAllowed,writes=tru
 }
 
 function assertFrozenStartupProjection(source){
+ // C06 is a finite additional startup projection. These exact fragments are
+ // removed before applying the original pinned startup proof below; changes to
+ // either the old or the new guards still fail the frozen comparison.
+ const c06Additions=[
+  ['let customerMasterWriterRoutes=null;\n',''],
+  ['const {prepareCanonicalCustomerMasterMetadata,prepareCanonicalCustomerMasterWriter}=','const {prepareCanonicalCustomerMasterMetadata}='],
+  [' if(config.customerMasterWritesEnabled===true)customerMasterWriterRoutes=await prepareCanonicalCustomerMasterWriter({startup:{...canonicalStartup,mode},database});\n',''],
+  [',customerMasterWriterReady:!!customerMasterWriterRoutes',''],
+  ["  if(customerMasterWriterRoutes)app.use('/api',customerMasterWriterRoutes);\n",'']
+ ];
+ for(const [addition,replacement] of c06Additions){assert.equal(source.split(addition).length,2,'C06 startup projection must be exact and unique');source=source.replace(addition,replacement);}
  const importLine="const {isCanonicalBusinessSaleReadAllowed}=await import('./src/services/canonicalBusinessSaleReadPolicy.mjs');\n";
  const predicate='&&!isCanonicalBusinessSaleReadAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})';
  const startupLine='const canonicalStartup={identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession};\n';
@@ -68,13 +79,16 @@ test('startup source preserves the frozen starter with only exact read-policy an
 test('frozen startup projection rejects changed metadata guards, pool, imports, execution and extra statements',()=>{
  const mutations=[
   ["if(mode==='erp'&&writes&&businessSession){","if(mode==='erp'){"],
-  ['startup:{...canonicalStartup,mode},database','startup:{...canonicalStartup,mode},database:otherDatabase'],
+  ['prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database})','prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database:otherDatabase})'],
   ["./src/services/customerMasterMetadataBootstrap.mjs","./src/services/otherBootstrap.mjs"],
   ['createCustomerMasterMetadataRoutes({reader})','createCustomerMasterMetadataRoutes({reader,requireAuth:false})'],
   [" app.use('/api',createCustomerMasterMetadataRoutes({reader}));"," await reader.read();\n app.use('/api',createCustomerMasterMetadataRoutes({reader}));"],
   ['const canonicalStartup={identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession};','const canonicalStartup={identity,port,networkPolicy,release,pool:otherPool,writes,env,config,listenerPolicy,businessSession};'],
   ["const [mode, configPath] = process.argv.slice(2);","const [mode, configPath] = process.argv.slice(2);\nawait unexpectedStartup();"],
   ['const canonicalStartup=', 'const duplicateStartup=true;\nconst canonicalStartup='],
+  ['if(config.customerMasterWritesEnabled===true)','if(config.customerMasterWritesEnabled)'],
+  ['customerMasterWriterReady:!!customerMasterWriterRoutes','customerMasterWriterReady:true'],
+  ["if(customerMasterWriterRoutes)app.use('/api',customerMasterWriterRoutes)","if(true)app.use('/api',customerMasterWriterRoutes)"],
  ];
  for(const [original,replacement] of mutations){
   assert.equal(starter.split(original).length,2,'Negative fixture must mutate exactly one actual startup fragment');

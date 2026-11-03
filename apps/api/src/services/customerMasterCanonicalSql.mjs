@@ -3,6 +3,8 @@ import {CUSTOMER_MASTER_DDL,MASTER_SOURCE_SQL,MASTER_LIST_SQL,MASTER_UPDATE_SQL,
 import {CUSTOMER_CARD_READY_SQL,CUSTOMER_CARD_PRESERVED_SQL} from './customerCardReadStore.mjs';
 import {CUSTOMER_MASTER_NORMAL_SCOPE,CUSTOMER_MASTER_NORMAL_ADMISSION} from './customerMasterCanonicalRuntime.mjs';
 import {customerMasterError} from './customerMasterModel.mjs';
+import {FINAL_PARTY_READ_PROC,FINAL_PARTY_READ_PROC_HASH} from './finalPartyDeltaRead.mjs';
+import {CURRENT_FINANCE_PARTY_PROC,CURRENT_FINANCE_PARTY_DEFINITION_HASHES} from './currentFinanceDeltaRead.mjs';
 const quote=value=>"N'"+value.replaceAll("'","''")+"'";
 const adapt=text=>text.replaceAll('LOWER(CONVERT(varchar(36),p.copy_id))','p.scope_key').replaceAll('LOWER(CONVERT(varchar(36),@copy_id))','@scope_key').replaceAll('copy_id','scope_key').replaceAll('copyId','scopeKey').replaceAll('melisa-stage4-copy:','melisa-customer-master:');
 const scopeGuard=`IF @scope_key IS NULL OR @admission_hash IS NULL OR @scope_key COLLATE Latin1_General_100_BIN2<>${quote(CUSTOMER_MASTER_NORMAL_SCOPE)} OR @admission_hash<>${quote(CUSTOMER_MASTER_NORMAL_ADMISSION)} THROW 52110,'CUSTOMER_MASTER_UNAVAILABLE',1;`;
@@ -55,6 +57,22 @@ const selects=selectColumns.map(([object,column])=>columnPermission(object,colum
 const writes=[...Object.keys(columnSets).map(part=>`HAS_PERMS_BY_NAME(${quote(objectFor(part))},N'OBJECT',N'INSERT')=1`),...['customer_code','customer_name','customer_type','version','updated_by'].map(column=>columnPermission(objectFor('local'),column,'UPDATE'))].join('\n AND ');
 // Read-only actors do not require write permissions; update contexts do.
 export const CUSTOMER_MASTER_EFFECTIVE_PERMISSIONS_SQL=`(${selects}) AND (@permission_key=N'customer.view' OR (${writes}))`;
+// Card projection and its registered finance proof readers must remain usable
+// before switching away from the established read-only route. NULL/hidden
+// definitions and denied EXECUTE are never taken as successful readiness.
+const procHash=name=>`CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(${quote(name)}))),2)`;
+const executePermission=name=>`HAS_PERMS_BY_NAME(${quote(name)},N'OBJECT',N'EXECUTE')=1`;
+// The projection list/source SQL reads these tables directly (including c.*),
+// unlike the owner-executed legacy reader. Check column DENYs as well as the
+// object grant; incomplete column visibility is never evidence of permission.
+export const CUSTOMER_MASTER_DIRECT_READ_SQL=['dbo.customers','dbo.party_source_links','erp_migration.operation_quarantine_holds'].map(name=>{
+ const object=quote(name),column=`HAS_PERMS_BY_NAME(${object},N'OBJECT',N'SELECT',c.name,N'COLUMN')`;
+ return `HAS_PERMS_BY_NAME(${object},N'OBJECT',N'VIEW DEFINITION')=1 AND HAS_PERMS_BY_NAME(${object},N'OBJECT',N'SELECT')=1 AND EXISTS(SELECT 1 FROM sys.columns c WHERE c.object_id=OBJECT_ID(${object})) AND NOT EXISTS(SELECT 1 FROM sys.columns c WHERE c.object_id=OBJECT_ID(${object}) AND (${column} IS NULL OR ${column}<>1))`;
+}).join('\n AND ');
+export const CUSTOMER_MASTER_READ_DEPENDENCIES_SQL=`${executePermission('dbo.usp_read_customer_cards')}
+ AND ${executePermission(CURRENT_FINANCE_PARTY_PROC)}
+ AND ${procHash(CURRENT_FINANCE_PARTY_PROC)} IN(${CURRENT_FINANCE_PARTY_DEFINITION_HASHES.map(quote).join(',')})
+ AND (@require_final_reader=0 OR (@require_final_reader=1 AND ${executePermission(FINAL_PARTY_READ_PROC)} AND ${procHash(FINAL_PARTY_READ_PROC)}=${quote(FINAL_PARTY_READ_PROC_HASH)}))`;
 export const NORMAL_MASTER_FRAME_SQL=`/* customer-master:normal-frame */
 ${scopeGuard}
 IF @permission_key IS NULL OR @permission_key NOT IN(N'customer.view',N'customer.update') THROW 52110,'CUSTOMER_MASTER_UNAVAILABLE',1;
@@ -70,6 +88,8 @@ SELECT DB_NAME() db,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) server,S
  CONVERT(bit,CASE WHEN ${CUSTOMER_MASTER_REQUIRED_VISIBILITY_SQL}
  AND ${schema} AND ${fks} AND ${CUSTOMER_MASTER_CONSTRAINTS_SQL}
  AND ${CUSTOMER_MASTER_EFFECTIVE_PERMISSIONS_SQL}
+ AND ${CUSTOMER_MASTER_READ_DEPENDENCIES_SQL}
+ AND ${CUSTOMER_MASTER_DIRECT_READ_SQL}
  AND EXISTS(SELECT 1 FROM sys.indexes WHERE object_id=OBJECT_ID(N'dbo.customer_master_local_v1') AND is_unique=1 AND is_disabled=0 AND has_filter=0 AND INDEX_COL(N'dbo.customer_master_local_v1',index_id,1)=N'scope_key' AND INDEX_COL(N'dbo.customer_master_local_v1',index_id,2)=N'customer_code' AND INDEX_COL(N'dbo.customer_master_local_v1',index_id,3) IS NULL)
  AND EXISTS(SELECT 1 FROM sys.columns p JOIN sys.columns c ON c.object_id=OBJECT_ID(N'dbo.customers') AND c.name=N'customer_code' WHERE p.object_id=OBJECT_ID(N'dbo.customer_master_local_v1') AND p.name=N'customer_code' AND p.collation_name=c.collation_name AND c.max_length=100 AND c.system_type_id=TYPE_ID(N'nvarchar') AND c.is_nullable=0)
  AND EXISTS(SELECT 1 FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.customers') AND name=N'name' AND max_length=500 AND system_type_id=TYPE_ID(N'nvarchar') AND is_nullable=0)

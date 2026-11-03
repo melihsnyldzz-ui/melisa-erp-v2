@@ -20,6 +20,7 @@ export function canonicalGoal8Policy(config,{mode,writes}){
 export async function configureCanonicalTest(configPath, mode) {
   if (!path.isAbsolute(configPath || '') || !['erp','native'].includes(mode)) throw Error('TEST_ARGUMENT_REJECTED');
   const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  if(config.customerMasterWritesEnabled!==undefined&&typeof config.customerMasterWritesEnabled!=='boolean')throw Error('TEST_CUSTOMER_MASTER_CONFIG_REJECTED');
   if(config.businessWorkface!==undefined)validateBusinessSessionProfile(config.businessWorkface);
   const expectedDatabase = 'MELISA_ERP_SIRKET_TEST_20260929_01';
   const readLogin = 'melisa_sirket_test_20260929_01';

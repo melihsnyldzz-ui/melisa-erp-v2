@@ -39,12 +39,14 @@ app.get('/test-health',(_req,res)=>readiness.send(res,health));
 app.get('/production-switch-health',(_req,res)=>readiness.send(res,health));
 app.get('/terminal-release-health',(_req,res)=>readiness.send(res,{...health,automaticSubmit:false,dailyWebEnabled:true,invoiceExportEnabled:false}));
 app.get('/native-terminal-health',(_req,res)=>readiness.send(res,{...health,writeEnabled:false,automaticSubmit:false}));
+let customerMasterWriterRoutes=null;
 if(mode==='erp'&&writes&&businessSession){
  const database=await import('./src/config/database.js');
- const {prepareCanonicalCustomerMasterMetadata}=await import('./src/services/customerMasterMetadataBootstrap.mjs');
+ const {prepareCanonicalCustomerMasterMetadata,prepareCanonicalCustomerMasterWriter}=await import('./src/services/customerMasterMetadataBootstrap.mjs');
  const {createCustomerMasterMetadataRoutes}=await import('./src/routes/customerMasterMetadataRoutes.mjs');
  const reader=await prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database});
  app.use('/api',createCustomerMasterMetadataRoutes({reader}));
+ if(config.customerMasterWritesEnabled===true)customerMasterWriterRoutes=await prepareCanonicalCustomerMasterWriter({startup:{...canonicalStartup,mode},database});
 }
 if(mode==='erp' && writes){
   const {canonicalTestAdminContext}=await import('./src/services/canonicalTestAdminSession.mjs');
@@ -55,10 +57,11 @@ if(mode==='erp' && writes){
 }
 app.use((req,res,next)=>{
   if(/^\/(?:api\/)?(?:whatsapp|crm|shipping|nakliyat|email|mail|invoice-vega-export|product-card-sync|armada|vega)(?:\/|$)/i.test(req.path))return res.status(403).json({success:false,error:{code:'TEST_EXTERNAL_DISABLED'}});
-  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})&&!isCanonicalBusinessSaleReadAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
+  if(!['GET','HEAD','OPTIONS'].includes(req.method)&&!isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession,customerMasterWriterReady:!!customerMasterWriterRoutes})&&!isCanonicalBusinessSaleReadAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession}))return res.status(405).json({success:false,error:{code:'TEST_WRITE_OUTSIDE_SCOPE',message:'Yalnız ayrı TEST kayıtlarına bağlı iş akışları açıktır.'}});
   next();
 });
 if(mode==='erp'){
+  if(customerMasterWriterRoutes)app.use('/api',customerMasterWriterRoutes);
   if(businessSession){
     const {canonicalBusinessSaleReadRoutes}=await import('./src/routes/canonicalBusinessSaleReadRoutes.mjs');
     app.use('/api',canonicalBusinessSaleReadRoutes);
