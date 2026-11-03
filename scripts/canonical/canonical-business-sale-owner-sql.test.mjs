@@ -109,11 +109,24 @@ test('canonical body provenance is server-bound, strict shape and NULL-safe with
  assert.doesNotMatch(b,/JSON_MODIFY\(@payload_json/);const resolve=module(compile(fixture()),'resolve');assert.match(resolve,/ITEM_CANONICAL/);assert.match(resolve,/SELECTION_CANONICAL/);assert.match(resolve,/COLLATE Latin1_General_100_BIN2 NOT IN/);
 });
 test('historical cancellation derives original prices/cost/rate from issued creation proof, not a current-price resolver or availability check',()=>{
- const b=module(compile(fixture()),'begin'),start=b.indexOf("IF @operation<>N'sale_cancel' BEGIN"),historical=b.slice(b.indexOf('ELSE BEGIN\nIF ISNULL(ISJSON(@creationNative)',start),b.indexOf("IF @operation=N'sale_draft' BEGIN IF ISNULL",start));
- assert(start>0&&historical.length>0);assert.match(b,/nativeCreationProofJSON nvarchar\(max\)/);assert.match(historical,/CREATION_OWNER_PROOF/);assert.match(historical,/CREATION_ACCOUNT_SNAPSHOT/);assert.match(historical,/CREATION_PRODUCT_SNAPSHOT/);
+ const b=module(compile(fixture()),'begin'),start=b.indexOf("IF @operation<>N'sale_cancel' BEGIN"),historical=b.slice(b.indexOf('ELSE BEGIN\nIF (SELECT COUNT(*) FROM OPENJSON(@creationNative',start),b.indexOf("IF @operation=N'sale_draft' BEGIN IF ISNULL",start));
+ assert(start>0&&historical.length>0);assert.match(b,/nativeCreationProofJSON nvarchar\(max\)/);assert.match(b,/CREATION_OWNER_PROOF/);assert.match(historical,/CREATION_ACCOUNT_SNAPSHOT/);assert.match(historical,/CREATION_PRODUCT_SNAPSHOT/);
  assert.match(historical,/i\.average_cost_try_snapshot=x\.cost4/);assert.match(historical,/v\.exchange_rate_snapshot=TRY_CONVERT/);assert.match(historical,/operation_quarantine_holds/);
  assert.doesNotMatch(historical,/EXEC dbo\.usp_canonical_business_sale_resolve|p\.average_cost_try|q\.price>|current_stock_qty>=|FROM dbo\.currency_rates/);
  assert.match(historical,/p\.current_stock_qty IS NOT NULL/);assert.match(b,/STALE_INVOICE/);
+});
+test('finalize and draft cancellation accept only a journal-proven unstamped draft; posted cancel retains both account stamps',()=>{
+ const b=module(compile(fixture()),'begin');
+ const draft="v.status=N'draft' AND v.finalized_at IS NULL AND v.party_currency_account_id IS NULL AND v.party_entity_id IS NULL";
+ const posted="v.status=N'finalized' AND v.finalized_at IS NOT NULL AND v.party_currency_account_id=TRY_CONVERT(bigint,JSON_VALUE(j.payload_json,'$.customerAccountId')) AND v.party_entity_id=TRY_CONVERT(bigint,JSON_VALUE(snapshot.nativeCreationProofJSON,'$.partyEntityId'))";
+ assert(b.includes(draft));assert(b.includes(posted));assert(b.includes("v.party_currency_account_id=a.id AND v.party_entity_id=a.party_entity_id"));
+ for(const gate of ["j.actor_id=17","l.actor_id=17","v.created_by=17","j.operation=N'sale_draft'","j.payload_hash=CONVERT(varchar(64),HASHBYTES('SHA2_256',j.payload_json),2)","$.bodyHash","$.requestId","$.customerId","$.accountId","$.partyEntityId","$.currency",'CREATION_OWNER_PROOF','CREATION_PARTY_DRIFT','CREATION_ACCOUNT_SNAPSHOT','CREATION_PRODUCT_SNAPSHOT','operation_quarantine_holds','STALE_INVOICE'])assert(b.includes(gate),gate);
+ assert(b.indexOf('CREATION_OWNER_PROOF')<b.indexOf("IF @operation<>N'sale_cancel' BEGIN"));
+ // Semantic truth table for the emitted guard; this is not execution on SQL Server.
+ const canUse=(op,row)=>{const draftOk=row.status==='draft'&&row.finalizedAt===null&&row.account===null&&row.party===null;const postedOk=row.status==='finalized'&&row.finalizedAt!==null&&row.account==='201'&&row.party==='401';return (op==='sale_finalize'&&draftOk)||(op==='sale_cancel'&&(draftOk||postedOk));};
+ const draftRow={status:'draft',finalizedAt:null,account:null,party:null},postedRow={status:'finalized',finalizedAt:'time',account:'201',party:'401'};
+ assert(canUse('sale_finalize',draftRow));assert(canUse('sale_cancel',draftRow));assert(canUse('sale_cancel',postedRow));assert(!canUse('sale_finalize',postedRow));
+ for(const bad of [{...draftRow,account:'201'},{...draftRow,party:'401'},{...draftRow,finalizedAt:'time'},{...postedRow,account:'202'},{...postedRow,party:'402'},{...postedRow,account:null},{...postedRow,finalizedAt:null}])for(const op of ['sale_finalize','sale_cancel'])assert(!canUse(op,bad));
 });
 test('legacy closure mode is internal only and does not require a Semih session; public canonical routes explicitly choose strict mode',()=>{
  const r=compile(fixture()),ready=module(r,'ready');assert.match(ready,/@legacy bit=0/);assert.match(ready,/IF @legacy=0 BEGIN/);assert.match(ready,/IF @legacy=0 AND/);

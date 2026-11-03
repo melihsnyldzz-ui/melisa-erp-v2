@@ -68,13 +68,19 @@ export function createWorkTradeStore({getRuntime=defaultRuntime}={}){
   c.invoice=async id=>read(async(transaction,q)=>{
    id=workId(id);const currentDraft=binding?.operation==='sale_draft'?binding.requestId:null;
    const query=new q.Request(transaction).input('id',q.BigInt,id).input('profile',q.Char(64),admission.profileHash).input('draftRequest',q.UniqueIdentifier,currentDraft).input('draftPayload',q.NVarChar(q.MAX),currentDraft?bodyJson:null);
+   // Unposted drafts (including cancelled drafts) intentionally have no native
+   // account stamp. Join the selected account, then verify its creation proof
+   // below; finalized documents must also match their native header stamp.
    const header=(await query.query(`DECLARE @creation nvarchar(max);SELECT @creation=COALESCE(j.payload_json,@draftPayload) FROM dbo.work_sales_links l LEFT JOIN dbo.work_trade_requests j ON j.request_id=l.request_id AND j.actor_id=17 AND j.operation=N'sale_draft' WHERE l.invoice_id=@id AND l.actor_id=17;
-SELECT CONVERT(varchar(20),v.id) id,CONVERT(varchar(20),v.customer_id) customerId,CONVERT(varchar(20),v.party_currency_account_id) customerAccountId,CONVERT(varchar(20),v.party_entity_id) partyEntityId,CONVERT(char(10),v.document_date,23) documentDate,v.document_currency currency,l.preview_json,LOWER(CONVERT(varchar(36),l.request_id)) creationRequestId,j.response_json,
+SELECT CONVERT(varchar(20),v.id) id,CONVERT(varchar(20),v.customer_id) customerId,CONVERT(varchar(20),a.id) customerAccountId,CONVERT(varchar(20),a.party_entity_id) partyEntityId,v.status invoiceStatus,CONVERT(char(10),v.document_date,23) documentDate,v.document_currency currency,l.preview_json,LOWER(CONVERT(varchar(36),l.request_id)) creationRequestId,j.response_json,
 CONVERT(varchar(64),CONVERT(decimal(28,8),a.current_balance)) customerBalanceExact8,CONVERT(varchar(64),CONVERT(decimal(28,4),a.current_balance)) customerBalanceExact4,${canonicalBusinessSaleInvoiceRevisionSQL({profileHash:admission.profileHash})} revision,
 (SELECT COUNT_BIG(*) FROM dbo.customer_movements m WHERE m.sales_invoice_id=v.id AND m.movement_type NOT IN(N'sales_invoice',N'sales_invoice_cancel')) unsupportedMovements
 FROM dbo.sales_invoices v WITH(UPDLOCK,HOLDLOCK) JOIN dbo.work_sales_links l ON l.invoice_id=v.id AND l.actor_id=17
 LEFT JOIN dbo.work_trade_requests j ON j.request_id=l.request_id AND j.actor_id=17 AND j.operation=N'sale_draft'
-JOIN dbo.party_currency_accounts a ON a.id=v.party_currency_account_id AND a.party_entity_id=v.party_entity_id AND a.id=TRY_CONVERT(bigint,JSON_VALUE(l.preview_json,'$.selection.customerAccountId')) AND a.customer_id=v.customer_id AND a.supplier_id IS NULL AND a.currency_code=v.document_currency
+JOIN dbo.party_currency_accounts a ON a.id=TRY_CONVERT(bigint,JSON_VALUE(l.preview_json,'$.selection.customerAccountId')) AND a.customer_id=v.customer_id AND a.supplier_id IS NULL AND a.currency_code=v.document_currency
+AND ((v.status=N'draft' AND v.finalized_at IS NULL AND v.party_currency_account_id IS NULL AND v.party_entity_id IS NULL)
+ OR (v.status=N'cancelled' AND v.finalized_at IS NULL AND v.party_currency_account_id IS NULL AND v.party_entity_id IS NULL)
+ OR (v.status IN(N'finalized',N'cancelled') AND v.finalized_at IS NOT NULL AND a.id=v.party_currency_account_id AND a.party_entity_id=v.party_entity_id))
 WHERE v.id=@id AND v.created_by=17 AND JSON_VALUE(l.preview_json,'$.canonicalBusinessSaleProfileHash')=@profile AND JSON_VALUE(l.preview_json,'$.testProfile')=N'B6-CANONICAL-BUSINESS-SALE-V1' AND (j.request_id IS NOT NULL OR l.request_id=@draftRequest);`)).recordset;
    if(header?.length!==1)workFail('WORK_INVOICE_NOT_FOUND','Satış fişi bulunamadı.',404);const h=header[0];
    if(Number(h.unsupportedMovements)!==0)workFail('WORK_COLLECTIONS_ACTIVE','Bu fişin bağlı finans hareketi ayrıca kontrol edilmeli.',409);
@@ -84,7 +90,7 @@ WHERE v.id=@id AND v.created_by=17 AND JSON_VALUE(l.preview_json,'$.canonicalBus
    const invoice=await r.invoice.getSalesDraft(nativeId(id),{pool:transaction.parent,transaction,sqlDriver:q});
    if(String(invoice.customerId)!==h.customerId||invoice.documentCurrency!==h.currency||invoice.items.length!==preview.items.length)throw workError();
    const items=invoice.items.map((row,index)=>{const original=preview.items[index];if(String(row.productId)!==original.productId||Number(row.quantity).toFixed(3)!==original.quantityExact3||Number(row.unitPrice).toFixed(4)!==original.unitPriceExact4||Number(row.lineTotal).toFixed(4)!==original.lineTotalExact4||row.stockCode!==original.stockCode||row.productName!==original.name||row.currency!==h.currency)throw workError();return {...original,currency:h.currency};});
-   const status=String(invoice.status).toLowerCase();if(!['draft','finalized','cancelled'].includes(status))throw workError();const total=Number(invoice.grandTotal).toFixed(4);
+   const status=String(invoice.status).toLowerCase();if(!['draft','finalized','cancelled'].includes(status)||status!==String(h.invoiceStatus).toLowerCase())throw workError();const total=Number(invoice.grandTotal).toFixed(4);
    if(Number(invoice.subtotal).toFixed(4)!==preview.subtotalExact4||total!==preview.grandTotalExact4||Number(invoice.amountTry).toFixed(4)!==preview.amountTryExact4)throw workError();
    // Presentation witnesses only; every mutation still re-proves its native
    // account/journal/revision binding inside the protected transaction.

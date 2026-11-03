@@ -44,9 +44,18 @@ if(!process.execArgv.includes('--experimental-test-module-mocks')){
     if(text.startsWith('SELECT DB_NAME() db'))return {recordset:[{db:owner.BUSINESS_SESSION.database,server:owner.BUSINESS_SESSION.server,login:owner.BUSINESS_SESSION.login,databaseUser:owner.BUSINESS_SESSION.login,sysadmin:0,control:0,live:0}]};
     if(text.startsWith('INSERT dbo.work_sales_links')){assert.equal(this.parent,f.activeTx);assert.equal(this.params.actor,'17');f.snapshot=JSON.parse(this.params.preview);f.creationRequest=this.params.request;return {recordset:[]};}
     if(text.startsWith('DECLARE @creation')){
-     assert.equal(this.params.profile,hash);assert.match(text,/a\.id\s*=\s*v\.party_currency_account_id/);assert.match(text,/a\.party_entity_id\s*=\s*v\.party_entity_id/);
+     assert.equal(this.params.profile,hash);
+     assert.match(text,/a\.id=TRY_CONVERT\(bigint,JSON_VALUE\(l\.preview_json,'\$\.selection\.customerAccountId'\)\)/);
+     assert.match(text,/v\.status=N'draft' AND v\.finalized_at IS NULL AND v\.party_currency_account_id IS NULL AND v\.party_entity_id IS NULL/);
+     assert.match(text,/v\.status=N'cancelled' AND v\.finalized_at IS NULL AND v\.party_currency_account_id IS NULL AND v\.party_entity_id IS NULL/);
+     assert.match(text,/v\.status IN\(N'finalized',N'cancelled'\) AND v\.finalized_at IS NOT NULL AND a\.id=v\.party_currency_account_id AND a\.party_entity_id=v\.party_entity_id/);
      const saved=f.journal.get(f.creationRequest);if(!f.snapshot||(!saved&&this.params.draftRequest!==f.creationRequest))return {recordset:[]};
-     const h={id:'91',customerId:'155',customerAccountId:'7',partyEntityId:'6',documentDate:f.selection.documentDate,currency:'USD',preview_json:JSON.stringify(f.snapshot),creationRequestId:f.creationRequest,response_json:saved?JSON.stringify(saved.response):null,customerBalanceExact8:'123456789.12345678',customerBalanceExact4:'123456789.1235',revision,unsupportedMovements:0};
+     // Model SQL's native NULL/posted binding rules instead of granting a join
+     // unconditionally; a freshly created draft really has no account stamp.
+     const row=f.invoice,unposted=['draft','cancelled'].includes(row.status)&&row.finalizedAt===null&&row.partyCurrencyAccountId===null&&row.partyEntityId===null;
+     const posted=['finalized','cancelled'].includes(row.status)&&row.finalizedAt!==null&&row.partyCurrencyAccountId===7&&row.partyEntityId===6;
+     if(!unposted&&!posted)return {recordset:[]};
+     const h={id:'91',customerId:'155',customerAccountId:'7',partyEntityId:'6',invoiceStatus:row.status,documentDate:f.selection.documentDate,currency:'USD',preview_json:JSON.stringify(f.snapshot),creationRequestId:f.creationRequest,response_json:saved?JSON.stringify(saved.response):null,customerBalanceExact8:'123456789.12345678',customerBalanceExact4:'123456789.1235',revision,unsupportedMovements:0};
      f.headerOverride?.(h);return {recordset:[h]};
     }
     if(text.startsWith('SELECT operation,response_json')){const row=f.journal.get(this.params.id);return {recordset:row?[{operation:row.operation,response_json:JSON.stringify(row.response)}]:[]};}
@@ -54,7 +63,7 @@ if(!process.execArgv.includes('--experimental-test-module-mocks')){
    }
   }
   f.sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},BigInt:'BigInt',Int:'Int',UniqueIdentifier:'UniqueIdentifier',Bit:'Bit',MAX:'MAX',NVarChar:n=>n,Char:n=>n};
-  f.invoice={id:91,documentNo:'FIXTURE',documentDate:f.selection.documentDate,customerId:155,partyEntityId:6,partyCurrencyAccountId:7,customerName:'Fixture customer',documentCurrency:'USD',status:'draft',subtotal:2.4692,grandTotal:2.4692,amountTry:4.9384,items:[{productId:12,stockCode:'0012 SYN',productName:'Fixture',quantity:2,unitPrice:1.2346,lineTotal:2.4692,currency:'USD'}]};
+  f.invoice={id:91,documentNo:'FIXTURE',documentDate:f.selection.documentDate,customerId:155,partyEntityId:null,partyCurrencyAccountId:null,finalizedAt:null,customerName:'Fixture customer',documentCurrency:'USD',status:'draft',subtotal:2.4692,grandTotal:2.4692,amountTry:4.9384,items:[{productId:12,stockCode:'0012 SYN',productName:'Fixture',quantity:2,unitPrice:1.2346,lineTotal:2.4692,currency:'USD'}]};
   f.runtime={pool:f.pool,sql:f.sql,withMutation:async fn=>{f.mutations++;return fn();},invoice:{createSalesDraft:async(input,a,ctx)=>{f.creates++;assert.equal(ctx.transaction,f.activeTx);assert.equal(ctx.pool,f.pool);assert.equal(input.items[0].barcode,'000012');assert.equal(input.items[0].averageCostTry,0.5);assert.equal(a.id,'17');return {id:91};},getSalesDraft:async(id,ctx)=>{f.nativeReads++;assert.equal(id,91);assert.equal(ctx.pool,f.pool);return structuredClone(f.invoice);}},get proof(){throw Error('LEGACY_PROOF_FORBIDDEN');}};
   f.store=createWorkTradeStore({getRuntime:async()=>{f.runtimeReads++;return f.isolated?{isolatedCopy:true}:f.runtime;}});f.service=createWorkSalesService({getStore:async()=>f.store});current=f;return f;
  }
@@ -83,6 +92,15 @@ if(!process.execArgv.includes('--experimental-test-module-mocks')){
   const originalOrigin=f.snapshot.operationOrigin;f.snapshot.operationOrigin='OTHER_ORIGIN';await assert.rejects(f.service.invoice('91',f.actor),{code:'WORK_UNAVAILABLE'});f.snapshot.operationOrigin=originalOrigin;
   const proof=f.snapshot.nativeCreationProofJSON;for(const patch of [{profileHash:'C'.repeat(64)},{requestId:'22222222-2222-4222-8222-222222222222'},{operation:'sale_finalize'}]){f.snapshot.nativeCreationProofJSON=JSON.stringify({...JSON.parse(proof),...patch});await assert.rejects(f.service.invoice('91',f.actor),{code:'WORK_UNAVAILABLE'});}f.snapshot.nativeCreationProofJSON=proof;check(await f.service.invoice('91',f.actor));
   const beforeJournal=fixture();beforeJournal.headerOverride=h=>{h.creationRequestId='22222222-2222-4222-8222-222222222222';};await assert.rejects(create(beforeJournal),{code:'WORK_UNAVAILABLE'});assert.equal(beforeJournal.journal.size,0);
+ });
+ test('draft, cancelled draft and posted documents retain distinct native account binding',async()=>{
+  const f=fixture();const draft=await create(f);assert.equal(draft.invoice.status,'draft');assert.equal(draft.invoice.customerAccountId,'7');assert.equal(f.invoice.partyCurrencyAccountId,null);assert.equal(f.invoice.partyEntityId,null);
+  f.invoice.status='cancelled';assert.equal((await f.service.invoice('91',f.actor)).status,'cancelled');
+  f.invoice.status='finalized';f.invoice.finalizedAt='2026-10-28T10:00:00';f.invoice.partyCurrencyAccountId=7;f.invoice.partyEntityId=6;
+  assert.equal((await f.service.invoice('91',f.actor)).status,'finalized');f.invoice.status='cancelled';assert.equal((await f.service.invoice('91',f.actor)).status,'cancelled');
+  for(const patch of [{status:'finalized',finalizedAt:null,partyCurrencyAccountId:null,partyEntityId:null},{status:'finalized',finalizedAt:'2026-10-28T10:00:00',partyCurrencyAccountId:8,partyEntityId:6},{status:'cancelled',finalizedAt:'2026-10-28T10:00:00',partyCurrencyAccountId:7,partyEntityId:8},{status:'draft',finalizedAt:null,partyCurrencyAccountId:7,partyEntityId:6},{status:'cancelled',finalizedAt:null,partyCurrencyAccountId:7,partyEntityId:null}]){
+   Object.assign(f.invoice,patch);await assert.rejects(f.service.invoice('91',f.actor),{code:'WORK_INVOICE_NOT_FOUND'});
+  }
  });
  test('canonical profile never falls through to ISO copy or legacy SQL when its adapter cannot admit the read',async()=>{
   const f=fixture();f.isolated=true;await assert.rejects(f.service.preview(f.selection,f.actor),{code:'WORK_UNAVAILABLE'});assert.equal(f.queries.length,0);assert.equal(f.ownerInputs.length,0);
