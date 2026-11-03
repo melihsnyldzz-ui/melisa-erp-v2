@@ -1,6 +1,6 @@
 // Fixed SELECT text only. No connection, execution, transaction or DDL.
-import {CUSTOMER_MASTER_NORMAL_TARGET as target,CUSTOMER_MASTER_NORMAL_LOGIN as login,CUSTOMER_MASTER_NORMAL_SCOPE} from './customerMasterCanonicalRuntime.mjs';
-import {CUSTOMER_MASTER_NORMAL_COLUMN_SETS} from './customerMasterCanonicalSql.mjs';
+import {CUSTOMER_MASTER_NORMAL_TARGET as target,CUSTOMER_MASTER_NORMAL_LOGIN as login} from './customerMasterCanonicalRuntime.mjs';
+import {CUSTOMER_MASTER_NORMAL_COLUMN_SETS,CUSTOMER_MASTER_KNOWN_CHECKS,CUSTOMER_MASTER_KNOWN_UTC_DEFAULTS} from './customerMasterCanonicalSql.mjs';
 const q=s=>"N'"+s.replaceAll("'","''")+"'";
 export const CUSTOMER_MASTER_METADATA_OBJECTS=Object.freeze([...Object.keys(CUSTOMER_MASTER_NORMAL_COLUMN_SETS).map(part=>'dbo.customer_master_'+part+'_v1'),'dbo.customers']);
 export const CUSTOMER_MASTER_METADATA_COLUMNS=Object.freeze(Object.fromEntries([...Object.entries(CUSTOMER_MASTER_NORMAL_COLUMN_SETS).map(([part,columns])=>['dbo.customer_master_'+part+'_v1',Object.freeze(columns.map(c=>c[0]))]),['dbo.customers',Object.freeze(['id','customer_code','name','customer_type'])]]));
@@ -11,8 +11,7 @@ const gate=`DB_NAME() COLLATE Latin1_General_100_BIN2=${q(target.database)} AND 
 export const CUSTOMER_MASTER_METADATA_IDENTITY_SQL=`SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,ORIGINAL_LOGIN() originalLogin,IS_SRVROLEMEMBER(N'sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),N'DATABASE',N'CONTROL') databaseControl,HAS_DBACCESS(N'MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess;`;
 // Definitions are classified inside SQL; raw bodies/literals never cross the
 // driver boundary. Unrecognized but possibly equivalent syntax remains OTHER.
-const checks={VERSION_POSITIVE:['([version]>(0))','(version>0)'],COMMITTED_VERSION_POSITIVE:['([committed_version]>(0))','(committed_version>0)'],TARGET_SCOPE_FIXED:[`([scope_key]=N'${CUSTOMER_MASTER_NORMAL_SCOPE}')`,`(scope_key=N'${CUSTOMER_MASTER_NORMAL_SCOPE}')`],CUSTOMER_TYPE_SET:["([customer_type]=N'mixed' OR [customer_type]=N'retail' OR [customer_type]=N'wholesale' OR [customer_type]=N'customer')","(customer_type IN(N'customer',N'wholesale',N'retail',N'mixed'))"]};
-const classification=alias=>'CASE WHEN '+alias+'.definition IS NULL THEN N\'UNAVAILABLE\' '+Object.entries(checks).map(([kind,values])=>'WHEN '+alias+'.definition COLLATE Latin1_General_100_BIN2 IN('+values.map(q).join(',')+') THEN '+q(kind)).join(' ')+' ELSE N\'OTHER\' END';
+const classification=alias=>'CASE WHEN '+alias+'.definition IS NULL THEN N\'UNAVAILABLE\' '+Object.entries(CUSTOMER_MASTER_KNOWN_CHECKS).map(([kind,values])=>'WHEN '+alias+'.definition COLLATE Latin1_General_100_BIN2 IN('+values.map(q).join(',')+') THEN '+q(kind)).join(' ')+' ELSE N\'OTHER\' END';
 export const CUSTOMER_MASTER_METADATA_SQL=`${CUSTOMER_MASTER_METADATA_IDENTITY_SQL}
 SELECT v.objectName,OBJECT_ID(v.objectName) objectId,CONVERT(varchar(2),o.type) objectType,
  HAS_PERMS_BY_NAME(DB_NAME(),N'DATABASE',N'VIEW DEFINITION') databaseVisible,HAS_PERMS_BY_NAME(N'dbo',N'SCHEMA',N'VIEW DEFINITION') schemaVisible,HAS_PERMS_BY_NAME(v.objectName,N'OBJECT',N'VIEW DEFINITION') objectVisible,
@@ -33,7 +32,7 @@ SELECT TOP(33) v.objectName,f.object_id foreignKeyId,k.constraint_column_id ordi
  CONVERT(bit,f.is_disabled) disabled,CONVERT(bit,f.is_not_trusted) notTrusted,f.delete_referential_action deleteAction,f.update_referential_action updateAction
 FROM ${objects} v(objectName) JOIN sys.foreign_keys f ON f.parent_object_id=OBJECT_ID(v.objectName) JOIN sys.foreign_key_columns k ON k.constraint_object_id=f.object_id WHERE v.objectName<>N'dbo.customers' AND ${gate} ORDER BY v.objectName,f.object_id,k.constraint_column_id;
 SELECT TOP(33) v.objectName,d.object_id constraintId,v.columnName,CONVERT(varchar(64),HASHBYTES('SHA2_256',d.definition),2) definitionHash,
- CASE WHEN d.definition IS NULL THEN N'UNAVAILABLE' WHEN d.definition COLLATE Latin1_General_100_BIN2 IN(N'(sysutcdatetime())',N'(SYSUTCDATETIME())',N'sysutcdatetime()',N'SYSUTCDATETIME()') THEN N'UTC_NOW' ELSE N'OTHER' END kind
+ CASE WHEN d.definition IS NULL THEN N'UNAVAILABLE' WHEN d.definition COLLATE Latin1_General_100_BIN2 IN(${CUSTOMER_MASTER_KNOWN_UTC_DEFAULTS.map(q).join(',')}) THEN N'UTC_NOW' ELSE N'OTHER' END kind
 FROM ${columns} v(objectName,columnName) JOIN sys.default_constraints d ON d.parent_object_id=OBJECT_ID(v.objectName) AND COL_NAME(d.parent_object_id,d.parent_column_id)=v.columnName WHERE v.objectName<>N'dbo.customers' AND ${gate} ORDER BY v.objectName,d.object_id;
 SELECT TOP(33) v.objectName,c.object_id constraintId,CONVERT(bit,c.is_disabled) disabled,CONVERT(bit,c.is_not_trusted) notTrusted,CONVERT(bit,c.uses_database_collation) usesDatabaseCollation,CONVERT(varchar(64),HASHBYTES('SHA2_256',c.definition),2) definitionHash,${classification('c')} kind
 FROM ${objects} v(objectName) JOIN sys.check_constraints c ON c.parent_object_id=OBJECT_ID(v.objectName) WHERE v.objectName<>N'dbo.customers' AND ${gate} ORDER BY v.objectName,c.object_id;
