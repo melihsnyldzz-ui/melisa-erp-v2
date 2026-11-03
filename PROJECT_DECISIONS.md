@@ -1,3 +1,7 @@
+## ERP-DEC-087 eki — 4 Kasım / tek tarama yanlış pozitifi
+
+Kullanıcı, kamuya açık P7c6 API manifest SHA256 özeti `342fa6b6ac7448a8ac515cbd118638b857d44c56fc621b74ac0070dd209c0a5f` için yalnız commit `13faa388030e6bb1d9dbe2727a988c9eb90dc917` + `scripts/canonical/prepare-current-business-pair.mjs` + `generic-api-key` + bu tam değer birlikte eşleştiğinde geçerli dört koşullu `.gitleaks.toml` istisnasını açıkça onayladı. Bağımsız byte karşılaştırması değerin kimlik bilgisi değil manifest özeti olduğunu doğruladı. Başka commit/dosya/değer/kural beş disposable Git fixture kontrolünde taramada kaldı. Varsayılan taramalar, `.gitleaksignore` ve workflow korunur. Bu karar başka tarama istisnası veya runtime/SQL/credential/rol/LIVE yetkisi vermez; yeni exact CI sonucu ayrıca izlenir.
+
 ## ERP-DEC-087 — 4 Kasım 2026 — Mevcut bitiş kapsamı için aynı konuşmada native hedef
 
 Kullanıcı, DOT'taki ortak bitiş kaydıyla karşılaştırılan mevcut ERP49 + CRM25 kapsamı için bu ana konuşmada native hedef oluşturulmasını açıkça istedi. Hedef gerçekten kaydedildi ve active; bu açık talep önceki yeni-Goal sınırını yalnız bu hedef için günceller. Mevcut finish planı, özgün kabul ID'leri, kabul edilmiş işler ve ana ajan sorumlulukları korunur; yeni plan, takip sistemi veya ana ajan kurulmaz.

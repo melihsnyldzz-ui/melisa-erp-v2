@@ -12,6 +12,8 @@ Mevcut ERP49 içindeki B04/C04 satış ve B03/C06 müşteri kartı kapsamıdır.
 
 Kaynaklar mevcut feature dalı ve PR54'tedir. Hedefli offline testler ve bağımsız kaynak incelemesi gerçek SQL/kurulum/GUI kabulü değildir. Yeni startup, paket ve API sınırı incelemeleri bitmeden çalışan teslim iddiası yoktur.
 
+`13faa388` GitHub secret-scan, eski TEST API manifestinin kamuya açık SHA256 özetini API anahtarı olarak işaretledi. Kullanıcı ERP-DEC-087 ekindeki tek commit/dosya/kural/değer AND istisnasını açıkça onayladı; farklı commit/dosya/değer/kural için beş izole kontrol geçti, varsayılan taramalar korundu. Yeni kaynak için GitHub CI sonucu ayrıca doğrulanır; önceki başarısız sonuç silinmez.
+
 ## Çalışan TEST sınırı
 
 Bu kaynak diliminde SQL, servis, görev, config, rol, parola, stok/cari/kasa veya ticari kayıt yazması yapılmadı. Mevcut kurulu ERP/CRM ve kullanıcı WIP'i korundu. Önceki normal-session metadata gözleminde müşteri nesnesi PARTIAL, üç yerel metadata nesnesi UNKNOWN idi; nesneler yok sayılmaz ve writer bu gözlemle etkinleştirilemez.

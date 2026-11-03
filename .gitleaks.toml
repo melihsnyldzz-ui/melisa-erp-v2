@@ -2,6 +2,15 @@
 useDefault = true
 
 [[allowlists]]
+description = "Exact public C06 API manifest digest in approved commit"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-current-business-pair\.mjs\z''']
+regexes = ['''\A\Q342fa6b6ac7448a8ac515cbd118638b857d44c56fc621b74ac0070dd209c0a5f\E\z''']
+commits = ["13faa388030e6bb1d9dbe2727a988c9eb90dc917"]
+
+[[allowlists]]
 description = "Exact approved public manifest digest in fixed B6 producer"
 targetRules = ["generic-api-key"]
 condition = "AND"

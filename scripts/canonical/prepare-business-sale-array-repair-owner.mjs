@@ -92,6 +92,58 @@ export function validateArrayRepairPacket(p){
  for(const m of p.proposedModules)if(!m.applyDefinition.startsWith('ALTER PROCEDURE '+m.name+' ')||!m.inverseDefinition.startsWith('ALTER PROCEDURE '+m.name+' ')||sha(Buffer.from(m.applyDefinition,'utf16le')).toUpperCase()!==m.proposedApplyAlterTextSha256||sha(Buffer.from(m.inverseDefinition,'utf16le')).toUpperCase()!==m.proposedInverseAlterTextSha256||m.nativeStoredHeaderValidationPending!==true||m.options.signatureCount!==0)fail('ARRAY_OWNER_PACKET_DEFINITION');
  return p;
 }
+
+// Review-only successor of the existing fixed array-repair case. No CLI, IO,
+// SQL runner or maintenance authority: callers supply pinned Git blobs and
+// historical private evidence as bytes and keep the returned packet private.
+export const BEGIN_REVIEW_SOURCE='fce4d7aa21d2828c32576a8e5a51adb84fb000fe';
+export const BEGIN_REVIEW_GIT_BLOBS=Object.freeze({
+ 'scripts/canonical/canonical-business-sale-revision.mjs':'fc22b581d8ea122651225ff321d8116dfc6fe590',
+ 'scripts/canonical/canonical-business-sale-owner-sql.mjs':'4f2cf9b7a3d2e3671f71b907f00d69c8e4fb9c8f',
+ 'scripts/canonical/canonical-business-sale-effects-sql.mjs':'8cdff6245f84c299291cd9386d4acb30417e6c0d',
+ 'scripts/canonical/canonical-business-sale-admission-sql.mjs':'ad70bf86a0d2679fcb9ab0caab4e8aa6195e5ae1',
+ 'apps/api/src/services/workTradeSqlProof.mjs':'2a6c59d504a3a21837a341fb9aba2e62ce52303d'
+});
+const BEGIN_REVIEW_PROFILE='9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9';
+const BEGIN_REVIEW_BEFORE='C91F43028BFA9E3AB944816709B2A2350767340C3447AECBAABAA524E7CA18FA';
+const BEGIN_REVIEW_EVIDENCE=Object.freeze({metadata:'1a0d7fac1b43b24102b3ee1b5b41670609a764bc0d63defc126ff6b5bf65921d',guard:'8e4aabc957b235d604faebbac1837f2c124ed58950ce61524cf79b20312e3b04',arrayPacket:PACKET_HASH,oldArtifact:'35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'});
+const blobId=b=>crypto.createHash('sha1').update(Buffer.from(`blob ${b.length}\0`)).update(b).digest('hex');
+const unicodeHash=s=>crypto.createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
+const sourceUrl=b=>'data:text/javascript;base64,'+Buffer.from(b).toString('base64');
+const replaceOne=(s,from,to)=>{if(s.split(from).length!==2)fail('BEGIN_REVIEW_SOURCE_EDGE');return s.replace(from,to);};
+export async function withBeginCompilerErrorsMasked(callback){try{return await callback();}catch{fail('BEGIN_REVIEW_COMPILER_REJECTED');}}
+// Pure comparison for synthetic regression fixtures. It never verifies the
+// provenance of inputs and cannot issue authority or an installable packet.
+export function compareBeginReviewArtifacts({metadata,packet,old,revision,expectedProfile,expectedBefore}={}){
+ const prefix='dbo.usp_canonical_business_sale_',begin=prefix+'begin_v1',records=metadata?.modules?.filter(m=>m.schemaName==='dbo'&&m.objectName==='usp_canonical_business_sale_begin_v1');
+ if(records?.length!==1||records[0].definitionHash!==expectedBefore||unicodeHash(records[0].definition)!==expectedBefore||!records[0].definition.startsWith('CREATE PROCEDURE '+begin+' '))fail('BEGIN_REVIEW_BEFORE');
+ if(revision?.profileHash!==expectedProfile||revision.installable!==false||revision.executeAllowed!==false||revision.nativeCompiled!==false)fail('BEGIN_REVIEW_COMPILER_SCOPE');
+ const candidates=revision.newModules?.filter(m=>m.name===begin);if(candidates?.length!==1||unicodeHash(candidates[0].definition)!==candidates[0].definitionHash||!candidates[0].definition.startsWith('CREATE PROCEDURE '+begin+' ')||candidates[0].definitionHash===expectedBefore)fail('BEGIN_REVIEW_CANDIDATE');
+ const deltas=packet?.profileMetadataDelta;if(!Array.isArray(deltas)||deltas.length!==2||new Set(deltas.map(d=>d.field)).size!==2)fail('BEGIN_REVIEW_PRIOR_DESCRIPTOR');
+ const descriptor=structuredClone(old.appDescriptor);for(const d of deltas){const k=d.field?.replace('businessSaleAdmission.','');if(!['contextDefinitionHash','beginDefinitionHash'].includes(k)||descriptor[k]!==d.before)fail('BEGIN_REVIEW_PRIOR_DESCRIPTOR');descriptor[k]=d.after;}
+ const next=structuredClone(revision.appDescriptor);if(descriptor.beginDefinitionHash!==expectedBefore||next.beginDefinitionHash!==candidates[0].definitionHash)fail('BEGIN_REVIEW_DESCRIPTOR');next.beginDefinitionHash=descriptor.beginDefinitionHash;if(!same(descriptor,next))fail('BEGIN_REVIEW_DESCRIPTOR_DRIFT');
+ for(const n of ['ready','resolve','context','assert']){const name=prefix+n+'_v1',previous=metadata.modules.filter(m=>m.schemaName==='dbo'&&'dbo.'+m.objectName===name),current=revision.newModules.filter(m=>m.name===name);if(previous.length!==1||current.length!==1||previous[0].definitionHash!==current[0].definitionHash||unicodeHash(previous[0].definition)!==current[0].definitionHash)fail('BEGIN_REVIEW_OTHER_MODULE_DRIFT');}
+ const alter=s=>'ALTER '+s.slice('CREATE '.length),apply=alter(candidates[0].definition),inverse=alter(records[0].definition);
+ return Object.freeze({status:'COMPARISON_ONLY_UNPINNED',installable:false,executionAuthority:false,beforeHash:expectedBefore,afterHash:candidates[0].definitionHash,applyAlterTextSha256:unicodeHash(apply),inverseAlterTextSha256:unicodeHash(inverse),otherFourOwnerModulesUnchanged:true});
+}
+export async function compileBeginReviewPacket({sourceCommit,gitBlobs,evidence,revisionInput}={}){
+ if(sourceCommit!==BEGIN_REVIEW_SOURCE||!(gitBlobs instanceof Map)||gitBlobs.size!==Object.keys(BEGIN_REVIEW_GIT_BLOBS).length||Object.entries(BEGIN_REVIEW_GIT_BLOBS).some(([p,h])=>!Buffer.isBuffer(gitBlobs.get(p))||blobId(gitBlobs.get(p))!==h))fail('BEGIN_REVIEW_GIT_PIN');
+ const held=new Map([...gitBlobs].map(([p,b])=>[p,Buffer.from(b)]));
+ if(!evidence||Object.keys(evidence).sort().join()!==Object.keys(BEGIN_REVIEW_EVIDENCE).sort().join()||Object.entries(BEGIN_REVIEW_EVIDENCE).some(([k,h])=>!Buffer.isBuffer(evidence[k])||sha(evidence[k])!==h))fail('BEGIN_REVIEW_EVIDENCE_PIN');
+ const [metadata,guard,packet,old]=['metadata','guard','arrayPacket','oldArtifact'].map(k=>json(evidence[k]));
+ if(metadata.schema!=='b6-sql-contract-metadata.v1'||metadata.identity?.serverName!=='Semih\\MELISADEV'||metadata.identity?.databaseName!=='MELISA_ERP_SIRKET_TEST_20260929_01'||metadata.metadataSelectOnly!==true||metadata.sqlWrites!==0||metadata.proceduresExecuted!==0||guard.status!=='NATIVE_GUARD_FIX_APPLIED_VERIFIED'||guard.otherSixModulesEqual!==true||guard.actualT1!==false||guard.tradeWrites!==0||packet.profileHashUnchanged!==BEGIN_REVIEW_PROFILE||old.profileHash!==BEGIN_REVIEW_PROFILE)fail('BEGIN_REVIEW_HISTORICAL_SCOPE');
+ const begin='dbo.usp_canonical_business_sale_begin_v1';
+ const admission=sourceUrl(held.get('scripts/canonical/canonical-business-sale-admission-sql.mjs')),proof=sourceUrl(held.get('apps/api/src/services/workTradeSqlProof.mjs'));
+ const ownerText=replaceOne(replaceOne(held.get('scripts/canonical/canonical-business-sale-owner-sql.mjs').toString('utf8'),"'../../apps/api/src/services/workTradeSqlProof.mjs'",JSON.stringify(proof)),"'./canonical-business-sale-admission-sql.mjs'",JSON.stringify(admission));
+ const effectsText=replaceOne(held.get('scripts/canonical/canonical-business-sale-effects-sql.mjs').toString('utf8'),"'./canonical-business-sale-admission-sql.mjs'",JSON.stringify(admission));
+ let revisionText=held.get('scripts/canonical/canonical-business-sale-revision.mjs').toString('utf8');
+ for(const [from,to] of [["'./canonical-business-sale-owner-sql.mjs'",sourceUrl(ownerText)],["'./canonical-business-sale-effects-sql.mjs'",sourceUrl(effectsText)],["'./canonical-business-sale-admission-sql.mjs'",admission]])revisionText=replaceOne(revisionText,from,JSON.stringify(to));
+ // The frozen compiler reads private profile/capture bytes. Never propagate a
+ // parser or module error that might echo those bytes to a terminal or log.
+ const revision=await withBeginCompilerErrorsMasked(async()=>(await import(sourceUrl(revisionText))).compileCanonicalBusinessSaleRevision(revisionInput));
+ const comparison=compareBeginReviewArtifacts({metadata,packet,old,revision,expectedProfile:BEGIN_REVIEW_PROFILE,expectedBefore:BEGIN_REVIEW_BEFORE});
+ return Object.freeze({schema:'melisa-b6-begin-successor-review.v1',status:'REVIEW_ONLY_HISTORICAL_NOT_INSTALLABLE',installable:false,executeAllowed:false,executionAuthority:false,nativeCompiled:false,actualT1:false,externalOperations:false,sqlExecuted:false,profileHash:BEGIN_REVIEW_PROFILE,sourceCommit:BEGIN_REVIEW_SOURCE,sourceBlobIds:BEGIN_REVIEW_GIT_BLOBS,historicalObservedUtc:metadata.observedUtc,server:metadata.identity.serverName,database:metadata.identity.databaseName,module:begin,beforeHash:comparison.beforeHash,afterHash:comparison.afterHash,applyAlterTextSha256:comparison.applyAlterTextSha256,inverseAlterTextSha256:comparison.inverseAlterTextSha256,profileField:'businessSaleAdmission.beginDefinitionHash',otherFourOwnerModulesUnchanged:true,previousGuardRepairNotIncluded:true,requiresFreshTargetAndDefinitionReadback:true,requiresNativeSqlCompilation:true,requiresExistingMaintenanceAdmission:true,requiresProfileCas:true,requiresPrivateBackup:true,requiresApprovalForPermissionOrSchemaChange:true});
+}
 export function readArrayRepairInputs(){
  const inputs=new Map(Object.entries(ARRAY_REPAIR_INPUTS).map(([n,h])=>[n,pin(path.win32.join(PRIVATE,n),h)]));
  const capture=json(inputs.get('current-read2b-owner-capture.json')),entries=json(inputs.get('current-entry-hold-capture.json')),task=json(inputs.get('current-task-capture.json'));
