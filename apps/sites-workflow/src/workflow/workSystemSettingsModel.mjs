@@ -1,5 +1,15 @@
 const fail=()=>{throw Error('Sistem durumu doğrulanamadı. Yenileyerek tekrar deneyin.');};
-const stamp=v=>v===null||typeof v==='string'&&Number.isFinite(Date.parse(v));
+function stamp(v){
+ if(v===null)return true;
+ if(typeof v!=='string'||!Number.isFinite(Date.parse(v)))return false;
+ // Date.parse rolls impossible ISO days into the following month. Check the
+ // written calendar before timezone conversion; an offset may change UTC day.
+ const date=/^([+-]\d{6}|\d{4})-(\d{2})-(\d{2})/.exec(v.trim());
+ if(!date)return true;
+ const year=Number(date[1]),month=Number(date[2]),day=Number(date[3]),leap=year%4===0&&(year%100!==0||year%400===0);
+ const days=[31,leap?29:28,31,30,31,30,31,31,30,31,30,31];
+ return month>=1&&month<=12&&day>=1&&day<=days[month-1];
+}
 export function validateSystemSummary(data){
  if(!['TEST','LIVE'].includes(data?.environment)||!data.package||typeof data.package.packageId!=='string'||typeof data.package.sourceCommit!=='string'||!data.currentUser||!Number.isSafeInteger(data.currentUser.id)||data.currentUser.id<1||typeof data.currentUser.displayName!=='string'||!Array.isArray(data.currentUser.roleCodes)||data.currentUser.roleCodes.some(v=>typeof v!=='string')||!Array.isArray(data.currentUser.permissionsSummary)||data.currentUser.permissionsSummary.some(v=>typeof v!=='string'))fail();
  if(!Array.isArray(data.services)||data.services.length>8||new Set(data.services.map(v=>v.id)).size!==data.services.length||data.services.some(v=>typeof v.id!=='string'||typeof v.label!=='string'||!['ready','unavailable','unknown'].includes(v.status)||!stamp(v.checkedAt)))fail();

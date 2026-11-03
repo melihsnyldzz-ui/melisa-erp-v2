@@ -36,11 +36,13 @@ test('work ordering follows actual capabilities and admin role; display names ca
  const c=dto().capabilities;assert.deepEqual(orderedHomeShortcuts(c,{displayName:'Satış ekibi'}).slice(0,3).map(s=>s.id),['goods','collections','suppliers']);const sales={...c,purchase:false,payment:false,finance:false};assert.deepEqual(orderedHomeShortcuts(sales,{displayName:'Yönetici'}).slice(0,3).map(s=>s.id),['customers','stock','sales']);
  const tasks=[{id:'a',kind:'goods',state:'draft'},{id:'b',kind:'goods',state:'pending'},{id:'c',kind:'approval',state:'pending'}];assert.deepEqual(orderedHomeTasks(tasks,{role:{code:'admin'}}).map(t=>t.id),['c','b','a']);assert.equal(orderedHomeTasks(tasks,{displayName:'admin',role:{code:'trader'}}),tasks);
 });
-test('daily work shows payment, reversal, count, refunds and explicitly unavailable three-currency cash',async()=>{
+test('daily work shows payment, reversal, count, refunds and explicitly unavailable three-currency cash',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:new Date('2026-10-05T09:00:00Z')});
  const create=await controller(),r=root(),d=dto();d.sections.finance.payments=[total('EUR','12.0000')];d.sections.finance.reversals=[total('USD','3.0000')];d.sections.refunds={status:'unavailable',salesCount:null,purchaseCount:null,cancelledCount:null};
  const ui=create({root:r,session:{home:async()=>d}});ui.mount();await tick();for(const text of ['Bugünkü tedarikçi ödemeleri','12,00 EUR','Bugünkü ters kayıtlar','3,00 USD','TRY: Henüz bağlı değil','USD: Henüz bağlı değil','EUR: Henüz bağlı değil','Sayım','İadeler','Gün sonu'])assert.ok(r.innerHTML.includes(text),text);assert.doesNotMatch(r.innerHTML,/Kasa bakiyesi[^]*?TRY: 0/);assert.equal((r.innerHTML.match(/data-home-shortcut=/g)||[]).length,6);assert.doesNotMatch(r.innerHTML,/TEST|SQL|debug|commit|PASS/);ui.dispose();
 });
-test('empty daily amounts show no data, true recorded zero remains zero and partial refunds show permission',async()=>{
+test('empty daily amounts show no data, true recorded zero remains zero and partial refunds show permission',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:new Date('2026-10-05T09:00:00Z')});
  const create=await controller(),r=root(),d=dto();d.sections.sales.currencyTotals=[];d.sections.finance.collections=[total('TRY'),total('USD'),total('EUR')];d.sections.finance.payments=[total('TRY','0.0000',{knownCount:1})];d.capabilities.sales=false;d.navigationReady.sales=false;d.sections.refunds.salesCount=null;
  const ui=create({root:r,session:{home:async()=>d}});ui.mount();await tick();assert.match(r.innerHTML,/Henüz veri yok/);assert.match(r.innerHTML,/0,00 TRY/);assert.doesNotMatch(r.innerHTML,/0,00 USD|0,00 EUR/);assert.match(r.innerHTML,/Müşteri: Görüntüleme yetkiniz yok/);for(const label of ['Bekleyen tahsilatlar','Bekleyen tedarikçi ödemeleri','Bugünkü satış iptalleri','Brüt tutar'])assert.ok(r.innerHTML.includes(label),label);ui.dispose();
 });
@@ -73,7 +75,7 @@ test('workday wording follows sealed operation date rather than read timestamp a
   const same=homeWorkday(data,new Date('2026-10-08T09:00:00Z'));assert.equal(same.prefix,'Bugünkü');assert.equal(same.workdayText,'İş günü: 08.10.2026');
   assert.equal(homeWorkday(data,new Date('2026-10-08T22:00:00Z')).prefix,'İş günündeki');assert.equal(JSON.stringify(data),before);
   for(const change of [d=>d.meta.date='2026-10-09',d=>d.meta.sealHash='c'.repeat(64),d=>delete d.meta.copyId]){const invalid=structuredClone(data);change(invalid);assert.throws(()=>homeWorkday(invalid));}
-  globalThis.window.location.port='5194';assert.throws(()=>homeWorkday(data));assert.equal(homeWorkday(dto(),new Date('2026-10-09T09:00:00Z')).prefix,'Bugünkü');assert.equal(homeWorkday(dto()).workdayText,null);
+  globalThis.window.location.port='5194';assert.throws(()=>homeWorkday(data));assert.equal(homeWorkday(dto(),new Date('2026-10-09T09:00:00Z')).prefix,'İş günündeki');assert.equal(homeWorkday(dto(),new Date('2026-10-09T09:00:00Z')).workdayText,'İş günü: 05.10.2026');
  }finally{if(previous===undefined)delete globalThis.window;else globalThis.window=previous;}
 });
 test('normal copy home identifies its operation day beside later read time without changing totals or navigation',async()=>{
