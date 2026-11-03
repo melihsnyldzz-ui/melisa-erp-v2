@@ -23,16 +23,19 @@ function Assert-Business5244CreatedChild($Native,$Pins){
  if($owner.ReturnValue -ne 0){throw 'OWNED_WEB_SID_UNAVAILABLE'}
  Assert-Business5244FreshSpawnArguments @{parent=$actual.ParentProcessId;exe=$actual.ExecutablePath;sid=$owner.Sid;command=$actual.CommandLine} $Pins
 }
-function Assert-Business5244OwnedPackage($Pins,$Seal=$null){
+function Assert-Business5244OwnedPackage($Pins,$Seal=$null,$NormalPairBinding=$null){
  # Only the two fixed finite pairs are supported. No executable,
  # PID, root, arbitrary command, credentials or process adoption parameters.
  if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-PROFILE-0742-20261102')){
+  if($null-ne$NormalPairBinding){throw 'CURRENT_PAIR_POSTBOOT_MIXED_SCOPE'}
   $exact=Assert-Business5244PostbootPackage $Pins
   if($null-ne$Seal){throw 'POSTBOOT_SEPARATE_PAYLOAD_SEAL_REQUIRED'}
   return Assert-Business5244PostbootPayload $exact
  }
+ if($null-ne$NormalPairBinding){$exact=Get-ErpCurrentPairBoundPins $NormalPairBinding}else{
  $webOnly=Test-Business5244WriterWebOnlyGeneration
  $exact=if(Test-Business5244ColdCurrentGeneration){Get-Business5244ColdCurrentPins}elseif(Test-Business5244ReadContextRepairGeneration){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}elseif(Test-Business5244SteadyGeneration){Get-Business5244SteadyPins}elseif(Test-Business5244PackageRefreshGeneration){$case=Get-ErpBusinessSalePackageRefreshFixedCase;if($Pins.package-ceq$case.candidateWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package-ceq$case.currentWebId){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Current}else{throw 'OWNED_WEB_PIN_CHANGED'}}elseif($webOnly-and(Test-Business5244PendingWebGeneration)){if($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-PENDING-5457e450-PASSIVE-20261031'){Get-Business5244PendingWebPins -Mode Candidate}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-PREVIEW-READ-VERIFIED-20261030'){Get-Business5244PendingWebPins -Mode Current}else{throw 'OWNED_PENDING_WEB_PIN_CHANGED'}}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WORKFACE-fe3948c5-20261029'){Get-Business5244WriterWebOnlyPins -Mode Candidate}elseif($webOnly-and$Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244WriterWebOnlyPins -Mode Current}elseif($Pins.package-ceq'ERP-BUSINESS-WEB-5244-B6-WRITER-20261029'){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-WRITER-20261029' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate).package){Get-Business5244FinitePairPins -ScopeName 'TEST125-API-B6-ca620bac-20261028' -Mode Candidate}elseif($Pins.package -ceq (Get-Business5244ReadPairPins).package){Get-Business5244ReadPairPins}else{Get-Business5244WebPins}
+ }
  foreach($key in @('root','package','manifest','frontendSource','apiPackage','apiManifest','baseSource','node','nodeHash','profile')){if($Pins[$key] -cne $exact[$key]){throw 'OWNED_WEB_PIN_CHANGED'}}
  foreach($item in @($Pins.root,$Pins.node,(Join-Path $Pins.root 'release-manifest.json'))){for($part=$item;$part;$part=[IO.Path]::GetDirectoryName($part)){if((Get-Item -LiteralPath $part).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'OWNED_WEB_REPARSE_POINT'}}}
  if((Get-FileHash -LiteralPath $Pins.node).Hash -ine $Pins.nodeHash -or (Get-FileHash -LiteralPath (Join-Path $Pins.root 'release-manifest.json')).Hash -ine $Pins.manifest){throw 'OWNED_WEB_PACKAGE_CHANGED'}
@@ -210,15 +213,16 @@ function Assert-Business5244ReadyChild($Native,$Pins){
  $rows=@($all|Where-Object {$_.OwningProcess -eq $Native.ChildPid -or $_.LocalPort -eq 5244})
  Assert-Business5244OwnedListeners $rows $Native.ChildPid
 }
-function New-Business5244PinnedChild($Pins,$Lease,$PostbootContext=$null){
+function New-Business5244PinnedChild($Pins,$Lease,$PostbootContext=$null,$NormalPairBinding=$null){
  $postboot=$PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-PROFILE-0742-20261102')
  if($null-ne$PostbootContext-and!$postboot){throw 'POSTBOOT_FOREIGN_GENERATION'}
  if($postboot-and$null-eq$PostbootContext){throw 'POSTBOOT_CONTEXT_REQUIRED'}
+ if($null-ne$NormalPairBinding-and($postboot-or$null-ne$PostbootContext)){throw 'CURRENT_PAIR_POSTBOOT_MIXED_SCOPE'}
  Assert-Business5244StartupLease -Lease $Lease
  $native=$null
  try{
   $pins=$Pins
-  Assert-Business5244OwnedPackage $pins
+  Assert-Business5244OwnedPackage $pins -NormalPairBinding $NormalPairBinding
   $health=Invoke-RestMethod 'http://127.0.0.1:4144/test-health' -TimeoutSec 3
   Assert-Business5244ApiHealth $health $pins
   if(@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction SilentlyContinue).Count){throw 'OWNED_WEB_PORT_OCCUPIED_NO_ADOPTION'}

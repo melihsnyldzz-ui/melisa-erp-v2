@@ -97,7 +97,8 @@ function Get-ErpReadPairPreparedManifest($Proof,$Config){
  return ($c.manifests[$Config.ReleaseRoot]|ConvertFrom-Json)
 }
 
-function Read-ErpStartupConfig($Path,$PreparedReleaseProof=$null) {
+function Read-ErpStartupConfig($Path,$PreparedReleaseProof=$null,$NormalPairBinding=$null) {
+ if($null-ne$NormalPairBinding){$normal=Get-ErpCurrentPairBinding $NormalPairBinding;if($null-ne$PreparedReleaseProof-or$Path-cne$normal.plan.startupConfig){throw 'CURRENT_PAIR_PROFILE_MIXED_SCOPE'}}
  if(![IO.Path]::IsPathRooted($Path)){throw 'TEST_STARTUP_CONFIG_ABSOLUTE_REQUIRED'}
  $c=Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
  $required=@('RepoRoot','ReleaseRoot','ConfigPath','RuntimeDir','LogDir','NodePath','NodeSha256','OwnerSid','SourceCommit','ManifestSha256','ExpectedDatabase','TaskName')
@@ -129,13 +130,14 @@ function Read-ErpStartupConfig($Path,$PreparedReleaseProof=$null) {
   if($m.kind -cne 'CANONICAL_TEST125_BUSINESS_WORKFACE_CANDIDATE' -or $m.businessWorkfaceId -cne 'ERP-5244-REALDATA-20261027' -or $m.businessWorkfaceReadOnly -ne $true -or $m.normalSessionSourceCommit -cnotmatch '^[a-f0-9]{40}$' -or !$m.PSObject.Properties['businessSessionSignerDomain'] -or $m.businessSessionSignerDomain -cne 'dedicated-business-key-v1' -or !$apiPrivate.PSObject.Properties['businessWorkface'] -or $apiPrivate.businessWorkface.id -cne $m.businessWorkfaceId -or $apiPrivate.businessWorkface.userId -ne 17 -or $apiPrivate.businessWorkface.actualT1 -ne $false -or $apiPrivate.businessWorkface.externalOperations -ne $false){throw 'TEST_STARTUP_COMPONENT_PROFILE_REJECTED'}
   # The original native/web profile and its package seal stay unchanged. Only
   # the API projection may carry a different package ID and business signer.
-  Assert-ErpApiPrivateProfile $privateConfig $apiPrivate $m
+  Assert-ErpApiPrivateProfile $privateConfig $apiPrivate $m -NormalPairBinding $NormalPairBinding
  }
  return $c
 }
-function Assert-ErpApiPrivateProfile($Base,$Api,$Manifest){
+function Assert-ErpApiPrivateProfile($Base,$Api,$Manifest,$NormalPairBinding=$null){
  if($Manifest.packageId-cin@('CANONICAL-TEST125-BUSINESS5244-B6-ca620bac-PASSIVE-20261028','CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029')-and(!$Api.PSObject.Properties['businessSaleAdmission']-or!$Api.PSObject.Properties['businessSaleWritesEnabled'])){throw 'B6_PROFILE_DESCRIPTOR_REQUIRED'}
- if($Api.PSObject.Properties['businessSaleAdmission']-or$Api.PSObject.Properties['businessSaleWritesEnabled']){$Api=Assert-ErpBusinessSaleProfileDelta $Base $Api $Manifest}
+ if($null-ne$NormalPairBinding){$Api=Assert-ErpCurrentPairPrivateProfile $NormalPairBinding $Api $Manifest}
+ elseif($Api.PSObject.Properties['businessSaleAdmission']-or$Api.PSObject.Properties['businessSaleWritesEnabled']){$Api=Assert-ErpBusinessSaleProfileDelta $Base $Api $Manifest}
  $comparison=$Api.PSObject.Copy();$comparison.PSObject.Properties.Remove('businessWorkface');$comparison.PSObject.Properties.Remove('businessSessionAccessSecret')
  $comparison.goal8SyntheticDaySeal=$Base.goal8SyntheticDaySeal
  if(($comparison|ConvertTo-Json -Depth 100 -Compress) -cne ($Base|ConvertTo-Json -Depth 100 -Compress) -or $Api.goal8SyntheticDaySeal.sourceCommit -cne $Base.goal8SyntheticDaySeal.sourceCommit -or $Api.goal8SyntheticDaySeal.dayId -cne $Base.goal8SyntheticDaySeal.dayId -or $Api.goal8SyntheticDaySeal.definitionHash -cne $Base.goal8SyntheticDaySeal.definitionHash -or $Api.goal8SyntheticDaySeal.packageId -cne $Manifest.packageId){throw 'TEST_STARTUP_COMPONENT_PROFILE_DELTA_REJECTED'}

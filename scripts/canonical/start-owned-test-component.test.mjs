@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import cp from 'node:child_process';import path from 'node:path';
 import {readFileSync} from 'node:fs';
+import './current-business-pair-startup.test.mjs';
 const script=path.join(import.meta.dirname,'start-owned-test.ps1'),ps=path.join(process.env.SystemRoot??'C:/Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
 const q=s=>"'"+s.replaceAll("'","''")+"'";
 const run=body=>{const env={...process.env};delete env.PSModulePath;return cp.execFileSync(ps,['-NoProfile','-NonInteractive','-Command',`. ${q(script)} -Library; ${body}`],{encoding:'utf8',env}).trim();};
