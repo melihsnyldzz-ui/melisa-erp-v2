@@ -1,3 +1,11 @@
+## ERP-DEC-087 — 4 Kasım 2026 — Mevcut bitiş kapsamı için aynı konuşmada native hedef
+
+Kullanıcı, DOT'taki ortak bitiş kaydıyla karşılaştırılan mevcut ERP49 + CRM25 kapsamı için bu ana konuşmada native hedef oluşturulmasını açıkça istedi. Hedef gerçekten kaydedildi ve active; bu açık talep önceki yeni-Goal sınırını yalnız bu hedef için günceller. Mevcut finish planı, özgün kabul ID'leri, kabul edilmiş işler ve ana ajan sorumlulukları korunur; yeni plan, takip sistemi veya ana ajan kurulmaz.
+
+Sıra ERP → el terminali → CRM'dir. İlk iş satış ve müşteri kartının çalışan TEST teslimidir: başarısız kaynak doğrulama bağı, hedefli test/bağımsız inceleme, mevcut PR54 kaynak teslimi, güvenli paket/kurulum ve normal ekran kontrolü. Kaynak testi, kurulum, normal GUI, fiziksel cihaz ve insan kabulü ayrı kaydedilir; gerçek insan sonucu olmadan kabul PASS olmaz. Yerel tarayıcı kullanımı kapalıysa normal ekran kontrolü BLOCKED kalır, başka araçla güvenlik sınırı aşılmaz.
+
+Ortak TEST'in tek yazarı ERP'dir. Veriler, roller, yedekler, journal'lar, karantinalar ve iki LL hesabının dışlanması korunur. Önceden onaylı aynı kalıcı TEST senaryosunun hedef/veri/etkisi değişmezse yeniden onay istenmez; belirsiz sonuçta tekrar yazmadan önce mevcut kayıt kontrol edilir. LIVE/Vega/T1/production yazısı, gerçek müşteri mesajı, ücretli işlem, main merge, credential veya güvenlik erişimi değişikliği ayrıca açık onay gerektirir. Hedef kaydı görevlerin tamamlandığı veya oturum dışında geliştirme sürdüğü kanıtı değildir.
+
 ## ERP-DEC-086 teknik eki — 3 Kasım /2254 ERP önceliği ve bağımsız geliştirme
 
 Kullanıcı önceERPbitirme ve farklıişlerde4–5ekgeliştirmesohbetine açıkizinverdi; mevcutanaERP tekortakruntime/SQL/entegrasyonsahibi kalır. Önceikiidlelocalajanreuse, sonragerçekbağımsızpayment/collectioniçiniki görünürnativeERPchild/kendiimmutablebaseworktree kullanıldı; yenianaowner/Goal/tree/otomasyonyok. C06normalmetadataGETsourcebağı, ayrı C01/C03/B06/C08kusurları mevcut49kapsamındadır. İzinler/normalappgeliştirme güvenlikretini aşma, nativefiniteadmissionüretme, sourcepingeveşetme/OS-task-service/credential/LIVE-Vega yetkisi değildir. C05limit müşteridövizkapsamı ve engelmiuyarımı işletmeanlamı kararsız; hamrisk_limitlekuraluydurulmadı. [2254 kaynak, paralel işler ve gerçek runtime sınırı](docs/evidence/erp/2026-11-02-customer-master/route-runtime.md).
