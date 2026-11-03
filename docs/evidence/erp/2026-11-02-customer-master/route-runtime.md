@@ -66,3 +66,20 @@ The C08 GUI attempt used the required computer-use skill and stopped at the supp
 One C05 business question remains: **for which customer/currency-account scope is the limit defined, and should exceeding it block a sale or only warn?** Raw `risk_limit` does not answer that contract. No default rule was introduced. Other authorised independent ERP source work was not held waiting for this question.
 
 C06/item16 and original C03/C05/C07/C08 human acceptance remain partial/pending; ERP49/9 complete/39 partial/1 open and CRM25 counters are unchanged.
+
+## Same 2254 task: independent source continuation while CI completed
+
+The original source `3531ba42` completed both automatic attempt1 runs: push41550648005 and PR41550655883, six successful jobs. This evidence does **not** cover the following new batch. No new C06/runtime job was opened.
+
+Four existing idle developers were checked immediately before dispatch and reused with separate clean worktrees based on `3531ba42`. Their ACK and actual root/origin/branch/HEAD/clean commands were observed. The first two are collaboration sub-agents: direct app-server input was rejected, so their existing collaboration task channel was used; failed path-entry attempts were not counted as started work. The two visible child chats were reused; no new chat, main agent, Goal or tracker was created.
+
+| Original item | Existing owner / source commit | Counterexample and result |
+|---|---|---|
+| C09 / A02 price editing | `b264_old_cut_adapter`, `b203b6ab` | A denied retry after lost ACK closed the uncertain price request. Old new-suite result: 9 fail / 5 pass; fixed focused/model suite: 18 pass. Only a fresh first-send rejection may close it; explicit retries preserve UUID/body/history and storage CAS. Click events cannot become the fresh flag. |
+| B07 / C15 reports | `b264_recovery_adapter`, `36869c35` | Clicking report kind or pagination during GET/CSV changed global filters before the old request completed. Old result: 6 fail / 1 pass; fixed targeted/regression suite: 35 pass. Busy operations now preserve filter/offset state; idle navigation remains available. |
+| A03 / B02 thumbnails | Existing child `01a19e91-d8e7-72c1-bed9-a1d2857d426a`, `3bbba337` | Without IntersectionObserver, window/ancestor scroll or resize did not enqueue newly visible photographs. Old result: 5 fail / 4 pass; fixed suite: 98 pass. Capture/resize listeners are removed on clear/dispose; lazy visibility, three-request concurrency, abort, generation, object URL cleanup and confirmed media boundaries are retained. |
+| B08 / C11 user label | Existing child `01a19e91-de46-7ff1-8d38-e0d98f1e481d`, `91c81207` | Removing TEST/DEMO/DEBUG anywhere in a name corrupted genuine names such as Demosthenes and Testa. Old result: 15 fail / 7 pass; fixed suite: 28 pass. The validated display name is preserved and HTML escaped; blank fallback stays. No identity, role or configuration changes. |
+
+Main integration updated two old price-recovery fixtures that expected the obsolete terminal rejection. All storage/CAS cases remain, with a separate new fresh-rejection/outcome-storage-failure case for HTTP400/403/409; no negative coverage was removed. Integrated source-scoped result: **160 pass, 0 skipped**, 629 ms, with the final private Sites build passing in 8.43 s (9045 ms wrapper). Worker totals are not added to that count. Independent readonly review: all four source changes GO, no P1/P2.
+
+New source and its exact automatic CI are recorded separately in STATUS and the same PR54 report. No installed application, native SQL, financial/stock/price mutation, normal browser or human acceptance was performed. Existing A03/B02 acceptance is preserved; this fallback regression proof is not a new personnel/device acceptance. C05 risk/limit semantics were not invented. The C06 supported-package-transition/actual-metadata blocker and all existing counts remain unchanged.

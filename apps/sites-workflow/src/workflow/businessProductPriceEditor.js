@@ -52,12 +52,12 @@ export function createBusinessProductPriceEditor({api,esc,productId,actorId,stor
       try{
         const body=businessPriceRequest(context,{priceId:editing.priceId,priceExact:canonicalPrice(editing.price,editing.unknown),reason:editing.reason},uuid());
         persist({actorId:String(actorId),productId,copyId:context.copyId,sealHash:context.sealHash,status:'pending',body});
-        editing=null;send();
+        editing=null;send(true);
       }catch(error){message=error.message;paint();}
     });
     host.querySelector('[data-business-price-cancel]')?.addEventListener('click',()=>{editing=null;message='';paint();});
     host.querySelector('[data-business-price-refresh]')?.addEventListener('click',()=>{if(locked||loading)return;if(editing){message='Önce fiyat düzenlemesini kaydedin veya Vazgeç düğmesine basın.';paint();return;}load();});
-    const retry=host.querySelector('[data-business-price-retry]');if(retry){retry.disabled=busy;retry.onclick=send;}
+    const retry=host.querySelector('[data-business-price-retry]');if(retry){retry.disabled=busy;retry.onclick=()=>send();}
   }
   async function load(notice=''){
     const n=++generation;loading=true;host.textContent='Satış fiyatları okunuyor…';
@@ -69,7 +69,7 @@ export function createBusinessProductPriceEditor({api,esc,productId,actorId,stor
     }catch{if(alive(n)){context=null;host.innerHTML=`<p role="alert">${notice?'Fiyat kaydı doğrulandı. Güncel fiyatlar henüz yüklenemedi.':'Fiyat kaydı şu anda doğrulanamıyor.'}</p><button class="btn" data-business-price-load-retry>Güncel fiyatları yükle</button>`;host.querySelector('[data-business-price-load-retry]').onclick=()=>load(notice);}return false;}
     finally{if(generation===n)loading=false;}
   }
-  async function send(){
+  async function send(fresh=false){
     if(busy||pending?.status!=='pending'||!context?.canEdit)return;
     const sent=pending,n=generation;let confirmed=false;busy=true;message='Fiyat kaydı kontrol ediliyor…';paint();
     try{
@@ -83,8 +83,11 @@ export function createBusinessProductPriceEditor({api,esc,productId,actorId,stor
     }catch(error){
       if([400,403,409].includes(error.status??error.statusCode)){
         try{
-          persistOutcome(sent,'rejected');
-          if(alive(n))message='İstek kabul edilmedi. Güncel fiyatları yükleyip yeniden kontrol edin.';
+          assertRetainedRequest(sent);
+          if(fresh===true){
+            persistOutcome(sent,'rejected');
+            if(alive(n))message='İstek kabul edilmedi. Güncel fiyatları yükleyip yeniden kontrol edin.';
+          }else if(alive(n))message='Sonuç henüz doğrulanamadı. Aynı istek korunuyor; kaydın sonucunu kontrol edin.';
         }catch{blockUnverifiedStorage(n,sent);}
       }else if(error.code==='PENDING_STORAGE_UNVERIFIED')blockUnverifiedStorage(n,sent);
       else if(alive(n))message='Sonuç henüz doğrulanamadı. Aynı istek korunuyor; kaydın sonucunu kontrol edin.';

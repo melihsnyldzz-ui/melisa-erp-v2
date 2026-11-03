@@ -160,13 +160,13 @@ test('delayed rejection preserves replaced or unreadable recovery storage and bl
  }
 });
 
-test('same pending request records a normal HTTP rejection without a second POST',async()=>{
+test('same restored pending request retains uncertainty after HTTP denial without an automatic second POST',async()=>{
  const {editor}=await controllers();
  for(const status of [400,403,409]){
   const slot=new Slot(),store=storage(pending()),calls=[];
   const ui=editor({api:async(path,options={})=>{calls.push(options.method??'GET');if(options.method==='POST')throw Object.assign(Error('denied'),{status});return context();},esc:String,productId:'12',actorId:'16',storage:store});
   ui.mount(slot);await tick();slot.querySelector('[data-business-price-retry]').onclick();await tick();
-  assert.deepEqual(store.saved(),{...pending(),status:'rejected'});assert.match(slot.innerHTML,/İstek kabul edilmedi/);assert.deepEqual(calls,['GET','POST']);assert.equal(ui.requestClose(),true);ui.dispose();
+  assert.deepEqual(store.saved(),pending());assert.match(slot.innerHTML,/Sonuç henüz doğrulanamadı/);assert.deepEqual(calls,['GET','POST']);assert.equal(ui.requestClose(),false);ui.dispose();
  }
 });
 
@@ -179,10 +179,29 @@ test('storage read or write failure blocks stale POST retry and only offers a GE
   const ui=editor({api:async(path,options={})=>{calls.push(options.method??'GET');if(options.method==='POST'){if(failure==='write after rejection')throw Object.assign(Error('denied'),{statusCode:409});return acknowledgement(options.body);}return context();},esc:String,productId:'12',actorId:'16',storage:store});
   ui.mount(slot);await tick();const retry=slot.querySelector('[data-business-price-retry]');
   if(failure==='missing before send')raw=null;if(failure==='read before send')readFails=true;if(failure.startsWith('write'))writeFails=true;
-  const expected=raw;retry.onclick();await tick();assert.equal(raw,expected);assert.equal(slot.querySelector('[data-business-price-retry]'),null);assert.doesNotMatch(slot.innerHTML,/Fiyat kaydı doğrulandı|İstek kabul edilmedi/);
+  const expected=raw;retry.onclick();await tick();assert.equal(raw,expected);
+  if(failure==='write after rejection'){
+   // An uncertain replay denial requires no journal write at all. A failing
+   // write store therefore cannot turn this into a terminal outcome.
+   assert.ok(slot.querySelector('[data-business-price-retry]'));assert.equal(slot.querySelector('[data-business-price-load-retry]'),null);
+   assert.match(slot.innerHTML,/Sonuç henüz doğrulanamadı/);assert.equal(ui.requestClose(),false);assert.deepEqual(calls,['GET','POST']);ui.dispose();continue;
+  }
+  assert.equal(slot.querySelector('[data-business-price-retry]'),null);assert.doesNotMatch(slot.innerHTML,/Fiyat kaydı doğrulandı|İstek kabul edilmedi/);
   retry.onclick();await tick();assert.equal(calls.filter(m=>m==='POST').length,failure.startsWith('write')?1:0);
   readFails=false;writeFails=false;raw=JSON.stringify({...pending(),body:{...pending().body,requestId:'8c758081-465d-445f-b024-aad40355f9d0'}});
   slot.querySelector('[data-business-price-load-retry]').onclick();await tick();assert.equal(calls.at(-1),'GET');assert.equal(calls.filter(m=>m==='POST').length,failure.startsWith('write')?1:0);assert.ok(slot.querySelector('[data-business-price-retry]'));ui.dispose();
+ }
+});
+
+test('fresh definite price rejection with failed outcome persistence retains the journal and only offers a GET reload',async()=>{
+ const {editor}=await controllers();
+ for(const status of [400,403,409]){
+  const slot=new Slot(),calls=[];let raw=null,writes=0,writeFails=false;
+  const store={getItem:()=>raw,setItem(_key,value){writes++;if(writeFails)throw Error('storage write');raw=value;}};
+  const ui=editor({api:async(_path,options={})=>{calls.push(options.method??'GET');if(options.method==='POST'){writeFails=true;throw Object.assign(Error('denied'),{status});}return context();},esc:String,productId:'12',actorId:'16',storage:store,uuid:()=>requestId});
+  ui.mount(slot);await tick();slot.querySelectorAll('[data-business-price-edit]')[0].onclick();const form=slot.querySelector('[data-business-price-form]');form.events.input();form.events.submit({preventDefault(){}});await tick();
+  assert.deepEqual(JSON.parse(raw),pending());assert.equal(writes,2);assert.deepEqual(calls,['GET','POST']);assert.equal(slot.querySelector('[data-business-price-retry]'),null);assert.ok(slot.querySelector('[data-business-price-load-retry]'));assert.doesNotMatch(slot.innerHTML,/Fiyat kaydı doğrulandı|İstek kabul edilmedi/);
+  writeFails=false;slot.querySelector('[data-business-price-load-retry]').onclick();await tick();assert.deepEqual(calls,['GET','POST','GET']);assert.deepEqual(JSON.parse(raw),pending());assert.ok(slot.querySelector('[data-business-price-retry]'));ui.dispose();
  }
 });
 
