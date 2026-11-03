@@ -56,10 +56,11 @@ The C08 GUI attempt used the required computer-use skill and stopped at the supp
 
 ## Verification and remaining decisions
 
-- Final main integrated offline suite: **716 passed, 0 skipped**, 2826 ms. It includes the changed C06/receiving/purchase/FX/cash/payment/collection/return/count tests and relevant existing regressions; worker totals are not added again.
+- Final main integrated offline suite: **723 passed, 0 skipped**, 2769 ms. It includes the changed C06/receiving/purchase/FX/cash/payment/collection/return/count tests, the startup policy regression and relevant existing regressions; worker totals are not added again.
 - API/CI syntax quality passed in 59293 ms. Final guarded Sites build passed in 9.16 s (10409 ms wrapper); output is a private build artifact, not an installed TEST package.
 - Independent source review: all nine source slices GO, including the closed payment restored-GET and count error-receipt P2 findings; actual runtime installation not GO. Exact final-source GitHub CI is recorded in STATUS and the shared PR54 report separately.
 - Previous 2148 push41535841107 / PR41535851339 were independently read back as six successful jobs, attempt1. They do not substitute for this changed source's CI.
+- Initial source `9752fae5` push41549224633 / PR41549231378 failed the API startup frozen-source assertion: the new reviewed metadata bootstrap/mount was not included in its exact projection. The correction keeps the original frozen SHA256 unchanged, admits only the two exact C06 additions at fixed positions and adds negative guard/pool/import/auth/automatic-read/extra/duplicate/missing/relocation cases. Production code, workflow, timeouts and scan rules are unchanged. The corrected commit's automatic CI must be checked separately; the first failure remains evidence.
 - The previous dirty STATUS tail and two unrelated PowerShell WIP files, original journals, packages, roles, balances and installed ERP/CRM are preserved. No new commercial/native transaction, migration, CRM/terminal change or human acceptance occurred.
 
 One C05 business question remains: **for which customer/currency-account scope is the limit defined, and should exceeding it block a sale or only warn?** Raw `risk_limit` does not answer that contract. No default rule was introduced. Other authorised independent ERP source work was not held waiting for this question.

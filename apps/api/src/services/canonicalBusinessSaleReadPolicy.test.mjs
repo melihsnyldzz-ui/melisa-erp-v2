@@ -46,12 +46,44 @@ function createFixture({readPolicy=isCanonicalBusinessSaleReadAllowed,writes=tru
  return {request,calls};
 }
 
-test('startup source differs from the frozen starter only by the pure read policy import and exact global predicate',()=>{
+function assertFrozenStartupProjection(source){
  const importLine="const {isCanonicalBusinessSaleReadAllowed}=await import('./src/services/canonicalBusinessSaleReadPolicy.mjs');\n";
  const predicate='&&!isCanonicalBusinessSaleReadAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})';
- assert.equal(starter.split(importLine).length,2);assert.equal(starter.split(predicate).length,2);
- const before=starter.replace(importLine,'').replace(predicate,'');
+ const startupLine='const canonicalStartup={identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession};\n';
+ const metadataBlock="if(mode==='erp'&&writes&&businessSession){\n const database=await import('./src/config/database.js');\n const {prepareCanonicalCustomerMasterMetadata}=await import('./src/services/customerMasterMetadataBootstrap.mjs');\n const {createCustomerMasterMetadataRoutes}=await import('./src/routes/customerMasterMetadataRoutes.mjs');\n const reader=await prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database});\n app.use('/api',createCustomerMasterMetadataRoutes({reader}));\n}\n";
+ assert(source.includes('=await configureCanonicalTest(configPath,mode);\n'+startupLine+"const {configureCatalogSourceVersion,catalogSourceVersion}=await import('./src/services/catalogProductReadStore.mjs');\n"),'Startup context must remain immediately after admitted configuration');
+ assert(source.includes("app.get('/native-terminal-health',(_req,res)=>readiness.send(res,{...health,writeEnabled:false,automaticSubmit:false}));\n"+metadataBlock+"if(mode==='erp' && writes){\n"),'Metadata mount must retain its exact position before existing admin context');
+ // Remove only four exact, single-occurrence reviewed additions. Any mutation,
+ // relocation or extra startup statement must still change the original hash.
+ let before=source;
+ for(const addition of [importLine,predicate,startupLine,metadataBlock]){
+  assert.equal(before.split(addition).length,2,'Reviewed startup addition must occur exactly once');
+  before=before.replace(addition,'');
+ }
  assert.equal(hash(before),'e02047a0f2375c9242e17f0e2d799fa459637d97412103f99b8a7f148972988a');
+}
+test('startup source preserves the frozen starter with only exact read-policy and readonly metadata additions',()=>{
+ assertFrozenStartupProjection(starter);
+});
+test('frozen startup projection rejects changed metadata guards, pool, imports, execution and extra statements',()=>{
+ const mutations=[
+  ["if(mode==='erp'&&writes&&businessSession){","if(mode==='erp'){"],
+  ['startup:{...canonicalStartup,mode},database','startup:{...canonicalStartup,mode},database:otherDatabase'],
+  ["./src/services/customerMasterMetadataBootstrap.mjs","./src/services/otherBootstrap.mjs"],
+  ['createCustomerMasterMetadataRoutes({reader})','createCustomerMasterMetadataRoutes({reader,requireAuth:false})'],
+  [" app.use('/api',createCustomerMasterMetadataRoutes({reader}));"," await reader.read();\n app.use('/api',createCustomerMasterMetadataRoutes({reader}));"],
+  ['const canonicalStartup={identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession};','const canonicalStartup={identity,port,networkPolicy,release,pool:otherPool,writes,env,config,listenerPolicy,businessSession};'],
+  ["const [mode, configPath] = process.argv.slice(2);","const [mode, configPath] = process.argv.slice(2);\nawait unexpectedStartup();"],
+  ['const canonicalStartup=', 'const duplicateStartup=true;\nconst canonicalStartup='],
+ ];
+ for(const [original,replacement] of mutations){
+  assert.equal(starter.split(original).length,2,'Negative fixture must mutate exactly one actual startup fragment');
+  assert.throws(()=>assertFrozenStartupProjection(starter.replace(original,replacement)));
+ }
+ const line='const canonicalStartup={identity,port,networkPolicy,release,pool,writes,env,config,listenerPolicy,businessSession};\n';
+ assert.throws(()=>assertFrozenStartupProjection(starter+line));
+ assert.throws(()=>assertFrozenStartupProjection(starter.replace(line,'')));
+ assert.throws(()=>assertFrozenStartupProjection(starter.replace(line,'')+line));
 });
 test('selected native read policy is exact and only admits protected writable ERP POST selected-context',()=>{
  const p='/api/work-sales/selected-context',opts={writes:true,mode:'erp',protectedNormalAuth:true};assert.equal(isCanonicalBusinessSaleReadAllowed('POST',p,opts),true);
