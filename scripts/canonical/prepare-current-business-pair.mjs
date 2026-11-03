@@ -46,13 +46,20 @@ export function currentWebClosure({readSource,parse,relativeImports}){
 }
 export function currentBusinessBuildPlan(){return {args:['build','--mode','business'],environment:{NODE_ENV:'production',VITE_ERP_WORKFACE:'ERP-5244-REALDATA-20261027',VITE_API_BASE_URL:'http://127.0.0.1:4144',VITE_VEGA_PRODUCTS_BASE_URL:'http://127.0.0.1:4144',VITE_MELISA_PILOT:'true',VITE_DEMO_MODE:'false',VITE_LOCAL_PASSWORDLESS_LOGIN:'false',VITE_TEST_READ_ONLY:'false'}};}
 export function currentBuildEnvironment(input){const e=Object.fromEntries(Object.entries(input).filter(([k])=>/^(SYSTEMROOT|WINDIR|TEMP|TMP|USERPROFILE|LANG|LC_ALL)$/i.test(k)));return {...e,Path:path.win32.dirname(NODE)+';C:\\Windows\\System32;C:\\Windows',...currentBusinessBuildPlan().environment};}
+// The pinned old WEB predates this one reachable source. Use the same row union
+// for the pre-build copy and final manifest so a new input cannot be omitted.
+export function currentWebPayloadRows({base,overlays}){
+ assertPairRows(base.files);requireThat(overlays instanceof Map&&overlays.size===WEB_SOURCE_FILES.length&&WEB_SOURCE_FILES.every(p=>Buffer.isBuffer(overlays.get(p))),'WEB_EXACT_SOURCES');
+ const rows=new Map(base.files.filter(r=>!r.path.startsWith('apps/sites-workflow/dist/')).map(r=>[r.path,structuredClone(r)]));
+ for(const p of WEB_SOURCE_FILES){const before=rows.get(p);requireThat(before||p==='apps/sites-workflow/business-preview-boundary.mjs','WEB_BASE_FILE');const b=overlays.get(p);rows.set(p,{...before,path:p,sha256:sha(b),bytes:b.length});}
+ return assertPairRows([...rows.values()]);
+}
 export function compileCurrentBusinessWebManifest({api,apiBytes,base,overlays,dist,producer,apiRoot}){
  const roots=pairRoots(producer);requireThat(apiRoot===roots.api&&Buffer.isBuffer(apiBytes)&&apiBytes.equals(encode(api)),'API_PAIR_BYTES');
  requireThat(api.sourceCommit===LEGACY_SOURCE_COMMIT&&api.packageId==='CANONICAL-TEST125-BUSINESS5244-B6-WRITER-20261029'&&api.database===NORMAL_DATABASE&&api.currentBusinessPair?.applicationSourceCommit===APPLICATION_SOURCE&&api.currentBusinessPair.producerSourceCommit===producer&&api.currentBusinessPair.masterWriterEnabled===false&&api.customerMasterMetadataOverlay?.sourceCommit===APPLICATION_SOURCE&&api.actualT1===false&&api.externalOperations===false,'API_PAIR_IDENTITY');
  requireThat(base.kind==='ERP_BUSINESS_WORKFACE_WEB_CANDIDATE'&&base.packageId===path.win32.basename(BASE_WEB)&&base.backendRoot===BASE_API&&base.backendManifestSha256===BASE_DIGESTS[0]&&base.sourceCommit==='fe3948c5ea77e7b0eb215cac6b6b0831adb45e8a'&&base.businessWorkfaceId==='ERP-5244-REALDATA-20261027'&&base.apiPort===4144&&base.webPort===5244&&base.database===api.database&&base.actualT1===false&&base.externalOperations===false,'WEB_BASE_IDENTITY');
- assertPairRows(base.files);assertPairRows(api.files);requireThat(overlays instanceof Map&&overlays.size===WEB_SOURCE_FILES.length&&WEB_SOURCE_FILES.every(p=>Buffer.isBuffer(overlays.get(p))),'WEB_EXACT_SOURCES');
- const rows=new Map(base.files.filter(r=>!r.path.startsWith('apps/sites-workflow/dist/')).map(r=>[r.path,structuredClone(r)]));
- const files=WEB_SOURCE_FILES.map(p=>{const before=rows.get(p);requireThat(before,'WEB_BASE_FILE');const b=overlays.get(p),next={...before,sha256:sha(b),bytes:b.length};rows.set(p,next);return {path:p,beforeSha256:before.sha256,sha256:next.sha256,bytes:b.length};});
+ assertPairRows(api.files);const rows=new Map(currentWebPayloadRows({base,overlays}).map(r=>[r.path,r])),baseRows=new Map(base.files.map(r=>[r.path,r]));
+ const files=WEB_SOURCE_FILES.map(p=>{const next=rows.get(p);return {path:p,beforeSha256:baseRows.get(p)?.sha256??null,sha256:next.sha256,bytes:next.bytes};});
  requireThat(dist instanceof Map&&dist.has('ornek-akis.html')&&dist.size>0,'DIST_REQUIRED');
  const names=new Set();for(const [name,b]of dist){assertPairRows([{path:name,sha256:sha(b),bytes:b.length}]);requireThat(!names.has(name.toLowerCase()),'DIST_ALIAS');names.add(name.toLowerCase());rows.set('apps/sites-workflow/dist/'+name,{path:'apps/sites-workflow/dist/'+name,sha256:sha(b),bytes:b.length});}
  const html=dist.get('ornek-akis.html').toString(),assetRefs=[...html.matchAll(/(?:src|href)=["'](\/assets\/[^"']+)["']/g)].map(x=>x[1].slice(1));requireThat(assetRefs.length>0&&assetRefs.every(x=>dist.has(x)),'DIST_ASSET_REFERENCE');
@@ -100,7 +107,7 @@ export async function prepareCurrentBusinessPair(producer){
  requireThat(git(['rev-parse','HEAD']).trim()===producer,'HEAD_DRIFT');
  // Creation starts only after identities, CI, input closure, tools and disk checks.
  copyPayload(BASE_API,roots.api,api.files,apiOverlay);writeNew(path.join(roots.api,'release-manifest.json'),apiBytes);verifyPayload(roots.api,api);
- const preRows=webBase.files.filter(r=>!r.path.startsWith('apps/sites-workflow/dist/')).map(r=>webSource.has(r.path)?{...r,sha256:sha(webSource.get(r.path)),bytes:webSource.get(r.path).length}:r);copyPayload(BASE_WEB,roots.web,preRows,webSource);
+ const preRows=currentWebPayloadRows({base:webBase,overlays:webSource});copyPayload(BASE_WEB,roots.web,preRows,webSource);
  const plan=currentBusinessBuildPlan(),work=path.join(roots.web,'apps','sites-workflow');const build=cp.spawnSync(NODE,[path.join(work,'node_modules','vite','bin','vite.js'),...plan.args],{cwd:work,env:currentBuildEnvironment(process.env),windowsHide:true,encoding:'utf8',timeout:180000,maxBuffer:16000000});
  writeNew(path.join(roots.web,'business-build.stdout.log'),Buffer.from(build.stdout??''));writeNew(path.join(roots.web,'business-build.stderr.log'),Buffer.from(build.stderr??''));requireThat(!build.error&&build.status===0,'BUILD_FAILED');
  const dist=new Map(),walk=(dir,relative='')=>{plain(dir);for(const d of fs.readdirSync(dir,{withFileTypes:true})){requireThat(!d.isSymbolicLink(),'BUILD_REPARSE');const name=relative+d.name;if(d.isDirectory())walk(path.join(dir,d.name),name+'/');else dist.set(name,read(path.join(dir,d.name)));}};walk(path.join(work,'dist'));
