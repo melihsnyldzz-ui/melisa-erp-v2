@@ -237,3 +237,45 @@ if(!$test125LibraryOnly){
   [ordered]@{status=$result.status;runId=$result.runId;taskIdentityVerified=$true;taskEngineBoundToSupervisor=$true;childrenVerified=3;supportedTaskStopStart=$true;pauseReady=$false;stopStartCalls=0;taskChanges=0;commercialWrites=0} | ConvertTo-Json -Compress
  }catch{[ordered]@{status='REJECTED';code=(Get-ErpSafeCode $_.Exception);stopStartCalls=0;taskChanges=0;commercialWrites=0} | ConvertTo-Json -Compress;exit 1}
 }
+# B6-BEGIN-API-FORWARD-V1 is a pure proposal model. It consumes supplied JSON
+# only; it does not issue admission, inspect runtime, stop services, write SQL,
+# change config or authorize installation. The controller must separately obtain
+# a fresh target-bound owner and transaction/CAS proof through a supported path.
+function Assert-Test125ForwardModelKeys($Value,[string[]]$Names){
+ if($null-eq$Value-or$Value-isnot[pscustomobject]){throw 'B6_FORWARD_MODEL_SHAPE'}
+ $actual=@($Value.PSObject.Properties.Name | Sort-Object -CaseSensitive);$expected=@($Names | Sort-Object -CaseSensitive)
+ if(($actual-join'|')-cne($expected-join'|')){throw 'B6_FORWARD_MODEL_SHAPE'}
+}
+function Test-Test125ForwardModelHash($Value,[switch]$Uppercase){if($Value-isnot[string]){return $false};if($Uppercase){return $Value-cmatch'\A[A-F0-9]{64}\z'};return $Value-cmatch'\A[a-f0-9]{64}\z'}
+function Get-Test125B6ForwardOnlyModel([string]$CaseJson,[string]$BeforeJson,[string]$RecheckJson){
+ foreach($v in @($CaseJson,$BeforeJson,$RecheckJson)){if(!$v-or$v.Length-gt16384){throw 'B6_FORWARD_MODEL_INPUT'}}
+ try{$case=$CaseJson|ConvertFrom-Json -ErrorAction Stop;$before=$BeforeJson|ConvertFrom-Json -ErrorAction Stop;$recheck=$RecheckJson|ConvertFrom-Json -ErrorAction Stop}catch{throw 'B6_FORWARD_MODEL_INPUT'}
+ foreach($pair in @(@($CaseJson,$case),@($BeforeJson,$before),@($RecheckJson,$recheck))){if($pair[0]-cne($pair[1]|ConvertTo-Json -Depth 10 -Compress)){throw 'B6_FORWARD_MODEL_CANONICAL_JSON'}}
+ Assert-Test125ForwardModelKeys $case @('schema','purpose','database','server','sourceCommit','actorId','roleId','oldApi','newApi','oldWeb','newWeb','oldBegin','newBegin','profileField')
+ if($case.schema-cne'melisa-b6-forward-case-model.v1'-or$case.purpose-cne'B6_BEGIN_API_FORWARD_V1'-or$case.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01'-or$case.server-cne'Semih\MELISADEV'-or$case.sourceCommit-cne'fce4d7aa21d2828c32576a8e5a51adb84fb000fe'-or($case.actorId-isnot[int]-and$case.actorId-isnot[long])-or$case.actorId-ne17-or($case.roleId-isnot[int]-and$case.roleId-isnot[long])-or$case.roleId-ne17-or$case.profileField-cne'businessSaleAdmission.beginDefinitionHash'){throw 'B6_FORWARD_MODEL_TARGET'}
+ foreach($name in @('oldApi','newApi','oldWeb','newWeb')){if(!(Test-Test125ForwardModelHash $case.$name)){throw 'B6_FORWARD_MODEL_HASH'}}
+ foreach($name in @('oldBegin','newBegin')){if(!(Test-Test125ForwardModelHash $case.$name -Uppercase)){throw 'B6_FORWARD_MODEL_HASH'}}
+ $oldApi=@('342fa6b6','ac7448a8','ac515cbd','118638b8','57d44c56','fc621b74','ac0070dd','209c0a5f')-join''
+ $oldWeb=@('fbedc4da','026b4ac2','57440ddc','d54166b5','69a623c0','67d7c5a5','c712fa6a','f5d99ab6')-join''
+ if($case.oldApi-cne$oldApi-or$case.oldWeb-cne$oldWeb){throw 'B6_FORWARD_MODEL_BASE_PIN'}
+ $oldBegin=@('C91F4302','8BFA9E3A','B9448167','09B2A235','0767340C','3447AECB','AABAA524','E7CA18FA')-join''
+ $newBegin=@('3353D341','EA93FE97','BBB911C4','4D113E8A','E3E07BF5','6ACE2900','2F3414AB','539E8305')-join''
+ if($case.oldBegin-cne$oldBegin-or$case.newBegin-cne$newBegin){throw 'B6_FORWARD_MODEL_BEGIN_PIN'}
+ if($case.oldApi-ceq$case.newApi-or$case.oldWeb-ceq$case.newWeb-or$case.oldBegin-ceq$case.newBegin){throw 'B6_FORWARD_MODEL_NO_CHANGE'}
+ $keys=@('schema','purpose','database','server','apiPort','nativePort','webPort','actualT1','externalOperations','actorId','roleId','observedUtc','ownerSid','taskInstance','supervisorPid','supervisorBirth','apiPid','apiBirth','nativePid','nativeBirth','webPid','webBirth','taskHash','profileHash','beginHash','apiHash','webHash','journalHash','dataHash')
+ foreach($v in @($before,$recheck)){
+  Assert-Test125ForwardModelKeys $v $keys
+  if($v.schema-cne'melisa-b6-forward-observation-model.v1'-or$v.purpose-cne$case.purpose-or$v.database-cne$case.database-or$v.server-cne$case.server-or($v.apiPort-isnot[int]-and$v.apiPort-isnot[long])-or$v.apiPort-ne4144-or($v.nativePort-isnot[int]-and$v.nativePort-isnot[long])-or$v.nativePort-ne4146-or($v.webPort-isnot[int]-and$v.webPort-isnot[long])-or$v.webPort-ne5244-or$v.actualT1-isnot[bool]-or$v.actualT1-ne$false-or$v.externalOperations-isnot[bool]-or$v.externalOperations-ne$false-or($v.actorId-isnot[int]-and$v.actorId-isnot[long])-or$v.actorId-ne17-or($v.roleId-isnot[int]-and$v.roleId-isnot[long])-or$v.roleId-ne17){throw 'B6_FORWARD_MODEL_TARGET'}
+  if($v.ownerSid-isnot[string]-or$v.ownerSid-cnotmatch'\AS-1-(?:\d+-){1,14}\d+\z'-or$v.taskInstance-isnot[string]-or$v.taskInstance-cnotmatch'\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z'){throw 'B6_FORWARD_MODEL_OWNER'}
+  $ids=@($v.supervisorPid,$v.apiPid,$v.nativePid,$v.webPid);if(@($ids|Where-Object{($_-isnot[int]-and$_-isnot[long])-or$_-le0-or$_-gt2147483647}).Count-or@($ids|Sort-Object -Unique).Count-ne4){throw 'B6_FORWARD_MODEL_OWNER'}
+  foreach($name in @('supervisorBirth','apiBirth','nativeBirth','webBirth')){if($v.$name-isnot[string]-or$v.$name-cnotmatch'\A[0-9]{18}\z'){throw 'B6_FORWARD_MODEL_OWNER'}}
+  foreach($name in @('taskHash','profileHash','apiHash','webHash','journalHash','dataHash')){if(!(Test-Test125ForwardModelHash $v.$name)){throw 'B6_FORWARD_MODEL_HASH'}}
+  if(!(Test-Test125ForwardModelHash $v.beginHash -Uppercase)){throw 'B6_FORWARD_MODEL_HASH'}
+  if($v.apiHash-cne$case.oldApi-or$v.webHash-cne$case.oldWeb-or$v.beginHash-cne$case.oldBegin){throw 'B6_FORWARD_MODEL_CAS'}
+ }
+ $oldTime=[datetimeoffset]::MinValue;$newTime=[datetimeoffset]::MinValue
+ if(![datetimeoffset]::TryParseExact($before.observedUtc,'yyyy-MM-ddTHH:mm:ss.fffffffZ',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$oldTime)-or![datetimeoffset]::TryParseExact($recheck.observedUtc,'yyyy-MM-ddTHH:mm:ss.fffffffZ',[Globalization.CultureInfo]::InvariantCulture,[Globalization.DateTimeStyles]::AssumeUniversal,[ref]$newTime)){throw 'B6_FORWARD_MODEL_TIME'}
+ $now=[datetimeoffset]::UtcNow;if($newTime-lt$oldTime-or($newTime-$oldTime).TotalSeconds-gt120-or($now-$newTime).TotalSeconds-lt0-or($now-$newTime).TotalSeconds-gt120-or($now-$oldTime).TotalSeconds-gt120){throw 'B6_FORWARD_MODEL_TIME'}
+ foreach($name in $keys){if($name-ceq'observedUtc'){continue};if(($before.$name|ConvertTo-Json -Compress)-cne($recheck.$name|ConvertTo-Json -Compress)){throw 'B6_FORWARD_MODEL_DRIFT'}}
+ return [pscustomobject][ordered]@{schema='melisa-b6-forward-plan-model.v1';purpose=$case.purpose;status='MODEL_ONLY_NOT_ADMISSION';sourceCommit=$case.sourceCommit;database=$case.database;server=$case.server;oldApi=$case.oldApi;newApi=$case.newApi;oldWeb=$case.oldWeb;newWeb=$case.newWeb;sqlModule='dbo.usp_canonical_business_sale_begin_v1';oldBegin=$case.oldBegin;newBegin=$case.newBegin;profileField=$case.profileField;candidateManifestProvenance='UNVERIFIED_INPUT';observationProvenance='UNVERIFIED_INPUT';dataAndJournal='BEFORE_ONLY_NOT_POSTVALIDATED';rollbackStatus='NOT_REQUIRED_FOR_MODEL';installed=$false;runtimeVerified=$false;executionAuthority=$false;sqlCalls=0;serviceChanges=0;configChanges=0;commercialWrites=0}
+}

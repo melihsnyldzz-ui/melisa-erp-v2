@@ -106,6 +106,9 @@ export const BEGIN_REVIEW_GIT_BLOBS=Object.freeze({
 });
 const BEGIN_REVIEW_PROFILE='9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9';
 const BEGIN_REVIEW_BEFORE='C91F43028BFA9E3AB944816709B2A2350767340C3447AECBAABAA524E7CA18FA';
+const BEGIN_PRIVATE_AFTER=['3353D341','EA93FE97','BBB911C4','4D113E8A','E3E07BF5','6ACE2900','2F3414AB','539E8305'].join('');
+const BEGIN_PRIVATE_APPLY=['24E6022C','4951945C','39C28363','D68B268C','41823857','0A40308F','21386FE6','027E940A'].join('');
+const BEGIN_PRIVATE_INVERSE=['821CE126','3EC1E087','B284594F','04976A5E','E7C8C30F','23C4147D','5D74C5BA','40449F8D'].join('');
 const BEGIN_REVIEW_EVIDENCE=Object.freeze({metadata:'1a0d7fac1b43b24102b3ee1b5b41670609a764bc0d63defc126ff6b5bf65921d',guard:'8e4aabc957b235d604faebbac1837f2c124ed58950ce61524cf79b20312e3b04',arrayPacket:PACKET_HASH,oldArtifact:'35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'});
 const blobId=b=>crypto.createHash('sha1').update(Buffer.from(`blob ${b.length}\0`)).update(b).digest('hex');
 const unicodeHash=s=>crypto.createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
@@ -126,7 +129,7 @@ export function compareBeginReviewArtifacts({metadata,packet,old,revision,expect
  const alter=s=>'ALTER '+s.slice('CREATE '.length),apply=alter(candidates[0].definition),inverse=alter(records[0].definition);
  return Object.freeze({status:'COMPARISON_ONLY_UNPINNED',installable:false,executionAuthority:false,beforeHash:expectedBefore,afterHash:candidates[0].definitionHash,applyAlterTextSha256:unicodeHash(apply),inverseAlterTextSha256:unicodeHash(inverse),otherFourOwnerModulesUnchanged:true});
 }
-export async function compileBeginReviewPacket({sourceCommit,gitBlobs,evidence,revisionInput}={}){
+async function compileBeginReviewCore({sourceCommit,gitBlobs,evidence,revisionInput}={}){
  if(sourceCommit!==BEGIN_REVIEW_SOURCE||!(gitBlobs instanceof Map)||gitBlobs.size!==Object.keys(BEGIN_REVIEW_GIT_BLOBS).length||Object.entries(BEGIN_REVIEW_GIT_BLOBS).some(([p,h])=>!Buffer.isBuffer(gitBlobs.get(p))||blobId(gitBlobs.get(p))!==h))fail('BEGIN_REVIEW_GIT_PIN');
  const held=new Map([...gitBlobs].map(([p,b])=>[p,Buffer.from(b)]));
  if(!evidence||Object.keys(evidence).sort().join()!==Object.keys(BEGIN_REVIEW_EVIDENCE).sort().join()||Object.entries(BEGIN_REVIEW_EVIDENCE).some(([k,h])=>!Buffer.isBuffer(evidence[k])||sha(evidence[k])!==h))fail('BEGIN_REVIEW_EVIDENCE_PIN');
@@ -142,7 +145,25 @@ export async function compileBeginReviewPacket({sourceCommit,gitBlobs,evidence,r
  // parser or module error that might echo those bytes to a terminal or log.
  const revision=await withBeginCompilerErrorsMasked(async()=>(await import(sourceUrl(revisionText))).compileCanonicalBusinessSaleRevision(revisionInput));
  const comparison=compareBeginReviewArtifacts({metadata,packet,old,revision,expectedProfile:BEGIN_REVIEW_PROFILE,expectedBefore:BEGIN_REVIEW_BEFORE});
- return Object.freeze({schema:'melisa-b6-begin-successor-review.v1',status:'REVIEW_ONLY_HISTORICAL_NOT_INSTALLABLE',installable:false,executeAllowed:false,executionAuthority:false,nativeCompiled:false,actualT1:false,externalOperations:false,sqlExecuted:false,profileHash:BEGIN_REVIEW_PROFILE,sourceCommit:BEGIN_REVIEW_SOURCE,sourceBlobIds:BEGIN_REVIEW_GIT_BLOBS,historicalObservedUtc:metadata.observedUtc,server:metadata.identity.serverName,database:metadata.identity.databaseName,module:begin,beforeHash:comparison.beforeHash,afterHash:comparison.afterHash,applyAlterTextSha256:comparison.applyAlterTextSha256,inverseAlterTextSha256:comparison.inverseAlterTextSha256,profileField:'businessSaleAdmission.beginDefinitionHash',otherFourOwnerModulesUnchanged:true,previousGuardRepairNotIncluded:true,requiresFreshTargetAndDefinitionReadback:true,requiresNativeSqlCompilation:true,requiresExistingMaintenanceAdmission:true,requiresProfileCas:true,requiresPrivateBackup:true,requiresApprovalForPermissionOrSchemaChange:true});
+ const review=Object.freeze({schema:'melisa-b6-begin-successor-review.v1',status:'REVIEW_ONLY_HISTORICAL_NOT_INSTALLABLE',installable:false,executeAllowed:false,executionAuthority:false,nativeCompiled:false,actualT1:false,externalOperations:false,sqlExecuted:false,profileHash:BEGIN_REVIEW_PROFILE,sourceCommit:BEGIN_REVIEW_SOURCE,sourceBlobIds:BEGIN_REVIEW_GIT_BLOBS,historicalObservedUtc:metadata.observedUtc,server:metadata.identity.serverName,database:metadata.identity.databaseName,module:begin,beforeHash:comparison.beforeHash,afterHash:comparison.afterHash,applyAlterTextSha256:comparison.applyAlterTextSha256,inverseAlterTextSha256:comparison.inverseAlterTextSha256,profileField:'businessSaleAdmission.beginDefinitionHash',otherFourOwnerModulesUnchanged:true,previousGuardRepairNotIncluded:true,requiresFreshTargetAndDefinitionReadback:true,requiresNativeSqlCompilation:true,requiresExistingMaintenanceAdmission:true,requiresProfileCas:true,requiresPrivateBackup:true,requiresApprovalForPermissionOrSchemaChange:true});
+ return {review,metadata,revision,comparison};
+}
+export async function compileBeginReviewPacket(input){return (await compileBeginReviewCore(input)).review;}
+
+// Private data only; caller must retain it privately and seal it in a future
+// independently verified owner closure. These bytes cannot issue admission.
+function buildBeginPrivateArtifact({review,metadata,revision,comparison}){
+ if(review.beforeHash!==BEGIN_REVIEW_BEFORE||review.afterHash!==BEGIN_PRIVATE_AFTER||review.profileHash!==BEGIN_REVIEW_PROFILE||review.applyAlterTextSha256!==BEGIN_PRIVATE_APPLY||review.inverseAlterTextSha256!==BEGIN_PRIVATE_INVERSE||comparison.beforeHash!==review.beforeHash||comparison.afterHash!==review.afterHash||comparison.applyAlterTextSha256!==review.applyAlterTextSha256||comparison.inverseAlterTextSha256!==review.inverseAlterTextSha256)fail('BEGIN_PRIVATE_PIN');
+ const name='dbo.usp_canonical_business_sale_begin_v1',before=metadata.modules.filter(m=>m.schemaName==='dbo'&&m.objectName==='usp_canonical_business_sale_begin_v1'),after=revision.newModules.filter(m=>m.name===name);
+ if(before.length!==1||after.length!==1||!before[0].definition.startsWith('CREATE PROCEDURE '+name+' ')||!after[0].definition.startsWith('CREATE PROCEDURE '+name+' ')||unicodeHash(before[0].definition)!==review.beforeHash||unicodeHash(after[0].definition)!==review.afterHash)fail('BEGIN_PRIVATE_DEFINITION');
+ const apply='ALTER '+after[0].definition.slice(7),inverse='ALTER '+before[0].definition.slice(7);
+ if(unicodeHash(apply)!==review.applyAlterTextSha256||unicodeHash(inverse)!==review.inverseAlterTextSha256)fail('BEGIN_PRIVATE_DEFINITION');
+ return bytes({schema:'melisa-b6-begin-private-artifact.v1',status:'PRIVATE_HISTORICAL_NOT_EXECUTABLE',sourceCommit:BEGIN_REVIEW_SOURCE,module:name,profileHash:review.profileHash,profileField:'businessSaleAdmission.beginDefinitionHash',beforeHash:review.beforeHash,afterHash:review.afterHash,applyAlterTextSha256:review.applyAlterTextSha256,inverseAlterTextSha256:review.inverseAlterTextSha256,applyDefinition:apply,inverseDefinition:inverse,installable:false,executeAllowed:false,executionAuthority:false,nativeCompiled:false,sqlExecuted:false,actualT1:false,externalOperations:false});
+}
+export async function compileBeginPrivateArtifact(input){
+ // Mask parser/compiler/validation errors: private SQL or profile bytes must
+ // never enter a terminal, log or exception. No file or SQL IO occurs here.
+ try{return buildBeginPrivateArtifact(await compileBeginReviewCore(input));}catch{fail('BEGIN_PRIVATE_ARTIFACT_REJECTED');}
 }
 export function readArrayRepairInputs(){
  const inputs=new Map(Object.entries(ARRAY_REPAIR_INPUTS).map(([n,h])=>[n,pin(path.win32.join(PRIVATE,n),h)]));

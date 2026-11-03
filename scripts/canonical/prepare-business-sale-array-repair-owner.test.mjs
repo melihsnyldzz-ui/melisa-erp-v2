@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import cp from 'node:child_process';
-import {ARRAY_REPAIR_SOURCE_FILES,ARRAY_REPAIR_INPUTS,ARRAY_REPAIR_SCOPE,ARRAY_REPAIR_PURPOSE,ARRAY_REPAIR_ROOTS,BEGIN_REVIEW_SOURCE,BEGIN_REVIEW_GIT_BLOBS,compileBeginReviewPacket,compareBeginReviewArtifacts,withBeginCompilerErrorsMasked,validateArrayRepairPacket,renderArrayRepairCurrent,renderRouter,equalArrayRepairMetadata} from './prepare-business-sale-array-repair-owner.mjs';
+import {ARRAY_REPAIR_SOURCE_FILES,ARRAY_REPAIR_INPUTS,ARRAY_REPAIR_SCOPE,ARRAY_REPAIR_PURPOSE,ARRAY_REPAIR_ROOTS,BEGIN_REVIEW_SOURCE,BEGIN_REVIEW_GIT_BLOBS,compileBeginReviewPacket,compileBeginPrivateArtifact,compareBeginReviewArtifacts,withBeginCompilerErrorsMasked,validateArrayRepairPacket,renderArrayRepairCurrent,renderRouter,equalArrayRepairMetadata} from './prepare-business-sale-array-repair-owner.mjs';
 import {BUSINESS_SALE_OWNER_SOURCE_FILES} from './prepare-business-sale-owner-bundle.mjs';
 const sha=s=>createHash('sha256').update(s,'utf16le').digest('hex').toUpperCase();
 test('BEGIN review accepts only five exact immutable source blobs before examining historical evidence',async()=>{
@@ -29,6 +29,26 @@ test('synthetic BEGIN comparison accepts only descriptor delta and never emits S
 test('synthetic BEGIN comparison rejects every owner, descriptor, scope and hash drift',()=>{
  const mutations=[x=>x.metadata.modules[0].definition+='x',x=>x.metadata.modules.push(x.metadata.modules[0]),x=>x.revision.profileHash='X',x=>x.revision.installable=true,x=>x.revision.executeAllowed=true,x=>x.revision.nativeCompiled=true,x=>x.revision.newModules[0].definitionHash='F'.repeat(64),x=>x.packet.profileMetadataDelta.pop(),x=>x.packet.profileMetadataDelta[1].field=x.packet.profileMetadataDelta[0].field,x=>x.revision.appDescriptor.contextDefinitionHash='F'.repeat(64),x=>x.revision.appDescriptor.readerDefinitions.fixture='F'.repeat(64),...['ready','resolve','context','assert'].map(n=>x=>{const m=x.metadata.modules.find(v=>v.objectName.includes('_'+n+'_'));m.definition+='tamper';})];
  for(const change of mutations){const input=beginComparisonFixture();change(input);assert.throws(()=>compareBeginReviewArtifacts(input));}
+});
+test('private BEGIN artifact serializes exactly one synthetic transition and rejects every changed pin or body',async()=>{
+ // Instrument a separate in-memory module with synthetic pins; production
+ // exports still require their immutable historical pins and Git witnesses.
+ const f=beginComparisonFixture(),c=compareBeginReviewArtifacts(f),fixture={review:{...c,profileHash:f.expectedProfile},metadata:f.metadata,revision:f.revision,comparison:c};
+ let code=fs.readFileSync(new URL('./prepare-business-sale-array-repair-owner.mjs',import.meta.url),'utf8');
+ for(const [name,value] of Object.entries({BEGIN_REVIEW_PROFILE:f.expectedProfile,BEGIN_REVIEW_BEFORE:c.beforeHash,BEGIN_PRIVATE_AFTER:c.afterHash,BEGIN_PRIVATE_APPLY:c.applyAlterTextSha256,BEGIN_PRIVATE_INVERSE:c.inverseAlterTextSha256})){
+  const pattern=new RegExp(`const ${name}=.*?;`);assert.match(code,pattern);code=code.replace(pattern,`const ${name}=${JSON.stringify(value)};`);
+ }
+ const source='data:text/javascript;base64,'+Buffer.from(code+'\nexport {buildBeginPrivateArtifact as fixtureBuilder};').toString('base64');
+ const {fixtureBuilder}=await import(source),result=fixtureBuilder(fixture),parsed=JSON.parse(result.toString('utf8'));
+ assert(Buffer.isBuffer(result));assert.equal(parsed.beforeHash,c.beforeHash);assert.equal(parsed.afterHash,c.afterHash);assert.equal(parsed.profileField,'businessSaleAdmission.beginDefinitionHash');
+ assert.equal(parsed.applyAlterTextSha256,sha(parsed.applyDefinition));assert.equal(parsed.inverseAlterTextSha256,sha(parsed.inverseDefinition));
+ for(const flag of ['installable','executeAllowed','executionAuthority','nativeCompiled','sqlExecuted','actualT1','externalOperations'])assert.equal(parsed[flag],false);
+ assert.match(parsed.applyDefinition,/^ALTER PROCEDURE dbo\.usp_canonical_business_sale_begin_v1 /);assert.match(parsed.inverseDefinition,/^ALTER PROCEDURE dbo\.usp_canonical_business_sale_begin_v1 /);
+ for(const change of [x=>x.review.beforeHash='F'.repeat(64),x=>x.review.afterHash='F'.repeat(64),x=>x.review.profileHash='F'.repeat(64),x=>x.review.applyAlterTextSha256='F'.repeat(64),x=>x.review.inverseAlterTextSha256='F'.repeat(64),x=>x.comparison.beforeHash='F'.repeat(64),x=>x.revision.newModules[0].definition+='x',x=>x.metadata.modules[0].definition+='x',x=>x.metadata.modules.push(x.metadata.modules[0])]){const bad=structuredClone(fixture);change(bad);assert.throws(()=>fixtureBuilder(bad),e=>!e.message.includes('PRIVATE-CANARY'));}
+});
+test('production private BEGIN compiler masks all input failures and refuses synthetic evidence',async()=>{
+ const f=beginComparisonFixture(),canary='PRIVATE-CANARY-EXCEPTION';
+ for(const input of [undefined,{sourceCommit:canary,gitBlobs:new Map(),evidence:f,revisionInput:f},{sourceCommit:BEGIN_REVIEW_SOURCE,gitBlobs:new Map(),evidence:f,revisionInput:f}])await assert.rejects(compileBeginPrivateArtifact(input),{message:'BEGIN_PRIVATE_ARTIFACT_REJECTED'});
 });
 test('private compiler exceptions are replaced with a fixed error',async()=>{
  await assert.rejects(withBeginCompilerErrorsMasked(()=>{throw Error('PRIVATE-CANARY');}),{message:'BEGIN_REVIEW_COMPILER_REJECTED'});assert.equal(await withBeginCompilerErrorsMasked(()=>42),42);

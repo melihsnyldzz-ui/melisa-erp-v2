@@ -6,6 +6,49 @@ import os from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 
+test('BEGIN snapshot projection validates exact finite replacements and keeps private inputs out of results and errors',()=>{
+ if(process.platform!=='win32')return;
+ assert.equal(run(String.raw`
+$canary='PRIVATE-CANARY-SNAPSHOT';$old=@('A','B','C','D'|ForEach-Object{$_*64});$next=@('1','2','3','4'|ForEach-Object{$_*64});$fifth='5'*64
+$base=($old -join '|')+'|'+$canary;$maps=@();for($i=0;$i-lt4;$i++){$maps+=,[pscustomobject]@{before=$old[$i];after=$next[$i]}}
+$expected=($next -join '|')+'|'+$canary
+function HashFixture([string]$value){$h=[Security.Cryptography.SHA256]::Create();try{[BitConverter]::ToString($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($value))).Replace('-','')}finally{$h.Dispose()}}
+$four=Get-ErpBusinessSaleBeginSnapshotProjectionCore $base $maps
+if($four.sha256-cne(HashFixture $expected)-or$four.replacements-ne4-or$four.sqlExecuted-or$four.executionAuthority-or$four.status-cne'HASH_PROJECTION_ONLY'){throw 'FOUR_REPLACEMENT_MISMATCH'}
+$maps5=@($maps)+@([pscustomobject]@{before=$next[2];after=$fifth});$five=Get-ErpBusinessSaleBeginSnapshotProjectionCore $base $maps5
+if($five.sha256-cne(HashFixture ($expected.Replace($next[2],$fifth)))-or$five.replacements-ne5-or$five.sqlExecuted-or$five.executionAuthority){throw 'FIVE_REPLACEMENT_MISMATCH'}
+if((($four,$five)|ConvertTo-Json -Depth 10)-match[regex]::Escape($canary)){throw 'RESULT_CONTAINS_PRIVATE_INPUT'}
+function MustReject([string]$text,[object[]]$changes){$denied=$false;try{[void](Get-ErpBusinessSaleBeginSnapshotProjectionCore $text $changes)}catch{if($_.Exception.Message-match[regex]::Escape($canary)){throw 'ERROR_CONTAINS_PRIVATE_INPUT'};$denied=$true};if(!$denied){throw 'INVALID_PROJECTION_ACCEPTED'}}
+MustReject ($base+'|'+$old[0]) $maps
+MustReject ($base.Replace($old[0],'MISSING')) $maps
+MustReject ($base+'|'+$next[0]) $maps
+MustReject $base @([pscustomobject]@{before='not-a-hash';after=$next[0]})
+MustReject $base @([pscustomobject]@{before=$old[0];after=$null})
+MustReject $base $null
+MustReject $base (@($maps5)+@([pscustomobject]@{before=$fifth;after=('6'*64)}))
+$bytes=[Text.Encoding]::UTF8.GetBytes($canary)
+foreach($case in @('missing','wrong','mode')){$denied=$false;try{if($case-ceq'missing'){[void](Get-ErpBusinessSaleBeginSuccessorSnapshotProjection $null $bytes $bytes)}elseif($case-ceq'wrong'){[void](Get-ErpBusinessSaleBeginSuccessorSnapshotProjection $bytes $bytes $bytes)}else{[void](Get-ErpBusinessSaleBeginSuccessorSnapshotProjection $bytes $bytes $bytes -Mode 'bogus')}}catch{if($_.Exception.Message-match[regex]::Escape($canary)){throw 'WRAPPER_ERROR_CONTAINS_PRIVATE_INPUT'};$denied=$true};if(!$denied){throw 'INVALID_EVIDENCE_ACCEPTED'}}
+'PASS'`),'PASS');
+});
+
+test('BEGIN successor preview is input-only, validates one profile delta and never admits rehearsal or apply',()=>{
+ if(process.platform!=='win32')return;
+ assert.equal(run(String.raw`
+$old='C91F43028BFA9E3AB944816709B2A2350767340C3447AECBAABAA524E7CA18FA';$new='3353D341EA93FE97BBB911C44D113E8AE3E07BF56ACE29002F3414AB539E8305';$profile='9CBDA03D44559F2CC1487B526F4E67E7301467ECBF576126AF9BEBDA18A237F9';$guard='313C6549B137E242D471E3511F5E07E1105061F83F5E645AE75CE059B64B13E5'
+$packet=[pscustomobject]@{schema='melisa-b6-begin-successor-review.v1';status='REVIEW_ONLY_HISTORICAL_NOT_INSTALLABLE';sourceCommit='fce4d7aa21d2828c32576a8e5a51adb84fb000fe';module='dbo.usp_canonical_business_sale_begin_v1';profileHash=$profile;beforeHash=$old;afterHash=$new;applyAlterTextSha256='24E6022C4951945C39C28363D68B268C418238570A40308F21386FE6027E940A';inverseAlterTextSha256='821CE1263EC1E087B284594F04976A5EE7C8C30F23C4147D5D74C5BA40449F8D';installable=$false;executeAllowed=$false;executionAuthority=$false;nativeCompiled=$false;sqlExecuted=$false;actualT1=$false;externalOperations=$false}
+$s=[pscustomobject]@{server='Semih\MELISADEV';database='MELISA_ERP_SIRKET_TEST_20260929_01';databaseId=18;sysadmin=1;transactionCount=0;beginObjectId=592825274;beginHash=$old;ansiNulls=$true;quotedIdentifier=$true;executeAs=-2;schemaBound=$false;nativeCompilation=$false;signatureCount=0;scopeRows=1;scopeId=1;actorId=17;roleId=17;roleCode='unified_test_semih';profileHash=$profile;guardHash=$guard;actualT1=$false;externalOperations=$false}
+$before=[pscustomobject]@{businessSaleWritesEnabled=$true;businessSaleAdmission=[pscustomobject]@{profileHash=$profile;beginDefinitionHash=$old;contextDefinitionHash=('A'*64)};privateFixture='PRIVATE-CANARY'};$after=($before|ConvertTo-Json -Depth 10)|ConvertFrom-Json;$after.businessSaleAdmission.beginDefinitionHash=$new
+function Open-ErpBusinessSaleSqlConnection{throw 'SQL_MUST_NOT_RUN'}
+$result=Get-ErpBusinessSaleBeginSuccessorPreview $packet $s $before $after
+if($result.status-cne'INPUT_VALIDATION_ONLY'-or!$result.previewOnly-or$result.executionAuthority-or$result.executorAvailable-or$result.sqlExecuted-or$result.profileWritten-or!$result.sameTransactionCasRequired-or!$result.rehearsalRollbackRequired-or!$result.explicitApplyAdmissionRequired-or!$result.unknownOutcomeNoReplayRequired){throw 'PREVIEW_AUTHORITY_CHANGED'}
+if(($result|ConvertTo-Json -Depth 10)-match'PRIVATE-CANARY'){throw 'PRIVATE_PROFILE_LEAK'}
+foreach($name in @('databaseId','sysadmin','transactionCount','beginObjectId','beginHash','ansiNulls','quotedIdentifier','executeAs','schemaBound','nativeCompilation','signatureCount','scopeRows','scopeId','actorId','roleId','roleCode','profileHash','guardHash','actualT1','externalOperations')){$bad=($s|ConvertTo-Json)|ConvertFrom-Json;$bad.$name=$null;$rejected=$false;try{[void](Get-ErpBusinessSaleBeginSuccessorPreview $packet $bad $before $after)}catch{if($_.Exception.Message-ceq'B6_BEGIN_SUCCESSOR_PREVIEW_REJECTED'){$rejected=$true}else{throw}};if(!$rejected){throw 'BAD_SNAPSHOT_ACCEPTED'}}
+foreach($name in @('executionAuthority','installable','executeAllowed','nativeCompiled','sqlExecuted','actualT1','externalOperations')){$bad=($packet|ConvertTo-Json)|ConvertFrom-Json;$bad.$name=$true;$rejected=$false;try{[void](Get-ErpBusinessSaleBeginSuccessorPreview $bad $s $before $after)}catch{if($_.Exception.Message-ceq'B6_BEGIN_SUCCESSOR_PREVIEW_REJECTED'){$rejected=$true}else{throw}};if(!$rejected){throw 'BAD_PACKET_ACCEPTED'}}
+foreach($name in @('applyAlterTextSha256','inverseAlterTextSha256')){$bad=($packet|ConvertTo-Json)|ConvertFrom-Json;$bad.$name=('A'*64);$rejected=$false;try{[void](Get-ErpBusinessSaleBeginSuccessorPreview $bad $s $before $after)}catch{if($_.Exception.Message-ceq'B6_BEGIN_SUCCESSOR_PREVIEW_REJECTED'){$rejected=$true}else{throw}};if(!$rejected){throw 'BAD_ALTER_HASH_ACCEPTED'}}
+$bad=($after|ConvertTo-Json -Depth 10)|ConvertFrom-Json;$bad.businessSaleAdmission.contextDefinitionHash=('B'*64);$rejected=$false;try{[void](Get-ErpBusinessSaleBeginSuccessorPreview $packet $s $before $bad)}catch{if($_.Exception.Message-ceq'B6_BEGIN_SUCCESSOR_PREVIEW_REJECTED'){$rejected=$true}else{throw}};if(!$rejected){throw 'EXTRA_PROFILE_DELTA_ACCEPTED'}
+'PASS'`),'PASS');
+});
+
 test('Diagnostic overlay preserves profile/history/payload and cannot mint genuine authority',()=>{
  if(process.platform!=='win32')return;
  assert.equal(run(String.raw`

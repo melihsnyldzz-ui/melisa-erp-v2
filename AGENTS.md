@@ -1,3 +1,7 @@
+## Çalışma ve kontrol düzeni — 4 Kasım 2026 / ERP-DEC-087
+
+Hazır bağımlılıkları ve açık dosya sahipliği olan küçük anlamlı paketlerle ilerle; bağlı API/WEB/SQL değişikliklerini yapay ayırma. Her değişiklikte derleme, güvenlik taraması ve ilgili kısa kontrolleri, değişen alanın doğrudan ve dolaylı bağımlılıklarına göre testleri çalıştır. Windows başlangıç/kurulum/bakım/runtime değişirse ilgili yaşam döngüsü ve güvenlik testlerini koru. Belirsiz bağımlılığı tam kapsamla ele al. Son TEST tesliminde tam kontrolleri ve uygun hedefi ayrıca belirlenmiş gerçek müşteri/satış ekran doğrulamasını yap; insan/cihaz kabulünü ayrı tut. Sırf test atlatmak için PR açma. Yeni kullanıcı kararıyla CI düzeni bu sınırlar içinde geliştirilebilir; test/guard/assertion silme, devam eden koşuyu iptal veya nihai kapıyı atlama yok. Ayrıntılar PROJECT_DECISIONS ERP-DEC-087 ekindedir.
+
 ## Güncel devam — 4 Kasım 2026 / ERP-DEC-087
 
 Kullanıcının açık isteğiyle mevcut ERP49 + CRM25 bitiş kapsamı için bu aynı konuşmada native hedef active kaydedildi. İlk iş satış/müşteri kartının çalışan TEST teslimi; sıra ERP → el terminali → CRM. Bu tek açık hedef izni önceki yeni-Goal sınırını yalnız bu hedef için günceller; yeni ana ajan, plan veya takip sistemi yok. Kaynak/CI, paket/kurulum, normal GUI ve insan kabulü ayrı; mevcut veri/rol/karantina/journal korumaları ve LIVE/Vega/T1/credential/güvenlik onay sınırları sürer. ERP-DEC-087 ve mevcut STATUS üzerinden devam et.

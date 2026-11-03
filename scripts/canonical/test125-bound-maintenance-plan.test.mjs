@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {forwardStart,forward,runForward,forwardFixture} from './test125-bound-maintenance-plan-forward-only.test.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {readFileSync,mkdtempSync,realpathSync,writeFileSync,rmSync} from 'node:fs';
@@ -186,4 +187,25 @@ win('finite task XML signature ignores serialization whitespace but retains all 
  $hash=Get-Test125TaskXmlSignature $xml;if($hash-cne(Get-Test125TaskXmlSignature ($xml.Replace('><',('>'+[char]10+'<'))))){throw 'TASK_XML_WHITESPACE'}
  foreach($pair in @(@('LeastPrivilege','HighestAvailable'),@('true','false'),@('fixed','other'))){if($hash-ceq(Get-Test125TaskXmlSignature ($xml.Replace($pair[0],$pair[1])))){throw 'TASK_XML_DRIFT_IGNORED'}}
  foreach($bad in @('<!DOCTYPE Task [<!ENTITY x "forbidden">]>'+$xml,'<Task xmlns="urn:foreign"/>')){$rejected=$false;try{Get-Test125TaskXmlSignature $bad|Out-Null}catch{$rejected=$true};if(!$rejected){throw 'UNSAFE_TASK_XML_ACCEPTED'}};'PASS'`),'PASS');
+});
+
+test('forward-only finite source remains isolated from old purpose and contains no issuer, service, SQL or installer action',()=>{assert(forwardStart>0);assert.match(forward,/B6_BEGIN_API_FORWARD_V1/);assert.doesNotMatch(forward,/ReadContextRepair|Get-ErpProcess|Get-ScheduledTask|Invoke-CimMethod|Invoke-Sqlcmd|Open-ErpBusinessSaleSqlConnection|WriteAll|Stop-Process|Start-Process|Stop-ScheduledTask|Start-ScheduledTask|Register-ScheduledTask/);assert.match(forward,/MODEL_ONLY_NOT_ADMISSION/);assert.match(forward,/executionAuthority=\$false/);});
+test('synthetic fresh same-owner model accepts only once as an unprivileged proposal and independently rejects all drift',{skip:process.platform!=='win32'},()=>{
+ const body=forwardFixture+String.raw`
+$r=Plan;if($r.status-cne'MODEL_ONLY_NOT_ADMISSION'-or$r.executionAuthority-ne$false-or$r.installed-ne$false-or$r.runtimeVerified-ne$false-or$r.sqlCalls-ne0-or$r.commercialWrites-ne0-or$r.rollbackStatus-cne'NOT_REQUIRED_FOR_MODEL'-or$r.candidateManifestProvenance-cne'UNVERIFIED_INPUT'-or$r.observationProvenance-cne'UNVERIFIED_INPUT'-or$r.profileField-cne'businessSaleAdmission.beginDefinitionHash'){throw 'MODEL_SCOPE'}
+foreach($field in @('purpose','database','server','sourceCommit','actorId','roleId','oldApi','newApi','oldWeb','newWeb','oldBegin','newBegin','profileField')){
+ $x=$case|ConvertTo-Json -Compress|ConvertFrom-Json;switch($field){oldApi{$x.oldApi='9'*64}newApi{$x.newApi=$x.oldApi}oldWeb{$x.oldWeb='9'*64}newWeb{$x.newWeb=$x.oldWeb}oldBegin{$x.oldBegin='F'*64}newBegin{$x.newBegin=$x.oldBegin}actorId{$x.actorId='17'}roleId{$x.roleId=18}default{$x.$field='other'}}
+ $failed=$false;try{Plan $x|Out-Null}catch{$failed=$true};if(!$failed){throw ('CASE_DRIFT_'+$field)}
+}
+foreach($field in @('purpose','database','server','apiPort','nativePort','webPort','actualT1','externalOperations','actorId','roleId','ownerSid','taskInstance','supervisorPid','supervisorBirth','apiPid','apiBirth','nativePid','nativeBirth','webPid','webBirth','taskHash','profileHash','beginHash','apiHash','webHash','journalHash','dataHash')){
+ $x=$recheck|ConvertTo-Json -Compress|ConvertFrom-Json;switch($field){actualT1{$x.actualT1=$true}externalOperations{$x.externalOperations=$true}apiPort{$x.apiPort=1}nativePort{$x.nativePort=1}webPort{$x.webPort=1}actorId{$x.actorId=18}roleId{$x.roleId=18}supervisorPid{$x.supervisorPid=104}apiPid{$x.apiPid=104}nativePid{$x.nativePid=104}webPid{$x.webPid=104}ownerSid{$x.ownerSid='S-1-5-21-999'}taskInstance{$x.taskInstance='22222222-2222-4222-8222-222222222222'}supervisorBirth{$x.supervisorBirth='134400000000000009'}apiBirth{$x.apiBirth='134400000000000009'}nativeBirth{$x.nativeBirth='134400000000000009'}webBirth{$x.webBirth='134400000000000009'}taskHash{$x.taskHash='9'*64}profileHash{$x.profileHash='9'*64}beginHash{$x.beginHash='F'*64}apiHash{$x.apiHash='9'*64}webHash{$x.webHash='9'*64}journalHash{$x.journalHash='9'*64}dataHash{$x.dataHash='9'*64}default{$x.$field='other'}}
+ $failed=$false;try{Plan $case $before $x|Out-Null}catch{$failed=$true};if(!$failed){throw ('OBSERVATION_DRIFT_'+$field)}
+}
+$x=$recheck|ConvertTo-Json -Compress|ConvertFrom-Json;$x.observedUtc=[datetimeoffset]::UtcNow.AddMinutes(-10).ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ');$failed=$false;try{Plan $case $x $x|Out-Null}catch{$failed=$true};if(!$failed){throw 'STALE_OBSERVATION_ACCEPTED'}
+$x=$case|ConvertTo-Json -Compress|ConvertFrom-Json;$x.oldBegin='F'*64;$z=$before|ConvertTo-Json -Compress|ConvertFrom-Json;$z.beginHash='F'*64;$failed=$false;try{Plan $x $z $z|Out-Null}catch{$failed=$true};if(!$failed){throw 'COHERENT_FORGED_BEGIN_ACCEPTED'}
+$x=$case|ConvertTo-Json -Compress|ConvertFrom-Json;$x|Add-Member NoteProperty extra 'forbidden';$failed=$false;try{Plan $x|Out-Null}catch{$failed=$true};if(!$failed){throw 'EXTRA_FIELD_ACCEPTED'}
+$c=$case|ConvertTo-Json -Compress;$b=$before|ConvertTo-Json -Compress;$d=$recheck|ConvertTo-Json -Compress;$duplicate=$c.Replace('"actorId":17','"actorId":17,"actorId":17');$failed=$false;try{Get-Test125B6ForwardOnlyModel $duplicate $b $d|Out-Null}catch{$failed=$true};if(!$failed){throw 'DUPLICATE_JSON_ACCEPTED'}
+'PASS'
+`;
+ assert.equal(runForward(body),'PASS');
 });

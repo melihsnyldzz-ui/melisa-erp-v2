@@ -1,0 +1,13 @@
+// Reusable inert fixture; tests are registered once by the existing CI entry.
+import {execFileSync} from 'node:child_process';import {readFileSync} from 'node:fs';import path from 'node:path';
+export const source=readFileSync(path.join(import.meta.dirname,'test125-bound-maintenance-plan.ps1'),'utf8');
+export const forwardStart=source.indexOf('function Assert-Test125ForwardModelKeys('),forward=source.slice(forwardStart);
+const ps=path.join(process.env.SystemRoot||'C:\\Windows','System32/WindowsPowerShell/v1.0/powershell.exe');
+export function runForward(body){return execFileSync(ps,['-NoProfile','-NonInteractive','-Command','$s=[Console]::In.ReadToEnd();&([scriptblock]::Create($s))'],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;${forward}\n${body}`,encoding:'utf8',windowsHide:true,timeout:30000}).trim();}
+export const forwardFixture=String.raw`
+$case=[pscustomobject][ordered]@{schema='melisa-b6-forward-case-model.v1';purpose='B6_BEGIN_API_FORWARD_V1';database='MELISA_ERP_SIRKET_TEST_20260929_01';server='Semih\MELISADEV';sourceCommit='fce4d7aa21d2828c32576a8e5a51adb84fb000fe';actorId=17;roleId=17;oldApi=(@('342fa6b6','ac7448a8','ac515cbd','118638b8','57d44c56','fc621b74','ac0070dd','209c0a5f')-join'');newApi='b'*64;oldWeb=(@('fbedc4da','026b4ac2','57440ddc','d54166b5','69a623c0','67d7c5a5','c712fa6a','f5d99ab6')-join'');newWeb='d'*64;oldBegin=(@('C91F4302','8BFA9E3A','B9448167','09B2A235','0767340C','3447AECB','AABAA524','E7CA18FA')-join'');newBegin=(@('3353D341','EA93FE97','BBB911C4','4D113E8A','E3E07BF5','6ACE2900','2F3414AB','539E8305')-join'');profileField='businessSaleAdmission.beginDefinitionHash'}
+$timestamp=[datetimeoffset]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ss.fffffffZ',[Globalization.CultureInfo]::InvariantCulture)
+$before=[pscustomobject][ordered]@{schema='melisa-b6-forward-observation-model.v1';purpose=$case.purpose;database=$case.database;server=$case.server;apiPort=4144;nativePort=4146;webPort=5244;actualT1=$false;externalOperations=$false;actorId=17;roleId=17;observedUtc=$timestamp;ownerSid='S-1-5-21-123';taskInstance='11111111-1111-4111-8111-111111111111';supervisorPid=100;supervisorBirth='134400000000000000';apiPid=101;apiBirth='134400000000000001';nativePid=102;nativeBirth='134400000000000002';webPid=103;webBirth='134400000000000003';taskHash='e'*64;profileHash='f'*64;beginHash=$case.oldBegin;apiHash=$case.oldApi;webHash=$case.oldWeb;journalHash='1'*64;dataHash='2'*64}
+$recheck=$before|ConvertTo-Json -Compress|ConvertFrom-Json
+function Plan {param($c=$case,$b=$before,$r=$recheck);Get-Test125B6ForwardOnlyModel ($c|ConvertTo-Json -Compress) ($b|ConvertTo-Json -Compress) ($r|ConvertTo-Json -Compress)}
+`;

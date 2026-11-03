@@ -14,6 +14,8 @@ Kaynaklar mevcut feature dalı ve PR54'tedir. Hedefli offline testler ve bağım
 
 `13faa388` GitHub secret-scan, eski TEST API manifestinin kamuya açık SHA256 özetini API anahtarı olarak işaretledi. Kullanıcı ERP-DEC-087 ekindeki tek commit/dosya/kural/değer AND istisnasını açıkça onayladı; farklı commit/dosya/değer/kural için beş izole kontrol geçti, varsayılan taramalar korundu. Yeni kaynak için GitHub CI sonucu ayrıca doğrulanır; önceki başarısız sonuç silinmez.
 
+`1d7ba840f867f0b0a007c1a7dadefb0283821c4e` için PR `41736225082` ve push `41736216554` koşularındaki üç işin tüm adımları başarılı tamamlandı. Bu exact üretici ve `fce4d7aa21d2828c32576a8e5a51adb84fb000fe` uygulama kaynağıyla ayrı pasif API/WEB çifti üretildi; iki manifest ve paket içeriği geri okunarak doğrulandı. Kayıt `C:\Sirket\ERP\evidence\ERP-C06-METADATA-ROUTE-RUNTIME-20261102-2254\c06-passive-1d7ba840f867f0b0a007c1a7dadefb0283821c4e-receipt.json` yolundadır. Adayın satış SQL uyumu `NOT_APPLIED_NOT_VERIFIED`; müşteri şeması, normal aktör izinleri ve data koruma kurulum önkontrolleri `UNVERIFIED`. Aday kurulmadı, çalışan TEST değiştirilmedi ve insan kabulü verilmedi.
+
 ## Çalışan TEST sınırı
 
 Bu kaynak diliminde SQL, servis, görev, config, rol, parola, stok/cari/kasa veya ticari kayıt yazması yapılmadı. Mevcut kurulu ERP/CRM ve kullanıcı WIP'i korundu. Önceki normal-session metadata gözleminde müşteri nesnesi PARTIAL, üç yerel metadata nesnesi UNKNOWN idi; nesneler yok sayılmaz ve writer bu gözlemle etkinleştirilemez.

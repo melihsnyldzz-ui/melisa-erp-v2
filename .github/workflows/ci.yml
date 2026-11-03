@@ -13,8 +13,39 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  change-impact:
+    name: change-impact
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      scope: ${{ steps.impact.outputs.scope }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Classify the exact GitHub event
+        id: impact
+        shell: bash
+        run: |
+          scope=FULL
+          expected=656b78e5c41c7154f399f25a5a3e1d9b7dc0a9b55f223a259286a3479c4d96ad
+          base=$(node -e 'try { const e = require(process.env.GITHUB_EVENT_PATH); const x = process.env.GITHUB_EVENT_NAME === "push" ? e.before : process.env.GITHUB_EVENT_NAME === "pull_request" ? e.pull_request?.base?.sha : ""; if (/^[0-9a-f]{40}$/.test(x)) process.stdout.write(x); } catch {}') || base=
+          trusted="$RUNNER_TEMP/erp-change-impact.mjs"
+          if [ -n "$base" ] && git show "$base:scripts/ci/change-impact-advisory.mjs" > "$trusted" 2>/dev/null && [ "$(sha256sum "$trusted" | cut -d ' ' -f 1)" = "$expected" ]; then
+            result=$(node "$trusted" --github-event) || result=FULL
+            case "$result" in FULL|DOCS_ONLY) scope="$result" ;; esac
+          fi
+          echo "scope=$scope" >> "$GITHUB_OUTPUT"
+          echo "Selected scope: $scope; a skipped Windows job is not full CI or installation evidence."
   windows-startup-test:
     name: windows-startup-test
+    needs: change-impact
+    if: ${{ !cancelled() && (needs.change-impact.result != 'success' || needs.change-impact.outputs.scope != 'DOCS_ONLY') }}
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
@@ -69,6 +100,8 @@ jobs:
             apps/api/package-lock.json
             apps/web-admin/package-lock.json
             apps/sites-workflow/package-lock.json
+      - name: Validate change-impact boundaries
+        run: node --test scripts/ci/change-impact-advisory.test.mjs
       - name: Install locked dependencies without lifecycle scripts
         run: |
           npm ci --prefix apps/api --ignore-scripts --no-audit --no-fund
