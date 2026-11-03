@@ -5,10 +5,26 @@ import {createWorkingCatalogSession} from './workingCatalogSession.mjs';
 const location={protocol:'http:',hostname:'127.0.0.1',port:'5244',origin:'http://127.0.0.1:5244'};
 const user={id:17,username:'unified-semih-test',role:{id:17,code:'unified_test_semih'},permissions:['product.view','sales.view']};
 const storage=()=>{const data=new Map();return{getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k),data};};
+test('metadata transport permits only the exact fixed GET without query/body and uses the existing normal session',async()=>{
+ assert.equal(allowed('GET','/api/customers/master-metadata'),true);
+ for(const method of ['POST','HEAD','PUT','DELETE','PATCH'])assert.equal(allowed(method,'/api/customers/master-metadata'),false);
+ for(const path of ['/api/customers/master-metadata?x=1','/api/customers/master-metadata?','/api/customers/master-metadata/'])assert.equal(allowed('GET',path),false);
+ for(const permissions of [['customer.view','customer.edit'],['customer.view'],['customer.edit'],[]]){
+  const saved=storage();saved.setItem('melisaTestSalesAccessToken','fixture-access');const calls=[],account={...user,permissions};let forbidden=false;
+  const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async(url,o)=>{calls.push({url,o});assert.equal(new URL(url).origin,location.origin);if(url.endsWith('/auth/session-confirm'))return{ok:true,status:200,json:async()=>({success:true,data:{confirmed:true,user:account,expiresAt:Date.now()+900000}})};return{ok:!forbidden,status:forbidden?403:200,json:async()=>({success:!forbidden,data:{status:'OBSERVED'}})};}});
+  await session.start();const before=calls.length;await assert.rejects(()=>session.customerMasterMetadata({query:'SELECT 1'}));assert.equal(calls.length,before);
+  if(permissions.length===2){assert.deepEqual(await session.customerMasterMetadata(),{status:'OBSERVED'});const request=calls.at(-1);assert.equal(request.url,location.origin+'/api/customers/master-metadata');assert.equal(request.o.method,'GET');assert.equal(request.o.body,undefined);assert.equal(request.o.headers.Authorization,'Bearer fixture-access');forbidden=true;await assert.rejects(()=>session.customerMasterMetadata());assert.equal(saved.getItem('melisaTestSalesAccessToken'),'fixture-access');}else{await assert.rejects(()=>session.customerMasterMetadata());assert.equal(calls.length,before);}session.dispose();
+ }
+});
 test('business face requires explicit matching profile; wrong port/profile never falls back to CLEAN',()=>{
  assert.equal(resolveTestApiBase({location,apiBase:'http://127.0.0.1:4144'}),null);
  for(const host of ['127.0.0.1','localhost','192.168.1.46','100.87.188.3']){const l={...location,hostname:host,origin:`http://${host}:5244`};assert.equal(resolveTestApiBase({location:l,apiBase:'http://127.0.0.1:4144',businessProfile:profile}),l.origin);}
  for(const edit of [{businessProfile:'wrong'},{apiBase:'http://127.0.0.1:4194'},{location:{...location,hostname:'foreign',origin:'http://foreign:5244'}}])assert.equal(resolveTestApiBase({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,...edit}),null);
+});
+test('native terminal session cannot invoke the browser-only metadata method',async()=>{
+ const saved=storage();saved.setItem('melisaTestSalesAccessToken','fixture');let queries=0;
+ const session=createWorkingCatalogSession({location,apiBase:'http://127.0.0.1:4144',businessProfile:profile,storage:saved,protectedDevice:null,fetchImpl:async url=>{if(!url.endsWith('/auth/session-confirm')){queries++;throw Error('No metadata request allowed');}return{ok:true,status:200,json:async()=>({success:true,data:{confirmed:true,user:{...user,nativeTerminalSession:true,permissions:['customer.view','customer.edit']},expiresAt:Date.now()+900000}})};}});
+ try{await session.start();await assert.rejects(()=>session.customerMasterMetadata());assert.equal(queries,0);}finally{session.dispose();}
 });
 test('read-only workface admits catalog, photos and separate party cards but never commercial/admin/external mutations',()=>{
  for(const path of ['/api/catalog/products?limit=50','/api/catalog/products/12/photo?variant=thumbnail','/api/customer-cards?limit=25','/api/customers/12/card','/api/supplier-cards?status=all','/api/suppliers/22/card'])assert.equal(allowed('GET',path),true);

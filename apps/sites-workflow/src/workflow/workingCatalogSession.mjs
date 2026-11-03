@@ -321,6 +321,10 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    if(Object.keys(extra).length||typeof path!=='string'||!/^\/api\/(?:customer-cards\?[^#]*|customers\/[1-9]\d*\/card)$/.test(path)||!token||!user)throw problem('Müşteri kartları okunamıyor.');
    const payload=await request(path,{expire:true});return envelope?payload:payload.data;
   },
+  async customerMasterMetadata(...args){
+   if(args.length||!businessBrowser||!token||!user||user.nativeTerminalSession===true||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('Kart bağlantısını kontrol etme yetkiniz yok.',403);
+   return (await request('/api/customers/master-metadata',{method:'GET',expire:true,keepForbiddenSession:true})).data;
+  },
   async customerMasterRecovery(id,requestId){
    if(typeof id!=='string'||!/^[1-9]\d{0,18}$/.test(id)||BigInt(id)>9223372036854775807n||typeof requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(requestId)||!token||!user||!['customer.view','customer.edit'].every(p=>user.permissions.includes(p)))throw problem('Kart kaydını kontrol etme yetkiniz yok.',403);
    return (await request('/api/customers/'+id+'/master/requests/'+requestId,{method:'GET',expire:true,keepForbiddenSession:true})).data;

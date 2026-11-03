@@ -36,6 +36,7 @@ if (mode === 'quality') {
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
+  run(['--test', path.join(root, 'scripts/canonical/prepare-customer-master-metadata-package.test.mjs')]);
   run(['--test', ...['shared-business-selected-collection-revision-sql','shared-business-selected-collection-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
   run(['--test', ...[
     'p03-pr53-package-inventory', 'p03-pr53-ci-owner-cli', 'p03-pr53-owner-cli', 'p03-package-date', 'p03-candidate-core-proof', 'p03-candidate-task-proof', 'p03-candidate-outer-proof', 'p03-partial-candidate-proof',

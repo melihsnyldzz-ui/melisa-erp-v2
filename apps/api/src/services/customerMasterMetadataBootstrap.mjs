@@ -1,5 +1,6 @@
 import {createCanonicalCustomerMasterBinding} from './customerMasterCanonicalBinding.mjs';
 import {customerMasterError} from './customerMasterModel.mjs';
+import {createCustomerMasterMetadataCheckAssets} from './customerMasterMetadataCheckAssets.mjs';
 
 // Existing canonical bootstrap only. Reuse the exact pool it has already
 // connected/admitted; never reacquire or create a connection for metadata.
@@ -15,5 +16,5 @@ export async function prepareCanonicalCustomerMasterMetadata({startup,database,g
  const binding=await createCanonicalCustomerMasterBinding({database:existingDatabase,startup,getFinalContext,getCurrentFinanceContext});
  // Do not return or register binding.service/store/cards. Preparing this route
  // does not enable the global master writer or run any metadata request.
- return binding.metadata;
+ return Object.freeze({read:binding.metadata.read,checkAssets:createCustomerMasterMetadataCheckAssets(startup.release)});
 }

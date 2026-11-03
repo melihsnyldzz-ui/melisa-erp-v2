@@ -6,10 +6,10 @@ import {customerMasterMetadataFixture} from '../services/customerMasterMetadata.
 const unusedSession=()=>{throw Error('Session provider is outside this fixture');};
 mock.module('../services/authService.js',{namedExports:{getUserById:unusedSession,verifyAccessToken:unusedSession,verifyNormalTestAccessSession:unusedSession}});
 const url='/api/customers/master-metadata';
-async function fixture(reader){
+async function fixture(reader,checkAssets){
  const app=express(),calls=[];app.use(express.json());
- const authenticate=(req,res,next)=>{calls.push(req.originalUrl);if(req.headers.authorization!=='Bearer fixture')return next(Object.assign(Error(),{code:'AUTH_TOKEN_REQUIRED',statusCode:401}));req.user={id:17,permissions:(req.headers['x-test-permissions']??'customer.view,customer.edit').split(',')};next();};
- app.use('/api',createCustomerMasterMetadataRoutes({reader,authenticate}));
+ const authenticate=(req,res,next)=>{calls.push(req.originalUrl);if(req.headers.authorization!=='Bearer fixture')return next(Object.assign(Error(),{code:'AUTH_TOKEN_REQUIRED',statusCode:401}));req.user={id:17,permissions:(req.headers['x-test-permissions']??'customer.view,customer.edit').split(',')};req.authContext={nativeTerminalCode:req.headers['x-test-terminal']??null};next();};
+ app.use('/api',createCustomerMasterMetadataRoutes({reader,authenticate,checkAssets}));
  app.get('/api/unrelated',(_req,res)=>res.json({ok:true}));
  app.use((error,_req,res,_next)=>res.status(error.statusCode??500).json({code:error.code??'FAILED'}));
  const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));const base='http://127.0.0.1:'+server.address().port;
@@ -36,4 +36,12 @@ test('missing reader remains unavailable and one in-flight observation excludes 
  const unavailable=await fixture();try{assert.equal((await unavailable.fetch()).status,503);}finally{await unavailable.close();}
  let unblock,entered;const enteredPromise=new Promise(r=>entered=r),f=await customerMasterMetadataFixture(),s=await fixture({async read(){entered();await new Promise(r=>unblock=r);return f.reader.read();}});
  try{const first=s.fetch();await enteredPromise;assert.equal((await s.fetch()).status,503);assert.equal(f.calls.length,0);unblock();assert.equal((await first).status,200);assert.equal(f.calls.length,3);}finally{unblock?.();await s.close();}
+});
+test('public check assets never query metadata or authenticate; the data endpoint still requires both permissions',async()=>{
+ const f=await customerMasterMetadataFixture(),s=await fixture(f.reader,()=>({html:'<main>Public connection check</main>',script:'/* public client */'}));
+ try{for(const path of ['/api/customer-master-metadata-check','/api/customer-master-metadata-check/client.mjs']){const r=await s.fetch(path,{headers:{authorization:''}});assert.equal(r.status,200);assert.equal(r.headers.get('cache-control'),'no-store');assert.equal(r.headers.get('x-content-type-options'),'nosniff');assert.match(r.headers.get('content-security-policy'),/connect-src 'self'/);assert(!/token|password|cookie/i.test(await r.text()));}assert.equal(f.calls.length,0);assert.equal(s.calls.length,0);assert.equal((await s.fetch(url,{headers:{authorization:''}})).status,401);assert.equal(f.calls.length,0);}finally{await s.close();}
+ const unavailable=await fixture(f.reader);try{assert.equal((await unavailable.fetch('/api/customer-master-metadata-check')).status,503);assert.equal(f.calls.length,0);}finally{await unavailable.close();}
+});
+test('a terminal credential is rejected even when its account has both customer permissions',async()=>{
+ const f=await customerMasterMetadataFixture(),s=await fixture(f.reader);try{assert.equal((await s.fetch(url,{headers:{'x-test-terminal':'fixture-terminal'}})).status,403);assert.equal(f.calls.length,0);}finally{await s.close();}
 });
