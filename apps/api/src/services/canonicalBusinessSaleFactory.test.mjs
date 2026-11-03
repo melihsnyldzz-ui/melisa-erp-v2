@@ -10,7 +10,7 @@ const source=(fs.readFileSync(new URL('./canonicalBusinessSessionContext.mjs',im
  .replace(/^import .*;\r?\n/gm,'').replaceAll('export ','')
  .replaceAll("await import('../config/database.js')",'__db');
 const hash='A'.repeat(64),revision='b'.repeat(64),requestId='11111111-1111-4111-8111-111111111111';
-function fixture({read=false,readProofChange=null,fullChain=false,replay=false,commitLoss=false,metadataDrift=false,metadataDriftAt=2,completedDrift=false,effectsFailure=false}={}){
+function fixture({read=false,readProofChange=null,fullChain=false,chainVariant='current',replay=false,commitLoss=false,metadataDrift=false,metadataDriftAt=2,completedDrift=false,effectsFailure=false}={}){
  const calls=[],profile={schemaVersion:'melisa-canonical-business-sale-admission.v1',profileHash:hash,assertDefinitionHash:hash,beginDefinitionHash:hash,contextDefinitionHash:hash,effectsDefinitionHash:hash,legacyProof:{readyHash:hash,contextHash:hash,effectsHash:hash}},actor={id:17,username:'unified-semih-test',role:{id:17,code:'unified_test_semih'},permissions:['product.view','customer.view','finance.view','sales.view','sales.create','sales.finalize','sales.cancel']};
  const body={actorId:'17',operation:'sale_draft',requestId,expectedRevision:revision,previewHash:revision,customerId:'155',customerAccountId:'7',documentDate:'2026-10-28',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'1.000'}]},bodyJson=JSON.stringify(body),bodyHash=createHash('sha256').update(bodyJson,'utf16le').digest('hex').toUpperCase(),response={requestId,invoice:{id:'91'}},responseJSON=JSON.stringify(response);
  const proof={database:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'Semih\\MELISADEV',profileHash:hash,actorId:'17',sessionId:55,transactionId:'700',requestId,operation:'sale_draft',bodyHash,invoiceId:null,selectionHash:hash,revision,previewHash:revision,customerId:'155',partyEntityId:'6',accountId:'7',accountSourceKey:'synthetic/account',accountSourceWitnessHash:hash,write:true,currency:'USD',rateExact8:'2.00000000',grandTotalExact4:'1.0000',amountTryExact4:'2.0000',products:[{productId:'12',quoteId:'81',unitSourceId:'9',stockCode:'0012 SYN',name:'Synthetic',barcode:'000012',unit:'ADET',factorExact8:'1.00000000',quantityExact3:'1.000',unitPriceExact8:'1.00000000',unitPriceExact4:'1.0000',lineTotalExact4:'1.0000',averageCostTryExact4:'0.5000',sourceKey:'SYN/12',sourceWitnessHash:hash}]};
@@ -23,7 +23,7 @@ function fixture({read=false,readProofChange=null,fullChain=false,replay=false,c
  const sandbox={createHash,Buffer,structuredClone,BUSINESS_COPY_DATABASE:'ISOLATED_COPY_NOT_USED',isolatedCopyOperationDTOContext:()=>null,getBusinessProductPriceSaleDTO:()=>null,getCleanContext:()=>null,__runtime:{pool,sql},__db:{isCanonicalTest:()=>true,isIsolatedOperationCopyRuntime:()=>false,getSqlPool:async()=>pool,getSqlDriver:()=>sql},__env:env,__profile:profile,__actor:actor};
  vm.createContext(sandbox);vm.runInContext(source+`\nregistered=Object.freeze({username:BUSINESS_SESSION.username,roleCode:BUSINESS_SESSION.roleCode,permissions:__actor.permissions});environments.set(registered,__env);__profile.readerDefinitions=Object.fromEntries(CANONICAL_BUSINESS_SALE_READER_MODULES.map(n=>[n,__profile.profileHash]));registeredLegacySaleProof=__profile.legacyProof;registeredSaleDefinitionHashes=__profile.readerDefinitions;const bootstrap=configureCanonicalBusinessSaleAdmission(registered,__profile,{writesEnabled:true});configureCanonicalBusinessSaleRuntime(bootstrap);globalThis.api={runCanonicalBusinessSaleTransaction,getCanonicalBusinessSaleTransaction,getCanonicalBusinessSaleCreationProofJSON,configureCanonicalBusinessSaleRuntime,consumeCanonicalBusinessSaleRuntimeBootstrap,getCanonicalBusinessSaleAdmission,withCanonicalBusinessSaleTransaction,configureCanonicalBusinessSaleAdmission,getCanonicalBusinessSession,readCanonicalBusinessSaleContext,getCanonicalBusinessSaleContextProof,projectCanonicalBusinessSaleContext};globalThis.usedBootstrap=bootstrap;`,sandbox);
  const selection=Object.fromEntries(['customerId','customerAccountId','documentDate','currency','items'].map(k=>[k,body[k]]));
- if(fullChain){vm.runInContext(['workSalesModel.mjs','workTradeStore.mjs','workSalesService.mjs'].map(name=>frozenChainSource(name).replace(/^import .*;\r?\n/gm,'').replaceAll('export ','')).join('\n')+`\nglobalThis.chain=createWorkSalesService({getStore:async()=>createWorkTradeStore({getRuntime:async()=>__runtime})});globalThis.math=workSalePreview;`,sandbox);}
+ if(fullChain){vm.runInContext(['workSalesModel.mjs','workTradeStore.mjs','workSalesService.mjs'].map(name=>frozenChainSource(name,chainVariant).replace(/^import .*;\r?\n/gm,'').replaceAll('export ','')).join('\n')+`\nglobalThis.chain=createWorkSalesService({getStore:async()=>createWorkTradeStore({getRuntime:async()=>__runtime})});globalThis.math=workSalePreview;`,sandbox);}
  const input={actor,requestId,operation:'sale_draft',bodyJson};return {calls,input,selection,api:sandbox.api,chain:sandbox.chain,math:sandbox.math,response,proof,usedBootstrap:sandbox.usedBootstrap};
 }
 test('native callback has a temporary SQL-bound proof; effects precede journal and DONE precedes commit',async()=>{
@@ -93,10 +93,31 @@ function sqlContextFixture(p,documentDate='2026-10-28'){
 }
 
 const frozenChainRoot='C:/Sirket/ERP/releases/CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-CONTEXT-20261030/apps/api/src/services/';
+// The previous installed chain and the current source candidate are different
+// pinned witnesses. Never substitute a historical package for the code under test.
 const frozenChainHashes={"workSalesModel.mjs": "e8d8cc69f8885f14fc91431ec31c2d9d1628a49fe013bac754fd8c651bd79c63", "workTradeStore.mjs": "5cbd7cda4b64a2909c6ab30d2bb00159ee06abbe0d3ec13b8d17e61ed2d6cbb6", "workSalesService.mjs": "f7103531323038cc1d6ff8fe4227816df19197d87fe5d3608c7c0a1fb4e691af"};
-function frozenChainSource(name){const file=fs.existsSync(frozenChainRoot+name)?frozenChainRoot+name:new URL('./'+name,import.meta.url);const text=fs.readFileSync(file,'utf8').replaceAll('\r\n','\n');assert.equal(createHash('sha256').update(text).digest('hex'),frozenChainHashes[name],'Frozen native consumer '+name);return text;}
+const currentChainHashes={...frozenChainHashes,"workTradeStore.mjs":"f7a920afc1be433765d87685fc183def314305c724439ef5bac3e792ac8a860e"};
+function verifyChainSource(name,text,hashes){assert(Object.hasOwn(hashes,name),'Unexpected chain consumer '+name);const normalized=text.replaceAll('\r\n','\n');assert.equal(createHash('sha256').update(normalized).digest('hex'),hashes[name],'Pinned native consumer '+name);return normalized;}
+function frozenChainSource(name,variant='current'){
+ assert(['current','historical'].includes(variant),'Unexpected chain variant');
+ const file=variant==='historical'?frozenChainRoot+name:new URL('./'+name,import.meta.url),hashes=variant==='historical'?frozenChainHashes:currentChainHashes;
+ return verifyChainSource(name,fs.readFileSync(file,'utf8'),hashes);
+}
+test('current and historical source pins reject changed bytes, wrong revisions and unknown paths',()=>{
+ for(const name of Object.keys(currentChainHashes)){
+  const current=frozenChainSource(name);assert.equal(verifyChainSource(name,current.replaceAll('\n','\r\n'),currentChainHashes),current);
+  assert.throws(()=>verifyChainSource(name,current+'\n// tampered',currentChainHashes),/Pinned native consumer/);
+ }
+ const currentStore=frozenChainSource('workTradeStore.mjs');assert.throws(()=>verifyChainSource('workTradeStore.mjs',currentStore,frozenChainHashes),/Pinned native consumer/);
+ assert.throws(()=>frozenChainSource('missing.mjs','not-a-variant'),/Unexpected chain variant/);assert.throws(()=>verifyChainSource('missing.mjs','',currentChainHashes),/Unexpected chain consumer/);
+});
+test('the previous installed chain remains independently pinned when its complete artifact exists',{skip:!fs.existsSync(frozenChainRoot)?'historical installed artifact is not present in this environment':false},async()=>{
+ for(const name of Object.keys(frozenChainHashes))assert(frozenChainSource(name,'historical').length>0);
+ assert.throws(()=>verifyChainSource('workTradeStore.mjs',frozenChainSource('workTradeStore.mjs','historical'),currentChainHashes),/Pinned native consumer/);
+ const f=fixture({read:true,fullChain:true,chainVariant:'historical'});const visible=await f.chain.selectedContext(f.selection,f.input.actor);assert.equal(visible.scope.customer.accountId,'7');
+});
 
-test('SQL-shaped selected context reaches the actual frozen store/service/model preview using a genuine runtime brand and no legacy grant',async()=>{
+test('SQL-shaped selected context reaches the current pinned store/service/model preview using a genuine runtime brand and no legacy grant',async()=>{
  const f=fixture({read:true,fullChain:true}),raw=JSON.stringify(f.proof),oldContext=JSON.stringify(f.proof.context);
  const visible=await f.chain.selectedContext(f.selection,f.input.actor);assert.equal(visible.meta.schemaVersion,'melisa-work-trade.v1');assert.equal(visible.scope.customer.accountId,'7');
  for(const key of ['sourceKey','sourceWitnessHash','costExact4'])assert.equal(Object.hasOwn(visible.scope.products[0],key),false);assert.equal(Object.hasOwn(visible.scope.customer,'sourceKey'),false);
