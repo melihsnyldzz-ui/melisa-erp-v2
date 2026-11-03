@@ -9,7 +9,7 @@ export function isBusinessWorkfaceTarget({location,apiBase,profile}){
 export function businessWorkfaceRequestAllowed(method,path){
  if(typeof path!=='string'||!path.startsWith('/api/')||path.includes('#')||path.includes('\\')||path.startsWith('//'))return false;
  const pathname=path.split('?')[0];if(pathname.includes('%')||pathname.includes('/../')||pathname.endsWith('/..'))return false;
- if(pathname==='/api/customers/master-metadata')return method==='GET'&&path===pathname;
+ if(['/api/customers/master-metadata','/api/customer-master-metadata-check','/api/customer-master-metadata-check/client.mjs'].includes(pathname))return method==='GET'&&path===pathname;
  if(method==='POST')return /^\/api\/auth\/(?:login|refresh|logout|session-confirm)$/.test(pathname)&&path===pathname;
  if(!['GET','HEAD','OPTIONS'].includes(method))return false;
  if(pathname==='/api/business-sales/selection')return ['GET','HEAD'].includes(method)&&businessSaleReadPathAllowed(path);

@@ -22,3 +22,7 @@ test('actual trusted esbuild child bundles only supplied in-memory blobs without
  const bundle=cp.execFileSync(process.execPath,['--require',guard,'-e',customerMetadataBuildProgram()],{input:JSON.stringify(input),encoding:'utf8',windowsHide:true,timeout:15000});assert.match(bundle,/APP_MUST_NOT_EXECUTE/);assert.match(bundle,/23/);
  assert.throws(()=>cp.execFileSync(process.execPath,['--require',guard,'-e',customerMetadataBuildProgram()],{input:JSON.stringify({...input,sources:[[entry,"import 'foreign-package';"]]}),encoding:'utf8',windowsHide:true,timeout:15000,stdio:['pipe','pipe','pipe']}),e=>e.status===1&&String(e.stderr)==='CUSTOMER_METADATA_BUNDLE_FAILED');
 });
+test('real disk entry keeps the same blob identity when esbuild prefixes its entry path',()=>{
+ const root=path.resolve(import.meta.dirname,'../..'),entry='scripts/canonical/prepare-customer-master-metadata-package.mjs',tool=path.join(root,'apps/sites-workflow/node_modules/esbuild/lib/main.js'),guard=path.join(root,'scripts/ci/offline-guard.cjs');assert.equal(fs.existsSync(path.join(root,entry)),true);
+ const result=cp.execFileSync(process.execPath,['--require',guard,'-e',customerMetadataBuildProgram()],{cwd:root,input:JSON.stringify({tool,entry,sources:[[entry,'globalThis.fixture=37;throw Error("FIXTURE_SOURCE_NOT_EXECUTED");']]}),encoding:'utf8',windowsHide:true,timeout:15000,stdio:['pipe','pipe','pipe']});assert.match(result,/fixture = 37/);assert.match(result,/FIXTURE_SOURCE_NOT_EXECUTED/);
+});

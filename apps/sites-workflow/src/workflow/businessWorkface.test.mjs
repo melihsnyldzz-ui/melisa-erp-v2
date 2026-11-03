@@ -7,6 +7,7 @@ const user={id:17,username:'unified-semih-test',role:{id:17,code:'unified_test_s
 const storage=()=>{const data=new Map();return{getItem:k=>data.get(k)??null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k),data};};
 test('metadata transport permits only the exact fixed GET without query/body and uses the existing normal session',async()=>{
  assert.equal(allowed('GET','/api/customers/master-metadata'),true);
+ for(const path of ['/api/customer-master-metadata-check','/api/customer-master-metadata-check/client.mjs']){assert.equal(allowed('GET',path),true);for(const method of ['POST','HEAD','OPTIONS','PUT','DELETE','PATCH'])assert.equal(allowed(method,path),false);for(const suffix of ['?','?path=other','/','#x'])assert.equal(allowed('GET',path+suffix),false);}
  for(const method of ['POST','HEAD','PUT','DELETE','PATCH'])assert.equal(allowed(method,'/api/customers/master-metadata'),false);
  for(const path of ['/api/customers/master-metadata?x=1','/api/customers/master-metadata?','/api/customers/master-metadata/'])assert.equal(allowed('GET',path),false);
  for(const permissions of [['customer.view','customer.edit'],['customer.view'],['customer.edit'],[]]){
