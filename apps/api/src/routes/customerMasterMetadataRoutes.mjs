@@ -6,7 +6,7 @@ async function defaultAuthenticate(req,res,next){
 }
 async function defaultAuthorize(req,res,next){
  try{
-  if(req.authContext?.nativeTerminalCode||req.user?.nativeTerminalSession===true)throw customerMasterError('CUSTOMER_PERMISSION_DENIED',403);
+  if(req.authContext?.nativeTerminalCode||req.user?.nativeTerminalSession===true)throw customerMasterError('AUTH_PERMISSION_DENIED',403);
   const {requirePermission}=await import('../middleware/authMiddleware.js');
   return requirePermission('customer.view')(req,res,error=>error?next(error):requirePermission('customer.edit')(req,res,next));
  }catch(error){next(error);}

@@ -43,5 +43,5 @@ test('public check assets never query metadata or authenticate; the data endpoin
  const unavailable=await fixture(f.reader);try{assert.equal((await unavailable.fetch('/api/customer-master-metadata-check')).status,503);assert.equal(f.calls.length,0);}finally{await unavailable.close();}
 });
 test('a terminal credential is rejected even when its account has both customer permissions',async()=>{
- const f=await customerMasterMetadataFixture(),s=await fixture(f.reader);try{assert.equal((await s.fetch(url,{headers:{'x-test-terminal':'fixture-terminal'}})).status,403);assert.equal(f.calls.length,0);}finally{await s.close();}
+ const f=await customerMasterMetadataFixture(),s=await fixture(f.reader);try{const r=await s.fetch(url,{headers:{'x-test-terminal':'fixture-terminal'}});assert.equal(r.status,403);assert.equal((await r.json()).code,'AUTH_PERMISSION_DENIED');assert.equal(f.calls.length,0);}finally{await s.close();}
 });
