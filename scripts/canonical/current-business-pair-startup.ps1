@@ -119,7 +119,9 @@ function Open-ErpCurrentPairBinding($Plan,[string]$ConfigText,[string]$TaskText,
 }
 function Read-ErpCurrentPairTask {
  $service=New-Object -ComObject 'Schedule.Service';$service.Connect();$task=$service.GetFolder('\').GetTask('Melisa-ERP-TEST-Canonical')
- return @{xml=[string]$task.Xml;sddl=[string]$task.GetSecurityDescriptor(4)}
+ # The preserved before-image includes owner, group and DACL (1|2|4).
+ # This is READ_CONTROL only; no SACL request or security descriptor write.
+ return @{xml=[string]$task.Xml;sddl=[string]$task.GetSecurityDescriptor(7)}
 }
 function Assert-ErpCurrentPairLiveBinding($Binding) {
  $b=Get-ErpCurrentPairBinding $Binding;$task=Read-ErpCurrentPairTask

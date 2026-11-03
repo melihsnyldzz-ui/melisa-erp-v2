@@ -66,6 +66,19 @@ Reject {New-ErpCurrentPairProjection $before $xml $sddl ('0'*64) (Get-ErpCurrent
 $savedXml=$xml;$xml=$xml.Replace('powershell.exe','cmd.exe');Reject {NewPlan} 'CURRENT_PAIR_TASK_EXECUTABLE';$xml=$savedXml.Replace('</Actions>','<ComHandler /></Actions>');Reject {NewPlan} 'CURRENT_PAIR_TASK_ACTIONS';$xml=$savedXml
 Reject {ConvertFrom-ErpCurrentPairTaskXml '<!DOCTYPE x [<!ENTITY y SYSTEM "file:///secret">]><Task />'} '*'
 `);
+win('actual task reader requests owner/group/DACL matching the preserved full descriptor; no SACL or write',String.raw`
+$script:descriptorFlags=$null;$script:requestedTask=$null;$script:requestedFolder=$null
+$script:fakeTask=[pscustomobject]@{Xml=$xml}
+$script:fakeTask|Add-Member ScriptMethod GetSecurityDescriptor {param($Flags);$script:descriptorFlags=$Flags;return 'O:fixture-ownerG:fixture-groupD:P(A;;GRGX;;;BA)'}
+$script:fakeFolder=[pscustomobject]@{}
+$script:fakeFolder|Add-Member ScriptMethod GetTask {param($Name);$script:requestedTask=$Name;return $script:fakeTask}
+$script:fakeService=[pscustomobject]@{}
+$script:fakeService|Add-Member ScriptMethod Connect {}
+$script:fakeService|Add-Member ScriptMethod GetFolder {param($Path);$script:requestedFolder=$Path;return $script:fakeFolder}
+function New-Object {param($ComObject);if($ComObject-cne'Schedule.Service'){throw 'FOREIGN_COM'};return $script:fakeService}
+$value=Read-ErpCurrentPairTask
+if($script:descriptorFlags-ne7-or$script:requestedTask-cne'Melisa-ERP-TEST-Canonical'-or$script:requestedFolder-cne'\'-or$value.xml-cne$xml-or$value.sddl-cne'O:fixture-ownerG:fixture-groupD:P(A;;GRGX;;;BA)'){throw 'TASK_READER_BEFOREIMAGE_SCOPE_MISMATCH'}
+`);
 win('actual projection consumer rejects extra delta, task/principal/settings/credential/SDDL drift, wrong manifest/root and forged plan',String.raw`
 $plan=NewPlan
 foreach($target in @('config','principal','trigger','settings','runlevel','workingdir','credential','sddl','hash','root','plan')){
