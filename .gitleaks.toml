@@ -32,3 +32,27 @@ condition = "AND"
 regexTarget = "secret"
 paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
 regexes = ['''\A\Q6adda25daf5af69b72062475d6c937b7fb903e4199291189c68f9b6229b49869\E\z''']
+
+[[allowlists]]
+description = "Exact B01 synthetic sourceKey 1; explicitly approved 2026-11-03"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
+regexes = ['''\A\QVEGA2026/F0102TBLSTOKLAR/\E\z''']
+
+[[allowlists]]
+description = "Exact B01 synthetic sourceKey 2; explicitly approved 2026-11-03"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
+regexes = ['''\A\QVEGA2026/F0102TBLCARI/23\E\z''']
+
+[[allowlists]]
+description = "Exact B01 synthetic sourceKey 3; explicitly approved 2026-11-03"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
+regexes = ['''\A\QVEGA2026/F0103TBLCARI/33\E\z''']
