@@ -2,11 +2,15 @@ import {tradeExact,tradeId,tradeInvoice} from './workTradeModel.mjs';
 const currencies=['TRY','USD','EUR'];
 const bad=()=>{throw Error('Müşteri geçmişi doğrulanamadı.');};
 export const unknownInvoiceDue='Vade bilgisi kayıtlı değil';
-export function invoicePaymentState(invoice){
+// A list DTO alone does not prove the collection ledger. Canonical B6 fields
+// are placeholders even if a caller has separately verified another context.
+export const invoiceCollectionsUnverified=(invoice,{verified=false}={})=>!invoice||invoice.customerBalanceDisplayOnly===true||invoice.operationOrigin==='CANONICAL_TEST_BUSINESS_SALE'||invoice.operationOrigin!==undefined&&invoice.operationOrigin!=='ISOLATED_TEST_COPY'||verified!==true;
+export function invoicePaymentState(invoice,{verified=false}={}){
  const result=(state,label)=>({state,label,due:unknownInvoiceDue});
  if(invoice?.status==='draft')return result('draft','Taslak');
  if(invoice?.status==='cancelled')return result('cancelled','İptal edildi');
  const unknown=()=>result('unknown','Tahsilat durumu doğrulanamadı');
+ if(invoiceCollectionsUnverified(invoice,{verified}))return unknown();
  if(invoice?.status!=='finalized'||!tradeId(invoice.id)||!currencies.includes(invoice.currency)||!tradeExact(invoice.grandTotalExact4,4)||!tradeExact(invoice.collections?.receivedExact4,4)||!tradeExact(invoice.collections?.outstandingExact4,4)||!Array.isArray(invoice.collections.items))return unknown();
  const units=v=>BigInt(v.replace('.','')),total=units(invoice.grandTotalExact4),received=units(invoice.collections.receivedExact4),outstanding=units(invoice.collections.outstandingExact4);
  if(total<=0n||received<0n||outstanding<0n||received+outstanding!==total)return unknown();

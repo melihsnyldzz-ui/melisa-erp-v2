@@ -1,3 +1,4 @@
+import {invoiceCollectionsUnverified} from './workOpenAccountPresentation.mjs';
 const exact4=value=>typeof value==='string'&&/^(?:0|[1-9]\d{0,13})\.\d{4}$/.test(value);
 const id=value=>typeof value==='string'&&/^[1-9]\d{0,18}$/.test(value);
 const date=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -42,6 +43,8 @@ export function buildWorkFinanceMovements({salesContext,invoices,paymentContext,
  if(salesContext?.scope?.synthetic!==synthetic||salesContext.scope.customer?.synthetic!==synthetic||!Array.isArray(salesContext.scope.accounts)||!Array.isArray(invoices)||!Array.isArray(paymentContext?.suppliers)||!Array.isArray(paymentContext?.accounts)||!Array.isArray(paymentContext?.payments))throw Error('Hareket kaynağı doğrulanamadı.');
  if(copy){tradeContext(salesContext);validatePaymentContext(paymentContext);const paymentCopy=operationCopyFromMeta(paymentContext.meta);if(paymentCopy?.copyId!==copy.copyId||paymentCopy.sealHash!==copy.sealHash||paymentContext.payments.some(p=>p.ownership!=='work'))throw Error('Hareket kaynağı doğrulanamadı.');invoices.forEach(invoice=>{tradeInvoice(invoice);if(invoice.documentDate!==copy.date)throw Error('Tahsilat kaynağı doğrulanamadı.');});}
  const clean=salesContext.meta?.cleanSaleReadOnly===true||salesContext.meta?.environment==='CLEAN_SYNTHETIC_TEST'||salesContext.meta?.environmentId===cleanEnvironmentId;
+ const scopeVerified=!!copy||clean||salesContext.meta?.source==='native-test'&&salesContext.scope.synthetic===true;
+ if(salesContext.meta?.operationOrigin!==undefined&&salesContext.meta.operationOrigin!=='ISOLATED_TEST_COPY'||invoices.some(i=>invoiceCollectionsUnverified(i,{verified:scopeVerified})))throw Error('Tahsilat kaynağı doğrulanamadı.');
  if(clean&&copy||!clean&&collectionContexts!==undefined)throw Error('Hareket kaynağı doğrulanamadı.');
  const verified=clean?cleanCollectionSources(salesContext,paymentContext,invoices,collectionContexts):null,reversals=new Set();
  const legacyCustomer=salesContext.scope.customer,legacyAccount=salesContext.scope.accounts[0];

@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — doğrulanmamış tahsilat gösterimi
+
+Kaynak veya fiş-hesap kanıtı eksik tahsilat/kalan tutarları satış, müşteri ve tahsilat görünümünde doğrulanmış değer sayılmaz; eksik kanıt genel finans özetine alınmaz. 183 hedefli test, derleme ve bağımsız inceleme geçti. Mevcut pending retry/send/journal davranışı değiştirilmedi; taze context başarısızken eski generic retry POST riski ve gerçek sonuç okuma bağı açık. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR.
+
 ## 4 Kasım 2026 — tahsilat sayfalama test verisi
 
 2762 GitHub quality testi, eski tahsilat listesi fixture meta alanlarını sağlamadığından başarısızdı. Yalnız test yanıtı gerçek API total/page/limit sözleşmesine uyarlandı; 9/9 çevrimdışı korumalı test ve bağımsız inceleme geçti. Yeni GitHub CI bekliyor; kurulum, gerçek ekran ve insan kabulü değildir.

@@ -103,8 +103,8 @@ test('a pre-payment list response cannot restore the old amount after a confirme
   if(++lists===1)return new Promise(resolve=>{oldList=resolve;});return listOf([updated]);
  }};
  const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();
- assert.match(d.root.innerHTML,/Kalan 70,00 TRY/);oldList(listOf([invoice('42')]));await tick();
- assert.match(d.root.innerHTML,/Kalan 70,00 TRY/);assert.doesNotMatch(d.root.innerHTML,/Kalan 120,00 TRY|data-collection-save|data-collection-retry/);assert.equal(posts,1);assert.equal(journal.read().result.replayed,true);ui.dispose();
+ assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);oldList(listOf([invoice('42')]));await tick();
+ assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);assert.doesNotMatch(d.root.innerHTML,/Kalan 120,00 TRY|data-collection-save|data-collection-retry/);assert.equal(posts,1);assert.equal(journal.read().result.replayed,true);ui.dispose();
 });
 
 test('failed success storage keeps the original pending request locked until the same UUID is replayed',async()=>{
@@ -206,4 +206,16 @@ test('dispose before clean source admission prevents further detail reads',async
 
 test('legacy finance does not add clean detail reads',async()=>{
  const create=await controller(),d=dom(),calls=[];const ui=create({root:d.root,user:{id:16},storage:storage(),session:{work:async path=>{calls.push(path);return path==='/api/work-sales/invoices'?listOf([invoice('42')]):{};},supplierPayments:async()=>({})}});ui.mount();await tick();toggleFinance(d,true);await tick();assert.deepEqual(calls,['/api/work-sales/invoices','/api/work-sales/context']);ui.dispose();
+});
+
+test('canonical and unproven collection receipt fields are unknown without altering stored data or issuing POST',async()=>{
+ for(const mode of ['canonical','missing-marker-display-only','null-marker','contradictory-metadata'])for(const currency of ['TRY','USD','EUR']){
+  const create=await controller(),d=dom(),store=storage(),calls=[],i=invoice('42');i.currency=currency;i.items=i.items.map(x=>({...x,currency}));if(mode==='canonical')i.operationOrigin='CANONICAL_TEST_BUSINESS_SALE';if(mode==='missing-marker-display-only')i.customerBalanceDisplayOnly=true;if(mode==='null-marker')i.operationOrigin=null;store.setItem('melisa-work-selected-invoice:16','42');const before=store.getItem('melisa-work-selected-invoice:16');
+  const c=context('42');c.invoice=i;c.accounts[0].currency=currency;if(mode==='contradictory-metadata')c.meta={operationOrigin:'CANONICAL_TEST_BUSINESS_SALE'};
+  const ui=create({root:d.root,user:{id:16},storage:store,session:{work:async(path,o)=>{calls.push({path,o});if(path.includes('/context?'))return c;return listOf([i]);}}});ui.mount();await tick();
+  if(mode!=='contradictory-metadata')assert.match(d.root.innerHTML,/Tahsilat durumu: Doğrulanmadı/);assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);assert.doesNotMatch(d.root.innerHTML,/Tahsil edilen: 0,00|Kalan: 120,00|Henüz tahsilat yok|data-collection-full|data-collection-preview/);assert.equal(store.getItem('melisa-work-selected-invoice:16'),before);assert.ok(calls.every(x=>x.o?.method!=='POST'));ui.dispose();
+ }
+});
+test('validated ordinary synthetic collection shows verified zero independently of an unverified list row',async()=>{
+ const create=await controller(),d=dom(),store=storage(),calls=[];store.setItem('melisa-work-selected-invoice:16','42');const ui=create({root:d.root,user:{id:16},storage:store,session:{work:async(path,o)=>{calls.push({path,o});if(path.includes('/context?'))return context('42');return listOf([invoice('42'),{...invoice('43'),operationOrigin:'CANONICAL_TEST_BUSINESS_SALE'}]);}}});ui.mount();await tick();assert.match(d.root.innerHTML,/Tahsil edilen: 0,00 TRY/);assert.match(d.root.innerHTML,/Kalan: 120,00 TRY/);assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);assert.ok(calls.every(x=>x.o?.method!=='POST'));ui.dispose();
 });
