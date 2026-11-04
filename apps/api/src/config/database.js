@@ -13,6 +13,14 @@ export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()?null:(await import('mssql/msnodesqlv8.js')).default;
 
 let poolPromise;
+let resolvedPool;
+let resolvedPoolWasReadonly=false;
+let closingPools=0;
+
+function matchesCanonicalReadonlyPoolEnvironment() {
+  return isCanonicalTest() && env.port===4146 && env.sql.enabled===true
+    && env.sql.server==='127.0.0.1' && env.sql.port===1433 && env.sql.readOnly===true && env.sql.trustedConnection===false;
+}
 
 // The isolated canonical TEST uses the same ODBC family as the LIVE baseline.
 // Only the verified TEST runtime can select these two isolated SQL identities.
@@ -140,6 +148,7 @@ export async function getSqlPool() {
   }
 
   if (!poolPromise) {
+    const readonlyAtCreation=matchesCanonicalReadonlyPoolEnvironment();
     const sql = getSqlDriver();
     const pool = new sql.ConnectionPool(getSqlConfig());
     poolPromise = pool.connect().then(async connected=>{
@@ -147,9 +156,12 @@ export async function getSqlPool() {
       if(currentCrmAllowed){
         try{const identity=(await connected.request().query("SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') databaseControl,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess")).recordset[0];assertCrmOrderCurrentIdentity(currentCrm,identity);}catch(error){await connected.close();throw error;}
       }
+      resolvedPool=connected;resolvedPoolWasReadonly=readonlyAtCreation;
       return connected;
     }).catch((error) => {
       poolPromise = undefined;
+      resolvedPool = undefined;
+      resolvedPoolWasReadonly = false;
       throw error;
     });
   }
@@ -157,10 +169,24 @@ export async function getSqlPool() {
   return poolPromise;
 }
 
+// Returns only the existing pool; the caller must independently authenticate
+// the physical SQL session that it acquires for every read.
+export async function getExistingCanonicalReadonlyPool() {
+  if (!poolPromise || !resolvedPool || !resolvedPoolWasReadonly || closingPools
+    || !matchesCanonicalReadonlyPoolEnvironment() || resolvedPool.connected!==true) return null;
+  return resolvedPool;
+}
+
 export async function closeSqlPool() {
-  if (poolPromise) {
-    const pool = await poolPromise;
-    poolPromise = undefined;
+  const promise=poolPromise;
+  resolvedPool=undefined;
+  resolvedPoolWasReadonly=false;
+  if (!promise) return;
+  closingPools++;
+  try {
+    const pool = await promise;
+    if (poolPromise===promise) poolPromise = undefined;
+    if (resolvedPool===pool) {resolvedPool=undefined;resolvedPoolWasReadonly=false;}
     await pool.close();
-  }
+  } finally { closingPools--; }
 }

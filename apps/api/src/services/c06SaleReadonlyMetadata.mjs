@@ -8,23 +8,38 @@ const NAMES=Object.freeze([
   'usp_canonical_business_sale_context_v1',
   'usp_canonical_business_sale_begin_v1',
 ]);
-const QUERY=`SELECT o.name AS objectName,
+// IF guards execute on the same acquired SQL session as the metadata SELECT.
+// A wrong target exits before enumerating even permission or module metadata.
+const QUERY=`IF ISNULL(DB_ID(),-1)<>18
+ OR ISNULL(DB_NAME(),N'') COLLATE Latin1_General_100_BIN2<>N'MELISA_ERP_SIRKET_TEST_20260929_01'
+ OR ISNULL(CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')),N'') COLLATE Latin1_General_100_BIN2<>N'Semih\\MELISADEV'
+ OR ISNULL(CONVERT(nvarchar(128),SERVERPROPERTY('MachineName')),N'') COLLATE Latin1_General_100_BIN2<>N'Semih'
+ OR ISNULL(CONVERT(nvarchar(128),SERVERPROPERTY('InstanceName')),N'') COLLATE Latin1_General_100_BIN2<>N'MELISADEV'
+ OR ISNULL(SUSER_SNAME(),N'') COLLATE Latin1_General_100_BIN2<>N'melisa_sirket_test_20260929_01'
+ OR ISNULL(USER_NAME(),N'') COLLATE Latin1_General_100_BIN2<>N'melisa_sirket_test_20260929_01'
+BEGIN SELECT N'DENIED' AS admission; END
+ELSE IF ISNULL(IS_SRVROLEMEMBER('sysadmin'),-1)<>0
+ OR ISNULL(HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL'),-1)<>0
+ OR ISNULL(HAS_PERMS_BY_NAME('dbo.sales_invoices','OBJECT','INSERT'),-1)<>0
+BEGIN SELECT N'DENIED' AS admission; END
+ELSE IF EXISTS (
+ SELECT permission_name FROM sys.fn_my_permissions(NULL,'DATABASE') WHERE permission_name IN ('INSERT','UPDATE','DELETE','EXECUTE','CONTROL','ALTER','TAKE OWNERSHIP')
+ UNION SELECT p.permission_name FROM sys.tables t CROSS APPLY sys.fn_my_permissions(QUOTENAME(SCHEMA_NAME(t.schema_id))+'.'+QUOTENAME(t.name),'OBJECT') p WHERE p.permission_name IN ('INSERT','UPDATE','DELETE','ALTER','CONTROL','TAKE OWNERSHIP')
+ UNION SELECT p.permission_name FROM sys.procedures t CROSS APPLY sys.fn_my_permissions(QUOTENAME(SCHEMA_NAME(t.schema_id))+'.'+QUOTENAME(t.name),'OBJECT') p WHERE p.permission_name='EXECUTE'
+)
+BEGIN SELECT N'DENIED' AS admission; END
+ELSE BEGIN
+ SELECT N'OK' AS admission;
+ SELECT o.name AS objectName,
  CONVERT(varchar(64), HASHBYTES('SHA2_256', m.definition), 2) AS definitionHash,
  m.uses_ansi_nulls AS usesAnsiNulls, m.uses_quoted_identifier AS usesQuotedIdentifier,
  m.execute_as_principal_id AS executeAsPrincipalId, m.is_schema_bound AS isSchemaBound,
  m.uses_native_compilation AS usesNativeCompilation
  FROM sys.objects AS o LEFT JOIN sys.sql_modules AS m ON m.object_id=o.object_id
- WHERE DB_ID()=18 AND DB_NAME() COLLATE Latin1_General_100_BIN2=N'MELISA_ERP_SIRKET_TEST_20260929_01'
- AND CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) COLLATE Latin1_General_100_BIN2=N'Semih\\MELISADEV'
- AND CONVERT(nvarchar(128),SERVERPROPERTY('MachineName')) COLLATE Latin1_General_100_BIN2=N'Semih'
- AND CONVERT(nvarchar(128),SERVERPROPERTY('InstanceName')) COLLATE Latin1_General_100_BIN2=N'MELISADEV'
- AND SUSER_SNAME() COLLATE Latin1_General_100_BIN2=N'melisa_sirket_test_20260929_01'
- AND USER_NAME() COLLATE Latin1_General_100_BIN2=N'melisa_sirket_test_20260929_01'
- AND IS_SRVROLEMEMBER('sysadmin')=0
- AND HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL')=0
- AND SCHEMA_NAME(o.schema_id) COLLATE Latin1_General_100_BIN2=N'dbo' AND o.type='P'
+ WHERE SCHEMA_NAME(o.schema_id) COLLATE Latin1_General_100_BIN2=N'dbo' AND o.type='P'
  AND o.name COLLATE Latin1_General_100_BIN2 IN (N'usp_canonical_business_sale_resolve_v1',
- N'usp_canonical_business_sale_context_v1',N'usp_canonical_business_sale_begin_v1');`;
+ N'usp_canonical_business_sale_context_v1',N'usp_canonical_business_sale_begin_v1');
+END;`;
 
 function blocked() { const e=new Error('C06_SALE_METADATA_UNAVAILABLE'); e.code='C06_SALE_METADATA_UNAVAILABLE'; return e; }
 function bit(value) {
@@ -40,14 +55,17 @@ export async function readC06SaleReadonlyMetadata() {
     || c.database!=='MELISA_ERP_SIRKET_TEST_20260929_01'
     || c.user!=='melisa_sirket_test_20260929_01') throw blocked();
   let rows;
-  // The current database module does not expose this accessor. Until an
-  // existing-only, ownership-verified accessor is integrated, fail closed;
-  // getSqlPool() is intentionally not used because it can open a connection.
+  // getSqlPool() is intentionally not used: it can create a pool. A request
+  // may still acquire or replace a physical connection inside the existing pool.
   if (typeof database.getExistingCanonicalReadonlyPool!=='function') throw blocked();
   try {
     const pool=await database.getExistingCanonicalReadonlyPool();
     if (!pool || pool.connected!==true || typeof pool.request!=='function') throw blocked();
-    rows=(await pool.request().query(QUERY)).recordset;
+    const result=await pool.request().query(QUERY);
+    if (!Array.isArray(result.recordsets) || result.recordsets.length!==2
+      || result.recordsets[0]?.length!==1 || result.recordsets[0][0]?.admission!=='OK') throw blocked();
+    rows=result.recordsets[1];
+    if (await database.getExistingCanonicalReadonlyPool()!==pool) throw blocked();
   }
   catch { throw blocked(); }
   if (!Array.isArray(rows)) throw blocked();
