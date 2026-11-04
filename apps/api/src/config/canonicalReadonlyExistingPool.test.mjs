@@ -27,9 +27,12 @@ test('existing-only accessor never creates a pool or performs SQL',async t=>{
   state={constructed:0};restoreEnv();
   await t.test('empty pool fails closed',async()=>{
     assert.equal(await db.getExistingCanonicalReadonlyPool(),null);assert.equal(state.constructed,0);
+    await assert.rejects(db.runWithCanonicalExistingPoolOnly(()=>db.getSqlPool()),{code:'CANONICAL_EXISTING_POOL_UNAVAILABLE'});
+    assert.equal(state.constructed,0);
   });
   await t.test('returns same existing pool without claiming its physical session identity',async()=>{
     const pool=await db.getSqlPool();assert.equal(await db.getExistingCanonicalReadonlyPool(),pool);assert.equal(state.constructed,1);
+    assert.equal(await db.runWithCanonicalExistingPoolOnly(async()=>{await Promise.resolve();return db.getSqlPool();}),pool);
     pool.connected=false;assert.equal(await db.getExistingCanonicalReadonlyPool(),null);
     pool.connected=true;assert.equal(await db.getExistingCanonicalReadonlyPool(),pool);
     await db.closeSqlPool();assert.equal(await db.getExistingCanonicalReadonlyPool(),null);
@@ -59,5 +62,13 @@ test('existing-only accessor never creates a pool or performs SQL',async t=>{
     const opening=db.getSqlPool();await entered;assert.equal(await db.getExistingCanonicalReadonlyPool(),null);const closing=db.closeSqlPool();
     resume();await opening;await closing;state.waitConnect=null;
     assert.equal(await db.getExistingCanonicalReadonlyPool(),null);
+  });
+  await t.test('close during an existing-only async chain never recreates a pool',async()=>{
+    const pool=await db.getSqlPool();const count=state.constructed;
+    await db.runWithCanonicalExistingPoolOnly(async()=>{
+      assert.equal(await db.getSqlPool(),pool);await db.closeSqlPool();
+      await assert.rejects(db.getSqlPool(),{code:'CANONICAL_EXISTING_POOL_UNAVAILABLE'});
+    });
+    assert.equal(state.constructed,count);assert.equal(await db.getExistingCanonicalReadonlyPool(),null);
   });
 });

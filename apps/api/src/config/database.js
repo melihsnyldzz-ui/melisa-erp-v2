@@ -1,4 +1,5 @@
 import sqlDefault from 'mssql';
+import {AsyncLocalStorage} from 'node:async_hooks';
 import { env } from './env.js';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
@@ -16,6 +17,12 @@ let poolPromise;
 let resolvedPool;
 let resolvedPoolWasReadonly=false;
 let closingPools=0;
+const canonicalExistingOnlyScope=new AsyncLocalStorage();
+
+// Restricts code in this async chain; it grants no auth or SQL capability.
+export function runWithCanonicalExistingPoolOnly(callback) {
+  return canonicalExistingOnlyScope.run(true,callback);
+}
 
 function matchesCanonicalReadonlyPoolEnvironment() {
   return isCanonicalTest() && env.port===4146 && env.sql.enabled===true
@@ -115,6 +122,11 @@ export function getSafeSqlInfo() {
 }
 
 export async function getSqlPool() {
+  if (canonicalExistingOnlyScope.getStore()===true) {
+    const existing=await getExistingCanonicalReadonlyPool();
+    if (!existing) throw Object.assign(new Error('Existing canonical readonly pool unavailable'),{code:'CANONICAL_EXISTING_POOL_UNAVAILABLE',statusCode:503});
+    return existing;
+  }
   if (!env.sql.enabled) {
     const error = new Error('SQL connection is not configured');
     error.code = 'SQL_NOT_CONFIGURED';

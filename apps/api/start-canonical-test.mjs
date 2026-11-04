@@ -104,6 +104,8 @@ if(mode==='erp'){
   const {createApp}=await import('./src/app.js');app.use(createApp());
 }else{
   app.locals.nativeTerminalV1=true;
+  const {createC06SaleReadonlyMetadataRoutes}=await import('./src/routes/c06SaleReadonlyMetadataRoutes.mjs');
+  app.use('/api',createC06SaleReadonlyMetadataRoutes());
   const {createNativeReceiptPdfShare}=await import('./src/services/nativeReceiptPdfShare.mjs');
   app.locals.nativeReceiptPdfShare=createNativeReceiptPdfShare({baseUrl:'http://127.0.0.1:4146'});
   const {createNativeReceiptPdfRoutes}=await import('./src/routes/nativeReceiptPdfRoutes.mjs');
