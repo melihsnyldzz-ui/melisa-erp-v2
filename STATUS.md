@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — müşteri CI ve bekleyen satış açıklaması
+
+- PR54 `abed08d8` kalite kontrolündeki müşteri loader hatası `2135df2e` kaynakta giderildi; ilgili 17 test ve bağımsız inceleme geçti.
+- `3ddbae6e` yalnız satışın bekleyen işlem kontrolü mesajını netleştirir; 54 hedefli test, bağımsız inceleme ve staged güvenlik taraması geçti. Son kaynak derlendi.
+- Bu kaynakların PR CI sonucu ve 5244 kurulumu henüz doğrulanmadı; insan kabulü bekliyor. Önceki Windows işleri sürerken iptal edilmez. Recovery WIP ve desteklenmeyen ortak kurulum sınırları korunur.
+
 ## 4 Kasım 2026 — tahsilat gösterimi ortak kaynak adayı
 
 6d uygulama kaynağı, 51 dosyalı satış/müşteri/mal kabul/tahsilat pasif aday sözleşmesine ayrı pin olarak eklendi; önceki kaynak kimlikleri korunur. 20 çevrimdışı hedefli test, 5 yerel Git entegrasyon testi ve bağımsız inceleme geçti. Gerçek üretim klasör güvenliği doğrulanana kadar I/O öncesi kapalı; 5244 erişimi, generic pending retry riski, gerçek ekran ve insan kabulü BEKLİYOR.
