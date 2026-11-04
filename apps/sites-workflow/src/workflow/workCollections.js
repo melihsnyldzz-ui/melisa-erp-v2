@@ -53,7 +53,8 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
  }catch(e){if(alive(n)){financeRows=null;financeNote=e?.status===403?'Finans hareketlerini görüntüleme yetkiniz yok.':'Hareket bilgileri şu anda açılamıyor.';}}finally{if(alive(n)){financeLoading=false;paint();}}}
  async function check(){if(locked()||!invoiceMatchesContext(context?.invoice)||!context?.capabilities.canCollect)return;const n=generation;let s;try{s=selection();}catch{preview=null;note='Hesabı, pozitif tutarı ve işlem tarihini kontrol edin.';paint();return;}busy=true;note='Tutar kontrol ediliyor…';paint();try{const p=validateCollectionPreview(await work(`${collectionBase}/preview`,{method:'POST',body:s}),s,context.invoice.currency);if(alive(n)){preview=p;note='Tutar doğrulandı.';}}catch(e){if(alive(n)){preview=null;note=fail(e);}}finally{if(alive(n)){busy=false;paint();}}}
  async function verifySelectedPending(p,n){
-  if(!sourceMode||busy||!alive(n)||!p||p.status!=='pending'||!sourceRequestAllowed(p))return;
+  if(!sourceMode||busy||!alive(n)||!p||p.status!=='pending')return;
+  if(!sourceRequestAllowed(p)){note='Önceki işlem doğrulanamadı. Kayıt korunuyor; tekrar gönderilmedi.';paint();return;}
   let retained,input;try{
    retained=JSON.stringify(p);if(JSON.stringify(journal.read())!==retained)throw Error();
    if(p.path===collectionBase)input={operation:'collection_create',invoiceId:selectedSource.invoiceId,body:structuredClone(p.body)};
