@@ -37,3 +37,15 @@ test('c2ce binds the exact receiving delta and the 49-source real Git graph with
  const gitBlobs=new Map(currentPair.C06_C2CE_GIT_FILES.map(p=>[p,gitSource(p)])),workingBytes=new Map(gitBlobs);assert(currentPair.assertC06GitBlobClosure({paths:currentPair.C06_C2CE_GIT_FILES,gitBlobs,workingBytes,sourcePin:pin}));
  workingBytes.set('apps/sites-workflow/src/workflow/workBusinessReceivingRead.mjs',Buffer.from('tamper'));assert.throws(()=>currentPair.assertC06GitBlobClosure({paths:currentPair.C06_C2CE_GIT_FILES,gitBlobs,workingBytes,sourcePin:pin}),/C06_GIT_BLOB_DRIFT/);
 });
+test('ec80 binds collection and existing bounded session GET to the 51-source real Git graph',()=>{
+ const root=path.resolve(import.meta.dirname,'../..'),require=createRequire(path.join(root,'apps/sites-workflow/package.json')),parse=require('@babel/parser').parse,old=currentPair.C06_C2CE_SOURCE_PIN,pin=currentPair.C06_EC80_SOURCE_PIN;
+ const git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim(),gitSource=p=>execFileSync('git',['show',pin+':'+p],{cwd:root});
+ assert.equal(git('rev-parse',pin),pin);assert.equal(git('diff','--name-only',old,pin,'--','apps/api','packages',...currentPair.C06_SALE_UNAPPLIED_SQL_SOURCE_FILES),'');
+ assert.deepEqual(git('diff','--name-only',old,pin,'--','apps/sites-workflow').split(/\r?\n/).filter(Boolean).sort(),['workCollections.js','workCollectionsCache.test.mjs','workInbound.test.mjs','workTrade.test.mjs','workingCatalogSession.mjs','workingCatalogSession.test.mjs'].map(n=>'apps/sites-workflow/src/workflow/'+n).sort());
+ const closure=currentPair.currentC06WebClosure({readSource:gitSource,parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin});assert.equal(closure.size,51);for(const p of currentPair.C06_EC80_WEB_SOURCE_FILES)assert(closure.has(p));
+ for(const name of ['workCollections.js','workFinanceMovements.mjs','workingCatalogSession.mjs'])assert(closure.has('apps/sites-workflow/src/workflow/'+name));
+ for(const name of ['workCollections.js','workingCatalogSession.mjs']){const p='apps/sites-workflow/src/workflow/'+name;assert.notEqual(git('rev-parse',old+':'+p),git('rev-parse',pin+':'+p));}
+ const session=gitSource('apps/sites-workflow/src/workflow/workingCatalogSession.mjs').toString();assert.match(session,/cleanInvoiceListRead=cleanReadTarget/);assert.match(session,/cleanInvoiceListRead\|\|cleanCollectionContextRead\?45000/);assert(session.includes('limit=25(?![\\s\\S])'));
+ const gitBlobs=new Map(currentPair.C06_EC80_GIT_FILES.map(p=>[p,gitSource(p)])),workingBytes=new Map(gitBlobs);assert(currentPair.assertC06GitBlobClosure({paths:currentPair.C06_EC80_GIT_FILES,gitBlobs,workingBytes,sourcePin:pin}));
+ workingBytes.set('apps/sites-workflow/src/workflow/workingCatalogSession.mjs',Buffer.from('tamper'));assert.throws(()=>currentPair.assertC06GitBlobClosure({paths:currentPair.C06_EC80_GIT_FILES,gitBlobs,workingBytes,sourcePin:pin}),/C06_GIT_BLOB_DRIFT/);
+});

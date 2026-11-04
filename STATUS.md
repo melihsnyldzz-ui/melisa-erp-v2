@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — tahsilat sayfalaması ve ortak kaynak kapsamı
+
+Tahsilat fişleri mevcut izinli bağlantıda 25 kayıtlık sayfalarla okunur; bekleyen işlem, fiş ve döviz korunur, eksik sayfadan genel finans özeti üretilmez. 192 hedefli test, derleme ve bağımsız inceleme geçti. ec80 uygulamasının satış/müşteri/mal kabul/tahsilat için 51 kaynaklı aday tanımı hazır; 19 çevrimdışı hedefli test ve 4 yerel Git entegrasyon testi geçti. Normal 5244 tahsilat liste izni, tam finans özeti, paket üretimi, gerçek ekran ve insan kabulü BEKLİYOR; gerçek SQL veya ticari kayıt değişmedi.
+
 ## 4 Kasım 2026 — mal kabul test formu düzeltmesi
 
 eb3a GitHub quality testinde mal kabulün sentetik DOM formu gerçek search alanını sağlamadığı için hata verdi. Yalnız test fixture düzeltildi; ilgili 59 test çevrimdışı koruma altında ve bağımsız review ile geçti. Tam yerel Windows sites suite 1867/1868: ayrı, önceden mevcut Windows PowerShell fixture CI_OFFLINE_BOUNDARY ile engelli; Linux GitHub sonucu değil. Yeni exact CI, gerçek kurulum ve ekran kabulü bekliyor.
