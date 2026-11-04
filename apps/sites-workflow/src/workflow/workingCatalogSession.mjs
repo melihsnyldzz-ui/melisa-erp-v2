@@ -3,7 +3,7 @@ import {isCleanCatalogLocation as isOriginalCleanLocation} from './cleanSyntheti
 import {isBusinessWorkfaceTarget,businessWorkfaceRequestAllowed,businessCustomerMasterRequestAllowed,businessCustomerMasterInputAllowed,businessSalePreviewRequestAllowed,businessSalePreviewSelectionAllowed,businessSalePreviewAvailable,isBusinessSalePreviewActor,businessSaleReceiptRequestAllowed,isBusinessSaleReceiptActor,businessSaleOperationAvailable,businessSaleOperationKind,businessSaleOperationInputAllowed,businessSaleOperationWitnessAllowed,businessSaleOperationRequestAllowed,businessSaleNativeOperationPreviewAllowed} from './businessWorkface.mjs';
 import {businessSaleReadPath,validateBusinessSaleReadEnvelope} from '../../../api/src/services/canonicalBusinessSaleReadModel.mjs';
 import {partyHistoryPath,validatePartyHistoryEnvelope} from '../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs';
-import {tradeCanonicalSaleInvoice,tradeCanonicalSaleJournal,tradeCanonicalPendingSalePlan} from './workTradeModel.mjs';
+import {tradeCanonicalSaleInvoice,tradeCanonicalSaleJournal,tradeCanonicalPendingSalePlan,tradeId,tradeExact,tradeRevision,tradeDate} from './workTradeModel.mjs';
 import {shouldAutoOpenTestAdmin,testSessionModeKey,resolveTestApiBase,isTestSessionTarget} from './testAdminSession.mjs';
 import {validateOperationCopyBootstrap} from './isolatedOperationCopyModel.mjs';
 import {createProtectedDeviceSession} from './protectedDeviceSession.mjs';
@@ -351,6 +351,17 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
    return (await request('/api/suppliers/'+id+'/contact',{method,body,expire:true,keepForbiddenSession:true,workMutation:method==='POST'})).data;
   },
   async work(path,{method='GET',body,...extra}={}){
+   if(path==='/api/work-collections/selected-source/verify-retained'){
+    const exact=(o,keys)=>o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join(',')===keys.toSorted().join(',');
+    const operation=body?.operation,creating=operation==='collection_create',cancelling=operation==='collection_cancel',b=body?.body;
+    const actor=selectedSourceCollections===true&&!!token&&!!user&&!!cartonReadTarget&&resolvedApiBase===`http://${location.hostname}:4184`&&user.id===16&&user.role?.code==='isolated_test_ilker'&&['finance.view','customer.view','finance.collection'].every(p=>user.permissions.includes(p))&&(!cancelling||user.permissions.includes('finance.collection.cancel'));
+    const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
+    const valid=exact(body,creating?['operation','invoiceId','body']:['operation','invoiceId','collectionId','body'])&&tradeId(body.invoiceId)&&(creating||cancelling&&tradeId(body.collectionId))&&exact(b,creating?['invoiceId','accountId','amountExact4','documentDate','requestId','previewHash','expectedRevision']:['requestId','expectedRevision','reason','documentDate'])&&uuid(b.requestId)&&tradeRevision(b.expectedRevision)&&tradeDate(b.documentDate)&&(creating?b.invoiceId===body.invoiceId&&tradeId(b.accountId)&&tradeExact(b.amountExact4,4)&&BigInt(b.amountExact4.replace('.',''))>0n&&tradeRevision(b.previewHash):typeof b.reason==='string'&&b.reason===b.reason.trim()&&b.reason.length>=5&&b.reason.length<=500);
+    if(Object.keys(extra).length||method!=='POST'||!actor||!valid)throw problem('Tahsilat bağlantısı kullanılamıyor.',403);
+    const result=(await request(path,{method,body,expire:true,keepForbiddenSession:true})).data;
+    if(!exact(result,['status'])||!['MATCHED','UNKNOWN'].includes(result.status))throw problem('Tahsilat sonucu doğrulanamadı.',409);
+    return result;
+   }
    if(typeof path==='string'&&path.startsWith('/api/work-collections/selected-source')){
     const read=/^\/api\/work-collections\/selected-source\/context\?invoiceId=[1-9]\d*$/;
     const write=/^\/api\/work-collections\/selected-source(?:\/preview|\/[1-9]\d*\/cancel)?$/;

@@ -32,7 +32,7 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
      if(financeOpen)loadFinanceMovements(invoiceRows,n,invoiceListMeta);
     });
    }
-   root.querySelector('[data-collection-refresh]').onclick=load;root.querySelector('[data-collection-retry]')?.addEventListener('click',()=>send(pending));
+   root.querySelector('[data-collection-refresh]').onclick=load;{const rendered=pending,n=generation;root.querySelector('[data-collection-retry]')?.addEventListener('click',()=>sourceMode?verifySelectedPending(rendered,n):send(pending));}
   for(const [selector,set] of [['[data-collection-account]',v=>accountId=v],['[data-collection-amount]',v=>amount=v],['[data-collection-date]',v=>date=v]]){const edit=e=>{if(locked())return;set(e.target.value);invalidatePreview();};root.querySelector(selector)?.addEventListener('input',edit);root.querySelector(selector)?.addEventListener('change',edit);}
   root.querySelector('[data-collection-full]')?.addEventListener('click',()=>{if(locked()||!invoiceMatchesContext(context?.invoice))return;amount=context.invoice.collections.outstandingExact4;preview=null;paint();});
   root.querySelector('[data-collection-preview]')?.addEventListener('click',check);
@@ -52,6 +52,19 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
   if(!alive(n))return;financeRows=buildWorkFinanceMovements({salesContext:sales,invoices,paymentContext:payments,collectionContexts});financeLoaded=true;
  }catch(e){if(alive(n)){financeRows=null;financeNote=e?.status===403?'Finans hareketlerini görüntüleme yetkiniz yok.':'Hareket bilgileri şu anda açılamıyor.';}}finally{if(alive(n)){financeLoading=false;paint();}}}
  async function check(){if(locked()||!invoiceMatchesContext(context?.invoice)||!context?.capabilities.canCollect)return;const n=generation;let s;try{s=selection();}catch{preview=null;note='Hesabı, pozitif tutarı ve işlem tarihini kontrol edin.';paint();return;}busy=true;note='Tutar kontrol ediliyor…';paint();try{const p=validateCollectionPreview(await work(`${collectionBase}/preview`,{method:'POST',body:s}),s,context.invoice.currency);if(alive(n)){preview=p;note='Tutar doğrulandı.';}}catch(e){if(alive(n)){preview=null;note=fail(e);}}finally{if(alive(n)){busy=false;paint();}}}
+ async function verifySelectedPending(p,n){
+  if(!sourceMode||busy||!alive(n)||!p||p.status!=='pending'||!sourceRequestAllowed(p))return;
+  let retained,input;try{
+   retained=JSON.stringify(p);if(JSON.stringify(journal.read())!==retained)throw Error();
+   if(p.path===collectionBase)input={operation:'collection_create',invoiceId:selectedSource.invoiceId,body:structuredClone(p.body)};
+   else{const match=new RegExp('^'+collectionBase+'/([1-9]\\d*)/cancel$').exec(p.path);if(!match)throw Error();input={operation:'collection_cancel',invoiceId:selectedSource.invoiceId,collectionId:match[1],body:structuredClone(p.body)};}
+  }catch{note='Önceki işlem doğrulanamadı. Kayıt korunuyor; tekrar gönderilmedi.';paint();return;}
+  busy=true;note='Önceki işlem kontrol ediliyor…';paint();
+  try{const result=await work(collectionBase+'/verify-retained',{method:'POST',body:input});if(!alive(n))return;if(JSON.stringify(journal.read())!==retained||JSON.stringify(pending)!==retained)throw Error();
+   if(result?.status==='MATCHED'&&Object.keys(result).length===1)note='Önceki işlem kaydı doğrulandı. Bekleyen kayıt henüz kapatılmadı; bu kontrolde yeni işlem gönderilmedi.';
+   else note='Önceki işlem doğrulanamadı. Kayıt korunuyor; tekrar gönderilmedi.';
+  }catch{if(alive(n))note='Önceki işlem doğrulanamadı. Kayıt korunuyor; tekrar gönderilmedi.';}finally{if(alive(n)){busy=false;paint();}}
+ }
  function sourceRequestAllowed(p){if(!sourceMode)return true;if(!sourceReady||!context||context.invoice.id!==selectedSource.invoiceId||p?.status!=='pending'||p.body?.documentDate!==context.meta?.date)return false;const b=p.body;if(p.path===collectionBase)return b.invoiceId===selectedSource.invoiceId&&context.capabilities.canCollect===true&&context.accounts.some(a=>a.id===b.accountId&&a.currency===context.invoice.currency)&&tradeExact(b.amountExact4,4)&&BigInt(b.amountExact4.replace('.',''))>0n&&tradeRevision(b.previewHash)&&tradeRevision(b.expectedRevision);const match=new RegExp('^'+collectionBase+'/([1-9]\\d*)/cancel$').exec(p.path);return Boolean(match&&context.capabilities.canCancelCollection===true&&tradeRevision(b.expectedRevision)&&typeof b.reason==='string'&&b.reason.length>=5&&b.reason.length<=500&&context.invoice.collections.items.some(c=>c.id===match[1]&&c.invoiceId===selectedSource.invoiceId&&c.accountId===context.accounts[0]?.id));}
  function begin(path,body){if(busy||pending?.status==='pending')return;try{send(journal.begin(path,{...body,requestId:uuid()}),{fresh:true});}catch{note='İşlem hazırlanamadı; kayıt gönderilmedi. Lütfen tekrar deneyin.';paint();}}
  async function send(p,{fresh=false}={}){

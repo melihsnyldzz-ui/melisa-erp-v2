@@ -92,6 +92,9 @@ function effectProof(value,context,actor,operation,body){
  return proof;
 }
 
+// Reuse the existing read-only proof verifier; this function grants no SQL or write capability.
+export const assertIsolatedCopyEffectProof=(value,context,actor,operation,body)=>effectProof(value,context,actor,operation,body);
+
 // Native callbacks are server code supplied by the existing domain adapter,
 // never JSON/HTTP handlers. The store adds a copy-only transaction boundary and
 // the existing engines retain responsibility for invoice/finance arithmetic.

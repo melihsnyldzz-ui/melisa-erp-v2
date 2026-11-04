@@ -20,6 +20,8 @@ export function createWorkCollectionRoutes({authenticate=requireAuth,permission=
   const readRights=[authenticate,permission('finance.view'),permission('customer.view'),permission('finance.collection')];
   r.get('/work-collections/selected-source/context',...readRights,run(req=>selectedSourceService.context(req.query,req.user)));
   r.post('/work-collections/selected-source/preview',...readRights,run(req=>selectedSourceService.preview(req.body,req.user)));
+  // Read-only journal comparison: no ledger operation or retry is invoked.
+  r.post('/work-collections/selected-source/verify-retained',...readRights,run(req=>selectedSourceService.verifyRetained(req.body,req.user)));
   r.post('/work-collections/selected-source',...readRights,run(req=>selectedSourceService.collect(req.body,req.user)));
   r.post('/work-collections/selected-source/:id/cancel',...readRights,permission('finance.collection.cancel'),run(req=>selectedSourceService.cancel(req.params.id,req.body,req.user)));
  }

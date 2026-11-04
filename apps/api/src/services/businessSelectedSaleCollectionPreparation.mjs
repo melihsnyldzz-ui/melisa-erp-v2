@@ -1,10 +1,11 @@
 import {assertIsolatedCopyContext,bindIsolatedCopyOperationDTO,BUSINESS_COPY_DATABASE,isolatedCopyOperationDTOContext} from './isolatedOperationCopyContext.mjs';
 import {loadBusinessSelectedSaleJournal} from './workTradeStore.mjs';
 import {createWorkCollectionService} from './workCollectionService.mjs';
-import {workId,workScaled,workFail} from './workSalesModel.mjs';
-import {withSelectedSaleCollectionReadBridge,withSelectedCollectionNativeBridge,isIsolatedSelectedCollectionNativeStore} from './isolatedOperationCopyStoreFactory.mjs';
+import {workId,workScaled,workFail,workKeys,workRequestId,workRevision,workDate,workReason} from './workSalesModel.mjs';
+import {withSelectedSaleCollectionReadBridge,withSelectedCollectionNativeBridge,isIsolatedSelectedCollectionNativeStore,isolatedCopySelectedCollectionRequestBody,assertIsolatedCopyEffectProof} from './isolatedOperationCopyStoreFactory.mjs';
 
 import {getBusinessSelectedCollectionWriteScope} from './businessSelectedCollectionWriteScope.mjs';
+import {getRegisteredBusinessSelectedCollectionRevision,verifyBusinessSelectedCollectionRevision} from '../../../../scripts/canonical/shared-business-selected-collection-revision-bootstrap.mjs';
 
 // Deliberately unregistered preparation adapter. There is no default store,
 // connection, route, native intent or authority to enable the DB02 writer.
@@ -62,6 +63,57 @@ export async function prepareBusinessSelectedSaleCollection(c,actor,invoiceId,{c
  return {context,invoice,proof:Object.freeze({preparationOnly:true,copyId:copy.copyId,invoiceId,creatorId:'15',collectorId:'16',customerId:s.customerId,customerAccountId:s.customerAccountId,accountId:accounts[0].id,currency:s.currency,creationRequestId:original.creation.requestId,policyHash:s.policyHash,sourceSelectionHash:s.sourceSelectionHash})};
 }
 
+// Read-only result comparison. The input is never returned or added to a URL;
+// only a server-owned selected SOURCE journal with its intact effect proof can
+// match. Missing/ambiguous rows and transport errors remain UNKNOWN.
+function retainedSelectedCollection(input){
+ workKeys(input,['operation','invoiceId','collectionId','body']);
+ const operation=input.operation,invoiceId=workId(input.invoiceId),body=input.body;
+ if(operation==='collection_create'){
+  if(input.collectionId!==undefined)fail();workKeys(body,['requestId','previewHash','expectedRevision','invoiceId','accountId','amountExact4','documentDate']);
+  if(workRequestId(body.requestId)!==body.requestId||workRevision(body.previewHash)!==body.previewHash||workRevision(body.expectedRevision)!==body.expectedRevision||workId(body.invoiceId)!==invoiceId||workId(body.accountId)!==body.accountId||workScaled(body.amountExact4,4)<=0n||workDate(body.documentDate)!==body.documentDate)fail();
+  return {operation,invoiceId,payload:{requestId:body.requestId,previewHash:body.previewHash,expectedRevision:body.expectedRevision,invoiceId:body.invoiceId,accountId:body.accountId,amountExact4:body.amountExact4,documentDate:body.documentDate}};
+ }
+ if(operation==='collection_cancel'){
+  const id=workId(input.collectionId);workKeys(body,['requestId','expectedRevision','reason','documentDate']);
+  if(workRequestId(body.requestId)!==body.requestId||workRevision(body.expectedRevision)!==body.expectedRevision||workReason(body.reason)!==body.reason||workDate(body.documentDate)!==body.documentDate)fail();
+  return {operation,invoiceId,payload:{id,requestId:body.requestId,expectedRevision:body.expectedRevision,reason:body.reason,documentDate:body.documentDate}};
+ }
+ fail();
+}
+const SELECTED_COLLECTION_JOURNAL_READ_SQL='SELECT actor_id,operation,payload_hash,payload_json,response_json,effect_proof_json FROM dbo.stage4_copy_requests WHERE copy_id=@copy_id AND request_id=@request_id AND actor_id=@actor_id;';
+const SELECTED_COLLECTION_LINK_READ_SQL='SELECT CONVERT(varchar(20),movement_id) movementId,CONVERT(varchar(20),invoice_id) invoiceId,CONVERT(varchar(20),original_id) originalId FROM dbo.work_collection_links WHERE request_id=@request_id AND invoice_id=@invoice_id;';
+async function verifySelectedCollectionRequest(withContext,input,actor){
+ try{
+  const retained=retainedSelectedCollection(input);
+  return await withContext(actor,async c=>{
+   const {copy,request}=await authority(c,actor,retained.operation==='collection_cancel');
+   const registered=getRegisteredBusinessSelectedCollectionRevision(copy);requireValue(registered&&await verifyBusinessSelectedCollectionRevision(copy,request().input('copy_id',c.sql.UniqueIdentifier,copy.copyId),{write:false})===registered);
+   const prepared=await prepareBusinessSelectedSaleCollection(c,actor,retained.invoiceId,{cancelling:retained.operation==='collection_cancel'});
+   requireValue(retained.payload.documentDate===copy.date);
+   const keys=['invoiceId','creatorId','collectorId','customerId','customerAccountId','accountId','currency','creationRequestId','policyHash','sourceSelectionHash'];
+   const selection=Object.fromEntries(keys.map(k=>[k,prepared.proof[k]]));
+   const expected=isolatedCopySelectedCollectionRequestBody(copy,actor,retained.operation,retained.payload,selection);
+   const result=await request().input('copy_id',c.sql.UniqueIdentifier,copy.copyId).input('request_id',c.sql.UniqueIdentifier,expected.requestId).input('actor_id',c.sql.BigInt,'16').query(SELECTED_COLLECTION_JOURNAL_READ_SQL);
+   const rows=result?.recordset;requireValue(Array.isArray(rows)&&rows.length===1);const row=rows[0];
+   requireValue(String(row.actor_id)==='16'&&row.operation===retained.operation&&row.payload_hash===expected.hash&&row.payload_json===expected.json);
+   assertIsolatedCopyEffectProof(row.effect_proof_json,copy,actor,retained.operation,expected);
+   requireValue(typeof row.response_json==='string'&&row.response_json.length<=262144);let response;try{response=JSON.parse(row.response_json);}catch{fail();}
+   const i=response?.invoice,r=response?.collection;
+   requireValue(response.requestId===expected.requestId&&i?.id===selection.invoiceId&&i.customerId===selection.customerId&&i.currency===selection.currency&&r?.invoiceId===selection.invoiceId&&r.accountId===selection.accountId&&r.currency===selection.currency&&r.documentDate===retained.payload.documentDate);
+   if(retained.operation==='collection_create')requireValue(r.status==='active'&&r.amountExact4===retained.payload.amountExact4);
+   else requireValue(r.id===retained.payload.id&&r.status==='cancelled');
+   const live=await c.collection(workId(r.id));
+   requireValue(live&&live.id===r.id&&live.invoiceId===selection.invoiceId&&live.accountId===selection.accountId&&live.currency===selection.currency&&live.amountExact4===r.amountExact4&&live.documentDate===r.documentDate&&(retained.operation!=='collection_cancel'||live.status==='cancelled'));
+   const linked=await request().input('request_id',c.sql.UniqueIdentifier,expected.requestId).input('invoice_id',c.sql.BigInt,selection.invoiceId).query(SELECTED_COLLECTION_LINK_READ_SQL);
+   requireValue(Array.isArray(linked?.recordset)&&linked.recordset.length===1);const link=linked.recordset[0];
+   requireValue(link.invoiceId===selection.invoiceId&&(retained.operation==='collection_create'?link.movementId===r.id&&link.originalId===null:link.originalId===r.id&&workId(live.reversalId)===link.movementId));
+   requireValue(await verifyBusinessSelectedCollectionRevision(copy,request().input('copy_id',c.sql.UniqueIdentifier,copy.copyId),{write:false})===registered);
+   return Object.freeze({status:'MATCHED'});
+  },{write:false});
+ }catch{return Object.freeze({status:'UNKNOWN'});}
+}
+
 export function createBusinessSelectedSaleCollectionPreparation({withContext}={}){
  requireValue(typeof withContext==='function','SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED',503);
  // No new finance or idempotence algorithm: the existing service validates
@@ -95,7 +147,7 @@ export function createBusinessSelectedSaleCollectionPreparation({withContext}={}
  const base=createWorkCollectionService({getStore});
  // A per-call store closure binds only this preview amount; concurrent requests
  // cannot exchange policy inputs. Mutation checks its validated payload below.
- const service=Object.freeze({...base,preview:(input,actor)=>createWorkCollectionService({getStore:()=>getStore(input.amountExact4)}).preview(input,actor)});
+ const service=Object.freeze({...base,preview:(input,actor)=>createWorkCollectionService({getStore:()=>getStore(input.amountExact4)}).preview(input,actor),verifyRetained:(input,actor)=>verifySelectedCollectionRequest(withContext,input,actor)});
  preparedServices.add(service);
  return service;
 }
