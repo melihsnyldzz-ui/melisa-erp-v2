@@ -256,6 +256,92 @@ try{
  if([IO.Directory]::Exists($temp)-and[IO.Path]::GetFileName($temp)-clike'erp-observation-fixture-*'){[IO.Directory]::Delete($temp,$true)}
 }
 `);
+win('status pump accepts only a verified status, rejects mutating operations, and closes on peer or ACK uncertainty',String.raw`
+Add-Type 'public static class Business5244RetirementPeer { public static string CurrentBirth { get { return "134000000000000000"; } } }'
+$script:channel=[pscustomobject]@{fixture='not-authority'};$script:token=[pscustomobject]@{fixture='not-authority'};$script:binding=[pscustomobject]@{fixture='not-authority'}
+$script:mode='';$script:closed=0;$script:acks=[Collections.Generic.List[object]]::new();$script:gets=0
+function Receive-Business5244RetirementRequest {param($Channel);if(![object]::ReferenceEquals($Channel,$script:channel)){throw 'FOREIGN_CHANNEL'};if($script:mode-cin@('extra','disconnect')){throw 'RETIREMENT_REQUEST_NOT_CONFIRMED'};if($script:mode-ceq'empty'){return $null};return $script:request}
+function Assert-Business5244RetirementRequest {param($Channel,$Request);if(![object]::ReferenceEquals($Request,$script:request)-or$script:mode-ceq'wrong-peer'){throw 'RETIREMENT_REQUEST_REFERENCE_CHANGED'}}
+function Get-ErpCurrentPairBinding {param($Binding);if(![object]::ReferenceEquals($Binding,$script:binding)){throw 'FOREIGN_BINDING'};return @{ownedObservationToken=$script:token}}
+function Get-ErpCurrentPairOwnedObservation {param($Observation);if(![object]::ReferenceEquals($Observation,$script:token)){throw 'FOREIGN_TOKEN'};$script:gets++;return [pscustomobject]@{status='OWNED_PAIR_OBSERVATION_ONLY';ownerPid=$PID;webPid=9012;webBirth='134000000000000001';sqlAuthority=$false;stopAuthority=$false;installationAuthority=$false}}
+function Complete-Business5244RetirementRequest {param($Channel,$Request,$Reply,$Snapshot);if($script:mode-ceq'ack-loss'){throw 'RETIREMENT_ACK_NOT_CONFIRMED'};$script:acks.Add([pscustomobject]@{reply=$Reply;snapshot=$Snapshot})}
+function Close-Business5244RetirementChannel {param($Channel);if(![object]::ReferenceEquals($Channel,$script:channel)){throw 'FOREIGN_CLOSE'};$script:closed++}
+$script:request=[pscustomobject]@{operation='status';requestId=('a'*32)};$script:mode='valid'
+if(![object]::ReferenceEquals((Invoke-ErpCurrentPairStatusPump $script:channel $script:binding),$script:channel)){throw 'STATUS_CHANNEL_CHANGED'}
+$a=$script:acks[0];if($a.reply-cne'Status'-or$a.snapshot.phase-cne'Running'-or$a.snapshot.childPid-ne9012-or$a.snapshot.requestId-cne$script:request.requestId-or(($a.snapshot.Keys|Sort-Object)-join',')-cne'childBirth,childPid,ownerBirth,ownerPid,phase,requestId'){throw 'STATUS_WIRE_CHANGED'}
+foreach($operation in @('retire','recover','exit','complete')){$script:request=[pscustomobject]@{operation=$operation;requestId=('b'*32)};[void](Invoke-ErpCurrentPairStatusPump $script:channel $script:binding);$last=$script:acks[$script:acks.Count-1];if($last.reply-cne'Rejected'-or$last.snapshot.phase-cne'Rejected'-or$null-ne$last.snapshot.childPid-or$script:gets-ne1){throw 'MUTATION_NOT_REJECTED'}}
+foreach($mode in @('wrong-peer','extra','disconnect','ack-loss')){$script:mode=$mode;$script:request=[pscustomobject]@{operation='status';requestId=('c'*32)};$before=$script:acks.Count;if($null-ne(Invoke-ErpCurrentPairStatusPump $script:channel $script:binding)-or$script:acks.Count-ne$before){throw 'UNCERTAIN_REQUEST_ACCEPTED'}}
+if($script:closed-ne4){throw 'CHANNEL_NOT_CLOSED_ON_FAILURE'}
+`);
+win('status channel unavailability does not stop the session and the prior two-second health cadence stays bounded',osFixture+String.raw`
+$plan=NewPlan;$b=RegisterFixtureBinding $plan;$script:ticks=0;$script:opens=0
+function Get-ErpCurrentPairObservationToken {param($Binding);return [pscustomobject]@{fixture='not-authority'}}
+function Open-Business5244RetirementChannel {param($OwnerLease);$script:opens++;throw 'RETIREMENT_PIPE_FIRST_INSTANCE_UNAVAILABLE'}
+function Start-Sleep {param($Milliseconds,$Seconds);if($Milliseconds-ne200-or$Seconds){throw 'HEALTH_POLL_INTERVAL_CHANGED'};$script:ticks++;if($script:ticks-eq10){throw 'CADENCE_FIXTURE_STOP'}}
+Reject {Invoke-ErpCurrentPairSession $b} 'CADENCE_FIXTURE_STOP'
+if($script:opens-ne1-or$script:ticks-ne10-or@($script:trace|Where-Object{$_-ceq'api-ready'}).Count-ne2){throw 'CHANNEL_FAILURE_OR_HEALTH_CADENCE_CHANGED'}
+`);
+win('only exact confirmed reset with same issued channel, lease and a fresh empty accept may remain open',String.raw`
+$pipe=[IO.Pipes.NamedPipeServerStream]::new(('erp-status-reset-fixture-'+[guid]::NewGuid().ToString('N')),[IO.Pipes.PipeDirection]::InOut,1,[IO.Pipes.PipeTransmissionMode]::Byte,[IO.Pipes.PipeOptions]::Asynchronous)
+try{
+ $script:fixtureChannel=[pscustomobject]@{fixture='not-authority'};$script:closedCount=0;$script:leaseValid=$true
+ $task=$pipe.WaitForConnectionAsync();$script:reset=@{closed=$false;phase='Accept';peer=$null;request=$null;nonce=$null;length=0;pipe=$pipe;task=$task}
+ function Receive-Business5244RetirementRequest {param($Channel);throw 'RETIREMENT_REQUEST_NOT_CONFIRMED'}
+ function Assert-Business5244RetirementChannel {param($Channel);if(!$script:leaseValid-or![object]::ReferenceEquals($Channel,$script:fixtureChannel)){throw 'LEASE_NOT_ISSUED'}}
+ function Get-Business5244RetirementRecord {param($Token);return $script:reset}
+ function Close-Business5244RetirementChannel {param($Channel);$script:closedCount++}
+ if(![object]::ReferenceEquals((Invoke-ErpCurrentPairStatusPump $script:fixtureChannel $null),$script:fixtureChannel)-or$script:closedCount-ne0){throw 'VALID_RESET_LOST'}
+ foreach($key in @('phase','peer','request','nonce','length','closed','task','faulted','lease')){
+  switch($key){'phase'{$script:reset.phase='Request'};'peer'{$script:reset.peer=[pscustomobject]@{}};'request'{$script:reset.request=[pscustomobject]@{}};'nonce'{$script:reset.nonce='stale'};'length'{$script:reset.length=1};'closed'{$script:reset.closed=$true};'task'{$script:reset.task=$null};'faulted'{$script:reset.task=[Threading.Tasks.Task]::FromException([Exception]::new('fixture'))};'lease'{$script:leaseValid=$false}}
+  $n=$script:closedCount;if($null-ne(Invoke-ErpCurrentPairStatusPump $script:fixtureChannel $null)-or$script:closedCount-ne($n+1)){throw 'UNSAFE_RESET_RETAINED'}
+  $script:reset.phase='Accept';$script:reset.peer=$null;$script:reset.request=$null;$script:reset.nonce=$null;$script:reset.length=0;$script:reset.closed=$false;$script:reset.task=$task;$script:leaseValid=$true
+ }
+ Add-Type 'public static class Business5244RetirementPeer { public static string CurrentBirth { get { return "134000000000000000"; } } }'
+ $script:fixtureRequest=[pscustomobject]@{operation='status';requestId=('a'*32)};$script:ackLost=$true;$script:attempts=0;$script:observations=0;$script:completed=0
+ function Receive-Business5244RetirementRequest {param($Channel);return $script:fixtureRequest}
+ function Assert-Business5244RetirementRequest {param($Channel,$Request);if(![object]::ReferenceEquals($Request,$script:fixtureRequest)){throw 'BAD_REQUEST'}}
+ function Get-ErpCurrentPairBinding {param($Binding);return @{ownedObservationToken=[pscustomobject]@{fixture='not-authority'}}}
+ function Get-ErpCurrentPairOwnedObservation {param($Observation);$script:observations++;return [pscustomobject]@{status='OWNED_PAIR_OBSERVATION_ONLY';ownerPid=$PID;webPid=9012;webBirth='134000000000000001';sqlAuthority=$false;stopAuthority=$false;installationAuthority=$false}}
+ function Complete-Business5244RetirementRequest {param($Channel,$Request,$Reply,$Snapshot);$script:attempts++;if($script:ackLost){$script:ackLost=$false;throw 'RETIREMENT_ACK_NOT_CONFIRMED'};$script:completed++}
+ $n=$script:closedCount;if(![object]::ReferenceEquals((Invoke-ErpCurrentPairStatusPump $script:fixtureChannel $null),$script:fixtureChannel)-or$script:closedCount-ne$n-or$script:attempts-ne1-or$script:observations-ne1-or$script:completed-ne0){throw 'ACK_LOSS_REPLAYED_OR_CHANNEL_LOST'}
+ $script:fixtureRequest=[pscustomobject]@{operation='status';requestId=('b'*32)}
+ if(![object]::ReferenceEquals((Invoke-ErpCurrentPairStatusPump $script:fixtureChannel $null),$script:fixtureChannel)-or$script:attempts-ne2-or$script:observations-ne2-or$script:completed-ne1){throw 'NEW_STATUS_AFTER_ACK_LOSS_FAILED'}
+}finally{$pipe.Dispose()}
+`);
+win('status pump uses genuine local peer on a uniquely isolated temp pipe; status passes and retire is rejected',String.raw`
+$temp=Join-Path ([IO.Path]::GetTempPath()) ('erp-status-pipe-fixture-'+[guid]::NewGuid().ToString('N'));$lease=$null;$channel=$null;$child=$null
+try{
+ [void][IO.Directory]::CreateDirectory($temp);$runtime=Join-Path $temp 'isolated-runtime';$cs=Join-Path $temp 'isolated-peer.cs'
+ $original=[IO.File]::ReadAllText((Join-Path ${q(dir)} 'business-5244-retirement-peer.cs'))
+ $old='C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027';$replacement=$runtime.Replace('\','\\')
+ if(!$original.Contains($old)){throw 'FIXTURE_ISOLATION_ANCHOR_MISSING'}
+ [IO.File]::WriteAllText($cs,$original.Replace($old,$replacement));Add-Type -LiteralPath $cs
+ function Get-Business5244StartupMutexName {return ('Global\MelisaERP5244Startup-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+'-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($runtime.ToLowerInvariant()))))}
+ function Get-Business5244RetirementPendingPath {return (Join-Path $temp 'unused.pending')}
+ function Get-ErpCurrentPairBinding {param($Binding);return @{ownedObservationToken=[pscustomobject]@{fixture='not-authority'}}}
+ $script:fixtureObservations=0
+ function Get-ErpCurrentPairOwnedObservation {param($Observation);$script:fixtureObservations++;return [pscustomobject]@{status='OWNED_PAIR_OBSERVATION_ONLY';ownerPid=$PID;webPid=9012;webBirth='134000000000000001';sqlAuthority=$false;stopAuthority=$false;installationAuthority=$false}}
+ $lease=Enter-Business5244StartupLease -Kind Owner;$channel=Open-Business5244RetirementChannel -OwnerLease $lease
+ $childFile=Join-Path $temp 'client.ps1';$channelFile=Join-Path ${q(dir)} 'business-5244-retirement-channel.ps1'
+ $nl=[string][char]10;$prefix='$ErrorActionPreference=''Stop'''+$nl+". '"+$channelFile.Replace("'","''")+"' -Library"+$nl+"Add-Type -LiteralPath '"+$cs.Replace("'","''")+"'"+$nl+'$runtime='''+$runtime.Replace("'","''")+"'"+$nl
+ $body=@'
+function Get-Business5244StartupMutexName {return ('Global\MelisaERP5244Startup-'+[Security.Principal.WindowsIdentity]::GetCurrent().User.Value+'-'+(Get-Business5244StartupHash ([Text.Encoding]::UTF8.GetBytes($runtime.ToLowerInvariant()))))}
+function Get-Business5244RetirementPendingPath {return (Join-Path $runtime 'unused.pending')}
+$c=Connect-Business5244RetirementPeer;$r=Get-Business5244RetirementRecord $c -Client;$first=Read-Business5244RetirementLine $r.pipe 192;$r.peer.Validate();$body=[Text.Encoding]::ASCII.GetBytes(('{"operation":"invalid","requestId":"'+$first.requestId+'"}')+[char]10);$r.pipe.Write($body,0,$body.Length);$r.pipe.Flush();Close-Business5244RetirementPeer $c;Start-Sleep -Milliseconds 400
+$c=Connect-Business5244RetirementPeer;$r=Get-Business5244RetirementRecord $c -Client;$second=Read-Business5244RetirementLine $r.pipe 192;if($second.requestId-ceq$first.requestId){throw 'FIXTURE_NONCE_REUSED'};$r.peer.Validate();$body=[Text.Encoding]::ASCII.GetBytes(('{"operation":"status","requestId":"'+$first.requestId+'"}')+[char]10);$r.pipe.Write($body,0,$body.Length);$r.pipe.Flush();Close-Business5244RetirementPeer $c;Start-Sleep -Milliseconds 400
+foreach($operation in @('status','retire')){$connection=Connect-Business5244RetirementPeer;if($connection.serverPid-ne__OWNER__){throw 'FIXTURE_WRONG_SERVER'};$result=Send-Business5244RetirementRequest $connection -Operation $operation;if(($operation-ceq'status'-and$result.reply-cne'Status')-or($operation-ceq'retire'-and$result.reply-cne'Rejected')-or!$result.nativePeerVerified-or$result.stopAuthorized){throw 'FIXTURE_REPLY_SCOPE'}}
+'@
+ [IO.File]::WriteAllText($childFile,$prefix+$body.Replace('__OWNER__',[string]$PID))
+ $child=Start-Process -FilePath (Join-Path $PSHOME 'powershell.exe') -ArgumentList @('-NoProfile','-NonInteractive','-File',('"'+$childFile+'"')) -WindowStyle Hidden -PassThru
+ $deadline=[DateTime]::UtcNow.AddSeconds(25)
+ do{$channel=Invoke-ErpCurrentPairStatusPump $channel ([pscustomobject]@{});if($null-eq$channel){throw 'FIXTURE_CHANNEL_CLOSED'};Start-Sleep -Milliseconds 10}while(!$child.HasExited-and[DateTime]::UtcNow-lt$deadline)
+ if(!$child.HasExited){throw 'FIXTURE_CLIENT_TIMEOUT'};if($child.ExitCode-ne0){throw 'FIXTURE_CLIENT_FAILED'};if($script:fixtureObservations-ne1){throw 'FIXTURE_OLD_NONCE_WAS_ACCEPTED'}
+}finally{
+ if($child){if(!$child.HasExited){$child.Kill();[void]$child.WaitForExit(5000)};$child.Dispose()}
+ if($channel){Close-Business5244RetirementChannel $channel};if($lease){Exit-Business5244StartupLease $lease}
+ if([IO.Directory]::Exists($temp)-and[IO.Path]::GetFileName($temp)-clike'erp-status-pipe-fixture-*'){[IO.Directory]::Delete($temp,$true)}
+}
+`);
 win('actual session rejects busy owner, pending claim, occupied port and CAS drift before spawn without adoption/restart',osFixture+String.raw`
 foreach($kind in @('busy','claim','port','cas')){
  $script:trace.Clear();$script:busy=$kind-eq'busy';$script:claim=$kind-eq'claim';$script:foreignPort=$kind-eq'port';$script:mutateAfterSeal=$kind-eq'cas';$script:leaseRecord=@{ownedNatives=[Collections.Generic.List[object]]::new()}

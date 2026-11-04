@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — mevcut TEST sahibi için salt okunur durum kanalı
+
+Mevcut P7c6 owner kaynağı, yalnız kendi doğrulanmış API/WEB çocuklarıyla mevcut yerel peer kanalında status isteğine yanıt verecek şekilde hazırlandı; retire/recover/exit işlemleri reddedilir. Hatalı istek veya kayıp ACK sonrasında yalnız doğrulanmış taze nonce ile yeni durum isteği kabul edilir, eski istek tekrarlanmaz. 20/20 hedefli Windows testi ve bağımsız inceleme geçti; gerçek geçici named-pipe testi vardır, ERP health/listener kısmı fixture kapsamındadır. Uygulama derlemesi geçti. Kanal kurulmadı; gerçek owner dispatch, BEGIN issuer, kalıcı unknown kaydı, SQL uygulama ve insan kabulü BEKLİYOR.
+
 ## 4 Kasım 2026 — satış geçişi ve mevcut sahip gözlemi
 
 Mevcut P7c6 sahibi için yalnız aynı oturumun açtığı API/WEB süreçlerini, lease ve immutable seal ile tekrar doğrulayan salt gözlem kaynağı hazır: 16/16 yerel Windows test ve bağımsız inceleme. BEGIN için API durdurulmuşken işlem/profil CAS kaynak kolu: 60/60 yerel test, bağımsız inceleme; belirsizlikte tekrar yok. Yeni issuer, in-band owner dispatch, süreç çökmesi sonrası kalıcı işlem kaydı ve gerçek TEST entegrasyonu henüz yok; gözlem SQL/stop/kurulum izni değildir. Uygulama derlemesi geçti. SQL/servis/config/ticari yazma yok; normal ekran ve insan kabulü BEKLİYOR. Bu commit ayrıca yeni tam CI ister.

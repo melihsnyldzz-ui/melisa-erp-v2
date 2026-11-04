@@ -168,9 +168,51 @@ function Get-ErpCurrentPairOwnedObservation($Observation){
  $r.seal.Validate();Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
  return [pscustomobject]@{status='OWNED_PAIR_OBSERVATION_ONLY';apiPid=$r.facts.apiPid;apiBirth=$r.facts.apiBirth;webPid=$r.facts.webPid;webBirth=$r.facts.webBirth;ownerPid=$r.pid;apiPort=4144;webPort=5244;database=(Get-ErpCurrentPairIdentity).database;sqlAuthority=$false;stopAuthority=$false;installationAuthority=$false;actualT1=$false}
 }
+# Same owner thread only. The existing v1 pipe authenticates its peer and its
+# issued, bounded request; the v1 reply remains an observation, never a grant.
+function Test-ErpCurrentPairStatusFreshAccept($Channel){
+ try{
+  Assert-Business5244RetirementChannel $Channel;$reset=Get-Business5244RetirementRecord $Channel
+  return (!$reset.closed-and$reset.phase-ceq'Accept'-and$null-eq$reset.peer-and$null-eq$reset.request-and$null-eq$reset.nonce-and$reset.length-eq0-and$reset.pipe-is[IO.Pipes.NamedPipeServerStream]-and!$reset.pipe.SafePipeHandle.IsClosed-and!$reset.pipe.SafePipeHandle.IsInvalid-and$reset.task-is[Threading.Tasks.Task]-and!$reset.task.IsFaulted-and!$reset.task.IsCanceled)
+ }catch{return $false}
+}
+function Invoke-ErpCurrentPairStatusPump($Channel,$Binding){
+ if($null-eq$Channel){return $null}
+ try{
+  try{$request=Receive-Business5244RetirementRequest -Channel $Channel}catch{
+   # The channel implementation resets the old connection before this one
+   # exact error. Reuse only the same issued lease/channel if that reset left
+   # an intact new Accept, never the prior request or its nonce.
+   if($_.Exception.Message-ceq'RETIREMENT_REQUEST_NOT_CONFIRMED'-and(Test-ErpCurrentPairStatusFreshAccept $Channel)){return $Channel}
+   throw
+  }
+  if($null-eq$request){return $Channel}
+  Assert-Business5244RetirementRequest -Channel $Channel -Request $request
+  $reply='Rejected';$snapshot=@{phase='Rejected';ownerPid=$PID;ownerBirth=[Business5244RetirementPeer]::CurrentBirth;childPid=$null;childBirth=$null;requestId=$request.requestId}
+  if($request.operation-ceq'status'){
+   $b=Get-ErpCurrentPairBinding $Binding
+   if(!$b.ContainsKey('ownedObservationToken')-or$null-eq$b.ownedObservationToken){throw 'CURRENT_PAIR_OBSERVATION_NOT_ISSUED'}
+   $observed=Get-ErpCurrentPairOwnedObservation $b.ownedObservationToken
+   if($observed.status-cne'OWNED_PAIR_OBSERVATION_ONLY'-or$observed.ownerPid-ne$PID-or$observed.sqlAuthority-ne$false-or$observed.stopAuthority-ne$false-or$observed.installationAuthority-ne$false){throw 'CURRENT_PAIR_STATUS_SCOPE_REJECTED'}
+   $snapshot.phase='Running';$snapshot.childPid=$observed.webPid;$snapshot.childBirth=$observed.webBirth;$reply='Status'
+  }
+  try{[void](Complete-Business5244RetirementRequest -Channel $Channel -Request $request -Reply $reply -Snapshot $snapshot)}catch{
+   # This exact synchronous ACK error is raised only after the channel's own
+   # reset. The lost reply is never resent; a new peer gets a new nonce.
+   if($_.Exception.Message-ceq'RETIREMENT_ACK_NOT_CONFIRMED'-and(Test-ErpCurrentPairStatusFreshAccept $Channel)){return $Channel}
+   throw
+  }
+  return $Channel
+ }catch{
+  # A disconnect, lost ACK, bad peer/body, or closed pipe is not a reason to
+  # kill or restart the owner. Do not retry this request or adopt another pipe.
+  try{Close-Business5244RetirementChannel -Channel $Channel}catch{}
+  return $null
+ }
+}
 function Invoke-ErpCurrentPairSession($Binding,[switch]$SinglePass) {
  $b=Get-ErpCurrentPairBinding $Binding;$config=$b.config
- $mutex=[Threading.Mutex]::new($false,(Get-ErpMutexName $config.RepoRoot $config.OwnerSid));$held=$false;$lease=$null;$apiChild=$null;$webChild=$null;$apiBirth=$null;$seal=$null;$primary=$null;$observation=$null
+ $mutex=[Threading.Mutex]::new($false,(Get-ErpMutexName $config.RepoRoot $config.OwnerSid));$held=$false;$lease=$null;$apiChild=$null;$webChild=$null;$apiBirth=$null;$seal=$null;$primary=$null;$observation=$null;$channel=$null;$channelAttempted=$false
  try{
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();throw 'CURRENT_PAIR_CANONICAL_ABANDONED'}
   if(!$held){throw 'CURRENT_PAIR_ALREADY_OWNED'}
@@ -216,9 +258,16 @@ function Invoke-ErpCurrentPairSession($Binding,[switch]$SinglePass) {
     [void]$script:ErpCurrentPairObservations.Add($observation);$b.ownedObservationToken=$token
    }
    if($SinglePass){return [pscustomobject]@{caseId=(Get-ErpCurrentPairIdentity).caseId;startedPorts=@(4144,5244);apiPid=$apiChild.Id;webPid=$webChild.ChildPid;metadata='UNKNOWN';masterwriter=$false}}
-   Start-Sleep -Seconds 2
+   if(!$channelAttempted){$channelAttempted=$true;try{[void](Get-ErpCurrentPairObservationToken $Binding);$channel=Open-Business5244RetirementChannel -OwnerLease $lease}catch{$channel=$null}}
+   # Ten 200 ms sleeps retain the normal cadence when idle. Request processing
+   # and health/pipe IO add time; no measured latency guarantee is implied.
+   for($tick=0;$tick-lt10;$tick++){
+    if($channel){$channel=Invoke-ErpCurrentPairStatusPump $channel $Binding}
+    Start-Sleep -Milliseconds 200
+   }
   }while($true)
  }catch{$primary=$_;throw}finally{
+  if($channel){try{Close-Business5244RetirementChannel -Channel $channel}catch{}}
   if($null-ne$observation){$observation.closed=$true;if($b.ContainsKey('ownedObservationToken')){$b.Remove('ownedObservationToken')}}
   # Only children created by this invocation. No record adoption, old owner,
   # native4146, WEB5194, SQL, CRM or Vega stop/restart path exists here.
