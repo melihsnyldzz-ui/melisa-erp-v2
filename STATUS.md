@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — müşteri kayıt sonucunun doğrulanması
+
+- `6aa059c7`: müşteri kod/ad/tür kaydı yanıtı gönderilen istekle uyuşmuyorsa başarı gösterilmez; belirsizlikte istek kimliği ve oturum içi özgün içerik korunur, sonradan değişen değer için sahte başarı verilmez.
+- 22 hedefli servis/UI testi, bağımsız 14 test ve inceleme, derleme ve staged güvenlik taraması geçti. Yeni exact CI ve gerçek TEST kurulum/ekran/insan kabulü bekliyor.
+- 5244 mevcut Chrome satış ekranında taslak kaydet kapalı. 4144/5244 health yanıtları var ancak süreç/paket sahipliği doğrulanmadı; uygulama kaynak düzeltmeleri henüz kurulmuş sayılmaz. LAN sepetinde Web Locks yoksa saklama kapanır; farklı kilitlerle eski sekme devri kanıtlanmadı.
+
 ## 4 Kasım 2026 — seçili izole TEST tahsilat sonucu kontrolü
 
 - `99d030ef`: yalnız mevcut izole SOURCE kapsamı ve yetkili İlker rolünde, özgün istek ile aynı kayıt/hareketi sunucuda salt okunur karşılaştırma; sonuç MATCHED veya UNKNOWN. Yeniden ticari istek yok; body/hash yanıta taşınmaz.
