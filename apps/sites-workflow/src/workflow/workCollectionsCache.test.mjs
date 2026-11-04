@@ -12,7 +12,17 @@ function storage(){const values=new Map(),removed=[];return {removed,getItem:k=>
 // the invoice box loses its old markup, so the original finance-paint bug fails.
 function dom(){let html='',nodes=new Map();const list=/<div data-collection-invoices>([\s\S]*?)<\/div><\/section>/;
  const node=key=>{if(nodes.has(key))return nodes.get(key);let inner=key==='[data-collection-invoices]'?(list.exec(html)?.[1]??''):'';const n={isConnected:true,dataset:{},value:'',setAttribute(k,v){this[k]=v;},addEventListener(k,f){this['on'+k]=f;},closest(){return {insertAdjacentHTML(_where,value){html=value+html;}};},querySelector:node,querySelectorAll(selector){if(selector!=='[data-collection-select]')return [];return [...inner.matchAll(/data-collection-select="([^"]+)"/g)].map(m=>{const b=node('[data-collection-select="'+m[1]+'"]');b.dataset.collectionSelect=m[1];return b;});}};if(key==='[data-collection-finance-panel]'&&html.includes('data-collection-finance-panel'))n.open=/<details[^>]*data-collection-finance-panel[^>]*\bopen\b/.test(html);Object.defineProperty(n,'innerHTML',{get:()=>inner,set:v=>{inner=v;if(key==='[data-collection-invoices]')html=html.replace(list,()=>'<div data-collection-invoices>'+v+'</div></section>');}});nodes.set(key,n);return n;};
- const root={isConnected:true,querySelector:node,querySelectorAll:()=>[]};Object.defineProperty(root,'innerHTML',{get:()=>html,set:v=>{html=v;nodes=new Map();}});return {root,node};}
+ const root={isConnected:true,querySelector:node,querySelectorAll(selector){if(selector!=='[data-collection-cancel]')return [];return [...html.matchAll(/data-collection-cancel="([^"]+)"/g)].map(m=>{const b=node('[data-collection-cancel="'+m[1]+'"]');b.dataset.collectionCancel=m[1];return b;});}};Object.defineProperty(root,'innerHTML',{get:()=>html,set:v=>{html=v;nodes=new Map();}});return {root,node};}
+async function startFresh(d,body,{cancel=false}={}){
+ if(cancel){
+  const old=globalThis.FormData;globalThis.FormData=class{get(){return body.reason;}};
+  try{d.node('[data-collection-cancel="77"]').onclick();d.node('form').onsubmit({preventDefault(){},target:{}});}finally{globalThis.FormData=old;}
+ }else{
+  for(const [selector,value] of [['[data-collection-account]',body.accountId],['[data-collection-amount]',body.amountExact4],['[data-collection-date]',body.documentDate]])d.node(selector).value=value;
+  d.node('[data-collection-preview]').onclick();await tick();assert.match(d.root.innerHTML,/data-collection-save/);d.node('[data-collection-save]').onclick();
+ }
+ await tick();
+}
 function toggleFinance(d,open){const panel=d.node('[data-collection-finance-panel]');panel.open=open;panel.ontoggle?.();return panel;}
 const invoicePage=(page,total)=>({data:Array.from({length:Math.min(25,Math.max(0,total-(page-1)*25))},(_,n)=>{const i=invoice(String((page-1)*25+n+1)),currency=['TRY','USD','EUR'][n%3];return {...i,currency,items:i.items.map(row=>({...row,currency}))};}),meta:{total,page,limit:25}});
 test('invoice paging shows every permitted page separately and preserves existing selection and stored data',async()=>{
@@ -53,11 +63,11 @@ for(const replayed of [false,true])test(`confirmed cancellation uses cancellatio
  const create=await controller(),d=dom(),store=storage(),journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'});
  const body={requestId,expectedRevision:revision,reason:'Yanlış örnek tahsilat',documentDate:'2026-10-07'},entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision};
  const before={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}},cancelled={...entry,status:'cancelled'},after={...invoice('42'),collections:{revision,receivedExact4:'0.0000',outstandingExact4:'120.0000',items:[cancelled]}};
- store.setItem('melisa-work-selected-invoice:16','42');journal.begin('/api/work-collections/77/cancel',body);let writes=0;
- const ui=create({root:d.root,user:{id:16},storage:store,session:{work:async(path,options)=>{
+ store.setItem('melisa-work-selected-invoice:16','42');let writes=0;
+ const ui=create({root:d.root,user:{id:16},storage:store,uuid:()=>requestId,session:{work:async(path,options)=>{
   if(options?.method==='POST'){writes++;assert.equal(path,'/api/work-collections/77/cancel');assert.deepEqual(options.body,body);return {collection:cancelled,invoice:after,requestId,replayed};}
   if(path.includes('/context?'))return {...context('42'),invoice:writes?after:before};return listOf([writes?after:before]);
- }}});ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();
+ }}});ui.mount();await tick();await startFresh(d,body,{cancel:true});
  assert.equal(writes,1);assert.equal(journal.read().status,'done');assert.match(d.root.innerHTML,replayed?/aynı iptal tekrar oluşturulmadı/:/Tahsilat iptal edildi/);assert.doesNotMatch(d.root.innerHTML,/Tahsilat kaydedildi/);assert.match(d.root.innerHTML,/Kalan: 120,00 TRY/);assert.equal(ui.requestClose(),true);ui.dispose();
 });
 test('stale stored selection 404 clears only that key and allows another validated invoice without writes',async()=>{const create=await controller(),d=dom(),store=storage(),calls=[];store.setItem('melisa-work-selected-invoice:16','999');store.setItem('keep-user-preference','value');const session={work:async(p,o)=>{calls.push({p,o});if(p.endsWith('invoiceId=999'))throw {status:404};if(p==='/api/work-sales/invoices')return listOf([invoice('42')]);if(p.endsWith('invoiceId=42'))return context('42');throw Error(p);}};const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();assert.equal(store.getItem('melisa-work-selected-invoice:16'),null);assert.equal(store.getItem('keep-user-preference'),'value');assert.deepEqual(store.removed,['melisa-work-selected-invoice:16']);assert.match(d.root.innerHTML,/Listeden başka bir fiş seçin/);assert.match(d.root.innerHTML,/SAT-42/);ui.refresh();await tick();assert.equal(calls.filter(c=>c.p.endsWith('invoiceId=999')).length,1);d.node('[data-collection-select="42"]').onclick();await tick();assert.equal(store.getItem('melisa-work-selected-invoice:16'),'42');assert.match(d.root.innerHTML,/Fiş toplamı/);assert.ok(calls.every(c=>c.o?.method!=='POST'));ui.dispose();});
@@ -72,20 +82,16 @@ for(const operation of ['partial','full','cancel','replay'])for(const refreshFai
  const path=cancel?'/api/work-collections/77/cancel':'/api/work-collections',entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:amount,currency:'TRY',documentDate:'2026-10-07',status:cancel?'cancelled':'active',revision};
  const remaining=cancel?'120.0000':operation==='full'?'0.0000':'70.0000',received=cancel?'0.0000':amount;
  const updated={...invoice('42'),customerBalanceExact4:remaining,collections:{revision,receivedExact4:received,outstandingExact4:remaining,items:[entry]}},result={collection:entry,invoice:updated,requestId,replayed:operation==='replay'};
- store.setItem('melisa-work-selected-invoice:16','42');if(cancel||operation==='replay')journal.begin(path,body);
+ store.setItem('melisa-work-selected-invoice:16','42');
  let contextReads=0;const writes=[];
  const session={work:async(p,o)=>{
   if(p==='/api/work-collections/preview')return {selection:o.body,previewHash:revision,revision,currency:'TRY',amountExact4:amount,receivedAfterExact4:amount,outstandingAfterExact4:remaining};
   if(o?.method==='POST'){writes.push({path:p,body:structuredClone(o.body)});assert.equal(p,path);return structuredClone(result);}
-  if(p.includes('/context?')){contextReads++;if(contextReads===2)throw refreshFailure==='network'?new Error('private transport detail'):{status:refreshFailure};return {...context('42'),invoice:contextReads>2?updated:invoice('42')};}
+  if(p.includes('/context?')){contextReads++;if(contextReads===2)throw refreshFailure==='network'?new Error('private transport detail'):{status:refreshFailure};return {...context('42'),invoice:contextReads>2?updated:cancel?{...invoice('42'),collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[{...entry,status:'active'}]}}:invoice('42')};}
   return {data:contextReads>1?[]:[invoice('42')]};
  }};
  const ui=create({root:d.root,session,user:{id:16},storage:store,uuid:()=>requestId});ui.mount();await tick();
- if(cancel||operation==='replay')d.node('[data-collection-retry]').onclick();else{
-  for(const [selector,value] of [['[data-collection-account]','99'],['[data-collection-amount]',amount],['[data-collection-date]','2026-10-07']])d.node(selector).value=value;
-  d.node('[data-collection-preview]').onclick();await tick();assert.match(d.root.innerHTML,/data-collection-save/);d.node('[data-collection-save]').onclick();
- }
- await tick();
+ await startFresh(d,body,{cancel});
  assert.equal(writes.length,1);assert.deepEqual(writes[0],{path,body});assert.equal(journal.read().status,'done');assert.deepEqual(journal.read().result,result);
  assert.doesNotMatch(d.root.innerHTML,/data-collection-save|data-collection-preview|data-collection-retry|Fiş toplamı:|private transport detail/);
  assert.match(d.root.innerHTML,/İşlem kaydedildi|Kayıt doğrulandı/);assert.equal(ui.requestClose(),true);
@@ -96,39 +102,42 @@ test('a pre-payment list response cannot restore the old amount after a confirme
  const create=await controller(),d=dom(),store=storage(),journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'});
  const body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
  const entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision},updated={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}};
- journal.begin('/api/work-collections',body);let oldList,lists=0,reads=0,posts=0;
+ store.setItem('melisa-work-selected-invoice:16','42');let oldList,lists=0,reads=0,posts=0;
  const session={work:async(path,o)=>{
-  if(o?.method==='POST'){posts++;return {collection:entry,invoice:updated,requestId,replayed:true};}
+  if(path.endsWith('/preview'))return {selection:o.body,previewHash:revision,revision,currency:'TRY',amountExact4:'50.0000',receivedAfterExact4:'50.0000',outstandingAfterExact4:'70.0000'};
+  if(o?.method==='POST'){posts++;return {collection:entry,invoice:updated,requestId,replayed:false};}
   if(path.includes('/context?')){if(++reads===2)throw {status:403};return context('42');}
   if(++lists===1)return new Promise(resolve=>{oldList=resolve;});return listOf([updated]);
  }};
- const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();
+ const ui=create({root:d.root,session,user:{id:16},storage:store,uuid:()=>requestId});ui.mount();await tick();await startFresh(d,body);
  assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);oldList(listOf([invoice('42')]));await tick();
- assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);assert.doesNotMatch(d.root.innerHTML,/Kalan 120,00 TRY|data-collection-save|data-collection-retry/);assert.equal(posts,1);assert.equal(journal.read().result.replayed,true);ui.dispose();
+ assert.match(d.root.innerHTML,/Kalan Doğrulanmadı/);assert.doesNotMatch(d.root.innerHTML,/Kalan 120,00 TRY|data-collection-save|data-collection-retry/);assert.equal(posts,1);assert.equal(journal.read().result.replayed,false);ui.dispose();
 });
 
-test('failed success storage keeps the original pending request locked until the same UUID is replayed',async()=>{
+test('failed success storage keeps the original pending request locked without replay',async()=>{
  const create=await controller(),d=dom(),backing=storage();let failed=false;
  const store={...backing,setItem(key,value){if(key==='melisa-work-collection-v1:local:16'&&JSON.parse(value).status==='done'&&!failed){failed=true;throw Error('storage unavailable');}backing.setItem(key,value);}};
- const journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision},sent=journal.begin('/api/work-collections',body),original=store.getItem('melisa-work-collection-v1:local:16');
+ const journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
  const entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision},updated={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}},writes=[];
+ store.setItem('melisa-work-selected-invoice:16','42');
  const session={work:async(path,o)=>{
-  if(o?.method==='POST'){writes.push({path,body:structuredClone(o.body)});return {collection:entry,invoice:updated,requestId,replayed:writes.length>1};}
+  if(path.endsWith('/preview'))return {selection:o.body,previewHash:revision,revision,currency:'TRY',amountExact4:'50.0000',receivedAfterExact4:'50.0000',outstandingAfterExact4:'70.0000'};
+  if(o?.method==='POST'){writes.push({path,body:structuredClone(o.body)});return {collection:entry,invoice:updated,requestId,replayed:false};}
   if(path.includes('/context?'))return {...context('42'),invoice:writes.length?updated:invoice('42')};return listOf([writes.length?updated:invoice('42')]);
  }};
- const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();d.node('[data-collection-retry]').onclick();await tick();
- assert.equal(failed,true);assert.equal(writes.length,1);assert.equal(store.getItem('melisa-work-collection-v1:local:16'),original);assert.deepEqual(journal.read(),sent);assert.equal(ui.requestClose(),false);
+ const ui=create({root:d.root,session,user:{id:16},storage:store,uuid:()=>requestId});ui.mount();await tick();await startFresh(d,body);
+ const sent=journal.read(),original=store.getItem('melisa-work-collection-v1:local:16');assert.equal(failed,true);assert.equal(writes.length,1);assert.equal(sent.status,'pending');assert.deepEqual(sent.body,body);assert.equal(ui.requestClose(),false);
  assert.match(d.root.innerHTML,/data-collection-retry/);assert.doesNotMatch(d.root.innerHTML,/İşlem kaydedildi|Tahsilat kaydedildi|Kayıt doğrulandı/);
  d.node('[data-collection-retry]').onclick();await tick();
- assert.deepEqual(writes,[{path:sent.path,body},{path:sent.path,body}]);assert.equal(journal.read().status,'done');assert.equal(journal.read().result.replayed,true);assert.equal(journal.read().result.collection.id,'77');assert.equal(ui.requestClose(),true);assert.match(d.root.innerHTML,/Kalan: 70,00 TRY/);assert.doesNotMatch(d.root.innerHTML,/data-collection-retry/);ui.dispose();
+ assert.deepEqual(writes,[{path:sent.path,body}]);assert.equal(store.getItem('melisa-work-collection-v1:local:16'),original);assert.deepEqual(journal.read(),sent);assert.equal(ui.requestClose(),false);assert.match(d.root.innerHTML,/data-collection-retry/);ui.dispose();
 });
 
 test('a pre-payment finance failure cannot replace the new finance result after a confirmed payment',async()=>{
- const create=await controller(),d=dom(),store=storage(),journal=createTradeJournal({storage:store,key:'melisa-work-collection-v1:local:16'}),body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
- journal.begin('/api/work-collections',body);let oldFinance,financeReads=0,posts=0;
+ const create=await controller(),d=dom(),store=storage(),body={requestId,invoiceId:'42',accountId:'99',amountExact4:'50.0000',documentDate:'2026-10-07',previewHash:revision,expectedRevision:revision};
+ store.setItem('melisa-work-selected-invoice:16','42');let oldFinance,financeReads=0,posts=0;
  const entry={id:'77',invoiceId:'42',accountId:'99',amountExact4:'50.0000',currency:'TRY',documentDate:'2026-10-07',status:'active',revision},updated={...invoice('42'),customerBalanceExact4:'70.0000',collections:{revision,receivedExact4:'50.0000',outstandingExact4:'70.0000',items:[entry]}};
- const session={work:async(path,o)=>{if(o?.method==='POST'){posts++;return {collection:entry,invoice:updated,requestId,replayed:true};}if(path.includes('/context?'))return {...context('42'),invoice:posts?updated:invoice('42')};if(path==='/api/work-sales/context')return {};return listOf([posts?updated:invoice('42')]);},supplierPayments:()=>++financeReads===1?new Promise((_resolve,reject)=>{oldFinance=reject;}):Promise.reject({status:403})};
- const ui=create({root:d.root,session,user:{id:16},storage:store});ui.mount();await tick();toggleFinance(d,true);await tick();assert.equal(financeReads,1);d.node('[data-collection-retry]').onclick();await tick();assert.equal(financeReads,2);
+ const session={work:async(path,o)=>{if(path.endsWith('/preview'))return {selection:o.body,previewHash:revision,revision,currency:'TRY',amountExact4:'50.0000',receivedAfterExact4:'50.0000',outstandingAfterExact4:'70.0000'};if(o?.method==='POST'){posts++;return {collection:entry,invoice:updated,requestId,replayed:false};}if(path.includes('/context?'))return {...context('42'),invoice:posts?updated:invoice('42')};if(path==='/api/work-sales/context')return {};return listOf([posts?updated:invoice('42')]);},supplierPayments:()=>++financeReads===1?new Promise((_resolve,reject)=>{oldFinance=reject;}):Promise.reject({status:403})};
+ const ui=create({root:d.root,session,user:{id:16},storage:store,uuid:()=>requestId});ui.mount();await tick();toggleFinance(d,true);await tick();assert.equal(financeReads,1);await startFresh(d,body);assert.equal(financeReads,2);
  assert.match(d.root.innerHTML,/Finans hareketlerini görüntüleme yetkiniz yok/);oldFinance(new Error('old transport failure'));await tick();
  assert.match(d.root.innerHTML,/Finans hareketlerini görüntüleme yetkiniz yok/);assert.doesNotMatch(d.root.innerHTML,/Hareket bilgileri şu anda açılamıyor|old transport failure/);assert.match(d.root.innerHTML,/Kalan: 70,00 TRY/);assert.equal(posts,1);ui.dispose();
 });

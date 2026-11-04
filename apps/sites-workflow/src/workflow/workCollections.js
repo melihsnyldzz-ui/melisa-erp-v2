@@ -32,7 +32,7 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
      if(financeOpen)loadFinanceMovements(invoiceRows,n,invoiceListMeta);
     });
    }
-   root.querySelector('[data-collection-refresh]').onclick=load;{const rendered=pending,n=generation;root.querySelector('[data-collection-retry]')?.addEventListener('click',()=>sourceMode?verifySelectedPending(rendered,n):send(pending));}
+   root.querySelector('[data-collection-refresh]').onclick=load;{const rendered=pending,n=generation;root.querySelector('[data-collection-retry]')?.addEventListener('click',()=>sourceMode?verifySelectedPending(rendered,n):inspectGenericPending(rendered,n));}
   for(const [selector,set] of [['[data-collection-account]',v=>accountId=v],['[data-collection-amount]',v=>amount=v],['[data-collection-date]',v=>date=v]]){const edit=e=>{if(locked())return;set(e.target.value);invalidatePreview();};root.querySelector(selector)?.addEventListener('input',edit);root.querySelector(selector)?.addEventListener('change',edit);}
   root.querySelector('[data-collection-full]')?.addEventListener('click',()=>{if(locked()||!invoiceMatchesContext(context?.invoice))return;amount=context.invoice.collections.outstandingExact4;preview=null;paint();});
   root.querySelector('[data-collection-preview]')?.addEventListener('click',check);
@@ -66,10 +66,11 @@ export function createWorkCollections({root,session,user,navigate=()=>{},storage
    else note='Önceki işlem doğrulanamadı. Kayıt korunuyor; tekrar gönderilmedi.';
   }catch{if(alive(n))note='Önceki işlem doğrulanamadı. Kayıt korunuyor; tekrar gönderilmedi.';}finally{if(alive(n)){busy=false;paint();}}
  }
+ function inspectGenericPending(p,n){if(sourceMode||busy||!alive(n)||p?.status!=='pending')return;let unchanged=false;try{unchanged=JSON.stringify(journal.read())===JSON.stringify(p);}catch{}note=unchanged?'Önceki işlem doğrulanamadı. Bekleyen kayıt korunuyor; bu kontrolde yeni işlem gönderilmedi.':'Bekleyen kayıt değişmiş veya okunamıyor; bu kontrolde yeni işlem gönderilmedi.';paint();}
  function sourceRequestAllowed(p){if(!sourceMode)return true;if(!sourceReady||!context||context.invoice.id!==selectedSource.invoiceId||p?.status!=='pending'||p.body?.documentDate!==context.meta?.date)return false;const b=p.body;if(p.path===collectionBase)return b.invoiceId===selectedSource.invoiceId&&context.capabilities.canCollect===true&&context.accounts.some(a=>a.id===b.accountId&&a.currency===context.invoice.currency)&&tradeExact(b.amountExact4,4)&&BigInt(b.amountExact4.replace('.',''))>0n&&tradeRevision(b.previewHash)&&tradeRevision(b.expectedRevision);const match=new RegExp('^'+collectionBase+'/([1-9]\\d*)/cancel$').exec(p.path);return Boolean(match&&context.capabilities.canCancelCollection===true&&tradeRevision(b.expectedRevision)&&typeof b.reason==='string'&&b.reason.length>=5&&b.reason.length<=500&&context.invoice.collections.items.some(c=>c.id===match[1]&&c.invoiceId===selectedSource.invoiceId&&c.accountId===context.accounts[0]?.id));}
  function begin(path,body){if(busy||pending?.status==='pending')return;try{send(journal.begin(path,{...body,requestId:uuid()}),{fresh:true});}catch{note='İşlem hazırlanamadı; kayıt gönderilmedi. Lütfen tekrar deneyin.';paint();}}
  async function send(p,{fresh=false}={}){
-  if(busy||!p)return;if(!sourceRequestAllowed(p)){note='Bekleyen kaynak tahsilat isteği doğrulanamadı; kayıt yeniden gönderilmedi.';paint();return;}let n=generation;busy=true;pending=p;note='Tahsilat kaydediliyor…';paint();
+  if(busy||!p||!sourceMode&&!fresh)return;if(!sourceRequestAllowed(p)){note='Bekleyen kaynak tahsilat isteği doğrulanamadı; kayıt yeniden gönderilmedi.';paint();return;}let n=generation;busy=true;pending=p;note='Tahsilat kaydediliyor…';paint();
   // Cancellation must preserve the amount already read before this request.
   const originalAmount=sourceMode&&p.path!==collectionBase?context.invoice.collections.items.find(c=>c.id===p.path.split('/').at(-2))?.amountExact4:null;
   try{

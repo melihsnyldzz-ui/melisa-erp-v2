@@ -87,37 +87,35 @@ async function setup(options={}){
  },async retry(){d.node('[data-collection-retry]').onclick();await tick();},close(){ui.dispose();if(previousWindow===undefined)delete globalThis.window;else globalThis.window=previousWindow;globalThis.FormData=previousFormData;}};
 }
 
-for(const copy of [false,true])for(const cancel of [false,true])for(const status of [400,403,404,409,422])test(`${copy?'business daily copy':'synthetic'} ${cancel?'cancel':'collect'} lost ACK and restored denial ${status} preserve unknown until explicit exact replay`,async()=>{
+for(const copy of [false,true])for(const cancel of [false,true])for(const status of [400,403,404,409,422])test(`${copy?'business daily copy':'synthetic'} ${cancel?'cancel':'collect'} lost ACK stays pending without retry even if backend would return ${status}`,async()=>{
  const h=await setup({copy,cancel});
  try{
   await h.start();assert.equal(h.f.effects(),1);assert.equal(h.journal.read().status,'pending');
-  const original=h.store.getItem(key);
+  const original=h.store.getItem(key);assert.deepEqual(h.writes,[{path:h.f.path,body:h.f.body}]);
   h.setBehavior('denied',status);await h.retry();
-  assert.equal(h.journal.read().status,'pending');assert.equal(h.store.getItem(key),original);assert.equal(h.ui().requestClose(),false);
+  assert.equal(h.journal.read().status,'pending');assert.equal(h.store.getItem(key),original);assert.match(h.d.root.innerHTML,/Önceki işlem doğrulanamadı/);assert.equal(h.ui().requestClose(),false);
   assert.match(h.d.root.innerHTML,/data-collection-retry/);assert.match(h.d.root.innerHTML,/data-collection-preview disabled/);
-  assert.equal(h.writes.length,2);await h.reload();assert.equal(h.writes.length,2);
-  await h.ui().refresh();await tick();assert.equal(h.writes.length,2);
+  assert.equal(h.writes.length,1);await h.reload();assert.equal(h.writes.length,1);
+  await h.ui().refresh();await tick();assert.equal(h.writes.length,1);
   await h.retry();assert.equal(h.journal.read().status,'pending');assert.equal(h.store.getItem(key),original);
   h.setBehavior('confirmed');await h.retry();
-  assert.equal(h.journal.read().status,'done');assert.equal(h.journal.read().result.replayed,true);assert.equal(h.f.effects(),1);assert.equal(h.ui().requestClose(),true);
-  assert.equal(h.uuidCalls(),1);assert.equal(h.writes.length,4);assert.deepEqual(h.writes,Array.from({length:4},()=>({path:h.f.path,body:h.f.body})));
-  assert.deepEqual(h.store.removed,[]);assert.doesNotMatch(h.d.root.innerHTML,/data-collection-retry/);
-  assert.match(h.d.root.innerHTML,cancel?/aynı iptal tekrar oluşturulmadı/:/aynı tahsilat tekrar oluşturulmadı/);
-  await h.reload();assert.equal(h.writes.length,4);assert.equal(h.journal.read().status,'done');
-  assert.match(h.d.root.innerHTML,new RegExp(`Kalan: ${cancel?'120':'70'},00 TRY`));
-  assert.match(h.d.root.innerHTML,new RegExp(`Müşteri bakiyesi: ${cancel?'500':'450'},00 TRY`));
+  assert.equal(h.journal.read().status,'pending');assert.equal(h.f.effects(),1);assert.equal(h.ui().requestClose(),false);
+  assert.equal(h.uuidCalls(),1);assert.deepEqual(h.writes,[{path:h.f.path,body:h.f.body}]);
+  assert.deepEqual(h.store.removed,[]);assert.match(h.d.root.innerHTML,/data-collection-retry/);
+  assert.doesNotMatch(h.d.root.innerHTML,/Kayıt doğrulandı|aynı tahsilat tekrar oluşturulmadı|aynı iptal tekrar oluşturulmadı/);
+  await h.reload();assert.equal(h.writes.length,1);assert.equal(h.journal.read().status,'pending');assert.equal(h.store.getItem(key),original);
  }finally{h.close();}
 });
 
-for(const copy of [false,true])for(const cancel of [false,true])test(`${copy?'business daily copy':'synthetic'} restored ${cancel?'cancel':'collect'} request is never fresh on first explicit retry`,async()=>{
+for(const copy of [false,true])for(const cancel of [false,true])test(`${copy?'business daily copy':'synthetic'} restored ${cancel?'cancel':'collect'} request is preserved without a second POST`,async()=>{
  const h=await setup({copy,cancel});
  try{
   h.journal.begin(h.f.path,h.f.body);h.f.commit(h.f.path,h.f.body);
   const original=h.store.getItem(key);h.setBehavior('denied',403);await h.reload();
   assert.equal(h.writes.length,0);assert.equal(h.uuidCalls(),0);await h.retry();
   assert.equal(h.journal.read().status,'pending');assert.equal(h.store.getItem(key),original);assert.equal(h.ui().requestClose(),false);
-  h.setBehavior('confirmed');await h.retry();assert.equal(h.journal.read().status,'done');assert.equal(h.journal.read().result.replayed,true);
-  assert.equal(h.f.effects(),1);assert.equal(h.uuidCalls(),0);assert.deepEqual(h.writes,Array.from({length:2},()=>({path:h.f.path,body:h.f.body})));
+  h.setBehavior('confirmed');await h.retry();assert.equal(h.journal.read().status,'pending');assert.equal(h.store.getItem(key),original);
+  assert.equal(h.f.effects(),1);assert.equal(h.uuidCalls(),0);assert.deepEqual(h.writes,[]);assert.deepEqual(h.store.removed,[]);
  }finally{h.close();}
 });
 
@@ -132,25 +130,47 @@ for(const copy of [false,true])for(const cancel of [false,true])for(const status
  }finally{h.close();}
 });
 
-for(const currency of ['USD','EUR'])test(`unknown ${currency} collection preserves its currency, body and separate balance on recovery`,async()=>{
+for(const currency of ['USD','EUR'])test(`unknown ${currency} collection preserves its original body and separate currency without replay`,async()=>{
  const h=await setup({currency});
  try{
-  await h.start();h.setBehavior('denied',409);await h.retry();assert.equal(h.journal.read().status,'pending');
+  await h.start();const original=h.store.getItem(key);h.setBehavior('denied',409);await h.retry();assert.equal(h.journal.read().status,'pending');
   h.setBehavior('confirmed');await h.retry();assert.equal(h.f.effects(),1);assert.equal(h.uuidCalls(),1);
-  assert.equal(h.journal.read().result.collection.currency,currency);assert.equal(h.journal.read().result.invoice.currency,currency);
-  assert.match(h.d.root.innerHTML,new RegExp(`Kalan: 70,00 ${currency}`));assert.match(h.d.root.innerHTML,new RegExp(`Müşteri bakiyesi: 450,00 ${currency}`));
-  assert.deepEqual(h.writes,Array.from({length:3},()=>({path:h.f.path,body:h.f.body})));
+  assert.equal(h.f.invoice().currency,currency);assert.equal(h.f.invoice().collections.items[0].currency,currency);assert.equal(h.store.getItem(key),original);
+  assert.deepEqual(h.writes,[{path:h.f.path,body:h.f.body}]);assert.deepEqual(h.store.removed,[]);
  }finally{h.close();}
 });
 
-for(const cancel of [false,true])test(`confirmed ${cancel?'cancel':'collect'} replay stays done when follow-up refresh is denied`,async()=>{
+for(const cancel of [false,true])test(`fresh confirmed ${cancel?'cancel':'collect'} stays done when follow-up refresh is denied`,async()=>{
  const h=await setup({cancel});
  try{
-  await h.start();h.setBehavior('confirmed');h.setRefreshFailure(true);await h.retry();
-  const done=h.store.getItem(key);assert.equal(h.journal.read().status,'done');assert.equal(h.journal.read().result.replayed,true);
-  assert.match(h.d.root.innerHTML,/Kayıt doğrulandı/);assert.doesNotMatch(h.d.root.innerHTML,/data-collection-retry|data-collection-save/);
+  h.setBehavior('confirmed');h.setRefreshFailure(true);await h.start();
+  const done=h.store.getItem(key);assert.equal(h.journal.read().status,'done');assert.equal(h.journal.read().result.replayed,false);
+  assert.match(h.d.root.innerHTML,/İşlem kaydedildi/);assert.doesNotMatch(h.d.root.innerHTML,/data-collection-retry|data-collection-save/);
   assert.equal(h.ui().requestClose(),true);h.setRefreshFailure(false);await h.ui().refresh();await tick();
-  assert.equal(h.store.getItem(key),done);assert.equal(h.writes.length,2);assert.equal(h.f.effects(),1);
+  assert.equal(h.store.getItem(key),done);assert.equal(h.writes.length,1);assert.equal(h.f.effects(),1);
+ }finally{h.close();}
+});
+
+test('generic check never replays a committed lost response, generates an id or removes the retained journal',async()=>{
+ const h=await setup();
+ try{
+  await h.start();assert.equal(h.f.effects(),1);const original=h.store.getItem(key),before=h.writes.length;
+  const stale=h.d.node('[data-collection-retry]').onclick;await h.retry();await stale();await tick();
+  assert.equal(h.writes.length,before);assert.equal(h.uuidCalls(),1);assert.equal(h.f.effects(),1);assert.equal(h.store.getItem(key),original);assert.deepEqual(h.store.removed,[]);
+  assert.equal(h.journal.read().status,'pending');assert.match(h.d.root.innerHTML,/Önceki işlem doğrulanamadı/);assert.equal(h.ui().requestClose(),false);
+  await h.reload();await h.retry();assert.equal(h.writes.length,before);assert.equal(h.store.getItem(key),original);assert.equal(h.journal.read().status,'pending');
+ }finally{h.close();}
+});
+
+for(const change of ['replaced','removed','invalid','disposed'])test(`old generic verification handler cannot alter ${change} journal or send`,async()=>{
+ const h=await setup();
+ try{
+  await h.start();const old=h.d.node('[data-collection-retry]').onclick,original=h.store.getItem(key),before=h.writes.length;
+  if(change==='replaced')h.store.setItem(key,JSON.stringify({...h.journal.read(),body:{...h.journal.read().body,requestId:'00000000-0000-4000-8000-000000000002'}}));
+  if(change==='removed')h.store.removeItem(key);if(change==='invalid')h.store.setItem(key,'invalid');
+  if(change==='disposed')h.ui().dispose();const current=h.store.getItem(key),html=h.d.root.innerHTML;await old();await tick();
+  assert.equal(h.writes.length,before);assert.equal(h.f.effects(),1);assert.equal(h.uuidCalls(),1);assert.equal(h.store.getItem(key),current);
+  if(change==='disposed'){assert.equal(current,original);assert.equal(h.d.root.innerHTML,html);}else assert.match(h.d.root.innerHTML,/Bekleyen kayıt değişmiş veya okunamıyor/);
  }finally{h.close();}
 });
 
@@ -159,6 +179,6 @@ test('an unverified response cannot complete an unknown request or authorize a n
  try{
   h.setBehavior('malformed');await h.start();assert.equal(h.journal.read().status,'pending');assert.equal(h.ui().requestClose(),false);
   h.setBehavior('denied',422);await h.retry();assert.equal(h.journal.read().status,'pending');assert.equal(h.uuidCalls(),1);
-  h.setBehavior('confirmed');await h.retry();assert.equal(h.journal.read().status,'done');assert.equal(h.f.effects(),1);
+  h.setBehavior('confirmed');await h.retry();assert.equal(h.journal.read().status,'pending');assert.equal(h.writes.length,1);assert.equal(h.f.effects(),1);
  }finally{h.close();}
 });
