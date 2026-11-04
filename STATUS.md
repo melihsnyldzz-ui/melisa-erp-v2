@@ -1,3 +1,8 @@
+## 4 Kasım 2026 — mal kabulde stok doğruluğu
+
+- `f657bdcb`: ürün kartında karantinalı veya birimi doğrulanmamış stok kesin miktar gibi gösterilmez; doğrulanmış sıfır ve negatif miktar mevcut ortak katalog kuralıyla korunur. Stok, izin ve işlem yazması değişmedi.
+- 19 hedefli test, bağımsız inceleme, derleme ve staged güvenlik taraması geçti. Kurulu TEST/gerçek ekran/insan kabulü ve yeni exact CI ayrı bekliyor.
+
 ## 4 Kasım 2026 — satışta belirsiz önceki işlem mesajı
 
 - `15f3c8cb`: bekleyen satış içeriği eksik/değişmişse önceki sonucun bilinmediği açık söylenir; yalnız bu kontrolde yeni kayıt gönderilmediği belirtilir. Journal/UUID/izin/gönderim davranışı değişmez.
