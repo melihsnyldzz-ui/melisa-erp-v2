@@ -245,17 +245,69 @@ export function verifyC06PassiveManifests({apiBytes,webBytes,apiBase,webBase,pro
 // A separate, non-authoritative observation for the six extra 7ab roots.
 // The producer constructs expected rows from exact Git bytes before calling
 // the runner and re-reads them afterwards; transitive coverage stays unknown.
+export const C06_7AB_LOCAL_EXECUTED_TESTS=Object.freeze([
+ 'apps/api/src/config/canonicalReadonlyAuthQuery.test.mjs',
+ 'apps/api/src/config/canonicalReadonlyExistingPool.test.mjs',
+ 'apps/api/src/services/c06SaleReadonlyMetadata.test.mjs',
+ 'apps/api/src/routes/c06SaleReadonlyMetadataRoutes.test.mjs',
+ 'apps/api/src/routes/c06SaleReadonlyMetadataAuthIntegration.test.mjs',
+ 'apps/sites-workflow/src/workflow/workSupplierCardSwitch.test.mjs',
+]);
+// Independently fixed selected-input set, not a dependency-closure discovery
+// algorithm. A runner cannot replace these with another 54 Git-tracked files.
+export const C06_7AB_LOCAL_SELECTED_INPUTS=Object.freeze([
+ 'scripts/ci/offline-guard.cjs',
+ ...['workBusinessSalesRead.test.mjs','workCustomerMaster.test.mjs','workPurchasesRecovery.test.mjs','workCollectionsUnknownRecovery.test.mjs','workCollectionsSelectedSource.test.mjs','workBusinessReceivingRead.test.mjs','workCatalog.test.mjs'].map(p=>'apps/sites-workflow/src/workflow/'+p),
+ ...[
+  'shared-business-collection-history-bootstrap.mjs','shared-business-collection-history-sql.mjs',
+  'shared-business-daily-profit-revision.mjs','shared-business-daily-revision-sql.mjs',
+  'shared-business-operation-quarantine-parent-revision-sql.mjs','shared-business-operation-quarantine-revision.mjs',
+  'shared-business-product-price-bootstrap.mjs','shared-business-product-price-revision-contract.mjs',
+  'shared-business-product-price-revision-sql.mjs','shared-business-product-price-sale-bootstrap.mjs',
+  'shared-business-product-price-sale-sql.mjs','shared-business-selected-collection-revision-bootstrap.mjs',
+  'shared-business-selected-collection-revision-sql.mjs','shared-business-selected-sale-effects-revision-sql.mjs',
+  'shared-business-selected-sale-parent-revision-sql.mjs','shared-business-selected-sale-preview-sql.mjs',
+  'shared-business-selected-sale-revision-bootstrap.mjs','shared-business-selected-sale-revision-contract.mjs',
+  'shared-business-selected-sale-revision-sql.mjs','shared-business-selected-sale-write-scope-sql.mjs',
+  'shared-business-stock-predicate-distinct-revision-sql.mjs','shared-business-stock-predicate-distinct-source.mjs',
+  'shared-business-supplier-item-quarantine-parent-revision-sql.mjs','shared-business-supplier-item-quarantine-revision.mjs',
+  'shared-test-copy-revision-sql.mjs','shared-test-copy-sql.mjs','stage4-copy-context-sql.mjs','stage4-copy-sql.mjs',
+ ].map(p=>'scripts/canonical/'+p),
+ ...C06_7AB_LOCAL_EXECUTED_TESTS,
+ 'scripts/canonical/local-c06-test-runner.mjs',
+ 'apps/api/package.json','apps/api/package-lock.json',
+ 'apps/sites-workflow/package.json','apps/sites-workflow/package-lock.json',
+ 'apps/api/src/config/database.js','apps/api/src/config/canonicalReadonlyAuthQuery.mjs',
+ 'apps/api/src/services/authService.js','apps/api/src/middleware/authMiddleware.js',
+ 'apps/api/src/services/c06SaleReadonlyMetadata.mjs','apps/api/src/routes/c06SaleReadonlyMetadataRoutes.mjs',
+ 'apps/sites-workflow/src/workflow/workSuppliers.js',
+]);
+export function assertC06Added7abInputPaths(paths){
+ const fixed=C06_7AB_LOCAL_SELECTED_INPUTS.map(p=>path.join(PAIR_REPO,...p.split('/')));
+ requireThat(Array.isArray(paths)&&fixed.length===54&&new Set(fixed).size===54&&paths.length===fixed.length&&fixed.every((p,i)=>typeof paths[i]==='string'&&paths[i]===p),'C06_7AB_LOCAL_INPUT_PATHS');
+ return true;
+}
+export function c06Added7abInputCommit(relativePath,sourcePin,producer){
+ requireThat(sourcePin===C06_7AB_SOURCE_PIN&&typeof producer==='string'&&producer.length===40&&/^[a-f0-9]{40}$/.test(producer)&&C06_7AB_LOCAL_SELECTED_INPUTS.includes(relativePath),'C06_7AB_LOCAL_INPUT_REVISION');
+ return /^(?:apps|packages)\//.test(relativePath)?sourcePin:producer;
+}
 export function assertC06Added7abObservation(observation,expectedRows){
  const s=observation?.summary;
+ const executed=C06_7AB_LOCAL_EXECUTED_TESTS.map(p=>path.join(PAIR_REPO,...p.split('/')));
+ assertC06Added7abInputPaths(Array.isArray(expectedRows)?expectedRows.map(r=>r?.file):null);
  requireThat(Array.isArray(expectedRows)&&expectedRows.length===54&&new Set(expectedRows.map(r=>r.file)).size===54
-  &&expectedRows.every(r=>typeof r.file==='string'&&/^[a-f0-9]{64}$/.test(r.sha256??''))
+  &&expectedRows.every(r=>typeof r.file==='string'&&typeof r.sha256==='string'&&/^[a-f0-9]{64}$/.test(r.sha256))
   &&observation?.schema==='c06-7ab-added-local-observation.v1'&&observation.scope==='PRODUCER'
   &&observation.nodeSha256===NODE_DIGEST&&observation.historical176==='NOT_RUN'
+  &&observation.inputCoverage==='SELECTED_INPUTS_ONLY'
+  &&Array.isArray(observation.executedTests)&&observation.executedTests.length===executed.length
+  &&executed.every((p,i)=>typeof observation.executedTests[i]==='string'&&observation.executedTests[i]===p)
   &&observation.coverage==='UNVERIFIED'&&observation.sourceImmutability==='UNVERIFIED'
   &&observation.testRunObserved===true&&observation.testRunVerified===false&&observation.executionAuthority===false
   &&s?.count===55&&s.passed===55&&s.failed===0&&s.cancelled===0&&s.skipped===0&&s.todo===0
   &&/^[a-f0-9]{64}$/.test(observation.stdoutSha256??'')&&/^[a-f0-9]{64}$/.test(observation.stderrSha256??'')
-  &&JSON.stringify(observation.inputs)===JSON.stringify(expectedRows),'C06_7AB_LOCAL_OBSERVATION');
+  &&Array.isArray(observation.inputs)&&observation.inputs.length===expectedRows.length
+  &&expectedRows.every((r,i)=>observation.inputs[i]?.file===r.file&&observation.inputs[i]?.sha256===r.sha256),'C06_7AB_LOCAL_OBSERVATION');
  return true;
 }
 // Real producer entry's supported C06 path. No output directory is touched
@@ -299,8 +351,12 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  let localAddedObservation=null;
  if(sourcePin===C06_7AB_SOURCE_PIN){
   requireThat(typeof localRunner.localC06ObservedInputs7ab==='function'&&typeof localRunner.observeC06Added7abTests==='function','C06_7AB_LOCAL_RUNNER_REQUIRED');
-  const paths=localRunner.localC06ObservedInputs7ab();requireThat(Array.isArray(paths)&&paths.length===54&&new Set(paths).size===54,'C06_7AB_LOCAL_INPUT_COUNT');
-  assertLocalSourceClean();const rows=paths.map(file=>{const rel=path.relative(PAIR_REPO,file).replaceAll('\\','/');requireThat(!rel.startsWith('../')&&!path.isAbsolute(rel),'C06_LOCAL_INPUT_PATH');const actual=read(file),expected=git(['show',producer+':'+rel],true);requireThat(Buffer.from(lf(actual)).equals(expected),'C06_7AB_LOCAL_INPUT_SOURCE');return {file,sha256:sha(actual)};});
+  const paths=localRunner.localC06ObservedInputs7ab();assertC06Added7abInputPaths(paths);
+  // Application/test/package-lock inputs belong to exact 7ab source; the
+  // guard/runner/canonical source witnesses belong to the producer commit.
+  // This binding covers only these selected rows, not dynamic imports, the
+  // installed dependencies or an immutable execution snapshot.
+  assertLocalSourceClean();const rows=paths.map(file=>{const rel=path.relative(PAIR_REPO,file).replaceAll('\\','/');requireThat(!rel.startsWith('../')&&!path.isAbsolute(rel),'C06_LOCAL_INPUT_PATH');const commit=c06Added7abInputCommit(rel,sourcePin,producer);const actual=read(file),expected=git(['show',commit+':'+rel],true);requireThat(Buffer.from(lf(actual)).equals(expected),'C06_7AB_LOCAL_INPUT_SOURCE');return {file,sha256:sha(actual)};});
   localAddedObservation=localRunner.observeC06Added7abTests();assertC06Added7abObservation(localAddedObservation,rows);
   for(const row of rows)requireThat(sha(read(row.file))===row.sha256,'C06_LOCAL_INPUT_DRIFT');assertLocalSourceClean();
   // Neither these roots nor local before/after reads prove all transitive

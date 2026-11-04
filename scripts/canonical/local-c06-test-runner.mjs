@@ -135,7 +135,7 @@ function observeAdded7abAtFixedRoot(root,scope) {
   const summary=parseC06Added7abTap(result.stdout);if(summary.count!==55)throw Error('C06_7AB_LOCAL_TEST_COUNT');
   const after=files.map(file=>({file,sha256:digest(fs.readFileSync(file))}));if(JSON.stringify(inputs)!==JSON.stringify(after))throw Error('C06_LOCAL_INPUT_DRIFT');
   if(digest(fs.readFileSync(nodeExe))!==nodeSha256)throw Error('C06_LOCAL_NODE_DRIFT');
-  return {schema:'c06-7ab-added-local-observation.v1',scope,nodeSha256,inputs,summary,stdoutSha256:digest(Buffer.from(result.stdout)),stderrSha256:digest(Buffer.from(result.stderr)),historical176:'NOT_RUN',coverage:'UNVERIFIED',sourceImmutability:'UNVERIFIED',testRunObserved:true,testRunVerified:false,executionAuthority:false};
+  return {schema:'c06-7ab-added-local-observation.v1',scope,nodeSha256,inputs,executedTests:[...runTests],inputCoverage:'SELECTED_INPUTS_ONLY',summary,stdoutSha256:digest(Buffer.from(result.stdout)),stderrSha256:digest(Buffer.from(result.stderr)),historical176:'NOT_RUN',coverage:'UNVERIFIED',sourceImmutability:'UNVERIFIED',testRunObserved:true,testRunVerified:false,executionAuthority:false};
 }
 export function observeC06Added7abTests() { return observeAdded7abAtFixedRoot(repo,'PRODUCER'); }
 // Exact, separate local fixture checkout; never used by the producer.
