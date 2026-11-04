@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — paket kaynak testi çevrimdışı CI düzeltmesi
+
+025e kaynak commitinde iki Git subprocess testi CI çevrimdışı güvenlik sınırında başarısızdı. Sınır ve workflow değiştirilmeden sentetik import grafiği CI testine ayrıldı; gerçek tarihsel Git nesnesi/diff kontrolü ayrı yerel entegrasyon testinde korundu. Yerelde güvenlik sınırı altında 54/54, gerçek Git entegrasyonu 2/2 ve bağımsız inceleme geçti. Yeni exact GitHub CI bekliyor; test sonucu gerçek paket, kurulum veya insan kabulü değildir.
+
 ## 4 Kasım 2026 — d246 satış/müşteri paket kaynak kapsamı
 
 d246 API/WEB pasif aday kaynak kapsamı, satış ve müşteri ekranı bağımlılıklarıyla mevcut üreticiye eklendi; önceki fce aday ve doğrulaması korundu. 54 yerel kaynak testi ve bağımsız inceleme geçti. Bu üretici testi mevcut GitHub CI iş listesinde değildir. Çıktı üst klasörü güvenliği doğrulanmadığından yeni adayın gerçek üretim yolu I/O öncesi kapalıdır; artifact, kurulum, SQL ve insan kabulü BEKLİYOR.

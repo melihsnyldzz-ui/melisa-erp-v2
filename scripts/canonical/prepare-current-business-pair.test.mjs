@@ -1,7 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import crypto from 'node:crypto';
 import * as currentPair from './prepare-current-business-pair.mjs';
 import path from 'node:path';import os from 'node:os';import {createRequire} from 'node:module';
-import {execFileSync} from 'node:child_process';
 import {relativeModuleSpecifiers} from './prepare-business-sale-preview-link-package.mjs';
 import {APPLICATION_SOURCE,PAIR_REPO,PAIR_BRANCH,HELPER_FILES,WEB_SOURCE_FILES,WEB_ROOTS,pairRoots,assertPairSource,assertPairRows,loadVerifiedPairHelpers,currentWebClosure,currentBusinessBuildPlan,currentBuildEnvironment,compileCurrentBusinessWebManifest} from './prepare-current-business-pair.mjs';
 import {CUSTOMER_METADATA_PACKAGE as P,CUSTOMER_METADATA_ENTRY as ENTRY,CUSTOMER_METADATA_NEW_FILES as NEW,CUSTOMER_METADATA_ASSET as ASSET,CUSTOMER_METADATA_CONTEXT_LINE as LINE,CUSTOMER_METADATA_ROUTE_BLOCK as BLOCK,CURRENT_PAIR_API_FILES,buildCurrentBusinessApiManifest} from './prepare-customer-master-metadata-package.mjs';
@@ -77,27 +76,217 @@ test('d246 production entry stops before I/O while its output-parent identity is
  const code=fs.readFileSync(new URL('./prepare-current-business-pair.mjs',import.meta.url),'utf8'),body=code.slice(code.indexOf('export async function prepareC06BusinessPair('));
  assert(body.indexOf('C06_D246_OUTPUT_PARENT_UNVERIFIED')<body.indexOf('C06_ENTRY_PATH'));assert(body.indexOf('C06_D246_OUTPUT_PARENT_UNVERIFIED')<body.indexOf('copyPayload('));
 });
-test('d246 exact source delta is only the two covered sales and customer screens and their tests',()=>{
- const root=path.resolve(import.meta.dirname,'../..'),git=(...args)=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
- const old=currentPair.C06_SUCCESSOR_SOURCE_PIN,next=currentPair.C06_D246_SOURCE_PIN;
- assert.equal(git('rev-parse',next),next);assert.equal(git('diff','--name-only',old,next,'--','apps/api','packages'),'');
- assert.equal(git('diff','--name-only',old,next,'--',...currentPair.C06_SALE_UNAPPLIED_SQL_SOURCE_FILES),'');
- const paths=git('diff','--name-only',old,next,'--','apps/sites-workflow').split(/\r?\n/).filter(Boolean).sort();
- assert.deepEqual(paths,['apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs','apps/sites-workflow/src/workflow/workBusinessSalesRead.test.mjs','apps/sites-workflow/src/workflow/workCustomers.js','apps/sites-workflow/src/workflow/workCustomersListRace.test.mjs'].sort());
- for(const p of paths.filter(p=>!p.includes('.test.mjs'))){assert(currentPair.C06_D246_WEB_SOURCE_FILES.includes(p));assert.notEqual(git('rev-parse',old+':'+p),git('rev-parse',next+':'+p));}
+// Offline graph fixture: relative imports were extracted once from local d246
+// Git blobs. The synthesized bytes below are NOT those Git blobs, and do not
+// establish commit ancestry, historical full-tree delta or production input.
+// Production independently checks the real Git contents, ancestry and CI.
+const d246HistoricalImportGraph=Object.freeze({
+  "apps/api/src/services/canonicalBusinessPartyHistoryModel.mjs": [],
+  "apps/api/src/services/canonicalBusinessSaleReadModel.mjs": [],
+  "apps/api/src/services/goal8DaySqlProof.mjs": [],
+  "apps/sites-workflow/business-preview-boundary.mjs": [
+    "./src/workflow/businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/business-preview-session.mjs": [
+    "./src/workflow/businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/businessWorkface.mjs": [
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/cleanSyntheticCatalogModel.mjs": [],
+  "apps/sites-workflow/src/workflow/currencyAccountPresentation.mjs": [
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/customerContactPendingMarker.mjs": [],
+  "apps/sites-workflow/src/workflow/isolatedOperationCopyModel.mjs": [],
+  "apps/sites-workflow/src/workflow/moneyDisplay.mjs": [],
+  "apps/sites-workflow/src/workflow/selectedSaleUiModel.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/testAdminSession.mjs": [
+    "./cleanSyntheticCatalogModel.mjs",
+    "./businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/testSuppliersModel.mjs": [],
+  "apps/sites-workflow/src/workflow/workBusinessPartyHistory.mjs": [
+    "./workTradeModel.mjs",
+    "../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs",
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCopyPresentation.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCustomerContact.mjs": [
+    "./customerContactPendingMarker.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workInbound.css": [],
+  "apps/sites-workflow/src/workflow/workInboundModel.mjs": [
+    "./isolatedOperationCopyModel.mjs",
+    "./moneyDisplay.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSupplierPaymentsModel.mjs": [
+    "./isolatedOperationCopyModel.mjs",
+    "./cleanSyntheticCatalogModel.mjs",
+    "./testAdminSession.mjs",
+    "./moneyDisplay.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSuppliers.js": [
+    "./workBusinessPartyHistory.mjs",
+    "./workCustomerContact.mjs",
+    "./workCopyPresentation.mjs",
+    "./currencyAccountPresentation.mjs",
+    "./workInbound.css",
+    "./workInboundModel.mjs",
+    "./testSuppliersModel.mjs",
+    "./workSupplierPaymentsModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workTradeModel.mjs": [
+    "./businessWorkface.mjs",
+    "./moneyDisplay.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "../../../api/src/services/goal8DaySqlProof.mjs",
+    "./selectedSaleUiModel.mjs"
+  ],
+  "apps/sites-workflow/vite.config.mjs": [
+    "./src/workflow/businessWorkface.mjs",
+    "./business-preview-session.mjs",
+    "./business-preview-boundary.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/businessSupplierSelection.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/protectedDeviceSession.mjs": [],
+  "apps/sites-workflow/src/workflow/testCustomersModel.mjs": [],
+  "apps/sites-workflow/src/workflow/workCustomerMaster.mjs": [
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCustomers.js": [
+    "./workCustomerMaster.mjs",
+    "./workBusinessPartyHistory.mjs",
+    "./workCopyPresentation.mjs",
+    "./currencyAccountPresentation.mjs",
+    "./workSales.css",
+    "./testCustomersModel.mjs",
+    "./workTradeModel.mjs",
+    "./workOpenAccountPresentation.mjs",
+    "./workCustomerContact.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workOpenAccountPresentation.mjs": [
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSales.css": [],
+  "apps/sites-workflow/src/workflow/workingCatalogSession.mjs": [
+    "./businessSupplierSelection.mjs",
+    "./cleanSyntheticCatalogModel.mjs",
+    "./businessWorkface.mjs",
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs",
+    "./workTradeModel.mjs",
+    "./testAdminSession.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "./protectedDeviceSession.mjs"
+  ],
+  "apps/api/src/services/currentProductCatalogContext.mjs": [
+    "./finalCatalogContext.mjs"
+  ],
+  "apps/api/src/services/finalCatalogContext.mjs": [],
+  "apps/sites-workflow/src/workflow/currentProductCatalogModel.mjs": [
+    "../../../../apps/api/src/services/currentProductCatalogContext.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/savedBusinessSalesBasket.mjs": [
+    "./workBusinessSalesBasketModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/selectedSourceCollectionHandoff.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/stockProductsModel.mjs": [
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workBusinessSalesBasketModel.mjs": [
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "./businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs": [
+    "./workTradeModel.mjs",
+    "./workBusinessPartyHistory.mjs",
+    "./workCatalogModel.mjs",
+    "./testCustomersModel.mjs",
+    "./workCatalogPhoto.mjs",
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "./workBusinessSalesBasketModel.mjs",
+    "./savedBusinessSalesBasket.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCatalogModel.mjs": [
+    "./moneyDisplay.mjs",
+    "./stockProductsModel.mjs",
+    "./currentProductCatalogModel.mjs",
+    "./cleanSyntheticCatalogModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCatalogPhoto.mjs": [
+    "./workCatalogModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSales.js": [
+    "./workBusinessSalesBasketModel.mjs",
+    "./workOpenAccountPresentation.mjs",
+    "./workBusinessSalesRead.mjs",
+    "./workCopyPresentation.mjs",
+    "./workTaskHandoff.mjs",
+    "./workTaskHandoff.css",
+    "./isolatedOperationCopyModel.mjs",
+    "./workSales.css",
+    "./selectedSaleUiModel.mjs",
+    "./workTradeModel.mjs",
+    "./workCatalogModel.mjs",
+    "./selectedSourceCollectionHandoff.mjs",
+    "./workCatalogPhoto.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workTaskHandoff.css": [],
+  "apps/sites-workflow/src/workflow/workTaskHandoff.mjs": []
+});
+const d246HistoricalChangeWitness=Object.freeze({
+  "apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs": {
+    "before": "4feacd3ed14b88b2897b6b123b6c0510ac1fb50955bdd745fc7c410b7fe0c587",
+    "after": "f1d763382b54f9ff179fcee51ba62f5ae42bf57bba6f250af06bd6ce58bce4da"
+  },
+  "apps/sites-workflow/src/workflow/workBusinessSalesRead.test.mjs": {
+    "before": "f7d4a76de23de4db4746b78f9b55a680f1f13124cd8b4a4d981835d95bf51946",
+    "after": "ad2b47e7838536540f932d9f892410287f759d96c4031318a4b93cab15398a55"
+  },
+  "apps/sites-workflow/src/workflow/workCustomers.js": {
+    "before": "735ed858428f07d602a42a7a7077931f43b9b5f1971913837f156b3af95240b7",
+    "after": "0f64a67e870f58af5c381c2af3a5dae1b924242f9add2342464e6e4d8dfba9d6"
+  },
+  "apps/sites-workflow/src/workflow/workCustomersListRace.test.mjs": {
+    "before": null,
+    "after": "fa3a2d860c21f46fb4759f374f34737a66f70ec28201c21026c2a720919efb57"
+  }
+});
+function d246SyntheticSource(p){
+ const imports=d246HistoricalImportGraph[p];assert(Array.isArray(imports),'fixture source missing: '+p);
+ return Buffer.from(imports.map(x=>'import '+JSON.stringify(x)+';').join('\n')+'\n/* synthetic source, never evaluated */\n');
+}
+test('d246 reviewed change witnesses are explicitly historical metadata, not Git admission',()=>{
+ const paths=Object.keys(d246HistoricalChangeWitness).sort();assert.deepEqual(paths,["apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs","apps/sites-workflow/src/workflow/workBusinessSalesRead.test.mjs","apps/sites-workflow/src/workflow/workCustomers.js","apps/sites-workflow/src/workflow/workCustomersListRace.test.mjs"].sort());
+ for(const p of paths){const {before,after}=d246HistoricalChangeWitness[p];assert(before===null||/^[a-f0-9]{64}$/.test(before));assert.match(after,/^[a-f0-9]{64}$/);if(before!==null)assert.notEqual(before,after);}
  assert.throws(()=>currentPair.assertCurrentApplicationInputsUnchanged(paths),/APPLICATION_CHANGED_SINCE_PIN/);
 });
-test('d246 transitive sales and customer source graph is read from the pinned Git objects and rejects missing or changed dependencies',()=>{
+test('d246 synthetic import-graph fixture covers 44 sources and fails closed on drift',()=>{
  const root=path.resolve(import.meta.dirname,'../..'),require=createRequire(path.join(root,'apps/sites-workflow/package.json')),parse=require('@babel/parser').parse,pin=currentPair.C06_D246_SOURCE_PIN;
- const gitSource=p=>execFileSync('git',['show',pin+':'+p],{cwd:root}),closure=currentPair.currentC06WebClosure({readSource:gitSource,parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin});
+ assert.equal(pin,'d2466250fabc1a319f7ff0592ab39bb6903bebfb');assert.deepEqual(Object.keys(d246HistoricalImportGraph).sort(),[...currentPair.C06_D246_WEB_SOURCE_FILES].sort());
+ const fixtureBlobs=new Map(currentPair.C06_D246_GIT_FILES.map(p=>[p,Object.hasOwn(d246HistoricalImportGraph,p)?d246SyntheticSource(p):Buffer.from('/* synthetic fixture '+p+' */')]));
+ const closure=currentPair.currentC06WebClosure({readSource:p=>fixtureBlobs.get(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin});
  assert.equal(closure.size,44);for(const p of currentPair.C06_D246_WEB_SOURCE_FILES)assert(closure.has(p));
  for(const p of ['workSales.js','workBusinessSalesRead.mjs','workBusinessSalesBasketModel.mjs','savedBusinessSalesBasket.mjs','workTaskHandoff.css'])assert(closure.has('apps/sites-workflow/src/workflow/'+p));
- assert.throws(()=>currentPair.currentC06WebClosure({readSource:p=>p.endsWith('/savedBusinessSalesBasket.mjs')?Buffer.alloc(0):gitSource(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin}),/C06_WEB_CLOSURE_BYTES/);
- assert.throws(()=>currentPair.currentC06WebClosure({readSource:p=>p.endsWith('/workSales.js')?Buffer.from("import './unexpected.mjs';"):gitSource(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin}),/C06_WEB_CLOSURE_PATH/);
- const gitBlobs=new Map(currentPair.C06_D246_GIT_FILES.map(p=>[p,gitSource(p)])),workingBytes=new Map(gitBlobs);
- assert(currentPair.assertC06GitBlobClosure({paths:currentPair.C06_D246_GIT_FILES,gitBlobs,workingBytes,sourcePin:pin}));
- workingBytes.set('apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs',Buffer.from('wrong source'));
- assert.throws(()=>currentPair.assertC06GitBlobClosure({paths:currentPair.C06_D246_GIT_FILES,gitBlobs,workingBytes,sourcePin:pin}),/C06_GIT_BLOB_DRIFT/);
+ assert.throws(()=>currentPair.currentC06WebClosure({readSource:p=>p.endsWith('/savedBusinessSalesBasket.mjs')?Buffer.alloc(0):fixtureBlobs.get(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin}),/C06_WEB_CLOSURE_BYTES/);
+ assert.throws(()=>currentPair.currentC06WebClosure({readSource:p=>p.endsWith('/workSales.js')?Buffer.from("import './unexpected.mjs';"):fixtureBlobs.get(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin}),/C06_WEB_CLOSURE_PATH/);
+ const workingBytes=new Map(fixtureBlobs);assert(currentPair.assertC06GitBlobClosure({paths:currentPair.C06_D246_GIT_FILES,gitBlobs:fixtureBlobs,workingBytes,sourcePin:pin}));
+ workingBytes.set('apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs',Buffer.from('wrong source'));assert.throws(()=>currentPair.assertC06GitBlobClosure({paths:currentPair.C06_D246_GIT_FILES,gitBlobs:fixtureBlobs,workingBytes,sourcePin:pin}),/C06_GIT_BLOB_DRIFT/);
+ const missing=new Map(fixtureBlobs);missing.delete(currentPair.C06_D246_GIT_FILES[0]);assert.throws(()=>currentPair.assertC06GitBlobClosure({paths:currentPair.C06_D246_GIT_FILES,gitBlobs:missing,workingBytes:fixtureBlobs,sourcePin:pin}),/C06_GIT_CLOSURE/);
+ const extra=new Map(fixtureBlobs);extra.set('unapproved',Buffer.from('x'));assert.throws(()=>currentPair.assertC06GitBlobClosure({paths:currentPair.C06_D246_GIT_FILES,gitBlobs:extra,workingBytes:fixtureBlobs,sourcePin:pin}),/C06_GIT_CLOSURE/);
 });
 test('d246 independent readback rejects sales-source replacement, missing before-image and extra payload',()=>{
  for(const kind of ['blob','before','extra']){
