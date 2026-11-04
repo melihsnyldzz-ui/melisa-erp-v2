@@ -80,7 +80,7 @@ export function createBusinessSalesRead({root,session,user,navigate=()=>{},journ
   if(!['prepare','send'].includes(stage)||!recoveryMissing||typeof onPendingRecovery!=='function'||operationBusy||receiptBusy||customerBusy||!card||!account()||stage==='send'&&!recoveryReady)return;
   let saved,plan;const retained=recoveryMissing,ready=recoveryReady,scope={customerId:String(card.id),customerAccountId:accountId,currency:account().currency};
   try{saved=journal.read();if(JSON.stringify(saved)!==retained)throw Error();plan=tradeCanonicalPendingSalePlan(saved,scope);if(!user.permissions.includes(({sale_draft:'sales.create',sale_finalize:'sales.finalize',sale_cancel:'sales.cancel'})[plan.operation]))throw Error();}
-  catch{recoveryMissing=null;recoveryReady=null;lastReceiptNote='Özgün işlem bilgileri eksik veya değişmiş. Kayıt gönderilmedi.';paint();return;}
+  catch{recoveryMissing=null;recoveryReady=null;lastReceiptNote='Özgün işlem bilgileri eksik veya değişmiş. Önceki işlemin sonucu doğrulanamadı; bu kontrolde yeni kayıt gönderilmedi.';paint();return;}
   const n=++versions.operation;operationBusy=true;operationReceiptCurrent=null;recoveryReady=null;
   lastReceiptNote=stage==='prepare'?'Özgün işlem güncel bilgilerle kontrol ediliyor…':'Aynı işlem kimliğiyle kayıt gönderiliyor…';paint();
   try{
@@ -107,7 +107,7 @@ export function createBusinessSalesRead({root,session,user,navigate=()=>{},journ
   try{pending=journal.read();if(!pending)throw Error();retained=JSON.stringify(pending);const result=await session.businessSaleRequest(query,pending);if(!alive('receipt',n))return;if(JSON.stringify(journal.read())!==retained)throw Error();if(result.requestId!==pending.body?.requestId||!['sale_draft','sale_finalize','sale_cancel'].includes(result.operation))throw Error();const shown=tradeCanonicalSaleInvoice(result.invoice,{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency});if(pending.status==='pending'&&typeof onJournalResolved==='function')onJournalResolved({pending,result,scope:{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency}});if(!alive('receipt',n))return;lastInvoice=shown;lastReceiptNote='Son kaydın fişi doğrulandı.';}
   catch(error){if(alive('receipt',n)){
    const missing=error?.status===404&&error?.code==='WORK_REQUEST_NOT_FOUND';lastReceiptNote=missing?'Bu isteğe bağlı kayıt bulunamadı. Önceki deneme geçmişi korunuyor; yeniden kayıt gönderilmedi.':'Son işlem doğrulanamadı. Yeni kayıt göndermeden önce işlemin durumunu kontrol edin.';
-   if(missing&&typeof onPendingRecovery==='function')try{if(JSON.stringify(journal.read())!==retained)throw Error();tradeCanonicalPendingSalePlan(pending,{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency});recoveryMissing=retained;}catch{lastReceiptNote='Özgün işlem bilgileri eksik veya değişmiş. Kayıt gönderilmedi.';}
+   if(missing&&typeof onPendingRecovery==='function')try{if(JSON.stringify(journal.read())!==retained)throw Error();tradeCanonicalPendingSalePlan(pending,{customerId:query.partyId,customerAccountId:query.accountId,currency:query.currency});recoveryMissing=retained;}catch{lastReceiptNote='Özgün işlem bilgileri eksik veya değişmiş. Önceki işlemin sonucu doğrulanamadı; bu kontrolde yeni kayıt gönderilmedi.';}
   }}
   finally{if(alive('receipt',n)){receiptBusy=false;paint();}}
  }
