@@ -14,6 +14,57 @@ test('actual sales screen saves a two-product device basket, reopens after reloa
  const d=fixture(reads,saleReadActor(),null,{basketStorage:disk.storage,basketLocks:disk.locks});await fillSavedBasket(d);const search=d.node('[data-bsr-product-search]');search.elements.search.value=second.barcode;search.onsubmit(event());await settle();d.node('[data-bsr-price]').onchange({target:{value:'83'}});await d.node('[data-bsr-check]').onclick();d.node('[data-bsr-quantity]').oninput({target:{value:'1'}});d.node('[data-bsr-add]').onclick();assert(d.root.innerHTML.includes('data-bsr-basket-quantity="13:83:9:1"'),JSON.stringify(d.root.innerHTML.match(/<p[^>]*>(?:[^<]|<(?!\/p>))*<\/p>/g)));assert.equal(d.ui.requestClose(),false);await d.node('[data-bsr-basket-save]').onclick();assert.match(d.root.innerHTML,/Sepet bu cihazda saklandı/);assert.equal(d.ui.requestClose(),true);assert.equal(disk.writes.length,1);d.ui.dispose();
  const fresh=fixture(reads,saleReadActor(),null,{basketStorage:disk.storage,basketLocks:disk.locks});fresh.ui.mount();await settle();assert.match(fresh.root.innerHTML,/Saklanan sepeti aç/);assert.doesNotMatch(fresh.root.innerHTML,/data-bsr-basket-quantity=/);await fresh.node('[data-bsr-basket-restore]').onclick();assert.match(fresh.root.innerHTML,/0012 MARKA/);assert.match(fresh.root.innerHTML,/0013 MARKA/);assert.match(fresh.root.innerHTML,/quantity="12:81:9:1"/);assert.match(fresh.root.innerHTML,/quantity="13:83:9:1"/);assert.match(fresh.root.innerHTML,/Sepet açıldı/);assert.match(fresh.root.innerHTML,/Önizleme için|önizlemesinden önce/);assert.equal(disk.writes.length,1);assert(fresh.calls.every(c=>c.kind!=='work'));fresh.ui.dispose();
 });
+test('customer list loading blocks even a retained restore handler, then restores the correct customer after success or failure',async()=>{
+ for(const outcome of ['success','error','dispose']){
+  const disk=deviceBasketStorage(),journal={read:()=>null,done(){assert.fail('No journal write');}},options={basketStorage:disk.storage,basketLocks:disk.locks};
+  const initial=fixture(savedBasketReads(),saleReadActor(),journal,options);await fillSavedBasket(initial);await initial.node('[data-bsr-basket-save]').onclick();initial.ui.dispose();
+  const saved=[...disk.values.entries()],writes=disk.writes.length;let listCalls=0,cardCalls=0,finish,fail;
+  const current=fixture({...savedBasketReads(),customers:async path=>{
+   if(path.includes('/card')){cardCalls++;return saleReadCustomer();}
+   if(++listCalls===1)return saleReadCustomerList();
+   return new Promise((resolve,reject)=>{finish=resolve;fail=reject;});
+  }},saleReadActor(),journal,options);
+  current.ui.mount();await settle();const oldRestore=current.node('[data-bsr-basket-restore]').onclick;
+  current.node('[data-bsr-refresh]').onclick();assert.match(current.root.innerHTML,/data-bsr-basket-restore disabled/);
+  await oldRestore();assert.equal(cardCalls,0);assert.equal(disk.writes.length,writes);assert.deepEqual([...disk.values.entries()],saved);
+  if(outcome==='dispose'){
+   current.ui.dispose();const before=current.root.innerHTML;finish(saleReadCustomerList([]));await settle();await oldRestore();
+   assert.equal(current.root.innerHTML,before);assert.equal(cardCalls,0);
+  }else{
+   if(outcome==='error')fail(Error('synthetic list failure'));else finish(saleReadCustomerList([]));
+   await settle();assert.doesNotMatch(current.root.innerHTML,/data-bsr-basket-restore disabled/);
+   await current.node('[data-bsr-basket-restore]').onclick();assert.equal(cardCalls,1);
+   assert.match(current.root.innerHTML,/<option value="155" selected>/);assert.match(current.root.innerHTML,/Sentetik müşteri/);assert.match(current.root.innerHTML,/data-bsr-basket-quantity="12:81:9:1"/);
+   assert.equal(disk.writes.length,writes);assert.deepEqual([...disk.values.entries()],saved);current.ui.dispose();
+  }
+ }
+});
+test('a retained customer selector cannot unlock basket restore before a delayed customer list settles',async()=>{
+ for(const selected of ['', '155']){
+  const disk=deviceBasketStorage(),journal={read:()=>null,done(){assert.fail('No journal write');}},options={basketStorage:disk.storage,basketLocks:disk.locks};
+  const initial=fixture(savedBasketReads(),saleReadActor(),journal,options);await fillSavedBasket(initial);await initial.node('[data-bsr-basket-save]').onclick();initial.ui.dispose();
+  let listCalls=0,cardCalls=0,finish;const saved=[...disk.values.entries()],writes=disk.writes.length;
+  const current=fixture({...savedBasketReads(),customers:async path=>{
+   if(path.includes('/card')){cardCalls++;return saleReadCustomer();}
+   if(++listCalls===1)return saleReadCustomerList();return new Promise(resolve=>{finish=resolve;});
+  }},saleReadActor(),journal,options);
+  current.ui.mount();await settle();const oldSelect=current.node('[data-bsr-customer]').onchange,oldRestore=current.node('[data-bsr-basket-restore]').onclick;
+  current.node('[data-bsr-refresh]').onclick();oldSelect({target:{value:selected}});await settle();
+  const before=cardCalls;assert.equal(before,selected?1:0);assert.match(current.root.innerHTML,/data-bsr-basket-restore disabled/);
+  await oldRestore();assert.equal(cardCalls,before);assert.doesNotMatch(current.root.innerHTML,/data-bsr-basket-quantity=/);assert.deepEqual([...disk.values.entries()],saved);assert.equal(disk.writes.length,writes);
+  finish(saleReadCustomerList([]));await settle();await current.node('[data-bsr-basket-restore]').onclick();
+  assert.equal(cardCalls,before+1);assert.match(current.root.innerHTML,/<option value="155" selected>/);assert.match(current.root.innerHTML,/data-bsr-basket-quantity="12:81:9:1"/);assert.equal(disk.writes.length,writes);current.ui.dispose();
+ }
+});
+test('a customer refresh invalidates a delayed saved-basket customer response without changing the journal or saved basket',async()=>{
+ const disk=deviceBasketStorage(),journal={read:()=>null,done(){assert.fail('No journal write');}},options={basketStorage:disk.storage,basketLocks:disk.locks};
+ const initial=fixture(savedBasketReads(),saleReadActor(),journal,options);await fillSavedBasket(initial);await initial.node('[data-bsr-basket-save]').onclick();initial.ui.dispose();
+ const saved=[...disk.values.entries()],writes=disk.writes.length;let finish,selectionReads=0;
+ const current=fixture({...savedBasketReads(),customers:async path=>path.includes('/card')?new Promise(resolve=>{finish=resolve;}):saleReadCustomerList([]),businessSaleSelection:async()=>{selectionReads++;throw Error('Unexpected selection read');}},saleReadActor(),journal,options);
+ current.ui.mount();await settle();const restoring=current.node('[data-bsr-basket-restore]').onclick();await tick();assert.equal(typeof finish,'function');
+ current.node('[data-bsr-refresh]').onclick();await settle();finish(saleReadCustomer());await restoring;
+ assert.doesNotMatch(current.root.innerHTML,/<option value="155" selected>|data-bsr-basket-quantity=/);assert.equal(selectionReads,0);assert.equal(disk.writes.length,writes);assert.deepEqual([...disk.values.entries()],saved);current.ui.dispose();
+});
 test('changed source price, pending operation and another tab revoke restore without replacing saved basket or journal',async()=>{
  for(const change of ['price','pending','other-tab','dispose']){
   const disk=deviceBasketStorage(),d=fixture(savedBasketReads(),saleReadActor(),null,{basketStorage:disk.storage,basketLocks:disk.locks});await fillSavedBasket(d);await d.node('[data-bsr-basket-save]').onclick();const [key,raw]=[...disk.values][0];d.ui.dispose();let release;

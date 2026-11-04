@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — satış sepeti ve müşteri seçimi eşzamanlılığı
+
+Müşteri listesi beklerken saklı sepet açma engellenir; geç yanıt ve yenilemede müşteri/sepet farklı gösterilmez, mevcut journal korunur. 32/32 hedefli kaynak testi, uygulama derlemesi ve bağımsız inceleme geçti. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR; SQL, ticari kayıt ve yetki değişikliği yok.
+
 ## 4 Kasım 2026 — müşteri listesi seçim güvenliği
 
 Müşteri arama ve sayfa yüklenirken eski satırlar gizlenir; geç sonuçlar ve kapanmış ekranın eski düğmeleri yeni kart seçimi yapamaz. Seçili kart/döviz/geçmiş yenilemesi korunur. 48/48 hedefli kaynak testi ve bağımsız inceleme geçti. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR; bu kaynak teslimi veritabanı veya yetki değiştirmez.
