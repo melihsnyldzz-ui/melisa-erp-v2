@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — alış yanıtı ve tahsilat bekleyen kayıt güvenliği
+
+- `e4ba36dd`: alış yanıtında fiş kimliği/durumu ve taslak kaynak alanları uyuşmadan bekleyen journal kapatılmaz. 78 hedefli test ve bağımsız inceleme geçti.
+- `154f73c7`: genel tahsilatta eski sonucu belirsiz kaydın doğrula düğmesi POST/UUID/silme yapmaz; ilk kayıt, iptal ve seçili kaynak doğrulaması korunur. 139 hedefli test, bağımsız inceleme, build ve staged güvenlik taraması geçti.
+- Eski pending kaydın tam sunucu doğrulaması ve atomik sekmeler arası kapanışı henüz yok; kilitli kalır. İzole source kanıtı gerçek TEST/SQL/GUI/insan kabulü değildir; exact yeni CI bekliyor.
+
 ## 4 Kasım 2026 — satış stok gösterimi ve paket kaynağı
 
 - `f17cb341`: satış ürün listesi ve detayında karantina veya doğrulanmamış birim varsa stok kesin miktar olarak gösterilmez; doğrulanmış sıfır/negatif ve mevcut fiyat/izin korunur. 66 hedefli test, bağımsız inceleme, build ve staged güvenlik taraması geçti.
