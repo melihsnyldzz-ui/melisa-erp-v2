@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFile} from 'node:fs/promises';
-import {createBusinessSalesRead} from './workBusinessSalesRead.mjs';
+import {createBusinessSalesRead,businessSaleRateDisplay} from './workBusinessSalesRead.mjs';
 import {saleReadActor,saleReadCustomer,saleReadProduct,saleReadCustomerList,saleReadCatalog,saleReadSelection,saleNativeActor,saleNativeResult,saleNativeInvoice} from './workBusinessSalesRead.test-fixture.mjs';
 const tick=()=>new Promise(r=>setImmediate(r)),settle=async()=>{await tick();await tick();},event=()=>({preventDefault(){}});
 function dom(){let html='',nodes=new Map();const make=key=>{if(!nodes.has(key)){const node={isConnected:true,elements:{search:{value:''}},dataset:{},innerHTML:'',value:'',addEventListener(e,f){this['on'+e]=f;},querySelector:k=>make(key+k),querySelectorAll:()=>[]};nodes.set(key,node);}return nodes.get(key);};const root={isConnected:true,querySelector:make,querySelectorAll(selector){const field=selector.slice(1,-1),key=field.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase());return [...html.matchAll(new RegExp(field+'="([^"]*)"','g'))].map(m=>{const n=make(selector+m[1]);n.dataset[key]=m[1];return n;});}};Object.defineProperty(root,'innerHTML',{get:()=>html,set:v=>{html=v;for(const n of nodes.values())n.isConnected=false;nodes=new Map();}});return {root,node:make};}
@@ -94,6 +94,10 @@ function nativeFixture(preview){
  const product=saleReadProduct();product.stockQuantityExact='8.00000000';
  return fixture({api:async path=>path.includes('?')?saleReadCatalog([product]):saleReadCatalog(product,{detail:true}),businessSaleSelection:async q=>saleReadSelection(q,{product}),businessSalePreview:preview},saleNativeActor());
 }
+test('exchange-rate presentation preserves eight decimal digits without changing money formatting',()=>{
+ for(const [input,expected] of [['32.12345678','32,12345678'],['0.00000001','0,00000001'],['1.00000000','1,00000000'],['1234.50000000','1.234,50000000'],['0.00000000','0,00000000']])assert.equal(businessSaleRateDisplay(input),expected);
+ for(const invalid of [null,undefined,'','-1.00000000','1.1','1.000000001','01.00000000','1.00000000\n',1])assert.equal(businessSaleRateDisplay(invalid),'Bilinmiyor');
+});
 async function nativeBasket(d){
  d.ui.mount();await settle();await choose(d);await d.node('[data-bsr-check]').onclick();d.node('[data-bsr-quantity]').oninput({target:{value:'2'}});d.node('[data-bsr-add]').onclick();await d.node('[data-bsr-basket-check]').onclick();d.node('[data-bsr-native-date]').onchange({target:{value:'2026-10-28'}});
 }
@@ -102,6 +106,16 @@ test('normal business basket shows only verified native preview and keeps draft/
  assert.deepEqual(calls,[{customerId:'155',customerAccountId:'7',documentDate:'2026-10-28',currency:'USD',items:[{productId:'12',quoteId:'81',quantityExact3:'2.000'}]}]);
  assert.match(d.root.innerHTML,/Satış önizlemesi doğrulandı/);assert.match(d.root.innerHTML,/4,25.*USD|4,247/);assert.match(d.root.innerHTML,/data-bsr-native-save disabled/);assert.equal(d.node('[data-bsr-native-save]').onclick,undefined);assert.doesNotMatch(d.root.innerHTML,/data-sale-draft|data-sale-finalize|data-sale-cancel/);
  d.node('[data-bsr-native-date]').onchange({target:{value:'2026-10-29'}});assert.doesNotMatch(d.root.innerHTML,/Satış toplamı:/);d.ui.dispose();
+});
+test('verified sales preview shows the exact source exchange rate and monetary totals to two decimals',async()=>{
+ const d=nativeFixture(async selection=>{
+  const r=saleNativeResult(selection),rate='32.12345678';
+  r.context.rate.rateExact8=rate;r.preview.settlement.documentRateExact8=rate;r.preview.settlement.accountRateExact8=rate;
+  const scaled=(42470n*3212345678n+50000000n)/100000000n;
+  r.preview.amountTryExact4=(scaled/10000n)+'.'+(scaled%10000n).toString().padStart(4,'0');return r;
+ });
+ await nativeBasket(d);await d.node('[data-bsr-native-preview]').onclick();
+ assert.match(d.root.innerHTML,/Kur: 32,12345678/);assert.match(d.root.innerHTML,/Satış toplamı: <b>4,25 USD/);assert.match(d.root.innerHTML,/TL karşılığı: 136,43 TRY/);assert.match(d.root.innerHTML,/data-bsr-native-save disabled/);d.ui.dispose();
 });
 test('native preview failures and a late response after date change never leave a verified amount or writable control',async()=>{
  let finish;const d=nativeFixture(s=>new Promise(r=>{finish=()=>r(saleNativeResult(s));}));await nativeBasket(d);const pending=d.node('[data-bsr-native-preview]').onclick();await tick();d.node('[data-bsr-native-date]').onchange({target:{value:'2026-10-29'}});finish();await pending;assert.doesNotMatch(d.root.innerHTML,/Satış toplamı:|Satış önizlemesi doğrulandı/);assert.match(d.root.innerHTML,/data-bsr-native-save disabled/);d.ui.dispose();

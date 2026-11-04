@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — satış önizlemesinde döviz kuru hassasiyeti
+
+Satış önizlemesi doğrulanmış döviz kurunun sekiz ondalığını Türkçe gösterir; fiyat ve toplamlar iki ondalık kalır. 29/29 hedefli kaynak testi, uygulama derlemesi ve bağımsız inceleme geçti. Hesaplama, roller, limitler ve finansal kayıtlar değişmedi. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR; yeni commit için GitHub CI ayrıca doğrulanır.
+
 ## 4 Kasım 2026 — mevcut TEST sahibi için salt okunur durum kanalı
 
 Mevcut P7c6 owner kaynağı, yalnız kendi doğrulanmış API/WEB çocuklarıyla mevcut yerel peer kanalında status isteğine yanıt verecek şekilde hazırlandı; retire/recover/exit işlemleri reddedilir. Hatalı istek veya kayıp ACK sonrasında yalnız doğrulanmış taze nonce ile yeni durum isteği kabul edilir, eski istek tekrarlanmaz. 20/20 hedefli Windows testi ve bağımsız inceleme geçti; gerçek geçici named-pipe testi vardır, ERP health/listener kısmı fixture kapsamındadır. Uygulama derlemesi geçti. Kanal kurulmadı; gerçek owner dispatch, BEGIN issuer, kalıcı unknown kaydı, SQL uygulama ve insan kabulü BEKLİYOR.
