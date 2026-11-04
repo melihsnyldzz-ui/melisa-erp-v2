@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — satış stok gösterimi ve paket kaynağı
+
+- `f17cb341`: satış ürün listesi ve detayında karantina veya doğrulanmamış birim varsa stok kesin miktar olarak gösterilmez; doğrulanmış sıfır/negatif ve mevcut fiyat/izin korunur. 66 hedefli test, bağımsız inceleme, build ve staged güvenlik taraması geçti.
+- `780133b9`: f17 için API20/WEB59 kaynak bağı ve eski pinler korundu; I/O öncesi OUTPUT_PARENT_UNVERIFIED devam eder. 145 hedefli test iç içe tekrar içerir; gerçek Git/P7 closure salt okunur doğrulandı. Filtreye rağmen bir sentetik yardımcı test geçici kendi fixture dosyalarını oluşturup temizledi; retli hardlink testi çalıştırılmadı.
+- 5244 satış profili en fazla 2 farklı satır, satır başı 5 tam adet ve hem belge dövizinde hem TRY karşılığında 500 sınırıyla çalışacak şekilde tasarlanmış; bunun genişletilmesi kullanıcı kararı ve native profil/SQL/izole kanıt gerektirir. Satış hâlen kapalı; kurulum/GUI/insan kabulü yok.
+
 ## 4 Kasım 2026 — güncel pasif paket kaynak kapsamı
 
 - `5460e6b3`: `d670318b` uygulama kaynakları için 20 API overlay ve 59 web kaynak bağı, önceki sürüm sözleşmeleri korunarak paket hazırlayıcısına eklendi. Üç değişen API ve katalog bağımlılıkları eksik paketlenmez.
