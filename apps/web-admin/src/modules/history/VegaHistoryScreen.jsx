@@ -1,9 +1,8 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { get } from '../../services/apiClient.js';
-import { VEGA_HISTORY_SOURCES, createVegaHistoryApi, historyAllowedSources, historyDateTime, historyError, historyField, historyFlag, historyInitialSelection, historyPageRange, historyPartyName, historyRelationAction, historyRelationFor, historyRelationLabel, historyValue, readVegaHistoryResponse } from './vegaHistoryView.js';
+import { VEGA_HISTORY_SOURCES, VEGA_HISTORY_DEFAULT_SCOPES, createVegaHistoryApi, historyAllowedSources, historyDateTime, historyError, historyField, historyFlag, historyInitialSelection, historyPageRange, historyPartyName, historyPeriodLabel, historyPeriodRange, historyReviewedScopes, historyRelationAction, historyRelationFor, historyRelationLabel, historyValue, readVegaHistoryResponse } from './vegaHistoryView.js';
 import './vega-history.css';
 
-const defaultApi = createVegaHistoryApi(get);
 const PAGE_SIZE = 100;
 const companyOrDefault = value => VEGA_HISTORY_SOURCES.some(source => source.company === value) ? value : 'F0102';
 
@@ -15,7 +14,7 @@ function useHistoryRequest(api, request) {
     if (!request) { setState({ key, data: null, loading: false, error: '' }); return undefined; }
     setState({ key, data: null, loading: true, error: '' });
     Promise.resolve().then(() => api[request.method](request.params))
-      .then(response => readVegaHistoryResponse(response, { ...request.params, kind: request.kind, partySourceId: request.partySourceId || request.params.partySourceId }))
+      .then(response => readVegaHistoryResponse(response, { ...request.params, approvedSource: request.approvedSource, kind: request.kind, partySourceId: request.partySourceId || request.params.partySourceId }))
       .then(data => { if (!cancelled) setState({ key, data, loading: false, error: '' }); })
       .catch(error => { if (!cancelled) setState({ key, data: null, loading: false, error: historyError(error) }); });
     return () => { cancelled = true; };
@@ -76,11 +75,11 @@ export function HistoryRelationButton({ relation, onActivate, label }) {
     : <small>{historyRelationLabel(relation)}</small>;
 }
 
-function DocumentDetail({ state, onClose, onPage, relationAction }) {
+function DocumentDetail({ state, onClose, onPage, relationAction, periodLabel }) {
   const focusRef = useRef(null);
   useEffect(() => { focusRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' }); focusRef.current?.focus({ preventScroll: true }); }, [state.key]);
   return <section ref={focusRef} tabIndex={-1} className="vega-history-panel vega-history-document" aria-label="Vega belge ayrıntısı">
-    <div className="vega-history-panel-heading"><h3>Vega 2026 belge ayrıntısı</h3><button type="button" onClick={onClose}>Ayrıntıyı kapat</button></div>
+    <div className="vega-history-panel-heading"><h3>Vega {periodLabel} belge ayrıntısı</h3><button type="button" onClick={onClose}>Ayrıntıyı kapat</button></div>
     <LoadState state={state} empty="Belge ayrıntısı yüklenemedi.">
       {state.data && <>
         <div className="vega-history-document-summary">
@@ -128,15 +127,23 @@ function ArchiveProductDetail({ record, onClose }) {
   </section>;
 }
 
-export function VegaHistoryScreen({ api = defaultApi, permissions = [], initialCompany, initialPartySourceId }) {
+export function VegaHistoryScreen({ api: suppliedApi, permissions = [], initialCompany, initialPartySourceId, initialSourceDatabase, initialPeriod, approvedSources = VEGA_HISTORY_DEFAULT_SCOPES }) {
   const fieldId = useId();
-  const allowedSources = historyAllowedSources(permissions);
+  const scopes = useMemo(() => historyReviewedScopes(approvedSources), [approvedSources]);
+  const api = useMemo(() => suppliedApi || createVegaHistoryApi(get, { approvedSources: scopes }), [suppliedApi, scopes]);
+  const initialScopeKey = initialSourceDatabase !== undefined || initialPeriod !== undefined
+    ? `${initialSourceDatabase}/${initialPeriod}` : `${scopes[0].database}/${scopes[0].period}`;
+  const initialScope = scopes.find(source => `${source.database}/${source.period}` === initialScopeKey);
+  const [scopeKey, setScopeKey] = useState(initialScopeKey);
+  const selectedScope = scopes.find(source => `${source.database}/${source.period}` === scopeKey);
+  const allowedSources = historyAllowedSources(permissions).filter(source => selectedScope?.companies.includes(source.company));
+  const periodLabel = selectedScope ? historyPeriodLabel(selectedScope) : 'Seçili dönem';
   const permissionKey = [...(Array.isArray(permissions) ? permissions : [])].sort().join('|');
-  const [company, setCompany] = useState(() => historyInitialSelection(permissions, initialCompany, initialPartySourceId).company);
+  const [company, setCompany] = useState(() => historyInitialSelection(permissions, initialCompany, initialPartySourceId, initialScope).company);
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [partyPage, setPartyPage] = useState(1);
-  const [partySourceId, setPartySourceId] = useState(() => historyInitialSelection(permissions, initialCompany, initialPartySourceId).partySourceId);
+  const [partySourceId, setPartySourceId] = useState(() => historyInitialSelection(permissions, initialCompany, initialPartySourceId, initialScope).partySourceId);
   const [chosenParty, setChosenParty] = useState(null);
   const [view, setView] = useState('documents');
   const [documentSearchInput, setDocumentSearchInput] = useState('');
@@ -148,7 +155,7 @@ export function VegaHistoryScreen({ api = defaultApi, permissions = [], initialC
   const [linePage, setLinePage] = useState(1);
   const [revision, setRevision] = useState(0);
   const [productSelection, setProductSelection] = useState(null);
-  const contextKey = JSON.stringify([company, partySourceId, view, documentKey, linePage, ledgerPage, ledgerFamily, documentPage, revision, permissionKey]);
+  const contextKey = JSON.stringify([selectedScope, company, partySourceId, view, documentKey, linePage, ledgerPage, ledgerFamily, documentPage, revision, permissionKey]);
   const contextRef = useRef(contextKey);
   contextRef.current = contextKey;
 
@@ -159,16 +166,25 @@ export function VegaHistoryScreen({ api = defaultApi, permissions = [], initialC
   function selectCompany(next, id = '') {
     setCompany(companyOrDefault(next)); setSearch(''); setSearchInput(''); setPartyPage(1); clearParty(id);
   }
+  function selectPeriod(nextKey) {
+    const next = scopes.find(source => `${source.database}/${source.period}` === nextKey);
+    if (!next) return;
+    const permittedCompanies = historyAllowedSources(permissions).filter(source => next.companies.includes(source.company));
+    setScopeKey(nextKey);
+    selectCompany(permittedCompanies.find(source => source.company === company)?.company || permittedCompanies[0]?.company || '');
+  }
   useEffect(() => {
-    const next = historyInitialSelection(permissions, initialCompany, initialPartySourceId);
+    const next = historyInitialSelection(permissions, initialCompany, initialPartySourceId, initialScope);
+    setScopeKey(initialScopeKey);
     setCompany(next.company); setSearch(''); setSearchInput(''); setPartyPage(1); clearParty(next.partySourceId);
-  }, [initialCompany, initialPartySourceId, permissionKey]);
+  }, [initialCompany, initialPartySourceId, initialScopeKey, initialScope, permissionKey]);
   const permitted = allowedSources.some(source => source.company === company);
 
-  const partyRequest = useMemo(() => permitted ? { method: 'parties', kind: 'account', params: { company, search, page: partyPage, limit: PAGE_SIZE }, revision } : null, [permitted, company, search, partyPage, revision]);
-  const documentRequest = useMemo(() => permitted && view === 'documents' ? { method: 'documents', kind: 'document', params: { company, partySourceId, search: documentSearch, page: documentPage, limit: PAGE_SIZE }, revision } : null, [permitted, company, partySourceId, view, documentSearch, documentPage, revision]);
-  const ledgerRequest = useMemo(() => permitted && partySourceId && view === 'ledger' ? { method: 'ledger', kind: 'account_movement', params: { company, partySourceId, family: ledgerFamily, page: ledgerPage, limit: PAGE_SIZE }, revision } : null, [permitted, company, partySourceId, view, ledgerFamily, ledgerPage, revision]);
-  const detailRequest = useMemo(() => permitted && documentKey ? { method: 'detail', kind: 'line', partySourceId, params: { company, sourceKey: documentKey, page: linePage, limit: PAGE_SIZE }, revision } : null, [permitted, company, partySourceId, documentKey, linePage, revision]);
+  const scopeParams = useMemo(() => selectedScope ? { sourceDatabase: selectedScope.database, period: selectedScope.period } : {}, [selectedScope]);
+  const partyRequest = useMemo(() => permitted ? { method: 'parties', kind: 'account', approvedSource: selectedScope, params: { ...scopeParams, company, search, page: partyPage, limit: PAGE_SIZE }, revision } : null, [permitted, selectedScope, scopeParams, company, search, partyPage, revision]);
+  const documentRequest = useMemo(() => permitted && view === 'documents' ? { method: 'documents', kind: 'document', approvedSource: selectedScope, params: { ...scopeParams, company, partySourceId, search: documentSearch, page: documentPage, limit: PAGE_SIZE }, revision } : null, [permitted, selectedScope, scopeParams, company, partySourceId, view, documentSearch, documentPage, revision]);
+  const ledgerRequest = useMemo(() => permitted && partySourceId && view === 'ledger' ? { method: 'ledger', kind: 'account_movement', approvedSource: selectedScope, params: { ...scopeParams, company, partySourceId, family: ledgerFamily, page: ledgerPage, limit: PAGE_SIZE }, revision } : null, [permitted, selectedScope, scopeParams, company, partySourceId, view, ledgerFamily, ledgerPage, revision]);
+  const detailRequest = useMemo(() => permitted && documentKey ? { method: 'detail', kind: 'line', partySourceId, approvedSource: selectedScope, params: { ...scopeParams, company, sourceKey: documentKey, page: linePage, limit: PAGE_SIZE }, revision } : null, [permitted, selectedScope, scopeParams, company, partySourceId, documentKey, linePage, revision]);
   const parties = useHistoryRequest(api, partyRequest);
   const documents = useHistoryRequest(api, documentRequest);
   const ledger = useHistoryRequest(api, ledgerRequest);
@@ -189,17 +205,18 @@ export function VegaHistoryScreen({ api = defaultApi, permissions = [], initialC
     });
   }
 
-  if (!permitted) return <main className="work-area vega-history-screen"><section className="vega-history-panel"><span className="vega-history-source-badge">VEGA 2026 · GEÇMİŞ</span><h2>2026 Cari ve Belge Geçmişi</h2><p className="vega-history-state" role={allowedSources.length ? 'status' : 'alert'}>{allowedSources.length ? 'Yetkili Vega kaynağı seçiliyor…' : 'Vega 2026 geçmişi için yetkiniz yok. İlgili şirketin cari, belge, finans ve ana sayfa görüntüleme izinleri birlikte gereklidir.'}</p></section></main>;
+  if (!permitted) return <main className="work-area vega-history-screen"><section className="vega-history-panel"><span className="vega-history-source-badge">VEGA · GEÇMİŞ</span><h2>Cari ve Belge Geçmişi</h2><p className="vega-history-state" role={allowedSources.length ? 'status' : 'alert'}>{!selectedScope ? 'Seçilen arşiv dönemi doğrulanmış kapsamda değil.' : allowedSources.length ? 'Yetkili Vega kaynağı seçiliyor…' : 'Bu geçmiş kapsamı için yetkiniz yok. İlgili şirketin cari, belge, finans ve ana sayfa görüntüleme izinleri birlikte gereklidir.'}</p></section></main>;
 
   return <main className="work-area vega-history-screen">
     <header className="vega-history-header">
-      <div><span className="vega-history-source-badge">VEGA 2026 · GEÇMİŞ</span><h2>2026 Cari ve Belge Geçmişi</h2>
+      <div><span className="vega-history-source-badge">VEGA {periodLabel} · GEÇMİŞ</span><h2>{periodLabel} Cari ve Belge Geçmişi</h2>
         <p>Geçmiş kayıtları Melisa stok, cari veya kasasında yeni hareket oluşturmaz.</p></div>
       <button type="button" onClick={() => setRevision(value => value + 1)}>Listeleri yenile</button>
     </header>
     <div className="vega-history-toolbar">
+      {scopes.length > 1 && <label>Arşiv dönemi<select value={scopeKey} onChange={event => selectPeriod(event.target.value)}>{scopes.filter(source => historyAllowedSources(permissions).some(company => source.companies.includes(company.company))).map(source => <option key={`${source.database}/${source.period}`} value={`${source.database}/${source.period}`}>{historyPeriodLabel(source)} ({source.database} / {source.period})</option>)}</select></label>}
       <label>Vega kaynağı<select value={company} onChange={event => selectCompany(event.target.value)}>{allowedSources.map(source => <option key={source.company} value={source.company}>{source.label} ({source.company})</option>)}</select></label>
-      <p><strong>{selectedSource.label} · {company} / D0007</strong><span>Belge ve hareket dönemi: 01.01.2026–31.12.2026</span><span>{importedAt ? `Son aktarılan paket: ${importedAt} (Türkiye)` : 'Aktarım zamanı bilinmiyor'}{capturedAt ? ` · Kaynak okuma: ${capturedAt}` : ''}</span></p>
+      <p><strong>{selectedSource.label} · {selectedScope.database} / {company} / {selectedScope.period}</strong><span>Belge ve hareket dönemi: {historyPeriodRange(selectedScope)}</span><span>{importedAt ? `Son aktarılan paket: ${importedAt} (Türkiye)` : 'Bu dönemin aktarım zamanı bilinmiyor'}{capturedAt ? ` · Kaynak okuma: ${capturedAt}` : ''}</span></p>
     </div>
     <div className="vega-history-layout">
       <aside className="vega-history-panel vega-history-parties" aria-label="Vega carileri">
@@ -223,32 +240,32 @@ export function VegaHistoryScreen({ api = defaultApi, permissions = [], initialC
       <div className="vega-history-content">
         <>
           <section className="vega-history-panel">
-            <div className="vega-history-panel-heading"><div><span className="vega-history-eyebrow">{selectedSource.label}{partySourceId ? ` · Vega cari #${partySourceId}` : ` · ${company}`}</span><h3>{partySourceId ? (selectedParty ? historyPartyName(selectedParty) : `Vega cari #${partySourceId}`) : 'Tüm 2026 belgeleri'}</h3></div><span className="vega-history-source-badge">Geçmiş kayıt</span></div>
+            <div className="vega-history-panel-heading"><div><span className="vega-history-eyebrow">{selectedSource.label}{partySourceId ? ` · Vega cari #${partySourceId}` : ` · ${company}`}</span><h3>{partySourceId ? (selectedParty ? historyPartyName(selectedParty) : `Vega cari #${partySourceId}`) : `Tüm ${periodLabel} belgeleri`}</h3></div><span className="vega-history-source-badge">Geçmiş kayıt</span></div>
             {selectedParty && <SourceFields record={selectedParty} title="Carinin özgün kaynak alanları" />}
             <p className="vega-history-caption">{partySourceId ? 'Arşivdeki bakiye, aktarılan paketin özgün alanıdır; bugünkü Melisa bakiyesi veya burada hesaplanmış dönem sonu değildir.' : 'Cari bağlantısı olmayan devir ve sayım belgeleri de bu listede yer alır. Ekstre için bir cari seçin.'}</p>
             <div className="vega-history-tabs" role="tablist" aria-label="Cari geçmişi">
-              <button type="button" role="tab" aria-selected={view === 'documents'} onClick={() => setView('documents')}>2026 Belgeleri</button>
-              <button type="button" role="tab" aria-selected={view === 'ledger'} disabled={!partySourceId} title={!partySourceId ? 'Ekstre için cari seçin.' : undefined} onClick={() => { setView('ledger'); setDocumentKey(''); }}>2026 Ekstresi</button>
+              <button type="button" role="tab" aria-selected={view === 'documents'} onClick={() => setView('documents')}>{periodLabel} Belgeleri</button>
+              <button type="button" role="tab" aria-selected={view === 'ledger'} disabled={!partySourceId} title={!partySourceId ? 'Ekstre için cari seçin.' : undefined} onClick={() => { setView('ledger'); setDocumentKey(''); }}>{periodLabel} Ekstresi</button>
             </div>
-            {view === 'documents' ? <div role="tabpanel" aria-label="2026 Belgeleri">
+            {view === 'documents' ? <div role="tabpanel" aria-label={`${periodLabel} Belgeleri`}>
               <form className="vega-history-search vega-history-document-search" onSubmit={event => { event.preventDefault(); setDocumentSearch(documentSearchInput.trim()); setDocumentPage(1); setDocumentKey(''); }}>
                 <label className="vega-history-sr-only" htmlFor={`${fieldId}-document-search`}>Belge içinde ara</label><input id={`${fieldId}-document-search`} maxLength={200} value={documentSearchInput} onChange={event => setDocumentSearchInput(event.target.value)} placeholder="Belge no veya kaynak alanında ara" /><button type="submit">Ara</button>
               </form>
               <LoadState state={documents} empty="Belge listesi yükleniyor.">
-                {documents.data?.data.length ? <div className="vega-history-table-scroll"><table><caption>{partySourceId ? 'Seçilen carinin Vega 2026 belgeleri' : 'Seçilen şirketin tüm Vega 2026 belgeleri'}</caption>
+                {documents.data?.data.length ? <div className="vega-history-table-scroll"><table><caption>{partySourceId ? `Seçilen carinin Vega ${periodLabel} belgeleri` : `Seçilen şirketin tüm Vega ${periodLabel} belgeleri`}</caption>
                   <thead><tr><th>Belge no</th><th>Tarih</th><th>Belge türü (kaynak)</th><th>Cari kaynak ID</th><th>Durum</th><th>Tutar (kaynak)</th><th>Döviz</th><th>Kaynak ID</th></tr></thead>
                   <tbody>{documents.data.data.map(record => <tr key={record.sourceKey} className={documentKey === record.sourceKey ? 'is-selected' : ''}>
                     <td><button type="button" className="vega-history-document-link" onClick={() => openDocument(record)}>{historyValue(historyField(record, 'BELGENO')) === 'Bilinmiyor' ? `Belge #${record.sourceId}` : historyValue(historyField(record, 'BELGENO'))}</button></td>
                     <td>{historyValue(record.date)}</td><td>{historyValue(record.documentFamily)}</td><td>{record.partySourceId || 'Cari bağlantısı yok'}</td><td><SourceFlags record={record} /></td><td className="vega-history-number">{historyValue(historyField(record, 'TUTAR'))}</td><td>{historyValue(record.currency)}</td><td>{record.sourceId}</td>
                   </tr>)}</tbody>
-                </table></div> : <p className="vega-history-state">{partySourceId ? 'Bu cariye bağlı 2026 belgesi bulunamadı.' : 'Seçilen kaynak ve arama için 2026 belgesi bulunamadı.'} Eksik veya henüz aktarılmamış geçmiş için sıfır tutar varsayılmaz.</p>}
+                </table></div> : <p className="vega-history-state">{partySourceId ? `Bu cariye bağlı ${periodLabel} belgesi bulunamadı.` : `Seçilen kaynak ve arama için ${periodLabel} belgesi bulunamadı.`} Eksik veya henüz aktarılmamış geçmiş için sıfır tutar varsayılmaz.</p>}
                 <PageControls meta={documents.data?.meta} onPage={page => { setDocumentPage(page); setDocumentKey(''); }} label="Belgeler" />
               </LoadState>
-            </div> : <div role="tabpanel" aria-label="2026 Ekstresi">
+            </div> : <div role="tabpanel" aria-label={`${periodLabel} Ekstresi`}>
               <label className="vega-history-ledger-source">Ekstre kaynağı<select value={ledgerFamily} onChange={event => { setLedgerFamily(event.target.value); setLedgerPage(1); }}><option value="CARIHAREKETLERI">Cari hareketler</option><option value="CARIGENELHAREKET">Genel hareket kayıtları</option><option value="KASA">Kasa kayıtları</option></select></label>
               <p className="vega-history-caption">Kaynak görünümleri ayrı tutulur, birlikte toplanmaz. Tutarlar özgün döviz ve ondalık değerleriyle gösterilir; bu sayfadan dönem toplamı hesaplanmaz.</p>
               <LoadState state={ledger} empty="Ekstre yükleniyor.">
-                {ledger.data?.data.length ? <div className="vega-history-table-scroll"><table><caption>Seçilen carinin Vega 2026 kaynak hareketleri</caption>
+                {ledger.data?.data.length ? <div className="vega-history-table-scroll"><table><caption>Seçilen carinin Vega {periodLabel} kaynak hareketleri</caption>
                   <thead><tr><th>Tarih / belge</th><th>Açıklama (kaynak)</th><th>{ledgerFamily === 'KASA' ? 'Gelir (kaynak)' : 'Borç'}</th><th>{ledgerFamily === 'KASA' ? 'Gider (kaynak)' : 'Alacak'}</th><th>Arşivdeki bakiye</th><th>Döviz</th><th>Durum / ayrıntı</th></tr></thead>
                   <tbody>{ledger.data.data.map(record => <tr key={record.sourceKey}>
                     <td>{historyValue(record.date)}<small>{historyValue(historyField(record, 'BELGENO', 'EVRAKNO', 'BELGEIND', 'BELGELINK'))}</small>
@@ -257,12 +274,12 @@ export function VegaHistoryScreen({ api = defaultApi, permissions = [], initialC
                     <td className="vega-history-number">{historyValue(historyField(record, ledgerFamily === 'KASA' ? 'GELIR' : 'BORC'))}</td><td className="vega-history-number">{historyValue(historyField(record, ledgerFamily === 'KASA' ? 'GIDER' : 'ALACAK'))}</td><td className="vega-history-number">{historyValue(historyField(record, 'BAKIYE'))}</td><td>{historyValue(record.currency)}</td>
                     <td><SourceFlags record={record} /><SourceFields record={record} title="Hareket alanları" /></td>
                   </tr>)}</tbody>
-                </table></div> : <p className="vega-history-state">Bu cariye bağlı 2026 cari hareketi bulunamadı. Arşivdeki bakiye sıfır olarak kabul edilmez.</p>}
+                </table></div> : <p className="vega-history-state">Bu cariye bağlı {periodLabel} cari hareketi bulunamadı. Arşivdeki bakiye sıfır olarak kabul edilmez.</p>}
                 <PageControls meta={ledger.data?.meta} onPage={setLedgerPage} label="Ekstre" />
               </LoadState>
             </div>}
           </section>
-          {documentKey && <DocumentDetail state={detail} onClose={() => { setDocumentKey(''); setProductSelection(null); }} onPage={setLinePage} relationAction={relationAction} />}
+          {documentKey && <DocumentDetail state={detail} periodLabel={periodLabel} onClose={() => { setDocumentKey(''); setProductSelection(null); }} onPage={setLinePage} relationAction={relationAction} />}
           {productSelection?.contextKey === contextKey && <ArchiveProductDetail record={productSelection.record} onClose={() => setProductSelection(null)} />}
         </>
       </div>

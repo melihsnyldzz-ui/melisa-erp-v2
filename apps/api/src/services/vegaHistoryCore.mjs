@@ -162,20 +162,44 @@ export function planHistoryImport(snapshot, existingRecords = [], { approvedSour
 export function assertHistoryOperationAllowed(operation) {
   if (!['read', 'list', 'detail', 'ledger'].includes(operation)) throw historyError('HISTORY_READ_ONLY', 'Vega geçmişi yeni Melisa belgesi gibi kesinleştirilemez veya yeniden gönderilemez.', 409);
 }
-export function parseHistoryQuery(query = {}, { requireParty = false, requireSourceKey = false } = {}) {
-  if (!HISTORY_SOURCE.companies.includes(query.company)) throw historyError('HISTORY_INVALID_QUERY', 'F0102 veya F0103 şirketi seçilmeli.');
+// This list is supplied by the reviewed manifest at service construction, never
+// by an HTTP query. A caller may select a registered scope, not invent one.
+export function historySourceScopes(sources = [HISTORY_SOURCE]) {
+  if (!Array.isArray(sources) || !sources.length) reject('Approved archive sources are required.', 'HISTORY_SCOPE_MISMATCH');
+  const keys = new Set();
+  return Object.freeze(sources.map(source => {
+    validateHistorySource(source);
+    const key = `${source.database}/${source.period}`;
+    if (keys.has(key)) reject('Ambiguous archive source scope.', 'HISTORY_SCOPE_MISMATCH');
+    keys.add(key);
+    return Object.freeze({ ...source, companies: Object.freeze([...source.companies]) });
+  }));
+}
+export function resolveHistorySource(query = {}, { approvedSources = [HISTORY_SOURCE] } = {}) {
+  const sources = historySourceScopes(approvedSources);
+  const explicit = query.sourceDatabase !== undefined || query.period !== undefined;
+  const database = explicit ? query.sourceDatabase : HISTORY_SOURCE.database;
+  const period = explicit ? query.period : HISTORY_SOURCE.period;
+  if (['database', 'table', 'dateFrom', 'dateToExclusive', 'approvedSource', 'approvedSources'].some(key => query[key] !== undefined)) throw historyError('HISTORY_INVALID_QUERY', 'Arşiv kapsamı sorguyla değiştirilemez.');
+  const source = sources.find(item => item.database === database && item.period === period);
+  if (!source || !source.companies.includes(query.company)) throw historyError('HISTORY_INVALID_QUERY', 'Doğrulanmış arşiv kaynağı, şirketi ve dönemi seçilmeli.');
+  return source;
+}
+export function parseHistoryQuery(query = {}, { requireParty = false, requireSourceKey = false, approvedSources = [HISTORY_SOURCE] } = {}) {
+  const source = resolveHistorySource(query, { approvedSources });
   const integer = (value, fallback, max) => { if (value === undefined || value === '') return fallback; if (!['string', 'number'].includes(typeof value) || !/^\d+$/.test(String(value)) || !Number.isSafeInteger(Number(value)) || Number(value) < 1 || Number(value) > max) throw historyError('HISTORY_INVALID_QUERY', 'Geçersiz sayfa veya sayfa boyutu.'); return Number(value); };
   const text = (value, max) => { if (value === undefined || value === '') return null; if (typeof value !== 'string' || value.length > max || /[\u0000-\u001f]/.test(value)) throw historyError('HISTORY_INVALID_QUERY', 'Geçersiz arama parametresi.'); return value.trim() || null; };
-  const result = { company: query.company, page: integer(query.page, 1, 1000000), limit: integer(query.limit, 100, 500), search: text(query.search, 200), family: text(query.family, 128), partySourceId: text(query.partySourceId, 128), sourceKey: text(query.sourceKey, 450) };
+  const result = { source, company: query.company, page: integer(query.page, 1, 1000000), limit: integer(query.limit, 100, 500), search: text(query.search, 200), family: text(query.family, 128), partySourceId: text(query.partySourceId, 128), sourceKey: text(query.sourceKey, 450) };
   if (requireParty && !result.partySourceId) throw historyError('HISTORY_INVALID_QUERY', 'Kaynak cari kimliği gerekli.');
-  if (requireSourceKey && (!result.sourceKey || !result.sourceKey.startsWith(`VEGA2026/${result.company}/D0007/`))) throw historyError('HISTORY_INVALID_QUERY', 'Aynı şirket kapsamındaki kaynak belge kimliği gerekli.');
+  if (requireSourceKey && (!result.sourceKey || !result.sourceKey.startsWith(`${source.database}/${result.company}/${source.period}/`))) throw historyError('HISTORY_INVALID_QUERY', 'Aynı kaynak, şirket ve dönemdeki belge kimliği gerekli.');
   return result;
 }
 export function historyPermissions(company) {
   if (!HISTORY_SOURCE.companies.includes(company)) throw historyError('HISTORY_INVALID_QUERY', 'Geçersiz kaynak şirketi.');
   return ['dashboard.view', 'finance.view', ...(company === 'F0102' ? ['customer.view', 'sales.view'] : ['supplier.view', 'purchase.view'])];
 }
-export function parseHistoryAccountLinkQuery(query = {}) {
+export function parseHistoryAccountLinkQuery(query = {}, { approvedSources = [HISTORY_SOURCE] } = {}) {
   if (!['customer', 'supplier'].includes(query.entityType) || !['string', 'number'].includes(typeof query.entityId) || !/^[1-9]\d*$/.test(String(query.entityId)) || !Number.isSafeInteger(Number(query.entityId))) throw historyError('HISTORY_INVALID_QUERY', 'Geçerli cari türü ve pozitif kesin cari kimliği gerekli.');
-  return { entityType: query.entityType, entityId: Number(query.entityId), company: query.entityType === 'customer' ? 'F0102' : 'F0103' };
+  const company = query.entityType === 'customer' ? 'F0102' : 'F0103';
+  return { entityType: query.entityType, entityId: Number(query.entityId), company, source: resolveHistorySource({ ...query, company }, { approvedSources }) };
 }
