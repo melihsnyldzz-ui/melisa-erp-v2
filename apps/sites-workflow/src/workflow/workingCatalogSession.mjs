@@ -69,7 +69,7 @@ export function createWorkingCatalogSession({location,apiBase,storage,fetchImpl=
   const cleanReadTarget=method==='GET'&&isCleanCatalogLocation(location)&&resolvedApiBase===resolveTestApiBase({location,apiBase:'http://127.0.0.1:4194'});
   const cleanContextRead=cleanReadTarget&&['/api/work-sales/context','/api/work-receiving/context','/api/finance/cash-register?businessDate=2026-10-22','/api/work-supplier-payments/context'].includes(path);
   const cleanCollectionContextRead=cleanReadTarget&&/^\/api\/work-collections\/context\?invoiceId=[1-9]\d*$/.test(path);
-  const cleanInvoiceListRead=cleanReadTarget&&path==='/api/work-sales/invoices';
+  const cleanInvoiceListRead=cleanReadTarget&&(path==='/api/work-sales/invoices'||/^\/api\/work-sales\/invoices\?page=(?:[1-9]\d{0,3}|10000)&limit=25(?![\s\S])/.test(path));
   const deadline=workMutation&&method==='POST'?60000:cartonOrigin&&method==='GET'?30000:historicalInvoiceRead||cleanInvoiceListRead||cleanCollectionContextRead?45000:cleanContextRead?30000:timeoutMs;
   const controller=new AbortController(),version=generation,requestToken=token;controllers.add(controller);const timer=setTimeout(()=>controller.abort(),deadline);
   try{

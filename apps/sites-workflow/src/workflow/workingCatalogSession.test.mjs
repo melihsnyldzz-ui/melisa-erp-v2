@@ -144,14 +144,14 @@ test('clean finance reads retain their sealed response until a finite deadline w
    calls.push({url,options});return new Promise((_resolve,reject)=>options.signal.addEventListener('abort',()=>reject(Error('fixture abort')),{once:true}));
   }});
   await session.start();
-  for(const [method,path,budget]of [['cash','/api/finance/cash-register?businessDate=2026-10-22',30000],['work','/api/work-sales/invoices',45000],['work','/api/work-collections/context?invoiceId=1',45000],['supplierPayments','/api/work-supplier-payments/context',30000]]){
+  for(const [method,path,budget]of [['cash','/api/finance/cash-register?businessDate=2026-10-22',30000],['work','/api/work-sales/invoices',45000],['work','/api/work-sales/invoices?page=2&limit=25',45000],['work','/api/work-sales/invoices?page=10000&limit=25',45000],['work','/api/work-collections/context?invoiceId=1',45000],['supplierPayments','/api/work-supplier-payments/context',30000]]){
    const pending=session[method](path),rejected=assert.rejects(pending,e=>e.status===503),count=calls.length;
    t.mock.timers.tick(15000);assert.equal(calls.at(-1).options.signal.aborted,false,path);
    t.mock.timers.tick(budget-15001);assert.equal(calls.at(-1).options.signal.aborted,false,path);
    t.mock.timers.tick(1);await rejected;assert.equal(calls.length,count);assert.equal(calls.at(-1).options.method,'GET');assert.equal(calls.at(-1).options.body,undefined);
    assert.equal(store.getItem(workingCatalogTokenKey),'accounting-read-fixture');
   }
-  const other=session.work('/api/work-sales/invoices?limit=25'),otherRejected=assert.rejects(other,e=>e.status===503);t.mock.timers.tick(15000);await otherRejected;
+  for(const path of ['/api/work-sales/invoices?limit=25','/api/work-sales/invoices?limit=25&page=2','/api/work-sales/invoices?page=2&limit=24','/api/work-sales/invoices?page=2&limit=25&customerId=1&currency=TRY']){const other=session.work(path),otherRejected=assert.rejects(other,e=>e.status===503);t.mock.timers.tick(15000);await otherRejected;}
   const post=session.cash('/api/finance/cash-register/transfers',{method:'POST',body:{requestId:'fixture'}}),postRejected=assert.rejects(post,e=>e.status===503);
   t.mock.timers.tick(59999);assert.equal(calls.at(-1).options.signal.aborted,false);t.mock.timers.tick(1);await postRejected;
   session.dispose();
