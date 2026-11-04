@@ -12,13 +12,13 @@ missingDatabase.restore();
 mock.module('../config/database.js',{namedExports:{isCanonicalTest:()=>state.canonical,
   getExistingCanonicalReadonlyPool:async()=>{state.pool++;return state.fixturePool;}}});
 const makePool=()=>({get connected(){return state.connected;},request:()=>({query:async sql=>{
-    state.queries.push(sql);if(state.error) throw Error('private driver detail');if(state.afterQuery) state.afterQuery();return {recordsets:state.denied?[[{admission:'DENIED'}]]:[[{admission:'OK'}],state.rows]};
+    state.queries.push(sql);if(state.error) throw Error('private driver detail');if(state.afterQuery) state.afterQuery();return {recordsets:state.denied||state.productionAccess!==0?[[{admission:'DENIED'}]]:[[{admission:'OK'}],state.rows]};
   }})});
 const {readC06SaleReadonlyMetadata:read}=await import('./c06SaleReadonlyMetadata.mjs');
 const names=['usp_canonical_business_sale_resolve_v1','usp_canonical_business_sale_context_v1','usp_canonical_business_sale_begin_v1'];
 const row=name=>({objectName:name,definitionHash:'A'.repeat(64),usesAnsiNulls:true,usesQuotedIdentifier:1,
   executeAsPrincipalId:-2,isSchemaBound:false,usesNativeCompilation:0});
-beforeEach(()=>{state={canonical:true,pool:0,queries:[],connected:true,rows:names.map(row)};
+beforeEach(()=>{state={canonical:true,pool:0,queries:[],connected:true,productionAccess:0,rows:names.map(row)};
   state.fixturePool=makePool();
   env.port=4146;Object.assign(env.sql,{enabled:true,server:'127.0.0.1',port:1433,database:'MELISA_ERP_SIRKET_TEST_20260929_01',
     user:'melisa_sirket_test_20260929_01',readOnly:true,trustedConnection:false});});
@@ -36,6 +36,7 @@ test('fixed read returns only hash and options, with no assumed current expected
   assert.ok(q.indexOf("BEGIN SELECT N'DENIED'") < q.indexOf('sys.fn_my_permissions'));
   assert.ok(q.indexOf("BEGIN SELECT N'DENIED'") < q.indexOf('IS_SRVROLEMEMBER'));
   assert.ok(q.indexOf("BEGIN SELECT N'DENIED'") < q.indexOf('HAS_PERMS_BY_NAME'));
+  assert.ok(q.indexOf("BEGIN SELECT N'DENIED'") < q.indexOf("ISNULL(HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01'),-1)<>0"));
   assert.ok(q.indexOf('sys.fn_my_permissions') < q.lastIndexOf("BEGIN SELECT N'DENIED'"));
   assert.ok(q.lastIndexOf("BEGIN SELECT N'DENIED'") < q.indexOf('FROM sys.objects'));
   assert.deepEqual([...new Set([...q.matchAll(/sys\.[a-z_]+/gi)].map(m=>m[0].toLowerCase()))].sort(),['sys.fn_my_permissions','sys.objects','sys.procedures','sys.sql_modules','sys.tables']);
@@ -70,4 +71,7 @@ test('pool revoked or replaced while metadata is read cannot publish a result',a
 });
 test('denied SQL admission cannot publish metadata',async()=>{
   state.denied=true;await assert.rejects(read(),{code:'C06_SALE_METADATA_UNAVAILABLE'});
+});
+test('production access 1 or unknown cannot publish metadata',async()=>{
+  for(const access of [1,null]) {state.productionAccess=access;await assert.rejects(read(),{code:'C06_SALE_METADATA_UNAVAILABLE'});}
 });
