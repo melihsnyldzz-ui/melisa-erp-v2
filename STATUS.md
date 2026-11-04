@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — seçili izole TEST tahsilat sonucu kontrolü
+
+- `99d030ef`: yalnız mevcut izole SOURCE kapsamı ve yetkili İlker rolünde, özgün istek ile aynı kayıt/hareketi sunucuda salt okunur karşılaştırma; sonuç MATCHED veya UNKNOWN. Yeniden ticari istek yok; body/hash yanıta taşınmaz.
+- İlgili ekran ve oturum sınırları bağlandı; 196 frontend, 20 backend ve 7 loopback HTTP hedef kontrolü, derleme, güvenlik taraması ve bağımsız kaynak incelemesi geçti. Bunlar gerçek SQL/5244 kanıtı değildir.
+- MATCHED sonrasında da journal ve ekran kilidi korunur: sekmeler arası güvenli atomik kapanış ve genel tahsilat recovery eksik. Gerçek kurulum, GUI ve insan kabulü bekliyor; kaynak CI ayrı.
+
 ## 4 Kasım 2026 — müşteri CI ve bekleyen satış açıklaması
 
 - PR54 `abed08d8` kalite kontrolündeki müşteri loader hatası `2135df2e` kaynakta giderildi; ilgili 17 test ve bağımsız inceleme geçti.
