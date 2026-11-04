@@ -96,7 +96,12 @@ function Invoke-ReadPairInstallSequence {
    $outcome='SteadyStartupVerified'
   }else{
    $issued=$true
-   try{Send-ReadPairSingleRetire}catch{Record-Phase 'ACK_UNCONFIRMED_READONLY_RECONCILIATION'}
+   try{
+    $retireReply=Send-ReadPairSingleRetire
+    # Rejection is an authenticated reply, not evidence that no prior or
+    # partial effect occurred. Always keep the same read-only reconciliation.
+    if($retireReply-ceq'Rejected'){Record-Phase 'ACK_REJECTED_READONLY_RECONCILIATION'}
+   }catch{Record-Phase 'ACK_UNCONFIRMED_READONLY_RECONCILIATION'}
    $outcome=Wait-ReadPairFinalState
    if($outcome -cnotin @('CandidateVerified','RollbackVerified')){throw 'READPAIR_FINAL_STATE_UNKNOWN'}
    if($PreviewLinkInstall){Complete-B6PreviewLinkTaskPublication $outcome}
@@ -1397,7 +1402,9 @@ function Send-ReadPairSingleRetire {
  $connection=Connect-Business5244RetirementPeer
  if($connection.serverPid-ne$newHost.Id-or$connection.serverBirth-cne$ready.ownerBirth){Close-Business5244RetirementPeer $connection;throw 'READPAIR_NEW_PEER_CHANGED'}
  $result.retireAttempts++;Record-Phase 'RETIRE_ATTEMPTED_NO_RESEND'
- Send-Business5244RetirementRequest $connection retire|Out-Null
+ $ack=Send-Business5244RetirementRequest $connection retire
+ if($ack.reply-cnotin@('RetireAccepted','Rejected')){throw 'READPAIR_RETIRE_ACK_INVALID'}
+ return [string]$ack.reply
 }
 function Wait-ReadPairFinalState {
  $deadline=[DateTime]::UtcNow.AddMinutes(15)
