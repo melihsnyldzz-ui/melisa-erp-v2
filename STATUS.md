@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — d246 satış/müşteri paket kaynak kapsamı
+
+d246 API/WEB pasif aday kaynak kapsamı, satış ve müşteri ekranı bağımlılıklarıyla mevcut üreticiye eklendi; önceki fce aday ve doğrulaması korundu. 54 yerel kaynak testi ve bağımsız inceleme geçti. Bu üretici testi mevcut GitHub CI iş listesinde değildir. Çıktı üst klasörü güvenliği doğrulanmadığından yeni adayın gerçek üretim yolu I/O öncesi kapalıdır; artifact, kurulum, SQL ve insan kabulü BEKLİYOR.
+
 ## 4 Kasım 2026 — satış sepeti ve müşteri seçimi eşzamanlılığı
 
 Müşteri listesi beklerken saklı sepet açma engellenir; geç yanıt ve yenilemede müşteri/sepet farklı gösterilmez, mevcut journal korunur. 32/32 hedefli kaynak testi, uygulama derlemesi ve bağımsız inceleme geçti. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR; SQL, ticari kayıt ve yetki değişikliği yok.
