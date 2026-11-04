@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — müşteri listesi seçim güvenliği
+
+Müşteri arama ve sayfa yüklenirken eski satırlar gizlenir; geç sonuçlar ve kapanmış ekranın eski düğmeleri yeni kart seçimi yapamaz. Seçili kart/döviz/geçmiş yenilemesi korunur. 48/48 hedefli kaynak testi ve bağımsız inceleme geçti. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR; bu kaynak teslimi veritabanı veya yetki değiştirmez.
+
 ## 4 Kasım 2026 — satış önizlemesinde döviz kuru hassasiyeti
 
 Satış önizlemesi doğrulanmış döviz kurunun sekiz ondalığını Türkçe gösterir; fiyat ve toplamlar iki ondalık kalır. 29/29 hedefli kaynak testi, uygulama derlemesi ve bağımsız inceleme geçti. Hesaplama, roller, limitler ve finansal kayıtlar değişmedi. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR; yeni commit için GitHub CI ayrıca doğrulanır.
