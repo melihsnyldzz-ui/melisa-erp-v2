@@ -1,3 +1,8 @@
+## 4 Kasım 2026 — satışta belirsiz önceki işlem mesajı
+
+- `15f3c8cb`: bekleyen satış içeriği eksik/değişmişse önceki sonucun bilinmediği açık söylenir; yalnız bu kontrolde yeni kayıt gönderilmediği belirtilir. Journal/UUID/izin/gönderim davranışı değişmez.
+- 54 hedefli test, bağımsız inceleme, build ve staged güvenlik taraması geçti. Gerçek 5244 kurulum/GUI ve insan kabulü değildir; yeni exact CI bekliyor.
+
 ## 4 Kasım 2026 — müşteri kayıt zincirinin izole kontrolü
 
 - `9b3f3478`: gerçek müşteri editörü, normal session/taşıma ve canonical router/servis tek testte sentetik store ve normal v3 DTO ile bağlandı. Kayıp yanıt, aynı UUID/body, sonraki farklı düzenleme, hold, yetki reddi ve UNKNOWN/405 okuma sınırı denendi.
