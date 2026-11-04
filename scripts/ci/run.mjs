@@ -34,6 +34,7 @@ if (path.resolve(process.argv[1] || '') === fileURLToPath(import.meta.url)) {
 if (mode === 'quality') {
   for (const filename of files(path.join(root, 'apps/api/src'), name => /\.(js|mjs)$/.test(name))) run(['--check', filename]);
   for (const filename of files(path.join(root, 'scripts/ci'), name => /\.(cjs|mjs)$/.test(name))) run(['--check', filename]);
+  run(['--test', path.join(root, 'scripts/mcp-diagnostics/diagnostics.test.mjs')]);
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
   run(['--test', path.join(root, 'scripts/canonical/prepare-customer-master-metadata-package.test.mjs')]);
