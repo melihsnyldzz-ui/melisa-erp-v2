@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — alış/tahsilat paket kaynak kapsamı
+
+- `e84e9394`: 154f73c7 uygulama kaynağına API20/WEB63 için ayrı pasif kaynak case eklendi; alış modülü ve dört kaynak bağı ile tahsilat dahil. Eski pinler ve I/O öncesi OUTPUT_PARENT_UNVERIFIED korunur.
+- Guard altında üç bellek testi ve ayrı checkout graph okuması geçti; checkout graph testi taşındıktan sonra yeniden çalıştırılmadı. HEAD→154 app farkı ayrı salt okunur Git ile sıfır; P7 öncesi dört dosya hash eş. Bağımsız inceleme, build ve staged tarama geçti.
+- Git subprocess kullanan test CI_OFFLINE_BOUNDARY tarafından reddedildi; yinelenmedi, tam Git-blob entegrasyonu UNKNOWN. Yeni exact CI, güvenli çıktı, gerçek paket/5244/SQL ve insan kabulü bekliyor.
+
 ## 4 Kasım 2026 — alış yanıtı ve tahsilat bekleyen kayıt güvenliği
 
 - `e4ba36dd`: alış yanıtında fiş kimliği/durumu ve taslak kaynak alanları uyuşmadan bekleyen journal kapatılmaz. 78 hedefli test ve bağımsız inceleme geçti.
