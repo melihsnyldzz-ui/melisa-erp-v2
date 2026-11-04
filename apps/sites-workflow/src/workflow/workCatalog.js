@@ -15,7 +15,7 @@ export function createWorkCatalog({api,media,permissions=[],actorId,storage}){
  const photoLoader=createCatalogPhotoLoader({media}),thumbnails=createCatalogThumbnailLoader({media});
  const allowed=permissions.includes('product.view'),salesPermission=permissions.includes('sales.view'),purchasePermission=['product.view','purchase.view','finance.view'].every(p=>permissions.includes(p));
  const listGate=catalogRequestGate(),cardGate=catalogRequestGate();
- let root=null,page=1,meta=null,lastOpener=null,priceEditor=null;
+ let root=null,page=1,meta=null,lastOpener=null,priceEditor=null,activeFilters=null;
  const requestClose=()=>priceEditor?.requestClose()!==false;
  const disposeEditor=()=>{priceEditor?.dispose();priceEditor=null;};
  const priceEditingAllowed=(r,m)=>{
@@ -61,9 +61,9 @@ export function createWorkCatalog({api,media,permissions=[],actorId,storage}){
    }
   }
   async function load({reopenId=null}={}){
-   if(!close())return false;const n=listGate.next();thumbnails.clear();meta=null;prev.disabled=next.disabled=true;pageLabel.textContent='';summary.textContent='Ürünler okunuyor…';results.textContent='Katalog açılıyor…';host.querySelectorAll('[data-catalog-stat]').forEach(x=>x.textContent='—');
+   if(root!==host||!host.isConnected||!close())return false;const n=listGate.next();thumbnails.clear();meta=null;prev.disabled=next.disabled=true;pageLabel.textContent='';summary.textContent='Ürünler okunuyor…';results.textContent='Katalog açılıyor…';host.querySelectorAll('[data-catalog-stat]').forEach(x=>x.textContent='—');
    try{
-    const filters=values(),p=catalogEnvelope(await api(catalogPath({...filters,page}),{envelope:true}),{salesPermission});
+    const filters=activeFilters,p=catalogEnvelope(await api(catalogPath({...filters,page}),{envelope:true}),{salesPermission});
     if(!alive(listGate,n))return false;if(p.meta.page!==page)throw Error('Sayfa eşleşmedi');meta=p.meta;
     for(const [field,key,label] of [['brand','brands','Tüm markalar'],['productType','productTypes','Tüm türler']]){const select=form.elements[field],chosen=select.value;select.innerHTML='<option value="">'+label+'</option>'+meta.filters[key].map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');select.value=chosen;}
     host.querySelector('[data-catalog-stat="catalog"]').textContent=count(meta.scopeCounts.acceptedOpening+meta.scopeCounts.quarantinedSource+meta.scopeCounts.syntheticTest);host.querySelector('[data-catalog-stat="filtered"]').textContent=count(meta.total);host.querySelector('[data-catalog-stat="page"]').textContent=count(p.data.length);host.querySelector('[data-catalog-stat="date"]').textContent=meta.sourceAsOf.split('-').reverse().join('.');
@@ -74,14 +74,14 @@ export function createWorkCatalog({api,media,permissions=[],actorId,storage}){
     if(reopenId!==null){const opener=[...results.querySelectorAll('[data-catalog-open]')].find(b=>b.dataset.catalogOpen===reopenId);return await open(reopenId,opener);}
     return true;
    }catch(e){
-    if(!alive(listGate,n))return false;summary.textContent='Katalog okunamadı.';results.innerHTML='<div class="big-empty"><p role="alert">'+esc(errorMessage(e))+'</p><button class="btn" data-catalog-retry>Yeniden dene</button></div>';results.querySelector('[data-catalog-retry]').onclick=()=>load({reopenId});return false;
+    if(!alive(listGate,n))return false;prev.disabled=page<=1;summary.textContent='Katalog okunamadı.';results.innerHTML='<div class="big-empty"><p role="alert">'+esc(errorMessage(e))+'</p><button class="btn" data-catalog-retry>Yeniden dene</button></div>';results.querySelector('[data-catalog-retry]').onclick=()=>load({reopenId});return false;
    }
   }
-  form.onsubmit=e=>{e.preventDefault();if(!requestClose())return;page=1;load();};
-  host.querySelector('[data-catalog-reset]').onclick=()=>{if(!requestClose())return;form.reset();page=1;load();};
+  form.onsubmit=e=>{e.preventDefault();if(!requestClose())return;page=1;activeFilters=values();load();};
+  host.querySelector('[data-catalog-reset]').onclick=()=>{if(!requestClose())return;form.reset();page=1;activeFilters=values();load();};
   host.querySelector('[data-catalog-refresh]').onclick=()=>load();
-  prev.onclick=()=>{if(page>1&&meta&&requestClose()){page--;load();}};next.onclick=()=>{if(meta&&page<meta.totalPages&&requestClose()){page++;load();}};
-  host.onkeydown=e=>{if(e.key==='Escape')close();};load();
+  prev.onclick=()=>{if(root===host&&host.isConnected&&!prev.disabled&&page>1&&requestClose()){page--;load();}};next.onclick=()=>{if(root===host&&host.isConnected&&!next.disabled&&meta&&page<meta.totalPages&&requestClose()){page++;load();}};
+  host.onkeydown=e=>{if(e.key==='Escape')close();};activeFilters=values();load();
  }
 
  return {html,mount,requestClose,dispose(){disposeEditor();thumbnails.dispose();photoLoader.dispose();listGate.dispose();cardGate.dispose();if(root)root.onkeydown=null;root=null;meta=null;lastOpener=null;}};
