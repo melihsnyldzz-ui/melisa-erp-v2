@@ -81,3 +81,8 @@ test('d670 API overlay binds the exact isolated verifier closure without changin
  for(const p of f.m.C06_D670_EXTRA_API_FILES){const bad=await d670Fixture();bad.overlays.delete(p);assert.throws(()=>bad.m.buildCustomerMasterSuccessorApiManifest(bad),undefined,p);}
  for(const kind of ['extra','missing-before','changed-before','existing-new','old-pin']){const bad=await d670Fixture();if(kind==='extra')bad.overlays.set('apps/api/unapproved.mjs',Buffer.from('bad'));if(kind==='missing-before')bad.previousBytes.delete('apps/api/src/routes/workCollectionRoutes.mjs');if(kind==='changed-before')bad.previousBytes.set('apps/api/src/routes/workCollectionRoutes.mjs',Buffer.from('changed'));if(kind==='existing-new'){const p=bad.m.C06_D670_NEW_API_FILES.at(-1);bad.base.files.push({path:p,sha256:'a'.repeat(64)});bad.baseBytes=Buffer.from(JSON.stringify(bad.base));bad.baseDigest=bad.sha(bad.baseBytes);}if(kind==='old-pin'){bad.sourcePin='1'.repeat(40);bad.sourceCommit=bad.sourcePin;}assert.throws(()=>bad.m.buildCustomerMasterSuccessorApiManifest(bad),undefined,kind);}
 });
+
+test('f17 API case retains all d670 exact overlay and before-image requirements',async()=>{
+ const f=await d670Fixture();f.sourcePin=f.m.C06_F17_SOURCE_PIN;f.sourceCommit=f.sourcePin;const result=f.m.buildCustomerMasterSuccessorApiManifest(f);assert.equal(result.customerMasterSuccessor.files.length,20);
+ for(const p of f.m.C06_D670_EXTRA_API_FILES){const bad=await d670Fixture();bad.sourcePin=bad.m.C06_F17_SOURCE_PIN;bad.sourceCommit=bad.sourcePin;bad.overlays.delete(p);assert.throws(()=>bad.m.buildCustomerMasterSuccessorApiManifest(bad),undefined,p);}
+});

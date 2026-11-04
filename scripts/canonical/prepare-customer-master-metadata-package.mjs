@@ -78,6 +78,7 @@ const C06_ADDITIONS=new Set(['apps/api/src/routes/customerMasterCanonicalRoutes.
 // verifier. These exact nine files are a separate, additive passive case.
 // The existing eleven-file C06 contract remains unchanged for every old pin.
 export const C06_D670_SOURCE_PIN='d670318b4d88deac46f0f2695ba33c51a5d4104d';
+export const C06_F17_SOURCE_PIN='f17cb3412d627815000fefe9b059685386287f3d';
 export const C06_D670_EXTRA_API_FILES=Object.freeze([
  'apps/api/src/routes/workCollectionRoutes.mjs',
  ...['businessSelectedSaleCollectionPreparation','isolatedOperationCopyStoreFactory','businessSelectedCollectionWriteScope','businessSelectedSaleHistoricalReadProof','businessSelectedSaleInvoiceRead','businessSelectedSaleNativeContext'].map(n=>'apps/api/src/services/'+n+'.mjs'),
@@ -102,7 +103,7 @@ export function buildCustomerMasterSuccessorApiManifest({baseBytes,baseDigest,so
  check(/^[a-f0-9]{40}$/.test(sourcePin??'')&&sourceCommit===sourcePin&&/^[a-f0-9]{40}$/.test(producerCommit??''),'C06_SOURCE_PIN');
  const base=json(baseBytes);check(base?.database==='MELISA_ERP_SIRKET_TEST_20260929_01'&&base.actualT1===false&&base.externalOperations===false&&base.currentBusinessPair?.masterWriterEnabled===false&&base.customerMasterMetadataOverlay?.masterWriterEnabled===false&&!Object.hasOwn(base,'customerMasterSuccessor'),'C06_BASE_IDENTITY');
  const rows=new Map(customerMetadataRows(base.files).map(r=>[r.path,structuredClone(r)]));
- const filesForPin=sourcePin===C06_D670_SOURCE_PIN?C06_D670_API_FILES:C06_SUCCESSOR_API_FILES,newFiles=sourcePin===C06_D670_SOURCE_PIN?new Set(C06_D670_NEW_API_FILES):C06_ADDITIONS;
+ const filesForPin=(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_API_FILES:C06_SUCCESSOR_API_FILES,newFiles=(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?new Set(C06_D670_NEW_API_FILES):C06_ADDITIONS;
  check(overlays instanceof Map&&overlays.size===filesForPin.length&&filesForPin.every(p=>Buffer.isBuffer(overlays.get(p))&&overlays.get(p).length>0),'C06_EXACT_OVERLAYS');
  check(previousBytes instanceof Map&&previousBytes.size===filesForPin.length-newFiles.size,'C06_BEFORE_COVERAGE');
  const files=[];for(const p of filesForPin){const old=rows.get(p),bytes=overlays.get(p),before=previousBytes.get(p);
