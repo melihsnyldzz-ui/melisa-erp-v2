@@ -1,3 +1,8 @@
+## 4 Kasım 2026 — ürün listesi sayfa toparlama
+
+- `8230cc98`: liste sayfası okunamazsa hata gizlenmeden önceki sayfaya, uygulanmış filtrelerle tekrar ulaşılır; gecikmiş ve kapatılmış ekran yanıtları korunur.
+- 28 hedefli test, bağımsız inceleme, derleme ve staged güvenlik taraması geçti. Gerçek 5244 kurulum/ekran/insan kabulü ve yeni exact CI ayrı bekliyor.
+
 ## 4 Kasım 2026 — müşteri kayıt sonucunun doğrulanması
 
 - `6aa059c7`: müşteri kod/ad/tür kaydı yanıtı gönderilen istekle uyuşmuyorsa başarı gösterilmez; belirsizlikte istek kimliği ve oturum içi özgün içerik korunur, sonradan değişen değer için sahte başarı verilmez.
