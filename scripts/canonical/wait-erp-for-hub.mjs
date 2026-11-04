@@ -22,7 +22,12 @@ const PROFILES=Object.freeze([
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-ready.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'}),
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-439b63db8376-erp-crm-node24-hub-ready.json',source:'439b63db8376a6b9d3ac8baa625ed98367022623'}),
  Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e0e6c28.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}),
- Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'})
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-1a03157.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-c88d7010f831.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-e59e07abf7ae.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json',source:'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}),
+ Object.freeze({config:'C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\settings-crm06-staff-d1e442520624-erp-6dc33f417373-current.json',source:'d1e4425206249e38445fb103e03601f86baa84ec'})
 ]);
 const RECEIPTS='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\hub-web';
 const FAILURE_CODES=new Set(['ERP_HUB_WAIT_REJECTED','ERP_HUB_WAIT_OBSERVATION','ERP_HUB_WAIT_OWNER','ERP_HUB_WAIT_IDENTITY','ERP_HUB_WAIT_PARENT','ERP_HUB_WAIT_CHANGED','ERP_HUB_WAIT_TIMEOUT','ERP_HUB_WAIT_HEALTH','ERP_HUB_WAIT_TARGET']);

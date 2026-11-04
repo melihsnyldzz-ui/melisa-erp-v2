@@ -68,8 +68,8 @@ test('a serialized HTTP/body marker or environment value cannot register a revis
 test('actual web runtime projection and both test-health response expressions omit every residual/private capture field',()=>{
  const f=fixture(),forbidden=/baselineResiduals|residualExact8|accountBeforeHash|sourceWitnessHash|businessEffectsPerformanceRevision/;
  const projection=publicSharedCopyScope(f.c);assert.doesNotMatch('window.__MELISA_OPERATION_COPY__='+JSON.stringify(projection),forbidden);
- const web=fs.readFileSync(new URL('../../start-shared-test-copy-web.mjs',import.meta.url),'utf8');assert.match(web,/const publicScope=publicSharedCopyScope\(c\)/);assert.match(web,/JSON\.stringify\(publicScope\)/);
- const expression=web.match(/app\.get\('\/test-health',[^\n]+res\.json\((\{[^\n]+\})\)\);/)[1],release={sourceCommit:'a'.repeat(40),packageId:'fixture'};
+ const web=fs.readFileSync(new URL('../../start-shared-test-copy-web.mjs',import.meta.url),'utf8');assert.match(web,/const publicScope=publicSharedCopyScope\(c\)/);const factory=fs.readFileSync(new URL('./sharedCopyWebApplication.mjs',import.meta.url),'utf8');assert.match(factory,/JSON\.stringify\(publicScope\)/);assert.match(web,/createSharedCopyWebApplication\(/);
+ const expression=web.match(/health:(\{[^\n]+\}),/)[1],release={sourceCommit:'a'.repeat(40),packageId:'fixture'};
  assert.doesNotMatch(JSON.stringify(vm.runInNewContext('('+expression+')',{c:f.c,topology:{webPort:5234},release})),forbidden);
  const api=fs.readFileSync(new URL('../../start-shared-test-copy.mjs',import.meta.url),'utf8'),health=api.match(/const health=(\{[^\n]+\});/)[1];
  assert.doesNotMatch(JSON.stringify(vm.runInNewContext('('+health+')',{mode:'erp',port:4184,identity:{databaseName:f.c.target.database},writes:true,context:f.c,release})),forbidden);

@@ -1,4 +1,5 @@
 import test from 'node:test';
+
 import {selectedSourceCollectionFixture as fixture,selectedSourceCollector as collector,selectedSourceRequestId as uuid} from './businessSelectedSaleCollectionPreparation.test-fixture.mjs';
 import assert from 'node:assert/strict';
 import {createBusinessSelectedSaleCollectionPreparation,isBusinessSelectedSaleCollectionPreparationService,prepareBusinessSelectedSaleCollection,SOURCE_COLLECTION_ACCOUNT_SQL} from './businessSelectedSaleCollectionPreparation.mjs';
@@ -83,4 +84,31 @@ test('SOURCE journal failure rolls back isolated financial effects; no default/n
  assert.throws(()=>createBusinessSelectedSaleCollectionPreparation(),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED'});
  const f=fixture(),original=f.c.journal;f.c.journal=async(...args)=>{await original(...args);throw Error('Offline rollback');};
  await assert.rejects(pay(f,2,'5.0000'));assert.equal(f.state().requests.size,0);assert.equal(f.state().cash,0n);assert.equal(f.state().customerDebt,240000n);assert.equal(f.state().stockEffects,0);
+});
+
+test('SOURCE 500 TRY preflight accepts exact boundary and rejects excess before source reads or journal',async()=>{
+ for(const amount of ['499.9999','500.0000']){
+  const f=fixture({unitPriceExact8:'125.00000000'}),p=await f.service.preview(f.selection(amount),collector());
+  assert.equal(p.amountExact4,amount);
+  const response=await f.service.collect({...p.selection,requestId:uuid(80),expectedRevision:p.revision,previewHash:p.previewHash},collector());
+  assert.equal(response.collection.amountExact4,amount);assert.equal(f.state().requests.size,1);
+ }
+ const f=fixture({unitPriceExact8:'125.00000000'});
+ await assert.rejects(f.service.preview(f.selection('500.0001'),collector()),{code:'WORK_OPERATION_LIMIT',statusCode:409});
+ await assert.rejects(f.service.collect({...f.selection('500.0001'),requestId:uuid(81),expectedRevision:'a'.repeat(64),previewHash:'b'.repeat(64)},collector()),{code:'WORK_OPERATION_LIMIT',statusCode:409});
+ assert(f.events.includes('authority'));assert(!f.events.includes('source'));assert(!f.events.includes('journal'));assert(!f.events.includes('collect'));assert.equal(f.state().requests.size,0);assert.equal(f.state().cash,0n);
+ const denied=fixture();denied.actual.active=false;
+ await assert.rejects(denied.service.preview(denied.selection('500.0001'),collector()),{statusCode:403});
+});
+
+
+test('SOURCE preview snapshots the validated amount before deferred authority',async()=>{
+ const f=fixture({unitPriceExact8:'125.00000000'}),original=f.c.request;
+ let reached,release;
+ const entered=new Promise(resolve=>{reached=resolve;}),gate=new Promise(resolve=>{release=resolve;});
+ f.c.request=()=>{const r=original(),query=r.query;r.query=async function(sql){reached();await gate;return query.call(this,sql);};return r;};
+ const input=f.selection('500.0001'),pending=f.service.preview(input,collector());
+ await entered;input.amountExact4='1.0000';release();
+ await assert.rejects(pending,{code:'WORK_OPERATION_LIMIT',statusCode:409});
+ assert(!f.events.includes('source'));assert(!f.events.includes('journal'));assert.equal(f.state().cash,0n);
 });

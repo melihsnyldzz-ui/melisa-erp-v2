@@ -9,5 +9,5 @@ test('shared browser permits authenticated photo object URLs as images while blo
  assert.deepEqual(directives['frame-src'],['http://127.0.0.1:62600','http://localhost:62600','http://192.168.1.46:62600']);
  assert.ok(!SHARED_WEB_CSP.includes(':62500'));
  const bootstrap=fs.readFileSync(new URL('../../start-shared-test-copy-web.mjs',import.meta.url),'utf8');
- assert.match(bootstrap,/res\.set\('Content-Security-Policy',sharedWebCspFor\(c\)\)/);
+ assert.match(bootstrap,/csp:sharedWebCspFor\(c\)/);const factory=fs.readFileSync(new URL('./sharedCopyWebApplication.mjs',import.meta.url),'utf8');assert.match(factory,/res\.set\('Content-Security-Policy',csp\)/);
 });

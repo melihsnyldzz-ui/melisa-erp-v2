@@ -6,6 +6,12 @@ import {canonicalListenerPolicy,validateCanonicalWebConfig,startCanonicalListene
 import {canonicalTestAdminContext,assertTestAdminRequest,resolveTestAdminUser,testAdminClaims} from './src/services/canonicalTestAdminSession.mjs';
 const config={database:'MELISA_ERP_SIRKET_TEST_20260929_01',server:'127.0.0.1',sqlPort:1433,host:'127.0.0.1',erpPort:4144,nativePort:4146,webPort:5194,salesEnabled:true,lanHost:'192.168.1.46'};
 const lan=()=>canonicalListenerPolicy(config,{mode:'erp',writes:true});
+test('business browser origin is an explicit profile addition; default and native bindings stay unchanged',()=>{
+ const businessWorkface={id:'ERP-5244-REALDATA-20261027',userId:17,permissionHash:'d49893294b3feffa73cb80fdf32ef81e9e4a205db98de3d4becdfe00170bc1d7',sessionPath:'C:\\Sirket\\ERP\\runtime\\UNIFIED-5244-SEMIH-20261027\\grants.json',actualT1:false,externalOperations:false};
+ const policy=canonicalListenerPolicy({...config,businessWorkface},{mode:'erp',writes:true});assert.deepEqual(policy.hosts,lan().hosts);assert(policy.corsOrigins.includes('http://192.168.1.46:5244'));
+ assert(!lan().corsOrigins.some(x=>x.endsWith(':5244')));assert(!canonicalListenerPolicy({...config,businessWorkface},{mode:'native',writes:false}).corsOrigins.some(x=>x.endsWith(':5244')));
+ assert.throws(()=>canonicalListenerPolicy({...config,businessWorkface:{...businessWorkface,actualT1:true}},{mode:'erp',writes:true}));
+});
 test('opt-in exact adapter only; local, native and readonly scopes remain loopback',()=>{
  assert.deepEqual(lan().hosts,['127.0.0.1','192.168.1.46']);
  assert.deepEqual(canonicalListenerPolicy({}, {mode:'erp',writes:true}).hosts,['127.0.0.1']);

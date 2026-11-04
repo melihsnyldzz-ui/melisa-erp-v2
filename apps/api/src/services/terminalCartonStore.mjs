@@ -1,6 +1,7 @@
 import {open,readFile,rename,lstat,realpath,unlink} from 'node:fs/promises';
 import path from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
+import {getCleanContext,CLEAN_ENVIRONMENT_ID} from './cleanSyntheticContext.mjs';
 import {cartonId,cartonRevision,validateCartons,validateCartonSource,cartonProgress} from '../../../sites-workflow/src/workflow/cartonModel.mjs';
 const error=(code,message,statusCode=409)=>Object.assign(new Error(message),{code,statusCode});
 const digest=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
@@ -11,9 +12,12 @@ function assertRecord(record,actorId,source){
  if(record.version!==expected||record.status!==(cartonProgress(source,record.cartons).complete?'READY':'DRAFT'))throw error('CARTON_JOURNAL','Koli kaydı bütünlüğü doğrulanamadı.',503);
 }
 export const CARTON_DB02_DIRECTORY='C:\\Sirket\\ERP\\runtime\\carton-packing-db02';
+export const CARTON_CLEAN_DIRECTORY='C:\\Sirket\\ERP\\clean\\20261022\\runtime\\carton-packing';
 // The runtime config chooses an owner-protected directory; clients never supply a path.
 export function createTerminalCartonFileStore({directory=CARTON_DB02_DIRECTORY,assertDirectory,filesystemRootForOfflineTests}={}){
- if(!filesystemRootForOfflineTests&&path.resolve(directory).toLowerCase()!==path.resolve(CARTON_DB02_DIRECTORY).toLowerCase())throw error('CARTON_DIRECTORY','Koli kayıt alanı doğrulanamadı.',503);
+ const clean=getCleanContext();
+ const cleanDirectory=clean?.environmentId===CLEAN_ENVIRONMENT_ID&&clean.synthetic===true&&clean.actualT1===false&&clean.externalOperations===false&&path.resolve(directory).toLowerCase()===path.resolve(CARTON_CLEAN_DIRECTORY).toLowerCase();
+ if(!filesystemRootForOfflineTests&&!cleanDirectory&&path.resolve(directory).toLowerCase()!==path.resolve(CARTON_DB02_DIRECTORY).toLowerCase())throw error('CARTON_DIRECTORY','Koli kayıt alanı doğrulanamadı.',503);
  const root=path.resolve(directory);
  async function safeDirectory(){if(typeof assertDirectory!=='function')throw error('CARTON_DIRECTORY','Özel kayıt alanı izni doğrulanmalı.',503);await assertDirectory(root);const stat=await lstat(root);if(!stat.isDirectory()||stat.isSymbolicLink()||path.resolve(await realpath(root)).toLowerCase()!==root.toLowerCase())throw error('CARTON_DIRECTORY','Özel kayıt alanı doğrulanamadı.',503);}
  async function readActor(file,actorId){try{const s=await lstat(file);if(!s.isFile()||s.isSymbolicLink()||s.nlink!==1||s.size>16777216)throw error('CARTON_JOURNAL','Koli kaydı doğrulanamadı.',503);const parsed=JSON.parse(await readFile(file,'utf8'));if(parsed.schemaVersion!=='melisa-carton-journal.v1'||parsed.actorId!==actorId||!parsed.documents||Array.isArray(parsed.documents)||!parsed.requests||Array.isArray(parsed.requests))throw error('CARTON_JOURNAL','Koli kayıt sahibi doğrulanamadı.',503);return parsed;}catch(e){if(e.code==='ENOENT')return {schemaVersion:'melisa-carton-journal.v1',actorId,documents:{},requests:{}};throw e;}}

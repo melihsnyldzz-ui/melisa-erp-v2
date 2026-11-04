@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 let calls;
 const no=async()=>{throw Error('Unused auth method');};
 const requireAuth=(req,res,next)=>{if(req.get('authorization')!=='Bearer fixture-access')return res.status(401).json({success:false});next();};
-mock.module('../services/authService.js',{namedExports:{listTerminalLoginUsers:no,localPasswordlessAdminLogin:no,login:no,logout:no,refreshAccessToken:no,terminalLogin:no,confirmProtectedNormalSession:async(access,refresh)=>{calls.push([access,refresh]);if(refresh!=='fixture-refresh')throw Object.assign(Error('Pair differs'),{code:'AUTH_REFRESH_INVALID',statusCode:401});return {confirmed:true,user:{id:17,username:'erp-semih-test-20261012',role:{id:2,code:'admin'}},expiresAt:12345};}}});
+mock.module('../services/authService.js',{namedExports:{listTerminalLoginUsers:no,localPasswordlessAdminLogin:no,login:no,logout:no,refreshAccessToken:no,terminalLogin:no,confirmProtectedNormalSession:async(access,refresh)=>{calls.push([access,refresh]);if(refresh!=='fixture-refresh')throw Object.assign(Error('Pair differs'),{code:'AUTH_REFRESH_INVALID',statusCode:401});return {confirmed:true,user:{id:17,username:'erp-semih-test-20261012',role:{id:2,code:'admin'}},normalTestSessionId:'e1000001-0000-4000-8000-000000000001',expiresAt:12345};}}});
 mock.module('../middleware/authMiddleware.js',{namedExports:{requireAuth}});
 const {authRoutes}=await import('./authRoutes.js');
 const {postProtectedSessionConfirm}=await import('../controllers/authController.js');
@@ -16,8 +16,8 @@ test('route has existing normal Bearer middleware before confirmation; anonymous
 });
 test('controller accepts only refreshToken JSON body and current Bearer header without returning secrets',async()=>{
  const req={body:{refreshToken:'fixture-refresh'},get:()=> 'Bearer fixture-access'},res=response();await postProtectedSessionConfirm(req,res);
- assert.equal(res.body.data.confirmed,true);assert.deepEqual(calls,[['fixture-access','fixture-refresh']]);assert.doesNotMatch(JSON.stringify(res.body),/fixture-access|fixture-refresh/);
- for(const body of [{refreshToken:'fixture-refresh',username:'override'},{},null,[],{accessToken:'fixture-access'}]){const r=response();await postProtectedSessionConfirm({...req,body},r);assert.equal(r.statusCode,400);}
+ assert.equal(res.body.data.confirmed,true);assert.equal(res.body.data.normalTestSessionId,'e1000001-0000-4000-8000-000000000001');assert.deepEqual(calls,[['fixture-access','fixture-refresh']]);assert.doesNotMatch(JSON.stringify(res.body),/fixture-access|fixture-refresh/);
+ for(const body of [{refreshToken:'fixture-refresh',username:'override'},{refreshToken:'fixture-refresh',normalTestSessionId:'client-selected'},{refreshToken:'fixture-refresh',confirmed:true},{},null,[],{accessToken:'fixture-access'}]){const r=response();await postProtectedSessionConfirm({...req,body},r);assert.equal(r.statusCode,400);}
  assert.equal(calls.length,1);
 });
 test('missing Bearer or mismatched refresh rejects without token leakage',async()=>{

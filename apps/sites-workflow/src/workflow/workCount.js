@@ -20,7 +20,22 @@ export function createWorkCount({root,session,user,storage=globalThis.localStora
    if(raw==null)return false;
    const entry=JSON.parse(raw);
    if(entry===null)return false;
-   return !entry||typeof entry!=='object'||Array.isArray(entry)||!entry.result||typeof entry.result!=='object'||Array.isArray(entry.result);
+   const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
+   const id=value=>(typeof value==='number'||typeof value==='string'&&/^[1-9]\d*$/.test(value))&&Number.isSafeInteger(Number(value))&&Number(value)>0;
+   const failed=value=>value.error!==undefined&&value.error!==null||['success','ok'].some(key=>value[key]!==undefined&&value[key]!==true);
+   if(!object(entry)||!['draft','approve','reject','cancel'].includes(entry.op)||!object(entry.body)||typeof entry.body.requestId!=='string'||!/^[a-zA-Z0-9-]{16,64}$/.test(entry.body.requestId))return true;
+   // testDaily stores the existing daily API response, not the inbound journal
+   // schema. A response object alone does not confirm a count operation.
+   const r=entry.result;
+   const expectedState={draft:'pending',approve:'approved',reject:'rejected',cancel:'cancelled'}[entry.op];
+   if(!object(r)||failed(r)||!id(r.id)||r.state!==undefined&&r.state!==expectedState||r.kind!==undefined&&r.kind!=='count'||r.flow!==undefined&&r.flow!=='count'||r.requestId!==undefined&&r.requestId!==entry.body.requestId||['replayed','alreadyApplied'].some(k=>r[k]!==undefined&&typeof r[k]!=='boolean'))return true;
+   if(entry.op==='draft')return r.state!==undefined&&r.state!=='pending';
+   if(!id(entry.body.id)||Number(r.id)!==Number(entry.body.id))return true;
+   if(entry.op==='reject')return r.state!=='rejected';
+   // Non-finance personnel projection may reduce a legacy adjustment to {}.
+   // Keep that valid nested result; the outer document and decision must match.
+   if(entry.op==='approve')return !object(r.result)||failed(r.result)||r.result.state!==undefined&&r.result.state!=='approved'||r.result.id!==undefined&&(!id(r.result.id)||Number(r.result.id)!==Number(r.id));
+   return !object(r.reversal)||failed(r.reversal)||r.reversal.state!==undefined&&r.reversal.state!=='cancelled'||!id(r.reversal.id)||r.reversal.kind!==undefined&&r.reversal.kind!=='count'||r.reversal.flow!==undefined&&r.reversal.flow!=='count'||r.reversal.original_draft_id!==undefined&&(!id(r.reversal.original_draft_id)||Number(r.reversal.original_draft_id)!==Number(r.id));
   }catch{return true;}
  }
  function requestClose(){

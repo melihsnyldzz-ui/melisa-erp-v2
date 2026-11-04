@@ -1,5 +1,5 @@
 import {assertIsolatedCopyContext,assertIsolatedCopyIdentity,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
-import {assertCustomerContactActor,parseCustomerContactId,parseCustomerContact,CUSTOMER_CONTACT_LIMITS} from './customerContactModel.mjs';
+import {assertCustomerContactActor,parseCustomerContactId,parseCustomerContact,parseCustomerContactRequestId,CUSTOMER_CONTACT_LIMITS} from './customerContactModel.mjs';
 import {CUSTOMER_CONTACT_CONTEXT,CUSTOMER_CONTACT_UPDATE,CUSTOMER_CONTACT_BODY_KEYS,CUSTOMER_CONTACT_CONTEXT_SCHEMA,CUSTOMER_CONTACT_ROW_KEYS,CUSTOMER_CONTACT_CONTEXT_KEYS,CUSTOMER_CONTACT_ACCOUNT_KEYS,CUSTOMER_CONTACT_NATIVE_ERRORS} from '../../../../scripts/canonical/shared-business-customer-contact-contract.mjs';
 
 export const customerContactError=(code='CUSTOMER_CONTACT_UNAVAILABLE',statusCode=503)=>Object.assign(new Error('Müşteri iletişim kapsamı veya kayıt yetkisi doğrulanamadı.'),{code,statusCode});
@@ -75,18 +75,20 @@ export function createCustomerContactStore({getRuntime=defaultRuntime}={}){
    await request().input('lockKey',sql.NVarChar(255),'melisa-stage4-copy:'+copy.copyId).query(`DECLARE @r int;EXEC @r=sys.sp_getapplock @Resource=@lockKey,@LockMode=N'${write?'Exclusive':'Shared'}',@LockOwner=N'Transaction',@LockTimeout=15000;IF @r<0 THROW 51401,'ISOLATED_COPY_BUSY',1;`);
    const before=await metadata();
    const verify=async()=>{const value=await bootstrap.verifyCustomerContactRevision(copy,request().input('copy_id',sql.UniqueIdentifier,copy.copyId),{write});check(value===registered);};
-   const call=async(name,payload)=>{
+   const call=async(name,payload,recoveryRequestId)=>{
     const pins=registered.revision?.modules?.filter(row=>row.name===name);check(pins?.length===1&&hash(pins[0].afterHash));
     const req=request().input('copy_id',sql.UniqueIdentifier,copy.copyId).input('customer_id',sql.BigInt,customerId).input('actor_id',sql.BigInt,String(actor.id));
+    if(recoveryRequestId!==undefined){check(!write&&name===CUSTOMER_CONTACT_CONTEXT);req.input('request_id',sql.UniqueIdentifier,parseCustomerContactRequestId(recoveryRequestId));}
     if(payload!==undefined){check(write&&name===CUSTOMER_CONTACT_UPDATE&&typeof payload==='string'&&Buffer.byteLength(payload,'utf16le')<=8192);req.input('payload_json',sql.NVarChar(sql.MAX),payload);}
-    const row=customerContactProcedureRow(await req.execute(name));check(hash(row.readerDefinitionHash)&&row.readerDefinitionHash.toUpperCase()===pins[0].afterHash.toUpperCase()&&row.sessionId===before.sessionId&&transactionId(row.transactionId)&&String(row.transactionId)===String(before.transactionId)&&typeof row.replayed==='boolean'&&(name!==CUSTOMER_CONTACT_CONTEXT||row.replayed===false));
+    const row=customerContactProcedureRow(await req.execute(name));check(hash(row.readerDefinitionHash)&&row.readerDefinitionHash.toUpperCase()===pins[0].afterHash.toUpperCase()&&row.sessionId===before.sessionId&&transactionId(row.transactionId)&&String(row.transactionId)===String(before.transactionId)&&typeof row.replayed==='boolean'&&(name!==CUSTOMER_CONTACT_CONTEXT||recoveryRequestId!==undefined||row.replayed===false));
     assertNativeActor(actor,parse(row.actor_json),registered);return {context:customerContactContext(copy,parse(row.context_json),customerId),replayed:row.replayed};
    };
    let result;
    try{
     await verify();const initial=await call(CUSTOMER_CONTACT_CONTEXT);
     const update=async payload=>{check(active&&write);const raw=parse(payload);check(exact(raw,['customerId',...CUSTOMER_CONTACT_BODY_KEYS])&&raw.customerId===customerId);const {customerId:ignored,...body}=raw,input=parseCustomerContact(customerId,body);check(input.payloadJson===payload);await verify();return call(CUSTOMER_CONTACT_UPDATE,payload);};
-    result=await fn(Object.freeze({copy,context:initial.context,update}));await verify();const after=await metadata();check(after.sessionId===before.sessionId&&String(after.transactionId)===String(before.transactionId));
+    const recover=async requestId=>{check(active&&!write);await verify();return call(CUSTOMER_CONTACT_CONTEXT,undefined,parseCustomerContactRequestId(requestId));};
+    result=await fn(Object.freeze({copy,context:initial.context,update,recover}));await verify();const after=await metadata();check(after.sessionId===before.sessionId&&String(after.transactionId)===String(before.transactionId));
    }finally{active=false;}
    await tx.commit();return result;
   }catch(error){
@@ -99,3 +101,4 @@ export function createCustomerContactStore({getRuntime=defaultRuntime}={}){
  }});
 }
 export const customerContactStore=createCustomerContactStore();
+

@@ -2,6 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {terminalActions,terminalRoute,terminalCrmUrl,terminalMessage,terminalStorage,terminalUser,createTerminalScanGate,createTerminalSessionFacade,terminalOfflineText} from './personnelTerminalModel.mjs';
+
+test('clean terminal selects only its exact CRM pair and carries no credentials or legacy address',()=>{
+ for(const hostname of ['127.0.0.1','localhost','192.168.1.46']){
+  const location={protocol:'http:',hostname,port:'5244',origin:`http://${hostname}:5244`},paired=terminalCrmUrl(location),u=new URL(paired.url);
+  assert.equal(paired.origin,`http://${hostname}:62800`);assert.equal(u.searchParams.get('erpOrigin'),location.origin);assert.equal(u.searchParams.get('terminal'),'1');assert.equal([...u.searchParams].length,2);
+  for(const patch of [{origin:'http://other:5244'},{origin:`http://${hostname}:5234`},{protocol:'https:'},{hostname:'192.168.1.47'}])assert.throws(()=>terminalCrmUrl({...location,...patch}));
+ }
+});
 test('shared terminal uses its paired CRM origin without changing the normal terminal or trusting other hosts',()=>{
  const local={protocol:'http:',hostname:'127.0.0.1',port:'5224',origin:'http://127.0.0.1:5224'};
  assert.equal(terminalCrmUrl(local).origin,'http://127.0.0.1:62600');

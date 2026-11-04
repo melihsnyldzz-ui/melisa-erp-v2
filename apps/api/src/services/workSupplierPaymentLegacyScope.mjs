@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {paymentError,supplierPaymentContext} from './workSupplierPaymentModel.mjs';
 export async function legacyPaymentScope(ctx,actor){
  const s=ctx.sqlDriver,request=()=>new s.Request(ctx.transaction);
@@ -6,7 +7,7 @@ export async function legacyPaymentScope(ctx,actor){
  if(String(actor.id)!=='16'||!['finance.view','supplier.view'].every(k=>actor.permissions?.includes(k)&&permissions?.some(p=>p.permission_key===k)))throw Object.assign(Error('Bu işlem için yetkiniz bulunmuyor.'),{statusCode:403,code:'TEST_PAYMENT_ACTOR'});
  const definitions=(await request().query("SELECT OBJECT_ID(N'dbo.usp_work_supplier_payment_context',N'P') installed,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_work_supplier_payment_ready'))),2) readyHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_work_supplier_payment_context'))),2) contextHash,CONVERT(varchar(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.usp_work_supplier_payment_effects'))),2) effectsHash")).recordset?.[0];
  if(!definitions)throw paymentError();if(definitions.installed===null&&['readyHash','contextHash','effectsHash'].every(k=>definitions[k]===null))return null;
- const {WORK_SUPPLIER_PAYMENT_SQL_PROOF:proof}=await import('./workSupplierPaymentSqlProof.mjs');if(!definitions.installed||Object.keys(proof).some(k=>definitions[k]!==proof[k]))throw paymentError();
+ const {WORK_SUPPLIER_PAYMENT_SQL_PROOF:baseProof}=await import('./workSupplierPaymentSqlProof.mjs');const proof={...baseProof,readyHash:getCanonicalBusinessSaleDefinitionHash('dbo.usp_work_supplier_payment_ready',baseProof.readyHash)};if(!definitions.installed||Object.keys(proof).some(k=>definitions[k]!==proof[k]))throw paymentError();
  const row=(await request().input('actor_id',s.BigInt,actor.id).execute('dbo.usp_work_supplier_payment_context')).recordset?.[0];if(Object.keys(proof).some(k=>row?.[k]!==proof[k]))throw paymentError();const context=supplierPaymentContext(JSON.parse(row.context_json),actor);if(!context.capabilities.canView)throw paymentError();const supplier=context.suppliers.find(s=>s.currency==='TRY'),account=context.accounts.find(a=>a.currency==='TRY');return {supplierId:supplier.id,accountId:account.id,invoiceIds:supplier.invoices.map(i=>i.id)};
 }
 function canonicalNativeId(value){

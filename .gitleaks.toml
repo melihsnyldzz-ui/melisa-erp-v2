@@ -1,0 +1,67 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Exact public C06 API manifest digest in approved commit"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-current-business-pair\.mjs\z''']
+regexes = ['''\A\Q342fa6b6ac7448a8ac515cbd118638b857d44c56fc621b74ac0070dd209c0a5f\E\z''']
+commits = ["13faa388030e6bb1d9dbe2727a988c9eb90dc917"]
+
+[[allowlists]]
+description = "Exact approved public manifest digest in fixed B6 producer"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-preview-link-package\.mjs\z''']
+regexes = ['''\A\Qafdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c\E\z''']
+
+[[allowlists]]
+description = "Exact public B6 owner metadata digest approved 2026-10-31"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
+regexes = ['''\A\Q35d3eeb267e4292fd0aca3aece1dbaf9e1a7b34a\E\z''']
+
+[[allowlists]]
+description = "Exact public B6 owner metadata digest approved 2026-10-31"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
+regexes = ['''\A\Qd43f5cc715ac06ecc1da3df7a709375d0da913dd73e175dc63112ab21b4409d1\E\z''']
+
+[[allowlists]]
+description = "Exact public B6 owner metadata digest approved 2026-10-31"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/canonical/prepare-business-sale-owner-bundle\.mjs\z''']
+regexes = ['''\A\Q6adda25daf5af69b72062475d6c937b7fb903e4199291189c68f9b6229b49869\E\z''']
+
+[[allowlists]]
+description = "Exact B01 synthetic sourceKey 1; explicitly approved 2026-11-03"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
+regexes = ['''\A\QVEGA2026/F0102TBLSTOKLAR/\E\z''']
+
+[[allowlists]]
+description = "Exact B01 synthetic sourceKey 2; explicitly approved 2026-11-03"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
+regexes = ['''\A\QVEGA2026/F0102TBLCARI/23\E\z''']
+
+[[allowlists]]
+description = "Exact B01 synthetic sourceKey 3; explicitly approved 2026-11-03"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
+regexes = ['''\A\QVEGA2026/F0103TBLCARI/33\E\z''']

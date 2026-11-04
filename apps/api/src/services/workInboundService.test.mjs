@@ -84,3 +84,10 @@ test('office resolves unknown by explicit verified product while prior identity 
 test('current permission revocation denies before replay; HOME carries no monetary values',async()=>{
  const f=fixture(),body={requestId,note:'',lines:[line()]};await f.service.create(body,seller);f.c.actual.permissions=[];await assert.rejects(f.service.create(body,seller),{statusCode:403});f.c.actual.permissions=office.permissions;const home=await f.service.home(office);assert.equal(home.countDrafts.length,1);assert.equal(JSON.stringify(home).includes('60.00000000'),false);assert.equal(JSON.stringify(home).includes('balance'),false);
 });
+
+
+test('business Semih identity cannot borrow the older receiving actor scope, even with every receiving permission',async()=>{
+ let storeCalls=0;const service=createWorkInboundService({getStore:async()=>{storeCalls++;assert.fail('unbound actor must not reach native storage');}});
+ await assert.rejects(()=>service.context({id:'17',role:{code:'unified_test_semih'},permissions:[...office.permissions,'settings.manage']}),e=>e.code==='INBOUND_FORBIDDEN'&&e.statusCode===403);
+ assert.equal(storeCalls,0);
+});

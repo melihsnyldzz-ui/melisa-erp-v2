@@ -1,6 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {isCanonicalTestWriteAllowed as allowed} from './canonicalTestRoutePolicy.mjs';
 const ctx={writes:true,mode:'erp'};
+test('customer master accepts only its admitted normal TEST route',()=>{
+ const path='/api/customers/155/master',ready={...ctx,protectedNormalAuth:true,customerMasterWriterReady:true};assert.equal(allowed('POST',path,ready),true);
+ for(const scope of [ctx,{...ready,customerMasterWriterReady:false},{...ready,customerMasterWriterReady:'true'},{...ready,protectedNormalAuth:false},{...ready,writes:false},{...ready,mode:'native'}])assert.equal(allowed('POST',path,scope),false);
+ for(const method of ['PUT','PATCH','DELETE'])assert.equal(allowed(method,path,ready),false);
+ for(const bad of ['/api/customers/0/master','/api/customers/0155/master','/api/customers/155/master/','/api/customers/155/master/requests/1','/api/customers/155/master?x=1'])assert.equal(allowed('POST',bad,ready),false);
+});
 test('session pair confirmation requires exact protected writable ERP POST; never opens auth administration',()=>{
  const route='/api/auth/session-confirm';assert.equal(allowed('POST',route,{...ctx,protectedNormalAuth:true}),true);
  for(const scope of [ctx,{writes:false,mode:'erp',protectedNormalAuth:true},{writes:true,mode:'native',protectedNormalAuth:true},{...ctx,protectedNormalAuth:'true'}])assert.equal(allowed('POST',route,scope),false);

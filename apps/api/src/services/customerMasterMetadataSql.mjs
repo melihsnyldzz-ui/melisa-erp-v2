@@ -1,0 +1,43 @@
+// Fixed SELECT text only. No connection, execution, transaction or DDL.
+import {CUSTOMER_MASTER_NORMAL_TARGET as target,CUSTOMER_MASTER_NORMAL_LOGIN as login} from './customerMasterCanonicalRuntime.mjs';
+import {CUSTOMER_MASTER_NORMAL_COLUMN_SETS,CUSTOMER_MASTER_KNOWN_CHECKS,CUSTOMER_MASTER_KNOWN_UTC_DEFAULTS} from './customerMasterCanonicalSql.mjs';
+const q=s=>"N'"+s.replaceAll("'","''")+"'";
+export const CUSTOMER_MASTER_METADATA_OBJECTS=Object.freeze([...Object.keys(CUSTOMER_MASTER_NORMAL_COLUMN_SETS).map(part=>'dbo.customer_master_'+part+'_v1'),'dbo.customers']);
+export const CUSTOMER_MASTER_METADATA_COLUMNS=Object.freeze(Object.fromEntries([...Object.entries(CUSTOMER_MASTER_NORMAL_COLUMN_SETS).map(([part,columns])=>['dbo.customer_master_'+part+'_v1',Object.freeze(columns.map(c=>c[0]))]),['dbo.customers',Object.freeze(['id','customer_code','name','customer_type'])]]));
+export const CUSTOMER_MASTER_METADATA_LIMITS=Object.freeze({objects:4,columns:28,indexes:128,foreignKeys:32,defaults:32,checks:32,permissions:96,bytes:196608,requestTimeoutMs:10000});
+const objects='(VALUES '+CUSTOMER_MASTER_METADATA_OBJECTS.map(name=>'('+q(name)+')').join(',')+')';
+const columns='(VALUES '+Object.entries(CUSTOMER_MASTER_METADATA_COLUMNS).flatMap(([name,cols])=>cols.map(col=>'('+q(name)+','+q(col)+')')).join(',')+')';
+const gate=`DB_NAME() COLLATE Latin1_General_100_BIN2=${q(target.database)} AND CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) COLLATE Latin1_General_100_BIN2=${q(target.server)} AND SUSER_SNAME() COLLATE Latin1_General_100_BIN2=${q(login)} AND USER_NAME() COLLATE Latin1_General_100_BIN2=${q(login)} AND ORIGINAL_LOGIN() COLLATE Latin1_General_100_BIN2=${q(login)} AND IS_SRVROLEMEMBER(N'sysadmin')=0 AND HAS_PERMS_BY_NAME(DB_NAME(),N'DATABASE',N'CONTROL')=0 AND HAS_DBACCESS(N'MELISA_ERP_PROD_CANDIDATE_20260917_01')=0`;
+export const CUSTOMER_MASTER_METADATA_IDENTITY_SQL=`SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,ORIGINAL_LOGIN() originalLogin,IS_SRVROLEMEMBER(N'sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),N'DATABASE',N'CONTROL') databaseControl,HAS_DBACCESS(N'MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess;`;
+// Definitions are classified inside SQL; raw bodies/literals never cross the
+// driver boundary. Unrecognized but possibly equivalent syntax remains OTHER.
+const classification=alias=>'CASE WHEN '+alias+'.definition IS NULL THEN N\'UNAVAILABLE\' '+Object.entries(CUSTOMER_MASTER_KNOWN_CHECKS).map(([kind,values])=>'WHEN '+alias+'.definition COLLATE Latin1_General_100_BIN2 IN('+values.map(q).join(',')+') THEN '+q(kind)).join(' ')+' ELSE N\'OTHER\' END';
+export const CUSTOMER_MASTER_METADATA_SQL=`${CUSTOMER_MASTER_METADATA_IDENTITY_SQL}
+SELECT v.objectName,OBJECT_ID(v.objectName) objectId,CONVERT(varchar(2),o.type) objectType,
+ HAS_PERMS_BY_NAME(DB_NAME(),N'DATABASE',N'VIEW DEFINITION') databaseVisible,HAS_PERMS_BY_NAME(N'dbo',N'SCHEMA',N'VIEW DEFINITION') schemaVisible,HAS_PERMS_BY_NAME(v.objectName,N'OBJECT',N'VIEW DEFINITION') objectVisible,
+ (SELECT COUNT(*) FROM sys.columns c WHERE c.object_id=o.object_id) totalColumns,
+ CASE WHEN v.objectName=N'dbo.customers' THEN NULL ELSE (SELECT COUNT(*) FROM sys.default_constraints d WHERE d.parent_object_id=o.object_id) END totalDefaults,
+ CASE WHEN v.objectName=N'dbo.customers' THEN NULL ELSE (SELECT COUNT(*) FROM sys.check_constraints c WHERE c.parent_object_id=o.object_id) END totalChecks
+FROM ${objects} v(objectName) LEFT JOIN sys.objects o ON o.object_id=OBJECT_ID(v.objectName) WHERE ${gate};
+SELECT TOP(29) v.objectName,v.columnName,c.column_id columnId,TYPE_NAME(c.system_type_id) typeName,c.max_length maxLength,c.precision precision,c.scale scale,CONVERT(bit,c.is_nullable) nullable,CONVERT(bit,c.is_identity) identityColumn,CONVERT(bit,c.is_computed) computedColumn,CONVERT(bit,CASE WHEN c.user_type_id=c.system_type_id THEN 0 ELSE 1 END) aliasType,c.collation_name collation
+FROM ${columns} v(objectName,columnName) JOIN sys.columns c ON c.object_id=OBJECT_ID(v.objectName) AND c.name=v.columnName WHERE ${gate} ORDER BY v.objectName,c.column_id;
+SELECT TOP(129) v.objectName,i.index_id indexId,i.type indexType,CONVERT(bit,i.is_primary_key) primaryKey,CONVERT(bit,i.is_unique) uniqueIndex,CONVERT(bit,i.is_disabled) disabled,CONVERT(bit,i.has_filter) filtered,CONVERT(varchar(64),HASHBYTES('SHA2_256',i.filter_definition),2) filterHash,ic.index_column_id indexColumnId,ic.key_ordinal keyOrdinal,CONVERT(bit,ic.is_included_column) included,CONVERT(bit,ic.is_descending_key) descendingKey,
+ CASE WHEN EXISTS(SELECT 1 FROM ${columns} k(objectName,columnName) WHERE k.objectName=v.objectName AND k.columnName=COL_NAME(ic.object_id,ic.column_id)) THEN COL_NAME(ic.object_id,ic.column_id) ELSE N'OTHER_COLUMN' END columnName
+FROM ${objects} v(objectName) JOIN sys.indexes i ON i.object_id=OBJECT_ID(v.objectName) AND i.index_id>0 JOIN sys.index_columns ic ON ic.object_id=i.object_id AND ic.index_id=i.index_id
+WHERE (${gate}) AND(v.objectName<>N'dbo.customers' OR(i.is_unique=1 AND EXISTS(SELECT 1 FROM sys.index_columns k WHERE k.object_id=i.object_id AND k.index_id=i.index_id AND k.key_ordinal>0 AND COL_NAME(k.object_id,k.column_id)=N'id'))) ORDER BY v.objectName,i.index_id,ic.index_column_id;
+SELECT TOP(33) v.objectName,f.object_id foreignKeyId,k.constraint_column_id ordinal,
+ CASE WHEN EXISTS(SELECT 1 FROM ${columns} c(objectName,columnName) WHERE c.objectName=v.objectName AND c.columnName=COL_NAME(k.parent_object_id,k.parent_column_id)) THEN COL_NAME(k.parent_object_id,k.parent_column_id) ELSE N'OTHER_COLUMN' END columnName,
+ CASE ${CUSTOMER_MASTER_METADATA_OBJECTS.map(name=>`WHEN k.referenced_object_id=OBJECT_ID(${q(name)}) THEN ${q(name)}`).join(' ')} ELSE N'OTHER_OBJECT' END referencedObject,
+ CASE WHEN EXISTS(SELECT 1 FROM ${columns} c(objectName,columnName) WHERE OBJECT_ID(c.objectName)=k.referenced_object_id AND c.columnName=COL_NAME(k.referenced_object_id,k.referenced_column_id)) THEN COL_NAME(k.referenced_object_id,k.referenced_column_id) ELSE N'OTHER_COLUMN' END referencedColumn,
+ CONVERT(bit,f.is_disabled) disabled,CONVERT(bit,f.is_not_trusted) notTrusted,f.delete_referential_action deleteAction,f.update_referential_action updateAction
+FROM ${objects} v(objectName) JOIN sys.foreign_keys f ON f.parent_object_id=OBJECT_ID(v.objectName) JOIN sys.foreign_key_columns k ON k.constraint_object_id=f.object_id WHERE v.objectName<>N'dbo.customers' AND ${gate} ORDER BY v.objectName,f.object_id,k.constraint_column_id;
+SELECT TOP(33) v.objectName,d.object_id constraintId,v.columnName,CONVERT(varchar(64),HASHBYTES('SHA2_256',d.definition),2) definitionHash,
+ CASE WHEN d.definition IS NULL THEN N'UNAVAILABLE' WHEN d.definition COLLATE Latin1_General_100_BIN2 IN(${CUSTOMER_MASTER_KNOWN_UTC_DEFAULTS.map(q).join(',')}) THEN N'UTC_NOW' ELSE N'OTHER' END kind
+FROM ${columns} v(objectName,columnName) JOIN sys.default_constraints d ON d.parent_object_id=OBJECT_ID(v.objectName) AND COL_NAME(d.parent_object_id,d.parent_column_id)=v.columnName WHERE v.objectName<>N'dbo.customers' AND ${gate} ORDER BY v.objectName,d.object_id;
+SELECT TOP(33) v.objectName,c.object_id constraintId,CONVERT(bit,c.is_disabled) disabled,CONVERT(bit,c.is_not_trusted) notTrusted,CONVERT(bit,c.uses_database_collation) usesDatabaseCollation,CONVERT(varchar(64),HASHBYTES('SHA2_256',c.definition),2) definitionHash,${classification('c')} kind
+FROM ${objects} v(objectName) JOIN sys.check_constraints c ON c.parent_object_id=OBJECT_ID(v.objectName) WHERE v.objectName<>N'dbo.customers' AND ${gate} ORDER BY v.objectName,c.object_id;
+SELECT TOP(97) v.objectName,CAST(NULL AS nvarchar(128)) columnName,p.permissionName,HAS_PERMS_BY_NAME(v.objectName,N'OBJECT',p.permissionName) permissionValue
+FROM ${objects} v(objectName) CROSS JOIN(VALUES(N'SELECT'),(N'INSERT'),(N'UPDATE'),(N'DELETE'),(N'VIEW DEFINITION'),(N'CONTROL')) p(permissionName) WHERE (${gate}) AND(v.objectName<>N'dbo.customers' OR p.permissionName IN(N'SELECT',N'VIEW DEFINITION'))
+UNION ALL
+SELECT v.objectName,v.columnName,p.permissionName,HAS_PERMS_BY_NAME(v.objectName,N'OBJECT',p.permissionName,v.columnName,N'COLUMN') permissionValue
+FROM ${columns} v(objectName,columnName) CROSS JOIN(VALUES(N'SELECT'),(N'UPDATE'),(N'REFERENCES')) p(permissionName) WHERE (${gate}) AND((v.objectName=N'dbo.customers' AND p.permissionName IN(N'SELECT',N'REFERENCES')) OR(v.objectName<>N'dbo.customers' AND p.permissionName IN(N'SELECT',N'UPDATE')));`;

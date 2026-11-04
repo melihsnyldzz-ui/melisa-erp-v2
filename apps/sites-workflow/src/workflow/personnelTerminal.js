@@ -5,6 +5,7 @@ import {createWorkSales} from './workSales.js';
 import {createWorkCount} from './workCount.js';
 import {createWorkSupplierReturns} from './workSupplierReturns.js';
 import {createCartonPacking} from './cartonPacking.js';
+import {isCleanCatalogLocation,cleanCatalogEnvironmentId} from './cleanSyntheticCatalogModel.mjs';
 import {compactTerminalHelp} from './terminalCompactHelp.mjs';
 import {moneyDisplay,catalogPath,catalogEnvelope,catalogMainPrice,catalogExact} from './workCatalogModel.mjs';
 import {createCatalogPhotoLoader,createCatalogThumbnailLoader} from './workCatalogPhoto.mjs';
@@ -57,7 +58,7 @@ function go(value,{initial=false}={}){
  if(!user){showLogin();return true;}
  if(route==='home')home();else if(route==='crm')openCrm();else if(route==='products'){controller=products();controller.mount();}else if(route==='packing'){
   const scoped=client(),base='/api/terminal-cartons/receipts';
-  controller=createCartonPacking({root,user,scopeKey:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount(); // gitleaks:allow -- fixed public TEST copy UUID; not a credential.
+  controller=createCartonPacking({root,user,scopeKey:isCleanCatalogLocation(location)?cleanCatalogEnvironmentId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82',storage:localStorage,readReceipts:()=>scoped.cartons(base),readReceipt:id=>scoped.cartons(base+'/'+id),saveCartons:(id,body)=>scoped.cartons(base+'/'+id,{method:'POST',body})});controller.mount(); // gitleaks:allow -- fixed public TEST copy UUID; not a credential.
  }else{
   const args={root,session:client(),user,storage:localStorage,navigate:go};
   controller=route==='goods'?createWorkReceiving(args):route==='sales'?createWorkSales(args):route==='count'?createWorkCount(args):createWorkSupplierReturns(args);
@@ -99,8 +100,13 @@ async function requestCrmLogout(){
  crmLogoutPending=true;storage.setItem('crmLogoutPending','true');
  await new Promise(resolve=>{logoutResolve=resolve;recoverCrmLogout();setTimeout(()=>{if(logoutResolve===resolve){logoutResolve=null;resolve();}},4000);});
 }
-function openCrm(){
+async function openCrm(){
  syncCrmHeight();requestAnimationFrame(syncCrmHeight);
+ if(/MelisaProtectedWork\/1/.test(navigator.userAgent)&&location.port==='5244'){
+  const starting=session,version=navigationVersion;frame.hidden=true;crm.dataset.ready='false';
+  try{await starting?.prepareCrm();if(!starting||session!==starting||version!==navigationVersion||route!=='crm')return;}
+  catch{if(session===starting&&version===navigationVersion){crmStatus.textContent='ERP oturumu şu anda doğrulanamıyor. Bağlantıyı kontrol edip yeniden deneyin.';frame.hidden=true;}return;}
+ }
  if(crmLogoutPending){frame.hidden=true;crm.dataset.ready='false';crmStatus.textContent='Önceki müşteri oturumunun kapanışı doğrulanıyor. ERP işlerinize devam edebilirsiniz.';recoverCrmLogout();return;}
  frame.hidden=false;
  if(!online()){crmStatus.textContent=terminalOfflineText;crm.dataset.ready='false';return;}

@@ -8,6 +8,7 @@ import path from 'node:path';
 import {randomBytes} from 'node:crypto';
 import * as sessions from './normalTestRefreshSession.mjs';
 import {matchesSemihTestUser,validateSemihTestIdentity} from './semihTestIdentityPolicy.mjs';
+import * as identityPolicy from './semihTestIdentityPolicy.mjs';
 const root=fs.mkdtempSync(path.join(os.tmpdir(),'semih-auth-proof-'));
 after(()=>fs.rmSync(root,{recursive:true,force:true}));
 let state,store;
@@ -29,7 +30,7 @@ mock.module('../config/database.js',{namedExports:{getSqlPool:async()=>({request
 mock.module('../config/isolatedOperationCopyRuntime.mjs',{namedExports:{isIsolatedOperationCopyRuntime:()=>true,getIsolatedOperationCopyConfig:()=>copy}});
 mock.module('./sharedCopyAuthClaims.mjs',{namedExports:{sharedCopyAuthClaims:()=>({database:copy.target.database,isolatedOperationCopy:copy.copyId})}});
 mock.module('./normalTestRefreshSession.mjs',{namedExports:{...sessions,configuredNormalTestRefreshStore:()=>store}});
-mock.module('./semihTestIdentityPolicy.mjs',{namedExports:{configuredSemihTestIdentity:()=>state.identity,matchesSemihTestUser,allowsProtectedNormalTestUser:user=>[15,16].includes(user.id)||matchesSemihTestUser(user,state.identity)}});
+mock.module('./semihTestIdentityPolicy.mjs',{namedExports:{...identityPolicy,configuredSemihTestIdentity:()=>state.identity,matchesSemihTestUser,allowsProtectedNormalTestUser:user=>[15,16].includes(user.id)||matchesSemihTestUser(user,state.identity)}});
 mock.module('./writeGuardService.js',{namedExports:{assertMelisaWriteEnabled:()=>{state.guardCalls++;throw Object.assign(Error('Writes disabled'),{code:'MELISA_WRITE_DISABLED'});}}});
 const auth=await import('./authService.js');
 beforeEach(async()=>{

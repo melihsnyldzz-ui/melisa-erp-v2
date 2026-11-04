@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {compareP03CriticalContent,p03CriticalContentDigest} from './p03-pr54-invariance-compare.mjs';
+const snapshot=database=>({database,tables:Array.from({length:51},(_,i)=>({table:'dbo.table'+i,count:i,sha256:'a'.repeat(64)})),memberships:[{roleName:'reader',memberName:'test'}],principals:[{name:'test',type:'U',sid:'1234'}],modules:[{schemaName:'dbo',name:'m',type:'P',sha256:'B'.repeat(64)}],permissions:[{principalName:'test',class:1,major_id:1,minor_id:0,permission_name:'SELECT',state:'G'}]});
+const pair=()=>[snapshot('MELISA_ERP_P03_PR54_PRE_20261018'),snapshot('MELISA_ERP_P03_PR54_POST_20261018')];
+test('same restored recovery-point content compares independently of metadata timing and row ordering',()=>{const [a,b]=pair();b.tables.reverse();b.capturedAt='later';assert.equal(compareP03CriticalContent(a,b).pass,true);});
+test('row value change with equal row counts is detected',()=>{const [a,b]=pair();b.tables[7].sha256='c'.repeat(64);assert.equal(compareP03CriticalContent(a,b).pass,false);});
+test('permission or SQL module changes are detected',()=>{for(const key of ['modules','permissions','memberships','principals']){const [a,b]=pair();b[key].push({...b[key][0],name:'different'});assert.equal(compareP03CriticalContent(a,b).pass,false);}});
+test('missing and duplicate table coverage is rejected',()=>{const [a]=pair();a.tables.pop();assert.throws(()=>p03CriticalContentDigest(a),/COVERAGE/);a.tables.push(a.tables[0]);assert.throws(()=>p03CriticalContentDigest(a),/TABLES/);});
+test('shared source or another clone cannot masquerade as either recovery point',()=>{const [a,b]=pair();a.database='MELISA_ERP_CRM_SHARED_TEST_20261009_02';assert.throws(()=>compareP03CriticalContent(a,b),/CLONE_SCOPE/);});

@@ -1,4 +1,6 @@
 import bcrypt from 'bcrypt';
+import {assertCleanPersonnelWrite,bindCleanPersonnelWrite,cleanPersonnelOptions} from './cleanPersonnelManagement.mjs';
+
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
@@ -78,6 +80,7 @@ function toEmployeeDto(row) {
     userRoleName: row.user_role_name || '',
     isActive: Boolean(row.is_active),
     canTerminalSale: row.can_terminal_sale === undefined ? true : Boolean(row.can_terminal_sale),
+    canTerminalPacking: row.can_terminal_packing === true,
     canChangeSalePrice: Boolean(row.can_change_sale_price),
     maxSaleDiscountPercent: Number(row.max_sale_discount_percent || 0),
     terminalCount: Number(row.terminal_count || 0),
@@ -104,6 +107,8 @@ export async function getPersonnelOverview() {
   const pool = await getSqlPool();
   await assertPersonnelSchema(pool);
   const restrictionSchemaReady = await hasPersonnelRestrictionSchema(pool);
+  const cleanPersonnel=await cleanPersonnelOptions(pool);
+  const packingTaskSupported=cleanPersonnel?.packingTaskSupported===true;
   const restrictionColumns = restrictionSchemaReady
     ? `e.can_terminal_sale,
        e.can_change_sale_price,
@@ -122,6 +127,7 @@ export async function getPersonnelOverview() {
         e.department,
         e.job_title,
         ${restrictionColumns}
+        ${packingTaskSupported?'e.can_terminal_packing,':''}
         e.user_id,
         u.username,
         u.role_id AS user_role_id,
@@ -180,6 +186,7 @@ export async function getPersonnelOverview() {
 
   return {
     restrictionSchemaReady,
+    ...(cleanPersonnel?{cleanPersonnel}:{}),
     employees: employeesResult.recordset.map(toEmployeeDto),
     users: usersResult.recordset.map((row) => ({
       id: Number(row.id),
@@ -201,6 +208,7 @@ export async function getPersonnelOverview() {
 }
 
 function normalizeEmployeePayload(payload = {}) {
+  if(Object.hasOwn(payload,'canTerminalPacking')&&typeof payload.canTerminalPacking!=='boolean')throw serviceError('PERSONNEL_PACKING_INVALID','Toplama görevi açık veya kapalı olmalıdır.');
   const employeeCode = trimText(payload.employeeCode, 50);
   const fullName = trimText(payload.fullName);
   const userId = payload.userId ? Number(payload.userId) : null;
@@ -227,6 +235,7 @@ function normalizeEmployeePayload(payload = {}) {
     jobTitle: trimText(payload.jobTitle, 100),
     userId,
     canTerminalSale: payload.canTerminalSale === undefined ? true : Boolean(payload.canTerminalSale),
+    ...(Object.hasOwn(payload,'canTerminalPacking')?{canTerminalPacking:payload.canTerminalPacking}:{}),
     canChangeSalePrice: Boolean(payload.canChangeSalePrice),
     maxSaleDiscountPercent,
     isActive: payload.isActive === undefined ? true : Boolean(payload.isActive),
@@ -234,7 +243,7 @@ function normalizeEmployeePayload(payload = {}) {
 }
 
 export async function createEmployee(payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'employee_create'))assertMelisaWriteEnabled();
   const employee = normalizeEmployeePayload(payload);
   const loginUsername = normalizeLoginUsername(payload.loginUsername);
   const loginPassword = normalizeLoginPassword(payload.loginPassword);
@@ -251,11 +260,13 @@ export async function createEmployee(payload = {}, actor = null) {
   const pool = await getSqlPool();
   await assertPersonnelSchema(pool);
   const restrictionSchemaReady = await hasPersonnelRestrictionSchema(pool);
+  if(Object.hasOwn(employee,'canTerminalPacking')&&(await cleanPersonnelOptions(pool))?.packingTaskSupported!==true)throw serviceError('PERSONNEL_PACKING_UNAVAILABLE','Kişisel toplama görevi henüz hazır değil.',503);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
 
   await transaction.begin();
   try {
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'employee_create',{...employee,loginUsername,loginPassword},null);
     let linkedUserId = employee.userId;
     if (loginUsername) {
       const roleResult = await new sqlDriver.Request(transaction)
@@ -272,13 +283,15 @@ export async function createEmployee(payload = {}, actor = null) {
         .input('loginRoleId', sql.BigInt, Number(terminalRole.id))
         .input('loginActorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
         .query(`
+          DECLARE @createdUser TABLE(id bigint);
           INSERT INTO dbo.users (
             username, password_hash, display_name, role_id, is_active, created_by, updated_by
           )
-          OUTPUT INSERTED.id
+          OUTPUT INSERTED.id INTO @createdUser(id)
           VALUES (
             @loginUsername, @loginPasswordHash, @loginDisplayName, @loginRoleId, 1, @loginActorId, @loginActorId
           );
+          SELECT id FROM @createdUser;
         `);
       linkedUserId = Number(userResult.recordset[0].id);
       await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -304,22 +317,27 @@ export async function createEmployee(payload = {}, actor = null) {
       .input('jobTitle', sql.NVarChar(100), employee.jobTitle || null)
       .input('userId', sql.BigInt, linkedUserId)
       .input('canTerminalSale', sql.Bit, employee.canTerminalSale)
+      .input('canTerminalPacking', sql.Bit, employee.canTerminalPacking??false)
       .input('canChangeSalePrice', sql.Bit, employee.canChangeSalePrice)
       .input('maxSaleDiscountPercent', sql.Decimal(5, 2), employee.maxSaleDiscountPercent)
       .input('isActive', sql.Bit, employee.isActive)
       .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @createdEmployee TABLE(id bigint);
         INSERT INTO dbo.employees (
           employee_code, full_name, phone, department, job_title, user_id,
           ${restrictionSchemaReady ? 'can_terminal_sale, can_change_sale_price, max_sale_discount_percent,' : ''}
+          ${Object.hasOwn(employee,'canTerminalPacking')?'can_terminal_packing,':''}
           is_active, created_by, updated_by
         )
-        OUTPUT INSERTED.id
+        OUTPUT INSERTED.id INTO @createdEmployee(id)
         VALUES (
           @employeeCode, @fullName, @phone, @department, @jobTitle, @userId,
           ${restrictionSchemaReady ? '@canTerminalSale, @canChangeSalePrice, @maxSaleDiscountPercent,' : ''}
+          ${Object.hasOwn(employee,'canTerminalPacking')?'@canTerminalPacking,':''}
           @isActive, @actorId, @actorId
         );
+        SELECT id FROM @createdEmployee;
       `);
     const employeeId = Number(result.recordset[0].id);
     await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -329,6 +347,7 @@ export async function createEmployee(payload = {}, actor = null) {
       afterSnapshot: { ...employee, userId: linkedUserId, loginAccountCreated: Boolean(loginUsername) },
       actor,
     });
+    await finish();
     await transaction.commit();
     return getPersonnelOverview();
   } catch (error) {
@@ -341,7 +360,7 @@ export async function createEmployee(payload = {}, actor = null) {
 }
 
 export async function updateEmployee(employeeId, payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'employee_update'))assertMelisaWriteEnabled();
   const id = Number(employeeId);
   if (!Number.isInteger(id) || id < 1) {
     throw serviceError('PERSONNEL_ID_INVALID', 'Employee id is invalid');
@@ -350,11 +369,13 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
   const pool = await getSqlPool();
   await assertPersonnelSchema(pool);
   const restrictionSchemaReady = await hasPersonnelRestrictionSchema(pool);
+  if(Object.hasOwn(employee,'canTerminalPacking')&&(await cleanPersonnelOptions(pool))?.packingTaskSupported!==true)throw serviceError('PERSONNEL_PACKING_UNAVAILABLE','Kişisel toplama görevi henüz hazır değil.',503);
   const sqlDriver = getSqlDriver();
   const transaction = new sqlDriver.Transaction(pool);
 
   await transaction.begin();
   try {
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'employee_update',employee,id);
     const beforeResult = await new sqlDriver.Request(transaction)
       .input('beforeId', sql.BigInt, id)
       .query('SELECT TOP (1) * FROM dbo.employees WHERE id = @beforeId;');
@@ -371,6 +392,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
       .input('jobTitle', sql.NVarChar(100), employee.jobTitle || null)
       .input('userId', sql.BigInt, employee.userId)
       .input('canTerminalSale', sql.Bit, employee.canTerminalSale)
+      .input('canTerminalPacking', sql.Bit, employee.canTerminalPacking??false)
       .input('canChangeSalePrice', sql.Bit, employee.canChangeSalePrice)
       .input('maxSaleDiscountPercent', sql.Decimal(5, 2), employee.maxSaleDiscountPercent)
       .input('isActive', sql.Bit, employee.isActive)
@@ -386,6 +408,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
             ${restrictionSchemaReady ? `can_terminal_sale = @canTerminalSale,
             can_change_sale_price = @canChangeSalePrice,
             max_sale_discount_percent = @maxSaleDiscountPercent,` : ''}
+            ${Object.hasOwn(employee,'canTerminalPacking')?'can_terminal_packing = @canTerminalPacking,':''}
             is_active = @isActive,
             updated_at = SYSUTCDATETIME(),
             updated_by = @actorId
@@ -400,6 +423,7 @@ export async function updateEmployee(employeeId, payload = {}, actor = null) {
       afterSnapshot: employee,
       actor,
     });
+    await finish();
     await transaction.commit();
     return getPersonnelOverview();
   } catch (error) {

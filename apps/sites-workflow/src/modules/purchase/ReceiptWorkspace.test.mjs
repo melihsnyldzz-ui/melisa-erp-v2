@@ -72,6 +72,7 @@ test('actual TEST AppShell opens distinct count/notice/cheque tabs and opens onl
  assert.ok(nodes.some(n=>n.props.activeTab.id==='stock-count:100'));assert.ok(nodes.some(n=>n.props.activeTab.id==='collections-overview:cheque:77'));
  assert.ok(nodes.some(n=>n.props.activeTab.id==='collections-overview:notice:77'));assert.ok(nodes.some(n=>n.props.activeTab.screenId==='cash-bank-ledger'));assert.ok(!nodes.some(n=>n.props.activeTab.screenId==='auth-admin'));
  const ledger=workspace(true)({activeTab:{id:'cash-bank-ledger'},permissions:['finance.view']});assert.equal(ledger.type,'CashBankLedgerScreen');assert.equal(ledger.props.readOnly,true);assert.equal(ledger.props.commandPanel.type,'FinanceTransferForm');
- assert.equal(workspace(false)({activeTab:{id:'cash-bank-ledger'},permissions:['finance.view']}).props.readOnly,false);
+ assert.equal(workspace(false)({activeTab:{id:'cash-bank-ledger'},permissions:['finance.view']}).props.readOnly,true);
+ assert.equal(workspace(false)({activeTab:{id:'cash-bank-ledger'},permissions:['finance.view','finance.collection']}).props.readOnly,false);
 });
 

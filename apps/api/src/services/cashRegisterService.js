@@ -2,6 +2,7 @@ import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {assertCleanCashRegisterTransaction} from './cleanStoreDayScope.mjs';
 
 const CURRENCIES = ['TRY', 'USD', 'EUR'];
 
@@ -199,14 +200,16 @@ async function createAdjustment(transaction, sqlDriver, {
     .input('adjustmentReason', sqlDriver.NVarChar(500), reason)
     .input('adjustmentCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
     .query(`
+      DECLARE @created TABLE (id bigint NOT NULL);
       INSERT INTO dbo.cash_adjustments (
         session_id, currency_code, adjustment_kind, direction, amount, reason, created_by
       )
-      OUTPUT inserted.id
+      OUTPUT inserted.id INTO @created(id)
       VALUES (
         @adjustmentSessionId, @adjustmentCurrency, @adjustmentKind,
         @adjustmentDirection, @adjustmentAmount, @adjustmentReason, @adjustmentCreatedBy
       );
+      SELECT id FROM @created;
     `);
   const adjustmentId = Number(result.recordset[0].id);
   await insertFinanceMovement(new sqlDriver.Request(transaction), {
@@ -245,14 +248,16 @@ async function createTransfer(transaction, sqlDriver, {
     .input('transferDescription', sqlDriver.NVarChar(500), description || null)
     .input('transferCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
     .query(`
+      DECLARE @created TABLE (id bigint NOT NULL);
       INSERT INTO dbo.cash_transfers (
         session_id, currency_code, transfer_direction, amount, description, created_by
       )
-      OUTPUT inserted.id
+      OUTPUT inserted.id INTO @created(id)
       VALUES (
         @transferSessionId, @transferCurrency, @transferDirection,
         @transferAmount, @transferDescription, @transferCreatedBy
       );
+      SELECT id FROM @created;
     `);
   const transferId = Number(transferResult.recordset[0].id);
   const mainToDrawer = direction === 'main_to_drawer';
@@ -319,8 +324,8 @@ async function getSessionExpectedAmounts(request, sessionId) {
   return new Map((result.recordset || []).map((row) => [row.currency_code, Number(row.expected_amount || 0)]));
 }
 
-export async function listExpenseCategories({ includePassive = false } = {}) {
-  const pool = await getSqlPool();
+export async function listExpenseCategories({ includePassive = false } = {}, context) {
+  const pool = context?.pool ?? await getSqlPool();
   await assertCashRegisterSchema(pool);
   const result = await pool.request()
     .input('includePassive', sql.Bit, includePassive ? 1 : 0)
@@ -333,10 +338,10 @@ export async function listExpenseCategories({ includePassive = false } = {}) {
   return (result.recordset || []).map(mapCategory);
 }
 
-export async function getCashRegisterOverview(query = {}) {
+export async function getCashRegisterOverview(query = {}, context) {
   const businessDate = normalizeDate(query.businessDate);
   const requestedDrawerId = Number(query.drawerId || 0);
-  const pool = await getSqlPool();
+  const pool = context?.pool ?? await getSqlPool();
   await assertCashRegisterSchema(pool);
 
   const drawersResult = await pool.request().query(`
@@ -346,7 +351,7 @@ export async function getCashRegisterOverview(query = {}) {
   const drawerId = Number.isInteger(requestedDrawerId) && requestedDrawerId > 0
     ? requestedDrawerId
     : drawers[0]?.id;
-  const categories = await listExpenseCategories();
+  const categories = await listExpenseCategories({}, context);
   if (!drawerId) return { drawers, categories, session: null, currencies: [], movements: [] };
 
   const sessionResult = await pool.request()
@@ -431,6 +436,8 @@ export async function getCashRegisterOverview(query = {}) {
     const typeLabels = {
       collection: 'Nakit Tahsilat',
       payment: 'Nakit Ödeme',
+      collection_cancel: 'Tahsilat Geri Alındı',
+      payment_cancel: 'Ödeme Geri Alındı',
       expense: 'Masraf',
       cash_transfer: row.transfer_direction === 'main_to_drawer' ? 'Ana Kasadan Giriş' : 'Ana Kasaya Teslim',
       cash_adjustment: 'Kasa Fark Düzeltmesi',
@@ -471,7 +478,8 @@ export async function getCashRegisterOverview(query = {}) {
   };
 }
 
-export async function openCashSession(payload, actor) {
+export async function openCashSession(payload, actor, context) {
+  if(context)assertCleanCashRegisterTransaction(context,'cash_open',actor);
   assertMelisaWriteEnabled();
   const drawerId = Number(payload.drawerId);
   const businessDate = normalizeDate(payload.businessDate);
@@ -485,11 +493,11 @@ export async function openCashSession(payload, actor) {
     openingTransfer: normalizeAmount(payload.counts?.[currency]?.openingTransfer),
   }));
 
-  const pool = await getSqlPool();
+  const pool = context?.pool ?? await getSqlPool();
   await assertCashRegisterSchema(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
-  await transaction.begin();
+  const sqlDriver = context?.sqlDriver ?? getSqlDriver();
+  const transaction = context?.transaction ?? new sqlDriver.Transaction(pool);
+  if(!context)await transaction.begin();
   try {
     const accounts = await getDrawerAccounts(new sqlDriver.Request(transaction), drawerId);
     if (CURRENCIES.some((currency) => !accounts.has(currency))) {
@@ -513,9 +521,11 @@ export async function openCashSession(payload, actor) {
       .input('sessionOpeningNote', sqlDriver.NVarChar(500), openingNote || null)
       .input('sessionOpenedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @created TABLE (id bigint NOT NULL);
         INSERT INTO dbo.cash_sessions (drawer_id, business_date, opening_note, opened_by)
-        OUTPUT inserted.id
+        OUTPUT inserted.id INTO @created(id)
         VALUES (@sessionDrawerId, @sessionBusinessDate, @sessionOpeningNote, @sessionOpenedBy);
+        SELECT id FROM @created;
       `);
     const sessionId = Number(sessionInsert.recordset[0].id);
 
@@ -571,15 +581,16 @@ export async function openCashSession(payload, actor) {
       entityId: sessionId,
       afterSnapshot: { drawerId, businessDate, entries, openingNote },
     });
-    await transaction.commit();
-    return getCashRegisterOverview({ drawerId, businessDate });
+    if(!context)await transaction.commit();
+    return getCashRegisterOverview({ drawerId, businessDate },context);
   } catch (error) {
-    await transaction.rollback();
+    if(!context)await transaction.rollback();
     throw error;
   }
 }
 
-export async function createCashExpense(payload, actor) {
+export async function createCashExpense(payload, actor, context) {
+  if(context)assertCleanCashRegisterTransaction(context,'cash_expense',actor);
   assertMelisaWriteEnabled();
   const sessionId = Number(payload.sessionId);
   const categoryId = Number(payload.categoryId);
@@ -592,11 +603,11 @@ export async function createCashExpense(payload, actor) {
   }
   if (!description) throw makeServiceError('CASH_EXPENSE_DESCRIPTION_REQUIRED', 'Expense description is required');
 
-  const pool = await getSqlPool();
+  const pool = context?.pool ?? await getSqlPool();
   await assertCashRegisterSchema(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
-  await transaction.begin();
+  const sqlDriver = context?.sqlDriver ?? getSqlDriver();
+  const transaction = context?.transaction ?? new sqlDriver.Transaction(pool);
+  if(!context)await transaction.begin();
   try {
     const session = await new sqlDriver.Request(transaction)
       .input('expenseSessionId', sqlDriver.BigInt, sessionId)
@@ -624,16 +635,18 @@ export async function createCashExpense(payload, actor) {
       .input('insertExpenseDescription', sqlDriver.NVarChar(500), description)
       .input('insertExpenseCreatedBy', sqlDriver.BigInt, actor?.id ? Number(actor.id) : null)
       .query(`
+        DECLARE @created TABLE (id bigint NOT NULL);
         INSERT INTO dbo.cash_expenses (
           session_id, expense_category_id, currency_code, amount,
           document_no, description, created_by
         )
-        OUTPUT inserted.id
+        OUTPUT inserted.id INTO @created(id)
         VALUES (
           @insertExpenseSessionId, @insertExpenseCategoryId, @insertExpenseCurrency,
           @insertExpenseAmount, @insertExpenseDocumentNo, @insertExpenseDescription,
           @insertExpenseCreatedBy
         );
+        SELECT id FROM @created;
       `);
     const expenseId = Number(expenseInsert.recordset[0].id);
     await insertFinanceMovement(new sqlDriver.Request(transaction), {
@@ -656,15 +669,16 @@ export async function createCashExpense(payload, actor) {
       entityId: expenseId,
       afterSnapshot: { sessionId, categoryId, categoryName: row.category_name, currency, amount, documentNo, description },
     });
-    await transaction.commit();
+    if(!context)await transaction.commit();
     return { id: expenseId, sessionId, currency, amount, categoryName: row.category_name };
   } catch (error) {
-    await transaction.rollback();
+    if(!context)await transaction.rollback();
     throw error;
   }
 }
 
-export async function createCashTransfer(payload, actor) {
+export async function createCashTransfer(payload, actor, context) {
+  if(context)assertCleanCashRegisterTransaction(context,'cash_transfer',actor);
   assertMelisaWriteEnabled();
   const sessionId = Number(payload.sessionId);
   const currency = normalizeCurrency(payload.currency);
@@ -674,11 +688,11 @@ export async function createCashTransfer(payload, actor) {
   if (!['main_to_drawer', 'drawer_to_main'].includes(direction)) {
     throw makeServiceError('CASH_TRANSFER_DIRECTION_INVALID', 'Transfer direction is invalid');
   }
-  const pool = await getSqlPool();
+  const pool = context?.pool ?? await getSqlPool();
   await assertCashRegisterSchema(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
-  await transaction.begin();
+  const sqlDriver = context?.sqlDriver ?? getSqlDriver();
+  const transaction = context?.transaction ?? new sqlDriver.Transaction(pool);
+  if(!context)await transaction.begin();
   try {
     const session = await new sqlDriver.Request(transaction)
       .input('manualTransferSessionId', sqlDriver.BigInt, sessionId)
@@ -709,15 +723,16 @@ export async function createCashTransfer(payload, actor) {
       entityId: transferId,
       afterSnapshot: { sessionId, currency, direction, amount, description },
     });
-    await transaction.commit();
+    if(!context)await transaction.commit();
     return { id: transferId, sessionId, currency, direction, amount };
   } catch (error) {
-    await transaction.rollback();
+    if(!context)await transaction.rollback();
     throw error;
   }
 }
 
-export async function closeCashSession(payload, actor) {
+export async function closeCashSession(payload, actor, context) {
+  if(context)assertCleanCashRegisterTransaction(context,'cash_close',actor);
   assertMelisaWriteEnabled();
   const sessionId = Number(payload.sessionId);
   const closingNote = trimText(payload.closingNote);
@@ -733,11 +748,11 @@ export async function closeCashSession(payload, actor) {
     throw makeServiceError('CASH_REGISTER_CARRY_INVALID', 'Carry forward cannot exceed physical closing amount');
   }
 
-  const pool = await getSqlPool();
+  const pool = context?.pool ?? await getSqlPool();
   await assertCashRegisterSchema(pool);
-  const sqlDriver = getSqlDriver();
-  const transaction = new sqlDriver.Transaction(pool);
-  await transaction.begin();
+  const sqlDriver = context?.sqlDriver ?? getSqlDriver();
+  const transaction = context?.transaction ?? new sqlDriver.Transaction(pool);
+  if(!context)await transaction.begin();
   try {
     const sessionResult = await new sqlDriver.Request(transaction)
       .input('closeSessionId', sqlDriver.BigInt, sessionId)
@@ -822,10 +837,10 @@ export async function closeCashSession(payload, actor) {
       entityId: sessionId,
       afterSnapshot: { differences, closingNote },
     });
-    await transaction.commit();
-    return getCashRegisterOverview({ drawerId: Number(session.drawer_id), businessDate: normalizeDate(session.business_date) });
+    if(!context)await transaction.commit();
+    return getCashRegisterOverview({ drawerId: Number(session.drawer_id), businessDate: normalizeDate(session.business_date) },context);
   } catch (error) {
-    await transaction.rollback();
+    if(!context)await transaction.rollback();
     throw error;
   }
 }

@@ -33,7 +33,9 @@ async function collect({nativeTransaction=false,isolatedCopy=false,cashCustomer=
  }
  const sqlDriver={Request},sql={BigInt:0,Decimal:()=>0,NVarChar:()=>0,Date:0};
  const sandbox={transaction,sqlDriver,sql,nativeTransaction,invoiceId:31,actor:{id:'16'},beforeSnapshot:{customerId:21,customerCode:'CASH-TRY',documentNo:'SALE-31',grandTotal:amount,documentCurrency:'TRY',documentDate:'2026-10-09'},settlement:{accountAmount:amount},isIsolatedOperationCopyRuntime:()=>isolatedCopy,isCashCustomerCode:()=>cashCustomer,resolveFinanceAccount:async(tx,driver,args)=>{assert.equal(tx,transaction);assert.equal(driver,sqlDriver);assert.equal(args.currency,'TRY');return{id:41};},writeMovementCurrencySnapshot:async(req,kind,id,snapshot,effect)=>{assert(req instanceof Request);snapshotCalls.push({kind,id,snapshot,effect});},writeFinanceAccountMovement:async(tx,driver,args)=>{assert.equal(tx,transaction);assert.equal(driver,sqlDriver);financeCalls.push(args);return{id:41,code:'CASH-41'};}};
- vm.createContext(sandbox);vm.runInContext('globalThis.run=async()=>{'+productionBlock+'return autoCashCollection;}',sandbox);
+ // Actor 16 has no registered selected-sale scope in these fixtures, so the
+ // enclosing native finalize branch supplies selectedSale=null.
+ vm.createContext(sandbox);vm.runInContext('globalThis.run=async()=>{const selectedSale=null;'+productionBlock+'return autoCashCollection;}',sandbox);
  return {result:await sandbox.run(),queries,snapshotCalls,financeCalls,inserted};
 }
 

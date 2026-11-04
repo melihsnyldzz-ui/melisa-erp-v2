@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 
 function context(drafts=[]){return {party:{name:'TEST tedarikçi'},availablePurchaseSources:[{id:139,document_no:'TSTB-PAY',status:'finalized',document_currency:'USD',supplierName:'TEST tedarikçi',supplierBalance:140,supplierCurrency:'TRY',items:[{id:701,stock_code:'TEST-V70-GOODS-P',product_name:'Ayrılmış TEST ürünü',quantity:5,line_total:350,returnableQuantity:5,pendingQuantity:0,returnedQuantity:0,current_stock_qty:7}]}],drafts};}
-async function controller(){let source=await readFile(new URL('./workSupplierReturns.js',import.meta.url),'utf8');source=source.replace("import './workSupplierReturns.css';",'');for(const file of ['testDailyPurchaseModel.js','workTradeModel.mjs','supplierReturnJournal.mjs'])source=source.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));}
+async function controller(){let source=await readFile(new URL('./workSupplierReturns.js',import.meta.url),'utf8');source=source.replace("import './workSupplierReturns.css';",'');for(const file of ['testDailyPurchaseModel.js','workTradeModel.mjs','supplierReturnJournal.mjs','workDailyCopyModel.mjs'])source=source.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));return import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));}
 function dom(){let html='';const root={isConnected:true,get innerHTML(){return html;},set innerHTML(v){html=v;},querySelector(){return {addEventListener(){},setAttribute(){}};},querySelectorAll(){return [];}};return root;}
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 

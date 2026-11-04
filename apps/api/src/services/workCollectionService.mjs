@@ -1,5 +1,6 @@
 import {workActor,workDate,workExact,workFail,workHash,workId,workKeys,workReason,workRequestId,workRevision,workScaled,workBusinessCurrencyRate} from './workSalesModel.mjs';
 import {isolatedCopyOperationDTOContext,ISOLATED_COPY_ORIGIN,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
+import {cleanFinanceFxCollectionCase} from './cleanFinanceRehearsalModel.mjs';
 async function defaultStore(){return (await import('./workTradeStore.mjs')).workTradeStore;}
 function selection(input){workKeys(input,['invoiceId','accountId','amountExact4','documentDate']);const amount=workScaled(input.amountExact4,4);if(amount<=0n)workFail('WORK_AMOUNT_INVALID','Pozitif tahsilat tutarı gerekli.');return {invoiceId:workId(input.invoiceId),accountId:workId(input.accountId),amountExact4:input.amountExact4,documentDate:workDate(input.documentDate)};}
 const capability=(c,key)=>{if(c.context.capabilities?.[key]!==true)workFail('WORK_FORBIDDEN','Bu işlem için yetkiniz bulunmuyor.',403);};
@@ -7,12 +8,13 @@ async function preview(c,input){
  const s=selection(input),invoice=await c.invoice(s.invoiceId),account=c.context.scope.accounts.find(row=>row.id===s.accountId);
  if(s.documentDate!==c.context.meta?.date)workFail('WORK_DATE_SCOPE','Bu işlem için geçerli günün tarihi gerekli.',409);
  const copy=isolatedCopyOperationDTOContext(c.context),business=copy?.target.database===BUSINESS_COPY_DATABASE,eligible=copy?account?.synthetic===false&&account.operationOrigin===ISOLATED_COPY_ORIGIN&&copy.financeAccounts.some(a=>a.id===account.id&&a.currency===invoice.currency):account?.synthetic===true;
- if(invoice.status!=='finalized'||!(business?['TRY','USD','EUR'].includes(invoice.currency):invoice.currency==='TRY')||!account||account.currency!==invoice.currency||!eligible)workFail('WORK_COLLECTION_SCOPE','Satış veya tahsilat hesabı uygun değil.',409);
+ const fx=cleanFinanceFxCollectionCase(invoice,account);
+ if(invoice.status!=='finalized'||!(business||fx?['TRY','USD','EUR'].includes(invoice.currency):invoice.currency==='TRY')||!account||account.currency!==invoice.currency||!eligible)workFail('WORK_COLLECTION_SCOPE','Satış veya tahsilat hesabı uygun değil.',409);
  if(business){const customer=c.context.scope.customer,witnesses=copy.customers.filter(p=>p.id===invoice.customerId&&p.currency===invoice.currency);if(witnesses.length!==1||customer.id!==invoice.customerId||customer.accountId!==witnesses[0].accountId||customer.partyId!==witnesses[0].partyId||customer.currency!==invoice.currency)workFail('WORK_COLLECTION_SCOPE','Satışın döviz hesabı doğrulanamadı.',409);}
  const amount=workScaled(s.amountExact4,4),outstanding=workScaled(invoice.collections.outstandingExact4,4),received=workScaled(invoice.collections.receivedExact4,4);
  if(amount>outstanding)workFail('WORK_COLLECTION_EXCESS','Tahsilat tutarı kalan satış tutarını aşıyor.',409);
- const rate=business?workBusinessCurrencyRate(copy,invoice.currency):null;
- const value={selection:s,revision:workRevision(invoice.collections.revision),currency:invoice.currency,amountExact4:s.amountExact4,receivedAfterExact4:workExact(received+amount,4),outstandingAfterExact4:workExact(outstanding-amount,4),...(business?{settlement:{documentCurrency:invoice.currency,accountCurrency:invoice.currency,documentRateExact8:rate.rateExact8,accountRateExact8:rate.rateExact8,amountTryExact4:workExact((amount*workScaled(rate.rateExact8,8)+50000000n)/100000000n,4),rateSource:rate}}:{})};
+ const rate=business?workBusinessCurrencyRate(copy,invoice.currency):fx?{currency:fx.currency,date:fx.date,rateExact8:fx.rateExact8,source:'explicit-synthetic-B4-input'}:null;
+ const value={selection:s,revision:workRevision(invoice.collections.revision),currency:invoice.currency,amountExact4:s.amountExact4,receivedAfterExact4:workExact(received+amount,4),outstandingAfterExact4:workExact(outstanding-amount,4),...(business||fx?{settlement:{documentCurrency:invoice.currency,accountCurrency:invoice.currency,documentRateExact8:rate.rateExact8,accountRateExact8:rate.rateExact8,amountTryExact4:workExact((amount*workScaled(rate.rateExact8,8)+50000000n)/100000000n,4),rateSource:rate}}:{})};
  return {...value,previewHash:workHash(value)};
 }
 export function createWorkCollectionService({getStore=defaultStore}={}){return {

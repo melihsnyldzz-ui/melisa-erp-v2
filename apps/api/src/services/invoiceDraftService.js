@@ -8,6 +8,8 @@ import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { parseOptionalQueryId } from './queryIdentityFilters.mjs';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {isCleanStoreDayMutation,assertCleanPurchaseSupplierItems} from './cleanStoreDayScope.mjs';
+import {cleanDirectSaleActorId} from './cleanOrderSaleScope.mjs';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { ensureCashCustomers, getCashCustomerCurrency, isCashCustomerCode } from './customerService.js';
 import { ensureFinanceAccountTables, resolveFinanceAccount, writeFinanceAccountMovement } from './financeService.js';
@@ -25,10 +27,21 @@ import {getBusinessInboundSelection} from '../middleware/businessInboundSelectio
 import {getBusinessDailySelection} from './isolatedOperationCopyContext.mjs';
 import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScope.mjs';
 import {assertSelectedSaleCashlessCancellation} from './selectedSaleCashlessCancellation.mjs';
+import {getCanonicalBusinessSaleTransaction,getCanonicalBusinessSession} from './canonicalBusinessSessionContext.mjs';
+import {postNativeCurrencyAccount} from './nativeCurrencyAccount.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
 function businessInvoiceSelection(transaction,kind,partyId,currency){
+ if(kind==='sales'){
+  const proof=getCanonicalBusinessSaleTransaction(transaction);
+  if(proof){
+   if(proof.database!=='MELISA_ERP_SIRKET_TEST_20260929_01'||proof.server!=='Semih\\MELISADEV'||proof.actorId!=='17'||!Object.isFrozen(proof)||(partyId!==null&&String(partyId)!==proof.customerId)||currency!==proof.currency||!['TRY','USD','EUR'].includes(currency)||!/^\d+\.\d{8}$/.test(proof.rateExact8)||Number(proof.rateExact8)<=0||(currency==='TRY'&&proof.rateExact8!=='1.00000000')||!/^\d+\.\d{4}$/.test(proof.grandTotalExact4)||Number(proof.grandTotalExact4)<=0||!Array.isArray(proof.products)||proof.products.length<1||proof.products.length>200)throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satışın native hesap kapsamı doğrulanamadı.',409);
+   const account=Object.freeze({id:proof.customerId,partyId:proof.partyEntityId,accountId:proof.accountId,currency:proof.currency});
+   const scope=Object.freeze({...proof,customerAccountId:proof.accountId,partyId:proof.partyEntityId,productIds:Object.freeze(proof.products.map(p=>p.productId)),maxInvoiceAmountExact4:proof.grandTotalExact4});
+   return {canonical:proof,account,scope,role:'customer',rate:Number(proof.rateExact8),currency,maxAmount:Number(proof.grandTotalExact4)};
+  }
+ }
  if(!isIsolatedOperationCopyRuntime()||getIsolatedOperationCopyConfig()?.target.database!==BUSINESS_COPY_DATABASE)return null;
  if(kind==='sales'){
   const copy=isolatedCopyTransactionContext(transaction),scope=getBusinessSelectedSaleWriteScope(copy,transaction);
@@ -53,6 +66,23 @@ async function assertBusinessInvoiceAccount(sqlDriver,transaction,binding){
 }
 
 function assertSelectedSaleInvocation(transaction,operation,actor,invoiceId,invoice){
+ {
+  const proof=getCanonicalBusinessSaleTransaction(transaction,{operation,actorId:String(actor?.id),invoiceId:invoiceId===null?null:String(invoiceId)});
+  if(proof||String(actor?.id)==='17'&&getCanonicalBusinessSession()){
+   if(!proof)throw makeServiceError('CANONICAL_SALE_TRANSACTION_REQUIRED','Satış için doğrulanmış native işlem gerekli.',409);
+   const binding=businessInvoiceSelection(transaction,'sales',invoice.customerId,invoice.accountCurrency??invoice.customerCurrency);
+   const exact=(value,places,expected)=>typeof value==='number'&&Number.isFinite(value)&&value.toFixed(places)===expected;
+   if(!binding?.canonical||binding.canonical!==proof||proof.operation!==operation||proof.actorId!==String(actor?.id)||proof.invoiceId!==(invoiceId===null?null:String(invoiceId))||invoice.documentCurrency!==proof.currency||!exact(invoice.grandTotal??invoice.documentAmount,4,proof.grandTotalExact4)||!exact(invoice.amountTry,4,proof.amountTryExact4)||!exact(invoice.exchangeRate??invoice.documentRateToTry,8,proof.rateExact8)||Number(invoice.discountRate??0)!==0||Number(invoice.discountTotal??0)!==0||!Array.isArray(invoice.items)||invoice.items.length!==proof.products.length||new Set(invoice.items.map(p=>String(p.productId))).size!==invoice.items.length)throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış görüntüsü native seçimle uyuşmuyor.',409);
+   for(let index=0;index<proof.products.length;index++){
+    const p=proof.products[index],item=invoice.items[index];
+    if(String(item.productId)!==p.productId||item.currency!==proof.currency||item.stockCode!==p.stockCode||typeof p.stockCode!=='string'||p.stockCode.length>50||typeof p.name!=='string'||!p.name.trim()||p.name.length>250||(p.barcode!==null&&(typeof p.barcode!=='string'||p.barcode.length>80))||!exact(Number(item.quantity),3,p.quantityExact3)||!Number.isSafeInteger(Number(item.quantity))||Number(item.quantity)<=0||!exact(Number(item.unitPrice),4,p.unitPriceExact4)||!exact(Number(item.lineTotal),4,p.lineTotalExact4)||p.unit!=='ADET'||p.factorExact8!=='1.00000000'||!/^\d+\.\d{4}$/.test(p.averageCostTryExact4))throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış satırı native seçimle uyuşmuyor.',409);
+    if(operation==='sale_draft'&&(!exact(Number(item.averageCostTry),4,p.averageCostTryExact4)||item.productName?.trim()!==p.name?.trim()||(item.barcode||null)!==p.barcode))throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış kaynak görüntüsü uyuşmuyor.',409);
+    if(operation!=='sale_draft'&&((item.productName??item.name)!==p.name||(item.barcode||null)!==p.barcode||item.averageCostTry===null||!exact(Number(item.averageCostTry),4,p.averageCostTryExact4)))throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Kayıtlı satış kaynak görüntüsü uyuşmuyor.',409);
+    if(operation==='sale_finalize'&&(item.currentStockQty===null||!Number.isFinite(Number(item.currentStockQty))||Number(item.currentStockQty)<Number(item.quantity)))throw makeServiceError('CANONICAL_SALE_STOCK_REQUIRED','Satış için yeterli doğrulanmış stok gerekli.',409);
+   }
+   return binding;
+  }
+ }
  if(!isIsolatedOperationCopyRuntime()||getIsolatedOperationCopyConfig()?.target.database!==BUSINESS_COPY_DATABASE)return null;
  const copy=isolatedCopyTransactionContext(transaction),scope=getBusinessSelectedSaleWriteScope(copy,transaction);
  if(!scope)return null;
@@ -63,6 +93,11 @@ function assertSelectedSaleInvocation(transaction,operation,actor,invoiceId,invo
 
 function preserveSelectedSourceSalesNames(payload,draft,selectedSale){
  if(!selectedSale)return;
+ if(selectedSale.canonical){
+  const proof=selectedSale.canonical;
+  if(payload?.items?.length!==proof.products.length)throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış kaynak satırları uyuşmuyor.',409);
+  proof.products.forEach((p,index)=>{if(payload.items[index].productName!==p.name||String(payload.items[index].productId)!==p.productId)throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış kaynak adı uyuşmuyor.',409);draft.items[index].productName=p.name;});return;
+ }
  const {copy,scope}=selectedSale;
  if(!Array.isArray(payload?.items)||payload.items.length!==draft.items.length)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
  const names=payload.items.map((item,index)=>{
@@ -85,7 +120,7 @@ function selectedSourceSalesItemsJSON(items,selectedSale){
 }
 
 async function insertSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,items,selectedSale){
- if(!selectedSale||isolatedCopyTransactionContext(transaction)!==selectedSale.copy||getBusinessSelectedSaleWriteScope(selectedSale.copy,transaction)!==selectedSale.scope)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
+ if(!selectedSale||(selectedSale.canonical?getCanonicalBusinessSaleTransaction(transaction,{operation:'sale_draft',actorId:'17',invoiceId:null})!==selectedSale.canonical:isolatedCopyTransactionContext(transaction)!==selectedSale.copy||getBusinessSelectedSaleWriteScope(selectedSale.copy,transaction)!==selectedSale.scope))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış işlem kapsamı uyuşmuyor.',409);
  const itemsJSON=selectedSourceSalesItemsJSON(items,selectedSale);
  await new sqlDriver.Request(transaction).input('invoiceId',sql.BigInt,invoiceId).input('selectedItemsJSON',sql.NVarChar(sql.MAX),itemsJSON).query(`
   INSERT INTO dbo.sales_invoice_items (sales_invoice_id,product_id,stock_code_snapshot,barcode_snapshot,product_name_snapshot,quantity,currency_code,unit_price,line_total,average_cost_try_snapshot,stock_status_snapshot,note)
@@ -105,7 +140,7 @@ function canonicalNativeBigIntId(value){
 
 async function finalizeSelectedSourceSalesItems(sqlDriver,transaction,invoiceId,before,rows,selectedSale,actorId){
  const scope=selectedSale?.scope;
- if(!scope||scope.operation!=='sale_finalize'||scope.invoiceId!==String(invoiceId)||scope.actorId!==String(actorId)||isolatedCopyTransactionContext(transaction)!==selectedSale.copy||getBusinessSelectedSaleWriteScope(selectedSale.copy,transaction)!==scope||rows.length<2||rows.length>200||rows.length!==before.items.length||rows.length!==scope.productIds.length||new Set(rows.map(r=>canonicalNativeBigIntId(r.productId))).size!==rows.length||new Set(rows.map(r=>canonicalNativeBigIntId(r.itemId))).size!==rows.length)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış kesinleştirme kapsamı uyuşmuyor.',409);
+ if(!scope||scope.operation!=='sale_finalize'||scope.invoiceId!==String(invoiceId)||scope.actorId!==String(actorId)||(selectedSale.canonical?getCanonicalBusinessSaleTransaction(transaction,{operation:'sale_finalize',actorId:String(actorId),invoiceId:String(invoiceId)})!==selectedSale.canonical:isolatedCopyTransactionContext(transaction)!==selectedSale.copy||getBusinessSelectedSaleWriteScope(selectedSale.copy,transaction)!==scope)||rows.length<2||rows.length>200||rows.length!==before.items.length||rows.length!==scope.productIds.length||new Set(rows.map(r=>canonicalNativeBigIntId(r.productId))).size!==rows.length||new Set(rows.map(r=>canonicalNativeBigIntId(r.itemId))).size!==rows.length)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satış kesinleştirme kapsamı uyuşmuyor.',409);
  const decimal=(value,precision,nullable=false)=>{if(nullable&&value===null)return null;if(!Number.isFinite(value))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır görüntüsü doğrulanamadı.',409);const text=value.toFixed(precision);if(!new RegExp('^-?\\d{1,'+(18-precision)+'}\\.\\d{'+precision+'}$').test(text))throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır görüntüsü doğrulanamadı.',409);return text;};
  const payload=rows.map((r,index)=>{const original=before.items[index],itemId=canonicalNativeBigIntId(r.itemId),productId=canonicalNativeBigIntId(r.productId);if(canonicalNativeBigIntId(original.id)!==itemId||canonicalNativeBigIntId(original.productId)!==productId||!scope.productIds.includes(productId)||!Number.isSafeInteger(r.quantity)||r.quantity<=0||r.quantity!==Number(original.quantity)||r.currency!==scope.currency||r.currency!==original.currency)throw makeServiceError('ISOLATED_COPY_SELECTED_SALE_SCOPE','Seçili satır kimliği doğrulanamadı.',409);return {itemId,productId,quantity:decimal(r.quantity,3),unitPrice:decimal(r.unitPrice,4),currency:r.currency,averageCostTry:decimal(r.averageCostTrySnapshot,4,true),grossProfitTry:decimal(r.grossProfitTry,4,true),grossProfitRate:decimal(r.grossProfitRate,6,true),amountTry:decimal(r.salesAmountTry,4)};});
  const json=JSON.stringify(payload),request=()=>new sqlDriver.Request(transaction).input('invoiceId',sql.BigInt,invoiceId).input('selectedFinalizeJSON',sql.NVarChar(sql.MAX),json);
@@ -175,6 +210,7 @@ async function prepareInvoiceCurrency(sqlDriver, transaction, kind, draft, befor
       documentRateToTry: draft.exchangeRate, accountRateToTry: draft.accountExchangeRate, documentDate: draft.documentDate,
     });
   }
+  if(business?.canonical&&(Number(snapshot.documentAmount).toFixed(4)!==business.canonical.grandTotalExact4||Number(snapshot.accountAmount).toFixed(4)!==business.canonical.grandTotalExact4||Number(snapshot.amountTry).toFixed(4)!==business.canonical.amountTryExact4))throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış döviz görüntüsü native tutarla uyuşmuyor.',409);
   Object.assign(draft, { accountCurrency: snapshot.accountCurrency, accountAmount: snapshot.accountAmount, accountExchangeRate: snapshot.accountRateToTry, exchangeRate: snapshot.documentRateToTry, amountTry: snapshot.amountTry });
   return snapshot;
 }
@@ -229,6 +265,16 @@ export async function insertIsolatedCopyInvoiceMovement(sqlDriver,transaction,{k
 }
 
 export async function stampInvoiceMovement(sqlDriver, transaction, kind, invoiceId, movementType, snapshot, direction,actor=null) {
+ if(kind==='sales'){
+  const operation=movementType==='sales_invoice'&&direction===1?'sale_finalize':movementType==='sales_invoice_cancel'&&direction===-1?'sale_cancel':null;
+  const proof=getCanonicalBusinessSaleTransaction(transaction,{operation,actorId:String(actor?.id),invoiceId:String(invoiceId)});
+  if(proof||String(actor?.id)==='17'&&getCanonicalBusinessSession()){
+   if(!proof||!operation||snapshot.documentCurrency!==proof.currency||snapshot.accountCurrency!==proof.currency||Number(snapshot.documentRateToTry).toFixed(8)!==proof.rateExact8||Number(snapshot.accountRateToTry).toFixed(8)!==proof.rateExact8||Number(snapshot.documentAmount).toFixed(4)!==proof.grandTotalExact4||Number(snapshot.accountAmount).toFixed(4)!==proof.grandTotalExact4||Number(snapshot.amountTry).toFixed(4)!==proof.amountTryExact4)throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Satış hareket görüntüsü native kapsamla uyuşmuyor.',409);
+   const rows=(await new sqlDriver.Request(transaction).input('canonicalStampDatabase',sqlDriver.NVarChar(128),proof.database).input('canonicalStampSession',sqlDriver.Int,proof.sessionId).input('canonicalStampTransaction',sqlDriver.BigInt,proof.transactionId).input('canonicalStampInvoice',sqlDriver.BigInt,proof.invoiceId).input('canonicalStampCustomer',sqlDriver.BigInt,proof.customerId).input('canonicalStampActor',sqlDriver.BigInt,proof.actorId).input('canonicalStampType',sqlDriver.NVarChar(40),movementType).input('canonicalStampCurrency',sqlDriver.NVarChar(3),proof.currency).input('canonicalStampAmount',sqlDriver.Decimal(18,4),proof.grandTotalExact4).query(`SELECT CONVERT(varchar(20),m.id) id FROM dbo.customer_movements m WITH(UPDLOCK,HOLDLOCK) JOIN dbo.sales_invoices i ON i.id=m.sales_invoice_id WHERE DB_NAME()=@canonicalStampDatabase AND @@SPID=@canonicalStampSession AND CURRENT_TRANSACTION_ID()=@canonicalStampTransaction AND i.id=@canonicalStampInvoice AND i.customer_id=@canonicalStampCustomer AND i.document_currency=@canonicalStampCurrency AND m.sales_invoice_id=@canonicalStampInvoice AND m.customer_id=@canonicalStampCustomer AND m.created_by=@canonicalStampActor AND m.movement_type=@canonicalStampType AND m.currency_code=@canonicalStampCurrency AND m.amount=@canonicalStampAmount AND m.party_entity_id IS NULL AND m.party_currency_account_id IS NULL;`)).recordset;
+   if(rows?.length!==1)throw makeServiceError('CANONICAL_SALE_MOVEMENT_AMBIGUOUS','Satışın native hareketi tam doğrulanamadı.',409);
+   await writeMovementCurrencySnapshot(new sqlDriver.Request(transaction),'customer',rows[0].id,snapshot,direction*snapshot.accountAmount);return;
+  }
+ }
  if(isIsolatedOperationCopyRuntime()){
   const b=copyInvoiceMovementBinding(transaction,kind,invoiceId,movementType,snapshot,direction,actor);
   if(b.business){const r=await new sqlDriver.Request(transaction).input('businessStampCopy',sqlDriver.UniqueIdentifier,b.copy.copyId).input('businessStampActor',sqlDriver.BigInt,actor.id).input('businessStampInvoice',sqlDriver.BigInt,invoiceId).input('businessStampParty',sqlDriver.BigInt,b.partyId).input('businessStampAccount',sqlDriver.BigInt,b.business.account.accountId).input('businessStampOperation',sqlDriver.NVarChar(40),b.operation).input('businessStampType',sqlDriver.NVarChar(40),movementType).input('selectedSalePolicyHash',sqlDriver.NVarChar(64),b.business?.scope?.policyHash??null).input('selectedSaleRequestId',sqlDriver.NVarChar(100),b.business?.scope?.requestId??null).input('businessStampAmount',sqlDriver.Decimal(18,4),b.amount).input('businessStampEffect',sqlDriver.Decimal(18,4),b.effect).input('businessStampDate',sqlDriver.Date,b.copy.date).input('businessStampCurrency',sqlDriver.NVarChar(3),b.currency).input('businessStampRate',sqlDriver.Decimal(18,8),b.rate).input('businessStampTry',sqlDriver.Decimal(18,4),b.amountTry).query(`SELECT m.id FROM dbo.${b.table} m JOIN dbo.stage4_copy_intents n ON n.copy_id=@businessStampCopy AND n.session_id=@@SPID AND n.transaction_id=CURRENT_TRANSACTION_ID() AND n.actor_id=@businessStampActor AND n.operation=@businessStampOperation WHERE m.${b.foreignKey}=@businessStampInvoice AND m.${b.role}_id=@businessStampParty AND m.movement_type=@businessStampType AND m.created_by=@businessStampActor AND m.created_at>=n.created_at AND m.document_date=@businessStampDate AND m.currency_code=@businessStampCurrency AND m.account_currency=@businessStampCurrency AND m.amount=@businessStampAmount AND m.account_amount=@businessStampAmount AND m.amount_try=@businessStampTry AND m.balance_effect=@businessStampEffect AND m.document_exchange_rate_snapshot=@businessStampRate AND m.account_exchange_rate_snapshot=@businessStampRate AND JSON_VALUE(n.payload_json,'$.${b.role==='customer'?'businessCustomerId':'businessSupplierId'}')=CONVERT(nvarchar(20),@businessStampParty) AND JSON_VALUE(n.payload_json,'$.businessAccountId')=CONVERT(nvarchar(20),@businessStampAccount) AND JSON_VALUE(n.payload_json,'$.businessCurrency')=@businessStampCurrency ${b.business.scope?"AND JSON_VALUE(n.payload_json,'$.businessSelectedSalePolicyHash')=@selectedSalePolicyHash AND JSON_VALUE(n.payload_json,'$.requestId')=@selectedSaleRequestId":''};`);if(r.recordset?.length!==1)throw makeServiceError('INVOICE_MOVEMENT_SNAPSHOT_AMBIGUOUS','Fişin cari hareketi tam doğrulanamadı.',409);return;}
@@ -246,7 +292,7 @@ export async function stampInvoiceMovement(sqlDriver, transaction, kind, invoice
 
 async function assertInvoiceSettlementParty(sqlDriver, transaction, kind, invoice, settlement, { active = false } = {}) {
   const business=businessInvoiceSelection(transaction,kind,invoice[`${kind==='sales'?'customer':'supplier'}Id`],settlement.accountCurrency);
-  if(business){await assertBusinessInvoiceAccount(sqlDriver,transaction,business);if(settlement.documentCurrency!==business.currency||settlement.documentRateToTry!==business.rate||settlement.accountRateToTry!==business.rate)throw makeServiceError('ISOLATED_COPY_INVOICE_RATE_SCOPE','Kayıtlı aynı döviz ve TEST kur görüntüsü gerekli.',409);return;}
+  if(business){await assertBusinessInvoiceAccount(sqlDriver,transaction,business);if(settlement.documentCurrency!==business.currency||settlement.documentRateToTry!==business.rate||settlement.accountRateToTry!==business.rate)throw makeServiceError('ISOLATED_COPY_INVOICE_RATE_SCOPE','Kayıtlı aynı döviz ve TEST kur görüntüsü gerekli.',409);if(business.canonical&&(Number(settlement.documentAmount).toFixed(4)!==business.canonical.grandTotalExact4||Number(settlement.accountAmount).toFixed(4)!==business.canonical.grandTotalExact4||Number(settlement.amountTry).toFixed(4)!==business.canonical.amountTryExact4))throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Kayıtlı native satış tutarı uyuşmuyor.',409);return;}
   const party = kind === 'sales' ? 'customer' : 'supplier';
   const row = (await new sqlDriver.Request(transaction).input('settlementCurrentPartyId', sql.BigInt, invoice[`${party}Id`])
     .query(`SELECT currency_code, is_active, is_deleted FROM dbo.${party === 'customer' ? 'customers' : 'suppliers'} WITH(UPDLOCK,HOLDLOCK) WHERE id=@settlementCurrentPartyId;`)).recordset?.[0];
@@ -1550,6 +1596,7 @@ async function replaceFinalizedPurchaseEffects(sqlDriver, transaction, invoiceId
 }
 
 export async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items) {
+  if(isCleanStoreDayMutation()){await assertCleanPurchaseSupplierItems(sqlDriver,transaction,Number(supplierId),items);return;}
   const dailyWeb = isDailyWebRequest();
   const copy=isIsolatedOperationCopyRuntime()?isolatedCopyTransactionContext(transaction):null;
   if(copy&&(copy!==getIsolatedOperationCopyConfig()||!copy.suppliers.some(s=>s.id===String(supplierId)&&(copy.target.database===BUSINESS_COPY_DATABASE?s.accountId===getBusinessInboundSelection(copy)?.accountId:s.currency==='TRY'))||!items.length||items.some(i=>!copy.products.some(p=>p.id===String(i.productId)))))throw makeServiceError('PURCHASE_PRODUCT_SUPPLIER_MISMATCH','Mal kabulün ürün veya tedarikçi kapsamı değişti.',409);
@@ -1844,6 +1891,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_draft',actor,null,draft);
+    const directActor=cleanDirectSaleActorId(transaction,'sale_draft',actor),initialSettlement=!!selectedSale||directActor!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
     else await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
     preserveSelectedSourceSalesNames(payload,draft,selectedSale);
@@ -1862,7 +1910,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       .input('initialSalesAccountCurrency',sql.NVarChar(3),settlement.accountCurrency)
       .input('initialSalesAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
       .input('initialSalesAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
-      .input('initialSalesActor',sql.BigInt,selectedSale?selectedSale.scope.actorId:null)
+      .input('initialSalesActor',sql.BigInt,selectedSale?selectedSale.scope.actorId:directActor)
       .input('exchangeRate', sql.Decimal(18, 8), draft.exchangeRate)
       .input('description', sql.NVarChar(500), draft.description || null)
       .input('subtotal', sql.Decimal(18, 4), draft.subtotal)
@@ -1882,7 +1930,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           customer_currency,
           document_currency,
           exchange_rate_snapshot,
-          ${selectedSale ? 'account_currency, account_amount, account_exchange_rate_snapshot,' : ''}
+          ${initialSettlement ? 'account_currency, account_amount, account_exchange_rate_snapshot,' : ''}
           description,
           subtotal,
           discount_rate,
@@ -1903,7 +1951,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @customerCurrency,
           @documentCurrency,
           @exchangeRate,
-          ${selectedSale ? '@initialSalesAccountCurrency, @initialSalesAccountAmount, @initialSalesAccountRate,' : ''}
+          ${initialSettlement ? '@initialSalesAccountCurrency, @initialSalesAccountAmount, @initialSalesAccountRate,' : ''}
           @description,
           @subtotal,
           @discountRate,
@@ -1911,8 +1959,8 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @grandTotal,
           @amountTry,
           @estimatedProfitTry,
-          ${selectedSale ? '@initialSalesActor' : 'NULL'},
-          ${selectedSale ? '@initialSalesActor' : 'NULL'}
+          ${initialSettlement ? '@initialSalesActor' : 'NULL'},
+          ${initialSettlement ? '@initialSalesActor' : 'NULL'}
         );
         SELECT invoiceId FROM @createdSalesIds;
       `);
@@ -1946,6 +1994,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
 
 export async function updateSalesDraft(id, payload, actor = null) {
   assertMelisaWriteEnabled();
+  if(String(actor?.id)==='17'&&getCanonicalBusinessSession())throw makeServiceError('CANONICAL_SALE_TRANSACTION_REQUIRED','Kayıtlı native satış yalnız doğrulanmış işlem yoluyla değiştirilebilir.',409);
 
   const invoiceId = Number(id);
 
@@ -2097,6 +2146,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     await assertInvoiceSettlementParty(sqlDriver, transaction, 'sales', beforeSnapshot, settlement, { active: true });
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), beforeSnapshot.documentDate, 'Satış fişi kesinleştirme');
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_finalize',actor,invoiceId,beforeSnapshot);
+    const directFinalize=cleanDirectSaleActorId(transaction,'sale_finalize',actor)!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
     else await assertPilotCashCustomer(new sqlDriver.Request(transaction), beforeSnapshot.customerId, beforeSnapshot.documentCurrency);
     await assertPilotSaleProducts(() => new sqlDriver.Request(transaction), beforeSnapshot.items, {consume: true, allowNegativeStock: nativeTransaction});
@@ -2125,14 +2175,14 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     const warnings = [];
     const profitSnapshots = [];
     const selectedFinalizeRows=selectedSale&&beforeSnapshot.items.length>1?[]:null;
-    const currencyRateMap = await readCurrencyRateMap(new sqlDriver.Request(transaction));
+    const currencyRateMap = selectedSale?.canonical?new Map():await readCurrencyRateMap(new sqlDriver.Request(transaction));
 
     for (const item of beforeSnapshot.items) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
       const nextStock = currentStock - quantity;
       const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
-      const averageCostTrySnapshot = resolveSalesUnitCostTry(
+      const averageCostTrySnapshot = selectedSale?.canonical?Number(selectedSale.canonical.products.find(p=>p.productId===String(item.productId)).averageCostTryExact4):resolveSalesUnitCostTry(
         item,
         beforeSnapshot.documentCurrency,
         beforeSnapshot.exchangeRate,
@@ -2269,6 +2319,11 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
       .input('customerMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
       .input('customerMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
       .input('customerMovementCreatedBy', sql.BigInt, actorId)
+      .input('directAccountCurrency',sql.NVarChar(3),settlement.accountCurrency)
+      .input('directAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
+      .input('directDocumentRate',sql.Decimal(18,8),settlement.documentRateToTry)
+      .input('directAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
+      .input('directAmountTry',sql.Decimal(18,4),settlement.amountTry)
       .query(`
         INSERT INTO dbo.customer_movements (
           customer_id,
@@ -2280,6 +2335,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           document_date,
           created_at,
           created_by
+          ${directFinalize?', account_currency,account_amount,document_exchange_rate_snapshot,account_exchange_rate_snapshot,amount_try':''}
         )
         VALUES (
           @customerMovementCustomerId,
@@ -2291,6 +2347,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
           @customerMovementDocumentDate,
           SYSUTCDATETIME(),
           @customerMovementCreatedBy
+          ${directFinalize?', @directAccountCurrency,@directAccountAmount,@directDocumentRate,@directAccountRate,@directAmountTry':''}
         );
       `);
 
@@ -2310,7 +2367,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     let autoCashCollection = null;
 
     // Isolated copy sales and collections have separate guarded request UUIDs.
-    if (!nativeTransaction && !isIsolatedOperationCopyRuntime() && isCashCustomerCode(beforeSnapshot.customerCode) && Number(beforeSnapshot.grandTotal || 0) > 0) {
+    if (!nativeTransaction && !selectedSale?.canonical && !isIsolatedOperationCopyRuntime() && isCashCustomerCode(beforeSnapshot.customerCode) && Number(beforeSnapshot.grandTotal || 0) > 0) {
       const cashAmount = Number(beforeSnapshot.grandTotal || 0);
       const cashCurrency = beforeSnapshot.documentCurrency;
       const paymentMethod = 'cash';
@@ -2407,6 +2464,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
       throw makeServiceError('SALES_FINALIZE_STATUS_CHANGED', 'Sales invoice status changed during finalize', 409);
     }
 
+    if(selectedSale?.canonical)await postNativeCurrencyAccount(invoiceId,{transaction,sqlDriver,pool},actor);
     const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -2646,6 +2704,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
       throw makeServiceError('SALES_CANCEL_STATUS_INVALID', 'Sales invoice status changed during cancel', 409);
     }
 
+    if(selectedSale?.canonical)await postNativeCurrencyAccount(invoiceId,{transaction,sqlDriver,pool},actor,{cancel:true});
     const afterSnapshot = await getSalesFinalizeSnapshot(new sqlDriver.Request(transaction), invoiceId);
 
     await writeAuditLog(new sqlDriver.Request(transaction), {
@@ -3082,6 +3141,10 @@ async function assertBusinessReceivedPurchaseContext(context,invoiceId,copy){
 }
 export async function assertReceivedPurchaseContext(context, invoiceId) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.cleanStoreDayReceived===true){
+    const {assertCleanReceivedPurchaseContext}=await import('./cleanStoreDayScope.mjs');
+    await assertCleanReceivedPurchaseContext(context,invoiceId);return;
+  }
   if(context.isolatedCopyReceived===true){
     const {isolatedCopyTransactionContext}=await import('./isolatedOperationCopyScope.mjs');
     const copy=isolatedCopyTransactionContext(context.transaction);

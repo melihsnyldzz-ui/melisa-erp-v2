@@ -1,0 +1,19 @@
+import {createHash} from 'node:crypto';
+export const saleError=(code,message,statusCode=409)=>Object.assign(new Error(message),{code,statusCode});
+export const saleFail=(code,message,status=409)=>{throw saleError(code,message,status);};
+export function saleId(value){const s=String(value);if(!/^[1-9]\d*$/.test(s)||!Number.isSafeInteger(Number(s)))saleFail('CLEAN_SALE_INPUT','Kayıt kimliği geçersiz.',400);return Number(s);}
+export function saleAction(input){
+ if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).sort().join()!=='expectedRevision,requestId'||typeof input.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.requestId)||typeof input.expectedRevision!=='string'||!/^[0-9a-f]{64}$/.test(input.expectedRevision))saleFail('CLEAN_SALE_INPUT','Güncel kayıt ve işlem kimliği gerekli.',400);
+ return {requestId:input.requestId.toLowerCase(),expectedRevision:input.expectedRevision};
+}
+export function saleActor(actor,permission){if(!actor||actor.active===false||!Array.isArray(actor.permissions)||!actor.permissions.includes(permission))saleFail('CLEAN_SALE_FORBIDDEN','Bu işlem için yetkiniz yok.',403);return saleId(actor.id);}
+const stable=v=>Array.isArray(v)?v.map(stable):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,stable(v[k])])):v;
+export const saleHash=v=>createHash('sha256').update(JSON.stringify(stable(v))).digest('hex');
+// Same immutable native header/line proof as the existing v2 SQL reader.
+export const CLEAN_ORDER_RECEIPT_PROOF_SQL=`
+IF (SELECT COUNT(*) FROM dbo.crm_order_v2_definitions)<>8 OR EXISTS(SELECT 1 FROM dbo.crm_order_v2_definitions d WHERE d.definition_hash<>CONVERT(char(64),HASHBYTES('SHA2_256',OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name))),2) OR OBJECT_DEFINITION(OBJECT_ID(N'dbo.'+d.name)) IS NULL OR (OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'IsTrigger')=1 AND OBJECTPROPERTY(OBJECT_ID(N'dbo.'+d.name),'ExecIsTriggerDisabled')<>0)) THROW 51950,'CLEAN_SALE_NOT_READY',1;
+IF NOT EXISTS(SELECT 1 FROM dbo.crm_order_v2_requests r JOIN dbo.sales_orders o WITH(HOLDLOCK) ON o.id=r.order_id WHERE o.id=@orderId AND LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',(SELECT o.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)),2))=r.header_hash) OR (SELECT COUNT(*) FROM dbo.sales_order_items WHERE sales_order_id=@orderId)<>(SELECT COUNT(*) FROM dbo.crm_order_v2_lines l JOIN dbo.crm_order_v2_requests r ON r.request_id=l.request_id WHERE r.order_id=@orderId) OR EXISTS(SELECT 1 FROM dbo.crm_order_v2_lines l JOIN dbo.crm_order_v2_requests r ON r.request_id=l.request_id LEFT JOIN dbo.sales_order_items i ON i.id=l.item_id AND i.sales_order_id=@orderId WHERE r.order_id=@orderId AND (i.id IS NULL OR LOWER(CONVERT(char(64),HASHBYTES('SHA2_256',(SELECT i.* FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)),2))<>l.native_hash)) THROW 51953,'CLEAN_SALE_SOURCE_CHANGED',1;`;
+export function assertSaleLines(order,lines){
+ if(order.currency!=='TRY'||order.customerCurrency!=='TRY'||order.rateExact8!=='1.00000000'||!/^[1-9]\d*\.\d{4}$/.test(order.totalExact4)||Number(order.totalExact4)>500||!Array.isArray(lines)||!lines.length||lines.length>200)saleFail('CLEAN_SALE_SCOPE','Bu siparişin döviz veya tutar kapsamı uygun değil.');
+ const seen=new Set();for(const l of lines){if(seen.has(l.productId)||!Number.isSafeInteger(Number(l.quantityExact3))||Number(l.quantityExact3)<1||Number(l.quantityExact3)>5||l.currency!=='TRY'||l.unit!=='ADET'||l.held!==0||l.active!==true||l.currentPriceExact8!==l.orderPriceExact8||Number(l.currentPriceExact8)<=0||Number(l.orderPriceExact8).toFixed(4)!==l.unitPriceExact4||Number(l.stockExact3)<Number(l.quantityExact3)||l.currentStockCode!==l.stockCode||l.currentName!==l.name||l.barcode!==null&&l.mainBarcode!==l.barcode)saleFail('CLEAN_SALE_CHANGED','Ürün, fiyat, barkod veya stok değişti. Siparişi yeniden kontrol edin.');seen.add(l.productId);}
+}

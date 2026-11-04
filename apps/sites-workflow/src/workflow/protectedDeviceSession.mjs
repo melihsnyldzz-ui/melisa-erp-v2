@@ -1,5 +1,6 @@
 const bridges=new WeakMap();
-export function createProtectedDeviceSession({host=globalThis.window,timeoutMs=5000}={}){
+export function createProtectedDeviceSession({host=globalThis.window,timeoutMs}={}){
+ timeoutMs??=['http://192.168.1.46:5244','http://127.0.0.1:5244'].includes(host?.location?.origin)&&/MelisaProtectedWork\/1/.test(host?.navigator?.userAgent??'')?15000:5000;
  const windows=host?.MelisaWindowsProtectedSession;
  if(host?.location?.origin==='http://127.0.0.1:5234' && windows && ['get','put','clear'].every(k=>typeof windows[k]==='function')){
   if(bridges.has(windows))return bridges.get(windows);
@@ -10,11 +11,12 @@ export function createProtectedDeviceSession({host=globalThis.window,timeoutMs=5
   }));queue=p.catch(()=>{});return p;};
   const bridge={get:()=>call('get'),put:r=>call('put',r),clear:()=>call('clear')};bridges.set(windows,bridge);return bridge;
  }
- if(/MelisaProtectedWork\/1/.test(host?.navigator?.userAgent??'')&&typeof host?.MelisaProtectedSession?.postMessage!=='function'){
+ const androidOrigins=['http://192.168.1.46:5234','http://127.0.0.1:5234','http://192.168.1.46:5244','http://127.0.0.1:5244'];
+ if(/MelisaProtectedWork\/1/.test(host?.navigator?.userAgent??'')&&(!androidOrigins.includes(host?.location?.origin)||typeof host?.MelisaProtectedSession?.postMessage!=='function')){
   const unavailable=()=>Promise.reject(Error('Cihazın güvenli oturum desteği kullanılamıyor. Uygulamayı güncelleyin.'));
   return {get:unavailable,put:unavailable,clear:unavailable};
  }
- if(!['http://192.168.1.46:5234','http://127.0.0.1:5234'].includes(host?.location?.origin)||typeof host?.MelisaProtectedSession?.postMessage!=='function')return null;
+ if(!androidOrigins.includes(host?.location?.origin)||typeof host?.MelisaProtectedSession?.postMessage!=='function')return null;
  const native=host.MelisaProtectedSession,pending=new Map();let serial=0,queue=Promise.resolve();
  if(bridges.has(native))return bridges.get(native);
  native.onmessage=e=>{let r;try{r=JSON.parse(e.data);}catch{return;}const p=pending.get(r?.id);if(r?.v!==1||typeof r.ok!=='boolean'||!p)return;pending.delete(r.id);clearTimeout(p.timer);r.ok?p.resolve(r.session??null):p.reject(Error('Cihaz oturumu saklanamadı.'));};

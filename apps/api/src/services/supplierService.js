@@ -1,4 +1,5 @@
 import sql from 'mssql';
+import {nativePartyBalance} from './nativePartyBalance.mjs';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { buildListMeta, parseListQuery, sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
@@ -14,7 +15,7 @@ function toSupplierDto(row) {
     city: row.city,
     country: row.country,
     currency: row.currency_code,
-    balance: Number(row.balance || 0),
+    balance: nativePartyBalance(row.balance),
     purchaseDiscountRate: Number(row.purchase_discount_rate || 0),
     purchaseCount: Number(row.purchase_count || 0),
     lastPurchaseDate: row.last_purchase_date || null,

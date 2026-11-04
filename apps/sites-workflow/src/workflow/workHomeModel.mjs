@@ -3,7 +3,7 @@ export {moneyDisplay} from './moneyDisplay.mjs';
 const fail=()=>{throw Error('İş sırası şu anda okunamıyor. Yeniden deneyin.');};
 const statuses=['available','forbidden','unavailable'];
 const number=v=>Number.isSafeInteger(v)&&v>=0;
-const day=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v));
+const day=v=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString().slice(0,10)===v;
 const exact=v=>v===null||typeof v==='string'&&/^-?(?:0|[1-9]\d{0,33})\.\d{4}$/.test(v);
 export const homeTargets=['goods','purchases','sales','receipts','finance','customers','suppliers','count-test','count-cancel','return-sales','return-purchase'].map(x=>'/is-akisi-taslagi.html#'+x);
 export const homeShortcuts=[{id:'goods',capability:'goods',label:'Mal Kabul',icon:'⇩',screen:'goods'},{id:'sales',capability:'sales',label:'Satış',icon:'▣',screen:'sales'},{id:'collections',capability:'collection',label:'Tahsilat',icon:'₺',screen:'collections'},{id:'stock',capability:'product',label:'Ürün & Stok',icon:'▦',screen:'stock'},{id:'customers',capability:'customer',label:'Müşteriler',icon:'♙',screen:'customers'},{id:'suppliers',capability:'supplier',label:'Tedarikçiler',icon:'▧',screen:'suppliers'}];
@@ -12,9 +12,9 @@ export function homeCount(value){return value===null?'Bilinmiyor':number(value)?
 export function homeWorkday(data,now=new Date()){
  validateWorkHome(data);
  const copy=operationCopyFromMeta(data.meta),today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Istanbul'}).format(now);
- const dated=!!copy&&data.meta.date!==today;
+ const dated=data.meta.date!==today;
  const dailyFlow=copy?.scopeKind==='VERIFIED_BUSINESS_TEST'&&data.meta.dailySelectionReady===true&&!!operationCopyDailySelection(copy);
- return {dailyFlow,scopeLabel:dailyFlow?'Günlük akış özeti':null,scopeNote:dailyFlow?'Bu özet kayıtlı günlük akıştaki işlemleri gösterir. Diğer kayıtları Raporlar bölümünden inceleyebilirsiniz.':null,date:data.meta.date,workdayText:copy?'İş günü: '+data.meta.date.split('-').reverse().join('.'):null,prefix:dailyFlow?'Günlük akış':dated?'İş günündeki':'Bugünkü',tasksLabel:dated?'İş gününün işleri':'Bugünkü işler',subtitle:dated?'İş gününün işlerini görün; yapmak istediğiniz işlemi açın.':'Bugünkü işleri görün; yapmak istediğiniz işlemi açın.'};
+ return {dailyFlow,scopeLabel:dailyFlow?'Günlük akış özeti':null,scopeNote:dailyFlow?'Bu özet kayıtlı günlük akıştaki işlemleri gösterir. Diğer kayıtları Raporlar bölümünden inceleyebilirsiniz.':null,date:data.meta.date,workdayText:'İş günü: '+data.meta.date.split('-').reverse().join('.'),prefix:dailyFlow?'Günlük akış':dated?'İş günündeki':'Bugünkü',tasksLabel:dated?'İş gününün işleri':'Bugünkü işler',subtitle:dated?'İş gününün işlerini görün; yapmak istediğiniz işlemi açın.':'Bugünkü işleri görün; yapmak istediğiniz işlemi açın.'};
 }
 function totals(rows){if(!Array.isArray(rows)||rows.length>3||new Set(rows.map(r=>r.currency)).size!==rows.length)fail();for(const r of rows)if(!['TRY','USD','EUR'].includes(r.currency)||!exact(r.amountExact4)||!number(r.knownCount)||!number(r.unknownCount))fail();}
 export function validateWorkHome(data){

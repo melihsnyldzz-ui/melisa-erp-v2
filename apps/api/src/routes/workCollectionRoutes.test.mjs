@@ -28,7 +28,7 @@ async function withServer(run,{selectedSourceService,legacyService}={}){
 test('production collection router leaves every selected SOURCE method closed and keeps legacy routes intact',async()=>{
  assert.equal(workCollectionRoutes.stack.filter(layer=>layer.route?.path?.includes('selected-source')).length,0);
  await withServer(async({request,calls})=>{
-  for(const [method,path] of [['GET','/work-collections/selected-source/context?invoiceId=1000'],['POST','/work-collections/selected-source/preview'],['POST','/work-collections/selected-source'],['POST','/work-collections/selected-source/2000/cancel']])assert.equal((await request(path,{method,body:method==='POST'?{}:undefined})).status,404);
+  for(const [method,path] of [['GET','/work-collections/selected-source/context?invoiceId=1000'],['POST','/work-collections/selected-source/preview'],['POST','/work-collections/selected-source/verify-retained'],['POST','/work-collections/selected-source'],['POST','/work-collections/selected-source/2000/cancel']])assert.equal((await request(path,{method,body:method==='POST'?{}:undefined})).status,404);
   assert.equal((await request('/unrelated',{method:'GET',user:null})).status,200);
   for(const [method,path,name] of [['GET','/work-collections/context?invoiceId=1000','context'],['POST','/work-collections/preview','preview'],['POST','/work-collections','collect'],['POST','/work-collections/2000/cancel','cancel']]){const response=await request(path,{method,body:method==='POST'?{}:undefined});assert.equal(response.status,200);assert.equal(response.value.data.legacy,name);}
   assert.deepEqual(calls.map(c=>c.name),['context','preview','collect','cancel']);
@@ -76,5 +76,25 @@ test('SOURCE cancel requires native-facing cancel permission before collection r
  await withServer(async({request,fixture:f})=>{
   const response=await request('/work-collections/selected-source/2000/cancel',{user:'noCancel',body:{requestId:selectedSourceRequestId(40),expectedRevision:'a'.repeat(64),documentDate:f.copy.date,reason:'Denied'}});
   assert.equal(response.status,403);assert.equal(response.value.code,'AUTH_PERMISSION_DENIED');assert.deepEqual(f.events,[]);
+ },{selectedSourceService:true});
+});
+
+
+test('explicit native SOURCE selector mounts only a branded factory store without starting runtime or widening defaults',async()=>{
+ const {createIsolatedOperationCopyStore}=await import('../services/isolatedOperationCopyStoreFactory.mjs');let runtimeCalls=0;
+ const store=createIsolatedOperationCopyStore({getRuntime:async()=>{runtimeCalls++;throw Error('Native fixture remains unconfigured');},buildDomain:async()=>{throw Error('Native fixture must not build a domain');}});
+ const router=createWorkCollectionRoutes({selectedSourceNativeStore:store});
+ const paths=router.stack.filter(layer=>layer.route).map(layer=>layer.route.path);
+ assert.equal(paths.filter(p=>p.includes('/selected-source')).length,5);assert.equal(runtimeCalls,0);
+ for(const input of [{...store},{withSelectedCollectionNative:store.withSelectedCollectionNative},null])assert.throws(()=>createWorkCollectionRoutes({selectedSourceNativeStore:input}),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED'});
+ assert.throws(()=>createWorkCollectionRoutes({selectedSourceNativeStore:store,selectedSourceService:selectedSourceCollectionFixture().service}),{code:'SOURCE_COLLECTION_PREPARATION_STORE_REQUIRED'});
+ assert.equal(runtimeCalls,0);
+});
+
+test('selected SOURCE retained verification is read-only, guarded and returns no request data',async()=>{
+ await withServer(async({request,fixture:f})=>{
+  const before=structuredClone(f.state()),body={operation:'collection_create',invoiceId:'1000',body:{requestId:selectedSourceRequestId(50)}};
+  for(const user of [null,'missing']){const r=await request('/work-collections/selected-source/verify-retained',{user,body});assert.equal(r.status,user===null?401:403);}
+  const result=await request('/work-collections/selected-source/verify-retained',{body});assert.equal(result.status,200);assert.deepEqual(result.value.data,{status:'UNKNOWN'});assert.equal(JSON.stringify(result.value).includes(body.body.requestId),false);assert.deepEqual(f.state(),before);
  },{selectedSourceService:true});
 });

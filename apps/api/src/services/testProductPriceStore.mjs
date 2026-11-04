@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {assertProductPriceId, productPriceContext, productPriceError} from './testProductPriceModel.mjs';
 import {PRODUCT_PRICE_SQL_PROOF} from './testProductPriceSqlProof.mjs';
 export const PRODUCT_PRICE_GET_PROC = 'dbo.usp_get_test_product_prices';
@@ -22,7 +23,7 @@ export function createTestProductPriceStore({getRuntime = defaultRuntime} = {}) 
       if (payloadJson !== null) request.input('payload_json', sql.NVarChar(sql.MAX), payloadJson);
       const rows = (await request.execute(payloadJson === null ? PRODUCT_PRICE_GET_PROC : PRODUCT_PRICE_SET_PROC)).recordset;
       if (!Array.isArray(rows) || rows.length !== 1 || typeof rows[0].context_json !== 'string' || typeof rows[0].replayed !== 'boolean') throw unavailable();
-      if (Object.entries(PRODUCT_PRICE_SQL_PROOF).some(([key, expected]) => rows[0][key] !== expected)) throw unavailable();
+      if (Object.entries({...PRODUCT_PRICE_SQL_PROOF,getterHash:getCanonicalBusinessSaleDefinitionHash(PRODUCT_PRICE_GET_PROC,PRODUCT_PRICE_SQL_PROOF.getterHash),setterHash:getCanonicalBusinessSaleDefinitionHash(PRODUCT_PRICE_SET_PROC,PRODUCT_PRICE_SQL_PROOF.setterHash)}).some(([key, expected]) => rows[0][key] !== expected)) throw unavailable();
       const context = productPriceContext(JSON.parse(rows[0].context_json)); await tx.commit();
       return payloadJson === null ? context : {...context, replayed: rows[0].replayed};
     } catch (error) {

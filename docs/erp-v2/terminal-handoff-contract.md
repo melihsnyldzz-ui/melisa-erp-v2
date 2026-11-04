@@ -1,0 +1,63 @@
+# E1 — mevcut normal oturumlar arasında dar TEST devri
+
+24 Ekim 2026. Bu belge mevcut E1 sözleşmesidir; yeni kimlik, login veya takip sistemi değildir. ERP sağlayıcısı ve Android bağlayıcı kaynağı/gerçek APK derlemesi hazırdır. CRM exact kaynakla ortak kaynak fixture'si vardır; kurulum/normal native ekran ve insan kabulü henüz tamamlanmadı. Kurulu ERP8aa/CRM09a/native035 bu kaynak tesliminde değiştirilmez.
+
+## Otorite ve sınır
+
+ERP'nin mevcut normal Bearer + refresh çifti sunucuda doğrulanır. Aktif kullanıcı/rol/izin/parola fingerprint'i ve mevcut normal oturum ailesi her bağlantı doğrulamasında yeniden okunur. Açık ERP userId → CRM userId → temsilci → revision ilişkisi zorunludur; isim veya istemci iddiasından ilişki üretilmez. CRM kendi aktif hesabını, rolünü, temsilcisini ve mevcut müşteri atamasını ayrıca denetler. İki sunucu arasında atomik veritabanı işlemi iddiası yoktur: CRM yayın öncesi yeniden doğrular, başarısız geçici grant'i geri alır ve her korumalı kullanım/refresh'te bağlantıyı yeniden doğrular.
+
+ERP parola/access/refresh/JWT signing secret'i CRM'ye taşınmaz. Native ayrı CRM korumalı alanında yalnız CRM'nin mevcut normal issuer'ının ürettiği kendi grant'ini saklayabilir. `normalTestSessionId` → `terminalIdentity.erpNormalSessionId` UUIDv4 aile metadatasıdır; kendisi token veya tek başına yetki değildir. URL, postMessage, `confirmed:true`, userId veya bu UUID sunucu doğrulamasının yerine geçmez.
+
+## Yapılandırma ve taşıma
+
+Yalnız exact clean/E662, `MELISA_ERP_CLEAN_TEST_20261022`, synthetic=true/T1=false/externalOperations=false, API4194 ve mevcut korumalı ERP normal-session hedefinde kullanılabilir. Varsayılan kapalıdır. `MELISA_TERMINAL_LINK_ENABLED=true`, ayrı ve JWT anahtarlarından farklı 32-byte base64url `MELISA_TERMINAL_LINK_PEER_KEY` ve açık `MELISA_TERMINAL_LINK_RELATIONS` JSON listesi gerekir. Sırlar bu belgeye veya kaynak/GitHub'a yazılmaz. Relation satırı exact alanları: `erpUserId, crmUserId, chatwootAgentId, bindingRevision, active`. Revision küçük hex SHA256; kimlikler tekil, liste en fazla32. Boş liste hiç kimseyi bağlamaz. Bu kaynak gerçek çalışan ilişkisi tanımlamaz.
+
+Yalnız aynı host çiftleri: ERP `http://127.0.0.1:5244` → CRM `http://127.0.0.1:62800`, veya ERP `http://192.168.1.46:5244` → CRM `http://192.168.1.46:62800`. İstemci başka alıcı seçemez.
+
+Peer RPC doğrudan loopback socket + `x-melisa-terminal-peer` ister; Origin/Forwarded/X-Forwarded-For/Host reddedilir. Bu peer anahtarı native/browser'a verilmez. ERP frontend proxy bu anahtarı eklememelidir. Normal Bearer, peer yetkisi değildir. JSON body, query yokluğu, exact alanlar, boyut sınırı ve mevcut rate/security başlıkları korunur.
+
+## ERP API
+
+Başarılı cevaplar mevcut `{success:true,data:...}` zarfındadır. Hatalar sırsız generic403 `TERMINAL_HANDOFF_INVALID`; kapalı clean front gate operasyonu reddeder. Cache-Control=no-store. Hata ayrıntısı, token veya anahtar echo edilmez.
+
+1. Native → ERP `POST /api/auth/terminal-handoff/prepare`, kendi normal Bearer ile exact body:
+   `{refreshToken, requestId, deviceBinding, codeChallenge, erpOrigin, crmOrigin}`.
+   Data: `{version:1, code, requestId, expiresAt}`.
+2. Native → CRM `POST /api/live/auth/terminal-handoff` → gateway `/auth/terminal-handoff`, exact body:
+   `{code, requestId, deviceBinding, codeVerifier, erpOrigin, crmOrigin}`.
+   CRM bu altı alanı peer anahtarıyla ERP `POST /api/auth/terminal-handoff/redeem` yoluna iletir.
+   ERP data: `{version:1, linkId, linkExpiresAt, terminalIdentity}`.
+3. CRM → ERP `POST /api/auth/terminal-handoff/verify`, exact body:
+   `{linkId, requestId, deviceBinding, erpOrigin, crmOrigin}`.
+   Data: `{version:1, linkExpiresAt, terminalIdentity}`.
+4. CRM → ERP `/api/auth/terminal-handoff/revoke`, aynı beş alan; data `{revoked:true}`. Yalnız eşleşen link kapanır. Bağ zaten yoksa da kapanış doğrulanmış kabul edilir; peer/schema/context retleri403kalır. Tekrar kapanış yeni yetki üretmez.
+
+RequestId UUIDv4; deviceBinding native korumalı cihaz psödoniminin küçük hex SHA256 değeridir, kişi kimliği değildir. Code/verifier/linkId canonical32-byte base64url43; challenge SHA256(verifier) base64url43. Code en fazla30s, gerçek ERP erişim/ailesi süresiyle sınırlı ve atomik tek kullanımlıdır. Aynı request+device+origin çifti aile süresince ikinci code üretemez. Yanlış PKCE/request/device/alıcı yetki vermez. Sadece hash ve sırsız metadata process-local, sınırlı map'lerde tutulur; yeni ERP SQL/journal yoktur. Süreç yeniden başlarsa linkler kaybolur ve kullanım reddedilir. Link süresi normal ERP ailesinin sonudur; code30s sınırı değildir. Anahtar değişimi mevcut sağlayıcıyı kapatır; yeni süreç açık kaynak/config doğrulaması gerektirir.
+
+`terminalIdentity` exact11 alan:
+
+`version, environmentId, database, erpOrigin, crmOrigin, erpUserId, erpNormalSessionId, crmUserId, chatwootAgentId, bindingRevision, expiresAt`.
+
+Identity expiresAt her verify'de yeniden üretilir, en fazla30s ve aile ömrüyle sınırlıdır; cache bu kontrolü atlayamaz. Mevcut JS get/put/clear ve parent activate/logout protokolü değişmez. Native ERP çıkış/hesap değişiminde kendi eski CRM ailesini kapatır; geç cevap/generation veya kapanış belirsizliği eski kullanıcıyı yayımlamaz. Aşağıdaki native kaynak kontrolü cihaz kabulü değildir.
+
+## Native kaynak ve APK alt kanıtı
+
+**24 Ekim gerçek LAN düzeltmesi:** Native public ERP/CRM çağrıları yalnız kendi sabit alıcısının `Origin` başlığını taşır. CRM'nin normal public non-GET origin kontrolü kaldırılmadı; internal peer çağrısında Origin yasağı aynen korunur. Gerçek LAN denemesinde eksik Origin nedeniyle alınan403, taşıyıcıda exact kendi-origin eklenerek giderildi. Yeni gerçek OkHttp request testi iki izinli hostta bunu ve CRM isteğinde ERP Bearer/cookie/peerkey bulunmamasını doğrular. Son native hedefli test13/13 (11handoff+2HTTP), offline APK/lint derlemesi başarılı; önceki6realm kanıtı değişmedi. Güncel APK SHA256 `E4088D9E756D915E6A33710C74C146EF0D13687B1C34E9BB3CCC812AF7474CD9`; aşağıdaki EF94 hash'i önceki derlemenin tarihçesidir. Fiziksel Android/Keystore ve normal native GUI kanıtı yoktur.
+
+WorkSessionHandoff yalnız clean5244 ve mevcut KeystoreVault/serileştirilmiş mutex içinde çalışır; eski5234 yolu değişmez. ERPput normal session-confirm ile kendi çiftini doğrular, ayrı aile metadata'sı saklanır. İlkboşCRMget prepare→CRMissuer→freshme yolunu kullanır; sadece kendi CRM normal grant'i ayrı CRMrealm'ine kaydedilir. Native ERP refresh'i web kodunun arkasından çevrilmez: ERPweb CRMactivationöncesi mevcut renew/me çağrısını yapar. Yeniden açma ve CRMrefresh kendi mevcut issuer/freshme yolundadır. CRMrol/izin/11alan/ERPfamily/revision karşılaştırması her nativeget/put'ta tekrarlanır; bu backend doğrulamasının yerine geçmez.
+
+Çıkışta/hesap değişiminde sadece kendi eski CRM/ERP ailesi kapanır. Kapanış gönderiminden önce eski grant yalnız korumalı pending-close alanına alınır; bu kayıt uygulama aç-kapa sırasında da kapanış doğrulanmadan yeni kullanıcıya geçilmesini engeller. Generation mesaj alımında, mutex beklenmeden değişir; eski sıradaki veya geç cevap yeni kullanıcıya yayımlanmaz. Bilinen geç issuer cevabı kendi grant'ini kapatır. Yanıt tamamen kaybolmuşsa native eline ulaşmayan grant'in kapandığı iddia edilmez; hiçbir native grant/UI yayımlanmaz, ERP aile iptali backend linked kullanımını da reddeder. Native process ölümü/gerçek ağ kaybı/Keystore cihaz kanıtı henüz yoktur.
+
+WorkHandoffHttp sabit ERP/CRM yollarına bağlıdır; peer RPC/anahtar taşımaz. Redirect/cookie/otomatikHTTPtekrarı yok;3sn call/2sn connect ve64KiB response sınırı. Hata/response/credential günlüğü yok. Eski taslak/finans/stok/scanner yoluna dokunulmadı.
+
+18JVM kontrolü (11handoff+6realm+1HTTPtarget),43ilgili web kontrolüPASS; gerçek offline Gradle test/assembleWorktestRelease/lint başarılı. APK45.358.905bayt/SHA256 EF94FD383F09BDD3F427CAFBC8B16D637F4CA67D8E16686098461C6F5ED72717, applicationId com.melisaerp.nativeterminal.worktest, minSDK28/target35, debugfalse/v2imzalı. Lint0Error/6Warning yalnız değişmeyen kaynaklarda. Bağımsız CRMROincelemesi somutP1/P2=0; cihaztesti yapılmadı. TekADBlistesinde cihaz0/mevcutAVD0. PaketCI,CRMlinked15sn budget sonkaynağı ve tekownerkurulum ayrıca bekliyor; APKkurulu/insanPASS yoktur.
+
+## Kanıt
+
+Değişen beş test dosyasında20 kontrol, mevcut CI offline guard ile PASS: doğru aile/11alan, prepare ve redeem yarışlarında tek sonuç, request replay, PKCE/device/alıcı/peer retleri, expiry/revocation/revision/değişen aile, async kapanış, exact clean/config ve gerçek rastgele loopback HTTP route. Mevcut authService sentetik SQL fixture yalnız SELECT yapabilir; normal login/refresh/logout ile aynı hash-store kullanılır. Başta sandbox tempfile-lock/loopback EACCES sonuçları ürün PASS sayılmadı; izinli host çalıştırmasında guard korunarak20/20 doğrulandı.
+
+Bu kanıt gerçek kurulu API, native Keystore/cihaz veya insan kabulü değildir. Sıradaki mevcut E1 halkası CRM exact consumer + native provider bağlantısı ve kaynaklar eşlendikten sonra izinli ortak kurulumdur. B5'in gerçek9kişi bağı tahminle doldurulmaz; özgün kabuller/sayaçlar değişmez.
+
+İlk kaynak de72265c CI'ında iki entegrasyon regresyonu bulundu: eski Shared confirmation yanıtı ve kapalı logger diagnostic sözlüğü. Aile metadata'sı yalnız clean bağlamına sınırlandı; eski Shared exact-shape testi değişmedi. Yalnız `TERMINAL_HANDOFF_INVALID` statik kodu kaydedildi; özel metin/suffix/credential redaksiyonu korundu. İlgili legacy+logger testleriyle genişletilen hedefli kapsam47/47 offlineguardPASS; bu eski CI hatasını veya kurulum eksikliğini gizlemez.
+
+Son uygulama kaynağı8df23309 için CI40075059772/40075056364 her3jobSUCCESS. TümAPI yerel offlineguard:1170PASS/13platform koşullu skip/fail0. CRM owner3218 kaynağıyla5ephemeral ortak senaryoPASS: boş CRMrealm/kendi atanmış konuşma, gerçek provider code/replay/PKCE/device retleri, webconsumer reopen/aynı aile ve relationrevoke→aile/vaultclosure. ERP auth callback ve native vault sentetik; kurulu normal ekran/AndroidKeystore kanıtı değildir. Bağımsız ERP sağlayıcı incelemesi açıkP1/P2=0.

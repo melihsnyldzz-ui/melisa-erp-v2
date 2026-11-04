@@ -271,3 +271,14 @@ Kazanç henüz yeni paket üzerinde ölçülmedi.
 Normal fiyat kartı mevcut doğrulanmış son değişiklikleri önce/sonra tutar,
 döviz, gerekçe ve tarih/saatle gösterir. Bu kaynak düzeltmeleri henüz çalışan
 pakete alınmadı; kalıcı ekran kaydı ve insan kabulü bekler.
+
+
+## 20 Ekim — ERP04 / A02–C09 gecikmiş fiyat yanıtında bekleyen kaydı koruma
+
+`DOT-ERP-PRICE-PENDING-CAS-20261020-1515`: mevcut normal fiyat düzenleyicisinde A isteği beklerken storage kaydı B ile değiştiğinde, gecikmiş HTTP400/403/409 yanıtı A/rejected yazarak B kurtarma kaydını eziyordu. Mevcut controller integration düzeneğinde 400/new-request regresyonu önce FAIL; aynı isteğin normal ret kontrolü PASS olarak kanıtlandı.
+
+Yalnız editor ve mevcut integration testleri değişti: POST öncesinde ve saved/rejected yazmadan hemen önce mevcut actor/product/copy/seal, pending durumu ve tüm request body (expectedRevision dahil) tekrar doğrulanır. Senkron read/compare/write arasında await yok; bu, sekmeler arasında küresel atomiklik garantisi değildir. Kaybolan/değişen/bozuk/okunamayan kayıt veya setItem hatasında eski bellekteki istek devre dışı kalır; başarı/ret ilan edilmez, yalnız GET ile yeniden yükleme sunulur. Eski retry referansı ikinci POST oluşturmaz; normal ret, aynı UUID/body replay, saved sonrası salt GET yenileme ve readonly-close korunur.
+
+Root21/21 hedef PASS, skip0:17 controller integration +4 saf model testi. Yedi yeni testte42 gecikmiş ret varyantı,3 normal ret,4 storage okuma/yazma hatası,3 gecikmiş acknowledgement,2 aynı-instance farklı-copy/seal remount ve1 disposed-editor,2 GET bekleyen remount alt senaryosu vardır. İlk review, sent envelope yerine yalnız current context karşılaştırmasındaki P2'yi bağımsız bellek provasıyla doğruladı; doğrudan sent actor/product/copy/seal karşılaştırması ve yalnız kendi pending nesnesini temizleme ile kapatıldı. İkinci review P2'si, yeni GET beklerken eski context'in finally ile çizilmesiydi; loading kapısı ve iki deferred-GET regresyonuyla kapatıldı. Son finally yalnız yükleme tamamlanmış mevcut context'i boyar; eski generation yeni kaydı veya UI mesajını değiştirmez. İki değişen kaynağın redacted stdin sır taraması0bulgu; scanner/istisna değişmedi. Bağımsız final review GO; açıkP1/P2=0, son3 hedef PASS/0skip (önceki20PASS ayrı kapsam). Exact source CI makbuzu push sonrası ayrıca kaydedilir.
+
+Bu teslim kaynak/offline kapsamındadır; runtime/SQL/GUI/kurulum/prova veya rol/fiyat/finans yazması yok. Kurulu TEST ve kanonik package-npm.test.mjs yerel değişikliği korundu. 49ERP+25CRM, native Goal PAUSED ve özgün insan kabulü BEKLİYOR aynı. P03 kilit/yükseltme engeli bu kaynaktan bağımsızdır.

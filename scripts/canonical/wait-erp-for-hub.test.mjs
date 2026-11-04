@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {waitForErpBeforeHub,runErpHubBarrier,assertErpHubHealth,assertErpHubProfile,erpHubFailureMetadata} from './wait-erp-for-hub.mjs';
 import {COMPLETION_CORE_STAGES,completionNodeArguments,completionProcessMatches} from './terminal-completion-logon.mjs';
+import {crm06StaffSuccessorProfile,CRM06_STAFF_CURRENT_CRM_PACKAGE,CRM06_STAFF_CURRENT_ERP_PACKAGE} from './crm06-staff-refresh-successor.mjs';
 const stages=[{name:'erpNative',ports:[4186]},{name:'erpApi',ports:[4184]}];
 const make=()=>{
  const settings={ownerSid:'S-1-5-21-1-2-3-4',node:{path:'C:\\Program Files\\nodejs\\node.exe'}};
@@ -168,4 +169,46 @@ ConvertTo-Json -InputObject @($results) -Compress`;
  // Execute only the pure assignment AST; no Read-PinnedJson or process launch.
  const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(script,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});
  assert.equal(result.status,0);assert.equal(result.stderr,'');const rows=JSON.parse(result.stdout);assert.deepEqual(rows.slice(0,2),[{accepted:true,source},{accepted:true,source:previous}]);for(const row of rows.slice(2))assert.equal(row.accepted,false);
+});
+
+
+test('B264 Hub prerequisite accepts one exact successor settings path and preserves old01ef/e59 profiles',()=>{
+ const root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',source='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a',next=root+'settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json';
+ for(const suffix of ['01ef3e3aa3bd-b264-successor','01ef3e3aa3bd','e59e07abf7ae'])assert.equal(assertErpHubProfile(root+'settings-crm06-staff-6bc82e6fe972-erp-'+suffix+'.json',source),true);
+ for(const [config,value]of [[next.toUpperCase(),source],[next,source.toUpperCase()],[next,source.slice(0,12)],[next.replace('b264-successor','b264-anything'),source],[next.replace('01ef3e3aa3bd','e59e07abf7ae'),source],[next.replace('6bc82e6fe972','439b63db8376'),source]])assert.throws(()=>assertErpHubProfile(config,value),{code:'ERP_HUB_WAIT_REJECTED'});
+});
+test('Windows PS5 B264 Hub path and Node24 guards run as pure AST without settings IO or a process launch',{skip:process.platform!=='win32'},async()=>{
+ const {spawnSync}=await import('node:child_process'),{fileURLToPath}=await import('node:url');
+ const file=fileURLToPath(new URL('./watch-hub-after-erp.ps1',import.meta.url)).replaceAll("'","''"),root='C:\\Sirket\\ERP\\runtime\\terminal-completion-logon\\',next=root+'settings-crm06-staff-6bc82e6fe972-erp-01ef3e3aa3bd-b264-successor.json';
+ const ps=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count){throw 'PARSE_FAILED'}
+$statements=@($ast.EndBlock.Statements);$switch=@($statements|Where-Object{$_.Extent.Text.StartsWith('$expectedCrmSource=switch ')})
+$raw=[IO.File]::ReadAllText('${file}');$start=$raw.IndexOf('$literalCandidateNode=');$end=$raw.IndexOf('$manifest=Read-PinnedJson',$start)
+if($switch.Count-ne1-or$start-lt0-or$end-le$start){throw 'POLICY_AST_MISSING'}
+$policy=[scriptblock]::Create('param($StartupConfigPath,$c,$owner)'+[Environment]::NewLine+$switch[0].Extent.Text+[Environment]::NewLine+$raw.Substring($start,$end-$start)+[Environment]::NewLine+'return $true')
+function Config{[pscustomobject]@{components=[pscustomobject]@{crm=[pscustomobject]@{sourceCommit='6bc82e6fe9726261ef1d0171d97e5d9da9f5398a'}};ownerSid='fixture-owner';node=[pscustomobject]@{path='C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe';sha256='3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'};actualT1=$false;database='MELISA_ERP_CRM_SHARED_TEST_20261009_02';copyId='e16b70f0-4057-428b-9abc-6bbcaf35fe82'}}
+$results=@();$c=Config;$results+=,(& $policy '${next}' $c 'fixture-owner')
+foreach($kind in @('node','node-hash','crm','t1','db','copy','case','suffix')){$c=Config;$p='${next}';switch($kind){node{$c.node.path='C:\\Program Files\\nodejs\\node.exe'} 'node-hash'{$c.node.sha256='0'*64} crm{$c.components.crm.sourceCommit='0'*40} t1{$c.actualT1=$true} db{$c.database='LIVE'} copy{$c.copyId='other'} case{$p=$p.ToUpperInvariant()} suffix{$p=$p.Replace('b264-successor','b264-anything')}};try{$null=& $policy $p $c 'fixture-owner';$results+=,$true}catch{$results+=,$false}}
+ConvertTo-Json -InputObject $results -Compress`;
+ const r=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from(ps,'utf16le').toString('base64')],{encoding:'utf8',windowsHide:true});assert.equal(r.status,0,r.stderr);assert.equal(r.stderr,'');assert.deepEqual(JSON.parse(r.stdout),[true,...Array(8).fill(false)]);
+});
+
+const currentHubProfile=()=>crm06StaffSuccessorProfile('d1e4425206249e38445fb103e03601f86baa84ec','erp-crm-current-20261020');
+test('current Hub prerequisite accepts only the exact existing successor path and full CRM source',()=>{
+ const profile=currentHubProfile(),config=profile.nextPaths.settings,source=profile.source;
+ assert.equal(assertErpHubProfile(config,source),true);
+ for(const [p,s]of [[config.toUpperCase(),source],[config,source.toUpperCase()],[config,source.slice(0,12)],[config.replace('-current.json','-other.json'),source],[config,'6bc82e6fe9726261ef1d0171d97e5d9da9f5398a']])assert.throws(()=>assertErpHubProfile(p,s),{code:'ERP_HUB_WAIT_REJECTED'});
+});
+test('Windows PS5 current Hub policy binds exact Node and app tuples without running the watcher',{skip:process.platform!=='win32'},async()=>{
+ const {spawnSync}=await import('node:child_process'),{fileURLToPath}=await import('node:url'),profile=currentHubProfile(),config=profile.nextPaths.settings;
+ const base={components:{crm:structuredClone(CRM06_STAFF_CURRENT_CRM_PACKAGE),erpApiNative:structuredClone(CRM06_STAFF_CURRENT_ERP_PACKAGE),hub:structuredClone(CRM06_STAFF_CURRENT_ERP_PACKAGE)},ownerSid:'fixture-owner',node:{path:'C:\\Sirket\\ERP\\tools\\node-v24.19.0\\node.exe',sha256:'3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237'},actualT1:false,database:'MELISA_ERP_CRM_SHARED_TEST_20261009_02',copyId:'e16b70f0-4057-428b-9abc-6bbcaf35fe82'};
+ const cases=[{path:config,value:base}];
+ for(const mutate of [v=>v.node.path='C:\\Program Files\\nodejs\\node.exe',v=>v.node.sha256='0'.repeat(64),v=>v.ownerSid='other',v=>v.actualT1=true,v=>v.database='LIVE',v=>v.copyId='other',...['crm','erpApiNative','hub'].flatMap(name=>['sourceCommit','packageRoot','manifestSha256'].map(key=>v=>v.components[name][key]+='wrong'))]){const value=structuredClone(base);mutate(value);cases.push({path:config,value});}
+ cases.push({path:config.toUpperCase(),value:base},{path:config.replace('-current.json','-other.json'),value:base});
+ const file=fileURLToPath(new URL('./watch-hub-after-erp.ps1',import.meta.url)).replaceAll("'","''"),payload=Buffer.from(JSON.stringify(cases)).toString('base64');
+ const ps=`$ErrorActionPreference='Stop';$ProgressPreference='SilentlyContinue';Set-StrictMode -Version Latest;$t=$null;$e=$null;$ast=[Management.Automation.Language.Parser]::ParseFile('${file}',[ref]$t,[ref]$e);if($e.Count){throw 'PARSE_FAILED'}
+$switch=@($ast.EndBlock.Statements|Where-Object{$_.Extent.Text.StartsWith('$expectedCrmSource=switch ')});$raw=[IO.File]::ReadAllText('${file}');$start=$raw.IndexOf('$literalCandidateNode=');$end=$raw.IndexOf('$manifest=Read-PinnedJson',$start);if($switch.Count-ne1-or$start-lt0-or$end-le$start){throw 'POLICY_AST_MISSING'}
+$policy=[scriptblock]::Create('param($StartupConfigPath,$c,$owner)'+[Environment]::NewLine+$switch[0].Extent.Text+[Environment]::NewLine+$raw.Substring($start,$end-$start)+[Environment]::NewLine+'return $true')
+$cases=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String('${payload}'))|ConvertFrom-Json;$results=@(foreach($case in $cases){try{$null=& $policy $case.path $case.value 'fixture-owner';$true}catch{$false}});ConvertTo-Json -InputObject $results -Compress`;
+ const result=spawnSync('C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe',['-NoProfile','-NonInteractive','-Command','-'],{input:ps,encoding:'utf8',windowsHide:true});
+ assert.equal(result.status,0,result.stderr);assert.equal(result.stderr,'');assert.deepEqual(JSON.parse(result.stdout),[true,...Array(cases.length-1).fill(false)]);
 });

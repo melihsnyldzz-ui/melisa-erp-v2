@@ -1,9 +1,12 @@
 import bcrypt from 'bcrypt';
+import {assertCleanPersonnelWrite,bindCleanPersonnelWrite,cleanPersonnelOptions} from './cleanPersonnelManagement.mjs';
+
 import sql from 'mssql';
 import { getSqlDriver, getSqlPool } from '../config/database.js';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
 import { createManagedAuthUserCore, normalizeManagedAuthUser } from './createManagedAuthUserCore.mjs';
+import {createResetManagedAuthPasswordCore} from './resetManagedAuthPasswordCore.mjs';
 
 function makeServiceError(code, message, statusCode = 400) {
   const error = new Error(message);
@@ -158,16 +161,18 @@ export async function getAuthAdminOverview() {
     `),
   ]);
 
+  const cleanPersonnel=await cleanPersonnelOptions(pool);
   return {
     users: usersResult.recordset.map(toUserDto),
     roles: rolesResult.recordset.map(toRoleDto),
     permissions: permissionsResult.recordset.map(toPermissionDto),
     auditLogs: auditResult.recordset.map(toAuditDto),
+    ...(cleanPersonnel?{cleanPersonnel}:{}),
   };
 }
 
 export async function createAuthAdminUser(payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'user_create'))assertMelisaWriteEnabled();
   // Keep target authorization and transaction lifecycle on the normal API path.
   normalizeManagedAuthUser(payload);
   const sqlDriver = getSqlDriver();
@@ -177,21 +182,39 @@ export async function createAuthAdminUser(payload = {}, actor = null) {
     hashPassword: (password, rounds) => bcrypt.hash(password, rounds), writeAudit: writeAuditLog});
   await transaction.begin();
   try {
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'user_create',normalizeManagedAuthUser(payload),null);
     await createUser(transaction, payload, actor);
 
+    await finish();
     await transaction.commit();
     return getAuthAdminOverview();
   } catch (error) {
-    await transaction.rollback();
-    if (error.number === 2601 || error.number === 2627) {
-      throw makeServiceError('AUTH_ADMIN_USERNAME_DUPLICATE', 'Username already exists', 409);
+    let rollbackError;
+    try {
+      await transaction.rollback();
+    } catch (cleanupError) {
+      rollbackError = cleanupError;
     }
-    throw error;
+    let failure = error;
+    if (error.number === 2601 || error.number === 2627) {
+      failure = makeServiceError('AUTH_ADMIN_USERNAME_DUPLICATE', 'Username already exists', 409);
+    }
+    if (rollbackError) {
+      // XACT_ABORT may already have rolled back the native guard failure.
+      // Preserve both failures for the caller without exposing either SQL
+      // message through the normal controller's public error contract.
+      throw Object.assign(new AggregateError([error, rollbackError],
+        failure.statusCode ? failure.message : 'Auth admin request failed', { cause: error }), {
+        code: failure.code || 'AUTH_ADMIN_USER_CREATE_FAILED',
+        statusCode: failure.statusCode || 503,
+      });
+    }
+    throw failure;
   }
 }
 
 export async function resetAuthAdminUserPassword(userId, payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'user_password'))assertMelisaWriteEnabled();
   const id = Number(userId);
   if (!Number.isInteger(id) || id < 1) {
     throw makeServiceError('AUTH_ADMIN_USER_ID_INVALID', 'User id is invalid');
@@ -203,39 +226,10 @@ export async function resetAuthAdminUserPassword(userId, payload = {}, actor = n
   await transaction.begin();
 
   try {
-    const beforeResult = await new sqlDriver.Request(transaction)
-      .input('userId', sql.BigInt, id)
-      .query('SELECT TOP (1) id, username, display_name, is_active FROM dbo.users WHERE id = @userId;');
-    const user = beforeResult.recordset?.[0];
-    if (!user) {
-      throw makeServiceError('AUTH_ADMIN_USER_NOT_FOUND', 'User not found', 404);
-    }
-
-    await new sqlDriver.Request(transaction)
-      .input('userId', sql.BigInt, id)
-      .input('passwordHash', sql.NVarChar(255), passwordHash)
-      .input('actorId', sql.BigInt, actor?.id ? Number(actor.id) : null)
-      .query(`
-        UPDATE dbo.users
-        SET password_hash = @passwordHash,
-            updated_at = SYSUTCDATETIME(),
-            updated_by = @actorId
-        WHERE id = @userId;
-
-        UPDATE dbo.auth_refresh_tokens
-        SET revoked_at = SYSUTCDATETIME()
-        WHERE user_id = @userId AND revoked_at IS NULL;
-      `);
-
-    await writeAuditLog(new sqlDriver.Request(transaction), {
-      action: 'user_password_reset',
-      entityType: 'user',
-      entityId: id,
-      beforeSnapshot: { username: user.username, passwordConfigured: true },
-      afterSnapshot: { username: user.username, passwordConfigured: true, sessionsRevoked: true },
-      actor,
-    });
-
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'user_password',{},id);
+    const reset=createResetManagedAuthPasswordCore({sql:sqlDriver,request:()=>new sqlDriver.Request(transaction),hashPassword:async()=>passwordHash,writeAudit:writeAuditLog});
+    await reset(transaction,id,payload,actor);
+    await finish();
     await transaction.commit();
     return getAuthAdminOverview();
   } catch (error) {
@@ -245,7 +239,7 @@ export async function resetAuthAdminUserPassword(userId, payload = {}, actor = n
 }
 
 export async function updateUserAccess(userId, payload = {}, actor = null) {
-  assertMelisaWriteEnabled();
+  if(!assertCleanPersonnelWrite(actor,'user_update'))assertMelisaWriteEnabled();
 
   const id = Number(userId);
   if (!Number.isInteger(id) || id < 1) {
@@ -263,6 +257,7 @@ export async function updateUserAccess(userId, payload = {}, actor = null) {
 
   await transaction.begin();
   try {
+    const finish=await bindCleanPersonnelWrite(transaction,sqlDriver,actor,'user_update',{...(roleId!==null?{roleId}:{}),...(username!==null?{username}:{}),...(displayName!==null?{displayName}:{}),...(hasActive?{isActive}:{})},id);
     const before = await new sqlDriver.Request(transaction)
       .input('id', sql.BigInt, id)
       .query(`
@@ -322,6 +317,7 @@ export async function updateUserAccess(userId, payload = {}, actor = null) {
       actor,
     });
 
+    await finish();
     await transaction.commit();
     return getAuthAdminOverview();
   } catch (error) {

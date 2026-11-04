@@ -1,10 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createCustomerContactEditor,customerContactContext,customerContactHtml} from './workCustomerContact.mjs';
+import {createCustomerContactEditor,customerContactContext,customerContactHtml,contactCardFromContext} from './workCustomerContact.mjs';
 import {tradeUuid} from './workTradeModel.mjs';
 const card={id:'1',customerCode:'SYNTHETIC-CUSTOMER',customerName:'Sentetik müşteri',fields:{phoneMasked:'00****01'}};
 const context=()=>({schemaVersion:'melisa-customer-contact-context.v1',customerId:'1',customerCode:card.customerCode,customerName:card.customerName,revision:'A'.repeat(64),contact:{phone:'0016100000000',city:'İstanbul',country:null}});
 const requestId='11111111-1111-4111-8111-111111111111';
+
+test('validated contact read refreshes the summary without exposing phone or changing commercial fields',()=>{
+ const original={...card,accounts:[{balanceExact:'251.0000'}],fields:{...card.fields,city:null,country:null,note:'Keep'}};
+ const result=contactCardFromContext(original,context());
+ assert.equal(result.fields.phoneMasked,'0016****00');assert.equal(result.fields.city,'İstanbul');assert.equal(result.fields.country,null);assert.equal(result.fields.note,'Keep');assert.strictEqual(result.accounts,original.accounts);assert.equal(original.fields.city,null);
+ assert.throws(()=>contactCardFromContext(original,{...context(),customerId:'2'}));
+ const supplier={id:'1',supplierCode:'ORNEK-T01',supplierName:'Örnek Tedarikçi',fields:{phoneMasked:null}};
+ const saved={...context(),schemaVersion:'melisa-supplier-contact-context.v1',supplierId:'1',supplierCode:supplier.supplierCode,supplierName:supplier.supplierName,contact:{phone:'ORNEK-B7-T01',city:'Yeni Şehir',country:''}};
+ assert.equal(contactCardFromContext(supplier,saved,'supplier').fields.phoneMasked,'OR*********1');assert.throws(()=>contactCardFromContext(supplier,saved));
+});
 
 test('LAN secure entropy fallback prepares a V4 request and missing entropy sends no POST',async()=>{
  let calls=0;const lanCrypto={getRandomValues:bytes=>bytes.fill(7)};

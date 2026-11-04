@@ -7,9 +7,11 @@ import kotlinx.serialization.json.JsonPrimitive
 internal class WorkTasksContract(val origin: String) {
     init { require(origin in ORIGINS) }
     private val host = URI(origin).host
-    private val apiOrigin = "http://$host:4184"
-    private val crmOrigin = "http://$host:62700"
-    private val crmApis = setOf("http://$host:62701", "http://$host:62702", "http://$host:62703")
+    private val clean = URI(origin).port == 5244
+    // LAN uses the existing web proxy; no internal API/native port is exposed.
+    private val apiOrigin = if (clean) (if (host == "127.0.0.1") "http://$host:4194" else origin) else "http://$host:4184"
+    val crmOrigin = "http://$host:${if (clean) 62800 else 62700}"
+    private val crmApis = if (clean) emptySet() else setOf("http://$host:62701", "http://$host:62702", "http://$host:62703")
     fun taskUrl(task: String): String { require(task in TASKS); return "$origin/terminal.html?worktest=1#$task" }
     fun allowedRequest(raw: String, mainFrame: Boolean, method: String = "GET"): Boolean = runCatching {
         val u = URI(raw)
@@ -18,9 +20,9 @@ internal class WorkTasksContract(val origin: String) {
         val path = u.rawPath.orEmpty()
         if (path.contains("%", true) || path.contains("\\") || path.split('/').any { it == ".." || it == "." }) return@runCatching false
         if (path == "/api/terminal-worktest" || path.startsWith("/api/terminal-worktest/"))
-            return@runCatching !mainFrame && site == origin && path == "/api/terminal-worktest/home-summary" && u.rawQuery == null && u.rawFragment == null && method == "GET"
+            return@runCatching !clean && !mainFrame && site == origin && path == "/api/terminal-worktest/home-summary" && u.rawQuery == null && u.rawFragment == null && method == "GET"
         if (path.startsWith("/api/test-personnel/") || path.startsWith("/api/test-admin/"))
-            return@runCatching !mainFrame && site == "http://127.0.0.1:62700" && site == crmOrigin && path == "/api/test-personnel/session" && u.rawQuery == null && method == "POST"
+            return@runCatching !clean && !mainFrame && site == "http://127.0.0.1:62700" && site == crmOrigin && path == "/api/test-personnel/session" && u.rawQuery == null && method == "POST"
         if (mainFrame) site == origin && path in setOf("/terminal.html", "/kullanim-egitimi.html")
         else (site == origin && (path == "/terminal.html" || path == "/kullanim-egitimi.html" || path == "/stage4-runtime.js" || path.startsWith("/assets/") || path.startsWith("/training/") || path == "/favicon.ico" || path.matches(Regex("/api/terminal-cartons/receipts(?:/[0-9]+)?")))) ||
             (site == apiOrigin && path.startsWith("/api/")) ||
@@ -29,7 +31,7 @@ internal class WorkTasksContract(val origin: String) {
     }.getOrDefault(false)
     fun taskOf(raw: String): String? = runCatching { URI(raw).takeIf { allowedRequest(raw, true) && it.path == "/terminal.html" }?.fragment?.takeIf { it in TASKS || it == "home" } }.getOrNull()
     companion object {
-        val ORIGINS = setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234")
+        val ORIGINS = setOf("http://192.168.1.46:5234", "http://127.0.0.1:5234", "http://192.168.1.46:5244", "http://127.0.0.1:5244")
         val TASKS = listOf("goods", "sales", "packing", "crm")
     }
 }

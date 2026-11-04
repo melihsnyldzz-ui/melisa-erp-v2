@@ -2,6 +2,7 @@ import sqlDefault from 'mssql';
 import { env } from './env.js';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
+import {getCleanContext,assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL} from '../services/cleanSyntheticContext.mjs';
 // A proven CRM draft process has no ERP operation-copy authority and its
 // package intentionally excludes the ERP-only SQL compiler dependency graph.
 const isolatedCopyTopology=getCrmOrderCurrentContext()?null:(await import('../services/isolatedOperationCopyContext.mjs')).isolatedCopyTopology;
@@ -9,7 +10,7 @@ export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 // mssql's two adapters share a process-wide Request driver. Loading ODBC after
 // TDS would give this dedicated TDS pool an ODBC Request and stall its reads.
 // The registered draft bootstrap selects TDS; legacy ODBC runtimes stay intact.
-const sqlTrusted=getCrmOrderCurrentContext()?null:(await import('mssql/msnodesqlv8.js')).default;
+const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()?null:(await import('mssql/msnodesqlv8.js')).default;
 
 let poolPromise;
 
@@ -128,9 +129,10 @@ export async function getSqlPool() {
       throw Object.assign(new Error('Isolated reader identity changed'),{code:'ISOLATED_COPY_READER_REJECTED',statusCode:403});
   }
   const currentCrm=getCrmOrderCurrentContext();
+  const clean=getCleanContext();if(clean)assertRegisteredCleanContext();
   const currentCrmAllowed=!!currentCrm&&env.port===currentCrm.nativePort&&env.sql.database===currentCrm.target.database&&env.sql.server==='127.0.0.1'&&env.sql.port===1433&&env.sql.user===currentCrm.target.login&&env.sql.readOnly===false&&env.sql.trustedConnection===false;
   if(currentCrm&&!currentCrmAllowed)throw Object.assign(new Error('Shared draft SQL identity changed'),{code:'CRM_SHARED_SQL_IDENTITY_CHANGED',statusCode:403});
-  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !isCanonicalTest() && !isIsolatedOperationCopyRuntime() && !currentCrmAllowed) {
+  if (!env.sql.readOnly && env.sql.database !== 'MELISA_ERP_PROD_CANDIDATE_20260917_01' && !isCanonicalTest() && !isIsolatedOperationCopyRuntime() && !currentCrmAllowed && !clean) {
     const error = new Error('SQL write mode is only allowed for the LIVE-3 production candidate');
     error.code = 'SQL_WRITE_TARGET_INVALID';
     error.statusCode = 403;
@@ -141,6 +143,7 @@ export async function getSqlPool() {
     const sql = getSqlDriver();
     const pool = new sql.ConnectionPool(getSqlConfig());
     poolPromise = pool.connect().then(async connected=>{
+      if(clean){try{assertCleanIdentity((await connected.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);}catch(error){await connected.close();throw error;}}
       if(currentCrmAllowed){
         try{const identity=(await connected.request().query("SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') databaseControl,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess")).recordset[0];assertCrmOrderCurrentIdentity(currentCrm,identity);}catch(error){await connected.close();throw error;}
       }

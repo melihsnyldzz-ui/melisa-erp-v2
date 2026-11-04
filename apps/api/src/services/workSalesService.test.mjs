@@ -6,6 +6,8 @@ import {createWorkCollectionService} from './workCollectionService.mjs';
 import {withWorkNightScope,isWorkNightProduct} from './workNightScope.mjs';
 import {fixtureContext} from './isolatedOperationCopyContext.test.mjs';
 import {bindIsolatedCopyOperationDTO,validateIsolatedOperationCopyContext} from './isolatedOperationCopyContext.mjs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 const revision='a'.repeat(64),uuid='a2a49b48-3696-4f2d-b237-e519af1e1b88';
 const actor={id:'16',testAdminSession:true,permissions:['sales.view','sales.create','sales.finalize','sales.cancel','customer.view','finance.collection','finance.collection.cancel']};
 const products=['400001','400002'].map((id,i)=>({id,stockCode:`NIGHT-${i+1}`,name:`Ürün ${i+1}`,synthetic:true,writeEligible:true,stockQuantityExact3:'10.000',unit:{label:'ADET',factorExact8:'1.00000000'},prices:[{quoteId:String(i+1),currency:'TRY',unitPriceExact8:i?'20.12345000':'10.00000000'}]}));
@@ -23,8 +25,88 @@ test('strict body refuses client prices/roles, duplicate products, decimals and 
  for(const value of [{...selection,role:'admin'},{...selection,items:[{...selection.items[0],unitPrice:1}]},{...selection,items:[selection.items[0],selection.items[0]]},{...selection,items:[{...selection.items[0],quantityExact3:'1.500'}]},{...selection,customerId:'9223372036854775808'}])assert.throws(()=>workSelection(value));
  assert.throws(()=>workDraftInput({...selection,requestId:'not-uuid',previewHash:revision,expectedRevision:revision}));
 });
-function fixture(){const requests=new Map(),events=[],current=invoice();const c={context,invoice:async()=>structuredClone(current),createDraft:async()=>{events.push('draft');return structuredClone(current);},finalize:async()=>{events.push('finalize');current.status='finalized';return structuredClone(current);},cancel:async()=>{events.push('cancel');current.status='cancelled';return structuredClone(current);},collect:async p=>{events.push('collect');const item={id:'900001',invoiceId:current.id,accountId:p.selection.accountId,amountExact4:p.amountExact4,currency:'TRY',documentDate:p.selection.documentDate,status:'active',revision};current.collections.receivedExact4=p.receivedAfterExact4;current.collections.outstandingExact4=p.outstandingAfterExact4;current.collections.items.push(item);return item;},collection:async()=>current.collections.items[0],cancelCollection:async()=>{events.push('reverse');current.collections.receivedExact4='0.0000';current.collections.outstandingExact4='40.1235';current.collections.items[0].status='cancelled';return current.collections.items[0];}};
- const store={context:async()=>context,read:async(a,fn)=>fn(c),mutate:async(a,operation,payload,fn)=>{const hash=workHash({actorId:a.id,operation,payload}),old=requests.get(payload.requestId);if(old){if(old.hash!==hash)throw Object.assign(Error('Conflict'),{statusCode:409});return {...old.response,replayed:true};}const response=await fn(c);requests.set(payload.requestId,{hash,response:structuredClone(response)});return response;}};return{store,events,current,requests};}
+function fixture(localContext=context){const requests=new Map(),events=[],current=invoice();const c={context:localContext,invoice:async()=>structuredClone(current),createDraft:async()=>{events.push('draft');return structuredClone(current);},finalize:async()=>{events.push('finalize');current.status='finalized';return structuredClone(current);},cancel:async()=>{events.push('cancel');current.status='cancelled';return structuredClone(current);},collect:async p=>{events.push('collect');const item={id:'900001',invoiceId:current.id,accountId:p.selection.accountId,amountExact4:p.amountExact4,currency:'TRY',documentDate:p.selection.documentDate,status:'active',revision};current.collections.receivedExact4=p.receivedAfterExact4;current.collections.outstandingExact4=p.outstandingAfterExact4;current.collections.items.push(item);return item;},collection:async()=>current.collections.items[0],cancelCollection:async()=>{events.push('reverse');current.collections.receivedExact4='0.0000';current.collections.outstandingExact4='40.1235';current.collections.items[0].status='cancelled';return current.collections.items[0];}};
+ const store={context:async()=>localContext,read:async(a,fn)=>fn(c),mutate:async(a,operation,payload,fn)=>{const hash=workHash({actorId:a.id,operation,payload}),old=requests.get(payload.requestId);if(old){if(old.hash!==hash)throw Object.assign(Error('Conflict'),{statusCode:409});return {...old.response,replayed:true};}const response=await fn(c);requests.set(payload.requestId,{hash,response:structuredClone(response)});return response;}};return{store,events,current,requests,context:localContext};}
+
+const cleanBoundaryError={code:'WORK_UNAVAILABLE',statusCode:503};
+function cleanBoundaryFixture(meta={environment:'CLEAN_SYNTHETIC_TEST'}){
+ const local=structuredClone(context);local.meta={...local.meta,...meta};return fixture(local);
+}
+function draftBody(local=context){const preview=workSalePreview(selection,local);return {...selection,requestId:uuid,expectedRevision:local.revision,previewHash:preview.previewHash};}
+
+test('B6 contract: a clean canCreate flag cannot admit a direct draft without a native contract',async()=>{
+ const f=cleanBoundaryFixture(),service=createWorkSalesService({getStore:async()=>f.store});
+ await assert.rejects(service.createDraft(draftBody(f.context),actor),cleanBoundaryError);
+ assert.deepEqual(f.events,[]);assert.equal(f.requests.size,0);assert.equal(f.current.status,'draft');
+});
+
+test('B6 contract: a clean canFinalize flag cannot invoke the invoice engine without a native contract',async()=>{
+ const f=cleanBoundaryFixture(),service=createWorkSalesService({getStore:async()=>f.store});
+ await assert.rejects(service.finalize(f.current.id,{requestId:uuid,expectedRevision:revision},actor),cleanBoundaryError);
+ assert.deepEqual(f.events,[]);assert.equal(f.requests.size,0);assert.equal(f.current.status,'draft');
+});
+
+test('B6 contract: partial clean markers, wrong target and claimed verification never become write admission',async()=>{
+ const cases=[
+  {environment:'CLEAN_SYNTHETIC_TEST',database:'LIVE',actualT1:true},
+  {environment:'CLEAN_SYNTHETIC_TEST',environmentId:'wrong-environment',synthetic:false},
+  {environment:'CANONICAL_TEST',database:'MELISA_ERP_CLEAN_TEST_20261022'},
+  {environment:'CANONICAL_TEST',environmentId:'E662FD94-D797-4B3B-938A-D143AD758B67'},
+  {environment:'CANONICAL_TEST',cleanSaleReadOnly:true},
+  {environment:'CLEAN_SYNTHETIC_TEST',verified:true,cleanDirectSaleContract:{verified:true,canCreate:true,canFinalize:true}}
+ ];
+ for(const meta of cases){const f=cleanBoundaryFixture(meta),service=createWorkSalesService({getStore:async()=>f.store});
+  await assert.rejects(service.createDraft(draftBody(f.context),actor),cleanBoundaryError);
+  await assert.rejects(service.finalize(f.current.id,{requestId:uuid,expectedRevision:revision},actor),cleanBoundaryError);
+  assert.deepEqual(f.events,[]);assert.equal(f.requests.size,0);
+ }
+});
+
+test('B6 contract: missing actor permissions fail before opening the store and client admin flags do not grant them',async()=>{
+ let opened=0;const service=createWorkSalesService({getStore:async()=>{opened++;throw Error('Store must remain closed');}});
+ const unprivileged={id:'10018',username:'semih',isAdmin:true,testAdminSession:true,permissions:[]};
+ await assert.rejects(service.createDraft(draftBody(),unprivileged),{code:'WORK_FORBIDDEN',statusCode:403});
+ await assert.rejects(service.finalize('800001',{requestId:uuid,expectedRevision:revision},unprivileged),{code:'WORK_FORBIDDEN',statusCode:403});
+ assert.equal(opened,0);
+});
+
+test('B6 contract: existing non-clean draft orchestration rejects stale revision and stale price before an engine call',async()=>{
+ const local=structuredClone(context),f=fixture(local),service=createWorkSalesService({getStore:async()=>f.store}),body=draftBody(local);
+ await assert.rejects(service.createDraft({...body,expectedRevision:'b'.repeat(64)},actor),{code:'WORK_STALE',statusCode:409});
+ local.scope.products[0].prices[0].unitPriceExact8='11.00000000';
+ await assert.rejects(service.createDraft(body,actor),{code:'WORK_PREVIEW_CHANGED',statusCode:409});
+ assert.deepEqual(f.events,[]);assert.equal(f.requests.size,0);
+});
+
+test('B6 contract: existing in-memory journal replays finalize once and rejects the same UUID with another body',async()=>{
+ const f=fixture(),service=createWorkSalesService({getStore:async()=>f.store}),body={requestId:uuid,expectedRevision:revision};
+ const first=await service.finalize(f.current.id,body,actor),replay=await service.finalize(f.current.id,body,actor);
+ assert.equal(first.invoice.status,'finalized');assert.equal(replay.replayed,true);assert.deepEqual(f.events,['finalize']);
+ await assert.rejects(service.finalize(f.current.id,{...body,expectedRevision:'b'.repeat(64)},actor),{statusCode:409});
+ assert.deepEqual(f.events,['finalize']);assert.equal(f.requests.size,1);
+});
+
+test('B6 contract: registered clean runtime refuses legacy fallback before opening any store',()=>{
+ // The worker registers only an in-memory identity. No SQL module, credential,
+ // socket or runtime fixture is opened; process isolation avoids registry leaks.
+ const worker=`import assert from 'node:assert/strict';
+ import {createWorkSalesService} from ${JSON.stringify(new URL('./workSalesService.mjs',import.meta.url).href)};
+ import {registerCleanContext,CLEAN_DATABASE,CLEAN_LOGIN,CLEAN_ENVIRONMENT_ID} from ${JSON.stringify(new URL('./cleanSyntheticContext.mjs',import.meta.url).href)};
+ Object.assign(process.env,{MELISA_CLEAN_TEST:'20261022',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',SQL_DATABASE:CLEAN_DATABASE,SQL_USER:CLEAN_LOGIN,SQL_READ_ONLY:'false',SQL_TRUSTED_CONNECTION:'false',API_PORT:'4194'});
+ registerCleanContext({databaseName:CLEAN_DATABASE,serverName:'Semih\\\\MELISADEV',loginName:CLEAN_LOGIN,databaseUser:CLEAN_LOGIN,sysadmin:0,databaseControl:0,originalDatabaseAccess:0,liveDatabaseAccess:0,environmentId:CLEAN_ENVIRONMENT_ID});
+ let opened=0;const service=createWorkSalesService({getStore:async()=>{opened++;throw Error('Unexpected store access');}}),actor={id:'10018',permissions:['sales.create','sales.finalize']};
+ const requestId='${uuid}',expectedRevision='${revision}',body={requestId,expectedRevision,previewHash:expectedRevision,customerId:'1',documentDate:'2026-10-22',currency:'TRY',items:[{productId:'1',quoteId:'1',quantityExact3:'1.000'}]};
+ for(const database of[CLEAN_DATABASE,'LIVE']){process.env.SQL_DATABASE=database;
+  await assert.rejects(service.createDraft(body,actor),{code:'WORK_UNAVAILABLE',statusCode:503});
+  await assert.rejects(service.finalize('1',{requestId,expectedRevision},actor),{code:'WORK_UNAVAILABLE',statusCode:503});
+ }
+ assert.equal(opened,0);console.log(JSON.stringify({registeredClean:true,storeCalls:opened,denied:4}));`;
+ const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>/^(PATH|PATHEXT|SYSTEMROOT|WINDIR|COMSPEC|TEMP|TMP|LOCALAPPDATA|APPDATA|USERPROFILE|HOME|HOMEDRIVE|HOMEPATH|NODE_OPTIONS)$/i.test(key)));
+ const guard=fileURLToPath(new URL('../../../../scripts/ci/offline-guard.cjs',import.meta.url));
+ const result=spawnSync(process.execPath,['--require',guard,'--input-type=module','-e',worker],{env,encoding:'utf8',windowsHide:true,timeout:10000});
+ assert.ifError(result.error);assert.equal(result.status,0,result.stderr||result.stdout);
+ assert.deepEqual(JSON.parse(result.stdout.trim()),{registeredClean:true,storeCalls:0,denied:4});
+});
 test('draft creation persists replay identity before stale check; conflicting same UUID cannot write twice',async()=>{
  const f=fixture(),svc=createWorkSalesService({getStore:async()=>f.store}),p=workSalePreview(selection,context),body={...selection,requestId:uuid,expectedRevision:revision,previewHash:p.previewHash};
  await svc.createDraft(body,actor);assert.equal((await svc.createDraft(body,actor)).replayed,true);assert.deepEqual(f.events,['draft']);

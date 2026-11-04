@@ -1,3 +1,4 @@
+import {getCanonicalBusinessSaleDefinitionHash} from './canonicalBusinessSessionContext.mjs';
 import {createHash} from 'node:crypto';
 import {supplierContactError,parseSupplierContact,supplierContactContext} from './testSupplierContactModel.mjs';
 import {SUPPLIER_CARD_READY_SQL,SUPPLIER_CARD_PROC_HASH} from './supplierCardReadStore.mjs';
@@ -88,7 +89,7 @@ export function createTestSupplierContactStore({getRuntime=defaultRuntime}={}){
    for(const [key,value] of Object.entries({request_id:parsed.requestId,expected_revision:parsed.expectedRevision,phone:parsed.phone,city:parsed.city,country:parsed.country,payload_json:parsed.payloadJson,payload_hash:parsed.payloadHash}))req.input(key,sql.NVarChar(sql.MAX),value);req.input('actor_id',sql.BigInt,'16');
   }
   const row=(await req.execute(input?CONTACT_SET_PROC:CONTACT_GET_PROC)).recordset?.[0];
-  if(!row||row.getterHash!==CONTACT_GET_HASH||row.setterHash!==CONTACT_SET_HASH||row.rowGuardHash!==CONTACT_ROW_GUARD_HASH||row.journalGuardHash!==CONTACT_JOURNAL_GUARD_HASH||typeof row.replayed!=='boolean')throw unavailable();
+  if(!row||row.getterHash!==getCanonicalBusinessSaleDefinitionHash(CONTACT_GET_PROC,CONTACT_GET_HASH)||row.setterHash!==getCanonicalBusinessSaleDefinitionHash(CONTACT_SET_PROC,CONTACT_SET_HASH)||row.rowGuardHash!==CONTACT_ROW_GUARD_HASH||row.journalGuardHash!==CONTACT_JOURNAL_GUARD_HASH||typeof row.replayed!=='boolean')throw unavailable();
   const context=supplierContactContext(JSON.parse(row.contextJson));await tx.commit();return input?{...context,replayed:row.replayed}:context;
  }catch(error){if(tx)try{await tx.rollback();}catch{}const numbers=[error?.number,error?.originalError?.info?.number,...(error?.precedingErrors??[]).map(e=>e.number)];if(numbers.includes(51078))throw supplierContactError('TEST_SUPPLIER_CONTACT_STALE','Kart değişti; güncel bilgileri yeniden açın.',409);if(numbers.includes(51079))throw supplierContactError('TEST_SUPPLIER_CONTACT_REQUEST_CONFLICT','Bu istek kimliği başka bir düzenlemeye ait.',409);throw unavailable();}};
  return {readTestSupplierContactContext:()=>execute(null),updateTestSupplierContact:execute};

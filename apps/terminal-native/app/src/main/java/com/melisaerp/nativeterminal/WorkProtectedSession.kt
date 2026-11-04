@@ -1,12 +1,11 @@
 package com.melisaerp.nativeterminal
 
-import java.net.URI
 import kotlinx.serialization.json.*
 
 /** The WebView reports the caller origin; JavaScript cannot select a realm. */
 internal class WorkProtectedSessionPolicy(private val erpOrigin: String) {
     init { require(erpOrigin in WorkTasksContract.ORIGINS) }
-    val crmOrigin = "http://${URI(erpOrigin).host}:62700"
+    val crmOrigin = WorkTasksContract(erpOrigin).crmOrigin
     val origins = setOf(erpOrigin, crmOrigin)
     fun key(origin: String, mainFrame: Boolean, topUrl: String): String? {
         if (!WorkTasksContract(erpOrigin).allowedRequest(topUrl, true)) return null
