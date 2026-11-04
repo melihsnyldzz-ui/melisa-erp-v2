@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — mal kabul test formu düzeltmesi
+
+eb3a GitHub quality testinde mal kabulün sentetik DOM formu gerçek search alanını sağlamadığı için hata verdi. Yalnız test fixture düzeltildi; ilgili 59 test çevrimdışı koruma altında ve bağımsız review ile geçti. Tam yerel Windows sites suite 1867/1868: ayrı, önceden mevcut Windows PowerShell fixture CI_OFFLINE_BOUNDARY ile engelli; Linux GitHub sonucu değil. Yeni exact CI, gerçek kurulum ve ekran kabulü bekliyor.
+
 ## 4 Kasım 2026 — mal kabul araması ve ortak kaynak adayı
 
 Mal kabul ürün/tedarikçi ekranında tam sayfa sonuçları ve bağımsız sayfalama kaynakta hazır; 14 hedefli test ve bağımsız inceleme geçti. c2ce uygulama kaynağının satış/müşteri/mal kabul için 49 dosyalık aday kapsamı tanımlandı; 17 çevrimdışı hedefli test, üç ayrı gerçek Git entegrasyon testi ve uygulama derlemesi geçti. Önceki adaylar korundu. Gerçek paket üretimi klasör güvenliği çözülene kadar I/O öncesi kapalı; TEST kurulumu, normal ekran ve insan kabulü BEKLİYOR.
