@@ -69,10 +69,11 @@ function Get-C06BeginPauseBindingRecord($Binding){
 }
 
 function Assert-C06BeginApiHandleOwner($Record,$Context){
- # Test125ApiKernel verifies a handle's birth and exit, but does not expose a
- # supported GetProcessId/same-kernel-object proof for the retained Process.
- # Refuse issuance until a separately reviewed real issuer supplies that link.
- throw 'C06_BEGIN_API_HANDLE_OWNER_PROOF_UNAVAILABLE'
+ # Both are same-owner retained objects, captured before pause. No PID reopen
+ # or adoption occurs; any unavailable handle or failed comparison rejects.
+ if(!$Record-or!$Context-or!$Context.activeBinding-or!$Context.activeBinding.handle-or!$Record.apiChild-or!$Record.apiSafeHandle-or$Record.apiSafeHandle.IsClosed-or$Record.apiSafeHandle.IsInvalid-or![object]::ReferenceEquals($Record.apiChild.SafeHandle,$Record.apiSafeHandle)){throw 'C06_BEGIN_API_HANDLE_OWNER_PROOF_UNAVAILABLE'}
+ Initialize-Test125ApiKernel
+ [Test125ApiKernel]::AssertSameExitedObject($Context.activeBinding.handle,$Record.apiSafeHandle,[int]$Record.apiPid,[long]$Record.apiBirthTicks)
 }
 
 function Bind-C06BeginOwnerPause($Candidate,$OwnerState,$Transition,$Channel,$Request){
@@ -88,8 +89,12 @@ function Bind-C06BeginOwnerPause($Candidate,$OwnerState,$Transition,$Channel,$Re
  if($Request.operation-cne'retire'-or$ret.phase-cne'Running'-or$ret.operationId-or$ret.pending-or$ret.records-or![object]::ReferenceEquals($ret.lease,$owner.lease)-or![object]::ReferenceEquals($ret.native,$owner.webChild)-or$ret.childPid-ne$owner.facts.webPid-or$ret.childBirth-cne$owner.facts.webBirth-or$ret.ownerBirth-isnot[string]-or$ret.ownerBirth-cnotmatch'\A[1-9][0-9]{0,18}\z'-or$ret.ownerBirth-cne$owner.facts.ownerBirth){throw 'C06_BEGIN_PAUSE_OWNER_CHANGED'}
  if($Transition.scope-cne'TEST125-API-B6-BEGIN-SUCCESSOR'-or$Transition.profileOnlyPurpose-cne'BeginSuccessor'-or$c.phase-cne'PREPARED'-or![object]::ReferenceEquals($c.token,$Transition)-or$Transition.apiProfileBeforeSha256-cne$view.operation.profileBeforeSha256-or$Transition.apiProfileCandidateSha256-cne$view.operation.profileAfterSha256){throw 'C06_BEGIN_PAUSE_TRANSITION_CHANGED'}
  if($c.admission.children.api.pid-ne$owner.facts.apiPid-or([datetime]$c.admission.children.api.birth).ToUniversalTime().Ticks-ne([datetime]$owner.facts.apiBirth).ToUniversalTime().Ticks){throw 'C06_BEGIN_PAUSE_API_CHANGED'}
+ # The existing owner validator requires a real Process. The non-Process
+ # branch keeps isolated in-memory fixtures non-authoritative and fails when
+ # the actual handle proof is requested.
+ $apiSafeHandle=if($owner.apiChild-is[Diagnostics.Process]){$owner.apiChild.SafeHandle}else{$null}
  $token=[pscustomobject][ordered]@{schema='melisa-c06-owner-pause-binding.v1';id=[guid]::NewGuid().ToString('N')}
- $record=@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;candidate=$Candidate;candidateRecord=$candidate;operationJson=$candidate.operationJson;owner=$owner;ownerSid=$owner.sid;observationJson=$owner.tokenJson;ownerFactsJson=$owner.factsJson;binding=$candidate.binding;observation=$candidate.observation;lease=$owner.lease;apiChild=$owner.apiChild;webChild=$owner.webChild;seal=$owner.seal;apiPid=$owner.facts.apiPid;apiBirthTicks=([datetime]$owner.facts.apiBirth).ToUniversalTime().Ticks;ownerBirth=$owner.facts.ownerBirth;webPid=$owner.facts.webPid;webBirth=$owner.facts.webBirth;ownerState=$OwnerState;retirement=$ret;transition=$Transition;transitionContext=$c;channel=$Channel;request=$Request;phase='Bound';admission=$null}
+ $record=@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;candidate=$Candidate;candidateRecord=$candidate;operationJson=$candidate.operationJson;owner=$owner;ownerSid=$owner.sid;observationJson=$owner.tokenJson;ownerFactsJson=$owner.factsJson;binding=$candidate.binding;observation=$candidate.observation;lease=$owner.lease;apiChild=$owner.apiChild;apiSafeHandle=$apiSafeHandle;webChild=$owner.webChild;seal=$owner.seal;apiPid=$owner.facts.apiPid;apiBirthTicks=([datetime]$owner.facts.apiBirth).ToUniversalTime().Ticks;ownerBirth=$owner.facts.ownerBirth;webPid=$owner.facts.webPid;webBirth=$owner.facts.webBirth;ownerState=$OwnerState;retirement=$ret;transition=$Transition;transitionContext=$c;channel=$Channel;request=$Request;phase='Bound';admission=$null}
  $candidate.phase='PauseBound';[void]$script:C06BeginPauseBindings.Add($record);return $token
 }
 

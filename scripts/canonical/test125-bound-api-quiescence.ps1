@@ -16,6 +16,9 @@ public static class Test125ApiKernel{
  [DllImport("kernel32.dll",SetLastError=true)]static extern bool GetProcessTimes(Test125ApiHandle h,out long c,out long e,out long k,out long u);
  [DllImport("kernel32.dll",SetLastError=true)]static extern uint WaitForSingleObject(Test125ApiHandle h,uint ms);
  [DllImport("kernel32.dll",SetLastError=true)]static extern bool TerminateProcess(Test125ApiHandle h,uint code);
+ [DllImport("kernel32.dll",SetLastError=true)]static extern uint GetProcessId(IntPtr h);
+ [DllImport("kernel32.dll",SetLastError=true)]static extern uint WaitForSingleObject(IntPtr h,uint ms);
+ [DllImport("kernelbase.dll",SetLastError=true)]static extern bool CompareObjectHandles(IntPtr first,IntPtr second);
  // CIM timestamps have microsecond precision; retain exact kernel birth after initial binding.
  public static bool MatchesCim(long native,long cim){return cim%10==0?native/10==cim/10:native==cim;}
  static void Check(Test125ApiHandle h,long expected){long c,e,k,u;if(h==null||h.IsClosed||h.IsInvalid||!GetProcessTimes(h,out c,out e,out k,out u)||DateTime.FromFileTimeUtc(c).Ticks!=h.Birth||!MatchesCim(h.Birth,expected))throw new InvalidOperationException("TEST125_API_HANDLE_IDENTITY");}
@@ -23,6 +26,17 @@ public static class Test125ApiKernel{
  public static Test125ApiHandle QueryOnlyOpen(int pid,long birth){var h=OpenProcess(0x00101000,false,(uint)pid);long c,e,k,u;if(h.IsInvalid||!GetProcessTimes(h,out c,out e,out k,out u)||!MatchesCim(DateTime.FromFileTimeUtc(c).Ticks,birth)||WaitForSingleObject(h,0)!=258){h.Dispose();throw new InvalidOperationException("TEST125_API_HANDLE_IDENTITY");}h.Birth=DateTime.FromFileTimeUtc(c).Ticks;h.QueryOnly=true;return h;}
  public static void ValidateReadOnly(Test125ApiHandle h,long birth){if(h==null||!h.QueryOnly)throw new InvalidOperationException("TEST125_API_READ_HANDLE_REQUIRED");Check(h,birth);if(WaitForSingleObject(h,0)!=258)throw new InvalidOperationException("TEST125_API_READ_HANDLE_EXITED");}
  public static bool Exited(Test125ApiHandle h,long birth){Check(h,birth);return WaitForSingleObject(h,0)==0;}
+ // Compares two already retained handles in the issuing process. Never opens
+ // a PID, grants an action, or treats a failure to compare as equality.
+ public static void AssertSameExitedObject(Test125ApiHandle h,SafeProcessHandle owner,int pid,long birth){
+  if(h==null||owner==null||pid<=0||birth<=0||h.IsClosed||h.IsInvalid||h.QueryOnly||owner.IsClosed||owner.IsInvalid)throw new InvalidOperationException("C06_BEGIN_API_HANDLE_OWNER_PROOF_UNAVAILABLE");
+  bool addedH=false,addedOwner=false;
+  try{
+   h.DangerousAddRef(ref addedH);owner.DangerousAddRef(ref addedOwner);Check(h,birth);
+   IntPtr first=h.DangerousGetHandle(),second=owner.DangerousGetHandle();
+   if(GetProcessId(first)!=(uint)pid||GetProcessId(second)!=(uint)pid||!CompareObjectHandles(first,second)||WaitForSingleObject(first,0)!=0||WaitForSingleObject(second,0)!=0)throw new InvalidOperationException("C06_BEGIN_API_HANDLE_OWNER_PROOF_UNAVAILABLE");
+  }finally{if(addedOwner)owner.DangerousRelease();if(addedH)h.DangerousRelease();}
+ }
  public static void Stop(Test125ApiHandle h,long birth){if(h!=null&&h.QueryOnly)throw new InvalidOperationException("TEST125_API_READ_HANDLE_REQUIRED");Check(h,birth);if(WaitForSingleObject(h,0)!=258)throw new InvalidOperationException("TEST125_API_ALREADY_EXITED");if(!TerminateProcess(h,1)||WaitForSingleObject(h,10000)!=0)throw new InvalidOperationException("TEST125_API_STOP_UNCONFIRMED");}
 }
 '@
