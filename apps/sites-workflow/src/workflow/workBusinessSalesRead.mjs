@@ -88,7 +88,7 @@ export function createBusinessSalesRead({root,session,user,navigate=()=>{},journ
    if(!alive('operation',n))return;
    if(stage==='prepare'){
     if(JSON.stringify(journal.read())!==retained||!result?.prepared||!result.ticket||result.display?.currency!==scope.currency||!Array.isArray(result.display.items))throw Error();
-    recoveryReady={ticket:result.ticket,display:result.display};lastReceiptNote='Özgün işlem doğrulandı. Henüz kayıt gönderilmedi.';
+    recoveryReady={ticket:result.ticket,display:result.display};lastReceiptNote='Özgün işlem bilgileri kontrol edildi. Bu kontrolde yeni kayıt gönderilmedi; önceki işlemin sonucu henüz doğrulanmadı.';
    }else{
     recoveryMissing=null;
     if(result?.sent===true&&result.invoice){lastInvoice=tradeCanonicalSaleInvoice(result.invoice,scope);lastReceiptNote='Aynı işlemin fişi doğrulandı.';nativePreview=null;if(basket.lines.length)basketState='stale';await refreshSavedReadValues(lastInvoice,n);}
