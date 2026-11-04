@@ -1,3 +1,8 @@
+## 4 Kasım 2026 — müşteri kayıt zincirinin izole kontrolü
+
+- `9b3f3478`: gerçek müşteri editörü, normal session/taşıma ve canonical router/servis tek testte sentetik store ve normal v3 DTO ile bağlandı. Kayıp yanıt, aynı UUID/body, sonraki farklı düzenleme, hold, yetki reddi ve UNKNOWN/405 okuma sınırı denendi.
+- 6/6 hedefli test, bağımsız inceleme, build ve staged güvenlik taraması geçti. Sentetik auth/store ve fixture Express kullanıldı; gerçek SQL/admission, kurulu 5244, insan kabulü ve yeni exact CI kanıtı değildir.
+
 ## 4 Kasım 2026 — ürün listesi sayfa toparlama
 
 - `8230cc98`: liste sayfası okunamazsa hata gizlenmeden önceki sayfaya, uygulanmış filtrelerle tekrar ulaşılır; gecikmiş ve kapatılmış ekran yanıtları korunur.
