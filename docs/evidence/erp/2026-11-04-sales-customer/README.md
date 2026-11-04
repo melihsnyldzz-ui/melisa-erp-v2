@@ -25,3 +25,7 @@ Normal ekran kontrolü için yerel tarayıcı kullanımı önce Work ayarlarınd
 ## Sonraki mevcut adım
 
 Yeni startup/route bağlantısını, paket bağımlılıklarını ve exact CI'yi tamamla. Ardından taze tek-yazar/target/before-image/geri dönüş kanıtıyla izinli TEST bakımını somutlaştır. Müşteri master şeması/izinleri ve satış owner yordam/hash uyumu gerçek native kanıtla tamamlanmadan kurulum veya satış/kart kabulü PASS sayılmaz. Güvenlik erişimi genişletme, yeni kalıcı senaryo, LIVE/Vega/T1 ve insan kabulü sınırları ERP-DEC-087'deki gibi sürer.
+
+4 Kasım: Kullanıcının eski hedefi kaldırmasından sonra `01a107ef-f13e-73c0-9e08-fd5c4545325e` ana konuşmasında yeni hedef oluşturuldu ve desteklenen hedef okumasıyla `active` doğrulandı. Öncelik ERP → Native Android terminal → CRM; küçük bağımsız işler için derleme, güvenlik ve ilgili testler, son TEST teslimi için tam kontroller ve ayrı insan kabulü esas. Bu kayıt hedefin tamamlandığı anlamına gelmez.
+
+CI kapsam değişikliği `47e607b97748baf607731ce3dcd6c7f64c0ec356` için PR koşusu `41741611601` ve push koşusu `41741604288` dört işin tamamını başarılı çalıştırdı; CI değişikliği olduğundan her iki olayda Windows kapsamı FULL idi. Sonraki yalnız doküman güncellemesinin dar kapsam sonucu ayrıca gözlemlenecek; atlanmış Windows sonucu kurulum için tam CI kabul edilmez.
