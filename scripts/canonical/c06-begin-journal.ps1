@@ -45,6 +45,10 @@ function Get-C06BeginJournalReservation($PausedAdmission,$Snapshot){
  }
  return $matches
 }
+function New-C06BeginUnknownReservation($PausedAdmission,$Snapshot,$Hash=$null){
+ $r=@{token=$null;tokenJson=$null;admission=$PausedAdmission;snapshot=$Snapshot;hash=$Hash;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;used=$false;phase='Unknown'}
+ [void]$script:C06BeginJournalProofs.Add($r);return $r
+}
 function Get-C06BeginJournalState($PausedAdmission){
  $first=Get-C06BeginJournalSnapshot $PausedAdmission;$reservations=Get-C06BeginJournalReservation $PausedAdmission $first
  if(@($reservations|Where-Object{$_.phase-cin@('Writing','Unknown')}).Count){return [pscustomobject]@{status='UNKNOWN_NO_REPLAY';executionAuthority=$false}}
@@ -60,20 +64,25 @@ function Get-C06BeginJournalState($PausedAdmission){
 function Start-C06BeginJournalIntent($PausedAdmission){
  $first=Get-C06BeginJournalSnapshot $PausedAdmission
  if(@(Get-C06BeginJournalReservation $PausedAdmission $first).Count){throw 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'}
- if((Read-C06BeginHeldBytes $first.stream).Length-ne0){throw 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'}
+ try{$initial=Read-C06BeginHeldBytes $first.stream}catch{[void](New-C06BeginUnknownReservation $PausedAdmission $first);throw}
+ if($initial.Length-ne0){[void](New-C06BeginUnknownReservation $PausedAdmission $first);throw 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'}
  if(!(Get-Command Assert-C06BeginFreshJournalAdmission -CommandType Function -ErrorAction SilentlyContinue)){throw 'C06_BEGIN_FRESH_ISSUER_UNAVAILABLE'}
  # The real issuer must prove CreateNew and retain this exact operation and
  # handle; a caller boolean or a pre-existing empty path is not such proof.
- $fresh=Assert-C06BeginFreshJournalAdmission $PausedAdmission
- if($null-eq$fresh-or![object]::ReferenceEquals($fresh.admission,$PausedAdmission)){throw 'C06_BEGIN_FRESH_ADMISSION_REJECTED'}
- foreach($key in @('stream','binding','ownerState','transition','identity')){if(![object]::ReferenceEquals($fresh.$key,$first.$key)){throw 'C06_BEGIN_FRESH_ADMISSION_REJECTED'}}
- $bytes=Get-C06BeginJournalIntentBytes $first;$hash=Get-C06BeginJournalHash $bytes
- $second=Get-C06BeginJournalSnapshot $PausedAdmission;Assert-C06BeginJournalSame $first $second
- # Reserve before the first write. Even a zero-byte failure poisons this
- # same-process stream; the record is deliberately never removed on error.
- $record=@{token=$null;tokenJson=$null;admission=$PausedAdmission;snapshot=$first;hash=$hash;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;used=$false;phase='Writing'}
- [void]$script:C06BeginJournalProofs.Add($record)
+ # Reserve before issuer invocation: even an issuer exception can mean a
+ # CreateNew attempt occurred and must never be retried automatically.
+ $record=New-C06BeginUnknownReservation $PausedAdmission $first
  try{
+  $fresh=Assert-C06BeginFreshJournalAdmission $PausedAdmission
+  if($null-eq$fresh-or![object]::ReferenceEquals($fresh.admission,$PausedAdmission)){throw 'C06_BEGIN_FRESH_ADMISSION_REJECTED'}
+  foreach($key in @('stream','binding','ownerState','transition','identity')){if(![object]::ReferenceEquals($fresh.$key,$first.$key)){throw 'C06_BEGIN_FRESH_ADMISSION_REJECTED'}}
+  $bytes=Get-C06BeginJournalIntentBytes $first;$hash=Get-C06BeginJournalHash $bytes;$record.hash=$hash
+  $second=Get-C06BeginJournalSnapshot $PausedAdmission;Assert-C06BeginJournalSame $first $second
+  $third=Get-C06BeginJournalSnapshot $PausedAdmission;Assert-C06BeginJournalSame $first $third
+  # Never overwrite bytes appearing between the initial read and freshness.
+  # No issuer callbacks occur between this final read and the write.
+  if((Read-C06BeginHeldBytes $third.stream).Length-ne0){throw 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'}
+  $record.phase='Writing'
   $s=$first.stream;$s.Position=0;$s.Write($bytes,0,$bytes.Length);$s.Flush($true)
   if((Get-C06BeginJournalHash (Read-C06BeginHeldBytes $s))-cne$hash){throw 'C06_BEGIN_JOURNAL_DURABILITY_UNKNOWN'}
   $last=Get-C06BeginJournalSnapshot $PausedAdmission;Assert-C06BeginJournalSame $first $last

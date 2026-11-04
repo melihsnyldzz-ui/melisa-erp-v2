@@ -6,7 +6,7 @@ Expect-C06Failure {Start-C06BeginJournalIntent ([pscustomobject]@{})} 'C06_BEGIN
 $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_ONLY'}
 $script:testBinding=[object]::new();$script:testOwner=[object]::new();$script:testTransition=[object]::new();$script:testStream=$null
 $script:testIdentity=[pscustomobject][ordered]@{operation=[pscustomobject][ordered]@{operationId='1'*32;bodySha256='2'*64;sourceSha256='3'*64;targetSha256='4'*64;sqlBeforeSha256='5'*64;sqlAfterSha256='6'*64;profileBeforeSha256='7'*64;profileAfterSha256='8'*64;server='Semih\MELISADEV';database='MELISA_ERP_SIRKET_TEST_20260929_01';actorId=17;roleId=17;purpose='BeginSuccessor'};ownerPid=1234;ownerBirth='123456789';retirementOperationId='a'*32}
-function Assert-C06BeginPausedAdmission($a){if(![object]::ReferenceEquals($a,$script:testAdmission)){throw 'FIXTURE_UNISSUED'};return [pscustomobject]@{identity=$script:testIdentity;binding=$script:testBinding;ownerState=$script:testOwner;transition=$script:testTransition;stream=$script:testStream}}
+function Assert-C06BeginPausedAdmission($a){if(![object]::ReferenceEquals($a,$script:testAdmission)){throw 'FIXTURE_UNISSUED'};if($script:injectOnPausedCall){$script:pausedCalls++;if($script:pausedCalls-eq$script:injectOnPausedCall){$script:testStream.WriteByte(43);$script:testStream.Flush($true)}};return [pscustomobject]@{identity=$script:testIdentity;binding=$script:testBinding;ownerState=$script:testOwner;transition=$script:testTransition;stream=$script:testStream}}
 Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_HELD_JOURNAL_UNAVAILABLE'
 Add-Type -TypeDefinition @'
 using System;
@@ -14,6 +14,7 @@ using System.IO;
 public sealed class C06SyntheticFailingStream : FileStream {
  public string Failure;
  public C06SyntheticFailingStream(string path, string failure) : base(path,FileMode.CreateNew,FileAccess.ReadWrite,FileShare.Read) { Failure=failure; }
+ public override int Read(byte[] bytes,int offset,int count) { if(Failure=="read") throw new IOException("FIXTURE_FAIL_READ");return base.Read(bytes,offset,count); }
  public override void Write(byte[] bytes,int offset,int count) { if(Failure=="write") throw new IOException("FIXTURE_FAIL_WRITE");base.Write(bytes,offset,count); }
  public override void Flush(bool flushToDisk) { if(Failure=="flush") { SetLength(0); throw new IOException("FIXTURE_FAIL_FLUSH"); } base.Flush(flushToDisk); }
 }
@@ -27,8 +28,74 @@ try{
  $script:testFreshStream=$script:testStream
  function Assert-C06BeginFreshJournalAdmission($a){
   if(![object]::ReferenceEquals($a,$script:testAdmission)-or![object]::ReferenceEquals($script:testFreshStream,$script:testStream)){throw 'FIXTURE_FRESH_STREAM_NOT_ISSUED'}
+  if($script:injectBytesDuringFresh){$script:testStream.WriteByte(42);$script:testStream.Flush($true)}
+  if($script:driftIdentityDuringFresh){$script:testIdentity.operation.bodySha256='9'*64}
+  if($script:throwDuringFresh){$script:testStream.WriteByte(44);$script:testStream.Flush($true);throw 'FIXTURE_FRESH_UNCERTAIN'}
   return [pscustomobject]@{admission=$a;stream=$script:testStream;identity=$script:testIdentity;binding=$script:testBinding;ownerState=$script:testOwner;transition=$script:testTransition}
  }
+ $normalStream=$script:testStream;$normalAdmission=$script:testAdmission
+ $initialPath=Join-Path ([IO.Path]::GetTempPath()) ('melisa-c06-journal-fixture-'+[guid]::NewGuid().ToString('N')+'.tmp');[void]$extraPaths.Add($initialPath)
+ $script:testStream=[IO.File]::Open($initialPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+ $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_INITIAL_BYTES'};$script:testIdentity.operation.operationId='8'*32;$script:testFreshStream=$script:testStream
+ $script:testStream.WriteByte(55);$script:testStream.Flush($true)
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.SetLength(0);$script:testStream.Flush($true)
+ if((Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_INITIAL_UNKNOWN_EXPECTED'}
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.Dispose()
+ $failurePath=Join-Path ([IO.Path]::GetTempPath()) ('melisa-c06-journal-fixture-'+[guid]::NewGuid().ToString('N')+'.tmp');[void]$extraPaths.Add($failurePath)
+ $script:testStream=[C06SyntheticFailingStream]::new($failurePath,'none');$script:testStream.WriteByte(56);$script:testStream.Flush($true);$script:testStream.Failure='read'
+ $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_INITIAL_READ_FAILED'};$script:testIdentity.operation.operationId='7'*32;$script:testFreshStream=$script:testStream
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'FIXTURE_FAIL_READ'
+ $script:testStream.Failure='none'
+ if((Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_READ_ERROR_UNKNOWN_EXPECTED'}
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.Dispose()
+ $issuerPath=Join-Path ([IO.Path]::GetTempPath()) ('melisa-c06-journal-fixture-'+[guid]::NewGuid().ToString('N')+'.tmp');[void]$extraPaths.Add($issuerPath)
+ $script:testStream=[IO.File]::Open($issuerPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+ $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_ISSUER_FAILURE'};$script:testIdentity.operation.operationId='6'*32;$script:testFreshStream=$script:testStream;$script:throwDuringFresh=$true
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'FIXTURE_FRESH_UNCERTAIN'
+ $script:throwDuringFresh=$false;$script:testStream.SetLength(0);$script:testStream.Flush($true)
+ if((Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_ISSUER_UNKNOWN_EXPECTED'}
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.Dispose();$script:testStream=$normalStream;$script:testFreshStream=$normalStream
+ $script:testAdmission=$normalAdmission;$script:testIdentity.operation.operationId='1'*32
+ $racePath=Join-Path ([IO.Path]::GetTempPath()) ('melisa-c06-journal-fixture-'+[guid]::NewGuid().ToString('N')+'.tmp');[void]$extraPaths.Add($racePath)
+ $script:testStream=[IO.File]::Open($racePath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+ $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_FRESH_RACE'};$script:testIdentity.operation.operationId='f'*32;$script:testFreshStream=$script:testStream
+ $script:injectBytesDuringFresh=$true
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $observed=Read-C06BeginHeldBytes $script:testStream
+ if($observed.Length-ne1-or$observed[0]-ne42){throw 'FIXTURE_FRESH_RACE_BYTES_NOT_PRESERVED'}
+ # Even a subsequent truncation of this disposable fixture cannot authorize
+ # retry in this process; the production journal is never truncated here.
+ $script:testStream.SetLength(0);$script:testStream.Flush($true);$script:injectBytesDuringFresh=$false
+ if((Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_FRESH_RACE_UNKNOWN_EXPECTED'}
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.Dispose();$script:testStream=$normalStream;$script:testFreshStream=$normalStream
+ $script:testAdmission=$normalAdmission;$script:testIdentity.operation.operationId='1'*32
+ $latePath=Join-Path ([IO.Path]::GetTempPath()) ('melisa-c06-journal-fixture-'+[guid]::NewGuid().ToString('N')+'.tmp');[void]$extraPaths.Add($latePath)
+ $script:testStream=[IO.File]::Open($latePath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+ $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_FINAL_SNAPSHOT_RACE'};$script:testIdentity.operation.operationId='9'*32;$script:testFreshStream=$script:testStream
+ $script:pausedCalls=0;$script:injectOnPausedCall=3
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:injectOnPausedCall=0;$observed=Read-C06BeginHeldBytes $script:testStream
+ if($observed.Length-ne1-or$observed[0]-ne43){throw 'FIXTURE_FINAL_SNAPSHOT_BYTES_NOT_PRESERVED'}
+ $script:testStream.SetLength(0);$script:testStream.Flush($true)
+ if((Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_FINAL_SNAPSHOT_UNKNOWN_EXPECTED'}
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.Dispose();$script:testStream=$normalStream;$script:testFreshStream=$normalStream
+ $script:testAdmission=$normalAdmission;$script:testIdentity.operation.operationId='1'*32
+ $driftPath=Join-Path ([IO.Path]::GetTempPath()) ('melisa-c06-journal-fixture-'+[guid]::NewGuid().ToString('N')+'.tmp');[void]$extraPaths.Add($driftPath)
+ $script:testStream=[IO.File]::Open($driftPath,[IO.FileMode]::CreateNew,[IO.FileAccess]::ReadWrite,[IO.FileShare]::Read)
+ $script:testAdmission=[pscustomobject]@{fixture='SYNTHETIC_FRESH_IDENTITY_DRIFT'};$script:testIdentity.operation.operationId='0'*32;$script:testFreshStream=$script:testStream
+ $script:driftIdentityDuringFresh=$true
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_IDENTITY_CHANGED'
+ $script:driftIdentityDuringFresh=$false;$script:testIdentity.operation.bodySha256='2'*64
+ if($script:testStream.Length-ne0-or(Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_FRESH_DRIFT_UNKNOWN_EXPECTED'}
+ Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
+ $script:testStream.Dispose();$script:testStream=$normalStream;$script:testFreshStream=$normalStream
+ $script:testAdmission=$normalAdmission;$script:testIdentity.operation.operationId='1'*32
  $proof=Start-C06BeginJournalIntent $script:testAdmission
  if((Get-C06BeginJournalState $script:testAdmission).status-cne'UNKNOWN_NO_REPLAY'){throw 'FIXTURE_UNKNOWN_EXPECTED'}
  Expect-C06Failure {Start-C06BeginJournalIntent $script:testAdmission} 'C06_BEGIN_JOURNAL_NOT_EMPTY_NO_REPLAY'
@@ -89,6 +156,7 @@ try{
  'C06_BEGIN_JOURNAL_SYNTHETIC_FIXTURE_PASS'
 }finally{
  if($script:testStream){$script:testStream.Dispose();$script:testStream=$null}
+ if($normalStream){$normalStream.Dispose()}
  if([IO.File]::Exists($path)){[IO.File]::Delete($path)}
  foreach($extra in $extraPaths){if([IO.File]::Exists($extra)){[IO.File]::Delete($extra)}}
 }
