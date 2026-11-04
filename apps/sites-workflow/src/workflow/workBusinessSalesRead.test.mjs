@@ -91,6 +91,20 @@ test('initial read loads only customer names, preserves explicit account/tier se
 test('customer name search and code search use the existing sizes; paging follows exact response pages',async()=>{
  const d=fixture();d.ui.mount();await settle();const customerForm=d.node('[data-bsr-customer-search]');customerForm.elements.search.value='İsim';customerForm.onsubmit(event());await settle();assert(d.calls.some(c=>c.path?.includes('search=%C4%B0sim')&&c.path.includes('limit=25')));const productForm=d.node('[data-bsr-product-search]');productForm.elements.search.value='0012 MARKA';d.node('[data-bsr-code]').onclick();await settle();assert(d.calls.some(c=>c.kind==='catalog'&&c.path.includes('search=0012+MARKA')&&c.path.includes('limit=50')));d.ui.dispose();
 });
+test('sales product list and detail show stock only with verified catalog identity and unit',async()=>{
+ for(const kind of ['unknown','hold','unit','zero','negative']){
+  const p=saleReadProduct();p.stockQuantityExact=kind==='unknown'?null:kind==='zero'?'0.00000000':kind==='negative'?'-3.00000000':'123.00000000';
+  if(kind==='hold'){p.hold={blocked:true,reasons:['unverified']};p.salePrices=[];p.classification={brand:null,productType:null,sourceName:null,verified:false};p.displayCode=p.stockCode;}
+  if(kind==='unit'){p.unit={label:'KOLİ',sourceId:null,factorExact8:null,verified:false};p.salePrices=[];}
+  const expected={unknown:'Bilinmiyor',hold:'Doğrulanmadı',unit:'Doğrulanmadı',zero:'0 ADET',negative:'-3 ADET'}[kind];
+  const d=fixture({api:async path=>path.includes('?')?saleReadCatalog([p]):saleReadCatalog(p,{detail:true})});d.ui.mount();await settle();
+  const form=d.node('[data-bsr-product-search]');form.elements.search.value='0012';d.node('[data-bsr-code]').onclick();await settle();
+  assert.ok(d.root.innerHTML.includes('Stok: '+expected),kind+' list');if(['hold','unit'].includes(kind))assert.doesNotMatch(d.root.innerHTML,/Stok: 123|Stok: Doğrulanmadı (?:ADET|KOLİ)/);
+  d.node('[data-bsr-product]12').onclick();await settle();
+  assert.equal(d.root.innerHTML.split('Stok: '+expected).length-1,2,kind+' list and detail');if(['hold','unit'].includes(kind))assert.doesNotMatch(d.root.innerHTML,/Stok: 123|Stok: Doğrulanmadı (?:ADET|KOLİ)/);
+  assert(d.calls.every(c=>c.kind!=='work'&&c.options?.method!=='POST'));d.ui.dispose();
+ }
+});
 test('unknown or contradictory barcode never auto-opens a random product',async()=>{
  for(const result of [saleReadCatalog([]),saleReadCatalog([{...saleReadProduct(),barcodes:[]}])]){const d=fixture({api:async path=>{assert(path.includes('?'));return result;}});d.ui.mount();await settle();const form=d.node('[data-bsr-product-search]');form.elements.search.value='0000120000';form.onsubmit(event());await settle();assert.match(d.root.innerHTML,/ürün bulunamadı|barkod ürün kartında doğrulanamadı/);assert.doesNotMatch(d.root.innerHTML,/data-bsr-price/);d.ui.dispose();}
 });
