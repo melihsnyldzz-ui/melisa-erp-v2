@@ -1,5 +1,6 @@
 import sqlDefault from 'mssql';
 import {AsyncLocalStorage} from 'node:async_hooks';
+import {guardCanonicalReadonlyAuthQuery} from './canonicalReadonlyAuthQuery.mjs';
 import { env } from './env.js';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
@@ -21,7 +22,31 @@ const canonicalExistingOnlyScope=new AsyncLocalStorage();
 
 // Restricts code in this async chain; it grants no auth or SQL capability.
 export function runWithCanonicalExistingPoolOnly(callback) {
-  return canonicalExistingOnlyScope.run(true,callback);
+  // Capture this request's original pool, not whichever replacement happens
+  // to exist later. Nested scopes cannot replace a revoked original scope.
+  const current=canonicalExistingOnlyScope.getStore();
+  return canonicalExistingOnlyScope.run(current??{pool:resolvedPool,facade:null},callback);
+}
+
+function existingOnlyError(){return Object.assign(new Error('Existing canonical readonly pool unavailable'),{code:'CANONICAL_EXISTING_POOL_UNAVAILABLE',statusCode:503});}
+
+async function getGuardedExistingAuthPool(scope){
+  const assertPool=async()=>{if(!scope.pool||await getExistingCanonicalReadonlyPool()!==scope.pool)throw existingOnlyError();};
+  await assertPool();
+  if(!scope.facade)scope.facade=Object.freeze({request(){
+    const request=scope.pool.request();let used=false;
+    const guarded=Object.freeze({
+      input(...args){if(used)throw existingOnlyError();request.input(...args);return guarded;},
+      async query(text){
+        if(used)throw existingOnlyError();used=true;
+        await assertPool();
+        try{const result=await request.query(guardCanonicalReadonlyAuthQuery(text));await assertPool();return result;}
+        catch{throw existingOnlyError();}
+      }
+    });
+    return guarded;
+  }});
+  return scope.facade;
 }
 
 function matchesCanonicalReadonlyPoolEnvironment() {
@@ -122,11 +147,8 @@ export function getSafeSqlInfo() {
 }
 
 export async function getSqlPool() {
-  if (canonicalExistingOnlyScope.getStore()===true) {
-    const existing=await getExistingCanonicalReadonlyPool();
-    if (!existing) throw Object.assign(new Error('Existing canonical readonly pool unavailable'),{code:'CANONICAL_EXISTING_POOL_UNAVAILABLE',statusCode:503});
-    return existing;
-  }
+  const existingScope=canonicalExistingOnlyScope.getStore();
+  if(existingScope)return getGuardedExistingAuthPool(existingScope);
   if (!env.sql.enabled) {
     const error = new Error('SQL connection is not configured');
     error.code = 'SQL_NOT_CONFIGURED';
