@@ -11,6 +11,16 @@ test('receiving read face uses only admitted native card readers with exact size
 test('search preserves leading zero text and never binds a product to a supplier',async()=>{const d=setup();d.ui.mount();await tick();const form=d.root.querySelector('[data-read-product-search]');form.elements.search.value='00012';form.onsubmit({preventDefault(){}});await tick();assert.equal(new URL(d.calls[2].path,'http://fixture').searchParams.get('search'),'00012');assert(!d.calls.some(c=>/receiving|count-draft|supplier-id/.test(c.path)));d.ui.dispose();});
 test('malformed or denied card data cannot become an empty count or leak an upstream message',async()=>{const d=setup({api:async()=>({...products(),meta:{...products().meta,readOnly:false}}),list:async()=>{throw Error('private SQL detail');}});d.ui.mount();await tick();assert.match(d.root.innerHTML,/şu anda okunamıyor/);assert.doesNotMatch(d.root.innerHTML,/private SQL|0 tedarikçi|0 ürün/);d.ui.dispose();});
 test('quarantine and unverified metadata remain visible; HTML is escaped',async()=>{const d=setup({list:async()=>{const s=suppliers();s.data[0].supplierName='<script>private</script>';s.data[0].quarantine.blocked=true;return s;}});d.ui.mount();await tick();assert.match(d.root.innerHTML,/İnceleme bekliyor/);assert.match(d.root.innerHTML,/&lt;script&gt;/);assert.doesNotMatch(d.root.innerHTML,/<script>/);d.ui.dispose();});
+test('receiving uses catalog stock trust for held, unverified, unknown, zero and signed quantities',async()=>{
+ const cases=[
+  {name:'held',edit:r=>{r.hold={blocked:true,reasons:['PRODUCT_QUARANTINED']};r.classification={brand:null,productType:null,sourceName:null,verified:false};r.stockQuantityExact='782.00000000';},shown:/Doğrulanmadı/,hidden:/782|782 ADET/},
+  {name:'unverified unit',edit:r=>{r.unit.verified=false;r.unit.factorExact8=null;r.stockQuantityExact='456.00000000';},shown:/Doğrulanmadı/,hidden:/456|456 ADET/},
+  {name:'unknown',edit:r=>{r.stockQuantityExact=null;},shown:/Stok bilinmiyor/,hidden:/· 0 ADET/},
+  {name:'verified zero',edit:r=>{r.stockQuantityExact='0.00000000';},shown:/· 0 ADET/,hidden:/Doğrulanmadı/},
+  {name:'verified negative unit',edit:r=>{r.stockQuantityExact='-3.00000001';r.unit.label='KOLİ';},shown:/· -3,00000001 KOLİ/,hidden:/Doğrulanmadı/}
+ ];
+ for(const c of cases){const d=setup({api:async()=>{const payload=products();c.edit(payload.data[0]);return payload;}});d.ui.mount();await tick();assert.match(d.root.innerHTML,c.shown,c.name);assert.doesNotMatch(d.root.innerHTML,c.hidden,c.name);d.ui.dispose();}
+});
 test('disposing a pending read prevents late DOM replacement and no retry occurs',async()=>{let resolve;const later=new Promise(r=>resolve=r);const d=setup({api:()=>later});d.ui.mount();await tick();const before=d.root.innerHTML;d.ui.dispose();resolve(products());await tick();assert.equal(d.root.innerHTML,before);assert.equal(d.calls.length,2);});
 test('foreign actor fails before any read and missing permissions do not acquire access',async()=>{assert.throws(()=>setup({user:{...actor(),id:16}}));const d=setup({user:{...actor(),permissions:[]}});d.ui.mount();await tick();assert.equal(d.calls.length,0);assert.match(d.root.innerHTML,/şu anda okunamıyor/);d.ui.dispose();});
 
