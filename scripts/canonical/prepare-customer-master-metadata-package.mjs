@@ -74,6 +74,18 @@ export const C06_SUCCESSOR_API_FILES=Object.freeze([
  'apps/api/src/controllers/customerMasterController.mjs'
 ]);
 const C06_ADDITIONS=new Set(['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs']);
+// The d670 snapshot also contains the isolated selected-source collection
+// verifier. These exact nine files are a separate, additive passive case.
+// The existing eleven-file C06 contract remains unchanged for every old pin.
+export const C06_D670_SOURCE_PIN='d670318b4d88deac46f0f2695ba33c51a5d4104d';
+export const C06_D670_EXTRA_API_FILES=Object.freeze([
+ 'apps/api/src/routes/workCollectionRoutes.mjs',
+ ...['businessSelectedSaleCollectionPreparation','isolatedOperationCopyStoreFactory','businessSelectedCollectionWriteScope','businessSelectedSaleHistoricalReadProof','businessSelectedSaleInvoiceRead','businessSelectedSaleNativeContext'].map(n=>'apps/api/src/services/'+n+'.mjs'),
+ 'scripts/canonical/shared-business-selected-collection-revision-bootstrap.mjs',
+ 'scripts/canonical/shared-business-selected-collection-revision-sql.mjs'
+]);
+export const C06_D670_API_FILES=Object.freeze([...C06_SUCCESSOR_API_FILES,...C06_D670_EXTRA_API_FILES]);
+export const C06_D670_NEW_API_FILES=Object.freeze([...C06_ADDITIONS,...C06_D670_EXTRA_API_FILES.filter(p=>p!=='apps/api/src/routes/workCollectionRoutes.mjs')]);
 export function customerMasterSuccessorEntryDelta(before,after){
  let projected=lf(before);const steps=[
   ["if(mode==='erp'&&writes&&businessSession){", "let customerMasterWriterRoutes=null;\nif(mode==='erp'&&writes&&businessSession){"],
@@ -90,10 +102,11 @@ export function buildCustomerMasterSuccessorApiManifest({baseBytes,baseDigest,so
  check(/^[a-f0-9]{40}$/.test(sourcePin??'')&&sourceCommit===sourcePin&&/^[a-f0-9]{40}$/.test(producerCommit??''),'C06_SOURCE_PIN');
  const base=json(baseBytes);check(base?.database==='MELISA_ERP_SIRKET_TEST_20260929_01'&&base.actualT1===false&&base.externalOperations===false&&base.currentBusinessPair?.masterWriterEnabled===false&&base.customerMasterMetadataOverlay?.masterWriterEnabled===false&&!Object.hasOwn(base,'customerMasterSuccessor'),'C06_BASE_IDENTITY');
  const rows=new Map(customerMetadataRows(base.files).map(r=>[r.path,structuredClone(r)]));
- check(overlays instanceof Map&&overlays.size===C06_SUCCESSOR_API_FILES.length&&C06_SUCCESSOR_API_FILES.every(p=>Buffer.isBuffer(overlays.get(p))&&overlays.get(p).length>0),'C06_EXACT_OVERLAYS');
- check(previousBytes instanceof Map&&previousBytes.size===C06_SUCCESSOR_API_FILES.length-C06_ADDITIONS.size,'C06_BEFORE_COVERAGE');
- const files=[];for(const p of C06_SUCCESSOR_API_FILES){const old=rows.get(p),bytes=overlays.get(p),before=previousBytes.get(p);
-  if(C06_ADDITIONS.has(p))check(!old&&!previousBytes.has(p),'C06_NEW_FILE_EXISTS');
+ const filesForPin=sourcePin===C06_D670_SOURCE_PIN?C06_D670_API_FILES:C06_SUCCESSOR_API_FILES,newFiles=sourcePin===C06_D670_SOURCE_PIN?new Set(C06_D670_NEW_API_FILES):C06_ADDITIONS;
+ check(overlays instanceof Map&&overlays.size===filesForPin.length&&filesForPin.every(p=>Buffer.isBuffer(overlays.get(p))&&overlays.get(p).length>0),'C06_EXACT_OVERLAYS');
+ check(previousBytes instanceof Map&&previousBytes.size===filesForPin.length-newFiles.size,'C06_BEFORE_COVERAGE');
+ const files=[];for(const p of filesForPin){const old=rows.get(p),bytes=overlays.get(p),before=previousBytes.get(p);
+  if(newFiles.has(p))check(!old&&!previousBytes.has(p),'C06_NEW_FILE_EXISTS');
   else check(old&&Buffer.isBuffer(before)&&sha(before)===old.sha256&&(old.bytes===undefined||old.bytes===before.length),'C06_BEFORE_HASH');
   if(p===CUSTOMER_METADATA_ENTRY)customerMasterSuccessorEntryDelta(before,bytes);
   const row={...(old??{}),path:p,sha256:sha(bytes),bytes:bytes.length};rows.set(p,row);files.push({path:p,beforeSha256:old?.sha256??null,sha256:row.sha256,bytes:row.bytes});

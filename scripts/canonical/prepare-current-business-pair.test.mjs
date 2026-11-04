@@ -57,12 +57,261 @@ test('real C06 producer entry checks source and CI before passive output and kee
  assert(body.indexOf('validateCustomerMetadataCI')<body.indexOf('copyPayload('));assert(body.indexOf('C06_HEAD_DRIFT')<body.indexOf('copyPayload('));assert(!body.includes('assertC06RollbackCompatibility('));assert(!/sql\.connect|Start-Process|Stop-Process/.test(body));
 });
 function c06PassiveFixture(source=currentPair.C06_SUCCESSOR_SOURCE_PIN){
- const producer='9'.repeat(40),roots=currentPair.c06CandidateRoots(producer,source),all=source===currentPair.C06_6D_SOURCE_PIN||source===currentPair.C06_EC80_SOURCE_PIN?currentPair.C06_EC80_GIT_FILES:source===currentPair.C06_C2CE_SOURCE_PIN?currentPair.C06_C2CE_GIT_FILES:source===currentPair.C06_D246_SOURCE_PIN?currentPair.C06_D246_GIT_FILES:currentPair.C06_GIT_FILES,webFiles=source===currentPair.C06_6D_SOURCE_PIN||source===currentPair.C06_EC80_SOURCE_PIN?currentPair.C06_EC80_WEB_PAYLOAD_FILES:source===currentPair.C06_C2CE_SOURCE_PIN?currentPair.C06_C2CE_WEB_PAYLOAD_FILES:source===currentPair.C06_D246_SOURCE_PIN?currentPair.C06_D246_WEB_PAYLOAD_FILES:currentPair.C06_WEB_PAYLOAD_FILES,gitBlobs=new Map(all.map(p=>[p,Buffer.from('git '+p)])),sha=digest,apiAdded=new Set(['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs']),webAdded=new Set(['apps/sites-workflow/src/workflow/workCustomerMaster.mjs','apps/sites-workflow/business-web-gateway.mjs','apps/sites-workflow/business-web-release.mjs','apps/sites-workflow/business-web-backend-proof.ps1',...(source!==currentPair.C06_SUCCESSOR_SOURCE_PIN?['apps/sites-workflow/src/workflow/savedBusinessSalesBasket.mjs']:[])]);
- const rows=paths=>paths.map(p=>({path:p,sha256:sha(baseline),bytes:baseline.length})),apiBase={files:rows(currentPair.C06_API_SOURCE_FILES.filter(p=>!apiAdded.has(p)))},webBase={kind:'ERP_BUSINESS_WORKFACE_WEB_CANDIDATE',packageId:'ERP-BUSINESS-WEB-5244-CURRENT-PAIR-1afcdd7f3c89-P7c6dcc727498-20261103',backendManifestSha256:currentPair.C06_BASE.apiSha256,database:'MELISA_ERP_SIRKET_TEST_20260929_01',apiPort:4144,webPort:5244,actualT1:false,externalOperations:false,files:[...rows(webFiles.filter(p=>!webAdded.has(p))),{path:'apps/sites-workflow/dist/retained-help.html',sha256:sha(baseline),bytes:baseline.length}]};
- const mk=(paths,base)=>paths.map(p=>({path:p,beforeSha256:base.files.find(r=>r.path===p)?.sha256??null,sha256:sha(gitBlobs.get(p)),bytes:gitBlobs.get(p).length})),apiFiles=mk(currentPair.C06_API_SOURCE_FILES,apiBase),api={files:apiFiles.map(({path,sha256,bytes})=>({path,sha256,bytes})),customerMasterSuccessor:{sourceCommit:source,producerCommit:producer,baseManifestSha256:currentPair.C06_BASE.apiSha256,files:apiFiles,executionAuthority:false,installed:false,actualT1:false,externalOperations:false,salesSqlCompatibility:{state:'NOT_APPLIED_NOT_VERIFIED',sqlExecuted:false,installationBlocked:true,sourceWitnesses:currentPair.C06_SALE_UNAPPLIED_SQL_SOURCE_FILES.map(p=>({path:p,sha256:sha(gitBlobs.get(p))}))}}};
+ const producer='9'.repeat(40),roots=currentPair.c06CandidateRoots(producer,source),all=source===currentPair.C06_D670_SOURCE_PIN?currentPair.C06_D670_GIT_FILES:source===currentPair.C06_6D_SOURCE_PIN||source===currentPair.C06_EC80_SOURCE_PIN?currentPair.C06_EC80_GIT_FILES:source===currentPair.C06_C2CE_SOURCE_PIN?currentPair.C06_C2CE_GIT_FILES:source===currentPair.C06_D246_SOURCE_PIN?currentPair.C06_D246_GIT_FILES:currentPair.C06_GIT_FILES,webFiles=source===currentPair.C06_D670_SOURCE_PIN?currentPair.C06_D670_WEB_PAYLOAD_FILES:source===currentPair.C06_6D_SOURCE_PIN||source===currentPair.C06_EC80_SOURCE_PIN?currentPair.C06_EC80_WEB_PAYLOAD_FILES:source===currentPair.C06_C2CE_SOURCE_PIN?currentPair.C06_C2CE_WEB_PAYLOAD_FILES:source===currentPair.C06_D246_SOURCE_PIN?currentPair.C06_D246_WEB_PAYLOAD_FILES:currentPair.C06_WEB_PAYLOAD_FILES,gitBlobs=new Map(all.map(p=>[p,Buffer.from('git '+p)])),sha=digest,apiPaths=source===currentPair.C06_D670_SOURCE_PIN?currentPair.C06_D670_API_SOURCE_FILES:currentPair.C06_API_SOURCE_FILES,apiAdded=new Set(source===currentPair.C06_D670_SOURCE_PIN?currentPair.C06_D670_NEW_API_FILES:['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs']),webAdded=new Set(['apps/sites-workflow/src/workflow/workCustomerMaster.mjs','apps/sites-workflow/business-web-gateway.mjs','apps/sites-workflow/business-web-release.mjs','apps/sites-workflow/business-web-backend-proof.ps1',...(source!==currentPair.C06_SUCCESSOR_SOURCE_PIN?['apps/sites-workflow/src/workflow/savedBusinessSalesBasket.mjs']:[])]);
+ const rows=paths=>paths.map(p=>({path:p,sha256:sha(baseline),bytes:baseline.length})),apiBase={files:rows(apiPaths.filter(p=>!apiAdded.has(p)))},webBase={kind:'ERP_BUSINESS_WORKFACE_WEB_CANDIDATE',packageId:'ERP-BUSINESS-WEB-5244-CURRENT-PAIR-1afcdd7f3c89-P7c6dcc727498-20261103',backendManifestSha256:currentPair.C06_BASE.apiSha256,database:'MELISA_ERP_SIRKET_TEST_20260929_01',apiPort:4144,webPort:5244,actualT1:false,externalOperations:false,files:[...rows(webFiles.filter(p=>!webAdded.has(p))),{path:'apps/sites-workflow/dist/retained-help.html',sha256:sha(baseline),bytes:baseline.length}]};
+ const mk=(paths,base)=>paths.map(p=>({path:p,beforeSha256:base.files.find(r=>r.path===p)?.sha256??null,sha256:sha(gitBlobs.get(p)),bytes:gitBlobs.get(p).length})),apiFiles=mk(apiPaths,apiBase),api={files:apiFiles.map(({path,sha256,bytes})=>({path,sha256,bytes})),customerMasterSuccessor:{sourceCommit:source,producerCommit:producer,baseManifestSha256:currentPair.C06_BASE.apiSha256,files:apiFiles,executionAuthority:false,installed:false,actualT1:false,externalOperations:false,salesSqlCompatibility:{state:'NOT_APPLIED_NOT_VERIFIED',sqlExecuted:false,installationBlocked:true,sourceWitnesses:currentPair.C06_SALE_UNAPPLIED_SQL_SOURCE_FILES.map(p=>({path:p,sha256:sha(gitBlobs.get(p))}))}}};
  const apiBytes=bytes(api),overlays=new Map(webFiles.map(p=>[p,gitBlobs.get(p)])),dist=new Map([['ornek-akis.html',Buffer.from('<script src="/assets/app.js"></script>')],['assets/app.js',Buffer.from('ERP-5244-REALDATA-20261027 http://127.0.0.1:4144')]]),web=currentPair.compileC06WebManifest({api,apiBytes,apiRoot:roots.api,base:webBase,overlays,dist,producer,sourcePin:source});return {api,apiBytes,apiBase,web,webBytes:bytes(web),webBase,producer,gitBlobs,overlays,dist,roots,sourcePin:source};
 }
 test('C06 passive API and WEB manifests retain separate install readiness and rollback status and independently rebind every source',()=>{const f=c06PassiveFixture();assert.equal(f.web.customerMasterSuccessor.rollbackStatus,'UNVERIFIED');assert.equal(f.web.customerMasterSuccessor.executionAuthority,false);assert.equal(f.web.customerMasterSuccessor.installed,false);assert.equal(f.web.customerMasterSuccessor.installationReadiness,'NOT_EVALUATED');assert.deepEqual(f.web.customerMasterSuccessor.installationChecks,currentPair.C06_INSTALLATION_CHECKS);assert(currentPair.verifyC06PassiveManifests(f));});
+test('d670 passive pair binds all twenty API overlays and refuses missing or mixed versions',async()=>{
+ const pin=currentPair.C06_D670_SOURCE_PIN,f=c06PassiveFixture(pin),old=c06PassiveFixture(currentPair.C06_6D_SOURCE_PIN);assert.equal(pin,'d670318b4d88deac46f0f2695ba33c51a5d4104d');assert.equal(currentPair.C06_D670_API_SOURCE_FILES.length,20);assert.equal(f.api.customerMasterSuccessor.files.length,20);assert.equal(old.api.customerMasterSuccessor.files.length,11);assert(currentPair.verifyC06PassiveManifests(f));
+ for(const p of currentPair.C06_D670_API_SOURCE_FILES){const changed=c06PassiveFixture(pin);changed.gitBlobs.delete(p);assert.throws(()=>currentPair.verifyC06PassiveManifests(changed),undefined,p);}
+ for(const p of currentPair.C06_D670_API_SOURCE_FILES.slice(11)){const changed=c06PassiveFixture(pin);changed.gitBlobs.set(p,Buffer.from('wrong source'));assert.throws(()=>currentPair.verifyC06PassiveManifests(changed),undefined,p);}
+ assert.throws(()=>currentPair.verifyC06PassiveManifests({...f,sourcePin:currentPair.C06_6D_SOURCE_PIN}));
+ await assert.rejects(()=>currentPair.prepareC06BusinessPair('9'.repeat(40),pin),/C06_D670_OUTPUT_PARENT_UNVERIFIED/);
+ const body=fs.readFileSync(new URL('./prepare-current-business-pair.mjs',import.meta.url),'utf8').split('export async function prepareC06BusinessPair(')[1];assert(body.indexOf('C06_D670_OUTPUT_PARENT_UNVERIFIED')<body.indexOf('C06_ENTRY_PATH'));assert(body.indexOf('C06_D670_OUTPUT_PARENT_UNVERIFIED')<body.indexOf('copyPayload('));
+});
+// Synthetic graph extracted from the d670 Git blobs; this fixture is not Git or runtime proof.
+const d670SyntheticImportGraph=Object.freeze({
+  "apps/api/src/services/canonicalBusinessPartyHistoryModel.mjs": [],
+  "apps/api/src/services/canonicalBusinessSaleReadModel.mjs": [],
+  "apps/api/src/services/goal8DaySqlProof.mjs": [],
+  "apps/sites-workflow/business-preview-boundary.mjs": [
+    "./src/workflow/businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/business-preview-session.mjs": [
+    "./src/workflow/businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/businessWorkface.mjs": [
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/cleanSyntheticCatalogModel.mjs": [],
+  "apps/sites-workflow/src/workflow/currencyAccountPresentation.mjs": [
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/customerContactPendingMarker.mjs": [],
+  "apps/sites-workflow/src/workflow/isolatedOperationCopyModel.mjs": [],
+  "apps/sites-workflow/src/workflow/moneyDisplay.mjs": [],
+  "apps/sites-workflow/src/workflow/selectedSaleUiModel.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/testAdminSession.mjs": [
+    "./cleanSyntheticCatalogModel.mjs",
+    "./businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/testSuppliersModel.mjs": [],
+  "apps/sites-workflow/src/workflow/workBusinessPartyHistory.mjs": [
+    "./workTradeModel.mjs",
+    "../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs",
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCopyPresentation.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCustomerContact.mjs": [
+    "./customerContactPendingMarker.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workInbound.css": [],
+  "apps/sites-workflow/src/workflow/workInboundModel.mjs": [
+    "./isolatedOperationCopyModel.mjs",
+    "./moneyDisplay.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSupplierPaymentsModel.mjs": [
+    "./isolatedOperationCopyModel.mjs",
+    "./cleanSyntheticCatalogModel.mjs",
+    "./testAdminSession.mjs",
+    "./moneyDisplay.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSuppliers.js": [
+    "./workBusinessPartyHistory.mjs",
+    "./workCustomerContact.mjs",
+    "./workCopyPresentation.mjs",
+    "./currencyAccountPresentation.mjs",
+    "./workInbound.css",
+    "./workInboundModel.mjs",
+    "./testSuppliersModel.mjs",
+    "./workSupplierPaymentsModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workTradeModel.mjs": [
+    "./businessWorkface.mjs",
+    "./moneyDisplay.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "../../../api/src/services/goal8DaySqlProof.mjs",
+    "./selectedSaleUiModel.mjs"
+  ],
+  "apps/sites-workflow/vite.config.mjs": [
+    "./src/workflow/businessWorkface.mjs",
+    "./business-preview-session.mjs",
+    "./business-preview-boundary.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/businessSupplierSelection.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/protectedDeviceSession.mjs": [],
+  "apps/sites-workflow/src/workflow/testCustomersModel.mjs": [],
+  "apps/sites-workflow/src/workflow/workCustomerMaster.mjs": [
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCustomers.js": [
+    "./workCustomerMaster.mjs",
+    "./workBusinessPartyHistory.mjs",
+    "./workCopyPresentation.mjs",
+    "./currencyAccountPresentation.mjs",
+    "./workSales.css",
+    "./testCustomersModel.mjs",
+    "./workTradeModel.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "./workOpenAccountPresentation.mjs",
+    "./workCustomerContact.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workOpenAccountPresentation.mjs": [
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSales.css": [],
+  "apps/sites-workflow/src/workflow/workingCatalogSession.mjs": [
+    "./businessSupplierSelection.mjs",
+    "./cleanSyntheticCatalogModel.mjs",
+    "./businessWorkface.mjs",
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "../../../api/src/services/canonicalBusinessPartyHistoryModel.mjs",
+    "./workTradeModel.mjs",
+    "./testAdminSession.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "./protectedDeviceSession.mjs"
+  ],
+  "apps/api/src/services/currentProductCatalogContext.mjs": [
+    "./finalCatalogContext.mjs"
+  ],
+  "apps/api/src/services/finalCatalogContext.mjs": [],
+  "apps/sites-workflow/src/workflow/currentProductCatalogModel.mjs": [
+    "../../../../apps/api/src/services/currentProductCatalogContext.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/savedBusinessSalesBasket.mjs": [
+    "./workBusinessSalesBasketModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/selectedSourceCollectionHandoff.mjs": [
+    "./isolatedOperationCopyModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/stockProductsModel.mjs": [
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workBusinessSalesBasketModel.mjs": [
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "./businessWorkface.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workBusinessSalesRead.mjs": [
+    "./workTradeModel.mjs",
+    "./workBusinessPartyHistory.mjs",
+    "./workCatalogModel.mjs",
+    "./testCustomersModel.mjs",
+    "./workCatalogPhoto.mjs",
+    "../../../api/src/services/canonicalBusinessSaleReadModel.mjs",
+    "./workBusinessSalesBasketModel.mjs",
+    "./savedBusinessSalesBasket.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCatalogModel.mjs": [
+    "./moneyDisplay.mjs",
+    "./stockProductsModel.mjs",
+    "./currentProductCatalogModel.mjs",
+    "./cleanSyntheticCatalogModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workCatalogPhoto.mjs": [
+    "./workCatalogModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workSales.js": [
+    "./workBusinessSalesBasketModel.mjs",
+    "./workOpenAccountPresentation.mjs",
+    "./workBusinessSalesRead.mjs",
+    "./workCopyPresentation.mjs",
+    "./workTaskHandoff.mjs",
+    "./workTaskHandoff.css",
+    "./isolatedOperationCopyModel.mjs",
+    "./workSales.css",
+    "./selectedSaleUiModel.mjs",
+    "./workTradeModel.mjs",
+    "./workCatalogModel.mjs",
+    "./selectedSourceCollectionHandoff.mjs",
+    "./workCatalogPhoto.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workTaskHandoff.css": [],
+  "apps/sites-workflow/src/workflow/workTaskHandoff.mjs": [],
+  "apps/sites-workflow/src/workflow/workBusinessReceivingRead.mjs": [
+    "./workingCatalogSession.mjs",
+    "./workCatalogModel.mjs",
+    "./testSuppliersModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workInboundJournal.mjs": [
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workReceiving.js": [
+    "./workBusinessReceivingRead.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "./businessSupplierSelection.mjs",
+    "./workCopyPresentation.mjs",
+    "./workTaskHandoff.mjs",
+    "./workTaskHandoff.css",
+    "./workInbound.css",
+    "./workInboundModel.mjs",
+    "./workInboundJournal.mjs",
+    "./workReceivingRecovery.mjs",
+    "./workReceivingHandoff.mjs",
+    "./workTradeModel.mjs",
+    "./workCatalogModel.mjs",
+    "./workCatalogPhoto.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workReceivingHandoff.mjs": [
+    "./workInboundModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workReceivingRecovery.mjs": [],
+  "apps/sites-workflow/src/workflow/workCollections.js": [
+    "./workOpenAccountPresentation.mjs",
+    "./workSales.css",
+    "./workTradeModel.mjs",
+    "./workFinanceMovements.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "./workCopyPresentation.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/workFinanceMovements.mjs": [
+    "./workOpenAccountPresentation.mjs",
+    "./isolatedOperationCopyModel.mjs",
+    "./workTradeModel.mjs",
+    "./workSupplierPaymentsModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/businessProductPriceEditor.js": [
+    "./testProductPriceEditor.css",
+    "./businessProductPriceModel.mjs",
+    "./workTradeModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/businessProductPriceModel.mjs": [
+    "./testProductPriceModel.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/lastPurchaseReference.mjs": [
+    "./moneyDisplay.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/purchaseReference.mjs": [
+    "./lastPurchaseReference.mjs"
+  ],
+  "apps/sites-workflow/src/workflow/testProductPriceEditor.css": [],
+  "apps/sites-workflow/src/workflow/testProductPriceModel.mjs": [],
+  "apps/sites-workflow/src/workflow/workCatalog.css": [],
+  "apps/sites-workflow/src/workflow/workCatalog.js": [
+    "./workCatalog.css",
+    "./businessProductPriceEditor.js",
+    "./purchaseReference.mjs",
+    "./workCatalogPhoto.mjs",
+    "./workCatalogModel.mjs"
+  ]
+});
+test('d670 WEB closure keeps the reviewed fifty-nine-node graph and rejects a missing new dependency',()=>{
+ const root=path.resolve(import.meta.dirname,'../..'),require=createRequire(path.join(root,'apps/sites-workflow/package.json')),parse=require('@babel/parser').parse,pin=currentPair.C06_D670_SOURCE_PIN;
+ const blobs=new Map(currentPair.C06_D670_GIT_FILES.map(p=>[p,Object.hasOwn(d670SyntheticImportGraph,p)?Buffer.from(d670SyntheticImportGraph[p].map(x=>'import '+JSON.stringify(x)+';').join('\n')+'\n/* synthetic only */'):Buffer.from('/* synthetic fixture */')]));
+ const closure=currentPair.currentC06WebClosure({readSource:p=>blobs.get(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin});assert.equal(closure.size,59);for(const p of currentPair.C06_D670_WEB_SOURCE_FILES)assert(closure.has(p));
+ const missing=new Map(blobs);missing.delete('apps/sites-workflow/src/workflow/workBusinessReceivingRead.mjs');assert.throws(()=>currentPair.currentC06WebClosure({readSource:p=>missing.get(p),parse,relativeImports:relativeModuleSpecifiers,sourcePin:pin}),/C06_WEB_CLOSURE_BYTES/);
+});
 test('d246 passive successor uses separate paths and binds the matching API and WEB source without relabeling fce',()=>{
  const old=c06PassiveFixture(),next=c06PassiveFixture(currentPair.C06_D246_SOURCE_PIN);
  for(const key of ['api','web','receipt'])assert.notEqual(old.roots[key],next.roots[key]);
