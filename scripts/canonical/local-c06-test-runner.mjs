@@ -34,6 +34,17 @@ const canonicalInputs=Object.freeze([
  'shared-test-copy-revision-sql.mjs','shared-test-copy-sql.mjs','stage4-copy-context-sql.mjs','stage4-copy-sql.mjs',
 ].map(n=>path.join(repo,'scripts','canonical',n)));
 export function localC06InputPaths() { return [guard,...tests,...canonicalInputs]; }
+// 7ab adds these test roots. Merely enumerating them is not a test run, a
+// complete transitive-input proof, or an installation capability.
+const added7abTests=Object.freeze([
+ 'apps/api/src/config/canonicalReadonlyAuthQuery.test.mjs',
+ 'apps/api/src/config/canonicalReadonlyExistingPool.test.mjs',
+ 'apps/api/src/services/c06SaleReadonlyMetadata.test.mjs',
+ 'apps/api/src/routes/c06SaleReadonlyMetadataRoutes.test.mjs',
+ 'apps/api/src/routes/c06SaleReadonlyMetadataAuthIntegration.test.mjs',
+ 'apps/sites-workflow/src/workflow/workSupplierCardSwitch.test.mjs',
+].map(p=>path.join(repo,...p.split('/'))));
+export function localC06InputPaths7ab() { return [...localC06InputPaths(),...added7abTests]; }
 
 // Strict TAP summary: summaries must be singular, consistent, and complete.
 export function parseC06Tap(text) {

@@ -80,6 +80,7 @@ const C06_ADDITIONS=new Set(['apps/api/src/routes/customerMasterCanonicalRoutes.
 export const C06_D670_SOURCE_PIN='d670318b4d88deac46f0f2695ba33c51a5d4104d';
 export const C06_F17_SOURCE_PIN='f17cb3412d627815000fefe9b059685386287f3d';
 export const C06_154_SOURCE_PIN='154f73c790e8cbafb6bc1e291f19b7e1751c9c8b';
+export const C06_7AB_SOURCE_PIN='7ab1ebd85841bd53c8a0daeae1eedecd076282af';
 export const C06_D670_EXTRA_API_FILES=Object.freeze([
  'apps/api/src/routes/workCollectionRoutes.mjs',
  ...['businessSelectedSaleCollectionPreparation','isolatedOperationCopyStoreFactory','businessSelectedCollectionWriteScope','businessSelectedSaleHistoricalReadProof','businessSelectedSaleInvoiceRead','businessSelectedSaleNativeContext'].map(n=>'apps/api/src/services/'+n+'.mjs'),
@@ -88,7 +89,10 @@ export const C06_D670_EXTRA_API_FILES=Object.freeze([
 ]);
 export const C06_D670_API_FILES=Object.freeze([...C06_SUCCESSOR_API_FILES,...C06_D670_EXTRA_API_FILES]);
 export const C06_D670_NEW_API_FILES=Object.freeze([...C06_ADDITIONS,...C06_D670_EXTRA_API_FILES.filter(p=>p!=='apps/api/src/routes/workCollectionRoutes.mjs')]);
-export function customerMasterSuccessorEntryDelta(before,after){
+export const C06_7AB_EXTRA_API_FILES=Object.freeze(['apps/api/src/config/database.js','apps/api/src/config/canonicalReadonlyAuthQuery.mjs','apps/api/src/routes/c06SaleReadonlyMetadataRoutes.mjs','apps/api/src/services/c06SaleReadonlyMetadata.mjs']);
+export const C06_7AB_API_FILES=Object.freeze([...C06_D670_API_FILES,...C06_7AB_EXTRA_API_FILES]);
+export const C06_7AB_NEW_API_FILES=Object.freeze([...C06_D670_NEW_API_FILES,...C06_7AB_EXTRA_API_FILES.slice(1)]);
+export function customerMasterSuccessorEntryDelta(before,after,sourcePin){
  let projected=lf(before);const steps=[
   ["if(mode==='erp'&&writes&&businessSession){", "let customerMasterWriterRoutes=null;\nif(mode==='erp'&&writes&&businessSession){"],
   ["const {prepareCanonicalCustomerMasterMetadata}=await import('./src/services/customerMasterMetadataBootstrap.mjs');", "const {prepareCanonicalCustomerMasterMetadata,prepareCanonicalCustomerMasterWriter}=await import('./src/services/customerMasterMetadataBootstrap.mjs');"],
@@ -96,6 +100,7 @@ export function customerMasterSuccessorEntryDelta(before,after){
   ["isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession})", "isCanonicalTestWriteAllowed(req.method,req.path,{writes,mode,protectedNormalAuth:!!businessSession,customerMasterWriterReady:!!customerMasterWriterRoutes})"],
   ["if(mode==='erp'){\n  if(businessSession){", "if(mode==='erp'){\n  if(customerMasterWriterRoutes)app.use('/api',customerMasterWriterRoutes);\n  if(businessSession){"]
  ];
+ if(sourcePin===C06_7AB_SOURCE_PIN)steps.push(["}else{\n  app.locals.nativeTerminalV1=true;", "}else{\n  app.locals.nativeTerminalV1=true;\n  const {createC06SaleReadonlyMetadataRoutes}=await import('./src/routes/c06SaleReadonlyMetadataRoutes.mjs');\n  app.use('/api',createC06SaleReadonlyMetadataRoutes());"]);
  for(const [old,value] of steps){check(projected.split(old).length===2,'C06_ENTRY_DELTA');projected=projected.replace(old,value);}
  check(projected===lf(after),'C06_ENTRY_UNRELATED_DELTA');return true;
 }
@@ -104,13 +109,14 @@ export function buildCustomerMasterSuccessorApiManifest({baseBytes,baseDigest,so
  check(/^[a-f0-9]{40}$/.test(sourcePin??'')&&sourceCommit===sourcePin&&/^[a-f0-9]{40}$/.test(producerCommit??''),'C06_SOURCE_PIN');
  const base=json(baseBytes);check(base?.database==='MELISA_ERP_SIRKET_TEST_20260929_01'&&base.actualT1===false&&base.externalOperations===false&&base.currentBusinessPair?.masterWriterEnabled===false&&base.customerMasterMetadataOverlay?.masterWriterEnabled===false&&!Object.hasOwn(base,'customerMasterSuccessor'),'C06_BASE_IDENTITY');
  const rows=new Map(customerMetadataRows(base.files).map(r=>[r.path,structuredClone(r)]));
- const filesForPin=(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?C06_D670_API_FILES:C06_SUCCESSOR_API_FILES,newFiles=(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?new Set(C06_D670_NEW_API_FILES):C06_ADDITIONS;
+ const newer=sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN;
+ const filesForPin=sourcePin===C06_7AB_SOURCE_PIN?C06_7AB_API_FILES:newer?C06_D670_API_FILES:C06_SUCCESSOR_API_FILES,newFiles=sourcePin===C06_7AB_SOURCE_PIN?new Set(C06_7AB_NEW_API_FILES):newer?new Set(C06_D670_NEW_API_FILES):C06_ADDITIONS;
  check(overlays instanceof Map&&overlays.size===filesForPin.length&&filesForPin.every(p=>Buffer.isBuffer(overlays.get(p))&&overlays.get(p).length>0),'C06_EXACT_OVERLAYS');
  check(previousBytes instanceof Map&&previousBytes.size===filesForPin.length-newFiles.size,'C06_BEFORE_COVERAGE');
  const files=[];for(const p of filesForPin){const old=rows.get(p),bytes=overlays.get(p),before=previousBytes.get(p);
   if(newFiles.has(p))check(!old&&!previousBytes.has(p),'C06_NEW_FILE_EXISTS');
   else check(old&&Buffer.isBuffer(before)&&sha(before)===old.sha256&&(old.bytes===undefined||old.bytes===before.length),'C06_BEFORE_HASH');
-  if(p===CUSTOMER_METADATA_ENTRY)customerMasterSuccessorEntryDelta(before,bytes);
+  if(p===CUSTOMER_METADATA_ENTRY)customerMasterSuccessorEntryDelta(before,bytes,sourcePin);
   const row={...(old??{}),path:p,sha256:sha(bytes),bytes:bytes.length};rows.set(p,row);files.push({path:p,beforeSha256:old?.sha256??null,sha256:row.sha256,bytes:row.bytes});
  }
  const oldClosure=base.businessNormalSessionClosure;check(oldClosure?.version===1&&customerMetadataRows(oldClosure.files).length===14&&oldClosure.files.every(r=>r.sha256===base.files.find(f=>f.path===r.path)?.sha256),'C06_BASE_NORMAL_CLOSURE');
