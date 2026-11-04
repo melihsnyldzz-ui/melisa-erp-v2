@@ -1,3 +1,9 @@
+## 4 Kasım 2026 — güncel pasif paket kaynak kapsamı
+
+- `5460e6b3`: `d670318b` uygulama kaynakları için 20 API overlay ve 59 web kaynak bağı, önceki sürüm sözleşmeleri korunarak paket hazırlayıcısına eklendi. Üç değişen API ve katalog bağımlılıkları eksik paketlenmez.
+- 142 hedefli test (iç içe tekrar içerir), gerçek Git/P7 manifestiyle salt okunur closure kontrolü, bağımsız kaynak incelemesi, build ve staged güvenlik taraması geçti. Yeni exact CI bekliyor.
+- OUTPUT_PARENT_UNVERIFIED üretim I/O öncesinde sürer: paket üretimi, kurulum, gerçek SQL/5244 ve insan kabulü yok. Sahiplik/kalıcı UNKNOWN ve native uyum bağı ayrıca açık.
+
 ## 4 Kasım 2026 — mal kabulde stok doğruluğu
 
 - `f657bdcb`: ürün kartında karantinalı veya birimi doğrulanmamış stok kesin miktar gibi gösterilmez; doğrulanmış sıfır ve negatif miktar mevcut ortak katalog kuralıyla korunur. Stok, izin ve işlem yazması değişmedi.
