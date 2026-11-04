@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — mal kabul araması ve ortak kaynak adayı
+
+Mal kabul ürün/tedarikçi ekranında tam sayfa sonuçları ve bağımsız sayfalama kaynakta hazır; 14 hedefli test ve bağımsız inceleme geçti. c2ce uygulama kaynağının satış/müşteri/mal kabul için 49 dosyalık aday kapsamı tanımlandı; 17 çevrimdışı hedefli test, üç ayrı gerçek Git entegrasyon testi ve uygulama derlemesi geçti. Önceki adaylar korundu. Gerçek paket üretimi klasör güvenliği çözülene kadar I/O öncesi kapalı; TEST kurulumu, normal ekran ve insan kabulü BEKLİYOR.
+
 ## 4 Kasım 2026 — paket kaynak testi çevrimdışı CI düzeltmesi
 
 025e kaynak commitinde iki Git subprocess testi CI çevrimdışı güvenlik sınırında başarısızdı. Sınır ve workflow değiştirilmeden sentetik import grafiği CI testine ayrıldı; gerçek tarihsel Git nesnesi/diff kontrolü ayrı yerel entegrasyon testinde korundu. Yerelde güvenlik sınırı altında 54/54, gerçek Git entegrasyonu 2/2 ve bağımsız inceleme geçti. Yeni exact GitHub CI bekliyor; test sonucu gerçek paket, kurulum veya insan kabulü değildir.
