@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — tahsilat sayfalama test verisi
+
+2762 GitHub quality testi, eski tahsilat listesi fixture meta alanlarını sağlamadığından başarısızdı. Yalnız test yanıtı gerçek API total/page/limit sözleşmesine uyarlandı; 9/9 çevrimdışı korumalı test ve bağımsız inceleme geçti. Yeni GitHub CI bekliyor; kurulum, gerçek ekran ve insan kabulü değildir.
+
 ## 4 Kasım 2026 — tahsilat sayfalaması ve ortak kaynak kapsamı
 
 Tahsilat fişleri mevcut izinli bağlantıda 25 kayıtlık sayfalarla okunur; bekleyen işlem, fiş ve döviz korunur, eksik sayfadan genel finans özeti üretilmez. 192 hedefli test, derleme ve bağımsız inceleme geçti. ec80 uygulamasının satış/müşteri/mal kabul/tahsilat için 51 kaynaklı aday tanımı hazır; 19 çevrimdışı hedefli test ve 4 yerel Git entegrasyon testi geçti. Normal 5244 tahsilat liste izni, tam finans özeti, paket üretimi, gerçek ekran ve insan kabulü BEKLİYOR; gerçek SQL veya ticari kayıt değişmedi.
