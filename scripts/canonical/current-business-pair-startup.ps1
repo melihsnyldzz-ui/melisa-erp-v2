@@ -42,23 +42,52 @@ function Assert-ErpCurrentPairBaseConfig($Config) {
  $i=Get-ErpCurrentPairIdentity
  if($Config.SourceCommit-cne$i.legacySource-or$Config.ExpectedDatabase-cne$i.database-or$Config.TaskName-cne'Melisa-ERP-TEST-Canonical'-or$Config.RepoRoot-cne'C:\Sirket\ERP\melisa-erp-v2'-or$Config.RuntimeDir-cne'C:\Sirket\ERP\runtime\canonical-test'-or$Config.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778'-or$Config.ManifestSha256-cne'0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64'-or$Config.NodePath-cne'C:\Program Files\nodejs\node.exe'-or$Config.NodeSha256-ine'3331e1ffe19874215472217c5e94f5a0c6d8e18c4ac7111d3937aa0ad5e9b4a5'-or$Config.ApiComponent.SourceCommit-cne$i.legacySource-or$Config.ApiComponent.ConfigPath-cne'C:\Sirket\ERP\config\TEST-20260929-01\business-5244-private.json'){throw 'CURRENT_PAIR_BASE_SCOPE'}
 }
+function Get-ErpCurrentPairPreviousOwnerIdentity {
+ return [ordered]@{root='C:\Sirket\ERP\releases\ERP-CURRENT-PAIR-STARTUP-SOURCE-74a8caf0c0899b4ec9ec8eda1e5122c2fc4b353a';sourceCommit='74a8caf0c0899b4ec9ec8eda1e5122c2fc4b353a';manifestSha256='c3572ec476f2500528f42e90fdc36c842c8bc85b042f55822bf99e3c64b73795';planSha256='cdbf974c468825434da885c82b0704ea3d01a2fa5aaa0b7e6bfa02166ee4cceb'}
+}
+function Assert-ErpCurrentPairPreviousOwnerProof($Proof){
+ try{
+  $keys=@('ownerManifest','ownerPlan','ownerEntry','pairReceipt','apiManifest','webManifest')
+  if($Proof-isnot[Collections.IDictionary]-or(($Proof.Keys|Sort-Object)-join'|')-cne(($keys|Sort-Object)-join'|')){throw 'PROOF_SHAPE'}
+  foreach($key in $keys){if($Proof[$key]-isnot[string]-or!$Proof[$key]){throw 'PROOF_BYTES'}}
+  $old=Get-ErpCurrentPairPreviousOwnerIdentity;$i=Get-ErpCurrentPairIdentity
+  if((Get-ErpCurrentPairTextHash $Proof.ownerManifest)-cne$old.manifestSha256-or(Get-ErpCurrentPairTextHash $Proof.ownerPlan)-cne$old.planSha256-or(Get-ErpCurrentPairTextHash $Proof.apiManifest)-cne$i.digests[0]-or(Get-ErpCurrentPairTextHash $Proof.webManifest)-cne$i.digests[1]){throw 'PROOF_HASH'}
+  $manifest=$Proof.ownerManifest|ConvertFrom-Json;$plan=$Proof.ownerPlan|ConvertFrom-Json;$api=$Proof.apiManifest|ConvertFrom-Json;$web=$Proof.webManifest|ConvertFrom-Json
+  if($manifest.schema-cne'melisa-current-pair-startup-source.v1'-or$manifest.root-cne$old.root-or$manifest.sourceCommit-cne$old.sourceCommit-or$manifest.applicationProducer-cne$i.producerSource-or$manifest.installed-ne$false-or$manifest.executionAuthority-ne$false){throw 'OWNER_SCOPE'}
+  $entry=@($manifest.files|Where-Object{$_.path-ceq'start-current-business-pair.ps1'})
+  if($entry.Count-ne1-or$entry[0].sha256-cne(Get-ErpCurrentPairTextHash $Proof.ownerEntry)-or$entry[0].bytes-ne[Text.Encoding]::UTF8.GetByteCount($Proof.ownerEntry)){throw 'OWNER_ENTRY'}
+  if($plan.schema-cne'melisa-current-pair-startup-plan.v1'-or$plan.caseId-cne$i.caseId-or$plan.bundleRoot-cne$old.root-or$plan.sourceManifestHash-cne$old.manifestSha256-or$plan.planPath-cne(Join-Path $old.root 'startup-plan.json')-or$plan.state-cne'NOT_APPLIED'-or$plan.installed-ne$false-or$plan.executionAuthority-ne$false){throw 'OWNER_PLAN'}
+  Assert-ErpCurrentPairReceipt $Proof.pairReceipt $api $web
+  return $plan
+ }catch{throw 'CURRENT_PAIR_PREVIOUS_PROOF_REJECTED'}
+}
 function New-ErpCurrentPairProjection {
- param([string]$BeforeConfig,[string]$BeforeTask,[string]$BeforeSddl,[string]$ExpectedConfigHash,[string]$ExpectedTaskHash,[string]$BundleRoot,[string]$SourceManifestHash,[string]$PlanPath)
+ param([string]$BeforeConfig,[string]$BeforeTask,[string]$BeforeSddl,[string]$ExpectedConfigHash,[string]$ExpectedTaskHash,[string]$BundleRoot,[string]$SourceManifestHash,[string]$PlanPath,[string]$ProjectionCase='PreviewToP7',[string]$ProjectionNonce='',$PreviousOwnerProof=$null)
  if((Get-ErpCurrentPairTextHash $BeforeConfig)-cne$ExpectedConfigHash-or(Get-ErpCurrentPairTextHash $BeforeTask)-cne$ExpectedTaskHash){throw 'CURRENT_PAIR_BEFORE_CAS'}
  if($BundleRoot-cnotmatch '^C:\\Sirket\\ERP\\releases\\ERP-CURRENT-PAIR-STARTUP-SOURCE-[a-f0-9]{40}$'-or$SourceManifestHash-cnotmatch '^[a-f0-9]{64}$'-or$PlanPath-cne(Join-Path $BundleRoot 'startup-plan.json')-or!$BeforeSddl){throw 'CURRENT_PAIR_SOURCE_BINDING'}
  $i=Get-ErpCurrentPairIdentity;$config=$BeforeConfig|ConvertFrom-Json;Assert-ErpCurrentPairBaseConfig $config
- if($config.ApiComponent.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-VERIFIED-20261030'-or$config.ApiComponent.ManifestSha256-cne'afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c'){throw 'CURRENT_PAIR_BEFORE_COMPONENT'}
- $config.ApiComponent.ReleaseRoot=$i.componentRoot;$config.ApiComponent.ManifestSha256=$i.digests[0]
+ if($ProjectionCase-ceq'PreviewToP7'){
+  if($ProjectionNonce-or$null-ne$PreviousOwnerProof){throw 'CURRENT_PAIR_CASE_REJECTED'}
+  if($config.ApiComponent.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-BUSINESS5244-B6-PREVIEW-READ-VERIFIED-20261030'-or$config.ApiComponent.ManifestSha256-cne'afdb66b5c3450459778630d27bd1ff409ecb80c8ad53058fa048cf3e8e28085c'){throw 'CURRENT_PAIR_BEFORE_COMPONENT'}
+  $config.ApiComponent.ReleaseRoot=$i.componentRoot;$config.ApiComponent.ManifestSha256=$i.digests[0]
+ }elseif($ProjectionCase-ceq'P7TaskOnly'){
+  if($ProjectionNonce-cnotmatch'^[a-f0-9]{32}$'-or$config.ApiComponent.ReleaseRoot-cne$i.componentRoot-or$config.ApiComponent.ManifestSha256-cne$i.digests[0]){throw 'CURRENT_PAIR_CASE_REJECTED'}
+  $previous=Assert-ErpCurrentPairPreviousOwnerProof $PreviousOwnerProof
+  if($BeforeConfig-cne$previous.afterConfig-or$BeforeTask.Replace("`r`n","`n")-cne$previous.afterTask-or$BeforeSddl-cne$previous.beforeSddl){throw 'CURRENT_PAIR_PREVIOUS_STATE_CHANGED'}
+ }else{throw 'CURRENT_PAIR_CASE_REJECTED'}
  $xml=ConvertFrom-ErpCurrentPairTaskXml $BeforeTask;$argsNode=Get-ErpCurrentPairTaskExec $xml
  # Only Arguments changes. Executable, principal, triggers, RunLevel,
  # settings, working directory and external SDDL are preserved verbatim.
  $arguments='-NoProfile -NonInteractive -File "'+(Join-Path $BundleRoot 'start-current-business-pair.ps1')+'" -SourceManifestHash '+$SourceManifestHash+' -PlanPath "'+$PlanPath+'"'
  $argsNode.InnerText=$arguments
+ if($ProjectionCase-ceq'P7TaskOnly'){$old=Get-ErpCurrentPairPreviousOwnerIdentity;return [pscustomobject][ordered]@{schema='melisa-current-pair-task-successor-plan.v1';projectionCase='P7TaskOnly';projectionNonce=$ProjectionNonce;caseId='ERP-C06-P7-TASK-ONLY-SUCCESSOR';state='NOT_APPLIED';bundleRoot=$BundleRoot;sourceManifestHash=$SourceManifestHash;planPath=$PlanPath;startupConfig='C:\Sirket\ERP\runtime\canonical-test\startup-config.json';previousOwnerManifestSha256=$old.manifestSha256;previousOwnerPlanSha256=$old.planSha256;beforeConfig=$BeforeConfig;beforeTask=$BeforeTask;beforeSddl=$BeforeSddl;beforeConfigHash=$ExpectedConfigHash;beforeTaskHash=$ExpectedTaskHash;afterConfig=$BeforeConfig;afterTask=$xml.OuterXml;arguments=$arguments;changedConfigFields=@();taskChangedFields=@('Actions.Exec.Arguments');installed=$false;executionAuthority=$false}}
  return [pscustomobject][ordered]@{schema='melisa-current-pair-startup-plan.v1';caseId=$i.caseId;state='NOT_APPLIED';bundleRoot=$BundleRoot;sourceManifestHash=$SourceManifestHash;planPath=$PlanPath;startupConfig='C:\Sirket\ERP\runtime\canonical-test\startup-config.json';beforeConfig=$BeforeConfig;beforeTask=$BeforeTask;beforeSddl=$BeforeSddl;beforeConfigHash=$ExpectedConfigHash;beforeTaskHash=$ExpectedTaskHash;afterConfig=($config|ConvertTo-Json -Depth 100 -Compress);afterTask=$xml.OuterXml;arguments=$arguments;changedConfigFields=@('ApiComponent.ReleaseRoot','ApiComponent.ManifestSha256');taskChangedFields=@('Actions.Exec.Arguments');installed=$false;executionAuthority=$false}
 }
-function Assert-ErpCurrentPairProjection($Plan,[string]$ConfigText,[string]$TaskText,[string]$Sddl,[string]$Root,[string]$SourceHash) {
- if($Plan.schema-cne'melisa-current-pair-startup-plan.v1'-or$Plan.state-cne'NOT_APPLIED'-or$Plan.installed-isnot[bool]-or$Plan.installed-or$Plan.executionAuthority-isnot[bool]-or$Plan.executionAuthority-or$Plan.bundleRoot-cne$Root-or$Plan.sourceManifestHash-cne$SourceHash){throw 'CURRENT_PAIR_PLAN_SCOPE'}
- $expected=New-ErpCurrentPairProjection -BeforeConfig $Plan.beforeConfig -BeforeTask $Plan.beforeTask -BeforeSddl $Plan.beforeSddl -ExpectedConfigHash $Plan.beforeConfigHash -ExpectedTaskHash $Plan.beforeTaskHash -BundleRoot $Root -SourceManifestHash $SourceHash -PlanPath (Join-Path $Root 'startup-plan.json')
+function Assert-ErpCurrentPairProjection($Plan,[string]$ConfigText,[string]$TaskText,[string]$Sddl,[string]$Root,[string]$SourceHash,$PreviousOwnerProof=$null) {
+ if($Plan.schema-cnotin@('melisa-current-pair-startup-plan.v1','melisa-current-pair-task-successor-plan.v1')-or$Plan.state-cne'NOT_APPLIED'-or$Plan.installed-isnot[bool]-or$Plan.installed-or$Plan.executionAuthority-isnot[bool]-or$Plan.executionAuthority-or$Plan.bundleRoot-cne$Root-or$Plan.sourceManifestHash-cne$SourceHash){throw 'CURRENT_PAIR_PLAN_SCOPE'}
+ if($Plan.schema-ceq'melisa-current-pair-startup-plan.v1'-and$null-ne$PreviousOwnerProof){throw 'CURRENT_PAIR_CASE_REJECTED'}
+ $extra=@{};if($Plan.schema-ceq'melisa-current-pair-task-successor-plan.v1'){$extra=@{ProjectionCase='P7TaskOnly';ProjectionNonce=$Plan.projectionNonce;PreviousOwnerProof=$PreviousOwnerProof}}
+ $expected=New-ErpCurrentPairProjection -BeforeConfig $Plan.beforeConfig -BeforeTask $Plan.beforeTask -BeforeSddl $Plan.beforeSddl -ExpectedConfigHash $Plan.beforeConfigHash -ExpectedTaskHash $Plan.beforeTaskHash -BundleRoot $Root -SourceManifestHash $SourceHash -PlanPath (Join-Path $Root 'startup-plan.json') @extra
  # XmlReader normalizes the projected XML to LF; Task Scheduler exports CRLF.
  # Only this export spelling differs. Before-image hashes, configuration,
  # security descriptor, XML content, casing and other whitespace stay exact.
@@ -98,8 +127,8 @@ function Assert-ErpCurrentPairPrivateProfile($Binding,$Api,$Manifest) {
  Assert-ErpBusinessSaleWriterProfileFields $Api $Manifest
  $copy=$Api.PSObject.Copy();$copy.PSObject.Properties.Remove('businessSaleAdmission');$copy.PSObject.Properties.Remove('businessSaleWritesEnabled');return $copy
 }
-function Open-ErpCurrentPairBinding($Plan,[string]$ConfigText,[string]$TaskText,[string]$Sddl,[string]$Root,[string]$SourceHash,[string]$ReceiptText) {
- Assert-ErpCurrentPairProjection $Plan $ConfigText $TaskText $Sddl $Root $SourceHash
+function Open-ErpCurrentPairBinding($Plan,[string]$ConfigText,[string]$TaskText,[string]$Sddl,[string]$Root,[string]$SourceHash,[string]$ReceiptText,$PreviousOwnerProof=$null) {
+ Assert-ErpCurrentPairProjection $Plan $ConfigText $TaskText $Sddl $Root $SourceHash $PreviousOwnerProof
  $config=$ConfigText|ConvertFrom-Json
  Assert-ErpCurrentPairBaseConfig $config
  $api=Get-ErpApiComponentConfig $config;$i=Get-ErpCurrentPairIdentity
@@ -113,7 +142,7 @@ function Open-ErpCurrentPairBinding($Plan,[string]$ConfigText,[string]$TaskText,
  Assert-ErpCurrentPairReceipt $ReceiptText $am $wm
  $token=[pscustomobject]@{caseId=$i.caseId;sourceManifestHash=$SourceHash}
  $planText=$Plan|ConvertTo-Json -Depth 100 -Compress
- $b=@{token=$token;tokenText=($token|ConvertTo-Json -Compress);config=$config;configText=$ConfigText;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;closed=$false;plan=($planText|ConvertFrom-Json);planText=$planText;root=$Root;sourceHash=$SourceHash}
+ $b=@{token=$token;tokenText=($token|ConvertTo-Json -Compress);config=$config;configText=$ConfigText;pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;closed=$false;plan=($planText|ConvertFrom-Json);planText=$planText;root=$Root;sourceHash=$SourceHash;previousOwnerProof=$PreviousOwnerProof}
  $script:ErpCurrentPairBindings.Add($b)
  try{
   $actual=Read-ErpStartupConfig $Plan.startupConfig -NormalPairBinding $token
@@ -129,7 +158,7 @@ function Read-ErpCurrentPairTask {
 }
 function Assert-ErpCurrentPairLiveBinding($Binding) {
  $b=Get-ErpCurrentPairBinding $Binding;$task=Read-ErpCurrentPairTask
- Assert-ErpCurrentPairProjection $b.plan ([IO.File]::ReadAllText($b.plan.startupConfig)) $task.xml $task.sddl $b.root $b.sourceHash
+ Assert-ErpCurrentPairProjection $b.plan ([IO.File]::ReadAllText($b.plan.startupConfig)) $task.xml $task.sddl $b.root $b.sourceHash $b.previousOwnerProof
 }
 # This observation is issued only inline by the session after it created and
 # verified both children. It is not a stop, SQL, deployment, or admission grant.

@@ -57,6 +57,37 @@ if($upper.afterTask-notlike'*<Command>C:\WINDOWS\System32\WindowsPowerShell\v1.0
 $upperNode=$before|ConvertFrom-Json;$upperNode.NodeSha256=$upperNode.NodeSha256.ToUpperInvariant();$before=$upperNode|ConvertTo-Json -Depth 100 -Compress;$upper=NewPlan
 if(($upper.afterConfig|ConvertFrom-Json).NodeSha256-cne$upperNode.NodeSha256){throw 'LEGACY_NODE_PIN_REWRITTEN'}
 `);
+win('P7 task-only successor requires exact prior owner and pair proofs and preserves every config byte and non-argument task field',String.raw`
+$oldRoot='C:\Sirket\ERP\releases\ERP-CURRENT-PAIR-STARTUP-SOURCE-'+('c'*40);$oldCommit='c'*40;$entryText='synthetic pinned previous entry'
+$script:testIdentity=[ordered]@{};foreach($key in $i.Keys){$script:testIdentity[$key]=$i[$key]}
+$api=[pscustomobject]@{sourceCommit=$i.legacySource;database=$i.database;actualT1=$false;externalOperations=$false;currentBusinessPair=[pscustomobject]@{applicationSourceCommit=$i.applicationSource;producerSourceCommit=$i.producerSource}}
+$apiText=$api|ConvertTo-Json -Depth 20 -Compress;$apiHash=Get-ErpCurrentPairTextHash $apiText
+$web=[pscustomobject]@{sourceCommit=$i.frontendSource;database=$i.database;actualT1=$false;externalOperations=$false;backendRoot=$i.componentRoot;backendManifestSha256=$apiHash;currentBusinessPair=[pscustomobject]@{applicationSourceCommit=$i.applicationSource;producerSourceCommit=$i.producerSource}}
+$webText=$web|ConvertTo-Json -Depth 20 -Compress;$webHash=Get-ErpCurrentPairTextHash $webText
+$receipt=[pscustomobject]@{schemaVersion='melisa-current-business-pair-preparation.v1';applicationSourceCommit=$i.applicationSource;producerSourceCommit=$i.producerSource;legacyApiSourceCommit=$i.legacySource;legacyWebSourceCommit=$i.frontendSource;apiRoot=$i.componentRoot;webRoot=$i.webRoot;apiManifestSha256=$apiHash;webManifestSha256=$webHash}
+$receiptText=$receipt|ConvertTo-Json -Depth 20 -Compress;$script:testIdentity.digests=@($apiHash,$webHash,(Get-ErpCurrentPairTextHash $receiptText),$i.digests[3])
+function Get-ErpCurrentPairIdentity {return $script:testIdentity}
+$manifest=[pscustomobject]@{schema='melisa-current-pair-startup-source.v1';root=$oldRoot;sourceCommit=$oldCommit;applicationProducer=$i.producerSource;installed=$false;executionAuthority=$false;files=@([pscustomobject]@{path='start-current-business-pair.ps1';sha256=(Get-ErpCurrentPairTextHash $entryText);bytes=[Text.Encoding]::UTF8.GetByteCount($entryText)})}
+$manifestText=$manifest|ConvertTo-Json -Depth 20 -Compress;$manifestHash=Get-ErpCurrentPairTextHash $manifestText
+$oldPlan=New-ErpCurrentPairProjection -BeforeConfig $before -BeforeTask $xml -BeforeSddl $sddl -ExpectedConfigHash (Get-ErpCurrentPairTextHash $before) -ExpectedTaskHash (Get-ErpCurrentPairTextHash $xml) -BundleRoot $oldRoot -SourceManifestHash $manifestHash -PlanPath (Join-Path $oldRoot 'startup-plan.json')
+$oldPlanText=$oldPlan|ConvertTo-Json -Depth 100 -Compress
+$script:oldIdentity=@{root=$oldRoot;sourceCommit=$oldCommit;manifestSha256=$manifestHash;planSha256=(Get-ErpCurrentPairTextHash $oldPlanText)}
+function Get-ErpCurrentPairPreviousOwnerIdentity {return $script:oldIdentity}
+$proof=@{ownerManifest=$manifestText;ownerPlan=$oldPlanText;ownerEntry=$entryText;pairReceipt=$receiptText;apiManifest=$apiText;webManifest=$webText}
+function NewSuccessor([string]$Config,[string]$Task,[string]$Sddl,$Proof=$proof,[string]$Nonce=('1'*32)) {New-ErpCurrentPairProjection -BeforeConfig $Config -BeforeTask $Task -BeforeSddl $Sddl -ExpectedConfigHash (Get-ErpCurrentPairTextHash $Config) -ExpectedTaskHash (Get-ErpCurrentPairTextHash $Task) -BundleRoot $root -SourceManifestHash $sourceHash -PlanPath (Join-Path $root 'startup-plan.json') -ProjectionCase P7TaskOnly -ProjectionNonce $Nonce -PreviousOwnerProof $Proof}
+$plan=NewSuccessor $oldPlan.afterConfig $oldPlan.afterTask $oldPlan.beforeSddl
+if($plan.schema-cne'melisa-current-pair-task-successor-plan.v1'-or$plan.projectionCase-cne'P7TaskOnly'-or$plan.afterConfig-cne$oldPlan.afterConfig-or@($plan.changedConfigFields).Count-ne0-or($plan.taskChangedFields-join',')-cne'Actions.Exec.Arguments'-or$plan.executionAuthority){throw 'P7_SUCCESSOR_SCOPE'}
+Assert-ErpCurrentPairProjection $plan $plan.afterConfig $plan.afterTask $sddl $root $sourceHash $proof
+$priorXml=ConvertFrom-ErpCurrentPairTaskXml $oldPlan.afterTask;$nextXml=ConvertFrom-ErpCurrentPairTaskXml $plan.afterTask;(Get-ErpCurrentPairTaskExec $nextXml).InnerText=(Get-ErpCurrentPairTaskExec $priorXml).InnerText
+if($nextXml.OuterXml-cne$priorXml.OuterXml){throw 'P7_NON_ARGUMENT_TASK_CHANGED'}
+foreach($field in @('ownerManifest','ownerPlan','ownerEntry','pairReceipt','apiManifest','webManifest')){$bad=$proof.Clone();$bad[$field]+='x';Reject {NewSuccessor $oldPlan.afterConfig $oldPlan.afterTask $sddl $bad} 'CURRENT_PAIR_PREVIOUS_PROOF_REJECTED'}
+Reject {NewSuccessor $oldPlan.afterConfig $oldPlan.afterTask ($sddl+'x')} 'CURRENT_PAIR_PREVIOUS_STATE_CHANGED'
+Reject {NewSuccessor $oldPlan.afterConfig ($oldPlan.afterTask.Replace('start-current-business-pair.ps1','different.ps1')) $sddl} 'CURRENT_PAIR_PREVIOUS_STATE_CHANGED'
+Reject {NewSuccessor $oldPlan.afterConfig $oldPlan.afterTask $sddl $proof 'bad'} 'CURRENT_PAIR_CASE_REJECTED'
+$badConfig=$oldPlan.afterConfig|ConvertFrom-Json;$badConfig.ExpectedDatabase='LIVE';$badText=$badConfig|ConvertTo-Json -Depth 100 -Compress;Reject {NewSuccessor $badText $oldPlan.afterTask $sddl} 'CURRENT_PAIR_BASE_SCOPE'
+$badConfig=$oldPlan.afterConfig|ConvertFrom-Json;$badConfig.ApiComponent.ManifestSha256='0'*64;$badText=$badConfig|ConvertTo-Json -Depth 100 -Compress;Reject {NewSuccessor $badText $oldPlan.afterTask $sddl} 'CURRENT_PAIR_CASE_REJECTED'
+$badPlan=$plan|ConvertTo-Json -Depth 100|ConvertFrom-Json;$badPlan.projectionCase='PreviewToP7';Reject {Assert-ErpCurrentPairProjection $badPlan $plan.afterConfig $plan.afterTask $sddl $root $sourceHash $proof} 'CURRENT_PAIR_PROJECTION_CHANGED'
+`);
 win('Task Scheduler CRLF export matches LF projection without relaxing content, before hashes, config or SDDL',String.raw`
 $lf=[string][char]10;$cr=[string][char]13;$crlf=$cr+$lf
 $xml=$xml.Replace('><',('>'+$crlf+'<'))
@@ -376,11 +407,15 @@ test('passive startup bundle uses exact Git closure and immutable before images;
  assert.throws(()=>makeStartupBundle({commit:'a'.repeat(40),readGit:()=>Buffer.from('x'),before:new Map()}),/BEFORE_IMAGES/);
 });
 test('passive producer requires two exact-head complete CI runs including all jobs and steps; no earlier head or partial green',()=>{
- const commit='a'.repeat(40),make=()=>['push','pull_request'].map((event,index)=>({id:index+1,repository:'melihsnyldzz-ui/melisa-erp-v2',workflow:'CI',branch:'codex/erp-p03-pr53-candidate-20261018',event,headSha:commit,status:'completed',conclusion:'success',attempt:1,jobs:['quality-build-test','secret-scan','windows-startup-test'].map((name,j)=>({id:j+10,run_id:index+1,run_attempt:1,head_sha:commit,name,status:'completed',conclusion:'success',steps:[{status:'completed',conclusion:'success'}]}))}));
+ const commit='a'.repeat(40),make=()=>['push','pull_request'].map((event,index)=>({id:index+1,repository:'melihsnyldzz-ui/melisa-erp-v2',workflow:'CI',branch:'codex/erp-p03-pr53-candidate-20261018',event,headSha:commit,status:'completed',conclusion:'success',attempt:1,jobs:['change-impact','quality-build-test','secret-scan','windows-startup-test'].map((name,j)=>({id:j+10,run_id:index+1,run_attempt:1,head_sha:commit,name,status:'completed',conclusion:'success',steps:[{status:'completed',conclusion:'success'}]}))}));
  assertStartupCi(commit,make());
- for(const mutate of [r=>r.pop(),r=>r[0].headSha='b'.repeat(40),r=>r[1].status='in_progress',r=>r[1].attempt=2,r=>r[0].jobs[1].steps[0].conclusion='skipped',r=>r[0].jobs.pop(),r=>r[0].jobs[0].conclusion='cancelled',r=>r[0].event='pull_request',r=>r[0].jobs[0].name='made-up-job',r=>r[0].jobs[0].head_sha='c'.repeat(40),r=>r[0].jobs[0].run_id=123,r=>r[0].repository='other/repo']){const rows=make();mutate(rows);assert.throws(()=>assertStartupCi(commit,rows),/EXACT_CI/);}
- const calls=[],gh=endpoint=>{calls.push(endpoint);const id=Number(endpoint.match(/runs\/(\d+)/)[1]),row=make()[id-1];return endpoint.includes('/jobs?')?{total_count:3,jobs:row.jobs}:{id,repository:{full_name:row.repository},path:'.github/workflows/ci.yml',name:'CI',head_branch:row.branch,event:row.event,head_sha:row.headSha,status:row.status,conclusion:row.conclusion,run_attempt:1};};
+ for(const mutate of [r=>r.pop(),r=>r[0].headSha='b'.repeat(40),r=>r[1].status='in_progress',r=>r[1].attempt=2,r=>r[0].jobs[1].steps[0].conclusion='skipped',r=>r[0].jobs.pop(),r=>r[0].jobs.push({...r[0].jobs[0],id:20,name:'extra'}),r=>r[0].jobs[0].conclusion='cancelled',r=>r[0].event='pull_request',r=>r[0].jobs[0].name='made-up-job',r=>r[0].jobs[0].head_sha='c'.repeat(40),r=>r[0].jobs[0].run_id=123,r=>r[0].jobs[0].run_attempt=2,r=>r[1].id=r[0].id,r=>r[0].jobs[1].id=r[0].jobs[0].id,r=>r[0].repository='other/repo']){const rows=make();mutate(rows);assert.throws(()=>assertStartupCi(commit,rows),/EXACT_CI/);}
+ for(const event of [0,1])for(const name of ['change-impact','windows-startup-test'])for(const value of ['skipped','failure']){const rows=make();rows[event].jobs.find(j=>j.name===name).conclusion=value;assert.throws(()=>assertStartupCi(commit,rows),/EXACT_CI/);}
+ assert.throws(()=>assertStartupCi(undefined,make()),/EXACT_CI/);
+ const calls=[],gh=endpoint=>{calls.push(endpoint);const id=Number(endpoint.match(/runs\/(\d+)/)[1]),row=make()[id-1];return endpoint.includes('/jobs?')?{total_count:4,jobs:row.jobs}:{id,repository:{full_name:row.repository},path:'.github/workflows/ci.yml',name:'CI',head_branch:row.branch,event:row.event,head_sha:row.headSha,status:row.status,conclusion:row.conclusion,run_attempt:1};};
  assert.equal(readStartupCi(commit,[1,2],gh).length,2);assert.equal(calls.length,4);
  assert.throws(()=>readStartupCi(commit,make(),gh),/CI_RUN_IDS/);
+ assert.throws(()=>readStartupCi(commit,[1,1],gh),/CI_RUN_IDS/);
  assert.throws(()=>readStartupCi(commit,[1,2],endpoint=>({...gh(endpoint),path:'.github/workflows/fake.yml'})),/CI_PROVENANCE/);
+ for(const count of [3,5])assert.throws(()=>readStartupCi(commit,[1,2],endpoint=>{const result=gh(endpoint);return endpoint.includes('/jobs?')?{...result,total_count:count}:result;}),/CI_JOBS/);
 });

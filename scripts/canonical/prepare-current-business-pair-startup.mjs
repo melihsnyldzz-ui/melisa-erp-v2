@@ -11,8 +11,8 @@ const sha=b=>crypto.createHash('sha256').update(b).digest('hex'),json=x=>Buffer.
 const need=(v,c)=>{if(!v)throw Error('CURRENT_PAIR_STARTUP_'+c);};
 export function startupRoot(commit){need(/^[a-f0-9]{40}$/.test(commit??''),'COMMIT');return String.raw`C:\Sirket\ERP\releases\ERP-CURRENT-PAIR-STARTUP-SOURCE-`+commit;}
 export function assertStartupCi(commit,runs){
- const names=['quality-build-test','secret-scan','windows-startup-test'];
- need(Array.isArray(runs)&&runs.length===2&&new Set(runs.map(x=>x.event)).size===2&&new Set(runs.map(x=>x.id)).size===2&&runs.every(r=>Number.isSafeInteger(r.id)&&r.id>0&&r.repository==='melihsnyldzz-ui/melisa-erp-v2'&&r.workflow==='CI'&&r.branch==='codex/erp-p03-pr53-candidate-20261018'&&['push','pull_request'].includes(r.event)&&r.headSha===commit&&r.status==='completed'&&r.conclusion==='success'&&r.attempt===1&&r.jobs?.length===3&&r.jobs.map(j=>j.name).sort().join('|')===names.join('|')&&r.jobs.every(j=>j.head_sha===commit&&j.run_id===r.id&&j.run_attempt===1&&j.status==='completed'&&Number.isSafeInteger(j.id)&&j.id>0&&j.conclusion==='success'&&j.steps?.length>0&&j.steps.every(s=>s.status==='completed'&&s.conclusion==='success'))),'EXACT_CI');
+ const names=['change-impact','quality-build-test','secret-scan','windows-startup-test'];
+ need(typeof commit==='string'&&/^[a-f0-9]{40}$/.test(commit)&&Array.isArray(runs)&&runs.length===2&&new Set(runs.map(x=>x.event)).size===2&&new Set(runs.map(x=>x.id)).size===2&&runs.every(r=>Number.isSafeInteger(r.id)&&r.id>0&&r.repository==='melihsnyldzz-ui/melisa-erp-v2'&&r.workflow==='CI'&&r.branch==='codex/erp-p03-pr53-candidate-20261018'&&['push','pull_request'].includes(r.event)&&r.headSha===commit&&r.status==='completed'&&r.conclusion==='success'&&r.attempt===1&&Array.isArray(r.jobs)&&r.jobs.length===4&&new Set(r.jobs.map(j=>j.id)).size===4&&r.jobs.map(j=>j.name).sort().join('|')===names.join('|')&&r.jobs.every(j=>j.head_sha===commit&&j.run_id===r.id&&j.run_attempt===1&&j.status==='completed'&&Number.isSafeInteger(j.id)&&j.id>0&&j.conclusion==='success'&&Array.isArray(j.steps)&&j.steps.length>0&&j.steps.every(s=>s.status==='completed'&&s.conclusion==='success'))),'EXACT_CI');
 }
 export function readStartupCi(commit,ids,gh){
  need(Array.isArray(ids)&&ids.length===2&&new Set(ids).size===2&&ids.every(x=>Number.isSafeInteger(x)&&x>0),'CI_RUN_IDS');
@@ -20,7 +20,7 @@ export function readStartupCi(commit,ids,gh){
   const run=gh('repos/melihsnyldzz-ui/melisa-erp-v2/actions/runs/'+id);
   need(run.id===id&&run.repository?.full_name==='melihsnyldzz-ui/melisa-erp-v2'&&run.path==='.github/workflows/ci.yml','CI_PROVENANCE');
   const rows=gh('repos/melihsnyldzz-ui/melisa-erp-v2/actions/runs/'+id+'/jobs?filter=latest&per_page=100');
-  need(rows.total_count===3&&rows.jobs?.length===3,'CI_JOBS');
+  need(rows.total_count===4&&Array.isArray(rows.jobs)&&rows.jobs.length===4,'CI_JOBS');
   return {id,repository:run.repository.full_name,workflow:run.name,branch:run.head_branch,event:run.event,headSha:run.head_sha,status:run.status,conclusion:run.conclusion,attempt:run.run_attempt,jobs:rows.jobs};
  });
  assertStartupCi(commit,runs);return runs;
