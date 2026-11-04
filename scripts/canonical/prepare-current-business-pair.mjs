@@ -242,6 +242,22 @@ export function verifyC06PassiveManifests({apiBytes,webBytes,apiBase,webBase,pro
  }
  const sql=a.salesSqlCompatibility.sourceWitnesses;requireThat(Array.isArray(sql)&&sql.length===C06_SALE_UNAPPLIED_SQL_SOURCE_FILES.length&&C06_SALE_UNAPPLIED_SQL_SOURCE_FILES.every(p=>sql.some(r=>r.path===p&&Buffer.isBuffer(gitBlobs.get(p))&&r.sha256===sha(gitBlobs.get(p)))),'C06_READBACK_SQL_SOURCE');return true;
 }
+// A separate, non-authoritative observation for the six extra 7ab roots.
+// The producer constructs expected rows from exact Git bytes before calling
+// the runner and re-reads them afterwards; transitive coverage stays unknown.
+export function assertC06Added7abObservation(observation,expectedRows){
+ const s=observation?.summary;
+ requireThat(Array.isArray(expectedRows)&&expectedRows.length===54&&new Set(expectedRows.map(r=>r.file)).size===54
+  &&expectedRows.every(r=>typeof r.file==='string'&&/^[a-f0-9]{64}$/.test(r.sha256??''))
+  &&observation?.schema==='c06-7ab-added-local-observation.v1'&&observation.scope==='PRODUCER'
+  &&observation.nodeSha256===NODE_DIGEST&&observation.historical176==='NOT_RUN'
+  &&observation.coverage==='UNVERIFIED'&&observation.sourceImmutability==='UNVERIFIED'
+  &&observation.testRunObserved===true&&observation.testRunVerified===false&&observation.executionAuthority===false
+  &&s?.count===55&&s.passed===55&&s.failed===0&&s.cancelled===0&&s.skipped===0&&s.todo===0
+  &&/^[a-f0-9]{64}$/.test(observation.stdoutSha256??'')&&/^[a-f0-9]{64}$/.test(observation.stderrSha256??'')
+  &&JSON.stringify(observation.inputs)===JSON.stringify(expectedRows),'C06_7AB_LOCAL_OBSERVATION');
+ return true;
+}
 // Real producer entry's supported C06 path. No output directory is touched
 // until source and before-image checks have passed. Hosted CI is not requested.
 // Local checks remain separate evidence, not installation authority. Passive output
@@ -258,9 +274,6 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  requireThat(sourcePin!==C06_F17_SOURCE_PIN,'C06_F17_OUTPUT_PARENT_UNVERIFIED');
  requireThat(sourcePin!==C06_154_SOURCE_PIN,'C06_154_OUTPUT_PARENT_UNVERIFIED');
  requireThat(sourcePin!==C06_7AB_SOURCE_PIN,'C06_7AB_OUTPUT_PARENT_UNVERIFIED');
- // If the separate parent barrier is eventually resolved, the old 176-test
- // runner still cannot stand in for the additional 7ab API/WEB test roots.
- requireThat(sourcePin!==C06_7AB_SOURCE_PIN,'C06_7AB_LOCAL_TEST_CLOSURE_UNVERIFIED');
  requireThat(process.platform==='win32'&&path.resolve(fileURLToPath(import.meta.url))===path.join(PAIR_REPO,...PAIR_ENTRY.split('/')),'C06_ENTRY_PATH');
  requireThat(sha(read(NODE))===NODE_DIGEST&&path.resolve(process.execPath)===path.resolve(NODE),'C06_NODE');
  assertPairSource({repo:git(['rev-parse','--show-toplevel']).trim().replaceAll('/','\\'),branch:git(['branch','--show-current']).trim(),head:git(['rev-parse','HEAD']).trim(),producer,origins:[git(['remote','get-url','origin']).trim(),git(['remote','get-url','--push','origin']).trim()]});
@@ -283,6 +296,17 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  const localInputRows=localInputPaths.map(file=>{const rel=path.relative(PAIR_REPO,file).replaceAll('\\','/');requireThat(!rel.startsWith('../')&&!path.isAbsolute(rel),'C06_LOCAL_INPUT_PATH');const actual=read(file),expected=git(['show',producer+':'+rel],true);requireThat(Buffer.from(lf(actual)).equals(expected),'C06_LOCAL_INPUT_SOURCE');return {file,sha256:sha(actual)};});
  const localTestObservation=localRunner.observeC06LocalTests();
  requireThat(JSON.stringify(localTestObservation.inputs)===JSON.stringify(localInputRows),'C06_LOCAL_INPUT_DRIFT');for(const row of localInputRows)requireThat(sha(read(row.file))===row.sha256,'C06_LOCAL_INPUT_DRIFT');assertLocalSourceClean();
+ let localAddedObservation=null;
+ if(sourcePin===C06_7AB_SOURCE_PIN){
+  requireThat(typeof localRunner.localC06ObservedInputs7ab==='function'&&typeof localRunner.observeC06Added7abTests==='function','C06_7AB_LOCAL_RUNNER_REQUIRED');
+  const paths=localRunner.localC06ObservedInputs7ab();requireThat(Array.isArray(paths)&&paths.length===54&&new Set(paths).size===54,'C06_7AB_LOCAL_INPUT_COUNT');
+  assertLocalSourceClean();const rows=paths.map(file=>{const rel=path.relative(PAIR_REPO,file).replaceAll('\\','/');requireThat(!rel.startsWith('../')&&!path.isAbsolute(rel),'C06_LOCAL_INPUT_PATH');const actual=read(file),expected=git(['show',producer+':'+rel],true);requireThat(Buffer.from(lf(actual)).equals(expected),'C06_7AB_LOCAL_INPUT_SOURCE');return {file,sha256:sha(actual)};});
+  localAddedObservation=localRunner.observeC06Added7abTests();assertC06Added7abObservation(localAddedObservation,rows);
+  for(const row of rows)requireThat(sha(read(row.file))===row.sha256,'C06_LOCAL_INPUT_DRIFT');assertLocalSourceClean();
+  // Neither these roots nor local before/after reads prove all transitive
+  // dependencies or an immutable installed runtime.
+  throw Error('C06_7AB_LOCAL_TEST_CLOSURE_UNVERIFIED');
+ }
  const ci=[{state:'NOT_REQUESTED',allJobsAndStepsSuccess:false}];
  const raw=[C06_BASE.api,C06_BASE.web].map((root,i)=>{const b=read(path.join(root,'release-manifest.json'));requireThat(sha(b)===[C06_BASE.apiSha256,C06_BASE.webSha256][i],'C06_BASE_DIGEST');return b;});const [apiBase,webBase]=raw.map(b=>JSON.parse(b));verifyPayload(C06_BASE.api,apiBase);verifyPayload(C06_BASE.web,webBase);
  const apiIndex=new Map(apiBase.files.map(r=>[r.path,r])),webIndex=new Map(webBase.files.map(r=>[r.path,r]));const readBase=p=>{const r=apiIndex.get(p);requireThat(r,'C06_API_BASE_DEPENDENCY');const b=read(path.join(C06_BASE.api,...p.split('/')));requireThat(sha(b)===r.sha256,'C06_API_BASE_DRIFT');return b;};
@@ -308,7 +332,7 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  const webBytes=encode(webManifest);writeNew(path.join(roots.web,'release-manifest.json'),webBytes);
  // Independent, from-disk readback binds both manifests and every payload row.
  const apiRead=read(path.join(roots.api,'release-manifest.json')),webRead=read(path.join(roots.web,'release-manifest.json'));requireThat(apiRead.equals(apiBytes)&&webRead.equals(webBytes),'C06_MANIFEST_READBACK');const apiVerified=JSON.parse(apiRead),webVerified=JSON.parse(webRead);verifyPayload(roots.api,apiVerified);verifyPayload(roots.web,webVerified);verifyC06PassiveManifests({apiBytes:apiRead,webBytes:webRead,apiBase,webBase,producer,gitBlobs,dist,sourcePin});verifyPayload(C06_BASE.api,apiBase);verifyPayload(C06_BASE.web,webBase);requireThat(webVerified.backendManifestSha256===sha(apiRead)&&apiVerified.customerMasterSuccessor.executionAuthority===false&&webVerified.customerMasterSuccessor.executionAuthority===false,'C06_PAIR_READBACK');
- const receipt={schemaVersion:'melisa-c06-passive-pair.v1',sourceCommit:sourcePin,producerCommit:producer,apiRoot:roots.api,webRoot:roots.web,apiManifestSha256:sha(apiRead),webManifestSha256:sha(webRead),apiFiles:apiVerified.files.length,webFiles:webVerified.files.length,ci,ciState:'NOT_REQUESTED',localTestObservation,apiSourceClosure:apiClosure.sourceFiles,webSourceClosure:web.size,gitSourceFiles:gitFiles.length,salesSqlCompatibility:'NOT_APPLIED_NOT_VERIFIED',rollbackStatus:'UNVERIFIED',installationReadiness:'NOT_EVALUATED',installationChecks:C06_INSTALLATION_CHECKS,installed:false,runtimeVerified:false,executionAuthority:false,actualT1:false,externalOperations:false,sqlCalls:0,serviceChanges:0,configChanges:0};writeNew(roots.receipt,encode(receipt));return receipt;
+ const receipt={schemaVersion:'melisa-c06-passive-pair.v1',sourceCommit:sourcePin,producerCommit:producer,apiRoot:roots.api,webRoot:roots.web,apiManifestSha256:sha(apiRead),webManifestSha256:sha(webRead),apiFiles:apiVerified.files.length,webFiles:webVerified.files.length,ci,ciState:'NOT_REQUESTED',localTestObservation,...(localAddedObservation?{localAddedObservation}:{}),apiSourceClosure:apiClosure.sourceFiles,webSourceClosure:web.size,gitSourceFiles:gitFiles.length,salesSqlCompatibility:'NOT_APPLIED_NOT_VERIFIED',rollbackStatus:'UNVERIFIED',installationReadiness:'NOT_EVALUATED',installationChecks:C06_INSTALLATION_CHECKS,installed:false,runtimeVerified:false,executionAuthority:false,actualT1:false,externalOperations:false,sqlCalls:0,serviceChanges:0,configChanges:0};writeNew(roots.receipt,encode(receipt));return receipt;
 }
 if(import.meta.url.startsWith('file:')&&process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  requireThat(process.argv.length===5&&['--prepare','--prepare-c06','--prepare-c06-d246','--prepare-c06-c2ce','--prepare-c06-ec80','--prepare-c06-6d','--prepare-c06-d670','--prepare-c06-f17','--prepare-c06-154','--prepare-c06-7ab'].includes(process.argv[2])&&process.argv[3]==='--producer','CLI');

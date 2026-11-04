@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import {spawnSync} from 'node:child_process';
 const repo = String.raw`C:\Sirket\ERP\worktrees\erp-p03-pr53-candidate-20261018`;
+const isolatedRepo = String.raw`C:\Sirket\ERP\worktrees\erp-c06-targeted-0ffa-20261104`;
 const nodeExe = String.raw`C:\Sirket\ERP\tools\node-v24.19.0\node.exe`;
 const nodeSha256 = '3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237';
 const guard = path.join(repo,'scripts','ci','offline-guard.cjs');
@@ -120,16 +121,22 @@ export function observeC06LocalTests() {
 
 // This observes only the six added 7ab test roots. It neither reruns nor
 // claims the historical 176 tests and does not authorize package execution.
-export function observeC06Added7abTests() {
+function observeAdded7abAtFixedRoot(root,scope) {
   if(process.platform!=='win32'||digest(fs.readFileSync(nodeExe))!==nodeSha256)throw Error('C06_LOCAL_NODE');
-  const files=localC06ObservedInputs7ab();if(new Set(files).size!==files.length)throw Error('C06_7AB_INPUT_SET');
+  if(!((root===repo&&scope==='PRODUCER')||(root===isolatedRepo&&scope==='ISOLATED')))throw Error('C06_7AB_ROOT');
+  const remap=file=>{const relative=path.relative(repo,file);if(!relative||relative.startsWith('..')||path.isAbsolute(relative))throw Error('C06_7AB_INPUT_PATH');return path.join(root,relative);};
+  const files=localC06ObservedInputs7ab().map(remap),runTests=added7abTests.map(remap),runGuard=remap(guard);
+  if(files.length!==54||new Set(files).size!==files.length||runTests.length!==6)throw Error('C06_7AB_INPUT_SET');
   const inputs=files.map(file=>({file,sha256:digest(fs.readFileSync(file))}));
   const env=Object.fromEntries(Object.entries(process.env).filter(([name])=>/^(SYSTEMROOT|WINDIR|TEMP|TMP|USERPROFILE|PATH|LANG|LC_ALL)$/i.test(name)));
   env.NODE_TEST_CONTEXT=undefined;
-  const result=spawnSync(nodeExe,['--require',guard,'--experimental-test-module-mocks','--test','--test-reporter=tap',...added7abTests],{cwd:repo,env,encoding:'utf8',windowsHide:true,timeout:120000,maxBuffer:8*1024*1024});
+  const result=spawnSync(nodeExe,['--require',runGuard,'--experimental-test-module-mocks','--test','--test-reporter=tap',...runTests],{cwd:root,env,encoding:'utf8',windowsHide:true,timeout:120000,maxBuffer:8*1024*1024});
   if(result.error||result.status!==0||result.signal)throw Error('C06_7AB_LOCAL_EXECUTION');
   const summary=parseC06Added7abTap(result.stdout);if(summary.count!==55)throw Error('C06_7AB_LOCAL_TEST_COUNT');
   const after=files.map(file=>({file,sha256:digest(fs.readFileSync(file))}));if(JSON.stringify(inputs)!==JSON.stringify(after))throw Error('C06_LOCAL_INPUT_DRIFT');
   if(digest(fs.readFileSync(nodeExe))!==nodeSha256)throw Error('C06_LOCAL_NODE_DRIFT');
-  return {schema:'c06-7ab-added-local-observation.v1',nodeSha256,inputs,summary,stdoutSha256:digest(Buffer.from(result.stdout)),stderrSha256:digest(Buffer.from(result.stderr)),historical176:'NOT_RUN',coverage:'UNVERIFIED',sourceImmutability:'UNVERIFIED',testRunObserved:true,testRunVerified:false,executionAuthority:false};
+  return {schema:'c06-7ab-added-local-observation.v1',scope,nodeSha256,inputs,summary,stdoutSha256:digest(Buffer.from(result.stdout)),stderrSha256:digest(Buffer.from(result.stderr)),historical176:'NOT_RUN',coverage:'UNVERIFIED',sourceImmutability:'UNVERIFIED',testRunObserved:true,testRunVerified:false,executionAuthority:false};
 }
+export function observeC06Added7abTests() { return observeAdded7abAtFixedRoot(repo,'PRODUCER'); }
+// Exact, separate local fixture checkout; never used by the producer.
+export function observeC06Added7abTestsIsolated() { return observeAdded7abAtFixedRoot(isolatedRepo,'ISOLATED'); }
