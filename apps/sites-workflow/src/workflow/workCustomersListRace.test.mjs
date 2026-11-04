@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 
 async function controller(){
  let source=await readFile(new URL('./workCustomers.js',import.meta.url),'utf8');source=source.replace("import './workSales.css';",'');
- for(const file of ['workCustomerMaster.mjs','workBusinessPartyHistory.mjs','workCopyPresentation.mjs','currencyAccountPresentation.mjs','testCustomersModel.mjs','workTradeModel.mjs','workOpenAccountPresentation.mjs','workCustomerContact.mjs'])source=source.replace("'./"+file+"'",JSON.stringify(new URL('./'+file,import.meta.url).href));
+ source=source.replace(/from (['"])(\.\/[^'"]+)\1/g,(_,quote,spec)=>'from '+JSON.stringify(new URL(spec,import.meta.url).href));
  return (await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'))).createWorkCustomers;
 }
 function dom(){
