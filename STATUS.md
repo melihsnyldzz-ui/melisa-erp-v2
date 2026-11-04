@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — satış geçişi ve mevcut sahip gözlemi
+
+Mevcut P7c6 sahibi için yalnız aynı oturumun açtığı API/WEB süreçlerini, lease ve immutable seal ile tekrar doğrulayan salt gözlem kaynağı hazır: 16/16 yerel Windows test ve bağımsız inceleme. BEGIN için API durdurulmuşken işlem/profil CAS kaynak kolu: 60/60 yerel test, bağımsız inceleme; belirsizlikte tekrar yok. Yeni issuer, in-band owner dispatch, süreç çökmesi sonrası kalıcı işlem kaydı ve gerçek TEST entegrasyonu henüz yok; gözlem SQL/stop/kurulum izni değildir. Uygulama derlemesi geçti. SQL/servis/config/ticari yazma yok; normal ekran ve insan kabulü BEKLİYOR. Bu commit ayrıca yeni tam CI ister.
+
 ## 4 Kasım 2026 — satış/müşteri pasif adayı ve CI kapsamı
 
 Uygulama kaynağı fce4d7aa; 1d7ba840 üreticisi için PR 41736225082 ve push 41736216554 tam CI başarılı. Pasif API/WEB adayı üretildi ve geri okundu; SQL uyumu, müşteri şeması ve kullanıcı izni henüz doğrulanmadığından kurulmadı. Satış/müşteri normal ekran ve insan kabulü BEKLİYOR. BEGIN bakım hazırlığı yalnız kaynak/offline; runtime ve SQL yazması yok. CI kapsam seçimi yalnız doğrulanmış dar doküman değişikliğinde Windows işini atlar; TEST üreticisi skipped sonucu ve eksik işleri reddeder. Yeni commit için gerçek GitHub CI ayrıca beklenir.

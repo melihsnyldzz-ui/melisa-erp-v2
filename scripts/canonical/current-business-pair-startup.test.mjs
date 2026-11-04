@@ -155,7 +155,7 @@ const osFixture=String.raw`
 Add-Type @'
 using System;
 public sealed class Business5244PackageSeal:IDisposable { public static bool FailDispose=false; public void Add(string p,string h){} public void Freeze(){} public void Validate(){} public void Dispose(){if(FailDispose)throw new Exception("FIXTURE_SEAL_DISPOSE");} }
-public sealed class Business5244WebNative:IDisposable { public int ChildPid=9012; public string ChildBirth="fixture"; public bool Alive=true; public bool ChildAlive(){return Alive;} public void Validate(){} public void Spawn(string exe,string args,string cwd){} public void Dispose(){Alive=false;} }
+public sealed class Business5244WebNative:IDisposable { public int ChildPid=9012; public string ChildBirth="fixture"; public string OwnerBirth="fixture-owner"; public bool Alive=true; public bool ChildAlive(){return Alive;} public void Validate(){} public void Spawn(string exe,string args,string cwd){} public void Dispose(){Alive=false;} }
 public static class MutexProbe { public static bool Try(string name){ bool acquired=false; var thread=new System.Threading.Thread(()=>{using(var m=new System.Threading.Mutex(false,name)){acquired=m.WaitOne(100);if(acquired)m.ReleaseMutex();}});thread.Start();thread.Join();return acquired;} }
 public sealed class ThrowingDiagnostic: System.IO.StringWriter { public override void WriteLine(string s){throw new System.IO.IOException("FIXTURE_CLOSED_STDERR");} }
 '@
@@ -194,7 +194,67 @@ $plan=NewPlan;$b=RegisterFixtureBinding $plan;$result=Invoke-ErpCurrentPairSessi
 if(($result.startedPorts-join',')-cne'4144,5244'-or$result.metadata-cne'UNKNOWN'-or$result.masterwriter){throw 'UNPROVEN_ACCEPTANCE'}
 $trace=$script:trace-join','
 if($trace-notlike'*seal-api,seal-web,start-api,api-ready,web-package,web-created*'-or$trace-notlike'*web-close,api-kill,lease-close'){throw ('WRONG_ORDER_'+$trace)}
+if($script:ErpCurrentPairObservations.Count-ne1-or!$script:ErpCurrentPairObservations[0].closed){throw 'OBSERVATION_NOT_CLOSED'}
+Reject {Get-ErpCurrentPairOwnedObservation $script:ErpCurrentPairObservations[0].token} 'CURRENT_PAIR_OBSERVATION_CHANGED'
 Reject {Get-ErpCurrentPairBoundPins $b} 'CURRENT_PAIR_BINDING_CHANGED'
+`);
+win('observation exists only after verified session checks; forged refs, mutations and fake process never issue authority',osFixture+String.raw`
+$plan=NewPlan;$b=RegisterFixtureBinding $plan;$script:bindingToken=$b
+Reject {Get-ErpCurrentPairObservationToken $b} 'CURRENT_PAIR_OBSERVATION_NOT_ISSUED'
+Reject {Get-ErpCurrentPairOwnedObservation ([pscustomobject]@{schema='melisa-current-pair-owned-observation.v1';id=('a'*32)})} 'CURRENT_PAIR_OBSERVATION_NOT_ISSUED'
+function Start-Sleep {param($Milliseconds,$Seconds)
+ $current=Get-ErpCurrentPairBinding $script:bindingToken;$token=$current.ownedObservationToken;$record=$script:ErpCurrentPairObservations[0]
+ if(!$script:trace.Contains('api-ready')-or!$script:trace.Contains('web-created')){throw 'OBSERVATION_ISSUED_BEFORE_CHECKS'}
+ $copy=$token|ConvertTo-Json|ConvertFrom-Json;Reject {Get-ErpCurrentPairOwnedObservation $copy} 'CURRENT_PAIR_OBSERVATION_NOT_ISSUED'
+ $token.id='changed';Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_CHANGED';$token.id=($record.tokenJson|ConvertFrom-Json).id
+ $record.facts.apiPid++;Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_CHANGED';$record.facts.apiPid--
+ # Fixture API object is intentionally not a retained OS process.
+ Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_OWNER_CHANGED'
+ $record.definition.Port=5194;Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_CHANGED'
+ $record.definition.Port=4144;$record.definitionJson=($record.definition|ConvertTo-Json -Depth 10 -Compress)
+ throw 'OBSERVATION_FIXTURE_STOP'
+}
+Reject {Invoke-ErpCurrentPairSession $b} 'OBSERVATION_FIXTURE_STOP'
+if(!$script:ErpCurrentPairObservations[0].closed){throw 'OBSERVATION_NOT_CLOSED_AFTER_EXCEPTION'}
+`);
+win('observation checks actual owned fixture process handles and native job; health and listeners remain synthetic',String.raw`
+$plan=NewPlan;$binding=RegisterFixtureBinding $plan;$b=Get-ErpCurrentPairBinding $binding
+Initialize-Business5244WebNative
+$temp=Join-Path ([IO.Path]::GetTempPath()) ('erp-observation-fixture-'+[guid]::NewGuid().ToString('N'))
+$api=$null;$native=$null;$seal=$null
+try{
+ [void][IO.Directory]::CreateDirectory($temp);$file=Join-Path $temp 'pinned-fixture.txt';[IO.File]::WriteAllText($file,'synthetic')
+ $hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant();$seal=[Business5244PackageSeal]::new();$seal.Add($file,$hash);$seal.Freeze()
+ $exe=Join-Path $PSHOME 'powershell.exe';$api=Start-Process -FilePath $exe -ArgumentList @('-NoProfile','-NonInteractive','-Command','Start-Sleep -Seconds 60') -WindowStyle Hidden -PassThru;[void]$api.Handle
+ $native=[Business5244WebNative]::new();$native.Spawn($exe,'-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 60"',$PSHOME)
+ $lease=[pscustomobject]@{fixture='not-authority'};$script:fixtureNative=$native
+ function Assert-Business5244StartupLease {param($Lease,$Kind);if($Kind-cne'Owner'){throw 'LEASE_KIND'}}
+ function Get-Business5244StartupRecord {param($Lease);return @{ownedNatives=@($script:fixtureNative)}}
+ function Assert-ErpCurrentPairLiveBinding {param($Binding);[void](Get-ErpCurrentPairBinding $Binding)}
+ $script:ownerChecks=0;$script:missingAt=0
+ function Assert-ErpOwnedProcess {param($ProcessId,$Config,$Definition,$CreatedAt);$script:ownerChecks++;if($ProcessId-ne$script:fixtureApi.Id){throw 'API_ID'};if($script:ownerChecks-eq$script:missingAt){return $null};return @{verified='fixture-only'}}
+ function Get-ErpServiceListeners {param($Definition,$Config);return @{OwningProcess=$script:fixtureApi.Id}}
+ function Assert-ErpHealth {param($Config,$Definition);return @{fixture='not-real-health'}}
+ function Assert-Business5244CreatedChild {param($Native,$Pins);if(![object]::ReferenceEquals($Native,$script:fixtureNative)){throw 'WEB_ID'}}
+ function Get-NetTCPConnection {param($LocalPort,$State,$ErrorAction);return @{OwningProcess=$script:fixtureNative.ChildPid;LocalPort=5244}}
+ function Assert-Business5244OwnedListeners {param($Rows,$ChildPid);if(@($Rows).Count-ne1-or$Rows[0].OwningProcess-ne$ChildPid){throw 'WEB_LISTENER'}}
+ $script:fixtureApi=$api;$token=[pscustomobject][ordered]@{schema='melisa-current-pair-owned-observation.v1';id=[guid]::NewGuid().ToString('N')}
+ $facts=[pscustomobject][ordered]@{apiPid=$api.Id;apiBirth=$api.StartTime.ToUniversalTime().ToString('o');webPid=$native.ChildPid;webBirth=$native.ChildBirth;ownerBirth=$native.OwnerBirth}
+ $definition=@{Name='api';Port=4144}
+ $record=@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);facts=$facts;factsJson=($facts|ConvertTo-Json -Compress);binding=$binding;config=$b.config;lease=$lease;apiChild=$api;webChild=$native;seal=$seal;definition=$definition;definitionJson=($definition|ConvertTo-Json -Depth 10 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;sid=$b.config.OwnerSid;closed=$false}
+ [void]$script:ErpCurrentPairObservations.Add($record);$b.ownedObservationToken=$token
+ $result=Get-ErpCurrentPairOwnedObservation $token
+ if($result.status-cne'OWNED_PAIR_OBSERVATION_ONLY'-or$result.sqlAuthority-or$result.stopAuthority-or$result.installationAuthority-or$result.apiPid-ne$api.Id-or$result.webPid-ne$native.ChildPid){throw 'FIXTURE_OBSERVATION_SCOPE'}
+ if(![object]::ReferenceEquals((Get-ErpCurrentPairObservationToken $binding),$token)){throw 'FIXTURE_REFERENCE_CHANGED'}
+ $script:ownerChecks=0;$script:missingAt=1;Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_API_MISSING'
+ $script:ownerChecks=0;$script:missingAt=2;Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_CHILD_CHANGED'
+ $script:missingAt=0
+ $api.Kill();if(!$api.WaitForExit(10000)){throw 'FIXTURE_API_EXIT_TIMEOUT'}
+ Reject {Get-ErpCurrentPairOwnedObservation $token} 'CURRENT_PAIR_OBSERVATION_CHILD_CHANGED'
+}finally{
+ if($native){$native.Dispose()};if($api){if(!$api.HasExited){$api.Kill();[void]$api.WaitForExit(10000)};$api.Dispose()};if($seal){$seal.Dispose()}
+ if([IO.Directory]::Exists($temp)-and[IO.Path]::GetFileName($temp)-clike'erp-observation-fixture-*'){[IO.Directory]::Delete($temp,$true)}
+}
 `);
 win('actual session rejects busy owner, pending claim, occupied port and CAS drift before spawn without adoption/restart',osFixture+String.raw`
 foreach($kind in @('busy','claim','port','cas')){

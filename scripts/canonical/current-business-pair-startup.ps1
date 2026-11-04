@@ -131,9 +131,46 @@ function Assert-ErpCurrentPairLiveBinding($Binding) {
  $b=Get-ErpCurrentPairBinding $Binding;$task=Read-ErpCurrentPairTask
  Assert-ErpCurrentPairProjection $b.plan ([IO.File]::ReadAllText($b.plan.startupConfig)) $task.xml $task.sddl $b.root $b.sourceHash
 }
+# This observation is issued only inline by the session after it created and
+# verified both children. It is not a stop, SQL, deployment, or admission grant.
+if(!(Get-Variable ErpCurrentPairObservations -Scope Script -ErrorAction SilentlyContinue)){$script:ErpCurrentPairObservations=[Collections.Generic.List[object]]::new()}
+function Get-ErpCurrentPairObservationToken($Binding){
+ $b=Get-ErpCurrentPairBinding $Binding
+ if(!$b.ContainsKey('ownedObservationToken')-or$null-eq$b.ownedObservationToken){throw 'CURRENT_PAIR_OBSERVATION_NOT_ISSUED'}
+ [void](Get-ErpCurrentPairOwnedObservation $b.ownedObservationToken)
+ return $b.ownedObservationToken
+}
+function Get-ErpCurrentPairOwnedObservation($Observation){
+ $rows=@($script:ErpCurrentPairObservations|Where-Object{[object]::ReferenceEquals($_.token,$Observation)})
+ if($rows.Count-ne1){throw 'CURRENT_PAIR_OBSERVATION_NOT_ISSUED'};$r=$rows[0]
+ if($r.closed-or$r.pid-ne$PID-or$r.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or$r.sid-cne[Security.Principal.WindowsIdentity]::GetCurrent().User.Value-or($Observation|ConvertTo-Json -Compress)-cne$r.tokenJson-or($r.facts|ConvertTo-Json -Compress)-cne$r.factsJson-or($r.definition|ConvertTo-Json -Depth 10 -Compress)-cne$r.definitionJson-or$r.definition.Name-cne'api'-or$r.definition.Port-ne4144){throw 'CURRENT_PAIR_OBSERVATION_CHANGED'}
+ $b=Get-ErpCurrentPairBinding $r.binding
+ if(!$b.ContainsKey('ownedObservationToken')-or![object]::ReferenceEquals($b.ownedObservationToken,$Observation)-or$b.config.OwnerSid-cne$r.sid-or![object]::ReferenceEquals($b.config,$r.config)){throw 'CURRENT_PAIR_OBSERVATION_BINDING_CHANGED'}
+ if($null-eq$r.apiChild-or$r.apiChild.GetType()-ne[Diagnostics.Process]-or$null-eq$r.webChild-or$r.webChild.GetType()-ne[Business5244WebNative]-or$null-eq$r.seal-or$r.seal.GetType()-ne[Business5244PackageSeal]){throw 'CURRENT_PAIR_OBSERVATION_OWNER_CHANGED'}
+ Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
+ $leaseRecord=Get-Business5244StartupRecord $r.lease
+ if(!$leaseRecord.ContainsKey('ownedNatives')-or@($leaseRecord.ownedNatives|Where-Object{[object]::ReferenceEquals($_,$r.webChild)}).Count-ne1){throw 'CURRENT_PAIR_OBSERVATION_NATIVE_NOT_OWNED'}
+ $r.seal.Validate();Assert-ErpCurrentPairLiveBinding $r.binding
+ if($r.apiChild.HasExited-or$r.apiChild.Id-ne$r.facts.apiPid-or$r.apiChild.Handle-eq[IntPtr]::Zero-or$r.apiChild.StartTime.ToUniversalTime().ToString('o')-cne$r.facts.apiBirth-or$r.webChild.ChildPid-ne$r.facts.webPid-or$r.webChild.ChildBirth-cne$r.facts.webBirth-or$r.webChild.OwnerBirth-cne$r.facts.ownerBirth-or!$r.webChild.ChildAlive()){throw 'CURRENT_PAIR_OBSERVATION_CHILD_CHANGED'}
+ $r.webChild.Validate();$pins=Get-ErpCurrentPairBoundPins $r.binding
+ $owned=Assert-ErpOwnedProcess $r.facts.apiPid $r.config $r.definition $r.facts.apiBirth
+ if(!$owned){throw 'CURRENT_PAIR_OBSERVATION_API_MISSING'}
+ $apiRows=@(Get-ErpServiceListeners $r.definition $r.config)
+ if(!$apiRows.Count-or@($apiRows|Where-Object{$_.OwningProcess-ne$r.facts.apiPid}).Count){throw 'CURRENT_PAIR_OBSERVATION_API_LISTENER_CHANGED'}
+ [void](Assert-ErpHealth $r.config $r.definition);Assert-Business5244CreatedChild $r.webChild $pins
+ $webRows=@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction Stop);Assert-Business5244OwnedListeners $webRows $r.facts.webPid
+ $r.seal.Validate();Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
+ $owned=Assert-ErpOwnedProcess $r.facts.apiPid $r.config $r.definition $r.facts.apiBirth
+ if(!$owned-or$r.apiChild.HasExited-or$r.apiChild.StartTime.ToUniversalTime().ToString('o')-cne$r.facts.apiBirth-or!$r.webChild.ChildAlive()-or$r.webChild.ChildPid-ne$r.facts.webPid-or$r.webChild.ChildBirth-cne$r.facts.webBirth){throw 'CURRENT_PAIR_OBSERVATION_CHILD_CHANGED'}
+ $apiRows=@(Get-ErpServiceListeners $r.definition $r.config)
+ if(!$apiRows.Count-or@($apiRows|Where-Object{$_.OwningProcess-ne$r.facts.apiPid}).Count){throw 'CURRENT_PAIR_OBSERVATION_API_LISTENER_CHANGED'}
+ $webRows=@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction Stop);Assert-Business5244OwnedListeners $webRows $r.facts.webPid
+ $r.seal.Validate();Assert-Business5244StartupLease -Lease $r.lease -Kind Owner
+ return [pscustomobject]@{status='OWNED_PAIR_OBSERVATION_ONLY';apiPid=$r.facts.apiPid;apiBirth=$r.facts.apiBirth;webPid=$r.facts.webPid;webBirth=$r.facts.webBirth;ownerPid=$r.pid;apiPort=4144;webPort=5244;database=(Get-ErpCurrentPairIdentity).database;sqlAuthority=$false;stopAuthority=$false;installationAuthority=$false;actualT1=$false}
+}
 function Invoke-ErpCurrentPairSession($Binding,[switch]$SinglePass) {
  $b=Get-ErpCurrentPairBinding $Binding;$config=$b.config
- $mutex=[Threading.Mutex]::new($false,(Get-ErpMutexName $config.RepoRoot $config.OwnerSid));$held=$false;$lease=$null;$apiChild=$null;$webChild=$null;$apiBirth=$null;$seal=$null;$primary=$null
+ $mutex=[Threading.Mutex]::new($false,(Get-ErpMutexName $config.RepoRoot $config.OwnerSid));$held=$false;$lease=$null;$apiChild=$null;$webChild=$null;$apiBirth=$null;$seal=$null;$primary=$null;$observation=$null
  try{
   try{$held=$mutex.WaitOne(0)}catch [Threading.AbandonedMutexException]{$mutex.ReleaseMutex();throw 'CURRENT_PAIR_CANONICAL_ABANDONED'}
   if(!$held){throw 'CURRENT_PAIR_ALREADY_OWNED'}
@@ -172,10 +209,17 @@ function Invoke-ErpCurrentPairSession($Binding,[switch]$SinglePass) {
    if(!$rows.Count-or@($rows|Where-Object {$_.OwningProcess-ne$apiChild.Id}).Count){throw 'CURRENT_PAIR_API_LISTENER_CHANGED'}
    [void](Assert-ErpHealth $config $definition);Assert-Business5244CreatedChild $webChild $pins
    $rows=@(Get-NetTCPConnection -LocalPort 5244 -State Listen -ErrorAction Stop);Assert-Business5244OwnedListeners $rows $webChild.ChildPid
+   if($null-eq$observation){
+    $token=[pscustomobject][ordered]@{schema='melisa-current-pair-owned-observation.v1';id=[guid]::NewGuid().ToString('N')}
+    $facts=[pscustomobject][ordered]@{apiPid=$apiChild.Id;apiBirth=$apiBirth;webPid=$webChild.ChildPid;webBirth=$webChild.ChildBirth;ownerBirth=$webChild.OwnerBirth}
+    $observation=@{token=$token;tokenJson=($token|ConvertTo-Json -Compress);facts=$facts;factsJson=($facts|ConvertTo-Json -Compress);binding=$Binding;config=$config;lease=$lease;apiChild=$apiChild;webChild=$webChild;seal=$seal;definition=$definition;definitionJson=($definition|ConvertTo-Json -Depth 10 -Compress);pid=$PID;thread=[Threading.Thread]::CurrentThread.ManagedThreadId;sid=$config.OwnerSid;closed=$false}
+    [void]$script:ErpCurrentPairObservations.Add($observation);$b.ownedObservationToken=$token
+   }
    if($SinglePass){return [pscustomobject]@{caseId=(Get-ErpCurrentPairIdentity).caseId;startedPorts=@(4144,5244);apiPid=$apiChild.Id;webPid=$webChild.ChildPid;metadata='UNKNOWN';masterwriter=$false}}
    Start-Sleep -Seconds 2
   }while($true)
  }catch{$primary=$_;throw}finally{
+  if($null-ne$observation){$observation.closed=$true;if($b.ContainsKey('ownedObservationToken')){$b.Remove('ownedObservationToken')}}
   # Only children created by this invocation. No record adoption, old owner,
   # native4146, WEB5194, SQL, CRM or Vega stop/restart path exists here.
   $cleanupFailed=$false

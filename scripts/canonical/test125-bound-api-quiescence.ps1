@@ -135,6 +135,13 @@ function Assert-Test125ReadPairIssued($Transition){
  $c=$script:Test125ReadPairContext
  if(!$c-or![object]::ReferenceEquals($Transition,$c.token)-or$c.pid-ne$PID-or$c.thread-ne[Threading.Thread]::CurrentThread.ManagedThreadId-or($Transition|ConvertTo-Json -Depth 12 -Compress)-cne$c.tokenJson){throw 'TEST125_READPAIR_NOT_ISSUED'}
  [void](Get-ErpReadPairReleaseProofContext $c.releaseProof)
+ if($Transition.scope-ceq'TEST125-API-B6-BEGIN-SUCCESSOR'-and(!$Transition.PSObject.Properties['profileOnlyPurpose']-or$Transition.profileOnlyPurpose-cne'BeginSuccessor')){throw 'B6_BEGIN_SUCCESSOR_PURPOSE_CHANGED'}
+ if($Transition.PSObject.Properties['profileOnlyPurpose']-and$Transition.profileOnlyPurpose-ceq'BeginSuccessor'){
+  if($Transition.scope-cne'TEST125-API-B6-BEGIN-SUCCESSOR'-or$Transition.schema-cne'melisa-test125-b6-begin-successor-api-transition.v1'-or$Transition.PSObject.Properties['rehearsalOnly']){throw 'B6_BEGIN_SUCCESSOR_PURPOSE_CHANGED'}
+  [void](Assert-ErpBusinessSaleBeginSuccessorAdmission $c.nativeProfileAdmission -Phase Identity)
+  $n=Get-ErpBusinessSaleBeginSuccessorContext $c.nativeProfileAdmission
+  if($n.mode-cne'BeginSuccessor'-or![object]::ReferenceEquals($n.transition,$Transition)){throw 'B6_BEGIN_SUCCESSOR_ADMISSION_CHANGED'}
+ }
  if($c.token.scope-ceq'TEST125-API-B6-WRITER-20261029'){
   [void](Assert-ErpBusinessSaleWriterProfileAdmission $c.nativeProfileAdmission -Phase Identity)
   if($Transition.schema-cne$(switch((Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).mode){'PackageRefresh'{'melisa-test125-b6-package-refresh-api-transition.v1'}'ReadContextRepair'{'melisa-test125-b6-read-context-repair-api-transition.v1'}default{'melisa-test125-b6-writer-api-transition.v1'}})-or$Transition.PSObject.Properties['rehearsalOnly']-or$Transition.profileOnlyPurpose-cne(Get-ErpBusinessSaleNativeAdmissionContext $c.nativeProfileAdmission).mode-or@($Transition.PSObject.Properties.Name)[-1]-cne'profileOnlyPurpose'){throw 'TEST125_READPAIR_WRITER_PURPOSE_CHANGED'}
@@ -450,6 +457,39 @@ function Assert-Test125ReadPairPaused($Context){
  Assert-Test125ReadPairCompanions $c
 }
 
+# This finite operation is callable only after the independently issued API and
+# outer WEB pause capabilities exist. Missing owner/SQL issuers fail closed.
+# It does not start the API or WEB and does not grant transaction authority.
+function Invoke-Test125BeginSuccessorPausedSqlAndProfile($Transition,$OwnerState){
+ $c=Assert-Test125ReadPairIssued $Transition
+ if($Transition.scope-cne'TEST125-API-B6-BEGIN-SUCCESSOR'-or$Transition.schema-cne'melisa-test125-b6-begin-successor-api-transition.v1'-or$Transition.profileOnlyPurpose-cne'BeginSuccessor'-or$c.phase-cne'PAUSING'-or!$c.PSObject.Properties['beginSuccessorAttempted']-or$c.beginSuccessorAttempted-isnot[bool]-or$c.beginSuccessorAttempted-or$c.nativeChangeAttempted-or$c.nativeApplied-or$c.apiChanged){throw 'B6_BEGIN_SUCCESSOR_PHASE_REJECTED'}
+ [void](Assert-ErpBusinessSaleBeginSuccessorAdmission $c.nativeProfileAdmission -Phase Prepared)
+ $n=Get-ErpBusinessSaleBeginSuccessorContext $c.nativeProfileAdmission
+ if($n.mode-cne'BeginSuccessor'-or![object]::ReferenceEquals($n.transition,$Transition)-or$n.profilePath-cne$c.apiPath-or$n.profileBeforeHash-cne$Transition.apiProfileBeforeSha256-or$n.candidateBytes-isnot[byte[]]-or(Get-Test125ReadPairHash $n.candidateBytes)-cne$Transition.apiProfileCandidateSha256-or(Get-Test125ReadPairHash $c.apiBefore)-cne$Transition.apiProfileBeforeSha256-or(Get-Test125ReadPairHash $c.apiCandidate)-cne$Transition.apiProfileCandidateSha256){throw 'B6_BEGIN_SUCCESSOR_PROFILE_CHANGED'}
+ $old='C91F43028BFA9E3AB944816709B2A2350767340C3447AECBAABAA524E7CA18FA';$new='3353D341EA93FE97BBB911C44D113E8AE3E07BF56ACE29002F3414AB539E8305'
+ try{$before=[Text.Encoding]::UTF8.GetString($c.apiBefore)|ConvertFrom-Json -ErrorAction Stop;$after=[Text.Encoding]::UTF8.GetString($c.apiCandidate)|ConvertFrom-Json -ErrorAction Stop}catch{throw 'B6_BEGIN_SUCCESSOR_PROFILE_CHANGED'}
+ if(!$before.businessSaleAdmission-or!$after.businessSaleAdmission-or$before.businessSaleAdmission.beginDefinitionHash-cne$old-or$after.businessSaleAdmission.beginDefinitionHash-cne$new){throw 'B6_BEGIN_SUCCESSOR_PROFILE_CHANGED'}
+ $before.businessSaleAdmission.beginDefinitionHash=$new
+ if(($before|ConvertTo-Json -Depth 100 -Compress)-cne($after|ConvertTo-Json -Depth 100 -Compress)){throw 'B6_BEGIN_SUCCESSOR_PROFILE_CHANGED'}
+ $pause=Get-Business5244BeginSuccessorPause $OwnerState $c.nativeProfileAdmission
+ [void](Assert-Business5244BeginSuccessorPause $pause $OwnerState $c.nativeProfileAdmission $Transition)
+ Assert-Test125ReadPairPaused $c
+ $c.beginSuccessorAttempted=$true;$c.nativeChangeAttempted=$true
+ try{
+  Invoke-ErpBusinessSaleBeginSuccessor $c.nativeProfileAdmission -Direction Rehearse|Out-Null
+  [void](Assert-ErpBusinessSaleBeginSuccessorAdmission $c.nativeProfileAdmission -Phase Rehearsed)
+  [void](Assert-Business5244BeginSuccessorPause $pause $OwnerState $c.nativeProfileAdmission $Transition);Assert-Test125ReadPairPaused $c
+  Invoke-ErpBusinessSaleBeginSuccessor $c.nativeProfileAdmission -Direction Apply|Out-Null
+  [void](Assert-ErpBusinessSaleBeginSuccessorAdmission $c.nativeProfileAdmission -Phase Applied);$c.nativeApplied=$true
+  [void](Assert-Business5244BeginSuccessorPause $pause $OwnerState $c.nativeProfileAdmission $Transition);Assert-Test125ReadPairPaused $c
+  Write-Test125ReadPairCas $c.apiPath $Transition.apiProfileBeforeSha256 $c.apiCandidate;$c.apiChanged=$true
+  if((Get-FileHash -LiteralPath $c.apiPath -Algorithm SHA256).Hash.ToLowerInvariant()-cne$Transition.apiProfileCandidateSha256){throw 'B6_BEGIN_SUCCESSOR_PROFILE_READBACK'}
+  [void](Assert-Business5244BeginSuccessorPause $pause $OwnerState $c.nativeProfileAdmission $Transition);Assert-Test125ReadPairPaused $c
+  $c.phase='BEGIN_PROFILE_APPLIED_PAUSED'
+  return [pscustomobject]@{status='BEGIN_PROFILE_APPLIED_API_WEB_PAUSED';runtimeApplied=$false;commercialWrites=0;nativeMetadataApplied=$true}
+ }catch{$c.phase='UNKNOWN';throw}
+}
+
 function Assert-Test125ReadPairWriterPostCasPause($Transition,[ValidateSet('Candidate','Rollback')][string]$Mode){
  if($Mode-cnotin@('Candidate','Rollback')){throw 'B6_WRITER_PAIR_MODE_REJECTED'}
  $c=Assert-Test125ReadPairIssued $Transition
@@ -545,7 +585,9 @@ function Stop-Test125ReadPairFailedApi($Context){
  $b.stopped=$true
 }
 function Invoke-Test125ReadPairApiTransition($Transition,[ValidateSet('Candidate','Rollback','RehearseOnly')][string]$Mode){
- $c=Assert-Test125ReadPairIssued $Transition;if($Mode-cnotin@('Candidate','Rollback','RehearseOnly')){throw 'TEST125_READPAIR_MODE_REJECTED'};$destination=if($Mode-ceq'Candidate'){'Candidate'}else{'Current'}
+ $c=Assert-Test125ReadPairIssued $Transition;if($Mode-cnotin@('Candidate','Rollback','RehearseOnly')){throw 'TEST125_READPAIR_MODE_REJECTED'}
+ if($Transition.PSObject.Properties['profileOnlyPurpose']-and$Transition.profileOnlyPurpose-ceq'BeginSuccessor'){if($Mode-cne'Candidate'-or!$c.PSObject.Properties['beginOwnerState']){throw 'B6_BEGIN_SUCCESSOR_MODE_REJECTED'};return Invoke-Test125BeginSuccessorPausedSqlAndProfile $Transition $c.beginOwnerState}
+ $destination=if($Mode-ceq'Candidate'){'Candidate'}else{'Current'}
  $readRepair=$Transition.scope-ceq'TEST125-API-B6-WRITER-20261029'-and$Transition.profileOnlyPurpose-ceq'ReadContextRepair'
  $rehearsalOnly=$Transition.scope-ceq'TEST125-API-B6-ca620bac-20261028'-and$c.rehearsalOnly
  if(($Mode-ceq'RehearseOnly'-and!$rehearsalOnly)-or($rehearsalOnly-and$Mode-ceq'Candidate')){throw 'TEST125_READPAIR_REHEARSAL_ONLY'}
