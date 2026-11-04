@@ -95,4 +95,8 @@ $script:ret.operationId='8'*32;Must-Fail {Assert-C06BeginPausedAdmission $paused
 $savedPending=$script:ret.pending;$script:ret.pending=[pscustomobject]@{};Must-Fail {Assert-C06BeginPausedAdmission $pausedAdmission} 'C06_BEGIN_PAUSE_RETIREMENT_RECORD_CHANGED';$script:ret.pending=$savedPending
 $script:sealValid=$false;Must-Fail {Assert-C06BeginPausedAdmission $pausedAdmission} 'Exception calling "Validate" with "0" argument(s): "FIXTURE_SEAL_CHANGED"';$script:sealValid=$true
 $script:paused=$false;Must-Fail {Assert-C06BeginPausedAdmission $pausedAdmission} 'FIXTURE_PHYSICAL_PAUSE_CHANGED';$script:paused=$true
+# Cross-module fixture: even the test-only paused admission has no real held
+# BEGIN journal, so the actual journal consumer must reject before any I/O.
+. (Join-Path $PSScriptRoot 'c06-begin-journal.ps1') -Library
+Must-Fail {Start-C06BeginJournalIntent $pausedAdmission} 'C06_BEGIN_HELD_JOURNAL_UNAVAILABLE'
 'PASS: fixture-only pause binding; real API handle proof unavailable and admission blocked'
