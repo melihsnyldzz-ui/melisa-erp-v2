@@ -1,3 +1,7 @@
+## 4 Kasım 2026 — tahsilat gösterimi ortak kaynak adayı
+
+6d uygulama kaynağı, 51 dosyalı satış/müşteri/mal kabul/tahsilat pasif aday sözleşmesine ayrı pin olarak eklendi; önceki kaynak kimlikleri korunur. 20 çevrimdışı hedefli test, 5 yerel Git entegrasyon testi ve bağımsız inceleme geçti. Gerçek üretim klasör güvenliği doğrulanana kadar I/O öncesi kapalı; 5244 erişimi, generic pending retry riski, gerçek ekran ve insan kabulü BEKLİYOR.
+
 ## 4 Kasım 2026 — doğrulanmamış tahsilat gösterimi
 
 Kaynak veya fiş-hesap kanıtı eksik tahsilat/kalan tutarları satış, müşteri ve tahsilat görünümünde doğrulanmış değer sayılmaz; eksik kanıt genel finans özetine alınmaz. 183 hedefli test, derleme ve bağımsız inceleme geçti. Mevcut pending retry/send/journal davranışı değiştirilmedi; taze context başarısızken eski generic retry POST riski ve gerçek sonuç okuma bağı açık. TEST kurulumu, gerçek ekran ve insan kabulü BEKLİYOR.
