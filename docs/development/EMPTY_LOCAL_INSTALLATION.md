@@ -53,3 +53,15 @@ Bu Windows PowerShell çalışma zamanı reddidir; araç çağrısının otomati
 | 5 Açılış | Başlatılmadı; eski süreçler korunuyor. |
 | 6 Akış kontrolü | Gerçek SQL/normal giriş/boş ekran kontrolü yapılmadı. |
 | 7 Kabul | Bekliyor. |
+
+## Desteklenen tek çağrılık değerlendirme ve ikinci deneme
+
+Reddedilen bağlantısız testin SHA256 değeri `db0dd0a264e859c8e5efa78eb88eab387e2bcc1e5e9db5ad96a487d0b9cde10a` yeniden doğrulandı. Aynı executable, argümanlar ve çalışma klasörüyle, yalnız bu çağrıya ait `sandbox_permissions=require_escalated` ve gerekçe kullanılarak izin değerlendirmesi yapıldı. Çağrı `95062f`, exit0: `EMPTY_LOCAL_LAUNCHER_CONSTRUCTION_PASS targets=2 rejectedTargets=3 connectionsOpened=0`. Host, hesap, ExecutionPolicy veya güvenlik ayarı değiştirilmedi. Bu sonuç yalnız kapalı bağlantı nesnesi testidir; gerçek SQL veya kurulum PASS değildir.
+
+Kaynak/plan eşliği `c91711abe67dc0c9e607bd8206bc7c9bc97b276d12bb638fed855a4e71d7bb06` ile doğrulandı. Yeni kurulum denemesi desteklenen izin değerlendirmesiyle başlatıldı (`f26c50`, session76793, sonuç `da34df`, exit1). `connect-master-current-windows-identity` aşamasında SqlException numarası `-2146893022` (hex `0x80090322`, class20/state0) döndü. İşletim sisteminin yerel hata açıklaması: **Hedef asıl adı yanlış.**
+
+Makbuzun `SQL_CERTIFICATE_VALIDATION_FAILED` alanı sayısal koda dayalı otomatik sınıflandırmadır; sertifika adı mı yoksa Windows/SSPI hedef principal eşleşmesi mi kök neden, henüz ispatlanmadı. Tam hata metni/credential/connection string günlüğe alınmadı. Güvenlik doğrulaması kapatılmadı; başka sunucu adı, bağlantı yöntemi, hesap veya invocation denenmedi.
+
+Güncel makbuz `sqlDdlState=not_attempted`: bağlantı açılması tamamlanmadı, SQL komutu/DDL gönderilmedi, yeni DB/login/user oluşturulmadı. `bootstrap-success.json` yok; bu görev yeni API/WEB listener veya tarayıcı başlatmadı. Mevcut ERP/Vega/servislere işlem yapılmadı. Bağımsız son kontrol kaynak korumasında 27 dosya ve 0 drift doğruladı; DB/görsel yedeği yine doğrulanmadı.
+
+Güncel aşama: 1–2 koruma koşulları kısmi; 3 kaynak/derleme/48 yerel test ve bağlantısız Windows testi hazır; 4 gerçek bağlantı hedef-principal doğrulamasında engelli; 5–7 başlamadı. Sıradaki dar iş, mevcut SQL sunucusunun desteklenen istemci adı ile sertifika/Windows hedef kimliği eşleşmesini izinli salt okunur kanıtla kesinleştirmektir. Bu kayıt yeni bağlantı denemesi veya güvenlik ayarı değişikliği yetkisi değildir.
