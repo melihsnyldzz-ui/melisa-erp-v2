@@ -83,11 +83,20 @@ export function createDesktopInitialReadCore({pool,driver=sql,connector=null,pas
   });
  }
  async function me(token){const userId=tokenSubject(token);return transaction(async tx=>publicUser(await userFor(tx,userId)));}
- return Object.freeze({login,read,me});
+ async function options(token){
+  const userId=tokenSubject(token);
+  return transaction(async tx=>{
+   const u=await userFor(tx,userId);if(!u.permissions.includes('product.view'))fail('DESKTOP_INITIAL_USER_REJECTED');
+   const rows=(await new driver.Request(tx).query('SELECT (SELECT COUNT_BIG(*) FROM dbo.products WHERE is_deleted=0) AS productTotal, (SELECT COUNT_BIG(*) FROM dbo.suppliers WHERE is_deleted=0) AS supplierTotal;')).recordset;
+   if(!Array.isArray(rows)||rows.length!==1||String(rows[0].productTotal)!=='0'||String(rows[0].supplierTotal)!=='0')fail('DESKTOP_INITIAL_DATA_NOT_EMPTY');
+   return {brands:[],categories:[],suppliers:[],supplierOptions:[],brandCurrencies:{},brandDefaults:{},supplierCurrencies:{}};
+  });
+ }
+ return Object.freeze({login,read,me,options});
 }
 
 export function createDesktopInitialReadApp(core){
- if(!core||typeof core.login!=='function'||typeof core.read!=='function'||typeof core.me!=='function')fail('DESKTOP_INITIAL_CONFIG_REJECTED');
+ if(!core||typeof core.login!=='function'||typeof core.read!=='function'||typeof core.me!=='function'||typeof core.options!=='function')fail('DESKTOP_INITIAL_CONFIG_REJECTED');
  const app=express();app.disable('x-powered-by');app.set('strict routing',true);
  app.use((req,res,next)=>{if(req.get('host')!==`${HOST}:${PORT}`||(req.get('origin')&&req.get('origin')!==ORIGIN))return res.status(403).json({success:false,error:{code:'DESKTOP_INITIAL_SCOPE_REJECTED'}});next();});
  app.use((req,res,next)=>{if(req.get('origin')===ORIGIN){res.set('Access-Control-Allow-Origin',ORIGIN);res.set('Vary','Origin');res.set('Access-Control-Allow-Headers','Content-Type, Authorization');res.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');}if(req.method==='OPTIONS')return res.sendStatus(204);next();});
@@ -97,6 +106,7 @@ export function createDesktopInitialReadApp(core){
  const safe=(fn)=>async(req,res)=>{try{await fn(req,res);}catch(error){const auth=error?.code==='DESKTOP_INITIAL_AUTH_REJECTED';res.status(auth?401:503).json({success:false,error:{code:auth?'AUTH_INVALID_CREDENTIALS':'DESKTOP_INITIAL_UNAVAILABLE',message:'İstek doğrulanamadı.'}});}};
  app.post('/api/auth/login',safe(async(req,res)=>res.json({success:true,data:await core.login(req.body),meta:{source:'sql-auth'}})));
  app.get('/api/auth/me',safe(async(req,res)=>res.json({success:true,data:await core.me(bearer(req)),meta:{source:'jwt-auth'}})));
+ app.get('/api/products/options',safe(async(req,res)=>res.json({success:true,data:await core.options(bearer(req)),meta:{source:'sql-select'}})));
  for(const kind of Object.keys(endpoints))app.get(`/api/${kind}`,safe(async(req,res)=>{
   const pageRaw=req.query.page??'1',limitRaw=req.query.limit??'100';
   if(typeof pageRaw!=='string'||typeof limitRaw!=='string'||!/^[1-9]\d{0,5}$/.test(pageRaw)||!/^[1-9]\d{0,2}$/.test(limitRaw)||Number(limitRaw)>500)fail('DESKTOP_INITIAL_REQUEST_REJECTED');
