@@ -3,25 +3,47 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {compileDesktopEmptySchema,DESKTOP_EMPTY_DATABASE,DESKTOP_EMPTY_SERVER,DESKTOP_EMPTY_ENVIRONMENT_ID} from './schema.mjs';
 import {readEmptyLocalSchemaSources} from '../empty-local/schema.mjs';
+import {compileDesktopNativeCatalogSchema,readDesktopNativeCatalogSources,DESKTOP_NATIVE_CATALOG_REQUIREMENTS} from './native-catalog-schema.mjs';
 import {compileDesktopEmptyBootstrap,DESKTOP_BOOTSTRAP_EXECUTION_REQUIREMENTS} from './bootstrap-sql.mjs';
 
-test('each of the 35 verified DDL batches runs in a distinct dynamic SQL scope inside one transaction',()=>{
- const schema=compileDesktopEmptySchema(),result=compileDesktopEmptyBootstrap(),sql=result.sql;
+function readSqlJsonLiteral(sql,variable){
+ const match=new RegExp(`DECLARE @${variable} nvarchar\\(max\\)=N'((?:''|[^'])*)';`,'s').exec(sql);
+ assert.ok(match,variable);
+ return JSON.parse(match[1].replaceAll("''","'"));
+}
+
+test('41 pinned DDL batches are selected from the checked source snapshots in one transaction',()=>{
+ const schema=compileDesktopEmptySchema(),catalog=compileDesktopNativeCatalogSchema(),result=compileDesktopEmptyBootstrap(),sql=result.sql;
  const parts=[...sql.matchAll(/EXEC sys\.sp_executesql N'((?:''|[^'])*)';/g)].map(match=>match[1].replaceAll("''","'"));
- assert.equal(parts.length,36);
- assert.deepEqual(parts.slice(0,35),schema.batches.map(batch=>batch.sql));
- assert.match(parts[35],/^INSERT dbo\.desktop_empty_installation\(/);
- assert.match(parts[35],/DESKTOP_BOOTSTRAP_MARKER_REJECTED/);
- assert.equal(result.batchCount,35);
- assert.equal(result.expectedTables.length,24);
+ assert.equal(parts.length,2);
+ assert.match(parts[0],/^INSERT dbo\.desktop_empty_installation\(/);
+ assert.match(parts[0],/DESKTOP_BOOTSTRAP_MARKER_REJECTED/);
+ assert.match(parts[1],/DESKTOP_BOOTSTRAP_COMMERCIAL_DATA_REJECTED/);
+ const schemaSnapshot=readSqlJsonLiteral(sql,'desktop_schema_json'),catalogSnapshot=readSqlJsonLiteral(sql,'desktop_catalog_json');
+ assert.deepEqual(schemaSnapshot,schema);assert.deepEqual(catalogSnapshot,catalog);
+ assert.equal(result.batchCount,41);
+ assert.equal(result.expectedTables.length,27);
  assert.equal(result.sqlSha256,createHash('sha256').update(sql,'utf8').digest('hex'));
  assert.equal(result.sourceSchemaSha256,createHash('sha256').update(JSON.stringify(schema),'utf8').digest('hex'));
+ assert.equal(result.sourceCatalogSha256,createHash('sha256').update(JSON.stringify(catalog),'utf8').digest('hex'));
+ assert.equal(result.sourceSchemaUtf16Sha256,createHash('sha256').update(Buffer.from(JSON.stringify(schema),'utf16le')).digest('hex').toUpperCase());
+ assert.equal(result.sourceCatalogUtf16Sha256,createHash('sha256').update(Buffer.from(JSON.stringify(catalog),'utf16le')).digest('hex').toUpperCase());
+ assert.match(sql,/WHILE @desktop_batch_index<41/);
+ assert.match(sql,/IF @desktop_batch_index<35/);
+ assert.match(sql,/OPENJSON\(@desktop_schema_json,'\$\.batches'\)/);
+ assert.match(sql,/OPENJSON\(@desktop_catalog_json,'\$\.batches'\)/);
+ assert.match(sql,/EXEC sys\.sp_executesql @desktop_batch_sql/);
+ assert.match(sql,/DESKTOP_BOOTSTRAP_BATCH_MISSING/);
+ const sourceChecks=[...sql.matchAll(/DESKTOP_BOOTSTRAP_SOURCE_CHECKSUM_REJECTED/g)].map(match=>match.index);
+ assert.equal(sourceChecks.length,2);
+ assert.ok(sourceChecks[0]<sql.indexOf('WHILE @desktop_batch_index<41'));
+ assert.ok(sourceChecks[1]>sql.lastIndexOf('EXEC sys.sp_executesql N\'')&&sourceChecks[1]<sql.indexOf('COMMIT TRANSACTION;'));
  assert.equal((sql.match(/\bBEGIN TRANSACTION;/g)||[]).length,1);
  assert.equal((sql.match(/\bCOMMIT TRANSACTION;/g)||[]).length,1);
  assert.ok(sql.indexOf('BEGIN TRANSACTION;')<sql.indexOf('sys.sp_getapplock'));
  assert.ok(sql.indexOf('sys.sp_getapplock')<sql.indexOf('DESKTOP_BOOTSTRAP_TARGET_NOT_EMPTY_OR_ALREADY_APPLIED'));
  assert.ok(sql.indexOf('DESKTOP_BOOTSTRAP_TARGET_NOT_EMPTY_OR_ALREADY_APPLIED')<sql.indexOf('EXEC sys.sp_executesql'));
- assert.ok(sql.lastIndexOf('EXEC sys.sp_executesql')<sql.indexOf('INSERT dbo.desktop_empty_installation'));
+ assert.ok(sql.indexOf('EXEC sys.sp_executesql @desktop_batch_sql')<sql.indexOf('INSERT dbo.desktop_empty_installation'));
  assert.ok(sql.indexOf('INSERT dbo.desktop_empty_installation')<sql.indexOf('COMMIT TRANSACTION;'));
  assert.match(sql,/BEGIN CATCH\s+IF XACT_STATE\(\)<>0 ROLLBACK TRANSACTION;\s+THROW;\s+END CATCH;/);
  assert.ok(Object.isFrozen(result)&&Object.isFrozen(result.expectedTables));
@@ -82,6 +104,52 @@ test('a changed upstream source cannot be recompiled into bootstrap SQL',()=>{
  assert.throws(()=>compileDesktopEmptyBootstrap({sources:{...sources,[first]:sources[first]+"\nINSERT dbo.products(id) VALUES(1);"}}),/EMPTY_LOCAL_SCHEMA_SOURCE_HASH_REJECTED/);
  const missing={...sources};delete missing[first];
  assert.throws(()=>compileDesktopEmptyBootstrap({sources:missing}),/EMPTY_LOCAL_SCHEMA_ALLOWLIST_REJECTED/);
+});
+
+test('catalog fixtures, missing batches and any execution authority drift fail the pinned snapshots',()=>{
+ const sources=readDesktopNativeCatalogSources(),keys=Object.keys(sources),result=compileDesktopEmptyBootstrap();
+ assert.equal(result.catalogRequirements,DESKTOP_NATIVE_CATALOG_REQUIREMENTS);
+ assert.equal(result.catalogRequirements.executionAuthorized,false);
+ assert.equal(result.catalogRequirements.commercialData,'NONE');
+ assert.match(result.catalogRequirements.fixtureLimitation,/party_entities absent/);
+ assert.equal(result.catalogRequirements.requiresActualSqlMetadataVerification,true);
+ for(const key of keys){
+  assert.throws(()=>compileDesktopEmptyBootstrap({catalogSources:{...sources,[key]:sources[key]+"\nINSERT dbo.products(id) VALUES(1);"}}),/DESKTOP_CATALOG_SOURCE_HASH_REJECTED/);
+  const missing={...sources};delete missing[key];
+  assert.throws(()=>compileDesktopEmptyBootstrap({catalogSources:missing}),/DESKTOP_CATALOG_SOURCE_ALLOWLIST_REJECTED/);
+ }
+ for(const input of [{seed:[]},{seedData:false},{allowWrites:true},{catalogSources:undefined},{sources:undefined},null,[]]){
+  assert.throws(()=>compileDesktopEmptyBootstrap(input),/DESKTOP_BOOTSTRAP_OPTIONS_REJECTED/);
+ }
+ let called=false;const accessor={get catalogSources(){called=true;return sources;}};
+ assert.throws(()=>compileDesktopEmptyBootstrap(accessor),/DESKTOP_BOOTSTRAP_OPTIONS_REJECTED/);assert.equal(called,false);
+ const catalog=readSqlJsonLiteral(result.sql,'desktop_catalog_json');
+ const digest=json=>createHash('sha256').update(Buffer.from(JSON.stringify(json),'utf16le')).digest('hex').toUpperCase();
+ assert.equal(digest(catalog),result.sourceCatalogUtf16Sha256);
+ const removed=structuredClone(catalog);removed.batches.pop();assert.notEqual(digest(removed),result.sourceCatalogUtf16Sha256);
+ const injected=structuredClone(catalog);injected.batches[0].sql+='\nINSERT dbo.products(id) VALUES(1);';assert.notEqual(digest(injected),result.sourceCatalogUtf16Sha256);
+ const authorized=structuredClone(catalog);authorized.requirements.executionAuthorized=true;assert.notEqual(digest(authorized),result.sourceCatalogUtf16Sha256);
+});
+
+test('catalog reference SQL covers the full proposed columns and source indexes and checks zero business rows',()=>{
+ const result=compileDesktopEmptyBootstrap(),sql=result.sql;
+ const sourceRows=JSON.parse(readDesktopNativeCatalogSources()['scripts/canonical/fixtures/night-20261006-before.json']).exported.resultSets[1];
+ const colInsert=/INSERT @desktop_expected_columns VALUES ([\s\S]*?);/.exec(sql);assert.ok(colInsert);
+ const tuples=[...colInsert[1].matchAll(/\(N'([^']+)',(\d+),N'([^']+)',N'([^']+)',(-?\d+),(\d+),(\d+),(\d+),(\d+),(\d+)\)/g)].map(m=>({table_name:m[1],column_id:Number(m[2]),column_name:m[3],type_name:m[4],max_length:Number(m[5]),precision:Number(m[6]),scale:Number(m[7]),is_nullable:Number(m[8])===1,is_identity:Number(m[9])===1,default_expression:Number(m[10])===0?null:'unexpected'}));
+ assert.equal(tuples.length,37);
+ for(const table of ['party_currency_accounts','product_prices'])assert.deepEqual(tuples.filter(row=>row.table_name===table),sourceRows.filter(row=>row.table_name===table));
+ assert.equal(sourceRows.filter(row=>row.table_name==='party_entities').length,0);
+ assert.equal(tuples.filter(row=>row.table_name==='party_entities').length,11);
+ for(const table of ['party_entities','party_currency_accounts','product_prices']){
+  assert.match(sql,new RegExp('UX_'+table+'_source_record'));
+  assert.match(sql,new RegExp(`EXISTS\\(SELECT 1 FROM dbo\\.\\[${table}\\]\\)`));
+ }
+ assert.match(sql,/DESKTOP_BOOTSTRAP_CATALOG_COLUMNS_REJECTED/);
+ assert.match(sql,/DESKTOP_BOOTSTRAP_CATALOG_INDEXES_REJECTED/);
+ assert.match(sql,/sys\.index_columns/);assert.match(sql,/sys\.foreign_keys/);assert.match(sql,/sys\.check_constraints/);
+ const noData=[...sql.matchAll(/EXISTS\(SELECT 1 FROM dbo\.\[([a-z_]+)\]\)/g)].map(match=>match[1]);
+ assert.deepEqual(noData,result.expectedTables.filter(name=>name!=='desktop_empty_installation'));
+ assert.equal(noData.length,26);
 });
 
 test('permissions baseline pins every catalog field and both principals before DDL and commit',()=>{
