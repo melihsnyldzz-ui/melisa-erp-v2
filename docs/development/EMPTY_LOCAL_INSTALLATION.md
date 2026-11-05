@@ -28,3 +28,28 @@ Var olan hedef veya hesap devralınmaz, sıfırlanmaz ve yetkisi değiştirilmez
 7. **Kabul:** gerçek ekran ve kullanıcı kabulü kanıt olmadan PASS yazılmaz. Kurulum/bağlantı engelinde tamamlanan hazırlık ve tam engel raporlanır.
 
 `source-preservation-20261105/receipt.json` çalışma alanındaki sınırlı kaynak korumasının makbuzudur; tam makine/veri yedeği değildir. Kaynak tabanı, eski GitHub adayı, yerel WIP, hazırlanan kod, çalışan kurulum ve insan kabulü ayrı durumlardır.
+
+## 5 Kasım yürütme sonucu
+
+Kaynak hazırlığı yerel `d178ed40` commit'inde kaydedildi. Yeni kaynak alanına bağımlılıklar yalnız yerel npm önbelleğinden ve kurulum betikleri kapalı hazırlanmıştır. Arayüzün `empty-local` production derlemesi, 48 hedefli yerel test, bcrypt bağlayıcı kontrolü ve sır taraması geçti. Bağımsız kaynak incelemesindeki eksik ürün tedarikçi kolonu ve çalıştırılan bağımlılık envanteri düzeltildi. GitHub push/Actions yapılmadı.
+
+İlk `bootstrap.ps1 -Apply` denemesi bağlantı nesnesi oluşturulurken `System.ArgumentException`, HRESULT `-2147024809`, desteklenmeyen `DataSource` anahtarı nedeniyle durdu. SQL bağlantısı açılmadı ve hiçbir DDL gönderilmedi. Sadece plan, Windows DPAPI ile korunan yeni deneme ayarları ve `sqlDdlState=not_attempted` hata makbuzu oluşturuldu. Bu üç dosya hashleri doğrulanarak çalışma alanındaki `empty-local-20261105-94a8324f-attempt1-preconnection-failure` dizininde korundu. Eski ERP veritabanı, gerçek hesap, Vega veya servis değiştirilmedi.
+
+Bağlantı kurucusu kanonik anahtar indeksleri kullanacak şekilde düzeltildi. Ancak düzeltmeyi yalnız kapalı bağlantı nesneleriyle kontrol eden aşağıdaki normal Windows PowerShell 5.1 çağrısı, betik gövdesi çalışmadan güvenlik denetiminde reddedildi:
+
+```text
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -NonInteractive -File C:\Sirket\ERP\worktrees\erp-empty-local-20261105\scripts\empty-local\launcher-construction.test.ps1
+AuthorizationManager check failed / SecurityError / UnauthorizedAccess
+```
+
+Bu Windows PowerShell çalışma zamanı reddidir; araç çağrısının otomatik onay incelemesi reddi değildir. Ret sonrası aynı test başka host, komut biçimi, policy, hesap veya araçla çalıştırılmadı; yeni bootstrap denemesi, SQL, listener veya tarayıcı başlatılmadı. Ret kapsamı ve desteklenen izinli çalıştırma yolu henüz doğrulanmadı. Düzeltme kaynakta bulunuyor fakat yeni Windows regresyon testi **BLOCKED**, gerçek kurulum **BEKLİYOR** durumunda.
+
+| Adım | Son doğrulanan durum |
+|---|---|
+| 1 Koruma | Kısmi: seçili 27 kaynak dosyasının kopya hashleri eşleşiyor; veri/görsel/özel ayar yedeği doğrulanmadı. |
+| 2 Kaynak | Kısmi: 21 yerel commit yeni tabanda korunuyor, WIP kopyaları var; tam koruma koşulu kapanmadı. |
+| 3 Paket | Kaynak/derleme/48 test hazır; son Windows çalıştırma testi güvenlik nedeniyle engelli. Kurulabilirliği tamamlandı sayılmaz. |
+| 4 Boş DB | Oluşturulmadı. İlk deneme SQL öncesinde durdu. |
+| 5 Açılış | Başlatılmadı; eski süreçler korunuyor. |
+| 6 Akış kontrolü | Gerçek SQL/normal giriş/boş ekran kontrolü yapılmadı. |
+| 7 Kabul | Bekliyor. |

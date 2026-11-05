@@ -84,9 +84,16 @@ function New-EmptyRandomSecret {
 function New-EmptySqlConnection([string]$Database) {
     if ($Database -cne 'master' -and $Database -cne 'MELISA_ERP_EMPTY_TEST_20261105') { throw 'EMPTY_LOCAL_DATABASE_REJECTED' }
     $builder = [Data.SqlClient.SqlConnectionStringBuilder]::new()
-    $builder.DataSource = 'tcp:127.0.0.1,1433'; $builder.InitialCatalog = $Database
-    $builder.IntegratedSecurity = $true; $builder.Encrypt = $true; $builder.TrustServerCertificate = $false
-    $builder.ConnectTimeout = 5; $builder.Pooling = $false; $builder.ApplicationName = 'MelisaEmptyLocal20261105Setup'
+    # Canonical key indexers avoid Windows PowerShell's IDictionary adapter
+    # interpreting CLR property names such as DataSource as invalid SQL keys.
+    $builder['Data Source'] = 'tcp:127.0.0.1,1433'
+    $builder['Initial Catalog'] = $Database
+    $builder['Integrated Security'] = $true
+    $builder['Encrypt'] = $true
+    $builder['TrustServerCertificate'] = $false
+    $builder['Connect Timeout'] = 5
+    $builder['Pooling'] = $false
+    $builder['Application Name'] = 'MelisaEmptyLocal20261105Setup'
     return [Data.SqlClient.SqlConnection]::new($builder.ConnectionString)
 }
 function New-EmptySqlCommand($Connection,$Transaction,[string]$Sql) {

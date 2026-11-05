@@ -129,7 +129,7 @@ SELECT CASE WHEN
     if ($phase -in @('verify-plan','protect-new-secrets','connect-master-current-windows-identity','verify-server-and-absence')) { $sqlDdlState='not_attempted' }
     elseif ($phase -eq 'write-success-receipt') { $sqlDdlState='committed_before_receipt_failure' }
     if ($attemptOwned) {
-        try { Write-EmptyNewJson (Join-Path $script:EmptyRuntime 'bootstrap-failure.json') @{formatVersion=1;status='stopped_no_retry';phase=$phase;code=$classification;sqlDdlState=$sqlDdlState;exceptionTypesAndHResults=$exceptionDiagnostics;sqlErrors=$sqlErrors;outcome='inspect_own_artifacts_do_not_adopt_or_retry';createdAt=[DateTime]::UtcNow.ToString('o')} } catch {}
+        try { Write-EmptyNewJson (Join-Path $script:EmptyRuntime 'bootstrap-failure.json') @{formatVersion=1;status='stopped_no_retry';phase=$phase;code=$classification;sqlDdlState=$sqlDdlState;exceptions=$exceptionDiagnostics;sqlErrors=$sqlErrors;outcome='inspect_own_artifacts_do_not_adopt_or_retry';createdAt=[DateTime]::UtcNow.ToString('o')} } catch {}
     }
     $numericSummary = if ($numericCodes.Count -gt 0) { $numericCodes -join ',' } else { 'none' }
     Write-Error -Message ('EMPTY_LOCAL_SETUP_STOPPED phase=' + $phase + ' numericCodes=' + $numericSummary) -ErrorAction Continue
