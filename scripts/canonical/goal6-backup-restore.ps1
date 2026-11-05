@@ -1,6 +1,14 @@
-param([ValidateSet('Preflight','Rehearse','Proof','Negatives')][string]$Mode='Preflight',[switch]$ReuseCompletedSourceProof,[ValidateSet('Goal6','Clean20261022')][string]$Profile='Goal6')
+param([ValidateSet('Preflight','Rehearse','Proof','Negatives')][string]$Mode='Preflight',[switch]$ReuseCompletedSourceProof,[ValidateSet('Goal6','Clean20261022')][string]$Profile='Goal6',
+ [ValidateSet('BeforeB7','C5-20261025-0300')][string]$CleanBackup='BeforeB7',[switch]$ApplyCleanRestore,
+ [string]$CleanPreflightReceipt,[string]$CleanPreflightSha256,[string]$CleanRestoreApprovalReference)
 $ErrorActionPreference='Stop'
-if($Profile -ceq 'Clean20261022' -and ($Mode -cne 'Preflight' -or $ReuseCompletedSourceProof)){throw 'CLEAN_RESTORE_PREFLIGHT_ONLY'}
+if($Profile -ceq 'Clean20261022'){
+ if($Mode -cnotin @('Preflight','Rehearse') -or $ReuseCompletedSourceProof){throw 'CLEAN_RESTORE_PREFLIGHT_ONLY'}
+ # A switch/reference is NOT evidence of human authorization. The operator must obtain
+ # scoped approval outside this script before invoking Rehearse; defaults remain read-only.
+ if($Mode -ceq 'Rehearse' -and (!$ApplyCleanRestore -or $CleanRestoreApprovalReference -cnotmatch '^[A-Za-z0-9:_-]{8,128}$' -or !$CleanPreflightReceipt -or $CleanPreflightSha256 -cnotmatch '^[A-Fa-f0-9]{64}$')){throw 'CLEAN_RESTORE_EXPLICIT_APPROVAL_REQUIRED'}
+ if($Mode -ceq 'Preflight' -and ($ApplyCleanRestore -or $CleanPreflightReceipt -or $CleanPreflightSha256 -or $CleanRestoreApprovalReference)){throw 'CLEAN_RESTORE_MODE_INVALID'}
+}elseif($ApplyCleanRestore -or $CleanPreflightReceipt -or $CleanPreflightSha256 -or $CleanRestoreApprovalReference -or $CleanBackup -cne 'BeforeB7'){throw 'CLEAN_RESTORE_PROFILE_INVALID'}
 # Explicit Goal6 authorization: COPY_ONLY active TEST; restore ONLY a new isolated DB.
 # These literals deliberately cannot be overridden from command-line arguments.
 $sourceDb='MELISA_ERP_SIRKET_TEST_20260929_01'
@@ -16,10 +24,10 @@ if($Profile -ceq 'Clean20261022'){
  $sourceDb='MELISA_ERP_CLEAN_TEST_20261022'
  $restoreDb='MELISA_ERP_CLEAN_RESTORE_TEST_20261024_01'
  $backupFile='C:\Sirket\ERP\backups\CLEAN-20261022-before-B7-20261024.bak'
+ if($CleanBackup -ceq 'C5-20261025-0300'){$backupFile='C:\Sirket\ERP\backups\CLEAN-20261022-C5-20261025T000001357Z-512ec2b3bf8f478ca37e1851c8a821d2\CLEAN_TEST_COPY_ONLY.bak'}
  $restoreRoot='C:\Sirket\ERP\data\CLEAN-RESTORE-20261024-01'
  $evidenceRoot='C:\Sirket\ERP\clean\20261022\runtime\semih-access-20261023'
 }
-New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null
 function Open-VerifiedConnection([string]$db){
  if($db -cnotin @('master',$sourceDb,$restoreDb)){throw 'GOAL6_WRONG_DATABASE'}
  $cn=[Data.SqlClient.SqlConnection]::new("Server=$server;Database=$db;Integrated Security=True;Encrypt=False;Application Name=ERP-GOAL6-BACKUP-RESTORE")
@@ -43,7 +51,8 @@ function Assert-BackupHeader($header){
  if($header.Count -ne 1 -or $header[0].DatabaseName -cne $sourceDb -or -not $header[0].IsCopyOnly -or -not $header[0].HasBackupChecksums -or $header[0].IsDamaged -or $header[0].BackupType -ne 1){throw 'GOAL6_BACKUP_HEADER_INVALID'}
 }
 function Assert-CleanBackupCandidate($header,$files,[bool]$targetExists,[bool]$directoryExists,[long]$availableBytes){
- if($Profile -cne 'Clean20261022' -or $Mode -cne 'Preflight' -or $sourceDb -cne 'MELISA_ERP_CLEAN_TEST_20261022' -or $restoreDb -cne 'MELISA_ERP_CLEAN_RESTORE_TEST_20261024_01' -or $server -cne 'Semih\MELISADEV' -or $backupFile -cne 'C:\Sirket\ERP\backups\CLEAN-20261022-before-B7-20261024.bak' -or $restoreRoot -cne 'C:\Sirket\ERP\data\CLEAN-RESTORE-20261024-01'){throw 'CLEAN_RESTORE_PROFILE_INVALID'}
+ $expectedBackup=if($CleanBackup -ceq 'C5-20261025-0300'){'C:\Sirket\ERP\backups\CLEAN-20261022-C5-20261025T000001357Z-512ec2b3bf8f478ca37e1851c8a821d2\CLEAN_TEST_COPY_ONLY.bak'}elseif($CleanBackup -ceq 'BeforeB7'){'C:\Sirket\ERP\backups\CLEAN-20261022-before-B7-20261024.bak'}else{throw 'CLEAN_RESTORE_PROFILE_INVALID'}
+ if($Profile -cne 'Clean20261022' -or $Mode -cnotin @('Preflight','Rehearse') -or $sourceDb -cne 'MELISA_ERP_CLEAN_TEST_20261022' -or $restoreDb -cne 'MELISA_ERP_CLEAN_RESTORE_TEST_20261024_01' -or $server -cne 'Semih\MELISADEV' -or $backupFile -cne $expectedBackup -or $restoreRoot -cne 'C:\Sirket\ERP\data\CLEAN-RESTORE-20261024-01'){throw 'CLEAN_RESTORE_PROFILE_INVALID'}
  Assert-BackupHeader $header
  $h=$header[0]
  if($h.ServerName -ine $server -or $h.Position -ne 1 -or !$h.BackupSetGUID -or !$h.BackupStartDate -or !$h.BackupFinishDate -or [datetime]$h.BackupFinishDate -lt [datetime]$h.BackupStartDate){throw 'CLEAN_RESTORE_HEADER_IDENTITY_INVALID'}
@@ -59,7 +68,13 @@ function Assert-CleanBackupCandidate($header,$files,[bool]$targetExists,[bool]$d
   $moves+=@{logicalName=[string]$file.LogicalName;fileId=[int]$file.FileId;type=[string]$file.Type;sizeBytes=[long]$file.Size;proposedPath=$path}
  }
  if($required -gt [long]::MaxValue -or $availableBytes -lt $required){throw 'CLEAN_RESTORE_INSUFFICIENT_CAPACITY'}
- return @{schemaVersion='melisa-goal6.clean-preflight.v1';server=$server;sourceDatabase=$sourceDb;proposedRestoreDatabase=$restoreDb;backupFile=$backupFile;backupSetGuid=[string]$h.BackupSetGUID;sqlBackupStart=$h.BackupStartDate;sqlBackupFinish=$h.BackupFinishDate;requiredBytes=[long]$required;availableBytes=$availableBytes;moves=$moves;copyOnly=$true;checksum=$true;restoreExecuted=$false;sourceBackupCreated=$false;targetCreated=$false;applicationConnectionChanged=$false;humanAcceptance='PENDING';coverage='Existing backup header/file-list and proposed empty target only; not restored data or current application recovery proof'}
+ if($CleanBackup -ceq 'C5-20261025-0300' -and [string]$h.BackupSetGUID -ine 'b8b6ee89-1886-4fbd-be27-065343c02d25'){throw 'CLEAN_RESTORE_BACKUP_CHANGED'}
+ return @{schemaVersion='melisa-goal6.clean-preflight.v2';server=$server;sourceDatabase=$sourceDb;proposedRestoreDatabase=$restoreDb;restoreRoot=$restoreRoot;backupFile=$backupFile;backupSetGuid=[string]$h.BackupSetGUID;sqlBackupStart=([datetime]$h.BackupStartDate).ToString('o');sqlBackupFinish=([datetime]$h.BackupFinishDate).ToString('o');requiredBytes=[long]$required;availableBytes=$availableBytes;moves=$moves;copyOnly=$true;checksum=$true;restoreExecuted=$false;sourceBackupCreated=$false;targetCreated=$false;applicationConnectionChanged=$false;humanAcceptance='PENDING';coverage='Existing backup header/file-list and proposed empty target only; not restored data or current application recovery proof'}
+}
+function Assert-CleanPath([string]$path){
+ for($p=$path;$p;$p=[IO.Path]::GetDirectoryName($p)){
+  if(Test-Path -LiteralPath $p){if((Get-Item -LiteralPath $p -Force).Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'CLEAN_RESTORE_REPARSE_PATH'}}
+ }
 }
 function CleanPreflight($cn){
  $source=Open-VerifiedConnection $sourceDb
@@ -67,6 +82,7 @@ function CleanPreflight($cn){
   $identity=@(Rows $source "SELECT environment_id,synthetic,actual_t1,external_operations FROM dbo.clean_test_environment WHERE id=1")
   if($identity.Count -ne 1 -or [string]$identity[0].environment_id -ine 'e662fd94-d797-4b3b-938a-d143ad758b67' -or !$identity[0].synthetic -or $identity[0].actual_t1 -or $identity[0].external_operations){throw 'CLEAN_RESTORE_SOURCE_IDENTITY_INVALID'}
  }finally{$source.Close()}
+ Assert-CleanPath $backupFile;Assert-CleanPath $restoreRoot
  if(!(Test-Path -LiteralPath $backupFile -PathType Leaf)){throw 'CLEAN_RESTORE_BACKUP_MISSING'}
  $beforeHash=(Get-FileHash -LiteralPath $backupFile -Algorithm SHA256).Hash
  $header=@(Rows $cn "RESTORE HEADERONLY FROM DISK=N'$backupFile'")
@@ -75,9 +91,52 @@ function CleanPreflight($cn){
  $result=Assert-CleanBackupCandidate $header $files ($existing.Count -ne 0) (Test-Path -LiteralPath $restoreRoot) ([long](Get-PSDrive -Name C).Free)
  $afterHash=(Get-FileHash -LiteralPath $backupFile -Algorithm SHA256).Hash
  if($beforeHash -cne $afterHash){throw 'CLEAN_RESTORE_BACKUP_CHANGED'}
+ if($CleanBackup -ceq 'C5-20261025-0300' -and $afterHash -cne 'FD9096307DCB058813E7A8732A4665C4CD9809CBA257403A88EAE8978795C891'){throw 'CLEAN_RESTORE_BACKUP_CHANGED'}
  $result.backupSha256=$afterHash;$result.observedAt=[DateTime]::UtcNow.ToString('o')
+ $result.operatorSha256=(Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash
+ $result.status='READY';$result.cleanBackup=$CleanBackup
  $result.synthetic=$true;$result.actualT1=$false;$result.externalOperations=$false
  return $result
+}
+function Assert-CleanRestoreReceipt($receipt,[datetimeoffset]$now,[string]$operatorHash){
+ if($receipt.schemaVersion -cne 'melisa-goal6.clean-preflight.v2' -or $receipt.status -cne 'READY' -or $receipt.server -cne $server -or $receipt.sourceDatabase -cne $sourceDb -or $receipt.proposedRestoreDatabase -cne $restoreDb -or $receipt.restoreRoot -cne $restoreRoot -or $receipt.backupFile -cne $backupFile -or $receipt.cleanBackup -cne $CleanBackup -or $receipt.operatorSha256 -cne $operatorHash -or $receipt.backupSha256 -cnotmatch '^[A-Fa-f0-9]{64}$' -or !$receipt.backupSetGuid -or $receipt.synthetic -ne $true -or $receipt.actualT1 -ne $false -or $receipt.externalOperations -ne $false -or $receipt.copyOnly -ne $true -or $receipt.checksum -ne $true -or $receipt.restoreExecuted -ne $false -or $receipt.targetCreated -ne $false -or $receipt.sourceBackupCreated -ne $false -or $receipt.applicationConnectionChanged -ne $false){throw 'CLEAN_RESTORE_PREFLIGHT_MISMATCH'}
+ $at=[datetimeoffset]::MinValue
+ if([string]$receipt.observedAt -cnotmatch 'Z$' -or ![datetimeoffset]::TryParse([string]$receipt.observedAt,[ref]$at) -or $at -gt $now -or ($now-$at).TotalMinutes -gt 30){throw 'CLEAN_RESTORE_PREFLIGHT_STALE'}
+}
+function Read-CleanRestoreReceipt {
+ if([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($CleanPreflightReceipt)) -cne $evidenceRoot -or [IO.Path]::GetFileName($CleanPreflightReceipt) -cnotmatch '^c6-clean-preflight-[a-f0-9]{32}\.json$'){throw 'CLEAN_RESTORE_RECEIPT_PATH_INVALID'}
+ Assert-CleanPath $CleanPreflightReceipt
+ $bytes=[IO.File]::ReadAllBytes($CleanPreflightReceipt)
+ $hash=[BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash($bytes)).Replace('-','')
+ if($hash -ine $CleanPreflightSha256){throw 'CLEAN_RESTORE_RECEIPT_HASH_MISMATCH'}
+ # PS7.5+ otherwise converts ISO strings to DateTime, unlike PS5. Preserve receipt bytes' date semantics.
+ $jsonOptions=@{}
+ if((Get-Command ConvertFrom-Json -CommandType Cmdlet).Parameters.ContainsKey('DateKind')){$jsonOptions.DateKind='String'}
+ $receipt=[Text.Encoding]::UTF8.GetString($bytes)|ConvertFrom-Json @jsonOptions
+ Assert-CleanRestoreReceipt $receipt ([datetimeoffset]::UtcNow) ((Get-FileHash -LiteralPath $PSCommandPath -Algorithm SHA256).Hash)
+ return $receipt
+}
+function Open-CleanBackupReadLock {return [IO.File]::Open($backupFile,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read)}
+function Restore-CleanBackup($cn,$receipt){
+ # The supplied receipt is checked before connecting, then all mutable facts are read
+ # again. A historical receipt never grants authority for a different backup.
+ Assert-CleanPath $backupFile
+ $readLock=Open-CleanBackupReadLock
+ try{
+ $fresh=CleanPreflight $cn
+ Assert-CleanRestoreReceipt $receipt ([datetimeoffset]::UtcNow) $fresh.operatorSha256
+ if($receipt.backupSha256 -cne $fresh.backupSha256 -or $receipt.backupSetGuid -cne $fresh.backupSetGuid -or $receipt.sqlBackupStart -ne $fresh.sqlBackupStart -or $receipt.sqlBackupFinish -ne $fresh.sqlBackupFinish){throw 'CLEAN_RESTORE_PREFLIGHT_MISMATCH'}
+ $sqlMoves=@($fresh.moves|ForEach-Object {"MOVE N'$($_.logicalName.Replace("'","''"))' TO N'$($_.proposedPath.Replace("'","''"))'"}) -join ','
+ # No -Force: creating this new fixed directory also rejects concurrent/repeated runs.
+ # A failed attempt is retained; it is never deleted or automatically retried.
+ New-Item -ItemType Directory -Path $restoreRoot -ErrorAction Stop | Out-Null
+ $started=[DateTime]::UtcNow.ToString('o')
+ Execute $cn "IF DB_ID(N'$restoreDb') IS NOT NULL THROW 51900,'CLEAN_RESTORE_TARGET_EXISTS',1; RESTORE DATABASE [$restoreDb] FROM DISK=N'$backupFile' WITH CHECKSUM,RECOVERY,$sqlMoves;"
+ Execute $cn "ALTER DATABASE [$restoreDb] SET READ_ONLY WITH NO_WAIT;"
+ $state=@(Rows $cn "SELECT d.name,d.state_desc,d.is_read_only,e.environment_id,e.synthetic,e.actual_t1,e.external_operations FROM sys.databases d CROSS JOIN [$restoreDb].dbo.clean_test_environment e WHERE d.name=N'$restoreDb' AND e.id=1")
+ if($state.Count -ne 1 -or $state[0].name -cne $restoreDb -or $state[0].state_desc -cne 'ONLINE' -or !$state[0].is_read_only -or [string]$state[0].environment_id -ine 'e662fd94-d797-4b3b-938a-d143ad758b67' -or !$state[0].synthetic -or $state[0].actual_t1 -or $state[0].external_operations){throw 'CLEAN_RESTORE_READBACK_FAILED'}
+ return @{schemaVersion='melisa-goal6.clean-restore.v1';server=$server;sourceDatabase=$sourceDb;database=$restoreDb;backupFile=$backupFile;backupSha256=$fresh.backupSha256;backupSetGuid=$fresh.backupSetGuid;moves=$fresh.moves;preflightSha256=$CleanPreflightSha256;approvalReference=$CleanRestoreApprovalReference;startedAt=$started;completedAt=[DateTime]::UtcNow.ToString('o');restored=$true;readOnly=$true;activeDatabaseOverwritten=$false;retainedForEvidence=$true;humanAcceptance='PENDING';coverage='Separate SQL restore and ONLINE READ_ONLY state only; row reconciliation and full ERP/CRM recovery remain pending'}
+ }finally{$readLock.Dispose()}
 }
 function Snapshot([string]$db){
  $cn=Open-VerifiedConnection $db
@@ -106,9 +165,19 @@ function Preflight($cn){
   return @{schemaVersion='melisa-goal6.backup-preflight.v1';server=$server;sourceDatabase=$sourceDb;restoreDatabase=$restoreDb;backupFile=$backupFile;dataFile=$dataFile;logFile=$logFile;sourceFiles=$files;availableBytes=$vol[0].available_bytes;requiredConservativeBytes=$needed;existingTargetAllowed=$false;overwriteAllowed=$false}
  }finally{$source.Close()}
 }
+# Reject missing/stale/mismatched receipts before connection or filesystem writes.
+$cleanReceipt=if($Profile -ceq 'Clean20261022' -and $Mode -ceq 'Rehearse'){Read-CleanRestoreReceipt}else{$null}
+if($Profile -cne 'Clean20261022'){New-Item -ItemType Directory -Path $evidenceRoot -Force | Out-Null}
 $master=Open-VerifiedConnection 'master'
 try {
- if($Profile -ceq 'Clean20261022'){Save 'c6-clean-backup-preflight.json' (CleanPreflight $master);Write-Output 'CLEAN_PREFLIGHT_READY_NO_RESTORE';exit}
+ if($Profile -ceq 'Clean20261022'){
+  $name=if($Mode -ceq 'Preflight'){'c6-clean-preflight-'}else{'c6-clean-restore-'}
+  $result=if($Mode -ceq 'Preflight'){CleanPreflight $master}else{Restore-CleanBackup $master $cleanReceipt}
+  $file=Join-Path $evidenceRoot ($name+[guid]::NewGuid().ToString('N')+'.json')
+  $stream=[IO.File]::Open($file,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+  try{$bytes=[Text.UTF8Encoding]::new($false).GetBytes(($result|ConvertTo-Json -Depth 14));$stream.Write($bytes,0,$bytes.Length)}finally{$stream.Dispose()}
+  Write-Output $file;Write-Output (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash;exit
+ }
  if($Mode -eq 'Preflight'){Save 'backup-preflight.json' (Preflight $master);Write-Output 'PREFLIGHT_READY';exit}
  if($Mode -eq 'Rehearse'){
   $pre=Preflight $master;Save 'backup-preflight.json' $pre
@@ -166,6 +235,6 @@ try {
   Write-Output 'BACKUP_RESTORE_NEGATIVES_PASS'
  }
 } catch {
- Save 'backup-restore-last-failure.json' @{schemaVersion='melisa-goal6.backup-failure.v1';recordedAt=[DateTime]::UtcNow.ToString('o');mode=$Mode;sourceDatabase=$sourceDb;restoreDatabase=$restoreDb;code='BACKUP_RESTORE_REHEARSAL_FAILED';activeOverwriteAllowed=$false;secretsLogged=$false}
+ if($Profile -cne 'Clean20261022'){Save 'backup-restore-last-failure.json' @{schemaVersion='melisa-goal6.backup-failure.v1';recordedAt=[DateTime]::UtcNow.ToString('o');mode=$Mode;sourceDatabase=$sourceDb;restoreDatabase=$restoreDb;code='BACKUP_RESTORE_REHEARSAL_FAILED';activeOverwriteAllowed=$false;secretsLogged=$false}}
  throw
 } finally {$master.Close()}
