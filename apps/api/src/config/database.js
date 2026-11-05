@@ -2,6 +2,7 @@ import sqlDefault from 'mssql';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {guardCanonicalReadonlyAuthQuery} from './canonicalReadonlyAuthQuery.mjs';
 import { env } from './env.js';
+import {getEmptyLocalContext,assertRegisteredEmptyLocalContext,assertEmptyLocalIdentity,assertEmptyLocalSqlConfiguration,EMPTY_LOCAL_IDENTITY_SQL} from '../services/emptyLocalContext.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
 import {getCleanContext,assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL} from '../services/cleanSyntheticContext.mjs';
@@ -12,7 +13,7 @@ export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 // mssql's two adapters share a process-wide Request driver. Loading ODBC after
 // TDS would give this dedicated TDS pool an ODBC Request and stall its reads.
 // The registered draft bootstrap selects TDS; legacy ODBC runtimes stay intact.
-const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()?null:(await import('mssql/msnodesqlv8.js')).default;
+const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()||getEmptyLocalContext()?null:(await import('mssql/msnodesqlv8.js')).default;
 
 let poolPromise;
 let resolvedPool;
@@ -129,6 +130,10 @@ export function getSqlConfig() {
 
   config.user = env.sql.user;
   config.password = env.sql.password;
+  if(getEmptyLocalContext()){
+    assertRegisteredEmptyLocalContext();assertEmptyLocalSqlConfiguration(env);
+    config.connectionTimeout=5000;config.requestTimeout=5000;
+  }
   return config;
 }
 
@@ -147,6 +152,8 @@ export function getSafeSqlInfo() {
 }
 
 export async function getSqlPool() {
+  const empty=getEmptyLocalContext();
+  if(process.env.MELISA_EMPTY_LOCAL!==undefined||empty){assertRegisteredEmptyLocalContext();assertEmptyLocalSqlConfiguration(env);}
   const existingScope=canonicalExistingOnlyScope.getStore();
   if(existingScope)return getGuardedExistingAuthPool(existingScope);
   if (!env.sql.enabled) {
@@ -186,6 +193,7 @@ export async function getSqlPool() {
     const sql = getSqlDriver();
     const pool = new sql.ConnectionPool(getSqlConfig());
     poolPromise = pool.connect().then(async connected=>{
+      if(empty){try{assertEmptyLocalIdentity((await connected.request().query(EMPTY_LOCAL_IDENTITY_SQL)).recordset[0]);}catch(error){await connected.close();throw error;}}
       if(clean){try{assertCleanIdentity((await connected.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);}catch(error){await connected.close();throw error;}}
       if(currentCrmAllowed){
         try{const identity=(await connected.request().query("SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') databaseControl,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess")).recordset[0];assertCrmOrderCurrentIdentity(currentCrm,identity);}catch(error){await connected.close();throw error;}

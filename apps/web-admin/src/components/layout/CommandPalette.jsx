@@ -129,7 +129,7 @@ export function CommandPalette({ isOpen, onClose, onOpenScreen }) {
     const sequence = searchSequenceRef.current + 1;
     searchSequenceRef.current = sequence;
 
-    if (!isOpen || trimmedQuery.length < 2) {
+    if (apiConfig.emptyLocalInstallation || !isOpen || trimmedQuery.length < 2) {
       setRecordResults([]);
       setFailedSourceCount(0);
       setIsSearching(false);

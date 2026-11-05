@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import {apiConfig} from '../../config/apiConfig.js';
+import {EMPTY_LOCAL_TITLE} from '../../config/emptyLocalInstallation.mjs';
 
 export function LoginScreen({
   errorMessage,
@@ -7,7 +9,7 @@ export function LoginScreen({
   onLocalPasswordlessLogin,
   onLogin,
 }) {
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState(apiConfig.emptyLocalInstallation ? 'kurulum' : 'admin');
   const [password, setPassword] = useState('');
 
   function submitLogin(event) {
@@ -19,8 +21,8 @@ export function LoginScreen({
     <main className="login-shell">
       <form className="login-panel" onSubmit={submitLogin}>
         <div className="login-title">
-          <strong>Melisa ERP v2</strong>
-          <span>Güvenli yönetim girişi</span>
+          <strong>{apiConfig.emptyLocalInstallation ? EMPTY_LOCAL_TITLE : 'Melisa ERP v2'}</strong>
+          <span>{apiConfig.emptyLocalInstallation ? 'Salt okunur aşama · Stok, müşteri ve tedarikçi listelerini kontrol edin.' : 'Güvenli yönetim girişi'}</span>
         </div>
         <label>
           Kullanıcı adı
@@ -39,7 +41,7 @@ export function LoginScreen({
         <button type="submit" disabled={isLoading}>
           {isLoading ? 'Giriş kontrol ediliyor' : 'Giriş yap'}
         </button>
-        <small className="login-session-note">Bu cihazda girişiniz hatırlanır. Çıkış yapmadığınız sürece yeniden şifre istenmez.</small>
+        <small className="login-session-note">{apiConfig.emptyLocalInstallation ? 'Bu kurulumun oturumu ayrı saklanır. Oturum süresi dolduğunda yeniden giriş yapın.' : 'Bu cihazda girişiniz hatırlanır. Çıkış yapmadığınız sürece yeniden şifre istenmez.'}</small>
         {localPasswordlessEnabled && (
           <button type="button" disabled={isLoading} onClick={onLocalPasswordlessLogin}>
             Yerel yönetici olarak şifresiz gir

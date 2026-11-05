@@ -10,6 +10,8 @@ import { fetchDashboardAlerts, fetchDashboardSummary } from '../../services/dash
 import { DashboardLayoutEditor, DashboardWidgetFrame } from './DashboardLayoutControls.jsx';
 import { DashboardQuickActions } from './DashboardQuickActions.jsx';
 import { readDashboardSnapshot } from './dashboardSnapshot.js';
+import {apiConfig} from '../../config/apiConfig.js';
+import {EMPTY_LOCAL_TITLE} from '../../config/emptyLocalInstallation.mjs';
 import {
   buildDefaultDashboardLayout,
   dashboardFreeLayout,
@@ -329,11 +331,12 @@ export function DashboardScreen({ onOpenScreen, permissions = [], roleViewId = '
 
   return (
     <main className="work-area dashboard-screen">
+      {apiConfig.emptyLocalInstallation && <section className="erp-panel" aria-label="Kurulum aşaması"><div className="panel-title"><strong>{EMPTY_LOCAL_TITLE}</strong><span>Salt okunur aşama · Stok, müşteri, tedarikçi ve fotoğraf aktarılmadı. Listeleri açıp yenileyerek kontrol edin.</span></div></section>}
       <DashboardToolbar
         activeView={activeView}
         isLayoutEditorOpen={isLayoutEditorOpen}
         onLayoutEditorToggle={() => setIsLayoutEditorOpen((isOpen) => !isOpen)}
-        onOpenReports={permissions.includes('dashboard.view') ? () => onOpenScreen?.('reports-overview') : undefined}
+        onOpenReports={!apiConfig.emptyLocalInstallation && permissions.includes('dashboard.view') ? () => onOpenScreen?.('reports-overview') : undefined}
         onRefresh={loadDashboard}
         onViewChange={setActiveView}
       />

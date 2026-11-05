@@ -1,7 +1,13 @@
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '.env.local' });
-dotenv.config();
+// The dedicated empty bootstrap supplies an exact in-memory environment.
+// Its profile never reads dotenv files from a source checkout or runtime CWD.
+if (process.env.MELISA_EMPTY_LOCAL !== undefined) {
+  if (process.env.MELISA_EMPTY_LOCAL !== '20261105') throw Error('EMPTY_LOCAL_PROFILE_REJECTED');
+} else {
+  dotenv.config({ path: '.env.local' });
+  dotenv.config();
+}
 
 function numberEnv(name, fallback) {
   const value = process.env[name];

@@ -1,4 +1,5 @@
 import React from 'react';
+import {apiConfig} from '../../config/apiConfig.js';
 import { Columns3, Download, Ellipsis, Eye, Plus, Printer, RefreshCcw, UserRound } from 'lucide-react';
 
 export function CustomerListToolbar({
@@ -18,11 +19,11 @@ export function CustomerListToolbar({
     <section className="customer-toolbar">
       <div className="customer-toolbar-title">
         <strong>Cari Listesi</strong>
-        <span>{isReadOnly ? 'Vega canlı cari ve 2026 bakiye takibi' : 'Müşteri, bakiye ve son hareket takibi'}</span>
+        <span>{apiConfig.emptyLocalInstallation ? 'Boş yerel kurulum · Salt okunur müşteri listesi' : isReadOnly ? 'Vega canlı cari ve 2026 bakiye takibi' : 'Müşteri, bakiye ve son hareket takibi'}</span>
       </div>
       <div className="customer-toolbar-actions">
         <button type="button" className="primary-action" onClick={onOpenNewCustomer} disabled={isReadOnly}><Plus aria-hidden="true" size={16} /> Yeni Cari</button>
-        <button type="button" onClick={onOpenCustomerCard} disabled={!hasSelection}><UserRound aria-hidden="true" size={16} /> {isReadOnly ? 'Hareketleri Aç' : 'Cari Kartı'}</button>
+        <button type="button" onClick={onOpenCustomerCard} disabled={!hasSelection}><UserRound aria-hidden="true" size={16} /> {isReadOnly && !apiConfig.emptyLocalInstallation ? 'Hareketleri Aç' : 'Cari Kartı'}</button>
         <button type="button" onClick={onRefresh} title="Listeyi yenile"><RefreshCcw aria-hidden="true" size={16} /> Yenile</button>
         <details className="entity-list-tools">
           <summary aria-label="Diğer liste işlemleri" title="Diğer işlemler"><Ellipsis aria-hidden="true" size={18} /></summary>

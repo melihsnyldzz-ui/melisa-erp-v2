@@ -1,10 +1,11 @@
 import React from 'react';
+import {apiConfig} from '../../config/apiConfig.js';
 import { Columns3, Download, Ellipsis, Eye, FileSpreadsheet, ImagePlus, ListChecks, PackageOpen, PanelRightOpen, Plus, Printer, RefreshCcw } from 'lucide-react';
 
 export function StockListToolbar({ showPassive, onTogglePassive, onOpenNewProduct, onOpenProductCard, onOpenProductImage, onOpenBulkUpdate, onExportCsv, onExportExcel, onPrint, onRefresh, onToggleColumns, onToggleProduct360, isColumnPanelOpen = false, isProduct360Open = false, hasSelection = true, bulkSelectionCount = 0, canBulkEdit = false, canManageImage = false, canExport = true, isReadOnly = false, onSyncVegaCards }) {
   return (
     <div className="stock-toolbar stock-toolbar-compact">
-      <div className="stock-toolbar-title"><strong>Stok Listesi</strong><span>{isReadOnly ? 'Vega Canlı · Salt okunur' : 'Canlı stok, fiyat ve ürün takibi'}</span></div>
+      <div className="stock-toolbar-title"><strong>Stok Listesi</strong><span>{apiConfig.emptyLocalInstallation ? 'Boş yerel kurulum · Salt okunur stok listesi' : isReadOnly ? 'Vega Canlı · Salt okunur' : 'Canlı stok, fiyat ve ürün takibi'}</span></div>
       <div className="stock-toolbar-actions">
         {!isReadOnly && <button className="primary-action" type="button" onClick={onOpenNewProduct}><Plus aria-hidden="true" size={16} /> Yeni Ürün</button>}
         <button type="button" onClick={onOpenProductCard} disabled={!hasSelection}><PackageOpen aria-hidden="true" size={16} /> {isReadOnly ? 'Kart Özeti' : 'Ürün Kartı'}</button>

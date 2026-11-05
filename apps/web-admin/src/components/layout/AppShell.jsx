@@ -18,6 +18,8 @@ import { getRoleScreenIds, readStoredRoleView, roleViewStorageKey } from '../../
 import { buildScreenDeepLink, readScreenDeepLink } from '../../utils/screenDeepLink.js';
 import { bindSavedInvoiceToTab, nextWorkspaceTabInstanceId, resolveInvoiceTabOpen } from '../../utils/workspaceInvoiceRecords.js';
 import { operationTabId, replacesOperationContext } from '../../utils/operationNavigation.js';
+import {apiConfig} from '../../config/apiConfig.js';
+import {emptyLocalScreenIds} from '../../config/emptyLocalInstallation.mjs';
 
 function getShellClassName(isDemoMode, viewOptions) {
   const rowDensity = viewOptions.rowDensity || (viewOptions.compactRows ? 'compact' : 'comfortable');
@@ -95,7 +97,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     [activeTabId, tabs],
   );
 
-  const roleScreenIds = useMemo(() => getRoleScreenIds(roleViewId), [roleViewId]);
+  const roleScreenIds = useMemo(() => apiConfig.emptyLocalInstallation ? emptyLocalScreenIds : getRoleScreenIds(roleViewId), [roleViewId]);
   const activeNavigationSection = useMemo(
     () => getNavigationSection(activeTab.screenId ?? activeTab.id),
     [activeTab],
@@ -144,6 +146,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   }
 
   function openScreen(screenId, payload = {}) {
+    if (apiConfig.emptyLocalInstallation && !emptyLocalScreenIds.has(screenId)) return;
     const screen = screenRegistry[screenId];
 
     if (!screen) {
@@ -177,7 +180,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
     deepLinkHandledRef.current = true;
 
     const deepLink = readScreenDeepLink(window.location.search, screenRegistry, roleScreenIds);
-    if (!deepLink) return;
+    if (!deepLink || apiConfig.emptyLocalInstallation && !emptyLocalScreenIds.has(deepLink.screenId)) return;
 
     pendingDeepLinkScreenRef.current = deepLink.screenId;
     openScreen(deepLink.screenId, deepLink.payload);
@@ -317,7 +320,7 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
   }, [hasDirtyTabs]);
 
   return (
-    <div className={getShellClassName(isDemoMode, viewOptions)}>
+    <div className={getShellClassName(isDemoMode, apiConfig.emptyLocalInstallation ? {...viewOptions, showSmartPanel: false} : viewOptions)}>
       {isDemoMode && (
         <div className="demo-mode-banner">
           DEMO MODU: Gerçek veri bağlantıları kapalı; işlemler kaydedilmez
@@ -365,13 +368,13 @@ export function AppShell({ user, permissions, isDemoMode = false, onLogout }) {
             </React.Activity>
           ))}
         </section>
-        <SmartInsightsPanel
+        {!apiConfig.emptyLocalInstallation && <SmartInsightsPanel
           activeTab={activeTab}
           isCollapsed={viewOptions.smartPanelCollapsed}
           roleViewId={roleViewId}
           onOpenScreen={openScreen}
           onToggleCollapsed={() => updateViewOption('smartPanelCollapsed', !viewOptions.smartPanelCollapsed)}
-        />
+        />}
       </div>
       <StatusBar activeTab={activeTab} isDemoMode={isDemoMode} openTabCount={tabs.length} user={user} />
       {viewOptions.focusMode && (

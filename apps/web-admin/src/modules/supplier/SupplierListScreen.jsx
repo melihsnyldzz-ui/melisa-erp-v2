@@ -289,7 +289,7 @@ export function SupplierListScreen({ onOpenScreen }) {
       <section className="customer-list-toolbar">
         <div className="customer-title-block">
           <strong>{apiConfig.pilotMode ? 'Melisa Tedarikçi Carileri' : 'Vega Tedarikçi Carileri'}</strong>
-          <span>{apiConfig.pilotMode ? 'Melisa test ERP · cari bakiyeleri, alış fişleri ve ödeme hareketleri' : 'F0103 · 2026 canlı bakiye, alış fişleri ve ödeme hareketleri · salt okunur'}</span>
+          <span>{apiConfig.emptyLocalInstallation ? 'Boş yerel kurulum · Salt okunur tedarikçi listesi' : apiConfig.pilotMode ? 'Melisa test ERP · cari bakiyeleri, alış fişleri ve ödeme hareketleri' : 'F0103 · 2026 canlı bakiye, alış fişleri ve ödeme hareketleri · salt okunur'}</span>
         </div>
         <div className="customer-toolbar-actions">
           <button type="button" className="primary-action" onClick={() => openSupplier()} disabled={!selectedRow}><Truck aria-hidden="true" size={16} /> {apiConfig.pilotMode ? 'Kartı Aç' : 'Hareketleri Aç'}</button>
@@ -297,8 +297,8 @@ export function SupplierListScreen({ onOpenScreen }) {
           <details className="entity-list-tools">
             <summary aria-label="Diğer liste işlemleri" title="Diğer işlemler"><Ellipsis aria-hidden="true" size={18} /></summary>
             <div className="entity-list-tools-menu">
-              {apiConfig.pilotMode && <button type="button" onClick={() => onOpenScreen('supplier-movements')}>Tüm Tedarikçi Hareketleri</button>}
-              {apiConfig.pilotMode && <button type="button" onClick={() => onOpenScreen('supplier-statement')}>Tüm Tedarikçi Ekstreleri</button>}
+              {apiConfig.pilotMode && !apiConfig.emptyLocalInstallation && <button type="button" onClick={() => onOpenScreen('supplier-movements')}>Tüm Tedarikçi Hareketleri</button>}
+              {apiConfig.pilotMode && !apiConfig.emptyLocalInstallation && <button type="button" onClick={() => onOpenScreen('supplier-statement')}>Tüm Tedarikçi Ekstreleri</button>}
               <button type="button" onClick={exportSuppliers}><Download aria-hidden="true" size={16} /> CSV</button>
               <button type="button" onClick={() => printCurrentScreen('Melisa ERP - Tedarikçi Listesi')}><Printer aria-hidden="true" size={16} /> Yazdır</button>
               <button type="button" className={isColumnPanelOpen ? 'pressed' : ''} onClick={() => setIsColumnPanelOpen((current) => !current)}><Columns3 aria-hidden="true" size={16} /> Kolonlar</button>

@@ -344,7 +344,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         onRefresh={() => setRefreshKey((current) => current + 1)}
         onToggleColumns={() => setIsColumnPanelOpen((current) => !current)}
         isColumnPanelOpen={isColumnPanelOpen}
-        isReadOnly={isLiveVega}
+        isReadOnly={isLiveVega || apiConfig.emptyLocalInstallation}
       />
       <CustomerListFilters
         filters={filters}
@@ -352,7 +352,7 @@ export function CustomerListScreen({ onOpenScreen }) {
         onChange={setFilters}
         onPageLimitChange={setPageLimit}
         onReset={resetFilters}
-        isStatusLocked={isLiveVega}
+        isStatusLocked={isLiveVega || apiConfig.emptyLocalInstallation}
       />
       {isColumnPanelOpen && (
         <section className="erp-panel stock-column-panel">

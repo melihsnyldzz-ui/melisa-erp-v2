@@ -33,7 +33,7 @@ export async function localPasswordlessAdminLogin() {
 }
 
 export async function logout() {
-  if (apiConfig.demoMode) {
+  if (apiConfig.emptyLocalInstallation || apiConfig.demoMode) {
     clearAuthTokens();
     return { success: true };
   }
