@@ -87,6 +87,18 @@ test('a nonempty or previously applied database is rejected and no commercial re
  assert.doesNotMatch(sql,/\bCREATE\s+(?:DATABASE|LOGIN|USER)\b/i);
 });
 
+test('empty target requires exactly the verified db_owner to Windows dbo role membership',()=>{
+ const {sql}=compileDesktopEmptyBootstrap();
+ const guard=sql.slice(sql.indexOf('IF EXISTS(SELECT 1 FROM sys.objects'),sql.indexOf('DESKTOP_BOOTSTRAP_TARGET_NOT_EMPTY_OR_ALREADY_APPLIED'));
+ assert.match(guard,/\(SELECT COUNT_BIG\(\*\) FROM sys\.database_role_members\)<>1/);
+ assert.match(guard,/OR NOT EXISTS\(SELECT 1 FROM sys\.database_role_members AS membership/);
+ assert.match(guard,/membership\.role_principal_id=16384 AND membership\.member_principal_id=1/);
+ assert.match(guard,/role_principal\.name\)=CONVERT\(varbinary\(256\),N'db_owner'\)/);
+ assert.match(guard,/role_principal\.type='R' AND role_principal\.is_fixed_role=1/);
+ assert.match(guard,/member_principal\.name\)=CONVERT\(varbinary\(256\),N'dbo'\)/);
+ assert.match(guard,/member_principal\.type='U' AND member_principal\.is_fixed_role=0/);
+});
+
 test('unknown outcome and any dispatch require a durable external fence, never a fresh retry assertion',()=>{
  const result=compileDesktopEmptyBootstrap();
  assert.equal(result.executionRequirements,DESKTOP_BOOTSTRAP_EXECUTION_REQUIREMENTS);

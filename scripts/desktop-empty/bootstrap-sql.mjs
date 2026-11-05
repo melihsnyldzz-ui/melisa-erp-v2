@@ -245,7 +245,16 @@ BEGIN TRY
   OR EXISTS(SELECT 1 FROM sys.certificates)
   OR EXISTS(SELECT 1 FROM sys.asymmetric_keys)
   OR EXISTS(SELECT 1 FROM sys.symmetric_keys)
-  OR EXISTS(SELECT 1 FROM sys.database_role_members)
+  -- The verified empty target has exactly one built-in db_owner -> dbo membership.
+  OR (SELECT COUNT_BIG(*) FROM sys.database_role_members)<>1
+  OR NOT EXISTS(SELECT 1 FROM sys.database_role_members AS membership
+   JOIN sys.database_principals AS role_principal ON role_principal.principal_id=membership.role_principal_id
+   JOIN sys.database_principals AS member_principal ON member_principal.principal_id=membership.member_principal_id
+   WHERE membership.role_principal_id=16384 AND membership.member_principal_id=1
+    AND CONVERT(varbinary(256),role_principal.name)=CONVERT(varbinary(256),N'db_owner')
+    AND role_principal.type='R' AND role_principal.is_fixed_role=1
+    AND CONVERT(varbinary(256),member_principal.name)=CONVERT(varbinary(256),N'dbo')
+    AND member_principal.type='U' AND member_principal.is_fixed_role=0)
   OR EXISTS(SELECT 1 FROM sys.schemas AS existing WHERE NOT EXISTS
    (SELECT 1 FROM (VALUES ${schemaValues}) AS builtin(name)
     WHERE CONVERT(varbinary(256),existing.name)=CONVERT(varbinary(256),builtin.name)))
