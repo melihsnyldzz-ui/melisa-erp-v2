@@ -1,0 +1,539 @@
+{
+  "schemaVersion": "melisa-ci-timing-input.v1",
+  "provenance": {
+    "repository": "melihsnyldzz-ui/melisa-erp-v2",
+    "source": "30 October public job metadata and connected job logs",
+    "missing": "Run created/start, job queued/start/end and attempt were not exported. Reported job durations are not invented endpoints."
+  },
+  "runs": [
+    {
+      "run": {
+        "id": 41022751790,
+        "name": "CI",
+        "workflow_id": 374179065,
+        "head_sha": "9558b6660dfcf42190d7a8bfcfd1c1f76d7adb32",
+        "event": "pull_request",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": null,
+        "provenance": "Connector exact-commit workflow result"
+      },
+      "selectedJobSubset": true,
+      "jobs": [
+        {
+          "id": 123953647263,
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41022751790,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-10-30T07:52:30Z",
+              "completed_at": "2026-10-30T07:52:31Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "number": 2,
+              "started_at": "2026-10-30T07:52:31Z",
+              "completed_at": "2026-10-30T07:52:40Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+              "number": 3,
+              "started_at": "2026-10-30T07:52:40Z",
+              "completed_at": "2026-10-30T07:52:46Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "B6 finite native profile and rollback with isolated source fixtures",
+              "number": 4,
+              "started_at": "2026-10-30T07:52:46Z",
+              "completed_at": "2026-10-30T07:55:42Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Windows owner and single-instance startup boundaries",
+              "number": 5,
+              "started_at": "2026-10-30T07:55:42Z",
+              "completed_at": "2026-10-30T07:55:45Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Native Windows carton ACL module discovery",
+              "number": 6,
+              "started_at": "2026-10-30T07:55:45Z",
+              "completed_at": "2026-10-30T07:55:46Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "P03 Hub lineage PowerShell 5 source boundaries",
+              "number": 7,
+              "started_at": "2026-10-30T07:55:46Z",
+              "completed_at": "2026-10-30T07:55:47Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "P03 physical recovery and isolated rehearsal source boundaries",
+              "number": 8,
+              "started_at": "2026-10-30T07:55:47Z",
+              "completed_at": "2026-10-30T07:56:56Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Windows PowerShell 5 empty-port process probe with in-memory OS fixtures",
+              "number": 9,
+              "started_at": "2026-10-30T07:56:56Z",
+              "completed_at": "2026-10-30T07:57:34Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "P03 offline OLD PID diagnostics and private failure recorder",
+              "number": 10,
+              "started_at": "2026-10-30T07:57:34Z",
+              "completed_at": "2026-10-30T07:57:47Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Current ERP CRM startup profile with in-memory settings and PS policy fixtures",
+              "number": 11,
+              "started_at": "2026-10-30T07:57:47Z",
+              "completed_at": "2026-10-30T07:58:58Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Current shared protection and immutable failed-run binding",
+              "number": 12,
+              "started_at": "2026-10-30T07:58:58Z",
+              "completed_at": "2026-10-30T07:59:06Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Clean backup preflight guards with offline PowerShell fixtures",
+              "number": 13,
+              "started_at": "2026-10-30T07:59:06Z",
+              "completed_at": "2026-10-30T07:59:09Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Fixed clean B5 pair transition with isolated source fixtures",
+              "number": 14,
+              "started_at": "2026-10-30T07:59:09Z",
+              "completed_at": "2026-10-30T07:59:45Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Clean WEB owner birth and cooperative handoff on own temporary children",
+              "number": 15,
+              "started_at": "2026-10-30T07:59:45Z",
+              "completed_at": "2026-10-30T08:00:15Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Clean WEB host adapter with pinned own temporary children",
+              "number": 16,
+              "started_at": "2026-10-30T08:00:15Z",
+              "completed_at": "2026-10-30T08:00:23Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Business 5244 cooperative exclusion and owned native lifetime",
+              "number": 17,
+              "started_at": "2026-10-30T08:00:23Z",
+              "completed_at": "2026-10-30T08:05:42Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+              "number": 33,
+              "started_at": "2026-10-30T08:05:42Z",
+              "completed_at": "2026-10-30T08:05:42Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "number": 34,
+              "started_at": "2026-10-30T08:05:42Z",
+              "completed_at": "2026-10-30T08:05:43Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Complete job",
+              "number": 35,
+              "started_at": "2026-10-30T08:05:43Z",
+              "completed_at": "2026-10-30T08:05:43Z",
+              "conclusion": "success",
+              "status": "completed"
+            }
+          ],
+          "logPath": "job-123953647263.log",
+          "reported_duration_ms": 796000,
+          "reported_duration_source": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/41022751790/job/123953647263 public summary",
+          "provenance": {
+            "timestamps": "Public check-step data-started-at/data-completed-at; matched connector step number/name/conclusion",
+            "log": "Connector job logs; only original timestamped boundaries and Node summaries retained; commands omitted",
+            "jobClocks": "Not exported; not reconstructed from duration",
+            "rawLogUtf16CodeUnits": 264544
+          }
+        },
+        {
+          "id": 123953646935,
+          "name": "quality-build-test",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41022751790,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-10-30T07:52:30Z",
+              "completed_at": "2026-10-30T07:52:30Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "number": 2,
+              "started_at": "2026-10-30T07:52:30Z",
+              "completed_at": "2026-10-30T07:52:33Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+              "number": 3,
+              "started_at": "2026-10-30T07:52:33Z",
+              "completed_at": "2026-10-30T07:52:35Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Install locked dependencies without lifecycle scripts",
+              "number": 4,
+              "started_at": "2026-10-30T07:52:35Z",
+              "completed_at": "2026-10-30T07:52:39Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Verify the offline boundary",
+              "number": 5,
+              "started_at": "2026-10-30T07:52:39Z",
+              "completed_at": "2026-10-30T07:52:39Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "JavaScript syntax and basic quality",
+              "number": 6,
+              "started_at": "2026-10-30T07:52:39Z",
+              "completed_at": "2026-10-30T07:52:59Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "API unit tests with synthetic boundaries",
+              "number": 7,
+              "started_at": "2026-10-30T07:52:59Z",
+              "completed_at": "2026-10-30T07:53:13Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Web admin calculation tests",
+              "number": 8,
+              "started_at": "2026-10-30T07:53:13Z",
+              "completed_at": "2026-10-30T07:53:13Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Sites workflow unit tests",
+              "number": 9,
+              "started_at": "2026-10-30T07:53:13Z",
+              "completed_at": "2026-10-30T07:53:23Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Migration models with synthetic data only",
+              "number": 10,
+              "started_at": "2026-10-30T07:53:23Z",
+              "completed_at": "2026-10-30T07:53:32Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Canonical SQL source checks without SQL access",
+              "number": 11,
+              "started_at": "2026-10-30T07:53:32Z",
+              "completed_at": "2026-10-30T07:54:16Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Build web admin and Sites workflow",
+              "number": 12,
+              "started_at": "2026-10-30T07:54:16Z",
+              "completed_at": "2026-10-30T07:54:22Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+              "number": 23,
+              "started_at": "2026-10-30T07:54:22Z",
+              "completed_at": "2026-10-30T07:54:23Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "number": 24,
+              "started_at": "2026-10-30T07:54:23Z",
+              "completed_at": "2026-10-30T07:54:23Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Complete job",
+              "number": 25,
+              "started_at": "2026-10-30T07:54:23Z",
+              "completed_at": "2026-10-30T07:54:23Z",
+              "conclusion": "success",
+              "status": "completed"
+            }
+          ],
+          "logPath": "job-123953646935.log",
+          "reported_duration_ms": 115000,
+          "reported_duration_source": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/41022751790/job/123953646935 public summary",
+          "provenance": {
+            "timestamps": "Public check-step data-started-at/data-completed-at; matched connector step number/name/conclusion",
+            "log": "Connector job logs; only original timestamped boundaries and Node summaries retained; commands omitted",
+            "jobClocks": "Not exported; not reconstructed from duration",
+            "rawLogUtf16CodeUnits": 577596
+          }
+        }
+      ]
+    },
+    {
+      "run": {
+        "id": 41022745858,
+        "name": "CI",
+        "workflow_id": 374179065,
+        "head_sha": "9558b6660dfcf42190d7a8bfcfd1c1f76d7adb32",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "run_attempt": null,
+        "provenance": "Coordinator successful push sample; connector returned all three jobs completed/success"
+      },
+      "selectedJobSubset": true,
+      "jobs": [
+        {
+          "id": 123953625815,
+          "name": "windows-startup-test",
+          "status": "completed",
+          "conclusion": "success",
+          "run_id": 41022745858,
+          "logs_url": null,
+          "steps": [
+            {
+              "name": "Set up job",
+              "number": 1,
+              "started_at": "2026-10-30T07:52:27Z",
+              "completed_at": "2026-10-30T07:52:27Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "number": 2,
+              "started_at": "2026-10-30T07:52:27Z",
+              "completed_at": "2026-10-30T07:52:38Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+              "number": 3,
+              "started_at": "2026-10-30T07:52:38Z",
+              "completed_at": "2026-10-30T07:52:43Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "B6 finite native profile and rollback with isolated source fixtures",
+              "number": 4,
+              "started_at": "2026-10-30T07:52:43Z",
+              "completed_at": "2026-10-30T07:57:34Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Windows owner and single-instance startup boundaries",
+              "number": 5,
+              "started_at": "2026-10-30T07:57:34Z",
+              "completed_at": "2026-10-30T07:57:40Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Native Windows carton ACL module discovery",
+              "number": 6,
+              "started_at": "2026-10-30T07:57:40Z",
+              "completed_at": "2026-10-30T07:57:41Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "P03 Hub lineage PowerShell 5 source boundaries",
+              "number": 7,
+              "started_at": "2026-10-30T07:57:41Z",
+              "completed_at": "2026-10-30T07:57:44Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "P03 physical recovery and isolated rehearsal source boundaries",
+              "number": 8,
+              "started_at": "2026-10-30T07:57:44Z",
+              "completed_at": "2026-10-30T07:59:40Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Windows PowerShell 5 empty-port process probe with in-memory OS fixtures",
+              "number": 9,
+              "started_at": "2026-10-30T07:59:40Z",
+              "completed_at": "2026-10-30T08:00:47Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "P03 offline OLD PID diagnostics and private failure recorder",
+              "number": 10,
+              "started_at": "2026-10-30T08:00:47Z",
+              "completed_at": "2026-10-30T08:01:14Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Current ERP CRM startup profile with in-memory settings and PS policy fixtures",
+              "number": 11,
+              "started_at": "2026-10-30T08:01:14Z",
+              "completed_at": "2026-10-30T08:03:00Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Current shared protection and immutable failed-run binding",
+              "number": 12,
+              "started_at": "2026-10-30T08:03:00Z",
+              "completed_at": "2026-10-30T08:03:11Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Clean backup preflight guards with offline PowerShell fixtures",
+              "number": 13,
+              "started_at": "2026-10-30T08:03:11Z",
+              "completed_at": "2026-10-30T08:03:15Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Fixed clean B5 pair transition with isolated source fixtures",
+              "number": 14,
+              "started_at": "2026-10-30T08:03:15Z",
+              "completed_at": "2026-10-30T08:04:07Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Clean WEB owner birth and cooperative handoff on own temporary children",
+              "number": 15,
+              "started_at": "2026-10-30T08:04:07Z",
+              "completed_at": "2026-10-30T08:04:39Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Clean WEB host adapter with pinned own temporary children",
+              "number": 16,
+              "started_at": "2026-10-30T08:04:39Z",
+              "completed_at": "2026-10-30T08:04:49Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Business 5244 cooperative exclusion and owned native lifetime",
+              "number": 17,
+              "started_at": "2026-10-30T08:04:49Z",
+              "completed_at": "2026-10-30T08:11:44Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+              "number": 33,
+              "started_at": "2026-10-30T08:11:44Z",
+              "completed_at": "2026-10-30T08:11:44Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+              "number": 34,
+              "started_at": "2026-10-30T08:11:44Z",
+              "completed_at": "2026-10-30T08:11:46Z",
+              "conclusion": "success",
+              "status": "completed"
+            },
+            {
+              "name": "Complete job",
+              "number": 35,
+              "started_at": "2026-10-30T08:11:46Z",
+              "completed_at": "2026-10-30T08:11:46Z",
+              "conclusion": "success",
+              "status": "completed"
+            }
+          ],
+          "logPath": "job-123953625815.log",
+          "reported_duration_ms": 1162000,
+          "reported_duration_source": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/41022745858/job/123953625815 public summary",
+          "provenance": {
+            "timestamps": "Public check-step data-started-at/data-completed-at; matched connector step number/name/conclusion",
+            "log": "Connector job logs; only original timestamped boundaries and Node summaries retained; commands omitted",
+            "jobClocks": "Not exported; not reconstructed from duration",
+            "rawLogUtf16CodeUnits": 266502
+          }
+        }
+      ]
+    }
+  ]
+}
