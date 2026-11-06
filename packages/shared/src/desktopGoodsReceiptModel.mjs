@@ -47,16 +47,22 @@ function exactPurchaseProjection(lines,{invoiceDiscountType,invoiceRate,invoiceA
  return {subtotal,lineDiscountTotal,afterLineDiscounts:afterLineTotal,invoiceDiscountTotal:invoiceDiscount,supplierDiscountTotal:supplierDiscount,discountTotal:bounded(lineDiscountTotal+invoiceDiscount+supplierDiscount),grandTotal:total,amountTry,accountAmount,items};
 }
 
+// One center only: no warehouse picker, identity or location authority is
+// represented here. Product ids are products.id; selected/base unit ids are
+// desktop_local_product_units.id BIGINT keys, not legacy source_unit_id.
+// costTryExact4 is TRY per base unit,
+// not a line total. Native FKs, amount TRY, valuation and reconciliation are
+// future adapter responsibilities and are not implemented or verified here.
 // Product/unit ids, factor, costs and supplier/account ownership are locked
 // database snapshots. lineId is a stable client-generated UUID, not the
 // numeric native receipt-line key. The future adapter must persist and resolve
 // that binding under lock. Real transaction and readback are explicitly absent.
 export function prepareDesktopGoodsReceipt(command,locked){
- shape(command,['requestId','supplierId','warehouseId','documentDate','lines']);
- shape(locked,['supplier','warehouse','products']);
- if(!uuid(command.requestId)||!id(command.supplierId)||!id(command.warehouseId))fail();date(command.documentDate);
- shape(locked.supplier,['id','active']);shape(locked.warehouse,['id','active']);
- if(locked.supplier.id!==command.supplierId||locked.supplier.active!==true||locked.warehouse.id!==command.warehouseId||locked.warehouse.active!==true)fail();
+ shape(command,['requestId','supplierId','documentDate','lines']);
+ shape(locked,['supplier','products']);
+ if(!uuid(command.requestId)||!id(command.supplierId))fail();date(command.documentDate);
+ shape(locked.supplier,['id','active']);
+ if(locked.supplier.id!==command.supplierId||locked.supplier.active!==true)fail();
  const products=array(locked.products),seen=new Set();for(const p of products)shape(p,['id','active','unitId','unitProductId','unitLabel','unitFactorExact8','costTryExact4']);
  const lines=array(command.lines).map(line=>{
   shape(line,['lineId','productId','unitId','quantityExact3']);if(!uuid(line.lineId)||!id(line.productId)||!id(line.unitId)||seen.has(line.lineId))fail();seen.add(line.lineId);
@@ -66,13 +72,13 @@ export function prepareDesktopGoodsReceipt(command,locked){
   let base;if(p.unitFactorExact8==='1.00000000')base=fixed(q,3);else {if(p.unitLabel!=='SERİ')fail();base=desktopSeriesPieces(line.quantityExact3,p.unitFactorExact8);}
   return Object.freeze({lineId:line.lineId,productId:p.id,unitId:p.unitId,unitLabel:p.unitLabel,unitFactorExact8:p.unitFactorExact8,quantityExact3:line.quantityExact3,stockBaseQuantityExact3:base,costTryExact4:p.costTryExact4});
  });
- return Object.freeze({kind:'goods_draft',requestId:command.requestId,supplierId:command.supplierId,warehouseId:command.warehouseId,documentDate:command.documentDate,lines:Object.freeze(lines),stockEffects:Object.freeze([]),supplierCharges:0});
+ return Object.freeze({kind:'goods_draft',requestId:command.requestId,supplierId:command.supplierId,documentDate:command.documentDate,lines:Object.freeze(lines),stockEffects:Object.freeze([]),supplierCharges:0});
 }
 
 export function planDesktopGoodsReceiptApproval(command,lockedReceipt){
  shape(command,['requestId','receiptId']);if(!uuid(command.requestId)||!id(command.receiptId))fail();
- shape(lockedReceipt,['id','state','supplierId','warehouseId','documentDate','lines']);
- if(lockedReceipt.id!==command.receiptId||lockedReceipt.state!=='draft'||!id(lockedReceipt.supplierId)||!id(lockedReceipt.warehouseId))fail();date(lockedReceipt.documentDate);
+ shape(lockedReceipt,['id','state','supplierId','documentDate','lines']);
+ if(lockedReceipt.id!==command.receiptId||lockedReceipt.state!=='draft'||!id(lockedReceipt.supplierId))fail();date(lockedReceipt.documentDate);
  const seen=new Set();const stockEffects=array(lockedReceipt.lines).map(l=>{shape(l,['lineId','productId','stockBaseQuantityExact3','costTryExact4']);if(!uuid(l.lineId)||seen.has(l.lineId)||!id(l.productId))fail();seen.add(l.lineId);decimal(l.stockBaseQuantityExact3,3,{positive:true});decimal(l.costTryExact4,4);return Object.freeze({source:'goods_receipt',lineId:l.lineId,productId:l.productId,quantityInExact3:l.stockBaseQuantityExact3,costTryExact4:l.costTryExact4});});
  return Object.freeze({kind:'goods_approval',requestId:command.requestId,receiptId:command.receiptId,stockEffects:Object.freeze(stockEffects),supplierCharges:0});
 }
@@ -110,4 +116,4 @@ export function planDesktopLinkedPurchase(command,locked){
 // supplierCharges counts the single planned native movement, not a persisted
 // row or a nonzero balance effect. Zero amount has zero balance effect; SQL
 // row constraints and native transaction behavior remain unverified.
-export const DESKTOP_GOODS_RECEIPT_MODEL_LIMITS=Object.freeze({sourceOnly:true,requiresLockedAuthorizedSnapshots:true,requiresNativeParityAndReadback:true,sqlExecutor:false,api:false,gui:false,realSqlVerified:false});
+export const DESKTOP_GOODS_RECEIPT_MODEL_LIMITS=Object.freeze({sourceOnly:true,inventoryScope:'single_center',warehousePicker:false,warehouseIdentityImplemented:false,requiresLockedAuthorizedSnapshots:true,requiresNativeParityAndReadback:true,sqlExecutor:false,api:false,gui:false,realSqlVerified:false});
