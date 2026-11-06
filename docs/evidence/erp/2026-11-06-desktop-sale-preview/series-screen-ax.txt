@@ -1,0 +1,130 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA ERP
+  - text: Yerel kurulum
+  - text: OTURUM
+  - generic: ERP deneme personeli
+  - generic: İŞLEMLER
+  - navigation:
+    - button "⌂ Ana sayfa":
+      - text: ⌂
+      - generic: Ana sayfa
+    - button "▦ Ürün & stok":
+      - text: ▦
+      - generic: Ürün & stok
+    - button "♙ Müşteriler":
+      - text: ♙
+      - generic: Müşteriler
+    - button "▧ Tedarikçiler":
+      - text: ▧
+      - generic: Tedarikçiler
+    - button "▤ Satış ve hazırlama":
+      - text: ▤
+      - generic: Satış ve hazırlama
+    - button "▣ Fişler":
+      - text: ▣
+      - generic: Fişler
+    - button "◌ Alış · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Alış · Hazırlanıyor
+    - button "◌ Stok hareketleri · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Stok hareketleri · Hazırlanıyor
+    - button "◌ Cari · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Cari · Hazırlanıyor
+    - button "◌ Finans · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Finans · Hazırlanıyor
+    - button "◌ Raporlar · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Raporlar · Hazırlanıyor
+  - generic: Yerel veritabanı
+- main:
+  - generic: Melisa ERP / Satış ve hazırlama
+  - button "Çıkış yap"
+  - heading "Satış ve hazırlama" [level=1]
+  - status: Seçili miktar, fiyat, fiş geneli iskonto ve toplam hesaplandı.
+  - textbox "Müşteri ara"
+  - button "Ara"
+  - button "Önceki" [disabled]
+  - text: Sayfa 1
+  - button "Sonraki" [disabled]
+  - text: Müşteri
+  - combobox "Müşteri":
+    - option "Seçin"
+    - option "ERP-ACK-C4 · ERP YANIT KAYBI DENEME"
+    - option "ERP-TEST-20261106 · ERP KURULUM DENEME" [selected]
+    - option "ERP-V3-C1 · ERP V3 DENEME MÜŞTERİ"
+  - text: Tarih
+  - textbox "Tarih": 2026-11-06
+  - textbox "Ürün ara"
+  - button "Ara"
+  - button "Önceki" [disabled]
+  - text: Sayfa 1
+  - button "Sonraki" [disabled]
+  - paragraph:
+    - text: Ürün 1
+    - combobox "Ürün 1":
+      - option "Seçin"
+      - option "ERP-R1-P4 · ERP R1 DENEME ÜRÜN 4"
+      - option "ERP-R1-P5 · ERP R1 BARKOD DENEME ÜRÜN 5"
+      - option "ERP-R1-P6 · ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6"
+      - option "ERP-R1-P7 · ERP R1 SERİ DENEME ÜRÜN 7" [selected]
+      - option "ERP-TEST-P1 · ERP DENEME ÜRÜN 1"
+      - option "ERP-TEST-P2 · ERP DENEME ÜRÜN 2"
+      - option "ERP-V3-P3 · ERP V3 DENEME ÜRÜN 3"
+    - text: Miktar
+    - textbox "Miktar 1": "2"
+    - text: Miktar birimi
+    - combobox "Miktar birimi 1":
+      - option "ADET"
+      - option "SERİ" [selected]
+    - text: 2.000 SERİ = 12.000 ADET
+  - paragraph:
+    - text: Ürün 2
+    - combobox "Ürün 2":
+      - option "Seçin"
+      - option "ERP-R1-P4 · ERP R1 DENEME ÜRÜN 4"
+      - option "ERP-R1-P5 · ERP R1 BARKOD DENEME ÜRÜN 5"
+      - option "ERP-R1-P6 · ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6"
+      - option "ERP-R1-P7 · ERP R1 SERİ DENEME ÜRÜN 7"
+      - option "ERP-TEST-P1 · ERP DENEME ÜRÜN 1" [selected]
+      - option "ERP-TEST-P2 · ERP DENEME ÜRÜN 2"
+      - option "ERP-V3-P3 · ERP V3 DENEME ÜRÜN 3"
+    - text: Miktar
+    - textbox "Miktar 2": "1.000"
+    - text: Miktar birimi
+    - combobox "Miktar birimi 2":
+      - option "ADET" [selected]
+  - paragraph: Seri seçilen satırlar ADET'e çevrilir. Gösterilen fiyat, ana birimin fiyatıdır.
+  - text: Fiş geneli iskonto (%)
+  - textbox "Fiş geneli iskonto (%)": "3"
+  - button "Fiyat ve stok kontrolü"
+  - list:
+    - listitem: ERP-R1-P7 · 12.0000 TRY / ADET · fiziksel stok 48.000, rezerv 0.000 ADET
+    - listitem: ERP-TEST-P1 · 10.0000 TRY / ADET · fiziksel stok 2.000, rezerv 0.000 ADET
+  - table "Satış önizlemesi":
+    - rowgroup:
+      - row "Ürün Miktar Birim fiyat Satır tutarı":
+        - columnheader "Ürün"
+        - columnheader "Miktar"
+        - columnheader "Birim fiyat"
+        - columnheader "Satır tutarı"
+    - rowgroup:
+      - row "ERP-R1-P7 12.000 ADET 12.0000 TRY 144.0000 TRY":
+        - cell "ERP-R1-P7"
+        - cell "12.000 ADET"
+        - cell "12.0000 TRY"
+        - cell "144.0000 TRY"
+      - row "ERP-TEST-P1 1.000 ADET 10.0000 TRY 10.0000 TRY":
+        - cell "ERP-TEST-P1"
+        - cell "1.000 ADET"
+        - cell "10.0000 TRY"
+        - cell "10.0000 TRY"
+  - paragraph: "Ara toplam: 154.0000 TRY"
+  - paragraph: "Fiş geneli iskonto %3.0000: 4.6200 TRY"
+  - paragraph: "Toplam: 149.3800 TRY"
+  - paragraph: "Bu TEST hesabının iskonto sınırı: %3.0000."
+  - paragraph: İskontolu tutar önizlemedir. İskontolu satış kaydı bu kurulumda henüz açık değil.
+  - button "Taslağı kaydet" [disabled]

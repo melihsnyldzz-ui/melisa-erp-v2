@@ -21,11 +21,12 @@ export function createDesktopSaleWorkflowRoutes({service,draftService,dispatchSe
  });
  router.get('/api/desktop-sale/draft-preview',async(req,res)=>{
   try{
-   if(typeof draftService?.preview!=='function'||!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294'||Object.keys(req.query).sort().join(',')!=='customerId,documentDate,productIds'||typeof req.query.productIds!=='string')throw Error();
+   const quote=Object.hasOwn(req.query,'discountRateExact4');
+   if(typeof draftService?.preview!=='function'||!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294'||Object.keys(req.query).sort().join(',')!==(quote?'customerId,discountRateExact4,documentDate,productIds,quantities,quantityUnits':'customerId,documentDate,productIds')||typeof req.query.productIds!=='string'||quote&&['quantities','quantityUnits','discountRateExact4'].some(k=>typeof req.query[k]!=='string'))throw Error();
    const user=await authenticateNormal(req),actor=typeof user?.userId==='number'?String(user.userId):user?.userId;
    if(user?.kind!=='normal'||!id(actor)||!Array.isArray(user.permissions)||['sales.create','sales.finalize'].some(p=>!user.permissions.includes(p)))throw Error();
-   const data=await draftService.preview(actor,{customerId:req.query.customerId,documentDate:req.query.documentDate,productIds:req.query.productIds.split(',')});return res.json({success:true,data});
-  }catch{return res.status(503).json({success:false});}
+   const data=await draftService.preview(actor,{customerId:req.query.customerId,documentDate:req.query.documentDate,productIds:req.query.productIds.split(','),...(quote?{quantities:req.query.quantities.split(','),quantityUnits:req.query.quantityUnits.split(','),discountRateExact4:req.query.discountRateExact4}:{})});return res.json({success:true,data});
+  }catch(error){if(error?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')return res.status(403).json({success:false,code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});return res.status(503).json({success:false});}
  });
  router.post('/api/desktop-sale/workflows/:id/dispatch',async(req,res)=>{
   const requestId=req.body?.requestId;try{

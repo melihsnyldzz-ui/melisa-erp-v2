@@ -1,0 +1,273 @@
+{
+  "state": "INSTALLED_TRY_PREVIEW_NORMAL_GUI_HTTP_AND_NO_SQL_EFFECT_VERIFIED",
+  "sourceCommit": "152a6694309895cfbe74acc6af92f1fdcf7be9e7",
+  "packageSha256": "042f9a9870b658f68c586360df47bb0ca21be4efd52eb0aafd50aaef241f49d6",
+  "profile": "desktop-master-v4",
+  "schemaVersion": 4,
+  "sourceCount": 201,
+  "helperCount": 5,
+  "assetCount": 3,
+  "sqlTarget": {
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5,
+    "schemaVersion": 4,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105"
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessRowsSha256": "fe23c8b9aa8797656a40f9dfb8a26ae277ac367229659390ba8ce08a827b539b",
+  "allBusinessTablesExactlyEqual": 33,
+  "entireObserverMetadataExactlyEqual": true,
+  "identityCountersExactlyEqual": true,
+  "dependenciesExactlyEqual": true,
+  "helpersExactlyEqual": true,
+  "snapshotSqlExactlyEqual": true,
+  "sourceChanges": [
+    {
+      "path": "apps/api/src/routes/desktopSaleWorkflowRoutes.mjs",
+      "beforeSha256": "049bb3509c8d8c2ca6759171767a44d39c074dd5b81d154140363ac84b814e49",
+      "afterSha256": "2f4d887dfbe8963910b74c8926af35c05b718fad695f4b2e6c37eaee5c20573c"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleQuote.mjs",
+      "beforeSha256": null,
+      "afterSha256": "f3a07e4ab98c0d49d74a045159134a377ae6debb70b5f257d9d984f567c01397"
+    },
+    {
+      "path": "apps/api/src/services/desktopWorkflowDraftPrivate.mjs",
+      "beforeSha256": "b0c326f4af0a0a7eb24d6b13406f1d93176b8babe0b6fb254cd2f653ba8cecbc",
+      "afterSha256": "5f800715cf06c692d2bd20f641000dfe1f4f1a562704f24a841105265a9dad4c"
+    },
+    {
+      "path": "apps/api/src/services/desktopWriteAuthCore.mjs",
+      "beforeSha256": "e2151863a8e166a47d56de632080f26a20be8824c4665c8a2bc79839430efc27",
+      "afterSha256": "861e7bd8a418bedbcdcc3ed03e0633532bd187b7c615577f7f164b0272ad643f"
+    },
+    {
+      "path": "packages/shared/src/desktopSalePreviewSelection.mjs",
+      "beforeSha256": null,
+      "afterSha256": "cd5164dc3c7e8c3f9773429a65c6551e74662707b171c9d82a9bf90fb6e6fd26"
+    }
+  ],
+  "assetChanges": [
+    {
+      "path": "assets/desktopWriteGreen-BVpBP4IK.js",
+      "beforeSha256": null,
+      "afterSha256": "0c98fbee39a7271381c719bb069a55c8aa366722b474709891dfb19961bdfac2"
+    },
+    {
+      "path": "assets/desktopWriteGreen-SSH_jWi5.js",
+      "beforeSha256": "b1d762a1d8d7909da4a8bd7f4b372ffa242d40b59cd9061c9b9cdc3f39aafb6b",
+      "afterSha256": null
+    },
+    {
+      "path": "desktop-write-green.html",
+      "beforeSha256": "5da119f2518353e6dce684960cc1e3da7d1e9f23de48e4d08fc208e0fd8c75c0",
+      "afterSha256": "c23618e458bace3e7ee9a0cdad7380375eb9dfcec895f4fe18f86333402a2c9a"
+    }
+  ],
+  "http": {
+    "state": "NORMAL_HTTP_READ_ONLY_TRY_QUOTE_VERIFIED",
+    "packageSha256": "042f9a9870b658f68c586360df47bb0ca21be4efd52eb0aafd50aaef241f49d6",
+    "results": [
+      {
+        "case": "normal TEST session and exact V4 package",
+        "status": 200
+      },
+      {
+        "case": "two ADET and invoice 3 percent",
+        "status": 200,
+        "quote": {
+          "currency": "TRY",
+          "lines": [
+            {
+              "productId": "8",
+              "quantityExact3": "2.000",
+              "unitPriceExact4": "12.0000",
+              "lineTotalExact4": "24.0000"
+            },
+            {
+              "productId": "1",
+              "quantityExact3": "1.000",
+              "unitPriceExact4": "10.0000",
+              "lineTotalExact4": "10.0000"
+            }
+          ],
+          "subtotalExact4": "34.0000",
+          "discountRateExact4": "3.0000",
+          "discountTotalExact4": "1.0200",
+          "totalExact4": "32.9800",
+          "maxDiscountRateExact4": "3.0000",
+          "belowCostWarning": false,
+          "writeSupported": false
+        }
+      },
+      {
+        "case": "zero discount remains writable",
+        "status": 200,
+        "quote": {
+          "currency": "TRY",
+          "lines": [
+            {
+              "productId": "8",
+              "quantityExact3": "2.000",
+              "unitPriceExact4": "12.0000",
+              "lineTotalExact4": "24.0000"
+            },
+            {
+              "productId": "1",
+              "quantityExact3": "1.000",
+              "unitPriceExact4": "10.0000",
+              "lineTotalExact4": "10.0000"
+            }
+          ],
+          "subtotalExact4": "34.0000",
+          "discountRateExact4": "0.0000",
+          "discountTotalExact4": "0.0000",
+          "totalExact4": "34.0000",
+          "maxDiscountRateExact4": "3.0000",
+          "belowCostWarning": false,
+          "writeSupported": true
+        }
+      },
+      {
+        "case": "two full series become twelve ADET",
+        "status": 200,
+        "quote": {
+          "currency": "TRY",
+          "lines": [
+            {
+              "productId": "8",
+              "quantityExact3": "12.000",
+              "unitPriceExact4": "12.0000",
+              "lineTotalExact4": "144.0000"
+            },
+            {
+              "productId": "1",
+              "quantityExact3": "1.000",
+              "unitPriceExact4": "10.0000",
+              "lineTotalExact4": "10.0000"
+            }
+          ],
+          "subtotalExact4": "154.0000",
+          "discountRateExact4": "3.0000",
+          "discountTotalExact4": "4.6200",
+          "totalExact4": "149.3800",
+          "maxDiscountRateExact4": "3.0000",
+          "belowCostWarning": false,
+          "writeSupported": false
+        }
+      },
+      {
+        "case": "fractional ADET uses native unrounded subtotal",
+        "status": 200,
+        "quote": {
+          "currency": "TRY",
+          "lines": [
+            {
+              "productId": "8",
+              "quantityExact3": "1.250",
+              "unitPriceExact4": "12.0000",
+              "lineTotalExact4": "15.0000"
+            },
+            {
+              "productId": "1",
+              "quantityExact3": "0.750",
+              "unitPriceExact4": "10.0000",
+              "lineTotalExact4": "7.5000"
+            }
+          ],
+          "subtotalExact4": "22.5000",
+          "discountRateExact4": "3.0000",
+          "discountTotalExact4": "0.6750",
+          "totalExact4": "21.8250",
+          "maxDiscountRateExact4": "3.0000",
+          "belowCostWarning": false,
+          "writeSupported": false
+        }
+      },
+      {
+        "case": "staff exact ceiling plus 0.0001 rejected",
+        "status": 403
+      },
+      {
+        "case": "client owner claim rejected",
+        "status": 503
+      },
+      {
+        "case": "client ceiling rejected",
+        "status": 503
+      },
+      {
+        "case": "fractional full series rejected",
+        "status": 503
+      },
+      {
+        "case": "stock overrun rejected",
+        "status": 503
+      },
+      {
+        "case": "anonymous rejected",
+        "status": 503
+      },
+      {
+        "case": "foreign origin rejected by outer application guard",
+        "status": 403
+      },
+      {
+        "case": "legacy selection preview preserved",
+        "status": 200
+      }
+    ],
+    "dmlExecuted": false,
+    "ddlExecuted": false,
+    "priorHarnessCorrection": "foreign origin is rejected as 403 by outer application guard, not route-local 503; first 11 successful cases were preserved without rerun",
+    "time": "2026-11-06T08:38:59.793Z"
+  },
+  "gui": {
+    "state": "NORMAL_GREEN_TRY_PREVIEW_VERIFIED",
+    "tab": 10,
+    "url": "http://127.0.0.1:5294/",
+    "actor": "erp_deneme",
+    "customerId": "2",
+    "productIds": [
+      "8",
+      "1"
+    ],
+    "adet": {
+      "quantities": [
+        "2.000",
+        "1.000"
+      ],
+      "prices": [
+        "12.0000",
+        "10.0000"
+      ],
+      "subtotalExact4": "34.0000",
+      "discountRateExact4": "3.0000",
+      "discountTotalExact4": "1.0200",
+      "totalExact4": "32.9800",
+      "saveEnabled": false
+    },
+    "series": {
+      "seriesQuantityExact3": "2.000",
+      "pieceQuantityExact3": "12.000",
+      "subtotalExact4": "154.0000",
+      "discountTotalExact4": "4.6200",
+      "totalExact4": "149.3800"
+    },
+    "overLimit": "3.0001 rejected with normal authority warning",
+    "zeroDiscount": {
+      "saveEnabledAfterPreview": true,
+      "saveEnabledAfterQuantityChange": false
+    },
+    "writesSubmitted": 0,
+    "screenshot": "Not captured: both documented screenshot APIs failed; native window lookup reported Codex window minimized. AX/DOM evidence is available; visual screenshot acceptance is not claimed.",
+    "humanAcceptance": "BEKLIYOR",
+    "time": "2026-11-06T08:42:14.881Z"
+  },
+  "humanAcceptance": "BEKLIYOR",
+  "ci": "latest source quality/secret checks passed; Windows startup pending at evidence creation",
+  "time": "2026-11-06T08:43:54.341Z"
+}

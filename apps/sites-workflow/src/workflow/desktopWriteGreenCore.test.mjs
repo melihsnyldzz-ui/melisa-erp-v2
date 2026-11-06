@@ -27,6 +27,13 @@ test('normal facade binds full product card to selection and discards late logou
  const view=fixture(['product.view']);const read=createDesktopWriteGreenCore({...view.deps,richCards:true});await read.login('normal','secret');await assert.rejects(read.productCard('6'));assert.equal(view.calls.some(c=>c.url.includes('/api/products/')),false);
 });
 const memory=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
+test('normal quote transport keeps quantity/percentage exact and reports approval refusal without queuing a write',async()=>{
+ const x=fixture(['sales.view','sales.create','sales.finalize']);let refuse=false,query;
+ const original=x.deps.fetch;x.deps.fetch=async(url,opts)=>{if(url.includes('/draft-preview?')){query=new URL(url).searchParams;return {ok:!refuse,status:refuse?403:200,json:async()=>refuse?{success:false,code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'}:{success:true,data:{quote:{totalExact4:'32.9800'}}}};}return original(url,opts);};
+ const core=createDesktopWriteGreenCore(x.deps);await core.login('normal','secret');const sale=core.sale(),input={customerId:'2',documentDate:'2026-11-06',productIds:['8','1'],quantities:['2.000','1.000'],quantityUnits:['ADET','ADET'],discountRateExact4:'3.0000'};
+ assert.equal((await sale.preview(input)).quote.totalExact4,'32.9800');assert.equal(query.get('quantities'),'2.000,1.000');assert.equal(query.get('discountRateExact4'),'3.0000');assert.equal(sale.pending(),null);
+ refuse=true;await assert.rejects(sale.preview({...input,discountRateExact4:'3.0001'}),/Yetkili onayı/);assert.equal(sale.pending(),null);await assert.rejects(sale.preview({...input,quantities:['2,5','1.000']}));await core.logout();await assert.rejects(sale.preview(input));
+});
 function fixture(perms=['customer.view','customer.edit','product.view']){
  const calls=[],sessionStorage=memory(),localStorage=memory(),user={id:7,username:'normal',displayName:'Normal',permissions:perms};
  const f=async(url,opts)=>{calls.push({url,opts});let data;
