@@ -1,0 +1,341 @@
+Browser tab: 10, Title: "Melisa ERP · Yeşil çalışma ekranı", URL: "http://127.0.0.1:5294/".
+1 AXWebArea Melisa ERP · Yeşil çalışma ekranı, URL: 127.0.0.1:5294/
+	2 container
+		3 text M MELİSA ERP Yerel kurulum OTURUM
+		43 text ERP deneme personeli
+		5 text İŞLEMLER
+		11 container nav
+			44 button ⌂ Ana sayfa
+				45 text ⌂
+				46 text Ana sayfa
+			47 button ▦ Ürün & stok
+				48 text ▦
+				49 text Ürün & stok
+			50 button ♙ Müşteriler
+				51 text ♙
+				52 text Müşteriler
+			53 button ▧ Tedarikçiler
+				54 text ▧
+				55 text Tedarikçiler
+			56 button ▤ Satış ve hazırlama
+				57 text ▤
+				58 text Satış ve hazırlama
+			59 button ▣ Fişler
+				60 text ▣
+				61 text Fişler
+			62 button (disabled) ◌ Alış · Hazırlanıyor
+				63 text ◌ Alış · Hazırlanıyor
+			64 button (disabled) ◌ Stok hareketleri · Hazırlanıyor
+				65 text ◌ Stok hareketleri · Hazırlanıyor
+			66 button (disabled) ◌ Cari · Hazırlanıyor
+				67 text ◌ Cari · Hazırlanıyor
+			68 button (disabled) ◌ Finans · Hazırlanıyor
+				69 text ◌ Finans · Hazırlanıyor
+			70 button (disabled) ◌ Raporlar · Hazırlanıyor
+				71 text ◌ Raporlar · Hazırlanıyor
+		6 text Yerel veritabanı
+	7 container
+		8 container
+			9 text Melisa ERP /
+			72 text Ürün & stok
+		41 button Çıkış yap, ID: logout
+		42 container view
+			73 text YEREL KURULUM
+			74 heading Ürün & stok, Value: 1
+				75 text Ürün & stok
+			76 button Yeni kart
+			308 container Ürün kartı
+				309 container
+					310 text ÜRÜN KARTI
+					311 heading ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ, Value: 2
+						312 text ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ
+					313 button Kartı kapat
+				314 definition list
+					315 container Stok kodu
+						316 text Stok kodu
+					317 text ERP-R1-FX1
+					318 container Ürün adı
+						319 text Ürün adı
+					320 text ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ
+					321 container Marka
+						322 text Marka
+					323 text MELISA TEST
+					324 container Ürün türü
+						325 text Ürün türü
+					326 text DENEME TÜRÜ
+					327 container Birim
+						328 text Birim
+					329 text ADET
+					330 container Ana tedarikçi
+						331 text Ana tedarikçi
+					332 text ERP V3 DENEME TEDARİKÇİ
+					333 container Fiziksel stok
+						334 text Fiziksel stok
+					335 text 0.000 ADET
+					336 container Rezerve stok
+						337 text Rezerve stok
+					338 text 0.000 ADET
+					339 container Satılabilir stok
+						340 text Satılabilir stok
+					341 text 0.000 ADET
+					342 container Satış fiyatı
+						343 text Satış fiyatı
+					344 text 12.0000 TRY
+					345 container Alış fiyatı
+						346 text Alış fiyatı
+					347 text 8.0000 TRY
+					348 container Alış indirimi
+						349 text Alış indirimi
+					350 text 0.0000 %
+					351 container Ortalama maliyet
+						352 text Ortalama maliyet
+					353 text 8.0000 TRY
+					354 container Durum
+						355 text Durum
+					356 text Aktif
+					357 container TRY satış fiyatı
+						358 text TRY satış fiyatı
+					359 text 12.00000000 TRY / ADET
+					360 container USD satış fiyatı
+						361 text USD satış fiyatı
+					362 text 0.75000000 USD / ADET
+					363 container EUR satış fiyatı
+						364 text EUR satış fiyatı
+					365 text 0.60000000 EUR / ADET
+				366 heading Barkodlar, Value: 3
+					367 text Barkodlar
+				368 content list
+					369 container
+						370 text Ana barkod 000000000091
+			78 container
+				79 text field (settable) Kod, ad veya barkod ara
+				80 button Ara
+				81 table
+					82 row
+						83 cell
+							84 text AD
+						85 cell
+							86 text KOD
+						87 cell
+							88 text MARKA
+						89 cell
+							90 text ÜRÜN TÜRÜ
+						91 cell
+							92 text ANA TEDARİKÇİ
+						93 cell
+							94 text FİZİKSEL STOK
+						95 cell
+							96 text REZERVE
+						97 cell
+							98 text SATILABİLİR
+						99 cell
+							100 text BİRİM
+						101 cell
+							102 text SERİ KARŞILIĞI
+						103 cell
+							104 text SATIŞ FİYATI
+					105 row
+						106 cell
+							107 text ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ
+						108 cell
+							109 text ERP-R1-FX1
+						110 cell
+							111 text MELISA TEST
+						112 cell
+							113 text DENEME TÜRÜ
+						114 cell
+							115 text ERP V3 DENEME TEDARİKÇİ
+						116 cell
+							117 text 0.000
+						118 cell
+							119 text 0.000
+						120 cell
+							121 text 0.000
+						122 cell
+							123 text ADET
+						124 cell
+							125 text —
+						126 cell
+							127 text 12.0000 TRY
+						128 cell
+							129 button Kartı aç
+					130 row
+						131 cell
+							132 text ERP R1 DENEME ÜRÜN 4
+						133 cell
+							134 text ERP-R1-P4
+						135 cell
+							136 text MELISA TEST
+						137 cell
+							138 text DENEME TÜRÜ
+						139 cell
+							140 text ERP V3 DENEME TEDARİKÇİ
+						141 cell
+							142 text 1.000
+						143 cell
+							144 text 0.000
+						145 cell
+							146 text 1.000
+						147 cell
+							148 text ADET
+						149 cell
+							150 text —
+						151 cell
+							152 text 12.0000 TRY
+						153 cell
+							154 button Kartı aç
+					155 row
+						156 cell
+							157 text ERP R1 BARKOD DENEME ÜRÜN 5
+						158 cell
+							159 text ERP-R1-P5
+						160 cell
+							161 text MELISA TEST
+						162 cell
+							163 text DENEME TÜRÜ
+						164 cell
+							165 text ERP V3 DENEME TEDARİKÇİ
+						166 cell
+							167 text 2.000
+						168 cell
+							169 text 0.000
+						170 cell
+							171 text 2.000
+						172 cell
+							173 text ADET
+						174 cell
+							175 text —
+						176 cell
+							177 text 12.0000 TRY
+						178 cell
+							179 button Kartı aç
+					180 row
+						181 cell
+							182 text ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6
+						183 cell
+							184 text ERP-R1-P6
+						185 cell
+							186 text MELISA TEST
+						187 cell
+							188 text DENEME TÜRÜ
+						189 cell
+							190 text ERP V3 DENEME TEDARİKÇİ
+						191 cell
+							192 text 2.000
+						193 cell
+							194 text 0.000
+						195 cell
+							196 text 2.000
+						197 cell
+							198 text ADET
+						199 cell
+							200 text —
+						201 cell
+							202 text 12.0000 TRY
+						203 cell
+							204 button Kartı aç
+					205 row
+						206 cell
+							207 text ERP R1 SERİ DENEME ÜRÜN 7
+						208 cell
+							209 text ERP-R1-P7
+						210 cell
+							211 text MELISA TEST
+						212 cell
+							213 text DENEME TÜRÜ
+						214 cell
+							215 text ERP V3 DENEME TEDARİKÇİ
+						216 cell
+							217 text 45.000
+						218 cell
+							219 text 0.000
+						220 cell
+							221 text 45.000
+						222 cell
+							223 text ADET
+						224 cell
+							225 text 7 SERİ + 3.000 ADET
+						226 cell
+							227 text 12.0000 TRY
+						228 cell
+							229 button Kartı aç
+					230 row
+						231 cell
+							232 text ERP DENEME ÜRÜN 1
+						233 cell
+							234 text ERP-TEST-P1
+						235 cell
+							236 text —
+						237 cell
+							238 text —
+						239 cell
+							240 text —
+						241 cell
+							242 text 0.000
+						243 cell
+							244 text 0.000
+						245 cell
+							246 text 0.000
+						247 cell
+							248 text ADET
+						249 cell
+							250 text —
+						251 cell
+							252 text 10.0000 TRY
+						253 cell
+							254 button Kartı aç
+					255 row
+						256 cell
+							257 text ERP DENEME ÜRÜN 2
+						258 cell
+							259 text ERP-TEST-P2
+						260 cell
+							261 text —
+						262 cell
+							263 text —
+						264 cell
+							265 text —
+						266 cell
+							267 text 4.000
+						268 cell
+							269 text 0.000
+						270 cell
+							271 text 4.000
+						272 cell
+							273 text ADET
+						274 cell
+							275 text —
+						276 cell
+							277 text 20.0000 TRY
+						278 cell
+							279 button Kartı aç
+					280 row
+						281 cell
+							282 text ERP V3 DENEME ÜRÜN 3
+						283 cell
+							284 text ERP-V3-P3
+						285 cell
+							286 text MELISA TEST
+						287 cell
+							288 text DENEME TÜRÜ
+						289 cell
+							290 text ERP V3 DENEME TEDARİKÇİ
+						291 cell
+							292 text 2.000
+						293 cell
+							294 text 0.000
+						295 cell
+							296 text 2.000
+						297 cell
+							298 text ADET
+						299 cell
+							300 text —
+						301 cell
+							302 text 12.0000 TRY
+						303 cell
+							304 button Kartı aç
+				305 button (disabled) Önceki
+				306 text Sayfa 1
+				307 button (disabled) Sonraki
+
+The focused UI element is 129 button Kartı aç

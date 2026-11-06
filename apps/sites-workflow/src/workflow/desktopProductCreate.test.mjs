@@ -6,6 +6,12 @@ function memory(){const m=new Map();return {getItem:k=>m.has(k)?m.get(k):null,se
 function lockManager(){const held=new Set();return {async request(key,options,fn){assert.equal(options.ifAvailable,true);if(held.has(key))return fn(null);held.add(key);try{return await fn({});}finally{held.delete(key);}}};}
 function make(storage,submit,locks=lockManager()){return createDesktopProductCreate({actorId:'7',storage,submit,locks,newId:()=>id});}
 function committed(p){return {state:'COMMITTED',requestId:p.requestId,operation:'product.create',replayed:true,entity:{kind:'local',id:'1',name:p.name,units:[{id:'2',label:p.unit,factorExact8:'1.00000000',isMain:true}],prices:[{id:'3',type:'sale',unitId:'2',tier:p.saleTier,currency:p.currency,priceExact8:p.salePriceExact4+'0000'}]}};}
+
+test('explicit FX prices survive reload and require all returned prices before clearing pending',async()=>{
+ const input={...fields,brand:'B',category:'C',supplierId:'1',additionalSalePrices:[{currency:'USD',priceExact4:'0.7500'},{currency:'EUR',priceExact4:'0.6000'}]},calls=[],storage=memory();let lost=true,bad=false;
+ const send=async p=>{calls.push(structuredClone(p));if(lost)throw Error('lost');const r=committed(p);r.entity.prices.push(...p.additionalSalePrices.map((q,i)=>({id:String(i+4),type:'sale',unitId:'2',tier:null,currency:q.currency,priceExact8:q.priceExact4+'0000'})));if(bad)r.entity.prices[2].priceExact8='0.60000001';return r;};
+ const create=()=>createDesktopProductCreate({actorId:'7',storage,submit:send,newId:()=>id,locks:lockManager(),richCards:true});assert.equal((await create().create(input)).state,'UNKNOWN');lost=false;bad=true;assert.equal((await create().retry()).state,'UNKNOWN');assert.deepEqual(create().pending().additionalSalePrices,input.additionalSalePrices);bad=false;assert.equal((await create().retry()).state,'COMMITTED');assert.deepEqual(calls[0],calls[2]);assert.equal(create().pending(),null);
+});
 test('lost product reply retains UUID and exact prices across reload and successful replay',async()=>{
  const s=memory(),calls=[];let fail=true;const send=async p=>{calls.push(p);if(fail)throw Error('lost');return committed(p);};
  assert.equal((await make(s,send).create(fields)).state,'UNKNOWN');fail=false;const fresh=make(s,send);assert.equal(fresh.pending().requestId,id);

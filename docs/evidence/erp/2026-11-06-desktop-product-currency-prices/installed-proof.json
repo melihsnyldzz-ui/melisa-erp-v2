@@ -1,0 +1,348 @@
+{
+  "state": "INSTALLED_NORMAL_GUI_PRODUCT_THREE_CURRENCY_PRICES_RELOAD_AND_SQL_REPLAY_VERIFIED",
+  "sourceCommit": "f90c1a3818b4766ee296198bd5947cb3c9f0edac",
+  "sourceTestsCommit": "9944113e7b89737ae654f6d0f78c584460864e2d",
+  "packageSha256": "711d1c7f7e64d2d36f9edc66b569efdc2d036ea16d0082ce19e177b3ad6f2ee2",
+  "assets": {
+    "js": "desktopWriteGreen-CDwrXNQ5.js",
+    "css": "desktopWriteGreen-D6yoncVT.css"
+  },
+  "sourceCount": 204,
+  "target": {
+    "schemaVersion": 4,
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseId": 5,
+    "server": "Semih\\MELISAERP"
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "beforeBusinessSha256": "345653ebeb023e652a69d05ab2df9669928ca7b43f6fca5a1ca45892dfecffb2",
+  "afterBusinessSha256": "ce6c005d8ab905dc757e308d9b9a667271939927b02f44159d99a9599226a0d1",
+  "product": {
+    "id": 9,
+    "stock_code": "ERP-R1-FX1",
+    "name": "ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ",
+    "brand": "MELISA TEST",
+    "category": "DENEME TÜRÜ",
+    "supplier_id": 1,
+    "stockExact3": "0.000",
+    "costExact4": "8.0000",
+    "saleExact4": "12.0000"
+  },
+  "prices": [
+    {
+      "id": 8,
+      "product_id": 9,
+      "price_type": "sale",
+      "price_tier": null,
+      "currency_code": "TRY",
+      "priceExact8": "12.00000000",
+      "source_unit_id": null
+    },
+    {
+      "id": 9,
+      "product_id": 9,
+      "price_type": "sale",
+      "price_tier": null,
+      "currency_code": "USD",
+      "priceExact8": "0.75000000",
+      "source_unit_id": null
+    },
+    {
+      "id": 10,
+      "product_id": 9,
+      "price_type": "sale",
+      "price_tier": null,
+      "currency_code": "EUR",
+      "priceExact8": "0.60000000",
+      "source_unit_id": null
+    }
+  ],
+  "links": [
+    {
+      "product_id": 9,
+      "unit_id": 10,
+      "price_id": 8
+    },
+    {
+      "product_id": 9,
+      "unit_id": 10,
+      "price_id": 9
+    },
+    {
+      "product_id": 9,
+      "unit_id": 10,
+      "price_id": 10
+    }
+  ],
+  "units": [
+    {
+      "id": 10,
+      "product_id": 9,
+      "label": "ADET",
+      "factorExact8": "1.00000000",
+      "is_main": true
+    }
+  ],
+  "barcodes": [
+    {
+      "id": 11,
+      "product_id": 9,
+      "barcode": "000000000091",
+      "barcode_type": "primary",
+      "is_primary": true,
+      "is_active": true
+    }
+  ],
+  "request": {
+    "requestId": "d2c59e62-fe41-447a-a025-8fcbbdce7b85",
+    "operation": "product.create",
+    "payloadHash": "32d2dd9eebcd9b03bc0f1d12f0982f6a941b2871451134aae7c9f4f5805a7a77",
+    "response": {
+      "requestId": "d2c59e62-fe41-447a-a025-8fcbbdce7b85",
+      "operation": "product.create",
+      "entity": {
+        "kind": "local",
+        "id": "9",
+        "name": "ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ",
+        "units": [
+          {
+            "id": "10",
+            "label": "ADET",
+            "factorExact8": "1.00000000",
+            "isMain": true
+          }
+        ],
+        "prices": [
+          {
+            "id": "8",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "TRY",
+            "priceExact8": "12.00000000"
+          },
+          {
+            "id": "9",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "USD",
+            "priceExact8": "0.75000000"
+          },
+          {
+            "id": "10",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "EUR",
+            "priceExact8": "0.60000000"
+          }
+        ]
+      }
+    }
+  },
+  "audit": {
+    "id": 46,
+    "actor_user_id": 30002,
+    "action": "product.create",
+    "entity_id": 9,
+    "requestId": "d2c59e62-fe41-447a-a025-8fcbbdce7b85"
+  },
+  "changedTables": [
+    "audit_logs",
+    "desktop_local_master_requests",
+    "desktop_local_price_units",
+    "desktop_local_product_units",
+    "product_barcodes",
+    "product_prices",
+    "products"
+  ],
+  "unchangedTableCount": 26,
+  "installationAndInvalidZeroPriceAll33TablesIdentical": true,
+  "replayAndChangedBodyEntireMetadataAndAll33TablesIdentical": true,
+  "oldProductRowsAndAllOldPricesLinksUnitsBarcodesIdentical": true,
+  "noOpeningStockMovement": true,
+  "allBalancesInvoicesAndReservationsIdentical": true,
+  "normalGui": {
+    "create": true,
+    "pageReload": true,
+    "existingNormalSessionRestored": true,
+    "threePricesAndTryCostVisible": true,
+    "axEvidence": true,
+    "screenshot": "UNAVAILABLE - window capture returned no image",
+    "humanAcceptance": "BEKLIYOR"
+  },
+  "httpResults": [
+    {
+      "case": "exact committed product replay 1",
+      "status": 200,
+      "requestId": "d2c59e62-fe41-447a-a025-8fcbbdce7b85",
+      "entity": {
+        "kind": "local",
+        "id": "9",
+        "name": "ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ",
+        "units": [
+          {
+            "id": "10",
+            "label": "ADET",
+            "factorExact8": "1.00000000",
+            "isMain": true
+          }
+        ],
+        "prices": [
+          {
+            "id": "8",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "TRY",
+            "priceExact8": "12.00000000"
+          },
+          {
+            "id": "9",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "USD",
+            "priceExact8": "0.75000000"
+          },
+          {
+            "id": "10",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "EUR",
+            "priceExact8": "0.60000000"
+          }
+        ]
+      }
+    },
+    {
+      "case": "exact committed product replay 2",
+      "status": 200,
+      "requestId": "d2c59e62-fe41-447a-a025-8fcbbdce7b85",
+      "entity": {
+        "kind": "local",
+        "id": "9",
+        "name": "ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ",
+        "units": [
+          {
+            "id": "10",
+            "label": "ADET",
+            "factorExact8": "1.00000000",
+            "isMain": true
+          }
+        ],
+        "prices": [
+          {
+            "id": "8",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "TRY",
+            "priceExact8": "12.00000000"
+          },
+          {
+            "id": "9",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "USD",
+            "priceExact8": "0.75000000"
+          },
+          {
+            "id": "10",
+            "type": "sale",
+            "unitId": "10",
+            "tier": null,
+            "currency": "EUR",
+            "priceExact8": "0.60000000"
+          }
+        ]
+      }
+    },
+    {
+      "case": "same UUID changed USD price cannot overwrite commit",
+      "status": 503,
+      "state": "UNKNOWN"
+    },
+    {
+      "case": "normal persisted product card",
+      "status": 200,
+      "card": {
+        "id": "9",
+        "stockCode": "ERP-R1-FX1",
+        "name": "ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ",
+        "brand": "MELISA TEST",
+        "category": "DENEME TÜRÜ",
+        "unit": "ADET",
+        "currency": "TRY",
+        "salePriceExact4": "12.0000",
+        "purchasePriceExact4": "8.0000",
+        "purchaseDiscountRateExact4": "0.0000",
+        "averageCostTryExact4": "8.0000",
+        "currentStockExact3": "0.000",
+        "supplierId": "1",
+        "supplierName": "ERP V3 DENEME TEDARİKÇİ",
+        "isActive": true,
+        "reservedExact3": "0.000",
+        "availableExact3": "0.000",
+        "barcodes": [
+          {
+            "id": "11",
+            "productId": "9",
+            "barcode": "000000000091",
+            "type": "primary",
+            "isPrimary": true
+          }
+        ],
+        "units": [
+          {
+            "id": "10",
+            "productId": "9",
+            "label": "ADET",
+            "factorExact8": "1.00000000",
+            "isMain": true
+          }
+        ],
+        "salePrices": [
+          {
+            "id": "8",
+            "productId": "9",
+            "unitId": "10",
+            "type": "sale",
+            "tier": null,
+            "currency": "TRY",
+            "priceExact8": "12.00000000"
+          },
+          {
+            "id": "9",
+            "productId": "9",
+            "unitId": "10",
+            "type": "sale",
+            "tier": null,
+            "currency": "USD",
+            "priceExact8": "0.75000000"
+          },
+          {
+            "id": "10",
+            "productId": "9",
+            "unitId": "10",
+            "type": "sale",
+            "tier": null,
+            "currency": "EUR",
+            "priceExact8": "0.60000000"
+          }
+        ]
+      }
+    }
+  ],
+  "ddl": false,
+  "securityChanges": false,
+  "sqlServiceRestart": false,
+  "foreignCurrencySaleImplemented": false,
+  "companyDailyRateImplemented": false,
+  "time": "2026-11-06T10:25:33.334Z"
+}

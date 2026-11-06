@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {createDesktopLocalMasterSqlStore} from './desktopLocalMasterSqlStore.mjs';
 import {productRejectionRecord,productRejectionOutcome} from './desktopProductRejection.mjs';
 
+test('SQL adapter refuses a missing FX readback and an unexpected currency before journal completion',async()=>{
+ for(const action of ['finish','wrong-currency']){const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true});const r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};
+  await assert.rejects(store.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.lockActiveSupplier({supplierId:'51'});await tx.findProductConflict({stockCode:'FX1',barcode:'0001'});const productId=await tx.insertProduct({actorId:'7',stockCode:'FX1',name:'Fiyat',barcode:'0001',unit:'ADET',currency:'TRY',saleTier:null,salePriceExact4:'12.0000',purchasePriceExact4:'8.0000',purchaseDiscountRateExact4:'0.0000',initialStockExact3:'0.000',averageCostTryExact4:'8.0000',brand:'B',category:'C',supplierId:'51',additionalSalePrices:[{currency:'USD',priceExact4:'0.7500'}]});
+   if(action==='finish')await tx.finishRequest({...r,response:{entity:{id:productId}}});else{await tx.insertLocalUnit({productId,label:'ADET',factorExact8:'1.00000000',isMain:true});await tx.insertNativePrice({productId,type:'sale',tier:null,currency:'EUR',priceExact8:'12.00000000',sourceUnitId:null});}
+  }),/LOCAL_SQL_ORDER/);assert.equal(f.log.at(-1).kind,'rollback');assert.equal(f.log.some(x=>x.kind==='commit'||x.statement?.includes('INSERT dbo.product_prices')),false);
+ }
+});
+
 function fakeDriver({rejectTarget=false,rejectMutation=false,commitLost=false,noEnabledDirectPermission=false,extraPermission=false,inactiveSupplier=false,badSupplierReadback=false,productConflictReason=null,replayResponse=null}={}){
  const log=[];let txCount=0;
  class Transaction{

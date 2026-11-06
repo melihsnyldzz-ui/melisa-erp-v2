@@ -2,11 +2,12 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
 import {productCardFixture} from './test-fixtures/desktopProductCard.fixture.mjs';
 function setup({allow=true,target=true,missing=false,wrongParent=false,richCards=true,stockOpening=null,badOpening=false,reserved='0.500'}={}){
- const calls=[],card={...productCardFixture(),reservedExact3:reserved,availableExact3:'1.500'};let commits=0,rollbacks=0;
+ const calls=[],card={...productCardFixture(),reservedExact3:reserved,availableExact3:'1.500',salePrices:[{id:'6',productId:'6',unitId:'6',type:'sale',tier:null,currency:'TRY',priceExact8:'12.00000000'}]};let commits=0,rollbacks=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){commits++;}async rollback(){rollbacks++;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,params:this.params,tx:this.tx});
   if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:target?1:0}]};
   if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:'1'}]};
+  if(q.includes('FROM dbo.product_prices q WITH(HOLDLOCK)'))return {recordset:card.salePrices};
   if(q.includes('OFFSET @offset'))return {recordset:[{id:card.id,stockCode:card.stockCode,productName:card.name,unit:card.unit,currency:card.currency,currentStockExact3:card.currentStockExact3,salePriceExact4:card.salePriceExact4,brand:card.brand,category:card.category,supplierId:card.supplierId,supplierName:card.supplierName,reservedExact3:card.reservedExact3}]};
   if(q.includes('FROM dbo.products p WITH(HOLDLOCK)')){const {barcodes,availableExact3,...header}=card;return {recordset:missing?[]:[header]};}
   if(q.includes('SELECT TOP(101)'))return {recordset:card.barcodes.map(b=>wrongParent?{...b,productId:'7'}:b)};

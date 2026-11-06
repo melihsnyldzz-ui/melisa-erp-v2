@@ -5,6 +5,7 @@ import {isDurableProductRejection} from '../../../api/src/services/desktopProduc
 import {desktopAdditionalBarcodes,desktopAdditionalBarcodeText} from '../../../api/src/services/desktopProductBarcodes.mjs';
 import {desktopOpeningReason} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 import {desktopSeriesFactor,desktopSeriesInput} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
+import {desktopAdditionalSalePrices,isDesktopProductSalePrices} from '../../../../packages/shared/src/desktopProductSalePrices.mjs';
 const env='eb2888c2-51cb-4570-a933-397cf7e62806';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const fail=()=>{throw new Error('PRODUCT_CREATE_INVALID');};
@@ -13,9 +14,9 @@ const openingFields=['openingQuantityExact3','openingDate'];
 const richFields=['brand','category','supplierId'];
 const withRich=value=>richFields.some(k=>Object.hasOwn(value??{},k));
 const withOpening=value=>openingFields.some(k=>Object.hasOwn(value??{},k));
-const additionalFields=value=>['additionalBarcodes','openingReason','seriesFactorExact8'].filter(k=>Object.hasOwn(value??{},k));
+const additionalFields=value=>['additionalBarcodes','openingReason','seriesFactorExact8','additionalSalePrices'].filter(k=>Object.hasOwn(value??{},k));
 const rejectionMessage=reason=>reason==='PRODUCT_BARCODE_IN_USE'?'Bu barkod başka bir ürün kartında kullanılıyor. Ürün kaydedilmedi; barkodu düzeltin.':reason==='PRODUCT_BARCODE_DUPLICATE_INPUT'?'Aynı barkod formda birden çok kez yazılmış. Ana ve ek barkodları kontrol edin.':'Bu stok kodu zaten kullanılıyor. Ürün kaydedilmedi; stok kodunu düzeltin.';
-const formValues=v=>({...v,sale:v.salePriceExact4,purchase:v.purchasePriceExact4,discount:v.purchaseDiscountRateExact4,openingQuantity:v.openingQuantityExact3,openingDate:v.openingDate,seriesFactor:(v.seriesFactorExact8??'1.00000000').split('.')[0],additionalBarcodes:(v.additionalBarcodes??[]).join('\n')});
+const formValues=v=>({...v,sale:v.salePriceExact4,saleUsd:v.additionalSalePrices?.find(p=>p.currency==='USD')?.priceExact4??'',saleEur:v.additionalSalePrices?.find(p=>p.currency==='EUR')?.priceExact4??'',purchase:v.purchasePriceExact4,discount:v.purchaseDiscountRateExact4,openingQuantity:v.openingQuantityExact3,openingDate:v.openingDate,seriesFactor:(v.seriesFactorExact8??'1.00000000').split('.')[0],additionalBarcodes:(v.additionalBarcodes??[]).join('\n')});
 function exact(value,keys){return value&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value))&&
  Reflect.ownKeys(value).length===keys.length&&keys.every(k=>{const d=Object.getOwnPropertyDescriptor(value,k);return d&&d.enumerable&&Object.hasOwn(d,'value');});}
 function text(v,max){if(typeof v!=='string'||!v||v.trim()!==v||v.length>max||/[\u0000-\u001f\u007f]/.test(v))fail();return v;}
@@ -39,18 +40,20 @@ function body(input,requestId){
  }
  if(Object.hasOwn(input,'openingReason')){if(!withRich(input)||!opening.openingQuantityExact3||opening.openingQuantityExact3==='0.000')fail();opening.openingReason=desktopOpeningReason(input.openingReason);}
  const series=Object.hasOwn(input,'seriesFactorExact8')?{seriesFactorExact8:desktopSeriesFactor(input.seriesFactorExact8)}:{};if(series.seriesFactorExact8&&(!withRich(input)||input.unit!=='ADET'))fail();
+ const extraPrices=Object.hasOwn(input,'additionalSalePrices')?{additionalSalePrices:desktopAdditionalSalePrices(input.currency,input.additionalSalePrices)}:{};if(extraPrices.additionalSalePrices&&(!withRich(input)||input.saleTier!==null))fail();
  return Object.freeze({requestId,stockCode:text(input.stockCode,50),name:text(input.name,250),barcode:text(input.barcode,80),unit:text(input.unit,20),
   currency:input.currency,salePriceExact4:money(input.salePriceExact4),purchasePriceExact4:money(input.purchasePriceExact4),
-  purchaseDiscountRateExact4:discount(input.purchaseDiscountRateExact4),saleTier:input.saleTier,...opening,...(withRich(input)?{brand:text(input.brand,120),category:text(input.category,120),supplierId:validId(input.supplierId)?input.supplierId:fail()}: {}),...(Object.hasOwn(input,'additionalBarcodes')?{additionalBarcodes:desktopAdditionalBarcodes(input.barcode,input.additionalBarcodes)}:{}),...series});
+  purchaseDiscountRateExact4:discount(input.purchaseDiscountRateExact4),saleTier:input.saleTier,...opening,...(withRich(input)?{brand:text(input.brand,120),category:text(input.category,120),supplierId:validId(input.supplierId)?input.supplierId:fail()}: {}),...(Object.hasOwn(input,'additionalBarcodes')?{additionalBarcodes:desktopAdditionalBarcodes(input.barcode,input.additionalBarcodes)}:{}),...series,...extraPrices});
 }
 function restored(record,actorId){
  if(!exact(record,['version','actorId','body'])||record.version!==1||record.actorId!==actorId||!exact(record.body,['requestId',...fields,...(withOpening(record.body)?openingFields:[]),...(withRich(record.body)?richFields:[]),...additionalFields(record.body)]))fail();
  const {requestId,...values}=record.body;return body(values,requestId);
 }
 export function isDesktopPersistedProduct(value,input){
- if(!exact(value,['kind','id','name','units','prices'])||value.kind!=='local'||!validId(value.id)||value.name!==input.name||!Array.isArray(value.units)||value.units.length!==(input.seriesFactorExact8?2:1)||!Array.isArray(value.prices)||value.prices.length!==1)return false;
+ if(!exact(value,['kind','id','name','units','prices'])||value.kind!=='local'||!validId(value.id)||value.name!==input.name||!Array.isArray(value.units)||value.units.length!==(input.seriesFactorExact8?2:1)||!Array.isArray(value.prices)||value.prices.length!==1+(input.additionalSalePrices?.length??0))return false;
  const u=value.units[0],p=value.prices[0];
  if(input.seriesFactorExact8){try{desktopSeriesFactor(input.seriesFactorExact8);}catch{return false;}const s=value.units[1];if(input.unit!=='ADET'||!exact(s,['id','label','factorExact8','isMain'])||!validId(s.id)||s.id===u?.id||s.label!=='SERİ'||s.factorExact8!==input.seriesFactorExact8||s.isMain!==false)return false;}
+ if(input.additionalSalePrices){try{const extras=desktopAdditionalSalePrices(input.currency,input.additionalSalePrices),rows=value.prices.map(q=>({...q,productId:value.id}));if(!isDesktopProductSalePrices(rows,value.id,u?.id)||extras.some((q,i)=>value.prices[i+1].currency!==q.currency||value.prices[i+1].priceExact8!==q.priceExact4+'0000'||value.prices[i+1].tier!==null))return false;}catch{return false;}}
  return !!(exact(u,['id','label','factorExact8','isMain'])&&validId(u.id)&&u.label===input.unit&&u.factorExact8==='1.00000000'&&u.isMain===true&&
   exact(p,['id','type','unitId','tier','currency','priceExact8'])&&validId(p.id)&&p.type==='sale'&&p.unitId===u.id&&p.tier===input.saleTier&&p.currency===input.currency&&p.priceExact8===input.salePriceExact4+'0000');
 }
@@ -119,6 +122,7 @@ ${richCards?'<label class="desktop-product-field">Bir serideki adet<input name="
 <label class="desktop-product-field">Para birimi<select name="currency"><option>TRY</option>${richCards?'':'<option>USD</option><option>EUR</option>'}</select>${richCards?'<small>Bu kurulumda ürün maliyeti TRY ile kaydediliyor.</small>':''}</label>
 ${richCards?'<label class="desktop-product-field desktop-product-wide">Ek barkodlar<textarea name="additionalBarcodes" rows="3" maxlength="1000" placeholder="Her satıra bir barkod"></textarea><small>En çok 10 ek barkod. Baştaki sıfırlar korunur.</small></label>':''}
 <label class="desktop-product-field">Satış fiyatı<input name="sale" inputmode="decimal" required></label>
+${richCards?'<label class="desktop-product-field">USD satış fiyatı (isteğe bağlı)<input name="saleUsd" inputmode="decimal"><small>Ana birim için ayrı fiyat. Boşsa USD fiyatı tanımlanmaz.</small></label><label class="desktop-product-field">EUR satış fiyatı (isteğe bağlı)<input name="saleEur" inputmode="decimal"><small>Ana birim için ayrı fiyat. Kurdan otomatik hesaplanmaz.</small></label>':''}
 <label class="desktop-product-field">Alış fiyatı<input name="purchase" inputmode="decimal" required></label>
 <label class="desktop-product-field">Alış indirimi (%)<input name="discount" inputmode="decimal" value="0" required></label>
 <label class="desktop-product-field">Başlangıç stoğu (TRY / ADET)<input name="openingQuantity" inputmode="decimal" value="0" required></label>
@@ -135,8 +139,9 @@ ${richCards?'<label class="desktop-product-field desktop-product-wide">Başlang�
     if(data.get('openingQuantity')!==null&&data.get('openingQuantity')!==undefined){payload.openingQuantityExact3=desktopProductDecimal3(data.get('openingQuantity'));payload.openingDate=String(data.get('openingDate')??'');}
     if(richCards&&payload.openingQuantityExact3&&payload.openingQuantityExact3!=='0.000')payload.openingReason=desktopOpeningReason(String(data.get('openingReason')??'').trim());
     if(richCards){const factor=desktopSeriesInput(String(data.get('seriesFactor')??'1').trim());if(factor)payload.seriesFactorExact8=factor;}
+    if(richCards){const prices=[['USD','saleUsd'],['EUR','saleEur']].filter(([,key])=>String(data.get(key)??'').trim()).map(([currency,key])=>({currency,priceExact4:desktopProductDecimal4(String(data.get(key)))}));if(prices.length)payload.additionalSalePrices=desktopAdditionalSalePrices(payload.currency,prices);}
     if(!isDesktopProductCostSupported(payload)){root.querySelector('[role="status"]').textContent='Bu alış fiyatı ve indirim için maliyet hesabı henüz doğrulanamadı.';return;}}
-   catch(error){root.querySelector('[role="status"]').textContent=error?.code==='PRODUCT_SERIES_INVALID'?'Bir serideki adet 1 ile 1000000 arasında tam sayı olmalı.':error?.code==='PRODUCT_OPENING_REASON_INVALID'?'Pozitif başlangıç stoğu için en çok 250 karakterlik bir gerekçe yazın.':error?.code==='PRODUCT_BARCODES_INVALID'?'Ek barkodları ayrı satırlara yazın. En çok 10 ek barkod girilebilir; aynı barkodu tekrarlamayın.':'Fiyatları en fazla dört ondalık basamakla girin; indirim 0 ile 100 arasında olmalı.';return;}
+   catch(error){root.querySelector('[role="status"]').textContent=error?.code==='PRODUCT_SALE_PRICES_INVALID'?'USD ve EUR fiyatı giriyorsanız sıfırdan büyük ve en çok dört ondalık basamaklı olmalı.':error?.code==='PRODUCT_SERIES_INVALID'?'Bir serideki adet 1 ile 1000000 arasında tam sayı olmalı.':error?.code==='PRODUCT_OPENING_REASON_INVALID'?'Pozitif başlangıç stoğu için en çok 250 karakterlik bir gerekçe yazın.':error?.code==='PRODUCT_BARCODES_INVALID'?'Ek barkodları ayrı satırlara yazın. En çok 10 ek barkod girilebilir; aynı barkodu tekrarlamayın.':'Fiyatları en fazla dört ondalık basamakla girin; indirim 0 ile 100 arasında olmalı.';return;}
    void act(()=>controller.create(payload),payload);});
  }
  async function act(action,fields){

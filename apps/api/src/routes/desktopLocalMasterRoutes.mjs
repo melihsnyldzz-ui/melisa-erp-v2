@@ -4,6 +4,7 @@
 import {Router} from 'express';
 import {isDurableProductRejection} from '../services/desktopProductRejection.mjs';
 import {desktopSeriesFactor} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
+import {desktopAdditionalSalePrices,isDesktopProductSalePrices} from '../../../../packages/shared/src/desktopProductSalePrices.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const customerRequired=['requestId','customerCode','phone','customerType','currency'];
@@ -25,8 +26,9 @@ function ownObject(value,required,optional){
 }
 function adapt(input,kind,richCards){
  if(kind==='supplier')return ownObject(input,['requestId','supplierCode','name','phone','city','country','currency','purchaseDiscountRateExact4'],[]);
- const customer=kind==='customer';const x=ownObject(input,customer?customerRequired:productRequired,customer?customerOptional:[...productOptional,...(richCards?['brand','category','supplierId','additionalBarcodes','openingReason','seriesFactorExact8']:[])]);
+ const customer=kind==='customer';const x=ownObject(input,customer?customerRequired:productRequired,customer?customerOptional:[...productOptional,...(richCards?['brand','category','supplierId','additionalBarcodes','openingReason','seriesFactorExact8','additionalSalePrices']:[])]);
  if(!x)return null;const legacy=customer?'customerName':'productName';
+ if(!customer&&Object.hasOwn(x,'additionalSalePrices')){try{if(x.saleTier!==null)return null;x.additionalSalePrices=desktopAdditionalSalePrices(x.currency,x.additionalSalePrices);}catch{return null;}}
  // Exactly one spelling: refuse accidental overwrite or undisclosed data loss.
  if(Object.hasOwn(x,'name')===Object.hasOwn(x,legacy))return null;
  const {name,[legacy]:legacyName,...rest}=x;
@@ -48,9 +50,10 @@ function committedEntity(value,kind,input){
   return !!a&&persistedId(a.id)&&a.customerId===c.id&&a.currency===input.currency&&a.currentBalanceExact8==='0.00000000';
  }
  const p=ownObject(value,['kind','id','name','units','prices'],[]);
- if(!p||p.kind!=='local'||!persistedId(p.id)||p.name!==input.name||!Array.isArray(p.units)||p.units.length!==(input.seriesFactorExact8?2:1)||!Array.isArray(p.prices)||p.prices.length!==1)return false;
+ if(!p||p.kind!=='local'||!persistedId(p.id)||p.name!==input.name||!Array.isArray(p.units)||p.units.length!==(input.seriesFactorExact8?2:1)||!Array.isArray(p.prices)||p.prices.length!==1+(input.additionalSalePrices?.length??0))return false;
  const u=ownObject(p.units[0],['id','label','factorExact8','isMain'],[]),q=ownObject(p.prices[0],['id','type','unitId','tier','currency','priceExact8'],[]);
  if(input.seriesFactorExact8){try{desktopSeriesFactor(input.seriesFactorExact8);}catch{return false;}const s=ownObject(p.units[1],['id','label','factorExact8','isMain'],[]);if(!s||!persistedId(s.id)||s.id===u?.id||input.unit!=='ADET'||s.label!=='SERİ'||s.factorExact8!==input.seriesFactorExact8||s.isMain!==false)return false;}
+ if(input.additionalSalePrices){try{if(!isDesktopProductSalePrices(p.prices.map(q=>({...q,productId:p.id})),p.id,u?.id)||input.additionalSalePrices.some((q,i)=>p.prices[i+1].currency!==q.currency||p.prices[i+1].priceExact8!==q.priceExact4+'0000'||p.prices[i+1].tier!==null))return false;}catch{return false;}}
  return !!u&&!!q&&persistedId(u.id)&&persistedId(q.id)&&u.label===input.unit&&u.factorExact8==='1.00000000'&&u.isMain===true&&
   q.type==='sale'&&q.unitId===u.id&&q.tier===input.saleTier&&q.currency===input.currency&&typeof input.salePriceExact4==='string'&&q.priceExact8===input.salePriceExact4+'0000';
 }
