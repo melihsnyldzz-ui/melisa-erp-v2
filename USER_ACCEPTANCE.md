@@ -415,3 +415,7 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 # 6 Kasım — R1 K02 şema ve K01 normal çıkış teknik kontrolü
 
 Ajan doğruladı: aktif Desktop V3 TEST36tablo/422kolon/47FK/83indeks kaynak eşliği; taze normal erp_deneme girişinden sonra Çıkış, sayfa yenileme ve Ana sayfa giriş ekranında kaldı. Kanıt: [K02 ve normal oturum](docs/evidence/erp/2026-11-06-desktop-k02-schema/README.md). İnsan/personel ticari kabulü BEKLİYOR. Bu teknik kanıt, önceki insan kabulü kayıtlarının sonucunu değiştirmez; tüm ERP/LAN/LIVE kabulü değildir.
+
+## 6 Kasım — R1 ürün ret ve düzeltme teknik kabulü
+
+Ajan normal erp_deneme GUI ile barkod reddi, yenileme sonrası tüm alanların/supplier'ın geri gelmesi, barkodu düzeltip ürün5'in tek stok hareketiyle kaydı ve yeniden listelenmesini doğruladı. Dört gerçek HTTP tekrarında ikinci etki yok; bağımsız SQL kanıtı docs/evidence/erp/2026-11-06-desktop-product-conflict. İnsan/personel ticari kabulü BEKLİYOR; LAN/LIVE/tüm ERP ve gerçek ağ ACK kaybı kabulü değildir.

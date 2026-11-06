@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 3,
+  "sourceRoot": "C:/Users/Xaser/Desktop/ERP/kaynak-r1",
+  "packageHash": "C116F88D4EEE1632C0B860DBA45596202AD50B6E8009B91DDC074215B3B6041F",
+  "sourceHead": "51637a22",
+  "actualReplayCalls": 4,
+  "owner": {
+    "pid": 46464,
+    "creation": "2026-11-06T06:03:54.866507+03:00",
+    "commandLine": "\"C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -NoProfile -NonInteractive -File C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v3.ps1 -ExpectedPackageHash C116F88D4EEE1632C0B860DBA45596202AD50B6E8009B91DDC074215B3B6041F"
+  },
+  "guiCorrectedProductPersistedAfterReload": true,
+  "state": "R1_NORMAL_GUI_AND_SQL_CARD_RECOVERY_VERIFIED",
+  "lanLive": false,
+  "worker": {
+    "pid": 42208,
+    "creation": "2026-11-06T06:04:06.314846+03:00",
+    "parentPid": 46464,
+    "commandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v3-worker.mjs C116F88D4EEE1632C0B860DBA45596202AD50B6E8009B91DDC074215B3B6041F"
+  },
+  "humanAcceptance": "PENDING",
+  "assets": {
+    "desktop-write-green.html": "a1dc301c70f77d4df49db1e53991fc3de5cb32d926bc7eb0c73746bc419b698a",
+    "assets/desktopWriteGreen-aD7AOezb.js": "d7ee50430812a975ffbdbda5268d439e567eaf3983c982630c83dd63197ae0d6"
+  },
+  "helperCount": 5,
+  "extraBusinessEffectsFromReplays": false,
+  "sourceCount": 185,
+  "time": "2026-11-06T03:11:48.9716799Z",
+  "productId": 5,
+  "movementId": 10,
+  "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+  "guiRestoredRejectedFields": true,
+  "screenshotPaths": [
+    "C:/Users/Xaser/Desktop/ERP/kanit/r1-barkod-hatasi-alanlar-korundu.png",
+    "C:/Users/Xaser/Desktop/ERP/kanit/r1-hata-taslagi-yeniden-acildi.png",
+    "C:/Users/Xaser/Desktop/ERP/kanit/r1-duzeltilen-urun-kalici-tek-stok.png"
+  ]
+}

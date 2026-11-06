@@ -1,0 +1,19 @@
+{
+  "packageHash": "FF9431B6885C8E1E13F420DBCC874AA7AC57A81A23D4DF6116EE879BCE64D400",
+  "processCompleted": true,
+  "state": "R1_PRE_ADMISSION_SNAPSHOT",
+  "observed": {
+    "operation": "observe",
+    "requiresIndependentReadback": false,
+    "result": {
+      "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+      "businessRowsSha256": "f805ca12b35f8d9b25678427fe3aa71aebaca3b9ccc4fda89f0d23a1f1dd295c",
+      "schemaVersion": 3,
+      "metadataSha256": "386cff075fd1b77044595d518c12d14c781de6978699a5823f2d5bd0db709ea0"
+    },
+    "planSha256": "1C7C965196F669646CA03577DE248C09839A858807E3E4A0B3291B8C824738FE",
+    "time": "2026-11-06T02:51:33.7959084Z",
+    "sqlSha256": "97cc7b8c64756fcf370c9c9dced53a998ab7fe4ded25028c159c22b17c9236e6",
+    "state": "MASTER_V3_BATCH_COMPLETED"
+  }
+}

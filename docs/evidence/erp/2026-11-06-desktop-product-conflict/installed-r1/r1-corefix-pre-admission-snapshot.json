@@ -1,0 +1,18 @@
+{
+  "state": "R1_CORE_FIX_PRE_ADMISSION",
+  "processCompleted": true,
+  "observed": {
+    "result": {
+      "metadataSha256": "386cff075fd1b77044595d518c12d14c781de6978699a5823f2d5bd0db709ea0",
+      "schemaVersion": 3,
+      "businessRowsSha256": "3757491637208ecf5715d89110180038b92949f29060ca3e1c1a79541e70af1d",
+      "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d"
+    },
+    "requiresIndependentReadback": false,
+    "sqlSha256": "97cc7b8c64756fcf370c9c9dced53a998ab7fe4ded25028c159c22b17c9236e6",
+    "planSha256": "1C7C965196F669646CA03577DE248C09839A858807E3E4A0B3291B8C824738FE",
+    "time": "2026-11-06T03:02:55.2912406Z",
+    "state": "MASTER_V3_BATCH_COMPLETED",
+    "operation": "observe"
+  }
+}

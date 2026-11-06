@@ -1,0 +1,22 @@
+import {readFileSync,writeFileSync} from 'node:fs';import assert from 'node:assert/strict';
+import {createLocalMasterTransactions} from '../kaynak-r1/apps/api/src/services/localMasterTransactions.mjs';
+const base=new URL('./',import.meta.url),read=n=>JSON.parse(readFileSync(new URL(n,base),'utf8')).metadata;
+const initial=read('r1-card-before.json'),rejected=read('r1-card-after-rejection.json'),reopened=read('r1-card-after-reload.json'),created=read('r1-card-after-create.json');
+assert.equal(initial.operationalTables.length,23);assert.equal(initial.operationalRowsSha256,rejected.operationalRowsSha256);assert.deepEqual(initial.identityValues,rejected.identityValues);assert.equal(rejected.requests.length,initial.requests.length+1);
+assert.equal(rejected.operationalRowsSha256,reopened.operationalRowsSha256);assert.deepEqual(rejected.requests,reopened.requests);
+const changed=created.operationalTables.filter(t=>t.row_hash!==reopened.operationalTables.find(p=>p.table_name===t.table_name).row_hash).map(t=>t.table_name).sort();
+assert.deepEqual(changed,['products','product_barcodes','product_prices','desktop_local_product_units','desktop_local_price_units','stock_movements'].sort());
+assert.deepEqual(created.customerBalances,initial.customerBalances);assert.deepEqual(created.supplierBalances,initial.supplierBalances);
+const p=created.products.filter(p=>p.stock_code==='ERP-R1-P4');assert.equal(p.length,1);assert.equal(p[0].id,5);assert.equal(p[0].stockExact3,'1.000');assert.equal(p[0].costExact4,'8.0000');
+for(const old of initial.products)assert.deepEqual(created.products.find(p=>p.id===old.id),old);
+assert.equal(created.newProductMovements.length,1);assert.deepEqual(created.newProductMovements[0],{id:10,product_id:5,movement_type:'in',source_type:'stock_adjustment',quantityInExact3:'1.000',quantityOutExact3:'0.000',costExact4:'8.0000',amountExact4:'8.0000'});
+assert.equal(created.requests.length,reopened.requests.length+1);
+const shared={stockCode:'ERP-R1-P4',name:'ERP R1 DENEME ÜRÜN 4',barcode:'ERPTESTV3P3',unit:'ADET',currency:'TRY',salePriceExact4:'12.0000',purchasePriceExact4:'8.0000',purchaseDiscountRateExact4:'0.0000',saleTier:null,brand:'MELISA TEST',category:'DENEME TÜRÜ',supplierId:'1',openingQuantityExact3:'1.000',openingDate:'2026-11-06'};
+const negative={requestId:'ef0a2e49-f791-4c92-8358-0a5e4a28f5b0',...shared},positive={...negative,requestId:'73d115a3-faef-4ded-a089-aa5feb828f01',barcode:'ERPTESTR1P4'};
+const hashes=[];for(const body of [negative,positive]){
+ let captured;const model=createLocalMasterTransactions({richCards:true,authorize:async()=>true,store:{withTransaction:async work=>work({lockAndVerifyAuthority:async()=>true,beginRequest:async v=>{captured=v;return {state:'CONFLICT'};}})}});
+ await model.createProduct('30002',body);assert.ok(captured);const row=created.requests.find(r=>r.requestId===body.requestId);assert.equal(captured.payloadHash,row.payloadHash);hashes.push({requestId:body.requestId,payloadHash:row.payloadHash});
+}
+const outcome={state:'R1_GUI_CARD_REJECTION_REOPEN_CORRECTION_SQL_VERIFIED',changedOperationalTables:changed,negativeRequest:negative.requestId,positiveRequest:positive.requestId,hashes,productId:5,oneOpeningMovementId:10,oldProductsCustomersSuppliersUnchanged:true,negativeJournalOnly:true,guiDraftReopened:true,independentSqlObserverProcesses:true,humanAcceptance:'PENDING',time:new Date().toISOString()};
+writeFileSync(new URL('r1-card-readback-verification.json',base),JSON.stringify(outcome,null,2),{flag:'wx'});
+writeFileSync(new URL('r1-card-replay-plan.json',base),JSON.stringify({negative,positive,hashes,noNewRequests:true},null,2),{flag:'wx'});console.log(outcome.state);

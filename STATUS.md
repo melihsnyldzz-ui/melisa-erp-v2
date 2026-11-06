@@ -1,3 +1,9 @@
+## 6 Kasım — R1 ürün ret/taslak/düzeltme gerçek GUI ve SQL ile doğrulandı
+
+Aktif kaynak-r1/51637a22, paketC116F88D.../185kaynak/5PS/2asset, owner46464-worker42208/loopback5294-4294. NormalGUI mevcut barkodu reddetti;23operasyonel tablo+identity aynı, tekretjournalef0a2e49.... Yenileme/yenipaketsonrası alanlar+supplier geri açıldı; yalnızbarkod değişip product5/tekopeningmovement10 (1ADET×8TRY) oluştu, yenilemedekaldı. Eskistok3/4/2,cariler50/22,supplier0aynı. İki409retreplay+200commitreplay+değişmişbody503 gerçeknormalHTTP; bağımsızSQL23tablo/8journal/identityaynı. [Kurulu kanıt ve korunan ara hatalar](docs/evidence/erp/2026-11-06-desktop-product-conflict/README.md).59kaynaktestdosyası+guardlıbuildPASS; exact516hostedquality/secretsPASS,Windowsbekliyor. İnsan/LAN/LIVEaçık,DDL/yetki/SQLservisi değişmedi.
+
+Sıradaki iş: mevcut R1 K03-02 ana/ek barkodların aynı ürünü bulması ve baştaki sıfırların korunması; bağlı K03-01 tam kart açılışını tamamla. Geçerli satış/restore tekrarı ve K07 genişlemesi yok.
+
 ## 6 Kasım — R1 ürün çakışması ve kalıcı hata taslağı kaynak düzeltmesi
 
 Yeni kaynak-r1 feature dalında stok-kodu/barkod çakışması UUID/actor/hash kilitli aynı SQL transactionında iş kaydı öncesi belirlenip mevcutjournal'e kalıcı ret olarak yazılır. Kesin409 dışında UNKNOWN/body/UUID korunur; eskiCOMMITTED aynı. Form409sonrası actor kapsamlı v2 taslakla yeniden açılır, istek boyunca alanlar kilitli.59ilgili testdosyası+offlineguard build geçti; bağımsız salt-okunur inceleme tamam. [Kaynak ve önceki gerçek SQL rollback sınırı](docs/evidence/erp/2026-11-06-desktop-product-conflict/README.md). Yeni R1 henüz kurulmadı; aktif V3 aynı99C6paketi. DDL/yetki/SQLservisi değişmedi.

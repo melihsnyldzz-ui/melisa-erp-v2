@@ -1,0 +1,17 @@
+// Already-observed fixed requests only; no fresh UUID or business command.
+import {readFileSync,writeFileSync} from 'node:fs';import assert from 'node:assert/strict';
+const base=new URL('./',import.meta.url),plan=JSON.parse(readFileSync(new URL('r1-card-replay-plan.json',base),'utf8'));
+assert.equal(plan.negative.requestId,'ef0a2e49-f791-4c92-8358-0a5e4a28f5b0');assert.equal(plan.positive.requestId,'73d115a3-faef-4ded-a089-aa5feb828f01');
+const chunks=[];let secret,token;for(const name of ['log','warn','info','error','debug'])console[name]=()=>{};
+async function post(path,body){const r=await fetch('http://127.0.0.1:4294'+path,{method:'POST',headers:{Origin:'http://127.0.0.1:5294','Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(15000)});return {status:r.status,envelope:await r.json()};}
+try {
+ let size=0;for await(const c of process.stdin){size+=c.length;assert.ok(size<=46);chunks.push(c);}secret=Buffer.concat(chunks);chunks.forEach(c=>c.fill(0));assert.equal(secret.length,46);
+ const login=await post('/api/auth/login',{username:'erp_deneme',password:secret.toString('ascii')});secret.fill(0);secret=null;assert.equal(login.status,200);assert.equal(login.envelope.success,true);assert.equal(String(login.envelope.data.user.id),'30002');token=login.envelope.data.accessToken;assert.equal(typeof token,'string');
+ writeFileSync(new URL('r1-card-http-replay-attempt.json',base),JSON.stringify({state:'REPLAY_INTENT_DURABLE',ids:plan.hashes,noNewRequests:true,time:new Date().toISOString()}),{flag:'wx'});
+ const results=[];
+ for(let i=0;i<2;i++){const r=await post('/api/desktop-local/products',plan.negative);assert.equal(r.status,409);assert.equal(r.envelope.success,false);assert.equal(r.envelope.data.state,'NOT_COMMITTED');assert.equal(r.envelope.data.requestId,plan.negative.requestId);assert.equal(r.envelope.data.reason,'PRODUCT_BARCODE_IN_USE');assert.equal(r.envelope.data.replayed,true);results.push({case:'negative replay',status:r.status,state:r.envelope.data.state,replayed:true});}
+ const positive=await post('/api/desktop-local/products',plan.positive);assert.equal(positive.status,200);assert.equal(positive.envelope.data.state,'COMMITTED');assert.equal(positive.envelope.data.replayed,true);assert.equal(positive.envelope.data.entity.id,'5');results.push({case:'committed replay',status:200,state:'COMMITTED',replayed:true});
+ const conflict=await post('/api/desktop-local/products',{...plan.negative,barcode:plan.positive.barcode});assert.equal(conflict.status,503);assert.equal(conflict.envelope.data.state,'UNKNOWN');assert.equal(conflict.envelope.data.requestId,plan.negative.requestId);results.push({case:'changed original body',status:503,state:'UNKNOWN'});
+ writeFileSync(new URL('r1-card-http-replay-outcome.json',base),JSON.stringify({state:'R1_FIXED_REJECTIONS_AND_COMMIT_REPLAYED_BODY_CONFLICT_UNKNOWN',results,requestIds:plan.hashes,noNewRequests:true,time:new Date().toISOString()},null,2),{flag:'wx'});process.stdout.write('R1_FIXED_CARD_REPLAYS_VERIFIED');
+}catch{writeFileSync(new URL('r1-card-http-replay-unknown.json',base),JSON.stringify({state:'REPLAY_RESULT_UNVERIFIED',automaticRetry:false,time:new Date().toISOString()}),{flag:'wx'});process.stderr.write('R1_FIXED_CARD_REPLAY_FAILED');process.exitCode=1;}
+finally{secret?.fill(0);chunks.forEach(c=>c.fill(0));if(token){try{await post('/api/auth/logout',{});}catch{}token=null;}}
