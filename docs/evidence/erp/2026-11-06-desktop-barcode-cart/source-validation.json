@@ -1,5 +1,5 @@
 {
-  "state": "SOURCE_328_PASS_INSTALLED_GUI_SQL_PASS_CI_FIX_PENDING",
+  "state": "SOURCE_328_INSTALLED_GUI_SQL_AND_FULL_EXACT_CI_PASS",
   "base": "6abb2f64dd6ae1aa5f1cc29d0e1e8929e5ad4358",
   "tests": 328,
   "testFiles": 56,
@@ -10,5 +10,17 @@
   "realSql": true,
   "normalGui": "PASS_AGENT",
   "humanAcceptance": "PENDING",
-  "fullSitesLocalRunner": "NOT_RUN: offline guard rejected child spawn from scripts/test.mjs; guard retained, hosted full CI pending"
+  "fullSitesLocalRunner": "NOT_RUN: offline guard rejected child spawn from scripts/test.mjs; guard retained, hosted full CI pending",
+  "ci": {
+    "state": "FULL_EXACT_SOURCE_PASS",
+    "head": "967740b243f7b7efc43fad46a490cfd531c22ea5",
+    "runs": [
+      42225616659,
+      42225610348
+    ],
+    "qualityBuildTest": "PASS",
+    "secretScan": "PASS",
+    "windowsStartup": "PASS",
+    "installedPayloadUnchangedSince": "51923ef591dbebece9ba44666d3b9e117231f37c"
+  }
 }
