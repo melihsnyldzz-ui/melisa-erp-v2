@@ -4,6 +4,7 @@ import {mountDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {mountDesktopProductCreate} from './desktopProductCreate.mjs';
 import {mountDesktopProductCard} from './desktopProductCard.mjs';
 import {mountDesktopCustomerCard} from './desktopCustomerCard.mjs';
+import {mountDesktopRuntimeInfo} from './desktopRuntimeInfo.mjs';
 import {desktopSeriesStockLabel} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 import './desktopMasterCards.css';
 import {mountDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
@@ -24,7 +25,7 @@ function login(message=''){sequence++;dispose();listViews.clear();navigation('')
 async function show(page,number,search){if(!core.getUser())return login();if(page!=='home'&&!core.can(page))return show('home');const priorView=listViews.get(page)??{number:1,search:''};number??=priorView.number;search??=priorView.search;
  try{if(mounted?.requestClose&&!mounted.requestClose()){const status=view.querySelector('[role="status"]');if(status)status.textContent='Önce değişiklikleri kaydedin veya son işlemi doğrulayın.';return;}}catch{return;}
  const current=++sequence;dispose();const entry=pages.find(x=>x[0]===page);if(!entry)return;navigation(page);const user=core.getUser();label.textContent=user.displayName||user.username;crumb.textContent=entry[2];logout.hidden=false;
- if(page==='home'){view.innerHTML='<div class="heading"><div><p class="eyebrow">MELİSA ERP</p><h1>Hoş geldiniz</h1><p class="sub">Yetkiniz dahilindeki kartlara sol menüden ulaşabilirsiniz.</p></div></div>';return;}
+ if(page==='home'){view.innerHTML='<div class="heading"><div><p class="eyebrow">MELİSA ERP</p><h1>Hoş geldiniz</h1><p class="sub">Yetkiniz dahilindeki kartlara sol menüden ulaşabilirsiniz.</p></div><button type="button" class="btn" data-runtime-info-open>Kurulum bilgisini göster</button></div><div data-runtime-info></div>';view.querySelector('[data-runtime-info-open]').addEventListener('click',()=>{dispose();mounted=mountDesktopRuntimeInfo({root:view.querySelector('[data-runtime-info]'),load:()=>core.runtimeInfo()});});return;}
  if(page==='sales'){mounted=mountDesktopWorkflowScreen({root:view,core,storage:localStorage,actorId:String(user.id)});return;}
  listViews.set(page,{number,search});
  const editable=core.can(page,'edit');view.innerHTML=`<div class="heading"><div><p class="eyebrow">YEREL KURULUM</p><h1>${esc(entry[2])}</h1></div>${editable?'<button type="button" class="btn primary" data-create>Yeni kart</button>':''}</div><div data-form></div><section data-list class="card panel" style="padding:20px"><p role="status">Liste okunuyor…</p></section>`;
@@ -52,7 +53,7 @@ async function show(page,number,search){if(!core.getUser())return login();if(pag
   }));
   root.querySelectorAll('[data-open-invoice]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),button.dataset.openInvoice);void show('sales');}));
   root.querySelector('[data-previous]').addEventListener('click',()=>show(page,number-1,search));root.querySelector('[data-next]').addEventListener('click',()=>show(page,number+1,search));
- }catch{if(current===sequence)view.querySelector('[data-list]').innerHTML='<p role="alert">Liste okunamadı.</p>';}
+ }catch{if(current===sequence)view.querySelector('[data-list]').innerHTML='<p role="alert">Liste okunamadı. Oturumu ve yerel bağlantıyı kontrol edip sayfayı yeniden açın.</p>';}
 }
 logout.addEventListener('click',()=>{try{if(mounted?.requestClose&&!mounted.requestClose()){const status=view.querySelector('[role="status"]');if(status)status.textContent='Çıkmadan önce değişiklikleri kaydedin veya son işlemi doğrulayın.';return;}}catch{return;}sequence++;dispose();void core.logout();login();});
 window.addEventListener('beforeunload',event=>{try{if(mounted?.requestClose&&!mounted.requestClose()){event.preventDefault();event.returnValue='';}}catch{event.preventDefault();event.returnValue='';}});

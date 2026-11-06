@@ -3,6 +3,7 @@ import {readFile,realpath} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {receiveReaderSecret} from './start-initial-green-worker.mjs';
 import {inspectDesktopRuntimeTree} from './sql-login-runtime-integrity.mjs';
+import {desktopRuntimeInfo} from '../../packages/shared/src/desktopRuntimeInfo.mjs';
 const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1',manifest='C:/Users/Xaser/Desktop/ERP/kurulum/master-r1-package.json';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 for(const name of ['log','info','warn','error','debug'])console[name]=()=>{};
@@ -26,7 +27,7 @@ try{
  const {registerDesktopWriteRuntime}=await import('../../apps/api/src/config/desktopWriteRuntime.mjs');registerDesktopWriteRuntime(connector);
  const {default:sql}=await import('../../apps/api/node_modules/mssql/index.js');const Request=sql.Request;
  await import('../../apps/api/src/services/invoiceDraftService.js');if(sql.Request!==Request)throw Error();
- const {createDesktopWriteApplication}=await import('../../apps/api/src/desktopWriteApplication.mjs');runtime=createDesktopWriteApplication({connector});
+ const {createDesktopWriteApplication}=await import('../../apps/api/src/desktopWriteApplication.mjs');runtime=createDesktopWriteApplication({connector,runtimeInfo:desktopRuntimeInfo({packageSha256:hash(bytes),createdAt:pkg.createdAt})});
  if(runtime.profile!=='desktop-master-v3')throw Error();
  api=await new Promise((resolve,reject)=>{const s=runtime.app.listen(4294,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
  const {startMasterV3Web}=await import('./master-v3-web.mjs');web=await startMasterV3Web(pkg.assets);

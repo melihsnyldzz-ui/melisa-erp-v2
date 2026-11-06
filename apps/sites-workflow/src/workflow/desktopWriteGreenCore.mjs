@@ -5,6 +5,7 @@ import {createDesktopProductCreate} from './desktopProductCreate.mjs';
 import {desktopProductCardId,isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {isDesktopStockAvailability} from '../../../../packages/shared/src/desktopStockAvailability.mjs';
 import {desktopCustomerCardId,isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
+import {isDesktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTransport.mjs';
 import {createDesktopLocalCustomerTransport} from './desktopLocalCustomerTransport.mjs';
@@ -65,5 +66,6 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   if(!richCards||!desktopCustomerCardId(id)||!can('customers'))fail();const prior=generation;
   const result=await request('/api/customers/'+id);if(prior!==generation||!can('customers')||!isDesktopCustomerCard(result.data,id)||result.data.salesHistoryAvailable&&!can('sales'))fail();return result.data;
  }
- return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,getUser:()=>user});
+ async function runtimeInfo(){if(!richCards||!user)fail();const prior=generation,r=await request('/api/desktop-runtime');if(prior!==generation||!user||!isDesktopRuntimeInfo(r.data))fail();return r.data;}
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,getUser:()=>user});
 }

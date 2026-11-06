@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import bcrypt from 'bcrypt';
+import {desktopRuntimeInfo} from '../../../packages/shared/src/desktopRuntimeInfo.mjs';
 
 function fakeDatabase(passwordHash){
  let state={customers:[],suppliers:[],entities:[],accounts:[],products:[],units:[],barcodes:[],prices:[],links:[],audit:[],stockMovements:[],journal:{},seq:0};
@@ -123,11 +124,15 @@ test('verified-provider assembly: normal login, customer, product and same-reque
  assert.equal((await post('/api/desktop-local/customers',legacyCustomer,token)).status,201);
  assert.equal(runtime.closeSessions(),true);
  // A separately assembled V3 runtime shares only this synthetic database.
- const v3=createDesktopWriteApplication({connector:v3connector,tokenKey:Buffer.alloc(48,9)});
+ const info=desktopRuntimeInfo({packageSha256:'ab'.repeat(32),createdAt:'2026-11-06T05:00:00.000Z'});
+ for(const runtimeInfo of [{...info,database:'OTHER_DB'},{...info,connectionString:'private-driver-text'}])assert.throws(()=>createDesktopWriteApplication({connector:v3connector,tokenKey:Buffer.alloc(48,9),runtimeInfo}));
+ assert.throws(()=>createDesktopWriteApplication({connector,tokenKey:Buffer.alloc(48,9),runtimeInfo:info}));
+ const v3=createDesktopWriteApplication({connector:v3connector,tokenKey:Buffer.alloc(48,9),runtimeInfo:info});
  const server3=await new Promise((resolve,reject)=>{const s=v3.app.listen(0,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
  t.after(()=>new Promise(resolve=>server3.close(resolve)));
  const request3=(method,path,body,token3)=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server3.address().port,path,method,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294','content-type':'application/json',...(token3?{authorization:'Bearer '+token3}:{})}},res=>{const chunks=[];res.on('data',v=>chunks.push(v));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks).toString())}));});req.on('error',reject);req.end(body===undefined?undefined:JSON.stringify(body));});
  const login3=await request3('POST','/api/auth/login',{username:'normal',password:'test-test'});assert.equal(login3.status,200);const token3=login3.body.data.accessToken;
+ const identity=await request3('GET','/api/desktop-runtime',undefined,token3);assert.equal(identity.status,200);assert.deepEqual(identity.body.data,info);assert.equal((await request3('GET','/api/desktop-runtime?target=OTHER_DB',undefined,token3)).status,400);assert.equal((await request3('GET','/api/desktop-runtime')).status,401);
  const supplier={requestId:'11b46102-a9bc-4de0-ad5f-02cf160005c4',supplierCode:'S1',name:'Tedarikçi',phone:'555',city:'Bursa',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'0.0000'};
  let r=await request3('POST','/api/desktop-local/suppliers',supplier,token3);assert.ok([403,503].includes(r.status));assert.equal(db.snapshot().suppliers.length,0);
  db.addSupplierPermission();db.loseAck();r=await request3('POST','/api/desktop-local/suppliers',supplier,token3);assert.equal(r.status,503);assert.equal(r.body.data.state,'UNKNOWN');

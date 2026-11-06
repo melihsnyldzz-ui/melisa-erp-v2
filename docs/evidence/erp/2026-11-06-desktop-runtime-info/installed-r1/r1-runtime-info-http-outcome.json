@@ -1,0 +1,31 @@
+{
+  "state": "INSTALLED_RUNTIME_IDENTITY_AND_NORMAL_AUTH_BOUNDARIES_VERIFIED",
+  "results": [
+    {
+      "case": "normal runtime identity matches actual manifest bytes and independent SQL target",
+      "status": 200
+    },
+    {
+      "case": "bounded installation metadata",
+      "path": "/api/desktop-runtime?target=OTHER_DB",
+      "status": 400
+    },
+    {
+      "case": "bounded installation metadata",
+      "path": "/api/desktop-runtime",
+      "status": 401
+    },
+    {
+      "case": "bounded installation metadata",
+      "path": "/api/desktop-runtime",
+      "status": 403
+    },
+    {
+      "case": "bounded installation metadata",
+      "path": "/api/desktop-runtime",
+      "status": 404
+    }
+  ],
+  "noBusinessRequests": true,
+  "time": "2026-11-06T06:07:35.236Z"
+}
