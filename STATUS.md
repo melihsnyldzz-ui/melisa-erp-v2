@@ -1,3 +1,7 @@
+## 6 Kasım — R1 sürüm/hedef, gerçek bağlantı hatası ve toparlanma doğrulandı
+
+Kaynak 90f66c77 / paket FE4BE46F... / 192 kaynak / 5 yardımcı / 3 asset. Normal GUI ve beş HTTP kontrolü sürümü gerçek manifest byte hash'i ve SQL hedefiyle eşleştirdi. Yeni uygulama kontrollü durdurulunca açık sayfada anlaşılır hata çıktı; aynı paket yeniden başladı, normal girişle aynı hedef/sürüm döndü. Tarayıcı offline simülasyonu API'yi kesmediği için başarı sayılmadı ve çevrimiçi duruma alındı. Ön/son SQL metadata, 23 operasyonel hash, journal, identity, stok/cari aynı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-runtime-info/README.md). 72 ilgili test dosyası, derleme ve readonly review geçti; SQL servisi/rol/şema aynı. Yanlış DB/eksik şema fault injection, lost-ACK, kalan R1 ve insan/LAN/LIVE ayrı açık.
+
 ## 6 Kasım — R1 sürüm/hedef ve güvenli hata görünümü kaynakta hazır
 
 K01-06 için ana sayfada doğrulanmış manifest SHA'sı, sabit yerel TEST hedefi, şema ve UTC paket zamanı okunabilir. Endpoint yalnız normal oturum/fixed origin/no-query; sır/path/ham hata yok. Geç yanıt atılır, kullanıcı anlaşılır bağlantı/oturum hatası görür. 72 ilgili test dosyası, derleme ve bağımsız readonly review geçti. [Kaynak ve kurulu kabul planı](docs/evidence/erp/2026-11-06-desktop-runtime-info/README.md). Kurulu GUI/gerçek manifest/API/SQL karşılaştırması sırada; mali yazma yok. Önceki a3b1f44a exact CI Windows dahil iki koşuda da başarılı. K07 ve kalan R1 açık.

@@ -1,3 +1,7 @@
+## 6 Kasım — R1 sürüm/hedef ve güvenli hata; insan kabulü BEKLİYOR
+
+Ajan normal ana sayfadan gerçek paket SHA'sı, yerel TEST hedefi ve şema bilgisini açtı. Yalnız yeni uygulama durduğunda anlaşılır bağlantı/oturum mesajı çıktı; aynı paket yeniden başlayıp normal giriş yapıldığında aynı sürüm/hedef döndü. Beş normal HTTP kontrolü ve bağımsız SQL okuması yazma veya ikinci etki olmadığını doğruladı. Bu teknik sürüm/hata kanıtı, lost-ACK veya gerçek personel/cihaz/LAN/LIVE kabulü değildir. [Kanıt](docs/evidence/erp/2026-11-06-desktop-runtime-info/README.md).
+
 ## 6 Kasım — R1 müşteri kartı ve hesap hiyerarşisi; insan kabulü BEKLİYOR
 
 Ajan iki mevcut deneme müşterisinin ayrı hesap ve son tamamlanan fişini açtı; fişten dönüşte arama korundu. Kaydedilmemiş müşteri formu başka karta geçişte korundu, Forma dön/açık vazgeçme görüldü; yeni müşteri kaydedilmedi. Normal readonly HTTP ve bağımsız SQL bütün okunan ilişkileri ve yazma olmadığını doğruladı. Kurulu müşteriler TRY; birden çok döviz oluşturma ve gerçek browser page2 kabulü yapılmadı. Bu teknik kapsam gerçek personel, fiziksel cihaz, LAN veya LIVE kabulü değildir. [Kanıt](docs/evidence/erp/2026-11-06-desktop-customer-card/README.md).
