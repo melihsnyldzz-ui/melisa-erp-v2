@@ -116,9 +116,11 @@ if (mode === 'quality') {
   run(['--experimental-test-module-mocks', '--experimental-vm-modules', '--test', '--test-concurrency=2', ...tests], mode === 'migration' ? root : path.join(root, 'apps', mode));
 } else if (mode === 'build') {
   for (const app of ['web-admin', 'sites-workflow']) run([path.join(root, 'apps', app, 'node_modules/vite/bin/vite.js'), 'build'], path.join(root, 'apps', app));
+  run([path.join(root, 'apps/sites-workflow/node_modules/vite/bin/vite.js'), 'build', '--config', 'vite.desktop-write.config.mjs'], path.join(root, 'apps/sites-workflow'));
 } else if (mode === 'guard') {
   run([path.join(root, 'scripts/ci/guard.test.mjs')]);
   run(['--test', path.join(root, 'scripts/ci/windows-process-probe-runner.test.mjs')]);
+  run(['--test', path.join(root, 'scripts/ci/desktop-green-build.test.mjs')]);
 } else throw new Error('Usage: node scripts/ci/run.mjs quality|guard|api|web-admin|sites-workflow|migration|canonical|build|windows-process-probe');
 
 }

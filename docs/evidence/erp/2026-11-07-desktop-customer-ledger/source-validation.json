@@ -1,0 +1,75 @@
+{
+  "state": "SOURCE_INTEGRATED_NOT_INSTALLED",
+  "requirement": "ERP-C05 / ERP09",
+  "sourceBaseline": "a837e907a8531c045162c620741e9cd0811da38a",
+  "branch": "codex/erp-desktop-current-ledger-20261107",
+  "normalAuthProfiles": [
+    5
+  ],
+  "permissions": [
+    "customer.view",
+    "sales.view"
+  ],
+  "readOnly": true,
+  "sqlExecuted": false,
+  "runtimeChanged": false,
+  "schemaOrGrantChanges": false,
+  "credentialsChanged": false,
+  "fullErpReady": false,
+  "humanAccepted": false,
+  "liveAuthorized": false,
+  "testFiles": 84,
+  "testsPassed": 456,
+  "testsFailed": 0,
+  "testLogSha256": "771bdaf35ad5349d3ed4175271255265fc319928bcf74767cb58bc50a6922ded",
+  "independentReadOnlyReview": "NO_NEW_P1_P2_AFTER_PRECISION_AND_ACCOUNT_SCOPE_FIXES",
+  "schemaContract": "Legacy balance_effect decimal(18,4) NOT NULL, balance_effect_exact and affects_balance absent; incompatible schema fails closed",
+  "precision": "Lossless decimal(28,8) projection; separate document/account values, signed exact8 effect and authoritative balance; no reconstructed running balance",
+  "unassignedMovements": "Explicit customer-level warning; never guessed into selected account",
+  "provenance": "All account rows, including other pages and foreign-customer conflicts, validated before pagination under the same SERIALIZABLE transaction",
+  "currentSession": "Both permissions, current role, actor, profile5 and in-flight logout lease required",
+  "normalUi": "Optional customer card pane; account/page/actor/generation/currency validation and disposal; pending cancellation storage untouched",
+  "logger": "Exactly two reviewed static codes added; sanitizer, arbitrary-text and private-suffix rejection unchanged",
+  "initialIntegratedFailure": "449/450: closed diagnostic vocabulary rejected new configuration code; fixed exact finite registration, final456PASS",
+  "localGreenBuild": {
+    "artifactProduced": false,
+    "guardRelaxed": false,
+    "state": "OFFLINE_GUARD_REJECTED_SHARED_ESBUILD_PATH"
+  },
+  "localDependencyPreparation": {
+    "retryViaOtherLocalMethod": false,
+    "reason": "blocked by policy; no detailed reason supplied",
+    "installExecuted": false,
+    "state": "AUTO_REVIEW_REJECTED_BEFORE_EXECUTION",
+    "junctionUnchangedVerified": true
+  },
+  "hostedBuild": {
+    "hiddenFiles": false,
+    "state": "EXACT_NEW_HEAD_CI_PENDING",
+    "existingLockedInstallAndOfflineBoundaryRetained": true,
+    "checkout": "pull_request head sha or push sha, all four jobs",
+    "newFixedDesktopGreenBuild": true,
+    "action": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+    "artifactScope": [
+      "desktop-write-green.html",
+      "assets/*.js",
+      "assets/*.css"
+    ],
+    "retentionDays": 1,
+    "artifactSourceCommitBound": true
+  },
+  "passivePackage": {
+    "activeAndR2CandidatesUntouched": true,
+    "mode": "--prepare-customer-ledger-candidate-only",
+    "manifestRuntimeRoot": "C:/Users/Xaser/Desktop/ERP/kaynak-r1",
+    "state": "NOT_PREPARED_HOSTED_ASSETS_REQUIRED",
+    "sourceRoot": "C:/Users/Xaser/Desktop/ERP/kaynak-cari"
+  },
+  "acceptanceRemaining": [
+    "exact head hosted CI and three-file artifact validation",
+    "actual V5 SQL metadata/permission and readonly query proof",
+    "package readmission and normal customer/account/receipt UI",
+    "before/after all business tables unchanged",
+    "human/device/LAN/full ERP acceptance"
+  ]
+}

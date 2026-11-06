@@ -43,3 +43,18 @@ test('account-history candidate rejects foreign checkout and flag combinations b
  for(const checkout of ['kaynak-r1','kaynak-birimler','other'])assert.throws(()=>simulate(['--prepare-account-history-candidate-only'],checkout),/MASTER_V5_PACKAGE_SOURCE_REJECTED/);
  for(const args of [['--prepare-account-history-candidate-only','--prepare-only'],['--prepare-account-history-candidate-only','--prepare-account-history-only']])assert.throws(()=>simulate(args,'kaynak-hesap-gecmis'),/MASTER_V5_PACKAGE_ARGUMENTS/);
 });
+test('customer-ledger candidate uses its own checkout and retains all R2 pins without touching active or R2 package',()=>{
+ const active=base+'kurulum/master-v5-package.json',r2=base+'kurulum/master-v5-account-history-candidate-package.json',candidate=base+'kurulum/master-v5-customer-ledger-candidate-package.json';
+ const c=simulate(['--prepare-customer-ledger-candidate-only'],'kaynak-cari',{activePresent:true});
+ assert.equal(c.reads.includes(active),false);assert.equal(c.writes.some(w=>w.f===active),false);assert.equal(c.reads.includes(r2),false);assert.equal(c.writes.some(w=>w.f===r2),false);
+ const out=c.writes.find(w=>w.f===candidate);assert.ok(out);const pkg=JSON.parse(out.b.toString());assert.equal(pkg.sourceRoot,base+'kaynak-r1');
+ const prior=simulate(['--prepare-account-history-candidate-only'],'kaynak-hesap-gecmis'),priorPkg=JSON.parse(prior.writes.find(w=>w.f===r2).b.toString());
+ assert.equal(Object.keys(pkg.helpers).length,7);assert.equal(Object.keys(pkg.assets).length,3);
+ assert.deepEqual(Object.keys(pkg.sources).sort(),Object.keys(priorPkg.sources).sort());assert.deepEqual(pkg.helpers,priorPkg.helpers);assert.deepEqual(pkg.assets,priorPkg.assets);assert.deepEqual(pkg.publicFiles,priorPkg.publicFiles);assert.equal(pkg.snapshotSqlSha256,priorPkg.snapshotSqlSha256);assert.equal(pkg.dependencySha256,priorPkg.dependencySha256);
+ assert.ok(c.reads.filter(s=>s.includes('/infra/')||s.includes('/apps/')||s.includes('/scripts/')).every(s=>s.startsWith(base+'kaynak-cari/')));
+ const archived=c.writes.find(w=>w.f.startsWith(base+'kurulum/master-v5-packages/'));assert.ok(archived);assert.equal(archived.options.flag,'wx');assert.deepEqual(archived.b,out.b);
+});
+test('customer-ledger candidate rejects foreign checkout and all combined flags before IO',()=>{
+ for(const checkout of ['kaynak-r1','kaynak-birimler','kaynak-hesap-gecmis','other'])assert.throws(()=>simulate(['--prepare-customer-ledger-candidate-only'],checkout),/MASTER_V5_PACKAGE_SOURCE_REJECTED/);
+ for(const flag of ['--prepare-only','--prepare-account-history-only','--prepare-account-history-candidate-only','--prepare-customer-ledger-candidate-only'])assert.throws(()=>simulate(['--prepare-customer-ledger-candidate-only',flag],'kaynak-cari'),/MASTER_V5_PACKAGE_ARGUMENTS/);
+});
