@@ -1,0 +1,12 @@
+{
+  "initialHostedQualityFailure": "assembled provider SQL fixture lacked new read query; fixed and expanded to three-price product; no guard/assertion removed",
+  "logSha256": "a033e1372d95dab27d508e9626a4d959f09a044129fec3ffbf94ac947ca9b0a1",
+  "humanAcceptance": "BEKLIYOR",
+  "independentReadonlyReview": "P1/P2 not found after transport/route fixes",
+  "testFiles": 22,
+  "skipped": 0,
+  "state": "TARGETED_OFFLINE_SOURCE_TESTS_AND_GUARDED_BUILD_PASSED",
+  "failed": 0,
+  "tests": 120,
+  "buildAsset": "desktopWriteGreen-CDwrXNQ5.js"
+}
