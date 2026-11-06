@@ -1,3 +1,13 @@
+## 6 November — installed V4 and normal GUI proof
+
+Exact source `770c1e91de1f24b85f718a661bdcacc97e688e58` passed both complete GitHub runs `42263586225` / `42263577462`, including Windows, before the owned local application was stopped. V4 package `adea4bafeee5dfa380f810b944c0a305414e2eb760b2fcf3a1c94a6b5fb3652b` contains225 source files,5 helpers,3 assets. Schema4 and36 tables were retained; no V5 permissions or migration were applied.
+
+The normal green ERP now lists TRY/USD/EUR receipts. Customer2 TRY shows three completed sales and104.32; USD shows invoices13+12, balance2.7354, original invoice13 amount1.164EUR and posted amount1.2804USD with3% discount. Customer3 EUR shows only invoice14,23.28TRY→0.5291EUR. Its zeroUSD account shows no completed sales. History-row buttons opened the correct invoices13 and14. A real page reload restored the normal session; reopening customer2/USD retained the correct two sales. Cancelled sales were excluded from this completed-sales list.
+
+Four independent completed read-only snapshots before/install/GUI/reopen have identical full metadata objects, including all33 business-table row hashes, identity values, schema and security. No persistent business write or permission change occurred. External local proof: `kurulum/r2-v4-installed-gui-proof-v1.json`; screenshots and AX snapshots are retained beside it, including `r2-v4-reopened-customer2-usd.png`. Browser credentials/auth responses were not recorded.
+
+This is technical installed GUI verification on synthetic TEST data, not human, physical-device, LAN, LIVE or all-module acceptance. The final empty business delivery remains pending. Invoice13 is still completed; V5 cancellation is not installed. Older source-only notes below remain historical.
+
 # K04-06: müşteri hesabına göre tamamlanan satışlar — kaynak
 
 Müşteri kartı seçili TRY/USD/EUR hesabının bakiyesini ve yalnız o hesaba işlenen tamamlanmış satışları gösterir. Belge para birimi, cari hesaba işlenen tutar, fiş iskontosu, ürün miktarı/fişteki fiyat ve normal fiş bağlantısı birlikte korunur. İptal edilmiş satışlar tamamlanan satış listesine girmez; bu ekran bütün cari hareketlerin ekstresi değildir.

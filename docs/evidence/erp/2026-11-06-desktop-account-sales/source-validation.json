@@ -1,5 +1,5 @@
 {
-  "ci": "PENDING",
+  "ci": "BOTH_FULL_PASS_INCLUDING_WINDOWS",
   "sourceBaseline": "e8a34d4fb61741c0bfb764633cd790676788729a",
   "normalAuthProfiles": [
     4,
@@ -10,13 +10,13 @@
     "sales.view"
   ],
   "liveAuthorized": false,
-  "state": "SOURCE_VALIDATED_NOT_INSTALLED",
-  "sqlExecuted": false,
+  "state": "INSTALLED_V4_NORMAL_GUI_AND_RELOAD_VERIFIED",
+  "sqlExecuted": true,
   "buildModules": 42,
-  "guiVerified": false,
+  "guiVerified": true,
   "testFiles": 73,
   "newPermissions": 0,
-  "runtimeInstalled": false,
+  "runtimeInstalled": true,
   "independentReadOnlyReview": "NO_NEW_P1_P2",
   "humanAccepted": false,
   "testsPassed": 404,
@@ -25,8 +25,8 @@
   "previousTestsPassed": 402,
   "receiptListRegression": {
     "guiOldV4ReceiptListStatus": 503,
-    "guiNewR2Verified": false,
-    "state": "RED_THEN_GREEN_SOURCE_ONLY",
+    "guiNewR2Verified": true,
+    "state": "SOURCE_RED_GREEN_AND_INSTALLED_NORMAL_GUI_PASS",
     "explicitFxProfiles": [
       4,
       5
@@ -37,5 +37,24 @@
       3
     ],
     "unknownCurrencyRejected": true
+  },
+  "ciSource": "770c1e91de1f24b85f718a661bdcacc97e688e58",
+  "ciRuns": [
+    42263586225,
+    42263577462
+  ],
+  "sqlScope": "Independent read-only before/after observations; DDL=0, DML=0, new permissions=0",
+  "installation": {
+    "source": "770c1e91de1f24b85f718a661bdcacc97e688e58",
+    "packageSha256": "adea4bafeee5dfa380f810b944c0a305414e2eb760b2fcf3a1c94a6b5fb3652b",
+    "schemaVersion": 4,
+    "sources": 225,
+    "helpers": 5,
+    "assets": 3,
+    "all33BusinessTablesAndFullMetadataIdentical": true,
+    "syntheticTestDataPresent": true,
+    "finalEmptyBusinessDelivery": false,
+    "v5Installed": false,
+    "invoice13Cancelled": false
   }
 }
