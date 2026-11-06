@@ -145,7 +145,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  function bindReadService(service){
   if(!service||typeof service.list!=='function')fail();
   const invoke=name=>async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};
-  return Object.freeze({list:invoke('list'),...(richCards&&typeof service.readProduct==='function'?{readProduct:invoke('readProduct')}:{}),...(richCards&&typeof service.readCustomer==='function'?{readCustomer:invoke('readCustomer')}:{}),...(richCards&&typeof service.readCompanyRates==='function'?{readCompanyRates:invoke('readCompanyRates')}:{})});
+  return Object.freeze({list:invoke('list'),...(richCards&&typeof service.readProduct==='function'?{readProduct:invoke('readProduct')}:{}),...(richCards&&typeof service.readCustomer==='function'?{readCustomer:invoke('readCustomer')}:{}),...(richCards&&typeof service.readCompanyRates==='function'?{readCompanyRates:invoke('readCompanyRates')}:{}),...(richCards&&typeof service.readProductBarcode==='function'?{readProductBarcode:invoke('readProductBarcode')}:{})});
  }
  function bindSaleService(service){
   if(!service||typeof service.sell!=='function')fail();
