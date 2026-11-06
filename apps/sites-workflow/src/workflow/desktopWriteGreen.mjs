@@ -47,7 +47,7 @@ async function show(page,number,search){if(!core.getUser())return login();if(pag
   root.querySelectorAll('[data-open-customer]').forEach(button=>button.addEventListener('click',async()=>{
    if(!core.can('customers'))return;if(mounted?.requestClose&&!mounted.requestClose()){const status=view.querySelector('[role="status"]');if(status)status.textContent='Önce müşteri formunu kaydedin veya Vazgeç ile kapatın.';return;}dispose();const formRoot=view.querySelector('[data-form]');
    const selection=mountSequence;let accountController=null;try{if(core.can('customers','edit'))accountController=await core.customerAccount();}catch{/* Read-only card remains available; no account request is created. */}if(current!==sequence||selection!==mountSequence||mounted)return;
-   mounted=mountDesktopCustomerCard({root:formRoot,customerId:button.dataset.openCustomer,load:id=>core.customerCard(id),accountController,onClose:()=>{dispose();formRoot.innerHTML='';},onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');}});
+   mounted=mountDesktopCustomerCard({root:formRoot,customerId:button.dataset.openCustomer,load:id=>core.customerCard(id),loadSales:(id,accountId,page)=>core.customerAccountSales(id,accountId,page),accountController,onClose:()=>{dispose();formRoot.innerHTML='';},onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');}});
   }));
   root.querySelectorAll('[data-open-product]').forEach(button=>button.addEventListener('click',()=>{
    if(!core.can('products','edit'))return;dispose();const formRoot=view.querySelector('[data-form]');

@@ -11,6 +11,8 @@ import {desktopAvailableStock,isDesktopStockAvailability} from '../../../../pack
 import {isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
 import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {readDesktopCompanyRates} from './desktopCompanyRateRead.mjs';
+import {readDesktopAccountSales} from './desktopAccountSalesRead.mjs';
+import {desktopAccountSalesPage} from '../../../../packages/shared/src/desktopAccountSales.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const reservedSql=product=>`(SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(r.quantity),0))) FROM dbo.desktop_sale_reservations r WITH(HOLDLOCK,INDEX(IX_desktop_active_reservations)) WHERE r.product_id=${product} AND r.state='ACTIVE') reservedExact3`;
@@ -128,6 +130,9 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    if(!isDesktopProductCard(card,productId))fail();
    await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readCustomerAccountSales(actorId,customerId,accountId,{page=1}={}){
+  if(!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();const data=await readDesktopAccountSales({sql,transaction:tx,customerId,accountId,page});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomer(actorId,customerId,{includeSales=false}={}){
   if(!richCards||!validId(actorId)||!validId(customerId)||typeof includeSales!=='boolean')fail();
   const tx=new sql.Transaction(pool);let begun=false;
