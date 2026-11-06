@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {productRejectionRecord,productRejectionOutcome} from '../../../api/src/services/desktopProductRejection.mjs';
 import {createDesktopWriteGreenCore} from './desktopWriteGreenCore.mjs';
 const memory=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 function fixture(perms=['customer.view','customer.edit','product.view']){
@@ -27,6 +28,19 @@ test('view-only session cannot create; server list failures never become empty d
 test('restored current account uses server result and logout invalidates existing controller',async()=>{
  const {core,deps}=fixture();await core.login('normal','secret');const writer=core.create('customers');const fresh=createDesktopWriteGreenCore(deps);assert.equal((await fresh.restore()).username,'normal');await core.logout();
  await assert.rejects(writer.create({customerCode:'A',name:'Ada',phone:'555',customerType:'customer',currency:'TRY',city:null,country:null}));
+});
+
+test('normal green-core facade restores durable product rejection fields and revokes draft access on logout',async()=>{
+ const {deps}=fixture(['product.view','product.edit','supplier.view']);deps.richCards=true;
+ const original=deps.fetch;deps.fetch=async(url,opts)=>{
+  if(url.endsWith('/api/desktop-local/products')){const p=JSON.parse(opts.body),data=productRejectionOutcome(productRejectionRecord(p.requestId,'PRODUCT_BARCODE_IN_USE'),false);return {status:409,ok:false,json:async()=>({success:false,data,error:{code:data.reason}})};}
+  return original(url,opts);
+ };
+ const core=createDesktopWriteGreenCore(deps);await core.login('normal','secret');
+ const input={stockCode:'P1',name:'Ürün',brand:'B',category:'C',supplierId:'9',barcode:'0001',unit:'ADET',currency:'TRY',salePriceExact4:'12.0000',purchasePriceExact4:'8.0000',purchaseDiscountRateExact4:'0.0000',saleTier:null};
+ const writer=core.create('products');assert.equal((await writer.create(input)).state,'NOT_COMMITTED');assert.equal(writer.pending(),null);assert.equal(writer.draft().supplierId,'9');
+ const fresh=createDesktopWriteGreenCore(deps);await fresh.restore();const restored=fresh.create('products');assert.deepEqual(restored.draft(),{requestId:deps.newId(),...input});assert.equal(restored.rejected().reason,'PRODUCT_BARCODE_IN_USE');
+ await fresh.logout();assert.throws(()=>restored.draft());assert.throws(()=>restored.rejected());
 });
 test('foreign origin fails before dispatch',()=>{const {deps}=fixture();deps.location.origin='https://example.com';assert.throws(()=>createDesktopWriteGreenCore(deps));});
 test('server search preserves Turkish text and leading-zero product/customer codes',async()=>{

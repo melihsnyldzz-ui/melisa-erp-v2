@@ -36,7 +36,9 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   const submit=kind==='customers'?createDesktopLocalCustomerTransport({location,fetch:fetchImpl,tokenProvider}):kind==='suppliers'?createDesktopLocalSupplierTransport({location,fetch:fetchImpl,tokenProvider}):createDesktopLocalProductTransport({location,fetch:fetchImpl,tokenProvider});
   const options={actorId:id,storage:localStorage,locks,newId,submit,richCards},controller=kind==='customers'?createDesktopCustomerCreate(options):kind==='suppliers'?createDesktopSupplierCreate(options):createDesktopProductCreate(options);
   const current=()=>{if(prior!==generation||!user||actorId(user.id)!==id||!user.permissions.includes(permission)||!token)fail();};
-  return Object.freeze({pending:()=>{current();return controller.pending();},create:async fields=>{current();if(richCards&&kind==='products'&&!user.permissions.includes('supplier.view'))fail();if(kind==='suppliers'&&!user.permissions.includes('supplier.view'))fail();return controller.create(fields);},retry:async()=>{current();return controller.retry();}});
+  return Object.freeze({pending:()=>{current();return controller.pending();},
+   ...(kind==='products'?{draft:()=>{current();return controller.draft();},rejected:()=>{current();return controller.rejected();}}:{}),
+   create:async fields=>{current();if(richCards&&kind==='products'&&!user.permissions.includes('supplier.view'))fail();if(kind==='suppliers'&&!user.permissions.includes('supplier.view'))fail();return controller.create(fields);},retry:async()=>{current();return controller.retry();}});
  }
  function sale(){
   if(!can('sales'))fail();const actor=actorId(user.id),prior=generation;
