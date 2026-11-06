@@ -32,3 +32,7 @@ test('foreign origin fails before dispatch',()=>{const {deps}=fixture();deps.loc
 test('server search preserves Turkish text and leading-zero product/customer codes',async()=>{
  const {core,calls}=fixture();await core.login('normal','secret');await core.list('customers',2,'0089 Şule');assert.match(calls.at(-1).url,/search=0089%20%C5%9Eule$/);await assert.rejects(core.list('customers',2,'bad\nquery'));
 });
+
+test('supplier creation and rich product require supplier view as well as edit authority',async()=>{
+ const a=fixture(['supplier.edit','product.edit']);const core=createDesktopWriteGreenCore({...a.deps,richCards:true});await core.login('normal','secret');const supplier=core.create('suppliers');await assert.rejects(supplier.create({supplierCode:'S',name:'N',phone:'1',city:'A',country:'B',currency:'TRY',purchaseDiscountRateExact4:'0.0000'}));const product=core.create('products');await assert.rejects(product.create({stockCode:'P',name:'N',barcode:'1',unit:'ADET',currency:'TRY',salePriceExact4:'1.0000',purchasePriceExact4:'1.0000',purchaseDiscountRateExact4:'0.0000',saleTier:null,brand:'B',category:'C',supplierId:'1'}));assert.equal(a.calls.filter(x=>x.url.includes('desktop-local')).length,0);
+});

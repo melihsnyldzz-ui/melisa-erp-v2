@@ -21,8 +21,9 @@ function ownObject(value,required,optional){
  if(keys.some(k=>typeof k!=='string'||![...required,...optional].includes(k)||!desc[k].enumerable||!Object.hasOwn(desc[k],'value'))||required.some(k=>!Object.hasOwn(desc,k)))return null;
  return Object.fromEntries(keys.map(k=>[k,desc[k].value]));
 }
-function adapt(input,kind){
- const customer=kind==='customer';const x=ownObject(input,customer?customerRequired:productRequired,customer?customerOptional:productOptional);
+function adapt(input,kind,richCards){
+ if(kind==='supplier')return ownObject(input,['requestId','supplierCode','name','phone','city','country','currency','purchaseDiscountRateExact4'],[]);
+ const customer=kind==='customer';const x=ownObject(input,customer?customerRequired:productRequired,customer?customerOptional:[...productOptional,...(richCards?['brand','category','supplierId']:[])]);
  if(!x)return null;const legacy=customer?'customerName':'productName';
  // Exactly one spelling: refuse accidental overwrite or undisclosed data loss.
  if(Object.hasOwn(x,'name')===Object.hasOwn(x,legacy))return null;
@@ -32,6 +33,12 @@ function adapt(input,kind){
 function trustedLocal(req){return ['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)
  &&req.get('host')==='127.0.0.1:4294'&&req.get('origin')==='http://127.0.0.1:5294'&&req.is('application/json')&&Object.keys(req.query||{}).length===0;}
 function committedEntity(value,kind,input){
+ if(kind==='supplier'){
+  const s=ownObject(value,['kind','id','entityId','selectedCurrency','accounts'],[]);
+  if(!s||s.kind!=='local'||!persistedId(s.id)||!persistedId(s.entityId)||s.selectedCurrency!==input.currency||!Array.isArray(s.accounts)||s.accounts.length!==1)return false;
+  const a=ownObject(s.accounts[0],['id','supplierId','currency','currentBalanceExact8'],[]);
+  return !!a&&persistedId(a.id)&&a.supplierId===s.id&&a.currency===input.currency&&a.currentBalanceExact8==='0.00000000';
+ }
  if(kind==='customer'){
   const c=ownObject(value,['kind','id','entityId','selectedCurrency','accounts'],[]);
   if(!c||c.kind!=='local'||!persistedId(c.id)||!persistedId(c.entityId)||c.selectedCurrency!==input.currency||!Array.isArray(c.accounts)||c.accounts.length!==1)return false;
@@ -56,7 +63,8 @@ export const DESKTOP_LOCAL_MASTER_ROUTES_LIMITS=Object.freeze({sourceOnly:true,r
 // not a production readiness check; the writer rechecks the same authority
 // and locks it within the transaction. Errors for a valid UUID are UNKNOWN,
 // because a previous same-UUID request may already have committed.
-export function createDesktopLocalMasterRoutes({service,authenticateNormal}={}){
+export function createDesktopLocalMasterRoutes({service,authenticateNormal,richCards=false}={}){
+ if(typeof richCards!=='boolean'||richCards&&typeof service?.createSupplier!=='function')fail();
  if(!service||typeof service.createCustomer!=='function'||typeof service.createProduct!=='function'||typeof authenticateNormal!=='function')fail();
  const router=Router({caseSensitive:true,strict:true});
  function handler(kind){return async(req,res)=>{
@@ -66,15 +74,16 @@ export function createDesktopLocalMasterRoutes({service,authenticateNormal}={}){
   if(typeof requestId!=='string'||!uuid.test(requestId))return res.status(400).json({success:false,error:{code:'REQUEST_ID_INVALID'}});
   const uncertain=()=>res.status(503).json({success:false,data:unknown(requestId),error:{code:'LOCAL_REQUEST_UNKNOWN'}});
   if(!trustedLocal(req))return uncertain();
-  const input=adapt(req.body,kind);if(!input)return uncertain();
+  const input=adapt(req.body,kind,richCards);if(!input)return uncertain();
   let session;try{session=await authenticateNormal(req);}catch{return uncertain();}
-  const actor=id(session?.userId),permission=kind==='customer'?'customer.edit':'product.edit';
+  const actor=id(session?.userId),permission={customer:'customer.edit',product:'product.edit',supplier:'supplier.edit'}[kind];
   if(!actor||session?.kind!=='normal'||!Array.isArray(session.permissions)||!session.permissions.includes(permission))return uncertain();
-  let result;try{result=await (kind==='customer'?service.createCustomer(actor,input):service.createProduct(actor,input));}catch{return uncertain();}
-  if(!result||result.state!=='COMMITTED'||result.requestId!==requestId||result.operation!==(kind==='customer'?'customer.create':'product.create')||typeof result.replayed!=='boolean'||!committedEntity(result.entity,kind,input))return uncertain();
+  let result;try{result=await service[{customer:'createCustomer',product:'createProduct',supplier:'createSupplier'}[kind]](actor,input);}catch{return uncertain();}
+  if(!result||result.state!=='COMMITTED'||result.requestId!==requestId||result.operation!==kind+'.create'||typeof result.replayed!=='boolean'||!committedEntity(result.entity,kind,input))return uncertain();
   return res.status(result.replayed===true?200:201).json({success:true,data:result});
  };}
  router.post('/api/desktop-local/customers',handler('customer'));
  router.post('/api/desktop-local/products',handler('product'));
+ if(richCards)router.post('/api/desktop-local/suppliers',handler('supplier'));
  return router;
 }

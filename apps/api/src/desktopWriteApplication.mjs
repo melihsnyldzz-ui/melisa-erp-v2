@@ -4,7 +4,7 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
-import {getDesktopWritePool} from './config/desktopWriteTlsConnector.mjs';
+import {getDesktopWritePool,getDesktopWriteProfile} from './config/desktopWriteTlsConnector.mjs';
 import {createDesktopWriteAuthCore} from './services/desktopWriteAuthCore.mjs';
 import {createDesktopLocalMasterSqlStore} from './services/desktopLocalMasterSqlStore.mjs';
 import {createLocalMasterTransactions} from './services/localMasterTransactions.mjs';
@@ -27,11 +27,12 @@ export const DESKTOP_WRITE_APPLICATION_LIMITS=Object.freeze({sourceOnly:true,lis
 
 export function createDesktopWriteApplication({connector,tokenKey}={}){
  const pool=getDesktopWritePool(connector);
- const auth=createDesktopWriteAuthCore({pool,sql,tokenKey});
- const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession});
- const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure});
+ const richCards=getDesktopWriteProfile(connector)==='desktop-master-v3';
+ const auth=createDesktopWriteAuthCore({pool,sql,tokenKey,richCards});
+ const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession,richCards});
+ const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure,richCards});
  const service=auth.bindService(coordinator);
- const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession}));
+ const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession,richCards}));
  const workflowService=createDesktopSaleWorkflowService({connector,auth});
  const draftService=createDesktopWorkflowDraftService({connector,auth});
  const dispatchService=createDesktopWorkflowDispatchService({connector,auth});
@@ -53,7 +54,7 @@ export function createDesktopWriteApplication({connector,tokenKey}={}){
  app.post('/api/auth/logout',async(req,res)=>{try{if(req.get('origin')!==ORIGIN)return reject(res);await auth.logout(req);return res.json({success:true,data:{loggedOut:true}});}catch{return reject(res,401);}});
  app.get('/api/auth/me',auth.bind,async(req,res)=>{try{const data=await auth.me(req);return res.json({success:true,data});}catch{return reject(res,401);}});
  app.use('/api/desktop-local',auth.bind);
- app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal}));
+ app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal,richCards}));
  app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts'],auth.bind);
  app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));
  app.use('/api/desktop-sale/workflows',auth.bind);
@@ -63,5 +64,5 @@ export function createDesktopWriteApplication({connector,tokenKey}={}){
  app.use(createDesktopSaleWorkflowRoutes({service:workflowService,draftService,dispatchService,readService:workflowReadService,resolutionService,authenticateNormal:auth.authenticateNormal}));
  app.use((_req,res)=>reject(res,404));
  app.use((error,_req,res,next)=>{if(res.headersSent)return next(error);return reject(res,400);});
- return Object.freeze({app,closeSessions:auth.close,profile:'desktop-write-v2'});
+ return Object.freeze({app,closeSessions:auth.close,profile:richCards?'desktop-master-v3':'desktop-write-v2'});
 }

@@ -6,7 +6,7 @@ import http from 'node:http';
 import bcrypt from 'bcrypt';
 
 function fakeDatabase(passwordHash){
- let state={customers:[],entities:[],accounts:[],products:[],units:[],barcodes:[],prices:[],links:[],audit:[],stockMovements:[],journal:{},seq:0};
+ let state={customers:[],suppliers:[],entities:[],accounts:[],products:[],units:[],barcodes:[],prices:[],links:[],audit:[],stockMovements:[],journal:{},seq:0};
  let loseNextWriteAcknowledgement=false;
  const user={id:'7',username:'normal',displayName:'Normal',passwordHash,roleId:'2',roleCode:'employee',roleName:'Employee',userActive:true,roleActive:true,userVersion:'0x0000000000000001',roleVersion:'0x0000000000000002'};
  const permissions=['customer.edit','product.edit','customer.view','product.view','supplier.view'].map(permission_key=>({permission_key,can_view:true,can_create:true,can_update:false,can_delete:false,can_approve:false}));
@@ -25,7 +25,9 @@ function fakeDatabase(passwordHash){
    if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[customers]'))return one({total:String(d.customers.length)});
    if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[products]'))return one({total:String(d.products.length)});
    if(statement.includes('OFFSET @offset')&&statement.includes('FROM dbo.[customers]'))return rows(d.customers.slice(p.offset,p.offset+p.limit).map(c=>({id:c.id,customerCode:c.code,customerName:c.name,phone:c.phone,city:c.city,country:c.country,currency:c.currency,customerType:c.kind,balanceExact4:'0.0000'})));
-   if(statement.includes('OFFSET @offset')&&statement.includes('FROM dbo.[products]'))return rows(d.products.slice(p.offset,p.offset+p.limit).map(x=>({id:x.id,stockCode:x.code,productName:x.name,unit:x.unit,currency:x.currency,currentStockExact3:x.stock,salePriceExact4:x.sale})));
+   if(statement.includes('OFFSET @offset')&&statement.includes('FROM dbo.[products]'))return rows(d.products.slice(p.offset,p.offset+p.limit).map(x=>({id:x.id,stockCode:x.code,productName:x.name,unit:x.unit,currency:x.currency,currentStockExact3:x.stock,salePriceExact4:x.sale,...(statement.includes('supplier_id) supplierId')?{brand:x.brand??null,category:x.category??null,supplierId:x.supplier??null,supplierName:d.suppliers.find(s=>s.id===x.supplier)?.name??null}:{})})));
+   if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[suppliers]'))return one({total:String(d.suppliers.filter(x=>!statement.includes('is_active=1')||x.active).length)});
+   if(statement.includes('OFFSET @offset')&&statement.includes('FROM dbo.[suppliers]'))return rows(d.suppliers.filter(x=>!statement.includes('is_active=1')||x.active).slice(p.offset,p.offset+p.limit).map(x=>({id:x.id,supplierCode:x.code,supplierName:x.name,phone:x.phone,city:x.city,country:x.country,currency:x.currency})));
    if(statement.includes('FROM dbo.users u WITH(UPDLOCK,HOLDLOCK)')){
     if(statement.includes('p.permission_key'))return one({id:user.id});
     return rows(p.username===user.username||p.userId===user.id?[{...user}]:[]);
@@ -43,14 +45,19 @@ function fakeDatabase(passwordHash){
     const x=d.journal[p.request];return rows(x?[{requestId:x.requestId,operation:x.operation,actorId:x.actorId,payloadHash:x.payloadHash,response_json:x.responseJson}]:[]);
    }
    if(statement.includes('INSERT dbo.customers')){this.tx.dirty=true;const id=newid(this.tx);d.customers.push({id,code:p.code,name:p.name,phone:p.phone,city:p.city,country:p.country,kind:p.kind,currency:p.currency,entityId:null});return one({id});}
+   if(statement.includes('INSERT dbo.suppliers')){this.tx.dirty=true;const id=newid(this.tx);d.suppliers.push({id,code:p.code,name:p.name,phone:p.phone,city:p.city,country:p.country,currency:p.currency,discount:p.discount,entityId:null,active:true});return one({id});}
    if(statement.includes('INSERT dbo.party_entities')){this.tx.dirty=true;const id=newid(this.tx);d.entities.push({id,role:p.role,name:p.name,country:p.country});return one({id});}
    if(statement.includes('UPDATE dbo.customers SET party_entity_id=')){this.tx.dirty=true;const x=d.customers.find(v=>v.id===p.customer);if(!x||x.entityId!==null)return one({changed:0});x.entityId=p.entity;return one({changed:1});}
-   if(statement.includes('INSERT dbo.party_currency_accounts')){this.tx.dirty=true;const id=newid(this.tx);d.accounts.push({id,customer:p.customer,entity:p.entity,currency:p.currency,balance:p.balance});return one({id});}
+   if(statement.includes('UPDATE dbo.suppliers SET party_entity_id=')){this.tx.dirty=true;const x=d.suppliers.find(v=>v.id===p.supplier);if(!x||x.entityId!==null)return one({changed:0});x.entityId=p.entity;return one({changed:1});}
+   if(statement.includes('INSERT dbo.party_currency_accounts')){this.tx.dirty=true;const id=newid(this.tx);d.accounts.push({id,customer:p.customer??null,supplier:p.supplier??null,entity:p.entity,currency:p.currency,balance:p.balance});return one({id});}
+   if(statement.includes('FROM dbo.suppliers s JOIN dbo.party_entities')){const s=d.suppliers.find(v=>v.id===p.supplier),e=d.entities.find(v=>v.id===p.entity),a=d.accounts.find(v=>v.id===p.account);if(!s||!e||!a||s.entityId!==e.id||a.entity!==e.id)return rows([]);return one({s_id:s.id,s_entity:s.entityId,s_currency:s.currency,s_code:s.code,s_name:s.name,s_phone:s.phone,s_city:s.city,s_country:s.country,s_discount:s.discount,s_balance:'0.0000',s_active:s.active,s_deleted:false,e_id:e.id,e_role:e.role,e_name:e.name,e_country:e.country,a_id:a.id,a_entity:a.entity,a_customer:a.customer,a_supplier:a.supplier,a_currency:a.currency,a_balance:a.balance});}
+   if(statement.includes('FROM dbo.suppliers WITH(UPDLOCK,HOLDLOCK)')){const s=d.suppliers.find(v=>v.id===p.supplier);return rows(s?[{id:s.id,isActive:s.active,isDeleted:false}]:[]);}
    if(statement.includes('FROM dbo.customers c JOIN dbo.party_entities')){
     const c=d.customers.find(v=>v.id===p.customer),e=d.entities.find(v=>v.id===p.entity),a=d.accounts.find(v=>v.id===p.account);if(!c||!e||!a||c.entityId!==e.id||a.entity!==e.id)return rows([]);
     return one({c_id:c.id,c_entity:c.entityId,c_currency:c.currency,c_code:c.code,c_name:c.name,c_phone:c.phone,c_city:c.city,c_country:c.country,c_type:c.kind,e_id:e.id,e_role:e.role,e_name:e.name,e_country:e.country,a_id:a.id,a_entity:a.entity,a_customer:a.customer,a_supplier:null,a_currency:a.currency,a_balance:a.balance});
    }
-   if(statement.includes('INSERT dbo.products')){this.tx.dirty=true;const id=newid(this.tx);d.products.push({id,code:p.code,name:p.name,unit:p.unit,currency:p.currency,sale:p.sale,purchase:p.purchase,discount:p.discount,cost:p.cost,stock:p.stock});return one({id});}
+   if(statement.includes('INSERT dbo.products')){this.tx.dirty=true;const id=newid(this.tx);d.products.push({id,code:p.code,name:p.name,unit:p.unit,currency:p.currency,sale:p.sale,purchase:p.purchase,discount:p.discount,cost:p.cost,stock:p.stock,brand:p.brand,category:p.category,supplier:p.supplier});return one({id});}
+   if(statement.includes('SELECT brand,category,CONVERT')){const x=d.products.find(v=>v.id===p.product);return rows(x?[{brand:x.brand,category:x.category,supplierId:x.supplier}]:[]);}
    if(statement.includes('INSERT dbo.stock_movements')){this.tx.dirty=true;const id=newid(this.tx);d.stockMovements.push({id,...p});return one({id});}
    if(statement.includes('FROM dbo.stock_movements WHERE id=')){const m=d.stockMovements.find(v=>v.id===p.movement&&v.product===p.product);return m?one({id:m.id,productId:m.product,actorId:m.actor,quantityInExact3:m.quantity,quantityOutExact3:'0.000',quantityNetExact3:m.quantity,unitCostTryExact4:m.cost,unitPriceExact4:m.price,amountTryExact4:m.amount,documentDate:m.date,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:String(d.stockMovements.filter(v=>v.product===p.product).length)}):rows([]);}
    if(statement.includes('INSERT dbo.desktop_local_product_units')){this.tx.dirty=true;const id=newid(this.tx);d.units.push({id,product:p.product,label:p.label,factor:p.factor});return one({id});}
@@ -67,14 +74,15 @@ function fakeDatabase(passwordHash){
    throw Error('Unexpected synthetic SQL');
   }
  }
- return {pool:{},sql:{Transaction,Request,NVarChar:()=>({}),VarBinary:()=>({}),Decimal:()=>({}),BigInt:{},Int:{},MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}},snapshot:()=>structuredClone(state),loseAck:()=>{loseNextWriteAcknowledgement=true;}};
+ return {pool:{},sql:{Transaction,Request,NVarChar:()=>({}),VarBinary:()=>({}),Decimal:()=>({}),BigInt:{},Int:{},MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}},snapshot:()=>structuredClone(state),loseAck:()=>{loseNextWriteAcknowledgement=true;},addSupplierPermission:()=>{permissions.push({permission_key:'supplier.edit',can_view:true,can_create:true,can_update:false,can_delete:false,can_approve:false});},setSupplierActive:(id,active)=>{state.suppliers.find(s=>s.id===id).active=active;}};
 }
 
 test('verified-provider assembly: normal login, customer, product and same-request recovery through actual HTTP routes',async t=>{
- const passwordHash=await bcrypt.hash('test-test',12),db=fakeDatabase(passwordHash),connector={};
+ const passwordHash=await bcrypt.hash('test-test',12),db=fakeDatabase(passwordHash),connector={},v3connector={};
  t.mock.module('mssql',{exports:{default:db.sql}});
- t.mock.module('./config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:value=>{if(value!==connector)throw Error('forged connector');return db.pool;}}});
+ t.mock.module('./config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:value=>{if(value!==connector&&value!==v3connector)throw Error('forged connector');return db.pool;},getDesktopWriteProfile:value=>{if(value===connector)return 'desktop-write-v2';if(value===v3connector)return 'desktop-master-v3';throw Error('forged connector');}}});
  const {createDesktopWriteApplication}=await import('./desktopWriteApplication.mjs');
+ assert.throws(()=>createDesktopWriteApplication({connector:{},tokenKey:Buffer.alloc(48,8)}));
  const runtime=createDesktopWriteApplication({connector,tokenKey:Buffer.alloc(48,8)});
  const server=await new Promise((resolve,reject)=>{const s=runtime.app.listen(0,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
  t.after(()=>new Promise(resolve=>server.close(resolve)));
@@ -87,6 +95,7 @@ test('verified-provider assembly: normal login, customer, product and same-reque
  const replay=await post('/api/desktop-local/customers',customer,token);assert.equal(replay.status,200);assert.equal(replay.body.data.replayed,true);assert.equal(db.snapshot().customers.length,1);
  const conflict=await post('/api/desktop-local/customers',{...customer,city:'Bursa'},token);assert.equal(conflict.status,503);assert.equal(conflict.body.data.state,'UNKNOWN');assert.equal(db.snapshot().customers.length,1);
  const product={requestId:'6508625b-b648-421b-b7b9-35d4be7c7263',stockCode:'P1',name:'Ürün',barcode:'000123',unit:'ADET',currency:'TRY',salePriceExact4:'10.0000',purchasePriceExact4:'5.3000',purchaseDiscountRateExact4:'0.0000',saleTier:1};
+ const legacyCustomer={requestId:'da171000-6f42-4f19-8cab-9f4539618648',customerCode:'OLD',name:'Eski',phone:'555',customerType:'customer',currency:'TRY'};
  const created=await post('/api/desktop-local/products',product,token);assert.equal(created.status,201);const state=db.snapshot();
  assert.equal(state.products.length,1);assert.equal(state.products[0].cost,'5.3000');assert.equal(state.barcodes[0].code,'000123');assert.equal(state.prices[0].price,'10.00000000');assert.equal(state.links.length,1);
  const customers=await get('/api/customers',token);assert.equal(customers.status,200);assert.equal(customers.body.data[0].customerName,'Örnek');assert.equal(customers.body.data[0].city,'Yalova');
@@ -103,5 +112,29 @@ test('verified-provider assembly: normal login, customer, product and same-reque
  const ui=createDesktopWriteGreenCore({location:{origin:'http://127.0.0.1:5294'},fetch:browserFetch,sessionStorage:mem(),localStorage:mem(),locks:{request:async(_k,_o,cb)=>cb({})},newId:()=> '0be46102-a9bc-4de0-ad5f-02cf160005c4'});
  await ui.login('normal','test-test');assert.equal(ui.can('customers','edit'),true);assert.equal((await ui.list('customers')).data[0].customerName,'Örnek');
  const uiCreated=await ui.create('customers').create({customerCode:'M2',name:'Ece',phone:'123',customerType:'customer',currency:'TRY',city:'Ankara',country:'Türkiye'});assert.equal(uiCreated.state,'COMMITTED');assert.equal((await ui.list('customers')).data.length,2);await ui.logout();
+ assert.equal((await post('/api/desktop-local/customers',legacyCustomer,token)).status,201);
  assert.equal(runtime.closeSessions(),true);
+ // A separately assembled V3 runtime shares only this synthetic database.
+ const v3=createDesktopWriteApplication({connector:v3connector,tokenKey:Buffer.alloc(48,9)});
+ const server3=await new Promise((resolve,reject)=>{const s=v3.app.listen(0,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
+ t.after(()=>new Promise(resolve=>server3.close(resolve)));
+ const request3=(method,path,body,token3)=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server3.address().port,path,method,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294','content-type':'application/json',...(token3?{authorization:'Bearer '+token3}:{})}},res=>{const chunks=[];res.on('data',v=>chunks.push(v));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks).toString())}));});req.on('error',reject);req.end(body===undefined?undefined:JSON.stringify(body));});
+ const login3=await request3('POST','/api/auth/login',{username:'normal',password:'test-test'});assert.equal(login3.status,200);const token3=login3.body.data.accessToken;
+ const supplier={requestId:'11b46102-a9bc-4de0-ad5f-02cf160005c4',supplierCode:'S1',name:'Tedarikçi',phone:'555',city:'Bursa',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'0.0000'};
+ let r=await request3('POST','/api/desktop-local/suppliers',supplier,token3);assert.ok([403,503].includes(r.status));assert.equal(db.snapshot().suppliers.length,0);
+ db.addSupplierPermission();db.loseAck();r=await request3('POST','/api/desktop-local/suppliers',supplier,token3);assert.equal(r.status,503);assert.equal(r.body.data.state,'UNKNOWN');
+ r=await request3('POST','/api/desktop-local/suppliers',supplier,token3);assert.equal(r.status,200);assert.equal(r.body.data.replayed,true);
+ const supplierRow=db.snapshot().suppliers[0],supplierEntity=db.snapshot().entities.find(x=>x.id===supplierRow.entityId),supplierAccount=db.snapshot().accounts.find(x=>x.supplier===supplierRow.id);
+ assert.equal(db.snapshot().suppliers.length,1);assert.equal(supplierRow.code,'S1');assert.equal(supplierRow.city,'Bursa');assert.equal(supplierRow.country,'Türkiye');assert.equal(supplierEntity.role,'supplier');assert.equal(supplierAccount.entity,supplierEntity.id);assert.equal(supplierAccount.customer,null);assert.equal(supplierAccount.currency,'TRY');assert.equal(supplierAccount.balance,'0.00000000');
+ const richProduct={...product,requestId:'6508625b-b648-421b-b7b9-35d4be7c7265',stockCode:'P3',barcode:'000125',brand:'Marka',category:'Takım',supplierId:supplierRow.id};
+ r=await request3('POST','/api/desktop-local/products',richProduct,token3);assert.equal(r.status,201);
+ const saved=db.snapshot().products.find(x=>x.code==='P3');assert.equal(saved.brand,'Marka');assert.equal(saved.category,'Takım');assert.equal(saved.supplier,supplierRow.id);
+ r=await request3('GET','/api/products',undefined,token3);assert.equal(r.status,200);const listed=r.body.data.find(x=>x.stockCode==='P3');assert.equal(listed.brand,'Marka');assert.equal(listed.category,'Takım');assert.equal(listed.supplierId,supplierRow.id);
+ const before=db.snapshot();r=await request3('POST','/api/desktop-local/customers',{...customer,requestId:'da171000-6f42-4f19-8cab-9f4539618649',city:''},token3);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(db.snapshot().customers.length,before.customers.length);
+ r=await request3('POST','/api/desktop-local/customers',{...customer,requestId:'da171000-6f42-4f19-8cab-9f4539618650',country:''},token3);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(db.snapshot().customers.length,before.customers.length);
+ r=await request3('POST','/api/desktop-local/customers',legacyCustomer,token3);assert.equal(r.status,200);assert.equal(r.body.data.replayed,true);
+ r=await request3('POST','/api/desktop-local/products',product,token3);assert.equal(r.status,200);assert.equal(r.body.data.replayed,true);
+ r=await request3('POST','/api/desktop-local/products',{...product,requestId:'6508625b-b648-421b-b7b9-35d4be7c7266'},token3);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(db.snapshot().products.length,before.products.length);
+ db.setSupplierActive(supplierRow.id,false);r=await request3('POST','/api/desktop-local/products',{...richProduct,requestId:'6508625b-b648-421b-b7b9-35d4be7c7267',stockCode:'P4'},token3);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(db.snapshot().products.length,before.products.length);
+ assert.equal(v3.closeSessions(),true);
 });

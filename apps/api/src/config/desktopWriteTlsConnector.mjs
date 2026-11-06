@@ -5,6 +5,7 @@ import {createHash,X509Certificate} from 'node:crypto';
 import {inspect} from 'node:util';
 import sql from 'mssql';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from './desktopLifecyclePermissionPolicy.mjs';
+import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from './desktopMasterV3Policy.mjs';
 const PIN='dfb05698389659352709765a2109ed82bde543ca552a403e06df652b2cb004d5';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_WRITE_CONNECTOR_REJECTED'),{code:'DESKTOP_WRITE_CONNECTOR_REJECTED'});};
@@ -42,16 +43,20 @@ IF DB_NAME() IS NULL OR DATALENGTH(DB_NAME())<>DATALENGTH(N'MELISA_ERP_DESKTOP_T
  THROW 51995,'DESKTOP_WRITE_CONNECTOR_TARGET_REJECTED',1;
 ${DESKTOP_WRITE_PERMISSION_GUARD_SQL}
 SELECT 1 AS ok;`;
-export async function openDesktopWriteTlsConnector(input){
+export async function openDesktopWriteTlsConnector(input){return openConnector(input,false);}
+export async function openDesktopMasterV3TlsConnector(input){return openConnector(input,true);}
+async function openConnector(input,richCards){
  let pool;
  try{
   const config=createDesktopWriteTlsConfig(input);pool=new sql.ConnectionPool(config);
   Object.freeze(config.options.cryptoCredentialsDetails.ca);Object.freeze(config.options.cryptoCredentialsDetails);Object.freeze(config.options);Object.freeze(config.pool);Object.freeze(config);
   await pool.connect();const tx=new sql.Transaction(pool);let begun=false;
-  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const result=await new sql.Request(tx).query(identitySql);if(!Array.isArray(result?.recordset)||result.recordset.length!==1||result.recordset[0].ok!==1)fail();await tx.commit();begun=false;}
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const statement=richCards?identitySql.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):identitySql;const result=await new sql.Request(tx).query(statement);if(!Array.isArray(result?.recordset)||result.recordset.length!==1||result.recordset[0].ok!==1)fail();await tx.commit();begun=false;}
   finally{if(begun)try{await tx.rollback();}catch{}}
-  const connector=Object.freeze({profile:'desktop-write-v2',transport:'tedious-tls-ca-host'});registered.set(connector,{pool,config});return connector;
+  const profile=richCards?'desktop-master-v3':'desktop-write-v2';
+  const connector=Object.freeze({profile,transport:'tedious-tls-ca-host'});registered.set(connector,{pool,config,profile});return connector;
  }catch{if(pool)try{await pool.close();}catch{}fail();}
 }
 export function getDesktopWritePool(connector){const e=registered.get(connector);if(!e||e.pool.config!==e.config||e.pool.connected!==true)fail();return e.pool;}
+export function getDesktopWriteProfile(connector){getDesktopWritePool(connector);return registered.get(connector).profile;}
 export async function closeDesktopWriteTlsConnector(connector){const e=registered.get(connector);if(!e)fail();registered.delete(connector);await e.pool.close();}

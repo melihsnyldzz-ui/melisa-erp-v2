@@ -5,14 +5,14 @@ const origin='http://127.0.0.1:5294',endpoint='http://127.0.0.1:4294/api/desktop
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const jwt=/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 const keys=['requestId','stockCode','name','barcode','unit','currency','salePriceExact4','purchasePriceExact4','purchaseDiscountRateExact4','saleTier'];
-const optional=['openingQuantityExact3','openingDate'];
+const optional=['openingQuantityExact3','openingDate'], rich=['brand','category','supplierId'];
 const fail=()=>{throw Object.assign(new Error('PRODUCT_TRANSPORT_UNAVAILABLE'),{code:'PRODUCT_TRANSPORT_UNAVAILABLE'});};
 function snapshot(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||![Object.prototype,null].includes(Object.getPrototypeOf(input)))fail();
- const d=Object.getOwnPropertyDescriptors(input),own=Reflect.ownKeys(input),names=optional.some(k=>Object.hasOwn(d,k))?[...keys,...optional]:keys;
+ const d=Object.getOwnPropertyDescriptors(input),own=Reflect.ownKeys(input),names=[...keys,...(optional.some(k=>Object.hasOwn(d,k))?optional:[]),...(rich.some(k=>Object.hasOwn(d,k))?rich:[])];
  if(own.length!==names.length||own.some(k=>typeof k!=='string'||!names.includes(k))||names.some(k=>!d[k]||!d[k].enumerable||!Object.hasOwn(d[k],'value')))fail();
  const body=Object.fromEntries(names.map(k=>[k,d[k].value]));
- if(optional.some(k=>Object.hasOwn(body,k)&&typeof body[k]!=='string'))fail();
+ if([...optional,...rich].some(k=>Object.hasOwn(body,k)&&typeof body[k]!=='string'))fail();
  if(typeof body.requestId!=='string'||!uuid.test(body.requestId)||keys.slice(1,9).some(k=>typeof body[k]!=='string')||
   body.saleTier!==null&&(!Number.isInteger(body.saleTier)||body.saleTier< -2147483648||body.saleTier>2147483647))fail();
  const json=JSON.stringify(body);if(json.length>4096)fail();return {json,body};

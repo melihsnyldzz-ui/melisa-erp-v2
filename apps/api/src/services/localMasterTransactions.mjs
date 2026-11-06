@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {localCustomerIdentity,localProductIdentity} from './localMasterIdentity.mjs';
 import {desktopInitialCostParity,desktopInitialOpeningAmountParity} from './desktopInitialCostParity.mjs';
+import {localSupplierIdentity} from './localSupplierIdentity.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const maxId=9223372036854775807n;
@@ -34,10 +35,10 @@ function initialCost4(currencyCode,purchase,discount){
  // pinned by startup; SQL integration and non-TRY cost are not yet proven.
  return desktopInitialCostParity({currency:currencyCode,purchasePriceExact4:purchase,purchaseDiscountRateExact4:discount});
 }
-function command(input,operation){
- const fields=operation==='customer.create'?['requestId','customerCode','name','phone','customerType','currency']:
-  ['requestId','stockCode','name','barcode','unit','currency','salePriceExact4','purchasePriceExact4','purchaseDiscountRateExact4','saleTier'];
- const optional=operation==='customer.create'?['city','country']:['openingQuantityExact3','openingDate'];
+function command(input,operation,richCards){
+ const fields=operation==='customer.create'?['requestId','customerCode','name','phone','customerType','currency',...(richCards?['city','country']:[])]:operation==='supplier.create'?['requestId','supplierCode','name','phone','city','country','currency','purchaseDiscountRateExact4']:
+  ['requestId','stockCode','name','barcode','unit','currency','salePriceExact4','purchasePriceExact4','purchaseDiscountRateExact4','saleTier',...(richCards?['brand','category','supplierId']:[])];
+ const optional=operation==='customer.create'?(richCards?[]:['city','country']):operation==='supplier.create'?[]:['openingQuantityExact3','openingDate'];
  const descriptors=input&&typeof input==='object'&&!Array.isArray(input)?Object.getOwnPropertyDescriptors(input):null;
  if(!descriptors||![Object.prototype,null].includes(Object.getPrototypeOf(input))||
   Reflect.ownKeys(input).some(k=>typeof k!=='string'||![...fields,...optional].includes(k)||!descriptors[k].enumerable||!Object.hasOwn(descriptors[k],'value'))||
@@ -46,9 +47,11 @@ function command(input,operation){
  if(typeof v.requestId!=='string'||!uuid.test(v.requestId))fail('LOCAL_MASTER_INPUT_INVALID');
  if(operation==='customer.create'){
   if(!['customer','wholesale','retail','mixed'].includes(v.customerType))fail('LOCAL_MASTER_INPUT_INVALID');
+  const city=optionalLocation(v.city),country=optionalLocation(v.country);if(richCards&&(!city||!country))fail('LOCAL_MASTER_INPUT_INVALID');
   return Object.freeze({requestId:v.requestId,customerCode:text(v.customerCode,50),name:text(v.name,250),phone:text(v.phone,40),
-   customerType:v.customerType,currency:currency(v.currency),city:optionalLocation(v.city),country:optionalLocation(v.country)});
+   customerType:v.customerType,currency:currency(v.currency),city,country});
  }
+ if(operation==='supplier.create')return Object.freeze({requestId:v.requestId,supplierCode:text(v.supplierCode,50),name:text(v.name,250),phone:text(v.phone,40),city:text(v.city,100),country:text(v.country,100),currency:currency(v.currency),purchaseDiscountRateExact4:discount4(v.purchaseDiscountRateExact4)});
  if(v.saleTier!==null&&(!Number.isInteger(v.saleTier)||v.saleTier< -2147483648||v.saleTier>2147483647))fail('LOCAL_MASTER_INPUT_INVALID');
  let opening={};if(Object.hasOwn(v,'openingQuantityExact3')||Object.hasOwn(v,'openingDate')){
   if(typeof v.openingQuantityExact3!=='string'||!/^(?:0|[1-9]\d{0,12})\.\d{3}$/.test(v.openingQuantityExact3)||typeof v.openingDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v.openingDate))fail('LOCAL_MASTER_INPUT_INVALID');
@@ -58,7 +61,7 @@ function command(input,operation){
  }
  return Object.freeze({requestId:v.requestId,stockCode:text(v.stockCode,50),name:text(v.name,250),barcode:text(v.barcode,80),
   unit:text(v.unit,20),currency:currency(v.currency),salePriceExact4:money4(v.salePriceExact4),
-  purchasePriceExact4:money4(v.purchasePriceExact4),purchaseDiscountRateExact4:discount4(v.purchaseDiscountRateExact4),saleTier:v.saleTier,...opening});
+  purchasePriceExact4:money4(v.purchasePriceExact4),purchaseDiscountRateExact4:discount4(v.purchaseDiscountRateExact4),saleTier:v.saleTier,...(richCards?{brand:text(v.brand,120),category:text(v.category,120),supplierId:id(v.supplierId)}:{}),...opening});
 }
 const digest=value=>createHash('sha256').update(JSON.stringify(value),'utf8').digest('hex');
 const unknown=requestId=>Object.freeze({state:'UNKNOWN',requestId,retry:'SAME_REQUEST_ONLY',requiresRecovery:true});
@@ -76,8 +79,8 @@ export const LOCAL_MASTER_TRANSACTION_LIMITS=Object.freeze({sqlAdapterImplemente
 // lockAndVerifyAuthority must check target, authenticated current session and
 // actor/permission on this connection and hold the relevant authority stable
 // through commit; the coordinator cannot itself verify this contract.
-export function createLocalMasterTransactions({store,authorize,onFailure=()=>{}}={}){
- if(!store||typeof store.withTransaction!=='function'||typeof authorize!=='function')fail('LOCAL_MASTER_CONFIGURATION_INVALID');
+export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},richCards=false}={}){
+ if(!store||typeof store.withTransaction!=='function'||typeof authorize!=='function'||typeof richCards!=='boolean')fail('LOCAL_MASTER_CONFIGURATION_INVALID');
  async function run(operation,actor,input){
   // For an existing valid request id, invalid input or lost permission cannot
   // prove a previous send was rejected. Never convert that state to a denial.
@@ -85,7 +88,14 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{}}
   const requestId=descriptor&&Object.hasOwn(descriptor,'value')?descriptor.value:null;
   if(typeof requestId!=='string'||!uuid.test(requestId))fail('LOCAL_MASTER_INPUT_INVALID');
   try{
-   const principal=id(actor),payload=command(input,operation),permission=operation==='customer.create'?'customer.edit':'product.edit';
+   let legacyOnly=false;
+   if(richCards&&operation==='product.create'){
+    const present=['brand','category','supplierId'].filter(k=>Object.hasOwn(input,k)).length;if(present!==0&&present!==3)fail('LOCAL_MASTER_INPUT_INVALID');legacyOnly=present===0;
+   }else if(richCards&&operation==='customer.create'){
+    const descriptors=Object.getOwnPropertyDescriptors(input),loc=k=>descriptors[k]&&Object.hasOwn(descriptors[k],'value')?optionalLocation(descriptors[k].value):null;
+    legacyOnly=!loc('city')||!loc('country');
+   }
+   const principal=id(actor),payload=command(input,operation,richCards&&!legacyOnly),permission=operation==='customer.create'?'customer.edit':operation==='supplier.create'?'supplier.edit':'product.edit';
    if(await authorize({actorId:principal,permission})!==true)return unknown(requestId);
    const averageCostTryExact4=operation==='product.create'?initialCost4(payload.currency,payload.purchasePriceExact4,payload.purchaseDiscountRateExact4):null;
    const openingAmountTryExact4=operation==='product.create'&&payload.openingQuantityExact3&&payload.openingQuantityExact3!=='0.000'?desktopInitialOpeningAmountParity({quantityExact3:payload.openingQuantityExact3,costExact4:averageCostTryExact4}):null;
@@ -99,6 +109,9 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{}}
      return {state:'COMMITTED',requestId,operation,replayed:true,entity:reservation.response.entity};
     }
     if(reservation?.state!=='NEW')fail('LOCAL_MASTER_JOURNAL_INVALID');
+    // Legacy v2 payloads can only recover an already committed request. They
+    // never create a new row or acquire a different payload hash during v3.
+    if(legacyOnly)fail('LOCAL_MASTER_LEGACY_NEW_REJECTED');
     let entity;
     if(operation==='customer.create'){
      const customerId=id(await tx.insertCustomer({actorId:principal,...payload}));
@@ -114,8 +127,19 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{}}
       ||e.id!==entityId||e.role!=='customer'||e.name!==payload.name||e.country!==payload.country||a.id!==accountId||a.entityId!==entityId
       ||a.customerId!==customerId||a.supplierId!==null||a.currency!==payload.currency||a.currentBalanceExact8!=='0.00000000')fail('LOCAL_MASTER_CUSTOMER_READBACK_INVALID');
      entity=localCustomerIdentity({customer:{id:c.id,entityId:c.entityId,currency:c.currency},entity:{id:e.id,role:e.role},accounts:[a]});
+    }else if(operation==='supplier.create'){
+     const supplierId=id(await tx.insertSupplier({actorId:principal,...payload}));
+     const entityId=id(await tx.insertPartyEntity({actorId:principal,role:'supplier',name:payload.name,country:payload.country}));
+     await tx.attachSupplierEntity({supplierId,entityId});
+     const accountId=id(await tx.insertSupplierCurrencyAccount({supplierId,entityId,currency:payload.currency,currentBalanceExact8:'0.00000000'}));
+     const rows=rec(await tx.readSupplierPersistence({supplierId,entityId,accountId}),['supplier','entity','account']);
+     const s=rec(rows.supplier,['id','entityId','currency','supplierCode','name','phone','city','country','purchaseDiscountRateExact4','balanceExact4','isActive','isDeleted']);
+     const e=rec(rows.entity,['id','role','name','country']),a=rec(rows.account,['id','entityId','customerId','supplierId','currency','currentBalanceExact8']);
+     if(s.id!==supplierId||s.entityId!==entityId||s.currency!==payload.currency||s.supplierCode!==payload.supplierCode||s.name!==payload.name||s.phone!==payload.phone||s.city!==payload.city||s.country!==payload.country||s.purchaseDiscountRateExact4!==payload.purchaseDiscountRateExact4||s.balanceExact4!=='0.0000'||s.isActive!==true||s.isDeleted!==false||e.id!==entityId||e.role!=='supplier'||e.name!==payload.name||e.country!==payload.country||a.id!==accountId||a.entityId!==entityId||a.customerId!==null||a.supplierId!==supplierId||a.currency!==payload.currency||a.currentBalanceExact8!=='0.00000000')fail('LOCAL_MASTER_SUPPLIER_READBACK_INVALID');
+     entity=localSupplierIdentity({supplier:{id:s.id,entityId:s.entityId,currency:s.currency},entity:{id:e.id,role:e.role},account:a});
     }else{
      const initialStockExact3=payload.openingQuantityExact3??'0.000';
+     if(richCards){const supplier=rec(await tx.lockActiveSupplier({supplierId:payload.supplierId}),['id','isActive','isDeleted']);if(supplier.id!==payload.supplierId||supplier.isActive!==true||supplier.isDeleted!==false)fail('LOCAL_MASTER_SUPPLIER_UNAVAILABLE');}
      const productId=id(await tx.insertProduct({actorId:principal,...payload,averageCostTryExact4,initialStockExact3}));
      const unitId=id(await tx.insertLocalUnit({productId,label:payload.unit,factorExact8:'1.00000000',isMain:true}));
      const barcodeId=id(await tx.insertBarcode({actorId:principal,productId,barcode:payload.barcode}));
@@ -132,6 +156,7 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{}}
      // discount, cost, currency or sales values failed to persist exactly.
      const rows=rec(await tx.readProductPersistence({productId,unitId,barcodeId,priceId}),['product','unit','barcode','price','link']);
      const p=rec(rows.product,['id','stockCode','name','unit','currency','salePriceExact4','purchasePriceExact4','purchaseDiscountRateExact4','averageCostTryExact4','initialStockExact3']);
+     if(richCards){const extra=rec(await tx.readRichProductFields({productId}),['brand','category','supplierId']);if(extra.brand!==payload.brand||extra.category!==payload.category||extra.supplierId!==payload.supplierId)fail('LOCAL_MASTER_PRODUCT_READBACK_INVALID');}
      const u=rec(rows.unit,['id','productId','label','factorExact8','isMain']);
      const b=rec(rows.barcode,['id','productId','barcode','isPrimary','isActive']);
      const q=rec(rows.price,['id','productId','type','tier','currency','priceExact8','sourceUnitId']);
@@ -161,5 +186,5 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{}}
   }catch(error){try{onFailure({requestId,error});}catch{}return unknown(requestId);}
  }
  return Object.freeze({createCustomer:(actor,input)=>run('customer.create',actor,input),
-  createProduct:(actor,input)=>run('product.create',actor,input)});
+  createProduct:(actor,input)=>run('product.create',actor,input),...(richCards?{createSupplier:(actor,input)=>run('supplier.create',actor,input)}:{})});
 }

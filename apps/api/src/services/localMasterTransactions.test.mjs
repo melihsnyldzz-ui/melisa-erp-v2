@@ -5,7 +5,7 @@ import {createLocalMasterTransactions,LOCAL_MASTER_TRANSACTION_LIMITS} from './l
 const customer=()=>({requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerCode:'M1',name:'Örnek',phone:'555',customerType:'customer',currency:'EUR'});
 const product=()=>({requestId:'6508625b-b648-421b-b7b9-35d4be7c7263',stockCode:'P1',name:'Örnek ürün',barcode:'000123',unit:'METRE',currency:'USD',salePriceExact4:'12.2500',purchasePriceExact4:'5.0000',purchaseDiscountRateExact4:'12.5000',saleTier:1});
 function memoryStore(){
- let state={seq:0,rows:{customers:[],entities:[],accounts:[],products:[],units:[],barcodes:[],prices:[],links:[],audit:[],openings:[]},journal:{}};
+ let state={seq:0,rows:{customers:[],suppliers:[],entities:[],accounts:[],products:[],units:[],barcodes:[],prices:[],links:[],audit:[],openings:[]},journal:{}};
  let failAt=null,loseCommit=false,calls=0;
  const add=(draft,table,v)=>{if(failAt===table)throw Error('injected failure');const id=String(++draft.seq);draft.rows[table].push({id,...v});return id;};
  return {
@@ -13,12 +13,19 @@ function memoryStore(){
   async withTransaction(work){
    calls++;const draft=structuredClone(state);
    const tx={
-    async lockAndVerifyAuthority(v){if(failAt==='authority')return false;return v.actorId==='7'&&['customer.edit','product.edit'].includes(v.permission);},
+    async lockAndVerifyAuthority(v){if(failAt==='authority')return false;return v.actorId==='7'&&['customer.edit','product.edit','supplier.edit'].includes(v.permission);},
     async beginRequest(v){const entry=draft.journal[v.requestId];if(entry)return entry.operation===v.operation&&entry.actorId===v.actorId&&entry.payloadHash===v.payloadHash?{state:'REPLAY',response:entry.response}:{state:'CONFLICT'};draft.journal[v.requestId]={...v,response:null};return {state:'NEW'};},
     async insertCustomer(v){if(draft.rows.customers.some(r=>r.customerCode===v.customerCode))throw Error('duplicate');return add(draft,'customers',v);},
     async insertPartyEntity(v){return add(draft,'entities',v);},
     async attachCustomerEntity(v){if(failAt==='attach')throw Error('injected failure');if(failAt!=='attach-noop')draft.rows.customers.find(x=>x.id===v.customerId).entityId=v.entityId;},
     async insertCurrencyAccount(v){return add(draft,'accounts',v);},
+    async insertSupplier(v){if(draft.rows.suppliers.some(r=>r.supplierCode===v.supplierCode))throw Error('duplicate');return add(draft,'suppliers',v);},
+    async attachSupplierEntity(v){if(failAt==='supplier-attach')throw Error('injected');if(failAt!=='supplier-attach-noop')draft.rows.suppliers.find(x=>x.id===v.supplierId).entityId=v.entityId;},
+    async insertSupplierCurrencyAccount(v){return add(draft,'accounts',v);},
+    async readSupplierPersistence({supplierId,entityId,accountId}){const s=draft.rows.suppliers.find(v=>v.id===supplierId),e=draft.rows.entities.find(v=>v.id===entityId),a=draft.rows.accounts.find(v=>v.id===accountId);
+     const value={supplier:{id:s.id,entityId:s.entityId,currency:s.currency,supplierCode:s.supplierCode,name:s.name,phone:s.phone,city:s.city,country:s.country,purchaseDiscountRateExact4:s.purchaseDiscountRateExact4,balanceExact4:'0.0000',isActive:true,isDeleted:false},entity:{id:e.id,role:e.role,name:e.name,country:e.country},account:{id:a.id,entityId:a.entityId,customerId:null,supplierId:a.supplierId,currency:a.currency,currentBalanceExact8:a.currentBalanceExact8}};
+     if(failAt==='supplier-readback')value.account.supplierId='999';if(failAt==='supplier-status-drift')value.supplier.isActive=false;if(failAt==='supplier-balance-drift')value.supplier.balanceExact4='1.0000';return value;},
+    async lockActiveSupplier({supplierId}){const s=draft.rows.suppliers.find(v=>v.id===supplierId);return s?{id:s.id,isActive:failAt!=='supplier-inactive',isDeleted:false}:null;},
     async readCustomerPersistence({customerId,entityId,accountId}){
      const c=draft.rows.customers.find(v=>v.id===customerId),e=draft.rows.entities.find(v=>v.id===entityId),a=draft.rows.accounts.find(v=>v.id===accountId);
      const result={customer:{id:c.id,entityId:c.entityId,currency:c.currency,customerCode:c.customerCode,name:c.name,phone:c.phone,customerType:c.customerType,city:c.city,country:c.country},
@@ -26,6 +33,7 @@ function memoryStore(){
      if(failAt==='customer-entity-drift')result.entity.id='999';if(failAt==='customer-account-drift')result.account.customerId='999';return result;
     },
     async insertProduct(v){if(draft.rows.products.some(r=>r.stockCode===v.stockCode))throw Error('duplicate');return add(draft,'products',v);},
+    async readRichProductFields({productId}){const p=draft.rows.products.find(v=>v.id===productId);return {brand:failAt==='rich-readback'?'wrong':p.brand,category:p.category,supplierId:p.supplierId};},
     async insertOpeningMovement(v){return add(draft,'openings',v);},
     async readOpeningMovement({productId,movementId}){const row=draft.rows.openings.find(v=>v.id===movementId&&v.productId===productId);return {id:row.id,productId:row.productId,actorId:row.actorId,quantityInExact3:row.quantityExact3,quantityOutExact3:'0.000',quantityNetExact3:row.quantityExact3,unitCostTryExact4:row.averageCostTryExact4,unitPriceExact4:row.unitPriceExact4,amountTryExact4:failAt==='opening-readback'?'99.0000':row.amountTryExact4,documentDate:row.documentDate,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'};},
     async insertLocalUnit(v){return add(draft,'units',v);},
@@ -58,6 +66,26 @@ function memoryStore(){
  };
 }
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
+const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
+const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+test('v3 creates supplier entity and currency account once, then binds rich product to the active supplier',async()=>{
+ const s=memoryStore(),svc=rich(s),input=supplier();s.loseCommit();assert.equal((await svc.createSupplier('7',input)).state,'UNKNOWN');const replay=await svc.createSupplier('7',input);assert.equal(replay.state,'COMMITTED');assert.equal(replay.replayed,true);
+ assert.equal(replay.entity.kind,'local');assert.equal(replay.entity.accounts[0].supplierId,replay.entity.id);assert.equal(Object.hasOwn(replay.entity.accounts[0],'customerId'),false);
+ assert.equal((await svc.createSupplier('7',{...input,name:'Farklı'})).state,'UNKNOWN');
+ const p={...product(),brand:'Marka',category:'Takım',supplierId:replay.entity.id};assert.equal((await svc.createProduct('7',p)).state,'COMMITTED');const state=s.snapshot();assert.equal(state.rows.suppliers.length,1);assert.equal(state.rows.products[0].supplierId,replay.entity.id);assert.equal(state.rows.products[0].brand,'Marka');assert.equal(state.rows.products[0].category,'Takım');
+});
+test('v3 requires locations and complete rich product fields; supplier failures and inactive supplier roll back',async()=>{
+ for(const failure of ['suppliers','entities','supplier-attach','supplier-attach-noop','accounts','supplier-readback','supplier-status-drift','supplier-balance-drift','audit','journal-readback']){const s=memoryStore();s.failAt(failure);assert.equal((await rich(s).createSupplier('7',supplier())).state,'UNKNOWN',failure);assert.equal(Object.keys(s.snapshot().journal).length,0);assert.ok(Object.values(s.snapshot().rows).every(x=>x.length===0));}
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();for(const failure of ['supplier-inactive','rich-readback']){s.failAt(failure);assert.equal((await svc.createProduct('7',{...product(),brand:'B',category:'C',supplierId})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);}s.failAt(null);
+ for(const body of [{...customer(),city:'',country:'TR'},{...customer(),city:'İzmir',country:null}])assert.equal((await svc.createCustomer('7',body)).state,'UNKNOWN');
+ assert.equal((await svc.createProduct('7',{...product(),brand:'B'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ assert.throws(()=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:'true'}));
+});
+test('v3 replays matching committed v2 bodies without creating new legacy records',async()=>{
+ for(const [method,body] of [['createCustomer',customer()],['createProduct',product()]]){const s=memoryStore(),old=system(s),current=rich(s);assert.equal((await old[method]('7',body)).state,'COMMITTED');const before=s.snapshot();const replay=await current[method]('7',body);assert.equal(replay.state,'COMMITTED');assert.equal(replay.replayed,true);assert.deepEqual(s.snapshot(),before);
+  const fresh={...body,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647'};assert.equal((await current[method]('7',fresh)).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ }
+});
 test('customer and product commit their linked rows and journal once, preserving chosen units and currencies',async()=>{
  const s=memoryStore(),service=system(s),c=await service.createCustomer('7',customer()),p=await service.createProduct('7',product()),st=s.snapshot();
  assert.equal(c.state,'COMMITTED');assert.equal(c.entity.selectedCurrency,'EUR');

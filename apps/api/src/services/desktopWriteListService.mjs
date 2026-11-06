@@ -1,6 +1,7 @@
 // SOURCE ONLY. Real v2 list queries for the dedicated writer profile. No
 // listener, SQL connection, grants, or mutations are created at import time.
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
+import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const definitions=Object.freeze({
@@ -31,37 +32,42 @@ function options(value){
  if(!Number.isInteger(page)||page<1||page>100000||!Number.isInteger(limit)||limit<1||limit>100||typeof search!=='string'||search.length>100||/[\u0000-\u001f\u007f]/.test(search))fail();
  return {page,limit,search:search.trim()};
 }
-function validateRow(row,kind){
+function validateRow(row,kind,richCards=false){
  if(!row||typeof row!=='object'||!validId(row.id))fail();
  if(kind==='receipts'){
   if(Object.keys(row).sort().join(',')!=='currency,customerName,documentDate,documentNo,id,totalExact4,workflowState'||['documentNo','customerName'].some(k=>typeof row[k]!=='string'||!row[k])||typeof row.documentDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.documentDate)||row.currency!=='TRY'||typeof row.totalExact4!=='string'||!/^(?:0|[1-9]\d*)\.\d{4}$/.test(row.totalExact4)||!['DRAFT','PREPARING','READY','CHECKED','COMPLETED','CANCELLED'].includes(row.workflowState))fail();
   return row;
  }
- const keys=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4']:kind==='customers'?['customerCode','customerName','phone','city','country','currency','customerType','balanceExact4']:['supplierCode','supplierName','phone','city','country','currency'];
+ const keys=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4',...(richCards?['brand','category','supplierId','supplierName']:[])]:kind==='customers'?['customerCode','customerName','phone','city','country','currency','customerType','balanceExact4']:['supplierCode','supplierName','phone','city','country','currency'];
  if(Object.keys(row).sort().join(',')!==['id',...keys].sort().join(','))fail();
  for(const k of keys)if(row[k]!==null&&typeof row[k]!=='string')fail();
  const required=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4']:kind==='customers'?['customerCode','customerName','currency','customerType','balanceExact4']:['supplierCode','supplierName','currency'];
  if(required.some(k=>typeof row[k]!=='string'||row[k].length===0))fail();
  if(kind==='customers'&&!/^-?(?:0|[1-9]\d*)\.\d{4}$/.test(row.balanceExact4))fail();
  if(kind==='products'&&(!/^-?(?:0|[1-9]\d*)\.\d{3}$/.test(row.currentStockExact3)||!/^-?(?:0|[1-9]\d*)\.\d{4}$/.test(row.salePriceExact4)))fail();
+ if(kind==='products'&&richCards&&row.supplierId!==null&&!validId(row.supplierId))fail();
  return row;
 }
 export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMounted:false,requiresVerifiedWriterPool:true,requiresCurrentLockedSession:true,
  sqlExecuted:false,sourceRowsAreLiveLocalOnly:true,noVegaFallback:true,exposesCustomerBalance:true,noFinanceAccountBalances:true,fullErpReady:false});
-export function createDesktopWriteListService({pool,sql,verifySession}={}){
+export function createDesktopWriteListService({pool,sql,verifySession,richCards=false}={}){
+ if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
  return Object.freeze({async list(actorId,kind,input={}){
-  const def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;
+  let def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;
+  if(richCards&&kind==='suppliers')def={...def,baseWhere:'is_deleted=0 AND is_active=1'};
+  if(richCards&&kind==='products')def={...def,select:def.select+',brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName'};
   const tx=new sql.Transaction(pool);let begun=false;
   const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('offset',sql.Int,offset).input('limit',sql.Int,limit);
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
-   const guardResult=await new sql.Request(tx).query(guard);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
+   const statement=richCards?guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):guard;
+   const guardResult=await new sql.Request(tx).query(statement);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
    if(await verifySession({transaction:tx,actorId,permission:def.permission})!==true)fail();
    const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`,where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~')`;
    const count=await request().query(`SELECT CONVERT(varchar(20),COUNT_BIG(*)) total FROM ${from} WHERE ${where};`);
    const raw=count?.recordset;if(!Array.isArray(raw)||raw.length!==1||typeof raw[0].total!=='string'||!/^(0|[1-9]\d{0,15})$/.test(raw[0].total)||BigInt(raw[0].total)>9007199254740991n)fail();
    const result=await request().query(`SELECT ${def.select} FROM ${from} WHERE ${where} ORDER BY ${def.order??def.code+',id'} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`);
-   if(!Array.isArray(result?.recordset)||result.recordset.length>limit)fail();const data=result.recordset.map(row=>validateRow(row,kind));
+   if(!Array.isArray(result?.recordset)||result.recordset.length>limit)fail();const data=result.recordset.map(row=>validateRow(row,kind,richCards));
    const total=Number(raw[0].total),totalPages=Math.max(1,Math.ceil(total/limit));
    if(data.length>total||offset>=total&&data.length!==0)fail();
    await tx.commit();begun=false;return {data,meta:{page,limit,total,totalPages,hasNextPage:page<totalPages,hasPreviousPage:page>1}};

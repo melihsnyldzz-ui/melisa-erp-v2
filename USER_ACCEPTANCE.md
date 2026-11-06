@@ -1,3 +1,7 @@
+## 6 Kasım — ERP06/C06, ERP07/C07 ve ürün kartları; insan kabulü BEKLİYOR
+
+V3 yeni kart kaynakları ve gerçek SQL geri alma denemesi hazır. Kalıcı kurulum ve normal yeşil ekranda tedarikçi/marka/tip/ana tedarikçi kaydı henüz doğrulanmadı; eski insan kabulleri, kişiler, tarihler ve sayaçlar korunur. [Kanıt](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md).
+
 ## 6 Kasım — ERP-UA07 masaüstü boş TEST dilimi; insan kabulü BEKLİYOR
 
 Normal ekranda iki ürünlü TRY satışın taslak, rezerv, koli, son kontrol, çıkış ve listeden tekrar açılması teknik otomasyonla gözlendi. Stok 5/6→4/4, müşteri ve bağlı TRY hesabı 0→50. İkinci hazırlanan taslak iptal edildi; önceki satışın etkileri değişmedi. Gerçek kaynak DB yedeği ayrı izole DB'ye yüklendi; veri ve denetlenen metadata eşliği/CHECKDB ile asıl uygulamanın yeniden açılışı ayrıca doğrulandı. Tek sayfalık A4 PDF incelendi; fiziksel yazıcı test edilmedi.
