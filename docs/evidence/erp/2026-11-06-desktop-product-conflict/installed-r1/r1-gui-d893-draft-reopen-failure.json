@@ -1,0 +1,10 @@
+{
+  "observed": "Normal GUI showed barcode rejection and retained fields; after reload and New card, form was blank. Core facade omitted draft()/rejected() forwarding.",
+  "sqlObservation": "r1-card-after-rejection.json",
+  "rejectionJournalRows": 1,
+  "commercialRowsUnchanged": true,
+  "packageHash": "D893A92B1DDB0DB6924EE44EBCAAD00AC4C4A1782C9B8B78429AE0D27976B098",
+  "time": "2026-11-06T03:01:24.4788452Z",
+  "oldOutcomePreserved": true,
+  "state": "R1_GUI_REJECTION_PASSED_DRAFT_REOPEN_FAILED"
+}

@@ -6,6 +6,10 @@ import {LOCAL_MASTER_RESERVE_SQL,LOCAL_MASTER_FINISH_SQL} from '../../../../scri
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {MASTER_V3_RESERVE_SQL,MASTER_V3_FINISH_SQL} from '../../../../scripts/desktop-empty/master-v3-journal-sql.mjs';
+import {isProductRejectionRecord,isDurableProductRejection} from './desktopProductRejection.mjs';
+import {desktopAdditionalBarcodes} from './desktopProductBarcodes.mjs';
+import {desktopOpeningReason,isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
+import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 
 const LOGIN='melisa_desktop_test_writer_20261105';
 const DATABASE='MELISA_ERP_DESKTOP_TEST_20261105';
@@ -63,6 +67,15 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
      return r?.recordset?.length===1&&r.recordset[0].id===v.actorId;
     },
     async beginRequest(v){const r=await execute(tx,jb(v),journalPrefix+'\n'+(richCards?MASTER_V3_RESERVE_SQL:LOCAL_MASTER_RESERVE_SQL));if(!Array.isArray(r?.recordset)||r.recordset.length>1)fail('LOCAL_SQL_JOURNAL');return r.recordset.length?{state:'REPLAY',response:parse(r.recordset[0].response_json)}:{state:'NEW'};},
+    async findProductConflict(v){
+     const barcodes=[v.barcode,...desktopAdditionalBarcodes(v.barcode,v.additionalBarcodes??[])];
+     const r=await execute(tx,[s('stockCode',v.stockCode,50),s('barcodesJson',JSON.stringify(barcodes),sql.MAX)],`SELECT CASE
+ WHEN EXISTS(SELECT 1 FROM dbo.products WITH(UPDLOCK,HOLDLOCK) WHERE stock_code=@stockCode) THEN N'PRODUCT_STOCK_CODE_IN_USE'
+ WHEN EXISTS(SELECT 1 FROM OPENJSON(@barcodesJson) GROUP BY CONVERT(nvarchar(80),value) COLLATE Turkish_CI_AS HAVING COUNT_BIG(*)>1) THEN N'PRODUCT_BARCODE_DUPLICATE_INPUT'
+ WHEN EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(UPDLOCK,HOLDLOCK) JOIN OPENJSON(@barcodesJson) j ON b.barcode=CONVERT(nvarchar(80),j.value) WHERE b.is_active=1) THEN N'PRODUCT_BARCODE_IN_USE'
+ ELSE NULL END conflictReason;`);
+     const reason=one(r).conflictReason;if(reason!==null&&!['PRODUCT_STOCK_CODE_IN_USE','PRODUCT_BARCODE_IN_USE','PRODUCT_BARCODE_DUPLICATE_INPUT'].includes(reason))fail('LOCAL_SQL_PRODUCT_CONFLICT');return reason;
+    },
     async insertCustomer(v){return id(await execute(tx,[s('code',v.customerCode,50),s('name',v.name),s('phone',v.phone,40),s('city',v.city,100),s('country',v.country,100),s('kind',v.customerType,30),s('currency',v.currency,3),s('actor',v.actorId,20)],`INSERT dbo.customers(customer_code,name,phone,city,country,customer_type,currency_code,balance,risk_limit,is_active,is_deleted,created_by,updated_by) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(@code,@name,@phone,@city,@country,@kind,@currency,0,0,1,0,TRY_CONVERT(bigint,@actor),TRY_CONVERT(bigint,@actor));`));},
     async insertPartyEntity(v){return id(await execute(tx,[s('role',v.role,20),s('name',v.name),s('country',v.country,100)],`INSERT dbo.party_entities(role,name,country,identity_rule) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(@role,@name,@country,N'desktop-local');`));},
     async attachCustomerEntity(v){const r=await execute(tx,[s('customer',v.customerId,20),s('entity',v.entityId,20)],`UPDATE dbo.customers SET party_entity_id=TRY_CONVERT(bigint,@entity) WHERE id=TRY_CONVERT(bigint,@customer) AND party_entity_id IS NULL; SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_ATTACH');},
@@ -75,26 +88,28 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     async lockActiveSupplier(v){const r=await execute(tx,[s('supplier',v.supplierId,20)],`SELECT CONVERT(varchar(20),id) id,is_active isActive,is_deleted isDeleted FROM dbo.suppliers WITH(UPDLOCK,HOLDLOCK) WHERE id=TRY_CONVERT(bigint,@supplier);`);return one(r);},
     async insertProduct(v){return id(await execute(tx,[s('code',v.stockCode,50),s('name',v.name),s('unit',v.unit,20),s('currency',v.currency,3),s('sale',v.salePriceExact4,40),s('purchase',v.purchasePriceExact4,40),s('discount',v.purchaseDiscountRateExact4,20),s('cost',v.averageCostTryExact4,40),s('stock',v.initialStockExact3,40),s('actor',v.actorId,20),...(richCards?[s('brand',v.brand,120),s('category',v.category,120),s('supplier',v.supplierId,20)]:[])],`INSERT dbo.products(stock_code,name,unit,currency_code,sales_price,purchase_price,purchase_discount_rate,average_cost_try,current_stock_qty,is_active,is_deleted,created_by,updated_by${richCards?',brand,category,supplier_id':''}) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(@code,@name,@unit,@currency,TRY_CONVERT(decimal(18,4),@sale),TRY_CONVERT(decimal(18,4),@purchase),TRY_CONVERT(decimal(9,4),@discount),TRY_CONVERT(decimal(18,4),@cost),TRY_CONVERT(decimal(18,3),@stock),1,0,TRY_CONVERT(bigint,@actor),TRY_CONVERT(bigint,@actor)${richCards?',@brand,@category,TRY_CONVERT(bigint,@supplier)':''});`));},
     async readRichProductFields(v){return one(await execute(tx,[s('product',v.productId,20)],`SELECT brand,category,CONVERT(varchar(20),supplier_id) supplierId FROM dbo.products WHERE id=TRY_CONVERT(bigint,@product);`));},
-    async insertLocalUnit(v){return id(await execute(tx,[s('product',v.productId,20),s('label',v.label,20),s('factor',v.factorExact8,40)],`INSERT dbo.desktop_local_product_units(product_id,label,factor,is_main) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),@label,TRY_CONVERT(decimal(28,8),@factor),1);`));},
-    async insertBarcode(v){return id(await execute(tx,[s('product',v.productId,20),s('barcode',v.barcode,80),s('actor',v.actorId,20)],`INSERT dbo.product_barcodes(product_id,barcode,barcode_type,is_primary,is_active,created_by,updated_by) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),@barcode,N'primary',1,1,TRY_CONVERT(bigint,@actor),TRY_CONVERT(bigint,@actor));`));},
+    async insertLocalUnit(v){const main=v.isMain??true;if(typeof main!=='boolean')fail('LOCAL_SQL_ORDER');return id(await execute(tx,[s('product',v.productId,20),s('label',v.label,20),s('factor',v.factorExact8,40),['mainFlag',sql.Int,main?1:0]],`INSERT dbo.desktop_local_product_units(product_id,label,factor,is_main) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),@label,TRY_CONVERT(decimal(28,8),@factor),CONVERT(bit,@mainFlag));`));},
+    async readProductUnits(v){const r=await execute(tx,[s('product',v.productId,20)],`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,label,CONVERT(varchar(40),factor) factorExact8,is_main isMain FROM dbo.desktop_local_product_units WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@product) ORDER BY is_main DESC,id;`);if(!Array.isArray(r?.recordset)||r.recordset.length>2)fail('LOCAL_SQL_ROW_COUNT');return Array.from(r.recordset);},
+    async insertBarcode(v){const kind=v.barcodeType??'primary';if(!['primary','extra'].includes(kind))fail('LOCAL_SQL_ORDER');return id(await execute(tx,[s('product',v.productId,20),s('barcode',v.barcode,80),s('barcodeType',kind,30),s('actor',v.actorId,20)],`INSERT dbo.product_barcodes(product_id,barcode,barcode_type,is_primary,is_active,created_by,updated_by) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),@barcode,@barcodeType,CASE WHEN @barcodeType=N'primary' THEN 1 ELSE 0 END,1,TRY_CONVERT(bigint,@actor),TRY_CONVERT(bigint,@actor));`));},
+    async readProductBarcodes(v){const r=await execute(tx,[s('product',v.productId,20)],`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,barcode,barcode_type barcodeType,is_primary isPrimary,is_active isActive FROM dbo.product_barcodes WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@product) AND is_active=1 ORDER BY id;`);if(!Array.isArray(r?.recordset)||r.recordset.length>11)fail('LOCAL_SQL_ROW_COUNT');return r.recordset;},
     async insertNativePrice(v){return id(await execute(tx,[s('product',v.productId,20),s('type',v.type,20),['tier',sql.Int,v.tier],s('currency',v.currency,3),s('price',v.priceExact8,40)],`INSERT dbo.product_prices(product_id,price_type,price_tier,currency_code,price,source_unit_id) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),@type,@tier,@currency,TRY_CONVERT(decimal(28,8),@price),NULL);`));},
     async linkLocalPriceUnit(v){const r=await execute(tx,[s('product',v.productId,20),s('unit',v.unitId,20),s('price',v.priceId,20)],`INSERT dbo.desktop_local_price_units(product_id,unit_id,price_id) VALUES(TRY_CONVERT(bigint,@product),TRY_CONVERT(bigint,@unit),TRY_CONVERT(bigint,@price)); SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_LINK');},
     async readProductPersistence(v){const r=await execute(tx,[s('product',v.productId,20),s('unit',v.unitId,20),s('barcode',v.barcodeId,20),s('price',v.priceId,20)],`SELECT CONVERT(varchar(20),p.id) p_id,p.stock_code p_code,p.name p_name,p.unit p_unit,p.currency_code p_currency,CONVERT(varchar(40),p.sales_price) p_sale,CONVERT(varchar(40),p.purchase_price) p_purchase,CONVERT(varchar(20),p.purchase_discount_rate) p_discount,CONVERT(varchar(40),p.average_cost_try) p_cost,CONVERT(varchar(40),p.current_stock_qty) p_stock,CONVERT(varchar(20),u.id) u_id,CONVERT(varchar(20),u.product_id) u_product,u.label u_label,CONVERT(varchar(40),u.factor) u_factor,u.is_main u_main,CONVERT(varchar(20),b.id) b_id,CONVERT(varchar(20),b.product_id) b_product,b.barcode b_code,b.is_primary b_primary,b.is_active b_active,CONVERT(varchar(20),q.id) q_id,CONVERT(varchar(20),q.product_id) q_product,q.price_type q_type,q.price_tier q_tier,q.currency_code q_currency,CONVERT(varchar(40),q.price) q_price,q.source_unit_id q_source,CONVERT(varchar(20),l.product_id) l_product,CONVERT(varchar(20),l.unit_id) l_unit,CONVERT(varchar(20),l.price_id) l_price FROM dbo.products p JOIN dbo.desktop_local_product_units u ON u.product_id=p.id JOIN dbo.product_barcodes b ON b.product_id=p.id JOIN dbo.product_prices q ON q.product_id=p.id JOIN dbo.desktop_local_price_units l ON l.product_id=p.id AND l.unit_id=u.id AND l.price_id=q.id WHERE p.id=TRY_CONVERT(bigint,@product) AND u.id=TRY_CONVERT(bigint,@unit) AND b.id=TRY_CONVERT(bigint,@barcode) AND q.id=TRY_CONVERT(bigint,@price);`);const x=one(r);return {product:{id:x.p_id,stockCode:x.p_code,name:x.p_name,unit:x.p_unit,currency:x.p_currency,salePriceExact4:x.p_sale,purchasePriceExact4:x.p_purchase,purchaseDiscountRateExact4:x.p_discount,averageCostTryExact4:x.p_cost,initialStockExact3:x.p_stock},unit:{id:x.u_id,productId:x.u_product,label:x.u_label,factorExact8:x.u_factor,isMain:x.u_main},barcode:{id:x.b_id,productId:x.b_product,barcode:x.b_code,isPrimary:x.b_primary,isActive:x.b_active},price:{id:x.q_id,productId:x.q_product,type:x.q_type,tier:x.q_tier,currency:x.q_currency,priceExact8:x.q_price,sourceUnitId:x.q_source},link:{productId:x.l_product,unitId:x.l_unit,priceId:x.l_price}};},
     // Same movement representation as native productService bulk opening.
     async insertOpeningMovement(v){return id(await execute(tx,[s('product',v.productId,20),s('actor',v.actorId,20),s('quantity',v.quantityExact3,40),s('cost',v.averageCostTryExact4,40),s('price',v.unitPriceExact4,40),s('amount',v.amountTryExact4,40),s('date',v.documentDate,10)],`INSERT dbo.stock_movements(product_id,movement_type,source_type,source_id,quantity_in,quantity_out,quantity_net,unit_cost_try,average_cost_try_after,document_date,created_by,unit_price,currency_code,amount_try) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),N'in',N'stock_adjustment',NULL,TRY_CONVERT(decimal(18,3),@quantity),0,TRY_CONVERT(decimal(18,3),@quantity),TRY_CONVERT(decimal(18,4),@cost),TRY_CONVERT(decimal(18,4),@cost),TRY_CONVERT(date,@date,23),TRY_CONVERT(bigint,@actor),TRY_CONVERT(decimal(18,4),@price),N'TRY',TRY_CONVERT(decimal(18,4),@amount));`));},
     async readOpeningMovement(v){return one(await execute(tx,[s('product',v.productId,20),s('movement',v.movementId,20)],`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(20),created_by) actorId,CONVERT(varchar(40),quantity_in) quantityInExact3,CONVERT(varchar(40),quantity_out) quantityOutExact3,CONVERT(varchar(40),quantity_net) quantityNetExact3,CONVERT(varchar(40),unit_cost_try) unitCostTryExact4,CONVERT(varchar(40),unit_price) unitPriceExact4,CONVERT(varchar(40),amount_try) amountTryExact4,CONVERT(char(10),document_date,23) documentDate,currency_code currency,movement_type movementType,source_type sourceType,CONVERT(varchar(20),source_id) sourceId,(SELECT CONVERT(varchar(20),COUNT_BIG(*)) FROM dbo.stock_movements WHERE product_id=TRY_CONVERT(bigint,@product)) productMovementCount FROM dbo.stock_movements WHERE id=TRY_CONVERT(bigint,@movement) AND product_id=TRY_CONVERT(bigint,@product);`));},
-    async appendAudit(v){const r=await execute(tx,[s('actor',v.actorId,20),s('operation',v.operation,24),s('entity',v.entityId,20),s('request',v.requestId,36)],`INSERT dbo.audit_logs(actor_user_id,action,entity_type,entity_id,reason,source) VALUES(TRY_CONVERT(bigint,@actor),@operation,N'local-master',TRY_CONVERT(bigint,@entity),@request,N'desktop-local-master-v1'); SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_AUDIT');},
-    async readMasterAudit(v){const r=await execute(tx,[s('request',v.requestId,36)],`SELECT reason requestId,CONVERT(varchar(20),actor_user_id) actorId,action operation,CONVERT(varchar(20),entity_id) entityId FROM dbo.audit_logs WHERE reason=@request AND source=N'desktop-local-master-v1' AND entity_type=N'local-master';`);return one(r);},
+    async appendAudit(v){if(v.stockOpening&&(!isDesktopProductOpening(v.stockOpening,v.entityId)||v.stockOpening.actorId!==v.actorId||v.stockOpening.requestId!==v.requestId||v.operation!=='product.create'))fail('LOCAL_SQL_AUDIT');const r=await execute(tx,[s('actor',v.actorId,20),s('operation',v.operation,24),s('entity',v.entityId,20),s('request',v.requestId,36),s('openingJson',v.stockOpening?JSON.stringify(v.stockOpening):null,2000)],`INSERT dbo.audit_logs(actor_user_id,action,entity_type,entity_id,reason,source,after_json) VALUES(TRY_CONVERT(bigint,@actor),@operation,N'local-master',TRY_CONVERT(bigint,@entity),@request,N'desktop-local-master-v1',@openingJson); SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_AUDIT');},
+    async readMasterAudit(v){const r=await execute(tx,[s('request',v.requestId,36)],`SELECT reason requestId,CONVERT(varchar(20),actor_user_id) actorId,action operation,CONVERT(varchar(20),entity_id) entityId,after_json openingJson FROM dbo.audit_logs WHERE reason=@request AND source=N'desktop-local-master-v1' AND entity_type=N'local-master';`);const {openingJson,...audit}=one(r);if(openingJson!=null){const detail=parse(openingJson);if(!isDesktopProductOpening(detail,audit.entityId)||detail.requestId!==audit.requestId||detail.actorId!==audit.actorId||audit.operation!=='product.create')fail('LOCAL_SQL_AUDIT');audit.stockOpening=detail;}return audit;},
     async finishRequest(v){const r=await execute(tx,[...jb(v),s('responseJson',JSON.stringify(v.response),sql.MAX)],journalPrefix+'\n'+(richCards?MASTER_V3_FINISH_SQL:LOCAL_MASTER_FINISH_SQL));if(one(r).response_json!==JSON.stringify(v.response))fail('LOCAL_SQL_JOURNAL');},
     async readFinishedRequest(v){const r=await execute(tx,[s('request',v.requestId,36)],`SELECT LOWER(CONVERT(varchar(36),request_id)) requestId,operation,CONVERT(varchar(20),actor_id) actorId,LOWER(CONVERT(varchar(64),payload_hash,2)) payloadHash,response_json FROM dbo.desktop_local_master_requests WHERE request_id=TRY_CONVERT(uniqueidentifier,@request);`);const x=one(r);return {requestId:x.requestId,operation:x.operation,actorId:x.actorId,payloadHash:x.payloadHash,response:parse(x.response_json)};},
    };
    // Do not depend on the caller to respect the coordinator's order. No
    // business method is exposed before a locked authority check AND a fresh
    // journal reservation in this exact transaction; a replay cannot write.
-   let authority=null,active=null,finished=false,journalRead=false,createdProduct=null,openingWritten=false,openingRead=false,opening=null,lockedSupplier=null,richProductRead=false,createdSupplier=null,supplierEntity=null,supplierAccount=null,supplierAttached=false,supplierRead=false;
+   let authority=null,active=null,finished=false,journalRead=false,createdProduct=null,openingWritten=false,openingRead=false,opening=null,lockedSupplier=null,richProductRead=false,createdSupplier=null,supplierEntity=null,supplierAccount=null,supplierAttached=false,supplierRead=false,conflictCheck=null,rejected=false,replayRejection=null,insertedBarcodes=[],barcodesRead=false,openingAuditJson=null,openingAuditRead=false,insertedUnits=[],unitsRead=false;
    const customerMethods=new Set(['insertCustomer','attachCustomerEntity','insertCurrencyAccount','readCustomerPersistence']);
    const supplierMethods=new Set(['insertSupplier','attachSupplierEntity','insertSupplierCurrencyAccount','readSupplierPersistence']);
-   const productMethods=new Set(['lockActiveSupplier','insertProduct','readRichProductFields','insertLocalUnit','insertBarcode','insertNativePrice','linkLocalPriceUnit','readProductPersistence','insertOpeningMovement','readOpeningMovement']);
+   const productMethods=new Set(['findProductConflict','lockActiveSupplier','insertProduct','readRichProductFields','insertLocalUnit','readProductUnits','insertBarcode','readProductBarcodes','insertNativePrice','linkLocalPriceUnit','readProductPersistence','insertOpeningMovement','readOpeningMovement']);
    const guarded=Object.fromEntries(Object.entries(api).map(([name,fn])=>[name,async value=>{
     if(name==='lockAndVerifyAuthority'){
      if(authority!==null||active!==null)fail('LOCAL_SQL_ORDER');
@@ -103,13 +118,25 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     if(name==='beginRequest'){
      if(!authority||active!==null||value?.actorId!==authority.actorId||
       (value.operation==='customer.create'?'customer.edit':value.operation==='product.create'?'product.edit':richCards&&value.operation==='supplier.create'?'supplier.edit':null)!==authority.permission)fail('LOCAL_SQL_ORDER');
-     const result=await fn(value);if(result.state==='NEW')active={requestId:value.requestId,operation:value.operation,actorId:value.actorId,payloadHash:value.payloadHash};return result;
+     const result=await fn(value);if(result.state==='NEW')active={requestId:value.requestId,operation:value.operation,actorId:value.actorId,payloadHash:value.payloadHash};
+     else if(richCards&&value.operation==='product.create'&&result.state==='REPLAY'&&isProductRejectionRecord(result.response,value.requestId))replayRejection=result.response;
+     return result;
     }
     if(!authority||!active)fail('LOCAL_SQL_ORDER');
     if(customerMethods.has(name)&&active.operation!=='customer.create'||supplierMethods.has(name)&&(!richCards||active.operation!=='supplier.create')||productMethods.has(name)&&active.operation!=='product.create'||name==='insertPartyEntity'&&!['customer.create',...(richCards?['supplier.create']:[])].includes(active.operation))fail('LOCAL_SQL_ORDER');
     if(value?.actorId!==undefined&&value.actorId!==active.actorId)fail('LOCAL_SQL_ORDER');
     if(value?.requestId!==undefined&&value.requestId!==active.requestId)fail('LOCAL_SQL_ORDER');
     if(finished&&name!=='readFinishedRequest')fail('LOCAL_SQL_ORDER');
+    if(name==='findProductConflict'){
+     if(!richCards||conflictCheck||createdProduct||!lockedSupplier||typeof value?.stockCode!=='string'||typeof value.barcode!=='string')fail('LOCAL_SQL_ORDER');
+     const extras=desktopAdditionalBarcodes(value.barcode,value.additionalBarcodes??[]),reason=await fn(value);conflictCheck={stockCode:value.stockCode,barcode:value.barcode,barcodes:[value.barcode,...extras],reason};return reason;
+    }
+    if(richCards&&active.operation==='product.create'&&name==='insertProduct'&&(!conflictCheck||conflictCheck.reason!==null||value.stockCode!==conflictCheck.stockCode))fail('LOCAL_SQL_ORDER');
+    if(richCards&&active.operation==='product.create'&&name==='insertBarcode'){
+     const index=insertedBarcodes.length,kind=index===0?'primary':'extra';if(!conflictCheck||index>=conflictCheck.barcodes.length)fail('LOCAL_SQL_ORDER');
+     if(!createdProduct||value.productId!==createdProduct.id||value.barcode!==conflictCheck?.barcodes[index]||(value.barcodeType??'primary')!==kind)fail('LOCAL_SQL_ORDER');
+     const barcodeId=await fn(value);insertedBarcodes.push({id:barcodeId,productId:createdProduct.id,barcode:value.barcode,barcodeType:kind,isPrimary:index===0,isActive:true});return barcodeId;
+    }
     if(name==='insertPartyEntity'&&active.operation==='supplier.create'){
      if(!createdSupplier||supplierEntity||value.role!=='supplier'||value.name!==createdSupplier.name||value.country!==createdSupplier.country)fail('LOCAL_SQL_ORDER');supplierEntity=await fn(value);return supplierEntity;
     }
@@ -125,12 +152,20 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
      if(name==='lockActiveSupplier'){if(!richCards||lockedSupplier||createdProduct)fail('LOCAL_SQL_ORDER');const result=await fn(value);if(result?.id!==value?.supplierId||result.isActive!==true||result.isDeleted!==false)fail('LOCAL_SQL_SUPPLIER_UNAVAILABLE');lockedSupplier=result.id;return result;}
      if(name==='insertProduct'){
       if(createdProduct||richCards&&(!lockedSupplier||value.supplierId!==lockedSupplier))fail('LOCAL_SQL_ORDER');
-      const productId=await fn(value);createdProduct={id:productId,stock:value.initialStockExact3,cost:value.averageCostTryExact4,brand:value.brand,category:value.category,supplierId:value.supplierId};return productId;
+      if(value.seriesFactorExact8!==undefined){desktopSeriesFactor(value.seriesFactorExact8);if(!richCards||value.unit!=='ADET')fail('LOCAL_SQL_ORDER');}
+      const productId=await fn(value);createdProduct={id:productId,stock:value.initialStockExact3,cost:value.averageCostTryExact4,brand:value.brand,category:value.category,supplierId:value.supplierId,unit:value.unit,seriesFactorExact8:value.seriesFactorExact8};return productId;
      }
      if(!createdProduct||value?.productId!==createdProduct.id)fail('LOCAL_SQL_ORDER');
+     if(name==='insertLocalUnit'&&richCards){const index=insertedUnits.length;if(index>1||index===1&&!createdProduct.seriesFactorExact8||value.isMain!==(index===0)||value.label!==(index===0?createdProduct.unit:'SERİ')||value.factorExact8!==(index===0?'1.00000000':createdProduct.seriesFactorExact8))fail('LOCAL_SQL_ORDER');const unitId=await fn(value);insertedUnits.push({id:unitId,productId:createdProduct.id,label:value.label,factorExact8:value.factorExact8,isMain:value.isMain});return unitId;}
+     if(name==='readProductUnits'){const expectedCount=createdProduct.seriesFactorExact8?2:1;if(!richCards||insertedUnits.length!==expectedCount)fail('LOCAL_SQL_ORDER');const rows=await fn(value);if(!isDesktopProductUnits(rows,createdProduct.id,createdProduct.unit)||rows.length!==expectedCount||rows.some((u,i)=>Object.keys(insertedUnits[i]).some(k=>u[k]!==insertedUnits[i][k])))fail('LOCAL_SQL_PRODUCT_READBACK');unitsRead=true;return rows;}
      if(name==='readRichProductFields'){if(!richCards)fail('LOCAL_SQL_ORDER');const result=await fn(value);if(result?.brand!==createdProduct.brand||result.category!==createdProduct.category||result.supplierId!==createdProduct.supplierId)fail('LOCAL_SQL_PRODUCT_READBACK');richProductRead=true;return result;}
+     if(name==='readProductBarcodes'){
+      if(!richCards||!conflictCheck||insertedBarcodes.length!==conflictCheck.barcodes.length)fail('LOCAL_SQL_ORDER');const result=await fn(value);
+      if(result.length!==insertedBarcodes.length||result.some((row,i)=>Object.keys(insertedBarcodes[i]).some(k=>row?.[k]!==insertedBarcodes[i][k])))fail('LOCAL_SQL_PRODUCT_READBACK');barcodesRead=true;return result;
+     }
      if(name==='insertOpeningMovement'){
       if(openingWritten||createdProduct.stock==='0.000'||value.quantityExact3!==createdProduct.stock||value.averageCostTryExact4!==createdProduct.cost)fail('LOCAL_SQL_ORDER');
+      if(richCards||value.reason!==undefined)desktopOpeningReason(value.reason);
       const result=await fn(value);openingWritten=true;opening={...value,movementId:result};return result;
      }
      if(name==='readOpeningMovement'){
@@ -139,11 +174,21 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
       if(Object.keys(expected).some(k=>result?.[k]!==expected[k]))fail('LOCAL_SQL_OPENING_READBACK');openingRead=true;return result;
      }
     }
+    if(name==='appendAudit'){
+     if(opening?.reason!==undefined){const expected={kind:'desktop-product-opening-v1',productId:createdProduct.id,movementId:opening.movementId,actorId:active.actorId,requestId:active.requestId,reason:opening.reason,quantityExact3:opening.quantityExact3,costExact4:opening.averageCostTryExact4,amountTryExact4:opening.amountTryExact4,documentDate:opening.documentDate,currency:'TRY'};if(!openingRead||openingAuditJson||!isDesktopProductOpening(value.stockOpening,createdProduct.id)||JSON.stringify(value.stockOpening)!==JSON.stringify(expected))fail('LOCAL_SQL_ORDER');const result=await fn(value);openingAuditJson=JSON.stringify(expected);return result;}
+     else if(value.stockOpening!==undefined)fail('LOCAL_SQL_ORDER');
+    }
+    if(name==='readMasterAudit'&&opening?.reason!==undefined){if(!openingAuditJson)fail('LOCAL_SQL_ORDER');const result=await fn(value);if(!isDesktopProductOpening(result.stockOpening,createdProduct.id)||JSON.stringify(result.stockOpening)!==openingAuditJson||result.actorId!==active.actorId||result.requestId!==active.requestId||result.entityId!==createdProduct.id||result.operation!=='product.create')fail('LOCAL_SQL_AUDIT');openingAuditRead=true;return result;}
     if(name==='finishRequest'){
      if(finished||value?.operation!==active.operation||value?.payloadHash!==active.payloadHash)fail('LOCAL_SQL_ORDER');
-     if(active.operation==='product.create'&&!createdProduct)fail('LOCAL_SQL_ORDER');
-     if(active.operation==='supplier.create'&&!supplierRead||active.operation==='product.create'&&richCards&&!richProductRead)fail('LOCAL_SQL_ORDER');
+     rejected=richCards&&active.operation==='product.create'&&conflictCheck?.reason!==null&&isProductRejectionRecord(value.response,active.requestId)&&value.response.reason===conflictCheck?.reason&&!createdProduct;
+     if(isProductRejectionRecord(value.response,active.requestId)&&!rejected)fail('LOCAL_SQL_ORDER');
+     if(!rejected&&active.operation==='product.create'&&conflictCheck?.barcodes.length>1&&!barcodesRead)fail('LOCAL_SQL_ORDER');
+     if(active.operation==='product.create'&&!createdProduct&&!rejected)fail('LOCAL_SQL_ORDER');
+     if(active.operation==='supplier.create'&&!supplierRead||active.operation==='product.create'&&richCards&&!richProductRead&&!rejected)fail('LOCAL_SQL_ORDER');
      if(createdProduct&&createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))fail('LOCAL_SQL_ORDER');
+     if(opening?.reason!==undefined&&!openingAuditRead)fail('LOCAL_SQL_ORDER');
+     if(createdProduct?.seriesFactorExact8&&!unitsRead)fail('LOCAL_SQL_ORDER');
      const result=await fn(value);finished=true;return result;
     }
     if(name==='readFinishedRequest'){
@@ -153,9 +198,12 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     return fn(value);
    }]));
    const result=await work(Object.freeze(guarded));
+   if(rejected&&(!isDurableProductRejection(result,active.requestId)||result.replayed!==false||result.reason!==conflictCheck.reason)
+    ||replayRejection&&(!isDurableProductRejection(result,replayRejection.requestId)||result.replayed!==true||result.reason!==replayRejection.reason)
+    ||!rejected&&!replayRejection&&result?.state==='NOT_COMMITTED')fail('LOCAL_SQL_UNFINISHED_REQUEST');
    if(active&&(!finished||!journalRead))fail('LOCAL_SQL_UNFINISHED_REQUEST');
-   if(active?.operation==='product.create'&&(!createdProduct||(createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))))fail('LOCAL_SQL_UNFINISHED_REQUEST');
-   if(active?.operation==='supplier.create'&&!supplierRead||active?.operation==='product.create'&&richCards&&!richProductRead)fail('LOCAL_SQL_UNFINISHED_REQUEST');
+   if(active?.operation==='product.create'&&!rejected&&(!createdProduct||(createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))))fail('LOCAL_SQL_UNFINISHED_REQUEST');
+   if(active?.operation==='supplier.create'&&!supplierRead||active?.operation==='product.create'&&richCards&&!richProductRead&&!rejected)fail('LOCAL_SQL_UNFINISHED_REQUEST');
    await tx.commit();begun=false;return result;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});

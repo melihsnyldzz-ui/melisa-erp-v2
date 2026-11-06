@@ -1,0 +1,48 @@
+{
+  "state": "R1_REASONED_OPENING_AUDIT_MOVEMENT_ACTOR_UUID_VERIFIED",
+  "productId": 7,
+  "movement": {
+    "id": 12,
+    "product_id": 7,
+    "movement_type": "in",
+    "source_type": "stock_adjustment",
+    "quantityInExact3": "2.000",
+    "quantityOutExact3": "0.000",
+    "costExact4": "8.0000",
+    "amountExact4": "16.0000"
+  },
+  "audit": {
+    "id": 27,
+    "actor_user_id": 30002,
+    "action": "product.create",
+    "entity_id": 7,
+    "requestId": "69d7ffa3-b2b9-4132-be58-f39d66ef700d",
+    "source": "desktop-local-master-v1",
+    "stockOpening": {
+      "kind": "desktop-product-opening-v1",
+      "productId": "7",
+      "movementId": "12",
+      "actorId": "30002",
+      "requestId": "69d7ffa3-b2b9-4132-be58-f39d66ef700d",
+      "reason": "Temiz kurulum sayımı: 2 adet TEST başlangıç stoğu",
+      "quantityExact3": "2.000",
+      "costExact4": "8.0000",
+      "amountTryExact4": "16.0000",
+      "documentDate": "2026-11-06",
+      "currency": "TRY"
+    },
+    "createdAt": "2026-11-06T04:14:05"
+  },
+  "changedOperationalTables": [
+    "desktop_local_price_units",
+    "desktop_local_product_units",
+    "product_barcodes",
+    "product_prices",
+    "products",
+    "stock_movements"
+  ],
+  "oldProductsAndBalancesUnchanged": true,
+  "emptyReasonNoWrite": true,
+  "payloadHash": "d326f5c976731beb5706b6978863aa8bd42e6e3d14dcd4db2cc9d3b66ba3261d",
+  "time": "2026-11-06T04:16:08.257Z"
+}

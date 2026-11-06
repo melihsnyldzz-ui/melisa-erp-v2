@@ -2,6 +2,9 @@
 // listener, SQL connection, grants, or mutations are created at import time.
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
+import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
+import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
+import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const definitions=Object.freeze({
@@ -39,13 +42,15 @@ function validateRow(row,kind,richCards=false){
   return row;
  }
  const keys=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4',...(richCards?['brand','category','supplierId','supplierName']:[])]:kind==='customers'?['customerCode','customerName','phone','city','country','currency','customerType','balanceExact4']:['supplierCode','supplierName','phone','city','country','currency'];
- if(Object.keys(row).sort().join(',')!==['id',...keys].sort().join(','))fail();
+ const seriesFields=kind==='products'&&richCards&&['seriesUnitId','seriesFactorExact8'].some(k=>Object.hasOwn(row,k))?['seriesUnitId','seriesFactorExact8']:[];
+ if(Object.keys(row).sort().join(',')!==['id',...keys,...seriesFields].sort().join(','))fail();
  for(const k of keys)if(row[k]!==null&&typeof row[k]!=='string')fail();
  const required=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4']:kind==='customers'?['customerCode','customerName','currency','customerType','balanceExact4']:['supplierCode','supplierName','currency'];
  if(required.some(k=>typeof row[k]!=='string'||row[k].length===0))fail();
  if(kind==='customers'&&!/^-?(?:0|[1-9]\d*)\.\d{4}$/.test(row.balanceExact4))fail();
  if(kind==='products'&&(!/^-?(?:0|[1-9]\d*)\.\d{3}$/.test(row.currentStockExact3)||!/^-?(?:0|[1-9]\d*)\.\d{4}$/.test(row.salePriceExact4)))fail();
  if(kind==='products'&&richCards&&row.supplierId!==null&&!validId(row.supplierId))fail();
+ if(seriesFields.length){if((row.seriesUnitId===null)!==(row.seriesFactorExact8===null))fail();if(row.seriesUnitId!==null){if(!validId(row.seriesUnitId)||row.unit!=='ADET')fail();desktopSeriesFactor(row.seriesFactorExact8);}}
  return row;
 }
 export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMounted:false,requiresVerifiedWriterPool:true,requiresCurrentLockedSession:true,
@@ -56,14 +61,18 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
  return Object.freeze({async list(actorId,kind,input={}){
   let def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;
   if(richCards&&kind==='suppliers')def={...def,baseWhere:'is_deleted=0 AND is_active=1'};
-  if(richCards&&kind==='products')def={...def,select:def.select+',brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName'};
+  if(richCards&&kind==='products')def={...def,select:def.select+`,brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName,(SELECT CONVERT(varchar(20),u.id) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesUnitId,(SELECT CONVERT(varchar(40),u.factor) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesFactorExact8`};
   const tx=new sql.Transaction(pool);let begun=false;
-  const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('offset',sql.Int,offset).input('limit',sql.Int,limit);
+  const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('exactSearch',sql.NVarChar(100),search).input('offset',sql.Int,offset).input('limit',sql.Int,limit);
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
    const statement=richCards?guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):guard;
    const guardResult=await new sql.Request(tx).query(statement);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
    if(await verifySession({transaction:tx,actorId,permission:def.permission})!==true)fail();
-   const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`,where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~')`;
+   const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`;
+   const exactBarcode=`EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.barcode=@exactSearch AND b.is_active=1`;
+   const fuzzy=`${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~'`;
+   const productSearch=richCards&&kind==='products'?`${exactBarcode} AND b.product_id=products.id) OR (NOT ${exactBarcode}) AND (${fuzzy} OR EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=products.id AND b.is_active=1 AND b.barcode LIKE @search ESCAPE N'~')))` :fuzzy;
+   const where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${productSearch})`;
    const count=await request().query(`SELECT CONVERT(varchar(20),COUNT_BIG(*)) total FROM ${from} WHERE ${where};`);
    const raw=count?.recordset;if(!Array.isArray(raw)||raw.length!==1||typeof raw[0].total!=='string'||!/^(0|[1-9]\d{0,15})$/.test(raw[0].total)||BigInt(raw[0].total)>9007199254740991n)fail();
    const result=await request().query(`SELECT ${def.select} FROM ${from} WHERE ${where} ORDER BY ${def.order??def.code+',id'} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`);
@@ -71,6 +80,35 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
    const total=Number(raw[0].total),totalPages=Math.max(1,Math.ceil(total/limit));
    if(data.length>total||offset>=total&&data.length!==0)fail();
    await tx.commit();begun=false;return {data,meta:{page,limit,total,totalPages,hasNextPage:page<totalPages,hasPreviousPage:page>1}};
+  }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readProduct(actorId,productId){
+  if(!richCards||!validId(actorId)||!validId(productId))fail();
+  const tx=new sql.Transaction(pool);let begun=false;
+  try{
+   await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
+   const checked=await new sql.Request(tx).query(guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL));
+   if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1)fail();
+   if(await verifySession({transaction:tx,actorId,permission:['product.view','product.edit']})!==true)fail();
+   const request=()=>new sql.Request(tx).input('productId',sql.NVarChar(20),productId);
+   const result=await request().query(`SELECT CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name,p.brand,p.category,p.unit,p.currency_code currency,
+CONVERT(varchar(40),p.sales_price) salePriceExact4,CONVERT(varchar(40),p.purchase_price) purchasePriceExact4,CONVERT(varchar(40),p.purchase_discount_rate) purchaseDiscountRateExact4,
+CONVERT(varchar(40),p.average_cost_try) averageCostTryExact4,CONVERT(varchar(40),p.current_stock_qty) currentStockExact3,
+CONVERT(varchar(20),p.supplier_id) supplierId,s.name supplierName,p.is_active isActive
+FROM dbo.products p WITH(HOLDLOCK) LEFT JOIN dbo.suppliers s WITH(HOLDLOCK) ON s.id=p.supplier_id
+WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
+   if(!Array.isArray(result?.recordset)||result.recordset.length>1)fail();
+   if(result.recordset.length===0){await tx.commit();begun=false;return null;}
+   const barcodes=await request().query(`SELECT TOP(101) CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,barcode,barcode_type type,is_primary isPrimary FROM dbo.product_barcodes WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@productId) AND is_active=1 ORDER BY is_primary DESC,id;`);
+   const card={...result.recordset[0],barcodes:barcodes?.recordset};
+   const units=await request().query(`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,label,CONVERT(varchar(40),factor) factorExact8,is_main isMain FROM dbo.desktop_local_product_units WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@productId) ORDER BY is_main DESC,id;`);if(!Array.isArray(units?.recordset)||units.recordset.length>2)fail();const unitRows=Array.from(units.recordset);if(!isDesktopProductUnits(unitRows,productId,card.unit))fail();card.units=unitRows;
+   const audit=await request().query(`SELECT TOP(2) after_json openingJson,reason requestId,CONVERT(varchar(20),actor_user_id) actorId FROM dbo.audit_logs WITH(HOLDLOCK) WHERE entity_id=TRY_CONVERT(bigint,@productId) AND entity_type=N'local-master' AND action=N'product.create' AND source=N'desktop-local-master-v1' AND after_json IS NOT NULL ORDER BY id;`);
+   if(!Array.isArray(audit?.recordset)||audit.recordset.length>1)fail();
+   if(audit.recordset.length){const a=audit.recordset[0];let detail;try{detail=JSON.parse(a.openingJson);}catch{fail();}if(!isDesktopProductOpening(detail,productId)||detail.actorId!==a.actorId||detail.requestId!==a.requestId)fail();
+    const movement=await request().input('movementId',sql.NVarChar(20),detail.movementId).query(`SELECT CONVERT(varchar(20),id) movementId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(20),created_by) actorId,CONVERT(varchar(40),quantity_in) quantityExact3,CONVERT(varchar(40),unit_cost_try) costExact4,CONVERT(varchar(40),amount_try) amountTryExact4,CONVERT(char(10),document_date,23) documentDate,currency_code currency FROM dbo.stock_movements WITH(HOLDLOCK) WHERE id=TRY_CONVERT(bigint,@movementId) AND product_id=TRY_CONVERT(bigint,@productId) AND movement_type=N'in' AND source_type=N'stock_adjustment' AND source_id IS NULL AND quantity_out=0 AND quantity_net=quantity_in;`);
+    if(!Array.isArray(movement?.recordset)||movement.recordset.length!==1||Object.keys(movement.recordset[0]).sort().join(',')!=='actorId,amountTryExact4,costExact4,currency,documentDate,movementId,productId,quantityExact3'||Object.entries(movement.recordset[0]).some(([k,v])=>detail[k]!==v))fail();card.stockOpening=detail;
+   }
+   if(!isDesktopProductCard(card,productId))fail();
+   await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});
 }

@@ -56,7 +56,7 @@ export function createDesktopWriteApplication({connector,tokenKey}={}){
  app.use('/api/desktop-local',auth.bind);
  app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal,richCards}));
  app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts'],auth.bind);
- app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));
+ app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal,richCards}));
  app.use('/api/desktop-sale/workflows',auth.bind);
  app.use('/api/desktop-sale/drafts',auth.bind);
  app.use('/api/desktop-sale/draft-preview',auth.bind);

@@ -2,15 +2,15 @@
 # profile and real TLS writer probe are both required before startup admission.
 param([Parameter(Mandatory)][ValidatePattern('^[A-F0-9]{64}$')][string]$ExpectedPackageHash,
  [ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedBusinessRowsSha256)
-$ErrorActionPreference='Stop';$root='C:\Users\Xaser\Desktop\ERP';$source=Join-Path $root 'kaynak-v3';$owner=$null;$readerOwner=$null;$connection=$null;$secret=$null;$held=[Collections.Generic.List[IO.FileStream]]::new()
+$ErrorActionPreference='Stop';$root='C:\Users\Xaser\Desktop\ERP';$source=Join-Path $root 'kaynak-r1';$owner=$null;$readerOwner=$null;$connection=$null;$secret=$null;$held=[Collections.Generic.List[IO.FileStream]]::new()
 function Hold-V3File([string]$file,[string]$hash){$item=Get-Item -LiteralPath $file -Force;if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'V3_PIN_PATH'};$stream=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$held.Add($stream);if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)).ToLowerInvariant() -cne $hash.ToLowerInvariant()){throw 'V3_PIN_HASH'}}
 function Read-V3Snapshot($conn,[string]$sql){$command=$conn.CreateCommand();$command.CommandTimeout=60;$command.CommandText=$sql;$reader=$command.ExecuteReader();$result=$null;try{do{while($reader.Read()){if($result){throw 'V3_OBSERVER_RESULT'};$result=@{};for($i=0;$i -lt $reader.FieldCount;$i++){$key=$reader.GetName($i);if($key -cnotin @('metadataSha256','securitySha256','businessRowsSha256','schemaVersion')){throw 'V3_OBSERVER_FIELD'};$result[$key]=$reader.GetValue($i)}}}while($reader.NextResult())}finally{$reader.Dispose();$command.Dispose()};if(-not $result){throw 'V3_OBSERVER_RESULT'};return $result}
 try{
  if([Security.Principal.WindowsIdentity]::GetCurrent().Name -cne 'SEMIH\Xaser'){throw 'V3_WINDOWS_IDENTITY'}
  Hold-V3File 'C:\Program Files\nodejs\node.exe' '3331E1FFE19874215472217C5E94F5A0C6D8E18C4AC7111D3937AA0AD5E9B4A5'
- Hold-V3File (Join-Path $root 'kurulum\master-v3-package.json') $ExpectedPackageHash
- $pkg=Get-Content -Raw -LiteralPath (Join-Path $root 'kurulum\master-v3-package.json')|ConvertFrom-Json -AsHashtable
- if($pkg.profile -cne 'desktop-master-v3' -or $pkg.sourceRoot -cne 'C:/Users/Xaser/Desktop/ERP/kaynak-v3'){throw 'V3_PROFILE_REJECTED'}
+ Hold-V3File (Join-Path $root 'kurulum\master-r1-package.json') $ExpectedPackageHash
+ $pkg=Get-Content -Raw -LiteralPath (Join-Path $root 'kurulum\master-r1-package.json')|ConvertFrom-Json -AsHashtable
+ if($pkg.profile -cne 'desktop-master-v3' -or $pkg.sourceRoot -cne 'C:/Users/Xaser/Desktop/ERP/kaynak-r1'){throw 'V3_PROFILE_REJECTED'}
  foreach($group in @($pkg.sources,$pkg.helpers)){foreach($name in $group.Keys){Hold-V3File (Join-Path $source $name) $group[$name]}}
  foreach($name in $pkg.assets.Keys){Hold-V3File (Join-Path $source ('apps\sites-workflow\dist-desktop-write-green\'+$name)) $pkg.assets[$name]}
  . (Join-Path $source 'scripts\desktop-empty\master-v3-runner-common.ps1')
@@ -38,7 +38,7 @@ try{
  [Security.Cryptography.CryptographicOperations]::ZeroMemory($secret);$secret=$null
  $after=Read-V3Snapshot $connection $plan.sql
  foreach($key in @('metadataSha256','securitySha256','businessRowsSha256','schemaVersion')){if($after[$key] -cne $before[$key]){throw 'V3_POST_TLS_DRIFT'}}
- $directory=Join-Path $root 'kurulum\master-v3-runtime-admissions';[void][IO.Directory]::CreateDirectory($directory)
+ $directory=Join-Path $root 'kurulum\master-r1-runtime-admissions';[void][IO.Directory]::CreateDirectory($directory)
  Write-MasterV3New (Join-Path $directory ($ExpectedPackageHash+'.json')) @{state='MASTER_V3_RUNTIME_ADMITTED';packageHash=$ExpectedPackageHash;schemaVersion=3;businessRowsSha256=$businessHash;dataAndSecurityUnchanged=$true;tlsVerified=$true;credentialsChanged=$false;normalGuiVerified=$false;time=[DateTime]::UtcNow.ToString('o')}
  [Console]::WriteLine('MASTER_V3_RUNTIME_READMITTED_NO_ACCOUNT_CHANGE')
 }catch{$code=if($_.Exception.Message -cmatch '^V3_[A-Z0-9_]{1,80}$'){$_.Exception.Message}else{'UNCLASSIFIED'};[Console]::Error.WriteLine("MASTER_V3_ADMISSION_STOPPED code=$code");exit 1}

@@ -1,0 +1,47 @@
+{
+  "negative": {
+    "requestId": "ef0a2e49-f791-4c92-8358-0a5e4a28f5b0",
+    "stockCode": "ERP-R1-P4",
+    "name": "ERP R1 DENEME ÜRÜN 4",
+    "barcode": "ERPTESTV3P3",
+    "unit": "ADET",
+    "currency": "TRY",
+    "salePriceExact4": "12.0000",
+    "purchasePriceExact4": "8.0000",
+    "purchaseDiscountRateExact4": "0.0000",
+    "saleTier": null,
+    "brand": "MELISA TEST",
+    "category": "DENEME TÜRÜ",
+    "supplierId": "1",
+    "openingQuantityExact3": "1.000",
+    "openingDate": "2026-11-06"
+  },
+  "positive": {
+    "requestId": "73d115a3-faef-4ded-a089-aa5feb828f01",
+    "stockCode": "ERP-R1-P4",
+    "name": "ERP R1 DENEME ÜRÜN 4",
+    "barcode": "ERPTESTR1P4",
+    "unit": "ADET",
+    "currency": "TRY",
+    "salePriceExact4": "12.0000",
+    "purchasePriceExact4": "8.0000",
+    "purchaseDiscountRateExact4": "0.0000",
+    "saleTier": null,
+    "brand": "MELISA TEST",
+    "category": "DENEME TÜRÜ",
+    "supplierId": "1",
+    "openingQuantityExact3": "1.000",
+    "openingDate": "2026-11-06"
+  },
+  "hashes": [
+    {
+      "requestId": "ef0a2e49-f791-4c92-8358-0a5e4a28f5b0",
+      "payloadHash": "9dc967f0876740f107b3c7de91ba543d5154fa1f451847d93fb7ddb008838d0f"
+    },
+    {
+      "requestId": "73d115a3-faef-4ded-a089-aa5feb828f01",
+      "payloadHash": "5bdee1624ac21556a9b491dc854dd8c3c0f719f95f6c3683828897e24958aa0e"
+    }
+  ],
+  "noNewRequests": true
+}

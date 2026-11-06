@@ -1,0 +1,13 @@
+{
+  "workerPid": 22804,
+  "observedError": "MASTER_V3_RUNTIME_START_FAILED",
+  "parentPid": 31316,
+  "parentAndWorkerExited": true,
+  "applicationCommercialWrites": false,
+  "time": "2026-11-06T02:54:14.9859368Z",
+  "packageHash": "FF9431B6885C8E1E13F420DBCC874AA7AC57A81A23D4DF6116EE879BCE64D400",
+  "sourceFinding": "Reachable master-v3-web.mjs still pinned old source path, so new asset hashes cannot pass.",
+  "localPortsClosed": true,
+  "state": "R1_STARTUP_FAILED_NO_READY",
+  "sqlServiceChanged": false
+}

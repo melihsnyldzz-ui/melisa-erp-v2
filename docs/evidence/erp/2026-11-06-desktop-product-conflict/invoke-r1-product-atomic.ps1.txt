@@ -1,0 +1,16 @@
+$ErrorActionPreference='Stop';$secret=$null
+$source='C:\Users\Xaser\Desktop\ERP\kaynak-v3'
+. (Join-Path $source 'scripts\desktop-empty\master-v3-runner-common.ps1')
+try {
+ if(Test-Path -LiteralPath 'C:\Users\Xaser\Desktop\ERP\kurulum\r1-product-atomic-attempted.json'){throw 'R1_ATOMIC_ALREADY_ATTEMPTED_NO_REPLAY'}
+ if([Security.Principal.WindowsIdentity]::GetCurrent().Name -cne 'SEMIH\Xaser' -or (Get-FileHash -LiteralPath 'C:\Program Files\nodejs\node.exe').Hash -cne '3331E1FFE19874215472217C5E94F5A0C6D8E18C4AC7111D3937AA0AD5E9B4A5'){throw 'R1_ATOMIC_HOST_REJECTED'}
+ $worker=Get-CimInstance Win32_Process -Filter 'ProcessId=25680'
+ if(-not $worker -or $worker.ParentProcessId -ne 20864 -or $worker.ExecutablePath -cne 'C:\Program Files\nodejs\node.exe' -or $worker.CommandLine -cne '"C:\Program Files\nodejs\node.exe" C:\Users\Xaser\Desktop\ERP\kaynak-v3\scripts\desktop-empty\start-master-v3-worker.mjs 99C6DA2B7278DA9EF4A32F1FAC8DE57FC01E599DB3BD8CD645D3ECC9089D7AE3'){throw 'R1_ATOMIC_RUNTIME_REJECTED'}
+ foreach($port in @(5294,4294)){$listeners=@(Get-NetTCPConnection -State Listen -LocalPort $port);if($listeners.Count -ne 1 -or $listeners[0].OwningProcess -ne 25680 -or $listeners[0].LocalAddress -cne '127.0.0.1'){throw 'R1_ATOMIC_LISTENER_REJECTED'}}
+ $manifest=Get-Content -Raw -LiteralPath 'C:\Users\Xaser\Desktop\ERP\kurulum\master-v3-package.json'|ConvertFrom-Json
+ foreach($entry in $manifest.sources.PSObject.Properties){if((Get-FileHash -LiteralPath (Join-Path $source $entry.Name)).Hash.ToLowerInvariant() -cne $entry.Value){throw 'R1_ATOMIC_SOURCE_DRIFT'}}
+ $secret=[Security.Cryptography.ProtectedData]::Unprotect([IO.File]::ReadAllBytes('C:\Users\Xaser\Desktop\ERP\kurulum\melisa-desktop-test-operator.dpapi'),$null,[Security.Cryptography.DataProtectionScope]::CurrentUser)
+ $result=Invoke-MasterV3Node @('C:/Users/Xaser/Desktop/ERP/kurulum/test-r1-product-atomic.mjs') $secret
+ if($result -cne 'R1_PRODUCT_LATE_UNIQUE_FAILURE_ROLLED_BACK'){throw 'R1_ATOMIC_RESULT_REJECTED'}
+ [Console]::WriteLine($result)
+}finally{if($secret){[Security.Cryptography.CryptographicOperations]::ZeroMemory($secret)}}

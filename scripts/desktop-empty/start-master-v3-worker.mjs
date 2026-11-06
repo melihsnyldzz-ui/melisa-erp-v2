@@ -3,7 +3,7 @@ import {readFile,realpath} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {receiveReaderSecret} from './start-initial-green-worker.mjs';
 import {inspectDesktopRuntimeTree} from './sql-login-runtime-integrity.mjs';
-const root='C:/Users/Xaser/Desktop/ERP/kaynak-v3',manifest='C:/Users/Xaser/Desktop/ERP/kurulum/master-v3-package.json';
+const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1',manifest='C:/Users/Xaser/Desktop/ERP/kurulum/master-r1-package.json';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 for(const name of ['log','info','warn','error','debug'])console[name]=()=>{};
 const input=receiveReaderSecret(process.stdin);let secret,connector,runtime,api,web,closeConnector;

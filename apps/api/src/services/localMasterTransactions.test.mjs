@@ -26,6 +26,7 @@ function memoryStore(){
      const value={supplier:{id:s.id,entityId:s.entityId,currency:s.currency,supplierCode:s.supplierCode,name:s.name,phone:s.phone,city:s.city,country:s.country,purchaseDiscountRateExact4:s.purchaseDiscountRateExact4,balanceExact4:'0.0000',isActive:true,isDeleted:false},entity:{id:e.id,role:e.role,name:e.name,country:e.country},account:{id:a.id,entityId:a.entityId,customerId:null,supplierId:a.supplierId,currency:a.currency,currentBalanceExact8:a.currentBalanceExact8}};
      if(failAt==='supplier-readback')value.account.supplierId='999';if(failAt==='supplier-status-drift')value.supplier.isActive=false;if(failAt==='supplier-balance-drift')value.supplier.balanceExact4='1.0000';return value;},
     async lockActiveSupplier({supplierId}){const s=draft.rows.suppliers.find(v=>v.id===supplierId);return s?{id:s.id,isActive:failAt!=='supplier-inactive',isDeleted:false}:null;},
+    async findProductConflict({stockCode,barcode,additionalBarcodes=[]}){const codes=[barcode,...additionalBarcodes];return draft.rows.products.some(p=>p.stockCode===stockCode)?'PRODUCT_STOCK_CODE_IN_USE':new Set(codes.map(v=>v.toLocaleLowerCase('tr-TR'))).size!==codes.length?'PRODUCT_BARCODE_DUPLICATE_INPUT':draft.rows.barcodes.some(b=>codes.includes(b.barcode)&&b.isActive)?'PRODUCT_BARCODE_IN_USE':null;},
     async readCustomerPersistence({customerId,entityId,accountId}){
      const c=draft.rows.customers.find(v=>v.id===customerId),e=draft.rows.entities.find(v=>v.id===entityId),a=draft.rows.accounts.find(v=>v.id===accountId);
      const result={customer:{id:c.id,entityId:c.entityId,currency:c.currency,customerCode:c.customerCode,name:c.name,phone:c.phone,customerType:c.customerType,city:c.city,country:c.country},
@@ -37,9 +38,11 @@ function memoryStore(){
     async insertOpeningMovement(v){return add(draft,'openings',v);},
     async readOpeningMovement({productId,movementId}){const row=draft.rows.openings.find(v=>v.id===movementId&&v.productId===productId);return {id:row.id,productId:row.productId,actorId:row.actorId,quantityInExact3:row.quantityExact3,quantityOutExact3:'0.000',quantityNetExact3:row.quantityExact3,unitCostTryExact4:row.averageCostTryExact4,unitPriceExact4:row.unitPriceExact4,amountTryExact4:failAt==='opening-readback'?'99.0000':row.amountTryExact4,documentDate:row.documentDate,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'};},
     async insertLocalUnit(v){return add(draft,'units',v);},
-    async insertBarcode(v){if(draft.rows.barcodes.some(r=>r.barcode===v.barcode))throw Error('duplicate');return add(draft,'barcodes',{...v,isPrimary:true,isActive:true});},
+    async readProductUnits({productId}){return draft.rows.units.filter(u=>u.productId===productId).map(u=>({...u,...(failAt==='series-unit-readback'&&!u.isMain?{productId:'999'}:{})}));},
+    async insertBarcode(v){if(draft.rows.barcodes.some(r=>r.barcode===v.barcode))throw Error('duplicate');return add(draft,'barcodes',{...v,barcodeType:v.barcodeType??'primary',isPrimary:(v.barcodeType??'primary')==='primary',isActive:true});},
     async insertNativePrice(v){return add(draft,'prices',v);},
     async linkLocalPriceUnit(v){if(failAt!=='link-noop')add(draft,'links',v);},
+    async readProductBarcodes({productId}){return draft.rows.barcodes.filter(b=>b.productId===productId&&b.isActive).map(b=>({id:b.id,productId,barcode:b.barcode,barcodeType:b.barcodeType,isPrimary:b.isPrimary,isActive:true})).map(b=>failAt==='extra-barcode-readback'?{...b,productId:'999'}:b);},
     async readProductPersistence({productId,unitId,barcodeId,priceId}){
      const p=draft.rows.products.find(v=>v.id===productId);
      const u=draft.rows.units.find(v=>v.id===unitId),b=draft.rows.barcodes.find(v=>v.id===barcodeId),q=draft.rows.prices.find(v=>v.id===priceId),l=draft.rows.links.find(v=>v.priceId===priceId);
@@ -57,7 +60,7 @@ function memoryStore(){
      if(failAt==='price-drift')row.price.currency='TRY';if(failAt==='link-drift')row.link.unitId='999';return row;
     },
     async appendAudit(v){add(draft,'audit',v);},
-    async readMasterAudit({requestId}){const a=draft.rows.audit.find(v=>v.requestId===requestId);if(failAt==='audit-readback')return null;return {requestId:a.requestId,actorId:a.actorId,operation:a.operation,entityId:a.entityId};},
+    async readMasterAudit({requestId}){const a=draft.rows.audit.find(v=>v.requestId===requestId);if(failAt==='audit-readback')return null;const stockOpening=a.stockOpening?structuredClone(a.stockOpening):null;if(stockOpening&&failAt==='opening-audit-parent')stockOpening.productId='999';if(stockOpening&&failAt==='opening-audit-reason')stockOpening.reason='Başka gerekçe';return {requestId:a.requestId,actorId:a.actorId,operation:a.operation,entityId:a.entityId,...(stockOpening?{stockOpening}:{})};},
     async finishRequest(v){if(failAt==='journal')throw Error('injected failure');draft.journal[v.requestId].response=v.response;},
     async readFinishedRequest({requestId}){const j=draft.journal[requestId];if(failAt==='journal-readback')return null;return {requestId:j.requestId,operation:j.operation,actorId:j.actorId,payloadHash:j.payloadHash,response:j.response};},
    };
@@ -68,6 +71,60 @@ function memoryStore(){
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
 const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
 const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+test('series creates a secondary multiplier while base stock and price stay ADET and exact replay stays immutable',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,seriesFactorExact8:'6.00000000',openingQuantityExact3:'60.000',openingDate:'2026-11-06',openingReason:'Yeni TEST seri stoğu'};
+ s.loseCommit();assert.equal((await svc.createProduct('7',p)).state,'UNKNOWN');const before=s.snapshot(),replay=await svc.createProduct('7',p);assert.equal(replay.replayed,true);assert.equal(replay.entity.units.length,2);assert.deepEqual(replay.entity.units.map(u=>[u.label,u.factorExact8,u.isMain]),[['ADET','1.00000000',true],['SERİ','6.00000000',false]]);assert.equal(replay.entity.prices.length,1);assert.equal(replay.entity.prices[0].unitId,replay.entity.units[0].id);assert.equal(before.rows.products[0].initialStockExact3,'60.000');assert.equal(before.rows.openings.length,1);assert.deepEqual(s.snapshot(),before);assert.equal((await svc.createProduct('7',{...p,seriesFactorExact8:'7.00000000'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ for(const factor of ['1.00000000','6.5','0.00000000','1000001.00000000']){const invalid=memoryStore();assert.equal((await rich(invalid).createProduct('7',{...p,seriesFactorExact8:factor})).state,'UNKNOWN');assert.equal(invalid.calls(),0);}
+});
+test('foreign secondary unit readback rolls back every series product row',async()=>{const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt('series-unit-readback');const result=await svc.createProduct('7',{...product(),unit:'ADET',currency:'TRY',brand:'B',category:'C',supplierId,seriesFactorExact8:'6.00000000'});assert.equal(result.state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);});
+test('opening reason is bound to movement, actor and request in the same atomic audit; replay adds no effects',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06',openingReason:'Yeni ürünün sayılmış başlangıç stoğu'};
+ s.loseCommit();assert.equal((await svc.createProduct('7',p)).state,'UNKNOWN');const before=s.snapshot(),audit=before.rows.audit.find(a=>a.stockOpening),movement=before.rows.openings[0];assert.equal(audit.stockOpening.movementId,movement.id);assert.equal(audit.stockOpening.actorId,'7');assert.equal(audit.stockOpening.requestId,p.requestId);assert.equal(audit.stockOpening.reason,p.openingReason);assert.equal(audit.stockOpening.quantityExact3,'2.000');assert.equal(audit.stockOpening.amountTryExact4,'10.0000');
+ assert.equal((await svc.createProduct('7',p)).replayed,true);assert.deepEqual(s.snapshot(),before);assert.equal((await svc.createProduct('7',{...p,openingReason:'Değişmiş gerekçe'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ for(const reason of ['', ' x','x\n','x'.repeat(251)]){const fresh=memoryStore();assert.equal((await rich(fresh).createProduct('7',{...p,openingReason:reason})).state,'UNKNOWN');assert.equal(fresh.calls(),0);}
+ assert.equal((await svc.createProduct('7',{...p,openingQuantityExact3:'0.000'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+});
+test('opening audit readback mismatch rolls back product, opening and every related row',async()=>{
+ for(const fault of ['opening-audit-parent','opening-audit-reason','audit','audit-readback']){const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt(fault);assert.equal((await svc.createProduct('7',{...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06',openingReason:'Yeni ürün açılışı'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before,fault);}
+});
+test('legacy fresh rich opening keeps its original body hash and gets an explicit creation reason; committed replay is unchanged',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06'};const body=JSON.stringify(p),result=await svc.createProduct('7',p);assert.equal(result.state,'COMMITTED');assert.equal(JSON.stringify(p),body);const before=s.snapshot();assert.equal(before.rows.audit.find(a=>a.stockOpening).stockOpening.reason,'Yeni ürün kartı başlangıç stok girişi');assert.equal((await svc.createProduct('7',p)).replayed,true);assert.deepEqual(s.snapshot(),before);
+});
+
+test('main and extra barcode strings commit with one product and replay without duplicate rows',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const p={...product(),brand:'B',category:'C',supplierId,additionalBarcodes:['000000000051','000000000052']};
+ const result=await svc.createProduct('7',p);assert.equal(result.state,'COMMITTED');const before=s.snapshot();assert.equal(before.rows.products.length,1);
+ assert.deepEqual(before.rows.barcodes.map(b=>b.barcode),[p.barcode,...p.additionalBarcodes]);assert.deepEqual(before.rows.barcodes.map(b=>b.isPrimary),[true,false,false]);assert.ok(before.rows.barcodes.every(b=>b.productId===result.entity.id));
+ assert.equal((await svc.createProduct('7',p)).replayed,true);assert.deepEqual(s.snapshot(),before);
+ assert.equal((await svc.createProduct('7',{...p,additionalBarcodes:[...p.additionalBarcodes].reverse()})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ const conflict=await svc.createProduct('7',{...p,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647',stockCode:'P2',barcode:'0009',additionalBarcodes:['000000000052']});assert.equal(conflict.state,'NOT_COMMITTED');assert.equal(conflict.reason,'PRODUCT_BARCODE_IN_USE');assert.deepEqual(s.snapshot().rows,before.rows);
+});
+
+test('extra barcode readback drift rolls back every product-linked row and its journal',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt('extra-barcode-readback');
+ assert.equal((await svc.createProduct('7',{...product(),brand:'B',category:'C',supplierId,additionalBarcodes:['0005']})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+});
+
+test('durable rich product conflict survives a lost reply; old commit and changed-body UUID keep their outcomes',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const first={...product(),brand:'B',category:'C',supplierId};assert.equal((await svc.createProduct('7',first)).state,'COMMITTED');
+ const rows=s.snapshot().rows,second={...first,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647',stockCode:'P2'};
+ s.loseCommit();assert.equal((await svc.createProduct('7',second)).state,'UNKNOWN');
+ const after=s.snapshot();assert.deepEqual(after.rows,rows);assert.equal(after.journal[second.requestId].response.reason,'PRODUCT_BARCODE_IN_USE');
+ const replay=await svc.createProduct('7',second);assert.equal(replay.state,'NOT_COMMITTED');assert.equal(replay.resolution,'DURABLE_REJECTION');assert.equal(replay.replayed,true);
+ assert.equal((await svc.createProduct('7',{...second,barcode:'fixed'})).state,'UNKNOWN');
+ assert.equal((await svc.createProduct('7',first)).state,'COMMITTED');assert.deepEqual(s.snapshot(),after);
+ const noAuth=createLocalMasterTransactions({store:s,richCards:true,authorize:async()=>false});assert.equal((await noAuth.createProduct('7',second)).state,'UNKNOWN');
+});
+
+test('stock code conflict writes only its rejection and does not create a second product',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),brand:'B',category:'C',supplierId};
+ await svc.createProduct('7',p);const before=s.snapshot().rows;
+ const result=await svc.createProduct('7',{...p,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647',barcode:'different'});
+ assert.equal(result.state,'NOT_COMMITTED');assert.equal(result.reason,'PRODUCT_STOCK_CODE_IN_USE');assert.equal(result.replayed,false);assert.deepEqual(s.snapshot().rows,before);
+});
 test('v3 creates supplier entity and currency account once, then binds rich product to the active supplier',async()=>{
  const s=memoryStore(),svc=rich(s),input=supplier();s.loseCommit();assert.equal((await svc.createSupplier('7',input)).state,'UNKNOWN');const replay=await svc.createSupplier('7',input);assert.equal(replay.state,'COMMITTED');assert.equal(replay.replayed,true);
  assert.equal(replay.entity.kind,'local');assert.equal(replay.entity.accounts[0].supplierId,replay.entity.id);assert.equal(Object.hasOwn(replay.entity.accounts[0],'customerId'),false);

@@ -1,0 +1,12 @@
+{
+  "requestIds": [
+    "ef0a2e49-f791-4c92-8358-0a5e4a28f5b0",
+    "73d115a3-faef-4ded-a089-aa5feb828f01"
+  ],
+  "state": "R1_FOUR_REPLAY_CALLS_NO_DUPLICATE_EFFECTS",
+  "productCount": 4,
+  "journalCount": 8,
+  "time": "2026-11-06T03:09:42.7535263Z",
+  "operationalTables": 23,
+  "operationalRowsSha256": "6943b3584c2a318fd7b7a0ef7041f128974e629382161ed702741309a4e81131"
+}

@@ -1,0 +1,429 @@
+{
+  "state": "R1_CARD_READ_ONLY_SNAPSHOT",
+  "capturedAt": "2026-11-06T03:51:42.9155109Z",
+  "metadata": {
+    "operationalRowsSha256": "6943b3584c2a318fd7b7a0ef7041f128974e629382161ed702741309a4e81131",
+    "operationalTables": [
+      {
+        "table_name": "customer_movements",
+        "row_count": 2,
+        "row_hash": "A6BA2A9BDA8E93B0386438AF6C1B873F489E33209364D0FA7659194D627A237D"
+      },
+      {
+        "table_name": "customers",
+        "row_count": 2,
+        "row_hash": "D2E4C0DCD33A47A4438FBB5317FCFD137DF5156AA06701A707BB8D4AF5A13C89"
+      },
+      {
+        "table_name": "desktop_local_price_units",
+        "row_count": 4,
+        "row_hash": "DA9CBA9D701C6F0FCCBD10D34867F3ECDCA29E913B9661C4585CD7920DF543E3"
+      },
+      {
+        "table_name": "desktop_local_product_units",
+        "row_count": 4,
+        "row_hash": "3C5E9FA525C43028800350982ABC403656DD3CB4319124C693476BC900BADA56"
+      },
+      {
+        "table_name": "desktop_sale_carton_items",
+        "row_count": 6,
+        "row_hash": "EE0A1A8F177818B541AC0268873FD46DD2B4D39DA478C2D7BF6E85A81465802C"
+      },
+      {
+        "table_name": "desktop_sale_cartons",
+        "row_count": 4,
+        "row_hash": "2D6445DBC0E65874F05A7DB15759E9F7A2F86C8629D81A55D3BB2BE646565479"
+      },
+      {
+        "table_name": "desktop_sale_request_resolutions",
+        "row_count": 1,
+        "row_hash": "6CE4689E7010D5AC9D53A6697C22C2600C53164D49EC13ECF913FA32BA415463"
+      },
+      {
+        "table_name": "desktop_sale_reservations",
+        "row_count": 6,
+        "row_hash": "12D4843170C02AE59C5854A9B45AB25764635189BB1F4321728844C7EAC65C4A"
+      },
+      {
+        "table_name": "desktop_sale_workflow_requests",
+        "row_count": 17,
+        "row_hash": "F53798FCF2AE03C658698625B615A2B26312672017274CCDCE0DCFAB3DBC1C6F"
+      },
+      {
+        "table_name": "desktop_sale_workflows",
+        "row_count": 3,
+        "row_hash": "F366615047D8F1A6ED1BBABD08D4250724438B3AFA59995DC35AC1F36F736827"
+      },
+      {
+        "table_name": "party_currency_accounts",
+        "row_count": 3,
+        "row_hash": "48E7A8BD6145904D188A3633DDF71F79B923EC037C81823DC13DCF685AB0E26B"
+      },
+      {
+        "table_name": "party_entities",
+        "row_count": 3,
+        "row_hash": "830624F090F35D68077384EEA781A61A9D40520733A95EC36BE35A77B2257C6E"
+      },
+      {
+        "table_name": "product_barcodes",
+        "row_count": 4,
+        "row_hash": "D73DA57DE98547F75060B9C6D2F63F5BAA9F7EBCD6370498DFC5940B6C59D9ED"
+      },
+      {
+        "table_name": "product_images",
+        "row_count": 0,
+        "row_hash": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+      },
+      {
+        "table_name": "product_prices",
+        "row_count": 4,
+        "row_hash": "86340AD2CE3CB30ED9D8686E7A80EB92809873B5EE21A52B0F5EEAEC5D02ACB9"
+      },
+      {
+        "table_name": "products",
+        "row_count": 4,
+        "row_hash": "FF6C48F91B5C082BD6D38CF5649BD8F06CED259DBCE4B5E98275426471710AB3"
+      },
+      {
+        "table_name": "purchase_invoice_items",
+        "row_count": 0,
+        "row_hash": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+      },
+      {
+        "table_name": "purchase_invoices",
+        "row_count": 0,
+        "row_hash": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+      },
+      {
+        "table_name": "sales_invoice_items",
+        "row_count": 6,
+        "row_hash": "E15E70612EDE5ECAA70475754600BD399685A8D69E348F629B1CBE82D1664606"
+      },
+      {
+        "table_name": "sales_invoices",
+        "row_count": 3,
+        "row_hash": "DAE8FB6C9B1AF3C04492DF744437F4857ABF8F77E1E556E551B8B5C97317CD72"
+      },
+      {
+        "table_name": "stock_movements",
+        "row_count": 8,
+        "row_hash": "149C399BE97B6BD2A06E23566B45857AD4D8227A60C9FD2532FE2ED54B9EAE43"
+      },
+      {
+        "table_name": "supplier_movements",
+        "row_count": 0,
+        "row_hash": "5EE9173B1B564E61AFD2359A897C180B5EA83875A91A28537DF4202AAD4B3AA7"
+      },
+      {
+        "table_name": "suppliers",
+        "row_count": 1,
+        "row_hash": "E136E79345B86A0D18DA0F60FAEB9975B07423C0FEC68CCC2525807314AF6F91"
+      }
+    ],
+    "requests": [
+      {
+        "requestId": "13111cc5-2dac-4a0f-82dd-9f84718a0a84",
+        "operation": "customer.create",
+        "payloadHash": "f78833c032e96e1942e3da95c205c43690fb6b6bda403511038e6220a3a6f940",
+        "response": {
+          "requestId": "13111cc5-2dac-4a0f-82dd-9f84718a0a84",
+          "operation": "customer.create",
+          "entity": {
+            "kind": "local",
+            "id": "2",
+            "entityId": "2",
+            "selectedCurrency": "TRY",
+            "accounts": [
+              {
+                "id": "2",
+                "customerId": "2",
+                "currency": "TRY",
+                "currentBalanceExact8": "0.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "d614c9fe-0c35-4100-8747-967c19d1ab15",
+        "operation": "product.create",
+        "payloadHash": "202716e1d1f297a66e1f3e26dc57b334c1c98ea88074a53809c83a68f548ba5a",
+        "response": {
+          "requestId": "d614c9fe-0c35-4100-8747-967c19d1ab15",
+          "operation": "product.create",
+          "entity": {
+            "kind": "local",
+            "id": "1",
+            "name": "ERP DENEME ÜRÜN 1",
+            "units": [
+              {
+                "id": "1",
+                "label": "ADET",
+                "factorExact8": "1.00000000",
+                "isMain": true
+              }
+            ],
+            "prices": [
+              {
+                "id": "1",
+                "type": "sale",
+                "unitId": "1",
+                "tier": null,
+                "currency": "TRY",
+                "priceExact8": "10.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "3e8cc074-d73e-480e-8ec3-2cad33ed18fe",
+        "operation": "product.create",
+        "payloadHash": "c3a93c5d487c89fae0050bc5f0112855e27aa47b3f3d4139eb10fb96a3328cb2",
+        "response": {
+          "requestId": "3e8cc074-d73e-480e-8ec3-2cad33ed18fe",
+          "operation": "product.create",
+          "entity": {
+            "kind": "local",
+            "id": "2",
+            "name": "ERP DENEME ÜRÜN 2",
+            "units": [
+              {
+                "id": "2",
+                "label": "ADET",
+                "factorExact8": "1.00000000",
+                "isMain": true
+              }
+            ],
+            "prices": [
+              {
+                "id": "2",
+                "type": "sale",
+                "unitId": "2",
+                "tier": null,
+                "currency": "TRY",
+                "priceExact8": "20.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "28f46f62-003b-430b-a50d-61149704bdaa",
+        "operation": "supplier.create",
+        "payloadHash": "31386c21412eae462b884ba2912c739d67447b2a281892e483f343b05208a29c",
+        "response": {
+          "requestId": "28f46f62-003b-430b-a50d-61149704bdaa",
+          "operation": "supplier.create",
+          "entity": {
+            "kind": "local",
+            "id": "1",
+            "entityId": "3",
+            "selectedCurrency": "TRY",
+            "accounts": [
+              {
+                "id": "3",
+                "supplierId": "1",
+                "currency": "TRY",
+                "currentBalanceExact8": "0.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "ca4cda6b-0cb8-47d4-8840-8dea950c62d7",
+        "operation": "product.create",
+        "payloadHash": "7d5e651be948d7fa673c29ab916f3cb7be23347376bac8fc107939cbd530e183",
+        "response": {
+          "requestId": "ca4cda6b-0cb8-47d4-8840-8dea950c62d7",
+          "operation": "product.create",
+          "entity": {
+            "kind": "local",
+            "id": "3",
+            "name": "ERP V3 DENEME ÜRÜN 3",
+            "units": [
+              {
+                "id": "3",
+                "label": "ADET",
+                "factorExact8": "1.00000000",
+                "isMain": true
+              }
+            ],
+            "prices": [
+              {
+                "id": "3",
+                "type": "sale",
+                "unitId": "3",
+                "tier": null,
+                "currency": "TRY",
+                "priceExact8": "12.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "e33c4d09-80ce-4230-8ebc-44d7551e2957",
+        "operation": "customer.create",
+        "payloadHash": "0430a2a335205ab524f4b875a240ea38a84e9184a5d044d0bc94b297d4a794cb",
+        "response": {
+          "requestId": "e33c4d09-80ce-4230-8ebc-44d7551e2957",
+          "operation": "customer.create",
+          "entity": {
+            "kind": "local",
+            "id": "3",
+            "entityId": "4",
+            "selectedCurrency": "TRY",
+            "accounts": [
+              {
+                "id": "4",
+                "customerId": "3",
+                "currency": "TRY",
+                "currentBalanceExact8": "0.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "ef0a2e49-f791-4c92-8358-0a5e4a28f5b0",
+        "operation": "product.create",
+        "payloadHash": "9dc967f0876740f107b3c7de91ba543d5154fa1f451847d93fb7ddb008838d0f",
+        "response": {
+          "kind": "desktop-product-rejection-v1",
+          "requestId": "ef0a2e49-f791-4c92-8358-0a5e4a28f5b0",
+          "operation": "product.create",
+          "reason": "PRODUCT_BARCODE_IN_USE"
+        }
+      },
+      {
+        "requestId": "73d115a3-faef-4ded-a089-aa5feb828f01",
+        "operation": "product.create",
+        "payloadHash": "5bdee1624ac21556a9b491dc854dd8c3c0f719f95f6c3683828897e24958aa0e",
+        "response": {
+          "requestId": "73d115a3-faef-4ded-a089-aa5feb828f01",
+          "operation": "product.create",
+          "entity": {
+            "kind": "local",
+            "id": "5",
+            "name": "ERP R1 DENEME ÜRÜN 4",
+            "units": [
+              {
+                "id": "5",
+                "label": "ADET",
+                "factorExact8": "1.00000000",
+                "isMain": true
+              }
+            ],
+            "prices": [
+              {
+                "id": "4",
+                "type": "sale",
+                "unitId": "5",
+                "tier": null,
+                "currency": "TRY",
+                "priceExact8": "12.00000000"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "requestId": "bb4a3227-6e47-40eb-839e-135b7e00a724",
+        "operation": "product.create",
+        "payloadHash": "80d9acdf3664aa5f3d671565d8b6319f0205d4c009c1ed95790fe6db57f26cfe",
+        "response": {
+          "kind": "desktop-product-rejection-v1",
+          "requestId": "bb4a3227-6e47-40eb-839e-135b7e00a724",
+          "operation": "product.create",
+          "reason": "PRODUCT_BARCODE_IN_USE"
+        }
+      }
+    ],
+    "products": [
+      {
+        "id": 1,
+        "stock_code": "ERP-TEST-P1",
+        "name": "ERP DENEME ÜRÜN 1",
+        "stockExact3": "3.000",
+        "costExact4": "6.0000",
+        "saleExact4": "10.0000"
+      },
+      {
+        "id": 2,
+        "stock_code": "ERP-TEST-P2",
+        "name": "ERP DENEME ÜRÜN 2",
+        "stockExact3": "4.000",
+        "costExact4": "12.0000",
+        "saleExact4": "20.0000"
+      },
+      {
+        "id": 3,
+        "stock_code": "ERP-V3-P3",
+        "name": "ERP V3 DENEME ÜRÜN 3",
+        "brand": "MELISA TEST",
+        "category": "DENEME TÜRÜ",
+        "supplier_id": 1,
+        "stockExact3": "2.000",
+        "costExact4": "7.2000",
+        "saleExact4": "12.0000"
+      },
+      {
+        "id": 5,
+        "stock_code": "ERP-R1-P4",
+        "name": "ERP R1 DENEME ÜRÜN 4",
+        "brand": "MELISA TEST",
+        "category": "DENEME TÜRÜ",
+        "supplier_id": 1,
+        "stockExact3": "1.000",
+        "costExact4": "8.0000",
+        "saleExact4": "12.0000"
+      }
+    ],
+    "customerBalances": [
+      {
+        "customer_code": "ERP-TEST-20261106",
+        "balanceExact4": "50.0000"
+      },
+      {
+        "customer_code": "ERP-V3-C1",
+        "balanceExact4": "22.0000"
+      }
+    ],
+    "supplierBalances": [
+      {
+        "supplier_code": "ERP-V3-S1",
+        "balanceExact4": "0.0000"
+      }
+    ],
+    "identityValues": [
+      {
+        "table": "desktop_local_product_units",
+        "lastValue": "5"
+      },
+      {
+        "table": "product_barcodes",
+        "lastValue": "5"
+      },
+      {
+        "table": "product_prices",
+        "lastValue": "4"
+      },
+      {
+        "table": "products",
+        "lastValue": "5"
+      }
+    ]
+  },
+  "target": {
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "schemaVersion": 3,
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5
+  },
+  "ddlExecuted": false,
+  "servicesChanged": false,
+  "dmlExecuted": false
+}

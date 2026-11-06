@@ -1,0 +1,81 @@
+{
+  "state": "R1_BARCODE_SEARCH_CARD_AND_FIXED_REPLAYS_VERIFIED",
+  "results": [
+    {
+      "case": "exact barcode search",
+      "barcode": "000000000005",
+      "status": 200,
+      "productId": "6"
+    },
+    {
+      "case": "exact barcode search",
+      "barcode": "000000000051",
+      "status": 200,
+      "productId": "6"
+    },
+    {
+      "case": "exact barcode search",
+      "barcode": "000000000052",
+      "status": 200,
+      "productId": "6"
+    },
+    {
+      "case": "full selected card",
+      "status": 200,
+      "productId": "6"
+    },
+    {
+      "case": "readonly negative",
+      "path": "/api/products/6",
+      "status": 401
+    },
+    {
+      "case": "readonly negative",
+      "path": "/api/products/6",
+      "status": 403
+    },
+    {
+      "case": "readonly negative",
+      "path": "/api/products/06",
+      "status": 400
+    },
+    {
+      "case": "readonly negative",
+      "path": "/api/products/6?extra=1",
+      "status": 400
+    },
+    {
+      "case": "readonly negative",
+      "path": "/api/products/9223372036854775807",
+      "status": 404
+    },
+    {
+      "case": "fixed body replay",
+      "requestId": "bb4a3227-6e47-40eb-839e-135b7e00a724",
+      "status": 409,
+      "state": "NOT_COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "fixed body replay",
+      "requestId": "76fdf38a-29b1-422e-afaa-d7465f567268",
+      "status": 409,
+      "state": "NOT_COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "fixed body replay",
+      "requestId": "4b11fa08-6ef5-44c8-9995-9374932015b5",
+      "status": 200,
+      "state": "COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "changed barcode order under committed UUID",
+      "status": 503,
+      "state": "UNKNOWN"
+    }
+  ],
+  "noNewRequestIds": true,
+  "time": "2026-11-06T03:55:42.561Z"
+}

@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDesktopLocalMasterSqlStore} from './desktopLocalMasterSqlStore.mjs';
+import {productRejectionRecord,productRejectionOutcome} from './desktopProductRejection.mjs';
 
-function fakeDriver({rejectTarget=false,rejectMutation=false,commitLost=false,noEnabledDirectPermission=false,extraPermission=false,inactiveSupplier=false,badSupplierReadback=false}={}){
+function fakeDriver({rejectTarget=false,rejectMutation=false,commitLost=false,noEnabledDirectPermission=false,extraPermission=false,inactiveSupplier=false,badSupplierReadback=false,productConflictReason=null,replayResponse=null}={}){
  const log=[];let txCount=0;
  class Transaction{
   constructor(pool){this.pool=pool;this.id=++txCount;this.open=false;}
@@ -28,8 +29,13 @@ function fakeDriver({rejectTarget=false,rejectMutation=false,commitLost=false,no
    if(statement.includes('FROM dbo.suppliers s JOIN dbo.party_entities'))return {recordset:[{s_id:'51',s_entity:'52',s_currency:'TRY',s_code:'T1',s_name:'Tedarik',s_phone:'555',s_city:'İstanbul',s_country:'Türkiye',s_discount:'12.5000',s_balance:'0.0000',s_active:true,s_deleted:false,e_id:'52',e_role:'supplier',e_name:'Tedarik',e_country:'Türkiye',a_id:'53',a_entity:'52',a_customer:null,a_supplier:badSupplierReadback?'999':'51',a_currency:'TRY',a_balance:'0.00000000'}]};
    if(statement.includes('FROM dbo.suppliers WITH(UPDLOCK,HOLDLOCK)'))return {recordset:[{id:'51',isActive:!inactiveSupplier,isDeleted:false}]};
    if(statement.includes('SELECT brand,category,CONVERT'))return {recordset:[{brand:'B',category:'C',supplierId:'51'}]};
+   if(statement.includes('END conflictReason')){assert.match(statement,/dbo\.products WITH\(UPDLOCK,HOLDLOCK\)/);assert.match(statement,/dbo\.product_barcodes b WITH\(UPDLOCK,HOLDLOCK\)/);return {recordset:[{conflictReason:productConflictReason}]};}
    if(statement.includes('INSERT dbo.products'))return {recordset:[{id:'81'}]};
-   if(statement.includes('LOCAL_MASTER_REQUEST_LOCKED'))return {recordset:[]};
+   if(statement.includes('INSERT dbo.desktop_local_product_units')){const rows=this.tx.units??=[];const row={id:String(101+rows.length),productId:this.params.product,label:this.params.label,factorExact8:this.params.factor,isMain:this.params.mainFlag===1};rows.push(row);return {recordset:[{id:row.id}]};}
+   if(statement.includes('FROM dbo.desktop_local_product_units WITH(HOLDLOCK)'))return {recordset:this.tx.units??[]};
+   if(statement.includes('INSERT dbo.stock_movements')){this.tx.opening={...this.params};return {recordset:[{id:'91'}]};}
+   if(statement.includes('FROM dbo.stock_movements WHERE id=')){const p=this.tx.opening;return {recordset:[{id:'91',productId:p.product,actorId:p.actor,quantityInExact3:p.quantity,quantityOutExact3:'0.000',quantityNetExact3:p.quantity,unitCostTryExact4:p.cost,unitPriceExact4:p.price,amountTryExact4:p.amount,documentDate:p.date,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'}]};}
+   if(statement.includes('LOCAL_MASTER_REQUEST_LOCKED'))return {recordset:replayResponse?[{response_json:JSON.stringify(replayResponse)}]:[]};
    if(statement.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')){this.tx.journal={requestId:this.params.requestIdText,operation:this.params.operation,actorId:this.params.actorIdText,payloadHash:this.params.payloadHash.toString('hex'),response_json:this.params.responseJson};return {recordset:[{response_json:this.params.responseJson}]};}
    if(statement.includes('FROM dbo.desktop_local_master_requests WHERE request_id=')){assert.match(statement,/LOWER\(CONVERT\(varchar\(36\),request_id\)\)/);return {recordset:[this.tx.journal]};}
    throw Error('unexpected SQL');
@@ -56,7 +62,7 @@ test('v3 supplier readback mismatch prevents commit and selected supplier must b
 test('v3 product cannot be inserted without same-transaction supplier lock and exact rich readback',async()=>{
  const r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)},p={actorId:'7',stockCode:'P',name:'Ürün',unit:'ADET',currency:'TRY',salePriceExact4:'2.0000',purchasePriceExact4:'1.0000',purchaseDiscountRateExact4:'0.0000',averageCostTryExact4:'1.0000',initialStockExact3:'0.000',brand:'B',category:'C',supplierId:'51'};
  const missing=fakeDriver(),a=createDesktopLocalMasterSqlStore({...missing,richCards:true,verifySession:async()=>true});await assert.rejects(a.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.insertProduct(p);}),/LOCAL_SQL_ORDER/);assert.equal(missing.log.some(x=>x.statement?.includes('INSERT dbo.products')),false);
- const f=fakeDriver(),b=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true});await b.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.lockActiveSupplier({supplierId:'51'});const productId=await tx.insertProduct(p);assert.deepEqual(await tx.readRichProductFields({productId}),{brand:'B',category:'C',supplierId:'51'});await tx.finishRequest({...r,response:{id:productId}});await tx.readFinishedRequest({requestId:r.requestId});});const insert=f.log.find(x=>x.statement?.includes('INSERT dbo.products'));assert.equal(insert.params.supplier,'51');assert.equal(insert.params.brand,'B');assert.equal(insert.params.category,'C');assert.match(insert.statement,/brand,category,supplier_id/);
+ const f=fakeDriver(),b=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true});await b.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.lockActiveSupplier({supplierId:'51'});await tx.findProductConflict({stockCode:p.stockCode,barcode:'B1'});const productId=await tx.insertProduct(p);assert.deepEqual(await tx.readRichProductFields({productId}),{brand:'B',category:'C',supplierId:'51'});await tx.finishRequest({...r,response:{id:productId}});await tx.readFinishedRequest({requestId:r.requestId});});const insert=f.log.find(x=>x.statement?.includes('INSERT dbo.products'));assert.equal(insert.params.supplier,'51');assert.equal(insert.params.brand,'B');assert.equal(insert.params.category,'C');assert.match(insert.statement,/brand,category,supplier_id/);
 });
 
 test('wrong physical target aborts before callback, rolls back and does not mutate',async()=>{
@@ -65,6 +71,34 @@ test('wrong physical target aborts before callback, rolls back and does not muta
  await assert.rejects(store.withTransaction(async()=>{called=true;}));
  assert.equal(called,false);assert.deepEqual(f.log.map(x=>x.kind),['begin','sql','rollback']);
  assert.match(f.log[1].statement,/schema_version=2 AND actual_t1=0 AND external_operations=0 AND read_only=0/);assert.match(f.log[1].statement,/database_guid/);assert.match(f.log[1].statement,/DATALENGTH\(USER_NAME\(\)\)/);
+});
+
+test('rich conflict rejection commits only under locked authority and the same reserved UUID',async()=>{
+ const f=fakeDriver({productConflictReason:'PRODUCT_BARCODE_IN_USE'}),store=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true});
+ const r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};
+ await store.withTransaction(async tx=>{
+  await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.lockActiveSupplier({supplierId:'51'});
+  assert.equal(await tx.findProductConflict({stockCode:'P2',barcode:'existing'}),'PRODUCT_BARCODE_IN_USE');
+  const response=productRejectionRecord(r.requestId,'PRODUCT_BARCODE_IN_USE');await tx.finishRequest({...r,response});assert.deepEqual((await tx.readFinishedRequest({requestId:r.requestId})).response,response);
+  return productRejectionOutcome(response,false);
+ });
+ assert.equal(f.log.some(x=>x.statement&&/INSERT dbo\.(?:products|product_barcodes|stock_movements|desktop_local_product_units)/.test(x.statement)),false);
+ assert.equal(f.log.filter(x=>x.kind==='commit').length,1);assert.equal(f.log.filter(x=>x.statement?.includes('INSERT dbo.desktop_local_master_requests')).length,1);
+ for(const reason of [null,'PRODUCT_STOCK_CODE_IN_USE']){
+  const x=fakeDriver({productConflictReason:reason}),s=createDesktopLocalMasterSqlStore({...x,richCards:true,verifySession:async()=>true});
+  await assert.rejects(s.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.lockActiveSupplier({supplierId:'51'});await tx.findProductConflict({stockCode:'P2',barcode:'existing'});await tx.finishRequest({...r,response:productRejectionRecord(r.requestId,'PRODUCT_BARCODE_IN_USE')});}),/LOCAL_SQL_ORDER/);
+  assert.equal(x.log.some(v=>v.kind==='commit'),false);
+ }
+});
+
+test('a stored rejection is replayed without a new product check or write; fabricated NOT_COMMITTED cannot commit',async()=>{
+ const r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)},record=productRejectionRecord(r.requestId,'PRODUCT_BARCODE_IN_USE');
+ const f=fakeDriver({replayResponse:record}),store=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true});
+ const outcome=await store.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});const prior=await tx.beginRequest(r);assert.equal(prior.state,'REPLAY');return productRejectionOutcome(prior.response,true);});assert.equal(outcome.state,'NOT_COMMITTED');
+ assert.equal(f.log.some(x=>x.statement?.includes('END conflictReason')||x.statement?.includes('INSERT dbo.')),false);
+ const forged=fakeDriver(),other=createDesktopLocalMasterSqlStore({...forged,richCards:true,verifySession:async()=>true});
+ await assert.rejects(other.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);return productRejectionOutcome(record,false);}),/LOCAL_SQL_UNFINISHED_REQUEST/);
+ assert.equal(forged.log.some(x=>x.kind==='commit'),false);
 });
 test('extra writer permission aborts before business callback or data mutation',async()=>{
  const f=fakeDriver({extraPermission:true}),store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>true});let called=false;
@@ -149,6 +183,17 @@ test('missing or false current session cannot authorize writing',async()=>{
  const store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>false});
  await store.withTransaction(async tx=>assert.equal(await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'}),false));
  assert.equal(f.log.filter(x=>x.kind==='sql').length,1);
+});
+test('a series product cannot mark unit readback complete before its secondary row exists',async()=>{
+ const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true}),r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};
+ await assert.rejects(store.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.findProductConflict({stockCode:'P1',barcode:'001'});await tx.lockActiveSupplier({supplierId:'51'});await tx.insertProduct({actorId:'7',stockCode:'P1',unit:'ADET',brand:'B',category:'C',supplierId:'51',initialStockExact3:'0.000',averageCostTryExact4:'5.3000',seriesFactorExact8:'6.00000000'});await tx.insertLocalUnit({productId:'81',label:'ADET',factorExact8:'1.00000000',isMain:true});await tx.readProductUnits({productId:'81'});}),/LOCAL_SQL_ORDER/);assert.equal(f.log.at(-1).kind,'rollback');assert.ok(!f.log.some(x=>x.statement?.includes('FROM dbo.desktop_local_product_units WITH(HOLDLOCK)')));assert.ok(!f.log.some(x=>x.statement?.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')));
+});
+test('direct store caller cannot finish a reasoned opening without its exact audit and readback',async()=>{
+ for(const action of ['finish','read-before-append','wrong-reason']){const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>true}),r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};
+  await assert.rejects(store.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.insertProduct({actorId:'7',initialStockExact3:'4.000',averageCostTryExact4:'5.3000'});await tx.insertOpeningMovement({productId:'81',actorId:'7',quantityExact3:'4.000',averageCostTryExact4:'5.3000',unitPriceExact4:'5.3000',amountTryExact4:'21.2000',documentDate:'2026-11-06',reason:'Açılış sayımı'});await tx.readOpeningMovement({productId:'81',movementId:'91'});
+   if(action==='finish')return tx.finishRequest({...r,response:{id:'81'}});if(action==='read-before-append')return tx.readMasterAudit({requestId:r.requestId});return tx.appendAudit({actorId:'7',operation:'product.create',entityId:'81',requestId:r.requestId,stockOpening:{kind:'desktop-product-opening-v1',productId:'81',movementId:'91',actorId:'7',requestId:r.requestId,reason:'Yanlış gerekçe',quantityExact3:'4.000',costExact4:'5.3000',amountTryExact4:'21.2000',documentDate:'2026-11-06',currency:'TRY'}});
+  }),/LOCAL_SQL_ORDER/);assert.equal(f.log.at(-1).kind,'rollback');assert.ok(!f.log.some(x=>x.statement?.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')));assert.ok(!f.log.some(x=>x.statement?.includes('INSERT dbo.audit_logs')));
+ }
 });
 
 test('product authorization targets the PR54 direct and legacy edit keys',async()=>{

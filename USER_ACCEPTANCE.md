@@ -1,3 +1,15 @@
+## 6 Kasım — R1 ADET/seri satışı; insan kabulü BEKLİYOR
+
+Ajan normal ekranda katsayı 6 ile seri ürününü açtı; kesirli seri reddini, 2 SERİ → 12 ADET satışını, hazırlama/kolileme/çıkışı ve yenilemeden sonra fiş/stok/cari sonucunu doğruladı. Bağımsız SQL: fiş 8 toplam 154 TRY, tek müşteri hareketi, ürün 48 ADET / 8 SERİ, müşteri 176 TRY. Aynı isteklerin gerçek HTTP tekrarları ikinci etki oluşturmadı. Kaynak ve kurulu teknik kanıt insan/personel veya fiziksel okuyucu kabulü değildir; özgün sayaçlar değişmedi. [Kanıt](docs/evidence/erp/2026-11-06-desktop-series-units/README.md).
+
+## 6 Kasım — R1 nedenli ilk stok; insan kabulü BEKLİYOR
+
+Normal ekranda pozitif başlangıç miktarı boş gerekçeyle kaydedilmedi. Gerekçe girilince tek ürün/tek stok hareketi ve aynı hareket-kullanıcı-UUID ile audit detayı oluştu; kart yenilemeden sonra aynı izi gösterdi. Gerçek HTTP tekrarları sonrası bağımsız SQL okuması ikinci hareket/audit oluşmadığını doğruladı. Bu teknik otomasyon kanıtıdır; gerçek personel, fiziksel okuyucu ve LIVE kabulü değildir. Eski hareketlere gerekçe eklenmedi, özgün sayaçlar değişmedi. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md).
+
+## 6 Kasım — R1 tam ürün kartı ve üç barkod; insan kabulü BEKLİYOR
+
+Normal `erp_deneme` ekranında ana barkod ve iki ek barkod tek ürüne kaydedildi; baştaki sıfırlar korundu ve her barkod aynı kartı buldu. Tam ürün kartı yenilemeden sonra aynı alanlarla açıldı. Mevcut barkod ve SQL'e göre eşdeğer barkodlar reddedildi; bağımsız SQL ve gerçek tekrar çağrıları ikinci ürün/stok etkisi olmadığını doğruladı. Ürün kartı üç genişlikte incelendi. Bu teknik otomasyon kanıtıdır; fiziksel okuyucu, satış/diğer kart/fişlerin bütün dar ekran kabulü ve gerçek personel kabulü açık kalır. Özgün sayaçlar değişmedi. [Kapsam ve kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md).
+
 ## 6 Kasım — V3 gerçek kartlar ve yeni satış doğrulandı; insan kabulü bekliyor
 
 V3 apply-v1 ayrı süreçle doğrulandı, gerçek TLS geçti; paket99C6DA2B... / kaynakaf6a94e6 ile normal yeşil ekranda supplier1, marka/tip/supplier bağlı product3 ve şehir/ülkeli customer3 oluştu. Altı aynı-UUID HTTP replay etkileri çoğaltmadı. Yeni kartlarla fiş7 22TRY tamamlandı: P1stok4→3/P3stok3→2, yeni cari/hesap0→22, kâr8.8000; önceki müşteri50 ve finalized/iptal fişleri aynı. [Gerçek SQL/GUI ve sınırlar](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md). Mal kabul/alış, finans, FX ve insan kabulü açık;49+25 sayaç/LIVE değişmedi.
@@ -415,3 +427,7 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 # 6 Kasım — R1 K02 şema ve K01 normal çıkış teknik kontrolü
 
 Ajan doğruladı: aktif Desktop V3 TEST36tablo/422kolon/47FK/83indeks kaynak eşliği; taze normal erp_deneme girişinden sonra Çıkış, sayfa yenileme ve Ana sayfa giriş ekranında kaldı. Kanıt: [K02 ve normal oturum](docs/evidence/erp/2026-11-06-desktop-k02-schema/README.md). İnsan/personel ticari kabulü BEKLİYOR. Bu teknik kanıt, önceki insan kabulü kayıtlarının sonucunu değiştirmez; tüm ERP/LAN/LIVE kabulü değildir.
+
+## 6 Kasım — R1 ürün ret ve düzeltme teknik kabulü
+
+Ajan normal erp_deneme GUI ile barkod reddi, yenileme sonrası tüm alanların/supplier'ın geri gelmesi, barkodu düzeltip ürün5'in tek stok hareketiyle kaydı ve yeniden listelenmesini doğruladı. Dört gerçek HTTP tekrarında ikinci etki yok; bağımsız SQL kanıtı docs/evidence/erp/2026-11-06-desktop-product-conflict. İnsan/personel ticari kabulü BEKLİYOR; LAN/LIVE/tüm ERP ve gerçek ağ ACK kaybı kabulü değildir.

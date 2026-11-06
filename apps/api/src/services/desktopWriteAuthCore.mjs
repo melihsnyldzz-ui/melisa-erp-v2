@@ -137,7 +137,8 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  }
  function bindReadService(service){
   if(!service||typeof service.list!=='function')fail();
-  return Object.freeze({async list(actor,kind,options){const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service.list(actor,kind,options);}finally{release(ctx);}}});
+  const invoke=name=>async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};
+  return Object.freeze({list:invoke('list'),...(richCards&&typeof service.readProduct==='function'?{readProduct:invoke('readProduct')}:{})});
  }
  function bindSaleService(service){
   if(!service||typeof service.sell!=='function')fail();

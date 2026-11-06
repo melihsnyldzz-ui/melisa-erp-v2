@@ -1,0 +1,48 @@
+{
+  "openingMovements": 1,
+  "normalHttpChecks": 13,
+  "additionalBarcodes": [
+    "000000000051",
+    "000000000052"
+  ],
+  "stockExact3": "2.000",
+  "humanAcceptance": "PENDING",
+  "helperCount": 5,
+  "productId": 6,
+  "openingAmountExact4": "16.0000",
+  "lanLive": false,
+  "worker": {
+    "commandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v3-worker.mjs 8E603E56943C2AF9B2A8A5B94A8543598FDCF44655134F8E6FAF8D8D737641B4",
+    "parentPid": 57088,
+    "creation": "2026-11-06T03:50:25.7502500Z",
+    "pid": 8296
+  },
+  "sourceCount": 187,
+  "sourceHead": "5ebc64b5",
+  "primaryBarcode": "000000000005",
+  "assets": {
+    "desktop-write-green.html": "3e612d62f958665ad8e561ec3a1dc3e68dd09a712284e677e286f095e32a35da",
+    "assets/desktopWriteGreen-CmL_xCC6.js": "a82af418e7cce2f8fc65798937f8159b389535894c668450fca2d5b1873df4a0",
+    "assets/desktopWriteGreen-D6yoncVT.css": "fc68bd6fe280ab5dd502a5cc354e5cee8a76d9f9719b920b2b41676c0be5af86"
+  },
+  "guiReopenedAfterReload": true,
+  "noReplaySideEffects": true,
+  "cardViewportWidths": [
+    1440,
+    1024,
+    390
+  ],
+  "packageHash": "8E603E56943C2AF9B2A8A5B94A8543598FDCF44655134F8E6FAF8D8D737641B4",
+  "schemaVersion": 3,
+  "time": "2026-11-06T03:56:17.2636420Z",
+  "guiSearches": 3,
+  "sourceRoot": "C:/Users/Xaser/Desktop/ERP/kaynak-r1",
+  "assetCount": 3,
+  "owner": {
+    "commandLine": "\"C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -NoProfile -NonInteractive -File C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v3.ps1 -ExpectedPackageHash 8E603E56943C2AF9B2A8A5B94A8543598FDCF44655134F8E6FAF8D8D737641B4",
+    "creation": "2026-11-06T03:50:14.2906140Z",
+    "pid": 57088
+  },
+  "physicalScanner": "NOT_VERIFIED",
+  "state": "R1_PRODUCT_CARD_AND_THREE_BARCODES_INSTALLED_GUI_SQL_VERIFIED"
+}

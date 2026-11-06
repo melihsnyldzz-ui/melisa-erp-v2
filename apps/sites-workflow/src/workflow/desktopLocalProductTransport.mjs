@@ -1,6 +1,10 @@
 // Source-only product transport. The server verifies the bearer and the caller
 // owns the durable request journal. This module does not start any request.
 import {isDesktopPersistedProduct} from './desktopProductCreate.mjs';
+import {isDurableProductRejection} from '../../../api/src/services/desktopProductRejection.mjs';
+import {desktopAdditionalBarcodes} from '../../../api/src/services/desktopProductBarcodes.mjs';
+import {desktopOpeningReason} from '../../../../packages/shared/src/desktopProductOpening.mjs';
+import {desktopSeriesFactor} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 const origin='http://127.0.0.1:5294',endpoint='http://127.0.0.1:4294/api/desktop-local/products';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const jwt=/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -9,10 +13,13 @@ const optional=['openingQuantityExact3','openingDate'], rich=['brand','category'
 const fail=()=>{throw Object.assign(new Error('PRODUCT_TRANSPORT_UNAVAILABLE'),{code:'PRODUCT_TRANSPORT_UNAVAILABLE'});};
 function snapshot(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||![Object.prototype,null].includes(Object.getPrototypeOf(input)))fail();
- const d=Object.getOwnPropertyDescriptors(input),own=Reflect.ownKeys(input),names=[...keys,...(optional.some(k=>Object.hasOwn(d,k))?optional:[]),...(rich.some(k=>Object.hasOwn(d,k))?rich:[])];
+ const d=Object.getOwnPropertyDescriptors(input),own=Reflect.ownKeys(input),names=[...keys,...(optional.some(k=>Object.hasOwn(d,k))?optional:[]),...(rich.some(k=>Object.hasOwn(d,k))?rich:[]),...['additionalBarcodes','openingReason','seriesFactorExact8'].filter(k=>Object.hasOwn(d,k))];
  if(own.length!==names.length||own.some(k=>typeof k!=='string'||!names.includes(k))||names.some(k=>!d[k]||!d[k].enumerable||!Object.hasOwn(d[k],'value')))fail();
  const body=Object.fromEntries(names.map(k=>[k,d[k].value]));
  if([...optional,...rich].some(k=>Object.hasOwn(body,k)&&typeof body[k]!=='string'))fail();
+ if(Object.hasOwn(body,'additionalBarcodes')){if(!rich.every(k=>Object.hasOwn(body,k)))fail();body.additionalBarcodes=desktopAdditionalBarcodes(body.barcode,body.additionalBarcodes);}
+ if(Object.hasOwn(body,'openingReason')){if(!rich.every(k=>Object.hasOwn(body,k))||!optional.every(k=>Object.hasOwn(body,k))||body.openingQuantityExact3==='0.000')fail();body.openingReason=desktopOpeningReason(body.openingReason);}
+ if(Object.hasOwn(body,'seriesFactorExact8')){if(!rich.every(k=>Object.hasOwn(body,k))||body.unit!=='ADET')fail();body.seriesFactorExact8=desktopSeriesFactor(body.seriesFactorExact8);}
  if(typeof body.requestId!=='string'||!uuid.test(body.requestId)||keys.slice(1,9).some(k=>typeof body[k]!=='string')||
   body.saleTier!==null&&(!Number.isInteger(body.saleTier)||body.saleTier< -2147483648||body.saleTier>2147483647))fail();
  const json=JSON.stringify(body);if(json.length>4096)fail();return {json,body};
@@ -24,8 +31,10 @@ export function createDesktopLocalProductTransport({location,fetch:fetchImpl,tok
    if(location.origin!==origin||typeof token!=='string'||token.length>4096||!jwt.test(token))fail();
    const response=await fetchImpl(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
     credentials:'omit',redirect:'error',body:snap.json,signal:AbortSignal.timeout(15000)});
-   if(!response||![200,201].includes(response.status)||response.ok!==true||typeof response.json!=='function')fail();
+   if(!response||![200,201,409].includes(response.status)||typeof response.json!=='function')fail();
    const envelope=await response.json(),data=envelope?.data;
+   if(response.status===409){if(response.ok!==false||envelope?.success!==false||envelope.error?.code!==data?.reason||!rich.every(k=>Object.hasOwn(snap.body,k))||!isDurableProductRejection(data,snap.body.requestId))fail();return data;}
+   if(response.ok!==true)fail();
    if(envelope?.success!==true||!data||data.state!=='COMMITTED'||data.requestId!==snap.body.requestId||data.operation!=='product.create'||typeof data.replayed!=='boolean'||response.status!==(data.replayed?200:201)||!isDesktopPersistedProduct(data.entity,snap.body))fail();
    return data;
   }catch{fail();}

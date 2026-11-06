@@ -1,0 +1,40 @@
+{
+  "state": "R1_FIXED_REJECTIONS_AND_COMMIT_REPLAYED_BODY_CONFLICT_UNKNOWN",
+  "results": [
+    {
+      "case": "negative replay",
+      "status": 409,
+      "state": "NOT_COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "negative replay",
+      "status": 409,
+      "state": "NOT_COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "committed replay",
+      "status": 200,
+      "state": "COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "changed original body",
+      "status": 503,
+      "state": "UNKNOWN"
+    }
+  ],
+  "requestIds": [
+    {
+      "requestId": "ef0a2e49-f791-4c92-8358-0a5e4a28f5b0",
+      "payloadHash": "9dc967f0876740f107b3c7de91ba543d5154fa1f451847d93fb7ddb008838d0f"
+    },
+    {
+      "requestId": "73d115a3-faef-4ded-a089-aa5feb828f01",
+      "payloadHash": "5bdee1624ac21556a9b491dc854dd8c3c0f719f95f6c3683828897e24958aa0e"
+    }
+  ],
+  "noNewRequests": true,
+  "time": "2026-11-06T03:09:27.913Z"
+}

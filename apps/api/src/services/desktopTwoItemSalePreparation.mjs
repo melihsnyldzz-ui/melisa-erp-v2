@@ -5,6 +5,7 @@
 // This module creates no draft, reservation, stock movement or permission.
 import {createHash} from 'node:crypto';
 import {desktopSaleSelectionRevision,prepareDesktopSale} from './desktopSalePreparation.mjs';
+import {isDesktopSeriesSelection,desktopSeriesPieces} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 
 const fail=()=>{throw Error('DESKTOP_TWO_ITEM_SELECTION_INVALID');};
 const scaled3=value=>{
@@ -21,10 +22,11 @@ export function prepareDesktopTwoItemSale(request,locked){
     !Array.isArray(request.items)||request.items.length!==2||!locked||!Array.isArray(locked.products)||locked.products.length!==2||
     !Array.isArray(locked.reservedExact3)||locked.reservedExact3.length!==2||
     typeof request.expectedRevision!=='string'||request.expectedRevision!==desktopTwoItemRevision(locked))fail();
- const ids=new Set(),lines=[];
+ const ids=new Set(),lines=[],seriesSelections=[];
  for(let i=0;i<2;i++){
   const item=request.items[i],product=locked.products[i];
-  if(!item||Object.keys(item).sort().join(',')!=='productId,quantityExact3'||!product||item.productId!==product.id||ids.has(item.productId))fail();
+  if(!item||Object.keys(item).sort().join(',')!==(Object.hasOwn(item,'series')?'productId,quantityExact3,series':'productId,quantityExact3')||!product||item.productId!==product.id||ids.has(item.productId))fail();
+  if(Object.hasOwn(item,'series')){const s=item.series;if(product.unit!=='ADET'||!isDesktopSeriesSelection(s)||s.unitId!==product.seriesUnit?.unitId||s.factorExact8!==product.seriesUnit?.factorExact8||desktopSeriesPieces(s.quantityExact3,s.factorExact8)!==item.quantityExact3)fail();seriesSelections.push(Object.freeze({productId:item.productId,unitId:s.unitId,factorExact8:s.factorExact8,seriesQuantityExact3:s.quantityExact3,pieceQuantityExact3:item.quantityExact3}));}
   ids.add(item.productId);
   const available=scaled3(product.stockExact3)-scaled3(locked.reservedExact3[i]);
   if(available<scaled3(item.quantityExact3))fail();
@@ -41,5 +43,5 @@ export function prepareDesktopTwoItemSale(request,locked){
  const limit=9007199254740991n;if(customerAfter>limit||customerAfter< -limit||accountAfter>limit||accountAfter< -limit)fail();
  const invoice={...lines[0].invoice,items:lines.map(line=>line.invoice.items[0])};
  const expectedLines=lines.map(({expected:e})=>Object.freeze({productId:e.productId,unitId:e.unitId,priceId:e.priceId,quantityExact3:e.quantityExact3,unitPriceExact4:e.unitPriceExact4,lineTotalExact4:e.totalExact4,stockBeforeExact3:e.stockBeforeExact3,stockAfterExact3:e.stockAfterExact3}));
- return Object.freeze({invoice,expected:Object.freeze({customerId:request.customerId,entityId:locked.customer.entityId,accountId:locked.customer.accountId,currency:'TRY',totalExact4:fixed(total,4),customerBeforeExact4:locked.customer.balanceExact4,customerAfterExact4:fixed(customerAfter,4),accountBeforeExact8:locked.customer.accountBalanceExact8,accountAfterExact8:fixed(accountAfter,8),lines:Object.freeze(expectedLines)})});
+ return Object.freeze({invoice,expected:Object.freeze({customerId:request.customerId,entityId:locked.customer.entityId,accountId:locked.customer.accountId,currency:'TRY',totalExact4:fixed(total,4),customerBeforeExact4:locked.customer.balanceExact4,customerAfterExact4:fixed(customerAfter,4),accountBeforeExact8:locked.customer.accountBalanceExact8,accountAfterExact8:fixed(accountAfter,8),lines:Object.freeze(expectedLines)}),...(seriesSelections.length?{seriesSelections:Object.freeze(seriesSelections)}:{})});
 }

@@ -1,0 +1,40 @@
+{
+  "guiEmptyReasonRejectedWithoutWrite": true,
+  "assets": {
+    "desktop-write-green.html": "55e9983d2bd869df171c9173a6b76f554fc6a4f33615b9eeb9d694d4725aea66",
+    "assets/desktopWriteGreen-CHkxvg3y.js": "813cf3158eadc8c9e60df2a5cb6acb7020f94ad470fb7584295dcc5886dd1f8c",
+    "assets/desktopWriteGreen-D6yoncVT.css": "fc68bd6fe280ab5dd502a5cc354e5cee8a76d9f9719b920b2b41676c0be5af86"
+  },
+  "lanLive": false,
+  "auditId": 27,
+  "requestId": "69d7ffa3-b2b9-4132-be58-f39d66ef700d",
+  "time": "2026-11-06T04:16:49.2703407Z",
+  "openingAmountExact4": "16.0000",
+  "assetCount": 3,
+  "state": "R1_REASONED_OPENING_INSTALLED_GUI_SQL_REPLAY_VERIFIED",
+  "reason": "Temiz kurulum sayımı: 2 adet TEST başlangıç stoğu",
+  "worker": {
+    "commandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v3-worker.mjs 70BCEFC26BF449305A04EA90BA2D3DE02398E588B01AFFF4AC091BC31D68EBC8",
+    "pid": 21000,
+    "creation": "2026-11-06T04:12:56.6093570Z",
+    "parentPid": 54812
+  },
+  "noReplaySideEffects": true,
+  "owner": {
+    "pid": 54812,
+    "creation": "2026-11-06T04:12:45.1883730Z",
+    "commandLine": "\"C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -NoProfile -NonInteractive -File C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v3.ps1 -ExpectedPackageHash 70BCEFC26BF449305A04EA90BA2D3DE02398E588B01AFFF4AC091BC31D68EBC8"
+  },
+  "packageHash": "70BCEFC26BF449305A04EA90BA2D3DE02398E588B01AFFF4AC091BC31D68EBC8",
+  "normalHttpChecks": 4,
+  "sourceHead": "d191a378",
+  "sourceCount": 188,
+  "humanAcceptance": "PENDING",
+  "stockExact3": "2.000",
+  "helperCount": 5,
+  "productId": 7,
+  "movementId": 12,
+  "guiReopenedAfterReload": true,
+  "schemaVersion": 3,
+  "sourceRoot": "C:/Users/Xaser/Desktop/ERP/kaynak-r1"
+}

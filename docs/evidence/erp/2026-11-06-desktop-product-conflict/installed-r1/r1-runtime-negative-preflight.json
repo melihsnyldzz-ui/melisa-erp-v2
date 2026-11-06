@@ -1,0 +1,33 @@
+{
+  "priorWorker": 25680,
+  "time": "2026-11-06T02:50:30.4723771Z",
+  "priorRuntimeUnchanged": true,
+  "state": "R1_THREE_FIXED_HELPERS_REJECT_WRONG_PACKAGE",
+  "priorSupervisor": 20864,
+  "results": [
+    {
+      "ownerNotAcquired": true,
+      "helper": "start-master-v3.ps1",
+      "wrongHashRejected": true,
+      "exit": 1,
+      "expectedError": "PACKAGE_REJECTED",
+      "sqlNotReached": true
+    },
+    {
+      "ownerNotAcquired": true,
+      "helper": "stop-master-v3-runtime.ps1",
+      "wrongHashRejected": true,
+      "exit": 1,
+      "expectedError": "PACKAGE_REJECTED",
+      "sqlNotReached": true
+    },
+    {
+      "ownerNotAcquired": true,
+      "helper": "readmit-master-v3-runtime.ps1",
+      "wrongHashRejected": true,
+      "exit": 1,
+      "expectedError": "V3_PIN_HASH",
+      "sqlNotReached": true
+    }
+  ]
+}

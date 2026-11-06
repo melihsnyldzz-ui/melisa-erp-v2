@@ -1,3 +1,39 @@
+## 6 Kasım — R1 ADET/seri satışı normal ekran ve SQL ile doğrulandı
+
+K03-03 / DES-04 kayıtlı ADET ana birim kararı uygulandı. Kaynak d1181482, paket 4A089F03... ile normal ekranda product 8 için 60 ADET / 10 SERİ, katsayı 6 oluşturuldu. Kesirli seri reddinde yazma yok. 2 SERİ → 12 ADET ve mevcut üründen 1 ADET içeren fiş 8 normal hazırlama/kolileme/son kontrol/çıkışla 154 TRY tamamlandı: stoklar 48 / 2 ADET, müşteri ve hesap 176 TRY; tek cari hareketi, iki stok çıkışı ve kalıcı seri audit izi SQL ile doğrulandı. Yenileme ve altı gerçek HTTP okuma/aynı UUID tekrarı sonrası ikinci etki yok. 67 kaynak test dosyası, derleme ve bağımsız inceleme geçti. [Kurulu kanıt ve sınırlar](docs/evidence/erp/2026-11-06-desktop-series-units/README.md). Şimdi yalnız düzeltilmiş miktarda kalan yerel uyarı için ekran paketi hazırlanıyor; geçerli satış tekrarlanmıyor. DDL/yetki yok; K07 ikinci teslim, insan/LAN/LIVE açık.
+
+## 6 Kasım — R1 nedenli başlangıç stoğu kurulu GUI/SQL ile doğrulandı
+
+Kaynak `d191a378`, paket `70BCEFC2...` / 188 kaynak / 5 yardımcı / 3 ekran dosyası. Normal ekranda boş gerekçe pozitif açılışı başlatmadı; 23 operasyonel tablo, journal ve identity aynı kaldı. Gerekçe girilince product 7 için tek hareket 12 (2 ADET × 8 TRY = 16 TRY) ve aynı kullanıcı/UUID/gerekçeyle audit 27 oluştu. Kart yenilemeden sonra izi tekrar gösterdi. Gerçek aynı-gövde replay ve farklı gerekçeli aynı UUID denemesi ikinci ürün/hareket/audit üretmedi; bağımsız SQL ile doğrulandı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md). Şema, yetki ve SQL servisi aynı; eski ürün/cari değerleri korundu. İnsan/LAN/LIVE kabulü açık.
+
+Seri katsayısı için önce sorulan seçenek, mevcut DES-04 kararı bulunup doğrulanarak çözüldü: ana birim ADET. Yeni kullanıcı cevabı gerekmiyor. Merkezi plan/Excel ve özgün sayaçlar bu kaynak işinde yeniden yazılmadı.
+
+## 6 Kasım — R1 nedenli başlangıç stoğu kaynak çalışması hazır
+
+K03-05 için pozitif yeni açılış gerekçesi mevcut audit.after_json içinde gerçek hareket / kullanıcı / istek UUID'siyle aynı transactionda saklanıp doğrulanıyor. Eski istek gövdeleri ve tamamlanmış journal tekrarları korunuyor; geçmiş hareketlere gerekçe eklenmiyor. Tam kart, audit detayını gerçek stok hareketiyle eşleştiriyor. 65 ilgili test dosyası, guardlı derleme ve bağımsız salt okunur inceleme geçti. [Sözleşme ve kaynak kanıtı](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md). DDL/yetki değişikliği yok; sıradaki adım yalnız R1 uygulama paket geçişi ve normal ekran/gerçek SQL kabulü.
+
+## 6 Kasım — R1 ana/ek barkod ve tam kart normal GUI/SQL ile doğrulandı
+
+Kaynak `5ebc64b5`, paket `8E603E56...`, 187 kaynak / 5 yardımcı / 3 ekran dosyası kurulu. Normal ekranda mevcut ek barkod ve SQL'e göre eşdeğer iki barkod reddedildi; yalnız ret journal'i eklendi, 23 operasyonel tablo ve identity değerleri aynı kaldı. Düzeltme product 6 için ana/iki ek barkod ve tek 2 ADET × 8 TRY açılış hareketi oluşturdu. Üç barkod aynı ürünü buldu; tam kart yenilemeden sonra aynı alanlarla açıldı. Gerçek normal HTTP tekrarları ve bağımsız sonraki SQL okuması ikinci etki olmadığını doğruladı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md). Ürün kartı 1440/1024/390 genişlikte incelendi; diğer ekranların tüm responsive kabulü ve fiziksel okuyucu/insan kabulü açık. DDL, yetki, SQL servisi, eski satış/restore ve K07 kapsamı değişmedi.
+
+Sıradaki R1 bağımlılığı: adet/seri katsayısı ve izli açılış gerekçesini PR54 iş kurallarıyla eşleştirmek; kaynakta hazır olanı yeni hedefe taşıyıp tek paket/normal ekran/SQL kabulüyle tamamlamak. Merkezi plan ve Excel ayrı koordinasyon sahibinde güncellenir; burada yeni sayaç veya plan açılmadı.
+
+## 6 Kasım — R1 ürün kartı ve ana/ek barkod kaynak çalışması hazır
+
+K03-02 ana/ek barkodlar, baştaki sıfırların korunması ve barkodla aynı ürünü bulma; bağlı K03-01 tam kart açılışı kaynakta tamamlandı. Mevcut tablo ve journal kullanılıyor; DDL/yetki değişikliği yok. 64 ilgili test dosyası, guardlı yeşil ekran derlemesi ve bağımsız salt okunur inceleme geçti. [Kapsam ve kaynak kanıtı](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md). Çalışan R1 henüz bu değişikliği almadı; sıradaki adım kontrollü paket geçişi ve normal GUI/gerçek SQL doğrulaması. K07 ve eski geçerli satış/restore denemeleri bu adımın dışında kalıyor.
+
+## 6 Kasım — R1 ürün ret/taslak/düzeltme gerçek GUI ve SQL ile doğrulandı
+
+Aktif kaynak-r1/51637a22, paketC116F88D.../185kaynak/5PS/2asset, owner46464-worker42208/loopback5294-4294. NormalGUI mevcut barkodu reddetti;23operasyonel tablo+identity aynı, tekretjournalef0a2e49.... Yenileme/yenipaketsonrası alanlar+supplier geri açıldı; yalnızbarkod değişip product5/tekopeningmovement10 (1ADET×8TRY) oluştu, yenilemedekaldı. Eskistok3/4/2,cariler50/22,supplier0aynı. İki409retreplay+200commitreplay+değişmişbody503 gerçeknormalHTTP; bağımsızSQL23tablo/8journal/identityaynı. [Kurulu kanıt ve korunan ara hatalar](docs/evidence/erp/2026-11-06-desktop-product-conflict/README.md).59kaynaktestdosyası+guardlıbuildPASS; exact516hostedquality/secretsPASS,Windowsbekliyor. İnsan/LAN/LIVEaçık,DDL/yetki/SQLservisi değişmedi.
+
+Sıradaki iş: mevcut R1 K03-02 ana/ek barkodların aynı ürünü bulması ve baştaki sıfırların korunması; bağlı K03-01 tam kart açılışını tamamla. Geçerli satış/restore tekrarı ve K07 genişlemesi yok.
+
+## 6 Kasım — R1 ürün çakışması ve kalıcı hata taslağı kaynak düzeltmesi
+
+Yeni kaynak-r1 feature dalında stok-kodu/barkod çakışması UUID/actor/hash kilitli aynı SQL transactionında iş kaydı öncesi belirlenip mevcutjournal'e kalıcı ret olarak yazılır. Kesin409 dışında UNKNOWN/body/UUID korunur; eskiCOMMITTED aynı. Form409sonrası actor kapsamlı v2 taslakla yeniden açılır, istek boyunca alanlar kilitli.59ilgili testdosyası+offlineguard build geçti; bağımsız salt-okunur inceleme tamam. [Kaynak ve önceki gerçek SQL rollback sınırı](docs/evidence/erp/2026-11-06-desktop-product-conflict/README.md). Yeni R1 henüz kurulmadı; aktif V3 aynı99C6paketi. DDL/yetki/SQLservisi değişmedi.
+
+Sıradaki iş: ayrı master-r1 paketini doğrula; yalnız yeni yerel uygulama geçişiyle R1 normal409/taslak-kalıcılığı/düzeltme ve SQL tekjournal/no-product etkisini kanıtla. Eski geçerli satış/restore tekrarı ve K07 genişlemesi yok; insan kabulü açık.
+
 ## 6 Kasım — R1 K02-02/K02-05 şema eşliği ve K01-04 çıkış doğrulandı
 
 Aktif V3 paketi99C6DA2B... değiştirilmeden salt okunur hedef karşılaştırması geçti:36tablo/422kolon/47FK/83indeks tam kaynak eşliği;30CHECK ad/parent+enabled/trusted ve IGNORE_DUP_KEYOFF. Exact701bc1 kaynak/clean tracked tree/184kurulu kaynak hash'i bağlı,13offline bozulmuş capture reddedildi. Normal taze erp_deneme giriş→Çıkış→yenile→Ana sayfa girişte kalma ajan GUI kanıtı eklendi. [K02 karşılaştırması ve sınırlar](docs/evidence/erp/2026-11-06-desktop-k02-schema/README.md). Yeni DDL/DML/kurulum/satış/rollback/servis işlemi yok; insan kabulü açık.

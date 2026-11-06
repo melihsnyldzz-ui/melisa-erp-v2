@@ -1,0 +1,26 @@
+{
+  "body": {
+    "requestId": "8097f44d-14b5-4529-92bc-6ab9ffc203ef",
+    "stockCode": "ERP-R1-ROLLBACK-P4",
+    "name": "ERP R1 YARIM KAYIT DENEMESI",
+    "barcode": "ERPTESTV3P3",
+    "unit": "ADET",
+    "currency": "TRY",
+    "salePriceExact4": "12.0000",
+    "purchasePriceExact4": "8.0000",
+    "purchaseDiscountRateExact4": "0.0000",
+    "saleTier": null,
+    "brand": "MELISA TEST",
+    "category": "DENEME TURU",
+    "supplierId": "1",
+    "openingQuantityExact3": "1.000",
+    "openingDate": "2026-11-06"
+  },
+  "expected": "Existing active barcode unique conflict after product and local unit inserts; transaction rolls back; all33 protected table row hashes unchanged; response may remain conservative UNKNOWN.",
+  "repeatAuthorized": false,
+  "target": "Semih\\MELISAERP/MELISA_ERP_DESKTOP_TEST_20261105",
+  "package": "99C6DA2B7278DA9EF4A32F1FAC8DE57FC01E599DB3BD8CD645D3ECC9089D7AE3",
+  "state": "PREPARED_NOT_SENT",
+  "originalDataChanges": false,
+  "normalUser": "erp_deneme"
+}

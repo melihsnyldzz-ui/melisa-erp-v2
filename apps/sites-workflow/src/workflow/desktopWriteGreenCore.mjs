@@ -2,6 +2,7 @@
 // authority; the UI permission checks only control visibility and dispatch.
 import {createDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {createDesktopProductCreate} from './desktopProductCreate.mjs';
+import {desktopProductCardId,isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTransport.mjs';
 import {createDesktopLocalCustomerTransport} from './desktopLocalCustomerTransport.mjs';
@@ -36,7 +37,9 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   const submit=kind==='customers'?createDesktopLocalCustomerTransport({location,fetch:fetchImpl,tokenProvider}):kind==='suppliers'?createDesktopLocalSupplierTransport({location,fetch:fetchImpl,tokenProvider}):createDesktopLocalProductTransport({location,fetch:fetchImpl,tokenProvider});
   const options={actorId:id,storage:localStorage,locks,newId,submit,richCards},controller=kind==='customers'?createDesktopCustomerCreate(options):kind==='suppliers'?createDesktopSupplierCreate(options):createDesktopProductCreate(options);
   const current=()=>{if(prior!==generation||!user||actorId(user.id)!==id||!user.permissions.includes(permission)||!token)fail();};
-  return Object.freeze({pending:()=>{current();return controller.pending();},create:async fields=>{current();if(richCards&&kind==='products'&&!user.permissions.includes('supplier.view'))fail();if(kind==='suppliers'&&!user.permissions.includes('supplier.view'))fail();return controller.create(fields);},retry:async()=>{current();return controller.retry();}});
+  return Object.freeze({pending:()=>{current();return controller.pending();},
+   ...(kind==='products'?{draft:()=>{current();return controller.draft();},rejected:()=>{current();return controller.rejected();}}:{}),
+   create:async fields=>{current();if(richCards&&kind==='products'&&!user.permissions.includes('supplier.view'))fail();if(kind==='suppliers'&&!user.permissions.includes('supplier.view'))fail();return controller.create(fields);},retry:async()=>{current();return controller.retry();}});
  }
  function sale(){
   if(!can('sales'))fail();const actor=actorId(user.id),prior=generation;
@@ -52,5 +55,9 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
    read:async invoiceId=>{current();if(!actorId(invoiceId))fail();const result=await request('/api/desktop-sale/workflows/'+invoiceId);current();if(result.data?.invoiceId!==invoiceId)fail();return result.data;}
   });
  }
- return Object.freeze({login,restore,logout,list,can,create,sale,getUser:()=>user});
+ async function productCard(id){
+  if(!richCards||!desktopProductCardId(id)||!can('products')||!can('products','edit'))fail();const prior=generation;
+  const result=await request('/api/products/'+id);if(prior!==generation||!can('products','edit')||!isDesktopProductCard(result.data,id))fail();return result.data;
+ }
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,getUser:()=>user});
 }
