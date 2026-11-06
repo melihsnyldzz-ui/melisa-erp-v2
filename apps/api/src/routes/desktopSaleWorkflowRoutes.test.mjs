@@ -12,7 +12,7 @@ test('read-only quote query preserves exact inputs, rejects extra/partial author
  for(const suffix of ['&role=owner','&maxDiscountRateExact4=100.0000','&discountRateExact4=0.0000'])assert.equal((await send(query+suffix)).status,503);
  assert.equal((await send(query.replace('&quantityUnits=ADET,ADET',''))).status,503);
  const fx={documentCurrency:'USD',accountId:'7',documentRateExact8:'40.00000000',accountRateExact8:'40.00000000',documentRateMode:'company',accountRateMode:'company'},fxQuery=query+'&currencySelection='+encodeURIComponent(JSON.stringify(fx));assert.equal((await send(fxQuery)).status,200);assert.deepEqual(input.currencySelection,fx);
- for(const code of ['DESKTOP_COMPANY_RATE_REQUIRED','DESKTOP_COMPANY_RATE_CHANGED']){rateError=code;const result=await send(fxQuery);assert.equal(result.status,409);assert.equal(result.body.code,code);}rateError=null;
+ for(const code of ['DESKTOP_COMPANY_RATE_REQUIRED','DESKTOP_COMPANY_RATE_CHANGED','DESKTOP_SALE_PRICE_REQUIRED']){rateError=code;const result=await send(fxQuery);assert.equal(result.status,409);assert.equal(result.body.code,code);}rateError=null;
  for(const suffix of ['&currencySelection='+encodeURIComponent(JSON.stringify(fx)),'&provider=external'])assert.equal((await send(fxQuery+suffix)).status,503);assert.equal((await send(query+'&currencySelection='+encodeURIComponent(JSON.stringify({...fx,documentRateExact8:40})))).status,503);
  permissions=['sales.create'];assert.equal((await send(query)).status,503);
 });
