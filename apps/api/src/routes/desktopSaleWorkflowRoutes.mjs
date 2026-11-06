@@ -28,7 +28,7 @@ export function createDesktopSaleWorkflowRoutes({service,draftService,dispatchSe
    const user=await authenticateNormal(req),actor=typeof user?.userId==='number'?String(user.userId):user?.userId;
    if(user?.kind!=='normal'||!id(actor)||!Array.isArray(user.permissions)||['sales.create','sales.finalize'].some(p=>!user.permissions.includes(p)))throw Error();
    const data=await draftService.preview(actor,{customerId:req.query.customerId,documentDate:req.query.documentDate,productIds:req.query.productIds.split(','),...(quote?{quantities:req.query.quantities.split(','),quantityUnits:req.query.quantityUnits.split(','),discountRateExact4:req.query.discountRateExact4}:{}),...(fx?{currencySelection}:{})});return res.json({success:true,data});
-  }catch(error){if(error?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')return res.status(403).json({success:false,code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});if(['DESKTOP_COMPANY_RATE_REQUIRED','DESKTOP_COMPANY_RATE_CHANGED'].includes(error?.code))return res.status(409).json({success:false,code:error.code});return res.status(503).json({success:false});}
+  }catch(error){if(error?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')return res.status(403).json({success:false,code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});if(['DESKTOP_COMPANY_RATE_REQUIRED','DESKTOP_COMPANY_RATE_CHANGED','DESKTOP_SALE_PRICE_REQUIRED'].includes(error?.code))return res.status(409).json({success:false,code:error.code});return res.status(503).json({success:false});}
  });
  router.post('/api/desktop-sale/workflows/:id/dispatch',async(req,res)=>{
   const requestId=req.body?.requestId;try{
