@@ -1,3 +1,9 @@
+## 6 Kasım — R1 ana/ek barkod ve tam kart normal GUI/SQL ile doğrulandı
+
+Kaynak `5ebc64b5`, paket `8E603E56...`, 187 kaynak / 5 yardımcı / 3 ekran dosyası kurulu. Normal ekranda mevcut ek barkod ve SQL'e göre eşdeğer iki barkod reddedildi; yalnız ret journal'i eklendi, 23 operasyonel tablo ve identity değerleri aynı kaldı. Düzeltme product 6 için ana/iki ek barkod ve tek 2 ADET × 8 TRY açılış hareketi oluşturdu. Üç barkod aynı ürünü buldu; tam kart yenilemeden sonra aynı alanlarla açıldı. Gerçek normal HTTP tekrarları ve bağımsız sonraki SQL okuması ikinci etki olmadığını doğruladı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md). Ürün kartı 1440/1024/390 genişlikte incelendi; diğer ekranların tüm responsive kabulü ve fiziksel okuyucu/insan kabulü açık. DDL, yetki, SQL servisi, eski satış/restore ve K07 kapsamı değişmedi.
+
+Sıradaki R1 bağımlılığı: adet/seri katsayısı ve izli açılış gerekçesini PR54 iş kurallarıyla eşleştirmek; kaynakta hazır olanı yeni hedefe taşıyıp tek paket/normal ekran/SQL kabulüyle tamamlamak. Merkezi plan ve Excel ayrı koordinasyon sahibinde güncellenir; burada yeni sayaç veya plan açılmadı.
+
 ## 6 Kasım — R1 ürün kartı ve ana/ek barkod kaynak çalışması hazır
 
 K03-02 ana/ek barkodlar, baştaki sıfırların korunması ve barkodla aynı ürünü bulma; bağlı K03-01 tam kart açılışı kaynakta tamamlandı. Mevcut tablo ve journal kullanılıyor; DDL/yetki değişikliği yok. 64 ilgili test dosyası, guardlı yeşil ekran derlemesi ve bağımsız salt okunur inceleme geçti. [Kapsam ve kaynak kanıtı](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md). Çalışan R1 henüz bu değişikliği almadı; sıradaki adım kontrollü paket geçişi ve normal GUI/gerçek SQL doğrulaması. K07 ve eski geçerli satış/restore denemeleri bu adımın dışında kalıyor.

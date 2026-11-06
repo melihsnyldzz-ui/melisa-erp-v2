@@ -1,3 +1,7 @@
+## 6 Kasım — R1 tam ürün kartı ve üç barkod; insan kabulü BEKLİYOR
+
+Normal `erp_deneme` ekranında ana barkod ve iki ek barkod tek ürüne kaydedildi; baştaki sıfırlar korundu ve her barkod aynı kartı buldu. Tam ürün kartı yenilemeden sonra aynı alanlarla açıldı. Mevcut barkod ve SQL'e göre eşdeğer barkodlar reddedildi; bağımsız SQL ve gerçek tekrar çağrıları ikinci ürün/stok etkisi olmadığını doğruladı. Ürün kartı üç genişlikte incelendi. Bu teknik otomasyon kanıtıdır; fiziksel okuyucu, satış/diğer kart/fişlerin bütün dar ekran kabulü ve gerçek personel kabulü açık kalır. Özgün sayaçlar değişmedi. [Kapsam ve kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md).
+
 ## 6 Kasım — V3 gerçek kartlar ve yeni satış doğrulandı; insan kabulü bekliyor
 
 V3 apply-v1 ayrı süreçle doğrulandı, gerçek TLS geçti; paket99C6DA2B... / kaynakaf6a94e6 ile normal yeşil ekranda supplier1, marka/tip/supplier bağlı product3 ve şehir/ülkeli customer3 oluştu. Altı aynı-UUID HTTP replay etkileri çoğaltmadı. Yeni kartlarla fiş7 22TRY tamamlandı: P1stok4→3/P3stok3→2, yeni cari/hesap0→22, kâr8.8000; önceki müşteri50 ve finalized/iptal fişleri aynı. [Gerçek SQL/GUI ve sınırlar](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md). Mal kabul/alış, finans, FX ve insan kabulü açık;49+25 sayaç/LIVE değişmedi.

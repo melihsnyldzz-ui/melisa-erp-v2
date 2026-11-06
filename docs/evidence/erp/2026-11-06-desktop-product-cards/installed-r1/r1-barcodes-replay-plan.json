@@ -1,0 +1,82 @@
+{
+  "bodies": [
+    {
+      "requestId": "bb4a3227-6e47-40eb-839e-135b7e00a724",
+      "stockCode": "ERP-R1-P5",
+      "name": "ERP R1 BARKOD DENEME ÜRÜN 5",
+      "barcode": "000000000005",
+      "unit": "ADET",
+      "currency": "TRY",
+      "salePriceExact4": "12.0000",
+      "purchasePriceExact4": "8.0000",
+      "purchaseDiscountRateExact4": "0.0000",
+      "saleTier": null,
+      "brand": "MELISA TEST",
+      "category": "DENEME TÜRÜ",
+      "supplierId": "1",
+      "openingQuantityExact3": "2.000",
+      "openingDate": "2026-11-06",
+      "additionalBarcodes": [
+        "ERPTESTV3P3",
+        "000000000052"
+      ]
+    },
+    {
+      "requestId": "76fdf38a-29b1-422e-afaa-d7465f567268",
+      "stockCode": "ERP-R1-P5",
+      "name": "ERP R1 BARKOD DENEME ÜRÜN 5",
+      "barcode": "000000000005",
+      "unit": "ADET",
+      "currency": "TRY",
+      "salePriceExact4": "12.0000",
+      "purchasePriceExact4": "8.0000",
+      "purchaseDiscountRateExact4": "0.0000",
+      "saleTier": null,
+      "brand": "MELISA TEST",
+      "category": "DENEME TÜRÜ",
+      "supplierId": "1",
+      "openingQuantityExact3": "2.000",
+      "openingDate": "2026-11-06",
+      "additionalBarcodes": [
+        "ERPCASEP5",
+        "erpcasep5"
+      ]
+    },
+    {
+      "requestId": "4b11fa08-6ef5-44c8-9995-9374932015b5",
+      "stockCode": "ERP-R1-P5",
+      "name": "ERP R1 BARKOD DENEME ÜRÜN 5",
+      "barcode": "000000000005",
+      "unit": "ADET",
+      "currency": "TRY",
+      "salePriceExact4": "12.0000",
+      "purchasePriceExact4": "8.0000",
+      "purchaseDiscountRateExact4": "0.0000",
+      "saleTier": null,
+      "brand": "MELISA TEST",
+      "category": "DENEME TÜRÜ",
+      "supplierId": "1",
+      "openingQuantityExact3": "2.000",
+      "openingDate": "2026-11-06",
+      "additionalBarcodes": [
+        "000000000051",
+        "000000000052"
+      ]
+    }
+  ],
+  "hashes": [
+    {
+      "requestId": "bb4a3227-6e47-40eb-839e-135b7e00a724",
+      "payloadHash": "80d9acdf3664aa5f3d671565d8b6319f0205d4c009c1ed95790fe6db57f26cfe"
+    },
+    {
+      "requestId": "76fdf38a-29b1-422e-afaa-d7465f567268",
+      "payloadHash": "f4c275f80c5c2d3816e73b8df9f918f1d0e29a838cacbde5030eba9045b74b88"
+    },
+    {
+      "requestId": "4b11fa08-6ef5-44c8-9995-9374932015b5",
+      "payloadHash": "1540c4f310e28b210c82df72efce887c4e8d2c13733379ee175da2df09b7d879"
+    }
+  ],
+  "noNewRequestIds": true
+}
