@@ -1,3 +1,6 @@
+## 6 Kasım — V3 gerçek kartlar ve yeni satış doğrulandı; insan kabulü bekliyor
+
+V3 apply-v1 ayrı süreçle doğrulandı, gerçek TLS geçti; paket99C6DA2B... / kaynakaf6a94e6 ile normal yeşil ekranda supplier1, marka/tip/supplier bağlı product3 ve şehir/ülkeli customer3 oluştu. Altı aynı-UUID HTTP replay etkileri çoğaltmadı. Yeni kartlarla fiş7 22TRY tamamlandı: P1stok4→3/P3stok3→2, yeni cari/hesap0→22, kâr8.8000; önceki müşteri50 ve finalized/iptal fişleri aynı. [Gerçek SQL/GUI ve sınırlar](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md). Mal kabul/alış, finans, FX ve insan kabulü açık;49+25 sayaç/LIVE değişmedi.
 ## 6 Kasım — ERP06/C06, ERP07/C07 ve ürün kartları; insan kabulü BEKLİYOR
 
 V3 yeni kart kaynakları ve gerçek SQL geri alma denemesi hazır. Kalıcı kurulum ve normal yeşil ekranda tedarikçi/marka/tip/ana tedarikçi kaydı henüz doğrulanmadı; eski insan kabulleri, kişiler, tarihler ve sayaçlar korunur. [Kanıt](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md).
