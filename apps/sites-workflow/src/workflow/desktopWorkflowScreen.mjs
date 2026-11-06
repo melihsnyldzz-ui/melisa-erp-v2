@@ -103,5 +103,7 @@ export function mountDesktopWorkflowScreen({root,core,storage,actorId}={}){
   if(operation==='SAVE_CARTONS')captureDesktopPackingSource(storage,actorId,record);await accept(await controller.create('transition',{invoiceId:record.invoiceId,operation,expectedVersion:record.version,cartons}));
  }
  void run(async()=>{const last=storage.getItem(key);if(last){await load(last);return;}await Promise.all([loadOptions('customers'),loadOptions('products')]);});
- return Object.freeze({dispose(){live=false;},requestClose:()=>!busy&&!dirty&&!pending()});
+ // A validated write-before-send request survives reopening. Unsaved cartons,
+ // an active request or unreadable recovery storage must still block closing.
+ return Object.freeze({dispose(){live=false;},requestClose(){try{pending();return !busy&&!dirty;}catch{return false;}}});
 }

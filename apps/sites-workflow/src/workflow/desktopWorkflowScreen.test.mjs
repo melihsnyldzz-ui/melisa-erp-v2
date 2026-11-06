@@ -61,6 +61,10 @@ test('quantity correction preserves pending-request warnings and genuine server 
   const status=f.node.querySelector('[role="status"]'),message=status.textContent;assert.ok(message);await f.input(0,'2');assert.equal(status.textContent,message);assert.equal(f.calls(),mode==='pending-after-local'?0:1);f.screen.dispose();
  }
 });
+test('validated durable unknown sale permits reopening while unreadable recovery and unsaved cartons remain blocked',async()=>{
+ const f=await quantityWarningFixture('unknown');await f.clickDraft();assert.equal(f.calls(),1);assert.equal(f.screen.requestClose(),true);assert.match(f.node.innerHTML,/Önceki işlemin sonucu doğrulanmalı/);f.screen.dispose();
+ const broken=mountDesktopWorkflowScreen({root:root(),core:{sale:()=>({pending(){throw Error('unreadable');}})},storage:{getItem:()=>null,setItem(){},removeItem(){}},actorId:'8'});assert.equal(broken.requestClose(),false);broken.dispose();
+});
 async function quantityWarningFixture(mode='local'){
  const node=root();let unresolved=null,calls=0;const controller={pending:()=>unresolved,preview:async input=>pricedPreview(input,{revision:'a'.repeat(64),products:[{productId:'5',stockCode:'P5',unit:'ADET',priceExact4:'12.0000',stockExact3:'60.000',reservedExact3:'0.000',seriesUnit:{unitId:'53',factorExact8:'6.00000000'}},{productId:'9',stockCode:'P9',unit:'ADET',priceExact4:'10.0000',stockExact3:'3.000',reservedExact3:'0.000'}]}),create:async()=>{calls++;if(mode==='server')throw Error('Sunucudaki fiyat değişti.');unresolved={kind:'draft'};return {state:'UNKNOWN'};}};
  const core={sale:()=>controller,list:async kind=>({data:kind==='customers'?[{id:'2',customerCode:'M2',customerName:'Ada'}]:[{id:'5',stockCode:'P5',productName:'Serili ürün',unit:'ADET',seriesUnitId:'53',seriesFactorExact8:'6.00000000'},{id:'9',stockCode:'P9',productName:'Ürün',unit:'ADET'}],meta:{hasNextPage:false}})};
