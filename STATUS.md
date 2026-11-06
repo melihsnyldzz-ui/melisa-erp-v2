@@ -2,7 +2,7 @@
 
 Normal barkod92→93→92 sepeti tek POST201/UUID1132f1c4-b19f-4016-b46e-201151448c68 ile fiş15'e 2 ADET + 1 ADET /2,25USD kaydoldu. Gerçek Document200yenilemesi ve normal GET15 aynı satırları/tutarı açtı. DRAFT bırakıldı; stok7/7, rezerv0/0 ve bütün cariler aynı. Yalnız1invoice/2item/1workflow/1journal/2audit eklendi; eski33tablo satırlarının bağımsız readonly filteredhash'i21ceaynı, actualcurrentbusinessSHA6dbd8888d9c327a873a444731935966440c8dbf4f6337a15ec01f29829f400f5. [Kayıt/yeniden açma ve etiket düzeltmesi](docs/evidence/erp/2026-11-06-desktop-barcode-draft/README.md).
 
-DRAFT ekranının yanlış “yansıyan” etiketi çıkış öncesinde “Çıkışta cari hesaba yansıyacak” olarak düzeltildi. Altı durum UIregresyonuyla56dosya334test/build/review PASS; yeni frontend kurulumu sırada. Native/API/rol/yetki/şema değişmedi. Kesin iptal WIPf860a025 ayrı dalda korunur, kurulu değildir. İnsan/cihaz/LAN/LIVE/tüm ERP kabulü açık; merkez plan/Excel değiştirilmedi.
+DRAFT ekranının yanlış “yansıyan” etiketi çıkış öncesinde “Çıkışta cari hesaba yansıyacak” olarak düzeltildi. Altı durum UIregresyonuyla56dosya334test/build/review PASS. Kaynak aef16a63/paketdf4440b7…/owner49068/worker40256 kuruldu; fiş15 normal GET200ve yeniJS200 ile doğru “Çıkışta” etiketinde açıldı. Kurulum/GUI boyunca33tablo/metadata/identity/security6dbd…aynı, yeni işPOST0. API213/helper5/native/SQL/dependencyaynı; exactaefkalite/secretsPASS, WindowsCI sürüyor. Native/API/rol/yetki/şema değişmedi. Kesin iptal WIPf860a025 ayrı dalda korunur, kurulu değildir. İnsan/cihaz/LAN/LIVE/tüm ERP kabulü açık; merkez plan/Excel değiştirilmedi.
 
 ## 6 Kasım — K05-02 barkod tekrarı kurulu normal ekranda doğrulandı
 

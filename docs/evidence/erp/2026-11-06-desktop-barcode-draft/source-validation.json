@@ -1,5 +1,5 @@
 {
-  "state": "SOURCE_LABEL_PASS_BASE_INSTALLED_DRAFT_REOPEN_PASS_LABEL_INSTALL_PENDING",
+  "state": "INSTALLED_GUI_SQL_LABEL_PASS_SOURCE_334_EXACT_AEF_CI_PENDING",
   "base": "25def7cfc339f69db4965238d3f2778c7a304896",
   "testFiles": 56,
   "tests": 334,
@@ -8,5 +8,7 @@
   "js": "desktopWriteGreen-BatGL53p.js",
   "review": "READONLY_LABEL_STATE_NO_P1_P2",
   "humanAcceptance": "PENDING",
-  "physicalScanner": "PENDING"
+  "physicalScanner": "PENDING",
+  "packageSha256": "df4440b7bdd810beae949823cf1d3e520076a280db53dc68b28bef554a467f3b",
+  "runtimeSource": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d"
 }
