@@ -9,6 +9,7 @@ import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopPr
 import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 import {desktopAvailableStock,isDesktopStockAvailability} from '../../../../packages/shared/src/desktopStockAvailability.mjs';
 import {isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
+import {desktopCompanyRateDate,desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const reservedSql=product=>`(SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(r.quantity),0))) FROM dbo.desktop_sale_reservations r WITH(HOLDLOCK,INDEX(IX_desktop_active_reservations)) WHERE r.product_id=${product} AND r.state='ACTIVE') reservedExact3`;
@@ -67,7 +68,12 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
  const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
  if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
- return Object.freeze({async list(actorId,kind,input={}){
+ return Object.freeze({async readCompanyRates(actorId,date){
+  if(!richCards||!validId(actorId))fail();desktopCompanyRateDate(date);const tx=new sql.Transaction(pool);let begun=false;
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:'sales.view'})!==true)fail();
+   const result=await new sql.Request(tx).input('companyRateDate',sql.NVarChar(10),date).query(`SELECT TOP(3) CONVERT(varchar(20),id) id,currency_code currency,CONVERT(char(10),rate_date,23) date,CONVERT(varchar(40),rate_to_try) rateExact8,source FROM dbo.currency_rates WITH(HOLDLOCK) WHERE rate_date=CONVERT(date,@companyRateDate,23) AND currency_code IN(N'USD',N'EUR') ORDER BY currency_code,id;`);if(!Array.isArray(result?.recordset))fail();const data=desktopCompanyRates(date,Array.from(result.recordset));await tx.commit();begun=false;return data;
+  }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async list(actorId,kind,input={}){
   let def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;
   if(richCards&&kind==='suppliers')def={...def,baseWhere:'is_deleted=0 AND is_active=1'};
   if(richCards&&kind==='products')def={...def,select:def.select+`,brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName,(SELECT CONVERT(varchar(20),u.id) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesUnitId,(SELECT CONVERT(varchar(40),u.factor) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesFactorExact8`};

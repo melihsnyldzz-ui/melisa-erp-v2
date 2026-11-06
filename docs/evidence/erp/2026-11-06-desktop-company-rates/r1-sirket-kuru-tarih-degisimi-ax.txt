@@ -1,0 +1,64 @@
+Browser tab: 10, Title: "Melisa ERP · Yeşil çalışma ekranı", URL: "http://127.0.0.1:5294/".
+1 AXWebArea Melisa ERP · Yeşil çalışma ekranı, URL: 127.0.0.1:5294/
+	2 container
+		3 text M MELİSA ERP Yerel kurulum OTURUM
+		24 text ERP deneme personeli
+		5 text İŞLEMLER
+		6 container nav
+			25 button ⌂ Ana sayfa
+				26 text ⌂
+				27 text Ana sayfa
+			28 button ▦ Ürün & stok
+				29 text ▦
+				30 text Ürün & stok
+			31 button ♙ Müşteriler
+				32 text ♙
+				33 text Müşteriler
+			34 button ▧ Tedarikçiler
+				35 text ▧
+				36 text Tedarikçiler
+			37 button ▤ Satış ve hazırlama
+				38 text ▤
+				39 text Satış ve hazırlama
+			40 button ▣ Fişler
+				41 text ▣
+				42 text Fişler
+			43 button (disabled) ◌ Alış · Hazırlanıyor
+				44 text ◌ Alış · Hazırlanıyor
+			45 button (disabled) ◌ Stok hareketleri · Hazırlanıyor
+				46 text ◌ Stok hareketleri · Hazırlanıyor
+			47 button (disabled) ◌ Cari · Hazırlanıyor
+				48 text ◌ Cari · Hazırlanıyor
+			49 button (disabled) ◌ Finans · Hazırlanıyor
+				50 text ◌ Finans · Hazırlanıyor
+			51 button (disabled) ◌ Raporlar · Hazırlanıyor
+				52 text ◌ Raporlar · Hazırlanıyor
+		20 text Yerel veritabanı
+	21 container
+		22 container
+			23 text Melisa ERP /
+			53 text Ana sayfa
+		54 button Çıkış yap, ID: logout
+		55 container view
+			56 text MELİSA ERP
+			57 heading Hoş geldiniz, Value: 1
+				58 text Hoş geldiniz
+			59 text Yetkiniz dahilindeki kartlara sol menüden ulaşabilirsiniz.
+			60 button Kurulum bilgisini göster
+			61 button Şirket kurlarını göster
+			62 container Şirket günlük kurları
+				63 heading Şirket günlük kurları, Value: 2
+					64 text Şirket günlük kurları
+				65 text Seçilen tarih için şirket içinde belirlenen TRY karşılıkları.
+				66 container
+					67 text Kur tarihi
+					68 date field (settable) Kur tarihi, Value: 2026-11-05
+						69 container
+							70 stepper
+							71 stepper
+							72 stepper
+						73 pop up button Tarih seçiciyi göster Tarih seçiciyi göster
+					74 button Kurları göster
+				75 text Tarih değişti. Kurları yeniden gösterin.
+
+The focused UI element is 71 stepper

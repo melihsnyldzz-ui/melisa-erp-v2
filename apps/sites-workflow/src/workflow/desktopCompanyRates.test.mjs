@@ -1,0 +1,14 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mountDesktopCompanyRates} from './desktopCompanyRates.mjs';import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+const date='2026-11-06',tick=()=>new Promise(resolve=>setImmediate(resolve));
+function fixture(load){const elements=new Map();for(const key of ['[data-company-rate-date]','button','[data-company-rate-result]','form'])elements.set(key,{value:date,innerHTML:'',disabled:false,handlers:{},addEventListener(name,fn){this.handlers[name]=fn;}});const root={innerHTML:'',querySelector:key=>elements.get(key)};const mount=mountDesktopCompanyRates({root,load,initialDate:date});return {root,mount,input:elements.get('[data-company-rate-date]'),button:elements.get('button'),output:elements.get('[data-company-rate-result]'),submit:()=>elements.get('form').handlers.submit({preventDefault(){}})};}
+test('normal rates panel distinguishes missing foreign prices from TRY1 and renders explicit company rates',async()=>{
+ let rows=[];const f=fixture(async selected=>desktopCompanyRates(selected,rows));await f.submit();assert.match(f.output.innerHTML,/1 TRY = 1\.00000000 TRY/);assert.equal((f.output.innerHTML.match(/kur tanımlı değil/g)??[]).length,2);assert.doesNotMatch(f.output.innerHTML,/1 USD = 1/);
+ rows=[{id:'1',currency:'USD',date,rateExact8:'40.00000000',source:'company'}];await f.submit();assert.match(f.output.innerHTML,/1 USD = 40\.00000000 TRY/);assert.equal(f.button.disabled,false);
+ rows=[{...rows[0],source:null}];await f.submit();assert.match(f.output.innerHTML,/1 USD = 40\.00000000 TRY/);assert.match(f.output.innerHTML,/Kur kaynağı: belirtilmemiş/);
+});
+test('date changes clear old results; late replies, disposed panels and malformed/error responses cannot display stale company rates',async()=>{
+ let finish;const f=fixture(()=>new Promise(resolve=>{finish=resolve;})),pending=f.submit();f.input.value='2026-11-05';f.input.handlers.change();finish(desktopCompanyRates(date,[]));await pending;assert.match(f.output.innerHTML,/Tarih değişti/);assert.doesNotMatch(f.output.innerHTML,/1 TRY/);
+ const g=fixture(()=>new Promise(resolve=>{finish=resolve;})),old=g.submit();g.mount.dispose();g.output.innerHTML='new panel';finish(desktopCompanyRates(date,[]));await old;assert.equal(g.output.innerHTML,'new panel');
+ for(const load of [async()=>{throw Error('private server text');},async()=>desktopCompanyRates('2026-11-05',[])]){const x=fixture(load);await x.submit();assert.match(x.output.innerHTML,/Şirket kurları okunamadı/);assert.doesNotMatch(x.output.innerHTML,/private server/);}
+ const bad=fixture(async()=>{throw Error('must not call');});bad.input.value='2026-02-30';await bad.submit();assert.match(bad.output.innerHTML,/Geçerli bir takvim tarihi/);await tick();
+});

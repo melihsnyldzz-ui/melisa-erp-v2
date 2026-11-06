@@ -1,6 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';import express from 'express';import http from 'node:http';import {createDesktopWriteListRoutes} from './desktopWriteListRoutes.mjs';
 import {productCardFixture} from '../services/test-fixtures/desktopProductCard.fixture.mjs';
 import {customerCardFixture} from '../services/test-fixtures/desktopCustomerCard.fixture.mjs';
+import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+
+test('company rate HTTP read requires current normal sales view, exact date and fixed origin; failures never invent rates',async t=>{
+ let permissions=['sales.view'],kind='normal',calls=0,data=desktopCompanyRates('2026-11-06',[]);const app=express();app.use(createDesktopWriteListRoutes({richCards:true,authenticateNormal:async()=>({kind,userId:7,permissions}),service:{list:async()=>({}),readProduct:async()=>null,readCompanyRates:async(actor,date)=>{calls++;assert.equal(actor,'7');assert.equal(date,'2026-11-06');return data;}}}));const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const get=(path='/api/desktop-company-rates?date=2026-11-06',headers={})=>new Promise((resolve,reject)=>{http.get({hostname:'127.0.0.1',port:server.address().port,path,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294',...headers}},res=>{let body='';res.on('data',v=>body+=v);res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body:JSON.parse(body)}));}).on('error',reject);});
+ const good=await get();assert.equal(good.status,200);assert.deepEqual(good.body.data,data);assert.equal(good.headers['cache-control'],'no-store');const prior=calls;
+ for(const path of ['/api/desktop-company-rates','/api/desktop-company-rates?date=2026-02-30','/api/desktop-company-rates?date=2026-11-06&date=2026-11-05','/api/desktop-company-rates?date=2026-11-06&provider=external'])assert.equal((await get(path)).status,400);
+ assert.equal((await get(undefined,{origin:'http://foreign'})).status,403);permissions=[];assert.equal((await get()).status,403);permissions=['sales.view'];kind='bootstrap';assert.equal((await get()).status,403);assert.equal(calls,prior);kind='normal';data=desktopCompanyRates('2026-11-05',[]);assert.equal((await get()).status,503);
+});
 
 test('customer card route binds selected account and optional sale history to normal permissions',async t=>{
  let permissions=['customer.view'],kind='normal',card=customerCardFixture(),calls=0;const app=express();app.use(createDesktopWriteListRoutes({richCards:true,authenticateNormal:async()=>({kind,userId:7,permissions}),service:{list:async()=>({}),readProduct:async()=>null,readCustomer:async(actor,id,{includeSales})=>{calls++;assert.equal(actor,'7');assert.equal(id,'3');return card?{...card,salesHistoryAvailable:includeSales,lastSale:includeSales?card.lastSale:null}:null;}}}));const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise(resolve=>server.close(resolve)));

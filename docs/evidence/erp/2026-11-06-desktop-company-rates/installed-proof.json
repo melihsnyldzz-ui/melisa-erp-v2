@@ -1,0 +1,199 @@
+{
+  "state": "INSTALLED_COMPANY_RATE_EMPTY_TABLE_NORMAL_GUI_HTTP_AND_READONLY_SQL_VERIFIED",
+  "sourceCommit": "1fe20d4ff2ac065353a2b31efc7309c86e703e11",
+  "packageSha256": "ea5814065925f88d064ab72550e9eec2831da0b033bc5b1150beabd758b61bf2",
+  "sourceCount": 205,
+  "helperCount": 5,
+  "assetCount": 3,
+  "assets": {
+    "js": "desktopWriteGreen-Byic_MxP.js",
+    "css": "desktopWriteGreen-D6yoncVT.css"
+  },
+  "target": {
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "server": "Semih\\MELISAERP",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseId": 5,
+    "schemaVersion": 4
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessRowsSha256": "ce6c005d8ab905dc757e308d9b9a667271939927b02f44159d99a9599226a0d1",
+  "entireObserverMetadataAndAll33BusinessTablesIdentical": true,
+  "currencyRateRowCount": 0,
+  "normalGui": {
+    "dates": [
+      "2026-11-06",
+      "2026-11-05"
+    ],
+    "missingForeignRatesExplicit": true,
+    "dateChangeClearsOldResult": true,
+    "axEvidence": true,
+    "nativeScreenshot": "UNAVAILABLE - same known minimized-window capture limitation",
+    "humanAcceptance": "BEKLIYOR"
+  },
+  "httpResults": [
+    {
+      "case": "exact date missing foreign rates 2026-11-06",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "date": "2026-11-06",
+          "rates": [
+            {
+              "currency": "TRY",
+              "date": "2026-11-06",
+              "defined": true,
+              "rateExact8": "1.00000000",
+              "rateId": null,
+              "source": "system"
+            },
+            {
+              "currency": "USD",
+              "date": "2026-11-06",
+              "defined": false,
+              "rateExact8": null,
+              "rateId": null,
+              "source": null
+            },
+            {
+              "currency": "EUR",
+              "date": "2026-11-06",
+              "defined": false,
+              "rateExact8": null,
+              "rateId": null,
+              "source": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "exact date missing foreign rates 2026-11-05",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "date": "2026-11-05",
+          "rates": [
+            {
+              "currency": "TRY",
+              "date": "2026-11-05",
+              "defined": true,
+              "rateExact8": "1.00000000",
+              "rateId": null,
+              "source": "system"
+            },
+            {
+              "currency": "USD",
+              "date": "2026-11-05",
+              "defined": false,
+              "rateExact8": null,
+              "rateId": null,
+              "source": null
+            },
+            {
+              "currency": "EUR",
+              "date": "2026-11-05",
+              "defined": false,
+              "rateExact8": null,
+              "rateId": null,
+              "source": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "exact date missing foreign rates 2024-02-29",
+      "status": 200,
+      "body": {
+        "success": true,
+        "data": {
+          "date": "2024-02-29",
+          "rates": [
+            {
+              "currency": "TRY",
+              "date": "2024-02-29",
+              "defined": true,
+              "rateExact8": "1.00000000",
+              "rateId": null,
+              "source": "system"
+            },
+            {
+              "currency": "USD",
+              "date": "2024-02-29",
+              "defined": false,
+              "rateExact8": null,
+              "rateId": null,
+              "source": null
+            },
+            {
+              "currency": "EUR",
+              "date": "2024-02-29",
+              "defined": false,
+              "rateExact8": null,
+              "rateId": null,
+              "source": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case": "invalid date/query ",
+      "status": 400
+    },
+    {
+      "case": "invalid date/query ?date=2026-02-30",
+      "status": 400
+    },
+    {
+      "case": "invalid date/query ?date=2026-11-06T00:00:00Z",
+      "status": 400
+    },
+    {
+      "case": "invalid date/query ?date=2026-11-06&date=2026-11-05",
+      "status": 400
+    },
+    {
+      "case": "invalid date/query ?date=2026-11-06&provider=external",
+      "status": 400
+    },
+    {
+      "case": "normal session required",
+      "status": 401
+    },
+    {
+      "case": "fixed origin required",
+      "status": 403
+    },
+    {
+      "case": "existing three-price product preserved",
+      "status": 200
+    },
+    {
+      "case": "existing completed invoice preserved",
+      "status": 200
+    }
+  ],
+  "sourceTests": {
+    "files": 26,
+    "total": 163,
+    "failed": 0,
+    "skipped": 0,
+    "logSha256": "a108b6b44876abc1aab98a867f2bfba7bc783f4d123fb1025102f55e69420e92"
+  },
+  "independentReadonlyReview": "nullable-source mismatch corrected; no remaining P1/P2",
+  "hostedCiAtSource": {
+    "qualityBuildTest": "SUCCESS in both exact source runs",
+    "secretScan": "SUCCESS in both exact source runs",
+    "windowsStartup": "IN_PROGRESS"
+  },
+  "noDdlOrDataOrPermissionsOrCredentialsOrSqlServiceChanges": true,
+  "populatedCompanyRateRealSqlAcceptance": false,
+  "companyRateEditingImplemented": false,
+  "actualFxInvoiceOrSnapshotPersistenceImplemented": false,
+  "time": "2026-11-06T10:44:34.342Z"
+}
