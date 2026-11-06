@@ -9,6 +9,7 @@ import {isDesktopRuntimeInfo} from '../../../../packages/shared/src/desktopRunti
 import {desktopCompanyRateDate,isDesktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCurrencySettlementParity} from '../../../api/src/services/desktopCurrencySettlementParity.mjs';
+import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopCustomerAccountCreate,createDesktopCustomerAccountTransport} from './desktopCustomerAccountCreate.mjs';
 import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTransport.mjs';
@@ -27,7 +28,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
  async function request(path,{method='GET',body,credential=token}={}){
   if(location.origin!==ORIGIN)fail();
   const r=await fetchImpl(API+path,{method,headers:{'Content-Type':'application/json',...(credential?{Authorization:`Bearer ${credential}`}:{})},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000),...(body?{body:JSON.stringify(body)}:{})});
-  const value=await r.json();if(!r.ok||value?.success!==true){if(r.status===403&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')throw Error('İskonto yetki sınırınızı aşıyor. Yetkili onayı gerekiyor.');if(r.status===409&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_COMPANY_RATE_CHANGED')throw Error('Şirket kuru değişti. Kurları yeniden doldurup önizlemeyi hesaplayın.');if(r.status===409&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_SALE_PRICE_REQUIRED')throw Error('Seçili ürünlerden birinin bu para biriminde satış fiyatı tanımlı değil. Ürün fiyatını tanımlayıp yeniden kontrol edin.');if(r.status===409&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_COMPANY_RATE_REQUIRED')throw Error('Bu tarih için şirket kuru yok. İşlem kurunu açıkça girin.');fail();}return value;
+  const value=await r.json();if(!r.ok||value?.success!==true){if(path.startsWith('/api/desktop-product-barcode?')&&r.status===404&&value?.code==='DESKTOP_BARCODE_NOT_FOUND')throw Error('Barkodla eşleşen aktif ürün bulunamadı.');if(path.startsWith('/api/desktop-product-barcode?')&&r.status===409&&value?.code==='DESKTOP_BARCODE_AMBIGUOUS')throw Error('Barkod birden fazla ürüne ait. Ürün kartlarını kontrol edin.');if(r.status===403&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')throw Error('İskonto yetki sınırınızı aşıyor. Yetkili onayı gerekiyor.');if(r.status===409&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_COMPANY_RATE_CHANGED')throw Error('Şirket kuru değişti. Kurları yeniden doldurup önizlemeyi hesaplayın.');if(r.status===409&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_SALE_PRICE_REQUIRED')throw Error('Seçili ürünlerden birinin bu para biriminde satış fiyatı tanımlı değil. Ürün fiyatını tanımlayıp yeniden kontrol edin.');if(r.status===409&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_COMPANY_RATE_REQUIRED')throw Error('Bu tarih için şirket kuru yok. İşlem kurunu açıkça girin.');fail();}return value;
  }
  function clear(){generation++;token=null;user=null;sessionStorage.removeItem(KEY);}
  function acceptUser(value){if(!validUser(value))fail();user=value;return user;}
@@ -81,5 +82,6 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   const c=createDesktopCustomerAccountCreate({actorId:actor,storage:localStorage,locks,newId,submit:async command=>{current();const result=await submit(command);current();return result;}});
   return Object.freeze({pending:()=>{current();return c.pending();},create:async fields=>{current();return c.create(fields);},retry:async()=>{current();return c.retry();}});
  }
- return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,companyRates,customerAccount,getUser:()=>user});
+ async function productBarcode(barcode){if(!richCards||!can('products')||!isDesktopBarcode(barcode))fail();const prior=generation,result=await request('/api/desktop-product-barcode?barcode='+encodeURIComponent(barcode));if(prior!==generation||!can('products')||!isDesktopBarcodeLookup(result.data,barcode))fail();return result.data.product;}
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,companyRates,customerAccount,productBarcode,getUser:()=>user});
 }

@@ -1,0 +1,13 @@
+{
+  "state": "SOURCE_PASS_INSTALLATION_PENDING",
+  "base": "6abb2f64dd6ae1aa5f1cc29d0e1e8929e5ad4358",
+  "tests": 301,
+  "testFiles": 55,
+  "testLogSha256": "fe9026dc438c611199ed005544534707e36d70920b6e7e0fc89c899e2adc44d8",
+  "buildLogSha256": "a5ee5054362e03e3c37966bb9709f4b0379361780e2bb8a839218642f93d9ab4",
+  "js": "desktopWriteGreen-IgypNzam.js",
+  "review": "P1_P2_FIXED_READONLY_NO_OPEN_FINDINGS",
+  "realSql": false,
+  "normalGui": "PENDING",
+  "humanAcceptance": "PENDING"
+}

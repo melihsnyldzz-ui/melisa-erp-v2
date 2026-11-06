@@ -11,6 +11,7 @@ import {desktopAvailableStock,isDesktopStockAvailability} from '../../../../pack
 import {isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
 import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {readDesktopCompanyRates} from './desktopCompanyRateRead.mjs';
+import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const reservedSql=product=>`(SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(r.quantity),0))) FROM dbo.desktop_sale_reservations r WITH(HOLDLOCK,INDEX(IX_desktop_active_reservations)) WHERE r.product_id=${product} AND r.state='ACTIVE') reservedExact3`;
@@ -73,6 +74,13 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
   if(!richCards||!validId(actorId))fail();desktopCompanyRateDate(date);const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:'sales.view'})!==true)fail();
    const data=await readDesktopCompanyRates({sql,transaction:tx,date});await tx.commit();begun=false;return data;
+  }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readProductBarcode(actorId,barcode){
+  if(!richCards||!validId(actorId)||!isDesktopBarcode(barcode))fail();const tx=new sql.Transaction(pool);let begun=false;
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:'product.view'})!==true)fail();
+   const result=await new sql.Request(tx).input('barcode',sql.NVarChar(100),barcode).query(`SELECT TOP(2) CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name productName,p.unit,CONVERT(varchar(40),p.current_stock_qty) currentStockExact3,${reservedSql('p.id')}
+FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=p.id AND b.is_active=1 AND DATALENGTH(CONVERT(nvarchar(max),b.barcode))=DATALENGTH(@barcode) AND CONVERT(varbinary(200),CONVERT(nvarchar(100),b.barcode))=CONVERT(varbinary(200),@barcode)) ORDER BY p.id;`);
+   if(!Array.isArray(result?.recordset)||result.recordset.length>2)fail();if(result.recordset.length===2)throw Object.assign(Error('DESKTOP_BARCODE_AMBIGUOUS'),{code:'DESKTOP_BARCODE_AMBIGUOUS'});if(!result.recordset.length){await tx.commit();begun=false;return null;}const data={barcode,product:projectStock(result.recordset[0])};if(!isDesktopBarcodeLookup(data,barcode))fail();await tx.commit();begun=false;return data;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async list(actorId,kind,input={}){
   let def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;
