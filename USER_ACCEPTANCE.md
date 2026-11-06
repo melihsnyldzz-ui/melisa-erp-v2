@@ -1,3 +1,7 @@
+## 6 Kasım — R1 K04-03 müşteri döviz hesapları; insan kabulü BEKLİYOR
+
+Ajan normal V4 TEST ekranında aynı müşteri3'ün USD ve EUR hesaplarını sıfır bakiyeyle açtı; TRY 176 ve son kesin fiş8 korundu. Yenilemede üç ayrı hesap göründü. Gerçek normal HTTP eşzamanlı iki müşteri2/USD isteğinde yalnız bir hesap açtı; diğerinin kalıcı ret ve iki isteğin tekrarları ikinci etki yapmadı. Bağımsız SQL 30 diğer tablo ve eski bakiyelerin aynı kaldığını doğruladı. [Kurulu teknik kanıt](docs/evidence/erp/2026-11-06-desktop-currency-accounts/README.md). Gerçek personel/işletme sahibi kişi-tarih-sonuç **BEKLİYOR**. Hesap açma, çok dövizli satış veya limit/vade/kredi onayı kabulü değildir; terminal/LAN/LIVE ve nihai boş işletme teslimi açık.
+
 ## 6 Kasım — R1 sürüm/hedef ve güvenli hata; insan kabulü BEKLİYOR
 
 Ajan normal ana sayfadan gerçek paket SHA'sı, yerel TEST hedefi ve şema bilgisini açtı. Yalnız yeni uygulama durduğunda anlaşılır bağlantı/oturum mesajı çıktı; aynı paket yeniden başlayıp normal giriş yapıldığında aynı sürüm/hedef döndü. Beş normal HTTP kontrolü ve bağımsız SQL okuması yazma veya ikinci etki olmadığını doğruladı. Bu teknik sürüm/hata kanıtı, lost-ACK veya gerçek personel/cihaz/LAN/LIVE kabulü değildir. [Kanıt](docs/evidence/erp/2026-11-06-desktop-runtime-info/README.md).

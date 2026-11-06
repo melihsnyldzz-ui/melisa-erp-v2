@@ -1,0 +1,28 @@
+{
+  "state": "R1_CURRENCY_V4_SQL_GUI_NORMAL_HTTP_AND_REPLAY_VERIFIED",
+  "sourceCommit": "1469feb8ecc1ba5a478fb0328c3bbf9960dfb1f2",
+  "packageSha256": "487b3db09e9b7264ede825fae4ac839c9c0b7db03f9628429550d16aaebf72da",
+  "schemaVersion": 4,
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessRowsSha256": "4d8c8dde0d2610cb9f60829e049e5cf4bb9feaab91a69212a348c0b940faa3fd",
+  "newZeroBalanceAccounts": 3,
+  "newAccountAudits": 3,
+  "newJournalRows": 4,
+  "durableDuplicateJournalRows": 1,
+  "unchangedBusinessTables": 30,
+  "existingAccountsAndCustomerBalancesUnchanged": true,
+  "reloadAddedNoRows": true,
+  "duplicateCustomerCurrencyGroups": 0,
+  "normalHttpCases": 17,
+  "guiCurrencies": [
+    "TRY",
+    "USD",
+    "EUR"
+  ],
+  "guiVerifiedCustomerId": "3",
+  "oldSqlAndVegaUntouched": true,
+  "realMultiCurrencySalesVerified": false,
+  "realHumanAcceptance": false,
+  "time": "2026-11-06T06:59:26.476Z"
+}

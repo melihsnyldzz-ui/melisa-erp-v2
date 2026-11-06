@@ -7,6 +7,7 @@ import {isDesktopStockAvailability} from '../../../../packages/shared/src/deskto
 import {desktopCustomerCardId,isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
 import {isDesktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
+import {createDesktopCustomerAccountCreate,createDesktopCustomerAccountTransport} from './desktopCustomerAccountCreate.mjs';
 import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTransport.mjs';
 import {createDesktopLocalCustomerTransport} from './desktopLocalCustomerTransport.mjs';
 import {createDesktopLocalProductTransport} from './desktopLocalProductTransport.mjs';
@@ -67,5 +68,13 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   const result=await request('/api/customers/'+id);if(prior!==generation||!can('customers')||!isDesktopCustomerCard(result.data,id)||result.data.salesHistoryAvailable&&!can('sales'))fail();return result.data;
  }
  async function runtimeInfo(){if(!richCards||!user)fail();const prior=generation,r=await request('/api/desktop-runtime');if(prior!==generation||!user||!isDesktopRuntimeInfo(r.data))fail();return r.data;}
- return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,getUser:()=>user});
+ async function customerAccount(){
+  if(!richCards||!can('customers')||!can('customers','edit'))fail();const actor=actorId(user.id),prior=generation;
+  const current=()=>{if(prior!==generation||!user||actorId(user.id)!==actor||!can('customers')||!can('customers','edit')||!token)fail();};
+  const info=await runtimeInfo();current();if(info.profile!=='desktop-master-v4'||info.schemaVersion!==4)return null;
+  const submit=createDesktopCustomerAccountTransport({location,fetch:fetchImpl,tokenProvider:async()=>{current();return token;}});
+  const c=createDesktopCustomerAccountCreate({actorId:actor,storage:localStorage,locks,newId,submit:async command=>{current();const result=await submit(command);current();return result;}});
+  return Object.freeze({pending:()=>{current();return c.pending();},create:async fields=>{current();return c.create(fields);},retry:async()=>{current();return c.retry();}});
+ }
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,customerAccount,getUser:()=>user});
 }
