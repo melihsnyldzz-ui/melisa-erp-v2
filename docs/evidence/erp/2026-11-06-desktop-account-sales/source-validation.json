@@ -1,0 +1,25 @@
+{
+  "ci": "PENDING",
+  "sourceBaseline": "e8a34d4fb61741c0bfb764633cd790676788729a",
+  "normalAuthProfiles": [
+    4,
+    5
+  ],
+  "permissions": [
+    "customer.view",
+    "sales.view"
+  ],
+  "liveAuthorized": false,
+  "state": "SOURCE_VALIDATED_NOT_INSTALLED",
+  "sqlExecuted": false,
+  "buildModules": 42,
+  "guiVerified": false,
+  "testFiles": 73,
+  "newPermissions": 0,
+  "runtimeInstalled": false,
+  "independentReadOnlyReview": "NO_NEW_P1_P2",
+  "humanAccepted": false,
+  "testsPassed": 402,
+  "testsFailed": 0,
+  "integratedSource": "5dc4fbe86d7203221f6d2c495c2c7d864548d3f7"
+}
