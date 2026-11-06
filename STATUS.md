@@ -1,3 +1,9 @@
+## 6 Kasım — R1 nedenli başlangıç stoğu kurulu GUI/SQL ile doğrulandı
+
+Kaynak `d191a378`, paket `70BCEFC2...` / 188 kaynak / 5 yardımcı / 3 ekran dosyası. Normal ekranda boş gerekçe pozitif açılışı başlatmadı; 23 operasyonel tablo, journal ve identity aynı kaldı. Gerekçe girilince product 7 için tek hareket 12 (2 ADET × 8 TRY = 16 TRY) ve aynı kullanıcı/UUID/gerekçeyle audit 27 oluştu. Kart yenilemeden sonra izi tekrar gösterdi. Gerçek aynı-gövde replay ve farklı gerekçeli aynı UUID denemesi ikinci ürün/hareket/audit üretmedi; bağımsız SQL ile doğrulandı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md). Şema, yetki ve SQL servisi aynı; eski ürün/cari değerleri korundu. İnsan/LAN/LIVE kabulü açık.
+
+Sıradaki R1 seri katsayısında PR54 demo stok birimi ile yeni ADET akışı arasındaki işletme seçimi kullanıcıya soruldu; cevap gelmeden bu dönüşüm değiştirilmez. Bağımsız hazır R1 işlerine devam edilebilir. Merkezi plan/Excel ve özgün sayaçlar bu kaynak işinde yeniden yazılmadı.
+
 ## 6 Kasım — R1 nedenli başlangıç stoğu kaynak çalışması hazır
 
 K03-05 için pozitif yeni açılış gerekçesi mevcut audit.after_json içinde gerçek hareket / kullanıcı / istek UUID'siyle aynı transactionda saklanıp doğrulanıyor. Eski istek gövdeleri ve tamamlanmış journal tekrarları korunuyor; geçmiş hareketlere gerekçe eklenmiyor. Tam kart, audit detayını gerçek stok hareketiyle eşleştiriyor. 65 ilgili test dosyası, guardlı derleme ve bağımsız salt okunur inceleme geçti. [Sözleşme ve kaynak kanıtı](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md). DDL/yetki değişikliği yok; sıradaki adım yalnız R1 uygulama paket geçişi ve normal ekran/gerçek SQL kabulü.

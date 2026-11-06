@@ -1,3 +1,7 @@
+## 6 Kasım — R1 nedenli ilk stok; insan kabulü BEKLİYOR
+
+Normal ekranda pozitif başlangıç miktarı boş gerekçeyle kaydedilmedi. Gerekçe girilince tek ürün/tek stok hareketi ve aynı hareket-kullanıcı-UUID ile audit detayı oluştu; kart yenilemeden sonra aynı izi gösterdi. Gerçek HTTP tekrarları sonrası bağımsız SQL okuması ikinci hareket/audit oluşmadığını doğruladı. Bu teknik otomasyon kanıtıdır; gerçek personel, fiziksel okuyucu ve LIVE kabulü değildir. Eski hareketlere gerekçe eklenmedi, özgün sayaçlar değişmedi. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md).
+
 ## 6 Kasım — R1 tam ürün kartı ve üç barkod; insan kabulü BEKLİYOR
 
 Normal `erp_deneme` ekranında ana barkod ve iki ek barkod tek ürüne kaydedildi; baştaki sıfırlar korundu ve her barkod aynı kartı buldu. Tam ürün kartı yenilemeden sonra aynı alanlarla açıldı. Mevcut barkod ve SQL'e göre eşdeğer barkodlar reddedildi; bağımsız SQL ve gerçek tekrar çağrıları ikinci ürün/stok etkisi olmadığını doğruladı. Ürün kartı üç genişlikte incelendi. Bu teknik otomasyon kanıtıdır; fiziksel okuyucu, satış/diğer kart/fişlerin bütün dar ekran kabulü ve gerçek personel kabulü açık kalır. Özgün sayaçlar değişmedi. [Kapsam ve kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md).

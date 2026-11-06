@@ -1,0 +1,29 @@
+{
+  "state": "R1_REASONED_OPENING_CARD_AND_FIXED_REPLAY_VERIFIED",
+  "results": [
+    {
+      "case": "reasoned card",
+      "status": 200,
+      "productId": "7",
+      "movementId": "12"
+    },
+    {
+      "case": "old card without invented opening reason",
+      "status": 200,
+      "productId": "6"
+    },
+    {
+      "case": "same committed body replay",
+      "status": 200,
+      "state": "COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "changed reason under committed UUID",
+      "status": 503,
+      "state": "UNKNOWN"
+    }
+  ],
+  "noNewRequestIds": true,
+  "time": "2026-11-06T04:16:11.465Z"
+}

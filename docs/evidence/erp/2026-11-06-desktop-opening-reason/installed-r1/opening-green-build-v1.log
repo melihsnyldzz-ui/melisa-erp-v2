@@ -1,0 +1,9 @@
+[36mvite v7.3.3 [32mbuilding client environment for production...[36m[39m
+transforming...
+[32m✓[39m 21 modules transformed.
+rendering chunks...
+computing gzip size...
+[2mdist-desktop-write-green/[22m[32mdesktop-write-green.html               [39m[1m[2m25.96 kB[22m[1m[22m[2m │ gzip:  6.51 kB[22m
+[2mdist-desktop-write-green/[22m[35massets/desktopWriteGreen-D6yoncVT.css  [39m[1m[2m 2.81 kB[22m[1m[22m[2m │ gzip:  0.80 kB[22m
+[2mdist-desktop-write-green/[22m[36massets/desktopWriteGreen-CHkxvg3y.js   [39m[1m[2m74.45 kB[22m[1m[22m[2m │ gzip: 20.32 kB[22m
+[32m✓ built in 257ms[39m
