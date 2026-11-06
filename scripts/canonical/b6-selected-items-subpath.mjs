@@ -11,7 +11,7 @@ const sourceURL=new URL('../../apps/api/src/services/invoiceDraftService.js',imp
 // insertSelectedSourceSalesItems. That function's
 // body (235d4119...f094be) and extracted SQL remain byte-identical to PR54.
 // Keep a whole-file pin AND the original SQL pin; unknown changes still reject.
-const SOURCE_SHA='02c21a1722b04be1f69455e358b3956c19305c4f5c21c3e9bd2d52d78072f74b';
+const SOURCE_SHA='7b8dc7a1d7fb35962480b45f714afc41793537bcd70f2077734288a3413d9124';
 const ORIGINAL_SQL_SHA='17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb';
 const digest=v=>createHash('sha256').update(v).digest('hex');
 const reject=code=>{throw Object.assign(new Error(code),{code});};

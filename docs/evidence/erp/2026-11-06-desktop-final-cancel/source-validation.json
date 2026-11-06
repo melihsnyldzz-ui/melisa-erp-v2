@@ -1,25 +1,67 @@
 {
-  "state": "WIP_READ_AND_INVERSE_ONLY_NOT_MOUNTED",
-  "base": "967740b243f7b7efc43fad46a490cfd531c22ea5",
-  "testFiles": 5,
-  "tests": 24,
+  "state": "WIP_PRIVATE_NATIVE_FENCE_SOURCE_NOT_MOUNTED",
+  "testFiles": 64,
+  "tests": 364,
   "testResult": "PASS",
-  "sourceHashes": {
-    "apps/api/src/services/desktopSaleCancellationPlan.mjs": "50c1488ab1b6e2221e79b0bbd37a6780cb98e1ea9372a563a45460c3f30f1fa9",
-    "apps/api/src/services/desktopFinalCancellationRead.mjs": "69fcedc37ae71cc4f4b0a4a81d7793d4373c51c4904f730c77c6c9068f2fac48",
-    "packages/shared/src/desktopSaleCancellation.mjs": "f1dcda08f8e75c8ecbf7c47962946286cac53944ee25762886892901bff6a505",
-    "apps/api/src/services/desktopFinalCancellationScope.mjs": "e2071bd29428a0f17921e20f5dfd485e029bc258466d5a9f45a49792bdc34c42",
-    "apps/api/src/services/desktopFinalCancellationPosting.mjs": "355f9c30720c7846166f51aa06e2d232475c0c33043b5ac2d78ac2db2459cb6a"
-  },
-  "readonlySqlQuery": "PASS_V2_WINDOWS_SYSADMIN_NOT_APP_WRITER",
-  "readonlySqlSha256": "ff266e8c688c1192be3994ba1cbac083d0dd9a570335850b5495ce8b23a05cfa",
-  "review": "READONLY_QUEUE_PRECISION_PHYSICAL_REBEGIN_P2_FIXED_NO_NEW_P1_P2",
+  "additionalAuthBinderTests": 13,
+  "testLogSha256": "bf5a366cfc4fe46de83093ba84fcefc62504de98aa2d522e0e1137bf96dffac8",
+  "review": "READONLY_EXPORT_NOOP_AND_PUBLIC_STATUS_P2_FIXED_NO_NEW_P1_P2",
+  "nativeEngine": "REAL_NATIVE_CANCEL_WITH_SYNTHETIC_TRANSACTIONAL_SQL",
+  "fileJournal": "REAL_TEMP_FILESYSTEM_RACE_FENCE_REVIEW_STATUS_PASS",
   "apiMounted": false,
-  "physicalCancellationAuthImplemented": false,
-  "nativeCancellationImplemented": false,
   "installed": false,
   "realCancellation": false,
   "newGrants": false,
+  "physicalNormalCancellationAuth": "V4_REJECTS_SALES_CANCEL_V5_NOT_PREPARED",
   "humanAcceptance": "PENDING",
-  "nativePostingSource": "UNMOUNTED_SYNTHETIC_DRIVER_ONLY_NOT_REAL_SQL_OR_NATIVE"
+  "sources": [
+    {
+      "path": "apps/api/src/services/desktopFinalCancellationExportFence.mjs",
+      "sha256": "1738ff31a3976246ec3a419cdfae14fbe893c7d6b98c408d7f36bfac688b0da8"
+    },
+    {
+      "path": "apps/api/src/services/desktopFinalCancellationPosting.mjs",
+      "sha256": "355f9c30720c7846166f51aa06e2d232475c0c33043b5ac2d78ac2db2459cb6a"
+    },
+    {
+      "path": "apps/api/src/services/desktopFinalCancellationPrivate.mjs",
+      "sha256": "2853a5a114828b607a9bac60cc58c604d8519f09681a9a87c0953d438e74dbd8"
+    },
+    {
+      "path": "apps/api/src/services/desktopFinalCancellationRead.mjs",
+      "sha256": "69fcedc37ae71cc4f4b0a4a81d7793d4373c51c4904f730c77c6c9068f2fac48"
+    },
+    {
+      "path": "apps/api/src/services/desktopFinalCancellationScope.mjs",
+      "sha256": "e2071bd29428a0f17921e20f5dfd485e029bc258466d5a9f45a49792bdc34c42"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleCancellationPlan.mjs",
+      "sha256": "50c1488ab1b6e2221e79b0bbd37a6780cb98e1ea9372a563a45460c3f30f1fa9"
+    },
+    {
+      "path": "apps/api/src/services/desktopSalePrivateService.mjs",
+      "sha256": "552d84c35b3c278618feed8e20d408384d10a7c6509b4b7f5c5f7fa04e6045b8"
+    },
+    {
+      "path": "apps/api/src/services/desktopWriteAuthCore.mjs",
+      "sha256": "93021fb031c6cb472487762748cf65a549c84ffb375574a722507bacf252f6ac"
+    },
+    {
+      "path": "apps/api/src/services/invoiceDraftService.js",
+      "sha256": "7b8dc7a1d7fb35962480b45f714afc41793537bcd70f2077734288a3413d9124"
+    },
+    {
+      "path": "apps/api/src/services/vegaInvoiceExportJournal.mjs",
+      "sha256": "0fbbb07cd678f749f24227797c8bfc01fea956b5576d02b34052659de6826d5c"
+    },
+    {
+      "path": "apps/api/src/utils/logger.js",
+      "sha256": "11f38f401c7eeeb3c7fe0faa200483187e3a9909153b6b7fc1ab9ee61d1d3e15"
+    },
+    {
+      "path": "scripts/canonical/b6-selected-items-subpath.mjs",
+      "sha256": "f1a6febbca9552a05fc1ab9a4d7285fd0ede6b97013d7e0fbf7bc51b4f06bd68"
+    }
+  ]
 }
