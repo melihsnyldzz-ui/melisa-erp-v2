@@ -13,7 +13,7 @@ test('discounted EUR document reverses its actual posted TRY amounts and only se
  const raw=fixture(),before=structuredClone(raw),p=prepareDesktopSaleCancellation(raw);assert.deepEqual(raw,before);
  assert.deepEqual(p.stock.map(v=>[v.stockAfterExact3,v.amountTryExact4]),[['8.000','-25.6080'],['8.000','-25.6080']]);
  assert.equal(p.accountAfterExact8,'1.45500000');assert.equal(p.customerAfterExact4,'104.3200');assert.equal(p.preserveLegacyBalance,true);
- assert.equal(p.customerMovement.balanceEffectExact4,'-1.2804');assert.equal(p.customerMovement.amountTryExact4,'-51.2160');assert(Object.isFrozen(p));assert(Object.isFrozen(p.stock[0]));
+ assert.equal(p.customerMovement.balanceEffectExact4,'-1.2804');assert.equal(p.customerMovement.amountTryExact4,'51.2160');assert.equal(p.customerCurrency,'TRY');assert(Object.isFrozen(p));assert(Object.isFrozen(p.stock[0]));
 });
 test('TRY account reverses legacy and account balances by identical net document amount',()=>{
  const s=fixture();Object.assign(s.invoice,{currency:'TRY',accountCurrency:'TRY',accountId:'2',totalExact4:'23.2800',accountAmountExact4:'23.2800',amountTryExact4:'23.2800'});Object.assign(s.account,{id:'2',currency:'TRY',balanceExact8:'104.32000000'});Object.assign(s.customerMovements[0],{accountId:'2',currency:'TRY',accountCurrency:'TRY',amountExact4:'23.2800',accountAmountExact4:'23.2800',balanceEffectExact4:'23.2800',amountTryExact4:'23.2800'});for(const m of s.stockMovements)m.amountTryExact4='11.6400';
