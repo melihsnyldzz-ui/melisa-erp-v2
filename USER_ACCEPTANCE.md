@@ -1,3 +1,7 @@
+## 6 Kasım — R1 şirket günlük kuru okuma; insan kabulü BEKLİYOR
+
+Ana sayfa → Şirket kurlarını göster → Kur tarihi → Kurları göster. Seçilen tarihte USD/EUR kaydı yoksa açık eksik mesajı görünmeli; tarih değişince eski sonuç kalkmalı. Kaynakta26dosya163test/build/reviewPASS; [kanıt ve sınır](docs/evidence/erp/2026-11-06-desktop-company-rates/README.md). Kur düzenleme, gerçek fiş kur snapshot'ı ve dövizli satış henüz bu dilimin kabulü değildir. Ajan kurulum/normalGUI/SQL ayrı kaydeder; gerçek kişi/tarih/sonuç BEKLİYOR.
+
 ## 6 Kasım — R1 ürünün TRY/USD/EUR fiyatları; insan kabulü BEKLİYOR
 
 Yeni TEST'te TRY ana ürünün normal formuna isteğe bağlı USD/EUR fiyatlarını ayrı yazma, kaydetme ve ürün kartını yenileyerek üç fiyatı aynı ana birimde görme. TRY alış/maliyet aynı kalmalı; boş döviz fiyatı türetilmemeli. [Kaynak kanıtı ve kurulu deneme planı](docs/evidence/erp/2026-11-06-desktop-product-currency-prices/README.md). Ajan kurulum/normal GUI/SQL sonucu ayrıca kaydedilecek; gerçek kişi/tarih/sonuç BEKLİYOR. Dövizli satış, şirket kuru, fiziksel cihaz ve bütün ERP kabulü değildir.

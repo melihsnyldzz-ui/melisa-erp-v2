@@ -5,6 +5,13 @@ import {createDesktopWriteGreenCore} from './desktopWriteGreenCore.mjs';
 import {productCardFixture} from '../../../api/src/services/test-fixtures/desktopProductCard.fixture.mjs';
 import {customerCardFixture} from '../../../api/src/services/test-fixtures/desktopCustomerCard.fixture.mjs';
 import {desktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
+import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+
+test('company rates use authenticated exact date and discard wrong-date and logout replies',async()=>{
+ const x=fixture(['sales.view']),original=x.deps.fetch;let data=desktopCompanyRates('2026-11-06',[]),late=false,finish;
+ const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(url.includes('/api/desktop-company-rates?')){assert.equal(url,'http://127.0.0.1:4294/api/desktop-company-rates?date=2026-11-06');if(late)await new Promise(resolve=>{finish=resolve;});return {ok:true,json:async()=>({success:true,data})};}return original(url,opts);}});
+ await assert.rejects(core.companyRates('2026-11-06'));await core.login('normal','secret');assert.equal((await core.companyRates('2026-11-06')).rates[1].rateExact8,null);await assert.rejects(core.companyRates('2026-02-30'));data=desktopCompanyRates('2026-11-05',[]);await assert.rejects(core.companyRates('2026-11-06'));late=true;const pending=core.companyRates('2026-11-06');await core.logout();finish();await assert.rejects(pending);
+});
 
 test('currency account capability requires authenticated V4 identity; V3 cannot create pending records and late session changes discard it',async()=>{
  const x=fixture(['customer.view','customer.edit']),original=x.deps.fetch;let version=3,late=false,finish;
