@@ -17,6 +17,7 @@ import {createDesktopSaleWorkflowRoutes} from './routes/desktopSaleWorkflowRoute
 import {createDesktopWorkflowDraftService,createDesktopWorkflowDispatchService} from './services/desktopWorkflowDraftPrivate.mjs';
 import {createDesktopWorkflowReadService} from './services/desktopWorkflowReadService.mjs';
 import {createDesktopWorkflowResolutionService} from './services/desktopWorkflowResolutionService.mjs';
+import {isDesktopRuntimeInfo} from '../../../packages/shared/src/desktopRuntimeInfo.mjs';
 
 const HOST='127.0.0.1:4294',ORIGIN='http://127.0.0.1:5294';
 const reject=(res,status=403)=>res.status(status).json({success:false,error:{code:'DESKTOP_WRITE_UNAVAILABLE'}});
@@ -25,9 +26,10 @@ export const DESKTOP_WRITE_APPLICATION_LIMITS=Object.freeze({sourceOnly:true,lis
  requiresPersistedNormalRoleProvisioning:true,requiresDriverAndPackagePin:true,
  salesLifecycleRoutesImplemented:true,installedSalesWritesVerified:false,realSqlVerified:false,fullErpReady:false});
 
-export function createDesktopWriteApplication({connector,tokenKey}={}){
+export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=null}={}){
  const pool=getDesktopWritePool(connector);
  const richCards=getDesktopWriteProfile(connector)==='desktop-master-v3';
+ if(runtimeInfo!==null&&(!richCards||!isDesktopRuntimeInfo(runtimeInfo)))throw Error('DESKTOP_RUNTIME_INFO_INVALID');const publicRuntimeInfo=runtimeInfo===null?null:Object.freeze({...runtimeInfo});
  const auth=createDesktopWriteAuthCore({pool,sql,tokenKey,richCards});
  const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession,richCards});
  const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure,richCards});
@@ -53,6 +55,10 @@ export function createDesktopWriteApplication({connector,tokenKey}={}){
  });
  app.post('/api/auth/logout',async(req,res)=>{try{if(req.get('origin')!==ORIGIN)return reject(res);await auth.logout(req);return res.json({success:true,data:{loggedOut:true}});}catch{return reject(res,401);}});
  app.get('/api/auth/me',auth.bind,async(req,res)=>{try{const data=await auth.me(req);return res.json({success:true,data});}catch{return reject(res,401);}});
+ if(publicRuntimeInfo)app.get('/api/desktop-runtime',auth.bind,async(req,res)=>{
+  if(req.get('origin')!==ORIGIN||Object.keys(req.query??{}).length)return reject(res,400);
+  try{const actor=await auth.authenticateNormal(req);if(actor?.kind!=='normal')return reject(res,403);return res.json({success:true,data:publicRuntimeInfo});}catch{return reject(res,401);}
+ });
  app.use('/api/desktop-local',auth.bind);
  app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal,richCards}));
  app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts'],auth.bind);

@@ -1,3 +1,7 @@
+## 6 Kasım — R1 sürüm/hedef ve güvenli hata görünümü kaynakta hazır
+
+K01-06 için ana sayfada doğrulanmış manifest SHA'sı, sabit yerel TEST hedefi, şema ve UTC paket zamanı okunabilir. Endpoint yalnız normal oturum/fixed origin/no-query; sır/path/ham hata yok. Geç yanıt atılır, kullanıcı anlaşılır bağlantı/oturum hatası görür. 72 ilgili test dosyası, derleme ve bağımsız readonly review geçti. [Kaynak ve kurulu kabul planı](docs/evidence/erp/2026-11-06-desktop-runtime-info/README.md). Kurulu GUI/gerçek manifest/API/SQL karşılaştırması sırada; mali yazma yok. Önceki a3b1f44a exact CI Windows dahil iki koşuda da başarılı. K07 ve kalan R1 açık.
+
 ## 6 Kasım — R1 müşteri listesi ve hesap kartı GUI/HTTP/SQL ile doğrulandı
 
 Kaynak 6dfda93a / paket 5DFB1DB5... / 191 kaynak / 5 yardımcı / 3 asset. Normal kartlar customer 2→party/hesap 2→50 TRY/fiş5 ve customer3→party/hesap4→176 TRY/fiş8 ilişkisini ayrı gösterdi; son iptal taslağı9 son satış sayılmadı. Fişten dönüşte ERP-V3-C1 araması korundu. Kaydedilmemiş müşteri alanları kart geçişinde korundu; Forma dön ve açık vazgeçme normal GUI'de görüldü, yeni müşteri kaydedilmedi. 11 gerçek readonly HTTP kontrolü, 70 ilgili test dosyası, ek dört form-regresyon testi, derleme ve bağımsız inceleme geçti. Ön/son SQL metadata, 23 operasyonel hash, journal, identity, stok/cari aynı. [Kurulu kanıt ve sayfalama sınırı](docs/evidence/erp/2026-11-06-desktop-customer-card/README.md). Döviz hesabı oluşturma/limit-vade ve bütün R1 kabulü devam ediyor; K07 açılmadı.

@@ -4,6 +4,12 @@ import {productRejectionRecord,productRejectionOutcome} from '../../../api/src/s
 import {createDesktopWriteGreenCore} from './desktopWriteGreenCore.mjs';
 import {productCardFixture} from '../../../api/src/services/test-fixtures/desktopProductCard.fixture.mjs';
 import {customerCardFixture} from '../../../api/src/services/test-fixtures/desktopCustomerCard.fixture.mjs';
+import {desktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
+
+test('installation identity requires current normal session, exact TEST target and discards late logout result',async()=>{
+ const x=fixture([]),original=x.deps.fetch;let value=desktopRuntimeInfo({packageSha256:'ab'.repeat(32),createdAt:'2026-11-06T05:00:00.000Z'}),late=false,finish;
+ const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(url.endsWith('/api/desktop-runtime')){if(late)await new Promise(resolve=>{finish=resolve;});return {ok:true,json:async()=>({success:true,data:value})};}return original(url,opts);}});await assert.rejects(core.runtimeInfo());await core.login('normal','secret');assert.equal((await core.runtimeInfo()).schemaVersion,3);value={...value,database:'OTHER_DB'};await assert.rejects(core.runtimeInfo());late=true;const waiting=core.runtimeInfo();await core.logout();finish();await assert.rejects(waiting);
+});
 
 test('normal customer card rejects wrong parents, ungranted sale data and late logout replies',async()=>{
  const x=fixture(['customer.view']),original=x.deps.fetch;let card={...customerCardFixture(),salesHistoryAvailable:false,lastSale:null},finish,late=false;
