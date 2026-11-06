@@ -6,3 +6,7 @@ test('readonly card binds every barcode to the selected product without numeric 
  for(const change of [{id:'7'},{salePriceExact4:12},{currentStockExact3:null},{barcodes:[{...card.barcodes[0],productId:'7'}]},{barcodes:[{...card.barcodes[0],barcode:5}]},{barcodes:[{...card.barcodes[0],isPrimary:false}]},{barcodes:[card.barcodes[0],card.barcodes[0]]},{role:'admin'}])assert.equal(isDesktopProductCard({...card,...change},'6'),false);
  assert.equal(isDesktopProductCard({...card,brand:null,category:null,supplierId:null,supplierName:null},'6'),true);
 });
+test('stock projection is paired and exact while legacy cards remain readable',()=>{
+ assert.equal(isDesktopProductCard({...card,reservedExact3:'0.001',availableExact3:'-0.001'},'6'),true);
+ for(const fields of [{reservedExact3:'0.000'},{availableExact3:'0.000'},{reservedExact3:null,availableExact3:'0.000'},{reservedExact3:'1.000',availableExact3:'0.000'}])assert.equal(isDesktopProductCard({...card,...fields},'6'),false);
+});

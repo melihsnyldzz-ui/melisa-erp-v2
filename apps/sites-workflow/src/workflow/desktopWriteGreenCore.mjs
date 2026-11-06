@@ -3,6 +3,7 @@
 import {createDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {createDesktopProductCreate} from './desktopProductCreate.mjs';
 import {desktopProductCardId,isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
+import {isDesktopStockAvailability} from '../../../../packages/shared/src/desktopStockAvailability.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTransport.mjs';
 import {createDesktopLocalCustomerTransport} from './desktopLocalCustomerTransport.mjs';
@@ -31,7 +32,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
  async function restore(){if(!token)return null;const prior=generation;try{const r=await request('/api/auth/me');if(prior!==generation)fail();return acceptUser(r.data);}catch{if(prior===generation)clear();return null;}}
  async function logout(){const old=token;clear();if(old)try{await request('/api/auth/logout',{method:'POST',credential:old});}catch{/* local token remains cleared */}}
  async function list(kind,page=1,search=''){if(!can(kind)||!Number.isInteger(page)||page<1||page>100000||typeof search!=='string'||search.length>100||/[\u0000-\u001f\u007f]/.test(search))fail();const prior=generation;
-  const r=await request(`/api/${kind}?page=${page}&limit=100${search?'&search='+encodeURIComponent(search):''}`);if(prior!==generation||!can(kind)||!Array.isArray(r.data)||!r.meta||r.meta.page!==page||!Number.isSafeInteger(r.meta.total)||typeof r.meta.hasNextPage!=='boolean')fail();return {data:r.data,meta:r.meta};}
+  const r=await request(`/api/${kind}?page=${page}&limit=100${search?'&search='+encodeURIComponent(search):''}`);if(prior!==generation||!can(kind)||!Array.isArray(r.data)||!r.meta||r.meta.page!==page||!Number.isSafeInteger(r.meta.total)||typeof r.meta.hasNextPage!=='boolean'||richCards&&kind==='products'&&r.data.some(row=>!isDesktopStockAvailability(row)))fail();return {data:r.data,meta:r.meta};}
  function create(kind){if(!can(kind,'edit'))fail();const id=actorId(user.id),prior=generation,permission=kinds[kind].edit;
   const tokenProvider=async()=>{if(prior!==generation||!user||actorId(user.id)!==id||!user.permissions.includes(permission)||!token)fail();return token;};
   const submit=kind==='customers'?createDesktopLocalCustomerTransport({location,fetch:fetchImpl,tokenProvider}):kind==='suppliers'?createDesktopLocalSupplierTransport({location,fetch:fetchImpl,tokenProvider}):createDesktopLocalProductTransport({location,fetch:fetchImpl,tokenProvider});

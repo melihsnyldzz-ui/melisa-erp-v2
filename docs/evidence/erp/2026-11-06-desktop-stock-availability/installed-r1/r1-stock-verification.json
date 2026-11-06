@@ -1,0 +1,115 @@
+{
+  "state": "R1_GUI_AND_INDEPENDENT_SQL_STOCK_AVAILABILITY_VERIFIED",
+  "sourceCommit": "0325b65f",
+  "packageSha256": "8394CE99628CE766E8532CD5A04CFBA241044A841A8D69E8BE0CCDD4091A035D",
+  "invoiceId": 9,
+  "totalExact4": "82.0000",
+  "prepared": [
+    {
+      "id": 1,
+      "physicalExact3": "2.000",
+      "reservedExact3": "1.000",
+      "availableExact3": "1.000"
+    },
+    {
+      "id": 8,
+      "physicalExact3": "48.000",
+      "reservedExact3": "6.000",
+      "availableExact3": "42.000"
+    }
+  ],
+  "afterCancellation": [
+    {
+      "id": 1,
+      "physicalExact3": "2.000",
+      "reservedExact3": "0.000",
+      "availableExact3": "2.000"
+    },
+    {
+      "id": 8,
+      "physicalExact3": "48.000",
+      "reservedExact3": "0.000",
+      "availableExact3": "48.000"
+    }
+  ],
+  "draftNoReservation": true,
+  "refreshNoWrite": true,
+  "cancelledDocumentRetained": true,
+  "oneDraftOnePrepareOneCancel": true,
+  "priorInvoicesPreserved": true,
+  "noPhysicalStockOrCostOrCariPosting": true,
+  "unchangedOtherOperationalTables": 18,
+  "noNewMasterCardsOrPricesOrUnits": true,
+  "seriesAudit": {
+    "id": 34,
+    "actor_user_id": 30002,
+    "action": "sales.series.selection",
+    "entity_id": 9,
+    "requestId": "5b5f8ad1-ba37-4b0b-a669-349a6cc9ca48",
+    "detail": {
+      "kind": "desktop-sale-series-v1",
+      "invoiceId": "9",
+      "actorId": "30002",
+      "requestId": "5b5f8ad1-ba37-4b0b-a669-349a6cc9ca48",
+      "lines": [
+        {
+          "productId": "8",
+          "unitId": "9",
+          "factorExact8": "6.00000000",
+          "seriesQuantityExact3": "1.000",
+          "pieceQuantityExact3": "6.000"
+        }
+      ]
+    }
+  },
+  "journal": [
+    {
+      "requestId": "5b5f8ad1-ba37-4b0b-a669-349a6cc9ca48",
+      "invoice_id": 9,
+      "actor_id": 30002,
+      "operation": "CREATE_DRAFT",
+      "payloadHash": "8e77e9eadef32e90e1cfa4f69b103961dd921e99482208b49cbd7684a740d9d5",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "5b5f8ad1-ba37-4b0b-a669-349a6cc9ca48",
+        "invoiceId": "9",
+        "workflowState": "DRAFT",
+        "version": "0x0000000000058613",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "ca9010af-d338-4f66-9163-372a900d3794",
+      "invoice_id": 9,
+      "actor_id": 30002,
+      "operation": "PREPARE",
+      "payloadHash": "8b88f5414fc5af804ce4d1b83987f8d90caf24260a93c9cd945f8d76e6a0562b",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "ca9010af-d338-4f66-9163-372a900d3794",
+        "invoiceId": "9",
+        "operation": "PREPARE",
+        "workflowState": "PREPARING",
+        "version": "0x0000000000058614",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "4a98e942-5fb0-4c80-b83a-c952a34afa8f",
+      "invoice_id": 9,
+      "actor_id": 30002,
+      "operation": "CANCEL",
+      "payloadHash": "3fbb7e786dda31da53a1897fcf8d3f87cedb2724a16af5febb76b187c992eb22",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "4a98e942-5fb0-4c80-b83a-c952a34afa8f",
+        "invoiceId": "9",
+        "operation": "CANCEL",
+        "workflowState": "CANCELLED",
+        "version": "0x0000000000058616",
+        "replayed": false
+      }
+    }
+  ],
+  "time": "2026-11-06T05:25:53.382Z"
+}

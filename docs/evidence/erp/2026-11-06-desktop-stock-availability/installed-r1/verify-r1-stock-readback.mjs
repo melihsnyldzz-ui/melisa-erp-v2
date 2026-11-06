@@ -1,0 +1,20 @@
+import {readFileSync,writeFileSync} from 'node:fs';import assert from 'node:assert/strict';
+const base=new URL('./',import.meta.url),read=name=>JSON.parse(readFileSync(new URL('r1-stock-'+name+'.json',base),'utf8')),labels=['before','after-draft','after-prepared','after-refresh','after-cancelled'],captures=labels.map(read),[before,draft,prepared,refresh,cancelled]=captures.map(v=>v.metadata),rows=v=>v??[];
+const affected=new Set(['sales_invoices','sales_invoice_items','desktop_sale_workflows','desktop_sale_reservations','desktop_sale_workflow_requests']);
+for(const [index,cap] of captures.entries()){
+ assert.deepEqual(cap.target,captures[0].target);assert.equal(cap.ddlExecuted,false);assert.equal(cap.dmlExecuted,false);const m=cap.metadata;assert.equal(m.operationalTables.length,23);
+ for(const key of ['products','customerBalances','supplierBalances','currencyAccounts','requests','identityValues','newProductUnits','newProductPrices','newProductAudit','newProductMovements','newSaleStock'])assert.deepEqual(m[key],before[key],labels[index]+': '+key);
+ assert.deepEqual(m.operationalTables.filter(t=>!affected.has(t.table_name)),before.operationalTables.filter(t=>!affected.has(t.table_name)));
+ for(const old of before.allInvoices)assert.deepEqual(m.allInvoices.find(i=>i.id===old.id),old);
+ for(const old of before.newSales)assert.deepEqual(m.newSales.find(i=>i.id===old.id),old);
+ for(const old of rows(before.newSeriesAudit))assert.deepEqual(rows(m.newSeriesAudit).find(a=>a.id===old.id),old);
+ assert.deepEqual(rows(m.reservations).filter(r=>r.invoice_id!==9),rows(before.reservations));
+ const nine=m.allInvoices.find(i=>i.id===9);if(index){assert.equal(nine.totalExact4,'82.0000');assert.equal(nine.workflowState,['DRAFT','PREPARING','PREPARING','CANCELLED'][index-1]);assert.equal(nine.status,index===4?'cancelled':'draft');}
+ else assert.equal(nine,undefined);
+}
+assert.deepEqual(draft.stockAmounts,before.stockAmounts);assert.deepEqual(cancelled.stockAmounts,before.stockAmounts);assert.equal(prepared.operationalRowsSha256,refresh.operationalRowsSha256);
+const project=(m,id)=>m.stockAmounts.find(p=>p.id===id);assert.deepEqual(project(before,8),{id:8,physicalExact3:'48.000',reservedExact3:'0.000',availableExact3:'48.000'});assert.deepEqual(project(prepared,8),{id:8,physicalExact3:'48.000',reservedExact3:'6.000',availableExact3:'42.000'});assert.deepEqual(project(prepared,1),{id:1,physicalExact3:'2.000',reservedExact3:'1.000',availableExact3:'1.000'});
+assert.equal(rows(draft.reservations).filter(r=>r.invoice_id===9).length,0);
+for(const [m,state] of [[prepared,'ACTIVE'],[cancelled,'RELEASED']])assert.deepEqual(m.reservations.filter(r=>r.invoice_id===9),[{invoice_id:9,item_id:13,product_id:8,quantityExact3:'6.000',state},{invoice_id:9,item_id:14,product_id:1,quantityExact3:'1.000',state}]);
+const journals=cancelled.newSaleRequests.filter(r=>r.invoice_id===9);assert.equal(journals.length,3);assert.deepEqual(journals.map(r=>r.operation).sort(),['CREATE_DRAFT','PREPARE','CANCEL'].sort());assert.ok(journals.every(r=>r.actor_id===30002));const audit=cancelled.newSeriesAudit.filter(a=>a.entity_id===9);assert.equal(audit.length,1);assert.deepEqual(audit[0].detail.lines,[{productId:'8',unitId:'9',factorExact8:'6.00000000',seriesQuantityExact3:'1.000',pieceQuantityExact3:'6.000'}]);
+writeFileSync(new URL('r1-stock-verification.json',base),JSON.stringify({state:'R1_GUI_AND_INDEPENDENT_SQL_STOCK_AVAILABILITY_VERIFIED',sourceCommit:'0325b65f',packageSha256:'8394CE99628CE766E8532CD5A04CFBA241044A841A8D69E8BE0CCDD4091A035D',invoiceId:9,totalExact4:'82.0000',prepared:prepared.stockAmounts.filter(p=>[1,8].includes(p.id)),afterCancellation:cancelled.stockAmounts.filter(p=>[1,8].includes(p.id)),draftNoReservation:true,refreshNoWrite:true,cancelledDocumentRetained:true,oneDraftOnePrepareOneCancel:true,priorInvoicesPreserved:true,noPhysicalStockOrCostOrCariPosting:true,unchangedOtherOperationalTables:18,noNewMasterCardsOrPricesOrUnits:true,seriesAudit:audit[0],journal: journals,time:new Date().toISOString()},null,2),{flag:'wx'});process.stdout.write('R1_STOCK_RESERVATION_RELEASE_AND_NO_POSTING_VERIFIED');

@@ -1,0 +1,43 @@
+{
+  "state": "INSTALLED_QUANTITY_CORRECTION_WITHOUT_NEW_SALE_VERIFIED",
+  "sourceCommit": "e08375a7d25d7bf227bbb9e7c1aca96f6fb5bee3",
+  "packageSha256": "A6E002B90EC4A7F63221CE0DF0BA05F68CF7B6BDEC5D57F995DD9EE9E376A94E",
+  "previousBusinessAcceptancePackage": "4A089F03BF8DCBA770D93DD5590659EE9B30DED0819BDFE1CCFEDC943116BE38",
+  "apiSharedHelpersAndDependenciesUnchanged": true,
+  "ownerPid": 41812,
+  "workerPid": 44684,
+  "webPort": 5294,
+  "apiPort": 4294,
+  "onlyLoopback": true,
+  "invalidSeries": "1.5",
+  "correctedSeries": "2",
+  "convertedPieces": "12.000",
+  "localWarningCleared": true,
+  "focusAndInputRetained": true,
+  "validDraftNotSubmitted": true,
+  "operationalTablesUnchanged": 23,
+  "masterJournalAndIdentitiesUnchanged": true,
+  "saleJournalAuditUnitsPricesStockAndBalancesUnchanged": true,
+  "sourceTests": 26,
+  "sourceTestFiles": 6,
+  "readonlyReviewNoP1P2": true,
+  "humanAcceptance": "PENDING",
+  "screenshots": [
+    "C:/Users/Xaser/Desktop/ERP/kanit/r1-miktar-uyarisi-gecersiz.png",
+    "C:/Users/Xaser/Desktop/ERP/kanit/r1-miktar-uyarisi-duzeltildi.png"
+  ],
+  "assets": [
+    {
+      "path": "desktop-write-green.html",
+      "sha256": "cff6e7e5486db3a31aa86a371ac218cdd2dcfc1fbb5fc2fd3de555dd4624f48b"
+    },
+    {
+      "path": "assets/desktopWriteGreen-ICE-lgVz.js",
+      "sha256": "4701dfa130b1da49aba86adc6aac8bf7c40f781c5bcc905d3e44dd6f8dda7511"
+    },
+    {
+      "path": "assets/desktopWriteGreen-D6yoncVT.css",
+      "sha256": "fc68bd6fe280ab5dd502a5cc354e5cee8a76d9f9719b920b2b41676c0be5af86"
+    }
+  ]
+}
