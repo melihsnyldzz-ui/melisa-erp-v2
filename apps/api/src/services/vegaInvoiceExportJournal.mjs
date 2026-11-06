@@ -80,6 +80,11 @@ export function createInvoiceExportJournal(directory) {
       if(!existing||JSON.stringify(existing)!==JSON.stringify(expected)||(await inspectAttempts(intent)).state!=='NOT_ATTEMPTED')throw exportError('EXPORT_CANCELLATION_CONFLICT','İptal aktarım engeli doğrulanamadı.');
       return true;
     },
+    async cancellationState(intent,proof){
+      const expected=cancellationProof(intent,proof),existing=await cancellation(intent);
+      if((await inspectAttempts(intent)).state!=='NOT_ATTEMPTED'||existing&&JSON.stringify(existing)!==JSON.stringify(expected))throw exportError('EXPORT_CANCELLATION_CONFLICT','İptal aktarım engeli yetkili incelemesi gerektiriyor.');
+      return existing?'CANCELLATION_FENCED':'NO_FENCE';
+    },
     async recordVerified(intent,result){
       const snapshot=await loadPrepared(intent);if(!snapshot||result.state!=='VERIFIED'||result.documentNumber!==snapshot.expected.documentNumber||!Number.isSafeInteger(result.documentId)||result.documentId<1)throw exportError('EXPORT_RESULT_INVALID','Vega sonucu doğrulanamadı.');
       try{await exclusive(intent,'.verified',{version:1,sourceHash:snapshot.sourceHash,documentId:result.documentId,documentNumber:result.documentNumber,verifiedAt:new Date().toISOString()});}

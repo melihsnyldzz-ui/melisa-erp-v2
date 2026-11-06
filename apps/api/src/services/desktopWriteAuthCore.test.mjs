@@ -124,3 +124,14 @@ test('workflow, draft, dispatch, read and resolution bindings release their curr
  const call=i=>new Promise((resolve,reject)=>{const r=http.request({hostname:'127.0.0.1',port:server.address().port,path:'/'+i,headers:{authorization:'Bearer '+signed.accessToken}},x=>{let body='';x.on('data',v=>body+=v);x.on('end',()=>resolve(JSON.parse(body)));});r.on('error',reject);r.end();});
  for(let i=0;i<cases.length;i++){shouldFail=false;assert.equal((await call(i)).ok,true);shouldFail=true;assert.equal((await call(i)).ok,false);}assert.equal(auth.close(),true);
 });
+test('normal current cancel permission is enabled only by explicit V5; V4 remains closed and revocation releases the lease',async t=>{
+ for(const schemaVersion of [4,5]){
+  const d=driver('synthetic');d.state.permissions=['sales.view','sales.cancel'].map(permission_key=>({permission_key,can_view:true,can_create:false,can_update:false,can_delete:false,can_approve:permission_key==='sales.cancel'}));
+  const auth=createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,richCards:true,schemaVersion,tokenKey:Buffer.alloc(48,15),passwordHasher:{compare:async()=>true}}),signed=await auth.login({username:'normal',password:'test-test'});
+  const service=auth.bindFinalCancellationService({async cancel(actor){const tx=new d.sql.Transaction(d.pool);await tx.begin();try{const allowed=await auth.verifySession({transaction:tx,actorId:actor,permission:['sales.view','sales.cancel']});await tx.commit();return allowed;}catch(e){await tx.rollback();throw e;}}});
+  await assert.rejects(service.cancel('7'));const app=express();app.use(auth.bind);app.get('/',async(req,res)=>{try{const actor=await auth.authenticateNormal(req);res.json({allowed:await service.cancel(String(actor.userId))});}catch{res.json({allowed:false});}});
+  const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise(resolve=>server.close(resolve)));
+  const call=()=>new Promise((resolve,reject)=>{const r=http.request({hostname:'127.0.0.1',port:server.address().port,path:'/',headers:{authorization:'Bearer '+signed.accessToken}},res=>{let b='';res.on('data',c=>b+=c);res.on('end',()=>resolve(JSON.parse(b)));});r.on('error',reject);r.end();});
+  assert.equal((await call()).allowed,schemaVersion===5);d.state.permissions=d.state.permissions.filter(p=>p.permission_key!=='sales.cancel');assert.equal((await call()).allowed,false);assert.equal(auth.close(),true);
+ }
+});

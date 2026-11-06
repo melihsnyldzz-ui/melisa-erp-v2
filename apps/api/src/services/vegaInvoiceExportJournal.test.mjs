@@ -5,8 +5,10 @@ const intent={invoiceId:13},proof={actorId:'30002',requestId:'7cbb7e06-ef75-4456
 async function fixture(t){const directory=await mkdtemp(join(tmpdir(),'melisa-export-fence-'));t.after(async()=>{const target=resolve(directory);assert.equal(dirname(target),resolve(tmpdir()));assert(basename(target).startsWith('melisa-export-fence-'));await rm(target,{recursive:true,force:true});});return {directory,journal:createInvoiceExportJournal(directory)};}
 test('permanent cancellation fence blocks stale prepared export even after SQL rollback or lost ACK',async t=>{
  const {directory,journal}=await fixture(t);assert.equal((await journal.inspect(intent)).state,'NOT_ATTEMPTED');
+ assert.equal(await journal.cancellationState(intent,proof),'NO_FENCE');
  assert.equal((await journal.claimCancellation(intent,proof)).state,'CANCELLATION_FENCED');
  assert.deepEqual(await journal.inspect(intent),{state:'REVIEW_REQUIRED',reason:'CANCELLATION_FENCED'});assert.equal(await journal.assertCancellationUnexported(intent),true);
+ assert.equal(await journal.cancellationState(intent,proof),'CANCELLATION_FENCED');
  const persisted=await readFile(join(directory,'13.cancellation.json'),'utf8');
  assert.equal(await journal.verifyCancellation(intent,proof),true);assert.equal((await journal.claimCancellation(intent,proof)).state,'CANCELLATION_FENCED');
  await assert.rejects(journal.claimPrepared(intent,snapshot),{code:'EXPORT_CANCELLATION_FENCED'});

@@ -2,15 +2,15 @@
 // this AsyncLocalStorage capability. Its factory requires the registered TLS
 // writer + registered normal auth verifier and retains the transaction itself.
 import {AsyncLocalStorage} from 'node:async_hooks';
-import {createHash} from 'node:crypto';
 import sql from 'mssql';
 import {getDesktopWritePool} from '../config/desktopWriteTlsConnector.mjs';
+import * as desktopConnector from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
 import {createDesktopFinalCancellationScope} from './desktopFinalCancellationScope.mjs';
 import {createDesktopFinalCancellationReader} from './desktopFinalCancellationRead.mjs';
 import {createDesktopFinalCancellationPosting} from './desktopFinalCancellationPosting.mjs';
 import {normalizeDesktopSaleCancellation} from '../../../../packages/shared/src/desktopSaleCancellation.mjs';
-import {lockDesktopResolution} from './desktopWorkflowRequestResolution.mjs';
+import {lockDesktopResolution,desktopWorkflowRequestIdentity} from './desktopWorkflowRequestResolution.mjs';
 import {recordDesktopFailure} from './desktopSafeDiagnostics.mjs';
 import {createDesktopFinalCancellationExportFence} from './desktopFinalCancellationExportFence.mjs';
 import {getCanonicalBusinessSaleTransaction} from './canonicalBusinessSessionContext.mjs';
@@ -38,7 +38,7 @@ export function tryAssertDesktopFinalCancellation({transaction,actor,operation,i
  if(!invoice||String(invoice.id)!==p.invoiceId||String(invoice.customerId)!==p.customerId||invoice.status!=='FINALIZED'||invoice.documentCurrency!==p.currency||invoice.accountCurrency!==p.accountCurrency||invoice.customerCurrency!==p.customerCurrency||!Array.isArray(invoice.items)||invoice.items.length!==2)fail();
  parity(invoice.grandTotal,4,m.amountExact4);parity(invoice.accountAmount,4,m.accountAmountExact4);parity(invoice.amountTry,4,m.amountTryExact4);
  const seen=new Set();let totalQuantity=0n;
- for(const item of invoice.items){const line=p.stock.find(v=>v.itemId===String(item.id)&&v.productId===String(item.productId));if(!line||seen.has(line.itemId)||item.currency!==p.currency)fail();seen.add(line.itemId);parity(item.quantity,3,line.quantityInExact3);parity(item.averageCostTry,4,line.unitCostTryExact4);parity(item.currentStockQty,3,line.stockBeforeExact3);totalQuantity+=BigInt(line.quantityInExact3.replace('.',''));}
+ for(const item of invoice.items){const line=p.stock.find(v=>v.itemId===String(item.id)&&v.productId===String(item.productId));if(!line||seen.has(line.itemId)||item.currency!==p.currency)fail();seen.add(line.itemId);parity(item.quantity,3,line.quantityInExact3);parity(item.averageCostTry,4,line.unitCostTryExact4);parity(item.productAverageCostTry,4,line.unitCostTryExact4);parity(item.currentStockQty,3,line.stockBeforeExact3);totalQuantity+=BigInt(line.quantityInExact3.replace('.',''));}
  if(totalQuantity>9007199254740991n)fail();
  s.phase='native_cancel_verified';return true;
 }
@@ -48,6 +48,7 @@ export function getDesktopFinalCancellationAccountContext({transaction,customerI
  return Object.freeze({actorId:s.actorId,requestId:s.command.requestId,currency:s.plan.accountCurrency,customerCurrency:s.plan.customerCurrency,preserveLegacyBalance:s.plan.preserveLegacyBalance,cancellation:s.plan});
 }
 export function createDesktopFinalCancellationService({connector,auth}={}){
+ if(desktopConnector.getDesktopWriteProfile?.(connector)!=='desktop-master-v5')fail();
  const pool=getDesktopWritePool(connector),verifySession=getDesktopWriteSessionVerifier(auth,pool),scope=createDesktopFinalCancellationScope({sql,verifySession});
  if(typeof auth?.bindFinalCancellationService!=='function')fail();
  const fence=createDesktopFinalCancellationExportFence();
@@ -56,7 +57,7 @@ export function createDesktopFinalCancellationService({connector,auth}={}){
  return auth.bindFinalCancellationService({async cancel(actorId,raw){let requestId=typeof raw?.requestId==='string'?raw.requestId:null;
   try{
    if(!id(actorId))fail();const command=normalizeDesktopSaleCancellation(raw);requestId=command.requestId;
-   const hash=createHash('sha256').update(JSON.stringify({actorId,operation:'CANCEL_SALE',command})).digest('hex'),fenceProof={invoiceId:command.invoiceId,actorId,requestId,payloadHash:hash},tx=new sql.Transaction(pool);let begun=false;
+   const {hash}=desktopWorkflowRequestIdentity(actorId,'cancel',command),fenceProof={invoiceId:command.invoiceId,actorId,requestId,payloadHash:hash},tx=new sql.Transaction(pool);let begun=false;
    try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
     const result=await scope.withScope({transaction:tx,actorId,requestId,invoiceId:command.invoiceId},async owned=>{
      if(await lockDesktopResolution({sql,transaction:tx,requestId}))fail();

@@ -10,6 +10,7 @@ import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
+import {DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from '../config/desktopMasterV5Policy.mjs';
 
 const ISSUER='melisa-desktop-initial',AUDIENCE='melisa-desktop-initial';
 const LOGIN='melisa_desktop_test_writer_20261105';
@@ -71,7 +72,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  // after its caller has settled the transaction.
  function prune(){for(const [sid,entry] of sessions)if(entry.expiresAt<=Date.now()&&entry.inflight===0)sessions.delete(sid);}
  const run=(tx,params,statement)=>{const q=new sql.Request(tx);for(const [name,size,value] of params)q.input(name,sql.NVarChar(size),value);return q.query(statement);};
- const profileIdentitySql=richCards?identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):identitySql;
+ const profileIdentitySql=richCards?identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):identitySql;
  async function guard(tx){if(one(await run(tx,[],profileIdentitySql)).ok!==1)fail();}
  async function user(tx,{username=null,userId=null}={}){
   const rows=(await run(tx,[['username',80,username],['userId',20,userId]],userSql))?.recordset;
@@ -122,7 +123,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  async function authorize({actorId,permission}={}){const ctx=storage.getStore();return !!active(ctx)&&ctx.entry.userId===actorId&&['customer.edit','product.edit',...(richCards?['supplier.edit']:[])].includes(permission)&&ctx.current.permissions.includes(permission);}
  async function me(req){const ctx=storage.getStore();if(!active(ctx)||ctx.req!==req)fail();return publicUser(ctx.current);}
  async function verifySession({transaction:tx,actorId,permission}={}){
-  const required=Array.isArray(permission)?permission:[permission],allowed=['customer.edit','product.edit','customer.view','product.view','supplier.view','sales.view','sales.create','sales.edit','sales.finalize',...(richCards?['supplier.edit']:[])];
+  const required=Array.isArray(permission)?permission:[permission],allowed=['customer.edit','product.edit','customer.view','product.view','supplier.view','sales.view','sales.create','sales.edit','sales.finalize',...(richCards?['supplier.edit']:[]),...(schemaVersion===5?['sales.cancel']:[])];
   const ctx=storage.getStore();if(!active(ctx)||!tx||ctx.leased||actorId!==ctx.entry.userId||required.length<1||required.length>2||new Set(required).size!==required.length||required.some(p=>!allowed.includes(p)||!ctx.current.permissions.includes(p)))return false;
   // Lease before SQL I/O. Concurrent logout marks the token revoked and waits
   // for this operation to commit or roll back; it never returns early.
@@ -139,8 +140,8 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   if(!service||typeof service.createCustomer!=='function'||typeof service.createProduct!=='function')fail();
   const invoke=name=>async(actor,payload)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,payload);}finally{release(ctx);}};
   if(richCards&&typeof service.createSupplier!=='function')fail();
-  if(schemaVersion===4&&typeof service.createCustomerAccount!=='function')fail();
-  return Object.freeze({createCustomer:invoke('createCustomer'),createProduct:invoke('createProduct'),...(richCards?{createSupplier:invoke('createSupplier')}:{}),...(schemaVersion===4?{createCustomerAccount:invoke('createCustomerAccount')}:{})});
+  if([4,5].includes(schemaVersion)&&typeof service.createCustomerAccount!=='function')fail();
+  return Object.freeze({createCustomer:invoke('createCustomer'),createProduct:invoke('createProduct'),...(richCards?{createSupplier:invoke('createSupplier')}:{}),...([4,5].includes(schemaVersion)?{createCustomerAccount:invoke('createCustomerAccount')}:{})});
  }
  function bindReadService(service){
   if(!service||typeof service.list!=='function')fail();

@@ -2,6 +2,19 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWorkflowClient} from './desktopWorkflowClient.mjs';
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
 const locks={request:async(_k,_options,fn)=>fn({})},uuid='da171000-6f42-4f19-8cab-9f4539618647';
+test('a cancellation fence review preserves the original pending request instead of releasing a fresh UUID',async()=>{
+ const storage=memory(),body={invoiceId:'13',expectedVersion:'0x0000000000000013',reason:'Gerekçeli iptal'};let correct=false;
+ const client=createDesktopWorkflowClient({actorId:'30002',storage,locks,newId:()=>uuid,submit:async(kind,entry)=>kind==='resolve'?{state:'REVIEW_REQUIRED',requestId:entry.body.requestId,actorId:correct?'30002':'9',kind:'cancel',resolution:'CANCELLATION_FENCE_REVIEW'}:{state:'UNKNOWN'}});
+ await client.create('cancel',body);const before=client.pending();assert.equal((await client.resolve()).state,'UNKNOWN');correct=true;assert.equal((await client.resolve()).state,'REVIEW_REQUIRED');assert.deepEqual(client.pending(),before);await assert.rejects(client.create('cancel',{...body,reason:'Başka gerekçe'}));
+});
+test('final cancellation persists exact reason/version before first send and keeps the same UUID through reload/recovery',async()=>{
+ const storage=memory(),calls=[];let lost=true,wrong=true;
+ const fields={invoiceId:'13',expectedVersion:'0x0000000000000013',reason:'İskontolu dövizli satış denemesi'};
+ const make=()=>createDesktopWorkflowClient({actorId:'30002',storage,locks,newId:()=>uuid,submit:async(kind,body)=>{assert.equal(kind,'cancel');assert.deepEqual(JSON.parse(storage.getItem('melisa.desktop.workflow.pending.v1.30002')).body,body);calls.push(structuredClone(body));if(lost)throw Error('lost ACK');return {state:'COMMITTED',requestId:uuid,invoiceId:wrong?'14':'13',workflowState:'CANCELLED',version:'0x0000000000000014',replayed:true};}});
+ const first=make();assert.equal((await first.create('cancel',fields)).state,'UNKNOWN');await assert.rejects(first.create('cancel',{...fields,reason:'Değişti'}));
+ lost=false;const next=make();assert.equal((await next.retry()).state,'UNKNOWN');assert.deepEqual(next.pending().body,{requestId:uuid,...fields});wrong=false;assert.equal((await next.retry()).state,'COMMITTED');assert.equal(next.pending(),null);assert.equal(calls.length,3);assert(calls.every(v=>JSON.stringify(v)===JSON.stringify(calls[0])));
+ for(const bad of [{...fields,reason:''},{...fields,reason:'x'.repeat(251)},{...fields,amount:'1.0000'}])await assert.rejects(make().create('cancel',bad));assert.equal(calls.length,3);
+});
 
 test('FX draft and dispatch survive reload with exact dated rates, modes, UUID and body after lost acknowledgement',async()=>{
  for(const kind of ['draft','dispatch']){

@@ -3,6 +3,7 @@
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
+import {DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from '../config/desktopMasterV5Policy.mjs';
 import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {DESKTOP_PRODUCT_SALE_PRICES_SQL} from './desktopProductSalePricesSql.mjs';
 import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
@@ -67,7 +68,7 @@ export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMount
  sqlExecuted:false,sourceRowsAreLiveLocalOnly:true,noVegaFallback:true,exposesCustomerBalance:true,noFinanceAccountBalances:true,fullErpReady:false});
 export function createDesktopWriteListService({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2}={}){
  schemaVersion=desktopMasterSchema(richCards,schemaVersion);
- const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
+ const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
  if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
  return Object.freeze({async readCompanyRates(actorId,date){

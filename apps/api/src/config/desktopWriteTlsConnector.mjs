@@ -7,6 +7,7 @@ import sql from 'mssql';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from './desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from './desktopMasterV3Policy.mjs';
 import {DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from './desktopMasterVersion.mjs';
+import {DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from './desktopMasterV5Policy.mjs';
 const PIN='dfb05698389659352709765a2109ed82bde543ca552a403e06df652b2cb004d5';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_WRITE_CONNECTOR_REJECTED'),{code:'DESKTOP_WRITE_CONNECTOR_REJECTED'});};
@@ -47,13 +48,14 @@ SELECT 1 AS ok;`;
 export async function openDesktopWriteTlsConnector(input){return openConnector(input,2);}
 export async function openDesktopMasterV3TlsConnector(input){return openConnector(input,3);}
 export async function openDesktopMasterV4TlsConnector(input){return openConnector(input,4);}
+export async function openDesktopMasterV5TlsConnector(input){return openConnector(input,5);}
 async function openConnector(input,schemaVersion){
  let pool;
  try{
   const config=createDesktopWriteTlsConfig(input);pool=new sql.ConnectionPool(config);
   Object.freeze(config.options.cryptoCredentialsDetails.ca);Object.freeze(config.options.cryptoCredentialsDetails);Object.freeze(config.options);Object.freeze(config.pool);Object.freeze(config);
   await pool.connect();const tx=new sql.Transaction(pool);let begun=false;
-  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const statement=schemaVersion===2?identitySql:identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:''));const result=await new sql.Request(tx).query(statement);if(!Array.isArray(result?.recordset)||result.recordset.length!==1||result.recordset[0].ok!==1)fail();await tx.commit();begun=false;}
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const statement=schemaVersion===2?identitySql:identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:''));const result=await new sql.Request(tx).query(statement);if(!Array.isArray(result?.recordset)||result.recordset.length!==1||result.recordset[0].ok!==1)fail();await tx.commit();begun=false;}
   finally{if(begun)try{await tx.rollback();}catch{}}
   const profile=schemaVersion===2?'desktop-write-v2':`desktop-master-v${schemaVersion}`;
   const connector=Object.freeze({profile,transport:'tedious-tls-ca-host'});registered.set(connector,{pool,config,profile});return connector;
