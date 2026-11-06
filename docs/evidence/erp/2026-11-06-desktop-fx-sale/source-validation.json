@@ -1,0 +1,12 @@
+{
+  "state": "SOURCE_PASS_INSTALLATION_PENDING",
+  "base": "c57c918f48c3d5ff1baff0e02993c03f092f9269",
+  "tests": 228,
+  "testFiles": 46,
+  "testLogSha256": "61fbdff9c0df973c536e5305b9cfe5ade729a32fc85555dc0d72ae7ce47869f8",
+  "buildLogSha256": "ed5825e8abe0829f3bfd8d21428c045250d96ee3583603ac92c6c9e3ee6bb457",
+  "js": "desktopWriteGreen-BDVune0l.js",
+  "review": "READONLY_NO_OPEN_P1_P2",
+  "actualSqlExecuted": false,
+  "humanAcceptance": "PENDING"
+}

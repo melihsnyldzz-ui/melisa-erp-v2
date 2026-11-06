@@ -18,8 +18,8 @@ const mainSql=`SET NOCOUNT ON;
 const otherSql=`SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(quantity),0))) otherReservedExact3
  FROM dbo.desktop_sale_reservations WITH(UPDLOCK,HOLDLOCK,INDEX(IX_desktop_active_reservations))
  WHERE product_id=TRY_CONVERT(bigint,@productId) AND state='ACTIVE' AND invoice_id<>TRY_CONVERT(bigint,@invoiceId);`;
-export function createDesktopDispatchSnapshotReader({sql,verifyScope}={}){
- const locked=createDesktopTwoItemLockedSelection({sql,verifyScope});
+export function createDesktopDispatchSnapshotReader({sql,verifyScope,selectLocked}={}){
+ if(selectLocked!==undefined&&typeof selectLocked!=='function')fail();const locked=selectLocked??createDesktopTwoItemLockedSelection({sql,verifyScope});
  return async function read({transaction,scope,invoiceId,customerId,productIds}={}){
   if(!transaction||!scope||!id(invoiceId)||!id(customerId)||!Array.isArray(productIds)||productIds.length!==2||productIds.some(v=>!id(v))||new Set(productIds).size!==2)fail();
   for(const productId of productIds)if(await verifyScope({transaction,scope,invoiceId,customerId,productId})!==true)fail();

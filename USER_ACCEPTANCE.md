@@ -1,3 +1,7 @@
+## 6 Kasım — R1 dövizli satış
+
+Kaynak teknik PASS; normal GUI/SQL kurulumu sırada. İnsan kabulü BEKLİYOR. İki örnek ürünün seçili USD hesabına %3 indirimli satışı, fiş yenileme/yazdırma, stok9/9 ve USD1,455; eski TRY104,32 korunumu ayrıca doğrulanacak. Kaynak kanıtı: docs/evidence/erp/2026-11-06-desktop-fx-sale/README.md. LAN/terminal/LIVE ayrıca açık.
+
 ## 6 Kasım — R1 şirket günlük kuru okuma; insan kabulü BEKLİYOR
 
 Ana sayfa → Şirket kurlarını göster → Kur tarihi → Kurları göster. Seçilen tarihte USD/EUR kaydı yoksa açık eksik mesajı görünmeli; tarih değişince eski sonuç kalkmalı. Kaynakta26dosya163test/build/reviewPASS; [kanıt ve sınır](docs/evidence/erp/2026-11-06-desktop-company-rates/README.md). Kur düzenleme, gerçek fiş kur snapshot'ı ve dövizli satış henüz bu dilimin kabulü değildir. Ajan kurulum/normalGUI/SQL ayrı kaydeder; gerçek kişi/tarih/sonuç BEKLİYOR.

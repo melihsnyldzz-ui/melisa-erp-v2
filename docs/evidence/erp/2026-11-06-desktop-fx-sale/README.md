@@ -1,0 +1,11 @@
+# R1 dövizli satış — kaynak hazırlığı
+
+PR54 satış/hazırlama/koli/son kontrol zinciri korunur. Seçili TRY/USD/EUR fiyatı, seçili müşteri hesabı ve iki açık işlem kuru aynı transactionda kilitlenir. Şirketin exact tarihli önerisi ile kullanıcı işlem kuru ayrı izlenir; eksik öneri için kur1 uydurulmaz. Şirket önerisi önizleme sonrasında değişirse yeni önizleme gerekir. Kaydedilmiş fiş yeniden fiyatlanmaz.
+
+Dövizli taslak ve sevk aynı native invoice servisini, journal/UUID ve transaction kanıtını kullanır. Ayrı USD/EUR hesabına satış müşterinin eski TRY ana bakiyesini değiştirmez. Taslağı açan ve sevk eden farklı yetkili kullanıcılar olabilir. Cari hareketi sevki yapan kullanıcıyı taşır. Stok maliyeti sevk anındaki kilitli pozitif TRY maliyetidir; bilinmeyen/sıfır maliyetle kâr uydurulmaz. Aktörün mevcut %3 tavanı korunur; yöneticinin %5/onay akışı bu işte açılmaz.
+
+46 dosyada 228 offline test ve guardlı yeşil ekran derlemesi geçti. Native test, gerçek create/finalize JS çağrılarıyla dört hesap türü × sıfır/%3 iskonto, sonradan değişen şirket kuru/maliyet, farklı aktör, sekiz bozuk readback, izin kaybı, transaction rollback ve commit ACK kaybı/aynı istek tekrarını sınar. SQL sürücüsü sentetiktir; T-SQL ve normal ekran/SQL kurulumu yerine geçmez. B6 seçilmiş kaynak fonksiyon gövdesi ve SQL byte hash'i değişmedi; bütün native dosya pini yeni kontrollü bağ için yenilendi. B6 SQL çalıştırılmadı.
+
+Kurulumda yalnız masaüstü yeni TEST uygulaması değişir; SQL servisi/şema/rol/izin/parola/Vega/eski ERP değişmez. Normal ekranda iki yeni sentetik ürün, 10 ADET stok ve 8 TRY maliyetle TRY12/USD0,75/EUR0,60 fiyatlarıyla oluşturulacak. Müşteri2 USD hesap7'ye birer adet USD satış %3 iskonto, 40 TRY/USD işlem kuruyla 1,455 USD /58,20 TRY olmalıdır. İki stok 9'a iner; seçili USD hesap1,455 artar; eski TRY104,32 aynı kalır. Şirket kur tablosu boş olduğu için bu kurulu deneme açık kullanıcı kuru kullanır; dolu şirket kuru gerçek SQL kanıtı sayılmaz. Yenileme/fiş/stok/cari/aynıUUID ve değişen gövde retleri bağımsız SQL gözlemiyle karşılaştırılır.
+
+Kurulu kabul bu kaynak kaydında henüz BEKLİYOR; insan, LAN, terminal, LIVE ve tüm ERP kabulü açık. Devam eden isteklerin gerçek reload kabulü ayrıca kanıtlanır. Önceki fiş10/11 ve tüm eski satırlar korunur.
