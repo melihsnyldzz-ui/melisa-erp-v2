@@ -9,6 +9,7 @@ import {isDesktopRuntimeInfo} from '../../../../packages/shared/src/desktopRunti
 import {desktopCompanyRateDate,isDesktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCurrencySettlementParity} from '../../../api/src/services/desktopCurrencySettlementParity.mjs';
+import {desktopAccountSalesPage,isDesktopAccountSales} from '../../../../packages/shared/src/desktopAccountSales.mjs';
 import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopCustomerAccountCreate,createDesktopCustomerAccountTransport} from './desktopCustomerAccountCreate.mjs';
@@ -82,6 +83,9 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   const c=createDesktopCustomerAccountCreate({actorId:actor,storage:localStorage,locks,newId,submit:async command=>{current();const result=await submit(command);current();return result;}});
   return Object.freeze({pending:()=>{current();return c.pending();},create:async fields=>{current();return c.create(fields);},retry:async()=>{current();return c.retry();}});
  }
+ async function customerAccountSales(customerId,accountId,page=1){
+  if(!richCards||!can('customers')||!can('sales')||!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page))fail();const prior=generation,result=await request('/api/customers/'+customerId+'/accounts/'+accountId+'/sales?page='+page);if(prior!==generation||!can('customers')||!can('sales')||!isDesktopAccountSales(result.data,{customerId,accountId,page}))fail();for(const invoice of result.data.invoices)validateCurrencyAmounts(invoice,{documentCurrency:invoice.currency,documentRateExact8:invoice.documentRateExact8,accountRateExact8:invoice.accountRateExact8});return result.data;
+ }
  async function productBarcode(barcode){if(!richCards||!can('products')||!isDesktopBarcode(barcode))fail();const prior=generation,result=await request('/api/desktop-product-barcode?barcode='+encodeURIComponent(barcode));if(prior!==generation||!can('products')||!isDesktopBarcodeLookup(result.data,barcode))fail();return result.data.product;}
- return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,companyRates,customerAccount,productBarcode,getUser:()=>user});
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,companyRates,customerAccount,productBarcode,customerAccountSales,getUser:()=>user});
 }

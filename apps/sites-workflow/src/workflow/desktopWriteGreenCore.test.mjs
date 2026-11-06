@@ -6,6 +6,14 @@ import {productCardFixture} from '../../../api/src/services/test-fixtures/deskto
 import {customerCardFixture} from '../../../api/src/services/test-fixtures/desktopCustomerCard.fixture.mjs';
 import {desktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
 import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+import {accountSalesFixture} from '../../../api/src/services/test-fixtures/desktopAccountSales.fixture.mjs';
+
+test('selected account sale history requires both permissions, binds exact IDs/page and rejects settlement drift and late logout',async()=>{
+ const x=fixture(['customer.view','sales.view']),original=x.deps.fetch;let data=accountSalesFixture(),late=false,finish;
+ const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(!url.includes('/accounts/7/sales?'))return original(url,opts);assert.equal(url,'http://127.0.0.1:4294/api/customers/2/accounts/7/sales?page=1');if(late)await new Promise(resolve=>{finish=resolve;});return {ok:true,json:async()=>({success:true,data})};}});
+ await assert.rejects(core.customerAccountSales('2','7'));await core.login('normal','secret');assert.equal((await core.customerAccountSales('2','7')).invoices.length,2);for(const patch of [{customerId:'3'},{accountId:'8'},{page:2}]){data={...accountSalesFixture(),...patch};await assert.rejects(core.customerAccountSales('2','7'));}data=accountSalesFixture();data.invoices[0].accountAmountExact4='1.2805';await assert.rejects(core.customerAccountSales('2','7'));await assert.rejects(core.customerAccountSales('2','7',0));data=accountSalesFixture();late=true;const pending=core.customerAccountSales('2','7');await core.logout();finish();await assert.rejects(pending);
+ const limited=fixture(['customer.view']),denied=createDesktopWriteGreenCore({...limited.deps,richCards:true});await denied.login('normal','secret');await assert.rejects(denied.customerAccountSales('2','7'));assert.equal(limited.calls.some(c=>c.url.includes('/accounts/')),false);
+});
 
 test('barcode reader is view-only, binds the exact echo/stock and discards logout replies; missing or ambiguous barcode has a useful message',async()=>{
  const x=fixture(['product.view']),original=x.deps.fetch;let barcode='000000000092',error=null,late=false,finish,patch={};const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(!url.includes('/desktop-product-barcode?'))return original(url,opts);assert.equal(url,'http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092');if(late)await new Promise(resolve=>{finish=resolve;});return {ok:!error,status:error==='DESKTOP_BARCODE_NOT_FOUND'?404:error?409:200,json:async()=>error?{success:false,code:error}:{success:true,data:{barcode,product:{id:'10',stockCode:'00092',productName:'Ürün',unit:'ADET',currentStockExact3:'7.000',reservedExact3:'2.000',availableExact3:'5.000',...patch}}}};}});
