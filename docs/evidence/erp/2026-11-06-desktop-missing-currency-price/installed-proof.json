@@ -1,0 +1,86 @@
+{
+  "state": "INSTALLED_NORMAL_MISSING_USD_PRICE_409_NO_ZERO_NO_DRAFT_NO_RESERVATION_VERIFIED",
+  "appSource": "00fa0834b65ce9d87a0d8d7d182d8085c753d981",
+  "pr": 84,
+  "packageSha256": "3a972bb8bb79bfe20e8d6328864b67c0c74d9d4c40484cc1dda729cb2a848899",
+  "previousPackageSha256": "8b97a133ac4dda19bf611eadbb6b72bd1f0e294bf4cf4d127c76b089288b614a",
+  "changedApiSources": [
+    "apps/api/src/routes/desktopSaleWorkflowRoutes.mjs",
+    "apps/api/src/services/desktopFxSelectionStore.mjs"
+  ],
+  "loggerInRuntimeGraph": false,
+  "sourceCount": 212,
+  "helperCount": 5,
+  "assetCount": 3,
+  "helpersDependenciesNativeAndSqlSame": true,
+  "r2HistoryIncluded": false,
+  "target": {
+    "schemaVersion": 4,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessRowsSha256": "21ce02fd066cbbc4d4ae76471fdde7b3d35c8b429249d615bc4f6a2880ebeb4b",
+  "beforeAfterAll33TablesMetadataIdentitiesAndReservationsIdentical": true,
+  "selectedProduct": {
+    "id": "2",
+    "code": "ERP-TEST-P2",
+    "onlyPrice": "20.00000000 TRY",
+    "physical": "4.000",
+    "reserved": "0.000",
+    "available": "4.000"
+  },
+  "browser": {
+    "state": "NORMAL_MISSING_USD_PRICE_EXPLAINED_409_NO_DRAFT_OR_POST",
+    "productId": "2",
+    "otherProductId": "10",
+    "customerId": "2",
+    "accountId": "7",
+    "currency": "USD",
+    "message": "Seçili ürünlerden birinin bu para biriminde satış fiyatı tanımlı değil. Ürün fiyatını tanımlayıp yeniden kontrol edin.",
+    "requests": [
+      {
+        "method": "OPTIONS",
+        "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=2%2C10&quantities=1.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D"
+      },
+      {
+        "method": "GET",
+        "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=2%2C10&quantities=1.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D"
+      }
+    ],
+    "responses": [
+      {
+        "status": 204,
+        "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=2%2C10&quantities=1.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D"
+      },
+      {
+        "status": 409,
+        "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=2%2C10&quantities=1.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D"
+      }
+    ],
+    "draftActionPresent": false,
+    "postCount": 0
+  },
+  "runtime": {
+    "ownerPid": 24092,
+    "ownerBorn": "2026-11-06T15:34:23.612042+03:00",
+    "workerPid": 19632,
+    "workerBorn": "2026-11-06T15:34:34.875324+03:00",
+    "web": "127.0.0.1:5294",
+    "api": "127.0.0.1:4294"
+  },
+  "screenshot": "normal-missing-usd.png",
+  "screenshotSha256": "28b418bf51f319d0cdf4efcbe5bff41bf350888a2542bd2017753482d85f5677",
+  "tests": 253,
+  "testFiles": 49,
+  "review": "READONLY_NO_OPEN_P1_P2",
+  "sqlDdlDmlExecuted": false,
+  "sqlServiceGrantsCredentialsChanged": false,
+  "newBusinessRecords": false,
+  "humanAcceptance": "PENDING",
+  "nextFirstSaleControl": "K05-02 repeated barcode merges the same product quantity",
+  "time": "2026-11-06T12:38:10.061Z"
+}
