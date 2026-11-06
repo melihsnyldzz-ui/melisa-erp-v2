@@ -1,3 +1,7 @@
+## 6 Kasım — R1 müşteri listesi ve hesap kartı kaynakta hazır
+
+K04-05 için müşteri araması/sayfa/geri dönüş ve seçilen cari-hesap ilişkisi kaynakta eklendi. Tek readonly SQL transactionında parent/para birimi/bakiye doğrulanır; satış geçmişi ayrıca sales.view ister. Geç yanıt ve kaydedilmemiş form kaybı korunuyor. 70 ilgili test dosyası, derleme ve bağımsız readonly review geçti; [kaynak ve kurulu kabul planı](docs/evidence/erp/2026-11-06-desktop-customer-card/README.md). Kurulu normal GUI/SQL henüz denenmedi; yeni mali kayıt veya yetki yok. Önceki e08375a7 exact GitHub CI Windows dahil iki koşuda da başarılı. Stok source a3b1f44a PR73'te; kendi CI kontrolü ayrıca sürüyor. K07 açılmadı.
+
 ## 6 Kasım — R1 fiziksel/rezerve/satılabilir stok GUI ve SQL ile doğrulandı
 
 Kaynak 0325b65f / paket 8394CE99... ile ürün listesi ve tam kart üç ayrı miktarı gösteriyor. Tek deneme taslağı 9 (6 + 1 ADET, 82 TRY) hazırlamaya alınınca product 8: 48 fiziksel / 6 rezerve / 42 satılabilir, product 1: 2 / 1 / 1 oldu. Browser yenilemesi aynı değerleri korudu. Normal taslak iptalinde belge kaldı, iki rezerv RELEASED oldu; miktarlar 48/0/48 ve 2/0/2'ye döndü. Beş aşamalı bağımsız SQL stok/maliyet/cari, eski fişler, birim/fiyat/açılış ve 18 diğer operasyonel tablonun değişmediğini doğruladı. Satış kesinleştirilmedi. 68 ilgili test dosyası, derleme ve readonly review geçti. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-stock-availability/README.md). Kesin satış iptali, açık fiyat/döviz/limit koşulları ve bütün R1 kabulü devam ediyor; K07 genişlemedi.

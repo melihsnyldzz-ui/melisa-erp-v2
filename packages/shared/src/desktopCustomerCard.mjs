@@ -1,0 +1,13 @@
+const exact=(v,keys)=>!!v&&typeof v==='object'&&!Array.isArray(v)&&[Object.prototype,null].includes(Object.getPrototypeOf(v))&&Reflect.ownKeys(v).length===keys.length&&keys.every(k=>{const d=Object.getOwnPropertyDescriptor(v,k);return d?.enumerable&&Object.hasOwn(d,'value');});
+export const desktopCustomerCardId=v=>typeof v==='string'&&/^[1-9]\d{0,18}$/.test(v)&&BigInt(v)<=9223372036854775807n;
+const text=(v,n)=>typeof v==='string'&&v.length>0&&v.length<=n&&!/[\u0000-\u001f\u007f]/.test(v),currency=v=>['TRY','USD','EUR'].includes(v);
+const decimal=(v,scale,whole)=>typeof v==='string'&&new RegExp(`^-?(?:0|[1-9]\\d{0,${whole-1}})\\.\\d{${scale}}$`).test(v)&&v!== '-0.'+'0'.repeat(scale);
+function date(v){if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number),x=new Date(Date.UTC(y,m-1,d));return y>=1900&&x.getUTCFullYear()===y&&x.getUTCMonth()===m-1&&x.getUTCDate()===d;}
+export function isDesktopCustomerCard(v,id){
+ if(!exact(v,['id','customerCode','name','phone','city','country','customerType','currency','balanceExact4','entityId','isActive','accounts','salesHistoryAvailable','lastSale'])||!desktopCustomerCardId(id)||v.id!==id||!desktopCustomerCardId(v.entityId)||!text(v.customerCode,50)||!text(v.name,250)||!currency(v.currency)||!decimal(v.balanceExact4,4,14)||typeof v.isActive!=='boolean'||typeof v.salesHistoryAvailable!=='boolean'||!['customer','wholesale','retail','mixed'].includes(v.customerType))return false;
+ if(!['phone','city','country'].every(k=>v[k]===null||text(v[k],k==='phone'?50:100))||!Array.isArray(v.accounts)||v.accounts.length<1||v.accounts.length>3)return false;
+ if(v.accounts.some(a=>!exact(a,['id','customerId','entityId','supplierId','currency','balanceExact8','balanceStatus'])||!desktopCustomerCardId(a.id)||a.customerId!==id||a.entityId!==v.entityId||a.supplierId!==null||!currency(a.currency)||!decimal(a.balanceExact8,8,20)||a.balanceStatus!=='local')||new Set(v.accounts.map(a=>a.id)).size!==v.accounts.length||new Set(v.accounts.map(a=>a.currency)).size!==v.accounts.length)return false;
+ const main=v.accounts.find(a=>a.currency===v.currency);if(!main||BigInt(v.balanceExact4.replace('.',''))*10000n!==BigInt(main.balanceExact8.replace('.','')))return false;
+ if(!v.salesHistoryAvailable&&v.lastSale!==null)return false;
+ const s=v.lastSale;return s===null||exact(s,['invoiceId','customerId','documentNo','documentDate','currency','totalExact4'])&&desktopCustomerCardId(s.invoiceId)&&s.customerId===id&&text(s.documentNo,60)&&date(s.documentDate)&&currency(s.currency)&&decimal(s.totalExact4,4,14)&&!s.totalExact4.startsWith('-');
+}

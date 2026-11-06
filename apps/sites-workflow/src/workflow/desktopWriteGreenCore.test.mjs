@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import {productRejectionRecord,productRejectionOutcome} from '../../../api/src/services/desktopProductRejection.mjs';
 import {createDesktopWriteGreenCore} from './desktopWriteGreenCore.mjs';
 import {productCardFixture} from '../../../api/src/services/test-fixtures/desktopProductCard.fixture.mjs';
+import {customerCardFixture} from '../../../api/src/services/test-fixtures/desktopCustomerCard.fixture.mjs';
+
+test('normal customer card rejects wrong parents, ungranted sale data and late logout replies',async()=>{
+ const x=fixture(['customer.view']),original=x.deps.fetch;let card={...customerCardFixture(),salesHistoryAvailable:false,lastSale:null},finish,late=false;
+ const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(url.endsWith('/api/customers/3')){if(late)await new Promise(resolve=>{finish=resolve;});return {ok:true,json:async()=>({success:true,data:card})};}return original(url,opts);}});await core.login('normal','secret');assert.equal((await core.customerCard('3')).accounts[0].id,'4');await assert.rejects(core.customerCard('03'));card=customerCardFixture();await assert.rejects(core.customerCard('3'));card={...card,salesHistoryAvailable:false,lastSale:null,accounts:[{...card.accounts[0],entityId:'7'}]};await assert.rejects(core.customerCard('3'));card={...customerCardFixture(),salesHistoryAvailable:false,lastSale:null};late=true;const pending=core.customerCard('3');await core.logout();finish();await assert.rejects(pending);
+});
 test('normal facade binds full product card to selection and discards late logout results',async()=>{
  const x=fixture(['product.view','product.edit']);let finish,late=false;const original=x.deps.fetch;x.deps.richCards=true;x.deps.fetch=async(url,opts)=>{if(url.endsWith('/api/products/6')){if(late)await new Promise(r=>{finish=r;});return {ok:true,json:async()=>({success:true,data:productCardFixture()})};}if(url.endsWith('/api/products/7'))return {ok:true,json:async()=>({success:true,data:productCardFixture()})};return original(url,opts);};
  const core=createDesktopWriteGreenCore(x.deps);await core.login('normal','secret');assert.equal((await core.productCard('6')).barcodes[1].barcode,'000000000051');await assert.rejects(core.productCard('7'));await assert.rejects(core.productCard('06'));late=true;const waiting=core.productCard('6');await core.logout();finish();await assert.rejects(waiting);

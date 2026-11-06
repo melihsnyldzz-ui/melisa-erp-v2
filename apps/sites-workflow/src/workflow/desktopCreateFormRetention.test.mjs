@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import {mountDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {mountDesktopProductCreate} from './desktopProductCreate.mjs';
 
+test('dirty customer fields block card/navigation replacement until explicit discard; pending request cannot be abandoned',async()=>{
+ const events={},nodes=new Map(),form={addEventListener:(name,fn)=>{events[name]=fn;}};let pending=null,cancels=0;const node=s=>{if(!nodes.has(s))nodes.set(s,{hidden:true,disabled:false,textContent:'',addEventListener:(name,fn)=>{events[s+name]=fn;}});return nodes.get(s);};const root={innerHTML:'',querySelector:s=>s==='[data-customer-form]'?form:node(s)};
+ const view=mountDesktopCustomerCreate({root,controller:{pending:()=>pending,create:async()=>{},retry:async()=>{}},onCancel:()=>cancels++});assert.equal(view.requestClose(),true);events.input();assert.equal(view.requestClose(),false);const kept=root.innerHTML;events['[data-customer-cancel]click']();assert.equal(node('[data-customer-abandon]').hidden,false);assert.equal(root.innerHTML,kept);assert.equal(cancels,0);events['[data-customer-keep]click']();assert.equal(view.requestClose(),false);assert.equal(node('[data-customer-abandon]').hidden,true);events['[data-customer-cancel]click']();events['[data-customer-discard]click']();assert.equal(cancels,1);assert.equal(view.requestClose(),true);
+ events.change();pending={customerCode:'C'};assert.equal(view.requestClose(),false);events['[data-customer-discard]click']();assert.equal(cancels,1);view.dispose();
+});
+
 function harness(mount,kind,unknown){
  let pending=null,submit,paintCount=0,html='';const status={textContent:''},button={disabled:false};
  const form={values:kind==='customer'?{customerCode:'M1',name:'Ada',phone:'555',currency:'TRY',customerType:'customer',city:'İzmir',country:'Türkiye'}:{stockCode:'P1',name:'Ürün',barcode:'1',unit:'ADET',currency:'TRY',sale:'10',purchase:'5',discount:'0'},addEventListener:(_name,fn)=>{submit=fn;}};

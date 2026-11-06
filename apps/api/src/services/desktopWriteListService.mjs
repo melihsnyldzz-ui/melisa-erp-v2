@@ -6,6 +6,7 @@ import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProdu
 import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 import {desktopAvailableStock,isDesktopStockAvailability} from '../../../../packages/shared/src/desktopStockAvailability.mjs';
+import {isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const reservedSql=product=>`(SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(r.quantity),0))) FROM dbo.desktop_sale_reservations r WITH(HOLDLOCK,INDEX(IX_desktop_active_reservations)) WHERE r.product_id=${product} AND r.state='ACTIVE') reservedExact3`;
@@ -75,7 +76,7 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
    if(await verifySession({transaction:tx,actorId,permission:def.permission})!==true)fail();
    const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`;
    const exactBarcode=`EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.barcode=@exactSearch AND b.is_active=1`;
-   const fuzzy=`${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~'`;
+   const fuzzy=`${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~'${richCards&&kind==='customers'?" OR phone LIKE @search ESCAPE N'~' OR city LIKE @search ESCAPE N'~' OR country LIKE @search ESCAPE N'~'":''}`;
    const productSearch=richCards&&kind==='products'?`${exactBarcode} AND b.product_id=products.id) OR (NOT ${exactBarcode}) AND (${fuzzy} OR EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=products.id AND b.is_active=1 AND b.barcode LIKE @search ESCAPE N'~')))` :fuzzy;
    const where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${productSearch})`;
    const count=await request().query(`SELECT CONVERT(varchar(20),COUNT_BIG(*)) total FROM ${from} WHERE ${where};`);
@@ -114,6 +115,22 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    }
    if(!isDesktopProductCard(card,productId))fail();
    await tx.commit();begun=false;return card;
+  }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readCustomer(actorId,customerId,{includeSales=false}={}){
+  if(!richCards||!validId(actorId)||!validId(customerId)||typeof includeSales!=='boolean')fail();
+  const tx=new sql.Transaction(pool);let begun=false;
+  try{
+   await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
+   const checked=await new sql.Request(tx).query(guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL));
+   if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:includeSales?['customer.view','sales.view']:'customer.view'})!==true)fail();
+   const request=()=>new sql.Request(tx).input('customerId',sql.NVarChar(20),customerId);
+   const result=await request().query(`SELECT CONVERT(varchar(20),c.id) id,c.customer_code customerCode,c.name,c.phone,c.city,c.country,c.customer_type customerType,c.currency_code currency,CONVERT(varchar(40),c.balance) balanceExact4,CONVERT(varchar(20),c.party_entity_id) entityId,c.is_active isActive
+FROM dbo.customers c WITH(HOLDLOCK) JOIN dbo.party_entities e WITH(HOLDLOCK) ON e.id=c.party_entity_id AND e.role=N'customer' WHERE c.id=TRY_CONVERT(bigint,@customerId) AND c.is_deleted=0;`);
+   if(!Array.isArray(result?.recordset)||result.recordset.length>1)fail();if(!result.recordset.length){await tx.commit();begun=false;return null;}
+   const accounts=await request().query(`SELECT TOP(4) CONVERT(varchar(20),id) id,CONVERT(varchar(20),customer_id) customerId,CONVERT(varchar(20),party_entity_id) entityId,CONVERT(varchar(20),supplier_id) supplierId,currency_code currency,CONVERT(varchar(50),current_balance) balanceExact8,balance_status balanceStatus FROM dbo.party_currency_accounts WITH(HOLDLOCK) WHERE customer_id=TRY_CONVERT(bigint,@customerId) ORDER BY currency_code,id;`);
+   if(!Array.isArray(accounts?.recordset))fail();let lastSale=null;
+   if(includeSales){const latest=await request().query(`SELECT TOP(1) CONVERT(varchar(20),i.id) invoiceId,CONVERT(varchar(20),i.customer_id) customerId,i.document_no documentNo,CONVERT(char(10),i.document_date,23) documentDate,i.document_currency currency,CONVERT(varchar(40),i.grand_total) totalExact4 FROM dbo.sales_invoices i WITH(HOLDLOCK) JOIN dbo.desktop_sale_workflows w WITH(HOLDLOCK) ON w.invoice_id=i.id WHERE i.customer_id=TRY_CONVERT(bigint,@customerId) AND i.status=N'finalized' AND w.state='COMPLETED' ORDER BY i.document_date DESC,i.id DESC;`);if(!Array.isArray(latest?.recordset)||latest.recordset.length>1)fail();lastSale=latest.recordset[0]??null;}
+   const card={...result.recordset[0],accounts:Array.from(accounts.recordset),salesHistoryAvailable:includeSales,lastSale};if(!isDesktopCustomerCard(card,customerId))fail();await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});
 }
