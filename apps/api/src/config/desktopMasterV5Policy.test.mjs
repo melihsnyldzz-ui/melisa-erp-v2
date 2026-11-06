@@ -22,3 +22,7 @@ test('case-sensitive literals, extra conditions and collation names cannot imper
 test('V4 schema guard and V3 grants stay intact; V5 remains four narrow rights and eleven role permissions',()=>{
  assert.ok(DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL.startsWith(DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL));assert.deepEqual(DESKTOP_MASTER_V5_PERMISSION_MANIFEST.slice(0,-4),DESKTOP_MASTER_V3_PERMISSION_MANIFEST);assert.deepEqual(DESKTOP_MASTER_V5_PERMISSION_MANIFEST.slice(-4).map(x=>[x.name,x.permission,x.column]),[['sales_invoices','UPDATE','cancelled_at'],['sales_invoices','UPDATE','cancel_reason'],['sales_invoices','UPDATE','updated_by'],['terminal_sync_queue','SELECT',null]]);assert.equal(DESKTOP_MASTER_V5_OPERATOR_PERMISSIONS.length,11);assert.deepEqual(Object.keys(DESKTOP_MASTER_V5_CHECKS).sort(),Object.keys(fixture).sort());
 });
+
+test('customer movement CHECK admits exactly sale and cancellation in native collation with trusted metadata',()=>{
+ const sql=DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,line=sql.split('\n').find(x=>x.includes("name=N'CK_customer_movements_type'"));assert.ok(line);assert.match(line,/OBJECT_ID\(N'dbo.customer_movements'\)/);assert.match(line,/is_disabled=0 AND is_not_trusted=0/);assert.match(line,/CONVERT\(varbinary\(max\),definition\)=CONVERT/);assert.ok(line.includes("sales_invoice_cancel"));assert.doesNotMatch(line,/COLLATE|OR 1=1/);
+});

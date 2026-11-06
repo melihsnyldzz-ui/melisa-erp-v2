@@ -1,3 +1,13 @@
+## 7 November — driver adapter installed; native cancellation CHECK repair in source
+
+Source a837e907 passed push42297120010 and PR42297127420 including Windows. Its c88863cf package is installed after an app-only readmission that preserved the original apply proof and verified unchanged schema5, security, all33 business tables, seed43 and TLS. Owner55560/worker10760 listen only on127.0.0.1:4294/5294.
+
+The normal-screen retry passed the driver adapter, then native SQL failed547 and rolled back. Independent observation preserved all33 business-table row hashes, invoice13 finalized/COMPLETED, both product stocks7, account7 USD2.7354 and draft15. The rolled-back attempt consumed native identity values; gaps are preserved. A durable cancellation fence now exists for the original UUID8dc272f8-b0bb-4c8a-8edf-e44b5a3eb358. It and the pending command are retained; no fresh UUID or fence reset is used.
+
+Read-only actual metadata established CK_customer_movements_type permits only sales_invoice, while native cancellation inserts sales_invoice_cancel. Fresh4→5 source now replaces exactly that trusted CHECK with the two native movement kinds, retains the column's existing collation, and verifies its complete recorded definition. Pre-acceptance5→4 revert restores the old CHECK under the existing guards. Other three CHECKs, four SQL rights and eleven operator rights remain unchanged. Integrated80-file source matrix435 PASS. SQL Server's recorded rendering and a separately reviewed rollback-only repair, independent readback and conditional apply are still pending. This source change is not installed or a successful cancellation proof.
+
+Older source and installation snapshots below are retained as historical records. Human/full ERP/LAN/device/LIVE and final empty-business delivery remain pending.
+## Earlier evidence
 ## 7 November — V5 installed; normal cancellation isolated a driver-boundary mismatch
 
 Exact5cd5e709 push42290649369 and PR42290656536 both passed all CI including Windows. A real normal rollback and a separate observer independently verified unchanged schema4, security,33 business tables and seed42. Conditional apply was independently verified at schema5/seed43 with candidate metadata036f2941/security0201e190 and unchanged business6dbd8888. The concrete apply proof1a1ac184 was pinned, TLS readmission succeeded, and owner48280/worker16496 opened only127.0.0.1:4294/5294 from source5cd/package19ced0e4. Normal login and the green receipt screen worked. SQL service and credentials did not change.

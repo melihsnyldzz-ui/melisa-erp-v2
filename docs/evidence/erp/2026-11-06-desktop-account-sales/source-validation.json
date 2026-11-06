@@ -10,7 +10,7 @@
     "sales.view"
   ],
   "liveAuthorized": false,
-  "state": "INSTALLED_V5_NORMAL_GUI_CANCELLATION_PENDING_DRIVER_FIX",
+  "state": "INSTALLED_DRIVER_FIX_NATIVE_CHECK_REPAIR_SOURCE_PENDING",
   "sqlExecuted": true,
   "buildModules": 42,
   "guiVerified": true,
@@ -45,8 +45,8 @@
   ],
   "sqlScope": "Independent read-only before/after observations; DDL=0, DML=0, new permissions=0",
   "installation": {
-    "source": "5cd5e70922fba8ee74db54cbd4a02cfcd9ca2b50",
-    "packageSha256": "19ced0e4ff50b471e63885fe47ac74580025a3411ba9ffe8942f3f438ea70428",
+    "source": "a837e907a8531c045162c620741e9cd0811da38a",
+    "packageSha256": "c88863cfaf08bb40447e3a57a39f84f125262cf6d5d435de643b5c35680fc8a3",
     "schemaVersion": 5,
     "sources": 235,
     "helpers": 7,
@@ -56,9 +56,9 @@
     "finalEmptyBusinessDelivery": false,
     "v5Installed": true,
     "invoice13Cancelled": false,
-    "currentHead": "5cd5e70922fba8ee74db54cbd4a02cfcd9ca2b50",
+    "currentHead": "a837e907a8531c045162c620741e9cd0811da38a",
     "loadedGraphIdenticalTo": "770c1e91de1f24b85f718a661bdcacc97e688e58",
-    "latestRecovery": "NORMAL_ROLLBACK_APPLY_INDEPENDENTLY_VERIFIED_TLS_AND_NORMAL_LOGIN_PASS",
+    "latestRecovery": "APP_ONLY_READMISSION_TLS_UNCHANGED_DATA_PASS_NATIVE_CANCEL_547_ROLLED_BACK",
     "permissionIdentity": "43",
     "fullErpReady": false
   },
@@ -277,5 +277,23 @@
       "independentBusinessRowsUnchanged": true,
       "pendingCommandPreserved": true
     }
+  },
+  "nativeCustomerMovementCheckRepair": {
+    "movementKinds": [
+      "sales_invoice",
+      "sales_invoice_cancel"
+    ],
+    "nativeCollationPreserved": true,
+    "nativeCheckReadOnlyConfirmed": true,
+    "testLogSha256": "870176075335873a72123c936cc1f8eccf43e79fd1781e248173b60fe080c84e",
+    "state": "SOURCE_ONLY_REAL_ROLLBACK_PENDING",
+    "testFiles": 80,
+    "rollbackExecuted": false,
+    "testsPassed": 435,
+    "applyExecuted": false,
+    "fencePreserved": true,
+    "independentReview": "NO_NEW_P1_P2_SOURCE_ONLY",
+    "secretScan": "CHANGED_SIX_COMPLETE_FILES_PASS",
+    "secretScanReport": "r2-native-check-changed-six-gitleaks-v1.json"
   }
 }

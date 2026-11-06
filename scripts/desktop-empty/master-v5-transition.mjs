@@ -6,7 +6,7 @@ import {MASTER_V3_TARGET,MASTER_V3_TARGET_IDENTITY_SQL,MASTER_V3_SECURITY_SNAPSH
 import {LOCAL_MASTER_BASELINE_SNAPSHOT_SQL,LOCAL_MASTER_CONCURRENCY_GUARD} from './local-master-schema-proposal.mjs';
 import {DESKTOP_MASTER_V3_OPERATOR_PERMISSIONS,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../../apps/api/src/config/desktopMasterV3Policy.mjs';
 import {DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../../apps/api/src/config/desktopMasterVersion.mjs';
-import {DESKTOP_MASTER_V5_OPERATOR_PERMISSIONS,DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,DESKTOP_MASTER_V5_CHECKS} from '../../apps/api/src/config/desktopMasterV5Policy.mjs';
+import {DESKTOP_MASTER_V5_OPERATOR_PERMISSIONS,DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,DESKTOP_MASTER_V5_CHECKS,DESKTOP_V5_CUSTOMER_MOVEMENT_CHECK} from '../../apps/api/src/config/desktopMasterV5Policy.mjs';
 import {SALE_WORKFLOW_SCHEMA_PROPOSAL} from './sale-workflow-schema-proposal.mjs';
 import {DESKTOP_FINAL_CANCELLATION_EXPORT_BINDING_TEXT} from '../../packages/shared/src/desktopFinalCancellationProfile.mjs';
 const sha=v=>createHash('sha256').update(v).digest('hex'),quote=v=>`N'${v.replaceAll("'","''")}'`,fail=()=>{throw Error('MASTER_V5_OPTIONS_REJECTED');};
@@ -65,12 +65,15 @@ export function compileMasterV5Transition(v){
  THROW 51995,'MASTER_V5_PRECONDITION',1;
  ${operatorGuard(DESKTOP_MASTER_V3_OPERATOR_PERMISSIONS)}
  ${DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL}
+ IF NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_customer_movements_type' AND parent_object_id=OBJECT_ID(N'dbo.customer_movements') AND is_disabled=0 AND is_not_trusted=0 AND CONVERT(varbinary(max),definition)=CONVERT(varbinary(max),N'([movement_type]=N''sales_invoice'')')) THROW 51995,'MASTER_V5_CUSTOMER_CHECK_DRIFT',1;
  ${hashes}
  IF ${baseline} THROW 51995,'MASTER_V5_BASELINE_DRIFT',1;
  EXECUTE AS LOGIN=N'melisa_desktop_test_writer_20261105';SET @impersonating=1;
  ${DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL}
  REVERT;SET @impersonating=0;
  EXEC sys.sp_executesql ${quote(changedChecks)};
+ ALTER TABLE dbo.customer_movements DROP CONSTRAINT CK_customer_movements_type;
+ ALTER TABLE dbo.customer_movements WITH CHECK ADD CONSTRAINT CK_customer_movements_type CHECK ${DESKTOP_V5_CUSTOMER_MOVEMENT_CHECK};
  UPDATE dbo.desktop_empty_installation SET schema_version=5 WHERE id=1 AND schema_version=4 AND read_only=0;
  IF @@ROWCOUNT<>1 THROW 51995,'MASTER_V5_MARKER_UPDATE',1;
  ${grants}
@@ -108,7 +111,9 @@ export function compileMasterV5Revert(v){
  const keys=['metadataSha256','securitySha256','businessRowsSha256','candidateMetadataSha256','candidateSecuritySha256'];
  if(!v||typeof v!=='object'||Array.isArray(v)||Object.keys(v).sort().join(',')!==keys.sort().join(',')||keys.some(k=>typeof v[k]!=='string'||! /^[a-f0-9]{64}$/.test(v[k])))fail();
  function originalCheck(name){const blocks=SALE_WORKFLOW_SCHEMA_PROPOSAL.filter(s=>s.includes('CONSTRAINT '+name+' CHECK'));if(blocks.length!==1)fail();const part=blocks[0].split('CONSTRAINT '+name+' CHECK')[1]?.trimStart().split('\n')[0]?.replace(/,\s*$/,'');if(!part?.startsWith('(')||!part.endsWith(')'))fail();return part;}
- const restore=`ALTER TABLE dbo.desktop_sale_workflow_requests DROP CONSTRAINT CK_desktop_request_operation;
+ const restore=`ALTER TABLE dbo.customer_movements DROP CONSTRAINT CK_customer_movements_type;
+ ALTER TABLE dbo.customer_movements WITH CHECK ADD CONSTRAINT CK_customer_movements_type CHECK (movement_type IN (N'sales_invoice'));
+ ALTER TABLE dbo.desktop_sale_workflow_requests DROP CONSTRAINT CK_desktop_request_operation;
  ALTER TABLE dbo.desktop_sale_workflow_requests WITH CHECK ADD CONSTRAINT CK_desktop_request_operation CHECK ${originalCheck('CK_desktop_request_operation')};
  ALTER TABLE dbo.desktop_sale_request_resolutions DROP CONSTRAINT CK_desktop_resolution_kind;
  ALTER TABLE dbo.desktop_sale_request_resolutions WITH CHECK ADD CONSTRAINT CK_desktop_resolution_kind CHECK ${originalCheck('CK_desktop_resolution_kind')};

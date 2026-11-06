@@ -24,3 +24,8 @@ test('apply cannot be compiled without exact independently observed rollback can
  const p=compileMasterV5Transition({mode:'apply',...baseline,candidateMetadataSha256:'d'.repeat(64),candidateSecuritySha256:'e'.repeat(64)});assert.match(p.sql,/MASTER_V5_CANDIDATE_DRIFT/);assert.match(p.sql,/COMMIT TRANSACTION/);assert.doesNotMatch(p.sql,/VALUES\(-30002/);assert.equal(p.candidate.securitySha256,'e'.repeat(64));
  const snapshot=compileMasterV5Snapshot();assert.equal(snapshot.readOnly,true);assert.match(snapshot.sql,/schema_version IN\(4,5\)/);assert.doesNotMatch(snapshot.sql,/\b(?:ALTER\s+TABLE|GRANT\b|INSERT\s+(?:INTO\s+)?dbo\.|DELETE\s+(?:FROM\s+)?dbo\.|UPDATE\s+dbo\.)/i);assert.equal(compileMasterV5Transition({mode:'rollback',...baseline}).sha256,compileMasterV5Transition({mode:'rollback',...baseline}).sha256);
 });
+
+test('fresh V5 applies trusted narrow customer movement check and revert restores V4',()=>{
+ for(const mode of ['rollback','apply']){const p=compileMasterV5Transition({...baseline,mode,...(mode==='apply'?{candidateMetadataSha256:'d'.repeat(64),candidateSecuritySha256:'e'.repeat(64)}:{})});assert.match(p.sql,/MASTER_V5_CUSTOMER_CHECK_DRIFT/);assert.match(p.sql,/ALTER TABLE dbo.customer_movements WITH CHECK ADD CONSTRAINT CK_customer_movements_type CHECK \(movement_type=N'sales_invoice' OR movement_type=N'sales_invoice_cancel'\)/);}
+ const revert=compileMasterV5Revert({...baseline,candidateMetadataSha256:'d'.repeat(64),candidateSecuritySha256:'e'.repeat(64)});assert.match(revert.sql,/ALTER TABLE dbo.customer_movements WITH CHECK ADD CONSTRAINT CK_customer_movements_type CHECK \(movement_type IN \(N''sales_invoice''\)\)/);
+});
