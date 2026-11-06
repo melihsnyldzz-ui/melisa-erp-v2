@@ -1,0 +1,78 @@
+{
+  "state": "INSTALLED_BARCODE_DRAFT_PROJECTION_LABEL_VERIFIED",
+  "capturedAt": "2026-11-06T14:30:14.163Z",
+  "runtimeSource": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
+  "packageSha256": "df4440b7bdd810beae949823cf1d3e520076a280db53dc68b28bef554a467f3b",
+  "invoiceId": "15",
+  "documentNo": "DS-1132f1c4-b19f-4016-b46e-2",
+  "label": "Çıkışta cari hesaba yansıyacak: 2.2500 USD",
+  "businessPostCount": 0,
+  "events": [
+    {
+      "sequence": 513,
+      "event": "Network.requestWillBeSent",
+      "requestId": "B86B74E3017AF1A58681A63CAF5B76C1",
+      "url": "http://127.0.0.1:5294/",
+      "method": "GET",
+      "type": "Document"
+    },
+    {
+      "sequence": 517,
+      "event": "Network.responseReceived",
+      "requestId": "B86B74E3017AF1A58681A63CAF5B76C1",
+      "url": "http://127.0.0.1:5294/",
+      "status": 200,
+      "type": "Document"
+    },
+    {
+      "sequence": 528,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.144",
+      "url": "http://127.0.0.1:5294/assets/desktopWriteGreen-BatGL53p.js",
+      "method": "GET",
+      "type": "Script"
+    },
+    {
+      "sequence": 543,
+      "event": "Network.responseReceived",
+      "requestId": "51960.144",
+      "url": "http://127.0.0.1:5294/assets/desktopWriteGreen-BatGL53p.js",
+      "status": 200,
+      "type": "Script"
+    },
+    {
+      "sequence": 617,
+      "event": "Network.requestWillBeSent",
+      "requestId": "3C32EBD90212325128B5F6765F51CCB8",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 618,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.158",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 621,
+      "event": "Network.responseReceived",
+      "requestId": "3C32EBD90212325128B5F6765F51CCB8",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 625,
+      "event": "Network.responseReceived",
+      "requestId": "51960.158",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "status": 200,
+      "type": "Fetch"
+    }
+  ],
+  "humanAcceptance": false,
+  "physicalScanner": false
+}

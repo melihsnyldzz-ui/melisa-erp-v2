@@ -1,0 +1,159 @@
+{
+  "state": "INSTALLED_BARCODE_CART_SAVED_REOPENED_AND_CORRECT_DRAFT_PROJECTION_LABEL_VERIFIED",
+  "runtimeSource": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
+  "packageSha256": "df4440b7bdd810beae949823cf1d3e520076a280db53dc68b28bef554a467f3b",
+  "target": {
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5,
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "schemaVersion": 4,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105"
+  },
+  "invoice": {
+    "id": 15,
+    "documentNo": "DS-1132f1c4-b19f-4016-b46e-2",
+    "documentDate": "2026-11-06",
+    "customer_id": 2,
+    "created_by": 30002,
+    "status": "draft",
+    "workflowState": "DRAFT",
+    "version": "0x000000000008D1D4",
+    "currency": "USD",
+    "accountCurrency": "USD",
+    "accountId": "7",
+    "totalExact4": "2.2500",
+    "accountAmountExact4": "2.2500",
+    "amountTryExact4": "90.0000",
+    "items": [
+      {
+        "id": 25,
+        "productId": 10,
+        "quantityExact3": "2.000",
+        "unitPriceExact4": "0.7500",
+        "lineTotalExact4": "1.5000"
+      },
+      {
+        "id": 26,
+        "productId": 11,
+        "quantityExact3": "1.000",
+        "unitPriceExact4": "0.7500",
+        "lineTotalExact4": "0.7500"
+      }
+    ],
+    "requests": [
+      {
+        "requestId": "1132f1c4-b19f-4016-b46e-201151448c68",
+        "actorId": 30002,
+        "operation": "CREATE_DRAFT",
+        "payloadHash": "50fadfc0c94acaa51e5c33d3190a63249ac9ed287b609c3d4220b110171fd56c",
+        "result": {
+          "state": "COMMITTED",
+          "requestId": "1132f1c4-b19f-4016-b46e-201151448c68",
+          "invoiceId": "15",
+          "workflowState": "DRAFT",
+          "version": "0x000000000008D1D4",
+          "replayed": false
+        }
+      }
+    ],
+    "audits": [
+      {
+        "id": 61,
+        "actorId": 30002,
+        "action": "sales_invoice_draft_created",
+        "entity_type": "sales_invoice",
+        "reason": "actor:SYSTEM"
+      },
+      {
+        "id": 62,
+        "actorId": 30002,
+        "action": "sales.currency.selection",
+        "entity_type": "sales-invoice",
+        "reason": "1132f1c4-b19f-4016-b46e-201151448c68"
+      }
+    ]
+  },
+  "request": {
+    "requestId": "1132f1c4-b19f-4016-b46e-201151448c68",
+    "customerId": "2",
+    "documentDate": "2026-11-06",
+    "expectedRevision": "9112b6216b8559f21c5bc5e5b7b6f35748b83c2a3c969dddf47a5deb2a1602f4",
+    "items": [
+      {
+        "productId": "10",
+        "quantityExact3": "2.000"
+      },
+      {
+        "productId": "11",
+        "quantityExact3": "1.000"
+      }
+    ],
+    "currencySelection": {
+      "documentCurrency": "USD",
+      "accountId": "7",
+      "documentRateExact8": "40.00000000",
+      "accountRateExact8": "40.00000000",
+      "documentRateMode": "override",
+      "accountRateMode": "override"
+    }
+  },
+  "postCount": 1,
+  "postStatus": 201,
+  "normalDocumentReload200": true,
+  "reopenWorkflowGet200": true,
+  "scanOrder": [
+    "000000000092",
+    "000000000093",
+    "000000000092"
+  ],
+  "expectedRowDeltas": {
+    "audit_logs": 2,
+    "desktop_sale_workflow_requests": 1,
+    "desktop_sale_workflows": 1,
+    "sales_invoice_items": 2,
+    "sales_invoices": 1
+  },
+  "all33PreviousRowsPreservedByIndependentSqlHash": true,
+  "oldRowsProjectionSha256": "21ce02fd066cbbc4d4ae76471fdde7b3d35c8b429249d615bc4f6a2880ebeb4b",
+  "actualBeforeBusinessSha256": "21ce02fd066cbbc4d4ae76471fdde7b3d35c8b429249d615bc4f6a2880ebeb4b",
+  "actualAfterBusinessSha256": "6dbd8888d9c327a873a444731935966440c8dbf4f6337a15ec01f29829f400f5",
+  "afterSaveAndAfterReopenAllMetadataIdentical": true,
+  "stockReservationsCariAndAllOtherRowsUnchanged": true,
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "screenshot": "normal-barcode-draft-reopened-v2.png",
+  "screenshotSha256": "34dd88e4d96ed8a5c9f53214e971b6c2382da45fa6e49eb2ef1c56c10b8b011e",
+  "prepared": false,
+  "dispatched": false,
+  "newProducts": false,
+  "sqlServiceGrantsCredentialsChanged": false,
+  "knownUiLabelIssue": "FIXED_NORMAL_INSTALLED_GUI",
+  "humanAcceptance": "PENDING",
+  "physicalScanner": "PENDING",
+  "time": "2026-11-06T14:31:32.294Z",
+  "previousPackageSha256": "3d7c5ae1d56f13ffc392b84721f0f2d4f4b41e195665bee87b188e8460a335bf",
+  "sourceCount": 213,
+  "helperCount": 5,
+  "assetCount": 3,
+  "apiHelpersDependenciesNativeAndSqlSnapshotUnchanged": true,
+  "financialCandidateAndR2HistoryIncluded": false,
+  "labelUpdate": {
+    "label": "Çıkışta cari hesaba yansıyacak: 2.2500 USD",
+    "all33TablesIdentitiesMetadataAndSecurityIdentical": true,
+    "businessPostCount": 0,
+    "newDocumentAndBundleGet200": true,
+    "workflow15Get200": true
+  },
+  "runtime": {
+    "ownerPid": 49068,
+    "ownerBorn": "2026-11-06T17:26:47.01686+03:00",
+    "workerPid": 40256,
+    "workerBorn": "2026-11-06T17:26:58.312838+03:00",
+    "web": "127.0.0.1:5294",
+    "api": "127.0.0.1:4294"
+  },
+  "tests": 334,
+  "testFiles": 56,
+  "review": "READONLY_LABEL_STATE_NO_P1_P2",
+  "ci": "EXACT_AEF_PENDING"
+}
