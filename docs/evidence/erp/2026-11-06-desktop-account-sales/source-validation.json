@@ -55,9 +55,12 @@
     "syntheticTestDataPresent": true,
     "finalEmptyBusinessDelivery": false,
     "v5Installed": false,
-    "invoice13Cancelled": false
+    "invoice13Cancelled": false,
+    "currentHead": "21b9f7ebf9223c263df2614a57a370a79f67588e",
+    "loadedGraphIdenticalTo": "770c1e91de1f24b85f718a661bdcacc97e688e58",
+    "latestRecovery": "NORMAL_LOGIN_GUI_FULL_METADATA_AND_TLS_VERIFIED"
   },
-  "nextV5Candidate": {
+  "previousV5Candidate": {
     "state": "COMBINED_V5_PACKAGE_PREPARED_NOT_INSTALLED",
     "packageSha256": "ca09d1d657855fe442c56107e90d075bd2b566153d524d26355a9ed3944eac53",
     "sources": 235,
@@ -76,6 +79,102 @@
     "old804And618ArchivesPreserved": true,
     "workingV4Source": "770c1e91de1f24b85f718a661bdcacc97e688e58",
     "workingV4Package": "adea4bafeee5dfa380f810b944c0a305414e2eb760b2fcf3a1c94a6b5fb3652b",
-    "testLogSha256": "f191032b7de7412859793c94afae39ee2e2304947873f4aa19a35b8766ebda09"
+    "testLogSha256": "f191032b7de7412859793c94afae39ee2e2304947873f4aa19a35b8766ebda09",
+    "actualAttempt": {
+      "state": "READ_ONLY_BASELINE_REJECTED_DIAGNOSE_NOT_RUN_V4_RECOVERED",
+      "capturedAt": "2026-11-06T19:51:08.276659+00:00",
+      "failedPackage": "ca09d1d657855fe442c56107e90d075bd2b566153d524d26355a9ed3944eac53",
+      "failedContext": "11a5cbd648c488d8e7ea9eb51ff8c8e7a8b1ec7f112310e7ee4fff3ac9b1e92f",
+      "failureOperation": "snapshot",
+      "failureState": "UNKNOWN",
+      "staticLabels": [
+        "LOCAL_MASTER_CONCURRENT_OR_TRIGGER_REJECTED"
+      ],
+      "diagnoseExecuted": false,
+      "ddlExecuted": false,
+      "permissionGrantsExecuted": false,
+      "applyExecuted": false,
+      "invoice13Cancelled": false,
+      "independentFullMetadataAnd33BusinessTablesIdentical": true,
+      "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+      "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+      "businessRowsSha256": "6dbd8888d9c327a873a444731935966440c8dbf4f6337a15ec01f29829f400f5",
+      "schemaVersion": 4,
+      "permissionIdentity": "42",
+      "freshTlsVerified": true,
+      "normalLoginAndAccountHistoryRecovered": true,
+      "runtime": {
+        "state": "V4_RECOVERED_PORTS_AND_COMMANDS_VERIFIED",
+        "actualSource": "21b9f7ebf9223c263df2614a57a370a79f67588e",
+        "packageSha256": "adea4bafeee5dfa380f810b944c0a305414e2eb760b2fcf3a1c94a6b5fb3652b",
+        "loadedClosureSameAs770": true,
+        "processes": [
+          {
+            "ProcessId": 40676,
+            "ParentProcessId": 46572,
+            "CreationDate": "2026-11-06T22:29:44.544059+03:00",
+            "ExecutablePath": "C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+            "CommandLine": "\"C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -NoProfile -NonInteractive -File C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v4.ps1 -ExpectedPackageHash ADEA4BAFEEE5DFA380F810B944C0A305414E2EB760B2FCF3A1C94A6B5FB3652B"
+          },
+          {
+            "ProcessId": 53336,
+            "ParentProcessId": 40676,
+            "CreationDate": "2026-11-06T22:29:55.593229+03:00",
+            "ExecutablePath": "C:\\Program Files\\nodejs\\node.exe",
+            "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v4-worker.mjs ADEA4BAFEEE5DFA380F810B944C0A305414E2EB760B2FCF3A1C94A6B5FB3652B"
+          }
+        ],
+        "ports": [
+          {
+            "LocalAddress": "127.0.0.1",
+            "LocalPort": 5294,
+            "OwningProcess": 53336
+          },
+          {
+            "LocalAddress": "127.0.0.1",
+            "LocalPort": 4294,
+            "OwningProcess": 53336
+          }
+        ],
+        "workerCwdEvidence": "Pinned start-master-v4.ps1 sets ProcessStartInfo.WorkingDirectory to fixed sourceRoot",
+        "time": "2026-11-06T19:31:37.0635794Z"
+      },
+      "poolRetentionControlledProbe": "CONFIRMED_IN_SEPARATE_READ_ONLY_EXPERIMENT_ORIGINAL_FAILURE_CAUSE_INFERRED",
+      "poolProbe": "odbc-logical-close-proof-v1.json",
+      "original804AndCA09UnknownRecordsPreserved": true,
+      "dynamicHelperTest": "NOT_RUN_PROCESS_CREATION_POLICY_REJECTED_EXACT_RULE_NOT_DISCLOSED",
+      "saferLiteralHelperTest": "PASS_TEMP_ONLY_NO_DYNAMIC_EVAL_NO_ERP_SCRIPT_EXECUTION"
+    }
+  },
+  "nextV5Candidate": {
+    "state": "PINNED_SEPARATE_SEED_PROCESS_SOURCE_READY_NOT_INSTALLED",
+    "packageSha256": "595ac1bec1248e6d34c3d28e1a7b7a594c2b31c486bc0fee32a06810c410e16f",
+    "contextSha256": "fd6f030e2c57b22dc5fd26754b1170555a73ed0e12fbf71a045187e0ba568080",
+    "sources": 235,
+    "helpers": 7,
+    "assets": 3,
+    "publicFiles": 1,
+    "testFiles": 78,
+    "testsPassed": 422,
+    "testsFailed": 0,
+    "seedHelperSha256": "f8d907bbf6f04913e5e12b6b258cc59bf07c77e709766fdfc991111a711de3c7",
+    "actualSeedChildReadOnlyVerified": true,
+    "parentKeepsSqlConnection": false,
+    "logicalFix": "Permission identity is read by a separately completed, pinned child; coordinator opens no ODBC connection",
+    "independentReadOnlyReview": "NO_NEW_P1_P2",
+    "ci": "EXACT_NEW_HEAD_PENDING",
+    "sqlTransitionExecuted": false,
+    "v5RuntimeInstalled": false,
+    "normalRollbackAndApplyProofs": false,
+    "oldUnknownRecordsPreserved": true,
+    "testLogSha256": "ff9c27a4f5834751868ab335dfa6b2468bf68f0aee61b6f9ec1dbaf6fde3a92f"
+  },
+  "currentHeadFullCi": {
+    "source": "21b9f7ebf9223c263df2614a57a370a79f67588e",
+    "runs": [
+      42274104922,
+      42274098903
+    ],
+    "result": "BOTH_FULL_PASS_INCLUDING_WINDOWS"
   }
 }
