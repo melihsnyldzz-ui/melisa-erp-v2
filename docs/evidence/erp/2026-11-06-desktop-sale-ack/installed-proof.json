@@ -1,0 +1,310 @@
+{
+  "state": "REAL_GUI_DOUBLE_CLICK_AND_POST_COMMIT_ACK_LOSS_RECOVERED_WITHOUT_SECOND_EFFECT",
+  "sourceCommit": "24a087d0e7ab93036c0422f11896718ac6542b85",
+  "packageSha256": "8df61546f094e9b5799fdee82f0c7b6f89c549d2382ba23f589e7551168f7cce",
+  "target": {
+    "databaseId": 5,
+    "server": "Semih\\MELISAERP",
+    "schemaVersion": 4,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1"
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "beforeBusinessSha256": "419cd262ceb1964b565e1655907755d9bd94611bcce4144157a202218110960e",
+  "afterBusinessSha256": "345653ebeb023e652a69d05ab2df9669928ca7b43f6fca5a1ca45892dfecffb2",
+  "draftDoubleClick": {
+    "postCount": 1,
+    "newInvoiceCount": 1,
+    "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537"
+  },
+  "realPostCommitResponseLoss": {
+    "responseStatus": 201,
+    "errorReason": "ConnectionReset",
+    "requestId": "682671d8-c8e6-437a-9076-80d916910f37",
+    "independentSqlBeforeRetry": "COMMITTED / COMPLETED"
+  },
+  "recovery": {
+    "sameUuidAndBody": true,
+    "status": 200,
+    "normalGuiMessage": "Önceki işlem doğrulandı.",
+    "all33TablesAndEntireObserverMetadataIdentical": true,
+    "normalSamePageRetryCount": 1,
+    "networkInterceptionCleared": true,
+    "pendingReloadTested": false
+  },
+  "invoice": {
+    "id": 11,
+    "document_no": "DS-51294bdd-bf7f-4aaf-96a5-c",
+    "status": "finalized",
+    "customer_id": 2,
+    "workflowState": "COMPLETED",
+    "document_currency": "TRY",
+    "totalExact4": "21.3400",
+    "subtotalExact4": "22.0000",
+    "discountRateExact4": "3.0000",
+    "discountTotalExact4": "0.6600",
+    "profitExact4": "7.3400",
+    "items": [
+      {
+        "id": 17,
+        "product_id": 8,
+        "stockCode": "ERP-R1-P7",
+        "quantityExact3": "1.000",
+        "unitPriceExact4": "12.0000",
+        "lineTotalExact4": "12.0000",
+        "costExact4": "8.0000",
+        "profitExact4": "3.6400"
+      },
+      {
+        "id": 18,
+        "product_id": 1,
+        "stockCode": "ERP-TEST-P1",
+        "quantityExact3": "1.000",
+        "unitPriceExact4": "10.0000",
+        "lineTotalExact4": "10.0000",
+        "costExact4": "6.0000",
+        "profitExact4": "3.7000"
+      }
+    ]
+  },
+  "movements": [
+    {
+      "id": 6,
+      "sales_invoice_id": 11,
+      "customer_id": 2,
+      "party_entity_id": 2,
+      "party_currency_account_id": 2,
+      "movement_type": "sales_invoice",
+      "currency_code": "TRY",
+      "amountExact4": "21.3400",
+      "balanceEffectExact4": "21.3400",
+      "accountAmountExact4": "21.3400",
+      "account_currency": "TRY"
+    }
+  ],
+  "stock": [
+    {
+      "id": 18,
+      "product_id": 8,
+      "source_id": 11,
+      "created_by": 30002,
+      "movement_type": "out",
+      "source_type": "sales_invoice",
+      "quantityInExact3": "0.000",
+      "quantityOutExact3": "1.000",
+      "costExact4": "8.0000",
+      "amountExact4": "11.6400"
+    },
+    {
+      "id": 19,
+      "product_id": 1,
+      "source_id": 11,
+      "created_by": 30002,
+      "movement_type": "out",
+      "source_type": "sales_invoice",
+      "quantityInExact3": "0.000",
+      "quantityOutExact3": "1.000",
+      "costExact4": "6.0000",
+      "amountExact4": "9.7000"
+    }
+  ],
+  "requests": [
+    {
+      "requestId": "682671d8-c8e6-437a-9076-80d916910f37",
+      "invoice_id": 11,
+      "actor_id": 30002,
+      "operation": "DISPATCH",
+      "payloadHash": "d5d4a474147d701302f62cc0166f21a8d87fe86ab6257355ad4b7a06e336d360",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "682671d8-c8e6-437a-9076-80d916910f37",
+        "invoiceId": "11",
+        "workflowState": "COMPLETED",
+        "version": "0x0000000000077A16",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "d62c6780-7c4b-4d15-93ec-8d39d1bd4297",
+      "invoice_id": 11,
+      "actor_id": 30002,
+      "operation": "CHECK",
+      "payloadHash": "12ba56217b5dd498de185b5a3e17446a7473e19c005aaad40158265614103218",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "d62c6780-7c4b-4d15-93ec-8d39d1bd4297",
+        "invoiceId": "11",
+        "operation": "CHECK",
+        "workflowState": "CHECKED",
+        "version": "0x0000000000075AD4",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "b95329c6-ce81-4c1a-8043-c52b05064c4d",
+      "invoice_id": 11,
+      "actor_id": 30002,
+      "operation": "READY",
+      "payloadHash": "86a745a59a75d6ace40cc2e07465ac7aca10877bee323c03baee10aa9eb00dd3",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "b95329c6-ce81-4c1a-8043-c52b05064c4d",
+        "invoiceId": "11",
+        "operation": "READY",
+        "workflowState": "READY",
+        "version": "0x0000000000075AD3",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537",
+      "invoice_id": 11,
+      "actor_id": 30002,
+      "operation": "CREATE_DRAFT",
+      "payloadHash": "6b555a8b6db3d6782429556d8458a526a639bf717969a47b4c8b7d584ed95cb9",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537",
+        "invoiceId": "11",
+        "workflowState": "DRAFT",
+        "version": "0x0000000000073B93",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "3f8bdea4-8408-4734-8aee-e8dbc1baaf80",
+      "invoice_id": 11,
+      "actor_id": 30002,
+      "operation": "PREPARE",
+      "payloadHash": "4db63414977cc349e2b1f682a8cf85796864dd3ba537bfdb4678cb2cc91d3f01",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "3f8bdea4-8408-4734-8aee-e8dbc1baaf80",
+        "invoiceId": "11",
+        "operation": "PREPARE",
+        "workflowState": "PREPARING",
+        "version": "0x0000000000075AD1",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "25515eed-8ff4-49d4-b29a-ec370fe9671f",
+      "invoice_id": 11,
+      "actor_id": 30002,
+      "operation": "SAVE_CARTONS",
+      "payloadHash": "b1f488778d06e77de51e5e1fcc290dad516082ace0ae5960fad15d4bc765fc50",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "25515eed-8ff4-49d4-b29a-ec370fe9671f",
+        "invoiceId": "11",
+        "operation": "SAVE_CARTONS",
+        "workflowState": "PREPARING",
+        "version": "0x0000000000075AD2",
+        "replayed": false
+      }
+    }
+  ],
+  "gui": {
+    "state": "NORMAL_GUI_RECOVERED_REAL_POST_COMMIT_ACK_LOSS",
+    "invoiceId": "11",
+    "draftDoubleClickPostCount": 1,
+    "draftBody": {
+      "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537",
+      "customerId": "2",
+      "documentDate": "2026-11-06",
+      "expectedRevision": "4cc681a6c4d2428855d55abb0e4ba4f1773e9f5af3d7bb50893c0b497a17798e",
+      "items": [
+        {
+          "productId": "8",
+          "quantityExact3": "1.000"
+        },
+        {
+          "productId": "1",
+          "quantityExact3": "1.000"
+        }
+      ],
+      "discountRateExact4": "3.0000"
+    },
+    "interruptedResponseStatus": 201,
+    "originalDispatchBody": {
+      "requestId": "682671d8-c8e6-437a-9076-80d916910f37",
+      "customerId": "2",
+      "invoiceId": "11",
+      "expectedVersion": "0x0000000000075AD4",
+      "productIds": [
+        "8",
+        "1"
+      ]
+    },
+    "retryDispatchBody": {
+      "requestId": "682671d8-c8e6-437a-9076-80d916910f37",
+      "customerId": "2",
+      "invoiceId": "11",
+      "expectedVersion": "0x0000000000075AD4",
+      "productIds": [
+        "8",
+        "1"
+      ]
+    },
+    "sameUuidAndBody": true,
+    "retryHttpStatus": 200,
+    "newSaleEnabled": true,
+    "visibleResult": "Önceki işlem doğrulandı.",
+    "totalExact4": "21.3400",
+    "humanAcceptance": "BEKLIYOR",
+    "samePageRecovery": true,
+    "pendingReloadTested": false,
+    "harnessCorrection": "response matched by Network requestId, excluding OPTIONS preflight; exactly one normal retry was sent",
+    "networkInterceptionCleared": true,
+    "time": "2026-11-06T09:46:56.210Z"
+  },
+  "boundaries": {
+    "state": "DISCOUNTED_DRAFT_SAME_BODY_AND_CHANGED_BODY_BOUNDARIES_VERIFIED",
+    "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537",
+    "hash": "6b555a8b6db3d6782429556d8458a526a639bf717969a47b4c8b7d584ed95cb9",
+    "results": [
+      {
+        "case": "original discounted draft replays after completed dispatch",
+        "status": 200,
+        "result": {
+          "state": "COMMITTED",
+          "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537",
+          "invoiceId": "11",
+          "workflowState": "DRAFT",
+          "version": "0x0000000000073B93",
+          "replayed": true
+        }
+      },
+      {
+        "case": "same UUID changed percentage cannot execute",
+        "status": 503,
+        "state": "UNKNOWN"
+      },
+      {
+        "case": "discounted draft normal durable resolution matches original body",
+        "status": 200,
+        "result": {
+          "state": "COMMITTED",
+          "requestId": "51294bdd-bf7f-4aaf-96a5-cb28995a9537",
+          "invoiceId": "11",
+          "workflowState": "DRAFT",
+          "version": "0x0000000000073B93",
+          "replayed": true
+        }
+      },
+      {
+        "case": "changed discounted draft cannot resolve as original",
+        "status": 503
+      }
+    ],
+    "newLogicalRequestsCreated": false,
+    "time": "2026-11-06T09:52:00.932Z"
+  },
+  "draftUnchangedTables": 28,
+  "finalUnchangedTables": 20,
+  "oldInvoicesAndRequestsIdentical": true,
+  "noApplicationCodeOrSchemaChange": true,
+  "humanAcceptance": "BEKLIYOR",
+  "time": "2026-11-06T09:54:20.276Z"
+}
