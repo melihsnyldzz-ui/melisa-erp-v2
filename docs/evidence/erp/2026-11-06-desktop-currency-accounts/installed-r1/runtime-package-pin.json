@@ -1,0 +1,842 @@
+{
+  "profile": "desktop-master-v4",
+  "sourceRoot": "C:/Users/Xaser/Desktop/ERP/kaynak-r1",
+  "createdAt": "2026-11-06T06:51:09.381Z",
+  "sources": [
+    {
+      "path": "infra/sql/migrations/0001_melisa_erp_v2_initial_schema.sql",
+      "sha256": "060fdf3f378e9d655ff49c618ca7af58009da6e2b3ed6be4b23cd1b5d0865ad8"
+    },
+    {
+      "path": "infra/sql/migrations/0002_customer_movements.sql",
+      "sha256": "09c48ae245249ad94cccdd798e591115d68d490bbae0a76cc0fcad68fcca7b17"
+    },
+    {
+      "path": "infra/sql/migrations/0003_stock_movement_sales_snapshots.sql",
+      "sha256": "9fc329777cf1f3749239848e2a01378de0dfa4505c456aabb9ace458dd96e29b"
+    },
+    {
+      "path": "infra/sql/migrations/0004_supplier_movements.sql",
+      "sha256": "edfce2520a18e2d2a9eadf16424b5efb2343ff58ceb9f90294e913f8dd2a5a1f"
+    },
+    {
+      "path": "infra/sql/migrations/0005_average_cost_gross_profit.sql",
+      "sha256": "9f946dc9a7e10e0a5f66049dd1927e3974cfcbe164aa765d734f9d79c1bb42a6"
+    },
+    {
+      "path": "infra/sql/migrations/0006_auth_live_foundation.sql",
+      "sha256": "37be7a4096e74de876333dcbf3e6336feffa796bc521f948f74e45347808410b"
+    },
+    {
+      "path": "infra/sql/migrations/0007_import_permission.sql",
+      "sha256": "2fddc42e84841e11f75f660b05ab1b9578ad8ada6694c2c14134581ecec20326"
+    },
+    {
+      "path": "infra/sql/migrations/0008_finance_collection_payment_movements.sql",
+      "sha256": "7c3a6b8a6ab353c63de0479908c68834c1a1bb33552ac379f3e373e77b76d86f"
+    },
+    {
+      "path": "infra/sql/migrations/0009_sales_offers_orders.sql",
+      "sha256": "bccb520aef7f09ff4573170ba56578fb67e29dcb9bd1fee00b5cd6ac297375d8"
+    },
+    {
+      "path": "infra/sql/migrations/0010_system_settings.sql",
+      "sha256": "4492e28ff9990ee58eb561ca7d5d7135cf8b6164aed6da5218e2f95be5f1ebb1"
+    },
+    {
+      "path": "infra/sql/migrations/0011_purchase_discount_defaults.sql",
+      "sha256": "38cc1d57c85cb34d5c070d5acda2fa4f37bdc166da17342c17c1ef3112a44e97"
+    },
+    {
+      "path": "infra/sql/migrations/0012_multi_currency_cash_sessions.sql",
+      "sha256": "dd8ad3559d4e867c9dd3121e3e0803455773fceb3351777072bb93f027f363c5"
+    },
+    {
+      "path": "infra/sql/migrations/0013_personnel_terminal_sales.sql",
+      "sha256": "24719d47cd9b48e6637516bd05f5a6bc9a8fe631ac6d696a469a43ac498efafd"
+    },
+    {
+      "path": "infra/sql/migrations/0014_personnel_operational_restrictions.sql",
+      "sha256": "53602dac2d96d2c5d0a1f8fb2a1875049d3420fb36c38b5462f7b37b6d5c139a"
+    },
+    {
+      "path": "infra/sql/migrations/0015_vega_product_images.sql",
+      "sha256": "dc9473445e165684ff2cb95fac14c851df148891d12ef5786864225f640fa458"
+    },
+    {
+      "path": "infra/sql/migrations/0016_vega_product_customs.sql",
+      "sha256": "52b7a8f66cd241aebdcc093fb83b1958ac603082ad3c16ca55aee1ba660ea165"
+    },
+    {
+      "path": "infra/sql/migrations/0017_development_os_events_read_role.sql",
+      "sha256": "edead3e0f0833811873d4fa68d4395bd2047bf9a53f479920b570a69af45c2af"
+    },
+    {
+      "path": "scripts/desktop-empty/start-master-v4-worker.mjs",
+      "sha256": "c52680ea4dc78415745dc9a05a46bcf02fad9cf53b2c4ba76ca30ba6e32eaf66"
+    },
+    {
+      "path": "scripts/desktop-empty/start-initial-green-worker.mjs",
+      "sha256": "69f0f5cd274e927052e559a6fc9f47ca367f1ff694a2a9b323ae5921ffe5faa5"
+    },
+    {
+      "path": "apps/api/src/desktopInitialReadServer.mjs",
+      "sha256": "e310bef1406f735addea2ad8936588e52db0ec0e2dcdb19777085d9bfa788a07"
+    },
+    {
+      "path": "apps/api/src/config/desktopInitialTls.mjs",
+      "sha256": "fd181b94be8f2a8e61e27c5a22fd298929e457c90eea6bfe70c987f0e5c5765f"
+    },
+    {
+      "path": "apps/api/src/services/desktopInitialReadProfile.mjs",
+      "sha256": "6e8476c6f1b0ee2491a3edca737028050ce796a5284fad267ae46f12d75e6201"
+    },
+    {
+      "path": "apps/api/src/services/permissionCatalog.js",
+      "sha256": "b34b9e3f99aefa64a4fcbd0b77247f8940ec9cab0696354ac424d251c0dbb06f"
+    },
+    {
+      "path": "scripts/desktop-empty/initial-green-web.mjs",
+      "sha256": "b253c2b9234c5f1128c52fdd0b86aafaed0fa8bc1ee83c5fc1446b05c4ca2ab3"
+    },
+    {
+      "path": "scripts/desktop-empty/sql-login-runtime-integrity.mjs",
+      "sha256": "97a09aff3b15e8f6468053c526996fa36589c0f016402a45bae223be53aeb820"
+    },
+    {
+      "path": "packages/shared/src/desktopRuntimeInfo.mjs",
+      "sha256": "f2af9972aed23aea699640b5390a693a815467063cd227dbade47afa111f18f9"
+    },
+    {
+      "path": "apps/api/src/config/desktopWriteTlsConnector.mjs",
+      "sha256": "ca63ac99cf9335fba7ce80f9d9f160fffe983125d80569c694452591a5eb959f"
+    },
+    {
+      "path": "apps/api/src/config/desktopLifecyclePermissionPolicy.mjs",
+      "sha256": "712ee7709afe08b66fc05f3438f04a18a9c99f3895a57a5fd4c0eaf2574a19ba"
+    },
+    {
+      "path": "apps/api/src/config/desktopWritePermissionPolicy.mjs",
+      "sha256": "dd8dd41de449c9ac7e34584a2d53425e7bbbf8e15d401cbbdd8c63d646f3b302"
+    },
+    {
+      "path": "apps/api/src/config/desktopMasterV3Policy.mjs",
+      "sha256": "782d2eba3f2aedc3970ff13123b161b3eb36e0f8ecd8fac200362f52cdb4c5f4"
+    },
+    {
+      "path": "apps/api/src/config/desktopMasterVersion.mjs",
+      "sha256": "ea72bdfe645d0bc5f2b3289bc44958891bce36377436993aeefcac4cae077514"
+    },
+    {
+      "path": "apps/api/src/config/desktopWriteRuntime.mjs",
+      "sha256": "56f19a8e85adab26242b1e3b78a0238c50d3fa34c46b69569972ff7becffdfc4"
+    },
+    {
+      "path": "apps/api/src/services/invoiceDraftService.js",
+      "sha256": "7225d4ec140b4d1047ef1bfba3f13286f5958dff3a5790cb6ab1724a35649925"
+    },
+    {
+      "path": "apps/api/src/services/operationQuarantineService.js",
+      "sha256": "d6ba668f2a0384ba2baa851fd6feef3e99d176be4d9c8fdc3c241ec9ae5c869e"
+    },
+    {
+      "path": "apps/api/src/services/openingPriceService.js",
+      "sha256": "8c92b00ce9173447a5ebc6254734e598877f3056c0574a0162dd558b6c36153b"
+    },
+    {
+      "path": "apps/api/src/services/catalogProductReadStore.mjs",
+      "sha256": "cea8edbab1caeee58d4058a9d321c91de58bf1093f83d4fb22ba3f6c907b706d"
+    },
+    {
+      "path": "apps/api/src/services/canonicalBusinessSessionContext.mjs",
+      "sha256": "07116af0662cc9d243ee37c3dd75f271e0392897676281777b9f909dba58473f"
+    },
+    {
+      "path": "apps/api/src/services/catalogModel.mjs",
+      "sha256": "0e81d598dbe9a6850eec8f20fddd780fd8da862e27eaba79ce3481b41acb64e6"
+    },
+    {
+      "path": "apps/api/src/services/stockProductModel.mjs",
+      "sha256": "e8cc4a86421e911f8ef9c39126398899258a5783ee67aad9887c8e594f8d3780"
+    },
+    {
+      "path": "apps/api/src/services/currentProductCatalogContext.mjs",
+      "sha256": "31e55cb75c026a3aee60e20b3378e74f74ca486b2f092c2a14299fe1792f1b61"
+    },
+    {
+      "path": "apps/api/src/services/finalCatalogContext.mjs",
+      "sha256": "08ae6073a33546f45b35873e3ffe6ec36f12ae9c7183ed0d629f98922e9b4095"
+    },
+    {
+      "path": "apps/api/src/services/catalogSqlProof.mjs",
+      "sha256": "fff5d9fbc6a0309c86a931cbfd5d03becb3af657eec3ebafab295b91499c058e"
+    },
+    {
+      "path": "apps/api/src/services/catalogClassificationStore.mjs",
+      "sha256": "a71ca4232a79c3d20b754b4547a9d169605e1088f32ffa6dcf65fbfdefcf27d7"
+    },
+    {
+      "path": "apps/api/src/services/canonicalTestAdminSession.mjs",
+      "sha256": "a68be18964e85bfc3ec4b1e04e4fc3a1b247b7cd1bfa0115c55e9bed95b2daf8"
+    },
+    {
+      "path": "apps/api/canonical-test-listeners.mjs",
+      "sha256": "8610eee51ebb015b9c69a37f59cad0b911fb80993e695854ca284b30af04f81e"
+    },
+    {
+      "path": "apps/api/src/config/isolatedOperationCopyRuntime.mjs",
+      "sha256": "9165189c2a0a4a103a22f874eb2eda4d76a9bba719de6a31363ae35c8a9f7f13"
+    },
+    {
+      "path": "apps/api/src/services/crmOrderCurrentContext.mjs",
+      "sha256": "5e4f5f6d7a45eaec96756202d7c50c3921a740f058436172a609e76f411524a9"
+    },
+    {
+      "path": "apps/api/src/services/crmOrderV2Contract.mjs",
+      "sha256": "68d7a67c8b301d1793d6211a637cafa47aeb5925ca746b5a778184f81b5005b9"
+    },
+    {
+      "path": "apps/api/src/services/isolatedOperationCopyContext.mjs",
+      "sha256": "804216eeb17061696437b4147ded87dbaa0c87ed47cc475ae409b236d203476b"
+    },
+    {
+      "path": "apps/api/src/services/businessProductPriceSaleScope.mjs",
+      "sha256": "3bf6aa069228d1d8efbf447fea66f4ec66dcdcd279ffa926e436eb68e190db7f"
+    },
+    {
+      "path": "apps/api/src/services/isolatedOperationCopyScope.mjs",
+      "sha256": "aa3c41c8410b6a41b8c643a43a1375ba242b3ac576d824cbf5fc6a77e1a180eb"
+    },
+    {
+      "path": "apps/api/src/services/businessProductPriceSaleModel.mjs",
+      "sha256": "e3df0d093b3505ecc65b64df8241cb44e161f8ded0bde93e4ee30d13a3a05380"
+    },
+    {
+      "path": "scripts/canonical/shared-business-product-price-sale-bootstrap.mjs",
+      "sha256": "fcc96d3ee3599697db0f9ba07eb257f98c9ba75088c7a9a02c11877b74ff712f"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-revision-bootstrap.mjs",
+      "sha256": "78f3f2605a39502b5f460dbca30adf695644f662b69cafcb11ea662a951a8ced"
+    },
+    {
+      "path": "apps/api/src/services/businessDailyRevisionBootstrap.mjs",
+      "sha256": "d3ccb7af527bff4829e0ba9c6233a32b14e491a56b33719be01c28f88e282988"
+    },
+    {
+      "path": "apps/api/src/services/businessReadyRevisionBootstrap.mjs",
+      "sha256": "ab708dce119241c6ca8b67b3ab47dd37509b5b9f5c4ef14d0efa4333ba893b9a"
+    },
+    {
+      "path": "apps/api/src/services/businessDailyProfitRevision.mjs",
+      "sha256": "f7ea497957ec2f631702de2a24d67c9a001e7545a6f612b9b74f6e4221308b80"
+    },
+    {
+      "path": "apps/api/src/services/businessDailyNativeCheck.mjs",
+      "sha256": "1951614de749d5eca02e3ee1a3a29889d906083ce5f6b4ddf3df5a43bb0d7dad"
+    },
+    {
+      "path": "apps/api/src/services/businessReadinessQueryPlanRevision.mjs",
+      "sha256": "3b1fd9ecc67ac4ca5c07b98f6ec982d275cdaf59292fa8696177b779621c82bd"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-revision-sql.mjs",
+      "sha256": "2ddef89b0d4900174e0c2e3e629b636b262b218d9c99bad93277ca350f7ccbed"
+    },
+    {
+      "path": "scripts/canonical/stage4-copy-sql.mjs",
+      "sha256": "887a7030d4840a80b2bbf536aa81b5950622541820466cae593fffa234d9b657"
+    },
+    {
+      "path": "apps/api/src/services/isolatedOperationCopyStoreFactory.mjs",
+      "sha256": "2a651f2c0eb10c759162d92d219a66f0779985d691178047a7b25086b55175fb"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-collection-revision-bootstrap.mjs",
+      "sha256": "a8ae4917faea513ca3141032d178d1748c17748448264d6a4de589bc3820cc7b"
+    },
+    {
+      "path": "scripts/canonical/shared-business-collection-history-bootstrap.mjs",
+      "sha256": "0995ed1045722d1aad7b6341cfa4768dd3e1f3a5fe2a5d6f9961a1c705f70633"
+    },
+    {
+      "path": "scripts/canonical/shared-business-collection-history-sql.mjs",
+      "sha256": "dc7e3bf0c91638defa7b9649b52d5ab62c48a08336d7af10f60a98f7e6fb7269"
+    },
+    {
+      "path": "scripts/canonical/shared-business-product-price-sale-sql.mjs",
+      "sha256": "108cfec600e35dad8e7b876b0e6e4d83dd1b07c5cd98c93f0742b99a4b7318f2"
+    },
+    {
+      "path": "scripts/canonical/shared-business-product-price-revision-sql.mjs",
+      "sha256": "87b19c1ee581d9590b11e4461c70d113e567c9e6be05372e11d75aedac73ff65"
+    },
+    {
+      "path": "scripts/canonical/shared-business-product-price-revision-contract.mjs",
+      "sha256": "5854e34d76958091b8bb5aa47d906907ec755b1e3679311be12d77f4c28b3b95"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-collection-revision-sql.mjs",
+      "sha256": "020f4eac379c04221ca56938563b366a0aced39aa0552ca91cc5d3fca9e3b4bf"
+    },
+    {
+      "path": "apps/api/src/services/businessSelectedCollectionWriteScope.mjs",
+      "sha256": "7cc6d699fc174345ea9b8cab8ba8e45f81e18d481bba30e9304dcafd4861b059"
+    },
+    {
+      "path": "apps/api/src/services/workSalesModel.mjs",
+      "sha256": "e8d8cc69f8885f14fc91431ec31c2d9d1628a49fe013bac754fd8c651bd79c63"
+    },
+    {
+      "path": "apps/api/src/middleware/businessInboundSelectionContext.mjs",
+      "sha256": "7eda5a17b79953bc7b59d805480dfa8e290faa770c9b6dea0f1a9bb85e158a0f"
+    },
+    {
+      "path": "apps/api/src/services/businessDailyHomeReadProof.mjs",
+      "sha256": "3da53fb06470455c87a0a92462383915f28429888988f2fbe410392d0619d6fb"
+    },
+    {
+      "path": "apps/api/src/services/businessSelectedSaleHistoricalReadProof.mjs",
+      "sha256": "e0b14418158a23d2ce97affebbcc75c79b92fdc3d9b5218c6e70c9fd51fef2f7"
+    },
+    {
+      "path": "scripts/canonical/shared-business-stock-predicate-distinct-revision-sql.mjs",
+      "sha256": "28462af25f5b27ec584757134c85204f88e05277410bf5534d9b4208fb298381"
+    },
+    {
+      "path": "scripts/canonical/shared-business-operation-quarantine-parent-revision-sql.mjs",
+      "sha256": "edbcdbe141985dd03c9808dd2899e55b1c9890c05439d65266d33b5abf3dd406"
+    },
+    {
+      "path": "scripts/canonical/shared-business-supplier-item-quarantine-parent-revision-sql.mjs",
+      "sha256": "cfe36441ba90369c4c24c24aecddbeae8f62ab5b0344f88ad3ae9bcf0a64dc7e"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-parent-revision-sql.mjs",
+      "sha256": "c958f79ad29ef66cb02de454730d48eed1ce2ec4581173605fa5b50d7a131eb8"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-effects-revision-sql.mjs",
+      "sha256": "cbd5370bb617bd3231838142d094a9395742af9e4c08e253be22b1821ac29624"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-revision-contract.mjs",
+      "sha256": "707911c2fff3c97a939960383888e88ee116cd63294d69499eaf3ac9cc8bed90"
+    },
+    {
+      "path": "scripts/canonical/shared-business-supplier-item-quarantine-revision.mjs",
+      "sha256": "8ae86575e1c34a1c2e196b4ab6caf08b6b57180d659cdea04a34d436592fc3b4"
+    },
+    {
+      "path": "scripts/canonical/shared-business-operation-quarantine-revision.mjs",
+      "sha256": "debcf9d29f5bdf34cd15f745b4e7c429bd2b16e24df1b04a4ad6bb7c1c1a6546"
+    },
+    {
+      "path": "scripts/canonical/shared-business-stock-predicate-distinct-source.mjs",
+      "sha256": "dba483bc8bd1b886e6a1cc3526919e55343101a9b5af5e30b37f821e356f9743"
+    },
+    {
+      "path": "apps/api/src/services/businessSelectedSaleWriteIntent.mjs",
+      "sha256": "2adc095521aa743e6dc8d3a11c184620f65a7aee56863bded787c0672afc47b7"
+    },
+    {
+      "path": "apps/api/src/services/businessSelectedSaleWriteScope.mjs",
+      "sha256": "ba06142cd9dcc543822f914313e2e95738364f797f5677cb702c921a9146b464"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-write-scope-sql.mjs",
+      "sha256": "f7863f3e993d9c8d44dbd9b3c7795c6fc46520ddbd727ec8216064e07667e69d"
+    },
+    {
+      "path": "scripts/canonical/shared-business-selected-sale-preview-sql.mjs",
+      "sha256": "aea7471a80d710c8d9e0675dc40f221aeb035b209cc79f494d66b367f568cd5d"
+    },
+    {
+      "path": "apps/api/src/services/selectedSaleSqlDiagnostic.mjs",
+      "sha256": "7ed9ca475fc24344cb74035472f65d8e77a55cbfb5c7b5bbd11a753e93c488e2"
+    },
+    {
+      "path": "apps/api/src/services/businessSelectedSaleNativeContext.mjs",
+      "sha256": "2f1f7402764b7647cdf73dd016ab34480ff9a80ed4bedf1b45049a878046a865"
+    },
+    {
+      "path": "apps/api/src/services/businessSelectedSaleInvoiceRead.mjs",
+      "sha256": "51e0e9ac8f2d22fac17fd505a2720c201bc548236808a8e109f67631c0b731c2"
+    },
+    {
+      "path": "scripts/canonical/shared-business-daily-profit-revision.mjs",
+      "sha256": "8b4b06436b2ca9696e36a1cc40bbd2c07ec2f07ea9724e6d96e50b52ef543362"
+    },
+    {
+      "path": "scripts/canonical/shared-business-product-price-bootstrap.mjs",
+      "sha256": "5491fcd07474edd984eb4a4d7972263ad97dde86c6b86ce807eebd720f672774"
+    },
+    {
+      "path": "apps/api/src/services/businessCollectionHistoryProof.mjs",
+      "sha256": "c6103e8947b75937e9febf33bd07f01344a9174f52240f0ddb13292c52477d39"
+    },
+    {
+      "path": "apps/api/src/services/authService.js",
+      "sha256": "5d3c890003c8de0212b58a7c89edf78c73f7d5b416370a71042c426c9f375d2c"
+    },
+    {
+      "path": "apps/api/src/config/env.js",
+      "sha256": "4ae80e4ca68e5200551cbb69528d72d1cde384adbfcc861389b1927c97bc9d88"
+    },
+    {
+      "path": "apps/api/src/config/database.js",
+      "sha256": "d3f06a715c6871921cfa485077c6a561be82eefc95ae6496a2e6094f93db7714"
+    },
+    {
+      "path": "apps/api/src/config/canonicalReadonlyAuthQuery.mjs",
+      "sha256": "0b8ae30f64b67125134c9c68cf9d07c536310e5f50191359a929854d0c03c66d"
+    },
+    {
+      "path": "apps/api/src/services/emptyLocalContext.mjs",
+      "sha256": "fbacdd94aa5500079404d2b2a2667252c1949a4e78794ffdec241b8eeac9bd61"
+    },
+    {
+      "path": "apps/api/src/services/cleanSyntheticContext.mjs",
+      "sha256": "88fa3b158f9830ba5687e0bb09f4f59fa55440b4339f2d5385fa628b1ec15142"
+    },
+    {
+      "path": "apps/api/src/services/writeGuardService.js",
+      "sha256": "37e61a2071605caadbb4fee9683198b8bf1146124d68bbde00f0ec45b6b9aacd"
+    },
+    {
+      "path": "apps/api/src/services/testSalesScope.mjs",
+      "sha256": "927e26fb35e518c897ee8a02ced573567d54ef4725e6e75d00f54f339d0e49d6"
+    },
+    {
+      "path": "apps/api/src/services/cleanOrderSaleScope.mjs",
+      "sha256": "53371e67e378b0efc9fe31628415fa81c0750fff8094f3d994e9a871f6d3c149"
+    },
+    {
+      "path": "apps/api/src/services/cleanStoreDayScope.mjs",
+      "sha256": "5e7d8474f1343021d813c368e4ef2f37c56dde632f19666692e970c25fd9e247"
+    },
+    {
+      "path": "apps/api/src/services/cleanFinanceRehearsalModel.mjs",
+      "sha256": "9f58083a2f8ec89606b7f9af5efc630d51c5afbacc0b0012800bd26134228912"
+    },
+    {
+      "path": "apps/api/src/services/cleanPersonnelManagement.mjs",
+      "sha256": "c3f0a3d8933aabcbd36c7205202f2d25d2d22c52af7b709c26f0e30f8cf08aef"
+    },
+    {
+      "path": "apps/api/src/services/sharedCopyAuthClaims.mjs",
+      "sha256": "c5f3e7270d1267c23c10c7fd29195016a22aacd55c4e81b305aef698dfb20bf6"
+    },
+    {
+      "path": "apps/api/src/services/normalTestRefreshSession.mjs",
+      "sha256": "34fba01a37ac566b5d29cf4412c16a52861e1e3c7b5d0b279be94d0d2da43d8c"
+    },
+    {
+      "path": "apps/api/src/services/semihTestIdentityPolicy.mjs",
+      "sha256": "8afe2da00cf40e48be84771d329c0c231896ccc9159d1164cc7930d459275676"
+    },
+    {
+      "path": "apps/api/src/services/businessCatalogPriceExclusions.mjs",
+      "sha256": "7ed1b14643f86f868d6adcb9c2203c33d6dd773ecbb12f540a3096cbe3ce35d8"
+    },
+    {
+      "path": "apps/api/src/services/businessProductPriceCatalog.mjs",
+      "sha256": "8e96e9d53202dc06bd854e51f3a77752b2d067859b15ddce039a1514efe7321b"
+    },
+    {
+      "path": "apps/api/src/services/businessProductPriceModel.mjs",
+      "sha256": "2c4f1110981f5b5c0407adf069eb925e742dc4b2ee0d7c52864fb84243211905"
+    },
+    {
+      "path": "apps/api/src/services/operationQuarantineGate.mjs",
+      "sha256": "d7df1fcb0de4e9034a757009fe2fff1afa6d6c62a8d5bae5bc028095e322d521"
+    },
+    {
+      "path": "apps/api/src/services/vegaInvoiceExportJournal.mjs",
+      "sha256": "5e6a693db42fe703283e0e281c812ce676097535ed2602af2efe9f2e5b5e73a6"
+    },
+    {
+      "path": "apps/api/src/services/vegaInvoiceExportCore.mjs",
+      "sha256": "40e7c1fab47bd3337ac3485fbdb4a81087de713660d0b7337706682b79e21b8b"
+    },
+    {
+      "path": "apps/api/src/services/armadaDocumentCodec.mjs",
+      "sha256": "09ac3cf5d4b31df87b588188b124126cd6efb4b18c14507dddf918ef1393b514"
+    },
+    {
+      "path": "apps/api/src/services/armadaSaleSubmission.mjs",
+      "sha256": "bf812741d95abd02baa1b3cbfd7445464a6751069cb77243f77ffc3e72d0c9ce"
+    },
+    {
+      "path": "apps/api/src/services/armadaDailyCompiler.mjs",
+      "sha256": "66b4846591636f2cce11e685620605f0601f8a5a425cbb7cbba03ce47321541f"
+    },
+    {
+      "path": "apps/api/src/services/armadaPilotCompiler.mjs",
+      "sha256": "7f15fdaaabce89412484a1ce25a8201faff0924a2a3ae0f711df482642b49e16"
+    },
+    {
+      "path": "apps/api/src/services/desktopDraftProfitEstimate.mjs",
+      "sha256": "9e60ded1a20c52618ebfb7fc7647c14040a068db00864a51c0f9fe5d2cd10901"
+    },
+    {
+      "path": "apps/api/src/services/auditService.js",
+      "sha256": "38a51779a1ee22659afd7bd5b0a0e4b6db5a042bacf974296d0b17ee2eec793c"
+    },
+    {
+      "path": "apps/api/src/services/vegaProductMetadataClientService.js",
+      "sha256": "3219b0ab9125af968f2411e6bb03a5cd9baffa8e76b61d21966f37413cbd8e0b"
+    },
+    {
+      "path": "apps/api/src/services/queryHelpers.js",
+      "sha256": "eb01db30b8219cad1911ee85acaee83247192589680592f84778eea3ba7ef68b"
+    },
+    {
+      "path": "apps/api/src/services/queryIdentityFilters.mjs",
+      "sha256": "4ecf8baca2848ae7cef3f55aed0a7baf742742645b335da0d7d35fa5d6f3de42"
+    },
+    {
+      "path": "apps/api/src/services/periodLockService.js",
+      "sha256": "cfcd5d8a86bc22bb7ebf92dab4477fcd47f07d2f897b2a0d419d70614b18d945"
+    },
+    {
+      "path": "apps/api/src/services/customerService.js",
+      "sha256": "85059dc93c965671a57e9a934c0869bf9586dc3029aceea9c9b5cc0dc296e476"
+    },
+    {
+      "path": "apps/api/src/services/nativePartyBalance.mjs",
+      "sha256": "79b7d573aea7753356a81aa10c14d51baccd5cc3e60dc112a4353cf386b8dc3f"
+    },
+    {
+      "path": "apps/api/src/services/currencySettlementStore.mjs",
+      "sha256": "0daaa7b6e2f50856347df37501be29fe0a4026b0c8baa43fb2cd502dccbf7f95"
+    },
+    {
+      "path": "apps/api/src/services/currencySettlement.mjs",
+      "sha256": "6f4d971f945e064d7fcd15394e8192373a111a5df168070da2b636663b4ce2fe"
+    },
+    {
+      "path": "packages/shared/src/currencySettlement.mjs",
+      "sha256": "15130395ad2ce46a221da8ce097d2b3c4d6d752cbd64d71039564814175d7386"
+    },
+    {
+      "path": "apps/api/src/services/pilotCashPolicy.mjs",
+      "sha256": "045237700f0d42a1f19cdefc55bb59b1fa44e5d7222b215c2663fe3c9ceab9f6"
+    },
+    {
+      "path": "apps/api/src/services/pilotProductScope.mjs",
+      "sha256": "3f68ef8156b714415043a657586274803b1a1ee461de69f05f8e900517a34dba"
+    },
+    {
+      "path": "apps/api/src/services/dailyWebPolicy.mjs",
+      "sha256": "06d5e99e396989e2d3cc40d73e498d065344bd78e42314a058d56b00b0ec5c45"
+    },
+    {
+      "path": "apps/api/src/services/nativeCustomerRoutes.mjs",
+      "sha256": "d466d51bf5105f1a5db569c85e0f172ea876f0b2480547111f7c5c8fdb0c60d6"
+    },
+    {
+      "path": "apps/api/src/services/nativeTerminalPolicy.mjs",
+      "sha256": "3e96b2ade9b15fe7e95afce8cc28ad40a00a55330c36c964a3659f638d1dc128"
+    },
+    {
+      "path": "apps/api/src/services/workNightScope.mjs",
+      "sha256": "dd6b41929cdabf6b86a973a948d7651562029f2488bf7e837a100649a15394cd"
+    },
+    {
+      "path": "apps/api/src/services/financeService.js",
+      "sha256": "79dd629934b3d0bd9a52da853c1fe3210d7d153e03812104c440003da6a5be11"
+    },
+    {
+      "path": "apps/api/src/services/salesCashReversal.mjs",
+      "sha256": "147c8de061a0c98152cc60cb95781c275f4b481fd35d9d13c07a83d16eeeb8dc"
+    },
+    {
+      "path": "apps/api/src/services/nativeInvoiceWebGuard.mjs",
+      "sha256": "33adcfaf8594450d4f77931dc43cbdf2373b661f32d4cea3e78801b2c0f3542c"
+    },
+    {
+      "path": "packages/shared/src/purchaseDiscounts.mjs",
+      "sha256": "b1b636ff43ac3c7337d1169c74baa79f9336d156b21adb3b6e74fa5fb2a127e1"
+    },
+    {
+      "path": "apps/api/src/services/invoiceReturnGuard.mjs",
+      "sha256": "9b2d351624e232cb1f418bc3b47ef98a5db3fecbdd0fe4fd98442dd3e391b421"
+    },
+    {
+      "path": "apps/api/src/services/purchaseCostAccumulator.mjs",
+      "sha256": "94c7a2eab0f218e062168160da548acb12bcf584c2a5b6d43a201c3f0918ca4a"
+    },
+    {
+      "path": "apps/api/src/services/testProductPriceSqlProof.mjs",
+      "sha256": "bb72a4767863c5969d73296e95efb7e49256ce1c64c9cdd235763a601e6337b7"
+    },
+    {
+      "path": "apps/api/src/middleware/businessInboundSelection.mjs",
+      "sha256": "d7659eeae227d8648389884fd305091d3b26ae458b4471efdd9e730ffdf70efd"
+    },
+    {
+      "path": "apps/api/src/services/selectedSaleCashlessCancellation.mjs",
+      "sha256": "808a5b7a9203cdb67cf7c580c1a00e7b4aaaaa667c7ee7e2d0e8163e2abea30d"
+    },
+    {
+      "path": "apps/api/src/services/nativeCurrencyAccount.mjs",
+      "sha256": "0ed5b407e687ef3bcdb168b9decb072185f35bb686c08388be37a091e6c15efb"
+    },
+    {
+      "path": "apps/api/src/services/desktopSalePrivateService.mjs",
+      "sha256": "d75e2aca0c6cf3e75fc4fa541f897e29c188d57fa795a5bc8b3c50d22d1807ef"
+    },
+    {
+      "path": "apps/api/src/services/desktopWriteAuthCore.mjs",
+      "sha256": "e2151863a8e166a47d56de632080f26a20be8824c4665c8a2bc79839430efc27"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleTransactionScope.mjs",
+      "sha256": "87c838cf8fea8cb9c93034f32699fa50d491438754ecc03c7da05ea6ead0e0c7"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleSelectionStore.mjs",
+      "sha256": "9e93f6a8ed01f1d58a2fd7a3af2b2e2f74703294894ab3de459682f61533b5a6"
+    },
+    {
+      "path": "packages/shared/src/desktopSeriesUnits.mjs",
+      "sha256": "266415f9a5a030caa92bbde1e2a14075ab2a852a08c62cb8ccd2dc4e03870e42"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleOutcomeRead.mjs",
+      "sha256": "57bc838c4d079dd611bcf4ce19ca44bb64f1c63cfd721b81a57725b5e3428b49"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleAccountPosting.mjs",
+      "sha256": "43024326cb9307d4b64722ec613c8108e6d3f2df7385717e230de51461514c32"
+    },
+    {
+      "path": "apps/api/src/services/desktopSalePreparation.mjs",
+      "sha256": "241bccb701b28d8a1bfe0827b9617de6c3b3c5006c6f8116d3ae4571271d70ce"
+    },
+    {
+      "path": "apps/api/src/services/desktopWorkflowDraftPrivate.mjs",
+      "sha256": "b0c326f4af0a0a7eb24d6b13406f1d93176b8babe0b6fb254cd2f653ba8cecbc"
+    },
+    {
+      "path": "apps/api/src/services/desktopTwoItemLockedSelection.mjs",
+      "sha256": "7fe27d0ab8e6ec6d42ac9e2431bb2125a92207b1ae5248a53c5bb33c9282ca21"
+    },
+    {
+      "path": "apps/api/src/services/desktopTwoItemSelectionStore.mjs",
+      "sha256": "8750bdb7a7684a4161897a459aa00779933dc73438ebc46d0d67d792c53b0164"
+    },
+    {
+      "path": "apps/api/src/services/desktopTwoItemSalePreparation.mjs",
+      "sha256": "16950e28f95108951f5632e05680cce0add40fcd80717c080f529ebe6c3382b7"
+    },
+    {
+      "path": "apps/api/src/services/desktopPersistedDispatchPreparation.mjs",
+      "sha256": "2f15ed94674400e4ede68b7ad17fe0c6339c9e9ce5b190878b3b177b8623ef1a"
+    },
+    {
+      "path": "apps/api/src/services/desktopDispatchSnapshot.mjs",
+      "sha256": "13054b87ef453504eb7bd67abea929d01b25e674863741e6cf527601723171f7"
+    },
+    {
+      "path": "apps/api/src/services/desktopDispatchReadiness.mjs",
+      "sha256": "1e68ba977455f799895e53bf1e793c6c6e6da452ba1dda2177a3964a972176d7"
+    },
+    {
+      "path": "apps/api/src/services/desktopTwoItemOutcome.mjs",
+      "sha256": "19a9e722544f23b956dcfc12b88ea3646947816e3ef762c17eee32ce87928132"
+    },
+    {
+      "path": "apps/api/src/services/desktopWorkflowRequestResolution.mjs",
+      "sha256": "28e1e3488ad645adfe17b98222057156846784e29f24b2e34a4ee532f04be37a"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleWorkflowTransactions.mjs",
+      "sha256": "d0a6ba9430ab40fcc882e8ee77533a34ac27d32e616e10bbd3e96b1c805e01f7"
+    },
+    {
+      "path": "apps/api/src/services/desktopSafeDiagnostics.mjs",
+      "sha256": "a4572835541e71172ceb838e51a10b03adc7c465997eb0eeb43d4fff2fc5bc93"
+    },
+    {
+      "path": "apps/api/src/desktopWriteApplication.mjs",
+      "sha256": "ca23a58da7d9ef67d8838f863477b73ab2562e71fb2a7706f7e369c028163a55"
+    },
+    {
+      "path": "apps/api/src/services/desktopLocalMasterSqlStore.mjs",
+      "sha256": "e6796c416b85ce2b9a84c035aa61abb28500ed14d2077e4805df00a1c32886ec"
+    },
+    {
+      "path": "scripts/desktop-empty/local-master-schema-proposal.mjs",
+      "sha256": "84ca02378462085ba505a217d41b3ea2eb362bdceec0218f441f4acded24f337"
+    },
+    {
+      "path": "scripts/desktop-empty/schema.mjs",
+      "sha256": "77aeba328ce6e54dfd5238439bf62182fb4acbec1d7724dfb9c55f1532e926db"
+    },
+    {
+      "path": "scripts/empty-local/schema.mjs",
+      "sha256": "c9470829dd16100ca3ec3ce2a7479ee4cd0e0cfe432fda3e31446c8850f77193"
+    },
+    {
+      "path": "scripts/desktop-empty/bootstrap-sql.mjs",
+      "sha256": "8369d8554180a76db5dc5414a24870bcce7e92438218c5844d5052e032acc18d"
+    },
+    {
+      "path": "scripts/desktop-empty/native-catalog-schema.mjs",
+      "sha256": "a3b5c830f45e60ab34ca9589e9ba65001256342558449db682715c5b243383ad"
+    },
+    {
+      "path": "scripts/desktop-empty/master-v3-journal-sql.mjs",
+      "sha256": "77bb2d99c589fbcc226801d922cc420a3c3752eabfe5491508ea135dd74af38f"
+    },
+    {
+      "path": "scripts/desktop-empty/master-v4-journal-sql.mjs",
+      "sha256": "a914f43b7da42857aae8cc0ab5e5e8d7ffdcb4fb34566c00fdfd2506dd659616"
+    },
+    {
+      "path": "packages/shared/src/desktopCustomerAccount.mjs",
+      "sha256": "cd68072c23ab728192989739819f5710f7a1d2b3ac994e95c04f3e425cf428d2"
+    },
+    {
+      "path": "apps/api/src/services/desktopProductRejection.mjs",
+      "sha256": "e1be7ab0cd228cf5ce6a2e38ae04c497fcf2b3a14637b51df34e6ca3813f9ca7"
+    },
+    {
+      "path": "apps/api/src/services/desktopProductBarcodes.mjs",
+      "sha256": "080daab90238d40ef2962de1f5b3961595688eb5d5cba557c6494829e7c64720"
+    },
+    {
+      "path": "packages/shared/src/desktopProductOpening.mjs",
+      "sha256": "12691b593db796853e71608671110afa53a44eba7643332224178e4c83a533b6"
+    },
+    {
+      "path": "apps/api/src/services/localMasterTransactions.mjs",
+      "sha256": "03ea0989a8682b68158389c09bf01ba905550e690adedd179be97781cb6b0da8"
+    },
+    {
+      "path": "apps/api/src/services/localMasterIdentity.mjs",
+      "sha256": "eaf1584261345246a29169a27b148f481a29268536cc3858481f9d6bf45326d6"
+    },
+    {
+      "path": "apps/api/src/services/desktopInitialCostParity.mjs",
+      "sha256": "2e2c5b1bc6b49f73ae03fd32d45017b12b677314de883798c6ba7085bd8abfbc"
+    },
+    {
+      "path": "apps/api/src/services/localSupplierIdentity.mjs",
+      "sha256": "11b636f46215ad87acd8468fb512218324ce368e4be8b0d02ad11daa82aca756"
+    },
+    {
+      "path": "apps/api/src/routes/desktopLocalMasterRoutes.mjs",
+      "sha256": "df05004dd9f55783e559feeb2f8feabca57ee744169bcd87a8d317353b8e70ca"
+    },
+    {
+      "path": "apps/api/src/services/desktopWriteListService.mjs",
+      "sha256": "8e84ddca0eed5d803cf7899f4cc485fb506d2d2583c381e49cae9a8ba0101131"
+    },
+    {
+      "path": "packages/shared/src/desktopProductCard.mjs",
+      "sha256": "1f25345aec2719ac221c0dd056b52f24494918b95d655bdcbf7e4bf80850f502"
+    },
+    {
+      "path": "packages/shared/src/desktopStockAvailability.mjs",
+      "sha256": "db4b4e0ffcdfad599a04b439f478e1c8a9200880423022b843823fd5734ea758"
+    },
+    {
+      "path": "packages/shared/src/desktopCustomerCard.mjs",
+      "sha256": "e04223d02bdeef17391b9ea09f5bf1e486b4b4ca687138b6b7cc93e47735c124"
+    },
+    {
+      "path": "apps/api/src/routes/desktopWriteListRoutes.mjs",
+      "sha256": "39fd0b19c2ada21e917fa7cb8c24b7735ebd9a6789b52dbcebae9e768025d7e8"
+    },
+    {
+      "path": "apps/api/src/services/desktopSaleWorkflowService.mjs",
+      "sha256": "4bf4ab29136f00a7493e38583027b7df482886b5877bcad47261da396b19e384"
+    },
+    {
+      "path": "apps/api/src/routes/desktopSaleWorkflowRoutes.mjs",
+      "sha256": "049bb3509c8d8c2ca6759171767a44d39c074dd5b81d154140363ac84b814e49"
+    },
+    {
+      "path": "apps/api/src/services/desktopWorkflowReadService.mjs",
+      "sha256": "95c2e57ce8de06a36514b7d17856e3d6c78c77224aa65d1a74963e3ad9f7ffef"
+    },
+    {
+      "path": "apps/api/src/services/desktopWorkflowResolutionService.mjs",
+      "sha256": "d1c6449efdc790caf2fd6e5136ae0d7ff35ee1d2bde4a80a90706aa2f17b9ef3"
+    },
+    {
+      "path": "apps/api/src/services/desktopCustomerAccountSqlStore.mjs",
+      "sha256": "b165b672d7b8107630b62fac1891365626a729c8827f44fd33319936110922c9"
+    },
+    {
+      "path": "apps/api/src/services/desktopCustomerAccountTransactions.mjs",
+      "sha256": "954315cffd2af0909148aa1409a00232cbf5321b64e0a129a626bcba4f5ca789"
+    },
+    {
+      "path": "apps/api/src/routes/desktopCustomerAccountRoutes.mjs",
+      "sha256": "49d0dc53003cee3161d2ab0395bd56500b6cea808bec2e2a729a2f81a3fcd2dd"
+    },
+    {
+      "path": "scripts/desktop-empty/master-v3-web.mjs",
+      "sha256": "d9115cef342bc7dde24a0d37a39589b5640f8bcde11ec46132eed71f5a7a4ca7"
+    },
+    {
+      "path": "scripts/desktop-empty/master-v4-transition.mjs",
+      "sha256": "696fe523596c00b24f4e3f6de566a782041d2b7cceaf0afc7a89c96ed6eaf61f"
+    },
+    {
+      "path": "scripts/desktop-empty/master-v3-transition.mjs",
+      "sha256": "4912c101cf8680ecd4642ec00cbccb59cbb2aa3961e2c3275025ac09f46c425b"
+    },
+    {
+      "path": "scripts/desktop-empty/build-master-v4-package.mjs",
+      "sha256": "99f169b9ee686f5f9492c4d4b2f8608d64286f36a331c7685dc64b7dcdd7f44b"
+    },
+    {
+      "path": "scripts/desktop-empty/verify-master-v4-writer.mjs",
+      "sha256": "59f6316e38d0b54a1bfcd6b36a25f20aeb95f96c4d47062ef595f96f44a4fba3"
+    }
+  ],
+  "helpers": [
+    {
+      "path": "scripts/desktop-empty/start-master-v4.ps1",
+      "sha256": "d79df36732cec375150b6ecb51058727094141425f942e3535657812e32f7276"
+    },
+    {
+      "path": "scripts/desktop-empty/stop-master-v4-runtime.ps1",
+      "sha256": "b540b5a6a78a0dbff9cafd138a056a70b511d164da77b86d296f4955f3db6f93"
+    },
+    {
+      "path": "scripts/desktop-empty/readmit-master-v4-runtime.ps1",
+      "sha256": "13e1264ddc2434520e486db877627262f51fe9330bf66ffa1f2ce4c3cc3df57f"
+    },
+    {
+      "path": "scripts/desktop-empty/master-v3-runner-common.ps1",
+      "sha256": "a41b67237532d306393065c31629b46eb2ffb0a4e43714be3ef377ec1a4eef5c"
+    },
+    {
+      "path": "scripts/desktop-empty/read-first-sale-operator.ps1",
+      "sha256": "c06208d49036a4b566c006c553b15a91c0141aebc043f7a5bfd26a3ee79118db"
+    }
+  ],
+  "assets": [
+    {
+      "path": "desktop-write-green.html",
+      "sha256": "73319f78d76e11bb9140c4a4ddf25c9fa48ff93aefc98ee92671c26c58df1f11"
+    },
+    {
+      "path": "assets/desktopWriteGreen-53ZHqpTs.js",
+      "sha256": "2b6a23fc1c53f673fd6225361ad2597d3bcd20ba7d680cee6db7e6c9378e85aa"
+    },
+    {
+      "path": "assets/desktopWriteGreen-D6yoncVT.css",
+      "sha256": "fc68bd6fe280ab5dd502a5cc354e5cee8a76d9f9719b920b2b41676c0be5af86"
+    }
+  ],
+  "snapshotSqlSha256": "94d7a6941ebdf0209fd26f5737879591c98f8b12a2727c6b60fb75ae5832a030",
+  "dependencySha256": "8acf2de20977d03c01b5e9ec467274b411a9029851ec34989f6040a8c4b4e346",
+  "originalManifestSha256": "487b3db09e9b7264ede825fae4ac839c9c0b7db03f9628429550d16aaebf72da"
+}

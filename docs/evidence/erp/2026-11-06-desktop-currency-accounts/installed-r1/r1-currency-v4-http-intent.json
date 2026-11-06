@@ -1,0 +1,40 @@
+{
+  "state": "EXPLICIT_SYNTHETIC_ACCOUNT_AND_REPLAY_TEST",
+  "target": {
+    "server": "Semih\\MELISAERP",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "schemaVersion": 4
+  },
+  "packageSha256": "487b3db09e9b7264ede825fae4ac839c9c0b7db03f9628429550d16aaebf72da",
+  "existingReplay": {
+    "requestId": "1728b1f6-935a-4341-b80a-c7742be385be",
+    "customerId": "3",
+    "entityId": "4",
+    "customerCode": "ERP-V3-C1",
+    "customerName": "ERP V3 DENEME MÜŞTERİ",
+    "currency": "USD"
+  },
+  "race": [
+    {
+      "requestId": "f4ce5f94-1896-4470-baa5-55b9f751050a",
+      "customerId": "2",
+      "entityId": "2",
+      "customerCode": "ERP-TEST-20261106",
+      "customerName": "ERP KURULUM DENEME",
+      "currency": "USD"
+    },
+    {
+      "requestId": "80514a12-eab0-41ed-bba5-bea69e93cadb",
+      "customerId": "2",
+      "entityId": "2",
+      "customerCode": "ERP-TEST-20261106",
+      "customerName": "ERP KURULUM DENEME",
+      "currency": "USD"
+    }
+  ],
+  "expectedNewAccounts": 1,
+  "expectedNewAudits": 1,
+  "expectedNewJournalRows": 2,
+  "automaticRetry": false,
+  "time": "2026-11-06T06:56:59.195Z"
+}

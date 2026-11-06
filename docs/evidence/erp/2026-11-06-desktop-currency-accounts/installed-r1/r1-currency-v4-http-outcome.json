@@ -1,0 +1,93 @@
+{
+  "state": "INSTALLED_CURRENCY_ACCOUNTS_REPLAY_CONCURRENCY_AND_BOUNDARIES_VERIFIED",
+  "results": [
+    {
+      "case": "V4 identity matches installed manifest",
+      "status": 200
+    },
+    {
+      "case": "independent SQL account/card parity",
+      "customerId": "2",
+      "status": 200
+    },
+    {
+      "case": "independent SQL account/card parity",
+      "customerId": "3",
+      "status": 200
+    },
+    {
+      "case": "original USD UUID replays account 5",
+      "status": 200,
+      "replayed": true
+    },
+    {
+      "case": "changed currency under committed UUID",
+      "status": 503
+    },
+    {
+      "case": "changed customer under committed UUID",
+      "status": 503
+    },
+    {
+      "case": "missing normal session",
+      "status": 503
+    },
+    {
+      "case": "foreign origin",
+      "status": 403
+    },
+    {
+      "case": "query target override",
+      "status": 503
+    },
+    {
+      "case": "unsupported currency",
+      "status": 503
+    },
+    {
+      "case": "TRY sale selection still works with three accounts",
+      "status": 200
+    },
+    {
+      "case": "existing finalized sale unchanged",
+      "status": 200,
+      "invoiceId": "8"
+    },
+    {
+      "case": "concurrent different UUID same customer/currency",
+      "requestId": "f4ce5f94-1896-4470-baa5-55b9f751050a",
+      "status": 201,
+      "state": "COMMITTED",
+      "replayed": false
+    },
+    {
+      "case": "concurrent different UUID same customer/currency",
+      "requestId": "80514a12-eab0-41ed-bba5-bea69e93cadb",
+      "status": 409,
+      "state": "NOT_COMMITTED",
+      "replayed": false
+    },
+    {
+      "case": "exact concurrent outcome replay",
+      "requestId": "f4ce5f94-1896-4470-baa5-55b9f751050a",
+      "status": 200,
+      "state": "COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "exact concurrent outcome replay",
+      "requestId": "80514a12-eab0-41ed-bba5-bea69e93cadb",
+      "status": 409,
+      "state": "NOT_COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "customer isolation after race",
+      "status": 200,
+      "newAccountId": "7"
+    }
+  ],
+  "createdAccountId": "7",
+  "automaticRetry": false,
+  "time": "2026-11-06T06:57:05.885Z"
+}
