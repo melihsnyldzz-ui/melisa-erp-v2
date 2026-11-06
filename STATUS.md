@@ -1,3 +1,7 @@
+## 6 Kasım — R1 müşteri listesi ve hesap kartı GUI/HTTP/SQL ile doğrulandı
+
+Kaynak 6dfda93a / paket 5DFB1DB5... / 191 kaynak / 5 yardımcı / 3 asset. Normal kartlar customer 2→party/hesap 2→50 TRY/fiş5 ve customer3→party/hesap4→176 TRY/fiş8 ilişkisini ayrı gösterdi; son iptal taslağı9 son satış sayılmadı. Fişten dönüşte ERP-V3-C1 araması korundu. Kaydedilmemiş müşteri alanları kart geçişinde korundu; Forma dön ve açık vazgeçme normal GUI'de görüldü, yeni müşteri kaydedilmedi. 11 gerçek readonly HTTP kontrolü, 70 ilgili test dosyası, ek dört form-regresyon testi, derleme ve bağımsız inceleme geçti. Ön/son SQL metadata, 23 operasyonel hash, journal, identity, stok/cari aynı. [Kurulu kanıt ve sayfalama sınırı](docs/evidence/erp/2026-11-06-desktop-customer-card/README.md). Döviz hesabı oluşturma/limit-vade ve bütün R1 kabulü devam ediyor; K07 açılmadı.
+
 ## 6 Kasım — R1 müşteri listesi ve hesap kartı kaynakta hazır
 
 K04-05 için müşteri araması/sayfa/geri dönüş ve seçilen cari-hesap ilişkisi kaynakta eklendi. Tek readonly SQL transactionında parent/para birimi/bakiye doğrulanır; satış geçmişi ayrıca sales.view ister. Geç yanıt ve kaydedilmemiş form kaybı korunuyor. 70 ilgili test dosyası, derleme ve bağımsız readonly review geçti; [kaynak ve kurulu kabul planı](docs/evidence/erp/2026-11-06-desktop-customer-card/README.md). Kurulu normal GUI/SQL henüz denenmedi; yeni mali kayıt veya yetki yok. Önceki e08375a7 exact GitHub CI Windows dahil iki koşuda da başarılı. Stok source a3b1f44a PR73'te; kendi CI kontrolü ayrıca sürüyor. K07 açılmadı.

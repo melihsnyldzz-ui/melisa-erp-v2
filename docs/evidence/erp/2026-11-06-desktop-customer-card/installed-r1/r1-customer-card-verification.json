@@ -1,0 +1,52 @@
+{
+  "state": "CUSTOMER_CARD_GUI_HTTP_SQL_READ_ONLY_VERIFIED",
+  "sourceCommit": "6dfda93a",
+  "packageSha256": "5DFB1DB5453616C141E4893E620C147BCDC44D5FDCA32E62B2BD1F33AF644E60",
+  "ownerPid": 53372,
+  "workerPid": 6064,
+  "onlyLoopback": true,
+  "webPort": 5294,
+  "apiPort": 4294,
+  "normalUser": "erp_deneme",
+  "selectedCustomers": [
+    {
+      "accountId": "2",
+      "latestInvoiceId": "5",
+      "balanceExact8": "50.00000000",
+      "id": "2",
+      "entityId": "2"
+    },
+    {
+      "accountId": "4",
+      "latestInvoiceId": "8",
+      "balanceExact8": "176.00000000",
+      "id": "3",
+      "entityId": "4"
+    }
+  ],
+  "newerCancelledInvoice9Excluded": true,
+  "lastInvoiceOpenedReadOnly": true,
+  "searchRetainedAfterInvoiceReturn": "ERP-V3-C1",
+  "otherCustomerAccountNotMixed": true,
+  "leadingZeroPhoneRetained": true,
+  "normalHttpChecks": 11,
+  "httpPhoneSearchPages": [
+    1,
+    2
+  ],
+  "browserPage2": "NOT_EXERCISED_TWO_CUSTOMERS_ONLY",
+  "browserDirtyFormCardChangeBlocked": true,
+  "keepFormRetainedFields": true,
+  "explicitDiscardOnlyUnsubmittedTestFields": true,
+  "newCustomerNotSaved": true,
+  "beforeAfterMetadataIdentical": true,
+  "operationalTablesUnchanged": 23,
+  "masterJournalAndIdentitiesUnchanged": true,
+  "ddlChanged": false,
+  "permissionsChanged": false,
+  "physicalStockCostCariUnchanged": true,
+  "sourceTestFiles": 70,
+  "normalGuiAgentVerified": true,
+  "humanDeviceLanLive": "PENDING",
+  "time": "2026-11-06T05:51:34.9003397Z"
+}

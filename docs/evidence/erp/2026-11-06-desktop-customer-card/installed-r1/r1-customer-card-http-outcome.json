@@ -1,0 +1,73 @@
+{
+  "state": "CUSTOMER_READONLY_NORMAL_HTTP_VERIFIED",
+  "results": [
+    {
+      "case": "selected customer/account/latest-completed-sale matches independent SQL",
+      "customerId": "2",
+      "accountIds": [
+        "2"
+      ],
+      "lastInvoiceId": "5",
+      "status": 200
+    },
+    {
+      "case": "selected customer/account/latest-completed-sale matches independent SQL",
+      "customerId": "3",
+      "accountIds": [
+        "4"
+      ],
+      "lastInvoiceId": "8",
+      "status": 200
+    },
+    {
+      "case": "bounded selected card",
+      "path": "/api/customers/03",
+      "status": 400
+    },
+    {
+      "case": "bounded selected card",
+      "path": "/api/customers/99999999",
+      "status": 404
+    },
+    {
+      "case": "bounded selected card",
+      "path": "/api/customers/3?includeSales=false",
+      "status": 400
+    },
+    {
+      "case": "leading-zero phone search and paging",
+      "page": 1,
+      "customerId": "2",
+      "status": 200
+    },
+    {
+      "case": "leading-zero phone search and paging",
+      "page": 2,
+      "customerId": "3",
+      "status": 200
+    },
+    {
+      "case": "Turkish country search",
+      "status": 200,
+      "customerIds": [
+        "2",
+        "3"
+      ]
+    },
+    {
+      "case": "search wildcard escaping",
+      "status": 200,
+      "total": 0
+    },
+    {
+      "case": "missing normal session",
+      "status": 401
+    },
+    {
+      "case": "foreign origin",
+      "status": 403
+    }
+  ],
+  "noBusinessRequests": true,
+  "time": "2026-11-06T05:49:16.194Z"
+}

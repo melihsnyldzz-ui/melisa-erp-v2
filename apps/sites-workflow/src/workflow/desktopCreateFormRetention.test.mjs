@@ -9,6 +9,13 @@ test('dirty customer fields block card/navigation replacement until explicit dis
  events.change();pending={customerCode:'C'};assert.equal(view.requestClose(),false);events['[data-customer-discard]click']();assert.equal(cancels,1);view.dispose();
 });
 
+test('committed customer result permits parent list refresh while in-flight fields stay locked',async()=>{
+ const original=globalThis.FormData,events={},group={disabled:false},status={textContent:''},button={disabled:false},form={addEventListener:(name,fn)=>{events[name]=fn;}};let finish,accepted=false,view;
+ const values={customerCode:'C',name:'Ada',phone:'5',city:'Bursa',country:'Türkiye',currency:'TRY',customerType:'customer'};globalThis.FormData=class{get(k){return values[k];}};
+ const root={innerHTML:'',querySelector(s){if(s==='[data-customer-form]')return form;if(s==='[data-customer-fields]')return group;if(s==='[role="status"]')return status;if(s.includes('button'))return button;return null;}};
+ try{view=mountDesktopCustomerCreate({root,controller:{pending:()=>null,create:()=>new Promise(resolve=>{finish=resolve;}),retry:async()=>{}},onCommitted:()=>{assert.equal(view.requestClose(),true);accepted=true;view.dispose();}});events.input();events.submit({preventDefault(){},currentTarget:form});assert.equal(group.disabled,true);assert.equal(view.requestClose(),false);finish({state:'COMMITTED'});await new Promise(resolve=>setImmediate(resolve));assert.equal(accepted,true);}finally{globalThis.FormData=original;}
+});
+
 function harness(mount,kind,unknown){
  let pending=null,submit,paintCount=0,html='';const status={textContent:''},button={disabled:false};
  const form={values:kind==='customer'?{customerCode:'M1',name:'Ada',phone:'555',currency:'TRY',customerType:'customer',city:'İzmir',country:'Türkiye'}:{stockCode:'P1',name:'Ürün',barcode:'1',unit:'ADET',currency:'TRY',sale:'10',purchase:'5',discount:'0'},addEventListener:(_name,fn)=>{submit=fn;}};
