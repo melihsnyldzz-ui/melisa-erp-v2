@@ -2,6 +2,7 @@
 // listener, SQL connection, grants, or mutations are created at import time.
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
+import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
 import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
@@ -60,7 +61,9 @@ function validateRow(row,kind,richCards=false){
 }
 export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMounted:false,requiresVerifiedWriterPool:true,requiresCurrentLockedSession:true,
  sqlExecuted:false,sourceRowsAreLiveLocalOnly:true,noVegaFallback:true,exposesCustomerBalance:true,noFinanceAccountBalances:true,fullErpReady:false});
-export function createDesktopWriteListService({pool,sql,verifySession,richCards=false}={}){
+export function createDesktopWriteListService({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2}={}){
+ schemaVersion=desktopMasterSchema(richCards,schemaVersion);
+ const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
  if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
  return Object.freeze({async list(actorId,kind,input={}){
@@ -71,7 +74,7 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
   const tx=new sql.Transaction(pool);let begun=false;
   const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('exactSearch',sql.NVarChar(100),search).input('offset',sql.Int,offset).input('limit',sql.Int,limit);
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
-   const statement=richCards?guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):guard;
+   const statement=profileGuard;
    const guardResult=await new sql.Request(tx).query(statement);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
    if(await verifySession({transaction:tx,actorId,permission:def.permission})!==true)fail();
    const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`;
@@ -92,7 +95,7 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
   const tx=new sql.Transaction(pool);let begun=false;
   try{
    await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
-   const checked=await new sql.Request(tx).query(guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL));
+   const checked=await new sql.Request(tx).query(profileGuard);
    if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1)fail();
    if(await verifySession({transaction:tx,actorId,permission:['product.view','product.edit']})!==true)fail();
    const request=()=>new sql.Request(tx).input('productId',sql.NVarChar(20),productId);
@@ -121,7 +124,7 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
   const tx=new sql.Transaction(pool);let begun=false;
   try{
    await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
-   const checked=await new sql.Request(tx).query(guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL));
+   const checked=await new sql.Request(tx).query(profileGuard);
    if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:includeSales?['customer.view','sales.view']:'customer.view'})!==true)fail();
    const request=()=>new sql.Request(tx).input('customerId',sql.NVarChar(20),customerId);
    const result=await request().query(`SELECT CONVERT(varchar(20),c.id) id,c.customer_code customerCode,c.name,c.phone,c.city,c.country,c.customer_type customerType,c.currency_code currency,CONVERT(varchar(40),c.balance) balanceExact4,CONVERT(varchar(20),c.party_entity_id) entityId,c.is_active isActive

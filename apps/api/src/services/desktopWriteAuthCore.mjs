@@ -9,6 +9,7 @@ import nativeSql from 'mssql';
 import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog.js';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
+import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
 
 const ISSUER='melisa-desktop-initial',AUDIENCE='melisa-desktop-initial';
 const LOGIN='melisa_desktop_test_writer_20261105';
@@ -58,7 +59,8 @@ export const DESKTOP_WRITE_AUTH_LIMITS=Object.freeze({sourceOnly:true,routeMount
  writerPoolAndTlsOpenerImplemented:false,requiresSameTransactionAuthorityCheck:true,
  userAndRolePermissionsProvisioned:false,realSqlVerified:false,fullErpReady:false});
 
-export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false}={}){
+export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false,schemaVersion=richCards?3:2}={}){
+ schemaVersion=desktopMasterSchema(richCards,schemaVersion);
  if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||!Buffer.isBuffer(tokenKey)||tokenKey.length<32||typeof passwordHasher?.compare!=='function')fail();
  const key=Buffer.from(tokenKey),sessions=new Map(),storage=new AsyncLocalStorage();let closed=false;
@@ -68,7 +70,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  // after its caller has settled the transaction.
  function prune(){for(const [sid,entry] of sessions)if(entry.expiresAt<=Date.now()&&entry.inflight===0)sessions.delete(sid);}
  const run=(tx,params,statement)=>{const q=new sql.Request(tx);for(const [name,size,value] of params)q.input(name,sql.NVarChar(size),value);return q.query(statement);};
- const profileIdentitySql=richCards?identitySql.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):identitySql;
+ const profileIdentitySql=richCards?identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):identitySql;
  async function guard(tx){if(one(await run(tx,[],profileIdentitySql)).ok!==1)fail();}
  async function user(tx,{username=null,userId=null}={}){
   const rows=(await run(tx,[['username',80,username],['userId',20,userId]],userSql))?.recordset;
@@ -133,7 +135,8 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   if(!service||typeof service.createCustomer!=='function'||typeof service.createProduct!=='function')fail();
   const invoke=name=>async(actor,payload)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,payload);}finally{release(ctx);}};
   if(richCards&&typeof service.createSupplier!=='function')fail();
-  return Object.freeze({createCustomer:invoke('createCustomer'),createProduct:invoke('createProduct'),...(richCards?{createSupplier:invoke('createSupplier')}:{})});
+  if(schemaVersion===4&&typeof service.createCustomerAccount!=='function')fail();
+  return Object.freeze({createCustomer:invoke('createCustomer'),createProduct:invoke('createProduct'),...(richCards?{createSupplier:invoke('createSupplier')}:{}),...(schemaVersion===4?{createCustomerAccount:invoke('createCustomerAccount')}:{})});
  }
  function bindReadService(service){
   if(!service||typeof service.list!=='function')fail();

@@ -14,8 +14,8 @@ const nav=document.getElementById('nav'),view=document.getElementById('view'),la
 const pages=[['home','⌂','Ana sayfa'],['products','▦','Ürün & stok'],['customers','♙','Müşteriler'],['suppliers','▧','Tedarikçiler'],['sales','▤','Satış ve hazırlama'],['receipts','▣','Fişler']];
 const pending=['Alış','Stok hareketleri','Cari','Finans','Raporlar'];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let sequence=0,mounted=null;const listViews=new Map();
-function dispose(){mounted?.dispose();mounted=null;}
+let sequence=0,mountSequence=0,mounted=null;const listViews=new Map();
+function dispose(){mountSequence++;mounted?.dispose();mounted=null;}
 function navigation(active){nav.innerHTML=pages.filter(([id])=>id==='home'||core.can(id)).map(([id,icon,title])=>`<button type="button" data-page="${id}" class="${id===active?'active':''}">${icon} <span>${esc(title)}</span></button>`).join('')+pending.map(title=>`<button type="button" disabled>◌ <span>${esc(title)} · Hazırlanıyor</span></button>`).join('');
  nav.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.page)));}
 function login(message=''){sequence++;dispose();listViews.clear();navigation('');label.textContent='Giriş bekleniyor';crumb.textContent='Giriş';logout.hidden=true;
@@ -43,9 +43,10 @@ async function show(page,number,search){if(!core.getUser())return login();if(pag
   root.querySelector('[data-product-search]')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void show(page,1,event.currentTarget.value);}});
   root.querySelector('[data-search-customers]')?.addEventListener('click',()=>show(page,1,root.querySelector('[data-customer-search]').value));
   root.querySelector('[data-customer-search]')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void show(page,1,event.currentTarget.value);}});
-  root.querySelectorAll('[data-open-customer]').forEach(button=>button.addEventListener('click',()=>{
+  root.querySelectorAll('[data-open-customer]').forEach(button=>button.addEventListener('click',async()=>{
    if(!core.can('customers'))return;if(mounted?.requestClose&&!mounted.requestClose()){const status=view.querySelector('[role="status"]');if(status)status.textContent='Önce müşteri formunu kaydedin veya Vazgeç ile kapatın.';return;}dispose();const formRoot=view.querySelector('[data-form]');
-   mounted=mountDesktopCustomerCard({root:formRoot,customerId:button.dataset.openCustomer,load:id=>core.customerCard(id),onClose:()=>{dispose();formRoot.innerHTML='';},onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');}});
+   const selection=mountSequence;let accountController=null;try{if(core.can('customers','edit'))accountController=await core.customerAccount();}catch{/* Read-only card remains available; no account request is created. */}if(current!==sequence||selection!==mountSequence||mounted)return;
+   mounted=mountDesktopCustomerCard({root:formRoot,customerId:button.dataset.openCustomer,load:id=>core.customerCard(id),accountController,onClose:()=>{dispose();formRoot.innerHTML='';},onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');}});
   }));
   root.querySelectorAll('[data-open-product]').forEach(button=>button.addEventListener('click',()=>{
    if(!core.can('products','edit'))return;dispose();const formRoot=view.querySelector('[data-form]');
