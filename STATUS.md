@@ -1,4 +1,10 @@
-## 6 Kasım — K05-02 barkod tekrarında tek satır/miktar kaynakta hazır
+## 6 Kasım — K05-02 barkod tekrarı kurulu normal ekranda doğrulandı
+
+Kurulu kaynak `51923ef5`, paket `3d7c5ae1...`, owner 10276 / worker 39656, yalnız web5294/API4294. Mevcut ürün 10/11 barkodları 92→93→92 sırasıyla normal Enter ile eklenince satırlar 2 ADET / 1 ADET oldu; toplam 2,25 USD ve TRY karşılığı 90,00. Odak barkod alanına döndü. Bulunamayan barkod GET404 ile açık mesaj verdi; mevcut satırlar ve önizleme korundu. Taslak/satış kaydedilmedi. Önce/kurulum sonrası/GUI sonrası 33 iş tablosu, metadata, güvenlik, identity ve rezervler aynı; iş verisi SHA21ce02fd... . [Kurulu kanıt ve gerçek ekran](docs/evidence/erp/2026-11-06-desktop-barcode-cart/README.md).
+
+56 dosya/328 ilgili test ve ekran derlemesi geçti. İlk kaynak519 hosted kalite koşusu eski workTrade test yükleyicisindeki yeni yardımcı importunu bulamadı; yalnız yükleyici düzeltildi, assertion korunur. Düzeltmenin exact CI sonucu henüz açık. Alt süreçli tam yerel ekran runner'ı offline guard tarafından reddedildi; guard korunur, bu koşu PASS değildir. Native invoice/B6/SQL servisi/rol/yetki/parola değişmedi. K04-06 hesap geçmişi ikinci teslim için ayrı WIP5430704a dalında korunur. Sırada ilk satışın kalan gerekçeli kesin iptal ve kart/rol/limit koşulları var; merkez plan ve Excel değiştirilmedi. İnsan/fiziksel okuyucu/LAN/LIVE/tüm ERP kabulü açık.
+
+## 6 Kasım — K05-02 barkod tekrarında tek satır/miktar kaynakta hazır (önceki aşama)
 
 PR54cart+1ana birim kuralı ortak purehelper, greenbarcodeinput/Enter ve exactnormalproduct.view readonlylookup ile bağlandı. Aynıürün mevcut satıramiktar+1; ikiürün/stok/SERİ/pending/geçyanıt ve tazeönizleme çitleri korunur. İncelemedeki authReadwrapper/path eksikleri ve awaitsırasında başka sekme pendingyarışı düzeltildi; gerçekassemblednormalHTTP vegeçpending regresyonu eklendi.55dosya301test/buildPASS; readonlyreviewkapalı. [Kaynak ve somutkuruludeneme](docs/evidence/erp/2026-11-06-desktop-barcode-cart/README.md). Henüzkurulmadı; current00fa0834/3a972bb8paket. Nativeinvoice/B6/rol/yetki/SQLservis/parola/şema değişmedi, R2historyyok.
 

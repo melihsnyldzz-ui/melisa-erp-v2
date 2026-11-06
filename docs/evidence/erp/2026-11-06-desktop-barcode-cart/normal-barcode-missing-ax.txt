@@ -1,0 +1,154 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA ERP
+  - text: Yerel kurulum
+  - text: OTURUM
+  - generic: ERP deneme personeli
+  - generic: İŞLEMLER
+  - navigation:
+    - button "⌂ Ana sayfa":
+      - text: ⌂
+      - generic: Ana sayfa
+    - button "▦ Ürün & stok":
+      - text: ▦
+      - generic: Ürün & stok
+    - button "♙ Müşteriler":
+      - text: ♙
+      - generic: Müşteriler
+    - button "▧ Tedarikçiler":
+      - text: ▧
+      - generic: Tedarikçiler
+    - button "▤ Satış ve hazırlama":
+      - text: ▤
+      - generic: Satış ve hazırlama
+    - button "▣ Fişler":
+      - text: ▣
+      - generic: Fişler
+    - button "◌ Alış · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Alış · Hazırlanıyor
+    - button "◌ Stok hareketleri · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Stok hareketleri · Hazırlanıyor
+    - button "◌ Cari · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Cari · Hazırlanıyor
+    - button "◌ Finans · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Finans · Hazırlanıyor
+    - button "◌ Raporlar · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Raporlar · Hazırlanıyor
+  - generic: Yerel veritabanı
+- main:
+  - generic: Melisa ERP / Satış ve hazırlama
+  - button "Çıkış yap"
+  - heading "Satış ve hazırlama" [level=1]
+  - status: Barkodla eşleşen aktif ürün bulunamadı.
+  - textbox "Müşteri ara"
+  - button "Ara"
+  - button "Önceki" [disabled]
+  - text: Sayfa 1
+  - button "Sonraki" [disabled]
+  - text: Müşteri
+  - combobox "Müşteri":
+    - option "Seçin"
+    - option "ERP-ACK-C4 · ERP YANIT KAYBI DENEME"
+    - option "ERP-TEST-20261106 · ERP KURULUM DENEME" [selected]
+    - option "ERP-V3-C1 · ERP V3 DENEME MÜŞTERİ"
+  - text: Tarih
+  - textbox "Tarih": 2026-11-06
+  - text: Ürün barkodu
+  - textbox "Ürün barkodu" [active]: "000000000099"
+  - button "Barkodu ekle"
+  - textbox "Ürün ara"
+  - button "Ara"
+  - button "Önceki" [disabled]
+  - text: Sayfa 1
+  - button "Sonraki" [disabled]
+  - paragraph:
+    - text: Ürün 1
+    - combobox "Ürün 1":
+      - option "Seçin"
+      - option "ERP-R1-FX1 · ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ"
+      - option "ERP-R1-FX2 · ERP TEST DÖVİZLİ SATIŞ ÜRÜN 2" [selected]
+      - option "ERP-R1-FX3 · ERP TEST DÖVİZLİ SATIŞ ÜRÜN 3"
+      - option "ERP-R1-P4 · ERP R1 DENEME ÜRÜN 4"
+      - option "ERP-R1-P5 · ERP R1 BARKOD DENEME ÜRÜN 5"
+      - option "ERP-R1-P6 · ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6"
+      - option "ERP-R1-P7 · ERP R1 SERİ DENEME ÜRÜN 7"
+      - option "ERP-TEST-P1 · ERP DENEME ÜRÜN 1"
+      - option "ERP-TEST-P2 · ERP DENEME ÜRÜN 2"
+      - option "ERP-V3-P3 · ERP V3 DENEME ÜRÜN 3"
+    - text: Miktar
+    - textbox "Miktar 1": "2.000"
+    - text: Miktar birimi
+    - combobox "Miktar birimi 1":
+      - option "ADET" [selected]
+  - paragraph:
+    - text: Ürün 2
+    - combobox "Ürün 2":
+      - option "Seçin"
+      - option "ERP-R1-FX1 · ERP TEST ÇOK DÖVİZLİ FİYAT ÜRÜNÜ"
+      - option "ERP-R1-FX2 · ERP TEST DÖVİZLİ SATIŞ ÜRÜN 2"
+      - option "ERP-R1-FX3 · ERP TEST DÖVİZLİ SATIŞ ÜRÜN 3" [selected]
+      - option "ERP-R1-P4 · ERP R1 DENEME ÜRÜN 4"
+      - option "ERP-R1-P5 · ERP R1 BARKOD DENEME ÜRÜN 5"
+      - option "ERP-R1-P6 · ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6"
+      - option "ERP-R1-P7 · ERP R1 SERİ DENEME ÜRÜN 7"
+      - option "ERP-TEST-P1 · ERP DENEME ÜRÜN 1"
+      - option "ERP-TEST-P2 · ERP DENEME ÜRÜN 2"
+      - option "ERP-V3-P3 · ERP V3 DENEME ÜRÜN 3"
+    - text: Miktar
+    - textbox "Miktar 2": "1.000"
+    - text: Miktar birimi
+    - combobox "Miktar birimi 2":
+      - option "ADET" [selected]
+  - text: Fiş para birimi
+  - combobox "Fiş para birimi":
+    - option "TRY"
+    - option "USD" [selected]
+    - option "EUR"
+  - text: İşlenecek cari hesabı
+  - combobox "İşlenecek cari hesabı":
+    - option "Hesap seçin"
+    - option "TRY · bakiye 104.32000000"
+    - option "USD · bakiye 2.73540000" [selected]
+  - button "Şirket kurlarıyla doldur"
+  - text: Fiş kuru (1 USD = TRY)
+  - textbox "Fiş kuru (1 USD = TRY)": "40"
+  - text: Cari hesap kuru (1 USD = TRY)
+  - textbox "Cari hesap kuru (1 USD = TRY)" [disabled]: "40"
+  - paragraph: Şirket kuru 2026-11-06 için önerilir. Gerekirse işlem kurunu değiştirin; fişte kullanılan kur korunur.
+  - paragraph: Seri seçilen satırlar ADET'e çevrilir. Gösterilen fiyat, ana birimin fiyatıdır.
+  - text: Fiş geneli iskonto (%)
+  - textbox "Fiş geneli iskonto (%)": "0"
+  - button "Fiyat ve stok kontrolü"
+  - list:
+    - listitem: ERP-R1-FX2 · 0.7500 USD / ADET · fiziksel stok 7.000, rezerv 0.000 ADET
+    - listitem: ERP-R1-FX3 · 0.7500 USD / ADET · fiziksel stok 7.000, rezerv 0.000 ADET
+  - table "Satış önizlemesi":
+    - rowgroup:
+      - row "Ürün Miktar Birim fiyat Satır tutarı":
+        - columnheader "Ürün"
+        - columnheader "Miktar"
+        - columnheader "Birim fiyat"
+        - columnheader "Satır tutarı"
+    - rowgroup:
+      - row "ERP-R1-FX2 2.000 ADET 0.7500 USD 1.5000 USD":
+        - cell "ERP-R1-FX2"
+        - cell "2.000 ADET"
+        - cell "0.7500 USD"
+        - cell "1.5000 USD"
+      - row "ERP-R1-FX3 1.000 ADET 0.7500 USD 0.7500 USD":
+        - cell "ERP-R1-FX3"
+        - cell "1.000 ADET"
+        - cell "0.7500 USD"
+        - cell "0.7500 USD"
+  - paragraph: "Ara toplam: 2.2500 USD"
+  - paragraph: "Fiş geneli iskonto %0.0000: 0.0000 USD"
+  - paragraph: "Toplam: 2.2500 USD"
+  - paragraph: "USD cari hesabına yansıyacak: 2.2500 USD · TRY karşılığı: 90.0000"
+  - paragraph: "Kullanılacak kur: 1 USD = 40.00000000 TRY · 1 USD = 40.00000000 TRY"
+  - paragraph: "Bu TEST hesabının iskonto sınırı: %3.0000."
+  - button "Taslağı kaydet"
