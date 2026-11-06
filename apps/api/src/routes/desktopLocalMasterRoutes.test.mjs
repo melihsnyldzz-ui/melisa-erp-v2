@@ -3,17 +3,26 @@ import assert from 'node:assert/strict';
 import express from 'express';
 import http from 'node:http';
 import {createDesktopLocalMasterRoutes} from './desktopLocalMasterRoutes.mjs';
+import {productRejectionRecord,productRejectionOutcome} from '../services/desktopProductRejection.mjs';
 
 const requestId='d6be01f9-fac4-4e9c-b421-e2f070b6beb0';
 const customer={requestId,customerCode:'M1',customerName:'Örnek',phone:'555',customerType:'customer',currency:'TRY',city:' Yalova ',country:' Türkiye '};
 const product={requestId,stockCode:'P1',productName:'Ürün',barcode:'0001',unit:'ADET',currency:'TRY',salePriceExact4:'10.0000',purchasePriceExact4:'5.0000',purchaseDiscountRateExact4:'0.0000',saleTier:null};
-async function fixture(t,{auth=true,permissions=['customer.edit','product.edit'],outcome='COMMITTED',corrupt=false}={}){
+test('rich product exposes a durable conflict as 409; unverified rejection and unauthorized replay remain uncertain',async t=>{
+ const data=productRejectionOutcome(productRejectionRecord(requestId,'PRODUCT_BARCODE_IN_USE'),true),input={...product,brand:'B',category:'C',supplierId:'1'};
+ const good=await fixture(t,{richCards:true,outcome:data});const result=await good.post('/api/desktop-local/products',input);
+ assert.equal(result.status,409);assert.equal(result.body.success,false);assert.deepEqual(result.body.data,data);assert.equal(result.body.error.code,data.reason);
+ const bad=await fixture(t,{richCards:true,outcome:{...data,resolution:'ASSUMED'}});assert.equal((await bad.post('/api/desktop-local/products',input)).status,503);
+ const denied=await fixture(t,{richCards:true,outcome:data,auth:false});assert.equal((await denied.post('/api/desktop-local/products',input)).status,503);assert.equal(denied.calls.length,0);
+});
+async function fixture(t,{auth=true,permissions=['customer.edit','product.edit'],outcome='COMMITTED',corrupt=false,richCards=false}={}){
  const calls=[];
  const service={
+  async createSupplier(){throw Error('not used');},
   async createCustomer(actor,body){calls.push({actor,body,method:'customer'});return outcome==='COMMITTED'?{state:'COMMITTED',requestId:body.requestId,operation:'customer.create',replayed:false,entity:{kind:'local',id:corrupt==='numeric'?1:'1',entityId:'2',selectedCurrency:body.currency,accounts:[{id:'3',customerId:corrupt==='numeric'?1:corrupt?'99':'1',currency:body.currency,currentBalanceExact8:'0.00000000'}]}}:{state:'UNKNOWN',requestId:body.requestId,retry:'SAME_REQUEST_ONLY',requiresRecovery:true};},
-  async createProduct(actor,body){calls.push({actor,body,method:'product'});return {state:'COMMITTED',requestId:body.requestId,operation:'product.create',replayed:false,entity:{kind:'local',id:'2',name:body.name,units:[{id:'3',label:body.unit,factorExact8:'1.00000000',isMain:true}],prices:[{id:'4',type:'sale',unitId:'3',tier:body.saleTier,currency:body.currency,priceExact8:body.salePriceExact4+'0000'}]}};},
+  async createProduct(actor,body){calls.push({actor,body,method:'product'});if(outcome&&typeof outcome==='object')return outcome;return {state:'COMMITTED',requestId:body.requestId,operation:'product.create',replayed:false,entity:{kind:'local',id:'2',name:body.name,units:[{id:'3',label:body.unit,factorExact8:'1.00000000',isMain:true}],prices:[{id:'4',type:'sale',unitId:'3',tier:body.saleTier,currency:body.currency,priceExact8:body.salePriceExact4+'0000'}]}};},
  };
- const app=express();app.use(express.json());app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:async req=>{
+ const app=express();app.use(express.json());app.use(createDesktopLocalMasterRoutes({service,richCards,authenticateNormal:async req=>{
   if(!auth||req.get('authorization')!=='Bearer test')throw Error('not authorized');return {kind:'normal',userId:7,permissions};
  }}));
  const server=await new Promise((resolve,reject)=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));s.once('error',reject);});

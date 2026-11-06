@@ -6,6 +6,7 @@ import {LOCAL_MASTER_RESERVE_SQL,LOCAL_MASTER_FINISH_SQL} from '../../../../scri
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {MASTER_V3_RESERVE_SQL,MASTER_V3_FINISH_SQL} from '../../../../scripts/desktop-empty/master-v3-journal-sql.mjs';
+import {isProductRejectionRecord,isDurableProductRejection} from './desktopProductRejection.mjs';
 
 const LOGIN='melisa_desktop_test_writer_20261105';
 const DATABASE='MELISA_ERP_DESKTOP_TEST_20261105';
@@ -63,6 +64,13 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
      return r?.recordset?.length===1&&r.recordset[0].id===v.actorId;
     },
     async beginRequest(v){const r=await execute(tx,jb(v),journalPrefix+'\n'+(richCards?MASTER_V3_RESERVE_SQL:LOCAL_MASTER_RESERVE_SQL));if(!Array.isArray(r?.recordset)||r.recordset.length>1)fail('LOCAL_SQL_JOURNAL');return r.recordset.length?{state:'REPLAY',response:parse(r.recordset[0].response_json)}:{state:'NEW'};},
+    async findProductConflict(v){
+     const r=await execute(tx,[s('stockCode',v.stockCode,50),s('barcode',v.barcode,80)],`SELECT CASE
+ WHEN EXISTS(SELECT 1 FROM dbo.products WITH(UPDLOCK,HOLDLOCK) WHERE stock_code=@stockCode) THEN N'PRODUCT_STOCK_CODE_IN_USE'
+ WHEN EXISTS(SELECT 1 FROM dbo.product_barcodes WITH(UPDLOCK,HOLDLOCK) WHERE barcode=@barcode AND is_active=1) THEN N'PRODUCT_BARCODE_IN_USE'
+ ELSE NULL END conflictReason;`);
+     const reason=one(r).conflictReason;if(reason!==null&&!['PRODUCT_STOCK_CODE_IN_USE','PRODUCT_BARCODE_IN_USE'].includes(reason))fail('LOCAL_SQL_PRODUCT_CONFLICT');return reason;
+    },
     async insertCustomer(v){return id(await execute(tx,[s('code',v.customerCode,50),s('name',v.name),s('phone',v.phone,40),s('city',v.city,100),s('country',v.country,100),s('kind',v.customerType,30),s('currency',v.currency,3),s('actor',v.actorId,20)],`INSERT dbo.customers(customer_code,name,phone,city,country,customer_type,currency_code,balance,risk_limit,is_active,is_deleted,created_by,updated_by) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(@code,@name,@phone,@city,@country,@kind,@currency,0,0,1,0,TRY_CONVERT(bigint,@actor),TRY_CONVERT(bigint,@actor));`));},
     async insertPartyEntity(v){return id(await execute(tx,[s('role',v.role,20),s('name',v.name),s('country',v.country,100)],`INSERT dbo.party_entities(role,name,country,identity_rule) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(@role,@name,@country,N'desktop-local');`));},
     async attachCustomerEntity(v){const r=await execute(tx,[s('customer',v.customerId,20),s('entity',v.entityId,20)],`UPDATE dbo.customers SET party_entity_id=TRY_CONVERT(bigint,@entity) WHERE id=TRY_CONVERT(bigint,@customer) AND party_entity_id IS NULL; SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_ATTACH');},
@@ -91,10 +99,10 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
    // Do not depend on the caller to respect the coordinator's order. No
    // business method is exposed before a locked authority check AND a fresh
    // journal reservation in this exact transaction; a replay cannot write.
-   let authority=null,active=null,finished=false,journalRead=false,createdProduct=null,openingWritten=false,openingRead=false,opening=null,lockedSupplier=null,richProductRead=false,createdSupplier=null,supplierEntity=null,supplierAccount=null,supplierAttached=false,supplierRead=false;
+   let authority=null,active=null,finished=false,journalRead=false,createdProduct=null,openingWritten=false,openingRead=false,opening=null,lockedSupplier=null,richProductRead=false,createdSupplier=null,supplierEntity=null,supplierAccount=null,supplierAttached=false,supplierRead=false,conflictCheck=null,rejected=false,replayRejection=null;
    const customerMethods=new Set(['insertCustomer','attachCustomerEntity','insertCurrencyAccount','readCustomerPersistence']);
    const supplierMethods=new Set(['insertSupplier','attachSupplierEntity','insertSupplierCurrencyAccount','readSupplierPersistence']);
-   const productMethods=new Set(['lockActiveSupplier','insertProduct','readRichProductFields','insertLocalUnit','insertBarcode','insertNativePrice','linkLocalPriceUnit','readProductPersistence','insertOpeningMovement','readOpeningMovement']);
+   const productMethods=new Set(['findProductConflict','lockActiveSupplier','insertProduct','readRichProductFields','insertLocalUnit','insertBarcode','insertNativePrice','linkLocalPriceUnit','readProductPersistence','insertOpeningMovement','readOpeningMovement']);
    const guarded=Object.fromEntries(Object.entries(api).map(([name,fn])=>[name,async value=>{
     if(name==='lockAndVerifyAuthority'){
      if(authority!==null||active!==null)fail('LOCAL_SQL_ORDER');
@@ -103,13 +111,21 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     if(name==='beginRequest'){
      if(!authority||active!==null||value?.actorId!==authority.actorId||
       (value.operation==='customer.create'?'customer.edit':value.operation==='product.create'?'product.edit':richCards&&value.operation==='supplier.create'?'supplier.edit':null)!==authority.permission)fail('LOCAL_SQL_ORDER');
-     const result=await fn(value);if(result.state==='NEW')active={requestId:value.requestId,operation:value.operation,actorId:value.actorId,payloadHash:value.payloadHash};return result;
+     const result=await fn(value);if(result.state==='NEW')active={requestId:value.requestId,operation:value.operation,actorId:value.actorId,payloadHash:value.payloadHash};
+     else if(richCards&&value.operation==='product.create'&&result.state==='REPLAY'&&isProductRejectionRecord(result.response,value.requestId))replayRejection=result.response;
+     return result;
     }
     if(!authority||!active)fail('LOCAL_SQL_ORDER');
     if(customerMethods.has(name)&&active.operation!=='customer.create'||supplierMethods.has(name)&&(!richCards||active.operation!=='supplier.create')||productMethods.has(name)&&active.operation!=='product.create'||name==='insertPartyEntity'&&!['customer.create',...(richCards?['supplier.create']:[])].includes(active.operation))fail('LOCAL_SQL_ORDER');
     if(value?.actorId!==undefined&&value.actorId!==active.actorId)fail('LOCAL_SQL_ORDER');
     if(value?.requestId!==undefined&&value.requestId!==active.requestId)fail('LOCAL_SQL_ORDER');
     if(finished&&name!=='readFinishedRequest')fail('LOCAL_SQL_ORDER');
+    if(name==='findProductConflict'){
+     if(!richCards||conflictCheck||createdProduct||!lockedSupplier||typeof value?.stockCode!=='string'||typeof value.barcode!=='string')fail('LOCAL_SQL_ORDER');
+     const reason=await fn(value);conflictCheck={stockCode:value.stockCode,barcode:value.barcode,reason};return reason;
+    }
+    if(richCards&&active.operation==='product.create'&&name==='insertProduct'&&(!conflictCheck||conflictCheck.reason!==null||value.stockCode!==conflictCheck.stockCode))fail('LOCAL_SQL_ORDER');
+    if(richCards&&active.operation==='product.create'&&name==='insertBarcode'&&(!createdProduct||value.productId!==createdProduct.id||value.barcode!==conflictCheck?.barcode))fail('LOCAL_SQL_ORDER');
     if(name==='insertPartyEntity'&&active.operation==='supplier.create'){
      if(!createdSupplier||supplierEntity||value.role!=='supplier'||value.name!==createdSupplier.name||value.country!==createdSupplier.country)fail('LOCAL_SQL_ORDER');supplierEntity=await fn(value);return supplierEntity;
     }
@@ -141,8 +157,10 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     }
     if(name==='finishRequest'){
      if(finished||value?.operation!==active.operation||value?.payloadHash!==active.payloadHash)fail('LOCAL_SQL_ORDER');
-     if(active.operation==='product.create'&&!createdProduct)fail('LOCAL_SQL_ORDER');
-     if(active.operation==='supplier.create'&&!supplierRead||active.operation==='product.create'&&richCards&&!richProductRead)fail('LOCAL_SQL_ORDER');
+     rejected=richCards&&active.operation==='product.create'&&conflictCheck?.reason!==null&&isProductRejectionRecord(value.response,active.requestId)&&value.response.reason===conflictCheck?.reason&&!createdProduct;
+     if(isProductRejectionRecord(value.response,active.requestId)&&!rejected)fail('LOCAL_SQL_ORDER');
+     if(active.operation==='product.create'&&!createdProduct&&!rejected)fail('LOCAL_SQL_ORDER');
+     if(active.operation==='supplier.create'&&!supplierRead||active.operation==='product.create'&&richCards&&!richProductRead&&!rejected)fail('LOCAL_SQL_ORDER');
      if(createdProduct&&createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))fail('LOCAL_SQL_ORDER');
      const result=await fn(value);finished=true;return result;
     }
@@ -153,9 +171,12 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     return fn(value);
    }]));
    const result=await work(Object.freeze(guarded));
+   if(rejected&&(!isDurableProductRejection(result,active.requestId)||result.replayed!==false||result.reason!==conflictCheck.reason)
+    ||replayRejection&&(!isDurableProductRejection(result,replayRejection.requestId)||result.replayed!==true||result.reason!==replayRejection.reason)
+    ||!rejected&&!replayRejection&&result?.state==='NOT_COMMITTED')fail('LOCAL_SQL_UNFINISHED_REQUEST');
    if(active&&(!finished||!journalRead))fail('LOCAL_SQL_UNFINISHED_REQUEST');
-   if(active?.operation==='product.create'&&(!createdProduct||(createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))))fail('LOCAL_SQL_UNFINISHED_REQUEST');
-   if(active?.operation==='supplier.create'&&!supplierRead||active?.operation==='product.create'&&richCards&&!richProductRead)fail('LOCAL_SQL_UNFINISHED_REQUEST');
+   if(active?.operation==='product.create'&&!rejected&&(!createdProduct||(createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))))fail('LOCAL_SQL_UNFINISHED_REQUEST');
+   if(active?.operation==='supplier.create'&&!supplierRead||active?.operation==='product.create'&&richCards&&!richProductRead&&!rejected)fail('LOCAL_SQL_UNFINISHED_REQUEST');
    await tx.commit();begun=false;return result;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});

@@ -2,6 +2,7 @@
 // is installed by importing this file. The integrator must supply a verified
 // normal-session authenticator and the existing atomic master coordinator.
 import {Router} from 'express';
+import {isDurableProductRejection} from '../services/desktopProductRejection.mjs';
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const customerRequired=['requestId','customerCode','phone','customerType','currency'];
@@ -79,6 +80,7 @@ export function createDesktopLocalMasterRoutes({service,authenticateNormal,richC
   const actor=id(session?.userId),permission={customer:'customer.edit',product:'product.edit',supplier:'supplier.edit'}[kind];
   if(!actor||session?.kind!=='normal'||!Array.isArray(session.permissions)||!session.permissions.includes(permission))return uncertain();
   let result;try{result=await service[{customer:'createCustomer',product:'createProduct',supplier:'createSupplier'}[kind]](actor,input);}catch{return uncertain();}
+  if(richCards&&kind==='product'&&isDurableProductRejection(result,requestId))return res.status(409).json({success:false,data:result,error:{code:result.reason}});
   if(!result||result.state!=='COMMITTED'||result.requestId!==requestId||result.operation!==kind+'.create'||typeof result.replayed!=='boolean'||!committedEntity(result.entity,kind,input))return uncertain();
   return res.status(result.replayed===true?200:201).json({success:true,data:result});
  };}

@@ -2,16 +2,16 @@ param([Parameter(Mandatory)][ValidatePattern('^[A-F0-9]{64}$')][string]$Expected
 # Dedicated V3 TEST writer. Keep this owner process
 # alive while the browser is open; its private stdin pipe owns the child lifetime.
 $ErrorActionPreference='Stop'
-$root='C:\Users\Xaser\Desktop\ERP';$source=Join-Path $root 'kaynak-v3'
+$root='C:\Users\Xaser\Desktop\ERP';$source=Join-Path $root 'kaynak-r1'
 $node='C:\Program Files\nodejs\node.exe';$nodeHash='3331E1FFE19874215472217C5E94F5A0C6D8E18C4AC7111D3937AA0AD5E9B4A5'
 $secretFile=Join-Path $root 'kurulum\melisa-desktop-test-writer.dpapi'
-$packageFile=Join-Path $root 'kurulum\master-v3-package.json'
+$packageFile=Join-Path $root 'kurulum\master-r1-package.json'
 $packageHash=$ExpectedPackageHash
 $ownerFile=Join-Path $root 'desktop-initial-reader.owner.lock'
 if((Get-FileHash -LiteralPath $packageFile -Algorithm SHA256).Hash -cne $packageHash){throw 'PACKAGE_REJECTED'}
 $package=Get-Content -Raw -LiteralPath $packageFile|ConvertFrom-Json -AsHashtable
 $files=$package.sources
-$admissionFile=Join-Path $root ('kurulum\master-v3-runtime-admissions\'+$packageHash+'.json')
+$admissionFile=Join-Path $root ('kurulum\master-r1-runtime-admissions\'+$packageHash+'.json')
 $admission=Get-Content -Raw -LiteralPath $admissionFile|ConvertFrom-Json -AsHashtable
 if($admission.state -cne 'MASTER_V3_RUNTIME_ADMITTED' -or $admission.packageHash -cne $packageHash -or $package.profile -cne 'desktop-master-v3'){throw 'V3_ADMISSION_REJECTED'}
 if([IO.Directory]::ResolveLinkTarget((Join-Path $source 'apps\api\node_modules'),$true).FullName -cne 'C:\Users\Xaser\Desktop\ERP\kaynak\apps\api\node_modules'){throw 'DEPENDENCY_LOCATION_REJECTED'}
@@ -42,7 +42,7 @@ try{
  $owner=[IO.File]::Open($ownerFile,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
  Verify-File $packageFile $ExpectedPackageHash
  $package=Get-Content -Raw -LiteralPath $packageFile|ConvertFrom-Json -AsHashtable;$files=$package.sources
- if($package.profile -cne 'desktop-master-v3' -or $package.sourceRoot -cne 'C:/Users/Xaser/Desktop/ERP/kaynak-v3'){throw 'PACKAGE_PROFILE_REJECTED'}
+ if($package.profile -cne 'desktop-master-v3' -or $package.sourceRoot -cne 'C:/Users/Xaser/Desktop/ERP/kaynak-r1'){throw 'PACKAGE_PROFILE_REJECTED'}
  if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object LocalPort -in @(4294,5294)).Count -ne 0){$stage='PORT_OCCUPIED';throw 'PORT_OCCUPIED'}
  Verify-File $node $nodeHash
  foreach($p in $files.Keys){Verify-File (Join-Path $source $p) $files[$p]}

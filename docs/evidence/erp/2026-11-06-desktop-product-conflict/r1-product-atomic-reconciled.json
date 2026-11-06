@@ -1,0 +1,21 @@
+{
+  "automaticReplay": false,
+  "time": "2026-11-06T02:30:24.4350324Z",
+  "attemptedJournalCount": 0,
+  "productUnitBarcodeIdentities": "3 to 4, allocated but rolled-back rows absent",
+  "existingBarcodeCount": 1,
+  "guiRecovery": "OPEN",
+  "evidenceHashes": {
+    "after": "BA74A487BB21B556706AAD47B33A38B8FE6E2AF585DCA0E3754CBB6C035FFF73",
+    "before": "8C7221BF3D596CCFED9895F74F86A93785AAC5E3C9156FFB6169689D2995C55B"
+  },
+  "businessRowsSha256": "f805ca12b35f8d9b25678427fe3aa71aebaca3b9ccc4fda89f0d23a1f1dd295c",
+  "httpStatusObserved": null,
+  "attemptedProductCount": 0,
+  "state": "R1_PRODUCT_LATE_FAILURE_SQL_ROLLBACK_CONFIRMED",
+  "priceIdentity": "3 unchanged",
+  "unchangedTables": 33,
+  "requestId": "8097f44d-14b5-4529-92bc-6ab9ffc203ef",
+  "initialFailurePreserved": "r1-product-atomic-failure.json",
+  "httpStatusNotCapturedReason": "Test helper required HTTP200 and success=true before retaining the response. Source route returns503/success=false for UNKNOWN. No response or exact SQL error code inferred as observed."
+}

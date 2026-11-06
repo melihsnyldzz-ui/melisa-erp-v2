@@ -17,3 +17,16 @@ test('local failure keeps customer and product input; uncertain request still op
   const unknown=harness(mount,kind,true);unknown.run();await new Promise(resolve=>setImmediate(resolve));assert.equal(unknown.paintCount,2);assert.match(unknown.root.innerHTML,/aynı istekle yeniden doğrulayın/i);
  }}finally{globalThis.FormData=original;}
 });
+
+test('product fields are locked while a request is in flight and unlocked after the result',async()=>{
+ const original=globalThis.FormData;let submit,finish;
+ const group={disabled:false},button={disabled:false},status={textContent:''},form={addEventListener:(_event,fn)=>{submit=fn;}};
+ const fields={stockCode:'P1',name:'Ürün',barcode:'1',unit:'ADET',currency:'TRY',sale:'10',purchase:'5',discount:'0'};
+ globalThis.FormData=class{get(k){return fields[k]??null;}};
+ const root={innerHTML:'',querySelector(s){if(s==='[data-product-form]')return form;if(s==='[data-product-fields]')return group;if(s==='[role="status"]')return status;if(s.includes('button'))return button;return null;}};
+ try{
+  mountDesktopProductCreate({root,controller:{pending:()=>null,create:()=>new Promise(resolve=>{finish=resolve;}),retry:async()=>{}}});
+  submit({preventDefault(){},currentTarget:form});assert.equal(group.disabled,true);
+  finish({state:'UNKNOWN'});await new Promise(resolve=>setImmediate(resolve));assert.equal(group.disabled,false);
+ }finally{globalThis.FormData=original;}
+});

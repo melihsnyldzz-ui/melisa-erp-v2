@@ -21,6 +21,7 @@ function fakeDatabase(passwordHash){
   constructor(tx){if(!tx?.open)throw Error('SQL not bound to an active transaction');this.tx=tx;this.params={};}
   input(name,_type,value){this.params[name]=value;return this;}
   async query(statement){const p=this.params,d=this.tx.data,rows=x=>({recordset:x}),one=x=>rows([x]);
+   if(statement.includes('END conflictReason'))return one({conflictReason:d.products.some(v=>v.code===p.stockCode)?'PRODUCT_STOCK_CODE_IN_USE':d.barcodes.some(v=>v.code===p.barcode)?'PRODUCT_BARCODE_IN_USE':null});
    if(statement.includes('DESKTOP_AUTH_TARGET_REJECTED')||statement.includes('LOCAL_SQL_TARGET_REJECTED')||statement.includes('DESKTOP_LIST_TARGET_REJECTED'))return one({ok:1});
    if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[customers]'))return one({total:String(d.customers.length)});
    if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[products]'))return one({total:String(d.products.length)});
@@ -130,6 +131,12 @@ test('verified-provider assembly: normal login, customer, product and same-reque
  r=await request3('POST','/api/desktop-local/products',richProduct,token3);assert.equal(r.status,201);
  const saved=db.snapshot().products.find(x=>x.code==='P3');assert.equal(saved.brand,'Marka');assert.equal(saved.category,'Takım');assert.equal(saved.supplier,supplierRow.id);
  r=await request3('GET','/api/products',undefined,token3);assert.equal(r.status,200);const listed=r.body.data.find(x=>x.stockCode==='P3');assert.equal(listed.brand,'Marka');assert.equal(listed.category,'Takım');assert.equal(listed.supplierId,supplierRow.id);
+ const duplicate={...richProduct,stockCode:'P4',requestId:'6508625b-b648-421b-b7b9-35d4be7c7266'},productCount=db.snapshot().products.length;
+ db.loseAck();r=await request3('POST','/api/desktop-local/products',duplicate,token3);assert.equal(r.status,503);
+ r=await request3('POST','/api/desktop-local/products',duplicate,token3);assert.equal(r.status,409);assert.equal(r.body.data.state,'NOT_COMMITTED');assert.equal(r.body.data.replayed,true);assert.equal(r.body.error.code,'PRODUCT_BARCODE_IN_USE');
+ assert.equal(db.snapshot().products.length,productCount);
+ r=await request3('POST','/api/desktop-local/products',{...duplicate,barcode:'fixed'},token3);assert.equal(r.status,503);assert.equal(db.snapshot().products.length,productCount);
+ r=await request3('POST','/api/desktop-local/products',richProduct,token3);assert.equal(r.status,200);assert.equal(r.body.data.replayed,true);
  const before=db.snapshot();r=await request3('POST','/api/desktop-local/customers',{...customer,requestId:'da171000-6f42-4f19-8cab-9f4539618649',city:''},token3);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(db.snapshot().customers.length,before.customers.length);
  r=await request3('POST','/api/desktop-local/customers',{...customer,requestId:'da171000-6f42-4f19-8cab-9f4539618650',country:''},token3);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(db.snapshot().customers.length,before.customers.length);
  r=await request3('POST','/api/desktop-local/customers',legacyCustomer,token3);assert.equal(r.status,200);assert.equal(r.body.data.replayed,true);

@@ -26,6 +26,7 @@ function memoryStore(){
      const value={supplier:{id:s.id,entityId:s.entityId,currency:s.currency,supplierCode:s.supplierCode,name:s.name,phone:s.phone,city:s.city,country:s.country,purchaseDiscountRateExact4:s.purchaseDiscountRateExact4,balanceExact4:'0.0000',isActive:true,isDeleted:false},entity:{id:e.id,role:e.role,name:e.name,country:e.country},account:{id:a.id,entityId:a.entityId,customerId:null,supplierId:a.supplierId,currency:a.currency,currentBalanceExact8:a.currentBalanceExact8}};
      if(failAt==='supplier-readback')value.account.supplierId='999';if(failAt==='supplier-status-drift')value.supplier.isActive=false;if(failAt==='supplier-balance-drift')value.supplier.balanceExact4='1.0000';return value;},
     async lockActiveSupplier({supplierId}){const s=draft.rows.suppliers.find(v=>v.id===supplierId);return s?{id:s.id,isActive:failAt!=='supplier-inactive',isDeleted:false}:null;},
+    async findProductConflict({stockCode,barcode}){return draft.rows.products.some(p=>p.stockCode===stockCode)?'PRODUCT_STOCK_CODE_IN_USE':draft.rows.barcodes.some(b=>b.barcode===barcode&&b.isActive)?'PRODUCT_BARCODE_IN_USE':null;},
     async readCustomerPersistence({customerId,entityId,accountId}){
      const c=draft.rows.customers.find(v=>v.id===customerId),e=draft.rows.entities.find(v=>v.id===entityId),a=draft.rows.accounts.find(v=>v.id===accountId);
      const result={customer:{id:c.id,entityId:c.entityId,currency:c.currency,customerCode:c.customerCode,name:c.name,phone:c.phone,customerType:c.customerType,city:c.city,country:c.country},
@@ -68,6 +69,25 @@ function memoryStore(){
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
 const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
 const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+
+test('durable rich product conflict survives a lost reply; old commit and changed-body UUID keep their outcomes',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const first={...product(),brand:'B',category:'C',supplierId};assert.equal((await svc.createProduct('7',first)).state,'COMMITTED');
+ const rows=s.snapshot().rows,second={...first,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647',stockCode:'P2'};
+ s.loseCommit();assert.equal((await svc.createProduct('7',second)).state,'UNKNOWN');
+ const after=s.snapshot();assert.deepEqual(after.rows,rows);assert.equal(after.journal[second.requestId].response.reason,'PRODUCT_BARCODE_IN_USE');
+ const replay=await svc.createProduct('7',second);assert.equal(replay.state,'NOT_COMMITTED');assert.equal(replay.resolution,'DURABLE_REJECTION');assert.equal(replay.replayed,true);
+ assert.equal((await svc.createProduct('7',{...second,barcode:'fixed'})).state,'UNKNOWN');
+ assert.equal((await svc.createProduct('7',first)).state,'COMMITTED');assert.deepEqual(s.snapshot(),after);
+ const noAuth=createLocalMasterTransactions({store:s,richCards:true,authorize:async()=>false});assert.equal((await noAuth.createProduct('7',second)).state,'UNKNOWN');
+});
+
+test('stock code conflict writes only its rejection and does not create a second product',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),brand:'B',category:'C',supplierId};
+ await svc.createProduct('7',p);const before=s.snapshot().rows;
+ const result=await svc.createProduct('7',{...p,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647',barcode:'different'});
+ assert.equal(result.state,'NOT_COMMITTED');assert.equal(result.reason,'PRODUCT_STOCK_CODE_IN_USE');assert.equal(result.replayed,false);assert.deepEqual(s.snapshot().rows,before);
+});
 test('v3 creates supplier entity and currency account once, then binds rich product to the active supplier',async()=>{
  const s=memoryStore(),svc=rich(s),input=supplier();s.loseCommit();assert.equal((await svc.createSupplier('7',input)).state,'UNKNOWN');const replay=await svc.createSupplier('7',input);assert.equal(replay.state,'COMMITTED');assert.equal(replay.replayed,true);
  assert.equal(replay.entity.kind,'local');assert.equal(replay.entity.accounts[0].supplierId,replay.entity.id);assert.equal(Object.hasOwn(replay.entity.accounts[0],'customerId'),false);

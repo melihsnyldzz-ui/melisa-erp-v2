@@ -1,6 +1,7 @@
 // Source-only product transport. The server verifies the bearer and the caller
 // owns the durable request journal. This module does not start any request.
 import {isDesktopPersistedProduct} from './desktopProductCreate.mjs';
+import {isDurableProductRejection} from '../../../api/src/services/desktopProductRejection.mjs';
 const origin='http://127.0.0.1:5294',endpoint='http://127.0.0.1:4294/api/desktop-local/products';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const jwt=/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -24,8 +25,10 @@ export function createDesktopLocalProductTransport({location,fetch:fetchImpl,tok
    if(location.origin!==origin||typeof token!=='string'||token.length>4096||!jwt.test(token))fail();
    const response=await fetchImpl(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
     credentials:'omit',redirect:'error',body:snap.json,signal:AbortSignal.timeout(15000)});
-   if(!response||![200,201].includes(response.status)||response.ok!==true||typeof response.json!=='function')fail();
+   if(!response||![200,201,409].includes(response.status)||typeof response.json!=='function')fail();
    const envelope=await response.json(),data=envelope?.data;
+   if(response.status===409){if(response.ok!==false||envelope?.success!==false||envelope.error?.code!==data?.reason||!rich.every(k=>Object.hasOwn(snap.body,k))||!isDurableProductRejection(data,snap.body.requestId))fail();return data;}
+   if(response.ok!==true)fail();
    if(envelope?.success!==true||!data||data.state!=='COMMITTED'||data.requestId!==snap.body.requestId||data.operation!=='product.create'||typeof data.replayed!=='boolean'||response.status!==(data.replayed?200:201)||!isDesktopPersistedProduct(data.entity,snap.body))fail();
    return data;
   }catch{fail();}

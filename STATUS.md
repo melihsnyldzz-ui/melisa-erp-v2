@@ -1,3 +1,9 @@
+## 6 Kasım — R1 ürün çakışması ve kalıcı hata taslağı kaynak düzeltmesi
+
+Yeni kaynak-r1 feature dalında stok-kodu/barkod çakışması UUID/actor/hash kilitli aynı SQL transactionında iş kaydı öncesi belirlenip mevcutjournal'e kalıcı ret olarak yazılır. Kesin409 dışında UNKNOWN/body/UUID korunur; eskiCOMMITTED aynı. Form409sonrası actor kapsamlı v2 taslakla yeniden açılır, istek boyunca alanlar kilitli.59ilgili testdosyası+offlineguard build geçti; bağımsız salt-okunur inceleme tamam. [Kaynak ve önceki gerçek SQL rollback sınırı](docs/evidence/erp/2026-11-06-desktop-product-conflict/README.md). Yeni R1 henüz kurulmadı; aktif V3 aynı99C6paketi. DDL/yetki/SQLservisi değişmedi.
+
+Sıradaki iş: ayrı master-r1 paketini doğrula; yalnız yeni yerel uygulama geçişiyle R1 normal409/taslak-kalıcılığı/düzeltme ve SQL tekjournal/no-product etkisini kanıtla. Eski geçerli satış/restore tekrarı ve K07 genişlemesi yok; insan kabulü açık.
+
 ## 6 Kasım — R1 K02-02/K02-05 şema eşliği ve K01-04 çıkış doğrulandı
 
 Aktif V3 paketi99C6DA2B... değiştirilmeden salt okunur hedef karşılaştırması geçti:36tablo/422kolon/47FK/83indeks tam kaynak eşliği;30CHECK ad/parent+enabled/trusted ve IGNORE_DUP_KEYOFF. Exact701bc1 kaynak/clean tracked tree/184kurulu kaynak hash'i bağlı,13offline bozulmuş capture reddedildi. Normal taze erp_deneme giriş→Çıkış→yenile→Ana sayfa girişte kalma ajan GUI kanıtı eklendi. [K02 karşılaştırması ve sınırlar](docs/evidence/erp/2026-11-06-desktop-k02-schema/README.md). Yeni DDL/DML/kurulum/satış/rollback/servis işlemi yok; insan kabulü açık.

@@ -2,6 +2,7 @@
 // permission, or create an HTTP route. A real store must implement the atomic
 // contract below on the same verified physical database connection.
 import {createHash} from 'node:crypto';
+import {productRejectionRecord,isProductRejectionRecord,productRejectionOutcome,isDurableProductRejection} from './desktopProductRejection.mjs';
 import {localCustomerIdentity,localProductIdentity} from './localMasterIdentity.mjs';
 import {desktopInitialCostParity,desktopInitialOpeningAmountParity} from './desktopInitialCostParity.mjs';
 import {localSupplierIdentity} from './localSupplierIdentity.mjs';
@@ -106,6 +107,7 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
     if(reservation?.state==='CONFLICT')return unknown(requestId);
     if(reservation?.state==='REPLAY'){
      if(!reservation.response||reservation.response.requestId!==requestId||reservation.response.operation!==operation)fail('LOCAL_MASTER_JOURNAL_INVALID');
+     if(richCards&&operation==='product.create'&&isProductRejectionRecord(reservation.response,requestId))return productRejectionOutcome(reservation.response,true);
      return {state:'COMMITTED',requestId,operation,replayed:true,entity:reservation.response.entity};
     }
     if(reservation?.state!=='NEW')fail('LOCAL_MASTER_JOURNAL_INVALID');
@@ -140,6 +142,16 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
     }else{
      const initialStockExact3=payload.openingQuantityExact3??'0.000';
      if(richCards){const supplier=rec(await tx.lockActiveSupplier({supplierId:payload.supplierId}),['id','isActive','isDeleted']);if(supplier.id!==payload.supplierId||supplier.isActive!==true||supplier.isDeleted!==false)fail('LOCAL_MASTER_SUPPLIER_UNAVAILABLE');}
+     if(richCards){
+      const reason=await tx.findProductConflict({stockCode:payload.stockCode,barcode:payload.barcode});
+      if(reason!==null){
+       const response=productRejectionRecord(requestId,reason);
+       await tx.finishRequest({requestId,operation,actorId:principal,payloadHash,response});
+       const journal=await tx.readFinishedRequest({requestId});
+       if(journal?.requestId!==requestId||journal.operation!==operation||journal.actorId!==principal||journal.payloadHash!==payloadHash||JSON.stringify(journal.response)!==JSON.stringify(response))fail('LOCAL_MASTER_JOURNAL_READBACK_INVALID');
+       return productRejectionOutcome(response,false);
+      }
+     }
      const productId=id(await tx.insertProduct({actorId:principal,...payload,averageCostTryExact4,initialStockExact3}));
      const unitId=id(await tx.insertLocalUnit({productId,label:payload.unit,factorExact8:'1.00000000',isMain:true}));
      const barcodeId=id(await tx.insertBarcode({actorId:principal,productId,barcode:payload.barcode}));
@@ -181,7 +193,7 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
      ||JSON.stringify(journal.response)!==JSON.stringify(response))fail('LOCAL_MASTER_JOURNAL_READBACK_INVALID');
     return {state:'COMMITTED',requestId,operation,replayed:false,entity};
    });
-   if(!result||!['COMMITTED','UNKNOWN'].includes(result.state)||result.requestId!==requestId)fail('LOCAL_MASTER_JOURNAL_INVALID');
+   if(!result||!['COMMITTED','UNKNOWN',...(richCards&&operation==='product.create'?['NOT_COMMITTED']:[])].includes(result.state)||result.requestId!==requestId||result.state==='NOT_COMMITTED'&&!isDurableProductRejection(result,requestId))fail('LOCAL_MASTER_JOURNAL_INVALID');
    return Object.freeze(result);
   }catch(error){try{onFailure({requestId,error});}catch{}return unknown(requestId);}
  }

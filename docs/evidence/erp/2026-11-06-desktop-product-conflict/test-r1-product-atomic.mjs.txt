@@ -1,0 +1,32 @@
+// One fixed synthetic failure attempt through the installed normal-auth API.
+// No automatic resend, no credential output, no new schema or grants.
+import {readFileSync,writeFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import assert from 'node:assert/strict';
+const base=new URL('./',import.meta.url),read=name=>JSON.parse(readFileSync(new URL(name,base),'utf8'));
+const plan=read('r1-product-atomic-failure-plan.json');
+assert.equal(plan.body.requestId,'8097f44d-14b5-4529-92bc-6ab9ffc203ef');assert.equal(plan.body.stockCode,'ERP-R1-ROLLBACK-P4');assert.equal(plan.body.barcode,'ERPTESTV3P3');
+const pwsh='C:/Users/Xaser/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe';
+const observe=label=>execFileSync(pwsh,['-NoProfile','-NonInteractive','-File','C:/Users/Xaser/Desktop/ERP/kurulum/observe-r1-atomic.ps1','-Label',label],{encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:8192});
+const chunks=[];let secret=null,token=null,attempted=false,response=null,requestError=false;
+for(const key of ['log','warn','info','error','debug'])console[key]=()=>{};
+const post=async(path,body)=>{const r=await fetch('http://127.0.0.1:4294'+path,{method:'POST',headers:{'Content-Type':'application/json',Origin:'http://127.0.0.1:5294',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body),redirect:'error',signal:AbortSignal.timeout(15000)});const x=await r.json();assert.equal(r.status,200);assert.equal(x.success,true);return x.data;};
+try {
+ let count=0;for await(const c of process.stdin){count+=c.length;assert.ok(count<=46);chunks.push(c);}secret=Buffer.concat(chunks);chunks.forEach(c=>c.fill(0));assert.equal(secret.length,46);
+ const session=await post('/api/auth/login',{username:'erp_deneme',password:secret.toString('ascii')});secret.fill(0);secret=null;assert.equal(String(session.user.id),'30002');assert.equal(typeof session.accessToken,'string');token=session.accessToken;
+ assert.match(observe('before'),/^R1_ATOMIC_READ_ONLY_before/);
+ const before=read('r1-product-atomic-before.json').metadata;assert.equal(before.tables.length,33);assert.equal(before.attemptedProductCount,0);assert.equal(before.attemptedJournalCount,0);assert.equal(before.originalBarcodeCount,1);
+ writeFileSync(new URL('r1-product-atomic-attempted.json',base),JSON.stringify({state:'SINGLE_SEND_INTENT_DURABLE',requestId:plan.body.requestId,body:plan.body,time:new Date().toISOString(),automaticReplay:false}),{flag:'wx'});
+ attempted=true;try {response=await post('/api/desktop-local/products',plan.body);}catch{requestError=true;}
+ assert.match(observe('after'),/^R1_ATOMIC_READ_ONLY_after/);
+ const after=read('r1-product-atomic-after.json').metadata;
+ assert.equal(after.businessRowsSha256,before.businessRowsSha256);assert.deepEqual(after.tables,before.tables);
+ assert.equal(after.attemptedProductCount,0);assert.equal(after.attemptedJournalCount,0);assert.equal(after.originalBarcodeCount,1);
+ const id=(snapshot,table)=>BigInt(snapshot.identityValues.find(r=>r.table===table).lastValue);
+ for(const table of ['products','desktop_local_product_units','product_barcodes'])assert.equal(id(after,table),id(before,table)+1n);
+ assert.equal(id(after,'product_prices'),id(before,'product_prices'));
+ assert.equal(requestError,false);assert.equal(response.state,'UNKNOWN');assert.equal(response.requestId,plan.body.requestId);assert.equal(response.retry,'SAME_REQUEST_ONLY');
+ writeFileSync(new URL('r1-product-atomic-outcome.json',base),JSON.stringify({state:'R1_PRODUCT_LATE_UNIQUE_FAILURE_ROLLED_BACK',requestId:plan.body.requestId,response,businessRowsSha256:before.businessRowsSha256,unchangedTables:33,productUnitBarcodeIdentityAllocated:true,priceNotReached:true,existingBarcodeCount:1,attemptedProductCount:0,attemptedJournalCount:0,automaticReplay:false,uiRecoveryStillPending:true,time:new Date().toISOString()},null,2),{flag:'wx'});
+ process.stdout.write('R1_PRODUCT_LATE_UNIQUE_FAILURE_ROLLED_BACK');
+}catch {writeFileSync(new URL('r1-product-atomic-failure.json',base),JSON.stringify({state:'RECONCILIATION_REQUIRED',attempted,requestError,response,automaticReplay:false,time:new Date().toISOString()}),{flag:'wx'});process.stderr.write('R1_ATOMIC_RECONCILIATION_REQUIRED');process.exitCode=1;}
+finally {secret?.fill(0);chunks.forEach(c=>c.fill(0));if(token){try{await post('/api/auth/logout',{});}catch{}token=null;}}
