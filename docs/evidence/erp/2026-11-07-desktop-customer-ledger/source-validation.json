@@ -1,7 +1,7 @@
 {
   "state": "SOURCE_INTEGRATED_NOT_INSTALLED",
   "requirement": "ERP-C05 / ERP09",
-  "sourceBaseline": "a837e907a8531c045162c620741e9cd0811da38a",
+  "sourceBaseline": "7472ee4c3a0e71163b22cf2778b0b2744a203545",
   "branch": "codex/erp-desktop-current-ledger-20261107",
   "normalAuthProfiles": [
     5
@@ -19,9 +19,9 @@
   "humanAccepted": false,
   "liveAuthorized": false,
   "testFiles": 84,
-  "testsPassed": 456,
+  "testsPassed": 459,
   "testsFailed": 0,
-  "testLogSha256": "771bdaf35ad5349d3ed4175271255265fc319928bcf74767cb58bc50a6922ded",
+  "testLogSha256": "1e3f3e9508ded9f0c989fc0d3b85252fb9b41ffce5e82b6772f00b94bb4857be",
   "independentReadOnlyReview": "NO_NEW_P1_P2_AFTER_PRECISION_AND_ACCOUNT_SCOPE_FIXES",
   "schemaContract": "Legacy balance_effect decimal(18,4) NOT NULL, balance_effect_exact and affects_balance absent; incompatible schema fails closed",
   "precision": "Lossless decimal(28,8) projection; separate document/account values, signed exact8 effect and authoritative balance; no reconstructed running balance",
@@ -71,5 +71,8 @@
     "package readmission and normal customer/account/receipt UI",
     "before/after all business tables unchanged",
     "human/device/LAN/full ERP acceptance"
-  ]
+  ],
+  "mergedCancellationProof": "R2 normal UI cancellation and replay independently verified; C05 ledger remains source-only",
+  "independentMergeReview": "NO_NEW_P1_P2",
+  "changedScopeSecrets": "25 C05 plus 6 R2 changed files scanned separately; no findings"
 }

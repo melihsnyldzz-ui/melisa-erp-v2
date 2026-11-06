@@ -8,7 +8,7 @@ Bu Desktop şeması balance_effect decimal(18,4) NOT NULL kabul eder; değer kay
 
 ## Kaynak doğrulaması
 
-84 dosyada456 çevrimdışı test PASS,0FAIL/skip. API, web, son hesap kapsamı koruması, paketleme, CI ve dar log sözlüğü için bağımsız kaynak incelemeleri tamamlandı. İlk toplu kontroldeki yeni statik tanı kodu reddi, yalnız iki tam kod eklenerek giderildi; parola/özel son ek/bilinmeyen metin gizleme testleri korunur.
+84 dosyada 459 çevrimdışı test PASS, 0 FAIL/skip. R2 7472 kaynak birleşimi çakışmasız tamamlandı; bağımsız incelemede yeni P1/P2 bulunmadı. C05 için 25, R2 değişiklikleri için altı dosya ayrı gizli bilgi taramasından bulgusuz geçti. API, web, son hesap kapsamı koruması, paketleme, CI ve dar log sözlüğü için bağımsız kaynak incelemeleri tamamlandı. İlk toplu kontroldeki yeni statik tanı kodu reddi, yalnız iki tam kod eklenerek giderildi; parola/özel son ek/bilinmeyen metin gizleme testleri korunur.
 
 Yerel yeşil build, paylaşılan esbuild'in çalışma ağacı dışındaki yolu nedeniyle mevcut offline guard tarafından durduruldu. Ardından yerel bağımlılık bağlantısını kaldırıp çevrimdışı npm kurmaya hazırlanan komut, otomatik incelemede **çalıştırılmadan** reddedildi; ayrıntılı gerekçe verilmedi. Bağlantı değişmedi, kurulum veya başka yerel dolanma denenmedi. Bu sonuçlar yerel build başarısı değildir.
 
@@ -17,3 +17,5 @@ Var olan GitHub temiz checkout/locked-install/çevrimdışı build akışına sa
 ## Açık sınır
 
 Bu kaynak değişikliği henüz gerçek SQL'de okunmadı, ekran derlenip kurulmadı ve kullanıcı kabulü yapılmadı. Yeni şema/SQL hakkı veya cari/stok yazması yoktur. İlk gerçek okuma ve normal ekran kabulünde aynı V5 kimliği, seçili hesap/para, negatif iptal satırı, fiş bağlantısı ve tüm iş tablolarının değişmediği bağımsız olarak doğrulanmalıdır. Bu kayıt bütün ERP'nin veya nihai boş işletme kurulumunun tamamlandığı anlamına gelmez.
+
+R2 satış iptali, ayrı onarım ve doğrulamalar sonrasında normal ekranda ilk yanıt düşürülerek ve aynı istek tekrarlanarak teknik olarak doğrulandı. Bu sonuç C05 ekstresinin kurulduğu veya gerçek ekranda kabul edildiği anlamına gelmez. Bu birleşimin yeni head CI ve hosted artifact doğrulaması ayrıca gereklidir.
