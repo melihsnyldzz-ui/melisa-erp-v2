@@ -1,5 +1,6 @@
 // Dedicated TRY draft estimate from the same decimal(18,4) line values that
 // SQL stores. Unknown costs remain unknown; binary/decimal disagreement fails.
+import {desktopDiscountedProfitPlan} from './desktopDiscountedTwoItemSale.mjs';
 const fail=()=>{throw Error('DESKTOP_DRAFT_PROFIT_UNVERIFIED');};
 const scaled=(value,scale)=>{
  if(typeof value!=='number'||!Number.isFinite(value)||value<0)fail();
@@ -7,6 +8,7 @@ const scaled=(value,scale)=>{
 };
 const rounded4=value=>{const negative=value<0n,n=negative?-value:value;return (negative?-1n:1n)*((n+500n)/1000n);};
 export function desktopDraftProfitEstimate(draft){
+ if(draft?.discountRate!==0)return desktopDiscountedProfitPlan(draft).estimatedProfitTry;
  if(draft?.documentCurrency!=='TRY'||draft.exchangeRate!==1||draft.discountRate!==0||!Array.isArray(draft.items)||!draft.items.length)fail();
  let exact7=0n,native=0;
  for(const item of draft.items){

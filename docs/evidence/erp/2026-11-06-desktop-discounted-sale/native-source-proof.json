@@ -1,0 +1,12 @@
+{
+  "state": "NATIVE_SELECTED_SOURCE_ITEM_BODY_AND_SQL_IDENTICAL",
+  "base": "7b042e71",
+  "file": "apps/api/src/services/invoiceDraftService.js",
+  "beforeSha256": "7225d4ec140b4d1047ef1bfba3f13286f5958dff3a5790cb6ab1724a35649925",
+  "afterSha256": "cb9588688b37f1781bc5328f6f5b5c64b42ee4cb3944caf5debb352b0cdd45f5",
+  "selectedFunctionBodySha256": "235d4119bada53930fd71e9f0e472341b29a07b029b8e61a85eef7ce91f094be",
+  "originalSqlSha256": "17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb",
+  "sourcePinUpdateRequired": true,
+  "b6SqlExecuted": false,
+  "time": "2026-11-06T09:10:44.864Z"
+}

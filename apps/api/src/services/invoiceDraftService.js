@@ -3,6 +3,7 @@ import {invoiceQuarantineEntities} from './operationQuarantineGate.mjs';
 import { assertInvoiceNotExported } from './vegaInvoiceExportJournal.mjs';
 import sql from 'mssql';
 import {desktopDraftProfitEstimate} from './desktopDraftProfitEstimate.mjs';
+import {desktopDiscountedProfitPlan} from './desktopDiscountedTwoItemSale.mjs';
 import { getSqlDriver, getSqlPool, isIsolatedOperationCopyRuntime, getIsolatedOperationCopyConfig } from '../config/database.js';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import { writeAuditLog } from './auditService.js';
@@ -2186,11 +2187,12 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     const selectedFinalizeRows=selectedSale&&beforeSnapshot.items.length>1?[]:null;
     const currencyRateMap = selectedSale?.canonical?new Map():await readCurrencyRateMap(new sqlDriver.Request(transaction));
 
-    for (const item of beforeSnapshot.items) {
+    const desktopDiscountPlan=transactionContext?.desktopPrivateSale===true&&beforeSnapshot.discountRate!==0?desktopDiscountedProfitPlan({...beforeSnapshot,items:beforeSnapshot.items.map(item=>({...item,averageCostTry:item.productAverageCostTry}))}):null;
+    for (const [desktopItemIndex,item] of beforeSnapshot.items.entries()) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
       const nextStock = currentStock - quantity;
-      const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const amountTry = desktopDiscountPlan?desktopDiscountPlan.salesAmountsTry[desktopItemIndex]:safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
       const averageCostTrySnapshot = selectedSale?.canonical?Number(selectedSale.canonical.products.find(p=>p.productId===String(item.productId)).averageCostTryExact4):resolveSalesUnitCostTry(
         item,
         beforeSnapshot.documentCurrency,
