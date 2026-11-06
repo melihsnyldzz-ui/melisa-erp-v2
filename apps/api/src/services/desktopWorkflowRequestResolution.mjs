@@ -8,7 +8,8 @@ export function desktopWorkflowRequestIdentity(actorId,kind,raw){
  if(!id(actorId)||!raw||typeof raw!=='object'||Array.isArray(raw)||!['draft','transition','dispatch'].includes(kind))fail();
  const body=kind==='transition'?normalizeDesktopWorkflowTransition(raw):JSON.parse(JSON.stringify(raw));
  if(typeof body.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.requestId))fail();
- if(kind==='draft'&&Object.keys(body).sort().join(',')!=='customerId,documentDate,expectedRevision,items,requestId')fail();
+ const discounted=kind==='draft'&&Object.hasOwn(body,'discountRateExact4');
+ if(kind==='draft'&&(Object.keys(body).sort().join(',')!==(discounted?'customerId,discountRateExact4,documentDate,expectedRevision,items,requestId':'customerId,documentDate,expectedRevision,items,requestId')||discounted&&(typeof body.discountRateExact4!=='string'||!/^[0-3]\.\d{4}$/.test(body.discountRateExact4)||BigInt(body.discountRateExact4.replace('.',''))>30000n)))fail();
  if(kind==='dispatch'&&Object.keys(body).sort().join(',')!=='customerId,expectedVersion,invoiceId,productIds,requestId')fail();
  const value=kind==='draft'?{actorId,request:body}:kind==='dispatch'?{actorId,c:body}:{actorId,...body};
  return {body,hash:createHash('sha256').update(JSON.stringify(value)).digest('hex'),requestId:body.requestId,operation:kind==='draft'?'CREATE_DRAFT':kind==='dispatch'?'DISPATCH':body.operation};

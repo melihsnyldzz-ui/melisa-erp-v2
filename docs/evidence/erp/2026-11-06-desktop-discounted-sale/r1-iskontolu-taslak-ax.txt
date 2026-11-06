@@ -1,0 +1,74 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA ERP
+  - text: Yerel kurulum
+  - text: OTURUM
+  - generic: ERP deneme personeli
+  - generic: İŞLEMLER
+  - navigation:
+    - button "⌂ Ana sayfa":
+      - text: ⌂
+      - generic: Ana sayfa
+    - button "▦ Ürün & stok":
+      - text: ▦
+      - generic: Ürün & stok
+    - button "♙ Müşteriler":
+      - text: ♙
+      - generic: Müşteriler
+    - button "▧ Tedarikçiler":
+      - text: ▧
+      - generic: Tedarikçiler
+    - button "▤ Satış ve hazırlama":
+      - text: ▤
+      - generic: Satış ve hazırlama
+    - button "▣ Fişler":
+      - text: ▣
+      - generic: Fişler
+    - button "◌ Alış · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Alış · Hazırlanıyor
+    - button "◌ Stok hareketleri · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Stok hareketleri · Hazırlanıyor
+    - button "◌ Cari · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Cari · Hazırlanıyor
+    - button "◌ Finans · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Finans · Hazırlanıyor
+    - button "◌ Raporlar · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Raporlar · Hazırlanıyor
+  - generic: Yerel veritabanı
+- main:
+  - generic: Melisa ERP / Satış ve hazırlama
+  - button "Çıkış yap"
+  - heading "Satış ve hazırlama" [level=1]
+  - status: İşlem kaydedildi.
+  - heading "DS-f9d90b1e-2ad4-4013-8985-a · ERP KURULUM DENEME" [level=2]
+  - paragraph: Taslak · 2026-11-06
+  - table:
+    - rowgroup:
+      - row "Ürün Miktar Birim fiyat Tutar":
+        - columnheader "Ürün"
+        - columnheader "Miktar"
+        - columnheader "Birim fiyat"
+        - columnheader "Tutar"
+    - rowgroup:
+      - row "ERP-R1-P7 ERP R1 SERİ DENEME ÜRÜN 7 2.000 12.0000 TRY 24.0000 TRY":
+        - cell "ERP-R1-P7 ERP R1 SERİ DENEME ÜRÜN 7"
+        - cell "2.000"
+        - cell "12.0000 TRY"
+        - cell "24.0000 TRY"
+      - row "ERP-TEST-P1 ERP DENEME ÜRÜN 1 1.000 10.0000 TRY 10.0000 TRY":
+        - cell "ERP-TEST-P1 ERP DENEME ÜRÜN 1"
+        - cell "1.000"
+        - cell "10.0000 TRY"
+        - cell "10.0000 TRY"
+  - paragraph: "Ara toplam: 34.0000 TRY"
+  - paragraph: "Fiş geneli iskonto %3.0000: 1.0200 TRY"
+  - paragraph: Toplam 32.9800 TRY
+  - button "Fişi yenile"
+  - button "Hazırlamaya Gönder"
+  - button "Taslağı iptal et"
+  - button "Yeni satış" [disabled]

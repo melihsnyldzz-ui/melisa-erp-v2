@@ -1,0 +1,167 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA ERP
+  - text: Yerel kurulum
+  - text: OTURUM
+  - generic: ERP deneme personeli
+  - generic: İŞLEMLER
+  - navigation:
+    - button "⌂ Ana sayfa":
+      - text: ⌂
+      - generic: Ana sayfa
+    - button "▦ Ürün & stok":
+      - text: ▦
+      - generic: Ürün & stok
+    - button "♙ Müşteriler":
+      - text: ♙
+      - generic: Müşteriler
+    - button "▧ Tedarikçiler":
+      - text: ▧
+      - generic: Tedarikçiler
+    - button "▤ Satış ve hazırlama":
+      - text: ▤
+      - generic: Satış ve hazırlama
+    - button "▣ Fişler":
+      - text: ▣
+      - generic: Fişler
+    - button "◌ Alış · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Alış · Hazırlanıyor
+    - button "◌ Stok hareketleri · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Stok hareketleri · Hazırlanıyor
+    - button "◌ Cari · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Cari · Hazırlanıyor
+    - button "◌ Finans · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Finans · Hazırlanıyor
+    - button "◌ Raporlar · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Raporlar · Hazırlanıyor
+  - generic: Yerel veritabanı
+- main:
+  - generic: Melisa ERP / Ürün & stok
+  - button "Çıkış yap"
+  - paragraph: YEREL KURULUM
+  - heading "Ürün & stok" [level=1]
+  - button "Yeni kart"
+  - textbox "Kod, ad veya barkod ara"
+  - button "Ara"
+  - table:
+    - rowgroup:
+      - row "Ad Kod Marka Ürün türü Ana tedarikçi Fiziksel stok Rezerve Satılabilir Birim Seri karşılığı Satış fiyatı":
+        - columnheader "Ad"
+        - columnheader "Kod"
+        - columnheader "Marka"
+        - columnheader "Ürün türü"
+        - columnheader "Ana tedarikçi"
+        - columnheader "Fiziksel stok"
+        - columnheader "Rezerve"
+        - columnheader "Satılabilir"
+        - columnheader "Birim"
+        - columnheader "Seri karşılığı"
+        - columnheader "Satış fiyatı"
+        - columnheader
+    - rowgroup:
+      - row "ERP R1 DENEME ÜRÜN 4 ERP-R1-P4 MELISA TEST DENEME TÜRÜ ERP V3 DENEME TEDARİKÇİ 1.000 0.000 1.000 ADET — 12.0000 TRY Kartı aç":
+        - cell "ERP R1 DENEME ÜRÜN 4"
+        - cell "ERP-R1-P4"
+        - cell "MELISA TEST"
+        - cell "DENEME TÜRÜ"
+        - cell "ERP V3 DENEME TEDARİKÇİ"
+        - cell "1.000"
+        - cell "0.000"
+        - cell "1.000"
+        - cell "ADET"
+        - cell "—"
+        - cell "12.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+      - row "ERP R1 BARKOD DENEME ÜRÜN 5 ERP-R1-P5 MELISA TEST DENEME TÜRÜ ERP V3 DENEME TEDARİKÇİ 2.000 0.000 2.000 ADET — 12.0000 TRY Kartı aç":
+        - cell "ERP R1 BARKOD DENEME ÜRÜN 5"
+        - cell "ERP-R1-P5"
+        - cell "MELISA TEST"
+        - cell "DENEME TÜRÜ"
+        - cell "ERP V3 DENEME TEDARİKÇİ"
+        - cell "2.000"
+        - cell "0.000"
+        - cell "2.000"
+        - cell "ADET"
+        - cell "—"
+        - cell "12.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+      - row "ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6 ERP-R1-P6 MELISA TEST DENEME TÜRÜ ERP V3 DENEME TEDARİKÇİ 2.000 0.000 2.000 ADET — 12.0000 TRY Kartı aç":
+        - cell "ERP R1 GEREKÇELİ AÇILIŞ ÜRÜN 6"
+        - cell "ERP-R1-P6"
+        - cell "MELISA TEST"
+        - cell "DENEME TÜRÜ"
+        - cell "ERP V3 DENEME TEDARİKÇİ"
+        - cell "2.000"
+        - cell "0.000"
+        - cell "2.000"
+        - cell "ADET"
+        - cell "—"
+        - cell "12.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+      - row "ERP R1 SERİ DENEME ÜRÜN 7 ERP-R1-P7 MELISA TEST DENEME TÜRÜ ERP V3 DENEME TEDARİKÇİ 46.000 0.000 46.000 ADET 7 SERİ + 4.000 ADET 12.0000 TRY Kartı aç":
+        - cell "ERP R1 SERİ DENEME ÜRÜN 7"
+        - cell "ERP-R1-P7"
+        - cell "MELISA TEST"
+        - cell "DENEME TÜRÜ"
+        - cell "ERP V3 DENEME TEDARİKÇİ"
+        - cell "46.000"
+        - cell "0.000"
+        - cell "46.000"
+        - cell "ADET"
+        - cell "7 SERİ + 4.000 ADET"
+        - cell "12.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+      - row "ERP DENEME ÜRÜN 1 ERP-TEST-P1 — — — 1.000 0.000 1.000 ADET — 10.0000 TRY Kartı aç":
+        - cell "ERP DENEME ÜRÜN 1"
+        - cell "ERP-TEST-P1"
+        - cell "—"
+        - cell "—"
+        - cell "—"
+        - cell "1.000"
+        - cell "0.000"
+        - cell "1.000"
+        - cell "ADET"
+        - cell "—"
+        - cell "10.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+      - row "ERP DENEME ÜRÜN 2 ERP-TEST-P2 — — — 4.000 0.000 4.000 ADET — 20.0000 TRY Kartı aç":
+        - cell "ERP DENEME ÜRÜN 2"
+        - cell "ERP-TEST-P2"
+        - cell "—"
+        - cell "—"
+        - cell "—"
+        - cell "4.000"
+        - cell "0.000"
+        - cell "4.000"
+        - cell "ADET"
+        - cell "—"
+        - cell "20.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+      - row "ERP V3 DENEME ÜRÜN 3 ERP-V3-P3 MELISA TEST DENEME TÜRÜ ERP V3 DENEME TEDARİKÇİ 2.000 0.000 2.000 ADET — 12.0000 TRY Kartı aç":
+        - cell "ERP V3 DENEME ÜRÜN 3"
+        - cell "ERP-V3-P3"
+        - cell "MELISA TEST"
+        - cell "DENEME TÜRÜ"
+        - cell "ERP V3 DENEME TEDARİKÇİ"
+        - cell "2.000"
+        - cell "0.000"
+        - cell "2.000"
+        - cell "ADET"
+        - cell "—"
+        - cell "12.0000 TRY"
+        - cell "Kartı aç":
+          - button "Kartı aç"
+  - button "Önceki" [disabled]
+  - text: Sayfa 1
+  - button "Sonraki" [disabled]

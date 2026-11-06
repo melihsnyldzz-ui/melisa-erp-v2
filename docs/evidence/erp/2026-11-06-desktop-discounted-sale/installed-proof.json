@@ -1,0 +1,371 @@
+{
+  "state": "INSTALLED_DISCOUNTED_SALE_NORMAL_GUI_SQL_REPLAY_AND_A4_VERIFIED",
+  "sourceCommit": "24a087d0e7ab93036c0422f11896718ac6542b85",
+  "packageSha256": "8df61546f094e9b5799fdee82f0c7b6f89c549d2382ba23f589e7551168f7cce",
+  "profile": "desktop-master-v4",
+  "schemaVersion": 4,
+  "sourceCount": 202,
+  "helperCount": 5,
+  "assetCount": 3,
+  "target": {
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseId": 5,
+    "schemaVersion": 4,
+    "server": "Semih\\MELISAERP"
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessBeforeSha256": "fe23c8b9aa8797656a40f9dfb8a26ae277ac367229659390ba8ce08a827b539b",
+  "businessAfterSha256": "419cd262ceb1964b565e1655907755d9bd94611bcce4144157a202218110960e",
+  "draftChangedTables": [
+    "audit_logs",
+    "desktop_sale_workflow_requests",
+    "desktop_sale_workflows",
+    "sales_invoice_items",
+    "sales_invoices"
+  ],
+  "draftUnchangedTables": 28,
+  "completeChangedTables": [
+    "audit_logs",
+    "customer_movements",
+    "customers",
+    "desktop_sale_carton_items",
+    "desktop_sale_cartons",
+    "desktop_sale_reservations",
+    "desktop_sale_workflow_requests",
+    "desktop_sale_workflows",
+    "party_currency_accounts",
+    "products",
+    "sales_invoice_items",
+    "sales_invoices",
+    "stock_movements"
+  ],
+  "completeUnchangedTables": 20,
+  "oldInvoicesAndRequestsExactlyEqual": true,
+  "all33TablesAndEntireObserverMetadataEqualAfterReplay": true,
+  "invoice": {
+    "id": 10,
+    "document_no": "DS-f9d90b1e-2ad4-4013-8985-a",
+    "status": "finalized",
+    "customer_id": 2,
+    "workflowState": "COMPLETED",
+    "document_currency": "TRY",
+    "totalExact4": "32.9800",
+    "subtotalExact4": "34.0000",
+    "discountRateExact4": "3.0000",
+    "discountTotalExact4": "1.0200",
+    "profitExact4": "10.9800",
+    "items": [
+      {
+        "id": 15,
+        "product_id": 8,
+        "stockCode": "ERP-R1-P7",
+        "quantityExact3": "2.000",
+        "unitPriceExact4": "12.0000",
+        "lineTotalExact4": "24.0000",
+        "costExact4": "8.0000",
+        "profitExact4": "7.2800"
+      },
+      {
+        "id": 16,
+        "product_id": 1,
+        "stockCode": "ERP-TEST-P1",
+        "quantityExact3": "1.000",
+        "unitPriceExact4": "10.0000",
+        "lineTotalExact4": "10.0000",
+        "costExact4": "6.0000",
+        "profitExact4": "3.7000"
+      }
+    ]
+  },
+  "customerMovement": {
+    "id": 5,
+    "sales_invoice_id": 10,
+    "customer_id": 2,
+    "party_entity_id": 2,
+    "party_currency_account_id": 2,
+    "movement_type": "sales_invoice",
+    "currency_code": "TRY",
+    "amountExact4": "32.9800",
+    "balanceEffectExact4": "32.9800",
+    "accountAmountExact4": "32.9800",
+    "account_currency": "TRY"
+  },
+  "stockMovements": [
+    {
+      "id": 16,
+      "product_id": 8,
+      "source_id": 10,
+      "created_by": 30002,
+      "movement_type": "out",
+      "source_type": "sales_invoice",
+      "quantityInExact3": "0.000",
+      "quantityOutExact3": "2.000",
+      "costExact4": "8.0000",
+      "amountExact4": "23.2800"
+    },
+    {
+      "id": 17,
+      "product_id": 1,
+      "source_id": 10,
+      "created_by": 30002,
+      "movement_type": "out",
+      "source_type": "sales_invoice",
+      "quantityInExact3": "0.000",
+      "quantityOutExact3": "1.000",
+      "costExact4": "6.0000",
+      "amountExact4": "9.7000"
+    }
+  ],
+  "reservations": [
+    {
+      "invoice_id": 10,
+      "item_id": 15,
+      "product_id": 8,
+      "quantityExact3": "2.000",
+      "state": "DISPATCHED"
+    },
+    {
+      "invoice_id": 10,
+      "item_id": 16,
+      "product_id": 1,
+      "quantityExact3": "1.000",
+      "state": "DISPATCHED"
+    }
+  ],
+  "requests": [
+    {
+      "requestId": "776ed609-22d7-4aff-a184-0d7c5727844e",
+      "invoice_id": 10,
+      "actor_id": 30002,
+      "operation": "CHECK",
+      "payloadHash": "51f221d176dc6a9927ae4545300a52e7bd45b5f1bc922e02e8f97cfd7ca54c2a",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "776ed609-22d7-4aff-a184-0d7c5727844e",
+        "invoiceId": "10",
+        "operation": "CHECK",
+        "workflowState": "CHECKED",
+        "version": "0x0000000000071C54",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "5b713883-27eb-4eda-bcac-5c92b2e2c0ef",
+      "invoice_id": 10,
+      "actor_id": 30002,
+      "operation": "PREPARE",
+      "payloadHash": "2881f30de94af2c1fa71628a4fa1d80ae5a9a74c2f153321d0094f033bb01586",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "5b713883-27eb-4eda-bcac-5c92b2e2c0ef",
+        "invoiceId": "10",
+        "operation": "PREPARE",
+        "workflowState": "PREPARING",
+        "version": "0x0000000000071C51",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "0a06c26c-92b1-42da-92c9-92e5d2bb996c",
+      "invoice_id": 10,
+      "actor_id": 30002,
+      "operation": "SAVE_CARTONS",
+      "payloadHash": "10e3f0ec5c96648b463098c2a52e12c02709edc3a8e69b9ab539910b7ef7d496",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "0a06c26c-92b1-42da-92c9-92e5d2bb996c",
+        "invoiceId": "10",
+        "operation": "SAVE_CARTONS",
+        "workflowState": "PREPARING",
+        "version": "0x0000000000071C52",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "f9d90b1e-2ad4-4013-8985-ad89e4f7cbdf",
+      "invoice_id": 10,
+      "actor_id": 30002,
+      "operation": "CREATE_DRAFT",
+      "payloadHash": "fe23e7e3e0b106d0b5ad7fce6b00c8dc9d8fc6180f40576e174f8e6a730d8e83",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "f9d90b1e-2ad4-4013-8985-ad89e4f7cbdf",
+        "invoiceId": "10",
+        "workflowState": "DRAFT",
+        "version": "0x000000000006FD13",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "6ec7ef72-ea2b-4b7f-8553-b0411a787520",
+      "invoice_id": 10,
+      "actor_id": 30002,
+      "operation": "READY",
+      "payloadHash": "fd19ace73df24d95df429017d76d5c0114e493241587734484e6a79fff7aaf8a",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "6ec7ef72-ea2b-4b7f-8553-b0411a787520",
+        "invoiceId": "10",
+        "operation": "READY",
+        "workflowState": "READY",
+        "version": "0x0000000000071C53",
+        "replayed": false
+      }
+    },
+    {
+      "requestId": "1e8c6a29-5aba-4105-a8f6-c2033f4fba31",
+      "invoice_id": 10,
+      "actor_id": 30002,
+      "operation": "DISPATCH",
+      "payloadHash": "b1346e2bc772761fff8aba4786dca877ba8deb0c6ae652ece18f156f59e4b252",
+      "result": {
+        "state": "COMMITTED",
+        "requestId": "1e8c6a29-5aba-4105-a8f6-c2033f4fba31",
+        "invoiceId": "10",
+        "workflowState": "COMPLETED",
+        "version": "0x0000000000071C5A",
+        "replayed": false
+      }
+    }
+  ],
+  "gui": {
+    "state": "NORMAL_GREEN_DISCOUNTED_SALE_COMPLETED",
+    "tab": 10,
+    "url": "http://127.0.0.1:5294/",
+    "actor": "erp_deneme",
+    "invoiceId": "10",
+    "documentNo": "DS-f9d90b1e-2ad4-4013-8985-a",
+    "customerId": "2",
+    "productIds": [
+      "8",
+      "1"
+    ],
+    "quantitiesExact3": [
+      "2.000",
+      "1.000"
+    ],
+    "unitPricesExact4": [
+      "12.0000",
+      "10.0000"
+    ],
+    "subtotalExact4": "34.0000",
+    "discountRateExact4": "3.0000",
+    "discountTotalExact4": "1.0200",
+    "totalExact4": "32.9800",
+    "workflow": [
+      "DRAFT",
+      "PREPARING",
+      "SAVE_CARTONS",
+      "READY",
+      "CHECKED",
+      "COMPLETED"
+    ],
+    "draftReloadPreserved": true,
+    "normalCustomerBalanceExact8": "82.98000000",
+    "normalProductStockExact3": [
+      "46.000",
+      "1.000"
+    ],
+    "normalProductReservedExact3": [
+      "0.000",
+      "0.000"
+    ],
+    "normalSeriesDisplay": "7 SERİ + 4.000 ADET",
+    "receiptReopened": true,
+    "pdf": "C:/Users/Xaser/Desktop/ERP/output/pdf/iskontolu-satis-10.pdf",
+    "humanAcceptance": "BEKLIYOR",
+    "realGuiAckLossClaimed": false,
+    "time": "2026-11-06T09:29:54.193Z"
+  },
+  "http": {
+    "state": "NORMAL_HTTP_DISCOUNTED_SALE_EXACT_REPLAY_AND_RESOLUTION_VERIFIED",
+    "packageSha256": "8df61546f094e9b5799fdee82f0c7b6f89c549d2382ba23f589e7551168f7cce",
+    "body": {
+      "requestId": "1e8c6a29-5aba-4105-a8f6-c2033f4fba31",
+      "customerId": "2",
+      "invoiceId": "10",
+      "expectedVersion": "0x0000000000071C54",
+      "productIds": [
+        "8",
+        "1"
+      ]
+    },
+    "hash": "b1346e2bc772761fff8aba4786dca877ba8deb0c6ae652ece18f156f59e4b252",
+    "results": [
+      {
+        "case": "exact committed dispatch replay 1",
+        "status": 200,
+        "result": {
+          "state": "COMMITTED",
+          "requestId": "1e8c6a29-5aba-4105-a8f6-c2033f4fba31",
+          "invoiceId": "10",
+          "workflowState": "COMPLETED",
+          "version": "0x0000000000071C5A",
+          "replayed": true
+        }
+      },
+      {
+        "case": "exact committed dispatch replay 2",
+        "status": 200,
+        "result": {
+          "state": "COMMITTED",
+          "requestId": "1e8c6a29-5aba-4105-a8f6-c2033f4fba31",
+          "invoiceId": "10",
+          "workflowState": "COMPLETED",
+          "version": "0x0000000000071C5A",
+          "replayed": true
+        }
+      },
+      {
+        "case": "normal committed request resolution without tombstone",
+        "status": 200,
+        "result": {
+          "state": "COMMITTED",
+          "requestId": "1e8c6a29-5aba-4105-a8f6-c2033f4fba31",
+          "invoiceId": "10",
+          "workflowState": "COMPLETED",
+          "version": "0x0000000000071C5A",
+          "replayed": true
+        }
+      },
+      {
+        "case": "normal persisted discounted receipt read",
+        "status": 200,
+        "header": {
+          "invoiceId": "10",
+          "subtotalExact4": "34.0000",
+          "discountRateExact4": "3.0000",
+          "discountTotalExact4": "1.0200",
+          "totalExact4": "32.9800"
+        }
+      }
+    ],
+    "newRequestsGenerated": false,
+    "realGuiAckLossClaimed": false,
+    "time": "2026-11-06T09:27:14.220Z"
+  },
+  "artifacts": [
+    {
+      "path": "C:/Users/Xaser/Desktop/ERP/output/pdf/iskontolu-satis-10.pdf",
+      "sha256": "f08e90794ee90da3e70f29bc0d00fe63264c55a8c0c22f07d99bf85f2815f34a"
+    },
+    {
+      "path": "C:/Users/Xaser/Desktop/ERP/output/pdf/iskontolu-satis-10.png",
+      "sha256": "942be777ea714e2c6945b27a479a99aa0a274a9fc3a58561d7c44c0b82445faf"
+    }
+  ],
+  "pdf": {
+    "pages": 1,
+    "a4": true,
+    "visualInspection": "PASS: clear aligned table, subtotal/percentage/discount/net total and carton amounts; no clipping or overlap",
+    "textExtraction": "PASS"
+  },
+  "humanAcceptance": "BEKLIYOR",
+  "realGuiAckLossClaimed": false,
+  "changedCostVerifiedOnRealSql": false,
+  "sourceChangedCostFakeSqlRegression": true,
+  "ci": "source quality and secret checks passed; exact Windows startup pending at evidence creation",
+  "time": "2026-11-06T09:33:00.862Z"
+}

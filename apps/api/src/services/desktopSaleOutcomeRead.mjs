@@ -9,6 +9,8 @@ SELECT CONVERT(varchar(20),i.id) invoiceId,CONVERT(varchar(20),i.id) receiptInvo
  CONVERT(varchar(20),cm.party_entity_id) movementEntityId,CONVERT(varchar(20),cm.party_currency_account_id) movementAccountId,a.currency_code accountCurrency,cm.currency_code movementCurrency,
  CONVERT(varchar(40),ii.quantity) quantityExact3,CONVERT(varchar(40),sm.quantity_out) stockMovementOutExact3,CONVERT(varchar(40),ii.unit_price) unitPriceExact4,CONVERT(varchar(40),i.grand_total) totalExact4,
  CONVERT(varchar(40),cm.amount) customerMovementAmountExact4,CONVERT(varchar(40),CONVERT(decimal(28,8),cm.balance_effect)) accountPostingAmountExact8,
+ CONVERT(varchar(40),i.subtotal) subtotalExact4,CONVERT(varchar(40),i.discount_rate) discountRateExact4,CONVERT(varchar(40),i.discount_total) discountTotalExact4,CONVERT(varchar(40),i.estimated_profit_try) estimatedProfitTryExact4,
+ CONVERT(varchar(40),sm.amount_try) stockMovementAmountTryExact4,CONVERT(varchar(40),sm.unit_cost_try) stockMovementUnitCostTryExact4,CONVERT(varchar(40),sm.average_cost_try_after) stockMovementAverageCostTryAfterExact4,CONVERT(varchar(40),ii.average_cost_try_snapshot) unitCostTryExact4,CONVERT(varchar(40),ii.gross_profit_try) grossProfitTryExact4,
  @stockBefore stockBeforeExact3,CONVERT(varchar(40),p.current_stock_qty) stockAfterExact3,@customerBefore customerBeforeExact4,CONVERT(varchar(40),c.balance) customerAfterExact4,
  @accountBefore accountBeforeExact8,CONVERT(varchar(40),a.current_balance) accountAfterExact8,
  (SELECT COUNT(*) FROM dbo.sales_invoice_items x WHERE x.sales_invoice_id=i.id) invoiceItemCount,
