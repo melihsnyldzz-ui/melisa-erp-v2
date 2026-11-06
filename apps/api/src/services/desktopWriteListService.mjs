@@ -4,6 +4,7 @@ import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
 import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
+import {DESKTOP_PRODUCT_SALE_PRICES_SQL} from './desktopProductSalePricesSql.mjs';
 import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 import {desktopAvailableStock,isDesktopStockAvailability} from '../../../../packages/shared/src/desktopStockAvailability.mjs';
@@ -110,6 +111,7 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    const barcodes=await request().query(`SELECT TOP(101) CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,barcode,barcode_type type,is_primary isPrimary FROM dbo.product_barcodes WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@productId) AND is_active=1 ORDER BY is_primary DESC,id;`);
    const card={...projectStock(result.recordset[0]),barcodes:barcodes?.recordset};
    const units=await request().query(`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,label,CONVERT(varchar(40),factor) factorExact8,is_main isMain FROM dbo.desktop_local_product_units WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@productId) ORDER BY is_main DESC,id;`);if(!Array.isArray(units?.recordset)||units.recordset.length>2)fail();const unitRows=Array.from(units.recordset);if(!isDesktopProductUnits(unitRows,productId,card.unit))fail();card.units=unitRows;
+   const prices=await request().query(DESKTOP_PRODUCT_SALE_PRICES_SQL);if(!Array.isArray(prices?.recordset))fail();card.salePrices=Array.from(prices.recordset);
    const audit=await request().query(`SELECT TOP(2) after_json openingJson,reason requestId,CONVERT(varchar(20),actor_user_id) actorId FROM dbo.audit_logs WITH(HOLDLOCK) WHERE entity_id=TRY_CONVERT(bigint,@productId) AND entity_type=N'local-master' AND action=N'product.create' AND source=N'desktop-local-master-v1' AND after_json IS NOT NULL ORDER BY id;`);
    if(!Array.isArray(audit?.recordset)||audit.recordset.length>1)fail();
    if(audit.recordset.length){const a=audit.recordset[0];let detail;try{detail=JSON.parse(a.openingJson);}catch{fail();}if(!isDesktopProductOpening(detail,productId)||detail.actorId!==a.actorId||detail.requestId!==a.requestId)fail();

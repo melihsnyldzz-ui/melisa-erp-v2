@@ -5,6 +5,7 @@ import {isDurableProductRejection} from '../../../api/src/services/desktopProduc
 import {desktopAdditionalBarcodes} from '../../../api/src/services/desktopProductBarcodes.mjs';
 import {desktopOpeningReason} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 import {desktopSeriesFactor} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
+import {desktopAdditionalSalePrices} from '../../../../packages/shared/src/desktopProductSalePrices.mjs';
 const origin='http://127.0.0.1:5294',endpoint='http://127.0.0.1:4294/api/desktop-local/products';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const jwt=/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
@@ -13,13 +14,14 @@ const optional=['openingQuantityExact3','openingDate'], rich=['brand','category'
 const fail=()=>{throw Object.assign(new Error('PRODUCT_TRANSPORT_UNAVAILABLE'),{code:'PRODUCT_TRANSPORT_UNAVAILABLE'});};
 function snapshot(input){
  if(!input||typeof input!=='object'||Array.isArray(input)||![Object.prototype,null].includes(Object.getPrototypeOf(input)))fail();
- const d=Object.getOwnPropertyDescriptors(input),own=Reflect.ownKeys(input),names=[...keys,...(optional.some(k=>Object.hasOwn(d,k))?optional:[]),...(rich.some(k=>Object.hasOwn(d,k))?rich:[]),...['additionalBarcodes','openingReason','seriesFactorExact8'].filter(k=>Object.hasOwn(d,k))];
+ const d=Object.getOwnPropertyDescriptors(input),own=Reflect.ownKeys(input),names=[...keys,...(optional.some(k=>Object.hasOwn(d,k))?optional:[]),...(rich.some(k=>Object.hasOwn(d,k))?rich:[]),...['additionalBarcodes','openingReason','seriesFactorExact8','additionalSalePrices'].filter(k=>Object.hasOwn(d,k))];
  if(own.length!==names.length||own.some(k=>typeof k!=='string'||!names.includes(k))||names.some(k=>!d[k]||!d[k].enumerable||!Object.hasOwn(d[k],'value')))fail();
  const body=Object.fromEntries(names.map(k=>[k,d[k].value]));
  if([...optional,...rich].some(k=>Object.hasOwn(body,k)&&typeof body[k]!=='string'))fail();
  if(Object.hasOwn(body,'additionalBarcodes')){if(!rich.every(k=>Object.hasOwn(body,k)))fail();body.additionalBarcodes=desktopAdditionalBarcodes(body.barcode,body.additionalBarcodes);}
  if(Object.hasOwn(body,'openingReason')){if(!rich.every(k=>Object.hasOwn(body,k))||!optional.every(k=>Object.hasOwn(body,k))||body.openingQuantityExact3==='0.000')fail();body.openingReason=desktopOpeningReason(body.openingReason);}
  if(Object.hasOwn(body,'seriesFactorExact8')){if(!rich.every(k=>Object.hasOwn(body,k))||body.unit!=='ADET')fail();body.seriesFactorExact8=desktopSeriesFactor(body.seriesFactorExact8);}
+ if(Object.hasOwn(body,'additionalSalePrices')){if(!rich.every(k=>Object.hasOwn(body,k))||body.saleTier!==null)fail();body.additionalSalePrices=desktopAdditionalSalePrices(body.currency,body.additionalSalePrices);}
  if(typeof body.requestId!=='string'||!uuid.test(body.requestId)||keys.slice(1,9).some(k=>typeof body[k]!=='string')||
   body.saleTier!==null&&(!Number.isInteger(body.saleTier)||body.saleTier< -2147483648||body.saleTier>2147483647))fail();
  const json=JSON.stringify(body);if(json.length>4096)fail();return {json,body};

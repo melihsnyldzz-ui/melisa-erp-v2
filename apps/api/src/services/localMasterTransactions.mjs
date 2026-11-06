@@ -9,6 +9,7 @@ import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/sh
 import {localCustomerIdentity,localProductIdentity} from './localMasterIdentity.mjs';
 import {desktopInitialCostParity,desktopInitialOpeningAmountParity} from './desktopInitialCostParity.mjs';
 import {localSupplierIdentity} from './localSupplierIdentity.mjs';
+import {desktopAdditionalSalePrices,isDesktopProductSalePrices} from '../../../../packages/shared/src/desktopProductSalePrices.mjs';
 
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 const maxId=9223372036854775807n;
@@ -42,7 +43,7 @@ function initialCost4(currencyCode,purchase,discount){
 function command(input,operation,richCards){
  const fields=operation==='customer.create'?['requestId','customerCode','name','phone','customerType','currency',...(richCards?['city','country']:[])]:operation==='supplier.create'?['requestId','supplierCode','name','phone','city','country','currency','purchaseDiscountRateExact4']:
   ['requestId','stockCode','name','barcode','unit','currency','salePriceExact4','purchasePriceExact4','purchaseDiscountRateExact4','saleTier',...(richCards?['brand','category','supplierId']:[])];
- const optional=operation==='customer.create'?(richCards?[]:['city','country']):operation==='supplier.create'?[]:['openingQuantityExact3','openingDate',...(richCards?['additionalBarcodes','openingReason','seriesFactorExact8']:[])];
+ const optional=operation==='customer.create'?(richCards?[]:['city','country']):operation==='supplier.create'?[]:['openingQuantityExact3','openingDate',...(richCards?['additionalBarcodes','openingReason','seriesFactorExact8','additionalSalePrices']:[])];
  const descriptors=input&&typeof input==='object'&&!Array.isArray(input)?Object.getOwnPropertyDescriptors(input):null;
  if(!descriptors||![Object.prototype,null].includes(Object.getPrototypeOf(input))||
   Reflect.ownKeys(input).some(k=>typeof k!=='string'||![...fields,...optional].includes(k)||!descriptors[k].enumerable||!Object.hasOwn(descriptors[k],'value'))||
@@ -66,9 +67,10 @@ function command(input,operation,richCards){
  const additional=Object.hasOwn(v,'additionalBarcodes')?{additionalBarcodes:desktopAdditionalBarcodes(v.barcode,v.additionalBarcodes)}:{};
  if(Object.hasOwn(v,'openingReason')){if(!opening.openingQuantityExact3||opening.openingQuantityExact3==='0.000')fail('LOCAL_MASTER_INPUT_INVALID');opening.openingReason=desktopOpeningReason(v.openingReason);}
  const series=Object.hasOwn(v,'seriesFactorExact8')?{seriesFactorExact8:desktopSeriesFactor(v.seriesFactorExact8)}:{};if(series.seriesFactorExact8&&v.unit!=='ADET')fail('LOCAL_MASTER_INPUT_INVALID');
+ const extraPrices=Object.hasOwn(v,'additionalSalePrices')?{additionalSalePrices:desktopAdditionalSalePrices(v.currency,v.additionalSalePrices)}:{};if(extraPrices.additionalSalePrices&&v.saleTier!==null)fail('LOCAL_MASTER_INPUT_INVALID');
  return Object.freeze({requestId:v.requestId,stockCode:text(v.stockCode,50),name:text(v.name,250),barcode:text(v.barcode,80),
   unit:text(v.unit,20),currency:currency(v.currency),salePriceExact4:money4(v.salePriceExact4),
-  purchasePriceExact4:money4(v.purchasePriceExact4),purchaseDiscountRateExact4:discount4(v.purchaseDiscountRateExact4),saleTier:v.saleTier,...(richCards?{brand:text(v.brand,120),category:text(v.category,120),supplierId:id(v.supplierId)}:{}),...opening,...additional,...series});
+  purchasePriceExact4:money4(v.purchasePriceExact4),purchaseDiscountRateExact4:discount4(v.purchaseDiscountRateExact4),saleTier:v.saleTier,...(richCards?{brand:text(v.brand,120),category:text(v.category,120),supplierId:id(v.supplierId)}:{}),...opening,...additional,...series,...extraPrices});
 }
 const digest=value=>createHash('sha256').update(JSON.stringify(value),'utf8').digest('hex');
 const unknown=requestId=>Object.freeze({state:'UNKNOWN',requestId,retry:'SAME_REQUEST_ONLY',requiresRecovery:true});
@@ -171,6 +173,9 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
      const priceExact8=payload.salePriceExact4+'0000';
      const priceId=id(await tx.insertNativePrice({productId,type:'sale',tier:payload.saleTier,currency:payload.currency,priceExact8,sourceUnitId:null}));
      await tx.linkLocalPriceUnit({productId,unitId,priceId});
+     const addedPrices=[];
+     for(const value of payload.additionalSalePrices??[]){const addedId=id(await tx.insertNativePrice({productId,type:'sale',tier:null,currency:value.currency,priceExact8:value.priceExact4+'0000',sourceUnitId:null}));await tx.linkLocalPriceUnit({productId,unitId,priceId:addedId});addedPrices.push({id:addedId,productId,unitId,type:'sale',tier:null,currency:value.currency,priceExact8:value.priceExact4+'0000'});}
+     if(addedPrices.length){const saved=await tx.readProductSalePrices({productId});const expected=[{id:priceId,productId,unitId,type:'sale',tier:null,currency:payload.currency,priceExact8},...addedPrices];if(!isDesktopProductSalePrices(saved,productId,unitId)||saved.length!==expected.length||saved.some((p,i)=>Object.keys(expected[i]).some(k=>p[k]!==expected[i][k])))fail('LOCAL_MASTER_PRODUCT_READBACK_INVALID');}
      if(initialStockExact3!=='0.000'){
       const amountTryExact4=openingAmountTryExact4;
       const reason=richCards?(payload.openingReason??DESKTOP_PRODUCT_OPENING_DEFAULT_REASON):undefined;
@@ -197,7 +202,7 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
       ||l.productId!==productId||l.unitId!==unitId||l.priceId!==priceId)fail('LOCAL_MASTER_PRODUCT_READBACK_INVALID');
      let units=[u];if(seriesUnitId){units=await tx.readProductUnits({productId});if(!isDesktopProductUnits(units,productId,payload.unit)||units.length!==2||units[0].id!==unitId||units[1].id!==seriesUnitId||units[1].factorExact8!==payload.seriesFactorExact8)fail('LOCAL_MASTER_PRODUCT_READBACK_INVALID');}
      entity=localProductIdentity({product:{id:p.id,name:p.name},units,
-      prices:[{id:q.id,productId:q.productId,type:q.type,unitId:l.unitId,tier:q.tier,currency:q.currency,priceExact8:q.priceExact8}]});
+      prices:[{id:q.id,productId:q.productId,type:q.type,unitId:l.unitId,tier:q.tier,currency:q.currency,priceExact8:q.priceExact8},...addedPrices]});
     }
     await tx.appendAudit({actorId:principal,operation,entityId:entity.id,requestId,...(stockOpening?{stockOpening}:{})});
     const audit=rec(await tx.readMasterAudit({requestId}),['requestId','actorId','operation','entityId',...(stockOpening?['stockOpening']:[])]);

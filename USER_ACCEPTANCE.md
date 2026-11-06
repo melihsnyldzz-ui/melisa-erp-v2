@@ -1,3 +1,7 @@
+## 6 Kasım — R1 ürünün TRY/USD/EUR fiyatları; insan kabulü BEKLİYOR
+
+Yeni TEST'te TRY ana ürünün normal formuna isteğe bağlı USD/EUR fiyatlarını ayrı yazma, kaydetme ve ürün kartını yenileyerek üç fiyatı aynı ana birimde görme. TRY alış/maliyet aynı kalmalı; boş döviz fiyatı türetilmemeli. [Kaynak kanıtı ve kurulu deneme planı](docs/evidence/erp/2026-11-06-desktop-product-currency-prices/README.md). Ajan kurulum/normal GUI/SQL sonucu ayrıca kaydedilecek; gerçek kişi/tarih/sonuç BEKLİYOR. Dövizli satış, şirket kuru, fiziksel cihaz ve bütün ERP kabulü değildir.
+
 ## 6 Kasım — R1 K04-01 commit sonrası gerçek yanıt kaybı; insan kabulü BEKLİYOR
 
 Ajan normal GUI'de sentetik müşteri kaydı sunucuda tamamlandıktan sonra POST201 cevabını kestirdi. Özgün istek belirsiz kaldı, ayrı SQL bağlantısı tek customer4/party5/USD hesap8/audit39/journal kaydını okudu. Ekran düzeltmesi sonrasında normal yeniden giriş, gerçek yenileme, aynı pending'e dönüş ve aynı UUID/gövdeyle POST200 tekrar tek müşteriyi açtı; 33 tablonun commit sonrası/tekrar sonrası hash'leri aynı. [Kanıt ve kontrollü hata sınırı](docs/evidence/erp/2026-11-06-desktop-customer-recovery/README.md). Gerçek personel/işletme sahibi kişi-tarih-sonuç **BEKLİYOR**; fiziksel ağ/terminal/LAN/LIVE veya kalan ERP kabulü değildir.

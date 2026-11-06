@@ -41,6 +41,7 @@ function memoryStore(){
     async readProductUnits({productId}){return draft.rows.units.filter(u=>u.productId===productId).map(u=>({...u,...(failAt==='series-unit-readback'&&!u.isMain?{productId:'999'}:{})}));},
     async insertBarcode(v){if(draft.rows.barcodes.some(r=>r.barcode===v.barcode))throw Error('duplicate');return add(draft,'barcodes',{...v,barcodeType:v.barcodeType??'primary',isPrimary:(v.barcodeType??'primary')==='primary',isActive:true});},
     async insertNativePrice(v){return add(draft,'prices',v);},
+    async readProductSalePrices({productId}){const rows=draft.rows.prices.filter(p=>p.productId===productId).map(p=>({id:p.id,productId,unitId:draft.rows.links.find(l=>l.priceId===p.id)?.unitId??null,type:p.type,tier:p.tier,currency:p.currency,priceExact8:p.priceExact8}));const key={'extra-price-currency':'currency','extra-price-unit':'unitId','extra-price-parent':'productId','extra-price-value':'priceExact8','extra-price-tier':'tier'}[failAt];if(key)rows[1][key]=key==='tier'?2:'wrong';if(failAt==='extra-price-missing')rows.pop();if(failAt==='extra-price-duplicate')rows.push({...rows[1]});return rows;},
     async linkLocalPriceUnit(v){if(failAt!=='link-noop')add(draft,'links',v);},
     async readProductBarcodes({productId}){return draft.rows.barcodes.filter(b=>b.productId===productId&&b.isActive).map(b=>({id:b.id,productId,barcode:b.barcode,barcodeType:b.barcodeType,isPrimary:b.isPrimary,isActive:true})).map(b=>failAt==='extra-barcode-readback'?{...b,productId:'999'}:b);},
     async readProductPersistence({productId,unitId,barcodeId,priceId}){
@@ -71,6 +72,20 @@ function memoryStore(){
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
 const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
 const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+
+test('three explicit sale prices and unit links commit atomically; a lost reply and changed-body UUID never duplicate or reprice',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const p={...product(),unit:'ADET',currency:'TRY',saleTier:null,brand:'B',category:'C',supplierId,additionalSalePrices:[{currency:'USD',priceExact4:'0.7500'},{currency:'EUR',priceExact4:'0.6000'}]};
+ s.loseCommit();assert.equal((await svc.createProduct('7',p)).state,'UNKNOWN');const before=s.snapshot(),retry=await svc.createProduct('7',p);
+ assert.equal(retry.state,'COMMITTED');assert.equal(retry.replayed,true);assert.deepEqual(retry.entity.prices.map(q=>[q.currency,q.priceExact8]),[['TRY','12.25000000'],['USD','0.75000000'],['EUR','0.60000000']]);assert.equal(new Set(retry.entity.prices.map(q=>q.unitId)).size,1);
+ assert.equal((await svc.createProduct('7',{...p,additionalSalePrices:[{currency:'USD',priceExact4:'0.7600'}]})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);assert.equal(before.rows.products[0].averageCostTryExact4,'4.3750');assert.equal(before.rows.openings.length,0);
+});
+test('every additional price/link readback corruption rolls back all new product rows and journal',async()=>{
+ for(const fault of ['extra-price-currency','extra-price-unit','extra-price-parent','extra-price-value','extra-price-tier','extra-price-missing','extra-price-duplicate','prices','links']){
+  const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt(fault);
+  const result=await svc.createProduct('7',{...product(),unit:'ADET',currency:'TRY',saleTier:null,brand:'B',category:'C',supplierId,additionalSalePrices:[{currency:'USD',priceExact4:'0.7500'},{currency:'EUR',priceExact4:'0.6000'}]});assert.equal(result.state,'UNKNOWN',fault);assert.deepEqual(s.snapshot(),before,fault);
+ }
+});
 test('series creates a secondary multiplier while base stock and price stay ADET and exact replay stays immutable',async()=>{
  const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,seriesFactorExact8:'6.00000000',openingQuantityExact3:'60.000',openingDate:'2026-11-06',openingReason:'Yeni TEST seri stoğu'};
  s.loseCommit();assert.equal((await svc.createProduct('7',p)).state,'UNKNOWN');const before=s.snapshot(),replay=await svc.createProduct('7',p);assert.equal(replay.replayed,true);assert.equal(replay.entity.units.length,2);assert.deepEqual(replay.entity.units.map(u=>[u.label,u.factorExact8,u.isMain]),[['ADET','1.00000000',true],['SERİ','6.00000000',false]]);assert.equal(replay.entity.prices.length,1);assert.equal(replay.entity.prices[0].unitId,replay.entity.units[0].id);assert.equal(before.rows.products[0].initialStockExact3,'60.000');assert.equal(before.rows.openings.length,1);assert.deepEqual(s.snapshot(),before);assert.equal((await svc.createProduct('7',{...p,seriesFactorExact8:'7.00000000'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
