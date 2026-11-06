@@ -1,8 +1,16 @@
 # V5 read-only admission: source pins, independently proven migration, TLS writer.
 param([Parameter(Mandatory)][ValidatePattern('^[A-F0-9]{64}$')][string]$ExpectedPackageHash,
+ [Parameter(Mandatory)][ValidatePattern('^[A-F0-9]{64}$')][string]$ExpectedApplyVerificationSha256,
  [Parameter(Mandatory)][ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedBusinessRowsSha256)
 $ErrorActionPreference='Stop';$root='C:\Users\Xaser\Desktop\ERP';$source=Join-Path $root 'kaynak-r1';$owner=$null;$readerOwner=$null;$connection=$null;$secret=$null;$held=[Collections.Generic.List[IO.FileStream]]::new()
 function Hold-V5File([string]$file,[string]$hash){$item=Get-Item -LiteralPath $file -Force;if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'MASTER_V5_PIN_PATH'};$s=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$held.Add($s);if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant() -cne $hash.ToLowerInvariant()){throw 'MASTER_V5_PIN_HASH'}}
+function Assert-V5AdmissionEvidence($proof,$plan,$pkg,$context){
+ if($proof -isnot [hashtable] -or $plan -isnot [hashtable] -or $pkg -isnot [hashtable] -or $context -isnot [hashtable] -or $plan.sql -isnot [string] -or !$plan.sql.Length -or $pkg.snapshotSqlSha256 -cnotmatch '^[a-f0-9]{64}$' -or $proof.observed.planSha256 -cnotmatch '^[A-Fa-f0-9]{64}$'){throw 'MASTER_V5_APPLY_PROOF'}
+ $actualSqlHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($plan.sql))).ToLowerInvariant()
+ if($proof.state -cne 'MASTER_V5_APPLY_INDEPENDENTLY_VERIFIED' -or $proof.contextKey -cne $context.contextKey -or $proof.packageSha256 -cne $context.packageSha256 -or $proof.observed.contextKey -cne $context.contextKey -or $proof.observed.packageSha256 -isnot [string] -or $proof.observed.packageSha256 -cnotmatch '^[A-Fa-f0-9]{64}$' -or $proof.observed.packageSha256.ToLowerInvariant() -cne $context.packageSha256 -or $proof.observerProcessCompleted -ne $true -or $proof.writerProcessCompleted -ne $true -or $proof.businessRowsPreserved -ne $true -or $proof.observed.state -cne 'MASTER_V5_BATCH_COMPLETED' -or $proof.observed.operation -cne 'observe' -or $proof.observed.result.schemaVersion -ne 5 -or $proof.observed.sqlSha256 -cne $pkg.snapshotSqlSha256 -or $plan.sha256 -cne $pkg.snapshotSqlSha256 -or $actualSqlHash -cne $pkg.snapshotSqlSha256 -or $plan.mode -cne 'snapshot'){throw 'MASTER_V5_APPLY_PROOF'}
+ foreach($k in @('metadataSha256','securitySha256')){if($proof.baseline[$k] -cnotmatch '^[a-f0-9]{64}$' -or $proof.candidate[$k] -cnotmatch '^[a-f0-9]{64}$' -or $proof.observed.result[$k] -cne $proof.candidate[$k]){throw 'MASTER_V5_APPLY_PROOF'}}
+ if($proof.baseline.businessRowsSha256 -cnotmatch '^[a-f0-9]{64}$' -or $proof.observed.result.businessRowsSha256 -cne $proof.baseline.businessRowsSha256 -or [string]$proof.observed.result.permissionIdentityCurrent -cnotmatch '^[1-9]\d{0,18}$' -or [string]$proof.permissionIdentityCurrent -cne [string]$proof.observed.result.permissionIdentityCurrent){throw 'MASTER_V5_APPLY_PROOF'}
+}
 function Read-V5Snapshot($conn,[string]$text){$q=$conn.CreateCommand();$q.CommandTimeout=60;$q.CommandText=$text;$reader=$q.ExecuteReader();$r=$null;try{do{while($reader.Read()){if($r){throw 'MASTER_V5_OBSERVER_RESULT'};$r=@{};for($i=0;$i -lt $reader.FieldCount;$i++){$k=$reader.GetName($i);if($k -cnotin @('metadataSha256','securitySha256','businessRowsSha256','schemaVersion','permissionIdentityCurrent')){throw 'MASTER_V5_OBSERVER_FIELD'};$r[$k]=$reader.GetValue($i)}}}while($reader.NextResult())}finally{$reader.Dispose();$q.Dispose()};if(-not $r){throw 'MASTER_V5_OBSERVER_RESULT'};return $r}
 try{
  if([Security.Principal.WindowsIdentity]::GetCurrent().Name -cne 'SEMIH\Xaser'){throw 'MASTER_V5_WINDOWS_IDENTITY'}
@@ -22,14 +30,15 @@ try{
  $context=Invoke-MasterV3Node @('scripts/desktop-empty/assert-master-v5-plan.mjs','context',$ExpectedPackageHash) $null|ConvertFrom-Json -AsHashtable
  if($context.state -cne 'MASTER_V5_RUN_CONTEXT_VERIFIED' -or $context.packageSha256 -cne $ExpectedPackageHash.ToLowerInvariant() -or $context.contextKey -cnotmatch '^[a-f0-9]{64}$' -or $context.artifactDirectory -cne ('C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-runs/'+$context.contextKey)){throw 'MASTER_V5_ADMISSION_CONTEXT'}
  $runDir=$context.artifactDirectory.Replace('/','\')
- $proof=Get-Content -Raw -LiteralPath (Join-Path $runDir 'master-v5-apply-verification.json')|ConvertFrom-Json -AsHashtable
+ $proofFile=Join-Path $runDir 'master-v5-apply-verification.json';Hold-V5File $proofFile $ExpectedApplyVerificationSha256
+ $proof=Get-Content -Raw -LiteralPath $proofFile|ConvertFrom-Json -AsHashtable
  $planFile=Join-Path $runDir 'master-v5-snapshot-plan.json';Hold-V5File $planFile $proof.observed.planSha256
  $plan=Get-Content -Raw -LiteralPath $planFile|ConvertFrom-Json -AsHashtable
- if($proof.state -cne 'MASTER_V5_APPLY_INDEPENDENTLY_VERIFIED' -or $proof.contextKey -cne $context.contextKey -or $proof.packageSha256 -cne $context.packageSha256 -or $proof.observed.contextKey -cne $context.contextKey -or $proof.observed.packageSha256.ToLowerInvariant() -cne $context.packageSha256 -or $proof.observerProcessCompleted -ne $true -or $proof.observed.result.schemaVersion -ne 5 -or $proof.observed.sqlSha256 -cne $pkg.snapshotSqlSha256 -or $plan.sha256 -cne $pkg.snapshotSqlSha256 -or $plan.mode -cne 'snapshot'){throw 'MASTER_V5_APPLY_PROOF'}
+ Assert-V5AdmissionEvidence $proof $plan $pkg $context
  $tree=Invoke-MasterV3Node @('scripts/desktop-empty/sql-login-runtime-integrity.mjs') $null|ConvertFrom-Json -AsHashtable
  if($tree.sha256 -cne $pkg.dependencySha256){throw 'MASTER_V5_DEPENDENCY_HASH'}
  $connection=Open-MasterV3Admin;$before=Read-V5Snapshot $connection $plan.sql
- foreach($k in @('metadataSha256','securitySha256','schemaVersion','permissionIdentityCurrent')){if($before[$k] -cne $proof.observed.result[$k]){throw 'MASTER_V5_PRE_TLS_DRIFT'}}
+ foreach($k in @('metadataSha256','securitySha256','businessRowsSha256','schemaVersion','permissionIdentityCurrent')){if($before[$k] -cne $proof.observed.result[$k]){throw 'MASTER_V5_PRE_TLS_DRIFT'}}
  if($before.businessRowsSha256 -cne $ExpectedBusinessRowsSha256){throw 'MASTER_V5_PRE_TLS_BUSINESS_DRIFT'}
  $secretFile=Join-Path $root 'kurulum\melisa-desktop-test-writer.dpapi';$i=Get-Item -LiteralPath $secretFile -Force
  if($i.PSIsContainer -or $i.Length -gt 8192 -or ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'MASTER_V5_SECRET_PATH'}

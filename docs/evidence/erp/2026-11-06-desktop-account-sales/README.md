@@ -1,3 +1,14 @@
+## 6 November — recorded SQL CHECK definitions and pinned admission evidence
+
+Both exact31f CI runs42283453744/42283441329 passed including Windows. With the separately completed seed reader, the actual fd6 diagnostic reached SCHEMA_AFTER, reported DESKTOP_MASTER_V5_SCHEMA_REJECTED, rolled back, and was independently read back unchanged (schema4, permission seed42, metadata/security/all33 business tables). V4 recovered with fresh TLS and normal login/USD history. This is a diagnostic result, not normal rollback/apply proof.
+
+SQL Server recorded `collate` lowercase. V5 now compares three complete recorded CHECK definitions byte-for-byte; it no longer deletes whitespace, brackets or parentheses that could hide a different literal or grouping. V4 prefix, four narrow SQL rights and eleven operator permissions stay unchanged. Recorded metadata and negative literal/case/grouping/collation fixtures passed independent source review.
+
+V5 readmission now requires the concrete apply-verification SHA256 and keeps its read handle open. Before opening admin SQL it verifies actual UTF8 plan SQL bytes against the pinned package digest and proof, plus context/candidate/baseline binding. Uppercase producer package hashes are validated and normalized. Business rows are compared before/after TLS. The new Node admission tests cover static source ordering and a synthetic semantic oracle; they do not claim PowerShell execution, real file locking, SQL, or installation. Results obtained using the previously policy-rejected dynamic extraction method are explicitly excluded; that method was not repeated after the issue was reported.
+
+Integrated offline source tests:80 files,429 PASS,0 FAIL/skip. Passive V5 package19ced0e4ff50b471e63885fe47ac74580025a3411ba9ffe8942f3f438ea70428; contextbfa5858e7686e850f6b451f43810c510c560d0c0632458cb9d6e8898db9575f4;235 sources/7 helpers/3 assets/1 public binding. No attempt in this context yet. Exact new-head CI, normal rollback plus separate observation/verification, conditional apply, TLS admission and normal-screen cancellation remain pending. No broader SQL/role rights, credentials, old ERP/Vega data, service or LIVE change.
+
+## Earlier evidence
 ## 6 November — readonly baseline rejected; V4 recovered; seed process fix
 
 Both exact21b9 CI runs42274104922/42274098903 completed successfully including Windows. The reviewed coordinator first failed before checkout/SQL/stop because of a helper argument/native-command naming bug; v1 final record is retained. Literal, TEMP-only helper tests then verified argument forwarding and nonzero exit propagation. An AST-extracted dynamic helper test was rejected at process creation by tool policy and remains NOT_RUN; it was not retried. The literal test used no dynamic evaluation or ERP scripts.

@@ -56,9 +56,9 @@
     "finalEmptyBusinessDelivery": false,
     "v5Installed": false,
     "invoice13Cancelled": false,
-    "currentHead": "21b9f7ebf9223c263df2614a57a370a79f67588e",
+    "currentHead": "31f89231f0d4ceb93ca85a948bf31bb3d40f99f6",
     "loadedGraphIdenticalTo": "770c1e91de1f24b85f718a661bdcacc97e688e58",
-    "latestRecovery": "NORMAL_LOGIN_GUI_FULL_METADATA_AND_TLS_VERIFIED"
+    "latestRecovery": "V3_DIAGNOSTIC_ROLLED_BACK_FULL_METADATA_TLS_AND_NORMAL_GUI_VERIFIED"
   },
   "previousV5Candidate": {
     "state": "COMBINED_V5_PACKAGE_PREPARED_NOT_INSTALLED",
@@ -82,7 +82,7 @@
     "testLogSha256": "f191032b7de7412859793c94afae39ee2e2304947873f4aa19a35b8766ebda09",
     "actualAttempt": {
       "state": "READ_ONLY_BASELINE_REJECTED_DIAGNOSE_NOT_RUN_V4_RECOVERED",
-      "capturedAt": "2026-11-06T19:51:08.276659+00:00",
+      "capturedAt": "2026-11-06T22:51:08.276659+03:00",
       "failedPackage": "ca09d1d657855fe442c56107e90d075bd2b566153d524d26355a9ed3944eac53",
       "failedContext": "11a5cbd648c488d8e7ea9eb51ff8c8e7a8b1ec7f112310e7ee4fff3ac9b1e92f",
       "failureOperation": "snapshot",
@@ -147,7 +147,38 @@
     }
   },
   "nextV5Candidate": {
-    "state": "PINNED_SEPARATE_SEED_PROCESS_SOURCE_READY_NOT_INSTALLED",
+    "testLimit": "New admission tests are Node static source contracts and synthetic oracle; no PowerShell/SQL or real lock execution",
+    "readmission": "Mandatory held apply-proof hash, actual UTF8 SQL content hash before admin execution, proof/candidate/context bindings and pre/post TLS business hash",
+    "sources": 235,
+    "state": "EXACT_CHECK_METADATA_AND_PINNED_ADMISSION_SOURCE_READY_NOT_INSTALLED",
+    "testsPassed": 429,
+    "packageSha256": "19ced0e4ff50b471e63885fe47ac74580025a3411ba9ffe8942f3f438ea70428",
+    "assets": 3,
+    "testLogSha256": "7f0c63eeeb664b36b1308f97411fb8faf67d9a231f3fc9b14237a15a5fff9f97",
+    "testFiles": 80,
+    "ci": "EXACT_NEW_HEAD_PENDING",
+    "independentReadOnlyReview": "NO_NEW_P1_P2",
+    "excludedEvidence": "AUTHORITATIVE_EVIDENCE_EXCLUDED_PRIOR_METHOD_POLICY_REJECTED",
+    "publicFiles": 1,
+    "normalRollbackAndApplyProofs": false,
+    "contextSha256": "bfa5858e7686e850f6b451f43810c510c560d0c0632458cb9d6e8898db9575f4",
+    "v5RuntimeInstalled": false,
+    "sqlTransitionExecuted": false,
+    "helpers": 7,
+    "schemaGuard": "Exact binary comparison to three recorded CHECK definitions; no character normalization",
+    "oldUnknownRecordsPreserved": true,
+    "testsFailed": 0
+  },
+  "currentHeadFullCi": {
+    "source": "31f89231f0d4ceb93ca85a948bf31bb3d40f99f6",
+    "result": "BOTH_FULL_PASS_INCLUDING_WINDOWS",
+    "runs": [
+      42283453744,
+      42283441329
+    ]
+  },
+  "diagnosedV5Candidate": {
+    "state": "DIAGNOSTIC_ROLLED_BACK_ERROR_SCHEMA_AFTER",
     "packageSha256": "595ac1bec1248e6d34c3d28e1a7b7a594c2b31c486bc0fee32a06810c410e16f",
     "contextSha256": "fd6f030e2c57b22dc5fd26754b1170555a73ed0e12fbf71a045187e0ba568080",
     "sources": 235,
@@ -162,19 +193,45 @@
     "parentKeepsSqlConnection": false,
     "logicalFix": "Permission identity is read by a separately completed, pinned child; coordinator opens no ODBC connection",
     "independentReadOnlyReview": "NO_NEW_P1_P2",
-    "ci": "EXACT_NEW_HEAD_PENDING",
-    "sqlTransitionExecuted": false,
+    "ci": "BOTH_FULL_PASS_INCLUDING_WINDOWS",
+    "sqlTransitionExecuted": true,
     "v5RuntimeInstalled": false,
     "normalRollbackAndApplyProofs": false,
     "oldUnknownRecordsPreserved": true,
-    "testLogSha256": "ff9c27a4f5834751868ab335dfa6b2468bf68f0aee61b6f9ec1dbaf6fde3a92f"
+    "testLogSha256": "ff9c27a4f5834751868ab335dfa6b2468bf68f0aee61b6f9ec1dbaf6fde3a92f",
+    "actualDiagnostic": {
+      "error": "DESKTOP_MASTER_V5_SCHEMA_REJECTED",
+      "stage": "SCHEMA_AFTER",
+      "independentReadbackUnchanged": true,
+      "apply": false,
+      "result": "MASTER_V5_DIAGNOSTIC_ROLLED_BACK_ERROR",
+      "schemaVersion": 4,
+      "baselineSuccess": true,
+      "normalRollbackProof": false,
+      "cause": "SQL Server renders collate lowercase; old binary compact expected COLLATE uppercase",
+      "permissionIdentity": "42"
+    }
   },
-  "currentHeadFullCi": {
-    "source": "21b9f7ebf9223c263df2614a57a370a79f67588e",
-    "runs": [
-      42274104922,
-      42274098903
-    ],
-    "result": "BOTH_FULL_PASS_INCLUDING_WINDOWS"
+  "previousUnusedV5Candidate": {
+    "schemaGuard": "Exact binary comparison to three recorded CHECK definitions; no character normalization",
+    "testLogSha256": "53c2ba1c49487b59b4112ec208bcd08680338f1b236d2fcb9019bc9d23ba0c22",
+    "sqlTransitionExecuted": false,
+    "helpers": 7,
+    "ci": "EXACT_NEW_HEAD_PENDING",
+    "oldUnknownRecordsPreserved": true,
+    "sources": 235,
+    "testsPassed": 428,
+    "contextSha256": "f13ec82fa22c371ae3f6e40b228bca78ce0fe9846903ac67536ce8b14b5c5518",
+    "normalRollbackAndApplyProofs": false,
+    "packageSha256": "1dbe47b42377b62d201b96da5ff1ee880803ad881855521f3f49fda50f5b1bba",
+    "readmission": "Mandatory held apply-proof hash, actual UTF8 SQL content hash before admin execution, proof/candidate/context bindings and pre/post TLS business hash",
+    "testFiles": 80,
+    "assets": 3,
+    "v5RuntimeInstalled": false,
+    "publicFiles": 1,
+    "testsFailed": 0,
+    "excludedEvidence": "AUTHORITATIVE_EVIDENCE_EXCLUDED_PRIOR_METHOD_POLICY_REJECTED",
+    "testLimit": "New admission tests are Node static source contracts and synthetic oracle; no PowerShell/SQL or real lock execution",
+    "state": "UNUSED_PREPARATION_SUPERSEDED_ADMISSION_BUSINESS_PROOF_BINDING_FIX"
   }
 }
