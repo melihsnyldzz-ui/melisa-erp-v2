@@ -7,7 +7,12 @@ import {fileURLToPath} from 'node:url';
 
 export const TARGET=Object.freeze({server:'127.0.0.1',port:15439,database:'MELISA_B6_SUBPATH_20261031_1234',serverIdentity:'MELISA-B6-DISPOSABLE',purpose:'B6-SELECTED-ITEMS-1234'});
 const sourceURL=new URL('../../apps/api/src/services/invoiceDraftService.js',import.meta.url);
-const SOURCE_SHA='1ef305949fd860157d4e472fd83f7499c5581177f34844b2c6aaa26a1a6dcdf1';
+// Exact reviewed 69c780f2 revision: private desktop TRY guards and draft-cost
+// estimate were added outside insertSelectedSourceSalesItems. That function's
+// body (235d4119...f094be) and extracted SQL remain byte-identical to PR54.
+// Keep a whole-file pin AND the original SQL pin; unknown changes still reject.
+const SOURCE_SHA='7225d4ec140b4d1047ef1bfba3f13286f5958dff3a5790cb6ab1724a35649925';
+const ORIGINAL_SQL_SHA='17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb';
 const digest=v=>createHash('sha256').update(v).digest('hex');
 const reject=code=>{throw Object.assign(new Error(code),{code});};
 export function assertTarget(target){
@@ -18,7 +23,7 @@ export function selectedItemsSQL(){
  const bytes=fs.readFileSync(sourceURL);if(digest(bytes)!==SOURCE_SHA)reject('B6_SUBPATH_SOURCE_CHANGED');
  const body=bytes.toString('utf8').split('async function insertSelectedSourceSalesItems(')[1]?.split('\nasync function ')[0];
  const sql=body?.match(/\.query\(`([\s\S]*?)`\);/)?.[1];
- if(!sql||sql.split('dbo.sales_invoice_items').length!==2||!sql.includes('FROM OPENJSON(@selectedItemsJSON) j'))reject('B6_SUBPATH_SQL_SHAPE_CHANGED');
+ if(!sql||digest(sql)!==ORIGINAL_SQL_SHA||sql.split('dbo.sales_invoice_items').length!==2||!sql.includes('FROM OPENJSON(@selectedItemsJSON) j'))reject('B6_SUBPATH_SQL_SHAPE_CHANGED');
  return {sourceSha256:SOURCE_SHA,sql:sql.replace('dbo.sales_invoice_items','b6_subpath_fixture.items'),originalSQLSha256:digest(sql)};
 }
 export function syntheticItems(scenario='valid'){

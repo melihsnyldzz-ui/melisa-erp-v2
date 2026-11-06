@@ -55,6 +55,9 @@ function Invoke-Business5244OwnerMaintenance {
  param([Parameter(Mandatory)]$State,[Parameter(Mandatory)]$Channel,[Parameter(Mandatory)]$Request,$ApiTransition=$null)
  Assert-Business5244RetirementRequest -Channel $Channel -Request $Request
  if($Request.operation -isnot [string] -or $Request.operation -cne 'retire'){throw 'BUSINESS_5244_DISPATCH_REQUEST_NOT_RETIRE'}
+ # Capture the class before the transition can run; later mutable token drift
+ # must not turn a potentially applied BEGIN into generic rollback authority.
+ $beginSuccessor=($null-ne$ApiTransition-and$ApiTransition.PSObject.Properties['profileOnlyPurpose']-and$ApiTransition.profileOnlyPurpose-ceq'BeginSuccessor')
  $r=Get-Business5244RetirementState $State
  if(!$r.ContainsKey('dispatch')){$r.dispatch=$null}
  if(!$r.dispatch){
@@ -135,6 +138,14 @@ function Invoke-Business5244OwnerMaintenance {
   if($d.stage -ceq 'RollbackCommitting' -and (Test-Business5244DispatchCommitted $r $d $d.rollbackNative Rollback)){
    Complete-Business5244DispatchResult $r $d $d.rollbackNative Rollback
    return Get-Business5244DispatchResult $r $d $true
+  }
+  # BEGIN may have reached SQL or profile CAS even if the call threw. The
+  # generic WEB rollback below is not proof of that outcome and must not touch
+  # another child or issue an inverse. Keep the existing pending/held state for
+  # independent readback; no persisted BEGIN-specific completion is implied.
+  if($beginSuccessor-and$d.stage-cin@('ApiCandidate','CandidateStarting','CandidatePublishing','CandidateCommitting')){
+   $r.phase='Unknown';$d.phase='Blocked';$d.failureCode='BUSINESS_5244_BEGIN_OUTCOME_UNKNOWN'
+   throw 'BUSINESS_5244_BEGIN_OUTCOME_UNKNOWN'
   }
   if((Test-Business5244DispatchUncertain $r $failure) -or $r.phase -cnotin @('Retired','Published','Committing')){$r.phase='Unknown';$d.phase='Blocked';throw 'BUSINESS_5244_MAINTENANCE_RECOVERY_REQUIRED'}
   try{

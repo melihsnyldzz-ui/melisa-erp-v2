@@ -26,6 +26,12 @@ test('ODBC retain-min1 applies to canonical writable ERP4144 and registered copy
  const sandbox=createContext({process}),dependencies=new Map();
  const dependency=(specifier,exports)=>{const module=new SyntheticModule(Object.keys(exports),function(){for(const [key,value]of Object.entries(exports))this.setExport(key,value);},{context:sandbox});dependencies.set(specifier,module);return module;};
  dependency('mssql',{default:sqlDefault});dependency('./env.js',{env});
+ class InertAsyncLocalStorage {getStore(){return undefined;} run(_store,callback){return callback();}}
+ dependency('node:async_hooks',{AsyncLocalStorage:InertAsyncLocalStorage});
+ const forbidden=()=>{throw Error('Config-only test must not invoke protected operation');};
+ dependency('./canonicalReadonlyAuthQuery.mjs',{guardCanonicalReadonlyAuthQuery:forbidden});
+ dependency('./desktopWriteRuntime.mjs',{getDesktopWriteRuntime:()=>null});
+ dependency('../services/emptyLocalContext.mjs',{getEmptyLocalContext:()=>null,assertRegisteredEmptyLocalContext:forbidden,assertEmptyLocalIdentity:forbidden,assertEmptyLocalSqlConfiguration:forbidden,emptyLocalSqlOptions:forbidden,EMPTY_LOCAL_IDENTITY_SQL:'config-only-no-query'});
  dependency('./isolatedOperationCopyRuntime.mjs',{isIsolatedOperationCopyRuntime:()=>copyState.write,getIsolatedOperationCopyConfig:()=>{throw Error('Config-only test must not open a pool');},isIsolatedCopyReadonlyRuntime:()=>copyState.read,getIsolatedCopyReadonlyRuntime:()=>{throw Error('Config-only test must not open a pool');}});
  const topology=dependency('../services/isolatedOperationCopyContext.mjs',{isolatedCopyTopology:()=>{throw Error('Config-only test must not open a pool');}});
  dependency('../services/crmOrderCurrentContext.mjs',{getCrmOrderCurrentContext:()=>null,assertCrmOrderCurrentIdentity:()=>{throw Error('Config-only test must not open a pool');}});

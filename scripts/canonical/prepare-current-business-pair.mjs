@@ -128,7 +128,8 @@ export const C06_6D_SOURCE_PIN='6d33158eb5fad0ce8a27026bcacfb0c5219be664';
 export const C06_D670_SOURCE_PIN='d670318b4d88deac46f0f2695ba33c51a5d4104d';
 export const C06_F17_SOURCE_PIN='f17cb3412d627815000fefe9b059685386287f3d';
 export const C06_154_SOURCE_PIN='154f73c790e8cbafb6bc1e291f19b7e1751c9c8b';
-export function assertC06SuccessorPinned(application){requireThat([C06_SUCCESSOR_SOURCE_PIN,C06_D246_SOURCE_PIN,C06_C2CE_SOURCE_PIN,C06_EC80_SOURCE_PIN,C06_6D_SOURCE_PIN,C06_D670_SOURCE_PIN,C06_F17_SOURCE_PIN,C06_154_SOURCE_PIN].includes(application),'C06_SOURCE_PIN_UNSET_OR_MISMATCH');return true;}
+export const C06_7AB_SOURCE_PIN='7ab1ebd85841bd53c8a0daeae1eedecd076282af';
+export function assertC06SuccessorPinned(application){requireThat([C06_SUCCESSOR_SOURCE_PIN,C06_D246_SOURCE_PIN,C06_C2CE_SOURCE_PIN,C06_EC80_SOURCE_PIN,C06_6D_SOURCE_PIN,C06_D670_SOURCE_PIN,C06_F17_SOURCE_PIN,C06_154_SOURCE_PIN,C06_7AB_SOURCE_PIN].includes(application),'C06_SOURCE_PIN_UNSET_OR_MISMATCH');return true;}
 export const C06_WEB_ROOTS=Object.freeze([...WEB_ROOTS,'apps/sites-workflow/src/workflow/workCustomers.js','apps/sites-workflow/src/workflow/workingCatalogSession.mjs']);
 export const C06_WEB_SOURCE_FILES=Object.freeze([
  ...WEB_SOURCE_FILES,
@@ -148,7 +149,7 @@ export const C06_D670_WEB_SOURCE_FILES=Object.freeze([...C06_EC80_WEB_SOURCE_FIL
 export const C06_154_WEB_ROOTS=Object.freeze([...C06_D670_WEB_ROOTS,'apps/sites-workflow/src/workflow/workPurchases.js']);
 export const C06_154_WEB_SOURCE_FILES=Object.freeze([...C06_D670_WEB_SOURCE_FILES,...['workInboundFx.js','workInboundFxModel.mjs','workPurchasePresentation.mjs','workPurchases.js'].map(n=>'apps/sites-workflow/src/workflow/'+n)]);
 export function currentC06WebClosure({readSource,parse,relativeImports,sourcePin=C06_SUCCESSOR_SOURCE_PIN}){
- assertC06SuccessorPinned(sourcePin);const sources=sourcePin===C06_154_SOURCE_PIN?C06_154_WEB_SOURCE_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_SOURCE_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_SOURCE_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_SOURCE_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_SOURCE_FILES:C06_WEB_SOURCE_FILES,roots=sourcePin===C06_154_SOURCE_PIN?C06_154_WEB_ROOTS:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_ROOTS:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_ROOTS:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_ROOTS:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_ROOTS:C06_WEB_ROOTS;
+ assertC06SuccessorPinned(sourcePin);const newest=sourcePin===C06_154_SOURCE_PIN||sourcePin===C06_7AB_SOURCE_PIN;const sources=newest?C06_154_WEB_SOURCE_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_SOURCE_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_SOURCE_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_SOURCE_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_SOURCE_FILES:C06_WEB_SOURCE_FILES,roots=newest?C06_154_WEB_ROOTS:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_ROOTS:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_ROOTS:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_ROOTS:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_ROOTS:C06_WEB_ROOTS;
  const map=new Map(),queue=[...roots],allowed=new Set(sources);
  requireThat(allowed.size===sources.length,'C06_WEB_DUPLICATE');
  while(queue.length){const file=queue.pop();if(map.has(file))continue;requireThat(allowed.has(file),'C06_WEB_CLOSURE_PATH');const b=readSource(file);requireThat(Buffer.isBuffer(b)&&b.length>0,'C06_WEB_CLOSURE_BYTES');map.set(file,b);
@@ -178,6 +179,8 @@ export const C06_D670_API_SOURCE_FILES=Object.freeze([...C06_API_SOURCE_FILES,
  ...['businessSelectedSaleCollectionPreparation','isolatedOperationCopyStoreFactory','businessSelectedCollectionWriteScope','businessSelectedSaleHistoricalReadProof','businessSelectedSaleInvoiceRead','businessSelectedSaleNativeContext'].map(n=>'apps/api/src/services/'+n+'.mjs'),
  'scripts/canonical/shared-business-selected-collection-revision-bootstrap.mjs','scripts/canonical/shared-business-selected-collection-revision-sql.mjs']);
 export const C06_D670_NEW_API_FILES=Object.freeze(['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs',...C06_D670_API_SOURCE_FILES.slice(C06_API_SOURCE_FILES.length).filter(p=>p!=='apps/api/src/routes/workCollectionRoutes.mjs')]);
+export const C06_7AB_API_SOURCE_FILES=Object.freeze([...C06_D670_API_SOURCE_FILES,'apps/api/src/config/database.js','apps/api/src/config/canonicalReadonlyAuthQuery.mjs','apps/api/src/routes/c06SaleReadonlyMetadataRoutes.mjs','apps/api/src/services/c06SaleReadonlyMetadata.mjs']);
+export const C06_7AB_NEW_API_FILES=Object.freeze([...C06_D670_NEW_API_FILES,...C06_7AB_API_SOURCE_FILES.slice(C06_D670_API_SOURCE_FILES.length+1)]);
 export const C06_WEB_RUNTIME_FILES=Object.freeze(['apps/sites-workflow/business-web-gateway.mjs','apps/sites-workflow/business-web-release.mjs','apps/sites-workflow/business-preview-boundary.mjs','apps/sites-workflow/business-preview-session.mjs','apps/sites-workflow/src/workflow/businessWorkface.mjs','apps/api/src/services/canonicalBusinessSaleReadModel.mjs','apps/api/src/services/canonicalBusinessPartyHistoryModel.mjs','apps/sites-workflow/business-web-backend-proof.ps1']);
 // These source witnesses are pinned for the sales dependency audit only. They
 // are not executed, compiled, packaged as a SQL change, or installed here.
@@ -188,8 +191,9 @@ export const C06_C2CE_GIT_FILES=Object.freeze([...new Set([...C06_API_SOURCE_FIL
 export const C06_EC80_GIT_FILES=Object.freeze([...new Set([...C06_API_SOURCE_FILES,...C06_EC80_WEB_SOURCE_FILES,...C06_WEB_RUNTIME_FILES,...C06_SALE_UNAPPLIED_SQL_SOURCE_FILES])].sort());
 export const C06_D670_GIT_FILES=Object.freeze([...new Set([...C06_D670_API_SOURCE_FILES,...C06_D670_WEB_SOURCE_FILES,...C06_WEB_RUNTIME_FILES,...C06_SALE_UNAPPLIED_SQL_SOURCE_FILES])].sort());
 export const C06_154_GIT_FILES=Object.freeze([...new Set([...C06_D670_API_SOURCE_FILES,...C06_154_WEB_SOURCE_FILES,...C06_WEB_RUNTIME_FILES,...C06_SALE_UNAPPLIED_SQL_SOURCE_FILES])].sort());
+export const C06_7AB_GIT_FILES=Object.freeze([...new Set([...C06_7AB_API_SOURCE_FILES,...C06_154_WEB_SOURCE_FILES,...C06_WEB_RUNTIME_FILES,...C06_SALE_UNAPPLIED_SQL_SOURCE_FILES])].sort());
 export function assertC06GitBlobClosure({paths,gitBlobs,workingBytes,sourcePin=C06_SUCCESSOR_SOURCE_PIN}){
- assertC06SuccessorPinned(sourcePin);const files=sourcePin===C06_154_SOURCE_PIN?C06_154_GIT_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_GIT_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_GIT_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_GIT_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_GIT_FILES:C06_GIT_FILES;
+ assertC06SuccessorPinned(sourcePin);const files=sourcePin===C06_7AB_SOURCE_PIN?C06_7AB_GIT_FILES:sourcePin===C06_154_SOURCE_PIN?C06_154_GIT_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_GIT_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_GIT_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_GIT_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_GIT_FILES:C06_GIT_FILES;
  requireThat(Array.isArray(paths)&&new Set(paths).size===paths.length&&paths.length===files.length&&files.every(p=>paths.includes(p))&&gitBlobs instanceof Map&&workingBytes instanceof Map&&gitBlobs.size===paths.length&&workingBytes.size===paths.length,'C06_GIT_CLOSURE');
  for(const p of files){const committed=gitBlobs.get(p),actual=workingBytes.get(p);requireThat(Buffer.isBuffer(committed)&&committed.length>0&&Buffer.isBuffer(actual)&&Buffer.from(lf(actual)).equals(committed),'C06_GIT_BLOB_DRIFT');}
  return true;
@@ -202,7 +206,7 @@ export const C06_EC80_WEB_PAYLOAD_FILES=Object.freeze([...new Set([...C06_EC80_W
 export const C06_D670_WEB_PAYLOAD_FILES=Object.freeze([...new Set([...C06_D670_WEB_SOURCE_FILES,...C06_WEB_RUNTIME_FILES])]);
 export const C06_154_WEB_PAYLOAD_FILES=Object.freeze([...new Set([...C06_154_WEB_SOURCE_FILES,...C06_WEB_RUNTIME_FILES])]);
 export function currentC06WebPayloadRows({base,overlays,sourcePin=C06_SUCCESSOR_SOURCE_PIN}){
- assertC06SuccessorPinned(sourcePin);const files=sourcePin===C06_154_SOURCE_PIN?C06_154_WEB_PAYLOAD_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_PAYLOAD_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_PAYLOAD_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_PAYLOAD_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_PAYLOAD_FILES:C06_WEB_PAYLOAD_FILES;
+ assertC06SuccessorPinned(sourcePin);const files=sourcePin===C06_154_SOURCE_PIN||sourcePin===C06_7AB_SOURCE_PIN?C06_154_WEB_PAYLOAD_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_PAYLOAD_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_PAYLOAD_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_PAYLOAD_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_PAYLOAD_FILES:C06_WEB_PAYLOAD_FILES;
  assertPairRows(base.files);requireThat(overlays instanceof Map&&overlays.size===files.length&&files.every(p=>Buffer.isBuffer(overlays.get(p))&&overlays.get(p).length>0),'C06_WEB_EXACT_SOURCES');
  const rows=new Map(base.files.filter(r=>!r.path.startsWith('apps/sites-workflow/dist/')).map(r=>[r.path,structuredClone(r)]));
  const additions=new Set(['apps/sites-workflow/src/workflow/workCustomerMaster.mjs','apps/sites-workflow/business-web-gateway.mjs','apps/sites-workflow/business-web-release.mjs','apps/sites-workflow/business-web-backend-proof.ps1',...(sourcePin!==C06_SUCCESSOR_SOURCE_PIN?['apps/sites-workflow/src/workflow/savedBusinessSalesBasket.mjs']:[])]);
@@ -213,7 +217,7 @@ export function c06CandidateRoots(producer,sourcePin=C06_SUCCESSOR_SOURCE_PIN){a
 export function compileC06WebManifest({api,apiBytes,apiRoot,base,overlays,dist,producer,sourcePin=C06_SUCCESSOR_SOURCE_PIN}){
  const roots=c06CandidateRoots(producer,sourcePin);requireThat(apiRoot===roots.api&&Buffer.isBuffer(apiBytes)&&apiBytes.equals(encode(api))&&api.customerMasterSuccessor?.sourceCommit===sourcePin&&api.customerMasterSuccessor.producerCommit===producer&&api.customerMasterSuccessor.executionAuthority===false&&api.customerMasterSuccessor.installed===false,'C06_API_PAIR_BYTES');
  requireThat(base?.packageId===path.win32.basename(C06_BASE.web)&&base.database==='MELISA_ERP_SIRKET_TEST_20260929_01'&&base.backendManifestSha256===C06_BASE.apiSha256&&base.apiPort===4144&&base.webPort===5244&&base.actualT1===false&&base.externalOperations===false,'C06_WEB_BASE_IDENTITY');
- const files=sourcePin===C06_154_SOURCE_PIN?C06_154_WEB_PAYLOAD_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_PAYLOAD_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_PAYLOAD_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_PAYLOAD_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_PAYLOAD_FILES:C06_WEB_PAYLOAD_FILES,rows=new Map(currentC06WebPayloadRows({base,overlays,sourcePin}).map(r=>[r.path,r])),old=new Map(base.files.map(r=>[r.path,r]));requireThat(dist instanceof Map&&dist.has('ornek-akis.html')&&dist.size>0,'C06_DIST_REQUIRED');
+ const files=sourcePin===C06_154_SOURCE_PIN||sourcePin===C06_7AB_SOURCE_PIN?C06_154_WEB_PAYLOAD_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_PAYLOAD_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_PAYLOAD_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_PAYLOAD_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_PAYLOAD_FILES:C06_WEB_PAYLOAD_FILES,rows=new Map(currentC06WebPayloadRows({base,overlays,sourcePin}).map(r=>[r.path,r])),old=new Map(base.files.map(r=>[r.path,r]));requireThat(dist instanceof Map&&dist.has('ornek-akis.html')&&dist.size>0,'C06_DIST_REQUIRED');
  const seen=new Set();for(const [name,b] of dist){requireThat(Buffer.isBuffer(b)&&b.length>0,'C06_DIST_BYTES');assertPairRows([{path:name,sha256:sha(b),bytes:b.length}]);requireThat(!seen.has(name.toLowerCase()),'C06_DIST_ALIAS');seen.add(name.toLowerCase());rows.set('apps/sites-workflow/dist/'+name,{path:'apps/sites-workflow/dist/'+name,sha256:sha(b),bytes:b.length});}
  const html=dist.get('ornek-akis.html').toString(),assets=[...html.matchAll(/(?:src|href)=[\"'](\/assets\/[^\"']+)[\"']/g)].map(x=>x[1].slice(1));requireThat(assets.length>0&&assets.every(x=>dist.has(x)),'C06_DIST_ASSET_REFERENCE');
  const js=[...dist].filter(([name])=>name.endsWith('.js')).map(([,b])=>b.toString()).join('\n');requireThat(js.includes('ERP-5244-REALDATA-20261027')&&js.includes('http://127.0.0.1:4144')&&!js.includes('?.VITE_ERP_WORKFACE'),'C06_DIST_BUILD_TARGET');
@@ -227,8 +231,8 @@ export function verifyC06PassiveManifests({apiBytes,webBytes,apiBase,webBase,pro
  requireThat(Buffer.isBuffer(apiBytes)&&Buffer.isBuffer(webBytes)&&gitBlobs instanceof Map&&dist instanceof Map&&dist.has('ornek-akis.html'),'C06_READBACK_INPUT');const api=JSON.parse(apiBytes),web=JSON.parse(webBytes),roots=c06CandidateRoots(producer,sourcePin),a=api.customerMasterSuccessor,w=web.customerMasterSuccessor;
  requireThat(a?.sourceCommit===sourcePin&&w?.sourceCommit===sourcePin&&a.producerCommit===producer&&w.producerCommit===producer&&a.baseManifestSha256===C06_BASE.apiSha256&&w.baseManifestSha256===C06_BASE.webSha256&&a.executionAuthority===false&&w.executionAuthority===false&&a.installed===false&&w.installed===false&&w.runtimeVerified===false&&a.actualT1===false&&w.actualT1===false&&a.externalOperations===false&&w.externalOperations===false&&w.rollbackStatus==='UNVERIFIED'&&w.installationReadiness==='NOT_EVALUATED'&&JSON.stringify(w.installationChecks)===JSON.stringify(C06_INSTALLATION_CHECKS),'C06_READBACK_FLAGS');
  requireThat(a.salesSqlCompatibility?.state==='NOT_APPLIED_NOT_VERIFIED'&&a.salesSqlCompatibility.sqlExecuted===false&&a.salesSqlCompatibility.installationBlocked===true&&web.backendRoot===roots.api&&web.backendManifestSha256===sha(apiBytes)&&w.backendManifestSha256===sha(apiBytes)&&web.packageId===path.win32.basename(roots.web),'C06_READBACK_BINDING');
- const webFiles=sourcePin===C06_154_SOURCE_PIN?C06_154_WEB_PAYLOAD_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_PAYLOAD_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_PAYLOAD_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_PAYLOAD_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_PAYLOAD_FILES:C06_WEB_PAYLOAD_FILES;
- for(const [next,base,paths,overlay] of [[api,apiBase,(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?C06_D670_API_SOURCE_FILES:C06_API_SOURCE_FILES,a.files],[web,webBase,webFiles,w.files]]){
+ const webFiles=sourcePin===C06_154_SOURCE_PIN||sourcePin===C06_7AB_SOURCE_PIN?C06_154_WEB_PAYLOAD_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_WEB_PAYLOAD_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_WEB_PAYLOAD_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_WEB_PAYLOAD_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_WEB_PAYLOAD_FILES:C06_WEB_PAYLOAD_FILES;
+ for(const [next,base,paths,overlay] of [[api,apiBase,sourcePin===C06_7AB_SOURCE_PIN?C06_7AB_API_SOURCE_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?C06_D670_API_SOURCE_FILES:C06_API_SOURCE_FILES,a.files],[web,webBase,webFiles,w.files]]){
   const nextRows=new Map(assertPairRows(next.files).map(r=>[r.path,r])),baseRows=new Map(assertPairRows(base.files).map(r=>[r.path,r]));requireThat(Array.isArray(overlay)&&overlay.length===paths.length&&new Set(overlay.map(r=>r.path)).size===paths.length&&paths.every(p=>overlay.some(r=>r.path===p)),'C06_READBACK_COVERAGE');
   for(const p of paths){const row=overlay.find(r=>r.path===p),content=gitBlobs.get(p),old=baseRows.get(p);requireThat(Buffer.isBuffer(content)&&row.sha256===sha(content)&&row.sha256===nextRows.get(p)?.sha256&&row.bytes===content.length&&row.beforeSha256===(old?.sha256??null),'C06_READBACK_SOURCE');}
   for(const r of base.files)if(!paths.includes(r.path)&&(next===api||!r.path.startsWith('apps/sites-workflow/dist/')))requireThat(nextRows.get(r.path)?.sha256===r.sha256,'C06_READBACK_BASE_PRESERVATION');
@@ -238,8 +242,77 @@ export function verifyC06PassiveManifests({apiBytes,webBytes,apiBase,webBase,pro
  }
  const sql=a.salesSqlCompatibility.sourceWitnesses;requireThat(Array.isArray(sql)&&sql.length===C06_SALE_UNAPPLIED_SQL_SOURCE_FILES.length&&C06_SALE_UNAPPLIED_SQL_SOURCE_FILES.every(p=>sql.some(r=>r.path===p&&Buffer.isBuffer(gitBlobs.get(p))&&r.sha256===sha(gitBlobs.get(p)))),'C06_READBACK_SQL_SOURCE');return true;
 }
+// A separate, non-authoritative observation for the six extra 7ab roots.
+// The producer constructs expected rows from exact Git bytes before calling
+// the runner and re-reads them afterwards; transitive coverage stays unknown.
+export const C06_7AB_LOCAL_EXECUTED_TESTS=Object.freeze([
+ 'apps/api/src/config/canonicalReadonlyAuthQuery.test.mjs',
+ 'apps/api/src/config/canonicalReadonlyExistingPool.test.mjs',
+ 'apps/api/src/services/c06SaleReadonlyMetadata.test.mjs',
+ 'apps/api/src/routes/c06SaleReadonlyMetadataRoutes.test.mjs',
+ 'apps/api/src/routes/c06SaleReadonlyMetadataAuthIntegration.test.mjs',
+ 'apps/sites-workflow/src/workflow/workSupplierCardSwitch.test.mjs',
+]);
+// Independently fixed selected-input set, not a dependency-closure discovery
+// algorithm. A runner cannot replace these with another 54 Git-tracked files.
+export const C06_7AB_LOCAL_SELECTED_INPUTS=Object.freeze([
+ 'scripts/ci/offline-guard.cjs',
+ ...['workBusinessSalesRead.test.mjs','workCustomerMaster.test.mjs','workPurchasesRecovery.test.mjs','workCollectionsUnknownRecovery.test.mjs','workCollectionsSelectedSource.test.mjs','workBusinessReceivingRead.test.mjs','workCatalog.test.mjs'].map(p=>'apps/sites-workflow/src/workflow/'+p),
+ ...[
+  'shared-business-collection-history-bootstrap.mjs','shared-business-collection-history-sql.mjs',
+  'shared-business-daily-profit-revision.mjs','shared-business-daily-revision-sql.mjs',
+  'shared-business-operation-quarantine-parent-revision-sql.mjs','shared-business-operation-quarantine-revision.mjs',
+  'shared-business-product-price-bootstrap.mjs','shared-business-product-price-revision-contract.mjs',
+  'shared-business-product-price-revision-sql.mjs','shared-business-product-price-sale-bootstrap.mjs',
+  'shared-business-product-price-sale-sql.mjs','shared-business-selected-collection-revision-bootstrap.mjs',
+  'shared-business-selected-collection-revision-sql.mjs','shared-business-selected-sale-effects-revision-sql.mjs',
+  'shared-business-selected-sale-parent-revision-sql.mjs','shared-business-selected-sale-preview-sql.mjs',
+  'shared-business-selected-sale-revision-bootstrap.mjs','shared-business-selected-sale-revision-contract.mjs',
+  'shared-business-selected-sale-revision-sql.mjs','shared-business-selected-sale-write-scope-sql.mjs',
+  'shared-business-stock-predicate-distinct-revision-sql.mjs','shared-business-stock-predicate-distinct-source.mjs',
+  'shared-business-supplier-item-quarantine-parent-revision-sql.mjs','shared-business-supplier-item-quarantine-revision.mjs',
+  'shared-test-copy-revision-sql.mjs','shared-test-copy-sql.mjs','stage4-copy-context-sql.mjs','stage4-copy-sql.mjs',
+ ].map(p=>'scripts/canonical/'+p),
+ ...C06_7AB_LOCAL_EXECUTED_TESTS,
+ 'scripts/canonical/local-c06-test-runner.mjs',
+ 'apps/api/package.json','apps/api/package-lock.json',
+ 'apps/sites-workflow/package.json','apps/sites-workflow/package-lock.json',
+ 'apps/api/src/config/database.js','apps/api/src/config/canonicalReadonlyAuthQuery.mjs',
+ 'apps/api/src/services/authService.js','apps/api/src/middleware/authMiddleware.js',
+ 'apps/api/src/services/c06SaleReadonlyMetadata.mjs','apps/api/src/routes/c06SaleReadonlyMetadataRoutes.mjs',
+ 'apps/sites-workflow/src/workflow/workSuppliers.js',
+]);
+export function assertC06Added7abInputPaths(paths){
+ const fixed=C06_7AB_LOCAL_SELECTED_INPUTS.map(p=>path.join(PAIR_REPO,...p.split('/')));
+ requireThat(Array.isArray(paths)&&fixed.length===54&&new Set(fixed).size===54&&paths.length===fixed.length&&fixed.every((p,i)=>typeof paths[i]==='string'&&paths[i]===p),'C06_7AB_LOCAL_INPUT_PATHS');
+ return true;
+}
+export function c06Added7abInputCommit(relativePath,sourcePin,producer){
+ requireThat(sourcePin===C06_7AB_SOURCE_PIN&&typeof producer==='string'&&producer.length===40&&/^[a-f0-9]{40}$/.test(producer)&&C06_7AB_LOCAL_SELECTED_INPUTS.includes(relativePath),'C06_7AB_LOCAL_INPUT_REVISION');
+ return /^(?:apps|packages)\//.test(relativePath)?sourcePin:producer;
+}
+export function assertC06Added7abObservation(observation,expectedRows){
+ const s=observation?.summary;
+ const executed=C06_7AB_LOCAL_EXECUTED_TESTS.map(p=>path.join(PAIR_REPO,...p.split('/')));
+ assertC06Added7abInputPaths(Array.isArray(expectedRows)?expectedRows.map(r=>r?.file):null);
+ requireThat(Array.isArray(expectedRows)&&expectedRows.length===54&&new Set(expectedRows.map(r=>r.file)).size===54
+  &&expectedRows.every(r=>typeof r.file==='string'&&typeof r.sha256==='string'&&/^[a-f0-9]{64}$/.test(r.sha256))
+  &&observation?.schema==='c06-7ab-added-local-observation.v1'&&observation.scope==='PRODUCER'
+  &&observation.nodeSha256===NODE_DIGEST&&observation.historical176==='NOT_RUN'
+  &&observation.inputCoverage==='SELECTED_INPUTS_ONLY'
+  &&Array.isArray(observation.executedTests)&&observation.executedTests.length===executed.length
+  &&executed.every((p,i)=>typeof observation.executedTests[i]==='string'&&observation.executedTests[i]===p)
+  &&observation.coverage==='UNVERIFIED'&&observation.sourceImmutability==='UNVERIFIED'
+  &&observation.testRunObserved===true&&observation.testRunVerified===false&&observation.executionAuthority===false
+  &&s?.count===55&&s.passed===55&&s.failed===0&&s.cancelled===0&&s.skipped===0&&s.todo===0
+  &&/^[a-f0-9]{64}$/.test(observation.stdoutSha256??'')&&/^[a-f0-9]{64}$/.test(observation.stderrSha256??'')
+  &&Array.isArray(observation.inputs)&&observation.inputs.length===expectedRows.length
+  &&expectedRows.every((r,i)=>observation.inputs[i]?.file===r.file&&observation.inputs[i]?.sha256===r.sha256),'C06_7AB_LOCAL_OBSERVATION');
+ return true;
+}
 // Real producer entry's supported C06 path. No output directory is touched
-// until all source, CI and before-image checks have passed. Passive output
+// until source and before-image checks have passed. Hosted CI is not requested.
+// Local checks remain separate evidence, not installation authority. Passive output
 // has no installation authority; rollback remains separately unverified.
 export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SOURCE_PIN){
  assertC06SuccessorPinned(sourcePin);
@@ -252,6 +325,7 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  requireThat(sourcePin!==C06_D670_SOURCE_PIN,'C06_D670_OUTPUT_PARENT_UNVERIFIED');
  requireThat(sourcePin!==C06_F17_SOURCE_PIN,'C06_F17_OUTPUT_PARENT_UNVERIFIED');
  requireThat(sourcePin!==C06_154_SOURCE_PIN,'C06_154_OUTPUT_PARENT_UNVERIFIED');
+ requireThat(sourcePin!==C06_7AB_SOURCE_PIN,'C06_7AB_OUTPUT_PARENT_UNVERIFIED');
  requireThat(process.platform==='win32'&&path.resolve(fileURLToPath(import.meta.url))===path.join(PAIR_REPO,...PAIR_ENTRY.split('/')),'C06_ENTRY_PATH');
  requireThat(sha(read(NODE))===NODE_DIGEST&&path.resolve(process.execPath)===path.resolve(NODE),'C06_NODE');
  assertPairSource({repo:git(['rev-parse','--show-toplevel']).trim().replaceAll('/','\\'),branch:git(['branch','--show-current']).trim(),head:git(['rev-parse','HEAD']).trim(),producer,origins:[git(['remote','get-url','origin']).trim(),git(['remote','get-url','--push','origin']).trim()]});
@@ -259,12 +333,38 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  git(['merge-base','--is-ancestor',sourcePin,producer]);
  assertCurrentApplicationInputsUnchanged(git(['diff','--name-only',sourcePin,producer,'--','apps/api','apps/sites-workflow','packages']).trim().split(/\r?\n/).filter(Boolean));
  const records=new Map(HELPER_FILES.map(p=>[p,{actual:read(path.join(PAIR_REPO,...p.split('/'))),git:git(['show',producer+':'+p],true)}]));const helpers=await loadVerifiedPairHelpers(records);
- const apiFiles=(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?C06_D670_API_SOURCE_FILES:C06_API_SOURCE_FILES,newApiFiles=(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?C06_D670_NEW_API_FILES:['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs'];
- requireThat(JSON.stringify((sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?helpers.C06_D670_API_FILES:helpers.C06_SUCCESSOR_API_FILES)===JSON.stringify(apiFiles)&&JSON.stringify((sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN)?helpers.C06_D670_NEW_API_FILES:newApiFiles)===JSON.stringify(newApiFiles),'C06_API_SOURCE_CONTRACT');
- const gh=p=>JSON.parse(cp.execFileSync('gh',['api',p],{cwd:PAIR_REPO,windowsHide:true,maxBuffer:16000000}));
- const pr=gh('repos/melihsnyldzz-ui/melisa-erp-v2/pulls/54'),runs=gh('repos/melihsnyldzz-ui/melisa-erp-v2/actions/runs?head_sha='+producer+'&per_page=100').workflow_runs,jobs=new Map();for(const event of ['push','pull_request']){const r=runs.filter(r=>r.head_sha===producer&&r.path==='.github/workflows/ci.yml'&&r.event===event).sort((a,b)=>b.id-a.id)[0];if(r)jobs.set(r.id,gh('repos/melihsnyldzz-ui/melisa-erp-v2/actions/runs/'+r.id+'/attempts/1/jobs?per_page=100').jobs);}const ci=helpers.validateCustomerMetadataCI(producer,pr,runs,jobs);
+ const newer=sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN||sourcePin===C06_154_SOURCE_PIN;
+ const apiFiles=sourcePin===C06_7AB_SOURCE_PIN?C06_7AB_API_SOURCE_FILES:newer?C06_D670_API_SOURCE_FILES:C06_API_SOURCE_FILES,newApiFiles=sourcePin===C06_7AB_SOURCE_PIN?C06_7AB_NEW_API_FILES:newer?C06_D670_NEW_API_FILES:['apps/api/src/routes/customerMasterCanonicalRoutes.mjs','apps/api/src/controllers/customerMasterController.mjs'];
+ requireThat(JSON.stringify(sourcePin===C06_7AB_SOURCE_PIN?helpers.C06_7AB_API_FILES:newer?helpers.C06_D670_API_FILES:helpers.C06_SUCCESSOR_API_FILES)===JSON.stringify(apiFiles)&&JSON.stringify(sourcePin===C06_7AB_SOURCE_PIN?helpers.C06_7AB_NEW_API_FILES:newer?helpers.C06_D670_NEW_API_FILES:newApiFiles)===JSON.stringify(newApiFiles),'C06_API_SOURCE_CONTRACT');
+ const gitFiles=sourcePin===C06_7AB_SOURCE_PIN?C06_7AB_GIT_FILES:sourcePin===C06_154_SOURCE_PIN?C06_154_GIT_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_GIT_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_GIT_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_GIT_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_GIT_FILES:C06_GIT_FILES,gitBlobs=new Map(gitFiles.map(p=>[p,git(['show',sourcePin+':'+p],true)])),workingBytes=new Map(gitFiles.map(p=>[p,read(path.join(PAIR_REPO,...p.split('/')))]));assertC06GitBlobClosure({paths:gitFiles,gitBlobs,workingBytes,sourcePin});
+ // Run the fixed local suite; bind its runner bytes to the producer commit.
+ // This observation is not an immutable-source proof or install authority.
+ const localRunnerPath='scripts/canonical/local-c06-test-runner.mjs',localRunnerBytes=git(['show',producer+':'+localRunnerPath],true);
+ requireThat(Buffer.from(lf(read(path.join(PAIR_REPO,...localRunnerPath.split('/'))))).equals(localRunnerBytes),'C06_LOCAL_RUNNER_BYTES');
+ const localRunner=await import('data:text/javascript;base64,'+localRunnerBytes.toString('base64'));
+ const localInputPaths=localRunner.localC06InputPaths();requireThat(Array.isArray(localInputPaths)&&localInputPaths.length===36&&new Set(localInputPaths).size===36,'C06_LOCAL_INPUT_COUNT');
+ const assertLocalSourceClean=()=>{git(['diff','--exit-code',producer,'--','apps','packages']);requireThat(!git(['ls-files','--others','--exclude-standard','--','apps','packages']).trim(),'C06_LOCAL_UNTRACKED_SOURCE');};
+ assertLocalSourceClean();
+ const localInputRows=localInputPaths.map(file=>{const rel=path.relative(PAIR_REPO,file).replaceAll('\\','/');requireThat(!rel.startsWith('../')&&!path.isAbsolute(rel),'C06_LOCAL_INPUT_PATH');const actual=read(file),expected=git(['show',producer+':'+rel],true);requireThat(Buffer.from(lf(actual)).equals(expected),'C06_LOCAL_INPUT_SOURCE');return {file,sha256:sha(actual)};});
+ const localTestObservation=localRunner.observeC06LocalTests();
+ requireThat(JSON.stringify(localTestObservation.inputs)===JSON.stringify(localInputRows),'C06_LOCAL_INPUT_DRIFT');for(const row of localInputRows)requireThat(sha(read(row.file))===row.sha256,'C06_LOCAL_INPUT_DRIFT');assertLocalSourceClean();
+ let localAddedObservation=null;
+ if(sourcePin===C06_7AB_SOURCE_PIN){
+  requireThat(typeof localRunner.localC06ObservedInputs7ab==='function'&&typeof localRunner.observeC06Added7abTests==='function','C06_7AB_LOCAL_RUNNER_REQUIRED');
+  const paths=localRunner.localC06ObservedInputs7ab();assertC06Added7abInputPaths(paths);
+  // Application/test/package-lock inputs belong to exact 7ab source; the
+  // guard/runner/canonical source witnesses belong to the producer commit.
+  // This binding covers only these selected rows, not dynamic imports, the
+  // installed dependencies or an immutable execution snapshot.
+  assertLocalSourceClean();const rows=paths.map(file=>{const rel=path.relative(PAIR_REPO,file).replaceAll('\\','/');requireThat(!rel.startsWith('../')&&!path.isAbsolute(rel),'C06_LOCAL_INPUT_PATH');const commit=c06Added7abInputCommit(rel,sourcePin,producer);const actual=read(file),expected=git(['show',commit+':'+rel],true);requireThat(Buffer.from(lf(actual)).equals(expected),'C06_7AB_LOCAL_INPUT_SOURCE');return {file,sha256:sha(actual)};});
+  localAddedObservation=localRunner.observeC06Added7abTests();assertC06Added7abObservation(localAddedObservation,rows);
+  for(const row of rows)requireThat(sha(read(row.file))===row.sha256,'C06_LOCAL_INPUT_DRIFT');assertLocalSourceClean();
+  // Neither these roots nor local before/after reads prove all transitive
+  // dependencies or an immutable installed runtime.
+  throw Error('C06_7AB_LOCAL_TEST_CLOSURE_UNVERIFIED');
+ }
+ const ci=[{state:'NOT_REQUESTED',allJobsAndStepsSuccess:false}];
  const raw=[C06_BASE.api,C06_BASE.web].map((root,i)=>{const b=read(path.join(root,'release-manifest.json'));requireThat(sha(b)===[C06_BASE.apiSha256,C06_BASE.webSha256][i],'C06_BASE_DIGEST');return b;});const [apiBase,webBase]=raw.map(b=>JSON.parse(b));verifyPayload(C06_BASE.api,apiBase);verifyPayload(C06_BASE.web,webBase);
- const gitFiles=sourcePin===C06_154_SOURCE_PIN?C06_154_GIT_FILES:(sourcePin===C06_D670_SOURCE_PIN||sourcePin===C06_F17_SOURCE_PIN)?C06_D670_GIT_FILES:sourcePin===C06_6D_SOURCE_PIN||sourcePin===C06_EC80_SOURCE_PIN?C06_EC80_GIT_FILES:sourcePin===C06_C2CE_SOURCE_PIN?C06_C2CE_GIT_FILES:sourcePin===C06_D246_SOURCE_PIN?C06_D246_GIT_FILES:C06_GIT_FILES,gitBlobs=new Map(gitFiles.map(p=>[p,git(['show',sourcePin+':'+p],true)])),workingBytes=new Map(gitFiles.map(p=>[p,read(path.join(PAIR_REPO,...p.split('/')))]));assertC06GitBlobClosure({paths:gitFiles,gitBlobs,workingBytes,sourcePin});
  const apiIndex=new Map(apiBase.files.map(r=>[r.path,r])),webIndex=new Map(webBase.files.map(r=>[r.path,r]));const readBase=p=>{const r=apiIndex.get(p);requireThat(r,'C06_API_BASE_DEPENDENCY');const b=read(path.join(C06_BASE.api,...p.split('/')));requireThat(sha(b)===r.sha256,'C06_API_BASE_DRIFT');return b;};
  const parserPath='apps/sites-workflow/node_modules/@babel/parser/lib/index.js',parserRow=webIndex.get(parserPath),parserBytes=read(path.join(C06_BASE.web,...parserPath.split('/')));requireThat(parserRow&&sha(parserBytes)===parserRow.sha256,'C06_PARSER');const exports={};vm.runInNewContext(parserBytes.toString(),{exports,module:{exports}},{timeout:5000,contextCodeGeneration:{strings:false,wasm:false}});const parse=exports.parse;requireThat(typeof parse==='function','C06_PARSER_EXPORT');
  const preview=await import('data:text/javascript;base64,'+records.get(HELPER_FILES[1]).git.toString('base64'));
@@ -288,9 +388,9 @@ export async function prepareC06BusinessPair(producer,sourcePin=C06_SUCCESSOR_SO
  const webBytes=encode(webManifest);writeNew(path.join(roots.web,'release-manifest.json'),webBytes);
  // Independent, from-disk readback binds both manifests and every payload row.
  const apiRead=read(path.join(roots.api,'release-manifest.json')),webRead=read(path.join(roots.web,'release-manifest.json'));requireThat(apiRead.equals(apiBytes)&&webRead.equals(webBytes),'C06_MANIFEST_READBACK');const apiVerified=JSON.parse(apiRead),webVerified=JSON.parse(webRead);verifyPayload(roots.api,apiVerified);verifyPayload(roots.web,webVerified);verifyC06PassiveManifests({apiBytes:apiRead,webBytes:webRead,apiBase,webBase,producer,gitBlobs,dist,sourcePin});verifyPayload(C06_BASE.api,apiBase);verifyPayload(C06_BASE.web,webBase);requireThat(webVerified.backendManifestSha256===sha(apiRead)&&apiVerified.customerMasterSuccessor.executionAuthority===false&&webVerified.customerMasterSuccessor.executionAuthority===false,'C06_PAIR_READBACK');
- const receipt={schemaVersion:'melisa-c06-passive-pair.v1',sourceCommit:sourcePin,producerCommit:producer,apiRoot:roots.api,webRoot:roots.web,apiManifestSha256:sha(apiRead),webManifestSha256:sha(webRead),apiFiles:apiVerified.files.length,webFiles:webVerified.files.length,ci,apiSourceClosure:apiClosure.sourceFiles,webSourceClosure:web.size,gitSourceFiles:gitFiles.length,salesSqlCompatibility:'NOT_APPLIED_NOT_VERIFIED',rollbackStatus:'UNVERIFIED',installationReadiness:'NOT_EVALUATED',installationChecks:C06_INSTALLATION_CHECKS,installed:false,runtimeVerified:false,executionAuthority:false,actualT1:false,externalOperations:false,sqlCalls:0,serviceChanges:0,configChanges:0};writeNew(roots.receipt,encode(receipt));return receipt;
+ const receipt={schemaVersion:'melisa-c06-passive-pair.v1',sourceCommit:sourcePin,producerCommit:producer,apiRoot:roots.api,webRoot:roots.web,apiManifestSha256:sha(apiRead),webManifestSha256:sha(webRead),apiFiles:apiVerified.files.length,webFiles:webVerified.files.length,ci,ciState:'NOT_REQUESTED',localTestObservation,...(localAddedObservation?{localAddedObservation}:{}),apiSourceClosure:apiClosure.sourceFiles,webSourceClosure:web.size,gitSourceFiles:gitFiles.length,salesSqlCompatibility:'NOT_APPLIED_NOT_VERIFIED',rollbackStatus:'UNVERIFIED',installationReadiness:'NOT_EVALUATED',installationChecks:C06_INSTALLATION_CHECKS,installed:false,runtimeVerified:false,executionAuthority:false,actualT1:false,externalOperations:false,sqlCalls:0,serviceChanges:0,configChanges:0};writeNew(roots.receipt,encode(receipt));return receipt;
 }
 if(import.meta.url.startsWith('file:')&&process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- requireThat(process.argv.length===5&&['--prepare','--prepare-c06','--prepare-c06-d246','--prepare-c06-c2ce','--prepare-c06-ec80','--prepare-c06-6d','--prepare-c06-d670','--prepare-c06-f17','--prepare-c06-154'].includes(process.argv[2])&&process.argv[3]==='--producer','CLI');
- console.log(JSON.stringify(await (process.argv[2]==='--prepare'?prepareCurrentBusinessPair(process.argv[4]):prepareC06BusinessPair(process.argv[4],process.argv[2]==='--prepare-c06-154'?C06_154_SOURCE_PIN:process.argv[2]==='--prepare-c06-f17'?C06_F17_SOURCE_PIN:process.argv[2]==='--prepare-c06-d670'?C06_D670_SOURCE_PIN:process.argv[2]==='--prepare-c06-6d'?C06_6D_SOURCE_PIN:process.argv[2]==='--prepare-c06-ec80'?C06_EC80_SOURCE_PIN:process.argv[2]==='--prepare-c06-c2ce'?C06_C2CE_SOURCE_PIN:process.argv[2]==='--prepare-c06-d246'?C06_D246_SOURCE_PIN:C06_SUCCESSOR_SOURCE_PIN))));
+ requireThat(process.argv.length===5&&['--prepare','--prepare-c06','--prepare-c06-d246','--prepare-c06-c2ce','--prepare-c06-ec80','--prepare-c06-6d','--prepare-c06-d670','--prepare-c06-f17','--prepare-c06-154','--prepare-c06-7ab'].includes(process.argv[2])&&process.argv[3]==='--producer','CLI');
+ console.log(JSON.stringify(await (process.argv[2]==='--prepare'?prepareCurrentBusinessPair(process.argv[4]):prepareC06BusinessPair(process.argv[4],process.argv[2]==='--prepare-c06-7ab'?C06_7AB_SOURCE_PIN:process.argv[2]==='--prepare-c06-154'?C06_154_SOURCE_PIN:process.argv[2]==='--prepare-c06-f17'?C06_F17_SOURCE_PIN:process.argv[2]==='--prepare-c06-d670'?C06_D670_SOURCE_PIN:process.argv[2]==='--prepare-c06-6d'?C06_6D_SOURCE_PIN:process.argv[2]==='--prepare-c06-ec80'?C06_EC80_SOURCE_PIN:process.argv[2]==='--prepare-c06-c2ce'?C06_C2CE_SOURCE_PIN:process.argv[2]==='--prepare-c06-d246'?C06_D246_SOURCE_PIN:C06_SUCCESSOR_SOURCE_PIN))));
 }

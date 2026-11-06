@@ -1,3 +1,11 @@
+## 6 Kasım 2026 — masaüstü boş TEST: ilk satış, iptal, restore ve fiş
+
+PR54 kaynağı korunarak kullanıcı yetkili masaüstü linked worktree içinde ayrı 36 tabloluk TEST üzerinde çalışıldı. Normal erp_deneme oturumunda müşteri ve iki ürün → taslak → hazırlama/rezerv → iki koli → son kontrol → çıkış → tek finalized satış doğrulandı. Stok 5/6'dan 4/4'e, müşteri ve bağlı TRY hesabı 0'dan 50'ye geldi. Aynı UUID ile iki HTTP tekrarı ek etki üretmedi. İkinci 30 TRY taslak normal ekranda iptal edildi; rezervler bırakıldı, stok ve cari değişmedi.
+
+Uygulama yeniden açıldıktan sonra normal giriş, fiş arama/açma, ürün stoğu ve müşteri bakiyesi görüldü. Tek sayfalık A4 PDF incelendi. Ayrı DB'ye gerçek COPY_ONLY/CHECKSUM restore, 36 tablo satır hash'i ve denetlenen metadata eşliği ile CHECKDB geçti. Kaynak veriler, eski yedekler ve kaynak izinleri değişmedi. Restore yedeği ikinci iptal denemesinden öncedir.
+
+Seçili 51 Node test dosyası mevcut offline guard ve temiz ortamla geçti; bağımsız dar incelemeler yapıldı. Bu normal GUI/SQL otomasyon kanıtıdır, insan/ticari kabulü değildir. Aktif paket 616BE3CA4C7838A4572B68C8F994B046E8CDF27EE67117FCD8A5B64A92D1EA5B; yalnız 127.0.0.1:5294/4294. Dal codex/erp-desktop-clean-20261105; teslim commit'i izleyen kayıt/PR başından verilecek. Yeni exact CI ve PR henüz doğrulanmadı. Main/LAN5244/LIVE yayını ve özgün 49+25 sayaç/UA kapanışı yapılmadı. [Yöntem, kanıt ve kalan kapsam](docs/evidence/erp/2026-11-06-desktop-first-sale/README.md).
+
 ## 4 Kasım 2026 — alış/tahsilat paket kaynak kapsamı
 
 - `e84e9394`: 154f73c7 uygulama kaynağına API20/WEB63 için ayrı pasif kaynak case eklendi; alış modülü ve dört kaynak bağı ile tahsilat dahil. Eski pinler ve I/O öncesi OUTPUT_PARENT_UNVERIFIED korunur.

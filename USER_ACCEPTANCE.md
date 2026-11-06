@@ -1,3 +1,9 @@
+## 6 Kasım — ERP-UA07 masaüstü boş TEST dilimi; insan kabulü BEKLİYOR
+
+Normal ekranda iki ürünlü TRY satışın taslak, rezerv, koli, son kontrol, çıkış ve listeden tekrar açılması teknik otomasyonla gözlendi. Stok 5/6→4/4, müşteri ve bağlı TRY hesabı 0→50. İkinci hazırlanan taslak iptal edildi; önceki satışın etkileri değişmedi. Gerçek kaynak DB yedeği ayrı izole DB'ye yüklendi; veri ve denetlenen metadata eşliği/CHECKDB ile asıl uygulamanın yeniden açılışı ayrıca doğrulandı. Tek sayfalık A4 PDF incelendi; fiziksel yazıcı test edilmedi.
+
+Bu sonuç, kullanıcı/personel satış kabulü, döviz/iskonto/fiyat yetkisi, terminal veya tüm ERP kabulü değildir. Önceki UA kişileri, tarihleri, sonuçları ve özgün sayaçlar korunur. [Kapsam ve kanıt](docs/evidence/erp/2026-11-06-desktop-first-sale/README.md).
+
 ## 3 Kasım — aynı C06/C01/C03/B06-C08 /2254; insan kabulü BEKLİYOR
 
 716offlinekaynaktesti+buildvebağımsızreview, normalnativeSQL/kurulum/gerçekekran/personelkabulüdeğildir. C06yeniGETroutegerçekteçağrılmadı/metadataSQL0; defaultmaster503. C01mal kabul, C03FX/alış ve B06/C08finans recovery kontrolleri sourcehazır; ödemeUA14/B06-C07-C08, tahsilatUA08/B06-C08+UA14korunur. TeknikC09görevadları özgünC09fiyatı kapatmaz. C08ownGUIIABunavailableBLOCKED; screenshot/normalGUI/humanPASSyok. Mevcut49+25sayaçları ve kabuller korunur. [2254 kaynak, paralel işler ve gerçek runtime sınırı](docs/evidence/erp/2026-11-02-customer-master/route-runtime.md).

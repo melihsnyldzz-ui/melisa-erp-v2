@@ -1,0 +1,52 @@
+// Real invoiceDraftService + synthetic in-memory SQL driver. This is not SQL
+// Server, a running service, a deployment, or user acceptance.
+import test from 'node:test';import assert from 'node:assert/strict';import {desktopSaleSelectionRevision} from './desktopSalePreparation.mjs';
+const selection={customer:{id:'2',customerCode:'M1',entityId:'3',accountId:'4',accountCustomerId:'2',accountEntityId:'3',accountSupplierId:null,accountCurrency:'TRY',currency:'TRY',active:true,balanceExact4:'1.0000',accountBalanceExact8:'1.00000000'},product:{id:'5',unitId:'6',priceId:'7',unitProductId:'5',priceProductId:'5',priceUnitId:'6',barcodeProductId:'5',priceType:'sale',currency:'TRY',active:true,unitFactorExact8:'1.00000000',mainUnit:true,stockCode:'P1',name:'Ürün',barcode:'0001',unit:'ADET',stockExact3:'4.000',priceExact4:'10.0000',averageCostTryExact4:'5.3000'}};
+test('actual native draft + finalize with synthetic SQL driver, private account posting, receipt readback and same-request replay',async t=>{
+ const connector={},pool={},auth={bindSaleService:x=>x},seen=[],unknown=[];let failPost=false,corruptOutcome=false,pilotQueries=0,postAttempts=0,state={journal:null,invoice:null,items:[],stock:4,customer:1,account:1,movements:0,stockRows:0,audits:0,posted:0};
+ class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=this.data;this.open=false;}async rollback(){this.open=false;}}
+ class Request{constructor(tx){if(!tx?.open)throw Error('transaction required');this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const p=this.p,d=this.tx.data;seen.push(q);const one=x=>({recordset:[x]}),rows=x=>({recordset:x});
+  if(q.includes('@@TRANCOUNT transactionCount'))return one({targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1});
+  if(q.includes('FROM dbo.desktop_sale_requests j'))return {recordsets:[d.journal&&d.invoice?.status==='finalized'?[{invoiceId:'12',documentNo:d.invoice.documentNo,documentDate:d.invoice.documentDate,customerName:d.invoice.customerName,status:'FINALIZED',currency:'TRY',totalExact4:d.invoice.grandTotal.toFixed(4)}]:[],d.items.map(x=>({stockCode:x.stockCode,productName:x.productName,quantityExact3:Number(x.quantity).toFixed(3),unitPriceExact4:Number(x.unitPrice).toFixed(4),lineTotalExact4:Number(x.lineTotal).toFixed(4)}))]};
+  if(q.includes('FROM dbo.desktop_sale_requests')&&q.includes('SELECT'))return rows(d.journal?.requestId===p.requestId?[d.journal]:[]);
+  if(q.includes('FROM dbo.customers c WITH(UPDLOCK,HOLDLOCK)'))return {recordsets:[[selection.customer],[selection.product]]};
+  if(q.includes('COUNT_BIG(*) FROM dbo.sales_invoices i'))return one({ok:d.invoice&&d.items.length===1?1:0});
+  if(q.includes('DESKTOP_SALE_TRANSACTION_MISMATCH')){postAttempts++;if(failPost)throw Error('synthetic posting failure');d.posted++;d.account+=20;return one({ok:1});}
+  if(q.includes('receiptInvoiceId'))return rows([{invoiceId:'12',receiptInvoiceId:'12',stockMovementInvoiceId:'12',customerMovementInvoiceId:'12',status:'FINALIZED',invoiceCustomerId:'2',movementCustomerId:'2',productId:'5',stockMovementProductId:'5',stockMovementType:'out',stockMovementInExact3:'0.000',stockMovementNetExact3:'-2.000',stockMovementCurrency:corruptOutcome?'USD':'TRY',stockMovementDocumentDate:'2026-11-05',entityId:'3',accountId:'4',movementEntityId:'3',movementAccountId:'4',currency:'TRY',accountCurrency:'TRY',movementCurrency:'TRY',quantityExact3:'2.000',stockMovementOutExact3:'2.000',unitPriceExact4:'10.0000',totalExact4:'20.0000',customerMovementAmountExact4:'20.0000',accountPostingAmountExact8:'20.00000000',stockBeforeExact3:'4.000',stockAfterExact3:d.stock.toFixed(3),customerBeforeExact4:'1.0000',customerAfterExact4:d.customer.toFixed(4),accountBeforeExact8:'1.00000000',accountAfterExact8:d.account.toFixed(8),stockMovementCount:d.stockRows,customerMovementCount:d.movements,accountPostingCount:d.posted,invoiceItemCount:d.items.length}]);
+  if(q.includes('INSERT dbo.desktop_sale_requests')){d.journal={requestId:p.requestId,actorId:p.actorId,payloadHash:p.payloadHash,invoiceId:p.invoiceId,state:'COMMITTED'};return one({changed:1});}
+  if(q.includes('END AS is_ready'))return one({is_ready:0});
+  if(q.includes('currency_snapshot_ready'))return one({currency_snapshot_ready:1});
+  if(q.includes('FROM dbo.system_settings'))return rows([]);
+  if(q.includes('SELECT currency_code, is_active, is_deleted FROM dbo.customers'))return one({currency_code:'TRY',is_active:true,is_deleted:false});
+  if(q.includes('@pilotProductId')){pilotQueries++;return rows([]);}
+  if(q.includes('INSERT INTO dbo.sales_invoices')){d.invoice={id:12,documentNo:p.documentNo,documentDate:'2026-11-05',customerId:2,customerCode:'M1',customerName:'Ada',customerIsActive:true,status:'draft',customerCurrency:'TRY',documentCurrency:'TRY',exchangeRate:1,discountRate:0,discountTotal:0,grandTotal:20,subtotal:20,amountTry:20};return one({invoiceId:12});}
+  if(q.includes('INSERT INTO dbo.sales_invoice_items')){d.items.push({id:14,productId:5,stockCode:p.stockCode,barcode:p.barcode,productName:p.productName,quantity:p.quantity,currency:p.currency,unitPrice:p.unitPrice,lineTotal:p.lineTotal,averageCostTry:p.averageCostTry,currentStockQty:d.stock,productAverageCostTry:5.3});return {rowsAffected:[1],recordset:[]};}
+  if(q.includes('SELECT account_currency, account_amount, account_exchange_rate_snapshot'))return one({account_currency:'TRY',account_amount:20,account_exchange_rate_snapshot:1});
+  if(q.includes('UPDATE dbo.sales_invoices SET account_currency'))return {rowsAffected:[1],recordset:[]};
+  if(q.includes('WHERE si.id = @salesSnapshotId')||q.includes('WHERE si.id = @finalizeSnapshotId'))return rows(d.invoice?[{...d.invoice}]:[]);
+  if(q.includes('WHERE sii.sales_invoice_id = @salesItemsSnapshotId')||q.includes('WHERE sii.sales_invoice_id = @finalizeItemsSnapshotId'))return rows(d.items.map(x=>({...x,currentStockQty:d.stock})));
+  if(q.includes('INSERT INTO dbo.audit_logs')){d.audits++;return {rowsAffected:[1],recordset:[]};}
+  if(q.includes('FROM dbo.currency_rates'))return rows([]);
+  if(q.includes('UPDATE dbo.sales_invoice_items'))return {rowsAffected:[1],recordset:[]};
+  if(q.includes('UPDATE dbo.products')&&q.includes('current_stock_qty = current_stock_qty -')){d.stock-=2;return {rowsAffected:[1],recordset:[]};}
+  if(q.includes('INSERT INTO dbo.stock_movements')){d.stockRows++;return {rowsAffected:[1],recordset:[]};}
+  if(q.includes('INSERT INTO dbo.customer_movements')){d.movements++;return {rowsAffected:[1],recordset:[]};}
+  if(q.includes('SELECT id FROM dbo.customer_movements'))return one({id:16});
+  if(q.includes('UPDATE dbo.customer_movements SET account_currency'))return {rowsAffected:[1],recordset:[]};
+  if(q.includes('UPDATE dbo.customers')&&q.includes('balance = balance +')){d.customer+=20;return {rowsAffected:[1],recordset:[]};}
+  if(q.includes("status = N'finalized'")){d.invoice.status='finalized';return {rowsAffected:[1],recordset:[]};}
+  unknown.push(q);throw Error('UNEXPECTED_SQL');}}
+ const sql={Transaction,Request,NVarChar:()=>null,Decimal:()=>null,BigInt:{},Int:{},Date:{},Bit:{},MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}};
+ t.mock.module('mssql',{exports:{default:sql}});t.mock.module('mssql/msnodesqlv8.js',{exports:{default:sql}});t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{if(c!==connector)throw Error('forged');return pool;}}});t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{if(a!==auth||p!==pool)throw Error('forged');return async()=>true;}}});
+ const {createDesktopSalePrivateService}=await import('./desktopSalePrivateService.mjs'),service=createDesktopSalePrivateService({connector,auth}),request={requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerId:'2',productId:'5',quantityExact3:'2.000',documentDate:'2026-11-05',expectedRevision:desktopSaleSelectionRevision(selection)};
+ const empty={journal:null,invoice:null,items:[],stock:4,customer:1,account:1,movements:0,stockRows:0,audits:0,posted:0};
+ const originalPilot=process.env.MELISA_PILOT_RUNTIME;try{process.env.MELISA_PILOT_RUNTIME='true';assert.equal((await service.sell('8',request)).state,'UNKNOWN');assert.equal(pilotQueries,1);assert.deepEqual(state,empty);}finally{if(originalPilot===undefined)delete process.env.MELISA_PILOT_RUNTIME;else process.env.MELISA_PILOT_RUNTIME=originalPilot;}
+ failPost=true;const interrupted=await service.sell('8',request);assert.equal(interrupted.state,'UNKNOWN');assert.equal(postAttempts,1);assert.deepEqual(state,empty);failPost=false;
+ corruptOutcome=true;assert.equal((await service.sell('8',request)).state,'UNKNOWN');assert.equal(postAttempts,2);assert.deepEqual(state,empty);corruptOutcome=false;
+ const result=await service.sell('8',request);assert.equal(result.state,'COMMITTED',`native stopped after ${seen.length} SQL calls; unhandled SQL: ${unknown.at(-1)?.replace(/\s+/g,' ').slice(0,220)??'none'}; last: ${seen.at(-1)?.replace(/\s+/g,' ').slice(0,160)??'none'}`);
+ assert.equal(state.stock,2);assert.equal(state.customer,21);assert.equal(state.account,21);assert.equal(state.movements,1);assert.equal(state.stockRows,1);assert.equal(state.posted,1);assert.ok(state.audits>0);assert.equal((await service.sell('8',request)).replayed,true);assert.equal(state.posted,1);
+ const {createDesktopSaleReceiptService}=await import('./desktopSaleReceiptService.mjs'),receipt=createDesktopSaleReceiptService({pool,sql,verifySession:async()=>true});const display=await receipt.receipt('8','12');assert.equal(display.customerName,'Ada');assert.equal(display.items[0].lineTotalExact4,'20.0000');
+ for(const statement of ['INSERT INTO dbo.sales_invoices','INSERT INTO dbo.sales_invoice_items','INSERT INTO dbo.stock_movements','INSERT INTO dbo.customer_movements','UPDATE dbo.products','UPDATE dbo.customers','UPDATE dbo.party_currency_accounts','INSERT dbo.desktop_sale_requests'])assert.ok(seen.some(q=>q.includes(statement)),statement);
+ assert.equal(seen.some(q=>/dbo\.finance_accounts\b|dbo\.finance_account_movements\b/i.test(q)),false);
+ if(process.env.DESKTOP_SALE_CAPTURE_SQL==='1')for(const q of [...new Set(seen)])console.log('SYNTHETIC_SQL '+q.replace(/\s+/g,' ').trim());
+});

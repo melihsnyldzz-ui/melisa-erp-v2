@@ -1,5 +1,9 @@
 import sqlDefault from 'mssql';
+import {AsyncLocalStorage} from 'node:async_hooks';
+import {guardCanonicalReadonlyAuthQuery} from './canonicalReadonlyAuthQuery.mjs';
 import { env } from './env.js';
+import {getDesktopWriteRuntime} from './desktopWriteRuntime.mjs';
+import {getEmptyLocalContext,assertRegisteredEmptyLocalContext,assertEmptyLocalIdentity,assertEmptyLocalSqlConfiguration,emptyLocalSqlOptions,EMPTY_LOCAL_IDENTITY_SQL} from '../services/emptyLocalContext.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
 import {getCleanContext,assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL} from '../services/cleanSyntheticContext.mjs';
@@ -10,9 +14,47 @@ export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 // mssql's two adapters share a process-wide Request driver. Loading ODBC after
 // TDS would give this dedicated TDS pool an ODBC Request and stall its reads.
 // The registered draft bootstrap selects TDS; legacy ODBC runtimes stay intact.
-const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()?null:(await import('mssql/msnodesqlv8.js')).default;
+const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()||getEmptyLocalContext()||getDesktopWriteRuntime()?null:(await import('mssql/msnodesqlv8.js')).default;
 
 let poolPromise;
+let resolvedPool;
+let resolvedPoolWasReadonly=false;
+let closingPools=0;
+const canonicalExistingOnlyScope=new AsyncLocalStorage();
+
+// Restricts code in this async chain; it grants no auth or SQL capability.
+export function runWithCanonicalExistingPoolOnly(callback) {
+  // Capture this request's original pool, not whichever replacement happens
+  // to exist later. Nested scopes cannot replace a revoked original scope.
+  const current=canonicalExistingOnlyScope.getStore();
+  return canonicalExistingOnlyScope.run(current??{pool:resolvedPool,facade:null},callback);
+}
+
+function existingOnlyError(){return Object.assign(new Error('Existing canonical readonly pool unavailable'),{code:'CANONICAL_EXISTING_POOL_UNAVAILABLE',statusCode:503});}
+
+async function getGuardedExistingAuthPool(scope){
+  const assertPool=async()=>{if(!scope.pool||await getExistingCanonicalReadonlyPool()!==scope.pool)throw existingOnlyError();};
+  await assertPool();
+  if(!scope.facade)scope.facade=Object.freeze({request(){
+    const request=scope.pool.request();let used=false;
+    const guarded=Object.freeze({
+      input(...args){if(used)throw existingOnlyError();request.input(...args);return guarded;},
+      async query(text){
+        if(used)throw existingOnlyError();used=true;
+        await assertPool();
+        try{const result=await request.query(guardCanonicalReadonlyAuthQuery(text));await assertPool();return result;}
+        catch{throw existingOnlyError();}
+      }
+    });
+    return guarded;
+  }});
+  return scope.facade;
+}
+
+function matchesCanonicalReadonlyPoolEnvironment() {
+  return isCanonicalTest() && env.port===4146 && env.sql.enabled===true
+    && env.sql.server==='127.0.0.1' && env.sql.port===1433 && env.sql.readOnly===true && env.sql.trustedConnection===false;
+}
 
 // The isolated canonical TEST uses the same ODBC family as the LIVE baseline.
 // Only the verified TEST runtime can select these two isolated SQL identities.
@@ -25,11 +67,17 @@ export function isCanonicalTest() {
 }
 
 export function getSqlDriver() {
+  if(getDesktopWriteRuntime())return sqlDefault;
   if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest() || isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime()) return sqlTrusted;
   return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
 }
 
 export function getSqlConfig() {
+  // Validate before any ODBC/trusted branch can return a different configuration.
+  let emptyOptions;
+  if(process.env.MELISA_EMPTY_LOCAL!==undefined||getEmptyLocalContext()){
+    assertRegisteredEmptyLocalContext();emptyOptions=emptyLocalSqlOptions(env);
+  }
   if ((env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest() || isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime()) && !env.sql.trustedConnection) {
     const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
     const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
@@ -73,6 +121,7 @@ export function getSqlConfig() {
       encrypt: env.sql.encrypt,
       trustServerCertificate: env.sql.trustServerCertificate,
       readOnlyIntent: env.sql.readOnly,
+      ...emptyOptions,
     },
     pool: {
       max: 5,
@@ -89,6 +138,7 @@ export function getSqlConfig() {
 
   config.user = env.sql.user;
   config.password = env.sql.password;
+  if(emptyOptions){config.connectionTimeout=5000;config.requestTimeout=5000;}
   return config;
 }
 
@@ -107,6 +157,10 @@ export function getSafeSqlInfo() {
 }
 
 export async function getSqlPool() {
+  const empty=getEmptyLocalContext();
+  if(process.env.MELISA_EMPTY_LOCAL!==undefined||empty){assertRegisteredEmptyLocalContext();assertEmptyLocalSqlConfiguration(env);}
+  const existingScope=canonicalExistingOnlyScope.getStore();
+  if(existingScope)return getGuardedExistingAuthPool(existingScope);
   if (!env.sql.enabled) {
     const error = new Error('SQL connection is not configured');
     error.code = 'SQL_NOT_CONFIGURED';
@@ -140,16 +194,21 @@ export async function getSqlPool() {
   }
 
   if (!poolPromise) {
+    const readonlyAtCreation=matchesCanonicalReadonlyPoolEnvironment();
     const sql = getSqlDriver();
     const pool = new sql.ConnectionPool(getSqlConfig());
     poolPromise = pool.connect().then(async connected=>{
+      if(empty){try{assertEmptyLocalIdentity((await connected.request().query(EMPTY_LOCAL_IDENTITY_SQL)).recordset[0]);}catch(error){await connected.close();throw error;}}
       if(clean){try{assertCleanIdentity((await connected.request().query(CLEAN_IDENTITY_SQL)).recordset[0]);}catch(error){await connected.close();throw error;}}
       if(currentCrmAllowed){
         try{const identity=(await connected.request().query("SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,SUSER_SNAME() loginName,USER_NAME() databaseUser,IS_SRVROLEMEMBER('sysadmin') sysadmin,HAS_PERMS_BY_NAME(DB_NAME(),'DATABASE','CONTROL') databaseControl,HAS_DBACCESS('MELISA_ERP_PROD_CANDIDATE_20260917_01') liveDatabaseAccess,HAS_DBACCESS('MELISA_ERP_SIRKET_TEST_20260929_01') originalDatabaseAccess")).recordset[0];assertCrmOrderCurrentIdentity(currentCrm,identity);}catch(error){await connected.close();throw error;}
       }
+      resolvedPool=connected;resolvedPoolWasReadonly=readonlyAtCreation;
       return connected;
     }).catch((error) => {
       poolPromise = undefined;
+      resolvedPool = undefined;
+      resolvedPoolWasReadonly = false;
       throw error;
     });
   }
@@ -157,10 +216,24 @@ export async function getSqlPool() {
   return poolPromise;
 }
 
+// Returns only the existing pool; the caller must independently authenticate
+// the physical SQL session that it acquires for every read.
+export async function getExistingCanonicalReadonlyPool() {
+  if (!poolPromise || !resolvedPool || !resolvedPoolWasReadonly || closingPools
+    || !matchesCanonicalReadonlyPoolEnvironment() || resolvedPool.connected!==true) return null;
+  return resolvedPool;
+}
+
 export async function closeSqlPool() {
-  if (poolPromise) {
-    const pool = await poolPromise;
-    poolPromise = undefined;
+  const promise=poolPromise;
+  resolvedPool=undefined;
+  resolvedPoolWasReadonly=false;
+  if (!promise) return;
+  closingPools++;
+  try {
+    const pool = await promise;
+    if (poolPromise===promise) poolPromise = undefined;
+    if (resolvedPool===pool) {resolvedPool=undefined;resolvedPoolWasReadonly=false;}
     await pool.close();
-  }
+  } finally { closingPools--; }
 }

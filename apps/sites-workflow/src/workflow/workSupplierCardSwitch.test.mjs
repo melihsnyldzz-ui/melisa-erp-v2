@@ -25,9 +25,9 @@ function dom(){
 async function fixture(mode='normal'){
  const priorStorage=Object.getOwnPropertyDescriptor(globalThis,'sessionStorage'),values=new Map(),removed=[],stored=[];
  Object.defineProperty(globalThis,'sessionStorage',{configurable:true,value:{getItem:key=>values.get(key)??null,setItem(key,value){stored.push({key,value});values.set(key,value);},removeItem(key){removed.push(key);values.delete(key);}}});
- const root=dom(),calls=[],writes=[],cardRequests=[],recoveries=[],deferIds=new Set();let ui;
+ const root=dom(),calls=[],writes=[],cardRequests=[],listRequests=[],recoveries=[],deferIds=new Set();let ui,deferList=false;
  const session={suppliers:async(path,options)=>{
-  calls.push({path,options});if(path.startsWith('/api/supplier-cards?'))return {success:true,data:['1','2','3'].map(card),meta:{readOnly:true,sourceAsOf:null,freshLive:false,total:3,page:1,limit:25,environment:'CLEAN_SYNTHETIC_TEST',environmentId:copyId,synthetic:true,actualT1:false,externalOperations:false}};
+  calls.push({path,options});if(path.startsWith('/api/supplier-cards?')){const result={success:true,data:['1','2','3'].map(card),meta:{readOnly:true,sourceAsOf:null,freshLive:false,total:3,page:1,limit:25,environment:'CLEAN_SYNTHETIC_TEST',environmentId:copyId,synthetic:true,actualT1:false,externalOperations:false}};if(deferList){deferList=false;const wait=deferred();listRequests.push({...wait,result});return wait.promise;}return result;}
   const id=path.split('/')[3];if(deferIds.has(id)){const wait=deferred();cardRequests.push({id,...wait});return wait.promise;}return card(id);
  },supplierContact:async(id,options)=>{
   if(!options){calls.push({contactRead:id});return contact(id);}const wait=deferred();writes.push({id,body:structuredClone(options.body),...wait});return wait.promise;
@@ -36,7 +36,7 @@ async function fixture(mode='normal'){
  const create=await controller();
  const mount=async()=>{ui=create({root,session,user:{id:10018,permissions:['supplier.view','supplier.edit']}});ui.mount();await tick();};await mount();
  const node=selector=>{const value=root.querySelector(selector);assert.ok(value,'Expected visible '+selector);return value;};
- return {root,calls,writes,cardRequests,recoveries,values,removed,stored,node,ui:()=>ui,defer(id){deferIds.add(id);},async open(id){const button=root.querySelectorAll('[data-supplier-card]').find(n=>n.dataset.supplierCard===id);assert.ok(button);void button.onclick();await tick();},async editor(){node('[data-customer-contact-open]').onclick();await tick();},async save(city='Saved A'){
+ return {root,calls,writes,cardRequests,listRequests,recoveries,values,removed,stored,node,ui:()=>ui,defer(id){deferIds.add(id);},deferList(){deferList=true;},async open(id){const button=root.querySelectorAll('[data-supplier-card]').find(n=>n.dataset.supplierCard===id);assert.ok(button);void button.onclick();await tick();},async editor(){node('[data-customer-contact-open]').onclick();await tick();},async save(city='Saved A'){
   const field=root.querySelectorAll('[data-customer-contact-field]').find(n=>n.dataset.customerContactField==='city');assert.ok(field);field.value=city;field.oninput();node('[data-customer-contact-form]').onsubmit({preventDefault(){}});await tick();
  },async retry(){node('[data-customer-contact-form]').onsubmit({preventDefault(){}});await tick();},async reload(){ui.dispose();await mount();},close(){ui.dispose();if(priorStorage)Object.defineProperty(globalThis,'sessionStorage',priorStorage);else delete globalThis.sessionStorage;}};
 }
@@ -98,4 +98,52 @@ test('business history switch clears the old card before waiting and cannot use 
 
 test('business history still blocks card selection while contact saving is already in progress',async()=>{
  const h=await fixture('history-on');try{await h.open('1');await h.editor();await h.save();h.defer('2');await h.open('2');assert.equal(h.cardRequests.length,0);assert.equal(detailName(h.root.innerHTML),'Offline Supplier 1');assert.equal(h.ui().requestClose(),false);ack(h.writes[0]);await tick();assert.equal(h.ui().requestClose(),true);}finally{h.close();}
+});
+
+for(const mode of ['normal','history-on'])test(`${mode}: old supplier list selection cannot open a card during or after a newer search`,async()=>{
+ const h=await fixture(mode);try{
+  const old=h.root.querySelectorAll('[data-supplier-card]').find(n=>n.dataset.supplierCard==='1');assert.ok(old);
+  const search=h.node('[data-supplier-search]');search.elements.search.value='Supplier 2';h.deferList();search.onsubmit({preventDefault(){}});await tick();assert.equal(h.listRequests.length,1);
+  let reads=h.calls.length;old.onclick();await tick();assert.equal(h.calls.length,reads);assert.equal(detailName(h.root.innerHTML),undefined);
+  h.listRequests[0].resolve({...h.listRequests[0].result,data:[card('2')],meta:{...h.listRequests[0].result.meta,total:1}});await tick();
+  reads=h.calls.length;old.onclick();await tick();assert.equal(h.calls.length,reads);assert.equal(detailName(h.root.innerHTML),undefined);
+  await h.open('2');assert.equal(detailName(h.root.innerHTML),'Offline Supplier 2');assert.equal(h.writes.length,0);
+ }finally{h.close();}
+});
+
+test('detached supplier callbacks and refresh cannot start requests or change the screen',async()=>{
+ const h=await fixture();try{
+  const old=h.root.querySelectorAll('[data-supplier-card]')[0],search=h.node('[data-supplier-search]'),refresh=h.node('[data-supplier-refresh]');
+  const html=h.root.innerHTML;h.ui().dispose();const reads=h.calls.length;
+  old.onclick();search.onsubmit({preventDefault(){}});refresh.onclick();await h.ui().refresh();await tick();
+  assert.equal(h.calls.length,reads);assert.equal(h.root.innerHTML,html);assert.equal(h.writes.length,0);
+ }finally{h.close();}
+});
+
+for(const failure of [403,'offline'])test(`a newer supplier search failure (${failure}) keeps old list callbacks inactive`,async()=>{
+ const h=await fixture();try{
+  const old=h.root.querySelectorAll('[data-supplier-card]')[0],search=h.node('[data-supplier-search]');
+  h.deferList();search.elements.search.value='new search';search.onsubmit({preventDefault(){}});await tick();
+  h.listRequests[0].reject(failure===403?{status:403}:Error('Offline list'));await tick();
+  assert.match(h.root.innerHTML,/Tedarikçi kartları şu anda açılamıyor/);const reads=h.calls.length;
+  old.onclick();await tick();assert.equal(h.calls.length,reads);assert.equal(detailName(h.root.innerHTML),undefined);assert.equal(h.writes.length,0);
+ }finally{h.close();}
+});
+
+test('refresh restores the exact selected supplier once the new list is ready',async()=>{
+ const h=await fixture();try{
+  await h.open('2');h.deferList();void h.ui().refresh();await tick();assert.equal(h.listRequests.length,1);assert.equal(detailName(h.root.innerHTML),undefined);
+  h.listRequests[0].resolve(h.listRequests[0].result);await tick();await tick();assert.equal(detailName(h.root.innerHTML),'Offline Supplier 2');
+  assert.equal(h.calls.filter(c=>c.path==='/api/suppliers/2/card').length,2);assert.equal(h.writes.length,0);
+ }finally{h.close();}
+});
+
+for(const failure of [403,'offline'])test(`refresh does not reopen a previously selected supplier when the list fails (${failure})`,async()=>{
+ const h=await fixture();try{
+  await h.open('2');const cardReads=h.calls.filter(c=>c.path==='/api/suppliers/2/card').length;
+  h.deferList();void h.ui().refresh();await tick();assert.equal(h.listRequests.length,1);
+  h.listRequests[0].reject(failure===403?{status:403}:Error('Offline list'));await tick();await tick();
+  assert.match(h.root.innerHTML,/Tedarikçi kartları şu anda açılamıyor/);assert.equal(detailName(h.root.innerHTML),undefined);
+  assert.equal(h.calls.filter(c=>c.path==='/api/suppliers/2/card').length,cardReads);assert.equal(h.writes.length,0);
+ }finally{h.close();}
 });

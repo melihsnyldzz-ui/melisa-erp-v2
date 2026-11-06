@@ -152,7 +152,30 @@ function Get-ErpApiComponentConfig($Config,$PreparedReleaseProof=$null){
  if($null-ne$PreparedReleaseProof){$proof=Get-ErpReadPairReleaseProofContext $PreparedReleaseProof;$issued=$false;foreach($ref in $proof.configs){if([object]::ReferenceEquals($ref,$Config)){$issued=$true;break}};if(!$issued-or($Config|ConvertTo-Json -Depth 100 -Compress)-cnotin$proof.baseShapes-or($copy|ConvertTo-Json -Depth 100 -Compress)-cnotin$proof.projectedShapes){throw 'TEST125_RELEASE_CONFIG_NOT_ISSUED'};[void]$proof.configs.Add($copy)}
  return $copy
 }
-function Get-ErpServiceConfig($Config,$Definition){if($Definition.Name -ceq 'api'){return Get-ErpApiComponentConfig $Config};return $Config}
+# This is an in-memory comparison, not an issued package/owner capability.
+# Both byte arrays and the expected digests must be independently witnessed by
+# a future issuer before this projection can have any operational meaning.
+function New-ErpNative4146ReviewProjection($Config,[byte[]]$ManifestBytes,[string]$ManifestSha256,[byte[]]$ProfileBefore,[byte[]]$ProfileAfter,[string]$ProfileSha256,[string]$ProducerCommit){
+ if(!$Config -or !$ManifestBytes -or !$ProfileBefore -or !$ProfileAfter -or $ManifestSha256-cnotmatch '^[a-f0-9]{64}$' -or $ProfileSha256-cnotmatch '^[a-f0-9]{64}$' -or $ProducerCommit-cnotmatch '^[a-f0-9]{40}$'){throw 'TEST_NATIVE_PROJECTION_INPUT'}
+ $sha=[Security.Cryptography.SHA256]::Create()
+ try{
+  $manifestHash=[BitConverter]::ToString($sha.ComputeHash($ManifestBytes)).Replace('-','').ToLowerInvariant()
+  $beforeHash=[BitConverter]::ToString($sha.ComputeHash($ProfileBefore)).Replace('-','').ToLowerInvariant()
+  $afterHash=[BitConverter]::ToString($sha.ComputeHash($ProfileAfter)).Replace('-','').ToLowerInvariant()
+ }finally{$sha.Dispose()}
+ if($manifestHash-cne$ManifestSha256 -or $beforeHash-cne$ProfileSha256 -or $afterHash-cne$ProfileSha256 -or $ProfileBefore.Length-ne$ProfileAfter.Length){throw 'TEST_NATIVE_PROJECTION_HASH'}
+ try{$m=[Text.Encoding]::UTF8.GetString($ManifestBytes)|ConvertFrom-Json;$p=[Text.Encoding]::UTF8.GetString($ProfileBefore)|ConvertFrom-Json}catch{throw 'TEST_NATIVE_PROJECTION_FORMAT'}
+ try{
+  $s=$m.customerMasterSuccessor
+  foreach($flag in @($m.actualT1,$m.externalOperations,$s.installed,$s.executionAuthority,$s.actualT1,$s.externalOperations)){if($flag -isnot [bool] -or $flag -ne $false){throw 'TEST_NATIVE_PROJECTION_MANIFEST'}}
+  if($m.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01' -or $m.actualT1-ne$false -or $m.externalOperations-ne$false -or $s.schemaVersion-cne'melisa-c06-source-overlay.v1' -or $s.sourceCommit-cne'7ab1ebd85841bd53c8a0daeae1eedecd076282af' -or $s.producerCommit-cne$ProducerCommit -or $s.baseManifestSha256-cne'342fa6b6ac7448a8ac515cbd118638b857d44c56fc621b74ac0070dd209c0a5f' -or $s.installed-ne$false -or $s.executionAuthority-ne$false -or $s.actualT1-ne$false -or $s.externalOperations-ne$false){throw 'TEST_NATIVE_PROJECTION_MANIFEST'}
+  if($Config.ReleaseRoot-cne'C:\Sirket\ERP\releases\CANONICAL-TEST125-CATALOG-COMPAT-20261027-0a221778' -or $Config.ManifestSha256-cne'0927de3c6d03640acc504d7c8a9aaf1228edbb4170758cf2d1e12f638e044d64' -or $Config.SourceCommit-cne'edb3c8915ef0e8c80ef911ced83bc2c1d1dceb0d' -or $Config.ExpectedDatabase-cne'MELISA_ERP_SIRKET_TEST_20260929_01'){throw 'TEST_NATIVE_PROJECTION_BASE'}
+  if($p.database-cne'MELISA_ERP_SIRKET_TEST_20260929_01' -or $p.sqlUser-cne'melisa_sirket_test_20260929_01' -or $p.server-cne'127.0.0.1' -or $p.sqlPort-ne1433 -or $p.host-cne'127.0.0.1' -or $p.erpPort-ne4144 -or $p.nativePort-ne4146 -or $p.webPort-ne5194){throw 'TEST_NATIVE_PROJECTION_PROFILE'}
+ }catch{if($_.Exception.Message -clike 'TEST_NATIVE_PROJECTION_*'){throw};throw 'TEST_NATIVE_PROJECTION_FORMAT'}
+ return [pscustomobject]@{scope='REVIEW_ONLY';releaseRoot=('C:\Sirket\ERP\releases\CANONICAL-TEST125-C06-7ab1ebd85841-P'+$ProducerCommit.Substring(0,12)+'-PASSIVE');manifestSha256=$manifestHash;profileSha256=$beforeHash;sourceCommit=$s.sourceCommit;installed=$false;executionAuthority=$false;nativeLaunchAllowed=$false}
+}
+function Get-ErpNative4146Selection($Config,$Projection=$null){if($null-ne$Projection){throw 'TEST_NATIVE_ISSUER_UNAVAILABLE'};return $Config}
+function Get-ErpServiceConfig($Config,$Definition,$NativeProjection=$null){if($Definition.Name -ceq 'native'){return Get-ErpNative4146Selection $Config $NativeProjection};if($null-ne$NativeProjection){throw 'TEST_NATIVE_ISSUER_UNAVAILABLE'};if($Definition.Name -ceq 'api'){return Get-ErpApiComponentConfig $Config};return $Config}
 function Assert-ErpRelease($Config,$PreparedReleaseProof=$null,$RetainedSeal=$null) {
  if($null-ne$PreparedReleaseProof){if($null-ne$RetainedSeal){throw 'TEST125_RELEASE_PROOF_MODE'};return Get-ErpReadPairPreparedManifest $PreparedReleaseProof $Config}
  if($null-ne$RetainedSeal-and!($RetainedSeal-is[Business5244PackageSeal])){throw 'TEST125_RELEASE_PROOF_NATIVE_GENERATION_REQUIRED'}
@@ -168,12 +191,14 @@ function Assert-ErpRelease($Config,$PreparedReleaseProof=$null,$RetainedSeal=$nu
  }
  return $m
 }
-function Get-ErpServiceDefinitions($Config) {
+function Get-ErpServiceDefinitions($Config,$NativeProjection=$null) {
+ $native=Get-ErpNative4146Selection $Config $NativeProjection
  $api=Join-Path $Config.ReleaseRoot 'apps\api'
+ $nativeApi=Join-Path $native.ReleaseRoot 'apps\api'
  $component=Get-ErpApiComponentConfig $Config;$mainApi=Join-Path $component.ReleaseRoot 'apps\api'
  return @(
   @{Name='web';Port=5194;Script=(Join-Path $api 'start-canonical-web.mjs');Args=@($Config.ConfigPath);WorkingDirectory=$api},
-  @{Name='native';Port=4146;Script=(Join-Path $api 'start-canonical-test.mjs');Args=@('native',$Config.ConfigPath);WorkingDirectory=$api},
+  @{Name='native';Port=4146;Script=(Join-Path $nativeApi 'start-canonical-test.mjs');Args=@('native',$native.ConfigPath);WorkingDirectory=$nativeApi},
   @{Name='api';Port=4144;Script=(Join-Path $mainApi 'start-canonical-test.mjs');Args=@('erp',$component.ConfigPath);WorkingDirectory=$mainApi}
  )
 }
@@ -236,7 +261,8 @@ function Start-ErpSteadyWebStartup {
  }finally{foreach($h in $holds){$h.Dispose()}}
 }
 
-function Invoke-ErpOwnedSession($Config,[switch]$SinglePass) {
+function Invoke-ErpOwnedSession($Config,[switch]$SinglePass,$NativeProjection=$null) {
+ if($null-ne$NativeProjection){throw 'TEST_NATIVE_ISSUER_UNAVAILABLE'}
  if($PSScriptRoot-cin@('C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-8530-PROFILE-0742-20261102','C:\Sirket\ERP\releases\ERP-BUSINESS-5244-B6-POSTBOOT-STEADY-F5F8-PROFILE-0742-20261102')){Assert-Business5244PostbootServiceAdmission $Config}
  $mutex=New-Object Threading.Mutex($false,(Get-ErpMutexName $Config.RepoRoot $Config.OwnerSid));$held=$false
  try{

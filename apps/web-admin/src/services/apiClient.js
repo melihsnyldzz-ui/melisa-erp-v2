@@ -1,9 +1,11 @@
 import { API_BASE_URL, apiConfig } from '../config/apiConfig.js';
 import { shouldRetryWithRenewedSession } from './authRetryPolicy.js';
+import {assertEmptyLocalRequest, EMPTY_LOCAL_API_BASE} from '../config/emptyLocalInstallation.mjs';
 
-const ACCESS_TOKEN_KEY = 'melisaErpAccessToken';
-const REFRESH_TOKEN_KEY = 'melisaErpRefreshToken';
-const LOCAL_PASSWORDLESS_SESSION_KEY = 'melisaErpLocalPasswordlessSession';
+const authStoragePrefix = apiConfig.emptyLocalInstallation ? 'melisaErpEmptyLocal20261105:' : '';
+const ACCESS_TOKEN_KEY = authStoragePrefix + 'melisaErpAccessToken';
+const REFRESH_TOKEN_KEY = authStoragePrefix + 'melisaErpRefreshToken';
+const LOCAL_PASSWORDLESS_SESSION_KEY = authStoragePrefix + 'melisaErpLocalPasswordlessSession';
 
 let sessionRenewalPromise = null;
 
@@ -16,6 +18,12 @@ export function getStoredRefreshToken() {
 }
 
 export function storeAuthTokens({ accessToken, refreshToken, localPasswordlessSession = false }) {
+  if (apiConfig.emptyLocalInstallation) {
+    refreshToken = null;
+    localPasswordlessSession = false;
+    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
+    window.localStorage.removeItem(LOCAL_PASSWORDLESS_SESSION_KEY);
+  }
   if (accessToken) {
     window.localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
   }
@@ -39,6 +47,7 @@ export function clearAuthTokens() {
 
 function buildUrl(path, params = {}) {
   const url = new URL(path, API_BASE_URL);
+  if (apiConfig.emptyLocalInstallation && url.origin !== EMPTY_LOCAL_API_BASE) throw Error('EMPTY_LOCAL_API_TARGET_REQUIRED');
 
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
@@ -66,6 +75,7 @@ async function requestNewSession(path, body) {
 }
 
 export async function renewStoredSession() {
+  if (apiConfig.emptyLocalInstallation) return false;
   if (sessionRenewalPromise) {
     return sessionRenewalPromise;
   }
@@ -99,6 +109,7 @@ export async function renewStoredSession() {
 }
 
 async function request(method, path, { params = {}, body, retryAuth = true } = {}) {
+  if (apiConfig.emptyLocalInstallation) assertEmptyLocalRequest(method, path);
   if (apiConfig.demoMode) {
     const demoError = new Error('Bu ekranın örnek demo verisi henüz hazırlanmadı.');
     demoError.code = 'DEMO_ROUTE_MISSING';
@@ -119,6 +130,7 @@ async function request(method, path, { params = {}, body, retryAuth = true } = {
     response = await fetch(buildUrl(path, params), {
       method,
       headers,
+      ...(apiConfig.emptyLocalInstallation ? {credentials: 'omit', redirect: 'error'} : {}),
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch (error) {
@@ -181,6 +193,7 @@ export async function remove(path, body) {
 }
 
 export async function download(path, filename, { retryAuth = true } = {}) {
+  if (apiConfig.emptyLocalInstallation) assertEmptyLocalRequest('DOWNLOAD', path);
   const headers = {};
   const accessToken = getStoredAccessToken();
   if (accessToken) headers.Authorization = `Bearer ${accessToken}`;

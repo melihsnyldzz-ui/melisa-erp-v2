@@ -252,7 +252,7 @@ export function StockListScreen({ onOpenScreen, permissions = [], initialStockCo
   });
   const isSyntheticDemo = apiConfig.demoMode || meta?.source === 'synthetic-demo-read-only';
   const isLiveVega = meta?.source === 'vega-live-read-only';
-  const isReadOnlySource = isLiveVega || isSyntheticDemo;
+  const isReadOnlySource = apiConfig.emptyLocalInstallation || isLiveVega || isSyntheticDemo;
   const canBulkEdit = permissions.includes('product.edit') && !isReadOnlySource;
   const canManageVegaImage = permissions.includes('product.edit') && isLiveVega;
 
