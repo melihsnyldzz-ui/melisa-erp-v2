@@ -3,6 +3,7 @@
 import {desktopInitialCostParity,desktopInitialOpeningAmountParity} from '../../../api/src/services/desktopInitialCostParity.mjs';
 import {isDurableProductRejection} from '../../../api/src/services/desktopProductRejection.mjs';
 import {desktopAdditionalBarcodes,desktopAdditionalBarcodeText} from '../../../api/src/services/desktopProductBarcodes.mjs';
+import {desktopOpeningReason} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 const env='eb2888c2-51cb-4570-a933-397cf7e62806';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const fail=()=>{throw new Error('PRODUCT_CREATE_INVALID');};
@@ -11,7 +12,7 @@ const openingFields=['openingQuantityExact3','openingDate'];
 const richFields=['brand','category','supplierId'];
 const withRich=value=>richFields.some(k=>Object.hasOwn(value??{},k));
 const withOpening=value=>openingFields.some(k=>Object.hasOwn(value??{},k));
-const additionalFields=value=>Object.hasOwn(value??{},'additionalBarcodes')?['additionalBarcodes']:[];
+const additionalFields=value=>['additionalBarcodes','openingReason'].filter(k=>Object.hasOwn(value??{},k));
 const rejectionMessage=reason=>reason==='PRODUCT_BARCODE_IN_USE'?'Bu barkod başka bir ürün kartında kullanılıyor. Ürün kaydedilmedi; barkodu düzeltin.':reason==='PRODUCT_BARCODE_DUPLICATE_INPUT'?'Aynı barkod formda birden çok kez yazılmış. Ana ve ek barkodları kontrol edin.':'Bu stok kodu zaten kullanılıyor. Ürün kaydedilmedi; stok kodunu düzeltin.';
 const formValues=v=>({...v,sale:v.salePriceExact4,purchase:v.purchasePriceExact4,discount:v.purchaseDiscountRateExact4,openingQuantity:v.openingQuantityExact3,openingDate:v.openingDate,additionalBarcodes:(v.additionalBarcodes??[]).join('\n')});
 function exact(value,keys){return value&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value))&&
@@ -35,9 +36,10 @@ function body(input,requestId){
   if(input.openingQuantityExact3!=='0.000')desktopInitialOpeningAmountParity({quantityExact3:input.openingQuantityExact3,costExact4:desktopInitialCostParity({currency:input.currency,purchasePriceExact4:input.purchasePriceExact4,purchaseDiscountRateExact4:input.purchaseDiscountRateExact4})});
   opening={openingQuantityExact3:input.openingQuantityExact3,openingDate:input.openingDate};
  }
+ if(Object.hasOwn(input,'openingReason')){if(!withRich(input)||!opening.openingQuantityExact3||opening.openingQuantityExact3==='0.000')fail();opening.openingReason=desktopOpeningReason(input.openingReason);}
  return Object.freeze({requestId,stockCode:text(input.stockCode,50),name:text(input.name,250),barcode:text(input.barcode,80),unit:text(input.unit,20),
   currency:input.currency,salePriceExact4:money(input.salePriceExact4),purchasePriceExact4:money(input.purchasePriceExact4),
-  purchaseDiscountRateExact4:discount(input.purchaseDiscountRateExact4),saleTier:input.saleTier,...opening,...(withRich(input)?{brand:text(input.brand,120),category:text(input.category,120),supplierId:validId(input.supplierId)?input.supplierId:fail()}: {}),...(additionalFields(input).length?{additionalBarcodes:desktopAdditionalBarcodes(input.barcode,input.additionalBarcodes)}:{})});
+  purchaseDiscountRateExact4:discount(input.purchaseDiscountRateExact4),saleTier:input.saleTier,...opening,...(withRich(input)?{brand:text(input.brand,120),category:text(input.category,120),supplierId:validId(input.supplierId)?input.supplierId:fail()}: {}),...(Object.hasOwn(input,'additionalBarcodes')?{additionalBarcodes:desktopAdditionalBarcodes(input.barcode,input.additionalBarcodes)}:{})});
 }
 function restored(record,actorId){
  if(!exact(record,['version','actorId','body'])||record.version!==1||record.actorId!==actorId||!exact(record.body,['requestId',...fields,...(withOpening(record.body)?openingFields:[]),...(withRich(record.body)?richFields:[]),...additionalFields(record.body)]))fail();
@@ -116,6 +118,7 @@ ${richCards?'<label class="desktop-product-field desktop-product-wide">Ek barkod
 <label class="desktop-product-field">Alış fiyatı<input name="purchase" inputmode="decimal" required></label>
 <label class="desktop-product-field">Alış indirimi (%)<input name="discount" inputmode="decimal" value="0" required></label>
 <label class="desktop-product-field">Başlangıç stoğu (TRY / ADET)<input name="openingQuantity" inputmode="decimal" value="0" required></label>
+${richCards?'<label class="desktop-product-field desktop-product-wide">Başlangıç stok gerekçesi<input name="openingReason" maxlength="250" placeholder="Başlangıç stoğu giriyorsanız gerekçesini yazın"><small>Pozitif başlangıç stoğunda gerekçe, tarih ve kaydeden kullanıcı birlikte saklanır.</small></label>':''}
 <label class="desktop-product-field">Başlangıç stok tarihi<input name="openingDate" type="date" value="${today}" required></label>
 <div class="desktop-product-actions desktop-product-wide"><button class="btn primary" type="submit" ${busy?'disabled':''}>Kaydet</button></div>
 <p role="status" class="desktop-product-wide">${escape(message)}</p>
@@ -126,8 +129,9 @@ ${richCards?'<label class="desktop-product-field desktop-product-wide">Ek barkod
    try{payload={stockCode:data.get('stockCode'),name:data.get('name'),barcode:data.get('barcode'),unit:data.get('unit'),currency:data.get('currency'),salePriceExact4:desktopProductDecimal4(data.get('sale')),purchasePriceExact4:desktopProductDecimal4(data.get('purchase')),purchaseDiscountRateExact4:desktopProductDecimal4(data.get('discount'),{percentage:true}),saleTier:null};
     if(richCards){payload.brand=data.get('brand');payload.category=data.get('category');payload.supplierId=data.get('supplierId');const extra=desktopAdditionalBarcodeText(payload.barcode,String(data.get('additionalBarcodes')??''));if(extra.length)payload.additionalBarcodes=extra;}
     if(data.get('openingQuantity')!==null&&data.get('openingQuantity')!==undefined){payload.openingQuantityExact3=desktopProductDecimal3(data.get('openingQuantity'));payload.openingDate=String(data.get('openingDate')??'');}
+    if(richCards&&payload.openingQuantityExact3&&payload.openingQuantityExact3!=='0.000')payload.openingReason=desktopOpeningReason(String(data.get('openingReason')??'').trim());
     if(!isDesktopProductCostSupported(payload)){root.querySelector('[role="status"]').textContent='Bu alış fiyatı ve indirim için maliyet hesabı henüz doğrulanamadı.';return;}}
-   catch(error){root.querySelector('[role="status"]').textContent=error?.code==='PRODUCT_BARCODES_INVALID'?'Ek barkodları ayrı satırlara yazın. En çok 10 ek barkod girilebilir; aynı barkodu tekrarlamayın.':'Fiyatları en fazla dört ondalık basamakla girin; indirim 0 ile 100 arasında olmalı.';return;}
+   catch(error){root.querySelector('[role="status"]').textContent=error?.code==='PRODUCT_OPENING_REASON_INVALID'?'Pozitif başlangıç stoğu için en çok 250 karakterlik bir gerekçe yazın.':error?.code==='PRODUCT_BARCODES_INVALID'?'Ek barkodları ayrı satırlara yazın. En çok 10 ek barkod girilebilir; aynı barkodu tekrarlamayın.':'Fiyatları en fazla dört ondalık basamakla girin; indirim 0 ile 100 arasında olmalı.';return;}
    void act(()=>controller.create(payload),payload);});
  }
  async function act(action,fields){

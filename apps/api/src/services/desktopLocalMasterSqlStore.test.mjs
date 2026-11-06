@@ -31,6 +31,8 @@ function fakeDriver({rejectTarget=false,rejectMutation=false,commitLost=false,no
    if(statement.includes('SELECT brand,category,CONVERT'))return {recordset:[{brand:'B',category:'C',supplierId:'51'}]};
    if(statement.includes('END conflictReason')){assert.match(statement,/dbo\.products WITH\(UPDLOCK,HOLDLOCK\)/);assert.match(statement,/dbo\.product_barcodes b WITH\(UPDLOCK,HOLDLOCK\)/);return {recordset:[{conflictReason:productConflictReason}]};}
    if(statement.includes('INSERT dbo.products'))return {recordset:[{id:'81'}]};
+   if(statement.includes('INSERT dbo.stock_movements')){this.tx.opening={...this.params};return {recordset:[{id:'91'}]};}
+   if(statement.includes('FROM dbo.stock_movements WHERE id=')){const p=this.tx.opening;return {recordset:[{id:'91',productId:p.product,actorId:p.actor,quantityInExact3:p.quantity,quantityOutExact3:'0.000',quantityNetExact3:p.quantity,unitCostTryExact4:p.cost,unitPriceExact4:p.price,amountTryExact4:p.amount,documentDate:p.date,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'}]};}
    if(statement.includes('LOCAL_MASTER_REQUEST_LOCKED'))return {recordset:replayResponse?[{response_json:JSON.stringify(replayResponse)}]:[]};
    if(statement.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')){this.tx.journal={requestId:this.params.requestIdText,operation:this.params.operation,actorId:this.params.actorIdText,payloadHash:this.params.payloadHash.toString('hex'),response_json:this.params.responseJson};return {recordset:[{response_json:this.params.responseJson}]};}
    if(statement.includes('FROM dbo.desktop_local_master_requests WHERE request_id=')){assert.match(statement,/LOWER\(CONVERT\(varchar\(36\),request_id\)\)/);return {recordset:[this.tx.journal]};}
@@ -179,6 +181,13 @@ test('missing or false current session cannot authorize writing',async()=>{
  const store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>false});
  await store.withTransaction(async tx=>assert.equal(await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'}),false));
  assert.equal(f.log.filter(x=>x.kind==='sql').length,1);
+});
+test('direct store caller cannot finish a reasoned opening without its exact audit and readback',async()=>{
+ for(const action of ['finish','read-before-append','wrong-reason']){const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>true}),r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};
+  await assert.rejects(store.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.insertProduct({actorId:'7',initialStockExact3:'4.000',averageCostTryExact4:'5.3000'});await tx.insertOpeningMovement({productId:'81',actorId:'7',quantityExact3:'4.000',averageCostTryExact4:'5.3000',unitPriceExact4:'5.3000',amountTryExact4:'21.2000',documentDate:'2026-11-06',reason:'Açılış sayımı'});await tx.readOpeningMovement({productId:'81',movementId:'91'});
+   if(action==='finish')return tx.finishRequest({...r,response:{id:'81'}});if(action==='read-before-append')return tx.readMasterAudit({requestId:r.requestId});return tx.appendAudit({actorId:'7',operation:'product.create',entityId:'81',requestId:r.requestId,stockOpening:{kind:'desktop-product-opening-v1',productId:'81',movementId:'91',actorId:'7',requestId:r.requestId,reason:'Yanlış gerekçe',quantityExact3:'4.000',costExact4:'5.3000',amountTryExact4:'21.2000',documentDate:'2026-11-06',currency:'TRY'}});
+  }),/LOCAL_SQL_ORDER/);assert.equal(f.log.at(-1).kind,'rollback');assert.ok(!f.log.some(x=>x.statement?.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')));assert.ok(!f.log.some(x=>x.statement?.includes('INSERT dbo.audit_logs')));
+ }
 });
 
 test('product authorization targets the PR54 direct and legacy edit keys',async()=>{

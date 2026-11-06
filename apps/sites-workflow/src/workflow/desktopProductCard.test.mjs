@@ -10,3 +10,7 @@ test('late or foreign-product results cannot replace another selected view',asyn
  let finish;const r=root(),mounted=mountDesktopProductCard({root:r,productId:'6',load:()=>new Promise(resolve=>{finish=resolve;})});mounted.dispose();finish(productCardFixture());await tick();assert.equal(r.paints,1);
  const wrong=root();mountDesktopProductCard({root:wrong,productId:'7',load:async()=>productCardFixture()});await tick();assert.match(wrong.innerHTML,/okunamadı/);assert.doesNotMatch(wrong.innerHTML,/000000000005/);
 });
+test('persisted opening reason is escaped and displayed with its movement and actor; legacy card invents no reason',async()=>{
+ const card=productCardFixture();card.stockOpening={kind:'desktop-product-opening-v1',productId:'6',movementId:'11',actorId:'7',requestId:'6508625b-b648-421b-b7b9-35d4be7c7263',reason:'<b>Açılış sayımı</b>',quantityExact3:'2.000',costExact4:'8.0000',amountTryExact4:'16.0000',documentDate:'2026-11-06',currency:'TRY'};const r=root();mountDesktopProductCard({root:r,productId:'6',load:async()=>card});await tick();assert.match(r.innerHTML,/Başlangıç stok gerekçesi/);assert.match(r.innerHTML,/&lt;b&gt;Açılış sayımı&lt;\/b&gt;/);assert.match(r.innerHTML,/Açılış hareketi/);assert.match(r.innerHTML,/Kaydeden kullanıcı/);assert.match(r.innerHTML,/16.0000 TRY/);
+ const old=root();mountDesktopProductCard({root:old,productId:'6',load:async()=>productCardFixture()});await tick();assert.doesNotMatch(old.innerHTML,/Başlangıç stok gerekçesi/);
+});

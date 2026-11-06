@@ -1,3 +1,7 @@
+## 6 Kasım — R1 nedenli başlangıç stoğu kaynak çalışması hazır
+
+K03-05 için pozitif yeni açılış gerekçesi mevcut audit.after_json içinde gerçek hareket / kullanıcı / istek UUID'siyle aynı transactionda saklanıp doğrulanıyor. Eski istek gövdeleri ve tamamlanmış journal tekrarları korunuyor; geçmiş hareketlere gerekçe eklenmiyor. Tam kart, audit detayını gerçek stok hareketiyle eşleştiriyor. 65 ilgili test dosyası, guardlı derleme ve bağımsız salt okunur inceleme geçti. [Sözleşme ve kaynak kanıtı](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md). DDL/yetki değişikliği yok; sıradaki adım yalnız R1 uygulama paket geçişi ve normal ekran/gerçek SQL kabulü.
+
 ## 6 Kasım — R1 ana/ek barkod ve tam kart normal GUI/SQL ile doğrulandı
 
 Kaynak `5ebc64b5`, paket `8E603E56...`, 187 kaynak / 5 yardımcı / 3 ekran dosyası kurulu. Normal ekranda mevcut ek barkod ve SQL'e göre eşdeğer iki barkod reddedildi; yalnız ret journal'i eklendi, 23 operasyonel tablo ve identity değerleri aynı kaldı. Düzeltme product 6 için ana/iki ek barkod ve tek 2 ADET × 8 TRY açılış hareketi oluşturdu. Üç barkod aynı ürünü buldu; tam kart yenilemeden sonra aynı alanlarla açıldı. Gerçek normal HTTP tekrarları ve bağımsız sonraki SQL okuması ikinci etki olmadığını doğruladı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md). Ürün kartı 1440/1024/390 genişlikte incelendi; diğer ekranların tüm responsive kabulü ve fiziksel okuyucu/insan kabulü açık. DDL, yetki, SQL servisi, eski satış/restore ve K07 kapsamı değişmedi.

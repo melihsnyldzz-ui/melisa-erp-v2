@@ -59,7 +59,7 @@ function memoryStore(){
      if(failAt==='price-drift')row.price.currency='TRY';if(failAt==='link-drift')row.link.unitId='999';return row;
     },
     async appendAudit(v){add(draft,'audit',v);},
-    async readMasterAudit({requestId}){const a=draft.rows.audit.find(v=>v.requestId===requestId);if(failAt==='audit-readback')return null;return {requestId:a.requestId,actorId:a.actorId,operation:a.operation,entityId:a.entityId};},
+    async readMasterAudit({requestId}){const a=draft.rows.audit.find(v=>v.requestId===requestId);if(failAt==='audit-readback')return null;const stockOpening=a.stockOpening?structuredClone(a.stockOpening):null;if(stockOpening&&failAt==='opening-audit-parent')stockOpening.productId='999';if(stockOpening&&failAt==='opening-audit-reason')stockOpening.reason='Başka gerekçe';return {requestId:a.requestId,actorId:a.actorId,operation:a.operation,entityId:a.entityId,...(stockOpening?{stockOpening}:{})};},
     async finishRequest(v){if(failAt==='journal')throw Error('injected failure');draft.journal[v.requestId].response=v.response;},
     async readFinishedRequest({requestId}){const j=draft.journal[requestId];if(failAt==='journal-readback')return null;return {requestId:j.requestId,operation:j.operation,actorId:j.actorId,payloadHash:j.payloadHash,response:j.response};},
    };
@@ -70,6 +70,20 @@ function memoryStore(){
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
 const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
 const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+test('opening reason is bound to movement, actor and request in the same atomic audit; replay adds no effects',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06',openingReason:'Yeni ürünün sayılmış başlangıç stoğu'};
+ s.loseCommit();assert.equal((await svc.createProduct('7',p)).state,'UNKNOWN');const before=s.snapshot(),audit=before.rows.audit.find(a=>a.stockOpening),movement=before.rows.openings[0];assert.equal(audit.stockOpening.movementId,movement.id);assert.equal(audit.stockOpening.actorId,'7');assert.equal(audit.stockOpening.requestId,p.requestId);assert.equal(audit.stockOpening.reason,p.openingReason);assert.equal(audit.stockOpening.quantityExact3,'2.000');assert.equal(audit.stockOpening.amountTryExact4,'10.0000');
+ assert.equal((await svc.createProduct('7',p)).replayed,true);assert.deepEqual(s.snapshot(),before);assert.equal((await svc.createProduct('7',{...p,openingReason:'Değişmiş gerekçe'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ for(const reason of ['', ' x','x\n','x'.repeat(251)]){const fresh=memoryStore();assert.equal((await rich(fresh).createProduct('7',{...p,openingReason:reason})).state,'UNKNOWN');assert.equal(fresh.calls(),0);}
+ assert.equal((await svc.createProduct('7',{...p,openingQuantityExact3:'0.000'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+});
+test('opening audit readback mismatch rolls back product, opening and every related row',async()=>{
+ for(const fault of ['opening-audit-parent','opening-audit-reason','audit','audit-readback']){const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt(fault);assert.equal((await svc.createProduct('7',{...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06',openingReason:'Yeni ürün açılışı'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before,fault);}
+});
+test('legacy fresh rich opening keeps its original body hash and gets an explicit creation reason; committed replay is unchanged',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06'};const body=JSON.stringify(p),result=await svc.createProduct('7',p);assert.equal(result.state,'COMMITTED');assert.equal(JSON.stringify(p),body);const before=s.snapshot();assert.equal(before.rows.audit.find(a=>a.stockOpening).stockOpening.reason,'Yeni ürün kartı başlangıç stok girişi');assert.equal((await svc.createProduct('7',p)).replayed,true);assert.deepEqual(s.snapshot(),before);
+});
 
 test('main and extra barcode strings commit with one product and replay without duplicate rows',async()=>{
  const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;

@@ -3,6 +3,7 @@
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
+import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const definitions=Object.freeze({
@@ -95,7 +96,14 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    if(!Array.isArray(result?.recordset)||result.recordset.length>1)fail();
    if(result.recordset.length===0){await tx.commit();begun=false;return null;}
    const barcodes=await request().query(`SELECT TOP(101) CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,barcode,barcode_type type,is_primary isPrimary FROM dbo.product_barcodes WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@productId) AND is_active=1 ORDER BY is_primary DESC,id;`);
-   const card={...result.recordset[0],barcodes:barcodes?.recordset};if(!isDesktopProductCard(card,productId))fail();
+   const card={...result.recordset[0],barcodes:barcodes?.recordset};
+   const audit=await request().query(`SELECT TOP(2) after_json openingJson,reason requestId,CONVERT(varchar(20),actor_user_id) actorId FROM dbo.audit_logs WITH(HOLDLOCK) WHERE entity_id=TRY_CONVERT(bigint,@productId) AND entity_type=N'local-master' AND action=N'product.create' AND source=N'desktop-local-master-v1' AND after_json IS NOT NULL ORDER BY id;`);
+   if(!Array.isArray(audit?.recordset)||audit.recordset.length>1)fail();
+   if(audit.recordset.length){const a=audit.recordset[0];let detail;try{detail=JSON.parse(a.openingJson);}catch{fail();}if(!isDesktopProductOpening(detail,productId)||detail.actorId!==a.actorId||detail.requestId!==a.requestId)fail();
+    const movement=await request().input('movementId',sql.NVarChar(20),detail.movementId).query(`SELECT CONVERT(varchar(20),id) movementId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(20),created_by) actorId,CONVERT(varchar(40),quantity_in) quantityExact3,CONVERT(varchar(40),unit_cost_try) costExact4,CONVERT(varchar(40),amount_try) amountTryExact4,CONVERT(char(10),document_date,23) documentDate,currency_code currency FROM dbo.stock_movements WITH(HOLDLOCK) WHERE id=TRY_CONVERT(bigint,@movementId) AND product_id=TRY_CONVERT(bigint,@productId) AND movement_type=N'in' AND source_type=N'stock_adjustment' AND source_id IS NULL AND quantity_out=0 AND quantity_net=quantity_in;`);
+    if(!Array.isArray(movement?.recordset)||movement.recordset.length!==1||Object.keys(movement.recordset[0]).sort().join(',')!=='actorId,amountTryExact4,costExact4,currency,documentDate,movementId,productId,quantityExact3'||Object.entries(movement.recordset[0]).some(([k,v])=>detail[k]!==v))fail();card.stockOpening=detail;
+   }
+   if(!isDesktopProductCard(card,productId))fail();
    await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});

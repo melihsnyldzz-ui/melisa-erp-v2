@@ -24,7 +24,7 @@ function ownObject(value,required,optional){
 }
 function adapt(input,kind,richCards){
  if(kind==='supplier')return ownObject(input,['requestId','supplierCode','name','phone','city','country','currency','purchaseDiscountRateExact4'],[]);
- const customer=kind==='customer';const x=ownObject(input,customer?customerRequired:productRequired,customer?customerOptional:[...productOptional,...(richCards?['brand','category','supplierId','additionalBarcodes']:[])]);
+ const customer=kind==='customer';const x=ownObject(input,customer?customerRequired:productRequired,customer?customerOptional:[...productOptional,...(richCards?['brand','category','supplierId','additionalBarcodes','openingReason']:[])]);
  if(!x)return null;const legacy=customer?'customerName':'productName';
  // Exactly one spelling: refuse accidental overwrite or undisclosed data loss.
  if(Object.hasOwn(x,'name')===Object.hasOwn(x,legacy))return null;

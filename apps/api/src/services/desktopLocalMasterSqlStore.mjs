@@ -8,6 +8,7 @@ import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3P
 import {MASTER_V3_RESERVE_SQL,MASTER_V3_FINISH_SQL} from '../../../../scripts/desktop-empty/master-v3-journal-sql.mjs';
 import {isProductRejectionRecord,isDurableProductRejection} from './desktopProductRejection.mjs';
 import {desktopAdditionalBarcodes} from './desktopProductBarcodes.mjs';
+import {desktopOpeningReason,isDesktopProductOpening} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 
 const LOGIN='melisa_desktop_test_writer_20261105';
 const DATABASE='MELISA_ERP_DESKTOP_TEST_20261105';
@@ -95,15 +96,15 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
     // Same movement representation as native productService bulk opening.
     async insertOpeningMovement(v){return id(await execute(tx,[s('product',v.productId,20),s('actor',v.actorId,20),s('quantity',v.quantityExact3,40),s('cost',v.averageCostTryExact4,40),s('price',v.unitPriceExact4,40),s('amount',v.amountTryExact4,40),s('date',v.documentDate,10)],`INSERT dbo.stock_movements(product_id,movement_type,source_type,source_id,quantity_in,quantity_out,quantity_net,unit_cost_try,average_cost_try_after,document_date,created_by,unit_price,currency_code,amount_try) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@product),N'in',N'stock_adjustment',NULL,TRY_CONVERT(decimal(18,3),@quantity),0,TRY_CONVERT(decimal(18,3),@quantity),TRY_CONVERT(decimal(18,4),@cost),TRY_CONVERT(decimal(18,4),@cost),TRY_CONVERT(date,@date,23),TRY_CONVERT(bigint,@actor),TRY_CONVERT(decimal(18,4),@price),N'TRY',TRY_CONVERT(decimal(18,4),@amount));`));},
     async readOpeningMovement(v){return one(await execute(tx,[s('product',v.productId,20),s('movement',v.movementId,20)],`SELECT CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(20),created_by) actorId,CONVERT(varchar(40),quantity_in) quantityInExact3,CONVERT(varchar(40),quantity_out) quantityOutExact3,CONVERT(varchar(40),quantity_net) quantityNetExact3,CONVERT(varchar(40),unit_cost_try) unitCostTryExact4,CONVERT(varchar(40),unit_price) unitPriceExact4,CONVERT(varchar(40),amount_try) amountTryExact4,CONVERT(char(10),document_date,23) documentDate,currency_code currency,movement_type movementType,source_type sourceType,CONVERT(varchar(20),source_id) sourceId,(SELECT CONVERT(varchar(20),COUNT_BIG(*)) FROM dbo.stock_movements WHERE product_id=TRY_CONVERT(bigint,@product)) productMovementCount FROM dbo.stock_movements WHERE id=TRY_CONVERT(bigint,@movement) AND product_id=TRY_CONVERT(bigint,@product);`));},
-    async appendAudit(v){const r=await execute(tx,[s('actor',v.actorId,20),s('operation',v.operation,24),s('entity',v.entityId,20),s('request',v.requestId,36)],`INSERT dbo.audit_logs(actor_user_id,action,entity_type,entity_id,reason,source) VALUES(TRY_CONVERT(bigint,@actor),@operation,N'local-master',TRY_CONVERT(bigint,@entity),@request,N'desktop-local-master-v1'); SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_AUDIT');},
-    async readMasterAudit(v){const r=await execute(tx,[s('request',v.requestId,36)],`SELECT reason requestId,CONVERT(varchar(20),actor_user_id) actorId,action operation,CONVERT(varchar(20),entity_id) entityId FROM dbo.audit_logs WHERE reason=@request AND source=N'desktop-local-master-v1' AND entity_type=N'local-master';`);return one(r);},
+    async appendAudit(v){if(v.stockOpening&&(!isDesktopProductOpening(v.stockOpening,v.entityId)||v.stockOpening.actorId!==v.actorId||v.stockOpening.requestId!==v.requestId||v.operation!=='product.create'))fail('LOCAL_SQL_AUDIT');const r=await execute(tx,[s('actor',v.actorId,20),s('operation',v.operation,24),s('entity',v.entityId,20),s('request',v.requestId,36),s('openingJson',v.stockOpening?JSON.stringify(v.stockOpening):null,2000)],`INSERT dbo.audit_logs(actor_user_id,action,entity_type,entity_id,reason,source,after_json) VALUES(TRY_CONVERT(bigint,@actor),@operation,N'local-master',TRY_CONVERT(bigint,@entity),@request,N'desktop-local-master-v1',@openingJson); SELECT @@ROWCOUNT changed;`);if(one(r).changed!==1)fail('LOCAL_SQL_AUDIT');},
+    async readMasterAudit(v){const r=await execute(tx,[s('request',v.requestId,36)],`SELECT reason requestId,CONVERT(varchar(20),actor_user_id) actorId,action operation,CONVERT(varchar(20),entity_id) entityId,after_json openingJson FROM dbo.audit_logs WHERE reason=@request AND source=N'desktop-local-master-v1' AND entity_type=N'local-master';`);const {openingJson,...audit}=one(r);if(openingJson!=null){const detail=parse(openingJson);if(!isDesktopProductOpening(detail,audit.entityId)||detail.requestId!==audit.requestId||detail.actorId!==audit.actorId||audit.operation!=='product.create')fail('LOCAL_SQL_AUDIT');audit.stockOpening=detail;}return audit;},
     async finishRequest(v){const r=await execute(tx,[...jb(v),s('responseJson',JSON.stringify(v.response),sql.MAX)],journalPrefix+'\n'+(richCards?MASTER_V3_FINISH_SQL:LOCAL_MASTER_FINISH_SQL));if(one(r).response_json!==JSON.stringify(v.response))fail('LOCAL_SQL_JOURNAL');},
     async readFinishedRequest(v){const r=await execute(tx,[s('request',v.requestId,36)],`SELECT LOWER(CONVERT(varchar(36),request_id)) requestId,operation,CONVERT(varchar(20),actor_id) actorId,LOWER(CONVERT(varchar(64),payload_hash,2)) payloadHash,response_json FROM dbo.desktop_local_master_requests WHERE request_id=TRY_CONVERT(uniqueidentifier,@request);`);const x=one(r);return {requestId:x.requestId,operation:x.operation,actorId:x.actorId,payloadHash:x.payloadHash,response:parse(x.response_json)};},
    };
    // Do not depend on the caller to respect the coordinator's order. No
    // business method is exposed before a locked authority check AND a fresh
    // journal reservation in this exact transaction; a replay cannot write.
-   let authority=null,active=null,finished=false,journalRead=false,createdProduct=null,openingWritten=false,openingRead=false,opening=null,lockedSupplier=null,richProductRead=false,createdSupplier=null,supplierEntity=null,supplierAccount=null,supplierAttached=false,supplierRead=false,conflictCheck=null,rejected=false,replayRejection=null,insertedBarcodes=[],barcodesRead=false;
+   let authority=null,active=null,finished=false,journalRead=false,createdProduct=null,openingWritten=false,openingRead=false,opening=null,lockedSupplier=null,richProductRead=false,createdSupplier=null,supplierEntity=null,supplierAccount=null,supplierAttached=false,supplierRead=false,conflictCheck=null,rejected=false,replayRejection=null,insertedBarcodes=[],barcodesRead=false,openingAuditJson=null,openingAuditRead=false;
    const customerMethods=new Set(['insertCustomer','attachCustomerEntity','insertCurrencyAccount','readCustomerPersistence']);
    const supplierMethods=new Set(['insertSupplier','attachSupplierEntity','insertSupplierCurrencyAccount','readSupplierPersistence']);
    const productMethods=new Set(['findProductConflict','lockActiveSupplier','insertProduct','readRichProductFields','insertLocalUnit','insertBarcode','readProductBarcodes','insertNativePrice','linkLocalPriceUnit','readProductPersistence','insertOpeningMovement','readOpeningMovement']);
@@ -159,6 +160,7 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
      }
      if(name==='insertOpeningMovement'){
       if(openingWritten||createdProduct.stock==='0.000'||value.quantityExact3!==createdProduct.stock||value.averageCostTryExact4!==createdProduct.cost)fail('LOCAL_SQL_ORDER');
+      if(richCards||value.reason!==undefined)desktopOpeningReason(value.reason);
       const result=await fn(value);openingWritten=true;opening={...value,movementId:result};return result;
      }
      if(name==='readOpeningMovement'){
@@ -167,6 +169,11 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
       if(Object.keys(expected).some(k=>result?.[k]!==expected[k]))fail('LOCAL_SQL_OPENING_READBACK');openingRead=true;return result;
      }
     }
+    if(name==='appendAudit'){
+     if(opening?.reason!==undefined){const expected={kind:'desktop-product-opening-v1',productId:createdProduct.id,movementId:opening.movementId,actorId:active.actorId,requestId:active.requestId,reason:opening.reason,quantityExact3:opening.quantityExact3,costExact4:opening.averageCostTryExact4,amountTryExact4:opening.amountTryExact4,documentDate:opening.documentDate,currency:'TRY'};if(!openingRead||openingAuditJson||!isDesktopProductOpening(value.stockOpening,createdProduct.id)||JSON.stringify(value.stockOpening)!==JSON.stringify(expected))fail('LOCAL_SQL_ORDER');const result=await fn(value);openingAuditJson=JSON.stringify(expected);return result;}
+     else if(value.stockOpening!==undefined)fail('LOCAL_SQL_ORDER');
+    }
+    if(name==='readMasterAudit'&&opening?.reason!==undefined){if(!openingAuditJson)fail('LOCAL_SQL_ORDER');const result=await fn(value);if(!isDesktopProductOpening(result.stockOpening,createdProduct.id)||JSON.stringify(result.stockOpening)!==openingAuditJson||result.actorId!==active.actorId||result.requestId!==active.requestId||result.entityId!==createdProduct.id||result.operation!=='product.create')fail('LOCAL_SQL_AUDIT');openingAuditRead=true;return result;}
     if(name==='finishRequest'){
      if(finished||value?.operation!==active.operation||value?.payloadHash!==active.payloadHash)fail('LOCAL_SQL_ORDER');
      rejected=richCards&&active.operation==='product.create'&&conflictCheck?.reason!==null&&isProductRejectionRecord(value.response,active.requestId)&&value.response.reason===conflictCheck?.reason&&!createdProduct;
@@ -175,6 +182,7 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
      if(active.operation==='product.create'&&!createdProduct&&!rejected)fail('LOCAL_SQL_ORDER');
      if(active.operation==='supplier.create'&&!supplierRead||active.operation==='product.create'&&richCards&&!richProductRead&&!rejected)fail('LOCAL_SQL_ORDER');
      if(createdProduct&&createdProduct.stock!=='0.000'&&(!openingWritten||!openingRead))fail('LOCAL_SQL_ORDER');
+     if(opening?.reason!==undefined&&!openingAuditRead)fail('LOCAL_SQL_ORDER');
      const result=await fn(value);finished=true;return result;
     }
     if(name==='readFinishedRequest'){

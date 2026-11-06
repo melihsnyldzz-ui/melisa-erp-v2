@@ -1,7 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
 import {productCardFixture} from './test-fixtures/desktopProductCard.fixture.mjs';
-function setup({allow=true,target=true,missing=false,wrongParent=false,richCards=true}={}){
+function setup({allow=true,target=true,missing=false,wrongParent=false,richCards=true,stockOpening=null,badOpening=false}={}){
  const calls=[],card=productCardFixture();let commits=0,rollbacks=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){commits++;}async rollback(){rollbacks++;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,params:this.params,tx:this.tx});
@@ -10,6 +10,8 @@ function setup({allow=true,target=true,missing=false,wrongParent=false,richCards
   if(q.includes('OFFSET @offset'))return {recordset:[{id:card.id,stockCode:card.stockCode,productName:card.name,unit:card.unit,currency:card.currency,currentStockExact3:card.currentStockExact3,salePriceExact4:card.salePriceExact4,brand:card.brand,category:card.category,supplierId:card.supplierId,supplierName:card.supplierName}]};
   if(q.includes('FROM dbo.products p WITH(HOLDLOCK)')){const {barcodes,...header}=card;return {recordset:missing?[]:[header]};}
   if(q.includes('SELECT TOP(101)'))return {recordset:card.barcodes.map(b=>wrongParent?{...b,productId:'7'}:b)};
+  if(q.includes('FROM dbo.audit_logs WITH(HOLDLOCK)'))return {recordset:stockOpening?[{openingJson:JSON.stringify(stockOpening),requestId:stockOpening.requestId,actorId:stockOpening.actorId}]:[]};
+  if(q.includes('FROM dbo.stock_movements WITH(HOLDLOCK)')){const {movementId,productId,actorId,quantityExact3,costExact4,amountTryExact4,documentDate,currency}=stockOpening;return {recordset:[{movementId,productId,actorId,quantityExact3:badOpening?'99.000':quantityExact3,costExact4,amountTryExact4,documentDate,currency}]};}
   throw Error('unexpected readonly SQL');}}
  const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:4}};
  const service=createDesktopWriteListService({pool:{},sql,richCards,verifySession:async ctx=>{calls.push(ctx);return allow;}});
@@ -19,6 +21,11 @@ test('product card and all barcode parents use one verified readonly transaction
  const x=setup(),result=await x.service.readProduct('7','6');assert.deepEqual(result,x.card);assert.deepEqual(x.calls.find(c=>c?.permission)?.permission,['product.view','product.edit']);
  const sql=x.calls.filter(c=>c?.q);assert.equal(new Set(sql.map(c=>c.tx)).size,1);assert.ok(sql.slice(1).every(c=>c.params.productId==='6'));assert.equal(x.commits,1);assert.equal(x.rollbacks,0);
  assert.ok(sql.every(c=>!/^\s*(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b/i.test(c.q)));assert.equal(result.barcodes[0].barcode,'000000000005');
+});
+test('opening audit is returned only when its actual stock movement matches the selected product and actor',async()=>{
+ const opening={kind:'desktop-product-opening-v1',productId:'6',movementId:'11',actorId:'7',requestId:'6508625b-b648-421b-b7b9-35d4be7c7263',reason:'Açılış sayımı',quantityExact3:'2.000',costExact4:'8.0000',amountTryExact4:'16.0000',documentDate:'2026-11-06',currency:'TRY'};
+ const good=setup({stockOpening:opening});assert.deepEqual((await good.service.readProduct('7','6')).stockOpening,opening);assert.equal(good.commits,1);
+ for(const options of [{stockOpening:opening,badOpening:true},{stockOpening:{...opening,productId:'7'}},{stockOpening:{...opening,reason:''}}]){const bad=setup(options);await assert.rejects(bad.service.readProduct('7','6'));assert.equal(bad.commits,0);assert.equal(bad.rollbacks,1);}
 });
 test('wrong target, authority, selected parent or legacy profile never yield a card',async()=>{
  for(const option of [{target:false},{allow:false},{wrongParent:true}]){const x=setup(option);await assert.rejects(x.service.readProduct('7','6'));assert.equal(x.commits,0);assert.equal(x.rollbacks,1);if(!option.wrongParent)assert.equal(x.calls.some(c=>c?.q?.includes('FROM dbo.products p WITH(HOLDLOCK)')),false);}

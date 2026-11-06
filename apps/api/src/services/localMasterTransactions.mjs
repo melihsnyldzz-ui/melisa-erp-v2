@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {productRejectionRecord,isProductRejectionRecord,productRejectionOutcome,isDurableProductRejection} from './desktopProductRejection.mjs';
 import {desktopAdditionalBarcodes} from './desktopProductBarcodes.mjs';
+import {desktopOpeningReason,isDesktopProductOpening,DESKTOP_PRODUCT_OPENING_DEFAULT_REASON} from '../../../../packages/shared/src/desktopProductOpening.mjs';
 import {localCustomerIdentity,localProductIdentity} from './localMasterIdentity.mjs';
 import {desktopInitialCostParity,desktopInitialOpeningAmountParity} from './desktopInitialCostParity.mjs';
 import {localSupplierIdentity} from './localSupplierIdentity.mjs';
@@ -40,7 +41,7 @@ function initialCost4(currencyCode,purchase,discount){
 function command(input,operation,richCards){
  const fields=operation==='customer.create'?['requestId','customerCode','name','phone','customerType','currency',...(richCards?['city','country']:[])]:operation==='supplier.create'?['requestId','supplierCode','name','phone','city','country','currency','purchaseDiscountRateExact4']:
   ['requestId','stockCode','name','barcode','unit','currency','salePriceExact4','purchasePriceExact4','purchaseDiscountRateExact4','saleTier',...(richCards?['brand','category','supplierId']:[])];
- const optional=operation==='customer.create'?(richCards?[]:['city','country']):operation==='supplier.create'?[]:['openingQuantityExact3','openingDate',...(richCards?['additionalBarcodes']:[])];
+ const optional=operation==='customer.create'?(richCards?[]:['city','country']):operation==='supplier.create'?[]:['openingQuantityExact3','openingDate',...(richCards?['additionalBarcodes','openingReason']:[])];
  const descriptors=input&&typeof input==='object'&&!Array.isArray(input)?Object.getOwnPropertyDescriptors(input):null;
  if(!descriptors||![Object.prototype,null].includes(Object.getPrototypeOf(input))||
   Reflect.ownKeys(input).some(k=>typeof k!=='string'||![...fields,...optional].includes(k)||!descriptors[k].enumerable||!Object.hasOwn(descriptors[k],'value'))||
@@ -62,6 +63,7 @@ function command(input,operation,richCards){
   opening={openingQuantityExact3:v.openingQuantityExact3,openingDate:v.openingDate};
  }
  const additional=Object.hasOwn(v,'additionalBarcodes')?{additionalBarcodes:desktopAdditionalBarcodes(v.barcode,v.additionalBarcodes)}:{};
+ if(Object.hasOwn(v,'openingReason')){if(!opening.openingQuantityExact3||opening.openingQuantityExact3==='0.000')fail('LOCAL_MASTER_INPUT_INVALID');opening.openingReason=desktopOpeningReason(v.openingReason);}
  return Object.freeze({requestId:v.requestId,stockCode:text(v.stockCode,50),name:text(v.name,250),barcode:text(v.barcode,80),
   unit:text(v.unit,20),currency:currency(v.currency),salePriceExact4:money4(v.salePriceExact4),
   purchasePriceExact4:money4(v.purchasePriceExact4),purchaseDiscountRateExact4:discount4(v.purchaseDiscountRateExact4),saleTier:v.saleTier,...(richCards?{brand:text(v.brand,120),category:text(v.category,120),supplierId:id(v.supplierId)}:{}),...opening,...additional});
@@ -116,7 +118,7 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
     // Legacy v2 payloads can only recover an already committed request. They
     // never create a new row or acquire a different payload hash during v3.
     if(legacyOnly)fail('LOCAL_MASTER_LEGACY_NEW_REJECTED');
-    let entity;
+    let entity,stockOpening=null;
     if(operation==='customer.create'){
      const customerId=id(await tx.insertCustomer({actorId:principal,...payload}));
      const entityId=id(await tx.insertPartyEntity({actorId:principal,role:'customer',name:payload.name,country:payload.country}));
@@ -168,7 +170,9 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
      await tx.linkLocalPriceUnit({productId,unitId,priceId});
      if(initialStockExact3!=='0.000'){
       const amountTryExact4=openingAmountTryExact4;
-      const movementId=id(await tx.insertOpeningMovement({productId,actorId:principal,quantityExact3:initialStockExact3,averageCostTryExact4,unitPriceExact4:payload.purchasePriceExact4,amountTryExact4,documentDate:payload.openingDate}));
+      const reason=richCards?(payload.openingReason??DESKTOP_PRODUCT_OPENING_DEFAULT_REASON):undefined;
+      const movementId=id(await tx.insertOpeningMovement({productId,actorId:principal,quantityExact3:initialStockExact3,averageCostTryExact4,unitPriceExact4:payload.purchasePriceExact4,amountTryExact4,documentDate:payload.openingDate,...(reason!==undefined?{reason}:{})}));
+      if(reason!==undefined){stockOpening=Object.freeze({kind:'desktop-product-opening-v1',productId,movementId,actorId:principal,requestId,reason,quantityExact3:initialStockExact3,costExact4:averageCostTryExact4,amountTryExact4,documentDate:payload.openingDate,currency:'TRY'});if(!isDesktopProductOpening(stockOpening,productId))fail('LOCAL_MASTER_OPENING_READBACK_INVALID');}
       const opening=rec(await tx.readOpeningMovement({productId,movementId}),['id','productId','actorId','quantityInExact3','quantityOutExact3','quantityNetExact3','unitCostTryExact4','unitPriceExact4','amountTryExact4','documentDate','currency','movementType','sourceType','sourceId','productMovementCount']);
       if(opening.id!==movementId||opening.productId!==productId||opening.actorId!==principal||opening.quantityInExact3!==initialStockExact3||opening.quantityOutExact3!=='0.000'||opening.quantityNetExact3!==initialStockExact3||opening.unitCostTryExact4!==averageCostTryExact4||opening.unitPriceExact4!==payload.purchasePriceExact4||opening.amountTryExact4!==amountTryExact4||opening.documentDate!==payload.openingDate||opening.currency!=='TRY'||opening.movementType!=='in'||opening.sourceType!=='stock_adjustment'||opening.sourceId!==null||opening.productMovementCount!=='1')fail('LOCAL_MASTER_OPENING_READBACK_INVALID');
      }
@@ -191,9 +195,10 @@ export function createLocalMasterTransactions({store,authorize,onFailure=()=>{},
      entity=localProductIdentity({product:{id:p.id,name:p.name},units:[u],
       prices:[{id:q.id,productId:q.productId,type:q.type,unitId:l.unitId,tier:q.tier,currency:q.currency,priceExact8:q.priceExact8}]});
     }
-    await tx.appendAudit({actorId:principal,operation,entityId:entity.id,requestId});
-    const audit=rec(await tx.readMasterAudit({requestId}),['requestId','actorId','operation','entityId']);
+    await tx.appendAudit({actorId:principal,operation,entityId:entity.id,requestId,...(stockOpening?{stockOpening}:{})});
+    const audit=rec(await tx.readMasterAudit({requestId}),['requestId','actorId','operation','entityId',...(stockOpening?['stockOpening']:[])]);
     if(audit.requestId!==requestId||audit.actorId!==principal||audit.operation!==operation||audit.entityId!==entity.id)fail('LOCAL_MASTER_AUDIT_READBACK_INVALID');
+    if(stockOpening&&(!isDesktopProductOpening(audit.stockOpening,entity.id)||JSON.stringify(audit.stockOpening)!==JSON.stringify(stockOpening)))fail('LOCAL_MASTER_AUDIT_READBACK_INVALID');
     const response={requestId,operation,entity};
     await tx.finishRequest({requestId,operation,actorId:principal,payloadHash,response});
     const journal=rec(await tx.readFinishedRequest({requestId}),['requestId','operation','actorId','payloadHash','response']);
