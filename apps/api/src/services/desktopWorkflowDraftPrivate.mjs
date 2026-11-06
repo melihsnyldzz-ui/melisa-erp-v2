@@ -6,6 +6,9 @@ import {createHash,randomUUID} from 'node:crypto';
 import sql from 'mssql';
 import {getDesktopWritePool} from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
+import * as desktopAuth from './desktopWriteAuthCore.mjs';
+import {desktopSaleQuote} from './desktopSaleQuote.mjs';
+import {desktopSeriesDraftItems} from '../../../../packages/shared/src/desktopSalePreviewSelection.mjs';
 import {createDesktopSaleTransactionScope} from './desktopSaleTransactionScope.mjs';
 import {createDesktopTwoItemLockedSelection} from './desktopTwoItemLockedSelection.mjs';
 import {prepareDesktopTwoItemSale,desktopTwoItemRevision} from './desktopTwoItemSalePreparation.mjs';
@@ -68,13 +71,18 @@ export function createDesktopWorkflowDraftService({connector,auth}={}){
   }catch(error){recordDesktopFailure({requestId,error});return {state:'UNKNOWN',requestId,retry:'SAME_REQUEST_ONLY'};}
  }};
  service.preview=async(actorId,input)=>{
-  if(!id(actorId)||!input||Object.keys(input).sort().join(',')!=='customerId,documentDate,productIds')fail();
+  const quote=Object.hasOwn(input??{},'discountRateExact4');
+  if(!id(actorId)||!input||Object.keys(input).sort().join(',')!==(quote?'customerId,discountRateExact4,documentDate,productIds,quantities,quantityUnits':'customerId,documentDate,productIds'))fail();
   const c=JSON.parse(JSON.stringify(input)),tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const requestId=randomUUID();
    const result=await scope.withScope({transaction:tx,actorId,requestId,customerId:c.customerId,productIds:c.productIds},async context=>{
     const locked=await select({transaction:tx,scope:context.scope,customerId:c.customerId,productIds:c.productIds}),revision=desktopTwoItemRevision(locked);
-    prepareDesktopTwoItemSale({requestId,customerId:c.customerId,documentDate:c.documentDate,expectedRevision:revision,items:c.productIds.map(productId=>({productId,quantityExact3:'1.000'}))},locked);
-    return {customerId:c.customerId,customerCode:locked.customer.customerCode,documentDate:c.documentDate,currency:'TRY',revision,products:locked.products.map((p,i)=>({productId:p.id,stockCode:p.stockCode,name:p.name,barcode:p.barcode,unit:p.unit,priceExact4:p.priceExact4,stockExact3:p.stockExact3,reservedExact3:locked.reservedExact3[i],...(p.seriesUnit?{seriesUnit:p.seriesUnit}:{})}))};
+    const products=locked.products.map((p,i)=>({productId:p.id,stockCode:p.stockCode,name:p.name,barcode:p.barcode,unit:p.unit,priceExact4:p.priceExact4,stockExact3:p.stockExact3,reservedExact3:locked.reservedExact3[i],...(p.seriesUnit?{seriesUnit:p.seriesUnit}:{})}));
+    const items=quote?desktopSeriesDraftItems({...c,preview:{products}}):c.productIds.map(productId=>({productId,quantityExact3:'1.000'}));
+    const prepared=prepareDesktopTwoItemSale({requestId,customerId:c.customerId,documentDate:c.documentDate,expectedRevision:revision,items},locked);
+    let calculation;
+    if(quote){const maxDiscountRateExact4=desktopAuth.getDesktopWriteDiscountCeiling(auth,pool)({transaction:tx,actorId});const {normalizeSalesPayload}=await import('./invoiceDraftService.js');calculation=desktopSaleQuote({prepared,locked,discountRateExact4:c.discountRateExact4,maxDiscountRateExact4,normalizeSalesPayload});}
+    return {customerId:c.customerId,customerCode:locked.customer.customerCode,documentDate:c.documentDate,currency:'TRY',revision,products,...(quote?{quote:calculation}:{})};
    });await tx.commit();begun=false;return result;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  };

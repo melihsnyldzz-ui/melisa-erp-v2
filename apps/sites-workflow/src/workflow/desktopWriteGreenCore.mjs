@@ -23,7 +23,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
  async function request(path,{method='GET',body,credential=token}={}){
   if(location.origin!==ORIGIN)fail();
   const r=await fetchImpl(API+path,{method,headers:{'Content-Type':'application/json',...(credential?{Authorization:`Bearer ${credential}`}:{})},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000),...(body?{body:JSON.stringify(body)}:{})});
-  const value=await r.json();if(!r.ok||value?.success!==true)fail();return value;
+  const value=await r.json();if(!r.ok||value?.success!==true){if(r.status===403&&path.startsWith('/api/desktop-sale/draft-preview?')&&value?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')throw Error('İskonto yetki sınırınızı aşıyor. Yetkili onayı gerekiyor.');fail();}return value;
  }
  function clear(){generation++;token=null;user=null;sessionStorage.removeItem(KEY);}
  function acceptUser(value){if(!validUser(value))fail();user=value;return user;}
@@ -55,7 +55,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
    const result=await request(path,{method:'POST',body});current();return result.data;
   }});
   return Object.freeze({pending:()=>{current();return controller.pending();},create:async(kind,payload)=>{current();return controller.create(kind,payload);},retry:async()=>{current();return controller.retry();},resolve:async()=>{current();return controller.resolve();},
-   preview:async input=>{current();if(!Array.isArray(input.productIds)||input.productIds.length!==2)fail();const query=new URLSearchParams({customerId:input.customerId,documentDate:input.documentDate,productIds:input.productIds.join(',')});const result=await request('/api/desktop-sale/draft-preview?'+query);current();return result.data;},
+   preview:async input=>{current();if(!Array.isArray(input.productIds)||input.productIds.length!==2)fail();const quote=Object.hasOwn(input,'discountRateExact4');if(quote&&(![input.quantities,input.quantityUnits].every(v=>Array.isArray(v)&&v.length===2&&v.every(s=>typeof s==='string'&&!s.includes(',')))||typeof input.discountRateExact4!=='string'))fail();const query=new URLSearchParams({customerId:input.customerId,documentDate:input.documentDate,productIds:input.productIds.join(','),...(quote?{quantities:input.quantities.join(','),quantityUnits:input.quantityUnits.join(','),discountRateExact4:input.discountRateExact4}:{})});const result=await request('/api/desktop-sale/draft-preview?'+query);current();return result.data;},
    read:async invoiceId=>{current();if(!actorId(invoiceId))fail();const result=await request('/api/desktop-sale/workflows/'+invoiceId);current();if(result.data?.invoiceId!==invoiceId)fail();return result.data;}
   });
  }

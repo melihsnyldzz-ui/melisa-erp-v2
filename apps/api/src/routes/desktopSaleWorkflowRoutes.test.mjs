@@ -1,5 +1,18 @@
 import test from 'node:test';import assert from 'node:assert/strict';import express from 'express';import http from 'node:http';
 import {createDesktopSaleWorkflowRoutes} from './desktopSaleWorkflowRoutes.mjs';
+
+test('read-only quote query preserves exact inputs, rejects extra/partial authority fields and requires both sale permissions',async t=>{
+ let input,permissions=['sales.create','sales.finalize'];
+ const app=express();app.use(createDesktopSaleWorkflowRoutes({service:{transition:async()=>{}},draftService:{preview:async(actor,value)=>{assert.equal(actor,'8');input=value;if(value.discountRateExact4==='3.0001')throw Object.assign(Error(),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});return {quote:{totalExact4:'32.9800'}};}},authenticateNormal:async()=>({kind:'normal',userId:'8',permissions})}));
+ const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const send=q=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server.address().port,path:'/api/desktop-sale/draft-preview?'+q,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294'}},res=>{let body='';res.on('data',v=>body+=v);res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(body)}));});req.on('error',reject);req.end();});
+ const query='customerId=2&documentDate=2026-11-06&productIds=8,1&quantities=2.000,1.000&quantityUnits=ADET,ADET&discountRateExact4=3.0000';
+ assert.equal((await send(query)).status,200);assert.deepEqual(input,{customerId:'2',documentDate:'2026-11-06',productIds:['8','1'],quantities:['2.000','1.000'],quantityUnits:['ADET','ADET'],discountRateExact4:'3.0000'});
+ assert.equal((await send(query.replace('3.0000','3.0001'))).body.code,'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED');
+ for(const suffix of ['&role=owner','&maxDiscountRateExact4=100.0000','&discountRateExact4=0.0000'])assert.equal((await send(query+suffix)).status,503);
+ assert.equal((await send(query.replace('&quantityUnits=ADET,ADET',''))).status,503);
+ permissions=['sales.create'];assert.equal((await send(query)).status,503);
+});
 test('normal workflow route binds actor, path and permission; unsupported dispatch stays closed',async t=>{
  let permissions=['sales.create'],calls=0;const app=express();app.use(express.json());
  app.use(createDesktopSaleWorkflowRoutes({authenticateNormal:async()=>({kind:'normal',userId:'8',permissions}),service:{async transition(actor,body){assert.equal(actor,'8');calls++;return {state:'COMMITTED',requestId:body.requestId,invoiceId:body.invoiceId,operation:body.operation,replayed:false};}}}));
