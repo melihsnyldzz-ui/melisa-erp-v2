@@ -2,6 +2,7 @@
 // authority; the UI permission checks only control visibility and dispatch.
 import {createDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {createDesktopProductCreate} from './desktopProductCreate.mjs';
+import {desktopProductCardId,isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTransport.mjs';
 import {createDesktopLocalCustomerTransport} from './desktopLocalCustomerTransport.mjs';
@@ -54,5 +55,9 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
    read:async invoiceId=>{current();if(!actorId(invoiceId))fail();const result=await request('/api/desktop-sale/workflows/'+invoiceId);current();if(result.data?.invoiceId!==invoiceId)fail();return result.data;}
   });
  }
- return Object.freeze({login,restore,logout,list,can,create,sale,getUser:()=>user});
+ async function productCard(id){
+  if(!richCards||!desktopProductCardId(id)||!can('products')||!can('products','edit'))fail();const prior=generation;
+  const result=await request('/api/products/'+id);if(prior!==generation||!can('products','edit')||!isDesktopProductCard(result.data,id))fail();return result.data;
+ }
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,getUser:()=>user});
 }

@@ -8,6 +8,7 @@ const sensitiveKeyPattern = /password|passwd|pwd|secret|token|authorization|auth
 // Snapshot of literal code assignments/error-helper calls (excluding config/tests),
 // plus standard driver errors. The source-coverage test requires review of new codes.
 const knownCodes = new Set(`
+  PRODUCT_BARCODES_INVALID
   LOCAL_SQL_PRODUCT_CONFLICT PRODUCT_REJECTION_INVALID
   LOCAL_MASTER_LEGACY_NEW_REJECTED LOCAL_MASTER_SUPPLIER_READBACK_INVALID LOCAL_MASTER_SUPPLIER_UNAVAILABLE
   LOCAL_SQL_PRODUCT_READBACK LOCAL_SQL_SUPPLIER_READBACK LOCAL_SQL_SUPPLIER_UNAVAILABLE LOCAL_SUPPLIER_IDENTITY_INVALID

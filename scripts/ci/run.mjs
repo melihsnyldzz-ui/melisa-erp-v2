@@ -37,7 +37,7 @@ if (mode === 'quality') {
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
   // Fixed-target compiler fixtures only: no SQL connection or execution.
-  run(['--test', path.join(root, 'scripts/desktop-empty/master-v3-transition.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-journal-sql.test.mjs')]);
+  run(['--experimental-vm-modules', '--test', path.join(root, 'scripts/desktop-empty/master-v3-transition.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-journal-sql.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-web.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-customer-master-metadata-package.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-current-business-pair-154.test.mjs')]);
   run(['--test', ...['shared-business-selected-collection-revision-sql','shared-business-selected-collection-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);

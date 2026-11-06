@@ -2,6 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {productRejectionRecord,productRejectionOutcome} from '../../../api/src/services/desktopProductRejection.mjs';
 import {createDesktopWriteGreenCore} from './desktopWriteGreenCore.mjs';
+import {productCardFixture} from '../../../api/src/services/test-fixtures/desktopProductCard.fixture.mjs';
+test('normal facade binds full product card to selection and discards late logout results',async()=>{
+ const x=fixture(['product.view','product.edit']);let finish,late=false;const original=x.deps.fetch;x.deps.richCards=true;x.deps.fetch=async(url,opts)=>{if(url.endsWith('/api/products/6')){if(late)await new Promise(r=>{finish=r;});return {ok:true,json:async()=>({success:true,data:productCardFixture()})};}if(url.endsWith('/api/products/7'))return {ok:true,json:async()=>({success:true,data:productCardFixture()})};return original(url,opts);};
+ const core=createDesktopWriteGreenCore(x.deps);await core.login('normal','secret');assert.equal((await core.productCard('6')).barcodes[1].barcode,'000000000051');await assert.rejects(core.productCard('7'));await assert.rejects(core.productCard('06'));late=true;const waiting=core.productCard('6');await core.logout();finish();await assert.rejects(waiting);
+ const view=fixture(['product.view']);const read=createDesktopWriteGreenCore({...view.deps,richCards:true});await read.login('normal','secret');await assert.rejects(read.productCard('6'));assert.equal(view.calls.some(c=>c.url.includes('/api/products/')),false);
+});
 const memory=()=>{const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,v),removeItem:k=>map.delete(k)};};
 function fixture(perms=['customer.view','customer.edit','product.view']){
  const calls=[],sessionStorage=memory(),localStorage=memory(),user={id:7,username:'normal',displayName:'Normal',permissions:perms};

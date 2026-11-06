@@ -1,3 +1,7 @@
+## 6 Kasım — R1 ürün kartı ve ana/ek barkod kaynak çalışması hazır
+
+K03-02 ana/ek barkodlar, baştaki sıfırların korunması ve barkodla aynı ürünü bulma; bağlı K03-01 tam kart açılışı kaynakta tamamlandı. Mevcut tablo ve journal kullanılıyor; DDL/yetki değişikliği yok. 64 ilgili test dosyası, guardlı yeşil ekran derlemesi ve bağımsız salt okunur inceleme geçti. [Kapsam ve kaynak kanıtı](docs/evidence/erp/2026-11-06-desktop-product-cards/README.md). Çalışan R1 henüz bu değişikliği almadı; sıradaki adım kontrollü paket geçişi ve normal GUI/gerçek SQL doğrulaması. K07 ve eski geçerli satış/restore denemeleri bu adımın dışında kalıyor.
+
 ## 6 Kasım — R1 ürün ret/taslak/düzeltme gerçek GUI ve SQL ile doğrulandı
 
 Aktif kaynak-r1/51637a22, paketC116F88D.../185kaynak/5PS/2asset, owner46464-worker42208/loopback5294-4294. NormalGUI mevcut barkodu reddetti;23operasyonel tablo+identity aynı, tekretjournalef0a2e49.... Yenileme/yenipaketsonrası alanlar+supplier geri açıldı; yalnızbarkod değişip product5/tekopeningmovement10 (1ADET×8TRY) oluştu, yenilemedekaldı. Eskistok3/4/2,cariler50/22,supplier0aynı. İki409retreplay+200commitreplay+değişmişbody503 gerçeknormalHTTP; bağımsızSQL23tablo/8journal/identityaynı. [Kurulu kanıt ve korunan ara hatalar](docs/evidence/erp/2026-11-06-desktop-product-conflict/README.md).59kaynaktestdosyası+guardlıbuildPASS; exact516hostedquality/secretsPASS,Windowsbekliyor. İnsan/LAN/LIVEaçık,DDL/yetki/SQLservisi değişmedi.

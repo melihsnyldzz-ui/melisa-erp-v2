@@ -26,7 +26,7 @@ function memoryStore(){
      const value={supplier:{id:s.id,entityId:s.entityId,currency:s.currency,supplierCode:s.supplierCode,name:s.name,phone:s.phone,city:s.city,country:s.country,purchaseDiscountRateExact4:s.purchaseDiscountRateExact4,balanceExact4:'0.0000',isActive:true,isDeleted:false},entity:{id:e.id,role:e.role,name:e.name,country:e.country},account:{id:a.id,entityId:a.entityId,customerId:null,supplierId:a.supplierId,currency:a.currency,currentBalanceExact8:a.currentBalanceExact8}};
      if(failAt==='supplier-readback')value.account.supplierId='999';if(failAt==='supplier-status-drift')value.supplier.isActive=false;if(failAt==='supplier-balance-drift')value.supplier.balanceExact4='1.0000';return value;},
     async lockActiveSupplier({supplierId}){const s=draft.rows.suppliers.find(v=>v.id===supplierId);return s?{id:s.id,isActive:failAt!=='supplier-inactive',isDeleted:false}:null;},
-    async findProductConflict({stockCode,barcode}){return draft.rows.products.some(p=>p.stockCode===stockCode)?'PRODUCT_STOCK_CODE_IN_USE':draft.rows.barcodes.some(b=>b.barcode===barcode&&b.isActive)?'PRODUCT_BARCODE_IN_USE':null;},
+    async findProductConflict({stockCode,barcode,additionalBarcodes=[]}){const codes=[barcode,...additionalBarcodes];return draft.rows.products.some(p=>p.stockCode===stockCode)?'PRODUCT_STOCK_CODE_IN_USE':new Set(codes.map(v=>v.toLocaleLowerCase('tr-TR'))).size!==codes.length?'PRODUCT_BARCODE_DUPLICATE_INPUT':draft.rows.barcodes.some(b=>codes.includes(b.barcode)&&b.isActive)?'PRODUCT_BARCODE_IN_USE':null;},
     async readCustomerPersistence({customerId,entityId,accountId}){
      const c=draft.rows.customers.find(v=>v.id===customerId),e=draft.rows.entities.find(v=>v.id===entityId),a=draft.rows.accounts.find(v=>v.id===accountId);
      const result={customer:{id:c.id,entityId:c.entityId,currency:c.currency,customerCode:c.customerCode,name:c.name,phone:c.phone,customerType:c.customerType,city:c.city,country:c.country},
@@ -38,9 +38,10 @@ function memoryStore(){
     async insertOpeningMovement(v){return add(draft,'openings',v);},
     async readOpeningMovement({productId,movementId}){const row=draft.rows.openings.find(v=>v.id===movementId&&v.productId===productId);return {id:row.id,productId:row.productId,actorId:row.actorId,quantityInExact3:row.quantityExact3,quantityOutExact3:'0.000',quantityNetExact3:row.quantityExact3,unitCostTryExact4:row.averageCostTryExact4,unitPriceExact4:row.unitPriceExact4,amountTryExact4:failAt==='opening-readback'?'99.0000':row.amountTryExact4,documentDate:row.documentDate,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'};},
     async insertLocalUnit(v){return add(draft,'units',v);},
-    async insertBarcode(v){if(draft.rows.barcodes.some(r=>r.barcode===v.barcode))throw Error('duplicate');return add(draft,'barcodes',{...v,isPrimary:true,isActive:true});},
+    async insertBarcode(v){if(draft.rows.barcodes.some(r=>r.barcode===v.barcode))throw Error('duplicate');return add(draft,'barcodes',{...v,barcodeType:v.barcodeType??'primary',isPrimary:(v.barcodeType??'primary')==='primary',isActive:true});},
     async insertNativePrice(v){return add(draft,'prices',v);},
     async linkLocalPriceUnit(v){if(failAt!=='link-noop')add(draft,'links',v);},
+    async readProductBarcodes({productId}){return draft.rows.barcodes.filter(b=>b.productId===productId&&b.isActive).map(b=>({id:b.id,productId,barcode:b.barcode,barcodeType:b.barcodeType,isPrimary:b.isPrimary,isActive:true})).map(b=>failAt==='extra-barcode-readback'?{...b,productId:'999'}:b);},
     async readProductPersistence({productId,unitId,barcodeId,priceId}){
      const p=draft.rows.products.find(v=>v.id===productId);
      const u=draft.rows.units.find(v=>v.id===unitId),b=draft.rows.barcodes.find(v=>v.id===barcodeId),q=draft.rows.prices.find(v=>v.id===priceId),l=draft.rows.links.find(v=>v.priceId===priceId);
@@ -69,6 +70,21 @@ function memoryStore(){
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
 const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
 const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+
+test('main and extra barcode strings commit with one product and replay without duplicate rows',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
+ const p={...product(),brand:'B',category:'C',supplierId,additionalBarcodes:['000000000051','000000000052']};
+ const result=await svc.createProduct('7',p);assert.equal(result.state,'COMMITTED');const before=s.snapshot();assert.equal(before.rows.products.length,1);
+ assert.deepEqual(before.rows.barcodes.map(b=>b.barcode),[p.barcode,...p.additionalBarcodes]);assert.deepEqual(before.rows.barcodes.map(b=>b.isPrimary),[true,false,false]);assert.ok(before.rows.barcodes.every(b=>b.productId===result.entity.id));
+ assert.equal((await svc.createProduct('7',p)).replayed,true);assert.deepEqual(s.snapshot(),before);
+ assert.equal((await svc.createProduct('7',{...p,additionalBarcodes:[...p.additionalBarcodes].reverse()})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ const conflict=await svc.createProduct('7',{...p,requestId:'c1a71000-6f42-4f19-8cab-9f4539618647',stockCode:'P2',barcode:'0009',additionalBarcodes:['000000000052']});assert.equal(conflict.state,'NOT_COMMITTED');assert.equal(conflict.reason,'PRODUCT_BARCODE_IN_USE');assert.deepEqual(s.snapshot().rows,before.rows);
+});
+
+test('extra barcode readback drift rolls back every product-linked row and its journal',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt('extra-barcode-readback');
+ assert.equal((await svc.createProduct('7',{...product(),brand:'B',category:'C',supplierId,additionalBarcodes:['0005']})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+});
 
 test('durable rich product conflict survives a lost reply; old commit and changed-body UUID keep their outcomes',async()=>{
  const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;

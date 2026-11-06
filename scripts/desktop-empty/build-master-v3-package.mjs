@@ -24,7 +24,10 @@ function visit(name){
  }
 }
 for(const seed of ['scripts/desktop-empty/start-master-v3-worker.mjs','scripts/desktop-empty/master-v3-transition.mjs','scripts/desktop-empty/build-master-v3-package.mjs','scripts/desktop-empty/verify-master-v3-writer.mjs'])visit(seed);
-const web=root+'/apps/sites-workflow/dist-desktop-write-green';const html=readFileSync(web+'/desktop-write-green.html','utf8');const js=[...html.matchAll(/src="\/([^" ]+\.js)"/g)].map(x=>x[1]);if(js.length!==1||!/^assets\/[A-Za-z0-9_-]+\.js$/.test(js[0]))throw Error('ASSETS');for(const n of ['desktop-write-green.html',...js])assets[n]=hash(web+'/'+n);
+const web=root+'/apps/sites-workflow/dist-desktop-write-green';const html=readFileSync(web+'/desktop-write-green.html','utf8');
+const js=[...html.matchAll(/src="\/([^" ]+\.js)"/g)].map(x=>x[1]),css=[...html.matchAll(/href="\/([^" ]+\.css)"/g)].map(x=>x[1]);
+if(js.length!==1||!/^assets\/[A-Za-z0-9_-]+\.js$/.test(js[0])||css.length>1||css.some(n=>!/^assets\/[A-Za-z0-9_-]+\.css$/.test(n)))throw Error('ASSETS');
+for(const n of ['desktop-write-green.html',...js,...css])assets[n]=hash(web+'/'+n);
 const helpers={};for(const f of ['scripts/desktop-empty/start-master-v3.ps1','scripts/desktop-empty/stop-master-v3-runtime.ps1','scripts/desktop-empty/readmit-master-v3-runtime.ps1','scripts/desktop-empty/master-v3-runner-common.ps1','scripts/desktop-empty/read-first-sale-operator.ps1']){assertCurrentSource(readFileSync(root+'/'+f,'utf8'));helpers[f]=hash(root+'/'+f);}
 const pkg={profile:'desktop-master-v3',sourceRoot:root,createdAt:new Date().toISOString(),sources,helpers,assets,snapshotSqlSha256:compileMasterV3Snapshot().sha256,dependencySha256:inspectDesktopRuntimeTree().sha256};
 const file='C:/Users/Xaser/Desktop/ERP/kurulum/master-r1-package.json',archive='C:/Users/Xaser/Desktop/ERP/kurulum/master-r1-packages';mkdirSync(archive,{recursive:true});

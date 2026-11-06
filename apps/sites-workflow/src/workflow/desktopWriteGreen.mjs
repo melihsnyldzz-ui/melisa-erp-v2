@@ -2,6 +2,8 @@
 import {createDesktopWriteGreenCore} from './desktopWriteGreenCore.mjs';
 import {mountDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {mountDesktopProductCreate} from './desktopProductCreate.mjs';
+import {mountDesktopProductCard} from './desktopProductCard.mjs';
+import './desktopMasterCards.css';
 import {mountDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {mountDesktopWorkflowScreen} from './desktopWorkflowScreen.mjs';
 const core=createDesktopWriteGreenCore({location,fetch:window.fetch.bind(window),sessionStorage,localStorage,locks:navigator.locks,newId:()=>crypto.randomUUID(),richCards:true});
@@ -27,11 +29,18 @@ async function show(page,number=1,search=''){if(!core.getUser())return login();i
  try{const result=await core.list(page,number,search);if(current!==sequence)return;const root=view.querySelector('[data-list]'),names={products:['productName','stockCode'],customers:['customerName','customerCode'],suppliers:['supplierName','supplierCode']}[page];
   const extraHead=page==='products'?'<th>Marka</th><th>Ürün türü</th><th>Ana tedarikçi</th><th>Stok</th><th>Birim</th><th>Satış fiyatı</th>':page==='customers'?'<th>Şehir / ülke</th><th>Bakiye</th>':page==='suppliers'?'<th>Şehir / ülke</th><th>Para birimi</th>':'';
   const extraCells=row=>page==='products'?`<td>${esc(row.brand||'—')}</td><td>${esc(row.category||'—')}</td><td>${esc(row.supplierName||'—')}</td><td>${esc(row.currentStockExact3)}</td><td>${esc(row.unit)}</td><td>${esc(row.salePriceExact4)} ${esc(row.currency)}</td>`:page==='customers'?`<td>${esc([row.city,row.country].filter(Boolean).join(' / '))}</td><td>${esc(row.balanceExact4)} ${esc(row.currency)}</td>`:page==='suppliers'?`<td>${esc([row.city,row.country].filter(Boolean).join(' / '))}</td><td>${esc(row.currency)}</td>`:'';
-  const receipts=page==='receipts',states={DRAFT:'Taslak',PREPARING:'Hazırlanıyor',READY:'Hazır',CHECKED:'Son kontrol tamam',COMPLETED:'Tamamlandı',CANCELLED:'İptal'};
-  const head=receipts?'<th>Fiş no</th><th>Müşteri</th><th>Tarih</th><th>Durum</th><th>Toplam</th><th></th>':`<th>Ad</th><th>Kod</th>${extraHead}`;
-  const cells=row=>receipts?`<td>${esc(row.documentNo)}</td><td>${esc(row.customerName)}</td><td>${esc(row.documentDate)}</td><td>${esc(states[row.workflowState])}</td><td>${esc(row.totalExact4)} ${esc(row.currency)}</td><td><button type="button" class="btn small" data-open-invoice="${esc(row.id)}">Fişi aç</button></td>`:`<td>${esc(row[names[0]])}</td><td>${esc(row[names[1]])}</td>${extraCells(row)}`;
-  root.innerHTML=(receipts?`<p><input data-receipt-search aria-label="Fiş veya müşteri ara" value="${esc(search)}" maxlength="100"><button type="button" data-search-receipts>Ara</button></p>`:'')+(result.data.length?`<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${result.data.map(row=>`<tr>${cells(row)}</tr>`).join('')}</tbody></table></div>`:'<p>Henüz kayıt yok.</p>')+`<div><button type="button" data-previous ${number===1?'disabled':''}>Önceki</button> <span>Sayfa ${number}</span> <button type="button" data-next ${result.meta.hasNextPage?'':'disabled'}>Sonraki</button></div>`;
+  const receipts=page==='receipts',products=page==='products',states={DRAFT:'Taslak',PREPARING:'Hazırlanıyor',READY:'Hazır',CHECKED:'Son kontrol tamam',COMPLETED:'Tamamlandı',CANCELLED:'İptal'};
+  const head=receipts?'<th>Fiş no</th><th>Müşteri</th><th>Tarih</th><th>Durum</th><th>Toplam</th><th></th>':`<th>Ad</th><th>Kod</th>${extraHead}${products&&editable?'<th></th>':''}`;
+  const cells=row=>receipts?`<td>${esc(row.documentNo)}</td><td>${esc(row.customerName)}</td><td>${esc(row.documentDate)}</td><td>${esc(states[row.workflowState])}</td><td>${esc(row.totalExact4)} ${esc(row.currency)}</td><td><button type="button" class="btn small" data-open-invoice="${esc(row.id)}">Fişi aç</button></td>`:`<td>${esc(row[names[0]])}</td><td>${esc(row[names[1]])}</td>${extraCells(row)}${products&&editable?`<td><button type="button" class="btn small" data-open-product="${esc(row.id)}">Kartı aç</button></td>`:''}`;
+  const searchForm=receipts?`<p><input data-receipt-search aria-label="Fiş veya müşteri ara" value="${esc(search)}" maxlength="100"><button type="button" data-search-receipts>Ara</button></p>`:products?`<div class="desktop-product-search"><input data-product-search aria-label="Kod, ad veya barkod ara" value="${esc(search)}" maxlength="100"><button class="btn" type="button" data-search-products>Ara</button></div>`:'';
+  root.innerHTML=searchForm+(result.data.length?`<div class="tablewrap"><table><thead><tr>${head}</tr></thead><tbody>${result.data.map(row=>`<tr>${cells(row)}</tr>`).join('')}</tbody></table></div>`:'<p>Henüz kayıt yok.</p>')+`<div><button type="button" data-previous ${number===1?'disabled':''}>Önceki</button> <span>Sayfa ${number}</span> <button type="button" data-next ${result.meta.hasNextPage?'':'disabled'}>Sonraki</button></div>`;
   root.querySelector('[data-search-receipts]')?.addEventListener('click',()=>show(page,1,root.querySelector('[data-receipt-search]').value));
+  root.querySelector('[data-search-products]')?.addEventListener('click',()=>show(page,1,root.querySelector('[data-product-search]').value));
+  root.querySelector('[data-product-search]')?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();void show(page,1,event.currentTarget.value);}});
+  root.querySelectorAll('[data-open-product]').forEach(button=>button.addEventListener('click',()=>{
+   if(!core.can('products','edit'))return;dispose();const formRoot=view.querySelector('[data-form]');
+   mounted=mountDesktopProductCard({root:formRoot,productId:button.dataset.openProduct,load:id=>core.productCard(id),onClose:()=>{dispose();formRoot.innerHTML='';}});
+  }));
   root.querySelectorAll('[data-open-invoice]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),button.dataset.openInvoice);void show('sales');}));
   root.querySelector('[data-previous]').addEventListener('click',()=>show(page,number-1,search));root.querySelector('[data-next]').addEventListener('click',()=>show(page,number+1,search));
  }catch{if(current===sequence)view.querySelector('[data-list]').innerHTML='<p role="alert">Liste okunamadı.</p>';}

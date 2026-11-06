@@ -2,6 +2,7 @@
 // listener, SQL connection, grants, or mutations are created at import time.
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
+import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const definitions=Object.freeze({
@@ -58,12 +59,16 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
   if(richCards&&kind==='suppliers')def={...def,baseWhere:'is_deleted=0 AND is_active=1'};
   if(richCards&&kind==='products')def={...def,select:def.select+',brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName'};
   const tx=new sql.Transaction(pool);let begun=false;
-  const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('offset',sql.Int,offset).input('limit',sql.Int,limit);
+  const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('exactSearch',sql.NVarChar(100),search).input('offset',sql.Int,offset).input('limit',sql.Int,limit);
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
    const statement=richCards?guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):guard;
    const guardResult=await new sql.Request(tx).query(statement);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
    if(await verifySession({transaction:tx,actorId,permission:def.permission})!==true)fail();
-   const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`,where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~')`;
+   const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`;
+   const exactBarcode=`EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.barcode=@exactSearch AND b.is_active=1`;
+   const fuzzy=`${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~'`;
+   const productSearch=richCards&&kind==='products'?`${exactBarcode} AND b.product_id=products.id) OR (NOT ${exactBarcode}) AND (${fuzzy} OR EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=products.id AND b.is_active=1 AND b.barcode LIKE @search ESCAPE N'~')))` :fuzzy;
+   const where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${productSearch})`;
    const count=await request().query(`SELECT CONVERT(varchar(20),COUNT_BIG(*)) total FROM ${from} WHERE ${where};`);
    const raw=count?.recordset;if(!Array.isArray(raw)||raw.length!==1||typeof raw[0].total!=='string'||!/^(0|[1-9]\d{0,15})$/.test(raw[0].total)||BigInt(raw[0].total)>9007199254740991n)fail();
    const result=await request().query(`SELECT ${def.select} FROM ${from} WHERE ${where} ORDER BY ${def.order??def.code+',id'} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`);
@@ -71,6 +76,27 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
    const total=Number(raw[0].total),totalPages=Math.max(1,Math.ceil(total/limit));
    if(data.length>total||offset>=total&&data.length!==0)fail();
    await tx.commit();begun=false;return {data,meta:{page,limit,total,totalPages,hasNextPage:page<totalPages,hasPreviousPage:page>1}};
+  }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readProduct(actorId,productId){
+  if(!richCards||!validId(actorId)||!validId(productId))fail();
+  const tx=new sql.Transaction(pool);let begun=false;
+  try{
+   await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
+   const checked=await new sql.Request(tx).query(guard.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL));
+   if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1)fail();
+   if(await verifySession({transaction:tx,actorId,permission:['product.view','product.edit']})!==true)fail();
+   const request=()=>new sql.Request(tx).input('productId',sql.NVarChar(20),productId);
+   const result=await request().query(`SELECT CONVERT(varchar(20),p.id) id,p.stock_code stockCode,p.name,p.brand,p.category,p.unit,p.currency_code currency,
+CONVERT(varchar(40),p.sales_price) salePriceExact4,CONVERT(varchar(40),p.purchase_price) purchasePriceExact4,CONVERT(varchar(40),p.purchase_discount_rate) purchaseDiscountRateExact4,
+CONVERT(varchar(40),p.average_cost_try) averageCostTryExact4,CONVERT(varchar(40),p.current_stock_qty) currentStockExact3,
+CONVERT(varchar(20),p.supplier_id) supplierId,s.name supplierName,p.is_active isActive
+FROM dbo.products p WITH(HOLDLOCK) LEFT JOIN dbo.suppliers s WITH(HOLDLOCK) ON s.id=p.supplier_id
+WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
+   if(!Array.isArray(result?.recordset)||result.recordset.length>1)fail();
+   if(result.recordset.length===0){await tx.commit();begun=false;return null;}
+   const barcodes=await request().query(`SELECT TOP(101) CONVERT(varchar(20),id) id,CONVERT(varchar(20),product_id) productId,barcode,barcode_type type,is_primary isPrimary FROM dbo.product_barcodes WITH(HOLDLOCK) WHERE product_id=TRY_CONVERT(bigint,@productId) AND is_active=1 ORDER BY is_primary DESC,id;`);
+   const card={...result.recordset[0],barcodes:barcodes?.recordset};if(!isDesktopProductCard(card,productId))fail();
+   await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});
 }
