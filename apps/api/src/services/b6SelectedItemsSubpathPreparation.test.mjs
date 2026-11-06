@@ -17,6 +17,8 @@ test('server identity, disposable purpose and entirely empty target required',()
 });
 test('exact actual selected-items SQL preserved except target table; synthetic leading zeros retained',()=>{
  const extracted=selectedItemsSQL();const source=fs.readFileSync(new URL('./invoiceDraftService.js',import.meta.url),'utf8');
+ assert.equal(extracted.sourceSha256,'7225d4ec140b4d1047ef1bfba3f13286f5958dff3a5790cb6ab1724a35649925');
+ assert.equal(extracted.originalSQLSha256,'17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb');
  const start=source.indexOf('async function insertSelectedSourceSalesItems('),end=source.indexOf('\nasync function ',start+1),body=source.slice(start,end);const actual=body.slice(body.indexOf('.query(`')+8,body.indexOf('`);'));
  assert.equal(extracted.sql.replace('b6_subpath_fixture.items','dbo.sales_invoice_items'),actual);
  assert.match(extracted.sql,/quantity decimal\(18,3\)/);assert.match(extracted.sql,/currency nvarchar\(3\)/);assert.match(extracted.sql,/unitPrice decimal\(18,4\)/);

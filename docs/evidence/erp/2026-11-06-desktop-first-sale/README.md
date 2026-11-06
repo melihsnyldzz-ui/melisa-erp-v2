@@ -89,3 +89,20 @@ Vega/LIVE yazması, eski veri/yedek silme ve main merge/tag/release yapılmadı.
 
 İnsan kabulü: [USER_ACCEPTANCE.md](../../../../USER_ACCEPTANCE.md).
 Teknik durum: [STATUS.md](../../../../STATUS.md).
+
+### İlk hosted CI incelemesi ve düzeltmesi
+PR70 `69c780f2` hosted Linux API çalışması 8 hata gösterdi. Taşınabilir TLS
+fonksiyon testi artık yalnız sentetik public PEM kullanıyor; gerçek sabit pinin
+bu fixture'ı reddettiği ayrıca sınanıyor. Bu gerçek bağlantı kabulü değildir.
+B6 selected-items hazırlığı, incelenen yeni tam dosya hash'ine sabitlendi;
+PR54 ile byte-identical kalan çıkarılmış SQL ayrıca özgün SHA256 ile kilitli.
+Native readonly metadata mount'u eski startup projection hash'ini değiştirmeden
+iki exact/tekil satır olarak doğrulanıyor; VM bağımlılıkları açık inert doubles
+ile sınırlandı. Logger yalnız sonlu, kaynakta incelenmiş statik kodları tanıyor.
+
+Yerel geniş API denemesinde bu sekiz hata giderildi: 1747 test geçti, 13 skip,
+1 test Windows native carton ACL subprocess'ini offline guard engellediği için
+başarısız oldu. Guard gevşetilmedi veya test atlatılmadı; sonraki aşamalar bu
+sırada çalıştırılmadı. Bu sonuç tam API PASS değildir; hosted Linux exact-head
+CI sonucu ayrıca izlenir. İlk satış runtime paketi ve SQL bu düzeltmelerle
+henüz değiştirilmedi.

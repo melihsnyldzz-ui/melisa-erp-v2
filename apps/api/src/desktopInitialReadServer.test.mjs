@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inspect} from 'node:util';
+import vm from 'node:vm';
+import {createHash,X509Certificate} from 'node:crypto';
 import bcrypt from 'bcrypt';
-import {createDesktopInitialTlsConfig,getDesktopInitialTlsPool} from './config/desktopInitialTls.mjs';
+import {createDesktopInitialTlsConfig,getDesktopInitialTlsPool,DESKTOP_INITIAL_TLS_LIMITS} from './config/desktopInitialTls.mjs';
 import {createDesktopInitialReadCore,createDesktopInitialReadApp,DESKTOP_INITIAL_SERVER_LIMITS} from './desktopInitialReadServer.mjs';
 import {DESKTOP_INITIAL_READ_IDENTITY_SQL} from './services/desktopInitialReadProfile.mjs';
 
@@ -74,12 +76,35 @@ test('express app installs only normal auth and three GET lists without listenin
  const routes=app._router.stack.filter(x=>x.route).map(x=>[Object.keys(x.route.methods)[0],x.route.path]);
  assert.deepEqual(routes,[['post','/api/auth/login'],['get','/api/auth/me'],['get','/api/products/options'],['get','/api/products'],['get','/api/customers'],['get','/api/suppliers']]);
 });
-test('pinned public TLS certificate is accepted, wrong cert and credential logging are rejected',async()=>{
- const pem=await readFile('C:/Users/Xaser/Desktop/ERP/kurulum/MELISAERP-sql-public.pem','utf8');
- const cfg=createDesktopInitialTlsConfig({password:'synthetic-secret',publicCertificatePem:pem});
+test('portable certificate validation uses a synthetic pin only in an isolated config-function fixture',async()=>{
+ const pem=await readFile(new URL('./config/fixtures/desktop-tls-synthetic-public.pem',import.meta.url),'utf8');
+ const source=await readFile(new URL('./config/desktopInitialTls.mjs',import.meta.url),'utf8');
+ const start=source.indexOf('export function createDesktopInitialTlsConfig(input){'),end=source.indexOf('\n// Only this factory',start);
+ assert(start>=0&&end>start);
+ const functionSource=source.slice(start,end).replace('export function','function');
+ assert.doesNotMatch(functionSource,/ConnectionPool|\.connect\s*\(|\.query\s*\(/);
+ const syntheticPin=createHash('sha256').update(new X509Certificate(pem).raw).digest('hex');
+ assert.equal(DESKTOP_INITIAL_TLS_LIMITS.certificateDerSha256,'dfb05698389659352709765a2109ed82bde543ca552a403e06df652b2cb004d5');
+ // The actual production factory keeps its fixed machine pin and rejects this
+ // different public fixture. No alternate pin is accepted by production API.
+ assert.throws(()=>createDesktopInitialTlsConfig({password:'synthetic-secret',publicCertificatePem:pem}),{code:'DESKTOP_INITIAL_TLS_REJECTED'});
+ function fixture({pin=syntheticPin,now=Date.UTC(2026,10,6)}={}){
+  const scope={Object,createHash,X509Certificate,inspect,PIN:pin,Date:class extends Date{static now(){return now;}},
+   fail(){throw Object.assign(Error('DESKTOP_INITIAL_TLS_REJECTED'),{code:'DESKTOP_INITIAL_TLS_REJECTED'});}};
+  vm.runInNewContext(functionSource+';globalThis.build=createDesktopInitialTlsConfig;',scope);
+  return scope.build;
+ }
+ const build=fixture(),cfg=build({password:'synthetic-secret',publicCertificatePem:pem});
+ const wrongHostPem=await readFile(new URL('./config/fixtures/desktop-tls-wrong-host-public.pem',import.meta.url),'utf8');
+ const wrongHostPin=createHash('sha256').update(new X509Certificate(wrongHostPem).raw).digest('hex');
+ assert.throws(()=>fixture({pin:wrongHostPin})({password:'synthetic-secret',publicCertificatePem:wrongHostPem}),{code:'DESKTOP_INITIAL_TLS_REJECTED'});
  assert.equal(cfg.server,'127.0.0.1');assert.equal(cfg.port,51433);assert.equal(cfg.options.serverName,'SEMIH');
  assert.equal(cfg.options.encrypt,true);assert.equal(cfg.options.trustServerCertificate,false);
  assert(!JSON.stringify(cfg).includes('synthetic-secret'));assert(!inspect(cfg).includes('synthetic-secret'));
- assert.throws(()=>createDesktopInitialTlsConfig({password:'synthetic-secret',publicCertificatePem:pem.replace('CERTIFICATE','NOTCERTIFICATE')}),{code:'DESKTOP_INITIAL_TLS_REJECTED'});
+ for(const factory of [build,fixture({pin:'0'.repeat(64)}),fixture({now:Date.UTC(2019,0,1)}),fixture({now:Date.UTC(2041,0,1)})]){
+  const input={password:'synthetic-secret',publicCertificatePem:factory===build?pem.replace('CERTIFICATE','NOTCERTIFICATE'):pem};
+  assert.throws(()=>factory(input),{code:'DESKTOP_INITIAL_TLS_REJECTED'});
+ }
+ let getterCalled=false;assert.throws(()=>build({password:'synthetic-secret',get publicCertificatePem(){getterCalled=true;return pem;}}),{code:'DESKTOP_INITIAL_TLS_REJECTED'});assert.equal(getterCalled,false);
  assert.throws(()=>getDesktopInitialTlsPool({profile:'desktop-initial-read',transport:'pinned-tedious'}),{code:'DESKTOP_INITIAL_TLS_REJECTED'});
 });

@@ -50,7 +50,11 @@ function assertFrozenStartupProjection(source){
  // C06 is a finite additional startup projection. These exact fragments are
  // removed before applying the original pinned startup proof below; changes to
  // either the old or the new guards still fail the frozen comparison.
+ const nativeMetadataBlock="  const {createC06SaleReadonlyMetadataRoutes}=await import('./src/routes/c06SaleReadonlyMetadataRoutes.mjs');\n  app.use('/api',createC06SaleReadonlyMetadataRoutes());\n";
+ const nativeAnchor="}else{\n  app.locals.nativeTerminalV1=true;\n";
+ assert.equal(source.split(nativeAnchor+nativeMetadataBlock).length,2,'Native metadata mount must appear exactly once in its guarded location');
  const c06Additions=[
+  [nativeMetadataBlock,''],
   ['let customerMasterWriterRoutes=null;\n',''],
   ['const {prepareCanonicalCustomerMasterMetadata,prepareCanonicalCustomerMasterWriter}=','const {prepareCanonicalCustomerMasterMetadata}='],
   [' if(config.customerMasterWritesEnabled===true)customerMasterWriterRoutes=await prepareCanonicalCustomerMasterWriter({startup:{...canonicalStartup,mode},database});\n',''],
@@ -78,6 +82,8 @@ test('startup source preserves the frozen starter with only exact read-policy an
 });
 test('frozen startup projection rejects changed metadata guards, pool, imports, execution and extra statements',()=>{
  const mutations=[
+  ["createC06SaleReadonlyMetadataRoutes());","createC06SaleReadonlyMetadataRoutes({requireAuth:false}));"],
+  ["./src/routes/c06SaleReadonlyMetadataRoutes.mjs","./src/routes/otherMetadataRoutes.mjs"],
   ["if(mode==='erp'&&writes&&businessSession){","if(mode==='erp'){"],
   ['prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database})','prepareCanonicalCustomerMasterMetadata({startup:{...canonicalStartup,mode},database:otherDatabase})'],
   ["./src/services/customerMasterMetadataBootstrap.mjs","./src/services/otherBootstrap.mjs"],
