@@ -6,18 +6,25 @@ import os from 'node:os';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 
-test('BEGIN snapshot projection validates exact finite replacements and keeps private inputs out of results and errors',()=>{
- if(process.platform!=='win32')return;
- assert.equal(run(String.raw`
+const projectionSetup=String.raw`
 $canary='PRIVATE-CANARY-SNAPSHOT';$old=@('A','B','C','D'|ForEach-Object{$_*64});$next=@('1','2','3','4'|ForEach-Object{$_*64});$fifth='5'*64
 $base=($old -join '|')+'|'+$canary;$maps=@();for($i=0;$i-lt4;$i++){$maps+=,[pscustomobject]@{before=$old[$i];after=$next[$i]}}
 $expected=($next -join '|')+'|'+$canary
 function HashFixture([string]$value){$h=[Security.Cryptography.SHA256]::Create();try{[BitConverter]::ToString($h.ComputeHash([Text.Encoding]::UTF8.GetBytes($value))).Replace('-','')}finally{$h.Dispose()}}
+$maps5=@($maps)+@([pscustomobject]@{before=$next[2];after=$fifth})`;
+test('BEGIN snapshot projection validates four and five replacements without disclosing private results',()=>{
+ if(process.platform!=='win32')return;
+ assert.equal(run(projectionSetup+String.raw`
 $four=Get-ErpBusinessSaleBeginSnapshotProjectionCore $base $maps
 if($four.sha256-cne(HashFixture $expected)-or$four.replacements-ne4-or$four.sqlExecuted-or$four.executionAuthority-or$four.status-cne'HASH_PROJECTION_ONLY'){throw 'FOUR_REPLACEMENT_MISMATCH'}
-$maps5=@($maps)+@([pscustomobject]@{before=$next[2];after=$fifth});$five=Get-ErpBusinessSaleBeginSnapshotProjectionCore $base $maps5
+$five=Get-ErpBusinessSaleBeginSnapshotProjectionCore $base $maps5
 if($five.sha256-cne(HashFixture ($expected.Replace($next[2],$fifth)))-or$five.replacements-ne5-or$five.sqlExecuted-or$five.executionAuthority){throw 'FIVE_REPLACEMENT_MISMATCH'}
 if((($four,$five)|ConvertTo-Json -Depth 10)-match[regex]::Escape($canary)){throw 'RESULT_CONTAINS_PRIVATE_INPUT'}
+'PASS'`),'PASS');
+});
+test('BEGIN snapshot projection rejects invalid replacement sets without disclosing private errors',()=>{
+ if(process.platform!=='win32')return;
+ assert.equal(run(projectionSetup+String.raw`
 function MustReject([string]$text,[object[]]$changes){$denied=$false;try{[void](Get-ErpBusinessSaleBeginSnapshotProjectionCore $text $changes)}catch{if($_.Exception.Message-match[regex]::Escape($canary)){throw 'ERROR_CONTAINS_PRIVATE_INPUT'};$denied=$true};if(!$denied){throw 'INVALID_PROJECTION_ACCEPTED'}}
 MustReject ($base+'|'+$old[0]) $maps
 MustReject ($base.Replace($old[0],'MISSING')) $maps
@@ -26,6 +33,11 @@ MustReject $base @([pscustomobject]@{before='not-a-hash';after=$next[0]})
 MustReject $base @([pscustomobject]@{before=$old[0];after=$null})
 MustReject $base $null
 MustReject $base (@($maps5)+@([pscustomobject]@{before=$fifth;after=('6'*64)}))
+'PASS'`),'PASS');
+});
+test('BEGIN snapshot projection wrapper rejects invalid evidence without disclosing private errors',()=>{
+ if(process.platform!=='win32')return;
+ assert.equal(run(projectionSetup+String.raw`
 $bytes=[Text.Encoding]::UTF8.GetBytes($canary)
 foreach($case in @('missing','wrong','mode')){$denied=$false;try{if($case-ceq'missing'){[void](Get-ErpBusinessSaleBeginSuccessorSnapshotProjection $null $bytes $bytes)}elseif($case-ceq'wrong'){[void](Get-ErpBusinessSaleBeginSuccessorSnapshotProjection $bytes $bytes $bytes)}else{[void](Get-ErpBusinessSaleBeginSuccessorSnapshotProjection $bytes $bytes $bytes -Mode 'bogus')}}catch{if($_.Exception.Message-match[regex]::Escape($canary)){throw 'WRAPPER_ERROR_CONTAINS_PRIVATE_INPUT'};$denied=$true};if(!$denied){throw 'INVALID_EVIDENCE_ACCEPTED'}}
 'PASS'`),'PASS');
@@ -302,7 +314,7 @@ try{Get-ErpBusinessSaleWriterPairPins current;throw 'MISSING_REJECTION'}catch{if
 `),'PASS');
 });
 const dir=import.meta.dirname,ps=String.raw`C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe`,q=s=>"'"+s.replaceAll("'","''")+"'",win={skip:process.platform!=='win32'};
-function run(body){return execFileSync(ps,['-NoProfile','-NonInteractive','-Command','$s=[Console]::In.ReadToEnd();&([scriptblock]::Create($s))'],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;foreach($m in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules/'+$m+'/'+$m+'.psd1'))};. ${q(path.join(dir,'canonical-business-sale-maintenance.ps1'))};${body}`,encoding:'utf8',timeout:30000,windowsHide:true}).trim();}
+function run(body){try{return execFileSync(ps,['-NoProfile','-NonInteractive','-Command','$s=[Console]::In.ReadToEnd();&([scriptblock]::Create($s))'],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest;foreach($m in @('Microsoft.PowerShell.Management','Microsoft.PowerShell.Utility','Microsoft.PowerShell.Security')){Import-Module (Join-Path $PSHOME ('Modules/'+$m+'/'+$m+'.psd1'))};. ${q(path.join(dir,'canonical-business-sale-maintenance.ps1'))};${body}`,encoding:'utf8',timeout:30000,windowsHide:true}).trim();}catch(error){const code=['ETIMEDOUT','ENOENT','EACCES'].includes(error.code)?error.code:'OTHER',signal=['SIGTERM','SIGKILL'].includes(error.signal)?error.signal:'NONE',status=Number.isInteger(error.status)?error.status:'NONE';throw Error(`PS_FIXTURE_FAILURE code=${code} signal=${signal} status=${status} timedout=${code==='ETIMEDOUT'}`);}}
 const fixture=String.raw`
 function Read-ErpBusinessSalePinnedFile {param($Path,$Hash);if($Hash-cnotin@('35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe','050714b39bbf6aa2b02e12738ccbc52e33b9e8a31cf80bd6758c8ac4e6867024')){throw 'FIXTURE_INPUT_PIN'};return ,([byte[]](0))}
 function Get-ErpBusinessSaleNativeInputs {if(Get-Variable pinnedFixtureArtifact -Scope Script -ErrorAction SilentlyContinue){return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe';artifact=($script:pinnedFixtureArtifact|ConvertTo-Json -Depth 32|ConvertFrom-Json)}};return [pscustomobject]@{artifactHash='35b07bba29aca44efc8c4080d543dc5acb50234dd44925289e86ba7a8b94bdbe'}}
