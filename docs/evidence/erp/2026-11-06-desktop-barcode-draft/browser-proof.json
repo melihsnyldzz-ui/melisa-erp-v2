@@ -1,0 +1,471 @@
+{
+  "state": "NORMAL_BARCODE_CART_SINGLE_DRAFT_REOPENED",
+  "capturedAt": "2026-11-06T14:12:31.274Z",
+  "runtimeSource": "51923ef591dbebece9ba44666d3b9e117231f37c",
+  "packageSha256": "3d7c5ae1d56f13ffc392b84721f0f2d4f4b41e195665bee87b188e8460a335bf",
+  "invoiceId": "15",
+  "documentNo": "DS-1132f1c4-b19f-4016-b46e-2",
+  "requestId": "1132f1c4-b19f-4016-b46e-201151448c68",
+  "scanOrder": [
+    "000000000092",
+    "000000000093",
+    "000000000092"
+  ],
+  "requestBody": {
+    "requestId": "1132f1c4-b19f-4016-b46e-201151448c68",
+    "customerId": "2",
+    "documentDate": "2026-11-06",
+    "expectedRevision": "9112b6216b8559f21c5bc5e5b7b6f35748b83c2a3c969dddf47a5deb2a1602f4",
+    "items": [
+      {
+        "productId": "10",
+        "quantityExact3": "2.000"
+      },
+      {
+        "productId": "11",
+        "quantityExact3": "1.000"
+      }
+    ],
+    "currencySelection": {
+      "documentCurrency": "USD",
+      "accountId": "7",
+      "documentRateExact8": "40.00000000",
+      "accountRateExact8": "40.00000000",
+      "documentRateMode": "override",
+      "accountRateMode": "override"
+    }
+  },
+  "postCount": 1,
+  "postStatus": 201,
+  "documentReload200": true,
+  "events": [
+    {
+      "sequence": 274,
+      "event": "Network.requestWillBeSent",
+      "requestId": "CDC65B0000E358B1A0D486C0441D9201",
+      "url": "http://127.0.0.1:4294/api/customers?page=1&limit=100",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 275,
+      "event": "Network.requestWillBeSent",
+      "requestId": "A33170B723A93A950B69DA0BE414499C",
+      "url": "http://127.0.0.1:4294/api/products?page=1&limit=100",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 276,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.118",
+      "url": "http://127.0.0.1:4294/api/customers?page=1&limit=100",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 277,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.119",
+      "url": "http://127.0.0.1:4294/api/products?page=1&limit=100",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 282,
+      "event": "Network.responseReceived",
+      "requestId": "CDC65B0000E358B1A0D486C0441D9201",
+      "url": "http://127.0.0.1:4294/api/customers?page=1&limit=100",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 283,
+      "event": "Network.responseReceived",
+      "requestId": "A33170B723A93A950B69DA0BE414499C",
+      "url": "http://127.0.0.1:4294/api/products?page=1&limit=100",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 289,
+      "event": "Network.responseReceived",
+      "requestId": "51960.118",
+      "url": "http://127.0.0.1:4294/api/customers?page=1&limit=100",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 293,
+      "event": "Network.responseReceived",
+      "requestId": "51960.119",
+      "url": "http://127.0.0.1:4294/api/products?page=1&limit=100",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 296,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.120",
+      "url": "http://127.0.0.1:4294/api/customers/2",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 297,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.121",
+      "url": "http://127.0.0.1:4294/api/desktop-company-rates?date=2026-11-06",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 298,
+      "event": "Network.requestWillBeSent",
+      "requestId": "9BE4E94ED5DE82AC7A17F3AD46AC5DB7",
+      "url": "http://127.0.0.1:4294/api/customers/2",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 299,
+      "event": "Network.requestWillBeSent",
+      "requestId": "328AF78A87CBD48E20B498E7C14280F8",
+      "url": "http://127.0.0.1:4294/api/desktop-company-rates?date=2026-11-06",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 303,
+      "event": "Network.responseReceived",
+      "requestId": "9BE4E94ED5DE82AC7A17F3AD46AC5DB7",
+      "url": "http://127.0.0.1:4294/api/customers/2",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 306,
+      "event": "Network.responseReceived",
+      "requestId": "328AF78A87CBD48E20B498E7C14280F8",
+      "url": "http://127.0.0.1:4294/api/desktop-company-rates?date=2026-11-06",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 311,
+      "event": "Network.responseReceived",
+      "requestId": "51960.120",
+      "url": "http://127.0.0.1:4294/api/customers/2",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 315,
+      "event": "Network.responseReceived",
+      "requestId": "51960.121",
+      "url": "http://127.0.0.1:4294/api/desktop-company-rates?date=2026-11-06",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 321,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.122",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 322,
+      "event": "Network.requestWillBeSent",
+      "requestId": "B7C1D5592D7E00DC11830D23D3C9D0A6",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 325,
+      "event": "Network.responseReceived",
+      "requestId": "B7C1D5592D7E00DC11830D23D3C9D0A6",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 329,
+      "event": "Network.responseReceived",
+      "requestId": "51960.122",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 334,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.123",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000093",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 335,
+      "event": "Network.requestWillBeSent",
+      "requestId": "CDBAABAA759336BC86A9596A0853B106",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000093",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 338,
+      "event": "Network.responseReceived",
+      "requestId": "CDBAABAA759336BC86A9596A0853B106",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000093",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 342,
+      "event": "Network.responseReceived",
+      "requestId": "51960.123",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000093",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 347,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.124",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 348,
+      "event": "Network.requestWillBeSent",
+      "requestId": "0CEE22434AEDC914F9BEC301D3764175",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 351,
+      "event": "Network.responseReceived",
+      "requestId": "0CEE22434AEDC914F9BEC301D3764175",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 355,
+      "event": "Network.responseReceived",
+      "requestId": "51960.124",
+      "url": "http://127.0.0.1:4294/api/desktop-product-barcode?barcode=000000000092",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 359,
+      "event": "Network.requestWillBeSent",
+      "requestId": "581AAD0DE36B1E92C0A369860C750370",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=10%2C11&quantities=2.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 361,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.125",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=10%2C11&quantities=2.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 363,
+      "event": "Network.responseReceived",
+      "requestId": "581AAD0DE36B1E92C0A369860C750370",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=10%2C11&quantities=2.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 367,
+      "event": "Network.responseReceived",
+      "requestId": "51960.125",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/draft-preview?customerId=2&documentDate=2026-11-06&productIds=10%2C11&quantities=2.000%2C1.000&quantityUnits=ADET%2CADET&discountRateExact4=0.0000&currencySelection=%7B%22documentCurrency%22%3A%22USD%22%2C%22accountId%22%3A%227%22%2C%22documentRateExact8%22%3A%2240.00000000%22%2C%22accountRateExact8%22%3A%2240.00000000%22%2C%22documentRateMode%22%3A%22override%22%2C%22accountRateMode%22%3A%22override%22%7D",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 371,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.126",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/drafts",
+      "method": "POST",
+      "type": "Fetch",
+      "body": {
+        "requestId": "1132f1c4-b19f-4016-b46e-201151448c68",
+        "customerId": "2",
+        "documentDate": "2026-11-06",
+        "expectedRevision": "9112b6216b8559f21c5bc5e5b7b6f35748b83c2a3c969dddf47a5deb2a1602f4",
+        "items": [
+          {
+            "productId": "10",
+            "quantityExact3": "2.000"
+          },
+          {
+            "productId": "11",
+            "quantityExact3": "1.000"
+          }
+        ],
+        "currencySelection": {
+          "documentCurrency": "USD",
+          "accountId": "7",
+          "documentRateExact8": "40.00000000",
+          "accountRateExact8": "40.00000000",
+          "documentRateMode": "override",
+          "accountRateMode": "override"
+        }
+      }
+    },
+    {
+      "sequence": 372,
+      "event": "Network.requestWillBeSent",
+      "requestId": "78311DC007A1003B279A307E59093906",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/drafts",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 375,
+      "event": "Network.responseReceived",
+      "requestId": "78311DC007A1003B279A307E59093906",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/drafts",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 379,
+      "event": "Network.responseReceived",
+      "requestId": "51960.126",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/drafts",
+      "status": 201,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 382,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.127",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 383,
+      "event": "Network.requestWillBeSent",
+      "requestId": "E5EE544D958FBC7293E45286F28423D3",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 386,
+      "event": "Network.responseReceived",
+      "requestId": "E5EE544D958FBC7293E45286F28423D3",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 390,
+      "event": "Network.responseReceived",
+      "requestId": "51960.127",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 403,
+      "event": "Network.requestWillBeSent",
+      "requestId": "4B021D4A4674BB579A5DF7E9F6918733",
+      "url": "http://127.0.0.1:5294/",
+      "method": "GET",
+      "type": "Document"
+    },
+    {
+      "sequence": 407,
+      "event": "Network.responseReceived",
+      "requestId": "4B021D4A4674BB579A5DF7E9F6918733",
+      "url": "http://127.0.0.1:5294/",
+      "status": 200,
+      "type": "Document"
+    },
+    {
+      "sequence": 438,
+      "event": "Network.requestWillBeSent",
+      "requestId": "F67E52F8EF7917E0998611E57D8D317B",
+      "url": "http://127.0.0.1:4294/api/auth/me",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 441,
+      "event": "Network.responseReceived",
+      "requestId": "F67E52F8EF7917E0998611E57D8D317B",
+      "url": "http://127.0.0.1:4294/api/auth/me",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 444,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.133",
+      "url": "http://127.0.0.1:4294/api/auth/me",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 484,
+      "event": "Network.responseReceived",
+      "requestId": "51960.133",
+      "url": "http://127.0.0.1:4294/api/auth/me",
+      "status": 200,
+      "type": "Fetch"
+    },
+    {
+      "sequence": 493,
+      "event": "Network.requestWillBeSent",
+      "requestId": "73CD1D7B67096692A5F4D9E076966179",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "method": "OPTIONS",
+      "type": "Other"
+    },
+    {
+      "sequence": 494,
+      "event": "Network.requestWillBeSent",
+      "requestId": "51960.142",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "method": "GET",
+      "type": "Fetch"
+    },
+    {
+      "sequence": 497,
+      "event": "Network.responseReceived",
+      "requestId": "73CD1D7B67096692A5F4D9E076966179",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "status": 204,
+      "type": "Preflight"
+    },
+    {
+      "sequence": 501,
+      "event": "Network.responseReceived",
+      "requestId": "51960.142",
+      "url": "http://127.0.0.1:4294/api/desktop-sale/workflows/15",
+      "status": 200,
+      "type": "Fetch"
+    }
+  ],
+  "humanAcceptance": false,
+  "physicalScanner": false,
+  "prepared": false,
+  "dispatched": false
+}
