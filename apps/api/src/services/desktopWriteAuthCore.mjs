@@ -9,7 +9,7 @@ import nativeSql from 'mssql';
 import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog.js';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
-import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
+import {desktopMasterSchema,desktopMasterV5Schema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
 import {DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from '../config/desktopMasterV5Policy.mjs';
 
 const ISSUER='melisa-desktop-initial',AUDIENCE='melisa-desktop-initial';
@@ -62,7 +62,7 @@ export const DESKTOP_WRITE_AUTH_LIMITS=Object.freeze({sourceOnly:true,routeMount
  userAndRolePermissionsProvisioned:false,realSqlVerified:false,fullErpReady:false});
 
 export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false,schemaVersion=richCards?3:2}={}){
- schemaVersion=desktopMasterSchema(richCards,schemaVersion);
+ schemaVersion=schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
  if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||!Buffer.isBuffer(tokenKey)||tokenKey.length<32||typeof passwordHasher?.compare!=='function')fail();
  const key=Buffer.from(tokenKey),sessions=new Map(),storage=new AsyncLocalStorage();let closed=false;

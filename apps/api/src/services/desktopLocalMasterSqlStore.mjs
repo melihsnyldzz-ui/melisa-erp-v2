@@ -7,7 +7,7 @@ import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {MASTER_V3_RESERVE_SQL,MASTER_V3_FINISH_SQL} from '../../../../scripts/desktop-empty/master-v3-journal-sql.mjs';
 import {MASTER_V4_RESERVE_SQL,MASTER_V4_FINISH_SQL} from '../../../../scripts/desktop-empty/master-v4-journal-sql.mjs';
-import {desktopMasterSchema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
+import {desktopMasterSchema,desktopMasterV5Schema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
 import {DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from '../config/desktopMasterV5Policy.mjs';
 import {isProductRejectionRecord,isDurableProductRejection} from './desktopProductRejection.mjs';
 import {desktopAdditionalBarcodes} from './desktopProductBarcodes.mjs';
@@ -31,7 +31,7 @@ const parse=value=>{if(typeof value!=='string'||value.length>8192)fail('LOCAL_SQ
 // SQL converts them to decimal and reads back fixed-scale strings, avoiding
 // JavaScript Number precision loss. IDs are also passed as decimal strings.
 export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2}={}){
- schemaVersion=desktopMasterSchema(richCards,schemaVersion);
+ schemaVersion=schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.VarBinary||!sql?.Int||sql?.MAX===undefined||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function'||typeof richCards!=='boolean')fail('LOCAL_SQL_CONFIGURATION');
  const text=sql.NVarChar;
  const execute=(tx,bindings,statement)=>{const q=new sql.Request(tx);for(const [key,type,value] of bindings)q.input(key,type,value);return q.query(statement);};

@@ -2,7 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {compileMasterV5Transition,compileMasterV5Snapshot,compileMasterV5Revert,MASTER_V5_TRANSITION_SCOPE} from './master-v5-transition.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_MANIFEST} from '../../apps/api/src/config/desktopMasterV3Policy.mjs';
 import {DESKTOP_MASTER_V5_PERMISSION_MANIFEST,DESKTOP_MASTER_V5_OPERATOR_PERMISSIONS,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from '../../apps/api/src/config/desktopMasterV5Policy.mjs';
-import {desktopMasterSchema} from '../../apps/api/src/config/desktopMasterVersion.mjs';
+import {desktopMasterSchema,desktopMasterV5Schema} from '../../apps/api/src/config/desktopMasterVersion.mjs';
 const baseline={metadataSha256:'a'.repeat(64),securitySha256:'b'.repeat(64),businessRowsSha256:'c'.repeat(64)};
 test('pre-acceptance recovery cannot erase sale history and requires exact V5 candidate plus unchanged business rows',()=>{
  const p=compileMasterV5Revert({...baseline,candidateMetadataSha256:'d'.repeat(64),candidateSecuritySha256:'e'.repeat(64)});assert.equal(p.mode,'revert');assert.equal(p.requiresEmptyCancellationJournal,true);assert.match(p.sql,/operation='CANCEL_SALE'/);assert.match(p.sql,/kind='cancel'/);assert.match(p.sql,/MASTER_V5_REVERT_READBACK_DRIFT/);assert.equal((p.sql.match(/DELETE FROM dbo\./g)||[]).length,1);assert.match(p.sql,/DELETE FROM dbo.permissions WHERE role_id=@operatorRole AND permission_key=N'sales.cancel'/);assert.doesNotMatch(p.sql,/DELETE FROM dbo\.(?:sales_|customer_|stock_)/);assert.doesNotMatch(p.sql,/DBCC|CREATE LOGIN|CREATE USER|GRANT /);assert.throws(()=>compileMasterV5Revert(baseline));
@@ -11,7 +11,7 @@ test('finite V5 adds only three cancellation columns and queue SELECT; earlier m
  assert.deepEqual(DESKTOP_MASTER_V5_PERMISSION_MANIFEST.slice(0,-4),DESKTOP_MASTER_V3_PERMISSION_MANIFEST);
  assert.deepEqual(DESKTOP_MASTER_V5_PERMISSION_MANIFEST.slice(-4).map(v=>[v.name,v.permission,v.column]),[['sales_invoices','UPDATE','cancelled_at'],['sales_invoices','UPDATE','cancel_reason'],['sales_invoices','UPDATE','updated_by'],['terminal_sync_queue','SELECT',null]]);
  assert.equal(DESKTOP_MASTER_V5_OPERATOR_PERMISSIONS.length,11);assert.deepEqual(DESKTOP_MASTER_V5_OPERATOR_PERMISSIONS.at(-1),{key:'sales.cancel',view:1,create:0,update:0,delete:0,approve:1});
- assert.equal(desktopMasterSchema(true,5),5);for(const v of [0,1,2,6,'5'])assert.throws(()=>desktopMasterSchema(true,v));assert.throws(()=>desktopMasterSchema(false,5));
+ assert.equal(desktopMasterV5Schema(true,5),5);for(const v of [0,1,2,5,6,'5'])assert.throws(()=>desktopMasterSchema(true,v));assert.throws(()=>desktopMasterSchema(false,5));for(const v of [3,4,6,'5'])assert.throws(()=>desktopMasterV5Schema(true,v));assert.throws(()=>desktopMasterV5Schema(false,5));
  assert.match(DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,/system_type_id=231 AND max_length=500/);assert.match(DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,/CONVERT\(varbinary\(max\)/);
 });
 test('rollback trial keeps business/security baseline, uses explicit negative permission identity and independently checks the seed',()=>{
