@@ -1,0 +1,22 @@
+{
+  "state": "WIP_READ_AND_INVERSE_ONLY_NOT_MOUNTED",
+  "base": "967740b243f7b7efc43fad46a490cfd531c22ea5",
+  "testFiles": 3,
+  "tests": 14,
+  "testResult": "PASS",
+  "sourceHashes": {
+    "apps/api/src/services/desktopSaleCancellationPlan.mjs": "e0fd79cddfde4afaf9ed64f23760845c0dda41e995c30f2eb275be7195f7401c",
+    "apps/api/src/services/desktopFinalCancellationRead.mjs": "69fcedc37ae71cc4f4b0a4a81d7793d4373c51c4904f730c77c6c9068f2fac48",
+    "packages/shared/src/desktopSaleCancellation.mjs": "f1dcda08f8e75c8ecbf7c47962946286cac53944ee25762886892901bff6a505"
+  },
+  "readonlySqlQuery": "PASS_V2_WINDOWS_SYSADMIN_NOT_APP_WRITER",
+  "readonlySqlSha256": "ff266e8c688c1192be3994ba1cbac083d0dd9a570335850b5495ce8b23a05cfa",
+  "review": "READONLY_QUEUE_NULL_PRECISION_NO_NEW_P1_P2",
+  "apiMounted": false,
+  "physicalCancellationAuthImplemented": false,
+  "nativeCancellationImplemented": false,
+  "installed": false,
+  "realCancellation": false,
+  "newGrants": false,
+  "humanAcceptance": "PENDING"
+}

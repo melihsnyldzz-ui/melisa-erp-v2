@@ -1,6 +1,7 @@
 // Source-only inverse calculation. This module cannot authorize cancellation,
 // acquire a SQL scope, post a movement or change an invoice. A future adapter
 // must obtain all rows and sales.cancel in the same verified transaction.
+import {desktopSaleCancellationReason} from '../../../../packages/shared/src/desktopSaleCancellation.mjs';
 const fail=()=>{throw Error('DESKTOP_SALE_CANCELLATION_UNVERIFIED');};
 const currencies=['TRY','USD','EUR'];
 function own(value,keys){
@@ -23,8 +24,8 @@ function rows(value,length){
 }
 export function prepareDesktopSaleCancellation(raw){
  const s=own(raw,['invoice','customer','account','items','stockMovements','customerMovements','reservations','linkedFinanceRows','returnRows','exportRows','reason']);
- // Current SQL cancel_reason is nvarchar(250), verified read-only on schema 4.
- if(typeof s.reason!=='string'||s.reason.trim()!==s.reason||s.reason.length<1||s.reason.length>250||/[\u0000-\u001f\u007f]/.test(s.reason)||[s.linkedFinanceRows,s.returnRows,s.exportRows].some(v=>v!=='0'))fail();
+ try{desktopSaleCancellationReason(s.reason);}catch{fail();}
+ if([s.linkedFinanceRows,s.returnRows,s.exportRows].some(v=>v!=='0'))fail();
  const i=own(s.invoice,['id','customerId','entityId','accountId','currency','accountCurrency','customerCurrency','totalExact4','accountAmountExact4','amountTryExact4','state','workflowState','version']);
  for(const k of ['id','customerId','entityId','accountId'])id(i[k]);
  if(![i.currency,i.accountCurrency,i.customerCurrency].every(c=>currencies.includes(c))||i.state!=='FINALIZED'||i.workflowState!=='COMPLETED'||typeof i.version!=='string'||!/^0x[0-9A-F]{16}$/.test(i.version))fail();
