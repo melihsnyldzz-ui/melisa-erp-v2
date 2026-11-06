@@ -138,7 +138,18 @@
   "screenshotSha256": "74d9e13d7c6dc8fe6e6d9b7acf1e8e93a0ceb8299c317ae3e76503cbf2733fdf",
   "tests": 328,
   "testFiles": 56,
-  "ci": "51923ef5 quality failed in old workTrade data URL import; fixture fixed locally; corrected head CI pending",
+  "ci": {
+    "state": "FULL_EXACT_SOURCE_PASS",
+    "head": "967740b243f7b7efc43fad46a490cfd531c22ea5",
+    "runs": [
+      42225616659,
+      42225610348
+    ],
+    "qualityBuildTest": "PASS",
+    "secretScan": "PASS",
+    "windowsStartup": "PASS",
+    "installedPayloadUnchangedSince": "51923ef591dbebece9ba44666d3b9e117231f37c"
+  },
   "sqlDdlDmlExecuted": false,
   "sqlServiceGrantsCredentialsChanged": false,
   "newBusinessRecords": false,
