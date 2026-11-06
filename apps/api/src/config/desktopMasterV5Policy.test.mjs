@@ -24,5 +24,9 @@ test('V4 schema guard and V3 grants stay intact; V5 remains four narrow rights a
 });
 
 test('customer movement CHECK admits exactly sale and cancellation in native collation with trusted metadata',()=>{
- const sql=DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,line=sql.split('\n').find(x=>x.includes("name=N'CK_customer_movements_type'"));assert.ok(line);assert.match(line,/OBJECT_ID\(N'dbo.customer_movements'\)/);assert.match(line,/is_disabled=0 AND is_not_trusted=0/);assert.match(line,/CONVERT\(varbinary\(max\),definition\)=CONVERT/);assert.ok(line.includes("sales_invoice_cancel"));assert.doesNotMatch(line,/COLLATE|OR 1=1/);
+ const sql=DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL,line=sql.split('\n').find(x=>x.includes("name=N'CK_customer_movements_type'"));assert.ok(line);assert.match(line,/OBJECT_ID\(N'dbo.customer_movements'\)/);assert.match(line,/is_disabled=0 AND is_not_trusted=0 AND is_not_for_replication=0/);assert.match(line,/CONVERT\(varbinary\(max\),definition\)=CONVERT/);assert.ok(line.includes("sales_invoice_cancel"));assert.doesNotMatch(line,/COLLATE|OR 1=1/);
+});
+
+test('customer movement type schema guard requires nvarchar(40) NOT NULL without changing collation',()=>{
+ const line=DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL.split('\n').find(x=>x.includes("name=N'movement_type'"));assert.ok(line);for(const term of ["OBJECT_ID(N'dbo.customer_movements')",'system_type_id=231','max_length=80','is_nullable=0',')<>1'])assert.ok(line.includes(term));assert.doesNotMatch(line,/COLLATE/i);
 });
