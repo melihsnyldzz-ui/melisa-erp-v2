@@ -1,10 +1,17 @@
 // Source packaging only; no connection or runtime modification.
 import {createHash} from 'node:crypto';import {readFileSync,readdirSync,lstatSync,writeFileSync,existsSync,mkdirSync} from 'node:fs';import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {inspectDesktopRuntimeTree} from './sql-login-runtime-integrity.mjs';
 import {compileMasterV5Snapshot} from './master-v5-transition.mjs';
 import {DESKTOP_FINAL_CANCELLATION_EXPORT_BINDING_TEXT} from '../../apps/api/src/services/desktopFinalCancellationExportFence.mjs';
 
-const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1',buildRoot=process.argv.length===3&&process.argv[2]==='--prepare-only'?'C:/Users/Xaser/Desktop/ERP/kaynak-birimler':root,sources={},assets={};if(process.argv.length>2&&!(process.argv.length===3&&process.argv[2]==='--prepare-only'))throw Error('MASTER_V5_PACKAGE_ARGUMENTS');const hash=f=>createHash('sha256').update(readFileSync(f)).digest('hex');
+const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1',accountHistoryRoot='C:/Users/Xaser/Desktop/ERP/kaynak-hesap-gecmis';
+if(process.argv.length>3||process.argv.length===3&&!['--prepare-only','--prepare-account-history-only'].includes(process.argv[2]))throw Error('MASTER_V5_PACKAGE_ARGUMENTS');
+const buildRoot=process.argv[2]==='--prepare-only'?'C:/Users/Xaser/Desktop/ERP/kaynak-birimler':process.argv[2]==='--prepare-account-history-only'?accountHistoryRoot:root,sources={},assets={};
+// This option must load compiler, integrity code and binding from the same
+// reviewed tree it scans, rather than importing them from an older checkout.
+if(process.argv[2]==='--prepare-account-history-only'&&path.resolve(fileURLToPath(import.meta.url))!==path.resolve(accountHistoryRoot+'/scripts/desktop-empty/build-master-v5-package.mjs'))throw Error('MASTER_V5_PACKAGE_SOURCE_REJECTED');
+const hash=f=>createHash('sha256').update(readFileSync(f)).digest('hex');
 const retiredSource='kaynak-'+'v3';
 function assertCurrentSource(text){if(text.includes(retiredSource))throw Error('RETIRED_DESKTOP_SOURCE_PATH');}
 function walk(dir){for(const e of readdirSync(buildRoot+'/'+dir,{withFileTypes:true})){const rel=dir+'/'+e.name,st=lstatSync(buildRoot+'/'+rel);if(st.isSymbolicLink())throw Error('SYMLINK');if(st.isDirectory())walk(rel);else if(/\.(mjs|js|sql)$/.test(rel)&&!rel.includes('.test.'))sources[rel]=hash(buildRoot+'/'+rel);}}

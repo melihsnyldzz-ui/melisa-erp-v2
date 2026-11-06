@@ -56,5 +56,26 @@
     "finalEmptyBusinessDelivery": false,
     "v5Installed": false,
     "invoice13Cancelled": false
+  },
+  "nextV5Candidate": {
+    "state": "COMBINED_V5_PACKAGE_PREPARED_NOT_INSTALLED",
+    "packageSha256": "ca09d1d657855fe442c56107e90d075bd2b566153d524d26355a9ed3944eac53",
+    "sources": 235,
+    "helpers": 6,
+    "assets": 3,
+    "publicFiles": 1,
+    "contextSha256": "11a5cbd648c488d8e7ea9eb51ff8c8e7a8b1ec7f112310e7ee4fff3ac9b1e92f",
+    "testsPassed": 420,
+    "testFiles": 77,
+    "independentReview": "NO_NEW_P1_P2",
+    "ci": "EXACT_NEW_HEAD_PENDING",
+    "originalRollbackAndDiagnosticSqlBytesUnchanged": true,
+    "actualSqlExecuted": false,
+    "runtimeChanged": false,
+    "sourceAndAssetPinsVerified": true,
+    "old804And618ArchivesPreserved": true,
+    "workingV4Source": "770c1e91de1f24b85f718a661bdcacc97e688e58",
+    "workingV4Package": "adea4bafeee5dfa380f810b944c0a305414e2eb760b2fcf3a1c94a6b5fb3652b",
+    "testLogSha256": "f191032b7de7412859793c94afae39ee2e2304947873f4aa19a35b8766ebda09"
   }
 }
