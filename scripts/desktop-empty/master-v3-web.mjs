@@ -2,7 +2,7 @@ import http from 'node:http';
 import path from 'node:path';
 import {readFileSync,lstatSync,realpathSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-const root='C:/Users/Xaser/Desktop/ERP/kaynak-v3/apps/sites-workflow/dist-desktop-write-green';
+const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1/apps/sites-workflow/dist-desktop-write-green';
 export async function startMasterV3Web(assets){
  const checked=name=>{if(!Object.hasOwn(assets,name)||!/^(desktop-write-green\.html|assets\/[A-Za-z0-9_-]+\.js)$/.test(name))throw Error('ASSET_REJECTED');const f=path.resolve(root,name);if(lstatSync(f).isSymbolicLink()||realpathSync(f).toLowerCase()!==f.toLowerCase())throw Error('ASSET_REJECTED');const b=readFileSync(f);if(createHash('sha256').update(b).digest('hex')!==assets[name])throw Error('ASSET_REJECTED');return b;};
  for(const n of Object.keys(assets))checked(n);
