@@ -1,3 +1,7 @@
+## 6 Kasım — R1 fiziksel/rezerve/satılabilir; insan kabulü BEKLİYOR
+
+Ajan normal ürün listesi/kartı ve SQL ile 48 fiziksel / 6 rezerve / 42 satılabilir ADET'i, yenilemede kalıcılığı ve taslak iptalinde 48/0/48'e dönüşü doğruladı. Tek deneme taslağı 9 iptal edilmiş belge olarak kaldı; yeni kesin satış veya stok/cari etkisi oluşmadı. Bu K03-07 teknik kanıtıdır; kesin satış iptalini veya gerçek personel/cihaz/LAN/LIVE kabulünü kapatmaz. [Kanıt](docs/evidence/erp/2026-11-06-desktop-stock-availability/README.md).
+
 ## 6 Kasım — R1 ADET/seri satışı; insan kabulü BEKLİYOR
 
 Ajan normal ekranda katsayı 6 ile seri ürününü açtı; kesirli seri reddini, 2 SERİ → 12 ADET satışını, hazırlama/kolileme/çıkışı ve yenilemeden sonra fiş/stok/cari sonucunu doğruladı. Bağımsız SQL: fiş 8 toplam 154 TRY, tek müşteri hareketi, ürün 48 ADET / 8 SERİ, müşteri 176 TRY. Aynı isteklerin gerçek HTTP tekrarları ikinci etki oluşturmadı. Kaynak ve kurulu teknik kanıt insan/personel veya fiziksel okuyucu kabulü değildir; özgün sayaçlar değişmedi. [Kanıt](docs/evidence/erp/2026-11-06-desktop-series-units/README.md).
