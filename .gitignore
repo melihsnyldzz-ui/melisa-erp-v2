@@ -35,5 +35,7 @@ __pycache__/
 # Canonical reproducible build and private runtime outputs
 apps/web-admin/dist-*/
 apps/sites-workflow/dist-business/
+apps/sites-workflow/dist-desktop-empty-green/
+apps/sites-workflow/dist-desktop-write-green/
 .canonical-runtime/
 *.private.json

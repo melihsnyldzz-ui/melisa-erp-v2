@@ -2,7 +2,8 @@ import sqlDefault from 'mssql';
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {guardCanonicalReadonlyAuthQuery} from './canonicalReadonlyAuthQuery.mjs';
 import { env } from './env.js';
-import {getEmptyLocalContext,assertRegisteredEmptyLocalContext,assertEmptyLocalIdentity,assertEmptyLocalSqlConfiguration,EMPTY_LOCAL_IDENTITY_SQL} from '../services/emptyLocalContext.mjs';
+import {getDesktopWriteRuntime} from './desktopWriteRuntime.mjs';
+import {getEmptyLocalContext,assertRegisteredEmptyLocalContext,assertEmptyLocalIdentity,assertEmptyLocalSqlConfiguration,emptyLocalSqlOptions,EMPTY_LOCAL_IDENTITY_SQL} from '../services/emptyLocalContext.mjs';
 import {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig,isIsolatedCopyReadonlyRuntime,getIsolatedCopyReadonlyRuntime} from './isolatedOperationCopyRuntime.mjs';
 import {getCrmOrderCurrentContext,assertCrmOrderCurrentIdentity} from '../services/crmOrderCurrentContext.mjs';
 import {getCleanContext,assertRegisteredCleanContext,assertCleanIdentity,CLEAN_IDENTITY_SQL} from '../services/cleanSyntheticContext.mjs';
@@ -13,7 +14,7 @@ export {isIsolatedOperationCopyRuntime,getIsolatedOperationCopyConfig};
 // mssql's two adapters share a process-wide Request driver. Loading ODBC after
 // TDS would give this dedicated TDS pool an ODBC Request and stall its reads.
 // The registered draft bootstrap selects TDS; legacy ODBC runtimes stay intact.
-const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()||getEmptyLocalContext()?null:(await import('mssql/msnodesqlv8.js')).default;
+const sqlTrusted=getCrmOrderCurrentContext()||getCleanContext()||getEmptyLocalContext()||getDesktopWriteRuntime()?null:(await import('mssql/msnodesqlv8.js')).default;
 
 let poolPromise;
 let resolvedPool;
@@ -66,11 +67,17 @@ export function isCanonicalTest() {
 }
 
 export function getSqlDriver() {
+  if(getDesktopWriteRuntime())return sqlDefault;
   if (env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest() || isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime()) return sqlTrusted;
   return env.sql.trustedConnection ? sqlTrusted : sqlDefault;
 }
 
 export function getSqlConfig() {
+  // Validate before any ODBC/trusted branch can return a different configuration.
+  let emptyOptions;
+  if(process.env.MELISA_EMPTY_LOCAL!==undefined||getEmptyLocalContext()){
+    assertRegisteredEmptyLocalContext();emptyOptions=emptyLocalSqlOptions(env);
+  }
   if ((env.sql.database === 'MELISA_ERP_PROD_CANDIDATE_20260917_01' || isCanonicalTest() || isIsolatedOperationCopyRuntime() || isIsolatedCopyReadonlyRuntime()) && !env.sql.trustedConnection) {
     const driver = env.sql.odbcDriver.replace(/[{}]/g, '');
     const server = env.sql.port ? `${env.sql.server},${env.sql.port}` : env.sql.server;
@@ -114,6 +121,7 @@ export function getSqlConfig() {
       encrypt: env.sql.encrypt,
       trustServerCertificate: env.sql.trustServerCertificate,
       readOnlyIntent: env.sql.readOnly,
+      ...emptyOptions,
     },
     pool: {
       max: 5,
@@ -130,10 +138,7 @@ export function getSqlConfig() {
 
   config.user = env.sql.user;
   config.password = env.sql.password;
-  if(getEmptyLocalContext()){
-    assertRegisteredEmptyLocalContext();assertEmptyLocalSqlConfiguration(env);
-    config.connectionTimeout=5000;config.requestTimeout=5000;
-  }
+  if(emptyOptions){config.connectionTimeout=5000;config.requestTimeout=5000;}
   return config;
 }
 

@@ -3,6 +3,7 @@
 // authenticated, encrypted, pinned physical connection.
 const SERVER='Semih\\MELISAERP',DATABASE='MELISA_ERP_DESKTOP_TEST_20261105';
 const LOGIN='melisa_desktop_test_app_20261105',ENV='eb2888c2-51cb-4570-a933-397cf7e62806';
+const DATABASE_GUID='c67f5317-9c0d-4831-aadd-fadc379a95d1';
 const ROLE='empty_local_reader',USERNAME='kurulum';
 const permissions=Object.freeze(['customer.view','dashboard.view','product.view','supplier.view']);
 const tables=Object.freeze(['audit_logs','auth_refresh_tokens','catalog_items','catalogs','currency_rates','customer_movements','customers',
@@ -28,7 +29,8 @@ const businessChecks=business.map(t=>`EXISTS(SELECT 1 FROM dbo.[${t}])`).join(' 
 // No row contents, password hashes, bearer tokens, or commercial values are
 // returned. Effective DML and EXECUTE are checked at DB/schema/object level.
 export const DESKTOP_INITIAL_READ_IDENTITY_SQL=`SET NOCOUNT ON;
-SELECT CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,DB_NAME() databaseName,
+ SELECT CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,DB_NAME() databaseName,
+ (SELECT LOWER(CONVERT(varchar(36),database_guid)) FROM sys.database_recovery_status WHERE database_id=DB_ID()) databaseGuid,
  SUSER_SNAME() loginName,ORIGINAL_LOGIN() originalLogin,USER_NAME() databaseUser,
  CONNECTIONPROPERTY('net_transport') transport,CONNECTIONPROPERTY('auth_scheme') authScheme,
  ISNULL(IS_SRVROLEMEMBER(N'sysadmin'),-1) sysadmin,ISNULL(IS_ROLEMEMBER(N'db_owner'),-1) dbOwner,
@@ -51,12 +53,12 @@ SELECT CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,DB_NAME() 
  (SELECT CONVERT(int,read_only) FROM dbo.desktop_empty_installation WHERE id=1) readOnly,
  (SELECT CONVERT(int,actual_t1) FROM dbo.desktop_empty_installation WHERE id=1) actualT1,
  (SELECT CONVERT(int,external_operations) FROM dbo.desktop_empty_installation WHERE id=1) externalOperations;`;
-const rowKeys=['serverName','databaseName','loginName','originalLogin','databaseUser','transport','authScheme',
+const rowKeys=['serverName','databaseName','databaseGuid','loginName','originalLogin','databaseUser','transport','authScheme',
  'sysadmin','dbOwner','controlServer','alterAnyLogin','impersonateAnyLogin','alterAnyDatabase','databaseControl','mutationPermissionCount','selectedTableCount','businessRows','markerCount','environmentId',
  'schemaVersion','readOnly','actualT1','externalOperations'];
 export function assertDesktopInitialReadIdentity(input){
  const r=record(input,rowKeys);
- if(r.serverName!==SERVER||r.databaseName!==DATABASE||r.loginName!==LOGIN||r.originalLogin!==LOGIN||r.databaseUser!==LOGIN
+ if(r.serverName!==SERVER||r.databaseName!==DATABASE||r.databaseGuid!==DATABASE_GUID||r.loginName!==LOGIN||r.originalLogin!==LOGIN||r.databaseUser!==LOGIN
   ||r.transport!=='TCP'||r.authScheme!=='SQL'||r.sysadmin!==0||r.dbOwner!==0||r.controlServer!==0
   ||r.alterAnyLogin!==0||r.impersonateAnyLogin!==0||r.alterAnyDatabase!==0||r.databaseControl!==0
   ||r.mutationPermissionCount!==0||r.selectedTableCount!==tables.length||r.businessRows!==0||r.markerCount!==1

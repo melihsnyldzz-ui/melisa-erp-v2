@@ -1,0 +1,41 @@
+// Real native draft code with a synthetic transactional SQL driver.
+import test from 'node:test';import assert from 'node:assert/strict';
+import {desktopTwoItemRevision} from './desktopTwoItemSalePreparation.mjs';
+const product=(id,price)=>({id,unitId:id+'1',priceId:id+'2',unitProductId:id,priceProductId:id,priceUnitId:id+'1',barcodeProductId:id,priceType:'sale',currency:'TRY',active:true,unitFactorExact8:'1.00000000',mainUnit:true,stockCode:'P'+id,name:'Ürün '+id,barcode:'00'+id,unit:'ADET',stockExact3:'4.000',priceExact4:price,averageCostTryExact4:'5.3000'});
+const locked={customer:{id:'2',customerCode:'M1',entityId:'3',accountId:'4',accountCustomerId:'2',accountEntityId:'3',accountSupplierId:null,accountCurrency:'TRY',currency:'TRY',active:true,balanceExact4:'1.0000',accountBalanceExact8:'1.00000000'},products:[product('5','10.0000'),product('9','7.5000')],reservedExact3:['0.000','0.000']};
+test('real two-line native draft, workflow and journal commit together and survive lost ACK replay without stock/cari effects',async t=>{
+ const pool={},connector={},auth={bindDraftService:x=>x};let state={invoice:null,items:[],workflow:null,journal:null},loseAck=false,corrupt=false;const unknown=[];
+ class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);this.open=false;if(loseAck){loseAck=false;throw Error('lost ACK');}}async rollback(){this.open=false;}}
+ class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p,one=x=>({recordset:[x]}),rows=x=>({recordset:x});
+  if(q.includes('@@TRANCOUNT transactionCount'))return one({targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1});
+  if(q.includes('FROM dbo.desktop_sale_workflow_requests')&&q.includes('SELECT'))return rows(d.journal?[d.journal]:[]);
+  if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows([]);
+  if(q.includes('FROM dbo.customers c WITH(UPDLOCK,HOLDLOCK)'))return {recordsets:[[locked.customer],[locked.products.find(v=>v.id===p.productId)]]};
+  if(q.includes('reservedExact3')&&q.includes('desktop_sale_reservations'))return one({reservedExact3:'0.000'});
+  if(q.startsWith('SELECT CONVERT(varchar(20),customer_id)'))return {recordsets:[[{customerId:'2',currency:'TRY',status:'draft',totalExact4:corrupt?'99.0000':'27.5000'}],d.items.map(v=>({productId:String(v.productId),quantityExact3:v.quantity.toFixed(3),unitPriceExact4:v.unitPrice.toFixed(4),lineTotalExact4:v.lineTotal.toFixed(4)})),[{stockRows:0,customerRows:0}]]};
+  if(q.startsWith('INSERT dbo.desktop_sale_workflows')){d.workflow={invoiceId:p.invoice,state:'DRAFT'};return one({version:'0x0000000000000001'});}
+  if(q.startsWith('INSERT dbo.desktop_sale_workflow_requests')){d.journal={actorId:p.actor,invoiceId:p.invoice,operation:'CREATE_DRAFT',hash:p.hash,resultJson:p.json};return rows([]);}
+  if(q.includes('END AS is_ready'))return one({is_ready:0});if(q.includes('currency_snapshot_ready'))return one({currency_snapshot_ready:1});
+  if(q.includes('FROM dbo.system_settings'))return rows([]);
+  if(q.includes('SELECT currency_code, is_active, is_deleted FROM dbo.customers'))return one({currency_code:'TRY',is_active:true,is_deleted:false});
+  if(q.includes('@pilotProductId'))return rows([]);
+  if(q.includes('INSERT INTO dbo.sales_invoices')){assert.ok(Number.isFinite(p.estimatedProfitTry));assert.equal(Math.round(p.estimatedProfitTry*10000),116000);d.invoice={id:12,documentNo:p.documentNo,documentDate:'2026-11-05',customerId:2,customerCode:'M1',customerName:'Ada',customerIsActive:true,status:'draft',customerCurrency:'TRY',documentCurrency:'TRY',exchangeRate:1,discountRate:0,discountTotal:0,grandTotal:p.grandTotal,subtotal:p.subtotal,amountTry:p.amountTry};return one({invoiceId:12});}
+  if(q.includes('INSERT INTO dbo.sales_invoice_items')){d.items.push({id:d.items.length+14,productId:p.productId,stockCode:p.stockCode,barcode:p.barcode,productName:p.productName,quantity:p.quantity,currency:p.currency,unitPrice:p.unitPrice,lineTotal:p.lineTotal,averageCostTry:p.averageCostTry,currentStockQty:4,productAverageCostTry:5.3});return {rowsAffected:[1]};}
+  if(q.includes('SELECT account_currency, account_amount, account_exchange_rate_snapshot'))return one({account_currency:'TRY',account_amount:27.5,account_exchange_rate_snapshot:1});
+  if(q.includes('UPDATE dbo.sales_invoices SET account_currency'))return {rowsAffected:[1]};
+  if(q.includes('WHERE si.id = @salesSnapshotId'))return rows(d.invoice?[d.invoice]:[]);
+  if(q.includes('WHERE sii.sales_invoice_id = @salesItemsSnapshotId'))return rows(d.items);
+  if(q.includes('INSERT INTO dbo.audit_logs'))return {rowsAffected:[1]};
+  unknown.push(q);throw Error('UNEXPECTED_SQL');
+ }}
+ const sql={Transaction,Request,NVarChar:()=>null,Decimal:()=>null,BigInt:{},Int:{},Date:{},Bit:{},MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}};
+ t.mock.module('mssql',{exports:{default:sql}});t.mock.module('mssql/msnodesqlv8.js',{exports:{default:sql}});
+ t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{if(c!==connector)throw Error();return pool;}}});t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{if(a!==auth||p!==pool)throw Error();return async()=>true;}}});
+ const {createDesktopWorkflowDraftService,tryAssertDesktopWorkflowDraft}=await import('./desktopWorkflowDraftPrivate.mjs');assert.equal(tryAssertDesktopWorkflowDraft({}),null);
+ const service=createDesktopWorkflowDraftService({connector,auth}),request={requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerId:'2',documentDate:'2026-11-05',expectedRevision:desktopTwoItemRevision(locked),items:[{productId:'5',quantityExact3:'2.000'},{productId:'9',quantityExact3:'1.000'}]};
+ const preview=await service.preview('8',{customerId:'2',documentDate:'2026-11-05',productIds:['5','9']});assert.equal(preview.revision,request.expectedRevision);assert.equal(preview.products.length,2);assert.equal(Object.hasOwn(preview,'accountBalanceExact8'),false);assert.equal(Object.hasOwn(preview.products[0],'averageCostTryExact4'),false);
+ corrupt=true;assert.equal((await service.createDraft('8',request)).state,'UNKNOWN');assert.deepEqual(state,{invoice:null,items:[],workflow:null,journal:null});corrupt=false;
+ loseAck=true;assert.equal((await service.createDraft('8',request)).state,'UNKNOWN',unknown.at(-1));assert.equal(state.items.length,2,unknown.at(-1));assert.equal(state.workflow.state,'DRAFT');assert.equal(state.invoice.grandTotal,27.5);
+ assert.equal((await service.createDraft('8',request)).replayed,true);assert.equal(state.items.length,2);assert.equal((await service.createDraft('9',request)).state,'UNKNOWN');
+ assert.equal((await service.createDraft('8',{...request,items:[request.items[0],request.items[0]]})).state,'UNKNOWN');
+});

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {assertDesktopInitialReadIdentity,assertDesktopInitialReadUser,withDesktopInitialReadSession,
  DESKTOP_INITIAL_READ_IDENTITY_SQL,DESKTOP_INITIAL_READ_LIMITS} from './desktopInitialReadProfile.mjs';
 
-const row=()=>({serverName:'Semih\\MELISAERP',databaseName:'MELISA_ERP_DESKTOP_TEST_20261105',
+const row=()=>({serverName:'Semih\\MELISAERP',databaseName:'MELISA_ERP_DESKTOP_TEST_20261105',databaseGuid:'c67f5317-9c0d-4831-aadd-fadc379a95d1',
  loginName:'melisa_desktop_test_app_20261105',originalLogin:'melisa_desktop_test_app_20261105',databaseUser:'melisa_desktop_test_app_20261105',
  transport:'TCP',authScheme:'SQL',sysadmin:0,dbOwner:0,controlServer:0,alterAnyLogin:0,impersonateAnyLogin:0,alterAnyDatabase:0,databaseControl:0,mutationPermissionCount:0,
  selectedTableCount:27,businessRows:0,markerCount:1,environmentId:'eb2888c2-51cb-4570-a933-397cf7e62806',
@@ -12,7 +12,7 @@ const user=()=>({id:'11',username:'kurulum',userActive:true,roleCode:'empty_loca
  permissions:['customer.view','dashboard.view','product.view','supplier.view']});
 test('profile accepts only the observed new test target, marker and encrypted read-only principal',()=>{
  assert.equal(assertDesktopInitialReadIdentity(row()),true);
- for(const change of [{serverName:'Semih\\SQLEXPRESS'},{databaseName:'master'},{loginName:'sa'},
+ for(const change of [{serverName:'Semih\\SQLEXPRESS'},{databaseName:'master'},{databaseGuid:null},{databaseGuid:'00000000-0000-0000-0000-000000000000'},{loginName:'sa'},
   {originalLogin:'sa'},{databaseUser:'dbo'},{transport:'Shared memory'},{authScheme:'NTLM'},
   {sysadmin:1},{dbOwner:1},{controlServer:1},{alterAnyLogin:1},{impersonateAnyLogin:1},
   {alterAnyDatabase:1},{databaseControl:1},{mutationPermissionCount:1},

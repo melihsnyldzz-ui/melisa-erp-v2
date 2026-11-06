@@ -67,6 +67,9 @@ export const env = {
     encrypt: String(process.env.SQL_ENCRYPT || 'false').toLowerCase() === 'true',
     trustServerCertificate: String(process.env.SQL_TRUST_SERVER_CERTIFICATE || 'true').toLowerCase() === 'true',
     readOnly: String(process.env.SQL_READ_ONLY || 'true').toLowerCase() !== 'false',
+    ...(process.env.MELISA_EMPTY_LOCAL === '20261105'
+      ? {hostNameInCertificate: process.env.SQL_HOST_NAME_IN_CERTIFICATE}
+      : {}),
   },
   vega: {
     enabled: Boolean(

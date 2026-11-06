@@ -1,0 +1,67 @@
+// SOURCE ONLY. The sole exported factory accepts a connector issued by the
+// separately verified v2 TLS opener; callers cannot pass a naked SQL pool or
+// a caller-supplied 'verified' flag. Importing opens no listener or database.
+import express from 'express';
+import rateLimit from 'express-rate-limit';
+import sql from 'mssql';
+import {getDesktopWritePool} from './config/desktopWriteTlsConnector.mjs';
+import {createDesktopWriteAuthCore} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopLocalMasterSqlStore} from './services/desktopLocalMasterSqlStore.mjs';
+import {createLocalMasterTransactions} from './services/localMasterTransactions.mjs';
+import {recordDesktopFailure} from './services/desktopSafeDiagnostics.mjs';
+import {createDesktopLocalMasterRoutes} from './routes/desktopLocalMasterRoutes.mjs';
+import {createDesktopWriteListService} from './services/desktopWriteListService.mjs';
+import {createDesktopWriteListRoutes} from './routes/desktopWriteListRoutes.mjs';
+import {createDesktopSaleWorkflowService} from './services/desktopSaleWorkflowService.mjs';
+import {createDesktopSaleWorkflowRoutes} from './routes/desktopSaleWorkflowRoutes.mjs';
+import {createDesktopWorkflowDraftService,createDesktopWorkflowDispatchService} from './services/desktopWorkflowDraftPrivate.mjs';
+import {createDesktopWorkflowReadService} from './services/desktopWorkflowReadService.mjs';
+import {createDesktopWorkflowResolutionService} from './services/desktopWorkflowResolutionService.mjs';
+
+const HOST='127.0.0.1:4294',ORIGIN='http://127.0.0.1:5294';
+const reject=(res,status=403)=>res.status(status).json({success:false,error:{code:'DESKTOP_WRITE_UNAVAILABLE'}});
+export const DESKTOP_WRITE_APPLICATION_LIMITS=Object.freeze({sourceOnly:true,listenerOpened:false,writableProfileInstalled:false,
+ requiresVerifiedDedicatedWriterConnector:true,requiresV2SchemaMigrationAndLeastPrivilegeGrants:true,
+ requiresPersistedNormalRoleProvisioning:true,requiresDriverAndPackagePin:true,
+ salesLifecycleRoutesImplemented:true,installedSalesWritesVerified:false,realSqlVerified:false,fullErpReady:false});
+
+export function createDesktopWriteApplication({connector,tokenKey}={}){
+ const pool=getDesktopWritePool(connector);
+ const auth=createDesktopWriteAuthCore({pool,sql,tokenKey});
+ const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession});
+ const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure});
+ const service=auth.bindService(coordinator);
+ const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession}));
+ const workflowService=createDesktopSaleWorkflowService({connector,auth});
+ const draftService=createDesktopWorkflowDraftService({connector,auth});
+ const dispatchService=createDesktopWorkflowDispatchService({connector,auth});
+ const workflowReadService=createDesktopWorkflowReadService({connector,auth});
+ const resolutionService=createDesktopWorkflowResolutionService({connector,auth});
+ const app=express();app.disable('x-powered-by');app.set('strict routing',true);
+ app.use((req,res,next)=>{
+  res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');
+  if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!==HOST||(req.get('origin')&&req.get('origin')!==ORIGIN))return reject(res);
+  if(req.get('origin')===ORIGIN){res.set('Access-Control-Allow-Origin',ORIGIN);res.set('Vary','Origin');res.set('Access-Control-Allow-Headers','Content-Type, Authorization');res.set('Access-Control-Allow-Methods','GET, POST, OPTIONS');}
+  if(req.method==='OPTIONS')return res.sendStatus(204);next();
+ });
+ app.use(rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false}));
+ app.use(express.json({limit:'8kb',strict:true}));
+ app.post('/api/auth/login',rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}),async(req,res)=>{
+  try{if(req.get('origin')!==ORIGIN||!req.is('application/json'))return reject(res);const data=await auth.login(req.body);return res.json({success:true,data});}
+  catch{return reject(res,401);}
+ });
+ app.post('/api/auth/logout',async(req,res)=>{try{if(req.get('origin')!==ORIGIN)return reject(res);await auth.logout(req);return res.json({success:true,data:{loggedOut:true}});}catch{return reject(res,401);}});
+ app.get('/api/auth/me',auth.bind,async(req,res)=>{try{const data=await auth.me(req);return res.json({success:true,data});}catch{return reject(res,401);}});
+ app.use('/api/desktop-local',auth.bind);
+ app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal}));
+ app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts'],auth.bind);
+ app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));
+ app.use('/api/desktop-sale/workflows',auth.bind);
+ app.use('/api/desktop-sale/drafts',auth.bind);
+ app.use('/api/desktop-sale/draft-preview',auth.bind);
+ app.use('/api/desktop-sale/resolve',auth.bind);
+ app.use(createDesktopSaleWorkflowRoutes({service:workflowService,draftService,dispatchService,readService:workflowReadService,resolutionService,authenticateNormal:auth.authenticateNormal}));
+ app.use((_req,res)=>reject(res,404));
+ app.use((error,_req,res,next)=>{if(res.headersSent)return next(error);return reject(res,400);});
+ return Object.freeze({app,closeSessions:auth.close,profile:'desktop-write-v2'});
+}

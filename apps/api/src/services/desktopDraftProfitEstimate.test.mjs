@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {desktopDraftProfitEstimate} from './desktopDraftProfitEstimate.mjs';
+const draft=items=>({documentCurrency:'TRY',exchangeRate:1,discountRate:0,items});
+test('known TRY costs produce the initial two-item profit',()=>{assert.equal(desktopDraftProfitEstimate(draft([{quantity:1,lineTotal:10,averageCostTry:6},{quantity:2,lineTotal:40,averageCostTry:12}])),20);});
+test('fractional quantities use persisted line precision, including negative profit',()=>{assert.equal(desktopDraftProfitEstimate(draft([{quantity:1.001,lineTotal:0.0001001,averageCostTry:0.025},{quantity:1.001,lineTotal:0.0001001,averageCostTry:0.025}])),-0.0499);});
+test('unknown costs, unsupported currencies and unrepresentable quantities fail closed',()=>{for(const item of [{quantity:1,lineTotal:10,averageCostTry:null},{quantity:1,lineTotal:10,averageCostTry:0},{quantity:1.0001,lineTotal:10,averageCostTry:2}])assert.throws(()=>desktopDraftProfitEstimate(draft([item])));assert.throws(()=>desktopDraftProfitEstimate({...draft([]),documentCurrency:'USD'}));});

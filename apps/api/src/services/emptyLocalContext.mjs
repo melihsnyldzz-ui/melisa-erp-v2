@@ -1,7 +1,7 @@
 // Exact local empty installation; no legacy TEST, production or synthetic authority.
 export const EMPTY_LOCAL_PROFILE=Object.freeze({
   id:'empty-local-20261105',database:'MELISA_ERP_EMPTY_TEST_20261105',
-  login:'melisa_empty_test_read_20261105',serverName:'Semih\\MELISADEV',
+  login:'melisa_empty_test_read_20261105',serverName:'Semih\\MELISADEV',certificateServerName:'SEMIH',
   environmentId:'94a8324f-124a-49e4-ad70-be3232989f47',host:'127.0.0.1',
   sqlPort:1433,apiPort:4294,webPort:5294,
 });
@@ -10,7 +10,7 @@ const required=Object.freeze({
   API_PORT:'4294',SQL_SERVER:'127.0.0.1',SQL_PORT:'1433',
   SQL_DATABASE:EMPTY_LOCAL_PROFILE.database,SQL_USER:EMPTY_LOCAL_PROFILE.login,
   SQL_TRUSTED_CONNECTION:'false',SQL_READ_ONLY:'true',SQL_ENCRYPT:'true',
-  SQL_TRUST_SERVER_CERTIFICATE:'false',MELISA_TEST_STATELESS_AUTH:'true',
+  SQL_TRUST_SERVER_CERTIFICATE:'false',SQL_HOST_NAME_IN_CERTIFICATE:'SEMIH',MELISA_TEST_STATELESS_AUTH:'true',
   MELISA_LOCAL_PASSWORDLESS_LOGIN:'false',WHATSAPP_ENABLED:'false',
   NAKLIYAT_ENABLED:'false',SMTP_ENABLED:'false',EMAIL_ENABLED:'false',
   WORKERS_ENABLED:'false',SCHEDULER_ENABLED:'false',MELISA_INVOICE_EXPORT_ENABLED:'false',
@@ -35,7 +35,7 @@ export function assertEmptyLocalEnvironment(environment=process.env){
   need(typeof environment.SQL_PASSWORD==='string'&&environment.SQL_PASSWORD.length>0);
   need(typeof environment.JWT_ACCESS_SECRET==='string'&&environment.JWT_ACCESS_SECRET.length>=32&&typeof environment.JWT_REFRESH_SECRET==='string'&&environment.JWT_REFRESH_SECRET.length>=32&&environment.JWT_ACCESS_SECRET!==environment.JWT_REFRESH_SECRET);
   const allowed=new Set([...Object.keys(required),'SQL_PASSWORD','JWT_ACCESS_SECRET','JWT_REFRESH_SECRET']);
-  for(const [key,value]of Object.entries(environment))if(value&&!allowed.has(key)&&/^(SQL_|VEGA_|MELISA_|JWT_|NATIVE_|TERMINAL_|PILOT_|CRM_|OPENAI_|WHATSAPP_|NAKLIYAT_|SMTP_|MAIL_|EMAIL_|WORKER|SCHEDULE|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NODE_OPTIONS|NODE_PATH)/i.test(key))throw rejected();
+  for(const [key,value]of Object.entries(environment))if(value&&!allowed.has(key)&&/^(SQL_|VEGA_|MELISA_|JWT_|NATIVE_|TERMINAL_|PILOT_|CRM_|OPENAI_|WHATSAPP_|NAKLIYAT_|SMTP_|MAIL_|EMAIL_|WORKER|SCHEDULE|HTTP_PROXY|HTTPS_PROXY|ALL_PROXY|NODE_OPTIONS|NODE_PATH|NODE_TLS_REJECT_UNAUTHORIZED|NODE_EXTRA_CA_CERTS)/i.test(key))throw rejected();
 }
 export const EMPTY_LOCAL_IDENTITY_SQL=`
 SELECT DB_NAME() databaseName,CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) serverName,
@@ -89,7 +89,14 @@ export function assertEmptyLocalIdentity(identity){
   return identity;
 }
 export function assertEmptyLocalSqlConfiguration(configuration){
-  need(configuration?.port===4294&&configuration.sql?.enabled===true&&configuration.sql.server==='127.0.0.1'&&configuration.sql.port===1433&&configuration.sql.database===EMPTY_LOCAL_PROFILE.database&&configuration.sql.user===EMPTY_LOCAL_PROFILE.login&&configuration.sql.readOnly===true&&configuration.sql.trustedConnection===false&&configuration.sql.encrypt===true&&configuration.sql.trustServerCertificate===false);
+  need(configuration?.port===4294&&configuration.sql?.enabled===true&&configuration.sql.server==='127.0.0.1'&&configuration.sql.port===1433&&configuration.sql.database===EMPTY_LOCAL_PROFILE.database&&configuration.sql.user===EMPTY_LOCAL_PROFILE.login&&configuration.sql.readOnly===true&&configuration.sql.trustedConnection===false&&configuration.sql.encrypt===true&&configuration.sql.trustServerCertificate===false&&configuration.sql.hostNameInCertificate===EMPTY_LOCAL_PROFILE.certificateServerName);
+  need(configuration.options===undefined&&configuration.sql.options===undefined&&configuration.sql.serverName===undefined);
+}
+// Tedious uses options.serverName for TLS certificate verification while its
+// top-level server remains the fixed loopback TCP target. Never disable trust checks.
+export function emptyLocalSqlOptions(configuration){
+  assertEmptyLocalSqlConfiguration(configuration);
+  return Object.freeze({encrypt:true,trustServerCertificate:false,readOnlyIntent:true,serverName:EMPTY_LOCAL_PROFILE.certificateServerName});
 }
 let registered=null;
 export function registerEmptyLocalContext(identity,environment=process.env){
@@ -111,4 +118,3 @@ const reads=new Set(['/api/auth/me','/api/products','/api/products/options','/ap
 export function emptyLocalRequestAllowed(method,requestPath){
   return typeof requestPath==='string'&&(method==='POST'&&requestPath==='/api/auth/login'||method==='GET'&&(requestPath==='/api/health'||reads.has(requestPath)));
 }
-

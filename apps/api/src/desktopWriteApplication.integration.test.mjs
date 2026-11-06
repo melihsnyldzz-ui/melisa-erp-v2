@@ -1,0 +1,107 @@
+// Isolated HTTP + real auth/coordinator/store assembly with a synthetic SQL
+// driver. Run with --experimental-test-module-mocks; no actual SQL or service.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import http from 'node:http';
+import bcrypt from 'bcrypt';
+
+function fakeDatabase(passwordHash){
+ let state={customers:[],entities:[],accounts:[],products:[],units:[],barcodes:[],prices:[],links:[],audit:[],stockMovements:[],journal:{},seq:0};
+ let loseNextWriteAcknowledgement=false;
+ const user={id:'7',username:'normal',displayName:'Normal',passwordHash,roleId:'2',roleCode:'employee',roleName:'Employee',userActive:true,roleActive:true,userVersion:'0x0000000000000001',roleVersion:'0x0000000000000002'};
+ const permissions=['customer.edit','product.edit','customer.view','product.view','supplier.view'].map(permission_key=>({permission_key,can_view:true,can_create:true,can_update:false,can_delete:false,can_approve:false}));
+ const newid=tx=>String(++tx.data.seq),hex=v=>Buffer.from(v).toString('hex');
+ class Transaction{
+  constructor(pool){this.pool=pool;this.open=false;this.dirty=false;}
+  async begin(){this.open=true;this.data=structuredClone(state);}
+  async commit(){if(this.dirty){state=this.data;if(loseNextWriteAcknowledgement){loseNextWriteAcknowledgement=false;this.open=false;throw Error('lost acknowledgement');}}this.open=false;}
+  async rollback(){this.open=false;}
+ }
+ class Request{
+  constructor(tx){if(!tx?.open)throw Error('SQL not bound to an active transaction');this.tx=tx;this.params={};}
+  input(name,_type,value){this.params[name]=value;return this;}
+  async query(statement){const p=this.params,d=this.tx.data,rows=x=>({recordset:x}),one=x=>rows([x]);
+   if(statement.includes('DESKTOP_AUTH_TARGET_REJECTED')||statement.includes('LOCAL_SQL_TARGET_REJECTED')||statement.includes('DESKTOP_LIST_TARGET_REJECTED'))return one({ok:1});
+   if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[customers]'))return one({total:String(d.customers.length)});
+   if(statement.includes('COUNT_BIG(*)')&&statement.includes('FROM dbo.[products]'))return one({total:String(d.products.length)});
+   if(statement.includes('OFFSET @offset')&&statement.includes('FROM dbo.[customers]'))return rows(d.customers.slice(p.offset,p.offset+p.limit).map(c=>({id:c.id,customerCode:c.code,customerName:c.name,phone:c.phone,city:c.city,country:c.country,currency:c.currency,customerType:c.kind,balanceExact4:'0.0000'})));
+   if(statement.includes('OFFSET @offset')&&statement.includes('FROM dbo.[products]'))return rows(d.products.slice(p.offset,p.offset+p.limit).map(x=>({id:x.id,stockCode:x.code,productName:x.name,unit:x.unit,currency:x.currency,currentStockExact3:x.stock,salePriceExact4:x.sale})));
+   if(statement.includes('FROM dbo.users u WITH(UPDLOCK,HOLDLOCK)')){
+    if(statement.includes('p.permission_key'))return one({id:user.id});
+    return rows(p.username===user.username||p.userId===user.id?[{...user}]:[]);
+   }
+   if(statement.includes('FROM dbo.permissions WITH(UPDLOCK,HOLDLOCK)'))return rows(permissions.map(x=>({...x})));
+   if(statement.includes('LOCAL_MASTER_REQUEST_LOCKED')){
+    const x=d.journal[p.requestIdText];if(!x)return rows([]);
+    if(x.operation!==p.operation||x.actorId!==p.actorIdText||x.payloadHash!==hex(p.payloadHash))throw Error('conflict');
+    return one({response_json:x.responseJson});
+   }
+   if(statement.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')){
+    this.tx.dirty=true;d.journal[p.requestIdText]={requestId:p.requestIdText,operation:p.operation,actorId:p.actorIdText,payloadHash:hex(p.payloadHash),responseJson:p.responseJson};return one({response_json:p.responseJson});
+   }
+   if(statement.includes('FROM dbo.desktop_local_master_requests WHERE request_id=')){
+    const x=d.journal[p.request];return rows(x?[{requestId:x.requestId,operation:x.operation,actorId:x.actorId,payloadHash:x.payloadHash,response_json:x.responseJson}]:[]);
+   }
+   if(statement.includes('INSERT dbo.customers')){this.tx.dirty=true;const id=newid(this.tx);d.customers.push({id,code:p.code,name:p.name,phone:p.phone,city:p.city,country:p.country,kind:p.kind,currency:p.currency,entityId:null});return one({id});}
+   if(statement.includes('INSERT dbo.party_entities')){this.tx.dirty=true;const id=newid(this.tx);d.entities.push({id,role:p.role,name:p.name,country:p.country});return one({id});}
+   if(statement.includes('UPDATE dbo.customers SET party_entity_id=')){this.tx.dirty=true;const x=d.customers.find(v=>v.id===p.customer);if(!x||x.entityId!==null)return one({changed:0});x.entityId=p.entity;return one({changed:1});}
+   if(statement.includes('INSERT dbo.party_currency_accounts')){this.tx.dirty=true;const id=newid(this.tx);d.accounts.push({id,customer:p.customer,entity:p.entity,currency:p.currency,balance:p.balance});return one({id});}
+   if(statement.includes('FROM dbo.customers c JOIN dbo.party_entities')){
+    const c=d.customers.find(v=>v.id===p.customer),e=d.entities.find(v=>v.id===p.entity),a=d.accounts.find(v=>v.id===p.account);if(!c||!e||!a||c.entityId!==e.id||a.entity!==e.id)return rows([]);
+    return one({c_id:c.id,c_entity:c.entityId,c_currency:c.currency,c_code:c.code,c_name:c.name,c_phone:c.phone,c_city:c.city,c_country:c.country,c_type:c.kind,e_id:e.id,e_role:e.role,e_name:e.name,e_country:e.country,a_id:a.id,a_entity:a.entity,a_customer:a.customer,a_supplier:null,a_currency:a.currency,a_balance:a.balance});
+   }
+   if(statement.includes('INSERT dbo.products')){this.tx.dirty=true;const id=newid(this.tx);d.products.push({id,code:p.code,name:p.name,unit:p.unit,currency:p.currency,sale:p.sale,purchase:p.purchase,discount:p.discount,cost:p.cost,stock:p.stock});return one({id});}
+   if(statement.includes('INSERT dbo.stock_movements')){this.tx.dirty=true;const id=newid(this.tx);d.stockMovements.push({id,...p});return one({id});}
+   if(statement.includes('FROM dbo.stock_movements WHERE id=')){const m=d.stockMovements.find(v=>v.id===p.movement&&v.product===p.product);return m?one({id:m.id,productId:m.product,actorId:m.actor,quantityInExact3:m.quantity,quantityOutExact3:'0.000',quantityNetExact3:m.quantity,unitCostTryExact4:m.cost,unitPriceExact4:m.price,amountTryExact4:m.amount,documentDate:m.date,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:String(d.stockMovements.filter(v=>v.product===p.product).length)}):rows([]);}
+   if(statement.includes('INSERT dbo.desktop_local_product_units')){this.tx.dirty=true;const id=newid(this.tx);d.units.push({id,product:p.product,label:p.label,factor:p.factor});return one({id});}
+   if(statement.includes('INSERT dbo.product_barcodes')){this.tx.dirty=true;const id=newid(this.tx);d.barcodes.push({id,product:p.product,code:p.barcode});return one({id});}
+   if(statement.includes('INSERT dbo.product_prices')){this.tx.dirty=true;const id=newid(this.tx);d.prices.push({id,product:p.product,type:p.type,tier:p.tier,currency:p.currency,price:p.price});return one({id});}
+   if(statement.includes('INSERT dbo.desktop_local_price_units')){this.tx.dirty=true;d.links.push({product:p.product,unit:p.unit,price:p.price});return one({changed:1});}
+   if(statement.includes('FROM dbo.products p JOIN dbo.desktop_local_product_units')){
+    const x=d.products.find(v=>v.id===p.product),u=d.units.find(v=>v.id===p.unit),b=d.barcodes.find(v=>v.id===p.barcode),q=d.prices.find(v=>v.id===p.price),l=d.links.find(v=>v.product===p.product&&v.unit===p.unit&&v.price===p.price);
+    if(!x||!u||!b||!q||!l)return rows([]);
+    return one({p_id:x.id,p_code:x.code,p_name:x.name,p_unit:x.unit,p_currency:x.currency,p_sale:x.sale,p_purchase:x.purchase,p_discount:x.discount,p_cost:x.cost,p_stock:x.stock,u_id:u.id,u_product:u.product,u_label:u.label,u_factor:u.factor,u_main:true,b_id:b.id,b_product:b.product,b_code:b.code,b_primary:true,b_active:true,q_id:q.id,q_product:q.product,q_type:q.type,q_tier:q.tier,q_currency:q.currency,q_price:q.price,q_source:null,l_product:l.product,l_unit:l.unit,l_price:l.price});
+   }
+   if(statement.includes('INSERT dbo.audit_logs')){this.tx.dirty=true;d.audit.push({actorId:p.actor,operation:p.operation,entityId:p.entity,requestId:p.request});return one({changed:1});}
+   if(statement.includes('FROM dbo.audit_logs WHERE reason=')){return rows(d.audit.filter(v=>v.requestId===p.request));}
+   throw Error('Unexpected synthetic SQL');
+  }
+ }
+ return {pool:{},sql:{Transaction,Request,NVarChar:()=>({}),VarBinary:()=>({}),Decimal:()=>({}),BigInt:{},Int:{},MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}},snapshot:()=>structuredClone(state),loseAck:()=>{loseNextWriteAcknowledgement=true;}};
+}
+
+test('verified-provider assembly: normal login, customer, product and same-request recovery through actual HTTP routes',async t=>{
+ const passwordHash=await bcrypt.hash('test-test',12),db=fakeDatabase(passwordHash),connector={};
+ t.mock.module('mssql',{exports:{default:db.sql}});
+ t.mock.module('./config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:value=>{if(value!==connector)throw Error('forged connector');return db.pool;}}});
+ const {createDesktopWriteApplication}=await import('./desktopWriteApplication.mjs');
+ const runtime=createDesktopWriteApplication({connector,tokenKey:Buffer.alloc(48,8)});
+ const server=await new Promise((resolve,reject)=>{const s=runtime.app.listen(0,'127.0.0.1',()=>resolve(s));s.once('error',reject);});
+ t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const post=(path,body,token)=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server.address().port,path,method:'POST',headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294','content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})}},res=>{const chunks=[];res.on('data',v=>chunks.push(v));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks).toString())}));});req.on('error',reject);req.end(JSON.stringify(body));});
+ const get=(path,token)=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server.address().port,path,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294',...(token?{authorization:'Bearer '+token}:{})}},res=>{const chunks=[];res.on('data',v=>chunks.push(v));res.on('end',()=>resolve({status:res.statusCode,body:JSON.parse(Buffer.concat(chunks).toString())}));});req.on('error',reject);req.end();});
+ const login=await post('/api/auth/login',{username:'normal',password:'test-test'});assert.equal(login.status,200);const {accessToken:token}=login.body.data;assert.equal(typeof token,'string');
+ const customer={requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerCode:'M1',name:'Örnek',phone:'555',customerType:'customer',currency:'TRY',city:'  Yalova ',country:' Türkiye '};
+ db.loseAck();const lost=await post('/api/desktop-local/customers',customer,token);assert.equal(lost.status,503);assert.equal(lost.body.data.state,'UNKNOWN');
+ assert.equal(db.snapshot().customers.length,1);assert.equal(db.snapshot().customers[0].city,'Yalova');assert.equal(db.snapshot().entities[0].country,'Türkiye');
+ const replay=await post('/api/desktop-local/customers',customer,token);assert.equal(replay.status,200);assert.equal(replay.body.data.replayed,true);assert.equal(db.snapshot().customers.length,1);
+ const conflict=await post('/api/desktop-local/customers',{...customer,city:'Bursa'},token);assert.equal(conflict.status,503);assert.equal(conflict.body.data.state,'UNKNOWN');assert.equal(db.snapshot().customers.length,1);
+ const product={requestId:'6508625b-b648-421b-b7b9-35d4be7c7263',stockCode:'P1',name:'Ürün',barcode:'000123',unit:'ADET',currency:'TRY',salePriceExact4:'10.0000',purchasePriceExact4:'5.3000',purchaseDiscountRateExact4:'0.0000',saleTier:1};
+ const created=await post('/api/desktop-local/products',product,token);assert.equal(created.status,201);const state=db.snapshot();
+ assert.equal(state.products.length,1);assert.equal(state.products[0].cost,'5.3000');assert.equal(state.barcodes[0].code,'000123');assert.equal(state.prices[0].price,'10.00000000');assert.equal(state.links.length,1);
+ const customers=await get('/api/customers',token);assert.equal(customers.status,200);assert.equal(customers.body.data[0].customerName,'Örnek');assert.equal(customers.body.data[0].city,'Yalova');
+ const products=await get('/api/products',token);assert.equal(products.status,200);assert.equal(products.body.data[0].productName,'Ürün');assert.equal(products.body.meta.total,1);
+ assert.equal((await get('/api/products')).status,401);assert.equal((await get('/api/products?limit=101',token)).status,400);
+ const opening={...product,requestId:'6508625b-b648-421b-b7b9-35d4be7c7264',stockCode:'P2',barcode:'000124',openingQuantityExact3:'4.000',openingDate:'2026-11-05'};
+ db.loseAck();assert.equal((await post('/api/desktop-local/products',opening,token)).body.data.state,'UNKNOWN');
+ assert.equal((await post('/api/desktop-local/products',opening,token)).body.data.replayed,true);assert.equal(db.snapshot().products.length,2);assert.equal(db.snapshot().products[1].stock,'4.000');assert.equal(db.snapshot().stockMovements.length,1);assert.equal(db.snapshot().stockMovements[0].amount,'21.2000');
+ // Exercise the actual browser session/controller against the same HTTP app;
+ // only the TCP endpoint is redirected to this isolated synthetic listener.
+ const {createDesktopWriteGreenCore}=await import('../../sites-workflow/src/workflow/desktopWriteGreenCore.mjs');
+ const mem=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
+ const browserFetch=(url,opts)=>new Promise((resolve,reject)=>{const parsed=new URL(url);if(parsed.origin!=='http://127.0.0.1:4294')return reject(Error('wrong origin'));const req=http.request({hostname:'127.0.0.1',port:server.address().port,path:parsed.pathname+parsed.search,method:opts.method,headers:{...opts.headers,host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294'}},res=>{const chunks=[];res.on('data',v=>chunks.push(v));res.on('end',()=>resolve({ok:res.statusCode>=200&&res.statusCode<300,status:res.statusCode,json:async()=>JSON.parse(Buffer.concat(chunks).toString())}));});req.on('error',reject);req.end(opts.body);});
+ const ui=createDesktopWriteGreenCore({location:{origin:'http://127.0.0.1:5294'},fetch:browserFetch,sessionStorage:mem(),localStorage:mem(),locks:{request:async(_k,_o,cb)=>cb({})},newId:()=> '0be46102-a9bc-4de0-ad5f-02cf160005c4'});
+ await ui.login('normal','test-test');assert.equal(ui.can('customers','edit'),true);assert.equal((await ui.list('customers')).data[0].customerName,'Örnek');
+ const uiCreated=await ui.create('customers').create({customerCode:'M2',name:'Ece',phone:'123',customerType:'customer',currency:'TRY',city:'Ankara',country:'Türkiye'});assert.equal(uiCreated.state,'COMMITTED');assert.equal((await ui.list('customers')).data.length,2);await ui.logout();
+ assert.equal(runtime.closeSessions(),true);
+});

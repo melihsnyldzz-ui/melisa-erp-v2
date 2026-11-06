@@ -2,6 +2,7 @@ import {assertOperationQuarantineAllowed,quarantineTransactionContext} from './o
 import {invoiceQuarantineEntities} from './operationQuarantineGate.mjs';
 import { assertInvoiceNotExported } from './vegaInvoiceExportJournal.mjs';
 import sql from 'mssql';
+import {desktopDraftProfitEstimate} from './desktopDraftProfitEstimate.mjs';
 import { getSqlDriver, getSqlPool, isIsolatedOperationCopyRuntime, getIsolatedOperationCopyConfig } from '../config/database.js';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import { writeAuditLog } from './auditService.js';
@@ -29,6 +30,7 @@ import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScop
 import {assertSelectedSaleCashlessCancellation} from './selectedSaleCashlessCancellation.mjs';
 import {getCanonicalBusinessSaleTransaction,getCanonicalBusinessSession} from './canonicalBusinessSessionContext.mjs';
 import {postNativeCurrencyAccount} from './nativeCurrencyAccount.mjs';
+import {assertDesktopPrivateSale} from './desktopSalePrivateService.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
@@ -1876,7 +1878,7 @@ export async function getSalesDraftsList(query) {
 }
 
 export async function createSalesDraft(payload, actor = null, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  if(transactionContext?.desktopPrivateSale===true)assertDesktopPrivateSale({transaction:transactionContext.transaction,actor,operation:'sale_draft',checkOnly:true});else assertMelisaWriteEnabled();
 
   const draft = normalizeSalesPayload(payload);
   const pool = transactionContext?.pool || await getSqlPool();
@@ -1887,13 +1889,19 @@ export async function createSalesDraft(payload, actor = null, transactionContext
   if (ownsTransaction) await transaction.begin();
 
   try {
+    if(transactionContext?.desktopPrivateSale===true){
+      assertDesktopPrivateSale({transaction,actor,operation:'sale_draft',invoiceId:null,invoice:draft});
+      // This private TRY flow has locked, known costs. Keep an unknown cost
+      // distinct from zero and supply the non-null clean-schema draft estimate.
+      draft.estimatedProfitTry=desktopDraftProfitEstimate(draft);
+    }
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',draft),quarantineTransactionContext(sqlDriver,transaction));
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_draft',actor,null,draft);
     const directActor=cleanDirectSaleActorId(transaction,'sale_draft',actor),initialSettlement=!!selectedSale||directActor!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
-    else await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
+    else if(transactionContext?.desktopPrivateSale!==true) await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
     preserveSelectedSourceSalesNames(payload,draft,selectedSale);
     if(selectedSale&&draft.items.length>1)selectedSourceSalesItemsJSON(draft.items,selectedSale);
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'sales', draft);
@@ -2102,7 +2110,7 @@ export async function updateSalesDraft(id, payload, actor = null) {
 }
 
 export async function finalizeSalesInvoice(id, actor = null, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  if(transactionContext?.desktopPrivateSale===true)assertDesktopPrivateSale({transaction:transactionContext.transaction,actor,operation:'sale_finalize',checkOnly:true});else assertMelisaWriteEnabled();
   const nativeTransaction = isNativeInvoiceTransaction(transactionContext);
 
   const invoiceId = Number(id);
@@ -2135,6 +2143,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_FINALIZE_NOT_FOUND', 'Sales invoice not found', 404);
     }
+    if(transactionContext?.desktopPrivateSale===true)assertDesktopPrivateSale({transaction,actor,operation:'sale_finalize',invoiceId:String(invoiceId),invoice:beforeSnapshot});
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
 
     if (beforeSnapshot.status !== 'DRAFT') {
@@ -2148,7 +2157,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_finalize',actor,invoiceId,beforeSnapshot);
     const directFinalize=cleanDirectSaleActorId(transaction,'sale_finalize',actor)!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
-    else await assertPilotCashCustomer(new sqlDriver.Request(transaction), beforeSnapshot.customerId, beforeSnapshot.documentCurrency);
+    else if(transactionContext?.desktopPrivateSale!==true) await assertPilotCashCustomer(new sqlDriver.Request(transaction), beforeSnapshot.customerId, beforeSnapshot.documentCurrency);
     await assertPilotSaleProducts(() => new sqlDriver.Request(transaction), beforeSnapshot.items, {consume: true, allowNegativeStock: nativeTransaction});
 
     if (!beforeSnapshot.customerId || !beforeSnapshot.customerName) {

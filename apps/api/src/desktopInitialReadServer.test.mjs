@@ -7,7 +7,7 @@ import {createDesktopInitialTlsConfig,getDesktopInitialTlsPool} from './config/d
 import {createDesktopInitialReadCore,createDesktopInitialReadApp,DESKTOP_INITIAL_SERVER_LIMITS} from './desktopInitialReadServer.mjs';
 import {DESKTOP_INITIAL_READ_IDENTITY_SQL} from './services/desktopInitialReadProfile.mjs';
 
-const identity=()=>({serverName:'Semih\\MELISAERP',databaseName:'MELISA_ERP_DESKTOP_TEST_20261105',
+const identity=()=>({serverName:'Semih\\MELISAERP',databaseName:'MELISA_ERP_DESKTOP_TEST_20261105',databaseGuid:'c67f5317-9c0d-4831-aadd-fadc379a95d1',
  loginName:'melisa_desktop_test_app_20261105',originalLogin:'melisa_desktop_test_app_20261105',databaseUser:'melisa_desktop_test_app_20261105',
  transport:'TCP',authScheme:'SQL',sysadmin:0,dbOwner:0,controlServer:0,alterAnyLogin:0,impersonateAnyLogin:0,alterAnyDatabase:0,databaseControl:0,
  mutationPermissionCount:0,selectedTableCount:27,businessRows:0,markerCount:1,environmentId:'eb2888c2-51cb-4570-a933-397cf7e62806',schemaVersion:1,readOnly:1,actualT1:0,externalOperations:0});
