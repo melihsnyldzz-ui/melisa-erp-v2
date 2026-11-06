@@ -70,6 +70,7 @@ jobs:
           }
           node --experimental-vm-modules --test scripts/desktop-empty/master-v5-runtime.test.mjs
           if($LASTEXITCODE -ne 0){throw 'MASTER_V5_LIFECYCLE_FAILED'}
+          & ./scripts/desktop-empty/master-v5-failure.test.ps1
       - name: Native Windows carton ACL module discovery
         run: node --test apps/api/src/services/cleanTerminalCartonDirectory.test.mjs
       - name: P03 Hub lineage PowerShell 5 source boundaries
