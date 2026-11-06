@@ -22,9 +22,14 @@ export const DESKTOP_MASTER_V5_RECORDED_CHECKS=Object.freeze({
  CK_desktop_request_operation:"(([operation]) collate Latin1_General_100_BIN2='CREATE_DRAFT' OR ([operation]) collate Latin1_General_100_BIN2='PREPARE' OR ([operation]) collate Latin1_General_100_BIN2='SAVE_CARTONS' OR ([operation]) collate Latin1_General_100_BIN2='READY' OR ([operation]) collate Latin1_General_100_BIN2='CHECK' OR ([operation]) collate Latin1_General_100_BIN2='DISPATCH' OR ([operation]) collate Latin1_General_100_BIN2='CANCEL' OR ([operation]) collate Latin1_General_100_BIN2='CANCEL_SALE')",
  CK_desktop_resolution_kind:"(([kind]) collate Latin1_General_100_BIN2='draft' OR ([kind]) collate Latin1_General_100_BIN2='transition' OR ([kind]) collate Latin1_General_100_BIN2='dispatch' OR ([kind]) collate Latin1_General_100_BIN2='cancel')"
 });
+// Candidate metadata rendering must be confirmed by an independent SQL rollback readback.
+export const DESKTOP_V5_CUSTOMER_MOVEMENT_CHECK="(movement_type=N'sales_invoice' OR movement_type=N'sales_invoice_cancel')";
+export const DESKTOP_V5_CUSTOMER_MOVEMENT_RECORDED="([movement_type]=N'sales_invoice' OR [movement_type]=N'sales_invoice_cancel')";
 const quote=v=>`N'${v.replaceAll("'","''")}'`;
 export const DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL=DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL+`
 IF (SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.sales_invoices') AND is_nullable=1 AND ((name=N'cancel_reason' AND system_type_id=231 AND max_length=500) OR (name=N'cancelled_at' AND system_type_id=42 AND scale=0 AND max_length=6) OR (name=N'updated_by' AND system_type_id=127 AND max_length=8)))<>3
+ OR (SELECT COUNT(*) FROM sys.columns WHERE object_id=OBJECT_ID(N'dbo.customer_movements') AND name=N'movement_type' AND system_type_id=231 AND max_length=80 AND is_nullable=0)<>1
  OR OBJECT_ID(N'dbo.terminal_sync_queue',N'U') IS NULL
+ OR NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=N'CK_customer_movements_type' AND parent_object_id=OBJECT_ID(N'dbo.customer_movements') AND is_disabled=0 AND is_not_trusted=0 AND is_not_for_replication=0 AND CONVERT(varbinary(max),definition)=CONVERT(varbinary(max),${quote(DESKTOP_V5_CUSTOMER_MOVEMENT_RECORDED)}) )
  ${Object.entries(DESKTOP_MASTER_V5_RECORDED_CHECKS).map(([name,definition])=>`OR NOT EXISTS(SELECT 1 FROM sys.check_constraints WHERE name=${quote(name)} AND parent_object_id=OBJECT_ID(${quote('dbo.'+(name.includes('resolution')?'desktop_sale_request_resolutions':name.includes('operation')?'desktop_sale_workflow_requests':'desktop_empty_installation'))}) AND is_disabled=0 AND is_not_trusted=0 AND CONVERT(varbinary(max),definition)=CONVERT(varbinary(max),${quote(definition)}))`).join('\n ')}
  THROW 51995,'DESKTOP_MASTER_V5_SCHEMA_REJECTED',1;`;

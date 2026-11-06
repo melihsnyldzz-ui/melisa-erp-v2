@@ -10,7 +10,7 @@
     "sales.view"
   ],
   "liveAuthorized": false,
-  "state": "INSTALLED_V5_NORMAL_GUI_CANCELLATION_PENDING_DRIVER_FIX",
+  "state": "INSTALLED_CANCEL13_LOST_RESPONSE_REPLAY_RELOAD_TECHNICALLY_VERIFIED",
   "sqlExecuted": true,
   "buildModules": 42,
   "guiVerified": true,
@@ -45,22 +45,23 @@
   ],
   "sqlScope": "Independent read-only before/after observations; DDL=0, DML=0, new permissions=0",
   "installation": {
-    "source": "5cd5e70922fba8ee74db54cbd4a02cfcd9ca2b50",
-    "packageSha256": "19ced0e4ff50b471e63885fe47ac74580025a3411ba9ffe8942f3f438ea70428",
+    "source": "a837e907a8531c045162c620741e9cd0811da38a",
+    "packageSha256": "c88863cfaf08bb40447e3a57a39f84f125262cf6d5d435de643b5c35680fc8a3",
     "schemaVersion": 5,
     "sources": 235,
     "helpers": 7,
     "assets": 3,
-    "all33BusinessTablesAndFullMetadataIdentical": true,
     "syntheticTestDataPresent": true,
     "finalEmptyBusinessDelivery": false,
     "v5Installed": true,
-    "invoice13Cancelled": false,
-    "currentHead": "5cd5e70922fba8ee74db54cbd4a02cfcd9ca2b50",
-    "loadedGraphIdenticalTo": "770c1e91de1f24b85f718a661bdcacc97e688e58",
-    "latestRecovery": "NORMAL_ROLLBACK_APPLY_INDEPENDENTLY_VERIFIED_TLS_AND_NORMAL_LOGIN_PASS",
+    "invoice13Cancelled": true,
+    "currentHead": "a837e907a8531c045162c620741e9cd0811da38a",
+    "loadedGraphIdenticalTo": "a837e907a8531c045162c620741e9cd0811da38a",
+    "latestRecovery": "NATIVE_CHECK_REPAIR_AND_SAME_UUID_CANCEL_RESPONSE_LOSS_REPLAY_RELOAD_VERIFIED",
     "permissionIdentity": "43",
-    "fullErpReady": false
+    "fullErpReady": false,
+    "metadataSha256": "8064d8d317d1d975858205619d83002e1189a3c0249386476c256f9928d2cf80",
+    "businessRowsSha256": "48dba7ce74ddf0830bcac29fc8d7e4aff2d2532e8a8206fb4cd3d0b103c5fb44"
   },
   "previousV5Candidate": {
     "state": "COMBINED_V5_PACKAGE_PREPARED_NOT_INSTALLED",
@@ -277,5 +278,26 @@
       "independentBusinessRowsUnchanged": true,
       "pendingCommandPreserved": true
     }
+  },
+  "nativeCustomerMovementCheckRepair": {
+    "movementKinds": [
+      "sales_invoice",
+      "sales_invoice_cancel"
+    ],
+    "nativeCollationPreserved": true,
+    "nativeCheckReadOnlyConfirmed": true,
+    "testLogSha256": "a8073a8609da54cca8bd4bcfd3dc8e5c86f38fb2458f772496366a115c66d9fd",
+    "state": "ACTUAL_ROLLBACK_OBSERVED_APPLY_OBSERVED_AND_NORMAL_GUI_VERIFIED",
+    "testFiles": 80,
+    "rollbackExecuted": true,
+    "testsPassed": 436,
+    "applyExecuted": true,
+    "fencePreserved": true,
+    "independentReview": "NO_NEW_P1_P2_SOURCE_ONLY",
+    "secretScan": "CHANGED_SIX_COMPLETE_FILES_PASS",
+    "secretScanReport": "r2-native-check-changed-six-gitleaks-v1.json",
+    "actualDefinition": "([movement_type]=N'sales_invoice' OR [movement_type]=N'sales_invoice_cancel')",
+    "completeFlowProofSha256": "a96585dbdb9c9b5cfcbb17a545ebd28499724425ff8277218711fca8c8b149e8",
+    "latestSourceGuardInstalled": false
   }
 }
