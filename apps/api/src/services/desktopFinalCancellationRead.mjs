@@ -3,6 +3,19 @@
 import {prepareDesktopSaleCancellation} from './desktopSaleCancellationPlan.mjs';
 const fail=()=>{throw Error('DESKTOP_FINAL_CANCEL_READ_UNAVAILABLE');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
+// node-mssql annotates each recordset with two non-enumerable data properties.
+// Strip only that exact driver shape at this boundary; the planner still
+// receives dense ordinary arrays and performs its own strict row validation.
+function bareRows(value,allowMetadata){
+ if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype)fail();
+ const descriptors=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(value),length=descriptors.length?.value;
+ if(!Number.isSafeInteger(length)||length<0)fail();
+ const hasColumns=Object.hasOwn(descriptors,'columns'),hasTable=Object.hasOwn(descriptors,'toTable');
+ if(hasColumns!==hasTable||!allowMetadata&&hasColumns||keys.length!==length+1+(hasColumns?2:0))fail();
+ if(hasColumns){const c=descriptors.columns,t=descriptors.toTable,valid=d=>Object.hasOwn(d,'value')&&d.enumerable===false&&d.configurable===true&&d.writable===false;
+  if(!valid(c)||!valid(t)||!c.value||typeof c.value!=='object'||Array.isArray(c.value)||Object.getPrototypeOf(c.value)!==Object.prototype||typeof t.value!=='function')fail();}
+ const out=[];for(let i=0;i<length;i++){const d=descriptors[String(i)];if(!d?.enumerable||!Object.hasOwn(d,'value'))fail();out.push(d.value);}return out;
+}
 export const DESKTOP_FINAL_CANCELLATION_READ_SQL=`SET NOCOUNT ON;
 SELECT CASE WHEN (SELECT COUNT_BIG(*) FROM dbo.desktop_empty_installation WITH(HOLDLOCK))=1
  AND EXISTS(SELECT 1 FROM dbo.desktop_empty_installation WITH(HOLDLOCK) WHERE id=1 AND actual_t1=0 AND external_operations=0 AND read_only=0)
@@ -42,8 +55,9 @@ export function createDesktopFinalCancellationReader({sql,verifyScope,verifyExpo
   // Production must bind the existing file-based Vega export guard here.
   // Absence of SQL export tables is not proof that its journal is empty.
   if(await verifyExport({transaction,scope,invoiceId})!==true)fail();
-  const result=await new sql.Request(transaction).input('invoiceId',sql.NVarChar(20),invoiceId).query(DESKTOP_FINAL_CANCELLATION_READ_SQL),rs=result?.recordsets;
-  if(!Array.isArray(rs)||rs.length!==8||rs.some(r=>!Array.isArray(r))||rs[0].length!==1||rs[0][0]?.isolated!==1||rs[1].length!==1||rs[2].length!==1||rs[3].length!==1||rs[1][0]?.id!==invoiceId||rs[1][0]?.version!==expectedVersion)fail();
+  const result=await new sql.Request(transaction).input('invoiceId',sql.NVarChar(20),invoiceId).query(DESKTOP_FINAL_CANCELLATION_READ_SQL),outer=bareRows(result?.recordsets,false);
+  if(outer.length!==8)fail();const rs=outer.map(r=>bareRows(r,true));
+  if(rs[0].length!==1||rs[0][0]?.isolated!==1||rs[1].length!==1||rs[2].length!==1||rs[3].length!==1||rs[1][0]?.id!==invoiceId||rs[1][0]?.version!==expectedVersion)fail();
   const snapshot={invoice:rs[1][0],customer:rs[2][0],account:rs[3][0],items:rs[4],stockMovements:rs[5],customerMovements:rs[6],reservations:rs[7],linkedFinanceRows:'0',returnRows:'0',exportRows:'0',reason};
   // Exact one sales_invoice customer movement is required by the planner;
   // linked collections or cancellation rows therefore reject. Other finance
