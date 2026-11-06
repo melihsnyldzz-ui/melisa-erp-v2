@@ -18,7 +18,7 @@ if($errors.Count){throw 'FIXTURE_SOURCE_PARSE'}
 ${names.map(name=>`$defs=@($ast.FindAll({param($a)$a -is [Management.Automation.Language.FunctionDefinitionAst] -and $a.Name -ceq ${q(name)}},$true));if($defs.Count -ne 1){throw 'FIXTURE_FUNCTION_MISSING'};$text=$defs[0].Extent.Text${alias[name]?`.Replace('function ${name}','function ${alias[name]}')`:''};. ([scriptblock]::Create($text))`).join('\n')}`;}
 function run(code){
  try{return execFileSync(shell,['-NoProfile','-NonInteractive','-EncodedCommand',Buffer.from('$source=[Console]::In.ReadToEnd(); & ([scriptblock]::Create($source))','utf16le').toString('base64')],{input:`$ErrorActionPreference='Stop';Set-StrictMode -Version Latest\n${code}`,encoding:'utf8',timeout:15000,windowsHide:true,stdio:['pipe','pipe','pipe']});}
- catch(error){throw Error(String(error.stderr??'').match(/(?:FIXTURE|P03)_[A-Z_]+/u)?.[0]??String(error.stderr??'FIXTURE_FAILED').slice(0,1400));}
+ catch(error){const text=String(error.stderr??''),label=/\bFIXTURE_[A-Z_]+\b/u.test(text)?'FIXTURE':/\bP03_[A-Z_]+\b/u.test(text)?'P03':'UNCLASSIFIED';const code=['ETIMEDOUT','ENOENT','EACCES'].includes(error.code)?error.code:'OTHER';const signal=['SIGTERM','SIGKILL'].includes(error.signal)?error.signal:'NONE';const status=Number.isInteger(error.status)?error.status:'NONE';throw Error(`PS_FIXTURE_FAILURE label=${label} code=${code} signal=${signal} status=${status} timedout=${code==='ETIMEDOUT'}`);}
 }
 const fixture=String.raw`
 function Need($value,$code){if(-not$value){throw ('P03_PHYSICAL_'+$code)}}
@@ -412,10 +412,10 @@ test('native audit handoff rejects pointer serialization, callback copies, captu
  const out=run(`${fixture}\n${auditFunctions()}\n${auditFixture}\n${edits.map(([name,edit])=>`ResetAudit;${edit};ExpectRejected '${name}' {CaptureWorkerAdmissionCore $inv}`).join('\n')}`);for(const [name]of edits)assert.match(out,new RegExp('REJECTED='+name));
 });
 
-test('the existing audit recheck rejects fresh PID reuse, managed existence, fresh family/listeners, lost core identity and AccessDenied',windows,()=>{
- const edits=[['fresh-pid',"$script:freshRows+=,$auditProbe"],['managed-pid-live',"$script:kernelLive=@(200)"],['fresh-child',"$script:freshRows+=,[pscustomobject]@{ProcessId=209;ParentProcessId=200}"],['fresh-grandchild',"$script:freshRows+=,[pscustomobject]@{ProcessId=209;ParentProcessId=201}"],['fresh-listener',"$script:freshListeners=@([pscustomobject]@{OwningProcess=201})"],['core-owner',"$script:freshRows[0].OwnerSid='OTHER'"],['access-denied',"$script:accessDenied=$true"],['kernel-access-denied',"$script:kernelError=$true"]];
+const auditRecheckEdits=[['fresh-pid',"$script:freshRows+=,$auditProbe"],['managed-pid-live',"$script:kernelLive=@(200)"],['fresh-child',"$script:freshRows+=,[pscustomobject]@{ProcessId=209;ParentProcessId=200}"],['fresh-grandchild',"$script:freshRows+=,[pscustomobject]@{ProcessId=209;ParentProcessId=201}"],['fresh-listener',"$script:freshListeners=@([pscustomobject]@{OwningProcess=201})"],['core-owner',"$script:freshRows[0].OwnerSid='OTHER'"],['access-denied',"$script:accessDenied=$true"],['kernel-access-denied',"$script:kernelError=$true"]];
+for(let i=0;i<auditRecheckEdits.length;i+=2){const edits=auditRecheckEdits.slice(i,i+2);test(`audit recheck rejects ${edits.map(([name])=>name).join(' and ')}`,windows,()=>{
  const out=run(`${fixture}\n${auditFunctions()}\n${auditFixture}\n${edits.map(([name,edit])=>`ResetAudit;${edit};ExpectRejected '${name}' {CaptureWorkerAdmissionCore $inv}`).join('\n')}`);for(const [name]of edits)assert.match(out,new RegExp('REJECTED='+name));
-});
+});}
 
 
 function currentB142RehearsalFixture(){

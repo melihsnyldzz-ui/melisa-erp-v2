@@ -1,0 +1,15 @@
+{
+  "state": "NATIVE_DIFF_CONFINED_TO_CANCEL_SELECTED_BODY_AND_SQL_IDENTICAL",
+  "base": "c8f1a5890fba379e40766832fac6abcb272a8cbc",
+  "file": "apps/api/src/services/invoiceDraftService.js",
+  "beforeSha256": "02c21a1722b04be1f69455e358b3956c19305c4f5c21c3e9bd2d52d78072f74b",
+  "afterSha256": "7b8dc7a1d7fb35962480b45f714afc41793537bcd70f2077734288a3413d9124",
+  "selectedFunctionBodySha256": "235d4119bada53930fd71e9f0e472341b29a07b029b8e61a85eef7ce91f094be",
+  "originalSqlSha256": "17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb",
+  "cancelBeforeSha256": "cafe57a4f757c468f1529d313464adcaa331a980b2102a81bb510347648ea332",
+  "cancelAfterSha256": "6da23c110f8f1332e27d30745476989315fa7f882e14975cb9b55f03b3ea0648",
+  "previousProof": "fx-native-source-proof-v2.json",
+  "b6SqlExecuted": false,
+  "installed": false,
+  "time": "2026-11-06T14:57:55.943Z"
+}

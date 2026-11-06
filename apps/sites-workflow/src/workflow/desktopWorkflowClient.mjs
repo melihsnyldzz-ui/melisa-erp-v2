@@ -2,12 +2,13 @@
 // Changing pages or losing an HTTP acknowledgement cannot create a new UUID.
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+import {desktopSaleCancellationReason} from '../../../../packages/shared/src/desktopSaleCancellation.mjs';
 const fail=()=>{throw Error('Önceki satış işleminin sonucu doğrulanmalı.');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const states={PREPARE:'PREPARING',SAVE_CARTONS:'PREPARING',READY:'READY',CHECK:'CHECKED',CANCEL:'CANCELLED'};
 function validate(kind,payload){
- const keys={draft:'customerId,documentDate,expectedRevision,items',transition:'cartons,expectedVersion,invoiceId,operation',dispatch:'customerId,expectedVersion,invoiceId,productIds'};
+ const keys={draft:'customerId,documentDate,expectedRevision,items',transition:'cartons,expectedVersion,invoiceId,operation',dispatch:'customerId,expectedVersion,invoiceId,productIds',cancel:'expectedVersion,invoiceId,reason'};
  const discounted=kind==='draft'&&Object.hasOwn(payload??{},'discountRateExact4');
  const fx=['draft','dispatch'].includes(kind)&&Object.hasOwn(payload??{},'currencySelection');
  if(discounted)keys.draft='customerId,discountRateExact4,documentDate,expectedRevision,items';
@@ -17,6 +18,7 @@ function validate(kind,payload){
  if(kind==='transition'&&(!Object.hasOwn(states,payload.operation)||!Array.isArray(payload.cartons)))fail();
  if(kind==='draft'&&(!id(payload.customerId)||!Array.isArray(payload.items)||payload.items.length!==2||typeof payload.expectedRevision!=='string'||!/^[a-f0-9]{64}$/.test(payload.expectedRevision)))fail();
  if(kind==='dispatch'&&(!id(payload.customerId)||!Array.isArray(payload.productIds)||payload.productIds.length!==2||payload.productIds.some(v=>!id(v))||new Set(payload.productIds).size!==2))fail();
+ if(kind==='cancel')desktopSaleCancellationReason(payload.reason);
  const text=JSON.stringify(payload);if(text.length>32768)fail();return JSON.parse(text);
 }
 export function createDesktopWorkflowClient({actorId,storage,locks,newId,submit}={}){
@@ -24,10 +26,11 @@ export function createDesktopWorkflowClient({actorId,storage,locks,newId,submit}
  const key='melisa.desktop.workflow.pending.v1.'+actorId;
  function pending(){const raw=storage.getItem(key);if(raw===null)return null;let value;try{value=JSON.parse(raw);}catch{fail();}if(!value||Object.keys(value).sort().join(',')!=='body,kind'||!uuid(value.body?.requestId))fail();const {requestId,...payload}=value.body;validate(value.kind,payload);return value;}
  function settle(entry,result,allowRejection=false){
+  if(allowRejection&&entry.kind==='cancel'&&result?.state==='REVIEW_REQUIRED'&&result.requestId===entry.body.requestId&&result.actorId===actorId&&result.kind==='cancel'&&result.resolution==='CANCELLATION_FENCE_REVIEW')return {state:'REVIEW_REQUIRED',requestId:result.requestId,resolution:'CANCELLATION_FENCE_REVIEW'};
   if(allowRejection&&result?.state==='NOT_COMMITTED'&&result.requestId===entry.body.requestId&&result.actorId===actorId&&result.kind===entry.kind&&result.resolution==='DURABLE_NO_COMMIT'){
    if(JSON.stringify(pending())!==JSON.stringify(entry))fail();storage.removeItem(key);return result;
   }
-  const expected=entry.kind==='draft'?'DRAFT':entry.kind==='dispatch'?'COMPLETED':states[entry.body.operation];
+  const expected=entry.kind==='draft'?'DRAFT':entry.kind==='dispatch'?'COMPLETED':entry.kind==='cancel'?'CANCELLED':states[entry.body.operation];
   if(result?.state!=='COMMITTED'||result.requestId!==entry.body.requestId||!id(result.invoiceId)||entry.kind!=='draft'&&result.invoiceId!==entry.body.invoiceId||result.workflowState!==expected||typeof result.version!=='string'||!/^0x[0-9A-F]{16}$/.test(result.version)||typeof result.replayed!=='boolean')return {state:'UNKNOWN',requestId:entry.body.requestId};
   if(JSON.stringify(pending())!==JSON.stringify(entry))fail();storage.removeItem(key);return result;
  }
