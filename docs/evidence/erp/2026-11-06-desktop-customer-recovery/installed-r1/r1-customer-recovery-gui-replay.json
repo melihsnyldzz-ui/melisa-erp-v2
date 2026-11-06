@@ -1,0 +1,30 @@
+{
+  "state": "SAME_CUSTOMER_UUID_NORMAL_GUI_REPLAY_HTTP_200",
+  "responses": [
+    {
+      "requestId": "interception-job-875.0",
+      "url": "http://127.0.0.1:4294/api/desktop-local/customers",
+      "method": "OPTIONS",
+      "responseStatusCode": 204
+    },
+    {
+      "requestId": "interception-job-876.0",
+      "url": "http://127.0.0.1:4294/api/desktop-local/customers",
+      "method": "POST",
+      "responseStatusCode": 200
+    }
+  ],
+  "requestHeadersRead": false,
+  "clientRequestId": "8809b55e-1c5e-4f77-b083-3493321536de",
+  "body": {
+    "requestId": "8809b55e-1c5e-4f77-b083-3493321536de",
+    "customerCode": "ERP-ACK-C4",
+    "name": "ERP YANIT KAYBI DENEME",
+    "phone": "0000000001",
+    "customerType": "wholesale",
+    "currency": "USD",
+    "city": "İzmir",
+    "country": "Türkiye"
+  },
+  "interceptionCleared": true
+}
