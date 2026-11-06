@@ -29,7 +29,9 @@ const driver={Request,BigInt:0,UniqueIdentifier:0,Date:0,Bit:0,Int:0,MAX:-1,NVar
 mock.module('../apps/api/src/config/database.js',{namedExports:{getSqlDriver:()=>driver,getSqlPool:async()=>{throw Error('A native request must not open another pool');},isCanonicalTest:()=>false,isIsolatedOperationCopyRuntime:()=>!!runtime,getIsolatedOperationCopyConfig:()=>runtime}});
 mock.module('../apps/api/src/services/writeGuardService.js',{namedExports:{assertMelisaWriteEnabled:()=>{}}});
 mock.module('../apps/api/src/services/operationQuarantineService.js',{namedExports:{assertOperationQuarantineAllowed:async()=>{},quarantineTransactionContext:()=>({})}});
-mock.module('../apps/api/src/services/vegaInvoiceExportJournal.mjs',{namedExports:{assertInvoiceNotExported:async()=>{}}});
+// The native module also imports the closed Desktop V5 bridge. This legacy
+// selected-sale fixture supplies that export but must never enter its journal.
+mock.module('../apps/api/src/services/vegaInvoiceExportJournal.mjs',{namedExports:{assertInvoiceNotExported:async()=>{},createInvoiceExportJournal:()=>{throw Error('Selected native fixture must not enter the Desktop V5 journal');}}});
 mock.module('../apps/api/src/services/auditService.js',{namedExports:{writeAuditLog:async()=>{}}});
 // Supply the required source name before the shared fixture factory seals and
 // validates its profile; never change an already registered native context.
