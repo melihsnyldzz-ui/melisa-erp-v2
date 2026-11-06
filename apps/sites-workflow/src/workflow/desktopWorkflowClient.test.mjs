@@ -3,6 +3,16 @@ import {createDesktopWorkflowClient} from './desktopWorkflowClient.mjs';
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
 const locks={request:async(_k,_options,fn)=>fn({})},uuid='da171000-6f42-4f19-8cab-9f4539618647';
 
+test('FX draft and dispatch survive reload with exact dated rates, modes, UUID and body after lost acknowledgement',async()=>{
+ for(const kind of ['draft','dispatch']){
+  const storage=memory(),calls=[],currencySelection={documentCurrency:'USD',accountId:'7',documentRateExact8:'40.00000000',accountRateExact8:'44.00000000',documentRateMode:'override',accountRateMode:'override'};
+  const payload=kind==='draft'?{customerId:'2',documentDate:'2026-11-06',expectedRevision:'a'.repeat(64),items:[{productId:'9',quantityExact3:'1.000'},{productId:'10',quantityExact3:'1.000'}],discountRateExact4:'3.0000',currencySelection}:{customerId:'2',invoiceId:'12',expectedVersion:'0x0000000000000001',productIds:['9','10'],documentDate:'2026-11-06',currencySelection:{...currencySelection,documentRateMode:'stored',accountRateMode:'stored'}};
+  let lost=true;const args={actorId:'8',storage,locks,newId:()=>uuid,submit:async(k,b)=>{calls.push({kind:k,body:structuredClone(b)});if(lost)throw Error('lost');return {state:'COMMITTED',requestId:b.requestId,invoiceId:'12',workflowState:kind==='draft'?'DRAFT':'COMPLETED',version:'0x0000000000000002',replayed:true};}};
+  assert.equal((await createDesktopWorkflowClient(args).create(kind,payload)).state,'UNKNOWN');const original=structuredClone(calls[0]);payload.currencySelection.documentRateExact8='41.00000000';payload.documentDate='2026-11-07';
+  const restored=createDesktopWorkflowClient(args);assert.deepEqual(restored.pending().body,original.body);lost=false;assert.equal((await restored.retry()).state,'COMMITTED');assert.deepEqual(calls,[original,original]);assert.equal(restored.pending(),null);
+ }
+});
+
 test('discounted draft freezes exact percentage with the UUID across ACK loss; legacy zero body stays unchanged',async()=>{
  const storage=memory(),calls=[];let lost=true;const args={actorId:'8',storage,locks,newId:()=>uuid,submit:async(kind,body)=>{calls.push({kind,body:structuredClone(body)});if(lost)throw Error('lost');return {state:'COMMITTED',requestId:body.requestId,invoiceId:'12',workflowState:'DRAFT',version:'0x0000000000000001',replayed:true};}};
  const payload={customerId:'2',documentDate:'2026-11-06',expectedRevision:'a'.repeat(64),items:[{productId:'8',quantityExact3:'2.000'},{productId:'1',quantityExact3:'1.000'}],discountRateExact4:'3.0000'};const client=createDesktopWorkflowClient(args);assert.equal((await client.create('draft',payload)).state,'UNKNOWN');payload.discountRateExact4='0.0000';const restored=createDesktopWorkflowClient(args);assert.equal(restored.pending().body.discountRateExact4,'3.0000');lost=false;assert.equal((await restored.retry()).state,'COMMITTED');assert.deepEqual(calls[0],calls[1]);assert.equal(restored.pending(),null);

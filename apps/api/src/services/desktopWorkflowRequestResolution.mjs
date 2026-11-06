@@ -2,15 +2,18 @@
 // lifecycle writers must take this same lock before they can mutate a sale.
 import {createHash} from 'node:crypto';
 import {normalizeDesktopWorkflowTransition} from './desktopSaleWorkflowTransactions.mjs';
+import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
+import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 const fail=()=>{throw Error('DESKTOP_REQUEST_RESOLUTION_REJECTED');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 export function desktopWorkflowRequestIdentity(actorId,kind,raw){
  if(!id(actorId)||!raw||typeof raw!=='object'||Array.isArray(raw)||!['draft','transition','dispatch'].includes(kind))fail();
  const body=kind==='transition'?normalizeDesktopWorkflowTransition(raw):JSON.parse(JSON.stringify(raw));
  if(typeof body.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.requestId))fail();
- const discounted=kind==='draft'&&Object.hasOwn(body,'discountRateExact4');
- if(kind==='draft'&&(Object.keys(body).sort().join(',')!==(discounted?'customerId,discountRateExact4,documentDate,expectedRevision,items,requestId':'customerId,documentDate,expectedRevision,items,requestId')||discounted&&(typeof body.discountRateExact4!=='string'||!/^[0-3]\.\d{4}$/.test(body.discountRateExact4)||BigInt(body.discountRateExact4.replace('.',''))>30000n)))fail();
- if(kind==='dispatch'&&Object.keys(body).sort().join(',')!=='customerId,expectedVersion,invoiceId,productIds,requestId')fail();
+ const discounted=kind==='draft'&&Object.hasOwn(body,'discountRateExact4'),fx=kind!=='transition'&&Object.hasOwn(body,'currencySelection');
+ if(kind==='draft'&&(Object.keys(body).sort().join(',')!==['customerId','documentDate','expectedRevision','items','requestId',...(discounted?['discountRateExact4']:[]),...(fx?['currencySelection']:[])].sort().join(',')||discounted&&(typeof body.discountRateExact4!=='string'||!/^[0-3]\.\d{4}$/.test(body.discountRateExact4)||BigInt(body.discountRateExact4.replace('.',''))>30000n)))fail();
+ if(kind==='dispatch'&&Object.keys(body).sort().join(',')!==['customerId','expectedVersion','invoiceId','productIds','requestId',...(fx?['currencySelection','documentDate']:[])].sort().join(','))fail();
+ if(fx){desktopSaleCurrencySelection(body.currencySelection);desktopCompanyRateDate(body.documentDate);}
  const value=kind==='draft'?{actorId,request:body}:kind==='dispatch'?{actorId,c:body}:{actorId,...body};
  return {body,hash:createHash('sha256').update(JSON.stringify(value)).digest('hex'),requestId:body.requestId,operation:kind==='draft'?'CREATE_DRAFT':kind==='dispatch'?'DISPATCH':body.operation};
 }

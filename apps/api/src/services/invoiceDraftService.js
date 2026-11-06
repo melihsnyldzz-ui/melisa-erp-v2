@@ -31,7 +31,7 @@ import {getBusinessSelectedSaleWriteScope} from './businessSelectedSaleWriteScop
 import {assertSelectedSaleCashlessCancellation} from './selectedSaleCashlessCancellation.mjs';
 import {getCanonicalBusinessSaleTransaction,getCanonicalBusinessSession} from './canonicalBusinessSessionContext.mjs';
 import {postNativeCurrencyAccount} from './nativeCurrencyAccount.mjs';
-import {assertDesktopPrivateSale} from './desktopSalePrivateService.mjs';
+import {assertDesktopPrivateSale,getDesktopWorkflowCurrencyAccount} from './desktopSalePrivateService.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
@@ -191,6 +191,7 @@ async function prepareInvoiceCurrency(sqlDriver, transaction, kind, draft, befor
   const partyKey = kind === 'sales' ? 'customer' : 'supplier';
   const partyId = draft[`${partyKey}Id`];
   const business=businessInvoiceSelection(transaction,kind,partyId,draft[`${partyKey}Currency`]);
+  const desktopAccount=kind==='sales'?getDesktopWorkflowCurrencyAccount({transaction,customerId:partyId}):null;
   if(business){await assertBusinessInvoiceAccount(sqlDriver,transaction,business);if(draft.documentCurrency!==business.currency||Number(draft.exchangeRate)!==business.rate||Number(draft.accountExchangeRate)!==business.rate)throw makeServiceError('ISOLATED_COPY_INVOICE_RATE_SCOPE','Kayıtlı aynı döviz ve TEST kur görüntüsü gerekli.',409);}
   const party = (await new sqlDriver.Request(transaction).input('settlementPartyId', sql.BigInt, partyId).query(`
     SELECT currency_code, is_active, is_deleted FROM dbo.${partyKey === 'customer' ? 'customers' : 'suppliers'} WITH(UPDLOCK,HOLDLOCK) WHERE id=@settlementPartyId;
@@ -209,7 +210,7 @@ async function prepareInvoiceCurrency(sqlDriver, transaction, kind, draft, befor
     snapshot = recalculateInvoiceSettlement(beforeSnapshot, draft.grandTotal);
   } else {
     snapshot = await resolveCurrencySettlement(new sqlDriver.Request(transaction), {
-      documentAmount: draft.grandTotal, documentCurrency: draft.documentCurrency, accountCurrency: business?.currency??party.currency_code,
+      documentAmount: draft.grandTotal, documentCurrency: draft.documentCurrency, accountCurrency: desktopAccount?.currency??business?.currency??party.currency_code,
       documentRateToTry: draft.exchangeRate, accountRateToTry: draft.accountExchangeRate, documentDate: draft.documentDate,
     });
   }
@@ -294,12 +295,13 @@ export async function stampInvoiceMovement(sqlDriver, transaction, kind, invoice
 }
 
 async function assertInvoiceSettlementParty(sqlDriver, transaction, kind, invoice, settlement, { active = false } = {}) {
+  const desktopAccount=kind==='sales'?getDesktopWorkflowCurrencyAccount({transaction,customerId:invoice.customerId,invoiceId:invoice.id}):null;
   const business=businessInvoiceSelection(transaction,kind,invoice[`${kind==='sales'?'customer':'supplier'}Id`],settlement.accountCurrency);
   if(business){await assertBusinessInvoiceAccount(sqlDriver,transaction,business);if(settlement.documentCurrency!==business.currency||settlement.documentRateToTry!==business.rate||settlement.accountRateToTry!==business.rate)throw makeServiceError('ISOLATED_COPY_INVOICE_RATE_SCOPE','Kayıtlı aynı döviz ve TEST kur görüntüsü gerekli.',409);if(business.canonical&&(Number(settlement.documentAmount).toFixed(4)!==business.canonical.grandTotalExact4||Number(settlement.accountAmount).toFixed(4)!==business.canonical.grandTotalExact4||Number(settlement.amountTry).toFixed(4)!==business.canonical.amountTryExact4))throw makeServiceError('CANONICAL_SALE_INVOICE_SCOPE','Kayıtlı native satış tutarı uyuşmuyor.',409);return;}
   const party = kind === 'sales' ? 'customer' : 'supplier';
   const row = (await new sqlDriver.Request(transaction).input('settlementCurrentPartyId', sql.BigInt, invoice[`${party}Id`])
     .query(`SELECT currency_code, is_active, is_deleted FROM dbo.${party === 'customer' ? 'customers' : 'suppliers'} WITH(UPDLOCK,HOLDLOCK) WHERE id=@settlementCurrentPartyId;`)).recordset?.[0];
-  if (!row || row.currency_code !== settlement.accountCurrency || (active && (!row.is_active || row.is_deleted))) {
+  if (!row || row.currency_code !== (desktopAccount?.customerCurrency??settlement.accountCurrency) || desktopAccount&&settlement.accountCurrency!==desktopAccount.currency || (active && (!row.is_active || row.is_deleted))) {
     throw makeServiceError('INVOICE_PARTY_CURRENCY_CHANGED', 'Cari kartı fişin kayıtlı döviz bilgisiyle uyuşmuyor; bakiye değiştirilemez.', 409);
   }
 }
@@ -1894,13 +1896,13 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       assertDesktopPrivateSale({transaction,actor,operation:'sale_draft',invoiceId:null,invoice:draft});
       // This private TRY flow has locked, known costs. Keep an unknown cost
       // distinct from zero and supply the non-null clean-schema draft estimate.
-      draft.estimatedProfitTry=desktopDraftProfitEstimate(draft);
+      draft.estimatedProfitTry=getDesktopWorkflowCurrencyAccount({transaction,customerId:draft.customerId})?.profitPlan.estimatedProfitTry??desktopDraftProfitEstimate(draft);
     }
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',draft),quarantineTransactionContext(sqlDriver,transaction));
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
     await assertAccountingPeriodOpen(new sqlDriver.Request(transaction), draft.documentDate, 'Satış fişi taslak kaydı');
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_draft',actor,null,draft);
-    const directActor=cleanDirectSaleActorId(transaction,'sale_draft',actor),initialSettlement=!!selectedSale||directActor!==null;
+    const directActor=getDesktopWorkflowCurrencyAccount({transaction,customerId:draft.customerId})?.actorId??cleanDirectSaleActorId(transaction,'sale_draft',actor),initialSettlement=!!selectedSale||directActor!==null;
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
     else if(transactionContext?.desktopPrivateSale!==true) await assertPilotCashCustomer(new sqlDriver.Request(transaction), draft.customerId, draft.documentCurrency);
     preserveSelectedSourceSalesNames(payload,draft,selectedSale);
@@ -2187,7 +2189,8 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     const selectedFinalizeRows=selectedSale&&beforeSnapshot.items.length>1?[]:null;
     const currencyRateMap = selectedSale?.canonical?new Map():await readCurrencyRateMap(new sqlDriver.Request(transaction));
 
-    const desktopDiscountPlan=transactionContext?.desktopPrivateSale===true&&beforeSnapshot.discountRate!==0?desktopDiscountedProfitPlan({...beforeSnapshot,items:beforeSnapshot.items.map(item=>({...item,averageCostTry:item.productAverageCostTry}))}):null;
+    const desktopCurrencyAccount=getDesktopWorkflowCurrencyAccount({transaction,customerId:beforeSnapshot.customerId,invoiceId});
+    const desktopDiscountPlan=desktopCurrencyAccount?.profitPlan??(transactionContext?.desktopPrivateSale===true&&beforeSnapshot.discountRate!==0?desktopDiscountedProfitPlan({...beforeSnapshot,items:beforeSnapshot.items.map(item=>({...item,averageCostTry:item.productAverageCostTry}))}):null);
     for (const [desktopItemIndex,item] of beforeSnapshot.items.entries()) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);
@@ -2364,7 +2367,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
 
     await stampInvoiceMovement(sqlDriver, transaction, 'sales', invoiceId, 'sales_invoice', settlement, 1,actor);
 
-    await new sqlDriver.Request(transaction)
+    if(!desktopCurrencyAccount?.preserveLegacyBalance)await new sqlDriver.Request(transaction)
       .input('customerBalanceId', sql.BigInt, beforeSnapshot.customerId)
       .input('customerBalanceEffect', sql.Decimal(18, 4), settlement.accountAmount)
       .query(`

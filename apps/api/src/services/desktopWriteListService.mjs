@@ -9,7 +9,8 @@ import {isDesktopProductOpening} from '../../../../packages/shared/src/desktopPr
 import {desktopSeriesFactor,isDesktopProductUnits} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
 import {desktopAvailableStock,isDesktopStockAvailability} from '../../../../packages/shared/src/desktopStockAvailability.mjs';
 import {isDesktopCustomerCard} from '../../../../packages/shared/src/desktopCustomerCard.mjs';
-import {desktopCompanyRateDate,desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+import {readDesktopCompanyRates} from './desktopCompanyRateRead.mjs';
 const LOGIN='melisa_desktop_test_writer_20261105';
 const fail=()=>{throw Object.assign(Error('DESKTOP_LIST_UNAVAILABLE'),{code:'DESKTOP_LIST_UNAVAILABLE'});};
 const reservedSql=product=>`(SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(r.quantity),0))) FROM dbo.desktop_sale_reservations r WITH(HOLDLOCK,INDEX(IX_desktop_active_reservations)) WHERE r.product_id=${product} AND r.state='ACTIVE') reservedExact3`;
@@ -71,7 +72,7 @@ export function createDesktopWriteListService({pool,sql,verifySession,richCards=
  return Object.freeze({async readCompanyRates(actorId,date){
   if(!richCards||!validId(actorId))fail();desktopCompanyRateDate(date);const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:'sales.view'})!==true)fail();
-   const result=await new sql.Request(tx).input('companyRateDate',sql.NVarChar(10),date).query(`SELECT TOP(3) CONVERT(varchar(20),id) id,currency_code currency,CONVERT(char(10),rate_date,23) date,CONVERT(varchar(40),rate_to_try) rateExact8,source FROM dbo.currency_rates WITH(HOLDLOCK) WHERE rate_date=CONVERT(date,@companyRateDate,23) AND currency_code IN(N'USD',N'EUR') ORDER BY currency_code,id;`);if(!Array.isArray(result?.recordset))fail();const data=desktopCompanyRates(date,Array.from(result.recordset));await tx.commit();begun=false;return data;
+   const data=await readDesktopCompanyRates({sql,transaction:tx,date});await tx.commit();begun=false;return data;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async list(actorId,kind,input={}){
   let def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;

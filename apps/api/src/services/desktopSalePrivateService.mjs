@@ -14,6 +14,7 @@ import {prepareDesktopSale} from './desktopSalePreparation.mjs';
 import {getCanonicalBusinessSaleTransaction} from './canonicalBusinessSessionContext.mjs';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {tryAssertDesktopWorkflowDraft} from './desktopWorkflowDraftPrivate.mjs';
+export {getDesktopWorkflowCurrencyAccount} from './desktopWorkflowDraftPrivate.mjs';
 const storage=new AsyncLocalStorage(),nativeOwners=new WeakMap();
 const fail=()=>{throw Error('DESKTOP_PRIVATE_SALE_REJECTED');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;

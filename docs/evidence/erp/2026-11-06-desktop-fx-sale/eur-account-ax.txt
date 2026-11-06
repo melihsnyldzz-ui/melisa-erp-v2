@@ -1,0 +1,121 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA ERP
+  - text: Yerel kurulum
+  - text: OTURUM
+  - generic: ERP deneme personeli
+  - generic: İŞLEMLER
+  - navigation:
+    - button "⌂ Ana sayfa":
+      - text: ⌂
+      - generic: Ana sayfa
+    - button "▦ Ürün & stok":
+      - text: ▦
+      - generic: Ürün & stok
+    - button "♙ Müşteriler":
+      - text: ♙
+      - generic: Müşteriler
+    - button "▧ Tedarikçiler":
+      - text: ▧
+      - generic: Tedarikçiler
+    - button "▤ Satış ve hazırlama":
+      - text: ▤
+      - generic: Satış ve hazırlama
+    - button "▣ Fişler":
+      - text: ▣
+      - generic: Fişler
+    - button "◌ Alış · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Alış · Hazırlanıyor
+    - button "◌ Stok hareketleri · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Stok hareketleri · Hazırlanıyor
+    - button "◌ Cari · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Cari · Hazırlanıyor
+    - button "◌ Finans · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Finans · Hazırlanıyor
+    - button "◌ Raporlar · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Raporlar · Hazırlanıyor
+  - generic: Yerel veritabanı
+- main:
+  - generic: Melisa ERP / Müşteriler
+  - button "Çıkış yap"
+  - paragraph: YEREL KURULUM
+  - heading "Müşteriler" [level=1]
+  - button "Yeni kart"
+  - region "Müşteri kartı":
+    - paragraph: MÜŞTERİ KARTI
+    - heading "ERP V3 DENEME MÜŞTERİ" [level=2]
+    - button "Listeye dön"
+    - term: Müşteri kodu
+    - definition: ERP-V3-C1
+    - term: Telefon
+    - definition: "0000000000"
+    - term: Şehir
+    - definition: Bursa
+    - term: Ülke
+    - definition: Türkiye
+    - term: Müşteri türü
+    - definition: Müşteri
+    - term: Durum
+    - definition: Aktif
+    - heading "Döviz hesapları" [level=3]
+    - paragraph: Her hesap kendi para birimindedir.
+    - table:
+      - rowgroup:
+        - row "Para birimi Bakiye":
+          - columnheader "Para birimi"
+          - columnheader "Bakiye"
+      - rowgroup:
+        - row "EUR 0.52910000":
+          - cell "EUR"
+          - cell "0.52910000"
+        - row "TRY 176.00000000":
+          - cell "TRY"
+          - cell "176.00000000"
+        - row "USD 0.00000000":
+          - cell "USD"
+          - cell "0.00000000"
+    - heading "Son tamamlanan satış" [level=3]
+    - paragraph: DS-b2a04d21-be68-455c-b935-0 · 2026-11-06 · 23.2800 TRY
+    - button "Son fişi aç"
+    - paragraph: TRY, USD ve EUR hesaplarının tamamı açık.
+    - status
+  - textbox "Kod, ad, telefon veya ülke ara"
+  - button "Ara"
+  - table:
+    - rowgroup:
+      - row "Ad Kod Şehir / ülke Bakiye":
+        - columnheader "Ad"
+        - columnheader "Kod"
+        - columnheader "Şehir / ülke"
+        - columnheader "Bakiye"
+        - columnheader
+    - rowgroup:
+      - row "ERP YANIT KAYBI DENEME ERP-ACK-C4 İzmir / Türkiye 0.0000 USD Müşteri kartını aç":
+        - cell "ERP YANIT KAYBI DENEME"
+        - cell "ERP-ACK-C4"
+        - cell "İzmir / Türkiye"
+        - cell "0.0000 USD"
+        - cell "Müşteri kartını aç":
+          - button "Müşteri kartını aç"
+      - row "ERP KURULUM DENEME ERP-TEST-20261106 TEST / Türkiye 104.3200 TRY Müşteri kartını aç":
+        - cell "ERP KURULUM DENEME"
+        - cell "ERP-TEST-20261106"
+        - cell "TEST / Türkiye"
+        - cell "104.3200 TRY"
+        - cell "Müşteri kartını aç":
+          - button "Müşteri kartını aç"
+      - row "ERP V3 DENEME MÜŞTERİ ERP-V3-C1 Bursa / Türkiye 176.0000 TRY Müşteri kartını aç":
+        - cell "ERP V3 DENEME MÜŞTERİ"
+        - cell "ERP-V3-C1"
+        - cell "Bursa / Türkiye"
+        - cell "176.0000 TRY"
+        - cell "Müşteri kartını aç":
+          - button "Müşteri kartını aç" [active]
+  - button "Önceki" [disabled]
+  - text: Sayfa 1
+  - button "Sonraki" [disabled]

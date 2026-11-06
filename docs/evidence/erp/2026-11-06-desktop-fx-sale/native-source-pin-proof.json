@@ -1,0 +1,14 @@
+{
+  "state": "NATIVE_SELECTED_SOURCE_ITEM_BODY_AND_SQL_IDENTICAL",
+  "base": "c57c918f",
+  "file": "apps/api/src/services/invoiceDraftService.js",
+  "beforeSha256": "cb9588688b37f1781bc5328f6f5b5c64b42ee4cb3944caf5debb352b0cdd45f5",
+  "afterSha256": "02c21a1722b04be1f69455e358b3956c19305c4f5c21c3e9bd2d52d78072f74b",
+  "selectedFunctionBodySha256": "235d4119bada53930fd71e9f0e472341b29a07b029b8e61a85eef7ce91f094be",
+  "originalSqlSha256": "17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb",
+  "previousProof": "fx-native-source-proof.json",
+  "previousSourcePin": "099895163aeccc42266ff4f0bf3d36bf8e21634f7412dce9b6b31b9d800daa5b",
+  "sourcePinUpdateRequired": true,
+  "b6SqlExecuted": false,
+  "time": "2026-11-06T11:32:43.254Z"
+}
