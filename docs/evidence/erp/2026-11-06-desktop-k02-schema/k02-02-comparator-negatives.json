@@ -1,0 +1,80 @@
+[
+  {
+    "mutation": "missing-table",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "column-type",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "column-size",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "decimal-scale",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "column-nullable",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "foreign-target",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "foreign-untrusted",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "index-order",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "index-filter",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "index-include",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "check-missing",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "check-replaced",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  },
+  {
+    "mutation": "index-ignore-dup-key",
+    "rejected": true,
+    "differenceCount": 1,
+    "sqlExecuted": false
+  }
+]

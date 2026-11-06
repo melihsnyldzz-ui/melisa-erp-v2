@@ -1,0 +1,18 @@
+{
+  "origin": "http://127.0.0.1:5294/",
+  "humanAcceptance": "PENDING",
+  "checks": [
+    "fresh normal password login showed ERP deneme personeli and authorized menu",
+    "normal logout returned login form",
+    "browser reload remained unauthenticated",
+    "home button remained login form without customer/product/sales menus"
+  ],
+  "screenshot": "C:/Users/Xaser/Desktop/ERP/kanit/v3-cikis-yenileme-giris-gerekli.png",
+  "state": "K01_04_NORMAL_GUI_LOGOUT_RELOAD_LOGIN_REQUIRED",
+  "oldBearerRevocationClaim": false,
+  "package": "99C6DA2B7278DA9EF4A32F1FAC8DE57FC01E599DB3BD8CD645D3ECC9089D7AE3",
+  "commercialWrites": false,
+  "observedAt": "2026-11-06T02:22:51.7144147Z",
+  "user": "erp_deneme",
+  "credentialsChanged": false
+}

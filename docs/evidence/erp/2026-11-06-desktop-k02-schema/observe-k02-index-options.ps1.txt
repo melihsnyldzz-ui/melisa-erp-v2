@@ -1,0 +1,31 @@
+# Read-only K02-02 observation. No DDL, DML, account or service operations.
+$ErrorActionPreference='Stop';$connection=$null
+try {
+ $connection=[Data.Odbc.OdbcConnection]::new('Driver={ODBC Driver 17 for SQL Server};Server=lpc:Semih\MELISAERP;Database=MELISA_ERP_DESKTOP_TEST_20261105;Trusted_Connection=Yes;Encrypt=No;');$connection.Open()
+ $command=$connection.CreateCommand();$command.CommandTimeout=30
+ $command.CommandText=@'
+SET NOCOUNT ON;SET LOCK_TIMEOUT 5000;
+IF ISNULL(DB_ID(),-1)<>5
+ OR CONVERT(varbinary(256),CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')))<>CONVERT(varbinary(256),N'Semih\MELISAERP')
+ OR DB_NAME() IS NULL OR CONVERT(varbinary(256),DB_NAME())<>CONVERT(varbinary(256),N'MELISA_ERP_DESKTOP_TEST_20261105')
+ OR ISNULL(CONVERT(int,SERVERPROPERTY('ProcessID')),-1)<>5240
+ OR SUSER_SID() IS NULL OR SUSER_SID(ORIGINAL_LOGIN()) IS NULL OR SUSER_SID(N'SEMIH\Xaser') IS NULL
+ OR SUSER_SID()<>SUSER_SID(N'SEMIH\Xaser') OR SUSER_SID(ORIGINAL_LOGIN())<>SUSER_SID(N'SEMIH\Xaser')
+ OR ISNULL(IS_SRVROLEMEMBER(N'sysadmin'),0)<>1 OR ISNULL(CONVERT(nvarchar(40),CONNECTIONPROPERTY('net_transport')),N'')<>N'Shared memory'
+ OR NOT EXISTS(SELECT 1 FROM sys.database_recovery_status WHERE database_id=5 AND database_guid='c67f5317-9c0d-4831-aadd-fadc379a95d1')
+ OR (SELECT COUNT_BIG(*) FROM dbo.desktop_empty_installation)<>1
+ OR NOT EXISTS(SELECT 1 FROM dbo.desktop_empty_installation WHERE id=1 AND environment_id='eb2888c2-51cb-4570-a933-397cf7e62806' AND schema_version=3 AND read_only=0 AND actual_t1=0 AND external_operations=0)
+ THROW 51995,'K02_METADATA_TARGET_REJECTED',1;
+SELECT JSON_QUERY((SELECT t.name [table],i.name [name],i.ignore_dup_key ignoreDupKey
+FROM sys.tables t JOIN sys.indexes i ON i.object_id=t.object_id AND i.index_id>0 WHERE t.is_ms_shipped=0 ORDER BY t.name,i.name FOR JSON PATH)) indexOptions
+FOR JSON PATH,WITHOUT_ARRAY_WRAPPER;
+'@
+ $reader=$command.ExecuteReader();$builder=[Text.StringBuilder]::new()
+ try {while($reader.Read()){[void]$builder.Append($reader.GetString(0))};while($reader.NextResult()){while($reader.Read()){throw 'K02_EXTRA_RESULT'}}}finally{$reader.Dispose();$command.Dispose()}
+ $data=$builder.ToString()|ConvertFrom-Json -AsHashtable
+ $result=@{state='K02_READ_ONLY_METADATA_OBSERVED';capturedAt=[DateTime]::UtcNow.ToString('o');target=@{server='Semih\MELISAERP';database='MELISA_ERP_DESKTOP_TEST_20261105';databaseId=5;databaseGuid='c67f5317-9c0d-4831-aadd-fadc379a95d1';schemaVersion=3};metadata=$data;ddlExecuted=$false;dmlExecuted=$false;servicesChanged=$false}
+ $file='C:\Users\Xaser\Desktop\ERP\kurulum\k02-02-index-options.json'
+ if(Test-Path -LiteralPath $file){throw 'K02_OBSERVATION_ALREADY_EXISTS'}
+ [IO.File]::WriteAllText($file,($result|ConvertTo-Json -Depth 15),[Text.UTF8Encoding]::new($false))
+ [Console]::WriteLine(('READ_ONLY index_options={0}' -f $data.indexOptions.Count))
+}finally{if($connection){$connection.Dispose()}}

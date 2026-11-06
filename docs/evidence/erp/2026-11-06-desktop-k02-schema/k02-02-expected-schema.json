@@ -1,0 +1,7044 @@
+{
+  "tables": [
+    "audit_logs",
+    "auth_refresh_tokens",
+    "catalog_items",
+    "catalogs",
+    "currency_rates",
+    "customer_movements",
+    "customers",
+    "desktop_empty_installation",
+    "desktop_local_master_requests",
+    "desktop_local_price_units",
+    "desktop_local_product_units",
+    "desktop_sale_carton_items",
+    "desktop_sale_cartons",
+    "desktop_sale_request_resolutions",
+    "desktop_sale_reservations",
+    "desktop_sale_workflow_requests",
+    "desktop_sale_workflows",
+    "party_currency_accounts",
+    "party_entities",
+    "permissions",
+    "product_barcodes",
+    "product_images",
+    "product_prices",
+    "products",
+    "purchase_invoice_items",
+    "purchase_invoices",
+    "roles",
+    "sales_invoice_items",
+    "sales_invoices",
+    "stock_movements",
+    "supplier_movements",
+    "suppliers",
+    "system_settings",
+    "terminal_devices",
+    "terminal_sync_queue",
+    "users"
+  ],
+  "columns": [
+    {
+      "table": "roles",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "roles",
+      "name": "code",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "name",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "description",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "is_system_role",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "roles",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "permissions",
+      "name": "role_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "permission_key",
+      "type": "nvarchar",
+      "args": [
+        120
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "can_view",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "can_create",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "can_update",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "can_delete",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "can_approve",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "permissions",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "users",
+      "name": "username",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "password_hash",
+      "type": "nvarchar",
+      "args": [
+        255
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "display_name",
+      "type": "nvarchar",
+      "args": [
+        150
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "role_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "last_login_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "users",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "products",
+      "name": "stock_code",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "name",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "category",
+      "type": "nvarchar",
+      "args": [
+        120
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "brand",
+      "type": "nvarchar",
+      "args": [
+        120
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "unit",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "sales_price",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "purchase_price",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "average_cost_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "current_stock_qty",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "is_deleted",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "passive_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "passive_reason",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "purchase_discount_rate",
+      "type": "decimal",
+      "args": [
+        9,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "products",
+      "name": "supplier_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "product_barcodes",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "barcode",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "barcode_type",
+      "type": "nvarchar",
+      "args": [
+        30
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "is_primary",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "product_images",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "file_path",
+      "type": "nvarchar",
+      "args": [
+        500
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "storage_key",
+      "type": "nvarchar",
+      "args": [
+        200
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "is_primary",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "sort_order",
+      "type": "int",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_images",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "customers",
+      "name": "customer_code",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "name",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "phone",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "email",
+      "type": "nvarchar",
+      "args": [
+        150
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "city",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "country",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "address",
+      "type": "nvarchar",
+      "args": [
+        500
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "customer_type",
+      "type": "nvarchar",
+      "args": [
+        30
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "balance",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "risk_limit",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "is_deleted",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "passive_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "passive_reason",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customers",
+      "name": "party_entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "suppliers",
+      "name": "supplier_code",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "name",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "phone",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "email",
+      "type": "nvarchar",
+      "args": [
+        150
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "city",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "country",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "address",
+      "type": "nvarchar",
+      "args": [
+        500
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "balance",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "is_deleted",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "passive_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "passive_reason",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "purchase_discount_rate",
+      "type": "decimal",
+      "args": [
+        9,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "suppliers",
+      "name": "party_entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "terminal_devices",
+      "name": "device_code",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "device_name",
+      "type": "nvarchar",
+      "args": [
+        150
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "device_token_hash",
+      "type": "nvarchar",
+      "args": [
+        255
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "assigned_user_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "last_sync_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "last_seen_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "offline_since_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "currency_rates",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "rate_date",
+      "type": "date",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "rate_to_try",
+      "type": "decimal",
+      "args": [
+        18,
+        8
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "source",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "sales_invoices",
+      "name": "document_no",
+      "type": "nvarchar",
+      "args": [
+        30
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "document_date",
+      "type": "date",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "customer_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "terminal_device_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "status",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "customer_currency",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "document_currency",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "exchange_rate_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        8
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "description",
+      "type": "nvarchar",
+      "args": [
+        500
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "subtotal",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "discount_rate",
+      "type": "decimal",
+      "args": [
+        9,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "discount_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "grand_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "amount_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "estimated_profit_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "finalized_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "cancelled_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "cancel_reason",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "account_currency",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "account_amount",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "account_exchange_rate_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        8
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "party_entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "party_currency_account_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "sales_invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "stock_code_snapshot",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "barcode_snapshot",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "product_name_snapshot",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "quantity",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "unit_price",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "line_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "average_cost_try_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "stock_status_snapshot",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "note",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "gross_profit_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "gross_profit_rate",
+      "type": "decimal",
+      "args": [
+        18,
+        6
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "document_no",
+      "type": "nvarchar",
+      "args": [
+        30
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "document_date",
+      "type": "date",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "supplier_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "status",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "supplier_currency",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "document_currency",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "exchange_rate_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        8
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "description",
+      "type": "nvarchar",
+      "args": [
+        500
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "subtotal",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "line_discount_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "invoice_discount_rate",
+      "type": "decimal",
+      "args": [
+        9,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "supplier_discount_rate",
+      "type": "decimal",
+      "args": [
+        9,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "discount_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "grand_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "amount_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "stock_cost_effect_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "finalized_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "cancelled_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "cancel_reason",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "purchase_invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "stock_code_snapshot",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "barcode_snapshot",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "product_name_snapshot",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "quantity",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "purchase_price",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "line_discount_rate",
+      "type": "decimal",
+      "args": [
+        9,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "line_total",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "line_total_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "stock_effect_snapshot",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "note",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "stock_movements",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "movement_type",
+      "type": "nvarchar",
+      "args": [
+        30
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "source_type",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "source_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "quantity_in",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "quantity_out",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "quantity_net",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "unit_cost_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "average_cost_try_after",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "document_date",
+      "type": "date",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "customer_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "supplier_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "unit_price",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "amount_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "warehouse_name",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "catalogs",
+      "name": "catalog_no",
+      "type": "nvarchar",
+      "args": [
+        50
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "name",
+      "type": "nvarchar",
+      "args": [
+        200
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "customer_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "status",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "valid_from",
+      "type": "date",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "valid_to",
+      "type": "date",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalogs",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "catalog_items",
+      "name": "catalog_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "product_image_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "display_order",
+      "type": "int",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "price_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "note",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "terminal_device_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "user_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "event_type",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "client_request_id",
+      "type": "nvarchar",
+      "args": [
+        120
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "payload_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "status",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "retry_count",
+      "type": "int",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "last_error",
+      "type": "nvarchar",
+      "args": [
+        1000
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "target_entity",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "target_entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "received_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "processed_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "audit_logs",
+      "name": "actor_user_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "action",
+      "type": "nvarchar",
+      "args": [
+        120
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "entity_type",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "before_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "after_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "reason",
+      "type": "nvarchar",
+      "args": [
+        500
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "source",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "ip_address",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "device_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "customer_movements",
+      "name": "customer_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "sales_invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "movement_type",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "amount",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "balance_effect",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "document_date",
+      "type": "date",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "account_currency",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "account_amount",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "document_exchange_rate_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        8
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "account_exchange_rate_snapshot",
+      "type": "decimal",
+      "args": [
+        18,
+        8
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "amount_try",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "party_entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "party_currency_account_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "supplier_movements",
+      "name": "supplier_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "purchase_invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "movement_type",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "amount",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "balance_effect",
+      "type": "decimal",
+      "args": [
+        18,
+        4
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "document_date",
+      "type": "date",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "user_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "token_hash",
+      "type": "nvarchar",
+      "args": [
+        255
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "expires_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "revoked_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "user_agent",
+      "type": "nvarchar",
+      "args": [
+        300
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "system_settings",
+      "name": "setting_group",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "setting_key",
+      "type": "nvarchar",
+      "args": [
+        120
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "setting_value",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "value_type",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "description",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "is_active",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "created_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "updated_at",
+      "type": "datetime2",
+      "args": [
+        0
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "updated_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "system_settings",
+      "name": "row_version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "id",
+      "type": "tinyint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "environment_id",
+      "type": "uniqueidentifier",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "schema_version",
+      "type": "int",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "actual_t1",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "external_operations",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "read_only",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "party_entities",
+      "name": "role",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "name",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "identity_rule",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "country",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "source_record_key",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "migration_run_id",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "source_payload_hash",
+      "type": "char",
+      "args": [
+        64
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "source_payload_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "source_document_key",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_entities",
+      "name": "original_document_date",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "party_entity_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "customer_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "supplier_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "current_balance",
+      "type": "decimal",
+      "args": [
+        28,
+        8
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "balance_status",
+      "type": "nvarchar",
+      "args": [
+        100
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "source_record_key",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "migration_run_id",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "source_payload_hash",
+      "type": "char",
+      "args": [
+        64
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "source_payload_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "source_document_key",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "original_document_date",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "product_prices",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "price_type",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "price_tier",
+      "type": "int",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "currency_code",
+      "type": "nvarchar",
+      "args": [
+        3
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "price",
+      "type": "decimal",
+      "args": [
+        28,
+        8
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "source_unit_id",
+      "type": "int",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "source_record_key",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "migration_run_id",
+      "type": "nvarchar",
+      "args": [
+        80
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "source_payload_hash",
+      "type": "char",
+      "args": [
+        64
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "source_payload_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "source_document_key",
+      "type": "nvarchar",
+      "args": [
+        250
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "product_prices",
+      "name": "original_document_date",
+      "type": "nvarchar",
+      "args": [
+        40
+      ],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": true,
+      "identitySeed": "1",
+      "identityIncrement": "1"
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "label",
+      "type": "nvarchar",
+      "args": [
+        20
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "factor",
+      "type": "decimal",
+      "args": [
+        28,
+        8
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "is_main",
+      "type": "bit",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_price_units",
+      "name": "price_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_price_units",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_price_units",
+      "name": "unit_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "request_id",
+      "type": "uniqueidentifier",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "operation",
+      "type": "nvarchar",
+      "args": [
+        24
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "actor_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "payload_hash",
+      "type": "binary",
+      "args": [
+        32
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "response_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "created_at",
+      "type": "datetime2",
+      "args": [
+        7
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "request_id",
+      "type": "uniqueidentifier",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "actor_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "kind",
+      "type": "varchar",
+      "args": [
+        12
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "payload_hash",
+      "type": "binary",
+      "args": [
+        32
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "state",
+      "type": "varchar",
+      "args": [
+        16
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "sent_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "prepared_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "checked_by",
+      "type": "bigint",
+      "args": [],
+      "nullable": true,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "version",
+      "type": "timestamp",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "item_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "quantity",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "state",
+      "type": "varchar",
+      "args": [
+        12
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_cartons",
+      "name": "invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_cartons",
+      "name": "carton_no",
+      "type": "int",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "carton_no",
+      "type": "int",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "item_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "product_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "quantity",
+      "type": "decimal",
+      "args": [
+        18,
+        3
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "request_id",
+      "type": "uniqueidentifier",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "invoice_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "actor_id",
+      "type": "bigint",
+      "args": [],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "operation",
+      "type": "varchar",
+      "args": [
+        24
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "payload_hash",
+      "type": "binary",
+      "args": [
+        32
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "result_json",
+      "type": "nvarchar",
+      "args": [
+        -1
+      ],
+      "nullable": false,
+      "identity": false,
+      "identitySeed": null,
+      "identityIncrement": null
+    }
+  ],
+  "foreignKeys": [
+    {
+      "table": "permissions",
+      "name": "fk_permissions_roles",
+      "refTable": "roles",
+      "columns": [
+        {
+          "parent": "role_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "users",
+      "name": "fk_users_roles",
+      "refTable": "roles",
+      "columns": [
+        {
+          "parent": "role_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "product_barcodes",
+      "name": "fk_product_barcodes_products",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "product_images",
+      "name": "fk_product_images_products",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "terminal_devices",
+      "name": "fk_terminal_devices_users",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "assigned_user_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "sales_invoices",
+      "name": "fk_sales_invoices_customers",
+      "refTable": "customers",
+      "columns": [
+        {
+          "parent": "customer_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "sales_invoices",
+      "name": "fk_sales_invoices_terminal_devices",
+      "refTable": "terminal_devices",
+      "columns": [
+        {
+          "parent": "terminal_device_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "fk_sales_invoice_items_sales_invoices",
+      "refTable": "sales_invoices",
+      "columns": [
+        {
+          "parent": "sales_invoice_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "fk_sales_invoice_items_products",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "fk_purchase_invoices_suppliers",
+      "refTable": "suppliers",
+      "columns": [
+        {
+          "parent": "supplier_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "fk_purchase_invoice_items_purchase_invoices",
+      "refTable": "purchase_invoices",
+      "columns": [
+        {
+          "parent": "purchase_invoice_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "fk_purchase_invoice_items_products",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "stock_movements",
+      "name": "fk_stock_movements_products",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "stock_movements",
+      "name": "fk_stock_movements_customers",
+      "refTable": "customers",
+      "columns": [
+        {
+          "parent": "customer_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "stock_movements",
+      "name": "fk_stock_movements_suppliers",
+      "refTable": "suppliers",
+      "columns": [
+        {
+          "parent": "supplier_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "catalogs",
+      "name": "fk_catalogs_customers",
+      "refTable": "customers",
+      "columns": [
+        {
+          "parent": "customer_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "catalog_items",
+      "name": "fk_catalog_items_catalogs",
+      "refTable": "catalogs",
+      "columns": [
+        {
+          "parent": "catalog_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "catalog_items",
+      "name": "fk_catalog_items_products",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "catalog_items",
+      "name": "fk_catalog_items_product_images",
+      "refTable": "product_images",
+      "columns": [
+        {
+          "parent": "product_image_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "fk_terminal_sync_queue_terminal_devices",
+      "refTable": "terminal_devices",
+      "columns": [
+        {
+          "parent": "terminal_device_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "fk_terminal_sync_queue_users",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "user_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "audit_logs",
+      "name": "fk_audit_logs_users",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "actor_user_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "audit_logs",
+      "name": "fk_audit_logs_terminal_devices",
+      "refTable": "terminal_devices",
+      "columns": [
+        {
+          "parent": "device_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "customer_movements",
+      "name": "fk_customer_movements_customers",
+      "refTable": "customers",
+      "columns": [
+        {
+          "parent": "customer_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "customer_movements",
+      "name": "fk_customer_movements_sales_invoices",
+      "refTable": "sales_invoices",
+      "columns": [
+        {
+          "parent": "sales_invoice_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "supplier_movements",
+      "name": "fk_supplier_movements_suppliers",
+      "refTable": "suppliers",
+      "columns": [
+        {
+          "parent": "supplier_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "supplier_movements",
+      "name": "fk_supplier_movements_purchase_invoices",
+      "refTable": "purchase_invoices",
+      "columns": [
+        {
+          "parent": "purchase_invoice_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "fk_auth_refresh_tokens_users",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "user_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "products",
+      "name": "fk_empty_local_products_supplier",
+      "refTable": "suppliers",
+      "columns": [
+        {
+          "parent": "supplier_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "fk_desktop_local_units_product",
+      "refTable": "products",
+      "columns": [
+        {
+          "parent": "product_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_local_price_units",
+      "name": "fk_desktop_local_price_units_price",
+      "refTable": "product_prices",
+      "columns": [
+        {
+          "parent": "price_id",
+          "referenced": "id"
+        },
+        {
+          "parent": "product_id",
+          "referenced": "product_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_local_price_units",
+      "name": "fk_desktop_local_price_units_unit",
+      "refTable": "desktop_local_product_units",
+      "columns": [
+        {
+          "parent": "unit_id",
+          "referenced": "id"
+        },
+        {
+          "parent": "product_id",
+          "referenced": "product_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "fk_desktop_local_requests_actor",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "actor_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "fk_desktop_resolution_actor",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "actor_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "fk_desktop_workflow_invoice",
+      "refTable": "sales_invoices",
+      "columns": [
+        {
+          "parent": "invoice_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "fk_desktop_workflow_sender",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "sent_by",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "fk_desktop_workflow_preparer",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "prepared_by",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "fk_desktop_workflow_checker",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "checked_by",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "fk_desktop_reservation_workflow",
+      "refTable": "desktop_sale_workflows",
+      "columns": [
+        {
+          "parent": "invoice_id",
+          "referenced": "invoice_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "fk_desktop_reservation_item",
+      "refTable": "sales_invoice_items",
+      "columns": [
+        {
+          "parent": "item_id",
+          "referenced": "id"
+        },
+        {
+          "parent": "invoice_id",
+          "referenced": "sales_invoice_id"
+        },
+        {
+          "parent": "product_id",
+          "referenced": "product_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_cartons",
+      "name": "fk_desktop_carton_workflow",
+      "refTable": "desktop_sale_workflows",
+      "columns": [
+        {
+          "parent": "invoice_id",
+          "referenced": "invoice_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "fk_desktop_carton_item_carton",
+      "refTable": "desktop_sale_cartons",
+      "columns": [
+        {
+          "parent": "invoice_id",
+          "referenced": "invoice_id"
+        },
+        {
+          "parent": "carton_no",
+          "referenced": "carton_no"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "fk_desktop_carton_item_reservation",
+      "refTable": "desktop_sale_reservations",
+      "columns": [
+        {
+          "parent": "invoice_id",
+          "referenced": "invoice_id"
+        },
+        {
+          "parent": "item_id",
+          "referenced": "item_id"
+        },
+        {
+          "parent": "product_id",
+          "referenced": "product_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "fk_desktop_request_workflow",
+      "refTable": "desktop_sale_workflows",
+      "columns": [
+        {
+          "parent": "invoice_id",
+          "referenced": "invoice_id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "fk_desktop_request_actor",
+      "refTable": "users",
+      "columns": [
+        {
+          "parent": "actor_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "suppliers",
+      "name": "fk_desktop_v3_supplier_entity",
+      "refTable": "party_entities",
+      "columns": [
+        {
+          "parent": "party_entity_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "fk_desktop_v3_account_supplier",
+      "refTable": "suppliers",
+      "columns": [
+        {
+          "parent": "supplier_id",
+          "referenced": "id"
+        }
+      ],
+      "deleteAction": "NO_ACTION",
+      "updateAction": "NO_ACTION"
+    }
+  ],
+  "indexes": [
+    {
+      "table": "roles",
+      "name": "pk_roles",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "roles",
+      "name": "uq_roles_code",
+      "keys": [
+        {
+          "name": "code",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "permissions",
+      "name": "pk_permissions",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "permissions",
+      "name": "uq_permissions_role_key",
+      "keys": [
+        {
+          "name": "role_id",
+          "descendingKey": false
+        },
+        {
+          "name": "permission_key",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "users",
+      "name": "pk_users",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "users",
+      "name": "uq_users_username",
+      "keys": [
+        {
+          "name": "username",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "products",
+      "name": "pk_products",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "products",
+      "name": "uq_products_stock_code",
+      "keys": [
+        {
+          "name": "stock_code",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "pk_product_barcodes",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "product_barcodes",
+      "name": "ux_product_barcodes_active_barcode",
+      "keys": [
+        {
+          "name": "barcode",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "is_active = 1"
+    },
+    {
+      "table": "product_images",
+      "name": "pk_product_images",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "customers",
+      "name": "pk_customers",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "customers",
+      "name": "uq_customers_customer_code",
+      "keys": [
+        {
+          "name": "customer_code",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "suppliers",
+      "name": "pk_suppliers",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "suppliers",
+      "name": "uq_suppliers_supplier_code",
+      "keys": [
+        {
+          "name": "supplier_code",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "pk_terminal_devices",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "terminal_devices",
+      "name": "uq_terminal_devices_device_code",
+      "keys": [
+        {
+          "name": "device_code",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "pk_currency_rates",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "currency_rates",
+      "name": "uq_currency_rates_code_date",
+      "keys": [
+        {
+          "name": "currency_code",
+          "descendingKey": false
+        },
+        {
+          "name": "rate_date",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "pk_sales_invoices",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "pk_sales_invoice_items",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "pk_purchase_invoices",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "purchase_invoice_items",
+      "name": "pk_purchase_invoice_items",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "pk_stock_movements",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "catalogs",
+      "name": "pk_catalogs",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "catalogs",
+      "name": "uq_catalogs_catalog_no",
+      "keys": [
+        {
+          "name": "catalog_no",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "catalog_items",
+      "name": "pk_catalog_items",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "pk_terminal_sync_queue",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "uq_terminal_sync_queue_client_request",
+      "keys": [
+        {
+          "name": "client_request_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "pk_audit_logs",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "products",
+      "name": "ix_products_name",
+      "keys": [
+        {
+          "name": "name",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "products",
+      "name": "ix_products_category_brand",
+      "keys": [
+        {
+          "name": "category",
+          "descendingKey": false
+        },
+        {
+          "name": "brand",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "products",
+      "name": "ix_products_current_stock_qty",
+      "keys": [
+        {
+          "name": "current_stock_qty",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "customers",
+      "name": "ix_customers_name",
+      "keys": [
+        {
+          "name": "name",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "suppliers",
+      "name": "ix_suppliers_name",
+      "keys": [
+        {
+          "name": "name",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "ix_sales_invoices_customer_date_status",
+      "keys": [
+        {
+          "name": "customer_id",
+          "descendingKey": false
+        },
+        {
+          "name": "document_date",
+          "descendingKey": false
+        },
+        {
+          "name": "status",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "sales_invoices",
+      "name": "ix_sales_invoices_document_no",
+      "keys": [
+        {
+          "name": "document_no",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "ix_purchase_invoices_supplier_date_status",
+      "keys": [
+        {
+          "name": "supplier_id",
+          "descendingKey": false
+        },
+        {
+          "name": "document_date",
+          "descendingKey": false
+        },
+        {
+          "name": "status",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "ix_purchase_invoices_document_no",
+      "keys": [
+        {
+          "name": "document_no",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "ix_stock_movements_product_date",
+      "keys": [
+        {
+          "name": "product_id",
+          "descendingKey": false
+        },
+        {
+          "name": "document_date",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "stock_movements",
+      "name": "ix_stock_movements_source",
+      "keys": [
+        {
+          "name": "source_type",
+          "descendingKey": false
+        },
+        {
+          "name": "source_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "ix_terminal_sync_queue_status_device",
+      "keys": [
+        {
+          "name": "status",
+          "descendingKey": false
+        },
+        {
+          "name": "terminal_device_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "ix_terminal_sync_queue_received_at",
+      "keys": [
+        {
+          "name": "received_at",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "ix_audit_logs_entity_date",
+      "keys": [
+        {
+          "name": "entity_type",
+          "descendingKey": false
+        },
+        {
+          "name": "entity_id",
+          "descendingKey": false
+        },
+        {
+          "name": "created_at",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "audit_logs",
+      "name": "ix_audit_logs_actor_date",
+      "keys": [
+        {
+          "name": "actor_user_id",
+          "descendingKey": false
+        },
+        {
+          "name": "created_at",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "pk_customer_movements",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "ix_customer_movements_customer_date",
+      "keys": [
+        {
+          "name": "customer_id",
+          "descendingKey": false
+        },
+        {
+          "name": "document_date",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "customer_movements",
+      "name": "ix_customer_movements_sales_invoice",
+      "keys": [
+        {
+          "name": "sales_invoice_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "pk_supplier_movements",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "ix_supplier_movements_supplier_date",
+      "keys": [
+        {
+          "name": "supplier_id",
+          "descendingKey": false
+        },
+        {
+          "name": "document_date",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "supplier_movements",
+      "name": "ix_supplier_movements_purchase_invoice",
+      "keys": [
+        {
+          "name": "purchase_invoice_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "pk_auth_refresh_tokens",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "ux_auth_refresh_tokens_hash",
+      "keys": [
+        {
+          "name": "token_hash",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "auth_refresh_tokens",
+      "name": "ix_auth_refresh_tokens_user_active",
+      "keys": [
+        {
+          "name": "user_id",
+          "descendingKey": false
+        },
+        {
+          "name": "revoked_at",
+          "descendingKey": false
+        },
+        {
+          "name": "expires_at",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "system_settings",
+      "name": "pk_system_settings",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "system_settings",
+      "name": "uq_system_settings_group_key",
+      "keys": [
+        {
+          "name": "setting_group",
+          "descendingKey": false
+        },
+        {
+          "name": "setting_key",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "products",
+      "name": "ix_empty_local_products_supplier",
+      "keys": [
+        {
+          "name": "supplier_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "pk_desktop_empty_installation",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "uq_desktop_empty_installation_environment",
+      "keys": [
+        {
+          "name": "environment_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "party_entities",
+      "name": null,
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "party_entities",
+      "name": "ux_party_entities_source_record",
+      "keys": [
+        {
+          "name": "source_record_key",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "source_record_key is not null"
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": null,
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "ux_party_currency_accounts_source_record",
+      "keys": [
+        {
+          "name": "source_record_key",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "source_record_key is not null"
+    },
+    {
+      "table": "product_prices",
+      "name": null,
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "product_prices",
+      "name": "ux_product_prices_source_record",
+      "keys": [
+        {
+          "name": "source_record_key",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "source_record_key is not null"
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "pk_desktop_local_product_units",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "uq_desktop_local_units_id_product",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        },
+        {
+          "name": "product_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "uq_desktop_local_units_label",
+      "keys": [
+        {
+          "name": "product_id",
+          "descendingKey": false
+        },
+        {
+          "name": "label",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "ux_desktop_local_units_main",
+      "keys": [
+        {
+          "name": "product_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "is_main = 1"
+    },
+    {
+      "table": "product_prices",
+      "name": "ux_desktop_local_price_identity",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        },
+        {
+          "name": "product_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_local_price_units",
+      "name": "pk_desktop_local_price_units",
+      "keys": [
+        {
+          "name": "price_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "pk_desktop_local_master_requests",
+      "keys": [
+        {
+          "name": "request_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "pk_desktop_sale_request_resolutions",
+      "keys": [
+        {
+          "name": "request_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "sales_invoice_items",
+      "name": "ux_desktop_sale_item_identity",
+      "keys": [
+        {
+          "name": "id",
+          "descendingKey": false
+        },
+        {
+          "name": "sales_invoice_id",
+          "descendingKey": false
+        },
+        {
+          "name": "product_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "pk_desktop_sale_workflows",
+      "keys": [
+        {
+          "name": "invoice_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "pk_desktop_sale_reservations",
+      "keys": [
+        {
+          "name": "invoice_id",
+          "descendingKey": false
+        },
+        {
+          "name": "item_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "uq_desktop_reservation_line",
+      "keys": [
+        {
+          "name": "invoice_id",
+          "descendingKey": false
+        },
+        {
+          "name": "item_id",
+          "descendingKey": false
+        },
+        {
+          "name": "product_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": true,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "ix_desktop_active_reservations",
+      "keys": [
+        {
+          "name": "product_id",
+          "descendingKey": false
+        },
+        {
+          "name": "state",
+          "descendingKey": false
+        }
+      ],
+      "unique": false,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [
+        "quantity",
+        "invoice_id"
+      ],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_cartons",
+      "name": "pk_desktop_sale_cartons",
+      "keys": [
+        {
+          "name": "invoice_id",
+          "descendingKey": false
+        },
+        {
+          "name": "carton_no",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "pk_desktop_sale_carton_items",
+      "keys": [
+        {
+          "name": "invoice_id",
+          "descendingKey": false
+        },
+        {
+          "name": "carton_no",
+          "descendingKey": false
+        },
+        {
+          "name": "item_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "pk_desktop_sale_workflow_requests",
+      "keys": [
+        {
+          "name": "request_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": true,
+      "uniqueConstraint": false,
+      "type": "CLUSTERED",
+      "included": [],
+      "filterDefinition": null
+    },
+    {
+      "table": "suppliers",
+      "name": "ux_desktop_v3_supplier_entity",
+      "keys": [
+        {
+          "name": "party_entity_id",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "party_entity_id is not null"
+    },
+    {
+      "table": "party_currency_accounts",
+      "name": "ux_desktop_v3_supplier_account",
+      "keys": [
+        {
+          "name": "supplier_id",
+          "descendingKey": false
+        },
+        {
+          "name": "currency_code",
+          "descendingKey": false
+        }
+      ],
+      "unique": true,
+      "primaryKey": false,
+      "uniqueConstraint": false,
+      "type": "NONCLUSTERED",
+      "included": [],
+      "filterDefinition": "supplier_id is not null and customer_id is null"
+    }
+  ],
+  "checks": [
+    {
+      "table": "product_barcodes",
+      "name": "ck_product_barcodes_type"
+    },
+    {
+      "table": "customers",
+      "name": "ck_customers_customer_type"
+    },
+    {
+      "table": "sales_invoices",
+      "name": "ck_sales_invoices_status"
+    },
+    {
+      "table": "purchase_invoices",
+      "name": "ck_purchase_invoices_status"
+    },
+    {
+      "table": "stock_movements",
+      "name": "ck_stock_movements_type"
+    },
+    {
+      "table": "stock_movements",
+      "name": "ck_stock_movements_source_type"
+    },
+    {
+      "table": "catalogs",
+      "name": "ck_catalogs_status"
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "ck_terminal_sync_queue_event_type"
+    },
+    {
+      "table": "terminal_sync_queue",
+      "name": "ck_terminal_sync_queue_status"
+    },
+    {
+      "table": "customer_movements",
+      "name": "ck_customer_movements_type"
+    },
+    {
+      "table": "supplier_movements",
+      "name": "ck_supplier_movements_type"
+    },
+    {
+      "table": "system_settings",
+      "name": "ck_system_settings_value_type"
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "ck_desktop_empty_installation_id"
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "ck_desktop_empty_installation_environment"
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "ck_desktop_empty_installation_t1"
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "ck_desktop_empty_installation_external"
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "ck_desktop_local_units_label"
+    },
+    {
+      "table": "desktop_local_product_units",
+      "name": "ck_desktop_local_units_factor"
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "ck_desktop_local_requests_response"
+    },
+    {
+      "table": "desktop_sale_request_resolutions",
+      "name": "ck_desktop_resolution_kind"
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "ck_desktop_workflow_state"
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "name": "ck_desktop_workflow_actors"
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "ck_desktop_reservation_quantity"
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "name": "ck_desktop_reservation_state"
+    },
+    {
+      "table": "desktop_sale_cartons",
+      "name": "ck_desktop_carton_number"
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "name": "ck_desktop_carton_item_quantity"
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "ck_desktop_request_operation"
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "name": "ck_desktop_request_json"
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "name": "ck_desktop_local_requests_operation"
+    },
+    {
+      "table": "desktop_empty_installation",
+      "name": "ck_desktop_profile_version_mode"
+    }
+  ],
+  "conditionalDuplicates": [
+    "products.average_cost_try",
+    "sales_invoice_items.average_cost_try_snapshot"
+  ]
+}
