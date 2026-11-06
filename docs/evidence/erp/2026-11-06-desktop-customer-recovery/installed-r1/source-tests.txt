@@ -1,0 +1,41 @@
+✔ dirty customer fields block replacement until explicit discard; durable pending may leave the view but cannot be discarded (3.5783ms)
+✔ actual durable customer command survives UNKNOWN, closing and remount; only same-command success clears it and unreadable recovery blocks leaving (25.3189ms)
+✔ committed customer result permits parent list refresh while in-flight fields stay locked (1.3826ms)
+✔ another tab pending before submit or between precheck and storage lock preserves this unsent form and the other exact command (2.3516ms)
+✔ local failure keeps customer and product input; uncertain request still opens recovery (4.1202ms)
+✔ product fields are locked while a request is in flight and unlocked after the result (0.9229ms)
+✔ lost reply retains same identifier and exact body through remount and retry (3.3976ms)
+✔ pending request cannot be replaced by edited form or another actor (0.8706ms)
+✔ storage failure prevents a network request (0.4196ms)
+✔ concurrent submit is refused and malformed success does not erase pending (0.6181ms)
+✔ invalid input and corrupted durable record fail without dispatch (0.6516ms)
+✔ optional city and country normalize to null; long and control data never dispatch (0.4413ms)
+✔ two tabs cannot submit simultaneously for the same actor (0.5754ms)
+✔ partial or inconsistent customer identity never clears pending request (1.4606ms)
+✔ posts same request once to exact loopback, unwraps success data, and disables redirect/credentials (2.8438ms)
+✔ 503, bad JSON, network loss, invalid envelopes and mismatched UUID all throw generic unknown (2.4411ms)
+✔ only expected origin, signed-token-shaped value and exact body are accepted (0.53ms)
+✔ replayed committed result is accepted only with HTTP 200 (0.3313ms)
+✔ request body is frozen as serialized data before async token acquisition (0.6176ms)
+✔ origin change while awaiting token fails before network dispatch (0.3044ms)
+✔ controller keeps the identical pending body after 503 and accepts matching 200 replay (1.7041ms)
+✔ currency account capability requires authenticated V4 identity; V3 cannot create pending records and late session changes discard it (7.9637ms)
+✔ installation identity requires current normal session, exact TEST target and discards late logout result (0.9363ms)
+✔ normal customer card rejects wrong parents, ungranted sale data and late logout replies (1.4726ms)
+✔ normal facade binds full product card to selection and discards late logout results (1.3719ms)
+✔ normal login enables permitted lists, paging and customer transport; no other edit capability (2.4291ms)
+✔ view-only session cannot create; server list failures never become empty data (0.494ms)
+✔ rich product list refuses missing or inconsistent stock instead of displaying zero availability (1.3466ms)
+✔ restored current account uses server result and logout invalidates existing controller (0.2644ms)
+✔ normal green-core facade restores durable product rejection fields and revokes draft access on logout (2.4251ms)
+✔ foreign origin fails before dispatch (0.2216ms)
+✔ server search preserves Turkish text and leading-zero product/customer codes (0.2339ms)
+✔ supplier creation and rich product require supplier view as well as edit authority (0.3591ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 218.9803

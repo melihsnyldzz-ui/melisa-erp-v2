@@ -1,3 +1,7 @@
+## 6 Kasım — R1 K04-01 commit sonrası gerçek yanıt kaybı; insan kabulü BEKLİYOR
+
+Ajan normal GUI'de sentetik müşteri kaydı sunucuda tamamlandıktan sonra POST201 cevabını kestirdi. Özgün istek belirsiz kaldı, ayrı SQL bağlantısı tek customer4/party5/USD hesap8/audit39/journal kaydını okudu. Ekran düzeltmesi sonrasında normal yeniden giriş, gerçek yenileme, aynı pending'e dönüş ve aynı UUID/gövdeyle POST200 tekrar tek müşteriyi açtı; 33 tablonun commit sonrası/tekrar sonrası hash'leri aynı. [Kanıt ve kontrollü hata sınırı](docs/evidence/erp/2026-11-06-desktop-customer-recovery/README.md). Gerçek personel/işletme sahibi kişi-tarih-sonuç **BEKLİYOR**; fiziksel ağ/terminal/LAN/LIVE veya kalan ERP kabulü değildir.
+
 ## 6 Kasım — R1 K04-03 müşteri döviz hesapları; insan kabulü BEKLİYOR
 
 Ajan normal V4 TEST ekranında aynı müşteri3'ün USD ve EUR hesaplarını sıfır bakiyeyle açtı; TRY 176 ve son kesin fiş8 korundu. Yenilemede üç ayrı hesap göründü. Gerçek normal HTTP eşzamanlı iki müşteri2/USD isteğinde yalnız bir hesap açtı; diğerinin kalıcı ret ve iki isteğin tekrarları ikinci etki yapmadı. Bağımsız SQL 30 diğer tablo ve eski bakiyelerin aynı kaldığını doğruladı. [Kurulu teknik kanıt](docs/evidence/erp/2026-11-06-desktop-currency-accounts/README.md). Gerçek personel/işletme sahibi kişi-tarih-sonuç **BEKLİYOR**. Hesap açma, çok dövizli satış veya limit/vade/kredi onayı kabulü değildir; terminal/LAN/LIVE ve nihai boş işletme teslimi açık.

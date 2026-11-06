@@ -1,0 +1,25 @@
+{
+  "state": "AUTHORIZED_SYNTHETIC_CUSTOMER_RESPONSE_LOSS_TEST",
+  "target": {
+    "server": "Semih\\MELISAERP",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "schemaVersion": 4
+  },
+  "actorId": "30002",
+  "fields": {
+    "customerCode": "ERP-ACK-C4",
+    "name": "ERP YANIT KAYBI DENEME",
+    "phone": "0000000001",
+    "city": "İzmir",
+    "country": "Türkiye",
+    "currency": "USD",
+    "customerType": "wholesale"
+  },
+  "fault": "fail only exact customer POST Fetch response after server response",
+  "expectedNewCustomer": 1,
+  "expectedNewParty": 1,
+  "expectedNewAccount": 1,
+  "expectedNewJournal": 1,
+  "expectedNewAudit": 1,
+  "automaticRetry": false
+}

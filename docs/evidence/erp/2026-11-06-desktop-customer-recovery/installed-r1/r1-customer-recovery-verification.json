@@ -1,0 +1,40 @@
+{
+  "state": "CUSTOMER_CREATE_REAL_COMMIT_RESPONSE_LOSS_RELOAD_AND_NORMAL_GUI_RECOVERY_VERIFIED",
+  "sourceCommit": "406992f6a573fb6bc16f0c005b8b1d97bcf5248a",
+  "packageSha256": "2061854ea04f00055eae48ebc566c59d2bd3e1a276b60930618b00a10a462cb2",
+  "requestId": "8809b55e-1c5e-4f77-b083-3493321536de",
+  "payloadSha256": "2c8d4c1a3d1ca7ddb164a417b02361d2162597368dc62e20e0db29e8ea58c792",
+  "customerId": "4",
+  "entityId": "5",
+  "accountId": "8",
+  "currency": "USD",
+  "balanceExact8": "0.00000000",
+  "auditId": 39,
+  "newCustomers": 1,
+  "newParties": 1,
+  "newAccounts": 1,
+  "newAuditRows": 1,
+  "newJournalRows": 1,
+  "unchangedOtherTables": 28,
+  "replayAll33TablesUnchanged": true,
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessRowsSha256": "fe23c8b9aa8797656a40f9dfb8a26ae277ac367229659390ba8ce08a827b539b",
+  "realFault": {
+    "responseStatus": 201,
+    "errorReason": "ConnectionReset",
+    "responseDelivered": false,
+    "interceptionCleared": true
+  },
+  "replay": {
+    "responseStatus": 200,
+    "sameUuidAndCanonicalBody": true,
+    "interceptionCleared": true
+  },
+  "firstPreflightTimeoutWasNotCountedAsCommitLoss": true,
+  "frontendOnlyPackageChange": true,
+  "normalOperator": "erp_deneme",
+  "credentialsRolesSqlServiceUnchanged": true,
+  "humanAcceptance": false,
+  "time": "2026-11-06T07:25:14.242Z"
+}

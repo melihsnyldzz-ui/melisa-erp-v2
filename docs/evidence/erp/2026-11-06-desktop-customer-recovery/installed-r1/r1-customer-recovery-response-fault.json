@@ -1,0 +1,22 @@
+{
+  "state": "CUSTOMER_POST_201_RESPONSE_FAILED_BEFORE_BROWSER_ACCEPTANCE",
+  "responses": [
+    {
+      "requestId": "interception-job-843.0",
+      "url": "http://127.0.0.1:4294/api/desktop-local/customers",
+      "method": "OPTIONS",
+      "responseStatusCode": 204
+    },
+    {
+      "requestId": "interception-job-844.0",
+      "url": "http://127.0.0.1:4294/api/desktop-local/customers",
+      "method": "POST",
+      "responseStatusCode": 201
+    }
+  ],
+  "requestHeadersRead": false,
+  "automaticNewRequest": false,
+  "clientRequestId": "8809b55e-1c5e-4f77-b083-3493321536de",
+  "customerCode": "ERP-ACK-C4",
+  "interceptionCleared": true
+}
