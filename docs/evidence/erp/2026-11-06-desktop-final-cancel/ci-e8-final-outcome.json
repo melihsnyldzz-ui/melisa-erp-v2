@@ -1,0 +1,50 @@
+[
+  {
+    "status": "completed",
+    "runId": 42256919981,
+    "conclusion": "success",
+    "head": "e8a34d4fb61741c0bfb764633cd790676788729a",
+    "jobs": [
+      {
+        "name": "change-impact",
+        "conclusion": "success"
+      },
+      {
+        "name": "secret-scan",
+        "conclusion": "success"
+      },
+      {
+        "name": "quality-build-test",
+        "conclusion": "success"
+      },
+      {
+        "name": "windows-startup-test",
+        "conclusion": "success"
+      }
+    ]
+  },
+  {
+    "status": "completed",
+    "runId": 42256907576,
+    "conclusion": "success",
+    "head": "e8a34d4fb61741c0bfb764633cd790676788729a",
+    "jobs": [
+      {
+        "name": "quality-build-test",
+        "conclusion": "success"
+      },
+      {
+        "name": "change-impact",
+        "conclusion": "success"
+      },
+      {
+        "name": "secret-scan",
+        "conclusion": "success"
+      },
+      {
+        "name": "windows-startup-test",
+        "conclusion": "success"
+      }
+    ]
+  }
+]

@@ -1,11 +1,9 @@
-// Called by the package-pinned executor BEFORE SQL dispatch. Exact canonical
-// plan bytes are recompiled from trusted source, including public binding hash.
-import {lstat,readFile} from 'node:fs/promises';import {createHash} from 'node:crypto';
+// Recompile and compare exact plan bytes in the verified package namespace.
+import {createHash} from 'node:crypto';
+import {loadMasterV5RunContext,readMasterV5RunFile} from './master-v5-run-files.mjs';
 import {compileMasterV5ReviewPlan} from './master-v5-plan-core.mjs';
-const root='C:/Users/Xaser/Desktop/ERP/kurulum/',sha=v=>createHash('sha256').update(v).digest('hex'),fail=()=>{throw Error('MASTER_V5_PLAN_SOURCE_REJECTED');};
-async function bytes(name){const file=root+name,s=await lstat(file);if(s.isSymbolicLink()||!s.isFile()||s.size>1048576)fail();return readFile(file);}
-try{
- const mode=process.argv[2];if(process.argv.length!==3)fail();
- const plan=await compileMasterV5ReviewPlan(mode,async name=>JSON.parse((await bytes(name)).toString('utf8'))),expected=Buffer.from(JSON.stringify(plan,null,2)+'\n'),actual=await bytes(`master-v5-${mode}-plan.json`);
- if(!expected.equals(actual))fail();process.stdout.write(JSON.stringify({state:'MASTER_V5_PLAN_SOURCE_VERIFIED',planSha256:sha(expected),sqlSha256:plan.sha256}));
+const sha=v=>createHash('sha256').update(v).digest('hex'),fail=()=>{throw Error('MASTER_V5_PLAN_SOURCE_REJECTED');};
+try{const [mode,hash]=process.argv.slice(2);if(process.argv.length!==4||!['context','snapshot','rollback','apply','revert','diagnose'].includes(mode))fail();
+ const ctx=await loadMasterV5RunContext(hash);if(mode==='context')process.stdout.write(JSON.stringify({state:ctx.state,packageSha256:ctx.packageSha256,contextKey:ctx.contextKey,artifactDirectory:ctx.artifactDirectory}));
+ else{const plan=await compileMasterV5ReviewPlan(mode,async name=>JSON.parse((await readMasterV5RunFile(ctx.root,name)).toString('utf8')),ctx),expected=Buffer.from(JSON.stringify(plan,null,2)+'\n'),actual=await readMasterV5RunFile(ctx.root,`master-v5-${mode}-plan.json`);if(!expected.equals(actual))fail();process.stdout.write(JSON.stringify({state:'MASTER_V5_PLAN_SOURCE_VERIFIED',contextKey:ctx.contextKey,packageSha256:ctx.packageSha256,planSha256:sha(expected),sqlSha256:plan.sha256}));}
 }catch{process.stderr.write('MASTER_V5_PLAN_SOURCE_REJECTED');process.exitCode=1;}
