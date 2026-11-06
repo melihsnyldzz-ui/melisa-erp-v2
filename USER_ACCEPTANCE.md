@@ -1,3 +1,7 @@
+## 6 Kasım — R1 müşteri kartı ve hesap hiyerarşisi; insan kabulü BEKLİYOR
+
+Ajan iki mevcut deneme müşterisinin ayrı hesap ve son tamamlanan fişini açtı; fişten dönüşte arama korundu. Kaydedilmemiş müşteri formu başka karta geçişte korundu, Forma dön/açık vazgeçme görüldü; yeni müşteri kaydedilmedi. Normal readonly HTTP ve bağımsız SQL bütün okunan ilişkileri ve yazma olmadığını doğruladı. Kurulu müşteriler TRY; birden çok döviz oluşturma ve gerçek browser page2 kabulü yapılmadı. Bu teknik kapsam gerçek personel, fiziksel cihaz, LAN veya LIVE kabulü değildir. [Kanıt](docs/evidence/erp/2026-11-06-desktop-customer-card/README.md).
+
 ## 6 Kasım — R1 fiziksel/rezerve/satılabilir; insan kabulü BEKLİYOR
 
 Ajan normal ürün listesi/kartı ve SQL ile 48 fiziksel / 6 rezerve / 42 satılabilir ADET'i, yenilemede kalıcılığı ve taslak iptalinde 48/0/48'e dönüşü doğruladı. Tek deneme taslağı 9 iptal edilmiş belge olarak kaldı; yeni kesin satış veya stok/cari etkisi oluşmadı. Bu K03-07 teknik kanıtıdır; kesin satış iptalini veya gerçek personel/cihaz/LAN/LIVE kabulünü kapatmaz. [Kanıt](docs/evidence/erp/2026-11-06-desktop-stock-availability/README.md).

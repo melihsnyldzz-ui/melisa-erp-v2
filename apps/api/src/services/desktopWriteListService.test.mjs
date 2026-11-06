@@ -2,12 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
 
-function setup({allow=true,guard=true,receiptTotal='50.0000',receiptState='COMPLETED'}={}){
+function setup({allow=true,guard=true,receiptTotal='50.0000',receiptState='COMPLETED',richCards=false,total='1'}={}){
  const calls=[];let committed=0,rolled=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){committed++;}async rollback(){rolled++;}}
- class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,p:this.params});if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:guard?1:0}]};if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:'1'}]};if(q.includes('FROM dbo.sales_invoices i'))return {recordset:[{id:'5',documentNo:'DS-ORIGINAL',documentDate:'2026-11-06',customerName:'Ada',workflowState:receiptState,currency:'TRY',totalExact4:receiptTotal}]};return {recordset:[{id:'1',customerCode:'A',customerName:'Ada',phone:null,city:'Yalova',country:'Türkiye',currency:'TRY',customerType:'customer',balanceExact4:'50.0000'}]};}}
+ class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,p:this.params});if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:guard?1:0}]};if(q.includes('COUNT_BIG(*)'))return {recordset:[{total}]};if(q.includes('FROM dbo.sales_invoices i'))return {recordset:[{id:'5',documentNo:'DS-ORIGINAL',documentDate:'2026-11-06',customerName:'Ada',workflowState:receiptState,currency:'TRY',totalExact4:receiptTotal}]};return {recordset:[{id:'1',customerCode:'A',customerName:'Ada',phone:null,city:'Yalova',country:'Türkiye',currency:'TRY',customerType:'customer',balanceExact4:'50.0000'}]};}}
  const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:1}};
- const service=createDesktopWriteListService({pool:{},sql,verifySession:async x=>{calls.push(x);return allow;}});
+ const service=createDesktopWriteListService({pool:{},sql,richCards,verifySession:async x=>{calls.push(x);return allow;}});
  return {service,calls,get committed(){return committed;},get rolled(){return rolled;}};
 }
 test('same transaction checks target and current authority before escaped paginated data',async()=>{
@@ -15,6 +15,10 @@ test('same transaction checks target and current authority before escaped pagina
  assert.equal(r.data[0].city,'Yalova');assert.equal(r.meta.total,1);assert.equal(x.committed,1);
  assert.equal(x.calls.find(v=>v?.permission)?.permission,'customer.view');
  const query=x.calls.find(v=>v?.q?.includes('OFFSET'));assert.equal(query.p.search,'%~%~_~[%');assert.match(query.q,/is_deleted=0/);assert.match(query.q,/OFFSET @offset/);
+});
+test('rich customer paging keeps the same escaped phone/country predicate and selected page',async()=>{
+ const x=setup({richCards:true,total:'101'}),r=await x.service.list('7','customers',{page:2,limit:1,search:'00555%_[ Türkiye'});assert.equal(r.meta.page,2);assert.equal(r.meta.hasPreviousPage,true);
+ for(const q of x.calls.filter(c=>c?.q?.startsWith('SELECT ')&&(c.q.includes('COUNT_BIG(*)')||c.q.includes('OFFSET')))){assert.match(q.q,/phone LIKE @search ESCAPE N'~'/);assert.match(q.q,/country LIKE @search ESCAPE N'~'/);assert.equal(q.p.offset,1);assert.equal(q.p.search,'%00555~%~_~[ Türkiye%');}
 });
 test('wrong target or revoked permission rolls back without reading business rows',async()=>{
  for(const opts of [{allow:false},{guard:false}]){const x=setup(opts);await assert.rejects(x.service.list('7','customers',{}));assert.equal(x.rolled,1);assert.equal(x.calls.some(v=>v?.q?.includes('OFFSET')),false);}
