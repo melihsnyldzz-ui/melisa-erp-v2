@@ -1,0 +1,9 @@
+{
+  "time": "2026-11-06T04:47:09.4079955Z",
+  "column": "created_at",
+  "state": "READ_ONLY_OBSERVER_QUERY_FAILED",
+  "table": "desktop_sale_workflow_requests",
+  "dmlExecuted": false,
+  "sqlState": "42S22",
+  "ddlExecuted": false
+}

@@ -1,0 +1,42 @@
+{
+  "product": {
+    "requestId": "77a1127f-ce13-4df6-80eb-d07b86aff1d1",
+    "stockCode": "ERP-R1-P7",
+    "name": "ERP R1 SERİ DENEME ÜRÜN 7",
+    "barcode": "ERPTESTR1P7",
+    "unit": "ADET",
+    "currency": "TRY",
+    "salePriceExact4": "12.0000",
+    "purchasePriceExact4": "8.0000",
+    "purchaseDiscountRateExact4": "0.0000",
+    "saleTier": null,
+    "brand": "MELISA TEST",
+    "category": "DENEME TÜRÜ",
+    "supplierId": "1",
+    "openingQuantityExact3": "60.000",
+    "openingDate": "2026-11-06",
+    "openingReason": "Temiz kurulum denemesi: 10 seri x 6 adet = 60 ADET",
+    "seriesFactorExact8": "6.00000000"
+  },
+  "dispatch": {
+    "requestId": "7d17485d-af9e-4bc4-9e42-31dcac5b7a64",
+    "customerId": "3",
+    "invoiceId": "8",
+    "expectedVersion": "0x0000000000054791",
+    "productIds": [
+      "8",
+      "1"
+    ]
+  },
+  "hashes": [
+    {
+      "requestId": "77a1127f-ce13-4df6-80eb-d07b86aff1d1",
+      "payloadHash": "0e4b82acb62b0681e72165964e36ea76d318e568a7a66fe2b057414d38b94103"
+    },
+    {
+      "requestId": "7d17485d-af9e-4bc4-9e42-31dcac5b7a64",
+      "payloadHash": "9c51efa304f1d65cdd3f328efc08675efb35f81d40cd068f31ee6eabb018f221"
+    }
+  ],
+  "noNewRequestIds": true
+}

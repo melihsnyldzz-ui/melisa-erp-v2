@@ -1,3 +1,7 @@
+## 6 Kasım — R1 ADET/seri satışı; insan kabulü BEKLİYOR
+
+Ajan normal ekranda katsayı 6 ile seri ürününü açtı; kesirli seri reddini, 2 SERİ → 12 ADET satışını, hazırlama/kolileme/çıkışı ve yenilemeden sonra fiş/stok/cari sonucunu doğruladı. Bağımsız SQL: fiş 8 toplam 154 TRY, tek müşteri hareketi, ürün 48 ADET / 8 SERİ, müşteri 176 TRY. Aynı isteklerin gerçek HTTP tekrarları ikinci etki oluşturmadı. Kaynak ve kurulu teknik kanıt insan/personel veya fiziksel okuyucu kabulü değildir; özgün sayaçlar değişmedi. [Kanıt](docs/evidence/erp/2026-11-06-desktop-series-units/README.md).
+
 ## 6 Kasım — R1 nedenli ilk stok; insan kabulü BEKLİYOR
 
 Normal ekranda pozitif başlangıç miktarı boş gerekçeyle kaydedilmedi. Gerekçe girilince tek ürün/tek stok hareketi ve aynı hareket-kullanıcı-UUID ile audit detayı oluştu; kart yenilemeden sonra aynı izi gösterdi. Gerçek HTTP tekrarları sonrası bağımsız SQL okuması ikinci hareket/audit oluşmadığını doğruladı. Bu teknik otomasyon kanıtıdır; gerçek personel, fiziksel okuyucu ve LIVE kabulü değildir. Eski hareketlere gerekçe eklenmedi, özgün sayaçlar değişmedi. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md).

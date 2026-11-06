@@ -1,0 +1,47 @@
+{
+  "ddlExecuted": false,
+  "capturedAt": "2026-11-06T05:00:40.3006331Z",
+  "target": {
+    "schemaVersion": 3,
+    "databaseId": 5,
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "server": "Semih\\MELISAERP",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105"
+  },
+  "dmlExecuted": false,
+  "servicesChanged": false,
+  "metadata": {
+    "customerMovement": [
+      {
+        "id": 4,
+        "customer_id": 3,
+        "sales_invoice_id": 8,
+        "movement_type": "sales_invoice",
+        "amount": 154.0,
+        "currency_code": "TRY",
+        "balance_effect": 154.0,
+        "document_date": "2026-11-06",
+        "created_at": "2026-11-06T04:55:20",
+        "created_by": 30002,
+        "account_currency": "TRY",
+        "account_amount": 154.0,
+        "document_exchange_rate_snapshot": 1.0,
+        "account_exchange_rate_snapshot": 1.0,
+        "amount_try": 154.0,
+        "party_entity_id": 4,
+        "party_currency_account_id": 4
+      }
+    ],
+    "account": [
+      {
+        "id": 4,
+        "party_entity_id": 4,
+        "customer_id": 3,
+        "supplier_id": null,
+        "currency_code": "TRY",
+        "balanceExact8": "176.00000000"
+      }
+    ]
+  },
+  "state": "R1_CARD_READ_ONLY_SNAPSHOT"
+}

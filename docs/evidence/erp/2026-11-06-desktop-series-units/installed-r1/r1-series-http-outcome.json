@@ -1,0 +1,40 @@
+{
+  "state": "R1_SERIES_CARD_INVOICE_AND_FIXED_REPLAYS_VERIFIED",
+  "results": [
+    {
+      "case": "series card",
+      "status": 200,
+      "productId": "8",
+      "stockExact3": "48.000"
+    },
+    {
+      "case": "historical base ADET invoice",
+      "status": 200,
+      "invoiceId": "8"
+    },
+    {
+      "case": "same product and units replay",
+      "status": 200,
+      "state": "COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "changed series factor under committed UUID",
+      "status": 503,
+      "state": "UNKNOWN"
+    },
+    {
+      "case": "same physical dispatch replay",
+      "status": 200,
+      "state": "COMMITTED",
+      "replayed": true
+    },
+    {
+      "case": "changed selected-product order under committed UUID",
+      "status": 503,
+      "state": "UNKNOWN"
+    }
+  ],
+  "noNewRequestIds": true,
+  "time": "2026-11-06T05:06:38.113Z"
+}

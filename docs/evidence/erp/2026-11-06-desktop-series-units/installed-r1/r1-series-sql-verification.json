@@ -1,0 +1,103 @@
+{
+  "state": "R1_BASE_ADET_SERIES_CARD_SALE_STOCK_CARI_SQL_VERIFIED",
+  "productId": 8,
+  "invoiceId": 8,
+  "units": [
+    {
+      "id": 8,
+      "product_id": 8,
+      "label": "ADET",
+      "factorExact8": "1.00000000",
+      "is_main": true
+    },
+    {
+      "id": 9,
+      "product_id": 8,
+      "label": "SERİ",
+      "factorExact8": "6.00000000",
+      "is_main": false
+    }
+  ],
+  "seriesAudit": {
+    "id": 30,
+    "actor_user_id": 30002,
+    "action": "sales.series.selection",
+    "entity_id": 8,
+    "requestId": "21f5d2d1-b067-48fd-9850-b33fa13a02ff",
+    "detail": {
+      "kind": "desktop-sale-series-v1",
+      "invoiceId": "8",
+      "actorId": "30002",
+      "requestId": "21f5d2d1-b067-48fd-9850-b33fa13a02ff",
+      "lines": [
+        {
+          "productId": "8",
+          "unitId": "9",
+          "factorExact8": "6.00000000",
+          "seriesQuantityExact3": "2.000",
+          "pieceQuantityExact3": "12.000"
+        }
+      ]
+    }
+  },
+  "sale": {
+    "id": 8,
+    "document_no": "DS-21f5d2d1-b067-48fd-9850-b",
+    "status": "finalized",
+    "customer_id": 3,
+    "workflowState": "COMPLETED",
+    "document_currency": "TRY",
+    "totalExact4": "154.0000",
+    "profitExact4": "52.0000",
+    "items": [
+      {
+        "id": 11,
+        "product_id": 8,
+        "stockCode": "ERP-R1-P7",
+        "quantityExact3": "12.000",
+        "unitPriceExact4": "12.0000",
+        "lineTotalExact4": "144.0000",
+        "costExact4": "8.0000"
+      },
+      {
+        "id": 12,
+        "product_id": 1,
+        "stockCode": "ERP-TEST-P1",
+        "quantityExact3": "1.000",
+        "unitPriceExact4": "10.0000",
+        "lineTotalExact4": "10.0000",
+        "costExact4": "6.0000"
+      }
+    ]
+  },
+  "totalExact4": "154.0000",
+  "profitExact4": "52.0000",
+  "stockAfterExact3": "48.000",
+  "wholeSeriesAfter": "8",
+  "customerBalanceExact4": "176.0000",
+  "accountBalanceExact8": "176.00000000",
+  "customerMovement": {
+    "id": 4,
+    "customer_id": 3,
+    "sales_invoice_id": 8,
+    "movement_type": "sales_invoice",
+    "amount": 154,
+    "currency_code": "TRY",
+    "balance_effect": 154,
+    "document_date": "2026-11-06",
+    "created_at": "2026-11-06T04:55:20",
+    "created_by": 30002,
+    "account_currency": "TRY",
+    "account_amount": 154,
+    "document_exchange_rate_snapshot": 1,
+    "account_exchange_rate_snapshot": 1,
+    "amount_try": 154,
+    "party_entity_id": 4,
+    "party_currency_account_id": 4
+  },
+  "oneCustomerMovement": true,
+  "twoStockOutRows": true,
+  "noDraftStockOrCariEffects": true,
+  "invalidFractionalSeriesNoWrite": true,
+  "time": "2026-11-06T05:06:34.261Z"
+}
