@@ -1,0 +1,34 @@
+{
+  "state": "K02_PACKAGE_SCHEMA_MATCH",
+  "sourceHead": "701bc1b694b2b6393ecaacbefd2e09efb9bde2f1",
+  "sourceInventorySha256": "7dad19e09987d1d94cad69b09cda4de38e2acd71dae97222c52074780ddfb4e9",
+  "sourceDdlRecordSha256": "6468340f1420e77a77b0cc1d8d2c9526330ca726cdf1427047c8974192a6b024",
+  "installedSourceHashesVerified": true,
+  "installedManifestBytesSha256": "99c6da2b7278da9ef4a32f1fac8de57fc01e599db3bd8cd645d3ecc9089d7ae3",
+  "observationSha256": "4fece4310a128f3baa401815e17de54f7af23076dabe8aa6fb4326b672c37fea",
+  "indexOptionsObjectSha256": "09e904b4815922ff329b0c18e75e9c478ef89bb1e6d3b4930720b36378496f55",
+  "target": {
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "schemaVersion": 3,
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1"
+  },
+  "capturedAt": "2026-11-06T02:14:43.6815374Z",
+  "comparedAt": "2026-11-06T02:25:38.087Z",
+  "scope": "All user tables; exact column set/type/size/decimal scale/nullability/identity; all FK mappings/actions/trust; all PK/UQ/explicit index keys/includes/filter/type and disabled/hypothetical/IGNORE_DUP_KEY flags; CHECK name/parent set and enabled/trusted status. No default/CHECK-expression semantic equality claim.",
+  "counts": {
+    "tables": 36,
+    "columns": 422,
+    "foreignKeys": 47,
+    "indexes": 83,
+    "checks": 30
+  },
+  "conditionalDuplicates": [
+    "products.average_cost_try",
+    "sales_invoice_items.average_cost_try_snapshot"
+  ],
+  "diffs": [],
+  "sqlExecuted": false,
+  "installedMetadataReadOnly": true
+}

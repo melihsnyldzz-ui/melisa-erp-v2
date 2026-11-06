@@ -1,0 +1,43 @@
+# Read-only K02-02 observation. No DDL, DML, account or service operations.
+$ErrorActionPreference='Stop';$connection=$null
+try {
+ $connection=[Data.Odbc.OdbcConnection]::new('Driver={ODBC Driver 17 for SQL Server};Server=lpc:Semih\MELISAERP;Database=MELISA_ERP_DESKTOP_TEST_20261105;Trusted_Connection=Yes;Encrypt=No;');$connection.Open()
+ $command=$connection.CreateCommand();$command.CommandTimeout=30
+ $command.CommandText=@'
+SET NOCOUNT ON;SET LOCK_TIMEOUT 5000;
+IF ISNULL(DB_ID(),-1)<>5
+ OR CONVERT(varbinary(256),CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')))<>CONVERT(varbinary(256),N'Semih\MELISAERP')
+ OR DB_NAME() IS NULL OR CONVERT(varbinary(256),DB_NAME())<>CONVERT(varbinary(256),N'MELISA_ERP_DESKTOP_TEST_20261105')
+ OR ISNULL(CONVERT(int,SERVERPROPERTY('ProcessID')),-1)<>5240
+ OR SUSER_SID() IS NULL OR SUSER_SID(ORIGINAL_LOGIN()) IS NULL OR SUSER_SID(N'SEMIH\Xaser') IS NULL
+ OR SUSER_SID()<>SUSER_SID(N'SEMIH\Xaser') OR SUSER_SID(ORIGINAL_LOGIN())<>SUSER_SID(N'SEMIH\Xaser')
+ OR ISNULL(IS_SRVROLEMEMBER(N'sysadmin'),0)<>1 OR ISNULL(CONVERT(nvarchar(40),CONNECTIONPROPERTY('net_transport')),N'')<>N'Shared memory'
+ OR NOT EXISTS(SELECT 1 FROM sys.database_recovery_status WHERE database_id=5 AND database_guid='c67f5317-9c0d-4831-aadd-fadc379a95d1')
+ OR (SELECT COUNT_BIG(*) FROM dbo.desktop_empty_installation)<>1
+ OR NOT EXISTS(SELECT 1 FROM dbo.desktop_empty_installation WHERE id=1 AND environment_id='eb2888c2-51cb-4570-a933-397cf7e62806' AND schema_version=3 AND read_only=0 AND actual_t1=0 AND external_operations=0)
+ THROW 51995,'K02_METADATA_TARGET_REJECTED',1;
+SELECT
+ JSON_QUERY((SELECT SCHEMA_NAME(t.schema_id) [schema],t.name [name] FROM sys.tables t WHERE t.is_ms_shipped=0 ORDER BY [schema],t.name FOR JSON PATH)) tables,
+ JSON_QUERY((SELECT t.name [table],c.name [name],c.column_id ordinal,ty.name [type],c.max_length maxLength,c.precision [precision],c.scale scale,c.is_nullable nullable,c.is_identity [identity],c.is_computed computed,c.is_sparse sparse,c.collation_name collation,
+ CONVERT(varchar(40),ic.seed_value) identitySeed,CONVERT(varchar(40),ic.increment_value) identityIncrement
+ FROM sys.tables t JOIN sys.columns c ON c.object_id=t.object_id JOIN sys.types ty ON ty.user_type_id=c.user_type_id LEFT JOIN sys.identity_columns ic ON ic.object_id=c.object_id AND ic.column_id=c.column_id
+ WHERE t.is_ms_shipped=0 ORDER BY t.name,c.column_id FOR JSON PATH,INCLUDE_NULL_VALUES)) columns,
+ JSON_QUERY((SELECT t.name [table],f.name [name],rt.name refTable,f.is_disabled disabled,f.is_not_trusted untrusted,f.is_not_for_replication notForReplication,f.delete_referential_action_desc deleteAction,f.update_referential_action_desc updateAction,
+ JSON_QUERY((SELECT pc.name [parent],rc.name referenced FROM sys.foreign_key_columns fc JOIN sys.columns pc ON pc.object_id=fc.parent_object_id AND pc.column_id=fc.parent_column_id JOIN sys.columns rc ON rc.object_id=fc.referenced_object_id AND rc.column_id=fc.referenced_column_id WHERE fc.constraint_object_id=f.object_id ORDER BY fc.constraint_column_id FOR JSON PATH)) columns
+ FROM sys.foreign_keys f JOIN sys.tables t ON t.object_id=f.parent_object_id JOIN sys.tables rt ON rt.object_id=f.referenced_object_id ORDER BY t.name,f.name FOR JSON PATH)) foreignKeys,
+ JSON_QUERY((SELECT t.name [table],i.name [name],i.type_desc [type],i.is_unique [unique],i.is_primary_key primaryKey,i.is_unique_constraint uniqueConstraint,i.is_disabled disabled,i.is_hypothetical hypothetical,i.filter_definition filterDefinition,
+ JSON_QUERY((SELECT c.name [name],ic.key_ordinal ordinal,ic.is_descending_key descendingKey FROM sys.index_columns ic JOIN sys.columns c ON c.object_id=ic.object_id AND c.column_id=ic.column_id WHERE ic.object_id=i.object_id AND ic.index_id=i.index_id AND ic.key_ordinal>0 ORDER BY ic.key_ordinal FOR JSON PATH)) keys,
+ JSON_QUERY((SELECT c.name [name] FROM sys.index_columns ic JOIN sys.columns c ON c.object_id=ic.object_id AND c.column_id=ic.column_id WHERE ic.object_id=i.object_id AND ic.index_id=i.index_id AND ic.is_included_column=1 ORDER BY ic.index_column_id FOR JSON PATH)) included
+ FROM sys.tables t JOIN sys.indexes i ON i.object_id=t.object_id AND i.index_id>0 WHERE t.is_ms_shipped=0 ORDER BY t.name,i.name FOR JSON PATH,INCLUDE_NULL_VALUES)) indexes,
+ JSON_QUERY((SELECT t.name [table],ck.name [name],ck.definition,ck.is_disabled disabled,ck.is_not_trusted untrusted FROM sys.check_constraints ck JOIN sys.tables t ON t.object_id=ck.parent_object_id ORDER BY t.name,ck.name FOR JSON PATH)) checks
+FOR JSON PATH,WITHOUT_ARRAY_WRAPPER;
+'@
+ $reader=$command.ExecuteReader();$builder=[Text.StringBuilder]::new()
+ try {while($reader.Read()){[void]$builder.Append($reader.GetString(0))};while($reader.NextResult()){while($reader.Read()){throw 'K02_EXTRA_RESULT'}}}finally{$reader.Dispose();$command.Dispose()}
+ $data=$builder.ToString()|ConvertFrom-Json -AsHashtable
+ $result=@{state='K02_READ_ONLY_METADATA_OBSERVED';capturedAt=[DateTime]::UtcNow.ToString('o');target=@{server='Semih\MELISAERP';database='MELISA_ERP_DESKTOP_TEST_20261105';databaseId=5;databaseGuid='c67f5317-9c0d-4831-aadd-fadc379a95d1';schemaVersion=3};metadata=$data;ddlExecuted=$false;dmlExecuted=$false;servicesChanged=$false}
+ $file='C:\Users\Xaser\Desktop\ERP\kurulum\k02-02-installed-metadata.json'
+ if(Test-Path -LiteralPath $file){throw 'K02_OBSERVATION_ALREADY_EXISTS'}
+ [IO.File]::WriteAllText($file,($result|ConvertTo-Json -Depth 15),[Text.UTF8Encoding]::new($false))
+ [Console]::WriteLine(('READ_ONLY tables={0} columns={1} FK={2} indexes={3}' -f $data.tables.Count,$data.columns.Count,$data.foreignKeys.Count,$data.indexes.Count))
+}finally{if($connection){$connection.Dispose()}}

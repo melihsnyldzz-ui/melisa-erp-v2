@@ -1,3 +1,15 @@
+## 6 Kasım — R1 K02-02/K02-05 şema eşliği ve K01-04 çıkış doğrulandı
+
+Aktif V3 paketi99C6DA2B... değiştirilmeden salt okunur hedef karşılaştırması geçti:36tablo/422kolon/47FK/83indeks tam kaynak eşliği;30CHECK ad/parent+enabled/trusted ve IGNORE_DUP_KEYOFF. Exact701bc1 kaynak/clean tracked tree/184kurulu kaynak hash'i bağlı,13offline bozulmuş capture reddedildi. Normal taze erp_deneme giriş→Çıkış→yenile→Ana sayfa girişte kalma ajan GUI kanıtı eklendi. [K02 karşılaştırması ve sınırlar](docs/evidence/erp/2026-11-06-desktop-k02-schema/README.md). Yeni DDL/DML/kurulum/satış/rollback/servis işlemi yok; insan kabulü açık.
+
+Sıradaki iş: R1 kart atomikliği ve hata/normal oturum/kart/satış kabullerindeki gerçek eksikleri tamamla. Geçerli satış ve restore kanıtlarını yeniden çalıştırma. K07 mal kabul/alış/tedarikçi borcu ikinci teslimdir; kaynak-v4 incelemesi korunur, R1 hazır maddeleri bitmeden genişletilmez.
+
+## 6 Kasım — V3 gerçek kartlar ve yeni satış doğrulandı; insan kabulü bekliyor
+
+V3 apply-v1 ayrı süreçle doğrulandı, gerçek TLS geçti; paket99C6DA2B... / kaynakaf6a94e6 ile normal yeşil ekranda supplier1, marka/tip/supplier bağlı product3 ve şehir/ülkeli customer3 oluştu. Altı aynı-UUID HTTP replay etkileri çoğaltmadı. Yeni kartlarla fiş7 22TRY tamamlandı: P1stok4→3/P3stok3→2, yeni cari/hesap0→22, kâr8.8000; önceki müşteri50 ve finalized/iptal fişleri aynı. [Gerçek SQL/GUI ve sınırlar](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md). Mal kabul/alış, finans, FX ve insan kabulü açık;49+25 sayaç/LIVE değişmedi.
+## 6 Kasım — PR54 kart V3 kaynak ve gerçek geri alma kanıtı; kurulum bekliyor
+
+Müşteri şehir/ülke, ürün marka/tip/aktif tedarikçi ve supplier-only party/para hesabı kaynakta tamamlandı; 58 seçili kaynak dosyası testi geçti. Gerçek V3 DDL/iki dar hak/9→10 rol hakkı tek transaction içinde sınanıp geri alındı; ayrı süreçte 36 tablo metadata/güvenlik ve 33 korunacak tablo hash'leri başlangıçla eşleşti. Önceki UNKNOWN kayıtlar korunup ayrı okumayla uzlaştırıldı. V2 satış uygulaması aynı paketle yeniden açıldı. V3 kalıcı kurulum/normal GUI/insan kabulü henüz yok. [Kanıt](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md). PR70 573539f0 exact Linux/Windows/secret CI geçti; yeni V3 CI henüz yok. Özgün49+25 sayıları ve LIVE aynı.
 ## 6 Kasım 2026 — masaüstü boş TEST: ilk satış, iptal, restore ve fiş
 
 PR54 kaynağı korunarak kullanıcı yetkili masaüstü linked worktree içinde ayrı 36 tabloluk TEST üzerinde çalışıldı. Normal erp_deneme oturumunda müşteri ve iki ürün → taslak → hazırlama/rezerv → iki koli → son kontrol → çıkış → tek finalized satış doğrulandı. Stok 5/6'dan 4/4'e, müşteri ve bağlı TRY hesabı 0'dan 50'ye geldi. Aynı UUID ile iki HTTP tekrarı ek etki üretmedi. İkinci 30 TRY taslak normal ekranda iptal edildi; rezervler bırakıldı, stok ve cari değişmedi.

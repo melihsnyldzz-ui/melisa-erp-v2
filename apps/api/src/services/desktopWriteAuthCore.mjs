@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import nativeSql from 'mssql';
 import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog.js';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
+import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 
 const ISSUER='melisa-desktop-initial',AUDIENCE='melisa-desktop-initial';
 const LOGIN='melisa_desktop_test_writer_20261105';
@@ -57,7 +58,8 @@ export const DESKTOP_WRITE_AUTH_LIMITS=Object.freeze({sourceOnly:true,routeMount
  writerPoolAndTlsOpenerImplemented:false,requiresSameTransactionAuthorityCheck:true,
  userAndRolePermissionsProvisioned:false,realSqlVerified:false,fullErpReady:false});
 
-export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt}={}){
+export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false}={}){
+ if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||!Buffer.isBuffer(tokenKey)||tokenKey.length<32||typeof passwordHasher?.compare!=='function')fail();
  const key=Buffer.from(tokenKey),sessions=new Map(),storage=new AsyncLocalStorage();let closed=false;
  const maxSessions=256;
@@ -66,7 +68,8 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  // after its caller has settled the transaction.
  function prune(){for(const [sid,entry] of sessions)if(entry.expiresAt<=Date.now()&&entry.inflight===0)sessions.delete(sid);}
  const run=(tx,params,statement)=>{const q=new sql.Request(tx);for(const [name,size,value] of params)q.input(name,sql.NVarChar(size),value);return q.query(statement);};
- async function guard(tx){if(one(await run(tx,[],identitySql)).ok!==1)fail();}
+ const profileIdentitySql=richCards?identitySql.replace('schema_version=2','schema_version=3').replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL):identitySql;
+ async function guard(tx){if(one(await run(tx,[],profileIdentitySql)).ok!==1)fail();}
  async function user(tx,{username=null,userId=null}={}){
   const rows=(await run(tx,[['username',80,username],['userId',20,userId]],userSql))?.recordset;
   if(!Array.isArray(rows)||rows.length!==1)fail();const row=rows[0];
@@ -113,10 +116,10 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   return storage.run(ctx,()=>next());
  }
  async function authenticateNormal(req){const ctx=storage.getStore();if(!active(ctx)||ctx.req!==req)fail();return {kind:'normal',userId:ctx.entry.userId,permissions:[...ctx.current.permissions]};}
- async function authorize({actorId,permission}={}){const ctx=storage.getStore();return !!active(ctx)&&ctx.entry.userId===actorId&&['customer.edit','product.edit'].includes(permission)&&ctx.current.permissions.includes(permission);}
+ async function authorize({actorId,permission}={}){const ctx=storage.getStore();return !!active(ctx)&&ctx.entry.userId===actorId&&['customer.edit','product.edit',...(richCards?['supplier.edit']:[])].includes(permission)&&ctx.current.permissions.includes(permission);}
  async function me(req){const ctx=storage.getStore();if(!active(ctx)||ctx.req!==req)fail();return publicUser(ctx.current);}
  async function verifySession({transaction:tx,actorId,permission}={}){
-  const required=Array.isArray(permission)?permission:[permission],allowed=['customer.edit','product.edit','customer.view','product.view','supplier.view','sales.view','sales.create','sales.edit','sales.finalize'];
+  const required=Array.isArray(permission)?permission:[permission],allowed=['customer.edit','product.edit','customer.view','product.view','supplier.view','sales.view','sales.create','sales.edit','sales.finalize',...(richCards?['supplier.edit']:[])];
   const ctx=storage.getStore();if(!active(ctx)||!tx||ctx.leased||actorId!==ctx.entry.userId||required.length<1||required.length>2||new Set(required).size!==required.length||required.some(p=>!allowed.includes(p)||!ctx.current.permissions.includes(p)))return false;
   // Lease before SQL I/O. Concurrent logout marks the token revoked and waits
   // for this operation to commit or roll back; it never returns early.
@@ -129,7 +132,8 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  function bindService(service){
   if(!service||typeof service.createCustomer!=='function'||typeof service.createProduct!=='function')fail();
   const invoke=name=>async(actor,payload)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,payload);}finally{release(ctx);}};
-  return Object.freeze({createCustomer:invoke('createCustomer'),createProduct:invoke('createProduct')});
+  if(richCards&&typeof service.createSupplier!=='function')fail();
+  return Object.freeze({createCustomer:invoke('createCustomer'),createProduct:invoke('createProduct'),...(richCards?{createSupplier:invoke('createSupplier')}:{})});
  }
  function bindReadService(service){
   if(!service||typeof service.list!=='function')fail();

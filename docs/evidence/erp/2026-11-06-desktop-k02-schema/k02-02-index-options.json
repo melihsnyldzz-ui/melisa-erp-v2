@@ -1,0 +1,433 @@
+{
+  "ddlExecuted": false,
+  "target": {
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "schemaVersion": 3
+  },
+  "state": "K02_READ_ONLY_METADATA_OBSERVED",
+  "capturedAt": "2026-11-06T02:20:24.1679898Z",
+  "metadata": {
+    "indexOptions": [
+      {
+        "table": "audit_logs",
+        "name": "IX_audit_logs_actor_date",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "audit_logs",
+        "name": "IX_audit_logs_entity_date",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "audit_logs",
+        "name": "PK_audit_logs",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "auth_refresh_tokens",
+        "name": "IX_auth_refresh_tokens_user_active",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "auth_refresh_tokens",
+        "name": "PK_auth_refresh_tokens",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "auth_refresh_tokens",
+        "name": "UX_auth_refresh_tokens_hash",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "catalog_items",
+        "name": "PK_catalog_items",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "catalogs",
+        "name": "PK_catalogs",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "catalogs",
+        "name": "UQ_catalogs_catalog_no",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "currency_rates",
+        "name": "PK_currency_rates",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "currency_rates",
+        "name": "UQ_currency_rates_code_date",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "customer_movements",
+        "name": "IX_customer_movements_customer_date",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "customer_movements",
+        "name": "IX_customer_movements_sales_invoice",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "customer_movements",
+        "name": "PK_customer_movements",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "customers",
+        "name": "IX_customers_name",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "customers",
+        "name": "PK_customers",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "customers",
+        "name": "UQ_customers_customer_code",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_empty_installation",
+        "name": "PK_desktop_empty_installation",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_empty_installation",
+        "name": "UQ_desktop_empty_installation_environment",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_local_master_requests",
+        "name": "PK_desktop_local_master_requests",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_local_price_units",
+        "name": "PK_desktop_local_price_units",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_local_product_units",
+        "name": "PK_desktop_local_product_units",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_local_product_units",
+        "name": "UQ_desktop_local_units_id_product",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_local_product_units",
+        "name": "UQ_desktop_local_units_label",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_local_product_units",
+        "name": "UX_desktop_local_units_main",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_carton_items",
+        "name": "PK_desktop_sale_carton_items",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_cartons",
+        "name": "PK_desktop_sale_cartons",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_request_resolutions",
+        "name": "PK_desktop_sale_request_resolutions",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_reservations",
+        "name": "IX_desktop_active_reservations",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_reservations",
+        "name": "PK_desktop_sale_reservations",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_reservations",
+        "name": "UQ_desktop_reservation_line",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_workflow_requests",
+        "name": "PK_desktop_sale_workflow_requests",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "desktop_sale_workflows",
+        "name": "PK_desktop_sale_workflows",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "party_currency_accounts",
+        "name": "PK__party_cu__3213E83F3048C628",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "party_currency_accounts",
+        "name": "UX_desktop_v3_supplier_account",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "party_currency_accounts",
+        "name": "UX_party_currency_accounts_source_record",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "party_entities",
+        "name": "PK__party_en__3213E83F09CD5471",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "party_entities",
+        "name": "UX_party_entities_source_record",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "permissions",
+        "name": "PK_permissions",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "permissions",
+        "name": "UQ_permissions_role_key",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "product_barcodes",
+        "name": "PK_product_barcodes",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "product_barcodes",
+        "name": "UX_product_barcodes_active_barcode",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "product_images",
+        "name": "PK_product_images",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "product_prices",
+        "name": "PK__product___3213E83F416F7DB6",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "product_prices",
+        "name": "UX_desktop_local_price_identity",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "product_prices",
+        "name": "UX_product_prices_source_record",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "products",
+        "name": "IX_empty_local_products_supplier",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "products",
+        "name": "IX_products_category_brand",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "products",
+        "name": "IX_products_current_stock_qty",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "products",
+        "name": "IX_products_name",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "products",
+        "name": "PK_products",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "products",
+        "name": "UQ_products_stock_code",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "purchase_invoice_items",
+        "name": "PK_purchase_invoice_items",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "purchase_invoices",
+        "name": "IX_purchase_invoices_document_no",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "purchase_invoices",
+        "name": "IX_purchase_invoices_supplier_date_status",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "purchase_invoices",
+        "name": "PK_purchase_invoices",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "roles",
+        "name": "PK_roles",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "roles",
+        "name": "UQ_roles_code",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "sales_invoice_items",
+        "name": "PK_sales_invoice_items",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "sales_invoice_items",
+        "name": "UX_desktop_sale_item_identity",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "sales_invoices",
+        "name": "IX_sales_invoices_customer_date_status",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "sales_invoices",
+        "name": "IX_sales_invoices_document_no",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "sales_invoices",
+        "name": "PK_sales_invoices",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "stock_movements",
+        "name": "IX_stock_movements_product_date",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "stock_movements",
+        "name": "IX_stock_movements_source",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "stock_movements",
+        "name": "PK_stock_movements",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "supplier_movements",
+        "name": "IX_supplier_movements_purchase_invoice",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "supplier_movements",
+        "name": "IX_supplier_movements_supplier_date",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "supplier_movements",
+        "name": "PK_supplier_movements",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "suppliers",
+        "name": "IX_suppliers_name",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "suppliers",
+        "name": "PK_suppliers",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "suppliers",
+        "name": "UQ_suppliers_supplier_code",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "suppliers",
+        "name": "UX_desktop_v3_supplier_entity",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "system_settings",
+        "name": "PK_system_settings",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "system_settings",
+        "name": "UQ_system_settings_group_key",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "terminal_devices",
+        "name": "PK_terminal_devices",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "terminal_devices",
+        "name": "UQ_terminal_devices_device_code",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "terminal_sync_queue",
+        "name": "IX_terminal_sync_queue_received_at",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "terminal_sync_queue",
+        "name": "IX_terminal_sync_queue_status_device",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "terminal_sync_queue",
+        "name": "PK_terminal_sync_queue",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "terminal_sync_queue",
+        "name": "UQ_terminal_sync_queue_client_request",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "users",
+        "name": "PK_users",
+        "ignoreDupKey": false
+      },
+      {
+        "table": "users",
+        "name": "UQ_users_username",
+        "ignoreDupKey": false
+      }
+    ]
+  },
+  "dmlExecuted": false,
+  "servicesChanged": false
+}

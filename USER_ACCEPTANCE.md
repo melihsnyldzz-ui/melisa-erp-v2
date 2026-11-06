@@ -1,3 +1,10 @@
+## 6 Kasım — V3 gerçek kartlar ve yeni satış doğrulandı; insan kabulü bekliyor
+
+V3 apply-v1 ayrı süreçle doğrulandı, gerçek TLS geçti; paket99C6DA2B... / kaynakaf6a94e6 ile normal yeşil ekranda supplier1, marka/tip/supplier bağlı product3 ve şehir/ülkeli customer3 oluştu. Altı aynı-UUID HTTP replay etkileri çoğaltmadı. Yeni kartlarla fiş7 22TRY tamamlandı: P1stok4→3/P3stok3→2, yeni cari/hesap0→22, kâr8.8000; önceki müşteri50 ve finalized/iptal fişleri aynı. [Gerçek SQL/GUI ve sınırlar](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md). Mal kabul/alış, finans, FX ve insan kabulü açık;49+25 sayaç/LIVE değişmedi.
+## 6 Kasım — ERP06/C06, ERP07/C07 ve ürün kartları; insan kabulü BEKLİYOR
+
+V3 yeni kart kaynakları ve gerçek SQL geri alma denemesi hazır. Kalıcı kurulum ve normal yeşil ekranda tedarikçi/marka/tip/ana tedarikçi kaydı henüz doğrulanmadı; eski insan kabulleri, kişiler, tarihler ve sayaçlar korunur. [Kanıt](docs/evidence/erp/2026-11-06-desktop-master-v3/README.md).
+
 ## 6 Kasım — ERP-UA07 masaüstü boş TEST dilimi; insan kabulü BEKLİYOR
 
 Normal ekranda iki ürünlü TRY satışın taslak, rezerv, koli, son kontrol, çıkış ve listeden tekrar açılması teknik otomasyonla gözlendi. Stok 5/6→4/4, müşteri ve bağlı TRY hesabı 0→50. İkinci hazırlanan taslak iptal edildi; önceki satışın etkileri değişmedi. Gerçek kaynak DB yedeği ayrı izole DB'ye yüklendi; veri ve denetlenen metadata eşliği/CHECKDB ile asıl uygulamanın yeniden açılışı ayrıca doğrulandı. Tek sayfalık A4 PDF incelendi; fiziksel yazıcı test edilmedi.
@@ -405,3 +412,6 @@ Her sonuçta kişi, tarih, TEST adresi/ortamı, denenen paket/commit ve kanıt b
 ## ERP-UA07 / B6 — 24 Ekim 2026 teknik örnek tamam; insan kabulü bekliyor
 
 Özgün ERP-UA07/B04-C04-C05 kaydı sürer; yeni kabul ID'si veya PASS yok. APIb40a0788/web982/clean20261022 yalnız yapay TEST. Ajan normal Semih GUI'de müşteri/0000000000007barkod/2ADET×125,50TRY/taslak10009/finalize/reload/fiş görünümünü doğruladı. Bağımsız SQL stok23→21/müşteri1borcu0→251TRY, birer stok/cari hareketi ve kasa aynı; exact kalıcı draft/finalize replay ikinci etkisiz, farklı body409. Son gönderimi ajan normal GUI'de yaptı; önceki ‘kullanıcı son tıklaması’ bekleme notu artık geçerli değildir. Bu otomatik teknik kanıt personel veya işletme sahibi kabulü değildir. Gerçek kullanıcı/kişi/tarih/açık sonuç **BEKLİYOR**; eski B5 kullanıcı tıklamaları bu kabulü kapatmaz. [Normal satış](http://192.168.1.46:5244/ornek-akis.html#sales), [teknik kanıt](docs/evidence/erp/2026-10-22-clean-shared-install.md).
+# 6 Kasım — R1 K02 şema ve K01 normal çıkış teknik kontrolü
+
+Ajan doğruladı: aktif Desktop V3 TEST36tablo/422kolon/47FK/83indeks kaynak eşliği; taze normal erp_deneme girişinden sonra Çıkış, sayfa yenileme ve Ana sayfa giriş ekranında kaldı. Kanıt: [K02 ve normal oturum](docs/evidence/erp/2026-11-06-desktop-k02-schema/README.md). İnsan/personel ticari kabulü BEKLİYOR. Bu teknik kanıt, önceki insan kabulü kayıtlarının sonucunu değiştirmez; tüm ERP/LAN/LIVE kabulü değildir.
