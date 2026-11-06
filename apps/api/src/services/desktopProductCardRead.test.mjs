@@ -1,14 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
 import {productCardFixture} from './test-fixtures/desktopProductCard.fixture.mjs';
-function setup({allow=true,target=true,missing=false,wrongParent=false,richCards=true,stockOpening=null,badOpening=false}={}){
- const calls=[],card=productCardFixture();let commits=0,rollbacks=0;
+function setup({allow=true,target=true,missing=false,wrongParent=false,richCards=true,stockOpening=null,badOpening=false,reserved='0.500'}={}){
+ const calls=[],card={...productCardFixture(),reservedExact3:reserved,availableExact3:'1.500'};let commits=0,rollbacks=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){commits++;}async rollback(){rollbacks++;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,params:this.params,tx:this.tx});
   if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:target?1:0}]};
   if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:'1'}]};
-  if(q.includes('OFFSET @offset'))return {recordset:[{id:card.id,stockCode:card.stockCode,productName:card.name,unit:card.unit,currency:card.currency,currentStockExact3:card.currentStockExact3,salePriceExact4:card.salePriceExact4,brand:card.brand,category:card.category,supplierId:card.supplierId,supplierName:card.supplierName}]};
-  if(q.includes('FROM dbo.products p WITH(HOLDLOCK)')){const {barcodes,...header}=card;return {recordset:missing?[]:[header]};}
+  if(q.includes('OFFSET @offset'))return {recordset:[{id:card.id,stockCode:card.stockCode,productName:card.name,unit:card.unit,currency:card.currency,currentStockExact3:card.currentStockExact3,salePriceExact4:card.salePriceExact4,brand:card.brand,category:card.category,supplierId:card.supplierId,supplierName:card.supplierName,reservedExact3:card.reservedExact3}]};
+  if(q.includes('FROM dbo.products p WITH(HOLDLOCK)')){const {barcodes,availableExact3,...header}=card;return {recordset:missing?[]:[header]};}
   if(q.includes('SELECT TOP(101)'))return {recordset:card.barcodes.map(b=>wrongParent?{...b,productId:'7'}:b)};
   if(q.includes('FROM dbo.desktop_local_product_units WITH(HOLDLOCK)')){const recordset=[...card.units];Object.defineProperty(recordset,'columns',{value:{id:{type:'varchar'}}});Object.defineProperty(recordset,'toTable',{value:()=>{throw Error('driver helper must not be copied');}});return {recordset};}
   if(q.includes('FROM dbo.audit_logs WITH(HOLDLOCK)'))return {recordset:stockOpening?[{openingJson:JSON.stringify(stockOpening),requestId:stockOpening.requestId,actorId:stockOpening.actorId}]:[]};
@@ -22,6 +22,14 @@ test('product card and all barcode parents use one verified readonly transaction
  const x=setup(),result=await x.service.readProduct('7','6');assert.deepEqual(result,x.card);assert.deepEqual(x.calls.find(c=>c?.permission)?.permission,['product.view','product.edit']);
  const sql=x.calls.filter(c=>c?.q);assert.equal(new Set(sql.map(c=>c.tx)).size,1);assert.ok(sql.slice(1).every(c=>c.params.productId==='6'));assert.equal(x.commits,1);assert.equal(x.rollbacks,0);
  assert.ok(sql.every(c=>!/^\s*(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b/i.test(c.q)));assert.equal(result.barcodes[0].barcode,'000000000005');
+});
+
+test('card and list read active reservations in the same product snapshot; malformed totals fail closed',async()=>{
+ for(const kind of ['card','list']){
+  const x=setup(),result=kind==='card'?await x.service.readProduct('7','6'):(await x.service.list('7','products')).data[0];assert.equal(result.currentStockExact3,'2.000');assert.equal(result.reservedExact3,'0.500');assert.equal(result.availableExact3,'1.500');
+  const q=x.calls.find(c=>c?.q?.includes(kind==='card'?'FROM dbo.products p WITH(HOLDLOCK)':'OFFSET @offset'));assert.match(q.q,/r\.product_id=(?:p|products)\.id AND r\.state='ACTIVE'/);assert.match(q.q,/SUM\(r\.quantity\)/);assert.match(q.q,/WITH\(HOLDLOCK,INDEX\(IX_desktop_active_reservations\)\)/);assert.equal(x.commits,1);
+  for(const reserved of [null,undefined,-1,'-0.001','0.00','bad']){const bad=setup({reserved});if(reserved===undefined)bad.card.reservedExact3=undefined;await assert.rejects(kind==='card'?bad.service.readProduct('7','6'):bad.service.list('7','products'));assert.equal(bad.commits,0);assert.equal(bad.rollbacks,1);}
+ }
 });
 test('opening audit is returned only when its actual stock movement matches the selected product and actor',async()=>{
  const opening={kind:'desktop-product-opening-v1',productId:'6',movementId:'11',actorId:'7',requestId:'6508625b-b648-421b-b7b9-35d4be7c7263',reason:'Açılış sayımı',quantityExact3:'2.000',costExact4:'8.0000',amountTryExact4:'16.0000',documentDate:'2026-11-06',currency:'TRY'};

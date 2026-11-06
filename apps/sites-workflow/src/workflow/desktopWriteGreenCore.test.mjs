@@ -31,6 +31,12 @@ test('normal login enables permitted lists, paging and customer transport; no ot
 test('view-only session cannot create; server list failures never become empty data',async()=>{
  const {core}=fixture(['customer.view']);await core.login('normal','secret');assert.throws(()=>core.create('customers'));await assert.rejects(core.list('products'));await assert.rejects(core.list('customers',1));
 });
+test('rich product list refuses missing or inconsistent stock instead of displaying zero availability',async()=>{
+ const good={id:'6',currentStockExact3:'2.000',reservedExact3:'0.500',availableExact3:'1.500'};
+ for(const row of [good,{...good,reservedExact3:null},{...good,availableExact3:'0.000'},{id:'6',currentStockExact3:'2.000'}]){
+  const x=fixture(['product.view']),original=x.deps.fetch,core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>url.includes('/api/products?')?{ok:true,json:async()=>({success:true,data:[row],meta:{page:1,total:1,hasNextPage:false}})}:original(url,opts)});await core.login('normal','secret');if(row===good)assert.deepEqual((await core.list('products')).data,[row]);else await assert.rejects(core.list('products'));
+ }
+});
 test('restored current account uses server result and logout invalidates existing controller',async()=>{
  const {core,deps}=fixture();await core.login('normal','secret');const writer=core.create('customers');const fresh=createDesktopWriteGreenCore(deps);assert.equal((await fresh.restore()).username,'normal');await core.logout();
  await assert.rejects(writer.create({customerCode:'A',name:'Ada',phone:'555',customerType:'customer',currency:'TRY',city:null,country:null}));
