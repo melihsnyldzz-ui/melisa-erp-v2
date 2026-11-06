@@ -19,8 +19,8 @@
   "realCancellation": false,
   "newGrants": false,
   "currentRuntimeProfile": "desktop-master-v4",
-  "currentRuntimeSource": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
-  "currentRuntimePackage": "df4440b7bdd810beae949823cf1d3e520076a280db53dc68b28bef554a467f3b",
+  "currentRuntimeSource": "770c1e91de1f24b85f718a661bdcacc97e688e58",
+  "currentRuntimePackage": "adea4bafeee5dfa380f810b944c0a305414e2eb760b2fcf3a1c94a6b5fb3652b",
   "humanAcceptance": "PENDING",
   "fullErpReady": false,
   "lineEndings": "V5_NEW_SCRIPTS_LF_WITH_BYTE_PRESERVING_ATTRIBUTES",
@@ -59,5 +59,28 @@
     "parseOnlyAccepted": true,
     "noExecAccepted": true,
     "contextSha256": "4802febcc5756dadfb8eadf02d4940767b4590801a4162f6c508196fc0972b7c"
+  },
+  "p03CiFailure": {
+    "source": "6bed4715bf0ea86c723ff0929f54a7ea092c32ee",
+    "run": 42267044179,
+    "job": 128061673396,
+    "failedTest": "existing audit recheck",
+    "timeoutCause": "UNCONFIRMED_ERROR_DETAILS_WERE_HIDDEN",
+    "testRuntimeMilliseconds": 16155.85,
+    "originalTimeoutMilliseconds": 15000,
+    "sameTestOnPreviousE8Passed": true,
+    "groupingFix": {
+      "originalNegativeCases": 8,
+      "preservedNegativeCases": 8,
+      "groups": 4,
+      "timeoutMilliseconds": 15000,
+      "agentReportedWindowsTargetedPassed": 4,
+      "agentReportedWindowsFullFilePassed": 36,
+      "independentReadOnlyReview": "NO_NEW_P1_P2",
+      "productGuardChanged": false,
+      "fullCiAfterFix": "PENDING"
+    },
+    "otherFullPrRun": 42267051930,
+    "otherFullPrRunResult": "PASS_INCLUDING_WINDOWS"
   }
 }

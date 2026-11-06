@@ -1,3 +1,11 @@
+## Current installation and Windows test investigation
+
+The working V4 now includes installed R2 account history and FX receipt-list fix: source770c1e91, packageadea4baf,225 sources/5 helpers/3 assets. Normal GUI and real reload passed; four independent full metadata observations, including all33 business-table snapshots and identity values, stayed identical. The previous aef/df44 recovery below is historical. A future V5 trial must preserve/restore the newer working R2 package and its source/assets; its exact recovery copy is retained outside Git.
+
+New diagnostic source6bed4715 passed quality/API/canonical/build/secrets; push Windows run42267044179 failed one old P03 audit recheck (8 cases,16.15 seconds with15-second subprocess limit). The old catch hid timeout/signal details; the cause is unconfirmed. The same test passed on e8 and its product/test source had not changed. The PR Windows run is still finishing. No SQL diagnostic was executed.
+
+The narrow test-only correction splits the same8 negative assertions into4 independent two-case subprocesses, each retaining the15-second limit. Failure output now emits only finite fixture category/code/signal/status/timeout fields, not raw PowerShell stderr. No product guard, skip, CI command or timeout is weakened. Agent execution on real Windows:4 focused groups PASS and36/36 full-file PASS; independent readonly review found no new P1/P2. Exact new-head full CI remains required; no in-progress run is cancelled.
+
 ## 6 Kasım — gerçek geçiş denemesi ve sınırlı tanı kaynağı
 
 E8a34d4f'nin iki tam GitHub koşusu Windows dahil PASS oldu; [özet](ci-e8-final-outcome.json). Kullanıcı dar V5 TEST planını ve denemeleri onayladı. Paket804/plan58 ile taze baseline doğrulandı ve rollback bir kez yürütüldü. OdbcException/UNKNOWN sonucu korundu. Ayrı tamamlanmış bağlantı schema4/metadata b251814b…/security ba16496c…/business6dbd8888…/permission identity42 değerlerini birebir aynı buldu. Aday veya rollback başarı kanıtı üretilmedi; APPLY/REVERT/public journal/V5runtime/fiş13 iptali NOT_RUN. Eski aef16a63/df4440b7 kaynak ve asset pinleri geri yüklenip V4 açıldı. İz kayıtları DDL/GRANT'ların geri alındığını gösteriyor; kesin hata nedeni eldeki kayıttan ayrılmadı.
