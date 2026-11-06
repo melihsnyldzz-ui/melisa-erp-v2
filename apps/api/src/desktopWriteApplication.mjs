@@ -1,3 +1,4 @@
+import {createDesktopCustomerLedgerRoutes} from './routes/desktopCustomerLedgerRoutes.mjs';
 // SOURCE ONLY. The sole exported factory accepts a connector issued by the
 // separately verified v2 TLS opener; callers cannot pass a naked SQL pool or
 // a caller-supplied 'verified' flag. Importing opens no listener or database.
@@ -71,6 +72,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  if([4,5].includes(schemaVersion))app.use(createDesktopCustomerAccountRoutes({service,authenticateNormal:auth.authenticateNormal}));
  app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode'],auth.bind);
  app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal,richCards}));
+ if(schemaVersion===5){app.use('/api/desktop-customers',auth.bind);app.use(createDesktopCustomerLedgerRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));}
  app.use('/api/desktop-sale/workflows',auth.bind);
  app.use('/api/desktop-sale/drafts',auth.bind);
  app.use('/api/desktop-sale/draft-preview',auth.bind);

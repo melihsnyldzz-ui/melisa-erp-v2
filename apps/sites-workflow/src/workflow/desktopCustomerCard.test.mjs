@@ -4,3 +4,10 @@ test('selected customer shows literal phone, separate currency balances and open
 test('disposed or foreign customer replies cannot replace a newer card; no-sales view offers no invoice action',async()=>{let resolve;const r=root(),old=mountDesktopCustomerCard({root:r,customerId:'3',load:()=>new Promise(done=>{resolve=done;})});old.dispose();const pendingHtml=r.innerHTML;resolve(customerCardFixture());await tick();assert.equal(r.innerHTML,pendingHtml);const wrong=root();mountDesktopCustomerCard({root:wrong,customerId:'4',load:async()=>customerCardFixture()});await tick();assert.match(wrong.innerHTML,/okunamadı/);
  const c={...customerCardFixture(),salesHistoryAvailable:false,lastSale:null},denied=root();let close=0;mountDesktopCustomerCard({root:denied,customerId:'3',load:async()=>c,onClose:()=>close++});await tick();assert.match(denied.innerHTML,/yetkiniz yok/);assert.doesNotMatch(denied.innerHTML,/data-open-customer-invoice/);denied.click('[data-close-customer]');assert.equal(close,1);
 });
+test('ledger is mounted only for a sales-history-authorized card and disposed replies cannot rewrite the closed card',async()=>{
+ const previous=globalThis.document,panes=[];globalThis.document={createElement(){const p=root();p.setAttribute=()=>{};p.querySelectorAll=()=>[];panes.push(p);return p;}};
+ try{const r=root(),base=r.querySelector.bind(r);r.querySelector=s=>s==='[aria-label="Müşteri kartı"]'?{appendChild(){}}:base(s);let resolve,calls=0;
+  const view=mountDesktopCustomerCard({root:r,customerId:'3',load:async()=>customerCardFixture(),loadLedger:()=>{calls++;return new Promise(done=>{resolve=done;});}});await tick();assert.equal(calls,1);assert.match(panes[0].innerHTML,/Hareketler okunuyor/);view.dispose();const before=panes[0].innerHTML;resolve({});await tick();assert.equal(panes[0].innerHTML,before);
+  const hidden=root(),c={...customerCardFixture(),salesHistoryAvailable:false,lastSale:null};mountDesktopCustomerCard({root:hidden,customerId:'3',load:async()=>c,loadLedger:()=>{calls++;}});await tick();assert.equal(calls,1);assert.match(hidden.innerHTML,/yetkiniz yok/);
+ }finally{globalThis.document=previous;}
+});

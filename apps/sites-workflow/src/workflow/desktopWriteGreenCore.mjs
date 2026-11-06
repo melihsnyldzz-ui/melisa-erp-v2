@@ -10,6 +10,7 @@ import {desktopCompanyRateDate,isDesktopCompanyRates} from '../../../../packages
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCurrencySettlementParity} from '../../../api/src/services/desktopCurrencySettlementParity.mjs';
 import {desktopAccountSalesPage,isDesktopAccountSales} from '../../../../packages/shared/src/desktopAccountSales.mjs';
+import {isDesktopCustomerLedgerView} from './desktopCustomerLedger.mjs';
 import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
 import {createDesktopCustomerAccountCreate,createDesktopCustomerAccountTransport} from './desktopCustomerAccountCreate.mjs';
@@ -86,6 +87,12 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
  async function customerAccountSales(customerId,accountId,page=1){
   if(!richCards||!can('customers')||!can('sales')||!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page))fail();const prior=generation,result=await request('/api/customers/'+customerId+'/accounts/'+accountId+'/sales?page='+page);if(prior!==generation||!can('customers')||!can('sales')||!isDesktopAccountSales(result.data,{customerId,accountId,page}))fail();for(const invoice of result.data.invoices)validateCurrencyAmounts(invoice,{documentCurrency:invoice.currency,documentRateExact8:invoice.documentRateExact8,accountRateExact8:invoice.accountRateExact8});return result.data;
  }
+ async function customerLedger(){
+  if(!richCards||!can('customers')||!can('sales')||!token)fail();const actor=actorId(user.id),prior=generation;
+  const current=()=>{if(prior!==generation||!user||actorId(user.id)!==actor||!can('customers')||!can('sales')||!token)fail();};
+  const info=await runtimeInfo();current();if(info.profile!=='desktop-master-v5'||info.schemaVersion!==5)return null;
+  return Object.freeze({read:async(customerId,accountId,page=1,currency)=>{current();if(!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page)||!['TRY','USD','EUR'].includes(currency))fail();const result=await request('/api/desktop-customers/'+customerId+'/accounts/'+accountId+'/ledger?page='+page);current();if(!isDesktopCustomerLedgerView(result.data,{customerId,accountId,page,currency}))fail();return result.data;}});
+ }
  async function productBarcode(barcode){if(!richCards||!can('products')||!isDesktopBarcode(barcode))fail();const prior=generation,result=await request('/api/desktop-product-barcode?barcode='+encodeURIComponent(barcode));if(prior!==generation||!can('products')||!isDesktopBarcodeLookup(result.data,barcode))fail();return result.data.product;}
- return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,companyRates,customerAccount,productBarcode,customerAccountSales,getUser:()=>user});
+ return Object.freeze({login,restore,logout,list,can,create,sale,productCard,customerCard,runtimeInfo,companyRates,customerAccount,productBarcode,customerAccountSales,customerLedger,getUser:()=>user});
 }

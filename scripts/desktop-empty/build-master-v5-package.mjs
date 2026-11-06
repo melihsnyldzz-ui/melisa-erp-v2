@@ -5,13 +5,15 @@ import {inspectDesktopRuntimeTree} from './sql-login-runtime-integrity.mjs';
 import {compileMasterV5Snapshot} from './master-v5-transition.mjs';
 import {DESKTOP_FINAL_CANCELLATION_EXPORT_BINDING_TEXT} from '../../apps/api/src/services/desktopFinalCancellationExportFence.mjs';
 
-const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1',accountHistoryRoot='C:/Users/Xaser/Desktop/ERP/kaynak-hesap-gecmis';
-if(process.argv.length>3||process.argv.length===3&&!['--prepare-only','--prepare-account-history-only','--prepare-account-history-candidate-only'].includes(process.argv[2]))throw Error('MASTER_V5_PACKAGE_ARGUMENTS');
+const root='C:/Users/Xaser/Desktop/ERP/kaynak-r1',accountHistoryRoot='C:/Users/Xaser/Desktop/ERP/kaynak-hesap-gecmis',customerLedgerRoot='C:/Users/Xaser/Desktop/ERP/kaynak-cari';
+if(process.argv.length>3||process.argv.length===3&&!['--prepare-only','--prepare-account-history-only','--prepare-account-history-candidate-only','--prepare-customer-ledger-candidate-only'].includes(process.argv[2]))throw Error('MASTER_V5_PACKAGE_ARGUMENTS');
 const accountHistoryMode=['--prepare-account-history-only','--prepare-account-history-candidate-only'].includes(process.argv[2]);
-const buildRoot=process.argv[2]==='--prepare-only'?'C:/Users/Xaser/Desktop/ERP/kaynak-birimler':accountHistoryMode?accountHistoryRoot:root,sources={},assets={};
+const customerLedgerMode=process.argv[2]==='--prepare-customer-ledger-candidate-only';
+const buildRoot=process.argv[2]==='--prepare-only'?'C:/Users/Xaser/Desktop/ERP/kaynak-birimler':accountHistoryMode?accountHistoryRoot:customerLedgerMode?customerLedgerRoot:root,sources={},assets={};
 // This option must load compiler, integrity code and binding from the same
 // reviewed tree it scans, rather than importing them from an older checkout.
 if(accountHistoryMode&&path.resolve(fileURLToPath(import.meta.url))!==path.resolve(accountHistoryRoot+'/scripts/desktop-empty/build-master-v5-package.mjs'))throw Error('MASTER_V5_PACKAGE_SOURCE_REJECTED');
+if(customerLedgerMode&&path.resolve(fileURLToPath(import.meta.url))!==path.resolve(customerLedgerRoot+'/scripts/desktop-empty/build-master-v5-package.mjs'))throw Error('MASTER_V5_PACKAGE_SOURCE_REJECTED');
 const hash=f=>createHash('sha256').update(readFileSync(f)).digest('hex');
 const retiredSource='kaynak-'+'v3';
 function assertCurrentSource(text){if(text.includes(retiredSource))throw Error('RETIRED_DESKTOP_SOURCE_PATH');}
@@ -40,6 +42,6 @@ for(const n of ['desktop-write-green.html',...js,...css])assets[n]=hash(web+'/'+
 const helpers={};for(const f of ['scripts/desktop-empty/start-master-v5.ps1','scripts/desktop-empty/stop-master-v5-runtime.ps1','scripts/desktop-empty/readmit-master-v5-runtime.ps1','scripts/desktop-empty/master-v3-runner-common.ps1','scripts/desktop-empty/read-first-sale-operator.ps1','scripts/desktop-empty/invoke-master-v5-sql.ps1','scripts/desktop-empty/read-master-v5-permission-seed.ps1']){assertCurrentSource(readFileSync(buildRoot+'/'+f,'utf8'));helpers[f]=hash(buildRoot+'/'+f);}
 const publicFiles={'kurulum/master-v5-export-journal/desktop-target.json':createHash('sha256').update(DESKTOP_FINAL_CANCELLATION_EXPORT_BINDING_TEXT).digest('hex')};
 const pkg={publicFiles,profile:'desktop-master-v5',sourceRoot:root,createdAt:new Date().toISOString(),sources,helpers,assets,snapshotSqlSha256:compileMasterV5Snapshot().sha256,dependencySha256:inspectDesktopRuntimeTree().sha256};
-const file=process.argv[2]==='--prepare-account-history-candidate-only'?'C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-account-history-candidate-package.json':'C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-package.json',archive='C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-packages';mkdirSync(archive,{recursive:true});
+const file=customerLedgerMode?'C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-customer-ledger-candidate-package.json':process.argv[2]==='--prepare-account-history-candidate-only'?'C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-account-history-candidate-package.json':'C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-package.json',archive='C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-packages';mkdirSync(archive,{recursive:true});
 function retain(bytes){const digest=createHash('sha256').update(bytes).digest('hex'),f=archive+'/'+digest+'.json';if(existsSync(f)){if(hash(f)!==digest)throw Error('PACKAGE_ARCHIVE_DRIFT');}else writeFileSync(f,bytes,{flag:'wx'});}
 if(existsSync(file))retain(readFileSync(file));const bytes=Buffer.from(JSON.stringify(pkg,null,2)+'\n');retain(bytes);writeFileSync(file,bytes);process.stdout.write(JSON.stringify({packageSha256:hash(file),sources:Object.keys(sources).length,assets:Object.keys(assets).length}));

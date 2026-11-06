@@ -22,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
           submodules: false
@@ -51,6 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -102,6 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.3.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
           submodules: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -135,6 +138,17 @@ jobs:
         run: node scripts/ci/run.mjs canonical
       - name: Build web admin and Sites workflow
         run: node scripts/ci/run.mjs build
+      - name: Upload desktop green source build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: desktop-green-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            apps/sites-workflow/dist-desktop-write-green/desktop-write-green.html
+            apps/sites-workflow/dist-desktop-write-green/assets/*.js
+            apps/sites-workflow/dist-desktop-write-green/assets/*.css
+          if-no-files-found: error
+          include-hidden-files: false
+          retention-days: 1
 
   secret-scan:
     name: secret-scan
@@ -144,6 +158,7 @@ jobs:
       - name: Checkout full source history
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
           submodules: false
