@@ -17,7 +17,7 @@ test('server identity, disposable purpose and entirely empty target required',()
 });
 test('exact actual selected-items SQL preserved except target table; synthetic leading zeros retained',()=>{
  const extracted=selectedItemsSQL();const source=fs.readFileSync(new URL('./invoiceDraftService.js',import.meta.url),'utf8');
- assert.equal(extracted.sourceSha256,'02c21a1722b04be1f69455e358b3956c19305c4f5c21c3e9bd2d52d78072f74b');
+ assert.equal(extracted.sourceSha256,'7b8dc7a1d7fb35962480b45f714afc41793537bcd70f2077734288a3413d9124');
  assert.equal(extracted.originalSQLSha256,'17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb');
  const start=source.indexOf('async function insertSelectedSourceSalesItems('),end=source.indexOf('\nasync function ',start+1),body=source.slice(start,end);const actual=body.slice(body.indexOf('.query(`')+8,body.indexOf('`);'));
  assert.equal(extracted.sql.replace('b6_subpath_fixture.items','dbo.sales_invoice_items'),actual);

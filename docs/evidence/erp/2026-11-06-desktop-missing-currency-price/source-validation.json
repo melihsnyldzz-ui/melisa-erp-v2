@@ -1,0 +1,12 @@
+{
+  "state": "SOURCE_PASS_INSTALLATION_PENDING",
+  "base": "0cd4b452b494ac10994506fd823c393005b34b77",
+  "testFiles": 49,
+  "tests": 253,
+  "testLogSha256": "a770120e62d4450b93a9a66b5f4315ec15791d1ec559e70f0adab315277a328e",
+  "buildLogSha256": "58ae3ee4d540b544afae096a20a37f4efe298de6de05e06daad33a7977c12d80",
+  "js": "desktopWriteGreen-BL_xRuB0.js",
+  "review": "READONLY_NO_OPEN_P1_P2",
+  "installed": false,
+  "humanAcceptance": "PENDING"
+}

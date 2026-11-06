@@ -2504,7 +2504,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
 }
 
 export async function cancelSalesInvoice(id, payload = {}, actor = null, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  if(transactionContext?.desktopPrivateSale===true)assertDesktopPrivateSale({transaction:transactionContext.transaction,actor,operation:'sale_cancel',invoiceId:String(id),checkOnly:true});else assertMelisaWriteEnabled();
   const nativeTransaction = isNativeInvoiceTransaction(transactionContext);
   if ((nativeTransaction || transactionContext?.nativeApproval === true) && (!nativeTransaction || transactionContext.nativeApproval !== true)) {
     throw makeServiceError('NATIVE_CANCEL_APPROVAL_REQUIRED', 'Native fiş iptali doğrulanmış yetkili onayı ve dış işlem bağlamı gerektirir.', 403);
@@ -2530,6 +2530,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
     if (!beforeSnapshot) {
       throw makeServiceError('SALES_CANCEL_NOT_FOUND', 'Sales invoice not found', 404);
     }
+    if(transactionContext?.desktopPrivateSale===true)assertDesktopPrivateSale({transaction,actor,operation:'sale_cancel',invoiceId:String(invoiceId),invoice:beforeSnapshot});
+    const desktopCancellationContext=transactionContext?.desktopPrivateSale===true?getDesktopWorkflowCurrencyAccount({transaction,customerId:beforeSnapshot.customerId,invoiceId}):null;
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
     const selectedSale=assertSelectedSaleInvocation(transaction,'sale_cancel',actor,invoiceId,beforeSnapshot);
     if(selectedSale)await assertBusinessInvoiceAccount(sqlDriver,transaction,selectedSale);
@@ -2578,6 +2580,8 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
     for (const item of beforeSnapshot.items) {
       const quantity = safeNumber(item.quantity);
       const amountTry = safeNumber(item.lineTotal) * safeNumber(beforeSnapshot.exchangeRate, 1);
+      const desktopCancellationLine=desktopCancellationContext?.cancellation.stock.find(line=>line.productId===String(item.productId));
+      if(desktopCancellationContext&&!desktopCancellationLine)throw makeServiceError('DESKTOP_CANCEL_LINE_REQUIRED','İptal stok hareketi doğrulanamadı.',409);
       const averageCostTrySnapshot = item.averageCostTry != null && Number.isFinite(Number(item.averageCostTry))
         && Number(item.averageCostTry) >= 0 ? Number(item.averageCostTry) : null;
 
@@ -2602,7 +2606,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
         .input('cancelMovementUnitCostTry', sql.Decimal(18, 4), averageCostTrySnapshot)
         .input('cancelMovementUnitPrice', sql.Decimal(18, 4), Number(item.unitPrice || 0))
         .input('cancelMovementCurrency', sql.NVarChar(3), item.currency)
-        .input('cancelMovementAmountTry', sql.Decimal(18, 4), -amountTry)
+        .input('cancelMovementAmountTry', sql.Decimal(18, 4), desktopCancellationLine?Number(desktopCancellationLine.amountTryExact4):-amountTry)
         .input('cancelMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
         .input('cancelMovementCustomerId', sql.BigInt, beforeSnapshot.customerId)
         .input('cancelMovementCreatedBy', sql.BigInt, actor?.id ? Number(actor.id) : null)
@@ -2687,7 +2691,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
 
     await stampInvoiceMovement(sqlDriver, transaction, 'sales', invoiceId, 'sales_invoice_cancel', settlement, -1,actor);
 
-    await new sqlDriver.Request(transaction)
+    if(!desktopCancellationContext?.preserveLegacyBalance)await new sqlDriver.Request(transaction)
       .input('cancelCustomerBalanceId', sql.BigInt, beforeSnapshot.customerId)
       .input('cancelCustomerBalanceEffect', sql.Decimal(18, 4), settlement.accountAmount)
       .query(`
@@ -2729,6 +2733,7 @@ export async function cancelSalesInvoice(id, payload = {}, actor = null, transac
       afterSnapshot: {
         ...afterSnapshot,
         reason,
+        ...(desktopCancellationContext?{desktopCancellationRequestId:desktopCancellationContext.requestId}:{}),
         reversedStockTotal,
         reversedCustomerAmount,
         warnings,

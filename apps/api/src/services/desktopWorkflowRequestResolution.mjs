@@ -4,10 +4,12 @@ import {createHash} from 'node:crypto';
 import {normalizeDesktopWorkflowTransition} from './desktopSaleWorkflowTransactions.mjs';
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+import {normalizeDesktopSaleCancellation} from '../../../../packages/shared/src/desktopSaleCancellation.mjs';
 const fail=()=>{throw Error('DESKTOP_REQUEST_RESOLUTION_REJECTED');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 export function desktopWorkflowRequestIdentity(actorId,kind,raw){
- if(!id(actorId)||!raw||typeof raw!=='object'||Array.isArray(raw)||!['draft','transition','dispatch'].includes(kind))fail();
+ if(!id(actorId)||!raw||typeof raw!=='object'||Array.isArray(raw)||!['draft','transition','dispatch','cancel'].includes(kind))fail();
+ if(kind==='cancel'){const body=normalizeDesktopSaleCancellation(raw);return {body,hash:createHash('sha256').update(JSON.stringify({actorId,operation:'CANCEL_SALE',command:body})).digest('hex'),requestId:body.requestId,operation:'CANCEL_SALE'};}
  const body=kind==='transition'?normalizeDesktopWorkflowTransition(raw):JSON.parse(JSON.stringify(raw));
  if(typeof body.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.requestId))fail();
  const discounted=kind==='draft'&&Object.hasOwn(body,'discountRateExact4'),fx=kind!=='transition'&&Object.hasOwn(body,'currencySelection');

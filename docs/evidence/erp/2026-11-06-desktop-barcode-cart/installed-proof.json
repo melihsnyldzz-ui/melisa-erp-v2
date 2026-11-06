@@ -1,0 +1,159 @@
+{
+  "state": "INSTALLED_NORMAL_BARCODE_REPEAT_AND_MISSING_BARCODE_NO_BUSINESS_WRITE_VERIFIED",
+  "appSource": "51923ef591dbebece9ba44666d3b9e117231f37c",
+  "pr": 85,
+  "packageSha256": "3d7c5ae1d56f13ffc392b84721f0f2d4f4b41e195665bee87b188e8460a335bf",
+  "previousPackageSha256": "3a972bb8bb79bfe20e8d6328864b67c0c74d9d4c40484cc1dda729cb2a848899",
+  "changedApiSources": [
+    "apps/api/src/desktopWriteApplication.mjs",
+    "apps/api/src/routes/desktopWriteListRoutes.mjs",
+    "apps/api/src/services/desktopWriteAuthCore.mjs",
+    "apps/api/src/services/desktopWriteListService.mjs",
+    "packages/shared/src/desktopBarcodeLookup.mjs"
+  ],
+  "sourceCount": 213,
+  "helperCount": 5,
+  "assetCount": 3,
+  "helpersDependenciesNativeAndSqlSame": true,
+  "r2HistoryIncluded": false,
+  "target": {
+    "schemaVersion": 4,
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105",
+    "databaseId": 5,
+    "server": "Semih\\MELISAERP"
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "businessRowsSha256": "21ce02fd066cbbc4d4ae76471fdde7b3d35c8b429249d615bc4f6a2880ebeb4b",
+  "beforeAfterAll33TablesMetadataIdentitiesAndReservationsIdentical": true,
+  "browser": {
+    "scanOrder": [
+      "000000000092",
+      "000000000093",
+      "000000000092"
+    ],
+    "rows": [
+      {
+        "id": "10",
+        "quantityExact3": "2.000",
+        "priceExact4": "0.7500",
+        "amountExact4": "1.5000"
+      },
+      {
+        "id": "11",
+        "quantityExact3": "1.000",
+        "priceExact4": "0.7500",
+        "amountExact4": "0.7500"
+      }
+    ],
+    "totalExact4": "2.2500",
+    "currency": "USD",
+    "tryEquivalentExact4": "90.0000",
+    "focus": {
+      "activeLabel": "Ürün barkodu",
+      "activeTag": "INPUT"
+    },
+    "missingBarcode": "000000000099",
+    "missingStatus": "Barkodla eşleşen aktif ürün bulunamadı.",
+    "missingKeptRowsAndPreview": true,
+    "draftActionPresent": true,
+    "draftActionClicked": false,
+    "network": {
+      "evidence": "normalized from CUA CDP tool output",
+      "origin": "http://127.0.0.1:4294",
+      "observedRequests": [
+        {
+          "sequence": 198,
+          "responseSequence": 206,
+          "requestId": "51960.111",
+          "path": "/api/desktop-product-barcode?barcode=000000000092",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "sequence": 211,
+          "responseSequence": 219,
+          "requestId": "51960.112",
+          "path": "/api/desktop-product-barcode?barcode=000000000093",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "sequence": 224,
+          "responseSequence": 232,
+          "requestId": "51960.113",
+          "path": "/api/desktop-product-barcode?barcode=000000000092",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "sequence": 240,
+          "responseSequence": 244,
+          "requestId": "51960.114",
+          "path": "/api/desktop-sale/draft-preview",
+          "method": "GET",
+          "status": 200,
+          "productIds": [
+            "10",
+            "11"
+          ],
+          "quantities": [
+            "2.000",
+            "1.000"
+          ],
+          "currency": "USD",
+          "accountId": "7",
+          "documentRateExact8": "40.00000000",
+          "accountRateExact8": "40.00000000"
+        },
+        {
+          "sequence": 256,
+          "responseSequence": 264,
+          "requestId": "51960.115",
+          "path": "/api/desktop-product-barcode?barcode=000000000099",
+          "method": "GET",
+          "status": 404
+        }
+      ],
+      "preflights": 5,
+      "postCountInObservedRange": 0,
+      "range": [
+        198,
+        264
+      ],
+      "olderBufferEvicted": true,
+      "initialWrongWebPortCapturePreserved": "barcode-cart-browser-proof.json"
+    }
+  },
+  "runtime": {
+    "ownerPid": 10276,
+    "ownerBorn": "2026-11-06T16:03:31.831941+03:00",
+    "workerPid": 39656,
+    "workerBorn": "2026-11-06T16:03:42.871987+03:00",
+    "web": "127.0.0.1:5294",
+    "api": "127.0.0.1:4294"
+  },
+  "screenshot": "normal-barcode-preview.png",
+  "screenshotSha256": "74d9e13d7c6dc8fe6e6d9b7acf1e8e93a0ceb8299c317ae3e76503cbf2733fdf",
+  "tests": 328,
+  "testFiles": 56,
+  "ci": {
+    "state": "FULL_EXACT_SOURCE_PASS",
+    "head": "967740b243f7b7efc43fad46a490cfd531c22ea5",
+    "runs": [
+      42225616659,
+      42225610348
+    ],
+    "qualityBuildTest": "PASS",
+    "secretScan": "PASS",
+    "windowsStartup": "PASS",
+    "installedPayloadUnchangedSince": "51923ef591dbebece9ba44666d3b9e117231f37c"
+  },
+  "sqlDdlDmlExecuted": false,
+  "sqlServiceGrantsCredentialsChanged": false,
+  "newBusinessRecords": false,
+  "humanAcceptance": "PENDING",
+  "physicalScannerAcceptance": "PENDING",
+  "time": "2026-11-06T13:12:41.513Z"
+}

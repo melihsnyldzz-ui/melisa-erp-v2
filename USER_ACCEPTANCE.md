@@ -1,3 +1,7 @@
+## 6 Kasım — K03-04 eksik USD fiyatı
+
+Ajan normalGUI/görsel/SQL: PASS. Mevcut ürün2/USDönizleme409açıkuyarı, Taslağıkaydetyok, satışPOST0;33iştablosu/metadata/identity/rezervaynı. İnsan/personel/LAN/terminal/LIVE: BEKLİYOR. Kanıt: docs/evidence/erp/2026-11-06-desktop-missing-currency-price/README.md. Sıradaki ilk satış kontrolü K05-02aynıbarkodun miktar birleşimi; K04-06 ikinci teslimde.
+
 ## 6 Kasım — R1 üç para birimi normal satış
 
 Ajan GUI/görsel/SQL: PASS; fiş12USD/USD,13EUR/USD,14TRY/EUR. Gerçekyenileme/özgünistekkurtarma/tek etki doğrulandı; müşteri TRYbakiyeleri aynı, USD7=2,7354/EUR6=0,5291; stok7/7. Kanıt: docs/evidence/erp/2026-11-06-desktop-fx-sale/README.md. İnsan/personel: BEKLİYOR. LAN/terminal/LIVE ve tümERP kabulü açık. Oturum süresi bitince kolay aynı sayfa yeniden giriş ve kaydedilmemiş koli yeniden açılış UX'i ayrıca açık.

@@ -13,8 +13,9 @@ import {createDesktopSaleAccountPosting} from './desktopSaleAccountPosting.mjs';
 import {prepareDesktopSale} from './desktopSalePreparation.mjs';
 import {getCanonicalBusinessSaleTransaction} from './canonicalBusinessSessionContext.mjs';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
-import {tryAssertDesktopWorkflowDraft} from './desktopWorkflowDraftPrivate.mjs';
-export {getDesktopWorkflowCurrencyAccount} from './desktopWorkflowDraftPrivate.mjs';
+import {tryAssertDesktopWorkflowDraft,getDesktopWorkflowCurrencyAccount as workflowAccountContext} from './desktopWorkflowDraftPrivate.mjs';
+import {tryAssertDesktopFinalCancellation,getDesktopFinalCancellationAccountContext} from './desktopFinalCancellationPrivate.mjs';
+export function getDesktopWorkflowCurrencyAccount(args){return getDesktopFinalCancellationAccountContext(args)??workflowAccountContext(args);}
 const storage=new AsyncLocalStorage(),nativeOwners=new WeakMap();
 const fail=()=>{throw Error('DESKTOP_PRIVATE_SALE_REJECTED');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
@@ -22,6 +23,7 @@ const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab]
 const exact=(v,n,s)=>typeof v==='number'&&Number.isFinite(v)&&v.toFixed(n)===s;
 function competing(tx){if(getCanonicalBusinessSaleTransaction(tx))return true;try{isolatedCopyTransactionContext(tx,{writeRequired:false});return true;}catch(e){if(e?.code!=='ISOLATED_COPY_TRANSACTION_REQUIRED')throw e;return false;}}
 export function assertDesktopPrivateSale({transaction,actor,operation,invoiceId,invoice,checkOnly=false}={}){
+ if(tryAssertDesktopFinalCancellation({transaction,actor,operation,invoiceId,invoice,checkOnly})===true)return true;
  if(tryAssertDesktopWorkflowDraft({transaction,actor,operation,invoiceId,invoice,checkOnly})===true)return true;
  const s=storage.getStore();if(!s?.open||nativeOwners.get(transaction)!==s||s.transaction!==transaction||String(actor?.id)!==s.actorId||s.phase!==operation)fail();
  if(checkOnly)return true;const e=s.prepared.expected,p=s.locked.product,item=invoice?.items?.[0],date=invoice?.documentDate instanceof Date&&!Number.isNaN(invoice.documentDate.valueOf())?invoice.documentDate.toISOString().slice(0,10):invoice?.documentDate;
