@@ -1,3 +1,7 @@
+## 6 Kasım — R1 üç para birimi normal satış
+
+Ajan GUI/görsel/SQL: PASS; fiş12USD/USD,13EUR/USD,14TRY/EUR. Gerçekyenileme/özgünistekkurtarma/tek etki doğrulandı; müşteri TRYbakiyeleri aynı, USD7=2,7354/EUR6=0,5291; stok7/7. Kanıt: docs/evidence/erp/2026-11-06-desktop-fx-sale/README.md. İnsan/personel: BEKLİYOR. LAN/terminal/LIVE ve tümERP kabulü açık. Oturum süresi bitince kolay aynı sayfa yeniden giriş ve kaydedilmemiş koli yeniden açılış UX'i ayrıca açık.
+
 ## 6 Kasım — R1 dövizli satış
 
 Kaynak teknik PASS; normal GUI/SQL kurulumu sırada. İnsan kabulü BEKLİYOR. İki örnek ürünün seçili USD hesabına %3 indirimli satışı, fiş yenileme/yazdırma, stok9/9 ve USD1,455; eski TRY104,32 korunumu ayrıca doğrulanacak. Kaynak kanıtı: docs/evidence/erp/2026-11-06-desktop-fx-sale/README.md. LAN/terminal/LIVE ayrıca açık.

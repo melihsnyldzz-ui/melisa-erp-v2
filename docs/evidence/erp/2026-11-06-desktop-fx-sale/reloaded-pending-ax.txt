@@ -1,0 +1,82 @@
+- complementary:
+  - generic: M
+  - generic: MELİSA ERP
+  - text: Yerel kurulum
+  - text: OTURUM
+  - generic: ERP deneme personeli
+  - generic: İŞLEMLER
+  - navigation:
+    - button "⌂ Ana sayfa":
+      - text: ⌂
+      - generic: Ana sayfa
+    - button "▦ Ürün & stok":
+      - text: ▦
+      - generic: Ürün & stok
+    - button "♙ Müşteriler":
+      - text: ♙
+      - generic: Müşteriler
+    - button "▧ Tedarikçiler":
+      - text: ▧
+      - generic: Tedarikçiler
+    - button "▤ Satış ve hazırlama":
+      - text: ▤
+      - generic: Satış ve hazırlama
+    - button "▣ Fişler":
+      - text: ▣
+      - generic: Fişler
+    - button "◌ Alış · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Alış · Hazırlanıyor
+    - button "◌ Stok hareketleri · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Stok hareketleri · Hazırlanıyor
+    - button "◌ Cari · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Cari · Hazırlanıyor
+    - button "◌ Finans · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Finans · Hazırlanıyor
+    - button "◌ Raporlar · Hazırlanıyor" [disabled]:
+      - text: ◌
+      - generic: Raporlar · Hazırlanıyor
+  - generic: Yerel veritabanı
+- main:
+  - generic: Melisa ERP / Satış ve hazırlama
+  - button "Çıkış yap"
+  - heading "Satış ve hazırlama" [level=1]
+  - status
+  - paragraph: Önceki işlemin sonucu doğrulanmalı.
+  - button "Son işlemi doğrula"
+  - button "İsteği uzlaştır"
+  - heading "DS-da0bb3a5-73af-4981-bb17-5 · ERP KURULUM DENEME" [level=2]
+  - paragraph: Tamamlandı · 2026-11-06
+  - table:
+    - rowgroup:
+      - row "Ürün Miktar Birim fiyat Tutar":
+        - columnheader "Ürün"
+        - columnheader "Miktar"
+        - columnheader "Birim fiyat"
+        - columnheader "Tutar"
+    - rowgroup:
+      - row "ERP-R1-FX2 ERP TEST DÖVİZLİ SATIŞ ÜRÜN 2 1.000 0.7500 USD 0.7500 USD":
+        - cell "ERP-R1-FX2 ERP TEST DÖVİZLİ SATIŞ ÜRÜN 2"
+        - cell "1.000"
+        - cell "0.7500 USD"
+        - cell "0.7500 USD"
+      - row "ERP-R1-FX3 ERP TEST DÖVİZLİ SATIŞ ÜRÜN 3 1.000 0.7500 USD 0.7500 USD":
+        - cell "ERP-R1-FX3 ERP TEST DÖVİZLİ SATIŞ ÜRÜN 3"
+        - cell "1.000"
+        - cell "0.7500 USD"
+        - cell "0.7500 USD"
+  - paragraph: "Ara toplam: 1.5000 USD"
+  - paragraph: "Fiş geneli iskonto %3.0000: 0.0450 USD"
+  - paragraph: Toplam 1.4550 USD
+  - paragraph: "Cari hesaba yansıyan: 1.4550 USD · TRY karşılığı: 58.2000"
+  - paragraph: "Fişte kullanılan kur: 1 USD = 40.00000000 TRY · 1 USD = 40.00000000 TRY"
+  - button "Fişi yenile"
+  - heading "Çeki listesi" [level=3]
+  - list:
+    - listitem: Koli 1 · ERP-R1-FX2 · 1.000
+    - listitem: Koli 1 · ERP-R1-FX3 · 1.000
+  - button "Fişi / çeki listesini yazdır"
+  - button "Yeni satış" [disabled]

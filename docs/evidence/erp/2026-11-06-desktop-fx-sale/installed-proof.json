@@ -1,0 +1,296 @@
+{
+  "state": "INSTALLED_NORMAL_FX_SALE_REOPEN_RELOAD_EXACT_REPLAY_STOCK_ACCOUNT_VERIFIED",
+  "appSource": "0288010b1ed1ba211bcfd607aa983930e8e05924",
+  "pr": 83,
+  "packageSha256": "8b97a133ac4dda19bf611eadbb6b72bd1f0e294bf4cf4d127c76b089288b614a",
+  "sourceCount": 212,
+  "helperCount": 5,
+  "assetCount": 3,
+  "target": {
+    "databaseGuid": "c67f5317-9c0d-4831-aadd-fadc379a95d1",
+    "schemaVersion": 4,
+    "server": "Semih\\MELISAERP",
+    "databaseId": 5,
+    "database": "MELISA_ERP_DESKTOP_TEST_20261105"
+  },
+  "metadataSha256": "b251814b6777ef78ef406115541a24cd9d0a3b804f89e35c6d31c8574c72ee44",
+  "securitySha256": "ba16496c752d410d3461fc061fc202d42b24e916ba90b7099c3bf3d7dd78e15d",
+  "beforeBusinessSha256": "ce6c005d8ab905dc757e308d9b9a667271939927b02f44159d99a9599226a0d1",
+  "afterBusinessSha256": "9a84c8c739db3b5b33e4a95214afd799fa6f247173b2119fa88fb8665f890917",
+  "legacyRowsComparison": {
+    "tables": 33,
+    "result": "IDENTICAL_AFTER_EXCLUDING_ONLY_NEW_ROWS_AND_READ_ONLY_PROJECTION_OF_AUTHORIZED_ACCOUNT_7_BALANCE",
+    "expectedAccount7Change": "0.00000000 -> 1.45500000 USD",
+    "sqlDml": false
+  },
+  "productCreationChanges": [
+    {
+      "table": "audit_logs",
+      "before": 38,
+      "after": 40
+    },
+    {
+      "table": "desktop_local_master_requests",
+      "before": 19,
+      "after": 21
+    },
+    {
+      "table": "desktop_local_price_units",
+      "before": 10,
+      "after": 16
+    },
+    {
+      "table": "desktop_local_product_units",
+      "before": 9,
+      "after": 11
+    },
+    {
+      "table": "product_barcodes",
+      "before": 10,
+      "after": 12
+    },
+    {
+      "table": "product_prices",
+      "before": 10,
+      "after": 16
+    },
+    {
+      "table": "products",
+      "before": 8,
+      "after": 10
+    },
+    {
+      "table": "stock_movements",
+      "before": 17,
+      "after": 19
+    }
+  ],
+  "saleChanges": [
+    {
+      "table": "audit_logs",
+      "before": 40,
+      "after": 44
+    },
+    {
+      "table": "customer_movements",
+      "before": 5,
+      "after": 6
+    },
+    {
+      "table": "desktop_sale_carton_items",
+      "before": 12,
+      "after": 14
+    },
+    {
+      "table": "desktop_sale_cartons",
+      "before": 7,
+      "after": 8
+    },
+    {
+      "table": "desktop_sale_reservations",
+      "before": 14,
+      "after": 16
+    },
+    {
+      "table": "desktop_sale_workflow_requests",
+      "before": 38,
+      "after": 44
+    },
+    {
+      "table": "desktop_sale_workflows",
+      "before": 7,
+      "after": 8
+    },
+    {
+      "table": "party_currency_accounts",
+      "before": 7,
+      "after": 7
+    },
+    {
+      "table": "products",
+      "before": 10,
+      "after": 10
+    },
+    {
+      "table": "sales_invoice_items",
+      "before": 14,
+      "after": 16
+    },
+    {
+      "table": "sales_invoices",
+      "before": 7,
+      "after": 8
+    },
+    {
+      "table": "stock_movements",
+      "before": 19,
+      "after": 21
+    }
+  ],
+  "draftHasStockOrLedgerEffects": false,
+  "replayAll33TablesAndObserverMetadataIdentical": true,
+  "invoice": {
+    "id": 12,
+    "document_no": "DS-da0bb3a5-73af-4981-bb17-5",
+    "documentDate": "2026-11-06",
+    "customer_id": 2,
+    "created_by": 30002,
+    "party_entity_id": 2,
+    "party_currency_account_id": 7,
+    "status": "finalized",
+    "document_currency": "USD",
+    "customer_currency": "TRY",
+    "account_currency": "USD",
+    "totalExact4": "1.4550",
+    "subtotalExact4": "1.5000",
+    "discountExact4": "0.0450",
+    "discountRateExact4": "3.0000",
+    "documentRateExact8": "40.00000000",
+    "accountRateExact8": "40.00000000",
+    "amountTryExact4": "58.2000",
+    "accountAmountExact4": "1.4550",
+    "profitExact4": "42.2000"
+  },
+  "items": [
+    {
+      "id": 19,
+      "sales_invoice_id": 12,
+      "product_id": 10,
+      "quantityExact3": "1.000",
+      "priceExact4": "0.7500",
+      "lineExact4": "0.7500",
+      "costExact4": "8.0000",
+      "profitExact4": "21.1000"
+    },
+    {
+      "id": 20,
+      "sales_invoice_id": 12,
+      "product_id": 11,
+      "quantityExact3": "1.000",
+      "priceExact4": "0.7500",
+      "lineExact4": "0.7500",
+      "costExact4": "8.0000",
+      "profitExact4": "21.1000"
+    }
+  ],
+  "stockMovementCount": 2,
+  "customerMovementCount": 1,
+  "requestJournalCount": 6,
+  "dispatchRequestId": "88dbc8db-0f0e-4a11-88e9-457421ecd9b0",
+  "dispatchPayloadSha256": "b6c54d47c3c533a15edf99e2338dcdde5f17267ee17a3eeef138f2b38a345a1e",
+  "currencyProvenance": {
+    "kind": "desktop-sale-currency-v1",
+    "invoiceId": "12",
+    "actorId": "30002",
+    "requestId": "da0bb3a5-73af-4981-bb17-58397a7eaccc",
+    "documentDate": "2026-11-06",
+    "customerId": "2",
+    "entityId": "2",
+    "accountId": "7",
+    "customerCurrency": "TRY",
+    "documentCurrency": "USD",
+    "accountCurrency": "USD",
+    "selection": {
+      "documentCurrency": "USD",
+      "accountId": "7",
+      "documentRateExact8": "40.00000000",
+      "accountRateExact8": "40.00000000",
+      "documentRateMode": "override",
+      "accountRateMode": "override"
+    },
+    "rateSelections": {
+      "document": {
+        "date": "2026-11-06",
+        "currency": "USD",
+        "rateExact8": "40.00000000",
+        "source": "transaction-override",
+        "companyRateId": null,
+        "companyRateSource": null
+      },
+      "account": {
+        "date": "2026-11-06",
+        "currency": "USD",
+        "rateExact8": "40.00000000",
+        "source": "transaction-override",
+        "companyRateId": null,
+        "companyRateSource": null
+      }
+    },
+    "accountAmountExact4": "1.4550",
+    "amountTryExact4": "58.2000"
+  },
+  "browser": {
+    "state": "NORMAL_REOPEN_REAL_RELOAD_SAME_BODY_UUID_RETRY_200",
+    "initialResponseStatus": 201,
+    "manualFailRequestAccepted": false,
+    "responseHeldUntilInterceptionExpired": true,
+    "documentReload": [
+      {
+        "method": "Network.requestWillBeSent",
+        "url": "http://127.0.0.1:5294/"
+      },
+      {
+        "method": "Network.responseReceived",
+        "url": "http://127.0.0.1:5294/",
+        "status": 200
+      }
+    ],
+    "retryStatus": 200,
+    "retryBody": {
+      "requestId": "88dbc8db-0f0e-4a11-88e9-457421ecd9b0",
+      "customerId": "2",
+      "invoiceId": "12",
+      "expectedVersion": "0x000000000007D7DC",
+      "productIds": [
+        "10",
+        "11"
+      ],
+      "currencySelection": {
+        "documentCurrency": "USD",
+        "accountId": "7",
+        "documentRateExact8": "40.00000000",
+        "accountRateExact8": "40.00000000",
+        "documentRateMode": "stored",
+        "accountRateMode": "stored"
+      },
+      "documentDate": "2026-11-06"
+    },
+    "requestCount": 1,
+    "interceptionCleared": true
+  },
+  "httpChecks": 17,
+  "normalCustomerAccounts": [
+    {
+      "id": 2,
+      "customer_id": 2,
+      "currency_code": "TRY",
+      "balanceExact8": "104.32000000"
+    },
+    {
+      "id": 7,
+      "customer_id": 2,
+      "currency_code": "USD",
+      "balanceExact8": "1.45500000"
+    }
+  ],
+  "screenshot": "completed.png",
+  "screenshotSha256": "038589c5b59dd4d8e78bb688af115acda2c229acbbcc9fe930e034ad58f1b463",
+  "pdf": {
+    "path": "C:/Users/Xaser/Desktop/ERP/output/pdf/dovizli-satis-12.pdf",
+    "sha256": "5ddd86b0e2c5ffc456738105760ebd76c71f27b52d86d5340287666280b843e2",
+    "pages": 1,
+    "page": "A4",
+    "renderVisuallyInspected": true
+  },
+  "schemaChange": false,
+  "grantOrCredentialChange": false,
+  "sqlServiceRestart": false,
+  "companyRateTablePopulated": false,
+  "actualFxSqlCases": [
+    "USD document -> secondary USD account with explicit transaction rate"
+  ],
+  "syntheticNativeCases": "4 account modes x 0/3 percent, cost/rate drift, corruption, actor separation, lost ACK",
+  "humanAcceptance": "PENDING",
+  "otherErpModules": "INCOMPLETE",
+  "time": "2026-11-06T11:56:29.613Z"
+}

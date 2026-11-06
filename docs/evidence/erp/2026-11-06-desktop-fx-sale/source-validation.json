@@ -1,12 +1,32 @@
 {
-  "state": "SOURCE_PASS_INSTALLATION_PENDING",
-  "base": "c57c918f48c3d5ff1baff0e02993c03f092f9269",
-  "tests": 228,
-  "testFiles": 46,
-  "testLogSha256": "61fbdff9c0df973c536e5305b9cfe5ade729a32fc85555dc0d72ae7ce47869f8",
-  "buildLogSha256": "ed5825e8abe0829f3bfd8d21428c045250d96ee3583603ac92c6c9e3ee6bb457",
-  "js": "desktopWriteGreen-BDVune0l.js",
+  "state": "SOURCE_AND_INSTALLED_GUI_SQL_PASS_HUMAN_PENDING",
+  "initialValidation": {
+    "state": "SOURCE_PASS_INSTALLATION_PENDING",
+    "base": "c57c918f48c3d5ff1baff0e02993c03f092f9269",
+    "tests": 228,
+    "testFiles": 46,
+    "testLogSha256": "61fbdff9c0df973c536e5305b9cfe5ade729a32fc85555dc0d72ae7ce47869f8",
+    "buildLogSha256": "ed5825e8abe0829f3bfd8d21428c045250d96ee3583603ac92c6c9e3ee6bb457",
+    "js": "desktopWriteGreen-BDVune0l.js",
+    "review": "READONLY_NO_OPEN_P1_P2",
+    "actualSqlExecuted": false,
+    "humanAcceptance": "PENDING"
+  },
+  "appSource": "0288010b1ed1ba211bcfd607aa983930e8e05924",
+  "branch": "codex/erp-desktop-r1-fx-sale-20261106",
+  "pr": 83,
+  "testFiles": 49,
+  "tests": 252,
+  "testLogSha256": "d2753660c6401429111f3fc5c74303399089b19b961177e7a9fcb8ed8db0d6b0",
+  "buildLogSha256": "307d00d37daad1feb897ebf6a525b75590d4bf74c07641c7f4ffc075eed344bb",
+  "js": "desktopWriteGreen-BTWWAgD5.js",
+  "packageSha256": "8b97a133ac4dda19bf611eadbb6b72bd1f0e294bf4cf4d127c76b089288b614a",
   "review": "READONLY_NO_OPEN_P1_P2",
-  "actualSqlExecuted": false,
+  "normalHttpChecks": 27,
+  "normalSqlInvoices": [
+    12,
+    13,
+    14
+  ],
   "humanAcceptance": "PENDING"
 }
