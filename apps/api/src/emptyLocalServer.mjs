@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {
   EMPTY_LOCAL_PROFILE,EMPTY_LOCAL_IDENTITY_SQL,buildEmptyLocalEnvironment,
   assertEmptyLocalEnvironment,assertEmptyLocalIdentity,registerEmptyLocalContext,
-  assertRegisteredEmptyLocalContext,assertEmptyLocalUser,emptyLocalRequestAllowed,
+  assertRegisteredEmptyLocalContext,assertEmptyLocalUser,emptyLocalRequestAllowed,emptyLocalSqlOptions,
 } from './services/emptyLocalContext.mjs';
 
 let cleanupPools=null;
@@ -27,11 +27,21 @@ export async function startEmptyLocal(secrets){
   for(const key of Object.keys(environment))environment[key]='';
   assertEmptyLocalEnvironment();
   for(const file of ['.env','.env.local'])if(fs.existsSync(path.resolve(file)))throw Error('EMPTY_LOCAL_DOTENV_REJECTED');
+  // Prove the same exact TLS/target tuple before constructing the startup probe.
+  const probeSqlOptions=emptyLocalSqlOptions({
+    port:Number(process.env.API_PORT),sql:{
+      enabled:Boolean(process.env.SQL_PASSWORD),server:process.env.SQL_SERVER,port:Number(process.env.SQL_PORT),
+      database:process.env.SQL_DATABASE,user:process.env.SQL_USER,
+      readOnly:process.env.SQL_READ_ONLY==='true',trustedConnection:process.env.SQL_TRUSTED_CONNECTION==='true',
+      encrypt:process.env.SQL_ENCRYPT==='true',trustServerCertificate:process.env.SQL_TRUST_SERVER_CERTIFICATE==='true',
+      hostNameInCertificate:process.env.SQL_HOST_NAME_IN_CERTIFICATE,
+    },
+  });
   const {default:sql}=await import('mssql');
   const probe=new sql.ConnectionPool({
     server:EMPTY_LOCAL_PROFILE.host,port:EMPTY_LOCAL_PROFILE.sqlPort,
     database:EMPTY_LOCAL_PROFILE.database,user:EMPTY_LOCAL_PROFILE.login,password:process.env.SQL_PASSWORD,
-    options:{encrypt:true,trustServerCertificate:false,readOnlyIntent:true},
+    options:probeSqlOptions,
     connectionTimeout:5000,requestTimeout:5000,pool:{max:1,min:0},
   });
   try{
