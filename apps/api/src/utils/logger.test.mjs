@@ -332,3 +332,9 @@ test('clean settings keeps its exact identity and permission codes without priva
   }
  }
 });
+
+test('customer ledger retains only its two fixed diagnostics and redacts private suffixes',()=>{
+ const codes=['DESKTOP_CUSTOMER_LEDGER_CONFIGURATION','DESKTOP_CUSTOMER_LEDGER_UNAVAILABLE'];
+ for(const code of codes){const result=capture(()=>logger.error('API error normalized',{code,password:'fixture-private-ledger'}));assert.equal(result[0].payload.code,code);assert.doesNotMatch(JSON.stringify(result),/fixture-private-ledger/);}
+ for(const code of [...codes.map(code=>code+'_PRIVATE'),'DESKTOP_CUSTOMER_LEDGER_NEW','private-ledger-message'])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
+});

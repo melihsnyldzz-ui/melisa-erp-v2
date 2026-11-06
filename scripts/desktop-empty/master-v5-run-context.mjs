@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const fail=()=>{throw Error('MASTER_V5_RUN_CONTEXT_INVALID');};
 const hash=/^[a-f0-9]{64}$/;
-const helpers=['scripts/desktop-empty/start-master-v5.ps1','scripts/desktop-empty/stop-master-v5-runtime.ps1','scripts/desktop-empty/readmit-master-v5-runtime.ps1','scripts/desktop-empty/master-v3-runner-common.ps1','scripts/desktop-empty/read-first-sale-operator.ps1','scripts/desktop-empty/invoke-master-v5-sql.ps1'];
+const helpers=['scripts/desktop-empty/start-master-v5.ps1','scripts/desktop-empty/stop-master-v5-runtime.ps1','scripts/desktop-empty/readmit-master-v5-runtime.ps1','scripts/desktop-empty/master-v3-runner-common.ps1','scripts/desktop-empty/read-first-sale-operator.ps1','scripts/desktop-empty/invoke-master-v5-sql.ps1','scripts/desktop-empty/read-master-v5-permission-seed.ps1'];
 const publicName='kurulum/master-v5-export-journal/desktop-target.json',publicHash='d479ab4affb7197b15393e29ae1c6f183f9196e9c8a791ba87dc6944922fa7b6';
 const top=['profile','sourceRoot','createdAt','sources','helpers','assets','publicFiles','snapshotSqlSha256','dependencySha256'];
 
