@@ -1,0 +1,36 @@
+✔ exact cross-currency amounts preserve PR54 policy and actual pinned Decimal wire values (2.0589ms)
+✔ missing/ambiguous rates, same-currency mismatch, overflow, getters and real native decimal divergence fail closed (0.5649ms)
+✔ foreign account posting cannot add its amount to another-currency legacy customer balance; primary account retains exact parity (0.4692ms)
+✔ same transaction posting uses bound actor, account, amount and exact before/after values (1.1794ms)
+✔ unverified transaction, other currency and wrong scope never execute posting SQL (0.4282ms)
+✔ SQL failure propagates so outer transaction can roll back (0.3782ms)
+✔ terminal handoff diagnostic admits only the reviewed code and redacts credentials and suffixes (2.3228ms)
+✔ SQL call vocabulary and ODBC SQLSTATE remain independently bounded and private strings are redacted (0.5317ms)
+✔ SQL diagnostic numeric vocabulary retains exact bounded integers only (1.4801ms)
+✔ copy server-context diagnostic keeps only its exact closed code; synthetic and near-match codes remain redacted (0.3385ms)
+✔ SOURCE collection preparation keeps only its six static codes without admitting private suffixes or caller text (0.4406ms)
+✔ serialized logs completely redact key variants, free text, Error and raw query (0.5423ms)
+✔ preserves typed diagnostics and prevents metadata from overriding trusted envelope (0.561ms)
+✔ format-compatible canaries are not accepted as known operation codes or categories (0.314ms)
+✔ offline price fixture errors stay outside the production diagnostic vocabulary (0.2689ms)
+✔ contact native diagnostics retain only the six closed codes and redact private or invented suffixes (0.3114ms)
+✔ customer master diagnostics retain only five reviewed static codes, never customer text or private suffixes (0.3615ms)
+✔ startup warnings retain distinct static diagnostic codes without accepting new text (0.345ms)
+✔ safe field names do not permit wrong types or unbounded text (0.3244ms)
+✔ cycles, depth, getters, toJSON, proxies and unsupported primitives fail closed without throwing (0.5634ms)
+✔ unknown key names are omitted and known field spelling is canonicalized (0.2105ms)
+✔ log route uses static matched template and does not copy URL, query or parameter values (0.4201ms)
+✔ all current application logger callsites retain their static diagnostic message (171.7375ms)
+✔ request and normalized-error middleware serialize safe routes while retaining public response (49.5499ms)
+✔ native selected collection keeps its exact scope code without opening a prefix vocabulary (0.2507ms)
+✔ clean collection preparation keeps only four reviewed static codes; private suffixes remain redacted (0.2954ms)
+✔ clean network rejection keeps only its reviewed static code (0.1756ms)
+✔ clean settings keeps its exact identity and permission codes without private suffixes (0.2306ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 339.653

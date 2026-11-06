@@ -1,0 +1,101 @@
+{
+  "state": "OFFLINE_NATIVE_FX_AND_PINNED_DRIVER_INVESTIGATION",
+  "syntheticRatesOnly": true,
+  "sqlExecuted": false,
+  "httpExecuted": false,
+  "providerSelected": false,
+  "fixtures": [
+    {
+      "documentCurrency": "TRY",
+      "accountCurrency": "USD",
+      "documentAmountExact4": "82.0000",
+      "syntheticDocumentRateExact8": "1.00000000",
+      "syntheticAccountRateExact8": "40.00000000",
+      "accountAmountExact4": "2.0500",
+      "amountTryExact4": "82.0000",
+      "pinnedDriverParity": true
+    },
+    {
+      "documentCurrency": "TRY",
+      "accountCurrency": "EUR",
+      "documentAmountExact4": "82.0000",
+      "syntheticDocumentRateExact8": "1.00000000",
+      "syntheticAccountRateExact8": "50.00000000",
+      "accountAmountExact4": "1.6400",
+      "amountTryExact4": "82.0000",
+      "pinnedDriverParity": true
+    },
+    {
+      "documentCurrency": "USD",
+      "accountCurrency": "TRY",
+      "documentAmountExact4": "10.0000",
+      "syntheticDocumentRateExact8": "40.00000000",
+      "syntheticAccountRateExact8": "1.00000000",
+      "accountAmountExact4": "400.0000",
+      "amountTryExact4": "400.0000",
+      "pinnedDriverParity": true
+    },
+    {
+      "documentCurrency": "USD",
+      "accountCurrency": "EUR",
+      "documentAmountExact4": "10.0000",
+      "syntheticDocumentRateExact8": "40.00000000",
+      "syntheticAccountRateExact8": "50.00000000",
+      "accountAmountExact4": "8.0000",
+      "amountTryExact4": "400.0000",
+      "pinnedDriverParity": true
+    },
+    {
+      "documentCurrency": "EUR",
+      "accountCurrency": "USD",
+      "documentAmountExact4": "10.0000",
+      "syntheticDocumentRateExact8": "50.00000000",
+      "syntheticAccountRateExact8": "40.00000000",
+      "accountAmountExact4": "12.5000",
+      "amountTryExact4": "500.0000",
+      "pinnedDriverParity": true
+    },
+    {
+      "documentCurrency": "USD",
+      "accountCurrency": "USD",
+      "documentAmountExact4": "10.0000",
+      "syntheticDocumentRateExact8": "40.00000000",
+      "syntheticAccountRateExact8": "40.00000000",
+      "accountAmountExact4": "10.0000",
+      "amountTryExact4": "400.0000",
+      "pinnedDriverParity": true
+    }
+  ],
+  "invalidRateCasesRejected": 6,
+  "storedSnapshotRecalculationVerified": true,
+  "largeNativeNumberDivergenceExamples": [
+    {
+      "inputExact4": "900719925474.0987",
+      "wantedUnits": "9007199254740987",
+      "actualWireUnits": "9007199254740988"
+    },
+    {
+      "inputExact4": "900719925474.0982",
+      "wantedUnits": "9007199254740982",
+      "actualWireUnits": "9007199254740981"
+    },
+    {
+      "inputExact4": "900719925474.0976",
+      "wantedUnits": "9007199254740976",
+      "actualWireUnits": "9007199254740977"
+    },
+    {
+      "inputExact4": "900719925474.0971",
+      "wantedUnits": "9007199254740971",
+      "actualWireUnits": "9007199254740970"
+    },
+    {
+      "inputExact4": "900719925474.0965",
+      "wantedUnits": "9007199254740965",
+      "actualWireUnits": "9007199254740966"
+    }
+  ],
+  "requiresDesktopInputOutputParityGuard": true,
+  "selectedAccountNativePostingStillUnimplemented": true,
+  "time": "2026-11-06T07:40:41.465Z"
+}

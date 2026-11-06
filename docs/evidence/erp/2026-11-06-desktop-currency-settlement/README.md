@@ -1,0 +1,11 @@
+# R1 çapraz döviz — yalnız hesaplama ve sürücü eşliği hazırlığı
+
+Dal `codex/erp-desktop-r1-currency-settlement-20261106`, taban PR77/`1167efa0`. **SOURCE/OFFLINE ONLY.** Çalışan paket206, V4 şema, SQL verileri, servisler, roller ve yetkiler değiştirilmedi. Kur kaynağı şirket kararı için kullanıcıya tek soru iletildi; yanıt olmadan provider, varsayılan kur veya yeni dövizli satış akışı seçilmedi.
+
+PR54 kararı: stok/cari dövizi sabit; fiş dövizi farklı olabilir; kâr/maliyet TRY ve işlem anı kur snapshot'ı korunur. Mevcut `packages/shared/src/currencySettlement.mjs` aynen yeniden kullanılır, değiştirilmedi. Yeni `desktopCurrencySettlementParity.mjs` beş açık scalar girdiyle BigInt half-up sonucunu mevcut native hesaplama ve pinned Number/Tedious decimal yoluyla karşılaştırır. Eksik kur 1 yapılmaz; uyuşmazlık/sınır aşımı reddedilir. Aynı dövizde iki farklı kur reddedilir. Native Number dönüşümünün çok büyük tutarlarda bir decimal birimi kaydırdığı beş somut örnek bağımsız offline araştırmada kaydedildi; yeni guard bunları reddeder.
+
+Altı **sentetik** örnek (piyasa kuru değildir): TRY82→USD2.05 (40), TRY82→EUR1.64 (50), USD10→TRY400 (40), USD10→EUR8 (40/50), EUR10→USD12.5 (50/40), USD10→USD10 (40/40). Testler beklenen tutarları gerçek pinned Tedious Decimal byte çıktısıyla karşılaştırır. Altı geçersiz kur, getter/ek alan, aynı-döviz uyumsuzluğu ve taşma negatifleri ayrıca vardır.
+
+Hesap projeksiyonu seçilen hesap dövizi ana müşteri dövizinden farklıysa yalnız seçilen hesabın etkisini hesaplar; ana legacy bakiye değişmez. Aynı dövizde önceki 4↔8 basamak bakiye eşliği korunur. Negatif önceki bakiye, bozuk kimliksiz girdiler ve driver uyumsuzluğu kapalı kalır. Bu saf hesaplama fonksiyonu bir SQL hesabını/aktörü seçmez veya yazma yetkisi vermez; gerçek transaction ayrıca aktör, müşteri/party/account kimliklerini, tarih ve kur kaynağını kilitleyip doğrulamalıdır. Sıfır tutarın satışa uygunluğu da çağıran işlem kuralındadır.
+
+Dört ilgili dosyada 28 hedefli test ve bağımsız salt okunur kaynak review geçti; finite logger kodu eklendi. **Native invoice/account posting, fiyat/kur kaynağı, preview revision, kalıcı fiş, stok/cari geri okuması ve normal ekran entegrasyonu henüz yapılmadı.** Bu hazırlık K04-03'ü veya başka bir kabul sayacını kapatmaz. Gerçek USD/EUR satış, SQL, GUI, insan/cihaz/LAN/LIVE kabulü yoktur.
