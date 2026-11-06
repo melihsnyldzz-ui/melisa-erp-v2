@@ -10,6 +10,7 @@ function setup({allow=true,target=true,missing=false,wrongParent=false,richCards
   if(q.includes('OFFSET @offset'))return {recordset:[{id:card.id,stockCode:card.stockCode,productName:card.name,unit:card.unit,currency:card.currency,currentStockExact3:card.currentStockExact3,salePriceExact4:card.salePriceExact4,brand:card.brand,category:card.category,supplierId:card.supplierId,supplierName:card.supplierName}]};
   if(q.includes('FROM dbo.products p WITH(HOLDLOCK)')){const {barcodes,...header}=card;return {recordset:missing?[]:[header]};}
   if(q.includes('SELECT TOP(101)'))return {recordset:card.barcodes.map(b=>wrongParent?{...b,productId:'7'}:b)};
+  if(q.includes('FROM dbo.desktop_local_product_units WITH(HOLDLOCK)')){const recordset=[...card.units];Object.defineProperty(recordset,'columns',{value:{id:{type:'varchar'}}});Object.defineProperty(recordset,'toTable',{value:()=>{throw Error('driver helper must not be copied');}});return {recordset};}
   if(q.includes('FROM dbo.audit_logs WITH(HOLDLOCK)'))return {recordset:stockOpening?[{openingJson:JSON.stringify(stockOpening),requestId:stockOpening.requestId,actorId:stockOpening.actorId}]:[]};
   if(q.includes('FROM dbo.stock_movements WITH(HOLDLOCK)')){const {movementId,productId,actorId,quantityExact3,costExact4,amountTryExact4,documentDate,currency}=stockOpening;return {recordset:[{movementId,productId,actorId,quantityExact3:badOpening?'99.000':quantityExact3,costExact4,amountTryExact4,documentDate,currency}]};}
   throw Error('unexpected readonly SQL');}}

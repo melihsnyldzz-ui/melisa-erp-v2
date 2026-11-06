@@ -31,6 +31,8 @@ function fakeDriver({rejectTarget=false,rejectMutation=false,commitLost=false,no
    if(statement.includes('SELECT brand,category,CONVERT'))return {recordset:[{brand:'B',category:'C',supplierId:'51'}]};
    if(statement.includes('END conflictReason')){assert.match(statement,/dbo\.products WITH\(UPDLOCK,HOLDLOCK\)/);assert.match(statement,/dbo\.product_barcodes b WITH\(UPDLOCK,HOLDLOCK\)/);return {recordset:[{conflictReason:productConflictReason}]};}
    if(statement.includes('INSERT dbo.products'))return {recordset:[{id:'81'}]};
+   if(statement.includes('INSERT dbo.desktop_local_product_units')){const rows=this.tx.units??=[];const row={id:String(101+rows.length),productId:this.params.product,label:this.params.label,factorExact8:this.params.factor,isMain:this.params.mainFlag===1};rows.push(row);return {recordset:[{id:row.id}]};}
+   if(statement.includes('FROM dbo.desktop_local_product_units WITH(HOLDLOCK)'))return {recordset:this.tx.units??[]};
    if(statement.includes('INSERT dbo.stock_movements')){this.tx.opening={...this.params};return {recordset:[{id:'91'}]};}
    if(statement.includes('FROM dbo.stock_movements WHERE id=')){const p=this.tx.opening;return {recordset:[{id:'91',productId:p.product,actorId:p.actor,quantityInExact3:p.quantity,quantityOutExact3:'0.000',quantityNetExact3:p.quantity,unitCostTryExact4:p.cost,unitPriceExact4:p.price,amountTryExact4:p.amount,documentDate:p.date,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'}]};}
    if(statement.includes('LOCAL_MASTER_REQUEST_LOCKED'))return {recordset:replayResponse?[{response_json:JSON.stringify(replayResponse)}]:[]};
@@ -181,6 +183,10 @@ test('missing or false current session cannot authorize writing',async()=>{
  const store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>false});
  await store.withTransaction(async tx=>assert.equal(await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'}),false));
  assert.equal(f.log.filter(x=>x.kind==='sql').length,1);
+});
+test('a series product cannot mark unit readback complete before its secondary row exists',async()=>{
+ const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,richCards:true,verifySession:async()=>true}),r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};
+ await assert.rejects(store.withTransaction(async tx=>{await tx.lockAndVerifyAuthority({actorId:'7',permission:'product.edit'});await tx.beginRequest(r);await tx.findProductConflict({stockCode:'P1',barcode:'001'});await tx.lockActiveSupplier({supplierId:'51'});await tx.insertProduct({actorId:'7',stockCode:'P1',unit:'ADET',brand:'B',category:'C',supplierId:'51',initialStockExact3:'0.000',averageCostTryExact4:'5.3000',seriesFactorExact8:'6.00000000'});await tx.insertLocalUnit({productId:'81',label:'ADET',factorExact8:'1.00000000',isMain:true});await tx.readProductUnits({productId:'81'});}),/LOCAL_SQL_ORDER/);assert.equal(f.log.at(-1).kind,'rollback');assert.ok(!f.log.some(x=>x.statement?.includes('FROM dbo.desktop_local_product_units WITH(HOLDLOCK)')));assert.ok(!f.log.some(x=>x.statement?.includes('LOCAL_MASTER_REQUEST_LOCK_REQUIRED')));
 });
 test('direct store caller cannot finish a reasoned opening without its exact audit and readback',async()=>{
  for(const action of ['finish','read-before-append','wrong-reason']){const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,verifySession:async()=>true}),r={requestId:'455de269-8e1f-4f24-9c4a-9677eaad8c63',operation:'product.create',actorId:'7',payloadHash:'ab'.repeat(32)};

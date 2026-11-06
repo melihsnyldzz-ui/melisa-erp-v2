@@ -38,6 +38,7 @@ function memoryStore(){
     async insertOpeningMovement(v){return add(draft,'openings',v);},
     async readOpeningMovement({productId,movementId}){const row=draft.rows.openings.find(v=>v.id===movementId&&v.productId===productId);return {id:row.id,productId:row.productId,actorId:row.actorId,quantityInExact3:row.quantityExact3,quantityOutExact3:'0.000',quantityNetExact3:row.quantityExact3,unitCostTryExact4:row.averageCostTryExact4,unitPriceExact4:row.unitPriceExact4,amountTryExact4:failAt==='opening-readback'?'99.0000':row.amountTryExact4,documentDate:row.documentDate,currency:'TRY',movementType:'in',sourceType:'stock_adjustment',sourceId:null,productMovementCount:'1'};},
     async insertLocalUnit(v){return add(draft,'units',v);},
+    async readProductUnits({productId}){return draft.rows.units.filter(u=>u.productId===productId).map(u=>({...u,...(failAt==='series-unit-readback'&&!u.isMain?{productId:'999'}:{})}));},
     async insertBarcode(v){if(draft.rows.barcodes.some(r=>r.barcode===v.barcode))throw Error('duplicate');return add(draft,'barcodes',{...v,barcodeType:v.barcodeType??'primary',isPrimary:(v.barcodeType??'primary')==='primary',isActive:true});},
     async insertNativePrice(v){return add(draft,'prices',v);},
     async linkLocalPriceUnit(v){if(failAt!=='link-noop')add(draft,'links',v);},
@@ -70,6 +71,12 @@ function memoryStore(){
 const system=s=>createLocalMasterTransactions({store:s,authorize:async()=>true});
 const supplier=()=>({requestId:'12171000-6f42-4f19-8cab-9f4539618647',supplierCode:'T1',name:'Tedarik',phone:'555',city:'İstanbul',country:'Türkiye',currency:'TRY',purchaseDiscountRateExact4:'12.5000'});
 const rich=s=>createLocalMasterTransactions({store:s,authorize:async()=>true,richCards:true});
+test('series creates a secondary multiplier while base stock and price stay ADET and exact replay stays immutable',async()=>{
+ const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,seriesFactorExact8:'6.00000000',openingQuantityExact3:'60.000',openingDate:'2026-11-06',openingReason:'Yeni TEST seri stoğu'};
+ s.loseCommit();assert.equal((await svc.createProduct('7',p)).state,'UNKNOWN');const before=s.snapshot(),replay=await svc.createProduct('7',p);assert.equal(replay.replayed,true);assert.equal(replay.entity.units.length,2);assert.deepEqual(replay.entity.units.map(u=>[u.label,u.factorExact8,u.isMain]),[['ADET','1.00000000',true],['SERİ','6.00000000',false]]);assert.equal(replay.entity.prices.length,1);assert.equal(replay.entity.prices[0].unitId,replay.entity.units[0].id);assert.equal(before.rows.products[0].initialStockExact3,'60.000');assert.equal(before.rows.openings.length,1);assert.deepEqual(s.snapshot(),before);assert.equal((await svc.createProduct('7',{...p,seriesFactorExact8:'7.00000000'})).state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);
+ for(const factor of ['1.00000000','6.5','0.00000000','1000001.00000000']){const invalid=memoryStore();assert.equal((await rich(invalid).createProduct('7',{...p,seriesFactorExact8:factor})).state,'UNKNOWN');assert.equal(invalid.calls(),0);}
+});
+test('foreign secondary unit readback rolls back every series product row',async()=>{const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id,before=s.snapshot();s.failAt('series-unit-readback');const result=await svc.createProduct('7',{...product(),unit:'ADET',currency:'TRY',brand:'B',category:'C',supplierId,seriesFactorExact8:'6.00000000'});assert.equal(result.state,'UNKNOWN');assert.deepEqual(s.snapshot(),before);});
 test('opening reason is bound to movement, actor and request in the same atomic audit; replay adds no effects',async()=>{
  const s=memoryStore(),svc=rich(s),supplierId=(await svc.createSupplier('7',supplier())).entity.id;
  const p={...product(),unit:'ADET',currency:'TRY',purchaseDiscountRateExact4:'0.0000',brand:'B',category:'C',supplierId,openingQuantityExact3:'2.000',openingDate:'2026-11-06',openingReason:'Yeni ürünün sayılmış başlangıç stoğu'};

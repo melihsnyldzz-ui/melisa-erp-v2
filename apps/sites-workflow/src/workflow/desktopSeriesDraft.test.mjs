@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {desktopSeriesDraftItems} from './desktopSeriesDraft.mjs';
+const input=()=>({productIds:['7','8'],quantities:['2','1'],quantityUnits:['SERİ','ADET'],preview:{products:[{productId:'7',unit:'ADET',seriesUnit:{unitId:'71',factorExact8:'6.00000000'}},{productId:'8',unit:'ADET'}]}});
+test('a draft uses verified preview units and freezes entered series beside converted ADET',()=>{const x=input(),items=desktopSeriesDraftItems(x);assert.deepEqual(items,[{productId:'7',quantityExact3:'12.000',series:{unitId:'71',factorExact8:'6.00000000',quantityExact3:'2.000'}},{productId:'8',quantityExact3:'1.000'}]);assert.deepEqual(x.quantities,['2','1']);});
+test('missing, foreign, fractional or overflowing series cannot become a queued draft',()=>{for(const mutate of [x=>{x.preview.products[0].productId='8';},x=>{delete x.preview.products[0].seriesUnit;},x=>{x.preview.products[0].seriesUnit.factorExact8='6.50000000';},x=>{x.quantities[0]='2.5';},x=>{x.quantities[0]='9999999999999';},x=>{x.quantityUnits[1]='SERİ';}]){const x=input();mutate(x);assert.throws(()=>desktopSeriesDraftItems(x));}});

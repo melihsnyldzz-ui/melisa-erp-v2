@@ -2,6 +2,10 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWorkflowClient} from './desktopWorkflowClient.mjs';
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
 const locks={request:async(_k,_options,fn)=>fn({})},uuid='da171000-6f42-4f19-8cab-9f4539618647';
+test('lost series draft keeps the entered unit and multiplier unchanged across remount and retry',async()=>{
+ const storage=memory(),calls=[];let lost=true;const args={actorId:'8',storage,locks,newId:()=>uuid,submit:async(kind,body)=>{calls.push({kind,body:structuredClone(body)});if(lost)throw Error('lost');return {state:'COMMITTED',requestId:body.requestId,invoiceId:'12',workflowState:'DRAFT',version:'0x0000000000000001',replayed:true};}};
+ const payload={customerId:'2',documentDate:'2026-11-06',expectedRevision:'a'.repeat(64),items:[{productId:'5',quantityExact3:'12.000',series:{unitId:'53',factorExact8:'6.00000000',quantityExact3:'2.000'}},{productId:'9',quantityExact3:'1.000'}]};assert.equal((await createDesktopWorkflowClient(args).create('draft',payload)).state,'UNKNOWN');payload.items[0].series.factorExact8='7.00000000';lost=false;const restored=createDesktopWorkflowClient(args);assert.equal(restored.pending().body.items[0].series.factorExact8,'6.00000000');assert.equal((await restored.retry()).state,'COMMITTED');assert.deepEqual(calls[0],calls[1]);assert.equal(restored.pending(),null);
+});
 
 test('uncertain cancellation keeps the original command and accepts its exact committed replay',async()=>{
  const storage=memory();let lost=true;const calls=[];const args={actorId:'8',storage,locks,newId:()=>uuid,submit:async(kind,body)=>{calls.push({kind,body});if(lost)throw Error('lost');return {state:'COMMITTED',requestId:body.requestId,invoiceId:body.invoiceId,workflowState:'CANCELLED',version:'0x0000000000000002',replayed:true};}};

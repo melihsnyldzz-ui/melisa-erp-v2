@@ -1,3 +1,7 @@
+## 6 Kasım — R1 ADET/seri dönüşümü kaynak çalışması hazır
+
+K03-03 / DES-04 kayıtlı kararıyla ana ADET 1 korunuyor, opsiyonel tam seri katsayısı mevcut birim tablosuna aynı ürün transactionında yazılıp okunuyor. Önizleme ürün/ikincil birim/katsayı revision'ına bağlı; seri miktarı sunucuda tekrar doğrulanarak ADET'e çevriliyor. Fiş, stok ve fiyat ana birimde; girilen seri/katsayı/UUID draft auditinde kalıcı. Eski gövde ve journal tekrarları değişmiyor. 67 ilgili test dosyası, guardlı derleme ve bağımsız inceleme geçti. [Kaynak sözleşmesi](docs/evidence/erp/2026-11-06-desktop-series-units/README.md). Sırada R1 paket geçişi, normal seri ürün/satış ve bağımsız SQL kabulü var. DDL/yetki yok; K07 ikinci teslim olarak kalıyor.
+
 ## 6 Kasım — R1 nedenli başlangıç stoğu kurulu GUI/SQL ile doğrulandı
 
 Kaynak `d191a378`, paket `70BCEFC2...` / 188 kaynak / 5 yardımcı / 3 ekran dosyası. Normal ekranda boş gerekçe pozitif açılışı başlatmadı; 23 operasyonel tablo, journal ve identity aynı kaldı. Gerekçe girilince product 7 için tek hareket 12 (2 ADET × 8 TRY = 16 TRY) ve aynı kullanıcı/UUID/gerekçeyle audit 27 oluştu. Kart yenilemeden sonra izi tekrar gösterdi. Gerçek aynı-gövde replay ve farklı gerekçeli aynı UUID denemesi ikinci ürün/hareket/audit üretmedi; bağımsız SQL ile doğrulandı. [Kurulu kanıt](docs/evidence/erp/2026-11-06-desktop-opening-reason/README.md). Şema, yetki ve SQL servisi aynı; eski ürün/cari değerleri korundu. İnsan/LAN/LIVE kabulü açık.
