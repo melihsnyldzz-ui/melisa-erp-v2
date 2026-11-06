@@ -1,0 +1,874 @@
+[
+  {
+    "conclusion": "success",
+    "headSha": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-06T14:23:25Z",
+        "conclusion": "success",
+        "databaseId": 127944797420,
+        "name": "secret-scan",
+        "startedAt": "2026-11-06T14:23:06Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:08Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:15Z",
+            "conclusion": "success",
+            "name": "Checkout full source history",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:22Z",
+            "conclusion": "success",
+            "name": "Scan reachable history with pinned Gitleaks and masked findings",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:22Z",
+            "conclusion": "success",
+            "name": "Post Checkout full source history",
+            "number": 6,
+            "startedAt": "2026-11-06T14:23:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:23Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "startedAt": "2026-11-06T14:23:22Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233426771/job/127944797420"
+      },
+      {
+        "completedAt": "2026-11-06T14:23:17Z",
+        "conclusion": "success",
+        "databaseId": 127944797715,
+        "name": "change-impact",
+        "startedAt": "2026-11-06T14:23:06Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:07Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:11Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:14Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:15Z",
+            "conclusion": "success",
+            "name": "Classify the exact GitHub event",
+            "number": 4,
+            "startedAt": "2026-11-06T14:23:14Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:15Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 7,
+            "startedAt": "2026-11-06T14:23:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:16Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-06T14:23:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:16Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-06T14:23:16Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233426771/job/127944797715"
+      },
+      {
+        "completedAt": "2026-11-06T14:26:30Z",
+        "conclusion": "success",
+        "databaseId": 127944797948,
+        "name": "quality-build-test",
+        "startedAt": "2026-11-06T14:23:06Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:07Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:12Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:15Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:17Z",
+            "conclusion": "success",
+            "name": "Validate change-impact boundaries",
+            "number": 4,
+            "startedAt": "2026-11-06T14:23:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:26Z",
+            "conclusion": "success",
+            "name": "Install locked dependencies without lifecycle scripts",
+            "number": 5,
+            "startedAt": "2026-11-06T14:23:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:26Z",
+            "conclusion": "success",
+            "name": "Verify the offline boundary",
+            "number": 6,
+            "startedAt": "2026-11-06T14:23:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:01Z",
+            "conclusion": "success",
+            "name": "JavaScript syntax and basic quality",
+            "number": 7,
+            "startedAt": "2026-11-06T14:23:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:31Z",
+            "conclusion": "success",
+            "name": "API unit tests with synthetic boundaries",
+            "number": 8,
+            "startedAt": "2026-11-06T14:24:01Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:32Z",
+            "conclusion": "success",
+            "name": "Web admin calculation tests",
+            "number": 9,
+            "startedAt": "2026-11-06T14:24:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:49Z",
+            "conclusion": "success",
+            "name": "Sites workflow unit tests",
+            "number": 10,
+            "startedAt": "2026-11-06T14:24:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:25:05Z",
+            "conclusion": "success",
+            "name": "Migration models with synthetic data only",
+            "number": 11,
+            "startedAt": "2026-11-06T14:24:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:26:18Z",
+            "conclusion": "success",
+            "name": "Canonical SQL source checks without SQL access",
+            "number": 12,
+            "startedAt": "2026-11-06T14:25:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:26:28Z",
+            "conclusion": "success",
+            "name": "Build web admin and Sites workflow",
+            "number": 13,
+            "startedAt": "2026-11-06T14:26:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:26:28Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 25,
+            "startedAt": "2026-11-06T14:26:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:26:28Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 26,
+            "startedAt": "2026-11-06T14:26:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:26:28Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-11-06T14:26:28Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233426771/job/127944797948"
+      },
+      {
+        "completedAt": "2026-11-06T14:49:11Z",
+        "conclusion": "success",
+        "databaseId": 127944912076,
+        "name": "windows-startup-test",
+        "startedAt": "2026-11-06T14:23:20Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:23Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:44Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:10Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:30:50Z",
+            "conclusion": "success",
+            "name": "B6 finite native profile and rollback with isolated source fixtures",
+            "number": 4,
+            "startedAt": "2026-11-06T14:24:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:30:54Z",
+            "conclusion": "success",
+            "name": "Windows owner and single-instance startup boundaries",
+            "number": 5,
+            "startedAt": "2026-11-06T14:30:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:30:56Z",
+            "conclusion": "success",
+            "name": "Native Windows carton ACL module discovery",
+            "number": 6,
+            "startedAt": "2026-11-06T14:30:54Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:30:58Z",
+            "conclusion": "success",
+            "name": "P03 Hub lineage PowerShell 5 source boundaries",
+            "number": 7,
+            "startedAt": "2026-11-06T14:30:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:32:55Z",
+            "conclusion": "success",
+            "name": "P03 physical recovery and isolated rehearsal source boundaries",
+            "number": 8,
+            "startedAt": "2026-11-06T14:30:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:34:49Z",
+            "conclusion": "success",
+            "name": "Windows PowerShell 5 empty-port process probe with in-memory OS fixtures",
+            "number": 9,
+            "startedAt": "2026-11-06T14:32:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:35:10Z",
+            "conclusion": "success",
+            "name": "P03 offline OLD PID diagnostics and private failure recorder",
+            "number": 10,
+            "startedAt": "2026-11-06T14:34:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:36:48Z",
+            "conclusion": "success",
+            "name": "Current ERP CRM startup profile with in-memory settings and PS policy fixtures",
+            "number": 11,
+            "startedAt": "2026-11-06T14:35:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:36:59Z",
+            "conclusion": "success",
+            "name": "Current shared protection and immutable failed-run binding",
+            "number": 12,
+            "startedAt": "2026-11-06T14:36:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:37:03Z",
+            "conclusion": "success",
+            "name": "Clean backup preflight guards with offline PowerShell fixtures",
+            "number": 13,
+            "startedAt": "2026-11-06T14:36:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:37:55Z",
+            "conclusion": "success",
+            "name": "Fixed clean B5 pair transition with isolated source fixtures",
+            "number": 14,
+            "startedAt": "2026-11-06T14:37:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:38:28Z",
+            "conclusion": "success",
+            "name": "Clean WEB owner birth and cooperative handoff on own temporary children",
+            "number": 15,
+            "startedAt": "2026-11-06T14:37:55Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:38:38Z",
+            "conclusion": "success",
+            "name": "Clean WEB host adapter with pinned own temporary children",
+            "number": 16,
+            "startedAt": "2026-11-06T14:38:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:49:08Z",
+            "conclusion": "success",
+            "name": "Business 5244 cooperative exclusion and owned native lifetime",
+            "number": 17,
+            "startedAt": "2026-11-06T14:38:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:49:08Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 33,
+            "startedAt": "2026-11-06T14:49:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:49:10Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 34,
+            "startedAt": "2026-11-06T14:49:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:49:10Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 35,
+            "startedAt": "2026-11-06T14:49:10Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233426771/job/127944912076"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233426771"
+  },
+  {
+    "conclusion": "success",
+    "headSha": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-06T14:25:59Z",
+        "conclusion": "success",
+        "databaseId": 127944761490,
+        "name": "quality-build-test",
+        "startedAt": "2026-11-06T14:23:02Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:05Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:10Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:16Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:18Z",
+            "conclusion": "success",
+            "name": "Validate change-impact boundaries",
+            "number": 4,
+            "startedAt": "2026-11-06T14:23:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:26Z",
+            "conclusion": "success",
+            "name": "Install locked dependencies without lifecycle scripts",
+            "number": 5,
+            "startedAt": "2026-11-06T14:23:18Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:26Z",
+            "conclusion": "success",
+            "name": "Verify the offline boundary",
+            "number": 6,
+            "startedAt": "2026-11-06T14:23:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:56Z",
+            "conclusion": "success",
+            "name": "JavaScript syntax and basic quality",
+            "number": 7,
+            "startedAt": "2026-11-06T14:23:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:21Z",
+            "conclusion": "success",
+            "name": "API unit tests with synthetic boundaries",
+            "number": 8,
+            "startedAt": "2026-11-06T14:23:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:21Z",
+            "conclusion": "success",
+            "name": "Web admin calculation tests",
+            "number": 9,
+            "startedAt": "2026-11-06T14:24:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:35Z",
+            "conclusion": "success",
+            "name": "Sites workflow unit tests",
+            "number": 10,
+            "startedAt": "2026-11-06T14:24:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:24:47Z",
+            "conclusion": "success",
+            "name": "Migration models with synthetic data only",
+            "number": 11,
+            "startedAt": "2026-11-06T14:24:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:25:48Z",
+            "conclusion": "success",
+            "name": "Canonical SQL source checks without SQL access",
+            "number": 12,
+            "startedAt": "2026-11-06T14:24:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:25:56Z",
+            "conclusion": "success",
+            "name": "Build web admin and Sites workflow",
+            "number": 13,
+            "startedAt": "2026-11-06T14:25:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:25:56Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 25,
+            "startedAt": "2026-11-06T14:25:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:25:56Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 26,
+            "startedAt": "2026-11-06T14:25:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:25:56Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 27,
+            "startedAt": "2026-11-06T14:25:56Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233416532/job/127944761490"
+      },
+      {
+        "completedAt": "2026-11-06T14:23:20Z",
+        "conclusion": "success",
+        "databaseId": 127944761892,
+        "name": "change-impact",
+        "startedAt": "2026-11-06T14:23:02Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:04Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:13Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:16Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:16Z",
+            "conclusion": "success",
+            "name": "Classify the exact GitHub event",
+            "number": 4,
+            "startedAt": "2026-11-06T14:23:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:17Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 7,
+            "startedAt": "2026-11-06T14:23:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:17Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-06T14:23:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:17Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-06T14:23:17Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233416532/job/127944761892"
+      },
+      {
+        "completedAt": "2026-11-06T14:23:15Z",
+        "conclusion": "success",
+        "databaseId": 127944762219,
+        "name": "secret-scan",
+        "startedAt": "2026-11-06T14:23:02Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:03Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:08Z",
+            "conclusion": "success",
+            "name": "Checkout full source history",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:13Z",
+            "conclusion": "success",
+            "name": "Scan reachable history with pinned Gitleaks and masked findings",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:13Z",
+            "conclusion": "success",
+            "name": "Post Checkout full source history",
+            "number": 6,
+            "startedAt": "2026-11-06T14:23:13Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:13Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 7,
+            "startedAt": "2026-11-06T14:23:13Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233416532/job/127944762219"
+      },
+      {
+        "completedAt": "2026-11-06T14:43:26Z",
+        "conclusion": "success",
+        "databaseId": 127944929338,
+        "name": "windows-startup-test",
+        "startedAt": "2026-11-06T14:23:22Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-06T14:23:23Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-06T14:23:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:35Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-06T14:23:23Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:23:40Z",
+            "conclusion": "success",
+            "name": "Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 3,
+            "startedAt": "2026-11-06T14:23:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:28:47Z",
+            "conclusion": "success",
+            "name": "B6 finite native profile and rollback with isolated source fixtures",
+            "number": 4,
+            "startedAt": "2026-11-06T14:23:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:28:50Z",
+            "conclusion": "success",
+            "name": "Windows owner and single-instance startup boundaries",
+            "number": 5,
+            "startedAt": "2026-11-06T14:28:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:28:51Z",
+            "conclusion": "success",
+            "name": "Native Windows carton ACL module discovery",
+            "number": 6,
+            "startedAt": "2026-11-06T14:28:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:28:53Z",
+            "conclusion": "success",
+            "name": "P03 Hub lineage PowerShell 5 source boundaries",
+            "number": 7,
+            "startedAt": "2026-11-06T14:28:51Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:30:19Z",
+            "conclusion": "success",
+            "name": "P03 physical recovery and isolated rehearsal source boundaries",
+            "number": 8,
+            "startedAt": "2026-11-06T14:28:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:31:11Z",
+            "conclusion": "success",
+            "name": "Windows PowerShell 5 empty-port process probe with in-memory OS fixtures",
+            "number": 9,
+            "startedAt": "2026-11-06T14:30:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:31:28Z",
+            "conclusion": "success",
+            "name": "P03 offline OLD PID diagnostics and private failure recorder",
+            "number": 10,
+            "startedAt": "2026-11-06T14:31:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:32:52Z",
+            "conclusion": "success",
+            "name": "Current ERP CRM startup profile with in-memory settings and PS policy fixtures",
+            "number": 11,
+            "startedAt": "2026-11-06T14:31:28Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:33:02Z",
+            "conclusion": "success",
+            "name": "Current shared protection and immutable failed-run binding",
+            "number": 12,
+            "startedAt": "2026-11-06T14:32:52Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:33:04Z",
+            "conclusion": "success",
+            "name": "Clean backup preflight guards with offline PowerShell fixtures",
+            "number": 13,
+            "startedAt": "2026-11-06T14:33:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:33:45Z",
+            "conclusion": "success",
+            "name": "Fixed clean B5 pair transition with isolated source fixtures",
+            "number": 14,
+            "startedAt": "2026-11-06T14:33:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:34:17Z",
+            "conclusion": "success",
+            "name": "Clean WEB owner birth and cooperative handoff on own temporary children",
+            "number": 15,
+            "startedAt": "2026-11-06T14:33:45Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:34:25Z",
+            "conclusion": "success",
+            "name": "Clean WEB host adapter with pinned own temporary children",
+            "number": 16,
+            "startedAt": "2026-11-06T14:34:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:43:22Z",
+            "conclusion": "success",
+            "name": "Business 5244 cooperative exclusion and owned native lifetime",
+            "number": 17,
+            "startedAt": "2026-11-06T14:34:25Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:43:22Z",
+            "conclusion": "success",
+            "name": "Post Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+            "number": 33,
+            "startedAt": "2026-11-06T14:43:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:43:24Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 34,
+            "startedAt": "2026-11-06T14:43:22Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-06T14:43:24Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 35,
+            "startedAt": "2026-11-06T14:43:24Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233416532/job/127944929338"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42233416532"
+  }
+]

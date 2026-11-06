@@ -1,5 +1,5 @@
 {
-  "state": "INSTALLED_GUI_SQL_LABEL_PASS_SOURCE_334_EXACT_AEF_CI_PENDING",
+  "state": "INSTALLED_GUI_SQL_LABEL_PASS_SOURCE_334_EXACT_AEF_FULL_CI_PASS",
   "base": "25def7cfc339f69db4965238d3f2778c7a304896",
   "testFiles": 56,
   "tests": 334,
@@ -10,5 +10,12 @@
   "humanAcceptance": "PENDING",
   "physicalScanner": "PENDING",
   "packageSha256": "df4440b7bdd810beae949823cf1d3e520076a280db53dc68b28bef554a467f3b",
-  "runtimeSource": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d"
+  "runtimeSource": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
+  "ci": {
+    "result": "ALL_JOBS_PASS_INCLUDING_FULL_WINDOWS",
+    "pullRequestRun": 42233426771,
+    "source": "aef16a63ce19845c4c7b8a38f90ef5b25512e08d",
+    "pushRun": 42233416532,
+    "evidence": "ci-final-outcome.json"
+  }
 }

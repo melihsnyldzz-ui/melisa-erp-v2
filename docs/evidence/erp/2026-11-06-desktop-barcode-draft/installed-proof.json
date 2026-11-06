@@ -155,5 +155,5 @@
   "tests": 334,
   "testFiles": 56,
   "review": "READONLY_LABEL_STATE_NO_P1_P2",
-  "ci": "EXACT_AEF_PENDING"
+  "ci": "EXACT_AEF_FULL_CI_PASS_42233426771_42233416532"
 }
