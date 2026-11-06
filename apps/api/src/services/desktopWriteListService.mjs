@@ -47,10 +47,10 @@ function options(value){
  if(!Number.isInteger(page)||page<1||page>100000||!Number.isInteger(limit)||limit<1||limit>100||typeof search!=='string'||search.length>100||/[\u0000-\u001f\u007f]/.test(search))fail();
  return {page,limit,search:search.trim()};
 }
-function validateRow(row,kind,richCards=false){
+function validateRow(row,kind,richCards=false,schemaVersion=2){
  if(!row||typeof row!=='object'||!validId(row.id))fail();
  if(kind==='receipts'){
-  if(Object.keys(row).sort().join(',')!=='currency,customerName,documentDate,documentNo,id,totalExact4,workflowState'||['documentNo','customerName'].some(k=>typeof row[k]!=='string'||!row[k])||typeof row.documentDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.documentDate)||row.currency!=='TRY'||typeof row.totalExact4!=='string'||!/^(?:0|[1-9]\d*)\.\d{4}$/.test(row.totalExact4)||!['DRAFT','PREPARING','READY','CHECKED','COMPLETED','CANCELLED'].includes(row.workflowState))fail();
+  if(Object.keys(row).sort().join(',')!=='currency,customerName,documentDate,documentNo,id,totalExact4,workflowState'||['documentNo','customerName'].some(k=>typeof row[k]!=='string'||!row[k])||typeof row.documentDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.documentDate)||!([4,5].includes(schemaVersion)?['TRY','USD','EUR']:['TRY']).includes(row.currency)||typeof row.totalExact4!=='string'||!/^(?:0|[1-9]\d*)\.\d{4}$/.test(row.totalExact4)||!['DRAFT','PREPARING','READY','CHECKED','COMPLETED','CANCELLED'].includes(row.workflowState))fail();
   return row;
  }
  const keys=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4',...(richCards?['brand','category','supplierId','supplierName','reservedExact3','availableExact3']:[])]:kind==='customers'?['customerCode','customerName','phone','city','country','currency','customerType','balanceExact4']:['supplierCode','supplierName','phone','city','country','currency'];
@@ -104,7 +104,7 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
    const count=await request().query(`SELECT CONVERT(varchar(20),COUNT_BIG(*)) total FROM ${from} WHERE ${where};`);
    const raw=count?.recordset;if(!Array.isArray(raw)||raw.length!==1||typeof raw[0].total!=='string'||!/^(0|[1-9]\d{0,15})$/.test(raw[0].total)||BigInt(raw[0].total)>9007199254740991n)fail();
    const result=await request().query(`SELECT ${def.select} FROM ${from} WHERE ${where} ORDER BY ${def.order??def.code+',id'} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`);
-   if(!Array.isArray(result?.recordset)||result.recordset.length>limit)fail();const data=result.recordset.map(row=>validateRow(richCards&&kind==='products'?projectStock(row):row,kind,richCards));
+   if(!Array.isArray(result?.recordset)||result.recordset.length>limit)fail();const data=result.recordset.map(row=>validateRow(richCards&&kind==='products'?projectStock(row):row,kind,richCards,schemaVersion));
    const total=Number(raw[0].total),totalPages=Math.max(1,Math.ceil(total/limit));
    if(data.length>total||offset>=total&&data.length!==0)fail();
    await tx.commit();begun=false;return {data,meta:{page,limit,total,totalPages,hasNextPage:page<totalPages,hasPreviousPage:page>1}};

@@ -1,3 +1,7 @@
+## 6 Kasım — K04-06 dövizli fiş listesi kaynak düzeltmesi
+
+Kurulu V4 normal Fișler isteği503 verdi; sadeceTRYkabul eden eski liste doğrulaması USD/EURfişlerde reddediyordu. Yalnız açık V4/V5okuması üç dövizi kendi kayıtlı tutarıyla kabul eder; V2/3TRYve bilinmeyen döviz reddi aynı. TestönceREDsonra73dosya404PASS; bağımsızreadonlyreviewkritikbulgu yok. Ekranasset/native/SQL/hak değişmedi, yeni build gerektirmedi; önceki42modülbuild aynı. Henüz bu düzeltme kurulmadı; mevcutf82CI tamamlanınca tek kaynak push yapılır. İlk V5paketi804 aynı kalır ve müşteri kartı→sonfiş13 normalokuma çalışır. Merkezplan/Excelaynı.
+
 ## 6 Kasım — K04-06 ikinci teslim kaynağı güncel R1 ile birleştirildi
 
 Hesap satış geçmişi WIP5430704a ve normal auth bağlama düzeltmesi7ede6e05, barkod/iptal kaynağıe8a34d4f ile yalnız bu ayrı feature dalında birleştirildi. readProductBarcode ve readCustomerAccountSales aynı auth/core nesnesinde birlikte korunur; eski ve V5 profilinde hesap geçmişi dual-permission oturum testi birlikte geçti.73dosya/402hedefli test,42modül yeşil ekran derlemesi PASS. SQL/native/V5 installer/CI dosyalarında e8'e göre yeni fark yok; R2 yalnız mevcut customer.view+sales.view ile SELECT akışıdır. Bağımsız salt okunur son kaynak incelemesinde yeni P1/P2 bulunmadı. Henüz bu birleşik dal için GitHubCI/paket/kurulum/gerçek SQL veya GUI kabulü yok. Yeni V5 paketi804 ve kuruluV4df4440b7 değiştirilmedi. Önce onaylı fiş13 iptalinin kurulumu ve gerçek ekran doğrulaması tamamlanır; R2 ikinci teslimdir. Merkez plan/Excel aynı. Aşağıdaki kayıtlar tarihseldir.

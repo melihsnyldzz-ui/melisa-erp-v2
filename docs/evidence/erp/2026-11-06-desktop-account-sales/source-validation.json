@@ -19,7 +19,23 @@
   "runtimeInstalled": false,
   "independentReadOnlyReview": "NO_NEW_P1_P2",
   "humanAccepted": false,
-  "testsPassed": 402,
+  "testsPassed": 404,
   "testsFailed": 0,
-  "integratedSource": "5dc4fbe86d7203221f6d2c495c2c7d864548d3f7"
+  "integratedSource": "5dc4fbe86d7203221f6d2c495c2c7d864548d3f7",
+  "previousTestsPassed": 402,
+  "receiptListRegression": {
+    "guiOldV4ReceiptListStatus": 503,
+    "guiNewR2Verified": false,
+    "state": "RED_THEN_GREEN_SOURCE_ONLY",
+    "explicitFxProfiles": [
+      4,
+      5
+    ],
+    "originalAmountPreserved": true,
+    "legacyTryProfiles": [
+      2,
+      3
+    ],
+    "unknownCurrencyRejected": true
+  }
 }
