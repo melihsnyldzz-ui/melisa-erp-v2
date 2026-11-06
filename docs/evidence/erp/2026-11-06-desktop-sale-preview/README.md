@@ -8,10 +8,12 @@ Kaynak, kurulum, normal ekran ve insan kabulü ayrı tutulur. İlk kaynak teslim
 - DES-06 maliyet altı uyarısı vardır, maliyet tutarı istemciye gönderilmez. İskontolu yazma kapalıdır. Taslak kaydetmek güncel seçim fingerprinti ve exact iki satır miktar/fiyat eşleşmesini gerektirir; sıfır iskonto dahil eski toplamla kaydetme engellenir.
 - Normal önizleme mevcut GET kontratını geriye uyumlu genişletir. Ek/eksik/tekrar query alanları, uydurma rol/tavan, eksik sales.create/finalize reddedilir. Bekleyen yazma kuyruğunun UUID/gövdesi değişmez.
 
-`source-tests.txt`: 15 dosyada 57 test PASS; normal native draft/finalize, oturum lease/logout, exact iskonto sınırı, rol değişimi, seri ve stale önizleme testleri dahil. Vite üretim derlemesi PASS: `desktopWriteGreen-BVpBP4IK.js`, CSS `desktopWriteGreen-D6yoncVT.css`.
+`source-tests.txt`: 16 dosyada 79 test PASS; normal native draft/finalize, oturum lease/logout, exact iskonto sınırı, rol değişimi, seri ve stale önizleme testleri dahil. Vite üretim derlemesi PASS: `desktopWriteGreen-BVpBP4IK.js`, CSS `desktopWriteGreen-D6yoncVT.css`.
 
 Readonly bağımsız inceleme: sıfır iskontoda miktar değiştikten sonra önizlemesiz kaydetme P2 bulundu ve giderildi; ikinci incelemede yeni somut P1/P2 yok. İnceleyen test/SQL/UI/runtime yazısı yürütmedi.
 
 Örnekler: 2 ADET ×12 +1 ADET ×10 =34, %3 =1,02, toplam32,98 TRY. 2 SERİ ×6 ADET ×12 +1×10 =154, %3 =4,62, toplam149,38 TRY. Bu sayılar kaynak testidir; gerçek ekran/SQL doğrulaması sonradan ayrıca kaydedilecektir.
 
 İnsan/personel kabulü BEKLİYOR. K04-03 dövizli satış, günlük şirket kuru entegrasyonu, müdür/patron onayı ve iskontolu kayıt bu teslimle kapanmaz. Eski ERP/ticari veri/yedek/Vega ve merkezi plan/Excel değiştirilmez.
+
+İlk a05baf2c exact GitHub API testinde iki yeni statik kodun güvenli logger listesinde eksik olduğu görüldü. Yalnız DESKTOP_SALE_QUOTE_UNVERIFIED ve DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED allowlist'e eklendi; wildcard açılmadı. Logger dâhil16 dosyada79 hedefli test geçti. İlk CI başarısızlığı başarı diye sunulmaz; düzeltilmiş head için CI ayrıca izlenecek.
