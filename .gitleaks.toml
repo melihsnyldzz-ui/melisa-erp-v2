@@ -65,3 +65,12 @@ condition = "AND"
 regexTarget = "secret"
 paths = ['''\Aapps/sites-workflow/src/workflow/workHomeWorkdayScope\.test\.mjs\z''']
 regexes = ['''\A\QVEGA2026/F0103TBLCARI/33\E\z''']
+
+[[allowlists]]
+description = "Exact reviewed public Desktop settings identifier, not authentication material"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/api/src/services/desktopSalesPolicy\.mjs\z''']
+regexes = ['''\A\QindividualPolicyV1\E\z''']
+commits = ["dc1460a97873026d89997ee22f7cab00c22891fd"]

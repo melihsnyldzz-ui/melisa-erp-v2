@@ -28,7 +28,9 @@ Onay komutlarının ayrı actor-local pending alanı vardır. Yanıt kaybı/relo
 
 ## Kanıt ve teslim sınırı
 
-Kaynak testleri kişi/3/5 eşikleri, onaysız/yabancı/değişmiş/süresi dolmuş onay retleri, fiyat/kur/actor bağları, tek kullanım, rollback, eski body hash'i ve UNKNOWN/fence kurtarmasını kapsar. Gerçek Express/normal-auth/native sentetik SQL fixture'ları hosted CI'de çalıştırılır. Yerelde eksik mssql/Express için dependency, loader, junction veya build yolu eklenmedi.
+Kaynak testleri kişi/3/5 eşikleri, onaysız/yabancı/değişmiş/süresi dolmuş onay retleri, fiyat/kur/actor bağları, tek kullanım, rollback, eski body hash'i ve UNKNOWN/fence kurtarmasını kapsar. 139 birleşik hedefli test geçti; son create-null recovery düzeltmesi ayrı7 controller ve83 frontend testiyle doğrulandı. Gerçek Express/normal-auth/native sentetik SQL fixture'ları ilk hosted kalite/derleme işinde geçti. Yerelde eksik mssql/Express için dependency, loader, junction veya build yolu eklenmedi.
+
+İlk dc1460a9 CI'sinin secret-scan işi public ayar adı `individualPolicyV1` için generic-api-key bulgusu verdi. Bu, kimlik doğrulama malzemesi değildir. Bağımsız Gitleaks8.30.1 denemesi yalnız tam commit+dosya+kural+literal dört koşulu AND ile kapsayan düzeltmeyi doğruladı: hedef deneme1→0; dosya/değer/commit/kural tek tek değiştirilen dört negatifin her birinde1 bulgu kaldı. Varsayılan kurallar, workflow ve .gitleaksignore değişmedi; başka bulgu bastırılmaz. Windows ve yeni exact head sonuçları ayrıca beklenir; ilk başarısız koşu PASS olarak sunulmaz.
 
 Native kâr hesabındaki geniş sınır yalnız gerçek private workflow sahibi, aynı transaction/actor/işlem ve tam invoice assertion sonrası açılır. B6 seçilmiş kalem fonksiyon gövdesi `235d4119bada53930fd71e9f0e472341b29a07b029b8e61a85eef7ce91f094be`, SQL `17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb` aynıdır. Yeni whole-file native pini `6a21a83e25ecf2967720d1ea01e28e722681e5c3ea8b1d5248650bc2a8bb463c` kaynak köprüsüne göre güncellendi; B6 SQL çalıştırılmadı.
 
