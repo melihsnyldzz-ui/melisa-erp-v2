@@ -4,6 +4,7 @@ import {mountDesktopCustomerCreate} from './desktopCustomerCreate.mjs';
 import {mountDesktopProductCreate} from './desktopProductCreate.mjs';
 import {mountDesktopProductCard} from './desktopProductCard.mjs';
 import {mountDesktopCustomerCard} from './desktopCustomerCard.mjs';
+import {createDesktopCustomerSelectionMemory} from './desktopCustomerSelectionMemory.mjs';
 import {mountDesktopRuntimeInfo} from './desktopRuntimeInfo.mjs';
 import {mountDesktopCompanyRates} from './desktopCompanyRates.mjs';
 import {desktopSeriesStockLabel} from '../../../../packages/shared/src/desktopSeriesUnits.mjs';
@@ -17,12 +18,12 @@ const nav=document.getElementById('nav'),view=document.getElementById('view'),la
 const pages=[['home','⌂','Ana sayfa'],['products','▦','Ürün & stok'],['customers','♙','Müşteriler'],['suppliers','▧','Tedarikçiler'],['sales','▤','Satış ve hazırlama'],['receipts','▣','Fişler']];
 const pending=['Stok hareketleri','Cari','Finans','Raporlar'];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let sequence=0,mountSequence=0,mounted=null,goodsController=null,activePage='';const listViews=new Map();
+let sequence=0,mountSequence=0,mounted=null,goodsController=null,activePage='',customerSelectionMemory=null,customerSelectionUser=null;const listViews=new Map();
 const goodsCapability=createDesktopSessionCapability({getUser:()=>core.getUser(),load:()=>core.goods(),apply:value=>{goodsController=value;navigation(activePage);}});
 function dispose(){mountSequence++;mounted?.dispose();mounted=null;}
 function navigation(active){nav.innerHTML=pages.filter(([id])=>id==='home'||core.can(id)).map(([id,icon,title])=>`<button type="button" data-page="${id}" class="${id===active?'active':''}">${icon} <span>${esc(title)}</span></button>`).join('')+(goodsController?`<button type="button" data-page="goods" class="${active==='goods'?'active':''}">▣ <span>Alış</span></button>`:'<button type="button" disabled>◌ <span>Alış · Hazırlanıyor</span></button>')+pending.map(title=>`<button type="button" disabled>◌ <span>${esc(title)} · Hazırlanıyor</span></button>`).join('');
  nav.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.page)));}
-function login(message=''){goodsCapability.reset();goodsController=null;activePage='';sequence++;dispose();listViews.clear();navigation('');label.textContent='Giriş bekleniyor';crumb.textContent='Giriş';logout.hidden=true;
+function login(message=''){customerSelectionMemory=null;customerSelectionUser=null;goodsCapability.reset();goodsController=null;activePage='';sequence++;dispose();listViews.clear();navigation('');label.textContent='Giriş bekleniyor';crumb.textContent='Giriş';logout.hidden=true;
  view.innerHTML=`<section class="card panel" style="padding:24px;max-width:480px"><p class="eyebrow">MELİSA ERP</p><h1>Giriş yap</h1><form id="green-login"><p><label>Kullanıcı adı<br><input name="username" autocomplete="username" required></label></p><p><label>Parola<br><input name="password" type="password" autocomplete="current-password" required></label></p><button class="btn primary" type="submit">Giriş yap</button><p role="alert">${esc(message)}</p></form></section>`;
  view.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,data=new FormData(form),button=form.querySelector('button');button.disabled=true;try{await core.login(data.get('username'),data.get('password'));form.elements.password.value='';await show('home');}catch{form.elements.password.value='';login('Giriş doğrulanamadı.');}});
 }
@@ -52,7 +53,8 @@ async function show(page,number,search){if(!core.getUser())return login();if(pag
    if(!core.can('customers'))return;if(mounted?.requestClose&&!mounted.requestClose()){const status=view.querySelector('[role="status"]');if(status)status.textContent='Önce müşteri formunu kaydedin veya Vazgeç ile kapatın.';return;}dispose();const formRoot=view.querySelector('[data-form]');
    const selection=mountSequence;let accountController=null,ledger=null;try{if(core.can('customers','edit'))accountController=await core.customerAccount();}catch{/* Read-only card remains available; no account request is created. */}if(current!==sequence||selection!==mountSequence||mounted)return;
    try{if(core.can('customers')&&core.can('sales'))ledger=await core.customerLedger();}catch{/* Keep the card available if the profile cannot be verified. */}if(current!==sequence||selection!==mountSequence||mounted)return;
-   mounted=mountDesktopCustomerCard({root:formRoot,customerId:button.dataset.openCustomer,load:id=>core.customerCard(id),loadSales:(id,accountId,page)=>core.customerAccountSales(id,accountId,page),loadLedger:ledger?(id,accountId,page,currency)=>ledger.read(id,accountId,page,currency):null,accountController,onClose:()=>{dispose();formRoot.innerHTML='';},onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');}});
+   if(customerSelectionUser!==user||!customerSelectionMemory){customerSelectionUser=user;customerSelectionMemory=createDesktopCustomerSelectionMemory({user,getUser:()=>core.getUser()});}
+   mounted=mountDesktopCustomerCard({root:formRoot,selectionMemory:customerSelectionMemory,customerId:button.dataset.openCustomer,load:id=>core.customerCard(id),loadSales:(id,accountId,page)=>core.customerAccountSales(id,accountId,page),loadLedger:ledger?(id,accountId,page,currency)=>ledger.read(id,accountId,page,currency):null,accountController,onClose:()=>{dispose();formRoot.innerHTML='';},onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');}});
   }));
   root.querySelectorAll('[data-open-product]').forEach(button=>button.addEventListener('click',()=>{
    if(!core.can('products','edit'))return;dispose();const formRoot=view.querySelector('[data-form]');
