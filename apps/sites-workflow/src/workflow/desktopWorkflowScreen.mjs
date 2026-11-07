@@ -116,6 +116,12 @@ export function mountDesktopWorkflowScreen({root,core,storage,actorId}={}){
  async function load(invoiceId){recoveryId=invoiceId;record=null;const value=await controller.read(invoiceId);if(!live)return;const restored=readDesktopPackingRecovery(storage,actorId,invoiceId),numbers=[...new Set(value.cartonItems.map(i=>i.cartonNo))];boxes=numbers.map(cartonNo=>({cartonNo,items:value.cartonItems.filter(i=>i.cartonNo===cartonNo).map(i=>({itemId:i.itemId,quantityExact3:i.quantityExact3}))}));record=value;confirm=false;cancelConfirm=false;finalCancelConfirm=false;cancelReason='';dirty=false;packingRecovery=restored;}
  async function accept(result){result=await result;if(result?.state!=='COMMITTED'){message='İşlemin sonucu henüz doğrulanamadı. Aynı işlemi doğrulayın.';return;}recoveryId=result.invoiceId;record=null;storage.setItem(key,result.invoiceId);message=result.replayed?'Önceki işlem doğrulandı.':'İşlem kaydedildi.';await load(result.invoiceId);}
  async function transition(operation,cartons=[]){
+  if(operation==='SAVE_CARTONS'){
+   const totals=new Map(record.items.map(i=>[i.itemId,0n]));
+   for(const box of cartons)for(const item of box.items){if(!totals.has(item.itemId))throw Error('Koli ürünü fişle eşleşmiyor.');totals.set(item.itemId,totals.get(item.itemId)+amount(item.quantityExact3));}
+   const excess=record.items.find(i=>totals.get(i.itemId)>amount(i.quantityExact3));
+   if(excess)throw Error(`${excess.stockCode} için koli miktarı fişteki ${excess.quantityExact3} ADET'i aşıyor. Fazla ürünü çıkarın.`);
+  }
   if(operation==='READY'){
    if(dirty)throw Error('Önce koli değişikliklerini kaydedin.');
    const totals=new Map(record.items.map(i=>[i.itemId,0n]));for(const box of packed())for(const item of box.items){if(!totals.has(item.itemId))throw Error('Koli ürünü fişle eşleşmiyor.');totals.set(item.itemId,totals.get(item.itemId)+amount(item.quantityExact3));}
