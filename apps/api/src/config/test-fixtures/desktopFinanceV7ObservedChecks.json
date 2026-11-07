@@ -1,0 +1,11 @@
+{
+  "origin": "SQL_SERVER_LOCAL_TEMP_TABLE_METADATA_ONLY",
+  "permanentFinanceSchemaAccepted": false,
+  "proofSha256": "65352e3a558d2beb9f7a6916e180ac71262208702c5eb4d7fd48b5a9e336ddb5",
+  "checks": [
+    {"name":"CK_ERP_V7_RENDER_json","definition":"([response_json] IS NULL OR isjson([response_json])=(1))","is_disabled":false,"is_not_trusted":false,"is_not_for_replication":false},
+    {"name":"CK_ERP_V7_RENDER_operation","definition":"([operation]='payment' OR [operation]='collection')","is_disabled":false,"is_not_trusted":false,"is_not_for_replication":false},
+    {"name":"CK_ERP_V7_RENDER_result","definition":"([state]='pending' AND [response_json] IS NULL OR [state]='committed' AND [response_json] IS NOT NULL)","is_disabled":false,"is_not_trusted":false,"is_not_for_replication":false},
+    {"name":"CK_ERP_V7_RENDER_state","definition":"([state]='committed' OR [state]='pending')","is_disabled":false,"is_not_trusted":false,"is_not_for_replication":false}
+  ]
+}

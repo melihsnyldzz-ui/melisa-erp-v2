@@ -5,6 +5,7 @@ export function desktopMasterSchema(richCards,schemaVersion=richCards?3:2){
 // V5 is a separate explicit choice. The original helper remains closed to it.
 export function desktopMasterV5Schema(richCards,schemaVersion){if(richCards!==true||schemaVersion!==5)throw Error('DESKTOP_MASTER_VERSION_INVALID');return 5;}
 export function desktopMasterV6Schema(richCards,schemaVersion){if(richCards!==true||schemaVersion!==6)throw Error('DESKTOP_MASTER_VERSION_INVALID');return 6;}
+export function desktopMasterV7Schema(richCards,schemaVersion){if(richCards!==true||schemaVersion!==7)throw Error('DESKTOP_MASTER_VERSION_INVALID');return 7;}
 export const DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL=`
 IF NOT EXISTS(SELECT 1 FROM sys.indexes i WHERE i.object_id=OBJECT_ID(N'dbo.party_currency_accounts') AND i.name=N'UX_desktop_v4_customer_currency' AND i.is_unique=1 AND i.is_disabled=0 AND i.has_filter=1
  AND CONVERT(varbinary(max),i.filter_definition)=CONVERT(varbinary(max),N'([customer_id] IS NOT NULL AND [supplier_id] IS NULL)')

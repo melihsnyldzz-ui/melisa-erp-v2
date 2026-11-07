@@ -1,0 +1,9 @@
+// Pure comparison of rows returned by a future transaction-owned SQL reader.
+// This does not establish their origin, locks, uniqueness or authority.
+const fail=()=>{throw Error('DESKTOP_FINANCE_READBACK_INVALID');};
+const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
+function shape(v,keys){if(!v||typeof v!=='object'||Array.isArray(v)||![Object.prototype,null].includes(Object.getPrototypeOf(v))||Reflect.ownKeys(v).length!==keys.length||keys.some(k=>{const d=Object.getOwnPropertyDescriptor(v,k);return !d?.enumerable||!Object.hasOwn(d,'value');}))fail();}
+export function assertDesktopFinanceReadback(plan,actual){
+ shape(actual,['requestId','actorId','operation','partyId','entityId','partyAccountId','financeAccountId','invoiceId','currency','amountExact4','documentDate','partyBalanceExact4','partyAccountBalanceExact8','financeBalanceExact4','partyMovementId','financeMovementId','partyMovementCount','financeMovementCount','financeDirection','journalState']);
+ if(!plan||actual.requestId!==plan.command.requestId||actual.actorId!==plan.actorId||actual.operation!==plan.operation||actual.partyId!==plan.partyId||actual.entityId!==plan.entityId||actual.partyAccountId!==plan.partyAccountId||actual.financeAccountId!==plan.financeAccountId||actual.invoiceId!==plan.command.invoiceId||actual.documentDate!==plan.command.documentDate||actual.currency!=='TRY'||actual.amountExact4!==plan.amountExact4||actual.partyBalanceExact4!==plan.partyAfterExact4||actual.partyAccountBalanceExact8!==plan.partyAccountAfterExact8||actual.financeBalanceExact4!==plan.financeAfterExact4||!id(actual.partyMovementId)||!id(actual.financeMovementId)||actual.partyMovementCount!==1||actual.financeMovementCount!==1||actual.financeDirection!==(plan.operation==='collection'?'in':'out')||actual.journalState!=='committed')fail();return true;
+}

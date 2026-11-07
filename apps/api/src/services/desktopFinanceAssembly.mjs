@@ -1,0 +1,2 @@
+import {createDesktopFinanceService} from './desktopFinanceService.mjs';
+export function createDesktopFinanceAssembly({connector,auth}={}){let ready;const owner=()=>ready??=createDesktopFinanceService({connector,auth});return Object.freeze({create:async(...args)=>(await owner()).create(...args),options:async(...args)=>(await owner()).options(...args),list:async(...args)=>(await owner()).list(...args)});}

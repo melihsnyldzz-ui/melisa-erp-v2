@@ -48,14 +48,22 @@ SELECT CONVERT(varchar(20),m.id) id,CONVERT(varchar(20),m.sales_invoice_id) invo
  FROM dbo.customer_movements m WITH(UPDLOCK,HOLDLOCK) WHERE m.sales_invoice_id=TRY_CONVERT(bigint,@invoiceId) ORDER BY m.id;
 SELECT CONVERT(varchar(20),item_id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3,state
  FROM dbo.desktop_sale_reservations WITH(UPDLOCK,HOLDLOCK) WHERE invoice_id=TRY_CONVERT(bigint,@invoiceId) ORDER BY item_id;`;
-export function createDesktopFinalCancellationReader({sql,verifyScope,verifyExport}={}){
- if(typeof sql?.Request!=='function'||typeof sql?.NVarChar!=='function'||typeof verifyScope!=='function'||typeof verifyExport!=='function')fail();
+const oldFinanceCheck="AND OBJECT_ID(N'dbo.finance_account_movements',N'U') IS NULL";
+const v7FinanceCheck=`AND OBJECT_ID(N'dbo.finance_account_movements',N'U') IS NOT NULL
+ AND NOT EXISTS(SELECT 1 FROM dbo.customer_movements cm WITH(UPDLOCK,HOLDLOCK)
+ JOIN dbo.finance_account_movements fm WITH(UPDLOCK,HOLDLOCK) ON fm.party_movement_id=cm.id AND fm.party_type=N'customer'
+ WHERE cm.sales_invoice_id=TRY_CONVERT(bigint,@invoiceId))`;
+const oldMarker='WHERE id=1 AND actual_t1=0';
+if(DESKTOP_FINAL_CANCELLATION_READ_SQL.split(oldFinanceCheck).length!==2||DESKTOP_FINAL_CANCELLATION_READ_SQL.split(oldMarker).length!==2)fail();
+export const DESKTOP_FINAL_CANCELLATION_V7_READ_SQL=DESKTOP_FINAL_CANCELLATION_READ_SQL.replace(oldFinanceCheck,v7FinanceCheck).replace(oldMarker,'WHERE id=1 AND schema_version=7 AND actual_t1=0');
+export function createDesktopFinalCancellationReader({sql,verifyScope,verifyExport,profile='desktop-master-v5'}={}){
+ if(typeof sql?.Request!=='function'||typeof sql?.NVarChar!=='function'||typeof verifyScope!=='function'||typeof verifyExport!=='function'||!['desktop-master-v5','desktop-master-v6','desktop-master-v7'].includes(profile))fail();
  return async function read({transaction,scope,invoiceId,expectedVersion,reason}={}){
   if(!transaction||!id(invoiceId)||await verifyScope({transaction,scope,invoiceId})!==true)fail();
   // Production must bind the existing file-based Vega export guard here.
   // Absence of SQL export tables is not proof that its journal is empty.
   if(await verifyExport({transaction,scope,invoiceId})!==true)fail();
-  const result=await new sql.Request(transaction).input('invoiceId',sql.NVarChar(20),invoiceId).query(DESKTOP_FINAL_CANCELLATION_READ_SQL),outer=bareRows(result?.recordsets,false);
+  const result=await new sql.Request(transaction).input('invoiceId',sql.NVarChar(20),invoiceId).query(profile==='desktop-master-v7'?DESKTOP_FINAL_CANCELLATION_V7_READ_SQL:DESKTOP_FINAL_CANCELLATION_READ_SQL),outer=bareRows(result?.recordsets,false);
   if(outer.length!==8)fail();const rs=outer.map(r=>bareRows(r,true));
   if(rs[0].length!==1||rs[0][0]?.isolated!==1||rs[1].length!==1||rs[2].length!==1||rs[3].length!==1||rs[1][0]?.id!==invoiceId||rs[1][0]?.version!==expectedVersion)fail();
   const snapshot={invoice:rs[1][0],customer:rs[2][0],account:rs[3][0],items:rs[4],stockMovements:rs[5],customerMovements:rs[6],reservations:rs[7],linkedFinanceRows:'0',returnRows:'0',exportRows:'0',reason};

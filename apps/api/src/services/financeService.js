@@ -5,6 +5,7 @@ import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import {getBusinessDailySelection,getBusinessDailyScopeHash,BUSINESS_COPY_DATABASE} from './isolatedOperationCopyContext.mjs';
 import { writeAuditLog } from './auditService.js';
 import { assertMelisaWriteEnabled } from './writeGuardService.js';
+import {assertDesktopPrivateFinance} from './desktopFinanceService.mjs';
 import { assertAccountingPeriodOpen } from './periodLockService.js';
 import { sqlNormalizedLike, toSearchPattern } from './queryHelpers.js';
 import { parseOptionalQueryId } from './queryIdentityFilters.mjs';
@@ -1816,7 +1817,7 @@ export async function getAccountingControlDashboard() {
 }
 
 export async function createCustomerCollection(payload, actor, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  if(transactionContext?.desktopPrivateFinance===true)assertDesktopPrivateFinance({transaction:transactionContext.transaction,actorId:String(actor?.id),operation:'collection',payload});else assertMelisaWriteEnabled();
 
   const customerId = Number(payload.customerId);
   const amount = normalizeAmount(payload.amount);
@@ -1959,7 +1960,7 @@ export async function createCustomerCollection(payload, actor, transactionContex
 }
 
 export async function createSupplierPayment(payload, actor, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  if(transactionContext?.desktopPrivateFinance===true)assertDesktopPrivateFinance({transaction:transactionContext.transaction,actorId:String(actor?.id),operation:'payment',payload});else assertMelisaWriteEnabled();
 
   const supplierId = Number(payload.supplierId);
   const amount = normalizeAmount(payload.amount);
