@@ -22,7 +22,7 @@ function parse(json,sha){if(typeof json!=='string'||typeof sha!=='string'||!/^[a
 function project(o,kind,candidate){
  if(['schemas','synonyms','userTypes'].includes(kind))return true;
  if(kind==='objects'){
-  if(tables.has(o.name)||tables.has(o.parentName))return false;
+  if((tables.has(o.name)&&o.type?.trim()==='U'&&o.schemaName==='dbo'&&o.parentName===null)||tables.has(o.parentName))return false;
   if(o.parentName==='desktop_empty_installation'&&(candidate?o.name===addedCheck:removedChecks.has(o.name)))return false;
   return true;
  }
