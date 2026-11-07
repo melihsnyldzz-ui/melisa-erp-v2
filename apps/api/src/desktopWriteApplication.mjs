@@ -6,7 +6,8 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
 import {getDesktopWritePool,getDesktopWriteProfile} from './config/desktopWriteTlsConnector.mjs';
-import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteSalesApprovalService} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopSalesPricingRoutes} from './routes/desktopSalesPricingRoutes.mjs';
 import {createDesktopLocalMasterSqlStore} from './services/desktopLocalMasterSqlStore.mjs';
 import {createLocalMasterTransactions} from './services/localMasterTransactions.mjs';
 import {recordDesktopFailure} from './services/desktopSafeDiagnostics.mjs';
@@ -90,6 +91,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use('/api/desktop-sale/drafts',auth.bind);
  app.use('/api/desktop-sale/draft-preview',auth.bind);
  app.use('/api/desktop-sale/resolve',auth.bind);
+ if(schemaVersion===7){app.use('/api/desktop-sale/discount-requests',auth.bind);app.use(createDesktopSalesPricingRoutes({service:getDesktopWriteSalesApprovalService(auth,pool,draftService),authenticateNormal:auth.authenticateNormal}));}
  app.use(createDesktopSaleWorkflowRoutes({service:workflowService,draftService,dispatchService,readService:workflowReadService,resolutionService,authenticateNormal:auth.authenticateNormal}));
  if([5,6,7].includes(schemaVersion))app.use(createDesktopFinalCancellationRoutes({service:finalCancellationService,authenticateNormal:auth.authenticateNormal}));
  if([6,7].includes(schemaVersion)){app.use('/api/desktop-goods',auth.bind);app.use(createDesktopGoodsRoutes({service:goodsService,authenticateNormal:auth.authenticateNormal}));}

@@ -1,5 +1,6 @@
 // Durable lifecycle queue: one unresolved command per actor and desktop target.
 // Changing pages or losing an HTTP acknowledgement cannot create a new UUID.
+import {normalizeDesktopSalePricing} from '../../../../packages/shared/src/desktopSalePricing.mjs';
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCompanyRateDate} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {desktopSaleCancellationReason} from '../../../../packages/shared/src/desktopSaleCancellation.mjs';
@@ -9,11 +10,11 @@ const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab]
 const states={PREPARE:'PREPARING',SAVE_CARTONS:'PREPARING',READY:'READY',CHECK:'CHECKED',CANCEL:'CANCELLED'};
 function validate(kind,payload){
  const keys={draft:'customerId,documentDate,expectedRevision,items',transition:'cartons,expectedVersion,invoiceId,operation',dispatch:'customerId,expectedVersion,invoiceId,productIds',cancel:'expectedVersion,invoiceId,reason'};
- const discounted=kind==='draft'&&Object.hasOwn(payload??{},'discountRateExact4');
+ const discounted=kind==='draft'&&Object.hasOwn(payload??{},'discountRateExact4'),pricing=kind==='draft'&&Object.hasOwn(payload??{},'pricing');if(pricing)normalizeDesktopSalePricing(payload.pricing);
  const fx=['draft','dispatch'].includes(kind)&&Object.hasOwn(payload??{},'currencySelection');
- if(discounted)keys.draft='customerId,discountRateExact4,documentDate,expectedRevision,items';
+ if(discounted)keys.draft='customerId,discountRateExact4,documentDate,expectedRevision,items';if(pricing)keys.draft=([...keys.draft.split(','),'pricing']).sort().join(',');
  if(fx){keys[kind]=([...keys[kind].split(','),'currencySelection',...(kind==='dispatch'?['documentDate']:[])]).sort().join(',');desktopSaleCurrencySelection(payload.currencySelection);desktopCompanyRateDate(payload.documentDate);}
- if(!Object.hasOwn(keys,kind)||!payload||Object.keys(payload).sort().join(',')!==keys[kind]||discounted&&(typeof payload.discountRateExact4!=='string'||!/^[0-3]\.\d{4}$/.test(payload.discountRateExact4)||BigInt(payload.discountRateExact4.replace('.',''))>30000n))fail();
+ if(!Object.hasOwn(keys,kind)||!payload||Object.keys(payload).sort().join(',')!==keys[kind]||discounted&&(typeof payload.discountRateExact4!=='string'||!/^(?:0|[1-9]\d?)\.\d{4}$/.test(payload.discountRateExact4)||(!pricing&&BigInt(payload.discountRateExact4.replace('.',''))>30000n)))fail();
  if(kind!=='draft'&&(!id(payload.invoiceId)||typeof payload.expectedVersion!=='string'||!/^0x[0-9A-F]{16}$/.test(payload.expectedVersion)))fail();
  if(kind==='transition'&&(!Object.hasOwn(states,payload.operation)||!Array.isArray(payload.cartons)))fail();
  if(kind==='draft'&&(!id(payload.customerId)||!Array.isArray(payload.items)||payload.items.length!==2||typeof payload.expectedRevision!=='string'||!/^[a-f0-9]{64}$/.test(payload.expectedRevision)))fail();

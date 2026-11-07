@@ -7,7 +7,7 @@ const rounded=(n,d)=>(n+d/2n)/d;
 function parity(native,expected){const n=Math.round(native*10000);if(!Number.isFinite(native)||native<0||!Number.isSafeInteger(n)||BigInt(n)!==expected)fail();return fixed(expected);}
 export function desktopSaleQuote({prepared,locked,discountRateExact4,maxDiscountRateExact4,normalizeSalesPayload}={}){
  const rate=units(discountRateExact4,4),limit=units(maxDiscountRateExact4,4);
- if(rate>1000000n||limit>30000n||typeof normalizeSalesPayload!=='function'||!prepared?.invoice||prepared.invoice.documentCurrency!=='TRY'||!Array.isArray(prepared.expected?.lines)||prepared.expected.lines.length!==2||locked?.products?.length!==2)fail();
+ if(limit>999999n||typeof normalizeSalesPayload!=='function'||!prepared?.invoice||prepared.invoice.documentCurrency!=='TRY'||!Array.isArray(prepared.expected?.lines)||prepared.expected.lines.length!==2||locked?.products?.length!==2)fail();
  if(rate>limit)throw Object.assign(Error('DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});
  const base=prepared.expected.lines.reduce((sum,l)=>sum+units(l.quantityExact3,3)*units(l.unitPriceExact4,4),0n);
  const native=normalizeSalesPayload({...prepared.invoice,discountRate:Number(discountRateExact4)});

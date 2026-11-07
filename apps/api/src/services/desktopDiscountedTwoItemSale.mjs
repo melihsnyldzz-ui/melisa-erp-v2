@@ -13,16 +13,17 @@ export function prepareDesktopDiscountedTwoItemSale({request,locked,maxDiscountR
  const customerAfter=scaled(base.expected.customerBeforeExact4)+total,accountAfter=scaled(base.expected.accountBeforeExact8)+total*10000n;
  if([customerAfter,accountAfter].some(n=>n>9007199254740991n||n< -9007199254740991n))fail();
  const invoice={...base.invoice,discountRate:Number(discountRateExact4)},normalized=normalizeSalesPayload(invoice);
- const profit=desktopDiscountedProfitPlan(normalized);
+ const profit=desktopDiscountedProfitPlan(normalized,{maxDiscountRateExact4});
  return Object.freeze({...base,invoice,expected:Object.freeze({...base.expected,totalExact4:quote.totalExact4,subtotalExact4:quote.subtotalExact4,discountRateExact4,discountTotalExact4:quote.discountTotalExact4,estimatedProfitTryExact4:profit.estimatedProfitTryExact4,lines:Object.freeze(base.expected.lines.map((line,i)=>Object.freeze({...line,...profit.lines[i]}))),customerAfterExact4:fixed(customerAfter,4),accountAfterExact8:fixed(accountAfter,8)})});
 }
 function nativeUnits(value,scale,exact=false){if(typeof value!=='number'||!Number.isFinite(value)||value<0)fail();const n=Math.round(value*10**scale);if(!Number.isSafeInteger(n)||exact&&n/10**scale!==value)fail();return BigInt(n);}
 const roundSigned=(n,d)=>n<0n?-((-n+d/2n)/d):(n+d/2n)/d;
 function nativeSigned4(value,expected){const n=Math.round(Math.abs(value)*10000);if(!Number.isFinite(value)||!Number.isSafeInteger(n)||BigInt(n)*(value<0?-1n:1n)!==expected)fail();}
-export function desktopDiscountedProfitPlan(draft){
+export function desktopDiscountedProfitPlan(draft,{maxDiscountRateExact4='3.0000'}={}){
  if(draft?.documentCurrency!=='TRY'||draft.exchangeRate!==1||!Array.isArray(draft.items)||draft.items.length!==2)fail();
+ if(typeof maxDiscountRateExact4!=='string'||!/^(?:0|[1-9]\d?)\.\d{4}$/.test(maxDiscountRateExact4))fail();const limit=BigInt(maxDiscountRateExact4.replace('.',''));if(limit>999999n)fail();
  const rate=nativeUnits(draft.discountRate,4,true),subtotal=nativeUnits(draft.subtotal,4),discount=nativeUnits(draft.discountTotal,4),total=nativeUnits(draft.grandTotal,4);
- if(rate>30000n||subtotal-discount!==total||discount!==(subtotal*rate+500000n)/1000000n)fail();
+ if(rate>limit||subtotal-discount!==total||discount!==(subtotal*rate+500000n)/1000000n)fail();
  let gross=0n,net=0n,profit7=0n,nativeProfit=0,storedProfit=0n;const lines=[];
  const salesAmountsTry=draft.items.map(item=>{
   const line=nativeUnits(item.lineTotal,4),quantity=nativeUnits(item.quantity,3,true),cost=nativeUnits(item.averageCostTry,4,true);if(quantity===0n||cost===0n)fail();

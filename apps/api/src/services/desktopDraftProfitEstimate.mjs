@@ -7,8 +7,8 @@ const scaled=(value,scale)=>{
  const n=Math.round(value*10**scale);if(!Number.isSafeInteger(n))fail();return BigInt(n);
 };
 const rounded4=value=>{const negative=value<0n,n=negative?-value:value;return (negative?-1n:1n)*((n+500n)/1000n);};
-export function desktopDraftProfitEstimate(draft){
- if(draft?.discountRate!==0)return desktopDiscountedProfitPlan(draft).estimatedProfitTry;
+export function desktopDraftProfitEstimate(draft,{maxDiscountRateExact4='3.0000'}={}){
+ if(draft?.discountRate!==0)return desktopDiscountedProfitPlan(draft,{maxDiscountRateExact4}).estimatedProfitTry;
  if(draft?.documentCurrency!=='TRY'||draft.exchangeRate!==1||draft.discountRate!==0||!Array.isArray(draft.items)||!draft.items.length)fail();
  let exact7=0n,native=0;
  for(const item of draft.items){
