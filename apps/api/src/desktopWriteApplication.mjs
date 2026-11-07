@@ -6,7 +6,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
 import {getDesktopWritePool,getDesktopWriteProfile} from './config/desktopWriteTlsConnector.mjs';
-import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteSalesApprovalService} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteProductMovementSalesScope,getDesktopWriteSalesApprovalService} from './services/desktopWriteAuthCore.mjs';
 import {createDesktopSalesPricingRoutes} from './routes/desktopSalesPricingRoutes.mjs';
 import {createDesktopLocalMasterSqlStore} from './services/desktopLocalMasterSqlStore.mjs';
 import {createLocalMasterTransactions} from './services/localMasterTransactions.mjs';
@@ -50,7 +50,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure,richCards});
  const accountCoordinator=[4,5,6,7].includes(schemaVersion)?createDesktopCustomerAccountTransactions({store:createDesktopCustomerAccountSqlStore({pool,sql,verifySession:auth.verifySession}),authorize:auth.authorize,onFailure:recordDesktopFailure}):null;
  const service=auth.bindService({...coordinator,...accountCoordinator});
- const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession,getSalesReadScope:getDesktopWriteSalesReadScope(auth,pool),richCards,schemaVersion}));
+ const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession,getSalesReadScope:getDesktopWriteSalesReadScope(auth,pool),getProductMovementSalesScope:getDesktopWriteProductMovementSalesScope(auth,pool),richCards,schemaVersion}));
  const workflowService=createDesktopSaleWorkflowService({connector,auth});
  const draftService=createDesktopWorkflowDraftService({connector,auth});
  const dispatchService=createDesktopWorkflowDispatchService({connector,auth});
@@ -84,7 +84,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use('/api/desktop-local',auth.bind);
  app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal,richCards}));
  if([4,5,6,7].includes(schemaVersion))app.use(createDesktopCustomerAccountRoutes({service,authenticateNormal:auth.authenticateNormal}));
- app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode'],auth.bind);
+ app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode','/api/desktop-products'],auth.bind);
  app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal,richCards}));
  if([5,6,7].includes(schemaVersion)){app.use('/api/desktop-customers',auth.bind);app.use(createDesktopCustomerLedgerRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));}
  app.use('/api/desktop-sale/workflows',auth.bind);

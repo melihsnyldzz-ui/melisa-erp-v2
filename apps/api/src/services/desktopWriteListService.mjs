@@ -1,3 +1,4 @@
+import {isDesktopProductMovements} from '../../../../packages/shared/src/desktopProductMovements.mjs';
 import {readDesktopCustomerLedger} from './desktopCustomerLedgerRead.mjs';
 // SOURCE ONLY. Real v2 list queries for the dedicated writer profile. No
 // listener, SQL connection, grants, or mutations are created at import time.
@@ -71,11 +72,11 @@ function validateRow(row,kind,richCards=false,schemaVersion=2){
 }
 export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMounted:false,requiresVerifiedWriterPool:true,requiresCurrentLockedSession:true,
  sqlExecuted:false,sourceRowsAreLiveLocalOnly:true,noVegaFallback:true,exposesCustomerBalance:true,noFinanceAccountBalances:true,fullErpReady:false});
-export function createDesktopWriteListService({pool,sql,verifySession,getSalesReadScope=()=> 'own',richCards=false,schemaVersion=richCards?3:2}={}){
+export function createDesktopWriteListService({pool,sql,verifySession,getSalesReadScope=()=> 'own',getProductMovementSalesScope=()=>null,richCards=false,schemaVersion=richCards?3:2}={}){
  schemaVersion=schemaVersion===7?desktopMasterV7Schema(richCards,schemaVersion):schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
  const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
  if(typeof richCards!=='boolean')fail();
- if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function'||typeof getSalesReadScope!=='function')fail();
+ if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function'||typeof getSalesReadScope!=='function'||typeof getProductMovementSalesScope!=='function')fail();
  return Object.freeze({async readCompanyRates(actorId,date){
   if(!richCards||!validId(actorId))fail();desktopCompanyRateDate(date);const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:'sales.view'})!==true)fail();
@@ -112,6 +113,16 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
    const total=Number(raw[0].total),totalPages=Math.max(1,Math.ceil(total/limit));
    if(data.length>total||offset>=total&&data.length!==0)fail();
    await tx.commit();begun=false;return {data,meta:{page,limit,total,totalPages,hasNextPage:page<totalPages,hasPreviousPage:page>1}};
+  }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readProductMovements(actorId,productId,{page=1}={}){
+  if(!richCards||![5,6,7].includes(schemaVersion)||!validId(actorId)||!validId(productId)||!Number.isSafeInteger(page)||page<1||page>100000)fail();
+  const tx=new sql.Transaction(pool);let begun=false;
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['product.view','product.edit']})!==true)fail();
+   const scope=getProductMovementSalesScope({transaction:tx,actorId});if(![null,'own','all'].includes(scope))fail();
+   const req=()=>new sql.Request(tx).input('productId',sql.NVarChar(20),productId).input('actorId',sql.NVarChar(20),actorId).input('scope',sql.NVarChar(4),scope??'none').input('offset',sql.Int,(page-1)*100);
+   const product=await req().query(`SELECT CONVERT(varchar(20),id) id FROM dbo.products WITH(HOLDLOCK) WHERE id=TRY_CONVERT(bigint,@productId) AND is_deleted=0;`);if(!Array.isArray(product?.recordset)||product.recordset.length>1)fail();if(!product.recordset.length){await tx.commit();begun=false;return null;}
+   const result=await req().query(`SELECT CONVERT(varchar(20),m.id) id,CONVERT(char(10),m.document_date,23) documentDate,m.movement_type direction,CONVERT(varchar(40),CASE WHEN m.movement_type=N'in' THEN m.quantity_in WHEN m.movement_type=N'out' THEN m.quantity_out END) quantityExact3,m.source_type sourceType,CONVERT(varchar(20),i.id) invoiceId,i.document_no documentNo FROM dbo.stock_movements m WITH(HOLDLOCK) LEFT JOIN dbo.sales_invoices i WITH(HOLDLOCK) ON m.source_type=N'sales_invoice' AND i.id=m.source_id AND (@scope=N'all' OR (@scope=N'own' AND i.created_by=TRY_CONVERT(bigint,@actorId))) WHERE m.product_id=TRY_CONVERT(bigint,@productId) ORDER BY m.id DESC OFFSET @offset ROWS FETCH NEXT 101 ROWS ONLY;`);
+   if(!Array.isArray(result?.recordset)||result.recordset.length>101)fail();const rows=Array.from(result.recordset).slice(0,100).map(r=>({id:r.id,documentDate:r.documentDate,direction:r.direction,quantityExact3:r.quantityExact3,sourceType:r.sourceType,invoiceId:r.invoiceId??null,documentNo:r.documentNo??null}));const data={productId,page,limit:100,hasNext:result.recordset.length>100,rows};if(!isDesktopProductMovements(data,{productId,page}))fail();await tx.commit();begun=false;return data;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readProduct(actorId,productId){
   if(!richCards||!validId(actorId)||!validId(productId))fail();
