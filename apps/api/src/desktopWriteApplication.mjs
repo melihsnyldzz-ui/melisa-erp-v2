@@ -28,6 +28,8 @@ import {createDesktopGoodsService} from './services/desktopGoodsAssembly.mjs';
 import {createDesktopGoodsRoutes} from './routes/desktopGoodsRoutes.mjs';
 import {createDesktopFinanceAssembly} from './services/desktopFinanceAssembly.mjs';
 import {createDesktopFinanceRoutes} from './routes/desktopFinanceRoutes.mjs';
+import {createDesktopWarehouseService} from './services/desktopWarehouseService.mjs';
+import {createDesktopWarehouseRoutes} from './routes/desktopWarehouseRoutes.mjs';
 
 const HOST='127.0.0.1:4294',ORIGIN='http://127.0.0.1:5294';
 const reject=(res,status=403)=>res.status(status).json({success:false,error:{code:'DESKTOP_WRITE_UNAVAILABLE'}});
@@ -56,6 +58,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  const finalCancellationService=[5,6,7].includes(schemaVersion)?createDesktopFinalCancellationService({connector,auth}):null;
  const goodsService=[6,7].includes(schemaVersion)?auth.bindGoodsService(createDesktopGoodsService({connector,auth})):null;
  const financeService=schemaVersion===7?auth.bindFinanceService(createDesktopFinanceAssembly({connector,auth})):null;
+ const warehouseService=schemaVersion===7?auth.bindWarehouseService(createDesktopWarehouseService({connector,auth})):null;
  const app=express();app.disable('x-powered-by');app.set('strict routing',true);
  app.use((req,res,next)=>{
   res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');
@@ -65,6 +68,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  });
  app.use(rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false}));
  if([6,7].includes(schemaVersion))app.use('/api/desktop-goods',express.json({limit:'32kb',strict:true}));
+ if(schemaVersion===7)app.use('/api/desktop-warehouse',express.json({limit:'32kb',strict:true}));
  app.use(express.json({limit:'8kb',strict:true}));
  app.post('/api/auth/login',rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}),async(req,res)=>{
   try{if(req.get('origin')!==ORIGIN||!req.is('application/json'))return reject(res);const data=await auth.login(req.body);return res.json({success:true,data});}
@@ -90,6 +94,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  if([5,6,7].includes(schemaVersion))app.use(createDesktopFinalCancellationRoutes({service:finalCancellationService,authenticateNormal:auth.authenticateNormal}));
  if([6,7].includes(schemaVersion)){app.use('/api/desktop-goods',auth.bind);app.use(createDesktopGoodsRoutes({service:goodsService,authenticateNormal:auth.authenticateNormal}));}
  if(schemaVersion===7){app.use('/api/desktop-finance',auth.bind);app.use(createDesktopFinanceRoutes({service:financeService,authenticateNormal:auth.authenticateNormal}));}
+ if(schemaVersion===7){app.use('/api/desktop-warehouse',auth.bind);app.use(createDesktopWarehouseRoutes({service:warehouseService,authenticateNormal:auth.authenticateNormal}));}
  app.use((_req,res)=>reject(res,404));
  app.use((error,_req,res,next)=>{if(res.headersSent)return next(error);return reject(res,400);});
  return Object.freeze({app,closeSessions:auth.close,profile});

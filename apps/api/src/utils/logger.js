@@ -8,6 +8,7 @@ const sensitiveKeyPattern = /password|passwd|pwd|secret|token|authorization|auth
 // Snapshot of literal code assignments/error-helper calls (excluding config/tests),
 // plus standard driver errors. The source-coverage test requires review of new codes.
 const knownCodes = new Set(`
+  DESKTOP_WAREHOUSE_CONFIGURATION DESKTOP_WAREHOUSE_UNAVAILABLE DESKTOP_WAREHOUSE_RESPONSE_INVALID
   DESKTOP_AUDIT_ACTOR_INVALID DESKTOP_FINANCE_ROUTE_CONFIGURATION DESKTOP_FINANCE_UNAVAILABLE
   DESKTOP_FINANCE_PLAN_INVALID DESKTOP_FINANCE_READBACK_INVALID
   DESKTOP_FINANCE_ORIGIN_UNAVAILABLE DESKTOP_FINANCE_JOURNAL_INVALID

@@ -24,20 +24,27 @@ export function normalizeDesktopWorkflowTransition(raw){
  });return c;
 }
 export function createDesktopSaleWorkflowTransactions({pool,sql,verifySession}={}){
+ return createTransactions({pool,sql,verifySession},policy);
+}
+const warehousePolicy=Object.freeze({PREPARE:['DRAFT','PREPARING','warehouse.prepare'],SAVE_CARTONS:['PREPARING','PREPARING','warehouse.pack'],READY:['PREPARING','READY','warehouse.pack']});
+export function createDesktopWarehouseWorkflowTransactions({pool,sql,verifySession}={}){
+ return createTransactions({pool,sql,verifySession},warehousePolicy);
+}
+function createTransactions({pool,sql,verifySession},activePolicy){
  if(!pool||typeof sql?.Transaction!=='function'||typeof sql?.Request!=='function'||typeof sql?.NVarChar!=='function'||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
  return Object.freeze({async transition(actorId,raw){let requestId=typeof raw?.requestId==='string'?raw.requestId:null;
-  try{if(!id(actorId))fail();const c=normalizeDesktopWorkflowTransition(raw);requestId=c.requestId;
+  try{if(!id(actorId))fail();const c=normalizeDesktopWorkflowTransition(raw);if(!Object.hasOwn(activePolicy,c.operation)||activePolicy===warehousePolicy&&c.cartons.some(x=>x.cartonNo>100))fail();requestId=c.requestId;
    const hash=createHash('sha256').update(JSON.stringify({actorId,...c})).digest('hex'),tx=new sql.Transaction(pool);let begun=false;
    try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
     const query=(text,values={})=>{const req=new sql.Request(tx);for(const [name,value] of Object.entries(values))req.input(name,sql.NVarChar(name==='json'?sql.MAX:4000),value);return req.query(text);};
-    if(await verifySession({transaction:tx,actorId,permission:policy[c.operation][2]})!==true)fail();
+    if(await verifySession({transaction:tx,actorId,permission:activePolicy===warehousePolicy?['warehouse.view',activePolicy[c.operation][2]]:activePolicy[c.operation][2]})!==true)fail();
     if(await lockDesktopResolution({sql,transaction:tx,requestId}))fail();
     const old=await query(`SELECT CONVERT(varchar(20),actor_id) actorId,CONVERT(varchar(20),invoice_id) invoiceId,operation,LOWER(CONVERT(varchar(64),payload_hash,2)) hash,result_json resultJson FROM dbo.desktop_sale_workflow_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=TRY_CONVERT(uniqueidentifier,@request);`,{request:requestId});
     if(!Array.isArray(old?.recordset)||old.recordset.length>1)fail();
-    if(old.recordset.length){const prior=old.recordset[0];if(prior.actorId!==actorId||prior.invoiceId!==c.invoiceId||prior.operation!==c.operation||prior.hash!==hash)fail();const result=JSON.parse(prior.resultJson);if(result?.state!=='COMMITTED'||result.requestId!==requestId||result.invoiceId!==c.invoiceId||result.operation!==c.operation||result.workflowState!==policy[c.operation][1]||result.replayed!==false||typeof result.version!=='string'||!/^0x[0-9A-F]{16}$/.test(result.version))fail();await tx.commit();begun=false;return {...result,replayed:true};}
+    if(old.recordset.length){const prior=old.recordset[0];if(prior.actorId!==actorId||prior.invoiceId!==c.invoiceId||prior.operation!==c.operation||prior.hash!==hash)fail();const result=JSON.parse(prior.resultJson);if(result?.state!=='COMMITTED'||result.requestId!==requestId||result.invoiceId!==c.invoiceId||result.operation!==c.operation||result.workflowState!==activePolicy[c.operation][1]||result.replayed!==false||typeof result.version!=='string'||!/^0x[0-9A-F]{16}$/.test(result.version))fail();await tx.commit();begun=false;return {...result,replayed:true};}
     const rows=await query(`SELECT w.state,CONVERT(varchar(18),CONVERT(binary(8),w.version),1) version,i.status FROM dbo.desktop_sale_workflows w WITH(UPDLOCK,HOLDLOCK) JOIN dbo.sales_invoices i WITH(UPDLOCK,HOLDLOCK) ON i.id=w.invoice_id WHERE w.invoice_id=TRY_CONVERT(bigint,@invoice); SELECT CONVERT(varchar(20),id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3 FROM dbo.sales_invoice_items WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=TRY_CONVERT(bigint,@invoice) ORDER BY product_id;`,{invoice:c.invoiceId});
     const rs=rows?.recordsets;if(!Array.isArray(rs)||rs.length!==2||rs[0]?.length!==1||rs[1]?.length!==2)fail();const header=rs[0][0],lines=rs[1],map=new Map();
-    const from=policy[c.operation][0];
+    const from=activePolicy[c.operation][0];
     if(header.status!=='draft'||(Array.isArray(from)?!from.includes(header.state):header.state!==from)||header.version!==c.expectedVersion)fail();
     for(const l of lines){if(!id(l.itemId)||!id(l.productId)||quantity(l.quantityExact3)===0n||map.has(l.itemId))fail();map.set(l.itemId,l);}if(new Set(lines.map(l=>l.productId)).size!==2)fail();
     if(c.operation==='CANCEL'){
@@ -69,9 +76,9 @@ export function createDesktopSaleWorkflowTransactions({pool,sql,verifySession}={
       if(!Array.isArray(packed?.recordset)||packed.recordset.length>200)fail();const totals=new Map(lines.map(l=>[l.itemId,0n]));for(const part of packed.recordset){if(!map.has(part.itemId)||map.get(part.itemId).productId!==part.productId)fail();totals.set(part.itemId,totals.get(part.itemId)+quantity(part.quantityExact3));}if(lines.some(l=>totals.get(l.itemId)!==quantity(l.quantityExact3)))fail();
      }
     }
-    const change=await query(`UPDATE dbo.desktop_sale_workflows SET state=@state,sent_by=CASE WHEN @operation='PREPARE' THEN TRY_CONVERT(bigint,@actor) ELSE sent_by END,prepared_by=CASE WHEN @operation='READY' THEN TRY_CONVERT(bigint,@actor) ELSE prepared_by END,checked_by=CASE WHEN @operation='CHECK' THEN TRY_CONVERT(bigint,@actor) ELSE checked_by END OUTPUT CONVERT(varchar(18),CONVERT(binary(8),inserted.version),1) version WHERE invoice_id=TRY_CONVERT(bigint,@invoice) AND version=CONVERT(binary(8),@version,1);`,{state:policy[c.operation][1],operation:c.operation,actor:actorId,invoice:c.invoiceId,version:c.expectedVersion});
+    const change=await query(`UPDATE dbo.desktop_sale_workflows SET state=@state,sent_by=CASE WHEN @operation='PREPARE' THEN TRY_CONVERT(bigint,@actor) ELSE sent_by END,prepared_by=CASE WHEN @operation='READY' THEN TRY_CONVERT(bigint,@actor) ELSE prepared_by END,checked_by=CASE WHEN @operation='CHECK' THEN TRY_CONVERT(bigint,@actor) ELSE checked_by END OUTPUT CONVERT(varchar(18),CONVERT(binary(8),inserted.version),1) version WHERE invoice_id=TRY_CONVERT(bigint,@invoice) AND version=CONVERT(binary(8),@version,1);`,{state:activePolicy[c.operation][1],operation:c.operation,actor:actorId,invoice:c.invoiceId,version:c.expectedVersion});
     if(change?.recordset?.length!==1||!/^0x[0-9A-F]{16}$/.test(change.recordset[0].version))fail();
-    const result={state:'COMMITTED',requestId,invoiceId:c.invoiceId,operation:c.operation,workflowState:policy[c.operation][1],version:change.recordset[0].version,replayed:false};
+    const result={state:'COMMITTED',requestId,invoiceId:c.invoiceId,operation:c.operation,workflowState:activePolicy[c.operation][1],version:change.recordset[0].version,replayed:false};
     await query(`INSERT dbo.desktop_sale_workflow_requests(request_id,invoice_id,actor_id,operation,payload_hash,result_json) VALUES(TRY_CONVERT(uniqueidentifier,@request),TRY_CONVERT(bigint,@invoice),TRY_CONVERT(bigint,@actor),@operation,CONVERT(binary(32),@hash,2),@json);`,{request:requestId,invoice:c.invoiceId,actor:actorId,operation:c.operation,hash,json:JSON.stringify(result)});
     const recorded=await query(`SELECT CONVERT(varchar(20),actor_id) actorId,CONVERT(varchar(20),invoice_id) invoiceId,operation,LOWER(CONVERT(varchar(64),payload_hash,2)) hash,result_json resultJson FROM dbo.desktop_sale_workflow_requests WITH(HOLDLOCK) WHERE request_id=TRY_CONVERT(uniqueidentifier,@request);`,{request:requestId});
     const stored=recorded?.recordset;if(!Array.isArray(stored)||stored.length!==1||stored[0].actorId!==actorId||stored[0].invoiceId!==c.invoiceId||stored[0].operation!==c.operation||stored[0].hash!==hash||stored[0].resultJson!==JSON.stringify(result))fail();
