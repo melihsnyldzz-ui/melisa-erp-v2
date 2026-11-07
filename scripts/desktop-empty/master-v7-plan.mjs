@@ -11,6 +11,8 @@ export {compareDesktopFinanceV7OldMetadata} from './master-v7-metadata-compare.m
 export {compileMasterV7Readback} from './master-v7-readback.mjs';
 export {compareDesktopFinanceV7Security} from './master-v7-security-compare.mjs';
 export {compileDesktopFinanceV7Trial} from './master-v7-trial.mjs';
+export {prepareDesktopFinanceV7TrialProof} from './master-v7-trial-proof.mjs';
+export {compileDesktopFinanceV7ConditionalApply} from './master-v7-apply.mjs';
 
 export function compileDesktopFinanceV7Proposal(){
  const sqlSha256=createHash('sha256').update(DESKTOP_FINANCE_PROPOSAL_SQL,'utf8').digest('hex');
