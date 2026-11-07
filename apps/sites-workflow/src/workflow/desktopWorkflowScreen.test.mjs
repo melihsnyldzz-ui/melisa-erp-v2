@@ -2,6 +2,28 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {mountDesktopWorkflowScreen} from './desktopWorkflowScreen.mjs';
 import {desktopSeriesDraftItems} from './desktopSeriesDraft.mjs';
+import {createDesktopWorkflowClient} from './desktopWorkflowClient.mjs';
+
+test('excess carton totals across boxes reject before UUID, journal or POST and allow correcting the same form',async()=>{
+ for(const split of [false,true]){
+  const node=root(),store=new Map([['melisa.desktop.workflow.last.v1.8','16']]),sent=[];let ids=0;
+  const storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};
+  const record={invoiceId:'16',documentNo:'DS-K06',customerName:'Deneme',customerId:'2',documentDate:'2026-11-07',workflowState:'PREPARING',version:'0x0000000000000016',totalExact4:'24.0000',items:[{itemId:'27',productId:'10',stockCode:'FX2',name:'Bir',quantityExact3:'1.000',unitPriceExact4:'12.0000',lineTotalExact4:'12.0000'},{itemId:'28',productId:'11',stockCode:'FX3',name:'İki',quantityExact3:'1.000',unitPriceExact4:'12.0000',lineTotalExact4:'12.0000'}],cartonItems:[]};
+  const client=createDesktopWorkflowClient({actorId:'8',storage,locks:{request:async(_key,_options,work)=>work({})},newId:()=>{ids++;return '822c4dcc-3405-43e7-92a4-bd0d9f84b801';},submit:async(kind,body)=>{sent.push({kind,body});return {state:'UNKNOWN',requestId:body.requestId};}});
+  const screen=mountDesktopWorkflowScreen({root:node,core:{sale:()=>({...client,read:async()=>structuredClone(record)})},storage,actorId:'8'});await new Promise(resolve=>setImmediate(resolve));
+  node.querySelector('[data-add-box]').events.click();
+  const fill=(index,item,value)=>{const field=node.querySelectorAll('[data-box]').find(n=>n.dataset.box===String(index)&&n.dataset.item===item);field.value=value;field.events.input({target:field});};
+  fill(0,'27',split?'1.000':'2.000');fill(0,'28','1.000');
+  if(split){node.querySelector('[data-add-box]').events.click();fill(1,'27','1.000');}
+  const before=[...store];await node.querySelector('[data-save-boxes]').events.click();
+  assert.match(node.innerHTML,/FX2 için koli miktarı fişteki 1.000 ADET&#39;i aşıyor/);
+  assert.equal(ids,0);assert.deepEqual(sent,[]);assert.deepEqual([...store],before);assert.equal(client.pending(),null);
+  assert.equal(node.querySelector('[data-save-boxes]').disabled,false);assert.equal(screen.requestClose(),false);
+  assert.equal(node.querySelectorAll('[data-box]').find(n=>n.dataset.box==='0'&&n.dataset.item==='27').value,split?'1.000':'2.000');
+  fill(split?1:0,'27',split?'0.000':'1.000');await node.querySelector('[data-save-boxes]').events.click();
+  assert.equal(ids,1);assert.equal(sent.length,1);assert.equal(sent[0].body.operation,'SAVE_CARTONS');assert.equal(sent[0].body.cartons.length,1);assert.equal(sent[0].body.cartons[0].items[0].quantityExact3,'1.000');assert.equal(client.pending().body.requestId,sent[0].body.requestId);screen.dispose();
+ }
+});
 test('final cancellation requires explicit permission, reason and confirmation, then reads the same invoice',async()=>{
  for(const permitted of [false,true])for(const lost of [false,true]){
   const node=root(),writes=[];let pending=null,state='COMPLETED',reads=0;
