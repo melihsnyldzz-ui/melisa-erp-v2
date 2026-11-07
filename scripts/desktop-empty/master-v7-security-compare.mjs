@@ -14,6 +14,6 @@ export function compareDesktopFinanceV7Security({baselineJson,candidateJson,newT
  if(!eq(before.operator_permissions,DESKTOP_GOODS_V6_OPERATOR_PERMISSIONS.map(fields))||!eq(after.operator_permissions,DESKTOP_FINANCE_V7_OPERATOR_PERMISSIONS.map(fields)))fail();
  const columnIds={'finance_accounts.current_balance':7,'finance_accounts.updated_at':10,'desktop_finance_requests.state':5,'desktop_finance_requests.response_json':6},types={SELECT:'SL',INSERT:'IN',UPDATE:'UP'};
  const required=DESKTOP_FINANCE_PROPOSED_RIGHTS.map(p=>{const minor=p.column===null?0:columnIds[p.name+'.'+p.column];if(!Number.isInteger(minor)||!types[p.permission]||!ids.has(p.name))fail();return {class:1,major_id:ids.get(p.name),minor_id:minor,grantee_principal_id:writer,grantor_principal_id:grantorPrincipalId,type:types[p.permission],state:'G'};});
- const newIds=new Set(ids.values()),added=after.permissions.filter(p=>p.class===1&&newIds.has(p.major_id)),preserved=after.permissions.filter(p=>!(p.class===1&&newIds.has(p.major_id)));if(!eq(before.permissions,preserved)||!eq(added,required))fail();
+ const newIds=new Set(ids.values()),added=after.permissions.filter(p=>p.class===1&&newIds.has(p.major_id)).map(p=>{const type={'SL  ':'SL','IN  ':'IN','UP  ':'UP'}[p.type]??p.type;return {...p,type};}),preserved=after.permissions.filter(p=>!(p.class===1&&newIds.has(p.major_id)));if(!eq(before.permissions,preserved)||!eq(added,required))fail();
  return Object.freeze({state:'MASTER_V7_OLD_SECURITY_MATCH_SOURCE_ONLY',originVerified:false,admissionAllowed:false});
 }
