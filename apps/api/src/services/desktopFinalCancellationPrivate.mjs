@@ -70,7 +70,7 @@ export function createDesktopFinalCancellationService({connector,auth}={}){
      if(storage.getStore()||owners.has(tx)||competing(tx)||await scope.verifyScope({transaction:tx,scope:owned,invoiceId:command.invoiceId})!==true)fail();
      const state={transaction:tx,scope:owned,actorId,command,plan,phase:'native_cancel_pending',open:true};owners.set(tx,state);
      try{return await storage.run(state,async()=>{
-      const native=await import('./invoiceDraftService.js');await native.cancelSalesInvoice(Number(command.invoiceId),{reason:command.reason},{id:actorId},{transaction:tx,pool,sqlDriver:sql,desktopPrivateSale:true});
+      const native=await import('./invoiceDraftService.js');const actor=await (await import('./auditService.js')).resolveDesktopAuditActor(new sql.Request(tx),actorId,'desktop-first-sale');await native.cancelSalesInvoice(Number(command.invoiceId),{reason:command.reason},actor,{transaction:tx,pool,sqlDriver:sql,desktopPrivateSale:true});
       if(state.phase!=='native_cancel_verified'||!active(state,tx)||await fence.verify(fenceProof)!==true)fail();const version=await post({transaction:tx,scope:owned,plan});
       const outcome={state:'COMMITTED',requestId,invoiceId:command.invoiceId,workflowState:'CANCELLED',version,replayed:false};
       await query(`INSERT dbo.desktop_sale_workflow_requests(request_id,invoice_id,actor_id,operation,payload_hash,result_json) VALUES(TRY_CONVERT(uniqueidentifier,@request),TRY_CONVERT(bigint,@invoice),TRY_CONVERT(bigint,@actor),'CANCEL_SALE',CONVERT(binary(32),@hash,2),@json);`,{request:requestId,invoice:command.invoiceId,actor:actorId,hash,json:JSON.stringify(outcome)});

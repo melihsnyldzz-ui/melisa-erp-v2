@@ -12,7 +12,7 @@ test('three goods owners preserve one stock/debt effect, recovery and rollback (
  let db={journal:{},receipt:null,invoice:null,lines:[],stock:'0.000',cost:'0.0000',supplier:'0.0000',account:'0.00000000',movements:[],links:[]},lost=false,failPosting=false;
  const row=x=>({recordset:[x]}),rows=x=>({recordset:x});
  class Transaction{async begin(level){assert.equal(level,4);this.open=true;this.data=structuredClone(db);}async commit(){assert(this.open);db=structuredClone(this.data);this.open=false;if(lost){lost=false;throw Error('synthetic lost acknowledgement');}}async rollback(){this.open=false;}}
- class Request{constructor(tx){assert(tx.open);this.tx=tx;this.p={};}input(k,_type,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p;
+ class Request{constructor(tx){assert(tx.open);this.tx=tx;this.p={};}input(k,_type,v){this.p[k]=v;return this;}async query(q){if(q.includes('desktopAuditActorId'))return {recordset:[{id:this.p.desktopAuditActorId,username:'fixture-user'}]};const d=this.tx.data,p=this.p;
   if(q.includes('DESKTOP_GOODS_TARGET_REJECTED'))return row({ok:1});
   if(q.includes('@@SPID sessionId'))return row({databaseName:'MELISA_ERP_DESKTOP_TEST_20261105',sessionId:11,transactionId:'31',transactionCount:1,transactionState:1});
   if(q.includes('SELECT quote_json quoteJson'))return row({quoteJson:JSON.stringify({input,locked,preview})});

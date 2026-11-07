@@ -193,6 +193,25 @@ function addTextFilter({ clauses, request, name, value, column }) {
   clauses.push(`${column} LIKE @${name}`);
 }
 
+const desktopAuditActors = new WeakMap();
+
+// The caller owns the authenticated transaction and supplies a request on it.
+export async function resolveDesktopAuditActor(request, actorId, source) {
+  if (typeof actorId !== 'string' || !/^[1-9][0-9]{0,18}$/.test(actorId) ||
+      BigInt(actorId) > BigInt(Number.MAX_SAFE_INTEGER) ||
+      !['desktop-first-sale', 'desktop-finance', 'desktop-goods'].includes(source)) throw new Error('DESKTOP_AUDIT_ACTOR_INVALID');
+  const rows = (await request.input('desktopAuditActorId', sql.NVarChar(20), actorId).query(`
+    SELECT CONVERT(varchar(20), id) id, username FROM dbo.users WITH (UPDLOCK,HOLDLOCK)
+    WHERE id=TRY_CONVERT(bigint,@desktopAuditActorId) AND is_active=1;
+  `))?.recordset;
+  if (!Array.isArray(rows) || rows.length !== 1 || rows[0].id !== actorId ||
+      typeof rows[0].username !== 'string' || !rows[0].username.trim() || rows[0].username.length > 80)
+    throw new Error('DESKTOP_AUDIT_ACTOR_INVALID');
+  const actor = Object.freeze({ id: actorId, username: rows[0].username });
+  desktopAuditActors.set(actor, source);
+  return actor;
+}
+
 export async function writeAuditLog(request, {
   action,
   entityType,
@@ -203,6 +222,7 @@ export async function writeAuditLog(request, {
 }) {
   const actorId = actor?.id ? Number(actor.id) : null;
   const actorName = actor?.username || 'SYSTEM';
+  const desktopSource = actor && desktopAuditActors.get(actor);
 
   await request
     .input('auditAction', sql.NVarChar(80), action)
@@ -212,7 +232,7 @@ export async function writeAuditLog(request, {
     .input('auditAfterJson', sql.NVarChar(sql.MAX), afterSnapshot ? JSON.stringify(afterSnapshot) : null)
     .input('auditActorUserId', sql.BigInt, actorId)
     .input('auditReason', sql.NVarChar(500), `actor:${actorName}`)
-    .input('auditSource', sql.NVarChar(80), actor ? 'web-admin' : 'SYSTEM')
+    .input('auditSource', sql.NVarChar(80), desktopSource || (actor ? 'web-admin' : 'SYSTEM'))
     .query(`
       INSERT INTO dbo.audit_logs (
         actor_user_id,

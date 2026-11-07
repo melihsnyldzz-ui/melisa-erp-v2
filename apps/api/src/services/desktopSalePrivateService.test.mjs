@@ -4,7 +4,7 @@ const selected={customer:{id:'2',customerCode:'M1',entityId:'3',accountId:'4',ac
 test('only sale method exposed; private lifecycle posts once and replays without a second native write',async t=>{
  let state={journal:null,posted:0},assertNative;const connector={},auth={bindSaleService:x=>x},pool={};
  class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=this.data;this.open=false;}async rollback(){this.open=false;}}
- class Request{constructor(tx){assert.ok(tx.open);this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const p=this.p,d=this.tx.data;
+ class Request{constructor(tx){assert.ok(tx.open);this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){if(q.includes('desktopAuditActorId'))return {recordset:[{id:this.p?.desktopAuditActorId??'8',username:'fixture-user'}]};const p=this.p,d=this.tx.data;
   if(q.includes('@@TRANCOUNT transactionCount'))return {recordset:[{targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1}]};
   if(q.includes('FROM dbo.desktop_sale_requests')&&q.includes('SELECT'))return {recordset:d.journal?[d.journal]:[]};
   if(q.includes('FROM dbo.customers c WITH'))return {recordsets:[[selected.customer],[selected.product]]};
