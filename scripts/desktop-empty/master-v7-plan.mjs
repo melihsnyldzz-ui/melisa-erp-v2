@@ -4,6 +4,12 @@ import {createHash} from 'node:crypto';
 import {DESKTOP_FINANCE_PROPOSAL_SQL,DESKTOP_FINANCE_PROPOSED_RIGHTS} from '../../apps/api/src/config/desktopFinanceSchemaProposal.mjs';
 import {DESKTOP_FINANCE_V7_OPERATOR_PERMISSIONS,DESKTOP_FINANCE_V7_LIMITS} from '../../apps/api/src/config/desktopFinanceV7Policy.mjs';
 import {compileMasterV6Readback} from './master-v6-transition.mjs';
+import {addDesktopFinanceObjectIds} from './master-v7-readback.mjs';
+export {verifyDesktopFinanceV6Baseline,compareDesktopFinanceV6Observations,compareDesktopFinanceV7Data} from './master-v7-snapshot-verify.mjs';
+export {compileDesktopFinanceV7MutationFragments} from './master-v7-mutation-fragments.mjs';
+export {compareDesktopFinanceV7OldMetadata} from './master-v7-metadata-compare.mjs';
+export {compileMasterV7Readback} from './master-v7-readback.mjs';
+export {compareDesktopFinanceV7Security} from './master-v7-security-compare.mjs';
 
 export function compileDesktopFinanceV7Proposal(){
  const sqlSha256=createHash('sha256').update(DESKTOP_FINANCE_PROPOSAL_SQL,'utf8').digest('hex');
@@ -14,6 +20,6 @@ export function compileDesktopFinanceV7Proposal(){
 // actual V6 metadata, all 37 business hashes and identity values. Its result
 // alone never authorizes V7 DDL, grants or runtime admission.
 export function compileDesktopFinanceV7Baseline(){
- const baseline=compileMasterV6Readback({appMayBeRunning:false});
- return Object.freeze({...baseline,purpose:'MASTER_V7_V6_BASELINE_ONLY',admissionAllowed:false});
+ const baseline=compileMasterV6Readback({appMayBeRunning:false}),sql=addDesktopFinanceObjectIds(baseline.sql);
+ return Object.freeze({...baseline,sql,sha256:createHash('sha256').update(sql,'utf8').digest('hex'),purpose:'MASTER_V7_V6_BASELINE_ONLY',admissionAllowed:false});
 }
