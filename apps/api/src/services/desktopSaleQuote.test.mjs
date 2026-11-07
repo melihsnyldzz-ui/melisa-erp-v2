@@ -18,7 +18,8 @@ test('zero, fractional quantities, fractional prices and percentage precision us
 test('staff limit is exact, higher authority is never inferred, and unsafe numeric/native results fail closed',()=>{
  for(const rate of ['3.0001','5.0000','100.0000'])assert.throws(()=>desktopSaleQuote(fixture({rate})),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});
  for(const rate of [3,'3','-1.0000','NaN','101.0000'])assert.throws(()=>desktopSaleQuote(fixture({rate})));
- assert.throws(()=>desktopSaleQuote({...fixture(),maxDiscountRateExact4:'5.0000'}));
+ const manager=desktopSaleQuote({...fixture({rate:'5.0000'}),maxDiscountRateExact4:'5.0000'});assert.equal(manager.discountRateExact4,'5.0000');
+ assert.throws(()=>desktopSaleQuote({...fixture({rate:'5.0001'}),maxDiscountRateExact4:'5.0000'}),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});
  assert.throws(()=>desktopSaleQuote({...fixture(),normalizeSalesPayload:payload=>({...normalizeSalesPayload(payload),grandTotal:33})}));
  const cost=desktopSaleQuote(fixture({cost:'12.0000'}));assert.equal(cost.belowCostWarning,true);assert.equal('averageCostTryExact4' in cost,false);
 });

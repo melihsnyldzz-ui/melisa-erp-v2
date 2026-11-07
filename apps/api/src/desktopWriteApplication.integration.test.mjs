@@ -54,6 +54,7 @@ function fakeDatabase(passwordHash){
     if(statement.includes('p.permission_key'))return one({id:user.id});
     return rows(p.username===user.username||p.userId===user.id?[{...user}]:[]);
    }
+   if(statement.includes('DESKTOP_SALES_POLICY_READ'))return rows([]);
    if(statement.includes('FROM dbo.permissions WITH(UPDLOCK,HOLDLOCK)'))return rows(permissions.map(x=>({...x})));
    if(statement.includes('LOCAL_MASTER_REQUEST_LOCKED')){
     const x=d.journal[p.requestIdText];if(!x)return rows([]);

@@ -1,5 +1,6 @@
 import {Router} from 'express';
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
+import {normalizeDesktopSalePricing} from '../../../../packages/shared/src/desktopSalePricing.mjs';
 const permissions={PREPARE:'sales.create',SAVE_CARTONS:'sales.edit',READY:'sales.edit',CHECK:'sales.finalize',CANCEL:'sales.edit'};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 const unknown=requestId=>({success:false,data:{state:'UNKNOWN',requestId:typeof requestId==='string'&&/^[0-9a-f-]{36}$/.test(requestId)?requestId:null,retry:'SAME_REQUEST_ONLY'}});
@@ -22,12 +23,12 @@ export function createDesktopSaleWorkflowRoutes({service,draftService,dispatchSe
  });
  router.get('/api/desktop-sale/draft-preview',async(req,res)=>{
   try{
-   const quote=Object.hasOwn(req.query,'discountRateExact4'),fx=Object.hasOwn(req.query,'currencySelection');
-   if(typeof draftService?.preview!=='function'||fx&&!quote||!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294'||Object.keys(req.query).sort().join(',')!==['customerId','documentDate','productIds',...(quote?['discountRateExact4','quantities','quantityUnits']:[]),...(fx?['currencySelection']:[])].sort().join(',')||typeof req.query.productIds!=='string'||quote&&['quantities','quantityUnits','discountRateExact4'].some(k=>typeof req.query[k]!=='string'))throw Error();
-   let currencySelection;if(fx){if(typeof req.query.currencySelection!=='string'||req.query.currencySelection.length>512)throw Error();currencySelection=desktopSaleCurrencySelection(JSON.parse(req.query.currencySelection));}
+   const quote=Object.hasOwn(req.query,'discountRateExact4'),fx=Object.hasOwn(req.query,'currencySelection'),pricing=Object.hasOwn(req.query,'pricing');
+   if(typeof draftService?.preview!=='function'||(fx||pricing)&&!quote||!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294'||Object.keys(req.query).sort().join(',')!==['customerId','documentDate','productIds',...(quote?['discountRateExact4','quantities','quantityUnits']:[]),...(fx?['currencySelection']:[]),...(pricing?['pricing']:[])].sort().join(',')||typeof req.query.productIds!=='string'||quote&&['quantities','quantityUnits','discountRateExact4'].some(k=>typeof req.query[k]!=='string'))throw Error();
+   let currencySelection,pricingValue;if(fx){if(typeof req.query.currencySelection!=='string'||req.query.currencySelection.length>512)throw Error();currencySelection=desktopSaleCurrencySelection(JSON.parse(req.query.currencySelection));}if(pricing){if(typeof req.query.pricing!=='string'||req.query.pricing.length>1024)throw Error();pricingValue=normalizeDesktopSalePricing(JSON.parse(req.query.pricing));}
    const user=await authenticateNormal(req),actor=typeof user?.userId==='number'?String(user.userId):user?.userId;
    if(user?.kind!=='normal'||!id(actor)||!Array.isArray(user.permissions)||['sales.create','sales.finalize'].some(p=>!user.permissions.includes(p)))throw Error();
-   const data=await draftService.preview(actor,{customerId:req.query.customerId,documentDate:req.query.documentDate,productIds:req.query.productIds.split(','),...(quote?{quantities:req.query.quantities.split(','),quantityUnits:req.query.quantityUnits.split(','),discountRateExact4:req.query.discountRateExact4}:{}),...(fx?{currencySelection}:{})});return res.json({success:true,data});
+   const data=await draftService.preview(actor,{customerId:req.query.customerId,documentDate:req.query.documentDate,productIds:req.query.productIds.split(','),...(quote?{quantities:req.query.quantities.split(','),quantityUnits:req.query.quantityUnits.split(','),discountRateExact4:req.query.discountRateExact4}:{}),...(fx?{currencySelection}:{}),...(pricing?{pricing:pricingValue}:{})});return res.json({success:true,data});
   }catch(error){if(error?.code==='DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED')return res.status(403).json({success:false,code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});if(['DESKTOP_COMPANY_RATE_REQUIRED','DESKTOP_COMPANY_RATE_CHANGED','DESKTOP_SALE_PRICE_REQUIRED'].includes(error?.code))return res.status(409).json({success:false,code:error.code});return res.status(503).json({success:false});}
  });
  router.post('/api/desktop-sale/workflows/:id/dispatch',async(req,res)=>{

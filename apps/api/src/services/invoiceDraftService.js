@@ -4,6 +4,7 @@ import { assertInvoiceNotExported } from './vegaInvoiceExportJournal.mjs';
 import sql from 'mssql';
 import {desktopDraftProfitEstimate} from './desktopDraftProfitEstimate.mjs';
 import {desktopDiscountedProfitPlan} from './desktopDiscountedTwoItemSale.mjs';
+import {getDesktopWorkflowPricingLimit} from './desktopWorkflowDraftPrivate.mjs';
 import { getSqlDriver, getSqlPool, isIsolatedOperationCopyRuntime, getIsolatedOperationCopyConfig } from '../config/database.js';
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 import { writeAuditLog } from './auditService.js';
@@ -1913,7 +1914,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       assertDesktopPrivateSale({transaction,actor,operation:'sale_draft',invoiceId:null,invoice:draft});
       // This private TRY flow has locked, known costs. Keep an unknown cost
       // distinct from zero and supply the non-null clean-schema draft estimate.
-      draft.estimatedProfitTry=getDesktopWorkflowCurrencyAccount({transaction,customerId:draft.customerId})?.profitPlan.estimatedProfitTry??desktopDraftProfitEstimate(draft);
+      draft.estimatedProfitTry=getDesktopWorkflowCurrencyAccount({transaction,customerId:draft.customerId})?.profitPlan.estimatedProfitTry??desktopDraftProfitEstimate(draft,{maxDiscountRateExact4:getDesktopWorkflowPricingLimit({transaction,actorId:String(actor.id),operation:'sale_draft',invoiceId:null})??'3.0000'});
     }
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('sales',draft),quarantineTransactionContext(sqlDriver,transaction));
     const personnelReady = await hasPersonnelSalesSchema(new sqlDriver.Request(transaction));
@@ -2208,7 +2209,7 @@ export async function finalizeSalesInvoice(id, actor = null, transactionContext 
     const currencyRateMap = selectedSale?.canonical?new Map():await readCurrencyRateMap(new sqlDriver.Request(transaction));
 
     const desktopCurrencyAccount=getDesktopWorkflowCurrencyAccount({transaction,customerId:beforeSnapshot.customerId,invoiceId});
-    const desktopDiscountPlan=desktopCurrencyAccount?.profitPlan??(transactionContext?.desktopPrivateSale===true&&beforeSnapshot.discountRate!==0?desktopDiscountedProfitPlan({...beforeSnapshot,items:beforeSnapshot.items.map(item=>({...item,averageCostTry:item.productAverageCostTry}))}):null);
+    const desktopDiscountPlan=desktopCurrencyAccount?.profitPlan??(transactionContext?.desktopPrivateSale===true&&beforeSnapshot.discountRate!==0?desktopDiscountedProfitPlan({...beforeSnapshot,items:beforeSnapshot.items.map(item=>({...item,averageCostTry:item.productAverageCostTry}))},{maxDiscountRateExact4:getDesktopWorkflowPricingLimit({transaction,actorId:String(actor.id),operation:'sale_finalize',invoiceId:String(invoiceId)})??'3.0000'}):null);
     for (const [desktopItemIndex,item] of beforeSnapshot.items.entries()) {
       const quantity = safeNumber(item.quantity);
       const currentStock = safeNumber(item.currentStockQty);

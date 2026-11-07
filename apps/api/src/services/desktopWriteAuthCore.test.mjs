@@ -19,6 +19,7 @@ function driver(passwordHash){
   async query(sql){log.push({event:'query',id:this.tx.id,sql,params:this.params});
    if(sql.includes('DESKTOP_AUTH_TARGET_REJECTED')){assert.match(sql,/DATALENGTH\(USER_NAME\(\)\)/);assert.match(sql,/DESKTOP_WRITE_OBJECT_PERMISSION_REJECTED/);if(!state.target||state.extraPermission||state.databaseUser!=='melisa_desktop_test_writer_20261105')throw Error('wrong db, user, or extra permission');return {recordset:[{ok:1}]};}
    if(sql.includes('FROM dbo.users u WITH(UPDLOCK,HOLDLOCK)'))return {recordset:((this.params.username===state.user.username||this.params.userId===state.user.id)?[{...state.user}]:[])};
+   if(sql.includes('DESKTOP_SALES_POLICY_READ'))return {recordset:[]};
    if(sql.includes('FROM dbo.permissions WITH(UPDLOCK,HOLDLOCK)'))return {recordset:state.permissions.map(p=>({...p}))};throw Error('unexpected sql');}}
  const sql={Transaction,Request,NVarChar:()=>({}),ISOLATION_LEVEL:{SERIALIZABLE:4}};
  return {sql,pool:{},state,log};
