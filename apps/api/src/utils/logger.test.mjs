@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {logger, requestLogPath} from './logger.js';
 
-test('finance diagnostics allow exact source codes and redact private suffixes',()=>{for(const code of ['DESKTOP_FINANCE_ROUTE_CONFIGURATION','DESKTOP_FINANCE_UNAVAILABLE','DESKTOP_FINANCE_PLAN_INVALID','DESKTOP_FINANCE_READBACK_INVALID','DESKTOP_FINANCE_ORIGIN_UNAVAILABLE','DESKTOP_FINANCE_JOURNAL_INVALID','DESKTOP_FINANCE_RECEIPT_UNAVAILABLE','DESKTOP_FINANCE_SELECTION_UNAVAILABLE','DESKTOP_GOODS_PROFILE_UNAVAILABLE']){assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);assert.equal(capture(()=>logger.error('API error normalized',{code:code+'_PRIVATE'}))[0].payload.code,'[REDACTED]');}});
+test('finance diagnostics allow exact source codes and redact private suffixes',()=>{for(const code of ['DESKTOP_AUDIT_ACTOR_INVALID','DESKTOP_FINANCE_ROUTE_CONFIGURATION','DESKTOP_FINANCE_UNAVAILABLE','DESKTOP_FINANCE_PLAN_INVALID','DESKTOP_FINANCE_READBACK_INVALID','DESKTOP_FINANCE_ORIGIN_UNAVAILABLE','DESKTOP_FINANCE_JOURNAL_INVALID','DESKTOP_FINANCE_RECEIPT_UNAVAILABLE','DESKTOP_FINANCE_SELECTION_UNAVAILABLE','DESKTOP_GOODS_PROFILE_UNAVAILABLE']){assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);assert.equal(capture(()=>logger.error('API error normalized',{code:code+'_PRIVATE'}))[0].payload.code,'[REDACTED]');}});
 
 test('terminal handoff diagnostic admits only the reviewed code and redacts credentials and suffixes',()=>{
  const code='TERMINAL_HANDOFF_INVALID';
