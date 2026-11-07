@@ -1,3 +1,4 @@
+import {isDesktopProductMovements} from '../../../../packages/shared/src/desktopProductMovements.mjs';
 // Source-only v2 list routes. The injected service owns the SQL transaction.
 import {Router} from 'express';
 import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
@@ -33,6 +34,12 @@ export function createDesktopWriteListRoutes({service,authenticateNormal,richCar
   const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;
   try{const result=await service.list(actorId,kind,{page,limit,search:q.search??''});return res.json({success:true,...result});}
   catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
+ });
+ if(richCards&&typeof service.readProductMovements==='function')router.get('/api/desktop-products/:productId/movements',async(req,res)=>{
+  res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});
+  const q=req.query??{},page=q.page===undefined?1:typeof q.page==='string'&&/^[1-9]\d{0,5}$/.test(q.page)?Number(q.page):null;if(Object.keys(q).some(k=>k!=='page')||!page||page>100000||!desktopProductCardId(req.params.productId))return res.status(400).json({success:false});
+  let actor;try{actor=await authenticateNormal(req)}catch{return res.status(401).json({success:false})}if(actor?.kind!=='normal'||!Array.isArray(actor.permissions)||!['product.view','product.edit'].every(p=>actor.permissions.includes(p)))return res.status(403).json({success:false});const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;
+  try{const data=await service.readProductMovements(actorId,req.params.productId,{page});if(!data)return res.status(404).json({success:false});if(!isDesktopProductMovements(data,{productId:req.params.productId,page}))throw Error();return res.json({success:true,data});}catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
  });
  if(richCards)router.get('/api/products/:id',async(req,res)=>{
   res.set('Cache-Control','no-store');

@@ -1,0 +1,9 @@
+const id=x=>typeof x==='string'&&/^[1-9]\d{0,15}$/.test(x)&&BigInt(x)<=9007199254740991n;
+const plain=x=>x&&typeof x==='object'&&!Array.isArray(x)&&[Object.prototype,null].includes(Object.getPrototypeOf(x));
+const exact=(o,keys)=>plain(o)&&Reflect.ownKeys(o).length===keys.length&&keys.every(k=>Object.getOwnPropertyDescriptor(o,k)?.enumerable&&Object.hasOwn(Object.getOwnPropertyDescriptor(o,k),'value'));
+const date=x=>{if(typeof x!=='string'||!/^\d{4}-\d\d-\d\d$/.test(x))return false;const [y,m,d]=x.split('-').map(Number),v=new Date(Date.UTC(y,m-1,d));return y>=1900&&v.getUTCFullYear()===y&&v.getUTCMonth()===m-1&&v.getUTCDate()===d;};
+const sources=new Set(['stock_count','terminal_sync','stock_adjustment','purchase_invoice','sales_invoice','goods_receipt']);
+export function isDesktopProductMovements(v,{productId,page}={}){
+ if(!exact(v,['productId','page','limit','hasNext','rows'])||!id(v.productId)||productId!==undefined&&v.productId!==productId||!Number.isSafeInteger(v.page)||v.page<1||v.page>100000||page!==undefined&&v.page!==page||v.limit!==100||typeof v.hasNext!=='boolean'||!Array.isArray(v.rows)||v.rows.length>100||v.hasNext&&v.rows.length!==100)return false;
+ let prior=null;for(const r of v.rows){if(!exact(r,['id','documentDate','direction','quantityExact3','sourceType','invoiceId','documentNo'])||!id(r.id)||prior!==null&&BigInt(r.id)>=BigInt(prior)||!date(r.documentDate)||!['in','out'].includes(r.direction)||typeof r.quantityExact3!=='string'||!/^(?:0|[1-9]\d{0,12})\.\d{3}$/.test(r.quantityExact3)||BigInt(r.quantityExact3.replace('.',''))===0n||!sources.has(r.sourceType)||!((r.invoiceId===null&&r.documentNo===null)||(r.sourceType==='sales_invoice'&&id(r.invoiceId)&&typeof r.documentNo==='string'&&r.documentNo.length>0&&r.documentNo.length<=100&&!/[\u0000-\u001f\u007f]/.test(r.documentNo))))return false;prior=r.id;}return true;
+}

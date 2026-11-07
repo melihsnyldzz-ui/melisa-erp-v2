@@ -1,3 +1,11 @@
+## 8 Kasım — ERP09 / Ürün ve Stok: ürün hareketinden yetkili satış fişine izleme
+
+Ürün kartına sayfalı Hareketler görünümü eklendi. Normal ürün görüntüleme+düzenleme yetkisi aynı SQL transaction içinde yeniden doğrulanır; hareket miktarı/tarihi/kaynağı mali alanlar olmadan döner. Satış fişinin kimliği ve numarası yalnız güncel sales.view ve own/all sınırının izin verdiği kayıtta verilir. Depo yetkileri veya ürün fiyatı yetkileri genişletilmez. Fiş bağlantısı mevcut normal satış ekranına gider; geciken ürün/sayfa/oturum yanıtı ve değişmiş yetki reddedilir. Başarısız okuma boş geçmiş olarak sunulmaz.
+
+Bağımsız incelemede gerçek app auth.bind montaj eksikliği bulundu ve giderildi; gerçek app assembly+normal login sentetik fixture'i 200/401/403 durumlarını doğruladı. İlgili frontend, shared, servis, route ve auth kontrolleri toplam65 PASS/0skip; tam exact CI ve yeni paket kurulum/normal Hareketler ekranı henüz BEKLİYOR. Yeni SQL yetkisi, DDL veya ticari yazma endpoint'i yok. Taban PR101/49792f22; dar feature dalı codex/erp-product-movement-trace-20261108, main merge yok.
+
+Ayrı mevcut kurulu49792f22/400bdca5472f yerel TEST'te aynı sentetik fiş15 normal depo hazırlama/koli/READY sonrası yetkili CHECK ve tek native DISPATCH ile COMPLETED oldu. Tek POST/201 + bağımsız SQL: stok hareket38/39, ürün10 8→6 ve ürün11 8→7, müşteri hareket16 +2.2500USD/90TRY; USD hesap7 1.455→3.705. Satışı açan30002, hazırlayan30007, kontrol eden30002 korundu. Normal müşteri kartında aynı fiş ve USD ekstresi görüldü. Bu, yeni Hareketler kaynağının kurulduğu veya saf müdür/gerçek çalışan kabulü anlamına gelmez; masaüstü kurulum kanıtları repo dışında korunur. İnsan/cihaz/LIVE ve özgün kapanış sayaçları değişmez.
+
 ## 7 Kasım — K10-SALES-LIMITS / DES-06 fiş fiyatı ve kişi sınırları kaynakta bağlı
 
 Kişi bazlı fiş fiyatı yetkisi, varsayılan personel%3/tanımlı0–5, müdür%5 ve üstü açık patron onayı normal teklif→taslak→native sevk/readback zincirine bağlandı. Ürün kartı fiyatı veya product.edit izni genişletilmedi. Ayrı system_settings policy okuyucusu aynı tx güncel kişi/rol/izin/revision'u kilitler; yeni ayar satırı, hesap, GRANT veya DDL uygulanmadı. Satır yokken yalnız mevcut TEST operator eski%3/no-price davranışını korur; eksik/bozuk kişi kaydıyla yetki uydurulmaz.

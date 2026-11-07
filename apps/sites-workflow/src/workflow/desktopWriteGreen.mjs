@@ -66,7 +66,7 @@ async function show(page,number,search,limit){if(!core.getUser())return login();
   }));
   root.querySelectorAll('[data-open-product]').forEach(button=>button.addEventListener('click',()=>{
    if(!core.can('products','edit'))return;dispose();const formRoot=view.querySelector('[data-form]');
-   mounted=mountDesktopProductCard({root:formRoot,productId:button.dataset.openProduct,load:id=>core.productCard(id),onClose:()=>{dispose();formRoot.innerHTML='';}});
+   mounted=mountDesktopProductCard({root:formRoot,productId:button.dataset.openProduct,load:id=>core.productCard(id),loadMovements:(id,page)=>core.productMovements(id,page),onOpenInvoice:id=>{if(!core.can('sales'))return;localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),id);void show('sales');},onClose:()=>{dispose();formRoot.innerHTML='';}});
   }));
   root.querySelectorAll('[data-open-invoice]').forEach(button=>button.addEventListener('click',()=>{localStorage.setItem('melisa.desktop.workflow.last.v1.'+String(user.id),button.dataset.openInvoice);void show('sales');}));
   root.querySelector('[data-previous]').addEventListener('click',()=>show(page,number-1,search));root.querySelector('[data-next]').addEventListener('click',()=>show(page,number+1,search));

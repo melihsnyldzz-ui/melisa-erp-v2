@@ -8,6 +8,14 @@ import {desktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntime
 import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {accountSalesFixture} from '../../../api/src/services/test-fixtures/desktopAccountSales.fixture.mjs';
 
+test('product movements bind product and page, enforce permissions and discard late sessions',async()=>{
+ const rights=['product.view','product.edit','sales.view'],x=fixture(rights),original=x.deps.fetch;let data={productId:'6',page:1,limit:100,hasNext:false,rows:[{id:'1',documentDate:'2026-11-07',direction:'out',quantityExact3:'2.000',sourceType:'sales_invoice',invoiceId:'15',documentNo:'S-15'}]},finish,late=false;
+ const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(!url.includes('/desktop-products/'))return original(url,opts);assert.equal(url,'http://127.0.0.1:4294/api/desktop-products/6/movements?page=1');if(late)await new Promise(r=>{finish=r;});return {ok:true,json:async()=>({success:true,data})};}});
+ await assert.rejects(core.productMovements('6'));await core.login('normal','secret');assert.equal((await core.productMovements('6')).rows[0].invoiceId,'15');for(const patch of [{productId:'7'},{page:2},{rows:[{...data.rows[0],cost:'5'}]}]){const old=data;data={...data,...patch};await assert.rejects(core.productMovements('6'));data=old;}
+ rights.splice(2,1);await assert.rejects(core.productMovements('6'));data={...data,rows:[{...data.rows[0],invoiceId:null,documentNo:null}]};assert.equal((await core.productMovements('6')).rows[0].invoiceId,null);late=true;const waiting=core.productMovements('6');await core.logout();finish();await assert.rejects(waiting);
+ const limited=fixture(['product.view']);const denied=createDesktopWriteGreenCore({...limited.deps,richCards:true});await denied.login('normal','secret');await assert.rejects(denied.productMovements('6'));assert.equal(limited.calls.some(c=>c.url.includes('/desktop-products/')),false);
+});
+
 test('ledger capability requires both views and V5, binds customer/account/page/currency, and expires on logout',async()=>{
  const x=fixture(['customer.view','sales.view']),original=x.deps.fetch;let version=4,finish,late=false,patch={};const calls=[];
  const data=()=>({customerId:'2',accountId:'7',currency:'USD',balanceExact8:'-0.00000001',page:1,hasNext:false,hasUnassignedMovements:true,rows:[{id:'20',documentDate:'2026-11-05',movementType:'SALE',invoiceId:'8',documentNo:'F-8',documentCurrency:'EUR',documentAmountExact4:'-1.0000',accountCurrency:'USD',accountAmountExact4:'-2.0000',balanceEffectExact8:'-2.00000001'}],...patch});
