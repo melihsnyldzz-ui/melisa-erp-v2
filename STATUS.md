@@ -1,5 +1,7 @@
 ## 7 Kasım — K10-SALES-OWNERSHIP / K10-T08 kişisel satış okuması kaynakta hazır
 
+İlk exact CI'da iki fixture, dosya okunurken bozulan Türkçe sabitler nedeniyle reddedildi (SERİ ve DS-İ); yetki/DTO mantığı hatası değildi. Üç test dosyasındaki19 sabit base77 UTF-8 metnine döndürüldü. Değişen17 mevcut API dosyasının non-ASCII dizileri base77 ile tamamen eşleşti; üretim sorgusu/metni değişmedi. Başarısız CI saklı, yeni exact koşu beklenecek; yerel dependency yüklenmedi.
+
 DES-19 kapsamında sales.view personeli kendi created_by fişlerini okur; liste COUNT ve PAGE, doğrudan workflow başlığı/kalemleri, müşteri son satışı ve hesap satış geçmişi aynı sunucu kapsamına bağlandı. NULL/tarihsel sahipsiz fiş own görünümüne atanmaz. Genel görünüm yalnız mevcut sales.view ile birlikte sales.cancel veya finance.collection/payment hakkından biri olan doğrulanmış oturumda korunur; create/edit/finalize, rol adı ve HTTP/query alanı tüm geçmiş yetkisi vermez. Scope, private auth kaydından aynı leased transaction/actor ve güncel izinlerle alınır.
 
 Own hesap geçmişi yalnız kendi fişlerini ve salesVisibility aktörünü döndürür, toplam hesap bakiyesi içermez; genel ekstre own için403 ile kapanır. Ayrı customer.view ile zaten yetkili cari toplamları korunur; bunlar bireysel satış toplamı olarak sunulmaz. Erişim reddi/yenileme başlar başlamaz eski fiş tutarı ve aksiyonları ekrandan kalkar; actor/scope değişen geç yanıt reddedilir. Pending/UNKNOWN ve yazma kurtarması değiştirilmedi. Bu değişiklik yalnız okuma sınırıdır, yabancı fişe yazma matrisi kabulü değildir.
