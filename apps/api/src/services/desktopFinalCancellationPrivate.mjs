@@ -48,7 +48,7 @@ export function getDesktopFinalCancellationAccountContext({transaction,customerI
  return Object.freeze({actorId:s.actorId,requestId:s.command.requestId,currency:s.plan.accountCurrency,customerCurrency:s.plan.customerCurrency,preserveLegacyBalance:s.plan.preserveLegacyBalance,cancellation:s.plan});
 }
 export function createDesktopFinalCancellationService({connector,auth}={}){
- if(desktopConnector.getDesktopWriteProfile?.(connector)!=='desktop-master-v5')fail();
+ if(!['desktop-master-v5','desktop-master-v6'].includes(desktopConnector.getDesktopWriteProfile?.(connector)))fail();
  const pool=getDesktopWritePool(connector),verifySession=getDesktopWriteSessionVerifier(auth,pool),scope=createDesktopFinalCancellationScope({sql,verifySession});
  if(typeof auth?.bindFinalCancellationService!=='function')fail();
  const fence=createDesktopFinalCancellationExportFence();

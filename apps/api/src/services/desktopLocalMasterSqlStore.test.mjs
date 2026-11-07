@@ -113,6 +113,7 @@ test('extra writer permission aborts before business callback or data mutation',
  await assert.rejects(store.withTransaction(async()=>{called=true;}));assert.equal(called,false);
  assert.deepEqual(f.log.map(x=>x.kind),['begin','sql','rollback']);
 });
+test('V6 master checks V6 target and schema before any callback',async()=>{const f=fakeDriver(),store=createDesktopLocalMasterSqlStore({...f,richCards:true,schemaVersion:6,verifySession:async()=>true});await store.withTransaction(async()=>{});const statement=f.log.find(x=>x.statement?.includes('LOCAL_SQL_TARGET_REJECTED')).statement;assert.match(statement,/schema_version=6/);assert.match(statement,/DESKTOP_GOODS_V6_SCHEMA_REJECTED/);const g=fakeDriver({rejectTarget:true}),blocked=createDesktopLocalMasterSqlStore({...g,richCards:true,schemaVersion:6,verifySession:async()=>true});let called=false;await assert.rejects(blocked.withTransaction(async()=>{called=true;}));assert.equal(called,false);});
 
 test('normal session and locked create permission precede a parameterized customer insert on same transaction',async()=>{
  const f=fakeDriver();let verifiedTx;

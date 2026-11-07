@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createDesktopGoodsService} from './desktopGoodsAssembly.mjs';
+test('goods composition exposes only seven narrow operations and no pool, callback or issuer',()=>{const service=createDesktopGoodsService({connector:{},auth:{}});assert.deepEqual(Object.keys(service).sort(),['approve','create','finalize','options','preview','read','readRequest']);assert(Object.values(service).every(v=>typeof v==='function'));assert(Object.isFrozen(service));});

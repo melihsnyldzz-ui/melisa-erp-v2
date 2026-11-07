@@ -1,0 +1,23 @@
+# PR54 mal kabul ve bağlı alış — V6 kaynak adayı
+
+V5'te kurulu yeşil ERP'nin normal satış, döviz hesabı, iptal ve müşteri ekstresi yolları korunarak mal kabul/alış için aynı normal oturum altında yedi dar API işlemi ve ekran eklenir. İlk mali kayıt TRY içindir. Kullanıcı ürünün ana birim alış fiyatını TRY olarak açıkça girer; başka para birimindeki kart fiyatı TRY diye doldurulmaz. SERİ seçimi gerçek birim katsayısıyla ana birime çevrilir.
+
+Taslak, stok veya borç üretmeden bağlı native alış taslağını oluşturur. Mal kabul onayı stoku ve bilinen maliyete göre ağırlıklı ortalamayı bir kez işler. Bağlı alışın kesinleştirilmesi native stok/maliyet döngüsünü atlar, native tedarikçi hareketini ve seçili TRY hesabını birer kez işler. Her owner kendi gerçek SERIALIZABLE transaction'ını, güncel yetkisini ve actor/operation/UUID/body-hash günlüğünü tutar. Belirsiz yanıt aynı UUID ve gövdeyle doğrulanır; GET tek başına bekleyen isteği silmez. Native fonksiyonlara genel bir yetki bayrağı yeterli değildir; private scope aynı işlem, aktör, makbuz, fatura ve kilitli fatura özetine bağlanır.
+
+## Kaynak doğrulaması ve açık sınırlar
+
+- Birleşik 30 dosyada 123 çevrimdışı test geçti. Son eklenen baseline observer dahil kurulum/snapshot/başlatma paketi ayrıca 11/11 geçti. Bağımsız kaynak incelemesinde bulunan fiş–teklif, stok hareketi, fiyat/maliyet ve exact cari CAS açıkları düzeltildi.
+- Üç gerçek owner'ı çağıran stateful sentetik fixture vardır; native invoice, driver ve bazı yardımcıları açıkça taklit eder. Yerelde eksik mssql/express nedeniyle bu fixture ve gerçek HTTP/native testleri çalıştırılmadı. Mevcut GitHub temiz checkout iş akışında çalıştırılacak; yerel bağımlılık hazırlığına yönelik önceki otomatik politika reddi dolanılmadı.
+- Normal V6 rol/SQL/GUI akışı henüz kabul edilmedi. Kaynak testi, örnek model veya source review gerçek SQL, cihaz ya da insan kabulü değildir. FX alış, bilinmeyen maliyet ve sonraki maliyet farkı, finans/kasa ve kalan özgün ERP kapsamı tamamlanmış sayılmaz.
+
+## Sabit TEST geçişi
+
+Yalnız `Semih\MELISAERP / MELISA_ERP_DESKTOP_TEST_20261105`, DB5, GUID `c67f5317-9c0d-4831-aadd-fadc379a95d1`, environment `eb2888c2-51cb-4570-a933-397cf7e62806`, SQL PID5240 hedeflenir. V5/36 tablo → V6/40 tablo; dört boş normalleştirilmiş tablo, mevcut iki alış tablosuna 14 nullable sütun, altı ERP işlem izni ve 42 dar SQL hakkı önerilir. Yeni login, kullanıcı, parola, geniş rol veya reader yetkisi yoktur. Var olan boş `system_settings` yeniden oluşturulmaz; native eksik-ayar varsayılanıyla aynı false/null iki accounting ayarı eklenir. Eski satırlar orijinal sütun ve PK sırasıyla karşılaştırılır. Eski tablo kimlikleri, rol/izin satırları ve literal metadata korunur; yalnız dört yeni tablonun geçici object ID referansları mantıksal adla normalize edilir. Apply, rollback adayının semantic metadata/ACL hashlerini COMMIT öncesinde doğrular. Ayrı biten süreçten gözlem zorunludur.
+
+## Başarısız söz dizimi denemesi — kurulum kabulü değildir
+
+Root'un aynı batch içinde `PARSEONLY ON / SQL / OFF` kullanan denemesi beklenenden geniş çalıştı. Guard51995 ve ayrı kimlik gözlemi, test işlemlerinin yürütülüp geri alındığını gösterir; ilk başarısız denemenin tam aşaması kaydedilmemiştir. Bu yöntem bırakılmıştır; parser planları tekrar yürütülmeyecek. Microsoft, PARSEONLY ayarının parse zamanında değerlendirildiğini belirtir: https://learn.microsoft.com/en-us/sql/t-sql/statements/set-parseonly-transact-sql
+
+Ayrı biten salt okunur süreçte önceki tam C05 metadata nesnesi birebir aynıdır: metadata `8064d8d3…`, security `0201e190…`, bütün33 iş tablosu `48dba7ce…`, şema5/36 tablo ve native iş kimlikleri korunmuştur. Buna rağmen permissions identity43→49; boş system_settings current1/lastNULL→current2/last2 ilerlemiştir. Kayıt sayıları15/0 aynıdır. Sayaçlar geri çekilmemiştir; bu başarısız deneme başarılı rollback veya bağımsız kurulum kanıtı olarak kullanılmayacaktır. Yeni compiler mevcut49/2'yi başlangıç alır; normal apply gerçekleşirse55/4 ve yeni satırlar50–55 /3–4 beklenir. Yerel olay kanıtı `Desktop\ERP\kurulum\v6-parser-incident-proof-v1.json`, SHA256 `f7415139e7a57fa297af9d709a23346f45946e5e21d4a2f47f8e42054a1f2381`.
+
+Çalışan uygulama V5 kaynak01bf2357 /paket2e4a990f, owner3324/worker11696 olarak açık kalmıştır. Eski ERP/Vega/ticari veri/yedekler ve SQL servisi bu denemede değiştirilmemiştir. Yeni aday için exact CI, normal rollback + ayrı gözlem ve ondan üretilen koşullu apply henüz bekler.

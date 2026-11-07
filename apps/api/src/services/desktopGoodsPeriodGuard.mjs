@@ -1,0 +1,8 @@
+// Source-only transaction-owned period guard. Missing or malformed settings
+// fail closed; no new period setting or posting authority is created here.
+const fail=()=>{throw Error('DESKTOP_GOODS_PERIOD_UNAVAILABLE');};
+function date(v){if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;const [y,m,d]=v.split('-').map(Number),x=new Date(Date.UTC(y,m-1,d));return y>=1900&&x.getUTCFullYear()===y&&x.getUTCMonth()===m-1&&x.getUTCDate()===d;}
+export const DESKTOP_GOODS_PERIOD_SQL=`SELECT setting_key settingKey,setting_value settingValue FROM dbo.system_settings WITH(UPDLOCK,HOLDLOCK) WHERE setting_group=N'accounting' AND setting_key IN(N'periodLockEnabled',N'periodLockedThroughDate') AND is_active=1;`;
+export async function assertDesktopGoodsPeriodOpen({sql,transaction,documentDate}={}){
+ if(!sql||!transaction||!date(documentDate))fail();const r=await new sql.Request(transaction).query(DESKTOP_GOODS_PERIOD_SQL);if(!Array.isArray(r?.recordset)||r.recordset.length!==2)fail();const a=r.recordset.filter(x=>x.settingKey==='periodLockEnabled'),b=r.recordset.filter(x=>x.settingKey==='periodLockedThroughDate');if(a.length!==1||b.length!==1||typeof a[0].settingValue!=='string')fail();const enabled=a[0].settingValue.trim().toLowerCase();if(!['true','1','yes','on','false','0','no','off'].includes(enabled))fail();const locked=['true','1','yes','on'].includes(enabled),through=b[0].settingValue;if(locked&&!date(through)||!locked&&through!=null&&through!==''&&!date(through))fail();if(locked&&documentDate<=through)throw Object.assign(Error('DESKTOP_GOODS_PERIOD_LOCKED'),{code:'DESKTOP_GOODS_PERIOD_LOCKED'});return true;
+}
