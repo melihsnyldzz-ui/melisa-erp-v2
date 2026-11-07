@@ -13,7 +13,12 @@ $package=Get-Content -Raw -LiteralPath $packageFile|ConvertFrom-Json -AsHashtabl
 $files=$package.sources
 $admissionFile=Join-Path $root ('kurulum\master-v6-runtime-admissions\'+$packageHash+'.json')
 if([IO.Directory]::ResolveLinkTarget((Join-Path $source 'apps\api\node_modules'),$true).FullName -cne 'C:\Users\Xaser\Desktop\ERP\kaynak\apps\api\node_modules'){throw 'DEPENDENCY_LOCATION_REJECTED'}
+function Assert-V6FileAncestors([string]$p){
+ $item=Get-Item -LiteralPath $p -Force;if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'FILE_REJECTED'}
+ $ancestor=$item.Directory;while($null -ne $ancestor){if(($ancestor.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'FILE_ANCESTOR_REJECTED'};$ancestor=$ancestor.Parent}
+}
 function Verify-File([string]$p,[string]$hash){
+ Assert-V6FileAncestors $p
  $i=Get-Item -LiteralPath $p -Force;if($i.PSIsContainer -or ($i.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'FILE_REJECTED'}
  $s=[IO.File]::Open($p,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$held.Add($s)
  if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant() -cne $hash.ToLowerInvariant()){throw 'FILE_REJECTED'}
@@ -41,6 +46,7 @@ try{
  Verify-File $packageFile $ExpectedPackageHash
  $package=Get-Content -Raw -LiteralPath $packageFile|ConvertFrom-Json -AsHashtable;$files=$package.sources
  if($package.profile -cne 'desktop-master-v6' -or $package.sourceRoot -cne 'C:/Users/Xaser/Desktop/ERP/kaynak-r1'){throw 'PACKAGE_PROFILE_REJECTED'}
+ Assert-V6FileAncestors $admissionFile
  $admissionItem=Get-Item -LiteralPath $admissionFile -Force
  if($admissionItem.PSIsContainer -or ($admissionItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'V6_ADMISSION_REJECTED'}
  $admissionHandle=[IO.File]::Open($admissionFile,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$held.Add($admissionHandle)
@@ -48,6 +54,7 @@ try{
  if($admission.state -cne 'MASTER_V6_RUNTIME_ADMITTED' -or $admission.packageHash -cne $packageHash){throw 'V6_ADMISSION_REJECTED'}
  if(@(Get-NetTCPConnection -State Listen -ErrorAction Stop|Where-Object LocalPort -in @(4294,5294)).Count -ne 0){$stage='PORT_OCCUPIED';throw 'PORT_OCCUPIED'}
  Verify-File $node $nodeHash
+ Verify-File (Join-Path $root 'kurulum\MELISAERP-sql-public.pem') '10529DE42F6BBC07E67F0BD950DF63D88229ACEDB2EC6DF793CD634FA00C1433'
  foreach($p in $files.Keys){Verify-File (Join-Path $source $p) $files[$p]}
  foreach($p in $package.helpers.Keys){Verify-File (Join-Path $source $p) $package.helpers[$p]}
  foreach($p in $package.assets.Keys){Verify-File (Join-Path $source ('apps\sites-workflow\dist-desktop-write-green\'+$p)) $package.assets[$p]}
