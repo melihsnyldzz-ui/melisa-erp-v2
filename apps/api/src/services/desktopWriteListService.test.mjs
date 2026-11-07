@@ -31,6 +31,15 @@ test('receipt history uses sales.view and persisted workflow state without losin
  for(const options of [{receiptTotal:50},{receiptTotal:'50.00'},{receiptState:'UNRECOGNIZED'}]){const x=setup(options);await assert.rejects(x.service.list('7','receipts'));assert.equal(x.rolled,1);assert.equal(x.committed,0);}
 });
 
+test('receipt count and page use identical owner predicate before pagination; privileged read includes legacy NULL owners',async()=>{
+ const rows=[{owner:'7',id:'3'},{owner:'8',id:'2'},{owner:null,id:'1'}],seen=[];let mode='own';
+ class Transaction{async begin(){}async commit(){}async rollback(){}}
+ class Request{constructor(){this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:1}]};seen.push({q,p:this.p});const subset=q.includes('i.created_by=TRY_CONVERT(bigint,@actorId)')?rows.filter(r=>r.owner===this.p.actorId):rows;if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:String(subset.length)}]};return {recordset:subset.map(r=>({id:r.id,documentNo:'F'+r.id,documentDate:'2026-11-07',customerName:'Ada',workflowState:'COMPLETED',currency:'TRY',totalExact4:'1.0000'}))};}}
+ const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:1}},s=createDesktopWriteListService({pool:{},sql,verifySession:async()=>true,getSalesReadScope:()=>mode});
+ const own=await s.list('7','receipts',{});assert.deepEqual(own.data.map(x=>x.id),['3']);assert.equal(own.meta.total,1);assert.equal(seen.length,2);assert(seen.every(x=>x.q.includes('i.created_by=TRY_CONVERT(bigint,@actorId)')&&x.p.actorId==='7'));assert(seen[1].q.indexOf('i.created_by')<seen[1].q.indexOf('OFFSET'));
+ seen.length=0;mode='all';const all=await s.list('7','receipts',{});assert.deepEqual(all.data.map(x=>x.id),['3','2','1']);assert.equal(all.meta.total,3);assert(seen.every(x=>!x.q.includes('i.created_by=')));
+});
+
 test('receipt lists retain each original currency and exact total only in the explicit FX profiles',async()=>{
  for(const schemaVersion of [2,3,4,5])for(const receiptCurrency of ['TRY','USD','EUR'])for(const receiptState of ['DRAFT','COMPLETED','CANCELLED']){
   const x=setup({richCards:schemaVersion!==2,schemaVersion,receiptCurrency,receiptState,receiptTotal:'1.1640'});

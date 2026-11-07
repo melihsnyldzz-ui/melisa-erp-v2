@@ -11,6 +11,7 @@ import {desktopCompanyRateDate,isDesktopCompanyRates} from '../../../../packages
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {desktopCurrencySettlementParity} from '../../../api/src/services/desktopCurrencySettlementParity.mjs';
 import {desktopAccountSalesPage,isDesktopAccountSales} from '../../../../packages/shared/src/desktopAccountSales.mjs';
+import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
 import {isDesktopCustomerLedgerView} from './desktopCustomerLedger.mjs';
 import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
@@ -89,7 +90,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   return Object.freeze({pending:()=>{current();return c.pending();},create:async fields=>{current();return c.create(fields);},retry:async()=>{current();return c.retry();}});
  }
  async function customerAccountSales(customerId,accountId,page=1){
-  if(!richCards||!can('customers')||!can('sales')||!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page))fail();const prior=generation,result=await request('/api/customers/'+customerId+'/accounts/'+accountId+'/sales?page='+page);if(prior!==generation||!can('customers')||!can('sales')||!isDesktopAccountSales(result.data,{customerId,accountId,page}))fail();for(const invoice of result.data.invoices)validateCurrencyAmounts(invoice,{documentCurrency:invoice.currency,documentRateExact8:invoice.documentRateExact8,accountRateExact8:invoice.accountRateExact8});return result.data;
+  if(!richCards||!can('customers')||!can('sales')||!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page))fail();const prior=generation,actor=actorId(user.id),mode=desktopSalesReadMode(user.permissions),result=await request('/api/customers/'+customerId+'/accounts/'+accountId+'/sales?page='+page);if(prior!==generation||!user||actorId(user.id)!==actor||desktopSalesReadMode(user.permissions)!==mode||!can('customers')||!can('sales')||!isDesktopAccountSales(result.data,{customerId,accountId,page,actorId:actor,mode}))fail();for(const invoice of result.data.invoices)validateCurrencyAmounts(invoice,{documentCurrency:invoice.currency,documentRateExact8:invoice.documentRateExact8,accountRateExact8:invoice.accountRateExact8});return result.data;
  }
  async function customerLedger(){
   if(!richCards||!can('customers')||!can('sales')||!token)fail();const actor=actorId(user.id),prior=generation;
