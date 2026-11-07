@@ -117,6 +117,8 @@ jobs:
             apps/sites-workflow/package-lock.json
       - name: Validate change-impact boundaries
         run: node --test scripts/ci/change-impact-advisory.test.mjs
+      - name: Warehouse quantity-only response and recovery contract
+        run: node --test packages/shared/src/desktopWarehouse.test.mjs
       - name: Install locked dependencies without lifecycle scripts
         run: |
           npm ci --prefix apps/api --ignore-scripts --no-audit --no-fund
