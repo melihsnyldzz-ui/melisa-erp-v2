@@ -17,7 +17,9 @@ Yeni yetkisiz istek UUID veya pending oluşturmadan reddedilir. Gönderilmiş UN
 
 ## Kaynak doğrulaması
 
-Birleşik yerel koşuda 93 test, 0 başarısız, 0 skip: ortak sözleşme 6; depo read/resolver VM ve lifecycle 6; eski satış lifecycle 5; logger 25; green core/depo view/workflow client/finance view/controller 51. VM/read/lifecycle fixture'ları sentetik sürücü kullanır, gerçek SQL değildir. Bağımsız incelemede bulunan 101. koli/pending ve eski finans isteğinin görünürlüğü giderildi; logger sabit katalog regresyonu da kapatıldı.
+Hedefli yerel kapsamda 97 test, 0 başarısız, 0 skip: ortak sözleşme 6; depo read/resolver VM ve lifecycle 6; eski satış lifecycle 5; logger 25; green core/depo view/workflow client/finance view/controller 55. VM/read/lifecycle fixture'ları sentetik sürücü kullanır, gerçek SQL değildir. Bağımsız incelemede bulunan 101. koli/pending ve eski finans isteğinin görünürlüğü giderildi; logger sabit katalog regresyonu da kapatıldı.
+
+Kesin NOT_COMMITTED sonrası kirli koli düzeni, kullanıcı güncel kaydı açıkça yeniden açana kadar korunur; eski revizyonla yeni yazma engellenir. COMMITTED sonucu sonrası güncel fiş okuması başarısızsa da yeniden okuma hedefi saklı kalır. Açık kayıt ve eski pending'den kayıt seçilmeden kurtarma ayrı testtedir. Yeniden okuma başarısızlığı yeni UUID/POST üretmez; gerçek UNKNOWN temizlenmez. İlk eski view ile kurtarma testinin başarısızlığı gözlendi, düzeltme ve dört yeni test sonrası bağımsız inceleme geçti.
 
 Mevcut gerçek Express + normal auth + sentetik SQL uygulama entegrasyonuna depo login/liste/diğer kart reddi/logout senaryosu eklendi. Gerçek dependency'li route/auth/assembly testleri hosted CI'da ayrıca çalıştırılır; yerel dependency install, junction/loader değiştirme veya build yapılmadı. Exact CI sonucu bu dosyadaki kaynak sayımından çıkarılamaz.
 
