@@ -1,4 +1,5 @@
 import {writeDesktopGoodsAudit} from './desktopGoodsAudit.mjs';
+import {recordDesktopFailure} from './desktopSafeDiagnostics.mjs';
 // Transaction-owned approval for one already-persisted goods receipt.
 // No connector, transaction, callback or native capability is exposed.
 import {getDesktopMasterV6GuardSql} from '../config/desktopGoodsV6Guard.mjs';
@@ -32,6 +33,6 @@ export async function createDesktopGoodsApprovalService({connector,auth}={}){
    const totalEffects=(await new sql.Request(tx).input('receipt',sql.BigInt,receiptId).input('invoice',sql.BigInt,receipt.purchaseInvoiceId).query(`SELECT (SELECT COUNT_BIG(*) FROM dbo.stock_movements WITH(HOLDLOCK) WHERE source_type=N'goods_receipt' AND source_id=@receipt) goodsCount,(SELECT COUNT_BIG(*) FROM dbo.stock_movements WITH(HOLDLOCK) WHERE source_type=N'purchase_invoice' AND source_id=@invoice) invoiceCount;`))?.recordset;if(!Array.isArray(totalEffects)||totalEffects.length!==1||Number(totalEffects[0].goodsCount)!==plan.effects.length||Number(totalEffects[0].invoiceCount)!==0)fail();
    const financialAfter=await finances();if(JSON.stringify(financialAfter)!==JSON.stringify(financialBefore))fail();
    await advanceDesktopGoodsState({sql,transaction:tx,receiptId,expectedVersion:body.expectedVersion,previous:'draft',next:'accepted'});const result=await readDesktopGoodsReceipt({sql,transaction:tx,receiptId});if(!result||result.state!=='accepted'||result.version!==body.expectedVersion+1)fail();const response={requestId:body.requestId,state:'COMMITTED',replayed:false,receipt:result};await writeDesktopGoodsAudit({sql,transaction:tx,actorId,requestId:body.requestId,receiptId,invoiceId:receipt.purchaseInvoiceId,action:'goods.receipt.approve'});await finishDesktopGoodsJournal({sql,transaction:tx,binding,receiptId,response});if(!same(owner,await physical(sql,tx)))fail();committing=true;await tx.commit();begun=false;committing=false;return response;
-  }catch(error){let rolled=false;if(begun)try{await tx.rollback();rolled=true;}catch{}if(rolled&&!committing&&error?.goodsRejection==='STALE_VERSION')return {requestId:body.requestId,state:'NOT_COMMITTED',replayed:false,receipt:null,reason:'STALE_VERSION'};return {requestId:body.requestId,state:'UNKNOWN',replayed:false,receipt:null};}
+  }catch(error){recordDesktopFailure({requestId:body.requestId,error});let rolled=false;if(begun)try{await tx.rollback();rolled=true;}catch{}if(rolled&&!committing&&error?.goodsRejection==='STALE_VERSION')return {requestId:body.requestId,state:'NOT_COMMITTED',replayed:false,receipt:null,reason:'STALE_VERSION'};return {requestId:body.requestId,state:'UNKNOWN',replayed:false,receipt:null};}
  }});
 }
