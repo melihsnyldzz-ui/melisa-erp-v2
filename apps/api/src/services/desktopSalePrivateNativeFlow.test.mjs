@@ -5,7 +5,7 @@ const selection={customer:{id:'2',customerCode:'M1',entityId:'3',accountId:'4',a
 test('actual native draft + finalize with synthetic SQL driver, private account posting, receipt readback and same-request replay',async t=>{
  const connector={},pool={},auth={bindSaleService:x=>x},seen=[],unknown=[];let failPost=false,corruptOutcome=false,pilotQueries=0,postAttempts=0,state={journal:null,invoice:null,items:[],stock:4,customer:1,account:1,movements:0,stockRows:0,audits:0,posted:0};
  class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=this.data;this.open=false;}async rollback(){this.open=false;}}
- class Request{constructor(tx){if(!tx?.open)throw Error('transaction required');this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const p=this.p,d=this.tx.data;seen.push(q);const one=x=>({recordset:[x]}),rows=x=>({recordset:x});
+ class Request{constructor(tx){if(!tx?.open)throw Error('transaction required');this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){if(q.includes('desktopAuditActorId'))return {recordset:[{id:this.p?.desktopAuditActorId??'8',username:'fixture-user'}]};const p=this.p,d=this.tx.data;seen.push(q);const one=x=>({recordset:[x]}),rows=x=>({recordset:x});
   if(q.includes('@@TRANCOUNT transactionCount'))return one({targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1});
   if(q.includes('FROM dbo.desktop_sale_requests j'))return {recordsets:[d.journal&&d.invoice?.status==='finalized'?[{invoiceId:'12',documentNo:d.invoice.documentNo,documentDate:d.invoice.documentDate,customerName:d.invoice.customerName,status:'FINALIZED',currency:'TRY',totalExact4:d.invoice.grandTotal.toFixed(4)}]:[],d.items.map(x=>({stockCode:x.stockCode,productName:x.productName,quantityExact3:Number(x.quantity).toFixed(3),unitPriceExact4:Number(x.unitPrice).toFixed(4),lineTotalExact4:Number(x.lineTotal).toFixed(4)}))]};
   if(q.includes('FROM dbo.desktop_sale_requests')&&q.includes('SELECT'))return rows(d.journal?.requestId===p.requestId?[d.journal]:[]);
@@ -25,7 +25,7 @@ test('actual native draft + finalize with synthetic SQL driver, private account 
   if(q.includes('UPDATE dbo.sales_invoices SET account_currency'))return {rowsAffected:[1],recordset:[]};
   if(q.includes('WHERE si.id = @salesSnapshotId')||q.includes('WHERE si.id = @finalizeSnapshotId'))return rows(d.invoice?[{...d.invoice}]:[]);
   if(q.includes('WHERE sii.sales_invoice_id = @salesItemsSnapshotId')||q.includes('WHERE sii.sales_invoice_id = @finalizeItemsSnapshotId'))return rows(d.items.map(x=>({...x,currentStockQty:d.stock})));
-  if(q.includes('INSERT INTO dbo.audit_logs')){d.audits++;return {rowsAffected:[1],recordset:[]};}
+  if(q.includes('INSERT INTO dbo.audit_logs')){assert.equal(p.auditActorUserId,8);assert.equal(p.auditReason,'actor:fixture-user');assert.equal(p.auditSource,'desktop-first-sale');d.audits++;return {rowsAffected:[1],recordset:[]};}
   if(q.includes('FROM dbo.currency_rates'))return rows([]);
   if(q.includes('UPDATE dbo.sales_invoice_items'))return {rowsAffected:[1],recordset:[]};
   if(q.includes('UPDATE dbo.products')&&q.includes('current_stock_qty = current_stock_qty -')){d.stock-=2;return {rowsAffected:[1],recordset:[]};}

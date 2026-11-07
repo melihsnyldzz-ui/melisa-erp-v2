@@ -6,7 +6,7 @@ const product=id=>({id,unitId:id+'1',priceId:id+'2',unitProductId:id,priceProduc
 test('native FX draft/finalize keeps stored rates, uses current cost, separates actor and selected ledger, rolls back drift and replays lost ACK once',async t=>{
  const connector={},pool={},auth={bindDraftService:x=>x,bindDispatchService:x=>x};let state,corrupt=null,loseAck=false,limit='3.0000',lastError,unknown=[];
  class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);this.open=false;if(loseAck){loseAck=false;throw Error('lost ACK');}}async rollback(){this.open=false;}}
- class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_type,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p,one=x=>({recordset:[x]}),rows=x=>({recordset:x}),ok=()=>({rowsAffected:[1],recordset:[]});
+ class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_type,v){this.p[k]=v;return this;}async query(q){if(q.includes('desktopAuditActorId'))return {recordset:[{id:this.p?.desktopAuditActorId??'8',username:'fixture-user'}]};const d=this.tx.data,p=this.p,one=x=>({recordset:[x]}),rows=x=>({recordset:x}),ok=()=>({rowsAffected:[1],recordset:[]});
   if(q.includes('@@TRANCOUNT transactionCount'))return one({targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1});
   if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows([]);
   if(q.includes('FROM dbo.desktop_sale_workflow_requests')&&q.includes('SELECT'))return rows(d.journals[p.request]?[d.journals[p.request]]:[]);

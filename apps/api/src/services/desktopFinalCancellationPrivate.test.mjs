@@ -6,7 +6,7 @@ test('closed native cancellation preserves original discounted vectors, one sele
  const connector={},pool={},auth={bindFinalCancellationService:s=>s},fences=new Map();let state,deny=false,loseAck=false,corrupt=null,tombstone=false,lastError,unknown=[],profile='desktop-master-v5';
  class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);this.open=false;if(loseAck){loseAck=false;throw Error('COMMIT_ACK_LOST');}}async rollback(){this.open=false;}}
  const one=x=>({recordset:[x]}),rows=x=>({recordset:x}),ok=()=>({recordset:[],rowsAffected:[1]});
- class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_type,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p,i=d.invoice;
+ class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_type,v){this.p[k]=v;return this;}async query(q){if(q.includes('desktopAuditActorId'))return {recordset:[{id:this.p?.desktopAuditActorId??'8',username:'fixture-user'}]};const d=this.tx.data,p=this.p,i=d.invoice;
   if(q.includes('@@TRANCOUNT transactionCount'))return one({targetDatabase:'MELISA_ERP_DESKTOP_TEST_20261105',sessionId:15,transactionId:'31',transactionCount:1,transactionState:1});
   if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows(tombstone?[{}]:[]);
   if(q.includes('FROM dbo.desktop_sale_workflow_requests')&&q.includes('SELECT'))return rows(d.journal?[d.journal]:[]);
@@ -41,7 +41,7 @@ test('closed native cancellation preserves original discounted vectors, one sele
    assert.equal(i.status,'cancelled');assert.equal(d.reason,command.reason);assert.equal(d.cancelActor,30002);
    assert.equal(d.reverseMovement.cancelCustomerMovementAmount,i.grandTotal);assert.equal(d.snapshot.currencyAccountAmount,i.accountAmount);assert.equal(d.snapshot.currencyBalanceEffect,-i.accountAmount);assert.equal(d.snapshot.currencyAmountTry,51.216);
    assert.equal(d.main.toFixed(4),p.customerAfterExact4);assert.equal(d.account.toFixed(8),p.accountBeforeExact8);
-   assert.equal(d.audits.length,1);const a=d.audits[0];assert.equal(a.auditActorUserId,30002);assert.equal(JSON.parse(a.auditAfterJson).desktopCancellationRequestId,command.requestId);assert.equal(JSON.parse(a.auditAfterJson).reason,command.reason);
+   assert.equal(d.audits.length,1);const a=d.audits[0];assert.equal(a.auditActorUserId,30002);assert.equal(a.auditReason,'actor:fixture-user');assert.equal(a.auditSource,'desktop-first-sale');assert.equal(JSON.parse(a.auditAfterJson).desktopCancellationRequestId,command.requestId);assert.equal(JSON.parse(a.auditAfterJson).reason,command.reason);
    if(corrupt==='posting')throw Error('POSTING_READBACK_FAILED');
    d.account-=Number(p.accountAmountExact4);d.workflow='CANCELLED';return one({version:'0x0000000000000014'});
   }

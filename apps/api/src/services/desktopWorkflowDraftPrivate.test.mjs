@@ -6,7 +6,7 @@ const locked={customer:{id:'2',customerCode:'M1',entityId:'3',accountId:'4',acco
 test('real two-line native draft, workflow and journal commit together and survive lost ACK replay without stock/cari effects',async t=>{
  const pool={},connector={},auth={bindDraftService:x=>x};let state={invoice:null,items:[],workflow:null,journal:null},loseAck=false,corrupt=false,corruptSeries=false,seriesMode=false;const unknown=[];
  class Transaction{async begin(){this.open=true;this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);this.open=false;if(loseAck){loseAck=false;throw Error('lost ACK');}}async rollback(){this.open=false;}}
- class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p,one=x=>({recordset:[x]}),rows=x=>({recordset:x});
+ class Request{constructor(tx){assert.equal(tx.open,true);this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){if(q.includes('desktopAuditActorId'))return {recordset:[{id:this.p?.desktopAuditActorId??'8',username:'fixture-user'}]};const d=this.tx.data,p=this.p,one=x=>({recordset:[x]}),rows=x=>({recordset:x});
   if(q.includes('@@TRANCOUNT transactionCount'))return one({targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1});
   if(q.includes('FROM dbo.desktop_sale_workflow_requests')&&q.includes('SELECT'))return rows(d.journal?.requestId===p.request?[d.journal]:[]);
   if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows([]);
