@@ -57,6 +57,8 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
+      - name: K02 separate schema rehearsal offline target rejection without SQL
+        run: node --test scripts/schema-rehearsal-k0210/identity.test.mjs scripts/schema-rehearsal-k0210/foundation.test.mjs scripts/schema-rehearsal-k0210/transition.test.mjs
       - name: B6 finite native profile and rollback with isolated source fixtures
         run: node --test --test-concurrency=1 scripts/canonical/canonical-business-sale-maintenance.test.mjs scripts/canonical/prepare-business-sale-owner-bundle.test.mjs scripts/canonical/prepare-business-sale-array-repair-owner.test.mjs scripts/canonical/test125-bound-api-quiescence.test.mjs scripts/canonical/test125-bound-maintenance-plan.test.mjs scripts/canonical/start-owned-test-component.test.mjs scripts/canonical/start-business-5244-owned.test.mjs scripts/canonical/test125-read2b-pair.test.mjs
       - name: Windows owner and single-instance startup boundaries
