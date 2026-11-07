@@ -1939,6 +1939,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
       .input('initialSalesAccountAmount',sql.Decimal(18,4),settlement.accountAmount)
       .input('initialSalesAccountRate',sql.Decimal(18,8),settlement.accountRateToTry)
       .input('initialSalesActor',sql.BigInt,selectedSale?selectedSale.scope.actorId:directActor)
+      .input('desktopSaleCreatedBy',sql.BigInt,transactionContext?.desktopPrivateSale===true ? Number(actor.id) : null)
       .input('exchangeRate', sql.Decimal(18, 8), draft.exchangeRate)
       .input('description', sql.NVarChar(500), draft.description || null)
       .input('subtotal', sql.Decimal(18, 4), draft.subtotal)
@@ -1987,7 +1988,7 @@ export async function createSalesDraft(payload, actor = null, transactionContext
           @grandTotal,
           @amountTry,
           @estimatedProfitTry,
-          ${initialSettlement ? '@initialSalesActor' : 'NULL'},
+          ${initialSettlement ? '@initialSalesActor' : transactionContext?.desktopPrivateSale===true ? '@desktopSaleCreatedBy' : 'NULL'},
           ${initialSettlement ? '@initialSalesActor' : 'NULL'}
         );
         SELECT invoiceId FROM @createdSalesIds;
@@ -2951,7 +2952,8 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
       .input('discountTotal', sql.Decimal(18, 4), draft.discountTotal)
       .input('grandTotal', sql.Decimal(18, 4), draft.grandTotal)
       .input('amountTry', sql.Decimal(18, 4), draft.amountTry)
-      .input('stockCostEffectTry', sql.Decimal(18, 4), draft.stockCostEffectTry);
+      .input('stockCostEffectTry', sql.Decimal(18, 4), draft.stockCostEffectTry)
+      .input('desktopPurchaseCreatedBy', sql.BigInt, desktopPurchase ? Number(actor.id) : null);
     if (initialAccountSnapshot) insertRequest
       .input('initialAccountCurrency', sql.NVarChar(3), settlement.accountCurrency)
       .input('initialAccountAmount', sql.Decimal(18, 4), settlement.accountAmount)
@@ -2998,7 +3000,7 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
           @amountTry,
           @stockCostEffectTry,
           ${initialAccountSnapshot ? '@initialAccountCurrency, @initialAccountAmount, @initialAccountRate,' : ''}
-          NULL,
+          ${desktopPurchase ? '@desktopPurchaseCreatedBy' : 'NULL'},
           NULL
         );
         SELECT invoiceId FROM @newPurchaseIds;
@@ -3437,6 +3439,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
       .input('supplierMovementAmount', sql.Decimal(18, 4), Number(beforeSnapshot.grandTotal || 0))
       .input('supplierMovementCurrency', sql.NVarChar(3), beforeSnapshot.documentCurrency)
       .input('supplierMovementDocumentDate', sql.Date, beforeSnapshot.documentDate)
+      .input('desktopSupplierMovementCreatedBy', sql.BigInt, desktopPurchase ? Number(actor.id) : null)
       .query(`
         INSERT INTO dbo.supplier_movements (
           supplier_id,
@@ -3458,7 +3461,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
           @supplierMovementAmount,
           @supplierMovementDocumentDate,
           SYSUTCDATETIME(),
-          NULL
+          ${desktopPurchase ? '@desktopSupplierMovementCreatedBy' : 'NULL'}
         );
       `);
 
