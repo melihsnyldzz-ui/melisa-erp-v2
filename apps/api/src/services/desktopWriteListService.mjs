@@ -71,11 +71,11 @@ function validateRow(row,kind,richCards=false,schemaVersion=2){
 }
 export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMounted:false,requiresVerifiedWriterPool:true,requiresCurrentLockedSession:true,
  sqlExecuted:false,sourceRowsAreLiveLocalOnly:true,noVegaFallback:true,exposesCustomerBalance:true,noFinanceAccountBalances:true,fullErpReady:false});
-export function createDesktopWriteListService({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2}={}){
+export function createDesktopWriteListService({pool,sql,verifySession,getSalesReadScope=()=> 'own',richCards=false,schemaVersion=richCards?3:2}={}){
  schemaVersion=schemaVersion===7?desktopMasterV7Schema(richCards,schemaVersion):schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
  const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
  if(typeof richCards!=='boolean')fail();
- if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
+ if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function'||typeof getSalesReadScope!=='function')fail();
  return Object.freeze({async readCompanyRates(actorId,date){
   if(!richCards||!validId(actorId))fail();desktopCompanyRateDate(date);const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:'sales.view'})!==true)fail();
@@ -94,7 +94,7 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
   if(richCards&&kind==='products')def={...def,select:def.select+`,brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName,(SELECT CONVERT(varchar(20),u.id) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesUnitId,(SELECT CONVERT(varchar(40),u.factor) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesFactorExact8`};
   if(richCards&&kind==='products')def={...def,select:def.select+','+reservedSql('products.id')};
   const tx=new sql.Transaction(pool);let begun=false;
-  const request=()=>new sql.Request(tx).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('exactSearch',sql.NVarChar(100),search).input('offset',sql.Int,offset).input('limit',sql.Int,limit);
+  const request=()=>new sql.Request(tx).input('actorId',sql.NVarChar(20),actorId).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('exactSearch',sql.NVarChar(100),search).input('offset',sql.Int,offset).input('limit',sql.Int,limit);
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
    const statement=profileGuard;
    const guardResult=await new sql.Request(tx).query(statement);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
@@ -103,7 +103,8 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
    const exactBarcode=`EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.barcode=@exactSearch AND b.is_active=1`;
    const fuzzy=`${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~'${richCards&&kind==='customers'?" OR phone LIKE @search ESCAPE N'~' OR city LIKE @search ESCAPE N'~' OR country LIKE @search ESCAPE N'~'":''}`;
    const productSearch=richCards&&kind==='products'?`${exactBarcode} AND b.product_id=products.id) OR (NOT ${exactBarcode}) AND (${fuzzy} OR EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=products.id AND b.is_active=1 AND b.barcode LIKE @search ESCAPE N'~')))` :fuzzy;
-   const where=`${def.baseWhere??'is_deleted=0'} AND (@search=N'%%' OR ${productSearch})`;
+   const mode=kind==='receipts'?getSalesReadScope({transaction:tx,actorId}):null;if(kind==='receipts'&&mode!=='own'&&mode!=='all')fail();
+   const where=`${def.baseWhere??'is_deleted=0'}${kind==='receipts'&&mode==='own'?' AND i.created_by=TRY_CONVERT(bigint,@actorId)':''} AND (@search=N'%%' OR ${productSearch})`;
    const count=await request().query(`SELECT CONVERT(varchar(20),COUNT_BIG(*)) total FROM ${from} WHERE ${where};`);
    const raw=count?.recordset;if(!Array.isArray(raw)||raw.length!==1||typeof raw[0].total!=='string'||!/^(0|[1-9]\d{0,15})$/.test(raw[0].total)||BigInt(raw[0].total)>9007199254740991n)fail();
    const result=await request().query(`SELECT ${def.select} FROM ${from} WHERE ${where} ORDER BY ${def.order??def.code+',id'} OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY;`);
@@ -144,10 +145,10 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomerLedger(actorId,customerId,accountId,{page=1}={}){
   if(![5,6,7].includes(schemaVersion)||!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;
-  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();const data=await readDesktopCustomerLedger({sql,transaction:tx,customerId,accountId,page});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();if(getSalesReadScope({transaction:tx,actorId})!=='all')fail();const data=await readDesktopCustomerLedger({sql,transaction:tx,customerId,accountId,page});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomerAccountSales(actorId,customerId,accountId,{page=1}={}){
   if(!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;
-  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();const data=await readDesktopAccountSales({sql,transaction:tx,customerId,accountId,page});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();const salesScope=getSalesReadScope({transaction:tx,actorId});if(salesScope!=='own'&&salesScope!=='all')fail();const data=await readDesktopAccountSales({sql,transaction:tx,customerId,accountId,page,salesScope,actorId});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomer(actorId,customerId,{includeSales=false}={}){
   if(!richCards||!validId(actorId)||!validId(customerId)||typeof includeSales!=='boolean')fail();
   const tx=new sql.Transaction(pool);let begun=false;
@@ -155,13 +156,13 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
    const checked=await new sql.Request(tx).query(profileGuard);
    if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:includeSales?['customer.view','sales.view']:'customer.view'})!==true)fail();
-   const request=()=>new sql.Request(tx).input('customerId',sql.NVarChar(20),customerId);
+   const salesScope=includeSales?getSalesReadScope({transaction:tx,actorId}):null;if(includeSales&&salesScope!=='own'&&salesScope!=='all')fail();const request=()=>new sql.Request(tx).input('actorId',sql.NVarChar(20),actorId).input('customerId',sql.NVarChar(20),customerId);
    const result=await request().query(`SELECT CONVERT(varchar(20),c.id) id,c.customer_code customerCode,c.name,c.phone,c.city,c.country,c.customer_type customerType,c.currency_code currency,CONVERT(varchar(40),c.balance) balanceExact4,CONVERT(varchar(20),c.party_entity_id) entityId,c.is_active isActive
 FROM dbo.customers c WITH(HOLDLOCK) JOIN dbo.party_entities e WITH(HOLDLOCK) ON e.id=c.party_entity_id AND e.role=N'customer' WHERE c.id=TRY_CONVERT(bigint,@customerId) AND c.is_deleted=0;`);
    if(!Array.isArray(result?.recordset)||result.recordset.length>1)fail();if(!result.recordset.length){await tx.commit();begun=false;return null;}
    const accounts=await request().query(`SELECT TOP(4) CONVERT(varchar(20),id) id,CONVERT(varchar(20),customer_id) customerId,CONVERT(varchar(20),party_entity_id) entityId,CONVERT(varchar(20),supplier_id) supplierId,currency_code currency,CONVERT(varchar(50),current_balance) balanceExact8,balance_status balanceStatus FROM dbo.party_currency_accounts WITH(HOLDLOCK) WHERE customer_id=TRY_CONVERT(bigint,@customerId) ORDER BY currency_code,id;`);
    if(!Array.isArray(accounts?.recordset))fail();let lastSale=null;
-   if(includeSales){const latest=await request().query(`SELECT TOP(1) CONVERT(varchar(20),i.id) invoiceId,CONVERT(varchar(20),i.customer_id) customerId,i.document_no documentNo,CONVERT(char(10),i.document_date,23) documentDate,i.document_currency currency,CONVERT(varchar(40),i.grand_total) totalExact4 FROM dbo.sales_invoices i WITH(HOLDLOCK) JOIN dbo.desktop_sale_workflows w WITH(HOLDLOCK) ON w.invoice_id=i.id WHERE i.customer_id=TRY_CONVERT(bigint,@customerId) AND i.status=N'finalized' AND w.state='COMPLETED' ORDER BY i.document_date DESC,i.id DESC;`);if(!Array.isArray(latest?.recordset)||latest.recordset.length>1)fail();lastSale=latest.recordset[0]??null;}
+   if(includeSales){const latest=await request().query(`SELECT TOP(1) CONVERT(varchar(20),i.id) invoiceId,CONVERT(varchar(20),i.customer_id) customerId,i.document_no documentNo,CONVERT(char(10),i.document_date,23) documentDate,i.document_currency currency,CONVERT(varchar(40),i.grand_total) totalExact4 FROM dbo.sales_invoices i WITH(HOLDLOCK) JOIN dbo.desktop_sale_workflows w WITH(HOLDLOCK) ON w.invoice_id=i.id WHERE i.customer_id=TRY_CONVERT(bigint,@customerId) AND i.status=N'finalized' AND w.state='COMPLETED' ${salesScope==='own'?'AND i.created_by=TRY_CONVERT(bigint,@actorId)':''} ORDER BY i.document_date DESC,i.id DESC;`);if(!Array.isArray(latest?.recordset)||latest.recordset.length>1)fail();lastSale=latest.recordset[0]??null;}
    const card={...result.recordset[0],accounts:Array.from(accounts.recordset),salesHistoryAvailable:includeSales,lastSale};if(!isDesktopCustomerCard(card,customerId))fail();await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  }});

@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nativeSql from 'mssql';
 import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog.js';
+import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
 import {desktopMasterSchema,desktopMasterV5Schema,desktopMasterV6Schema,desktopMasterV7Schema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
@@ -23,6 +24,7 @@ const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
 const fail=()=>{throw Object.assign(Error('DESKTOP_AUTH_UNAVAILABLE'),{code:'DESKTOP_AUTH_UNAVAILABLE'});};
 const authOwners=new WeakMap();
 export function getDesktopWriteSessionVerifier(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.verifySession;}
+export function getDesktopWriteSalesReadScope(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.salesReadScope;}
 export function getDesktopWriteDiscountCeiling(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.discountCeiling;}
 const id=value=>typeof value==='string'&&/^[1-9]\d{0,15}$/.test(value)&&BigInt(value)<=9007199254740991n;
 const tokenHeader=req=>{const v=req?.get?.('authorization');const m=typeof v==='string'?/^Bearer ([A-Za-z0-9._-]{1,4096})$/.exec(v):null;return m?.[1]??null;};
@@ -110,7 +112,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   return {user:publicUser(found),accessToken,refreshToken:null,tokenType:'Bearer',expiresIn:'10m'};
  }
  function active(ctx){return !!ctx&&ctx.open&&sessions.get(ctx.entry?.sid)===ctx.entry&&!ctx.entry.revoked&&ctx.entry.expiresAt>Date.now();}
- function release(ctx){if(!ctx?.leased)return;ctx.leased=false;ctx.verifiedTransaction=null;ctx.verifiedRole=null;const e=ctx.entry;e.inflight--;if(e.inflight===0){for(const f of e.waiters.splice(0))f();if(e.revoked||e.expiresAt<=Date.now())sessions.delete(e.sid);}
+ function release(ctx){if(!ctx?.leased)return;ctx.leased=false;ctx.verifiedTransaction=null;ctx.verifiedRole=null;ctx.verifiedPermissions=null;ctx.verifiedRequired=null;const e=ctx.entry;e.inflight--;if(e.inflight===0){for(const f of e.waiters.splice(0))f();if(e.revoked||e.expiresAt<=Date.now())sessions.delete(e.sid);}
   if(closed&&![...sessions.values()].some(entry=>entry.inflight>0)){sessions.clear();key.fill(0);}}
  async function bind(req,res,next){
   const ctx={req,entry:null,current:null,open:!res.destroyed&&!res.writableEnded,leased:false};
@@ -132,12 +134,13 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   ctx.entry.inflight++;ctx.leased=true;
   try{await guard(tx);const current=await user(tx,{userId:actorId});
    if(!ctx.open||ctx.entry.revoked||ctx.entry.expiresAt<=Date.now()||current.userVersion!==ctx.entry.userVersion||current.roleVersion!==ctx.entry.roleVersion||required.some(p=>!current.permissions.includes(p))){release(ctx);return false;}
-   ctx.verifiedTransaction=tx;ctx.verifiedRole=current.role.code;return true;
+   ctx.verifiedTransaction=tx;ctx.verifiedRole=current.role.code;ctx.verifiedPermissions=Object.freeze([...current.permissions]);ctx.verifiedRequired=Object.freeze([...required]);return true;
   }catch{release(ctx);return false;}
  }
  // This installed TEST role is personnel, never a manager/owner. Other roles
  // receive no discount authority until the normal role/approval flow is wired.
  function discountCeiling({transaction,actorId}={}){const ctx=storage.getStore();if(!active(ctx)||!ctx.leased||ctx.verifiedTransaction!==transaction||ctx.entry.userId!==actorId)fail();return ctx.verifiedRole==='desktop_first_sale_operator'?'3.0000':'0.0000';}
+ function salesReadScope({transaction,actorId}={}){const ctx=storage.getStore();if(!active(ctx)||!ctx.leased||ctx.verifiedTransaction!==transaction||ctx.entry.userId!==actorId||!Array.isArray(ctx.verifiedPermissions)||!ctx.verifiedRequired?.includes('sales.view'))fail();const mode=desktopSalesReadMode(ctx.verifiedPermissions);if(mode!=='own'&&mode!=='all')fail();return mode;}
  function bindService(service){
   if(!service||typeof service.createCustomer!=='function'||typeof service.createProduct!=='function')fail();
   const invoke=name=>async(actor,payload)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,payload);}finally{release(ctx);}};
@@ -175,5 +178,5 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   function bindGoodsService(service){if(![6,7].includes(schemaVersion)||!service||['options','preview','read','readRequest','create','approve','finalize'].some(n=>typeof service[n]!=='function'))fail();const bound={};for(const name of ['options','preview','read','readRequest','create','approve','finalize'])bound[name]=async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};return Object.freeze(bound);}
   function bindFinanceService(service){if(schemaVersion!==7||!service||['create','options','list'].some(n=>typeof service[n]!=='function'))fail();const bound={};for(const name of ['create','options','list'])bound[name]=async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};return Object.freeze(bound);}
   function bindWarehouseService(service){if(schemaVersion!==7||!service||['list','read','transition','resolve'].some(n=>typeof service[n]!=='function'))fail();const bound={};for(const name of ['list','read','transition','resolve'])bound[name]=async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};return Object.freeze(bound);}
-  const api=Object.freeze({login,bind,authenticateNormal,authorize,me,verifySession,bindService,bindReadService,bindSaleService,bindWorkflowService,bindDraftService,bindDispatchService,bindWorkflowReadService,bindResolutionService,bindFinalCancellationService,bindGoodsService,bindFinanceService,bindWarehouseService,logout,close});authOwners.set(api,{pool,verifySession,discountCeiling,secure:sql===nativeSql&&passwordHasher===bcrypt});return api;
+  const api=Object.freeze({login,bind,authenticateNormal,authorize,me,verifySession,bindService,bindReadService,bindSaleService,bindWorkflowService,bindDraftService,bindDispatchService,bindWorkflowReadService,bindResolutionService,bindFinalCancellationService,bindGoodsService,bindFinanceService,bindWarehouseService,logout,close});authOwners.set(api,{pool,verifySession,discountCeiling,salesReadScope,secure:sql===nativeSql&&passwordHasher===bcrypt});return api;
 }
