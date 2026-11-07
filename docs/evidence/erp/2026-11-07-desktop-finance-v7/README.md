@@ -6,4 +6,6 @@ Bu çalışma, normal oturumla TRY müşteri tahsilatı ve tedarikçi ödemesi i
 
 V7 DDL, izin ve profil denetimleri kaynak önerisidir. Bağımsız geri alma ve metadata gözlemiyle doğrulanmış bir SQL Server geçişi değildir. Kaynak ve saf testler, gerçek kurulum, gerçek SQL Server işlemi, native motorun gerçek sürücüyle çalışması, ekran veya kullanıcı kabulü göstermez.
 
+V7 aday paket derleyicisi, özel TLS yazıcı doğrulayıcısı ve başlatıcı kaynakları V6'nın sabit hedef, özel parola kanalı ve ihracat çiti kurallarını izler. Bu dosyalar çalıştırılmadı ve herhangi bir paket veya runtime kabulü oluşturulmadı. `master-v7-plan.mjs` yalnız sabit hedefli, hashlenmiş DDL/izin önerisini tanımlar ve açıkça `admissionAllowed: false` döndürür; yürütülebilir kurulum planı değildir. Canlı V6 başlangıç değerleriyle doğrulanmış atomik geçiş, rollback/identity kanıtı, bağımsız gözlem ve gerekli dar izinler için ayrı incelenmiş kurulum planı hâlâ gereklidir.
+
 Odaklı saf model, okuyucu, profil, kontrolör ve ekran testleri yerelde geçti. `desktopFinanceOwners.integration.test.mjs` ve `desktopFinanceNative.integration.test.mjs` hosted temiz ortamda çalıştırılmak üzere hazırlanmıştır; yerelde bağımlılık bulunmadığından çalıştırılmamıştır. İlki native motoru ve sürücüyü, ikincisi sürücüyü ve bazı yardımcıları sentetik olarak kullanır; başarılı olmaları dahi gerçek SQL Server kabulü olmaz.
