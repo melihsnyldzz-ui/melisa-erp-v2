@@ -3,8 +3,9 @@ import {readDesktopCustomerLedger} from './desktopCustomerLedgerRead.mjs';
 // listener, SQL connection, grants, or mutations are created at import time.
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
 import {DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL} from '../config/desktopMasterV3Policy.mjs';
-import {desktopMasterSchema,desktopMasterV5Schema,desktopMasterV6Schema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
+import {desktopMasterSchema,desktopMasterV5Schema,desktopMasterV6Schema,desktopMasterV7Schema,DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL} from '../config/desktopMasterVersion.mjs';
 import {getDesktopMasterV6GuardSql} from '../config/desktopGoodsV6Guard.mjs';
+import {getDesktopFinanceV7GuardSql} from '../config/desktopFinanceV7Policy.mjs';
 import {DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL,DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL} from '../config/desktopMasterV5Policy.mjs';
 import {isDesktopProductCard} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {DESKTOP_PRODUCT_SALE_PRICES_SQL} from './desktopProductSalePricesSql.mjs';
@@ -52,7 +53,7 @@ function options(value){
 function validateRow(row,kind,richCards=false,schemaVersion=2){
  if(!row||typeof row!=='object'||!validId(row.id))fail();
  if(kind==='receipts'){
-  if(Object.keys(row).sort().join(',')!=='currency,customerName,documentDate,documentNo,id,totalExact4,workflowState'||['documentNo','customerName'].some(k=>typeof row[k]!=='string'||!row[k])||typeof row.documentDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.documentDate)||!([4,5,6].includes(schemaVersion)?['TRY','USD','EUR']:['TRY']).includes(row.currency)||typeof row.totalExact4!=='string'||!/^(?:0|[1-9]\d*)\.\d{4}$/.test(row.totalExact4)||!['DRAFT','PREPARING','READY','CHECKED','COMPLETED','CANCELLED'].includes(row.workflowState))fail();
+  if(Object.keys(row).sort().join(',')!=='currency,customerName,documentDate,documentNo,id,totalExact4,workflowState'||['documentNo','customerName'].some(k=>typeof row[k]!=='string'||!row[k])||typeof row.documentDate!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(row.documentDate)||!([4,5,6,7].includes(schemaVersion)?['TRY','USD','EUR']:['TRY']).includes(row.currency)||typeof row.totalExact4!=='string'||!/^(?:0|[1-9]\d*)\.\d{4}$/.test(row.totalExact4)||!['DRAFT','PREPARING','READY','CHECKED','COMPLETED','CANCELLED'].includes(row.workflowState))fail();
   return row;
  }
  const keys=kind==='products'?['stockCode','productName','unit','currency','currentStockExact3','salePriceExact4',...(richCards?['brand','category','supplierId','supplierName','reservedExact3','availableExact3']:[])]:kind==='customers'?['customerCode','customerName','phone','city','country','currency','customerType','balanceExact4']:['supplierCode','supplierName','phone','city','country','currency'];
@@ -71,8 +72,8 @@ function validateRow(row,kind,richCards=false,schemaVersion=2){
 export const DESKTOP_WRITE_LIST_LIMITS=Object.freeze({sourceOnly:true,routeMounted:false,requiresVerifiedWriterPool:true,requiresCurrentLockedSession:true,
  sqlExecuted:false,sourceRowsAreLiveLocalOnly:true,noVegaFallback:true,exposesCustomerBalance:true,noFinanceAccountBalances:true,fullErpReady:false});
 export function createDesktopWriteListService({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2}={}){
- schemaVersion=schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
- const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
+ schemaVersion=schemaVersion===7?desktopMasterV7Schema(richCards,schemaVersion):schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
+ const profileGuard=richCards?guard.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):guard;
  if(typeof richCards!=='boolean')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.Int||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
  return Object.freeze({async readCompanyRates(actorId,date){
@@ -142,7 +143,7 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomerLedger(actorId,customerId,accountId,{page=1}={}){
-  if(![5,6].includes(schemaVersion)||!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;
+  if(![5,6,7].includes(schemaVersion)||!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();const data=await readDesktopCustomerLedger({sql,transaction:tx,customerId,accountId,page});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomerAccountSales(actorId,customerId,accountId,{page=1}={}){
   if(!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;

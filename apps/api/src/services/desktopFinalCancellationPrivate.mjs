@@ -48,11 +48,11 @@ export function getDesktopFinalCancellationAccountContext({transaction,customerI
  return Object.freeze({actorId:s.actorId,requestId:s.command.requestId,currency:s.plan.accountCurrency,customerCurrency:s.plan.customerCurrency,preserveLegacyBalance:s.plan.preserveLegacyBalance,cancellation:s.plan});
 }
 export function createDesktopFinalCancellationService({connector,auth}={}){
- if(!['desktop-master-v5','desktop-master-v6'].includes(desktopConnector.getDesktopWriteProfile?.(connector)))fail();
+ if(!['desktop-master-v5','desktop-master-v6','desktop-master-v7'].includes(desktopConnector.getDesktopWriteProfile?.(connector)))fail();
  const pool=getDesktopWritePool(connector),verifySession=getDesktopWriteSessionVerifier(auth,pool),scope=createDesktopFinalCancellationScope({sql,verifySession});
  if(typeof auth?.bindFinalCancellationService!=='function')fail();
  const fence=createDesktopFinalCancellationExportFence();
- const read=createDesktopFinalCancellationReader({sql,verifyScope:scope.verifyScope,verifyExport:async args=>{if(await scope.verifyScope(args)!==true||await fence.assertNoExport(args.invoiceId)!==true)fail();return await scope.verifyScope(args);}});
+ const read=createDesktopFinalCancellationReader({sql,profile:desktopConnector.getDesktopWriteProfile(connector),verifyScope:scope.verifyScope,verifyExport:async args=>{if(await scope.verifyScope(args)!==true||await fence.assertNoExport(args.invoiceId)!==true)fail();return await scope.verifyScope(args);}});
  const post=createDesktopFinalCancellationPosting({sql,verifyPlan:async({transaction,scope:owned,plan})=>{const s=storage.getStore();return active(s,transaction)&&s.phase==='native_cancel_verified'&&s.plan===plan&&s.scope===owned&&await scope.verifyScope({transaction,scope:owned,invoiceId:plan.invoiceId});}});
  return auth.bindFinalCancellationService({async cancel(actorId,raw){let requestId=typeof raw?.requestId==='string'?raw.requestId:null;
   try{
