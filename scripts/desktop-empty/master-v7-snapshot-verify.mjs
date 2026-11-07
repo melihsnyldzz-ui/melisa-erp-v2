@@ -7,6 +7,7 @@ const hash=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 const text=v=>typeof v==='string'&&v.length>0&&v.length<=2000000;
 const decimal=v=>v===null||typeof v==='string'&&/^(?:0|[1-9]\d{0,37})$/.test(v);
 const verified=new WeakSet(),payloads=new WeakMap();
+export function assertDesktopFinanceV6Baseline(value){if(!verified.has(value)||!value.hasObjectIds||value.admissionAllowed!==false||value.originVerified!==false)fail();return value;}
 function parse(s){try{return JSON.parse(s);}catch{fail();}}
 export function verifyDesktopFinanceV6Baseline({bytes,expectedSha256}={}){
  if(!(bytes instanceof Uint8Array)||bytes.length<1||bytes.length>8000000||!hash(expectedSha256)||digest(bytes)!==expectedSha256)fail();let raw;try{raw=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{fail();}const envelope=parse(raw);const x=envelope?.state==='V6_RUNTIME_READ_ONLY_SNAPSHOT_BATCH_COMPLETED'?envelope.result:envelope;
