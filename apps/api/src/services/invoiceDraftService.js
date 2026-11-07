@@ -32,6 +32,7 @@ import {assertSelectedSaleCashlessCancellation} from './selectedSaleCashlessCanc
 import {getCanonicalBusinessSaleTransaction,getCanonicalBusinessSession} from './canonicalBusinessSessionContext.mjs';
 import {postNativeCurrencyAccount} from './nativeCurrencyAccount.mjs';
 import {assertDesktopPrivateSale,getDesktopWorkflowCurrencyAccount} from './desktopSalePrivateService.mjs';
+import {assertDesktopPrivatePurchase} from './desktopGoodsService.mjs';
 
 const VALID_CURRENCIES = new Set(['TRY', 'USD', 'EUR']);
 const BUSINESS_COPY_DATABASE='MELISA_ERP_CRM_SHARED_TEST_20261009_02';
@@ -1104,6 +1105,16 @@ async function getPurchaseFinalizeSnapshot(request, id, { lockHeader = false } =
   };
 }
 
+// Read-only bridge for the private goods owner. It cannot issue a scope or
+// commit; the exact same transaction/actor/receipt/invoice must already own
+// the finalize preflight. The owner must validate and bind the returned
+// snapshot before the native finalize full assertion can succeed.
+export async function readDesktopPurchaseFinalizeSnapshot({transaction,sqlDriver,actor,receiptId,invoiceId}={}) {
+  if(typeof invoiceId!=='string'||!/^[1-9]\d{0,15}$/.test(invoiceId)||BigInt(invoiceId)>9007199254740991n||typeof sqlDriver?.Request!=='function') throw makeServiceError('PURCHASE_FINALIZE_ID_INVALID','Purchase invoice id is invalid');
+  assertDesktopPrivatePurchase({transaction,operation:'finalize',actorId:String(actor?.id),receiptId,invoiceId,checkOnly:true});
+  return getPurchaseFinalizeSnapshot(new sqlDriver.Request(transaction),Number(invoiceId),{lockHeader:true});
+}
+
 async function updateSalesItems(sqlDriver, transaction, invoiceId, items) {
   const existing = await new sqlDriver.Request(transaction)
     .input('invoiceIdForItems', sql.BigInt, invoiceId)
@@ -1600,7 +1611,13 @@ async function replaceFinalizedPurchaseEffects(sqlDriver, transaction, invoiceId
   }
 }
 
-export async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items) {
+export async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, items, desktopContext = null) {
+  let verifiedDesktop = false;
+  if (desktopContext) {
+    assertDesktopPrivatePurchase({transaction,operation:'draft',actorId:String(desktopContext.actor?.id),receiptId:desktopContext.receiptId??null,invoiceId:null,invoice:desktopContext.invoice});
+    if (desktopContext.invoice?.items !== items || String(desktopContext.invoice?.supplierId) !== String(supplierId)) throw makeServiceError('PURCHASE_PRODUCT_SUPPLIER_MISMATCH','Mal kabul kapsamı doğrulanamadı.',409);
+    verifiedDesktop = true;
+  }
   if(isCleanStoreDayMutation()){await assertCleanPurchaseSupplierItems(sqlDriver,transaction,Number(supplierId),items);return;}
   const dailyWeb = isDailyWebRequest();
   const copy=isIsolatedOperationCopyRuntime()?isolatedCopyTransactionContext(transaction):null;
@@ -1626,13 +1643,13 @@ export async function assertPurchaseItemsBelongToSupplier(sqlDriver, transaction
       throw makeServiceError('PURCHASE_PRODUCT_NOT_FOUND', `items[${index}].productId not found`, 400);
     }
 
-    if ((dailyWeb||copy) && !product.is_active) {
+    if ((dailyWeb||copy||verifiedDesktop) && !product.is_active) {
       throw makeServiceError('PURCHASE_PRODUCT_INACTIVE', `Product ${product.stock_code || item.productId} is inactive`, 400);
     }
 
     // Main supplier is a card default, not a restriction on the actual purchase.
     if(copy&&!copy.products.some(p=>p.id===String(product.id)&&p.stockCode===product.stock_code))throw makeServiceError('PURCHASE_PRODUCT_SUPPLIER_MISMATCH','Mal kabul ürününün kaynak kimliği değişti.',409);
-    if (!dailyWeb && !copy && String(product.supplier_id || '') !== String(supplierId)) {
+    if (!dailyWeb && !copy && !verifiedDesktop && String(product.supplier_id || '') !== String(supplierId)) {
       throw makeServiceError(
         'PURCHASE_PRODUCT_SUPPLIER_MISMATCH',
         `Product ${product.stock_code || item.productId} does not belong to selected supplier`,
@@ -2893,12 +2910,15 @@ export async function getPurchaseDraftsList(query) {
 }
 
 export async function createPurchaseDraft(payload, actor = null, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  const desktopPurchase = transactionContext?.desktopPrivatePurchase === true;
+  if (!desktopPurchase) assertMelisaWriteEnabled();
 
   const draft = normalizePurchasePayload(payload);
   const pool = transactionContext?.pool || await getSqlPool();
   const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
   const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
+
+  if (desktopPurchase) assertDesktopPrivatePurchase({transaction,operation:'draft',actorId:String(actor?.id),receiptId:transactionContext.receiptId??null,invoiceId:null,invoice:draft});
 
   if (!transactionContext) await transaction.begin();
 
@@ -2912,7 +2932,7 @@ export async function createPurchaseDraft(payload, actor = null, transactionCont
 
     const settlement = await prepareInvoiceCurrency(sqlDriver, transaction, 'purchase', draft);
     await assertDailyPurchaseSupplierCurrency(sqlDriver, transaction, supplierId, draft.documentCurrency, draft.supplierCurrency);
-    await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items);
+    await assertPurchaseItemsBelongToSupplier(sqlDriver, transaction, supplierId, draft.items, desktopPurchase ? {actor,receiptId:transactionContext.receiptId,invoice:draft} : null);
     // The business-copy INSERT guard validates the account snapshot immediately.
     // Bind the already verified settlement before that first guarded header write.
     const initialAccountSnapshot = businessInvoiceSelection(transaction, 'purchase', supplierId, settlement.accountCurrency);
@@ -3158,8 +3178,11 @@ async function assertBusinessReceivedPurchaseContext(context,invoiceId,copy){
  AND (SELECT COUNT(*) FROM dbo.test_purchase_batch_links WHERE invoice_id=@invoice)=(SELECT COUNT(*) FROM dbo.purchase_invoice_items WHERE purchase_invoice_id=@invoice) THEN 1 ELSE 0 END valid;`);
  if(Number(proof.recordset?.[0]?.valid)!==1)throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul, kaynak alış fiyatı, döviz ve tek stok etkisi tam doğrulanamadı.',409);
 }
-export async function assertReceivedPurchaseContext(context, invoiceId) {
+export async function assertReceivedPurchaseContext(context, invoiceId, actor = null, invoice = null) {
   if (!context?.stockAlreadyReceived) return;
+  if(context.desktopPrivatePurchase===true){
+    assertDesktopPrivatePurchase({transaction:context.transaction,operation:'finalize',actorId:String(actor?.id),receiptId:context.receiptId,invoiceId:String(invoiceId),invoice});return;
+  }
   if(context.cleanStoreDayReceived===true){
     const {assertCleanReceivedPurchaseContext}=await import('./cleanStoreDayScope.mjs');
     await assertCleanReceivedPurchaseContext(context,invoiceId);return;
@@ -3252,7 +3275,9 @@ export async function assertReceivedPurchaseContext(context, invoiceId) {
 }
 
 export async function finalizePurchaseInvoice(id, actor = null, transactionContext = null) {
-  assertMelisaWriteEnabled();
+  const desktopPurchase = transactionContext?.desktopPrivatePurchase === true;
+  if (!desktopPurchase) assertMelisaWriteEnabled();
+  if (desktopPurchase && transactionContext.stockAlreadyReceived !== true) throw makeServiceError('PURCHASE_RECEIPT_LINK_REQUIRED','Mal kabul işlem kapsamı doğrulanamadı.',409);
 
   const invoiceId = Number(id);
 
@@ -3264,6 +3289,8 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
   const sqlDriver = transactionContext?.sqlDriver || getSqlDriver();
   const transaction = transactionContext?.transaction || new sqlDriver.Transaction(pool);
 
+  if (desktopPurchase) assertDesktopPrivatePurchase({transaction,operation:'finalize',actorId:String(actor?.id),receiptId:transactionContext.receiptId,invoiceId:String(invoiceId),checkOnly:true});
+
   if (!transactionContext) await transaction.begin();
 
   try {
@@ -3272,6 +3299,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
     if (!beforeSnapshot) {
       throw makeServiceError('PURCHASE_FINALIZE_NOT_FOUND', 'Purchase invoice not found', 404);
     }
+    if (desktopPurchase) assertDesktopPrivatePurchase({transaction,operation:'finalize',actorId:String(actor?.id),receiptId:transactionContext.receiptId,invoiceId:String(invoiceId),invoice:beforeSnapshot});
     await assertOperationQuarantineAllowed(invoiceQuarantineEntities('purchase',beforeSnapshot),quarantineTransactionContext(sqlDriver,transaction));
 
     if (beforeSnapshot.status !== 'DRAFT') {
@@ -3302,7 +3330,7 @@ export async function finalizePurchaseInvoice(id, actor = null, transactionConte
 
     const warnings = [];
     const accumulatePurchaseCost = createPurchaseCostAccumulator();
-    await assertReceivedPurchaseContext(transactionContext, invoiceId);
+    await assertReceivedPurchaseContext(transactionContext, invoiceId, actor, beforeSnapshot);
 
     for (const item of (transactionContext?.stockAlreadyReceived ? [] : beforeSnapshot.items)) {
       const quantity = safeNumber(item.quantity);

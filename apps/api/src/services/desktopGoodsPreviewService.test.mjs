@@ -1,0 +1,2 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {getDesktopMasterV6GuardSql} from '../config/desktopGoodsV6Guard.mjs';
+test('V6 preview guard composes finite effective permissions and schema markers',()=>{const sql=getDesktopMasterV6GuardSql();assert.match(sql,/DESKTOP_GOODS_V6_SCHEMA_REJECTED/);assert.match(sql,/DESKTOP_GOODS_V6_ROLE_REJECTED/);assert.match(sql,/DESKTOP_WRITE_USER_IMPERSONATE_REJECTED/);});

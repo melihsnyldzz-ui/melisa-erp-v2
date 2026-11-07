@@ -24,6 +24,8 @@ import {createDesktopCustomerAccountTransactions} from './services/desktopCustom
 import {createDesktopCustomerAccountRoutes} from './routes/desktopCustomerAccountRoutes.mjs';
 import {createDesktopFinalCancellationService} from './services/desktopFinalCancellationPrivate.mjs';
 import {createDesktopFinalCancellationRoutes} from './routes/desktopFinalCancellationRoutes.mjs';
+import {createDesktopGoodsService} from './services/desktopGoodsAssembly.mjs';
+import {createDesktopGoodsRoutes} from './routes/desktopGoodsRoutes.mjs';
 
 const HOST='127.0.0.1:4294',ORIGIN='http://127.0.0.1:5294';
 const reject=(res,status=403)=>res.status(status).json({success:false,error:{code:'DESKTOP_WRITE_UNAVAILABLE'}});
@@ -34,12 +36,14 @@ export const DESKTOP_WRITE_APPLICATION_LIMITS=Object.freeze({sourceOnly:true,lis
 
 export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=null}={}){
  const pool=getDesktopWritePool(connector);
- const profile=getDesktopWriteProfile(connector),richCards=['desktop-master-v3','desktop-master-v4','desktop-master-v5'].includes(profile),schemaVersion=profile==='desktop-master-v5'?5:profile==='desktop-master-v4'?4:richCards?3:2;
+ const profile=getDesktopWriteProfile(connector);
+ if(!['desktop-write-v2','desktop-master-v3','desktop-master-v4','desktop-master-v5','desktop-master-v6'].includes(profile))throw Error('DESKTOP_RUNTIME_PROFILE_UNAVAILABLE');
+ const richCards=['desktop-master-v3','desktop-master-v4','desktop-master-v5','desktop-master-v6'].includes(profile),schemaVersion=profile==='desktop-master-v6'?6:profile==='desktop-master-v5'?5:profile==='desktop-master-v4'?4:richCards?3:2;
  if(runtimeInfo!==null&&(!richCards||!isDesktopRuntimeInfo(runtimeInfo)||runtimeInfo.profile!==profile||runtimeInfo.schemaVersion!==schemaVersion))throw Error('DESKTOP_RUNTIME_INFO_INVALID');const publicRuntimeInfo=runtimeInfo===null?null:Object.freeze({...runtimeInfo});
  const auth=createDesktopWriteAuthCore({pool,sql,tokenKey,richCards,schemaVersion});
  const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession,richCards,schemaVersion});
  const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure,richCards});
- const accountCoordinator=[4,5].includes(schemaVersion)?createDesktopCustomerAccountTransactions({store:createDesktopCustomerAccountSqlStore({pool,sql,verifySession:auth.verifySession}),authorize:auth.authorize,onFailure:recordDesktopFailure}):null;
+ const accountCoordinator=[4,5,6].includes(schemaVersion)?createDesktopCustomerAccountTransactions({store:createDesktopCustomerAccountSqlStore({pool,sql,verifySession:auth.verifySession}),authorize:auth.authorize,onFailure:recordDesktopFailure}):null;
  const service=auth.bindService({...coordinator,...accountCoordinator});
  const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession,richCards,schemaVersion}));
  const workflowService=createDesktopSaleWorkflowService({connector,auth});
@@ -47,7 +51,8 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  const dispatchService=createDesktopWorkflowDispatchService({connector,auth});
  const workflowReadService=createDesktopWorkflowReadService({connector,auth});
  const resolutionService=createDesktopWorkflowResolutionService({connector,auth});
- const finalCancellationService=schemaVersion===5?createDesktopFinalCancellationService({connector,auth}):null;
+ const finalCancellationService=[5,6].includes(schemaVersion)?createDesktopFinalCancellationService({connector,auth}):null;
+ const goodsService=schemaVersion===6?auth.bindGoodsService(createDesktopGoodsService({connector,auth})):null;
  const app=express();app.disable('x-powered-by');app.set('strict routing',true);
  app.use((req,res,next)=>{
   res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');
@@ -56,6 +61,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
   if(req.method==='OPTIONS')return res.sendStatus(204);next();
  });
  app.use(rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false}));
+ if(schemaVersion===6)app.use('/api/desktop-goods',express.json({limit:'32kb',strict:true}));
  app.use(express.json({limit:'8kb',strict:true}));
  app.post('/api/auth/login',rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}),async(req,res)=>{
   try{if(req.get('origin')!==ORIGIN||!req.is('application/json'))return reject(res);const data=await auth.login(req.body);return res.json({success:true,data});}
@@ -69,16 +75,17 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  });
  app.use('/api/desktop-local',auth.bind);
  app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal,richCards}));
- if([4,5].includes(schemaVersion))app.use(createDesktopCustomerAccountRoutes({service,authenticateNormal:auth.authenticateNormal}));
+ if([4,5,6].includes(schemaVersion))app.use(createDesktopCustomerAccountRoutes({service,authenticateNormal:auth.authenticateNormal}));
  app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode'],auth.bind);
  app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal,richCards}));
- if(schemaVersion===5){app.use('/api/desktop-customers',auth.bind);app.use(createDesktopCustomerLedgerRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));}
+ if([5,6].includes(schemaVersion)){app.use('/api/desktop-customers',auth.bind);app.use(createDesktopCustomerLedgerRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));}
  app.use('/api/desktop-sale/workflows',auth.bind);
  app.use('/api/desktop-sale/drafts',auth.bind);
  app.use('/api/desktop-sale/draft-preview',auth.bind);
  app.use('/api/desktop-sale/resolve',auth.bind);
  app.use(createDesktopSaleWorkflowRoutes({service:workflowService,draftService,dispatchService,readService:workflowReadService,resolutionService,authenticateNormal:auth.authenticateNormal}));
- if(schemaVersion===5)app.use(createDesktopFinalCancellationRoutes({service:finalCancellationService,authenticateNormal:auth.authenticateNormal}));
+ if([5,6].includes(schemaVersion))app.use(createDesktopFinalCancellationRoutes({service:finalCancellationService,authenticateNormal:auth.authenticateNormal}));
+ if(schemaVersion===6){app.use('/api/desktop-goods',auth.bind);app.use(createDesktopGoodsRoutes({service:goodsService,authenticateNormal:auth.authenticateNormal}));}
  app.use((_req,res)=>reject(res,404));
  app.use((error,_req,res,next)=>{if(res.headersSent)return next(error);return reject(res,400);});
  return Object.freeze({app,closeSessions:auth.close,profile});

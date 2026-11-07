@@ -7,11 +7,11 @@ import {fileURLToPath} from 'node:url';
 
 export const TARGET=Object.freeze({server:'127.0.0.1',port:15439,database:'MELISA_B6_SUBPATH_20261031_1234',serverIdentity:'MELISA-B6-DISPOSABLE',purpose:'B6-SELECTED-ITEMS-1234'});
 const sourceURL=new URL('../../apps/api/src/services/invoiceDraftService.js',import.meta.url);
-// Reviewed desktop TRY discount/profit changes remain outside
+// Reviewed desktop sales and private purchase changes remain outside
 // insertSelectedSourceSalesItems. That function's
 // body (235d4119...f094be) and extracted SQL remain byte-identical to PR54.
 // Keep a whole-file pin AND the original SQL pin; unknown changes still reject.
-const SOURCE_SHA='7b8dc7a1d7fb35962480b45f714afc41793537bcd70f2077734288a3413d9124';
+const SOURCE_SHA='2c7e3da5f5b6fe7093f0f12ac5bb8e96cdab6db31bc6d770ccd506ca3f86e630';
 const ORIGINAL_SQL_SHA='17a2646fdef4db1ed9a8e4a23fda33b462b4cda5382539d8b187dac24f938cbb';
 const digest=v=>createHash('sha256').update(v).digest('hex');
 const reject=code=>{throw Object.assign(new Error(code),{code});};

@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {assertDesktopGoodsLocalOrigin,DESKTOP_GOODS_LOCAL_ORIGIN_SQL} from './desktopGoodsLocalOrigin.mjs';
+const u='12345678-1234-4234-8234-123456789abc',tx={},row=()=>({requestId:u,actorId:'7',operation:'product.create',entityId:'5',journalRequestId:u,journalActorId:'7',journalOperation:'product.create',payloadHash:'a'.repeat(64),responseJson:JSON.stringify({requestId:u,operation:'product.create',entity:{id:'5'}})});
+function call(rows,kind='product'){class Request{constructor(t){assert.equal(t,tx);this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){assert.equal(q,DESKTOP_GOODS_LOCAL_ORIGIN_SQL);assert.deepEqual(this.p,{operation:kind+'.create',entityId:'5'});return {recordset:rows};}}return assertDesktopGoodsLocalOrigin({sql:{Request,NVarChar:()=>1},transaction:tx,kind,entityId:'5'});}
+test('local origin requires same journal, actor and committed entity under locks',async()=>{assert(await call([row()]));assert.match(DESKTOP_GOODS_LOCAL_ORIGIN_SQL,/WITH\(UPDLOCK,HOLDLOCK\)/);for(const rows of [[],[row(),row()],[{...row(),journalActorId:'8'}],[{...row(),journalRequestId:null}],[{...row(),responseJson:'{}'}],[{...row(),entityId:'6'}]])await assert.rejects(call(rows));});
+test('SQL uniqueidentifier projection is canonical while committed origin payload stays exact',async()=>{
+ assert.match(DESKTOP_GOODS_LOCAL_ORIGIN_SQL,/LOWER\(CONVERT\(varchar\(36\),j\.request_id\)\) journalRequestId/);
+ assert(await call([row()]));
+ for(const patch of [{journalRequestId:u.toUpperCase()},{requestId:u.toUpperCase()},{responseJson:JSON.stringify({requestId:u.toUpperCase(),operation:'product.create',entity:{id:'5'}})},{journalRequestId:u.replace(/c$/,'d')}])await assert.rejects(call([{...row(),...patch}]));
+ const supplier={...row(),operation:'supplier.create',journalOperation:'supplier.create',responseJson:JSON.stringify({requestId:u,operation:'supplier.create',entity:{id:'5'}})};
+ assert(await call([supplier],'supplier'));await assert.rejects(call([{...supplier,journalOperation:'product.create'}],'supplier'));
+});

@@ -55,7 +55,7 @@ test('closed native cancellation preserves original discounted vectors, one sele
  t.mock.module('./desktopSafeDiagnostics.mjs',{exports:{recordDesktopFailure:e=>{lastError=e.error;}}});
  t.mock.module('./desktopFinalCancellationExportFence.mjs',{exports:{createDesktopFinalCancellationExportFence:()=>({async assertNoExport(){return corrupt!=='export';},async claim(proof){if(corrupt==='fence')throw Error('FENCE_UNAVAILABLE');const old=fences.get(proof.invoiceId);if(old)assert.deepEqual(proof,old);else fences.set(proof.invoiceId,structuredClone(proof));return {state:'CANCELLATION_FENCED'};},async verify(proof){assert.deepEqual(proof,fences.get(proof.invoiceId));return corrupt!=='fenceVerify';}})}});
  const module=await import('./desktopFinalCancellationPrivate.mjs'),service=module.createDesktopFinalCancellationService({connector,auth}),native=await import('./invoiceDraftService.js');
- profile='desktop-master-v4';assert.throws(()=>module.createDesktopFinalCancellationService({connector,auth}));profile='desktop-master-v5';
+ profile='desktop-master-v4';assert.throws(()=>module.createDesktopFinalCancellationService({connector,auth}));profile='desktop-master-v6';assert.ok(module.createDesktopFinalCancellationService({connector,auth}));profile='desktop-master-v5';
  assert.equal(module.tryAssertDesktopFinalCancellation({transaction:{}}),null);assert.equal(module.getDesktopFinalCancellationAccountContext({transaction:{}}),null);
  await assert.rejects(native.cancelSalesInvoice(13,{reason:command.reason},{id:'30002'},{transaction:{},pool,sqlDriver:sql,desktopPrivateSale:true}),/DESKTOP_PRIVATE_SALE_REJECTED/);
  for(const mode of ['foreign','TRY','USD-primary','TRY-to-EUR']){

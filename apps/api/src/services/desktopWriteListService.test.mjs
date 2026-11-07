@@ -16,6 +16,7 @@ test('same transaction checks target and current authority before escaped pagina
  assert.equal(x.calls.find(v=>v?.permission)?.permission,'customer.view');
  const query=x.calls.find(v=>v?.q?.includes('OFFSET'));assert.equal(query.p.search,'%~%~_~[%');assert.match(query.q,/is_deleted=0/);assert.match(query.q,/OFFSET @offset/);
 });
+test('V6 lists use the V6 guard and fail closed on guard rejection',async()=>{const x=setup({richCards:true,schemaVersion:6});await x.service.list('7','customers',{page:1,limit:10,search:''});const q=x.calls.find(v=>v?.q?.includes('DESKTOP_LIST_TARGET_REJECTED')).q;assert.match(q,/schema_version=6/);assert.match(q,/DESKTOP_GOODS_V6_SCHEMA_REJECTED/);const denied=setup({richCards:true,schemaVersion:6,guard:false});await assert.rejects(denied.service.list('7','customers',{page:1,limit:10,search:''}));assert.equal(denied.rolled,1);});
 test('rich customer paging keeps the same escaped phone/country predicate and selected page',async()=>{
  const x=setup({richCards:true,total:'101'}),r=await x.service.list('7','customers',{page:2,limit:1,search:'00555%_[ Türkiye'});assert.equal(r.meta.page,2);assert.equal(r.meta.hasPreviousPage,true);
  for(const q of x.calls.filter(c=>c?.q?.startsWith('SELECT ')&&(c.q.includes('COUNT_BIG(*)')||c.q.includes('OFFSET')))){assert.match(q.q,/phone LIKE @search ESCAPE N'~'/);assert.match(q.q,/country LIKE @search ESCAPE N'~'/);assert.equal(q.p.offset,1);assert.equal(q.p.search,'%00555~%~_~[ Türkiye%');}
