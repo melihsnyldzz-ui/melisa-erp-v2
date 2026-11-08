@@ -1,3 +1,4 @@
+import {isDesktopProductPurchaseCosts} from '../../../../packages/shared/src/desktopProductPurchaseCosts.mjs';
 import {isDesktopProductMovements} from '../../../../packages/shared/src/desktopProductMovements.mjs';
 // Source-only v2 list routes. The injected service owns the SQL transaction.
 import {Router} from 'express';
@@ -37,6 +38,9 @@ export function createDesktopWriteListRoutes({service,authenticateNormal,richCar
   const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;
   try{const result=await service.list(actorId,kind,{page,limit,search:q.search??''});return res.json({success:true,...result});}
   catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
+ });
+ if(richCards&&typeof service.readProductPurchaseCosts==='function')router.get('/api/desktop-products/:productId/purchase-costs',async(req,res)=>{
+  res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});if(!desktopProductCardId(req.params.productId)||Object.keys(req.query??{}).length)return res.status(400).json({success:false});let actor;try{actor=await authenticateNormal(req);}catch{return res.status(401).json({success:false});}if(actor?.kind!=='normal'||!Array.isArray(actor.permissions)||!['product.view','product.edit','purchase.view'].every(p=>actor.permissions.includes(p)))return res.status(403).json({success:false});const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;try{const data=await service.readProductPurchaseCosts(actorId,req.params.productId);if(data===null)return res.status(404).json({success:false});if(!isDesktopProductPurchaseCosts(data,{productId:req.params.productId}))throw Error();return res.json({success:true,data});}catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
  });
  if(richCards&&typeof service.readProductMovements==='function')router.get('/api/desktop-products/:productId/movements',async(req,res)=>{
   res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});
