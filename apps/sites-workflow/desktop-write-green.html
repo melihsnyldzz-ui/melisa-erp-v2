@@ -8,6 +8,23 @@
 @media(max-width:950px){.app{grid-template-columns:190px 1fr}.content{padding:22px 18px}.stats{grid-template-columns:repeat(2,1fr)}.two,.detail{grid-template-columns:1fr}}
 @media(max-width:650px){.app{display:block}.mobilehead{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);gap:6px;background:#17372d;color:white;padding:9px 10px;align-items:center}.mobilehead b{font-size:12px;white-space:nowrap}.mobilehead select{min-width:0;width:100%;background:#24493c;color:white;border:1px solid #ffffff36;border-radius:8px;padding:8px 5px;font-size:11px}.mobilehead option{color:#17251f}aside{display:none}.topbar{height:50px;padding:0 15px}.content{padding:19px 13px}.heading{display:block}.actions{margin-top:13px}.heading h1{font-size:21px}.stats{gap:8px}.stat{padding:12px}.stat strong{font-size:19px}.filters{flex-wrap:wrap}.search{min-width:100%;order:-1}.filters .spacer{display:none}.panel-head{padding:13px}.tablewrap{margin:0}.termfoot{align-items:flex-start;flex-direction:column}.top-right .date{display:none}}
 
+/* Normal desktop entry: keep permitted navigation and sale controls usable on phones. */
+@media screen and (max-width:650px){
+ .app>aside{display:block;padding:8px 10px;background:#17372d}
+ .app>aside .brand,.app>aside .rolebox,.app>aside .sidefoot{display:none}
+ .app>aside .nav-label{display:block;padding:0 5px 3px}
+ .app>aside .nav-label::after{content:" · yana kaydırın";text-transform:none;letter-spacing:normal}
+ .app>aside .nav{display:flex;overflow-x:auto;overscroll-behavior-inline:contain;gap:4px;padding-bottom:3px}
+ .app>aside .nav button{flex:0 0 auto;min-height:44px;white-space:nowrap}
+ .desktop-workflow{min-width:0;padding:16px!important}
+ .desktop-workflow label{display:block;min-width:0}
+ .desktop-workflow :is(input,select){box-sizing:border-box;min-width:0;max-width:100%;min-height:44px;font-size:16px}
+ .desktop-workflow :is([data-product],[data-customer]){display:block;width:100%}
+ .desktop-workflow button,.desktop-product-card [data-movements] button{min-height:44px}
+ .desktop-workflow .tablewrap{max-width:100%;overflow-x:auto}
+ .desktop-workflow .tablewrap::before,.desktop-product-card [data-movements] .tablewrap::before{content:"Tabloyu yana kaydırın →";display:block;position:sticky;left:0;width:max-content;padding:4px 0;color:var(--muted);font-size:12px}
+}
+
 /* UI-001: onaylanan liste/ayrıntı yerleşimi */
 .stock-workspace .content{max-width:none;padding:18px 22px;height:calc(100dvh - 68px);display:flex;flex-direction:column;overflow:hidden}
 .stock-workspace .heading{margin-bottom:12px}.stock-workspace .heading h1{font-size:23px}
@@ -71,4 +88,4 @@ body.terminal-device{height:100dvh;overflow:hidden;background:#17372d}.terminal-
  #view thead{display:table-header-group}
 }
 </style>
-</head><body><div class="app"><aside><div class="brand"><span class="logo">M</span><div><b>MELİSA ERP</b><small>Yerel kurulum</small></div></div><div class="rolebox"><label>OTURUM</label><div id="user-label">Giriş bekleniyor</div></div><div class="nav-label">İŞLEMLER</div><nav class="nav" id="nav"></nav><div class="sidefoot">Yerel veritabanı</div></aside><main class="main"><header class="topbar"><div class="crumb">Melisa ERP / <b id="crumb">Giriş</b></div><button class="btn small" id="logout" hidden>Çıkış yap</button></header><div class="content" id="view"></div></main></div><script type="module" src="/src/workflow/desktopWriteGreen.mjs"></script></body></html>
+</head><body><div class="app"><aside><div class="brand"><span class="logo">M</span><div><b>MELİSA ERP</b><small>Yerel kurulum</small></div></div><div class="rolebox"><label>OTURUM</label><div id="user-label">Giriş bekleniyor</div></div><div class="nav-label">İŞLEMLER</div><nav class="nav" id="nav" aria-label="İşlemler"></nav><div class="sidefoot">Yerel veritabanı</div></aside><main class="main"><header class="topbar"><div class="crumb">Melisa ERP / <b id="crumb">Giriş</b></div><button class="btn small" id="logout" hidden>Çıkış yap</button></header><div class="content" id="view"></div></main></div><script type="module" src="/src/workflow/desktopWriteGreen.mjs"></script></body></html>
