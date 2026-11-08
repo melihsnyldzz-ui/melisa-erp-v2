@@ -1,0 +1,42 @@
+import {DESKTOP_SALES_POLICY_SETTING as setting} from '../../apps/api/src/services/desktopSalesPolicy.mjs';
+// OFFLINE typed transaction plan and synthetic model only. No SQL, driver,
+// credentials, account creation or execution authority is provided here.
+const fail=reason=>{throw Object.assign(Error('SALES_MANAGER_PLAN_REJECTED'),{reason});};
+const id=x=>typeof x==='string'&&/^[1-9]\d{0,15}$/.test(x)&&BigInt(x)<=9007199254740991n;
+const version=x=>typeof x==='string'&&/^0x[0-9A-F]{16}$/.test(x);
+const sha=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x);
+const record=x=>x&&typeof x==='object'&&!Array.isArray(x)&&[Object.prototype,null].includes(Object.getPrototypeOf(x));
+const exact=(x,keys)=>record(x)&&Reflect.ownKeys(x).length===keys.length&&keys.every(k=>{const d=Object.getOwnPropertyDescriptor(x,k);return d?.enumerable&&Object.hasOwn(d,'value')});
+const safeSynthetic=x=>{if(Array.isArray(x))return x.every(safeSynthetic);if(record(x))return Reflect.ownKeys(x).every(k=>typeof k==='string'&&!/(?:password|secret|credential|hash)/i.test(k)&&safeSynthetic(x[k]));return x===null||['string','number','boolean'].includes(typeof x)};
+const freeze=x=>{if(x&&typeof x==='object'){Object.values(x).forEach(freeze);Object.freeze(x)}return x};
+const target=freeze({server:'Semih\\MELISAERP',database:'MELISA_ERP_DESKTOP_TEST_20261105',databaseId:5,databaseGuid:'c67f5317-9c0d-4831-aadd-fadc379a95d1',environmentId:'eb2888c2-51cb-4570-a933-397cf7e62806',schemaVersion:7,tableCount:43,windowsOwner:'SEMIH\\Xaser',transport:'Shared memory',oldPackageSha256:'17b47032d23c618b2944e9a55201b0355d4009c794fecdf9af469088fc79a061'});
+const roleKeys=freeze({sales:['product.view','customer.view','sales.view','sales.create','sales.edit','sales.finalize'],manager:['product.view','customer.view','sales.view','sales.create','sales.edit','sales.finalize','sales.cancel']});
+const identities=freeze({sales:{roleCode:'desktop_sales_test',username:'erp_sales_deneme'},manager:{roleCode:'desktop_manager_test',username:'erp_manager_deneme'}});
+const bindings=freeze({salesCredentialHash:{sqlType:'nvarchar(100)',direction:'input',value:'EXTERNAL_TYPED_PARAMETER_ONLY'},managerCredentialHash:{sqlType:'nvarchar(100)',direction:'input',value:'EXTERNAL_TYPED_PARAMETER_ONLY'}});
+const prerequisites=freeze(['verified_target_and_exact_package','v7_schema_and_writer_permissions_and_operator19_guard','exclusive_owner_and_serializable_transaction','lock_users_roles_permissions_settings_and_pricing_journal','policy_row_count_exactly_zero','no_open_drafts_pending_pricing_or_unresolved_requests','existing_actor_30002_role_5_and_code_verified','capture_logical_existing_rows_before_and_after','externally_verified_authorization_and_credential_channel']);
+function sameTarget(x){return exact(x,Object.keys(target))&&Object.keys(target).every(k=>x[k]===target[k]);}
+export function salesManagerPersonaPlan(input){
+ if(!exact(input,['target'])||!sameTarget(input.target))fail('TARGET');
+ return freeze({kind:'SALES_MANAGER_OFFLINE_PLAN',version:1,executionAuthorized:false,sqlCompiled:false,sourceOnly:true,target:{...target},identities:structuredClone(identities),roleKeys:structuredClone(roleKeys),bindings:structuredClone(bindings),prerequisites:[...prerequisites],create:{transaction:'SERIALIZABLE_ALL_OR_ROLLBACK',roles:2,users:2,inactive:true,permissionAssignments:13,newPermissionKeys:0,flags:{can_view:1,can_create:0,can_update:0,can_delete:0,can_approve:0},identityBinding:'INSERT_OUTPUT_ONLY_NO_GUESSED_IDS',policySetting:{group:setting.group,key:setting.key,valueType:'json',active:true,expectedPriorCount:0,entries:[{actorId:'30002',roleId:'5',roleCode:'desktop_first_sale_operator',kind:'sales',canChangeSalePrice:false,maxDiscountRateExact4:'3.0000'},{actorId:'OUTPUT_SALES_USER_ID',roleId:'OUTPUT_SALES_ROLE_ID',roleCode:identities.sales.roleCode,kind:'sales',canChangeSalePrice:false,maxDiscountRateExact4:null},{actorId:'OUTPUT_MANAGER_USER_ID',roleId:'OUTPUT_MANAGER_ROLE_ID',roleCode:identities.manager.roleCode,kind:'manager',canChangeSalePrice:false,maxDiscountRateExact4:null}]},policyRevisionChanges:'ALL_POLICY_BOUND_ACTORS_RECHECK_OPEN_DRAFTS_AND_APPROVALS'},deactivate:{transaction:'SERIALIZABLE_ALL_OR_ROLLBACK',users:2,guard:'BOTH_IDS_USERNAMES_ROLE_IDS_ROLE_CODES_AND_ROWVERSIONS_BEFORE_ANY_WRITE',externalSessionDrainAndPendingReconciledProofRequired:true,retainHistory:true},forbidden:['activation','sql_login','grant','ddl','delete','reseed','live_data','credential_generation','credential_output'],limits:['Typed IR is not executable SQL; SQL compiler, locks, external receipt verification and real rollback remain NOT_RUN.','External session drain proof must be verified by a future approved owner; model booleans are not proof.','SQL IDENTITY counters can advance after rollback; no reseed or identity-unchanged claim.']});
+}
+export const SALES_MANAGER_FIXED_TARGET=target;
+export const SALES_MANAGER_ROLE_KEYS=roleKeys;
+// A deterministic synthetic transaction model; all input data remains unchanged.
+// failAt is solely a test fault injection, never a real SQL outcome.
+export function simulateSalesManagerCreate(state,options={}){
+ if(!record(options)||Reflect.ownKeys(options).some(k=>k!=='failAt')||(Object.hasOwn(options,'failAt')&&!Object.hasOwn(Object.getOwnPropertyDescriptor(options,'failAt'),'value')))fail('MODEL_OPTIONS');const failAt=options.failAt??null;
+ if(!record(state)||!safeSynthetic(state)||!sameTarget(state.target)||!Array.isArray(state.users)||!Array.isArray(state.roles)||!Array.isArray(state.permissions)||!Array.isArray(state.settings)||!Array.isArray(state.openDrafts)||!Array.isArray(state.pendingPricing)||!Array.isArray(state.unresolvedRequests))fail('MODEL_SHAPE');
+ if(state.openDrafts.length||state.pendingPricing.length||state.unresolvedRequests.length)fail('PENDING_WORK');
+ if([...new Set([...roleKeys.sales,...roleKeys.manager])].some(k=>!state.permissions.some(p=>p.permission===k)))fail('PERMISSION_KEY_MISSING');
+ if(state.settings.some(x=>x.group===setting.group&&x.key===setting.key))fail('POLICY_EXISTS');
+ if(state.users.filter(x=>x.id==='30002'&&x.roleId==='5').length!==1||state.roles.filter(x=>x.id==='5'&&x.code==='desktop_first_sale_operator').length!==1)fail('EXISTING_OPERATOR');
+ if(Object.values(identities).some(v=>state.users.some(u=>u.username===v.username)||state.roles.some(r=>r.code===v.roleCode)))fail('COLLISION');
+ const copy=structuredClone(state);const check=n=>{if(failAt===n)fail('INJECTED_'+n)};
+ for(const kind of ['sales','manager']){const spec=identities[kind];copy.roles.push({id:'OUTPUT_'+kind.toUpperCase()+'_ROLE_ID',code:spec.roleCode});check('role_'+kind);for(const permission of roleKeys[kind])copy.permissions.push({roleId:'OUTPUT_'+kind.toUpperCase()+'_ROLE_ID',permission,can_view:1,can_create:0,can_update:0,can_delete:0,can_approve:0});check('permissions_'+kind);copy.users.push({id:'OUTPUT_'+kind.toUpperCase()+'_USER_ID',username:spec.username,roleId:'OUTPUT_'+kind.toUpperCase()+'_ROLE_ID',active:false});check('user_'+kind)}
+ const plan=salesManagerPersonaPlan({target:state.target});copy.settings.push({group:setting.group,key:setting.key,entries:structuredClone(plan.create.policySetting.entries)});check('policy');return copy;
+}
+export function simulateSalesManagerDeactivate(state,receipt){
+ if(!record(state)||!safeSynthetic(state)||!sameTarget(state.target)||!Array.isArray(state.users)||!Array.isArray(state.roles)||!exact(receipt,['sales','manager','drainEvidenceSha256'])||!sha(receipt.drainEvidenceSha256))fail('MODEL_RECEIPT');
+ const targets=[];for(const kind of ['sales','manager']){const r=receipt[kind],spec=identities[kind];if(!exact(r,['userId','roleId','userVersion'])||!id(r.userId)||!id(r.roleId)||!version(r.userVersion)||['30002','30007'].includes(r.userId))fail('RECEIPT_ID');const users=state.users.filter(u=>u.id===r.userId&&u.username===spec.username&&u.roleId===r.roleId&&u.userVersion===r.userVersion&&u.active===true),roles=state.roles.filter(x=>x.id===r.roleId&&x.code===spec.roleCode);if(users.length!==1||roles.length!==1)fail('BOUND_ROW');targets.push(r.userId);}
+ if(new Set(targets).size!==2)fail('DUPLICATE');const copy=structuredClone(state);for(const u of copy.users)if(targets.includes(u.id))u.active=false;return copy;
+}
