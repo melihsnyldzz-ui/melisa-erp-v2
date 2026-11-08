@@ -7,6 +7,7 @@ import {desktopCustomerCardId,isDesktopCustomerCard} from '../../../../packages/
 import {desktopCompanyRateDate,isDesktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
 import {desktopAccountSalesPage,isDesktopAccountSales} from '../../../../packages/shared/src/desktopAccountSales.mjs';
 import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
+import {desktopSupplierCardId,isDesktopSupplierCard} from '../../../../packages/shared/src/desktopSupplierCard.mjs';
 
 export function createDesktopWriteListRoutes({service,authenticateNormal,richCards=false}={}){
  if(typeof richCards!=='boolean'||typeof service?.list!=='function'||typeof authenticateNormal!=='function'||richCards&&typeof service.readProduct!=='function')throw Error('DESKTOP_LIST_CONFIGURATION');
@@ -50,6 +51,12 @@ export function createDesktopWriteListRoutes({service,authenticateNormal,richCar
   const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;
   try{const card=await service.readProduct(actorId,req.params.id);if(!card)return res.status(404).json({success:false});if(!isDesktopProductCard(card,req.params.id))return res.status(503).json({success:false});return res.json({success:true,data:card});}
   catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
+ });
+ if(richCards&&typeof service.readSupplier==='function')router.get('/api/desktop-suppliers/:id',async(req,res)=>{
+  res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});
+  if(!desktopSupplierCardId(req.params.id)||Object.keys(req.query??{}).length)return res.status(400).json({success:false});let actor;try{actor=await authenticateNormal(req);}catch{return res.status(401).json({success:false});}
+  if(actor?.kind!=='normal'||!Array.isArray(actor.permissions)||!['supplier.view','supplier.edit'].every(p=>actor.permissions.includes(p)))return res.status(403).json({success:false});const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;
+  try{const card=await service.readSupplier(actorId,req.params.id);if(!card)return res.status(404).json({success:false});if(!isDesktopSupplierCard(card,req.params.id))throw Error();return res.json({success:true,data:card});}catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
  });
  if(richCards&&typeof service.readCustomer==='function')router.get('/api/customers/:id',async(req,res)=>{
   res.set('Cache-Control','no-store');
