@@ -1,3 +1,5 @@
+import {createDesktopCountService} from './services/desktopCountService.mjs';
+import {createDesktopCountRoutes} from './routes/desktopCountRoutes.mjs';
 import {createDesktopCustomerLedgerRoutes} from './routes/desktopCustomerLedgerRoutes.mjs';
 // SOURCE ONLY. The sole exported factory accepts a connector issued by the
 // separately verified v2 TLS opener; callers cannot pass a naked SQL pool or
@@ -64,6 +66,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  const goodsService=[6,7].includes(schemaVersion)?auth.bindGoodsService(createDesktopGoodsService({connector,auth})):null;
  const financeService=schemaVersion===7?auth.bindFinanceService(createDesktopFinanceAssembly({connector,auth})):null;
  const warehouseService=schemaVersion===7?auth.bindWarehouseService(createDesktopWarehouseService({connector,auth})):null;
+ const countService=schemaVersion===7?auth.bindCountService(createDesktopCountService({connector,auth})):null;
  const app=express();app.disable('x-powered-by');app.set('strict routing',true);
  app.use((req,res,next)=>{
   res.set('Cache-Control','no-store');res.set('X-Content-Type-Options','nosniff');
@@ -74,6 +77,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use(rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false}));
  if([6,7].includes(schemaVersion))app.use('/api/desktop-goods',express.json({limit:'32kb',strict:true}));
  if(schemaVersion===7)app.use('/api/desktop-warehouse',express.json({limit:'32kb',strict:true}));
+ if(schemaVersion===7)app.use('/api/desktop-count',express.json({limit:'64kb',strict:true}));
  if(schemaVersion===7)app.use(/^\/api\/desktop-products\/[1-9][0-9]*\/photo(?:\/resolve)?$/,express.json({limit:5600000,strict:true}));
  app.use(express.json({limit:'8kb',strict:true}));
  app.post('/api/auth/login',rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}),async(req,res)=>{
@@ -103,6 +107,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  if([6,7].includes(schemaVersion)){app.use('/api/desktop-goods',auth.bind);app.use(createDesktopGoodsRoutes({service:goodsService,authenticateNormal:auth.authenticateNormal}));}
  if(schemaVersion===7){app.use('/api/desktop-finance',auth.bind);app.use(createDesktopFinanceRoutes({service:financeService,authenticateNormal:auth.authenticateNormal}));}
  if(schemaVersion===7){app.use('/api/desktop-warehouse',auth.bind);app.use(createDesktopWarehouseRoutes({service:warehouseService,authenticateNormal:auth.authenticateNormal}));}
+ if(schemaVersion===7){app.use('/api/desktop-count',auth.bind);app.use(createDesktopCountRoutes({service:countService,authenticateNormal:auth.authenticateNormal}));}
  app.use((_req,res)=>reject(res,404));
  app.use((error,_req,res,next)=>{if(res.headersSent)return next(error);return reject(res,400);});
  return Object.freeze({app,closeSessions:auth.close,profile});
