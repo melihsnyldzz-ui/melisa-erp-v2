@@ -4,7 +4,7 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {createHash,randomUUID} from 'node:crypto';
 import sql from 'mssql';
-import {getDesktopWritePool} from '../config/desktopWriteTlsConnector.mjs';
+import {getDesktopWritePool,getDesktopWriteProfile} from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
 import * as desktopAuth from './desktopWriteAuthCore.mjs';
 import {desktopSaleQuote} from './desktopSaleQuote.mjs';
@@ -34,7 +34,7 @@ function competing(transaction){if(getCanonicalBusinessSaleTransaction(transacti
 export function tryAssertDesktopWorkflowDraft({transaction,actor,operation,invoiceId,invoice,checkOnly=false}={}){
  const s=storage.getStore();if(!s)return null;
  const required=s.operation??'sale_draft';
- if(!s.open||owners.get(transaction)!==s||s.transaction!==transaction||competing(transaction)||String(actor?.id)!==s.actorId||operation!==required||s.phase!==required)fail();
+ if(!s.open||owners.get(transaction)!==s||s.transaction!==transaction||competing(transaction)||String(actor?.id)!==s.actorId||operation!==required||s.phase!==required||required==='sale_finalize'&&s.creditRequired===true&&s.creditAuthorized!==true)fail();
  if(checkOnly)return true;
  if(s.prepared.fx){if((required==='sale_draft'?invoiceId!==null:invoiceId!==s.invoiceId))fail();assertDesktopFxNativeInvoice(s.prepared,invoice,{operation:required});s.phase=required==='sale_draft'?'draft_verified':'finalize_verified';return true;}
  const e=s.prepared.expected,p=s.prepared.invoice,date=invoice?.documentDate instanceof Date?invoice.documentDate.toISOString().slice(0,10):invoice?.documentDate;
@@ -144,7 +144,9 @@ export function createDesktopWorkflowDispatchService({connector,auth}={}){
      const persisted={header:rs[0][0],items:rs[1]},proof=await desktopAuth.getDesktopWriteSalesPricingAuthority(auth,pool)({transaction:tx,actorId,request:{persisted,command:c},locked,phase:'dispatch',invoiceId:c.invoiceId});if(!proof||!['legacy','pricing'].includes(proof.kind))fail('PRICING_AUTHORITY');if(proof.kind==='pricing'&&(proof.approvalRequired!==false||!proof.request||!proof.locked||!isDesktopSalesPolicy(proof.policy,actorId)))fail('PRICING_AUTHORITY');const pricing=proof.kind==='pricing',selected=pricing?proof.locked:locked;
      const {normalizeSalesPayload}=await import('./invoiceDraftService.js');if(fx&&rs[0][0].documentDate!==c.documentDate)fail();const maxDiscountRateExact4=pricing?'99.9999':proof.maxDiscountRateExact4;if(!pricing&&(typeof maxDiscountRateExact4!=='string'||!/^[0-3]\.\d{4}$/.test(maxDiscountRateExact4)||BigInt(maxDiscountRateExact4.replace('.',''))>30000n))fail('PRICING_AUTHORITY');const prepared=fx?prepareDesktopPersistedFxSale({requestId,persisted,locked:selected,currencySelection:c.currencySelection,maxDiscountRateExact4,normalizeSalesPayload}):prepareDesktopPersistedDispatch({requestId,persisted,locked:selected,...(rs[0][0].discountRate!=='0.0000'?{maxDiscountRateExact4,normalizeSalesPayload}:{})}),bound=context.bindInvoice(prepared.expected,c.invoiceId);
      const selectedReadiness=fx?createDesktopDispatchSnapshotReader({sql,verifyScope:scope.verifyScope,selectLocked:args=>selectFx({...args,currencySelection:prepared.currencySelection,documentDate:prepared.invoice.documentDate})}):readiness;await selectedReadiness({transaction:tx,scope:bound,invoiceId:c.invoiceId,customerId:c.customerId,productIds:c.productIds});
-     const state={transaction:tx,actorId,prepared,operation:'sale_finalize',phase:'sale_finalize',invoiceId:c.invoiceId,open:true,pricingAuthorized:pricing};if(owners.has(tx)||storage.getStore()||competing(tx))fail();owners.set(tx,state);
+     const creditRequired=getDesktopWriteProfile(connector)==='desktop-master-v7';let creditAuthorized=false;
+     if(creditRequired){const customer=locked.customer;creditAuthorized=await desktopAuth.getDesktopWriteCreditAuthority(auth,pool).assertDispatch({transaction:tx,actorId,requestId,invoiceId:c.invoiceId,expectedVersion:c.expectedVersion,accountId:customer.accountId,currency:customer.accountCurrency,balanceExact8:customer.accountBalanceExact8,amountExact4:fx?persisted.header.accountAmountExact4:persisted.header.totalExact4})===true;if(!creditAuthorized)fail('CREDIT_AUTHORITY');}
+     const state={transaction:tx,actorId,prepared,operation:'sale_finalize',phase:'sale_finalize',invoiceId:c.invoiceId,open:true,pricingAuthorized:pricing,creditRequired,creditAuthorized};if(owners.has(tx)||storage.getStore()||competing(tx))fail();owners.set(tx,state);
      try{return await storage.run(state,async()=>{
       const native=await import('./invoiceDraftService.js');const actor=await (await import('./auditService.js')).resolveDesktopAuditActor(new sql.Request(tx),actorId,'desktop-first-sale');await native.finalizeSalesInvoice(Number(c.invoiceId),actor,{transaction:tx,pool,sqlDriver:sql,desktopPrivateSale:true});if(state.phase!=='finalize_verified'||competing(tx))fail();
       if(await (fx?postFx:post)({transaction:tx,scope:bound,invoiceId:c.invoiceId})!==true)fail();await readOutcome({transaction:tx,scope:bound,invoiceId:c.invoiceId,documentDate:prepared.invoice.documentDate});

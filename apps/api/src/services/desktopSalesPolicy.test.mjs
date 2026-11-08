@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {desktopSalesPolicyForUser as policy,parseDesktopSalesPolicyRow as parse} from './desktopSalesPolicy.mjs';
+import {desktopSalesPolicyForUser as policy,parseDesktopSalesPolicyRow as parse,desktopCreditAccessForUser as credit} from './desktopSalesPolicy.mjs';
 const user=(code='sales')=>({id:'101',role:{id:11,code},permissions:['sales.view','sales.create','sales.finalize'],userVersion:'0x0000000000000001',roleVersion:'0x0000000000000002'});
 const person=(kind='sales',maxDiscountRateExact4=null)=>({actorId:'101',roleId:'11',roleCode:'sales',kind,canChangeSalePrice:true,maxDiscountRateExact4});
 const row=people=>({id:'8',value:JSON.stringify({version:1,people}),valueType:'json',active:true,version:'0x0000000000000003'});
@@ -8,3 +8,12 @@ test('individual zero, custom, default3, manager5 and explicit boss are separate
 test('foreign person, role mismatch and broad product permissions confer no sale-price authority',()=>{const p=policy(user(),row([{...person(),actorId:'102'}]));assert.equal(p.canChangeSalePrice,false);assert.equal(p.maxDiscountRateExact4,'0.0000');assert.throws(()=>policy(user(),row([{...person(),roleId:'12'}])));assert.equal(policy({...user(),permissions:['sales.view','product.edit','product.price.edit']},row([person()])).canChangeSalePrice,false);});
 test('duplicate/unknown keys, inactive records, noncanonical or malformed limits fail closed',()=>{const r=row([person()]);for(const x of [{...r,active:false},{...r,value:r.value.replace('"version":1','"version":1,"version":1')},{...r,value:r.value+' '},row([person(),person()]),row([{...person(),extra:true}]),row([person('sales','5.0001')]),row([person('manager','3.0000')])])assert.throws(()=>parse(x));});
 test('policy, user and role revisions invalidate the quote authority binding',()=>{const r=row([person()]),p=policy(user(),r);for(const [u,v] of [[{...user(),userVersion:'0x0000000000000009'},r],[{...user(),roleVersion:'0x0000000000000009'},r],[user(),{...r,version:'0x0000000000000009'}],[user(),row([{...person(),canChangeSalePrice:false}])]])assert.notEqual(policy(u,v).revision,p.revision);});
+
+test('credit authority requires an explicit manager/boss identity and the action permission',()=>{
+ const u={...user(),permissions:[...user().permissions,'customer.edit']};
+ for(const kind of ['manager','boss'])assert.deepEqual(credit(u,row([person(kind)])),{revision:policy(u,row([person(kind)])).revision,canManage:true,canApprove:true});
+ for(const [v,r] of [[u,null],[u,row([person('sales')])],[{...u,role:{...u.role,code:'desktop_first_sale_operator'}},null],[u,row([{...person('boss'),actorId:'102'}])]])assert.deepEqual([credit(v,r).canManage,credit(v,r).canApprove],[false,false]);
+ assert.equal(credit(user(),row([person('manager')])).canManage,false);
+ assert.equal(credit({...u,permissions:['customer.edit']},row([person('boss')])).canApprove,false);
+ assert.throws(()=>credit(u,row([{...person('manager'),roleCode:'other'}])));
+});
