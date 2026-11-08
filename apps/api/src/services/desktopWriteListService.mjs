@@ -1,5 +1,6 @@
 import {isDesktopProductMovements} from '../../../../packages/shared/src/desktopProductMovements.mjs';
 import {readDesktopCustomerLedger} from './desktopCustomerLedgerRead.mjs';
+import {readDesktopSupplierCard} from './desktopSupplierCardRead.mjs';
 // SOURCE ONLY. Real v2 list queries for the dedicated writer profile. No
 // listener, SQL connection, grants, or mutations are created at import time.
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
@@ -154,6 +155,9 @@ WHERE p.id=TRY_CONVERT(bigint,@productId) AND p.is_deleted=0;`);
    if(!isDesktopProductCard(card,productId))fail();
    await tx.commit();begun=false;return card;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readSupplier(actorId,supplierId){
+  if(schemaVersion!==7||!richCards||!validId(actorId)||!validId(supplierId))fail();const tx=new sql.Transaction(pool);let begun=false;
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['supplier.view','supplier.edit']})!==true)fail();const data=await readDesktopSupplierCard({sql,transaction:tx,supplierId});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readCustomerLedger(actorId,customerId,accountId,{page=1,range}={}){
   if(![5,6,7].includes(schemaVersion)||!richCards||!validId(actorId)||!validId(customerId)||!validId(accountId)||!desktopAccountSalesPage(page))fail();const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['customer.view','sales.view']})!==true)fail();if(getSalesReadScope({transaction:tx,actorId})!=='all')fail();const data=await readDesktopCustomerLedger({sql,transaction:tx,customerId,accountId,page,...(range===undefined?{}:{range})});await tx.commit();begun=false;return data;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}

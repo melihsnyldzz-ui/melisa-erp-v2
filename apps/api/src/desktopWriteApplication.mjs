@@ -85,7 +85,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use('/api/desktop-local',auth.bind);
  app.use(createDesktopLocalMasterRoutes({service,authenticateNormal:auth.authenticateNormal,richCards}));
  if([4,5,6,7].includes(schemaVersion))app.use(createDesktopCustomerAccountRoutes({service,authenticateNormal:auth.authenticateNormal}));
- app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode','/api/desktop-products'],auth.bind);
+ app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode','/api/desktop-products','/api/desktop-suppliers'],auth.bind);
  app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal,richCards}));
  if([5,6,7].includes(schemaVersion)){app.use('/api/desktop-customers',auth.bind);app.use(createDesktopCustomerLedgerRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));}
  app.use('/api/desktop-sale/workflows',auth.bind);
