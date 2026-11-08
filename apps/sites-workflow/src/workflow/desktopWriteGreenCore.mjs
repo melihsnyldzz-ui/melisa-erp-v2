@@ -15,6 +15,7 @@ import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desk
 import {desktopCurrencySettlementParity} from '../../../api/src/services/desktopCurrencySettlementParity.mjs';
 import {desktopAccountSalesPage,isDesktopAccountSales} from '../../../../packages/shared/src/desktopAccountSales.mjs';
 import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
+import {isDesktopLedgerRange} from '../../../../packages/shared/src/desktopLedgerRange.mjs';
 import {isDesktopCustomerLedgerView} from './desktopCustomerLedger.mjs';
 import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {createDesktopSupplierCreate} from './desktopSupplierCreate.mjs';
@@ -110,7 +111,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   if(!richCards||!can('customers')||!can('sales')||!token)fail();const actor=actorId(user.id),prior=generation;
   const current=()=>{if(prior!==generation||!user||actorId(user.id)!==actor||!can('customers')||!can('sales')||!token)fail();};
   const info=await runtimeInfo();current();if(!((info.profile==='desktop-master-v5'&&info.schemaVersion===5)||(info.profile==='desktop-master-v6'&&info.schemaVersion===6)||(info.profile==='desktop-master-v7'&&info.schemaVersion===7)))return null;
-  return Object.freeze({read:async(customerId,accountId,page=1,currency)=>{current();if(!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page)||!['TRY','USD','EUR'].includes(currency))fail();const result=await request('/api/desktop-customers/'+customerId+'/accounts/'+accountId+'/ledger?page='+page);current();if(!isDesktopCustomerLedgerView(result.data,{customerId,accountId,page,currency}))fail();return result.data;}});
+  return Object.freeze({read:async(customerId,accountId,page=1,currency,range)=>{current();if(!desktopCustomerCardId(customerId)||!desktopCustomerCardId(accountId)||!desktopAccountSalesPage(page)||!['TRY','USD','EUR'].includes(currency)||!isDesktopLedgerRange(range))fail();const applied={fromDate:range.fromDate,toDate:range.toDate},result=await request('/api/desktop-customers/'+customerId+'/accounts/'+accountId+'/ledger?page='+page+'&range='+encodeURIComponent(JSON.stringify(applied)));current();if(!isDesktopCustomerLedgerView(result.data,{customerId,accountId,page,currency,range:applied}))fail();return result.data;}});
  }
  function validateWarehouseCartons(op,cartons){if(!Array.isArray(cartons)||cartons.length>100||op!=='SAVE_CARTONS'&&cartons.length)fail();const numbers=new Set();for(const box of cartons){if(!box||Object.keys(box).sort().join(',')!=='cartonNo,items'||!Number.isSafeInteger(box.cartonNo)||box.cartonNo<1||box.cartonNo>100||numbers.has(box.cartonNo)||!Array.isArray(box.items)||box.items.length<1||box.items.length>2)fail();numbers.add(box.cartonNo);const items=new Set();for(const item of box.items){if(!item||Object.keys(item).sort().join(',')!=='itemId,quantityExact3'||typeof item.itemId!=='string'||!/^[1-9]\d{0,15}$/.test(item.itemId)||BigInt(item.itemId)>9007199254740991n||items.has(item.itemId)||typeof item.quantityExact3!=='string'||!/^(?:0|[1-9]\d{0,12})\.\d{3}$/.test(item.quantityExact3)||BigInt(item.quantityExact3.replace('.',''))===0n)fail();items.add(item.itemId);}}}
  async function warehouse(){
