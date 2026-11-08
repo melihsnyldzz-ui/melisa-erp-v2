@@ -8,6 +8,7 @@ import {desktopCompanyRateDate,isDesktopCompanyRates} from '../../../../packages
 import {desktopAccountSalesPage,isDesktopAccountSales} from '../../../../packages/shared/src/desktopAccountSales.mjs';
 import {isDesktopBarcode,isDesktopBarcodeLookup} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {desktopSupplierCardId,isDesktopSupplierCard} from '../../../../packages/shared/src/desktopSupplierCard.mjs';
+import {desktopSupplierPurchasesPage,isDesktopSupplierPurchases} from '../../../../packages/shared/src/desktopSupplierPurchases.mjs';
 
 export function createDesktopWriteListRoutes({service,authenticateNormal,richCards=false}={}){
  if(typeof richCards!=='boolean'||typeof service?.list!=='function'||typeof authenticateNormal!=='function'||richCards&&typeof service.readProduct!=='function')throw Error('DESKTOP_LIST_CONFIGURATION');
@@ -51,6 +52,12 @@ export function createDesktopWriteListRoutes({service,authenticateNormal,richCar
   const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId;
   try{const card=await service.readProduct(actorId,req.params.id);if(!card)return res.status(404).json({success:false});if(!isDesktopProductCard(card,req.params.id))return res.status(503).json({success:false});return res.json({success:true,data:card});}
   catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
+ });
+ if(richCards&&typeof service.readSupplierPurchases==='function')router.get('/api/desktop-suppliers/:supplierId/accounts/:accountId/purchases',async(req,res)=>{
+  res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});
+  const q=req.query??{},raw=q.page??'1';if(!desktopSupplierCardId(req.params.supplierId)||!desktopSupplierCardId(req.params.accountId)||Object.keys(q).some(x=>x!=='page')||typeof raw!=='string'||!/^[1-9]\d*$/.test(raw)||!desktopSupplierPurchasesPage(Number(raw)))return res.status(400).json({success:false});
+  let actor;try{actor=await authenticateNormal(req);}catch{return res.status(401).json({success:false});}if(actor?.kind!=='normal'||!Array.isArray(actor.permissions)||!['supplier.view','supplier.edit','purchase.view'].every(p=>actor.permissions.includes(p)))return res.status(403).json({success:false});const actorId=typeof actor.userId==='number'&&Number.isSafeInteger(actor.userId)?String(actor.userId):actor.userId,page=Number(raw);
+  try{const data=await service.readSupplierPurchases(actorId,req.params.supplierId,req.params.accountId,{page});if(!data)return res.status(404).json({success:false});if(!isDesktopSupplierPurchases(data,{supplierId:req.params.supplierId,accountId:req.params.accountId,page}))throw Error();return res.json({success:true,data});}catch{return res.status(503).json({success:false,error:{code:'DESKTOP_LIST_UNAVAILABLE'}});}
  });
  if(richCards&&typeof service.readSupplier==='function')router.get('/api/desktop-suppliers/:id',async(req,res)=>{
   res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});
