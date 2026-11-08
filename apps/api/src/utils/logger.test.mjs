@@ -350,3 +350,9 @@ test('customer ledger retains only its two fixed diagnostics and redacts private
  for(const code of codes){const result=capture(()=>logger.error('API error normalized',{code,password:'fixture-private-ledger'}));assert.equal(result[0].payload.code,code);assert.doesNotMatch(JSON.stringify(result),/fixture-private-ledger/);}
  for(const code of [...codes.map(code=>code+'_PRIVATE'),'DESKTOP_CUSTOMER_LEDGER_NEW','private-ledger-message'])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
 });
+
+test('product photos retain only reviewed diagnostics and redact private error suffixes',()=>{
+ const codes=['DESKTOP_PRODUCT_PHOTO_UNAVAILABLE','DESKTOP_PRODUCT_PHOTO_INVALID'];
+ for(const code of codes)assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);
+ for(const code of [...codes.map(code=>code+'_PRIVATE'),'DESKTOP_PRODUCT_PHOTO_NEW','private-photo-message'])assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,redacted);
+});
