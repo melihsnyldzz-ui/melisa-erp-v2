@@ -1,3 +1,4 @@
+import {readDesktopPreparationBarcode} from './desktopPreparationBarcodeRead.mjs';
 import sql from 'mssql';
 import {getDesktopWritePool} from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
@@ -23,6 +24,7 @@ export function createDesktopWarehouseService({connector,auth}={}){
  const transaction=async(actorId,permission,fn)=>{if(!id(actorId))fail();const tx=new sql.Transaction(pool);let begun=false;try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;if(await verifySession({transaction:tx,actorId,permission})!==true)fail();const value=await fn(tx);await tx.commit();begun=false;return value;}catch(e){if(begun)try{await tx.rollback();}catch{}throw e;}};
  const query=(tx,text,values={})=>{const r=new sql.Request(tx);for(const [k,v] of Object.entries(values))r.input(k,sql.NVarChar(4000),v);return r.query(text);};
  return Object.freeze({
+  async barcodeCheck(actorId,invoiceId,{version,barcode}={}){if(!id(invoiceId))fail();return transaction(actorId,'warehouse.view',tx=>readDesktopPreparationBarcode({sql,transaction:tx,actorId,invoiceId,version,barcode,scope:'warehouse'}));},
   async list(actorId,page){if(!Number.isSafeInteger(page)||page<1||page>10000)fail();return transaction(actorId,'warehouse.view',async tx=>{const r=await query(tx,`${HEADER_SQL} ORDER BY i.id DESC OFFSET TRY_CONVERT(int,@offset) ROWS FETCH NEXT 101 ROWS ONLY;`,{offset:String((page-1)*100)});if(!Array.isArray(r?.recordset)||r.recordset.length>101)fail();const value={scope:'warehouse',page,limit:100,hasNext:r.recordset.length>100,data:r.recordset.slice(0,100).map(header)};if(!isDesktopWarehouseList(value))fail();return value;});},
   async read(actorId,invoiceId){if(!id(invoiceId))fail();return transaction(actorId,'warehouse.view',async tx=>{const r=await query(tx,`${HEADER_SQL} WHERE i.id=TRY_CONVERT(bigint,@invoiceId);
  SELECT CONVERT(varchar(20),id) itemId,CONVERT(varchar(20),product_id) productId,stock_code_snapshot stockCode,product_name_snapshot name,barcode_snapshot barcode,CONVERT(varchar(40),quantity) quantityExact3 FROM dbo.sales_invoice_items WITH(HOLDLOCK) WHERE sales_invoice_id=TRY_CONVERT(bigint,@invoiceId) ORDER BY id;

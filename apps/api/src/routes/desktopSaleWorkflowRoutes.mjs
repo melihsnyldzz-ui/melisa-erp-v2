@@ -1,3 +1,5 @@
+import {isDesktopPreparationBarcodeCheck} from '../../../../packages/shared/src/desktopPreparationBarcode.mjs';
+import {isDesktopBarcode} from '../../../../packages/shared/src/desktopBarcodeLookup.mjs';
 import {Router} from 'express';
 import {desktopSaleCurrencySelection} from '../../../../packages/shared/src/desktopSaleCurrencySelection.mjs';
 import {normalizeDesktopSalePricing} from '../../../../packages/shared/src/desktopSalePricing.mjs';
@@ -13,6 +15,9 @@ export function createDesktopSaleWorkflowRoutes({service,draftService,dispatchSe
    const user=await authenticateNormal(req),actor=typeof user?.userId==='number'?String(user.userId):user?.userId;if(user?.kind!=='normal'||!id(actor)||!user.permissions?.includes('sales.view'))throw Error();
    return res.json({success:true,data:await resolutionService.resolve(actor,req.body)});
   }catch{return res.status(503).json({success:false});}
+ });
+ if(typeof readService?.barcodeCheck==='function')router.get('/api/desktop-sale/workflows/:id/barcode-check',async(req,res)=>{
+  res.set('Cache-Control','no-store');if(!['127.0.0.1','::ffff:127.0.0.1'].includes(req.socket?.remoteAddress)||req.get('host')!=='127.0.0.1:4294'||req.get('origin')!=='http://127.0.0.1:5294')return res.status(403).json({success:false});if(!id(req.params.id)||Object.keys(req.query??{}).sort().join(',')!=='barcode,version'||!isDesktopBarcode(req.query.barcode)||typeof req.query.version!=='string'||!/^0x[0-9A-F]{16}$/.test(req.query.version))return res.status(400).json({success:false});let user;try{user=await authenticateNormal(req);}catch{return res.status(401).json({success:false});}const actor=typeof user?.userId==='number'?String(user.userId):user?.userId;if(user?.kind!=='normal'||!id(actor)||!Array.isArray(user.permissions)||!['sales.view','product.view'].every(x=>user.permissions.includes(x)))return res.status(403).json({success:false});try{const data=await readService.barcodeCheck(actor,req.params.id,{version:req.query.version,barcode:req.query.barcode});if(!isDesktopPreparationBarcodeCheck(data,{invoiceId:req.params.id,version:req.query.version,barcode:req.query.barcode}))throw Error();return res.json({success:true,data});}catch{return res.status(503).json({success:false});}
  });
  router.get('/api/desktop-sale/workflows/:id',async(req,res)=>{
   try{

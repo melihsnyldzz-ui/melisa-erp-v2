@@ -1,3 +1,4 @@
+import {readDesktopPreparationBarcode} from './desktopPreparationBarcodeRead.mjs';
 import sql from 'mssql';
 import {getDesktopWritePool,getDesktopWriteProfile} from '../config/desktopWriteTlsConnector.mjs';
 import {desktopDueDate} from '../../../../packages/shared/src/desktopDueAllocation.mjs';
@@ -9,7 +10,7 @@ const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=900719925
 const dec=(v,n)=>{if(typeof v!=='string'||!new RegExp(`^(?:0|[1-9]\\d{0,13})\\.\\d{${n}}$`).test(v))fail();return BigInt(v.replace('.',''));};
 export function createDesktopWorkflowReadService({connector,auth}={}){
  const pool=getDesktopWritePool(connector),profile=getDesktopWriteProfile(connector),verifySession=getDesktopWriteSessionVerifier(auth,pool),getSalesReadScope=getDesktopWriteSalesReadScope(auth,pool);
- return auth.bindWorkflowReadService({async read(actorId,invoiceId){
+ return auth.bindWorkflowReadService({async barcodeCheck(actorId,invoiceId,{version,barcode}={}){if(profile!=='desktop-master-v7'||!id(actorId)||!id(invoiceId))fail();const tx=new sql.Transaction(pool);let begun=false;try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;if(await verifySession({transaction:tx,actorId,permission:['sales.view','product.view']})!==true)fail();const scope=getSalesReadScope({transaction:tx,actorId});if(scope!=='own'&&scope!=='all')fail();const result=await readDesktopPreparationBarcode({sql,transaction:tx,actorId,invoiceId,version,barcode,scope});await tx.commit();begun=false;return result;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}},async read(actorId,invoiceId){
   if(!id(actorId)||!id(invoiceId))fail();const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;if(await verifySession({transaction:tx,actorId,permission:'sales.view'})!==true)fail();
    const mode=getSalesReadScope({transaction:tx,actorId});if(mode!=='own'&&mode!=='all')fail();const request=()=>new sql.Request(tx).input('invoiceId',sql.NVarChar(20),invoiceId).input('actorId',sql.NVarChar(20),actorId);
