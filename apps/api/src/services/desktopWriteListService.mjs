@@ -1,3 +1,4 @@
+import {readDesktopProductPurchaseCosts} from './desktopProductPurchaseCostsRead.mjs';
 import {isDesktopProductMovements} from '../../../../packages/shared/src/desktopProductMovements.mjs';
 import {readDesktopCustomerLedger} from './desktopCustomerLedgerRead.mjs';
 import {readDesktopSupplierCard} from './desktopSupplierCardRead.mjs';
@@ -118,6 +119,8 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
    if(data.length>total||offset>=total&&data.length!==0)fail();
    await tx.commit();begun=false;return {data,meta:{page,limit,total,totalPages,hasNextPage:page<totalPages,hasPreviousPage:page>1}};
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
+ },async readProductPurchaseCosts(actorId,productId){
+  if(!richCards||schemaVersion!==7||!validId(actorId)||!validId(productId))fail();const tx=new sql.Transaction(pool);let begun=false;try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(profileGuard);if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['product.view','product.edit','purchase.view']})!==true)fail();const result=await readDesktopProductPurchaseCosts({sql,transaction:tx,productId});await tx.commit();begun=false;return result;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  },async readProductMovements(actorId,productId,{page=1}={}){
   if(!richCards||![5,6,7].includes(schemaVersion)||!validId(actorId)||!validId(productId)||!Number.isSafeInteger(page)||page<1||page>100000)fail();
   const tx=new sql.Transaction(pool);let begun=false;
