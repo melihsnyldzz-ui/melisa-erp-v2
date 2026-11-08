@@ -233,7 +233,7 @@ test('log route uses static matched template and does not copy URL, query or par
 });
 
 test('credit diagnostics expose only finite operation codes and redact private suffixes and reasons',()=>{
-  for(const code of ['DESKTOP_CREDIT_CONFIGURATION','DESKTOP_CREDIT_FORBIDDEN','DESKTOP_CREDIT_UNKNOWN','DESKTOP_CREDIT_UNAVAILABLE','CREDIT_AUTHORITY']){
+  for(const code of ['DESKTOP_CREDIT_CONFIGURATION','DESKTOP_CREDIT_FORBIDDEN','DESKTOP_CREDIT_UNKNOWN','DESKTOP_CREDIT_UNAVAILABLE','CREDIT_AUTHORITY','DESKTOP_DUE_ALLOCATION_UNAVAILABLE']){
     const lines=capture(()=>logger.error('API error normalized',{code,password:'private-credit-fixture',approvalToken:'private-credit-token',reason:'private-credit-reason'}));
     assert.equal(lines[0].payload.code,code);assert.doesNotMatch(JSON.stringify(lines),/private-credit/);
     assert.equal(capture(()=>logger.error('API error normalized',{code:code+'_PRIVATE'}))[0].payload.code,'[REDACTED]');
