@@ -7,7 +7,8 @@ import {compileDesktopWritePermissionGuard} from './desktopWritePermissionPolicy
 const quote=v=>`N'${v.replaceAll("'","''")}'`;
 const replaceOne=(s,a,b)=>{if(s.split(a).length!==2)throw Error('DESKTOP_FINANCE_V7_SOURCE_DRIFT');return s.replace(a,()=>b);};
 const key=x=>[x.schema,x.name,x.permission,x.column??''].join('/');
-const manifest=[...DESKTOP_GOODS_V6_PERMISSION_MANIFEST,...DESKTOP_FINANCE_PROPOSED_RIGHTS];if(new Set(manifest.map(key)).size!==manifest.length)throw Error('DESKTOP_FINANCE_V7_RIGHTS_DRIFT');
+const photoRights=[{schema:'dbo',name:'product_images',permission:'SELECT',column:null},{schema:'dbo',name:'product_images',permission:'INSERT',column:null},...['is_primary','updated_at','updated_by'].map(column=>({schema:'dbo',name:'product_images',permission:'UPDATE',column}))];
+const manifest=[...DESKTOP_GOODS_V6_PERMISSION_MANIFEST,...DESKTOP_FINANCE_PROPOSED_RIGHTS,...photoRights];if(new Set(manifest.map(key)).size!==manifest.length)throw Error('DESKTOP_FINANCE_V7_RIGHTS_DRIFT');
 export const DESKTOP_FINANCE_V7_PERMISSION_MANIFEST=Object.freeze(manifest);
 export const DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL=compileDesktopWritePermissionGuard(manifest);
 const extra=[{key:'finance.collection',view:1,create:1,update:0,delete:0,approve:0},{key:'finance.payment',view:1,create:1,update:0,delete:0,approve:0}];
