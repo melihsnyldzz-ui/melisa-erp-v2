@@ -4,7 +4,7 @@
 import {AsyncLocalStorage} from 'node:async_hooks';
 import {createHash} from 'node:crypto';
 import sql from 'mssql';
-import {getDesktopWritePool} from '../config/desktopWriteTlsConnector.mjs';
+import {getDesktopWritePool,getDesktopWriteProfile} from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
 import {createDesktopSaleTransactionScope} from './desktopSaleTransactionScope.mjs';
 import {createDesktopSaleSelectionStore} from './desktopSaleSelectionStore.mjs';
@@ -25,7 +25,7 @@ function competing(tx){if(getCanonicalBusinessSaleTransaction(tx))return true;tr
 export function assertDesktopPrivateSale({transaction,actor,operation,invoiceId,invoice,checkOnly=false}={}){
  if(tryAssertDesktopFinalCancellation({transaction,actor,operation,invoiceId,invoice,checkOnly})===true)return true;
  if(tryAssertDesktopWorkflowDraft({transaction,actor,operation,invoiceId,invoice,checkOnly})===true)return true;
- const s=storage.getStore();if(!s?.open||nativeOwners.get(transaction)!==s||s.transaction!==transaction||String(actor?.id)!==s.actorId||s.phase!==operation)fail();
+ const s=storage.getStore();if(!s?.open||nativeOwners.get(transaction)!==s||s.transaction!==transaction||String(actor?.id)!==s.actorId||s.phase!==operation||s.profile==='desktop-master-v7')fail();
  if(checkOnly)return true;const e=s.prepared.expected,p=s.locked.product,item=invoice?.items?.[0],date=invoice?.documentDate instanceof Date&&!Number.isNaN(invoice.documentDate.valueOf())?invoice.documentDate.toISOString().slice(0,10):invoice?.documentDate;
  if(!invoice||!Array.isArray(invoice.items)||invoice.items.length!==1||(operation==='sale_draft'?invoiceId!==null:operation!=='sale_finalize'||invoiceId!==s.invoiceId)||date!==e.documentDate||invoice.documentNo!==s.prepared.invoice.documentNo||String(invoice.customerId)!==e.customerId||invoice.documentCurrency!=='TRY'||(invoice.accountCurrency??invoice.customerCurrency)!=='TRY'||!exact(invoice.grandTotal??invoice.documentAmount,4,e.totalExact4)||!exact(invoice.amountTry,4,e.totalExact4)||!exact(invoice.exchangeRate??invoice.documentRateToTry,8,'1.00000000')||Number(invoice.discountRate??0)!==0||Number(invoice.discountTotal??0)!==0||String(item.productId)!==e.productId||item.currency!=='TRY'||item.stockCode!==p.stockCode||(item.productName??item.name)!==p.name||(item.barcode??null)!==p.barcode||!exact(item.quantity,3,e.quantityExact3)||!exact(item.unitPrice,4,e.unitPriceExact4)||!exact(item.lineTotal,4,e.totalExact4)||!exact(item.averageCostTry,4,p.averageCostTryExact4))fail();
  s.phase=operation==='sale_draft'?'draft_verified':'finalize_verified';return true;
@@ -41,7 +41,8 @@ export function createDesktopSalePrivateService({connector,auth}={}){
      const query=(statement,params)=>{const r=new sql.Request(transaction);for(const [k,v,n] of params)r.input(k,sql.NVarChar(n),v);return r.query(statement);};
      const existing=await query(`SELECT CONVERT(varchar(20),actor_id) actorId,payload_hash payloadHash,CONVERT(varchar(20),invoice_id) invoiceId,state FROM dbo.desktop_sale_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=TRY_CONVERT(uniqueidentifier,@requestId);`,[['requestId',requestId,36]]);
      if(!Array.isArray(existing?.recordset)||existing.recordset.length>1)fail();const prior=existing.recordset[0];if(prior){if(prior.actorId!==actorId||prior.payloadHash!==hash||prior.state!=='COMMITTED'||!id(prior.invoiceId))fail();return {state:'COMMITTED',requestId,invoiceId:prior.invoiceId,replayed:true};}
-     const locked=await select({transaction,scope:ctx.scope,customerId:request.customerId,productId:request.productId}),prepared=prepareDesktopSale(request,locked),state={transaction,actorId,locked,prepared,phase:'sale_draft',invoiceId:null,open:true};
+     const profile=getDesktopWriteProfile(connector);if(profile==='desktop-master-v7')fail();
+     const locked=await select({transaction,scope:ctx.scope,customerId:request.customerId,productId:request.productId}),prepared=prepareDesktopSale(request,locked),state={transaction,actorId,locked,prepared,phase:'sale_draft',invoiceId:null,open:true,profile};
      if(nativeOwners.has(transaction)||storage.getStore()||competing(transaction))fail();nativeOwners.set(transaction,state);
      try{return await storage.run(state,async()=>{
       const native=await import('./invoiceDraftService.js'),nativeContext={transaction,pool,sqlDriver:sql,desktopPrivateSale:true},actor=await (await import('./auditService.js')).resolveDesktopAuditActor(new sql.Request(transaction),actorId,'desktop-first-sale');

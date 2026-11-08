@@ -6,7 +6,8 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
 import {getDesktopWritePool,getDesktopWriteProfile} from './config/desktopWriteTlsConnector.mjs';
-import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteProductMovementSalesScope,getDesktopWriteSalesApprovalService} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteProductMovementSalesScope,getDesktopWriteSalesApprovalService,getDesktopWriteCreditService} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopCreditRoutes} from './routes/desktopCreditRoutes.mjs';
 import {createDesktopSalesPricingRoutes} from './routes/desktopSalesPricingRoutes.mjs';
 import {createDesktopLocalMasterSqlStore} from './services/desktopLocalMasterSqlStore.mjs';
 import {createLocalMasterTransactions} from './services/localMasterTransactions.mjs';
@@ -92,6 +93,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use('/api/desktop-sale/draft-preview',auth.bind);
  app.use('/api/desktop-sale/resolve',auth.bind);
  if(schemaVersion===7){app.use('/api/desktop-sale/discount-requests',auth.bind);app.use(createDesktopSalesPricingRoutes({service:getDesktopWriteSalesApprovalService(auth,pool,draftService),authenticateNormal:auth.authenticateNormal}));}
+ if(schemaVersion===7){app.use('/api/desktop-credit',auth.bind);app.use(createDesktopCreditRoutes({service:getDesktopWriteCreditService(auth,pool),authenticateNormal:auth.authenticateNormal}));}
  app.use(createDesktopSaleWorkflowRoutes({service:workflowService,draftService,dispatchService,readService:workflowReadService,resolutionService,authenticateNormal:auth.authenticateNormal}));
  if([5,6,7].includes(schemaVersion))app.use(createDesktopFinalCancellationRoutes({service:finalCancellationService,authenticateNormal:auth.authenticateNormal}));
  if([6,7].includes(schemaVersion)){app.use('/api/desktop-goods',auth.bind);app.use(createDesktopGoodsRoutes({service:goodsService,authenticateNormal:auth.authenticateNormal}));}

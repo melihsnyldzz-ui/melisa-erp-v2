@@ -30,3 +30,12 @@ export function desktopSalesPolicyForUser(user,row=null){
  const revision=createHash('sha256').update(JSON.stringify(binding),'utf8').digest('hex');
  return Object.freeze({version:1,actorId:user.id,revision,canChangeSalePrice:!!entry?.canChangeSalePrice&&sale,maxDiscountRateExact4:sale?limit:'0.0000',canApproveAboveFive:entry?.kind==='boss'&&user.permissions.includes('sales.view')});
 }
+
+// Credit exceptions are distinct from the boss-only discount permission.
+// Only a separately configured person entry confers company authority; a role
+// name, broad operator permissions or the legacy TEST fallback never do.
+export function desktopCreditAccessForUser(user,row=null){
+ const pricing=desktopSalesPolicyForUser(user,row),parsed=row===null?null:parseDesktopSalesPolicyRow(row);
+ const entry=parsed?.people.find(p=>p.actorId===user.id),authorized=entry?.kind==='manager'||entry?.kind==='boss';
+ return Object.freeze({revision:pricing.revision,canManage:authorized&&user.permissions.includes('customer.edit'),canApprove:authorized&&user.permissions.includes('sales.view')});
+}

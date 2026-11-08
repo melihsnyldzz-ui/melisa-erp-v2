@@ -1,0 +1,21 @@
+import test from 'node:test';import assert from 'node:assert/strict';import express from 'express';import http from 'node:http';
+import {createDesktopCreditRoutes} from './desktopCreditRoutes.mjs';
+test('credit HTTP binds normal actor and path identity, rejects ambient/foreign authority, preserves uncertain writes',async t=>{
+ const calls=[];let permissions=['sales.view','customer.view','customer.edit'],uncertain=false,normal=true;
+ const service=Object.fromEntries(['readAccount','savePolicy','readInvoice','createRequest','listRequests','approve','resolve'].map(name=>[name,async(...args)=>{calls.push({name,args});if(uncertain)throw Error('lost acknowledgement');return {operation:name};}]));
+ const app=express();app.use(express.json());app.use(createDesktopCreditRoutes({service,authenticateNormal:async()=>({kind:normal?'normal':'api-key',userId:'7',permissions})}));
+ const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const call=(path,method='GET',body=null,headers={})=>new Promise((resolve,reject)=>{const q=http.request({hostname:'127.0.0.1',port:server.address().port,path:'/api/desktop-credit'+path,method,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294','content-type':'application/json',...headers}},r=>{let data='';r.on('data',b=>data+=b);r.on('end',()=>resolve({status:r.statusCode,...JSON.parse(data)}));});q.on('error',reject);q.end(body===null?undefined:JSON.stringify(body));});
+ assert.equal((await call('/customers/2/accounts/7')).status,200);assert.deepEqual(calls.at(-1),{name:'readAccount',args:['7',{customerId:'2',accountId:'7'}]});
+ const body={requestId:'00000000-0000-4000-8000-000000000001',customerId:'2',accountId:'7',limitExact8:'10.00000000',expectedRevision:null,reason:'Test tanımı'};
+ assert.equal((await call('/customers/2/accounts/7','POST',body)).status,200);assert.deepEqual(calls.at(-1).args,['7',body]);
+ const count=calls.length;
+ for(const task of [()=>call('/customers/2/accounts/8','POST',body),()=>call('/customers/0/accounts/7'),()=>call('/requests?actorId=9'),()=>call('/requests','GET',null,{origin:'http://foreign.test'}),()=>call('/requests','POST',{}, {'content-type':'text/plain'}),()=>call('/requests/8/approve','POST',{requestId:body.requestId,reason:'Yetkili',actorId:'9'})])assert.equal((await task()).status,403);
+ assert.equal(calls.length,count);
+ assert.equal((await call('/requests/8/approve','POST',{requestId:body.requestId,reason:'Yetkili'})).status,200);assert.deepEqual(calls.at(-1).args,['7',{requestId:body.requestId,reason:'Yetkili',approvalRequestId:'8'}]);
+ uncertain=true;const r=await call('/requests','POST',{requestId:body.requestId,invoiceId:'12',expectedVersion:'0x0000000000000001'});assert.equal(r.status,503);assert.equal(r.retry,'SAME_REQUEST_ONLY');
+ uncertain=false;permissions=['customer.view'];assert.equal((await call('/requests')).status,403);assert.equal((await call('/customers/2/accounts/7','POST',body)).status,403);
+ const resolving={kind:'savePolicy',body};assert.equal((await call('/resolve','POST',resolving)).status,200);assert.deepEqual(calls.at(-1).args,['7',resolving]);
+ assert.equal((await call('/resolve','POST',{kind:'createRequest',body:{}})).status,403);
+ normal=false;assert.equal((await call('/customers/2/accounts/7')).status,403);
+});
