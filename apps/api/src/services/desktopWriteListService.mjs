@@ -93,7 +93,7 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
  },async list(actorId,kind,input={}){
   let def=definitions[kind];if(!def||!validId(actorId))fail();const {page,limit,search}=options(input),offset=(page-1)*limit;
   if(richCards&&kind==='suppliers')def={...def,baseWhere:'is_deleted=0 AND is_active=1'};
-  if(richCards&&kind==='products')def={...def,select:def.select+`,brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName,(SELECT CONVERT(varchar(20),u.id) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesUnitId,(SELECT CONVERT(varchar(40),u.factor) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesFactorExact8`};
+  if(richCards&&kind==='products')def={...def,baseWhere:'is_deleted=0 AND is_active=1',select:def.select+`,brand,category,CONVERT(varchar(20),supplier_id) supplierId,(SELECT s.name FROM dbo.suppliers s WITH(HOLDLOCK) WHERE s.id=products.supplier_id) supplierName,(SELECT CONVERT(varchar(20),u.id) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesUnitId,(SELECT CONVERT(varchar(40),u.factor) FROM dbo.desktop_local_product_units u WITH(HOLDLOCK) WHERE u.product_id=products.id AND u.label=N'SERİ' AND u.is_main=0) seriesFactorExact8`};
   if(richCards&&kind==='products')def={...def,select:def.select+','+reservedSql('products.id')};
   const tx=new sql.Transaction(pool);let begun=false;
   const request=()=>new sql.Request(tx).input('actorId',sql.NVarChar(20),actorId).input('search',sql.NVarChar(202),'%'+search.replace(/[~%_\[]/g,'~$&')+'%').input('exactSearch',sql.NVarChar(100),search).input('offset',sql.Int,offset).input('limit',sql.Int,limit);
@@ -102,7 +102,7 @@ FROM dbo.products p WITH(HOLDLOCK) WHERE p.is_active=1 AND p.is_deleted=0 AND EX
    const guardResult=await new sql.Request(tx).query(statement);if(!Array.isArray(guardResult?.recordset)||guardResult.recordset.length!==1||guardResult.recordset[0].ok!==1)fail();
    if(await verifySession({transaction:tx,actorId,permission:def.permission})!==true)fail();
    const from=def.from??`dbo.[${def.table}] WITH(HOLDLOCK)`;
-   const exactBarcode=`EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.barcode=@exactSearch AND b.is_active=1`;
+   const exactBarcode=`EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.barcode=@exactSearch AND b.is_active=1 AND EXISTS(SELECT 1 FROM dbo.products bp WITH(HOLDLOCK) WHERE bp.id=b.product_id AND bp.is_active=1 AND bp.is_deleted=0)`;
    const fuzzy=`${def.code} LIKE @search ESCAPE N'~' OR ${def.name} LIKE @search ESCAPE N'~'${richCards&&kind==='customers'?" OR phone LIKE @search ESCAPE N'~' OR city LIKE @search ESCAPE N'~' OR country LIKE @search ESCAPE N'~'":''}`;
    const productSearch=richCards&&kind==='products'?`${exactBarcode} AND b.product_id=products.id) OR (NOT ${exactBarcode}) AND (${fuzzy} OR EXISTS(SELECT 1 FROM dbo.product_barcodes b WITH(HOLDLOCK) WHERE b.product_id=products.id AND b.is_active=1 AND b.barcode LIKE @search ESCAPE N'~')))` :fuzzy;
    const mode=kind==='receipts'?getSalesReadScope({transaction:tx,actorId}):null;if(kind==='receipts'&&mode!=='own'&&mode!=='all')fail();

@@ -51,3 +51,20 @@ test('receipt lists retain each original currency and exact total only in the ex
 test('FX receipt lists still reject unknown or malformed currency before committing',async()=>{
  for(const schemaVersion of [4,5])for(const receiptCurrency of ['JPY','usd','USD ',null,1,'EUR\0']){const x=setup({richCards:true,schemaVersion,receiptCurrency});await assert.rejects(x.service.list('7','receipts'));assert.equal(x.committed,0);assert.equal(x.rolled,1);}
 });
+
+test('rich product count and page exclude inactive or deleted cards before pagination and reject unknown stock',async()=>{
+ const queries=[],products=[{id:'1',active:true,deleted:false,stock:'3.000'},{id:'2',active:false,deleted:false,stock:'9.000'},{id:'3',active:true,deleted:true,stock:'4.000'}];let unknown=false;
+ class Transaction{async begin(){}async commit(){}async rollback(){}}
+ class Request{constructor(){this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:1}]};queries.push(q);const filtered=products.filter(x=>!x.deleted&&(!q.includes('is_active=1')||x.active));if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:String(filtered.length)}]};return {recordset:filtered.map(x=>({id:x.id,stockCode:'P'+x.id,productName:'Product',unit:'ADET',currency:'TRY',currentStockExact3:unknown?null:x.stock,salePriceExact4:'1.0000',brand:null,category:null,supplierId:null,supplierName:null,reservedExact3:'0.000'}))};}}
+ const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:1}},s=createDesktopWriteListService({pool:{},sql,richCards:true,verifySession:async()=>true});
+ const result=await s.list('7','products',{page:1,limit:10});assert.deepEqual(result.data.map(x=>x.id),['1']);assert.equal(result.meta.total,1);assert.equal(result.data[0].availableExact3,'3.000');assert.equal(queries.length,2);for(const q of queries)assert.match(q,/WHERE is_deleted=0 AND is_active=1 AND/);assert(queries[1].indexOf('is_active=1')<queries[1].indexOf('OFFSET'));
+ unknown=true;await assert.rejects(s.list('7','products',{page:1,limit:10}));
+});
+
+test('only visible exact barcode owners take priority over product code search',async()=>{
+ let ownerState='inactive';const queries=[],rows=[{id:'1',code:'X',active:true,deleted:false,barcode:null},{id:'2',code:'OTHER',active:true,deleted:false,barcode:'X'}];
+ class Transaction{async begin(){}async commit(){}async rollback(){}}
+ class Request{constructor(){this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:1}]};queries.push(q);const guarded=(q.match(/bp\.id=b\.product_id AND bp\.is_active=1 AND bp\.is_deleted=0/g)||[]).length===2;const visible=rows.filter(x=>x.active&&!x.deleted),owner=rows[1],ownerVisible=ownerState==='active',exact=owner.barcode===this.p.exactSearch&&(!guarded||ownerVisible),selected=visible.filter(x=>x.id!=='2'||ownerVisible).filter(x=>exact?x===owner:x.code.includes(this.p.exactSearch));if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:String(selected.length)}]};return {recordset:selected.map(x=>({id:x.id,stockCode:x.code,productName:'Product',unit:'ADET',currency:'TRY',currentStockExact3:'3.000',salePriceExact4:'1.0000',brand:null,category:null,supplierId:null,supplierName:null,reservedExact3:'0.000'}))};}}
+ const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:1}},service=createDesktopWriteListService({pool:{},sql,richCards:true,verifySession:async()=>true});
+ for(const [state,expected] of [['inactive','1'],['deleted','1'],['active','2']]){ownerState=state;queries.length=0;const result=await service.list('7','products',{search:'X'});assert.deepEqual(result.data.map(x=>x.id),[expected]);assert.equal(result.meta.total,1);assert.equal(queries.length,2);for(const q of queries){assert.equal((q.match(/bp\.id=b\.product_id AND bp\.is_active=1 AND bp\.is_deleted=0/g)||[]).length,2);assert.match(q,/NOT EXISTS\(SELECT 1 FROM dbo\.product_barcodes/);assert.match(q,/b\.product_id=products\.id/);}}
+});
