@@ -14,6 +14,7 @@ import {createLocalMasterTransactions} from './services/localMasterTransactions.
 import {recordDesktopFailure} from './services/desktopSafeDiagnostics.mjs';
 import {createDesktopLocalMasterRoutes} from './routes/desktopLocalMasterRoutes.mjs';
 import {createDesktopWriteListService} from './services/desktopWriteListService.mjs';
+import {createDesktopProductPhotoService} from './services/desktopProductPhotoService.mjs';
 import {createDesktopWriteListRoutes} from './routes/desktopWriteListRoutes.mjs';
 import {createDesktopSaleWorkflowService} from './services/desktopSaleWorkflowService.mjs';
 import {createDesktopSaleWorkflowRoutes} from './routes/desktopSaleWorkflowRoutes.mjs';
@@ -51,7 +52,9 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure,richCards});
  const accountCoordinator=[4,5,6,7].includes(schemaVersion)?createDesktopCustomerAccountTransactions({store:createDesktopCustomerAccountSqlStore({pool,sql,verifySession:auth.verifySession}),authorize:auth.authorize,onFailure:recordDesktopFailure}):null;
  const service=auth.bindService({...coordinator,...accountCoordinator});
- const listService=auth.bindReadService(createDesktopWriteListService({pool,sql,verifySession:auth.verifySession,getSalesReadScope:getDesktopWriteSalesReadScope(auth,pool),getProductMovementSalesScope:getDesktopWriteProductMovementSalesScope(auth,pool),richCards,schemaVersion}));
+ const rawListService=createDesktopWriteListService({pool,sql,verifySession:auth.verifySession,getSalesReadScope:getDesktopWriteSalesReadScope(auth,pool),getProductMovementSalesScope:getDesktopWriteProductMovementSalesScope(auth,pool),richCards,schemaVersion});
+ const photoService=schemaVersion===7?createDesktopProductPhotoService({connector,auth}):null;
+ const listService=auth.bindReadService({...rawListService,...(photoService?{readProductPhoto:photoService.read,writeProductPhoto:photoService.write,resolveProductPhoto:photoService.resolve}:{})});
  const workflowService=createDesktopSaleWorkflowService({connector,auth});
  const draftService=createDesktopWorkflowDraftService({connector,auth});
  const dispatchService=createDesktopWorkflowDispatchService({connector,auth});
@@ -71,6 +74,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use(rateLimit({windowMs:60000,limit:60,standardHeaders:true,legacyHeaders:false}));
  if([6,7].includes(schemaVersion))app.use('/api/desktop-goods',express.json({limit:'32kb',strict:true}));
  if(schemaVersion===7)app.use('/api/desktop-warehouse',express.json({limit:'32kb',strict:true}));
+ if(schemaVersion===7)app.use(/^\/api\/desktop-products\/[1-9][0-9]*\/photo(?:\/resolve)?$/,express.json({limit:5600000,strict:true}));
  app.use(express.json({limit:'8kb',strict:true}));
  app.post('/api/auth/login',rateLimit({windowMs:60000,limit:10,standardHeaders:true,legacyHeaders:false}),async(req,res)=>{
   try{if(req.get('origin')!==ORIGIN||!req.is('application/json'))return reject(res);const data=await auth.login(req.body);return res.json({success:true,data});}
