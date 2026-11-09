@@ -2,6 +2,8 @@
 
 ## 9 Kasım K10-02 devamı: aktör30013 kendi fişinde normal beş geçiş
 
+Bağımsız gerçek kanıt incelemesi `SCOPED_GO_NO_NEW_P1_P2`: `own-lifecycle-actual-independent-review.v1.json`, SHA `92cc399165ad52fb81cca4f5d88dc080daaecf88f15f222938ccbb2066151886`. Yedi komut, korunum ve sıfır yeni finansal etki uyumlu; yabancı SQL yazma/depo denemesi ile tam K10, insan ve LIVE kabulü bu sonucun dışındadır.
+
 Saf kanıt doğrulayıcı root tarafından bir kez çalıştırıldı: exit0, `K10_INSTALLED_OWN_PREPARATION_LIFECYCLE_VERIFIED`. Sonuç `own-lifecycle-verification.v1.json` SHA `13cb1c976e54710d4442a9e4bfcae6f4cb4068c99187c80a35e2ef270256d36e`; dar kapsamlı birleşik sonuç `delivery-result.v1.json` SHA `7d2f4d0249d275fcafe74fce161af1859f105c0f7fde686082199c45baabceb9`. Verifier ve contract ön incelemesi GO; final gerçek kanıt incelemesi ayrıca kaydedilir. Doğrulayıcı yalnız yerel kanıtı okudu ve kendi CreateNew çıktısını yazdı; yeni SQL/UI/runtime işlemi yapmadı.
 
 Uygulama kaynağı80662275/paket21de9872 ve owner39008/worker3828 değişmedi. Normal aktör30013, yeni21/24TRY üzerinde beş işleme201COMMITTED/replayed=false aldı; altı journal CREATE dahil saklandı. Son durum CANCELLED, personel30013/30013/30013; iki rezervasyon RELEASED, bir koli/iki kalem korunur. Sevk/finansal etki yok. NormalUI'nin restore ettiği DRAFT19, bağımsız incelenmiş dar plan ekiyle yalnız normalCANCEL kullanılarak kapatıldı; veri silinmedi, eski fiyat/iskonto/kalem/onay225–226/bağ228/CREATE journal korundu.
