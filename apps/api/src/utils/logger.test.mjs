@@ -358,3 +358,5 @@ test('product photos retain only reviewed diagnostics and redact private error s
 });
 
 test('count diagnostics accept exact codes only',()=>{for(const code of ['DESKTOP_COUNT_CONFIGURATION','DESKTOP_COUNT_UNAVAILABLE']){assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);assert.equal(capture(()=>logger.error('API error normalized',{code:code+'_PRIVATE'}))[0].payload.code,'[REDACTED]');}});
+
+test('customer edit diagnostics accept exact codes only',()=>{for(const code of ['DESKTOP_CUSTOMER_EDIT_CONFIGURATION','DESKTOP_CUSTOMER_EDIT_UNAVAILABLE','DESKTOP_CUSTOMER_EDIT_INVALID']){assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);assert.equal(capture(()=>logger.error('API error normalized',{code:code+'_PRIVATE'}))[0].payload.code,'[REDACTED]');}});

@@ -1,0 +1,1 @@
+export const DESKTOP_CUSTOMER_EDIT_RIGHTS=Object.freeze([...['name','phone','city','country','customer_type','updated_by'].map(column=>Object.freeze({schema:'dbo',name:'customers',permission:'UPDATE',column})),...['name','country'].map(column=>Object.freeze({schema:'dbo',name:'party_entities',permission:'UPDATE',column}))]);
