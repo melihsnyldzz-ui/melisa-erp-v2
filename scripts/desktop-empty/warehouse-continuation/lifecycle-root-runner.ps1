@@ -18,14 +18,14 @@ $held=[Collections.Generic.List[IO.FileStream]]::new();$schemaLock=$null;$connec
 function Sha([byte[]]$bytes){[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()}
 function NoReparse([string]$file){$item=Get-Item -LiteralPath $file -Force;while($item){if(($item.Attributes-band[IO.FileAttributes]::ReparsePoint)-ne0){throw 'WH_REPARSE'};$item=if($item-is[IO.FileInfo]){$item.Directory}else{$item.Parent}}}
 # Pin implementation is intentionally explicit; no caller-selected SQL/executable path.
-function Hold([string]$file,[string]$expected){if($expected-cnotmatch'^[a-f0-9]{64}$'){throw 'WH_EXPECTED_SHA'};NoReparse $file;$s=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$held.Add($s);if($s.Length-gt8000000){throw 'WH_FILE_BOUND'};if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant()-cne$expected){throw 'WH_PIN'}}
+function Hold([string]$file,[string]$expected){if($expected-cnotmatch'^[a-f0-9]{64}$'){throw 'WH_EXPECTED_SHA'};NoReparse $file;$s=[IO.File]::Open($file,[IO.FileMode]::Open,[IO.FileAccess]::Read,[IO.FileShare]::Read);$held.Add($s);$maximumLength=if($file-ceq'C:/Program Files/nodejs/node.exe'){128000000}else{8000000};if($s.Length-gt$maximumLength){throw 'WH_FILE_BOUND'};if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant()-cne$expected){throw 'WH_PIN'}}
 function ReadJson([string]$file){Get-Content -LiteralPath $file -Raw|ConvertFrom-Json -AsHashtable -DateKind String}
 function Same($a,$b){[System.Text.Json.Nodes.JsonNode]::DeepEquals([System.Text.Json.Nodes.JsonNode]::Parse((ConvertTo-Json -InputObject $a -Depth 35 -Compress)),[System.Text.Json.Nodes.JsonNode]::Parse((ConvertTo-Json -InputObject $b -Depth 35 -Compress)))}
 function NewJson([string]$file,$value){$bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 20)+"`n");$stream=[IO.File]::Open($file,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read);try{$stream.Write($bytes);$stream.Flush($true)}finally{$stream.Dispose()};return Sha $bytes}
 function Rel([string]$value){if($value-cnotmatch'^[A-Za-z0-9_./-]+$'-or$value.StartsWith('/')-or$value.Split('/')-contains'..'){throw 'WH_RELATIVE_PATH'};return $value}
 function Get-WarehouseRuntimeProofName {
  param([ValidateSet('activate','deactivate')][string]$LifecycleAction)
- if($LifecycleAction-ceq'activate'){return 'warehouse-lifecycle-preactivation-runtime.json'}
+ if($LifecycleAction-ceq'activate'){return 'warehouse-lifecycle-preactivation-runtime-r2.json'}
  if($LifecycleAction-ceq'deactivate'){return 'normal-form-source-runtime.json'}
  throw 'WH_RUNTIME_PHASE_ACTION'
 }
