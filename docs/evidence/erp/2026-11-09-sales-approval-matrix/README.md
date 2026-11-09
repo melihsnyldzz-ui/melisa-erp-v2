@@ -1,6 +1,33 @@
-# DES-19 indirim onayı: gerçek kurulum ve normal ekran
+# DES-19 indirim ve vade onayı: gerçek kurulum ve normal ekran
 
-## 9 Kasım sonraki kurulum ve okuma engeli
+## 9 Kasım güncel6c0d: fiş20 vade/satış/tahsilat zinciri doğrulandı
+
+Kurulu kaynak `6c0d64cea0a4e815eb68c0324c7e921130f98687`, paket `59f149b1eae19cf9199b4b87d179d6eb7a9b2ee5b7067651da07673a43e0271d`,317runtime kaynak. [Push42628201898](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42628201898) ve [PR42628212029](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42628212029), Windows dahil8iş/104adım SUCCESS. Resmi artifact13679996757/run42628201898,92392byte ZIP SHA256 `c05a3cafbd7287ae0f830ebaefc48b0b10cf6bc1e9b5920ad412cbd74b8d2940` GitHub digest'iyle eşleşti; üç derlenmiş web asset'i önceki B81 artifact'iyle aynı. Owner18328/worker2756; yalnız127.0.0.1:5294/4294. Stop/stage/start boyunca47native alan ve5korunan registry kümesi eş; başlangıçta209audit. Bu kurulum eşliği fiş20'nin sonraki stok/cari etkisini doğrulamaz. TLS taşıması miras; yeni probe yok.
+
+| Kanıt aşaması | Gözlenen sonuç |
+| --- | --- |
+| Normal okuma | Katalog müşteri/ürün çifti200/200 yaklaşık5.7/6s; yeni müşteri104 kartı ve kur okuması200 |
+| Yeni satış | Operatör30002, müşteri104/TRY hesap110, ürün10+11, fiş20/24.0000TRY; CHECKED aşamasına normal ekranla geldi |
+| Vade isteği | Talep232, create UUID `ff658b30-adf7-4456-bc1b-d8537ed11ea8`,30gün, belge2026-11-09/istenen vade2026-12-09; dönen taban termsDefinition null |
+| Dar karar | Mevcut müdür30016 ayrı normal oturumda talep232'yi onayladı |
+| Açık seçim | Operatör aynı232'yi çıkışta kullanmak üzere seçti; en son onay otomatik seçilmiş sayılmadı |
+| Tek çıkış yanıtı | Bir DISPATCH POST201; UUID `96d3ec78-cc06-4a92-a13b-2ed392ac11a4`, COMMITTED/replayed=false, fiş20/COMPLETED/sürüm `0x00000000001600D6` |
+| Ekran | Aynı fişte Tamamlandı, belge2026-11-09 ve Vade2026-12-09; invoice20-completed-due.png ve DOM kaydı |
+| Tek tahsilat | Normal Finans ekranı, bir POST201/COMMITTED/replayed=false; UUID `a05a67b3-297b-4c44-9e34-4e2e8652b4ca`,1.0000TRY, müşteri hareket18/finans hareket7/kasa1; fiş20'ye tahsis, vade2026-12-09/kalan23.0000TRY |
+| Native vade ve stok/cari | Talep232→onay233→tüketim234→v2snapshot235 ve tam DISPATCH gövde hash'i eşleşti. Stok40/41 birer ADET çıkış; ürün10 6→5/ürün11 7→6; tek cari borç17/+24TRY. Tahsilat sonrası müşteri104/hesap110=23TRY, kasa1=9TRY (önce8) |
+| Global tanım ve koruma | Müşteri genel vade/kredi tanımı yazısı yok; son219audit içinde eski208/209audit ve dört güvenlik kümesi aynı. Kullanıcı7/rol6/uygulama izni39/ayar3 |
+| Tahsilat ekranı | invoice20-collection.dom.txt ve invoice20-collection-viewport.png; fiş18 / satışfişi20 / tahsis1 / kalan23. FullPage yakalama hatası tarihsel olarak korunur |
+| İnsan/işletim kabulü | BEKLİYOR; ajan ekran sonucu gerçek personel/cihaz veya bütünERP kabulü değildir |
+
+Sorgu ölçümünde ham2875.898ms/ayrı-IF2054.297ms, sıcak ayrı-IF16.475ms/ham13.770ms gözlendi. Cache soğukluğu kanıtlanmadı; genel hız artışı veya önceki401'in kesin alt nedeninin giderildiği iddia edilmez. Auth/list tam doğrulaması aynı transaction'da korunur, ayrı yinelenen tarama3→2; guard dönüşümünün203koşul/THROW byte/sıra eşliği önceki bağımsız kaynak/AST kanıtıdır.
+
+Güncel yerel kanıt dizini: `C:/Users/Xaser/Desktop/ERP/kurulum/auth-read-concurrency-v1`. source-ci-verification.json, artifact-proof.json, runtime-observed-ready.json ve post-start-native-snapshot.json kurulum aşamasına aittir; ready kaydındaki NOT_RUN normal-vade etiketi daha sonraki GUI sonucunu kapsamaz. Sonraki GUI/HTTP kanıtları ayrı tutulur: invoice20-draft.dom.txt, invoice20-checked.dom.txt, invoice20-due-create-response.json, invoice20-due-approve-response.json, invoice20-due-selected.dom.txt/.png, invoice20-dispatch-body.json, invoice20-dispatch-response.json, invoice20-completed-due.dom.txt/.png; tahsilat için invoice20-collection.dom.txt/body.json/response.json. invoice20-collection-viewport.png kaydedilip görsel olarak kontrol edildi; tahsilat fişi18, satışfişi20/vade2026-12-09/tahsis1/kalan23 görülür. Önceki fullPage yakalama hatası korunur; son viewport kanıtı bu hatadan ayrıdır. Header/token veya özel giriş verisi repoya alınmaz.
+
+**Bağımsız native son kontrol:** invoice20-dispatched-v4-due-chain.json SHA `fc80ef1ab92396e198211463af68e293d8af5178d1f512a8093d43bf0b76d966`; doğrulama SHA `8a280b95413109797512e2d73b05efcdcd9c8be83c3028959b751e0e8683aceb`. Tahsilat sonrası invoice20-collected-v4-due-chain.json SHA `afe87afc52429f901d337dcab4dda51d8c4192937ce432b656228ee5d867998f`; invoice20-collected-v4-due-chain-verification.json SHA `c32072da32b1f19f7492b21e16f460e7d1a1066bd7c96c473b153d76362cdab6`. Son durum K10_DES19_DUE_EXCEPTION_ACTUAL_CHAIN_VERIFIED; collectionAllocationVerified=true ve dispatchBodyHashCompared=true. Hedefli fiş zinciri bir SERIALIZABLE okumada atomiktir; toplam3read transaction birleşik atomik gözlem değildir. Yalnız iki yeni seçili invoice_item satırı karşılaştırıldı; historicalSaleItemRowsCompared=false. Korunan eski audit ve güvenlik satırları kapsamı, bütün eski satış kalemleri eşliği diye genişletilmez.
+
+İlk salt okunur gözlemci207/created_at hatası, var olmayan alanla sıralama yaptığı için oluştu; yalnız helper SELECT ORDER BY request_id düzeltildi. Uygulama şeması/runtime değişmedi, başarısız okumalar başarı diye yeniden etiketlenmedi. Son yardımcı incelemesi8ea6a46… GO, bu helper düzeltmesi kapsamındadır. Son boş ticari kurulum, bütün modüller, LAN, personel/insan/cihaz ve LIVE açık; özgün49yaprak/sayaçlar aynı. Bu seçili sentetik vade/satış/tahsilat doğrulaması bütün ERP kabulü değildir. Eski null/eksik vade snapshot'ları olan hesaplarda tahsilatın kapalı kalması ayrı sınırdır; yeni müşteri104 üzerindeki olumlu sonuç bu eski kayıtları değiştirmez. Bu dört dokümanın successor commit'i uygulama kurulumu değildir. Aşağıdaki önceki aşamalar tarihsel kanıttır.
+
+## 9 Kasım önceki B81 kurulumu ve okuma engeli
 
 B81cfaa3b14d7036d4c1754724dccea7ceec0f87, paketd961dc127083a366fb32943fd9e84e077a9463ca85b5fac472c959e3d3d3b92d gerçekten kuruldu. [Push](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42615436695) ve [PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42615447370) Windows dahil8iş/104adımSUCCESS; artifact13671074795, ZIP187f362bef7304a997f5e62b430ea147a091dd20d96c95fac13354c078c20184 resmi digest ile eşleşti. Owner35016/worker51424, yalnız5294/4294loopback. Kurulumun47alan/5korunan küme eşliği ve404SQL hakkı doğrulandı; yeniTLSprobe yok. Önceki indirim onayı kanıtları aşağıda tarihsel olarak korunur.
 
