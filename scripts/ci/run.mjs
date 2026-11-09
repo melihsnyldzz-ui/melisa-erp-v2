@@ -40,6 +40,7 @@ if (mode === 'quality') {
   run(['--experimental-vm-modules', '--test', path.join(root, 'scripts/desktop-empty/master-v3-transition.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-journal-sql.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-web.test.mjs')]);
   run(['--experimental-vm-modules', '--test', ...['read-master-v5-permission-seed','build-master-v5-package','master-v5-transition','master-v5-runtime','master-v5-verification','master-v5-run-context','master-v5-run-files','master-v5-rollback-diagnostic'].map(name=>path.join(root, 'scripts/desktop-empty', name+'.test.mjs'))]);
   run(['--test', ...['desktop-goods-v6-snapshot','master-v6-transition','start-master-v6'].map(name=>path.join(root, 'scripts/desktop-empty', name+'.test.mjs'))]);
+  run(['--test', ...['sales-limit-persona-plan','sales-limit-persona-sql'].map(name=>path.join(root, 'scripts/desktop-empty', name+'.test.mjs'))]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-customer-master-metadata-package.test.mjs')]);
   run(['--test', path.join(root, 'scripts/canonical/prepare-current-business-pair-154.test.mjs')]);
   run(['--test', ...['shared-business-selected-collection-revision-sql','shared-business-selected-collection-revision-bootstrap'].map(name => path.join(root, 'scripts/canonical', name + '.test.mjs'))]);
