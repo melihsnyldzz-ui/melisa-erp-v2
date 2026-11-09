@@ -25,10 +25,11 @@ export function desktopSalesPolicyForUser(user,row=null){
  if(entry&&(entry.roleId!==String(user.role.id)||entry.roleCode!==user.role.code))fail();
  const sale=['sales.create','sales.finalize'].every(k=>user.permissions.includes(k));
  const fallback=parsed===null&&user.role.code==='desktop_first_sale_operator'&&sale;
- const limit=entry?(entry.kind==='sales'?(entry.maxDiscountRateExact4??'3.0000'):'5.0000'):(fallback?'3.0000':'0.0000');
+ const individual=entry?.maxDiscountRateExact4??'3.0000';
+ const limit=entry?(entry.kind==='sales'?(BigInt(individual.replace('.',''))>30000n?'3.0000':individual):'5.0000'):(fallback?'3.0000':'0.0000');
  const binding={actorId:user.id,roleId:String(user.role.id),roleCode:user.role.code,userVersion:user.userVersion,roleVersion:user.roleVersion,settingId:parsed?.rowId??null,settingVersion:parsed?.rowVersion??null,settingDigest:parsed?.digest??null};
  const revision=createHash('sha256').update(JSON.stringify(binding),'utf8').digest('hex');
- return Object.freeze({version:1,actorId:user.id,revision,canChangeSalePrice:!!entry?.canChangeSalePrice&&sale,maxDiscountRateExact4:sale?limit:'0.0000',canApproveAboveFive:entry?.kind==='boss'&&user.permissions.includes('sales.view')});
+ return Object.freeze({version:1,actorId:user.id,revision,canChangeSalePrice:!!entry?.canChangeSalePrice&&sale,maxDiscountRateExact4:sale?limit:'0.0000',canApproveUpToFive:['manager','boss'].includes(entry?.kind)&&user.permissions.includes('sales.view'),canApproveAboveFive:entry?.kind==='boss'&&user.permissions.includes('sales.view')});
 }
 
 // Credit exceptions are distinct from the boss-only discount permission.

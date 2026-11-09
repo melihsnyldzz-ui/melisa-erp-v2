@@ -1,13 +1,47 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDesktopCreditAuthority} from './desktopCreditAuthority.mjs';
+
+async function pendingCredit(f){
+ await f.service.savePolicy('9',{requestId:U1,customerId:'2',accountId:'3',expectedRevision:null,limitExact8:'10.00000000',reason:'credit limit'});
+ assert.equal((await f.service.createRequest('8',{requestId:U2,invoiceId:'4',expectedVersion:'0x0000000000000001'})).state,'COMMITTED');
+ return (await f.service.listRequests('8')).requests[0];
+}
+test('older current credit request survives fifty newer stale or decided requests in list and invoice lookup',async()=>{
+ const uuid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+ for(const decide of [false,true]){
+  const f=fixture(),pending=await pendingCredit(f);f.invoice.expectedVersion='0x0000000000000002';
+  for(let i=0;i<51;i++){
+   const body={requestId:uuid(i+100),invoiceId:'4',expectedVersion:f.invoice.expectedVersion};assert.equal((await f.service.createRequest('8',body)).state,'COMMITTED');
+   if(decide){const row=(await f.service.listRequests('8')).requests[0];assert.equal((await f.service.approve('9',{requestId:uuid(i+1000),approvalRequestId:row.id,reason:'newer decision'})).state,'COMMITTED');}
+  }
+  f.invoice.expectedVersion='0x0000000000000001';assert.deepEqual((await f.service.listRequests('9')).requests.map(r=>r.id),[pending.id]);assert.equal((await f.service.readInvoice('9',{invoiceId:'4'})).expectedVersion,f.invoice.expectedVersion);assert.ok(f.queries.filter(q=>q.includes('CREDIT_RECORDS')).every(q=>q.includes('ORDER BY requestRow.id DESC')));assert.ok(f.queries.some(q=>q.includes('requestRow.id<TRY_CONVERT(bigint,@beforeId)')));
+ }
+});
+test('manager reads only a current pending credit decision, never an unrelated CHECKED invoice or general account',async()=>{
+ const f=fixture();await assert.rejects(f.service.readInvoice('9',{invoiceId:'4'}));assert.equal((await f.service.readInvoice('8',{invoiceId:'4'})).invoiceId,'4');
+ const pending=await pendingCredit(f);f.setPermissions(['sales.view']);
+ assert.equal((await f.service.readInvoice('9',{invoiceId:'4'})).invoiceId,'4');assert.equal((await f.service.listRequests('9')).requests[0].id,pending.id);
+ await assert.rejects(f.service.readAccount('9',{customerId:'2',accountId:'3'}));await assert.rejects(f.service.readInvoice('7',{invoiceId:'4'}));
+ const body={requestId:U3,approvalRequestId:pending.id,reason:'manager approval'},decision=await f.service.approve('9',body);assert.equal(decision.state,'COMMITTED');assert.equal((await f.service.approve('9',body)).replayed,true);
+ await assert.rejects(f.service.readInvoice('9',{invoiceId:'4'}));assert.equal((await f.service.listRequests('9')).requests.length,0);assert.equal((await f.service.listRequests('8')).requests[0].status,'APPROVED');
+ f.setManager(false);assert.equal((await f.service.resolve('9',{kind:'approve',body})).state,'COMMITTED');assert.equal((await f.service.listRequests('9')).requests.length,0);
+ f.setManager(true);f.setNow(1600000);await assert.rejects(f.service.readInvoice('9',{invoiceId:'4'}));assert.equal((await f.service.listRequests('9')).requests.length,0);assert.equal((await f.service.listRequests('8')).requests[0].status,'EXPIRED');
+});
+test('changed credit balance, workflow version, creator or policy hides and rejects the foreign pending decision',async()=>{
+ for(const mutate of [f=>{f.account.balanceExact8='9.10000000';},f=>{f.invoice.expectedVersion='0x0000000000000002';},f=>{f.invoice.creatorId='7';},f=>{f.setManager(false);}]){
+  const f=fixture(),pending=await pendingCredit(f);mutate(f);assert.equal((await f.service.listRequests('9')).requests.length,0);await assert.rejects(f.service.readInvoice('9',{invoiceId:'4'}));assert.equal((await f.service.approve('9',{requestId:U3,approvalRequestId:pending.id,reason:'stale approval'})).state,'UNKNOWN');assert.equal(f.records().filter(r=>r.action==='credit.approval.granted').length,0);
+ }
+ const f=fixture(),pending=await pendingCredit(f),definition=(await f.service.readAccount('9',{customerId:'2',accountId:'3'})).definition;
+ await f.service.savePolicy('9',{requestId:U4,customerId:'2',accountId:'3',expectedRevision:definition.revision,limitExact8:'10.50000000',reason:'limit changed'});assert.equal((await f.service.listRequests('9')).requests.length,0);await assert.rejects(f.service.readInvoice('9',{invoiceId:'4'}));assert.equal((await f.service.approve('9',{requestId:U3,approvalRequestId:pending.id,reason:'stale policy'})).state,'UNKNOWN');
+});
 const U1='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',U2='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',U3='cccccccc-cccc-4ccc-8ccc-cccccccccccc',U4='dddddddd-dddd-4ddd-8ddd-dddddddddddd';
 function fixture(){
- let records=[],next=1,now=1000000,manager=true,manage=true,queue=Promise.resolve();
+ let records=[],next=1,now=1000000,manager=true,manage=true,queue=Promise.resolve(),permissions=null;const queries=[];
  const account={customerId:'2',accountId:'3',entityId:'5',currency:'TRY',balanceExact8:'9.00000000'};
  const invoice={invoiceId:'4',customerId:'2',creatorId:'8',storedAccountId:'3',storedEntityId:'5',documentCurrency:'TRY',currency:'TRY',amountExact4:'2.0000',totalExact4:'2.0000',expectedVersion:'0x0000000000000001'};
  class Transaction{async begin(){const previous=queue;queue=new Promise(resolve=>{this.unlock=resolve;});await previous;this.data=structuredClone(records);}async commit(){records=this.data;this.unlock();}async rollback(){this.unlock();}}
- class Request{constructor(tx){this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(text){const p=this.p,t=this.tx;
+ class Request{constructor(tx){this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(text){queries.push(text);const p=this.p,t=this.tx;
   if(text.includes('DUE_INVOICE_LOCK'))return {recordset:p.invoice===invoice.invoiceId?[{invoiceId:invoice.invoiceId,customerId:invoice.customerId,documentDate:'2026-11-08'}]:[]};
   if(text.includes('DUE_INVOICE_EXISTING'))return {recordset:t.data.filter(r=>r.source==='due'&&(r.entityId===p.invoice||r.reason===p.request)).slice(0,2)};
   if(text.includes('DUE_INVOICE_INSERT')){const row={id:String(next++),actorId:p.actor,entityId:p.invoice,reason:p.request,action:'invoice.due.snapshot',json:p.json,source:'due'};t.data.push(row);return {recordset:[{id:row.id}]};}
@@ -20,12 +54,12 @@ function fixture(){
   if(text.includes('CREDIT_RECORD_INSERT')){const row={id:String(next++),actorId:p.actor,entityId:p.entity,reason:p.request,action:p.action,json:p.json};t.data.push(row);return {recordset:[{id:row.id}]};}
   if(text.includes('CREDIT_COMMAND_LOCK'))return {recordset:t.data.filter(r=>r.source!=='due'&&r.actorId===p.actor&&r.reason===p.request).slice(0,2)};
   if(text.includes('CREDIT_LATEST_APPROVED_REQUEST')){const approvals=t.data.filter(r=>r.action==='credit.approval.granted').reverse();const row=approvals.map(a=>t.data.find(r=>r.id===a.entityId&&r.action==='credit.approval.request'&&r.entityId===p.account&&r.actorId===p.actor&&JSON.parse(r.json).snapshot.invoiceId===p.invoice&&JSON.parse(r.json).snapshotHash===p.hash)).find(Boolean);return {recordset:row?[row]:[]};}
-  if(text.includes('CREDIT_RECORDS')){let rows=t.data.filter(r=>r.action===p.action);if(p.id)rows=rows.filter(r=>text.includes('entity_id=')?r.entityId===p.id:r.id===p.id);if(p.account)rows=rows.filter(r=>r.entityId===p.account);if(text.includes('actor_user_id=')&&p.actor)rows=rows.filter(r=>r.actorId===p.actor);if(p.invoice)rows=rows.filter(r=>JSON.parse(r.json).snapshot?.invoiceId===p.invoice);const limit=Number(text.match(/TOP\((\d+)\)/)[1]);return {recordset:rows.reverse().slice(0,limit)};}
+  if(text.includes('CREDIT_RECORDS')){let rows=t.data.filter(r=>r.action===p.action);if(p.id)rows=rows.filter(r=>text.includes('entity_id=')?r.entityId===p.id:r.id===p.id);if(p.account)rows=rows.filter(r=>r.entityId===p.account);if(text.includes('actor_user_id=')&&p.actor)rows=rows.filter(r=>r.actorId===p.actor);if(p.invoice)rows=rows.filter(r=>JSON.parse(r.json).snapshot?.invoiceId===p.invoice);if(p.hash)rows=rows.filter(r=>JSON.parse(r.json).snapshotHash===p.hash);if(text.includes('NOT EXISTS'))rows=rows.filter(r=>!t.data.some(a=>a.action==='credit.approval.granted'&&a.entityId===r.id));if(p.beforeId)rows=rows.filter(r=>BigInt(r.id)<BigInt(p.beforeId));const limit=Number(text.match(/TOP\((\d+)\)/)[1]);return {recordset:rows.reverse().slice(0,limit)};}
   throw Error('unexpected fixture query');}}
  const NVarChar=()=>null;NVarChar.MAX=0;
  const authority=createDesktopCreditAuthority({sql:{Request,Transaction,NVarChar,MAX:0,ISOLATION_LEVEL:{SERIALIZABLE:1}},ensureLease:()=>true,readAuthority:async({targetActorId,actorId})=>({revision:'a'.repeat(64),canManage:manage,canApprove:(targetActorId??actorId)==='9'&&manager})});
- const service=authority.service({pool:{},verifySession:async()=>true,release:()=>{}});
- return {authority,service,records:()=>records,setManager:v=>{manager=v;},setManage:v=>{manage=v;},setNow:v=>{now=v;},account,invoice,Transaction};
+ const service=authority.service({pool:{},verifySession:async({permission})=>permissions===null||(Array.isArray(permission)?permission:[permission]).every(p=>permissions.includes(p)),release:()=>{}});
+ return {authority,service,queries,records:()=>records,setManager:v=>{manager=v;},setManage:v=>{manage=v;},setNow:v=>{now=v;},setPermissions:v=>{permissions=v;},account,invoice,Transaction};
 }
 test('policy is positive opt-in, command replay is bound, and resolution fences a missing UUID',async()=>{
  const f=fixture(),body={requestId:U1,customerId:'2',accountId:'3',expectedRevision:null,limitExact8:'10.00000000',reason:'test policy'};
@@ -56,7 +90,7 @@ test('approval is bound to current snapshot and revoked authority blocks consump
  assert.equal((await f.service.approve('9',{requestId:U3,approvalRequestId:request.id,reason:'approved test'})).state,'COMMITTED');
  const args={actorId:'8',requestId:U4,invoiceId:'4',expectedVersion:'0x0000000000000001',accountId:'3',currency:'TRY',balanceExact8:'9.00000000',amountExact4:'2.0000'};
  f.setManager(false);const denied=new f.Transaction();await denied.begin();await assert.rejects(f.authority.assertDispatch({...args,transaction:denied}));await denied.rollback();
- f.setManager(true);const accepted=new f.Transaction();await accepted.begin();assert.equal(await f.authority.assertDispatch({...args,transaction:accepted}),true);await accepted.commit();assert.equal((await f.service.listRequests('9')).requests[0].status,'CONSUMED');
+ f.setManager(true);const accepted=new f.Transaction();await accepted.begin();assert.equal(await f.authority.assertDispatch({...args,transaction:accepted}),true);await accepted.commit();assert.equal((await f.service.listRequests('9')).requests.length,0);assert.equal((await f.service.listRequests('8')).requests[0].status,'CONSUMED');
  const replay=new f.Transaction();await replay.begin();await assert.rejects(f.authority.assertDispatch({...args,transaction:replay}));await replay.rollback();
 });
 

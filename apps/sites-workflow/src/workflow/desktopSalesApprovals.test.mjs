@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {createDesktopSalesApprovals,isSalesApprovalSummary} from './desktopSalesApprovals.mjs';
+import test from 'node:test';import assert from 'node:assert/strict';import {createDesktopSalesApprovals,isSalesApprovalSummary,canApproveSalesDiscount,isSalesApprovalVisibleForPolicy} from './desktopSalesApprovals.mjs';
 const u='da171000-6f42-4f19-8cab-9f4539618647',policy={version:1,actorId:'7',revision:'b'.repeat(64),canChangeSalePrice:true,maxDiscountRateExact4:'5.0000',canApproveAboveFive:true},draft={customerId:'2',documentDate:'2026-11-07',expectedRevision:'a'.repeat(64),items:[{productId:'8',quantityExact3:'2.000'},{productId:'1',quantityExact3:'1.000'}],discountRateExact4:'5.5000',pricing:{version:1,policyRevision:policy.revision,unitPricesExact4:['11.5000',null],approvalId:null}};
 const summary={id:'12',actorId:'7',requestId:u,customerId:'2',documentDate:'2026-11-07',discountRateExact4:'5.5000',items:draft.items,unitPricesExact4:draft.pricing.unitPricesExact4,status:'PENDING',approvalId:null,expiresAt:1794067200000,createdAt:1794066600000,decision:null,invoice:null,draft,quote:{currency:'TRY',lines:[{productId:'8',quantityExact3:'2.000',unitPriceExact4:'11.5000',lineTotalExact4:'23.0000'},{productId:'1',quantityExact3:'1.000',unitPriceExact4:'10.0000',lineTotalExact4:'10.0000'}],subtotalExact4:'33.0000',discountRateExact4:'5.5000',discountTotalExact4:'1.8150',totalExact4:'31.1850',belowCostWarning:false}};
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)}};const locks={request:async(_k,_o,f)=>f({})};
@@ -15,3 +15,35 @@ test('create resolver preserves changed body, false summary and impossible opaqu
 test('approve resolver accepts matching opaque committed proof after boss permission loss',async()=>{const storage=memory();let allowed=true;const c=createDesktopSalesApprovals({actorId:'7',storage,locks,newId:()=>u,getPolicy:()=>({...policy,canApproveAboveFive:allowed}),transport:async(kind,body)=>{if(kind!=='resolve')throw Error('lost');return {state:'COMMITTED',actorId:'7',kind:body.kind,recordId:body.recordId,body:body.body,summary:null};}});assert.equal((await c.approve('12','Uygun')).state,'UNKNOWN');allowed=false;assert.deepEqual(await c.resolve(),{state:'COMMITTED',summary:null});assert.equal(storage.getItem('melisa.desktop.sales-approval.pending.v1.7'),null);});
 
 test('decision, time and invoice binding reject malformed or inconsistent history',()=>{const d={actorId:'8',reason:'Uygun',decidedAt:summary.createdAt+1},approved={...summary,status:'APPROVED',approvalId:'20',decision:d,expiresAt:d.decidedAt+600000};assert.equal(isSalesApprovalSummary(summary),true);assert.equal(isSalesApprovalSummary(approved),true);assert.equal(isSalesApprovalSummary({...approved,invoice:{invoiceId:'15',requestId:u}}),true);for(const bad of [{...summary,decision:d},{...summary,invoice:{invoiceId:'15',requestId:u}},{...approved,decision:null},{...approved,decision:{...d,reason:' x '}},{...approved,decision:{...d,decidedAt:summary.createdAt-1}},{...approved,invoice:{invoiceId:'15',requestId:'invalid'}},{...approved,createdAt:0},{...approved,quote:{...approved.quote,totalExact4:'1.0000'}}])assert.equal(isSalesApprovalSummary(bad),false);});
+
+
+test('manager discount capability includes exact five but excludes every amount above it and malformed rates',()=>{
+ const manager={...policy,canApproveUpToFive:true,canApproveAboveFive:false};
+ for(const rate of ['0.0000','3.0001','4.9999','5.0000'])assert.equal(canApproveSalesDiscount(manager,'7',rate),true);
+ for(const rate of ['5.0001','99.9999','5','5.00000',5,null])assert.equal(canApproveSalesDiscount(manager,'7',rate),false);
+ assert.equal(canApproveSalesDiscount(manager,'8','5.0000'),false);
+ assert.equal(canApproveSalesDiscount(policy,'7','5.0000'),true); // Legacy boss policy.
+ assert.equal(canApproveSalesDiscount(policy,'7','5.0001'),true);
+ assert.equal(canApproveSalesDiscount({...policy,canApproveAboveFive:false},'7','5.0000'),false);
+});
+
+test('manager sees only actionable foreign pending requests while own and legacy boss history remain visible',()=>{
+ const manager={...policy,canApproveUpToFive:true,canApproveAboveFive:false},now=Date.now(),d={...draft,discountRateExact4:'5.0000'},row={...summary,actorId:'8',createdAt:now,expiresAt:now+600000,discountRateExact4:d.discountRateExact4,draft:d,quote:{...summary.quote,discountRateExact4:'5.0000',discountTotalExact4:'1.6500',totalExact4:'31.3500'}};
+ assert.equal(isSalesApprovalVisibleForPolicy(row,manager,'7'),true);
+ assert.equal(isSalesApprovalVisibleForPolicy({...summary,actorId:'8',createdAt:now,expiresAt:now+600000},manager,'7'),false);
+ assert.equal(isSalesApprovalVisibleForPolicy({...row,createdAt:1,expiresAt:600001},manager,'7'),false);
+ const approved={...row,status:'APPROVED',approvalId:'20',decision:{actorId:'7',reason:'uygun',decidedAt:now+1},expiresAt:now+600001};
+ assert.equal(isSalesApprovalVisibleForPolicy(approved,manager,'7'),false);
+ assert.equal(isSalesApprovalVisibleForPolicy({...approved,actorId:'7'},manager,'7'),true);
+ assert.equal(isSalesApprovalVisibleForPolicy(approved,policy,'7'),true);
+});
+
+test('manager unknown approval preserves the original command across reload, revocation and opaque resolve',async()=>{
+ const storage=memory(),calls=[];let enabled=true,ids=0;
+ const args={actorId:'7',storage,locks,newId:()=>{ids++;return u;},getPolicy:()=>({...policy,canApproveUpToFive:enabled,canApproveAboveFive:false}),transport:async(kind,body,id)=>{calls.push({kind,body:structuredClone(body),id});if(kind==='resolve')return {state:'COMMITTED',actorId:'7',kind:body.kind,recordId:body.recordId,body:body.body,summary:null};throw Error('lost');}};
+ const c=createDesktopSalesApprovals(args);await assert.rejects(c.approve('12','Uygun','5.0001'));assert.equal(ids,0);
+ assert.equal((await c.approve('12','Uygun','5.0000')).state,'UNKNOWN');const original=storage.getItem('melisa.desktop.sales-approval.pending.v1.7');
+ enabled=false;await assert.rejects(createDesktopSalesApprovals(args).retry());assert.equal(calls.length,1);assert.equal(storage.getItem('melisa.desktop.sales-approval.pending.v1.7'),original);
+ enabled=true;assert.equal((await createDesktopSalesApprovals(args).retry()).state,'UNKNOWN');assert.deepEqual(calls[0],calls[1]);assert.equal(ids,1);
+ enabled=false;assert.deepEqual(await createDesktopSalesApprovals(args).resolve(),{state:'COMMITTED',summary:null});assert.equal(ids,1);assert.equal(storage.getItem('melisa.desktop.sales-approval.pending.v1.7'),null);
+});

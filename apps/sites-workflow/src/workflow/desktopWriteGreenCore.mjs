@@ -37,7 +37,7 @@ import {createDesktopLocalSupplierTransport} from './desktopLocalSupplierTranspo
 import {createDesktopLocalCustomerTransport} from './desktopLocalCustomerTransport.mjs';
 import {createDesktopLocalProductTransport} from './desktopLocalProductTransport.mjs';
 import {createDesktopWorkflowClient} from './desktopWorkflowClient.mjs';
-import {createDesktopSalesApprovals,isSalesApprovalSummary} from './desktopSalesApprovals.mjs';
+import {createDesktopSalesApprovals,isSalesApprovalSummary,isSalesApprovalVisibleForPolicy} from './desktopSalesApprovals.mjs';
 import {DESKTOP_WAREHOUSE_OPERATIONS,desktopWarehousePermissionForOperation,isDesktopWarehouseWorkflow,isDesktopWarehouseList,isDesktopWarehouseResult,isDesktopWarehouseResolution} from '../../../../packages/shared/src/desktopWarehouse.mjs';
 import {createDesktopGoodsPurchase,isDesktopGoodsOptions,isDesktopGoodsReceipt} from './desktopGoodsPurchase.mjs';
 const API='http://127.0.0.1:4294',ORIGIN='http://127.0.0.1:5294',KEY='melisaDesktopWriteV2Token';
@@ -75,7 +75,23 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
    ...(kind==='products'?{draft:()=>{current();return controller.draft();},rejected:()=>{current();return controller.rejected();}}:{}),
    create:async fields=>{current();if(richCards&&kind==='products'&&!user.permissions.includes('supplier.view'))fail();if(kind==='suppliers'&&!user.permissions.includes('supplier.view'))fail();return controller.create(fields);},retry:async()=>{current();return controller.retry();}});
  }
- function salesApprovals(){if(!can('sales')||!token)fail();const actor=actorId(user.id),prior=generation;let policy=null;const current=()=>{if(prior!==generation||!user||actorId(user.id)!==actor||!can('sales')||!token)fail();};const c=createDesktopSalesApprovals({actorId:actor,storage:localStorage,locks,newId,getPolicy:()=>policy,transport:async(kind,body,recordId)=>{current();const r=await request('/api/desktop-sale/discount-requests'+(kind==='resolve'?'/resolve':kind==='approve'?'/'+recordId+'/approve':''),{method:'POST',body});current();return r.data;}});return Object.freeze({pending:()=>{current();return c.pending()?{exists:true}:null;},canApprove:()=>{current();return c.canApprove();},list:async()=>{current();const r=await request('/api/desktop-sale/discount-requests');current();if(!r.data||Object.keys(r.data).sort().join(',')!=='requests,salesPolicy'||!isDesktopSalesPolicy(r.data.salesPolicy,actor)||!Array.isArray(r.data.requests)||r.data.requests.length>50||r.data.requests.some(x=>!isSalesApprovalSummary(x)||!r.data.salesPolicy.canApproveAboveFive&&x.actorId!==actor))fail();policy=r.data.salesPolicy;return r.data;},read:async id=>{current();if(!actorId(id)||!policy)fail();const r=await request('/api/desktop-sale/discount-requests/'+id);current();if(!isSalesApprovalSummary(r.data)||r.data.id!==id||!policy.canApproveAboveFive&&r.data.actorId!==actor)fail();return r.data;},create:async d=>{current();return c.create(d);},approve:async(id,reason)=>{current();return c.approve(id,reason);},retry:async()=>{current();return c.retry();},resolve:async()=>{current();return c.resolve();}});}
+ function salesApprovals(){
+  if(!can('sales')||!token)fail();const actor=actorId(user.id),prior=generation;let policy=null;const known=new Map();
+  const current=()=>{if(prior!==generation||!user||actorId(user.id)!==actor||!can('sales')||!token)fail();};
+  const c=createDesktopSalesApprovals({actorId:actor,storage:localStorage,locks,newId,getPolicy:()=>policy,transport:async(kind,body,recordId)=>{current();const r=await request('/api/desktop-sale/discount-requests'+(kind==='resolve'?'/resolve':kind==='approve'?'/'+recordId+'/approve':''),{method:'POST',body});current();return r.data;}});
+  const readable=row=>isSalesApprovalVisibleForPolicy(row,policy,actor);
+  async function read(id){current();if(!actorId(id)||!policy)fail();const r=await request('/api/desktop-sale/discount-requests/'+id);current();if(r.data?.id!==id||!readable(r.data))fail();known.set(id,r.data);return r.data;}
+  return Object.freeze({
+   pending:()=>{current();return c.pending()?{exists:true}:null;},
+   canApprove:rate=>{current();return c.canApprove(rate);},
+   list:async()=>{current();policy=null;known.clear();const r=await request('/api/desktop-sale/discount-requests');current();if(!r.data||Object.keys(r.data).sort().join(',')!=='requests,salesPolicy'||!isDesktopSalesPolicy(r.data.salesPolicy,actor)||!Array.isArray(r.data.requests)||r.data.requests.length>50||r.data.requests.some(x=>!isSalesApprovalVisibleForPolicy(x,r.data.salesPolicy,actor)))fail();policy=r.data.salesPolicy;for(const row of r.data.requests)known.set(row.id,row);return r.data;},
+   read,
+   create:async d=>{current();return c.create(d);},
+   approve:async(id,reason)=>{current();const row=known.get(id);if(!row||row.actorId===actor&&!policy?.canApproveAboveFive||row.status!=='PENDING'||Date.now()>=row.expiresAt||!c.canApprove(row.discountRateExact4))fail();return c.approve(id,reason,row.discountRateExact4);},
+   retry:async()=>{current();const p=c.pending();if(p?.kind==='approve'&&!policy?.canApproveAboveFive){if(!c.canApprove())fail();const row=await read(p.recordId);if(row.actorId===actor||row.status!=='PENDING'||Date.now()>=row.expiresAt||!c.canApprove(row.discountRateExact4))fail();}return c.retry();},
+   resolve:async()=>{current();return c.resolve();}
+  });
+ }
  function requiredSaleRights(kind,payload){if(kind==='cancel')return ['sales.cancel'];if(kind==='transition'){const permission={PREPARE:'sales.create',SAVE_CARTONS:'sales.edit',READY:'sales.edit',CHECK:'sales.finalize',CANCEL:'sales.edit'}[payload?.operation];return permission?[permission]:null;}return ['draft','dispatch'].includes(kind)?['sales.create','sales.finalize']:null;}
  function sale(){
   if(!can('sales'))fail();const actor=actorId(user.id),prior=generation;

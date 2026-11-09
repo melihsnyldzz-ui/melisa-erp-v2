@@ -1,3 +1,13 @@
+## 9 Kasım — K10-02 / DES-19 dar satış onay matrisi kaynakta
+
+Satışçı en çok %3, müdür başka satışçının güncel bekleyen talebinde %5 dahil, üzeri patron olarak ayrıldı. Müdürün yabancı kredi özeti yalnız güncel bekleyen karar kapsamında okunur; genel cari/finans hakkı eklenmedi. Yalnız sales.view ile normal onay panelleri açılır; UNKNOWN UUID/gövde ve yetki kaybı korumaları sürer. Çok sayıdaki eski istek ve sayısal ID sıralaması için iki pagination P2 bağımsız incelemeyle kapatıldı.
+
+149 hedefli guardlı test, 26 route/auth-core kontrolü ve ayrı processlerde 2 gerçek-normal-auth/in-memory-driver entegrasyonu PASS; bunlar gerçek SQL/GUI kabulü değildir. Yerel green build denemesi dependency junction yerleşiminin guard dışındaki esbuild yoluna çözülmesiyle durdu; guard kaldırılmadı. Aynı kaynak için hosted exact-head CI/artifact sonucu ayrıca bağlanacaktır. Backend/frontend/shared ve iki pasif TEST onaylayıcı için pure SQL-plan kaynak incelemeleri GO; plan gerçek SQL uygulaması değildir.
+
+Dal: codex/erp-sales-approval-matrix-20261109; taban PR119 / 00ef3887, PR120 matris hazırlığı esas alındı. Kurulu TEST bu kayıtta 00ef3887 / 1b1c5cac paketinde; yerel salt okunur 47 alan ve 198 audit önceki gözlemle aynı. Yeni kaynak/hesap/normal karar-kayıt kurulumu henüz yapılmadı. K04-09'un kaynak/SQL404/kurulumu korunuyor; tedarikçi durum yazma GUI denemesi DES-19 önceliğiyle başlamadan ertelendi.
+
+Vade istisnasının fişe özel protokolü açık; kalıcı saveTerms ile eşdeğer sayılmadı. K10-02, insan kabulü ve özgün kapanış sayaçları değişmedi. [Sözleşme, test ve açık kabul sınırı](docs/development/desktop-sales-approval-matrix.md).
+
 ## 9 Kasım — K04-09 / geri alınabilir tedarikçi durumu kaynakta hazır
 
 Normal karttan gerekçeli pasife alma/yeniden etkinleştirme, pasif listeden karta dönüş ve mevcut alış geçmişini koruma eklendi. HTTP ve aynı leased SQL transaction supplier.view+supplier.edit doğrular. Native rowversion CAS, aktör/tedarikçi/UUID/gövdeye bağlı audit receipt ve aynı komutla sonuç çözümleme kullanılır. Yerel create journal/audit ile tüm hesap/entity zinciri receipt/fence/UPDATE öncesinde doğrulanır; belirsiz kimlikte kayıt veya birleştirme yoktur. Onaylanmış durum değişikliğinde listeler tazelenir; UNKNOWN eski isteği korur.

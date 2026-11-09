@@ -1,8 +1,42 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
 import {createDesktopSalesPricingAuthority,normalizeDesktopPricingIntent} from './desktopSalesPricingAuthority.mjs';
+
+test('manager can decide another salesperson at 3.0001 through5 inclusive and the exact receipt replays',async()=>{
+ for(const discount of ['3.0001','5.0000']){
+  const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;
+  const d=f.draft(discount),asked=await f.service.create('1',{requestId:uid(1),draft:d});
+  assert.equal((await f.service.list('3')).requests[0].id,asked.id);assert.equal((await f.service.read('3',asked.id)).id,asked.id);
+  const body={requestId:uid(2),reason:'Müdür kararı'},approved=await f.service.approve('3',asked.id,body);
+  assert.equal(approved.decision.actorId,'3');assert.deepEqual(await f.service.approve('3',asked.id,body),approved);assert.equal(f.state.audits.length,2);
+  assert.equal((await f.service.list('3')).requests.length,0);await assert.rejects(f.service.read('3',asked.id),{code:'DESKTOP_SALE_APPROVAL_READ_FORBIDDEN'});
+  await assert.rejects(f.service.approve('3',asked.id,{...body,reason:'Farklı karar'}));
+  d.pricing.approvalId=approved.approvalId;await f.bind(d);
+  assert.equal((await f.authorize({persisted:f.persisted(d)},'dispatch','3',{invoiceId:'100'})).kind,'pricing');
+  const next={requestId:uid(11),...d},again=await f.authorize(next);await assert.rejects(again.bindDraft({invoiceId:'101',requestHash:hash({actorId:'1',request:next})}),{code:'DESKTOP_SALE_APPROVAL_ALREADY_USED'});
+ }
+});
+test('manager cannot see or decide above5, self-approve, or read expired and stale foreign requests',async()=>{
+ const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;
+ const high=await f.service.create('1',{requestId:uid(1),draft:f.draft('5.0001')});assert.equal((await f.service.list('3')).requests.length,0);
+ await assert.rejects(f.service.read('3',high.id),{code:'DESKTOP_SALE_APPROVAL_READ_FORBIDDEN'});await assert.rejects(f.service.approve('3',high.id,{requestId:uid(2),reason:'Yüksek oran'}),{code:'DESKTOP_SALE_BOSS_PERMISSION'});
+ const low=await f.service.create('1',{requestId:uid(3),draft:f.draft('5.0000')});f.state.policies.get('1').canApproveUpToFive=true;
+ await assert.rejects(f.service.approve('1',low.id,{requestId:uid(4),reason:'Kendi kararı'}),{code:'DESKTOP_SALE_BOSS_PERMISSION'});
+ f.state.policies.get('1').revision='d'.repeat(64);assert.equal((await f.service.list('3')).requests.length,0);await assert.rejects(f.service.read('3',low.id));await assert.rejects(f.service.approve('3',low.id,{requestId:uid(5),reason:'Eski politika'}));
+ f.state.policies.get('1').revision='a'.repeat(64);f.state.clock+=600000;assert.equal((await f.service.list('3')).requests.length,0);await assert.rejects(f.service.read('3',low.id));await assert.rejects(f.service.approve('3',low.id,{requestId:uid(6),reason:'Süresi doldu'}),{code:'DESKTOP_SALE_APPROVAL_EXPIRED'});
+ assert.equal(f.state.audits.length,2);
+});
+test('manager consumption rechecks authority revision and threshold, with opaque recovery after revocation',async()=>{
+ const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;const d=f.draft('5.0000'),asked=await f.service.create('1',{requestId:uid(1),draft:d}),body={requestId:uid(2),reason:'Müdür açık kararı'},approved=await f.service.approve('3',asked.id,body);d.pricing.approvalId=approved.approvalId;
+ f.state.policies.get('3').canApproveUpToFive=false;await assert.rejects(f.authorize(d));const resolved=await f.service.resolve('3',{kind:'approve',recordId:asked.id,body});assert.equal(resolved.state,'COMMITTED');assert.equal(resolved.summary,null);
+ f.state.policies.get('3').canApproveUpToFive=true;f.state.policies.get('3').revision='e'.repeat(64);await assert.rejects(f.authorize(d));f.state.policies.get('3').revision='a'.repeat(64);
+ const altered=copy(d);altered.discountRateExact4='5.0001';await assert.rejects(f.authorize(altered));f.state.clock+=600000;await assert.rejects(f.authorize(d),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});assert.equal(f.state.audits.length,2);
+});
+test('a former boss with unchanged revision cannot consume an above5 approval as a manager',async()=>{const f=fixture(),d=await f.approved('5.0001');f.state.policies.get('2').canApproveAboveFive=false;assert.equal(f.state.policies.get('2').canApproveUpToFive,true);await assert.rejects(f.authorize(d));assert.equal(f.state.audits.length,2);});
+test('foreign above5 rows cannot paginate the manager pending decision away',async()=>{const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;const visible=await f.service.create('1',{requestId:uid(1),draft:f.draft('5.0000')});for(let i=0;i<51;i++)await f.service.create('1',{requestId:uid(i+100),draft:f.draft('5.0001')});const result=await f.service.list('3');assert.deepEqual(result.requests.map(r=>r.id),[visible.id]);});
+test('manager keyset uses numeric IDs across digit boundaries and continues beyond fifty stale policy requests',async()=>{const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;const visible=await f.service.create('1',{requestId:uid(1),draft:f.draft('5.0000')});f.state.policies.get('1').revision='d'.repeat(64);for(let i=0;i<51;i++)await f.service.create('1',{requestId:uid(i+100),draft:f.draft('5.0000')});f.state.policies.get('1').revision='a'.repeat(64);assert.deepEqual((await f.service.list('3')).requests.map(r=>r.id),[visible.id]);const selects=f.state.queries.filter(q=>q.includes('SALES_PRICING_LIST'));assert.ok(selects.length>=2);assert.ok(selects.every(q=>q.includes('ORDER BY requestAudit.id DESC')&&q.includes('requestAudit.id<TRY_CONVERT(bigint,@beforeId)')));});
 const copy=v=>JSON.parse(JSON.stringify(v)),uid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
-const policy=(actorId,max='3.0000',edit=false,boss=false)=>({version:1,actorId,revision:actorId==='2'?'b'.repeat(64):'a'.repeat(64),canChangeSalePrice:edit,maxDiscountRateExact4:max,canApproveAboveFive:boss});
+const policy=(actorId,max='3.0000',edit=false,boss=false)=>({version:1,actorId,revision:actorId==='2'?'b'.repeat(64):'a'.repeat(64),canChangeSalePrice:edit,maxDiscountRateExact4:max,canApproveUpToFive:boss,canApproveAboveFive:boss});
 function fixture(){
  const state={audits:[],journal:[],queries:[],clock:Date.parse('2026-11-07T18:00:00.000Z'),next:1,policies:new Map([['1',policy('1')],['2',policy('2','5.0000',false,true)],['3',policy('3','5.0000',true)]]),lease:null,previewCalls:0};
  class Transaction{async begin(){this.before=copy({audits:state.audits,journal:state.journal});}async commit(){}async rollback(){state.audits=this.before.audits;state.journal=this.before.journal;}}
@@ -15,7 +49,7 @@ function fixture(){
   else if(text.includes('SALES_PRICING_HISTORY_INVOICE_JOURNAL'))rows=state.journal.filter(r=>r.invoiceId===p.invoice).slice(0,2).map(r=>({requestId:r.requestId}));
   else if(text.includes('SALES_PRICING_JOURNAL'))rows=state.journal.filter(r=>r.requestId===p.request);
   else if(text.includes('SALES_PRICING_COMMAND_LOCK'))rows=state.audits.filter(r=>r.actorId===p.actor&&r.reason===p.request);
-  else if(text.includes('SALES_PRICING_LIST'))rows=state.audits.filter(r=>r.action==='sales.discount.request'&&(!text.includes('AND actor_user_id')||r.actorId===p.actor)).slice(-50).reverse();
+  else if(text.includes('SALES_PRICING_LIST'))rows=state.audits.filter(r=>r.action==='sales.discount.request'&&(!p.beforeId||BigInt(r.id)<BigInt(p.beforeId))&&(!text.includes('AND actor_user_id')||r.actorId===p.actor)&&(!text.includes('NOT EXISTS')||r.actorId===p.actor||BigInt(JSON.parse(r.json).draft.discountRateExact4.replace('.',''))<=50000n&&JSON.parse(r.json).createdAt<=Number(p.clock)&&JSON.parse(r.json).expiresAt>Number(p.clock)&&!state.audits.some(a=>a.action==='sales.discount.approved'&&a.entityId===r.id))).slice(-50).reverse();
   else if(text.includes('SELECT TOP(2)')&&text.includes('dbo.audit_logs')){rows=state.audits.filter(r=>r.action===p.action&&(!p.id||r.id===p.id||text.includes('AND entity_id=')&&r.entityId===p.id)&&(!p.invoice||r.entityId===p.invoice)&&(!p.actor||r.actorId===p.actor)&&(!p.request||r.reason===p.request));}
   else throw Error('UNEXPECTED_SQL: '+text.slice(0,100));return {recordset:copy(rows)};
  }}
