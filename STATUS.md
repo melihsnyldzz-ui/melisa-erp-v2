@@ -1,3 +1,21 @@
+<!-- WAREHOUSE-ACTUAL-22-20261109 -->
+## 9 Kasım — Ayrı depo personeliyle hazırlama, koli ve hazır akışı çalıştı; deneme kapatıldı
+
+**Son doğrulama:** kaydedilmiş özgün UUID/gövde/yanıt/journal bağları ve izin verilen veri değişimleri root tarafından bir kez doğrulandı: warehouse-actual-verification.v1.json SHAa376ee2d…, EXIT0 / VERIFIED_WITH_LIMITS. Doğrulayıcı SQL, tarayıcı veya runtime işlemi yapmadı. Bağımsız son inceleme yalnız gerçek depo akışı ve etkisiz temizlik için GO: warehouse-actual-independent-review.v1.json SHA1acf4b62…. Tam öneri, insan ve LIVE kabulü kapsam dışıdır.
+
+
+Kurulu yeşil ERP'de satış30013 tek yeni sentetik **fiş22 /24 TRY** oluşturdu. Ayrı depo30007 normal korumalı girişle yalnız bu fişte PREPARE, SAVE_CARTONS ve READY yaptı; üç özgün UUID/gövde HTTP201/COMMITTED/replayed=false. Bir koliye ürün10 ve11'den birer adet kaydedildi. Sahip hesabının normal okumasında gönderen/hazırlayan30007, kontrol edenNULL göründü. Son kontrol veya sevk yapılmadı. Sahibi30013 normal CANCEL ile fişi kapattı: **CANCELLED, iki RELEASED rezervasyon, korunan bir koli/iki koli kalemi ve beş journal**.
+
+Depo hesabı aynı lifecycle8aa8cc76-a9fe-4af5-bc02-db49e7d727c2 içinde bir kez açılıp bir kez kapatıldı. İki COMMITTED sonuç zamanı arası yaklaşık175s; bağımsız önce/sonra okumalarının koruyucu üst sınırı221512ms/300000ms; son bağımsız okumada pasif, RV0x0000000000171A11. Audit223→228: oluşturma2, aktivasyon1, pasifleştirme1, iptal1; eski kayıtlar korunur. Kullanıcı7/rol6/izin39/ayar3/SQL404 aynı. Son native47 alanın39'u aynı, sekiz değişim deneme kapsamındadır. Yeni fiziksel stok, cari, kasa veya finans hareketi yok; önceki stok5/6, cari23TRY ve kasa9TRY korunur.
+
+İlk CREATE503/UNKNOWN, normal uzlaştırma503 verdi; bağımsız okumada47 alanın tamamı aynı ve223audit idi. Normal sayfa yenileme/girişten sonra uygulamanın sakladığı **aynı UUID244408f6-e6b3-4af1-8a3b-88825e600043 ve bayt olarak aynı gövde** normal doğrulama düğmesiyle201 oldu. İkinci fiş veya yeni UUID üretilmedi. Beş başarılı business komutu yanında bu iki başarısız POST ayrıca korunur; toplam taşıma sayısı yedidir.
+
+**Kanıt sınırı:** depo çıkışında normal giriş ekranı gözlendi ve hesap ayrıca SQL'de pasif doğrulandı. Kimlik doğrulama ağ kaydı kapalı tutulduğundan logout HTTP200 gözlenmedi; katı önerinin bütün koşulları PASS ilan edilmez. Normal akış ve etkisiz temizlik gözlendi; yabancı fişte olumsuz yazma, bütünK10, insan/cihaz/LIVE ve son boş ticari profil açık. Son seçili okuma15/18/19/20/22'yi kapsar;21'in tek tek kalem eşitliği iddiası yok. Native/protected/seçili okumalar ayrı transaction'lardır, birleşik atomik gözlem değildir.
+
+Kurulu uygulama80662275/paket21de9872 ve owner39008/worker3828, loopback5294/4294 değişmedi. Bu işte runtime/SQL servisi kurulmadı veya yeniden başlatılmadı. Yardımcı kaynak yürütme commit'i92a0e30a3ea2b0c936ea3746f30fb353a9cc1610; feature dalı codex/erp-sales-approval-matrix-20261109 /PR123. Ön kontroldeki boş tablo SQL515, sabit Node dosya sınırı ve PowerShell argüman dizi hataları dar düzeltildi; ilk iki host reddi intent/dispatch/ODBC öncesindeydi. Gerçek iki yerel derleme çağrısı ve altı faz eşlemesi ayrıca geçti. Önceki8 hedefli capture testi tekrar sayılmadı. Kaynak/yerel kontrol/gerçekGUI/insan kabulü ayrı kalır; merkezplan/Excel/kapanış sayaçları değişmedi.
+
+Yerel kanıt: Masaüstü/ERP/kurulum/warehouse-current-prerequisites-v1; warehouse-ready.png, warehouse-owner-ready.png, warehouse-cancelled.png ve özgün komut/yanıtlar. Son seçili okuma wh-final-selected-own-workflows.json SHAaf2c30fd…; native wh-final-native-snapshot.json SHAff532798…; pasifleştirme warehouse-deactivation-independent-readback.v1.json. Aşağıdaki tarihli bölümler önceki aşamalardır.
+
 <!-- WAREHOUSE-EMPTY-CAPTURE-FIX-20261109 -->
 ## 9 Kasım — SQL515 düzeltildi; tam salt okunur ön kontrol geçti
 
