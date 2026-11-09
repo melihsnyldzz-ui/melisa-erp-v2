@@ -1,3 +1,11 @@
+## K04-09 — tedarikçiyi pasife alma ve yeniden etkinleştirme
+
+- Durum: BEKLİYOR — kaynak/test ayrı; yeni kurulum henüz yok.
+- Ortam hedefi: mevcut yerel V7 TEST, sentetik kart; dal codex/erp-supplier-lifecycle-20261109.
+- Teknik deneme: aynı dövizde aktif kartı gerekçeyle pasife al, pasif listeden geçmişi oku, yeni alış seçiminde bulunmadığını doğrula, yeniden etkinleştir. Stok/cari/geçmiş değişmemeli. Ayrı geri alınabilir sentetik belirsiz hesap/entity örneğinde normal isteğin kayıt/audit üretmediği doğrulanmalı; silme/birleştirme yok.
+- Kaynak: [davranış/izin/kurulum sınırı](docs/development/desktop-supplier-status.md), STATUS.md. Dört yeni SQL sütun izni ayrı karar ister; müşteri düzenlemenin sekiz izin onayı kullanılamaz.
+- İnsan/cihaz kabulü: kişi/tarih/sonuç henüz yok. Sentetik test veya ajan ekranı insan kabulü sayılmaz.
+
 ## 9 Kasım — K04-08 müşteri kartı düzenleme; insan kabulü BEKLİYOR
 
 Normal yetkili TEST hesabıyla Müşteriler → Müşteri kartını aç → Düzenle. Ad/telefon/şehir/ülke/tür değişikliğini kaydedip kartı yeniden açın; İptal kayıt bırakmamalı. İki editörde eski sürüm yeniyi ezmemeli; belirsiz kaydın Sonucu doğrula yolu aynı işlemi tek etkiyle çözmeli. 126 kaynak testi ve bağımsız inceleme, kurulum veya insan kabulü değildir. [Kapsam](docs/development/desktop-customer-edit.md). Ajanın gerçek SQL/GUI kanıtı ayrıca kaydedilecek; kişi/tarih/işletme sonucu, fiziksel cihaz ve LIVE BEKLİYOR.

@@ -4,12 +4,13 @@ import {DESKTOP_GOODS_V6_SCHEMA_GUARD_SQL,DESKTOP_GOODS_V6_PERMISSION_MANIFEST,D
 import {DESKTOP_MASTER_V5_RECORDED_CHECKS,DESKTOP_V5_CUSTOMER_MOVEMENT_RECORDED} from './desktopMasterV5Policy.mjs';
 import {DESKTOP_FINANCE_PROPOSED_RIGHTS} from './desktopFinanceSchemaProposal.mjs';
 import {DESKTOP_CUSTOMER_EDIT_RIGHTS} from './desktopCustomerEditPolicy.mjs';
+import {DESKTOP_SUPPLIER_STATUS_RIGHTS} from './desktopSupplierStatusPolicy.mjs';
 import {compileDesktopWritePermissionGuard} from './desktopWritePermissionPolicy.mjs';
 const quote=v=>`N'${v.replaceAll("'","''")}'`;
 const replaceOne=(s,a,b)=>{if(s.split(a).length!==2)throw Error('DESKTOP_FINANCE_V7_SOURCE_DRIFT');return s.replace(a,()=>b);};
 const key=x=>[x.schema,x.name,x.permission,x.column??''].join('/');
 const photoRights=[{schema:'dbo',name:'product_images',permission:'SELECT',column:null},{schema:'dbo',name:'product_images',permission:'INSERT',column:null},...['is_primary','updated_at','updated_by'].map(column=>({schema:'dbo',name:'product_images',permission:'UPDATE',column}))];
-const manifest=[...DESKTOP_GOODS_V6_PERMISSION_MANIFEST,...DESKTOP_FINANCE_PROPOSED_RIGHTS,...photoRights,...DESKTOP_CUSTOMER_EDIT_RIGHTS];if(new Set(manifest.map(key)).size!==manifest.length)throw Error('DESKTOP_FINANCE_V7_RIGHTS_DRIFT');
+const manifest=[...DESKTOP_GOODS_V6_PERMISSION_MANIFEST,...DESKTOP_FINANCE_PROPOSED_RIGHTS,...photoRights,...DESKTOP_CUSTOMER_EDIT_RIGHTS,...DESKTOP_SUPPLIER_STATUS_RIGHTS];if(new Set(manifest.map(key)).size!==manifest.length)throw Error('DESKTOP_FINANCE_V7_RIGHTS_DRIFT');
 export const DESKTOP_FINANCE_V7_PERMISSION_MANIFEST=Object.freeze(manifest);
 export const DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL=compileDesktopWritePermissionGuard(manifest);
 const extra=[{key:'finance.collection',view:1,create:1,update:0,delete:0,approve:0},{key:'finance.payment',view:1,create:1,update:0,delete:0,approve:0}];
