@@ -25,7 +25,7 @@ function NewJson([string]$file,$value){$bytes=[Text.UTF8Encoding]::new($false).G
 function Rel([string]$value){if($value-cnotmatch'^[A-Za-z0-9_./-]+$'-or$value.StartsWith('/')-or$value.Split('/')-contains'..'){throw 'WH_RELATIVE_PATH'};return $value}
 function Get-WarehouseRuntimeProofName {
  param([ValidateSet('activate','deactivate')][string]$LifecycleAction)
- if($LifecycleAction-ceq'activate'){return 'warehouse-lifecycle-preactivation-runtime-r2.json'}
+ if($LifecycleAction-ceq'activate'){return 'warehouse-lifecycle-preactivation-runtime-r3.json'}
  if($LifecycleAction-ceq'deactivate'){return 'normal-form-source-runtime.json'}
  throw 'WH_RUNTIME_PHASE_ACTION'
 }
@@ -51,7 +51,7 @@ function RuntimeGuard{
 function CompilePlan{
  $node='C:/Program Files/nodejs/node.exe';Hold $node $cfg.nodeExeSha256
  $p=[Diagnostics.ProcessStartInfo]::new();$p.FileName=$node;$p.WorkingDirectory=$source;$p.UseShellExecute=$false;$p.CreateNoWindow=$true;$p.RedirectStandardOutput=$true;$p.RedirectStandardError=$true;$p.Environment.Clear();$p.Environment['SystemRoot']=$env:SystemRoot;$p.Environment['WINDIR']=$env:WINDIR;$p.Environment['NODE_ENV']='production'
- foreach($arg in @($source+'/'+$relative+'/lifecycle-sql.mjs','--emit-plan',$Action)){$p.ArgumentList.Add($arg)}
+ foreach($arg in @(($source+'/'+$relative+'/lifecycle-sql.mjs'),'--emit-plan',$Action)){$p.ArgumentList.Add($arg)}
  $child=[Diagnostics.Process]::Start($p);try{$stdoutTask=$child.StandardOutput.ReadToEndAsync();$stderrTask=$child.StandardError.ReadToEndAsync();if(-not$child.WaitForExit(10000)){$child.Kill();throw 'WH_COMPILER_TIMEOUT'};$stdout=$stdoutTask.GetAwaiter().GetResult();$stderr=$stderrTask.GetAwaiter().GetResult();if($child.ExitCode-ne0-or$stderr-or$stdout.Length-gt2000000){throw 'WH_COMPILER_FAILED'};$text=$stdout.TrimEnd([char[]]"`r`n");if((Sha ([Text.Encoding]::UTF8.GetBytes($text)))-cne$cfg.compiledPlanSha256){throw 'WH_COMPILED_PLAN_PIN'};$plan=$text|ConvertFrom-Json -AsHashtable -DateKind String;if($plan.state-cne'WAREHOUSE_LIFECYCLE_OFFLINE_COMPILED_PLAN'-or$plan.action-cne$Action-or$plan.executionAuthorized-ne$false-or$plan.preparationOnly-ne$true-or$plan.guardSqlSha256-cne$cfg.guardSqlSha256-or$plan.sqlSha256-cne$cfg.sqlSha256-or(Sha ([Text.Encoding]::UTF8.GetBytes($plan.sql)))-cne$cfg.sqlSha256){throw 'WH_SQL_PIN'};return $plan}finally{$child.Dispose()}
 }
 try{

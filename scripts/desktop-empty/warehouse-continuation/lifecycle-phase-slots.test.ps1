@@ -11,7 +11,7 @@ $mapping=$functions[0].Body
 if(@($mapping.FindAll({param($n)$n-is[Management.Automation.Language.CommandAst]-or$n-is[Management.Automation.Language.InvokeMemberExpressionAst]},$true)).Count-ne0){throw 'PHASE_TEST_MAPPING_NOT_PURE'}
 $pure=$mapping.GetScriptBlock()
 $pre=@($pure.Invoke('activate'));$post=@($pure.Invoke('deactivate'))
-if($pre.Count-ne1-or[string]$pre[0]-cne'warehouse-lifecycle-preactivation-runtime-r2.json'){throw 'PHASE_TEST_PREACTIVATION_NAME'}
+if($pre.Count-ne1-or[string]$pre[0]-cne'warehouse-lifecycle-preactivation-runtime-r3.json'){throw 'PHASE_TEST_PREACTIVATION_NAME'}
 if($post.Count-ne1-or[string]$post[0]-cne'normal-form-source-runtime.json'){throw 'PHASE_TEST_DEACTIVATION_NAME'}
 if([string]$pre[0]-ceq[string]$post[0]){throw 'PHASE_TEST_IMMUTABILITY_COLLISION'}
 foreach($bad in @('observe','ACTIVATE','../runtime','')){$denied=$false;try{[void]$pure.Invoke($bad)}catch{$denied=$true};if(-not$denied){throw 'PHASE_TEST_BAD_ACTION_ACCEPTED'}}
