@@ -1,3 +1,9 @@
+## 9 Kasım — K10 / satış indirim onayının karar ve fiş geçmişi
+
+Mevcut kayıt öncesi teklif onayı sözleşmesi korunarak, onay özeti gerçek talep zamanı, karar veren kullanıcı/gerekçe/zaman ve sonradan oluşan fiş bağıyla genişletildi. Fiş bağı audit, değişmez içerik/teklif, fiyat kanıtı ve tek CREATE_DRAFT günlüğünden doğrulanır; çoğul/çelişkili bağ reddedilir. Normal onay kartı bu geçmişi güvenli metinle gösterir; kullanılmış veya süresi dolmuş onayın yeniden uygulanması kapanır. Kişisel %5 sınırı başkasını onaylama hakkı sayılmaz, mevcut patron şartı korunur. Yeni şema, SQL yetkisi, rol veya yazma işlemi yoktur.
+
+100 hedef kaynak testi PASS/0skip; exact CI, bu yeni kaynağın paket kurulumu ve normal ekran kanıtı henüz BEKLİYOR. Dal `codex/erp-sale-approval-history-20261109`, taban PR115/f4568ad6. Çalışan uygulama ayrı 9b4560db/paket4e1dd533; iki TEST hesabının ve fiş15'in önceki kabul edilmiş kanıtı tekrar edilmez. Yetkili patron hesabı bulunmadan gerçek onay/fiş devamı doğrulanmış sayılmaz. [Sözleşme ve kapsam](docs/development/desktop-sale-approval-history.md). İnsan/cihaz/LIVE kabulü ve özgün kapanış sayaçları değişmez.
+
 ## 8 Kasım — ERP09 / Ürün ve Stok: ürün hareketinden yetkili satış fişine izleme
 
 Ürün kartına sayfalı Hareketler görünümü eklendi. Normal ürün görüntüleme+düzenleme yetkisi aynı SQL transaction içinde yeniden doğrulanır; hareket miktarı/tarihi/kaynağı mali alanlar olmadan döner. Satış fişinin kimliği ve numarası yalnız güncel sales.view ve own/all sınırının izin verdiği kayıtta verilir. Depo yetkileri veya ürün fiyatı yetkileri genişletilmez. Fiş bağlantısı mevcut normal satış ekranına gider; geciken ürün/sayfa/oturum yanıtı ve değişmiş yetki reddedilir. Başarısız okuma boş geçmiş olarak sunulmaz.
