@@ -1,5 +1,12 @@
 # Depo devamı için çevrimdışı hazırlık
 
+Aktivasyon öncesi runtime kanıtı `warehouse-lifecycle-preactivation-runtime.json`,
+aktivasyon sonrası normal form/pasifleştirme kanıtı `normal-form-source-runtime.json`
+olarak ayrıdır. İki dosya da kendi gerçek fazını değişmez byte/hash ile korur;
+önceki kanıt üzerine aktif durum yazılmaz. Salt okunur gerçek yürütme ön kontrolü
+SQL515 ile sonuç üretmediğinden mevcut senaryo hâlâ NOT_RUN'dır; dosya adı düzeltmesi
+bu ayrı SQL ön kontrol engelini çözmüş sayılmaz.
+
 Bu klasör K10-WH-CONT-20261109-01 önerisinin iki eksik önkoşulunu hazırlar:
 mevcut depo sırrını normal parola formuna taşıyan dar tüketici ve mevcut 404
 SQL izin profiline bağlı kullanıcı30007 etkinleştirme/pasifleştirme araçları.

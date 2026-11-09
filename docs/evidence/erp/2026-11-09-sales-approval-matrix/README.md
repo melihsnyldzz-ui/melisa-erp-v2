@@ -1,5 +1,16 @@
 # DES-19 indirim ve vade onayı: gerçek kurulum ve normal ekran
 
+## 9 Kasım — Depo faz dosyası düzeltildi; gerçek salt okunur ön kontrol SQL515 ile durdu
+
+Aktivasyon öncesi runtime kanıtı artık yalnız warehouse-lifecycle-preactivation-runtime.json, pasifleştirme/normal form sonrası kanıtı normal-form-source-runtime.json olarak bağlanır. Saf action→dosya adı işlevini gerçek BoundJson tüketir; eski karar/hedef/hash/NoReparse/CreateNew/CAS/UNKNOWN korumaları aynı. PowerShell AST0 hata, iki geçerli/dört ret mapping durumu ve üretici-tüketici eşleşmesi doğrulandı. Önceki23 ilgisiz sentetik test tekrar edilmedi. PS1 c469029c ve yeni hedefli test662b7857; manifestv3 1e5abc47 (17 yardımcı kaynak/aynı12 guard bağımlılığı). Eski kanıt dosyası ezilmedi.
+
+Aynı turda mevcut tek kullanımlık kararla salt okunur yürütme ön kontrolü yapıldı. İncelenmiş observe SQL c3af3bfd, sabit hash'i zorunlu tutan gözlemci6dddfc42 üzerinden bir kez çağrıldı; SQL515/WH_READ_FAILED verdi ve doğrulanmış readback üretmedi. Bu ayrı SQL ön kontrol engelidir; dosya adı çakışması kapanmıştır. Kesin hata noktası henüz kanıtlanmadı. Kaynaktaki @before.h için boş tablo aggregate/hash ifadesi olası adaydır; gerçek NULL/JSON/hash verisi çıkarılmadı veya uydurulmadı. Yeni SQL renderer düzeltmesi bu dar işte yapılmadı.
+
+Başarısız RO denemesinden sonraki bağımsız native okuma SHA34024d8e, önceki03ecfd65 ile47 alan/5korunan kümede birebir aynı:223audit,7kullanıcı,6rol,39uygulama izni ve aynı404SQL profili. Depo30007 pasif, RV11BB11. Kurulu80662275/paket21de9872/317kaynak ve sahiplik kontrolleri geçti. Snapshot başına iki ardışık transaction birleşik atomik değildir. Hiç yeni fiş, uygulama POST'u, aktivasyon/pasifleştirme, credential/rol/izin/servis/runtime değişikliği yok; yazma hakkı kullanılmadı. Normal depo senaryosu ve yabancı fiş reddi ayrı NOT_RUN; K10/insan/LIVE kapanışı verilmedi.
+
+Yerel kanıt warehouse-current-prerequisites-v1: phase-slot-targeted-check.v1.json SHA2cd267fb, public-preparation-manifest.v3.json SHA1e5abc47, warehouse-readonly-initial-failure.v1.json SHA34da8600. Aynı açık hedef için sonraki somut ihtiyaç, iki izinli boş/dolu kontrol tablosunda yalnız NULL bayrağı/sayı/uzunluk döndüren dar RO tanıyla515'in nedenini bulmaktır; bu tanı burada çalıştırılmadı. R1/tekTEST sahibi ve merkezplan/Excel aynı; eski kaynak/kanıtlar korunur.
+
+
 ## 9 Kasım — Depo önkoşulları: yalnız kaynak ve çevrimdışı doğrulama
 
 Bağımsız hazırlık incelemesi GO_NO_NEW_P1_P2: `independent-review.v1.json` SHA `7d467b452733f1d5b9ca267727aa738523a30c2d444f8a428590d035c8c611a0`. İnceleme yalnız kaynak/çevrimdışı kanıt içindir; yürütme kabulü değildir.

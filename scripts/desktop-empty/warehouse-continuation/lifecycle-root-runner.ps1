@@ -23,7 +23,13 @@ function ReadJson([string]$file){Get-Content -LiteralPath $file -Raw|ConvertFrom
 function Same($a,$b){[System.Text.Json.Nodes.JsonNode]::DeepEquals([System.Text.Json.Nodes.JsonNode]::Parse((ConvertTo-Json -InputObject $a -Depth 35 -Compress)),[System.Text.Json.Nodes.JsonNode]::Parse((ConvertTo-Json -InputObject $b -Depth 35 -Compress)))}
 function NewJson([string]$file,$value){$bytes=[Text.UTF8Encoding]::new($false).GetBytes(($value|ConvertTo-Json -Depth 20)+"`n");$stream=[IO.File]::Open($file,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::Read);try{$stream.Write($bytes);$stream.Flush($true)}finally{$stream.Dispose()};return Sha $bytes}
 function Rel([string]$value){if($value-cnotmatch'^[A-Za-z0-9_./-]+$'-or$value.StartsWith('/')-or$value.Split('/')-contains'..'){throw 'WH_RELATIVE_PATH'};return $value}
-function BoundJson([string]$slot){$spec=$cfg.files[$slot];$shared=@{decision='normal-form-source-execution-decision.json';runtime='normal-form-source-runtime.json';activation='normal-form-source-activation.json'};if(-not$spec-or($shared.ContainsKey($slot)-and$spec.fileName-cne$shared[$slot])-or(-not$shared.ContainsKey($slot)-and$spec.fileName-cnotmatch'^warehouse-lifecycle-[a-z0-9.-]+\.json$')){throw 'WH_BOUND_FILE'};$file=$artifact+'/'+$spec.fileName;Hold $file $spec.sha256;return ReadJson $file}
+function Get-WarehouseRuntimeProofName {
+ param([ValidateSet('activate','deactivate')][string]$LifecycleAction)
+ if($LifecycleAction-ceq'activate'){return 'warehouse-lifecycle-preactivation-runtime.json'}
+ if($LifecycleAction-ceq'deactivate'){return 'normal-form-source-runtime.json'}
+ throw 'WH_RUNTIME_PHASE_ACTION'
+}
+function BoundJson([string]$slot){$spec=$cfg.files[$slot];$shared=@{decision='normal-form-source-execution-decision.json';runtime=(Get-WarehouseRuntimeProofName $Action);activation='normal-form-source-activation.json'};if(-not$spec-or($shared.ContainsKey($slot)-and$spec.fileName-cne$shared[$slot])-or(-not$shared.ContainsKey($slot)-and$spec.fileName-cnotmatch'^warehouse-lifecycle-[a-z0-9.-]+\.json$')){throw 'WH_BOUND_FILE'};$file=$artifact+'/'+$spec.fileName;Hold $file $spec.sha256;return ReadJson $file}
 function ProcessIdentity([int]$id,[string]$birth){$p=Get-CimInstance Win32_Process -Filter ('ProcessId='+$id) -WarningAction Stop;if(-not$p-or$p.CreationDate.ToUniversalTime().Ticks-ne[DateTimeOffset]::Parse($birth).UtcTicks){throw 'WH_PROCESS_BIRTH'};return $p}
 function RuntimeGuard{
  $owner=ProcessIdentity 39008 '2026-11-09T18:40:48.5543060+03:00';$worker=ProcessIdentity 3828 '2026-11-09T18:41:00.6248890+03:00'
