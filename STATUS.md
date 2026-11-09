@@ -1,3 +1,13 @@
+## 9 Kasım — DES-19: vade sürümü kuruldu; paralel okuma gecikmesi için kaynak düzeltildi
+
+Gerçek TEST sürümü b81cfaa3, paket d961dc12, owner 35016/worker 51424; adresler yalnız 127.0.0.1:5294/4294. Push 42615436695 ve PR 42615447370 CI koşuları Windows dahil 8 iş/104 adım SUCCESS. Resmi artifact 13671074795 doğrulanıp kuruldu. Stop→stage→start boyunca 47 native alan ve 5 korunan registry kümesi aynı kaldı; SQL servisleri ve 404 SQL hakkı değişmedi. TLS taşıması önceki doğrulamadan miras; yeni probe yapılmadı.
+
+Normal operatör 30002 ile yeni sentetik müşteri 104 (ERP-DUE-20261109-B81) tek POST 201 ile kaydedildi. Sonraki cari okuması 401/10091.008 ms, eşzamanlı kur okuması 200/10665.335 ms verdi; yeni fiş, vade talebi veya sevk gönderilmedi. SQL DMV örneklerinde blokaj yoktu; iki sorgu RUNNING/RUNNABLE ve CPU kullanıyordu. Deneme aralığını kapsayan system_health dosyasında ilgili deadlock bulunmadı. Kesin SQL hata numarası henüz bilinmiyor. Audit 208→209; yalnız beş müşteri kayıt tablosu değişti, diğer 32 tablonun sayısı/hash'i ve dört güvenlik kümesi aynı kaldı. Eski kalemlerin tek tek satır eşliği iddia edilmez.
+
+Yeni kaynak 6d505da0/219b50a2, 11 okuma metodunda aynı SERIALIZABLE transaction içindeki tam doğrulamayı korur; ayrı yinelenen taramayı kaldırır (3→2). V7 sorgusu 12 büyük IF yerine aynı 203 koşul/THROW ifadesini ayrı IF'lerde çalıştırır. Bağımsız ScriptDom parser bütün koşulları ve hata ifadelerini byte/sıra olarak eşit buldu; 154 manifest satırı, 219 OBJECT_ID ve ham metadata sabitleri aynı. Güvenli sayısal bind-hata kaydı eklendi; timeout, pool, cache, rol, yetki ve UUID değiştirilmedi. Birleşik 51 test PASS/0 skip; 84 okuyucu regresyonu ve bağımsız 40 auth/list + 8 compiler testi PASS. Yeni exact CI, native süre ölçümü, paket kurulumu ve normal vade kabulü BEKLİYOR. Dal codex/erp-sales-approval-matrix-20261109 / PR123. Bu kaynak sonucu 401'in çözüldüğünü veya ERP'nin tamamlandığını göstermez; insan/cihaz/LIVE ve özgün kapanış sayıları aynı.
+
+Yerel kanıt: Masaüstü/ERP/kurulum/k10-due-exception-v1 ve auth-read-concurrency-v1; source review SHAabfe2a9b…/45aa7c89…. [Kapsam ve gerçek kanıt](docs/evidence/erp/2026-11-09-sales-approval-matrix/README.md).
+
 ## 9 Kasım — K10-02 / DES-19: müdür onayı aynı satış fişine bağlandı
 
 Satışçı en çok %3, müdür başka satışçının güncel bekleyen talebinde %5 dahil, üzeri patron olarak ayrıldı. Müdürün yabancı kredi özeti yalnız güncel bekleyen karar kapsamında okunur; genel cari/finans hakkı eklenmedi. Yalnız sales.view ile normal onay panelleri açılır; UNKNOWN UUID/gövde ve yetki kaybı korumaları sürer. Çok sayıdaki eski istek ve sayısal ID sıralaması için iki pagination P2 bağımsız incelemeyle kapatıldı.

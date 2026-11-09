@@ -1,5 +1,15 @@
 # DES-19 indirim onayı: gerçek kurulum ve normal ekran
 
+## 9 Kasım sonraki kurulum ve okuma engeli
+
+B81cfaa3b14d7036d4c1754724dccea7ceec0f87, paketd961dc127083a366fb32943fd9e84e077a9463ca85b5fac472c959e3d3d3b92d gerçekten kuruldu. [Push](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42615436695) ve [PR CI](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42615447370) Windows dahil8iş/104adımSUCCESS; artifact13671074795, ZIP187f362bef7304a997f5e62b430ea147a091dd20d96c95fac13354c078c20184 resmi digest ile eşleşti. Owner35016/worker51424, yalnız5294/4294loopback. Kurulumun47alan/5korunan küme eşliği ve404SQL hakkı doğrulandı; yeniTLSprobe yok. Önceki indirim onayı kanıtları aşağıda tarihsel olarak korunur.
+
+Yeni normal TEST müşteri104 tek201 ile kaydedildi; audit208→209, beş müşteri-kayıt tablosu değişti, diğer32tablonun sayısı/hash'i ve dört güvenlik kümesi aynı. Taze oturumda cari GET401/10091.008ms, eşzamanlı kurGET200/10665.335ms; yeni satış/vade talebi/sevk yok.20s salt okunur DMV örnekleri blokaj0, RUNNING/RUNNABLE ve CPU artışı gösterdi.11987olaylık mevcut system_health dosyası deneme zamanını kapsadı, hedefDB5 için ilgili deadlock yoktu. Kesin401SQLkodu bilinmiyor; zaman aşımı henüz çıkarımdır.
+
+Yerel deliller: k10-due-exception-v1/post-start-native-snapshot.json SHA524a6012…; post-customer-load-block-native-snapshot.json SHA288071eb…; customer-load-block-observation.json; normal-account-diagnostic-wire.json; sql-request-watch-7e824a31782d4e0ebf82f86990eddb73.result.json SHA2efba670…; system-health-deadlocks-c247dfafa2144c93b9bd3fb0a911f119.json SHA6d714d50…. Altında yeni kaynak6d505da0/219b50a2 ile tekrar tarama3→2 ve203eşdeğer IF hazır;51birleşik/84okuyucu testPASS, bağımsız40+8PASS, AST203predicate/THROW byte/sıra eşliği. Yeni exactCI/native ölçüm/kurulum/normal vade kabulü BEKLİYOR. Source review: auth-read-concurrency-v1/auth-list-independent-review.json SHAabfe2a9b… ve guard-compiler-independent-review.json SHA45aa7c89…. İnsan/cihaz/LIVE ve tüm ERP hazır durumu verilmez.
+
+## Önceki indirim onayı kurulumu
+
 9 Kasım 2026, SEMIH üzerindeki ayrılmış yerel TEST. Sonuç: satış talebi → uygun karar veren → aynı satış taslağı. Fişe özel vade istisnası ve bütün ERP teslimi açık; insan/personel kabulü BEKLİYOR.
 
 ## Kaynak ve kurulum

@@ -1,5 +1,7 @@
 # K10-02 / DES-19 satış onay sınırları
 
+9 Kasım son kurulum: B81/paketd961 TEST'e kuruldu; vade denemesi yeni müşteri104 cari okumasında401/10.091sn ile durdu, yeni fiş/sevk gönderilmedi. Kaynaktaki okuma iyileştirmesi aynı transaction'da tam doğrulamayı koruyup ayrı yinelenen taramayı kaldırır(3→2); V7statik guard12IF/203predicate yerine aynı203predicate/THROW'u ayrı IF'lerde çalıştırır. SQLmetadata/literal/manifest/yetki/timeout/UUID aynı; bağımsız AST byte/sıra eşliğini doğruladı. Birleşik51hedefPASS; yeniCI/native hız/kurulum/normal vade kabulü ayrıca açık. Bu,401çözümü veya tamamlanmış ERP iddiası değildir.
+
 9 Kasım 2026. Bu çalışma PR119'un `00ef3887` kaynak tabanını ve PR120'nin rol matrisi incelemesini kullanır. PR121 ve PR122 sonraki satış/depo/mal kabul/finans hazırlıklarıdır; bunların varlığı kurulum veya kabul değildir.
 
 ## Kesin şirket kararı
