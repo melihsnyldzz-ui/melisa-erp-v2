@@ -33,7 +33,7 @@ const fail=(stage='REJECTED')=>{throw Error('DESKTOP_WORKFLOW_DRAFT_'+stage);};
 export function projectDesktopPublicSaleQuote(quote,{fx=false}={}){
  const keys=['currency','subtotalExact4','discountRateExact4','discountTotalExact4','totalExact4','maxDiscountRateExact4','belowCostWarning','writeSupported',...(fx?['accountId','accountCurrency','accountAmountExact4','amountTryExact4','documentRateExact8','accountRateExact8']:[])];
  const lineKeys=['productId','quantityExact3','unitPriceExact4','lineTotalExact4'];
- if(typeof fx!=='boolean'||!quote||typeof quote!=='object'||!Array.isArray(quote.lines)||quote.lines.length!==2||keys.some(k=>!Object.hasOwn(quote,k)||typeof quote[k]!==(['belowCostWarning','writeSupported'].includes(k)?'boolean':'string'))||quote.lines.some(line=>!line||typeof line!=='object'||lineKeys.some(k=>!Object.hasOwn(line,k)||typeof line[k]!=='string')))fail('QUOTE_PROJECTION');
+ if(typeof fx!=='boolean'||!quote||typeof quote!=='object'||!Array.isArray(quote.lines)||quote.lines.length!==2||keys.some(k=>!Object.hasOwn(quote,k)||typeof quote[k]!==(['belowCostWarning','writeSupported'].includes(k)?'boolean':'string'))||quote.lines.some(line=>!line||typeof line!=='object'||lineKeys.some(k=>!Object.hasOwn(line,k)||typeof line[k]!=='string')))fail();
  return {...Object.fromEntries(keys.map(k=>[k,quote[k]])),lines:quote.lines.map(line=>Object.fromEntries(lineKeys.map(k=>[k,line[k]])))};
 }
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;

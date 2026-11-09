@@ -19,6 +19,6 @@ test('public quote drops cost/profit and unknown nested data while preserving sa
  const result=JSON.parse(JSON.stringify(project(quote,{fx:true})));
  assert.deepEqual(Object.keys(result).sort(),['accountAmountExact4','accountCurrency','accountId','accountRateExact8','amountTryExact4','belowCostWarning','currency','discountRateExact4','discountTotalExact4','documentRateExact8','lines','maxDiscountRateExact4','subtotalExact4','totalExact4','writeSupported'].sort());
  assert.deepEqual(Object.keys(result.lines[0]).sort(),['lineTotalExact4','productId','quantityExact3','unitPriceExact4']);assert.equal(result.totalExact4,'1.5000');assert.equal(result.belowCostWarning,false);assert(!JSON.stringify(result).includes('hidden'));assert(!JSON.stringify(result).includes('unitCostTryExact4'));assert(!JSON.stringify(result).includes('grossProfitTryExact4'));assert.equal(line.unitCostTryExact4,'8.0000');
- assert.throws(()=>project({...quote,lines:[{...line,unitPriceExact4:{cost:'hidden'}},line]},{fx:true}),/QUOTE_PROJECTION/);
- assert.throws(()=>project({...quote,accountAmountExact4:{profit:'hidden'}},{fx:true}),/QUOTE_PROJECTION/);
+ assert.throws(()=>project({...quote,lines:[{...line,unitPriceExact4:{cost:'hidden'}},line]},{fx:true}),/DESKTOP_WORKFLOW_DRAFT_REJECTED/);
+ assert.throws(()=>project({...quote,accountAmountExact4:{profit:'hidden'}},{fx:true}),/DESKTOP_WORKFLOW_DRAFT_REJECTED/);
 });
