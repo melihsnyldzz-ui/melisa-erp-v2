@@ -1,6 +1,6 @@
 # Depo devamı için çevrimdışı hazırlık
 
-Aktivasyon öncesi runtime kanıtı `warehouse-lifecycle-preactivation-runtime.json`,
+Aktivasyon öncesi runtime kanıtı `warehouse-lifecycle-preactivation-runtime-r3.json`,
 aktivasyon sonrası normal form/pasifleştirme kanıtı `normal-form-source-runtime.json`
 olarak ayrıdır. İki dosya da kendi gerçek fazını değişmez byte/hash ile korur;
 önceki kanıt üzerine aktif durum yazılmaz. Salt okunur gerçek yürütme ön kontrolü
