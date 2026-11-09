@@ -12,7 +12,7 @@ test('policy, user and role revisions invalidate the quote authority binding',()
 
 test('credit authority requires an explicit manager/boss identity and the action permission',()=>{
  const u={...user(),permissions:[...user().permissions,'customer.edit']};
- for(const kind of ['manager','boss'])assert.deepEqual(credit(u,row([person(kind)])),{revision:policy(u,row([person(kind)])).revision,canManage:true,canApprove:true});
+ for(const kind of ['manager','boss'])assert.deepEqual(credit(u,row([person(kind)])),{revision:policy(u,row([person(kind)])).revision,canManage:true,canApprove:true,canApproveOwnDueException:kind==='boss'});
  for(const [v,r] of [[u,null],[u,row([person('sales')])],[{...u,role:{...u.role,code:'desktop_first_sale_operator'}},null],[u,row([{...person('boss'),actorId:'102'}])]])assert.deepEqual([credit(v,r).canManage,credit(v,r).canApprove],[false,false]);
  assert.equal(credit(user(),row([person('manager')])).canManage,false);
  assert.equal(credit({...u,permissions:['customer.edit']},row([person('boss')])).canApprove,false);

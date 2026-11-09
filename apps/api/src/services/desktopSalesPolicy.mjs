@@ -38,5 +38,5 @@ export function desktopSalesPolicyForUser(user,row=null){
 export function desktopCreditAccessForUser(user,row=null){
  const pricing=desktopSalesPolicyForUser(user,row),parsed=row===null?null:parseDesktopSalesPolicyRow(row);
  const entry=parsed?.people.find(p=>p.actorId===user.id),authorized=entry?.kind==='manager'||entry?.kind==='boss';
- return Object.freeze({revision:pricing.revision,canManage:authorized&&user.permissions.includes('customer.edit'),canApprove:authorized&&user.permissions.includes('sales.view')});
+ return Object.freeze({revision:pricing.revision,canManage:authorized&&user.permissions.includes('customer.edit'),canApprove:authorized&&user.permissions.includes('sales.view'),canApproveOwnDueException:entry?.kind==='boss'&&user.permissions.includes('sales.view')});
 }

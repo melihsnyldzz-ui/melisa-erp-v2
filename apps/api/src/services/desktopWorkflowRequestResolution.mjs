@@ -11,12 +11,14 @@ const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=900719925
 export function desktopWorkflowRequestIdentity(actorId,kind,raw){
  if(!id(actorId)||!raw||typeof raw!=='object'||Array.isArray(raw)||!['draft','transition','dispatch','cancel'].includes(kind))fail();
  if(kind==='cancel'){const body=normalizeDesktopSaleCancellation(raw);return {body,hash:createHash('sha256').update(JSON.stringify({actorId,operation:'CANCEL_SALE',command:body})).digest('hex'),requestId:body.requestId,operation:'CANCEL_SALE'};}
+ if(kind==='dispatch'&&Object.hasOwn(raw,'dueExceptionRequestId')&&!id(raw.dueExceptionRequestId))fail();
  const body=kind==='transition'?normalizeDesktopWorkflowTransition(raw):JSON.parse(JSON.stringify(raw));
  if(typeof body.requestId!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(body.requestId))fail();
  const discounted=kind==='draft'&&Object.hasOwn(body,'discountRateExact4'),pricing=kind==='draft'&&Object.hasOwn(body,'pricing'),fx=kind!=='transition'&&Object.hasOwn(body,'currencySelection');
  if(kind==='draft'&&(pricing&&!discounted||Object.keys(body).sort().join(',')!==['customerId','documentDate','expectedRevision','items','requestId',...(discounted?['discountRateExact4']:[]),...(pricing?['pricing']:[]),...(fx?['currencySelection']:[])].sort().join(',')||discounted&&(typeof body.discountRateExact4!=='string'||!(pricing?/^(?:0|[1-9]\d?)\.\d{4}$/:/^[0-3]\.\d{4}$/).test(body.discountRateExact4)||BigInt(body.discountRateExact4.replace('.',''))>(pricing?999999n:30000n))))fail();
  if(pricing)normalizeDesktopSalePricing(body.pricing);
- if(kind==='dispatch'&&Object.keys(body).sort().join(',')!==['customerId','expectedVersion','invoiceId','productIds','requestId',...(fx?['currencySelection','documentDate']:[])].sort().join(','))fail();
+ if(kind==='dispatch'&&Object.keys(body).sort().join(',')!==['customerId','expectedVersion','invoiceId','productIds','requestId',...(fx?['currencySelection','documentDate']:[]),...(Object.hasOwn(body,'dueExceptionRequestId')?['dueExceptionRequestId']:[])].sort().join(','))fail();
+ if(kind==='dispatch'&&Object.hasOwn(body,'dueExceptionRequestId')&&!id(body.dueExceptionRequestId))fail();
  if(fx){desktopSaleCurrencySelection(body.currencySelection);desktopCompanyRateDate(body.documentDate);}
  const value=kind==='draft'?{actorId,request:body}:kind==='dispatch'?{actorId,c:body}:{actorId,...body};
  return {body,hash:createHash('sha256').update(JSON.stringify(value)).digest('hex'),requestId:body.requestId,operation:kind==='draft'?'CREATE_DRAFT':kind==='dispatch'?'DISPATCH':body.operation};

@@ -1,5 +1,14 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWorkflowClient} from './desktopWorkflowClient.mjs';
+test('explicit due exception dispatch survives lost ACK, reload, retry and exact resolver without changing legacy bytes',async()=>{
+ const base={customerId:'2',invoiceId:'12',expectedVersion:'0x0000000000000001',productIds:['9','10']};
+ for(const selected of [false,true]){
+  const storage=memory(),calls=[];let wrong=true,ids=0;
+  const make=()=>createDesktopWorkflowClient({actorId:'8',storage,locks,newId:()=>{ids++;return uuid;},submit:async(kind,body)=>{calls.push({kind,body:structuredClone(body)});if(kind==='resolve')return {state:'NOT_COMMITTED',requestId:body.body.requestId,actorId:'8',kind:wrong?'draft':'dispatch',resolution:'DURABLE_NO_COMMIT'};throw Error('lost');}});
+  const fields={...base,...(selected?{dueExceptionRequestId:'31'}:{})},first=make();assert.equal((await first.create('dispatch',fields)).state,'UNKNOWN');assert.equal(JSON.stringify(first.pending().body),JSON.stringify({requestId:uuid,...fields}));const restored=make();assert.equal((await restored.retry()).state,'UNKNOWN');assert.deepEqual(calls[0],calls[1]);assert.equal((await restored.resolve()).state,'UNKNOWN');assert.equal(restored.pending().body.dueExceptionRequestId,selected?'31':undefined);wrong=false;assert.equal((await restored.resolve()).state,'NOT_COMMITTED');assert.equal(ids,1);assert.equal(restored.pending(),null);
+ }
+ let ids=0;const c=createDesktopWorkflowClient({actorId:'8',storage:memory(),locks,newId:()=>{ids++;return uuid;},submit:async()=>{throw Error();}});for(const value of [null,31,'0','01','',undefined])await assert.rejects(c.create('dispatch',{...base,dueExceptionRequestId:value}));assert.equal(ids,0);
+});
 const memory=()=>{const m=new Map();return {getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)};};
 const locks={request:async(_k,_options,fn)=>fn({})},uuid='da171000-6f42-4f19-8cab-9f4539618647';
 test('a cancellation fence review preserves the original pending request instead of releasing a fresh UUID',async()=>{
