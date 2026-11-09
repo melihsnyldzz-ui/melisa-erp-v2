@@ -1,3 +1,9 @@
+## 9 Kasım — K10-02 rol matrisi ve sentetik yetki sınırları
+
+K10-02 için satış, depo, muhasebe, müdür ve patron kaynak yetenekleri, bilinmeyen atamalar ve mevcut açık PR zincirindeki sınırlar [ayrı kanıtta](docs/evidence/erp/2026-11-09-k10-role-matrix/README.md) karşılaştırıldı. Dört yeni sentetik kompozisyon testi ve 25 mevcut test offline guard altında 29/29 geçti; bu sonuç kurulu rol/persona veya insan kabulü değildir. Özellikle dar kişisel %5 hesabı şirket müdürü ya da başka kişinin işlemini onaylayan patron sayılmaz. Kaynak adayı PR119/00ef3887, dal `codex/erp-3agent-roles-20261109`; kurulu TEST sürümü bu aday değildir. CI bu görevde zorunlu koşul değildir ve yeni CI sonucu iddia edilmez.
+
+K10-02 ve özgün insan kabulü açık: yetkili gerçek persona/rol/izin bağları ve normal kullanım sonuçları ayrıca doğrulanmalıdır. TEST/LIVE/SQL/rol/credential veya ticari veriye bu çalışma kapsamında yazılmadı; main merge ve kurulum yapılmadı. Ayrı K06/K05 ve K07/K08 analizleri kendi dallarında tutulur ve ortak duruma eşzamanlı yazılmaz.
+
 ## 9 Kasım — K04-09 / geri alınabilir tedarikçi durumu kaynakta hazır
 
 Normal karttan gerekçeli pasife alma/yeniden etkinleştirme, pasif listeden karta dönüş ve mevcut alış geçmişini koruma eklendi. HTTP ve aynı leased SQL transaction supplier.view+supplier.edit doğrular. Native rowversion CAS, aktör/tedarikçi/UUID/gövdeye bağlı audit receipt ve aynı komutla sonuç çözümleme kullanılır. Yerel create journal/audit ile tüm hesap/entity zinciri receipt/fence/UPDATE öncesinde doğrulanır; belirsiz kimlikte kayıt veya birleştirme yoktur. Onaylanmış durum değişikliğinde listeler tazelenir; UNKNOWN eski isteği korur.
