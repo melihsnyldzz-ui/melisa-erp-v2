@@ -1,13 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
+test('every list/card/rate/history read rejects a false or throwing transaction verifier before any business SQL',async()=>{
+ const cases=[['list',['7','customers']],['readCompanyRates',['7','2026-11-09']],['readProductBarcode',['7','00092']],['readProductPurchaseCosts',['7','8']],['readProductMovements',['7','8']],['readProduct',['7','8']],['readSupplier',['7','8']],['readSupplierPurchases',['7','8','9']],['readCustomerLedger',['7','8','9']],['readCustomerAccountSales',['7','8','9']],['readCustomer',['7','8']],['readCustomer',['7','8',{includeSales:true}]]];
+ for(const [method,args] of cases)for(const throwing of [false,true]){
+  let reads=0,verifications=0,rollbacks=0;class Transaction{async begin(){this.open=true;}async rollback(){this.open=false;rollbacks++;}async commit(){assert.fail('unauthorized commit');}}class Request{constructor(){reads++;assert.fail('business SQL before verified session');}}
+  const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:4}},service=createDesktopWriteListService({pool:{},sql,richCards:true,schemaVersion:7,verifySession:async({transaction,actorId,permission})=>{verifications++;assert.equal(transaction.open,true);assert.equal(actorId,'7');assert(permission);if(throwing)throw Error('changed target');return false;}});
+  await assert.rejects(service[method](...args),method);assert.equal(verifications,1,method);assert.equal(reads,0,method);assert.equal(rollbacks,1,method);
+ }
+});
 
 function setup({allow=true,guard=true,receiptTotal='50.0000',receiptState='COMPLETED',receiptCurrency='TRY',richCards=false,schemaVersion,total='1'}={}){
  const calls=[];let committed=0,rolled=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){committed++;}async rollback(){rolled++;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,p:this.params});if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:guard?1:0}]};if(q.includes('COUNT_BIG(*)'))return {recordset:[{total}]};if(q.includes('FROM dbo.sales_invoices i'))return {recordset:[{id:'5',documentNo:'DS-ORIGINAL',documentDate:'2026-11-06',customerName:'Ada',workflowState:receiptState,currency:receiptCurrency,totalExact4:receiptTotal}]};return {recordset:[{id:'1',customerCode:'A',customerName:'Ada',phone:null,city:'Yalova',country:'Türkiye',currency:'TRY',customerType:'customer',balanceExact4:'50.0000'}]};}}
  const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:1}};
- const service=createDesktopWriteListService({pool:{},sql,richCards,schemaVersion,verifySession:async x=>{calls.push(x);return allow;}});
+ const service=createDesktopWriteListService({pool:{},sql,richCards,schemaVersion,verifySession:async x=>{calls.push(x);return allow&&guard;}});
  return {service,calls,get committed(){return committed;},get rolled(){return rolled;}};
 }
 test('same transaction checks target and current authority before escaped paginated data',async()=>{
@@ -16,7 +24,8 @@ test('same transaction checks target and current authority before escaped pagina
  assert.equal(x.calls.find(v=>v?.permission)?.permission,'customer.view');
  const query=x.calls.find(v=>v?.q?.includes('OFFSET'));assert.equal(query.p.search,'%~%~_~[%');assert.match(query.q,/is_deleted=0/);assert.match(query.q,/OFFSET @offset/);
 });
-test('V6 lists use the V6 guard and fail closed on guard rejection',async()=>{const x=setup({richCards:true,schemaVersion:6});await x.service.list('7','customers',{page:1,limit:10,search:''});const q=x.calls.find(v=>v?.q?.includes('DESKTOP_LIST_TARGET_REJECTED')).q;assert.match(q,/schema_version=6/);assert.match(q,/DESKTOP_GOODS_V6_SCHEMA_REJECTED/);const denied=setup({richCards:true,schemaVersion:6,guard:false});await assert.rejects(denied.service.list('7','customers',{page:1,limit:10,search:''}));assert.equal(denied.rolled,1);});
+test('V6 lists require their held transaction verifier before reading data',async()=>{const x=setup({richCards:true,schemaVersion:6});await x.service.list('7','customers',{page:1,limit:10,search:''});assert.equal(x.calls[0],'begin');assert.equal(x.calls[1].permission,'customer.view');assert(x.calls[1].transaction);assert(x.calls[2].q.includes('COUNT_BIG(*)'));const denied=setup({richCards:true,schemaVersion:6,guard:false});await assert.rejects(denied.service.list('7','customers'));assert.equal(denied.rolled,1);assert.equal(denied.calls.filter(x=>x?.q).length,0);});
+
 test('rich customer paging keeps the same escaped phone/country predicate and selected page',async()=>{
  const x=setup({richCards:true,total:'101'}),r=await x.service.list('7','customers',{page:2,limit:1,search:'00555%_[ Türkiye'});assert.equal(r.meta.page,2);assert.equal(r.meta.hasPreviousPage,true);
  for(const q of x.calls.filter(c=>c?.q?.startsWith('SELECT ')&&(c.q.includes('COUNT_BIG(*)')||c.q.includes('OFFSET')))){assert.match(q.q,/phone LIKE @search ESCAPE N'~'/);assert.match(q.q,/country LIKE @search ESCAPE N'~'/);assert.equal(q.p.offset,1);assert.equal(q.p.search,'%00555~%~_~[ Türkiye%');}

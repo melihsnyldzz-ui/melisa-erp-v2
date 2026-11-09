@@ -6,6 +6,7 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import nativeSql from 'mssql';
+import {recordDesktopFailure} from './desktopSafeDiagnostics.mjs';
 import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog.js';
 import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
 import {desktopSalesPolicyForUser,desktopCreditAccessForUser,DESKTOP_SALES_POLICY_SETTING} from './desktopSalesPolicy.mjs';
@@ -78,9 +79,9 @@ export const DESKTOP_WRITE_AUTH_LIMITS=Object.freeze({sourceOnly:true,routeMount
  writerPoolAndTlsOpenerImplemented:false,requiresSameTransactionAuthorityCheck:true,
  userAndRolePermissionsProvisioned:false,realSqlVerified:false,fullErpReady:false});
 
-export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false,schemaVersion=richCards?3:2}={}){
+export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false,schemaVersion=richCards?3:2,onFailure=recordDesktopFailure}={}){
  schemaVersion=schemaVersion===7?desktopMasterV7Schema(richCards,schemaVersion):schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
- if(typeof richCards!=='boolean')fail();
+ if(typeof richCards!=='boolean'||typeof onFailure!=='function')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||!Buffer.isBuffer(tokenKey)||tokenKey.length<32||typeof passwordHasher?.compare!=='function')fail();
  const key=Buffer.from(tokenKey),sessions=new Map(),storage=new AsyncLocalStorage(),draftServices=new WeakSet();let closed=false;
  const maxSessions=256;
@@ -132,7 +133,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   res.once('finish',()=>{ctx.open=false;});res.once('close',()=>{ctx.open=false;});
   let entry=null,current=null;try{entry=verify(tokenHeader(req));current=await transaction(tx=>user(tx,{userId:entry.userId}));
    if(!ctx.open||entry.revoked||sessions.get(entry.sid)!==entry||entry.expiresAt<=Date.now()||current.userVersion!==entry.userVersion||current.roleVersion!==entry.roleVersion)fail();
-  }catch{entry=null;current=null;}
+  }catch(error){try{onFailure({error});}catch{}entry=null;current=null;}
   ctx.entry=entry;ctx.current=current;
   return storage.run(ctx,()=>next());
  }
