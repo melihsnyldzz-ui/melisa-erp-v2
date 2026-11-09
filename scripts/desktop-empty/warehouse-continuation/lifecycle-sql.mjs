@@ -21,7 +21,23 @@ REVERT;SET @impersonating=0;
 IF SUSER_SID()<>SUSER_SID(${q(T.owner)}) OR ISNULL(IS_SRVROLEMEMBER(N'sysadmin'),0)<>1 THROW 51995,'WH_REVERT',1;`;}
 // Every existing table is covered. Hashes of users/tokens remain inside SQL;
 // neither full user JSON nor credential/token fields appear in any result/audit.
-function capture(variable){return Object.entries(TABLES).map(([name,keys])=>`INSERT @${variable}(name,n,h) SELECT ${q(name)},COUNT_BIG(*),${hash(`(SELECT * FROM dbo.[${name}] WITH(TABLOCKX,HOLDLOCK) ORDER BY ${keys.map(k=>'['+k+']').join(',')} FOR JSON PATH,INCLUDE_NULL_VALUES)`)} FROM dbo.[${name}] WITH(TABLOCKX,HOLDLOCK);`).join('\n');}
+function capture(variable){return Object.entries(TABLES).map(([name,keys])=>{
+ const count=`@wh_${variable}_${name}_n`,json=`@wh_${variable}_${name}_json`;
+ const exactEmpty=`DATALENGTH(${json})=DATALENGTH(N'[]') AND CONVERT(varbinary(max),${json})=CONVERT(varbinary(max),N'[]')`;
+ return `-- WH_CAPTURE_BEGIN ${variable} ${name}
+DECLARE ${count} bigint;DECLARE ${json} nvarchar(max);
+SELECT ${count}=COUNT_BIG(*) FROM dbo.[${name}] WITH(TABLOCKX,HOLDLOCK);
+SET ${json}=(SELECT * FROM dbo.[${name}] WITH(TABLOCKX,HOLDLOCK) ORDER BY ${keys.map(k=>'['+k+']').join(',')} FOR JSON PATH,INCLUDE_NULL_VALUES);
+IF ${count} IS NULL OR ${count}<0 THROW 51995,'WH_CAPTURE_COUNT',1;
+IF ${count}>0 AND (${json} IS NULL OR (${exactEmpty})) THROW 51995,'WH_CAPTURE_NONEMPTY_JSON',1;
+IF ${count}=0 BEGIN
+ IF ${json} IS NOT NULL AND NOT(${exactEmpty}) THROW 51995,'WH_CAPTURE_EMPTY_JSON',1;
+ SET ${json}=N'[]';
+END;
+INSERT @${variable}(name,n,h) VALUES(${q(name)},${count},${hash(json)});
+SET ${json}=NULL;
+-- WH_CAPTURE_END ${variable} ${name}`;
+ }).join('\n');}
 const inventoryHash=variable=>hash(`(SELECT name,n,CONVERT(varchar(64),h,2) h FROM @${variable} ORDER BY name FOR JSON PATH,INCLUDE_NULL_VALUES)`);
 const roleGuard=`IF (SELECT COUNT_BIG(*) FROM dbo.users)<>7 OR (SELECT COUNT_BIG(*) FROM dbo.roles)<>6 OR (SELECT COUNT_BIG(*) FROM dbo.permissions)<>39 OR (SELECT COUNT_BIG(*) FROM dbo.system_settings)<>3 OR NOT EXISTS(SELECT 1 FROM dbo.roles WHERE id=10 AND CONVERT(varbinary(160),code)=CONVERT(varbinary(160),N'desktop_warehouse_operator') AND is_active=1 AND is_system_role=0 AND row_version=0x000000000010E051) OR (SELECT COUNT_BIG(*) FROM dbo.users WHERE role_id=10)<>1 OR (SELECT COUNT_BIG(*) FROM dbo.permissions WHERE role_id=10)<>3 OR EXISTS(SELECT CONVERT(varbinary(240),permission_key),CONVERT(int,can_view),CONVERT(int,can_create),CONVERT(int,can_update),CONVERT(int,can_delete),CONVERT(int,can_approve) FROM dbo.permissions WHERE role_id=10 EXCEPT SELECT * FROM (VALUES (CONVERT(varbinary(240),N'warehouse.pack'),1,0,0,0,0),(CONVERT(varbinary(240),N'warehouse.prepare'),1,0,0,0,0),(CONVERT(varbinary(240),N'warehouse.view'),1,0,0,0,0)) e(k,v,c,u,d,a)) THROW 51995,'WH_ROLE_SCOPE',1;`;
 const transactionStart=`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;

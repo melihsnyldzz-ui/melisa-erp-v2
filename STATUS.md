@@ -1,3 +1,14 @@
+<!-- WAREHOUSE-EMPTY-CAPTURE-FIX-20261109 -->
+## 9 Kasım — SQL515 düzeltildi; tam salt okunur ön kontrol geçti
+
+Boş tablonun eski FOR JSON scalar özeti NULL ve ardından SHA2_256 sonucu NULL kaldığı için NOT NULL envanter alanı SQL515 veriyordu. Gerçek iki tablo tanısı bunu doğruladı. Düzeltme yalnız kilit altında sıfır satır olduğu doğrulanan tabloyu standart boş diziyle özetler. Dolu tabloda NULL/boş dizi reddi ve diğer SQL/guard/CAS bölümleri korunur.
+
+Sekiz hedefli test geçti. Üründen birebir alınan iki parça gerçek SQL üzerinde SERIALIZABLE/ROLLBACK ile bir kez denendi: audit_logs223 için önceki hash eşit, boş auth_refresh_tokens için boş dizi özeti eşit; ikisi de NULL olmayan32 bayt. Ham satır/JSON/hash/token değeri sonuç olarak çıkarılmadı. Dört SQL metni ayrıştırması0 hata; bağımsız kaynak ve salt okunur çalıştırıcı incelemeleri GO.
+
+43 tabloyu kapsayan düzeltilmiş tam salt okunur ön kontrol de bir kez başarılı oldu:223 audit, depo30007 pasif ve RV0x000000000011BB11. Güncel47 native alan okuması ile kurulu80662275/paket21de9872 aynı hedefte doğrulandı. Bu adımda yeni fiş, hesap etkinleştirme, rol/izin, credential, servis veya runtime yazısı yok. Gerçek depo senaryosu ve yabancı fişe yazma reddi açık; bütün ERP/insan/LIVE kabulü değildir.
+
+Kanıt: Masaüstü/ERP/kurulum/warehouse-current-prerequisites-v1; sql515-product-regression-result.v1.json SHAa5c490ed…, warehouse-lifecycle-initial-readback.json SHA57da8717…, empty-capture-targeted-tests.v1.tap SHA55478c50…. Yeni public-preparation-manifest.v4.json kaynak düzeltmesini bağlar; önceki manifestteki SQL hiç çalışmadı ifadesi tarihsel hazırlık kapsamındadır. Çalışan uygulama paketi değişmez.
+
 ## 9 Kasım — Depo faz dosyası düzeltildi; gerçek salt okunur ön kontrol SQL515 ile durdu
 
 Aktivasyon öncesi runtime kanıtı artık yalnız warehouse-lifecycle-preactivation-runtime.json, pasifleştirme/normal form sonrası kanıtı normal-form-source-runtime.json olarak bağlanır. Saf action→dosya adı işlevini gerçek BoundJson tüketir; eski karar/hedef/hash/NoReparse/CreateNew/CAS/UNKNOWN korumaları aynı. PowerShell AST0 hata, iki geçerli/dört ret mapping durumu ve üretici-tüketici eşleşmesi doğrulandı. Önceki23 ilgisiz sentetik test tekrar edilmedi. PS1 c469029c ve yeni hedefli test662b7857; manifestv3 1e5abc47 (17 yardımcı kaynak/aynı12 guard bağımlılığı). Eski kanıt dosyası ezilmedi.
