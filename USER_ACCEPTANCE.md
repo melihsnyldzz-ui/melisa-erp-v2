@@ -1,3 +1,7 @@
+## 9 Kasım — K04-08 müşteri kartı düzenleme; insan kabulü BEKLİYOR
+
+Normal yetkili TEST hesabıyla Müşteriler → Müşteri kartını aç → Düzenle. Ad/telefon/şehir/ülke/tür değişikliğini kaydedip kartı yeniden açın; İptal kayıt bırakmamalı. İki editörde eski sürüm yeniyi ezmemeli; belirsiz kaydın Sonucu doğrula yolu aynı işlemi tek etkiyle çözmeli. 126 kaynak testi ve bağımsız inceleme, kurulum veya insan kabulü değildir. [Kapsam](docs/development/desktop-customer-edit.md). Ajanın gerçek SQL/GUI kanıtı ayrıca kaydedilecek; kişi/tarih/işletme sonucu, fiziksel cihaz ve LIVE BEKLİYOR.
+
 ## 6 Kasım — K03-04 eksik USD fiyatı
 
 Ajan normalGUI/görsel/SQL: PASS. Mevcut ürün2/USDönizleme409açıkuyarı, Taslağıkaydetyok, satışPOST0;33iştablosu/metadata/identity/rezervaynı. İnsan/personel/LAN/terminal/LIVE: BEKLİYOR. Kanıt: docs/evidence/erp/2026-11-06-desktop-missing-currency-price/README.md. Sıradaki ilk satış kontrolü K05-02aynıbarkodun miktar birleşimi; K04-06 ikinci teslimde.

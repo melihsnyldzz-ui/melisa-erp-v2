@@ -1,3 +1,4 @@
+import {createDesktopCustomerEditRoutes} from './routes/desktopCustomerEditRoutes.mjs';
 import {createDesktopCountService} from './services/desktopCountService.mjs';
 import {createDesktopCountRoutes} from './routes/desktopCountRoutes.mjs';
 import {createDesktopCustomerLedgerRoutes} from './routes/desktopCustomerLedgerRoutes.mjs';
@@ -8,7 +9,7 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
 import {getDesktopWritePool,getDesktopWriteProfile} from './config/desktopWriteTlsConnector.mjs';
-import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteProductMovementSalesScope,getDesktopWriteSalesApprovalService,getDesktopWriteCreditService} from './services/desktopWriteAuthCore.mjs';
+import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteProductMovementSalesScope,getDesktopWriteSalesApprovalService,getDesktopWriteCreditService,getDesktopWriteCustomerEditService} from './services/desktopWriteAuthCore.mjs';
 import {createDesktopCreditRoutes} from './routes/desktopCreditRoutes.mjs';
 import {createDesktopSalesPricingRoutes} from './routes/desktopSalesPricingRoutes.mjs';
 import {createDesktopLocalMasterSqlStore} from './services/desktopLocalMasterSqlStore.mjs';
@@ -96,6 +97,7 @@ export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=nu
  app.use(['/api/products','/api/customers','/api/suppliers','/api/receipts','/api/desktop-company-rates','/api/desktop-product-barcode','/api/desktop-products','/api/desktop-suppliers'],auth.bind);
  app.use(createDesktopWriteListRoutes({service:listService,authenticateNormal:auth.authenticateNormal,richCards}));
  if([5,6,7].includes(schemaVersion)){app.use('/api/desktop-customers',auth.bind);app.use(createDesktopCustomerLedgerRoutes({service:listService,authenticateNormal:auth.authenticateNormal}));}
+ if(schemaVersion===7)app.use(createDesktopCustomerEditRoutes({service:getDesktopWriteCustomerEditService(auth,pool),authenticateNormal:auth.authenticateNormal}));
  app.use('/api/desktop-sale/workflows',auth.bind);
  app.use('/api/desktop-sale/drafts',auth.bind);
  app.use('/api/desktop-sale/draft-preview',auth.bind);
