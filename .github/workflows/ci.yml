@@ -119,8 +119,8 @@ jobs:
         run: node --test scripts/ci/change-impact-advisory.test.mjs
       - name: Warehouse quantity-only response and recovery contract
         run: node --test packages/shared/src/desktopWarehouse.test.mjs
-      - name: Sales ownership visibility without historical reassignment
-        run: node --test packages/shared/src/desktopSalesReadScope.test.mjs packages/shared/src/desktopAccountSalesVisibility.test.mjs
+      - name: Sales ownership and supplier status recovery contracts
+        run: node --test packages/shared/src/desktopSalesReadScope.test.mjs packages/shared/src/desktopAccountSalesVisibility.test.mjs packages/shared/src/desktopSupplierStatus.test.mjs
       - name: Install locked dependencies without lifecycle scripts
         run: |
           npm ci --prefix apps/api --ignore-scripts --no-audit --no-fund

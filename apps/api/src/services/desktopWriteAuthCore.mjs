@@ -10,6 +10,7 @@ import {applyRolePermissionDefaults,expandPermissions} from './permissionCatalog
 import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
 import {desktopSalesPolicyForUser,desktopCreditAccessForUser,DESKTOP_SALES_POLICY_SETTING} from './desktopSalesPolicy.mjs';
 import {createDesktopSalesPricingAuthority} from './desktopSalesPricingAuthority.mjs';
+import {createDesktopSupplierStatusService} from './desktopSupplierStatusService.mjs';
 import {createDesktopCustomerEditService} from './desktopCustomerEditService.mjs';
 import {createDesktopCreditAuthority} from './desktopCreditAuthority.mjs';
 import {DESKTOP_LIFECYCLE_PERMISSION_GUARD_SQL as DESKTOP_WRITE_PERMISSION_GUARD_SQL} from '../config/desktopLifecyclePermissionPolicy.mjs';
@@ -35,6 +36,7 @@ export function getDesktopWriteSalesPricingAuthority(auth,pool){const entry=auth
 export function getDesktopWriteSalesApprovalService(auth,pool,draftService){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.approvalService(draftService);}
 export function getDesktopWriteCreditAuthority(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.creditAuthority;}
 export function getDesktopWriteCustomerEditService(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.customerEditService();}
+export function getDesktopWriteSupplierStatusService(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.supplierStatusService();}
 export function getDesktopWriteCreditService(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.creditService();}
 export function getDesktopWriteDiscountCeiling(auth,pool){const entry=authOwners.get(auth);if(!entry||!entry.secure||entry.pool!==pool)fail();return entry.discountCeiling;}
 const id=value=>typeof value==='string'&&/^[1-9]\d{0,15}$/.test(value)&&BigInt(value)<=9007199254740991n;
@@ -175,6 +177,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  }
  const credit=createDesktopCreditAuthority({sql,readAuthority:readCreditAuthority,ensureLease:ensureCreditLease});
  const customerEditService=()=>{if(schemaVersion!==7)fail();return createDesktopCustomerEditService({pool,sql,verifySession,release:()=>release(storage.getStore()),ensureLease:ensureCreditLease,profileGuard:profileIdentitySql});};
+ const supplierStatusService=()=>{if(schemaVersion!==7)fail();return createDesktopSupplierStatusService({pool,sql,verifySession,release:()=>release(storage.getStore()),ensureLease:ensureCreditLease,profileGuard:profileIdentitySql});};
  const creditService=()=>{if(schemaVersion!==7)fail();return credit.service({pool,verifySession,release:()=>release(storage.getStore())});};
  const salesPolicy=async args=>(await readPricingPolicy(args)).policy;
  const approvalService=draftService=>{if(!draftServices.has(draftService)||typeof draftService.preview!=='function')fail();return pricing.approvalService({pool,verifySession,release:()=>release(storage.getStore()),preview:draftService.preview});};
@@ -216,5 +219,5 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   function bindFinanceService(service){if(schemaVersion!==7||!service||['create','options','list'].some(n=>typeof service[n]!=='function'))fail();const bound={};for(const name of ['create','options','list',...(typeof service.preflight==='function'?['preflight']:[])])bound[name]=async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};return Object.freeze(bound);}
   function bindCountService(service){if(schemaVersion!==7||!service||['products','list','read','create','update','resolve'].some(n=>typeof service[n]!=='function'))fail();const bound={};for(const name of ['products','list','read','create','update','resolve'])bound[name]=async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};return Object.freeze(bound);}
   function bindWarehouseService(service){if(schemaVersion!==7||!service||['list','read','transition','resolve'].some(n=>typeof service[n]!=='function'))fail();const bound={};for(const name of ['list','read','transition','resolve',...(typeof service.barcodeCheck==='function'?['barcodeCheck']:[])])bound[name]=async(actor,...args)=>{const ctx=storage.getStore();try{if(!active(ctx)||ctx.entry.userId!==actor)fail();return await service[name](actor,...args);}finally{release(ctx);}};return Object.freeze(bound);}
-  const api=Object.freeze({login,bind,authenticateNormal,authorize,me,verifySession,bindService,bindReadService,bindSaleService,bindWorkflowService,bindDraftService,bindDispatchService,bindResolutionService,bindWorkflowReadService,bindFinalCancellationService,bindGoodsService,bindFinanceService,bindWarehouseService,bindCountService,logout,close});authOwners.set(api,{pool,verifySession,discountCeiling,salesReadScope,productMovementSalesScope,salesPolicy,pricingAuthority:pricing.authorize,approvalService,creditAuthority:credit,creditService,customerEditService,secure:sql===nativeSql&&passwordHasher===bcrypt});return api;
+  const api=Object.freeze({login,bind,authenticateNormal,authorize,me,verifySession,bindService,bindReadService,bindSaleService,bindWorkflowService,bindDraftService,bindDispatchService,bindResolutionService,bindWorkflowReadService,bindFinalCancellationService,bindGoodsService,bindFinanceService,bindWarehouseService,bindCountService,logout,close});authOwners.set(api,{pool,verifySession,discountCeiling,salesReadScope,productMovementSalesScope,salesPolicy,pricingAuthority:pricing.authorize,approvalService,creditAuthority:credit,creditService,customerEditService,supplierStatusService,secure:sql===nativeSql&&passwordHasher===bcrypt});return api;
 }

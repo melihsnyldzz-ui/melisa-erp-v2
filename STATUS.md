@@ -1,3 +1,11 @@
+## 9 Kasım — K04-09 / geri alınabilir tedarikçi durumu kaynakta hazır
+
+Normal karttan gerekçeli pasife alma/yeniden etkinleştirme, pasif listeden karta dönüş ve mevcut alış geçmişini koruma eklendi. HTTP ve aynı leased SQL transaction supplier.view+supplier.edit doğrular. Native rowversion CAS, aktör/tedarikçi/UUID/gövdeye bağlı audit receipt ve aynı komutla sonuç çözümleme kullanılır. Yerel create journal/audit ile tüm hesap/entity zinciri receipt/fence/UPDATE öncesinde doğrulanır; belirsiz kimlikte kayıt veya birleştirme yoktur. Onaylanmış durum değişikliğinde listeler tazelenir; UNKNOWN eski isteği korur.
+
+70 hedef API/shared/policy/auth/logger testi PASS/0skip; Sites sahibi53 hedef testi ve yeşil build PASS bildirdi. Bağımsız kaynak incelemesi NO_NEW_P1P2. Kesintideki tamamlanmamış test çıktısı başarı sayılmadı, güncel70'lik koşu exit0 ile yenilendi. Gerçek app assembly fixture'i yerel Windows/native-mock koşusunda tamamlanmadı; aynı zorunlu fixture hosted exact CI'da ayrıca çalışır ve sonucu beklenir. Yeni shared DTO testi mevcut CI sözleşme adımına eklendi; kapı veya test kaldırılmadı.
+
+Dal codex/erp-supplier-lifecycle-20261109, taban PR118/7ef634df. Exact CI, yeni paket, dört dar SQL sütun izni/rollback readback ve normal ekran/native kabulü BEKLİYOR. Yalnız suppliers(is_active,passive_at,passive_reason,updated_by) yeni UPDATE hakları; updated_at mevcut. Eski sekiz izin onayı kullanılmaz. DDL, business rol/kişi, özel satış onaylayıcısı veya gerçek ticari kayıt değişmedi; çalışan07cfe paket aynı. Önceki salt-okunur K04-09/alış kanıtları yeniden kullanılır. [Sözleşme ve kurulum sınırı](docs/development/desktop-supplier-status.md). İnsan/cihaz/LIVE ve özgün49 yaprak kapanış sayıları korunur.
+
 ## 9 Kasım — K04-08 / normal müşteri kartını düzenleme
 
 Normal müşteri kartına ad, telefon, şehir, ülke ve müşteri türü düzenleme eklendi. Gerçek customer row_version ve bağlı entity alanlarından revision üretilir; eski revision aynı transaction içinde güncellemeyi engeller. Aynı UUID/aktör/gövde için audit receipt CAS'ten önce çözülür; kayıp yanıtta Sonucu doğrula commit'i bulur veya kalıcı no-commit fence üretir. İptal hiç gönderilmemiş formu kapatır. Boş/NULL alanlar korunur; hesap/kredi panelindeki bekleyen veya kaydedilmemiş işlem düzenleme sırasında kaybolmaz.
