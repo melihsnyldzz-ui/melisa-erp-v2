@@ -1,5 +1,18 @@
 # DES-19 indirim ve vade onayı: gerçek kurulum ve normal ekran
 
+## 9 Kasım — Depo önkoşulları: yalnız kaynak ve çevrimdışı doğrulama
+
+Bağımsız hazırlık incelemesi GO_NO_NEW_P1_P2: `independent-review.v1.json` SHA `7d467b452733f1d5b9ca267727aa738523a30c2d444f8a428590d035c8c611a0`. İnceleme yalnız kaynak/çevrimdışı kanıt içindir; yürütme kabulü değildir.
+
+Önceki koşullu yürütme, güncel depo giriş tüketicisi ve 404 izinli çalıştırıcı doğrulanamadığı için hiçbir yazma yapmadan durmuştu. Ayrı hazırlık göreviyle [dar yardımcı kaynakları](../../../../scripts/desktop-empty/warehouse-continuation/README.md) eklendi. Fiş15'te gerçekten kullanılan dedicated warehouse broker'ı SHA894205d4 ile değişmeden yeniden kullanılır; satış/müdür okuyucusunun yetkisi genişletilmedi. Yeni tüketici yalnız aynı30007/rol10, güncel karar/öneri, bağımsız aktif kullanıcı RV'si, runtime, kapalı ağ kaydı ve normal maskeli form kanıtlarıyla çalışabilir. Belgeli tab.id, her await çevresinde adres/sekmeyi kontrol eder; 30 saniyelik binding ve CreateNew intent aynı girişin otomatik tekrarlanmasını engeller. Sır yalnız eski özel pipe→normal parola alanına taşınır; hata/buffer temizliği korunur. Public ESM tanımının CUA ortamına yüklenmesi doğrulandı; fonksiyon çağrılmadı, gerçek sekme/giriş/broker kullanılmadı.
+
+Yeni SQL derleyici tam mevcut V7 guard'ını ve404 izin profilini kullanır. Windows-owner ODBC çalıştırıcısı varsayılan ValidateOnly; gelecekte yalnız exact karar, öneri, kaynak/SQL hash'leri, taze native/readback/runtime/önkoşul kanıtları ve CreateNew intent ile tek CAS yapabilir. Yalnız users30007.is_active/doğal RV ve bir audit değişir; diğer kayıtlar aynı transaction içinde korunur. Pasifleştirme gerçek etkinleştirme RV'si ve bağımsız kanıt ister. UNKNOWN yazma tekrar gönderilmez. Eski400bd/RV111ED1 SQL ve runner değiştirilmedi veya çalıştırılmadı.
+
+23 benzersiz sentetik test PASS/0skip:11 normal form,10 yaşam döngüsü,2 test koruması. Node test sürecinde ağ/alt süreç/özel dosya girişleri engellidir; bu Windows firewall değişikliği veya OS sandbox iddiası değildir. Dört SQL metni TSql160Parser ile0 hata; kalıcı DML hedefleri yalnız users UPDATE ve audit_logs INSERT. PowerShell AST0 hata, host script çağrılmadı. Bir ara fd koruması Node'un public modül yüklemesini durdurdu; yalnız guard edilmiş public open/close descriptor'larına izin verilerek düzeltildi. İlk C# parser visitor referans hatası gözlemcinin salt AST yürüyüşüyle giderildi; ikisi de gerçek SQL denemesi değildir.
+
+Yerel D15 kanıtı: Masaüstü/ERP/kurulum/warehouse-current-prerequisites-v1. Son public manifestv2 SHAa5b38c8d… (16 yardımcı kaynak+12 guard bağımlılığı), verification-result.v1.json SHAd322f630…, combined-offline-tests.v3.tap SHA4350deae…, parserproof SHA6079ce39…, tanım-import kanıtı SHA55b46c5a…. Ara koşular23 sayısına eklenmez. Gerçek canlı binding/activation proof üretilmedi; güncel223 başlangıcı SQL'de okunmadı. Hesap açma, credential/rol/izin değişimi, gerçek broker/sır/SQL/ERP ağ çağrısı, runtime/servis işlemi yok. Kurulu uygulama80662275/paket21de9872 bu kaynak hazırlığından ayrı. Gerçek depo olumlu senaryo, yabancı fişte yazma reddi, insan/cihaz/LIVE ve K10 tam kabulü açık; R1, tek TEST sahibi, merkezplan/Excel ve özgün kapanış sayaçları aynı.
+
+
 ## 9 Kasım K10-02 devamı: aktör30013 kendi fişinde normal beş geçiş
 
 Bağımsız gerçek kanıt incelemesi `SCOPED_GO_NO_NEW_P1_P2`: `own-lifecycle-actual-independent-review.v1.json`, SHA `92cc399165ad52fb81cca4f5d88dc080daaecf88f15f222938ccbb2066151886`. Yedi komut, korunum ve sıfır yeni finansal etki uyumlu; yabancı SQL yazma/depo denemesi ile tam K10, insan ve LIVE kabulü bu sonucun dışındadır.
