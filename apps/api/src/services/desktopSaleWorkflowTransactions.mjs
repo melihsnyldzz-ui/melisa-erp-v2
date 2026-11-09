@@ -5,6 +5,7 @@
 import {createHash} from 'node:crypto';
 import {recordDesktopFailure} from './desktopSafeDiagnostics.mjs';
 import {lockDesktopResolution} from './desktopWorkflowRequestResolution.mjs';
+import {desktopSalesReadOwner} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
 export const DESKTOP_SALE_WORKFLOW_LIMITS=Object.freeze({sourceOnly:true,requiresPersistedNativeDraft:true,requiresWorkflowSchema:true,dispatchImplemented:false,normalScreenVerified:false,realSqlVerified:false});
 const fail=()=>{throw Error('DESKTOP_WORKFLOW_REJECTED');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
@@ -23,27 +24,31 @@ export function normalizeDesktopWorkflowTransition(raw){
   const seen=new Set();return {cartonNo:box.cartonNo,items:box.items.map(item=>{if(!item||Object.keys(item).sort().join(',')!=='itemId,quantityExact3'||!id(item.itemId)||seen.has(item.itemId)||quantity(item.quantityExact3)===0n)fail();seen.add(item.itemId);return {itemId:item.itemId,quantityExact3:item.quantityExact3};})};
  });return c;
 }
-export function createDesktopSaleWorkflowTransactions({pool,sql,verifySession}={}){
- return createTransactions({pool,sql,verifySession},policy);
+export function createDesktopSaleWorkflowTransactions({pool,sql,verifySession,getSalesReadScope}={}){
+ if(typeof getSalesReadScope!=='function')fail();
+ return createTransactions({pool,sql,verifySession,getSalesReadScope},policy);
 }
 const warehousePolicy=Object.freeze({PREPARE:['DRAFT','PREPARING','warehouse.prepare'],SAVE_CARTONS:['PREPARING','PREPARING','warehouse.pack'],READY:['PREPARING','READY','warehouse.pack']});
 export function createDesktopWarehouseWorkflowTransactions({pool,sql,verifySession}={}){
  return createTransactions({pool,sql,verifySession},warehousePolicy);
 }
-function createTransactions({pool,sql,verifySession},activePolicy){
+function createTransactions({pool,sql,verifySession,getSalesReadScope},activePolicy){
  if(!pool||typeof sql?.Transaction!=='function'||typeof sql?.Request!=='function'||typeof sql?.NVarChar!=='function'||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function')fail();
  return Object.freeze({async transition(actorId,raw){let requestId=typeof raw?.requestId==='string'?raw.requestId:null;
   try{if(!id(actorId))fail();const c=normalizeDesktopWorkflowTransition(raw);if(!Object.hasOwn(activePolicy,c.operation)||activePolicy===warehousePolicy&&c.cartons.some(x=>x.cartonNo>100))fail();requestId=c.requestId;
    const hash=createHash('sha256').update(JSON.stringify({actorId,...c})).digest('hex'),tx=new sql.Transaction(pool);let begun=false;
    try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
     const query=(text,values={})=>{const req=new sql.Request(tx);for(const [name,value] of Object.entries(values))req.input(name,sql.NVarChar(name==='json'?sql.MAX:4000),value);return req.query(text);};
-    if(await verifySession({transaction:tx,actorId,permission:activePolicy===warehousePolicy?['warehouse.view',activePolicy[c.operation][2]]:activePolicy[c.operation][2]})!==true)fail();
+    if(await verifySession({transaction:tx,actorId,permission:activePolicy===warehousePolicy?['warehouse.view',activePolicy[c.operation][2]]:['sales.view',activePolicy[c.operation][2]]})!==true)fail();
     if(await lockDesktopResolution({sql,transaction:tx,requestId}))fail();
     const old=await query(`SELECT CONVERT(varchar(20),actor_id) actorId,CONVERT(varchar(20),invoice_id) invoiceId,operation,LOWER(CONVERT(varchar(64),payload_hash,2)) hash,result_json resultJson FROM dbo.desktop_sale_workflow_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=TRY_CONVERT(uniqueidentifier,@request);`,{request:requestId});
     if(!Array.isArray(old?.recordset)||old.recordset.length>1)fail();
     if(old.recordset.length){const prior=old.recordset[0];if(prior.actorId!==actorId||prior.invoiceId!==c.invoiceId||prior.operation!==c.operation||prior.hash!==hash)fail();const result=JSON.parse(prior.resultJson);if(result?.state!=='COMMITTED'||result.requestId!==requestId||result.invoiceId!==c.invoiceId||result.operation!==c.operation||result.workflowState!==activePolicy[c.operation][1]||result.replayed!==false||typeof result.version!=='string'||!/^0x[0-9A-F]{16}$/.test(result.version))fail();await tx.commit();begun=false;return {...result,replayed:true};}
-    const rows=await query(`SELECT w.state,CONVERT(varchar(18),CONVERT(binary(8),w.version),1) version,i.status FROM dbo.desktop_sale_workflows w WITH(UPDLOCK,HOLDLOCK) JOIN dbo.sales_invoices i WITH(UPDLOCK,HOLDLOCK) ON i.id=w.invoice_id WHERE w.invoice_id=TRY_CONVERT(bigint,@invoice); SELECT CONVERT(varchar(20),id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3 FROM dbo.sales_invoice_items WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=TRY_CONVERT(bigint,@invoice) ORDER BY product_id;`,{invoice:c.invoiceId});
+    const rows=await query(`SELECT w.state,CONVERT(varchar(18),CONVERT(binary(8),w.version),1) version,i.status,CONVERT(varchar(20),i.created_by) creatorId FROM dbo.desktop_sale_workflows w WITH(UPDLOCK,HOLDLOCK) JOIN dbo.sales_invoices i WITH(UPDLOCK,HOLDLOCK) ON i.id=w.invoice_id WHERE w.invoice_id=TRY_CONVERT(bigint,@invoice); SELECT CONVERT(varchar(20),id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3 FROM dbo.sales_invoice_items WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=TRY_CONVERT(bigint,@invoice) ORDER BY product_id;`,{invoice:c.invoiceId});
     const rs=rows?.recordsets;if(!Array.isArray(rs)||rs.length!==2||rs[0]?.length!==1||rs[1]?.length!==2)fail();const header=rs[0][0],lines=rs[1],map=new Map();
+    // The existing actor/body journal may be replayed after ownership changes.
+    // Fresh commands use the same current, transaction-bound scope as reads.
+    if(activePolicy!==warehousePolicy&&!desktopSalesReadOwner(header.creatorId,actorId,getSalesReadScope({transaction:tx,actorId})))fail();
     const from=activePolicy[c.operation][0];
     if(header.status!=='draft'||(Array.isArray(from)?!from.includes(header.state):header.state!==from)||header.version!==c.expectedVersion)fail();
     for(const l of lines){if(!id(l.itemId)||!id(l.productId)||quantity(l.quantityExact3)===0n||map.has(l.itemId))fail();map.set(l.itemId,l);}if(new Set(lines.map(l=>l.productId)).size!==2)fail();

@@ -17,7 +17,7 @@ test('resolution returns committed result or durably prevents an uncommitted ori
  const {createDesktopWorkflowResolutionService}=await import('./desktopWorkflowResolutionService.mjs'),service=createDesktopWorkflowResolutionService({connector,auth});
  const body={requestId:'da171000-6f42-4f19-8cab-9f4539618647',invoiceId:'12',operation:'READY',expectedVersion:'0x0000000000000001',cartons:[]};
  const result=await service.resolve('8',{kind:'transition',body});assert.equal(result.state,'NOT_COMMITTED');assert.equal(result.resolution,'DURABLE_NO_COMMIT');assert.equal(permissions[0],'sales.view');
- const writer=createDesktopSaleWorkflowTransactions({pool,sql,verifySession});assert.equal((await writer.transition('8',body)).state,'UNKNOWN');assert.equal(Object.keys(state.journal).length,0);
+ const writer=createDesktopSaleWorkflowTransactions({pool,sql,verifySession,getSalesReadScope:()=>{throw Error('fenced request must not reach invoice scope');}});assert.equal((await writer.transition('8',body)).state,'UNKNOWN');assert.equal(Object.keys(state.journal).length,0);
  assert.equal((await service.resolve('8',{kind:'transition',body})).state,'NOT_COMMITTED');
  await assert.rejects(service.resolve('8',{kind:'transition',body:{...body,expectedVersion:'0x0000000000000002'}}));
  const second={...body,requestId:'da171000-6f42-4f19-8cab-9f4539618648'},identity=desktopWorkflowRequestIdentity('8','transition',second);

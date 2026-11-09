@@ -1,13 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopSaleWorkflowTransactions} from './desktopSaleWorkflowTransactions.mjs';
-function fixture(){
- let state={state:'DRAFT',status:'draft',version:1,reservations:[],cartons:[],packed:[],journal:{},sent:null,prepared:null,checked:null,audits:0,stockRows:0,customerRows:0};let loseAck=false,allowed=true,stock='5.000',corrupt=false,failAudit=false;
+import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
+const broad=['sales.view','sales.create','sales.edit','sales.finalize','sales.cancel'],own=broad.filter(p=>p!=='sales.cancel');
+function fixture({creatorId='8',permissions=broad}={}){
+ let state={state:'DRAFT',status:'draft',version:1,creatorId,reservations:[],cartons:[],packed:[],journal:{},sent:null,prepared:null,checked:null,audits:0,stockRows:0,customerRows:0};let loseAck=false,allowed=true,stock='5.000',corrupt=false,failAudit=false,verified=null,scopeOverride,scopeThrows=false;const queries=[],verifiedRights=[];
  const lines=[{itemId:'1',productId:'5',quantityExact3:'2.000'},{itemId:'2',productId:'9',quantityExact3:'1.000'}],version=d=>'0x'+d.version.toString(16).toUpperCase().padStart(16,'0');
  class Transaction{async begin(){this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);if(loseAck){loseAck=false;throw Error('ACK lost');}}async rollback(){}}
- class Request{constructor(tx){this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p,rows=recordset=>({recordset});
+ class Request{constructor(tx){this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){queries.push(q);const d=this.tx.data,p=this.p,rows=recordset=>({recordset});
   if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows([]);
   if(q.startsWith('SELECT CONVERT(varchar(20),actor_id)'))return rows(d.journal[p.request]?[d.journal[p.request]]:[]);
-  if(q.startsWith('SELECT w.state'))return {recordsets:[[{state:d.state,version:version(d),status:d.status}],lines]};
+  if(q.startsWith('SELECT w.state')){assert(q.includes('CONVERT(varchar(20),i.created_by) creatorId'));assert(q.includes('WITH(UPDLOCK,HOLDLOCK)'));return {recordsets:[[{state:d.state,version:version(d),status:d.status,creatorId:d.creatorId}],lines]};}
   if(q.startsWith('SELECT CONVERT(varchar(40),current_stock_qty)'))return {recordsets:[[{stock}],[{reserved:'0.000'}],[{count:d.reservations.length}]]};
   if(q.startsWith('INSERT dbo.desktop_sale_reservations')){d.reservations.push({itemId:p.item,productId:p.product,quantityExact3:p.amount,state:'ACTIVE'});return rows([]);}
   if(q.startsWith('SELECT CONVERT(varchar(20),item_id)')&&q.includes('desktop_sale_reservations'))return rows(d.reservations);
@@ -23,9 +25,10 @@ function fixture(){
   throw Error('unhandled SQL');
  }}
  const sql={Transaction,Request,NVarChar:()=>{},MAX:'max',ISOLATION_LEVEL:{SERIALIZABLE:4}};
- const service=createDesktopSaleWorkflowTransactions({pool:{},sql,verifySession:async()=>allowed});let seq=0;
+ const pool={},verifySession=async({transaction,actorId,permission})=>{verifiedRights.push(permission);assert(Array.isArray(permission)&&permission[0]==='sales.view');if(!allowed||!permission.every(p=>permissions.includes(p)))return false;verified={transaction,actorId};return true;},getSalesReadScope=({transaction,actorId})=>{assert.equal(transaction,verified?.transaction);assert.equal(actorId,verified?.actorId);if(scopeThrows)throw Error('revoked lease');return scopeOverride===undefined?desktopSalesReadMode(permissions):scopeOverride;};
+ const service=createDesktopSaleWorkflowTransactions({pool,sql,verifySession,getSalesReadScope});let seq=0;
  const command=(operation,cartons=[])=>({requestId:'da171000-6f42-4f19-8cab-'+String(++seq).padStart(12,'0'),invoiceId:'12',operation,expectedVersion:version(state),cartons});
- return {service,command,state:()=>state,lose(){loseAck=true;},deny(){allowed=false;},lowStock(){stock='1.000';},corruptJournal(){corrupt=true;},failAudit(){failAudit=true;},posted(){state.stockRows=1;},finalized(){state.status='finalized';state.state='COMPLETED';}};
+ return {service,command,assembly:{pool,sql,verifySession,getSalesReadScope},state:()=>state,writes:()=>queries.filter(q=>/^(?:INSERT|UPDATE|DELETE)\b/.test(q)),verifiedRights,lose(){loseAck=true;},deny(){allowed=false;},scope(value){scopeOverride=value;},throwScope(){scopeThrows=true;},setCreator(value){state.creatorId=value;},lowStock(){stock='1.000';},corruptJournal(){corrupt=true;},failAudit(){failAudit=true;},posted(){state.stockRows=1;},finalized(){state.status='finalized';state.state='COMPLETED';}};
 }
 test('persistent preparation/cartons/ready/check and lost-ACK replay share one journal transaction',async()=>{
  const f=fixture(),prepare=f.command('PREPARE');f.lose();
@@ -62,4 +65,51 @@ test('cancel rejects posted/finalized/stale/unauthorized drafts; audit failure r
   const f=fixture();await f.service.transition('8',f.command('PREPARE'));setup(f);const before=structuredClone(f.state());assert.equal((await f.service.transition('8',f.command('CANCEL'))).state,'UNKNOWN');assert.deepEqual(f.state(),before);
  }
  const f=fixture();await f.service.transition('8',f.command('PREPARE'));const before=structuredClone(f.state());assert.equal((await f.service.transition('8',{...f.command('CANCEL'),expectedVersion:'0x0000000000009999'})).state,'UNKNOWN');assert.deepEqual(f.state(),before);
+});
+
+const packed=[{cartonNo:1,items:[{itemId:'1',quantityExact3:'2.000'},{itemId:'2',quantityExact3:'1.000'}]}];
+async function beforeOperation(f,actor,operation){
+ if(operation==='PREPARE'||operation==='CANCEL')return;
+ assert.equal((await f.service.transition(actor,f.command('PREPARE'))).workflowState,'PREPARING');
+ if(operation==='READY'||operation==='CHECK')assert.equal((await f.service.transition(actor,f.command('SAVE_CARTONS',packed))).workflowState,'PREPARING');
+ if(operation==='CHECK')assert.equal((await f.service.transition(actor,f.command('READY'))).workflowState,'READY');
+}
+test('sales30012/30013 cannot change each other\'s invoice through any fresh transition',async()=>{
+ for(const [creator,foreign]of [['30012','30013'],['30013','30012']])for(const operation of ['PREPARE','SAVE_CARTONS','READY','CHECK','CANCEL']){
+  const f=fixture({creatorId:creator,permissions:own});await beforeOperation(f,creator,operation);
+  const before=structuredClone(f.state()),writes=f.writes().length,body=f.command(operation,operation==='SAVE_CARTONS'?packed:[]);
+  assert.equal((await f.service.transition(foreign,body)).state,'UNKNOWN');assert.deepEqual(f.state(),before);assert.equal(f.writes().length,writes);
+ }
+});
+test('own sale transitions use the same current transaction scope and preserve person bindings',async()=>{
+ const f=fixture({creatorId:'30012',permissions:own});
+ for(const operation of ['PREPARE','SAVE_CARTONS','READY','CHECK'])assert.equal((await f.service.transition('30012',f.command(operation,operation==='SAVE_CARTONS'?packed:[]))).state,'COMMITTED');
+ assert.equal(f.state().sent,'30012');assert.equal(f.state().prepared,'30012');assert.equal(f.state().checked,'30012');
+ assert.deepEqual(f.verifiedRights,[['sales.view','sales.create'],['sales.view','sales.edit'],['sales.view','sales.edit'],['sales.view','sales.finalize']]);assert.equal(f.state().stockRows,0);assert.equal(f.state().customerRows,0);
+});
+test('NULL and malformed creators, invalid scope and lost current authority produce no command writes',async()=>{
+ for(const creatorId of [null,undefined,'0','bad']){const f=fixture({creatorId:null,permissions:own});f.setCreator(creatorId);const before=structuredClone(f.state());assert.equal((await f.service.transition('30012',f.command('PREPARE'))).state,'UNKNOWN');assert.deepEqual(f.state(),before);assert.equal(f.writes().length,0);}
+ for(const setup of [f=>f.scope(null),f=>f.scope('warehouse'),f=>f.throwScope(),f=>f.deny()]){const f=fixture({creatorId:'30012',permissions:own});setup(f);const before=structuredClone(f.state());assert.equal((await f.service.transition('30012',f.command('PREPARE'))).state,'UNKNOWN');assert.deepEqual(f.state(),before);assert.equal(f.writes().length,0);}
+ const noView=fixture({creatorId:'30012',permissions:['sales.create']});assert.equal((await noView.service.transition('30012',noView.command('PREPARE'))).state,'UNKNOWN');assert.equal(noView.writes().length,0);
+});
+test('existing broad read permissions retain cross-owner and ownerless operator transitions',async()=>{
+ for(const extra of ['sales.cancel','finance.collection','finance.payment'])for(const creatorId of ['30013',null]){const f=fixture({creatorId,permissions:[...own,extra]});assert.equal((await f.service.transition('30002',f.command('PREPARE'))).workflowState,'PREPARING');assert.equal(f.state().sent,'30002');}
+});
+test('own lost-ACK known journal replays after creator changes without a second effect',async()=>{
+ const f=fixture({creatorId:'30012',permissions:own}),body=f.command('PREPARE');f.lose();assert.equal((await f.service.transition('30012',body)).state,'UNKNOWN');f.setCreator('30013');f.throwScope();const before=structuredClone(f.state()),writes=f.writes().length;
+ const replay=await f.service.transition('30012',body);assert.equal(replay.state,'COMMITTED');assert.equal(replay.replayed,true);assert.deepEqual(f.state(),before);assert.equal(f.writes().length,writes);
+ assert.equal((await f.service.transition('30013',body)).state,'UNKNOWN');assert.equal((await f.service.transition('30012',{...body,expectedVersion:'0x0000000000009999'})).state,'UNKNOWN');assert.deepEqual(f.state(),before);
+});
+test('own cancellation keeps its exact known replay, while fresh commands on cancelled invoices remain closed',async()=>{
+ const f=fixture({creatorId:'30012',permissions:own}),cancel=f.command('CANCEL');f.lose();assert.equal((await f.service.transition('30012',cancel)).state,'UNKNOWN');f.setCreator(null);const before=structuredClone(f.state()),writes=f.writes().length;
+ assert.equal((await f.service.transition('30012',cancel)).replayed,true);assert.equal((await f.service.transition('30012',f.command('PREPARE'))).state,'UNKNOWN');assert.deepEqual(f.state(),before);assert.equal(f.writes().length,writes);
+});
+test('production workflow assembly obtains both private callbacks for its exact auth and pool',async t=>{
+ const f=fixture({creatorId:'30012',permissions:own}),{pool,sql,verifySession,getSalesReadScope}=f.assembly,connector={};let bound=false,scopeCalls=0;
+ const auth={bindWorkflowService:value=>{bound=true;return value;}};
+ t.mock.module('mssql',{exports:{default:sql}});t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:value=>{assert.equal(value,connector);return pool;}}});
+ t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{assert.equal(a,auth);assert.equal(p,pool);return verifySession;},getDesktopWriteSalesReadScope:(a,p)=>{assert.equal(a,auth);assert.equal(p,pool);return input=>{scopeCalls++;return getSalesReadScope(input);};}}});
+ const {createDesktopSaleWorkflowService}=await import('./desktopSaleWorkflowService.mjs'),service=createDesktopSaleWorkflowService({connector,auth});assert.equal(bound,true);
+ assert.equal((await service.transition('30012',f.command('PREPARE'))).workflowState,'PREPARING');assert.equal(scopeCalls,1);assert.deepEqual(f.verifiedRights,[['sales.view','sales.create']]);
+ assert.throws(()=>createDesktopSaleWorkflowTransactions({pool,sql,verifySession}));
 });
