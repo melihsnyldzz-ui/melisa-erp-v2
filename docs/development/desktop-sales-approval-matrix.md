@@ -19,6 +19,8 @@ Kararın yerel koordinasyon kaydı: `erp-koordinasyon-izleme.json` / `salesAppro
 
 ## Ayrı kalan vade ve kurulum kabulü
 
+9 Kasım gerçek yerel kurulumda %5.0001 için müdür GET403/patron onayı, tam %5 için müdür onayı ve satışçının aynı onayla fiş19 taslak kaydı normal ekran/native journal üzerinden doğrulandı. Runtime2e43/paket299 ile offline SQL compiler873 ayrıdır. [Gerçek kanıt ve kalan sınırlar](../evidence/erp/2026-11-09-sales-approval-matrix/README.md).
+
 Mevcut `saveTerms` kalıcı müşteri vadesi tanımıdır; fişe özel vade istisnası değildir. Mevcut kredi snapshot'ındaki `vadeStatus: unknown` bir istisna kabulü sayılmaz. Vade istisnasının fiş/kişi/terim revizyonuna bağlı ayrı protokolü ve olumlu normal ekran kanıtı henüz tamamlanmadı. Bu eksik genel cari düzenleme yetkisi verilerek kapatılmaz. K10-02 bu kaynak değişikliğiyle tamamlanmış sayılmaz.
 
 Yeni dar TEST müdür/patron kimlikleri önce pasif hazırlanır; eski yüzde 5 adlı hesabın kind=sales olması şirket müdürü olduğu anlamına gelmez. Kişi politikası satırına ekleme bütün policy revizyonlarını değiştirdiğinden uygulama öncesi açık/belirsiz komutlar gözden geçirilir. Fiş18 ve tarihsel209 silinmez, yeniden gönderilmez veya kendiliğinden iptal/onay/sevk edilmez. Korunan eski taslağın değişmiş politika altında otomatik kesinleştirilebildiği iddia edilmez.
