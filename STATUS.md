@@ -1,3 +1,9 @@
+## 9 Kasım — K10-04 / önizleme maliyet ve kâr verisini dış yanıttan ayırma
+
+FX satış önizlemesi iç hazırlık satırlarını doğrudan döndürdüğü için birim TRY maliyeti ve brüt kârı yalnız satış hakkıyla açabiliyordu. Public önizleme artık açık header/satır listesi ve ilkel türlerle üretilir; frontend de fazla/nested mali alanı reddeder. Native maliyet/kâr, kayıt/sevk/finans hesapları ve mevcut ürün kartı/maliyet geçmişi yetkileri aynı. belowCostWarning mevcut ikili iş uyarısıdır ve korunur; sayısal maliyet/kâr gizliliğiyle karıştırılmaz.
+
+84 hedef kaynak testi PASS/0skip; bağımsız source review NO_NEW_P1P2. Dal codex/erp-cost-profit-boundary-20261109, taban PR116/f11557e7. Yeni exact CI, paket kurulumu ve normal FX yanıtı ayrıca bekliyor. Mevcut dar satış hesabıyla ürün listesinde satış fiyatı/stok ve Kartı aç bulunmaması gerçek normal ekranda gözlendi; bu kaynak düzeltmesinin kurulması değildir. Yeni hesap/rol/yetki, SQL şeması veya ticari yazma yok. Önceki depo sekizHTTP kanıtı yeniden kullanılır;209,fiş15sevk/ödeme/kişisel sınır denemeleri tekrarlanmaz. [Kapsam](docs/development/desktop-cost-profit-visibility.md). İnsan/cihaz/LIVE ve özgün kapanış sayaçları aynı.
+
 ## 9 Kasım — K10 / satış indirim onayının karar ve fiş geçmişi
 
 Mevcut kayıt öncesi teklif onayı sözleşmesi korunarak, onay özeti gerçek talep zamanı, karar veren kullanıcı/gerekçe/zaman ve sonradan oluşan fiş bağıyla genişletildi. Fiş bağı audit, değişmez içerik/teklif, fiyat kanıtı ve tek CREATE_DRAFT günlüğünden doğrulanır; çoğul/çelişkili bağ reddedilir. Normal onay kartı bu geçmişi güvenli metinle gösterir; kullanılmış veya süresi dolmuş onayın yeniden uygulanması kapanır. Kişisel %5 sınırı başkasını onaylama hakkı sayılmaz, mevcut patron şartı korunur. Yeni şema, SQL yetkisi, rol veya yazma işlemi yoktur.

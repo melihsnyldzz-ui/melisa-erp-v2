@@ -28,6 +28,14 @@ import {normalizeDesktopSalePricing,isDesktopSalesPolicy} from '../../../../pack
 import {isolatedCopyTransactionContext} from './isolatedOperationCopyScope.mjs';
 const storage=new AsyncLocalStorage(),owners=new WeakMap();
 const fail=(stage='REJECTED')=>{throw Error('DESKTOP_WORKFLOW_DRAFT_'+stage);};
+// Preview is a public read boundary. Internal FX preparation retains its full
+// cost/profit inputs and outputs for native accounting; never spread them here.
+export function projectDesktopPublicSaleQuote(quote,{fx=false}={}){
+ const keys=['currency','subtotalExact4','discountRateExact4','discountTotalExact4','totalExact4','maxDiscountRateExact4','belowCostWarning','writeSupported',...(fx?['accountId','accountCurrency','accountAmountExact4','amountTryExact4','documentRateExact8','accountRateExact8']:[])];
+ const lineKeys=['productId','quantityExact3','unitPriceExact4','lineTotalExact4'];
+ if(typeof fx!=='boolean'||!quote||typeof quote!=='object'||!Array.isArray(quote.lines)||quote.lines.length!==2||keys.some(k=>!Object.hasOwn(quote,k)||typeof quote[k]!==(['belowCostWarning','writeSupported'].includes(k)?'boolean':'string'))||quote.lines.some(line=>!line||typeof line!=='object'||lineKeys.some(k=>!Object.hasOwn(line,k)||typeof line[k]!=='string')))fail('QUOTE_PROJECTION');
+ return {...Object.fromEntries(keys.map(k=>[k,quote[k]])),lines:quote.lines.map(line=>Object.fromEntries(lineKeys.map(k=>[k,line[k]])))};
+}
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 const exact=(v,scale,want)=>typeof v==='number'&&Number.isFinite(v)&&v.toFixed(scale)===want;
 function competing(transaction){if(getCanonicalBusinessSaleTransaction(transaction))return true;try{isolatedCopyTransactionContext(transaction,{writeRequired:false});return true;}catch(error){if(error?.code!=='ISOLATED_COPY_TRANSACTION_REQUIRED')throw error;return false;}}
@@ -114,7 +122,7 @@ export function createDesktopWorkflowDraftService({connector,auth}={}){
     const prepared=fx?prepareDesktopFxSale({request:calcDraft,locked:effective,maxDiscountRateExact4,normalizeSalesPayload:(await import('./invoiceDraftService.js')).normalizeSalesPayload}):prepareDesktopTwoItemSale(unpriced,effective);
     let calculation;
     if(fx)calculation=prepared.quote;else if(quote){const {normalizeSalesPayload}=await import('./invoiceDraftService.js');calculation=desktopSaleQuote({prepared,locked:effective,discountRateExact4:c.discountRateExact4,maxDiscountRateExact4,normalizeSalesPayload});if(c.discountRateExact4!=='0.0000'){prepareDesktopDiscountedTwoItemSale({request:calcDraft,locked:effective,maxDiscountRateExact4,normalizeSalesPayload});calculation={...calculation,writeSupported:true};}}
-    if(pricing)calculation={...calculation,maxDiscountRateExact4:policy.maxDiscountRateExact4,approvalRequired:proof.approvalRequired,writeSupported:!proof.approvalRequired};return {customerId:c.customerId,customerCode:locked.customer.customerCode,documentDate:c.documentDate,currency:prepared.expected.currency,revision,products,...(fx?{currencySelection:prepared.currencySelection}:{}),...(quote?{quote:calculation}:{}),salesPolicy:policy};
+    if(quote){calculation=projectDesktopPublicSaleQuote(calculation,{fx});if(pricing)calculation={...calculation,maxDiscountRateExact4:policy.maxDiscountRateExact4,approvalRequired:proof.approvalRequired,writeSupported:!proof.approvalRequired};}return {customerId:c.customerId,customerCode:locked.customer.customerCode,documentDate:c.documentDate,currency:prepared.expected.currency,revision,products,...(fx?{currencySelection:prepared.currencySelection}:{}),...(quote?{quote:calculation}:{}),salesPolicy:policy};
    });await tx.commit();begun=false;return result;
   }catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}
  };
