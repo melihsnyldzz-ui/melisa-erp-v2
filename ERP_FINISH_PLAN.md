@@ -1,3 +1,5 @@
+**10 Kasım — K04-09 normal pasif/aktif teknik halkası doğrulandı:** Kurulu806/21de üzerinde mevcut30002/sentetik tedarikçi2 iki normalPOST200 ile pasif→aktif; audit249/250 tek etkili,228→230audit/eski kayıtlar korundu. Pasif kartın geçmişi143TRY/iki belge aynı; normalTRY alış seçimi pasifken dışladı, aktifken geri aldı. Yeni alış/para/hak/hesap/DDL/servis0. Runtime401 sonrası normal aynı-hesap giriş yenilemesi gerekti; authHTTP/negatif kimlik fixture'ı/Muhasebe/insan/LIVE ve bütünK04-09 açık. İlk context hatasında yanlış yükleniyor yazısı için viewfix4/4hedefPASS; eski ikiP2 için unavailable requester listesi25+seçili4 ve pin/cache revalidation96hedefPASS dar kaynak hazırlıkları var; yeniCI/kurulum ayrı. Özgün49yaprak/sayaçlar ve merkezplan/Excel değişmez. [STATUS](STATUS.md), [sözleşme](docs/development/desktop-supplier-status.md).
+
 <!-- WAREHOUSE-ACTUAL-22-20261109 -->
 ## 9 Kasım — Ayrı depo personeliyle hazırlama, koli ve hazır akışı çalıştı; deneme kapatıldı
 

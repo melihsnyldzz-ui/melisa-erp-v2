@@ -106,7 +106,7 @@ export function createDesktopSalesPricingAuthority({sql,readPolicy,ensureLease}=
    if(!canDecide(policy,actorId,r.actorId,r.draft.discountRateExact4)||r.actorId===actorId)return false;
    const approvals=await rows(tx,'approval','AND entity_id=TRY_CONVERT(bigint,@id)',{id:row.id});if(approvals.length)return false;
    const clock=await now(tx);if(clock<r.createdAt||clock>=r.expiresAt)return false;
-   const target=await readPolicy({transaction:tx,actorId,targetActorId:r.actorId});return target.policy.revision===r.policyRevision;
+   const target=await readPolicy({transaction:tx,actorId,targetActorId:r.actorId,allowUnavailableTarget:true});if(target?.targetUnavailable===true&&target.policy===null&&target.user===null)return false;return target.policy.revision===r.policyRevision;
   }
   async function summary(tx,row){
    const r=requestData(row),approvals=await rows(tx,'approval','AND entity_id=TRY_CONVERT(bigint,@id)',{id:row.id});if(approvals.length>1)fail();

@@ -82,7 +82,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   const current=()=>{if(prior!==generation||!user||actorId(user.id)!==actor||!can('sales')||!token)fail();};
   const c=createDesktopSalesApprovals({actorId:actor,storage:localStorage,locks,newId,getPolicy:()=>policy,transport:async(kind,body,recordId)=>{current();const r=await request('/api/desktop-sale/discount-requests'+(kind==='resolve'?'/resolve':kind==='approve'?'/'+recordId+'/approve':''),{method:'POST',body});current();return r.data;}});
   const readable=row=>isSalesApprovalVisibleForPolicy(row,policy,actor);
-  async function read(id){current();if(!actorId(id)||!policy)fail();const r=await request('/api/desktop-sale/discount-requests/'+id);current();if(r.data?.id!==id||!readable(r.data))fail();known.set(id,r.data);return r.data;}
+  async function read(id){current();if(!actorId(id)||!policy)fail();known.delete(id);const r=await request('/api/desktop-sale/discount-requests/'+id);current();if(r.data?.id!==id||!readable(r.data))fail();known.set(id,r.data);return r.data;}
   return Object.freeze({
    pending:()=>{current();return c.pending()?{exists:true}:null;},
    canApprove:rate=>{current();return c.canApprove(rate);},

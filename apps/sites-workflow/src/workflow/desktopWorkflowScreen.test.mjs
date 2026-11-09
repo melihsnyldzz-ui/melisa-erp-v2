@@ -264,3 +264,30 @@ test('sales-view-only approver opens both approval panels without product custom
  node.querySelector('[data-approvals]').events.click();await tick();assert.match(node.innerHTML,/aria-label="Satış onay istekleri"/);
  node.querySelector('[data-credit-list]').events.click();await tick();assert.deepEqual(calls,['discount-list','discount-list','credit-list']);assert.match(node.innerHTML,/Kredi onay istekleri/);screen.dispose();
 });
+
+
+async function managerPinnedApprovalFixture(){
+ const node=root(),tick=()=>new Promise(r=>setImmediate(r)),posts=[],reads=[],local=new Map(),session=new Map();let mode='pending',ids=0;
+ const memory=m=>({getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)}),now=Date.now(),policy={version:1,actorId:'8',revision:'b'.repeat(64),canChangeSalePrice:false,maxDiscountRateExact4:'5.0000',canApproveUpToFive:true,canApproveAboveFive:false};
+ const draft={customerId:'2',documentDate:'2026-11-09',expectedRevision:'a'.repeat(64),items:[{productId:'10',quantityExact3:'1.000'},{productId:'11',quantityExact3:'1.000'}],discountRateExact4:'5.0000',pricing:{version:1,policyRevision:policy.revision,unitPricesExact4:[null,null],approvalId:null}};
+ const row={id:'12',actorId:'7',requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerId:'2',documentDate:draft.documentDate,discountRateExact4:draft.discountRateExact4,items:draft.items,unitPricesExact4:draft.pricing.unitPricesExact4,status:'PENDING',approvalId:null,createdAt:now,expiresAt:now+600000,decision:null,invoice:null,draft,quote:{currency:'TRY',lines:draft.items.map(x=>({...x,unitPriceExact4:'12.0000',lineTotalExact4:'12.0000'})),subtotalExact4:'24.0000',discountRateExact4:'5.0000',discountTotalExact4:'1.2000',totalExact4:'22.8000',belowCostWarning:false}};
+ const envelope=data=>({ok:true,json:async()=>({success:true,data})});
+ const core=createDesktopWriteGreenCore({location:{origin:'http://127.0.0.1:5294'},localStorage:memory(local),sessionStorage:memory(session),locks:{request:async(_k,_o,fn)=>fn({})},newId:()=>{ids++;return 'ab171000-6f42-4f19-8cab-9f4539618647';},fetch:async(url,opts)=>{
+  if(url.endsWith('/api/auth/login'))return envelope({accessToken:'one.two.three',user:{id:8,username:'normal-manager',permissions:['sales.view']}});
+  if(url.endsWith('/api/desktop-sale/discount-requests/12/approve')){posts.push({url,body:JSON.parse(opts.body)});return {ok:false,status:503,json:async()=>({success:false})};}
+  if(url.endsWith('/api/desktop-sale/discount-requests/12')){reads.push('12');if(mode==='unavailable')return {ok:false,status:503,json:async()=>({success:false})};return envelope(mode==='expired'?{...row,createdAt:1,expiresAt:600001}:row);}
+  if(url.endsWith('/api/desktop-sale/discount-requests'))return envelope({salesPolicy:mode==='policy-lost'?{...policy,canApproveUpToFive:false}:policy,requests:mode==='policy-lost'?[]:Array.from({length:50},(_,i)=>({...row,id:String(100+i),requestId:'12345678-1234-4123-8123-'+String(100+i).padStart(12,'0')}))});
+  throw Error('unexpected endpoint');
+ }});await core.login('normal-manager','synthetic-test-value');
+ const screen=mountDesktopWorkflowScreen({root:node,core,storage:memory(local),actorId:'8'});await tick();node.querySelector('[data-approvals]').events.click();await tick();node.querySelector('[data-approval-id]').value='12';node.querySelector('[data-approval-open]').events.click();await tick();
+ return {node,screen,posts,reads,tick,core,setMode:v=>{mode=v;},ids:()=>ids};
+}
+test('real normal facade revalidates a pinned request outside latest50 on refresh, preserving one exact-ID approval command',async()=>{
+ const f=await managerPinnedApprovalFixture();assert.equal(f.node.querySelectorAll('[data-approval-approve]').length,51);assert(f.node.querySelector('[data-approval-approve="12"]'));
+ f.node.querySelector('[data-approval-refresh]').events.click();await f.tick();assert.deepEqual(f.reads,['12','12']);assert(f.node.querySelector('[data-approval-approve="12"]'));assert.equal(f.posts.length,0);
+ f.node.querySelector('[data-approval-reason="12"]').value='Normal approval';f.node.querySelector('[data-approval-approve="12"]').events.click();await f.tick();
+ assert.equal(f.posts.length,1);assert(f.posts[0].url.endsWith('/discount-requests/12/approve'));assert.deepEqual(f.posts[0].body,{requestId:'ab171000-6f42-4f19-8cab-9f4539618647',reason:'Normal approval'});assert.equal(f.ids(),1);assert(f.core.salesApprovals().pending());f.screen.dispose();
+});
+test('unavailable expired or newly out-of-scope pinned requests disappear on refresh and cannot send approval',async()=>{
+ for(const mode of ['unavailable','expired','policy-lost']){const f=await managerPinnedApprovalFixture(),stale=f.node.querySelector('[data-approval-approve="12"]');f.setMode(mode);f.node.querySelector('[data-approval-refresh]').events.click();await f.tick();assert.equal(f.node.querySelector('[data-approval-approve="12"]'),null);assert.doesNotMatch(f.node.innerHTML,/data-approval-use="12"/);assert.match(f.node.innerHTML,/yeniden/);assert.doesNotMatch(f.node.innerHTML,/12[^<]*Onayland/);stale.events.click();await f.tick();assert.equal(f.posts.length,0);assert.equal(f.ids(),0);assert.equal(f.core.salesApprovals().pending(),null);f.screen.dispose();}
+});

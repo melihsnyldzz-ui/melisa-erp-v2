@@ -217,18 +217,19 @@ test('supplier status and inactive list require same actor rights and preserve u
 test('manager approval facade binds pending exact-five records, rejects wider foreign reads and keeps unknown commands on downgrade',async()=>{
  const x=fixture(['sales.view']),old=x.deps.fetch,now=Date.now(),policy={version:1,actorId:'7',revision:'b'.repeat(64),canChangeSalePrice:false,maxDiscountRateExact4:'5.0000',canApproveUpToFive:true,canApproveAboveFive:false};
  const draft={customerId:'2',documentDate:'2026-11-09',expectedRevision:'a'.repeat(64),items:[{productId:'8',quantityExact3:'1.000'},{productId:'1',quantityExact3:'1.000'}],discountRateExact4:'5.0000',pricing:{version:1,policyRevision:policy.revision,unitPricesExact4:[null,null],approvalId:null}},row={id:'12',actorId:'8',requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerId:'2',documentDate:draft.documentDate,discountRateExact4:'5.0000',items:draft.items,unitPricesExact4:draft.pricing.unitPricesExact4,status:'PENDING',approvalId:null,createdAt:now,expiresAt:now+600000,decision:null,invoice:null,draft,quote:{currency:'TRY',lines:[{productId:'8',quantityExact3:'1.000',unitPriceExact4:'10.0000',lineTotalExact4:'10.0000'},{productId:'1',quantityExact3:'1.000',unitPriceExact4:'10.0000',lineTotalExact4:'10.0000'}],subtotalExact4:'20.0000',discountRateExact4:'5.0000',discountTotalExact4:'1.0000',totalExact4:'19.0000',belowCostWarning:false}};
- const envelope=data=>({ok:true,json:async()=>({success:true,data})}),posts=[];let returned=structuredClone(row),listed=[returned],livePolicy=policy;
+ const envelope=data=>({ok:true,json:async()=>({success:true,data})}),posts=[];let returned=structuredClone(row),listed=[returned],livePolicy=policy,readDenied=false;
  const core=createDesktopWriteGreenCore({...x.deps,fetch:async(url,opts)=>{
   if(url.endsWith('/api/desktop-sale/discount-requests/12/approve')){posts.push(JSON.parse(opts.body));throw Error('lost');}
   if(url.endsWith('/api/desktop-sale/discount-requests/resolve')){const p=JSON.parse(opts.body);return envelope({state:'COMMITTED',actorId:'7',...p,summary:null});}
-  if(url.endsWith('/api/desktop-sale/discount-requests/12'))return envelope(returned);
+  if(url.endsWith('/api/desktop-sale/discount-requests/12'))return readDenied?{ok:false,status:503,json:async()=>({success:false})}:envelope(returned);
   if(url.endsWith('/api/desktop-sale/discount-requests'))return envelope({salesPolicy:livePolicy,requests:listed});
   return old(url,opts);
  }});
  await core.login('normal','secret');let a=core.salesApprovals();await a.list();assert.equal(a.canApprove('5.0000'),true);assert.equal(a.canApprove('5.0001'),false);assert.equal((await a.read('12')).actorId,'8');
+ listed=Array.from({length:50},(_,i)=>({...row,id:String(100+i),requestId:'12345678-1234-4123-8123-'+String(100+i).padStart(12,'0')}));await a.list();await assert.rejects(a.approve('12','No stale cache'));assert.equal(posts.length,0);await a.read('12');readDenied=true;await assert.rejects(a.read('12'));await assert.rejects(a.approve('12','No unavailable cache'));assert.equal(posts.length,0);readDenied=false;await a.read('12');
  for(const change of ['expired','above','approved']){
   returned=structuredClone(row);if(change==='expired'){returned.createdAt=1;returned.expiresAt=600001;}if(change==='above'){returned.discountRateExact4=returned.draft.discountRateExact4=returned.quote.discountRateExact4='5.0001';returned.quote.discountTotalExact4='1.0000';returned.quote.totalExact4='19.0000';}if(change==='approved'){returned.status='APPROVED';returned.approvalId='20';returned.decision={actorId:'7',reason:'Uygun',decidedAt:now+1};returned.expiresAt=now+600001;}
-  await assert.rejects(a.read('12'));listed=[returned];await assert.rejects(a.list());assert.equal(a.canApprove('5.0000'),false);listed=[row];await a.list();
+  await assert.rejects(a.read('12'));await assert.rejects(a.approve('12','No invalid cache'));assert.equal(posts.length,0);listed=[returned];await assert.rejects(a.list());assert.equal(a.canApprove('5.0000'),false);listed=[row];await a.list();
  }
  returned={...row,actorId:'7'};await a.read('12');await assert.rejects(a.approve('12','Kendi isteğim'));assert.equal(posts.length,0);returned=row;await a.read('12');assert.equal((await a.approve('12','Uygun')).state,'UNKNOWN');assert.equal(posts.length,1);assert(a.pending());
  a=core.salesApprovals();livePolicy={...policy,canApproveUpToFive:false};listed=[];await a.list();await assert.rejects(a.retry());assert.equal(posts.length,1);assert(a.pending());

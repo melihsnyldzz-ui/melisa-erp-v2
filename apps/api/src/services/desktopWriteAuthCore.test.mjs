@@ -22,12 +22,28 @@ function driver(passwordHash){
   async query(sql){log.push({event:'query',id:this.tx.id,sql,params:this.params});
    if(typeof state.queryFault==='function')await state.queryFault({transactionId:this.tx.id,statement:sql});
    if(sql.includes('DESKTOP_AUTH_TARGET_REJECTED')||sql.includes('DESKTOP_LIST_TARGET_REJECTED')){assert.match(sql,/DATALENGTH\(USER_NAME\(\)\)/);assert.match(sql,/DESKTOP_WRITE_OBJECT_PERMISSION_REJECTED/);if(!state.target||state.extraPermission||state.databaseUser!=='melisa_desktop_test_writer_20261105')throw Error('wrong db, user, or extra permission');return {recordset:[{ok:1}]};}
-   if(sql.includes('FROM dbo.users u WITH(UPDLOCK,HOLDLOCK)'))return {recordset:((this.params.username===state.user.username||this.params.userId===state.user.id)?[{...state.user}]:[])};
+   if(sql.includes('FROM dbo.users u WITH(UPDLOCK,HOLDLOCK)'))return {recordset:this.params.userId==='9'&&state.foreignRows!==undefined?state.foreignRows:((this.params.username===state.user.username||this.params.userId===state.user.id)?[{...state.user}]:[])};
    if(sql.includes('DESKTOP_SALES_POLICY_READ'))return {recordset:[]};
    if(sql.includes('FROM dbo.permissions WITH(UPDLOCK,HOLDLOCK)'))return {recordset:state.permissions.map(p=>({...p}))};if(sql.startsWith('SELECT CONVERT(varchar(20),COUNT_BIG(*)'))return {recordset:[{total:'0'}]};if(sql.includes('OFFSET @offset'))return {recordset:[]};throw Error('unexpected sql');}}
  const sql={Transaction,Request,NVarChar:()=>({}),ISOLATION_LEVEL:{SERIALIZABLE:4}};
  return {sql,pool:{},state,log};
 }
+test('pricing foreign target opt-in distinguishes absent or inactive identities from malformed rows and driver failures',async t=>{
+ const d=driver(await bcrypt.hash('synthetic-only-password',4));d.state.permissions=[{permission_key:'sales.view',can_view:true,can_create:false,can_update:false,can_delete:false,can_approve:false}];
+ t.mock.module('mssql',{exports:{default:d.sql}});
+ const {createDesktopWriteAuthCore:create,getDesktopWriteSalesPolicy:getPolicy}=await import('./desktopWriteAuthCore.mjs?pricing-unavailable-target');
+ const auth=create({pool:d.pool,sql:d.sql,richCards:true,schemaVersion:7}),readPolicy=getPolicy(auth,d.pool);t.after(()=>auth.close());
+ const signed=await auth.login({username:'normal',password:'synthetic-only-password'});let optIn=true;
+ const service=auth.bindReadService({async list(actorId){const tx=new d.sql.Transaction(d.pool);await tx.begin();try{assert.equal(await auth.verifySession({transaction:tx,actorId,permission:'sales.view'}),true);const result=await readPolicy({transaction:tx,actorId,targetActorId:'9',allowUnavailableTarget:optIn});await tx.commit();return result;}catch(error){await tx.rollback();throw error;}}});
+ const run=()=>{const req={get:()=>`Bearer ${signed.accessToken}`},res=new EventEmitter();res.destroyed=false;res.writableEnded=false;return auth.bind(req,res,async()=>{const actor=await auth.authenticateNormal(req);return service.list(String(actor.userId));});};
+ const foreign={...d.state.user,id:'9',username:'foreign'};
+ for(const rows of [[],[{...foreign,userActive:false}],[{...foreign,roleActive:false}]]){d.state.foreignRows=rows;optIn=true;assert.equal(await run(),null);optIn=false;await assert.rejects(run(),{code:'DESKTOP_AUTH_UNAVAILABLE'});}
+ optIn=true;
+ for(const rows of [[{...foreign,userActive:false,roleVersion:'invalid'}],[{...foreign,userActive:'false'}],[{...foreign,userActive:false,roleActive:null}],[foreign,foreign],null]){d.state.foreignRows=rows;await assert.rejects(run(),{code:'DESKTOP_AUTH_UNAVAILABLE'});}
+ d.state.foreignRows=[foreign];assert.equal((await run()).actorId,'9');
+ const driverError=Object.assign(Error('synthetic driver failure'),{code:'EREQUEST'});d.state.queryFault=({statement})=>{if(statement.includes('FROM dbo.users u')&&d.log.at(-1).params.userId==='9')throw driverError;};await assert.rejects(run(),error=>error===driverError);
+ d.state.queryFault=null;d.state.target=false;await assert.rejects(run(),{code:'DESKTOP_AUTH_UNAVAILABLE'});
+});
 test('V2 through V7 list reads run the full leased verifier first in their own transaction without a duplicate metadata scan',async()=>{
  for(const schemaVersion of [2,3,4,5,6,7])for(const drift of ['none','target','broadPermission','databaseUser','permission','userVersion','roleInactive']){
   const d=driver('synthetic'),sql={...d.sql,Int:{}},auth=createDesktopWriteAuthCore({pool:d.pool,sql,richCards:schemaVersion!==2,schemaVersion,tokenKey:Buffer.alloc(48,9),passwordHasher:{compare:async()=>true},onFailure:()=>{}});d.state.permissions.push({permission_key:'customer.view',can_view:true,can_create:false,can_update:false,can_delete:false,can_approve:false});

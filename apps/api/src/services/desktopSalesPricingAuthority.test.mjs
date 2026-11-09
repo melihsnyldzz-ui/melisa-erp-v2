@@ -34,11 +34,30 @@ test('manager consumption rechecks authority revision and threshold, with opaque
 test('a former boss with unchanged revision cannot consume an above5 approval as a manager',async()=>{const f=fixture(),d=await f.approved('5.0001');f.state.policies.get('2').canApproveAboveFive=false;assert.equal(f.state.policies.get('2').canApproveUpToFive,true);await assert.rejects(f.authorize(d));assert.equal(f.state.audits.length,2);});
 test('foreign above5 rows cannot paginate the manager pending decision away',async()=>{const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;const visible=await f.service.create('1',{requestId:uid(1),draft:f.draft('5.0000')});for(let i=0;i<51;i++)await f.service.create('1',{requestId:uid(i+100),draft:f.draft('5.0001')});const result=await f.service.list('3');assert.deepEqual(result.requests.map(r=>r.id),[visible.id]);});
 test('manager keyset uses numeric IDs across digit boundaries and continues beyond fifty stale policy requests',async()=>{const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;const visible=await f.service.create('1',{requestId:uid(1),draft:f.draft('5.0000')});f.state.policies.get('1').revision='d'.repeat(64);for(let i=0;i<51;i++)await f.service.create('1',{requestId:uid(i+100),draft:f.draft('5.0000')});f.state.policies.get('1').revision='a'.repeat(64);assert.deepEqual((await f.service.list('3')).requests.map(r=>r.id),[visible.id]);const selects=f.state.queries.filter(q=>q.includes('SALES_PRICING_LIST'));assert.ok(selects.length>=2);assert.ok(selects.every(q=>q.includes('ORDER BY requestAudit.id DESC')&&q.includes('requestAudit.id<TRY_CONVERT(bigint,@beforeId)')));});
+test('manager list skips only typed unavailable requesters and retains another current request',async()=>{
+ for(const availability of ['missing','inactive']){
+  const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;f.state.policies.set('4',policy('4'));
+  const valid=await f.service.create('4',{requestId:uid(1),draft:f.draft('5.0000')}),unavailable=await f.service.create('1',{requestId:uid(2),draft:f.draft('5.0000')});
+  f.state.unavailableTargets.set('1',availability);
+  assert.deepEqual((await f.service.list('3')).requests.map(r=>r.id),[valid.id]);
+  await assert.rejects(f.service.read('3',unavailable.id),{code:'DESKTOP_SALE_APPROVAL_READ_FORBIDDEN'});
+  await assert.rejects(f.service.approve('3',unavailable.id,{requestId:uid(3),reason:'Unavailable target'}),{code:'DESKTOP_AUTH_UNAVAILABLE'});
+  assert.equal(f.state.audits.length,2);
+ }
+});
+test('manager list, selected read and approval propagate real policy driver or guard errors without writes',async()=>{
+ for(const code of ['EREQUEST','DESKTOP_AUTH_UNAVAILABLE']){
+  const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;const requested=await f.service.create('1',{requestId:uid(1),draft:f.draft('5.0000')});
+  const error=Object.assign(Error('synthetic policy failure'),{code});f.state.policyFault=target=>{if(target==='1')throw error;};
+  for(const call of [()=>f.service.list('3'),()=>f.service.read('3',requested.id),()=>f.service.approve('3',requested.id,{requestId:uid(2),reason:'Do not swallow driver error'})])await assert.rejects(call,e=>e===error);
+  assert.equal(f.state.audits.length,1);
+ }
+});
 const copy=v=>JSON.parse(JSON.stringify(v)),uid=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
 const hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 const policy=(actorId,max='3.0000',edit=false,boss=false)=>({version:1,actorId,revision:actorId==='2'?'b'.repeat(64):'a'.repeat(64),canChangeSalePrice:edit,maxDiscountRateExact4:max,canApproveUpToFive:boss,canApproveAboveFive:boss});
 function fixture(){
- const state={audits:[],journal:[],queries:[],clock:Date.parse('2026-11-07T18:00:00.000Z'),next:1,policies:new Map([['1',policy('1')],['2',policy('2','5.0000',false,true)],['3',policy('3','5.0000',true)]]),lease:null,previewCalls:0};
+ const state={audits:[],journal:[],queries:[],clock:Date.parse('2026-11-07T18:00:00.000Z'),next:1,policies:new Map([['1',policy('1')],['2',policy('2','5.0000',false,true)],['3',policy('3','5.0000',true)]]),lease:null,previewCalls:0,unavailableTargets:new Map(),policyFault:null};
  class Transaction{async begin(){this.before=copy({audits:state.audits,journal:state.journal});}async commit(){}async rollback(){state.audits=this.before.audits;state.journal=this.before.journal;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_type,value){this.params[k]=value;return this;}async query(text){const p=this.params;state.queries.push(text);let rows;
   if(text.includes('SALES_PRICING_CLOCK'))rows=[{utc:new Date(state.clock).toISOString()}];
@@ -55,7 +74,7 @@ function fixture(){
  }}
  const sql={Transaction,Request,NVarChar:()=>null,MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}};
  const ensureLease=(tx,actorId)=>{if(state.lease?.tx!==tx||state.lease?.actorId!==actorId)throw Error('LEASE');};
- const readPolicy=async({transaction,actorId,targetActorId=actorId})=>{ensureLease(transaction,actorId);const p=state.policies.get(targetActorId);if(!p)throw Error('POLICY');return {policy:copy(p)};};
+ const readPolicy=async({transaction,actorId,targetActorId=actorId,allowUnavailableTarget=false})=>{ensureLease(transaction,actorId);state.policyFault?.(targetActorId);if(state.unavailableTargets.has(targetActorId)){if(allowUnavailableTarget&&targetActorId!==actorId)return {targetUnavailable:true,policy:null,user:null};throw Object.assign(Error('DESKTOP_AUTH_UNAVAILABLE'),{code:'DESKTOP_AUTH_UNAVAILABLE'});}const p=state.policies.get(targetActorId);if(!p)throw Error('POLICY');return {policy:copy(p)};};
  const authority=createDesktopSalesPricingAuthority({sql,readPolicy,ensureLease});
  const locked={customer:{id:'10'},products:[{id:'11',priceExact4:'10.0000'},{id:'12',priceExact4:'20.0000'}]};
  const draft=(discount='3.0000')=>({customerId:'10',documentDate:'2026-11-07',expectedRevision:'c'.repeat(64),items:[{productId:'11',quantityExact3:'1.000'},{productId:'12',quantityExact3:'2.000'}],discountRateExact4:discount,pricing:{version:1,policyRevision:state.policies.get('1').revision,unitPricesExact4:[null,null],approvalId:null}});

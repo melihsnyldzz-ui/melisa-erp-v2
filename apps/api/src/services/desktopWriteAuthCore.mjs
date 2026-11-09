@@ -92,11 +92,12 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  const run=(tx,params,statement)=>{const q=new sql.Request(tx);for(const [name,size,value] of params)q.input(name,sql.NVarChar(size),value);return q.query(statement);};
  const profileIdentitySql=richCards?identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):identitySql;
  async function guard(tx){if(one(await run(tx,[],profileIdentitySql)).ok!==1)fail();}
- async function user(tx,{username=null,userId=null}={}){
+ async function user(tx,{username=null,userId=null,allowUnavailable=false}={}){
   const rows=(await run(tx,[['username',80,username],['userId',20,userId]],userSql))?.recordset;
-  if(!Array.isArray(rows)||rows.length!==1)fail();const row=rows[0];
+  if(!Array.isArray(rows)||rows.length>1)fail();if(rows.length===0){if(allowUnavailable)return null;fail();}const row=rows[0];
   if(!id(row.id)||!id(row.roleId)||typeof row.username!=='string'||!row.username||typeof row.displayName!=='string'||typeof row.roleCode!=='string'||typeof row.roleName!=='string'
-   ||row.userActive!==true||row.roleActive!==true||!/^0x[0-9a-f]{16}$/i.test(row.userVersion)||!/^0x[0-9a-f]{16}$/i.test(row.roleVersion))fail();
+   ||typeof row.userActive!=='boolean'||typeof row.roleActive!=='boolean'||!/^0x[0-9a-f]{16}$/i.test(row.userVersion)||!/^0x[0-9a-f]{16}$/i.test(row.roleVersion))fail();
+  if(!row.userActive||!row.roleActive){if(allowUnavailable)return null;fail();}
   const permissions=(await run(tx,[['roleId',20,row.roleId]],permissionSql))?.recordset;
   if(!Array.isArray(permissions))fail();
   const expanded=applyRolePermissionDefaults(expandPermissions(permissions),row.roleCode);
@@ -159,10 +160,13 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  function productMovementSalesScope({transaction,actorId}={}){const ctx=storage.getStore();if(!active(ctx)||!ctx.leased||ctx.verifiedTransaction!==transaction||ctx.entry.userId!==actorId||!ctx.verifiedRequired?.includes('product.view')||!ctx.verifiedRequired?.includes('product.edit')||!Array.isArray(ctx.verifiedPermissions))fail();return desktopSalesReadMode(ctx.verifiedPermissions);}
  function salesReadScope({transaction,actorId}={}){const ctx=storage.getStore();if(!active(ctx)||!ctx.leased||ctx.verifiedTransaction!==transaction||ctx.entry.userId!==actorId||!Array.isArray(ctx.verifiedPermissions)||!ctx.verifiedRequired?.includes('sales.view'))fail();const mode=desktopSalesReadMode(ctx.verifiedPermissions);if(mode!=='own'&&mode!=='all')fail();return mode;}
  function ensurePricingLease(transaction,actorId){const ctx=storage.getStore();if(!active(ctx)||!ctx.leased||ctx.verifiedTransaction!==transaction||ctx.entry.userId!==actorId||!ctx.verifiedUser||!ctx.verifiedRequired?.some(k=>k==='sales.view'||k==='sales.create'||k==='sales.finalize'))fail();return ctx;}
- async function readPricingPolicy({transaction,actorId,targetActorId=actorId}={}){
-  const ctx=ensurePricingLease(transaction,actorId);if(!id(targetActorId))fail();
+ async function readPricingPolicy({transaction,actorId,targetActorId=actorId,allowUnavailableTarget=false}={}){
+  const ctx=ensurePricingLease(transaction,actorId);if(!id(targetActorId)||typeof allowUnavailableTarget!=='boolean')fail();
   if(targetActorId===actorId&&ctx.verifiedSalesPolicy)return {policy:ctx.verifiedSalesPolicy,user:ctx.verifiedUser};
-  const current=targetActorId===actorId?ctx.verifiedUser:await user(transaction,{userId:targetActorId});
+  const current=targetActorId===actorId?ctx.verifiedUser:await user(transaction,{userId:targetActorId,allowUnavailable:allowUnavailableTarget});
+  // Only an absent or well-formed inactive foreign identity is ineligible.
+  // Driver, guard, malformed identity and policy errors remain fatal.
+  if(current===null){ensurePricingLease(transaction,actorId);return {targetUnavailable:true,policy:null,user:null};}
   const r=await run(transaction,[['group',80,DESKTOP_SALES_POLICY_SETTING.group],['key',100,DESKTOP_SALES_POLICY_SETTING.key]],`/* DESKTOP_SALES_POLICY_READ */ SELECT TOP(2) CONVERT(varchar(20),id) id,setting_value value,value_type valueType,is_active active,CONVERT(varchar(18),CONVERT(binary(8),row_version),1) version FROM dbo.system_settings WITH(UPDLOCK,HOLDLOCK) WHERE CONVERT(varbinary(160),setting_group)=CONVERT(varbinary(160),@group) AND CONVERT(varbinary(200),setting_key)=CONVERT(varbinary(200),@key);`);
   if(!Array.isArray(r?.recordset)||r.recordset.length>1)fail();ensurePricingLease(transaction,actorId);
   return {policy:desktopSalesPolicyForUser(current,r.recordset[0]??null),user:current};

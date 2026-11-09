@@ -54,3 +54,23 @@ DDL/DCL, yeni kullanıcı/rol veya grant gerekmez. Kaynak, bağımsız inceleme/
 Kaynak doğrulaması: API/shared49 ve frontend126 hedef PASS; bağımsız backend42 ve frontend111 hedef PASS/0skip ve GO. Normal auth+gerçek servis+sentetik driver/HTTP, çift tüketim rollback'i, eski dispatch hash'i, v1/v2 okuyucuları, UNKNOWN/reload/aynıUUID/gövde ve rol sınırları kapsandı. İlgili ekran düzeltmeleri: ilk yüklemede onay düğmesi devre dışı/yükleme durumu; onaylı TRY cari yüklemesi ve FX override koruması; kayıtlı fişte boss kendi onayı için politika yüklenmesi. Aynı bilinen esbuild/junction guard reddi tekrarlanmadı veya gevşetilmedi; yeni build hosted exact6c0d CI/artifact ile doğrulanıp kuruldu; yerel reddin atlandığı iddia edilmez.
 
 Bağımsız yerel incelemeler: due-exception-backend-independent-review.json SHA8feec8eb6ce8a31ca106fa210499eb6e80dc0f83f3a1bb1875678b8b9e8811a3; due-exception-frontend-independent-review.json SHAc07ba77a2816b26d5dae2213f53eb03472a4fbd1f208b71147bc0ba398e70be1. Bunlar kaynak/fixture kanıtıdır; yeni vade için SQL/kurulum/normal GUI/insan kabulü yerine geçmez.
+
+## 10 November: approval queue availability and pinned request revalidation
+
+Approval-list reads classify only a missing target or an otherwise valid,
+explicitly inactive target as unavailable through a narrow internal opt-in.
+Such a request is ineligible and does not hide unrelated valid requests.
+Malformed or duplicate rows, database/driver errors and authorization guards
+still reject the operation. Current actor checks and approval/consumption
+defaults remain strict; this adds no public request parameter or permission.
+
+Refreshing the approval panel clears old actions first. A pinned request found
+in the new list uses that fresh row; one outside the latest 50 is read again by
+its exact normal request ID. Only the revalidated result restores its action
+and core cache entry. A failed exact-ID read clears the old cached entry and
+does not leave an apparently actionable old request. Actor, session generation,
+policy, scope, expiry and UNKNOWN UUID/body rules remain in force.
+
+Targeted pricing/auth and real-core plus DOM regression evidence is recorded in
+STATUS. These source checks do not establish installation, real personnel or
+the missing role acceptance.

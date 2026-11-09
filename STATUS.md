@@ -1,3 +1,16 @@
+<!-- SUPPLIER-CURRENT-NORMAL-20261110 -->
+## 10 Kasım — K04-09 normal pasif/aktif akışı; üç dar kaynak düzeltmesi
+
+Kurulu80662275/paket21de9872 üzerinde mevcut30002 normal yeşil ekranla sentetik tedarikçi2/ERP-V6-S2'yi pasife alıp yeniden etkinleştirdi: iki özgünPOST200, audit249/250 aynı aktör/UUID/gövde ile COMMITTED/replayed=false. Pasif listeden kart/geçmiş okunabildi; 143.00000000TRY bakiye ve iki eski alış belgesi korundu. Boş aramalı TRY alış seçimi pasifken yalnızS1, aktifkenS1+S2 gösterdi; yeni alış veya para işlemi yapılmadı.
+
+Native üç gözlem228→229→230audit; eski228audit/dört korunan küme aynı,47alanın41'i ve37iş tablosunun35'i aynı. Değişimler yalnız supplier2/durum audit'i ve bağlı identity/hash alanları; diğer tedarikçiler/entity/döviz hesapları korundu. Kart sonAktif ve passive tarih/gerekçeNULL; updated timestamp/rowversion geri sarılmadı. Yeni SQL/ERP izni, hesap, DDL, servis veya uygulama kurulumu yok; owner39008/worker3828/loopback5294/4294 ve SQL süreçleri aynı.
+
+Reaktivasyon context'inden önce runtimeGET401 alındı; normal çıkış/girişle aynı operatör yenilenip contextGET200 sonrası ikinciPOST gönderildi. İlkPOST tekrarlanmadı. AuthHTTP kabulü yok; birGET gövdesi araçta alınamadı ve tekrar denenmedi. HTTP metadata/normalDOM/nativeaudit birlikte kullanıldı; ayrı transaction gözlemleri tek atomik snapshot değildir. Belirsiz kimlik fixture'ı, Muhasebe persona, insan/cihaz/LIVE ve bütünK04-09 açık. Yerel kök doğrulaması current-normal-root-verification.v1.json SHAd0736fe1…; verifier'ın iki kayıt-şeması varsayımı dosya okumasında düzeltildi, hedef işlem tekrarı yok.
+
+Gerçek401 sırasında tedarikçi durum formunun hata sonrasında “Durum okunuyor…” göstermesi de dar kaynakta düzeltildi: ilk context okuması bittiğinde yükleniyor kalkar, sabit Türkçe hata ve İptal görünür. Otomatik retry/login, API/kimlik/izin veya UNKNOWN/sameUUID/dirty/busy kapatma kuralları değişmez.4/4 hedefli view testi ve ayrı SOURCE GO; exactCI/sonraki TEST paket ve normal yeni ekran doğrulaması ayrıca kaydedilecek. Gerçek akış için bağımsız veri kıyasıe6e9c055 ve son dar GO53f6f9bb, yeni view için ayrı SOURCE GO2af91452 yerelD4 kayıtlarındadır. Mevcut kurulu806 bu kaynak düzeltmesini henüz içermez. [Tedarikçi sözleşmesi](docs/development/desktop-supplier-status.md).
+
+PR123'ün eski6235c61 incelemesindeki ikiP2 güncel800'de hâlâ açıktı; aynı kaynak devamında düzeltildi. Yok/pasif talep sahibi yalnız onay listesi okumalarında dar typed unavailable sonucu üretir ve listeden elenir; SQL/driver/malformed/guard hataları aynen yayılır. Kendi aktörü, onay ve tüketim strict kalır; yeni hak/hesap veya dışarıdan opt-in parametresi yoktur. Pricing25 ve seçili auth4 hedef PASS. Son50 dışındaki sabitlenmiş talep yenilemede normal exact-ID okumayla tekrar doğrulanır; eski satır/eylem önce temizlenir, başarısız okuma eski onay önbelleğini bırakmaz. Core+DOM entegrasyon dahil96 hedef PASS; aynıUNKNOWN/UUID/gövde ve kişi/generation/policy/tarih kontrolleri korunur. Bu kaynak sonuçları kurulu806 için yeni GUI/API kabulü değildir. Bağımsız inceleme ve exact-head CI sonucu ayrıca PR123'te kaydedilir. [Onay sözleşmesi](docs/development/desktop-sales-approval-matrix.md).
+
 <!-- WAREHOUSE-ACTUAL-22-20261109 -->
 ## 9 Kasım — Ayrı depo personeliyle hazırlama, koli ve hazır akışı çalıştı; deneme kapatıldı
 
