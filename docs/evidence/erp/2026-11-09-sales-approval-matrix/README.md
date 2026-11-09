@@ -1,5 +1,30 @@
 # DES-19 indirim ve vade onayı: gerçek kurulum ve normal ekran
 
+## 9 Kasım K10-02 devamı: aktör30013 kendi fişinde normal beş geçiş
+
+Saf kanıt doğrulayıcı root tarafından bir kez çalıştırıldı: exit0, `K10_INSTALLED_OWN_PREPARATION_LIFECYCLE_VERIFIED`. Sonuç `own-lifecycle-verification.v1.json` SHA `13cb1c976e54710d4442a9e4bfcae6f4cb4068c99187c80a35e2ef270256d36e`; dar kapsamlı birleşik sonuç `delivery-result.v1.json` SHA `7d2f4d0249d275fcafe74fce161af1859f105c0f7fde686082199c45baabceb9`. Verifier ve contract ön incelemesi GO; final gerçek kanıt incelemesi ayrıca kaydedilir. Doğrulayıcı yalnız yerel kanıtı okudu ve kendi CreateNew çıktısını yazdı; yeni SQL/UI/runtime işlemi yapmadı.
+
+Uygulama kaynağı80662275/paket21de9872 ve owner39008/worker3828 değişmedi. Normal aktör30013, yeni21/24TRY üzerinde beş işleme201COMMITTED/replayed=false aldı; altı journal CREATE dahil saklandı. Son durum CANCELLED, personel30013/30013/30013; iki rezervasyon RELEASED, bir koli/iki kalem korunur. Sevk/finansal etki yok. NormalUI'nin restore ettiği DRAFT19, bağımsız incelenmiş dar plan ekiyle yalnız normalCANCEL kullanılarak kapatıldı; veri silinmedi, eski fiyat/iskonto/kalem/onay225–226/bağ228/CREATE journal korundu.
+
+| Kanıt | Sonuç |
+| --- | --- |
+| Kendi PREPARE/SAVE_CARTONS/READY/CHECK/CANCEL | Gerçek normalGUI+201yanıt+aynıUUID/gövde/journal/sürüm+seçiliSQL; fiş21 |
+| Eski19temizliği | AyrıCANCEL UUID2a38231c-3639-4a83-8dd9-bf8d0a10474f; DRAFT→CANCELLED,0rezervasyon |
+| Eski15/18/20 ve seçili kalemler | Başlık/workflow/journal ve seçili tam kalem satırları korunur; bütün tarihsel kalemler değil |
+| Audit |219→223; yeni240CANCEL19,241CREATE21,242pricing.bound21,243CANCEL21; eski219korunur |
+| Güvenlik |7kullanıcı/6rol/39uygulama izni/3ayar ve404SQLhak aynı; hesap açma/etkinleştirme/DDL/GRANT yok |
+| Finans/stok | Yeni hareket yok; ürün10/11=5/6, hesap110=23TRY, kasa1=9TRY; eski satış/tahsilat tekrarlanmadı |
+| Başka personele ait fişte yazma | NOT_RUN_TOOL_CAPABILITY_BLOCKED; hiç business isteği gönderilmedi |
+| Aktif depo | NOT_RUN;30007pasif. Eski15lifecycle tamam; yeni dar karar önerisi uygulanmadı |
+| İnsan/cihaz/LIVE | BEKLİYOR; bu ajanGUI/native kanıtıdır |
+
+Yerel dizin `C:/Users/Xaser/Desktop/ERP/kurulum/k10-installed-role-boundaries-v1`: normal-role-wire.json yalnız iş isteği/yanıtı; fresh-*-body/response.json, fresh-checked ve fresh-cancelled DOM/PNG; before-19-cleanup/after-19-cleanup/before-fresh-cancel/after-own-five-selected-own-workflows.json. Son seçili snapshot SHA `a48d3233a9fcd42099ed49fdf8e440b8f35806e347742bbf5c46a6d0bdd795f8`. Native gözlemler preparation-staff-v1 altında k10role-before/k10role-after19-cleanup/k10role-after-own-five; sonSHA `4e82ff37978a7d304a8da52de14df5bd8c79275c8974e159f138a6ac940bc9aa`. Hedefli fiş gözlemi tek SERIALIZABLE transaction; native/protected ile üç ardışık okumanın bütünü atomik değildir. Sekiz native alanın meşru deltası vardır; tüm47eşit denmez.
+
+Foreign araç sınırı: raw CDP Fetch.enable, açık API URL ve non-Document Fetch request aşamasıyla bile araç tarafından desteklenmedi. Boşpatterns ile temizlendi; kaynak guard reddi veya yetki hatası diye sunulmaz. Alternatif oturum/credential/istek kanalı denenmedi; NO_COMMIT resolver/fence oluşturulmadı. Kaynak five-transition sıfırDML regresyonları korunur, gerçek SQL olumsuz kabulünün yerine geçmez. İlerlemek için desteklenen normal transport üzerinde dar, yetkili yabancı-hedef senaryosu gerekir; her operasyonun geçerli başlangıç durumu ayrı kurulmalıdır.
+
+Depo için `warehouse-continuation-decision-request.v2.json` SHA `ee3fe39c436659282737984e6357ecfaf31169341e2e02ced22b1281092d61fd` mevcut devredilmiş teknikTEST yetkisine sahip koordinatöre somut karar girdisidir; approvalGranted=false/executionAuthorized=false. Aynı30007/rol10/üçdepoizni, güncelRV ve kaynak/paket; etkinleştir/audit→yeni sentetik normalGUI→mutabakat→çıkış→pasifleştir/audit önerilir. Önceki15onayı veya sonradan verilen devam sözü yeni karar sayılmaz. Yeni rol/grant/parola veya eski15tekrarı yok. R1 ve tekTEST yazarı korunur; merkezi plan/Excel/sayaçlar yazılmadı. Aşağıdaki219audit bölümü önceki kurulum/personel okumasıdır.
+
+
 ## 9 Kasım güncel80662275: K06-03/C11 kurulumu ve normal personel okuması
 
 PR123 / `codex/erp-sales-approval-matrix-20261109`; kurulu kaynak `80662275fa8be91c32aad1efa91e6805f028df0d`, paket `21de9872afcf1c48a35fad300ba36c64bdd9857d03be4cca910271e89d8af6fb`. [Push42642593718](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42642593718) ve [PR42642604506](https://github.com/melihsnyldzz-ui/melisa-erp-v2/actions/runs/42642604506), Windows dahil8iş/104adım SUCCESS. Önceki d396 doküman CI koşuları successor806tarafından iptal edildi, PASS değildir. Resmi artifact13685209807/run42642593718,92563byte ZIP SHA256 `f9bbe1151bd29e9efbbb07e86e2710b5e2605c6f0918188ed0df976e2bdca5f5` doğrulandı. 317runtime kaynağın315'i ham byte aynı, desktopSaleWorkflowService/Transactions iki API dosyası değişti; iki frontend girdisi resmi üç web asset'ine derlendi. Yeni desktopWriteGreen-5iKuMcme.js ve HTML kuruldu; CSS aynı.
