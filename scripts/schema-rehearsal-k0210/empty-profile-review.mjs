@@ -62,7 +62,7 @@ export function compareUpgradeSemantic(beforeJson,candidateJson){
  const skip=(x,part)=>NEW_TABLES.includes(x.tableName)||NEW_TABLES.includes(x.parentName)||(part==='objects'&&NEW_TABLES.includes(x.name))||(part==='columns'&&added.has(x.tableName+'/'+x.columnName))||((part==='checks'||part==='objects')&&changedChecks.has(x.name))||((part==='foreignKeys'||part==='objects')&&newForeignKeys.has(x.name))||(part==='indexes'&&newIndexes.has(x.name));
  for(const p of parts)need(same(b[p].filter(x=>!skip(x,p)),c[p].filter(x=>!skip(x,p))));
  for(const [tableName,columnName,type] of ADDED_COLUMNS){const rows=c.columns.filter(x=>x.tableName===tableName&&x.columnName===columnName);need(rows.length===1&&rows[0].schemaName==='dbo'&&rows[0].is_nullable===true&&rows[0].is_identity===false&&rows[0].is_computed===false);for(const [k,v] of Object.entries(columnShape(type)))need(rows[0][k]===v);}
- need(c.columns.filter(x=>added.has(x.tableName+'/'+x.columnName)).length===15);
+ need(c.columns.filter(x=>added.has(x.tableName+'/'+x.columnName)).length===ADDED_COLUMNS.length);
  const newColumns=c.columns.filter(x=>NEW_TABLES.includes(x.tableName));need(newColumns.length===NEW_COLUMN_SHAPES.length);
  for(const spec of NEW_COLUMN_SHAPES){const found=newColumns.filter(x=>x.tableName===spec.tableName&&x.columnName===spec.columnName);need(found.length===1&&found[0].schemaName==='dbo');for(const [k,v] of Object.entries(spec))need(found[0][k]===v);}
  const children=c.objects.filter(x=>NEW_TABLES.includes(x.parentName));need(children.length===NEW_CHILDREN.length&&NEW_CHILDREN.every(spec=>children.filter(x=>x.name===spec.name&&x.parentName===spec.parentName&&x.type.trim()===spec.type&&x.parentSchema==='dbo'&&x.schemaName==='dbo').length===1));

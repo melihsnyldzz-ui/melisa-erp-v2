@@ -5,14 +5,62 @@ import {join} from 'node:path';
 import {MASTER_V3_OPERATION_CHECK_SQL} from '../desktop-empty/master-v3-journal-sql.mjs';
 import {MASTER_V4_OPERATION_CHECK_SQL} from '../desktop-empty/master-v4-journal-sql.mjs';
 import {compileDesktopGoodsV6SchemaFragments} from '../../apps/api/src/config/desktopGoodsV6Schema.mjs';
+import {DESKTOP_FINANCE_V7_PERMISSION_MANIFEST} from '../../apps/api/src/config/desktopFinanceV7Policy.mjs';
 import {DESKTOP_FINANCE_PROPOSAL_SQL} from '../../apps/api/src/config/desktopFinanceSchemaProposal.mjs';
-import {OLD_TABLES,NEW_TABLES,ALL_TABLES,ADDED_COLUMNS,NEW_CHILDREN,NEW_COLUMN_SHAPES,V3_ADD_COLUMN,V3_SCHEMA,V4_SCHEMA,V6_SCHEMA,V7_SCHEMA,SETTINGS_INSERT,SETTINGS_VERIFY,CASH_INSERT,REFERENCE_ROWS,UPGRADE_SCHEMA_STAGES} from './empty-profile-fragments.mjs';
+import {compileDesktopEmptySchema} from '../desktop-empty/schema.mjs';
+import {compileDesktopNativeCatalogSchema} from '../desktop-empty/native-catalog-schema.mjs';
+import {compileDesktopSalesCurrencySchema} from '../desktop-empty/sales-currency-schema.mjs';
+import {LOCAL_MASTER_DDL_SOURCE} from '../desktop-empty/local-master-schema-proposal.mjs';
+import {SALE_WORKFLOW_SCHEMA_PROPOSAL} from '../desktop-empty/sale-workflow-schema-proposal.mjs';
+import {OLD_TABLES,NEW_TABLES,ALL_TABLES,ADDED_COLUMNS,NATIVE_ACCOUNT_COLUMNS,NATIVE_ACCOUNT_SCHEMA,NEW_CHILDREN,NEW_COLUMN_SHAPES,V3_ADD_COLUMN,V3_SCHEMA,V4_SCHEMA,V6_SCHEMA,V7_SCHEMA,SETTINGS_INSERT,SETTINGS_VERIFY,CASH_INSERT,REFERENCE_ROWS,UPGRADE_SCHEMA_STAGES} from './empty-profile-fragments.mjs';
 import {HASH_FIELDS,utf16sha,utf8sha,reviewCompleteSchema2Baseline,nativeRecord,compareUpgradeSemantic,loadReviewedUpgrade} from './empty-profile-review.mjs';
 import {compileCompleteSchema2Observer,compileEmptyProfileUpgrade,compileEmptyProfileObserver} from './empty-profile-upgrade.mjs';
 import {compileCompleteSchema2Observer as rawSecurityBaselineV1} from './empty-profile-baseline.mjs';
 import {SYNTHETIC_IDENTITY as m,syntheticNative,syntheticSemantic,withSyntheticUpgradeCase,emitEmptyProfileSyntaxFixture} from './empty-profile-syntax-fixture.mjs';
 const source=n=>readFileSync(new URL('../desktop-empty/'+n,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const nativeChange=(r,k,mutate)=>{const v=JSON.parse(r[k+'Json']);mutate(v);r[k+'Json']=JSON.stringify(v);r[k+'Sha256']=utf16sha(r[k+'Json']);};
+
+test('all fourteen pinned native account columns are an exact schema-only stage, including stock warehouse',()=>{
+ const compiled=compileDesktopSalesCurrencySchema();
+ assert.equal(NATIVE_ACCOUNT_SCHEMA,compiled.batches.map(b=>b.sql.slice(b.sql.lastIndexOf('ALTER TABLE '))).join('\n'));
+ assert.equal(UPGRADE_SCHEMA_STAGES[0],NATIVE_ACCOUNT_SCHEMA);
+ assert.equal((NATIVE_ACCOUNT_SCHEMA.match(/\bALTER TABLE/g)||[]).length,4);assert.equal((NATIVE_ACCOUNT_SCHEMA.match(/ NULL/g)||[]).length,14);
+ assert(NATIVE_ACCOUNT_COLUMNS.some(([t,c,type])=>t==='stock_movements'&&c==='warehouse_name'&&type==='nvarchar(80)'));
+ assert.doesNotMatch(NATIVE_ACCOUNT_SCHEMA,/\b(?:INSERT|UPDATE|DELETE|MERGE|GRANT|CREATE|DROP|DEFAULT|REFERENCES)\b|MELISA_ERP_DESKTOP_TEST_20261105/i);
+ const before=JSON.stringify(syntheticSemantic(2));
+ for(const [t,n]of NATIVE_ACCOUNT_COLUMNS)for(const change of [c=>c.columns=c.columns.filter(x=>x.tableName!==t||x.columnName!==n),c=>c.columns.find(x=>x.tableName===t&&x.columnName===n).is_nullable=false]){
+  const candidate=syntheticSemantic(7);change(candidate);assert.throws(()=>compareUpgradeSemantic(before,JSON.stringify(candidate)));
+ }
+ const preview=compileEmptyProfileUpgrade(m,reviewCompleteSchema2Baseline(syntheticNative(2)),'rollback');assert.equal(preview.existingNullableColumnsAdded,29);
+});
+
+// Inventory only the finite literal CREATE/ADD DDLs emitted by these compilers.
+// This detects omitted source stages; it is not SQL parsing or engine acceptance.
+function ddlColumnModel(chunks){
+ const model=new Map(),body=(text,start)=>{let depth=1,quoted=false;for(let i=start;i<text.length;i++){if(text[i]==="'"){if(quoted&&text[i+1]==="'"){i++;continue;}quoted=!quoted;}if(!quoted){if(text[i]==='(')depth++;if(text[i]===')'&&--depth===0)return text.slice(start,i);}}throw Error('TEST_DDL_BODY');};
+ const split=text=>{let depth=0,quoted=false,start=0;const out=[];for(let i=0;i<text.length;i++){const c=text[i];if(c==="'"){if(quoted&&text[i+1]==="'"){i++;continue;}quoted=!quoted;}if(!quoted){if(c==='(')depth++;if(c===')')depth--;if(c===','&&depth===0){out.push(text.slice(start,i));start=i+1;}}}return [...out,text.slice(start)];};
+ const add=(table,text)=>{if(!model.has(table))model.set(table,new Map());for(const part of split(text)){const p=part.trim();if(/^(CONSTRAINT|PRIMARY|FOREIGN|UNIQUE|CHECK)\b/i.test(p))continue;const c=/^(?:\[([A-Za-z0-9_]+)\]|([A-Za-z0-9_]+))\s+([A-Za-z]+(?:\((?:max|\d+)(?:,\d+)?\))?)/i.exec(p);assert(c,p);model.get(table).set(c[1]??c[2],c[3].toLowerCase());}};
+ for(const sql of chunks){
+  const create=/\bCREATE TABLE dbo\.(?:\[([A-Za-z0-9_]+)\]|([A-Za-z0-9_]+))\s*\(/gi;for(const match of sql.matchAll(create))add(match[1]??match[2],body(sql,match.index+match[0].length));
+  const alter=/\bALTER TABLE dbo\.(?:\[([A-Za-z0-9_]+)\]|([A-Za-z0-9_]+))\s+ADD\s+([^;]+);/gi;for(const match of sql.matchAll(alter)){if(/^CONSTRAINT\b/i.test(match[3]))continue;add(match[1]??match[2],match[3]);}
+ }
+ return model;
+}
+test('real DDL source closure covers all154 runtime grant targets; omitting the native stage reproduces13 missing grants and14 missing columns',()=>{
+ const foundation=[...compileDesktopEmptySchema().batches,...compileDesktopNativeCatalogSchema().batches].map(b=>b.sql),base=[...foundation,...LOCAL_MASTER_DDL_SOURCE,...SALE_WORKFLOW_SCHEMA_PROPOSAL];
+ const complete=ddlColumnModel([...base,...UPGRADE_SCHEMA_STAGES]),old=ddlColumnModel([...base,...UPGRADE_SCHEMA_STAGES.filter(s=>s!==NATIVE_ACCOUNT_SCHEMA)]);
+ // The K02 base predates seventeen additive runtime grants. Bind the complete
+ // reviewed 0f4 runtime's public target manifest without merging application code.
+ const fixture=JSON.parse(readFileSync(new URL('./native-v7-grant-targets.fixture.json',import.meta.url),'utf8')),targets=fixture.targets;
+ assert.equal(fixture.definitionOnly,true);assert.equal(fixture.sourceHead,'0f4bd6e3836a9cddbb5b745cdde0e640e54e499a');
+ assert.equal(fixture.targetsSha256,'7326bf7259f43f9ac8aff0b120cf1d309082f13009f2e7b5dafc8fe2ef2bc209');assert.equal(utf8sha(JSON.stringify(targets)),fixture.targetsSha256);
+ assert.deepEqual([...complete.keys()].sort(),ALL_TABLES);assert.equal(targets.length,154);assert.equal(new Set(targets.map(p=>[p.schema,p.name,p.permission,p.column].join('/'))).size,154);
+ for(const old of DESKTOP_FINANCE_V7_PERMISSION_MANIFEST)assert(targets.some(p=>p.schema===old.schema&&p.name===old.name&&p.permission===old.permission&&p.column===old.column));
+ const missing=model=>targets.filter(p=>!model.has(p.name)||(p.column!==null&&!model.get(p.name).has(p.column)));
+ assert.deepEqual(missing(complete),[]);assert.equal(missing(old).length,13);
+ assert.equal(NATIVE_ACCOUNT_COLUMNS.filter(([t,c])=>!old.get(t)?.has(c)).length,14);
+ for(const [table,column,type]of NATIVE_ACCOUNT_COLUMNS)assert.equal(complete.get(table).get(column),type);
+});
 test('named inline REFERENCES retain all51 declared children and reject each missing or changed FK',()=>{
  // These16 named column constraints are present in the existing V6/V7 DDL
  // and in the rejected native candidate; FOREIGN KEY-only inventory omitted them.
@@ -39,7 +87,7 @@ test('the finite upgrade reuses the exact legacy schema slices and removes only 
  const v3=source('master-v3-transition.mjs').match(/const ddl=`([\s\S]*?)`;/)[1].split('\n GRANT INSERT')[0].replace('${MASTER_V3_OPERATION_CHECK_SQL}',MASTER_V3_OPERATION_CHECK_SQL).trimEnd();assert.equal(V3_SCHEMA,v3);assert(source('master-v3-transition.mjs').includes("EXEC sys.sp_executesql N'"+V3_ADD_COLUMN+"'"));
  const v4=source('master-v4-transition.mjs').match(/const ddl=`([\s\S]*?)`;/)[1].replace('${MASTER_V4_OPERATION_CHECK_SQL}',MASTER_V4_OPERATION_CHECK_SQL);assert.equal(V4_SCHEMA,v4);
  assert.equal(V6_SCHEMA,compileDesktopGoodsV6SchemaFragments({mode:'apply'}).sql.replace(SETTINGS_INSERT+SETTINGS_VERIFY,''));assert.equal(V7_SCHEMA,DESKTOP_FINANCE_PROPOSAL_SQL.replace(CASH_INSERT,''));
- assert.equal(UPGRADE_SCHEMA_STAGES.length,6);assert.equal(OLD_TABLES.length,36);assert.equal(NEW_TABLES.length,7);assert.equal(ALL_TABLES.length,43);assert.equal(ADDED_COLUMNS.length,15);assert(NEW_CHILDREN.length>0&&NEW_COLUMN_SHAPES.length>0);
+ assert.equal(UPGRADE_SCHEMA_STAGES.length,7);assert.equal(OLD_TABLES.length,36);assert.equal(NEW_TABLES.length,7);assert.equal(ALL_TABLES.length,43);assert.equal(NATIVE_ACCOUNT_COLUMNS.length,14);assert.equal(ADDED_COLUMNS.length,29);assert(NEW_CHILDREN.length>0&&NEW_COLUMN_SHAPES.length>0);
 });
 test('complete schema2 native input covers every36-table object and identity; legacy27 and rows/default coercions reject',()=>{
  const r=syntheticNative(2),b=reviewCompleteSchema2Baseline(r);assert.equal(Object.keys(b.hashes).length,8);assert.doesNotThrow(()=>compileEmptyProfileUpgrade(m,b,'rollback'));
@@ -61,7 +109,7 @@ test('plain serialized acceptance, changed hashes, compound batch errors and reu
  for(const mutate of [f=>f['upgrade-rollback-acceptance.json'].realRollbackAccepted='true',f=>f['upgrade-rollback.json'].capture.sqlErrors.push({nativeError:3621,sqlState:'01000'}),f=>f['upgrade-rollback.json'].protocol.batchInformation.push({nativeError:5701,sqlState:'01000'}),f=>f['upgrade-rollback.json'].protocol.openInformation.push({phase:'OPENING',source:'InfoMessage',nativeError:1205,sqlState:'01000'}),f=>f['upgrade-after-rollback.json'].observerProcess.pid=f['upgrade-rollback.json'].executorProcess.pid,f=>f['upgrade-actual-review.json'].decision='GO_SOURCE_ONLY',f=>f['upgrade-apply-decision.json'].grantsChanged=true,f=>nativeChange(f['upgrade-after-rollback.json'].native,'identities',x=>x.find(i=>i.tableName==='system_settings').lastValue='2')])withSyntheticUpgradeCase(c=>{rebind(c,mutate);assert.throws(c.load);});
  withSyntheticUpgradeCase(c=>{writeFileSync(join(c.dir,'upgrade-actual-review.json'),'{}');assert.throws(c.load);});
 });
-test('undeclared old changes, fifteen-column precision drift, unknown new columns/constraints/triggers and wrong tables reject',()=>{
+test('undeclared old changes, declared-column precision drift, unknown new columns/constraints/triggers and wrong tables reject',()=>{
  const before=JSON.stringify(syntheticSemantic(2));
  for(const mutate of [c=>c.synonyms.push({name:'foreign'}),c=>c.columns.find(x=>x.columnName==='party_entity_id').is_nullable=false,c=>c.columns.find(x=>x.columnName==='account_amount').scale=2,c=>c.columns.push({schemaName:'dbo',tableName:NEW_TABLES[0],columnName:'unknown',typeName:'int'}),c=>c.objects.push({schemaName:'dbo',parentSchema:'dbo',parentName:NEW_TABLES[0],name:'unknown',type:'C'}),c=>c.objects.push({schemaName:'dbo',parentSchema:'dbo',parentName:NEW_TABLES[0],name:'trigger',type:'TR'}),c=>c.objects=c.objects.filter(x=>x.name!==NEW_TABLES[0])]){const c=syntheticSemantic(7);mutate(c);assert.throws(()=>compareUpgradeSemantic(before,JSON.stringify(c)));}
 });
