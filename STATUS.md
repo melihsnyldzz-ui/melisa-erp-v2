@@ -1,3 +1,10 @@
+<!-- ACCOUNTING-HUMAN-PASSWORD-SOURCE-20261110 -->
+## 10 Kasım — Muhasebe parola yenileme için insanın kullandığı yerel pencere
+
+Kullanıcı yeni parolayı kendisinin girip kaydedeceği ekran istedi. Sabit TEST DB5/schema7 üzerindeki yalnız30018/19 için yerel masked WinForms penceresi ve trusted-Windows-owner admission hazırlandı. `--prepare` read-only/rollback; mutasyon yalnız insanın Kaydet olayından normal resetManagedAuthPasswordCore üzerinden gider. Ajan credential üretmez/okumaz/saklamaz, Kaydet veya apply yapmaz; tarayıcı credential aktarımı veya login workaround yok. Kurulu7350/paket1995 ve servisler değişmez.
+
+8 saf hedefli test, Node syntax ve PowerShell AST kontrolü PASS. İlk pencere açılışı JSON tarih türü kontrolünde SQL öncesi durdu; ikinci açılış native BIGINT ID değerlerinin kanonik metin dönmesi nedeniyle read-only hesap kontrolünde durdu. Dar düzeltmeler kaynakta ve bağımsız incelemede geçti; hiç apply/parola kaydı veya normal giriş yapılmadı. Son kullanıcı tercihi doğrultusunda pencere üçüncü kez açılmadı. Önceki normal Muhasebe girişi aynı kurulu7350/1995 ve30018/19 için bulundu; korumalı consumer kapalı Chrome203557028 sekmesine sabit olduğu için as-is kullanılamadı. Eski credential kökeninin ae889/660 olması tek başına güncel hesap bağını geçersiz kılmaz. Bu kaynak hazırlığıdır; gerçek pencere, insan parola kaydı, normal Muhasebe girişi ve tahsilat kabulü burada PASS sayılmadı. Sayaçlar, eski kabul ve bütün ERP bitiş durumu değişmez. Branch `codex/erp-accounting-human-password-20261110`, taban7350a4fb; exact commit/PR/CI ayrıca bağlanır. [Sözleşme](docs/development/desktop-accounting-human-password.md).
+
 <!-- SUPPLIER-CURRENT-NORMAL-20261110 -->
 ## 10 Kasım — K04-09 normal pasif/aktif akışı; üç dar kaynak düzeltmesi
 
