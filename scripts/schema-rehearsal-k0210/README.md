@@ -54,6 +54,28 @@ ayrıca doğrulamalıdır. Karşılaştırıcı tek başına süreç kökeni, ge
 veya dosya bütünlüğü yetkisi üretmez; bellek içi bir review nesnesi de bu kanıtların
 yerine geçmez.
 
+## SQL Server 2022 dilbilgisi kontrolü
+
+SQL Server'ın ayırdığı `ROWCOUNT` adı, anlık görüntü sorgusunda hem
+`AS [rowCount]` hem `x.[rowCount]` biçiminde sınırlandırılır. JSON alanının adı
+`rowCount` ve güvenlik kontrolleri değişmez.
+
+Çevrimdışı kontrol için Microsoft'un `Microsoft.SqlServer.TransactSql.ScriptDom`
+161.8901.0 paketindeki `lib/netstandard2.0` DLL'i kullanılır. Beklenen SHA-256:
+`dda9fb7d3a752183a0727a6f31bc7da04cbbc19f9d792792d7d468f74ccebc02`.
+PowerShell 7.6 ile, DLL yolunu belirterek:
+
+```powershell
+node scripts/schema-rehearsal-k0210/syntax-fixture.mjs > "$env:TEMP/k0210-synthetic-syntax.json"
+pwsh -NoProfile -File scripts/schema-rehearsal-k0210/syntax-parser.test.ps1 -ScriptDomDll '<ScriptDom DLL yolu>' -FixtureFile "$env:TEMP/k0210-synthetic-syntax.json"
+```
+
+Altı sentetik çıktı ve AST ile çıkarılan 73 sabit dinamik SQL gövdesi
+`TSql160Parser` ile ayrıştırılır. Olumsuz kontroller, ayrılmış adın açık kullanımını
+ve dış sorgu geçse de hatalı iç SQL'in reddini doğrular. Bu yerel test SQL'e
+bağlanmaz; ad bağlama, izin, transaction, bootstrap veya kurulum sonucu değildir.
+Mevcut Node CI kontrollerinden ayrı bir yerel dilbilgisi kanıtıdır.
+
 ## Sonraki ayrı karar
 
 Somut yerel plan `Masaüstü/ERP/kurulum/k02-10-offline-source-v1/provisioning-plan.json`
