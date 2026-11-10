@@ -33,6 +33,9 @@ function visit(name){
 }
 for(const name of ['start-master-v7-worker.mjs','verify-master-v7-profile.mjs','master-v7-plan.mjs','build-master-v7-package.mjs',...(empty?[]:['verify-master-v7-writer.mjs'])])visit('scripts/desktop-empty/'+name);
 if(empty)for(const name of ['empty-v7-setup-local.mjs','empty-v7-setup-core.mjs'])visit('scripts/desktop-empty/'+name);
+// The native catalog compiler reads these pinned files as source text, not as
+// imports. Keep this finite data closure alongside the executable import graph.
+if(empty)for(const rel of ['apps/api/scripts/vega-native-migration-store.mjs','scripts/canonical/fixtures/night-20261006-before.json']){regular(buildRoot+'/'+rel);sources[rel]=hashFile(buildRoot+'/'+rel);}
 for(const name of ['start-master-v7.ps1',...(empty?[]:['read-first-sale-operator.ps1'])]){const rel='scripts/desktop-empty/'+name;regular(buildRoot+'/'+rel);helpers[rel]=hashFile(buildRoot+'/'+rel);}
 if(empty){const rel='scripts/desktop-empty/empty-v7-setup-window.ps1';regular(buildRoot+'/'+rel);helpers[rel]=hashFile(buildRoot+'/'+rel);}
 const web=buildRoot+'/apps/sites-workflow/dist-desktop-write-green';
@@ -50,6 +53,6 @@ mkdirSync(dir,{recursive:true});
 const archive=dir+'/'+digest+'.json';
 if(existsSync(archive)){if(hashFile(archive)!==digest)throw Error('MASTER_V7_PACKAGE_ARCHIVE');}else writeFileSync(archive,bytes,{flag:'wx'});
 // Keep the active V6 manifest intact; install is a separate reviewed operation.
-const candidate='C:/Users/Xaser/Desktop/ERP/kurulum/'+(empty?'master-v7-empty-db9-candidate-package.json':'master-v7-finance-candidate-package.json');
+const candidate='C:/Users/Xaser/Desktop/ERP/kurulum/'+(empty?'master-v7-empty-db9-candidate-package.'+sourceHead+'.json':'master-v7-finance-candidate-package.json');
 writeFileSync(candidate,bytes,{flag:'wx'});
 process.stdout.write(JSON.stringify({profile:pkg.profile,packageSha256:digest,sources:Object.keys(sources).length,helpers:Object.keys(helpers).length,assets:Object.keys(assets).length}));

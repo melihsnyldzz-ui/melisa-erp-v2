@@ -1,3 +1,8 @@
+<!-- EMPTY-PROFILE-PACKAGE-CLOSURE-20261110 -->
+## 10 Kasım — İlk kurulum paketinin iki salt kaynak girdisi
+
+4b636988 için resmi iki CI koşusu8iş/104adım PASS olsa da Root'un inactive e528 paketinde ilk setup-core importu eksik native catalog girdisinde durdu; karar/hesap/SQL setup çalışmadı ve eski paket setup-ready kabul edilmedi. Pasif builder artık yalnız iki exact source-text girdisini de SHA ile içerir: apps/api/scripts/vega-native-migration-store.mjs ve scripts/canonical/fixtures/night-20261006-before.json. JSON izni yalnız bu exact fixture için setup local/window ve worker kontrollerine eklenir; migration modülü yürütülmez. Gerçek builder gövdesinden üretilen payload ile yalıtılmış geçici source-tree import/pure compile, iki eksik/bozuk girdi ve dar JSON anahtar regresyonları3/3 offline PASS. Yeni test mevcut canonical CI adımından seçilir. Eski staged paket ve runtime değişmedi; yeni kaynak review/exact CI ve Root'un ayrı yeni paket/kurulum adımı gerekir. Yeni SQL/credential/Windows form/insan kabulü yok; mevcut49yaprak/sayaç ve önceki retler korunur.
+
 <!-- EMPTY-PROFILE-FIRST-OWNER-SOURCE-20261110 -->
 ## 10 Kasım — Boş DB9 profilinde ilk yönetici ve normal giriş için kaynak adaptörü
 

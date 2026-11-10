@@ -23,7 +23,7 @@ try{
  if(pkg.profile!=='desktop-master-v7'||pkg.sourceRoot!==root||pkg.dependencySha256!==inspectDesktopRuntimeTree().sha256
   ||(await realpath(root+'/apps/api/node_modules')).toLowerCase()!=='c:\\users\\xaser\\desktop\\erp\\kaynak\\apps\\api\\node_modules')throw Error();
  for(const [name,digest] of Object.entries(pkg.sources)){
-  if(!/^(apps\/api\/|scripts\/|packages\/shared\/|infra\/sql\/migrations\/)[A-Za-z0-9_./-]+\.(mjs|js|sql)$/.test(name)||name.split('/').includes('..')||hash(await readFile(root+'/'+name))!==digest)throw Error();
+  if((!/^(apps\/api\/|scripts\/|packages\/shared\/|infra\/sql\/migrations\/)[A-Za-z0-9_./-]+\.(mjs|js|sql)$/.test(name)&&name!=='scripts/canonical/fixtures/night-20261006-before.json')||name.split('/').includes('..')||hash(await readFile(root+'/'+name))!==digest)throw Error();
  }
  const {openDesktopMasterV7TlsConnector,openDesktopEmptyV7TlsConnector,closeDesktopWriteTlsConnector}=await import('../../apps/api/src/config/desktopWriteTlsConnector.mjs');
  closeConnector=closeDesktopWriteTlsConnector;

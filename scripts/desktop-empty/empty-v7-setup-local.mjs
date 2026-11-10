@@ -41,7 +41,7 @@ try{
  const pkgBytes=hold(evidence+'/runtime-package.json',decision.packageHash),pkg=JSON.parse(pkgBytes);
  check(pkg.profile==='desktop-master-v7'&&pkg.targetProfile===EMPTY_V7_PROFILE_ID&&pkg.sourceRoot===runtime&&pkg.publicFiles?.[EMPTY_V7_PUBLIC_PATH]===hash(Buffer.from(EMPTY_V7_PUBLIC_BINDING_TEXT)),'PACKAGE_TARGET');
  const own=fileURLToPath(import.meta.url),core=fileURLToPath(new URL('./empty-v7-setup-core.mjs',import.meta.url)),window=fileURLToPath(new URL('./empty-v7-setup-window.ps1',import.meta.url));
- for(const [rel,sha]of Object.entries({...pkg.sources,...pkg.helpers})){check(/^(apps\/api\/|packages\/shared\/|scripts\/|infra\/sql\/migrations\/)[A-Za-z0-9_./-]+\.(mjs|js|sql|ps1)$/.test(rel)&&!rel.split('/').includes('..'),'SOURCE_KEY');hold(runtime+'/'+rel,sha);}
+ for(const [rel,sha]of Object.entries({...pkg.sources,...pkg.helpers})){check((/^(apps\/api\/|packages\/shared\/|scripts\/|infra\/sql\/migrations\/)[A-Za-z0-9_./-]+\.(mjs|js|sql|ps1)$/.test(rel)||rel==='scripts/canonical/fixtures/night-20261006-before.json')&&!rel.split('/').includes('..'),'SOURCE_KEY');hold(runtime+'/'+rel,sha);}
  const owner=host(decision);
  assertEmptyV7SetupDecision(decision,{packageHash:hash(pkgBytes),sourceHead:decision.sourceHead,selfSha256:hash(hold(own)),coreSha256:hash(hold(core)),windowSha256:hash(hold(window)),ownerSid:owner.sid,recordedSchema7AcceptanceSha256:decision.recordedSchema7AcceptanceSha256,actualIndependentReviewSha256:decision.actualIndependentReviewSha256});
  check(pkg.sourceHead===decision.sourceHead,'HEAD');

@@ -50,7 +50,7 @@ try{
  Hold $node '3331e1ffe19874215472217c5e94f5a0c6d8e18c4ac7111d3937aa0ad5e9b4a5'
  Hold ($proofRoot+'/runtime-package.json') $d.packageHash
  $pkg=Get-Content -Raw -LiteralPath ($proofRoot+'/runtime-package.json')|ConvertFrom-Json -AsHashtable -DateKind String
- foreach($entry in @($pkg.sources.GetEnumerator())+@($pkg.helpers.GetEnumerator())){if($entry.Key-cnotmatch'^(apps/api/|packages/shared/|scripts/|infra/sql/migrations/)[A-Za-z0-9_./-]+\.(mjs|js|sql|ps1)$'-or$entry.Key.Split('/')-contains'..'){throw 'EMPTY_SETUP_SOURCE_PATH'};Hold ($source+'/'+$entry.Key) $entry.Value}
+ foreach($entry in @($pkg.sources.GetEnumerator())+@($pkg.helpers.GetEnumerator())){if(($entry.Key-cnotmatch'^(apps/api/|packages/shared/|scripts/|infra/sql/migrations/)[A-Za-z0-9_./-]+\.(mjs|js|sql|ps1)$'-and$entry.Key-cne'scripts/canonical/fixtures/night-20261006-before.json')-or$entry.Key.Split('/')-contains'..'){throw 'EMPTY_SETUP_SOURCE_PATH'};Hold ($source+'/'+$entry.Key) $entry.Value}
  # Reuse the existing global schema owner; never manufacture a second owner.
  Assert-Ancestors ($root+'/desktop-empty-schema.owner.lock')
  $ownerLock=[IO.File]::Open(($root+'/desktop-empty-schema.owner.lock'),[IO.FileMode]::Open,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)

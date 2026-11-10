@@ -1,3 +1,8 @@
+<!-- EMPTY-PROFILE-PACKAGE-CLOSURE-20261110 -->
+## 10 Kasım — K02 ilk kurulum paket kapanışı kaynak düzeltmesi
+
+Resmi4b636988 CI8/104PASS, inactive e528 setup kaynağı için eksik iki source-text girdisini kanıtlamadı. Root importu hesap/karar/SQL öncesi durdu; eski staged paket hazır sayılmaz. Builder'ın finite iki girdisi ve exact JSON allowlist düzeltmesi, gerçek payload'dan yalıtılmış staged core import/pure compile ve negatiflerle3/3 offline doğrulandı; mevcut canonical CI yeni testi seçer. Yeni review/exact CI ve Root'un ayrı paketi/gerçek kurulum kararı beklenir; eski runtime/paket/plan/sayaçlar değişmez. Ayrıntı STATUS kaydında.
+
 <!-- EMPTY-PROFILE-FIRST-OWNER-SOURCE-20261110 -->
 ## 10 Kasım — Mevcut K02 boş profilinin ilk yönetici başlangıcına kaynak bağı
 
