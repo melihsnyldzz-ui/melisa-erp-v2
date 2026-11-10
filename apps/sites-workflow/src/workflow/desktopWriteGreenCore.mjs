@@ -49,9 +49,17 @@ const kinds=Object.freeze({products:{view:'product.view',edit:'product.edit'},cu
 function validUser(u){return !!(u&&actorId(u.id)&&typeof u.username==='string'&&Array.isArray(u.permissions)&&u.permissions.every(p=>typeof p==='string'));}
 function validatePublicFxQuote(q){const keys=['currency','lines','subtotalExact4','discountRateExact4','discountTotalExact4','totalExact4','maxDiscountRateExact4','belowCostWarning','writeSupported','accountId','accountCurrency','accountAmountExact4','amountTryExact4','documentRateExact8','accountRateExact8',...(Object.hasOwn(q??{},'approvalRequired')?['approvalRequired']:[])];if(!q||typeof q!=='object'||Array.isArray(q)||Reflect.ownKeys(q).length!==keys.length||keys.some(k=>{const d=Object.getOwnPropertyDescriptor(q,k);return !d?.enumerable||!Object.hasOwn(d,'value');})||keys.filter(k=>!['lines','belowCostWarning','writeSupported','approvalRequired'].includes(k)).some(k=>typeof q[k]!=='string')||typeof q.belowCostWarning!=='boolean'||typeof q.writeSupported!=='boolean'||Object.hasOwn(q,'approvalRequired')&&typeof q.approvalRequired!=='boolean'||!Array.isArray(q.lines)||q.lines.length!==2||q.lines.some(l=>!l||typeof l!=='object'||Array.isArray(l)||Reflect.ownKeys(l).length!==4||['productId','quantityExact3','unitPriceExact4','lineTotalExact4'].some(k=>{const d=Object.getOwnPropertyDescriptor(l,k);return !d?.enumerable||!Object.hasOwn(d,'value')||typeof d.value!=='string';})))fail();}
 function validateCurrencyAmounts(value,selection){if(value?.currency!==selection.documentCurrency)fail();const s=desktopCurrencySettlementParity({documentAmountExact4:value.totalExact4,documentCurrency:value.currency,accountCurrency:value.accountCurrency,documentRateToTryExact8:selection.documentRateExact8,accountRateToTryExact8:selection.accountRateExact8});if(value.accountAmountExact4!==s.accountAmountExact4||value.amountTryExact4!==s.amountTryExact4)fail();}
-export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionStorage,localStorage,locks,newId,richCards=false}={}){
- if(location?.origin!==ORIGIN||typeof fetchImpl!=='function'||!sessionStorage||!localStorage||typeof locks?.request!=='function'||typeof newId!=='function')fail();
+export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionStorage,localStorage,locks,newId,richCards=false,onSessionExpired=()=>{}}={}){
+ if(location?.origin!==ORIGIN||typeof fetchImpl!=='function'||!sessionStorage||!localStorage||typeof locks?.request!=='function'||typeof newId!=='function'||typeof onSessionExpired!=='function')fail();
  let token=sessionStorage.getItem(KEY),user=null,generation=0;
+ const transport=fetchImpl;
+ fetchImpl=async(url,options)=>{
+  const prior=generation,sentToken=token,response=await transport(url,options);
+  if(response.status===401&&sentToken&&prior===generation&&token===sentToken&&options?.headers?.Authorization===`Bearer ${sentToken}`){
+   clear();try{onSessionExpired();}catch{/* Rendering cannot change a pending operation's outcome. */}
+  }
+  return response;
+ };
  async function request(path,{method='GET',body,credential=token,goodsResult=false,customerEditResult=false,supplierStatusResult=false}={}){
   if(location.origin!==ORIGIN)fail();
   const r=await fetchImpl(API+path,{method,headers:{'Content-Type':'application/json',...(credential?{Authorization:`Bearer ${credential}`}:{})},credentials:'omit',redirect:'error',signal:AbortSignal.timeout(15000),...(body?{body:JSON.stringify(body)}:{})});
@@ -64,7 +72,7 @@ export function createDesktopWriteGreenCore({location,fetch:fetchImpl,sessionSto
   if(prior!==generation||typeof response.data?.accessToken!=='string'||!validUser(response.data.user))fail();
   token=response.data.accessToken;sessionStorage.setItem(KEY,token);return acceptUser(response.data.user);
  }
- async function restore(){if(!token)return null;const prior=generation;try{const r=await request('/api/auth/me');if(prior!==generation)fail();return acceptUser(r.data);}catch{if(prior===generation)clear();return null;}}
+ async function restore(){if(!token)return null;const prior=generation;try{const r=await request('/api/auth/me');if(prior!==generation)fail();return acceptUser(r.data);}catch{return null;}}
  async function logout(){const old=token;clear();if(old)try{await request('/api/auth/logout',{method:'POST',credential:old});}catch{/* local token remains cleared */}}
  async function list(kind,page=1,search='',limit=100){if(!Number.isInteger(limit)||limit<1||limit>100||kind!=='products'&&limit!==100||!can(kind)||!Number.isInteger(page)||page<1||page>100000||typeof search!=='string'||search.length>100||/[\u0000-\u001f\u007f]/.test(search))fail();const prior=generation;
   const r=await request(`/api/${kind}?page=${page}&limit=${limit}${search?'&search='+encodeURIComponent(search):''}`);if(prior!==generation||!can(kind)||!Array.isArray(r.data)||r.data.length>limit||!r.meta||r.meta.page!==page||r.meta.limit!==limit||!Number.isSafeInteger(r.meta.total)||typeof r.meta.hasNextPage!=='boolean'||richCards&&kind==='products'&&r.data.some(row=>!isDesktopStockAvailability(row)))fail();return {data:r.data,meta:r.meta};}

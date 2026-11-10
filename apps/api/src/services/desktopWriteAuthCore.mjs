@@ -132,9 +132,27 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  async function bind(req,res,next){
   const ctx={req,entry:null,current:null,open:!res.destroyed&&!res.writableEnded,leased:false};
   res.once('finish',()=>{ctx.open=false;});res.once('close',()=>{ctx.open=false;});
-  let entry=null,current=null;try{entry=verify(tokenHeader(req));current=await transaction(tx=>user(tx,{userId:entry.userId}));
-   if(!ctx.open||entry.revoked||sessions.get(entry.sid)!==entry||entry.expiresAt<=Date.now()||current.userVersion!==entry.userVersion||current.roleVersion!==entry.roleVersion)fail();
-  }catch(error){try{onFailure({error});}catch{}entry=null;current=null;}
+  let entry=null,current=null,error=null,sessionRequired=false;
+  try{entry=verify(tokenHeader(req));}catch(cause){error=cause;sessionRequired=true;}
+  if(entry)try{
+   current=await transaction(tx=>user(tx,{userId:entry.userId,allowUnavailable:true}));
+   if(!ctx.open)return;
+   if(!current||entry.revoked||sessions.get(entry.sid)!==entry||entry.expiresAt<=Date.now()||current.userVersion!==entry.userVersion||current.roleVersion!==entry.roleVersion){sessionRequired=true;error=Error('DESKTOP_NORMAL_SESSION_REQUIRED');}
+  }catch(cause){error=cause;}
+  // Only normal-session mounts use bind. Operational/profile failures are not
+  // proof of an invalid credential and must not log a valid person out.
+  if(error){
+   try{onFailure({error});}catch{}res.set('Cache-Control','no-store');
+   if(sessionRequired)return res.status(401).json({success:false,code:'DESKTOP_NORMAL_SESSION_REQUIRED'});
+   // A failed auth/profile read cannot settle a previous same-UUID submission.
+   // Echo only a canonical command UUID, never arbitrary request text.
+   const direct=req.body?.requestId,nested=req.body?.body?.requestId;
+   const resolving=req.path?.endsWith('/resolve')||req.path==='/'&&req.baseUrl?.endsWith('/resolve');
+   const resolver=resolving&&['body,kind','body,kind,recordId'].includes(Object.keys(req.body??{}).sort().join(','))&&typeof req.body?.kind==='string';
+   const candidate=direct??(resolver?nested:undefined),conflict=direct!==undefined&&nested!==undefined&&direct!==nested;
+   const requestId=req.method==='POST'&&!conflict&&typeof candidate==='string'&&uuid.test(candidate)?candidate:null;
+   return res.status(503).json({success:false,...(requestId?{data:{state:'UNKNOWN',requestId,retry:'SAME_REQUEST_ONLY',requiresRecovery:true}}:{})});
+  }
   ctx.entry=entry;ctx.current=current;
   return storage.run(ctx,()=>next());
  }

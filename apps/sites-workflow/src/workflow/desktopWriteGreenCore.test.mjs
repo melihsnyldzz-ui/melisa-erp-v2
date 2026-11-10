@@ -6,6 +6,53 @@ import {productCardFixture} from '../../../api/src/services/test-fixtures/deskto
 import {customerCardFixture} from '../../../api/src/services/test-fixtures/desktopCustomerCard.fixture.mjs';
 import {desktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
 import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+test('restoring an authenticated 401 signals expiry before body decoding; operational 503 keeps the token without an expiry notice',async()=>{
+ const x=fixture();x.deps.sessionStorage.setItem('melisaDesktopWriteV2Token','one.two.three');let status=503,notices=0;
+ const core=createDesktopWriteGreenCore({...x.deps,onSessionExpired:()=>{notices++;throw Error('render failure');},fetch:async()=>({ok:false,status,json:async()=>{throw Error('invalid response body');}})});
+ assert.equal(await core.restore(),null);assert.equal(x.deps.sessionStorage.getItem('melisaDesktopWriteV2Token'),'one.two.three');assert.equal(notices,0);
+ status=401;assert.equal(await core.restore(),null);assert.equal(x.deps.sessionStorage.getItem('melisaDesktopWriteV2Token'),null);assert.equal(notices,1);assert.equal(core.getUser(),null);
+});
+test('only a current authenticated 401 expires the UI session; concurrent replies notify once and leave durable bytes alone',async()=>{
+ const x=fixture(),original=x.deps.fetch,replies=[];let notices=0,status=401;
+ const core=createDesktopWriteGreenCore({...x.deps,onSessionExpired:()=>{notices++;},fetch:async(url,opts)=>{
+  if(url.includes('/api/customers?')){if(status===401)await new Promise(resolve=>replies.push(resolve));return {ok:false,status,json:async()=>({success:false})};}return original(url,opts);
+ }});await core.login('normal','secret');x.deps.localStorage.setItem('melisa-finance-v1:7','exact pending bytes');
+ const a=core.list('customers',2),b=core.list('customers',2);assert.equal(replies.length,2);replies.forEach(resolve=>resolve());await Promise.all([assert.rejects(a),assert.rejects(b)]);
+ assert.equal(notices,1);assert.equal(core.getUser(),null);assert.equal(core.can('customers'),false);assert.equal(x.deps.sessionStorage.getItem('melisaDesktopWriteV2Token'),null);assert.equal(x.deps.localStorage.getItem('melisa-finance-v1:7'),'exact pending bytes');
+ for(status of [403,503]){await core.login('normal','secret');await assert.rejects(core.list('customers',2));assert.equal(core.getUser().id,7);assert.equal(notices,1);}
+ let loginNotices=0;const denied=createDesktopWriteGreenCore({...x.deps,onSessionExpired:()=>loginNotices++,fetch:async()=>({ok:false,status:401,json:async()=>({success:false})})});await assert.rejects(denied.login('normal','bad'));assert.equal(loginNotices,0);
+});
+test('a late old-token 401 cannot clear a newer normal login or notify its screen',async()=>{
+ const x=fixture();let finish,logins=0,notices=0;
+ const core=createDesktopWriteGreenCore({...x.deps,onSessionExpired:()=>notices++,fetch:async(url)=>{
+  if(url.endsWith('/api/auth/login'))return {ok:true,json:async()=>({success:true,data:{accessToken:'token.'+(++logins)+'.value',user:{id:logins===1?7:8,username:'normal',permissions:['customer.view']}}})};
+  if(url.includes('/api/customers?')){await new Promise(resolve=>finish=resolve);return {ok:false,status:401,json:async()=>({success:false})};}throw Error('unexpected fetch');
+ }});await core.login('first','synthetic');const old=core.list('customers',2);await core.login('second','synthetic');finish();await assert.rejects(old);assert.equal(core.getUser().id,8);assert.equal(x.deps.sessionStorage.getItem('melisaDesktopWriteV2Token'),'token.2.value');assert.equal(notices,0);
+});
+test('master transport 401 preserves UNKNOWN and the exact actor journal for same-actor retry only',async()=>{
+ const x=fixture(['customer.view','customer.edit']),original=x.deps.fetch,posts=[];let actor=7,expired=true,notices=0;
+ const core=createDesktopWriteGreenCore({...x.deps,onSessionExpired:()=>notices++,fetch:async(url,opts)=>{
+  if(url.endsWith('/api/auth/login'))return {ok:true,json:async()=>({success:true,data:{accessToken:'one.two.three',user:{id:actor,username:'normal',permissions:['customer.view','customer.edit']}}})};
+  if(url.endsWith('/api/desktop-local/customers')){posts.push(opts.body);if(expired)return {ok:false,status:401,json:async()=>({success:false})};}return original(url,opts);
+ }});await core.login('normal','synthetic');const before=core.create('customers'),result=await before.create({customerCode:'NEW',name:'Yeni',phone:'000',customerType:'customer',currency:'TRY',city:null,country:null});assert.equal(result.state,'UNKNOWN');assert.equal(core.getUser(),null);assert.equal(notices,1);assert.throws(()=>before.pending());
+ const key='melisa-desktop-customer-create:eb2888c2-51cb-4570-a933-397cf7e62806:7',bytes=x.deps.localStorage.getItem(key),saved=posts[0];assert(saved.includes(result.requestId));assert.equal(JSON.parse(bytes).body.requestId,result.requestId);
+ actor=8;await core.login('other','synthetic');assert.equal(core.create('customers').pending(),null);assert.equal(posts.length,1);assert.equal(x.deps.localStorage.getItem(key),bytes);
+ actor=7;await core.login('normal','synthetic');const same=core.create('customers');assert.equal(same.pending().requestId,result.requestId);expired=false;assert.equal((await same.retry()).state,'COMMITTED');assert.equal(posts.length,2);assert.equal(posts[1],saved);assert.equal(same.pending(),null);
+});
+test('finance and sale 401 preserve already-sent UUID/body as UNKNOWN across re-login without cross-actor recovery',async()=>{
+ for(const kind of ['finance','sale']){
+  const rights=['customer.view','finance.collection','sales.view','sales.create','sales.edit','sales.finalize'],x=fixture(rights),original=x.deps.fetch,posts=[];let actor=7;
+  const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{
+   if(url.endsWith('/api/auth/login'))return {ok:true,json:async()=>({success:true,data:{accessToken:'one.two.three',user:{id:actor,username:'normal',permissions:rights}}})};
+   if(url.endsWith('/api/desktop-runtime'))return {ok:true,json:async()=>({success:true,data:desktopRuntimeInfo({packageSha256:'a'.repeat(64),createdAt:'2026-11-07T12:00:00.000Z',schemaVersion:7})})};
+   if(url.endsWith('/collections')||url.endsWith('/transitions')){posts.push(opts.body);return {ok:false,status:401,json:async()=>({success:false})};}return original(url,opts);
+  }});await core.login('normal','synthetic');const controller=kind==='finance'?await core.finance():core.sale();
+  const result=kind==='finance'?await controller.submit('collection',{partyId:'2',partyAccountId:'3',financeAccountId:'4',invoiceId:null,amountExact4:'36.0000',documentDate:'2026-11-10',currency:'TRY',description:''}):await controller.create('transition',{invoiceId:'12',expectedVersion:'0x0000000000000001',operation:'PREPARE',cartons:[]});
+  assert.equal(result.state,'UNKNOWN');const key=kind==='finance'?'melisa-finance-v1:7':'melisa.desktop.workflow.pending.v1.7',bytes=x.deps.localStorage.getItem(key);assert.equal(JSON.parse(bytes).body.requestId,result.requestId);assert.equal(core.getUser(),null);
+  actor=8;await core.login('other','synthetic');const other=kind==='finance'?await core.finance():core.sale();assert.equal(other.pending(),null);assert.equal(x.deps.localStorage.getItem(key),bytes);assert.equal(posts.length,1);
+  actor=7;await core.login('normal','synthetic');const same=kind==='finance'?await core.finance():core.sale(),pending=same.pending();assert.equal(pending.body.requestId,result.requestId);const retried=kind==='finance'?await same.retry(pending):await same.retry();assert.equal(retried.state,'UNKNOWN');assert.equal(posts.length,2);assert.equal(posts[1],posts[0]);assert.equal(x.deps.localStorage.getItem(key),bytes);
+ }
+});
 test('normal receipt personnel trace accepts canonical string IDs and explicit legacy nulls without a directory lookup',async()=>{
  const x=fixture(['sales.view']),original=x.deps.fetch,calls=[];let ids=0,staff={sentBy:'30007',preparedBy:'30007',checkedBy:'30002'},getters=0;
  const core=createDesktopWriteGreenCore({...x.deps,newId:()=>{ids++;throw Error('read allocated UUID');},fetch:async(url,opts)=>{if(url.endsWith('/api/desktop-sale/workflows/15')){calls.push({url,method:opts.method});return {ok:true,json:async()=>({success:true,data:Object.defineProperties({invoiceId:'15',currency:'TRY'},Object.getOwnPropertyDescriptors(staff))})};}return original(url,opts);}});await core.login('normal','secret');const sale=core.sale();

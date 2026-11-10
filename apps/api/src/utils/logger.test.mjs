@@ -2,6 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {logger, requestLogPath} from './logger.js';
+test('normal-session diagnostics allow only the exact public code and redact credential fields and private variants',()=>{
+ const code='DESKTOP_NORMAL_SESSION_REQUIRED',lines=capture(()=>logger.error('API error normalized',{code,password:'fixture-private-password',accessToken:'fixture-private-token'}));
+ assert.equal(lines[0].payload.code,code);assert.doesNotMatch(JSON.stringify(lines),/fixture-private/);
+ for(const candidate of [code+'_PRIVATE',code.toLowerCase(),'DESKTOP_NORMAL_SESSION_NEW'])assert.equal(capture(()=>logger.error('API error normalized',{code:candidate}))[0].payload.code,'[REDACTED]');
+});
 
 test('finance diagnostics allow exact source codes and redact private suffixes',()=>{for(const code of ['DESKTOP_AUDIT_ACTOR_INVALID','DESKTOP_FINANCE_ROUTE_CONFIGURATION','DESKTOP_FINANCE_UNAVAILABLE','DESKTOP_FINANCE_PLAN_INVALID','DESKTOP_FINANCE_READBACK_INVALID','DESKTOP_FINANCE_ORIGIN_UNAVAILABLE','DESKTOP_FINANCE_JOURNAL_INVALID','DESKTOP_FINANCE_RECEIPT_UNAVAILABLE','DESKTOP_FINANCE_SELECTION_UNAVAILABLE','DESKTOP_GOODS_PROFILE_UNAVAILABLE']){assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);assert.equal(capture(()=>logger.error('API error normalized',{code:code+'_PRIVATE'}))[0].payload.code,'[REDACTED]');}});
 test('warehouse diagnostics retain only exact reviewed codes',()=>{for(const code of ['DESKTOP_WAREHOUSE_CONFIGURATION','DESKTOP_WAREHOUSE_UNAVAILABLE','DESKTOP_WAREHOUSE_RESPONSE_INVALID']){assert.equal(capture(()=>logger.error('API error normalized',{code}))[0].payload.code,code);for(const candidate of [code+'_PRIVATE',code.toLowerCase(),'DESKTOP_WAREHOUSE_NEW'])assert.equal(capture(()=>logger.error('API error normalized',{code:candidate}))[0].payload.code,'[REDACTED]');}});
