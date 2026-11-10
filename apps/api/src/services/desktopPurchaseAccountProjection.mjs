@@ -1,3 +1,4 @@
+import {desktopSqlForProfile} from '../config/desktopEmptyV7Profile.mjs';
 // Source-only TRY pilot. No query execution, authority or posting is provided.
 // The future caller must supply an authenticated, locked single transaction.
 const fail=()=>{throw Error('DESKTOP_PURCHASE_ACCOUNT_INVALID');};
@@ -33,10 +34,10 @@ export const DESKTOP_PURCHASE_REQUIRED_SCHEMA=Object.freeze([
 export function assertDesktopPurchaseRequiredSchema(columns){
  if(!Array.isArray(columns))fail();for(const required of DESKTOP_PURCHASE_REQUIRED_SCHEMA){const found=columns.filter(x=>x?.tableName===required.tableName&&x?.columnName===required.columnName);if(found.length!==1||Object.keys(required).some(k=>found[0][k]!==required[k]))fail();}return true;
 }
-export function compileDesktopPurchaseAccountReadback({invoiceId,supplierId,accountId,sessionId,transactionId,schemaColumns}={}){
+export function compileDesktopPurchaseAccountReadback({invoiceId,supplierId,accountId,sessionId,transactionId,schemaColumns,targetProfile=null}={}){
  assertDesktopPurchaseRequiredSchema(schemaColumns);
  if(![invoiceId,supplierId,accountId,transactionId].every(id)||!Number.isInteger(sessionId)||sessionId<1||sessionId>2147483647)fail();
- return Object.freeze({sql:DESKTOP_PURCHASE_ACCOUNT_READBACK_SQL,parameters:Object.freeze({invoiceId,supplierId,accountId,sessionId,transactionId})});
+ return Object.freeze({sql:desktopSqlForProfile(DESKTOP_PURCHASE_ACCOUNT_READBACK_SQL,targetProfile),parameters:Object.freeze({invoiceId,supplierId,accountId,sessionId,transactionId})});
 }
 // Exactly one row for each result set is mandatory. This validates persisted
 // facts, not origin or transaction ownership, and issues no replay authority.

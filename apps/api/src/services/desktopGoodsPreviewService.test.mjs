@@ -51,7 +51,7 @@ test('four finance reads use the real shared target and keep target/session chec
  }
  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},Int:{},NVarChar:()=>({}),VarChar:()=>({})};
  t.mock.module('mssql',{exports:{default:sql}});
- t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteProfile:()=> 'desktop-master-v7'}});
+ t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteTargetProfile:()=>null,getDesktopWriteProfile:()=> 'desktop-master-v7'}});
  t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{
   assert.equal(a,auth);assert.equal(p,pool);
   return async({transaction:tx,actorId,permission})=>{

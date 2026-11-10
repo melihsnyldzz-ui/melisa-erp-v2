@@ -1,3 +1,4 @@
+import {desktopSqlForProfile,isEmptyV7Profile} from '../config/desktopEmptyV7Profile.mjs';
 // Desktop-local master SQL adapter, SOURCE ONLY. The read-only installation
 // cannot use this store: a reviewed writable migration, a dedicated writer,
 // permission assignment and a normal authenticated-session adapter are still
@@ -32,13 +33,14 @@ const parse=value=>{if(typeof value!=='string'||value.length>8192)fail('LOCAL_SQ
 // commit. Decimal values cross the JS/driver boundary as validated strings;
 // SQL converts them to decimal and reads back fixed-scale strings, avoiding
 // JavaScript Number precision loss. IDs are also passed as decimal strings.
-export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2}={}){
+export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCards=false,schemaVersion=richCards?3:2,targetProfile=null}={}){
+ if(isEmptyV7Profile(targetProfile)&&(!richCards||schemaVersion!==7))throw Error('DESKTOP_EMPTY_V7_PROFILE_REJECTED');
  schemaVersion=schemaVersion===7?desktopMasterV7Schema(richCards,schemaVersion):schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.VarBinary||!sql?.Int||sql?.MAX===undefined||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||typeof verifySession!=='function'||typeof richCards!=='boolean')fail('LOCAL_SQL_CONFIGURATION');
  const text=sql.NVarChar;
  const execute=(tx,bindings,statement)=>{const q=new sql.Request(tx);for(const [key,type,value] of bindings)q.input(key,type,value);return q.query(statement);};
  const s=(name,value,size=250)=>[name,text(size),value];
- const guard=`SET NOCOUNT ON;
+ const guard=desktopSqlForProfile(`SET NOCOUNT ON;
  IF DB_NAME() IS NULL OR CONVERT(varbinary(256),DB_NAME())<>CONVERT(varbinary(256),N'${DATABASE}')
  OR CONVERT(varbinary(256),CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')))<>CONVERT(varbinary(256),N'Semih\\MELISAERP')
  OR SUSER_SNAME() IS NULL OR CONVERT(varbinary(256),SUSER_SNAME())<>CONVERT(varbinary(256),N'${LOGIN}')
@@ -51,9 +53,9 @@ export function createDesktopLocalMasterSqlStore({pool,sql,verifySession,richCar
  OR (SELECT COUNT_BIG(*) FROM dbo.desktop_empty_installation)<>1
  OR NOT EXISTS(SELECT 1 FROM dbo.desktop_empty_installation WITH(UPDLOCK,HOLDLOCK) WHERE id=1 AND environment_id='${ENVIRONMENT}' AND schema_version=${schemaVersion} AND actual_t1=0 AND external_operations=0 AND read_only=0)
  THROW 51995,'LOCAL_SQL_TARGET_REJECTED',1;
- ${schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL:richCards?DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL:DESKTOP_WRITE_PERMISSION_GUARD_SQL}
+ ${schemaVersion===7?getDesktopFinanceV7GuardSql(targetProfile):schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL:richCards?DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL:DESKTOP_WRITE_PERMISSION_GUARD_SQL}
  ${schemaVersion===5?DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:''}
- SELECT 1 AS ok;`;
+ SELECT 1 AS ok;`,targetProfile);
  const journalPrefix=`DECLARE @requestId uniqueidentifier=TRY_CONVERT(uniqueidentifier,@requestIdText), @actorId bigint=TRY_CONVERT(bigint,@actorIdText);`;
  const jb=v=>[s('requestIdText',v.requestId,36),s('operation',v.operation,24),s('actorIdText',v.actorId,20),['payloadHash',sql.VarBinary(32),Buffer.from(v.payloadHash,'hex')]];
  return Object.freeze({async withTransaction(work){

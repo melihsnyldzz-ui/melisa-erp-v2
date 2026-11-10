@@ -9,7 +9,7 @@ import {createDesktopCustomerLedgerRoutes} from './routes/desktopCustomerLedgerR
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import sql from 'mssql';
-import {getDesktopWritePool,getDesktopWriteProfile} from './config/desktopWriteTlsConnector.mjs';
+import {getDesktopWritePool,getDesktopWriteProfile,getDesktopWriteTargetProfile} from './config/desktopWriteTlsConnector.mjs';
 import {createDesktopWriteAuthCore,getDesktopWriteSalesReadScope,getDesktopWriteProductMovementSalesScope,getDesktopWriteSalesApprovalService,getDesktopWriteCreditService,getDesktopWriteCustomerEditService,getDesktopWriteSupplierStatusService} from './services/desktopWriteAuthCore.mjs';
 import {createDesktopCreditRoutes} from './routes/desktopCreditRoutes.mjs';
 import {createDesktopSalesPricingRoutes} from './routes/desktopSalesPricingRoutes.mjs';
@@ -47,12 +47,12 @@ export const DESKTOP_WRITE_APPLICATION_LIMITS=Object.freeze({sourceOnly:true,lis
 
 export function createDesktopWriteApplication({connector,tokenKey,runtimeInfo=null}={}){
  const pool=getDesktopWritePool(connector);
- const profile=getDesktopWriteProfile(connector);
+ const profile=getDesktopWriteProfile(connector),targetProfile=getDesktopWriteTargetProfile(connector);
  if(!['desktop-write-v2','desktop-master-v3','desktop-master-v4','desktop-master-v5','desktop-master-v6','desktop-master-v7'].includes(profile))throw Error('DESKTOP_RUNTIME_PROFILE_UNAVAILABLE');
  const richCards=['desktop-master-v3','desktop-master-v4','desktop-master-v5','desktop-master-v6','desktop-master-v7'].includes(profile),schemaVersion=profile==='desktop-master-v7'?7:profile==='desktop-master-v6'?6:profile==='desktop-master-v5'?5:profile==='desktop-master-v4'?4:richCards?3:2;
- if(runtimeInfo!==null&&(!richCards||!isDesktopRuntimeInfo(runtimeInfo)||runtimeInfo.profile!==profile||runtimeInfo.schemaVersion!==schemaVersion))throw Error('DESKTOP_RUNTIME_INFO_INVALID');const publicRuntimeInfo=runtimeInfo===null?null:Object.freeze({...runtimeInfo});
- const auth=createDesktopWriteAuthCore({pool,sql,tokenKey,richCards,schemaVersion});
- const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession,richCards,schemaVersion});
+ if(runtimeInfo!==null&&(!richCards||!isDesktopRuntimeInfo(runtimeInfo)||runtimeInfo.profile!==profile||runtimeInfo.schemaVersion!==schemaVersion||(runtimeInfo.targetProfile??null)!==targetProfile))throw Error('DESKTOP_RUNTIME_INFO_INVALID');const publicRuntimeInfo=runtimeInfo===null?null:Object.freeze({...runtimeInfo});
+ const auth=createDesktopWriteAuthCore({pool,sql,tokenKey,richCards,schemaVersion,targetProfile});
+ const store=createDesktopLocalMasterSqlStore({pool,sql,verifySession:auth.verifySession,richCards,schemaVersion,targetProfile});
  const coordinator=createLocalMasterTransactions({store,authorize:auth.authorize,onFailure:recordDesktopFailure,richCards});
  const accountCoordinator=[4,5,6,7].includes(schemaVersion)?createDesktopCustomerAccountTransactions({store:createDesktopCustomerAccountSqlStore({pool,sql,verifySession:auth.verifySession}),authorize:auth.authorize,onFailure:recordDesktopFailure}):null;
  const service=auth.bindService({...coordinator,...accountCoordinator});

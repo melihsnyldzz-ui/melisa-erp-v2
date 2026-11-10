@@ -1,3 +1,4 @@
+import {EMPTY_V7_PROFILE_ID,EMPTY_V7_OWNER_GUARD_SQL,desktopSqlForProfile,isEmptyV7Profile} from './desktopEmptyV7Profile.mjs';
 // Candidate V7 guard only. SQL Server metadata rendering, effective rights,
 // migration and rollback must be independently verified before installation.
 import {DESKTOP_GOODS_V6_SCHEMA_GUARD_SQL,DESKTOP_GOODS_V6_PERMISSION_MANIFEST,DESKTOP_GOODS_V6_OPERATOR_PERMISSIONS} from './desktopGoodsV6Policy.mjs';
@@ -14,6 +15,14 @@ const photoRights=[{schema:'dbo',name:'product_images',permission:'SELECT',colum
 const manifest=[...DESKTOP_GOODS_V6_PERMISSION_MANIFEST,...DESKTOP_FINANCE_PROPOSED_RIGHTS,...photoRights,...DESKTOP_CUSTOMER_EDIT_RIGHTS,...DESKTOP_SUPPLIER_STATUS_RIGHTS];if(new Set(manifest.map(key)).size!==manifest.length)throw Error('DESKTOP_FINANCE_V7_RIGHTS_DRIFT');
 export const DESKTOP_FINANCE_V7_PERMISSION_MANIFEST=Object.freeze(manifest);
 export const DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL=compileDesktopWritePermissionGuard(manifest);
+// The new SQL principal has its own exact raw grant/membership contract. The
+// inherited DB5 principal and its raw catalog are unchanged.
+const emptySqlRole="DATABASE_PRINCIPAL_ID(N'desktop_local_writer_v2')",emptySqlUser="DATABASE_PRINCIPAL_ID(N'melisa_empty_profile_db9_writer_v1')",dbo="DATABASE_PRINCIPAL_ID(N'dbo')";
+const rawColumns='class,major_id,minor_id,state,permission_name,grantor_principal_id';
+const roleRaw=manifest.map(p=>`(1,OBJECT_ID(${quote('dbo.'+p.name)}),${p.column?`COLUMNPROPERTY(OBJECT_ID(${quote('dbo.'+p.name)}),${quote(p.column)},'ColumnId')`:'0'},N'G',${quote(p.permission)},${dbo})`).join(',');
+const userRaw=`(0,0,0,N'G',N'CONNECT',${dbo}),(0,0,0,N'G',N'VIEW DEFINITION',${dbo})`;
+const rawDifference=(principal,rows)=>`EXISTS(SELECT ${rawColumns} FROM sys.database_permissions WHERE grantee_principal_id=${principal} EXCEPT SELECT * FROM (VALUES ${rows}) expected([class],major_id,minor_id,state,permission_name,grantor_principal_id)) OR EXISTS(SELECT * FROM (VALUES ${rows}) expected([class],major_id,minor_id,state,permission_name,grantor_principal_id) EXCEPT SELECT ${rawColumns} FROM sys.database_permissions WHERE grantee_principal_id=${principal})`;
+export const DESKTOP_EMPTY_V7_RAW_PERMISSION_GUARD_SQL=`IF ${emptySqlRole} IS NULL OR ${emptySqlUser} IS NULL OR NOT EXISTS(SELECT 1 FROM sys.database_principals WHERE principal_id=${emptySqlRole} AND type=N'R' AND owning_principal_id=${dbo}) OR (SELECT COUNT(*) FROM sys.database_role_members WHERE member_principal_id=${emptySqlUser})<>1 OR (SELECT COUNT(*) FROM sys.database_role_members WHERE role_principal_id=${emptySqlRole})<>1 OR NOT EXISTS(SELECT 1 FROM sys.database_role_members WHERE member_principal_id=${emptySqlUser} AND role_principal_id=${emptySqlRole}) OR ${rawDifference(emptySqlRole,roleRaw)} OR ${rawDifference(emptySqlUser,userRaw)} THROW 51995,'DESKTOP_EMPTY_V7_RAW_RIGHTS_REJECTED',1;`;
 const extra=[{key:'finance.collection',view:1,create:1,update:0,delete:0,approve:0},{key:'finance.payment',view:1,create:1,update:0,delete:0,approve:0}];
 export const DESKTOP_FINANCE_V7_OPERATOR_PERMISSIONS=Object.freeze([...DESKTOP_GOODS_V6_OPERATOR_PERMISSIONS,...extra.map(Object.freeze)]);
 const oldProfile=DESKTOP_MASTER_V5_RECORDED_CHECKS.CK_desktop_profile_version_mode;
@@ -42,4 +51,7 @@ const checks=`IF ${shape.join('\n OR ')} THROW 51995,'DESKTOP_FINANCE_V7_SCHEMA_
 // observed it; unexpected rendering and all older markers remain fail-closed.
 export const DESKTOP_FINANCE_V7_SCHEMA_GUARD_CANDIDATE=base+'\n'+checks+'\n'+role;
 export const DESKTOP_FINANCE_V7_LIMITS=Object.freeze({sourceOnly:true,guardReady:true,sqlVerified:false,requiresFullMetadataWhitelist:false,requiresIndependentRollback:true});
-export function getDesktopFinanceV7GuardSql(){if(!DESKTOP_FINANCE_V7_LIMITS.guardReady)throw Error('DESKTOP_FINANCE_V7_GUARD_UNAVAILABLE');return splitDesktopRejectGuards(DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL+'\n'+DESKTOP_FINANCE_V7_SCHEMA_GUARD_CANDIDATE);}
+export function getDesktopFinanceV7GuardSql(targetProfile=null){if(!DESKTOP_FINANCE_V7_LIMITS.guardReady)throw Error('DESKTOP_FINANCE_V7_GUARD_UNAVAILABLE');const empty=isEmptyV7Profile(targetProfile),schema=empty?base+'\n'+checks+'\n'+EMPTY_V7_OWNER_GUARD_SQL:DESKTOP_FINANCE_V7_SCHEMA_GUARD_CANDIDATE;return splitDesktopRejectGuards(desktopSqlForProfile(DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL+'\n'+schema+(empty?'\n'+DESKTOP_EMPTY_V7_RAW_PERMISSION_GUARD_SQL:''),targetProfile));}
+
+// Windows-owned first setup only; runtime still requires its non-admin permission and owner-role guard.
+export function getDesktopEmptyV7SchemaOnlyGuardSql(){return splitDesktopRejectGuards((base+'\n'+checks).replaceAll('MELISA_ERP_DESKTOP_TEST_20261105','MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210').replaceAll('c67f5317-9c0d-4831-aadd-fadc379a95d1','6d773db9-bd69-4906-b791-d63a490ab1f2').replaceAll('eb2888c2-51cb-4570-a933-397cf7e62806','287f689a-43bb-43dd-950b-adb615fcb20c'));}

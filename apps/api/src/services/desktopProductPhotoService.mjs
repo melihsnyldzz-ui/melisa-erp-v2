@@ -1,5 +1,5 @@
 import sql from 'mssql';
-import {getDesktopWritePool,getDesktopWriteProfile} from '../config/desktopWriteTlsConnector.mjs';
+import {getDesktopWritePool,getDesktopWriteProfile,getDesktopWriteTargetProfile} from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
 import {desktopGoodsProfile} from './desktopGoodsProfile.mjs';
 import {DESKTOP_GOODS_TARGET_SQL} from './desktopGoodsPreviewService.mjs';
@@ -7,7 +7,7 @@ import {createHash} from 'node:crypto';
 import {desktopProductCardId as id} from '../../../../packages/shared/src/desktopProductCard.mjs';
 import {normalizeDesktopProductPhotoRequest,isDesktopProductPhoto} from '../../../../packages/shared/src/desktopProductPhoto.mjs';
 import {validateDesktopPhotoPng} from './desktopProductPhotoPng.mjs';
-import {desktopProductPhotoMedia} from './desktopProductPhotoMedia.mjs';
+import {desktopProductPhotoMediaForProfile} from './desktopProductPhotoMedia.mjs';
 const fail=()=>{throw Error('DESKTOP_PRODUCT_PHOTO_UNAVAILABLE');};
 const prefix='desktop-photo-v1:';
 const commandHash=(actorId,productId,body)=>createHash('sha256').update(JSON.stringify({actorId,productId,requestId:body.requestId,imageDataUrl:body.imageDataUrl})).digest('hex');
@@ -15,7 +15,7 @@ const encode=(productId,requestId,p)=>`${prefix}${productId}:${requestId}:${p.sh
 function parse(row,productId){const r=new RegExp('^desktop-photo-v1:([1-9][0-9]{0,18}):([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}):([0-9a-f]{64}):([1-9][0-9]{0,3}):([1-9][0-9]{0,3})$').exec(row?.storageKey??'');if(!r||r[1]!==productId||!id(row.imageId)||row.filePath!==`/desktop-product-media-v1/${r[3]}.png`||Number(r[4])>2048||Number(r[5])>2048)fail();return {imageId:row.imageId,requestId:r[2],sha256:r[3],width:Number(r[4]),height:Number(r[5])};}
 async function response(media,productId,row){const meta=parse(row,productId),bytes=await media.read(meta.sha256),dataUrl='data:image/png;base64,'+bytes.toString('base64'),checked=validateDesktopPhotoPng(dataUrl);if(checked.sha256!==meta.sha256||checked.width!==meta.width||checked.height!==meta.height)fail();const out={productId,status:'available',...meta,dataUrl};if(!isDesktopProductPhoto(out,productId))fail();return out;}
 export function createDesktopProductPhotoService({connector,auth}={}){
- const pool=getDesktopWritePool(connector);if(getDesktopWriteProfile(connector)!=='desktop-master-v7')fail();const verifySession=getDesktopWriteSessionVerifier(auth,pool),{target,guard}=desktopGoodsProfile('desktop-master-v7',DESKTOP_GOODS_TARGET_SQL),profileGuard=target+'\n'+guard+'\nSELECT 1 AS ok;',media=desktopProductPhotoMedia;
+ const pool=getDesktopWritePool(connector);if(getDesktopWriteProfile(connector)!=='desktop-master-v7')fail();const targetProfile=getDesktopWriteTargetProfile(connector),verifySession=getDesktopWriteSessionVerifier(auth,pool),{target,guard}=desktopGoodsProfile('desktop-master-v7',DESKTOP_GOODS_TARGET_SQL,targetProfile),profileGuard=target+'\n'+guard+'\nSELECT 1 AS ok;',media=desktopProductPhotoMediaForProfile(targetProfile);
  async function transaction(actorId,productId,permission,work){if(!id(actorId)||!id(productId))fail();const tx=new sql.Transaction(pool);let begun=false;try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const guard=await new sql.Request(tx).query(profileGuard);if(guard?.recordset?.length!==1||guard.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission})!==true)fail();const output=await work(tx);await tx.commit();begun=false;return output;}catch(e){if(begun)try{await tx.rollback();}catch{}throw e;}}
  const query=(tx,productId)=>new sql.Request(tx).input('product',sql.NVarChar(20),productId);
  async function product(tx,productId){const r=await query(tx,productId).query(`SELECT CONVERT(varchar(20),id) id FROM dbo.products WITH(UPDLOCK,HOLDLOCK) WHERE id=TRY_CONVERT(bigint,@product) AND is_active=1 AND is_deleted=0;`);if(r?.recordset?.length!==1||r.recordset[0].id!==productId)fail();}

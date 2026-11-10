@@ -2,6 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, readdir} from 'node:fs/promises';
 import {logger, requestLogPath} from './logger.js';
+
+test('empty-profile diagnostics admit only the exact fixed code and keep private fields and variants redacted',()=>{
+ const code='DESKTOP_EMPTY_V7_PROFILE_REJECTED',lines=capture(()=>logger.error('API error normalized',{code,password:'fixture-private-empty-profile',accessToken:'fixture-private-empty-token'}));
+ assert.equal(lines[0].payload.code,code);assert.doesNotMatch(JSON.stringify(lines),/fixture-private-empty/);
+ for(const candidate of [code+'_PRIVATE',code.toLowerCase(),'DESKTOP_EMPTY_V7_PROFILE_NEW'])assert.equal(capture(()=>logger.error('API error normalized',{code:candidate}))[0].payload.code,'[REDACTED]');
+});
 test('normal-session diagnostics allow only the exact public code and redact credential fields and private variants',()=>{
  const code='DESKTOP_NORMAL_SESSION_REQUIRED',lines=capture(()=>logger.error('API error normalized',{code,password:'fixture-private-password',accessToken:'fixture-private-token'}));
  assert.equal(lines[0].payload.code,code);assert.doesNotMatch(JSON.stringify(lines),/fixture-private/);
