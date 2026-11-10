@@ -69,6 +69,13 @@ async function prepare(){
  const r=await open(),tx=new r.sql.Transaction(r.pool);let begun=false;
  try{check(!fs.existsSync(evidence+'/apply-attempt.json'),'PRIOR_ATTEMPT_REVIEW_REQUIRED');await tx.begin(r.sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;
   const {identity}=await readIdentity(r,tx);await protectedState(r,tx);await tx.rollback();begun=false;
+  if(fs.existsSync(evidence+'/preparation.json')){
+   const previous=json(evidence+'/preparation.json');
+   check(previous.kind==='ACCOUNTING_HUMAN_PASSWORD_PREPARATION'&&previous.head===head&&previous.packageHash===packageHash&&previous.expiresAt>Date.now()&&previous.expiresAt<=Date.now()+3600000&&previous.sqlWrites===0&&JSON.stringify(previous.identity)===JSON.stringify(identity),'EXISTING_PREPARATION_REVIEW_REQUIRED');
+   // Resume the same unconsumed human handoff, never overwrite its nonce or
+   // clear a mutation attempt. Fresh readonly identity was checked above.
+   return {status:'READY_FOR_HUMAN_PASSWORD',username:'erp_muhasebe_deneme',userId:30018,roleId:19,sqlWrites:0,resumedSamePreparation:true};
+  }
   const record={kind:'ACCOUNTING_HUMAN_PASSWORD_PREPARATION',nonce:crypto.randomUUID(),at:new Date().toISOString(),expiresAt:Date.now()+3600000,identity,head,packageHash,sqlWrites:0,humanCredentialEntryRequired:true};
   writeNew(evidence+'/preparation.json',record);
   return {status:'READY_FOR_HUMAN_PASSWORD',username:'erp_muhasebe_deneme',userId:30018,roleId:19,sqlWrites:0};
