@@ -13,7 +13,7 @@ test('resolution returns committed result or durably prevents an uncommitted ori
   throw Error('unexpected mutation after resolution');
  }}
  const sql={Transaction,Request,NVarChar:()=>{},ISOLATION_LEVEL:{SERIALIZABLE:4}},verifySession=async input=>{permissions.push(input.permission);return true;};
- t.mock.module('mssql',{exports:{default:sql}});t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;}}});t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{assert.equal(a,auth);assert.equal(p,pool);return verifySession;}}});
+ t.mock.module('mssql',{exports:{default:sql}});t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteTargetProfile:c=>{assert.equal(c,connector);return null;}}});t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{assert.equal(a,auth);assert.equal(p,pool);return verifySession;}}});
  const {createDesktopWorkflowResolutionService}=await import('./desktopWorkflowResolutionService.mjs'),service=createDesktopWorkflowResolutionService({connector,auth});
  const body={requestId:'da171000-6f42-4f19-8cab-9f4539618647',invoiceId:'12',operation:'READY',expectedVersion:'0x0000000000000001',cartons:[]};
  const result=await service.resolve('8',{kind:'transition',body});assert.equal(result.state,'NOT_COMMITTED');assert.equal(result.resolution,'DURABLE_NO_COMMIT');assert.equal(permissions[0],'sales.view');

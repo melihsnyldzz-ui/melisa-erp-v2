@@ -61,6 +61,8 @@
     "package":"kurulum/empty-profile-db9-v1/runtime-package.json",
     "admission":"kurulum/empty-profile-db9-v1/runtime-admissions/<UPPERCASE_PACKAGE_SHA256>.json",
     "publicTarget":"kurulum/empty-profile-db9-v1/export-journal/desktop-target.json",
+    "photoMediaRoot":"C:/Users/Xaser/Desktop/ERP/empty-profile-db9-media-v1",
+    "legacyPhotoMediaRootPreserved":"C:/Users/Xaser/Desktop/ERP/product-media-v1",
     "receipt":"kurulum/empty-profile-db9-v1/first-owner-setup-receipt.v1.json",
     "privateTechnicalStore":"kurulum/empty-profile-db9-v1/protected-sql-writer-v1/sql-writer.dpapi",
     "humanPlaintextPasswordStored":false,

@@ -2,6 +2,7 @@ import test,{mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {request} from 'node:http';
 import express from 'express';
+import {GRANULAR_PERMISSIONS} from '../services/permissionCatalog.js';
 
 const env={port:4146,auth:{jwtSecret:'fixture',refreshSecret:'fixture'},sql:{enabled:true,server:'127.0.0.1',port:1433,
  database:'MELISA_ERP_SIRKET_TEST_20260929_01',user:'melisa_sirket_test_20260929_01',password:'fixture',
@@ -35,7 +36,7 @@ mock.module('../services/isolatedOperationCopyContext.mjs',{namedExports:{isolat
 mock.module('../services/crmOrderCurrentContext.mjs',{namedExports:{getCrmOrderCurrentContext:()=>null,assertCrmOrderCurrentIdentity:()=>{}}});
 mock.module('../services/cleanSyntheticContext.mjs',{namedExports:{getCleanContext:()=>null,assertRegisteredCleanContext:()=>{},assertCleanIdentity:()=>{},CLEAN_IDENTITY_SQL:''}});
 mock.module('../services/canonicalBusinessSessionContext.mjs',{namedExports:{getCanonicalBusinessSession:()=>null,businessSessionFingerprintWitness:()=>null,assertBusinessSessionPermissionRows:()=>{},getCanonicalBusinessSigningKey:()=>null,validateBusinessSessionProfile:()=>{}}});
-mock.module('../services/permissionCatalog.js',{namedExports:{applyRolePermissionDefaults:permissions=>permissions,expandPermissions:rows=>rows.map(r=>r.permission_key)}});
+mock.module('../services/permissionCatalog.js',{namedExports:{GRANULAR_PERMISSIONS,applyRolePermissionDefaults:permissions=>permissions,expandPermissions:rows=>rows.map(r=>r.permission_key)}});
 mock.module('../services/writeGuardService.js',{namedExports:{assertMelisaWriteEnabled:()=>{throw Error('unexpected write');}}});
 mock.module('../services/sharedCopyAuthClaims.mjs',{namedExports:{sharedCopyAuthClaims:()=>({})}});
 mock.module('../services/normalTestRefreshSession.mjs',{namedExports:{bindNormalTestFingerprint:user=>user,configuredNormalTestRefreshStore:()=>null}});
