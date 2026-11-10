@@ -9,3 +9,29 @@ test('list identifies drafts by escaped note and code and explains unsaved chang
 test('read-only pending survives close and remount without retry or editing',async()=>{const saved={kind:'create',draftId:null,body:{requestId:ids[0],note:'Korunan sayım',lines:[{clientLineId:ids[1],productId:'6',barcode:'0006',stockCode:'P6',physicalQuantityExact3:'2.000',issue:null,note:'Satır'}]}};let sends=0;const controller={pending:()=>saved,canWrite:()=>false,list:async()=>({page:1,hasNext:false,drafts:[]}),retry:async()=>{sends++},resolve:async()=>{sends++}};const el=surface(),view=mountDesktopCountDraft({root:el,controller,newId:()=>ids[0]});await tick();for(const selector of ['[data-count-note]','[data-count-qty]','[data-count-issue]','[data-count-line-note]','[data-count-remove]','[data-count-new]','[data-count-retry]','[data-count-resolve]'])assert.equal(el.querySelector(selector).disabled,true,selector);assert.match(el.innerHTML,/yetkisi gerekli; kayıt korunuyor/);assert.equal(view.requestClose(),true);view.dispose();const again=surface(),second=mountDesktopCountDraft({root:again,controller,newId:()=>ids[0]});await tick();assert.equal(again.querySelector('[data-count-note]').value,'Korunan sayım');assert.match(again.innerHTML,/2.000/);assert.equal(sends,0);second.dispose();});
 
 test('multiline header and line notes reach save and reopen unchanged',async()=>{const el=surface();let saved;const controller={pending:()=>null,canWrite:()=>true,list:async()=>({page:1,hasNext:false,drafts:saved?[saved]:[]}),save:async(_d,body)=>{saved={draftId:ids[0],revision,state:'draft',...body};return {state:'COMMITTED',draft:saved};},read:async()=>saved};const view=mountDesktopCountDraft({root:el,controller,newId:()=>ids[1]});await tick();el.querySelector('[data-count-unknown]').value='N1';el.querySelector('[data-count-add-unknown]').events.click();el.querySelector('[data-count-qty]').events.input({target:{value:'2'}});el.querySelector('[data-count-note]').events.input({target:{value:'\nBirinci <x>\nİkinci'}});el.querySelector('[data-count-line-note]').events.input({target:{value:'\nEksik <y>\nKontrol'}});el.querySelector('[data-count-save]').events.click();await tick();assert.equal(saved.note,'\nBirinci <x>\nİkinci');assert.equal(saved.lines[0].note,'\nEksik <y>\nKontrol');view.dispose();const reopened=surface(),v2=mountDesktopCountDraft({root:reopened,controller,newId:()=>ids[1]});await tick();reopened.querySelector('[data-count-open]').events.click();await tick();assert.equal(reopened.querySelector('[data-count-note]').value,'\nBirinci <x>\nİkinci');assert.equal(reopened.querySelector('[data-count-line-note]').value,'\nEksik <y>\nKontrol');v2.dispose();});
+
+
+test('new draft replaces saved confirmation and saves separately while protecting unsaved edits',async()=>{
+ const el=surface(),writes=[];let index=0;
+ const controller={pending:()=>null,canWrite:()=>true,list:async()=>({page:1,hasNext:false,drafts:[]}),save:async(draft,body)=>{writes.push({draft,body});return {state:'COMMITTED',draft:{draftId:ids[index++],revision,state:'needs_review',...body}};}};
+ const view=mountDesktopCountDraft({root:el,controller,newId:()=>ids[0]});await tick();
+ el.querySelector('[data-count-unknown]').value='FIRST';el.querySelector('[data-count-add-unknown]').events.click();
+ el.querySelector('[data-count-qty]').events.input({target:{value:'2'}});
+ el.querySelector('[data-count-note]').events.input({target:{value:'İlk kayıt'}});
+ el.querySelector('[data-count-save]').events.click();await tick();assert.match(el.innerHTML,/Sayım kaydedildi/);
+ el.querySelector('[data-count-new]').events.click();
+ assert.doesNotMatch(el.innerHTML,/Sayım kaydedildi|Sayım açıldı/);
+ assert.match(el.innerHTML,/Yeni sayım taslağı açıldı/);
+ assert.equal(el.querySelectorAll('[data-count-qty]').length,0);assert.equal(el.querySelector('[data-count-note]').value,'');
+ assert.equal(el.querySelector('[data-count-save]').disabled,true);assert.equal(writes.length,1);
+ el.querySelector('[data-count-unknown]').value='SECOND';el.querySelector('[data-count-add-unknown]').events.click();
+ el.querySelector('[data-count-qty]').events.input({target:{value:'3'}});
+ el.querySelector('[data-count-note]').events.input({target:{value:'İkinci kayıt'}});
+ el.querySelector('[data-count-new]').events.click();
+ assert.match(el.innerHTML,/Önce değişiklikleri kaydedin veya vazgeçin/);
+ assert.equal(el.querySelector('[data-count-note]').value,'İkinci kayıt');assert.equal(el.querySelector('[data-count-qty]').value,'3');
+ el.querySelector('[data-count-save]').events.click();await tick();
+ assert.equal(writes.length,2);assert(writes.every(x=>x.draft===null),'new count must not update the previous saved draft');
+ assert.equal(writes[0].body.note,'İlk kayıt');assert.equal(writes[1].body.lines[0].barcode,'SECOND');
+ assert.match(el.innerHTML,/Sayım kaydedildi/);view.dispose();
+});
