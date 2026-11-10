@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {desktopWorkflowRequestIdentity} from './desktopWorkflowRequestResolution.mjs';
 import {createDesktopSaleWorkflowTransactions} from './desktopSaleWorkflowTransactions.mjs';
@@ -16,7 +17,7 @@ test('resolution returns committed result or durably prevents an uncommitted ori
  const {createDesktopWorkflowResolutionService}=await import('./desktopWorkflowResolutionService.mjs'),service=createDesktopWorkflowResolutionService({connector,auth});
  const body={requestId:'da171000-6f42-4f19-8cab-9f4539618647',invoiceId:'12',operation:'READY',expectedVersion:'0x0000000000000001',cartons:[]};
  const result=await service.resolve('8',{kind:'transition',body});assert.equal(result.state,'NOT_COMMITTED');assert.equal(result.resolution,'DURABLE_NO_COMMIT');assert.equal(permissions[0],'sales.view');
- const writer=createDesktopSaleWorkflowTransactions({pool,sql,verifySession});assert.equal((await writer.transition('8',body)).state,'UNKNOWN');assert.equal(Object.keys(state.journal).length,0);
+ const writer=createDesktopSaleWorkflowTransactions({pool,sql,verifySession,getSalesReadScope:()=>{throw Error('fenced request must not reach invoice scope');}});assert.equal((await writer.transition('8',body)).state,'UNKNOWN');assert.equal(Object.keys(state.journal).length,0);
  assert.equal((await service.resolve('8',{kind:'transition',body})).state,'NOT_COMMITTED');
  await assert.rejects(service.resolve('8',{kind:'transition',body:{...body,expectedVersion:'0x0000000000000002'}}));
  const second={...body,requestId:'da171000-6f42-4f19-8cab-9f4539618648'},identity=desktopWorkflowRequestIdentity('8','transition',second);
@@ -32,4 +33,9 @@ test('resolution returns committed result or durably prevents an uncommitted ori
  state.journal[committedCancel.requestId]={actorId:'8',operation:'CANCEL_SALE',hash:cancelSaved.hash,resultJson:JSON.stringify(cancelResult)};assert.equal((await service.resolve('8',{kind:'cancel',body:committedCancel})).replayed,true);assert.equal(state.resolutions[committedCancel.requestId],undefined);
  state.journal[committedCancel.requestId].resultJson=JSON.stringify({...cancelResult,workflowState:'COMPLETED'});await assert.rejects(service.resolve('8',{kind:'cancel',body:committedCancel}));
  const review={...cancel,requestId:'7cbb7e06-ef75-4456-92e5-99f6d99b8314'};fenceState='CANCELLATION_FENCED';assert.equal((await service.resolve('8',{kind:'cancel',body:review})).state,'REVIEW_REQUIRED');assert.equal(state.resolutions[review.requestId],undefined);fenceState='NO_FENCE';assert.equal((await service.resolve('8',{kind:'cancel',body:review})).state,'NOT_COMMITTED');
+});
+
+test('optional due decision participates in exact dispatch hash, while omitted legacy identity stays byte-identical',()=>{
+ const actorId='8',body={requestId:'da171000-6f42-4f19-8cab-9f4539618647',invoiceId:'12',customerId:'2',expectedVersion:'0x0000000000000001',productIds:['8','1']};const legacy=desktopWorkflowRequestIdentity(actorId,'dispatch',body);assert.equal(legacy.hash,createHash('sha256').update(JSON.stringify({actorId,c:body})).digest('hex'));assert.deepEqual(legacy.body,body);
+ const selected=desktopWorkflowRequestIdentity(actorId,'dispatch',{...body,dueExceptionRequestId:'20'});assert.notEqual(selected.hash,legacy.hash);assert.equal(selected.body.dueExceptionRequestId,'20');assert.notEqual(desktopWorkflowRequestIdentity(actorId,'dispatch',{...body,dueExceptionRequestId:'21'}).hash,selected.hash);for(const value of [null,undefined,0,'0','20x'])assert.throws(()=>desktopWorkflowRequestIdentity(actorId,'dispatch',{...body,dueExceptionRequestId:value}));
 });

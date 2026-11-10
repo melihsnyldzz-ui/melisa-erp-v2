@@ -13,6 +13,7 @@ function validate(kind,payload){
  const discounted=kind==='draft'&&Object.hasOwn(payload??{},'discountRateExact4'),pricing=kind==='draft'&&Object.hasOwn(payload??{},'pricing');if(pricing)normalizeDesktopSalePricing(payload.pricing);
  const fx=['draft','dispatch'].includes(kind)&&Object.hasOwn(payload??{},'currencySelection');
  if(discounted)keys.draft='customerId,discountRateExact4,documentDate,expectedRevision,items';if(pricing)keys.draft=([...keys.draft.split(','),'pricing']).sort().join(',');
+ if(kind==='dispatch'&&Object.hasOwn(payload??{},'dueExceptionRequestId')){if(!id(payload.dueExceptionRequestId))fail();keys.dispatch=([...keys.dispatch.split(','),'dueExceptionRequestId']).sort().join(',');}
  if(fx){keys[kind]=([...keys[kind].split(','),'currencySelection',...(kind==='dispatch'?['documentDate']:[])]).sort().join(',');desktopSaleCurrencySelection(payload.currencySelection);desktopCompanyRateDate(payload.documentDate);}
  if(!Object.hasOwn(keys,kind)||!payload||Object.keys(payload).sort().join(',')!==keys[kind]||discounted&&(typeof payload.discountRateExact4!=='string'||!/^(?:0|[1-9]\d?)\.\d{4}$/.test(payload.discountRateExact4)||(!pricing&&BigInt(payload.discountRateExact4.replace('.',''))>30000n)))fail();
  if(kind!=='draft'&&(!id(payload.invoiceId)||typeof payload.expectedVersion!=='string'||!/^0x[0-9A-F]{16}$/.test(payload.expectedVersion)))fail();

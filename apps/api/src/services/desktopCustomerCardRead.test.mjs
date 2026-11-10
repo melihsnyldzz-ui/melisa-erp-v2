@@ -4,15 +4,15 @@ function setup({allow=true,target=true,missing=false,change=()=>{},richCards=tru
  const card=customerCardFixture(),calls=[];change(card);let committed=0,rolled=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){committed++;}async rollback(){rolled++;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,params:this.params,tx:this.tx});
-  if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:target?1:0}]};
+
   if(q.includes('FROM dbo.customers c WITH(HOLDLOCK)')){const {accounts,lastSale,salesHistoryAvailable,...header}=card;return {recordset:missing?[]:[header]};}
   if(q.includes('FROM dbo.party_currency_accounts WITH(HOLDLOCK)')){const recordset=card.accounts;Object.defineProperty(recordset,'columns',{value:{id:{type:'varchar'}}});return {recordset};}
   if(q.includes('FROM dbo.sales_invoices i WITH(HOLDLOCK)'))return {recordset:card.lastSale?[card.lastSale]:[]};throw Error('unexpected readonly SQL');}}
- const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:4}},service=createDesktopWriteListService({pool:{},sql,richCards,verifySession:async context=>{calls.push(context);return allow;}});return {card,calls,service,get committed(){return committed;},get rolled(){return rolled;}};
+ const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:4}},service=createDesktopWriteListService({pool:{},sql,richCards,verifySession:async context=>{calls.push(context);return allow&&target;}});return {card,calls,service,get committed(){return committed;},get rolled(){return rolled;}};
 }
 test('customer, every account and latest completed sale belong to one selected verified snapshot',async()=>{
  const x=setup(),card=await x.service.readCustomer('30002','3',{includeSales:true});assert.equal(isDesktopCustomerCard(card,'3'),true);assert.deepEqual(card,x.card);assert.equal(card.phone,'0055500011');assert.equal(x.committed,1);assert.deepEqual(x.calls.find(c=>c?.permission).permission,['customer.view','sales.view']);
- const queries=x.calls.filter(c=>c?.q);assert.equal(new Set(queries.map(c=>c.tx)).size,1);assert.ok(queries.slice(1).every(c=>c.params.customerId==='3'));assert.match(queries[1].q,/e\.role=N'customer'/);assert.match(queries.find(c=>c.q.includes('TOP(1)')).q,/i\.status=N'finalized' AND w\.state='COMPLETED'/);assert.ok(queries.every(c=>!/^\s*(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b/.test(c.q)));
+ const queries=x.calls.filter(c=>c?.q);assert.equal(new Set(queries.map(c=>c.tx)).size,1);assert.ok(queries.every(c=>c.params.customerId==='3'));assert.match(queries.find(c=>c.q.includes('FROM dbo.customers c WITH(HOLDLOCK)')).q,/e\.role=N'customer'/);assert.match(queries.find(c=>c.q.includes('TOP(1)')).q,/i\.status=N'finalized' AND w\.state='COMPLETED'/);assert.ok(queries.every(c=>!/^\s*(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b/.test(c.q)));
  const latest=queries.find(c=>c.q.includes('TOP(1)'));assert.match(latest.q,/i.created_by=TRY_CONVERT\(bigint,@actorId\)/);assert.equal(latest.params.actorId,'30002');
 });
 test('customer view without sales view never queries or returns a sale',async()=>{const x=setup(),c=await x.service.readCustomer('7','3');assert.equal(c.salesHistoryAvailable,false);assert.equal(c.lastSale,null);assert.equal(x.calls.find(c=>c?.permission).permission,'customer.view');assert.equal(x.calls.some(c=>c?.q?.includes('FROM dbo.sales_invoices')),false);});

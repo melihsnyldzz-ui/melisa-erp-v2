@@ -1,3 +1,13 @@
+## K10-02 — DES-19 satış onay matrisi
+
+- Durum: BEKLİYOR. Kaynak/sentetik kontroller hazır; yeni paketin kurulumu ve normal ayrı oturum kararı/kaydı henüz yok.
+- Satışçı en fazla %3; müdür başka kişinin güncel bekleyen talebinde %5 dahil; üzeri patron. Mevcut %5 adlı kişi şirket müdürü kabul edilmez.
+- Normal satışçı isteği → doğru müdür/patron listesi → gerekçeli onay → aynı isteğe bağlı satış fişi kaydı → SQL tek etki ve audit bağı ayrıca gösterilmeli.
+- Müdürün %5 üzerindeki karar, ilgisiz fiş/cari bilgisi, genel müşteri ve finans erişimi reddedilmeli. Yalnız bekleyen kredi kararının gerekli özeti açılmalı.
+- UNKNOWN/reload, yetki revizyonu, süre, aynı UUID/gövde, tek tüketim ve sayfalama sınırları korunmalı. Geçerli eski %3/%5 önizleme ve fiş15 sevk kabulleri yeniden yapılmaz.
+- Fişe özel vade istisnası henüz açık; saveTerms veya vadeStatus unknown olumlu istisna kabulü değildir. İnsan/cihaz/LIVE kabulü ve sayaçlar değişmedi.
+- Kaynak: codex/erp-sales-approval-matrix-20261109, taban PR119; [sözleşme](docs/development/desktop-sales-approval-matrix.md).
+
 ## K04-09 — tedarikçiyi pasife alma ve yeniden etkinleştirme
 
 - Durum: BEKLİYOR — kaynak/test ayrı; yeni kurulum henüz yok.

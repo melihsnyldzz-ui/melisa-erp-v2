@@ -49,3 +49,31 @@ deactivation/reactivation, history preservation, same-currency inactive purchase
 exclusion and a reversible synthetic ambiguous-identity case with no status write.
 It must not delete records, merge cards, repeat accepted purchase transactions,
 create the special sales approver, or turn historical request 209 into a retry.
+
+## 10 November normal roundtrip and context-read failure
+
+The installed 80662275 / 21de9872 TEST package reused the already installed four
+column rights. Existing operator 30002 deactivated and reactivated synthetic
+supplier 2 through the normal green screen, with two HTTP 200 commands and two
+matching committed, non-replayed native audit receipts. The inactive card kept
+its 143 TRY balance and two purchase documents. The empty-search TRY purchase
+selector excluded it while inactive and included it after reactivation. Final
+active/passive fields were restored; update timestamps and rowversion were not
+rewound. No purchase, financial transaction, new role/right or fixture was made.
+
+A runtime GET returned 401 before the reactivation context request. A normal
+logout/login of the same operator restored access before the second status
+command. Authentication response acceptance is not claimed. Response bodies
+were unavailable in the browser observer; HTTP metadata, normal UI and native
+receipts are separate evidence. The 228/229/230-audit observations preserve the
+old audits and 35 other business tables, but are not one combined transaction.
+The ambiguous-identity scenario and overall/human acceptance remain open.
+
+The source view now distinguishes an outstanding initial context request from
+a completed read failure. A failed read removes the loading text and exposes a
+fixed error with Cancel. It does not retry automatically, create a command,
+refresh credentials or relax a permission. An existing UNKNOWN command still
+offers only resolution of that same command and blocks navigation. Four focused
+view tests cover the loading/error/cancel and pending/busy boundaries. Source
+review, exact-head CI, installation and normal GUI of this new view are recorded
+separately in STATUS; the earlier roundtrip used the installed 806 package.

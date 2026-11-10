@@ -5,7 +5,7 @@ function setup({allow=true,target=true,missing=false,wrongParent=false,richCards
  const calls=[],card={...productCardFixture(),reservedExact3:reserved,availableExact3:'1.500',salePrices:[{id:'6',productId:'6',unitId:'6',type:'sale',tier:null,currency:'TRY',priceExact8:'12.00000000'}]};let commits=0,rollbacks=0;
  class Transaction{async begin(){calls.push('begin');}async commit(){commits++;}async rollback(){rollbacks++;}}
  class Request{constructor(tx){this.tx=tx;this.params={};}input(k,_t,v){this.params[k]=v;return this;}async query(q){calls.push({q,params:this.params,tx:this.tx});
-  if(q.includes('DESKTOP_LIST_TARGET_REJECTED'))return {recordset:[{ok:target?1:0}]};
+
   if(q.includes('COUNT_BIG(*)'))return {recordset:[{total:'1'}]};
   if(q.includes('FROM dbo.product_prices q WITH(HOLDLOCK)'))return {recordset:card.salePrices};
   if(q.includes('OFFSET @offset'))return {recordset:[{id:card.id,stockCode:card.stockCode,productName:card.name,unit:card.unit,currency:card.currency,currentStockExact3:card.currentStockExact3,salePriceExact4:card.salePriceExact4,brand:card.brand,category:card.category,supplierId:card.supplierId,supplierName:card.supplierName,reservedExact3:card.reservedExact3}]};
@@ -16,12 +16,12 @@ function setup({allow=true,target=true,missing=false,wrongParent=false,richCards
   if(q.includes('FROM dbo.stock_movements WITH(HOLDLOCK)')){const {movementId,productId,actorId,quantityExact3,costExact4,amountTryExact4,documentDate,currency}=stockOpening;return {recordset:[{movementId,productId,actorId,quantityExact3:badOpening?'99.000':quantityExact3,costExact4,amountTryExact4,documentDate,currency}]};}
   throw Error('unexpected readonly SQL');}}
  const sql={Transaction,Request,NVarChar:()=>null,Int:{},ISOLATION_LEVEL:{SERIALIZABLE:4}};
- const service=createDesktopWriteListService({pool:{},sql,richCards,verifySession:async ctx=>{calls.push(ctx);return allow;}});
+ const service=createDesktopWriteListService({pool:{},sql,richCards,verifySession:async ctx=>{calls.push(ctx);return allow&&target;}});
  return {service,calls,card,get commits(){return commits;},get rollbacks(){return rollbacks;}};
 }
 test('product card and all barcode parents use one verified readonly transaction',async()=>{
  const x=setup(),result=await x.service.readProduct('7','6');assert.deepEqual(result,x.card);assert.deepEqual(x.calls.find(c=>c?.permission)?.permission,['product.view','product.edit']);
- const sql=x.calls.filter(c=>c?.q);assert.equal(new Set(sql.map(c=>c.tx)).size,1);assert.ok(sql.slice(1).every(c=>c.params.productId==='6'));assert.equal(x.commits,1);assert.equal(x.rollbacks,0);
+ const sql=x.calls.filter(c=>c?.q);assert.equal(new Set(sql.map(c=>c.tx)).size,1);assert.ok(sql.every(c=>c.params.productId==='6'));assert.equal(x.commits,1);assert.equal(x.rollbacks,0);
  assert.ok(sql.every(c=>!/^\s*(INSERT|UPDATE|DELETE|MERGE|CREATE|ALTER|DROP)\b/i.test(c.q)));assert.equal(result.barcodes[0].barcode,'000000000005');
 });
 

@@ -6,6 +6,7 @@ import {DESKTOP_FINANCE_PROPOSED_RIGHTS} from './desktopFinanceSchemaProposal.mj
 import {DESKTOP_CUSTOMER_EDIT_RIGHTS} from './desktopCustomerEditPolicy.mjs';
 import {DESKTOP_SUPPLIER_STATUS_RIGHTS} from './desktopSupplierStatusPolicy.mjs';
 import {compileDesktopWritePermissionGuard} from './desktopWritePermissionPolicy.mjs';
+import {splitDesktopRejectGuards} from './desktopSqlGuardStatements.mjs';
 const quote=v=>`N'${v.replaceAll("'","''")}'`;
 const replaceOne=(s,a,b)=>{if(s.split(a).length!==2)throw Error('DESKTOP_FINANCE_V7_SOURCE_DRIFT');return s.replace(a,()=>b);};
 const key=x=>[x.schema,x.name,x.permission,x.column??''].join('/');
@@ -41,4 +42,4 @@ const checks=`IF ${shape.join('\n OR ')} THROW 51995,'DESKTOP_FINANCE_V7_SCHEMA_
 // observed it; unexpected rendering and all older markers remain fail-closed.
 export const DESKTOP_FINANCE_V7_SCHEMA_GUARD_CANDIDATE=base+'\n'+checks+'\n'+role;
 export const DESKTOP_FINANCE_V7_LIMITS=Object.freeze({sourceOnly:true,guardReady:true,sqlVerified:false,requiresFullMetadataWhitelist:false,requiresIndependentRollback:true});
-export function getDesktopFinanceV7GuardSql(){if(!DESKTOP_FINANCE_V7_LIMITS.guardReady)throw Error('DESKTOP_FINANCE_V7_GUARD_UNAVAILABLE');return DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL+'\n'+DESKTOP_FINANCE_V7_SCHEMA_GUARD_CANDIDATE;}
+export function getDesktopFinanceV7GuardSql(){if(!DESKTOP_FINANCE_V7_LIMITS.guardReady)throw Error('DESKTOP_FINANCE_V7_GUARD_UNAVAILABLE');return splitDesktopRejectGuards(DESKTOP_FINANCE_V7_PERMISSION_GUARD_SQL+'\n'+DESKTOP_FINANCE_V7_SCHEMA_GUARD_CANDIDATE);}

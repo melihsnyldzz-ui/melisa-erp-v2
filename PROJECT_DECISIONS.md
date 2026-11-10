@@ -1,3 +1,9 @@
+## 9 Kasım — DES-19 / satış onay matrisi
+
+Kullanıcının kesin kararı yerel koordinasyon kaydındaki salesApproverDecision.approvedMatrix üzerinden kaynak sözleşmesine bağlandı: satışçı en çok %3; müdür %5 dahil indirim ve limit/vade istisnası onayı; müdüre yalnız bekleyen karar için gerekli cari bilgisi; %5 üzeri yalnız patron. Mevcut permission sistemi kullanılır, genel yönetici/finans hakları eklenmez. Önceki geniş birleşik onaylayıcı profili onaylanmadı. Bu kayıt yeni bir iş kararı üretmez; mevcut kararın kaynak yansımasıdır.
+
+Öncelik K10-02 → K04-04 → K06-03 → K05-07 → K05-08; kapanmış kabul yeniden yapılmaz. [Uygulanan dar kaynak ve açık kalan vade/normal kabul](docs/development/desktop-sales-approval-matrix.md). Kaynak/CI, kurulum, normal GUI ve insan kabulü ayrı kalır.
+
 ## ERP-DEC-087 eki — 4 Kasım / bağımlılığa göre çalışma ve test
 
 Kullanıcı, mevcut bitiş işlerinin hazır bağımlılıkları ve açık dosya sahipliği olan küçük bağımsız parçalarla yürütülmesini; değişiklikte derleme, güvenlik taraması ve ilgili alan testleri, etkilenen ortak sözleşmeler için bağımlı kontroller, son TEST teslimi öncesinde ise tam kontroller ve gerçek ekran doğrulaması yapılmasını istedi. İşler sırf CI atlatmak için PR'lara bölünmez: birbirine bağlı satış ve müşteri düzeltmeleri birlikte doğrulanır. İnsan/fiziksel cihaz kabulü ayrı kalır. Güvenlik, yetki, veri bütünlüğü, tekrar güvenliği ve Windows yaşam döngüsü kontrolleri korunur; bağımlılık kapsamı belirsizse kontrol genişletilir. Sonraki açık kullanıcı onayı, bu düzeni mevcut CI'da dar ve güvenli uygulama yetkisini içerir. Test silme, assertion/guard gevşetme, devam eden koşuyu iptal, nihai tam kontrol kapısını atlama veya sırf test atlatmak için PR açma yetkisi değildir.
