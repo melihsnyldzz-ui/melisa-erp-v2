@@ -298,3 +298,11 @@ test('manager approval facade binds pending exact-five records, rejects wider fo
  livePolicy=policy;listed=[row];await a.list();assert.equal((await a.retry()).state,'UNKNOWN');assert.deepEqual(posts[0],posts[1]);assert.equal(posts.length,2);
  livePolicy={...policy,canApproveUpToFive:false};listed=[];await a.list();assert.equal((await a.resolve()).state,'COMMITTED');assert.equal(a.pending(),null);assert.equal(posts.length,2);
 });
+
+test('goods history uses GET only, validates replies and rejects late actor/session responses',async()=>{
+ for(const nextActor of [7,8]){
+ const rights=['goods.view','purchase.view','product.view','supplier.view'],x=fixture(rights),original=x.deps.fetch,calls=[];let finish,late=false,bad=false,logins=0;
+ const core=createDesktopWriteGreenCore({...x.deps,richCards:true,fetch:async(url,opts)=>{if(url.endsWith('/api/auth/login'))return {ok:true,json:async()=>({success:true,data:{accessToken:'token.'+(++logins)+'.value',user:{id:logins===1?7:nextActor,username:'normal',permissions:rights}}})};if(url.endsWith('/api/desktop-runtime'))return {ok:true,json:async()=>({success:true,data:desktopRuntimeInfo({packageSha256:'a'.repeat(64),createdAt:'2026-11-07T12:00:00.000Z',schemaVersion:7})})};if(url.includes('/api/desktop-goods/receipts?page=')){calls.push({url,opts});if(late)await new Promise(r=>finish=r);return {ok:true,json:async()=>({success:true,data:{page:bad?2:1,hasNext:false,rows:[]}})};}return original(url,opts);}});
+ await core.login('normal','secret');const c=await core.goods();assert.deepEqual(await c.list(),{page:1,hasNext:false,rows:[]});for(const page of [0,10001,'1'])await assert.rejects(c.list(page));assert.equal(calls.length,1);assert.equal(calls[0].opts.method,'GET');assert.equal(calls[0].opts.body,undefined);bad=true;await assert.rejects(c.list());bad=false;late=true;const waiting=c.list();while(!finish)await new Promise(r=>setImmediate(r));await core.logout();await core.login('normal','secret');finish();await assert.rejects(waiting);await assert.rejects(c.list());assert.equal(calls.length,3);
+ }
+});

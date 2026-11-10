@@ -1,3 +1,10 @@
+<!-- GOODS-OWN-HISTORY-SOURCE-20261110 -->
+## 10 Kasım — Kaydettiğim mal kabullerini listeden yeniden açma; kaynak hazır
+
+`codex/erp-goods-receiving-flow-20261110`, taban `fa0df457f6400270cbe33e0fbf51d8e3997fe803`: Alış ekranına “Kaydettiğim kabuller” eklendi. Yeni salt okunur GET yalnız normal oturum aktörünün `created_by` kayıtlarını,20satır/sayfa ve1–10000sayfa sınırıyla döndürür; actorId query/gövdesi kabul edilmez. Mevcut goods.view+purchase.view, UI product.view+supplier.view, fiziksel transaction içi hedef/profil/oturum kontrolleri korunur. Liste seçimi mevcut fiş okumasını kullanır; numarayla açma, yazma servisleri, UUID/gövde ve UNKNOWN journal değişmez.
+
+9hedefli sentetik kontrol,14dosya syntax/diff ve offline green build81modül için dar kaynak kanıtı `post-reboot-v1/goods-history-source-v1/source-validation.v2.json` altında tutulur. İlk build, junction'ın kanonik esbuild yolunu çağırması nedeniyle mevcut offline path guard'da durdu; guard'ın açıkça izin verdiği worktree helper yolu process-only ESBUILD_BINARY_PATH ile seçilince geçti. Guard/allowlist genişletilmedi. Bağımsız review ve exact-head CI ayrıca izlenir; kurulum/normal GUI/insan kabulü bu kaynak sonucundan çıkarılmaz. DDL/grant/kimlik/SQL/runtime/ticari yazı veya eski goods-write senaryosu tekrarı yok; özgün kapsam ve sayaçlar aynı.
+
 <!-- SESSION-EXPIRY-SOURCE-20261110 -->
 ## 10 Kasım — Normal oturum süresi dolunca açık giriş yönlendirmesi; kaynak hazır, kurulum bekliyor
 

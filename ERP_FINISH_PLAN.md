@@ -1,3 +1,8 @@
+<!-- GOODS-OWN-HISTORY-SOURCE-20261110 -->
+## 10 Kasım — Mevcut K07 mal kabul/alış fişini kendi listesinden açma
+
+Mevcut yazma akışını tekrar etmeden, `fa0df457` tabanlı feature kaynakta yalnız oturum aktörünün kaydettiği kabuller için sınırlı salt okunur liste ve mevcut fiş açma bağlantısı eklendi. 9hedefli sentetik kontrol ve81modül offline build dar teknik kanıttır; bağımsız kaynak review/exactCI, kurulum ve gerçek normal ekran ayrıca gerekir. Yeni şema/yetki/iş kuralı yok; UNKNOWN/aynıUUID ve manuel fiş açma korunur. K07'nin diğer aktör/insan/LIVE kabulleri veya özgün49yaprak/sayaç kapanışı iddia edilmez. Ayrıntı [STATUS](STATUS.md) kaydındadır.
+
 <!-- SESSION-EXPIRY-SOURCE-20261110 -->
 ## 10 Kasım — ERP09/K10 normal oturum geri bildirimi kaynakta hazır; gerçek yeni ekran kabulü bekliyor
 
