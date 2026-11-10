@@ -9,6 +9,8 @@ import {safeDesktopFailure} from './desktopSafeDiagnostics.mjs';
 import {createDesktopWriteAuthCore,getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
 import {createDesktopLocalMasterRoutes} from '../routes/desktopLocalMasterRoutes.mjs';
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
+import {createDesktopSaleWorkflowRoutes} from '../routes/desktopSaleWorkflowRoutes.mjs';
+import {createDesktopFinanceRoutes} from '../routes/desktopFinanceRoutes.mjs';
 
 const requestId='d6be01f9-fac4-4e9c-b421-e2f070b6beb0';
 test('sale capability cannot use an unregistered auth object or a synthetic SQL/password verifier',()=>{const fakePool={},fakeSql={Transaction:class{},Request:class{},NVarChar:()=>null,ISOLATION_LEVEL:{SERIALIZABLE:4}};const auth=createDesktopWriteAuthCore({pool:fakePool,sql:fakeSql,tokenKey:Buffer.alloc(48,1),passwordHasher:{compare:async()=>true}});assert.throws(()=>getDesktopWriteSessionVerifier({},fakePool));assert.throws(()=>getDesktopWriteSessionVerifier(auth,fakePool));assert.equal(auth.close(),true);});
@@ -153,6 +155,29 @@ test('normal-session middleware distinguishes expiry, revocation and identity ch
   d.state.queryFault=null;d.state.target=true;d.state.user.userActive=true;
  }
  assert.equal((await call('/normal',{token})).status,200);await auth.logout({get:()=>`Bearer ${token}`});assert.equal((await call('/normal',{token})).status,401);
+});
+test('operational bind faults keep bounded UNKNOWN command identity across actual master, sale, finance and resolver HTTP routes',async t=>{
+ const d=driver('synthetic'),auth=createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,passwordHasher:{compare:async()=>true},onFailure:()=>{}}),signed=await auth.login({username:'normal',password:'synthetic'});t.after(()=>auth.close());let businessCalls=0;
+ const hit=async()=>{businessCalls++;throw Error('business must not run');},master={createCustomer:hit,createProduct:hit},sale={service:{transition:hit},draftService:{createDraft:hit,preview:hit},dispatchService:{dispatch:hit},resolutionService:{resolve:hit}};
+ const mount=(app,authenticateNormal)=>{app.use(createDesktopLocalMasterRoutes({service:master,authenticateNormal}));app.use(createDesktopSaleWorkflowRoutes({...sale,authenticateNormal}));app.use(createDesktopFinanceRoutes({service:{create:hit,list:hit,options:hit,preflight:hit},authenticateNormal}));};
+ const app=express();app.use(express.json());app.use('/api',auth.bind);mount(app,auth.authenticateNormal);
+ // Previous operational bind failure reached these same route catches with no
+ // authenticated actor. Compare their existing public UNKNOWN semantics.
+ const old=express();old.use(express.json());mount(old,async()=>{throw Error('operational bind unavailable');});
+ const listen=app=>new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});const server=await listen(app),prior=await listen(old);t.after(()=>Promise.all([server,prior].map(s=>new Promise(resolve=>s.close(resolve)))));
+ const call=(path,payload,method='POST',host=server)=>new Promise((resolve,reject)=>{const q=http.request({hostname:'127.0.0.1',port:host.address().port,path,method,headers:{host:'127.0.0.1:4294',origin:'http://127.0.0.1:5294','content-type':'application/json',authorization:'Bearer '+signed.accessToken}},r=>{let text='';r.on('data',x=>text+=x);r.on('end',()=>resolve({status:r.statusCode,body:JSON.parse(text)}));});q.on('error',reject);q.end(payload===undefined?undefined:JSON.stringify(payload));});
+ d.state.queryFault=()=>{throw Object.assign(Error('private SQL fault'),{code:'EREQUEST'});};
+ const commands=[['/api/desktop-local/customers',body],['/api/desktop-sale/drafts',{requestId,customerId:'2'}],['/api/desktop-sale/workflows/12/dispatch',{requestId,invoiceId:'12'}],['/api/desktop-finance/collections',{requestId,partyId:'2'}],['/api/desktop-sale/resolve',{kind:'dispatch',body:{requestId,invoiceId:'12'}}],['/api/desktop-sale/resolve',{kind:'approve',recordId:'12',body:{requestId}}]];
+ for(const [path,payload] of commands){const r=await call(path,payload);assert.equal(r.status,503);assert.deepEqual(r.body,{success:false,data:{state:'UNKNOWN',requestId,retry:'SAME_REQUEST_ONLY',requiresRecovery:true}});assert.doesNotMatch(JSON.stringify(r.body),/NOT_COMMITTED|private SQL/);}
+ for(const [path,payload] of commands.slice(0,3)){const r=await call(path,payload),before=await call(path,payload,'POST',prior);assert.equal(before.status,503);assert.equal(before.body.data.state,r.body.data.state);assert.equal(before.body.data.requestId,r.body.data.requestId);assert.equal(before.body.data.retry,r.body.data.retry);}
+ for(const [path,payload,method] of [
+  ['/api/desktop-sale/draft-preview',undefined,'GET'],['/api/desktop-finance/collection/preflight',{partyId:'2',amountExact4:'36.0000'},'POST'],
+  ['/api/desktop-sale/drafts',{requestId:requestId.toUpperCase()},'POST'],['/api/desktop-sale/drafts',{requestId:'PRIVATE_ARBITRARY_TEXT'},'POST'],
+  ['/api/desktop-sale/drafts',{body:{requestId}},'POST'],['/api/desktop-sale/resolve',{kind:'dispatch',body:{requestId},extra:true},'POST'],
+  ['/api/desktop-sale/resolve',{requestId,kind:'dispatch',body:{requestId:'11111111-1111-4111-8111-111111111111'}},'POST'],
+  ['/api/desktop-sale/resolve',{requestId:'invalid',kind:'dispatch',body:{requestId}},'POST']
+ ]){const r=await call(path,payload,method);assert.equal(r.status,503);assert.deepEqual(r.body,{success:false});}
+ assert.equal(businessCalls,0);await auth.logout({get:()=>`Bearer ${signed.accessToken}`});const expired=await call('/api/desktop-local/customers',body);assert.equal(expired.status,401);assert.deepEqual(expired.body,{success:false,code:'DESKTOP_NORMAL_SESSION_REQUIRED'});assert.equal(businessCalls,0);
 });
 test('logout waits for an already-authorized transaction and then denies token reuse',async t=>{
  const f=await fixture(t,{waitOperation:true});const first=f.post();await f.began;let completed=false;

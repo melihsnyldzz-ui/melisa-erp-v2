@@ -141,7 +141,18 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
   }catch(cause){error=cause;}
   // Only normal-session mounts use bind. Operational/profile failures are not
   // proof of an invalid credential and must not log a valid person out.
-  if(error){try{onFailure({error});}catch{}res.set('Cache-Control','no-store');return res.status(sessionRequired?401:503).json({success:false,...(sessionRequired?{code:'DESKTOP_NORMAL_SESSION_REQUIRED'}:{})});}
+  if(error){
+   try{onFailure({error});}catch{}res.set('Cache-Control','no-store');
+   if(sessionRequired)return res.status(401).json({success:false,code:'DESKTOP_NORMAL_SESSION_REQUIRED'});
+   // A failed auth/profile read cannot settle a previous same-UUID submission.
+   // Echo only a canonical command UUID, never arbitrary request text.
+   const direct=req.body?.requestId,nested=req.body?.body?.requestId;
+   const resolving=req.path?.endsWith('/resolve')||req.path==='/'&&req.baseUrl?.endsWith('/resolve');
+   const resolver=resolving&&['body,kind','body,kind,recordId'].includes(Object.keys(req.body??{}).sort().join(','))&&typeof req.body?.kind==='string';
+   const candidate=direct??(resolver?nested:undefined),conflict=direct!==undefined&&nested!==undefined&&direct!==nested;
+   const requestId=req.method==='POST'&&!conflict&&typeof candidate==='string'&&uuid.test(candidate)?candidate:null;
+   return res.status(503).json({success:false,...(requestId?{data:{state:'UNKNOWN',requestId,retry:'SAME_REQUEST_ONLY',requiresRecovery:true}}:{})});
+  }
   ctx.entry=entry;ctx.current=current;
   return storage.run(ctx,()=>next());
  }

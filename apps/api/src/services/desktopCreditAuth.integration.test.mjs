@@ -27,7 +27,7 @@ test('credit authority is pool-bound, current and transaction-leased; TEST opera
  setting.version='0x0000000000000006';result=await get();assert.notEqual(result.body.revision,revision);
  setting.active=false;assert.equal((await get()).status,403);
  configure('sales');result=await get();assert.deepEqual([result.body.canManage,result.body.canApprove],[false,false]);
- configure('boss');u.roleVersion='0x0000000000000009';assert.equal((await get()).status,403);assert.equal(auth.close(),true);
+ configure('boss');u.roleVersion='0x0000000000000009';result=await get();assert.equal(result.status,401);assert.deepEqual(result.body,{success:false,code:'DESKTOP_NORMAL_SESSION_REQUIRED'});assert.equal(auth.close(),true);
 });
 
 // Actual normal auth and actual credit implementation; all rows and transactions
