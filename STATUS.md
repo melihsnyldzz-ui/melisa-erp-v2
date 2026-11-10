@@ -1,3 +1,15 @@
+<!-- ACCOUNTING-HUMAN-PASSWORD-WINDOWS-STORE-20261110 -->
+## 10 Kasım — Yeni kullanıcı tercihi: uygulanabilir yoldan açılış ve hesaba özel Windows koruması
+
+İki yol yeniden değerlendirildi: mevcut korumalı consumerın bağlı Chrome203557028 sekmesi kapalı; eski broker/sekme/credential değiştirilmedi. Kullanıcı bu yol mümkün değilse yerel pencerenin açılmasını, yeni parolayı kendisinin girip kaydetmesini ve hesaba özel Windows korumalı kayıt hazırlanmasını açıkça istedi. Native Save akışına CurrentUser DPAPI, DB GUID/30018/hazırlık nonce entropy ve yalnız Windows sahibi SID için özel ACL eklendi. Cipher yalnız normal reset COMMIT makbuzundan sonra CreateNew kayda yazılır; açık parola kaydı veya tarayıcı aktarımı yok. Windows saklama başarısızsa resetin gerçekleştiği ayrı söylenir; yeniden reset yapılmaz. Bellekte sentetik DPAPI roundtrip ve yanlış entropy reddi PASS; gerçek parola/giriş/iş akışı henüz yapılmadı. Kaynak incelemesi ve actual boş pencere açılışı ayrı kaydedilecek.
+
+<!-- ACCOUNTING-HUMAN-PASSWORD-SOURCE-20261110 -->
+## 10 Kasım — Muhasebe parola yenileme için insanın kullandığı yerel pencere
+
+Kullanıcı yeni parolayı kendisinin girip kaydedeceği ekran istedi. Sabit TEST DB5/schema7 üzerindeki yalnız30018/19 için yerel masked WinForms penceresi ve trusted-Windows-owner admission hazırlandı. `--prepare` read-only/rollback; mutasyon yalnız insanın Kaydet olayından normal resetManagedAuthPasswordCore üzerinden gider. Ajan credential üretmez/okumaz/saklamaz, Kaydet veya apply yapmaz; tarayıcı credential aktarımı veya login workaround yok. Kurulu7350/paket1995 ve servisler değişmez.
+
+8 saf hedefli test, Node syntax ve PowerShell AST kontrolü PASS. İlk pencere açılışı JSON tarih türü kontrolünde SQL öncesi durdu; ikinci açılış native BIGINT ID değerlerinin kanonik metin dönmesi nedeniyle read-only hesap kontrolünde durdu. Dar düzeltmeler kaynakta ve bağımsız incelemede geçti; hiç apply/parola kaydı veya normal giriş yapılmadı. Son kullanıcı tercihi doğrultusunda pencere üçüncü kez açılmadı. Önceki normal Muhasebe girişi aynı kurulu7350/1995 ve30018/19 için bulundu; korumalı consumer kapalı Chrome203557028 sekmesine sabit olduğu için as-is kullanılamadı. Eski credential kökeninin ae889/660 olması tek başına güncel hesap bağını geçersiz kılmaz. Bu kaynak hazırlığıdır; gerçek pencere, insan parola kaydı, normal Muhasebe girişi ve tahsilat kabulü burada PASS sayılmadı. Sayaçlar, eski kabul ve bütün ERP bitiş durumu değişmez. Branch `codex/erp-accounting-human-password-20261110`, taban7350a4fb; exact commit/PR/CI ayrıca bağlanır. [Sözleşme](docs/development/desktop-accounting-human-password.md).
+
 <!-- SUPPLIER-CURRENT-NORMAL-20261110 -->
 ## 10 Kasım — K04-09 normal pasif/aktif akışı; üç dar kaynak düzeltmesi
 
