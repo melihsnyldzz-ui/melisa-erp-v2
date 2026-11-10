@@ -76,6 +76,16 @@ ve dış sorgu geçse de hatalı iç SQL'in reddini doğrular. Bu yerel test SQL
 bağlanmaz; ad bağlama, izin, transaction, bootstrap veya kurulum sonucu değildir.
 Mevcut Node CI kontrollerinden ayrı bir yerel dilbilgisi kanıtıdır.
 
+## Boş metadata koleksiyonları
+
+`sys.synonyms` ve kullanıcı tanımlı türler boşken iç `FOR JSON` sorgusu NULL
+üretebilir. Bu iki projeksiyon SQL tarafında `JSON_QUERY(COALESCE(...,N'[]'))`
+ile boş dizi üretir; dolu koleksiyonun alanları ve sırası aynı kalır. Diğer sekiz
+semantik parça ve nullable scalar metadata değişmez. İstemci NULL'ı boş diziye
+çevirmediği için katı şekil ve UTF16 hash kontrolleri korunur. Gerçek boş katalog
+kalibrasyonu, kaynak testleri, kurulum ve bağımsız V1 başlangıç ölçümü ayrı
+kanıtlardır; yeni sorgu çıktısı eski başarısız okumayı PASS yapmaz.
+
 ## Sonraki ayrı karar
 
 Somut yerel plan `Masaüstü/ERP/kurulum/k02-10-offline-source-v1/provisioning-plan.json`

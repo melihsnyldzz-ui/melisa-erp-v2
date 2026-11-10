@@ -1,3 +1,5 @@
+**10 Kasım — aynı K02-10 okuma bağımlılığı:** Boş synonyms/userTypes kataloglarının SQL JSON çıktısı açık boş diziye sabitlendi; null scalar metadata ve katı doğrulama korunur. [Teknik sınır ve sıradaki iş](STATUS.md); özgün yapraklar ve sayaçlar aynı.
+
 **10 Kasım — mevcut K02-10 kurulum bağımlılığı:** Şema provası anlık görüntüsündeki ayrılmış SQL adı düzeltildi; hedefli kaynak testleri ve çevrimdışı 79 dilbilgisi kontrolü geçti. Kaynak/kurulum/kabul ayrımı ve sıradaki adım [STATUS](STATUS.md) içinde; özgün yapraklar ve sayaçlar değişmedi.
 
 **4 Kasım — mevcut B04/C04 ve B03/C06 kaynak ilerlemesi:** Satış taslağı hesap bağı, müşteri kaybolan yanıt/replay koruması, native master şema/izin denetimi ve dar normal oturum taşıması kaynakta ilerliyor. Yeni startup/paket/CI ve gerçek normal TEST kanıtı ayrı; insan kabulü BEKLİYOR, 49 özgün kayıt ve kapanış sayıları aynı. [Kanıt ve kalan](docs/evidence/erp/2026-11-04-sales-customer/README.md).
