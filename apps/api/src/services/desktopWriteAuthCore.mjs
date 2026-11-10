@@ -132,9 +132,16 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  async function bind(req,res,next){
   const ctx={req,entry:null,current:null,open:!res.destroyed&&!res.writableEnded,leased:false};
   res.once('finish',()=>{ctx.open=false;});res.once('close',()=>{ctx.open=false;});
-  let entry=null,current=null;try{entry=verify(tokenHeader(req));current=await transaction(tx=>user(tx,{userId:entry.userId}));
-   if(!ctx.open||entry.revoked||sessions.get(entry.sid)!==entry||entry.expiresAt<=Date.now()||current.userVersion!==entry.userVersion||current.roleVersion!==entry.roleVersion)fail();
-  }catch(error){try{onFailure({error});}catch{}entry=null;current=null;}
+  let entry=null,current=null,error=null,sessionRequired=false;
+  try{entry=verify(tokenHeader(req));}catch(cause){error=cause;sessionRequired=true;}
+  if(entry)try{
+   current=await transaction(tx=>user(tx,{userId:entry.userId,allowUnavailable:true}));
+   if(!ctx.open)return;
+   if(!current||entry.revoked||sessions.get(entry.sid)!==entry||entry.expiresAt<=Date.now()||current.userVersion!==entry.userVersion||current.roleVersion!==entry.roleVersion){sessionRequired=true;error=Error('DESKTOP_NORMAL_SESSION_REQUIRED');}
+  }catch(cause){error=cause;}
+  // Only normal-session mounts use bind. Operational/profile failures are not
+  // proof of an invalid credential and must not log a valid person out.
+  if(error){try{onFailure({error});}catch{}res.set('Cache-Control','no-store');return res.status(sessionRequired?401:503).json({success:false,...(sessionRequired?{code:'DESKTOP_NORMAL_SESSION_REQUIRED'}:{})});}
   ctx.entry=entry;ctx.current=current;
   return storage.run(ctx,()=>next());
  }

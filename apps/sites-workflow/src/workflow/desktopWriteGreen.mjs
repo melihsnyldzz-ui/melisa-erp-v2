@@ -19,7 +19,10 @@ import {mountDesktopGoodsPurchase} from './desktopGoodsPurchaseView.mjs';
 import {mountDesktopFinance} from './desktopFinanceView.mjs';
 import {mountDesktopWarehouse} from './desktopWarehouseView.mjs';
 import {createDesktopSessionCapability} from './desktopSessionCapability.mjs';
-const core=createDesktopWriteGreenCore({location,fetch:window.fetch.bind(window),sessionStorage,localStorage,locks:navigator.locks,newId:()=>crypto.randomUUID(),richCards:true});
+import {showDesktopSessionNotice} from './desktopSessionNotice.mjs';
+const core=createDesktopWriteGreenCore({location,fetch:window.fetch.bind(window),sessionStorage,localStorage,locks:navigator.locks,newId:()=>crypto.randomUUID(),richCards:true,onSessionExpired:()=>{
+ showDesktopSessionNotice({document,view,label,logout,onLogin:()=>login('Oturumunuz sona erdi. Yeniden giriş yapın.')});
+}});
 const nav=document.getElementById('nav'),view=document.getElementById('view'),label=document.getElementById('user-label'),crumb=document.getElementById('crumb'),logout=document.getElementById('logout');
 const pages=[['home','⌂','Ana sayfa'],['products','▦','Ürün & stok'],['customers','♙','Müşteriler'],['suppliers','▧','Tedarikçiler'],['sales','▤','Satış ve hazırlama'],['receipts','▣','Fişler']];
 const pending=['Stok hareketleri','Cari','Raporlar'];
@@ -32,7 +35,7 @@ const warehouseCapability=createDesktopSessionCapability({getUser:()=>core.getUs
 function dispose(){mountSequence++;mounted?.dispose();mounted=null;}
 function navigation(active){nav.innerHTML=pages.filter(([id])=>id==='home'||core.can(id)).map(([id,icon,title])=>`<button type="button" data-page="${id}" class="${id===active?'active':''}">${icon} <span>${esc(title)}</span></button>`).join('')+(goodsController?`<button type="button" data-page="goods" class="${active==='goods'?'active':''}">▣ <span>Alış</span></button>`:'<button type="button" disabled>◌ <span>Alış · Hazırlanıyor</span></button>')+(countController?`<button type="button" data-page="count" class="${active==='count'?'active':''}">▣ <span>Mal sayımı</span></button>`:'')+(financeController?`<button type="button" data-page="finance" class="${active==='finance'?'active':''}">▣ <span>Finans</span></button>`:'<button type="button" disabled>◌ <span>Finans · Hazırlanıyor</span></button>')+(warehouseController?`<button type="button" data-page="warehouse" class="${active==='warehouse'?'active':''}">▣ <span>Depo hazırlama</span></button>`:'')+pending.map(title=>`<button type="button" disabled>◌ <span>${esc(title)} · Hazırlanıyor</span></button>`).join('');
  nav.querySelectorAll('[data-page]').forEach(button=>button.addEventListener('click',()=>show(button.dataset.page)));}
-function login(message=''){customerSelectionMemory=null;customerSelectionUser=null;goodsCapability.reset();financeCapability.reset();warehouseCapability.reset();countCapability.reset();countController=null;goodsController=null;financeController=null;warehouseController=null;activePage='';sequence++;dispose();listViews.clear();navigation('');label.textContent='Giriş bekleniyor';crumb.textContent='Giriş';logout.hidden=true;
+function login(message=''){document.getElementById('desktop-session-notice')?.remove();customerSelectionMemory=null;customerSelectionUser=null;goodsCapability.reset();financeCapability.reset();warehouseCapability.reset();countCapability.reset();countController=null;goodsController=null;financeController=null;warehouseController=null;activePage='';sequence++;dispose();listViews.clear();navigation('');label.textContent='Giriş bekleniyor';crumb.textContent='Giriş';logout.hidden=true;
  view.innerHTML=`<section class="card panel" style="padding:24px;max-width:480px"><p class="eyebrow">MELİSA ERP</p><h1>Giriş yap</h1><form id="green-login"><p><label>Kullanıcı adı<br><input name="username" autocomplete="username" required></label></p><p><label>Parola<br><input name="password" type="password" autocomplete="current-password" required></label></p><button class="btn primary" type="submit">Giriş yap</button><p role="alert">${esc(message)}</p></form></section>`;
  view.querySelector('form').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,data=new FormData(form),button=form.querySelector('button');button.disabled=true;try{await core.login(data.get('username'),data.get('password'));form.elements.password.value='';await show('home');}catch{form.elements.password.value='';login('Giriş doğrulanamadı.');}});
 }
@@ -86,4 +89,4 @@ async function show(page,number,search,limit){if(!core.getUser())return login();
 }
 logout.addEventListener('click',()=>{try{if(mounted?.requestClose&&!mounted.requestClose()){const status=view.querySelector('[role="status"]');if(status)status.textContent='Çıkmadan önce değişiklikleri kaydedin veya son işlemi doğrulayın.';return;}}catch{return;}sequence++;dispose();void core.logout();login();});
 window.addEventListener('beforeunload',event=>{try{if(mounted?.requestClose&&!mounted.requestClose()){event.preventDefault();event.returnValue='';}}catch{event.preventDefault();event.returnValue='';}});
-core.restore().then(user=>user?show('home'):login());
+core.restore().then(user=>user?show('home'):login(document.getElementById('desktop-session-notice')?'Oturumunuz sona erdi. Yeniden giriş yapın.':''));

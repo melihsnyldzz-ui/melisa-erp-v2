@@ -1,3 +1,12 @@
+<!-- SESSION-EXPIRY-SOURCE-20261110 -->
+## 10 Kasım — Normal oturum süresi dolunca açık giriş yönlendirmesi; kaynak hazır, kurulum bekliyor
+
+Normal satış önizlemesindeki genel503 ve ekranda kalan eski personel etiketi için bağlı API/UI kaynak düzeltmesi hazırlandı. Normal-session middleware yalnız eksik/geçersiz/süresi dolmuş/iptal edilmiş oturum veya doğrulanmış kullanıcı/rol geçersizliğinde401 verir; SQL, hedef/profil ve bozuk metadata hataları503 kalır. Giriş ve public health middleware sınırı, origin403 ve mevcut10dakika süresi korunur. UI yalnız aynı güncel tokenın401 yanıtında kimliği temizler; açık formu kendiliğinden kapatmadan “Yeniden giriş yap” düğmesi gösterir. İlk restore401 sonrasında giriş formu oturum mesajını korur;503 restore tokenı silmez.
+
+Gönderilmiş master/satış/finans işlemleri401 sonrasında UNKNOWN ve aynı UUID/gövdeyle aktöre özel yerel journal içinde kalır. Aynı kişinin normal girişinden sonra yalnız özgün işlem devam eder; başka kişinin pending kaydı görünmez. Gönderilmemiş formun kalıcı kaydedildiği iddia edilmez. Otomatik giriş, yeni kimlik doğrulama mekanizması, parola/token üretimi, TTL veya izin değişikliği yoktur.
+
+İzole `codex/erp-session-expiry-20261110` dalı7350a4fb tabanında:88 ilgili sentetik kontrol PASS;7dosya syntax/diff temiz; offline green build81modül PASS; gitleaks8.30.1 yalnız değişen7dosyada bulgu0. İlk koşudaki eski response mock uyumsuzluğu düzeltilip ilgili86kontrol tekrar geçti; değişmeyen HTTP assembly ve DOM notice iki PASS yeniden sayılmadan kullanıldı. Yerel kanıt `post-reboot-v1/session-expiry-source-v1/source-validation.v2.json`, SHA256 `5e278ebb20ccb682ab837ce56a2f6ceb9c77c4494abd15e012424a9b82218867`. Bağımsız kaynak incelemesi GO_SOURCE_ONLY /0P1/P2: `independent-source-review.v1.json`, SHA256 `59853efc123fcc87d7395e00163f39a3aa67ab91420430de66c200e9e333440e`. Exact-head hosted CI, paket/kurulum ve yeni normal tarayıcı doğrulaması bekliyor. Bu çalışma SQL/runtime/credential veya mevcut ticari veri işlemi yapmadı; insan/cihaz/LIVE kabulü ve ana kapsam sayaçları değişmedi.
+
 <!-- SUPPLIER-CURRENT-NORMAL-20261110 -->
 ## 10 Kasım — K04-09 normal pasif/aktif akışı; üç dar kaynak düzeltmesi
 

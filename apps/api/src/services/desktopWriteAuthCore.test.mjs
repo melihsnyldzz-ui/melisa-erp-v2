@@ -35,14 +35,14 @@ test('pricing foreign target opt-in distinguishes absent or inactive identities 
  const auth=create({pool:d.pool,sql:d.sql,richCards:true,schemaVersion:7}),readPolicy=getPolicy(auth,d.pool);t.after(()=>auth.close());
  const signed=await auth.login({username:'normal',password:'synthetic-only-password'});let optIn=true;
  const service=auth.bindReadService({async list(actorId){const tx=new d.sql.Transaction(d.pool);await tx.begin();try{assert.equal(await auth.verifySession({transaction:tx,actorId,permission:'sales.view'}),true);const result=await readPolicy({transaction:tx,actorId,targetActorId:'9',allowUnavailableTarget:optIn});await tx.commit();return result;}catch(error){await tx.rollback();throw error;}}});
- const run=()=>{const req={get:()=>`Bearer ${signed.accessToken}`},res=new EventEmitter();res.destroyed=false;res.writableEnded=false;return auth.bind(req,res,async()=>{const actor=await auth.authenticateNormal(req);return service.list(String(actor.userId));});};
+ const run=()=>{const req={get:()=>`Bearer ${signed.accessToken}`},res=new EventEmitter();res.destroyed=false;res.writableEnded=false;res.set=()=>res;res.status=status=>{res.statusCode=status;return res;};res.json=body=>({status:res.statusCode,body});return auth.bind(req,res,async()=>{const actor=await auth.authenticateNormal(req);return service.list(String(actor.userId));});};
  const foreign={...d.state.user,id:'9',username:'foreign'};
  for(const rows of [[],[{...foreign,userActive:false}],[{...foreign,roleActive:false}]]){d.state.foreignRows=rows;optIn=true;assert.equal(await run(),null);optIn=false;await assert.rejects(run(),{code:'DESKTOP_AUTH_UNAVAILABLE'});}
  optIn=true;
  for(const rows of [[{...foreign,userActive:false,roleVersion:'invalid'}],[{...foreign,userActive:'false'}],[{...foreign,userActive:false,roleActive:null}],[foreign,foreign],null]){d.state.foreignRows=rows;await assert.rejects(run(),{code:'DESKTOP_AUTH_UNAVAILABLE'});}
  d.state.foreignRows=[foreign];assert.equal((await run()).actorId,'9');
  const driverError=Object.assign(Error('synthetic driver failure'),{code:'EREQUEST'});d.state.queryFault=({statement})=>{if(statement.includes('FROM dbo.users u')&&d.log.at(-1).params.userId==='9')throw driverError;};await assert.rejects(run(),error=>error===driverError);
- d.state.queryFault=null;d.state.target=false;await assert.rejects(run(),{code:'DESKTOP_AUTH_UNAVAILABLE'});
+ d.state.queryFault=null;d.state.target=false;assert.deepEqual(await run(),{status:503,body:{success:false}});
 });
 test('V2 through V7 list reads run the full leased verifier first in their own transaction without a duplicate metadata scan',async()=>{
  for(const schemaVersion of [2,3,4,5,6,7])for(const drift of ['none','target','broadPermission','databaseUser','permission','userVersion','roleInactive']){
@@ -63,8 +63,8 @@ test('overlapping bind transactions retain separate contexts and expose only bou
  const d=driver('synthetic'),diagnostics=[],auth=createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,tokenKey:Buffer.alloc(48,9),passwordHasher:{compare:async()=>true},onFailure:event=>diagnostics.push(safeDesktopFailure(event))}),signed=await auth.login({username:'normal',password:'test-test'}),inflight=[];let releaseFirst,firstStarted;
  const started=new Promise(r=>{firstStarted=r;}),release=new Promise(r=>{releaseFirst=r;});
  d.state.queryFault=async({transactionId,statement})=>{if(!statement.includes('DESKTOP_AUTH_TARGET_REJECTED'))return;inflight.push(transactionId);if(inflight.length===1){firstStarted();await release;throw Object.assign(Error('PRIVATE_SQL_TEXT_PASSWORD_CANARY'),{code:'EREQUEST',number:1205});}releaseFirst();};
- const bind=async()=>{const req={get:name=>name==='authorization'?'Bearer '+signed.accessToken:null},res=new EventEmitter();res.destroyed=false;res.writableEnded=false;return auth.bind(req,res,async()=>{try{const user=await auth.authenticateNormal(req);return {status:200,userId:user.userId};}catch{return {status:401};}});};
- const first=bind();await started;const second=bind(),[a,b]=await Promise.all([first,second]);assert.equal(a.status,401);assert.equal(b.status,200);assert.equal(inflight.length,2);assert.notEqual(inflight[0],inflight[1]);assert(d.log.some(x=>x.event==='rollback'&&x.id===inflight[0]));assert(d.log.some(x=>x.event==='commit'&&x.id===inflight[1]));
+ const bind=async()=>{const req={get:name=>name==='authorization'?'Bearer '+signed.accessToken:null},res=new EventEmitter();res.destroyed=false;res.writableEnded=false;res.set=()=>res;res.status=status=>{res.statusCode=status;return res;};res.json=body=>({status:res.statusCode,body});return auth.bind(req,res,async()=>{const user=await auth.authenticateNormal(req);return {status:200,userId:user.userId};});};
+ const first=bind();await started;const second=bind(),[a,b]=await Promise.all([first,second]);assert.equal(a.status,503);assert.deepEqual(a.body,{success:false});assert.equal(b.status,200);assert.equal(inflight.length,2);assert.notEqual(inflight[0],inflight[1]);assert(d.log.some(x=>x.event==='rollback'&&x.id===inflight[0]));assert(d.log.some(x=>x.event==='commit'&&x.id===inflight[1]));
  d.state.queryFault=null;assert.equal((await bind()).status,200);assert.equal(diagnostics.length,1);assert.equal(diagnostics[0].code,'EREQUEST');assert.equal(diagnostics[0].number,1205);assert.equal(diagnostics[0].label,null);assert.equal(diagnostics[0].requestId,null);assert.doesNotMatch(JSON.stringify(diagnostics),/PRIVATE_SQL|PASSWORD_CANARY|one\.two|Bearer|normal|test-test/);assert(!JSON.stringify(diagnostics).includes(signed.accessToken));assert.equal(auth.close(),true);
 });
 test('V6 auth uses the V6 guarded transaction and rejects target drift',async()=>{const hash=await bcrypt.hash('test-test',12),d=driver(hash),auth=createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,tokenKey:Buffer.alloc(48,5),richCards:true,schemaVersion:6});await auth.login({username:'normal',password:'test-test'});const target=d.log.find(x=>x.event==='query'&&x.sql.includes('DESKTOP_AUTH_TARGET_REJECTED'));assert.ok(target);assert.match(target.sql,/schema_version=6/);assert.match(target.sql,/DESKTOP_GOODS_V6_SCHEMA_REJECTED/);d.state.target=false;await assert.rejects(auth.login({username:'normal',password:'test-test'}));assert.equal(auth.close(),true);});
@@ -103,7 +103,7 @@ test('wrong password, wrong target and signed but unregistered bearer never auth
  f.d.state.databaseUser='guest';await assert.rejects(f.auth.login({username:'normal',password:'test-test'}));f.d.state.databaseUser='melisa_desktop_test_writer_20261105';
  f.d.state.extraPermission=true;await assert.rejects(f.auth.login({username:'normal',password:'test-test'}));f.d.state.extraPermission=false;
  const forged=jwt.sign({sub:'7',sid:'d6be01f9-fac4-4e9c-b421-e2f070b6beb0'},f.key,{algorithm:'HS256',issuer:'melisa-desktop-initial',audience:'melisa-desktop-initial',expiresIn:'10m'});
- const r=await f.post(forged);assert.equal(r.status,503);assert.equal(r.body.data.state,'UNKNOWN');assert.equal(f.calls(),0);
+ const r=await f.post(forged);assert.equal(r.status,401);assert.deepEqual(r.body,{success:false,code:'DESKTOP_NORMAL_SESSION_REQUIRED'});assert.equal(f.calls(),0);
 });
 test('expired idle sessions are pruned and active session count stays bounded',async t=>{
  t.mock.timers.enable({apis:['Date'],now:Date.now()});
@@ -123,14 +123,42 @@ test('expiry cleanup keeps an in-flight SQL lease until its operation finishes',
  assert.equal(f.auth.close(),true);
 });
 test('role deactivation or user version change invalidates the prior token',async t=>{
- const f=await fixture(t);f.d.state.user.roleActive=false;let r=await f.post();assert.equal(r.status,503);assert.equal(f.calls(),0);
- f.d.state.user.roleActive=true;f.d.state.user.userVersion='0x0000000000000009';r=await f.post();assert.equal(r.status,503);assert.equal(f.calls(),0);
+ const f=await fixture(t);f.d.state.user.roleActive=false;let r=await f.post();assert.equal(r.status,401);assert.equal(f.calls(),0);
+ f.d.state.user.roleActive=true;f.d.state.user.userVersion='0x0000000000000009';r=await f.post();assert.equal(r.status,401);assert.equal(f.calls(),0);
+});
+test('normal-session middleware distinguishes expiry, revocation and identity changes from operational faults before business dispatch',async t=>{
+ t.mock.timers.enable({apis:['Date'],now:Date.now()});
+ const d=driver('synthetic'),auth=createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,passwordHasher:{compare:async()=>true},onFailure:()=>{}});
+ t.after(()=>auth.close());let handled=0;
+ const app=express();app.use(express.json());
+ app.get('/api/health',(_req,res)=>res.json({success:true}));
+ app.post('/api/auth/login',async(req,res)=>res.json({success:true,data:await auth.login(req.body)}));
+ app.use('/normal',(req,res,next)=>req.get('origin')==='http://127.0.0.1:5294'?next():res.status(403).json({success:false}),auth.bind);
+ app.all('/normal',(_req,res)=>{handled++;res.json({success:true});});
+ const server=await new Promise(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});t.after(()=>new Promise(resolve=>server.close(resolve)));
+ const call=(path,{token,method='GET',origin='http://127.0.0.1:5294',body}={})=>new Promise((resolve,reject)=>{const q=http.request({hostname:'127.0.0.1',port:server.address().port,path,method,headers:{origin,'content-type':'application/json',...(token?{authorization:'Bearer '+token}:{})}},r=>{let text='';r.on('data',x=>text+=x);r.on('end',()=>resolve({status:r.statusCode,body:JSON.parse(text),cache:r.headers['cache-control']}));});q.on('error',reject);q.end(body?JSON.stringify(body):undefined);});
+ const sign=async()=>{const r=await call('/api/auth/login',{method:'POST',body:{username:'normal',password:'synthetic'}});assert.equal(r.status,200);return r.body.data.accessToken;};
+ assert.equal((await call('/api/health')).status,200);let token=await sign();assert.equal((await call('/normal',{token})).status,200);const firstHandled=handled;
+ for(const value of [undefined,'invalid.jwt.token']){const r=await call('/normal',{token:value,method:'POST',body});assert.equal(r.status,401);assert.equal(r.cache,'no-store');assert.deepEqual(r.body,{success:false,code:'DESKTOP_NORMAL_SESSION_REQUIRED'});}
+ assert.equal((await call('/normal',{token,origin:'http://bad'})).status,403);
+ t.mock.timers.tick(600001);let r=await call('/normal',{token,method:'POST',body});assert.equal(r.status,401);assert.equal(handled,firstHandled);assert.equal(r.body.state,undefined);
+ assert.equal((await call('/api/health',{token})).status,200);token=await sign();
+ for(const change of [()=>{d.state.user.userActive=false;},()=>{d.state.user.roleActive=false;},()=>{d.state.user.userVersion='0x0000000000000003';},()=>{d.state.user.roleVersion='0x0000000000000004';}]){
+  const before={...d.state.user};change();assert.equal((await call('/normal',{token})).status,401);Object.assign(d.state.user,before);
+ }
+ for(const fault of ['sql','profile','malformed']){
+  if(fault==='sql')d.state.queryFault=()=>{throw Object.assign(Error('PRIVATE_SQL_CANARY'),{code:'EREQUEST'});};
+  if(fault==='profile')d.state.target=false;if(fault==='malformed')d.state.user.userActive=null;
+  r=await call('/normal',{token});assert.equal(r.status,503);assert.deepEqual(r.body,{success:false});assert.equal(handled,firstHandled);
+  d.state.queryFault=null;d.state.target=true;d.state.user.userActive=true;
+ }
+ assert.equal((await call('/normal',{token})).status,200);await auth.logout({get:()=>`Bearer ${token}`});assert.equal((await call('/normal',{token})).status,401);
 });
 test('logout waits for an already-authorized transaction and then denies token reuse',async t=>{
  const f=await fixture(t,{waitOperation:true});const first=f.post();await f.began;let completed=false;
  const logout=f.auth.logout({get:()=>`Bearer ${f.signed.accessToken}`}).then(()=>{completed=true;});
  await new Promise(resolve=>setImmediate(resolve));assert.equal(completed,false);f.release();const result=await first;assert.equal(result.status,201);await logout;assert.equal(completed,true);
- const second=await f.post();assert.equal(second.status,503);assert.equal(f.calls(),1);
+ const second=await f.post();assert.equal(second.status,401);assert.equal(f.calls(),1);
 });
 test('sale lease checks both create and finalize against current locked role and releases after use',async t=>{
  const d=driver('synthetic'),key=Buffer.alloc(48,7);d.state.permissions=['sales.create','sales.finalize'].map(permission_key=>({permission_key,can_view:true,can_create:true,can_update:false,can_delete:false,can_approve:true}));
