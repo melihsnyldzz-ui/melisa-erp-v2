@@ -13,6 +13,27 @@ import {compileCompleteSchema2Observer as rawSecurityBaselineV1} from './empty-p
 import {SYNTHETIC_IDENTITY as m,syntheticNative,syntheticSemantic,withSyntheticUpgradeCase,emitEmptyProfileSyntaxFixture} from './empty-profile-syntax-fixture.mjs';
 const source=n=>readFileSync(new URL('../desktop-empty/'+n,import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const nativeChange=(r,k,mutate)=>{const v=JSON.parse(r[k+'Json']);mutate(v);r[k+'Json']=JSON.stringify(v);r[k+'Sha256']=utf16sha(r[k+'Json']);};
+test('named inline REFERENCES retain all51 declared children and reject each missing or changed FK',()=>{
+ // These16 named column constraints are present in the existing V6/V7 DDL
+ // and in the rejected native candidate; FOREIGN KEY-only inventory omitted them.
+ const inline=[
+  ['desktop_goods_receipts','FK_dgr_supplier'],['desktop_goods_receipts','FK_dgr_account'],['desktop_goods_receipts','FK_dgr_actor'],['desktop_goods_receipts','FK_dgr_invoice'],
+  ['desktop_goods_receipt_lines','FK_dgl_receipt'],['desktop_goods_receipt_lines','FK_dgl_product'],['desktop_goods_receipt_lines','FK_dgl_selected_unit'],['desktop_goods_receipt_lines','FK_dgl_base_unit'],['desktop_goods_receipt_lines','FK_dgl_movement'],
+  ['desktop_goods_purchase_links','FK_dgp_line'],['desktop_goods_purchase_links','FK_dgp_invoice'],['desktop_goods_purchase_links','FK_dgp_item'],
+  ['desktop_goods_requests','FK_dgreq_actor'],['desktop_goods_requests','FK_dgreq_receipt'],
+  ['finance_account_movements','FK_finance_account_movements_account'],['desktop_finance_requests','FK_desktop_finance_requests_actor']
+ ];
+ assert.equal(NEW_CHILDREN.length,51);assert.equal(new Set(NEW_CHILDREN.map(x=>x.name)).size,51);
+ for(const [parentName,name] of inline){
+  assert.deepEqual(NEW_CHILDREN.filter(x=>x.name===name),[{parentName,name,type:'F'}]);
+  assert((V6_SCHEMA+'\n'+V7_SCHEMA).includes('CONSTRAINT '+name+' REFERENCES '));
+ }
+ const before=JSON.stringify(syntheticSemantic(2));assert.doesNotThrow(()=>compareUpgradeSemantic(before,JSON.stringify(syntheticSemantic(7))));
+ for(const [,name] of inline)for(const mutate of [c=>c.objects=c.objects.filter(x=>x.name!==name),c=>c.objects.find(x=>x.name===name).parentName='users',c=>c.objects.find(x=>x.name===name).type='C']){
+  const c=syntheticSemantic(7);mutate(c);assert.throws(()=>compareUpgradeSemantic(before,JSON.stringify(c)));
+ }
+ const extra=syntheticSemantic(7);extra.objects.push({schemaName:'dbo',parentSchema:'dbo',parentName:'desktop_goods_receipts',name:'FK_undeclared',type:'F'});assert.throws(()=>compareUpgradeSemantic(before,JSON.stringify(extra)));
+});
 function rebind(c,mutate){mutate(c.files);const put=n=>{const bytes=JSON.stringify(c.files[n]);writeFileSync(join(c.dir,n),bytes);return utf8sha(bytes);};const names=['upgrade-baseline.json','upgrade-rollback.json','upgrade-after-rollback.json'];const pins=Object.fromEntries(names.map(n=>[n,put(n)]));c.files['upgrade-rollback.json'].baselineSha256=pins['upgrade-baseline.json'];pins['upgrade-rollback.json']=put('upgrade-rollback.json');c.files['upgrade-actual-review.json'].pins={...pins};pins['upgrade-actual-review.json']=put('upgrade-actual-review.json');c.files['upgrade-rollback-acceptance.json'].pins=pins;c.args.expectedAcceptanceSha256=put('upgrade-rollback-acceptance.json');c.files['upgrade-apply-decision.json'].rollbackAcceptanceSha256=c.args.expectedAcceptanceSha256;c.args.expectedApplyDecisionSha256=put('upgrade-apply-decision.json');}
 test('the finite upgrade reuses the exact legacy schema slices and removes only the explicit reference seed statements',()=>{
  const v3=source('master-v3-transition.mjs').match(/const ddl=`([\s\S]*?)`;/)[1].split('\n GRANT INSERT')[0].replace('${MASTER_V3_OPERATION_CHECK_SQL}',MASTER_V3_OPERATION_CHECK_SQL).trimEnd();assert.equal(V3_SCHEMA,v3);assert(source('master-v3-transition.mjs').includes("EXEC sys.sp_executesql N'"+V3_ADD_COLUMN+"'"));
