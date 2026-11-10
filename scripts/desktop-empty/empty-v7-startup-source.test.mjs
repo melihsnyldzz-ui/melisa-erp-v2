@@ -8,7 +8,7 @@ test('starter verifies finite public admission before any cipher read and preser
  for(const v of ['runtime-clean-v7','empty-profile-db9-v1/runtime-package.json','NEW_PROFILE_ADMISSION_PIN_REQUIRED','PROFILE_SOURCE_LOCATION_REJECTED','kurulum\\melisa-desktop-test-writer.dpapi','AreAccessRulesProtected','sqlCredentialCipherSha256'])assert(s.includes(v),v);
  const worker=read('./start-master-v7-worker.mjs');assert(worker.indexOf('readMasterV7Profile(process.argv')<worker.indexOf('secret=await input.input'));assert(worker.includes('openDesktopEmptyV7TlsConnector'));assert(worker.includes('targetProfile:profileBinding.targetProfile'));
 });
-test('masked human Save is the only technical-secret creation/apply path; commit precedes protected storage receipt',()=>{
+test('original first-setup window requires masked human Save; its commit precedes protected storage receipt',()=>{
  const s=read('./empty-v7-setup-window.ps1'),click=s.indexOf('$save.Add_Click({');assert(click>0);
  for(const marker of ['RandomNumberGenerator]::Fill','ProtectedData]::Protect',"Child '--apply'",'$stream.Write($cipher)'])assert(s.indexOf(marker)>click,marker);
  assert(s.indexOf("Child '--apply'")<s.indexOf('$stream.Write($cipher)'));assert(s.indexOf('$stream.Write($cipher)')<s.indexOf("Public-New 'first-owner-setup-receipt.v1.json'"));

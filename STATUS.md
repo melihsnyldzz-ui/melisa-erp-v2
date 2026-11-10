@@ -1,3 +1,10 @@
+<!-- EMPTY-PROFILE-COMPLETION-RECOVERY-20261111 -->
+## 11 Kasım — Oluşmuş ilk yönetici için teknik tamamlanma kurtarması; kaynak
+
+Root'un ayrı gerçek salt okunur kayıtlarında ilk insan hesabı oluşmuş, fakat timestamp doğrudan varchar dönüşümü 8 karakter döndürdüğü için eski kurulum sonucu TLS ve kalıcı SQL credential aşamasından önce reddedilmiştir. Normal üreticide yalnız binary(8) üzerinden hex dönüşümü düzeltilir. Ayrı, karar ve eski a10 kayıtlarına hash bağlı Root installer kaynağı insan hesabı/parolası/roller/yetkileri değiştirmeden yalnız mevcut teknik SQL login parolasını değiştirir; yeni CurrentUser şifreli dosya açık Xaser sahibi ve tek-owner ACL ile **ALTER öncesinde** diske kalıcı yazılır. Sonrasında yeni gerçek TLS bağlantısı ve raw/effective/other-DB kontrolleri gerekir. Eski COMMITTED makbuzu yeniden üretilmez; yeni açık COMPLETION_RECOVERED makbuzu ve ayrı admission sözleşmesi kullanılır. İlk hata ve eski paket kayıtları korunur.
+
+16 hedefli offline kontrol, gerçek passive-builder payload'ından yalıtılmış staged import/pure compile ve iki SQL gövdesinin TSql160 sözdizimi/değişken bağları teknik kaynak kanıtıdır; gerçek kurtarma/DPAPI/SQL/TLS/normal giriş kabulü değildir. Payload ölçümü 327 source/3 helper'dır; ilk testte varsayılan326 beklentisi ölçümle düzeltilmiş, üretici daraltılmamıştır. Ayrı kaynak review/exact CI ve Root'un yeni paket/karar/gerçek uygulaması beklenir. Özgün sayaçlar, DB5 ve çalışan uygulama değişmez.
+
 <!-- EMPTY-PROFILE-PACKAGE-CLOSURE-20261110 -->
 ## 10 Kasım — İlk kurulum paketinin iki salt kaynak girdisi
 

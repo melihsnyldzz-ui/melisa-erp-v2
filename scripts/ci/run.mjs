@@ -37,7 +37,7 @@ if (mode === 'quality') {
   console.log('API and CI JavaScript syntax: PASS');
 } else if (mode === 'canonical') {
   // Fixed-target compiler fixtures only: no SQL connection or execution.
-  run(['--experimental-vm-modules','--test',path.join(root,'scripts/desktop-empty/empty-v7-setup-core.test.mjs'),path.join(root,'scripts/desktop-empty/empty-v7-startup-source.test.mjs'),path.join(root,'scripts/desktop-empty/empty-v7-package-closure.test.mjs'),path.join(root,'packages/shared/src/desktopRuntimeInfo.test.mjs')]);
+  run(['--experimental-vm-modules','--test',path.join(root,'scripts/desktop-empty/empty-v7-setup-core.test.mjs'),path.join(root,'scripts/desktop-empty/empty-v7-startup-source.test.mjs'),path.join(root,'scripts/desktop-empty/empty-v7-package-closure.test.mjs'),path.join(root,'scripts/desktop-empty/empty-v7-completion-recovery.test.mjs'),path.join(root,'packages/shared/src/desktopRuntimeInfo.test.mjs')]);
   run(['--experimental-vm-modules', '--test', path.join(root, 'scripts/desktop-empty/master-v3-transition.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-journal-sql.test.mjs'), path.join(root, 'scripts/desktop-empty/master-v3-web.test.mjs')]);
   run(['--experimental-vm-modules', '--test', ...['read-master-v5-permission-seed','build-master-v5-package','master-v5-transition','master-v5-runtime','master-v5-verification','master-v5-run-context','master-v5-run-files','master-v5-rollback-diagnostic'].map(name=>path.join(root, 'scripts/desktop-empty', name+'.test.mjs'))]);
   run(['--test', ...['desktop-goods-v6-snapshot','master-v6-transition','start-master-v6'].map(name=>path.join(root, 'scripts/desktop-empty', name+'.test.mjs'))]);

@@ -32,12 +32,13 @@ function visit(name){
  for(const m of text.matchAll(/(?:from\s*|import\s*(?:\(\s*)?)["'](\.[^"']+)["']/g))visit(path.posix.normalize(path.posix.join(path.posix.dirname(name),m[1])));
 }
 for(const name of ['start-master-v7-worker.mjs','verify-master-v7-profile.mjs','master-v7-plan.mjs','build-master-v7-package.mjs',...(empty?[]:['verify-master-v7-writer.mjs'])])visit('scripts/desktop-empty/'+name);
-if(empty)for(const name of ['empty-v7-setup-local.mjs','empty-v7-setup-core.mjs'])visit('scripts/desktop-empty/'+name);
+if(empty)for(const name of ['empty-v7-setup-local.mjs','empty-v7-setup-core.mjs','empty-v7-completion-recovery-local.mjs'])visit('scripts/desktop-empty/'+name);
 // The native catalog compiler reads these pinned files as source text, not as
 // imports. Keep this finite data closure alongside the executable import graph.
 if(empty)for(const rel of ['apps/api/scripts/vega-native-migration-store.mjs','scripts/canonical/fixtures/night-20261006-before.json']){regular(buildRoot+'/'+rel);sources[rel]=hashFile(buildRoot+'/'+rel);}
 for(const name of ['start-master-v7.ps1',...(empty?[]:['read-first-sale-operator.ps1'])]){const rel='scripts/desktop-empty/'+name;regular(buildRoot+'/'+rel);helpers[rel]=hashFile(buildRoot+'/'+rel);}
 if(empty){const rel='scripts/desktop-empty/empty-v7-setup-window.ps1';regular(buildRoot+'/'+rel);helpers[rel]=hashFile(buildRoot+'/'+rel);}
+if(empty){const rel='scripts/desktop-empty/empty-v7-completion-recovery.ps1';regular(buildRoot+'/'+rel);helpers[rel]=hashFile(buildRoot+'/'+rel);}
 const web=buildRoot+'/apps/sites-workflow/dist-desktop-write-green';
 regular(web+'/desktop-write-green.html');const html=readFileSync(web+'/desktop-write-green.html','utf8');
 const js=[...html.matchAll(/src="\/([^" ]+\.js)"/g)].map(m=>m[1]),css=[...html.matchAll(/href="\/([^" ]+\.css)"/g)].map(m=>m[1]);

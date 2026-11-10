@@ -84,7 +84,8 @@ try{
  Verify-File (Join-Path $root $publicPath) $package.publicFiles[$publicPath]
  if($profileBinding.targetProfile -ceq 'empty-db9-v7-v1'){
   Verify-File (Join-Path $root 'kurulum/empty-profile-db9-v1/first-owner-setup-receipt.v1.json') $admission.emptyProfile.firstSetupReceiptSha256
-  $secretFile=Join-Path $root 'kurulum/empty-profile-db9-v1/protected-sql-writer-v1/sql-writer.dpapi'
+  if($profileBinding.secretPath-cnotin@('kurulum/empty-profile-db9-v1/protected-sql-writer-v1/sql-writer.dpapi','kurulum/empty-profile-db9-v1/protected-sql-writer-recovery-v1/sql-writer.dpapi')){throw 'PRIVATE_PROFILE_PATH_REJECTED'}
+  $secretFile=Join-Path $root $profileBinding.secretPath
   Verify-File $secretFile $profileBinding.sqlCredentialCipherSha256
   $secretRoot=Split-Path -Parent $secretFile
   foreach($ap in @($secretRoot,$secretFile)){$acl=Get-Acl -LiteralPath $ap;$ownerSid=$acl.GetOwner([Security.Principal.SecurityIdentifier]);$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if($ownerSid.Value -cne $expected.Value -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -cne $expected.Value -or $rules[0].AccessControlType -ne 'Allow' -or $rules[0].FileSystemRights -ne 'FullControl'){throw 'PRIVATE_OWNER_REJECTED'};if($ap -ceq $secretRoot -and -not $acl.AreAccessRulesProtected){throw 'PRIVATE_ROOT_REJECTED'}}

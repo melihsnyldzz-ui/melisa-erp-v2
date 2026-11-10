@@ -53,8 +53,11 @@ async function runLoop(source,context){const m=new vm.SourceTextModule(source,{c
 function cleanup(dir){const absolute=path.resolve(dir);assert.equal(path.dirname(absolute),path.resolve(os.tmpdir()));assert(path.basename(absolute).startsWith('melisa-v7-source-closure-'));fs.rmSync(absolute,{recursive:true,force:true});}
 test('real passive builder payload imports and compiles first setup in an isolated staged source tree',async()=>{
  const pkg=await packageFixture();for(const name of [migration,fixture])assert.equal(pkg.sources[name],sha(fs.readFileSync(path.join(root,name))));
+ assert.equal(Object.keys(pkg.sources).length,327);assert.equal(Object.keys(pkg.helpers).length,3);
  const dir=stage(pkg);
- try{const core=await stagedCore(dir),plan=core.compileEmptyV7FirstSetup({adminPid:12345,adminSidHex:'0x01050000000000051500000011223344'});assert.equal(plan.kind,'EMPTY_V7_FIRST_SETUP_PREVIEW');assert.equal(plan.executionAuthorized,false);assert.equal(plan.requiresHumanSave,true);assert.equal(plan.target.databaseId,9);assert.equal(plan.sha256,sha(plan.sql));assert.equal(core.EMPTY_V7_SETUP_TABLES.length,43);}finally{cleanup(dir);}
+ try{const identity={adminPid:12345,adminSidHex:'0x01050000000000051500000011223344'},core=await stagedCore(dir),plan=core.compileEmptyV7FirstSetup(identity);assert.equal(plan.kind,'EMPTY_V7_FIRST_SETUP_PREVIEW');assert.equal(plan.executionAuthorized,false);assert.equal(plan.requiresHumanSave,true);assert.equal(plan.target.databaseId,9);assert.equal(plan.sha256,sha(plan.sql));assert.equal(core.EMPTY_V7_SETUP_TABLES.length,43);
+  const recovery=await import(pathToFileURL(path.join(dir,'scripts/desktop-empty/empty-v7-completion-recovery-core.mjs')).href),owner={userId:'1',roleId:'1',userVersion:'0000000000000815'};for(const d of [recovery.compileCompletionRecoveryRead(identity,owner),recovery.compileCompletionTechnicalAlter(identity,owner)]){assert.equal(d.executionAuthorized,false);assert.equal(d.target.databaseId,9);assert.equal(d.fieldNames.length,11);assert.equal(d.sha256,sha(d.sql));}assert(pkg.sources['scripts/desktop-empty/empty-v7-completion-recovery-local.mjs']);assert(pkg.helpers['scripts/desktop-empty/empty-v7-completion-recovery.ps1']);
+ }finally{cleanup(dir);}
 });
 test('either missing native catalog source rejects staged import; changed pinned source is not accepted',async()=>{
  const pkg=await packageFixture();

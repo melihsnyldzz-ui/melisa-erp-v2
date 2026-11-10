@@ -1,3 +1,8 @@
+<!-- EMPTY-PROFILE-COMPLETION-RECOVERY-20261111 -->
+## 11 Kasım — İlk yönetici sonrası teknik credential tamamlanma kaynağı
+
+Root'un gerçek same-adapter tanısı timestamp8→binary8→hex16 düzeltmesini gerektirir. Ayrı feature kaynak, mevcut insan hesabına dokunmadan yalnız mevcut teknik login için karar bağlı tamamlanma sağlar: kalıcı CurrentUser cipher/owner ACL önce, ALTER sonra, fresh TLS/rights en son; özgün COMMITTED yerine doğru COMPLETION_RECOVERED makbuzu ve yeni admission. 16 hedefli offline kontrol ile SQL syntax/declaration kanıtı kaynak sınırındadır. Review/exact CI, yeni paket ve Root actual tamamlanma/bağımsız salt okunur geri okuma beklenir; başarısız a10 kayıtları ve özgün kabul sayaçları korunur. Ayrıntı STATUS kaydında.
+
 <!-- EMPTY-PROFILE-PACKAGE-CLOSURE-20261110 -->
 ## 10 Kasım — K02 ilk kurulum paket kapanışı kaynak düzeltmesi
 
