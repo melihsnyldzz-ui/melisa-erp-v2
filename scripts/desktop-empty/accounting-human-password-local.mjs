@@ -89,7 +89,7 @@ async function apply(input){
    await request.input('action',r.sql.NVarChar(80),event.action).input('before',r.sql.NVarChar(r.sql.MAX),JSON.stringify(event.beforeSnapshot)).input('after',r.sql.NVarChar(r.sql.MAX),JSON.stringify(event.afterSnapshot))
     .query("INSERT dbo.audit_logs(actor_user_id,action,entity_type,entity_id,before_json,after_json,reason,source,created_at) VALUES(NULL,@action,N'user',30018,@before,@after,N'Windows owner SEMIH\\Xaser; human submitted local password',N'local-setup',SYSUTCDATETIME());");auditWritten++;
   };
-  writeNew(evidence+'/apply-attempt.json',{state:'OUTCOME_UNKNOWN_UNTIL_RECEIPT',at:new Date().toISOString(),nonce:prepared.nonce,identity,passwordStored:false,humanSubmission:true});attempted=true;
+  writeNew(evidence+'/apply-attempt.json',{state:'OUTCOME_UNKNOWN_UNTIL_RECEIPT',at:new Date().toISOString(),nonce:prepared.nonce,identity,plaintextPasswordStored:false,humanSubmission:true});attempted=true;
   const changed=await resetAccountingHumanPassword({sql:r.sql,transaction:tx,request:transaction=>new r.sql.Request(transaction),hashPassword:(v,n)=>r.bcrypt.hash(v,n),writeAudit,identity,readRole:async transaction=>(await new r.sql.Request(transaction).query('SELECT id,code,is_active,is_system_role FROM dbo.roles WITH(HOLDLOCK) WHERE id=19;')).recordset?.[0]},input);
   input.password='';input.passwordConfirmation='';
   const reread=(await new r.sql.Request(tx).query('SELECT id,username,display_name,is_active,role_id,row_version FROM dbo.users WITH(UPDLOCK,HOLDLOCK) WHERE id=30018;')).recordset?.[0];
@@ -100,7 +100,7 @@ async function apply(input){
   check(auditReadback?.length===2&&auditReadback[0]?.length===1&&Number(auditReadback[0][0].n)===Number(priorAudit.n)+1&&auditReadback[0][0].oldDigest===priorAudit.digest&&auditReadback[1]?.length===1,'AUDIT_STATE');
   const a=auditReadback[1][0];check(a.action==='user_password_reset'&&a.entity_type==='user'&&Number(a.entity_id)===30018&&a.actor_user_id===null&&a.source==='local-setup'&&JSON.parse(a.after_json).sessionsRevoked===true,'AUDIT_READBACK');
   await tx.commit();begun=false;committed=true;
-  const result={status:'HUMAN_PASSWORD_SAVED',at:new Date().toISOString(),nonce:prepared.nonce,userId:30018,username:'erp_muhasebe_deneme',roleId:19,oldVersion:identity.expectedUserVersion,newVersion:changed.rowVersion,sessionsRevoked:true,protectedStateUnchanged:true,passwordPrinted:false,passwordStored:false,normalLoginTested:false};
+  const result={status:'HUMAN_PASSWORD_SAVED',at:new Date().toISOString(),nonce:prepared.nonce,userId:30018,username:'erp_muhasebe_deneme',roleId:19,oldVersion:identity.expectedUserVersion,newVersion:changed.rowVersion,sessionsRevoked:true,protectedStateUnchanged:true,passwordPrinted:false,plaintextPasswordStored:false,windowsProtectedStorage:'HANDLED_BY_HUMAN_WINDOW',normalLoginTested:false};
   writeNew(evidence+'/result.json',result);return result;
  }catch(error){if(begun){try{await tx.rollback();begun=false;}catch{}}if(attempted&&!fs.existsSync(evidence+'/failure.json'))writeNew(evidence+'/failure.json',{status:committed?'COMMIT_RECEIPT_REVIEW_REQUIRED':'FAILED_REVIEW_REQUIRED',at:new Date().toISOString(),automaticRetryAllowed:false});throw Error(committed?'ACCOUNTING_HUMAN_COMMIT_RECEIPT_REVIEW_REQUIRED':'ACCOUNTING_HUMAN_OPERATION_NOT_COMPLETED');}
  finally{input.password='';input.passwordConfirmation='';if(begun)try{await tx.rollback();}catch{}await r.pool.close();}

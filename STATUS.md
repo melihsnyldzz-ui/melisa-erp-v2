@@ -1,3 +1,8 @@
+<!-- ACCOUNTING-HUMAN-PASSWORD-WINDOWS-STORE-20261110 -->
+## 10 Kasım — Yeni kullanıcı tercihi: uygulanabilir yoldan açılış ve hesaba özel Windows koruması
+
+İki yol yeniden değerlendirildi: mevcut korumalı consumerın bağlı Chrome203557028 sekmesi kapalı; eski broker/sekme/credential değiştirilmedi. Kullanıcı bu yol mümkün değilse yerel pencerenin açılmasını, yeni parolayı kendisinin girip kaydetmesini ve hesaba özel Windows korumalı kayıt hazırlanmasını açıkça istedi. Native Save akışına CurrentUser DPAPI, DB GUID/30018/hazırlık nonce entropy ve yalnız Windows sahibi SID için özel ACL eklendi. Cipher yalnız normal reset COMMIT makbuzundan sonra CreateNew kayda yazılır; açık parola kaydı veya tarayıcı aktarımı yok. Windows saklama başarısızsa resetin gerçekleştiği ayrı söylenir; yeniden reset yapılmaz. Bellekte sentetik DPAPI roundtrip ve yanlış entropy reddi PASS; gerçek parola/giriş/iş akışı henüz yapılmadı. Kaynak incelemesi ve actual boş pencere açılışı ayrı kaydedilecek.
+
 <!-- ACCOUNTING-HUMAN-PASSWORD-SOURCE-20261110 -->
 ## 10 Kasım — Muhasebe parola yenileme için insanın kullandığı yerel pencere
 
