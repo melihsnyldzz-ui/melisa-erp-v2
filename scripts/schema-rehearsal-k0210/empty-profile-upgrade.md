@@ -31,10 +31,11 @@ Its in-memory brand is a parsing contract, not proof that SQL was actually read.
 The executor must pin the real observation and independently reviewed source.
 
 `compileEmptyProfileUpgrade(identity,baseline,'rollback')` emits one SQL-owned
-transaction containing the existing V3→4→5→6→7 schema statements. Separate literal
+transaction containing the existing native account stage and V3→4→5→6→7 schema statements. Separate literal
 `sp_executesql` batches preserve the original new-column binding boundary. The
-net schema change is seven tables, one V3 nullable supplier column plus14 V6
-nullable columns, and the existing journal/index/FK/check/marker changes. No new
+net schema change is seven tables, the14 existing source-bound native account
+columns, one V3 nullable supplier column plus14 V6 nullable columns (29 total),
+and the existing journal/index/FK/check/marker changes. No new
 business rule is defined. Full before-baseline hashes, unchanged security, stable
 old object IDs and all36-table identity values are guarded in SQL.
 

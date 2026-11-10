@@ -5,14 +5,32 @@ import {DESKTOP_MASTER_V5_CHECKS,DESKTOP_V5_CUSTOMER_MOVEMENT_CHECK} from '../..
 import {compileDesktopGoodsV6SchemaFragments,DESKTOP_GOODS_V6_ADDED_COLUMNS} from '../../apps/api/src/config/desktopGoodsV6Schema.mjs';
 import {DESKTOP_FINANCE_PROPOSAL_SQL} from '../../apps/api/src/config/desktopFinanceSchemaProposal.mjs';
 import {LOCAL_MASTER_BASE_TABLES} from '../desktop-empty/local-master-schema-proposal.mjs';
+import {compileDesktopSalesCurrencySchema} from '../desktop-empty/sales-currency-schema.mjs';
 export const V2_ADDED_TABLES=Object.freeze(['desktop_local_product_units','desktop_local_price_units','desktop_local_master_requests','desktop_sale_request_resolutions','desktop_sale_workflows','desktop_sale_reservations','desktop_sale_cartons','desktop_sale_carton_items','desktop_sale_workflow_requests']);
 export const OLD_TABLES=Object.freeze([...LOCAL_MASTER_BASE_TABLES,...V2_ADDED_TABLES].sort());
 export const GOODS_TABLES=Object.freeze(['desktop_goods_receipts','desktop_goods_receipt_lines','desktop_goods_purchase_links','desktop_goods_requests']);
 export const FINANCE_TABLES=Object.freeze(['finance_accounts','finance_account_movements','desktop_finance_requests']);
 export const NEW_TABLES=Object.freeze([...GOODS_TABLES,...FINANCE_TABLES].sort());
 export const ALL_TABLES=Object.freeze([...OLD_TABLES,...NEW_TABLES].sort());
-export const ADDED_COLUMNS=Object.freeze([['suppliers','party_entity_id','bigint'],...DESKTOP_GOODS_V6_ADDED_COLUMNS].map(Object.freeze));
-if(OLD_TABLES.length!==36||ALL_TABLES.length!==43||ADDED_COLUMNS.length!==15)throw Error('K0210_UPGRADE_SOURCE_DRIFT');
+// Source-bound native sales/account metadata, including stock warehouse_name.
+// These nullable columns are operational schema; no Vega rows/history DDL follow.
+export const NATIVE_ACCOUNT_COLUMNS=Object.freeze([
+ ['sales_invoices','account_currency','nvarchar(3)'],['sales_invoices','account_amount','decimal(18,4)'],['sales_invoices','account_exchange_rate_snapshot','decimal(18,8)'],['sales_invoices','party_entity_id','bigint'],['sales_invoices','party_currency_account_id','bigint'],
+ ['customer_movements','account_currency','nvarchar(3)'],['customer_movements','account_amount','decimal(18,4)'],['customer_movements','document_exchange_rate_snapshot','decimal(18,8)'],['customer_movements','account_exchange_rate_snapshot','decimal(18,8)'],['customer_movements','amount_try','decimal(18,4)'],['customer_movements','party_entity_id','bigint'],['customer_movements','party_currency_account_id','bigint'],
+ ['customers','party_entity_id','bigint'],['stock_movements','warehouse_name','nvarchar(80)']
+].map(Object.freeze));
+const nativeAccounts=compileDesktopSalesCurrencySchema(),nativeTables=['sales_invoices','customer_movements','customers','stock_movements'];
+if(nativeAccounts.fixtureSha256!=='3bb27b291723664d47d17a9f63c94a127d324c695d22e1d7b2eb067bc1c38e7e'||nativeAccounts.batches.length!==4)throw Error('K0210_UPGRADE_SOURCE_DRIFT');
+export const NATIVE_ACCOUNT_SCHEMA=nativeAccounts.batches.map((batch,i)=>{
+ const table=nativeTables[i],columns=NATIVE_ACCOUNT_COLUMNS.filter(([t])=>t===table).map(([,name,type])=>`[${name}] ${type} NULL`).join(',');
+ const tail=`ALTER TABLE dbo.[${table}] ADD ${columns};`;
+ if(batch.table!==table||!batch.sql.endsWith('\n'+tail)||batch.sql.split(tail).length!==2)throw Error('K0210_UPGRADE_SOURCE_DRIFT');
+ // The original DB5 proposal guard is not reused. The K02 caller's fixed DB9
+ // identity, complete baseline and single transaction enclose these exact DDLs.
+ return tail;
+}).join('\n');
+export const ADDED_COLUMNS=Object.freeze([...NATIVE_ACCOUNT_COLUMNS,['suppliers','party_entity_id','bigint'],...DESKTOP_GOODS_V6_ADDED_COLUMNS].map(Object.freeze));
+if(OLD_TABLES.length!==36||ALL_TABLES.length!==43||NATIVE_ACCOUNT_COLUMNS.length!==14||ADDED_COLUMNS.length!==29)throw Error('K0210_UPGRADE_SOURCE_DRIFT');
 const strip=(sql,part)=>{if(sql.split(part).length!==2)throw Error('K0210_UPGRADE_SOURCE_DRIFT');return sql.replace(part,'');};
 // Verbatim technical reference values from desktopGoodsV6Schema.mjs. These
 // are NOT company credit/due/exchange policies. Rollback never inserts them.
@@ -49,7 +67,7 @@ IF @@ROWCOUNT<>1 THROW 51995,'MASTER_V5_MARKER_UPDATE',1;`;
 const goods=compileDesktopGoodsV6SchemaFragments({mode:'apply'}).sql;
 export const V6_SCHEMA=strip(goods,SETTINGS_INSERT+SETTINGS_VERIFY);
 export const V7_SCHEMA=strip(DESKTOP_FINANCE_PROPOSAL_SQL,CASH_INSERT);
-export const UPGRADE_SCHEMA_STAGES=Object.freeze([V3_ADD_COLUMN,V3_SCHEMA,V4_SCHEMA,V5_SCHEMA,V6_SCHEMA,V7_SCHEMA]);
+export const UPGRADE_SCHEMA_STAGES=Object.freeze([NATIVE_ACCOUNT_SCHEMA,V3_ADD_COLUMN,V3_SCHEMA,V4_SCHEMA,V5_SCHEMA,V6_SCHEMA,V7_SCHEMA]);
 // All inserts into existing identity tables are excluded from this DDL path.
 if(UPGRADE_SCHEMA_STAGES.some(sql=>/\b(?:GRANT|DENY|REVOKE|CREATE\s+(?:LOGIN|USER|ROLE)|IDENTITY_INSERT|DBCC|RESEED)\b/i.test(sql))||UPGRADE_SCHEMA_STAGES.some(sql=>/\bINSERT\s+dbo\.(?!desktop_empty_installation\b)/i.test(sql)))throw Error('K0210_UPGRADE_SOURCE_DRIFT');
 // Inventory only the seven finite CREATE TABLE literals above. This is not a

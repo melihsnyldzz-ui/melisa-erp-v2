@@ -1,0 +1,934 @@
+{
+  "definitionOnly": true,
+  "sourceHead": "0f4bd6e3836a9cddbb5b745cdde0e640e54e499a",
+  "sourceReviewSha256": "21c7197f4f3185aa34e2ee8603e38acb2765cd51b16df95df86687dc86e1f89e",
+  "sourceModule": "apps/api/src/config/desktopFinanceV7Policy.mjs",
+  "sourceModuleNormalizedSha256": "1f2cb6c5b4151ff0bd24a55f1349097e6c192e1a8f3e8c1c106ee2e99f2a601f",
+  "targetsSha256": "7326bf7259f43f9ac8aff0b120cf1d309082f13009f2e7b5dafc8fe2ef2bc209",
+  "targets": [
+    {
+      "schema": "dbo",
+      "name": "desktop_empty_installation",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "users",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "roles",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "permissions",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "party_entities",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "party_currency_accounts",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "products",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_local_product_units",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "product_barcodes",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "product_prices",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_local_price_units",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "audit_logs",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_local_master_requests",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "party_entities",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "party_currency_accounts",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "products",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_local_product_units",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "product_barcodes",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "product_prices",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_local_price_units",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "audit_logs",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_local_master_requests",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "party_entity_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "system_settings",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "currency_rates",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoice_items",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "stock_movements",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflows",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_reservations",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_cartons",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_carton_items",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflow_requests",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_request_resolutions",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoice_items",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "stock_movements",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflows",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_reservations",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_cartons",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_carton_items",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflow_requests",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_request_resolutions",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_cartons",
+      "permission": "DELETE",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_carton_items",
+      "permission": "DELETE",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "account_currency"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "account_amount"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "account_exchange_rate_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "status"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "estimated_profit_try"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "finalized_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "party_entity_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "party_currency_account_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoice_items",
+      "permission": "UPDATE",
+      "column": "average_cost_try_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoice_items",
+      "permission": "UPDATE",
+      "column": "gross_profit_try"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoice_items",
+      "permission": "UPDATE",
+      "column": "gross_profit_rate"
+    },
+    {
+      "schema": "dbo",
+      "name": "products",
+      "permission": "UPDATE",
+      "column": "current_stock_qty"
+    },
+    {
+      "schema": "dbo",
+      "name": "products",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "balance"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "account_currency"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "account_amount"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "document_exchange_rate_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "account_exchange_rate_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "amount_try"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "balance_effect"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "party_entity_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "customer_movements",
+      "permission": "UPDATE",
+      "column": "party_currency_account_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "party_currency_accounts",
+      "permission": "UPDATE",
+      "column": "current_balance"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflows",
+      "permission": "UPDATE",
+      "column": "state"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflows",
+      "permission": "UPDATE",
+      "column": "sent_by"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflows",
+      "permission": "UPDATE",
+      "column": "prepared_by"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_workflows",
+      "permission": "UPDATE",
+      "column": "checked_by"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_sale_reservations",
+      "permission": "UPDATE",
+      "column": "state"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "party_entity_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "cancelled_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "cancel_reason"
+    },
+    {
+      "schema": "dbo",
+      "name": "sales_invoices",
+      "permission": "UPDATE",
+      "column": "updated_by"
+    },
+    {
+      "schema": "dbo",
+      "name": "terminal_sync_queue",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoice_items",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoice_items",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipts",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipts",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipt_lines",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipt_lines",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_purchase_links",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_purchase_links",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_requests",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_requests",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "account_currency"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "account_amount"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "account_exchange_rate_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "party_entity_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "party_currency_account_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "invoice_discount_type"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "invoice_discount_amount"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "status"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "finalized_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "purchase_invoices",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "account_currency"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "account_amount"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "account_exchange_rate_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "document_exchange_rate_snapshot"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "amount_try"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "balance_effect"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "party_entity_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "supplier_movements",
+      "permission": "UPDATE",
+      "column": "party_currency_account_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "balance"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "products",
+      "permission": "UPDATE",
+      "column": "average_cost_try"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipts",
+      "permission": "UPDATE",
+      "column": "purchase_invoice_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipts",
+      "permission": "UPDATE",
+      "column": "version"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipts",
+      "permission": "UPDATE",
+      "column": "state"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_receipt_lines",
+      "permission": "UPDATE",
+      "column": "stock_movement_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_requests",
+      "permission": "UPDATE",
+      "column": "state"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_requests",
+      "permission": "UPDATE",
+      "column": "receipt_id"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_goods_requests",
+      "permission": "UPDATE",
+      "column": "response_json"
+    },
+    {
+      "schema": "dbo",
+      "name": "finance_accounts",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "finance_account_movements",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "finance_account_movements",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_finance_requests",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_finance_requests",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "finance_accounts",
+      "permission": "UPDATE",
+      "column": "current_balance"
+    },
+    {
+      "schema": "dbo",
+      "name": "finance_accounts",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_finance_requests",
+      "permission": "UPDATE",
+      "column": "state"
+    },
+    {
+      "schema": "dbo",
+      "name": "desktop_finance_requests",
+      "permission": "UPDATE",
+      "column": "response_json"
+    },
+    {
+      "schema": "dbo",
+      "name": "product_images",
+      "permission": "SELECT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "product_images",
+      "permission": "INSERT",
+      "column": null
+    },
+    {
+      "schema": "dbo",
+      "name": "product_images",
+      "permission": "UPDATE",
+      "column": "is_primary"
+    },
+    {
+      "schema": "dbo",
+      "name": "product_images",
+      "permission": "UPDATE",
+      "column": "updated_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "product_images",
+      "permission": "UPDATE",
+      "column": "updated_by"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "name"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "phone"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "city"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "country"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "customer_type"
+    },
+    {
+      "schema": "dbo",
+      "name": "customers",
+      "permission": "UPDATE",
+      "column": "updated_by"
+    },
+    {
+      "schema": "dbo",
+      "name": "party_entities",
+      "permission": "UPDATE",
+      "column": "name"
+    },
+    {
+      "schema": "dbo",
+      "name": "party_entities",
+      "permission": "UPDATE",
+      "column": "country"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "is_active"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "passive_at"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "passive_reason"
+    },
+    {
+      "schema": "dbo",
+      "name": "suppliers",
+      "permission": "UPDATE",
+      "column": "updated_by"
+    }
+  ]
+}

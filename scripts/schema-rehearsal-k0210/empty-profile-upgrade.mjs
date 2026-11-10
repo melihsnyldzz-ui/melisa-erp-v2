@@ -1,6 +1,6 @@
 // SQL previews only. No connection, executor, main, credentials or runtime action.
 import {LOCAL_MASTER_CONCURRENCY_GUARD} from '../desktop-empty/local-master-schema-proposal.mjs';
-import {OLD_TABLES,NEW_TABLES,ALL_TABLES,UPGRADE_SCHEMA_STAGES,SETTINGS_INSERT,SETTINGS_VERIFY,CASH_INSERT,REFERENCE_ROWS} from './empty-profile-fragments.mjs';
+import {OLD_TABLES,NEW_TABLES,ALL_TABLES,ADDED_COLUMNS,UPGRADE_SCHEMA_STAGES,SETTINGS_INSERT,SETTINGS_VERIFY,CASH_INSERT,REFERENCE_ROWS} from './empty-profile-fragments.mjs';
 import {HASH_FIELDS,SOURCE_SIGNATURE,utf8sha,assertCompleteBaseline,assertUpgradeAuthority} from './empty-profile-review.mjs';
 import {sqlQuote as q,sqlNames as names,hashSql,finishSql as finish,fixedEmptyIdentity as identity,preamble,emptyGuard,snapshot,nativeSelect as selectNative} from './empty-profile-baseline-v2.mjs';
 export {compileCompleteSchema2Observer} from './empty-profile-baseline-v2.mjs';
@@ -31,7 +31,7 @@ ${LOCAL_MASTER_CONCURRENCY_GUARD}
 IF @@TRANCOUNT<>1 OR XACT_STATE()<>1 THROW 51995,'K0210_TRANSACTION_REJECTED',1;
 ${mode==='rollback'?"SELECT N'K0210_EMPTY_PROFILE_DDL_CANDIDATE' state,@aftersemanticJson semanticJson,@aftersemanticSha256 semanticSha256;THROW 51990,'K0210_EMPTY_PROFILE_DDL_ROLLBACK',1;":"COMMIT TRANSACTION;SELECT N'K0210_EMPTY_PROFILE_SCHEMA7_APPLIED' state;"}
 ${finish}`;
- return descriptor(m,'K0210_EMPTY_PROFILE_UPGRADE_PREVIEW',sql,{mode,oldTableCount:36,newTableCount:43,existingNullableColumnsAdded:15,referenceSeeds:mode==='apply'?REFERENCE_ROWS:null,rollbackWritesExistingIdentityTables:false,failedApplyMayConsumeSettingsIdentity:mode==='apply',automaticRetryAllowed:false,requiresAuthenticatedRollbackReceipt:mode==='apply',acceptanceSha256:a?.acceptanceSha256??null,applyDecisionSha256:a?.applyDecisionSha256??null});
+ return descriptor(m,'K0210_EMPTY_PROFILE_UPGRADE_PREVIEW',sql,{mode,oldTableCount:36,newTableCount:43,existingNullableColumnsAdded:ADDED_COLUMNS.length,referenceSeeds:mode==='apply'?REFERENCE_ROWS:null,rollbackWritesExistingIdentityTables:false,failedApplyMayConsumeSettingsIdentity:mode==='apply',automaticRetryAllowed:false,requiresAuthenticatedRollbackReceipt:mode==='apply',acceptanceSha256:a?.acceptanceSha256??null,applyDecisionSha256:a?.applyDecisionSha256??null});
 }
 export function compileEmptyProfileObserver(value,baseline,authority){
  const m=identity(value),b=assertCompleteBaseline(baseline),a=assertUpgradeAuthority(authority,b);
