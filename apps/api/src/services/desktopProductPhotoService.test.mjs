@@ -1,7 +1,7 @@
 import test,{mock} from 'node:test';import assert from 'node:assert/strict';import {deflateSync} from 'node:zlib';
 let runtime;const connector={},auth={},pool={};
 mock.module('mssql',{defaultExport:new Proxy({},{get(_t,k){return runtime.sql[k];}})});
-mock.module('../config/desktopWriteTlsConnector.mjs',{namedExports:{getDesktopWritePool:c=>{if(c!==connector)throw Error();return pool;},getDesktopWriteProfile:c=>{if(c!==connector)throw Error();return 'desktop-master-v7';}}});
+mock.module('../config/desktopWriteTlsConnector.mjs',{namedExports:{getDesktopWritePool:c=>{if(c!==connector)throw Error();return pool;},getDesktopWriteTargetProfile:()=>null,getDesktopWriteProfile:c=>{if(c!==connector)throw Error();return 'desktop-master-v7';}}});
 mock.module('./desktopWriteAuthCore.mjs',{namedExports:{getDesktopWriteSessionVerifier:(a,p)=>{if(a!==auth||p!==pool)throw Error();return (...x)=>runtime.verify(...x);}}});
 mock.module('./desktopGoodsProfile.mjs',{namedExports:{desktopGoodsProfile:()=>({target:'TARGET',guard:'GUARD'})}});
 mock.module('./desktopGoodsPreviewService.mjs',{namedExports:{DESKTOP_GOODS_TARGET_SQL:'schema_version=6'}});

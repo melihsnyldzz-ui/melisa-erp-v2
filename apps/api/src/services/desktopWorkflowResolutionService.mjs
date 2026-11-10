@@ -1,12 +1,12 @@
 import sql from 'mssql';
-import {getDesktopWritePool} from '../config/desktopWriteTlsConnector.mjs';
+import {getDesktopWritePool,getDesktopWriteTargetProfile} from '../config/desktopWriteTlsConnector.mjs';
 import {getDesktopWriteSessionVerifier} from './desktopWriteAuthCore.mjs';
 import {desktopWorkflowRequestIdentity,lockDesktopResolution} from './desktopWorkflowRequestResolution.mjs';
 import {createDesktopFinalCancellationExportFence} from './desktopFinalCancellationExportFence.mjs';
 const fail=()=>{throw Error('DESKTOP_RESOLUTION_UNAVAILABLE');};
 export function createDesktopWorkflowResolutionService({connector,auth}={}){
  const pool=getDesktopWritePool(connector),verifySession=getDesktopWriteSessionVerifier(auth,pool);
- const fence=createDesktopFinalCancellationExportFence();
+ const fence=createDesktopFinalCancellationExportFence({targetProfile:getDesktopWriteTargetProfile(connector)});
  return auth.bindResolutionService({async resolve(actorId,input){
   if(!input||Object.keys(input).sort().join(',')!=='body,kind')fail();const {kind}=input,{body,hash,requestId,operation}=desktopWorkflowRequestIdentity(actorId,kind,input.body);
   const tx=new sql.Transaction(pool);let begun=false;

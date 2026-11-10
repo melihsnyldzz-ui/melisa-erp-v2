@@ -11,6 +11,7 @@ import {createDesktopLocalMasterRoutes} from '../routes/desktopLocalMasterRoutes
 import {createDesktopWriteListService} from './desktopWriteListService.mjs';
 import {createDesktopSaleWorkflowRoutes} from '../routes/desktopSaleWorkflowRoutes.mjs';
 import {createDesktopFinanceRoutes} from '../routes/desktopFinanceRoutes.mjs';
+import {EMPTY_V7_PROFILE_ID,EMPTY_V7_SQL_LOGIN,EMPTY_V7_OWNER_PERMISSION_ROWS} from '../config/desktopEmptyV7Profile.mjs';
 
 const requestId='d6be01f9-fac4-4e9c-b421-e2f070b6beb0';
 test('sale capability cannot use an unregistered auth object or a synthetic SQL/password verifier',()=>{const fakePool={},fakeSql={Transaction:class{},Request:class{},NVarChar:()=>null,ISOLATION_LEVEL:{SERIALIZABLE:4}};const auth=createDesktopWriteAuthCore({pool:fakePool,sql:fakeSql,tokenKey:Buffer.alloc(48,1),passwordHasher:{compare:async()=>true}});assert.throws(()=>getDesktopWriteSessionVerifier({},fakePool));assert.throws(()=>getDesktopWriteSessionVerifier(auth,fakePool));assert.equal(auth.close(),true);});
@@ -23,13 +24,27 @@ function driver(passwordHash){
  class Request{constructor(tx){if(!tx?.open)throw Error('not same active tx');this.tx=tx;this.params={};}input(k,_type,v){this.params[k]=v;return this;}
   async query(sql){log.push({event:'query',id:this.tx.id,sql,params:this.params});
    if(typeof state.queryFault==='function')await state.queryFault({transactionId:this.tx.id,statement:sql});
-   if(sql.includes('DESKTOP_AUTH_TARGET_REJECTED')||sql.includes('DESKTOP_LIST_TARGET_REJECTED')){assert.match(sql,/DATALENGTH\(USER_NAME\(\)\)/);assert.match(sql,/DESKTOP_WRITE_OBJECT_PERMISSION_REJECTED/);if(!state.target||state.extraPermission||state.databaseUser!=='melisa_desktop_test_writer_20261105')throw Error('wrong db, user, or extra permission');return {recordset:[{ok:1}]};}
+   if(sql.includes('DESKTOP_AUTH_TARGET_REJECTED')||sql.includes('DESKTOP_LIST_TARGET_REJECTED')){assert.match(sql,/DATALENGTH\(USER_NAME\(\)\)/);assert.match(sql,/DESKTOP_WRITE_OBJECT_PERMISSION_REJECTED/);const expectedUser=sql.includes('DESKTOP_EMPTY_V7_TARGET_REJECTED')?EMPTY_V7_SQL_LOGIN:'melisa_desktop_test_writer_20261105';if(!state.target||state.extraPermission||state.databaseUser!==expectedUser)throw Error('wrong db, user, or extra permission');return {recordset:[{ok:1}]};}
    if(sql.includes('FROM dbo.users u WITH(UPDLOCK,HOLDLOCK)'))return {recordset:this.params.userId==='9'&&state.foreignRows!==undefined?state.foreignRows:((this.params.username===state.user.username||this.params.userId===state.user.id)?[{...state.user}]:[])};
    if(sql.includes('DESKTOP_SALES_POLICY_READ'))return {recordset:[]};
    if(sql.includes('FROM dbo.permissions WITH(UPDLOCK,HOLDLOCK)'))return {recordset:state.permissions.map(p=>({...p}))};if(sql.startsWith('SELECT CONVERT(varchar(20),COUNT_BIG(*)'))return {recordset:[{total:'0'}]};if(sql.includes('OFFSET @offset'))return {recordset:[]};throw Error('unexpected sql');}}
  const sql={Transaction,Request,NVarChar:()=>({}),ISOLATION_LEVEL:{SERIALIZABLE:4}};
  return {sql,pool:{},state,log};
 }
+
+test('finite DB9 first-owner uses normal bcrypt/session checks and retains the strict writer/role/permission guard',async()=>{
+ const d=driver(await bcrypt.hash('synthetic-human-password',4));d.state.databaseUser=EMPTY_V7_SQL_LOGIN;
+ Object.assign(d.state.user,{id:'1',username:'kurulum',roleId:'1',roleCode:'admin',roleName:'Yönetici'});d.state.permissions=EMPTY_V7_OWNER_PERMISSION_ROWS.map(p=>({...p}));
+ const auth=createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,richCards:true,schemaVersion:7,targetProfile:EMPTY_V7_PROFILE_ID});
+ try{
+  const login=await auth.login({username:'kurulum',password:'synthetic-human-password'});assert.equal(typeof login.accessToken,'string');assert.equal(login.user.username,'kurulum');assert.equal(login.user.installation.targetProfile,EMPTY_V7_PROFILE_ID);assert.equal(login.user.installation.environmentId,'287f689a-43bb-43dd-950b-adb615fcb20c');
+  const guards=d.log.filter(x=>x.event==='query'&&x.sql.includes('DESKTOP_AUTH_TARGET_REJECTED'));assert(guards.length>0);
+  for(const {sql:statement}of guards){assert(statement.includes('DB_ID()<>9'));assert(statement.includes('DESKTOP_EMPTY_V7_FIRST_OWNER_REQUIRED'));assert(statement.includes('DESKTOP_WRITE_OTHER_DATABASE_ACCESS_REJECTED'));assert(!statement.includes('MELISA_ERP_DESKTOP_TEST_20261105'));assert(!statement.includes('desktop_first_sale_operator'));}
+  await assert.rejects(auth.login({username:'kurulum',password:'wrong-synthetic-input'}));
+  d.state.databaseUser='melisa_desktop_test_writer_20261105';await assert.rejects(auth.login({username:'kurulum',password:'synthetic-human-password'}));
+ }finally{auth.close();}
+ assert.throws(()=>createDesktopWriteAuthCore({pool:d.pool,sql:d.sql,schemaVersion:6,richCards:true,targetProfile:EMPTY_V7_PROFILE_ID}));
+});
 test('pricing foreign target opt-in distinguishes absent or inactive identities from malformed rows and driver failures',async t=>{
  const d=driver(await bcrypt.hash('synthetic-only-password',4));d.state.permissions=[{permission_key:'sales.view',can_view:true,can_create:false,can_update:false,can_delete:false,can_approve:false}];
  t.mock.module('mssql',{exports:{default:d.sql}});

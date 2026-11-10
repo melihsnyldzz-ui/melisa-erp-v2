@@ -1,3 +1,4 @@
+import {desktopTargetForProfile} from '../config/desktopEmptyV7Profile.mjs';
 // Source-only transaction ownership primitive. The private production service
 // must supply the verifier obtained from the registered normal-auth instance.
 // This module neither connects nor starts/commits a transaction.
@@ -7,13 +8,13 @@ const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=900719925
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const physicalOwners=new WeakMap();
 const physicalSql='SELECT DB_NAME() targetDatabase,@@SPID sessionId,CONVERT(varchar(20),CURRENT_TRANSACTION_ID()) transactionId,@@TRANCOUNT transactionCount,XACT_STATE() transactionState;';
-export function createDesktopFinalCancellationScope({sql,verifySession}={}){
+export function createDesktopFinalCancellationScope({sql,verifySession,targetProfile=null}={}){
  if(typeof sql?.Request!=='function'||typeof verifySession!=='function')fail();
  const storage=new AsyncLocalStorage(),owners=physicalOwners,registered=new WeakSet();
  async function physical(transaction){
   const rows=(await new sql.Request(transaction).query(physicalSql))?.recordset;
   if(!Array.isArray(rows)||rows.length!==1)fail();const r=rows[0];
-  if(r.targetDatabase!=='MELISA_ERP_DESKTOP_TEST_20261105'||!Number.isInteger(r.sessionId)||r.sessionId<1||!id(r.transactionId)||r.transactionCount!==1||r.transactionState!==1)fail();
+  if(r.targetDatabase!==desktopTargetForProfile(targetProfile).database||!Number.isInteger(r.sessionId)||r.sessionId<1||!id(r.transactionId)||r.transactionCount!==1||r.transactionState!==1)fail();
   return Object.freeze({targetDatabase:r.targetDatabase,sessionId:r.sessionId,transactionId:r.transactionId});
  }
  const samePhysical=(a,b)=>a.targetDatabase===b.targetDatabase&&a.sessionId===b.sessionId&&a.transactionId===b.transactionId;

@@ -1,3 +1,8 @@
+<!-- EMPTY-PROFILE-FIRST-OWNER-SOURCE-20261110 -->
+## 10 Kasım — Mevcut K02 boş profilinin ilk yönetici başlangıcına kaynak bağı
+
+Ayrı runtime-clean-v7 deployment kopyası için finite DB9/schema7, gerçek schema acceptance/review + ayrı RootSetupDecision, insan-owned masked ilk parola, kurulum/admin ve ayrı least-privileged SQL writer zinciri kaynakta hazırlandı. Legacy DB5/R/private store korunur; aynıaktör cache/pending yeni ortama taşınmaz. Offline129hedef/83modül build kaynak kanıtıdır; gerçek schema7/ilk kullanıcı/kurulum/normal giriş/insan/fullERP/LIVE kabulü yerine geçmez. Exact gelecekteki alanlar scripts/desktop-empty/empty-v7-first-setup-contract.json içinde definition-only; actual karar/pin/hesap oluşturulmadı. Bağımsız review/exact-head CI sonrası Root ayrı actual adımı seçer. Mevcut plan ve sayaçlar aynı; ayrıntı STATUS kaydındadır.
+
 <!-- GOODS-OWN-HISTORY-SOURCE-20261110 -->
 ## 10 Kasım — Mevcut K07 mal kabul/alış fişini kendi listesinden açma
 

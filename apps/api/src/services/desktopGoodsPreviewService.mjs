@@ -7,8 +7,8 @@ export const DESKTOP_GOODS_TARGET_SQL=`SET NOCOUNT ON; IF ISNULL(DB_ID(),-1)<>5 
 const fail=()=>{throw Error('DESKTOP_GOODS_PREVIEW_UNAVAILABLE');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 export async function createDesktopGoodsPreviewService({connector,auth}={}){
- const [{getDesktopWritePool,getDesktopWriteProfile},{getDesktopWriteSessionVerifier},{default:sql}]=await Promise.all([import('../config/desktopWriteTlsConnector.mjs'),import('./desktopWriteAuthCore.mjs'),import('mssql')]);
- const pool=getDesktopWritePool(connector),{guard,target}=desktopGoodsProfile(getDesktopWriteProfile(connector),DESKTOP_GOODS_TARGET_SQL);const verifySession=getDesktopWriteSessionVerifier(auth,pool);
+ const [{getDesktopWritePool,getDesktopWriteProfile,getDesktopWriteTargetProfile},{getDesktopWriteSessionVerifier},{default:sql}]=await Promise.all([import('../config/desktopWriteTlsConnector.mjs'),import('./desktopWriteAuthCore.mjs'),import('mssql')]);
+ const pool=getDesktopWritePool(connector),{guard,target}=desktopGoodsProfile(getDesktopWriteProfile(connector),DESKTOP_GOODS_TARGET_SQL,getDesktopWriteTargetProfile(connector));const verifySession=getDesktopWriteSessionVerifier(auth,pool);
  async function read(actorId,fn){if(!id(actorId))fail();const tx=new sql.Transaction(pool);let begun=false;try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const checked=await new sql.Request(tx).query(target+'\n'+guard+'\nSELECT 1 AS ok;');if(checked?.recordset?.length!==1||checked.recordset[0].ok!==1||await verifySession({transaction:tx,actorId,permission:['goods.view','purchase.view','product.view','supplier.view']})!==true)fail();const result=await fn(tx);await tx.commit();begun=false;return result;}catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}}
  return Object.freeze({preview:(actorId,input)=>read(actorId,async transaction=>(await readDesktopGoodsLockedSelection({sql,transaction,input})).preview),options:(actorId,query)=>read(actorId,transaction=>readDesktopGoodsOptions({sql,transaction,query}))});
 }

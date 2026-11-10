@@ -38,7 +38,7 @@ test('three goods owners preserve one stock/debt effect, recovery and rollback (
   throw Error('unhandled synthetic query');}}
  const sql={Transaction,Request,ISOLATION_LEVEL:{SERIALIZABLE:4},BigInt:{},Int:{},Date:{},UniqueIdentifier:{},Binary:()=>({}),NVarChar:()=>({}),VarChar:()=>({}),MAX:-1};
  t.mock.module('mssql',{exports:{default:sql}});
- t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteProfile:()=> 'desktop-master-v6'}});
+ t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteTargetProfile:()=>null,getDesktopWriteProfile:()=> 'desktop-master-v6'}});
  t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:(a,p)=>{assert.equal(a,auth);assert.equal(p,pool);return async()=>true;}}});
  t.mock.module('./desktopGoodsLockedSelection.mjs',{exports:{readDesktopGoodsLockedSelection:async()=>({locked,preview,cards})}});
  t.mock.module('./desktopGoodsJournalStore.mjs',{exports:{lockDesktopGoodsJournal:async({transaction,binding})=>{const x=transaction.data.journal[binding.requestId];if(!x){transaction.data.journal[binding.requestId]={hash:binding.bodyHash,state:'pending'};return {kind:'new'};}if(x.hash!==binding.bodyHash)throw Error('conflict');if(x.state==='pending')return {kind:'unknown_same_request_only'};return {kind:'replay',response:x.response};},finishDesktopGoodsJournal:async({transaction,binding,response})=>{const x=transaction.data.journal[binding.requestId];assert.equal(x?.state,'pending');assert.equal(x.hash,binding.bodyHash);transaction.data.journal[binding.requestId]={hash:binding.bodyHash,state:'committed',response};}}});

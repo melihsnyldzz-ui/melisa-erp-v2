@@ -50,7 +50,7 @@ test('closed native cancellation preserves original discounted vectors, one sele
  }}
  const sql={Transaction,Request,NVarChar:n=>n,Decimal:()=>null,BigInt:{},Int:{},Date:{},Bit:{},MAX:-1,ISOLATION_LEVEL:{SERIALIZABLE:4}};
  t.mock.module('mssql',{exports:{default:sql}});t.mock.module('mssql/msnodesqlv8.js',{exports:{default:sql}});
- t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteProfile:()=>profile}});
+ t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteTargetProfile:()=>null,getDesktopWriteProfile:()=>profile}});
  t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSessionVerifier:()=>async({actorId,permission})=>{assert.deepEqual(permission,['sales.view','sales.cancel']);return !deny&&actorId==='30002';},getDesktopWriteDiscountCeiling:()=>()=> '3.0000'}});
  t.mock.module('./desktopSafeDiagnostics.mjs',{exports:{recordDesktopFailure:e=>{lastError=e.error;}}});
  t.mock.module('./desktopFinalCancellationExportFence.mjs',{exports:{createDesktopFinalCancellationExportFence:()=>({async assertNoExport(){return corrupt!=='export';},async claim(proof){if(corrupt==='fence')throw Error('FENCE_UNAVAILABLE');const old=fences.get(proof.invoiceId);if(old)assert.deepEqual(proof,old);else fences.set(proof.invoiceId,structuredClone(proof));return {state:'CANCELLATION_FENCED'};},async verify(proof){assert.deepEqual(proof,fences.get(proof.invoiceId));return corrupt!=='fenceVerify';}})}});

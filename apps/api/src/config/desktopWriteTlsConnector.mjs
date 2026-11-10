@@ -1,3 +1,4 @@
+import {EMPTY_V7_PROFILE_ID,EMPTY_V7_SQL_LOGIN,desktopTargetForProfile,desktopSqlForProfile,desktopProfileBindingId} from './desktopEmptyV7Profile.mjs';
 // SOURCE ONLY. A connector is registered only after a real TLS pool has
 // authenticated as the dedicated writer and the v2 target identity is read on
 // one physical transaction. The bootstrap/profile/grants are not installed.
@@ -18,7 +19,7 @@ export const DESKTOP_WRITE_CONNECTOR_LIMITS=Object.freeze({sourceOnly:true,write
  certificateDerSha256:PIN,hostname:'SEMIH',trustServerCertificate:false,perConnectionExactDerGuardImplemented:false,
  requiresRuntimeDependencyPin:true,requiresPrivatePasswordProvider:true,realSqlVerified:false});
 
-export function createDesktopWriteTlsConfig(input){
+export function createDesktopWriteTlsConfig(input,targetProfile=null){
  if(!input||typeof input!=='object'||Array.isArray(input)||![Object.prototype,null].includes(Object.getPrototypeOf(input)))fail();
  const d=Object.getOwnPropertyDescriptors(input),keys=Reflect.ownKeys(input),expected=['password','publicCertificatePem'];
  if(keys.length!==2||keys.some(k=>typeof k!=='string'||!expected.includes(k))||expected.some(k=>!d[k]||!d[k].enumerable||!Object.hasOwn(d[k],'value')))fail();
@@ -26,7 +27,7 @@ export function createDesktopWriteTlsConfig(input){
  if(typeof password!=='string'||password.length<1||password.length>128||/[\0\r\n]/.test(password)||typeof pem!=='string'||pem.length>16384||!/^-----BEGIN CERTIFICATE-----\r?\n(?:[A-Za-z0-9+/=]+\r?\n)+-----END CERTIFICATE-----\r?\n?$/.test(pem))fail();
  let cert;try{cert=new X509Certificate(pem);}catch{fail();}const now=Date.now();
  if(createHash('sha256').update(cert.raw).digest('hex')!==PIN||!cert.checkHost('SEMIH',{subject:'never',wildcards:false,partialWildcards:false})||!Number.isFinite(Date.parse(cert.validFrom))||!Number.isFinite(Date.parse(cert.validTo))||now<Date.parse(cert.validFrom)||now>Date.parse(cert.validTo))fail();
- const config={server:'127.0.0.1',port:51433,database:'MELISA_ERP_DESKTOP_TEST_20261105',user:LOGIN,
+ const target=desktopTargetForProfile(targetProfile);const config={server:'127.0.0.1',port:51433,database:target.database,user:targetProfile===EMPTY_V7_PROFILE_ID?EMPTY_V7_SQL_LOGIN:LOGIN,
   options:{encrypt:true,trustServerCertificate:false,serverName:'SEMIH',cryptoCredentialsDetails:{ca:[pem],minVersion:'TLSv1.2',maxVersion:'TLSv1.2'}},
   pool:{min:0,max:4,idleTimeoutMillis:30000},connectionTimeout:10000,requestTimeout:10000};
  Object.defineProperties(config,{password:{get:()=>password,enumerable:false},toJSON:{value:()=>({profile:'desktop-write-v2',password:'[REDACTED]'}),enumerable:false},
@@ -53,18 +54,20 @@ export async function openDesktopMasterV4TlsConnector(input){return openConnecto
 export async function openDesktopMasterV5TlsConnector(input){return openConnector(input,5);}
 export async function openDesktopMasterV6TlsConnector(input){getDesktopMasterV6GuardSql();return openConnector(input,6);}
 export async function openDesktopMasterV7TlsConnector(input){getDesktopFinanceV7GuardSql();return openConnector(input,7);}
-async function openConnector(input,schemaVersion){
+export async function openDesktopEmptyV7TlsConnector(input){if(!input||![Object.prototype,null].includes(Object.getPrototypeOf(input)))fail();const d=Object.getOwnPropertyDescriptors(input),keys=Reflect.ownKeys(input),expected=['password','profileBinding','publicCertificatePem'];if(keys.length!==3||keys.some(k=>typeof k!=='string'||!expected.includes(k))||expected.some(k=>!d[k]?.enumerable||!Object.hasOwn(d[k],'value')))fail();const targetProfile=desktopProfileBindingId(d.profileBinding.value);if(targetProfile!==EMPTY_V7_PROFILE_ID)fail();return openConnector({password:d.password.value,publicCertificatePem:d.publicCertificatePem.value},7,targetProfile);}
+async function openConnector(input,schemaVersion,targetProfile=null){
  let pool;
  try{
-  const config=createDesktopWriteTlsConfig(input);pool=new sql.ConnectionPool(config);
+  const config=createDesktopWriteTlsConfig(input,targetProfile);pool=new sql.ConnectionPool(config);
   Object.freeze(config.options.cryptoCredentialsDetails.ca);Object.freeze(config.options.cryptoCredentialsDetails);Object.freeze(config.options);Object.freeze(config.pool);Object.freeze(config);
   await pool.connect();const tx=new sql.Transaction(pool);let begun=false;
-  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const statement=schemaVersion===2?identitySql:identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:''));const result=await new sql.Request(tx).query(statement);if(!Array.isArray(result?.recordset)||result.recordset.length!==1||result.recordset[0].ok!==1)fail();await tx.commit();begun=false;}
+  try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;const statement=schemaVersion===2?identitySql:identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql(targetProfile):schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:''));const result=await new sql.Request(tx).query(desktopSqlForProfile(statement,targetProfile));if(!Array.isArray(result?.recordset)||result.recordset.length!==1||result.recordset[0].ok!==1)fail();await tx.commit();begun=false;}
   finally{if(begun)try{await tx.rollback();}catch{}}
   const profile=schemaVersion===2?'desktop-write-v2':`desktop-master-v${schemaVersion}`;
-  const connector=Object.freeze({profile,transport:'tedious-tls-ca-host'});registered.set(connector,{pool,config,profile});return connector;
+  const connector=Object.freeze({profile,transport:'tedious-tls-ca-host'});registered.set(connector,{pool,config,profile,targetProfile});return connector;
  }catch{if(pool)try{await pool.close();}catch{}fail();}
 }
 export function getDesktopWritePool(connector){const e=registered.get(connector);if(!e||e.pool.config!==e.config||e.pool.connected!==true)fail();return e.pool;}
 export function getDesktopWriteProfile(connector){getDesktopWritePool(connector);return registered.get(connector).profile;}
+export function getDesktopWriteTargetProfile(connector){getDesktopWritePool(connector);return registered.get(connector).targetProfile;}
 export async function closeDesktopWriteTlsConnector(connector){const e=registered.get(connector);if(!e)fail();registered.delete(connector);await e.pool.close();}

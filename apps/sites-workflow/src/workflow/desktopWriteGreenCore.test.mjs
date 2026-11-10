@@ -6,6 +6,17 @@ import {productCardFixture} from '../../../api/src/services/test-fixtures/deskto
 import {customerCardFixture} from '../../../api/src/services/test-fixtures/desktopCustomerCard.fixture.mjs';
 import {desktopRuntimeInfo} from '../../../../packages/shared/src/desktopRuntimeInfo.mjs';
 import {desktopCompanyRates} from '../../../../packages/shared/src/desktopCompanyRates.mjs';
+import {DESKTOP_EMPTY_V7_PROFILE_ID,DESKTOP_EMPTY_V7_TARGET} from '../../../../packages/shared/src/desktopEmptyProfile.mjs';
+
+test('only the server normal-login identity selects DB9 journal storage for the same actor; no business POST or legacy migration',async()=>{
+ const x=fixture(),requests=[],installation={targetProfile:DESKTOP_EMPTY_V7_PROFILE_ID,environmentId:DESKTOP_EMPTY_V7_TARGET.environmentId,databaseGuid:DESKTOP_EMPTY_V7_TARGET.databaseGuid};
+ let selected=undefined;
+ const core=createDesktopWriteGreenCore({...x.deps,fetch:async(url,opts)=>{requests.push({url,opts});assert(url.endsWith('/api/auth/login'));return {ok:true,json:async()=>({success:true,data:{accessToken:'synthetic.token.value',user:{id:1,username:'kurulum',permissions:['customer.view','customer.edit'],...(selected===undefined?{}:{installation:selected})}}})};}});
+ const key='melisa.desktop.workflow.last.v1.1';x.deps.localStorage.setItem(key,'24');await core.login('legacy','synthetic');assert.equal(core.persistentStorage().getItem(key),'24');
+ selected=installation;await core.login('kurulum','synthetic');assert.equal(core.persistentStorage().getItem(key),null);core.persistentStorage().setItem(key,'1');assert.equal(x.deps.localStorage.getItem(key),'24');
+ selected={...installation,environmentId:'wrong'};await assert.rejects(core.login('kurulum','synthetic'));
+ assert.equal(requests.length,3);assert(requests.every(r=>r.url.endsWith('/api/auth/login')));
+});
 test('restoring an authenticated 401 signals expiry before body decoding; operational 503 keeps the token without an expiry notice',async()=>{
  const x=fixture();x.deps.sessionStorage.setItem('melisaDesktopWriteV2Token','one.two.three');let status=503,notices=0;
  const core=createDesktopWriteGreenCore({...x.deps,onSessionExpired:()=>{notices++;throw Error('render failure');},fetch:async()=>({ok:false,status,json:async()=>{throw Error('invalid response body');}})});

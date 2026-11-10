@@ -1,3 +1,4 @@
+import {desktopSqlForProfile,isEmptyV7Profile} from '../config/desktopEmptyV7Profile.mjs';
 // SOURCE ONLY. A real v2 writer pool, reviewed startup wiring, grants and
 // session persistence policy are required before mounting this module.
 // It does not open a listener, create users, grant roles or mutate SQL.
@@ -79,7 +80,8 @@ export const DESKTOP_WRITE_AUTH_LIMITS=Object.freeze({sourceOnly:true,routeMount
  writerPoolAndTlsOpenerImplemented:false,requiresSameTransactionAuthorityCheck:true,
  userAndRolePermissionsProvisioned:false,realSqlVerified:false,fullErpReady:false});
 
-export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false,schemaVersion=richCards?3:2,onFailure=recordDesktopFailure}={}){
+export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),passwordHasher=bcrypt,richCards=false,schemaVersion=richCards?3:2,targetProfile=null,onFailure=recordDesktopFailure}={}){
+ if(isEmptyV7Profile(targetProfile)&&(!richCards||schemaVersion!==7))fail();
  schemaVersion=schemaVersion===7?desktopMasterV7Schema(richCards,schemaVersion):schemaVersion===6?desktopMasterV6Schema(richCards,schemaVersion):schemaVersion===5?desktopMasterV5Schema(richCards,schemaVersion):desktopMasterSchema(richCards,schemaVersion);
  if(typeof richCards!=='boolean'||typeof onFailure!=='function')fail();
  if(!pool||!sql?.Transaction||!sql?.Request||!sql?.NVarChar||!sql?.ISOLATION_LEVEL?.SERIALIZABLE||!Buffer.isBuffer(tokenKey)||tokenKey.length<32||typeof passwordHasher?.compare!=='function')fail();
@@ -90,7 +92,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  // after its caller has settled the transaction.
  function prune(){for(const [sid,entry] of sessions)if(entry.expiresAt<=Date.now()&&entry.inflight===0)sessions.delete(sid);}
  const run=(tx,params,statement)=>{const q=new sql.Request(tx);for(const [name,size,value] of params)q.input(name,sql.NVarChar(size),value);return q.query(statement);};
- const profileIdentitySql=richCards?identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql():schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):identitySql;
+ const profileIdentitySql=desktopSqlForProfile(richCards?identitySql.replace('schema_version=2',`schema_version=${schemaVersion}`).replace(DESKTOP_WRITE_PERMISSION_GUARD_SQL,schemaVersion===7?getDesktopFinanceV7GuardSql(targetProfile):schemaVersion===6?getDesktopMasterV6GuardSql():schemaVersion===5?DESKTOP_MASTER_V5_PERMISSION_GUARD_SQL+DESKTOP_MASTER_V5_SCHEMA_GUARD_SQL:DESKTOP_MASTER_V3_PERMISSION_GUARD_SQL+(schemaVersion===4?DESKTOP_MASTER_V4_SCHEMA_GUARD_SQL:'')):identitySql,targetProfile);
  async function guard(tx){if(one(await run(tx,[],profileIdentitySql)).ok!==1)fail();}
  async function user(tx,{username=null,userId=null,allowUnavailable=false}={}){
   const rows=(await run(tx,[['username',80,username],['userId',20,userId]],userSql))?.recordset;
@@ -107,7 +109,7 @@ export function createDesktopWriteAuthCore({pool,sql,tokenKey=randomBytes(48),pa
  async function transaction(work){const tx=new sql.Transaction(pool);let begun=false;
   try{await tx.begin(sql.ISOLATION_LEVEL.SERIALIZABLE);begun=true;await guard(tx);const result=await work(tx);await tx.commit();begun=false;return result;}
   catch(error){if(begun)try{await tx.rollback();}catch{}throw error;}}
- const publicUser=u=>({id:Number(u.id),username:u.username,displayName:u.displayName,role:u.role,permissions:u.permissions});
+ const publicUser=u=>({id:Number(u.id),username:u.username,displayName:u.displayName,role:u.role,permissions:u.permissions,...(isEmptyV7Profile(targetProfile)?{installation:{targetProfile,environmentId:'287f689a-43bb-43dd-950b-adb615fcb20c',databaseGuid:'6d773db9-bd69-4906-b791-d63a490ab1f2'}}:{})});
  function verify(token){
   if(closed||typeof token!=='string'||token.length>4096)fail();let p;
   try{p=jwt.verify(token,key,{algorithms:['HS256'],issuer:ISSUER,audience:AUDIENCE});}catch{fail();}

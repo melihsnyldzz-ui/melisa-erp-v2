@@ -1,4 +1,4 @@
-param([Parameter(Mandatory)][ValidatePattern('^[A-F0-9]{64}$')][string]$ExpectedPackageHash)
+param([Parameter(Mandatory)][ValidatePattern('^[A-F0-9]{64}$')][string]$ExpectedPackageHash,[ValidatePattern('^[a-f0-9]{64}$')][string]$ExpectedAdmissionSha256,[ValidateSet('empty-db9-v7-v1')][string]$TargetProfile)
 # Dedicated V7 TEST writer. Keep this owner process
 # alive while the browser is open; its private stdin pipe owns the child lifetime.
 $ErrorActionPreference='Stop'
@@ -7,11 +7,14 @@ $node='C:\Program Files\nodejs\node.exe';$nodeHash='3331E1FFE19874215472217C5E94
 $secretFile=Join-Path $root 'kurulum\melisa-desktop-test-writer.dpapi'
 $packageFile=Join-Path $root 'kurulum\master-v7-package.json'
 $packageHash=$ExpectedPackageHash
+if($TargetProfile -ceq 'empty-db9-v7-v1'){$source=Join-Path $root 'runtime-clean-v7';$packageFile=Join-Path $root 'kurulum/empty-profile-db9-v1/runtime-package.json'}
+if([IO.Path]::GetFullPath($PSCommandPath) -ine [IO.Path]::GetFullPath((Join-Path $source 'scripts/desktop-empty/start-master-v7.ps1'))){throw 'PROFILE_SOURCE_LOCATION_REJECTED'}
 $ownerFile=Join-Path $root 'desktop-initial-reader.owner.lock'
 if((Get-FileHash -LiteralPath $packageFile -Algorithm SHA256).Hash -cne $packageHash){throw 'PACKAGE_REJECTED'}
 $package=Get-Content -Raw -LiteralPath $packageFile|ConvertFrom-Json -AsHashtable
 $files=$package.sources
 $admissionFile=Join-Path $root ('kurulum\master-v7-runtime-admissions\'+$packageHash+'.json')
+if($TargetProfile){$admissionFile=Join-Path $root ('kurulum/empty-profile-db9-v1/runtime-admissions/'+$packageHash+'.json')}
 if([IO.Directory]::ResolveLinkTarget((Join-Path $source 'apps\api\node_modules'),$true).FullName -cne 'C:\Users\Xaser\Desktop\ERP\kaynak\apps\api\node_modules'){throw 'DEPENDENCY_LOCATION_REJECTED'}
 function Assert-V7FileAncestors([string]$p){
  $item=Get-Item -LiteralPath $p -Force;if($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'FILE_REJECTED'}
@@ -45,7 +48,7 @@ try{
  $owner=[IO.File]::Open($ownerFile,[IO.FileMode]::OpenOrCreate,[IO.FileAccess]::ReadWrite,[IO.FileShare]::None)
  Verify-File $packageFile $ExpectedPackageHash
  $package=Get-Content -Raw -LiteralPath $packageFile|ConvertFrom-Json -AsHashtable;$files=$package.sources
- if($package.profile -cne 'desktop-master-v7' -or $package.sourceRoot -cne 'C:/Users/Xaser/Desktop/ERP/kaynak-r1'){throw 'PACKAGE_PROFILE_REJECTED'}
+ if($package.profile -cne 'desktop-master-v7' -or $package.sourceRoot.Replace('/','\') -cne $source -or ($package.targetProfile??'') -cne $TargetProfile){throw 'PACKAGE_PROFILE_REJECTED'}
  Assert-V7FileAncestors $admissionFile
  $admissionItem=Get-Item -LiteralPath $admissionFile -Force
  if($admissionItem.PSIsContainer -or ($admissionItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'V7_ADMISSION_REJECTED'}
@@ -58,8 +61,34 @@ try{
  foreach($p in $files.Keys){Verify-File (Join-Path $source $p) $files[$p]}
  foreach($p in $package.helpers.Keys){Verify-File (Join-Path $source $p) $package.helpers[$p]}
  foreach($p in $package.assets.Keys){Verify-File (Join-Path $source ('apps\sites-workflow\dist-desktop-write-green\'+$p)) $package.assets[$p]}
- if($package.publicFiles -isnot [hashtable] -or $package.publicFiles.Count -ne 1 -or -not $package.publicFiles.ContainsKey('kurulum/master-v5-export-journal/desktop-target.json')){throw 'PUBLIC_BINDING_REJECTED'}
- Verify-File (Join-Path $root 'kurulum\master-v5-export-journal\desktop-target.json') $package.publicFiles['kurulum/master-v5-export-journal/desktop-target.json']
+ # The pinned public-only validator chooses either the exact admitted DB5
+ # binding or the finite DB9 binding. It runs before any protected read.
+ $validator='scripts/desktop-empty/verify-master-v7-profile.mjs'
+ if(-not $files.ContainsKey($validator)){throw 'PROFILE_VALIDATOR_MISSING'}
+ $v=[Diagnostics.ProcessStartInfo]::new();$v.FileName=$node;$v.UseShellExecute=$false;$v.CreateNoWindow=$true;$v.WorkingDirectory=$source
+ $v.RedirectStandardInput=$true;$v.RedirectStandardOutput=$true;$v.RedirectStandardError=$true;$v.Environment.Clear();$v.Environment['SystemRoot']='C:\Windows';$v.Environment['WINDIR']='C:\Windows'
+ [void]$v.ArgumentList.Add((Join-Path $source $validator));[void]$v.ArgumentList.Add($packageHash)
+ if($ExpectedAdmissionSha256){[void]$v.ArgumentList.Add($ExpectedAdmissionSha256);Verify-File $admissionFile $ExpectedAdmissionSha256}
+ if($TargetProfile){if(-not $ExpectedAdmissionSha256){throw 'NEW_PROFILE_ADMISSION_PIN_REQUIRED'};[void]$v.ArgumentList.Add($TargetProfile)}
+ $vp=[Diagnostics.Process]::new();$vp.StartInfo=$v
+ try{if(-not $vp.Start()){throw 'PROFILE_VALIDATOR_FAILED'};$vp.StandardInput.Close();$vo=[MasterV7ReaderPipe]::ReadBounded($vp.StandardOutput.BaseStream);$ve=[MasterV7ReaderPipe]::Drain($vp.StandardError.BaseStream)
+  if(-not $vp.WaitForExit(10000)){try{$vp.Kill()}catch{};$vp.WaitForExit();throw 'PROFILE_VALIDATOR_FAILED'}
+  if($vp.ExitCode -ne 0 -or $ve.GetAwaiter().GetResult() -ne 0){throw 'PROFILE_VALIDATOR_FAILED'}
+  $profileBinding=[Text.UTF8Encoding]::new($false,$true).GetString($vo.GetAwaiter().GetResult())|ConvertFrom-Json -AsHashtable -DateKind String
+ }finally{$vp.Dispose()}
+ $publicPath=$profileBinding.publicPath
+ $expectedPublic=if($TargetProfile){'kurulum/empty-profile-db9-v1/export-journal/desktop-target.json'}else{'kurulum/master-v5-export-journal/desktop-target.json'}
+ $expectedExport=if($TargetProfile){'C:/Users/Xaser/Desktop/ERP/kurulum/empty-profile-db9-v1/export-journal'}else{'C:/Users/Xaser/Desktop/ERP/kurulum/master-v5-export-journal'}
+ if(($profileBinding.targetProfile??'') -cne $TargetProfile -or $publicPath -cne $expectedPublic -or $profileBinding.exportDirectory -cne $expectedExport){throw 'FINITE_PROFILE_OUTPUT_REJECTED'}
+ if($publicPath -cnotin @('kurulum/master-v5-export-journal/desktop-target.json','kurulum/empty-profile-db9-v1/export-journal/desktop-target.json') -or -not $package.publicFiles.ContainsKey($publicPath)){throw 'PUBLIC_BINDING_REJECTED'}
+ Verify-File (Join-Path $root $publicPath) $package.publicFiles[$publicPath]
+ if($profileBinding.targetProfile -ceq 'empty-db9-v7-v1'){
+  Verify-File (Join-Path $root 'kurulum/empty-profile-db9-v1/first-owner-setup-receipt.v1.json') $admission.emptyProfile.firstSetupReceiptSha256
+  $secretFile=Join-Path $root 'kurulum/empty-profile-db9-v1/protected-sql-writer-v1/sql-writer.dpapi'
+  Verify-File $secretFile $profileBinding.sqlCredentialCipherSha256
+  $secretRoot=Split-Path -Parent $secretFile
+  foreach($ap in @($secretRoot,$secretFile)){$acl=Get-Acl -LiteralPath $ap;$ownerSid=$acl.GetOwner([Security.Principal.SecurityIdentifier]);$rules=@($acl.GetAccessRules($true,$true,[Security.Principal.SecurityIdentifier]));if($ownerSid.Value -cne $expected.Value -or $rules.Count -ne 1 -or $rules[0].IdentityReference.Value -cne $expected.Value -or $rules[0].AccessControlType -ne 'Allow' -or $rules[0].FileSystemRights -ne 'FullControl'){throw 'PRIVATE_OWNER_REJECTED'};if($ap -ceq $secretRoot -and -not $acl.AreAccessRulesProtected){throw 'PRIVATE_ROOT_REJECTED'}}
+ }elseif($null -ne $profileBinding.targetProfile){throw 'PROFILE_REJECTED'}
  # Dependency tree must match the exact tree reviewed for the local SQL login.
  $p=[Diagnostics.ProcessStartInfo]::new();$p.FileName=$node;$p.UseShellExecute=$false;$p.CreateNoWindow=$true;$p.WorkingDirectory=$source
  $p.RedirectStandardInput=$true;$p.RedirectStandardOutput=$true;$p.RedirectStandardError=$true;$p.Environment.Clear();$p.Environment['SystemRoot']='C:\Windows';$p.Environment['WINDIR']='C:\Windows';$p.Environment['NODE_ENV']='production';$p.Environment['MELISA_EMPTY_LOCAL']='20261105';$p.Environment['SQL_ENABLED']='false';$p.Environment['SQL_TRUSTED_CONNECTION']='false';$p.Environment['SQL_READ_ONLY']='true';$p.Environment['NAKLIYAT_ENABLED']='false';$p.Environment['TERMINAL_RECEIPT_PRINT_ENABLED']='false'
@@ -74,9 +103,11 @@ try{
  if($clear.Length -ne 46){throw 'CREDENTIAL_REJECTED'}
  $p=[Diagnostics.ProcessStartInfo]::new();$p.FileName=$node;$p.UseShellExecute=$false;$p.CreateNoWindow=$true;$p.WorkingDirectory=$source
  $p.RedirectStandardInput=$true;$p.RedirectStandardOutput=$true;$p.RedirectStandardError=$true;$p.Environment.Clear();$p.Environment['SystemRoot']='C:\Windows';$p.Environment['WINDIR']='C:\Windows';$p.Environment['NODE_ENV']='production';$p.Environment['MELISA_EMPTY_LOCAL']='20261105';$p.Environment['SQL_ENABLED']='false';$p.Environment['SQL_TRUSTED_CONNECTION']='false';$p.Environment['SQL_READ_ONLY']='true';$p.Environment['NAKLIYAT_ENABLED']='false';$p.Environment['TERMINAL_RECEIPT_PRINT_ENABLED']='false'
- $p.Environment['MELISA_INVOICE_EXPORT_JOURNAL']='C:\Users\Xaser\Desktop\ERP\kurulum\master-v5-export-journal'
+ $p.Environment['MELISA_INVOICE_EXPORT_JOURNAL']=$profileBinding.exportDirectory.Replace('/','\')
  [void]$p.ArgumentList.Add((Join-Path $source 'scripts\desktop-empty\start-master-v7-worker.mjs'))
  [void]$p.ArgumentList.Add($ExpectedPackageHash)
+ if($ExpectedAdmissionSha256){[void]$p.ArgumentList.Add($ExpectedAdmissionSha256)}
+ if($TargetProfile){[void]$p.ArgumentList.Add($TargetProfile)}
  $proc=[Diagnostics.Process]::new();$proc.StartInfo=$p;if(-not $proc.Start()){throw 'START_FAILED'}
  $ready=[MasterV7ReaderPipe]::FirstLine($proc.StandardOutput.BaseStream);$err=[MasterV7ReaderPipe]::Drain($proc.StandardError.BaseStream)
  $proc.StandardInput.BaseStream.Write($clear,0,$clear.Length);$proc.StandardInput.BaseStream.Flush();[Security.Cryptography.CryptographicOperations]::ZeroMemory($clear);$clear=$null

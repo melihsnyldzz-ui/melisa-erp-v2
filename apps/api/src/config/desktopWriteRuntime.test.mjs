@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 test('desktop native bootstrap rejects inherited SQL authority and retains the TDS adapter on native import',async t=>{
- const capability={},pool={};await t.mock.module('./desktopWriteTlsConnector.mjs',{namedExports:{getDesktopWriteProfile:()=> 'desktop-master-v6',getDesktopWritePool:c=>{if(c!==capability)throw Error('NOT_REGISTERED');return pool;}}});
+ const capability={},pool={};await t.mock.module('./desktopWriteTlsConnector.mjs',{namedExports:{getDesktopWriteTargetProfile:()=>null,getDesktopWriteProfile:()=> 'desktop-master-v6',getDesktopWritePool:c=>{if(c!==capability)throw Error('NOT_REGISTERED');return pool;}}});
  const {registerDesktopWriteRuntime}=await import('./desktopWriteRuntime.mjs');
  const keys=['MELISA_EMPTY_LOCAL','NODE_ENV','SQL_TRUSTED_CONNECTION','SQL_READ_ONLY','SQL_ENABLED'];const old={...process.env};
  try{

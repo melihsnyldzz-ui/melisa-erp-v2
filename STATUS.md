@@ -1,3 +1,10 @@
+<!-- EMPTY-PROFILE-FIRST-OWNER-SOURCE-20261110 -->
+## 10 Kasım — Boş DB9 profilinde ilk yönetici ve normal giriş için kaynak adaptörü
+
+9b89 tabanlı izole feature kaynak; mevcut DB5/R ve çalışan süreçler değişmedi. Yeni finite DB9/schema7 profili yalnız ayrı runtime-clean-v7 paketi, public hedef, ilk kurulum makbuzu ve caller-hash bağlı admission birlikte doğrulanınca seçilir. Eksik/yanlış profil Legacy DB5 kasasına düşmez. Native Windows-owned masked formda insan kendi en az8karakter parolasını yazar ve Kaydet düğmesine basar; ayrı RootSetupDecision ve gerçek schema7 acceptance/independentreview olmadan readonly hazırlık dahi açılmaz. İlk uygulama hesabı kurulum/admin katalog sözleşmesini kullanır; yeni SQL writer ayrı ve exact raw/effective least-privilege guardlıdır. Demo kullanıcı/rol/iş verisi ve eksik şirket vade/kredi/FX/persona politikası kopyalanmaz veya üretilmez.
+
+Aynı5294origin/actorID için yeni profil persistent journal/last-fiş/IndexedDB-photo/lock namespace alır. Legacy UNKNOWN UUID/gövde ve eski store bytes korunur; taşıma/silme yok. Hedefli offline129/129,83modül green build,55JS syntax/2PS AST ve pinli TSql160 üç outer-batch syntax kontrolü teknik kaynak kanıtıdır; engine/dinamik CREATE LOGIN gövdesi, actual SQL/provision, Windows UI/DPAPI, normal ilk giriş veya insan/fullERP/LIVE kabulü değildir. Eski RuntimeInfo testindeki schema7-throw beklentisi ilk dar koşuda8/9ile reddedildi; mevcut CI generic globları packages/shared testini seçmediği için eskiHostedCI yeniden PASS/FAIL yapılmaz. Yeni canonical test komutu bu dosyayı ve setup testlerini açık seçer. Bağımsız review/exactCI ayrıca izlenir; özgün49yaprak ve sayaçlar değişmez.
+
 <!-- GOODS-OWN-HISTORY-SOURCE-20261110 -->
 ## 10 Kasım — Kaydettiğim mal kabullerini listeden yeniden açma; kaynak hazır
 
