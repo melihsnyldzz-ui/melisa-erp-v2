@@ -54,7 +54,7 @@ public static class EmptyV7PersonnelBoundedReader{
 '@
  $phase='CHILD';Personnel-Record 'started' @{state='EMPTY_V7_PERSONNEL_OWNER_STARTED';operationId=$OperationId;mode=$decision.mode;decisionSha256=$ExpectedDecisionSha256;ownerPid=$PID;ownerBirthUtc=$own.CreationDate.ToUniversalTime().ToString('o');automaticRetry=$false}
  $psi=[Diagnostics.ProcessStartInfo]::new();$psi.FileName=$node;$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$psi.WorkingDirectory=$source;$psi.RedirectStandardInput=$true;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true;$psi.Environment.Clear();$psi.Environment['SystemRoot']='C:\Windows';$psi.Environment['WINDIR']='C:\Windows'
- foreach($arg in @($dir+'/empty-v7-personnel-local.mjs',$OperationId,$ExpectedDecisionSha256)){$psi.ArgumentList.Add($arg)}
+ foreach($arg in @(($dir+'/empty-v7-personnel-local.mjs'),$OperationId,$ExpectedDecisionSha256)){$psi.ArgumentList.Add($arg)}
  $child=[Diagnostics.Process]::new();$child.StartInfo=$psi;if(-not$child.Start()){throw 'PERSONNEL_CHILD_START'};$childStarted=$true
  $out=[EmptyV7PersonnelBoundedReader]::Read($child.StandardOutput.BaseStream,4096);$err=[EmptyV7PersonnelBoundedReader]::Read($child.StandardError.BaseStream,2048)
  if($null-ne$clear){$child.StandardInput.BaseStream.Write($clear);$child.StandardInput.BaseStream.Flush();[Array]::Clear($clear,0,$clear.Length);$clear=$null};$child.StandardInput.Close();$watch=[Diagnostics.Stopwatch]::StartNew()
