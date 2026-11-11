@@ -45,18 +45,18 @@ function createTransactions({pool,sql,verifySession,getSalesReadScope},activePol
     if(!Array.isArray(old?.recordset)||old.recordset.length>1)fail();
     if(old.recordset.length){const prior=old.recordset[0];if(prior.actorId!==actorId||prior.invoiceId!==c.invoiceId||prior.operation!==c.operation||prior.hash!==hash)fail();const result=JSON.parse(prior.resultJson);if(result?.state!=='COMMITTED'||result.requestId!==requestId||result.invoiceId!==c.invoiceId||result.operation!==c.operation||result.workflowState!==activePolicy[c.operation][1]||result.replayed!==false||typeof result.version!=='string'||!/^0x[0-9A-F]{16}$/.test(result.version))fail();await tx.commit();begun=false;return {...result,replayed:true};}
     const rows=await query(`SELECT w.state,CONVERT(varchar(18),CONVERT(binary(8),w.version),1) version,i.status,CONVERT(varchar(20),i.created_by) creatorId FROM dbo.desktop_sale_workflows w WITH(UPDLOCK,HOLDLOCK) JOIN dbo.sales_invoices i WITH(UPDLOCK,HOLDLOCK) ON i.id=w.invoice_id WHERE w.invoice_id=TRY_CONVERT(bigint,@invoice); SELECT CONVERT(varchar(20),id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3 FROM dbo.sales_invoice_items WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=TRY_CONVERT(bigint,@invoice) ORDER BY product_id;`,{invoice:c.invoiceId});
-    const rs=rows?.recordsets;if(!Array.isArray(rs)||rs.length!==2||rs[0]?.length!==1||rs[1]?.length!==2)fail();const header=rs[0][0],lines=rs[1],map=new Map();
+    const rs=rows?.recordsets;if(!Array.isArray(rs)||rs.length!==2||rs[0]?.length!==1||(!Array.isArray(rs[1])||rs[1].length<1||rs[1].length>2))fail();const header=rs[0][0],lines=rs[1],map=new Map();
     // The existing actor/body journal may be replayed after ownership changes.
     // Fresh commands use the same current, transaction-bound scope as reads.
     if(activePolicy!==warehousePolicy&&!desktopSalesReadOwner(header.creatorId,actorId,getSalesReadScope({transaction:tx,actorId})))fail();
     const from=activePolicy[c.operation][0];
     if(header.status!=='draft'||(Array.isArray(from)?!from.includes(header.state):header.state!==from)||header.version!==c.expectedVersion)fail();
-    for(const l of lines){if(!id(l.itemId)||!id(l.productId)||quantity(l.quantityExact3)===0n||map.has(l.itemId))fail();map.set(l.itemId,l);}if(new Set(lines.map(l=>l.productId)).size!==2)fail();
+    for(const l of lines){if(!id(l.itemId)||!id(l.productId)||quantity(l.quantityExact3)===0n||map.has(l.itemId))fail();map.set(l.itemId,l);}if(new Set(lines.map(l=>l.productId)).size!==lines.length)fail();
     if(c.operation==='CANCEL'){
      // Cancels an unposted draft only. Existing column grants are sufficient;
      // this never reverses a finalized invoice or modifies stock/cari balances.
      const reservations=await query(`SELECT CONVERT(varchar(20),item_id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3,state FROM dbo.desktop_sale_reservations WITH(UPDLOCK,HOLDLOCK) WHERE invoice_id=TRY_CONVERT(bigint,@invoice);`,{invoice:c.invoiceId});
-     const r=reservations?.recordset,expectedRows=header.state==='DRAFT'?0:2;
+     const r=reservations?.recordset,expectedRows=header.state==='DRAFT'?0:lines.length;
      if(!Array.isArray(r)||r.length!==expectedRows||new Set(r.map(v=>v.itemId)).size!==expectedRows||r.some(v=>!map.has(v.itemId)||v.productId!==map.get(v.itemId).productId||v.quantityExact3!==map.get(v.itemId).quantityExact3||v.state!=='ACTIVE'))fail();
      const effects=await query(`SELECT (SELECT COUNT_BIG(*) FROM dbo.stock_movements WITH(UPDLOCK,HOLDLOCK) WHERE source_type=N'sales_invoice' AND source_id=TRY_CONVERT(bigint,@invoice)) stockRows,(SELECT COUNT_BIG(*) FROM dbo.customer_movements WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=TRY_CONVERT(bigint,@invoice)) customerRows;`,{invoice:c.invoiceId});
      if(effects?.recordset?.length!==1||String(effects.recordset[0].stockRows)!=='0'||String(effects.recordset[0].customerRows)!=='0')fail();
@@ -71,7 +71,7 @@ function createTransactions({pool,sql,verifySession,getSalesReadScope},activePol
      for(const l of lines)await query(`INSERT dbo.desktop_sale_reservations(invoice_id,item_id,product_id,quantity,state) VALUES(TRY_CONVERT(bigint,@invoice),TRY_CONVERT(bigint,@item),TRY_CONVERT(bigint,@product),TRY_CONVERT(decimal(18,3),@amount),'ACTIVE');`,{invoice:c.invoiceId,item:l.itemId,product:l.productId,amount:l.quantityExact3});
     }else{
      const reservations=await query(`SELECT CONVERT(varchar(20),item_id) itemId,CONVERT(varchar(20),product_id) productId,CONVERT(varchar(40),quantity) quantityExact3,state FROM dbo.desktop_sale_reservations WITH(UPDLOCK,HOLDLOCK) WHERE invoice_id=TRY_CONVERT(bigint,@invoice);`,{invoice:c.invoiceId});
-     const r=reservations?.recordset;if(!Array.isArray(r)||r.length!==2||new Set(r.map(v=>v.itemId)).size!==2||r.some(v=>!map.has(v.itemId)||v.productId!==map.get(v.itemId).productId||v.state!=='ACTIVE'||v.quantityExact3!==map.get(v.itemId).quantityExact3))fail();
+     const r=reservations?.recordset;if(!Array.isArray(r)||r.length!==lines.length||new Set(r.map(v=>v.itemId)).size!==lines.length||r.some(v=>!map.has(v.itemId)||v.productId!==map.get(v.itemId).productId||v.state!=='ACTIVE'||v.quantityExact3!==map.get(v.itemId).quantityExact3))fail();
      if(c.operation==='SAVE_CARTONS'){
       const totals=new Map(lines.map(l=>[l.itemId,0n]));for(const box of c.cartons)for(const item of box.items){if(!map.has(item.itemId))fail();totals.set(item.itemId,totals.get(item.itemId)+quantity(item.quantityExact3));}if(lines.some(l=>totals.get(l.itemId)>quantity(l.quantityExact3)))fail();
       await query(`DELETE FROM dbo.desktop_sale_carton_items WHERE invoice_id=TRY_CONVERT(bigint,@invoice); DELETE FROM dbo.desktop_sale_cartons WHERE invoice_id=TRY_CONVERT(bigint,@invoice);`,{invoice:c.invoiceId});

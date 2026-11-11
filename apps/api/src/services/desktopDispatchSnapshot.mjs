@@ -21,11 +21,11 @@ const otherSql=`SELECT CONVERT(varchar(40),CONVERT(decimal(18,3),ISNULL(SUM(quan
 export function createDesktopDispatchSnapshotReader({sql,verifyScope,selectLocked}={}){
  if(selectLocked!==undefined&&typeof selectLocked!=='function')fail();const locked=selectLocked??createDesktopTwoItemLockedSelection({sql,verifyScope});
  return async function read({transaction,scope,invoiceId,customerId,productIds}={}){
-  if(!transaction||!scope||!id(invoiceId)||!id(customerId)||!Array.isArray(productIds)||productIds.length!==2||productIds.some(v=>!id(v))||new Set(productIds).size!==2)fail();
+  if(!transaction||!scope||!id(invoiceId)||!id(customerId)||!Array.isArray(productIds)||productIds.length<1||productIds.length>2||productIds.some(v=>!id(v))||new Set(productIds).size!==productIds.length)fail();
   for(const productId of productIds)if(await verifyScope({transaction,scope,invoiceId,customerId,productId})!==true)fail();
   const selection=await locked({transaction,scope,customerId,productIds});
   const records=await new sql.Request(transaction).input('invoiceId',sql.NVarChar(20),invoiceId).input('customerId',sql.NVarChar(20),customerId).query(mainSql);
-  const rs=records?.recordsets;if(!Array.isArray(rs)||rs.length!==4||rs.some(v=>!Array.isArray(v))||rs[0].length!==1||rs[0][0].invoiceId!==invoiceId||rs[1].length!==2)fail();
+  const rs=records?.recordsets;if(!Array.isArray(rs)||rs.length!==4||rs.some(v=>!Array.isArray(v))||rs[0].length!==1||rs[0][0].invoiceId!==invoiceId||rs[1].length!==productIds.length)fail();
   const products=new Map(selection.products.map(p=>[p.id,p])),others=new Map();
   for(const productId of [...productIds].sort((a,b)=>BigInt(a)<BigInt(b)?-1:1)){
    const result=await new sql.Request(transaction).input('productId',sql.NVarChar(20),productId).input('invoiceId',sql.NVarChar(20),invoiceId).query(otherSql);

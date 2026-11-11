@@ -14,15 +14,15 @@ DECLARE @lines TABLE(product bigint NOT NULL PRIMARY KEY,item bigint NOT NULL UN
 INSERT @lines SELECT productId,itemId,originalMovementId,quantityInExact3,stockBeforeExact3,stockAfterExact3,unitCostTryExact4,amountTryExact4 FROM OPENJSON(@stockJson) WITH(productId bigint,itemId bigint,originalMovementId bigint,quantityInExact3 decimal(18,3),stockBeforeExact3 decimal(18,3),stockAfterExact3 decimal(18,3),unitCostTryExact4 decimal(18,4),amountTryExact4 decimal(18,4));
 IF @total<=0 OR @amount<=0 OR @try<=0 OR @effect<>-@amount OR @accountAfter<>@accountBefore-CONVERT(decimal(28,8),@amount)
  OR (@preserve=1 AND (@accountCurrency=@customerCurrency OR @customerAfter<>@customerBefore)) OR (@preserve=0 AND (@accountCurrency<>@customerCurrency OR @customerAfter<>@customerBefore-@amount))
- OR (SELECT COUNT(*) FROM @lines)<>2 OR EXISTS(SELECT 1 FROM @lines WHERE quantity<=0 OR cost<=0 OR reverseTry>0 OR stockAfter<>stockBefore+quantity)
+ OR (SELECT COUNT(*) FROM @lines) NOT IN(1,2) OR EXISTS(SELECT 1 FROM @lines WHERE quantity<=0 OR cost<=0 OR reverseTry>0 OR stockAfter<>stockBefore+quantity)
  OR (SELECT SUM(reverseTry) FROM @lines)<>-@try
  OR NOT EXISTS(SELECT 1 FROM dbo.sales_invoices WITH(UPDLOCK,HOLDLOCK) WHERE id=@invoice AND customer_id=@customer AND party_entity_id=@entity AND party_currency_account_id=@account AND status=N'cancelled' AND document_currency=@currency AND account_currency=@accountCurrency AND customer_currency=@customerCurrency AND grand_total=@total AND account_amount=@amount AND amount_try=@try AND cancelled_at IS NOT NULL AND updated_by=@actor AND DATALENGTH(cancel_reason)=DATALENGTH(@reason) AND CONVERT(varbinary(max),cancel_reason)=CONVERT(varbinary(max),@reason))
  OR NOT EXISTS(SELECT 1 FROM dbo.customers WITH(UPDLOCK,HOLDLOCK) WHERE id=@customer AND party_entity_id=@entity AND currency_code=@customerCurrency AND balance=@customerAfter)
  OR NOT EXISTS(SELECT 1 FROM dbo.party_currency_accounts WITH(UPDLOCK,HOLDLOCK) WHERE id=@account AND customer_id=@customer AND supplier_id IS NULL AND party_entity_id=@entity AND currency_code=@accountCurrency AND current_balance=@accountBefore)
  OR (SELECT COUNT_BIG(*) FROM dbo.customer_movements WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=@invoice)<>2
  OR NOT EXISTS(SELECT 1 FROM dbo.customer_movements WITH(UPDLOCK,HOLDLOCK) WHERE id=@originalMovement AND sales_invoice_id=@invoice AND customer_id=@customer AND party_entity_id=@entity AND party_currency_account_id=@account AND movement_type=N'sales_invoice' AND currency_code=@currency AND account_currency=@accountCurrency AND amount=@total AND account_amount=@amount AND balance_effect=@amount AND amount_try=@try)
- OR (SELECT COUNT_BIG(*) FROM dbo.stock_movements WITH(UPDLOCK,HOLDLOCK) WHERE source_type=N'sales_invoice' AND source_id=@invoice)<>4
- OR (SELECT COUNT_BIG(*) FROM dbo.sales_invoice_items WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=@invoice)<>2
+ OR (SELECT COUNT_BIG(*) FROM dbo.stock_movements WITH(UPDLOCK,HOLDLOCK) WHERE source_type=N'sales_invoice' AND source_id=@invoice)<>2*(SELECT COUNT(*) FROM @lines)
+ OR (SELECT COUNT_BIG(*) FROM dbo.sales_invoice_items WITH(UPDLOCK,HOLDLOCK) WHERE sales_invoice_id=@invoice)<>(SELECT COUNT(*) FROM @lines)
  THROW 51982,'DESKTOP_FINAL_CANCEL_NATIVE_OUTCOME',1;
 IF EXISTS(SELECT 1 FROM @lines l WHERE
  NOT EXISTS(SELECT 1 FROM dbo.products p WITH(UPDLOCK,HOLDLOCK) WHERE p.id=l.product AND p.current_stock_qty=l.stockAfter)

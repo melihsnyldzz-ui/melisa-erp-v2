@@ -35,12 +35,13 @@ export function prepareDesktopSaleCancellation(raw){
  if(c.id!==i.customerId||c.entityId!==i.entityId||c.currency!==i.customerCurrency||a.id!==i.accountId||a.customerId!==i.customerId||a.entityId!==i.entityId||a.currency!==i.accountCurrency)fail();
  const balance=scaled(c.balanceExact4,4,{signed:true}),accountBalance=scaled(a.balanceExact8,8,{signed:true});
  if(i.accountCurrency===i.customerCurrency&&accountBalance!==balance*10000n)fail();
- const items=rows(s.items,2).map(v=>own(v,['id','productId','quantityExact3','stockBeforeExact3','unitCostTryExact4']));
- if(new Set(items.map(v=>id(v.id))).size!==2||new Set(items.map(v=>id(v.productId))).size!==2)fail();
- const movements=rows(s.stockMovements,2).map(v=>own(v,['id','invoiceId','productId','type','quantityInExact3','quantityOutExact3','amountTryExact4','unitCostTryExact4']));
- if(new Set(movements.map(v=>id(v.id))).size!==2)fail();
- const reservations=rows(s.reservations,2).map(v=>own(v,['itemId','productId','quantityExact3','state']));
- if(new Set(reservations.map(v=>v.itemId)).size!==2)fail();
+ if(!Array.isArray(s.items)||s.items.length<1||s.items.length>2)fail();
+ const items=rows(s.items,s.items.length).map(v=>own(v,['id','productId','quantityExact3','stockBeforeExact3','unitCostTryExact4']));
+ if(new Set(items.map(v=>id(v.id))).size!==items.length||new Set(items.map(v=>id(v.productId))).size!==items.length)fail();
+ const movements=rows(s.stockMovements,items.length).map(v=>own(v,['id','invoiceId','productId','type','quantityInExact3','quantityOutExact3','amountTryExact4','unitCostTryExact4']));
+ if(new Set(movements.map(v=>id(v.id))).size!==items.length)fail();
+ const reservations=rows(s.reservations,items.length).map(v=>own(v,['itemId','productId','quantityExact3','state']));
+ if(new Set(reservations.map(v=>v.itemId)).size!==items.length)fail();
  let sum=0n;
  const stock=items.map(item=>{
   const quantity=scaled(item.quantityExact3,3,{positive:true}),physical=scaled(item.stockBeforeExact3,3,{signed:true}),cost=scaled(item.unitCostTryExact4,4,{positive:true});

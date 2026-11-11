@@ -21,15 +21,16 @@ const actions=Object.freeze({request:'sales.discount.request',approval:'sales.di
 export function normalizeDesktopPricingIntent(raw){
  const fx=Object.hasOwn(raw??{},'currencySelection'),keys=['customerId','documentDate','expectedRevision','items','discountRateExact4','pricing',...(fx?['currencySelection']:[])];
  const value=clone(raw);delete value.requestId;
- if(!shape(value,keys)||!id(value.customerId)||typeof value.expectedRevision!=='string'||!/^[0-9a-f]{64}$/.test(value.expectedRevision)||!rate(value.discountRateExact4)||!Array.isArray(value.items)||value.items.length!==2)fail();
+ if(!shape(value,keys)||!id(value.customerId)||typeof value.expectedRevision!=='string'||!/^[0-9a-f]{64}$/.test(value.expectedRevision)||!rate(value.discountRateExact4)||!Array.isArray(value.items)||(value.items.length<1||value.items.length>2))fail();
  desktopCompanyRateDate(value.documentDate);const seen=new Set();
  for(const item of value.items){const series=Object.hasOwn(item??{},'series');if(!shape(item,['productId','quantityExact3',...(series?['series']:[])])||!id(item.productId)||seen.has(item.productId)||!positive(item.quantityExact3)||series&&!isDesktopSeriesSelection(item.series))fail();seen.add(item.productId);}
- value.pricing=normalizeDesktopSalePricing(value.pricing);if(fx)value.currencySelection=desktopSaleCurrencySelection(value.currencySelection);
+ value.pricing=normalizeDesktopSalePricing(value.pricing);if(value.pricing.unitPricesExact4.length!==value.items.length)fail();if(fx)value.currencySelection=desktopSaleCurrencySelection(value.currencySelection);
  return value;
 }
 const content=(actorId,request)=>{const value=normalizeDesktopPricingIntent(request);return digest({actorId,intent:{...value,pricing:{...value.pricing,approvalId:null}}});};
 export function desktopSalesApprovalQuote(source,intent){
- if(!source||!['TRY','USD','EUR'].includes(source.currency)||source.currency!==(intent.currencySelection?.documentCurrency??'TRY')||source.discountRateExact4!==intent.discountRateExact4||typeof source.belowCostWarning!=='boolean'||!Array.isArray(source.lines)||source.lines.length!==2)fail();
+ if(!Array.isArray(intent?.items)||intent.items.length<1||intent.items.length>2||!Array.isArray(intent.pricing?.unitPricesExact4)||intent.pricing.unitPricesExact4.length!==intent.items.length)fail();
+ if(!source||!['TRY','USD','EUR'].includes(source.currency)||source.currency!==(intent.currencySelection?.documentCurrency??'TRY')||source.discountRateExact4!==intent.discountRateExact4||typeof source.belowCostWarning!=='boolean'||!Array.isArray(source.lines)||source.lines.length!==intent.items.length)fail();
  const units=v=>{if(typeof v!=='string'||!/^(?:0|[1-9]\d{0,13})\.\d{4}$/.test(v)||BigInt(v.replace('.',''))>9007199254740991n)fail();return BigInt(v.replace('.',''));},fixed=n=>{const s=n.toString().padStart(5,'0');return s.slice(0,-4)+'.'+s.slice(-4);};let raw=0n;
  const lines=source.lines.map((l,i)=>{if(l.productId!==intent.items[i].productId||l.quantityExact3!==intent.items[i].quantityExact3||intent.pricing.unitPricesExact4[i]!==null&&l.unitPriceExact4!==intent.pricing.unitPricesExact4[i])fail();const price=units(l.unitPriceExact4),gross=BigInt(l.quantityExact3.replace('.',''))*price;if(price===0n||units(l.lineTotalExact4)!==(gross+500n)/1000n)fail();raw+=gross;return {productId:l.productId,quantityExact3:l.quantityExact3,unitPriceExact4:l.unitPriceExact4,lineTotalExact4:l.lineTotalExact4};});
  const r=BigInt(intent.discountRateExact4.replace('.','')),subtotal=(raw+500n)/1000n,discount=(raw*r+500000000n)/1000000000n,total=(raw*(1000000n-r)+500000000n)/1000000000n;
@@ -62,7 +63,7 @@ export function createDesktopSalesPricingAuthority({sql,readPolicy,ensureLease}=
   return a;
  }
  async function authorize({transaction:tx,actorId,request,locked,phase,invoiceId}={}){
-  ensureLease(tx,actorId);if(!['preview','draft','dispatch'].includes(phase)||!locked||!Array.isArray(locked.products)||locked.products.length!==2)fail();request=clone(request);
+  ensureLease(tx,actorId);if(!['preview','draft','dispatch'].includes(phase)||!locked||!Array.isArray(locked.products)||(locked.products.length<1||locked.products.length>2))fail();request=clone(request);
   if(phase==='dispatch'){
    if(!id(invoiceId))fail();const records=await rows(tx,'bound','AND entity_id=TRY_CONVERT(bigint,@invoice)',{invoice:invoiceId});
    if(records.length===0){
@@ -79,14 +80,14 @@ export function createDesktopSalesPricingAuthority({sql,readPolicy,ensureLease}=
    let result;try{result=JSON.parse(journal.resultJson);}catch{fail();}if(result.state!=='COMMITTED'||result.invoiceId!==invoiceId||result.requestId!==proof.requestId||result.pricingProofRequired!==true)fail();
    const target=await readPolicy({transaction:tx,actorId,targetActorId:proof.actorId});if(target.policy.revision!==proof.policyRevision)fail();
    const r=normalizeDesktopPricingIntent(proof.request),p=request?.persisted,header=p?.header,items=p?.items;
-   if(!header||header.createdBy!==proof.actorId||header.customerId!==r.customerId||header.documentDate!==r.documentDate||header.discountRate!==r.discountRateExact4||!Array.isArray(items)||items.length!==2||!Array.isArray(proof.prices)||proof.prices.length!==2)fail();
-   for(let i=0;i<2;i++)if(items[i].productId!==r.items[i].productId||items[i].quantityExact3!==r.items[i].quantityExact3||items[i].unitPriceExact4!==proof.prices[i].newPriceExact4)fail();
+   if(!header||header.createdBy!==proof.actorId||header.customerId!==r.customerId||header.documentDate!==r.documentDate||header.discountRate!==r.discountRateExact4||!Array.isArray(items)||items.length!==r.items.length||!Array.isArray(proof.prices)||proof.prices.length!==r.items.length)fail();
+   for(let i=0;i<r.items.length;i++)if(items[i].productId!==r.items[i].productId||items[i].quantityExact3!==r.items[i].quantityExact3||items[i].unitPriceExact4!==proof.prices[i].newPriceExact4)fail();
    if(r.currencySelection){const c=r.currencySelection;if(header.currency!==c.documentCurrency||header.accountId!==c.accountId||header.documentRate!==c.documentRateExact8||header.accountRate!==c.accountRateExact8)fail();}else if(header.currency!=='TRY')fail();
    if(r.pricing.approvalId)await checkApproval(tx,actorId,r.pricing.approvalId,proof.actorId,proof.request,{consumed:true});else if(BigInt(r.discountRateExact4.replace('.',''))>BigInt(target.policy.maxDiscountRateExact4.replace('.','')))fail();
    const caller=await readPolicy({transaction:tx,actorId});ensureLease(tx,actorId);return Object.freeze({kind:'pricing',locked,request:proof.request,policy:caller.policy,approvalId:r.pricing.approvalId,approvalRequired:false});
   }
   if(!Object.hasOwn(request??{},'pricing'))return Object.freeze({kind:'legacy'});
-  const r=normalizeDesktopPricingIntent(request),{policy}=await readPolicy({transaction:tx,actorId});if(r.pricing.policyRevision!==policy.revision)fail('DESKTOP_SALES_POLICY_CHANGED');
+  const r=normalizeDesktopPricingIntent(request),{policy}=await readPolicy({transaction:tx,actorId});if(locked.products.length!==r.items.length)fail();if(r.pricing.policyRevision!==policy.revision)fail('DESKTOP_SALES_POLICY_CHANGED');
   const prices=[],selected={...locked,products:locked.products.map((p,i)=>{if(p.id!==r.items[i].productId)fail();const wanted=r.pricing.unitPricesExact4[i]??p.priceExact4;if(wanted!==p.priceExact4&&!policy.canChangeSalePrice)fail('DESKTOP_SALE_PRICE_PERMISSION');prices.push({productId:p.id,oldPriceExact4:p.priceExact4,newPriceExact4:wanted});return {...p,priceExact4:wanted};})};
   const over=BigInt(r.discountRateExact4.replace('.',''))>BigInt(policy.maxDiscountRateExact4.replace('.',''));let approvalRequired=over;
   if(r.pricing.approvalId){await checkApproval(tx,actorId,r.pricing.approvalId,actorId,request);approvalRequired=false;}
@@ -118,8 +119,8 @@ export function createDesktopSalesPricingAuthority({sql,readPolicy,ensureLease}=
     if(!Array.isArray(matches?.recordset)||matches.recordset.length>1)fail();
     if(matches.recordset.length){
      const br=matches.recordset[0],b=unpack(br,'bound');
-     if(!shape(b,['version','kind','actorId','invoiceId','requestId','requestHash','policyRevision','request','intentHash','prices'])||b.actorId!==r.actorId||br.actorId!==r.actorId||!id(b.invoiceId)||br.entityId!==b.invoiceId||!uuid(b.requestId)||br.reason!==b.requestId||b.request?.requestId!==b.requestId||b.request?.pricing?.approvalId!==ar.id||b.policyRevision!==r.policyRevision||b.intentHash!==r.intentHash||content(b.actorId,b.request)!==r.intentHash||!/^[0-9a-f]{64}$/.test(b.requestHash)||createHash('sha256').update(JSON.stringify({actorId:b.actorId,request:b.request})).digest('hex')!==b.requestHash||!Array.isArray(b.prices)||b.prices.length!==2)fail();
-     for(let i=0;i<2;i++){const p=b.prices[i];if(!shape(p,['productId','oldPriceExact4','newPriceExact4'])||p.productId!==r.quote.lines[i].productId||p.newPriceExact4!==r.quote.lines[i].unitPriceExact4||typeof p.oldPriceExact4!=='string'||!/^(?:0|[1-9]\d{0,13})\.\d{4}$/.test(p.oldPriceExact4))fail();}
+     if(!shape(b,['version','kind','actorId','invoiceId','requestId','requestHash','policyRevision','request','intentHash','prices'])||b.actorId!==r.actorId||br.actorId!==r.actorId||!id(b.invoiceId)||br.entityId!==b.invoiceId||!uuid(b.requestId)||br.reason!==b.requestId||b.request?.requestId!==b.requestId||b.request?.pricing?.approvalId!==ar.id||b.policyRevision!==r.policyRevision||b.intentHash!==r.intentHash||content(b.actorId,b.request)!==r.intentHash||!/^[0-9a-f]{64}$/.test(b.requestHash)||createHash('sha256').update(JSON.stringify({actorId:b.actorId,request:b.request})).digest('hex')!==b.requestHash||!Array.isArray(b.prices)||b.prices.length!==r.quote.lines.length)fail();
+     for(let i=0;i<r.quote.lines.length;i++){const p=b.prices[i];if(!shape(p,['productId','oldPriceExact4','newPriceExact4'])||p.productId!==r.quote.lines[i].productId||p.newPriceExact4!==r.quote.lines[i].unitPriceExact4||typeof p.oldPriceExact4!=='string'||!/^(?:0|[1-9]\d{0,13})\.\d{4}$/.test(p.oldPriceExact4))fail();}
      const byInvoice=await rows(tx,'bound','AND entity_id=TRY_CONVERT(bigint,@invoice)',{invoice:b.invoiceId});if(byInvoice.length!==1||byInvoice[0].id!==br.id)fail();
      const j=await query(tx,`/* SALES_PRICING_JOURNAL */ SELECT TOP(2) CONVERT(varchar(20),actor_id) actorId,CONVERT(varchar(20),invoice_id) invoiceId,LOWER(CONVERT(varchar(64),payload_hash,2)) hash,result_json resultJson FROM dbo.desktop_sale_workflow_requests WITH(UPDLOCK,HOLDLOCK) WHERE request_id=TRY_CONVERT(uniqueidentifier,@request) AND operation='CREATE_DRAFT';`,{request:b.requestId});
      if(!Array.isArray(j?.recordset)||j.recordset.length!==1||j.recordset[0].actorId!==r.actorId||j.recordset[0].invoiceId!==b.invoiceId||j.recordset[0].hash!==b.requestHash)fail();let saved;try{saved=JSON.parse(j.recordset[0].resultJson);}catch{fail();}if(saved?.state!=='COMMITTED'||saved.invoiceId!==b.invoiceId||saved.requestId!==b.requestId||saved.pricingProofRequired!==true)fail();

@@ -11,6 +11,14 @@ test('warehouse contract accepts quantity/carton data and both owned recovery ou
  for(const [value,check,verify] of [[workflow(),isDesktopWarehouseWorkflow,assertDesktopWarehouseWorkflow],[list(),isDesktopWarehouseList,assertDesktopWarehouseList],[result(),isDesktopWarehouseResult,assertDesktopWarehouseResult],[resolution(),isDesktopWarehouseResolution,assertDesktopWarehouseResolution]]){assert.equal(check(value),true);assert.equal(verify(value),value);}
  assert.equal(isDesktopWarehouseResolution({...result(),replayed:true}),true);
 });
+
+test('singleton warehouse data is valid only when all carton references and bounds still match',()=>{
+ const v=workflow();v.items=v.items.slice(0,1);v.cartonItems=v.cartonItems.filter(x=>x.itemId===v.items[0].itemId);
+ assert.equal(isDesktopWarehouseWorkflow(v),true);assert.equal(assertDesktopWarehouseWorkflow(v),v);
+ const empty=structuredClone(v);empty.items=[];empty.cartonItems=[];assert.equal(isDesktopWarehouseWorkflow(empty),false);
+ const three=workflow();three.items.push({...three.items[0],itemId:'33',productId:'10'});assert.equal(isDesktopWarehouseWorkflow(three),false);
+ const foreign=structuredClone(v);foreign.cartonItems.push({cartonNo:1,itemId:'32',productId:'9',quantityExact3:'1.000'});assert.equal(isDesktopWarehouseWorkflow(foreign),false);
+});
 test('commercial or customer fields are rejected at every response boundary including replay',()=>{
  for(const key of ['customerId','customerName','accountId','currency','totalExact4','costExact4','balanceExact8','profit','unitPriceExact4']){
   for(const [make,check] of [[workflow,isDesktopWarehouseWorkflow],[list,isDesktopWarehouseList],[result,isDesktopWarehouseResult],[resolution,isDesktopWarehouseResolution]])assert.equal(check({...make(),[key]:'secret'}),false,key);

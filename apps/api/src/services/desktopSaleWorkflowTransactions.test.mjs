@@ -2,9 +2,9 @@ import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopSaleWorkflowTransactions} from './desktopSaleWorkflowTransactions.mjs';
 import {desktopSalesReadMode} from '../../../../packages/shared/src/desktopSalesReadScope.mjs';
 const broad=['sales.view','sales.create','sales.edit','sales.finalize','sales.cancel'],own=broad.filter(p=>p!=='sales.cancel');
-function fixture({creatorId='8',permissions=broad}={}){
+function fixture({creatorId='8',permissions=broad,lineSelection}={}){
  let state={state:'DRAFT',status:'draft',version:1,creatorId,reservations:[],cartons:[],packed:[],journal:{},sent:null,prepared:null,checked:null,audits:0,stockRows:0,customerRows:0};let loseAck=false,allowed=true,stock='5.000',corrupt=false,failAudit=false,verified=null,scopeOverride,scopeThrows=false;const queries=[],verifiedRights=[];
- const lines=[{itemId:'1',productId:'5',quantityExact3:'2.000'},{itemId:'2',productId:'9',quantityExact3:'1.000'}],version=d=>'0x'+d.version.toString(16).toUpperCase().padStart(16,'0');
+ const lines=lineSelection??[{itemId:'1',productId:'5',quantityExact3:'2.000'},{itemId:'2',productId:'9',quantityExact3:'1.000'}],version=d=>'0x'+d.version.toString(16).toUpperCase().padStart(16,'0');
  class Transaction{async begin(){this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);if(loseAck){loseAck=false;throw Error('ACK lost');}}async rollback(){}}
  class Request{constructor(tx){this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){queries.push(q);const d=this.tx.data,p=this.p,rows=recordset=>({recordset});
   if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows([]);
@@ -39,6 +39,25 @@ test('persistent preparation/cartons/ready/check and lost-ACK replay share one j
  assert.equal((await f.service.transition('9',f.command('READY'))).workflowState,'READY');
  assert.equal((await f.service.transition('10',f.command('CHECK'))).workflowState,'CHECKED');
  assert.equal(f.state().sent,'8');assert.equal(f.state().prepared,'9');assert.equal(f.state().checked,'10');assert.equal(Object.keys(f.state().journal).length,4);
+});
+
+test('one-line preparation through check and cancellation retain exact reservation and replay effects',async()=>{
+ const lineSelection=[{itemId:'1',productId:'5',quantityExact3:'2.000'}];
+ const f=fixture({lineSelection}),prepare=f.command('PREPARE');f.lose();
+ assert.equal((await f.service.transition('8',prepare)).state,'UNKNOWN');assert.equal(f.state().reservations.length,1);
+ assert.equal((await f.service.transition('8',prepare)).replayed,true);assert.equal(f.state().reservations.length,1);
+ assert.equal((await f.service.transition('8',f.command('SAVE_CARTONS',[{cartonNo:1,items:[{itemId:'1',quantityExact3:'2.000'}]}]))).workflowState,'PREPARING');
+ assert.equal((await f.service.transition('9',f.command('READY'))).workflowState,'READY');
+ assert.equal((await f.service.transition('10',f.command('CHECK'))).workflowState,'CHECKED');
+ const cancel=f.command('CANCEL');assert.equal((await f.service.transition('8',cancel)).workflowState,'CANCELLED');assert.equal((await f.service.transition('8',cancel)).replayed,true);
+ assert.equal(f.state().reservations.length,1);assert.equal(f.state().reservations[0].state,'RELEASED');assert.equal(f.state().audits,1);assert.equal(f.state().stockRows,0);assert.equal(f.state().customerRows,0);
+});
+
+test('zero, three or duplicate persisted lines cannot create reservations or workflow writes',async()=>{
+ const one={itemId:'1',productId:'5',quantityExact3:'2.000'};
+ for(const lineSelection of [[],[one,{...one,itemId:'2'}],[one,{itemId:'2',productId:'9',quantityExact3:'1.000'},{itemId:'3',productId:'10',quantityExact3:'1.000'}]]){
+  const f=fixture({lineSelection}),before=structuredClone(f.state());assert.equal((await f.service.transition('8',f.command('PREPARE'))).state,'UNKNOWN');assert.equal(f.writes().length,0);assert.deepEqual(f.state(),before);
+ }
 });
 test('incomplete packing, wrong revision, changed replay and denied authority preserve committed state',async()=>{
  const f=fixture(),prepare=f.command('PREPARE');await f.service.transition('8',prepare);

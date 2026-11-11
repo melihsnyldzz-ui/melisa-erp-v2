@@ -7,10 +7,10 @@ const rounded=(n,d)=>(n+d/2n)/d;
 function parity(native,expected){const n=Math.round(native*10000);if(!Number.isFinite(native)||native<0||!Number.isSafeInteger(n)||BigInt(n)!==expected)fail();return fixed(expected);}
 export function desktopSaleQuote({prepared,locked,discountRateExact4,maxDiscountRateExact4,normalizeSalesPayload}={}){
  const rate=units(discountRateExact4,4),limit=units(maxDiscountRateExact4,4);
- if(limit>999999n||typeof normalizeSalesPayload!=='function'||!prepared?.invoice||prepared.invoice.documentCurrency!=='TRY'||!Array.isArray(prepared.expected?.lines)||prepared.expected.lines.length!==2||locked?.products?.length!==2)fail();
+ if(limit>999999n||typeof normalizeSalesPayload!=='function'||!prepared?.invoice||prepared.invoice.documentCurrency!=='TRY'||!Array.isArray(prepared.expected?.lines)||prepared.expected.lines.length<1||prepared.expected.lines.length>2||!Array.isArray(locked?.products)||locked.products.length!==prepared.expected.lines.length||!Array.isArray(prepared.invoice.items)||prepared.invoice.items.length!==prepared.expected.lines.length)fail();
  if(rate>limit)throw Object.assign(Error('DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});
  const base=prepared.expected.lines.reduce((sum,l)=>sum+units(l.quantityExact3,3)*units(l.unitPriceExact4,4),0n);
- const native=normalizeSalesPayload({...prepared.invoice,discountRate:Number(discountRateExact4)});
+ const native=normalizeSalesPayload({...prepared.invoice,discountRate:Number(discountRateExact4)});if(!Array.isArray(native.items)||native.items.length!==prepared.expected.lines.length)fail();
  const subtotalExact4=parity(native.subtotal,rounded(base,1000n)),discountTotalExact4=parity(native.discountTotal,rounded(base*rate,1000000000n)),totalExact4=parity(native.grandTotal,rounded(base*(1000000n-rate),1000000000n));
  const lines=prepared.expected.lines.map((l,i)=>{const n=native.items[i];if(String(n.productId)!==l.productId||Number(l.quantityExact3)!==n.quantity||Number(l.unitPriceExact4)!==n.unitPrice)fail();return {productId:l.productId,quantityExact3:l.quantityExact3,unitPriceExact4:l.unitPriceExact4,lineTotalExact4:parity(n.lineTotal,units(l.lineTotalExact4,4))};});
  const belowCostWarning=locked.products.some(p=>units(p.priceExact4,4)*(1000000n-rate)<units(p.averageCostTryExact4,4)*1000000n);

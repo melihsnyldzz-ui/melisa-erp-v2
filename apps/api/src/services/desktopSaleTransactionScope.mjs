@@ -10,7 +10,7 @@ export function createDesktopSaleTransactionScope({sql,verifySession}={}){
  const storage=new AsyncLocalStorage(),registered=new WeakSet();
  async function withScope({transaction,actorId,requestId,customerId,productId,productIds}={},fn){
   const multi=productIds!==undefined;
-  if(multi&&(productId!==undefined||!Array.isArray(productIds)||productIds.length!==2||productIds.some(v=>!id(v))||new Set(productIds).size!==2))fail();
+  if(multi&&(productId!==undefined||!Array.isArray(productIds)||productIds.length<1||productIds.length>2||productIds.some(v=>!id(v))||new Set(productIds).size!==productIds.length))fail();
   const selected=multi?Object.freeze([...productIds]):Object.freeze([productId]);
   if(!transaction||!id(actorId)||!uuid(requestId)||!id(customerId)||!selected.every(id)||typeof fn!=='function'||storage.getStore())fail();
   if(await verifySession({transaction,actorId,permission:['sales.create','sales.finalize']})!==true)fail();

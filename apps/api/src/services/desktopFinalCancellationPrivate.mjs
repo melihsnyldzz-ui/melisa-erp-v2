@@ -35,7 +35,7 @@ export function tryAssertDesktopFinalCancellation({transaction,actor,operation,i
  if(!active(s,transaction)||String(actor?.id)!==s.actorId||operation!=='sale_cancel'||String(invoiceId)!==s.plan.invoiceId||s.phase!=='native_cancel_pending')fail();
  if(checkOnly)return true;
  const p=s.plan,m=p.customerMovement;
- if(!invoice||String(invoice.id)!==p.invoiceId||String(invoice.customerId)!==p.customerId||invoice.status!=='FINALIZED'||invoice.documentCurrency!==p.currency||invoice.accountCurrency!==p.accountCurrency||invoice.customerCurrency!==p.customerCurrency||!Array.isArray(invoice.items)||invoice.items.length!==2)fail();
+ if(!invoice||String(invoice.id)!==p.invoiceId||String(invoice.customerId)!==p.customerId||invoice.status!=='FINALIZED'||invoice.documentCurrency!==p.currency||invoice.accountCurrency!==p.accountCurrency||invoice.customerCurrency!==p.customerCurrency||!Array.isArray(invoice.items)||invoice.items.length!==p.stock.length)fail();
  parity(invoice.grandTotal,4,m.amountExact4);parity(invoice.accountAmount,4,m.accountAmountExact4);parity(invoice.amountTry,4,m.amountTryExact4);
  const seen=new Set();let totalQuantity=0n;
  for(const item of invoice.items){const line=p.stock.find(v=>v.itemId===String(item.id)&&v.productId===String(item.productId));if(!line||seen.has(line.itemId)||item.currency!==p.currency)fail();seen.add(line.itemId);parity(item.quantity,3,line.quantityInExact3);parity(item.averageCostTry,4,line.unitCostTryExact4);parity(item.productAverageCostTry,4,line.unitCostTryExact4);parity(item.currentStockQty,3,line.stockBeforeExact3);totalQuantity+=BigInt(line.quantityInExact3.replace('.',''));}

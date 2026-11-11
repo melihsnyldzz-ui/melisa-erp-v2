@@ -6,7 +6,7 @@ const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=900719925
 export function createDesktopTwoItemSelectionStore({sql,verifyScope}={}){
  const select=createDesktopSaleSelectionStore({sql,verifyScope});
  return async function selectTwo({transaction,scope,customerId,productIds}={}){
-  if(!transaction||!scope||!id(customerId)||!Array.isArray(productIds)||productIds.length!==2||productIds.some(v=>!id(v))||new Set(productIds).size!==2)fail();
+  if(!transaction||!scope||!id(customerId)||!Array.isArray(productIds)||productIds.length<1||productIds.length>2||Array.from(productIds).some(v=>!id(v))||new Set(productIds).size!==productIds.length)fail();
   // Acquire product locks in deterministic numeric order to reduce deadlocks.
   const ordered=[...productIds].sort((a,b)=>BigInt(a)<BigInt(b)?-1:1),rows=new Map();let customer;
   for(const productId of ordered){

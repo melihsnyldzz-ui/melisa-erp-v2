@@ -15,3 +15,12 @@ test('rejects product substitution and stock reserved by another draft',()=>{
  const b=snapshot();b.lines[0].otherReservedExact3='2.001';assert.throws(()=>assertDesktopDispatchReadiness(b));
  const c=snapshot();delete c.lines[0].otherReservedExact3;assert.throws(()=>assertDesktopDispatchReadiness(c));
 });
+
+test('one-line dispatch requires its exact reservation and packed amount',()=>{
+ const s=snapshot();s.lines=s.lines.slice(0,1);s.reservations=s.reservations.slice(0,1);s.cartonItems=s.cartonItems.filter(x=>x.itemId==='1');
+ assert.equal(assertDesktopDispatchReadiness(s),true);
+ for(const change of [v=>v.reservations.push({...v.reservations[0]}),v=>v.cartonItems.pop(),v=>v.lines.push({...v.lines[0],itemId:'3'}),v=>v.lines=[]]){
+  const invalid=structuredClone(s);change(invalid);assert.throws(()=>assertDesktopDispatchReadiness(invalid));
+ }
+ const three=snapshot();three.lines.push({itemId:'3',productId:'10',quantityExact3:'1.000',stockExact3:'3.000',otherReservedExact3:'0.000'});three.reservations.push({itemId:'3',productId:'10',quantityExact3:'1.000',state:'ACTIVE'});three.cartonItems.push({cartonNo:3,itemId:'3',productId:'10',quantityExact3:'1.000'});assert.throws(()=>assertDesktopDispatchReadiness(three));
+});

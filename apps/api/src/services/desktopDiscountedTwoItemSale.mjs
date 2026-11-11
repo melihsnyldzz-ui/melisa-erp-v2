@@ -20,7 +20,7 @@ function nativeUnits(value,scale,exact=false){if(typeof value!=='number'||!Numbe
 const roundSigned=(n,d)=>n<0n?-((-n+d/2n)/d):(n+d/2n)/d;
 function nativeSigned4(value,expected){const n=Math.round(Math.abs(value)*10000);if(!Number.isFinite(value)||!Number.isSafeInteger(n)||BigInt(n)*(value<0?-1n:1n)!==expected)fail();}
 export function desktopDiscountedProfitPlan(draft,{maxDiscountRateExact4='3.0000'}={}){
- if(draft?.documentCurrency!=='TRY'||draft.exchangeRate!==1||!Array.isArray(draft.items)||draft.items.length!==2)fail();
+ if(draft?.documentCurrency!=='TRY'||draft.exchangeRate!==1||!Array.isArray(draft.items)||draft.items.length<1||draft.items.length>2)fail();
  if(typeof maxDiscountRateExact4!=='string'||!/^(?:0|[1-9]\d?)\.\d{4}$/.test(maxDiscountRateExact4))fail();const limit=BigInt(maxDiscountRateExact4.replace('.',''));if(limit>999999n)fail();
  const rate=nativeUnits(draft.discountRate,4,true),subtotal=nativeUnits(draft.subtotal,4),discount=nativeUnits(draft.discountTotal,4),total=nativeUnits(draft.grandTotal,4);
  if(rate>limit||subtotal-discount!==total||discount!==(subtotal*rate+500000n)/1000000n)fail();

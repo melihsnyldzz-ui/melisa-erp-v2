@@ -19,7 +19,7 @@ const headerKeys=['invoiceId','documentNo','documentDate','workflowState','versi
 const header=v=>id(v.invoiceId)&&text(v.documentNo,100)&&date(v.documentDate)&&['DRAFT','PREPARING','READY','CHECKED','COMPLETED','CANCELLED'].includes(v.workflowState)&&version(v.version);
 const safe=fn=>value=>{try{return fn(value)===true;}catch{return false;}};
 export const isDesktopWarehouseWorkflow=safe(v=>{
- if(!exact(v,['scope',...headerKeys,'items','cartonItems'])||v.scope!=='warehouse'||!header(v)||!Array.isArray(v.items)||v.items.length!==2||!Array.isArray(v.cartonItems)||v.cartonItems.length>200)return false;
+ if(!exact(v,['scope',...headerKeys,'items','cartonItems'])||v.scope!=='warehouse'||!header(v)||!Array.isArray(v.items)||v.items.length<1||v.items.length>2||!Array.isArray(v.cartonItems)||v.cartonItems.length>200)return false;
  const items=new Map(),products=new Set(),packed=new Map(),seen=new Set();
  for(const x of v.items){
   if(!exact(x,['itemId','productId','stockCode','name','barcode','quantityExact3'])||!id(x.itemId)||!id(x.productId)||items.has(x.itemId)||products.has(x.productId)||!text(x.stockCode,100)||!text(x.name,250)||!(x.barcode===null||text(x.barcode,100))||!quantity(x.quantityExact3))return false;

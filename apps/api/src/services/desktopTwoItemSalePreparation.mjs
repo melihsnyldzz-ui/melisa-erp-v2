@@ -19,11 +19,11 @@ export function desktopTwoItemRevision(locked){
 }
 export function prepareDesktopTwoItemSale(request,locked){
  if(!request||Object.keys(request).sort().join(',')!=='customerId,documentDate,expectedRevision,items,requestId'||
-    !Array.isArray(request.items)||request.items.length!==2||!locked||!Array.isArray(locked.products)||locked.products.length!==2||
-    !Array.isArray(locked.reservedExact3)||locked.reservedExact3.length!==2||
+    !Array.isArray(request.items)||request.items.length<1||request.items.length>2||!locked||!Array.isArray(locked.products)||locked.products.length!==request.items.length||
+    !Array.isArray(locked.reservedExact3)||locked.reservedExact3.length!==request.items.length||
     typeof request.expectedRevision!=='string'||request.expectedRevision!==desktopTwoItemRevision(locked))fail();
  const ids=new Set(),lines=[],seriesSelections=[];
- for(let i=0;i<2;i++){
+ for(let i=0;i<request.items.length;i++){
   const item=request.items[i],product=locked.products[i];
   if(!item||Object.keys(item).sort().join(',')!==(Object.hasOwn(item,'series')?'productId,quantityExact3,series':'productId,quantityExact3')||!product||item.productId!==product.id||ids.has(item.productId))fail();
   if(Object.hasOwn(item,'series')){const s=item.series;if(product.unit!=='ADET'||!isDesktopSeriesSelection(s)||s.unitId!==product.seriesUnit?.unitId||s.factorExact8!==product.seriesUnit?.factorExact8||desktopSeriesPieces(s.quantityExact3,s.factorExact8)!==item.quantityExact3)fail();seriesSelections.push(Object.freeze({productId:item.productId,unitId:s.unitId,factorExact8:s.factorExact8,seriesQuantityExact3:s.quantityExact3,pieceQuantityExact3:item.quantityExact3}));}

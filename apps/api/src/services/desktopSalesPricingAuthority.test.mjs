@@ -1,6 +1,31 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
 import {createDesktopSalesPricingAuthority,normalizeDesktopPricingIntent} from './desktopSalesPricingAuthority.mjs';
 
+test('one-product pricing keeps person-specific override and approval binding through persisted dispatch',async()=>{
+ const f=fixture(),d=f.draft('5.0000');d.items.pop();d.pricing.unitPricesExact4.pop();f.locked.products.pop();
+ assert.equal(normalizeDesktopPricingIntent(d).items.length,1);
+ assert.equal((await f.authorize(d,'preview')).approvalRequired,true);
+ await assert.rejects(f.authorize(d),{code:'DESKTOP_SALE_DISCOUNT_APPROVAL_REQUIRED'});
+ f.state.policies.get('3').canApproveUpToFive=true;
+ const asked=await f.service.create('1',{requestId:uid(710),draft:d});
+ const approved=await f.service.approve('3',asked.id,{requestId:uid(711),reason:'Tek ürün için müdür kararı'});
+ d.pricing.approvalId=approved.approvalId;
+ await f.bind(d);
+ assert.equal((await f.authorize({persisted:f.persisted(d)},'dispatch','3',{invoiceId:'100'})).kind,'pricing');
+ const corrupted=f.persisted(d);corrupted.items[0].unitPriceExact4='9.0000';
+ await assert.rejects(f.authorize({persisted:corrupted},'dispatch','3',{invoiceId:'100'}));
+ const next={requestId:uid(712),...d},again=await f.authorize(next);
+ await assert.rejects(again.bindDraft({invoiceId:'101',requestHash:hash({actorId:'1',request:next})}),{code:'DESKTOP_SALE_APPROVAL_ALREADY_USED'});
+ assert.equal(f.locked.products[0].priceExact4,'10.0000');
+});
+
+test('one-product pricing rejects missing, extra or duplicate item/price vectors',()=>{
+ const d=fixture().draft();d.items.pop();d.pricing.unitPricesExact4.pop();
+ for(const change of [v=>v.items=[],v=>v.items.push(copy(v.items[0])),v=>v.items.push(copy(v.items[0]),copy(v.items[0])),v=>v.pricing.unitPricesExact4=[],v=>v.pricing.unitPricesExact4.push(null)]){
+  const altered=copy(d);change(altered);assert.throws(()=>normalizeDesktopPricingIntent(altered));
+ }
+});
+
 test('manager can decide another salesperson at 3.0001 through5 inclusive and the exact receipt replays',async()=>{
  for(const discount of ['3.0001','5.0000']){
   const f=fixture();f.state.policies.get('3').canApproveUpToFive=true;
