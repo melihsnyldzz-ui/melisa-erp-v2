@@ -115,6 +115,19 @@ Check 'production native reader explicit empty JSON null and byte bound dispose'
  Assert ($fake.Command.Disposed -and $fake.Command.Reader.Disposed) 'READ_BOUND_DISPOSE'
  $fake=Fixture-Connection '';Reject {Recovery-Execute $fake 'fixed-query' Json} 'RECOVERY_EMPTY_JSON'
 }
+Check 'real decision validator requires postRole authority exact target source review' {
+ $script:Mode='Preflight';$script:ExpectedSelfSha256='a'*64;$script:ExpectedCoreSha256='b'*64
+ $savedReference=${function:Recovery-PublicReference}
+ try{
+  function Recovery-PublicReference($Reference){if($Reference.kind -ceq 'review'){return @{decision='GO_SOURCE_ONLY';P1P2Findings=0;files=@{core=$script:ExpectedCoreSha256;runner=$script:ExpectedSelfSha256}}};return @{synthetic=$true}}
+  $d=@{version=1;mode='Preflight';operationId=(Recovery-Names).operationId;authorizedBy='ROOT_SEQUENTIAL_OWNER';postRoleBindingsConfirmed=$true;target=(Recovery-Target);runtimeSourceHead='70e8ec1584369eeb1aae9a76a5285509cd127d7b';personnelExpected=@{users=7;roles=7;permissions=58};runnerSha256=$script:ExpectedSelfSha256;coreSha256=$script:ExpectedCoreSha256;roleAppliedReceipt=@{kind='receipt'};finalNativeSnapshot=@{kind='snapshot'};independentSourceReview=@{kind='review'}}
+  [void](Recovery-Decision $d)
+  $d.postRoleBindingsConfirmed=$false;Reject {Recovery-Decision $d} 'RECOVERY_DECISION_REJECTED';$d.postRoleBindingsConfirmed=$true
+  $d.personnelExpected.roles=6;Reject {Recovery-Decision $d} 'RECOVERY_ROLE_FINAL_BINDING';$d.personnelExpected.roles=7
+  $d.target.databaseId=5;Reject {Recovery-Decision $d} 'RECOVERY_DECISION_TARGET';$d.target.databaseId=9
+  $d.coreSha256='c'*64;Reject {Recovery-Decision $d} 'RECOVERY_SOURCE_PINS'
+ }finally{${function:Recovery-PublicReference}=$savedReference}
+}
 Check 'actual runner AST locks pins close and no operational body evaluated' {
  $run=($runnerDefs|Where-Object Name -ceq 'Recovery-Run').Body.Extent.Text
  Assert ($run.IndexOf('Recovery-Boundary') -lt $run.IndexOf('$connection.Open()')) 'BOUNDARY_BEFORE_OPEN'
