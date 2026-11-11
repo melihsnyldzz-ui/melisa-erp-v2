@@ -1,6 +1,6 @@
 $ErrorActionPreference='Stop'
 $file=Join-Path $PSScriptRoot 'empty-v7-personnel-native-owner.ps1'
-$tokens=$null;$errors=$null;[void][Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'NATIVE_TEST_PARSE'}
+$tokens=$null;$errors=$null;$nativeAst=[Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors);if($errors.Count){throw 'NATIVE_TEST_PARSE'}
 . $file
 function Assert-Native($value,[string]$name){if(-not$value){throw ('NATIVE_TEST_'+$name)}}
 $calls=[Collections.Generic.List[string]]::new();$r=Invoke-NativeReadLifecycle -Begin {$calls.Add('begin')} -Boundary {$calls.Add('boundary')} -Read {$calls.Add('query');return @{public='selected'}} -Rollback {$calls.Add('rollback')} -Close {$calls.Add('close')}
@@ -30,4 +30,16 @@ try{
  Assert-Native ($script:Captured.vector.Count-eq3-and$script:Captured.vector[0]-ceq$script:NativeW+'/scripts/desktop-empty/empty-v7-personnel-native-core.mjs'-and$script:Captured.vector[1]-ceq'--decision'-and$script:Captured.vector[2]-ceq$id) 'NODE_ARGV'
  [void](Native-Git -Tail @('rev-parse','HEAD'));Assert-Native ($script:Captured.vector.Count-eq9-and$script:Captured.vector[7]-ceq'rev-parse'-and$script:Captured.vector[8]-ceq'HEAD') 'GIT_ARGV'
 }finally{Set-Item Function:Native-RunPublicProcess $original}
-[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv PASS; SQL connections 0; operational processes 0')
+$assemblyCalls=@($nativeAst.FindAll({param($n)$n-is[Management.Automation.Language.CommandAst]-and$n.GetCommandName()-ceq'Native-Hold'-and$n.CommandElements.Count-ge2-and$n.CommandElements[1]-is[Management.Automation.Language.VariableExpressionAst]-and$n.CommandElements[1].VariablePath.UserPath-ceq'assembly'},$true))
+Assert-Native ($assemblyCalls.Count-eq1-and$assemblyCalls[0].CommandElements.Count-eq4-and$assemblyCalls[0].CommandElements[2].Value-ceq'526439c8b3326c1f811e827106012cdd868a436ee1154b169609aad129891cb7'-and$assemblyCalls[0].CommandElements[3].Value-eq4194304) 'ASSEMBLY_ONLY_PINNED_BOUND'
+$holdAst=$nativeAst.Find({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'Native-Hold'},$true)
+$defaultMax=($holdAst.Parameters|Where-Object {$_.Name.VariablePath.UserPath-ceq'Max'}).DefaultValue.Value
+Assert-Native ($defaultMax-eq2097152) 'GENERAL_BOUND_UNCHANGED'
+$boundAst=$holdAst.Body.Find({param($n)$n-is[Management.Automation.Language.IfStatementAst]-and$n.Extent.Text.Contains("'NATIVE_FILE_BOUND'")},$true)
+$boundCondition=[scriptblock]::Create($boundAst.Clauses[0].Item1.Extent.Text)
+function Test-NativeBoundReject([long]$Length,[int]$Limit){$f=[pscustomobject]@{PSIsContainer=$false;Length=$Length};$Max=$Limit;$Hash='a'*64;return [bool](& $boundCondition)}
+Assert-Native (-not(Test-NativeBoundReject 2434864 4194304)) 'ACTUAL_ASSEMBLY_LENGTH_ACCEPTED'
+Assert-Native (-not(Test-NativeBoundReject 4194304 4194304)) 'ASSEMBLY_BOUND_INCLUSIVE'
+Assert-Native (Test-NativeBoundReject 4194305 4194304) 'OVER_ASSEMBLY_BOUND_REJECTED'
+Assert-Native (Test-NativeBoundReject 2434864 $defaultMax) 'OTHER_FILES_REMAIN_TWO_MB'
+[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound PASS; SQL connections 0; operational processes 0')
