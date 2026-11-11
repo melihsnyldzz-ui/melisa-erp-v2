@@ -13,9 +13,18 @@ $script:OverlayGit='C:/Program Files/Git/cmd/git.exe'
 $script:OverlayPackage=$null
 $script:OverlayPreservationSha='28c60ef9703eaf97b9affecec1b2caa8154cb7da12ceb972ef219e20828b37b3'
 function Overlay-NoReparse([string]$Path){$v=Get-Item -LiteralPath $Path -Force;while($v){if($v.Attributes-band[IO.FileAttributes]::ReparsePoint){throw 'NATIVE_REPARSE'};$v=if($v-is[IO.FileInfo]){$v.Directory}else{$v.Parent}}}
+function Test-OverlayHashMatches([string]$Actual,[string]$Expected){return ($Actual-cmatch'^[a-f0-9]{64}$'-and$Expected-cmatch'^[a-f0-9]{64}$'-and$Actual-ceq$Expected)}
+function Test-OverlayApprovedIgnore([byte[]]$Bytes){
+ # Exact approved metadata successor only: original0e7 prefix plus these two
+ # historical PUBLIC configuration-identifier fingerprints. No scanner rule.
+ if($null-eq$Bytes-or$Bytes.Length-ne16994){return $false};$full=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant();if(-not(Test-OverlayHashMatches $full '19283c4b8531543c6ac953542e83d6cb3b7999e854a4ec87d75ffce8db059bb9')){return $false}
+ $prefix=[byte[]]::new(16625);[Array]::Copy($Bytes,0,$prefix,0,16625);$prefixHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($prefix)).ToLowerInvariant();if(-not(Test-OverlayHashMatches $prefixHash 'a96f53f15256963215bc8e8a8754a7ecb5c66bc001229c1a2c3ef9877c35bdda')){return $false}
+ $suffix=[Text.UTF8Encoding]::new($false,$true).GetString($Bytes,16625,$Bytes.Length-16625);$entries=@($suffix-split"`r`n"|Where-Object {$_-and-not$_.StartsWith('#')});return ($entries.Count-eq2-and$entries[0]-ceq'4954c741fe53e8a6c1e52b5e28e3628a83c6eafe:scripts/desktop-empty/role-overlay-fixture.mjs:generic-api-key:14'-and$entries[1]-ceq'4954c741fe53e8a6c1e52b5e28e3628a83c6eafe:scripts/desktop-empty/role-overlay-core.mjs:generic-api-key:30')
+}
+function Test-OverlayChangedPath([string]$Relative,[byte[]]$IgnoreBytes=$null){if($Relative-ceq'.gitleaksignore'){return Test-OverlayApprovedIgnore $IgnoreBytes};return ($Relative-cmatch'^scripts/desktop-empty/role-overlay-[A-Za-z0-9_.-]+\.(mjs|ps1)$')}
 function Overlay-Hold([string]$Path,[string]$Hash,[int]$Max=2097152){
  Overlay-NoReparse $Path;$f=Get-Item -LiteralPath $Path -Force;if($f.PSIsContainer-or$f.Length-lt1-or$f.Length-gt$Max-or$Hash-cnotmatch'^[a-f0-9]{64}$'){throw 'NATIVE_FILE_BOUND'}
- $s=[IO.File]::Open($Path,'Open','Read','Read');$script:OverlayHeld.Add($s);if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant()-cne$Hash){throw 'NATIVE_FILE_PIN'}
+ $s=[IO.File]::Open($Path,'Open','Read','Read');$script:OverlayHeld.Add($s);if(-not(Test-OverlayHashMatches ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant()) $Hash)){throw 'NATIVE_FILE_PIN'}
  Initialize-OverlaySupport;$info=[EmptyV7PersonnelOverlaySupport]::Info($s.SafeFileHandle);if($Path-cnotin@($script:OverlayGit,'C:/Program Files/Git/cmd/git-lfs.exe')-and$info.Links-ne1){throw 'OVERLAY_FILE_LINKS'}
 }
 function Overlay-ReadJson([string]$Path){return ConvertFrom-Json -InputObject ([IO.File]::ReadAllText($Path)) -AsHashtable -DateKind String -NoEnumerate}
@@ -51,7 +60,8 @@ function Overlay-GitSource($Decision){
  if($pair[0].Links-ne2-or$pair[1].Links-ne2-or$pair[0].VolumeSerial-ne$pair[1].VolumeSerial-or$pair[0].IndexHigh-ne$pair[1].IndexHigh-or$pair[0].IndexLow-ne$pair[1].IndexLow){throw 'NATIVE_GIT_IDENTITY'}
  if((Overlay-Git -Tail @('rev-parse','--show-toplevel')).Replace('\','/')-cne$script:OverlayW-or(Overlay-Git -Tail @('rev-parse','HEAD'))-cne$Decision.sourceHead-or(Overlay-Git -Tail @('branch','--show-current'))-cne'codex/erp-db9-role-overlay-20261111'-or(Overlay-Git -Tail @('status','--porcelain','--untracked-files=all'))-cne''){throw 'NATIVE_SOURCE_IDENTITY'}
  foreach($rel in ((Overlay-Git -Tail @('diff','--name-only','0e7b8734d671d24bed1b968a2f4ff8ff2646830b..HEAD'))-split"`n")){
-  if($rel-and$rel-cnotmatch'^scripts/desktop-empty/role-overlay-[A-Za-z0-9_.-]+\.(mjs|ps1)$'){throw 'NATIVE_SOURCE_CHANGE_SCOPE'}
+  if($rel-ceq'.gitleaksignore'){Overlay-Hold ($script:OverlayW+'/.gitleaksignore') '19283c4b8531543c6ac953542e83d6cb3b7999e854a4ec87d75ffce8db059bb9';if(-not(Test-OverlayChangedPath $rel ([IO.File]::ReadAllBytes($script:OverlayW+'/.gitleaksignore')))){throw 'NATIVE_SOURCE_CHANGE_SCOPE'};continue}
+  if($rel-and-not(Test-OverlayChangedPath $rel)){throw 'NATIVE_SOURCE_CHANGE_SCOPE'}
  }
  foreach($tail in @(@('remote','get-url','origin'),@('remote','get-url','--push','origin'))){if((Overlay-Git -Tail $tail)-cne'https://github.com/melihsnyldzz-ui/melisa-erp-v2.git'){throw 'NATIVE_SOURCE_ORIGIN'}}
 }
