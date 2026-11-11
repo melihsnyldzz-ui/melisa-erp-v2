@@ -1,0 +1,30 @@
+// Synthetic public test rows only. Never a Root decision or execution input.
+import {createHash} from 'node:crypto';
+import {EMPTY_V7_PERSONNEL_ROLES as roles,EMPTY_V7_PERSONNEL_ROSTER as roster,EMPTY_V7_PERSONNEL_ROSTER_SHA256,EMPTY_V7_PERSONNEL_BUSINESS_NAMES,personnelPolicy} from './empty-v7-personnel-core.mjs';
+import {OVERLAY_TARGET,OVERLAY_CODE,OVERLAY_KEYS,overlayPolicy,observationDigest} from './role-overlay-core.mjs';
+export const U='10000000-0000-4000-8000-000000000001',F='10000000-0000-4000-8000-000000000002';
+export const rv=n=>'0x'+BigInt(n).toString(16).padStart(16,'0');
+export function fixture(){
+ const when='2026-11-11T00:00:00',roleIds={sales:'7',warehouse:'8',approval:'9',accounting:'10',creditSetup:'11'},userIds=['8','9','10','11','12','13'];
+ const rs=[{id:'1',code:'admin',name:'Admin',description:null,system:true,active:true,createdAt:when,updatedAt:null,version:rv(100)},...roles.map((r,i)=>({id:String(i+7),code:r.code,name:r.key,description:null,system:false,active:true,createdAt:when,updatedAt:null,version:rv(i+101)}))];
+ const us=[{id:'1',username:'kurulum',displayName:'Setup',roleId:'1',active:true,createdAt:when,updatedAt:null,createdBy:null,updatedBy:null,version:rv(200)},...roster.map((r,i)=>({id:userIds[i],username:r.username,displayName:r.key,roleId:roleIds[r.role],active:true,createdAt:when,updatedAt:null,createdBy:null,updatedBy:null,version:rv(201+i)}))];
+ let pi=1;const perm=(roleId,key,flags)=>({id:String(pi++),roleId,key,view:!!flags[0],create:!!flags[1],update:!!flags[2],delete:!!flags[3],approve:!!flags[4],createdAt:when,updatedAt:null,version:rv(300+pi)});
+ const ps=[...Array.from({length:35},(_,i)=>perm('1','fixture.admin.'+i,[1,0,0,0,0])),...roles.flatMap(r=>r.rights.map(p=>perm(roleIds[r.key],p.key,p.flags)))];
+ const identities=roster.map((r,i)=>{const u=us.find(x=>x.id===userIds[i]),role=rs.find(x=>x.id===u.roleId);return {key:r.key,username:u.username,userId:u.id,userVersion:u.version,roleId:role.id,roleVersion:role.version,roleCode:role.code,active:true};});
+ const policy={id:'10003',group:'desktop-sales',key:'individualPolicyV1',value:personnelPolicy(identities),valueType:'json',active:true,createdAt:when,updatedAt:null,createdBy:null,updatedBy:null,version:rv(500)};
+ const frozen={state:'EMPTY_V7_PERSONNEL_OBSERVED',mode:'preflight',rosterOperationId:F,operationId:U,rosterSha256:EMPTY_V7_PERSONNEL_ROSTER_SHA256,userCount:7,roleCount:6,permissionCount:51,identitiesJson:JSON.stringify(identities),policyId:policy.id,policyVersion:policy.version,policySha256:createHash('sha256').update(policy.value,'utf16le').digest('hex'),metadataSha256:'1'.repeat(64),securitySha256:'2'.repeat(64),businessSha256:'3'.repeat(64),adminSha256:'4'.repeat(64),settingsSha256:'5'.repeat(64),auditSha256:'6'.repeat(64),pendingSha256:'7'.repeat(64),businessFingerprintsJson:JSON.stringify(EMPTY_V7_PERSONNEL_BUSINESS_NAMES.map(name=>({name,count:0,sha256:'8'.repeat(64)})))};
+ return {version:1,target:{...OVERLAY_TARGET},frozen,public:{users:us,roles:rs,permissions:ps,policy,audit:{count:10,maxId:'10',sha256:'a'.repeat(64),prefixSha256:'e'.repeat(64)}}};
+}
+export function applyFixture(before,roleId='12'){
+ const a=structuredClone(before),p=a.public,when='2026-11-11T00:01:00';p.roles.find(x=>x.id==='9').updatedAt=when;p.roles.find(x=>x.id==='9').version=rv(601);
+ p.roles.push({id:roleId,code:OVERLAY_CODE,name:'DB9 boss role overlay',description:'Finite six-key successor; no implicit admin defaults',system:false,active:true,createdAt:when,updatedAt:null,version:rv(602)});
+ const boss=p.users.find(x=>x.id==='11');boss.roleId=roleId;boss.updatedAt=when;boss.updatedBy='1';boss.version=rv(603);
+ const added=['sales.cancel',...OVERLAY_KEYS].map((key,i)=>({id:String(52+i),roleId:i===0?'9':roleId,key,view:true,create:i>0&&key.startsWith('finance.'),update:false,delete:false,approve:false,createdAt:when,updatedAt:null,version:rv(610+i)}));p.permissions.push(...added);
+ p.policy.value=overlayPolicy(before,roleId);p.policy.updatedAt=when;p.policy.updatedBy='1';p.policy.version=rv(620);p.audit={count:11,maxId:'11',sha256:'b'.repeat(64),prefixSha256:before.public.audit.sha256};
+ a.frozen.roleCount=7;a.frozen.permissionCount=58;a.frozen.policyVersion=p.policy.version;a.frozen.policySha256=createHash('sha256').update(p.policy.value,'utf16le').digest('hex');a.frozen.auditSha256='9'.repeat(64);a.frozen.identitiesJson=JSON.stringify(JSON.parse(before.frozen.identitiesJson).filter(u=>u.key!=='boss').map(u=>u.key==='manager'?{...u,roleVersion:rv(601)}:u));
+ return {after:a,inserted:{roleId,permissionIds:added.map(x=>x.id),auditId:'11'}};
+}
+export function sets(o){return [[o.frozen],[Object.fromEntries(Object.entries(o.public).map(([k,v])=>[k+'Json',JSON.stringify(v)]))]];}
+export function decision(before,mode='trial-rollback',operationId=U){return {version:1,state:'ROOT_ROLE_OVERLAY_SOURCE_V1',operationId,mode,createdAt:1000,expiresAt:301000,baselineDigest:observationDigest(before),sourceHead:'1'.repeat(40),sqlProcessId:4924,reviewSha256:'2'.repeat(64),trialOperationId:mode==='apply'?F:null,invoiceIds:[1,2]};}
+export function receipt(before,after,inserted){return {version:1,state:'ROLE_OVERLAY_APPLIED',operationId:U,baselineDigest:observationDigest(before),before,after,inserted,committed:true,closed:true,outcomeUnknown:false};}
+export function compensatedFixture(before,applied){const o=structuredClone(before),p=o.public;p.users.find(x=>x.id==='11').version=rv(701);p.users.find(x=>x.id==='11').updatedAt='2026-11-11T00:02:00';p.users.find(x=>x.id==='11').updatedBy='1';p.roles.find(x=>x.id==='9').version=rv(702);p.roles.find(x=>x.id==='9').updatedAt='2026-11-11T00:02:00';p.policy.version=rv(703);p.policy.updatedAt='2026-11-11T00:02:00';p.policy.updatedBy='1';p.audit={count:12,maxId:'12',sha256:'c'.repeat(64),prefixSha256:applied.public.audit.sha256};o.frozen.auditSha256='d'.repeat(64);o.frozen.policyVersion=p.policy.version;o.frozen.identitiesJson=JSON.stringify(JSON.parse(before.frozen.identitiesJson).map(x=>({...x,...(x.key==='boss'?{userVersion:rv(701)}:{}),...(['boss','manager'].includes(x.key)?{roleVersion:rv(702)}:{})})));return o;}

@@ -1,0 +1,45 @@
+$ErrorActionPreference='Stop'
+# Evaluate selected definition ASTs only. No owner entry, SQL Open, OS probe,
+# process spawn, credentials, file locks or Root decision is exercised.
+$source=Join-Path $PSScriptRoot 'role-overlay-owner.ps1';$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
+if($errors.Count){throw 'TEST_PARSE'}
+function Assert-OverlayTest($Condition,[string]$Code){if(-not$Condition){throw $Code}}
+foreach($name in @('Invoke-OverlayLifecycle','Overlay-Arguments','Overlay-Git','Initialize-OverlaySupport','New-OverlayConnectionBuilder','Overlay-QuerySets')){$f=$ast.Find({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq$name},$true);if($null-eq$f){throw 'TEST_DEFINITION'};. ([scriptblock]::Create($f.Extent.Text))}
+$script:OverlayW='C:/synthetic/overlay';$script:OverlayGit='C:/synthetic/git.exe';$script:OverlayNode='C:/synthetic/node.exe';$script:OverlaySupportReady=$false
+$argsActual=Overlay-Arguments '--plan';Assert-OverlayTest ($argsActual.Count-eq2-and$argsActual[0]-ceq'C:/synthetic/overlay/scripts/desktop-empty/role-overlay-local.mjs'-and$argsActual[1]-ceq'--plan') 'TEST_ACTUAL_NODE_ARGV'
+function Overlay-RunPublicProcess([string]$Executable,[string[]]$Arguments,[string]$InputText='',[int]$Limit=0){$script:Captured=@{exe=$Executable;args=$Arguments};return 'synthetic'}
+[void](Overlay-Git -Tail @('rev-parse','HEAD'));Assert-OverlayTest ($script:Captured.args.Count-eq9-and$script:Captured.args[6]-ceq'C:/synthetic/overlay'-and$script:Captured.args[7]-ceq'rev-parse') 'TEST_ACTUAL_GIT_ARGV'
+function Invoke-OverlayMock([string]$Mode,[string]$Fault=''){
+ $box=@{log=[Collections.Generic.List[string]]::new()};$r=Invoke-OverlayLifecycle -Mode $Mode -Begin {$box.log.Add('begin');if($Fault-ceq'begin'){throw 'MOCK'}} -Boundary {$box.log.Add('boundary')} -Before {$box.log.Add('before');if($Fault-ceq'before'){throw 'MOCK'}} -Mutate {$box.log.Add('mutate');if($Fault-ceq'mutate'){throw 'MOCK'}} -Check {$box.log.Add('check');if($Fault-ceq'check'){throw 'MOCK'};return @{checked=$true}} -Rollback {$box.log.Add('rollback');if($Fault-ceq'rollback'){throw 'MOCK'}} -Commit {$box.log.Add('commit');if($Fault-ceq'commit'){throw 'MOCK'}} -Restore {$box.log.Add('restore');if($Fault-ceq'restore'){throw 'MOCK'};return $true} -Close {$box.log.Add('close');if($Fault-ceq'close'){throw 'MOCK'}};return @{result=$r;log=$box.log.ToArray()}
+}
+foreach($mode in @('preflight','observe')){$m=Invoke-OverlayMock $mode;Assert-OverlayTest ($m.result.ok-and$m.result.rolledBack-and$m.result.closeCompleted-and-not$m.result.submitted-and-not$m.result.commitAttempted-and'mutate'-cnotin$m.log-and'commit'-cnotin$m.log) 'TEST_READ_ONLY'}
+$m=Invoke-OverlayMock 'trial-rollback';Assert-OverlayTest ($m.result.ok-and$m.result.submitted-and$m.result.rolledBack-and$m.result.restoreVerified-and-not$m.result.commitAttempted-and($m.log.IndexOf('rollback')-lt$m.log.IndexOf('restore'))) 'TEST_TRIAL_RESTORE'
+$m=Invoke-OverlayMock 'apply';Assert-OverlayTest ($m.result.ok-and$m.result.committed-and$m.result.commitAttempted-and-not$m.result.rolledBack-and@($m.log|Where-Object {$_-ceq'commit'}).Count-eq1) 'TEST_COMMIT_ONCE'
+$m=Invoke-OverlayMock 'compensate';Assert-OverlayTest ($m.result.ok-and$m.result.committed) 'TEST_COMPENSATE'
+$m=Invoke-OverlayMock 'apply' 'commit';Assert-OverlayTest (-not$m.result.ok-and$m.result.outcomeUnknown-and-not$m.result.committed-and'rollback'-cnotin$m.log-and@($m.log|Where-Object {$_-ceq'mutate'}).Count-eq1) 'TEST_LOST_ACK_NO_RETRY'
+foreach($fault in @('before','mutate','check')){$m=Invoke-OverlayMock 'apply' $fault;Assert-OverlayTest (-not$m.result.ok-and$m.result.rolledBack-and-not$m.result.commitAttempted-and-not$m.result.outcomeUnknown-and$m.result.closeCompleted) 'TEST_FAULT_ROLLBACK'}
+$m=Invoke-OverlayMock 'trial-rollback' 'restore';Assert-OverlayTest (-not$m.result.ok-and$m.result.rolledBack-and-not$m.result.restoreVerified) 'TEST_RESTORE_NOT_PASS'
+$m=Invoke-OverlayMock 'apply' 'close';Assert-OverlayTest (-not$m.result.ok-and$m.result.committed-and-not$m.result.closeCompleted) 'TEST_CLOSE_NOT_PASS'
+Initialize-OverlaySupport
+foreach($length in @(0,4096,8192)){$stream=[IO.MemoryStream]::new([byte[]]::new($length));try{$out=[EmptyV7PersonnelOverlaySupport]::Read($stream,8192).GetAwaiter().GetResult();Assert-OverlayTest ($out.Length-eq$length) 'TEST_BYTE_BOUND'}finally{$stream.Dispose()}}
+$stream=[IO.MemoryStream]::new([byte[]]::new(8193));$failed=$false;try{[void][EmptyV7PersonnelOverlaySupport]::Read($stream,8192).GetAwaiter().GetResult()}catch{$failed=$true}finally{$stream.Dispose()};Assert-OverlayTest $failed 'TEST_OVERFLOW'
+$assembly='C:/Users/Xaser/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Data.SqlClient.dll';Assert-OverlayTest ((Get-FileHash -LiteralPath $assembly -Algorithm SHA256).Hash.ToLowerInvariant()-ceq'526439c8b3326c1f811e827106012cdd868a436ee1154b169609aad129891cb7') 'TEST_CACHED_DRIVER_PIN'
+$b=New-OverlayConnectionBuilder;$connection=[Data.SqlClient.SqlConnection]::new($b.get_ConnectionString());try{Assert-OverlayTest ($connection.State-eq[Data.ConnectionState]::Closed-and$b.get_DataSource()-ceq'lpc:Semih\MELISAERP'-and$b.get_InitialCatalog()-ceq'MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210'-and$b.get_IntegratedSecurity()-and-not$b.get_Encrypt()-and-not$b.get_Pooling()-and$b.get_ConnectTimeout()-eq10-and$b.get_ApplicationName()-ceq'DB9 finite role overlay v1') 'TEST_CONSTRUCTION_ONLY'}finally{$connection.Dispose()}
+# Exercise actual multi-result decoder with CLR DataTableReader and a fake
+# command. No SqlCommand, SqlConnection.Open or SQL server is involved.
+$t1=[Data.DataTable]::new();[void]$t1.Columns.Add('state',[string]);[void]$t1.Columns.Add('userCount',[int]);[void]$t1.Rows.Add('PUBLIC',7)
+$t2=[Data.DataTable]::new();[void]$t2.Columns.Add('usersJson',[string]);[void]$t2.Rows.Add('[]')
+$script:FakeCommand=[pscustomobject]@{Transaction=$null;CommandTimeout=0;CommandText='';Disposed=$false;Tables=[Data.DataTable[]]@($t1,$t2)}
+$script:FakeCommand|Add-Member ScriptMethod ExecuteReader {return ,([Data.DataTableReader]::new($this.Tables))}
+$script:FakeCommand|Add-Member ScriptMethod Dispose {$this.Disposed=$true}
+$fakeConnection=[pscustomobject]@{};$fakeConnection|Add-Member ScriptMethod CreateCommand {return $script:FakeCommand}
+$decoded=Overlay-QuerySets $fakeConnection @{} @{sql='NO_SQL_TEST';parameters=@{}} @{}
+Assert-OverlayTest ($decoded.Count-eq2-and$decoded[0].Count-eq1-and$decoded[0][0].state-ceq'PUBLIC'-and$decoded[0][0].userCount-eq7-and$decoded[1][0].usersJson-ceq'[]'-and$script:FakeCommand.Disposed) 'TEST_ACTUAL_MULTI_RESULT_DECODER'
+$assignment=$ast.Find({param($n)$n-is[Management.Automation.Language.AssignmentStatementAst]-and$n.Left.Extent.Text-ceq'$expectedPrivate'},$true)
+$paths=& ([scriptblock]::Create($assignment.Right.Extent.Text));Assert-OverlayTest ($paths.Count-eq9-and$paths[0]-ceq'protected-sql-writer-v1/sql-writer.dpapi'-and$paths[8]-ceq'personnel-private-v1/1c6f9175-276d-49eb-803b-23b6c4717a03/login-creditSetup.dpapi') 'TEST_ACTUAL_PRIVATE_PATH_VECTOR'
+$text=[IO.File]::ReadAllText($source)
+Assert-OverlayTest ($text.IndexOf('Overlay-GitSource $e.decision')-lt$text.IndexOf("Overlay-Node '--plan'")) 'TEST_GIT_BEFORE_NODE'
+Assert-OverlayTest ($text.Contains("'None'")) 'TEST_NO_SHARE'
+Assert-OverlayTest ($text.Contains('28c60ef9703eaf97b9affecec1b2caa8154cb7da12ceb972ef219e20828b37b3')-and$text.Contains('d24350686ba9a240aafe16f7bca2734dc9a0fa404b64a23ea2998aa304c8e164')) 'TEST_CONCRETE_PINS'
+Assert-OverlayTest (-not$text.Contains('ProtectedData')-and-not$text.Contains('Start-Service')-and-not$text.Contains('Stop-Service')-and-not$text.Contains('RunAs')-and-not$text.Contains('password_hash')) 'TEST_NO_SECRET_OR_SERVICE_PATH'
+[pscustomobject]@{state='ROLE_OVERLAY_PS_PURE_TESTS_PASS';parserErrors=0;definitionFunctions=6;nodeArgs=2;gitArgs=9;mockLifecycleCases=12;readerCases=4;actualMultiResultDecoder=$true;privatePathVector=9;connectionConstructionOnly=$true;SQLopens=0;operationalEntryExecuted=$false;OSProbesExecuted=$false;processesStarted=0}|ConvertTo-Json -Compress
