@@ -81,6 +81,10 @@ function Native-QueryRow($Connection,$Transaction,$Plan,$Values){
   if($reader.Read()-or$reader.NextResult()){throw 'NATIVE_RESULT_ROW_BOUND'};return $row
  }finally{if($null-ne$reader){$reader.Dispose()};$cmd.Dispose()}
 }
+function New-NativeReadConnectionBuilder {
+ # Explicit CLR setters avoid PowerShell's IDictionary keyword adapter.
+ $b=[Data.SqlClient.SqlConnectionStringBuilder]::new();$b.set_DataSource('lpc:Semih\MELISAERP');$b.set_InitialCatalog('MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210');$b.set_IntegratedSecurity($true);$b.set_Encrypt($false);$b.set_Pooling($false);$b.set_ConnectTimeout(10);$b.set_ApplicationName('DB9 R1 finite native read');return ,$b
+}
 function Invoke-NativeOwner {
  $ErrorActionPreference='Stop';$script:NativeHeld=[Collections.Generic.List[IO.FileStream]]::new();$claim=$null;$exclusive=$null;$connection=$null;$transaction=$null;$phase='HOST';$decision=$null;$read=$null;$partial=@{};$exit=1;$resultPath=$script:NativeA+'/empty-v7-personnel-native-'+$OperationId+'-result.json'
  try{
@@ -100,8 +104,8 @@ function Invoke-NativeOwner {
   Native-NoReparse $script:NativeA;$exclusive=[IO.File]::Open(($script:NativeA+'/empty-v7-personnel-native.owner.lock'),'OpenOrCreate','ReadWrite','None');$claim=[IO.File]::Open(($script:NativeA+'/empty-v7-personnel-native-'+$OperationId+'.claimed'),'CreateNew','Write','None')
   Native-Lifetime $decision;$plan=Native-Node '--plan' @{phase=$decision.phase;invoiceIds=$decision.invoiceIds};$activation=Native-ReadJson $decision.activationReceipt.path
   $sidBytes=[byte[]]::new($who.User.BinaryLength);$who.User.GetBinaryForm($sidBytes,0);$values=@{ownerSqlSid=$sidBytes;expectedSqlProcessId=[int]$decision.runtime.sqlPid;rosterOperationId=$decision.rosterOperationId;operationId=$OperationId}
-  $builder=[Data.SqlClient.SqlConnectionStringBuilder]::new();$builder.DataSource='lpc:Semih\MELISAERP';$builder.InitialCatalog='MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210';$builder.IntegratedSecurity=$true;$builder.Encrypt=$false;$builder.Pooling=$false;$builder.ConnectTimeout=10;$builder.ApplicationName='DB9 R1 finite native read'
-  $connection=[Data.SqlClient.SqlConnection]::new($builder.ConnectionString);$box=@{tx=$null};$phase='NATIVE_TRANSACTION'
+  $builder=New-NativeReadConnectionBuilder
+  $connection=[Data.SqlClient.SqlConnection]::new($builder.get_ConnectionString());$box=@{tx=$null};$phase='NATIVE_TRANSACTION'
   $read=Invoke-NativeReadLifecycle -Begin {$connection.Open();$box.tx=$connection.BeginTransaction([Data.IsolationLevel]::Serializable)} -Boundary {Native-Lifetime $decision} -Read {$partial.personnelRow=Native-QueryRow $connection $box.tx $plan.personnel $values;$partial.quantitativeRow=Native-QueryRow $connection $box.tx $plan.quantitative $plan.quantitative.bindings;return $partial} -Rollback {$box.tx.Rollback()} -Close {try{$connection.Close();if($connection.State-ne[Data.ConnectionState]::Closed){throw 'NATIVE_CLOSE_STATE'}}finally{if($null-ne$box.tx){$box.tx.Dispose()};$connection.Dispose()}}
   if(-not$read.ok){throw 'NATIVE_TRANSACTION_FAILED'};$phase='PARSE';$observed=Native-Node '--parse' @{request=@{phase=$decision.phase;invoiceIds=$decision.invoiceIds;operationId=$OperationId;rosterOperationId=$decision.rosterOperationId};personnelRow=$partial.personnelRow;quantitativeRow=$partial.quantitativeRow;activationDocument=$activation};if($observed.state-cne'EMPTY_V7_PERSONNEL_NATIVE_OBSERVED'-or$observed.quantitative.identity[0].sqlProcessId-cne[string]$decision.runtime.sqlPid){throw 'NATIVE_PARSE_REJECTED'}
   $result=@{state='EMPTY_V7_PERSONNEL_NATIVE_READ_COMPLETE';operationId=$OperationId;phase=$decision.phase;sourceHead=$decision.sourceHead;decisionSha256=$ExpectedDecisionSha256;packageSha256=$script:NativePackage;runtimeProofSha256=$decision.runtimeProof.sha256;personnelSqlSha256=$plan.personnel.sqlSha256;quantitativeSqlSha256=$plan.quantitative.sqlSha256;rolledBack=$read.rolledBack;rollbackAttempted=$read.rollbackAttempted;closeCompleted=$read.closeCompleted;commitAttempted=$false;sqlWrites=0;observation=$observed};$hash=Native-WriteNew $resultPath $result;[Console]::Out.WriteLine((@{state=$result.state;path=$resultPath;sha256=$hash}|ConvertTo-Json -Compress));$exit=0

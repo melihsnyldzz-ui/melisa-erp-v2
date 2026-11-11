@@ -17,7 +17,7 @@ $r=Invoke-NativeReadLifecycle -Begin {} -Boundary {} -Read {return @{public='sel
 Assert-Native (-not$r.ok-and$r.rolledBack-and-not$r.closeCompleted-and$r.failure.code-ceq'NATIVE_CLOSE_FAILED') 'CLOSE_FAILURE'
 $text=[IO.File]::ReadAllText($file)
 Assert-Native ($text-notmatch'\.Commit\s*\(|Stop-Service|Restart-Service|ProtectedData|\.dpapi|Password\s*=|Invoke-Expression') 'READ_ONLY_OWNER'
-Assert-Native ($text-match"'CreateNew'"-and$text-match"'lpc:Semih\\MELISAERP'"-and$text-match'IntegratedSecurity=\$true') 'TRANSPORT_OUTPUT_BOUNDARY'
+Assert-Native ($text-match"'CreateNew'"-and$text-match"'lpc:Semih\\MELISAERP'"-and$text-match'set_IntegratedSecurity\(\$true\)') 'TRANSPORT_OUTPUT_BOUNDARY'
 Initialize-NativeSupport
 $m=[IO.MemoryStream]::new([byte[]](1..100));try{$b=[EmptyV7PersonnelNativeSupport]::Read($m,100).GetAwaiter().GetResult();Assert-Native ($b.Length-eq100) 'BYTE_BOUND_ACCEPT'}finally{$m.Dispose()}
 $m=[IO.MemoryStream]::new([byte[]](1..101));$bounded=$false;try{[void][EmptyV7PersonnelNativeSupport]::Read($m,100).GetAwaiter().GetResult()}catch{$bounded=$true}finally{$m.Dispose()};Assert-Native $bounded 'BYTE_BOUND_REJECT'
@@ -42,4 +42,11 @@ Assert-Native (-not(Test-NativeBoundReject 2434864 4194304)) 'ACTUAL_ASSEMBLY_LE
 Assert-Native (-not(Test-NativeBoundReject 4194304 4194304)) 'ASSEMBLY_BOUND_INCLUSIVE'
 Assert-Native (Test-NativeBoundReject 4194305 4194304) 'OVER_ASSEMBLY_BOUND_REJECTED'
 Assert-Native (Test-NativeBoundReject 2434864 $defaultMax) 'OTHER_FILES_REMAIN_TWO_MB'
-[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound PASS; SQL connections 0; operational processes 0')
+$clientAssembly=[Data.SqlClient.SqlConnectionStringBuilder].Assembly.Location.Replace('\','/')
+Assert-Native ($clientAssembly-ceq'C:/Users/Xaser/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/System.Data.SqlClient.dll'-and(Get-FileHash -Algorithm SHA256 -LiteralPath $clientAssembly).Hash.ToLowerInvariant()-ceq'526439c8b3326c1f811e827106012cdd868a436ee1154b169609aad129891cb7') 'PINNED_SQLCLIENT_CONSTRUCTOR'
+$builder=New-NativeReadConnectionBuilder
+Assert-Native ($builder.get_DataSource()-ceq'lpc:Semih\MELISAERP'-and$builder.get_InitialCatalog()-ceq'MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210'-and$builder.get_IntegratedSecurity()-and-not$builder.get_Encrypt()-and-not$builder.get_Pooling()-and$builder.get_ConnectTimeout()-eq10-and$builder.get_ApplicationName()-ceq'DB9 R1 finite native read') 'EXACT_SEVEN_CLR_OPTIONS'
+$closedConnection=[Data.SqlClient.SqlConnection]::new($builder.get_ConnectionString());try{Assert-Native ($closedConnection.get_State()-eq[Data.ConnectionState]::Closed) 'CONNECTION_CONSTRUCTED_NOT_OPENED'}finally{$closedConnection.Dispose()}
+$builderAst=$nativeAst.Find({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'New-NativeReadConnectionBuilder'},$true)
+Assert-Native ($builderAst.Extent.Text-notmatch'\.Open\s*\('-and$text-match'\$builder=New-NativeReadConnectionBuilder'-and$text-match'\$builder.get_ConnectionString\(\)') 'MAIN_USES_TESTED_PURE_BUILDER'
+[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound/closed-constructor PASS; SQL opens 0; operational processes 0')
