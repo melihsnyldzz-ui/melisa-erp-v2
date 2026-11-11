@@ -4,7 +4,7 @@ $ErrorActionPreference='Stop'
 $source=Join-Path $PSScriptRoot 'role-overlay-owner.ps1';$tokens=$null;$errors=$null;$ast=[Management.Automation.Language.Parser]::ParseFile($source,[ref]$tokens,[ref]$errors)
 if($errors.Count){throw 'TEST_PARSE'}
 function Assert-OverlayTest($Condition,[string]$Code){if(-not$Condition){throw $Code}}
-foreach($name in @('Invoke-OverlayLifecycle','Overlay-Arguments','Overlay-Git','Initialize-OverlaySupport','New-OverlayConnectionBuilder','Overlay-QuerySets')){$f=$ast.Find({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq$name},$true);if($null-eq$f){throw 'TEST_DEFINITION'};. ([scriptblock]::Create($f.Extent.Text))}
+foreach($name in @('Invoke-OverlayLifecycle','Overlay-Arguments','Overlay-Git','Initialize-OverlaySupport','New-OverlayConnectionBuilder','Overlay-QuerySets','Overlay-Keys','Overlay-Counters')){$f=$ast.Find({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq$name},$true);if($null-eq$f){throw 'TEST_DEFINITION'};. ([scriptblock]::Create($f.Extent.Text))}
 $script:OverlayW='C:/synthetic/overlay';$script:OverlayGit='C:/synthetic/git.exe';$script:OverlayNode='C:/synthetic/node.exe';$script:OverlaySupportReady=$false
 $argsActual=Overlay-Arguments '--plan';Assert-OverlayTest ($argsActual.Count-eq2-and$argsActual[0]-ceq'C:/synthetic/overlay/scripts/desktop-empty/role-overlay-local.mjs'-and$argsActual[1]-ceq'--plan') 'TEST_ACTUAL_NODE_ARGV'
 function Overlay-RunPublicProcess([string]$Executable,[string[]]$Arguments,[string]$InputText='',[int]$Limit=0){$script:Captured=@{exe=$Executable;args=$Arguments};return 'synthetic'}
@@ -35,11 +35,15 @@ $script:FakeCommand|Add-Member ScriptMethod Dispose {$this.Disposed=$true}
 $fakeConnection=[pscustomobject]@{};$fakeConnection|Add-Member ScriptMethod CreateCommand {return $script:FakeCommand}
 $decoded=Overlay-QuerySets $fakeConnection @{} @{sql='NO_SQL_TEST';parameters=@{}} @{}
 Assert-OverlayTest ($decoded.Count-eq2-and$decoded[0].Count-eq1-and$decoded[0][0].state-ceq'PUBLIC'-and$decoded[0][0].userCount-eq7-and$decoded[1][0].usersJson-ceq'[]'-and$script:FakeCommand.Disposed) 'TEST_ACTUAL_MULTI_RESULT_DECODER'
+$script:FakeCounterRows=[Collections.Generic.List[object]]::new();$script:FakeCounterRows.Add(@([ordered]@{roles='12';permissions='90';users='13'}));function Overlay-QuerySets {return ,$script:FakeCounterRows.ToArray()}
+$counters=Overlay-Counters $null $null;Assert-OverlayTest ($counters.roles-ceq'12'-and$counters.permissions-ceq'90'-and$counters.users-ceq'13') 'TEST_ACTUAL_COUNTER_VALIDATOR'
+foreach($value in @('1.5','-1','9007199254740992')){$script:FakeCounterRows[0][0].roles=$value;$rejected=$false;try{[void](Overlay-Counters $null $null)}catch{$rejected=$true};Assert-OverlayTest $rejected 'TEST_COUNTER_BOUND_REJECT'}
 $assignment=$ast.Find({param($n)$n-is[Management.Automation.Language.AssignmentStatementAst]-and$n.Left.Extent.Text-ceq'$expectedPrivate'},$true)
 $paths=& ([scriptblock]::Create($assignment.Right.Extent.Text));Assert-OverlayTest ($paths.Count-eq9-and$paths[0]-ceq'protected-sql-writer-v1/sql-writer.dpapi'-and$paths[8]-ceq'personnel-private-v1/1c6f9175-276d-49eb-803b-23b6c4717a03/login-creditSetup.dpapi') 'TEST_ACTUAL_PRIVATE_PATH_VECTOR'
 $text=[IO.File]::ReadAllText($source)
 Assert-OverlayTest ($text.IndexOf('Overlay-GitSource $e.decision')-lt$text.IndexOf("Overlay-Node '--plan'")) 'TEST_GIT_BEFORE_NODE'
 Assert-OverlayTest ($text.Contains("'None'")) 'TEST_NO_SHARE'
 Assert-OverlayTest ($text.Contains('28c60ef9703eaf97b9affecec1b2caa8154cb7da12ceb972ef219e20828b37b3')-and$text.Contains('d24350686ba9a240aafe16f7bca2734dc9a0fa404b64a23ea2998aa304c8e164')) 'TEST_CONCRETE_PINS'
+Assert-OverlayTest ($text.Contains('ROOT_OVERLAY_APP_OFFLINE_BOTH_LOCKS_V1')-and-not$text.Contains('if($Write){$ports=')) 'TEST_ALL_PHASES_OFFLINE_PROTOCOL'
 Assert-OverlayTest (-not$text.Contains('ProtectedData')-and-not$text.Contains('Start-Service')-and-not$text.Contains('Stop-Service')-and-not$text.Contains('RunAs')-and-not$text.Contains('password_hash')) 'TEST_NO_SECRET_OR_SERVICE_PATH'
-[pscustomobject]@{state='ROLE_OVERLAY_PS_PURE_TESTS_PASS';parserErrors=0;definitionFunctions=6;nodeArgs=2;gitArgs=9;mockLifecycleCases=12;readerCases=4;actualMultiResultDecoder=$true;privatePathVector=9;connectionConstructionOnly=$true;SQLopens=0;operationalEntryExecuted=$false;OSProbesExecuted=$false;processesStarted=0}|ConvertTo-Json -Compress
+[pscustomobject]@{state='ROLE_OVERLAY_PS_PURE_TESTS_PASS';parserErrors=0;definitionFunctions=8;nodeArgs=2;gitArgs=9;mockLifecycleCases=12;readerCases=4;actualCounterCases=4;actualMultiResultDecoder=$true;privatePathVector=9;connectionConstructionOnly=$true;SQLopens=0;operationalEntryExecuted=$false;OSProbesExecuted=$false;processesStarted=0}|ConvertTo-Json -Compress

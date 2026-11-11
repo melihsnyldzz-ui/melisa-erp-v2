@@ -17,7 +17,7 @@ export async function runRoleOverlayOwner({decision,baseline,receipt=null,trialR
  if(d.mode==='apply')need(trialReceipt?.state==='ROLE_OVERLAY_TRIAL_ROLLED_BACK'&&trialReceipt.mode==='trial-rollback'&&trialReceipt.sourceHead===d.sourceHead&&trialReceipt.reviewSha256===d.reviewSha256&&trialReceipt.sqlProcessId===d.sqlProcessId&&trialReceipt.restoreVerified===true&&trialReceipt.operationId===d.trialOperationId&&trialReceipt.operationId!==d.operationId&&trialReceipt.rolledBack===true&&trialReceipt.closed===true&&trialReceipt.committed===false&&trialReceipt.outcomeUnknown===false&&trialReceipt.baselineDigest===d.baselineDigest);
  const boundary=d.mode==='observe'?receipt.after.public.audit.maxId:d.mode==='compensate'?receipt.before.public.audit.maxId:null;
  try{
-  await gate.verify({decision:d,write,sourceOnlyCoordinator:true});
+  await gate.verify({decision:d,write,requiresOfflineApp:true,requiresBothLocks:true,sourceOnlyCoordinator:true});
   tx=await driver.begin({isolation:'SERIALIZABLE',write});started=true;
   const first=one(await tx.query(compileRoleOverlayRead({auditBoundary:boundary})),2);before=parseOverlayRead(...first);
   if(d.mode==='observe')assertOverlayObserved(receipt,before);else need(observationDigest(before)===d.baselineDigest);
