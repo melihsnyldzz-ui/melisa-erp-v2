@@ -44,7 +44,10 @@ function Recovery-Decision($Decision){
  $review=Recovery-PublicReference $Decision.independentSourceReview
  Recovery-Assert ($review.decision -ceq 'GO_SOURCE_ONLY' -and $review.P1P2Findings -eq 0 -and $review.files.core -ceq $ExpectedCoreSha256 -and $review.files.runner -ceq $ExpectedSelfSha256) 'RECOVERY_INDEPENDENT_REVIEW'
  if($Mode -ceq 'BackupRestore'){
+  Recovery-Assert ($Decision.preflight.path -ceq $script:RecoveryA+'/db9-firstsale-recovery-ca3526ae-preflight-result.json' -and $Decision.preflightClosed.path -ceq $script:RecoveryA+'/db9-firstsale-recovery-ca3526ae-preflight-closed.json') 'RECOVERY_PREFLIGHT_REFERENCE_PAIR'
   $preflight=Recovery-PublicReference $Decision.preflight
+  $preflightClosed=Recovery-PublicReference $Decision.preflightClosed
+  Recovery-ValidatePreflightClosed $preflight $preflightClosed $Decision.preflight
   Recovery-Assert ($preflight.state -ceq 'RECOVERY_PREFLIGHT_PASSED_ZERO_SQL_WRITES' -and $preflight.operationId -ceq (Recovery-Names).operationId -and $preflight.roleAppliedReceiptSha256 -ceq $Decision.roleAppliedReceipt.sha256 -and $preflight.finalNativeSnapshotSha256 -ceq $Decision.finalNativeSnapshot.sha256 -and $preflight.sourcePackageSha256 -ceq 'd24350686ba9a240aafe16f7bca2734dc9a0fa404b64a23ea2998aa304c8e164' -and $preflight.coreSha256 -ceq $ExpectedCoreSha256 -and $preflight.runnerSha256 -ceq $ExpectedSelfSha256) 'RECOVERY_PREFLIGHT_BINDING'
   return $preflight
  }
@@ -113,7 +116,7 @@ function Recovery-HoldBackup {
  return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($s)).ToLowerInvariant()
 }
 function Recovery-Run {
- $connection=$null;$locks=[Collections.Generic.List[IO.FileStream]]::new();$phase='INITIAL';$claimed=$false;$backupSubmitted=$false;$restoreSubmitted=$false;$closeCompleted=$false
+ $connection=$null;$locks=[Collections.Generic.List[IO.FileStream]]::new();$phase='INITIAL';$claimed=$false;$backupSubmitted=$false;$restoreSubmitted=$false;$successResultPersisted=$false;$resultState=$null
  $script:recoveryBackupSubmitted=$false;$script:recoveryRestoreSubmitted=$false
  $decisionPath=$script:RecoveryA+'/db9-firstsale-recovery-decision-'+$Mode.ToLowerInvariant()+'-20261111.json'
  $prefix=$script:RecoveryA+'/db9-firstsale-recovery-ca3526ae-'+$Mode.ToLowerInvariant()
@@ -150,7 +153,9 @@ function Recovery-Run {
   foreach($file in $layout.files){Recovery-NoReparse $file.physicalName}
   $before=Recovery-Snapshot $connection (Recovery-Target).database $false
   if($Mode -ceq 'Preflight'){
-   Recovery-WriteNew ($prefix+'-result.json') @{state='RECOVERY_PREFLIGHT_PASSED_ZERO_SQL_WRITES';operationId=(Recovery-Names).operationId;target=(Recovery-Target);names=(Recovery-Names);layout=$layout;capacityRequiredBytes=[string]$required;snapshot=$before;runnerSha256=$ExpectedSelfSha256;coreSha256=$ExpectedCoreSha256;sourcePackageSha256='d24350686ba9a240aafe16f7bca2734dc9a0fa404b64a23ea2998aa304c8e164';roleAppliedReceiptSha256=$decision.roleAppliedReceipt.sha256;finalNativeSnapshotSha256=$decision.finalNativeSnapshot.sha256;sqlWrites=0;observedAtUtc=[DateTime]::UtcNow.ToString('o')}
+   $resultState='RECOVERY_PREFLIGHT_PASSED_ZERO_SQL_WRITES'
+   Recovery-WriteNew ($prefix+'-result.json') @{state=$resultState;mode=$Mode;decisionSha256=$ExpectedDecisionSha256;operationId=(Recovery-Names).operationId;target=(Recovery-Target);names=(Recovery-Names);layout=$layout;capacityRequiredBytes=[string]$required;snapshot=$before;runnerSha256=$ExpectedSelfSha256;coreSha256=$ExpectedCoreSha256;sourcePackageSha256='d24350686ba9a240aafe16f7bca2734dc9a0fa404b64a23ea2998aa304c8e164';roleAppliedReceiptSha256=$decision.roleAppliedReceipt.sha256;finalNativeSnapshotSha256=$decision.finalNativeSnapshot.sha256;sqlWrites=0;observedAtUtc=[DateTime]::UtcNow.ToString('o')}
+   $successResultPersisted=$true
    return
   }
   Recovery-EqualSnapshot $preflight.snapshot $before
@@ -180,19 +185,26 @@ function Recovery-Run {
   Recovery-EqualSnapshot $before $copy;Recovery-EqualSnapshot $before $after
   Recovery-Assert ((Recovery-FileHash (Recovery-Names).backupPath) -ceq $backupSha) 'RECOVERY_BACKUP_CHANGED'
   Recovery-Boundary
-  Recovery-WriteNew ($prefix+'-result.json') @{state='RECOVERY_ACTUAL_COPY_CHECKDB_AND_ALL43_EQUAL';operationId=(Recovery-Names).operationId;target=(Recovery-Target);names=(Recovery-Names);sourceBefore=$before;restoredCopy=$copy;sourceAfter=$after;copyIdentity=$copyCheck;backupSha256=$backupSha;sourceChanged=$false;copyPublicConnectDenyOnlyDifference=$true;writerCanAccessCopy=$false;applicationBootedOnCopy=$false;offMachineCopy=$false;roleAppliedReceiptSha256=$decision.roleAppliedReceipt.sha256;finalNativeSnapshotSha256=$decision.finalNativeSnapshot.sha256;observedAtUtc=[DateTime]::UtcNow.ToString('o')}
+  $resultState='RECOVERY_ACTUAL_COPY_CHECKDB_AND_ALL43_EQUAL'
+  Recovery-WriteNew ($prefix+'-result.json') @{state=$resultState;mode=$Mode;decisionSha256=$ExpectedDecisionSha256;operationId=(Recovery-Names).operationId;target=(Recovery-Target);names=(Recovery-Names);sourceBefore=$before;restoredCopy=$copy;sourceAfter=$after;copyIdentity=$copyCheck;backupSha256=$backupSha;sourceChanged=$false;copyPublicConnectDenyOnlyDifference=$true;writerCanAccessCopy=$false;applicationBootedOnCopy=$false;offMachineCopy=$false;roleAppliedReceiptSha256=$decision.roleAppliedReceipt.sha256;finalNativeSnapshotSha256=$decision.finalNativeSnapshot.sha256;observedAtUtc=[DateTime]::UtcNow.ToString('o')}
+  $successResultPersisted=$true
  }catch{
   $code=if($_.Exception.Message -cmatch '^RECOVERY_[A-Z0-9_]+$'){$_.Exception.Message}else{'RECOVERY_UNCLASSIFIED'}
   $number=if($_.Exception.PSObject.Properties['Number']){[int]$_.Exception.Number}else{$null}
   if($claimed){try{Recovery-WriteNew ($prefix+'-failure.json') @{state='UNKNOWN_NO_RETRY_RETAIN_ALL';phase=$phase;code=$code;number=$number;backupSubmitted=($backupSubmitted -or $script:recoveryBackupSubmitted -eq $true);restoreSubmitted=($restoreSubmitted -or $script:recoveryRestoreSubmitted -eq $true);sqlRollbackClaimed=$false;automaticCleanup=$false;automaticRestart=$false}}catch{}}
   [Console]::Error.WriteLine("RECOVERY_STOPPED phase=$phase code=$code number=$number");throw 'RECOVERY_STOPPED'
  }finally{
-  if($connection){try{$connection.Close();$connection.Dispose();$closeCompleted=$true}catch{[Console]::Error.WriteLine('RECOVERY_CLOSE_NOT_VERIFIED')}}else{$closeCompleted=$true}
-  $releaseCompleted=$true
-  foreach($s in $script:RecoveryHolds){try{$s.Dispose()}catch{$releaseCompleted=$false}}
-  foreach($s in $locks){try{$s.Dispose()}catch{$releaseCompleted=$false}}
-  if($claimed){Recovery-WriteNew ($prefix+'-closed.json') @{connectionCloseCompleted=$closeCompleted;sqlRollbackClaimed=$false;locksReleaseCompleted=$releaseCompleted;lockReleaseOrderedAfterCloseAttempt=$true;time=[DateTime]::UtcNow.ToString('o')}}
-  if(-not $closeCompleted -or -not $releaseCompleted){throw 'RECOVERY_CLOSE_NOT_VERIFIED'}
+  if(Get-Command Recovery-CloseResources -CommandType Function -ErrorAction SilentlyContinue){
+   $closed=Recovery-CloseResources $connection $script:RecoveryHolds $locks
+   $completed=$closed.connectionCloseCompleted -and $closed.connectionDisposeCompleted -and $closed.connectionStateClosed -and $closed.holdsReleaseCompleted -and $closed.locksReleaseCompleted
+   if($claimed){
+    $closed.state=if($completed -and $successResultPersisted){'RECOVERY_LIFECYCLE_CLOSED_AND_RELEASED'}else{'RECOVERY_LIFECYCLE_UNKNOWN_NO_RETRY'}
+    $closed.mode=$Mode;$closed.operationId=(Recovery-Names).operationId;$closed.runnerSha256=$ExpectedSelfSha256;$closed.coreSha256=$ExpectedCoreSha256;$closed.decisionSha256=$ExpectedDecisionSha256
+    $closed.successResultPersisted=$successResultPersisted;$closed.resultPath=$prefix+'-result.json';$closed.resultState=$resultState;$closed.resultSha256=if($successResultPersisted){Recovery-FileHash $closed.resultPath}else{$null}
+    $closed.time=[DateTime]::UtcNow.ToString('o');Recovery-WriteNew ($prefix+'-closed.json') $closed
+   }
+   if(-not $completed){throw 'RECOVERY_CLOSE_NOT_VERIFIED'}
+  }else{foreach($s in $script:RecoveryHolds){$s.Dispose()};foreach($s in $locks){$s.Dispose()}}
  }
 }
 if($MyInvocation.InvocationName -ne '.'){Recovery-Run}

@@ -57,6 +57,7 @@ fresh SHA256 digests; the text below is a contract, not an executable decision.
 | roleAppliedReceipt/finalNativeSnapshot | A-only JSON references `{path,sha256}` to real post-Role evidence |
 | independentSourceReview | A-only JSON reference; `decision=GO_SOURCE_ONLY`, numeric `P1P2Findings=0`, `files.core`/`files.runner` exact source hashes |
 | preflight | BackupRestore only: exact successful Preflight result reference |
+| preflightClosed | BackupRestore only: exact paired Preflight `-closed.json` path/SHA reference; same operation/mode/result path and SHA, decision/source pins, both connection methods and actual lock/hold releases must have succeeded |
 
 The runner also requires `ExpectedSelfSha256`, `ExpectedCoreSha256` and
 `ExpectedDecisionSha256` arguments. Source and decision files are held read-only
@@ -97,9 +98,14 @@ boundary; a historical readiness report alone does not authorize execution.
    excluded from the copy database-security comparison. Original invoice8,
    roles, permissions, stock and cari rows are included in full-table equality;
    no raw invoice/credential body is emitted. Server-security hashes must match.
-8. Close the connection before releasing holds/locks; record actual close and
-   release booleans in a separate CreateNew lifecycle record. A completed data
-   result alone is insufficient without that successful lifecycle record.
+8. Attempt Close and Dispose independently before releasing holds/locks, even if
+   the first call fails. Record each method result, observed Closed state, actual
+   hold/lock release counts and booleans in a separate CreateNew lifecycle record.
+   It binds the same mode/operation, decision/source pins, result path/state/SHA.
+   Any close/dispose/release failure is UNKNOWN_NO_RETRY, even when the other call
+   closes the connection. A completed data result alone is insufficient. The
+   BackupRestore validator itself rejects a missing, failed or mismatched paired
+   Preflight lifecycle record; this is not deferred to an external Root check.
 
 Timeout, lost response, partial result-record write, failed integrity check,
 hash mismatch or collision stops the sequence. Keep all backup/copy/artifacts;

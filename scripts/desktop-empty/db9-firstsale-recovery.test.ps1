@@ -126,14 +126,43 @@ Check 'real decision validator requires postRole authority exact target source r
   $d.personnelExpected.roles=6;Reject {Recovery-Decision $d} 'RECOVERY_ROLE_FINAL_BINDING';$d.personnelExpected.roles=7
   $d.target.databaseId=5;Reject {Recovery-Decision $d} 'RECOVERY_DECISION_TARGET';$d.target.databaseId=9
   $d.coreSha256='c'*64;Reject {Recovery-Decision $d} 'RECOVERY_SOURCE_PINS'
+  $d.coreSha256=$script:ExpectedCoreSha256;$d.mode='BackupRestore';$script:Mode='BackupRestore'
+  Reject {Recovery-Decision $d} 'RECOVERY_PREFLIGHT_REFERENCE_PAIR'
  }finally{${function:Recovery-PublicReference}=$savedReference}
+}
+Check 'paired preflight closure requires same operation mode result hash and actual release' {
+ $p=@{mode='Preflight';operationId=(Recovery-Names).operationId;state='RECOVERY_PREFLIGHT_PASSED_ZERO_SQL_WRITES';decisionSha256='a'*64;runnerSha256='b'*64;coreSha256='c'*64}
+ $r=@{path='C:/public/preflight-result.json';sha256='d'*64}
+ $c=@{state='RECOVERY_LIFECYCLE_CLOSED_AND_RELEASED';mode='Preflight';operationId=$p.operationId;resultPath=$r.path;resultSha256=$r.sha256;resultState=$p.state;decisionSha256=$p.decisionSha256;runnerSha256=$p.runnerSha256;coreSha256=$p.coreSha256;connectionCloseCompleted=$true;connectionDisposeCompleted=$true;connectionStateClosed=$true;holdsReleaseCompleted=$true;locksReleaseCompleted=$true;locksExpectedCount=2;locksReleasedCount=2;successResultPersisted=$true;sqlRollbackClaimed=$false}
+ Recovery-ValidatePreflightClosed $p $c $r
+ Reject {Recovery-ValidatePreflightClosed $p $null $r} 'RECOVERY_PREFLIGHT_CLOSED_SCOPE'
+ $c.mode='BackupRestore';Reject {Recovery-ValidatePreflightClosed $p $c $r} 'RECOVERY_PREFLIGHT_CLOSED_SCOPE';$c.mode='Preflight'
+ $c.resultSha256='e'*64;Reject {Recovery-ValidatePreflightClosed $p $c $r} 'RECOVERY_PREFLIGHT_CLOSED_BINDING';$c.resultSha256=$r.sha256
+ $c.connectionDisposeCompleted=$false;Reject {Recovery-ValidatePreflightClosed $p $c $r} 'RECOVERY_PREFLIGHT_CLOSE_NOT_VERIFIED';$c.connectionDisposeCompleted=$true
+ $c.locksReleasedCount=1;Reject {Recovery-ValidatePreflightClosed $p $c $r} 'RECOVERY_PREFLIGHT_CLOSE_NOT_VERIFIED'
+}
+function Fixture-Disposable([bool]$Fail=$false){
+ $d=[pscustomobject]@{Fail=$Fail;Attempts=0};$d|Add-Member ScriptMethod Dispose {$this.Attempts++;if($this.Fail){throw 'fake-dispose'}};return $d
+}
+Check 'production Close and Dispose independent faults release actual flags' {
+ foreach($failure in @('none','close','dispose','lock')){
+  $connection=[pscustomobject]@{State='Open';CloseAttempts=0;DisposeAttempts=0;FailClose=($failure -ceq 'close');FailDispose=($failure -ceq 'dispose')}
+  $connection|Add-Member ScriptMethod Close {$this.CloseAttempts++;if($this.FailClose){throw 'fake-close'};$this.State='Closed'}
+  $connection|Add-Member ScriptMethod Dispose {$this.DisposeAttempts++;if($this.FailDispose){throw 'fake-dispose'};$this.State='Closed'}
+  $holds=@((Fixture-Disposable));$locks=@((Fixture-Disposable ($failure -ceq 'lock')),(Fixture-Disposable))
+  $actual=Recovery-CloseResources $connection $holds $locks
+  Assert ($connection.CloseAttempts -eq 1 -and $connection.DisposeAttempts -eq 1 -and $holds[0].Attempts -eq 1 -and $locks[0].Attempts -eq 1 -and $locks[1].Attempts -eq 1) 'CLOSE_DISPOSE_RELEASE_ALL_ATTEMPTED'
+  Assert ($actual.connectionCloseCompleted -eq ($failure -cne 'close') -and $actual.connectionDisposeCompleted -eq ($failure -cne 'dispose') -and $actual.locksReleaseCompleted -eq ($failure -cne 'lock')) 'REAL_CLOSE_FLAGS'
+  Assert ($actual.connectionStateClosed -and $actual.locksExpectedCount -eq 2 -and $actual.locksReleasedCount -eq $(if($failure -ceq 'lock'){1}else{2})) 'REAL_RELEASE_COUNTS'
+ }
 }
 Check 'actual runner AST locks pins close and no operational body evaluated' {
  $run=($runnerDefs|Where-Object Name -ceq 'Recovery-Run').Body.Extent.Text
  Assert ($run.IndexOf('Recovery-Boundary') -lt $run.IndexOf('$connection.Open()')) 'BOUNDARY_BEFORE_OPEN'
  Assert ($run.Contains('[IO.FileShare]::None') -and $run.Contains('desktop-empty-schema.owner.lock') -and $run.Contains('desktop-initial-reader.owner.lock')) 'TWO_NO_SHARE'
- Assert ($run.IndexOf('$connection.Close()') -lt $run.IndexOf('foreach($s in $locks)')) 'CLOSE_BEFORE_UNLOCK'
- Assert ($run.Contains('connectionCloseCompleted=$closeCompleted') -and $run.Contains('sqlRollbackClaimed=$false')) 'HONEST_CLOSE_AND_NO_SQL_ROLLBACK'
+ $close=($defs|Where-Object Name -ceq 'Recovery-CloseResources').Body.Extent.Text
+ Assert ($close.IndexOf('$Connection.Close()') -lt $close.IndexOf('foreach($lock in $Locks)') -and $close.IndexOf('$Connection.Dispose()') -lt $close.IndexOf('foreach($lock in $Locks)')) 'CLOSE_BEFORE_UNLOCK'
+ Assert ($close.Contains('connectionCloseCompleted=$closeCompleted') -and $close.Contains('sqlRollbackClaimed=$false') -and $run.Contains("'RECOVERY_LIFECYCLE_UNKNOWN_NO_RETRY'")) 'HONEST_CLOSE_AND_NO_SQL_ROLLBACK'
  $all=$runnerAst.Extent.Text
  Assert ($all -notmatch '(?i)(Start-Process|Stop-Process|Restart-Service|Stop-Service|Start-Service|Remove-Item|\.Kill\(|\.BeginTransaction\()') 'NO_OS_ACTION_OR_TRANSACTED_BACKUP'
  $builder=($runnerDefs|Where-Object Name -ceq 'Recovery-NewConnection').Body.Extent.Text

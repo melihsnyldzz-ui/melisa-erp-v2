@@ -167,3 +167,21 @@ function Recovery-Phase([string]$Name,[scriptblock]$Intent,[scriptblock]$Invoke,
  & $Intent $Name
  try{$value=& $Invoke;& $Result $Name $value;return $value}catch{throw 'RECOVERY_UNKNOWN_NO_RETRY'}
 }
+function Recovery-ValidatePreflightClosed($Preflight,$Closed,$Reference){
+ Recovery-Assert ($Closed.state -ceq 'RECOVERY_LIFECYCLE_CLOSED_AND_RELEASED' -and $Closed.mode -ceq 'Preflight' -and $Preflight.mode -ceq 'Preflight' -and $Closed.operationId -ceq (Recovery-Names).operationId -and $Closed.operationId -ceq $Preflight.operationId) 'RECOVERY_PREFLIGHT_CLOSED_SCOPE'
+ Recovery-Assert ($Closed.resultPath -ceq $Reference.path -and $Closed.resultSha256 -ceq $Reference.sha256 -and $Closed.resultSha256 -cmatch '^[a-f0-9]{64}$' -and $Closed.resultState -ceq $Preflight.state -and $Closed.decisionSha256 -ceq $Preflight.decisionSha256 -and $Closed.decisionSha256 -cmatch '^[a-f0-9]{64}$' -and $Closed.runnerSha256 -ceq $Preflight.runnerSha256 -and $Closed.coreSha256 -ceq $Preflight.coreSha256) 'RECOVERY_PREFLIGHT_CLOSED_BINDING'
+ Recovery-Assert ($Closed.connectionCloseCompleted -ceq $true -and $Closed.connectionDisposeCompleted -ceq $true -and $Closed.connectionStateClosed -ceq $true -and $Closed.holdsReleaseCompleted -ceq $true -and $Closed.locksReleaseCompleted -ceq $true -and $Closed.locksExpectedCount -eq 2 -and $Closed.locksReleasedCount -eq 2 -and $Closed.successResultPersisted -ceq $true -and $Closed.sqlRollbackClaimed -ceq $false) 'RECOVERY_PREFLIGHT_CLOSE_NOT_VERIFIED'
+}
+function Recovery-CloseResources($Connection,$Holds,$Locks){
+ $closeCompleted=$null -eq $Connection;$disposeCompleted=$null -eq $Connection;$stateClosed=$null -eq $Connection
+ if($null -ne $Connection){
+  try{$Connection.Close();$closeCompleted=$true}catch{}
+  # Dispose must be attempted even if Close threw. Neither failure is hidden.
+  try{$Connection.Dispose();$disposeCompleted=$true}catch{}
+  try{$stateClosed=[string]$Connection.State -ceq 'Closed'}catch{$stateClosed=$false}
+ }
+ $holdsOk=$true;$locksOk=$true;$released=0
+ foreach($hold in $Holds){try{$hold.Dispose()}catch{$holdsOk=$false}}
+ foreach($lock in $Locks){try{$lock.Dispose();$released++}catch{$locksOk=$false}}
+ return @{connectionCloseCompleted=$closeCompleted;connectionDisposeCompleted=$disposeCompleted;connectionStateClosed=$stateClosed;holdsReleaseCompleted=$holdsOk;locksReleaseCompleted=$locksOk;locksExpectedCount=@($Locks).Count;locksReleasedCount=$released;sqlRollbackClaimed=$false}
+}
