@@ -18,6 +18,19 @@ test('two distinct products share one authenticated transaction and invoice scop
   const bound=bindInvoice({customerId:'2',lines:[{productId:'5'},{productId:'9'}]},'12');
   assert.equal(f.api.verifyScope({transaction:args.transaction,scope:bound,invoiceId:'12'}),true);
  });
- for(const productIds of [['5','5'],['5'],['5','9','10']])await assert.rejects(f.api.withScope({...rest,productIds},()=>{}));
+ for(const productIds of [['5','5'],[],['5','9','10']])await assert.rejects(f.api.withScope({...rest,productIds},()=>{}));
  await assert.rejects(f.api.withScope({...multi,productId},()=>{}));
+});
+
+test('one-element selection retains transaction, product and invoice binding',async()=>{
+ const f=setup(),{productId,...rest}=args;
+ await f.api.withScope({...rest,productIds:['5']},async({scope,bindInvoice})=>{
+  assert.deepEqual(scope.productIds,['5']);
+  assert.equal(f.api.verifyScope({transaction:args.transaction,scope,productId:'5'}),true);
+  assert.equal(f.api.verifyScope({transaction:args.transaction,scope,productId:'9'}),false);
+  assert.throws(()=>bindInvoice({customerId:'2',lines:[]},'12'));
+  assert.throws(()=>bindInvoice({customerId:'2',lines:[{productId:'5'},{productId:'9'}]},'12'));
+  const bound=bindInvoice({customerId:'2',lines:[{productId:'5'}]},'12');
+  assert.equal(f.api.verifyScope({transaction:args.transaction,scope:bound,invoiceId:'12',productId:'5'}),true);
+ });
 });

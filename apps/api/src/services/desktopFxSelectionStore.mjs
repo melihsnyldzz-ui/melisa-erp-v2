@@ -20,7 +20,7 @@ export const DESKTOP_FX_MISSING_PRICE_SQL=`SELECT CONVERT(int,CASE WHEN EXISTS(
 export function createDesktopFxSelectionStore({sql,verifyScope}={}){
  if(typeof sql?.Request!=='function'||typeof sql?.NVarChar!=='function'||typeof verifyScope!=='function')fail();
  return async function select({transaction,scope,customerId,productIds,currencySelection,documentDate}={}){
-  const selected=desktopSaleCurrencySelection(currencySelection);if(!transaction||!scope||!id(customerId)||!Array.isArray(productIds)||productIds.length!==2||productIds.some(v=>!id(v))||new Set(productIds).size!==2)fail();const rows=new Map(),reserved=new Map();let customer;
+  const selected=desktopSaleCurrencySelection(currencySelection);if(!transaction||!scope||!id(customerId)||!Array.isArray(productIds)||productIds.length<1||productIds.length>2||Array.from(productIds).some(v=>!id(v))||new Set(productIds).size!==productIds.length)fail();const rows=new Map(),reserved=new Map();let customer;
   for(const productId of [...productIds].sort((a,b)=>BigInt(a)<BigInt(b)?-1:1)){
    if(await verifyScope({transaction,scope,customerId,productId})!==true)fail();const result=await new sql.Request(transaction).input('customerId',sql.NVarChar(20),customerId).input('productId',sql.NVarChar(20),productId).input('accountId',sql.NVarChar(20),selected.accountId).input('documentCurrency',sql.NVarChar(3),selected.documentCurrency).query(DESKTOP_FX_SELECTION_SQL);
    if(!Array.isArray(result?.recordsets)||result.recordsets.length!==2||result.recordsets.some(rs=>!Array.isArray(rs))||result.recordsets[0].length!==1||result.recordsets[1].length>1)fail();const c=result.recordsets[0][0];

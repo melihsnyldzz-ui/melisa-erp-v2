@@ -1,4 +1,23 @@
 import test from 'node:test';import assert from 'node:assert/strict';
+
+test('singleton persisted workflow reopens with exact totals and rejects empty, excessive or duplicate selections',async t=>{
+ const pool={},connector={},auth={bindWorkflowReadService:v=>v};let allowed=true,commits=0,rollbacks=0;
+ const first={itemId:'1',productId:'5',stockCode:'P5',name:'Bir',barcode:null,quantityExact3:'2.000',unitPriceExact4:'10.0000',lineTotalExact4:'20.0000'};
+ let selected=[first],packed=[{itemId:'1',productId:'5',cartonNo:1,quantityExact3:'2.000'}];
+ class Transaction{async begin(){this.open=true;}async commit(){commits++;this.open=false;}async rollback(){rollbacks++;this.open=false;}}
+ class Request{constructor(tx){assert.equal(tx.open,true);this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){
+  if(q.includes('FROM dbo.desktop_sale_workflows w'))return {recordset:[{invoiceId:'12',customerId:'2',customerName:'Ada',documentNo:'DS-ONE',documentDate:'2026-11-05',invoiceState:'DRAFT',currency:'TRY',totalExact4:'20.0000',subtotalExact4:'20.0000',discountRateExact4:'0.0000',discountTotalExact4:'0.0000',workflowState:'CHECKED',version:'0x0000000000000001'}]};
+  return {recordsets:[selected,packed]};
+ }}
+ const sql={Transaction,Request,NVarChar:()=>{},ISOLATION_LEVEL:{SERIALIZABLE:4}};
+ t.mock.module('mssql',{exports:{default:sql}});
+ t.mock.module('../config/desktopWriteTlsConnector.mjs',{exports:{getDesktopWritePool:c=>{assert.equal(c,connector);return pool;},getDesktopWriteProfile:()=> 'desktop-master-v6'}});
+ t.mock.module('./desktopWriteAuthCore.mjs',{exports:{getDesktopWriteSalesReadScope:()=>()=> 'own',getDesktopWriteSessionVerifier:()=>async request=>{assert.equal(request.permission,'sales.view');return allowed;}}});
+ const {createDesktopWorkflowReadService}=await import('./desktopWorkflowReadService.mjs?singleton-test'),service=createDesktopWorkflowReadService({connector,auth});
+ const value=await service.read('8','12');assert.equal(value.items.length,1);assert.equal(value.items[0].productId,'5');assert.equal(value.totalExact4,'20.0000');assert.equal(commits,1);
+ for(const selection of [[],[first,{...first,itemId:'2'}],[first,{...first,itemId:'2',productId:'9'},{...first,itemId:'3',productId:'10'}]]){selected=selection;await assert.rejects(service.read('8','12'));}
+ selected=[first];packed=[];await assert.rejects(service.read('8','12'));packed=[{itemId:'1',productId:'5',cartonNo:1,quantityExact3:'2.000'}];allowed=false;await assert.rejects(service.read('8','12'));assert.equal(commits,1);assert.equal(rollbacks,5);
+});
 test('workflow reopens persisted two-line invoice and cartons using current sales.view transaction',async t=>{
  const pool={},connector={},auth={bindWorkflowReadService:v=>v};let allowed=true,commits=0,rollbacks=0,asked,headerPatch={},profile='desktop-master-v6',dueRow=null,mode='own',owner='8',queries=[];
  class Transaction{async begin(){this.open=true;}async commit(){commits++;this.open=false;}async rollback(){rollbacks++;this.open=false;}}

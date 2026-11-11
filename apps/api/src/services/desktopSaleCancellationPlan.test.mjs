@@ -15,6 +15,16 @@ test('discounted EUR document reverses its actual posted TRY amounts and only se
  assert.equal(p.accountAfterExact8,'1.45500000');assert.equal(p.customerAfterExact4,'104.3200');assert.equal(p.preserveLegacyBalance,true);
  assert.equal(p.customerMovement.balanceEffectExact4,'-1.2804');assert.equal(p.customerMovement.amountTryExact4,'51.2160');assert.equal(p.customerCurrency,'TRY');assert(Object.isFrozen(p));assert(Object.isFrozen(p.stock[0]));
 });
+
+test('one-product cancellation reverses exactly its saved stock and selected-account posting',()=>{
+ const s=fixture();s.items.pop();s.stockMovements.pop();s.reservations.pop();
+ Object.assign(s.invoice,{totalExact4:'0.5820',accountAmountExact4:'0.6402',amountTryExact4:'25.6080'});
+ Object.assign(s.customerMovements[0],{amountExact4:'0.5820',accountAmountExact4:'0.6402',balanceEffectExact4:'0.6402',amountTryExact4:'25.6080'});
+ const before=structuredClone(s),p=prepareDesktopSaleCancellation(s);
+ assert.deepEqual(s,before);assert.equal(p.stock.length,1);assert.equal(p.stock[0].stockAfterExact3,'8.000');
+ assert.equal(p.stock[0].amountTryExact4,'-25.6080');assert.equal(p.accountAfterExact8,'2.09520000');assert.equal(p.customerAfterExact4,'104.3200');
+ for(const alter of [v=>v.items=[],v=>v.stockMovements=[],v=>v.reservations=[],v=>v.items.push(structuredClone(v.items[0]),structuredClone(v.items[0]))]){const invalid=structuredClone(s);alter(invalid);assert.throws(()=>prepareDesktopSaleCancellation(invalid));}
+});
 test('TRY account reverses legacy and account balances by identical net document amount',()=>{
  const s=fixture();Object.assign(s.invoice,{currency:'TRY',accountCurrency:'TRY',accountId:'2',totalExact4:'23.2800',accountAmountExact4:'23.2800',amountTryExact4:'23.2800'});Object.assign(s.account,{id:'2',currency:'TRY',balanceExact8:'104.32000000'});Object.assign(s.customerMovements[0],{accountId:'2',currency:'TRY',accountCurrency:'TRY',amountExact4:'23.2800',accountAmountExact4:'23.2800',balanceEffectExact4:'23.2800',amountTryExact4:'23.2800'});for(const m of s.stockMovements)m.amountTryExact4='11.6400';
  const p=prepareDesktopSaleCancellation(s);assert.equal(p.accountAfterExact8,'81.04000000');assert.equal(p.customerAfterExact4,'81.0400');assert.equal(p.preserveLegacyBalance,false);

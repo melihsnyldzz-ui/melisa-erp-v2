@@ -47,3 +47,9 @@ test('manager unknown approval preserves the original command across reload, rev
  enabled=true;assert.equal((await createDesktopSalesApprovals(args).retry()).state,'UNKNOWN');assert.deepEqual(calls[0],calls[1]);assert.equal(ids,1);
  enabled=false;assert.deepEqual(await createDesktopSalesApprovals(args).resolve(),{state:'COMMITTED',summary:null});assert.equal(ids,1);assert.equal(storage.getItem('melisa.desktop.sales-approval.pending.v1.7'),null);
 });
+
+
+test('single-line approval summary binds its one line and one price, preserving the normal durable request',async()=>{
+ const d={...structuredClone(draft),items:[{productId:'8',quantityExact3:'2.000'}],pricing:{...draft.pricing,unitPricesExact4:['11.5000']}},q={currency:'TRY',lines:[{productId:'8',quantityExact3:'2.000',unitPriceExact4:'11.5000',lineTotalExact4:'23.0000'}],subtotalExact4:'23.0000',discountRateExact4:'5.5000',discountTotalExact4:'1.2650',totalExact4:'21.7350',belowCostWarning:false},one={...summary,items:d.items,unitPricesExact4:d.pricing.unitPricesExact4,draft:d,quote:q};assert.equal(isSalesApprovalSummary(one),true);assert.equal(isSalesApprovalSummary({...one,quote:{...q,lines:[...q.lines,{...q.lines[0],productId:'1'}]}}),false);assert.equal(isSalesApprovalSummary({...one,draft:{...d,pricing:{...d.pricing,unitPricesExact4:['11.5000',null]}}}),false);
+ const storage=memory(),calls=[];let lost=true;const args={actorId:'7',storage,locks,newId:()=>u,getPolicy:()=>policy,transport:async(kind,body,id)=>{calls.push(JSON.stringify({kind,body,id}));if(lost)throw Error('lost');return one;}};const c=createDesktopSalesApprovals(args);assert.equal((await c.create(d)).state,'UNKNOWN');lost=false;assert.equal((await createDesktopSalesApprovals(args).retry()).state,'COMMITTED');assert.equal(calls[0],calls[1]);assert.equal(c.pending(),null);
+});

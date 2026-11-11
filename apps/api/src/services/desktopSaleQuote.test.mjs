@@ -5,6 +5,12 @@ function fixture({q='2.000',p='12.0000',q2='1.000',p2='10.0000',rate='3.0000',co
  const rows=[['8',q,p],['1',q2,p2]],items=rows.map(([id,quantity,unitPrice])=>({productId:Number(id),quantity:Number(quantity),unitPrice:Number(unitPrice),currency:'TRY'}));
  return {normalizeSalesPayload,discountRateExact4:rate,maxDiscountRateExact4:'3.0000',prepared:{invoice:{documentNo:'PREVIEW',documentDate:'2026-11-06',customerId:2,documentCurrency:'TRY',customerCurrency:'TRY',exchangeRate:1,accountExchangeRate:1,items},expected:{lines:rows.map(([productId,quantityExact3,unitPriceExact4])=>({productId,quantityExact3,unitPriceExact4,lineTotalExact4:(Number(quantityExact3)*Number(unitPriceExact4)).toFixed(4)}))}},locked:{products:rows.map(([, ,priceExact4])=>({priceExact4,averageCostTryExact4:cost}))}};
 }
+test('a singleton preview totals only the selected line and rejects unmatched or extra native lines',()=>{
+ const f=fixture();f.prepared.invoice.items=f.prepared.invoice.items.slice(0,1);f.prepared.expected.lines=f.prepared.expected.lines.slice(0,1);f.locked.products=f.locked.products.slice(0,1);
+ const out=desktopSaleQuote(f);assert.equal(out.lines.length,1);assert.equal(out.subtotalExact4,'24.0000');assert.equal(out.discountTotalExact4,'0.7200');assert.equal(out.totalExact4,'23.2800');
+ assert.throws(()=>desktopSaleQuote({...f,locked:{products:[]}}));
+ assert.throws(()=>desktopSaleQuote({...f,normalizeSalesPayload:payload=>{const n=normalizeSalesPayload(payload);return {...n,items:[...n.items,...n.items]};}}));
+});
 test('PR54 native normalization agrees with the independent exact invoice percentage',()=>{
  const result=desktopSaleQuote(fixture());assert.equal(result.subtotalExact4,'34.0000');assert.equal(result.discountTotalExact4,'1.0200');assert.equal(result.totalExact4,'32.9800');assert.equal(result.lines[0].quantityExact3,'2.000');assert.equal(result.lines[0].unitPriceExact4,'12.0000');assert.equal(result.lines[0].lineTotalExact4,'24.0000');assert.equal(result.writeSupported,false);assert.equal(result.belowCostWarning,false);
  const series=desktopSaleQuote(fixture({q:'12.000'}));assert.equal(series.subtotalExact4,'154.0000');assert.equal(series.discountTotalExact4,'4.6200');assert.equal(series.totalExact4,'149.3800');

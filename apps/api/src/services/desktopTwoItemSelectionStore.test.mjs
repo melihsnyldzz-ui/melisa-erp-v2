@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createDesktopTwoItemSelectionStore} from './desktopTwoItemSelectionStore.mjs';
+test('singleton selection locks exactly its one product; unsupported cardinalities and duplicates do not query',async()=>{
+ const seen=[];class Request{input(k,_type,v){this[k]=v;return this;}async query(){seen.push(this.productId);return {recordsets:[[{id:'2'}],[{id:this.productId}]]};}}
+ const select=createDesktopTwoItemSelectionStore({sql:{Request,NVarChar:()=>null},verifyScope:async()=>true}),base={transaction:{},scope:{},customerId:'2'};
+ assert.deepEqual((await select({...base,productIds:['9']})).products,[{id:'9'}]);assert.deepEqual(seen,['9']);
+ for(const productIds of [[],['9','9'],['9','10','11'],new Array(1)])await assert.rejects(select({...base,productIds}));assert.deepEqual(seen,['9']);
+});
 
 test('locks two products in deterministic order and returns the requested order',async()=>{
  const transaction={},scope={},seen=[];

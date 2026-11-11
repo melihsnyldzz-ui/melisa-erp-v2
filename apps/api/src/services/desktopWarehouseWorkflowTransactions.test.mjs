@@ -1,8 +1,8 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {createDesktopWarehouseWorkflowTransactions} from './desktopSaleWorkflowTransactions.mjs';
-function fixture(){
+function fixture(single=false){
  let state={state:'DRAFT',status:'draft',version:1,reservations:[],cartons:[],packed:[],journal:{},sent:null,prepared:null,checked:null,audits:0,stockRows:0,customerRows:0};let loseAck=false,allowed=true,view=true,stock='5.000',corrupt=false,failAudit=false;
- const lines=[{itemId:'1',productId:'5',quantityExact3:'2.000'},{itemId:'2',productId:'9',quantityExact3:'1.000'}],version=d=>'0x'+d.version.toString(16).toUpperCase().padStart(16,'0');
+ const lines=[{itemId:'1',productId:'5',quantityExact3:'2.000'},{itemId:'2',productId:'9',quantityExact3:'1.000'}].slice(0,single?1:2),version=d=>'0x'+d.version.toString(16).toUpperCase().padStart(16,'0');
  class Transaction{async begin(){this.data=structuredClone(state);}async commit(){state=structuredClone(this.data);if(loseAck){loseAck=false;throw Error('ACK lost');}}async rollback(){}}
  class Request{constructor(tx){this.tx=tx;this.p={};}input(k,_t,v){this.p[k]=v;return this;}async query(q){const d=this.tx.data,p=this.p,rows=recordset=>({recordset});
   if(q.includes('FROM dbo.desktop_sale_request_resolutions'))return rows([]);
@@ -31,6 +31,12 @@ function fixture(){
 test('warehouse reservation and cartons replay once without stock or cari effects',async()=>{
  const f=fixture(),prepare=f.command('PREPARE');f.lose();assert.equal((await f.service.transition('8',prepare)).state,'UNKNOWN');assert.equal(f.state().reservations.length,2);assert.equal((await f.service.transition('8',prepare)).replayed,true);
  const boxes=[{cartonNo:1,items:[{itemId:'1',quantityExact3:'2.000'},{itemId:'2',quantityExact3:'1.000'}]}];assert.equal((await f.service.transition('8',f.command('SAVE_CARTONS',boxes))).workflowState,'PREPARING');assert.equal((await f.service.transition('8',f.command('READY'))).workflowState,'READY');assert.equal(f.state().stockRows,0);assert.equal(f.state().customerRows,0);assert.equal(Object.keys(f.state().journal).length,3);
+});
+
+test('warehouse prepares and packs a singleton without creating a second reservation',async()=>{
+ const f=fixture(true),prepare=f.command('PREPARE');assert.equal((await f.service.transition('8',prepare)).workflowState,'PREPARING');assert.equal((await f.service.transition('8',prepare)).replayed,true);assert.equal(f.state().reservations.length,1);
+ assert.equal((await f.service.transition('8',f.command('SAVE_CARTONS',[{cartonNo:1,items:[{itemId:'1',quantityExact3:'2.000'}]}]))).workflowState,'PREPARING');
+ assert.equal((await f.service.transition('8',f.command('READY'))).workflowState,'READY');assert.equal(f.state().stockRows,0);assert.equal(f.state().customerRows,0);assert.equal(Object.keys(f.state().journal).length,3);
 });
 test('warehouse rejects CHECK/CANCEL, altered replay, wrong actor and revoked permission',async()=>{
  const f=fixture(),p=f.command('PREPARE');await f.service.transition('8',p);const before=structuredClone(f.state());for(const cmd of [f.command('CHECK'),f.command('CANCEL'),{...p,expectedVersion:'0x0000000000000099'}])assert.equal((await f.service.transition('8',cmd)).state,'UNKNOWN');assert.equal((await f.service.transition('9',p)).state,'UNKNOWN');f.deny();assert.equal((await f.service.transition('8',f.command('READY'))).state,'UNKNOWN');assert.deepEqual(f.state(),before);

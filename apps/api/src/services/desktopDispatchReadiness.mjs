@@ -6,7 +6,7 @@ const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=900719925
 const amount=v=>{if(typeof v!=='string'||!/^(?:0|[1-9]\d{0,12})\.\d{3}$/.test(v))fail();return BigInt(v.replace('.',''));};
 export function assertDesktopDispatchReadiness(snapshot){
  if(!snapshot||snapshot.workflowState!=='CHECKED'||snapshot.invoiceState!=='draft'||!id(snapshot.invoiceId)||
-  !Array.isArray(snapshot.lines)||snapshot.lines.length!==2||!Array.isArray(snapshot.reservations)||snapshot.reservations.length!==2||
+  !Array.isArray(snapshot.lines)||snapshot.lines.length<1||snapshot.lines.length>2||!Array.isArray(snapshot.reservations)||snapshot.reservations.length!==snapshot.lines.length||
   !Array.isArray(snapshot.cartonItems)||snapshot.cartonItems.length<1||snapshot.cartonItems.length>200)fail();
  const lines=new Map(),products=new Set();
  for(const line of snapshot.lines){

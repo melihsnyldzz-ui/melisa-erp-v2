@@ -18,8 +18,8 @@ function validate(kind,payload){
  if(!Object.hasOwn(keys,kind)||!payload||Object.keys(payload).sort().join(',')!==keys[kind]||discounted&&(typeof payload.discountRateExact4!=='string'||!/^(?:0|[1-9]\d?)\.\d{4}$/.test(payload.discountRateExact4)||(!pricing&&BigInt(payload.discountRateExact4.replace('.',''))>30000n)))fail();
  if(kind!=='draft'&&(!id(payload.invoiceId)||typeof payload.expectedVersion!=='string'||!/^0x[0-9A-F]{16}$/.test(payload.expectedVersion)))fail();
  if(kind==='transition'&&(!Object.hasOwn(states,payload.operation)||!Array.isArray(payload.cartons)))fail();
- if(kind==='draft'&&(!id(payload.customerId)||!Array.isArray(payload.items)||payload.items.length!==2||typeof payload.expectedRevision!=='string'||!/^[a-f0-9]{64}$/.test(payload.expectedRevision)))fail();
- if(kind==='dispatch'&&(!id(payload.customerId)||!Array.isArray(payload.productIds)||payload.productIds.length!==2||payload.productIds.some(v=>!id(v))||new Set(payload.productIds).size!==2))fail();
+ if(kind==='draft'&&(!id(payload.customerId)||!Array.isArray(payload.items)||![1,2].includes(payload.items.length)||[...payload.items].some(item=>!id(item?.productId))||new Set(payload.items.map(item=>item.productId)).size!==payload.items.length||pricing&&payload.pricing.unitPricesExact4.length!==payload.items.length||typeof payload.expectedRevision!=='string'||!/^[a-f0-9]{64}$/.test(payload.expectedRevision)))fail();
+ if(kind==='dispatch'&&(!id(payload.customerId)||!Array.isArray(payload.productIds)||![1,2].includes(payload.productIds.length)||[...payload.productIds].some(v=>!id(v))||new Set(payload.productIds).size!==payload.productIds.length))fail();
  if(kind==='cancel')desktopSaleCancellationReason(payload.reason);
  const text=JSON.stringify(payload);if(text.length>32768)fail();return JSON.parse(text);
 }
