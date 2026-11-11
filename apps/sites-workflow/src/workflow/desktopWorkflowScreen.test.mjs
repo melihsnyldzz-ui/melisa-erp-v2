@@ -1,6 +1,58 @@
 // Controller event regression; this does not replace a normal browser test.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {mountDesktopWorkflowScreen} from './desktopWorkflowScreen.mjs';
+async function creditGateFixture(){
+ const node=root(),tick=()=>new Promise(r=>setImmediate(r)),writes=[],retries=[],resolves=[];
+ const record={invoiceId:'6',customerId:'2',customerName:'Test',documentNo:'T6',documentDate:'2026-11-11',workflowState:'CHECKED',version:'0x0000000000002873',currency:'TRY',totalExact4:'12.0000',items:[{itemId:'1',productId:'9',quantityExact3:'1.000',stockCode:'P9'}],cartonItems:[]};
+ const status={invoiceId:'6',expectedVersion:record.version,customerId:'2',accountId:'7',currency:'TRY',definition:{limitExact8:'80.00000000',revision:'a'.repeat(64)},balanceExact8:'82.44000000',amountExact4:'12.0000',projectedBalanceExact8:'94.44000000',approvalRequired:true,vadeStatus:'unknown'};
+ const approved={id:'4',actorId:'8',snapshot:structuredClone(status),status:'APPROVED',expiresAt:Date.now()+600000};
+ let rows=[],pending=null,denied=false;
+ const credit={pending:()=>null,readInvoice:async()=>structuredClone(status),list:async()=>{if(denied)throw Error('Kredi listesi okunamadı.');return {requests:structuredClone(rows),limited:true,canApprove:false};},readDueInvoice:async()=>({invoiceId:'6',expectedVersion:record.version,customerId:'2',accountId:'7',currency:'TRY',documentDate:record.documentDate,amountExact4:'12.0000',termsDefinition:{termDays:30,revision:'b'.repeat(64)}}),listDueRequests:async()=>({requests:[],limited:true,canApprove:false}),createDueRequest(){},approveDue(){}};
+ const original={kind:'dispatch',body:{requestId:'aa4d9e05-f30e-4e60-b2dc-50857307e32d',invoiceId:'6',customerId:'2',expectedVersion:record.version,productIds:['9']}};
+ const controller={pending:()=>pending,read:async()=>structuredClone(record),create:async(kind,body)=>{writes.push({kind,body});pending=structuredClone(original);return {state:'UNKNOWN'};},retry:async()=>{retries.push(structuredClone(pending));return {state:'UNKNOWN'};},resolve:async()=>{resolves.push(structuredClone(pending));return {state:'UNKNOWN'};}};
+ const screen=mountDesktopWorkflowScreen({root:node,core:{sale:()=>controller,credit:()=>credit},storage:{getItem:k=>k.includes('.last.')?'6':null,setItem(){},removeItem(){}},actorId:'8'});await tick();
+ return {node,tick,writes,retries,resolves,status,approved,record,original,screen,setRows:r=>{rows=r;},deny:()=>{denied=true;},pending:()=>pending};
+}
+
+test('checked credit and defined due30 remain separate; missing approval blocks a forced fresh dispatch',async()=>{
+ const f=await creditGateFixture();assert.equal(f.node.querySelector('[data-confirm]').disabled,true);
+ f.node.querySelector('[data-credit-check]').events.click();await f.tick();f.node.querySelector('[data-due-check]').events.click();await f.tick();
+ assert.match(f.node.innerHTML,/Mevcut vade: 30 gün/);assert.doesNotMatch(f.node.innerHTML,/Vade tanımı henüz yok/);assert.match(f.node.innerHTML,/94.44000000/);assert.match(f.node.innerHTML,/güncel kredi onayı gerekiyor/);
+ f.node.querySelector('[data-confirm]').events.click();assert.equal(f.node.querySelector('[data-dispatch]'),null);assert.equal(f.writes.length,0);f.screen.dispose();
+});
+
+test('fresh dispatch needs own unexpired approved credit snapshot; stale variants never send',async()=>{
+ for(const mode of ['missing','pending','expired','consumed','version','balance','revision','actor','amount','approved']){
+  const f=await creditGateFixture(),row=structuredClone(f.approved);
+  if(mode==='pending'){row.status='PENDING';row.expiresAt=null;}if(mode==='expired')row.expiresAt=1;if(mode==='consumed')row.status='CONSUMED';if(mode==='version')row.snapshot.expectedVersion='0x0000000000002872';if(mode==='balance'){row.snapshot.balanceExact8='83.44000000';row.snapshot.projectedBalanceExact8='95.44000000';}if(mode==='revision')row.snapshot.definition.revision='c'.repeat(64);if(mode==='actor')row.actorId='9';if(mode==='amount'){row.snapshot.amountExact4='13.0000';row.snapshot.projectedBalanceExact8='95.44000000';}
+  f.setRows(mode==='missing'?[]:[row]);f.node.querySelector('[data-credit-check]').events.click();await f.tick();f.node.querySelector('[data-credit-list]').events.click();await f.tick();
+  assert.equal(f.node.querySelector('[data-confirm]').disabled,mode!=='approved',mode);f.node.querySelector('[data-confirm]').events.click();
+  if(mode==='approved'){await f.node.querySelector('[data-dispatch]').events.click();assert.equal(f.writes.length,1);assert.deepEqual(f.writes[0].body,{customerId:'2',invoiceId:'6',expectedVersion:f.record.version,productIds:['9']});}
+  else {assert.equal(f.node.querySelector('[data-dispatch]'),null);assert.equal(f.writes.length,0,mode);}f.screen.dispose();
+ }
+});
+
+test('credit expiration and denied refresh block held dispatch callbacks; UNKNOWN retry and resolve keep original request',async()=>{
+ const f=await creditGateFixture();f.setRows([f.approved]);f.node.querySelector('[data-credit-check]').events.click();await f.tick();f.node.querySelector('[data-credit-list]').events.click();await f.tick();f.node.querySelector('[data-confirm]').events.click();const held=f.node.querySelector('[data-dispatch]').events.click;
+ // The current approval expires after the confirm screen was drawn.
+ const realNow=Date.now;Date.now=()=>f.approved.expiresAt+1;try{await held();}finally{Date.now=realNow;}assert.equal(f.writes.length,0);assert.match(f.node.innerHTML,/Güncel kredi durumunu/);
+ f.deny();f.node.querySelector('[data-credit-list]').events.click();await f.tick();assert.match(f.node.innerHTML,/Kredi listesi okunamadı/);assert.equal(f.node.querySelector('[data-confirm]').disabled,true);await held();assert.equal(f.writes.length,0);f.screen.dispose();
+ const g=await creditGateFixture();g.setRows([g.approved]);g.node.querySelector('[data-credit-check]').events.click();await g.tick();g.node.querySelector('[data-credit-list]').events.click();await g.tick();g.node.querySelector('[data-confirm]').events.click();await g.node.querySelector('[data-dispatch]').events.click();assert(g.pending());
+ // No credit proof is refreshed during retry/resolution, and no fresh dispatch is created.
+ g.setRows([]);g.node.querySelector('[data-credit-list]').events.click();await g.tick();await g.node.querySelector('[data-retry]').events.click();g.node.querySelector('[data-resolve]').events.click();await g.tick();
+ assert.equal(g.writes.length,1);assert.deepEqual(g.retries,[g.original]);assert.deepEqual(g.resolves,[g.original]);assert.deepEqual(g.pending(),g.original);g.screen.dispose();
+});
+
+test('under-limit current credit permits normal dispatch without an approval, while mismatched account context never does',async()=>{
+ for(const mode of ['under-limit','customer','currency','account-amount','fx-account']){
+  const f=await creditGateFixture();f.status.definition.limitExact8='100.00000000';f.status.approvalRequired=false;
+  if(mode==='customer')f.status.customerId='3';if(mode==='currency')f.status.currency='USD';if(mode==='account-amount')f.record.accountAmountExact4='13.0000';if(mode==='fx-account')f.record.currencySelection={accountId:'99'};
+  f.node.querySelector('[data-refresh]').events.click();await f.tick();f.node.querySelector('[data-credit-check]').events.click();await f.tick();
+  assert.equal(f.node.querySelector('[data-confirm]').disabled,mode!=='under-limit',mode);f.node.querySelector('[data-confirm]').events.click();
+  if(mode==='under-limit'){await f.node.querySelector('[data-dispatch]').events.click();assert.equal(f.writes.length,1);}else assert.equal(f.writes.length,0);f.screen.dispose();
+ }
+});
+
 test('normal receipt displays sent prepared and checked personnel as honest IDs or unspecified legacy values',async()=>{
  for(const staff of [{sentBy:'30007',preparedBy:'30007',checkedBy:'30002'},{sentBy:'30002',preparedBy:'30002',checkedBy:'30002'},{sentBy:null,preparedBy:null,checkedBy:null}]){
   const node=root(),record={invoiceId:'15',documentNo:'F15',customerId:'2',customerName:'Deneme',documentDate:'2026-11-09',workflowState:'COMPLETED',version:'0x0000000000000015',currency:'TRY',totalExact4:'24.0000',items:[],cartonItems:[],...staff};let reads=0;
@@ -267,21 +319,32 @@ test('sales-view-only approver opens both approval panels without product custom
 
 
 async function managerPinnedApprovalFixture(){
- const node=root(),tick=()=>new Promise(r=>setImmediate(r)),posts=[],reads=[],local=new Map(),session=new Map();let mode='pending',ids=0;
+ const node=root(),tick=()=>new Promise(r=>setImmediate(r)),posts=[],reads=[],local=new Map(),session=new Map();let mode='pending',ids=0,completed=false;
  const memory=m=>({getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,v),removeItem:k=>m.delete(k)}),now=Date.now(),policy={version:1,actorId:'8',revision:'b'.repeat(64),canChangeSalePrice:false,maxDiscountRateExact4:'5.0000',canApproveUpToFive:true,canApproveAboveFive:false};
  const draft={customerId:'2',documentDate:'2026-11-09',expectedRevision:'a'.repeat(64),items:[{productId:'10',quantityExact3:'1.000'},{productId:'11',quantityExact3:'1.000'}],discountRateExact4:'5.0000',pricing:{version:1,policyRevision:policy.revision,unitPricesExact4:[null,null],approvalId:null}};
  const row={id:'12',actorId:'7',requestId:'da171000-6f42-4f19-8cab-9f4539618647',customerId:'2',documentDate:draft.documentDate,discountRateExact4:draft.discountRateExact4,items:draft.items,unitPricesExact4:draft.pricing.unitPricesExact4,status:'PENDING',approvalId:null,createdAt:now,expiresAt:now+600000,decision:null,invoice:null,draft,quote:{currency:'TRY',lines:draft.items.map(x=>({...x,unitPriceExact4:'12.0000',lineTotalExact4:'12.0000'})),subtotalExact4:'24.0000',discountRateExact4:'5.0000',discountTotalExact4:'1.2000',totalExact4:'22.8000',belowCostWarning:false}};
  const envelope=data=>({ok:true,json:async()=>({success:true,data})});
  const core=createDesktopWriteGreenCore({location:{origin:'http://127.0.0.1:5294'},localStorage:memory(local),sessionStorage:memory(session),locks:{request:async(_k,_o,fn)=>fn({})},newId:()=>{ids++;return 'ab171000-6f42-4f19-8cab-9f4539618647';},fetch:async(url,opts)=>{
   if(url.endsWith('/api/auth/login'))return envelope({accessToken:'one.two.three',user:{id:8,username:'normal-manager',permissions:['sales.view']}});
-  if(url.endsWith('/api/desktop-sale/discount-requests/12/approve')){posts.push({url,body:JSON.parse(opts.body)});return {ok:false,status:503,json:async()=>({success:false})};}
-  if(url.endsWith('/api/desktop-sale/discount-requests/12')){reads.push('12');if(mode==='unavailable')return {ok:false,status:503,json:async()=>({success:false})};return envelope(mode==='expired'?{...row,createdAt:1,expiresAt:600001}:row);}
-  if(url.endsWith('/api/desktop-sale/discount-requests'))return envelope({salesPolicy:mode==='policy-lost'?{...policy,canApproveUpToFive:false}:policy,requests:mode==='policy-lost'?[]:Array.from({length:50},(_,i)=>({...row,id:String(100+i),requestId:'12345678-1234-4123-8123-'+String(100+i).padStart(12,'0')}))});
+  if(url.endsWith('/api/desktop-sale/discount-requests/12/approve')){posts.push({url,body:JSON.parse(opts.body)});if(mode.startsWith('commit')){completed=true;const decidedAt=now+1;return envelope({...row,status:'APPROVED',approvalId:'77',decision:{actorId:'8',reason:JSON.parse(opts.body).reason,decidedAt},expiresAt:decidedAt+600000});}return {ok:false,status:503,json:async()=>({success:false})};}
+  if(url.endsWith('/api/desktop-sale/discount-requests/12')){reads.push('12');if(completed)return {ok:false,status:403,json:async()=>({success:false})};if(mode==='unavailable')return {ok:false,status:503,json:async()=>({success:false})};return envelope(mode==='expired'?{...row,createdAt:1,expiresAt:600001}:row);}
+  if(url.endsWith('/api/desktop-sale/discount-requests')){if(completed&&mode==='commit-list-denied')return {ok:false,status:403,json:async()=>({success:false})};return envelope({salesPolicy:mode==='policy-lost'?{...policy,canApproveUpToFive:false}:policy,requests:mode==='policy-lost'?[]:Array.from({length:50},(_,i)=>({...row,id:String(100+i),requestId:'12345678-1234-4123-8123-'+String(100+i).padStart(12,'0')}))});}
   throw Error('unexpected endpoint');
  }});await core.login('normal-manager','synthetic-test-value');
  const screen=mountDesktopWorkflowScreen({root:node,core,storage:memory(local),actorId:'8'});await tick();node.querySelector('[data-approvals]').events.click();await tick();node.querySelector('[data-approval-id]').value='12';node.querySelector('[data-approval-open]').events.click();await tick();
  return {node,screen,posts,reads,tick,core,setMode:v=>{mode=v;},ids:()=>ids};
 }
+test('committed manager approval clears pending-only opened request without reading it outside scope; real list denial stays an error',async()=>{
+ for(const mode of ['commit','commit-list-denied']){
+  const f=await managerPinnedApprovalFixture();assert.deepEqual(f.reads,['12']);f.setMode(mode);
+  f.node.querySelector('[data-approval-reason="12"]').value='Normal approval';f.node.querySelector('[data-approval-approve="12"]').events.click();await f.tick();
+  assert.equal(f.posts.length,1);assert.equal(f.ids(),1);assert.equal(f.core.salesApprovals().pending(),null);assert.deepEqual(f.reads,['12']);
+  assert.equal(f.node.querySelector('[data-approval-approve="12"]'),null);assert.doesNotMatch(f.node.innerHTML,/Açık talep yeniden doğrulanamadı/);
+  if(mode==='commit'){assert.match(f.node.innerHTML,/İstek onaylandı/);assert.doesNotMatch(f.node.innerHTML,/doğrulanamadı/);}else{assert.doesNotMatch(f.node.innerHTML,/İstek onaylandı/);assert.match(f.node.innerHTML,/erişim|doğrulanamadı|reddedildi/i);}
+  f.screen.dispose();
+ }
+});
+
 test('real normal facade revalidates a pinned request outside latest50 on refresh, preserving one exact-ID approval command',async()=>{
  const f=await managerPinnedApprovalFixture();assert.equal(f.node.querySelectorAll('[data-approval-approve]').length,51);assert(f.node.querySelector('[data-approval-approve="12"]'));
  f.node.querySelector('[data-approval-refresh]').events.click();await f.tick();assert.deepEqual(f.reads,['12','12']);assert(f.node.querySelector('[data-approval-approve="12"]'));assert.equal(f.posts.length,0);
