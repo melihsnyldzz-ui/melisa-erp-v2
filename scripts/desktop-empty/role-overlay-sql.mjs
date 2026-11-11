@@ -4,9 +4,10 @@ import {EMPTY_V7_SETUP_TABLES} from './empty-v7-setup-core.mjs';
 import {validateOverlayBaseline,validateOverlayReceipt,OVERLAY_CODE,OVERLAY_KEYS,OVERLAY_SOURCE,ROLE_OVERLAY_HASH_KEYS,id,uuid,need,digest} from './role-overlay-core.mjs';
 const q=s=>"N'"+s.replaceAll("'","''")+"'",json=s=>`COALESCE((${s} FOR JSON PATH,INCLUDE_NULL_VALUES),N'[]')`,one=s=>`(${s} FOR JSON PATH,WITHOUT_ARRAY_WRAPPER,INCLUDE_NULL_VALUES)`;
 const stringId=c=>`CONVERT(varchar(20),${c})`,ver=c=>`LOWER(CONVERT(varchar(18),CONVERT(binary(8),${c}),1))`,date=c=>`CONVERT(varchar(33),${c},126)`,H=c=>`LOWER(CONVERT(varchar(64),HASHBYTES('SHA2_256',CONVERT(varbinary(max),${c})),2))`;
-const users=`SELECT ${stringId('id')} id,username,display_name displayName,${stringId('role_id')} roleId,is_active active,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${stringId('created_by')} createdBy,${stringId('updated_by')} updatedBy,${ver('row_version')} version FROM dbo.users ORDER BY id`;
-const roles=`SELECT ${stringId('id')} id,code,name,description,is_system_role [system],is_active active,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${ver('row_version')} version FROM dbo.roles ORDER BY id`;
-const permissions=`SELECT ${stringId('id')} id,${stringId('role_id')} roleId,permission_key [key],can_view [view],can_create [create],can_update [update],can_delete [delete],can_approve approve,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${ver('row_version')} version FROM dbo.permissions ORDER BY id`;
+// ORDER BY the numeric source column, never the varchar output alias `id`.
+const users=`SELECT ${stringId('u.id')} id,username,display_name displayName,${stringId('role_id')} roleId,is_active active,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${stringId('created_by')} createdBy,${stringId('updated_by')} updatedBy,${ver('row_version')} version FROM dbo.users AS u ORDER BY u.id`;
+const roles=`SELECT ${stringId('r.id')} id,code,name,description,is_system_role [system],is_active active,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${ver('row_version')} version FROM dbo.roles AS r ORDER BY r.id`;
+const permissions=`SELECT ${stringId('p.id')} id,${stringId('role_id')} roleId,permission_key [key],can_view [view],can_create [create],can_update [update],can_delete [delete],can_approve approve,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${ver('row_version')} version FROM dbo.permissions AS p ORDER BY p.id`;
 const policy=`SELECT ${stringId('id')} id,setting_group [group],setting_key [key],setting_value value,value_type valueType,is_active active,${date('created_at')} createdAt,${date('updated_at')} updatedAt,${stringId('created_by')} createdBy,${stringId('updated_by')} updatedBy,${ver('row_version')} version FROM dbo.system_settings WHERE setting_group=N'desktop-sales' AND setting_key=N'individualPolicyV1'`;
 // Audit bodies stay inside SQL's digest. Only bounded count/id/hash are returned.
 const auditRows=where=>`SELECT id,actor_user_id,action,entity_type,entity_id,before_json,after_json,reason,source,ip_address,device_id,created_at FROM dbo.audit_logs ${where} ORDER BY id`;
@@ -49,6 +50,6 @@ DECLARE @overlayPolicy nvarchar(max)=REPLACE(${q(b.policy.value)},N'"actorId":"1
 ${guard(`@overlayPolicy IS NULL OR ${equal('@overlayPolicy',q(b.policy.value))}`,'OVERLAY_POLICY_NO_DELTA')}
 UPDATE dbo.system_settings SET setting_value=@overlayPolicy,updated_at=SYSUTCDATETIME(),updated_by=1 WHERE id=${b.policy.id} AND ${rowVersion(b.policy)};${oneUpdated()}
 ${event(operationId,'apply',before,'@newOverlayRole')}
-SELECT ${stringId('@newOverlayRole')} roleId,${json('SELECT '+stringId('id')+' id FROM @overlayPermissions ORDER BY id')} permissionIdsJson;`;
+SELECT ${stringId('@newOverlayRole')} roleId,${json('SELECT '+stringId('op.id')+' id FROM @overlayPermissions AS op ORDER BY op.id')} permissionIdsJson;`;
  return compiled(sql,{mode,operationId,baselineDigest:digest(before),readAuditBoundary:before.public.audit.maxId,resultSets:['frozen-before','audit-id','inserted-role-permissions']});
 }
