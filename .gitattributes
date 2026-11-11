@@ -19,3 +19,7 @@ scripts/canonical/p03-pr54-new-owner-observe.ps1 -text
 scripts/canonical/p03-pr54-b264-new-owner-recovery.ps1 -text
 scripts/canonical/p03-pr54-b264-old-owner-cut.ps1 -text
 scripts/canonical/clean-b5-pair-start.template.ps1 -text
+# Three public installation-protocol fixtures require their exact SHA256 bytes.
+apps/api/src/config/fixtures/machine-installation-protocol/recovered-794-package.json -text whitespace=cr-at-eol
+apps/api/src/config/fixtures/machine-installation-protocol/recovered-ba54-receipt.json -text whitespace=cr-at-eol
+apps/api/src/config/fixtures/machine-installation-protocol/recovered-0fd-decision.json -text whitespace=cr-at-eol

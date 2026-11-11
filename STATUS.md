@@ -1,3 +1,13 @@
+<!-- EMPTY-PROFILE-RUNTIME-LAUNCH-20261111 -->
+## 11 Kasım — Kurulu ilk yönetici korunarak DB9 runtime açılış kaynağı
+
+Root'un public ba54 makbuzu ve 34af bağımsız kaydı mevcut insan yöneticisini/teknik tamamlanmayı doğruladı; yeni runtime ilk açılışında READY üretmedi. Dar kaynak incelemesi web sunucusunun kaynak-r1 asset köküne sabit kaldığını buldu. Worker artık doğruladığı profil/runtime-root çiftini web katmanına aktarır; yalnız eski R1/null ve DB9/runtime-clean-v7 eşlikleri kabul edilir. Starter env slash şüphesi gerçek PS AST ve JS değerleriyle çürütüldü; env satırı değiştirilmedi. Media/export köklerinde ek açılış hatası bulunmadı.
+
+Yeni source successor, yalnız RECOVERED makbuzun paketinden farklı current paket için ayrı hash bağlı RootUpgradeDecision ister. Orijinal 794 manifesti, ba54 makbuzu, 0fd recovery kararı, 139 attempt, 4286 cipher ve owner1/role1/version0815 aynen korunur; eski recovery eski manifestin executor/wrapper pinleriyle doğrulanır. Current paket/head/admission ayrı kalır; insan/SQL credential değiştirme, hesap/yetki/iş yazısı veya receipt yeniden etiketleme yok. Definition-only alanlar scripts/desktop-empty/empty-v7-runtime-upgrade-contract.json içindedir. Erken worker hatası yalnız sabit faz enumu verir; temizleme sonrası stdin kapanır, host ham stderr/exception mesajı yayımlamaz.
+
+İlk pathless delta taraması8bulgu ile FAILED kaldı; path-aware staged tarama da aynı8publichash konumunu doğruladı. Beş değer değişmemiş kaynak dosyalarının SHA256'ı, üç konum tek public cipher digestidir; bağımsız sınıflama0credential değeri buldu. Yalnız generic-api-key için dört mevcut AND/path-anchor/exact-literal istisna bloğu8dar tuple ile eklendi. Son staged tarama0bulgu PASS; gerçek scanner negative sınırları wrongpath/changeddigest/otherRule retlerini korudu. İlk scanner ve birleşik negative-fixture retleri ayrı kanıtta tutulur; isim/filter/scan-history scope değiştirilmez.
+
+16 hedefli offline test ve ilgili gerçek passive-builder staged closure3/3 PASS: yalıtılmış gerçek dosya sisteminde eski/yeni asset farkı, gerçek worker gövdesinde başarı/erken hata/zero/EOF-cleanup, seçili üç PUBLIC protokol fixture ile gerçek SHA zinciri ve negatifleri. Yeni worker testi mevcut canonical CI adımından, profil testi mevcut API globundan, web testi mevcut canonical seçiminden çalışır. Değişmeyen geniş API2191 grubu ve frontend build yerelde yeniden koşulmadı. Yeni bağımsız source review/exact CI, Root'un ayrı stage/admission/start ve normal ekran kabulü beklenir; kaynak testi runtime/GUI/human/fullERP/LIVE kabulü değildir. Mevcut runtime/private/SQL ve özgün49yaprak/sayaç değişmedi.
 <!-- EMPTY-PROFILE-COMPLETION-RECOVERY-20261111 -->
 ## 11 Kasım — Oluşmuş ilk yönetici için teknik tamamlanma kurtarması; kaynak
 

@@ -39,7 +39,7 @@ public static class MasterV7ReaderPipe{
  public static async Task<byte[]> ReadBounded(Stream s){var b=new byte[1024];using(var m=new MemoryStream())for(;;){int n=await s.ReadAsync(b,0,b.Length).ConfigureAwait(false);if(n==0)return m.ToArray();if(m.Length+n>8192)throw new InvalidDataException();m.Write(b,0,n);}}
 }
 '@
-$owner=$null;$proc=$null;$clear=$null;$stage='CONFIG';$cipher=$null;$held=[Collections.Generic.List[IO.FileStream]]::new()
+$owner=$null;$proc=$null;$procError=$null;$clear=$null;$stage='CONFIG';$cipher=$null;$held=[Collections.Generic.List[IO.FileStream]]::new()
 try{
  if($PSVersionTable.PSVersion -lt [version]'7.5'){throw 'HOST_REJECTED'}
  $id=[Security.Principal.WindowsIdentity]::GetCurrent();$expected=([Security.Principal.NTAccount]::new('SEMIH','Xaser')).Translate([Security.Principal.SecurityIdentifier]);if($id.User.Value -cne $expected.Value){throw 'PROFILE_REJECTED'}
@@ -110,16 +110,23 @@ try{
  if($ExpectedAdmissionSha256){[void]$p.ArgumentList.Add($ExpectedAdmissionSha256)}
  if($TargetProfile){[void]$p.ArgumentList.Add($TargetProfile)}
  $proc=[Diagnostics.Process]::new();$proc.StartInfo=$p;if(-not $proc.Start()){throw 'START_FAILED'}
- $ready=[MasterV7ReaderPipe]::FirstLine($proc.StandardOutput.BaseStream);$err=[MasterV7ReaderPipe]::Drain($proc.StandardError.BaseStream)
+ $ready=[MasterV7ReaderPipe]::FirstLine($proc.StandardOutput.BaseStream);$procError=[MasterV7ReaderPipe]::ReadBounded($proc.StandardError.BaseStream)
  $proc.StandardInput.BaseStream.Write($clear,0,$clear.Length);$proc.StandardInput.BaseStream.Flush();[Security.Cryptography.CryptographicOperations]::ZeroMemory($clear);$clear=$null
  $timer=[Diagnostics.Stopwatch]::StartNew()
- while(-not $ready.IsCompleted){if($err.IsFaulted -or $proc.HasExited -or $timer.ElapsedMilliseconds -ge 60000){throw 'START_FAILED'};Start-Sleep -Milliseconds 100}
+ while(-not $ready.IsCompleted){if($procError.IsFaulted -or $proc.HasExited -or $timer.ElapsedMilliseconds -ge 60000){throw 'START_FAILED'};Start-Sleep -Milliseconds 100}
  if($ready.GetAwaiter().GetResult() -cne 'DESKTOP_MASTER_V7_READY'){throw 'START_FAILED'}
  $extra=[MasterV7ReaderPipe]::Drain($proc.StandardOutput.BaseStream)
  [Console]::WriteLine('ERP ilk açılış kontrolü: http://127.0.0.1:5294 — ilk satis TEST')
- while(-not $proc.WaitForExit(1000)){if($err.IsFaulted -or $extra.IsFaulted){throw 'CHILD_OUTPUT_REJECTED'}}
+ while(-not $proc.WaitForExit(1000)){if($procError.IsFaulted -or $extra.IsFaulted){throw 'CHILD_OUTPUT_REJECTED'}}
  if($proc.ExitCode -ne 0){throw 'CHILD_STOPPED'}
-}catch{[Console]::Error.WriteLine('MASTER_V7_RUNTIME_START_FAILED');exit 1}
+}catch{
+ # Only an exact static worker phase is public; never echo dependency/driver stderr.
+ try{if($null -ne $proc -and $proc.HasExited -and $null -ne $procError -and $procError.Wait(1000) -and $procError.IsCompletedSuccessfully){
+  $diagnostic=[Text.UTF8Encoding]::new($false,$true).GetString($procError.GetAwaiter().GetResult())
+  if($diagnostic -cmatch '\AMASTER_V7_START_FAILED:(INITIALIZE|PUBLIC_PROFILE|MANIFEST|PUBLIC_BINDING|DEPENDENCIES|SOURCES|PUBLIC_CERTIFICATE|PRIVATE_INPUT|TLS|APPLICATION|API_LISTEN|WEB_LISTEN|OWNER_PIPE)\r?\n(?:MASTER_V7_CLOSE_FAILED\r?\n)?\z'){[Console]::Error.WriteLine('MASTER_V7_START_FAILED:'+$Matches[1])}
+ }}catch{}
+ [Console]::Error.WriteLine('MASTER_V7_RUNTIME_START_FAILED');exit 1
+}
 finally{
  if($null -ne $clear){[Security.Cryptography.CryptographicOperations]::ZeroMemory($clear)}
  if($null -ne $proc){try{if(-not $proc.HasExited){$proc.StandardInput.Close();if(-not $proc.WaitForExit(10000)){try{$proc.Kill()}catch{};$proc.WaitForExit()}}}catch{};$proc.Dispose()}

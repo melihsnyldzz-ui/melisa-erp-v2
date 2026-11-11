@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
-import {assertDesktopV7ProfileBindings,EMPTY_V7_PROFILE_ID,EMPTY_V7_PUBLIC_PATH,LEGACY_V7_PUBLIC_PATH,EMPTY_V7_RECEIPT_PATH,EMPTY_V7_PACKAGE_PATH,EMPTY_V7_ADMISSION_DIRECTORY,EMPTY_V7_RECOVERED_STATE,EMPTY_V7_RECOVERY_DECISION_PATH} from '../../apps/api/src/config/desktopEmptyV7Profile.mjs';
+import {assertDesktopV7ProfileBindings,EMPTY_V7_PROFILE_ID,EMPTY_V7_PUBLIC_PATH,LEGACY_V7_PUBLIC_PATH,EMPTY_V7_RECEIPT_PATH,EMPTY_V7_PACKAGE_PATH,EMPTY_V7_ADMISSION_DIRECTORY,EMPTY_V7_RECOVERED_STATE,EMPTY_V7_RECOVERY_DECISION_PATH,EMPTY_V7_RUNTIME_UPGRADE_DIRECTORY,EMPTY_V7_RECOVERED_SETUP_HISTORY_PATH,EMPTY_V7_RUNTIME_UPGRADE_ORIGIN} from '../../apps/api/src/config/desktopEmptyV7Profile.mjs';
 const root='C:/Users/Xaser/Desktop/ERP',hash=b=>createHash('sha256').update(b).digest('hex');
 const reject=()=>{throw Error('MASTER_V7_PUBLIC_PROFILE_REJECTED');};
 function read(relative){
@@ -23,7 +23,14 @@ export function readMasterV7Profile(packageHash,expectedAdmissionSha256,targetPr
  if(expectedAdmissionSha256!==undefined&&hash(admissionBytes)!==expectedAdmissionSha256)reject();
  const publicBindingBytes=read(empty?EMPTY_V7_PUBLIC_PATH:LEGACY_V7_PUBLIC_PATH);
  const setupReceiptBytes=empty?read(EMPTY_V7_RECEIPT_PATH):undefined;
- let recoveryDecisionBytes;
- if(empty&&JSON.parse(setupReceiptBytes).state===EMPTY_V7_RECOVERED_STATE){recoveryDecisionBytes=read(EMPTY_V7_RECOVERY_DECISION_PATH);if(hash(recoveryDecisionBytes)!==JSON.parse(setupReceiptBytes).recoveryDecisionSha256)reject();}
- return assertDesktopV7ProfileBindings({packageHash:packageHash.toLowerCase(),packageBytes,admissionBytes,publicBindingBytes,setupReceiptBytes,recoveryDecisionBytes});
+ let recoveryDecisionBytes,setupPackageBytes,runtimeUpgradeDecisionBytes;
+ if(empty&&JSON.parse(setupReceiptBytes).state===EMPTY_V7_RECOVERED_STATE){
+  const receipt=JSON.parse(setupReceiptBytes);recoveryDecisionBytes=read(EMPTY_V7_RECOVERY_DECISION_PATH);if(hash(recoveryDecisionBytes)!==receipt.recoveryDecisionSha256)reject();
+  if(receipt.packageHash!==packageHash.toLowerCase()){
+   if(receipt.packageHash!==EMPTY_V7_RUNTIME_UPGRADE_ORIGIN.packageHash||hash(setupReceiptBytes)!==EMPTY_V7_RUNTIME_UPGRADE_ORIGIN.setupReceiptSha256)reject();
+   setupPackageBytes=read(EMPTY_V7_RECOVERED_SETUP_HISTORY_PATH);if(hash(setupPackageBytes)!==EMPTY_V7_RUNTIME_UPGRADE_ORIGIN.packageHash)reject();
+   runtimeUpgradeDecisionBytes=read(EMPTY_V7_RUNTIME_UPGRADE_DIRECTORY+'/'+packageHash+'.json');
+  }
+ }
+ return assertDesktopV7ProfileBindings({packageHash:packageHash.toLowerCase(),packageBytes,admissionBytes,publicBindingBytes,setupReceiptBytes,recoveryDecisionBytes,setupPackageBytes,runtimeUpgradeDecisionBytes});
 }
