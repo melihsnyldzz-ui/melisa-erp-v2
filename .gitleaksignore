@@ -177,3 +177,8 @@ ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale
 # Public DB9 personnel roster digest; no authentication value.
 # Exact historical fingerprint only; full-history scan retained.
 0eb738665089b4e32c45a55c831ce3ed7a6e174f:scripts/desktop-empty/empty-v7-personnel-password-hash.mjs:generic-api-key:11
+
+# Public system_settings configuration identifier; no authentication value.
+# Exact historical fingerprints only; full-history scan and rules retained.
+4954c741fe53e8a6c1e52b5e28e3628a83c6eafe:scripts/desktop-empty/role-overlay-fixture.mjs:generic-api-key:14
+4954c741fe53e8a6c1e52b5e28e3628a83c6eafe:scripts/desktop-empty/role-overlay-core.mjs:generic-api-key:30

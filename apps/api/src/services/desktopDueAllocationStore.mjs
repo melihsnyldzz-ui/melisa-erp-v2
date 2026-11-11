@@ -15,11 +15,79 @@ export const DUE_ACCOUNT_ROWS_SQL=`SET NOCOUNT ON;
 export const DUE_AUDITS_SQL=`SELECT TOP(30001) CONVERT(varchar(20),id) auditId,CONVERT(varchar(20),actor_user_id) actorId,CONVERT(varchar(20),entity_id) entityId,action,reason,after_json json FROM dbo.audit_logs WITH(UPDLOCK,HOLDLOCK) WHERE source=N'desktop-due-v1' AND ((action=N'invoice.due.snapshot' AND entity_type=N'sales-invoice' AND entity_id IN(SELECT TRY_CONVERT(bigint,value) FROM OPENJSON(@invoiceIds))) OR (action=N'collection.allocation' AND entity_type=N'customer-movement' AND entity_id IN(SELECT TRY_CONVERT(bigint,value) FROM OPENJSON(@movementIds)))) ORDER BY id;`;
 export async function prepareDesktopDueCollection({sql,transaction,actorId,requestId,customerId,accountId,entityId,currency,balanceExact8,amountExact4,invoiceId}={}){
  if(!sql||!transaction||![actorId,customerId,accountId,entityId].every(id)||currency!=='TRY'||!uuid(requestId)||invoiceId!==null||!decimal(amountExact4)||scaled(amountExact4)<=0n||typeof balanceExact8!=='string'||!/^(?:0|[1-9]\d{0,19})\.\d{8}$/.test(balanceExact8))fail();
- const rs=(await makeReq(sql,transaction,{customer:customerId,account:accountId,entity:entityId}).query(DUE_ACCOUNT_ROWS_SQL))?.recordsets;if(!Array.isArray(rs)||rs.length!==2||!Array.isArray(rs[0])||!Array.isArray(rs[1])||rs[0].length>10000||rs[1].length>20000)fail();const [invoices,movements]=rs,ids=new Set();for(const i of invoices){if(!id(i.invoiceId)||ids.has(i.invoiceId)||i.customerId!==customerId||i.entityId!==entityId||i.accountId!==accountId||i.currency!==currency||i.status!=='finalized'||!decimal(i.amountExact4)||scaled(i.amountExact4)<=0n)fail();ids.add(i.invoiceId);}
- const movementIds=new Set(),originals=new Map(),collections=[];for(const m of movements){if(!id(m.movementId)||movementIds.has(m.movementId)||m.customerId!==customerId||m.entityId!==entityId||m.accountId!==accountId||m.currency!==currency||!decimal(m.amountExact4)||scaled(m.amountExact4)<=0n)fail();movementIds.add(m.movementId);if(m.movementType==='sales_invoice'){if(!ids.has(m.invoiceId)||m.balanceEffectExact4!==m.amountExact4||originals.has(m.invoiceId))fail();originals.set(m.invoiceId,m);}else if(m.movementType==='collection'){if(m.invoiceId!==null||m.balanceEffectExact4!=='-'+m.amountExact4||m.documentCurrency!==currency||m.documentAmountExact4!==m.amountExact4)fail();collections.push(m);}else fail();}
- for(const i of invoices){const m=originals.get(i.invoiceId);if(!m||m.amountExact4!==i.amountExact4||m.documentCurrency!==i.documentCurrency||m.documentAmountExact4!==i.documentAmountExact4||m.documentDate!==i.documentDate)fail();}const audits=(await makeReq(sql,transaction,{invoiceIds:JSON.stringify([...ids]),movementIds:JSON.stringify(collections.map(m=>m.movementId))}).query(DUE_AUDITS_SQL))?.recordset;if(!Array.isArray(audits)||audits.length>30000)fail();const dues=new Map(),allocs=new Map();for(const a of audits){if(!id(a.auditId)||!id(a.actorId)||!id(a.entityId))fail();const v=json(a.json);if(a.action==='invoice.due.snapshot'){if(!isDesktopInvoiceDueSnapshot(v)||v.dueDate===null)fail();const i=invoices.find(x=>x.invoiceId===a.entityId);if(!i||dues.has(i.invoiceId)||!uuid(v.requestId)||v.actorId!==a.actorId||v.requestId!==a.reason||v.invoiceId!==i.invoiceId||v.customerId!==customerId||v.accountId!==accountId||v.currency!==currency||v.documentDate!==i.documentDate||v.amountExact4!==i.amountExact4)fail();dues.set(i.invoiceId,{auditId:a.auditId,dueDate:v.dueDate});}else if(a.action==='collection.allocation'){shape(v,['version','actorId','requestId','movementId','financeMovementId','customerId','accountId','currency','amountExact4','rows']);if(allocs.has(a.entityId)||v.version!==1||!uuid(v.requestId)||v.actorId!==a.actorId||v.requestId!==a.reason||v.movementId!==a.entityId||v.customerId!==customerId||v.accountId!==accountId||v.currency!==currency||!id(v.financeMovementId))fail();allocs.set(a.entityId,{auditId:a.auditId,value:v});}else fail();}
- if(dues.size!==invoices.length||allocs.size!==collections.length)fail();const open=invoices.map(i=>({invoiceId:i.invoiceId,customerId,accountId,currency,documentDate:i.documentDate,dueDate:dues.get(i.invoiceId).dueDate,remainingExact4:i.amountExact4}));for(const m of collections.sort((a,b)=>BigInt(allocs.get(a.movementId).auditId)<BigInt(allocs.get(b.movementId).auditId)?-1:1)){const proof=allocs.get(m.movementId);if(!proof||proof.value.amountExact4!==m.amountExact4||proof.value.financeMovementId!==m.financeMovementId||m.financeActorId!==proof.value.actorId||m.actorId!==proof.value.actorId||m.financeDirection!=='in'||m.financeCurrency!==currency||m.financeAmountExact4!==m.amountExact4)fail();const eligible=open.filter(i=>BigInt(dues.get(i.invoiceId).auditId)<BigInt(proof.auditId));const plan=desktopAllocateEarliestDue({customerId,accountId,currency,amountExact4:m.amountExact4,invoices:eligible});if(plan.unallocatedExact4!=='0.0000'||JSON.stringify(plan.rows)!==JSON.stringify(proof.value.rows))fail();for(const row of plan.rows)open.find(i=>i.invoiceId===row.invoiceId).remainingExact4=row.remainingExact4;}
- const total=open.reduce((v,i)=>v+scaled(i.remainingExact4),0n);if(total*10000n!==BigInt(balanceExact8.replace('.','')))fail();const plan=desktopAllocateEarliestDue({customerId,accountId,currency,amountExact4,invoices:open});if(plan.unallocatedExact4!=='0.0000')fail();const publicRows=plan.rows.filter(r=>r.allocatedExact4!=='0.0000').map(({invoiceId,dueDate,allocatedExact4,remainingExact4})=>({invoiceId,dueDate,allocatedExact4,remainingExact4}));if(JSON.stringify(publicRows).length>48000||JSON.stringify(plan.rows).length>50000)fail();return Object.freeze({actorId,requestId,customerId,accountId,currency,amountExact4,rows:plan.rows,publicRows});
+ const rs=(await makeReq(sql,transaction,{customer:customerId,account:accountId,entity:entityId}).query(DUE_ACCOUNT_ROWS_SQL))?.recordsets;
+ if(!Array.isArray(rs)||rs.length!==2||!Array.isArray(rs[0])||!Array.isArray(rs[1])||rs[0].length>10000||rs[1].length>20000)fail();
+ const [invoices,movements]=rs,ids=new Set();
+ for(const i of invoices){
+  if(!id(i.invoiceId)||ids.has(i.invoiceId)||i.customerId!==customerId||i.entityId!==entityId||i.accountId!==accountId||i.currency!==currency||!['finalized','cancelled'].includes(i.status)||!decimal(i.amountExact4)||scaled(i.amountExact4)<=0n)fail();
+  ids.add(i.invoiceId);
+ }
+ const movementIds=new Set(),originals=new Map(),cancellations=new Map(),collections=[];
+ for(const m of movements){
+  if(!id(m.movementId)||movementIds.has(m.movementId)||m.customerId!==customerId||m.entityId!==entityId||m.accountId!==accountId||m.currency!==currency||!decimal(m.amountExact4)||scaled(m.amountExact4)<=0n)fail();
+  movementIds.add(m.movementId);
+  if(m.movementType==='sales_invoice'){
+   if(!ids.has(m.invoiceId)||m.balanceEffectExact4!==m.amountExact4||originals.has(m.invoiceId))fail();
+   originals.set(m.invoiceId,m);
+  }else if(m.movementType==='sales_invoice_cancel'){
+   if(!ids.has(m.invoiceId)||cancellations.has(m.invoiceId)||!id(m.actorId)||m.balanceEffectExact4!=='-'+m.amountExact4||[m.financeMovementId,m.financeActorId,m.financeDirection,m.financeCurrency,m.financeAmountExact4].some(v=>v!==null))fail();
+   cancellations.set(m.invoiceId,m);
+  }else if(m.movementType==='collection'){
+   if(m.invoiceId!==null||m.balanceEffectExact4!=='-'+m.amountExact4||m.documentCurrency!==currency||m.documentAmountExact4!==m.amountExact4)fail();
+   collections.push(m);
+  }else fail();
+ }
+ for(const i of invoices){
+  const m=originals.get(i.invoiceId),inverse=cancellations.get(i.invoiceId);
+  if(!m||m.amountExact4!==i.amountExact4||m.documentCurrency!==i.documentCurrency||m.documentAmountExact4!==i.documentAmountExact4||m.documentDate!==i.documentDate)fail();
+  if(i.status==='cancelled'){
+   if(!inverse||BigInt(inverse.movementId)<=BigInt(m.movementId)||inverse.amountExact4!==m.amountExact4||inverse.documentCurrency!==m.documentCurrency||inverse.documentAmountExact4!==m.documentAmountExact4||inverse.documentDate!==m.documentDate)fail();
+  }else if(inverse)fail();
+ }
+ const audits=(await makeReq(sql,transaction,{invoiceIds:JSON.stringify([...ids]),movementIds:JSON.stringify(collections.map(m=>m.movementId))}).query(DUE_AUDITS_SQL))?.recordset;
+ if(!Array.isArray(audits)||audits.length>30000)fail();
+ const dues=new Map(),allocs=new Map();
+ for(const a of audits){
+  if(!id(a.auditId)||!id(a.actorId)||!id(a.entityId))fail();const v=json(a.json);
+  if(a.action==='invoice.due.snapshot'){
+   if(!isDesktopInvoiceDueSnapshot(v)||v.dueDate===null)fail();const i=invoices.find(x=>x.invoiceId===a.entityId);
+   if(!i||dues.has(i.invoiceId)||!uuid(v.requestId)||v.actorId!==a.actorId||v.requestId!==a.reason||v.invoiceId!==i.invoiceId||v.customerId!==customerId||v.accountId!==accountId||v.currency!==currency||v.documentDate!==i.documentDate||v.amountExact4!==i.amountExact4)fail();
+   dues.set(i.invoiceId,{auditId:a.auditId,dueDate:v.dueDate});
+  }else if(a.action==='collection.allocation'){
+   shape(v,['version','actorId','requestId','movementId','financeMovementId','customerId','accountId','currency','amountExact4','rows']);
+   if(allocs.has(a.entityId)||v.version!==1||!uuid(v.requestId)||v.actorId!==a.actorId||v.requestId!==a.reason||v.movementId!==a.entityId||v.customerId!==customerId||v.accountId!==accountId||v.currency!==currency||!id(v.financeMovementId))fail();
+   allocs.set(a.entityId,{auditId:a.auditId,value:v});
+  }else fail();
+ }
+ if(dues.size!==invoices.length||allocs.size!==collections.length)fail();
+ const open=invoices.map(i=>({invoiceId:i.invoiceId,customerId,accountId,currency,documentDate:i.documentDate,dueDate:dues.get(i.invoiceId).dueDate,remainingExact4:i.amountExact4})),openById=new Map(open.map(i=>[i.invoiceId,i])),closed=new Set();
+ // Same-account ledger identities order committed collection/cancellation effects.
+ // Do not erase a cancelled invoice from an older immutable allocation proof.
+ const events=[...collections.map(row=>({kind:'collection',row})),...[...cancellations.values()].map(row=>({kind:'cancellation',row}))].sort((a,b)=>BigInt(a.row.movementId)<BigInt(b.row.movementId)?-1:1);
+ let previousCollectionAudit=0n;
+ for(const event of events){
+  const m=event.row;
+  if(event.kind==='cancellation'){
+   const row=openById.get(m.invoiceId);
+   if(closed.has(m.invoiceId)||row.remainingExact4!==originals.get(m.invoiceId).amountExact4)fail();
+   row.remainingExact4='0.0000';closed.add(m.invoiceId);continue;
+  }
+  const proof=allocs.get(m.movementId);
+  if(!proof||BigInt(proof.auditId)<=previousCollectionAudit||proof.value.amountExact4!==m.amountExact4||proof.value.financeMovementId!==m.financeMovementId||m.financeActorId!==proof.value.actorId||m.actorId!==proof.value.actorId||m.financeDirection!=='in'||m.financeCurrency!==currency||m.financeAmountExact4!==m.amountExact4)fail();
+  previousCollectionAudit=BigInt(proof.auditId);
+  const eligible=open.filter(i=>!closed.has(i.invoiceId)&&BigInt(dues.get(i.invoiceId).auditId)<BigInt(proof.auditId));
+  if(eligible.some(i=>BigInt(originals.get(i.invoiceId).movementId)>=BigInt(m.movementId)))fail();
+  const plan=desktopAllocateEarliestDue({customerId,accountId,currency,amountExact4:m.amountExact4,invoices:eligible});
+  if(plan.unallocatedExact4!=='0.0000'||JSON.stringify(plan.rows)!==JSON.stringify(proof.value.rows))fail();
+  for(const row of plan.rows)openById.get(row.invoiceId).remainingExact4=row.remainingExact4;
+ }
+ const outstanding=open.filter(i=>!closed.has(i.invoiceId)),total=outstanding.reduce((v,i)=>v+scaled(i.remainingExact4),0n);
+ if(total*10000n!==BigInt(balanceExact8.replace('.','')))fail();
+ const plan=desktopAllocateEarliestDue({customerId,accountId,currency,amountExact4,invoices:outstanding});
+ if(plan.unallocatedExact4!=='0.0000')fail();
+ const publicRows=plan.rows.filter(r=>r.allocatedExact4!=='0.0000').map(({invoiceId,dueDate,allocatedExact4,remainingExact4})=>({invoiceId,dueDate,allocatedExact4,remainingExact4}));
+ if(JSON.stringify(publicRows).length>48000||JSON.stringify(plan.rows).length>50000)fail();
+ return Object.freeze({actorId,requestId,customerId,accountId,currency,amountExact4,rows:plan.rows,publicRows});
 }
 export async function recordDesktopDueCollection({sql,transaction,plan,movementId,financeMovementId}={}){if(!id(movementId)||!id(financeMovementId)||!plan||!id(plan.actorId))fail();const value={version:1,actorId:plan.actorId,requestId:plan.requestId,movementId,financeMovementId,customerId:plan.customerId,accountId:plan.accountId,currency:plan.currency,amountExact4:plan.amountExact4,rows:plan.rows},text=JSON.stringify(value),r=await makeReq(sql,transaction,{actor:plan.actorId,movement:movementId,request:plan.requestId,json:text}).query(`/* DUE_ALLOCATION_INSERT */ INSERT dbo.audit_logs(actor_user_id,action,entity_type,entity_id,after_json,reason,source) OUTPUT CONVERT(varchar(20),inserted.id) id VALUES(TRY_CONVERT(bigint,@actor),N'collection.allocation',N'customer-movement',TRY_CONVERT(bigint,@movement),@json,@request,N'desktop-due-v1');`);if(r?.recordset?.length!==1||!id(r.recordset[0].id))fail();const check=(await makeReq(sql,transaction,{id:r.recordset[0].id}).query(`/* DUE_ALLOCATION_READBACK */ SELECT CONVERT(varchar(20),actor_user_id) actorId,CONVERT(varchar(20),entity_id) movementId,reason,after_json json FROM dbo.audit_logs WITH(UPDLOCK,HOLDLOCK) WHERE id=TRY_CONVERT(bigint,@id) AND source=N'desktop-due-v1' AND action=N'collection.allocation' AND entity_type=N'customer-movement';`))?.recordset;if(check?.length!==1||check[0].actorId!==plan.actorId||check[0].movementId!==movementId||check[0].reason!==plan.requestId||check[0].json!==text)fail();return plan.publicRows;}
 
