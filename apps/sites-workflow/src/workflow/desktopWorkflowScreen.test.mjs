@@ -264,13 +264,14 @@ test('no-commit resolution preserves submitted cartons before refreshing and off
  node.querySelector('[data-restore-packing]').events.click();assert.equal(node.querySelector('[data-box]').value,'2.000');assert.equal(screen.requestClose(),false);screen.dispose();
 });
 
-test('draft cancellation requires explicit confirmation and reopens the cancelled record',async()=>{
+test('draft cancellation requires explicit confirmation and a new sale does not inherit its saved status',async()=>{
  const node=root(),storage={getItem:k=>k.includes('.last.')?'12':null,setItem(){},removeItem(){}};let calls=0;
  const record={invoiceId:'12',documentNo:'DS',customerName:'Ada',customerId:'2',documentDate:'2026-11-06',workflowState:'DRAFT',version:'0x0000000000000001',totalExact4:'10.0000',items:[{itemId:'1',productId:'5',stockCode:'P5',name:'Ürün',quantityExact3:'1.000',unitPriceExact4:'10.0000',lineTotalExact4:'10.0000'}],cartonItems:[]};
  const controller={pending:()=>null,read:async()=>structuredClone(record),create:async(kind,payload)=>{calls++;assert.equal(kind,'transition');assert.equal(payload.operation,'CANCEL');assert.equal(payload.expectedVersion,record.version);record.workflowState='CANCELLED';return {state:'COMMITTED',invoiceId:'12',replayed:false};}};
- const screen=mountDesktopWorkflowScreen({root:node,core:{sale:()=>controller},storage,actorId:'8'});await new Promise(resolve=>setImmediate(resolve));assert.equal(node.querySelector('[data-cancel-draft]'),null);
+ const screen=mountDesktopWorkflowScreen({root:node,core:{sale:()=>controller,list:async()=>({data:[],meta:{hasNextPage:false}})},storage,actorId:'8'});await new Promise(resolve=>setImmediate(resolve));assert.equal(node.querySelector('[data-cancel-draft]'),null);
  node.querySelector('[data-start-cancel]').events.click();assert.equal(calls,0);assert.match(node.innerHTML,/ayrılan ürünler serbest bırakılacak/);node.querySelector('[data-keep-draft]').events.click();assert.equal(calls,0);assert.equal(node.querySelector('[data-cancel-draft]'),null);
- node.querySelector('[data-start-cancel]').events.click();node.querySelector('[data-cancel-draft]').events.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,1);assert.match(node.innerHTML,/İptal/);assert.equal(node.querySelector('[data-start-cancel]'),null);assert.equal(node.querySelector('[data-new]').disabled,false);screen.dispose();
+ node.querySelector('[data-start-cancel]').events.click();node.querySelector('[data-cancel-draft]').events.click();await new Promise(resolve=>setImmediate(resolve));assert.equal(calls,1);assert.match(node.innerHTML,/İptal/);assert.equal(node.querySelector('[data-start-cancel]'),null);assert.equal(node.querySelector('[data-new]').disabled,false);assert.equal(node.querySelector('[role="status"]').textContent,'İşlem kaydedildi.');
+ node.querySelector('[data-new]').events.click();await new Promise(resolve=>setImmediate(resolve));assert.ok(node.querySelector('[data-customer]'));assert.equal(node.querySelector('[data-new]'),null);assert.equal(node.querySelector('[data-draft]'),null);assert.equal(node.querySelector('[role="status"]').textContent,'');assert.equal(calls,1);screen.dispose();
 });
 
 test('incomplete saved cartons show a useful warning before any READY request',async()=>{
