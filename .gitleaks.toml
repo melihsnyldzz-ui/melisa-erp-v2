@@ -74,3 +74,41 @@ regexTarget = "secret"
 paths = ['''\Aapps/api/src/services/desktopSalesPolicy\.mjs\z''']
 regexes = ['''\A\QindividualPolicyV1\E\z''']
 commits = ["dc1460a97873026d89997ee22f7cab00c22891fd"]
+
+[[allowlists]]
+description = "Reviewed public CurrentUser cipher SHA256; no cipher or authentication value"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/api/src/config/desktopEmptyV7Profile\.mjs\z''']
+regexes = ['''\A\Q428600a1ac02f785a8d231eed64bb396d1963c334a354d8e90203586065f4ca8\E\z''']
+
+[[allowlists]]
+description = "Reviewed public cipher digest in the exact immutable installation receipt fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/api/src/config/fixtures/machine-installation-protocol/recovered-ba54-receipt\.json\z''']
+regexes = ['''\A\Q428600a1ac02f785a8d231eed64bb396d1963c334a354d8e90203586065f4ca8\E\z''']
+
+[[allowlists]]
+description = "Reviewed public cipher digest in the definition-only runtime upgrade contract"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Ascripts/desktop-empty/empty-v7-runtime-upgrade-contract\.json\z''']
+regexes = ['''\A\Q428600a1ac02f785a8d231eed64bb396d1963c334a354d8e90203586065f4ca8\E\z''']
+
+[[allowlists]]
+description = "Five reviewed public source-file SHA256 values in the exact 794 installation manifest fixture"
+targetRules = ["generic-api-key"]
+condition = "AND"
+regexTarget = "secret"
+paths = ['''\Aapps/api/src/config/fixtures/machine-installation-protocol/recovered-794-package\.json\z''']
+regexes = [
+  '''\A\Q37be7a4096e74de876333dcbf3e6336feffa796bc521f948f74e45347808410b\E\z''',
+  '''\A\Q5d3c890003c8de0212b58a7c89edf78c73f7d5b416370a71042c426c9f375d2c\E\z''',
+  '''\A\Q0b8ae30f64b67125134c9c68cf9d07c536310e5f50191359a929854d0c03c66d\E\z''',
+  '''\A\Qc5f3e7270d1267c23c10c7fd29195016a22aacd55c4e81b305aef698dfb20bf6\E\z''',
+  '''\A\Q358e2ee36cfda03235e0c6ed50239178134f19506347fc406c353e9dfe1d6293\E\z'''
+]

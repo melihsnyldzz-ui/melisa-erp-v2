@@ -1,3 +1,7 @@
+<!-- EMPTY-PROFILE-RUNTIME-LAUNCH-20261111 -->
+## 11 Kasım — Mevcut ilk yönetici korunarak DB9 açılış düzeltmesi; kaynak
+
+Root'un tamamlanmış public794/ba54 teknik kurulum zinciri korunur. Yeni source web root'unu doğrulanmış finite profile ile seçer; yalnız ayrı Root-admitted source successor eski receipt/cipher'i aynı owner/target ile yeniden kullanabilir. Env slash hipotezi AST ile reddedildi ve env satırı değişmedi. Erken boot hatası statik faz + stdin cleanup ile sınırlı gözlenir. Hedefli offline16 ve ilgili isolated passive-package closure3/3 PASS; yeni source review/exactCI ve Root actualstage/start/normalekran henüz beklenir. Yeni parola, SQL/credential/role değişikliği, insan/fullERP/LIVE veya yeni sayaç kapanışı yok. Ayrıntı STATUS ve definition-only runtime-upgrade contract içindedir.
 <!-- EMPTY-PROFILE-COMPLETION-RECOVERY-20261111 -->
 ## 11 Kasım — İlk yönetici sonrası teknik credential tamamlanma kaynağı
 

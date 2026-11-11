@@ -1,0 +1,90 @@
+{
+  "state": "ROOT_EMPTY_V7_TECHNICAL_COMPLETION_RECOVERY_V1",
+  "operationId": "3c8ad9a7-2120-4819-9f86-f3d8ae0d2ba1",
+  "packageHash": "79469cfd9059350979f8a10495c06d6535c90bc1d55225388ce02ae3d22dbd9c",
+  "sourceHead": "69c905428fb6b73b0e3d3398283af9bc7e7d15c2",
+  "executorSha256": "0ece6a5535f08aa5bd6ee8c677c1a240af2f4618fdbd97a645cf925197bd5cd1",
+  "wrapperSha256": "c9f815ef2ebad98f43659827b7a8731c0dab3f6d0dc1a659317bc21fab62cf32",
+  "sourceReviewSha256": "42a5d58997f000f92eb6fa19208ca3604e9183e791c35abb7a241bc5c72245da",
+  "target": {
+    "server": "Semih\\MELISAERP",
+    "database": "MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210",
+    "databaseId": 9,
+    "databaseGuid": "6d773db9-bd69-4906-b791-d63a490ab1f2",
+    "databaseCreateTime": "2026-11-10T11:10:18.030",
+    "environmentId": "287f689a-43bb-43dd-950b-adb615fcb20c",
+    "schemaVersion": 7,
+    "actualT1": false,
+    "externalOperations": false
+  },
+  "originalCase": {
+    "operationId": "a10eb4c7-0e4e-4ec0-a629-5682400a0afc",
+    "decisionSha256": "3723445f5b96bdeb996faa2bf67e845c3011f908942c9b6a65b03203f1d1d52c",
+    "attemptSha256": "c9ddd8eadbf183155697173cb8ff7aa60137761aeccc2a7e29d1a653d9dee2a4",
+    "failureSha256": "3509bac2478530bfa31bfae983e48d5edbf83b98bae93479cf8e465d7710d30f",
+    "observationSha256": "5fec93d4bc2f88d23b177629d69f2cf8735c7f232c608d77d929910f938b12a5",
+    "rowContractSha256": "aecbd5ba4ee5f433fa71f0213d1a827fe6be0ba665910fb4b9f8e31aa142f0d7",
+    "rowContractReviewSha256": "d21287774bfe05f1fecf9d0d9c24bdf89c8c12bd967116ad13136f930ce5aee3",
+    "closedWindowProofSha256": "93f6dda1876fb6d7ec31264029bcaa8b25c3f9d6a0f248c10078c9dacb9e36a0",
+    "packageHash": "d9b52661b5e5d1812723e987786f599d9edfd2d5f78e3895eb936e099058b135",
+    "sourceHead": "0f4bd6e3836a9cddbb5b745cdde0e640e54e499a",
+    "nativeColumnsAcceptanceSha256": "e50ba35c648620e1e0b17a8b26e12c40cdf921e1602422ed95d0c4aaef25d994"
+  },
+  "expectedOwner": {
+    "userId": "1",
+    "roleId": "1",
+    "userVersion": "0000000000000815"
+  },
+  "ownerSid": "S-1-5-21-2170750028-1005938530-2568122015-1001",
+  "processes": [
+    {
+      "pid": 19864,
+      "birth": "2026-11-10T15:29:01.5907520Z",
+      "executable": "C:\\Program Files\\nodejs\\node.exe",
+      "commandLine": "\"C:\\Program Files\\nodejs\\node.exe\" C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v7-worker.mjs 8B45DE675288FF5B30F025F6A162FB052DE4F77DD6A12B6EC8396BFFC6057854",
+      "parentPid": 30416
+    },
+    {
+      "pid": 8440,
+      "birth": "2026-11-10T00:32:27.3873190Z",
+      "executable": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISAERP\\MSSQL\\Binn\\sqlservr.exe",
+      "commandLine": "\"C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISAERP\\MSSQL\\Binn\\sqlservr.exe\" -sMELISAERP",
+      "parentPid": 1400
+    },
+    {
+      "pid": 30416,
+      "birth": "2026-11-10T15:28:48.8644990Z",
+      "executable": "C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe",
+      "commandLine": "\"C:\\Users\\Xaser\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -NoProfile -NonInteractive -File C:\\Users\\Xaser\\Desktop\\ERP\\kaynak-r1\\scripts\\desktop-empty\\start-master-v7.ps1 -ExpectedPackageHash 8B45DE675288FF5B30F025F6A162FB052DE4F77DD6A12B6EC8396BFFC6057854",
+      "parentPid": 41272
+    },
+    {
+      "pid": 4872,
+      "birth": "2026-11-10T00:32:20.4253490Z",
+      "executable": "C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Binn\\sqlservr.exe",
+      "commandLine": "\"C:\\Program Files\\Microsoft SQL Server\\MSSQL16.MELISADEV\\MSSQL\\Binn\\sqlservr.exe\" -sMELISADEV",
+      "parentPid": 1400
+    }
+  ],
+  "existingTechnicalPasswordReplacementAuthorized": true,
+  "preserveHumanOwner": true,
+  "durableCipherBeforeAlterRequired": true,
+  "separateFreshTlsRequired": true,
+  "firstSetupReplayAuthorized": false,
+  "newHumanCredentialAuthorized": false,
+  "newAppPrincipalOrGrantAuthorized": false,
+  "businessWrites": false,
+  "runtimeAction": false,
+  "automaticRetry": false,
+  "createdAt": "2026-11-11T00:10:32.181Z",
+  "codeStageEvidence": {
+    "resultSha256": "2b89efa438bf1f5cba8b2bf7f6b9244bd6177057a80da46c4f764b21ca8718a7",
+    "actualStageReviewSha256": "f8cda931164c7cbb38be102f037efe8e352052301acec65c006cdf704b42ae4d",
+    "pureCompileSha256": "96e8167b31735f8d5ce7b641e7a7009eec839e307c38b8c5779650914382020e",
+    "sourceValidationSha256": "176fde80a98dad845ea815a8d5b487eb6e315211c631693429777e51a47116b7",
+    "ciProofSha256": "9f5d94b1b109188d682d56bc7b87e6719ebf137c70733272454db93c71d469ed",
+    "artifactProofSha256": "42991b501592fd8cc73913514ea4c75c8dfa77c9f32e97f387ee6163df9d3bf3"
+  },
+  "readonlyExistingOwnerEvidenceSha256": "85149cdd005b9b602dc0cb61e7869fbed0bcd5da72589c51739802272c216abf",
+  "fixtureStorageEngineProofSha256": "599a1d4036a81403200d96bb1190eaddeb1c0df03d70b05d7ab63e713bcf2e9a"
+}

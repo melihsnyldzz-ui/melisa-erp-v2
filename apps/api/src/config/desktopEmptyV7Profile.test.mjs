@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import path from 'node:path';
+import vm from 'node:vm';
+import * as profile from './desktopEmptyV7Profile.mjs';
 import {EMPTY_V7_PROFILE_ID as ID,EMPTY_V7_TARGET as target,EMPTY_V7_PUBLIC_BINDING as binding,EMPTY_V7_PUBLIC_PATH as pub,EMPTY_V7_SQL_LOGIN as login,EMPTY_V7_OWNER_GUARD_SQL,EMPTY_V7_OWNER_PERMISSION_KEYS,LEGACY_V7_PUBLIC_PATH,assertDesktopV7ProfileBindings,desktopSqlForProfile} from './desktopEmptyV7Profile.mjs';
 const bytes=x=>Buffer.from(JSON.stringify(x)),sha=b=>createHash('sha256').update(b).digest('hex');
 import {EMPTY_V7_RECOVERED_STATE,EMPTY_V7_RECOVERY_SECRET_PATH,EMPTY_V7_RECOVERY_ORIGINAL_CASE,assertEmptyV7RecoveryDecision} from './desktopEmptyV7Profile.mjs';
+import {EMPTY_V7_RUNTIME_UPGRADE_ORIGIN as origin,EMPTY_V7_PUBLIC_BINDING_TEXT} from './desktopEmptyV7Profile.mjs';
 function fixture(){
  const publicBindingBytes=bytes(binding),pkg={profile:'desktop-master-v7',targetProfile:ID,sourceRoot:'C:/Users/Xaser/Desktop/ERP/runtime-clean-v7',sourceHead:'d'.repeat(40),publicFiles:{[pub]:sha(publicBindingBytes)}},packageBytes=bytes(pkg),packageHash=sha(packageBytes);
  const receipt={state:'EMPTY_V7_FIRST_OWNER_SETUP_COMMITTED',packageHash,target,username:'kurulum',roleCode:'admin',writerLogin:login,businessWrites:false,sqlCredentialCipherSha256:'a'.repeat(64),permissionReadbackSha256:'b'.repeat(64),strictTlsVerified:true,rawRightsVerified:true,effectiveRightsVerified:true,otherDatabaseAccessDenied:true,plaintextPasswordStored:false,windowsProtection:'CurrentUser'},setupReceiptBytes=bytes(receipt);
@@ -44,4 +49,44 @@ test('recovered profile requires a distinct Root decision and truthful post-comm
 test('Root recovery decision rejects replay, changes to the human owner, old-package relabeling, process drift and missing durable storage',()=>{
  const f=recoveredFixture(),d=JSON.parse(f.recoveryDecisionBytes),context={packageHash:f.packageHash,sourceHead:d.sourceHead,executorSha256:d.executorSha256,wrapperSha256:d.wrapperSha256};assert.equal(assertEmptyV7RecoveryDecision(d,context),true);
  for(const patch of [{operationId:d.originalCase.operationId},{packageHash:d.originalCase.packageHash},{sourceHead:d.originalCase.sourceHead},{target:{...target,databaseId:5}},{expectedOwner:{...d.expectedOwner,userId:'2'}},{expectedOwner:{...d.expectedOwner,userVersion:'12345678'}},{originalCase:{}},{processes:d.processes.slice(1)},{processes:d.processes.map((p,i)=>i? p:{...p,birth:'2026-11-10T00:32:27.3873200Z'})},...['existingTechnicalPasswordReplacementAuthorized','preserveHumanOwner','durableCipherBeforeAlterRequired','separateFreshTlsRequired'].map(k=>({[k]:false})),...['firstSetupReplayAuthorized','newHumanCredentialAuthorized','newAppPrincipalOrGrantAuthorized','businessWrites','runtimeAction','automaticRetry'].map(k=>({[k]:true}))])assert.throws(()=>assertEmptyV7RecoveryDecision({...d,...patch},context));
+});
+
+// Selected PUBLIC machine-installation protocol records; no cipher/password/data snapshot.
+function runtimeUpgradeFixture(){
+ const selected=n=>readFileSync(new URL('./fixtures/machine-installation-protocol/'+n,import.meta.url));
+ const setupPackageBytes=selected('recovered-794-package.json'),setupReceiptBytes=selected('recovered-ba54-receipt.json'),recoveryDecisionBytes=selected('recovered-0fd-decision.json');
+ assert.equal(sha(setupPackageBytes),origin.packageHash);assert.equal(sha(setupReceiptBytes),origin.setupReceiptSha256);assert.equal(sha(recoveryDecisionBytes),origin.recoveryDecisionSha256);
+ const receipt=JSON.parse(setupReceiptBytes),pkg=JSON.parse(setupPackageBytes);pkg.sourceHead='e'.repeat(40);
+ // A successor may change these sources. Original recovery must use archived pins.
+ pkg.sources['scripts/desktop-empty/empty-v7-completion-recovery-local.mjs']='9'.repeat(64);pkg.helpers['scripts/desktop-empty/empty-v7-completion-recovery.ps1']='8'.repeat(64);
+ const packageBytes=bytes(pkg),packageHash=sha(packageBytes),publicBindingBytes=Buffer.from(EMPTY_V7_PUBLIC_BINDING_TEXT);
+ const d={state:'ROOT_EMPTY_V7_RUNTIME_SOURCE_UPGRADE_V1',operationId:'dca21182-bbb7-4190-bc80-904f7da50bfa',target,ownerSid:'S-1-5-21-2170750028-1005938530-2568122015-1001',runtimeRoot:'C:/Users/Xaser/Desktop/ERP/runtime-clean-v7',fromPackageHash:origin.packageHash,fromSourceHead:origin.sourceHead,setupManifestSha256:origin.packageHash,setupReceiptSha256:origin.setupReceiptSha256,recoveryDecisionSha256:origin.recoveryDecisionSha256,recoveryAttemptSha256:origin.recoveryAttemptSha256,sqlCredentialCipherSha256:origin.sqlCredentialCipherSha256,toPackageHash:packageHash,toSourceHead:pkg.sourceHead,expectedOwner:{userId:'1',roleId:'1',userVersion:'0000000000000815'},setupActualIndependentReviewSha256:origin.setupActualIndependentReviewSha256,ownerPreservationReadSha256:origin.ownerPreservationReadSha256,sourceReviewSha256:'1'.repeat(64),ciProofSha256:'2'.repeat(64),artifactProofSha256:'3'.repeat(64),runtimeOnly:true,preserveHumanOwner:true,reuseExistingTechnicalCredential:true,humanCredentialTouched:false,technicalCredentialRotationAuthorized:false,userOrRoleWritesAuthorized:false,sqlPermissionChangesAuthorized:false,businessWritesAuthorized:false,SQLWritesAuthorized:false,automaticRetry:false};
+ const runtimeUpgradeDecisionBytes=bytes(d),admission={state:'MASTER_V7_RUNTIME_ADMITTED',packageHash:packageHash.toUpperCase(),sourceHead:pkg.sourceHead,target,strictTlsVerified:true,emptyProfile:{profileId:ID,firstSetupReceiptSha256:origin.setupReceiptSha256,recoveryDecisionSha256:origin.recoveryDecisionSha256,runtimeUpgradeDecisionSha256:sha(runtimeUpgradeDecisionBytes),writerLogin:login,rawRightsVerified:true,effectiveRightsVerified:true,otherDatabaseAccessDenied:true,permissionReadbackSha256:receipt.permissionReadbackSha256}};
+ return {packageHash,packageBytes,publicBindingBytes,setupReceiptBytes,recoveryDecisionBytes,setupPackageBytes,runtimeUpgradeDecisionBytes,admissionBytes:bytes(admission)};
+}
+test('explicit source successor validates the real immutable 794/ba54/0fd chain without relabeling its package or cipher',()=>{
+ const f=runtimeUpgradeFixture(),receiptBefore=Buffer.from(f.setupReceiptBytes),decisionBefore=Buffer.from(f.recoveryDecisionBytes);
+ const out=assertDesktopV7ProfileBindings(f);assert.equal(out.sqlCredentialCipherSha256,origin.sqlCredentialCipherSha256);assert.equal(out.secretPath,EMPTY_V7_RECOVERY_SECRET_PATH);assert.equal(out.firstSetupReceiptSha256,origin.setupReceiptSha256);assert.deepEqual(f.setupReceiptBytes,receiptBefore);assert.deepEqual(f.recoveryDecisionBytes,decisionBefore);
+ const samePkg={...f,packageBytes:f.setupPackageBytes,packageHash:origin.packageHash},a=JSON.parse(f.admissionBytes);a.packageHash=origin.packageHash.toUpperCase();a.sourceHead=origin.sourceHead;delete a.emptyProfile.runtimeUpgradeDecisionSha256;samePkg.admissionBytes=bytes(a);assert.equal(assertDesktopV7ProfileBindings(samePkg).secretPath,EMPTY_V7_RECOVERY_SECRET_PATH);
+});
+test('source successor rejects missing bridge, old evidence changes, cross-target/head/cipher/owner drift and every write authority',()=>{
+ for(const key of ['setupPackageBytes','runtimeUpgradeDecisionBytes']){const f=runtimeUpgradeFixture();delete f[key];assert.throws(()=>assertDesktopV7ProfileBindings(f));}
+ for(const key of ['setupPackageBytes','setupReceiptBytes','recoveryDecisionBytes']){const f=runtimeUpgradeFixture();f[key]=Buffer.concat([f[key],Buffer.from(' ')]);assert.throws(()=>assertDesktopV7ProfileBindings(f));}
+ const patches=[{target:{...target,databaseId:5}},{toSourceHead:'f'.repeat(40)},{toPackageHash:'f'.repeat(64)},{sqlCredentialCipherSha256:'f'.repeat(64)},{setupManifestSha256:'f'.repeat(64)},{expectedOwner:{userId:'2',roleId:'1',userVersion:'0000000000000815'}},{setupActualIndependentReviewSha256:'f'.repeat(64)},{ownerPreservationReadSha256:'f'.repeat(64)},...['runtimeOnly','preserveHumanOwner','reuseExistingTechnicalCredential'].map(k=>({[k]:false})),...['humanCredentialTouched','technicalCredentialRotationAuthorized','userOrRoleWritesAuthorized','sqlPermissionChangesAuthorized','businessWritesAuthorized','SQLWritesAuthorized','automaticRetry'].map(k=>({[k]:true}))];
+ for(const patch of patches){const f=runtimeUpgradeFixture();f.runtimeUpgradeDecisionBytes=bytes({...JSON.parse(f.runtimeUpgradeDecisionBytes),...patch});const a=JSON.parse(f.admissionBytes);a.emptyProfile.runtimeUpgradeDecisionSha256=sha(f.runtimeUpgradeDecisionBytes);f.admissionBytes=bytes(a);assert.throws(()=>assertDesktopV7ProfileBindings(f));}
+ const f=runtimeUpgradeFixture(),a=JSON.parse(f.admissionBytes);delete a.emptyProfile.runtimeUpgradeDecisionSha256;f.admissionBytes=bytes(a);assert.throws(()=>assertDesktopV7ProfileBindings(f));
+ const relabeled=runtimeUpgradeFixture(),r=JSON.parse(relabeled.setupReceiptBytes);r.packageHash=relabeled.packageHash;r.sourceHead=JSON.parse(relabeled.packageBytes).sourceHead;relabeled.setupReceiptBytes=bytes(r);const ar=JSON.parse(relabeled.admissionBytes);ar.emptyProfile.firstSetupReceiptSha256=sha(relabeled.setupReceiptBytes);relabeled.admissionBytes=bytes(ar);assert.throws(()=>assertDesktopV7ProfileBindings(relabeled));
+});
+test('real public loader reads only the fixed old archive and current-hash Root decision before choosing the unchanged protected path',async()=>{
+ const source=readFileSync(new URL('../../../../scripts/desktop-empty/master-v7-profile-binding.mjs',import.meta.url),'utf8'),base='C:/Users/Xaser/Desktop/ERP/';
+ for(const missing of [false,true]){
+  const f=runtimeUpgradeFixture(),opened=[],files=new Map([[base+profile.EMPTY_V7_PACKAGE_PATH,f.packageBytes],[base+profile.EMPTY_V7_ADMISSION_DIRECTORY+'/'+f.packageHash.toUpperCase()+'.json',f.admissionBytes],[base+pub,f.publicBindingBytes],[base+profile.EMPTY_V7_RECEIPT_PATH,f.setupReceiptBytes],[base+profile.EMPTY_V7_RECOVERY_DECISION_PATH,f.recoveryDecisionBytes],[base+profile.EMPTY_V7_RECOVERED_SETUP_HISTORY_PATH,f.setupPackageBytes]]);
+  const decisionPath=base+profile.EMPTY_V7_RUNTIME_UPGRADE_DIRECTORY+'/'+f.packageHash.toUpperCase()+'.json';if(!missing)files.set(decisionPath,f.runtimeUpgradeDecisionBytes);
+  const fakeFs={lstatSync:()=>({isSymbolicLink:()=>false}),openSync:(p,mode)=>{assert.equal(mode,'r');opened.push(p);assert(files.has(p),'Only pinned public files may be read');return p;},fstatSync:p=>({isFile:()=>true,nlink:1,size:files.get(p).length}),readFileSync:p=>Buffer.from(files.get(p)),closeSync:()=>{}};
+  const context=vm.createContext({Buffer}),module=new vm.SourceTextModule(source,{context});
+  await module.link(async id=>{const values=id==='node:fs'?{default:fakeFs}:id==='node:path'?{default:path}:id==='node:crypto'?{createHash}:profile;return new vm.SyntheticModule(Object.keys(values),function(){for(const [k,v]of Object.entries(values))this.setExport(k,v);},{context});});await module.evaluate();
+  const run=()=>module.namespace.readMasterV7Profile(f.packageHash.toUpperCase(),sha(f.admissionBytes),ID);
+  if(missing)assert.throws(run);else assert.equal(run().secretPath,EMPTY_V7_RECOVERY_SECRET_PATH);
+  assert(opened.includes(base+profile.EMPTY_V7_RECOVERED_SETUP_HISTORY_PATH));assert(opened.includes(decisionPath));assert(!opened.some(p=>p.includes('protected-')||p.endsWith('.dpapi')));
+ }
 });
