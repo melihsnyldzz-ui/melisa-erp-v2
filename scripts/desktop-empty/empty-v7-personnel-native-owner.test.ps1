@@ -49,4 +49,27 @@ Assert-Native ($builder.get_DataSource()-ceq'lpc:Semih\MELISAERP'-and$builder.ge
 $closedConnection=[Data.SqlClient.SqlConnection]::new($builder.get_ConnectionString());try{Assert-Native ($closedConnection.get_State()-eq[Data.ConnectionState]::Closed) 'CONNECTION_CONSTRUCTED_NOT_OPENED'}finally{$closedConnection.Dispose()}
 $builderAst=$nativeAst.Find({param($n)$n-is[Management.Automation.Language.FunctionDefinitionAst]-and$n.Name-ceq'New-NativeReadConnectionBuilder'},$true)
 Assert-Native ($builderAst.Extent.Text-notmatch'\.Open\s*\('-and$text-match'\$builder=New-NativeReadConnectionBuilder'-and$text-match'\$builder.get_ConnectionString\(\)') 'MAIN_USES_TESTED_PURE_BUILDER'
-[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound/closed-constructor PASS; SQL opens 0; operational processes 0')
+$approvedFingerprint='0eb738665089b4e32c45a55c831ce3ed7a6e174f:scripts/desktop-empty/empty-v7-personnel-password-hash.mjs:generic-api-key:11'
+$ignorePath=$script:NativeW+'/.gitleaksignore';$ignoreBytes=[IO.File]::ReadAllBytes($ignorePath)
+$ignoreSuffix=([Text.UTF8Encoding]::new($false)).GetBytes((@('','# Public DB9 personnel roster digest; no authentication value.','# Exact historical fingerprint only; full-history scan retained.',$approvedFingerprint)-join[Environment]::NewLine)+[Environment]::NewLine)
+$priorIgnoreBytes=[byte[]]::new($ignoreBytes.Length-$ignoreSuffix.Length);[Array]::Copy($ignoreBytes,$priorIgnoreBytes,$priorIgnoreBytes.Length)
+Assert-Native ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($priorIgnoreBytes)).ToLowerInvariant()-ceq'9a81d6ccb73e88f1fef9e3bdf63897ea64bab306b81d4d0d6d475e954ea432b7') 'EXISTING_IGNORE_BYTES_UNCHANGED'
+Assert-Native ([Text.Encoding]::UTF8.GetString($ignoreBytes).EndsWith([Text.Encoding]::UTF8.GetString($ignoreSuffix))-and@(([Text.Encoding]::UTF8.GetString($ignoreBytes)-split"`r?`n")|Where-Object {$_-ceq$approvedFingerprint}).Count-eq1) 'SINGLE_EXACT_HISTORICAL_FINGERPRINT'
+$deltaLoop=$nativeAst.Find({param($n)$n-is[Management.Automation.Language.ForEachStatementAst]-and$n.Variable.VariablePath.UserPath-ceq'rel'-and$n.Condition.Extent.Text.Contains('aa04647c9f8f842ad9e7c32e8addc0bac6f2d91c..HEAD')},$true)
+Assert-Native ($null-ne$deltaLoop) 'ORIGINAL_DIFF_BASE_RETAINED'
+$deltaCheck=[scriptblock]::Create('param([string[]]$FixturePaths) foreach($rel in $FixturePaths) '+$deltaLoop.Body.Extent.Text)
+$pinAst=$holdAst.Body.Find({param($n)$n-is[Management.Automation.Language.IfStatementAst]-and$n.Extent.Text.Contains("'NATIVE_FILE_PIN'")},$true)
+$pinCondition=[scriptblock]::Create($pinAst.Clauses[0].Item1.Extent.Text)
+$actualHold=(Get-Item Function:Native-Hold).ScriptBlock;$script:IgnoreFixtureBytes=$ignoreBytes;$script:IgnoreHoldCalls=[Collections.Generic.List[string]]::new()
+function Native-Hold([string]$Path,[string]$Hash,[int]$Max=2097152){
+ if($Path-cne$ignorePath){throw 'NATIVE_TEST_UNEXPECTED_HOLD'};$f=[pscustomobject]@{PSIsContainer=$false;Length=$script:IgnoreFixtureBytes.Length};if(& $boundCondition){throw 'NATIVE_FILE_BOUND'}
+ $s=[IO.MemoryStream]::new($script:IgnoreFixtureBytes);try{if(& $pinCondition){throw 'NATIVE_FILE_PIN'}}finally{$s.Dispose()};$script:IgnoreHoldCalls.Add($Path)
+}
+try{
+ & $deltaCheck -FixturePaths @('.gitleaksignore','scripts/desktop-empty/empty-v7-personnel-native-owner.ps1');Assert-Native ($script:IgnoreHoldCalls.Count-eq1-and$script:IgnoreHoldCalls[0]-ceq$ignorePath) 'EXACT_IGNORE_HELD_BEFORE_CONTINUE'
+ foreach($bad in @('.gitleaksignore.backup','other/.gitleaksignore','./.gitleaksignore','../.gitleaksignore','.Gitleaksignore','.gitleaks.toml','.github/workflows/ci.yml','scripts/ci/scan-secrets.sh','scripts/desktop-empty/other.mjs')){$rejected=$false;try{& $deltaCheck -FixturePaths @($bad)}catch{$rejected=$_.Exception.Message-ceq'NATIVE_SOURCE_CHANGE_SCOPE'};Assert-Native $rejected 'NONEXACT_SOURCE_PATH_REJECTED'}
+ $rejected=$false;try{& $deltaCheck -FixturePaths @('.gitleaksignore','.gitleaks.toml')}catch{$rejected=$_.Exception.Message-ceq'NATIVE_SOURCE_CHANGE_SCOPE'};Assert-Native $rejected 'PINNED_IGNORE_CANNOT_ADMIT_OTHER_FILE'
+ $script:IgnoreFixtureBytes=[byte[]]::new($ignoreBytes.Length);[Array]::Copy($ignoreBytes,$script:IgnoreFixtureBytes,$ignoreBytes.Length);$script:IgnoreFixtureBytes[0]=$script:IgnoreFixtureBytes[0]-bxor1
+ $rejected=$false;try{& $deltaCheck -FixturePaths @('.gitleaksignore')}catch{$rejected=$_.Exception.Message-ceq'NATIVE_FILE_PIN'};Assert-Native $rejected 'ALTERED_IGNORE_BYTES_REJECTED_BY_PRODUCTION_PIN'
+}finally{Set-Item Function:Native-Hold $actualHold}
+[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound/closed-constructor/exact-ignore PASS; SQL opens 0; scanner runs 0; operational processes 0')

@@ -60,7 +60,10 @@ function Native-GitSource($Decision){
  Initialize-NativeSupport;$pair=@();foreach($file in @($script:NativeGit,'C:/Program Files/Git/cmd/git-lfs.exe')){Native-Hold $file '81ef35ae005ca9318018d18e3327578ce939fb99feaad6b2d7c8ab15f3de8db5' 8388608;$pair+=,[EmptyV7PersonnelNativeSupport]::Info($script:NativeHeld[$script:NativeHeld.Count-1].SafeFileHandle)}
  if($pair[0].Links-ne2-or$pair[1].Links-ne2-or$pair[0].VolumeSerial-ne$pair[1].VolumeSerial-or$pair[0].IndexHigh-ne$pair[1].IndexHigh-or$pair[0].IndexLow-ne$pair[1].IndexLow){throw 'NATIVE_GIT_IDENTITY'}
  if((Native-Git -Tail @('rev-parse','--show-toplevel')).Replace('\','/')-cne$script:NativeW-or(Native-Git -Tail @('rev-parse','HEAD'))-cne$Decision.sourceHead-or(Native-Git -Tail @('branch','--show-current'))-cne'codex/erp-db9-r1-personnel-20261111'-or(Native-Git -Tail @('status','--porcelain','--untracked-files=all'))-cne''){throw 'NATIVE_SOURCE_IDENTITY'}
- foreach($rel in ((Native-Git -Tail @('diff','--name-only','aa04647c9f8f842ad9e7c32e8addc0bac6f2d91c..HEAD'))-split"`n")){if($rel-and$rel-cnotmatch'^scripts/desktop-empty/empty-v7-personnel-[A-Za-z0-9_.-]+\.(mjs|ps1)$'){throw 'NATIVE_SOURCE_CHANGE_SCOPE'}}
+ foreach($rel in ((Native-Git -Tail @('diff','--name-only','aa04647c9f8f842ad9e7c32e8addc0bac6f2d91c..HEAD'))-split"`n")){
+  if($rel-ceq'.gitleaksignore'){Native-Hold ($script:NativeW+'/.gitleaksignore') 'a96f53f15256963215bc8e8a8754a7ecb5c66bc001229c1a2c3ef9877c35bdda';continue}
+  if($rel-and$rel-cnotmatch'^scripts/desktop-empty/empty-v7-personnel-[A-Za-z0-9_.-]+\.(mjs|ps1)$'){throw 'NATIVE_SOURCE_CHANGE_SCOPE'}
+ }
  foreach($tail in @(@('remote','get-url','origin'),@('remote','get-url','--push','origin'))){if((Native-Git -Tail $tail)-cne'https://github.com/melihsnyldzz-ui/melisa-erp-v2.git'){throw 'NATIVE_SOURCE_ORIGIN'}}
 }
 function Native-Lifetime($Decision){

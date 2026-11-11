@@ -173,3 +173,7 @@ ae5cd5a0cb2c6e2b10f5461232475661f671ff33:scripts/canonical/prepare-business-sale
 # Exact false positive: the existing Current API release-manifest SHA256 in a
 # synthetic capture fixture, not an API credential. Full-history scan retained.
 7184e3aefa19d9e6c6aa8059e7290a65bc84708e:scripts/canonical/prepare-business-sale-owner-bundle.test.mjs:generic-api-key:88
+
+# Public DB9 personnel roster digest; no authentication value.
+# Exact historical fingerprint only; full-history scan retained.
+0eb738665089b4e32c45a55c831ce3ed7a6e174f:scripts/desktop-empty/empty-v7-personnel-password-hash.mjs:generic-api-key:11
