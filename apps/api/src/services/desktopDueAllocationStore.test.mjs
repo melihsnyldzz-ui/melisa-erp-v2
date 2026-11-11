@@ -11,3 +11,60 @@ test('v2 invoice exception participates in due ordering while legacy unknown and
  const f=fixture(),legacy=JSON.parse(f.audits[1].json),v2={...legacy,version:2,termsRevision:null,termDays:0,dueDate:legacy.documentDate,exception:{requestRecordId:'40',approvalId:'41',consumeId:'42',snapshotHash:'b'.repeat(64),approverId:'9',authorityRevision:'c'.repeat(64),approvedAt:1000000,expiresAt:1600000,baseTermDays:null}};f.audits[1].json=JSON.stringify(v2);const p=await prepareDesktopDueCollection(f.params);assert.deepEqual(p.publicRows.map(r=>[r.invoiceId,r.allocatedExact4]),[['2','600.0000'],['1','600.0000']]);
  for(const proof of [{...v2,exception:{...v2.exception,consumeId:'41'}},{...legacy,termDays:null,termsRevision:null,dueDate:null},{...v2,termsRevision:'a'.repeat(64)},{...v2,documentDate:'2026-11-03',dueDate:'2026-11-03'}]){f.audits[1].json=JSON.stringify(proof);await assert.rejects(prepareDesktopDueCollection(f.params));}
 });
+
+function cancelledFixture(){
+ const f=fixture();f.invoices[0].status='cancelled';f.movements[1].movementId='12';f.audits[1].auditId='22';
+ f.movements.push({...f.movements[0],movementId:'11',movementType:'sales_invoice_cancel',balanceEffectExact4:'-1000.0000',actorId:'9',financeMovementId:null,financeActorId:null,financeDirection:null,financeCurrency:null,financeAmountExact4:null});
+ f.params.balanceExact8='600.00000000';f.params.amountExact4='200.0000';return f;
+}
+function priorCollection(f,{movementId='20',auditId='30',amount='100.0000',rows}={}){
+ const financeId=String(BigInt(movementId)+1n),requestId=uuid(Number(movementId));
+ f.movements.push({movementId,customerId:'2',entityId:'5',accountId:'3',invoiceId:null,movementType:'collection',currency:'TRY',documentCurrency:'TRY',documentAmountExact4:amount,documentDate:'2026-11-01',amountExact4:amount,balanceEffectExact4:'-'+amount,actorId:'8',financeMovementId:financeId,financeActorId:'8',financeDirection:'in',financeCurrency:'TRY',financeAmountExact4:amount});
+ f.audits.push({auditId,actorId:'8',entityId:movementId,action:'collection.allocation',reason:requestId,json:JSON.stringify({version:1,actorId:'8',requestId,movementId,financeMovementId:financeId,customerId:'2',accountId:'3',currency:'TRY',amountExact4:amount,rows})});
+}
+test('full unpaid cancellation followed by a fresh 600 sale allows ordinary 200 collection',async()=>{
+ const f=cancelledFixture(),plan=await prepareDesktopDueCollection(f.params);
+ assert.deepEqual(plan.publicRows,[{invoiceId:'2',dueDate:'2026-12-02',allocatedExact4:'200.0000',remainingExact4:'400.0000'}]);
+ assert.deepEqual(plan.rows.map(r=>r.invoiceId),['2']);
+ assert.equal(f.invoices[0].status,'cancelled');assert.equal(f.movements.filter(m=>m.invoiceId==='1').length,2);
+});
+test('unproven or malformed cancellation histories remain unavailable',async()=>{
+ const mutations=[
+  f=>f.movements.pop(),f=>f.movements.push({...f.movements.at(-1),movementId:'13'}),f=>{f.movements.at(-1).invoiceId='99';},
+  f=>{f.invoices[0].status='finalized';},f=>{f.movements.at(-1).accountId='99';},f=>{f.movements.at(-1).entityId='99';},
+  f=>{f.movements.at(-1).customerId='99';},f=>{f.movements.at(-1).currency='USD';},f=>{f.movements.at(-1).documentCurrency='USD';},
+  f=>{f.movements.at(-1).documentDate='2026-11-02';},f=>{f.movements.at(-1).amountExact4='999.0000';f.movements.at(-1).balanceEffectExact4='-999.0000';},
+  f=>{f.movements.at(-1).documentAmountExact4='999.0000';},f=>{f.movements.at(-1).balanceEffectExact4='1000.0000';},
+  f=>{f.movements.at(-1).actorId=null;},f=>{f.movements.at(-1).financeMovementId='99';},f=>{f.movements.at(-1).movementId='9';},
+  f=>f.movements.shift(),f=>{f.movements.at(-1).movementType='unverified_adjustment';}
+ ];
+ for(const mutate of mutations){const f=cancelledFixture();mutate(f);await assert.rejects(prepareDesktopDueCollection(f.params),{message:'DESKTOP_DUE_ALLOCATION_UNAVAILABLE'});}
+});
+test('historical allocation made after cancellation excludes its closed invoice during exact replay',async()=>{
+ const f=cancelledFixture();priorCollection(f,{rows:[{invoiceId:'2',documentDate:'2026-11-02',dueDate:'2026-12-02',beforeExact4:'600.0000',allocatedExact4:'100.0000',remainingExact4:'500.0000'}]});f.params.balanceExact8='500.00000000';
+ const plan=await prepareDesktopDueCollection(f.params);assert.deepEqual(plan.publicRows,[{invoiceId:'2',dueDate:'2026-12-02',allocatedExact4:'200.0000',remainingExact4:'300.0000'}]);
+});
+test('any positive allocation before cancellation forbids closing the invoice even with a matching net balance',async()=>{
+ const f=cancelledFixture();f.movements.at(-1).movementId='40';f.movements[1].movementId='50';f.audits[1].auditId='50';
+ priorCollection(f,{movementId:'30',auditId:'40',rows:[{invoiceId:'1',documentDate:'2026-11-01',dueDate:'2026-12-01',beforeExact4:'1000.0000',allocatedExact4:'100.0000',remainingExact4:'900.0000'}]});f.params.balanceExact8='500.00000000';
+ await assert.rejects(prepareDesktopDueCollection(f.params),{message:'DESKTOP_DUE_ALLOCATION_UNAVAILABLE'});
+});
+test('pre-cancellation proof keeps its zero allocation row while future FIFO omits only the closed invoice',async()=>{
+ const f=cancelledFixture();f.movements.at(-1).movementId='30';f.movements[1].movementId='40';f.audits[1].auditId='50';
+ const old={...f.invoices[1],invoiceId:'3',documentDate:'2026-10-15',documentAmountExact4:'100.0000',amountExact4:'100.0000'};f.invoices.push(old);
+ f.movements.push({...f.movements[0],movementId:'5',invoiceId:'3',documentDate:old.documentDate,documentAmountExact4:old.amountExact4,amountExact4:old.amountExact4,balanceEffectExact4:old.amountExact4});
+ f.audits.push({auditId:'10',actorId:'8',entityId:'3',action:'invoice.due.snapshot',reason:uuid(3),json:JSON.stringify({version:1,actorId:'8',requestId:uuid(3),invoiceId:'3',customerId:'2',accountId:'3',currency:'TRY',documentDate:old.documentDate,dueDate:'2026-11-14',termDays:30,termsRevision:'a'.repeat(64),amountExact4:old.amountExact4})});
+ priorCollection(f,{rows:[{invoiceId:'3',documentDate:old.documentDate,dueDate:'2026-11-14',beforeExact4:'100.0000',allocatedExact4:'100.0000',remainingExact4:'0.0000'},{invoiceId:'1',documentDate:'2026-11-01',dueDate:'2026-12-01',beforeExact4:'1000.0000',allocatedExact4:'0.0000',remainingExact4:'1000.0000'}]});
+ const plan=await prepareDesktopDueCollection(f.params);assert.deepEqual(plan.publicRows,[{invoiceId:'2',dueDate:'2026-12-02',allocatedExact4:'200.0000',remainingExact4:'400.0000'}]);assert.deepEqual(plan.rows.map(r=>r.invoiceId),['3','2']);
+ const saved=JSON.parse(f.audits.at(-1).json);assert.equal(saved.rows[1].invoiceId,'1');assert.equal(saved.rows[1].allocatedExact4,'0.0000');
+ saved.rows[1].remainingExact4='999.0000';f.audits.at(-1).json=JSON.stringify(saved);await assert.rejects(prepareDesktopDueCollection(f.params));
+});
+test('unknown dates v2 provenance and unsupported account currency protections remain unchanged',async()=>{
+ for(const index of [0,1]){const f=cancelledFixture(),v=JSON.parse(f.audits[index].json);f.audits[index].json=JSON.stringify({...v,termDays:null,termsRevision:null,dueDate:null});await assert.rejects(prepareDesktopDueCollection(f.params));}
+ const f=cancelledFixture();f.params.currency='USD';await assert.rejects(prepareDesktopDueCollection(f.params));
+ const fx=cancelledFixture();fx.invoices[0].documentCurrency='USD';fx.invoices[0].documentAmountExact4='300.0000';for(const m of fx.movements.filter(m=>m.invoiceId==='1')){m.documentCurrency='USD';m.documentAmountExact4='300.0000';}
+ assert.equal((await prepareDesktopDueCollection(fx.params)).publicRows[0].remainingExact4,'400.0000');
+ const v2=cancelledFixture(),old=JSON.parse(v2.audits[0].json),proof={...old,version:2,termsRevision:null,termDays:0,dueDate:old.documentDate,exception:{requestRecordId:'40',approvalId:'41',consumeId:'42',snapshotHash:'b'.repeat(64),approverId:'9',authorityRevision:'c'.repeat(64),approvedAt:1000000,expiresAt:1600000,baseTermDays:null}};
+ v2.audits[0].json=JSON.stringify(proof);assert.equal((await prepareDesktopDueCollection(v2.params)).publicRows[0].remainingExact4,'400.0000');
+ proof.exception.consumeId='41';v2.audits[0].json=JSON.stringify(proof);await assert.rejects(prepareDesktopDueCollection(v2.params));
+});
