@@ -6,7 +6,7 @@ import {desktopDueDate} from '../../packages/shared/src/desktopDueAllocation.mjs
 import {compileEmptyV7PersonnelReadSql} from './empty-v7-personnel-sql.mjs';
 import {parsePersonnelObservation,validatePersonnelReceipt,EMPTY_V7_PERSONNEL_ROLES as personnelRoles,EMPTY_V7_PERSONNEL_TARGET as target,EMPTY_V7_PERSONNEL_OWNER_SID as ownerSid} from './empty-v7-personnel-core.mjs';
 export const PERSONNEL_NATIVE_PATHS=Object.freeze({source:'C:/Sirket/ERP/melisa-erp-v2/.git/codex-worktrees/db9-r1-personnel-20261111',artifacts:'C:/Users/Xaser/.codex/visualizations/2026/11/05/01a1aba4-ea01-7f13-93cc-98d60952a40a',runtime:'C:/Users/Xaser/Desktop/ERP/runtime-clean-v7',package:'C:/Users/Xaser/Desktop/ERP/kurulum/empty-profile-db9-v1/runtime-package.json'});
-export const PERSONNEL_NATIVE_PINS=Object.freeze({packageSha256:'50fa9aa4cc1f8237f28b7294da0b3989abfa4c878c63edbae17d7a2324ce61df',admissionSha256:'46c637cfbbc16e0bb2bc0ee9f6b255aeb7843f3f767e130d1b518a4c4badbd68',runtimeSourceHead:'aa04647c9f8f842ad9e7c32e8addc0bac6f2d91c',ownerSid});
+export const PERSONNEL_NATIVE_PINS=Object.freeze({packageSha256:'ec316f7d640457dfae87c8be2a19016411a91533a7bfcd6fff4552daea021a25',admissionSha256:'31ab08b3342b56aab6bfe82c1a57c37eb44883f652f7d49684ea4bff1d25a669',runtimeSourceHead:'99298187b36a3a7b560c4549cdbbfadf1ba2ee35',ownerSid});
 const need=(ok,code='NATIVE_INPUT_REJECTED')=>{if(!ok)throw Error(code);};
 const exact=(v,keys)=>v&&Object.getPrototypeOf(v)===Object.prototype&&Reflect.ownKeys(v).length===keys.length&&keys.every(k=>{const d=Object.getOwnPropertyDescriptor(v,k);return d?.enumerable&&Object.hasOwn(d,'value');});
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v),id=v=>typeof v==='string'&&/^[1-9]\d{0,18}$/.test(v)&&BigInt(v)<=9223372036854775807n;

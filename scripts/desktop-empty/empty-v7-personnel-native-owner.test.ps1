@@ -72,4 +72,17 @@ try{
  $script:IgnoreFixtureBytes=[byte[]]::new($ignoreBytes.Length);[Array]::Copy($ignoreBytes,$script:IgnoreFixtureBytes,$ignoreBytes.Length);$script:IgnoreFixtureBytes[0]=$script:IgnoreFixtureBytes[0]-bxor1
  $rejected=$false;try{& $deltaCheck -FixturePaths @('.gitleaksignore')}catch{$rejected=$_.Exception.Message-ceq'NATIVE_FILE_PIN'};Assert-Native $rejected 'ALTERED_IGNORE_BYTES_REJECTED_BY_PRODUCTION_PIN'
 }finally{Set-Item Function:Native-Hold $actualHold}
-[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound/closed-constructor/exact-ignore PASS; SQL opens 0; scanner runs 0; operational processes 0')
+$runtimePackageGuard=$nativeAst.Find({param($n)$n-is[Management.Automation.Language.IfStatementAst]-and$n.Extent.Text.StartsWith('if((Get-FileHash -LiteralPath ($script:NativeP')-and$n.Extent.Text.Contains("throw 'NATIVE_RUNTIME_PACKAGE'")},$true)
+Assert-Native ($null-ne$runtimePackageGuard) 'ACTUAL_RUNTIME_PACKAGE_GUARD'
+$runtimePackageCheck=[scriptblock]::Create($runtimePackageGuard.Extent.Text)
+$targetGuard=$nativeAst.Find({param($n)$n-is[Management.Automation.Language.IfStatementAst]-and$n.Extent.Text.StartsWith('if($package.sourceHead')},$true)
+Assert-Native ($null-ne$targetGuard) 'ACTUAL_RUNTIME_SOURCE_GUARD'
+$targetCheck=[scriptblock]::Create($targetGuard.Extent.Text)
+function Get-FileHash {return @{Hash=$script:FixtureRuntimePackage}}
+try{
+ $script:FixtureRuntimePackage='ec316f7d640457dfae87c8be2a19016411a91533a7bfcd6fff4552daea021a25';& $runtimePackageCheck
+ $script:FixtureRuntimePackage='50fa9aa4cc1f8237f28b7294da0b3989abfa4c878c63edbae17d7a2324ce61df';$rejected=$false;try{& $runtimePackageCheck}catch{$rejected=$_.Exception.Message-ceq'NATIVE_RUNTIME_PACKAGE'};Assert-Native $rejected 'OLD_RUNTIME_PACKAGE_REJECTED'
+ $package=@{sourceHead='99298187b36a3a7b560c4549cdbbfadf1ba2ee35';targetProfile='empty-db9-v7-v1';sourceRoot=$script:NativeR};& $targetCheck
+ foreach($bad in @(@{sourceHead='aa04647c9f8f842ad9e7c32e8addc0bac6f2d91c'},@{targetProfile='other'},@{sourceRoot='C:/foreign/runtime'})){$originalPackage=@{};foreach($key in $package.Keys){$originalPackage[$key]=$package[$key]};foreach($key in $bad.Keys){$package[$key]=$bad[$key]};$rejected=$false;try{& $targetCheck}catch{$rejected=$_.Exception.Message-ceq'NATIVE_PACKAGE_TARGET'};Assert-Native $rejected 'OLD_OR_FOREIGN_RUNTIME_TARGET_REJECTED';$package=$originalPackage}
+}finally{Remove-Item Function:Get-FileHash;Remove-Variable FixtureRuntimePackage -Scope Script}
+[Console]::Out.WriteLine('native-owner pure lifecycle/AST/byte-bound/argv/assembly-bound/closed-constructor/exact-ignore/runtime-pin PASS; SQL opens 0; scanner runs 0; operational processes 0')
