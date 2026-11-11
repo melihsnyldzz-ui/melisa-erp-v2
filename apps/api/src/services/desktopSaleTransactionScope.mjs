@@ -5,15 +5,15 @@ const fail=()=>{throw Error('DESKTOP_SALE_SCOPE_UNAVAILABLE');};
 const id=v=>typeof v==='string'&&/^[1-9]\d{0,15}$/.test(v)&&BigInt(v)<=9007199254740991n;
 const uuid=v=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
 const sqlText=`SELECT DB_NAME() targetDatabase,@@SPID sessionId,CONVERT(varchar(20),CURRENT_TRANSACTION_ID()) transactionId,@@TRANCOUNT transactionCount,XACT_STATE() transactionState;`;
-export function createDesktopSaleTransactionScope({sql,verifySession}={}){
- if(typeof sql?.Request!=='function'||typeof verifySession!=='function')fail();
+export function createDesktopSaleTransactionScope({sql,verifySession,requireSalesView=false}={}){
+ if(typeof sql?.Request!=='function'||typeof verifySession!=='function'||typeof requireSalesView!=='boolean')fail();
  const storage=new AsyncLocalStorage(),registered=new WeakSet();
  async function withScope({transaction,actorId,requestId,customerId,productId,productIds}={},fn){
   const multi=productIds!==undefined;
   if(multi&&(productId!==undefined||!Array.isArray(productIds)||productIds.length<1||productIds.length>2||productIds.some(v=>!id(v))||new Set(productIds).size!==productIds.length))fail();
   const selected=multi?Object.freeze([...productIds]):Object.freeze([productId]);
   if(!transaction||!id(actorId)||!uuid(requestId)||!id(customerId)||!selected.every(id)||typeof fn!=='function'||storage.getStore())fail();
-  if(await verifySession({transaction,actorId,permission:['sales.create','sales.finalize']})!==true)fail();
+  if(await verifySession({transaction,actorId,permission:['sales.create','sales.finalize',...(requireSalesView?['sales.view']:[])]})!==true)fail();
   const result=await new sql.Request(transaction).query(sqlText),rows=result?.recordset;if(!Array.isArray(rows)||rows.length!==1)fail();const row=rows[0];
   if(typeof row.targetDatabase!=='string'||!row.targetDatabase||row.targetDatabase.length>128||!Number.isInteger(row.sessionId)||row.sessionId<1||!id(row.transactionId)||row.transactionCount!==1||row.transactionState!==1)fail();
   const state={transaction,actorId,requestId,customerId,productId,productIds:selected,multi,active:true,base:null,bound:null};

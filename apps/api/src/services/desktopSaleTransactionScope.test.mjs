@@ -8,6 +8,16 @@ test('both current sale permissions are required and scope binds transaction, se
  assert.deepEqual(f.calls[0].permission,['sales.create','sales.finalize']);assert.equal(f.api.verifyScope({transaction:args.transaction,scope:base}),false);assert.equal(f.api.verifyScope({transaction:args.transaction,scope:bound}),false);
 });
 test('denied authority and invalid transaction state cannot construct sale scope',async()=>{const denied=setup(false);await assert.rejects(denied.api.withScope(args,()=>{}));assert.equal(denied.calls.length,1);const bad=setup(true,{targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:-1});await assert.rejects(bad.api.withScope(args,()=>{}));});
+test('dispatch-only view requirement rejects a create/finalize actor before SQL and preserves draft default',async()=>{
+ let reads=0,entered=false;const rights=new Set(['sales.create','sales.finalize']),seen=[];
+ class Request{async query(){reads++;return {recordset:[{targetDatabase:'desktop',sessionId:3,transactionId:'19',transactionCount:1,transactionState:1}]};}}
+ const verifySession=async({transaction,actorId,permission})=>{assert.equal(transaction,args.transaction);assert.equal(actorId,args.actorId);seen.push(permission);return permission.every(p=>rights.has(p));};
+ const dispatch=createDesktopSaleTransactionScope({sql:{Request},verifySession,requireSalesView:true});
+ await assert.rejects(dispatch.withScope(args,()=>{entered=true;}));assert.equal(entered,false);assert.equal(reads,0);assert.deepEqual(seen[0],['sales.create','sales.finalize','sales.view']);
+ const draft=createDesktopSaleTransactionScope({sql:{Request},verifySession});await draft.withScope(args,()=>{entered=true;});assert.equal(entered,true);assert.deepEqual(seen[1],['sales.create','sales.finalize']);
+ rights.add('sales.view');await dispatch.withScope(args,()=>{});assert.equal(reads,2);
+ assert.throws(()=>createDesktopSaleTransactionScope({sql:{Request},verifySession,requireSalesView:'true'}));
+});
 test('two distinct products share one authenticated transaction and invoice scope',async()=>{
  const f=setup(),{productId,...rest}=args,multi={...rest,productIds:['5','9']};
  await f.api.withScope(multi,async ({scope,bindInvoice})=>{
