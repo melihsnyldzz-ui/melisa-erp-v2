@@ -4,14 +4,14 @@ function Recovery-Assert([bool]$Condition,[string]$Code){if(-not $Condition){thr
 function Recovery-Sha([byte[]]$Bytes){return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($Bytes)).ToLowerInvariant()}
 function Recovery-Quote([string]$Value){return "N'"+$Value.Replace("'","''")+"'"}
 function Recovery-Database([string]$Name){
- Recovery-Assert ($Name -cin @('MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210','MELISA_ERP_DB9_RESTORE_20261111_CA3526AE')) 'RECOVERY_DATABASE_REJECTED'
+ Recovery-Assert ($Name -cin @('MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210','MELISA_ERP_DB9_RESTORE_20261111_4B560CEE')) 'RECOVERY_DATABASE_REJECTED'
  return '['+$Name+']'
 }
 function Recovery-Target {
  return [ordered]@{server='Semih\MELISAERP';database='MELISA_ERP_SCHEMA_REHEARSAL_20261107_K0210';databaseId=9;databaseGuid='6d773db9-bd69-4906-b791-d63a490ab1f2';databaseCreateTime='2026-11-10T11:10:18.030';environmentId='287f689a-43bb-43dd-950b-adb615fcb20c';schemaVersion=7;tableCount=43;columnCount=502;actualT1=$false;externalOperations=$false}
 }
 function Recovery-Names {
- return [ordered]@{operationId='ca3526ae-6d32-41f3-b05d-514578d1dc2c';restoreDatabase='MELISA_ERP_DB9_RESTORE_20261111_CA3526AE';backupPath='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/Backup/DB9_K12_AFTER_FIRSTSALE_ca3526ae6d3241f3b05d514578d1dc2c.bak';dataPath='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/DATA/MELISA_ERP_DB9_RESTORE_20261111_CA3526AE.mdf';logPath='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/DATA/MELISA_ERP_DB9_RESTORE_20261111_CA3526AE_log.ldf';mediaName='DB9_K12_ca3526ae6d3241f3b05d514578d1dc2c'}
+ return [ordered]@{operationId='4b560cee-677a-499a-83e8-0dd08726ec40';restoreDatabase='MELISA_ERP_DB9_RESTORE_20261111_4B560CEE';backupPath='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/Backup/DB9_K12_AFTER_FIRSTSALE_4b560cee677a499a83e80dd08726ec40.bak';dataPath='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/DATA/MELISA_ERP_DB9_RESTORE_20261111_4B560CEE.mdf';logPath='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/DATA/MELISA_ERP_DB9_RESTORE_20261111_4B560CEE_log.ldf';mediaName='DB9_K12_4b560cee677a499a83e80dd08726ec40'}
 }
 function Recovery-GuardSql {
  return @'
@@ -52,7 +52,7 @@ function Recovery-FingerprintSql([string]$Database){
  $db=Recovery-Database $Database
  # Credential/token/audit bodies never leave SQL. PK order is mandatory for ALL43.
  return (Recovery-GuardSql)+@"
-DECLARE @result TABLE(tableName nvarchar(128),rowCount varchar(30),dataSha256 varchar(64));
+DECLARE @result TABLE(tableName nvarchar(128),[rowCount] varchar(30),dataSha256 varchar(64));
 DECLARE @table sysname,@keys nvarchar(max),@sql nvarchar(max),@json nvarchar(max),@count bigint;
 IF (SELECT COUNT(*) FROM $db.sys.tables WHERE is_ms_shipped=0)<>43 OR (SELECT COUNT(*) FROM $db.sys.columns c JOIN $db.sys.tables t ON t.object_id=c.object_id WHERE t.is_ms_shipped=0)<>502 THROW 51995,'RECOVERY_SCHEMA_SHAPE',1;
 DECLARE tables CURSOR LOCAL FAST_FORWARD FOR SELECT t.name FROM $db.sys.tables t JOIN $db.sys.schemas s ON s.schema_id=t.schema_id WHERE t.is_ms_shipped=0 AND s.name=N'dbo' ORDER BY t.name COLLATE Latin1_General_100_BIN2;
@@ -65,7 +65,7 @@ OPEN tables;FETCH NEXT FROM tables INTO @table;WHILE @@FETCH_STATUS=0 BEGIN
  INSERT @result VALUES(@table,CONVERT(varchar(30),@count),LOWER(CONVERT(varchar(64),HASHBYTES('SHA2_256',@json),2)));SET @json=NULL;FETCH NEXT FROM tables INTO @table;
 END;CLOSE tables;DEALLOCATE tables;
 IF (SELECT COUNT(*) FROM @result)<>43 THROW 51995,'RECOVERY_TABLE43_REQUIRED',1;
-SELECT tableName,rowCount,dataSha256 FROM @result ORDER BY tableName COLLATE Latin1_General_100_BIN2 FOR JSON PATH,INCLUDE_NULL_VALUES;
+SELECT tableName,[rowCount],dataSha256 FROM @result ORDER BY tableName COLLATE Latin1_General_100_BIN2 FOR JSON PATH,INCLUDE_NULL_VALUES;
 "@
 }
 function Recovery-MetadataSql([string]$Database,[bool]$Copy){
@@ -114,7 +114,7 @@ function Recovery-RestoreSql($Layout){
 }
 function Recovery-IsolateSql {
  $copy=Recovery-Database (Recovery-Names).restoreDatabase
- return (Recovery-GuardSql)+"IF DB_ID(N'MELISA_ERP_DB9_RESTORE_20261111_CA3526AE') IS NULL OR DB_ID(N'MELISA_ERP_DB9_RESTORE_20261111_CA3526AE')=9 THROW 51995,'RECOVERY_COPY_MISSING',1;EXEC $copy.sys.sp_executesql N'DENY CONNECT TO public;';"
+ return (Recovery-GuardSql)+"IF DB_ID(N'MELISA_ERP_DB9_RESTORE_20261111_4B560CEE') IS NULL OR DB_ID(N'MELISA_ERP_DB9_RESTORE_20261111_4B560CEE')=9 THROW 51995,'RECOVERY_COPY_MISSING',1;EXEC $copy.sys.sp_executesql N'DENY CONNECT TO public;';"
 }
 function Recovery-CopyCheckSql {
  $n=Recovery-Names;$copy=Recovery-Database $n.restoreDatabase
