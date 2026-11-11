@@ -35,6 +35,14 @@ test('SQL JSON strings and canonical VARCHAR UUID/id/decimal projections share U
  assert.match(masterGuard,/CONVERT\(varbinary\(max\),CONVERT\(nvarchar\(max\),CONVERT\(varchar\(50\),TRY_CONVERT\(decimal\(28,8\),/);
  assert.doesNotMatch(masterGuard,/CONVERT\(varbinary\(max\),(?:JSON_VALUE|LOWER|CONVERT\(varchar|k\.\[key\])/);
 });
+test('nullable journal fields accept only actual OPENJSON null, not lax JSON_VALUE overflow or oversized numeric strings',()=>{
+ for(const field of ['unitId','priceExact8']){const r=masterFixture('product.create'),v=JSON.parse(r.responseJson);v.entity.prices[0][field]='1'.repeat(4001);r.responseJson=JSON.stringify(v);assert.equal(settled(r),false);}
+ const c=masterFixture(),value=JSON.parse(c.responseJson);value.entity.accounts[0].currentBalanceExact8='1'.repeat(4001);c.responseJson=JSON.stringify(value);assert.equal(settled(c),false);
+ const huge=masterFixture('product.create');huge.responseJson=huge.responseJson.replace('"tier":null','"tier":'+'1'.repeat(4001));assert.equal(settled(huge),false);
+ assert.match(masterGuard,/nullField\.\[type\]=0/);
+ assert.doesNotMatch(masterGuard,/JSON_VALUE[^;]*\$\.(?:unitId|tier|priceExact8|currentBalanceExact8)'\) IS NULL OR/);
+ assert.match(masterGuard,/TRY_CONVERT\(decimal\(28,8\),[\s\S]*IS NOT NULL/);
+});
 function receipt(active=false){const users=people.map((p,i)=>{const r=roles.find(r=>r.key===p.role),j=roles.indexOf(r);return {key:p.key,username:p.username,userId:String(i+2),userVersion:version(i+100),roleId:String(j+2),roleVersion:version(j+200),roleCode:r.code,active};});return {version:1,state:active?'EMPTY_V7_PERSONNEL_ACTIVATED':'EMPTY_V7_PERSONNEL_CREATED_INACTIVE',target:{...target},rosterOperationId:'11111111-1111-4111-8111-111111111111',operationId:'22222222-2222-4222-8222-222222222222',rosterSha256:rosterHash,users,policy:{id:'3',version:version(400),sha256:createHash('sha256').update(personnelPolicy(users),'utf16le').digest('hex')},hashes:Object.fromEntries(keys.map(k=>[k,'a'.repeat(64)]))};}
 
 test('SQL NULL for an empty personnel subquery is serialized as [] and the saved public DB9 row then passes the unchanged parser',()=>{
