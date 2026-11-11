@@ -1,9 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {compileEmptyV7PersonnelReadSql as read,compileEmptyV7PersonnelSql as compile,EMPTY_V7_PERSONNEL_BUSINESS_TABLES as tables} from './empty-v7-personnel-sql.mjs';
+import {compileEmptyV7PersonnelReadSql as read,compileEmptyV7PersonnelSql as compile,EMPTY_V7_PERSONNEL_BUSINESS_TABLES as tables,EMPTY_V7_PERSONNEL_LOCAL_MASTER_SETTLED_SQL as masterGuard,isSettledPersonnelMasterJournal as settled} from './empty-v7-personnel-sql.mjs';
+import {localCustomerIdentity,localProductIdentity} from '../../apps/api/src/services/localMasterIdentity.mjs';
+import {localSupplierIdentity} from '../../apps/api/src/services/localSupplierIdentity.mjs';
+import {productRejectionRecord} from '../../apps/api/src/services/desktopProductRejection.mjs';
 import {EMPTY_V7_PERSONNEL_ROSTER as people,EMPTY_V7_PERSONNEL_ROLES as roles,EMPTY_V7_PERSONNEL_ROSTER_SHA256 as rosterHash,EMPTY_V7_PERSONNEL_TARGET as target,EMPTY_V7_PERSONNEL_HASH_KEYS as keys,personnelPolicy,parsePersonnelObservation} from './empty-v7-personnel-core.mjs';
 const version=n=>'0x'+n.toString(16).padStart(16,'0');
+function masterFixture(operation='customer.create'){
+ const requestId='33333333-3333-4333-8333-333333333333';let entity;
+ if(operation==='product.create')entity=localProductIdentity({product:{id:'8',name:'Synthetic product'},units:[{id:'9',productId:'8',label:'ADET',factorExact8:'1.00000000',isMain:true}],prices:[{id:'10',productId:'8',type:'sale',unitId:'9',tier:null,currency:'TRY',priceExact8:'12.00000000'}]});
+ else if(operation==='supplier.create')entity=localSupplierIdentity({supplier:{id:'11',entityId:'12',currency:'TRY'},entity:{id:'12',role:'supplier'},account:{id:'13',entityId:'12',customerId:null,supplierId:'11',currency:'TRY',currentBalanceExact8:'0.00000000'}});
+ else entity=localCustomerIdentity({customer:{id:'2',entityId:'3',currency:'TRY'},entity:{id:'3',role:'customer'},accounts:[{id:'4',entityId:'3',customerId:'2',supplierId:null,currency:'TRY',currentBalanceExact8:'0.00000000'}]});
+ return {requestId,operation,actorId:'1',payloadSha256:'a'.repeat(64),responseJson:JSON.stringify({requestId,operation,entity})};
+}
+test('local-master successful stored responses have no state and source-built customer/product/supplier projections are settled',()=>{
+ for(const operation of ['customer.create','product.create','supplier.create']){const row=masterFixture(operation),response=JSON.parse(row.responseJson);assert.equal(Object.hasOwn(response,'state'),false);assert.deepEqual(Object.keys(response),['requestId','operation','entity']);assert.equal(settled(row),true);}
+ for(const reason of ['PRODUCT_STOCK_CODE_IN_USE','PRODUCT_BARCODE_IN_USE','PRODUCT_BARCODE_DUPLICATE_INPUT']){const row=masterFixture('product.create');row.responseJson=JSON.stringify(productRejectionRecord(row.requestId,reason));assert.equal(settled(row),true);}
+ assert.match(masterGuard,/CASE WHEN[\s\S]*THEN 1 ELSE 0 END<>1/);assert.match(masterGuard,/m\.payload_hash\)=32/);assert.match(masterGuard,/LOWER\(CONVERT\(varchar\(36\),m.request_id\)\)/);assert.match(masterGuard,/m\.operation/);assert.doesNotMatch(masterGuard,/\$\.state|current_balance/);assert.match(masterGuard,/dbo\.products nativeRow/);assert.match(masterGuard,/dbo\.customers nativeRow/);assert.match(masterGuard,/dbo\.suppliers nativeRow/);
+ const sql=compile({mode:'rollback'}).sql;assert.ok(sql.indexOf(masterGuard)<sql.indexOf('INSERT dbo.roles('));
+});
+test('master-journal missing, malformed, unknown or unrelated identity is rejected instead of allowing every missing state',()=>{
+ const changes=[r=>r.responseJson=null,r=>r.responseJson='{',r=>r.responseJson='null',r=>r.responseJson='{}',r=>r.actorId=null,r=>r.payloadSha256='',r=>r.operation='unrelated.operation',r=>r.responseJson=r.responseJson.replace(r.requestId,'44444444-4444-4444-8444-444444444444'),r=>r.responseJson=r.responseJson.replace('customer.create','product.create'),r=>{const v=JSON.parse(r.responseJson);v.state='UNKNOWN';r.responseJson=JSON.stringify(v);},r=>{const v=JSON.parse(r.responseJson);v.state='COMMITTED';r.responseJson=JSON.stringify(v);},r=>{const v=JSON.parse(r.responseJson);v.entity.id='0';r.responseJson=JSON.stringify(v);},r=>{const v=JSON.parse(r.responseJson);v.entity.kind='source';r.responseJson=JSON.stringify(v);},r=>{const v=JSON.parse(r.responseJson);v.entity.accounts[0].customerId='99';r.responseJson=JSON.stringify(v);},r=>{const v=JSON.parse(r.responseJson);delete v.entity.accounts;r.responseJson=JSON.stringify(v);},r=>r.responseJson=r.responseJson.replace('{','{"requestId":"'+r.requestId+'",')];
+ for(const change of changes){const r=masterFixture();change(r);assert.equal(settled(r),false);}
+ const r=masterFixture('product.create');for(const reason of ['UNKNOWN','CUSTOMER_ACCOUNT_EXISTS','PRODUCT_OTHER']){r.responseJson=JSON.stringify({kind:'desktop-product-rejection-v1',requestId:r.requestId,operation:r.operation,reason});assert.equal(settled(r),false);}
+ const missingUnit=masterFixture('product.create'),v=JSON.parse(missingUnit.responseJson);v.entity.prices[0].unitId='99';missingUnit.responseJson=JSON.stringify(v);assert.equal(settled(missingUnit),false);
+ const duplicateTuple=masterFixture('product.create'),d=JSON.parse(duplicateTuple.responseJson);d.entity.prices.push({...d.entity.prices[0],id:'88'});duplicateTuple.responseJson=JSON.stringify(d);assert.equal(settled(duplicateTuple),false);assert.match(masterGuard,/GROUP BY[^;]*HAVING COUNT\(\*\)>1/s);
+ assert.match(masterGuard,/OPENJSON/);assert.match(masterGuard,/k\.\[type\] IN\(5\)/);assert.match(masterGuard,/k\.\[type\] IN\(4\)/);assert.match(masterGuard,/PRODUCT_BARCODE_DUPLICATE_INPUT/);assert.doesNotMatch(masterGuard,/CUSTOMER_ACCOUNT_EXISTS|N'UNKNOWN'|N'PENDING'/);
+});
+test('SQL JSON strings and canonical VARCHAR UUID/id/decimal projections share UTF16LE before exact binary comparison',()=>{
+ for(const value of ['1','12.00000000','33333333-3333-4333-8333-333333333333']){assert.notDeepEqual(Buffer.from(value,'utf16le'),Buffer.from(value,'utf8'));assert.deepEqual(Buffer.from(String(value),'utf16le'),Buffer.from(String(value),'utf16le'));}
+ assert.match(masterGuard,/CONVERT\(varbinary\(max\),CONVERT\(nvarchar\(max\),LOWER\(CONVERT\(varchar\(36\),m.request_id\)\)\)\)/);
+ assert.match(masterGuard,/CONVERT\(varbinary\(max\),CONVERT\(nvarchar\(max\),CONVERT\(varchar\(20\),TRY_CONVERT\(bigint,/);
+ assert.match(masterGuard,/CONVERT\(varbinary\(max\),CONVERT\(nvarchar\(max\),CONVERT\(varchar\(50\),TRY_CONVERT\(decimal\(28,8\),/);
+ assert.doesNotMatch(masterGuard,/CONVERT\(varbinary\(max\),(?:JSON_VALUE|LOWER|CONVERT\(varchar|k\.\[key\])/);
+});
 function receipt(active=false){const users=people.map((p,i)=>{const r=roles.find(r=>r.key===p.role),j=roles.indexOf(r);return {key:p.key,username:p.username,userId:String(i+2),userVersion:version(i+100),roleId:String(j+2),roleVersion:version(j+200),roleCode:r.code,active};});return {version:1,state:active?'EMPTY_V7_PERSONNEL_ACTIVATED':'EMPTY_V7_PERSONNEL_CREATED_INACTIVE',target:{...target},rosterOperationId:'11111111-1111-4111-8111-111111111111',operationId:'22222222-2222-4222-8222-222222222222',rosterSha256:rosterHash,users,policy:{id:'3',version:version(400),sha256:createHash('sha256').update(personnelPolicy(users),'utf16le').digest('hex')},hashes:Object.fromEntries(keys.map(k=>[k,'a'.repeat(64)]))};}
 
 test('SQL NULL for an empty personnel subquery is serialized as [] and the saved public DB9 row then passes the unchanged parser',()=>{
