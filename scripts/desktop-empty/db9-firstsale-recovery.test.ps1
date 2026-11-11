@@ -25,7 +25,7 @@ Check 'fixed source/copy identities and SQL no source mutation' {
  foreach($pin in @('6d773db9-bd69-4906-b791-d63a490ab1f2','287f689a-43bb-43dd-950b-adb615fcb20c','2026-11-10 11:10:18.030','4924','Shared memory','0x0105000000000005150000004c0463816267f53b9f6e1299e9030000')){Assert ($guard.Contains($pin)) 'SQL_PIN'}
  $writeSql=(Recovery-BackupSql)+(Recovery-RestoreSql @{logicalData='data';logicalLog='log'})+(Recovery-IsolateSql)+(Recovery-CopyCheckSql)
  Assert ($writeSql -notmatch '(?i)\b(DROP|ALTER|REPAIR_ALLOW_DATA_LOSS|INIT|FORMAT)\b|\bWITH\s+REPLACE\b|,\s*REPLACE\s*[,;]') 'NO_DESTRUCTIVE_TOKEN'
- Assert ((Recovery-IsolateSql).Contains('EXEC [MELISA_ERP_DB9_RESTORE_20261111_CA3526AE].sys.sp_executesql')) 'COPY_ONLY_DENY'
+ Assert ((Recovery-IsolateSql).Contains('EXEC [MELISA_ERP_DB9_RESTORE_20261111_4B560CEE].sys.sp_executesql')) 'COPY_ONLY_DENY'
 }
 Check 'unique backup media and restore logical quoting' {
  $backup=Recovery-BackupSql
@@ -37,11 +37,31 @@ Check 'unique backup media and restore logical quoting' {
 Check 'all43 PK fingerprints keep sensitive rows only inside native HASHBYTES' {
  $sql=Recovery-FingerprintSql (Recovery-Target).database
  foreach($token in @('is_primary_key=1','ic.key_ordinal>0','ORDER BY ic.key_ordinal','COALESCE((SELECT *','HASHBYTES','IF @keys IS NULL','RECOVERY_TABLE43_REQUIRED','@n>100000','DATALENGTH(@json)>16777216')){Assert ($sql.Contains($token)) 'FULL_HASH_SHAPE'}
- Assert ($sql.Contains('SELECT tableName,rowCount,dataSha256 FROM @result') -and -not $sql.Contains('SELECT @json')) 'NO_RAW_ROWS'
+ Assert ($sql.Contains('SELECT tableName,[rowCount],dataSha256 FROM @result') -and -not $sql.Contains('SELECT @json')) 'NO_RAW_ROWS'
  Assert ((Recovery-MetadataSql (Recovery-Target).database $false).Contains('CONVERT(nvarchar(128),last_value)')) 'SQL_VARIANT_CANONICAL'
  $sourceMeta=Recovery-MetadataSql (Recovery-Target).database $false;$copyMeta=Recovery-MetadataSql (Recovery-Names).restoreDatabase $true
  Assert (-not $sourceMeta.Contains('AND NOT(p.class=0') -and $copyMeta.Contains("p.permission_name=N'CONNECT' AND p.state=N'D' AND p.grantee_principal_id=0")) 'ONLY_COPY_EXCEPTION'
  Reject {Recovery-MetadataSql (Recovery-Target).database $true} 'RECOVERY_METADATA_SCOPE'
+}
+Check 'fingerprint reserved rowCount identifier is delimited in declaration and result without changing JSON contract' {
+ foreach($database in @((Recovery-Target).database,(Recovery-Names).restoreDatabase)){
+  $sql=Recovery-FingerprintSql $database
+  Assert ($sql.Contains('DECLARE @result TABLE(tableName nvarchar(128),[rowCount] varchar(30),dataSha256 varchar(64));')) 'DELIMITED_ROWCOUNT_DECLARATION'
+  Assert ($sql.Contains('SELECT tableName,[rowCount],dataSha256 FROM @result')) 'DELIMITED_ROWCOUNT_SELECT'
+  Assert (-not($sql -cmatch '(?<![\[A-Za-z0-9_])rowCount(?![\]A-Za-z0-9_])')) 'NO_BARE_ROWCOUNT_IDENTIFIER'
+  Assert ($sql.Contains('INSERT @result VALUES(@table,CONVERT(varchar(30),@count),') -and $sql.Contains('FOR JSON PATH,INCLUDE_NULL_VALUES')) 'FINGERPRINT_VALUES_JSON_UNCHANGED'
+ }
+ $public='[{"tableName":"public_example","rowCount":"0","dataSha256":"'+('a'*64)+'"}]'|ConvertFrom-Json -AsHashtable -NoEnumerate
+ Assert ($public[0].Contains('rowCount') -and -not$public[0].Contains('[rowCount]') -and $public[0].rowCount -ceq '0') 'PUBLIC_JSON_ROWCOUNT_NAME'
+}
+Check 'successor recovery namespace never reuses failed operation artifacts or destination' {
+ $n=Recovery-Names
+ Assert ($n.operationId -ceq '4b560cee-677a-499a-83e8-0dd08726ec40' -and $n.restoreDatabase -ceq 'MELISA_ERP_DB9_RESTORE_20261111_4B560CEE') 'SUCCESSOR_OPERATION'
+ Assert ($n.backupPath.EndsWith('DB9_K12_AFTER_FIRSTSALE_4b560cee677a499a83e80dd08726ec40.bak') -and $n.dataPath.EndsWith('MELISA_ERP_DB9_RESTORE_20261111_4B560CEE.mdf') -and $n.logPath.EndsWith('MELISA_ERP_DB9_RESTORE_20261111_4B560CEE_log.ldf') -and $n.mediaName -ceq 'DB9_K12_4b560cee677a499a83e80dd08726ec40') 'SUCCESSOR_MEDIA_AND_FILES'
+ Reject {Recovery-Database 'MELISA_ERP_DB9_RESTORE_20261111_CA3526AE'} 'RECOVERY_DATABASE_REJECTED'
+ $text=[IO.File]::ReadAllText($runnerPath)
+ Assert ($text.Contains("`$Mode.ToLowerInvariant()+'-v2-20261111.json'") -and $text.Contains("db9-firstsale-recovery-4b560cee-'")) 'SUCCESSOR_DECISION_AND_PREFIX'
+ Assert ($text.Contains('/db9-firstsale-recovery-4b560cee-preflight-result.json') -and $text.Contains('/db9-firstsale-recovery-4b560cee-preflight-closed.json') -and -not($text -match '(?i)ca3526ae')) 'NO_OLD_RESULT_REPLAY'
 }
 function Fixture-Layout {
  return @{backupDirectory='C:\Program Files\Microsoft SQL Server\MSSQL16.MELISAERP\MSSQL\Backup\';dataDirectory='C:\Program Files\Microsoft SQL Server\MSSQL16.MELISAERP\MSSQL\DATA\';logDirectory='C:\Program Files\Microsoft SQL Server\MSSQL16.MELISAERP\MSSQL\DATA\';logicalData='D';logicalLog='L';fileBytes='1048576';files=@(@{type=0;physicalName='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/DATA/source.mdf'},@{type=1;physicalName='C:/Program Files/Microsoft SQL Server/MSSQL16.MELISAERP/MSSQL/DATA/source_log.ldf'});usersCount=7;rolesCount=7;permissionsCount=58}

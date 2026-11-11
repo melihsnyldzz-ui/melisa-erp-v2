@@ -1,5 +1,18 @@
 # DB9 K12 backup and separate restore
 
+This is the isolated successor to source `2c7a94cc`. The earlier `ca3526ae`
+operation stopped before backup or restore. Its claims, failed result, closed
+record and decisions remain historical evidence and must not be retried or
+overwritten. A separate read-only diagnostic identified SQL error156 at the
+fingerprint declaration and result: reserved `rowCount` was unquoted. Both
+identifiers now use `[rowCount]`; the public JSON key stays `rowCount`.
+
+The successor uses operation `4b560cee-677a-499a-83e8-0dd08726ec40`, new backup,
+copy and media names, and separate `decision-*-v2-20261111.json` inputs. Source
+tests do not prove SQL Server execution. Root must review the exact new source,
+wait for its exact CI, run the new read-only Preflight and bind its matching
+successful closed record before considering BackupRestore.
+
 Source preparation only. This helper has not connected to SQL Server, created a
 backup, restored a database or established K12 acceptance. Root is the sole
 operational owner. Source review, exact current CI and explicit Root execution
@@ -25,9 +38,9 @@ Open, backup, restore or a credential interface.
   helper does not change runtime files, services or application state.
 - Both application owner lock files must already exist and are held NoShare;
   application listeners/processes and other source-DB sessions cause rejection.
-- Separate name only: `MELISA_ERP_DB9_RESTORE_20261111_CA3526AE`. Backup/MDF/LDF
-  names and operation ID are fixed by `Recovery-Names`, matching the readiness
-  report. SQL defaults must match the historical instance directories exactly;
+- Separate name only: `MELISA_ERP_DB9_RESTORE_20261111_4B560CEE`. Backup/MDF/LDF
+  names and operation ID are fixed by `Recovery-Names`, matching this successor
+  contract. SQL defaults must match the historical instance directories exactly;
   all parents must exist without reparse points, all destinations must be absent
   in the filesystem and SQL catalog. No silent redirection or reservation.
 - Final Role application is a prerequisite: Root supplies the real applied
@@ -38,8 +51,8 @@ Open, backup, restore or a credential interface.
 ## Root public decision contract
 
 Root prepares the following fixed A-only filename for the selected mode:
-`db9-firstsale-recovery-decision-preflight-20261111.json` or
-`db9-firstsale-recovery-decision-backuprestore-20261111.json`.
+`db9-firstsale-recovery-decision-preflight-v2-20261111.json` or
+`db9-firstsale-recovery-decision-backuprestore-v2-20261111.json`.
 No decision is created by source tests. All `sha256` fields below must be actual
 fresh SHA256 digests; the text below is a contract, not an executable decision.
 
@@ -47,7 +60,7 @@ fresh SHA256 digests; the text below is a contract, not an executable decision.
 |---|---|
 | version | 1 |
 | mode | exact requested mode |
-| operationId | fixed readiness operation `ca3526ae-6d32-41f3-b05d-514578d1dc2c` |
+| operationId | fixed readiness operation `4b560cee-677a-499a-83e8-0dd08726ec40` |
 | authorizedBy | `ROOT_SEQUENTIAL_OWNER` |
 | postRoleBindingsConfirmed | true, after actual Role application is reconciled |
 | target | exact object returned by `Recovery-Target` |

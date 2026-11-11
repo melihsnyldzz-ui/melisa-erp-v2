@@ -44,7 +44,7 @@ function Recovery-Decision($Decision){
  $review=Recovery-PublicReference $Decision.independentSourceReview
  Recovery-Assert ($review.decision -ceq 'GO_SOURCE_ONLY' -and $review.P1P2Findings -eq 0 -and $review.files.core -ceq $ExpectedCoreSha256 -and $review.files.runner -ceq $ExpectedSelfSha256) 'RECOVERY_INDEPENDENT_REVIEW'
  if($Mode -ceq 'BackupRestore'){
-  Recovery-Assert ($Decision.preflight.path -ceq $script:RecoveryA+'/db9-firstsale-recovery-ca3526ae-preflight-result.json' -and $Decision.preflightClosed.path -ceq $script:RecoveryA+'/db9-firstsale-recovery-ca3526ae-preflight-closed.json') 'RECOVERY_PREFLIGHT_REFERENCE_PAIR'
+  Recovery-Assert ($Decision.preflight.path -ceq $script:RecoveryA+'/db9-firstsale-recovery-4b560cee-preflight-result.json' -and $Decision.preflightClosed.path -ceq $script:RecoveryA+'/db9-firstsale-recovery-4b560cee-preflight-closed.json') 'RECOVERY_PREFLIGHT_REFERENCE_PAIR'
   $preflight=Recovery-PublicReference $Decision.preflight
   $preflightClosed=Recovery-PublicReference $Decision.preflightClosed
   Recovery-ValidatePreflightClosed $preflight $preflightClosed $Decision.preflight
@@ -118,8 +118,8 @@ function Recovery-HoldBackup {
 function Recovery-Run {
  $connection=$null;$locks=[Collections.Generic.List[IO.FileStream]]::new();$phase='INITIAL';$claimed=$false;$backupSubmitted=$false;$restoreSubmitted=$false;$successResultPersisted=$false;$resultState=$null
  $script:recoveryBackupSubmitted=$false;$script:recoveryRestoreSubmitted=$false
- $decisionPath=$script:RecoveryA+'/db9-firstsale-recovery-decision-'+$Mode.ToLowerInvariant()+'-20261111.json'
- $prefix=$script:RecoveryA+'/db9-firstsale-recovery-ca3526ae-'+$Mode.ToLowerInvariant()
+ $decisionPath=$script:RecoveryA+'/db9-firstsale-recovery-decision-'+$Mode.ToLowerInvariant()+'-v2-20261111.json'
+ $prefix=$script:RecoveryA+'/db9-firstsale-recovery-4b560cee-'+$Mode.ToLowerInvariant()
  try{
   if($Mode -cnotin @('Preflight','BackupRestore')){throw 'RECOVERY_EXPLICIT_MODE_REQUIRED'}
   [void](Recovery-Hold $PSCommandPath $ExpectedSelfSha256)
