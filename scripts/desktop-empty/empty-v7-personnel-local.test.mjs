@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {validatePersonnelDecision,validatePersonnelHashPacket,validatePersonnelHumanReceipt,personnelPriorArtifacts,personnelBindings,runPersonnelTransaction,personnelObservationCommand,readPersonnelPrivateInput} from './empty-v7-personnel-local.mjs';
+import {validatePersonnelDecision,validatePersonnelHashPacket,validatePersonnelHumanReceipt,personnelPriorArtifacts,personnelBindings,runPersonnelTransaction,personnelObservationCommand,readPersonnelPrivateInput,personnelSafeDiagnostic} from './empty-v7-personnel-local.mjs';
 import {EMPTY_V7_PERSONNEL_ROSTER as people,EMPTY_V7_PERSONNEL_ROLES as roles,EMPTY_V7_PERSONNEL_ROSTER_SHA256 as rosterSha256,EMPTY_V7_PERSONNEL_HASH_KEYS as hashKeys,parsePersonnelObservation,personnelPolicy,personnelReceipt} from './empty-v7-personnel-core.mjs';
 import {compileEmptyV7PersonnelReadSql,compileEmptyV7PersonnelSql,EMPTY_V7_PERSONNEL_BUSINESS_TABLES as tables} from './empty-v7-personnel-sql.mjs';
 const A='C:/Users/Xaser/.codex/visualizations/2026/11/05/01a1aba4-ea01-7f13-93cc-98d60952a40a',W='C:/Sirket/ERP/melisa-erp-v2/.git/codex-worktrees/db9-r1-personnel-20261111';
@@ -67,4 +67,8 @@ test('pure observation command and matcher bind numeric PIDs and exclude the pro
  assert(re.test('"'+ps+'" -NoProfile -NonInteractive -File "C:/Users/Xaser/Desktop/ERP/runtime-clean-v7/scripts/desktop-empty/start-master-v7.ps1" -ExpectedPackageHash x'));
  assert(re.test('"C:/Program Files/nodejs/node.exe" C:/Users/Xaser/Desktop/ERP/runtime-clean-v7/scripts/desktop-empty/start-master-v7-worker.mjs x'));
  assert.throws(()=>personnelObservationCommand('123;arbitrary',456));
+});
+test('diagnosis preserves nested numeric SQL errors and fixed guards without raw messages, parameters or getters',()=>{
+ const secret='private driver detail and bound credential';const nested={number:207,lineNumber:14,message:secret,parameters:{password:secret}};const error={code:'EREQUEST',message:'R1_OWNER_CONNECTION',originalError:[nested]};Object.defineProperty(error,'errors',{get(){throw Error('GETTER_EXECUTED');}});nested.originalError=error;
+ const d=personnelSafeDiagnostic(error,'READ_QUERY');assert.equal(d.stage,'READ_QUERY');assert(d.errors.some(x=>x.number===207&&x.lineNumber===14));assert(d.errors.some(x=>x.guard==='R1_OWNER_CONNECTION'));assert(!JSON.stringify(d).includes(secret));assert(!JSON.stringify(d).includes('parameters'));assert(personnelSafeDiagnostic(Error('EMPTY_V7_PERSONNEL_INPUT_REJECTED'),'READ_PARSE').errors.some(x=>x.guard==='EMPTY_V7_PERSONNEL_INPUT_REJECTED'));
 });
