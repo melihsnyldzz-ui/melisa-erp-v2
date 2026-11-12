@@ -10,17 +10,22 @@ const scaled=x=>{if(!decimal(x))fail();return BigInt(x.replace('.',''));};
 const fixed=n=>{if(n<0n||n>=10n**18n)fail();const s=n.toString().padStart(5,'0');return s.slice(0,-4)+'.'+s.slice(-4);};
 const makeReq=(sql,tx,p)=>{const r=new sql.Request(tx);for(const[k,v] of Object.entries(p))r.input(k,sql.NVarChar(k==='json'||k.endsWith('Ids')?sql.MAX:100),v);return r;};
 export const DUE_ACCOUNT_ROWS_SQL=`SET NOCOUNT ON;
- SELECT TOP(10001) CONVERT(varchar(20),i.id) invoiceId,CONVERT(varchar(20),i.customer_id) customerId,CONVERT(varchar(20),i.party_entity_id) entityId,CONVERT(varchar(20),i.party_currency_account_id) accountId,i.account_currency currency,i.document_currency documentCurrency,CONVERT(varchar(40),i.grand_total) documentAmountExact4,CONVERT(char(10),i.document_date,23) documentDate,i.status,CONVERT(varchar(40),i.account_amount) amountExact4 FROM dbo.sales_invoices i WITH(UPDLOCK,HOLDLOCK) WHERE (i.party_currency_account_id=TRY_CONVERT(bigint,@account) OR (i.customer_id=TRY_CONVERT(bigint,@customer) AND i.party_currency_account_id IS NULL) OR (i.party_entity_id=TRY_CONVERT(bigint,@entity) AND i.party_currency_account_id IS NULL)) AND i.status IN(N'finalized',N'cancelled') ORDER BY i.id;
+ SELECT TOP(10001) CONVERT(varchar(20),i.id) invoiceId,CONVERT(varchar(20),i.customer_id) customerId,CONVERT(varchar(20),i.party_entity_id) entityId,CONVERT(varchar(20),i.party_currency_account_id) accountId,i.account_currency currency,i.document_currency documentCurrency,CONVERT(varchar(40),i.grand_total) documentAmountExact4,CONVERT(char(10),i.document_date,23) documentDate,i.status,CASE WHEN i.finalized_at IS NULL THEN 0 ELSE 1 END hasFinalized,CONVERT(varchar(40),i.account_amount) amountExact4 FROM dbo.sales_invoices i WITH(UPDLOCK,HOLDLOCK) WHERE (i.party_currency_account_id=TRY_CONVERT(bigint,@account) OR (i.customer_id=TRY_CONVERT(bigint,@customer) AND i.party_currency_account_id IS NULL) OR (i.party_entity_id=TRY_CONVERT(bigint,@entity) AND i.party_currency_account_id IS NULL)) AND i.status IN(N'finalized',N'cancelled') ORDER BY i.id;
  SELECT TOP(20001) CONVERT(varchar(20),m.id) movementId,CONVERT(varchar(20),m.customer_id) customerId,CONVERT(varchar(20),m.party_entity_id) entityId,CONVERT(varchar(20),m.party_currency_account_id) accountId,CONVERT(varchar(20),m.sales_invoice_id) invoiceId,m.movement_type movementType,m.account_currency currency,m.currency_code documentCurrency,CONVERT(varchar(40),m.amount) documentAmountExact4,CONVERT(char(10),m.document_date,23) documentDate,CONVERT(varchar(40),m.account_amount) amountExact4,CONVERT(varchar(40),m.balance_effect) balanceEffectExact4,CONVERT(varchar(20),m.created_by) actorId,CONVERT(varchar(20),f.id) financeMovementId,CONVERT(varchar(20),f.created_by) financeActorId,f.direction financeDirection,f.currency_code financeCurrency,CONVERT(varchar(40),f.amount) financeAmountExact4 FROM dbo.customer_movements m WITH(UPDLOCK,HOLDLOCK) LEFT JOIN dbo.finance_account_movements f WITH(UPDLOCK,HOLDLOCK) ON f.party_movement_id=m.id AND f.party_type=N'customer' AND f.source_type=N'collection' WHERE m.party_currency_account_id=TRY_CONVERT(bigint,@account) OR (m.customer_id=TRY_CONVERT(bigint,@customer) AND m.party_currency_account_id IS NULL) OR (m.party_entity_id=TRY_CONVERT(bigint,@entity) AND m.party_currency_account_id IS NULL) ORDER BY m.id;`;
 export const DUE_AUDITS_SQL=`SELECT TOP(30001) CONVERT(varchar(20),id) auditId,CONVERT(varchar(20),actor_user_id) actorId,CONVERT(varchar(20),entity_id) entityId,action,reason,after_json json FROM dbo.audit_logs WITH(UPDLOCK,HOLDLOCK) WHERE source=N'desktop-due-v1' AND ((action=N'invoice.due.snapshot' AND entity_type=N'sales-invoice' AND entity_id IN(SELECT TRY_CONVERT(bigint,value) FROM OPENJSON(@invoiceIds))) OR (action=N'collection.allocation' AND entity_type=N'customer-movement' AND entity_id IN(SELECT TRY_CONVERT(bigint,value) FROM OPENJSON(@movementIds)))) ORDER BY id;`;
 export async function prepareDesktopDueCollection({sql,transaction,actorId,requestId,customerId,accountId,entityId,currency,balanceExact8,amountExact4,invoiceId}={}){
  if(!sql||!transaction||![actorId,customerId,accountId,entityId].every(id)||currency!=='TRY'||!uuid(requestId)||invoiceId!==null||!decimal(amountExact4)||scaled(amountExact4)<=0n||typeof balanceExact8!=='string'||!/^(?:0|[1-9]\d{0,19})\.\d{8}$/.test(balanceExact8))fail();
  const rs=(await makeReq(sql,transaction,{customer:customerId,account:accountId,entity:entityId}).query(DUE_ACCOUNT_ROWS_SQL))?.recordsets;
  if(!Array.isArray(rs)||rs.length!==2||!Array.isArray(rs[0])||!Array.isArray(rs[1])||rs[0].length>10000||rs[1].length>20000)fail();
- const [invoices,movements]=rs,ids=new Set();
- for(const i of invoices){
-  if(!id(i.invoiceId)||ids.has(i.invoiceId)||i.customerId!==customerId||i.entityId!==entityId||i.accountId!==accountId||i.currency!==currency||!['finalized','cancelled'].includes(i.status)||!decimal(i.amountExact4)||scaled(i.amountExact4)<=0n)fail();
-  ids.add(i.invoiceId);
+ const [invoiceRows,movements]=rs,ids=new Set(),seenInvoiceIds=new Set(),invoices=[];
+ for(const i of invoiceRows){
+  if(!id(i.invoiceId)||seenInvoiceIds.has(i.invoiceId)||i.customerId!==customerId||!['finalized','cancelled'].includes(i.status)||![0,1].includes(i.hasFinalized))fail();
+  seenInvoiceIds.add(i.invoiceId);
+  // A cancelled draft has no posted account, movement or due snapshot.
+  // Its identity stays in the audit read; any unexpected ledger/audit still rejects.
+  if(i.status==='cancelled'&&i.hasFinalized===0){if(i.entityId!==null||i.accountId!==null)fail();continue;}
+  if(i.hasFinalized!==1||i.entityId!==entityId||i.accountId!==accountId||i.currency!==currency||!decimal(i.amountExact4)||scaled(i.amountExact4)<=0n)fail();
+  ids.add(i.invoiceId);invoices.push(i);
  }
  const movementIds=new Set(),originals=new Map(),cancellations=new Map(),collections=[];
  for(const m of movements){
@@ -44,7 +49,7 @@ export async function prepareDesktopDueCollection({sql,transaction,actorId,reque
    if(!inverse||BigInt(inverse.movementId)<=BigInt(m.movementId)||inverse.amountExact4!==m.amountExact4||inverse.documentCurrency!==m.documentCurrency||inverse.documentAmountExact4!==m.documentAmountExact4||inverse.documentDate!==m.documentDate)fail();
   }else if(inverse)fail();
  }
- const audits=(await makeReq(sql,transaction,{invoiceIds:JSON.stringify([...ids]),movementIds:JSON.stringify(collections.map(m=>m.movementId))}).query(DUE_AUDITS_SQL))?.recordset;
+ const audits=(await makeReq(sql,transaction,{invoiceIds:JSON.stringify([...seenInvoiceIds]),movementIds:JSON.stringify(collections.map(m=>m.movementId))}).query(DUE_AUDITS_SQL))?.recordset;
  if(!Array.isArray(audits)||audits.length>30000)fail();
  const dues=new Map(),allocs=new Map();
  for(const a of audits){
